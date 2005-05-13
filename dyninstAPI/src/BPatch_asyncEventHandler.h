@@ -104,6 +104,7 @@ typedef struct {
   unsigned int pid;
   BPatch_asyncEventType type;
   unsigned int event_fd;
+  unsigned int size;
 } BPatch_asyncEventRecord;
 
 
@@ -125,6 +126,8 @@ class BPatch_eventMailbox {
   bool registerCallback(BPatch_asyncEventType type,
                         BPatchAsyncThreadEventCallback _cb,
                         BPatch_process *p, unsigned long tid);
+  bool registerCallback(BPatchUserEventCallback _cb,
+                        void *buf, unsigned int bufsize);
   bool registerCallback(BPatchDynamicCallSiteCallback _cb,
                         BPatch_point *p, BPatch_function *f);
   bool executeOrRegisterCallback(BPatchErrorCallback _cb,
@@ -228,6 +231,11 @@ typedef struct {
 } dyncall_cb_record;
 
 typedef struct {
+    BPatchUserEventCallback cb;
+    BPatch_process *proc;
+} user_event_cb_record;
+
+typedef struct {
     pdvector<BPatchAsyncThreadEventCallback> *cbs;
     pdvector<BPatch_function *> *mutatee_side_cbs;
     pdvector<BPatchSnippetHandle *> *handles;
@@ -299,6 +307,19 @@ class BPatch_asyncEventHandler : public BPatch_eventLock {
                                    BPatch_asyncEventType type,
                                    BPatch_function *cb);
 
+
+    //  BPatch_asyncEventHandler::registerUserEventCallback
+    //  Specify a function to be called when a user event  
+    bool registerUserEventCallback(BPatch_process *proc,
+                                   BPatchUserEventCallback cb);
+
+
+    //  BPatch_asyncEventHandler::removeUserEventCallback()
+    //  
+    bool removeUserEventCallback(BPatch_process *proc,
+                                   BPatchUserEventCallback cb);
+
+    //  BPatch_asyncEventHandler::removeThreadEventCallback()
 #if !defined (os_windows)
     //  NOTE:  right now stop()/pause() is expensive in terms of waiting time
     //  (requires select loop to wake up on its own before pause request
@@ -427,6 +448,7 @@ class BPatch_asyncEventHandler : public BPatch_eventLock {
     pdvector<thread_event_cb_record> thread_stop_cbs;
     pdvector<thread_event_cb_record> thread_create_cbs;
     pdvector<thread_event_cb_record> thread_destroy_cbs;
+    pdvector<user_event_cb_record> user_event_cbs;
 
     BPatchSnippetHandle *reportThreadCreateHandle;
     BPatchSnippetHandle *reportThreadDestroyHandle;

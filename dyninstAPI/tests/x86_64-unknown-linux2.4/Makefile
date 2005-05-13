@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2005/02/24 10:13:26 rchen Exp $
+# $Id: Makefile,v 1.2 2005/05/13 09:17:21 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -8,29 +8,16 @@ NO_OPT_FLAG=true
 NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
 USES_LIBELF = true
-
 DEBUG_FLAG = -g
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
-
 include $(TO_CORE)/make.config 
 
 # Now make any necessary architecture specific changes to variables:
 
-#CXXFLAGS += 
-#CFLAGS +=
-
-MUTATEE_FFLAGS += -Di386_unknown_linux2_0 -DF77 -fno-second-underscore -g
-MUTATEE_FLINKFLAGS += -g -ldl
-
-MUTATEE_TEST9_LIBS_LIST = libInstMe.so libLoadMe.so
-MUTATEE_TEST9_LIBS = -L. -lInstMe
-
-SYSLIBS += -ldl
-LIBS = 
-M_GXX = g++
-M_GCC = gcc
+#if M_G77 is defined, g77 mutatees will be built
+M_G77 = g77
 
 # there is no "native" or OS-provided compiler for Linux!
 # we use the Portland Group compilers, as that's what we've currently got
@@ -38,121 +25,42 @@ M_GCC = gcc
 ifdef PGI
 NATIVE_CC = pgcc
 NATIVE_CXX = pgCC
+COMPILERT_NATIVE_CC = $(shell $(NATIVE_CC) -V 2>/dev/null | grep '^pg' | head -1)
+COMPILERT_NATIVE_CXX = $(shell $(NATIVE_CXX) -V 2>/dev/null | grep '^pg' | head -1)
 endif
 
-NATIVE_FC = g77
-COMMA=,
+GNU_WARNING_FLAGS = -W -Wall
+MUTATOR_CXXFLAGS += $(GNU_WARNING_FLAGS)
+MUTATEE_CFLAGS_GNU 	= $(UNIFIED_DEF) $(GNU_WARNING_FLAGS)
+MUTATEE_CXXFLAGS_GNU 	= $(UNIFIED_DEF) $(GNU_WARNING_FLAGS)
+MUTATEE_LIBS = -Wl,-ldl
+MUTATEE_LDFLAGS_GNU += -Wl,-export-dynamic
 
-MINI_PLATFORM = x86
-TEST6_ASFLAGS = -f elf -dPLATFORM=$(PLATFORM)
+COMMA=,
+MUTATEE_G77_FFLAGS += -Di386_unknown_linux2_0 -DF77 -fno-second-underscore -g
+MUTATEE_G77_CFLAGS += $(filter-out -Wl$(COMMA)-export-dynamic, $(MUTATEE_CFLAGS_GNU)) 
+MUTATEE_G77_CFLAGS += -DF77 -DFortran -g $(MUTATEE_FFLAGS)  -fno-implicit-templates -c
+TEST1_FORTRAN_CSOURCE = test1.mutateeFortC.c
+
+MUTATOR_LIBS += -liberty
+MUTATEE_CFLAGS_NATIVE 	= $(UNIFIED_DEF)
+MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF)
+
+# Definitions used for test1 assembly
+TEST1_AS = gcc -c
+TEST1_ASFLAGS = $(MUTATEE_CFLAGS_GNU)
+CALL35_1_SRC = call35_1_x86_linux.s
+
+# Definition used for test6 assembly
+TEST6_AS_GNU = nasm
+TEST6_ASFLAGS_GNU = -f elf -dPLATFORM=$(PLATFORM)
+TEST6_AS_SRC = test6LS-x86.asm
 TEST6_ASSUFFIX = asm
 
-# Include the module-specific Makefile, which defines everything about
-# the module that is common across architectures.
+TESTLIB_FLAGS = -fpic -shared -g -Wl,-export-dynamic -Wl,-ldl
 
-USES_MUTATEE_LIBS = true
-MUTATEE_LIBS = -Wl,-ldl
+# see discussion in make.module.tmpl for the format of this variable
+MUTATEE_TEST9_EXTRA_LIB = 9.-L./ 9.-lInstMe
 
 include ../make.module.tmpl
-
-ifeq (pg,$(findstring pg,$(MUTATEE_CC)))
-COMPILERT = $(shell $(MUTATEE_CC) -V 2>/dev/null | grep '^pg' | head -1)
-else
-COMPILERT = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
-endif
-
-# As a test, don't include debug information in the mutatees.
-MUTATEE_CFLAGS = $(UNIFIED_DEF)
-
-EMPTY:=
-BLANK:=$(EMPTY) $(EMPTY)
-LPAREN:=(
-RPAREN:=)
-COMPILER1 = $(subst $(BLANK),_,$(COMPILERT))
-COMPILER2 = $(subst $(LPAREN),_,$(COMPILER1))
-COMPILER = $(subst $(RPAREN),_,$(COMPILER2))
-
-ifeq ($(NATIVE_FC), $(MUTATEE_FC))
-COMPILER = g77
-endif
-
-MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"' -g
-
-ifdef DETACH_ON_THE_FLY
-MUTATEE_CFLAGS += -DDETACH_ON_THE_FLY
-endif
-
-MUTATEE_CFLAGS += -m32
-
-ifeq (test1,$(findstring test1,$(TARGET2)))
-# test1.mutatee loads libtestA.so & libtestB.so for tests 21 & 22
-# and these libraries need access to global variables in test1.mutatee
-#MUTATEE_CFLAGS += -rdynamic
-MUTATEE_CFLAGS += -g -Wl,-export-dynamic
-endif
-
-
-ifeq (test9,$(findstring test9,$(TARGET2)))
-# test9.mutatee loads libInstMe.so & libLoadMe.so for tests 5 & 6
-# and these libraries need access to global variables in test9.mutatee
-#MUTATEE_CFLAGS += -rdynamic
-MUTATEE_CFLAGS += -g -Wl,-export-dynamic
-endif
-
-
-
-ifeq ($(NATIVE_FC), $(MUTATEE_FC))
-
-# FORTRAN_BASE = test1.mutateeFort, etc.
-FORTRAN_BASE = $(TARGET2:_$(NATIVE_FC)=Fort)
-
-$(TARGET2): $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o test1.mutateeCommon.o mutatee_util.o
-	-$(NATIVE_FC) $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o test1.mutateeCommon.o mutatee_util.o $(MUTATEE_FLINKFLAGS) -o $(TARGET2)
-
-$(FORTRAN_BASE)_$(NATIVE_FC).o: ../src/$(FORTRAN_BASE).F
-	-$(NATIVE_FC) $(MUTATEE_FFLAGS) -c -o $(FORTRAN_BASE)_$(NATIVE_FC).o ../src/$(FORTRAN_BASE).F
-
-$(FORTRAN_BASE)C_$(NATIVE_FC).o: ../src/$(TARGET2:_$(NATIVE_FC)=).c
-	-$(MUTATEE_CC) $(filter-out -Wl$(COMMA)-export-dynamic, $(MUTATEE_CFLAGS)) -fno-implicit-templates -W -Wall $(FORT_SQGL_FLAG) -DFortran -c -o $(FORTRAN_BASE)C_$(NATIVE_FC).o ../src/$(TARGET2:_$(NATIVE_FC)=).c
-else
-$(TARGET2): $(MUTATEE_SRC) $(MUTATEE_OBJS)
-	$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) $(MUTATEE_OBJS) -o $@ $(MUTLIBS)
-endif
-
-ifeq (test1,$(findstring test1,$(TARGET2)))
-MUTATEE_SRC	+=	../src/call35_1_x86_linux.s
-#MUTATEE_SRC	+=	../src/call35_1_x86_64_linux.s
-endif
-
-# (remove debug information for testing)
-libtestA.o:
-	$(CC) -m32 -fpic -c ../src/libtestA.c
-
-# (remove debug information for testing)
-libtestB.o:
-	$(CC) -m32 -fpic -c ../src/libtestB.c
-
-libtestA.so: libtestA.o
-	$(CC) -m32 -shared -o libtestA.so libtestA.o
-
-libtestB.so: libtestB.o
-	$(CC) -m32 -shared -o libtestB.so libtestB.o
-
-libLoadMe.o:  libLoadMe.c
-	$(CC) -m32 -fpic -c ../src/libLoadMe.c
-
-libLoadMe.so: libLoadMe.o
-	$(CC) -m32 -shared -z initarray=loadMe_init libLoadMe.o -o libLoadMe.so
-
-libInstMe.o:  libInstMe.c
-	$(CC) -m32 -fpic -c ../src/libInstMe.c
-
-libInstMe.so: libInstMe.o
-	$(CC) -m32 -shared libInstMe.o -o libInstMe.so
-
-
-# Include the "standard program template".  This defines all the
-# common targets like "clean", "install", etc.
-
-include $(TO_CORE)/make.program.tmpl
 

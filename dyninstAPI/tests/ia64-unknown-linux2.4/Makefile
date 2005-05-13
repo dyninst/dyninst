@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.11 2005/01/14 20:57:51 tlmiller Exp $
+# $Id: Makefile,v 1.12 2005/05/13 09:17:21 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -21,94 +21,51 @@ include $(TO_CORE)/make.config
 CXXFLAGS += -Wno-deprecated
 CFLAGS += -Wno-deprecated
 
-MUTATEE_FFLAGS += -Dia64_unknown_linux2_4 -DF77 -fno-second-underscore -g
-MUTATEE_FLINKFLAGS += -g -ldl
-
-SYSLIBS += -ldl
 M_GXX = $(GXX)
 M_GCC = $(GCC)
+M_G77 = g77
 
-NATIVE_FC = g77
+GNU_WARNING_FLAGS = -W -Wall
+MUTATOR_CXXFLAGS += $(GNU_WARNING_FLAGS)
+MUTATEE_CFLAGS_GNU      = $(UNIFIED_DEF) $(GNU_WARNING_FLAGS) -Wl,-export-dynamic
+MUTATEE_CXXFLAGS_GNU    = $(UNIFIED_DEF) $(GNU_WARNING_FLAGS) -Wl,-export-dynamic
+MUTATEE_LIBS =  -ldl
+MUTATEE_LDFLAGS_GNU += -Wl,-export-dynamic
+
 COMMA=,
+MUTATEE_G77_FFLAGS += -Dia64_unknown_linux2_4 -DF77 -fno-second-underscore -g
+MUTATEE_G77_CFLAGS += $(UNIFIED_DEF) -DCOMPILER='"g77"' -Wl,-export-dynamic
+MUTATEE_G77_CFLAGS +=  -DFortran -g  -fno-implicit-templates -c
+MUTATEE_G77_LDFLAGS += -Wl,-export-dynamic
 
-MINI_PLATFORM = ia64
-TEST6_ASFLAGS = 
+#  test1_fortran_csource is probably not correct...  kept here to make
+# sure we can build (but not run) fortran mutatees.  
+# should be test1.mutateeFortC.c, I think.
+TEST1_FORTRAN_CSOURCE = test1.mutatee.c
+
+MUTATEE_TEST9_LIBS_LIST = libInstMe.so libLoadMe.so
+MUTATEE_TEST9_LIBS = -L. -lInstMe
+
+MUTATOR_LIBS += -liberty -ldl
+MUTATEE_CFLAGS_NATIVE   = $(UNIFIED_DEF)
+MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF)
+
+# Definitions used for test1 assembly
+TEST1_AS = gcc -c
+TEST1_ASFLAGS = $(MUTATEE_CFLAGS_GNU)
+CALL35_1_SRC = call35_1.c
+
+# Definition used for test6 assembly
+TEST6_AS_GNU = as
+TEST6_ASFLAGS_GNU = 
+TEST6_AS_SRC = test6LS-ia64.s
 TEST6_ASSUFFIX = s
+
+TESTLIB_FLAGS = -fpic -shared -g -Wl,-export-dynamic -Wl,-ldl
+
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
 
-USES_MUTATEE_LIBS = true
-MUTATEE_LIBS = -ldl
-
 include ../make.module.tmpl
 
-ifeq (pg,$(findstring pg,$(MUTATEE_CC)))
-COMPILERT = $(shell $(MUTATEE_CC) -V 2>/dev/null | grep '^pg' | head -1)
-else
-COMPILERT = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
-endif
-
-MUTATEE_CFLAGS = -g $(UNIFIED_DEF) -Wno-deprecated
-
-EMPTY:=
-BLANK:=$(EMPTY) $(EMPTY)
-LPAREN:=(
-RPAREN:=)
-COMPILER1 = $(subst $(BLANK),_,$(COMPILERT))
-COMPILER2 = $(subst $(LPAREN),_,$(COMPILER1))
-COMPILER = $(subst $(RPAREN),_,$(COMPILER2))
-
-ifeq ($(NATIVE_FC), $(MUTATEE_FC))
-COMPILER = g77
-endif
-
-MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
-
-ifdef DETACH_ON_THE_FLY
-MUTATEE_CFLAGS += -DDETACH_ON_THE_FLY
-endif
-
-ifeq (test1,$(findstring test1,$(TARGET2)))
-# test1.mutatee loads libtestA.so & libtestB.so for tests 21 & 22
-# and these libraries need access to global variables in test1.mutatee
-MUTATEE_CFLAGS += -Wl,-export-dynamic
-endif
-
-ifeq ($(NATIVE_FC), $(MUTATEE_FC))
-
-FORTRAN_BASE = $(TARGET2:_$(NATIVE_FC)=Fort)
-
-$(TARGET2): $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o
-	$(MUTATEE_CC) $(MUTATEE_CFLAGS) -W -Wall -c -o test1.mutateeCommon.o ../src/test1.mutateeCommon.c
-	$(MUTATEE_CC) $(MUTATEE_CFLAGS) -W -Wall -c -o mutatee_util.o ../src/mutatee_util.c
-	-$(NATIVE_FC) $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o test1.mutateeCommon.o mutatee_util.o $(MUTATEE_FLINKFLAGS) -o $(TARGET2)
-
-$(FORTRAN_BASE)_$(NATIVE_FC).o: ../src/$(FORTRAN_BASE).F
-	-$(NATIVE_FC) $(MUTATEE_FFLAGS) -c -o $(FORTRAN_BASE)_$(NATIVE_FC).o ../src/$(FORTRAN_BASE).F
-
-$(FORTRAN_BASE)C_$(NATIVE_FC).o: ../src/$(TARGET2:_$(NATIVE_FC)=).c
-	-$(MUTATEE_CC) $(filter-out -Wl$(COMMA)-export-dynamic, $(MUTATEE_CFLAGS)) -fno-implicit-templates -W -Wall $(FORT_SQGL_FLAG) -DFortran -c -o $(FORTRAN_BASE)C_$(NATIVE_FC).o ../src/$(TARGET2:_$(NATIVE_FC)=).c
-else
-$(TARGET2): $(MUTATEE_SRC) $(MUTATEE_OBJS)
-	$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) $(MUTATEE_OBJS) -o $@ $(MUTLIBS)
-endif
-
-libtestA.o:
-	$(CC) -g -fpic -c ../src/libtestA.c
-
-libtestB.o:
-	$(CC) -g -fpic -c ../src/libtestB.c
-
-libtestA.so: libtestA.o
-	$(CC) -shared -o libtestA.so libtestA.o
-
-libtestB.so: libtestB.o
-	$(CC) -shared -o libtestB.so libtestB.o
-
-# Include the "standard program template".  This defines all the
-# common targets like "clean", "install", etc.
-
-NASM = $(AS)
-
-include $(TO_CORE)/make.program.tmpl

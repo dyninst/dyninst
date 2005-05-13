@@ -1412,6 +1412,27 @@ bool BPatch_process::removeAsyncThreadEventCallbackMutateeSide(
    return handler->removeThreadEventCallback(this, type, cb);
 }
 
+
+bool BPatch_process::registerUserEventCallbackInt(
+           BPatchUserEventCallback cb)
+{
+   bool ret = false;
+   BPatch_asyncEventHandler *handler = BPatch::bpatch->eventHandler;
+   ret = handler->registerUserEventCallback(this, cb);
+   if (ret) BPatch::bpatch->asyncActive = true;
+   return ret;
+}
+
+bool BPatch_process::removeUserEventCallbackInt(
+           BPatchUserEventCallback cb)
+{
+   bool ret = false;
+   BPatch_asyncEventHandler *handler = BPatch::bpatch->eventHandler;
+   ret =  handler->removeUserEventCallback(this, cb);
+   if (ret) BPatch::bpatch->asyncActive = true;
+   return ret;
+}
+
 void BPatch_process::setExitedViaSignal(int signalnumber) {
    exitedViaSignal = true;
    lastSignal = signalnumber;

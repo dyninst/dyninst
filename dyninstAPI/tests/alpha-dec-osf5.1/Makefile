@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.8 2005/04/12 05:14:21 jaw Exp $
+# $Id: Makefile,v 1.9 2005/05/13 09:17:20 jaw Exp $
 #
 # Makefile for dyninstAPI test programs on Tru64 Alpha
 #
@@ -19,80 +19,40 @@ CFLAGS += -g
 CFLAGS += -pthread
 CXXFLAGS += -pthread
 MUTATEE_CFLAGS += -pthread
-MUTATEE_FFLAGS += -Dalpha_dec_osf4_0 -g
-LDFLAGS += -lrt
+MUTATEE_FFLAGS_G77 += -Dalpha_dec_osf4_0 -g
+MUTATEE_NATIVE_FFLAGS += -Dalpha_dec_osf4_0 -g
+MUTATEE_NATIVE_FC_CFLAGS += $(UNIFIED_DEF) -DFortran
+TEST1_FORTRAN_CSOURCE = test1.mutateeFortC.c
+LDFLAGS += -lrt -lpthread
 
 NATIVE_CC = cc
-NATIVE_CXX = cxx 
-M_GXX = g++
-M_GCC = gcc
+NATIVE_CXX = cxx
+##  Uncomment M_G77 to trigger g77 fortran build   (at your own risk)
+#M_G77 = g77
 NATIVE_FC = f90
+NATIVE_FORTRAN_CC = gcc
 COMMA=,
 
-MINI_PLATFORM = alpha
+COMPILERT_NATIVE_CC = $(shell $(NATIVE_CC) -V 2>&1 | head -1)
+COMPILERT_NATIVE_CXX = $(shell $(NATIVE_CXX) -V 2>&1 | head -1)
+
+MUTATEE_FFLAGS_NATIVE += -nofor_main
+MUTATEE_NATIVE_FC_LDFLAGS += -nofor_main
+MUTATEE_CXXFLAGS_NATIVE +=  $(UNIFIED_DEF) -g -D__USE_STD_IOSTREAM -pthread -D_REENTRANT
+MUTATEE_CFLAGS_NATIVE += $(UNIFIED_DEF)  -g -pthread
+MUTATEE_CFLAGS_GNU += $(UNIFIED_DEF) -pthread
+MUTATEE_CXXFLAGS_GNU += $(UNIFIED_DEF) 
+TESTLIB_FLAGS = -g -fpic -shared -I$(TO_CORE)/dyninstAPI_RT/h
+MUTATEE_LDFLAGS_GNU += -lrt
+MUTATEE_LDFLAGS_NATIVE += -lrt
+
+
+TEST6_AS_GNU = as
 TEST6_ASFLAGS = -cpp
 TEST6_ASSUFFIX = s
-
-ifeq ($(NATIVE_FC), $(MUTATEE_FC))
-
-COMPILER = f90
-# FORTRAN_BASE = test1.mutateeFort, etc.
-FORTRAN_BASE = $(TARGET2:_$(NATIVE_FC)=Fort)
-FORTRAN_BASE = test1.mutateeFort
-
-$(TARGET2): $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o test1.mutateeCommon.o mutatee_util.o
-	-$(MUTATEE_CC) -c ../src/mutatee_util.c
-	-$(NATIVE_FC) -g -nofor_main $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o test1.mutateeCommon.o mutatee_util.o $(MUTATEE_FLINKFLAGS) -o $(TARGET2)
-
-$(FORTRAN_BASE)_$(NATIVE_FC).o: ../src/$(FORTRAN_BASE).F
-	-$(NATIVE_FC) $(MUTATEE_FFLAGS) -c -o $(FORTRAN_BASE)_$(NATIVE_FC).o ../src/$(FORTRAN_BASE).F
-
-$(FORTRAN_BASE)C_$(NATIVE_FC).o: ../src/$(TARGET2:_$(NATIVE_FC)=).c
-	-$(MUTATEE_CC) $(filter-out -Wl$(COMMA)-bgcbypass:3, $(MUTATEE_CFLAGS)) -fno-implicit-templates -W -Wall $(FORT_SQGL_FLAG) -DFortran -c -o $(FORTRAN_BASE)C_$(NATIVE_FC).o ../src/$(FORTRAN_BASE)C.c
-else
-$(TARGET2): $(MUTATEE_SRC) $(MUTATEE_OBJS)
-	-$(MUTATEE_CC) -g $(MUTATEE_CFLAGS) \
-	$(MUTATEE_SRC) $(MUTATEE_OBJS) -o $(TARGET2)
-endif
+TEST6_AS_SRC = test6LS-alpha.s
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
-
 include ../make.module.tmpl
 
-COMPILERT = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
-
-MUTATEE_CFLAGS = $(MODCFLAGS) -g
-ifeq ($(MUTATEE_CC),$(NATIVE_CC))
-COMPILERT = $(shell $(MUTATEE_CC) -V 2>&1 | head -1)
-MUTATEE_CFLAGS = $(UNIFIED_DEF) -g
-endif
-ifeq ($(MUTATEE_CC),$(NATIVE_CXX))
-COMPILERT = $(shell $(MUTATEE_CC) -V 2>&1 | head -1)
-MUTATEE_CFLAGS = -x cxx $(UNIFIED_DEF) -g -D__USE_STD_IOSTREAM -pthread
-endif
-
-EMPTY:=
-BLANK:=$(EMPTY) $(EMPTY)
-COMPILER = $(subst $(BLANK),_,$(COMPILERT))
-MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"'
-
-#$(TARGET2): $(MUTATEE_SRC) $(MUTATEE_OBJS)
-#	-$(MUTATEE_CC) $(MUTATEE_CFLAGS) $(MUTATEE_SRC) $(MUTATEE_OBJS) -o $(TARGET2) $(MUTLIBS)
-
-libtestA.o:
-	$(CC) -g -fpic -c ../src/libtestA.c
-
-libtestB.o:
-	$(CC) -fpic -c ../src/libtestB.c
-
-libtestA.so: libtestA.o
-	$(CC) -g -shared -o libtestA.so libtestA.o
-
-libtestB.so: libtestB.o
-	$(CC) -shared -o libtestB.so libtestB.o
-
-# Include the "standard program template".  This defines all the
-# common targets like "clean", "install", etc.
-
-include $(TO_CORE)/make.program.tmpl

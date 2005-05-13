@@ -120,6 +120,23 @@ bool BPatch_eventMailbox::executeUserCallbacks()
 
           break;
         }
+        case BPatch_userEvent:
+        {
+          BPatchUserEventCallback cb = (BPatchUserEventCallback) cbs[i].cb;
+          void *buf = (void *) cbs[i].arg1;
+          unsigned int bufsize = (unsigned int) cbs[i].arg2;
+
+          if (!buf || !cb) {
+            err = true;
+            fprintf(stderr, "%s[%d]:  corrupt callback record\n", __FILE__, __LINE__);
+          }
+          else {
+            (cb)(buf,bufsize);
+            delete [] (int *) buf;
+          }
+
+          break;
+        }
         case BPatch_errorEvent:
         {
           BPatchErrorCallback cb = (BPatchErrorCallback) cbs[i].cb;
@@ -275,6 +292,17 @@ bool BPatch_eventMailbox::registerCallback(BPatch_asyncEventType type,
     return true;
 }
 
+bool BPatch_eventMailbox::registerCallback(BPatchUserEventCallback _cb,
+                                           void *buf, unsigned int bufsize)
+{
+    mb_callback_t cb;
+    cb.type = BPatch_userEvent;
+    cb.cb = (void *) _cb;
+    cb.arg1 = (void *) buf;
+    cb.arg2 = (void *) bufsize;
+    cbs.push_back(cb);
+    return true;
+}
 bool BPatch_eventMailbox::registerCallback(BPatchDynamicCallSiteCallback _cb,
                                            BPatch_point *p, BPatch_function *f)
 {
@@ -568,6 +596,8 @@ ThreadLibrary::~ThreadLibrary()
 bool ThreadLibrary::hasCapability(BPatch_asyncEventType t)
 {
   if (!threadModule) return false;
+
+  if (t == BPatch_userEvent) return true;
 
   BPatch_Vector<BPatch_function *> *funcs = funcsForType(t);
   if (!funcs) return false;
@@ -1171,6 +1201,51 @@ bool BPatch_asyncEventHandler::removeThreadEventCallback(BPatch_process *proc,
 
 }
 
+
+bool BPatch_asyncEventHandler::registerUserEventCallback(BPatch_process *proc,
+         BPatchUserEventCallback cb)
+{
+  if (!isRunning) {
+    if (!createThread()) {
+      fprintf(stderr, "%s[%d]:  failed to create thread\n", __FILE__, __LINE__);
+      return false;
+    }
+  }
+
+  //  find out if we already have (some) callback(s) for this thread
+
+  for (unsigned int i = 0; i < user_event_cbs.size(); ++i) {
+    if (user_event_cbs[i].proc == proc) {
+      //  already have an entry for this process, just replace the cb
+      user_event_cbs[i].cb = cb;       
+      return true;
+    } 
+  }
+
+  user_event_cb_record user_event_rec;
+  user_event_rec.proc = proc;
+  user_event_rec.cb = cb;
+  user_event_cbs.push_back(user_event_rec);
+
+  return true;
+}
+
+bool BPatch_asyncEventHandler::removeUserEventCallback(BPatch_process *proc,
+         BPatchUserEventCallback cb)
+{
+  for (unsigned int i = 0; i < user_event_cbs.size(); ++i) {
+    if ((user_event_cbs[i].proc == proc) && (user_event_cbs[i].cb == cb)){
+      user_event_cbs.erase(i,i);
+      return true;
+    } 
+  }
+
+  fprintf(stderr, "%s[%d]:  could not remove user event callback, nonexistent\n",
+          __FILE__, __LINE__);
+
+  return false;
+}
+
 BPatch_asyncEventHandler::BPatch_asyncEventHandler() :
 #if !defined (os_windows)
   paused(false),
@@ -1632,8 +1707,10 @@ bool BPatch_asyncEventHandler::waitNextEvent(BPatch_asyncEventRecord &ev)
     //
     //  this might result in an event reordering, not sure if important
     //   (since we are removing from the end of the list)
-    ev = event_queue[event_queue.size() - 1];
-    event_queue.pop_back();
+    //ev = event_queue[event_queue.size() - 1];
+    //event_queue.pop_back();
+    ev = event_queue[0];
+    event_queue.erase(0,0);
     __UNLOCK;
     return true;
   }
@@ -2003,6 +2080,36 @@ bool BPatch_asyncEventHandler::handleEventLocked(BPatch_asyncEventRecord &ev)
 
        return true;
      }
+     case BPatch_userEvent:
+     {
+       //  Read auxilliary packet with user specifiedbuffer
+       assert(ev.size > 0);
+       int *userbuf = new int[ev.size];
+
+       if (!readEvent(ev.event_fd, (void *) userbuf, ev.size)) {
+          bperr("%s[%d]:  failed to read user specified data\n",
+                __FILE__, __LINE__);
+          delete [] userbuf;
+          return false;
+       }
+       
+       
+       //  find the callback for this process
+       unsigned int i = 0;
+       bool foundit = false;
+       for (i = 0; i < user_event_cbs.size(); ++i) {
+         if (user_event_cbs[i].proc == appProc) {
+            foundit = true;
+            break;
+         }
+       }
+       if (!foundit)
+         fprintf(stderr, "%s[%d]:  Got user message, but no callback provided\n",
+                 __FILE__, __LINE__);
+       else
+         event_mailbox->registerCallback(user_event_cbs[i].cb, userbuf, ev.size);
+       return true;
+     } 
      default:
        bperr("%s[%d]:  request to handle unsupported event: %s\n", 
              __FILE__, __LINE__, asyncEventType2Str(ev.type));
@@ -2222,6 +2329,7 @@ BPatch_asyncEventType rt2EventType(rtBPatch_asyncEventType t)
     RT_CASE_CONV(BPatch_threadStartEvent);
     RT_CASE_CONV(BPatch_threadStopEvent);
     RT_CASE_CONV(BPatch_dynamicCallEvent);
+    RT_CASE_CONV(BPatch_userEvent);
   }
   fprintf(stderr, "%s[%d], invalid conversion\n", __FILE__, __LINE__);
   return BPatch_nullEvent;
@@ -2235,6 +2343,7 @@ bool BPatch_asyncEventHandler::readEvent(PDSOCKET fd, BPatch_asyncEventRecord &e
   ev.pid = rt_ev.pid;
   ev.event_fd = rt_ev.event_fd;
   ev.type = rt2EventType(rt_ev.type);
+  ev.size = rt_ev.size;
   return true;
 }
 

@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.23 2005/03/17 23:26:43 bernat Exp $
+ * $Id: dyninstAPI_RT.h,v 1.24 2005/05/13 09:17:21 jaw Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -145,7 +145,8 @@ typedef enum {
   rtBPatch_threadStartEvent,
   rtBPatch_threadStopEvent,
   rtBPatch_threadDestroyEvent,
-  rtBPatch_dynamicCallEvent
+  rtBPatch_dynamicCallEvent,
+  rtBPatch_userEvent
 } rtBPatch_asyncEventType;
 
 
@@ -153,6 +154,7 @@ typedef struct {
   unsigned int pid;
   rtBPatch_asyncEventType type;
   unsigned int event_fd;
+  unsigned int size;
 } rtBPatch_asyncEventRecord;
 
 
@@ -168,4 +170,5 @@ typedef struct {
 
 #endif /* !defined(__ASSEMBLER__) */
 
+#include "dyninstRTExport.h"
 #endif /* _DYNINSTAPI_RT_H */

@@ -6,8 +6,8 @@
 #include <ctype.h>
 #include <assert.h>
 #include <errno.h>
-#include <pthread.h>
 
+#include "test12.h"
 #define TRUE 1
 #define FALSE 0
 
@@ -16,6 +16,7 @@
 #include <windows.h>
 #else
 #include <unistd.h>
+#include <pthread.h>
 #endif
 
 #if defined(sparc_sun_solaris2_4)  || defined(i386_unknown_solaris2_5) || \
@@ -36,12 +37,11 @@ int mutateeCplusplus = 0;
 #endif
 const char *Builder_id=COMPILER; /* defined on compile line */
 
-#define MAX_TEST 5
 int runTest[MAX_TEST+1];
 int passedTest[MAX_TEST+1];
 
 #define dprintf if (debugPrint) printf
-int debugPrint = 1;
+int debugPrint = 0;
 int isAttached = 0;
 int mutateeIdle = 0;
 int mutateeXLC = 0;
@@ -68,6 +68,120 @@ void stop_process()
 #endif
 }
 
+#if defined (os_windows)
+#error
+#else
+typedef void *(*ThreadMain_t)(void *);
+typedef pthread_t Thread_t;
+typedef pthread_mutex_t Lock_t;
+  /*
+    createThreads()
+    createThreads creates specified number of threads and returns
+    a pointer to an allocated buffer that contains their handles
+    caller is responsible for free'ing the result
+  */
+
+pthread_attr_t attr;
+
+Thread_t *createThreads(int num, ThreadMain_t tmain, Thread_t *tbuf)
+{
+  unsigned int i;
+  int err = 0;
+  Thread_t *threads;
+  if (tbuf == NULL)
+    threads = (Thread_t *)malloc(num * sizeof(Thread_t));
+  else 
+    threads = tbuf;
+    
+  if (!threads) {
+    fprintf(stderr, "%s[%d]:  could not alloc space for %d thread handles\n",
+            __FILE__, __LINE__, num);
+    return NULL;
+  }
+
+  if (0 != pthread_attr_init(&attr)) {
+    err = 1;
+    perror("pthread_attr_init");
+    goto cleanup;
+  }
+
+  if (0 != pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED)) {
+    err = 1;
+    perror("pthread_attr_setdetachstate");
+    goto cleanup;
+  }
+
+  if (0 != pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM)) {
+    err = 1;
+    perror("pthread_attr_setscope");
+    goto cleanup;
+  }
+
+  /* start a bunch of threads */
+  for (i = 0; i < num; ++i) {
+    /*fprintf(stderr, "%s[%d]:  PTHREAD_CREATE\n", __FILE__, __LINE__); */
+    if (0 != pthread_create(&(threads[i]), &attr, (void *(*)(void*))tmain, NULL)) {
+      err = 1;
+      fprintf(stderr, "%s[%d]:pthread_create\n", __FILE__, __LINE__);
+      goto cleanup;
+    }
+  }
+
+  cleanup:
+
+  if (err) {
+    free (threads);
+    return NULL;
+  }
+
+  return threads;
+}
+
+int createLock(Lock_t *lock)
+{
+  if (debugPrint)
+    fprintf(stderr, "%s[%d]:  creating lock on thread %lu\n", __FILE__, __LINE__, (unsigned long) pthread_self());
+  if (0 != pthread_mutex_init(lock, NULL)) {
+    perror("pthread_mutex_init");
+    return FALSE;
+  }
+  return TRUE;
+}
+
+int destroyLock(Lock_t *lock)
+{
+  if (debugPrint)
+    fprintf(stderr, "%s[%d]:  destroying lock on thread %lu\n", __FILE__, __LINE__, (unsigned long) pthread_self());
+  if (0 != pthread_mutex_destroy(lock)) {
+    perror("pthread_mutex_destroy");
+    return FALSE;
+  }
+  return TRUE;
+}
+
+int lockLock(Lock_t *lock)
+{
+  if (debugPrint)
+    fprintf(stderr, "%s[%d]:  locking lock on thread %lu\n", __FILE__, __LINE__, (unsigned long) pthread_self());
+  if (0 != pthread_mutex_lock(lock)) {
+    perror("pthread_mutex_lock");
+    return FALSE;
+  }
+  return TRUE;
+}
+
+int unlockLock(Lock_t *lock)
+{
+  if (debugPrint)
+    fprintf(stderr, "%s[%d]:  unlocking lock on thread %lu\n", __FILE__, __LINE__, (unsigned long) pthread_self());
+  if (0 != pthread_mutex_unlock(lock)) {
+    perror("pthread_mutex_unlock");
+    return FALSE;
+  }
+  return TRUE;
+}
+
+#endif
 
 /*
  * Check to see if the mutator has attached to us.
@@ -99,7 +213,7 @@ int call1_dispatch(intFuncArg callme, int arg)
 
   if (!tocall) {
     fprintf(stderr, "%s[%d]:  FIXME!\n", __FILE__, __LINE__);
-    return ret;
+    return -1;
   }
 
   /*  3 dynamic call sites */
@@ -140,20 +254,20 @@ void func1_1()
 
 }
 
-#define TEST2_THREADS 10
 
-int current_locks[TEST2_THREADS];
+unsigned long current_locks[TEST2_THREADS];
+/*Thread_t  *test2threads; */
 pthread_t test2threads[TEST2_THREADS];
 pthread_mutex_t real_lock;
 
-void register_my_lock(unsigned long id, int val)
+void register_my_lock(unsigned long id, unsigned int val)
 {
   unsigned int i;
   int found = 0;
   for (i = 0; i < TEST2_THREADS; ++i) {
     if (pthread_equal(test2threads[i],(pthread_t)id)) {
       found = 1;
-      current_locks[i] = val;
+      current_locks[i] = (unsigned)val;
       break;
     }
   }
@@ -180,6 +294,7 @@ void sleep_ms(int _ms)
   struct timespec ts,rem;
   ts.tv_sec = 0;
   ts.tv_nsec = _ms * 1000 /*us*/ * 1000/*ms*/;
+  assert(_ms < 1000);
 
  sleep:
  if (0 != nanosleep(&ts, &rem)) {
@@ -205,7 +320,6 @@ void *thread_main2 (void *arg)
   sleep_ms(1);
 
    if (!is_only_one()) {
-     /*FAIL(TESTNO, TESTNAME);*/
      fprintf(stderr, "FAIL subtest2: more than one lock has been obtained\n");
      subtest2err = 1;
    }
@@ -214,18 +328,15 @@ void *thread_main2 (void *arg)
    subtest2counter++;
 
    (DYNINSTunlock_thelock)(); 
-   /*dummy_unlock(mutp); *//*  placeholder for DYNINSTunlock_spinlock; */
    return NULL;
 }
 
-/*extern "C" void *thread_main_subtest2 (void *arg);*/
-/*extern "C" void*(*)(void*), void*)*/
 void func2_1()
 {
 
+  /*pthread_attr_t attr;*/
   int err = 0;
   unsigned int timeout = 0; /* in ms */
-  pthread_attr_t attr;
   unsigned int i;
   void *RTlib;
 
@@ -250,11 +361,6 @@ void func2_1()
 
   pthread_mutex_init(&real_lock, NULL);
 
-  pthread_attr_init(&attr);
-
-  pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED);
-  pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
-
 #if !defined(os_solaris)
    /*  XXX this is nasty */
    /*  The way this is supposed to work is that we get a lock, then start a bunch of
@@ -273,14 +379,10 @@ void func2_1()
    (DYNINSTlock_thelock)();
 #endif
 
-  for (i = 0; i < TEST2_THREADS; ++i) {
-    current_locks[i] = 0;
-    err = pthread_create(&(test2threads[i]), &attr, (void *(*)(void *)) thread_main2, NULL);
-    if (err) {
-      fprintf(stderr, "Error creating thread %d: %s[%d]\n",
-              i, strerror(errno), errno);
-    }
-  }
+  createThreads(TEST2_THREADS, thread_main2,test2threads);
+  assert(test2threads);
+
+
   sleep_ms(5);
 
 #if !defined(os_solaris)
@@ -291,8 +393,8 @@ void func2_1()
 
   mutateeIdle = 1;
   while (mutateeIdle);
-  /*  stop the process (mutator will restart us) */
-  /*stop_process(); */
+
+  /*free (test2threads);*/
 }
 
 void *thread_main(void *arg)
@@ -308,68 +410,79 @@ void *thread_main(void *arg)
 
 void func3_1()
 {
-  pthread_attr_t attr;
-  pthread_t threads[TEST2_THREADS];
-  unsigned int i;
-  int tmp;
-  pthread_attr_init(&attr);
-  pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED);
-  pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
+  Thread_t *threads;
 
-  /*mutateeIdle = 1; */
-  /*while (mutateeIdle); */
-
-
-  /* start a bunch of threads */
-  for (i = 0; i < TEST2_THREADS; ++i) {
-    /*fprintf(stderr, "%s[%d]:  PTHREAD_CREATE\n", __FILE__, __LINE__); */
-    pthread_create(&(threads[i]), &attr, thread_main, NULL);
-  }
+  threads = createThreads(TEST3_THREADS, thread_main, NULL);
+  assert (threads);
 
   mutateeIdle = 1;
-  tmp = 1;
-  while (tmp) {
-    tmp = mutateeIdle;
-  }
+  while (mutateeIdle);
 
-
+  free (threads);
 }
 
 void func4_1()
 {
-  pthread_attr_t attr;
-  pthread_t threads[TEST2_THREADS];
-  unsigned int i;
-  int tmp;
-  pthread_attr_init(&attr);
-  pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_DETACHED);
-  pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
+  Thread_t *threads;
 
-  /*mutateeIdle = 1; */
-  /*while (mutateeIdle); */
-
-
-  /* start a bunch of threads */
-  for (i = 0; i < TEST2_THREADS; ++i) {
-    /*fprintf(stderr, "%s[%d]:  PTHREAD_CREATE\n", __FILE__, __LINE__); */
-    pthread_create(&(threads[i]), &attr, thread_main, NULL);
-  }
+  threads = createThreads(TEST4_THREADS, thread_main, NULL);
+  assert (threads);
 
   mutateeIdle = 1;
-  tmp = 1;
-  while (tmp) {
-    tmp = mutateeIdle;
+  while (mutateeIdle) {}
+
+  free (threads);
+}
+
+void *thread_main5(void *arg)
+{
+  /*  The mutator will patch in messaging primitives to signal events at mutex creation,
+      deletion, locking and unlocking.  Thus far, we are only considering reporting of events
+      so actual contention is meaningless */
+  Lock_t newmutex;
+  if (!createLock(&newmutex)) {
+     fprintf(stderr, "%s[%d]:  createLock failed\n", __FILE__, __LINE__);
+     return NULL;
+  }
+  sleep_ms(100);
+  if (!lockLock(&newmutex)) {
+     fprintf(stderr, "%s[%d]:  lockLock failed\n", __FILE__, __LINE__);
+     return NULL;
+  }
+  sleep_ms(100);
+  if (!unlockLock(&newmutex)) {
+     fprintf(stderr, "%s[%d]:  unlockLock failed\n", __FILE__, __LINE__);
+     return NULL;
+  }
+  sleep_ms(100); 
+  if (!destroyLock(&newmutex)) {
+     fprintf(stderr, "%s[%d]:  destroyLock failed\n", __FILE__, __LINE__);
+     return NULL;
   }
 
-
+  sleep(1);
+  return NULL;
 }
 
+Thread_t test5threads[TEST5_THREADS];
 void func5_1()
 {
+  Thread_t *threads = test5threads;
 
+  threads = createThreads(TEST5_THREADS, thread_main5,threads);
+  assert (threads);
+
+  mutateeIdle = 1;
+  while (mutateeIdle);
+
+  /*free (threads);*/
 }
 
-
+void func8_1()
+{
+  mutateeIdle = 1;
+  while (mutateeIdle) {}
+}
 
 /********************************************************************/
 /********************************************************************/
@@ -459,7 +572,7 @@ int main(int iargc, char *argv[])
     if (runTest[2]) func2_1();
     if (runTest[3]) func3_1();
     if (runTest[4]) func4_1();
-    if (runTest[5]) func5_1();
+    /*if (runTest[5]) func5_1();*/
 
     while(1);
 

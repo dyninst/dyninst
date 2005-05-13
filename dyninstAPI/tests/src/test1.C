@@ -237,14 +237,14 @@ int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
 
     BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(BPatch_subroutine);
 
-    if (!points || (points->size() < 1)) {
+    if (!points || (!points->size() )) {
 	fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
-	fprintf(stderr, "    Unable to find point %s - subroutine calls\n",
-		inFunction);
+	fprintf(stderr, "    %s[%d]: Unable to find point in %s - subroutine calls: pts = %p\n",
+		__FILE__, __LINE__, inFunction,points);
 	exit(1);
     }
 
-    BPatch_function *call_replacement;
+    BPatch_function *call_replacement = NULL;
     if (replacement != NULL) {
       
       BPatch_Vector<BPatch_function *> bpfv;
@@ -272,9 +272,11 @@ int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
 	if (functionNameMatch(fn, callTo) == 0) {
 	    if (replacement == NULL)
 		appThread->removeFunctionCall(*((*points)[n]));
-	    else
+	    else {
+                assert(call_replacement);
 		appThread->replaceFunctionCall(*((*points)[n]),
 					       *call_replacement);
+            }
 	    numReplaced++;
 	}
     }
@@ -2054,7 +2056,12 @@ void test19_oneTimeCodeCallback(BPatch_thread *thread,
 				void *userData,
 				void *returnValue)
 {
-    *(int *)userData = 1;
+    bool dummy = (userData == NULL) || (returnValue == NULL) || (thread == NULL);
+
+    if (dummy)
+      *(int *)userData = 1;
+    else
+      *(int *)userData = 1;
 }
 
 //
@@ -4618,6 +4625,8 @@ void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
     if (mutateeFortran) {
 	return;
     } 
+    BPatch_image *dummy = appThread->getImage();
+    assert (dummy == appImage);
 
     BPatch_Vector<BPatch_function *> funcs0;
     

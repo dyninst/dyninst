@@ -1,356 +1,446 @@
-# 
-# Common makefile template for dyninst Tests.  This file is not intended to
-# be a useful Makefile in isolation; instead, it should be included
-# from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.60 2005/03/14 22:17:47 legendre Exp $
-#
+# make.module.tmpl for dyninst test suite
+# Not intended to be a seperate makefile, but to be used in conjunction with
+# higher level, platform-specific makefiles in the build directories
 
-SUITE_NAME	= Dyninst
-RELEASE_NUM	= 4.2
-#BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
+RM = rm -f
+RMDIR ?= rmdir
+M_GCC ?= gcc
+M_GXX ?= g++
+DEPCC ?= gcc
+DEPENDFLAGS ?= -MM -MT
+DEPENDDIR = ./depends
+VPATH 	= ../src $(DEPENDDIR)
 
-DEST		= $(TO_CORE)/$(PROGRAM_DEST)/testprogs
+#######################################################################
+###  Generate compiler id strings
+###
+###  COMPILERT_NATIVE_CC, COMPILERT_NATIVE_CXX must be defined prior to
+###  inclusion of this file.  gcc/g++ are handled here as platform-indep
+###
+#######################################################################
 
-# Test to see if GCC is available
-ifdef M_GCC
-OUTPUT		= $(shell $(M_GCC) --version)
-ifeq (,$(findstring GCC,$(OUTPUT)))
-M_GCC =
-endif
-endif
+EMPTY:=
+BLANK:=$(EMPTY) $(EMPTY)
+LPAREN:=(
+RPAREN:=)
+COMMA=,
 
-# Test to see if GXX is available
-ifdef M_GXX
-OUTPUT		= $(shell $(M_GXX) --version)
-ifeq (,$(findstring GCC,$(OUTPUT)))
-M_GXX =
-endif
-endif
+COMPILERT_GCC = $(shell $(M_GCC) -v 2>&1 | grep version | head -1)
+COMPILER1_GCC = $(subst $(BLANK),_,$(COMPILERT_GCC))
+COMPILER2_GCC = $(subst $(LPAREN),_,$(COMPILER1_GCC))
+COMPILER_GCC = $(subst $(RPAREN),_,$(COMPILER2_GCC))
+MUTATEE_CFLAGS_GNU += -DCOMPILER='"$(COMPILER_GCC)"'
 
-ifdef TARGET
-SRCS	     += ../src/$(TARGET).C ../src/test_util.C
-else
-TARGETS       =  test1 test2 test3 test4 test5 test6 test7 test8 test9 test10 test11 test12
-ifdef M_GCC
-TARGETS      +=	 test1.mutatee_$(M_GCC) \
-		 test2.mutatee_$(M_GCC) \
-		 test3.mutatee_$(M_GCC) \
-		 test4a.mutatee_$(M_GCC) \
-		 test4b.mutatee_$(M_GCC) \
-		 test6.mutatee_$(M_GCC) \
-		 test7.mutatee_$(M_GCC) \
-		 test8.mutatee_$(M_GCC) \
-		 test9.mutatee_$(M_GCC) \
-		 test10.mutatee_$(M_GCC) \
-		 test12.mutatee_$(M_GCC)
+COMPILERT_GXX = $(shell $(M_GCC) -v 2>&1 | grep version | head -1)
+COMPILER1_GXX = $(subst $(BLANK),_,$(COMPILERT_GXX))
+COMPILER2_GXX = $(subst $(LPAREN),_,$(COMPILER1_GXX))
+COMPILER_GXX = $(subst $(RPAREN),_,$(COMPILER2_GXX))
+MUTATEE_CXXFLAGS_GNU += -DCOMPILER='"$(COMPILER_GXX)"'
+
+COMPILER1_NATIVE_CC = $(subst $(BLANK),_,$(COMPILERT_NATIVE_CC))
+COMPILER2_NATIVE_CC = $(subst $(LPAREN),_,$(COMPILER1_NATIVE_CC))
+COMPILER_NATIVE_CC = $(subst $(RPAREN),_,$(COMPILER2_NATIVE_CC))
+MUTATEE_CFLAGS_NATIVE += -DCOMPILER='"$(COMPILER_NATIVE_CC)"'
+
+COMPILER1_NATIVE_CXX = $(subst $(BLANK),_,$(COMPILERT_NATIVE_CXX))
+COMPILER2_NATIVE_CXX = $(subst $(LPAREN),_,$(COMPILER1_NATIVE_CXX))
+COMPILER_NATIVE_CXX = $(subst $(RPAREN),_,$(COMPILER2_NATIVE_CXX))
+MUTATEE_CXXFLAGS_NATIVE += -DCOMPILER='"$(COMPILER_NATIVE_CXX)"'
+
+#######################################################################
+###  Basic definitions (filename prefixes)
+#######################################################################
+
+MUTATORS = 	test1 \
+		test2 \
+		test3 \
+		test4 \
+		test5 \
+		test6 \
+		test7 \
+		test8 \
+		test9 \
+		test10 \
+		test12 
+
+FORALL_MUTATORS = test_util
+
+MUTATEES_C = 	test1.mutatee \
+		test2.mutatee \
+		test3.mutatee \
+		test4a.mutatee \
+		test4b.mutatee \
+		test6.mutatee \
+		test7.mutatee \
+		test8.mutatee \
+		test9.mutatee \
+		test10.mutatee \
+		test12.mutatee 
+
+# MUTATEES_CXX specifies a subset of MUTATEES_C that are also compiled with a C++ compiler
+MUTATEES_CXX =	test1.mutatee \
+		test2.mutatee \
+		test3.mutatee \
+		test4a.mutatee \
+		test4b.mutatee \
+		test7.mutatee \
+		test8.mutatee \
+		test9.mutatee \
+		test12.mutatee
+
+#  Most C mutatees are also compiled as C++ mutatees, there are some (well, one)
+#  that are c++ only, which cannot also be compiled as C mutatees
+
+MUTATEES_CXX_ONLY = test5.mutatee
+
+MUTATEES_FORTRAN = test1.mutatee
+
+FORALL_MUTATEES = mutatee_util
+
+TESTLIB_STEMS 	+= libtestA libtestB libTest12 libInstMe libLoadMe
+TESTLIBS = $(addsuffix .so, $(TESTLIB_STEMS))
+
+#######################################################################
+### Generated lists of source files
+#######################################################################
+
+# build source names from above prefixes
+SRCS_MUTATORS 		+= $(addsuffix .C,$(MUTATORS))
+SRCS_FORALL_MUTATORS	+= $(addsuffix .C,$(FORALL_MUTATORS))
+
+SRCS_MUTATEES_C 	+= $(addsuffix .c,$(MUTATEES_C))
+SRCS_FORALL_MUTATEES 	+= $(addsuffix .c,$(FORALL_MUTATEES))
+SRCS_MUTATEES_CXX 	+= $(addsuffix .c,$(MUTATEES_CXX))
+SRCS_MUTATEES_CXX 	+= $(addsuffix .C,$(MUTATEES_CXX_ONLY))
+
+SRCS_TESTLIBS_C 	+= $(addsuffix .c,$(TESTLIBS))
+
+#######################################################################
+###  Target file name list generation
+#######################################################################
+
+# build object/exec names from above prefixes
+
+MUTATEES_GCC		+= $(addsuffix _gcc,$(MUTATEES_C))
+MUTATEES_GXX		+= $(addsuffix _g++,$(MUTATEES_CXX))
+MUTATEES_GXX		+= $(addsuffix _g++,$(MUTATEES_CXX_ONLY))
+
+ifdef M_G77
+MUTATEES_G77		+= $(addsuffix _g77,$(MUTATEES_FORTRAN))
 endif
 
 ifdef NATIVE_CC
-TARGETS      +=  test1.mutatee_$(NATIVE_CC) \
-		 test2.mutatee_$(NATIVE_CC) \
-		 test3.mutatee_$(NATIVE_CC) \
-		 test4a.mutatee_$(NATIVE_CC) \
-		 test4b.mutatee_$(NATIVE_CC) \
-		 test6.mutatee_$(NATIVE_CC) \
-		 test7.mutatee_$(NATIVE_CC) \
-		 test8.mutatee_$(NATIVE_CC) \
-		 test9.mutatee_$(NATIVE_CC) \
-		 test12.mutatee_$(NATIVE_CC)
-
+MUTATEES_NATIVE_CC		+= $(filter-out test10.mutatee_$(NATIVE_CC), $(addsuffix _$(NATIVE_CC),$(MUTATEES_C)))
 endif
 
-ifdef M_GXX	
-TARGETS      +=  test1.mutatee_$(M_GXX) \
-		 test2.mutatee_$(M_GXX) \
-		 test3.mutatee_$(M_GXX) \
-		 test4a.mutatee_$(M_GXX) \
-		 test4b.mutatee_$(M_GXX) \
-		 test5.mutatee_$(M_GXX) \
-		 test7.mutatee_$(M_GXX) \
-		 test8.mutatee_$(M_GXX) \
-		 test9.mutatee_$(M_GXX) \
-		 test12.mutatee_$(M_GXX)
+ifdef NATIVE_CXX
+MUTATEES_NATIVE_CXX		+= $(addsuffix _$(NATIVE_CXX),$(MUTATEES_CXX))
+MUTATEES_NATIVE_CXX_ONLY	+= $(addsuffix _$(NATIVE_CXX),$(MUTATEES_CXX_ONLY))
+endif
+
+ifdef NATIVE_FC
+MUTATEES_NATIVE_FC		+= $(addsuffix _$(NATIVE_FC),$(MUTATEES_FORTRAN))
+endif
+
+TEST6_AS_OBJ_GNU 		= $(TEST6_AS_SRC:%.$(TEST6_ASSUFFIX)=%.o)
+CALL35_1_OBJ 			= $(CALL35_1_SRC:call%.s=call%.o)
+
+OBJS_FORALL_MUTATORS		= $(SRCS_FORALL_MUTATORS:%.C=%.o)
+
+#######################################################################
+###  Some pattern rules
+#######################################################################
+
+DYNINST_INCDIR = -I../../h 
+CXXFLAGS += $(DYNINST_INCDIR)
+
+%_$(NATIVE_CC).o : %.c
+	$(NATIVE_CC) -c $< $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -o $@
+%_$(NATIVE_CXX).o : %.c
+	$(NATIVE_CXX) -c $< $(CXXFLAGS_NATIVE) $(MUTATEE_CXXFLAGS_NATIVE) -o $@
+
+%_gcc.o: %.c
+	$(M_GCC) -c $< $(CFLAGS) $(MUTATEE_CFLAGS_GNU) -o $@
+%_g++.o: %.c 
+	$(M_GXX) $(CXXFLAGS) $(MUTATEE_CXXFLAGS_GNU) -c $< -o $@
+%_g++.o: %.C 
+	$(M_GXX) $(CXXFLAGS) $(MUTATEE_CXXFLAGS_GNU) -c $< -o $@
+
+call%.o: call%.s
+	$(M_GCC) -c $< $(CFLAGS) $(MUTATEE_CFLAGS_GNU) -o $@ 
+test6LS%.o: test6LS%.$(TEST6_ASSUFFIX)
+	$(TEST6_AS_GNU) $(TEST6_ASFLAGS_GNU) -o $@ $<
+
+
+.C.o:
+	$(CXX) -c $< $(CXXFLAGS) $(MUTATOR_CXXFLAGS) -o $@
+
+#######################################################################
+###  High level targets
+#######################################################################
+
+MUTATOR_LDFLAGS += -ldyninstAPI $(MUTATOR_LIBS) 
+
+
+all: mutators testlibs mutatees 
+echo:
+	@echo "DEPS TESTLIBS = $(DEPS_TESTLIBS)"
+	@echo "MUTATEES_NATIVE_CXX = $(MUTATEES_NATIVE_CXX)"
+
+install:
+	@echo "install not yet supported"
+
+clean:
+	$(RM) *.da *.bb. *.bbg 
+	$(RM) $(TESTLIBS) 
+	$(RM) $(MUTATORS) $(MUTATEES_GCC) $(MUTATEES_GXX) $(MUTATEES_G77) $(MUTATEES_GXX_ONLY)
+	$(RM) *.o $(MUTATEES_NATIVE_CC) $(MUTATEES_NATIVE_CXX) $(MUTATEES_NATIVE_FC) $(MUTATEES_NATIVE_CXX_ONLY)
+
+distclean: clean
+	@if [ -d $(DEPENDDIR) ]; then \
+	  $(RM) $(DEPENDDIR)/*.dep; \
+          rmdir $(DEPENDDIR); \
+         fi
+
+
+mutators: $(MUTATORS)
+mutatees: gnu_mutatees native_mutatees
+gnu_mutatees: $(MUTATEES_GCC) $(MUTATEES_GXX) $(MUTATEES_G77)
+native_mutatees: $(MUTATEES_NATIVE_CC) $(MUTATEES_NATIVE_CXX) $(MUTATEES_NATIVE_FC)
+testlibs: $(TESTLIBS)
+
+.PHONY: clean install distclean mutators mutatees testlibs gnu_mutatees native_mutatees
+
+#######################################################################
+###  Build command for test libraries
+#######################################################################
+
+$(TESTLIBS): %.so : %.c $(DEPENDDIR)/%.dep
+ifdef MAKE_SHARED_LIB
+	$(CC) -g -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $*.o -o $@
+else
+	$(CC) $(TESTLIB_FLAGS) -I$(DYNINST_ROOT)/core/dyninstAPI_RT/h -I../src/ $(filter %.c,$^) -o $@
+endif
+
+
+#######################################################################
+###  Special Prerequisites for specific Mutatees:
+#######################################################################
+
+# Test 1 mutatee depends on two extra files
+test1.mutatee_gcc: $(CALL35_1_OBJ) test1.mutateeCommon_gcc.o 
+test1.mutatee_g++: $(CALL35_1_OBJ) test1.mutateeCommon_g++.o 
+test1.mutatee_$(NATIVE_CC): $(CALL35_1_SRC) test1.mutateeCommon.c 
+test1.mutatee_$(NATIVE_CXX): $(CALL35_1_SRC) test1.mutateeCommon.c 
+
+# Test 6 mutatee depends on a platform-specific asm file
+test6.mutatee_$(NATIVE_CC): $(TEST6_AS_SRC) 
+test6.mutatee_$(NATIVE_CXX): $(TEST6_AS_SRC) 
+test6.mutatee_gcc: $(TEST6_AS_OBJ_GNU) 
+
+# libInstMe.so must be built before test9.mutatee
+test9.mutatee_gcc: libInstMe.so
+test9.mutatee_$(NATIVE_CC): libInstMe.so
+
+# MUTATEE_SPECIFIC_LIBS is analyzed by gmake when constructing the link line
+# If you want to specify that a specific library should be used to link a specific
+# mutatee, add an entry to this variable in the format <testno>.-libwhatever
+# 
+# The <testno>. will be stripped off, leaving -libwhatever on the link line
+
+MUTATEE_SPECIFIC_LIBS_GNU 	+= $(MUTATEE_TEST9_EXTRA_LIB)
+MUTATEE_SPECIFIC_LIBS_GNU 	+= 12.-lpthread
+MUTATEE_SPECIFIC_LIBS_NATIVE 	+= $(MUTATEE_TEST9_EXTRA_LIB)
+MUTATEE_SPECIFIC_LIBS_NATIVE 	+= 12.-lpthread
+
+#######################################################################
+###  Generic mutatee build rules (GNU and NATIVE):
+#######################################################################
+
+# GNU Mutatees
+
+$(MUTATEES_GCC): test%.mutatee_gcc : test%.mutatee_gcc.o $(OBJS_FORALL_MUTATEES_GCC) $(DEPENDDIR)/test%.mutatee_gcc.dep mutatee_util_gcc.o
+	$(M_GCC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) $(MUTATEE_LIBS) \
+            $(subst $*.,,$(filter $*.%, $(MUTATEE_SPECIFIC_LIBS_GNU)))
+
+$(MUTATEES_GXX): test%.mutatee_g++ : test%.mutatee_g++.o $(OBJS_FORALL_MUTATEES_GXX) $(DEPENDDIR)/test%.mutatee_g++.dep mutatee_util_g++.o
+	$(M_GXX) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) $(MUTATEE_LIBS) \
+            $(subst $*.,,$(filter $*.%, $(MUTATEE_SPECIFIC_LIBS_GNU)))
+
+# GNU Fortran (g77) mutatees
+# 
+# There is no real advantage to generality here since there is only one fortran mutatee
+# (ie for test1), thus all constituent files are built explicitly
+
+ifdef M_G77
+test1.mutatee_g77.o: ../src/test1.mutateeFort.F
+	$(M_G77) -g  $(MUTATEE_G77_FFLAGS) -c -o $@ $^ 
+test1.mutateeFortC_g77.o: $(TEST1_FORTRAN_CSOURCE)
+	$(M_GCC) $(MUTATEE_G77_CFLAGS) $(filter %.c,$^) -o $@
+
+$(MUTATEES_G77): test%.mutatee_g77 : test%.mutatee_g77.o test1.mutateeFortC_g77.o test1.mutateeCommon_gcc.o mutatee_util_gcc.o $(DEPENDDIR)/test%.mutatee_g77.dep
+	$(M_G77) -o $@ $(filter %.o,$^) $(MUTATEE_G77_LDFLAGS) $(MUTATEE_LIBS) 
+endif
+
+# Native Mutatees
+
+ifdef NATIVE_CC
+$(MUTATEES_NATIVE_CC): test%.mutatee_$(NATIVE_CC) : test%.mutatee.c mutatee_util_$(NATIVE_CC).o
+	$(NATIVE_CC) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -o $@ $(MUTATEE_LIBS) $(filter %.c  %.s %.S %.o, $^) \
+            $(subst $*.,,$(filter $*.%, $(MUTATEE_SPECIFIC_LIBS_NATIVE))) 
 
 endif
 
 ifdef NATIVE_CXX
-
-USES_NATIVE_CC  =   true
-
-ifeq ($(DEBUG_FLAG),-gstabs+)
-DEBUG_FLAG =
+$(MUTATEES_NATIVE_CXX): test%.mutatee_$(NATIVE_CXX) : test%.mutatee.c mutatee_util_$(NATIVE_CXX).o
+	$(NATIVE_CXX) $(MUTATEE_CXXFLAGS_NATIVE) -o $@ $(filter %.c %.s %.S %.o,$^) $(MUTATEE_LDFLAGS_NATIVE) $(MUTATEE_LIBS) \
+            $(subst $*.,,$(filter $*.%, $(MUTATEE_SPECIFIC_LIBS_NATIVE)))
+$(MUTATEES_NATIVE_CXX_ONLY): test%.mutatee_$(NATIVE_CXX) : test%.mutatee.C mutatee_util_$(NATIVE_CXX).o
+	$(NATIVE_CXX) $(MUTATEE_CXXFLAGS_NATIVE) -o $@ $(filter %.C %.s %.S %.o,$^) $(MUTATEE_LDFLAGS_NATIVE) $(MUTATEE_LIBS) \
+            $(subst $*.,,$(filter $*.%, $(MUTATEE_SPECIFIC_LIBS_NATIVE)))
 endif
 
-TARGETS      +=  test1.mutatee_$(NATIVE_CXX) \
-		 test2.mutatee_$(NATIVE_CXX) \
-		 test3.mutatee_$(NATIVE_CXX) \
-		 test4a.mutatee_$(NATIVE_CXX) \
-		 test4b.mutatee_$(NATIVE_CXX) \
-		 test5.mutatee_$(NATIVE_CXX) \
-		 test7.mutatee_$(NATIVE_CXX) \
-		 test8.mutatee_$(NATIVE_CXX) \
-		 test9.mutatee_$(NATIVE_CXX) \
-		 test12.mutatee_$(NATIVE_CXX)
 
+# Native Fortran mutatees
+# 
+# There is no real advantage to generality here since there is only one fortran mutatee
+# (ie for test1), thus all constituent files are built explicitly
+
+ifdef NATIVE_FC 
+test1.mutatee_$(NATIVE_FC).o: ../src/test1.mutateeFort.F
+	$(NATIVE_FC) -g  $(MUTATEE_NATIVE_FFLAGS) -c -o $@ $^ 
+test1.mutateeFortC_$(NATIVE_FC).o: ../src/test1.mutateeFortC.c
+	$(NATIVE_FORTRAN_CC) $(MUTATEE_NATIVE_FC_CFLAGS) -c $(filter %.c,$^) -o $@
+
+$(MUTATEES_NATIVE_FC): test%.mutatee_$(NATIVE_FC) : test%.mutatee_$(NATIVE_FC).o test1.mutateeFortC_$(NATIVE_FC).o test1.mutateeCommon_$(NATIVE_FORTRAN_CC).o mutatee_util_$(NATIVE_FORTRAN_CC).o $(DEPENDDIR)/test%.mutatee_$(NATIVE_FC).dep
+	$(NATIVE_FC) -o $@ $(filter %.o,$^) $(MUTATEE_NATIVE_FC_LDFLAGS) $(MUTATEE_LIBS) 
+endif
+
+#######################################################################
+###  Generic Mutator build rule:
+###
+###  resorts to pattern matching test% (matches test1, test2, ... etc)
+###  to generate correct, minimal set of prerequisites for each test.
+###  It would be nicer to just match something simpler that wasn't 
+###  name-dependant, but gnu make is not making this easy.
+###
+#######################################################################
+
+$(MUTATORS): test% : test%.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test%.dep
+	$(M_GXX) -o $@ $(filter %.o,$^) $(MUTATOR_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) $(MUTATOR_LDFLAGS)
+
+#######################################################################
+###  Depends
+#######################################################################
+
+DEPS_MUTATORS 		+= $(addprefix $(DEPENDDIR)/,$(addsuffix .dep,$(MUTATORS)))
+DEPS_MUTATORS		+= $(addprefix $(DEPENDDIR)/,$(addsuffix .dep,$(FORALL_MUTATORS)))
+
+DEPS_MUTATEES_GCC	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _gcc.dep, $(MUTATEES_C)))
+DEPS_MUTATEES_GXX	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _g++.dep, $(MUTATEES_CXX)))
+DEPS_MUTATEES_GXX	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _g++.dep, $(MUTATEES_CXX_ONLY)))
+DEPS_TESTLIBS	 	+= $(addprefix $(DEPENDDIR)/,$(addsuffix .dep,$(TESTLIB_STEMS)))
+
+ifdef M_G77
+DEPS_MUTATEES_G77	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _g77.dep, $(MUTATEES_FORTRAN)))
 endif
 
 ifdef NATIVE_FC
-TARGETS      +=  test1.mutatee_$(NATIVE_FC)
+DEPS_MUTATEES_NATIVE_FC	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _$(NATIVE_FC).dep, $(MUTATEES_FORTRAN)))
 endif
 
-SRCS	     += ../src/test1.C ../src/test1.mutatee.c ../src/test_util.C \
-		../src/test2.C ../src/test2.mutatee.c \
-		../src/test3.C ../src/test3.mutatee.c \
-		../src/test4.C ../src/test4a.mutatee.c ../src/test4b.mutatee.c \
-		../src/test5.C ../src/test5.mutatee.C \
-		../src/test6.C \
-		../src/test7.C \
-		../src/test8.C ../src/test8.mutatee.c \
-		../src/test9.C ../src/test9.mutatee.c \
-		../src/test10.C ../src/test10.mutatee.c \
-		../src/test12.C ../src/test12.mutatee.c \
-                ../src/libtestA.c ../src/libtestB.c \
-		../src/libLoadMe.c  ../src/libInstMe.c 
+ifdef NATIVE_CC
+DEPS_MUTATEES_NATIVE_CC	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _$(NATIVE_CC).dep, $(MUTATEES_C)))
+endif
+
+ifdef NATIVE_CXX
+DEPS_MUTATEES_NATIVE_CXX += $(addprefix $(DEPENDDIR)/,$(addsuffix _$(NATIVE_CXX).dep, $(MUTATEES_CXX)))
+DEPS_MUTATEES_NATIVE_CXX += $(addprefix $(DEPENDDIR)/,$(addsuffix _$(NATIVE_CXX).dep, $(MUTATEES_CXX_ONLY)))
+endif
+
+
+depend: $(DEPS_MUTATORS)
+
+depend_dir:
+	@echo "mut deps: $(DEPS_MUTATORS)"
+	@if [ -d $(DEPENDDIR) ]; then \
+          echo "Directory \"$(DEPENDDIR)\" already exists..."; \
+         else \
+          mkdir -p $(DEPENDIR); \
+          echo "Made \"$(DEPENDDIR)\" directory..."; \
+         fi
+
+$(DEPS_MUTATORS): $(DEPENDDIR)/test%.dep : test%.C 
+	@mkdir -p $(DEPENDDIR)
+	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) test$*.o > $@
+
+$(DEPS_MUTATEES_GCC): $(DEPENDDIR)/test%.mutatee_gcc.dep : test%.mutatee.c $(SRCS_FORALL_MUTATEES)
+	@mkdir -p $(DEPENDDIR)
+	$(M_GCC) $(CFLAGS) $< $(MUTATEE_CFLAGS) $(DEPENDFLAGS) test$*.mutatee_gcc.o > $@
+
+$(DEPS_MUTATEES_GXX): $(DEPENDDIR)/test%.mutatee_g++.dep : $(wildcard test%.mutatee.*) $(SRCS_FORALL_MUTATEES)
+	@mkdir -p $(DEPENDDIR)
+	$(M_GXX) $(CXXFLAGS) $< $(MUTATEE_CXXFLAGS) $(DEPENDFLAGS) test$*.mutatee_gxx.o > $@
+
+$(DEPS_MUTATEES_G77): $(DEPENDDIR)/test%.mutatee_g77.dep : test%.mutateeFort.F $(SRCS_FORALL_MUTATEES)
+	@mkdir -p $(DEPENDDIR)
+	$(M_G77) $(CFLAGS) $< $(MUTATEE_CFLAGS) $(DEPENDFLAGS) test$*.mutateeFort_g77.o > $@
+
+
+# Use gcc to generate deps for native compilers
+
+ifdef NATIVE_CC
+$(DEPS_MUTATEES_NATIVE_CC): $(DEPENDDIR)/test%.mutatee_$(NATIVE_CC).dep : test%.mutatee.c $(SRCS_FORALL_MUTATEES)
+	@mkdir -p $(DEPENDDIR)
+	$(M_GCC) $(CFLAGS) $< $(MUTATEE_CFLAGS) $(DEPENDFLAGS) test$*.mutatee_$(NATIVE_CC).o > $@
+endif
+
+ifdef NATIVE_CXX
+$(DEPS_MUTATEES_NATIVE_CXX): $(DEPENDDIR)/test%.mutatee_$(NATIVE_CXX).dep : $(wildcard test%.mutatee.*) $(SRCS_FORALL_MUTATEES)
+	@mkdir -p $(DEPENDDIR)
+	$(M_GXX) $(CXXFLAGS) $< $(MUTATEE_CXXFLAGS) $(DEPENDFLAGS) test$*.mutatee_$(NATIVE_CXX).o > $@
 endif
 
 ifdef NATIVE_FC
-SRCS         += ../src/test1.mutateeFort.F
-endif
-
-# Libraries for dlopen tests
-#TARGETS      += libtestA.so libtestB.so
-
-ifndef MUTATEE_SUFFIX
-MUTATEE_SUFFIX=.c
-endif
-
-MUTATEE_SRC = ../src/$(TARGET2:_$(MUTATEE_CC)=$(MUTATEE_SUFFIX))
-
-# test1 has some extra files
-ifeq (test1.mutatee, $(findstring test1.mutatee, $(TARGET2)))
-MUTATEE_SRC += ../src/test1.mutateeCommon.c ../src/mutatee_util.c
-endif
-
-# test8 uses mutatee_util.c
-ifeq (test8.mutatee, $(findstring test8.mutatee, $(TARGET2)))
-MUTATEE_SRC += ../src/mutatee_util.c
-endif
-# test12 uses -lpthread
-ifeq (test12.mutatee, $(findstring test12.mutatee, $(TARGET2)))
-MUTATEE_LIBS += -lpthread
-endif
-# test12 uses -lpthread
-ifeq (test12, $(findstring test12, $(TARGET)))
-LDFLAGS += -lpthread
-CFLAGS += $(MUTATOR_TEST12_EXTRA_FLAGS)
-CXXFLAGS += $(MUTATOR_TEST12_EXTRA_FLAGS)
+$(DEPS_MUTATEES_NATIVE_FC): $(DEPENDDIR)/test%.mutatee_$(NATIVE_FC).dep : test%.mutateeFort.F $(SRCS_FORALL_MUTATEES)
+	@mkdir -p $(DEPENDDIR)
+	$(M_G77) $(CFLAGS) $< $(MUTATEE_CFLAGS) $(DEPENDFLAGS) test$*.mutateeFort_$(NATIVE_FC).o > $@
 endif
 
 
+$(DEPS_TESTLIBS): $(DEPENDDIR)/lib%.dep : lib%.c 
+	@mkdir -p $(DEPENDDIR)
+	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) lib$*.so > $@
 
-# add special rules for test6 assembler stuff in a generic way
-# define MINI_PLATFORM, TEST6_ASFLAGS and TEST6_ASSUFFIX in the Makefile that includes this
-ifeq (test6,$(findstring test6,$(TARGET2)))
-TEST6_AS_SRC	=	test6LS-$(MINI_PLATFORM).$(TEST6_ASSUFFIX)
+
+# do not include dep files for "clean" targets
+ifneq ($(MAKECMDGOALS),clean)
+ifneq ($(MAKECMDGOALS),distclean)
+ifneq ($(MAKECMDGOALS),echo)
+
+-include $(DEPS_MUTATORS)
+-include $(DEPS_MUTATEES_GCC)
+-include $(DEPS_MUTATEES_GXX)
+-include $(DEPS_TESTLIBS)
+
+ifdef M_G77
+-include $(DEPS_MUTATEES_G77)
 endif
 
-# For gcc (which may use gas) we force the native assembler with TEST6_ASFLAGS
-ifeq (test6,$(findstring test6,$(TARGET2)))
-TEST6_AS_OBJ	= 	$(TEST6_AS_SRC:.$(TEST6_ASSUFFIX)=.o)
-MUTATEE_SRC     +=      $(TEST6_AS_OBJ)
-
-test6.mutatee_$(M_GCC):	$(TEST6_AS_OBJ)
-test6.mutatee_pgcc:	$(TEST6_AS_OBJ)
-
-$(TEST6_AS_OBJ):	../src/$(TEST6_AS_SRC)
-ifeq (linux,$(findstring linux,$(PLATFORM)))
-ifdef NASM
-	$(NASM) $(TEST6_ASFLAGS) -o $@ $<
-else
-	$(AS) $(TEST6_ASFLAGS) -o $@ $<
-endif
-else
-	$(AS) $(TEST6_ASFLAGS) -o $@ $<
-endif
+ifdef NATIVE_CC
+-include $(DEPS_MUTATEES_NATIVE_CC)
 endif
 
-#$(warning MUTATEE_SRC: $(MUTATEE_SRC))
-
-VPATH	     +=
-
-ifdef GCC_2_95
-CXXFLAGS     += -I../../h $(BASICWARNINGS) -fno-squangle
-FORT_SQGL_FLAG = -fno-squangle
-else
-CXXFLAGS     += -I../../h $(BASICWARNINGS)
-FORT_SQGL_FLAG =
-endif
-CFLAGS       += -I../../h $(BASICWARNINGS)
-
-LIBS         += -ldyninstAPI
-
-ifdef IBM_BPATCH_COMPAT
-ifeq (aix,$(findstring aix,$(PLATFORM)))
-LIBS         += -liberty
-endif
-endif #IBM_BPATCH_COMPAT
-
-ifndef USES_NATIVE_CC
-SYSLIBS      += -liberty
-PICOP        = -fpic
-SHAREDOP     = -shared
-else
-ifeq (solaris,$(findstring solaris,$(PLATFORM)))
-SYSLIBS      += -ldemangle
-PICOP        = -Kpic
-SHAREDOP     = -G
-endif
+ifdef NATIVE_CXX
+-include $(DEPS_MUTATEES_NATIVE_CXX)
 endif
 
-# don't bother to do this in a make aTest submake...
-ifndef MUTATEE_CC
-
-# We need this hack to avoid tests being maked twice by the top level
-# Paradyn makefile (once by make all and a second time by make
-# install). Such invocations break test6. We still want to be able to
-# do incremental development builds, so we have different a rule if
-# not invoked recursively.  Because the list of dependencies for
-# tests.done would be too complex, we use this simpler hack:
-ifeq (0,$(MAKELEVEL))
-all:
-else
-all:	tests.done
-
-tests.done:
-endif
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test1
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test2
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test3
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test4
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test5
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test6
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test7
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test8
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test9
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test10
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test11
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET=test12
-	$(MAKE) testlibs MUTATEE_CC=$(M_GCC)
-
-ifneq ($(M_GCC),)
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test1.mutatee_$(M_GCC)
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test2.mutatee_$(M_GCC)
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test3.mutatee_$(M_GCC)
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test4a.mutatee_$(M_GCC)
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test4b.mutatee_$(M_GCC)
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test6.mutatee_$(M_GCC)
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test7.mutatee_$(M_GCC)
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test8.mutatee_$(M_GCC)
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test9.mutatee_$(M_GCC)
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test10.mutatee_$(M_GCC)
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test12.mutatee_$(M_GCC)
-else
-	@echo "WARNING: Skipping gcc mutatees..."
-endif
-ifneq ($(NATIVE_CC),)
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test1.mutatee_$(NATIVE_CC)
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test2.mutatee_$(NATIVE_CC)
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test3.mutatee_$(NATIVE_CC)
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test4a.mutatee_$(NATIVE_CC)
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test4b.mutatee_$(NATIVE_CC)
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test6.mutatee_$(NATIVE_CC)
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test7.mutatee_$(NATIVE_CC)
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test8.mutatee_$(NATIVE_CC)
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test9.mutatee_$(NATIVE_CC)
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test12.mutatee_$(NATIVE_CC)
-else
-	@echo "WARNING: Skipping native C compiler mutatees..."
-endif
-ifneq ($(M_GXX),)
-	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test1.mutatee_$(M_GXX)
-	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test2.mutatee_$(M_GXX)
-	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test3.mutatee_$(M_GXX)
-	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test4a.mutatee_$(M_GXX)
-	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test4b.mutatee_$(M_GXX)
-	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test5.mutatee_$(M_GXX) MUTATEE_SUFFIX=.C
-	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test7.mutatee_$(M_GXX)
-	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test8.mutatee_$(M_GXX)
-	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test9.mutatee_$(M_GXX)
-	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test12.mutatee_$(M_GXX)
-else
-	@echo "WARNING: Skipping g++ mutatees..."
-endif
-ifneq ($(NATIVE_CXX),)
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test1.mutatee_$(NATIVE_CXX)
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test2.mutatee_$(NATIVE_CXX)
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test3.mutatee_$(NATIVE_CXX)
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test4a.mutatee_$(NATIVE_CXX)
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test4b.mutatee_$(NATIVE_CXX)
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test5.mutatee_$(NATIVE_CXX) MUTATEE_SUFFIX=.C
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test7.mutatee_$(NATIVE_CXX)
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test8.mutatee_$(NATIVE_CXX)
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test9.mutatee_$(NATIVE_CXX)
-	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test12.mutatee_$(NATIVE_CXX)
-else
-	@echo "WARNING: Skipping native C++ compiler mutatees..."
-endif
-ifneq ($(NATIVE_FC),)
-	$(MAKE) aTest MUTATEE_CC=$(M_GCC) MUTATEE_FC=$(NATIVE_FC) TARGET2=test1.mutatee_$(NATIVE_FC)
-else
-	@echo "WARNING: Skipping Fortran compiler mutatees..."
-endif
-	touch tests.done
+ifdef NATIVE_FC
+-include $(DEPS_MUTATEES_NATIVE_FC)
 endif
 
-pc:
-	$(MAKE) purecov TARGET=test1 TARGET2=test1.mutatee
-	$(MAKE) purecov TARGET=test2 TARGET2=test2.mutatee
-
-aTest:	$(TARGET) $(TARGET2)
-
-# Explicit test11 build instruction.
-test11:
-	cp ../src/test11.sh test11
-
-testlibs: libtestA.so libtestB.so $(MUTATEE_TEST9_LIBS_LIST)
-
-# test1.mutatee uses dlopen for replaceFunction tests
-# (currently only implemented on SPARC/Solaris and Alpha/Tru64)
-# It also uses it for detach-on-the-fly on Linux.
-ifeq (test1,$(findstring test1,$(TARGET2)))
-ifdef USES_MUTATEE_LIBS
-MUTLIBS=$(MUTATEE_LIBS)
 endif
 endif
-# test2.mutatee uses dlopen to force a dynamic object load
-ifeq (test2,$(findstring test2,$(TARGET2)))
-MUTLIBS=$(MUTATEE_LIBS)
 endif
-ifeq (test5,$(findstring test5,$(TARGET2)))
-MUTLIBS=$(MUTATEE_LIBS)
-endif
-ifeq (test8,$(findstring test8,$(TARGET2)))
-MUTLIBS=$(MUTATEE_LIBS)
-endif
-ifeq (test12,$(findstring test12,$(TARGET2)))
-MUTLIBS += -lpthread
-LIBS += -lpthread
-endif
-
-
-# test9.mutatee used libInstMe.so
-ifeq (test9,$(findstring test9,$(TARGET2)))
-ifdef MUTATEE_TEST9_LIBS 
-MUTLIBS=$(MUTATEE_TEST9_LIBS)
-endif
-endif
-
-UNCOMMON_INSTALL=true
-
-install: all
-	-@$(MKDIR) $(DEST)
-	-$(CP) $(TARGETS) $(DEST)
-
-clean::
-	rm -f *.da *.bb *.bbg libtestA.so libtestB.so tests.done libInstMe.so libLoadMe.so

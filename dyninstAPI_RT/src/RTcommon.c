@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.44 2005/04/12 05:14:21 jaw Exp $ */
+/* $Id: RTcommon.c,v 1.45 2005/05/13 09:17:21 jaw Exp $ */
 
 #if defined(i386_unknown_nt4_0)
 #include <process.h>
@@ -462,4 +462,35 @@ int DYNINSTasyncThreadStop()
   ret = DYNINSTreportThreadEvent(rtBPatch_threadStopEvent, tid);
   UnlockCommsMutex();
   return ret;
+}
+int DYNINSTuserMessage(void *msg, unsigned int msg_size)
+{
+  int err = 0;
+  rtBPatch_asyncEventRecord ev;
+
+  LockCommsMutex();
+
+  ev.type = rtBPatch_userEvent;
+  ev.pid = getpid();
+  ev.size = msg_size;
+  err = DYNINSTwriteEvent((void *) &ev, sizeof(rtBPatch_asyncEventRecord));
+
+
+  if (err) {
+    fprintf(stderr, "%s[%d]:  write error\n",
+            __FILE__, __LINE__);
+    goto done;
+  }
+
+  err = DYNINSTwriteEvent(msg, msg_size);
+
+  if (err) {
+    fprintf(stderr, "%s[%d]:  write error\n",
+            __FILE__, __LINE__);
+    goto done;
+  }
+
+ done:
+  UnlockCommsMutex();
+  return err;
 }

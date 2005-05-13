@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.114 2005/03/19 19:07:04 jodom Exp $ */
+/* $Id: test1.mutatee.c,v 1.115 2005/05/13 09:17:21 jaw Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -966,7 +966,8 @@ void func15_3()
 
 void func15_4()
 {
-    kludge = 1;	/* Here so that the following function call isn't the first
+    int localkludge = 1;
+    kludge = localkludge;	/* Here so that the following function call isn't the first
 		   instruction */
 
     func15_3();

@@ -1,12 +1,11 @@
 #
-# $Id: Makefile,v 1.10 2005/03/03 16:49:07 jodom Exp $
+# $Id: Makefile,v 1.11 2005/05/13 09:17:21 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 TO_CORE	= 	../../..
 NO_OPT_FLAG=true
 INSTANTIATE_TEMPLATES = true
-# NO_IMPLICIT_TEMPLATES = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -15,105 +14,56 @@ include $(TO_CORE)/make.config
 
 # Now make any necessary architecture specific changes to variables:
 
-#MODCC = g++
-#CXX   = g++
+# Uncomment M_G77 (at yr own risk) to do g77 build
+#M_G77 = g77
+
+NATIVE_FC = xlf90
+NATIVE_FORTRAN_CC = gcc
+NATIVE_CC = xlc
+NATIVE_CXX = xlC
+
+COMMA=,
 
 CXXFLAGS += -DUSES_DYNAMIC_INF_HEAP -g -DAIX5 -Wa,-many
 CFLAGS += -DUSES_DYNAMIC_INF_HEAP -g -DAIX5 -Wa,-many
 
-MUTATEE_FFLAGS += -U -WF,-Drs6000_ibm_aix4_1 -qnolm -qfixed -w -g -WF,-DAIX5
+MUTATEE_NATIVE_FFLAGS += -U -WF,-Drs6000_ibm_aix4_1 -qnolm -qfixed -w -g -WF,-DAIX5
+MUTATEE_NATIVE_FC_LDFLAGS += -g -bgcbypass:3 -ldl `$(GCC) -print-libgcc-file-name`
+TEST1_FORTRAN_CSOURCE = test1.mutateeFortC.c
 
-MUTATEE_FLINKFLAGS += -g -bgcbypass:3 -ldl `$(GCC) -print-libgcc-file-name`
-MUTATEE_TEST9_LIBS_LIST = libLoadMe.so
-MUTATEE_TEST9_LIBS = 
-
-NATIVE_CC = xlc
-NATIVE_CXX = xlC
-
-# Define special compilers for mutatees
-M_GCC = gcc
-M_GXX = g++
-
-NATIVE_FC = xlf90
-COMMA=,
-
-MINI_PLATFORM = power
-TEST6_ASFLAGS = 
+TEST6_AS_GNU = as
+TEST6_ASFLAGS_GNU = 
 TEST6_ASSUFFIX = s
+TEST6_AS_SRC = test6LS-power.s
 
-include ../make.module.tmpl
-
-# replace testN.mutatee_compiler with ../src/testN.mutatatee.c
-MUTATEE_OBJ = $(TARGET2:_$(MUTATEE_CC)=.o)
-
-ifeq (xl,$(findstring xl,$(MUTATEE_CC)))
 c1 = $(shell lslpp -l 'vacpp.cmp.C' | grep COMMITTED | head -1)
-c2 = $(shell lslpp -l 'xlC.C' | grep COMMITTED | head -1)
+c2 = $(shell lslpp -l 'vacpp.cmp.core' | grep COMMITTED | head -1)
+c3 = $(shell lslpp -l 'xlC.C' | grep COMMITTED | head -1)
 versionArray = $(word 2,$(c1))
 versionArray += $(word 2,$(c2))
+versionArray += $(word 2,$(c3))
 versionArray += unknown
-COMPILERT = $(MUTATEE_CC) version $(firstword $(versionArray))
-MUTATEE_CFLAGS = $(UNIFIED_DEF) -D__XLC__ -qnoinline -qnooptimize -bkeepfile:$(MUTATEE_OBJ)
-ifeq ($(MUTATEE_CC),$(NATIVE_CXX))
-MUTATEE_CFLAGS += -+
-endif
-else
-COMPILERT = $(shell $(MUTATEE_CC) -v 2>&1 | grep version | head -1)
-MUTATEE_CFLAGS = $(MODCFLAGS) -Wl,-bgcbypass:3 
-endif
+COMPILERT_NATIVE_CC = $(NATIVE_CC) version $(firstword $(versionArray))
+COMPILERT_NATIVE_CXX = $(COMPILERT_NATIVE_CC)
 
-EMPTY:=
-BLANK:=$(EMPTY) $(EMPTY)
-LPAREN:=(
-RPAREN:=)
-COMPILER1 = $(subst $(BLANK),_,$(COMPILERT))
-COMPILER2 = $(subst $(LPAREN),_,$(COMPILER1))
-COMPILER = $(subst $(RPAREN),_,$(COMPILER2))
+MUTATEE_CFLAGS_NATIVE = $(UNIFIED_DEF) 
+MUTATEE_CFLAGS_NATIVE += -D__XLC__ -qnoinline -qnooptimize 
+MUTATEE_CXXFLAGS_NATIVE = $(MUTATEE_CFLAGS_NATIVE) -+
+MUTATEE_CFLAGS_NATIVE += -qcpluscmt
+MUTATEE_NATIVE_FC_CFLAGS = $(MUTATEE_CFLAGS_NATIVE)
 
-ifeq ($(NATIVE_FC), $(MUTATEE_FC))
-COMPILER = xlf90
-endif
+MUTATOR_CXXFLAGS = $(UNIFIED_DEF) 
 
-MUTATEE_CFLAGS += -DCOMPILER='"$(COMPILER)"' 
-MUTATEE_CFLAGS += -DAIX5
-LDFLAGS += -lbsd
+MUTATEE_CFLAGS_GNU = $(UNIFIED_DEF)
+MUTATEE_LDFLAGS_GNU += -Wl,-bgcbypass:3  -Wl,-bnoobjreorder 
+MUTATEE_CXXFLAGS_GNU = $(MUTATEE_CFLAGS_GNU)
 
-ifeq ($(NATIVE_FC), $(MUTATEE_FC))
-# FORTRAN_BASE = test1.mutateeFort, etc.
-FORTRAN_BASE = $(TARGET2:_$(NATIVE_FC)=Fort)
+MUTATEE_LDFLAGS_NATIVE += -bnoobjreorder -bgcbypass:3 -g -DAIX5 -Drs6000_ibm_aix4_1 -D__XLC__
+ 
+CFLAGS_TESTLIBS = -I../src -I../../../dyninstAPI_RT/h
+TESTLIB_FLAGS = -bM:SRC -bexpall -bnoentry -berok
+MAKE_SHARED_LIB = ld
 
-$(TARGET2): $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o test1.mutateeCommon.o mutatee_util.o
-	-$(NATIVE_FC) $(FORTRAN_BASE)_$(NATIVE_FC).o $(FORTRAN_BASE)C_$(NATIVE_FC).o test1.mutateeCommon.o mutatee_util.o $(MUTATEE_FLINKFLAGS) -o $(TARGET2)
-
-$(FORTRAN_BASE)_$(NATIVE_FC).o: ../src/$(FORTRAN_BASE).F
-	-$(NATIVE_FC) $(MUTATEE_FFLAGS) -c -o $(FORTRAN_BASE)_$(NATIVE_FC).o ../src/$(FORTRAN_BASE).F
-
-$(FORTRAN_BASE)C_$(NATIVE_FC).o: ../src/$(TARGET2:_$(NATIVE_FC)=).c
-	-$(MUTATEE_CC) $(filter-out -Wl$(COMMA)-bgcbypass:3, $(MUTATEE_CFLAGS)) -fno-implicit-templates -W -Wall $(FORT_SQGL_FLAG) -DFortran -c -o $(FORTRAN_BASE)C_$(NATIVE_FC).o ../src/$(FORTRAN_BASE)C.c
-else
-$(TARGET2): $(MUTATEE_SRC) $(MUTATEE_OBJS)
-	-$(MUTATEE_CC) -g $(MUTATEE_CFLAGS) -Wl,-bnoobjreorder \
-	$(MUTATEE_SRC) $(MUTATEE_OBJS) $(MUTLIBS) -o $(TARGET2)
-endif
-
-
-# Include the "standard program template".  This defines all the
-# common targets like "clean", "install", etc.
-
-include $(TO_CORE)/make.program.tmpl
-
-libtestA.o:
-	$(CC) -g -c ../src/libtestA.c
-libtestB.o:
-	$(CC) -g -c ../src/libtestB.c
-libtestA.so: libtestA.o
-	ld -bM:SRE -bnoentry -o libtestA.so libtestA.o -bexpall -berok
-libtestB.so: libtestB.o
-	ld -bM:SRE -bnoentry -o libtestB.so libtestB.o -bexpall -berok
-libLoadMe.o:  libLoadMe.c
-	$(CC) -g -c ../src/libLoadMe.c
-
-libLoadMe.so: libLoadMe.o
-	ld  -bM:SRE -bexpall  -o libLoadMe.so libLoadMe.o -bexpall -berok
+include ../make.module.tmpl
 
 

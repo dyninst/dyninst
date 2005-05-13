@@ -76,6 +76,7 @@ typedef enum {
   BPatch_execEvent,
   BPatch_exitEvent,
   BPatch_signalEvent,
+  BPatch_userEvent,
   BPatch_oneTimeCodeEvent
 } BPatch_asyncEventType;
 
@@ -121,6 +122,7 @@ public:
 };
 
 typedef void (*BPatchAsyncThreadEventCallback)(BPatch_thread *thr, unsigned long thread_id);
+typedef void (*BPatchUserEventCallback)(void *buf, unsigned int bufsize);
 
 typedef enum {
    NoExit,
@@ -561,6 +563,22 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     bool,removeAsyncThreadEventCallback,(BPatch_asyncEventType type,
                                          BPatch_function *cb));
 
+
+
+    //  BPatch_process::registerUserEventCallback
+    //  
+    //  Specifies a user defined function to call when a "user event" 
+    //  occurs, user events are trigger by calls to the function DYNINSTuserMessage(void *, int)
+    //  in the runtime library.
+    //  
+    //  BPatchUserEventCallback is:
+    //  void (*BPatchUserEventCallback)(void *msg, unsigned int msg_size);
+
+    API_EXPORT(Int, (cb),
+    bool,registerUserEventCallback,(BPatchUserEventCallback cb)); 
+
+    API_EXPORT(Int, (cb),
+    bool,removeUserEventCallback,(BPatchUserEventCallback cb));
 
 #ifdef IBM_BPATCH_COMPAT
     API_EXPORT(Int, (name, loadaddr),
