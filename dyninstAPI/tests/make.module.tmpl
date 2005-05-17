@@ -196,6 +196,7 @@ clean:
 	$(RM) $(TESTLIBS) 
 	$(RM) $(MUTATORS) $(MUTATEES_GCC) $(MUTATEES_GXX) $(MUTATEES_G77) $(MUTATEES_GXX_ONLY)
 	$(RM) *.o $(MUTATEES_NATIVE_CC) $(MUTATEES_NATIVE_CXX) $(MUTATEES_NATIVE_FC) $(MUTATEES_NATIVE_CXX_ONLY)
+	$(RM) test11
 
 distclean: clean
 	@if [ -d $(DEPENDDIR) ]; then \
@@ -204,10 +205,10 @@ distclean: clean
          fi
 
 
-mutators: $(MUTATORS)
+mutators: $(MUTATORS) test11
 mutatees: gnu_mutatees native_mutatees
 gnu_mutatees: $(MUTATEES_GCC) $(MUTATEES_GXX) $(MUTATEES_G77)
-native_mutatees: $(MUTATEES_NATIVE_CC) $(MUTATEES_NATIVE_CXX) $(MUTATEES_NATIVE_FC)
+native_mutatees: $(MUTATEES_NATIVE_CC) $(MUTATEES_NATIVE_CXX) $(MUTATEES_NATIVE_FC) $(MUTATEES_NATIVE_CXX_ONLY)
 testlibs: $(TESTLIBS)
 
 .PHONY: clean install distclean mutators mutatees testlibs gnu_mutatees native_mutatees
@@ -261,11 +262,11 @@ MUTATEE_SPECIFIC_LIBS_NATIVE 	+= 12.-lpthread
 
 # GNU Mutatees
 
-$(MUTATEES_GCC): test%.mutatee_gcc : test%.mutatee_gcc.o $(OBJS_FORALL_MUTATEES_GCC) $(DEPENDDIR)/test%.mutatee_gcc.dep mutatee_util_gcc.o
+$(MUTATEES_GCC): test%.mutatee_gcc : test%.mutatee_gcc.o $(DEPENDDIR)/test%.mutatee_gcc.dep mutatee_util_gcc.o
 	$(M_GCC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) $(MUTATEE_LIBS) \
             $(subst $*.,,$(filter $*.%, $(MUTATEE_SPECIFIC_LIBS_GNU)))
 
-$(MUTATEES_GXX): test%.mutatee_g++ : test%.mutatee_g++.o $(OBJS_FORALL_MUTATEES_GXX) $(DEPENDDIR)/test%.mutatee_g++.dep mutatee_util_g++.o
+$(MUTATEES_GXX): test%.mutatee_g++ : test%.mutatee_g++.o  $(DEPENDDIR)/test%.mutatee_g++.dep mutatee_util_g++.o
 	$(M_GXX) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) $(MUTATEE_LIBS) \
             $(subst $*.,,$(filter $*.%, $(MUTATEE_SPECIFIC_LIBS_GNU)))
 
@@ -297,6 +298,7 @@ ifdef NATIVE_CXX
 $(MUTATEES_NATIVE_CXX): test%.mutatee_$(NATIVE_CXX) : test%.mutatee.c mutatee_util_$(NATIVE_CXX).o
 	$(NATIVE_CXX) $(MUTATEE_CXXFLAGS_NATIVE) -o $@ $(filter %.c %.s %.S %.o,$^) $(MUTATEE_LDFLAGS_NATIVE) $(MUTATEE_LIBS) \
             $(subst $*.,,$(filter $*.%, $(MUTATEE_SPECIFIC_LIBS_NATIVE)))
+
 $(MUTATEES_NATIVE_CXX_ONLY): test%.mutatee_$(NATIVE_CXX) : test%.mutatee.C mutatee_util_$(NATIVE_CXX).o
 	$(NATIVE_CXX) $(MUTATEE_CXXFLAGS_NATIVE) -o $@ $(filter %.C %.s %.S %.o,$^) $(MUTATEE_LDFLAGS_NATIVE) $(MUTATEE_LIBS) \
             $(subst $*.,,$(filter $*.%, $(MUTATEE_SPECIFIC_LIBS_NATIVE)))
@@ -330,6 +332,9 @@ endif
 
 $(MUTATORS): test% : test%.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test%.dep
 	$(M_GXX) -o $@ $(filter %.o,$^) $(MUTATOR_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) $(MUTATOR_LDFLAGS)
+
+test11:
+	cp ../src/test11.sh test11
 
 #######################################################################
 ###  Depends
