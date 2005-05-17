@@ -441,7 +441,7 @@ BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(const BPatch_Set<B
   // Use an instruction iterator
   InstrucIter ii(this);
   BPatch_function *func = 
-     flowGraph->bproc->func_map->get(flowGraph->getFunction());
+     flowGraph->getBProc()->func_map->get(flowGraph->getFunction());
   
   return ::findPoint(ops, ii, flowGraph->getBProcess(), func);
 
