@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.39 2005/03/16 22:59:46 bernat Exp $
+// $Id: solarisDL.C,v 1.40 2005/05/18 20:14:40 rchen Exp $
 
 #include "dyninstAPI/src/sharedobject.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -150,65 +150,66 @@ bool dynamic_linking::get_ld_name(char *ld_name, Address ld_base, int map_fd, in
 // it returns false on error
 bool dynamic_linking::findFunctionIn_ld_so_1(pdstring f_name, int ld_fd, 
 					     Address ld_base_addr, 
-					     Address *f_addr, int st_type){
+					     Address *f_addr, int st_type)
+{
+    bool result = false;
+    Elf_X elf;
+    Elf_X_Shdr shstrscn;
+    Elf_X_Data shstrdata;
+    Elf_X_Shdr symscn;
+    Elf_X_Shdr strscn;
+    Elf_X_Data symdata;
+    Elf_X_Data strdata;
 
-   lseek(ld_fd, 0, SEEK_SET);
-   Elf *elfp = 0;
-   if ((elfp = elf_begin(ld_fd, ELF_C_READ, 0)) == 0) {return false;}
-   Elf32_Ehdr *phdr = elf32_getehdr(elfp);
-   if(!phdr){ elf_end(elfp); return false;}
+    const char *shnames;
 
-   Elf_Scn*    shstrscnp  = 0;
-   Elf_Scn*    symscnp = 0;
-   Elf_Scn*    strscnp = 0;
-   Elf_Data*   shstrdatap = 0;
-   if ((shstrscnp = elf_getscn(elfp, phdr->e_shstrndx)) == 0) {
-      elf_end(elfp); 
-      return false;
-   }
-   if((shstrdatap = elf_getdata(shstrscnp, 0)) == 0) {
-      elf_end(elfp); 
-      return false;
-   }
-   const char* shnames = (const char *) shstrdatap->d_buf;
-   Elf_Scn*    scnp    = 0;
-   while ((scnp = elf_nextscn(elfp, scnp)) != 0) {
-      Elf32_Shdr* shdrp = elf32_getshdr(scnp);
-      if (!shdrp) { elf_end(elfp); return false; }
-      const char* name = (const char *) &shnames[shdrp->sh_name];
-      if (strcmp(name, ".symtab") == 0) {
-         symscnp = scnp;
-      }
-      else if (strcmp(name, ".strtab") == 0) {
-         strscnp = scnp;
-      }
-   }
-   if (!strscnp || !symscnp) { elf_end(elfp); return false;}
+    lseek(ld_fd, 0, SEEK_SET);
+    elf = Elf_X(ld_fd, ELF_C_READ);
+    if (elf.isValid()) shstrscn = elf.get_shdr( elf.e_shstrndx() );
+    if (shstrscn.isValid()) shstrdata = shstrscn.get_data();
+    if (shstrdata.isValid()) shnames = shstrdata.get_string();
 
-   Elf_Data* symdatap = elf_getdata(symscnp, 0);
-   Elf_Data* strdatap = elf_getdata(strscnp, 0);
-   if (!symdatap || !strdatap) { elf_end(elfp); return false;}
-   u_int nsyms = symdatap->d_size / sizeof(Elf32_Sym);
-   Elf32_Sym*  syms   = (Elf32_Sym *) symdatap->d_buf;
-   const char* strs   = (const char *) strdatap->d_buf;
+    if (elf.isValid() && shstrscn.isValid() && shstrdata.isValid()) {
+	for (int i = 0; i < elf.e_shnum(); ++i) {
+	    Elf_X_Shdr shdr = elf.get_shdr(i);
+	    if (!shdr.isValid()) return false;
+	    const char* name = (const char *) &shnames[shdr.sh_name()];
 
-   if (f_addr != NULL) *f_addr = 0;
-   for(u_int i=0; i < nsyms; i++){
-      if (syms[i].st_shndx != SHN_UNDEF) {
-         if(ELF32_ST_TYPE(syms[i].st_info) == st_type){
-            pdstring name = pdstring(&strs[syms[i].st_name]);
-            if(name == f_name){
-               if (f_addr != NULL) {
-                  *f_addr = syms[i].st_value + ld_base_addr; 
-               }
-               break;
-            } 
-         }
-      }
-   }
-   elf_end(elfp);
-   if((f_addr != NULL) && ((*f_addr)==0)) { return false; }
-   return true;
+	    if (P_strcmp(name, ".symtab") == 0) {
+		symscn = shdr;
+
+	    } else if (P_strcmp(name, ".strtab") == 0) {
+		strscn = shdr;
+	    }
+	}
+
+	if (strscn.isValid()) symdata = symscn.get_data();
+	if (symscn.isValid()) strdata = strscn.get_data();
+	if (symdata.isValid() && strdata.isValid()) {
+	    Elf_X_Sym syms = symdata.get_sym();
+	    const char* strs = strdata.get_string();
+
+	    if (f_addr != NULL) *f_addr = 0;
+
+	    for (u_int i = 0; i < syms.count(); ++i) {
+		if (syms.st_shndx(i) != SHN_UNDEF) {
+		    if (syms.ST_TYPE(i) == st_type) {
+			pdstring name = pdstring(&strs[ syms.st_name(i) ]);
+			if (name == f_name) {
+			    if (f_addr != NULL) {
+				*f_addr = syms.st_value(i) + ld_base_addr;
+			    }
+			    result = true;
+			    break;
+			}
+		    }
+		}
+	    }
+	}
+    }
+    elf.end();
+
+    return result;
 }
 
 // find_r_debug: this routine finds the symbol table for ld.so.1, and 

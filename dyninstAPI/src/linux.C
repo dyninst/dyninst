@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.166 2005/03/17 23:26:40 bernat Exp $
+// $Id: linux.C,v 1.167 2005/05/18 20:14:33 rchen Exp $
 
 #include <fstream>
 
@@ -79,6 +79,7 @@
 #include "paradynd/src/init.h"
 #endif
 
+#include "Elf_X.h"
 #include "dyninstAPI/src/addLibraryLinux.h"
 #include "dyninstAPI/src/writeBackElf.h"
 // #include "saveSharedLibrary.h" 
@@ -1383,128 +1384,70 @@ procSyscall_t decodeSyscall(process * /*p*/, procSignalWhat_t what)
 }
 
 bool process::dumpImage( pdstring imageFileName ) {
-	/* What we do is duplicate the original file,
-	   and replace the copy's .text section with
-	   the (presumably instrumented) in-memory
-	   executable image.  Note that we don't seem
-	   to be concerned with making sure that we
-	   actually grab the instrumentation code itself... */
-	
-	/* Acquire the filename. */
-	image * theImage = getImage();
-	pdstring originalFileName = theImage->file();
-	
-	/* Use system() to execute the copy. */
-	pdstring copyCommand = "cp " + originalFileName + " " + imageFileName;
+    /* What we do is duplicate the original file,
+       and replace the copy's .text section with
+       the (presumably instrumented) in-memory
+       executable image.  Note that we don't seem
+       to be concerned with making sure that we
+       actually grab the instrumentation code itself... */
+
+    /* Acquire the filename. */
+    image * theImage = getImage();
+    pdstring originalFileName = theImage->file();
+
+    /* Use system() to execute the copy. */
+    pdstring copyCommand = "cp " + originalFileName + " " + imageFileName;
     system( copyCommand.c_str() );
 
-	/* Open the copy so we can use libelf to find the .text section. */
-	int copyFD = open( imageFileName.c_str(), O_RDWR, 0 );
-	if( copyFD < 0 ) { return false; }
+    /* Open the copy so we can use libelf to find the .text section. */
+    int copyFD = open( imageFileName.c_str(), O_RDWR, 0 );
+    if( copyFD < 0 ) { return false; }
 
-	/* Start up the elven widgetry. */
-	Elf * elfPointer = elf_begin( copyFD, ELF_C_READ, NULL );
-	char * elfIdent = elf_getident( elfPointer, NULL );
-	char elfClass = elfIdent[ EI_CLASS ];
-	
-	bool is64Bits;
-	switch( elfClass ) {
-		case ELFCLASSNONE:
-			/* Shouldn't happen. */
-			elf_end( elfPointer );
-			close( copyFD );
-			return false;
-
-		case ELFCLASS32:
-			is64Bits = false;
-			break;
-			
-		case ELFCLASS64:
-			is64Bits = true;
-			break;
-			
-		default:
-			/* Can't happen. */
-			assert( 0 );
-			break;
-		} /* end elfClass switch */
+    /* Start up the elven widgetry. */
+    Elf_X elf( copyFD, ELF_C_READ );
+    if (!elf.isValid()) return false;
 
     /* Acquire the shared names pointer. */
-    const char * sharedNames = NULL;
-    if( is64Bits ) {
-    	Elf64_Ehdr * elfHeader = elf64_getehdr( elfPointer );
-    	assert( elfHeader != NULL );
-    	
-    	Elf_Scn * elfSection = elf_getscn( elfPointer, elfHeader->e_shstrndx );
-    	assert( elfSection != NULL );
+    Elf_X_Shdr elfSection = elf.get_shdr( elf.e_shstrndx() );
+    Elf_X_Data elfData = elfSection.get_data();
+    const char *sharedNames = elfData.get_string();
 
-    	Elf_Data * elfData = elf_getdata( elfSection, 0 );
-    	assert( elfData != NULL );
-    	    	    	
-    	sharedNames = (const char *) elfData->d_buf;
-    	}
-    else {
-    	Elf32_Ehdr * elfHeader = elf32_getehdr( elfPointer );
-    	assert( elfHeader != NULL );
-    	
-    	Elf_Scn * elfSection = elf_getscn( elfPointer, elfHeader->e_shstrndx );
-    	assert( elfSection != NULL );
+    /* Iterate over the sections to find the text section's
+       offset, length, and base address. */
+    Address offset = 0;
+    Address length = 0;
+    Address baseAddr = 0;
 
-    	Elf_Data * elfData = elf_getdata( elfSection, 0 );
-    	assert( elfData != NULL );
-    	    	    	
-    	sharedNames = (const char *) elfData->d_buf;
-		}   
-    
-	/* Iterate over the sections to find the text section's
-	   offset, length, and base address. */
-	Address offset = 0;
-	Address length = 0;
-	Address baseAddr = 0;
-	   
-	Elf_Scn * elfSection = NULL;
-	while( (elfSection = elf_nextscn( elfPointer, elfSection )) != NULL ) {
-		if( is64Bits ) {
-			Elf64_Shdr * elfSectionHeader = elf64_getshdr( elfSection );
-			const char * name = (const char *) & sharedNames[ elfSectionHeader->sh_name ];
+    for( int i = 0; i < elf.e_shnum(); ++i ) {
+	elfSection = elf.get_shdr( i );
+	const char * name = (const char *) &sharedNames[ elfSection.sh_name() ];
 
-			if( strcmp( name, ".text" ) == 0 ) {
-				offset = elfSectionHeader->sh_offset;
-				length = elfSectionHeader->sh_size;
-				baseAddr = elfSectionHeader->sh_addr;
-				break;
-				} /* end if we've found the text section */
-			} else {
-			Elf32_Shdr * elfSectionHeader = elf32_getshdr( elfSection );
-			const char * name = (const char *) & sharedNames[ elfSectionHeader->sh_name ];
+	if( P_strcmp( name, ".text" ) == 0 ) {
+	    offset = elfSection.sh_offset();
+	    length = elfSection.sh_size();
+	    baseAddr = elfSection.sh_addr();
+	    break;
+	} /* end if we've found the text section */
+    } /* end iteration over sections */
 
-			if( strcmp( name, ".text" ) == 0 ) {
-				offset = elfSectionHeader->sh_offset;
-				length = elfSectionHeader->sh_size;
-				baseAddr = elfSectionHeader->sh_addr;
-				break;
-				} /* end if we've found the text section */
-			}
-		} /* end iteration over sections */
+    /* Copy the code out of the mutatee. */
+    char * codeBuffer = (char *)malloc( length );
+    assert( codeBuffer != NULL );
 
-	/* Copy the code out of the mutatee. */
-	char * codeBuffer = (char *)malloc( length );
-	assert( codeBuffer != NULL );
+    if( ! readTextSpace( (void *) baseAddr, length, codeBuffer ) ) {
+	free( codeBuffer );
+	elf.end();
+	close( copyFD );
+	return false;
+    }
 
-	if( ! readTextSpace( (void *) baseAddr, length, codeBuffer ) ) {
-		free( codeBuffer );
-		elf_end( elfPointer );
-		close( copyFD );
-		return false;
-		}
-
-	/* Write that code to the image file. */
+    /* Write that code to the image file. */
     lseek( copyFD, offset, SEEK_SET );
     write( copyFD, codeBuffer, length );
-    
+
     /* Clean up. */
     free( codeBuffer );
-    elf_end( elfPointer );
+    elf.end();
     close( copyFD );
     return true;
 }

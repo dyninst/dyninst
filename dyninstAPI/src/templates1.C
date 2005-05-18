@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.64 2005/04/18 20:55:51 legendre Exp $
+//$Id: templates1.C,v 1.65 2005/05/18 20:14:46 rchen Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #pragma implementation("Dictionary.h")
@@ -172,10 +172,10 @@ template class  pdvector<dictionary_hash <unsigned long, unsigned long>::entry>;
 template class  dictionary_hash_iter <unsigned long, unsigned long>;
 
 #if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(x86_64_unknown_linux2_4) \
  || defined(i386_unknown_solaris2_4) \
  || defined(sparc_sun_solaris2_4) \
  || defined(mips_sgi_irix_6_4) \
  || defined(ia64_unknown_linux2_4)
-template class pdvector<pdElfShdr*>;
+template class pdvector<Elf_X_Shdr *>;
 #endif

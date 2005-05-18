@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.180 2005/04/18 20:55:49 legendre Exp $
+// $Id: solaris.C,v 1.181 2005/05/18 20:14:37 rchen Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -507,72 +507,70 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 
 bool process::dumpImage(pdstring imageFileName) 
 {
-   int newFd;
-   image *im;
-   pdstring command;
-   
-   im = getImage();
-   pdstring origFile = im->file();
-   
-   // first copy the entire image file
-   command = "cp ";
-   command += origFile;
-   command += " ";
-   command += imageFileName;
-   system(command.c_str());
-   
-   // now open the copy
-   newFd = open(imageFileName.c_str(), O_RDWR, 0);
-   if (newFd < 0) {
-      // log error
-      return false;
-   }
+    int newFd;
+    image *im;
+    pdstring command;
 
-   Elf *elfp = elf_begin(newFd, ELF_C_READ, 0);
-   Elf_Scn *scn = 0;
-   Address baseAddr = 0;
-   int length = 0;
-   int offset = 0;
+    im = getImage();
+    pdstring origFile = im->file();
    
-   Elf32_Ehdr*	ehdrp;
-   Elf_Scn* shstrscnp  = 0;
-   Elf_Data* shstrdatap = 0;
-   Elf32_Shdr* shdrp;
-   
-   assert(ehdrp = elf32_getehdr(elfp));
-   assert(((shstrscnp = elf_getscn(elfp, ehdrp->e_shstrndx)) != 0) &&
-          ((shstrdatap = elf_getdata(shstrscnp, 0)) != 0));
-   const char* shnames = (const char *) shstrdatap->d_buf;
-   
-   while ((scn = elf_nextscn(elfp, scn)) != 0) {
-      const char* name;
-      
-      shdrp = elf32_getshdr(scn);
-      name = (const char *) &shnames[shdrp->sh_name];
-      if (!strcmp(name, ".text")) {
-         offset = shdrp->sh_offset;
-         length = shdrp->sh_size;
-         baseAddr = shdrp->sh_addr;
-         break;
-      }
-   }
-   
+    // first copy the entire image file
+    command = "cp ";
+    command += origFile;
+    command += " ";
+    command += imageFileName;
+    system(command.c_str());
 
-   char *tempCode = new char[length];
-   
-   
-   bool ret = readTextSpace((void *) baseAddr, length, tempCode);
-   if (!ret) {
-      // log error
-      return false;
-   }
-   
-   lseek(newFd, offset, SEEK_SET);
-   write(newFd, tempCode, length);
-   delete[] tempCode;
-   close(newFd);
+    // now open the copy
+    newFd = open(imageFileName.c_str(), O_RDWR, 0);
+    if (newFd < 0) {
+	// log error
+	return false;
+    }
 
-   return true;
+    Elf_X elf(newFd, ELF_C_READ);
+    if (!elf.isValid()) return false;
+
+    Elf_X_Shdr shstrscn = elf.get_shdr( elf.e_shstrndx() );
+    Elf_X_Data shstrdata = shstrscn.get_data();
+    const char* shnames = (const char *) shstrdata.get_string();
+
+    Address baseAddr = 0;
+    int length = 0;
+    int offset = 0;
+    for (int i = 0; i < elf.e_shnum(); ++i) {
+	Elf_X_Shdr shdr = elf.get_shdr(i);
+	const char *name = (const char *) &shnames[shdr.sh_name()];
+
+	if (!P_strcmp(name, ".text")) {
+	    offset = shdr.sh_offset();
+	    length = shdr.sh_size();
+	    baseAddr = shdr.sh_addr();
+	    break;
+	}
+    }
+
+    char *tempCode = new char[length];
+    bool ret = readTextSpace((void *) baseAddr, length, tempCode);
+    if (!ret) {
+	// log error
+
+	delete[] tempCode;
+	elf.end();
+	close(newFd);
+
+	return false;
+    }
+
+    lseek(newFd, offset, SEEK_SET);
+    write(newFd, tempCode, length);
+
+    // Cleanup
+    delete[] tempCode;
+    elf.end();
+    close(newFd);
+
+    return true;
 }
 
 /* Auxiliary function */

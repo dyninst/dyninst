@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.63 2005/03/07 05:09:59 lharris Exp $
+ * $Id: Object-elf.h,v 1.64 2005/05/18 20:14:29 rchen Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -55,6 +55,8 @@
 #include "common/h/Vector.h"
 #include <elf.h>
 #include <libelf.h>
+
+#include "Elf_X.h"
 
 extern "C" {
 #include <libelf.h>
@@ -100,7 +102,7 @@ struct stab64 {
 // 
 class stab_entry {
   public:
-    stab_entry(void *_stabptr = 0, char *_stabstr = 0, long _nsyms = 0)
+    stab_entry(void *_stabptr = 0, const char *_stabstr = 0, long _nsyms = 0)
 	: stabptr(_stabptr), stabstr(_stabstr), nsyms(_nsyms) { }
 
     virtual const char *name(int i) = 0;
@@ -116,13 +118,13 @@ class stab_entry {
 
   protected:
     void *stabptr;
-    char *stabstr;
+    const char *stabstr;
     long nsyms;
 };
 
 class stab_entry_32 : public stab_entry {
   public:
-    stab_entry_32(void *_stabptr = 0, char *_stabstr = 0, long _nsyms = 0)
+    stab_entry_32(void *_stabptr = 0, const char *_stabstr = 0, long _nsyms = 0)
 	: stab_entry(_stabptr, _stabstr, _nsyms) { }
 
     const char *name(int i = 0) { return stabstr + ((stab32 *)stabptr)[i].name; }
@@ -135,7 +137,7 @@ class stab_entry_32 : public stab_entry {
 
 class stab_entry_64 : public stab_entry {
   public:
-    stab_entry_64(void *_stabptr = 0, char *_stabstr = 0, long _nsyms = 0)
+    stab_entry_64(void *_stabptr = 0, const char *_stabstr = 0, long _nsyms = 0)
 	: stab_entry(_stabptr, _stabstr, _nsyms) { }
 
     const char *name(int i = 0) { return stabstr + ((stab64 *)stabptr)[i].name; }
@@ -203,7 +205,6 @@ class Object : public AObject {
   virtual ~Object();
   const Object& operator=(const Object &);
   
-  bool is_elf64() const { return is_elf64_; }
   const char *elf_vaddr_to_ptr(Address vaddr) const;
   bool hasStabInfo() const { return ! ( !stab_off_ || !stab_size_ || !stabstr_off_ ); }
   bool hasDwarfInfo() const { return dwarvenDebugInfo; }
@@ -293,7 +294,6 @@ class Object : public AObject {
 #endif
   bool shared_;
   bool      EEL;                 // true if EEL rewritten
-  bool      is_elf64_;           // true if Elf64 file type 
 
   // for sparc-solaris this is a table of PLT entry addr, function_name
   // for x86-solaris this is a table of GOT entry addr, function_name
@@ -306,7 +306,7 @@ class Object : public AObject {
 
   // all section headers, sorted by address
   // we use these to do a better job of finding the end of symbols
-  pdvector<pdElfShdr*> allSectionHdrs;
+  pdvector<Elf_X_Shdr*> allSectionHdrs;
 
   // It doesn't look like image's equivalent hashtable is built by
   // the time we need it, and it's hard to get to anyway.
@@ -316,39 +316,39 @@ class Object : public AObject {
   bool mmap_file(const char *file, 
 		 bool &did_open, bool &did_mmap);
 
-  bool loaded_elf(bool &, Elf* &, 
-		  Address &, Address &, Elf_Scn* &, Elf_Scn* &, 
-		  Elf_Scn* &, Elf_Scn* &, 
-		  Elf_Scn* &, Elf_Scn* &,
-        Elf_Scn*& rel_plt_scnp, Elf_Scn*& plt_scnp, 
-        Elf_Scn*& got_scnp,  Elf_Scn*& dynsym_scnp,
-        Elf_Scn*& dynstr_scnp, Elf_Scn*& eh_frame,
-        Elf_Scn*& gcc_except, bool a_out=false);
+  bool loaded_elf(Elf_X &, Address &, Address &,
+		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
+		    Elf_X_Shdr* &, Elf_X_Shdr* &, 
+		    Elf_X_Shdr* &, Elf_X_Shdr* &,
+		    Elf_X_Shdr*& rel_plt_scnp, Elf_X_Shdr*& plt_scnp, 
+		    Elf_X_Shdr*& got_scnp,  Elf_X_Shdr*& dynsym_scnp,
+		    Elf_X_Shdr*& dynstr_scnp, Elf_X_Shdr*& eh_frame,
+		    Elf_X_Shdr*& gcc_except, bool a_out=false);
 
   void load_object();
   void load_shared_object();
 
   // initialize relocation_table_ from .rel[a].plt section entries 
-  bool get_relocation_entries(Elf_Scn*& rel_plt_scnp,
-			      Elf_Scn*& dynsym_scnp, 
-			      Elf_Scn*& dynstr_scnp);
+  bool get_relocation_entries(Elf_X_Shdr *&rel_plt_scnp,
+			      Elf_X_Shdr *&dynsym_scnp, 
+			      Elf_X_Shdr *&dynstr_scnp);
 
   void parse_symbols(pdvector<Symbol> &allsymbols, 
-		     Elf_Data *symdatap, Elf_Data *strdatap,
+		     Elf_X_Data &symdata, Elf_X_Data &strdata,
 		     bool shared_library,
 		     pdstring module);
   
   void fix_zero_function_sizes(pdvector<Symbol> &allsymbols, bool EEL);
   void override_weak_symbols(pdvector<Symbol> &allsymbols);
   void insert_symbols_shared(pdvector<Symbol> allsymbols);
-  void find_code_and_data(Elf *elfp,
+  void find_code_and_data(Elf_X &elf,
        Address txtaddr, Address bssaddr);
   void insert_symbols_static(pdvector<Symbol> allsymbols);
-  bool fix_global_symbol_modules_static_stab(Elf_Scn* stabscnp,
-					     Elf_Scn* stabstrscnp);
-  bool fix_global_symbol_modules_static_dwarf(Elf *elfp);
+  bool fix_global_symbol_modules_static_stab(Elf_X_Shdr *stabscnp,
+					     Elf_X_Shdr *stabstrscnp);
+  bool fix_global_symbol_modules_static_dwarf(Elf_X &elf);
 
-  void get_valid_memory_areas(Elf *elfp);
+  void get_valid_memory_areas(Elf_X &elf);
 
 #if defined(mips_sgi_irix6_4)
 
@@ -372,50 +372,6 @@ class Object : public AObject {
   int         dynsym_zero_index_;
 
 #endif /* mips_sgi_irix6_4 */
-};
- 
-
-// ABI-generic wrapper for ELF section header
-class pdElfShdr {
-public:
-  unsigned pd_name;
-  Address  pd_addr;
-  unsigned pd_offset;
-  unsigned pd_size;
-  unsigned pd_entsize;
-  bool err;
-
-  inline pdElfShdr(Elf_Scn *scnp, bool is_elf64) 
-    {
-      err = false;
-      if (is_elf64) {
-	// parse ELF section header (64-bit)
-#ifndef USES_ELF32_ONLY
-	Elf64_Shdr *shdrp_64 = elf64_getshdr(scnp);
-	if (shdrp_64 == NULL) {
-	  err = true;
-	  return;
-	}
-	pd_name =    shdrp_64->sh_name;
-	pd_addr =    shdrp_64->sh_addr;
-	pd_offset =  shdrp_64->sh_offset;
-	pd_size =    shdrp_64->sh_size;
-	pd_entsize = shdrp_64->sh_entsize;
-#endif
-      } else {
-	// parse ELF section header (32-bit)
-	Elf32_Shdr *shdrp_32 = elf32_getshdr(scnp);
-	if (shdrp_32 == NULL) {
-	  err = true;
-	  return;
-	}
-	pd_name =    shdrp_32->sh_name;
-	pd_addr =    shdrp_32->sh_addr;
-	pd_offset =  shdrp_32->sh_offset;
-	pd_size =    shdrp_32->sh_size;
-	pd_entsize = shdrp_32->sh_entsize;
-      }
-    }  
 };
 
 const char *pdelf_get_shnames(Elf *elfp, bool is64);
