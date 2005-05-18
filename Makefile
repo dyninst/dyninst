@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.69 2005/04/06 04:37:38 rchen Exp $
+# $Id: Makefile,v 1.70 2005/05/18 20:14:06 rchen Exp $
 #
 
 TO_CORE = .
@@ -110,7 +110,7 @@ ready:
 	fi
 
 	+@echo "Primary compiler for Paradyn build is:"
-	+@if [ $(CXX) = "xlC" ]; then		\
+	+@if [ `basename $(CXX)` = "xlC" ]; then		\
                echo "xlC"; \
         else \
 	  $(CXX) -v; \
