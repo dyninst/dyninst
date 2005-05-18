@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2005/05/13 09:17:21 jaw Exp $
+# $Id: Makefile,v 1.3 2005/05/18 20:14:15 rchen Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -17,7 +17,7 @@ include $(TO_CORE)/make.config
 # Now make any necessary architecture specific changes to variables:
 
 #if M_G77 is defined, g77 mutatees will be built
-M_G77 = g77
+#M_G77 = g77
 
 # there is no "native" or OS-provided compiler for Linux!
 # we use the Portland Group compilers, as that's what we've currently got
@@ -31,13 +31,13 @@ endif
 
 GNU_WARNING_FLAGS = -W -Wall
 MUTATOR_CXXFLAGS += $(GNU_WARNING_FLAGS)
-MUTATEE_CFLAGS_GNU 	= $(UNIFIED_DEF) $(GNU_WARNING_FLAGS)
-MUTATEE_CXXFLAGS_GNU 	= $(UNIFIED_DEF) $(GNU_WARNING_FLAGS)
+MUTATEE_CFLAGS_GNU 	= $(UNIFIED_DEF) $(GNU_WARNING_FLAGS) -m32
+MUTATEE_CXXFLAGS_GNU 	= $(UNIFIED_DEF) $(GNU_WARNING_FLAGS) -m32
 MUTATEE_LIBS = -Wl,-ldl
-MUTATEE_LDFLAGS_GNU += -Wl,-export-dynamic
+MUTATEE_LDFLAGS_GNU += -Wl,-export-dynamic -m32
 
 COMMA=,
-MUTATEE_G77_FFLAGS += -Di386_unknown_linux2_0 -DF77 -fno-second-underscore -g
+MUTATEE_G77_FFLAGS += -Di386_unknown_linux2_0 -DF77 -fno-second-underscore -g -m32
 MUTATEE_G77_CFLAGS += $(filter-out -Wl$(COMMA)-export-dynamic, $(MUTATEE_CFLAGS_GNU)) 
 MUTATEE_G77_CFLAGS += -DF77 -DFortran -g $(MUTATEE_FFLAGS)  -fno-implicit-templates -c
 TEST1_FORTRAN_CSOURCE = test1.mutateeFortC.c
@@ -57,7 +57,7 @@ TEST6_ASFLAGS_GNU = -f elf -dPLATFORM=$(PLATFORM)
 TEST6_AS_SRC = test6LS-x86.asm
 TEST6_ASSUFFIX = asm
 
-TESTLIB_FLAGS = -fpic -shared -g -Wl,-export-dynamic -Wl,-ldl
+TESTLIB_FLAGS = -fpic -shared -g -Wl,-export-dynamic -Wl,-ldl -m32
 
 # see discussion in make.module.tmpl for the format of this variable
 MUTATEE_TEST9_EXTRA_LIB = 9.-L./ 9.-lInstMe

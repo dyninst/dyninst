@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.323 2005/04/18 20:55:48 legendre Exp $
+/* $Id: process.h,v 1.324 2005/05/18 20:14:18 rchen Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -432,7 +432,8 @@ char * systemPrelinkCommand;
  || defined(rs6000_ibm_aix4_1)
   char* dumpPatchedImage(pdstring outFile);//ccw 28 oct 2001
 
-#if defined(i386_unknown_linux2_0)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4)
 	bool prelinkSharedLibrary(pdstring originalLibNameFullPath, char* dirName, Address baseAddr);
 #endif
 
@@ -440,7 +441,9 @@ char * systemPrelinkCommand;
 	bool dldumpSharedLibrary(pdstring dyninstRT_name, char* directoryname);
 #endif
 
-#if defined(i386_unknown_linux2_0) || defined(sparc_sun_solaris2_4)
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) \
+ || defined(sparc_sun_solaris2_4)
 	char *saveWorldFindNewSharedLibraryName(pdstring originalLibNameFullPath, char* dirName);
 	void setPrelinkCommand(char *command);
 #endif
