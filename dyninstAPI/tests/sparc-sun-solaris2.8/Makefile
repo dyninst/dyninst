@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.32 2005/05/13 09:17:21 jaw Exp $
+# $Id: Makefile,v 1.33 2005/05/24 21:12:13 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -20,7 +20,7 @@ NATIVE_DEBUG_FLAG = -g -xs
 
 # Now make any necessary architecture specific changes to variables:
 
-MUTATEE_G77_FFLAGS += -DF77 -g -Dsparc_sun_solaris2_4 -fno-second-underscore  $(filter-out -Wl$(COMMA)-export-dynamic, $(MUTATEE_CFLAGS)) -fno-implicit-templates -W -Wall  -DFortran -DCOMPILER='"g77"' -c
+MUTATEE_G77_FFLAGS += -DF77 -g -Dsparc_sun_solaris2_4 -fno-second-underscore  $(filter-out -Wl$(COMMA)-export-dynamic, $(MUTATEE_CFLAGS)) -W -Wall  -DFortran -DCOMPILER='"g77"' -c
 TEST1_FORTRAN_CSOURCE = test1.mutateeFortC.c
 MUTATEE_G77_CFLAGS += $(MUTATEE_G77_FFLAGS)
 LIBGCCLOC ?= /usr/local/gcc-2.95.3-cv/lib/gcc-lib/sparc-sun-solaris2.8/2.95.3
