@@ -222,7 +222,7 @@ ifdef MAKE_SHARED_LIB
 	$(CC) -g -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
 	$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $*.o -o $@
 else
-	$(CC) $(TESTLIB_FLAGS) -I$(DYNINST_ROOT)/core/dyninstAPI_RT/h -I../src/ $(filter %.c,$^) -o $@
+	$(CC) $(TESTLIB_FLAGS) -I$(TO_CORE)/dyninstAPI_RT/h -I../src/ $(filter %.c,$^) -o $@
 endif
 
 
@@ -237,8 +237,8 @@ test1.mutatee_$(NATIVE_CC): $(CALL35_1_SRC) test1.mutateeCommon.c
 test1.mutatee_$(NATIVE_CXX): $(CALL35_1_SRC) test1.mutateeCommon.c 
 
 # Test 6 mutatee depends on a platform-specific asm file
-test6.mutatee_$(NATIVE_CC): $(TEST6_AS_SRC) 
-test6.mutatee_$(NATIVE_CXX): $(TEST6_AS_SRC) 
+test6.mutatee_$(NATIVE_CC): $(TEST6_AS_OBJ_GNU) 
+test6.mutatee_$(NATIVE_CXX): $(TEST6_AS_OBJ_GNU) 
 test6.mutatee_gcc: $(TEST6_AS_OBJ_GNU) 
 
 # libInstMe.so must be built before test9.mutatee
