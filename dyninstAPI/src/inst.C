@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.128 2005/05/01 23:27:32 rutar Exp $
+// $Id: inst.C,v 1.129 2005/05/24 18:09:42 rutar Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -329,6 +329,21 @@ loadMiniTramp_result loadMiniTramp(miniTrampHandle *&mtHandle, // filled in
            location->baseTramp->baseAddr);
    logLine(errorLine);
 #endif
+
+#if defined(rs6000_ibm_aix4_1)
+   // See if we can insert the mini-tramp or not, we can't do it if 
+   // the process is stopped within the tramp we are trying to insert to 
+   
+   if (!proc->canInsertHere(mtHandle->baseTramp))
+     {
+       cerr<<"Trying to insert at tramp where process is stopped"<<endl;
+       delete mtHandle;
+       mtHandle = NULL;
+       return failure_res;
+     }
+#endif
+   
+   
 
    // must do this before findAndInstallBaseTramp, puts the tramp in to
    // get the correct cost.

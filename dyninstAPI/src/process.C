@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.539 2005/05/01 23:27:32 rutar Exp $
+// $Id: process.C,v 1.540 2005/05/24 18:09:41 rutar Exp $
 
 #include <ctype.h>
 
@@ -6116,3 +6116,68 @@ void process::recognize_threads(process *parent) {
   return;
 }
 // vim:set ts=5:
+
+
+
+
+// Need to see if we are within a base tramp to check if we can insert there
+bool process::canInsertHere(trampTemplate *baseTramp)
+{
+
+  bool returnVal = true;
+
+  if (status() == exited)
+    return false; 
+
+  // We need to pause the process. 
+
+  bool wasPaused = true;
+
+  if (status() == running) wasPaused = false;
+ 
+  if (!wasPaused && !pause()) {
+    return false;
+  }
+
+
+  // Do a stack walk 
+  pdvector< pdvector<Frame> > stackWalks;
+  if (!walkStacks(stackWalks)) returnVal = false;
+
+  if (status() == exited) returnVal = false;
+
+  inferiorHeap *hp = &heap;
+
+  for (unsigned threadIter = 0;
+         threadIter < stackWalks.size(); 
+         threadIter++) {
+        pdvector<Frame> stackWalk = stackWalks[threadIter];
+        for (unsigned walkIter = 0;
+             walkIter < stackWalk.size();
+             walkIter++) {
+            Frame frame = stackWalk[walkIter];
+            codeRange *range = frame.getRange();
+            trampTemplate *basetramp_ptr = range->is_basetramp();
+            miniTrampHandle *minitramp_ptr = range->is_minitramp();
+                
+            if (!range) {
+	      continue;
+            }
+            if (baseTramp) {
+	      // If we're in the base tramp we can't insert
+	      if (basetramp_ptr == baseTramp)
+		returnVal = false;
+	      // If we're in a child minitramp, we also can't insert
+	      miniTrampHandle *mt = range->is_minitramp();
+	      if (mt && (mt->baseTramp == baseTramp))
+		returnVal = false;
+            }
+	    
+	}
+  }
+  
+  if(!wasPaused) {
+    continueProc();
+  }
+  return returnVal;
+}
