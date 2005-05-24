@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.37 2005/05/13 09:17:21 jaw Exp $
+# $Id: Makefile,v 1.38 2005/05/24 21:12:12 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -52,7 +52,8 @@ TEST1_ASFLAGS = $(MUTATEE_CFLAGS_GNU)
 CALL35_1_SRC = call35_1_x86_linux.s
 
 # Definition used for test6 assembly
-TEST6_AS_GNU = nasm
+NASM ?= nasm
+TEST6_AS_GNU = $(NASM)
 TEST6_ASFLAGS_GNU = -f elf -dPLATFORM=$(PLATFORM)
 TEST6_AS_SRC = test6LS-x86.asm
 TEST6_ASSUFFIX = asm
