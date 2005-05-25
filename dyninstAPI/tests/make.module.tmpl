@@ -48,6 +48,8 @@ COMPILER2_NATIVE_CXX = $(subst $(LPAREN),_,$(COMPILER1_NATIVE_CXX))
 COMPILER_NATIVE_CXX = $(subst $(RPAREN),_,$(COMPILER2_NATIVE_CXX))
 MUTATEE_CXXFLAGS_NATIVE += -DCOMPILER='"$(COMPILER_NATIVE_CXX)"'
 
+TEST_DEST = $(TO_CORE)/$(PROGRAM_DEST)/testprogs
+
 #######################################################################
 ###  Basic definitions (filename prefixes)
 #######################################################################
@@ -149,6 +151,29 @@ CALL35_1_OBJ 			= $(CALL35_1_SRC:call%.s=call%.o)
 OBJS_FORALL_MUTATORS		= $(SRCS_FORALL_MUTATORS:%.C=%.o)
 
 #######################################################################
+###  A list of all the targets we're building, for install purposes
+#######################################################################
+
+ALL_TARGETS			= $(MUTATORS) $(MUTATEES_GCC) $(MUTATEES_GXX)
+ALL_TARGETS			+= $(TESTLIBS)
+ALL_TARGETS			+= test11
+ifdef M_G77
+ALL_TARGETS			+= $(MUTATEES_G77)
+endif
+ifdef NATIVE_CC
+ALL_TARGETS			+= $(MUTATEES_NATIVE_CC)
+endif
+ifdef NATIVE_CXX
+ALL_TARGETS			+= $(MUTATEES_NATIVE_CXX)
+ALL_TARGETS			+= $(MUTATEES_NATIVE_CXX_ONLY)
+endif
+ifdef NATIVE_FC
+ALL_TARGETS			+= $(MUTATEES_NATIVE_FC)
+endif
+
+ALL_TARGETS_DEST		= $(addprefix $(TEST_DEST)/,$(ALL_TARGETS))
+
+#######################################################################
 ###  Some pattern rules
 #######################################################################
 
@@ -176,6 +201,9 @@ test6LS%.o: test6LS%.$(TEST6_ASSUFFIX)
 .C.o:
 	$(CXX) -c $< $(CXXFLAGS) $(MUTATOR_CXXFLAGS) -o $@
 
+$(TEST_DEST)/%: %
+	$(CP) $< $(TEST_DEST)
+
 #######################################################################
 ###  High level targets
 #######################################################################
@@ -188,8 +216,8 @@ echo:
 	@echo "DEPS TESTLIBS = $(DEPS_TESTLIBS)"
 	@echo "MUTATEES_NATIVE_CXX = $(MUTATEES_NATIVE_CXX)"
 
-install:
-	@echo "install not yet supported"
+install: $(TEST_DEST) $(ALL_TARGETS_DEST)
+	@echo "install completed"
 
 clean:
 	$(RM) *.da *.bb. *.bbg 
@@ -319,6 +347,10 @@ test1.mutateeFortC_$(NATIVE_FC).o: ../src/test1.mutateeFortC.c
 $(MUTATEES_NATIVE_FC): test%.mutatee_$(NATIVE_FC) : test%.mutatee_$(NATIVE_FC).o test1.mutateeFortC_$(NATIVE_FC).o test1.mutateeCommon_$(NATIVE_FORTRAN_CC).o mutatee_util_$(NATIVE_FORTRAN_CC).o $(DEPENDDIR)/test%.mutatee_$(NATIVE_FC).dep
 	$(NATIVE_FC) -o $@ $(filter %.o,$^) $(MUTATEE_NATIVE_FC_LDFLAGS) $(MUTATEE_LIBS) 
 endif
+
+# Install directory
+$(TEST_DEST): 
+	mkdir $(TEST_DEST)
 
 #######################################################################
 ###  Generic Mutator build rule:
