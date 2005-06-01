@@ -80,9 +80,9 @@ class BPATCH_DLL_EXPORT BPatch_flowGraph : public BPatch_eventLock {
                                      pdstring level);
  
   BPatch_flowGraph (int_function *func, 
-		    process *proc, 
-		    pdmodule *mod, 
-		    bool &valid); 
+                    process *proc, 
+                    pdmodule *mod, 
+                    bool &valid); 
 
 public:
 
@@ -118,7 +118,7 @@ public:
   /** returns a vector of outer loops in the CFG */
   API_EXPORT(Int, (loops),
   bool,getOuterLoops,(BPatch_Vector<BPatch_basicBlockLoop*> &loops));
-  
+
   /** creates the source line blocks of all blocks in CFG.
    * without calling this method line info is not available
    */
@@ -139,6 +139,10 @@ public:
   /** return root of loop hierarchy  */
   API_EXPORT(Int, (),
   BPatch_loopTreeNode *,getLoopTree,());
+
+  /** returns true if the cfg contains dynamic callsites */
+  API_EXPORT(Int, (),
+  bool,containsDynamicCallsites,());
 
   // for debugging, print loops with line numbers to stderr
   API_EXPORT_V(Int, (),
@@ -214,8 +218,8 @@ public:
 			      bool outerMostOnly);
   
   bool dfsInsertCalleeIntoLoopHierarchy(BPatch_loopTreeNode *node, 
-					int_function *func,
-					unsigned long addr);
+                                        int_function *func,
+                                        unsigned long addr);
 
   void insertCalleeIntoLoopHierarchy(int_function * func, unsigned long addr);
 
@@ -232,7 +236,6 @@ public:
                               BPatch_Vector<BPatch_point*> *points);
 
   BPatch_process *getBProc();
-
 };
 
 

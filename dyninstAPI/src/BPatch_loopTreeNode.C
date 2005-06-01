@@ -41,10 +41,13 @@
 
 #define BPATCH_FILE
 
-#include "util.h"
-#include "BPatch_loopTreeNode.h"
-#include "BPatch_basicBlockLoop.h"
-#include "symtab.h"
+#include "dyninstAPI/src/util.h"
+#include "dyninstAPI/src/symtab.h"
+#include "dyninstAPI/src/BPatch_libInfo.h"
+#include "dyninstAPI/h/BPatch_loopTreeNode.h"
+#include "dyninstAPI/h/BPatch_basicBlockLoop.h"
+#include "dyninstAPI/h/BPatch_function.h"
+#include "dyninstAPI/h/BPatch_process.h"
 
 class BPatch_basicBlockLoop;
 
@@ -103,4 +106,15 @@ BPatch_loopTreeNode::findLoopInt(const char *name)
         if (lp) return lp;
     }
     return NULL;
+}
+
+bool BPatch_loopTreeNode::getCalleesInt(BPatch_Vector<BPatch_function *> &v,
+                                        BPatch_process *p)
+{
+   for (unsigned i=0; i<callees.size(); i++)
+   {
+      BPatch_function *f = p->func_map->get(callees[i]);
+      v.push_back(f);
+   }
+   return true;
 }

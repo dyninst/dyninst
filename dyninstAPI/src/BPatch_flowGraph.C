@@ -2052,3 +2052,8 @@ BPatch_process *BPatch_flowGraph::getBProc()
    }
    return bproc;
 }
+
+bool BPatch_flowGraph::containsDynamicCallsitesInt()
+{
+   return (func->getNumDynamicCalls(proc) > 0);
+}

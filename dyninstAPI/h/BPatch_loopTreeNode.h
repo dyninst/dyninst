@@ -45,6 +45,7 @@
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_eventLock.h"
+#include "BPatch_function.h"
 
 class BPatch_basicBlockLoop;
 class int_function;
@@ -68,10 +69,6 @@ class BPATCH_DLL_EXPORT BPatch_loopTreeNode : public BPatch_eventLock {
 
     // The BPatch_loopTreeNode instances nested within this loop.
     BPatch_Vector<BPatch_loopTreeNode *> children;
-
-    // A vector of functions called within the body of this loop (and
-    // not the body of sub loops). 
-    BPatch_Vector<int_function *> callees;
 
     //  BPatch_loopTreeNode::BPatch_loopTreeNode
     //  Create a loop tree node for BPatch_basicBlockLoop with name n 
@@ -103,6 +100,10 @@ class BPATCH_DLL_EXPORT BPatch_loopTreeNode : public BPatch_eventLock {
 
     unsigned int,numCallees,());
 
+    //Returns a vector of the functions called by this loop.
+    API_EXPORT(Int, (v, p),
+    bool, getCallees, (BPatch_Vector<BPatch_function *> &v, BPatch_process *p))
+
     //  BPatch_loopTreeNode::findLoop
     //  find loop by hierarchical name
     API_EXPORT(Int, (name),
@@ -113,6 +114,11 @@ class BPATCH_DLL_EXPORT BPatch_loopTreeNode : public BPatch_eventLock {
 
     /** name which indicates this loop's relative nesting */
     char *hierarchicalName;
+
+    // A vector of functions called within the body of this loop (and
+    // not the body of sub loops). 
+    BPatch_Vector<int_function *> callees;
+
 };
 
 
