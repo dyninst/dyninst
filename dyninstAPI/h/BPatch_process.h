@@ -147,11 +147,13 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     friend class BPatch_asyncEventHandler;
     friend class BPatch_module;
     friend class BPatch_basicBlock;
-    friend class process;
+    friend class BPatch_flowGraph;
+    friend class BPatch_loopTreeNode;
     friend class ThreadLibrary;
     friend class BPatch_point;
     friend class BPatch_funcCallExpr;
     friend class BPatch_eventMailbox;
+    friend class process;
     friend bool pollForStatusChange();
 
     friend BPatch_point* createInstructionInstPoint(BPatch_process *proc,
@@ -233,6 +235,10 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     // DO NOT USE
     // this function should go away as soon as Paradyn links against Dyninst
     process *PDSEP_process() { return llproc; }
+
+    // DO NOT USE
+    // this function should go away as soon as Paradyn links against Dyninst
+    BPatch_function *get_function(int_function *f);
 
   
     //  BPatch_process::~BPatch_process

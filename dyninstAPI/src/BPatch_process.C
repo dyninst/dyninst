@@ -1566,3 +1566,10 @@ void BPatchSnippetHandle::BPatchSnippetHandle_dtor()
 {
    // don't delete inst instances since they are might have been copied
 }
+
+BPatch_function *BPatch_process::get_function(int_function *f) 
+{ 
+   if (!func_map->defines(f))
+      return NULL;
+   return func_map->get(f); 
+}
