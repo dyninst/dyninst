@@ -49,6 +49,7 @@
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/perfStream.h"
 #include "paradynd/src/pd_image.h"
+#include "paradynd/src/pd_module.h"
 
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/func-reloc.h"
@@ -1555,9 +1556,7 @@ void pd_process::FillInCallGraphStatic()
     //  maybe we should warn here?
   }
   entry_bpf = entry_bpfs[0];
-  int_function *entry_pdf = entry_bpf->PDSEP_pdf();
 
-  assert(entry_pdf);
   
   CallGraphAddProgramCallback(img->get_file());
 
@@ -1573,9 +1572,11 @@ void pd_process::FillInCallGraphStatic()
      // Temporary hack -- ordering problem
      thr = 1;
   }
+
   
-  CallGraphSetEntryFuncCallback(img->get_file(), 
-                                entry_pdf->ResourceFullName(), thr);
+  resource *entry_res = pd_module::getFunctionResource(entry_bpf);
+  if (entry_res)
+     CallGraphSetEntryFuncCallback(img->get_file(), entry_res->full_name(), thr);
     
   // build call graph for executable
   img->FillInCallGraphStatic(this);

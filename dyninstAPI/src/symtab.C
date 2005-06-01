@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.242 2005/03/24 16:26:00 jodom Exp $
+ // $Id: symtab.C,v 1.243 2005/06/01 21:53:42 legendre Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -716,37 +716,6 @@ void image::defineModules(process *proc) {
 #endif
 }
 
-#ifndef BPATCH_LIBRARY
-void dfsCreateLoopResources(BPatch_loopTreeNode *n, resource *res,
-                            int_function *pdf)
-{
-    resource *r = res;
-
-    if (n->loop != NULL) {
-        r = resource::newResource(res, pdf,
-                                  nullString, // abstraction
-                                  pdstring(n->name()),
-                                  timeStamp::ts1970(),
-                                  nullString, // uniquifier
-                                  LoopResourceType,
-                                  MDL_T_LOOP,
-                                  false );
-    }
-
-    for (unsigned i = 0; i < n->children.size(); i++) {
-        // loop resource objects are nested under their parent function rather
-        // than each other. using r instead of res would cause the resource
-        // hierarchy to have loops nested under each other.
-        // dfsCreateLoopResources(n->children[i], r, pdf);
-        dfsCreateLoopResources(n->children[i], res, pdf);
-    }
-}
-#endif
-
-#ifndef BPATCH_LIBRARY
-extern bool should_report_loops;
-#endif
-
 //  Comments on what this does would be nice....
 //  Appears to run over a pdmodule, after all code in it has been processed
 //   and parsed into functions, and define a resource for the module + a 
@@ -768,32 +737,16 @@ void pdmodule::define(process *proc) {
       int_function * pdf = allUniqueFunctions[i]; 
 
       if (!pdf->isInstrumentable() ||
-	  (pdf->getSize(proc) == 0))
-	continue;
-#ifdef DEBUG_MODS
-      of << fileName << ":  " << pdf->prettyName() <<  "  "
-         << pdf->addr() << endl;
-#endif
+          (pdf->getSize(proc) == 0))
+         continue;
       // ignore line numbers for now 
       
-      // see if we have created module yet.
-      if (!modResource) {
-         modResource = resource::newResource(moduleRoot, this,
-                                             nullString, // abstraction
-                                             fileName(), // name
-                                             timeStamp::ts1970(), // creation time
-                                             pdstring(), // unique-ifier
-                                             ModuleResourceType,
-                                             MDL_T_MODULE,
-                                             false);
-      }
       //check if the function is overloaded, and store types with the name
       //in the case that it is.  This way, we can differentiate
       //between overloaded functions in the paradyn front-end.
       bool useTyped = false;
-      pdvector<int_function *> *pdfv =
+      pdvector<int_function *> *pdfv = 
          allFunctionsByPrettyName[pdf->prettyName()];
-	   //exec()->findFuncVectorByPretty(pdf->prettyName());
       char * prettyWithTypes = NULL;
       
       if(pdfv != NULL && pdfv->size() > 1) {
@@ -814,35 +767,9 @@ void pdmodule::define(process *proc) {
          }
       }
 
-      if (pdf->isInstrumentable())
-      {
-         resource *res =
-            resource::newResource(modResource, pdf,
-                                  nullString, // abstraction
-                                  useTyped ? prettyWithTypes : pdf->prettyName(), 
-                                  timeStamp::ts1970(),
-                                  nullString, // uniquifier
-                                  FunctionResourceType,
-                                  MDL_T_PROCEDURE,
-                                  false );
-         pdf->SetFuncResource(res);
-      
-
-         /**
-          * The 'should_report_loops' global variable is a bad hack that should go
-          * away once the Paradyn/Dyninst seperation is complete, and this function
-          * take a pd_process* instead of a process* (it should start using 
-          * 'use_loops', which is a pd_process private variable).
-          **/
-         if (should_report_loops) {
-            // create a resource for each loop with this func as its parent
-	  dfsCreateLoopResources(pdf->getLoopTree(proc), res, pdf);
-        }
-      }
       if( prettyWithTypes != NULL ) { free(prettyWithTypes); }
    }
    
-   resource::send_now();
 #endif
 }
 

@@ -128,3 +128,6 @@ template class pdvector<dictionary_hash<pdstring,supportedLanguages>::entry>;
 
 #include "dyninstAPI/h/BPatch_basicBlock.h"
 template class dictionary_hash <unsigned long, BPatch_basicBlock *>;
+
+template class dictionary_hash<BPatch_function *, resource *>;
+template class dictionary_hash<BPatch_basicBlockLoop *, resource *>;

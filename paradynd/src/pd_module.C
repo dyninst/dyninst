@@ -47,12 +47,29 @@
 #include "paradynd/src/comm.h"
 #include "dyninstAPI/src/symtab.h" // for ResourceFullName()
 #include "dyninstAPI/src/process.h" // for isDynamicCallSite()
-
 #include "dyninstAPI/h/BPatch_flowGraph.h"
+
 extern bool module_is_excluded(BPatch_module *m);
 extern bool function_is_excluded(BPatch_function *f, pdstring modname);
 extern bool should_report_loops;
 extern pdRPC *tp;
+
+dictionary_hash<BPatch_function *, resource *> *pd_module::func_resources;
+dictionary_hash<BPatch_basicBlockLoop *, resource *> *pd_module::loop_resources;
+
+//Stupid hash functions that just hash on the ptr value
+typedef BPatch_function *bp_func_ptr_t;
+static unsigned func_hash(const bp_func_ptr_t &func)
+{
+   return ((unsigned) func >> 1);
+}
+
+//Stupid hash functions that just hash on the ptr value
+typedef BPatch_basicBlockLoop *bp_loop_ptr_t;
+static unsigned loop_hash(const bp_loop_ptr_t &loop)
+{
+   return ((unsigned) loop >> 1);
+}
 
 pd_module::pd_module(BPatch_module *dmod) : dyn_module(dmod) 
 { 
@@ -76,7 +93,8 @@ pd_module::pd_module(BPatch_module *dmod) : dyn_module(dmod)
     if (!function_is_excluded(f, _name))
       some_funcs.push_back(f);
   }
-  
+
+  createResources();
   //fprintf(stderr, "%s[%d]:  new pd_module %s: %s, contains %d/%d funcs\n", 
   //        __FILE__, __LINE__,
   //        buf, is_excluded ? "excluded" : "included", all_funcs->size(),
@@ -121,48 +139,49 @@ void AddCallGraphStaticChildrenCallback(pdstring exe_name, pdstring r,
 
 
 // Add nested loops and functions to the call graph
-void FillInCallGraphNodeNested(pdstring exe_name, 
-			       pdstring func_name,
-			       pdstring parent_name,
-			       BPatch_loopTreeNode *node)
+void pd_module::FillInCallGraphNodeNested(pdstring exe_name, 
+                                          pdstring func_name,
+                                          pdstring parent_name,
+                                          BPatch_loopTreeNode *node,
+                                          BPatch_process *proc)
 {
-    // register the name for the parent
-    AddCallGraphNodeCallback(exe_name, parent_name);
-				
-    // collect children nested under this node
-    pdvector<pdstring> children;
+   // register the name for the parent
+   AddCallGraphNodeCallback(exe_name, parent_name);
+   
+   // collect children nested under this node
+   pdvector<pdstring> children;
+   
+   // add callees
+   BPatch_Vector<BPatch_function *> callees;
+   node->getCallees(callees, proc);
+   for (unsigned i = 0; i < callees.size(); i++) {
+      BPatch_function *f = callees[i];
+      resource *res = getFunctionResource(f);
 
-    // add callees
-    for (unsigned i = 0; i < node->callees.size(); i++) {
-       int_function *f = node->callees[i];
-        assert(f != NULL);
-
-        if (f->FuncResourceSet())
-            children.push_back(f->ResourceFullName());
-//         else
-//             fprintf(stderr,"Func %s has no resource set!\n", 
-//                     f->prettyName().c_str());
-    }
-    
-    // add nested loops
-    for (unsigned j = 0; j < node->children.size(); j++) {
-        // loop resource names are not nested, all loop resource names are
-        // of the following form /Code/Module/Function/Loop
-	children.push_back(func_name+"/"+node->children[j]->name());
-    }
-
-    // register children for this parent
-    AddCallGraphStaticChildrenCallback(exe_name, parent_name, children);
-
-    // recurse with each child
-    for (unsigned k = 0; k < node->children.size(); k++) {
-        // we register resources while traversing the tree of nodes in a dfs
-        // so that the call graph is properly nested, while ensuring that the
-        // the resource names are correct (loop resource names are not nested)
-	FillInCallGraphNodeNested(exe_name, func_name,
-                                  func_name+"/"+node->children[k]->name(),
-                                  node->children[k]);
-    }
+      if (res)
+         children.push_back(res->full_name());
+      
+   }
+   
+   // add nested loops
+   for (unsigned j = 0; j < node->children.size(); j++) {
+      // loop resource names are not nested, all loop resource names are
+      // of the following form /Code/Module/Function/Loop
+      children.push_back(func_name+"/"+node->children[j]->name());
+   }
+   
+   // register children for this parent
+   AddCallGraphStaticChildrenCallback(exe_name, parent_name, children);
+   
+   // recurse with each child
+   for (unsigned k = 0; k < node->children.size(); k++) {
+      // we register resources while traversing the tree of nodes in a dfs
+      // so that the call graph is properly nested, while ensuring that the
+      // the resource names are correct (loop resource names are not nested)
+      FillInCallGraphNodeNested(exe_name, func_name,
+                                func_name+"/"+node->children[k]->name(),
+                                node->children[k], proc);
+   }
 }
 
 
@@ -170,64 +189,19 @@ void FillInCallGraphNodeNested(pdstring exe_name,
 //  graph relationship between functions.
 // Must be called AFTER all functions in all modules (in image) are
 //  registered as resource (e.g. w/ pdmodule::define())....
-void pd_module::FillInCallGraphStatic(process *proc) {
-   pdvector<int_function *> callees;
-   pdvector<pdstring>        callees_as_strings;
-   const BPatch_Vector<BPatch_function *> *mod_funcs = get_dyn_module()->getProcedures();
+void pd_module::FillInCallGraphStatic(pd_process *proc) 
+{
+   const BPatch_Vector<BPatch_function *> *mod_funcs = 
+      get_dyn_module()->getProcedures();
   
    // for each INSTRUMENTABLE function in the module (including excluded 
    //  functions, but NOT uninstrumentable ones)....
-  
    for(unsigned f=0; f<(*mod_funcs).size(); f++) {
-      int_function *pdf = (*mod_funcs)[f]->PDSEP_pdf();
-
-      if (!pdf->FuncResourceSet()) {
-          //fprintf(stderr,"Func resource not set for %s\n",pdf->prettyName().c_str());
+      BPatch_function *bpf = (*mod_funcs)[f];
+      resource *res = getFunctionResource(bpf);
+      if (!res) 
           continue;
-      }
-      
-      callees_as_strings.resize(0);
-    
-      // Translate from function name to resource *.
-      // Note that this probably is NOT the correct translation, as 
-      //  function names are not necessarily unique, but the paradyn
-      //  code assumes that they are in several places (e.g. 
-      //  resource::findResource)....
-      pdstring resource_full_name = pdf->ResourceFullName();
-      resource *r = resource::findResource(resource_full_name);
-      // functions registered under pretty name....
-      assert(r != NULL);
-    
-      // get list of statically determined call destinations from pdf,
-      //  using the process info to help fill in calls througb PLT
-      //  entries....
-      pdf->getStaticCallees(proc, callees); 
-    
-      // and convert them into a list of resources....
-      for(unsigned g=0; g<callees.size(); g++) {
-         int_function *callee = callees[g];
-         assert(callee);
-      
-         //if the funcResource is not set, then the function must be
-         //uninstrumentable, so we don't want to notify the front end
-         //of its existence
-         if (callee->FuncResourceSet()){
-            pdstring callee_full_name = callee->ResourceFullName();
-	
-            // if callee->funcResource has been set, then it should have 
-            //  been registered as a resource.... 
-            resource *callee_as_resource = 
-               resource::findResource(callee_full_name);
-            assert(callee_as_resource);
-            callees_as_strings.push_back(callee_full_name);
-         }
-         else {
-             // fprintf(stderr,"CALLEE no res %s\n", callee->().c_str());
 
-         }
-      
-      }//end for
-    
       // register that callee_resources holds list of resource*s 
       //  describing children of resource r....
       BPatch_image *appImage = (BPatch_image* ) get_dyn_module()->getObjParent();
@@ -235,36 +209,104 @@ void pd_module::FillInCallGraphStatic(process *proc) {
       appImage->getProgramFileName(buf, 1024);
       pdstring exe_name = pdstring(buf);
 
-      /**
-       * The 'should_report_loops' global variable is a bad hack that should go
-       * away once the Paradyn/Dyninst seperation is complete, and this function
-       * take a pd_process* instead of a process* (it should start using 
-       * 'use_loops', which is a pd_process private variable).
-       **/
-      if (should_report_loops) {
-          // add nested loops and function calls
-          BPatch_loopTreeNode *root = pdf->getLoopTree(proc);
-          FillInCallGraphNodeNested(exe_name, resource_full_name,
-                                    resource_full_name, root);
-      }
-      else {
-          AddCallGraphNodeCallback(exe_name, resource_full_name);
-          AddCallGraphStaticChildrenCallback(exe_name, resource_full_name,
-                                             callees_as_strings);
-      }
+      pdstring resource_full_name = res->full_name();
+      BPatch_loopTreeNode *root = bpf->getCFG()->getLoopTree();
+      FillInCallGraphNodeNested(exe_name, resource_full_name,
+                                resource_full_name, root, proc->get_bprocess());
 
       //Locate the dynamic call sites within the function, and notify 
       //the front end as to their existence
-      pdvector<instPoint*> callPoints  = pdf->funcCalls(proc);
-      for(unsigned i = 0; i < callPoints.size(); i++){
-         if(proc->isDynamicCallSite(callPoints[i])){
-            tp->CallGraphAddDynamicCallSiteCallback(exe_name,
-                                                    resource_full_name);
-            break;
-         }
-      }
+      if (bpf->getCFG()->containsDynamicCallsites())
+         tp->CallGraphAddDynamicCallSiteCallback(exe_name, resource_full_name);
    }
 }
 
+#define NAME_LEN 256
+void pd_module::createResources()
+{
+   char name[NAME_LEN];
 
+   dyn_module->getName(name, NAME_LEN);
+   mod_resource = resource::newResource(moduleRoot, this,
+                                        nullString,
+                                        pdstring(name),
+                                        timeStamp::ts1970(),
+                                        pdstring(),
+                                        ModuleResourceType,
+                                        MDL_T_MODULE,
+                                        false);
 
+   if (!func_resources)
+      func_resources = 
+         new dictionary_hash<BPatch_function*, resource*>(func_hash);
+   if (!loop_resources)
+      loop_resources = 
+         new dictionary_hash<BPatch_basicBlockLoop*, resource*>(loop_hash);
+
+   //Create resources for each function
+   for (unsigned i=0; i<all_funcs->size(); i++)
+   {
+      BPatch_function *func = (*all_funcs)[i];
+      if (!(*all_funcs)[i]->isInstrumentable())
+         continue;
+      
+      func->getName(name, NAME_LEN);
+      resource *res = resource::newResource(mod_resource, func,
+                                            nullString,
+                                            name,
+                                            timeStamp::ts1970(),
+                                            nullString,
+                                            FunctionResourceType,
+                                            MDL_T_PROCEDURE,
+                                            false);
+      (*func_resources)[func] = res;
+      
+      //Create resources for each loop
+      BPatch_flowGraph *cfg = func->getCFG();
+      BPatch_loopTreeNode *outer_loop = cfg->getLoopTree();
+      createLoopResources(outer_loop, res);
+   }
+
+   resource::send_now();
+}
+
+void pd_module::createLoopResources(BPatch_loopTreeNode *loop_tree, 
+                                    resource *parent)
+{
+   resource *res = parent;
+   if (loop_tree->loop)
+   {
+      res = resource::newResource(parent, loop_tree->loop,
+                                  nullString,
+                                  pdstring(loop_tree->name()),
+                                  timeStamp::ts1970(),
+                                  nullString,
+                                  LoopResourceType,
+                                  MDL_T_LOOP,
+                                  false);
+      (*loop_resources)[loop_tree->loop] = res;
+   }
+
+   for (unsigned i=0; i<loop_tree->children.size(); i++)
+   {
+      // loop resource objects are nested under their parent function rather
+      // than each other. using 'res' instead of 'parent' would cause 
+      // the resource hierarchy to have loops nested under each other.
+      createLoopResources(loop_tree->children[i], parent);
+   }
+}
+
+resource *pd_module::getFunctionResource(BPatch_function *f)
+{
+   if (!func_resources->defines(f))
+      return NULL;
+   return (*func_resources)[f];
+
+}
+
+resource *pd_module::getLoopResource(BPatch_basicBlockLoop *l)
+{
+   if (!loop_resources->defines(l))
+      return NULL;
+   return (*loop_resources)[l];
+}

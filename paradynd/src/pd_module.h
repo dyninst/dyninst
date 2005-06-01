@@ -45,10 +45,14 @@
 #define __PD_MODULE__
 
 #include "common/h/String.h"
-#include "dyninstAPI/h/BPatch_module.h"
+#include "common/h/Dictionary.h"
 
-class pdmodule;  // pdmodule is actually a dynisnt module, despite the name
-class process;
+#include "dyninstAPI/h/BPatch_module.h"
+#include "dyninstAPI/h/BPatch_basicBlockLoop.h"
+#include "dyninstAPI/h/BPatch_loopTreeNode.h"
+
+#include "paradynd/src/pd_process.h"
+#include "paradynd/src/resource.h"
 
 class pd_module {
    BPatch_module *dyn_module;
@@ -57,17 +61,37 @@ class pd_module {
 
    pdstring _name;
    bool is_excluded;
+   resource *mod_resource;
+
+   static dictionary_hash<BPatch_function *, resource *> *func_resources;
+   static dictionary_hash<BPatch_basicBlockLoop *, resource *> *loop_resources;
+
+ protected:
+   void createResources();
+   void createLoopResources(BPatch_loopTreeNode *loop_tree, resource *parent);
+
+   void FillInCallGraphNodeNested(pdstring exe_name, pdstring func_name,
+                                  pdstring parent_name, 
+                                  BPatch_loopTreeNode *node,
+                                  BPatch_process *proc);
+
  public:
 
    pd_module(BPatch_module *dmod);
    ~pd_module();
 
    BPatch_module *get_dyn_module() const { return dyn_module; }
-
+   resource *getResource();
+   
    pdstring fileName() const {return _name;}
-   void FillInCallGraphStatic(process *proc);
+   void FillInCallGraphStatic(pd_process *proc);
    BPatch_Vector<BPatch_function *> *getIncludedFunctions() { return &some_funcs;}
    bool isExcluded() {return is_excluded;}
+
+   resource *getModuleResource() { return mod_resource; }
+
+   static resource *getFunctionResource(BPatch_function *f);
+   static resource *getLoopResource(BPatch_basicBlockLoop *l);
 };
 
 

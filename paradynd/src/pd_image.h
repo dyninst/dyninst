@@ -68,7 +68,7 @@ class pd_image {
    pdstring name() const { return _name; }
 
    // report statically determinable caller-callee relationship to paradyn....
-   void FillInCallGraphStatic(pd_process *proc);
+   void FillInCallGraphStatic(pd_process *p);
 
    pdstring get_file() const;
    int getAddressWidth();

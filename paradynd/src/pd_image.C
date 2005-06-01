@@ -119,7 +119,8 @@ bool pd_image::hasModule(BPatch_module *mod)
   return false;
 }
 
-void pd_image::FillInCallGraphStatic(pd_process *proc) {
+void pd_image::FillInCallGraphStatic(pd_process *p) 
+{
    pdstring pds;
    pdstring buffer;
 
@@ -128,8 +129,7 @@ void pd_image::FillInCallGraphStatic(pd_process *proc) {
       buffer = "building call graph module: " + curmod->fileName();
       statusLine(buffer.c_str());
 
-      process *llproc = proc->get_dyn_process()->lowlevel_process();
-      curmod->FillInCallGraphStatic(llproc);
+      curmod->FillInCallGraphStatic(p);
    }
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.178 2005/03/07 21:19:04 bernat Exp $
+// $Id: perfStream.C,v 1.179 2005/06/01 21:53:49 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/timing.h" // getCyclesPerSecond
@@ -55,6 +55,7 @@
 #include "paradynd/src/dynrpc.h"
 #include "paradynd/src/mdld.h"
 #include "paradynd/src/main.h"
+#include "paradynd/src/pd_module.h"
 #include "common/h/debugOstream.h"
 #include "common/h/int64iostream.h"
 #include "pdutil/h/pdDebugOstream.h"
@@ -408,7 +409,7 @@ void processTraceStream(process *dproc)
             
          case TR_DYNAMIC_CALLEE_FOUND:
             {
-	      int_function *caller, *callee;
+               int_function *caller, *callee;
                resource *caller_res, *callee_res;
                image *symbols = dproc->getImage();
                callercalleeStruct *c = (struct callercalleeStruct *) 
@@ -425,11 +426,24 @@ void processTraceStream(process *dproc)
                range = dproc->findCodeRangeByAddress(c->callee);
                callee = range->is_function();
 
+               pd_process *pdp = getProcMgr().find_pd_process(dproc->getPid());
+               BPatch_process *bproc = pdp->get_bprocess();
+               if (callee)
+               {
+                  BPatch_function *f = bproc->get_function(callee);
+                  callee_res = pd_module::getFunctionResource(f);
+               }
+               if (caller)
+               {
+                  BPatch_function *f = bproc->get_function(caller);
+                  caller_res = pd_module::getFunctionResource(f);
+               }
+
                if(!callee || !caller){
                   cerr << "callee for addr " << ostream::hex << c->callee 
                        << ostream::dec << " not found\n";
                   if(caller)
-                     cerr << "   caller = " << caller->ResourceFullName()
+                     cerr << "   caller = " << caller_res->full_name()
                           << endl;
                   break;
                }
@@ -437,16 +451,11 @@ void processTraceStream(process *dproc)
                /*If the callee's FuncResource isn't set, then
                  the callee must be uninstrumentable, so we don't
                  notify the front end.*/
-               if(callee->FuncResourceSet() && caller->FuncResourceSet()){
-                  callee_res =  
-                     resource::findResource(callee->ResourceFullName());
-                  caller_res =
-                     resource::findResource(caller->ResourceFullName());
-                  assert(callee_res);
-                  assert(caller_res);
+               if (callee_res && caller_res)
+               {
                   tp->AddCallGraphDynamicChildCallback(symbols->file(),
                                                        caller_res->full_name(),
-                                                      callee_res->full_name());
+                                                       callee_res->full_name());
                }
                break;
             }

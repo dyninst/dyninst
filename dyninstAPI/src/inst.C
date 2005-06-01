@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.129 2005/05/24 18:09:42 rutar Exp $
+// $Id: inst.C,v 1.130 2005/06/01 21:53:41 legendre Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -66,78 +66,6 @@ dictionary_hash <pdstring, unsigned> primitiveCosts(pdstring::hash);
 #if defined(rs6000_ibm_aix4_1)
   extern void resetBRL(process *p, Address loc, unsigned val); //inst-power.C
   extern void resetBR( process *p, Address loc);               //inst-power.C
-#endif
-
-#ifndef BPATCH_LIBRARY
-static unsigned int_function_ptr_hash(int_function *const &f) {
-  int_function *ptr = f;
-  unsigned l = (unsigned)(Address)ptr;
-  return addrHash4(l); 
-}
-
-// Fill in <callees> with list of statically determined callees of
-//  function.  
-// Uses process specific info to try to fill in the unbound call
-//  destinations through PLT entries.  Note that when it determines
-//  the destination of a call through the PLT, it puts that
-//  call destination into <callees>, but DOES NOT fill in the
-//  call destination in the function's instPoint.  This is because
-//  the (through PLT) binding is process specific.  It is possible, 
-//  for example, that one could have 2 processes, both sharing the
-//  same a.out image, but which are linked with different versions of
-//  the same shared library (or with the same shared libraries in 
-//  a different order), in which case the int_function data would be 
-//  shared between the processes, but the (through-PLT) call 
-//  destinations might NOT be the same.
-// Should filter out any duplicates in this callees list....
-
-bool int_function::getStaticCallees(process *proc,
-				   pdvector <int_function *>&callees) {
-    unsigned u;
-    int_function *f;
-    bool found;
-    
-    dictionary_hash<int_function *, int_function *> 
-    filter(int_function_ptr_hash);
-    
-    callees.resize(0);
-    
-#ifndef CHECK_ALL_CALL_POINTS
-    // JAW -- need to checkCallPoints() here to ensure that the
-    // vector "calls" has been fully initialized/filtered/classified.
-    //
-    //
-    checkCallPoints();
-#endif
-
-    // possible algorithm : iterate over calls (vector of instPoint *)
-    //   for each elem : use getCallee() to get statically determined
-    //   callee....
-    for(u=0;u<calls.size();u++) {
-        //this call to getCallee is platform specific
-      f = calls[u]->getCallee();
-        
-        if (f == NULL) {
-            //cerr << " unkown call destination";
-            found = proc->findCallee((*calls[u]), f);
-            
-           if (f != NULL) {
-                //cerr << " found w/ process specific PLT info" << endl;
-            } else {
-                //cerr << " not found in PLT info" << endl;
-            }
-        } else if (filter.defines(f)) {
-            //cerr << " call destination " << f->prettyName().c_str() << 
-            //" already seen by filer" << endl;
-        }
-        
-        if (f != NULL && !filter.defines(f)) {
-            callees += (int_function *)f;
-            filter[f] = f;
-        }
-    }
-    return true;
-}
 #endif
 
 Address miniTrampHandle::getBaseBranchAddr() const
@@ -243,10 +171,9 @@ loadMiniTramp_result addInstFunc(process *proc, miniTrampHandle * &mtHandle,
                                  bool allowTrap)
 {
    returnInstance *retInstance = NULL;
-   loadMiniTramp_result res; /* success_res, failure_res, or deferred_res *
+   loadMiniTramp_result res; /* success_res, failure_res, or deferred_res */
 
-   /* 
-      If we are adding a merged base tramp & mini-tramp */
+   /* If we are adding a merged base tramp & mini-tramp */
    if (BPatch::bpatch->isMergeTramp())
      {
        res = loadMergedTramp(mtHandle, proc, location, ast,

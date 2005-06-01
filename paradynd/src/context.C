@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.120 2005/03/16 20:53:27 bernat Exp $ */
+/* $Id: context.C,v 1.121 2005/06/01 21:53:43 legendre Exp $ */
 
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_thread.h"
@@ -52,6 +52,7 @@
 #include "paradynd/src/context.h"
 #include "processMgr.h"
 #include "paradynd/src/pd_image.h"
+#include "paradynd/src/pd_module.h"
 
 
 #if !defined(i386_unknown_nt4_0)
@@ -189,7 +190,9 @@ void updateThreadId(traceThread *fr) {
    pd_image *im = pdproc->getImage();
    pdstring fl = im->get_file();
    int_function *entry_pdf = thr->get_start_func();
-   CallGraphSetEntryFuncCallback(fl, entry_pdf->ResourceFullName(), fr->tid);
+   BPatch_function *f = pdproc->get_bprocess()->get_function(entry_pdf);
+   resource *func_res = pd_module::getFunctionResource(f);
+   CallGraphSetEntryFuncCallback(fl, func_res->full_name(), fr->tid);
    //sprintf(errorLine, "*****updateThreadId, tid=%d, index=%d, stack=0x%x, startpc=0x%x, resumestat=0x%x\n", fr->tid, fr->index, fr->stack_addr, fr->start_pc, fr->resumestate_p) ;
    //logLine(errorLine) ;
 }
