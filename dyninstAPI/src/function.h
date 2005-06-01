@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.8 2005/04/18 20:55:36 legendre Exp $
+// $Id: function.h,v 1.9 2005/06/01 21:53:40 legendre Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -316,6 +316,7 @@ class int_function : public codeRange {
 
    void setNumInstructions(unsigned num) { numInstructions = num; }
    unsigned getNumInstructions() { return numInstructions; }
+   unsigned getNumDynamicCalls(process *p);
  
    instruction *getInstructions() { return instructions; }
 
@@ -408,22 +409,6 @@ class int_function : public codeRange {
 #endif
 
    void updateForFork(process *childProcess, const process *parentProcess);
-
-#ifndef BPATCH_LIBRARY
-   void SetFuncResource(resource *r) {
-      assert(r != NULL); 
-      funcResource = r;
-   }
-
-   pdstring ResourceFullName() {
-      assert(funcResource); 
-      return funcResource->full_name();
-   }
-
-   bool FuncResourceSet() {
-      return (funcResource != NULL);
-   }
-#endif
 
 #if defined(arch_ia64)
    // We need to know where all the alloc instructions in the

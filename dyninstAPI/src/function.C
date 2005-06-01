@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.C,v 1.10 2005/03/02 19:44:45 bernat Exp $
+// $Id: function.C,v 1.11 2005/06/01 21:53:39 legendre Exp $
 
 #include "function.h"
 #include "BPatch_flowGraph.h"
@@ -588,6 +588,19 @@ void int_function::cleanProcessSpecific(process *p) {
       relocatedByProcess[i] = NULL;
     }
   }      
+}
+
+unsigned int_function::getNumDynamicCalls(process *p)
+{
+   unsigned count=0;
+   pdvector<instPoint *> callPoints = funcCalls(p);
+
+   for (unsigned i=0; i<callPoints.size(); i++)
+   {
+      if (p->isDynamicCallSite(callPoints[i]))
+         count++;
+   }
+   return count;
 }
 
 void print_func_vector_by_pretty_name(pdstring prefix,
