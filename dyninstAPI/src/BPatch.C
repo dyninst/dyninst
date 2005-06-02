@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.98 2005/05/01 23:27:32 rutar Exp $
+// $Id: BPatch.C,v 1.99 2005/06/02 20:38:09 tlmiller Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -940,6 +940,8 @@ BPatch_thread *BPatch::createProcessInt(const char *path, const char *argv[],
                                          int stdout_fd, int stderr_fd)
 {
     clearError();
+
+	if( path == NULL ) { return NULL; }
 
     BPatch_process *ret = 
        new BPatch_process(path, const_cast<char **>(argv), 
