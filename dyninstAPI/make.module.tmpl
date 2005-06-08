@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.61 2005/04/18 20:55:03 legendre Exp $
+# $Id: make.module.tmpl,v 1.62 2005/06/08 20:58:40 tlmiller Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -143,6 +143,14 @@ else
 all: $(TARGET)
 endif
 
+# I couldn't figure out how to explicitly instantiate a templated
+# function whose template arguments are protected members of
+# LineInformation, but apparently the compiler can.  Since the
+# function is only used internally by LineInformation, the
+# templates won't be duplicated.
+LineInformation.o : ../../dyninstAPI/src/LineInformation.C
+	$(CXX) -g $(TFLAGS) -c $<
+    
 BPatch_templates.o: ../src/BPatch_templates.C
 	$(CXX) $(TFLAGS) -c ../src/BPatch_templates.C
 
