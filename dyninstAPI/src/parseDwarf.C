@@ -225,7 +225,7 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE, char ** loBound
 	status = dwarf_dieoffset( subrangeDIE, & subrangeOffset, NULL );
 	assert( status != DW_DLV_ERROR );
 
-	BPatch_type * rangeType = new BPatch_typeRange( (int) subrangeOffset, 0, *loBound, *hiBound, subrangeName);
+	BPatch_type * rangeType = new BPatch_typeRange( (int) subrangeOffset, 0, *loBound, *hiBound, subrangeName );
 	assert( rangeType != NULL );
 	// bperr( "Adding range type '%s' (%lu) [%s, %s]\n", subrangeName, (unsigned long)subrangeOffset, * loBound, * hiBound );
 	rangeType = module->getModuleTypes()->addOrUpdateType( rangeType );
@@ -1708,8 +1708,8 @@ void BPatch_module::parseDwarfTypes() {
 	/* Cache type collections on a per-image basis.  (Since BPatch_functions are solitons, we don't have to cache them.) */
 	static dictionary_hash< pdstring, BPatch_typeCollection * > fileToTypesMap( pdstring::hash );
 	if( fileToTypesMap.defines( fileName ) ) {
-	  // /* DEBUG */ fprintf( stderr, "%s[%d]: found cache for file '%s' (module '%s')\n", __FILE__, __LINE__, fileName, moduleFileName );
-	  this->moduleTypes = fileToTypesMap[ fileName ];
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: found cache for file '%s' (module '%s')\n", __FILE__, __LINE__, fileName, moduleFileName );
+		this->moduleTypes = fileToTypesMap[ fileName ];
 
 		if (BPfuncs != NULL) {
 		   for (unsigned int i = 0; i < BPfuncs->size(); i++) {
