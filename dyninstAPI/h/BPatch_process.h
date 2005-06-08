@@ -49,6 +49,8 @@
 #include "BPatch_eventLock.h"
 #include "BPatch_point.h"
 
+#include <vector>
+
 #include <stdio.h>
 #include <signal.h>
 
@@ -516,10 +518,9 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     //  Method that retrieves the line number and file name corresponding 
     //  to an address
 
-    API_EXPORT(Int, (addr, lineNo, fileName, length),
-    bool,getLineAndFile,(unsigned long addr, unsigned short& lineNo,
-                         char *fileName, int length));
-
+    API_EXPORT(Int, (addr, lines),
+    bool,getSourceLines,(unsigned long addr, std::vector< std::pair< const char *, unsigned int > > & lines ));
+	
     //  BPatch_process::findFunctionByAddr
     //  
     //  Returns the function containing an address

@@ -201,24 +201,6 @@ public:
 
     BPatch_Vector<BPatch_variableExpr *> *,findVariable,(const char *name));
 
-    //  BPatch_function::getLineToAddr
-    //  
-    //  method to retrieve addresses corresponding a line in the function
-
-    API_EXPORT(Int, (lineNo, buffer, exactMatch),
-
-    bool,getLineToAddr,(unsigned short lineNo, BPatch_Vector<unsigned long> &buffer,
-                        bool exactMatch = true));
-
-    //  BPatch_function::getLineAndFile
-    //  
-    //  method to return file name, and first and last lines of the func
-
-    API_EXPORT(Int, (start, end, name, length),
-
-    bool,getLineAndFile,(unsigned int &start, unsigned int &end, char *name,
-                         unsigned &length));
-
     //  BPatch_function::getVariables
     //  This returns false, and should probably not exist.  See getVars.
     //  is this defined, what variables should be returned??
@@ -288,10 +270,9 @@ public:
 
     void,getExcPoints,(BPatch_Vector<BPatch_point*> &points));
 
-    // return a function that can be passed as a paramter
-    API_EXPORT(Int, (),
-
-    BPatch_variableExpr *,getFunctionRef,());
+	/* Return native pointer to the function. */
+	typedef void (* voidVoidFunctionPointer )();
+    API_EXPORT( Int, (), voidVoidFunctionPointer, getFunctionRef, () );
 
     API_EXPORT(DPCL, (),
 

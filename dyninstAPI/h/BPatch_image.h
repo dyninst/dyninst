@@ -57,6 +57,8 @@
 #include "BPatch_eventLock.h"
 #include "BPatch_process.h"
 
+#include <vector>
+
 typedef bool (*BPatchFunctionNameSieve)(const char *test,void *data);
 class process;
 class image;
@@ -237,13 +239,12 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
 
     BPatch_type *,findType,(const char *name));
 
-    //  BPatch_image::getLineToAddr
+    //  BPatch_image::getAddressRanges
     //  
     //  method to retrieve addresses corresponding to a line in a file
-    API_EXPORT(Int, (fileName, lineNo, buffer, exactMatch),
+    API_EXPORT(Int, (fileName, lineNo, ranges),
 
-    bool,getLineToAddr,(const char* fileName, unsigned short lineNo,
-                        BPatch_Vector<unsigned long>& buffer, bool exactMatch = true));
+    bool,getAddressRanges,( const char * fileName, unsigned int lineNo, std::vector< std::pair< unsigned long, unsigned long > > & ranges ));
 
     //  BPatch_image::getProgramName
     //  

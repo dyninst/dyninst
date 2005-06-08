@@ -200,9 +200,8 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
        { return proc->oneTimeCodeAsync(expr, userData); }
     bool loadLibrary(const char *libname, bool reload = false)
        { return proc->loadLibrary(libname, reload); }
-    bool getLineAndFile(unsigned long addr, unsigned short &lineno,
-                        char *filename, int length)
-       { return proc->getLineAndFile(addr, lineno, filename, length); }
+    bool getSourceLines( unsigned long addr, std::vector< std::pair< const char *, unsigned int > > & lines )
+       { return proc->getSourceLines( addr, lines ); }
     BPatch_function *findFunctionByAddr(void *addr)
        { return proc->findFunctionByAddr(addr); }
     void enableDumpPatchedImage() { proc->enableDumpPatchedImage(); }

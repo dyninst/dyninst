@@ -46,6 +46,8 @@
 #include "BPatch_sourceObj.h"
 #include "BPatch_eventLock.h"
 
+#include <vector>
+
 class pdmodule;
 class process;
 class BPatch_image;
@@ -182,20 +184,19 @@ public:
 
     bool,isNativeCompiler,());
 
-    // BPatch_module::getLineToaddr
+    // BPatch_module::getAddressRanges
     // 
     // function to get addresses for a line of the module
-    API_EXPORT(Int, (lineNo, buffer, exactMatch),
+    // if fileName is NULL, uses the name of the module
+    API_EXPORT(Int, (fileName, lineNo, ranges),
 
-    bool,getLineToAddr,(unsigned short lineNo,
-                        BPatch_Vector<unsigned long>& buffer,
-                        bool exactMatch = true));
+    bool,getAddressRanges,( const char * fileName, unsigned short lineNo, std::vector< std::pair< unsigned long, unsigned long > > & ranges ));
 
     // BPatch_module::getLineInformation
     // Returns a pointer to LineInformation for this module
     API_EXPORT(Int, (),
 
-    LineInformation *,getLineInformation,());
+    LineInformation &,getLineInformation,());
 
 #ifdef IBM_BPATCH_COMPAT
     API_EXPORT(Int, (start, end),
