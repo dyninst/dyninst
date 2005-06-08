@@ -265,7 +265,7 @@ void eCoffSymbol::clear(bool cleanup)
 // Function Prototypes.
 bool eCoffFindModule(pCHDRR, const pdstring &, eCoffParseInfo &);
 void eCoffFillInfo(pCHDRR, int, eCoffParseInfo &);
-void FindLineInfo(LDFILE *, eCoffParseInfo &, pdstring, LineInformation*&);
+void FindLineInfo(LDFILE *, eCoffParseInfo &, pdstring, LineInformation &);
 BPatch_type *eCoffParseType(BPatch_module *, eCoffSymbol &, bool = false);
 BPatch_type *eCoffHandleTIR(BPatch_module *, eCoffSymbol &, bool = false);
 BPatch_type *eCoffHandleTQ(eCoffSymbol &, BPatch_type *, unsigned int);
@@ -286,7 +286,7 @@ int stabsGetOffset(eCoffSymbol &, const char *, int);
 
 // fcn to construct type information
 void parseCoff(BPatch_module *mod, char *exeName, const pdstring &modName,
-	       LineInformation* lineInformation)
+	       LineInformation & lineInformation)
 {
     LDFILE *ldptr;
     pCHDRR symtab;
@@ -504,7 +504,7 @@ void eCoffFillInfo(pCHDRR symtab, int fileIndex, eCoffParseInfo &info)
 }
 
 void FindLineInfo(LDFILE *ldptr, eCoffParseInfo &info,
-                  pdstring fileName, LineInformation*& lineInformation)
+                  pdstring fileName, LineInformation& lineInformation)
 {
     // For some reason, the count fields of pCFDR structures are not
     // filled out correctly when the symbol table is read in via the
@@ -519,10 +519,10 @@ void FindLineInfo(LDFILE *ldptr, eCoffParseInfo &info,
     //
     unsigned char *lineInfo = (unsigned char *)malloc(info.symtab->hdr.cbLine);
     if (!lineInfo) {
-	bperr( "*** WARNING: Cannot read line information ");
-	bperr( "for file %s: Malloc error.\n", fileName.c_str());
-	return;
-    }
+		bperr( "*** WARNING: Cannot read line information ");
+		bperr( "for file %s: Malloc error.\n", fileName.c_str());
+		return;
+    	}
     int numleft = info.symtab->hdr.cbLine;
     FSEEK(ldptr, info.symtab->hdr.cbLineOffset, 0);
     while (numleft > 0) numleft -= FREADM(lineInfo, 1, numleft, ldptr);
@@ -532,90 +532,119 @@ void FindLineInfo(LDFILE *ldptr, eCoffParseInfo &info,
         pPDR procedureDesc = fileDesc->ppd + i;
 
         // No name is available for proc.
-        if (!fileDesc->psym || !fileDesc->pfd->csym ||
-	    procedureDesc->isym == -1) continue;
+        if (!fileDesc->psym || !fileDesc->pfd->csym || procedureDesc->isym == -1) continue;
 
         // Get the (demangled) name of the procedure, if available.
         tempSym = fileDesc->psym + procedureDesc->isym;	
         MLD_demangle_string(fileDesc->pss + tempSym->iss, funcName, 1024, 
                             MLD_SHOW_DEMANGLED_NAME | MLD_NO_SPACES);
-	if (P_strchr(funcName, '(')) *P_strchr(funcName, '(') = 0;
+		if (P_strchr(funcName, '(')) *P_strchr(funcName, '(') = 0;
 
-	if (P_strlen(funcName) == 0)
-	    continue;
+		if (P_strlen(funcName) == 0)
+		    continue;
 
-        FunctionInfo* currentFuncInfo = NULL;
-        FileLineInformation* currentFileInfo = NULL;
-        lineInformation->insertSourceFileName(
-            pdstring(funcName), fileName.c_str(),
-            &currentFileInfo,&currentFuncInfo);
-
-	// No space to store file information
-	if (!currentFileInfo || !currentFuncInfo)
-	    continue;
+//      lineInformation->insertSourceFileName( pdstring(funcName), fileName.c_str(),
+//            &currentFileInfo,&currentFuncInfo);
 
         // no line information for the filedesc is available
-        if (!fileDesc->pfd->cline || !fileDesc->pline || 
-	    procedureDesc->iline == -1) continue;
+        if (!fileDesc->pfd->cline || !fileDesc->pline || procedureDesc->iline == -1) continue;
 
-	// (Possibly buggy) GCC line information check.
-	if (procedureDesc->lnLow == 6 && procedureDesc->lnHigh == 6) {
-	    //
-	    // GCC eCoff Line Information
-	    //
-	    tempSym = (fileDesc->psym + procedureDesc->isym + 1);
+		// (Possibly buggy) GCC line information check.
+		if (procedureDesc->lnLow == 6 && procedureDesc->lnHigh == 6) {
+		    //
+		    // GCC eCoff Line Information
+		    //
+		    tempSym = (fileDesc->psym + procedureDesc->isym + 1);
 
-	    while (tempSym->st == stLabel && tempSym->sc == scText) {
-		currentFileInfo->insertLineAddress(currentFuncInfo,
-						   tempSym->index,
-						   tempSym->value);
-		++tempSym;
-	    }
+			bool isPreviousValid = false;
+			unsigned int prevLineNo = 0;
+			unsigned long prevLineAddr = 0; 
+			
+		    while (tempSym->st == stLabel && tempSym->sc == scText) {
+//				currentFileInfo->insertLineAddress(currentFuncInfo,
+//							   tempSym->index,
+//							   tempSym->value);
+//				/* DEBUG */ fprintf( stderr, "%s[%d]: %s:%d @ 0x%lx\n", __FILE__, __LINE__, fileName.c_str(), tempSym->index, tempSym->value );
 
-	} else {
-	    //
-	    // Pure eCoff Line Information
-	    //
-	    int idx = fileDesc->pfd->cbLineOffset +
-		      procedureDesc->cbLineOffset;
-	    int endidx;
-	    int currLine = procedureDesc->lnLow;
-	    unsigned long currAddr = procedureDesc->adr;
+				/* FIXME: the source file information is wildly wrong.  Someone
+				   who understands ECOFF should fix this.  (One possibility is
+				   to use the name of the module the function is in.) */
+				if( isPreviousValid ) {
+					lineInformation.addLine( fileName.c_str(), prevLineNo, prevLineAddr, tempSym->value );
+					}
+				else {
+					isPreviousValid = true;
+					}
+				prevLineNo = tempSym->index;
+				prevLineAddr = tempSym->value;
 
-	    // Find end index
-	    int nextpd = -1;
-	    for (int pcount = 0; pcount < fileDesc->pfd->cpd; ++pcount) {
-		pPDR pd = fileDesc->ppd + pcount;
-		if (pd != procedureDesc && pd->iline != ilineNil &&
-		    pd->cbLineOffset >= procedureDesc->cbLineOffset)
+				++tempSym;
+	    		}
+	    	if( isPreviousValid ) {
+	    		/* FIXME: add the range from prevLineAddr to the end of the function.
+	    		   We should either use the beginning of the next entry in the symbol table,
+	    		   or the size of the basic block which prevLineAddr should probably start. 
+	    		   
+	    		   Since I don't know how to get function addresses out of ECOFF, however,
+	    		   this'll have to wait. */
+	    		}
 
-		    if (nextpd == -1 ||
-			pd->cbLineOffset < fileDesc->ppd[nextpd].cbLineOffset)
-			nextpd = pcount;
-	    }
-	    endidx = (nextpd == -1 ? fileDesc->pfd->cbLine
-				   : fileDesc->ppd[nextpd].cbLineOffset);
-	    endidx -= procedureDesc->cbLineOffset;
-	    endidx += idx;
+			} else {
+		    //
+		    // Pure eCoff Line Information
+	    	//
+		    int idx = fileDesc->pfd->cbLineOffset + procedureDesc->cbLineOffset;
+		    int endidx;
+		    int currLine = procedureDesc->lnLow;
+	    	unsigned long currAddr = procedureDesc->adr;
 
-	    while (idx < endidx) {
-		long delta;
+		    // Find end index
+		    int nextpd = -1;
+	    	for (int pcount = 0; pcount < fileDesc->pfd->cpd; ++pcount) {
+				pPDR pd = fileDesc->ppd + pcount;
+				if (pd != procedureDesc && pd->iline != ilineNil && pd->cbLineOffset >= procedureDesc->cbLineOffset)
+				    if (nextpd == -1 || pd->cbLineOffset < fileDesc->ppd[nextpd].cbLineOffset)
+						nextpd = pcount;
+	    		}
+		    endidx = (nextpd == -1 ? fileDesc->pfd->cbLine
+					   : fileDesc->ppd[nextpd].cbLineOffset);
+		    endidx -= procedureDesc->cbLineOffset;
+		    endidx += idx;
 
-		currentFileInfo->insertLineAddress(currentFuncInfo,
-						   currLine, currAddr);
-		currAddr += ((lineInfo[idx] & 0xFU) + 1) * 4;
-		if ((lineInfo[idx] & 0xF0U) == 0x80U) {
-		    // Extended Delta
-		    ++idx;
-		    delta = ((signed char)lineInfo[idx]) << 8;
-		    ++idx;
-		    delta |= lineInfo[idx];
-		} else
-		    delta = ((signed char)lineInfo[idx]) >> 4;
+			bool isPreviousValid = false;
+			unsigned int prevLineNo = 0;
+			unsigned long prevLineAddr = 0;
 
-		currLine += delta;
-		++idx;
-	    }
+		    while (idx < endidx) {
+				long delta;
+
+//				currentFileInfo->insertLineAddress(currentFuncInfo,
+//							   currLine, currAddr);
+				/* DEBUG */ fprintf( stderr, "%s[%d]: %s:%d @ 0x%lx\n", __FILE__, __LINE__, fileName.c_str(), currLine, currAddr );
+
+				/* See comments in the gcc case, above. */
+				if( isPreviousValid ) {
+					lineInformation.addLine( fileName.c_str(), prevLineNo, prevLineAddr, currAddr );
+					}
+				else { 
+					isPreviousValid = true;
+					}
+				prevLineNo = currLine;
+				prevLineAddr = currAddr;
+
+				currAddr += ((lineInfo[idx] & 0xFU) + 1) * 4;
+				if ((lineInfo[idx] & 0xF0U) == 0x80U) {
+				    // Extended Delta
+				    ++idx;
+				    delta = ((signed char)lineInfo[idx]) << 8;
+				    ++idx;
+				    delta |= lineInfo[idx];
+					} else
+				    delta = ((signed char)lineInfo[idx]) >> 4;
+
+				currLine += delta;
+				++idx;
+	    	}
         }
     }
     free(lineInfo);
