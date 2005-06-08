@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.76 2005/05/01 23:33:32 rutar Exp $
+ * $Id: inst-ia64.C,v 1.77 2005/06/08 20:59:03 tlmiller Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -560,12 +560,13 @@ BPatch_point *createInstructionInstPoint( BPatch_process * proc, void * address,
 
 	/* Acquire the instruction. */
 	Address instructionAddress = (Address)owner->getPtrToInstruction( containingFunction->getAddress( NULL ) );
-	instructionAddress += alignedAddress - containingFunction->getAddress( NULL );
+	Address baseAddress; assert( proc->llproc->getBaseAddress( owner, baseAddress ) );
+	instructionAddress += alignedAddress - ( containingFunction->getAddress( NULL ) + baseAddress );
 	ia64_bundle_t * bundlePtr = (ia64_bundle_t *) instructionAddress;
 	IA64_bundle theBundle( * bundlePtr );
 	
-	/* Construct the instPoint. */
-	Address instPointAddr = (Address)address;
+	/* Construct the instPoint, which require offset addresses. */
+	Address instPointAddr = ((Address)address) - baseAddress;
 	if( theBundle.hasLongInstruction() && slotNo == 2 ) { instPointAddr--; }
 	
 	IA64_instruction * theInstruction = theBundle.getInstruction( slotNo );
@@ -1646,6 +1647,7 @@ void generateMemoryStackSave( ia64_bundle_t * insnPtr, int & bundleCount, bool *
 		insnPtr[ bundleCount++ ] = bundle.getMachineCode();
 		unwindRegion->insn_count += 3;
 	}
+	/* This is always necessary, because of function calls and the floating-point spills for multiplication. */
 	bundle = IA64_bundle( MIIstop,
 						  generateShortImmediateAdd( REGISTER_SP, -regSpace->sizeOfStack, REGISTER_SP ),
 						  NOP_I,
@@ -1698,6 +1700,8 @@ void generateMemoryStackSave( ia64_bundle_t * insnPtr, int & bundleCount, bool *
 	temp_gr[ 0 ] = regSpace->getRegSlot( 0 )->number;
 	temp_gr[ 1 ] = regSpace->getRegSlot( 1 )->number;
 
+	/* This should only be necessary if an FP register is used; not sure
+	   that two more/fewer GP registers really matter. */
 	bundle = IA64_bundle( MIIstop,
 						  generateShortImmediateAdd( temp_gr[ 0 ], frStackOffset +  0, REGISTER_SP ),
 						  generateShortImmediateAdd( temp_gr[ 1 ], frStackOffset + 16, REGISTER_SP ),
