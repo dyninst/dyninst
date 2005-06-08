@@ -1253,90 +1253,19 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool reload)
    return true;
 }
 
-/** 
- * method that retrieves the line number and file name for a given
- * address. In failure it returns false. user is responsible to
- * to supply the buffer to write the file name and has to give the
- * size of the buffer available. The name of the file will be null
- * terminated by the program.
- */
-bool BPatch_process::getLineAndFileInt(unsigned long addr,
-                                       unsigned short& lineNo,
-                                       char* fileName, int size)
-{
-	// /* DEBUG */ bperr( "Looking for addr 0x%lx.\n", addr );
+bool BPatch_process::getSourceLinesInt( unsigned long addr, std::vector< LineInformation::LineNoTuple > & lines ) {
+	unsigned int originalSize = lines.size();
 
-	if(!fileName || (size <= 0)){
-		return false;
-	}
-	size--;
-	LineInformation* lineInformation = NULL;
-	BPatch_Vector<BPatch_module*>* appModules = image->getModules();
-	for(unsigned int i=0;i<appModules->size();i++){
-		lineInformation = (*appModules)[i]->getLineInformation();
-
-		if(!lineInformation) {
-		  // /* DEBUG */ bperr( "No line information for module %d\n", i );
-		  cerr << __FILE__ << __LINE__ << ": found NULL lineInformation "<< endl;
-		  continue;
-		}
-#ifdef OLD_LINE_INFO
-		
-		Address inexactitude;
-		Address leastInexactitude = 0xFFFFFFFF;
-		unsigned short tempLineNo;
-		
-		for(int j=0;j<lineInformation->getSourceFileCount();j++){
-			pdstring* fileN = lineInformation->sourceFileList[j];
-			// /* DEBUG */ bperr( "Looking for information on source file '%s'.\n", fileN->c_str() );
-			FileLineInformation* fInfo = 
-				lineInformation->lineInformationList[j];
-			if (!fInfo) {
-			  // /* DEBUG */ bperr( "No information available on source file '%s'.\n", fileN->c_str() );
-			  cerr << "found NULL FileLineInformation! "<< endl;
-			  continue;
-			}
-			
-			if( ! fInfo->getLineFromAddr( * fileN, tempLineNo, addr, true, false, & inexactitude ) ) { continue; }
-			// /* DEBUG */ bperr( "%s: %d (0x%lx)\n", fileN->c_str(), tempLineNo, inexactitude );
-
-			/* If the match got better, record its inexactitude, lineNo, and name as
-			   our best match. */
-			if( inexactitude < leastInexactitude ) {
-				// /* DEBUG */ bperr( "Inexactitude decreased: 0x%lx\n", inexactitude );
-				leastInexactitude = inexactitude;
-				lineNo = tempLineNo;
-				
-				if( fileN->length() < (unsigned)size ) {
-					size = fileN->length();
-					}
-				strncpy( fileName, fileN->c_str(), size );
-				fileName[size] = '\0';
-				}
-			
-			/* If the match is perfect, we're done; don't bother to iterate over the
-			   rest of the files. */
-			if( inexactitude == 0 ) {
-				// /* DEBUG */ bperr( "Found perfect match.\n" );
-				return true;
-				}
-			} /* end by-file iteraition */
-
-		if( ! (leastInexactitude < 0xFFFFFFFF) ) {
-			return false;
-			}
-		else {
-			return true;
-			}
-#else
-		if (lineInformation->getLineAndFile(addr, lineNo, fileName, size))
-		    return true;
-#endif
-	}
-
+	/* Iteratate over the modules, looking for addr in each. */
+	BPatch_Vector< BPatch_module * > * modules = image->getModules();
+	for( unsigned int i = 0; i < modules->size(); i++ ) {
+		LineInformation & lineInformation = (* modules)[i]->getLineInformation();		
+		lineInformation.getSourceLines( addr, lines );
+		} /* end iteration over modules */
+	if( lines.size() != originalSize ) { return true; }
+	
 	return false;
-}
-
+	} /* end getLineAndFile() */
 
 /*
  * BPatch_process::findFunctionByAddr

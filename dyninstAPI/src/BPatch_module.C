@@ -236,9 +236,7 @@ void BPatch_module::parseTypesIfNecessary() {
 #if defined( rs6000_ibm_aix4_1 ) || defined( alpha_dec_osf4_0 ) || defined( i386_unknown_nt4_0 )
     /* These platforms don't have 2-phase parsing, so init
        LineInformation and assume that parseTypes() fills it in. */
-    mod->initLineInformation();
     parseTypes();
-    mod->cleanupLineInformation();
 #else
     parseTypes();
 #endif
@@ -552,9 +550,10 @@ void BPatch_module::parseTypes()
 		}
 		funcName = strdup(nmPtr);
 
-		mod->parseLineInformation(proc->llproc, currentSourceFile, 
-					  funcName, sym,
-					  linesfdptr, lines, nlines);
+//		I'm not sure why we bother with this here, since we fetch line numbers in symtab.C anyway.
+//		mod->parseLineInformation(proc->llproc, currentSourceFile, 
+//					  funcName, sym,
+//					  linesfdptr, lines, nlines);
       }
 
       if (sym->n_sclass & DBXMASK) {
@@ -1027,7 +1026,7 @@ void BPatch_module::parseStabTypes()
 
 #if defined(alpha_dec_osf4_0)
 extern void parseCoff(BPatch_module *mod, char *exeName, 
-			const pdstring& modName, LineInformation* linfo);
+			const pdstring& modName, LineInformation& linfo);
 
 void BPatch_module::parseTypes()
 {
@@ -1041,8 +1040,6 @@ void BPatch_module::parseTypes()
 
   // with BPatch_functions
   this->BPfuncs = this->getProcedures();
-
-  assert(mod->lineInformation);
 
   parseCoff(this, file, mod->fileName(),mod->lineInformation);
 }
@@ -1138,53 +1135,15 @@ bool BPatch_module::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 #endif
 }
 
-/** method that finds the corresponding addresses for a source line
-  * this methid returns true in sucess, otherwise false.
-  * it can be called to find the exact match or, in case, exact match
-  * does not occur, it will return the address set of the next
-  * greater line. It uses the name of the module as a source file name
-  * 
-  */
-bool BPatch_module::getLineToAddrInt(unsigned short lineNo,
-				  BPatch_Vector<unsigned long>& buffer,
-		                  bool exactMatch)
+bool BPatch_module::getAddressRangesInt( const char * fileName, unsigned short lineNo, std::vector< std::pair< Address, Address > > & ranges ) {
+	LineInformation & li = mod->getLineInformation( this->proc->llproc );
+	if( fileName == NULL ) { fileName = mod->fileName().c_str(); }
+	return li.getAddressRanges( fileName, lineNo, ranges );
+	} /* end getAddressRanges() */
 
-{
-
-	//if the line information is not created yet return false
-
-	if(!mod->lineInformation){
-#if !defined(rs6000_ibm_aix4_1) \
- && !defined(mips_sgi_irix6_4) \
- && !defined(alpha_dec_osf4_0) \
- && !defined(i386_unknown_nt4_0)
-
-	  mod->parseFileLineInfo(proc->llproc);
-#else
-	  cerr << __FILE__ << ":" << __LINE__ << ": lineInfo == NULL" << endl;
-	  return false;
-#endif
-	}
-	
-	//query the line info object to get set of addresses if it exists.
-	BPatch_Set<Address> addresses;
-	if(!mod->lineInformation->getAddrFromLine(addresses,lineNo,exactMatch)) {
-	  //cerr << __FILE__ << __LINE__ << ":  getAddrFromLine failed!" << endl;
-		return false;
-	}
-	//then insert the elements to the vector given
-	Address* elements = new Address[addresses.size()];
-	addresses.elements(elements);
-	for(unsigned i=0;i<addresses.size();i++)
-		buffer.push_back(elements[i]);
-	delete[] elements;
-	return true;
-}
-
-
-LineInformation* BPatch_module::getLineInformationInt(){
-   return this->mod->getLineInformation(this->proc->llproc);
-}
+LineInformation & BPatch_module::getLineInformationInt() {
+	return this->mod->getLineInformation( this->proc->llproc );
+	} /* end getLineInformation() */
 
 bool BPatch_module::isSharedLibInt() {
   return mod->isShared();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.72 2005/04/18 20:55:25 legendre Exp $
+// $Id: BPatch_image.C,v 1.73 2005/06/08 20:58:53 tlmiller Exp $
 
 #define BPATCH_FILE
 
@@ -1000,61 +1000,19 @@ bool BPatch_image::ModuleListExist(){
     return false;
 }
 
-/** method that retrieves the addresses corresponding to a line number
-  * in a file.It returns true in success. If the file is not in the image
-  * or line number is not found it retuns false. In case of exact match is not
-  * asked then the next line number which is greater or equal to the given one
-  * is used
-  */
-//method to get the addresses corresponding to a line number given
-//in case of success it returns true and inserts the addresses in to
-//the vector given. If the file name is not found or the line information
-//is not valid or if the exact match is not found it retuns false.
-//If exact match is not asked then the line number is taken to be the
-//first one greater or equal to the given one.
-bool BPatch_image::getLineToAddrInt(const char* fileName,unsigned short lineNo,
-				 BPatch_Vector<unsigned long>& buffer,
-				 bool exactMatch)
-{
-	pdstring fName(fileName);
+bool BPatch_image::getAddressRangesInt( const char * lineSource, unsigned int lineNo, std::vector< LineInformation::AddressRange > & ranges ) {
+	unsigned int originalSize = ranges.size();
 
-	//first get all modules
-	BPatch_Vector<BPatch_module*>* appModules =  getModules();
-
-	LineInformation* lineInformation;
-	FileLineInformation* fLineInformation = NULL;
-		
-	//in each module try to find the file
-	for(unsigned int i=0;i<appModules->size();i++){
-		lineInformation = (*appModules)[i]->getLineInformation();
-		if(!lineInformation) {
-		  cerr << __FILE__ << __LINE__ <<":  no Line Information avail!!!" << endl;
-			continue;
-		}
-		fLineInformation = lineInformation->getFileLineInformation(fName);		
-		if(fLineInformation)
-			break;
-	}
-	
-	//if there is no entry for the file is being found then give warning and return
-	if(!fLineInformation){
-		return false;
-	}
-
-	//get the addresses for the line number
-	BPatch_Set<Address> addresses;
-	if(!fLineInformation->getAddrFromLine(fName,addresses,lineNo,true,exactMatch))
-		return false;
-
-	//then insert the elements to the vector given
-	Address* elements = new Address[addresses.size()];
-	addresses.elements(elements);
-	for(unsigned j=0;j<addresses.size();j++)
-		buffer.push_back(elements[j]);
-	delete[] elements;
-
-	return true;
-}
+	/* Iteratate over the modules, looking for addr in each. */
+	BPatch_Vector< BPatch_module * > * modules = getModules();
+	for( unsigned int i = 0; i < modules->size(); i++ ) {
+		LineInformation & lineInformation = (* modules)[i]->getLineInformation();
+		lineInformation.getAddressRanges( lineSource, lineNo, ranges );
+		} /* end iteration over modules */
+	if( ranges.size() != originalSize ) { return true; }
+                                                                                                                               
+	return false;
+	} /* end getAddressRanges() */
 
 char *BPatch_image::getProgramNameInt(char *name, unsigned int len) 
 {
