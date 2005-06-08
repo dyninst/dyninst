@@ -266,33 +266,6 @@ FunctionCoverage* CodeCoverage::newFunctionCoverage(BPatch_function* f,
 	return ret;
 }
 
-void initializeLineSets(FileLineCoverage* flc,FunctionInfo* le,
-			FileLineInformation* fe)
-{
-	BPatch_Set<unsigned short> unExecuted;
-
-	if(!le->validInfo)
-		return;
-
-#ifdef OLD_LINE_INFO
-	tuple** lineToAddr = fe->getLineToAddrMap();
-	if(!lineToAddr)
-		return;
-
-	unsigned short i = 0, e = 0;
-
-	i = le->startLinePtr->linePtr;
-	e = le->endLinePtr->linePtr;
-	for(;i <= e;i++)
-		unExecuted += lineToAddr[i]->lineNo;
-#else
-	fe->getFunctionLines(le,&unExecuted);	
-#endif
-	if(unExecuted.size())
-		flc->initializeLines(unExecuted);
-	return;
-}
-
 void CodeCoverage::createFileStructure(){
 
 	unsigned short i = 0, j = 0;
@@ -356,163 +329,81 @@ void CodeCoverage::createFileStructure(){
   * If they match it is added to be instrumented. This method also creates and
   * initializes the data structures that will be used for function coverage
   */
-int CodeCoverage::selectFunctions(){
+int CodeCoverage::selectFunctions() {
+	allCoverageHash = new dictionary_hash< pdstring, FunctionCoverage * >(pdstring::hash);
 
-	BPatch_Set<BPatch_function*> instFunctions;
-	BPatch_Set<FunctionCoverage*> available;
+	for( unsigned int i = 0; i < appModules->size(); ++i ) {
+		BPatch_module * currentModule = (* appModules)[i];
 
-	allCoverageHash = new dictionary_hash<pdstring,FunctionCoverage*>(pdstring::hash);
+		/* Skip the synthetic modules. */
+		char currentModuleName[1024];
+		char currentFunctionName[1024];
+		currentModule->getName( currentModuleName, 1023 );
 
-	for(unsigned int i=0;i<appModules->size();i++){
-		BPatch_module* appModule = (*appModules)[i];
-		char mName[1024]; 
-		appModule->getName(mName,1023);
-
-		/** if the modules are the dynsint introduced ones skip */
-		if(!strcmp(mName,"DEFAULT_MODULE") ||
-		   !strcmp(mName,"DYN_MODULE") ||
-		   !strcmp(mName,"LIBRARY_MODULE"))
+		if(	strcmp( currentModuleName, "DEFAULT_MODULE" ) == 0
+			|| strcmp( currentModuleName, "DYN_MODULE" ) == 0
+			|| strcmp( currentModuleName, "LIBRARY_MODULE" ) == 0 ) {
 			continue;
-
-		LineInformation* linfo = appModule->getLineInformation();
-
-		unsigned short sourceFileCount = linfo->getSourceFileCount();
-#ifdef OLD_LINE_INFO
-		pdstring** sourceFileList = linfo->getSourceFileList();
-		FileLineInformation** lineInformationList = 
-				linfo->getLineInformationList();
-
-		/** for each source file in the mutatee */
-		for(unsigned int j=0;j<sourceFileCount;j++){
-			pdstring* fileN = sourceFileList[j];
-
-			FileLineInformation* fInfo = lineInformationList[j];
-
-			unsigned short functionCount = 
-					fInfo->getFunctionCount();
-			pdstring** functionNameList = 
-					fInfo->getFunctionNameList();
-			FunctionInfo** lineInformationList = 
-					fInfo->getLineInformationList();
-			/** for each function record in the muattee stab records */
-			for(unsigned int k=0;k<functionCount;k++){
-				pdstring* funcN = functionNameList[k];
-				FunctionInfo* funcI = lineInformationList[k];
-
-				/** get the starting address of the function in stab records */
-				Address min=0,max=0;
-				if(!fInfo->getMinMaxAddress(k,min,max))
-					continue;
-
-				/** check whether stab record matches the dyninst records */
-				BPatch_function* currFunc = 
-					validateFunction(funcN->c_str(),min);
-
-				if(!currFunc)
-					continue;
-
-				FunctionCoverage* fc = NULL;
-				FileLineCoverage* flc = NULL;
-
-				/** if already not created create the function 
-				  * coverage object for the function 
-				  */
-				if(!instFunctions.contains(currFunc)){
-					instFunctions += currFunc;
-					flc = new FileLineCoverage(fileN->c_str());
-					initializeLineSets(flc,funcI,fInfo);
-					fc = newFunctionCoverage(
-							currFunc,
-							funcN->c_str(),flc);
-					(*allCoverageHash)[*funcN] = fc;
-					available += fc;
-				}
-				else{
-					fc = (*allCoverageHash)[*funcN];
-					if(fc){
-						FileLineCoverage* flc =
-							new FileLineCoverage(fileN->c_str());
-						initializeLineSets(flc,funcI,fInfo);
-						fc->addSourceFile(flc);
-						flc->setOwner(fc);
-					}
-				}
 			}
-		}
-#else // not OLD_FILE_LINE_INFO
 
-		dictionary_hash<pdstring, FileLineInformation * > *fileHash = linfo->getFileLineInfoHash();
-		dictionary_hash_iter<pdstring, FileLineInformation *> iter(*fileHash);
-		string sName;
-		FileLineInformation *flInfo;
-		while (iter.next(sName, flInfo)){ // for each source file
-		  dictionary_hash<pdstring, FunctionInfo *> *functionHash = flInfo->getFunctionInfoHash();
-		  dictionary_hash_iter<pdstring, FunctionInfo *> fiter(*functionHash);
-		  pdstring fName;
-		  FunctionInfo *fInfo;
-		  while (fiter.next(fName, fInfo)){ // for each function 
-		    	/** get the starting address of the function in stab records */
-		      if (!fInfo->validInfo) continue;
-	
-		      Address min = fInfo->startAddrPtr->codeAddress;
-		      Address max = fInfo->endAddrPtr->codeAddress;
- 
-		      /** check whether stab record matches the dyninst records */
-		      BPatch_function* currFunc = validateFunction(fName.c_str(),min);
-		      if(!currFunc) continue;
+		LineInformation & lineInformation = currentModule->getLineInformation();
+		for(	LineInformation::const_iterator iter = lineInformation.begin();
+				iter != lineInformation.end();
+				++ iter ) {
+			BPatch_function * currentFunction = appThread->findFunctionByAddr( (void *)(iter->first.first) );
+			if( currentFunction == NULL ) {
+				fprintf( stderr, "%s[%d]: Unable to locate function in line information at address 0x%lx\n", __FILE__, __LINE__, iter->first.first );
+				continue;
+				}
+			currentFunction->getName( currentFunctionName, 1023 );
+			pdstring pdCurrentFunctionName( currentFunctionName );
 			
-		      FunctionCoverage* fc = NULL;
-		      FileLineCoverage* flc = NULL;
+			/* Generate the flc. */
+			FileLineCoverage * flc = new FileLineCoverage( iter->second.first );
 
-		      /** if already not created create the function 
-		       * coverage object for the function 
-		       */
-		      if(!instFunctions.contains(currFunc)){
-			instFunctions += currFunc;
-			flc = new FileLineCoverage(sName.c_str());
-			initializeLineSets(flc,fInfo,flInfo);
-			fc = newFunctionCoverage(currFunc, fName.c_str(),flc);
-			(*allCoverageHash)[fName] = fc;
-			available += fc;
-		      }
-		      else{
-			fc = (*allCoverageHash)[fName];
-			if(fc){
-			  FileLineCoverage* flc =
-			    new FileLineCoverage(sName.c_str());
-			  initializeLineSets(flc,fInfo,flInfo);
-			  fc->addSourceFile(flc);
-			  flc->setOwner(fc);
-			}
-		      }
-		    }
+			/* Tikir: All line number should be changed to be unsigned ints. */
+			BPatch_Set< unsigned short > lines;
+			lines += (unsigned short)(iter->second.second);
+			flc->initializeLines( lines );
+
+			/* Add FLC to existing FC or create new FC with it, and register in allCoverageHash. */
+			FunctionCoverage * fc = NULL;
+			if( allCoverageHash->defines( pdCurrentFunctionName ) ) {
+				fc = allCoverageHash->get( pdCurrentFunctionName );
+				fc->addSourceFile( flc );
+				flc->setOwner( fc );
+				}
+			else {
+				fc = newFunctionCoverage( currentFunction, currentFunctionName, flc );
+				allCoverageHash->set( pdCurrentFunctionName, fc );
+				}
+
+			} /* end iteration over line information */
+		} /* end iteration over modules */
+
+	if( allCoverageHash->size() == 0 ) {
+		return errorPrint( Error_NoFunctionsToCover );
 		}
-#endif
-	}
 
-	if(!available.size())
-		return errorPrint(Error_NoFunctionsToCover);
-		
 	/** creates the necessary data structures and initializes them */
-	instrumentedFunctionCount = available.size();
-	instrumentedFunctions = new FunctionCoverage*[available.size()];
-	available.elements(instrumentedFunctions);
+	instrumentedFunctionCount = allCoverageHash->size();
+	instrumentedFunctions = new FunctionCoverage * [ instrumentedFunctionCount ];
+	
+	dictionary_hash< pdstring, FunctionCoverage * >::const_iterator iter = allCoverageHash->begin();
+	for( int j = 0; iter != allCoverageHash->end() && j < instrumentedFunctionCount; ++iter, ++j ) {
+		instrumentedFunctions[j] = * iter;
+		}
 
-	cout << "information: " << instrumentedFunctionCount 
-	     << " functions are selected to be instrumented..." << endl;
+	cout	<< "information: " << instrumentedFunctionCount
+			<< " functions are selected to be instrumented..." << endl;
 
 	/** sort the function coverage objects according to the name of the functions */
-	qsort((void*)instrumentedFunctions,
-	      instrumentedFunctionCount,sizeof(FunctionCoverage*),
-	      FCSortByFileName);
+	qsort(	(void *)instrumentedFunctions, instrumentedFunctionCount,
+			sizeof( FunctionCoverage * ), FCSortByFileName );
 
 	createFileStructure();
-
-	delete allFunctionsHash;
-	delete allCoverageHash;
-
 	return Error_OK;
-}
+	} /* end CodeCoverage::selectFunctions() */
 
 /** method to do initial instrumentation */
 int CodeCoverage::instrumentInitial(){

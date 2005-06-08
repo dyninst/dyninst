@@ -523,6 +523,7 @@ int FunctionCoverage::updateLinesCovered(BPatch_sourceBlock* sb)
 }
 
 void FunctionCoverage::addSourceFile(FileLineCoverage* flc){
+	if( flc == NULL ) { return; }
 	
 	sourceFileLines = (FileLineCoverage**)(sourceFileLinesCount ?
                         realloc(sourceFileLines,
