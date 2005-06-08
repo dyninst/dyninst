@@ -39,363 +39,103 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef _LineInformation_h_
-#define _LineInformation_h_
+#if ! defined( LINE_INFORMATION_H )
+#define LINE_INFORMATION_H
+
+#include <map>
+
+#if ! defined( os_windows )
+#include <ext/hash_set>
+#else
+/* We don't compile with gcc on Windows.  *sigh*  This will be slower,
+   but should be functionally identical. */
+#include <set>
+#include <vector>
+#endif
 
 #include "common/h/Types.h"
-#include "common/h/Vector.h"
-#include "common/h/Dictionary.h"
-#include "common/h/String.h"
-#include "BPatch_Set.h"
 
-#ifndef OLD_LINE_INFO
-#include <algorithm>
-#include <functional>
-#include <map>
-#endif
-
-typedef struct tuple {
-	unsigned short lineNo;
-	Address codeAddress;
-#ifdef OLD_LINE_INFO
-	unsigned short linePtr;
-	unsigned short addrPtr;
-#endif
-	tuple(unsigned short l,Address a): lineNo(l),codeAddress(a) {}
-
-} tuple;
-
-typedef struct FunctionInfo {
-	bool validInfo;
-	tuple* startLinePtr;
-	tuple* endLinePtr;
-	tuple* startAddrPtr;
-	tuple* endAddrPtr;
-
-	FunctionInfo() : validInfo(false) {}
-} FunctionInfo;
-
-#ifndef OLD_LINE_INFO
-	//  The following typedefs define map-of-maps structures for storing tuple information
-	//  maps are nice here because they have a fast access time while remaining ordered,
-	//  so we can also find nearest elements to a nonexistent target.
-typedef std::map<unsigned short, pdvector<tuple *> *, std::less<unsigned short> > line_to_addr_t;
-typedef line_to_addr_t::iterator l2a_iter_t;
-typedef std::map<Address, pdvector<tuple *> *, std::less<Address> > addr_to_line_t;
-typedef addr_to_line_t::iterator a2l_iter_t;
-#endif
-
-//the following class declarations keep the line information for modules.
-
-/** this class contains array of tuples for mapping from line number to address
-  * and for address to line number. These two arrays are sorted in increasing order
-  * besides keeping the arrays it contains a mapping from function name to FunctionInfo
-  * structure to keep track of the starting and ending points of the information for a 
-  * function. This class represents the line information for a file in a module,
-  * and functions declared in that file.
-  */
-class FileLineInformation{
-	friend class BPatch_thread;
-   friend class BPatch_process;
-	friend class LineInformation;
-	friend ostream& operator<<(ostream&,FileLineInformation&);
-
-	/** structure to keep the mapping from line number to adress
-	  * or vice versa
-	  */
-public:
-private:
-	/** structure to keep the line information for each function in the module
-	  */
-
-	/** name of the source file this class represents */
-	pdstring sourceFileName;
-
-#ifdef OLD_LINE_INFO
-
-	unsigned tupleCapacity;
-
-	/** number of entries in the mapping array */
-	unsigned short size;
-
-	/** array of tuple structure sorted according to lineNo field */
-	tuple** lineToAddr;
-
-	/** array of tuple structure sorted according to codeAddress field */
-	tuple** addrToLine;
-
-	/** a mapping from function name to the structure FunctionInfo */
-
-	pdstring** functionNameList;
-	FunctionInfo** lineInformationList;
-	int binarySearch(pdstring functionName);
-	unsigned short functionCount;
-	unsigned functionCapacity;
-#else
-
-	line_to_addr_t lineToAddr;
-	addr_to_line_t addrToLine;
-
-	dictionary_hash<pdstring, FunctionInfo *> functionInfoHash;
-#endif
-
-
-
-
-public:
-	/** constructor
-	  * @param fileName name of the source file this object is created */
-	FileLineInformation(pdstring fileName);
-
-	pdstring getFileName() { return sourceFileName; }
-
-	const char* getFileNamePtr() { return sourceFileName.c_str(); }
-
-	/** destructor */
-	~FileLineInformation();
-
-	/** method that returns function info for a given function 
-	  * @param functionName name of the function
-	  */
-	FunctionInfo* findFunctionInfo(pdstring functionName);
-
-	/** method that inserts a function entry to the map 
-	  * @param functionName function name to insert 
-	  */
-	FunctionInfo* insertFunction(pdstring functionName);
-
-	/** method that checks the mapping for existence of the function */
-	bool findFunction(pdstring functionName);
-
-	/** method that cleans the record for the given function */
-	void deleteFunction(pdstring functionName);
-
-	/** method that cleans function entries that do not have any line info records */
-	void cleanEmptyFunctions();
-
-#ifndef OLD_LINE_INFO
-	//  return a set of line numbers belonging to the function provided
-	int getFunctionLines(FunctionInfo *fInfo, BPatch_Set<unsigned short> *);
-#endif
-
-	/** method that updates the info for a function */
-	FunctionInfo* insertFunction(pdstring functionName,Address beginAddr,
-			    Address functionSize);
-
-	/** method that inserts a line information entry to the array of
-	  * tuples and updates the info for function given.
-	  * @param functionName name of the function to update info for
-	  * @param lineNo line number information
-	  * @param codeAddress address corresponding to the line number
-	  */
-	void insertLineAddress(FunctionInfo* fInfo,
-             		       unsigned short lineNo,
-                               Address codeAddress);
-	void insertLineAddress(pdstring functionName,
-			       unsigned short lineNo,Address codeAddress);
-
-	/** method that finds the line number corresponding to a given
-	  * address. In case line number is not found it returns 
-	  * false, otherwise true. This function searches in two scopes.
-	  * if isFile, then the line number info is searched in file level,
-	  * otherwise in function level. If there are more than 1 line info 
-	  * for the address then the maximum is taken
-	  * @param name name of the function
-	  * @param lineNo line number to return
-	  * @param codeAddress address given to search
-	  * @param isFile flag that defines the scope of search
-	  * @param isExactMatch flag defining whether exact match is searched
-	  */
-	bool getLineFromAddr(pdstring name, unsigned short& lineNo,
-			     Address codeAddress, bool isFile=false,
-			     bool isExactMatch=true, Address * inexactitude = NULL );
-
-	/** as is in previous explanation except set of lines is returned
-	  * instead of a single line number */
-	bool getLineFromAddr(pdstring name, BPatch_Set<unsigned short>& lines,
-			     Address codeAddress, bool isFile=false,
-			     bool isExactMatch=true, Address * inexactitude = NULL );
-
-	/** method that returns set of addresses for a given line number
-	  * the search can be done in file level or in function level 
-  	  * if the address is found in the map it return true
-	  * otherwise it returns false.
-	  * @param name name of the function
-	  * @param codeAddress address set to return
-	  * @param lineNo line number togiven to search 
-	  * @param isFile flag that defines the scope of search
-	  * @param isExactMatch flag defining whether exact match is searched
-	  */
-	bool getAddrFromLine(pdstring name,BPatch_Set<Address>& codeAddress,
-			     unsigned short lineNo,bool isFile=false,
-			     bool isExactMatch=true);
-
-
-
-	unsigned short getFunctionCount();
-#ifdef OLD_LINE_INFO
-	bool getMinMaxAddress(int n,Address& min,Address& max);
-	pdstring** getFunctionNameList();
-	FunctionInfo** getLineInformationList();
-	tuple** getLineToAddrMap();
-	tuple** getAddrToLineMap();
-#else
-	dictionary_hash<pdstring, FunctionInfo *> *getFunctionInfoHash() {return &functionInfoHash;}
-#endif
-#ifndef OLD_LINE_INFO
-	int a2l_map_size() {return addrToLine.size();}
-	int l2a_map_size(){return lineToAddr.size();}
-#endif
-	/** tempoprary method to be deleted in commit */
-	void print();
-
-#ifdef DEBUG_LINE_INFO
-	void dump(FILE *f, pdstring *modName);
-	void dumpFunctionInfo(FILE *f);
-	void dumpAddrToLine(FILE *f);
-	void dumpLineToAddr(FILE *f);
-#endif
-};
-
-/** class which contains a mapping from file names to the line information
-  * object for those file names.
-  */
 class LineInformation {
-private:
-	friend class BPatch_thread;
-   friend class BPatch_process;
-	friend ostream& operator<<(ostream&,LineInformation&);
+	public:		
+		typedef std::pair< const char *, unsigned int >		LineNoTuple;
+		typedef std::pair< Address, Address >				AddressRange;
+		
+	protected:
+		/* Explicit comparison functors seems slightly less confusing than using
+		   operator <() via an implicit Less<> template argument to the maps. */
+		struct LineNoTupleLess {
+			bool operator () ( LineNoTuple lhs, LineNoTuple rhs ) const;
+			};
+		
+		struct AddressRangeLess {
+			bool operator () ( AddressRange lhs, AddressRange rhs ) const;
+			};
+			
+		typedef std::multimap< LineNoTuple, AddressRange, LineNoTupleLess > LineNoTupleToAddressRangeMap;
+		typedef std::multimap< AddressRange, LineNoTuple, AddressRangeLess > RangeMapByAddress;		
 
-	/** mapping from source file name to line info object for that
-	  * file. If the module has more than 1 source file than it 
-	  * will contain entry for each source file. The file names are
-	  * inserted as given by stab info ( it may be full path or only
-	  * file name).
-	  */
-#ifdef OLD_LINE_INFO
-	pdstring** sourceFileList;
-	FileLineInformation** lineInformationList;
-	unsigned short sourceFileCount;
-	unsigned fileCapacity;
-	int binarySearch(pdstring fileName);
+	public:		
+		typedef RangeMapByAddress::const_iterator			const_iterator;
+		
+		LineInformation();
+
+		/* You MAY freely deallocate the lineSource strings you pass in. */
+		bool addLine( const char * lineSource, unsigned int lineNo, Address lowInclusiveAddr, Address highExclusiveAddr );
+		bool addAddressRange( Address lowInclusiveAddr, Address highExclusiveAddr, const char * lineSource, unsigned int lineNo );
+		
+		/* You MUST NOT deallocate the strings returned. */
+		bool getSourceLines( Address addressInRange, std::vector< LineNoTuple > & lines );
+		bool getAddressRanges( const char * lineSource, unsigned int LineNo, std::vector< AddressRange > & ranges );
+		
+		const_iterator begin() const;
+		const_iterator end() const;
+		
+		~LineInformation();
+		
+		/* DEBUG */ void dump( FILE * stream );
+		/* DEBUG */ static void testInsertionSpeed();
+		
+	protected:		
+		struct SourceLineCompare {
+			bool operator () ( const char * lhs, const char * rhs ) const;
+			};
+			
+		/* We maintain internal copies of all the source file names.  Because
+		   both directions of the mapping include pointers to these names,
+		   maintain a separate list of them, and only ever deallocate those
+		   (in the destructor).  Note that it speeds and simplifies things
+		   to have the string pointers be the same. */
+#if ! defined( os_windows )		   
+		typedef __gnu_cxx::hash_set< const char *, __gnu_cxx::hash< const char * >, SourceLineCompare > SourceLineInternTable;
 #else
-	// first pdstring (hash key) is short file name, full name is stored in FileLineInformation struct
-	dictionary_hash<pdstring, FileLineInformation * > fileLineInfoHash;
-#endif
+		struct SourceLineLess {
+			bool operator () ( const char * lhs, const char * rhs ) const;
+			};
+			
+		typedef std::set< const char *, SourceLineLess > SourceLineInternTable;
+#endif 
+		SourceLineInternTable sourceLineNames;
+				
+		LineNoTupleToAddressRangeMap lineNoTupleToAddressRangeMap;
+		RangeMapByAddress rangesByAddress;
 
-	/** name of the module this object belongs to */
-	pdstring moduleName;
+	}; /* end class LineInformation */
 
-public:
+#if defined( rs6000_ibm_aix4_1 )
+/* This class is only used in symtab.C; the only reason it's in
+   this header file is so that template0.C can include it to
+   instantiate pdvector< IncludeFileInfo >. */   
 
-	/** constructor 
-	  * @param mName module name
-	  */
-	LineInformation(pdstring mName) ;
-	
-	/** destructor */
-	~LineInformation(); 
-	
-	short unsigned int getSourceFileCount();
-#ifndef OLD_LINE_INFO
-	bool getLineAndFile(unsigned long addr,unsigned short& lineNo,
-			    char* fileName,int size);
-#endif
-	/** method to insert an entry to the line info for a file.
-	  * inserts an entry to the mapping from file name to line
-	  * info object for the given function. The latest one always replaces the
-	  * previous ones.
-	  * @param functionName function name to insert
-	  * @param fileName file name which the function belongs */
-	void insertSourceFileName(pdstring functionName, pdstring fileName,
-				  FileLineInformation** retFileInfo = NULL,
-				  FunctionInfo** funcInfo = NULL);
-
-	/** method that inserts a line information entry to corresponding
-	  * file line information object for the given file name and
-	  * function.
-	  * @param functionName name of the function
-	  * @param fileName name of the source file function belongs
-	  * @param lineNo line number information
-	  * @param codeAddress address corresponding to the line number
-	  */
-	void insertLineAddress(pdstring functionName, pdstring fileName,
-			       unsigned short lineNo,Address codeAddress);
-
-	/** method that returns set of addresses for a given line number
-	  * the search can be done in file level or in function level 
-  	  * if the address is found in the map it return true
-	  * otherwise it returns false.
-	  * @param name name of the function or file
-	  * @param codeAddress address set to return
-	  * @param lineNo line number togiven to search 
-	  * @param isFile flag that defines the scope of search
-	  * @param isExactMatch flag defining whether exact match is searched
-	  */
-	/** method that returns set of addresses corresponding to a line number
-	  * for the file which is name of the module
-	  * In failure it returns false
-	  */
-	bool getAddrFromLine(BPatch_Set<Address>& codeAddress,unsigned short lineNo,
-			     bool isExactMatch=true);
-
-	/** method that returns the line info object for a given file name 
-  	  * It returns NULL if the entry does not exist.
-	  * @param fileName name of the source file
-	  */
-	FileLineInformation* getFileLineInformation(pdstring fileName);
-
-	/** method that returns the line info object for the file 
-	  * for a given function name
-	  * @param functionName name of the function being looked for
-	  */
-	FileLineInformation* getFunctionLineInformation(pdstring functionName);
-	bool getFunctionLineInformation(pdstring functionName,
-					FileLineInformation* possibleFiles[],int capacity);
-
-	/** method that checks the existence of a function in the line info object */
-	bool findFunction(pdstring functionName);
-
-	/** method that cleans the record for the given function */
-	void deleteFunction(pdstring functionName);
-
-	/** method that cleans function entries that do not have any line info records */
-	void cleanEmptyFunctions();
-
-	/** method that updates the info for a function */
-	void insertFunction(pdstring functionName,Address beginAddr,
-			    Address functionSize);
-			     
-#ifdef OLD_LINE_INFO
-	pdstring** getSourceFileList();
-	FileLineInformation** getLineInformationList();
-#else
-	dictionary_hash<pdstring, FileLineInformation * > *getFileLineInfoHash() {return &fileLineInfoHash;}
-#endif
-	//unsigned short getSourceFileCount();
-
-
-	/** tempoprary method to be deleted in commit */
-	void print();
-#ifdef DEBUG_LINE_INFO
-	void dump(const char *modName);
-#endif
-};
-
-#ifdef rs6000_ibm_aix4_1
-// This is only used in symbtab.C; the only reason it needs to be in a
-// header file is so that template files can include it to instantiate
-// pdvector<IncludeFileInfo>.
+#include <common/h/String.h>
 class IncludeFileInfo {
-public:
-	unsigned int begin;
-	unsigned int end;
-	pdstring       name;
+	public:
+		unsigned int begin;
+		unsigned int end;
+		pdstring name;
 
-	IncludeFileInfo() : begin(0), end(0) {};
-	IncludeFileInfo(int _begin, const char *_name) :
-		begin(_begin), end(0), name(_name) {};
-};
-#endif
+		IncludeFileInfo() : begin(0), end(0) {};
+		IncludeFileInfo( int _begin, const char *_name ) : begin(_begin), end(0), name(_name) {};
+	};	
+#endif /* defined( rs600_ibm_aix4_1 ) */
 
-#endif /*_LineInformation_h_*/
+#endif /* ! LINE_INFORMATION_H */
