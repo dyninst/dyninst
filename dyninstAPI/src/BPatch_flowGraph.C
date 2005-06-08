@@ -782,7 +782,9 @@ bool BPatch_flowGraph::createBasicBlocks()
 
          taddr = *ah;
 
+		 // /* DEBUG */ fprintf( stderr, "%s[%d]: potential leader at 0x%lx\n", __FILE__, __LINE__, taddr );
          if ((baddr <= taddr) && (taddr < maddr) && !leaders.contains(taddr)) {
+        	// /* DEBUG */ fprintf( stderr, "%s[%d]: 0x%lx is a new leader (after return at 0x%lx).\n", __FILE__, __LINE__, taddr, * inst );
             leaders += taddr;
             leaderToBlock[taddr] = new BPatch_basicBlock(this, bno++);
             allBlocks += leaderToBlock[taddr];
@@ -973,142 +975,68 @@ bool BPatch_flowGraph::createBasicBlocks()
 // by calling createBasicBlocks. It computes the source block for each
 // basic block. For now, a source block is represented by the starting
 // and ending line numbers in the source block for the basic block.
-bool
-BPatch_flowGraph::createSourceBlocksInt() 
-{
-    unsigned int i;
-    unsigned int j;
-    unsigned int posFile;
-
-   bool lineInformationAnalyzed = false;
-  
-   if (isSourceBlockInfoReady)
-      return true;
-   
-   isSourceBlockInfoReady = true;
-   
-   pdstring fName = func->symTabName();
-  
-   //get the line information object which contains the information for 
-   //this function
-
-   FileLineInformation* fLineInformation = NULL; 
-   FileLineInformation* possibleFiles[1024];
-
-   pdvector<module *> *appModules = proc->getAllModules();
-   
-   for (i = 0; i < appModules->size(); i++) {
-      pdmodule* tmp = (pdmodule *)(*appModules)[i];
-
-#if defined(i386_unknown_linux2_0)
-    /*******
-      This is a temporary fix for the bug #482. Currently, due to use of
-      drawf format, we can not divide the line info symbols (maybe others) 
-      into per module basis. Thus, all line information entries are inserted to
-      a insgle lineinformation object. We iterate over modules and find whether
-      the function's line info is in that module (sometimes function's module
-      can not be identified correctly thus we iterate) and if found we create the
-      source blocks, resulting in multiple entries in the source blocks with the same
-      value (same number as the number of modules). This fix only let us use only
-      1 module, which is the function's own module
-    ********/
-
-    if(mod != tmp)
-        continue;
-
-#endif /*i386_unknown_linux2_0*/
-
-      LineInformation* lineInfo = tmp->getLineInformation(proc);
- 
-      //cerr << "module " << tmp->fileName() << endl;
-
-      if (!lineInfo) {
-         continue;
-      }
-      
-      if (!lineInfo->getFunctionLineInformation(fName,possibleFiles,1024)) {
-         continue;
-      }
-
-      for (posFile = 0; possibleFiles[posFile]; posFile++) {
-         fLineInformation = possibleFiles[posFile];
-        
-         lineInformationAnalyzed = true;
-
-         const char* fileToBeProcessed = fLineInformation->getFileNamePtr();
-
-         //now it is time to look the starting and ending line addresses
-         //of the basic blocks in the control flow graph. To define
-         //the line numbers we will use the beginAddress and endAddress
-         //fields of the basic blocks in the control flow graph
-         //and find the closest lines to these addresses.
-         //get the address handle for the region
-
-         // FIXME FIXME FIXME This address crap...
-         InstrucIter ah(func, proc, mod);
-
-         //for every basic block in the control flow graph
-         
-         BPatch_basicBlock** elements = 
-            new BPatch_basicBlock* [allBlocks.size()];
-
-          allBlocks.elements(elements);
-
-          for (j=0; j < (unsigned)allBlocks.size(); j++) {
-             BPatch_basicBlock *bb = elements[j];
-             
-             ah.setCurrentAddress(bb->startAddress);
-              
-             BPatch_Set<unsigned short> lineNums;
-             
-
-             //while the address is valid  go backwards and find the
-             //entry in the mapping from address to line number for closest
-             //if the address is coming after a line number information
-             while (ah.hasPrev()) {
-                Address cAddr = ah--;
-                if (fLineInformation->getLineFromAddr(fName,lineNums,cAddr))
-                   break;
-             }
-              
-             //set the address handle to the start address
-             ah.setCurrentAddress(bb->startAddress);
-              
-             //while the address is valid go forward and find the entry
-             //in the mapping from address to line number for closest
-             while (ah.hasMore()) {
-                Address cAddr = ah++;
-                if (cAddr > bb->lastInsnAddress) 
-                   break;
-                fLineInformation->getLineFromAddr(fName,lineNums,cAddr);
-             }
-
-              if (lineNums.size() != 0) {
-                 //create the source block for the above address set
-                 //and assign it to the basic block field
-                 
-                 if (!bb->sourceBlocks)
-                    bb->sourceBlocks = 
-                       new BPatch_Vector< BPatch_sourceBlock* >();
-                 
-                 BPatch_sourceBlock* sb = 
-                    new BPatch_sourceBlock(fileToBeProcessed,lineNums);
-                 
-                 bb->sourceBlocks->push_back(sb);
-              }
-          }
-
-          delete[] elements; 
-      }
-   }
-   
-   if (!lineInformationAnalyzed) {
-      cerr << "WARNING : Line information is missing >> Function : " ;
-      cerr << fName  << "\n";
-      return false;
-   }
-   return true;
-}
+bool BPatch_flowGraph::createSourceBlocksInt() {
+	if( isSourceBlockInfoReady ) { return true; }
+	
+	/* Iterate over every basic block, looking for the lines corresponding to the
+	   addresses it contains. */
+	BPatch_basicBlock ** elements = new BPatch_basicBlock * [ allBlocks.size() ];
+	allBlocks.elements( elements );
+	
+	for( unsigned int i = 0; i < allBlocks.size(); i++ ) {
+		BPatch_basicBlock * currentBlock = elements[i];
+	
+		std::vector< LineInformation::LineNoTuple > lines;
+		InstrucIter insnIterator( currentBlock );
+		
+		for( ; insnIterator.hasMore(); ++insnIterator ) {
+			if( getBProc()->getSourceLines( * insnIterator, lines ) ) {
+				// /* DEBUG */ fprintf( stderr, "%s[%d]: 0x%lx\n", __FILE__, __LINE__, * insnIterator );
+				}
+			}
+			
+		if( lines.size() != 0 ) {
+			if( ! currentBlock->sourceBlocks ) {
+				currentBlock->sourceBlocks = new BPatch_Vector< BPatch_sourceBlock * >();
+				}
+				
+			BPatch_Set< unsigned short > lineNos;
+			const char * currentSourceFile = lines[0].first;
+			for( unsigned int j = 0; j < lines.size(); j++ ) {
+				if( strcmp( currentSourceFile, lines[j].first ) == 0 ) {
+					lineNos.insert( lines[j].second );
+					continue;
+					}
+					
+				// /* DEBUG */ fprintf( stderr, "%s[%d]: Inserting %s:", __FILE__, __LINE__, currentSourceFile );
+				// /* DEBUG */ BPatch_Set< unsigned short >::iterator iter = lineNos.begin();
+				// /* DEBUG */ for( ; iter != lineNos.end(); iter++ ) { fprintf( stderr, " %d", * iter ); }
+				// /* DEBUG */ fprintf( stderr, "\n" );
+				BPatch_sourceBlock * sourceBlock = new BPatch_sourceBlock( currentSourceFile, lineNos );
+				currentBlock->sourceBlocks->push_back( sourceBlock );
+				
+				/* Wonder why there isn't a clear().  (For that matter, why there isn't a const_iterator
+				   or a prefix increment operator for the iterator.) */
+				lineNos = BPatch_Set< unsigned short >();
+				currentSourceFile = lines[j].first;
+				lineNos.insert( lines[j].second );
+				}
+			if( lineNos.size() != 0 ) {
+				// /* DEBUG */ fprintf( stderr, "%s[%d]: Inserting %s:", __FILE__, __LINE__, currentSourceFile );
+				// /* DEBUG */ BPatch_Set< unsigned short >::iterator iter = lineNos.begin();
+				// /* DEBUG */ for( ; iter != lineNos.end(); iter++ ) { fprintf( stderr, " %d", * iter ); }
+				// /* DEBUG */ fprintf( stderr, "\n" );
+				
+				BPatch_sourceBlock * sourceBlock = new BPatch_sourceBlock( currentSourceFile, lineNos );
+				currentBlock->sourceBlocks->push_back( sourceBlock );
+				}				
+			
+			} /* end if we found anything */
+		} /* end iteration over all basic blocks */
+		
+	delete elements;
+	return true;
+	} /* end createSourceBlocks() */
 
 
 /* class that calculates the dominators of a flow graph using
