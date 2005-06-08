@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.243 2005/06/01 21:53:42 legendre Exp $
+ // $Id: symtab.C,v 1.244 2005/06/08 20:59:06 tlmiller Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -109,6 +109,7 @@ pdmodule *image::newModule(const pdstring &name, const Address addr, supportedLa
     fullNm = name;
     fileNm = extract_pathname_tail(name);
 
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: Creating new pdmodule '%s'/'%s'\n", __FILE__, __LINE__, fileNm.c_str(), fullNm.c_str() );
     ret = new pdmodule(lang, addr, fullNm, fileNm, this);
     modsByFileName[ret->fileName()] = ret;
     modsByFullName[ret->fullName()] = ret;
@@ -206,6 +207,7 @@ int_function *image::makeOneFunction(pdvector<Symbol> &mods,
   // find module name
   Address modAddr = 0;
   pdstring modName = lookUp.module();
+  // /* DEBUG */ fprintf( stderr, "%s[%d]: makeOneFunction()'s module: %s\n", __FILE__, __LINE__, modName.c_str() );
   
   if (modName == "") {
     modName = name_ + "_module";
@@ -392,6 +394,8 @@ bool image::symbolsToFunctions(pdvector<Symbol> &mods,
 #endif
     
     if (lookUp.type() == Symbol::PDST_FUNCTION) {
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: considering function symbol %s in module %s\n", __FILE__, __LINE__, lookUp.name().c_str(), lookUp.module().c_str() );
+
         pdstring msg;
         char tempBuffer[40];
         if (!isValidAddress(lookUp.addr())) {
@@ -1085,7 +1089,7 @@ void image::removeImage(image *img)
   // Here's a question... do we want to actually delete images?
   // Pro: free up memory. Con: we'd just have to parse them again...
   // I guess the question is "how often do we serially open files".
-  int refCount = img->destroy();
+  /* int refCount = */ img->destroy();
   
 
   /*
@@ -1202,14 +1206,14 @@ supportedLanguages pickLanguage(pdstring &working_module, char *working_options,
 }
 void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> *mod_langs)
 {
-   char *ptr;
    pdstring working_module;
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(ia64_unknown_linux2_4) /* Temporary duplication -- TLM. */
-
+ 
+   char *ptr;
    // check .stabs section to get language info for modules:
 //   int stab_nsyms;
 //   char *stabstr_nextoffset;
@@ -1248,7 +1252,7 @@ void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> 
    stabptr = linkedFile.get_stab_info();
    next_stabstr = stabptr->getStringBase();
 
-   for (int i = 0; i < stabptr->count(); i++) {
+   for( unsigned int i = 0; i < stabptr->count(); i++ ) {
       if (stabptr->type(i) == N_UNDF) {/* start of object file */
          /* value contains offset of the next string table for next module */
          // assert(stabptr->nameIdx(i) == 1);
@@ -2884,44 +2888,22 @@ pdstring* pdmodule::processDirectories(pdstring* fn){
 }
 
 
-LineInformation*
-pdmodule::getLineInformation(process *proc)
-{
-#if !defined(mips_sgi_irix6_4) \
- && !defined(alpha_dec_osf4_0) \
- && !defined(i386_unknown_nt4_0)
-  if (!lineInformation) {
-    parseFileLineInfo(proc);
-  }
+LineInformation & pdmodule::getLineInformation( process * proc ) {
+#if ! defined( alpha_dec_osf4_0 ) && ! defined( i386_unknown_nt4_0 )
+	if( ! hasParsedLineInformation ) {
+		parseFileLineInfo( proc );
+		hasParsedLineInformation = true;
+		}
 #endif
 
-  if (!lineInformation)
-    cerr << __FILE__ << ":" << __LINE__ << ": lineInfo == NULL" << endl;
-  return lineInformation;
-}
-
-void pdmodule::initLineInformation()
-{
-    lineInformation = new LineInformation(fileName());
-}
-
-void pdmodule::cleanupLineInformation()
-{
-    lineInformation->cleanEmptyFunctions();
-}
+	return lineInformation;
+	} /* end getLineInformation() */
 
 void pdmodule::cleanProcessSpecific(process *p) {
-
   /* Mangled names are unique, so we don't have to nest our loops. */
   for(unsigned i = 0; i < allUniqueFunctions.size(); i++) 
     allUniqueFunctions[i]->cleanProcessSpecific(p);
 }
-
-pdmodule::~pdmodule()
-{
-    if(lineInformation) delete lineInformation;
-}
-
 
 // Parses symtab for file and line info. Should not be called before
 // parseTypes. The ptr to lineInformation should be NULL before this is called.
@@ -2930,286 +2912,147 @@ pdmodule::~pdmodule()
  && !defined(alpha_dec_osf4_0) \
  && !defined(i386_unknown_nt4_0) \
  && !defined( USES_DWARF_DEBUG )
-void pdmodule::
-parseFileLineInfo(process * proc) 
-{
-  int i;
-  char *modName;
-  image * imgPtr=NULL;
-  char *ptr;
-//  int stab_nsyms;
-//  char *stabstr_nextoffset;
-//  const char *stabstrs = 0;
-//  struct stab_entry *stabptr = NULL;
-  int parseActive = false; 
-
-  stab_entry *stabptr = NULL;
-  const char *next_stabstr = NULL;
-
-  if (lineInformation) {
-    cerr << __FILE__ << ":" << __LINE__ << ": Internal error, not fatal, probabl:, duplicated call to"
-	 << "parseFileLineInfo()...  ignoring" << endl;
-  }
-
-  initLineInformation();
  
-
-#if defined(TIMED_PARSE)
-  struct timeval starttime;
-  gettimeofday(&starttime, NULL);
-  unsigned int fun_count = 0;
-  double fun_dur = 0;
-  unsigned int src_count = 0;
-  double src_dur = 0;
-  unsigned int sol_count = 0;
-  double sol_dur = 0;
-  unsigned int sline_count = 0;
-  double sline_dur = 0;
-  struct timeval t1, t2;
-#endif
-
-  imgPtr = exec();
-
-  const Object &objPtr = imgPtr->getObject();
-
-  //Using the Object to get the pointers to the .stab and .stabstr
-  // XXX - Elf32 specific needs to be in seperate file -- jkh 3/18/99
-  stabptr = objPtr.get_stab_info();
-  next_stabstr = stabptr->getStringBase();
-
-  //these variables are used to keep track of the source files
-  //and function names being processes at a moment
-
-  pdstring* currentFunctionName = NULL;
-  Address currentFunctionBase = 0;
-  pdstring* currentSourceFile = NULL;
-  pdstring* absoluteDirectory = NULL;
-  FunctionInfo* currentFuncInfo = NULL;
-  FileLineInformation* currentFileInfo = NULL;
-
-  for (i = 0; i < stabptr->count(); i++) {
-    // if (stabstrs) bperr("parsing #%d, %s\n", stabptr->type(i), stabptr->name(i));
-    switch(stabptr->type(i)){
-
-    case N_UNDF: /* start of object file */
-	    /* value contains offset of the next string table for next module */
-	    // assert(stabptr->nameIdx(i) == 1);
-	    stabptr->setStringBase(next_stabstr);
-	    next_stabstr = stabptr->getStringBase() + stabptr->val(i);
-
-	    //N_UNDF is the start of object file. It is time to 
-	    //clean source file name at this moment.
-	    if(currentSourceFile){
-	  	delete currentSourceFile;
-		currentSourceFile = NULL;
-		delete absoluteDirectory;
-		absoluteDirectory = NULL;
-		currentFileInfo = NULL;
-		currentFuncInfo = NULL;
-	    }
-	    break;
-
-    case N_SO: /* compilation source or file name */
-      /* bperr("Resetting CURRENT FUNCTION NAME FOR NEXT OBJECT FILE\n");*/
-#ifdef TIMED_PARSE
-      src_count++;
-      gettimeofday(&t1, NULL);
-#endif
-      //residue from separating parseLineInfo from parseTypes?
-      //current_func_name = NULL; // reset for next object file
-      //current_mangled_func_name = NULL; // reset for next object file
-      //current_func = NULL;
-
-	    //  JAW -- not sure we need this block here
-            modName = const_cast<char *>(stabptr->name(i));
-            ptr = strrchr(modName, '/');
-            if (ptr) {
-                ptr++;
-		modName = ptr;
-	    }
-
-	    if (!strcmp(modName, fileName().c_str())) 
-	      parseActive = true;
-	    else
-	      parseActive = false;
-	    //time to create the source file name to be used
-	    //for latter processing of line information
-	    if(!currentSourceFile){
-		currentSourceFile = new pdstring(stabptr->name(i));
-	    	absoluteDirectory = new pdstring(*currentSourceFile);
-	    }
-	    else if(!strlen(stabptr->name(i))){
-		delete currentSourceFile;
-		currentSourceFile = NULL;
-		delete absoluteDirectory;
-		absoluteDirectory = NULL;
-	    }
-	    else
-		*currentSourceFile += stabptr->name(i);
-
-	    currentSourceFile = processDirectories(currentSourceFile);
- 
-
-#ifdef TIMED_PARSE
-	    gettimeofday(&t2, NULL);
-	    src_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
-	    //src_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000) ;
-#endif
-           break;
-    default:
-      break;
-    }
-
-    if( parseActive || isShared())
-      switch(stabptr->type(i)){
-      case N_SOL:
-#ifdef TIMED_PARSE
-	sol_count++;
-	gettimeofday(&t1, NULL);
-#endif
-	if(absoluteDirectory){
-	  const char* newSuffix = stabptr->name(i);
-	  if(newSuffix[0] == '/'){
-	    delete currentSourceFile;
-	    currentSourceFile = new pdstring;
-	  }
-	  else{
-	    char* tmp = new char[absoluteDirectory->length()+1];
-	    strcpy(tmp,absoluteDirectory->c_str());
-	    char* p=strrchr(tmp,'/');
-	    if(p) 
-	      *(++p)='\0';
-	    delete currentSourceFile;
-	    currentSourceFile = new pdstring(tmp);
-	    delete[] tmp;
-	  }
-	  (*currentSourceFile) += newSuffix;
-	  currentSourceFile = processDirectories(currentSourceFile);
-	  if(currentFunctionName)
-	    lineInformation->insertSourceFileName(
-						  *currentFunctionName,
-						  *currentSourceFile,
-						  &currentFileInfo,&currentFuncInfo);
-	}
-	else{
-	  currentSourceFile = new pdstring(stabptr->name(i));
-	  currentSourceFile = processDirectories(currentSourceFile);
-	  if(currentFunctionName)
-	    lineInformation->insertSourceFileName(
-						  *currentFunctionName,
-						  *currentSourceFile,
-						  &currentFileInfo,&currentFuncInfo);
-	}
-#ifdef TIMED_PARSE
-	gettimeofday(&t2, NULL);
-	sol_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
-	//sol_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000); 
-#endif
-	break;
-      case N_SLINE:
-#ifdef TIMED_PARSE
-	sline_count++;
-	gettimeofday(&t1, NULL);
-#endif
-	//if the stab information is a line information
-	//then insert an entry to the line info object
-	if(!currentFunctionName) break;
-	if(currentFileInfo)
-	  currentFileInfo->insertLineAddress(currentFuncInfo,
-					     stabptr->desc(i),
-					     stabptr->val(i)+currentFunctionBase);
-#ifdef TIMED_PARSE
-	gettimeofday(&t2, NULL);
-	sline_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
-	//sline_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000) ;
-#endif
-	break;
-    case N_FUN:
-#ifdef TIMED_PARSE
-      fun_count++;
-      gettimeofday(&t1, NULL);
-#endif
-      //residue from separating parseLineInfo from parseTypes?
-      //current_func = NULL;
-
-      //if it is a function stab then we have to insert an entry 
-      //to initialize the entries in the line information object
-      int currentEntry = i;
-      int funlen = strlen(stabptr->name(currentEntry));
-      ptr = new char[funlen+1];
-      strcpy(ptr,stabptr->name(currentEntry));
-      while(strlen(ptr) != 0 && ptr[strlen(ptr)-1] == '\\'){
-	ptr[strlen(ptr)-1] = '\0';
-	currentEntry++;
-	strcat(ptr,stabptr->name(currentEntry));
-      }
-      
-      char* colonPtr = NULL;
-      if(currentFunctionName) delete currentFunctionName;
-      if(!ptr || !(colonPtr = strchr(ptr,':')))
-	currentFunctionName = NULL;
-      else {
-	char* tmp = new char[colonPtr-ptr+1];
-	strncpy(tmp,ptr,colonPtr-ptr);
-	tmp[colonPtr-ptr] = '\0';
-	currentFunctionName = new pdstring(tmp);
+/* Parse everything in the file on disk, and cache that we've done so,
+   because our modules may not bear any relation to the name source files. */
+void pdmodule::parseFileLineInfo( process * proc ) {
+	static dictionary_hash< pdstring, bool > haveParsedFileMap( pdstring::hash );
 	
-	currentFunctionBase = 0;
-	Symbol info;
-	if (!proc->getSymbolInfo(*currentFunctionName,
-				 info,currentFunctionBase))
-	  {
-	    pdstring fortranName = *currentFunctionName + pdstring("_");
-	    if (proc->getSymbolInfo(fortranName,info,
-				    currentFunctionBase))
-	      {
-		delete currentFunctionName;
-		currentFunctionName = new pdstring(fortranName);
-	      }
-	  }
-	
-	currentFunctionBase += info.addr();
-	
-	delete[] tmp;		
-	if(currentSourceFile)
-	  lineInformation->insertSourceFileName(
-						*currentFunctionName,
-						*currentSourceFile,
-						&currentFileInfo,&currentFuncInfo);
-      }
-      delete[] ptr;
-#ifdef TIMED_PARSE
-      gettimeofday(&t2, NULL);
-      fun_dur += (t2.tv_sec - t1.tv_sec)*1000.0 + (t2.tv_usec - t1.tv_usec)/1000.0;
-      //fun_dur += (t2.tv_sec/1000 + t2.tv_usec*1000) - (t1.tv_sec/1000 + t1.tv_usec*1000);
-#endif
-      break;
-      }
-  }
+	image * fileOnDisk = exec();
+	assert( fileOnDisk != NULL );
+	const Object & elfObject = fileOnDisk->getObject();
 
-  cleanupLineInformation();
+	const char * fileName = elfObject.getFileName();
+	if( haveParsedFileMap.defines( fileName ) ) { return; } 
 
-#if defined(TIMED_PARSE)
-  struct timeval endtime;
-  gettimeofday(&endtime, NULL);
-  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-  unsigned long difftime = lendtime - lstarttime;
-  double dursecs = difftime/(1000 );
-  cout << __FILE__ << ":" << __LINE__ <<": parseTypes("<< fileName()
-       <<") took "<<dursecs <<" msecs" << endl;
-  cout << "Breakdown:" << endl;
-  cout << "     Functions: " << fun_count << " took " << fun_dur << "msec" << endl;
-  cout << "     Sources: " << src_count << " took " << src_dur << "msec" << endl;
-  cout << "     SOL?s: " << sol_count << " took " << sol_dur << "msec" << endl;
-  cout << "     Sliness: " << sline_count << " took " << sline_dur << "msec" << endl;
-  cout << "     Total: " << sline_dur + sol_dur + fun_dur + src_dur 
-       << " msec" << endl;
-  //lineInformation->print();
-  cout << "Max addr per line = " << max_addr_per_line << ".  Max line per addr = "
-       << max_line_per_addr << endl;
-#endif
-}
+	/* We haven't parsed this file already, so iterate over its stab entries. */
+	stab_entry * stabEntry = elfObject.get_stab_info();
+	assert( stabEntry != NULL );
+	const char * nextStabString = stabEntry->getStringBase();
+	
+	const char * currentSourceFile = NULL;
+	pdmodule * currentModule = NULL;
+	Address currentFunctionBase = 0;
+	unsigned int previousLineNo = 0;
+	Address previousLineAddress = 0;
+	bool isPreviousValid = false;
+	
+	Address baseAddress = 0;
+	if( this->isShared() ) {
+		assert( proc->getBaseAddress( fileOnDisk, baseAddress ) );
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: Using 0x%lx as base address of shared object.\n", __FILE__, __LINE__, baseAddress );
+		}
+	
+	for( unsigned int i = 0; i < stabEntry->count(); i++ ) {
+		switch( stabEntry->type( i ) ) {
+		
+			case N_UNDF: /* start of an object file */ {
+				if( isPreviousValid ) {
+					/* DEBUG */ fprintf( stderr, "%s[%d]: unterminated N_SLINE at start of object file.  Line number information will be lost.\n", __FILE__, __LINE__ );
+					}
+			
+				stabEntry->setStringBase( nextStabString );
+				nextStabString = stabEntry->getStringBase() + stabEntry->val( i );
+				
+				currentSourceFile = NULL;
+				isPreviousValid = false;
+				} break;
+				
+			case N_SO: /* compilation source or file name */ {
+				if( isPreviousValid ) {
+					/* Add the previous N_SLINE. */
+					Address currentLineAddress = stabEntry->val( i );
+					
+					// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) to module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
+					currentModule->lineInformation.addLine( currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress  );
+					}
+				
+				const char * sourceFile = stabEntry->name( i );
+				currentSourceFile = strrchr( sourceFile, '/' );
+				if( currentSourceFile == NULL ) { currentSourceFile = sourceFile; }
+				else { ++currentSourceFile; }
+				// /* DEBUG */ fprintf( stderr, "%s[%d]: using file name '%s'\n", __FILE__, __LINE__, currentSourceFile );
+				
+				isPreviousValid = false;
+				} break;
+				
+			case N_SOL: /* file name (possibly an include file) */ {
+				if( isPreviousValid ) {
+					/* Add the previous N_SLINE. */
+					Address currentLineAddress = stabEntry->val( i );
+					// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) to module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
+					currentModule->lineInformation.addLine( currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress  );
+					}
+					
+				const char * sourceFile = stabEntry->name( i );
+				currentSourceFile = strrchr( sourceFile, '/' );
+				if( currentSourceFile == NULL ) { currentSourceFile = sourceFile; }
+				else { ++currentSourceFile; }
+				// /* DEBUG */ fprintf( stderr, "%s[%d]: using file name '%s'\n", __FILE__, __LINE__, currentSourceFile );
+				
+				isPreviousValid = false;
+				} break;
+				
+			case N_FUN: /* a function */ {
+				if( * stabEntry->name( i ) == 0 ) {
+					/* An end-of-function marker.  The value is the size of the function. */
+					if( isPreviousValid ) {
+						/* Add the previous N_SLINE. */
+						Address currentLineAddress = currentFunctionBase + stabEntry->val( i );
+						// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) in module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
+						currentModule->lineInformation.addLine( currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress  );
+						}
+					
+					/* We've added the previous N_SLINE and don't currently have a module. */
+					isPreviousValid = false;
+					currentModule = NULL;
+					break;
+					} /* end if the N_FUN is an end-of-function-marker. */
+							
+				if( isPreviousValid ) {
+					Address currentLineAddress = stabEntry->val( i );
+					// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) in module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
+					currentModule->lineInformation.addLine( currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress  );
+					}
+					
+				currentFunctionBase = stabEntry->val( i );
+				currentFunctionBase += baseAddress;
+				
+				int_function * currentFunction = proc->findFuncByAddr( currentFunctionBase );
+				if( currentFunction == NULL ) {
+					/* DEBUG */ fprintf( stderr, "%s[%d]: failed to find function containing address 0x%lx; line number information will be lost.\n", __FILE__, __LINE__, currentFunctionBase );
+					currentModule = NULL;
+					}
+				else {
+					currentModule = currentFunction->pdmod();
+					assert( currentModule != NULL );
+					}
+											
+				isPreviousValid = false;
+				} break;
+				
+			case N_SLINE: {
+				if( currentModule ) {
+					Address currentLineAddress = currentFunctionBase + stabEntry->val( i );
+					unsigned int currentLineNo = stabEntry->desc( i );
+					
+					if( isPreviousValid ) {
+						// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) in module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
+						currentModule->lineInformation.addLine( currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress  );
+						}
+						
+					previousLineAddress = currentLineAddress;
+					previousLineNo = currentLineNo;
+					isPreviousValid = true;
+					} /* end if we've a module to which to add line information */
+				} break;
+						
+			} /* end switch on the ith stab entry's type */
+		} /* end iteration over stab entries. */
+	
+	haveParsedFileMap[ fileName ] = true;
+	} /* end parseFileLineInfo() */
+	
 #endif 
 
 
@@ -3218,217 +3061,246 @@ parseFileLineInfo(process * proc)
 
 #include <linenum.h>
 #include <syms.h>
+#include <set>
 
-void 
-pdmodule::parseLineInformation(process* proc, 
-			       pdstring* currentSourceFile,
-			       char* symbolName,
-			       SYMENT *sym,
-			       Address linesfdptr,char* lines,int nlines)
-{
-      union auxent *aux;
-      pdvector<IncludeFileInfo> includeFiles;
+/* FIXME: hack. */
+Address trueBaseAddress = 0;
 
-      /* if it is beginning of include files then update the data structure 
-         that keeps the beginning of the include files. If the include files contain 
-         information about the functions and lines we have to keep it */
-      if (sym->n_sclass == C_BINCL){
-		includeFiles.push_back(IncludeFileInfo((sym->n_value-linesfdptr)/LINESZ, symbolName));
-      }
-      /* similiarly if the include file contains function codes and line information
-         we have to keep the last line information entry for this include file */
-      else if (sym->n_sclass == C_EINCL){
-		if (includeFiles.size() > 0) {
-			includeFiles[includeFiles.size()-1].end = (sym->n_value-linesfdptr)/LINESZ;
+void pdmodule::parseFileLineInfo( process * proc ) {
+	static std::set< image * > haveParsedFileMap;
+	
+    image * fileOnDisk = exec();
+	assert( fileOnDisk != NULL );
+	if( haveParsedFileMap.count( fileOnDisk ) != 0 ) { return; }
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: Considering image at 0x%lx\n", __FILE__, __LINE__, fileOnDisk );
+
+	/* FIXME: hack.  Should be argument to parseLineInformation(), which should in turn be merged
+	   back into here so it can tell how far to extend the range of the last line information point. */
+	Address baseAddress = 0;
+	if( this->isShared() ) {
+		assert( proc->getBaseAddress( fileOnDisk, baseAddress ) );
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: Using 0x%lx as base address of shared object.\n", __FILE__, __LINE__, baseAddress );
 		}
-      }
-      /* if the enrty is for a function than we have to collect all info
-         about lines of the function */
-      else if (sym->n_sclass == C_FUN){
-		assert(currentSourceFile);
-		/* creating the string for function name */
-		char* ce = strchr(symbolName,':'); if(ce) *ce = '\0';
-		pdstring currentFunctionName(symbolName);
+	trueBaseAddress = baseAddress;
 
-		/* getting the real function base address from the symbols*/
-    		Address currentFunctionBase=0;
-		Symbol info;
-		proc->getSymbolInfo(currentFunctionName,info,
-				    currentFunctionBase);
-		currentFunctionBase += info.addr();
+	const Object & xcoffObject = fileOnDisk->getObject();
 
-		/* getting the information about the function from C_EXT */
+	/* We haven't parsed this file already, so iterate over its stab entries. */
+	char * stabstr = NULL;
+	int nstabs = 0;
+	Address syms = 0;
+	char * stringpool = NULL;
+	xcoffObject.get_stab_info( stabstr, nstabs, syms, stringpool );
+
+	int nlines = 0;
+	char * lines = NULL;
+	unsigned long linesfdptr;
+	xcoffObject.get_line_info( nlines, lines, linesfdptr );
+
+	/* I'm not sure why the original code thought it should copy (short) names (through here). */
+	char temporaryName[9];
+	char * funcName = NULL;
+	char * currentSourceFile = NULL;
+
+	/* Iterate over STAB entries. */
+	for( int i = 0; i < nstabs; i++ ) {
+		/* sizeof( SYMENT ) is 20, not 18, as it should be. */
+		SYMENT * sym = (SYMENT *)( syms + (i * SYMESZ) );
+	
+		/* Extract the current source file from the C_FILE entries. */
+		if( sym->n_sclass == C_FILE ) {
+			char * moduleName = NULL;
+			
+			/* From the SYMENT. */
+			if( ! sym->n_zeroes ) {
+				moduleName = & stringpool[ sym->n_offset ];
+				}
+			else {
+				memset( temporaryName, 0, 9 );
+				strncpy( temporaryName, sym->n_name, 8 );
+				moduleName = temporaryName;
+				}
+				
+			/* From the AUXENT. */
+			for( int j = 1; j <= sym->n_numaux; j++ ) {
+				union auxent * aux = (union auxent *)( (Address)sym + (j * SYMESZ) );
+				
+				if( aux->x_file._x.x_ftype == XFT_FN ) {
+					if( ! aux->x_file._x.x_zeroes ) {
+						moduleName = & stringpool[ aux->x_file._x.x_offset ];
+						} else {
+						// x_fname is 14 bytes
+						memset( moduleName, 0, 15 );
+						strncpy( moduleName, aux->x_file.x_fname, 14 );
+						}
+					} /* end if proper auxtype */
+				} /* end AUXENT iteration */
+			
+			currentSourceFile = strrchr( moduleName, '/' );
+			if( currentSourceFile == NULL ) { currentSourceFile = moduleName; }
+			else { ++currentSourceFile; }
+
+			/* We're done with this entry. */
+			continue;
+			} /* end if C_FILE */
+	
+		/* This apparently compensates for a bug in the naming of certain entries. */
+		char * nmPtr = NULL;
+		if( 	! sym->n_zeroes && (
+				( sym->n_sclass & DBXMASK ) ||
+				( sym->n_sclass == C_BINCL ) ||
+				( sym->n_sclass == C_EINCL )
+				) ) {
+			if( sym->n_offset < 3 ) {
+				if( sym->n_offset == 2 && stabstr[ 0 ] ) {
+					nmPtr = & stabstr[ 0 ];
+					} else {
+					nmPtr = & stabstr[ sym->n_offset ];
+					}
+				} else if( ! stabstr[ sym->n_offset - 3 ] ) {
+				nmPtr = & stabstr[ sym->n_offset ];
+				} else {
+				/* has off by two error */
+				nmPtr = & stabstr[ sym->n_offset - 2 ];
+				} 
+			} else {
+			// names 8 or less chars on inline, not in stabstr
+			memset( temporaryName, 0, 9 );
+			strncpy( temporaryName, sym->n_name, 8 );
+			nmPtr = temporaryName;
+			} /* end bug compensation */
+
+		/* Now that we've compensated for buggy naming, actually
+		   parse the line information. */
+		if(	( sym->n_sclass == C_BINCL ) 
+			|| ( sym->n_sclass == C_EINCL )
+			|| ( sym->n_sclass == C_FUN ) ) {
+			if( funcName ) {
+				free( funcName );
+				funcName = NULL;
+				}
+			funcName = strdup( nmPtr );
+
+			pdstring pdCSF( currentSourceFile );
+			parseLineInformation( proc, & pdCSF, funcName, (SYMENT *)sym, linesfdptr, lines, nlines );
+			} /* end if we're actually parsing line information */
+		} /* end iteration over STAB entries. */
+
+	if( funcName != NULL ) { 
+		free( funcName );
+		}		
+	haveParsedFileMap.insert( fileOnDisk );
+	} /* end parseFileLineInfo() */
+
+void pdmodule::parseLineInformation(	process * proc,
+										pdstring * currentSourceFile,
+										char * symbolName,
+										SYMENT * sym,
+										Address linesfdptr,
+										char * lines,
+										int nlines ) {
+	union auxent * aux;
+	pdvector<IncludeFileInfo> includeFiles;
+
+	/* if it is beginning of include files then update the data structure
+		that keeps the beginning of the include files. If the include files contain
+		information about the functions and lines we have to keep it */
+	if( sym->n_sclass == C_BINCL ) {
+		includeFiles.push_back( IncludeFileInfo( (sym->n_value - linesfdptr)/LINESZ, symbolName ) );
+		}
+	/* similiarly if the include file contains function codes and line information
+		we have to keep the last line information entry for this include file */
+	else if( sym->n_sclass == C_EINCL ) {
+		if( includeFiles.size() > 0 ) {
+			includeFiles[includeFiles.size()-1].end = (sym->n_value-linesfdptr)/LINESZ;
+			}
+		}
+	/* if the enrty is for a function than we have to collect all info
+	   about lines of the function */
+	else if( sym->n_sclass == C_FUN ) {
+		/* I have no idea what the old code did, except not work very well.
+		   Somebody who understands XCOFF should look at this. */
 		int initialLine = 0;
 		int initialLineIndex = 0;
 		Address funcStartAddress = 0;
-		for(int j=-1;;j--){
-			SYMENT *extsym = (SYMENT*)(((unsigned)sym)+j*SYMESZ);
-			if(extsym->n_sclass == C_EXT){
-				aux = (union auxent*)((char*)extsym+SYMESZ);
+		
+		for( int j = -1; ; --j ) {
+			SYMENT * extSym = (SYMENT *)( ((Address)sym) + (j * SYMESZ) );
+			if( extSym->n_sclass == C_EXT ) {
+				aux = (union auxent *)( ((Address)extSym) + SYMESZ );
 #ifndef __64BIT__
-				initialLineIndex = (aux->x_sym.x_fcnary.x_fcn.x_lnnoptr-linesfdptr)/LINESZ;
+				initialLineIndex = ( aux->x_sym.x_fcnary.x_fcn.x_lnnoptr - linesfdptr )/LINESZ;
 #endif
-				funcStartAddress = extsym->n_value;
-				break;
-			}
-		}
+				funcStartAddress = extSym->n_value;
+                break;
+				} /* end if C_EXT found */
+			} /* end search for C_EXT */
 
-		/* access the line information now using the C_FCN entry*/
-		SYMENT *bfsym = (SYMENT*)(((unsigned)sym)+SYMESZ);
-
-		if (bfsym->n_sclass != C_FCN) {
-		    bperr("unable to process line info for %s\n", symbolName);
-		    return;
-		}
-
-		aux = (union auxent*)((char*)bfsym+SYMESZ);
-		initialLine = aux->x_sym.x_misc.x_lnsz.x_lnno;
-
-		pdstring whichFile = *currentSourceFile;
-		/* find in which file is it */
-		for(unsigned int j=0;j<includeFiles.size();j++)
-			if((includeFiles[j].begin <= (unsigned)initialLineIndex) &&
-			   (includeFiles[j].end >= (unsigned)initialLineIndex)){
-				whichFile = includeFiles[j].name;
-				break;
+        /* access the line information now using the C_FCN entry*/
+		SYMENT * bfSym = (SYMENT *)( ((Address)sym) + SYMESZ );
+		if( bfSym->n_sclass != C_FCN ) {
+			bperr("unable to process line info for %s\n", symbolName);
+			return;
 			}
 
-		FunctionInfo* currentFuncInfo = NULL;
-		FileLineInformation* currentFileInfo = NULL;
-		lineInformation->insertSourceFileName(currentFunctionName,whichFile,
-						&currentFileInfo,&currentFuncInfo);
+		aux = (union auxent *)( ((Address)bfSym) + SYMESZ );
+        initialLine = aux->x_sym.x_misc.x_lnsz.x_lnno;
 
-		for(unsigned int j=initialLineIndex+1;j<nlines;j++){
-			LINENO* lptr = (LINENO*)(lines+j*LINESZ);
-			if(!lptr->l_lnno)
-				break;
-			if(currentFileInfo)
-	    			currentFileInfo->insertLineAddress(
-					currentFuncInfo,
-					lptr->l_lnno+initialLine-1,
-					(lptr->l_addr.l_paddr-funcStartAddress)+currentFunctionBase);
-		}
-      }
-}
+        pdstring whichFile = *currentSourceFile;
+        for( unsigned int j = 0; j < includeFiles.size(); j++ ) {
+            if(	( includeFiles[j].begin <= (unsigned)initialLineIndex )
+            	&& ( includeFiles[j].end >= (unsigned)initialLineIndex ) ) {
+                whichFile = includeFiles[j].name;
+                break;
+            	}
+        	} /* end iteration of include files */
+        
+		char * canonicalSourceFile = strrchr( whichFile.c_str(), '/' );
+		if( canonicalSourceFile == NULL ) { canonicalSourceFile = const_cast< char * >( whichFile.c_str() ); }
+		else { ++canonicalSourceFile; }
+		
+		int_function * currentFunction = proc->findFuncByAddr( funcStartAddress + trueBaseAddress );
+		if( currentFunction == NULL ) {
+			/* Some addresses point to gdb-inaccessible memory; others have symbols (gdb will disassemble them)
+			   but the contents look like garbage, and may be data with symbol names.  (Who knows why.) */
+			// fprintf( stderr, "%s[%d]: failed to find function containing address 0x%lx; line number information will be lost.\n", __FILE__, __LINE__, funcStartAddress + trueBaseAddress );
+			return;
+			}
+		pdmodule * currentModule = currentFunction->pdmod();
+		assert( currentModule != NULL );
+		LineInformation & currentLineInformation = currentModule->lineInformation;
 
-// This was copied from BPatch_module::parseTypes, the type parsing code was
-// removed. When paradyn uses parseTypes this can go away.
-void pdmodule::parseFileLineInfo(process* proc)
-{
-    int i, j;
-    int nlines;
-    int nstabs;
-    char* lines;
-    SYMENT *syms;
-    SYMENT *tsym;
-    char *stringPool;
-    char tempName[9];
-    char *stabstr=NULL;
-    union auxent *aux;
-    image * imgPtr=NULL;
-    char* funcName = NULL;
-    unsigned long linesfdptr;
-    pdstring* currentSourceFile = NULL;
-
-    initLineInformation();  
-
-    imgPtr = exec();
-
-    const Object &objPtr = imgPtr->getObject();
-
-    objPtr.get_stab_info(stabstr, nstabs, ((Address&) syms), stringPool); 
-
-    objPtr.get_line_info(nlines,lines,linesfdptr); 
-
-    bool parseActive = true;
-    for (i=0; i < nstabs; i++) {
-	// do the pointer addition by hand since sizeof(struct syment)
-	//   seems to be 20 not 18 as it should be 
-      SYMENT *sym = (SYMENT *) (((unsigned) syms) + i * SYMESZ);
-
-      if (sym->n_sclass == C_FILE) {
-	 char *moduleName;
-	 if (!sym->n_zeroes) {
-	    moduleName = &stringPool[sym->n_offset];
-	 } else {
-	    memset(tempName, 0, 9);
-	    strncpy(tempName, sym->n_name, 8);
-	    moduleName = tempName;
-	 }
-	 // look in aux records 
-	 for (j=1; j <= sym->n_numaux; j++) {
-	    aux = (union auxent *) ((char *) sym + j * SYMESZ);
-	    if (aux->x_file._x.x_ftype == XFT_FN) {
-		if (!aux->x_file._x.x_zeroes) {
-                     moduleName = &stringPool[aux->x_file._x.x_offset];
-                } else {
-                     // x_fname is 14 bytes
-                     memset(moduleName, 0, 15);
-                     strncpy(moduleName, aux->x_file.x_fname, 14);
-                }
-	    }
-	 }
-
-	 if(currentSourceFile) delete currentSourceFile;
-	 currentSourceFile = new pdstring(moduleName);
-	 currentSourceFile = processDirectories(currentSourceFile);
-
-	 if (strrchr(moduleName, '/')) {
-	     moduleName = strrchr(moduleName, '/');
-	     moduleName++;
-	 }
-
-	 if (!strcmp(moduleName, fileName().c_str())) {
-		parseActive = true;
-	 } else {
-		parseActive = false;
-	 }
-      }
-
-      if (!parseActive) continue;
-
-      char *nmPtr;
-      if (!sym->n_zeroes && ((sym->n_sclass & DBXMASK) ||
-			     (sym->n_sclass == C_BINCL) ||
-			     (sym->n_sclass == C_EINCL))) {
-	  if (sym->n_offset < 3) {
-	      if (sym->n_offset == 2 && stabstr[0]) {
-		  nmPtr = &stabstr[0];
-	      } else {
-		  nmPtr = &stabstr[sym->n_offset];
-	      }
-	  } else if (!stabstr[sym->n_offset-3]) {
-	      nmPtr = &stabstr[sym->n_offset];
-	  } else {
-	      /* has off by two error */
-	      nmPtr = &stabstr[sym->n_offset-2];
-	  }
-      } else {
-	  // names 8 or less chars on inline, not in stabstr
-	  memset(tempName, 0, 9);
-	  strncpy(tempName, sym->n_name, 8);
-	  nmPtr = tempName;
-      }
-
-      if ((sym->n_sclass == C_BINCL) ||
-	  (sym->n_sclass == C_EINCL) ||
-	  (sym->n_sclass == C_FUN)) {
-		if (funcName) { 
-		    free(funcName);
-		    funcName = NULL;
-		}
-		funcName = strdup(nmPtr);
-
-		parseLineInformation(proc, currentSourceFile,  funcName, sym, 
-				     linesfdptr, lines, nlines);
-      }
-
-    }
-
-    cleanupLineInformation();
-}
-
-
+		unsigned int previousLineNo = 0;
+		Address previousLineAddr = 0;
+		bool isPreviousValid = false;
+					
+		/* Iterate over this entry's lines. */
+		for( int j = initialLineIndex + 1; j < nlines; j++ ) {
+			LINENO * lptr = (LINENO *)( lines + (j * LINESZ) );
+			if( ! lptr->l_lnno ) { break; }
+			unsigned int lineNo = lptr->l_lnno + initialLine - 1;
+			Address lineAddr = lptr->l_addr.l_paddr + trueBaseAddress;
+			
+			if( isPreviousValid ) {
+				// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx).\n", __FILE__, __LINE__, canonicalSourceFile, previousLineNo, previousLineAddr, lineAddr );
+				currentLineInformation.addLine( canonicalSourceFile, previousLineNo, previousLineAddr, lineAddr );
+				}
+			
+			previousLineNo = lineNo;
+			previousLineAddr = lineAddr;
+			isPreviousValid = true;
+			} /* end iteration over line information */
+			
+		if( isPreviousValid ) {
+			/* Add the instruction (always 4 bytes on power) pointed at by the last entry.  We'd like to add a
+			   bigger range, but it's not clear how.  (If the function has inlined code, we won't know about
+			   it until we see the next section, so claiming "until the end of the function" will give bogus results.) */
+			// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx).\n", __FILE__, __LINE__, canonicalSourceFile, previousLineNo, previousLineAddr, previousLineAddr + 4 );
+			currentLineInformation.addLine( canonicalSourceFile, previousLineNo, previousLineAddr, previousLineAddr + 4 );
+			}
+		} /* end if we found a C_FUN symbol */
+	} /* end parseLineInformation() */
+	
 #endif
 
 /* mips-sgi-irix6.5 uses DWARF debug, but the rest of the code
@@ -3443,16 +3315,18 @@ void pdmodule::parseFileLineInfo(process* proc)
 #include "LineInformation.h"
 
 extern void pd_dwarf_handler( Dwarf_Error, Dwarf_Ptr );
-void pdmodule::parseFileLineInfo( process * /*proc*/ ) {
-	if( lineInformation != NULL ) { return; }
-	initLineInformation();
-
-	/* Wind up libdwarf. */
+void pdmodule::parseFileLineInfo( process * proc ) {
+	static dictionary_hash< pdstring, bool > haveParsedFileMap( pdstring::hash );
+	
+	/* Determine if we've parsed this file already. */
 	image * moduleImage = exec();
 	assert( moduleImage != NULL );
 	const Object & moduleObject = moduleImage->getObject();	
-
 	const char * fileName = moduleObject.getFileName();
+
+    if( haveParsedFileMap.defines( fileName ) ) { return; }
+	
+	/* We have not parsed this file already, so wind up libdwarf. */
 	int fd = open( fileName, O_RDONLY );
 	assert( fd != -1 );
 	
@@ -3485,10 +3359,23 @@ void pdmodule::parseFileLineInfo( process * /*proc*/ ) {
 			}
 		assert( status == DW_DLV_OK );
 		
+		/* The 'lines' returned are actually interval markers; the code
+		   generated from lineNo runs from lineAddr up to but not including
+		   the lineAddr of the next line. */			   
+		bool isPreviousValid = false;
+		Dwarf_Unsigned previousLineNo = 0;
+		Dwarf_Addr previousLineAddr = 0x0;
+		char * previousLineSource = NULL;
+		
+		Address baseAddr = 0;
+		if( this->isShared() ) {
+			assert( proc->getBaseAddress( moduleImage, baseAddr ) );
+			// /* DEBUG */ fprintf( stderr, "%s[%d]: Using 0x%lx as base address of shared object.\n", __FILE__, __LINE__, baseAddress );
+			}
+		
 		/* Iterate over this CU's source lines. */
-		pdstring currentFunctionName = "";
 		for( int i = 0; i < lineCount; i++ ) {
-			/* Acquire the line number, address, and source */
+			/* Acquire the line number, address, source, and end of sequence flag. */
 			Dwarf_Unsigned lineNo;
 			status = dwarf_lineno( lineBuffer[i], & lineNo, NULL );
 			assert( status == DW_DLV_OK );			
@@ -3496,25 +3383,62 @@ void pdmodule::parseFileLineInfo( process * /*proc*/ ) {
 			Dwarf_Addr lineAddr;
 			status = dwarf_lineaddr( lineBuffer[i], & lineAddr, NULL );
 			assert( status == DW_DLV_OK );
+			lineAddr += baseAddr;
 			
 			char * lineSource;
 			status = dwarf_linesrc( lineBuffer[i], & lineSource, NULL );
 			assert( status == DW_DLV_OK );
+						
+			Dwarf_Bool isEndOfSequence;
+			status = dwarf_lineendsequence( lineBuffer[i], & isEndOfSequence, NULL );
+			assert( status == DW_DLV_OK );
 			
-			// bperr( "0x%llx = %llu in '%s'\n", lineAddr, lineNo, lineSource );
+			if( isPreviousValid ) {
+				/* If we're talking about the same (source file, line number) tuple,
+				   and it isn't the end of the sequence, we can coalesce the range.
+				   (The end of sequence marker marks discontinuities in the ranges.) */
+				if( lineNo == previousLineNo && strcmp( lineSource, previousLineSource ) == 0 && ! isEndOfSequence ) {
+					/* Don't update the prev* values; just keep going until we hit the end of a sequence or
+					   a new sourcefile. */
+					continue;
+					} /* end if we can coalesce this range */
 			
-			int_function * newFunction = moduleImage->findFuncByEntry(lineAddr);
-			if( newFunction != NULL ) {
-				currentFunctionName = newFunction->symTabName();
-				//bperr( "Adding function '%s' to file '%s'\n", currentFunctionName.c_str(), lineSource );
-				lineInformation->insertSourceFileName( currentFunctionName, lineSource );
+				/* Determine into which pdmodule this line information should be inserted. */
+				int_function * currentFunction = proc->findFuncByAddr( previousLineAddr );
+				if( currentFunction == NULL ) {
+					// /* DEBUG */ fprintf( stderr, "%s[%d]: failed to find function containing address 0x%lx; line number information will be lost.\n", __FILE__, __LINE__, lineAddr );
+					}
+				else {
+					pdmodule * currentModule = currentFunction->pdmod();
+					assert( currentModule != NULL );
+					
+					char * canonicalLineSource = strrchr( previousLineSource, '/' );
+					if( canonicalLineSource == NULL ) { canonicalLineSource = previousLineSource; }
+					else { ++canonicalLineSource; }
+					
+					/* The line 'canonicalLineSource:previousLineNo' has an address range of [previousLineAddr, lineAddr). */
+					currentModule->lineInformation.addLine( canonicalLineSource, previousLineNo, previousLineAddr, lineAddr );
+				
+					// /* DEBUG */ fprintf( stderr, "%s[%d]: inserted address range [0x%lx, 0x%lx) for source '%s:%u' into module '%s'.\n", __FILE__, __LINE__, previousLineAddr, lineAddr, canonicalLineSource, previousLineNo, currentModule->fileName().c_str() );
+					} /* end if we found the function by its address */
+				} /* end if the previous* variables are valid */
+				
+			/* If the current line ends the sequence, invalidate previous; otherwise, update. */
+			if( isEndOfSequence ) {
+				dwarf_dealloc( dbg, lineSource, DW_DLA_STRING );
+				
+				isPreviousValid = false;
 				}
-			// bperr( "Adding line %llu at %llx to function '%s' in file '%s'\n", lineNo, lineAddr, currentFunctionName.c_str(), lineSource );
-			lineInformation->insertLineAddress( currentFunctionName, lineSource, lineNo, lineAddr );
-			
-			/* Free the line source. */
-			dwarf_dealloc( dbg, lineSource, DW_DLA_STRING );
-			} /* end iteration over source lines. */
+			else {
+				if( isPreviousValid ) { dwarf_dealloc( dbg, previousLineSource, DW_DLA_STRING ); }
+
+				previousLineNo = lineNo;
+				previousLineSource = lineSource;
+				previousLineAddr = lineAddr;
+							
+				isPreviousValid = true;
+				} /* end if line was not the end of a sequence */
+			} /* end iteration over source line entries. */
 		
 		/* Free this CU's source lines. */
 		for( int i = 0; i < lineCount; i++ ) {
@@ -3534,6 +3458,9 @@ void pdmodule::parseFileLineInfo( process * /*proc*/ ) {
 	status = dwarf_finish( dbg, NULL );
 	assert( status == DW_DLV_OK );
 	close( fd );
+	
+	/* Note that we've parsed this file. */
+	haveParsedFileMap[ fileName ] = true;
 	} /* end parseFileLineInfo() */
 #endif
 
@@ -3550,7 +3477,7 @@ int instPointCompare( instPoint*& ip1, instPoint*& ip2 )
 } 
 
 
-//used to compare basicBlocks by starting address for vector sort
+// used to compare basicBlocks by starting address for vector sort
 int basicBlockCompare( BPatch_basicBlock*& bb1, BPatch_basicBlock*& bb2 )
 {
     if( bb1->getRelStart() > bb2->getRelStart() )

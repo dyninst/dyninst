@@ -3444,13 +3444,13 @@ void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
         	fprintf(stderr, "    Unable to locate globalVariable30_3\n");
         	exit(1);
     	}
-	BPatch_Vector<unsigned long> buffer1; 
-	if(appImage->getLineToAddr("test1.mutatee.c",call30_1_line_no,buffer1))
-	{
-    		n = buffer1[0];
-    		expr30_3->writeValue(&n);
-	}
-
+    	
+    std::vector< std::pair< unsigned long, unsigned long > > ranges;
+    if( appImage->getAddressRanges( "test1.mutatee.c", call30_1_line_no, ranges ) ) {
+    	n = ranges[0].first;
+    	expr30_3->writeValue( & n );
+    	}
+    	
 	//check getLineAddr for module
 	BPatch_variableExpr *expr30_4 =
 			appImage->findVariable("globalVariable30_4");
@@ -3464,12 +3464,10 @@ void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
 		char mname[256];
 		(*appModules)[i]->getName(mname,255);mname[255] = '\0';
 		if(!strncmp(mname,"test1.mutatee.c",15)){
-			BPatch_Vector<unsigned long> buffer2;
-			if((*appModules)[i]->getLineToAddr(
-					call30_1_line_no,buffer2))
-			{
-				n = buffer2[0];
-				expr30_4->writeValue(&n);
+			ranges.clear();
+			if( (*appModules)[i]->getAddressRanges( NULL, call30_1_line_no, ranges ) ) {
+				n = ranges[0].first;
+				expr30_4->writeValue( & n );
 			}
 			else cerr << "BPatch_module->getLineToAddr returned false!" << endl;
 			break;
@@ -3484,13 +3482,6 @@ void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
         	fprintf(stderr, "    Unable to locate globalVariable30_5\n");
         	exit(1);
 	}
-	BPatch_Vector<unsigned long> buffer3; 
-	if(call30_1func->getLineToAddr(call30_1_line_no,buffer3))
-	{
-		n = buffer3[0];
-		expr30_5->writeValue(&n);
-	}
-	else cerr << "BPatch_function->getLineToAddr returned false!" << endl;
 	//check whether getLineFile works for appThread
 	BPatch_variableExpr *expr30_6 =
 		appImage->findVariable("globalVariable30_6");
@@ -3502,10 +3493,11 @@ void mutatorTest30(BPatch_thread *appThread, BPatch_image *appImage)
 	/* since the first line address of a function changes with the
 	   compiler type (gcc,native) we need to check with next address
 	   etc. Instead I use the last address of the function*/
-	if(appThread->getLineAndFile(lastAddr-1,lineNo,fileName,256)){
-		n = lineNo;
-		expr30_6->writeValue(&n);
-	}
+	std::vector< std::pair< const char *, unsigned int > > lines;
+	if( appThread->getSourceLines( lastAddr - 1, lines ) ) {
+		n = lines[0].second;
+		expr30_6->writeValue( & n );
+		}
 	else cerr << "appThread->getLineAndFile returned false!" << endl;
 #endif
 }

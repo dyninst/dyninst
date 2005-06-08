@@ -481,3 +481,7 @@ endif
 endif
 endif
 endif
+
+# Why we normally compile the _tests_ with -fno-implicit-templates, I don't know.
+test1.o : test1.C
+	$(M_GXX) -c -o $@ $(CFLAGS) $(DYNINST_INCDIR) $<

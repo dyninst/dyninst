@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.76 2005/04/18 20:55:52 legendre Exp $
+# $Id: make.module.tmpl,v 1.77 2005/06/08 20:59:13 tlmiller Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
@@ -136,6 +136,14 @@ endif
 IFLAGS       += -I../$(PLATFORM) -I../src -I../../dyninstAPI/h
 
 all:    $(TARGET)
+
+# I couldn't figure out how to explicitly instantiate a templated
+# function whose template arguments are protected members of
+# LineInformation, but apparently the compiler can.  Since the
+# function is only used internally by LineInformation, the
+# templates won't be duplicated.
+LineInformation.o : ../../dyninstAPI/src/LineInformation.C
+	$(CXX) $(TFLAGS) -c $<
 
 templates0.o: ../../dyninstAPI/src/templates0.C
 	$(CXX) $(TFLAGS) -c ../../dyninstAPI/src/templates0.C

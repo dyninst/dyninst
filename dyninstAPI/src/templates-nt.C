@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.49 2005/04/18 20:55:50 legendre Exp $
+// $Id: templates-nt.C,v 1.50 2005/06/08 20:59:08 tlmiller Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -53,10 +53,6 @@
 #include "common/src/Dictionary.C"
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
-
-#if defined(BPATCH_LIBRARY)
-#include "dyninstAPI/src/LineInformation.h"
-#endif // defined(BPATCH_LIBRARY)
 
 template class dictionary_hash<unsigned int, unsigned int>;
 template class dictionary_hash<unsigned int, heapItem *>;
@@ -84,7 +80,6 @@ template class List<miniTrampHandle*>;
 template class ListBase<miniTrampHandle*, void*>;
 template class dictionary_hash<instPoint const *, trampTemplate *>;
 
-//#ifdef BPATCH_LIBRARY
 #include "common/h/String.h"
 #include "dyninstAPI/h/BPatch_thread.h"
 #include "dyninstAPI/h/BPatch_type.h"
@@ -97,8 +92,6 @@ template class dictionary_hash<int_function*, BPatch_function*>;
 template class  dictionary_hash <Address, BPatch_variableExpr*>;
 template class dictionary_hash<Address, BPatch_point *>;
 
-//#endif
-
 template class dictionary_hash<u_int, Address>;
 template class dictionary_hash<Address, Address>;
 template class dictionary_hash<Address, heapItem *>;
@@ -109,7 +102,6 @@ template class dictionary_hash<Address, unsigned>;
 template class dictionary_hash<unsigned, dyn_lwp *>;
 
 #if defined(BPATCH_LIBRARY)
-
 class BPatch_basicBlock;
 
 template class  dictionary_hash<Address,BPatch_basicBlock*>;
@@ -118,25 +110,9 @@ template class  pdvector<dictionary_hash<Address,BPatch_basicBlock*>::entry>;
 template class BPatch_Vector<BPatch_frame>;
 #endif
 
-
 // Library callback templates
 template class dictionary_hash<pdstring, libraryCallback *>;
 template class pdvector<dictionary_hash <pdstring, libraryCallback *>::entry>;
-
-#ifndef OLD_LINE_INFO
-template class  dictionary_hash <pdstring, FunctionInfo *>;
-template class  pdvector< dictionary_hash <pdstring, FunctionInfo * >::entry >;
-template class  dictionary_hash_iter <pdstring, FunctionInfo *>;
-
-template class  dictionary_hash <pdstring, FileLineInformation *>;
-template class  pdvector< dictionary_hash <pdstring, FileLineInformation * >::entry >;
-template class  dictionary_hash_iter <pdstring, FileLineInformation *>;
-
-template class std::map<unsigned short, tuple *, std::less<unsigned short> >;
-template class  std::map<Address, tuple *, std::less<Address> >;
-template class std::map<unsigned short, std::map<Address, tuple *, std::less<Address> > *, std::less<unsigned short> >;
-template class std::map<Address,std::map<unsigned short, tuple *, std::less<unsigned short> > *, std::less<Address> >;
-#endif
 
 template class dictionary_hash<pdstring,supportedLanguages>;
 template class pdvector<dictionary_hash<pdstring,supportedLanguages>::entry>;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.49 2005/04/05 16:43:00 jodom Exp $
+// $Id: templates0.C,v 1.50 2005/06/08 20:59:09 tlmiller Exp $
 // Generate all the templates in one file.
 
 /*
@@ -95,6 +95,7 @@
 
 #if defined(rs6000_ibm_aix4_1)
 #include "LineInformation.h"
+template class pdvector< IncludeFileInfo >;
 #endif
 
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -180,8 +181,4 @@ template class pdvector<dataUpdate*> ;//ccw 26 nov 2001
 
 #ifndef BPATCH_LIBRARY
 template class pdvector<pdvector<pdstring> *>;
-#endif
-
-#if defined(rs6000_ibm_aix4_1)
-template class pdvector<IncludeFileInfo>;
 #endif

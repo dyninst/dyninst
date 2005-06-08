@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.46 2005/05/13 09:17:20 jaw Exp $
+// $Id: templates2.C,v 1.47 2005/06/08 20:59:10 tlmiller Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -65,31 +65,6 @@
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
 #include "dyninstAPI/src/signalhandler.h"
 
-#if defined(BPATCH_LIBRARY)
-#include "dyninstAPI/src/LineInformation.h"
-#include "dyninstAPI/h/BPatch_Set.h"
-#include "dyninstAPI/h/BPatch_type.h"
-
-class BPatch_thread;
-class BPatch_field;
-class BPatch_variableExpr;
-
-
-#ifndef OLD_LINE_INFO
-template class  dictionary_hash <pdstring, FunctionInfo *>;
-template class  pdvector< dictionary_hash <pdstring, FunctionInfo * >::entry >;
-template class  dictionary_hash_iter <pdstring, FunctionInfo *>;
-
-template class  dictionary_hash <pdstring, FileLineInformation *>;
-template class  pdvector< dictionary_hash <pdstring, FileLineInformation * >::entry >;
-template class  dictionary_hash_iter <pdstring, FileLineInformation *>;
-
-template class pdvector<tuple *>;
-template class std::map<unsigned short, pdvector<tuple *> *, std::less<unsigned short> >;
-template class std::map<Address, pdvector<tuple *> *, std::less<Address> >;
-#endif
-#endif
-
 #ifndef alpha_dec_osf4_0
 // ld on Alpha complains about the vector<pdstring> class being
 // multiply defined with the following line in.  Perhaps
@@ -99,6 +74,7 @@ template class std::map<Address, pdvector<tuple *> *, std::less<Address> >;
 // Ray Chen 6/18/2002
 template class pdvector<pdstring>;
 #endif
+
 template class pdpair<pdstring, pdvector<pdstring> >;
 
 template class pdvector<pdpair<pdstring, pdvector<pdstring> > >;
@@ -118,7 +94,6 @@ template class  dictionary_hash_iter <unsigned, int_function*>;
 template class  dictionary_hash_iter <unsigned long, int_function*>;
 template class  pdvector<shared_object *> ;
 
-
 template class dictionary_hash<pdstring, libraryCallback *>;
 template class pdvector<dictionary_hash <pdstring, libraryCallback *>::entry>;
 
@@ -126,7 +101,6 @@ template class pdvector<syscallTrap *>;
 
 /* ***************************************************************************** */
 
-//#ifdef BPATCH_LIBRARY
 template class dictionary_hash <pdstring, Symbol>;
 template class pdvector<dictionary_hash <pdstring, Symbol>::entry>;
 template class pdvector<dictionary_hash<Address, BPatch_point *>::entry>;
@@ -148,7 +122,6 @@ template class pdvector<dictionary_hash <int, BPatch_thread *>::entry>;
 
 template class pdvector<BPatch_localVar *>;
 template class pdvector<BPatch_field *>;
-//#endif
 
 template class pdvector<procevent *>;
 
@@ -207,3 +180,16 @@ template class std::list< BPatch_basicBlock *>;
 template class pdvector< Symbol >;
 template class dictionary_hash< pdstring, pdvector< Symbol > >;
 template class pdvector<dictionary_hash < pdstring, pdvector <Symbol> >::entry>;
+
+template class dictionary_hash< pdstring, bool >;
+template class pdvector< dictionary_hash< pdstring, bool >::entry >;
+
+#include "dyninstAPI/src/LineInformation.h"
+template class LineInformation::SourceLineInternTable;
+template class LineInformation::LineNoTupleToAddressRangeMap;
+template class LineInformation::RangeMapByAddress;
+
+#if defined( rs6000_ibm_aix51 )
+#include <set>
+template class std::set< image * >;
+#endif

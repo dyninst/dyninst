@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.176 2005/03/24 00:47:23 jodom Exp $
+// $Id: symtab.h,v 1.177 2005/06/08 20:59:07 tlmiller Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -191,7 +191,8 @@ class pdmodule: public module {
 
    pdmodule(supportedLanguages lang, Address adr, pdstring &fullNm,
             pdstring &fileNm, image *e): module(lang,adr,fullNm,fileNm),
-      lineInformation(NULL),
+      hasParsedLineInformation( false ),
+      lineInformation(),
 
 #ifndef BPATCH_LIBRARY
       modResource(0),
@@ -203,17 +204,9 @@ class pdmodule: public module {
       {
       }
 
-   ~pdmodule();
-
    void cleanProcessSpecific(process *p);
 
-   void setLineAddr(unsigned line, Address addr) {
-      lines_.setLineAddr(line, addr);}
-   bool getLineAddr(unsigned line, Address &addr) { 
-      return (lines_.getLineAddr(line, addr)); }
-
    image *exec() const { return exec_; }
-   void mapLines() { }           // line number info is not used now
 #ifdef CHECK_ALL_CALL_POINTS
    // JAW -- checking all call points is expensive and may not be necessary
    //    --  if we can do this on-the-fly
@@ -248,7 +241,8 @@ class pdmodule: public module {
 #endif
    void dumpMangled(char * prefix);
 
-   LineInformation* lineInformation;
+   bool hasParsedLineInformation;
+   LineInformation lineInformation;
    pdstring* processDirectories(pdstring* fn);
 
 #if defined(rs6000_ibm_aix4_1)
@@ -264,7 +258,7 @@ class pdmodule: public module {
    void parseFileLineInfo(process *proc);
 #endif
 
-   LineInformation* getLineInformation(process *proc);
+   LineInformation & getLineInformation( process * proc );
    void initLineInformation();
    void cleanupLineInformation();
 
