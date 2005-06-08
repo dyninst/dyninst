@@ -1135,7 +1135,7 @@ bool BPatch_module::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 #endif
 }
 
-bool BPatch_module::getAddressRangesInt( const char * fileName, unsigned short lineNo, std::vector< std::pair< Address, Address > > & ranges ) {
+bool BPatch_module::getAddressRangesInt( const char * fileName, unsigned int lineNo, std::vector< std::pair< Address, Address > > & ranges ) {
 	LineInformation & li = mod->getLineInformation( this->proc->llproc );
 	if( fileName == NULL ) { fileName = mod->fileName().c_str(); }
 	return li.getAddressRanges( fileName, lineNo, ranges );

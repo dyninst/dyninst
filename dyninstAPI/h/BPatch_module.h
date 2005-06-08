@@ -190,7 +190,7 @@ public:
     // if fileName is NULL, uses the name of the module
     API_EXPORT(Int, (fileName, lineNo, ranges),
 
-    bool,getAddressRanges,( const char * fileName, unsigned short lineNo, std::vector< std::pair< unsigned long, unsigned long > > & ranges ));
+    bool,getAddressRanges,( const char * fileName, unsigned int lineNo, std::vector< std::pair< unsigned long, unsigned long > > & ranges ));
 
     // BPatch_module::getLineInformation
     // Returns a pointer to LineInformation for this module
