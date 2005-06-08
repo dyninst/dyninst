@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.40 2005/04/06 04:26:37 rchen Exp $
+// $Id: arch-ia64.C,v 1.41 2005/06/08 20:59:01 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -164,15 +164,20 @@ IA64_instruction::insnType IA64_instruction::getType() const {
 				case 0x4:
 					if( x == 0x0 ) {
 						if( ( x6 <= 0x17 ) || x6 == 0x1B ||
-							( x6 >= 0x20 && x6 <= 0x2B ) )
+							( x6 >= 0x20 && x6 <= 0x2B ) ) {
+							// /* DEBUG */ fprintf( stderr, "%s[%d]: INTEGER_LOAD\n", __FILE__, __LINE__ );
 							return INTEGER_LOAD;
+							}
 
 						if( ( x6 >= 0x30 && x6 <= 0x37 ) || x6 == 0x3B )
 							return INTEGER_STORE;
 					}
 
 					if( m == 0x0 && x == 0x1 ) {
-						if( x6 == 0x28 || x6 == 0x2C ) return INTEGER_16_LOAD;
+						if( x6 == 0x28 || x6 == 0x2C ) {
+							// /* DEBUG */ fprintf( stderr, "%s[%d]: INTEGER_16_LOAD\n", __FILE__, __LINE__ );
+							return INTEGER_16_LOAD;
+							}
 						if( x6 == 0x30 || x6 == 0x34 ) return INTEGER_16_STORE;
 					}
 
@@ -181,8 +186,10 @@ IA64_instruction::insnType IA64_instruction::getType() const {
 
 				case 0x5:
 					if( ( x6 <= 0x17 ) || x6 == 0x1B ||
-						( x6 >= 0x20 && x6 <= 0x2B ) )
+						( x6 >= 0x20 && x6 <= 0x2B ) ) {
+						// / * DEBUG */ fprintf( stderr, "%s[%d]: INTEGER_LOAD\n", __FILE__, __LINE__ );
 						return INTEGER_LOAD;
+						}
 
 					if( ( x6 >= 0x30 && x6 <= 0x37 ) || x6 == 0x3B )
 						return INTEGER_STORE;
@@ -206,7 +213,9 @@ IA64_instruction::insnType IA64_instruction::getType() const {
 					if( x == 0x1 ) {
 						if( ( x6 >= 0x01 && x6 <= 0x0F ) || ( x6 >= 0x21 && x6 <= 0x27 ) )
 								 switch ( x6 & 0x3 ) {
-								 	case 0x1: return INTEGER_PAIR_LOAD;
+								 	case 0x1:
+										// /* DEBUG */ fprintf( stderr, "%s[%d]: INTEGER_PAIR_LOAD\n", __FILE__, __LINE__ );
+								 		return INTEGER_PAIR_LOAD;
 								 	case 0x2:
 								 	case 0x3: return FP_PAIR_LOAD;
 								 }
@@ -684,8 +693,12 @@ void initBaseTrampStorageMap( registerSpace *regSpace, int sizeOfFrame, bool *us
 		stackCount += 16 * 106;
 	}
 
-	// Always leave an extra 32 bits of storage for SCRAG compliance
-	// and possible multiplication in mini-tramps.
+	/* The runtime conventions require a 16-byte scratch area
+	   above the SP for function calls.  Since we're assuming
+	   function calls will be made from instrumentation, and
+	   will thus always have a subtraction here, go ahead and
+	   subtract an additional 16 bytes so we can spill two
+	   floating-point registers to do multiplication. */
 	regSpace->sizeOfStack = stackCount + 32;
 }
 
