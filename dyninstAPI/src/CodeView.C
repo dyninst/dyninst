@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CodeView.C,v 1.21 2005/02/17 21:10:51 bernat Exp $
+// $Id: CodeView.C,v 1.22 2005/06/08 20:58:57 tlmiller Exp $
 
 #include <assert.h>
 
@@ -199,7 +199,7 @@ CodeView::ParseSrcModuleSubsection( SDEntry* pEntry )
 
 void
 CodeView::CreateLineInfo( const char* srcModuleTable, DWORD baseAddr ,
-                          LineInformation* lineInformation)
+                          LineInformation & lineInformation)
 {
 	SrcModuleSubsection* psrc = (SrcModuleSubsection*)srcModuleTable;
 
@@ -226,12 +226,20 @@ CodeView::CreateLineInfo( const char* srcModuleTable, DWORD baseAddr ,
 		const char* ptr = 
 			fileEAddress + sizeof(DWORD)+ 3*segInFile*sizeof(DWORD);
 		LPString currentSourceFile(ptr);
+		
+		const char * canonicalName = strrchr( ptr, '/' );
+		if( canonicalName == NULL ) { canonicalName = ptr; }
+		else { ++canonicalName; }
 
 		//cerr << "FILE NAME : " <<  (pdstring)currentSourceFile << "\n";
-		lineInformation->insertSourceFileName(pdstring("___tmp___"),
-						      (pdstring)currentSourceFile);
+		//lineInformation->insertSourceFileName(pdstring("___tmp___"),
+		//				      (pdstring)currentSourceFile);
 
 		for(WORD segmentE = 0; segmentE < segInFile; segmentE++){
+			DWORD endAddressOfSegment = *(DWORD *)( fileEAddress + sizeof( DWORD ) 
+				+ (sizeof( DWORD ) * 2 * segInFile) + (sizeof( DWORD ) * segmentE));
+			// /* DEBUG */ fprintf( stderr, "%s[%d]: endOfSegment = 0x%lx\n", __FILE__, __LINE__, endAddressOfSegment + baseAddr );
+
 			//calculate the segment table offset and the address
 			//for the table
 			DWORD segmentEOffset = 
@@ -246,22 +254,33 @@ CodeView::CreateLineInfo( const char* srcModuleTable, DWORD baseAddr ,
 			//calculate the starting addresses for parallel arrays
 			const char* lineOffsetAddress = 
 					segmentEAddress + sizeof(DWORD); 
-			const char* lineNumberAddress = 
+			const char* lineNumberAddress = 	
 				lineOffsetAddress + sizeof(DWORD)*pairInSegment;
+				
+			bool isPreviousValid = false;
+			Address previousLineAddress = 0;
+			Address previousLineNumber = 0;
 
 			//for each pair (number,address) mapping insert to
 			//line number data structure
 			for(WORD pairE = 0; pairE < pairInSegment; pairE++){
 				DWORD lineOffset = *(DWORD*)(lineOffsetAddress + pairE*sizeof(DWORD));
 				WORD lineNumber = *(WORD*)(lineNumberAddress + pairE*sizeof(WORD));
-				//cerr << "LINE : " << lineNumber << " -- "
-				//     << hex << (lineOffset + baseAddr) 
-				//     <<  " : " << lineOffset << dec << "\n";
-				lineInformation->insertLineAddress(pdstring("___tmp___"),
-                                               (pdstring)currentSourceFile,
-                                               lineNumber,
-                                               lineOffset + baseAddr);
+				
+				if( isPreviousValid ) {
+					// /* DEBUG */ fprintf( stderr, "%s[%d]: %s:%d 0x%lx - 0x%lx\n", __FILE__, __LINE__, canonicalName, previousLineNumber, previousLineAddress, lineOffset + baseAddr );
+					lineInformation.addLine( canonicalName, previousLineNumber, previousLineAddress, lineOffset + baseAddr );
+					}
+					
+				isPreviousValid = true;
+				previousLineNumber = lineNumber;
+				previousLineAddress = lineOffset + baseAddr;
 			}
+			if( isPreviousValid ) {
+				/* The end-of-segment pointer is inclusive, so add one to it for our [,) ranges. */
+				// /* DEBUG */ fprintf( stderr, "%s[%d]: %s:%d 0x%lx - 0x%lx\n", __FILE__, __LINE__, canonicalName, previousLineNumber, previousLineAddress, endAddressOfSegment + baseAddr + 1 );
+				lineInformation.addLine( canonicalName, previousLineNumber, previousLineAddress, endAddressOfSegment + baseAddr + 1 );
+				}
 		}
 	}
 	//since at this point no function info is available we used
@@ -269,8 +288,8 @@ CodeView::CreateLineInfo( const char* srcModuleTable, DWORD baseAddr ,
 	//function is not going to be used so we delete the entry for
 	//this function.
 
-	if(fileInModule)
-		lineInformation->deleteFunction(pdstring("___tmp___"));
+//	if(fileInModule)
+//		lineInformation->deleteFunction(pdstring("___tmp___"));
 }
 
 //
@@ -278,7 +297,7 @@ CodeView::CreateLineInfo( const char* srcModuleTable, DWORD baseAddr ,
 //
 void
 CodeView::CreateTypeAndLineInfo( BPatch_module *inpMod , DWORD baseAddr ,
-				 LineInformation* lineInformation)
+				 LineInformation & lineInformation)
 {
         DWORD i;
 
@@ -473,7 +492,7 @@ CodeView::Symbols::operator=( const CodeView::Symbols& syms )
 void
 CodeView::Symbols::CreateTypeInfo( const char* pSymBase, DWORD cb, 
                                 TypesSubSection *pTypeBase, BPatch_module *mod ,
-				LineInformation* lineInformation)
+				LineInformation & lineInformation)
 {
 	char currFuncName[1024];
 	char symName[1024];
@@ -518,9 +537,10 @@ CodeView::Symbols::CreateTypeInfo( const char* pSymBase, DWORD cb,
 			  fp = bpfv[0];
 			}
 			if (fp) {
-				lineInformation->insertFunction(pdstring(currFuncName),
-                                            (Address)(fp->getBaseAddr()),
-                                            fp->getSize());
+				// The new (mid-2005) line information structures don't support function mappings.
+				// lineInformation->insertFunction(pdstring(currFuncName),
+                //                            (Address)(fp->getBaseAddr()),
+                //                            fp->getSize());
 				DWORD offset = pTypeBase->offType[((SymRecordProc*)curr )->procType - 0x1000];
 				TypeRec *trec = (TypeRec *)(startAddr + offset);
 				if (trec->leaf == LF_PROCEDURE)
