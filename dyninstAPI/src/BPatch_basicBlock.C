@@ -522,8 +522,9 @@ unsigned BPatch_basicBlock::sizeInt() CONST_EXPORT
     //variable length instructions on x86
     return endAddr - startAddress;
 #elif defined(ia64_unknown_linux2_4)
-    //16 byte bundle size on ia64
-    return 16 + lastInsnAddress - startAddress;
+	/* Basic blocks can go from mid-bundle to mid-bundle (which looks
+	   like variable-length instructions). */
+    return endAddr - startAddress;
 #else
     //4 byte instructions on all other platforms
     return 4 + lastInsnAddress - startAddress;
