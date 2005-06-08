@@ -875,15 +875,16 @@ int condBreak(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
 	when = BPatch_callBefore;
 	*ptr = '\0';
 	lineNum = atoi(ptr+1);
-	BPatch_Vector<unsigned long> absAddrVec;
 
-	if (!appImage->getLineToAddr(argv[1], lineNum, absAddrVec, true)) {
+	std::vector< std::pair< unsigned long, unsigned long > > absAddrVec;
+	if( ! appImage->getAddressRanges( argv[1], lineNum, absAddrVec ) ) {
 		printf("Can not get arbitrary break point address!\n");
 		return TCL_ERROR;
 	}
 	points = new BPatch_Vector<BPatch_point *>;
-	//Find BPatch_point from the first absolute address
-	points->push_back(appImage->createInstPointAtAddr((void *)absAddrVec[0]));
+	
+	/* Arbitrarily, the lower end of the first range. */
+	points->push_back(appImage->createInstPointAtAddr((void *)absAddrVec[0].first));
     }
     else {
 	if ( (argc > 2) && name2loc(argv[2], where, when)) {
@@ -1846,8 +1847,10 @@ int whatisFunc(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
 	char file[1024];
 	printf("   starts at 0x%lx", (long)func->getBaseAddr());
 	unsigned int size = sizeof(file);
-	if (func->getLineAndFile(firstLine, lastLine, file, size)) {
-	    printf(" defined at %s:%d-%d\n", file, firstLine, lastLine);
+	
+	std::vector< std::pair< const char *, unsigned int > > lines;
+	if( func->getProc()->getSourceLines( (unsigned long)func->getBaseAddr(), lines ) ) {
+		printf(" defined at %s:%d\n", lines[0].first, lines[0].second );
 	} else {
 	    printf("\n");
 	}
