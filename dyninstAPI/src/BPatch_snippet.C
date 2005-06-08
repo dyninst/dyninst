@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.67 2005/04/18 20:55:30 legendre Exp $
+// $Id: BPatch_snippet.C,v 1.68 2005/06/08 20:58:56 tlmiller Exp $
 
 #define BPATCH_FILE
 
@@ -156,7 +156,7 @@ AstNode *generateArrayRef(const BPatch_snippet &lOperand,
     const BPatch_type *elementType = arrayType->getConstituentType();
 
     assert(elementType);
-    int elementSize = elementType->getSize();
+    long int elementSize = elementType->getSize();
 
     // check that the type of the right operand is an integer.
     //  We have to be a little forgiving of this parameter, since we could 
@@ -256,7 +256,7 @@ AstNode *generateFieldRef(const BPatch_snippet &lOperand,
     }
 
     if (! field ) return NULL;
-    int offset = (field->getOffset() / 8);
+    long int offset = (field->getOffset() / 8);
 
     //
     // Convert s.f into *(&s + offset(s,f))
@@ -475,7 +475,7 @@ void BPatch_boolExpr::BPatch_boolExprInt(BPatch_relOp op,
  */
 void BPatch_constExpr::BPatch_constExprInt(int value)
 {
-    ast = new AstNode(AstNode::Constant, (void *)value);
+    ast = new AstNode(AstNode::Constant, (void *)(long int)value);
 
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -617,7 +617,7 @@ void BPatch_constExpr::BPatch_constExprFloat(float value)
 
 void BPatch_regExpr::BPatch_regExprInt(unsigned int value)
 {
-    ast = new AstNode(AstNode::DataReg, (void*)value);
+    ast = new AstNode(AstNode::DataReg, (void*)(unsigned long int)value);
 
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -783,7 +783,7 @@ void BPatch_nullExpr::BPatch_nullExprInt()
  */
 void BPatch_paramExpr::BPatch_paramExprInt(int n)
 {
-    ast = new AstNode(AstNode::Param, (void *)n);
+    ast = new AstNode(AstNode::Param, (void *)(long int)n);
 
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
@@ -997,7 +997,7 @@ BPatch_variableExpr::BPatch_variableExpr(BPatch_process *in_process,
 	case BPatch_storageRegOffset:
 	    ast = new AstNode(AstNode::DataAddr, address);
 	    ast = new AstNode(AstNode::RegOffset, ast);
-	    ast->setOValue( (void *)in_register );
+	    ast->setOValue( (void *)(long int)in_register );
 	    isLocal = true;
 	    break;
 	case BPatch_storageFrameOffset:
@@ -1187,7 +1187,7 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_variableExpr::getComponentsInt()
     for (unsigned int i=0; i < fields->size(); i++) {
 
 	BPatch_field *field = (*fields)[i];
-	int offset = (field->offset / 8);
+	long int offset = (field->offset / 8);
 
 	BPatch_variableExpr *newVar;
 
