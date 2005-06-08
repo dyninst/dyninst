@@ -56,7 +56,6 @@
 class BPatch_typeCollection;
 class BPatch_libInfo;
 class BPatch_module;
-class BPatch_point;
 class BPatch_asyncEventHandler;
 class int_function;
 class process;
