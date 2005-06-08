@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.55 2005/04/18 20:55:24 legendre Exp $
+// $Id: BPatch_function.C,v 1.56 2005/06/08 20:58:52 tlmiller Exp $
 
 #define BPATCH_FILE
 
@@ -402,17 +402,10 @@ BPatch_point* createInstPointForMemAccess(BPatch_process *proc,
  * proc         The process object
  * bpf          The BPatch_function object we are in 
  */
-#if defined(os_aix)
 BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops,
 					  InstrucIter &ii, 
 					  BPatch_process *proc,
 					  BPatch_function *bpf)
-#else
-BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops,
-					  InstrucIter &ii, 
-					  BPatch_process *proc,
-					  BPatch_function *)
-#endif
 {
   BPatch_Vector<BPatch_point*> *result = new BPatch_Vector<BPatch_point *>;
 
@@ -461,7 +454,9 @@ BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops,
 #if defined(os_aix)
       BPatch_point* p = bpf->createMemInstPoint((void *)addr, ma);
 #else
-      BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr, ma);
+      /* This is freaking stupid.  There has to be a better way to get the absolute address in the mutatee. */
+      // /* DEBUG */ fprintf( stderr, "%s[%d]: 0x%lx\n", __FILE__, __LINE__, (addr - (Address)bpf->getBaseAddrRelative()) + (Address)bpf->getBaseAddr() );
+      BPatch_point* p = createInstPointForMemAccess(proc, (void*) ((addr - (Address)bpf->getBaseAddrRelative()) + (Address)bpf->getBaseAddr()), ma);
 #endif
       if(p)
         result->push_back(p);
@@ -474,7 +469,9 @@ BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops,
 #if defined(os_aix)
       BPatch_point* p = bpf->createMemInstPoint((void *)addr, ma);
 #else
-      BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr, ma);
+      /* This is freaking stupid.  There has to be a better way to get the absolute address in the mutatee. */
+      // /* DEBUG */ fprintf( stderr, "%s[%d]: 0x%lx\n", __FILE__, __LINE__, (addr - (Address)bpf->getBaseAddrRelative()) + (Address)bpf->getBaseAddr() );
+      BPatch_point* p = createInstPointForMemAccess(proc, (void*) ((addr - (Address)bpf->getBaseAddrRelative()) + (Address)bpf->getBaseAddr()), ma);
 #endif
       if(p)
         result->push_back(p);
@@ -488,7 +485,9 @@ BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops,
 #if defined(os_aix)
       BPatch_point* p = bpf->createMemInstPoint((void *)addr, ma);
 #else
-      BPatch_point* p = createInstPointForMemAccess(proc, (void*) addr, ma);
+      /* This is freaking stupid.  There has to be a better way to get the absolute address in the mutatee. */
+      // /* DEBUG */ fprintf( stderr, "%s[%d]: 0x%lx\n", __FILE__, __LINE__, (addr - (Address)bpf->getBaseAddrRelative()) + (Address)bpf->getBaseAddr() );
+      BPatch_point* p = createInstPointForMemAccess(proc, (void*) ((addr - (Address)bpf->getBaseAddrRelative()) + (Address)bpf->getBaseAddr()), ma);
 #endif
       if(p)
         result->push_back(p);
@@ -566,99 +565,6 @@ BPatch_localVar * BPatch_function::findLocalParamInt(const char * name)
   BPatch_localVar * var = funcParameters->findLocalVar(name);
   return (var);
 
-}
-
-/** method to retrieve addresses for a given line in the function
-  * if the line number is not valid, or if the line info is not available
-  * or if the module does not contain entry for the function then it returns
-  * false. If exact match is not set then the line which is the next
-  * greater or equal will be used.
-  */
-bool BPatch_function::getLineToAddrInt(unsigned short lineNo,
-                   BPatch_Vector<unsigned long>& buffer,
-                   bool exactMatch)
-{
-	//get the line info object and check whether it is available
-	LineInformation* lineInformation = mod->getLineInformation();
-	if(!lineInformation){
-	  cerr << __FILE__ << __LINE__ << ":  no line information!" << endl;
-		return false;
-	}
-
-	//get the object which contains the function being asked
-	FileLineInformation* fLineInformation = 
-			lineInformation->getFunctionLineInformation(func->symTabName());
-	if(!fLineInformation){
-	  cerr << __FILE__ << __LINE__ << ":  no file line information!" << endl;
-	  char funcname[128];
-	  getName(funcname, 128);
-	  fprintf(stderr, "... function %s\n", funcname);
-
-		return false;
-	}
-
-	//retrieve the addresses
-	BPatch_Set<Address> addresses;
-	if(!fLineInformation->getAddrFromLine(func->symTabName(),addresses,
-					      lineNo,false,exactMatch)) {
-	  cerr << __FILE__ << __LINE__ << ":  getAddrFromLine failed!" << endl;
-		return false;
-	}
-	//then insert the elements to the vector given
-	Address* elements = new Address[addresses.size()];
-	addresses.elements(elements);
-	for(unsigned i=0;i<addresses.size();i++)
-		buffer.push_back(elements[i]);
-	delete[] elements;
-	
-	return true;
-}
-
-//
-// Return the module name, first and last line numbers of the function.
-//
-bool BPatch_function::getLineAndFileInt(unsigned int &start,
-				     unsigned int &end,
-                                     char *fileName, unsigned &length)
-{
-    start = end = 0;
-
-    //get the line info object and check whether it is available
-    LineInformation* lineInformation = mod->getLineInformation();
-
-    if (!lineInformation) {
-        logLine("BPatch_function::getLineToAddr : Line info is not available");
-	return false;
-    }
-
-    //get the object which contains the function being asked
-    FileLineInformation* fLineInformation = 
-	lineInformation->getFunctionLineInformation(func->symTabName());
-
-    if (!fLineInformation) {
-	logLine("BPatch_function::getLineToAddr: Line info is not available");
-	return false;
-    }
-
-    //retrieve the addresses
-    FunctionInfo *funcLineInfo;
-
-    funcLineInfo = fLineInformation->findFunctionInfo(func->symTabName());
-
-    if (!funcLineInfo) return false;
-
-    if (funcLineInfo->startLinePtr)
-	start = funcLineInfo->startLinePtr->lineNo;
-
-    if (funcLineInfo->endLinePtr)
-	end = funcLineInfo->endLinePtr->lineNo;
-
-    strncpy(fileName, fLineInformation->getFileName().c_str(), length);
-    if (strlen(fLineInformation->getFileName().c_str()) < length) {
-	length = strlen(fLineInformation->getFileName().c_str());
-    }
-
-    return true;
 }
 
 BPatch_flowGraph* BPatch_function::getCFGInt()
@@ -756,8 +662,25 @@ void BPatch_function::getExcPointsInt(BPatch_Vector<BPatch_point*> &points) {
   return;
 };
 
-// return a function that can be passed as a paramter
-BPatch_variableExpr *BPatch_function::getFunctionRefInt() { abort(); return NULL; }
+BPatch_function::voidVoidFunctionPointer BPatch_function::getFunctionRefInt() {
+#if defined( arch_ia64 )
+	/* IA-64 function pointers actually point to structures.  We insert such
+	   a structure in the mutatee so that instrumentation can use it. */
+	Address entryPoint = (Address)getBaseAddr();
+	Address gp = proc->getTOCoffsetInfo( entryPoint );
+
+	Address remoteAddress = proc->inferiorMalloc( sizeof( Address ) * 2 );
+	assert( remoteAddress != (Address)NULL );
+
+	proc->writeDataSpace( (void *)remoteAddress, sizeof( Address ), & entryPoint );
+	proc->writeDataSpace( (void *)(remoteAddress + sizeof( Address )), sizeof( Address ), & gp );
+
+	return (BPatch_function::voidVoidFunctionPointer)remoteAddress;
+#else
+	/* This will probably work on all other platforms. */
+	return (BPatch_function::voidVoidFunctionPointer) getBaseAddr();
+#endif
+	} /* end getFunctionRef() */
 
 #endif
 
