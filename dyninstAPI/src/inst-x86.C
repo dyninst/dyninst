@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.205 2005/06/09 16:11:42 gquinn Exp $
+ * $Id: inst-x86.C,v 1.206 2005/06/09 17:20:55 gquinn Exp $
  */
 #include <iomanip>
 
@@ -65,6 +65,7 @@
 
 #include "dyninstAPI/src/arch-x86.h"
 #include "dyninstAPI/src/inst-x86.h"
+#include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/instPoint.h" // includes instPoint-x86.h
 #include "dyninstAPI/src/instP.h" // class returnInstance
 #include "dyninstAPI/src/rpcMgr.h"
@@ -87,26 +88,6 @@ extern bool relocateFunction(process *proc, instPoint *&location);
 extern bool isPowerOf2(int value, int &result);
 void BaseTrampTrapHandler(int); //siginfo_t*, ucontext_t*);
 
-
-// The general machine registers. 
-// These values are taken from the Pentium manual and CANNOT be changed.
-#undef EAX 
-#define EAX (0)
-#undef ECX
-#define ECX (1)
-#undef EDX
-#define EDX (2)
-#undef EBX
-#define EBX (3)
-#undef ESP
-#define ESP (4)
-#undef EBP
-#define EBP (5)
-#undef ESI
-#define ESI (6)
-#undef EDI
-#define EDI (7)
-
 // Size of a jump rel32 instruction
 #define JUMP_REL32_SZ (5)
 #define JUMP_SZ (5)
@@ -120,24 +101,6 @@ void BaseTrampTrapHandler(int); //siginfo_t*, ucontext_t*);
 #define PUSH_EBP (0x50+EBP)
 #define SUB_REG_IMM32 (5)
 #define LEAVE (0xC9)
-
-/*
-   Function arguments are in the stack and are addressed with a displacement
-   from EBP. EBP points to the saved EBP, EBP+4 is the saved return address,
-   EBP+8 is the first parameter.
-   TODO: what about far calls?
- */
-
-#define FUNC_PARAM_OFFSET (8+(10*4))
-#define CALLSITE_PARAM_OFFSET (4+(10*4))
-
-
-// number of virtual registers
-#define NUM_VIRTUAL_REGISTERS (32)
-
-// offset from EBP of the saved EAX for a tramp
-#define SAVED_EAX_OFFSET (10*4-4)
-#define SAVED_EFLAGS_OFFSET (SAVED_EAX_OFFSET+4)
 
 /****************************************************************************/
 /****************************************************************************/
@@ -168,8 +131,6 @@ public:
 /****************************************************************************/
 /****************************************************************************/
 
-static void emitOpRMImm8( unsigned opcode1, unsigned opcode2, Register base,
-                          int disp, char imm, unsigned char * & insn );
 static void emitMovImmToMem( Address maddr, int imm,
                              unsigned char * & insn );
 
@@ -1550,22 +1511,9 @@ void initTramps(bool is_multithreaded)
 
 
 static void emitJump(unsigned disp32, unsigned char *&insn);
-static void emitSimpleInsn(unsigned opcode, unsigned char *&insn);
 void emitPushImm(unsigned int imm, unsigned char *&insn); 
-static void emitMovRegToReg(Register dest, Register src, unsigned char *&insn);
 static void emitAddMemImm32(Address dest, int imm, unsigned char *&insn);
-static void emitAddRegImm32(Register dest, int imm, unsigned char *&insn);
-static void emitOpRegImm(int opcode, Register dest, int imm,
-                         unsigned char *&insn);
-static void emitMovRegToRM(Register base, int disp, Register src,
-                           unsigned char *&insn);
-static void emitMovRMToReg(Register dest, Register base, int disp,
-                           unsigned char *&insn);
 void emitCallRel32(unsigned disp32, unsigned char *&insn); // used by paradyn
-static void emitOpRegRM(unsigned opcode, Register dest, Register base,
-                        int disp, unsigned char *&insn);
-static void emitMovImmToRM(Register base, int disp, int imm,
-                           unsigned char *&insn);
 
 
 /*
@@ -3108,7 +3056,7 @@ static inline void emitAddressingMode(Register base, Register index,
 
 
 /* emit a simple one-byte instruction */
-static inline void emitSimpleInsn(unsigned op, unsigned char *&insn) {
+void emitSimpleInsn(unsigned op, unsigned char *&insn) {
    *insn++ = op;
 }
 
@@ -3123,28 +3071,30 @@ void emitPushImm(unsigned int imm, unsigned char *&insn)
 
 // emit a simple register to register instruction: OP dest, src
 // opcode is one or two byte
-static inline void emitOpRegReg(unsigned opcode, Register dest, Register src,
-                                unsigned char *&insn) {
-   if (opcode <= 0xFF)
-      *insn++ = opcode;
-   else {
-      *insn++ = opcode >> 8;
-      *insn++ = opcode & 0xFF;
-   }
-   // ModRM byte define the operands: Mod = 3, Reg = dest, RM = src
-   *insn++ = makeModRMbyte(3, dest, src);
+void emitOpRegReg(unsigned opcode, Register dest, Register src,
+		  unsigned char *&insn)
+{
+    if (opcode <= 0xFF)
+	*insn++ = opcode;
+    else {
+	*insn++ = opcode >> 8;
+	*insn++ = opcode & 0xFF;
+    }
+    // ModRM byte define the operands: Mod = 3, Reg = dest, RM = src
+    *insn++ = makeModRMbyte(3, dest, src);
 }
 
 // emit OP reg, r/m
-static inline void emitOpRegRM(unsigned opcode, Register dest, Register base,
-                               int disp, unsigned char *&insn) {
-   if (opcode <= 0xff) {
-      *insn++ = opcode;
-   } else {
-      *insn++ = opcode >> 8;
-      *insn++ = opcode & 0xff;
-   }
-   emitAddressingMode(base, disp, dest, insn);
+void emitOpRegRM(unsigned opcode, Register dest, Register base,
+		 int disp, unsigned char *&insn)
+{
+    if (opcode <= 0xff) {
+	*insn++ = opcode;
+    } else {
+	*insn++ = opcode >> 8;
+	*insn++ = opcode & 0xff;
+    }
+    emitAddressingMode(base, disp, dest, insn);
 }
 
 // emit OP r/m, reg
@@ -3155,7 +3105,7 @@ static inline void emitOpRMReg(unsigned opcode, Register base, int disp,
 }
 
 // emit OP reg, imm32
-static inline void emitOpRegImm(int opcode, Register dest, int imm,
+void emitOpRegImm(int opcode, Register dest, int imm,
                                 unsigned char *&insn) {
    *insn++ = 0x81;
    *insn++ = makeModRMbyte(3, opcode, dest);
@@ -3175,9 +3125,9 @@ void emitOpRMImm(unsigned opcode, Register base, int disp, int imm,
 */
 
 // emit OP r/m, imm32
-static inline void emitOpRMImm(unsigned opcode1, unsigned opcode2,
-                               Register base, int disp, int imm,
-                               unsigned char *&insn) {
+void emitOpRMImm(unsigned opcode1, unsigned opcode2,
+		 Register base, int disp, int imm,
+		 unsigned char *&insn) {
    *insn++ = opcode1;
    emitAddressingMode(base, disp, opcode2, insn);
    *((int *)insn) = imm;
@@ -3185,61 +3135,61 @@ static inline void emitOpRMImm(unsigned opcode1, unsigned opcode2,
 }
 
 // emit OP r/m, imm8
-static inline void emitOpRMImm8(unsigned opcode1, unsigned opcode2,
-                                Register base, int disp, char imm,
-                                unsigned char *&insn) {
+void emitOpRMImm8(unsigned opcode1, unsigned opcode2,
+		  Register base, int disp, char imm,
+		  unsigned char *&insn) {
   *insn++ = opcode1;
   emitAddressingMode(base, disp, opcode2, insn);
   *insn++ = imm;
 }
 
 // emit OP reg, r/m, imm32
-static inline void emitOpRegRMImm(unsigned opcode, Register dest,
-                                  Register base, int disp, int imm,
-                                  unsigned char *&insn) {
-   *insn++ = opcode;
-   emitAddressingMode(base, disp, dest, insn);
-   *((int *)insn) = imm;
-   insn += sizeof(int);
+void emitOpRegRMImm(unsigned opcode, Register dest,
+		    Register base, int disp, int imm,
+		    unsigned char *&insn) {
+    *insn++ = opcode;
+    emitAddressingMode(base, disp, dest, insn);
+    *((int *)insn) = imm;
+    insn += sizeof(int);
 }
 
 // emit MOV reg, reg
-static inline void emitMovRegToReg(Register dest, Register src,
+void emitMovRegToReg(Register dest, Register src,
                                    unsigned char *&insn) {
    *insn++ = 0x8B;
    *insn++ = makeModRMbyte(3, dest, src);
 }
 
 // emit MOV reg, r/m
-static inline void emitMovRMToReg(Register dest, Register base, int disp,
+void emitMovRMToReg(Register dest, Register base, int disp,
                                   unsigned char *&insn) {
    *insn++ = 0x8B;
    emitAddressingMode(base, disp, dest, insn);
 }
 
 // emit MOV r/m, reg
-static inline void emitMovRegToRM(Register base, int disp, Register src,
+void emitMovRegToRM(Register base, int disp, Register src,
                                   unsigned char *&insn) {
    *insn++ = 0x89;
    emitAddressingMode(base, disp, src, insn);
 }
 
 // emit MOV m, reg
-static inline void emitMovRegToM(int disp, Register src, unsigned char *&insn)
+void emitMovRegToM(int disp, Register src, unsigned char *&insn)
 {
    *insn++ = 0x89;
    emitAddressingMode(Null_Register, disp, src, insn);
 }
 
 // emit MOV reg, m
-static inline void emitMovMToReg(Register dest, int disp, unsigned char *&insn)
+void emitMovMToReg(Register dest, int disp, unsigned char *&insn)
 {
    *insn++ = 0x8B;
    emitAddressingMode(Null_Register, disp, dest, insn);
 }
 
 // emit MOVSBL reg, m
-static inline void emitMovMBToReg(Register dest, int disp, unsigned char *&insn)
+void emitMovMBToReg(Register dest, int disp, unsigned char *&insn)
 {
    *insn++ = 0x0F;
    *insn++ = 0xBE;
@@ -3247,7 +3197,7 @@ static inline void emitMovMBToReg(Register dest, int disp, unsigned char *&insn)
 }
 
 // emit MOVSWL reg, m
-static inline void emitMovMWToReg(Register dest, int disp, unsigned char *&insn)
+void emitMovMWToReg(Register dest, int disp, unsigned char *&insn)
 {
    *insn++ = 0x0F;
    *insn++ = 0xBF;
@@ -3255,15 +3205,15 @@ static inline void emitMovMWToReg(Register dest, int disp, unsigned char *&insn)
 }
 
 // emit MOV reg, imm32
-static inline void emitMovImmToReg(Register dest, int imm,
-                                   unsigned char *&insn) {
+void emitMovImmToReg(Register dest, int imm,
+		     unsigned char *&insn) {
    *insn++ = 0xB8 + dest;
    *((int *)insn) = imm;
    insn += sizeof(int);
 }
 
 // emit MOV r/m32, imm32
-static inline void emitMovImmToRM(Register base, int disp, int imm,
+void emitMovImmToRM(Register base, int disp, int imm,
                                   unsigned char *&insn) {
    *insn++ = 0xC7;
    emitAddressingMode(base, disp, 0, insn);
@@ -3297,7 +3247,7 @@ static inline void emitAddMemImm32(Address addr, int imm, unsigned char *&insn)
 }
 
 // emit Add reg, imm32
-static inline void emitAddRegImm32(Register reg, int imm, unsigned char *&insn)
+void emitAddRegImm32(Register reg, int imm, unsigned char *&insn)
 {
    *insn++ = 0x81;
    *insn++ = makeModRMbyte(3, 0, reg);
@@ -3331,51 +3281,18 @@ void emitCallRel32(unsigned disp32, unsigned char *&insn) {
    insn += sizeof(int);
 }
 
-// set dest=1 if src1 op src2, otherwise dest = 0
-void emitRelOp(unsigned op, Register dest, Register src1, Register src2,
-               unsigned char *&insn) {
-   //bperr("Relop dest = %d, src1 = %d, src2 = %d\n",
-   //        dest, src1, src2);
-   emitOpRegReg(0x29, ECX, ECX, insn);           // clear ECX
-   emitMovRMToReg(EAX, EBP, -(src1*4), insn);    // mov eax, -(src1*4)[ebp]
-   emitOpRegRM(0x3B, EAX, EBP, -(src2*4), insn); // cmp eax, -(src2*4)[ebp]
-   unsigned char opcode;
+// help function to select appropriate jcc opcode for a relOp
+unsigned char jccOpcodeFromRelOp(unsigned op)
+{
    switch (op) {
-     case eqOp: opcode = JNE_R8; break;
-     case neOp: opcode = JE_R8; break;
-     case lessOp: opcode = JGE_R8; break;
-     case leOp: opcode = JG_R8; break;
-     case greaterOp: opcode = JLE_R8; break;
-     case geOp: opcode = JL_R8; break;
+     case eqOp: return JNE_R8;
+     case neOp: return JE_R8;
+     case lessOp: return JGE_R8;
+     case leOp: return JG_R8;
+     case greaterOp: return JLE_R8;
+     case geOp: return JL_R8;
      default: assert(0);
    }
-   *insn++ = opcode; *insn++ = 1;                // jcc 1
-   emitSimpleInsn(0x40+ECX, insn);               // inc ECX
-   emitMovRegToRM(EBP, -(dest*4), ECX, insn);    // mov -(dest*4)[ebp], ecx
-
-}
-
-// set dest=1 if src1 op src2imm, otherwise dest = 0
-void emitRelOpImm(unsigned op, Register dest, Register src1, int src2imm,
-                  unsigned char *&insn) {
-   //bperr("Relop dest = %d, src1 = %d, src2 = %d\n",
-   //        dest, src1, src2);
-   emitOpRegReg(0x29, ECX, ECX, insn);           // clear ECX
-   emitMovRMToReg(EAX, EBP, -(src1*4), insn);    // mov eax, -(src1*4)[ebp]
-   emitOpRegImm(0x3D, EAX, src2imm, insn);       // cmp eax, src2
-   unsigned char opcode;
-   switch (op) {
-     case eqOp: opcode = JNE_R8; break;
-     case neOp: opcode = JE_R8; break;
-     case lessOp: opcode = JGE_R8; break;
-     case leOp: opcode = JG_R8; break;
-     case greaterOp: opcode = JLE_R8; break;
-     case geOp: opcode = JL_R8; break;
-     default: assert(0);
-   }
-   *insn++ = opcode; *insn++ = 1;                // jcc 1
-   emitSimpleInsn(0x40+ECX, insn);               // inc ECX
-   emitMovRegToRM(EBP, -(dest*4), ECX, insn);    // mov -(dest*4)[ebp], ecx   
 }
 
 static inline void emitEnter(short imm16, unsigned char *&insn) {
@@ -3385,9 +3302,22 @@ static inline void emitEnter(short imm16, unsigned char *&insn) {
    *insn++ = 0;
 }
 
-
-
+// this function just multiplexes between the 32-bit and 64-bit versions
 Register emitFuncCall(opCode op, 
+                      registerSpace *rs,
+                      char *ibuf,
+		      Address &base,
+                      const pdvector<AstNode *> &operands, 
+                      process *proc,
+                      bool noCost,
+		      Address callee_addr,
+                      const pdvector<AstNode *> &ifForks,
+                      const instPoint *location)
+{
+    return x86_emitter->emitCall(op, rs, ibuf, base, operands, proc, noCost, callee_addr, ifForks, location);
+}
+
+Register Emitter32::emitCall(opCode op, 
                       registerSpace *rs,
                       char *ibuf, Address &base,
                       const pdvector<AstNode *> &operands, 
@@ -3461,20 +3391,17 @@ Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 
    switch (op) {
      case ifOp: {
-        // if src1 == 0 jump to dest
-        // src1 is a temporary
-        // dest is a target address
-        emitOpRegReg(0x29, EAX, EAX, insn);        // sub EAX, EAX ; clear EAX
-        emitOpRegRM(0x3B, EAX, EBP, -(src1*4), insn); //cmp -(src1*4)[EBP], EAX
-        // je dest
-        *insn++ = 0x0F;
-        *insn++ = 0x84;
-        *((int *)insn) = dest;
-        insn += sizeof(int);
-        base += insn-first;
-        return base;
+	 // if src1 == 0 jump to dest
+	 // src1 is a temporary
+	 // dest is a target address
+	 x86_emitter->emitIf(src1, dest, insn);
+	 base += insn - first;
+	 return base;
      }
-     case branchOp: { 
+     case branchOp: {
+	// dest is the displacement from the current value of insn
+	// this will need to work for both 32-bits and 64-bits
+	// (since there is no JMP rel64)
         emitJump(dest - JUMP_REL32_SZ, insn); 
         base += JUMP_REL32_SZ;
         return(base - JUMP_REL32_SZ);
@@ -3510,30 +3437,16 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
       case getRetValOp: {
          // dest is a register where we can store the value
          // the return value is in the saved EAX
-         emitMovRMToReg(EAX, EBP, SAVED_EAX_OFFSET, insn);
-         emitMovRegToRM(EBP, -(dest*4), EAX, insn);
+	 x86_emitter->emitGetRetVal(dest, insn);
          base += insn - first;
-
          return dest;
       }
       case getParamOp: {
          // src1 is the number of the argument
          // dest is a register where we can store the value
-         // Parameters are addressed by a positive offset from ebp,
-         // the first is PARAM_OFFSET[ebp]
-         instPointType ptType = location->getPointType();
-         if(ptType == callSite) {
-            emitMovRMToReg(EAX, EBP, CALLSITE_PARAM_OFFSET + src1*4, insn);
-            emitMovRegToRM(EBP, -(dest*4), EAX, insn);
-            base += insn - first;
-            return dest;
-         } else {
-            // assert(ptType == functionEntry)
-            emitMovRMToReg(EAX, EBP, FUNC_PARAM_OFFSET + src1*4, insn);
-            emitMovRegToRM(EBP, -(dest*4), EAX, insn);
-            base += insn - first;
-            return dest;
-         }
+	 x86_emitter->emitGetParam(dest, src1, location->getPointType(), insn);
+	 base += insn - first;
+	 return dest;
       }
       default:
          abort();                  // unexpected op for this emit!
@@ -3770,37 +3683,24 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
       // dest is a temporary
       // src1 is an immediate value 
       // dest = src1:imm32
-      emitMovImmToRM(EBP, -(dest*4), src1, insn);
+      x86_emitter->emitLoadConst(dest, src1, insn);
       base += insn - first;
       return;
    } else if (op ==  loadOp) {
       // dest is a temporary
       // src1 is the address of the operand
       // dest = [src1]
-      if (size == 1) {
-         emitMovMBToReg(EAX, src1, insn);               // movsbl eax, src1
-      } else if (size == 2) {
-         emitMovMWToReg(EAX, src1, insn);               // movswl eax, src1
-      } else {
-         emitMovMToReg(EAX, src1, insn);               // mov eax, src1
-      }
-      emitMovRegToRM(EBP, -(dest*4), EAX, insn);    // mov -(dest*4)[ebp], eax
+      x86_emitter->emitLoad(dest, src1, size, insn);
       base += insn - first;
       return;
    } else if (op == loadFrameRelativeOp) {
       // dest is a temporary
       // src1 is the offset of the from the frame of the variable
-      // eax = [eax]	- saved sp
-      // dest = [eax](src1)
-      emitMovRMToReg(EAX, EBP, 0, insn);       // mov (%ebp), %eax 
-      emitMovRMToReg(EAX, EAX, src1, insn);    // mov <offset>(%eax), %eax 
-      emitMovRegToRM(EBP, -(dest*4), EAX, insn);    // mov -(dest*4)[ebp], eax
+      x86_emitter->emitLoadFrameRelative(dest, src1, insn);
       base += insn - first;
       return;
    } else if (op == loadFrameAddr) {
-      emitMovRMToReg(EAX, EBP, 0, insn);       // mov (%ebp), %eax 
-      emitAddRegImm32(EAX, src1, insn);        // add #<offset>, %eax
-      emitMovRegToRM(EBP, -(dest*4), EAX, insn);    // mov -(dest*4)[ebp], eax
+      x86_emitter->emitLoadFrameAddr(dest, src1, insn);
       base += insn - first;
       return;
    } else {
@@ -3821,21 +3721,14 @@ void emitVstore(opCode op, Register src1, Register src2, Address dest,
       // dest has the address where src1 is to be stored
       // src1 is a temporary
       // src2 is a "scratch" register, we don't need it in this architecture
-      emitMovRMToReg(EAX, EBP, -(src1*4), insn);    // mov eax, -(src1*4)[ebp]
-
-      emitMovRegToM(dest, EAX, insn);               // mov dest, eax
+      x86_emitter->emitStore(dest, src1, insn);
       base += insn - first;
       return;
    } else if (op == storeFrameRelativeOp) {
       // src1 is a temporary
       // src2 is a "scratch" register, we don't need it in this architecture
       // dest is the frame offset 
-      //
-      // src2 = [ebp]	- saved sp
-      // (dest)[src2] = src1
-      emitMovRMToReg(src2, EBP, 0, insn);    	    // mov src2, (ebp)
-      emitMovRMToReg(EAX, EBP, -(src1*4), insn);    // mov eax, -(src1*4)[ebp]
-      emitMovRegToRM(src2, dest, EAX, insn);        // mov (dest)[src2], eax
+      x86_emitter->emitStoreFrameRelative(dest, src1, src2, insn);
       base += insn - first;
       return;
    } else {
@@ -3887,18 +3780,12 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 
    if (op ==  loadIndirOp) {
       // same as loadOp, but the value to load is already in a register
-      emitMovRMToReg(EAX, EBP, -(src1*4), insn); // mov eax, -(src1*4)[ebp]
-      emitMovRMToReg(EAX, EAX, 0, insn);         // mov eax, [eax]
-      emitMovRegToRM(EBP, -(dest*4), EAX, insn); // mov -(dest*4)[ebp], eax
-
+      x86_emitter->emitLoadIndir(dest, src1, insn);
    } 
    else if (op ==  storeIndirOp) {
       // same as storeOp, but the address where to store is already in a
       // register
-      emitMovRMToReg(EAX, EBP, -(src1*4), insn);   // mov eax, -(src1*4)[ebp]
-      emitMovRMToReg(ECX, EBP, -(dest*4), insn);   // mov ecx, -(dest*4)[ebp]
-      emitMovRegToRM(ECX, 0, EAX, insn);           // mov [ecx], eax
-
+       x86_emitter->emitStoreIndir(dest, src1, insn);
    } else if (op == noOp) {
       emitSimpleInsn(NOP, insn); // nop
 
@@ -3928,14 +3815,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 
         case divOp:
            // dest = src1 div src2
-           // mov eax, src1
-           // cdq   ; edx = sign extend of eax
-           // idiv eax, src2 ; eax = edx:eax div src2, edx = edx:eax mod src2
-           // mov dest, eax
-           emitMovRMToReg(EAX, EBP, -(src1*4), insn);
-           emitSimpleInsn(0x99, insn);
-           emitOpRegRM(0xF7, 0x7 /*opcode extension*/, EBP, -(src2*4), insn);
-           emitMovRegToRM(EBP, -(dest*4), EAX, insn);
+	   x86_emitter->emitDiv(dest, src1, src2, insn);
            base += insn-first;
            return;
            break;
@@ -3957,7 +3837,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
         case leOp:
         case greaterOp:
         case geOp:
-           emitRelOp(op, dest, src1, src2, insn);
+           x86_emitter->emitRelOp(op, dest, src1, src2, insn);
            base += insn-first;
            return;
            break;
@@ -3967,9 +3847,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
            break;
       }
 
-      emitMovRMToReg(EAX, EBP, -(src1*4), insn);
-      emitOpRegRM(opcode, EAX, EBP, -(src2*4), insn);
-      emitMovRegToRM(EBP, -(dest*4), EAX, insn);
+      x86_emitter->emitOp(opcode, dest, src1, src2, insn);
    }
    base += insn - first;
    return;
@@ -3983,6 +3861,8 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
    unsigned char *first = insn;
 
    if (op ==  storeOp) {
+       // this doesn't seem to ever be called from ast.C (or anywhere) - gq
+
       // [dest] = src1
       // dest has the address where src1 is to be stored
       // src1 is an immediate value
@@ -4004,51 +3884,14 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
            opcode2 = 0x5; // SUB
            break;
 
-        case timesOp: {
-	        int result=-1;
-           if (isPowerOf2(src2imm, result) && result <= MAX_IMM8) {
-              if (src1 != dest) {
-                 emitMovRMToReg(EAX, EBP, -(src1*4), insn);
-                 emitMovRegToRM(EBP, -(dest*4), EAX, insn);
-              }
-              // sal dest, result
-              emitOpRMImm8(0xC1, 4, EBP, -(dest*4), result, insn);
-           }
-           else {
-              // imul EAX, -(src1*4)[ebp], src2imm
-              emitOpRegRMImm(0x69, EAX, EBP, -(src1*4), src2imm, insn);
-              emitMovRegToRM(EBP, -(dest*4), EAX, insn);
-           } 
+        case timesOp:
+	   x86_emitter->emitTimesImm(dest, src1, src2imm, insn);
            base += insn-first;
            return;
-        }
            break;
 
-        case divOp: {
-	        int result=-1;
-           if (isPowerOf2(src2imm, result) && result <= MAX_IMM8) {
-              if (src1 != dest) {
-                 emitMovRMToReg(EAX, EBP, -(src1*4), insn);
-                 emitMovRegToRM(EBP, -(dest*4), EAX, insn);
-              }
-              // sar dest, result
-              emitOpRMImm8(0xC1, 7, EBP, -(dest*4), result, insn);
-           }
-           else {
-              // dest = src1 div src2imm
-              // mov eax, src1
-              // cdq   ; edx = sign extend of eax
-              // mov ebx, src2imm
-              // idiv eax, ebx ; eax = edx:eax div src2, edx = edx:eax mod src2
-              // mov dest, eax
-              emitMovRMToReg(EAX, EBP, -(src1*4), insn);
-              emitSimpleInsn(0x99, insn);
-              emitMovImmToReg(EBX, src2imm, insn);
-              // idiv eax, ebx
-              emitOpRegReg(0xF7, 0x7 /*opcode extension*/, EBX, insn); 
-              emitMovRegToRM(EBP, -(dest*4), EAX, insn);
-           }
-        }
+        case divOp:
+	   x86_emitter->emitDivImm(dest, src1, src2imm, insn);
            base += insn-first;
            return;
            break;
@@ -4072,7 +3915,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
         case leOp:
         case greaterOp:
         case geOp:
-           emitRelOpImm(op, dest, src1, src2imm, insn);
+           x86_emitter->emitRelOpImm(op, dest, src1, src2imm, insn);
            base += insn-first;
            return;
            break;
@@ -4081,11 +3924,8 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
            abort();
            break;
       }
-      if (src1 != dest) {
-         emitMovRMToReg(EAX, EBP, -(src1*4), insn);
-         emitMovRegToRM(EBP, -(dest*4), EAX, insn);
-      }
-      emitOpRMImm(opcode1, opcode2, EBP, -(dest*4), src2imm, insn);
+
+      x86_emitter->emitOpImm(opcode1, opcode2, dest, src1, src2imm, insn);
    }
    base += insn - first;
    return;

@@ -39,12 +39,26 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.15 2005/02/24 10:16:10 rchen Exp $
+// $Id: inst-x86.h,v 1.16 2005/06/09 17:20:55 gquinn Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
 
+// some x86 definitions
 #define NUM_VIRTUAL_REGISTERS (32)   /* number of virtual registers */
+
+/*
+   Function arguments are in the stack and are addressed with a displacement
+   from EBP. EBP points to the saved EBP, EBP+4 is the saved return address,
+   EBP+8 is the first parameter.
+   TODO: what about far calls?
+ */
+#define FUNC_PARAM_OFFSET (8+(10*4))
+#define CALLSITE_PARAM_OFFSET (4+(10*4))
+
+// offset from EBP of the saved EAX for a tramp
+#define SAVED_EAX_OFFSET (10*4-4)
+#define SAVED_EFLAGS_OFFSET (SAVED_EAX_OFFSET+4)
 
 // Undefine REG_MT_POS, basically
 #define REG_MT_POS NUM_VIRTUAL_REGISTERS
@@ -105,10 +119,47 @@
 
 #endif
 
+// The general machine registers. 
+// These values are taken from the Pentium manual and CANNOT be changed.
+#define EAX (0)
+#define ECX (1)
+#define EDX (2)
+#define EBX (3)
+#define ESP (4)
+#define EBP (5)
+#define ESI (6)
+#define EDI (7)
+
 // Define access method for saved register (GPR)
 #define GET_GPR(x, insn) emitMovRMToReg(EAX, EBP, SAVED_EAX_OFFSET-(x*4), insn)
 
 // Define access method for virtual registers (stack-based)
 #define LOAD_VIRTUAL(x, insn) emitMovRMToReg(EAX, EBP, -(x*4), insn)
 #define SAVE_VIRTUAL(x, insn) emitMovRegToRM(EBP, -(x*4), EAX, insn)
+
+// low-level code generation functions
+void emitOpRegReg(unsigned opcode, Register dest, Register src, unsigned char *&insn);
+void emitOpRegRM(unsigned opcode, Register dest, Register base, int disp, unsigned char *&insn);
+void emitOpRegImm(int opcode, Register dest, int imm, unsigned char *&insn);
+void emitOpRegRMImm(unsigned opcode, Register dest, Register base, int disp, int imm, unsigned char *&insn);
+void emitOpRMImm(unsigned opcode1, unsigned opcode2, Register base, int disp, int imm, unsigned char *&insn);
+void emitOpRMImm8( unsigned opcode1, unsigned opcode2, Register base, int disp, char imm, unsigned char * & insn );
+
+void emitMovRegToReg(Register dest, Register src, unsigned char *&insn);
+void emitMovMToReg(Register dest, int disp, unsigned char *&insn);
+void emitMovMBToReg(Register dest, int disp, unsigned char *&insn);
+void emitMovMWToReg(Register dest, int disp, unsigned char *&insn);
+void emitMovRegToM(int disp, Register src, unsigned char *&insn);
+void emitMovImmToReg(Register dest, int imm, unsigned char *&insn);
+void emitMovImmToRM(Register base, int disp, int imm, unsigned char *&insn);
+void emitMovRegToRM(Register base, int disp, Register src, unsigned char *&insn);
+void emitMovRMToReg(Register dest, Register base, int disp, unsigned char *&insn);
+
+void emitSimpleInsn(unsigned opcode, unsigned char *&insn);
+
+void emitAddRegImm32(Register dest, int imm, unsigned char *&insn);
+
+// helper functions for emitters
+unsigned char jccOpcodeFromRelOp(unsigned op);
+
 #endif
