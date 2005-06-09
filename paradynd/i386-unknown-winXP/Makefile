@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2005/02/07 16:58:32 gquinn Exp $
+# $Id: Makefile,v 1.4 2005/06/09 18:42:53 gquinn Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -20,6 +20,7 @@ SRCS =		../src/pdwinnt.C \
 		../src/proc-windows.C \
 		../src/inst-winnt.C \
 		../src/inst-x86.C \
+		../src/emit-x86.C \
 		../src/func-reloc.C \
 		../src/LocalAlteration.C \
 		../src/LocalAlteration-x86.C \
