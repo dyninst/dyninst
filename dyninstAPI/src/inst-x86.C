@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.204 2005/05/01 23:33:32 rutar Exp $
+ * $Id: inst-x86.C,v 1.205 2005/06/09 16:11:42 gquinn Exp $
  */
 #include <iomanip>
 
@@ -824,8 +824,9 @@ bool int_function::findInstPoints( pdvector< Address >& callTargets,
                 int j = allInstructions.size() - 1;
                 
                 const unsigned char* ptr = ah.getInstruction().ptr();
+#if !defined(arch_x86_64)
                 assert( *ptr == 0xff );
-                
+#endif                
                 ptr++;
                 if( (*ptr & 0xc7) != 0x04)
                 {

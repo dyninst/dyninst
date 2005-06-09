@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.29 2005/03/15 23:38:45 lharris Exp $
+// $Id: arch-x86.C,v 1.30 2005/06/09 16:11:42 gquinn Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -102,7 +102,7 @@ enum { am_A=1, am_C, am_D, am_E, am_F, am_G, am_I, am_J, am_M, am_O, // 10
 
 // operand types - idem, but I invented quite a few to make implicit operands explicit.
 enum { op_a=1, op_b, op_c, op_d, op_dq, op_p, op_pd, op_pi, op_ps, 
-       op_q, op_s, op_sd, op_ss, op_si, op_v, op_w, op_lea, op_allgprs, op_512 };
+       op_q, op_s, op_sd, op_ss, op_si, op_v, op_w, op_z, op_lea, op_allgprs, op_512 };
 
 // registers [only fancy names, not used right now]
 enum { r_AH=100, r_BH, r_CH, r_DH, r_AL, r_BL, r_CL, r_DL,
@@ -140,8 +140,10 @@ enum { mAX=0, mCX, mDX, mBX,
 #define Ib   { am_I, op_b }
 #define Iv   { am_I, op_v }
 #define Iw   { am_I, op_w }
+#define Iz   { am_I, op_z }
 #define Jb   { am_J, op_b }
 #define Jv   { am_J, op_v }
+#define Jz   { am_J, op_z }
 #define Ma   { am_M, op_a }
 #define Mb   { am_M, op_b }
 #define Mlea { am_M, op_lea }
@@ -323,7 +325,7 @@ static ia32_entry oneByteMap[256] = {
   { "add",  t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
   { "add",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { "add",  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { "add",  t_done, 0, false, { eAX, Iv, Zz }, 0, s1RW2R },
+  { "add",  t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
   { "push", t_done, 0, false, { STHw, ES, eSP }, 0, s1W2R3RW },
   { "pop",  t_done, 0, false, { ES, STPw, eSP }, 0, s1W2R3RW },
   /* 08 */
@@ -332,7 +334,7 @@ static ia32_entry oneByteMap[256] = {
   { "or",   t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
   { "or",   t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { "or",   t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { "or",   t_done, 0, false, { eAX, Iv, Zz }, 0, s1RW2R },
+  { "or",   t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
   { "push", t_done, 0, false, { STHw, CS, eSP }, 0, s1W2R3RW },
   { 0,      t_twoB, 0, false, { Zz, Zz, Zz }, 0, 0 },
   /* 10 */
@@ -341,7 +343,7 @@ static ia32_entry oneByteMap[256] = {
   { "adc",  t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
   { "adc",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { "adc",  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { "adc",  t_done, 0, false, { eAX, Iv, Zz }, 0, s1RW2R },
+  { "adc",  t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
   { "push", t_done, 0, false, { STHw, SS, eSP }, 0, s1W2R3RW },
   { "pop",  t_done, 0, false, { SS, STPw, eSP }, 0, s1W2R3RW },
   /* 18 */
@@ -350,7 +352,7 @@ static ia32_entry oneByteMap[256] = {
   { "sbb",  t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
   { "sbb",  t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { "sbb",  t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { "sbb",  t_done, 0, false, { eAX, Iv, Zz }, 0, s1RW2R },
+  { "sbb",  t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
   { "push", t_done, 0, false, { STHw, DS, eSP }, 0, s1W2R3RW },
   { "pop" , t_done, 0, false, { DS, STPw, eSP }, 0, s1W2R3RW },
   /* 20 */
@@ -359,7 +361,7 @@ static ia32_entry oneByteMap[256] = {
   { "and", t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
   { "and", t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { "and", t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { "and", t_done, 0, false, { eAX, Iv, Zz }, 0, s1RW2R },
+  { "and", t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
   { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
   { "daa", t_done, 0, false, { AL, Zz, Zz }, 0, s1RW },
   /* 28 */
@@ -368,7 +370,7 @@ static ia32_entry oneByteMap[256] = {
   { "sub", t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
   { "sub", t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { "sub", t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { "sub", t_done, 0, false, { eAX, Iv, Zz }, 0, s1RW2R },
+  { "sub", t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
   { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
   { "das" , t_done, 0, false, { AL, Zz, Zz }, 0, s1RW },
   /* 30 */
@@ -377,7 +379,7 @@ static ia32_entry oneByteMap[256] = {
   { "xor", t_done, 0, true, { Gb, Eb, Zz }, 0, s1RW2R },
   { "xor", t_done, 0, true, { Gv, Ev, Zz }, 0, s1RW2R },
   { "xor", t_done, 0, false, { AL, Ib, Zz }, 0, s1RW2R },
-  { "xor", t_done, 0, false, { eAX, Iv, Zz }, 0, s1RW2R },
+  { "xor", t_done, 0, false, { eAX, Iz, Zz }, 0, s1RW2R },
   { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
   { "aaa", t_done, 0, false, { AX, Zz, Zz }, 0, s1RW2R },
   /* 38 */
@@ -386,7 +388,7 @@ static ia32_entry oneByteMap[256] = {
   { "cmp", t_done, 0, true, { Gb, Eb, Zz }, 0, s1R2R },
   { "cmp", t_done, 0, true, { Gv, Ev, Zz }, 0, s1R2R },
   { "cmp", t_done, 0, false, { AL, Ib, Zz }, 0, s1R2R },
-  { "cmp", t_done, 0, false, { eAX, Iv, Zz }, 0, s1R2R },
+  { "cmp", t_done, 0, false, { eAX, Iz, Zz }, 0, s1R2R },
   { 0,     t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, // PREFIX_SEG_OVR
   { "aas", t_done, 0, false, { AX, Zz, Zz }, 0, s1RW },
   /* 40 */
@@ -435,8 +437,8 @@ static ia32_entry oneByteMap[256] = {
   { 0,   t_prefixedSSE, 2, false, { Zz, Zz, Zz }, 0, 0 }, /* operand size prefix (PREFIX_OPR_SZ)*/
   { 0,          t_ill,  0, false, { Zz, Zz, Zz }, 0, 0 }, /* address size prefix (PREFIX_ADDR_SZ)*/
   /* 68 */
-  { "push",    t_done, 0, false, { STHv, Iv, eSP }, 0, s1W2R3RW },
-  { "imul",    t_done, 0, true, { Gv, Ev, Iv }, 0, s1W2R3R },
+  { "push",    t_done, 0, false, { STHv, Iz, eSP }, 0, s1W2R3RW },
+  { "imul",    t_done, 0, true, { Gv, Ev, Iz }, 0, s1W2R3R },
   { "push",    t_done, 0, false, { STHb, Ib, eSP }, 0, s1W2R3RW },
   { "imul",    t_done, 0, true, { Gv, Ev, Ib }, 0, s1W2R3R },
   { "insb",    t_done, 0, false, { Yb, DX, Zz }, 0, s1W2R | (fREP << FPOS) }, // (e)SI/DI changed
@@ -510,7 +512,7 @@ static ia32_entry oneByteMap[256] = {
   { "cmpsw", t_done, 0, false, { Xv, Yv, Zz },  0, s1R2R | (fCMPS << FPOS) },
   /* A8 */
   { "test",     t_done, 0, false, { AL, Ib, Zz },  0, s1R2R },
-  { "test",     t_done, 0, false, { eAX, Iv, Zz }, 0, s1R2R },
+  { "test",     t_done, 0, false, { eAX, Iz, Zz }, 0, s1R2R },
   { "stosb",    t_done, 0, false, { Yb, AL, Zz },  0, s1W2R | (fREP << FPOS) },
   { "stosw/d",  t_done, 0, false, { Yv, eAX, Zz }, 0, s1W2R | (fREP << FPOS) },
   { "lodsb",    t_done, 0, false, { AL, Xb, Zz },  0, s1W2R | (fREP << FPOS) },
@@ -543,7 +545,7 @@ static ia32_entry oneByteMap[256] = {
   { "les",      t_done, 0, true, { ES, Gv, Mp }, 0, s1W2W3R },
   { "lds",      t_done, 0, true, { DS, Gv, Mp }, 0, s1W2W3R },
   { 0, t_grp, Grp11, true, { Eb, Ib, Zz }, 0, s1W2R },
-  { 0, t_grp, Grp11, true, { Ev, Iv, Zz }, 0, s1W2R },
+  { 0, t_grp, Grp11, true, { Ev, Iz, Zz }, 0, s1W2R },
   /* C8 */
   { "enter",   t_done, 0, false, { Iw, Ib, Zz }, 0, fENTER << FPOS },
   { "leave",   t_done, 0, false, { Zz, Zz, Zz }, 0, fLEAVE << FPOS },
@@ -581,8 +583,8 @@ static ia32_entry oneByteMap[256] = {
   { "out",      t_done, 0, false, { Ib, AL, Zz }, 0, s1W2R | fIO << FPOS },
   { "out",      t_done, 0, false, { Ib, eAX, Zz }, 0, s1W2R | fIO << FPOS },
   /* E8 */
-  { "call", t_done, 0, false, { Jv, Zz, Zz }, (IS_CALL | REL_X), fCALL << FPOS },
-  { "jmp",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JUMP | REL_X), s1R },
+  { "call", t_done, 0, false, { Jz, Zz, Zz }, (IS_CALL | REL_X), fCALL << FPOS },
+  { "jmp",  t_done, 0, false, { Jz, Zz, Zz }, (IS_JUMP | REL_X), s1R },
   { "jmp",  t_done, 0, false, { Ap, Zz, Zz }, (IS_JUMP | PTR_WX), s1R },
   { "jmp",  t_done, 0, false, { Jb, Zz, Zz }, (IS_JUMP | REL_B), s1R },
   { "in",   t_done, 0, false, { AL, DX, Zz }, 0, s1W2R | (fIO << FPOS) },
@@ -760,23 +762,23 @@ static ia32_entry twoByteMap[256] = {
   { 0, t_sse, SSE7E, 0, { Zz, Zz, Zz }, 0, 0 },
   { 0, t_sse, SSE7F, 0, { Zz, Zz, Zz }, 0, 0 },
   /* 80 */
-  { "jo",   t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jno",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jb",   t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jnb",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jz",   t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jnz",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jbe",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jnbe", t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jo",   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jno",  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jb",   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jnb",  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jz",   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jnz",  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jbe",  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jnbe", t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
   /* 88 */
-  { "js",   t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jns",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jp",   t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jnp",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jl",   t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jnl",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jle",  t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
-  { "jnle", t_done, 0, false, { Jv, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "js",   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jns",  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jp",   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jnp",  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jl",   t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jnl",  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jle",  t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
+  { "jnle", t_done, 0, false, { Jz, Zz, Zz }, (IS_JCC | REL_X), s1R | (fCOND << FPOS) },
   /* 90 */
   { "seto",   t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
   { "setno",  t_done, 0, true, { Eb, Zz, Zz }, 0, s1W | (fCOND << FPOS) },
@@ -920,14 +922,14 @@ static ia32_entry groupMap[][8] = {
     { "cmp", t_done, 0, true, { Eb, Ib, Zz }, 0, s1R2R },
   },
   { /* group 1b */
-    { "add", t_done, 0, true, { Ev, Iv, Zz }, 0, s1RW2R },
-    { "or",  t_done, 0, true, { Ev, Iv, Zz }, 0, s1RW2R },
-    { "adc", t_done, 0, true, { Ev, Iv, Zz }, 0, s1RW2R },
-    { "sbb", t_done, 0, true, { Ev, Iv, Zz }, 0, s1RW2R },
-    { "and", t_done, 0, true, { Ev, Iv, Zz }, 0, s1RW2R },
-    { "sub", t_done, 0, true, { Ev, Iv, Zz }, 0, s1RW2R },
-    { "xor", t_done, 0, true, { Ev, Iv, Zz }, 0, s1RW2R },
-    { "cmp", t_done, 0, true, { Ev, Iv, Zz }, 0, s1R2R },
+    { "add", t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
+    { "or",  t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
+    { "adc", t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
+    { "sbb", t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
+    { "and", t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
+    { "sub", t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
+    { "xor", t_done, 0, true, { Ev, Iz, Zz }, 0, s1RW2R },
+    { "cmp", t_done, 0, true, { Ev, Iz, Zz }, 0, s1R2R },
   },
   { /* group 1c */
     { "add", t_done, 0, true, { Eb, Ib, Zz }, 0, s1RW2R },
@@ -975,7 +977,7 @@ static ia32_entry groupMap[][8] = {
  },
 
  { /* group 3b - operands are defined here */
-  { "test", t_done, 0, true, { Ev, Iv, Zz }, 0, s1R2R },
+  { "test", t_done, 0, true, { Ev, Iz, Zz }, 0, s1R2R },
   { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
   { "not",  t_done, 0, true, { Ev, Zz, Zz }, 0, s1RW },
   { "neg",  t_done, 0, true, { Ev, Zz, Zz }, 0, s1RW },
@@ -1028,7 +1030,7 @@ static ia32_entry groupMap[][8] = {
   { "smsw", t_done, 0, true, { Ew, Zz, Zz }, 0, s1W },
   { 0, t_ill, 0, true, { Zz, Zz, Zz }, 0, 0 },
   { "lmsw", t_done, 0, true, { Ew, Zz, Zz }, 0, s1R },
-  { "invlpg", t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE },
+  { "invlpg", t_done, 0, true, { Zz, Zz, Zz }, 0, sNONE }, // 64-bit: swapgs also uses this encoding (w/ mod=11)
  },
 
  { /* group 8 - only opcode is defined here, 
@@ -1885,6 +1887,23 @@ static ia32_entry ssegrpMap[][2] = {
   }
 };
 
+static bool mode_64 = false;
+
+void ia32_set_mode_64(bool mode) {
+  mode_64 = mode;
+}
+
+bool ia32_is_mode_64() {
+  return mode_64;
+}
+
+ia32_entry movsxd = { "movsxd", t_done, 0, true, { Gv, Ed, Zz }, 0, s1W2R };
+
+static void ia32_translate_for_64(ia32_entry** gotit_ptr)
+{
+    if (*gotit_ptr == &oneByteMap[0x63]) // APRL redefined to MOVSXD
+	*gotit_ptr = &movsxd;
+}
 
 static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
                                       const unsigned char* addr,
@@ -1907,7 +1926,12 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
   if(capa & IA32_DECODE_MEMACCESS)
     assert(instruct.mac != NULL);
 
-  ia32_decode_prefixes(addr, pref);
+  if (!ia32_decode_prefixes(addr, pref)) {
+    instruct.size = 1;
+    instruct.legacy_type = ILLEGAL;
+    return instruct;
+  }
+    
   instruct.size = pref.getCount();
   addr += instruct.size;
 
@@ -1921,6 +1945,12 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
   if(capa & IA32_DECODE_CONDITION) {
     assert(instruct.cond != NULL);
     condbits = idx & 0x0F;
+  }
+
+  // ensure mac/cond processing not done until we implement it for 64-bit mode
+  if (mode_64) {
+      assert(instruct.mac == NULL);
+      assert(instruct.cond == NULL);
   }
 
   while(nxtab != t_done) {
@@ -2000,6 +2030,10 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
 
   assert(gotit != NULL);
   instruct.legacy_type = gotit->legacyType;
+
+  // make adjustments for instruction redefined in 64-bit mode
+  if (mode_64)
+    ia32_translate_for_64(&gotit);
 
   ia32_decode_operands(pref, *gotit, addr, instruct, instruct.mac); // all but FP
 
@@ -2444,7 +2478,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
       assert(0);
     }
   }
-  else { // 32-bit, may have SIB
+  else { // 32-bit or 64-bit, may have SIB
     if(mod == 3)
       return 0; // only registers, no SIB
     bool hassib = rm == 4;
@@ -2466,6 +2500,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
     switch(mod) {
     case 0: {
       /* this is tricky: there is a disp32 iff (1) rm == 5  or  (2) rm == 4 && base == 5 */
+      /* note: this doesn't change for 64-bit mode, only diff is disp32 is added to RIP */
       unsigned char check5 = hassib ? base : rm;
       if(macadr)
         switch (rm) {
@@ -2611,6 +2646,8 @@ static inline int type2size(unsigned int optype, unsigned int operSzAttr)
     return wordSzB * operSzAttr;
   case op_w:
     return wordSzB;
+  case op_z:
+      return operSzAttr == 1 ? wordSzB : dwordSzB;
   case op_lea:
     //    assert(!"Should not be evaluated");
     // We might be called, if we don't know this is an lea ahead of time
@@ -2632,8 +2669,15 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& 
                                    ia32_memacc *mac)
 {
   unsigned int nib = 0 /* # of bytes in instruction */;
-  unsigned int addrSzAttr = (pref.getPrefix(3) == PREFIX_SZADDR ? 1 : 2); // 32-bit mode implicit
-  unsigned int operSzAttr = (pref.getPrefix(2) == PREFIX_SZOPER ? 1 : 2); // 32-bit mode implicit
+
+  unsigned int addrSzAttr = (pref.getPrefix(3) == PREFIX_SZADDR ? 1 : 2);
+  if (mode_64)
+    addrSzAttr *= 2;
+
+  unsigned int operSzAttr;
+  if (pref.rexW()) operSzAttr = 4;
+  else if (pref.getPrefix(2) == PREFIX_SZOPER) operSzAttr = 1;
+  else operSzAttr = 2;
 
   if(gotit.hasModRM)
     nib += byteSzB;
@@ -2745,10 +2789,10 @@ static const unsigned char sse_prefix[256] = {
 
 
 // FIXME: lookahead might blow up...
-ia32_prefixes& ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref)
+bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref)
 {
   pref.count = 0;
-  pref.prfx[0] = pref.prfx[1] = pref.prfx[2] = pref.prfx[3] = 0;
+  pref.prfx[0] = pref.prfx[1] = pref.prfx[2] = pref.prfx[3] = pref.prfx[4] = 0;
   bool in_prefix = true;
 
   while(in_prefix) {
@@ -2786,8 +2830,27 @@ ia32_prefixes& ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pr
     ++addr;
   }
   
-  //bperr(("Got %d prefixes\n", pref.count);
-  return pref;
+  if (mode_64)
+      return ia32_decode_rex(addr - 1, pref);
+
+  return true;
+}
+
+bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes& pref)
+{
+    if ((addr[0] & (unsigned char)0xF0) == (unsigned char)0x40) {
+	++pref.count;
+	pref.prfx[4] = addr[0];
+
+	// it is an error to have legacy prefixes after a REX prefix
+	// in particular, ia32_decode will get confused if a prefix
+	// that could be used as an SSE opcode extension follows our
+	// REX
+	if (addr[1] == PREFIX_SZOPER || addr[1] == PREFIX_REPNZ || addr[1] == PREFIX_REP)
+	  return false;
+    }
+
+    return true;
 }
 
 unsigned int ia32_emulate_old_type(ia32_instruction& instruct)
@@ -2805,6 +2868,9 @@ unsigned int ia32_emulate_old_type(ia32_instruction& instruct)
   if (pref.getPrefix(1))
     insnType |= PREFIX_SEG; // no distinction between segments
 
+  // this still works for AMD64, since there is no "REL_Q"
+  // actually, it will break if there is both a REX.W and operand
+  // size prefix, since REX.W takes precedence (FIXME)
   if (insnType & REL_X) {
     if (operSzAttr == 1)
       insnType |= REL_W;
@@ -2822,7 +2888,8 @@ unsigned int ia32_emulate_old_type(ia32_instruction& instruct)
 }
 
 /* decode instruction at address addr, return size of instruction */
-unsigned get_instruction(const unsigned char* addr, unsigned &insnType)
+unsigned get_instruction(const unsigned char* addr, unsigned &insnType,
+			 const unsigned char** op_ptr)
 {
   int r1;
 
@@ -2834,6 +2901,8 @@ unsigned get_instruction(const unsigned char* addr, unsigned &insnType)
 #endif
   r1 = i.getSize();
   insnType = ia32_emulate_old_type(i);
+  if (op_ptr)
+      *op_ptr = addr + i.getPrefixCount();
 
   return r1;
 }
@@ -2925,7 +2994,7 @@ skip_headers(const unsigned char* addr, bool& isWordAddr,bool& isWordOp)
   ia32_prefixes prefs;
 
   ia32_decode_prefixes(addr, prefs);
-  if(prefs.getPrefix(2) == PREFIX_SZOPER)
+  if(prefs.getPrefix(2) == PREFIX_SZOPER && !prefs.rexW())
     isWordOp = true;
   if(prefs.getPrefix(3) == PREFIX_SZADDR)
     isWordAddr = true;
@@ -2951,6 +3020,7 @@ bool insn_hasDisp32(unsigned ModRMbyte){
     return (Mod == 0 && RM == 5) || (Mod == 2);
 }
 
+// haven't made this ready for 64-bit yet - gq
 bool isFunctionPrologue( instruction& insn1 )
 {
     if( insn1.size() != 1 )
@@ -3004,9 +3074,9 @@ bool isStackFramePreamble( instruction& insn1 )
     insn2.getNextInstruction( insn1.ptr() + insn1.size() );       
     insn3.getNextInstruction( insn2.ptr() + insn2.size() );
 
-    const unsigned char* p = insn1.ptr();
-    const unsigned char* q = insn2.ptr();
-    const unsigned char* r = insn3.ptr();
+    const unsigned char* p = insn1.op_ptr();
+    const unsigned char* q = insn2.op_ptr();
+    const unsigned char* r = insn3.op_ptr();
     
     unsigned Mod1 =  ( q[ 1 ] >> 3 ) & 0x07;
     unsigned Mod2 =  ( r[ 1 ] >> 3 ) & 0x07;  

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.244 2005/06/08 20:59:06 tlmiller Exp $
+ // $Id: symtab.C,v 1.245 2005/06/09 16:11:42 gquinn Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1771,6 +1771,10 @@ void image::analyzeIfNeeded() {
 
 bool image::analyzeImage()
 {
+    // TODO: remove arch_x86 from here - it's just for testing
+#if defined(arch_x86_64) || defined(arch_x86)
+    ia32_set_mode_64(getObject().getAddressWidth() == 8);
+#endif
   
  // Hold unseen call targets
   pdvector< Address > callTargets;

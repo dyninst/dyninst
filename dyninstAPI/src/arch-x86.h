@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.25 2005/03/15 23:38:46 lharris Exp $
+// $Id: arch-x86.h,v 1.26 2005/06/09 16:11:42 gquinn Exp $
 // x86 instruction declarations
 
 #if !defined(i386_unknown_solaris2_5) \
@@ -169,20 +169,29 @@ typedef int dword_t;   /* a double word (32-bit) operand */
 #define PREFIX_SZOPER  0x66
 #define PREFIX_SZADDR  0x67
 
+void ia32_set_mode_64(bool mode);
+bool ia32_is_mode_64();
 
 class ia32_prefixes
 {
-  friend ia32_prefixes& ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes&);
+  friend bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes&);
+  friend bool ia32_decode_rex(const unsigned char* addr, ia32_prefixes&);
  private:
   unsigned int count;
   // At most 4 prefixes are allowed for Intel 32-bit CPUs
   // There also 4 groups, so this array is 0 if no prefix
   // from that group is present, otherwise it contains the
   // prefix opcode
-  unsigned char prfx[4];
+  // For 64-bit CPUs, an additional REX prefix is possible,
+  // so this array is extended to 5 elements
+  unsigned char prfx[5];
  public:
   unsigned int const getCount() const { return count; }
   unsigned char getPrefix(unsigned char group) const { return prfx[group]; }
+  bool rexW() const { return prfx[4] & 0x8; }
+  bool rexR() const { return prfx[4] & 0x4; }
+  bool rexX() const { return prfx[4] & 0x2; }
+  bool rexB() const { return prfx[4] & 0x1; }
 };
 
 //VG(6/20/02): To support Paradyn without forcing it to include BPatch_memoryAccess, we
@@ -270,7 +279,7 @@ struct ia32_condition
   void set(int _tttn) { is = true; tttn = _tttn; }
 };
 
-ia32_prefixes& ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes&);
+bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes&);
 
 
 struct ia32_entry;
@@ -310,6 +319,7 @@ class ia32_instruction
     : mac(_mac), cond(_cnd) {}
 
   unsigned int getSize() const { return size; }
+  unsigned int getPrefixCount() const { return prf.getCount(); }
   unsigned int getLegacyType() const { return legacy_type; }
   const ia32_memacc& getMac(int which) const { return mac[which]; }
   const ia32_condition& getCond() const { return *cond; }
@@ -357,29 +367,31 @@ enum dynamic_call_address_mode {
    get_instruction: get the instruction that starts at instr.
    return the size of the instruction and set instType to a type descriptor
 */
-unsigned get_instruction(const unsigned char *instr, unsigned &instType);
+unsigned get_instruction(const unsigned char *instr, unsigned &instType,
+			 const unsigned char** op_ptr = NULL);
 
 /* get the target of a jump or call */
 Address get_target(const unsigned char *instr, unsigned type, unsigned size,
-                Address addr);
+		   Address addr);
 
 
 class instruction {
  public:
-  instruction(): type_(0), size_(0), ptr_(0) {}
+  instruction(): type_(0), size_(0), ptr_(0), op_ptr_(0) {}
 
-  instruction(const unsigned char *p, unsigned type, unsigned sz):
-    type_(type), size_(sz), ptr_(p) {}
+  instruction(const unsigned char *p, unsigned type, unsigned sz, const unsigned char* op = 0):
+    type_(type), size_(sz), ptr_(p), op_ptr_(op ? op : p) {}
 
   instruction(const instruction &insn) {
     type_ = insn.type_;
     size_ = insn.size_;
     ptr_ = insn.ptr_;
+    op_ptr_ = insn.op_ptr_;
   }
 
   unsigned getNextInstruction(const unsigned char *p) {
     ptr_ = p;
-    size_ = get_instruction(ptr_, type_);
+    size_ = get_instruction(ptr_, type_, &op_ptr_);
     return size_;
   }
 
@@ -396,6 +408,9 @@ class instruction {
 
   // return a pointer to the instruction
   const unsigned char *ptr() const { return ptr_; }
+  
+  // return a pointer to the instruction's opcode
+  const unsigned char* op_ptr() const { return op_ptr_; }
 
   bool isCall() const { return type_ & IS_CALL; }
   bool isCallIndir() const { return (type_ & IS_CALL) && (type_ & INDIR); }
@@ -411,19 +426,22 @@ class instruction {
   bool isIllegal() const { return type_ & ILLEGAL; }
   bool isLeave() const { return *ptr_ == 0xC9; }  
   bool isMoveRegMemToRegMem() const 
-    { return *ptr_ == MOV_R8_TO_RM8   || *ptr_ == MOV_R16_TO_RM16 ||
-             *ptr_ == MOV_R32_TO_RM32 || *ptr_ ==  MOV_RM8_TO_R8  ||
-             *ptr_ == MOV_RM16_TO_R16 || *ptr_ == MOV_RM32_TO_R32;   }
+    { const unsigned char* p = op_ptr_ ? op_ptr_ : ptr_;
+      return *p == MOV_R8_TO_RM8   || *p == MOV_R16_TO_RM16 ||
+             *p == MOV_R32_TO_RM32 || *p ==  MOV_RM8_TO_R8  ||
+             *p == MOV_RM16_TO_R16 || *p == MOV_RM32_TO_R32;   }
   bool isXORRegMemRegMem() const
-    { return *ptr_ == XOR_RM16_R16 || *ptr_ ==  XOR_RM32_R32 ||
-             *ptr_ ==  XOR_R8_RM8  || *ptr_ ==  XOR_R16_RM16 ||
-             *ptr_ == XOR_R32_RM32; }
+      { const unsigned char* p = op_ptr_ ? op_ptr_ : ptr_;
+        return *p == XOR_RM16_R16 || *p ==  XOR_RM32_R32 ||
+               *p ==  XOR_R8_RM8  || *p ==  XOR_R16_RM16 ||
+               *p == XOR_R32_RM32; }
             
 
  private:
   unsigned type_;   // type of the instruction (e.g. IS_CALL | INDIR)
   unsigned size_;   // size in bytes
   const unsigned char *ptr_;       // pointer to the instruction
+  const unsigned char *op_ptr_;    // pointer to the opcode
 };
 
 
@@ -438,6 +456,7 @@ int get_instruction_operand(const unsigned char *i_ptr, Register& base_reg,
 			    Register& index_reg, int& displacement, 
 			    unsigned& scale, unsigned &mod);
 void decode_SIB(unsigned sib, unsigned& scale, Register& index_reg, Register& base_reg);
+const unsigned char* skip_headers(const unsigned char*,bool&,bool&);
 
 /* addresses on x86 don't have to be aligned */
 inline bool isAligned(const Address ) { return true; }

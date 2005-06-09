@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 1996-2004 Barton P. Miller
  * 
@@ -71,9 +72,6 @@ bool InstrucIter::isAReturnInstruction()
     return insn.isReturn();
 }
 
-extern const unsigned char*
-skip_headers(const unsigned char*,bool&,bool&);
-
 /** is the instruction an indirect jump instruction 
   * @param i the instruction value 
   */
@@ -105,15 +103,28 @@ bool InstrucIter::isStackFramePreamble()
 bool InstrucIter::isFramePush()
 {
     // test for
-    // push %ebp
-    return (insn.size() == 1 && insn.ptr()[0] == PUSHEBP );
+    // push %ebp (or push %rbp for 64-bit)
+    return (insn.size() == 1 && insn.ptr()[0] == 0x55);
 }
 
 bool InstrucIter::isFrameSetup()
 {
     //test for
-    //movl %esp,%ebp
-    return(insn.size() == 2 && insn.ptr()[0] == 0x89 && insn.ptr()[1] == 0xe5);
+    // movl %esp,%ebp
+
+    // 64-bit:
+    // movq %rsp, %rbp
+
+  if (!ia32_is_mode_64()) {
+    return (insn.size() == 2 && 
+            insn.ptr()[0] == 0x89 && insn.ptr()[1] == 0xe5);
+  }
+  else {
+    return (insn.size() == 3 &&
+	    insn.ptr()[0] == 0x48 &&
+	    insn.ptr()[1] == 0x89 &&
+	    insn.ptr()[2] == 0xe5);
+  }
 }
 
 /** is the instruction a conditional branch instruction 
@@ -322,6 +333,11 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
   return in;
 }
 
+// return target addresses from a jump table
+// tableInsn - instruction that load address of table entry into a register,
+//             the displacement will give us the table's base address
+// maxSwitchInsn - compare instrction that does a range check on the
+//                 jump table index, gives us number of entries in immediate
 bool InstrucIter::getMultipleJumpTargets(pdvector<Address>& result,
 					 instruction& tableInsn, 
 					 instruction& maxSwitchInsn,
@@ -393,9 +409,10 @@ bool InstrucIter::getMultipleJumpTargets(pdvector<Address>& result,
     if(isAddressInJmp || (!isAddressInJmp && (*ptr == 0x8b)))
     {
         ptr++;
-        if((((*ptr & 0xc7) == 0x04) &&
-            ((*(ptr+1) & 0xc7) == 0x85)) ||
-           ((*ptr & 0xc7) == 0x80))
+        if(
+	   ( ((*ptr & 0xc7) == 0x04) &&
+	     ( ((*(ptr+1) & 0xc7) == 0x85) || ((*(ptr+1) & 0xc7) == 0xc5) ) ) ||
+           ((*ptr & 0xc7) == 0x80) )
         {
             if((*ptr & 0xc7) == 0x80)
                 ptr += 1;
