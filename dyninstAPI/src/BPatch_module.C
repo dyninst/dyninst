@@ -549,6 +549,12 @@ void BPatch_module::parseTypes()
 		    funcName = NULL;
 		}
 		funcName = strdup(nmPtr);
+		
+		/* Not sure why this didn't crop up before; assumes mangled names. */
+		char * colonPtr = strchr( funcName, ':' );
+		if( colonPtr != NULL ) {
+			* colonPtr = '\0';
+			}
 
 //		I'm not sure why we bother with this here, since we fetch line numbers in symtab.C anyway.
 //		mod->parseLineInformation(proc->llproc, currentSourceFile, 
@@ -589,7 +595,7 @@ void BPatch_module::parseTypes()
 	      // copy this set of fields
 	    BPatch_Vector<BPatch_function *> bpmv;
    	    if (NULL == findFunction(funcName, bpmv) || !bpmv.size()) {
-	      bperr("unable to locate current function %s\n", funcName);
+	      bperr("%s[%d]: unable to locate current function %s\n", __FILE__, __LINE__, funcName);
 	      } else {
 		BPatch_function *func = bpmv[0];
 		commonBlock->endCommonBlock(func, commonBlockVar->getBaseAddr());
@@ -928,7 +934,7 @@ void BPatch_module::parseStabTypes()
 	
 	assert(currentFunctionName);
 	if (NULL == findFunction(currentFunctionName->c_str(), bpfv) || !bpfv.size()) {
-	  bperr("unable to locate current function %s\n", currentFunctionName->c_str());
+	  bperr("%s[%d]: unable to locate current function %s\n", __FILE__, __LINE__, currentFunctionName->c_str());
 	} else {
 	  if (bpfv.size() > 1) {
 	    // warn if we find more than one function with this name
