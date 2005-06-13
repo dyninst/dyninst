@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.28 2005/06/09 17:20:25 gquinn Exp $
+# $Id: Makefile,v 1.29 2005/06/13 19:14:27 gquinn Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -37,6 +37,7 @@ OBJS = 		pdwinnt.obj \
 		inst-winnt.obj \
 		inst-x86.obj \
 		arch-x86.obj \
+		emit-x86.obj \
 		func-reloc.obj \
 		LocalAlteration.obj \
 		LocalAlteration-x86.obj \

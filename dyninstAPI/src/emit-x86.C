@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.1 2005/06/09 17:20:55 gquinn Exp $
+ * $Id: emit-x86.C,v 1.2 2005/06/13 19:14:33 gquinn Exp $
  */
 
 #include "dyninstAPI/src/emit-x86.h"
@@ -608,6 +608,7 @@ Register Emitter64::emitCall(opCode op, registerSpace *rs, char *ibuf, Address &
 {
     // not yet implemented
     assert(0);
+    return 0;
 }
 
 void Emitter64::emitGetRetVal(Register dest, unsigned char*& insn)
