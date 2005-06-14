@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.206 2005/06/09 17:20:55 gquinn Exp $
+ * $Id: inst-x86.C,v 1.207 2005/06/14 04:16:17 rchen Exp $
  */
 #include <iomanip>
 
@@ -3671,7 +3671,7 @@ void emitCSload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
 #endif
 
 
-void emitVload(opCode op, Address src1, Register /*src2*/, Register dest, 
+void emitVload(opCode op, Address src1, Register src2, Register dest, 
 			char *ibuf, Address &base, bool /*noCost*/, int size,
 			const instPoint * /* location */, process * /* proc */,
 			registerSpace * /* rs */ )                                 
@@ -3701,6 +3701,22 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
       return;
    } else if (op == loadFrameAddr) {
       x86_emitter->emitLoadFrameAddr(dest, src1, insn);
+      base += insn - first;
+      return;
+   } else if (op == loadRegRelativeOp) {
+      // Should be identical to loadFrameRelativeOp case,
+      // except with EBP replaced with src2.
+      emitMovRMToReg(EAX, src2, 0, insn);       // mov (%ebp), %eax 
+      emitMovRMToReg(EAX, EAX, src1, insn);    // mov <offset>(%eax), %eax 
+      emitMovRegToRM(src2, -(dest*4), EAX, insn);    // mov -(dest*4)[ebp], eax
+      base += insn - first;
+      return;
+   } else if (op == loadRegRelativeAddr) {
+      // Should be identical to loadFrameAddr case,
+      // except with EBP replaced with src2.
+      emitMovRMToReg(EAX, src2, 0, insn);       // mov (%ebp), %eax 
+      emitAddRegImm32(EAX, src1, insn);        // add #<offset>, %eax
+      emitMovRegToRM(src2, -(dest*4), EAX, insn);    // mov -(dest*4)[ebp], eax
       base += insn - first;
       return;
    } else {
@@ -5086,10 +5102,10 @@ bool int_function::loadCode(const image* /* owner */, process *proc,
    unsigned char *p = originalCode;
 
    // last address of function
-   unsigned end_of_function = (unsigned)(p + get_size());
+   unsigned char *end_of_function = p + get_size();
 
    // iterate over all instructions in function
-   while ( (unsigned) p < end_of_function ) {
+   while ( p < end_of_function ) {
 
       // new instruction object 
       insnSize = get_instruction(p, type);
@@ -5139,7 +5155,7 @@ bool int_function::loadCode(const image* /* owner */, process *proc,
    // that are outside of the function.   
 
    // # bytes of "garbage" at the end of the function 
-   int garbage = (unsigned)p - end_of_function;
+   int garbage = p - end_of_function;
 
    // if "garbage" bytes are found
    if (garbage) { 
@@ -6410,7 +6426,7 @@ bool int_function::setReturnValue(process *p, int val)
    emitMovImmToReg(EAX, val, cur);
    emitSimpleInsn(0xc3, cur); //ret
 
-   size = ((unsigned) cur) - (unsigned) buffer;
+   size = cur - buffer;
    return p->writeTextSpace((void *) addr, size, buffer);
 }
 
