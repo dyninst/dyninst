@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test5.mutatee.C,v 1.14 2005/02/24 10:17:57 rchen Exp $ */
+/* $Id: test5.mutatee.C,v 1.15 2005/06/14 04:16:13 rchen Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -390,6 +390,12 @@ void exception_test::func_cpp()
 #endif
 }
 
+template <class T> T sample_template <T>::content()
+{
+   T  ret = item;
+   return (ret);
+}
+
 #ifdef rs6000_ibm_aix4_1
 /* xlC's static libC has strangely undefined symbols, so just fake them ... */
 int SOMClassClassData;
@@ -400,12 +406,6 @@ template class sample_template <int>;
 template class sample_template <char>;
 template class sample_template <double>;
 #endif
-
-template <class T> T sample_template <T>::content()
-{
-   T  ret = item;
-   return (ret);
-}
 
 void template_test::func_cpp()
 {

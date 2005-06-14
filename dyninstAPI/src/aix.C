@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.197 2005/04/18 20:55:35 legendre Exp $
+// $Id: aix.C,v 1.198 2005/06/14 04:16:09 rchen Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1231,7 +1231,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
         char *data_c = new char[compactedUpdates[0]->size];
         data = (void *) data_c;
 #else
-        (char*) data = new char[compactedUpdates[0]->size];
+        data = (void *)(new char[compactedUpdates[0]->size]);
 #endif
 
 	readDataSpace((void*) compactedUpdates[0]->address,
