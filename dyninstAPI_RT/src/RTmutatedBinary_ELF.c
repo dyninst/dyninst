@@ -39,12 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary_ELF.c,v 1.14 2005/04/07 13:18:54 chadd Exp $ */
+/* $Id: RTmutatedBinary_ELF.c,v 1.15 2005/06/14 04:16:02 rchen Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
  */
 
+#include <stdlib.h>
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include <unistd.h>
 #include  <fcntl.h>
@@ -112,13 +113,12 @@ typedef struct {
       } d_un;
   } __Elf_Dyn;
 
-unsigned int checkAddr;
+unsigned long checkAddr;
 /*extern int isMutatedExec;
 char *buffer;
 */
 
 struct link_map* map=NULL;
-unsigned int dl_debug_state_addr;
 
 #if defined(sparc_sun_solaris2_4)
 
@@ -177,7 +177,7 @@ int DYNINSTsaveRtSharedLibrary(char *rtSharedLibName, char *newName){
 	Now, it just exit()s, as you can see
 */
 
-void fixInstrumentation(char* soName, unsigned int currAddr, unsigned int oldAddr){
+void fixInstrumentation(char* soName, unsigned long currAddr, unsigned long oldAddr){
 	printf(" %s loaded at wrong address: 0x%x (expected at 0x%x) \n", soName, currAddr, oldAddr);
 	printf(" This is an unrecoverable error, the instrumentation will not");
 	printf("\n run correctly if shared libraries are loaded at a different address\n");
@@ -192,9 +192,9 @@ void fixInstrumentation(char* soName, unsigned int currAddr, unsigned int oldAdd
 	mean the shared library was *NOT* instrumented and can be loaded
 	anywhere
 */
-unsigned int checkSOLoadAddr(char *soName, unsigned int loadAddr){
-	unsigned int result=0, found = 0;
-	unsigned int address;
+unsigned long checkSOLoadAddr(char *soName, unsigned long loadAddr){
+	unsigned long result=0, found = 0;
+	unsigned long address;
 	char *ptr = sharedLibraryInfo;
 	while(ptr &&  *ptr && !found ){
 		/*fprintf(stderr," CHECKING FOR %s in %s\n", ptr, soName);*/
@@ -202,7 +202,7 @@ unsigned int checkSOLoadAddr(char *soName, unsigned int loadAddr){
         	if(strstr(soName, ptr) || strstr(ptr,soName)){
                 	found = 1;
 			ptr += (strlen(ptr) +1);
-			memcpy(&address, ptr, sizeof(unsigned int)); 
+			memcpy(&address, ptr, sizeof(unsigned long)); 
 			/* previous line is done b/c of alignment issues on sparc*/
 			if(loadAddr == address) {
 				result = 0;
@@ -212,8 +212,8 @@ unsigned int checkSOLoadAddr(char *soName, unsigned int loadAddr){
 		}
 
 		ptr += (strlen(ptr) +1);
-		ptr += sizeof(unsigned int);
-		ptr += sizeof(unsigned int); /* for flag */
+		ptr += sizeof(unsigned long);
+		ptr += sizeof(unsigned long); /* for flag */
 
 
 	}
@@ -222,13 +222,13 @@ unsigned int checkSOLoadAddr(char *soName, unsigned int loadAddr){
 		/*fprintf(stderr," NOT FOUND %s\n",soName);*/
 	}
 
-	/*fprintf(stderr," checkSOLoadAddr: %s %x %x\n", soName, loadAddr, result);*/
+	/*fprintf(stderr," checkSOLoadAddr: %s %lx %lx\n", soName, loadAddr, result);*/
 	return result;
 }
 #if defined(sparc_sun_solaris2_4)
 unsigned int register_o7;
 
-unsigned int loadAddr;
+unsigned long loadAddr;
 /*	this function is not a signal handler. it was originally but now is 
 	not, it is called below in dyninst_jump_template
 */ 
@@ -250,7 +250,6 @@ void pseudoSigHandler(int sig){
 	}
 }
 
-unsigned int loadAddr;
 void dyninst_jump_template(){
 /* THE PLAN:
 
@@ -376,7 +375,7 @@ void findMap(){ /* ccw 12 mar 2004*/
 
 }
 
-int checkMap(unsigned int addr){
+long checkMap(unsigned long addr){
 	int index=0;
 
 	findMap();	
@@ -392,7 +391,9 @@ int checkMap(unsigned int addr){
 
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
-unsigned int loadAddr;
+unsigned long loadAddr;
+void (*dl_debug_state_func)(void);
+
 void dyninst_dl_debug_state(){
 	asm("nop");
 	if(_r_debug.r_state == 1){
@@ -400,9 +401,9 @@ void dyninst_dl_debug_state(){
 			if(map->l_next){
 				map = map->l_next;
 			}
-			loadAddr = checkSOLoadAddr(map->l_name, map->l_ld);/*l_addr*/
+			loadAddr = checkSOLoadAddr(map->l_name, (unsigned long)map->l_ld);/*l_addr*/
 			if(loadAddr){
-				fixInstrumentation(map->l_name, map->l_ld, loadAddr);/*l_addr*/
+				fixInstrumentation(map->l_name, (unsigned long)map->l_ld, loadAddr);/*l_addr*/
 			}
 		}while(map->l_next);
 
@@ -412,14 +413,14 @@ void dyninst_dl_debug_state(){
 	 * _dl_debug_state to ensure correctness (if
 	 * someone relies on it being called it is
 	 * execuated after this function)
-	 * The value stored in dl_debug_state_addr is
+	 * The value stored in dl_debug_state_func is
 	 * the address of the function _dl_debug_state
 	 * and is set in checkElfFile
 	 */
 	asm("nop");
 	asm("nop");
 	asm("nop");
-	asm("call *dl_debug_state_addr");
+	(*dl_debug_state_func)();
 	asm("nop");
 
 }
@@ -445,12 +446,12 @@ void hack_ld_linux_plt(unsigned long pltEntryAddr){
 	unsigned long mprotectAddr = pltEntryAddr - (pltEntryAddr % getpagesize());	
 	unsigned long newTarget = (unsigned long) &dyninst_dl_debug_state ;
 	
-	mprotect( (void*) mprotectAddr, pltEntryAddr - mprotectAddr + 4, 
+	mprotect( (void*) mprotectAddr, pltEntryAddr - mprotectAddr + sizeof(long), 
 				PROT_READ|PROT_WRITE|PROT_EXEC);
 
-	memcpy( (void*) &dl_debug_state_addr, (void*) pltEntryAddr, 4); 
+	memcpy( (void*) dl_debug_state_func, (void*) pltEntryAddr, sizeof(long)); 
 
-	memcpy( (void*) pltEntryAddr, &newTarget, 4);
+	memcpy( (void*) pltEntryAddr, &newTarget, sizeof(long));
 }
 #endif
 
@@ -467,14 +468,14 @@ int checkSO(char* soName){
  	if((fd = (int) open(soName, O_RDONLY)) == -1){
 		RTprintf("cannot open : %s\n",soName);
     		fflush(stdout); 
-		return;
+		return result;
 	}
 	if((elf = elf_begin(fd, ELF_C_READ, NULL)) ==NULL){
 		RTprintf("%s %s \n",soName, elf_errmsg(elf_errno()));
 		RTprintf("cannot elf_begin\n");
 		fflush(stdout);
 		close(fd);
-		return;
+		return result;
 	}
 
 	ehdr = ELF_FUNC( getehdr(elf) );
@@ -503,13 +504,13 @@ int checkMutatedFile(){
 	Elf_Scn *scn;
 	char *execStr;
 	int retVal = 0, result;
-	unsigned int mmapAddr;
+	unsigned long mmapAddr;
 	int pageSize;
 	Address dataAddress;
 	int dataSize;
 	char* tmpPtr;
-	unsigned int updateAddress, updateSize, updateOffset;
-	unsigned int *dataPtr;
+	unsigned long updateAddress, updateSize, updateOffset;
+	unsigned long *dataPtr;
 	unsigned int numberUpdates,i ;
 	char* oldPageData;
 	Dl_info dlip;
@@ -530,14 +531,14 @@ int checkMutatedFile(){
 	if((fd = (int) open(execStr, O_RDONLY)) == -1){
 		printf("cannot open : %s\n",execStr);
     		fflush(stdout); 
-		return;
+		return retVal;
 	}
 	if((elf = elf_begin(fd, ELF_C_READ, NULL)) ==NULL){
 		printf("%s %s \n",execStr, elf_errmsg(elf_errno()));
 		printf("cannot elf_begin\n");
 		fflush(stdout);
 		close(fd);
-		return;
+		return retVal;
 	}
 
 	ehdr = ELF_FUNC( getehdr(elf) );
@@ -703,7 +704,7 @@ int checkMutatedFile(){
 			while(map && !done){
 				/*fprintf(stderr,"CHECKING %s 0x%x\n", map->l_name,map->l_addr);*/
 				if( * map->l_name  && strstr(map->l_name, "libdyninstAPI_RT")){
-					unsigned int loadaddr = map->l_addr;
+					unsigned long loadaddr = (unsigned long)map->l_addr;
 
 					/* 	LINUX PROBLEM. in the link_map structure the map->l_addr field is NOT
 						the load address of the dynamic object, as the documentation says.  It is the
@@ -714,7 +715,7 @@ int checkMutatedFile(){
 						correct.
 					*/
 #if defined(i386_unknown_linux2_0) || defined(x86_64_unknown_linux2_4)
-					loadaddr = map->l_ld;
+					loadaddr = (unsigned long)map->l_ld;
 #endif
 
 					/*fprintf(stderr," loadadd %x ptr %x\n", loadaddr, ptr);*/
@@ -768,7 +769,7 @@ int checkMutatedFile(){
 						correct.
 					*/
 #if defined(i386_unknown_linux2_0) || defined(x86_64_unknown_linux2_4)
-					loadaddr = map->l_ld;
+					loadaddr = (unsigned long)map->l_ld;
 #endif
 
 					/*fprintf(stderr," CHECKING: %s %x\n",map->l_name, map->l_addr);*/
@@ -949,7 +950,7 @@ int checkMutatedFile(){
 			oldPageDataSize = shdr->sh_size-(((2*numberUpdates)* sizeof(unsigned int)) +((sizeof(unsigned int)*count))) ;
 
 
-			oldPageData = (char*) malloc(oldPageDataSize+sizeof(unsigned int));
+			oldPageData = (char*) malloc(oldPageDataSize+sizeof(unsigned long));
 			/*fprintf(stderr,"oldpagedatasize %d datasize %d\n",oldPageDataSize,elfData->d_size);*/
 			/*copy old page data */
 
@@ -961,7 +962,7 @@ int checkMutatedFile(){
 			   so we use the /proc file system to read in the /proc/pid/map file
 			   and determine for our selves if the memory belongs to us yet or not*/
 			findMap();
-			checkAddr = checkMap((unsigned int)shdr->sh_addr);
+			checkAddr = checkMap((unsigned long)shdr->sh_addr);
 #else
 			checkAddr = dladdr((void*)shdr->sh_addr, &dlip);
 #endif
@@ -974,20 +975,20 @@ int checkMutatedFile(){
 				/* we dont own it,mmap it!*/
 
                         	mmapAddr = shdr->sh_offset;
-                        	mmapAddr =(unsigned int) mmap((void*) shdr->sh_addr,oldPageDataSize,
+                        	mmapAddr =(unsigned long) mmap((void*) shdr->sh_addr,oldPageDataSize,
                                 	PROT_READ|PROT_WRITE|PROT_EXEC,MAP_FIXED|MAP_PRIVATE,fd,mmapAddr);
 					/*fprintf(stderr,"MMAP %x %d %x size: %x\n",shdr->sh_addr, mmapAddr,shdr->sh_offset,oldPageDataSize);*/
 					
 
 			}else{
 				/*we own it, finish the memcpy */
-				mmapAddr = (unsigned int) memcpy((void*) oldPageData, 
+				mmapAddr = (unsigned long) memcpy((void*) oldPageData, 
                                       (const void*) shdr->sh_addr, oldPageDataSize);
 				/*fprintf(stderr,"memcpy %x %d\n",shdr->sh_addr, updateSize);*/
 
 			}
 
-			dataPtr =(unsigned int*) &(((char*)  elfData->d_buf)[oldPageDataSize]);	
+			dataPtr =(unsigned long *) &(((char*)  elfData->d_buf)[oldPageDataSize]);	
 			/*apply updates*/
 			for(i = 0; i< numberUpdates; i++){
 				updateAddress = *dataPtr; 
@@ -1006,7 +1007,7 @@ int checkMutatedFile(){
 			if(!checkAddr){
 				mmapAddr = shdr->sh_offset ;
 
-				mmapAddr =(unsigned int) mmap((void*) shdr->sh_addr,oldPageDataSize, 
+				mmapAddr =(unsigned long) mmap((void*) shdr->sh_addr,oldPageDataSize, 
 					PROT_READ|PROT_WRITE|PROT_EXEC, MAP_FIXED| MAP_PRIVATE,fd,mmapAddr);
 
 					/*fprintf(stderr,"2MMAP %x %d\n",shdr->sh_addr, mmapAddr);*/
@@ -1025,7 +1026,7 @@ int checkMutatedFile(){
 				that were loaded by BPatch_thread::loadLibrary */
 			void * handle =NULL;
 			Dl_info p;
-			unsigned int loadAddr;
+			unsigned long loadAddr;
 
 			elfData = elf_getdata(scn, NULL);
 			tmpPtr = elfData->d_buf;
@@ -1035,9 +1036,9 @@ int checkMutatedFile(){
 				if(handle){
 					dlinfo(handle, RTLD_DI_CONFIGADDR,(void*) &p);
 #if defined(sparc_sun_solaris2_4)
-					loadAddr = checkSOLoadAddr(tmpPtr,(unsigned int)p.dli_fbase);
+					loadAddr = checkSOLoadAddr(tmpPtr,(unsigned long)p.dli_fbase);
 					if(loadAddr){
-						fixInstrumentation(tmpPtr,(unsigned int)p.dli_fbase, loadAddr);
+						fixInstrumentation(tmpPtr,(unsigned long)p.dli_fbase, loadAddr);
 					}
 #endif
 

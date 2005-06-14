@@ -124,7 +124,7 @@ bool BPatch_eventMailbox::executeUserCallbacks()
         {
           BPatchUserEventCallback cb = (BPatchUserEventCallback) cbs[i].cb;
           void *buf = (void *) cbs[i].arg1;
-          unsigned int bufsize = (unsigned int) cbs[i].arg2;
+          unsigned long bufsize = (unsigned long) cbs[i].arg2;
 
           if (!buf || !cb) {
             err = true;

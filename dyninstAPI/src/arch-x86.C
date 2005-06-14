@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.30 2005/06/09 16:11:42 gquinn Exp $
+// $Id: arch-x86.C,v 1.31 2005/06/14 04:15:52 rchen Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -2907,8 +2907,8 @@ unsigned get_instruction(const unsigned char* addr, unsigned &insnType,
   return r1;
 }
 
-int addressOfMachineInsn(instruction *insn) {
-  return (int)insn->ptr();
+long addressOfMachineInsn(instruction *insn) {
+  return (long)insn->ptr();
 }
 
 int sizeOfMachineInsn(instruction *insn) {

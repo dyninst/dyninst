@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.26 2005/06/09 16:11:42 gquinn Exp $
+// $Id: arch-x86.h,v 1.27 2005/06/14 04:15:56 rchen Exp $
 // x86 instruction declarations
 
 #if !defined(i386_unknown_solaris2_5) \
@@ -450,7 +450,7 @@ int set_disp(bool setDisp, instruction *insn, int newOffset, bool outOfFunc);
 int displacement(const unsigned char *instr, unsigned type);
 
 int sizeOfMachineInsn(instruction *insn);
-int addressOfMachineInsn(instruction *insn);
+long addressOfMachineInsn(instruction *insn);
 
 int get_instruction_operand(const unsigned char *i_ptr, Register& base_reg,
 			    Register& index_reg, int& displacement, 

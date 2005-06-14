@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test6.C,v 1.29 2005/04/05 16:41:43 jodom Exp $
+// $Id: test6.C,v 1.30 2005/06/14 04:15:59 rchen Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -601,7 +601,7 @@ void init_test_data()
   loadList[++k] = MK_LD(0,1,-1,4);
   loadList[++k] = MK_LD(0,2,-1,4);
   loadList[++k] = MK_LD(0,3,-1,4);
-  loadList[++k] = MK_LD((int)divarwp,-1,-1,4);
+  loadList[++k] = MK_LD((long)divarwp,-1,-1,4);
   loadList[++k] = MK_LD(0,6,-1,4);
   loadList[++k] = MK_LD(0,7,-1,4);
 
@@ -613,48 +613,48 @@ void init_test_data()
   loadList[++k] = MK_LD(8,6,-1,4);
   loadList[++k] = MK_LD(4,7,-1,4);
 
-  loadList[++k] = MK_LD((int)divarwp-1,0,-1,4); // l15
-  loadList[++k] = MK_LD((int)divarwp+3,1,-1,4);
-  loadList[++k] = MK_LD((int)divarwp+7,2,-1,4);
-  loadList[++k] = MK_LD((int)divarwp+11,3,-1,4);
-  loadList[++k] = MK_LD((int)divarwp-1,5,-1,4);
-  loadList[++k] = MK_LD((int)divarwp+3,6,-1,4);
-  loadList[++k] = MK_LD((int)divarwp+7,7,-1,4);
+  loadList[++k] = MK_LD((long)divarwp-1,0,-1,4); // l15
+  loadList[++k] = MK_LD((long)divarwp+3,1,-1,4);
+  loadList[++k] = MK_LD((long)divarwp+7,2,-1,4);
+  loadList[++k] = MK_LD((long)divarwp+11,3,-1,4);
+  loadList[++k] = MK_LD((long)divarwp-1,5,-1,4);
+  loadList[++k] = MK_LD((long)divarwp+3,6,-1,4);
+  loadList[++k] = MK_LD((long)divarwp+7,7,-1,4);
 
   loadList[++k] = MK_LD(0,3,6,4); // l22
   loadList[++k] = MK_LD(0,4,-1,4);
   loadList[++k] = MK_LDsc(0,3,1,1,4);
-  loadList[++k] = MK_LDsc((int)divarwp,-1,1,1,4);
+  loadList[++k] = MK_LDsc((long)divarwp,-1,1,1,4);
   loadList[++k] = MK_LD(4,3,1,4);
-  loadList[++k] = MK_LDsc((int)divarwp,2,2,3,4);
+  loadList[++k] = MK_LDsc((long)divarwp,2,2,3,4);
   loadList[++k] = MK_LDsc(2,5,1,1,4); // l28
   loadList[++k] = MK_LDsc(4,3,1,2,4);
-  loadList[++k] = MK_LDsc((int)divarwp,5,1,2,4);
+  loadList[++k] = MK_LDsc((long)divarwp,5,1,2,4);
   
   loadList[++k] = MK_LD(0,4,-1,4);// l31
-  loadList[++k] = MK_LS((int)divarwp+4,-1,-1,4);
-  loadList[++k] = MK_LD((int)divarwp+4,-1,-1,4);
+  loadList[++k] = MK_LS((long)divarwp+4,-1,-1,4);
+  loadList[++k] = MK_LD((long)divarwp+4,-1,-1,4);
   loadList[++k] = MK_LD2(0,6,-1,1,0,7,-1,1);
 
-  loadList[++k] = MK_LS((int)divarwp,-1,-1,4); // l35
-  loadList[++k] = MK_LS((int)divarwp+4,-1,-1,4);
-  loadList[++k] = MK_LD((int)divarwp+8,-1,-1,4);
-//   loadList[++k] = MK_LD((int)divarwp+2,-1,-1,6); // l38
-  loadList[++k] = MK_LD((int)divarwp,-1,-1,1);
-  loadList[++k] = MK_LS((int)divarwp+4,-1,-1,4); // l40
-  loadList[++k] = MK_LD((int)divarwp,-1,-1,4);
+  loadList[++k] = MK_LS((long)divarwp,-1,-1,4); // l35
+  loadList[++k] = MK_LS((long)divarwp+4,-1,-1,4);
+  loadList[++k] = MK_LD((long)divarwp+8,-1,-1,4);
+//   loadList[++k] = MK_LD((long)divarwp+2,-1,-1,6); // l38
+  loadList[++k] = MK_LD((long)divarwp,-1,-1,1);
+  loadList[++k] = MK_LS((long)divarwp+4,-1,-1,4); // l40
+  loadList[++k] = MK_LD((long)divarwp,-1,-1,4);
 
-  loadList[++k] = MK_LD((int)divarwp,-1,-1,4);
-  loadList[++k] = MK_LD((int)divarwp+8,-1,-1,8);
+  loadList[++k] = MK_LD((long)divarwp,-1,-1,4);
+  loadList[++k] = MK_LD((long)divarwp+8,-1,-1,8);
 
-  loadList[++k] = MK_LD((int)dfvarsp,-1,-1,16); // l44
-  loadList[++k] = MK_LD((int)dfvarsp,-1,-1,4);
+  loadList[++k] = MK_LD((long)dfvarsp,-1,-1,16); // l44
+  loadList[++k] = MK_LD((long)dfvarsp,-1,-1,4);
 
-  loadList[++k] = MK_LD((int)dfvardp,-1,-1,16);
-  loadList[++k] = MK_LD((int)dfvardp,-1,-1,8);
+  loadList[++k] = MK_LD((long)dfvardp,-1,-1,16);
+  loadList[++k] = MK_LD((long)dfvardp,-1,-1,8);
 
-  loadList[++k] = MK_LD((int)dfvarsp,-1,-1,8); // l48
-  loadList[++k] = MK_LD((int)dfvarsp+8,-1,-1,8);
+  loadList[++k] = MK_LD((long)dfvarsp,-1,-1,8); // l48
+  loadList[++k] = MK_LD((long)dfvarsp+8,-1,-1,8);
   
 
   //loadList[++k] = MK_SL2(0,7,-1,4,0,6,-1,4); // l50
@@ -672,19 +672,19 @@ void init_test_data()
                                           0, 7, -1, 0,
                                           0, -1, IA32_ECMPS, 0);
 
-  loadList[++k] = MK_LD((int)dfvarsp,-1,-1,4);
-  loadList[++k] = MK_LD((int)dfvardp,-1,-1,8);
-  loadList[++k] = MK_LD((int)dfvartp,-1,-1,10);
-  loadList[++k] = MK_LD((int)divarwp,-1,-1,2);
-  loadList[++k] = MK_LD((int)divarwp+4,-1,-1,4);
-  loadList[++k] = MK_LD((int)divarwp+8,-1,-1,8);
+  loadList[++k] = MK_LD((long)dfvarsp,-1,-1,4);
+  loadList[++k] = MK_LD((long)dfvardp,-1,-1,8);
+  loadList[++k] = MK_LD((long)dfvartp,-1,-1,10);
+  loadList[++k] = MK_LD((long)divarwp,-1,-1,2);
+  loadList[++k] = MK_LD((long)divarwp+4,-1,-1,4);
+  loadList[++k] = MK_LD((long)divarwp+8,-1,-1,8);
 
-  loadList[++k] = MK_LD((int)divarwp,-1,-1,2);
-  loadList[++k] = MK_LD((int)dlargep,-1,-1,28);
+  loadList[++k] = MK_LD((long)divarwp,-1,-1,2);
+  loadList[++k] = MK_LD((long)dlargep,-1,-1,28);
 
-  loadList[++k] = MK_LDsccnd((int)divarwp,-1,-1,0,4,7); // cmova
-  loadList[++k] = MK_LDsccnd((int)divarwp+4,-1,-1,0,4,4); // cmove
-  loadList[++k] = MK_LD((int)divarwp+8,-1,-1,4);
+  loadList[++k] = MK_LDsccnd((long)divarwp,-1,-1,0,4,7); // cmova
+  loadList[++k] = MK_LDsccnd((long)divarwp+4,-1,-1,0,4,4); // cmove
+  loadList[++k] = MK_LD((long)divarwp+8,-1,-1,4);
 
   loadList[++k] = MK_LD(0,4,-1,4); // final pops
   loadList[++k] = MK_LD(0,4,-1,4);
@@ -698,14 +698,14 @@ void init_test_data()
   storeList[++k] = MK_ST(-4,4,-1,4);
   storeList[++k] = MK_ST(-4,4,-1,4);
 
-  storeList[++k] = MK_LS((int)divarwp+4,-1,-1,4); // s6
-  storeList[++k] = MK_ST((int)divarwp+4,-1,-1,4);
-  storeList[++k] = MK_LS((int)divarwp,-1,-1,4);
-  storeList[++k] = MK_LS((int)divarwp+4,-1,-1,4);
-  storeList[++k] = MK_ST((int)divarwp,-1,-1,4);   // s10
-  storeList[++k] = MK_LS((int)divarwp+4,-1,-1,4);
+  storeList[++k] = MK_LS((long)divarwp+4,-1,-1,4); // s6
+  storeList[++k] = MK_ST((long)divarwp+4,-1,-1,4);
+  storeList[++k] = MK_LS((long)divarwp,-1,-1,4);
+  storeList[++k] = MK_LS((long)divarwp+4,-1,-1,4);
+  storeList[++k] = MK_ST((long)divarwp,-1,-1,4);   // s10
+  storeList[++k] = MK_LS((long)divarwp+4,-1,-1,4);
 
-  storeList[++k] = MK_STnt((int)divarwp,-1,-1,8); // s12
+  storeList[++k] = MK_STnt((long)divarwp,-1,-1,8); // s12
   //storeList[++k] = MK_ST(0,7,-1,4);
   storeList[++k] = new BPatch_memoryAccess("", 0, 
 					   false, true,
@@ -716,20 +716,20 @@ void init_test_data()
   //storeList[++k] = MK_SL2(0,7,-1,4,0,6,-1,4); // s15
   storeList[++k] = MK_SL2vECX(0,7,-1,0,6,-1,2);
   
-  storeList[++k] = MK_ST((int)dfvarsp,-1,-1,4);
-  storeList[++k] = MK_ST((int)dfvardp,-1,-1,8);
-  storeList[++k] = MK_ST((int)dfvartp,-1,-1,10);
-  storeList[++k] = MK_ST((int)divarwp+2,-1,-1,2);
-  storeList[++k] = MK_ST((int)divarwp+4,-1,-1,4);
-  storeList[++k] = MK_ST((int)divarwp+8,-1,-1,8);
+  storeList[++k] = MK_ST((long)dfvarsp,-1,-1,4);
+  storeList[++k] = MK_ST((long)dfvardp,-1,-1,8);
+  storeList[++k] = MK_ST((long)dfvartp,-1,-1,10);
+  storeList[++k] = MK_ST((long)divarwp+2,-1,-1,2);
+  storeList[++k] = MK_ST((long)divarwp+4,-1,-1,4);
+  storeList[++k] = MK_ST((long)divarwp+8,-1,-1,8);
 
-  storeList[++k] = MK_ST((int)divarwp,-1,-1,2);
-  storeList[++k] = MK_ST((int)dlargep,-1,-1,28);
+  storeList[++k] = MK_ST((long)divarwp,-1,-1,2);
+  storeList[++k] = MK_ST((long)dlargep,-1,-1,28);
 
   k=-1;
 
-  prefeList[++k] = MK_PF((int)divarwp,-1,-1,IA32prefetchT0);
-  prefeList[++k] = MK_PF((int)divarwp,-1,-1,IA32AMDprefetch);
+  prefeList[++k] = MK_PF((long)divarwp,-1,-1,IA32prefetchT0);
+  prefeList[++k] = MK_PF((long)divarwp,-1,-1,IA32AMDprefetch);
 }
 #endif
 
