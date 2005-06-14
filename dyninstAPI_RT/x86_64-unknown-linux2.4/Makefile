@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2005/02/24 10:13:21 rchen Exp $
+# $Id: Makefile,v 1.2 2005/06/14 04:16:24 rchen Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -94,5 +94,5 @@ include ../../make.library.tmpl
 # This is just a dirty hack to make the build process complete
 # smoothly.  It should be removed when we can correctly build
 # a 64-bit runtime library.
-$(TARGET3_SO):
-	touch $(TARGET3_SO)
+#$(TARGET3_SO):
+#	touch $(TARGET3_SO)
