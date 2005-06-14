@@ -495,6 +495,36 @@ BPatch_flowGraph::getExitBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& nbb)
    return true;
 }
 
+// Small helper function to find first and last instruction address
+// of a given BPatch_loop.
+void
+findBoundries(BPatch_loop *loop, unsigned long &start, unsigned long &end)
+{
+    BPatch_basicBlock *target = loop->getBackEdge()->target;
+    BPatch_basicBlock *source = loop->getBackEdge()->source;
+
+    if (target->getRelStart() > source->getRelStart()) {
+	// Special case (GCC 4.0 and beyond)
+	//
+	// Backedge's target has higher address than source,
+	// meaning loop conditional comes after loop body.
+	//
+	// We must follow the conditional block's target
+	// pointer to find the lowest loop address.
+	source = target;
+
+	BPatch_Vector< BPatch_basicBlock * > blocks;
+	target->getTargets(blocks);
+	assert(blocks.size() > 1);
+
+	if (blocks[0]->getRelStart() < blocks[1]->getRelStart())
+	    target = blocks[0];
+	else
+	    target = blocks[1];
+    }
+    start = target->getRelStart();
+    end   = source->getRelLast();
+}
 
 void 
 BPatch_flowGraph::createLoops()
@@ -530,11 +560,12 @@ BPatch_flowGraph::createLoops()
             BPatch_loop *l1 = allLoops[i];
             BPatch_loop *l2 = allLoops[j];
             
-            unsigned long l1start = l1->backEdge->target->getRelStart();
-	    unsigned long l2start = l2->backEdge->target->getRelStart();   
-	    unsigned long l1end   = l1->backEdge->source->getRelLast();
-	    unsigned long l2end   = l2->backEdge->source->getRelLast();
-            
+	    unsigned long l1start, l1end;
+	    unsigned long l2start, l2end;
+
+	    findBoundries(l1, l1start, l1end);
+	    findBoundries(l2, l2start, l2end);
+
             // if l2 is inside l1
             if (l1start < l2start && l2end < l1end) {
                 // l1 contains l2
@@ -543,10 +574,14 @@ BPatch_flowGraph::createLoops()
                 // l2 has no parent, l1 is best so far
                 if (!l2->parent) 
                     l2->parent = l1;
-                else 
-                   // if l1 is closer to l2 than l2's existing parent
-                    if (l1start > l2->parent->getLoopHead()->getRelStart()) 
+                else {
+		    // if l1 is closer to l2 than l2's existing parent
+		    unsigned long pStart, pEnd;
+		    findBoundries(l2->parent, pStart, pEnd);
+
+                    if (l1start > pStart)
                         l2->parent = l1;
+		}
             }
         }
     }
@@ -1820,7 +1855,6 @@ void bsort_loops_addr_asc(BPatch_Vector<BPatch_loop*> &v)
 		v[j+1] = tmp;
             }
 }
-
 
 void 
 dfsCreateLoopHierarchy(BPatch_loopTreeNode * parent,
