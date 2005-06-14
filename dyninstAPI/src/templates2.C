@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.47 2005/06/08 20:59:10 tlmiller Exp $
+// $Id: templates2.C,v 1.48 2005/06/14 19:58:14 tlmiller Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -189,7 +189,7 @@ template class LineInformation::SourceLineInternTable;
 template class LineInformation::LineNoTupleToAddressRangeMap;
 template class LineInformation::RangeMapByAddress;
 
-#if defined( rs6000_ibm_aix51 )
+#if defined( rs6000_ibm_aix5_1 )
 #include <set>
 template class std::set< image * >;
-#endif
+#endif /* defined( rs6000_ibm_aix5_1 ) */
