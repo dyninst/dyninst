@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.30 2005/06/08 20:59:02 tlmiller Exp $
+// $Id: arch-ia64.h,v 1.31 2005/06/16 03:15:06 tlmiller Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -90,7 +90,8 @@ class IA64_instruction {
 
 		uint64_t getMachineCode() const { return instruction; }
 
-		enum insnType { RETURN, BRANCH_IA, DIRECT_CALL, DIRECT_BRANCH,
+		enum insnType { RETURN, BRANCH_IA, DIRECT_CALL, PREDICATED_BRANCH,
+						CONDITIONAL_BRANCH,
 						INDIRECT_CALL, INDIRECT_BRANCH, BRANCH_PREDICT,
 						ALAT_CHECK, SPEC_CHECK, MOVE_FROM_IP, OTHER,
 						INVALID, ALLOC, INTEGER_STORE, INTEGER_16_STORE,

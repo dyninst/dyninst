@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.41 2005/06/08 20:59:01 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.42 2005/06/16 03:15:05 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -285,7 +285,13 @@ IA64_instruction::insnType IA64_instruction::getType() const {
 					return OTHER;
 					} break;
 
-				case 0x4: return DIRECT_BRANCH;
+				case 0x4: {
+					uint8_t btype = tmpl.B.btype;
+					if( btype == 0 ) { return PREDICATED_BRANCH; }
+					if( btype == 2 || btype == 3 || btype == 5 || btype == 6 || btype == 7 ) { return CONDITIONAL_BRANCH; }
+				
+					return OTHER;
+					} break;
 				case 0x5: return DIRECT_CALL;
 				case 0x7: return BRANCH_PREDICT;
 
@@ -331,7 +337,7 @@ IA64_instruction::insnType IA64_instruction_x::getType() const {
 			return OTHER;
 
 		case 0xD: return DIRECT_CALL;
-		case 0xC: return DIRECT_BRANCH;
+		case 0xC: return PREDICATED_BRANCH;
 		default: return OTHER;
 		} /* end opcode switch */
 	} /* end getType() */
@@ -574,7 +580,7 @@ Address IA64_instruction::getTargetAddress() const {
 	insnType myType = getType();
 	insn_tmpl tmpl = { instruction };
 
-	if( myType == DIRECT_CALL || myType == DIRECT_BRANCH ) { /* Kind of pointless to guess at the target of indirect jumps. */
+	if( myType == DIRECT_CALL || myType == PREDICATED_BRANCH || myType == CONDITIONAL_BRANCH ) { /* Kind of pointless to guess at the target of indirect jumps. */
 		switch( GET_OPCODE(&tmpl) ) {
 			case 0x00: /* Indirect call and branch, respectively. */
 			case 0x01: assert( 0 );
@@ -595,7 +601,7 @@ Address IA64_instruction_x::getTargetAddress() const {
 	insnType myType = getType();
 	insn_tmpl tmpl = { instruction_x }, imm = { instruction };
 
-	if (myType == DIRECT_CALL || myType == DIRECT_BRANCH ) {
+	if (myType == DIRECT_CALL || myType == PREDICATED_BRANCH ) {
 		switch (GET_OPCODE(&tmpl)) {
 			case 0xC: return GET_X3_TARGET(&tmpl, &imm);
 			case 0xD: return GET_X4_TARGET(&tmpl, &imm);
@@ -613,9 +619,11 @@ BPatch_basicBlock * findBasicBlockInCFG( Address absoluteAddress, BPatch_flowGra
 	BPatch_Set< BPatch_basicBlock * > allBlocks;
 	cfg->getAllBasicBlocks( allBlocks );
 	
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: %d basic blocks in CFG.\n", __FILE__, __LINE__, allBlocks.size() );
 	BPatch_Set< BPatch_basicBlock * >::iterator iBegin = allBlocks.begin();
 	BPatch_Set< BPatch_basicBlock * >::iterator iEnd = allBlocks.end();
 	for( ; iBegin != iEnd; iBegin++ ) {
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: 0x%lx - 0x%lx\n", __FILE__, __LINE__, (* iBegin)->getStartAddress(), (* iBegin)->getLastInsnAddress() );
 		if(	(* iBegin)->getStartAddress() <= absoluteAddress &&
 			absoluteAddress <= (* iBegin)->getLastInsnAddress() ) {	return * iBegin; }
 		} /* end iteration over all blocks */
@@ -720,6 +728,7 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 
 	int_function * pdf = location->pointFunc();
 	assert( pdf != NULL );
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: calculating reaching allocs in function '%s' at point 0x%lx\n", __FILE__, __LINE__, pdf->symTabName().c_str(), location->pointAddr() + baseAddress );
 
 	/* Determine used FP regs, if needed */
 	if( !pdf->usedFPregs )
@@ -758,6 +767,7 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 		if( currentAlloc == NULL ) { continue; }
 		/* Switch back to me when the new parser arrives. */
 		// assert( currentAlloc != NULL );
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: updating dataflow sets for alloc at 0x%lx\n", __FILE__, __LINE__, absoluteAddress );
 
 		/* Generically, these should be functors from sets to sets. */
 		currentAlloc->setDataFlowGen( currentAlloc );
@@ -813,6 +823,7 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace 
 	BPatch_Set< BPatch_basicBlock * > * reachingAllocs = NULL;
 	BPatch_basicBlock * locationBlock = findBasicBlockInCFG( location->pointAddr() + baseAddress, cfg );
 	if( locationBlock ) {
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: location block found.\n", __FILE__, __LINE__ );
 		reachingAllocs = locationBlock->getDataFlowOut();
 		numAllocs = reachingAllocs->size();
 	}

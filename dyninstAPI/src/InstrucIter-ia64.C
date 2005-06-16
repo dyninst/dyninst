@@ -105,11 +105,14 @@ bool InstrucIter::isACondBranchInstruction()
 {
 	IA64_instruction * insn = getInstruction();
 	switch( insn->getType() ) {
-		case IA64_instruction::DIRECT_BRANCH:
+		case IA64_instruction::PREDICATED_BRANCH:
 		/* Not sure if this second case is intended. */
 		case IA64_instruction::INDIRECT_BRANCH: {
 			if( insn->getPredicate() != 0 ) { return true; }
-			break; } 
+			} break;
+			
+		case IA64_instruction::CONDITIONAL_BRANCH:
+			return true;
 		
 		default:
 			break;
@@ -122,7 +125,7 @@ bool InstrucIter::isAJumpInstruction()
 {
 	IA64_instruction * insn = getInstruction();
 	switch( insn->getType() ) {
-		case IA64_instruction::DIRECT_BRANCH:
+		case IA64_instruction::PREDICATED_BRANCH:
 			if( insn->getPredicate() == 0 ) { return true; }
 			break;
 

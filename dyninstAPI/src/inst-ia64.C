@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.77 2005/06/08 20:59:03 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.78 2005/06/16 03:15:07 tlmiller Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -489,7 +489,7 @@ bool int_function::findInstPoints( const image * i_owner ) {
 	for( ; iAddr < lastI; iAddr++ ) {	
 		currInsn = * iAddr;
 		switch( currInsn->getType() ) {
-			case IA64_instruction::DIRECT_BRANCH: {
+			case IA64_instruction::PREDICATED_BRANCH: {
 				/* Some system call -wrapping functions (write(), read()) jump to common code
 				   (at __libc_start_main+560) to handle system calls which return errors,
 				   but this common code returns directly, instead of jumping back to its
@@ -1011,7 +1011,7 @@ void emulateLongInstruction( IA64_instruction_x insnToEmulate, Address originalL
 
 	/* originalLocation is NOT an encoded address */
 	switch( instructionType ) {
-		case IA64_instruction::DIRECT_BRANCH: immediate = GET_X3_TARGET( &tmpl, &imm ); break;
+		case IA64_instruction::PREDICATED_BRANCH: immediate = GET_X3_TARGET( &tmpl, &imm ); break;
 		case IA64_instruction::DIRECT_CALL:   immediate = GET_X4_TARGET( &tmpl, &imm ); break;
 		default: {
             IA64_instruction memoryNOP( NOP_M );
@@ -1030,7 +1030,7 @@ void emulateLongInstruction( IA64_instruction_x insnToEmulate, Address originalL
 	int64_t displacement = target - source;
 
     switch( instructionType ) {
-		case IA64_instruction::DIRECT_BRANCH: SET_X3_TARGET( &tmpl, &imm, displacement); break;
+		case IA64_instruction::PREDICATED_BRANCH: SET_X3_TARGET( &tmpl, &imm, displacement); break;
 		case IA64_instruction::DIRECT_CALL:   SET_X4_TARGET( &tmpl, &imm, displacement); break;
 		default: break;
     }
@@ -1093,7 +1093,8 @@ void emulateShortInstruction( IA64_instruction insnToEmulate, Address originalLo
 	insn_tmpl tmpl = { insnToEmulate.getMachineCode() };
 
 	switch( insnToEmulate.getType() ) {
-		case IA64_instruction::DIRECT_BRANCH:
+		case IA64_instruction::PREDICATED_BRANCH:
+		case IA64_instruction::CONDITIONAL_BRANCH:
 			rewriteShortOffset( insnToEmulate, originalLocation, insnPtr, offset, size, allocatedAddress);
 			break; /* end direct jump handling */
 			
