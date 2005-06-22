@@ -550,7 +550,7 @@ void BPatch_module::parseTypes()
 		}
 		funcName = strdup(nmPtr);
 		
-		/* Not sure why this didn't crop up before; assumes mangled names. */
+		/* The call to parseLineInformation(), below, used to modify the symbols passed to it. */
 		char * colonPtr = strchr( funcName, ':' );
 		if( colonPtr != NULL ) {
 			* colonPtr = '\0';
