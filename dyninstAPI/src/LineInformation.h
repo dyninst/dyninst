@@ -42,8 +42,6 @@
 #if ! defined( LINE_INFORMATION_H )
 #define LINE_INFORMATION_H
 
-#include <map>
-
 #if ! defined( os_windows )
 #include <ext/hash_set>
 #else
@@ -53,29 +51,24 @@
 #include <vector>
 #endif
 
-#include "common/h/Types.h"
+#include "RangeLookup.h"
 
-class LineInformation {
-	public:		
-		typedef std::pair< const char *, unsigned int >		LineNoTuple;
-		typedef std::pair< Address, Address >				AddressRange;
-		
-	protected:
-		/* Explicit comparison functors seems slightly less confusing than using
-		   operator <() via an implicit Less<> template argument to the maps. */
-		struct LineNoTupleLess {
-			bool operator () ( LineNoTuple lhs, LineNoTuple rhs ) const;
-			};
-		
-		struct AddressRangeLess {
-			bool operator () ( AddressRange lhs, AddressRange rhs ) const;
-			};
-			
-		typedef std::multimap< LineNoTuple, AddressRange, LineNoTupleLess > LineNoTupleToAddressRangeMap;
-		typedef std::multimap< AddressRange, LineNoTuple, AddressRangeLess > RangeMapByAddress;		
+/* This is clumsy. */
+namespace LineInformationImpl {
+	typedef std::pair< const char *, unsigned int >		LineNoTuple;
+	
+	/* Explicit comparison functors seems slightly less confusing than using
+	   operator <() via an implicit Less<> template argument to the maps. */
+	struct LineNoTupleLess {
+		bool operator () ( LineNoTuple lhs, LineNoTuple rhs ) const;
+		};
+	} /* end namespace LineInformationImpl */			
 
-	public:		
-		typedef RangeMapByAddress::const_iterator			const_iterator;
+class LineInformation : private RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess > {
+	public:
+		typedef LineInformationImpl::LineNoTuple LineNoTuple;
+		typedef RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::const_iterator const_iterator;
+		typedef RangeLookup< LineInformationImpl::LineNoTuple, LineInformationImpl::LineNoTupleLess >::AddressRange AddressRange;
 		
 		LineInformation();
 
@@ -92,20 +85,17 @@ class LineInformation {
 		
 		~LineInformation();
 		
-		/* DEBUG */ void dump( FILE * stream );
-		/* DEBUG */ static void testInsertionSpeed();
-		
-	protected:		
-		struct SourceLineCompare {
-			bool operator () ( const char * lhs, const char * rhs ) const;
-			};
-			
+	protected:
 		/* We maintain internal copies of all the source file names.  Because
 		   both directions of the mapping include pointers to these names,
 		   maintain a separate list of them, and only ever deallocate those
 		   (in the destructor).  Note that it speeds and simplifies things
 		   to have the string pointers be the same. */
 #if ! defined( os_windows )		   
+		struct SourceLineCompare {
+			bool operator () ( const char * lhs, const char * rhs ) const;
+			};
+			
 		typedef __gnu_cxx::hash_set< const char *, __gnu_cxx::hash< const char * >, SourceLineCompare > SourceLineInternTable;
 #else
 		struct SourceLineLess {
@@ -115,10 +105,6 @@ class LineInformation {
 		typedef std::set< const char *, SourceLineLess > SourceLineInternTable;
 #endif 
 		SourceLineInternTable sourceLineNames;
-				
-		LineNoTupleToAddressRangeMap lineNoTupleToAddressRangeMap;
-		RangeMapByAddress rangesByAddress;
-
 	}; /* end class LineInformation */
 
 #if defined( rs6000_ibm_aix4_1 )
