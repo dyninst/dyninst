@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.48 2005/06/14 19:58:14 tlmiller Exp $
+// $Id: templates2.C,v 1.49 2005/06/22 21:38:54 tlmiller Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -186,8 +186,6 @@ template class pdvector< dictionary_hash< pdstring, bool >::entry >;
 
 #include "dyninstAPI/src/LineInformation.h"
 template class LineInformation::SourceLineInternTable;
-template class LineInformation::LineNoTupleToAddressRangeMap;
-template class LineInformation::RangeMapByAddress;
 
 #if defined( rs6000_ibm_aix5_1 )
 #include <set>
