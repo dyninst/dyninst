@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.167 2005/05/18 20:14:33 rchen Exp $
+// $Id: linux.C,v 1.168 2005/06/23 18:27:25 legendre Exp $
 
 #include <fstream>
 
@@ -1457,6 +1457,13 @@ int getNumberOfCPUs()
   return sysconf(_SC_NPROCESSORS_ONLN);
 }
 
+//Returns true if the function is part of the PLT table
+bool isPLT(int_function *f)
+{
+  const Object &obj = f->pdmod()->exec()->getObject();
+  return obj.is_offset_in_plt(f->getOffset());
+}
+
 // findCallee: finds the function called by the instruction corresponding
 // to the instPoint "instr". If the function call has been bound to an
 // address, then the callee function is returned in "target" and the 
@@ -1478,10 +1485,11 @@ int getNumberOfCPUs()
 // it is unlikely to happen in practice.
 bool process::findCallee(instPoint &instr, int_function *&target){
 
-   if((target = instr.getCallee())) {
+   target = instr.getCallee();
+   if (target && !isPLT(target)) {
       return true; // callee already set
-   }
-   
+   }   
+
    // find the corresponding image in this process  
    const image *owner = instr.getOwner();
    bool found_image = false;
@@ -1498,41 +1506,43 @@ bool process::findCallee(instPoint &instr, int_function *&target){
    } 
 
    if(!found_image) {
-      target = 0;
-      return false; // image not found...this is bad
+     target = 0;
+     return false; // image not found...this is bad
    }
 
+  
    // get the target address of this function
-   Address target_addr = 0;
-   //    Address insn_addr = instr.pointAddr(); 
-   target_addr = instr.getTargetAddressAbs(this);
+   Address target_addr = instr.getTargetAddressAbs(this);
    if(!target_addr) {
       // this is either not a call instruction or an indirect call instr
       // that we can't get the target address
       target = 0;
       return false;
-   }
+    }
 
-   // see if there is a function in this image at this target address
-   // if so return it
-   int_function *pdf = 0;
-   if( (pdf = this->findFuncByAddr(target_addr))) {
-       target = pdf;
-       instr.setCallee(pdf);
-       return true; // target found...target is in this image
-   }
+    // see if there is a function in this image at this target address
+    // if so return it
+    int_function *pdf = this->findFuncByAddr(target_addr);
+    if (pdf && !isPLT(pdf))
+    {
+      int_function *caller = instr.pointFunc();
+      target = pdf;
+      instr.setCallee(pdf);
+      return true; // target found...target is in this image
+    }
    
-   // else, get the relocation information for this image
-   const Object &obj = owner->getObject();
-   const pdvector<relocationEntry> *fbt;
-   if(!obj.get_func_binding_table_ptr(fbt)) {
-      target = 0;
-      return false; // target cannot be found...it is an indirect call.
-   }
+    // else, get the relocation information for this image
+    const Object &obj = owner->getObject();
+    const pdvector<relocationEntry> *fbt;
+    if(!obj.get_func_binding_table_ptr(fbt)) {
+       target = 0;
+       return false; // target cannot be found...it is an indirect call.
+    }
 
-   // find the target address in the list of relocationEntries
-   for(u_int i=0; i < fbt->size(); i++) {
-      if((*fbt)[i].target_addr() == target_addr) {
+    // find the target address in the list of relocationEntries
+    Address rel_target_addr = instr.getTargetAddress();
+    for(u_int i=0; i < fbt->size(); i++) {
+      if((*fbt)[i].target_addr() == rel_target_addr) {
          // check to see if this function has been bound yet...if the
          // PLT entry for this function has been modified by the runtime
          // linker
@@ -1543,20 +1553,21 @@ bool process::findCallee(instPoint &instr, int_function *&target){
             return true;  // target has been bound
          } 
          else {
-	    pdvector<int_function *> pdfv;
-	    bool found = findAllFuncsByName((*fbt)[i].name(), pdfv);
-	    if(found) {
-	       assert(pdfv.size());
-#ifdef BPATCH_LIBRARY
-	       if(pdfv.size() > 1)
-		   cerr << __FILE__ << ":" << __LINE__ 
-			<< ": WARNING:  findAllFuncsByName found " 
-			<< pdfv.size() << " references to function " 
-			<< (*fbt)[i].name() << ".  Using the first.\n";
-#endif
-	       target = pdfv[0];
-	       return true;
-	    }
+            pdvector<int_function *> pdfv;
+            bool found = findAllFuncsByName((*fbt)[i].name(), pdfv);
+            if(found) {
+               assert(pdfv.size());
+               for (unsigned j=0; j<pdfv.size(); j++)
+               {
+                  if (!isPLT(pdfv[j]))
+                  {
+                     target = pdfv[j];
+                     return true;
+                  }
+               }
+               target = pdfv[0];
+               return true;
+            }
             else {  
                // KLUDGE: this is because we are not keeping more than
                // one name for the same function if there is more
@@ -1576,48 +1587,48 @@ bool process::findCallee(instPoint &instr, int_function *&target){
 	       s += (*fbt)[i].name();
 	       found = findAllFuncsByName(s, pdfv);
 	       if(found) {
-		  assert(pdfv.size());
+             assert(pdfv.size());
 #ifdef BPATCH_LIBRARY
-		  if(pdfv.size() > 1)
-		     cerr << __FILE__ << ":" << __LINE__ 
-			  << ": WARNING: findAllFuncsByName found " 
-			  << pdfv.size() << " references to function " 
-			  << s << ".  Using the first.\n";
+             if(pdfv.size() > 1)
+                cerr << __FILE__ << ":" << __LINE__ 
+                     << ": WARNING: findAllFuncsByName found " 
+                     << pdfv.size() << " references to function " 
+                     << s << ".  Using the first.\n";
 #endif
-		  target = pdfv[0];
-		  return true;
+             target = pdfv[0];
+             return true;
 	       }
 		    
 	       s = pdstring("__");
 	       s += (*fbt)[i].name();
 	       found = findAllFuncsByName(s, pdfv);
 	       if(found) {
-		  assert(pdfv.size());
+             assert(pdfv.size());
 #ifdef BPATCH_LIBRARY
-		  if(pdfv.size() > 1)
-		     cerr << __FILE__ << ":" << __LINE__ 
-			  << ": WARNING: findAllFuncsByName found " 
-			  << pdfv.size() << " references to function "
-			  << s << ".  Using the first.\n";
+             if(pdfv.size() > 1)
+                cerr << __FILE__ << ":" << __LINE__ 
+                     << ": WARNING: findAllFuncsByName found " 
+                     << pdfv.size() << " references to function "
+                     << s << ".  Using the first.\n";
 #endif
-		  target = pdfv[0];
-		  return true;
+             target = pdfv[0];
+             return true;
 	       }
 #ifdef BPATCH_LIBRARY
 	       else
-		  cerr << __FILE__ << ":" << __LINE__
-		       << ": WARNING: findAllFuncsByName found no "
-		       << "matches for function " << (*fbt)[i].name() 
-		       << " or its possible aliases\n";
+             cerr << __FILE__ << ":" << __LINE__
+                  << ": WARNING: findAllFuncsByName found no "
+                  << "matches for function " << (*fbt)[i].name() 
+                  << " or its possible aliases\n";
 #endif
             }
          }
          target = 0;
          return false;
       }
-   }
-   target = 0;
-   return false;  
+    }
+    target = 0;
+    return false;  
 }
 
 fileDescriptor *getExecFileDescriptor(pdstring filename,

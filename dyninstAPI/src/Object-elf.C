@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.89 2005/05/18 20:14:26 rchen Exp $
+ * $Id: Object-elf.C,v 1.90 2005/06/23 18:27:26 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -427,6 +427,11 @@ bool Object::loaded_elf(Elf_X &elf, Address& txtaddr, Address& bssaddr,
 
   //if (addressWidth_nbytes == 8) bperr( ">>> 64-bit loaded_elf() successful\n");
   return true;
+}
+
+bool Object::is_offset_in_plt(Address offset) const
+{
+  return (offset > plt_addr_ && offset < plt_addr_ + plt_size_);
 }
 
 bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,

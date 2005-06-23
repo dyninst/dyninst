@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.64 2005/05/18 20:14:29 rchen Exp $
+ * $Id: Object-elf.h,v 1.65 2005/06/23 18:27:27 legendre Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -251,6 +251,8 @@ class Object : public AObject {
 		return true;
 	    return false;
 	}
+
+	bool is_offset_in_plt(Address offset) const;
 
  private:
   static void log_elferror (void (*)(const char *), const char *);
