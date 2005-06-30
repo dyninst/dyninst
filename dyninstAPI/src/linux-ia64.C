@@ -46,19 +46,16 @@
 // debugging... is there a Paradyn Standard for this?
 #define TRACE(expr)     fprintf( stderr, "At line %d of %s in %s: %s.\n", __LINE__, __PRETTY_FUNCTION__,  __FILE__, __STRING(expr) );
 
-#include "inst-ia64.h"
 #include "linux.h"
+#include "inst-ia64.h"
 #include "process.h"
 #include "dyn_lwp.h"
 
-//#include "libunwind-ptrace.h"
 /* For emitInferiorRPC*(). */
 #include "rpcMgr.h"
 
-#include <sys/ptrace.h>
-#include <asm/ptrace.h>
 #include <asm/ptrace_offsets.h>
-#include <dlfcn.h>			// DLOPEN_MODE
+#include <dlfcn.h>
 
 /* For proces::instrSideEffects() */
 #include "instPoint.h"

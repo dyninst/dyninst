@@ -46,7 +46,7 @@
 
 #include "arch-ia64.h"
 #include "inst-ia64.h"
-#include <linux/ptrace.h>
+#include <sys/ptrace.h>
 
 IA64_bundle generateTrapBundle();
 
@@ -62,8 +62,5 @@ struct dyn_saved_regs {
 	bool pcMayHaveRewound;
 	};
 #endif
-
-/* Removes a #ifdef in linux.C to include this here. */
-#include <asm/ptrace_offsets.h>
 
 #endif

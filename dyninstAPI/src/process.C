@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.540 2005/05/24 18:09:41 rutar Exp $
+// $Id: process.C,v 1.541 2005/06/30 00:52:02 tlmiller Exp $
 
 #include <ctype.h>
 
@@ -214,59 +214,38 @@ bool process::walkStackFromFrame(Frame startFrame,
   startTimingStackwalk();
 #endif
 
-#if defined(os_linux) 
+#if defined( os_linux ) 
+	/* Do a special check for the vsyscall page.  Silently drop
+	   the page if it exists. */
+#if defined( arch_ia64 )
+	/* The IA-64 doesn't use DWARF to unwind out of the vsyscall page,
+	   so calcVsyscallFrame() is overkill. */
+	if( getVsyscallStart() == 0x0 ) {
+		if( ! readAuxvInfo() ) {
+			/* We're probably on Linux 2.4; use default values. */
+			setVsyscallRange( 0xffffffffffffe000, 0xfffffffffffff000 );
+			setVsyscallData( NULL );
+			}
+		}
+#else
+	calcVSyscallFrame( this );
+#endif /* defined( arch_ia64 ) */
+  
   Address next_pc = currentFrame.getPC();
-
-  // Do a special check for the vsyscall page.  Silently drop
-  //  the page if it exists.
-#if defined(arch_ia64)
-  if (next_pc >= 0xffffffffffffe000 && next_pc < 0xfffffffffffff000) {
-    fpOld = currentFrame.getSP();
-    
-    /* Suppress this frame; catch-up doesn't need it, and the user shouldn't see it. */
-    currentFrame = currentFrame.getCallerFrame(); 
-  }
-#elif defined(arch_x86) || defined(arch_x86_64)
-  calcVSyscallFrame(this);
   if (next_pc >= getVsyscallStart() && next_pc < getVsyscallEnd()) {
      currentFrame = currentFrame.getCallerFrame();
   }
-#endif
+#endif /* defined( os_linux ) */
 
-#endif
-  // Do special check first time for leaf frames
-  // Step through the stack frames
   while (!currentFrame.isLastFrame()) {
-    
     // grab the frame pointer
     fpNew = currentFrame.getFP();
 
     // Check that we are not moving up the stack
     // successive frame pointers might be the same (e.g. leaf functions)
-#if !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
+#if ! defined( os_linux )
     if (fpOld > fpNew) {
-      
-      // AIX:
-      // There's a signal function in the MPI library that we're not
-      // handling properly. Instead of returning an empty stack,
-      // return what we have.
-      // One thing that makes me feel better: gdb is getting royally
-      // confused as well. This sucks for catchup.
-      
-      #if defined( ia64_unknown_linux2_4 )
-		/* My single-stepper needs to be able to continue past stackwalking errors. */      
-		// /* DEBUG */ fprintf( stderr, "Not terminating stackwalk early, even though fpOld (0x%lx) > fpNew (0x%lx).\n", fpOld, fpNew );
-		// /* DEBUG */ for( unsigned int i = 0; i < stackWalk.size(); i++ ) {
-		// /* DEBUG */ 	cerr << stackWalk[i] << endl;
-		// /* DEBUG */ 	} 
-		// /* DEBUG */	cerr << currentFrame << endl; 
-		// /* DEBUG */ cerr << endl;
-		break;
-      #else
-        // We should check to see if this early exit is warranted.
         return false;
-      #endif
     }
 #endif
     fpOld = fpNew;

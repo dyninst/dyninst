@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.78 2005/06/16 03:15:07 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.79 2005/06/30 00:51:58 tlmiller Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -75,6 +75,9 @@
 #include "dyninstAPI/src/instP.h"		// class returnInstance
 
 #include "dyninstAPI/src/rpcMgr.h"
+
+#include <sys/ptrace.h>
+#include <asm/ptrace_offsets.h>
 
 /* For unwinding through instrumentation. */
 #include <libunwind.h>

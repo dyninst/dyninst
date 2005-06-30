@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.168 2005/06/23 18:27:25 legendre Exp $
+// $Id: linux.C,v 1.169 2005/06/30 00:52:01 tlmiller Exp $
 
 #include <fstream>
 
@@ -48,7 +48,6 @@
 #include "dyninstAPI/src/dyn_lwp.h"
 
 #include <sys/ptrace.h>
-#include <asm/ptrace.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -1769,8 +1768,7 @@ bool dyn_lwp::representativeLWP_attach_() {
    return true;
 }
 
-#if defined(arch_x86) || defined(arch_x86_64)
-//These constants are not defined in all versions of elf.h
+// These constants are not defined in all versions of elf.h
 #ifndef AT_NULL
 #define AT_NULL 0
 #endif
@@ -1820,9 +1818,17 @@ bool process::readAuxvInfo()
 
   // FC3 hackage. If we didn't find the vsyscall page, guess
   if (text_start == 0x0 && dso_start == 0x0) {
+#if defined( arch_x86 )
     cerr << "Warning: couldn't find vsyscall page, assuming addr of 0xffffe000" << endl;
     text_start = 0xffffe400;
     dso_start = 0xffffe000;
+#else
+	/* Untested; text_start unknown. */
+	cerr << "Warning: couldn't find vsyscall page, assuming addr of 0xa000000000010000." << endl;
+	dso_start = 0xa000000000010000;
+	/* Garbage value to satisfy the assert; IA-64 doesn't care. */
+	text_start = 0xa000000000010000;
+#endif
   }
   
   assert(text_start != 0x0 && dso_start != 0x0);
@@ -1834,7 +1840,6 @@ bool process::readAuxvInfo()
 
   return true;
 }
-#endif
 
 void loadNativeDemangler() {}
 
