@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.11 2005/05/13 09:17:21 jaw Exp $
+# $Id: Makefile,v 1.12 2005/07/06 18:27:51 rchen Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -33,8 +33,8 @@ TEST1_FORTRAN_CSOURCE = test1.mutateeFortC.c
 
 TEST6_AS_GNU = as
 TEST6_ASFLAGS_GNU = 
-TEST6_ASSUFFIX = s
 TEST6_AS_SRC = test6LS-power.s
+TEST6_AS_OBJ_BASE = $(basename $(TEST6_AS_SRC))
 
 c1 = $(shell lslpp -l 'vacpp.cmp.C' | grep COMMITTED | head -1)
 c2 = $(shell lslpp -l 'vacpp.cmp.core' | grep COMMITTED | head -1)

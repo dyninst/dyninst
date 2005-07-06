@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.9 2005/05/13 09:17:20 jaw Exp $
+# $Id: Makefile,v 1.10 2005/07/06 18:27:40 rchen Exp $
 #
 # Makefile for dyninstAPI test programs on Tru64 Alpha
 #
@@ -49,8 +49,8 @@ MUTATEE_LDFLAGS_NATIVE += -lrt
 
 TEST6_AS_GNU = as
 TEST6_ASFLAGS = -cpp
-TEST6_ASSUFFIX = s
 TEST6_AS_SRC = test6LS-alpha.s
+TEST6_AS_OBJ_BASE = $(basename $(TEST6_AS_SRC))
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

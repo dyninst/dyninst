@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.12 2005/05/13 09:17:21 jaw Exp $
+# $Id: Makefile,v 1.13 2005/07/06 18:27:47 rchen Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -59,7 +59,7 @@ CALL35_1_SRC = call35_1.c
 TEST6_AS_GNU = as
 TEST6_ASFLAGS_GNU = 
 TEST6_AS_SRC = test6LS-ia64.s
-TEST6_ASSUFFIX = s
+TEST6_AS_OBJ_BASE = $(basename $(TEST6_AS_SRC))
 
 TESTLIB_FLAGS = -fpic -shared -g -Wl,-export-dynamic -Wl,-ldl
 

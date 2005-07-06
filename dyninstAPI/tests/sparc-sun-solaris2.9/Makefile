@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.6 2005/05/13 09:17:21 jaw Exp $
+# $Id: Makefile,v 1.7 2005/07/06 18:27:57 rchen Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -70,8 +70,8 @@ endif
 
 TEST6_AS_GNU = gcc -c 
 TEST6_AS_SRC = test6LS-sparc.S
+TEST6_AS_OBJ_BASE = $(basename $(TEST6_AS_SRC))
 TEST6_ASFLAGS_GNU = -P -Wa,-xarch=v8plus
-TEST6_ASSUFFIX = S
 
 CALL35_1_SRC = call35_1_sparc_solaris.s
 
