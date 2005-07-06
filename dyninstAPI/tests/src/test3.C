@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3.C,v 1.36 2005/02/24 10:17:50 rchen Exp $
+// $Id: test3.C,v 1.37 2005/07/06 18:28:14 rchen Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -695,7 +695,7 @@ void mutatorTest5(char *pathname, BPatch *bpatch)
 
 int main(unsigned int argc, char *argv[])
 {
-    bool N32ABI=false;
+    bool ABI_32=false;
     char mutateeName[128];
     char libRTname[256];
     bool runTest[MAX_TEST+1];		// should we run a particular test
@@ -793,15 +793,15 @@ int main(unsigned int argc, char *argv[])
 	} else if (!strcmp(argv[i], "-relocate")) {
             forceRelocation = true;
 #endif
-#if defined(mips_sgi_irix6_4)
-	} else if (!strcmp(argv[i], "-n32")) {
-	    N32ABI=true;
+#if defined(x86_64_unknown_linux2_4)
+	} else if (!strcmp(argv[i], "-m32")) {
+	    ABI_32=true;
 #endif
 	} else {
 	    fprintf(stderr, "Usage: test3 "
 		    "[-V] [-verbose] "
-#if defined(mips_sgi_irix6_4)
-		    "[-n32] "
+#if defined(x86_64_unknown_linux2_4)
+		    "[-m32] "
 #endif
                     "[-mutatee <test3.mutatee>] "
                     "[-plurality #] "
@@ -827,9 +827,9 @@ int main(unsigned int argc, char *argv[])
 #else
         strcat(mutateeName,"_gcc");
 #endif
-    if (N32ABI || strstr(mutateeName,"_n32")) {
+    if (ABI_32 || strstr(mutateeName,"_m32")) {
         // patch up file names based on alternate ABI (as necessary)
-        if (!strstr(mutateeName, "_n32")) strcat(mutateeName,"_n32");
+        if (!strstr(mutateeName, "_m32")) strcat(mutateeName,"_m32");
     }
     // patch up the platform-specific filename extensions
 #if defined(i386_unknown_nt4_0)

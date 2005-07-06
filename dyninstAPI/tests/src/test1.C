@@ -5217,7 +5217,7 @@ main(unsigned int argc, char *argv[])
     char mutateeName[128];
     char libRTname[256];
 
-    bool N32ABI = false;
+    bool ABI_32 = false;
     bool useAttach = false;
 
     strcpy(mutateeName,mutateeNameRoot);
@@ -5317,15 +5317,15 @@ main(unsigned int argc, char *argv[])
 #endif
         } else if (!strcmp(argv[i], "-delayedparse")) {
 	  delayedParse = true;
-#if defined(mips_sgi_irix6_4)
-	} else if (!strcmp(argv[i], "-n32")) {
-            N32ABI = true;
+#if defined(x86_64_unknown_linux2_4)
+	} else if (!strcmp(argv[i], "-m32")) {
+            ABI_32 = true;
 #endif
 	} else {
 	    fprintf(stderr, "Usage: test1 "
 		    "[-V] [-verbose] [-attach] "
-#if defined(mips_sgi_irix6_4)
-		    "[-n32] "
+#if defined(x86_64_unknown_linux2_4)
+		    "[-m32] "
 #endif
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
@@ -5360,11 +5360,11 @@ main(unsigned int argc, char *argv[])
 #else
         strcat(mutateeName,"_gcc");
 #endif
-    if (N32ABI || strstr(mutateeName,"_n32")) {
+    if (ABI_32 || strstr(mutateeName,"_m32")) {
         // patch up file names based on alternate ABI (as necessary)
-        if (!strstr(mutateeName, "_n32")) strcat(mutateeName,"_n32");
-        strcat(libNameA,"_n32");
-        strcat(libNameB,"_n32");
+        if (!strstr(mutateeName, "_m32")) strcat(mutateeName,"_m32");
+        strcat(libNameA,"_m32");
+        strcat(libNameB,"_m32");
     }
 		
     // patch up the platform-specific filename extensions
