@@ -103,6 +103,10 @@ FORALL_MUTATEES = mutatee_util
 TESTLIB_STEMS 	+= libtestA libtestB libTest12 libInstMe libLoadMe
 TESTLIBS = $(addsuffix .so, $(TESTLIB_STEMS))
 
+ifdef M_ABI
+TESTLIBS_ABI = $(addsuffix _$(M_ABI).so, $(TESTLIB_STEMS))
+endif
+
 #######################################################################
 ### Generated lists of source files
 #######################################################################
@@ -116,8 +120,6 @@ SRCS_FORALL_MUTATEES 	+= $(addsuffix .c,$(FORALL_MUTATEES))
 SRCS_MUTATEES_CXX 	+= $(addsuffix .c,$(MUTATEES_CXX))
 SRCS_MUTATEES_CXX 	+= $(addsuffix .C,$(MUTATEES_CXX_ONLY))
 
-SRCS_TESTLIBS_C 	+= $(addsuffix .c,$(TESTLIBS))
-
 #######################################################################
 ###  Target file name list generation
 #######################################################################
@@ -127,6 +129,15 @@ SRCS_TESTLIBS_C 	+= $(addsuffix .c,$(TESTLIBS))
 MUTATEES_GCC		+= $(addsuffix _gcc,$(MUTATEES_C))
 MUTATEES_GXX		+= $(addsuffix _g++,$(MUTATEES_CXX))
 MUTATEES_GXX		+= $(addsuffix _g++,$(MUTATEES_CXX_ONLY))
+
+ifdef M_ABI
+MUTATEES_GCC_ABI	+= $(addsuffix _gcc_$(M_ABI), $(MUTATEES_C))
+MUTATEES_GXX_ABI	+= $(addsuffix _g++_$(M_ABI), $(MUTATEES_CXX))
+MUTATEES_GXX_ABI	+= $(addsuffix _g++_$(M_ABI), $(MUTATEES_CXX_ONLY))
+
+# Special Case: NASM does not produce x86_64 object files yet.
+MUTATEES_GCC_ABI	:= $(filter-out test6%, $(MUTATEES_GCC_ABI))
+endif
 
 ifdef M_G77
 MUTATEES_G77		+= $(addsuffix _g77,$(MUTATEES_FORTRAN))
@@ -145,8 +156,12 @@ ifdef NATIVE_FC
 MUTATEES_NATIVE_FC		+= $(addsuffix _$(NATIVE_FC),$(MUTATEES_FORTRAN))
 endif
 
-TEST6_AS_OBJ_GNU 		= $(TEST6_AS_SRC:%.$(TEST6_ASSUFFIX)=%.o)
+TEST6_AS_OBJ_GNU 		= $(addsuffix .o,$(TEST6_AS_OBJ_BASE))
 CALL35_1_OBJ 			= $(CALL35_1_SRC:call%.s=call%.o)
+
+ifdef M_ABI
+CALL35_1_OBJ_ABI		= $(CALL35_1_SRC_ABI:call%.s=call%.o)
+endif
 
 OBJS_FORALL_MUTATORS		= $(SRCS_FORALL_MUTATORS:%.C=%.o)
 
@@ -157,6 +172,10 @@ OBJS_FORALL_MUTATORS		= $(SRCS_FORALL_MUTATORS:%.C=%.o)
 ALL_TARGETS			= $(MUTATORS) $(MUTATEES_GCC) $(MUTATEES_GXX)
 ALL_TARGETS			+= $(TESTLIBS)
 ALL_TARGETS			+= test11
+ifdef M_ABI
+ALL_TARGETS			+= $(MUTATEES_GCC_ABI) $(MUTATEES_GXX_ABI)
+ALL_TARGETS			+= $(TESTLIBS_ABI)
+endif
 ifdef M_G77
 ALL_TARGETS			+= $(MUTATEES_G77)
 endif
@@ -192,10 +211,24 @@ CXXFLAGS += $(DYNINST_INCDIR)
 %_g++.o: %.C 
 	$(M_GXX) $(CXXFLAGS) $(MUTATEE_CXXFLAGS_GNU) -c $< -o $@
 
-call%.o: call%.s
+ifdef M_ABI
+%_gcc_$(M_ABI).o: %.c
+	$(M_GCC) $(M_ABI_FLAG) -c $< $(CFLAGS) $(MUTATEE_CFLAGS_GNU) -o $@
+%_g++_$(M_ABI).o: %.c 
+	$(M_GXX) $(M_ABI_FLAG) $(CXXFLAGS) $(MUTATEE_CXXFLAGS_GNU) -c $< -o $@
+%_g++_$(M_ABI).o: %.C 
+	$(M_GXX) $(M_ABI_FLAG) $(CXXFLAGS) $(MUTATEE_CXXFLAGS_GNU) -c $< -o $@
+endif
+
+$(CALL35_1_OBJ): $(CALL35_1_SRC)
 	$(M_GCC) -c $< $(CFLAGS) $(MUTATEE_CFLAGS_GNU) -o $@ 
-test6LS%.o: test6LS%.$(TEST6_ASSUFFIX)
+$(TEST6_AS_OBJ_GNU): $(TEST6_AS_SRC)
 	$(TEST6_AS_GNU) $(TEST6_ASFLAGS_GNU) -o $@ $<
+
+ifdef M_ABI
+$(CALL35_1_OBJ_ABI): $(CALL35_1_SRC_ABI)
+	$(M_GCC) $(M_ABI_FLAG) -c $< $(CFLAGS) $(MUTATEE_CFLAGS_GNU) -o $@ 
+endif
 
 
 .C.o:
@@ -221,8 +254,8 @@ install: $(TEST_DEST) $(ALL_TARGETS_DEST)
 
 clean:
 	$(RM) *.da *.bb. *.bbg 
-	$(RM) $(TESTLIBS) 
-	$(RM) $(MUTATORS) $(MUTATEES_GCC) $(MUTATEES_GXX) $(MUTATEES_G77) $(MUTATEES_GXX_ONLY)
+	$(RM) $(TESTLIBS) $(TESTLIBS_ABI)
+	$(RM) $(MUTATORS) $(MUTATEES_GCC) $(MUTATEES_GXX) $(MUTATEES_GCC_ABI) $(MUTATEES_GXX_ABI) $(MUTATEES_G77) $(MUTATEES_GXX_ONLY)
 	$(RM) *.o $(MUTATEES_NATIVE_CC) $(MUTATEES_NATIVE_CXX) $(MUTATEES_NATIVE_FC) $(MUTATEES_NATIVE_CXX_ONLY)
 	$(RM) test11
 
@@ -235,9 +268,9 @@ distclean: clean
 
 mutators: $(MUTATORS) test11
 mutatees: gnu_mutatees native_mutatees
-gnu_mutatees: $(MUTATEES_GCC) $(MUTATEES_GXX) $(MUTATEES_G77)
+gnu_mutatees: $(MUTATEES_GCC) $(MUTATEES_GXX) $(MUTATEES_G77) $(MUTATEES_GCC_ABI) $(MUTATEES_GXX_ABI)
 native_mutatees: $(MUTATEES_NATIVE_CC) $(MUTATEES_NATIVE_CXX) $(MUTATEES_NATIVE_FC) $(MUTATEES_NATIVE_CXX_ONLY)
-testlibs: $(TESTLIBS)
+testlibs: $(TESTLIBS) $(TESTLIBS_ABI)
 
 .PHONY: clean install distclean mutators mutatees testlibs gnu_mutatees native_mutatees
 
@@ -253,16 +286,32 @@ else
 	$(CC) $(TESTLIB_FLAGS) -I$(TO_CORE)/dyninstAPI_RT/h -I../src/ $(filter %.c,$^) -o $@
 endif
 
+ifdef M_ABI
+$(TESTLIBS_ABI): %_$(M_ABI).so : %.c $(DEPENDDIR)/%.dep
+ifdef MAKE_SHARED_LIB
+	$(CC) -g -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $*.o -o $@
+else
+	$(CC) $(M_ABI_FLAG) $(TESTLIB_FLAGS) -I$(TO_CORE)/dyninstAPI_RT/h -I../src/ $(filter %.c,$^) -o $@
+endif
+endif
 
 #######################################################################
 ###  Special Prerequisites for specific Mutatees:
 #######################################################################
 
 # Test 1 mutatee depends on two extra files
-test1.mutatee_gcc: $(CALL35_1_OBJ) test1.mutateeCommon_gcc.o 
-test1.mutatee_g++: $(CALL35_1_OBJ) test1.mutateeCommon_g++.o 
-test1.mutatee_$(NATIVE_CC): $(CALL35_1_SRC) test1.mutateeCommon.c 
-test1.mutatee_$(NATIVE_CXX): $(CALL35_1_SRC) test1.mutateeCommon.c 
+test1.mutatee_gcc: $(CALL35_1_OBJ) test1.mutateeCommon_gcc.o
+test1.mutatee_g++: $(CALL35_1_OBJ) test1.mutateeCommon_g++.o
+test1.mutatee_$(NATIVE_CC): $(CALL35_1_SRC) test1.mutateeCommon.c
+test1.mutatee_$(NATIVE_CXX): $(CALL35_1_SRC) test1.mutateeCommon.c
+
+ifdef M_ABI
+test1.mutatee_gcc_$(M_ABI): $(CALL35_1_OBJ_ABI) test1.mutateeCommon_gcc_m32.o
+test1.mutatee_g++_$(M_ABI): $(CALL35_1_OBJ_ABI) test1.mutateeCommon_g++_m32.o
+test1.mutatee_$(NATIVE_CC)_$(M_ABI): $(CALL35_1_SRC_ABI) test1.mutateeCommon.c
+test1.mutatee_$(NATIVE_CXX)_$(M_ABI): $(CALL35_1_SRC_ABI) test1.mutateeCommon.c
+endif
 
 # Test 6 mutatee depends on a platform-specific asm file
 test6.mutatee_$(NATIVE_CC): $(TEST6_AS_OBJ_GNU) 
@@ -272,6 +321,11 @@ test6.mutatee_gcc: $(TEST6_AS_OBJ_GNU)
 # libInstMe.so must be built before test9.mutatee
 test9.mutatee_gcc: libInstMe.so
 test9.mutatee_$(NATIVE_CC): libInstMe.so
+
+ifdef M_ABI
+test9.mutatee_gcc: libInstMe_$(M_ABI).so
+test9.mutatee_$(NATIVE_CC): libInstMe_(M_ABI).so
+endif
 
 # MUTATEE_SPECIFIC_LIBS is analyzed by gmake when constructing the link line
 # If you want to specify that a specific library should be used to link a specific
@@ -284,6 +338,11 @@ MUTATEE_SPECIFIC_LIBS_GNU 	+= 12.-lpthread
 MUTATEE_SPECIFIC_LIBS_NATIVE 	+= $(MUTATEE_TEST9_EXTRA_LIB)
 MUTATEE_SPECIFIC_LIBS_NATIVE 	+= 12.-lpthread
 
+ifdef M_ABI
+MUTATEE_SPECIFIC_LIBS_GNU_ABI 	+= $(MUTATEE_TEST9_EXTRA_LIB_ABI)
+MUTATEE_SPECIFIC_LIBS_GNU_ABI	+= 12.-lpthread
+endif
+
 #######################################################################
 ###  Generic mutatee build rules (GNU and NATIVE):
 #######################################################################
@@ -294,9 +353,21 @@ $(MUTATEES_GCC): test%.mutatee_gcc : test%.mutatee_gcc.o $(DEPENDDIR)/test%.muta
 	$(M_GCC) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) $(MUTATEE_LIBS) \
             $(subst $*.,,$(filter $*.%, $(MUTATEE_SPECIFIC_LIBS_GNU)))
 
-$(MUTATEES_GXX): test%.mutatee_g++ : test%.mutatee_g++.o  $(DEPENDDIR)/test%.mutatee_g++.dep mutatee_util_g++.o
+$(MUTATEES_GXX): test%.mutatee_g++ : test%.mutatee_g++.o $(DEPENDDIR)/test%.mutatee_g++.dep mutatee_util_g++.o
 	$(M_GXX) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) $(MUTATEE_LIBS) \
             $(subst $*.,,$(filter $*.%, $(MUTATEE_SPECIFIC_LIBS_GNU)))
+
+# GNU Secondary ABI Mutatees
+ifdef M_ABI
+$(MUTATEES_GCC_ABI): test%.mutatee_gcc_$(M_ABI) : test%.mutatee_gcc_$(M_ABI).o $(DEPENDDIR)/test%.mutatee_gcc.dep mutatee_util_gcc_$(M_ABI).o
+	$(M_GCC) $(M_ABI_FLAG) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) $(MUTATEE_LIBS) \
+            $(subst $*.,,$(filter $*.%, $(MUTATEE_SPECIFIC_LIBS_GNU_ABI)))
+
+$(MUTATEES_GXX_ABI): test%.mutatee_g++_$(M_ABI) : test%.mutatee_g++_$(M_ABI).o $(DEPENDDIR)/test%.mutatee_g++.dep mutatee_util_g++_$(M_ABI).o
+	$(M_GXX) $(M_ABI_FLAG) -o $@ $(filter %.o,$^) $(MUTATEE_LDFLAGS_GNU) $(MUTATEE_LIBS) \
+            $(subst $*.,,$(filter $*.%, $(MUTATEE_SPECIFIC_LIBS_GNU_ABI)))
+endif
+
 
 # GNU Fortran (g77) mutatees
 # 
@@ -449,7 +520,7 @@ endif
 
 $(DEPS_TESTLIBS): $(DEPENDDIR)/lib%.dep : lib%.c 
 	@mkdir -p $(DEPENDDIR)
-	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) lib$*.so > $@
+	$(DEPCC) $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI_RT/h $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) lib$*.so > $@
 
 
 # do not include dep files for "clean" targets
