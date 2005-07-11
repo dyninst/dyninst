@@ -80,6 +80,11 @@ unsigned InstrucIter::getRAValue(void)
   return i.xform.ra;
 }
 
+unsigned InstrucIter::getRBValue(void)
+{
+  const instruction i = getInstruction();
+  return i.xform.rb;
+}
 
 /* This function returns true if the instruction affects the RD Register */
 bool InstrucIter::isA_RT_WriteInstruction()
@@ -177,6 +182,255 @@ bool InstrucIter::isA_FRT_WriteInstruction()
     }
 }  
 
+
+/* This function returns true if the instruction reads the RT Register */
+bool InstrucIter::isA_RT_ReadInstruction()
+{
+  const instruction i = getInstruction();
+  if (
+      /* XO Form */
+      (i.xoform.op == 31 && i.xoform.xo == 922) ||
+      
+      /* D Form */
+      (i.dform.op >= 24 && i.dform.op  <= 29) || 
+      (i.dform.op >= 36 && i.dform.op  <= 39) ||
+      i.dform.op == 47 ||
+
+      /* M  Form */
+      (i.mform.op >= 20 && i.mform.op <=23) ||
+
+
+      /*  XFX Form */
+      (i.xfxform.op == 31 && i.xfxform.xo == 144 ) ||
+      
+      
+       /* X Form */
+      (i.xfxform.op == 31 && ( i.xform.xo == 24 || i.xform.xo == 26 ||
+				i.xform.xo == 28  || i.xform.xo == 29 || i.xform.xo == 60 ||
+				i.xform.xo == 124  || i.xform.xo == 150 ||
+				i.xform.xo == 151  || i.xform.xo == 152 || i.xform.xo == 153 ||
+				i.xform.xo == 183  || i.xform.xo == 184 || i.xform.xo == 215 ||
+				i.xform.xo == 216  || i.xform.xo == 217 || i.xform.xo == 247 ||
+				i.xform.xo == 248  || i.xform.xo == 284 || i.xform.xo == 316 ||
+				i.xform.xo == 412  || i.xform.xo == 444 ||
+				i.xform.xo == 467  || i.xform.xo == 476 || i.xform.xo == 536 ||
+				i.xform.xo == 537  || i.xform.xo == 541 || i.xform.xo == 661 ||
+				i.xform.xo == 662  || i.xform.xo == 664 || i.xform.xo == 665 ||
+				i.xform.xo == 696  || i.xform.xo == 725 || i.xform.xo == 728 ||
+				i.xform.xo == 729  || i.xform.xo == 760 || i.xform.xo == 792 ||
+				i.xform.xo == 824  || i.xform.xo == 920 || i.xform.xo == 921 ||
+				i.xform.xo == 922 || i.xform.xo == 952 || i.xform.xo == 954 )))
+      
+    {
+      return true;
+    }
+  else
+    {
+      return false;
+    }
+}
+
+
+/* This function returns true if the instruction reads the FRT Register */
+bool InstrucIter::isA_FRT_ReadInstruction()
+{
+  const instruction i = getInstruction();
+  if (
+      /* D Form */
+      (i.dform.op == 44 || i.dform.op == 45 ) || 
+      (i.dform.op >= 52 && i.dform.op  <= 55) ||
+      
+      /* X Form */
+      (i.xform.op == 31 && ( i.xform.xo == 407  || i.xform.xo == 439 || i.xform.xo == 663 ||
+			     i.xform.xo == 695  || i.xform.xo == 727 || i.xform.xo == 759 || 
+			     i.xform.xo == 918     ||
+			     i.xform.xo == 919  || i.xform.xo == 951 || i.xform.xo == 983 )))
+    
+    {
+      return true;
+    }
+  else
+    {
+      return false;
+    }
+}  
+
+  
+  
+
+  
+  
+/* This function returns true if the instruction reads the RA Register */
+bool InstrucIter::isA_RA_ReadInstruction()
+{
+  const instruction i = getInstruction();
+  if (
+      /* XO Form */
+      (i.xoform.op == 31 && ( i.xoform.xo == 8 || i.xoform.xo == 10 || i.xoform.xo == 11 ||
+			      i.xoform.xo == 40  || i.xoform.xo == 75 || i.xoform.xo == 104 ||
+			      i.xoform.xo == 107 || i.xoform.xo == 136 || i.xoform.xo == 138 || 
+			      i.xoform.xo == 200 || i.xoform.xo == 202 || i.xoform.xo == 232 ||  
+			      i.xoform.xo == 234 || i.xoform.xo == 264 || i.xoform.xo == 266 ||
+			      i.xoform.xo == 331 || i.xoform.xo == 360 || i.xoform.xo == 363 ||
+			      i.xoform.xo == 459 || i.xoform.xo == 488 || i.xoform.xo == 491)) ||
+      
+      /* D Form */
+      (i.dform.op == 3 || i.dform.op == 7 || i.dform.op == 8 || i.dform.op == 9   ) || 
+      (i.dform.op >= 10 && i.dform.op  <= 15) ||
+      (i.dform.op >= 32 && i.dform.op <=61) ||
+      
+      /* X Form */
+      (i.xform.op == 31 && ( i.xform.xo == 0 || i.xform.xo == 4 ||
+			     i.xform.xo == 20  || i.xform.xo == 23 || i.xform.xo == 32 ||
+			     i.xform.xo == 54  || i.xform.xo == 55 || i.xform.xo == 86 ||
+			     i.xform.xo == 87  || i.xform.xo == 118 || i.xform.xo == 119 ||
+			     i.xform.xo == 150  || i.xform.xo == 151 || i.xform.xo == 183 ||
+			     i.xform.xo == 215  || i.xform.xo == 246 || i.xform.xo == 247 ||
+			     i.xform.xo == 277  || i.xform.xo == 278 || i.xform.xo == 279 ||
+			     i.xform.xo == 306  || i.xform.xo == 331 || i.xform.xo == 343 ||
+			     i.xform.xo == 375  || i.xform.xo == 407 || i.xform.xo == 439 ||
+			     i.xform.xo == 470  || i.xform.xo == 502 || i.xform.xo == 531 ||
+			     i.xform.xo == 533  || i.xform.xo == 534 || i.xform.xo == 535 ||
+			     i.xform.xo == 567  || i.xform.xo == 597 || i.xform.xo == 599 ||
+			     i.xform.xo == 630  || i.xform.xo == 631 || i.xform.xo == 661 ||
+			     i.xform.xo == 662  || i.xform.xo == 663 || i.xform.xo == 695 ||
+			     i.xform.xo == 725  || i.xform.xo == 727 || i.xform.xo == 759 ||
+			     i.xform.xo == 790  || i.xform.xo == 791 || i.xform.xo == 818 ||
+			     i.xform.xo == 823  || i.xform.xo == 918 || i.xform.xo == 919 ||
+			     i.xform.xo == 951  || i.xform.xo == 982 || i.xform.xo == 983 ||
+			     i.xform.xo == 1014 )))
+    
+    {
+      return true;
+    }
+  else
+    {
+      return false;
+    }
+}  
+
+
+/* This function returns true if the instruction reads the RB Register */
+bool InstrucIter::isA_RB_ReadInstruction()
+{
+  const instruction i = getInstruction();
+  if (
+      /* XO Form */
+      (i.xoform.op == 31 && ( i.xoform.xo == 8 || i.xoform.xo == 10 || i.xoform.xo == 11 ||
+			      i.xoform.xo == 40  || i.xoform.xo == 75 || 
+			      i.xoform.xo == 107 || i.xoform.xo == 136 || i.xoform.xo == 138 || 
+			      i.xoform.xo == 264 || i.xoform.xo == 266 ||
+			      i.xoform.xo == 331 || i.xoform.xo == 363 ||
+			      i.xoform.xo == 459 || i.xoform.xo == 491)) ||
+      /* M Form */
+      (i.mform.op == 22 || i.mform.op == 23) ||
+
+
+      /* X Form */
+      (i.xform.op == 31 && ( i.xform.xo == 0 || i.xform.xo == 4 ||
+			     i.xform.xo == 20  || i.xform.xo == 23 || i.xform.xo == 24 ||
+			     i.xform.xo == 28  || i.xform.xo == 29 || i.xform.xo == 32 ||
+			     i.xform.xo == 54  || i.xform.xo == 55 || i.xform.xo == 60 ||
+			     i.xform.xo == 86  || i.xform.xo == 87 || i.xform.xo == 118 ||
+			     i.xform.xo == 119  || i.xform.xo == 124 || i.xform.xo == 150 ||
+			     i.xform.xo == 151  || i.xform.xo == 152 || i.xform.xo == 153 ||
+			     i.xform.xo == 183  || i.xform.xo == 215 || i.xform.xo == 216 ||
+			     i.xform.xo == 217  || i.xform.xo == 246 || i.xform.xo == 247 ||
+			     i.xform.xo == 277  || i.xform.xo == 278 || i.xform.xo == 279 ||
+			     i.xform.xo == 284  || i.xform.xo == 306 || i.xform.xo == 316 ||
+			     i.xform.xo == 331  || i.xform.xo == 343 || i.xform.xo == 375 ||
+			     i.xform.xo == 407  || i.xform.xo == 412 || i.xform.xo == 439 ||
+			     i.xform.xo == 444  || i.xform.xo == 470 || i.xform.xo == 476 ||
+			     i.xform.xo == 502  || i.xform.xo == 533 || i.xform.xo == 534 ||
+			     i.xform.xo == 535  || i.xform.xo == 536 || i.xform.xo == 537 ||
+			     i.xform.xo == 541  || i.xform.xo == 567 || i.xform.xo == 599 ||
+			     i.xform.xo == 630  || i.xform.xo == 631 || i.xform.xo == 661 ||
+			     i.xform.xo == 662  || i.xform.xo == 663 || i.xform.xo == 664 ||
+			     i.xform.xo == 665  || i.xform.xo == 695 || i.xform.xo == 727 ||
+			     i.xform.xo == 729  || i.xform.xo == 759 || i.xform.xo == 790 ||
+			     i.xform.xo == 791  || i.xform.xo == 792 || i.xform.xo == 818 ||
+			     i.xform.xo == 823  || i.xform.xo == 918 || i.xform.xo == 919 ||
+			     i.xform.xo == 920  || i.xform.xo == 921 || i.xform.xo == 951 ||
+			     i.xform.xo == 978  || i.xform.xo == 982 || i.xform.xo == 983 ||
+			     i.xform.xo == 1010  || i.xform.xo == 1014 )))
+    
+    {
+      return true;
+    }
+  else
+    {
+      return false;
+    }
+}  
+
+
+
+
+/* This function returns true if the instruction affects the FRA Register */
+bool InstrucIter::isA_FRA_ReadInstruction()
+{
+  const instruction i = getInstruction();
+  if (
+      /* A Form */
+      (i.aform.op == 63 && ( i.aform.xo == 18 || i.aform.xo == 20 || i.aform.xo == 21 ||
+			      i.aform.xo == 25  || i.aform.xo == 28 || i.aform.xo == 29 ||
+			     i.aform.xo == 30 || i.aform.xo == 31 )) ||
+
+      (i.aform.op == 59 && ( i.aform.xo == 18 || i.aform.xo == 20 || i.aform.xo == 21 ||
+			     i.aform.xo == 25  || i.aform.xo == 28 || i.aform.xo == 29 ||
+			     i.aform.xo == 30 || i.aform.xo == 31 )) ||  
+      
+	/* XL Form */
+      (i.xlform.op == 56 && i.xlform.xo == 0 ) || 
+     
+	/* X Form */
+      (i.xform.op == 63 && i.xform.xo == 32 ))
+
+    {
+      return true;
+    }
+  else
+    {
+      return false;
+    }
+}  
+
+/* This function returns true if the instruction affects the FRB Register */
+bool InstrucIter::isA_FRB_ReadInstruction()
+{
+  const instruction i = getInstruction();
+  if (
+      /* A Form */
+      (i.aform.op == 63 && (  i.aform.xo == 18 || i.aform.xo == 20 || i.aform.xo == 21 ||
+			      i.aform.xo == 22 ||
+			      i.aform.xo == 25  || i.aform.xo == 28 || i.aform.xo == 29 ||
+			     i.aform.xo == 30 || i.aform.xo == 31 )) ||
+
+      (i.aform.op == 59 && ( i.aform.xo == 18 || i.aform.xo == 20 || i.aform.xo == 21 ||
+			     i.aform.xo == 25  || i.aform.xo == 28 || i.aform.xo == 29 ||
+			     i.aform.xo == 30 || i.aform.xo == 31 )) ||  
+      
+	/* XL Form */
+      (i.xlform.op == 63 && i.xlform.xo == 0 ) || 
+     
+
+	/* X Form */
+      (i.xform.op == 63 && ( i.xform.xo == 12 || i.xform.xo == 14 || i.xform.xo == 15 ||
+			     i.xform.xo == 32 || i.xform.xo == 38 || i.xform.xo == 40 ||
+			     i.xform.xo == 70 || i.xform.xo == 72 ||
+			     i.xform.xo == 136 || i.xform.xo == 264 )))
+
+    {
+      return true;
+    }
+  else
+    {
+      return false;
+    }
+}  
+
+
+
 /* This function returns true if the instruction affects the FRA Register */
 bool InstrucIter::isA_FRA_WriteInstruction()
 {
@@ -209,10 +463,7 @@ bool InstrucIter::isA_FRA_WriteInstruction()
 bool InstrucIter::isA_RA_WriteInstruction()
 {
   const instruction i = getInstruction();
-  //if ( i.xform.op == 31 )
-  //  printf("la la %d \n", i.xform.xo);
-
-
+  
   if (
       /* X Form */
       /*nor, or, orc, slw, sraw, srawi, srw, stbux, and, andc, cntlzw, eqv, extsb, extsh,
@@ -250,7 +501,6 @@ bool InstrucIter::isA_RA_WriteInstruction()
       /* rlwimi, rlwinm, rlwnm */
       (i.mform.op == 20 || i.mform.op == 21 || i.mform.op == 22 ||  i.mform.op == 23))
     {
-      //printf("la %d \n", i.xform.xo);
       return true;
     }
   else

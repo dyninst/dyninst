@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.130 2005/06/01 21:53:41 legendre Exp $
+// $Id: inst.C,v 1.131 2005/07/11 19:35:22 rutar Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -139,7 +139,13 @@ void clearBaseBranch(const miniTrampHandle *mini)
       baseTramp->postInstru = false;
       trampCost = -(baseTramp->postBaseCost);
     }
-    baseTramp->updateTrampCost(trampCost);
+
+
+    /* Pass into update Tramp Cost for register clobbering */
+    Register blank[] = {1};
+    registerSpace * regS = new registerSpace(0, blank, 0, blank, false);
+
+    baseTramp->updateTrampCost(trampCost, regS);
     generateBranch(proc,fromAddr,toAddr);
 #if defined(MT_DEBUG)
     sprintf(errorLine,"generating branch from address 0x%lx to address 0x%lx"
@@ -324,9 +330,7 @@ loadMiniTramp_result loadMiniTramp(miniTrampHandle *&mtHandle, // filled in
    int * currI = (int *)insn;
    for (unsigned i = 0; i < count/4; i++)
      {
-       //printf("0x%lx\n",*currI);
        currI += sizeof(int);
-       //printf( "0x%lx,\n", mTCode[i]);
      }
    
 
@@ -344,8 +348,15 @@ loadMiniTramp_result loadMiniTramp(miniTrampHandle *&mtHandle, // filled in
 
    mtHandle->cost = trampCost; 
    if(trampCost > 0)
-       mtHandle->baseTramp->updateTrampCost(trampCost);
+     {
+       /* For register clobbering */
+       mtHandle->baseTramp->updateTrampCost(trampCost, regS);
 
+       /* Need to do this anytime there is a chance a register was clobbered */
+       saveRestoreRegisters += saveRestoreRegistersInBaseTramp(proc, 
+							       mtHandle->baseTramp,
+							       regS);
+     }
 #if defined(rs6000_ibm_aix4_1)
    // We use the data heap on AIX because it is unlimited, unlike
    // the textHeap. The text heap is allocated from spare parts of 
@@ -796,8 +807,18 @@ bool deleteInst(process *proc, miniTrampHandle *&mtHandle)
 
    int trampCost = 0 - (thisMT->cost);
    if(thisMT->cost > 0)
-       thisMT->baseTramp->updateTrampCost(trampCost);
+     {
 
+       /* This extra registerSpace is for clobbering registers */
+       Register blank[] = {1};
+       registerSpace * regS = new registerSpace(0, blank, 0, blank, false);
+       thisMT->baseTramp->updateTrampCost(trampCost, regS);
+       
+       saveRestoreRegistersInBaseTramp(proc, 
+				       thisMT->baseTramp,
+				       regS);
+       
+     }
    // DON'T delete the miniTrampHandle. When it is deleted, the callback
    // is made... which should only happen when the memory is freed.
    // Place it on the list to be deleted.
@@ -886,7 +907,7 @@ unsigned findTags(const pdstring ) {
 
 
 void
-trampTemplate::updateTrampCost(int trampCost) {
+trampTemplate::updateTrampCost(int trampCost, registerSpace * rs) {
 #ifndef alpha_dec_osf4_0 /* XXX We don't calculate cost yet on Alpha */
     cost = cost + trampCost;
     if (cost < 0) cost = 0;
@@ -898,7 +919,7 @@ trampTemplate::updateTrampCost(int trampCost) {
       bpwarn("Observed cost address 0, skipping cost calculation");
       return;
     }
-    emitVupdate(updateCostOp, cost, 0, caddr, costInsn, csize, false);
+    emitVupdate(updateCostOp, cost, 0, caddr, costInsn, csize, false, rs);
     proc->writeDataSpace((caddr_t)costAddr, csize, costInsn);
 #endif
 }

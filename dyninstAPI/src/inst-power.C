@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.221 2005/05/01 23:27:32 rutar Exp $
+ * $Id: inst-power.C,v 1.222 2005/07/11 19:35:22 rutar Exp $
  */
 
 #include "common/h/headers.h"
@@ -90,6 +90,7 @@ extern bool isPowerOf2(int value, int &result);
 Address getMaxBranch() {
   return MAX_BRANCH;
 }
+
 
 const char *registerNames[] = { "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
 			"r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15",
@@ -261,6 +262,8 @@ instPoint::instPoint(int_function *f, const instruction &instr,
    instPointBase(type, adr, f), originalInstruction(instr), 
    callIndirect(false)
 {
+  //printf("Address is 0x%x\n",adr);
+  //liveRegisters[0] = -1;
    // inDelaySlot = false;
    // isDelayed = false;
    // callAggregate = false;
@@ -532,6 +535,13 @@ void relocateInstruction(instruction *insn, Address origAddr, Address targetAddr
     /* The rest of the instructions should be fine as is */
 }
 #endif
+
+Register deadRegs[] = {10, REG_GUARD_ADDR, REG_GUARD_VALUE, REG_GUARD_OFFSET};
+//deadRegs[0] = 10;
+//deadRegs[1] = REG_GUARD_ADDR;
+//deadRegs[2] = REG_GUARD_VALUE;
+//deadRegs[3] = REG_GUARD_OFFSET;
+
 registerSpace *regSpace;
 
 registerSpace *floatRegSpace;
@@ -1053,7 +1063,7 @@ unsigned saveGPRegisters(instruction *&insn, Address &base, Address offset, regi
   for(u_int i = 0; i < theRegSpace->getRegisterCount(); i++) {
     registerSlot *reg = theRegSpace->getRegSlot(i);
     if ((reg->number >= 10 && reg->number <= 12) || 
-	reg->number == REG_GUARD_ADDR || reg->number == REG_GUARD_VALUE
+	reg->number == deadRegs[1] || reg->number == deadRegs[2]
 	|| reg->number == 0) {
       saveRegister(insn, base, reg->number, offset);
       numRegs++;
@@ -1076,7 +1086,7 @@ unsigned restoreGPRegisters(instruction *&insn, Address &base, Address offset, r
   for(u_int i = 0; i < theRegSpace->getRegisterCount(); i++) {
     registerSlot *reg = theRegSpace->getRegSlot(i);
     if ((reg->number >= 10 && reg->number <= 12) || 
-	reg->number == REG_GUARD_ADDR || reg->number == REG_GUARD_VALUE
+	reg->number == deadRegs[1] || reg->number == deadRegs[2]
 	|| reg->number == 0) 
       {
 	restoreRegister(insn, base, reg->number, offset);
@@ -1169,9 +1179,9 @@ unsigned restoreFPRegisters(instruction *&insn, Address &base,
 
 unsigned saveSPRegisters(instruction *&insn, Address &base, Address offset)
 {
-  base += saveCR(insn, 10, offset + STK_CR);
-  base += saveSPR(insn, 10, SPR_XER, offset + STK_XER);
-  base += saveSPR(insn, 10, SPR_SPR0, offset + STK_SPR0);
+  base += saveCR(insn, deadRegs[0], offset + STK_CR);
+  base += saveSPR(insn, deadRegs[0], SPR_XER, offset + STK_XER);
+  base += saveSPR(insn, deadRegs[0], SPR_SPR0, offset + STK_SPR0);
   base += saveFPSCR(insn, 10, offset + STK_FP_CR);
   return 4;
 }
@@ -1183,9 +1193,9 @@ unsigned saveSPRegisters(instruction *&insn, Address &base, Address offset)
 
 unsigned restoreSPRegisters(instruction *&insn, Address &base, Address offset)
 {
-  base += restoreCR(insn, 10, offset + STK_CR);
-  base += restoreSPR(insn, 10, SPR_XER, offset + STK_XER);
-  base += restoreSPR(insn, 10, SPR_SPR0, offset + STK_SPR0);
+  base += restoreCR(insn, deadRegs[0], offset + STK_CR);
+  base += restoreSPR(insn, deadRegs[0], SPR_XER, offset + STK_XER);
+  base += restoreSPR(insn, deadRegs[0], SPR_SPR0, offset + STK_SPR0);
   base += restoreFPSCR(insn, 10, offset + STK_FP_CR);
   return 4;
 }
@@ -1282,7 +1292,7 @@ unsigned saveRestoreRegistersInBaseTramp(process *proc, trampTemplate * bt,
   for(u_int i = 0; i < rs->getRegisterCount(); i++) {
     registerSlot *reg = rs->getRegSlot(i);
     if ((reg->number >= 10 && reg->number <= 12) || 
-	reg->number == REG_GUARD_ADDR || reg->number == REG_GUARD_VALUE
+	reg->number == deadRegs[1] || reg->number == deadRegs[2]
 	|| reg->number == 0) 
       continue;
     if(reg->beenClobbered && bt->clobberedGPR[reg->number] == 0)
@@ -1373,6 +1383,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
     theRegSpace = regSpace;
 
   theRegSpace->resetClobbers();
+  theRegSpace->resetLiveDeadInfo(location->liveRegisters);
 
   bool wantTrampGuard = true;
   if (oldTemplate && oldTemplate->recursiveGuardPreJumpOffset == -1) {
@@ -1494,7 +1505,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
     insn++; currAddr += sizeof(instruction);
   }
 
-  currAddr += saveLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
+  currAddr += saveLR(insn, deadRegs[0], TRAMP_SPR_OFFSET + STK_LR);
 
   // Let the stack walk code/anyone else know we're in a base tramp
   // via cookie writing.
@@ -1507,10 +1518,10 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
       
       // Load previous cookie value
       // add (OR) our cookie
-      genImmInsn(insn, CALop, 10, 0, cookie_value);
+      genImmInsn(insn, CALop, deadRegs[0], 0, cookie_value);
       insn++; currAddr += sizeof(instruction);
       // Store it back
-      genImmInsn(insn, STop, 10, 1, 16);
+      genImmInsn(insn, STop, deadRegs[0], 1, 16);
       insn++; currAddr += sizeof(instruction);
   }
   
@@ -1525,7 +1536,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   // or a call site (callSite)
   if (location->getPointType() == otherPoint ||
       location->getPointType() == callSite) {
-    currAddr += saveSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
+    currAddr += saveSPR(insn, deadRegs[0], SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
   }
 
 
@@ -1547,26 +1558,26 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
     // Tramp guard
     spareAddr = 0;
     // Load the base address of the guard
-    emitVload(loadConstOp, trampGuardFlagAddr, REG_GUARD_ADDR, REG_GUARD_ADDR,
+    emitVload(loadConstOp, trampGuardFlagAddr, deadRegs[1], deadRegs[1],
 	      (char *)insn, spareAddr, false);
 
     // POS is in REG_MT_POS, we need to multiply by sizeof(unsigned) 
     // and add to the guard address
     if (proc->multithread_capable()) {
       emitImm(timesOp, (Register) REG_MT_POS, (RegValue) sizeof(unsigned), 
-	      REG_GUARD_OFFSET, (char *)insn, spareAddr, false);
+	      deadRegs[3], (char *)insn, spareAddr, false, regSpace);
       
       // Add on the offset (for MT)
-      emitV(plusOp, REG_GUARD_ADDR, REG_GUARD_OFFSET, REG_GUARD_ADDR,
+      emitV(plusOp, deadRegs[1], deadRegs[3], deadRegs[1],
 	    (char *)insn, spareAddr, false);
     }
     // Load value
-    emitV(loadIndirOp, REG_GUARD_ADDR, 0, REG_GUARD_VALUE,
+    emitV(loadIndirOp, deadRegs[1], 0, deadRegs[2],
 	  (char *)insn, spareAddr, false);
     // Previous functions increased spareAddr, but not insn. Recalculate
     currAddr += spareAddr; insn = &tramp[currAddr/4];
     // Compare with 0
-    genImmInsn(insn, CMPIop, 0, REG_GUARD_VALUE, 1);
+    genImmInsn(insn, CMPIop, 0, deadRegs[2], 1);
     insn++; currAddr += sizeof(instruction);
     
     // And record the offset for a later jump instruction
@@ -1575,14 +1586,14 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
     
     // Store 0 in the slot
     spareAddr = 0;
-    emitVload(loadConstOp, 0, REG_GUARD_VALUE, REG_GUARD_VALUE,
+    emitVload(loadConstOp, 0, deadRegs[2], deadRegs[2],
 	      (char *)insn, spareAddr, false);
     currAddr += spareAddr; spareAddr = 0; insn = &tramp[currAddr/4];
     // Store
-    genImmInsn(insn, STop, REG_GUARD_VALUE, REG_GUARD_ADDR, 0);
+    genImmInsn(insn, STop, deadRegs[2], deadRegs[1], 0);
     insn++; currAddr += sizeof(instruction);
     // Store the flag addr?
-    genImmInsn(insn, STop, REG_GUARD_ADDR, 1, STK_GUARD); // 16 is offset up from SP
+    genImmInsn(insn, STop, deadRegs[1], 1, STK_GUARD); // 16 is offset up from SP
     insn++; currAddr += sizeof(instruction);
   }
   else
@@ -1598,21 +1609,21 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   ////////////////////////////////////////////////////////////////
   
   theTemplate->localPreOffset = currAddr;
-  currAddr += setBRL(insn, 10 /*scratch reg*/, 0, NOOPraw);
+  currAddr += setBRL(insn, deadRegs[0] /*scratch reg*/, 0, NOOPraw);
   theTemplate->localPreReturnOffset = currAddr;
   
   // Tramp guard shtuff. 
   // Reload the addr of the guard from the stack
   if (wantTrampGuard) {
-    genImmInsn(insn, Lop, REG_GUARD_ADDR, 1, STK_GUARD);
+    genImmInsn(insn, Lop, deadRegs[1], 1, STK_GUARD);
     insn++; currAddr += sizeof(instruction);
     // store immediate
     spareAddr = 0;
-    emitVload(loadConstOp, 1, REG_GUARD_VALUE, REG_GUARD_VALUE,
+    emitVload(loadConstOp, 1, deadRegs[2], deadRegs[2],
   	      (char *)insn, spareAddr, false);
     currAddr += spareAddr; spareAddr = 0; insn = &tramp[currAddr/4];
     
-    genImmInsn(insn, STop, REG_GUARD_VALUE, REG_GUARD_ADDR, 0);
+    genImmInsn(insn, STop, deadRegs[2], deadRegs[1], 0);
     insn++; currAddr += sizeof(instruction);
    }
   // Update the cost: a series of noops for now
@@ -1626,10 +1637,10 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   theTemplate->restorePreInsOffset = currAddr;
 
 
-  currAddr += restoreLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
+  currAddr += restoreLR(insn, deadRegs[0], TRAMP_SPR_OFFSET + STK_LR);
   if (location->getPointType() == otherPoint ||
       location->getPointType() == callSite) {
-    currAddr += restoreSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
+    currAddr += restoreSPR(insn, deadRegs[0], SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
   }  
 
   if (location->getPointType() == otherPoint)
@@ -1643,10 +1654,10 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
     if (location->getPointType() == otherPoint ||
       location->getPointType() == callSite) {
       unsigned int cookie_value = 0x0;
-      genImmInsn(insn, CALop, 10, 0, cookie_value);
+      genImmInsn(insn, CALop, deadRegs[0], 0, cookie_value);
       insn++; currAddr += sizeof(instruction);
       // Store it back
-       genImmInsn(insn, STop, 10, 1, 16);
+       genImmInsn(insn, STop, deadRegs[0], 1, 16);
       insn++; currAddr += sizeof(instruction);
    }
 
@@ -1712,7 +1723,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   }
   
     
-  currAddr += saveLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
+  currAddr += saveLR(insn, deadRegs[0], TRAMP_SPR_OFFSET + STK_LR);
 
   // Let the stack walk code/anyone else know we're in a base tramp
   // via cookie writing.
@@ -1722,10 +1733,10 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
       
       // Load previous cookie value
       // add (OR) our cookie
-      genImmInsn(insn, CALop, 10, 0, cookie_value);
+      genImmInsn(insn, CALop, deadRegs[0], 0, cookie_value);
       insn++; currAddr += sizeof(instruction);
       // Store it back
-      genImmInsn(insn, STop, 10, 1, 16);
+      genImmInsn(insn, STop, deadRegs[0], 1, 16);
       insn++; currAddr += sizeof(instruction);
   }
   
@@ -1742,7 +1753,7 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   // or a call site (ipFuncCallPoint)
   if (location->getPointType() == otherPoint ||
       location->getPointType() == callSite) {
-    currAddr += saveSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
+    currAddr += saveSPR(insn, deadRegs[0], SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
   }
 
   // MT: thread POS calculation. If not, stick a 0 here
@@ -1762,25 +1773,25 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   // Load the base address of the guard
   if (wantTrampGuard) {
     spareAddr = 0;
-    emitVload(loadConstOp, trampGuardFlagAddr, REG_GUARD_ADDR, REG_GUARD_ADDR,
+    emitVload(loadConstOp, trampGuardFlagAddr, deadRegs[1], deadRegs[1],
 	      (char *)insn, spareAddr, false);
     // POS is in REG_MT_POS, we need to multiply by sizeof(unsigned) 
     // and add to the guard address
     if (proc->multithread_capable()) {
       emitImm(timesOp, (Register) REG_MT_POS, (RegValue) sizeof(unsigned), 
-	      REG_GUARD_OFFSET, (char *)insn, spareAddr, false);
+	      deadRegs[3], (char *)insn, spareAddr, false, regSpace);
       
       // Add on the offset (for MT)
-      emitV(plusOp, REG_GUARD_ADDR, REG_GUARD_OFFSET, REG_GUARD_ADDR,
+      emitV(plusOp, deadRegs[1], deadRegs[3], deadRegs[1],
 	    (char *)insn, spareAddr, false);
     }
     // Load value
-    emitV(loadIndirOp, REG_GUARD_ADDR, 0, REG_GUARD_VALUE,
+    emitV(loadIndirOp, deadRegs[1], 0, deadRegs[2],
 	  (char *)insn, spareAddr, false);
     // Previous functions increased spareAddr, but not insn. Recalculate
     currAddr += spareAddr; insn = &tramp[currAddr/4];
     // Compare with 1
-    genImmInsn(insn, CMPIop, 0, REG_GUARD_VALUE, 1);
+    genImmInsn(insn, CMPIop, 0, deadRegs[2], 1);
     insn++; currAddr += sizeof(instruction);
     
     // And record the offset for a later jump instruction
@@ -1789,14 +1800,14 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
     
     // Store 0 in the slot
     spareAddr = 0;
-    emitVload(loadConstOp, 0, REG_GUARD_VALUE, REG_GUARD_VALUE, 
+    emitVload(loadConstOp, 0, deadRegs[2], deadRegs[2], 
 	      (char *)insn, spareAddr, false);
     currAddr += spareAddr; spareAddr = 0; insn = &tramp[currAddr/4];
     // Store
-    genImmInsn(insn, STop, REG_GUARD_VALUE, REG_GUARD_ADDR, 0);
+    genImmInsn(insn, STop, deadRegs[2], deadRegs[1], 0);
     insn++; currAddr += sizeof(instruction);
     // Store the flag addr?
-    genImmInsn(insn, STop, REG_GUARD_ADDR, 1, STK_GUARD); // 16 is offset up from SP
+    genImmInsn(insn, STop, deadRegs[1], 1, STK_GUARD); // 16 is offset up from SP
     insn++; currAddr += sizeof(instruction);
   }
   else
@@ -1805,31 +1816,31 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   // this is just a noop... sigh.
   // Four instructions: generateBranch(null)
   theTemplate->localPostOffset = currAddr;
-  currAddr += setBRL(insn, 10 /*scratch reg*/, 0, NOOPraw);
+  currAddr += setBRL(insn, deadRegs[0] /*scratch reg*/, 0, NOOPraw);
   theTemplate->localPostReturnOffset = currAddr;
 
   // Tramp guard shtuff. 
   // Reload the addr of the guard from the stack
   if (wantTrampGuard) {
-    genImmInsn(insn, Lop, REG_GUARD_ADDR, 1, STK_GUARD);
+    genImmInsn(insn, Lop, deadRegs[1], 1, STK_GUARD);
     insn++; currAddr += sizeof(instruction);
     // store immediate
     spareAddr = 0;
-    emitVload(loadConstOp, 1, REG_GUARD_VALUE, REG_GUARD_VALUE, 
+    emitVload(loadConstOp, 1, deadRegs[2], deadRegs[2], 
 	      (char *)insn, spareAddr, false);
     currAddr += spareAddr; spareAddr = 0; insn = &tramp[currAddr/4];
     
-    genImmInsn(insn, STop, REG_GUARD_VALUE, REG_GUARD_ADDR, 0);
+    genImmInsn(insn, STop, deadRegs[2], deadRegs[1], 0);
     insn++; currAddr += sizeof(instruction);
   }
 
   // Register restore. 
   theTemplate->restorePostInsOffset = currAddr;
 
-  currAddr += restoreLR(insn, 10, TRAMP_SPR_OFFSET + STK_LR);
+  currAddr += restoreLR(insn, deadRegs[0], TRAMP_SPR_OFFSET + STK_LR);
   if (location->getPointType() == otherPoint ||
       location->getPointType() == callSite) {
-    currAddr += restoreSPR(insn, 10, SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
+    currAddr += restoreSPR(insn, deadRegs[0], SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
   }  
 
   if (location->getPointType() == otherPoint)
@@ -1844,10 +1855,10 @@ trampTemplate* installBaseTramp(const instPoint *location, process *proc,
   if (location->getPointType() == otherPoint ||
       location->getPointType() == callSite)  {
       unsigned int cookie_value = 0x0;
-      genImmInsn(insn, CALop, 10, 0, cookie_value);
+      genImmInsn(insn, CALop, deadRegs[0], 0, cookie_value);
       insn++; currAddr += sizeof(instruction);
       // Store it back
-      genImmInsn(insn, STop, 10, 1, 16);
+      genImmInsn(insn, STop, deadRegs[0], 1, 16);
       insn++; currAddr += sizeof(instruction);
   }
 
@@ -2133,7 +2144,7 @@ trampTemplate* installMergedBaseTramp(const instPoint *location, process *proc,
   for(u_int i = 0; i < regS->getRegisterCount(); i++) {
     registerSlot *reg = regS->getRegSlot(i);
     if ((reg->number >= 10 && reg->number <= 12) || 
-	reg->number == REG_GUARD_ADDR || reg->number == REG_GUARD_VALUE
+	reg->number == deadRegs[1] || reg->number == deadRegs[2]
 	|| reg->number == 0) 
       continue;
     if(reg->beenClobbered)
@@ -2205,26 +2216,26 @@ trampTemplate* installMergedBaseTramp(const instPoint *location, process *proc,
     // Tramp guard
     spareAddr = 0;
     // Load the base address of the guard
-    emitVload(loadConstOp, trampGuardFlagAddr, REG_GUARD_ADDR, REG_GUARD_ADDR,
+    emitVload(loadConstOp, trampGuardFlagAddr, deadRegs[1], deadRegs[1],
 	      (char *)insn, spareAddr, false);
 
     // POS is in REG_MT_POS, we need to multiply by sizeof(unsigned) 
     // and add to the guard address
     if (proc->multithread_capable()) {
       emitImm(timesOp, (Register) REG_MT_POS, (RegValue) sizeof(unsigned), 
-	      REG_GUARD_OFFSET, (char *)insn, spareAddr, false);
+	      deadRegs[3], (char *)insn, spareAddr, false, regSpace);
       
       // Add on the offset (for MT)
-      emitV(plusOp, REG_GUARD_ADDR, REG_GUARD_OFFSET, REG_GUARD_ADDR,
+      emitV(plusOp, deadRegs[1], deadRegs[3], deadRegs[1],
 	    (char *)insn, spareAddr, false);
     }
     // Load value
-    emitV(loadIndirOp, REG_GUARD_ADDR, 0, REG_GUARD_VALUE,
+    emitV(loadIndirOp, deadRegs[1], 0, deadRegs[2],
 	  (char *)insn, spareAddr, false);
     // Previous functions increased spareAddr, but not insn. Recalculate
     currAddr += spareAddr; insn = &tramp[currAddr/4];
     // Compare with 0
-    genImmInsn(insn, CMPIop, 0, REG_GUARD_VALUE, 1);
+    genImmInsn(insn, CMPIop, 0, deadRegs[2], 1);
     insn++; currAddr += sizeof(instruction);
     
     // And record the offset for a later jump instruction
@@ -2233,14 +2244,14 @@ trampTemplate* installMergedBaseTramp(const instPoint *location, process *proc,
     
     // Store 0 in the slot
     spareAddr = 0;
-    emitVload(loadConstOp, 0, REG_GUARD_VALUE, REG_GUARD_VALUE,
+    emitVload(loadConstOp, 0, deadRegs[2], deadRegs[2],
 	      (char *)insn, spareAddr, false);
     currAddr += spareAddr; spareAddr = 0; insn = &tramp[currAddr/4];
     // Store
-    genImmInsn(insn, STop, REG_GUARD_VALUE, REG_GUARD_ADDR, 0);
+    genImmInsn(insn, STop, deadRegs[2], deadRegs[1], 0);
     insn++; currAddr += sizeof(instruction);
     // Store the flag addr?
-    genImmInsn(insn, STop, REG_GUARD_ADDR, 1, STK_GUARD); // 16 is offset up from SP
+    genImmInsn(insn, STop, deadRegs[1], 1, STK_GUARD); // 16 is offset up from SP
     insn++; currAddr += sizeof(instruction);
   }
   else
@@ -2281,15 +2292,15 @@ trampTemplate* installMergedBaseTramp(const instPoint *location, process *proc,
   
   // Reload the addr of the guard from the stack
   if (wantTrampGuard) {
-    genImmInsn(insn, Lop, REG_GUARD_ADDR, 1, STK_GUARD);
+    genImmInsn(insn, Lop, deadRegs[1], 1, STK_GUARD);
     insn++; currAddr += sizeof(instruction);
     // store immediate
     spareAddr = 0;
-    emitVload(loadConstOp, 1, REG_GUARD_VALUE, REG_GUARD_VALUE,
+    emitVload(loadConstOp, 1, deadRegs[2], deadRegs[2],
 	      (char *)insn, spareAddr, false);
     currAddr += spareAddr; spareAddr = 0; insn = &tramp[currAddr/4];
     
-    genImmInsn(insn, STop, REG_GUARD_VALUE, REG_GUARD_ADDR, 0);
+    genImmInsn(insn, STop, deadRegs[2], deadRegs[1], 0);
     insn++; currAddr += sizeof(instruction);
   }
   
@@ -2331,7 +2342,7 @@ trampTemplate* installMergedBaseTramp(const instPoint *location, process *proc,
   for(u_int i = 0; i < regS->getRegisterCount(); i++) {
     registerSlot *reg = regS->getRegSlot(i);
     if ((reg->number >= 10 && reg->number <= 12) || 
-	reg->number == REG_GUARD_ADDR || reg->number == REG_GUARD_VALUE
+	reg->number == deadRegs[1] || reg->number == deadRegs[2]
 	|| reg->number == 0) 
       continue;
     if(reg->beenClobbered)
@@ -2410,7 +2421,7 @@ trampTemplate* installMergedBaseTramp(const instPoint *location, process *proc,
   for(u_int i = 0; i < regS->getRegisterCount(); i++) {
     registerSlot *reg = regS->getRegSlot(i);
     if ((reg->number >= 10 && reg->number <= 12) || 
-	reg->number == REG_GUARD_ADDR || reg->number == REG_GUARD_VALUE
+	reg->number == deadRegs[1] || reg->number == deadRegs[2]
 	|| reg->number == 0) 
       continue;
     if(reg->beenClobbered)
@@ -2489,25 +2500,25 @@ trampTemplate* installMergedBaseTramp(const instPoint *location, process *proc,
   // Load the base address of the guard
   if (wantTrampGuard) {
     spareAddr = 0;
-    emitVload(loadConstOp, trampGuardFlagAddr, REG_GUARD_ADDR, REG_GUARD_ADDR,
+    emitVload(loadConstOp, trampGuardFlagAddr, deadRegs[1], deadRegs[1],
 	      (char *)insn, spareAddr, false);
     // POS is in REG_MT_POS, we need to multiply by sizeof(unsigned) 
     // and add to the guard address
     if (proc->multithread_capable()) {
       emitImm(timesOp, (Register) REG_MT_POS, (RegValue) sizeof(unsigned), 
-	      REG_GUARD_OFFSET, (char *)insn, spareAddr, false);
+	      deadRegs[3], (char *)insn, spareAddr, false, regSpace);
       
       // Add on the offset (for MT)
-      emitV(plusOp, REG_GUARD_ADDR, REG_GUARD_OFFSET, REG_GUARD_ADDR,
+      emitV(plusOp, deadRegs[1], deadRegs[3], deadRegs[1],
 	    (char *)insn, spareAddr, false);
     }
     // Load value
-    emitV(loadIndirOp, REG_GUARD_ADDR, 0, REG_GUARD_VALUE,
+    emitV(loadIndirOp, deadRegs[1], 0, deadRegs[2],
 	  (char *)insn, spareAddr, false);
     // Previous functions increased spareAddr, but not insn. Recalculate
     currAddr += spareAddr; insn = &tramp[currAddr/4];
     // Compare with 1
-    genImmInsn(insn, CMPIop, 0, REG_GUARD_VALUE, 1);
+    genImmInsn(insn, CMPIop, 0, deadRegs[2], 1);
     insn++; currAddr += sizeof(instruction);
     
     // And record the offset for a later jump instruction
@@ -2516,14 +2527,14 @@ trampTemplate* installMergedBaseTramp(const instPoint *location, process *proc,
     
     // Store 0 in the slot
     spareAddr = 0;
-    emitVload(loadConstOp, 0, REG_GUARD_VALUE, REG_GUARD_VALUE, 
+    emitVload(loadConstOp, 0, deadRegs[2], deadRegs[2], 
 	      (char *)insn, spareAddr, false);
     currAddr += spareAddr; spareAddr = 0; insn = &tramp[currAddr/4];
     // Store
-    genImmInsn(insn, STop, REG_GUARD_VALUE, REG_GUARD_ADDR, 0);
+    genImmInsn(insn, STop, deadRegs[2], deadRegs[1], 0);
     insn++; currAddr += sizeof(instruction);
     // Store the flag addr?
-    genImmInsn(insn, STop, REG_GUARD_ADDR, 1, STK_GUARD); // 16 is offset up from SP
+    genImmInsn(insn, STop, deadRegs[1], 1, STK_GUARD); // 16 is offset up from SP
     insn++; currAddr += sizeof(instruction);
   }
   else
@@ -2549,15 +2560,15 @@ trampTemplate* installMergedBaseTramp(const instPoint *location, process *proc,
   // Tramp guard shtuff. 
   // Reload the addr of the guard from the stack
   if (wantTrampGuard) {
-    genImmInsn(insn, Lop, REG_GUARD_ADDR, 1, STK_GUARD);
+    genImmInsn(insn, Lop, deadRegs[1], 1, STK_GUARD);
     insn++; currAddr += sizeof(instruction);
     // store immediate
     spareAddr = 0;
-    emitVload(loadConstOp, 1, REG_GUARD_VALUE, REG_GUARD_VALUE, 
+    emitVload(loadConstOp, 1, deadRegs[2], deadRegs[2], 
 	      (char *)insn, spareAddr, false);
     currAddr += spareAddr; spareAddr = 0; insn = &tramp[currAddr/4];
     
-    genImmInsn(insn, STop, REG_GUARD_VALUE, REG_GUARD_ADDR, 0);
+    genImmInsn(insn, STop, deadRegs[2], deadRegs[1], 0);
     insn++; currAddr += sizeof(instruction);
   }
 
@@ -2599,7 +2610,7 @@ trampTemplate* installMergedBaseTramp(const instPoint *location, process *proc,
   for(u_int i = 0; i < regS->getRegisterCount(); i++) {
     registerSlot *reg = regS->getRegSlot(i);
     if ((reg->number >= 10 && reg->number <= 12) || 
-	reg->number == REG_GUARD_ADDR || reg->number == REG_GUARD_VALUE
+	reg->number == deadRegs[1] || reg->number == deadRegs[2]
 	|| reg->number == 0) 
       continue;
     if(reg->beenClobbered)
@@ -3150,7 +3161,7 @@ int_function* getFunction(instPoint *point)
 
 
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
-                 char *i, Address &base, bool noCost)
+                 char *i, Address &base, bool noCost, registerSpace * rs)
 {
         //bperr("emitImm(op=%d,src=%d,src2imm=%d,dest=%d)\n",
         //        op, src1, src2imm, dest);
@@ -3181,6 +3192,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
 	        }
                 else {
                   Register dest2 = regSpace->allocateRegister(i, base, noCost);
+		  rs->clobberRegister(dest2);
                   emitVload(loadConstOp, src2imm, dest2, dest2, i, base, noCost);
                   emitV(op, src1, dest2, dest, i, base, noCost);
                   regSpace->freeRegister(dest2);
@@ -3196,6 +3208,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
 	        }
 		else {
                   Register dest2 = regSpace->allocateRegister(i, base, noCost);
+		  rs->clobberRegister(dest2);
                   emitVload(loadConstOp, src2imm, dest2, dest2, i, base, noCost);
                   emitV(op, src1, dest2, dest, i, base, noCost);
                   regSpace->freeRegister(dest2);
@@ -3222,6 +3235,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
 	
 	    default:
                 Register dest2 = regSpace->allocateRegister(i, base, noCost);
+		rs->clobberRegister(dest2);
                 emitVload(loadConstOp, src2imm, dest2, dest2, i, base, noCost);
                 emitV(op, src1, dest2, dest, i, base, noCost);
                 regSpace->freeRegister(dest2);
@@ -3309,6 +3323,7 @@ Register emitFuncCall(opCode /* ocode */,
          // What does this do?
          bperr( "in weird code\n");
          Register dummyReg = rs->allocateRegister(iPtr, base, noCost);
+	 rs->clobberRegister(dummyReg);
          srcs.push_back(dummyReg);
          instruction *insn = (instruction *) ((void*)&iPtr[base]);
          genImmInsn(insn, CALop, dummyReg, 0, 0);
@@ -3407,10 +3422,21 @@ Register emitFuncCall(opCode /* ocode */,
       cleanUpAndExit(-1);
    }
   
+
+
+   int scratchReg[8];
+   for (int a = 0; a < 8; a++)
+     {
+       scratchReg[a] = -1;
+     }
+
    // Now load the parameters into registers.
    for (unsigned u=0; u<srcs.size(); u++){
       // check that is is not already in the register
-      if (srcs[u] == (unsigned int) u+3) {
+   
+     /*
+
+     if (srcs[u] == (unsigned int) u+3) {
          rs->freeRegister(srcs[u]);
          continue;
       }
@@ -3428,6 +3454,63 @@ Register emitFuncCall(opCode /* ocode */,
       base += sizeof(instruction);
       // source register is now free.
       rs->freeRegister(srcs[u]);
+     */
+
+     
+     if (srcs[u] == (unsigned int) u+3) 
+       {
+	 rs->freeRegister(srcs[u]);
+	 continue;
+       }
+
+     int whichSource = -1;
+     bool hasSourceBeenCopied = true;
+     Register scratch = 13;
+
+     if (scratchReg[u] != -1)
+       {
+	 genImmInsn(insn, ORILop, scratchReg[u], u+3, 0);
+	 insn++;
+	 base += sizeof(instruction);
+	 rs->freeRegister(scratchReg[u]);
+       }
+     else
+       {
+	 for (unsigned v=u; v < srcs.size(); v++)
+	   {
+	     if (srcs[v] == u+3)
+	       {
+		 hasSourceBeenCopied = false;
+		 whichSource = v;
+	       }
+	   }
+	 if (!hasSourceBeenCopied)
+	   {
+	     scratch = rs->allocateRegister(iPtr, base, noCost);
+	     rs->clobberRegister(scratch);
+	     genImmInsn(insn, ORILop, u+3, scratch, 0);
+	     insn++;
+	     base += sizeof(instruction);
+	     rs->freeRegister(u+3);
+	     scratchReg[whichSource] = scratch;
+	     hasSourceBeenCopied = true;
+
+	     genImmInsn(insn, ORILop, srcs[u], u+3, 0);
+	     insn++;
+	     base += sizeof(instruction);
+	     rs->freeRegister(srcs[u]);
+	   }
+	 else
+	   {
+	     genImmInsn(insn, ORILop, srcs[u], u+3, 0);
+	     insn++;
+	     base += sizeof(instruction);
+	     rs->freeRegister(srcs[u]);
+	     rs->clobberRegister(u+3);
+	   }
+       }
+
+     
    }
 
    // Set up the new TOC value
@@ -3568,6 +3651,7 @@ Register emitFuncCall(opCode /* ocode */,
 
    // get a register to keep the return value in.
    Register retReg = rs->allocateRegister(iPtr, base, noCost);
+   rs->clobberRegister(retReg);
 
    // allocateRegister can generate code. Reset insn
    insn = (instruction *) ((void*)&iPtr[base]);
@@ -3845,6 +3929,7 @@ static inline void emitAddOriginal(Register src, Register acc,
   if(nr) {
     // this needs baseInsn because it uses emitV...
     temp = regSpace->allocateRegister(baseInsn, base, noCost);
+    regSpace->clobberRegister(temp);
 
     // Looking at allocateRegister, I'd say that jkh's hack is no longer
     // useful on AIX (see naim's comment); no code is generated...
@@ -3991,9 +4076,8 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
 }
 
 void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
-	      char *baseInsn, Address &base, bool noCost, int /* size */,
-				const instPoint * /* location */, process * /* proc */,
-				registerSpace * /* rs */ )	      
+	      char *baseInsn, Address &base, bool noCost, registerSpace * rs, int /* size */,
+				const instPoint * /* location */, process * /* proc */)	      
 {
     instruction *insn = (instruction *) ((void*)&baseInsn[base]);
 
@@ -4014,6 +4098,7 @@ void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
 
 	// temp register to hold base address for store (added 6/26/96 jkh)
 	Register temp = regSpace->allocateRegister(baseInsn, base, noCost);
+	rs->clobberRegister(temp);
 
 	// This next line is a hack! - jkh 6/27/96
 	//   It is required since allocateRegister can generate code.
@@ -4054,7 +4139,7 @@ void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
 }
 
 void emitVupdate(opCode op, RegValue src1, Register /*src2*/, Address dest,
-	      char *baseInsn, Address &base, bool noCost)
+	      char *baseInsn, Address &base, bool noCost, registerSpace * rs)
 {
     instruction *insn = (instruction *) ((void*)&baseInsn[base]);
 
@@ -4067,9 +4152,11 @@ void emitVupdate(opCode op, RegValue src1, Register /*src2*/, Address dest,
 
 	   // high order bits of the address of the cummulative cost.
 	   Register obsCostAddr = regSpace->allocateRegister(baseInsn, base, noCost);
+	   rs->clobberRegister(obsCostAddr);
 
 	   // actual cost.
 	   Register obsCostValue = regSpace->allocateRegister(baseInsn, base, noCost);
+	   rs->clobberRegister(obsCostValue);
 
 	   // This next line is a hack! - jkh 6/27/96
 	   //   It is required since allocateRegister can generate code.
@@ -4107,7 +4194,8 @@ void emitVupdate(opCode op, RegValue src1, Register /*src2*/, Address dest,
              // an immediate operator. Therefore, we need to load the 
              // value first, which will cost 2 instructions - naim
              Register reg = regSpace->allocateRegister(baseInsn, base, noCost);
-             genImmInsn(insn, CAUop, reg, 0, HIGH(src1));
+             rs->clobberRegister(reg);
+	     genImmInsn(insn, CAUop, reg, 0, HIGH(src1));
              insn++;
              genImmInsn(insn, ORILop, reg, reg, LOW(src1));
              insn++;
@@ -4793,12 +4881,14 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
 //If return false, it's been clobbered and we do nothing
 bool registerSpace::clobberRegister(Register reg) 
 {
-  if (reg == 0 || reg == 2 || reg == 10 || reg == REG_GUARD_ADDR || 
-      reg == REG_GUARD_VALUE || reg == 11 || reg == 12)
+  if (reg == 0 || reg == 2 || reg == deadRegs[0] || reg == deadRegs[1] || 
+      reg == deadRegs[2] || reg == 11 || reg == 12 )
     return false;
   for (u_int i=0; i < numRegisters; i++) {
     if (registers[i].number == reg) {
       if(registers[i].beenClobbered == true)
+	return false;
+      else if (registers[i].startsLive == false)
 	return false;
       else{
 	registers[i].beenClobbered = true;
@@ -4831,9 +4921,42 @@ bool registerSpace::clobberFPRegister(Register reg)
   return false;
 }
 
+// Takes information from instPoint and resets
+// regSpace liveness information accordingly
+// Right now, all the registers are assumed to be live by default
+void registerSpace::resetLiveDeadInfo(const int * liveRegs)
+{
+  registerSlot *regSlot = NULL;
+  
+  if (liveRegs != NULL)
+    {
+      /*
+      for (int a = 0; a < 32; a++)
+	printf("%d ",liveRegs[a]);
+      printf("\n");
+      */
+
+      for (u_int i = 0; i < regSpace->getRegisterCount(); i++)
+	{
+	  regSlot = regSpace->getRegSlot(i);
+	  if (  liveRegs[ (int) registers[i].number ] == 1 )
+	    {
+	      registers[i].needsSaving = true;
+	      registers[i].startsLive = true;
+	    }
+	  else
+	    {
+	      registers[i].needsSaving = false;
+	      registers[i].startsLive = false;
+	    }
+	}
+    }
+}
+
+
 bool registerSpace::beenSaved(Register reg)
 {
-  if (reg == 10 || reg == REG_GUARD_ADDR || reg == REG_GUARD_VALUE || reg == 11 || reg == 12)
+  if (reg == 10 || reg == deadRegs[1] || reg == deadRegs[2] || reg == 11 || reg == 12)
     return true;
   for (u_int i = 0; i < numRegisters; i++){
     if (registers[i].number == reg){
@@ -5079,7 +5202,7 @@ void emitFuncJump(opCode,
      assert(0);
 }
 
-// Match AIX register numbering (sys/reg.h)
+// atch AIX register numbering (sys/reg.h)
 #define REG_LR  131
 #define REG_CTR 132
 
@@ -5105,7 +5228,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
       offset = TRAMP_SPR_OFFSET + STK_LR; 
       // Get address (SP + offset) and stick in register dest.
       emitImm(plusOp ,(Register) REG_SP, (RegValue) offset, dest, insn, 
-	      base, noCost);
+	      base, noCost, regSpace);
       // Load LR into register dest
       emitV(loadIndirOp, dest, 0, dest, insn, base, noCost, size);
       break;
@@ -5114,7 +5237,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
         offset = TRAMP_SPR_OFFSET + STK_CTR;
         // Get address (SP + offset) and stick in register dest.
         emitImm(plusOp ,(Register) REG_SP, (RegValue) offset, dest, insn, 
-                base, noCost);
+                base, noCost, regSpace);
         // Load LR into register dest
         emitV(loadIndirOp, dest, 0, dest, insn, base, noCost, size);
       break;

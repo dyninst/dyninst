@@ -121,6 +121,13 @@ public:
   /** returns the image */
   image *getImage() { return addressImage; };
 
+  /** changes the range of the block the InstrucIter will look at */
+  void changeRange(Address stopAddress) 
+    { 
+      range = stopAddress - baseAddress;  
+    }
+
+
   instruction insn;
   const unsigned char* instPtr;
 
@@ -169,6 +176,7 @@ public:
         instPtr =addressImage->getPtrToInstruction(bpBasicBlock->startAddress);
         insn.getNextInstruction( instPtr ); 
 #endif
+
     }
 
 
@@ -293,6 +301,12 @@ void getMultipleJumpTargets( BPatch_Set< Address >& result );
   bool isA_RA_WriteInstruction(); 
   bool isA_FRT_WriteInstruction(); 
   bool isA_FRA_WriteInstruction(); 
+  bool isA_RT_ReadInstruction();
+  bool isA_RA_ReadInstruction(); 
+  bool isA_FRT_ReadInstruction(); 
+  bool isA_FRA_ReadInstruction(); 
+  bool isA_RB_ReadInstruction();
+  bool isA_FRB_ReadInstruction();
   
   
 
@@ -304,6 +318,7 @@ void getMultipleJumpTargets( BPatch_Set< Address >& result );
 
   unsigned getRTValue();
   unsigned getRAValue();
+  unsigned getRBValue();
   void printOpCode();
 
 #if defined(rs6000_ibm_aix4_1)

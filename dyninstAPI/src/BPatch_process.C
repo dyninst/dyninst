@@ -827,13 +827,55 @@ BPatchSnippetHandle *BPatch_process::insertSnippetWhen(
    BPatch_function *tmpFunc = (BPatch_function *) point.getFunction();
    char tmpFuncName[1024];
    
-	if(llproc->collectSaveWorldData){
-		tmpFunc->getName(tmpFuncName, 1024);
-      
-		if( !strncmp(tmpFuncName,"main",4)){
-         use_recursive_tramps = true;
-      }
-	}
+   if(llproc->collectSaveWorldData){
+     tmpFunc->getName(tmpFuncName, 1024);
+     
+     if( !strncmp(tmpFuncName,"main",4)){
+       use_recursive_tramps = true;
+     }
+   }
+
+   // BEGIN LIVENESS ANALYSIS STUFF
+   // Need to narrow it down to specific basic block at this point so we can 
+   // recover liveness information
+  
+   tmpFunc->getName(tmpFuncName, 1024);
+   //printf("Func name is %s\n",tmpFuncName);
+
+   // Need the CFG to do liveness analysis 
+   BPatch_flowGraph * cfg = tmpFunc->getCFG();
+   BPatch_Set<BPatch_basicBlock*> allBlocks;
+   cfg->getAllBasicBlocks(allBlocks);
+   BPatch_basicBlock** elements = new BPatch_basicBlock*[allBlocks.size()];
+   allBlocks.elements(elements);
+
+   for (int i = 0; i < allBlocks.size(); i++)
+     {
+       BPatch_basicBlock *bb = elements[i];
+       void * startAddr, *endAddr;
+       bb->getAddressRange(startAddr, endAddr);
+
+       instPoint * iPo = point.getPoint();
+       Address pA = iPo->pointAddr();
+
+       char fName[1023];
+       tmpFunc->getMangledName(fName, 1023); fName[1023] = '\0';
+
+       if ( pA >= (unsigned long)startAddr && pA <= (unsigned long)endAddr){
+	 
+	 //printf("Basic Block number %d for %s and Address is 0x%x\n", i, fName, pA);
+	 
+	 /* When we have the actual basic block belonging to the 
+	    inst address, we put the live Registers in for that inst point*/
+	 
+	 bb->liveRegistersIntoSet(iPo->liveRegisters, pA );
+
+	 //bb->printAll();
+       }
+     }
+   // END LIVENESS ANALYSIS STUFF
+   
+   
 #endif
 #if defined(os_irix)
    if (point.getPointType() == BPatch_arbitrary) 
@@ -1457,7 +1499,7 @@ BPatch_point *BPatch_process::createBPPointCB(process *p, int_function *f,
 /**
  * In IBM's code, this is a wrapper for _BPatch_thread->addSharedObject (linux)
  * which is in turn a wrapper for creating a new 
- * ibmBpatchElf32Reader(name, addr)
+ * ibmBpatchElf32Teader(name, addr)
  **/
 bool BPatch_process::addSharedObjectInt(const char *name, 
                                         const unsigned long loadaddr)

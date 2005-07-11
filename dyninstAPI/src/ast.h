@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.76 2005/02/17 02:16:21 rutar Exp $
+// $Id: ast.h,v 1.77 2005/07/11 19:35:22 rutar Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -130,6 +130,7 @@ class registerSpace {
 	void forceFreeRegister(Register k);
 	void resetSpace();
 	void resetClobbers();
+	void resetLiveDeadInfo(const int* liveRegs);
 
 	// Check to see if the register is free
 	bool isFreeRegister(Register k);
@@ -137,6 +138,9 @@ class registerSpace {
 	
 	// Inits the values for the clobbered variables for the floating point registers
 	void initFloatingPointRegisters(const unsigned int count, Register *fp);
+
+	
+
 
 
 	//Makes register unClobbered
@@ -152,6 +156,11 @@ class registerSpace {
 	// Checks to see if given register has been clobbered, true if it has
 	bool beenSaved(Register reg);
 	bool beenSavedFP(Register reg);
+
+	// Checks to see if register starts live
+	bool isRegStartsLive(Register reg);
+	int fillDeadRegs(Register * deadRegs, int num);
+
 
 	// Manually set the reference count of the specified register
 	// we need to do so when reusing an already-allocated register

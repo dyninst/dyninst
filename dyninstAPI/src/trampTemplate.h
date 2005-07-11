@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: trampTemplate.h,v 1.7 2005/05/01 23:27:32 rutar Exp $
+// $Id: trampTemplate.h,v 1.8 2005/07/11 19:35:22 rutar Exp $
 
 // trampTemplate class definition
 
@@ -51,6 +51,7 @@
 #include "dyninstAPI/src/codeRange.h"
 
 class instPoint;
+class registerSpace;
 
 // Todo: make things private/protected
 
@@ -112,7 +113,7 @@ class trampTemplate : public codeRange {
     const instPoint *location; /* Pointer to the owning inst point structure */
     process *proc; /* Process this base tramp is in */
     
-    void updateTrampCost(int c);
+    void updateTrampCost(int c, registerSpace * rs);
     
     bool inBasetramp( Address addr );
     bool inSavedRegion( Address addr );

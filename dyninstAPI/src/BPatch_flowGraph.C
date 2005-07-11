@@ -123,6 +123,39 @@ BPatch_flowGraph::BPatch_flowGraph(int_function *func,
    if (exitBlock.empty()) {
 	 assignAnExitBlockIfNoneExists();
    }
+
+#if defined(rs6000_ibm_aix4_1)
+   
+   // LIVENESS ANALYSIS CODE STARTS
+   
+
+   BPatch_basicBlock **blocks = new BPatch_basicBlock *[allBlocks.size()];
+   allBlocks.elements(blocks);
+
+   // Initializes the gen kill set for all blocks in the CFG
+   for (unsigned int i = 0; i < allBlocks.size(); i++)
+     {
+       blocks[i]->initRegisterGenKill();
+     }
+   
+   bool change = true;
+   
+   //  Does fixed point iteration to figure out the in out sets 
+   do {
+     change = false;
+     for (unsigned int i = 0; i < allBlocks.size(); i++) {
+       if (blocks[i]->updateRegisterInOut()) 
+	 change = true;
+     }
+   } while (change);
+  
+   delete[] blocks;
+   
+   // LIVENESS ANALYSIS CODE STOPS
+  
+
+#endif 
+
 }
 
 
@@ -2015,6 +2048,7 @@ BPatch_process *BPatch_flowGraph::getBProc()
    }
    return bproc;
 }
+
 
 bool BPatch_flowGraph::containsDynamicCallsitesInt()
 {

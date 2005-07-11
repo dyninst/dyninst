@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.87 2005/05/01 23:27:32 rutar Exp $
+// $Id: inst.h,v 1.88 2005/07/11 19:35:22 rutar Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -249,16 +249,16 @@ void     emitVload(opCode op, Address src1, Register src2, Register dst,
 
 // for storeOp (writing to an Address)
 void     emitVstore(opCode op, Register src1, Register src2, Address dst, 
-                char *insn, Address &base, bool noCost, int size = 4, 
-                const instPoint * location = NULL, process * proc = NULL, registerSpace * rs = NULL );
+		    char *insn, Address &base, bool noCost, registerSpace * rs, int size = 4, 
+                const instPoint * location = NULL, process * proc = NULL);
 
 // for updateCostOp
 void     emitVupdate(opCode op, RegValue src1, Register src2, Address dst, 
-                char *insn, Address &base, bool noCost);
+                char *insn, Address &base, bool noCost, registerSpace * rs );
 
 // and the retyped original emitImm companion
 void     emitImm(opCode op, Register src, RegValue src2imm, Register dst, 
-                char *insn, Address &base, bool noCost);
+                char *insn, Address &base, bool noCost, registerSpace * rs);
 
 #ifdef BPATCH_LIBRARY
 void emitJmpMC(int condition, int offset, char* baseInsn, Address &base);

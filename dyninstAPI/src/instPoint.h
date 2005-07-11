@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.17 2005/03/17 19:03:03 jodom Exp $
+// $Id: instPoint.h,v 1.18 2005/07/11 19:35:22 rutar Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -95,15 +95,19 @@ class instPointBase {
     // if this instPoint is created in an edge tramp then this 
     // address is the address of the jcc instruction
     Address addrInFunc;
+    
+    int * liveRegisters;
 
    instPointBase(instPointType iptype, Address addr, int_function *func) :
-      id(id_ctr++), relocated_(false), ipType(iptype), addr_(addr),
-      func_(func), callee_(NULL), bppoint(NULL),addrInFunc(0) { }
+     id(id_ctr++), relocated_(false), ipType(iptype), addr_(addr),
+     func_(func), callee_(NULL), bppoint(NULL),addrInFunc(0), 
+     liveRegisters(NULL){ }
 
    instPointBase(unsigned int id_to_use, instPointType iptype, Address addr,
                  int_function *func) :
-      id(id_to_use), relocated_(true), ipType(iptype), addr_(addr),
-      func_(func), callee_(NULL), bppoint(NULL),addrInFunc(0) { }
+     id(id_to_use), relocated_(true), ipType(iptype), addr_(addr),
+     func_(func), callee_(NULL), bppoint(NULL),addrInFunc(0),
+     liveRegisters(NULL){ }
 
    virtual ~instPointBase() { }
 

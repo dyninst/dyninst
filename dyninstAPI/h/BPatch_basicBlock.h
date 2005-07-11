@@ -55,6 +55,16 @@
 class image;
 class int_function;
 
+/* Currently all this bitarray stuff is just for power, 
+   but could be extended as we do liveness stuff for other platforms */
+
+typedef struct {
+  int size;
+  char * data;
+} BITARRAY;
+
+#define BITARRAY_SIZE 32
+
 /** class for machine code basic blocks. We assume the user can not 
   * create basic blocks using its constructor. It is not safe. 
   * basic blocks are used for reading purposes not for inserting
@@ -134,6 +144,20 @@ private:
  
  	/** the outgoing edges */
  	BPatch_Set<BPatch_edge*> outgoingEdges;
+
+	/* Liveness analysis variables */
+	/** gen registers */
+	BITARRAY * gen;
+
+	/** kill registers */
+	BITARRAY * kill;
+	
+	/** in registers */
+	BITARRAY * in;
+
+	/** out registers */
+	BITARRAY * out;
+
 
 
 #if defined( arch_ia64 )
@@ -447,7 +471,35 @@ public:
 
         API_EXPORT_V(Int, (out),
 
-        void,getOutgoingEdges,(BPatch_Vector<BPatch_edge*> &out));
+	void,getOutgoingEdges,(BPatch_Vector<BPatch_edge*> &out));
+
+
+#if defined (rs6000_ibm_aix4_1)
+	/** BPatch_basicBlock::initRegisterGenKill */
+	/** Initializes the gen/kill sets for register liveness analysis */
+	API_EXPORT(Int, (),
+
+	bool,initRegisterGenKill,());
+
+	/** BPatch_basicBlock::updateRegisternOut */
+	/** Initializes the gen/kill sets for register liveness analysis */
+	API_EXPORT(Int, (),
+
+	bool,updateRegisterInOut,());
+
+	API_EXPORT(Int, (),
+
+	BITARRAY *, getInSet, ());
+
+	API_EXPORT(Int, (),
+
+	bool,printAll,());
+
+	API_EXPORT(Int, (liveReg, address),
+		   
+	int, liveRegistersIntoSet, (int * liveReg, unsigned long address));
+
+#endif
 
 public:
 

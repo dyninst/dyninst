@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.C,v 1.11 2005/06/01 21:53:39 legendre Exp $
+// $Id: function.C,v 1.12 2005/07/11 19:35:22 rutar Exp $
 
 #include "function.h"
 #include "BPatch_flowGraph.h"
@@ -171,10 +171,11 @@ int_function::getCFG(process * proc)
   assert(parsed_);
 
   if (!flowGraph) { 
-       bool valid;
-       // TODO: make the flowgraph process-dependent
-       flowGraph = new BPatch_flowGraph(this, proc, pdmod(), valid);
-       assert (valid);
+    bool valid;
+    // TODO: make the flowgraph process-dependent
+    flowGraph = new BPatch_flowGraph(this, proc, pdmod(), valid);
+    
+    assert (valid);
   }
   return flowGraph;
 }

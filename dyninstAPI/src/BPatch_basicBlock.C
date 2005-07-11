@@ -54,10 +54,201 @@
 #include "BPatch_instruction.h"
 #include "BPatch_libInfo.h"
 
+
+
+
 extern BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops,
 					       InstrucIter &ii, 
 					       BPatch_process *proc,
 					       BPatch_function *bpf);
+
+
+/* Bit array functions for liveness calculation */
+
+void dispose(BITARRAY** bitarray)
+{
+  if(*bitarray){
+    if((*bitarray)->data){
+      free((*bitarray)->data);
+      (*bitarray)->data = NULL;
+    }
+    free(*bitarray);
+    *bitarray = NULL;
+  }
+}
+
+void bitarray_init(int size,BITARRAY* bitarray)
+{
+	int bytesize;
+
+	bitarray->size = size;
+	if(!(size % 8))
+		bytesize = size / 8;
+	else
+		bytesize = (size / 8) + 1;
+
+	bitarray->data = (char*) malloc (sizeof(char)*bytesize);
+
+	memset(bitarray->data,'\0',bytesize);
+}
+void bitarray_set(int location,BITARRAY* bitarray)
+{
+	int pass,pos;
+	char* ptr;
+	unsigned char mask = 0x80;
+	
+	if(location > bitarray->size){
+		fprintf(stderr,"trying to set a bit more than the size\n");
+		return;
+	}
+	pass = location / 8;
+	pos = location % 8;
+
+	ptr = bitarray->data + pass;
+	mask = mask >> pos;
+
+	*ptr = (*ptr) | mask;
+}
+void bitarray_unset(int location,BITARRAY* bitarray)
+{
+        int pass,pos;
+        char* ptr;
+        unsigned char mask = 0x80;
+        
+        if(location > bitarray->size){
+                fprintf(stderr,"trying to unset a bit more than the size\n");
+                return;
+        }
+        pass = location / 8;
+        pos = location % 8;
+ 
+        ptr = bitarray->data + pass;
+        mask = mask >> pos;
+ 
+        *ptr = (*ptr) & (~mask);
+}
+int bitarray_check(int location,BITARRAY* bitarray)
+{
+        int pass,pos;
+        char* ptr;
+        char unsigned mask = 0x80;
+        
+	if(location < 0)
+		return FALSE;
+
+        if(location > bitarray->size){
+                fprintf(stderr,"trying to unset a bit more than the size\n");
+                return FALSE;
+        }
+        pass = location / 8;
+        pos = location % 8;
+
+	ptr = bitarray->data + pass;
+	mask = mask >> pos;
+
+	if((*ptr) & mask)
+		return TRUE;
+	return FALSE;
+}
+
+void bitarray_and(BITARRAY* s1,BITARRAY* s2,BITARRAY* r)
+{
+	int bytesize,i;
+
+	if(s1->size != s2->size){
+		fprintf(stderr,"size do not match to and \n");
+		return ;
+	}
+	if(s1->size % 8)
+		bytesize = (s1->size / 8)+1;
+	else
+		bytesize = s1->size / 8;
+	r->size = s1->size;
+	for(i=0;i<bytesize;i++)
+		*((r->data)+i) = *((s1->data)+i) & *((s2->data)+i);
+}
+void bitarray_or(BITARRAY* s1,BITARRAY* s2,BITARRAY* r)
+{
+	int bytesize,i;
+
+	if(s1->size != s2->size){
+                fprintf(stderr,"size do not match to and \n");
+                return ;
+        }
+        if(s1->size % 8)
+                bytesize = (s1->size / 8)+1;
+        else
+                bytesize = s1->size / 8;
+        r->size = s1->size;
+        for(i=0;i<bytesize;i++)
+                *((r->data)+i) = *((s1->data)+i) | *((s2->data)+i);
+}
+void bitarray_copy(BITARRAY* s1,BITARRAY* s2)
+{
+	int bytesize,i;
+
+        if(s1->size != s2->size){
+                fprintf(stderr,"size do not match to and \n");
+                return ;
+        }
+        if(s1->size % 8)
+                bytesize = (s1->size / 8)+1;
+        else
+                bytesize = s1->size / 8;
+
+	for(i=0;i<bytesize;i++)
+		*((s1->data)+i) = *((s2->data)+i);
+}
+void bitarray_comp(BITARRAY* s1,BITARRAY* s2)
+{
+        int bytesize,i;
+
+        if(s1->size != s2->size){
+                fprintf(stderr,"size do not match to and \n");
+                return ;
+        }
+        if(s1->size % 8)
+                bytesize = (s1->size / 8)+1;
+        else
+                bytesize = s1->size / 8;
+
+        for(i=0;i<bytesize;i++)
+                *((s1->data)+i) = ~(*((s2->data)+i));
+}
+int bitarray_same(BITARRAY* s1,BITARRAY* s2)
+{
+	int bytesize,i;
+
+        if(s1->size != s2->size){
+                fprintf(stderr,"size do not match to and \n");
+                return FALSE;
+        }
+        if(s1->size % 8)
+                bytesize = (s1->size / 8)+1;
+        else
+                bytesize = s1->size / 8;
+	for(i=0;i<bytesize;i++)
+		if(*((s1->data)+i) ^ *((s2->data)+i))
+			return FALSE;
+	return TRUE;
+}
+	
+void bitarray_diff(BITARRAY* s1,BITARRAY* s2,BITARRAY* r)
+{
+        int bytesize,i;
+ 
+        if(s1->size != s2->size){
+                fprintf(stderr,"size do not match to and \n");
+                return ;
+        }
+        if(s1->size % 8)
+                bytesize = (s1->size / 8)+1;
+        else
+                bytesize = s1->size / 8;
+        r->size = s1->size;
+        for(i=0;i<bytesize;i++)
+		*((r->data)+i) = *((s1->data)+i) & (~(*((s2->data)+i)));
+}
 
 
 #if defined (arch_ia64)
@@ -143,6 +334,272 @@ void BPatch_basicBlock::BPatch_basicBlock_dtor(){
 		delete sourceBlocks;	
 	return;
 }
+
+
+/* All of these functions are only defined for power right now
+   because they involve iterating over individual instructions
+   that don't have corresponding functions in all the
+   InstrucIter-*  yest. 
+*/
+#if defined (rs6000_ibm_aix4_1)
+
+/* Iterates over instructions in the basic block to 
+   create the initial gen kill sets for that block */
+bool BPatch_basicBlock::initRegisterGenKillInt() 
+{  
+  in=(BITARRAY*)malloc(sizeof(BITARRAY));
+  bitarray_init(BITARRAY_SIZE,in);  
+
+  out=(BITARRAY*)malloc(sizeof(BITARRAY));
+  bitarray_init(BITARRAY_SIZE,out);  
+
+  gen=(BITARRAY*)malloc(sizeof(BITARRAY));
+  bitarray_init(BITARRAY_SIZE,gen);  
+  
+  kill=(BITARRAY*)malloc(sizeof(BITARRAY));
+  bitarray_init(BITARRAY_SIZE,kill);  
+
+  
+  InstrucIter ii(this);
+  
+  
+  while(ii.hasMore()) {
+    
+    if (ii.isA_RT_ReadInstruction()){
+      if (!bitarray_check(ii.getRTValue(),kill))
+	bitarray_set(ii.getRTValue(),gen);
+    }
+    if (ii.isA_RA_ReadInstruction()){
+      if (!bitarray_check(ii.getRAValue(),kill))
+	bitarray_set(ii.getRAValue(),gen);
+    }
+    if (ii.isA_RB_ReadInstruction()){
+      if (!bitarray_check(ii.getRBValue(),kill))
+	bitarray_set(ii.getRBValue(),gen);
+    }
+
+    if (ii.isA_RT_WriteInstruction()){
+      bitarray_set(ii.getRTValue(),kill);
+    }    
+    if (ii.isA_RA_WriteInstruction()){
+      bitarray_set(ii.getRAValue(),kill);
+    }
+    
+    /* If it is a call instruction we just
+       gen registers 3-10 (the parameter holding volative 
+       registers for power) */
+    if (ii.isACallInstruction())
+      {
+	for (int a = 3; a <= 10; a++)
+	  bitarray_set(a,gen);
+      } 
+    ii++;
+  } 
+  return true;
+}
+
+/* This is used to do fixed point iteration until 
+   the in and out don't change anymore */
+bool BPatch_basicBlock::updateRegisterInOutInt() 
+{
+  bool change = false;
+  // old_IN = IN(X)
+  
+  BITARRAY oldIn;
+  BITARRAY tmp; 
+  
+  bitarray_init(BITARRAY_SIZE, &oldIn);
+  bitarray_init(BITARRAY_SIZE, &tmp);
+  
+  bitarray_copy(&oldIn, in);
+  bitarray_and(in, &tmp, in);
+  
+  
+  // OUT(X) = UNION(IN(Y)) for all successors Y of X
+  BPatch_basicBlock** elements = new BPatch_basicBlock*[targets.size()];
+  targets.elements(elements);
+  for(unsigned  i=0;i<targets.size();i++)
+    {
+      bitarray_or(&tmp,elements[i]->getInSet(),&tmp);
+    }
+  delete[] elements;
+  
+  bitarray_copy(out, &tmp);
+  
+  // IN(X) = USE(X) + (OUT(X) - DEF(X))
+  bitarray_diff(out, kill, &tmp);
+  bitarray_or(&tmp, gen, in);
+  
+  
+  // if (old_IN != IN(X)) then change = true
+  if (bitarray_same(&oldIn, in))
+    change = false;
+  else
+    change = true;
+  
+  return change;
+}
+
+
+BITARRAY * BPatch_basicBlock::getInSetInt()
+{
+  return in;
+}
+
+/* Debugging tool for checking basic block/liveness info */
+bool BPatch_basicBlock::printAllInt()
+{
+	cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
+	cout << "Basic Block : " << blockNumber <<" : [ ";
+
+	printf("0x%x , ",startAddress);
+	printf("0x%x | ",lastInsnAddress);
+	printf("0x%x ]\n ",lastInsnAddress - startAddress);
+
+
+	if(isEntryBasicBlock)
+		cout <<"Type : ENTRY TO CFG\n"; 
+	else if(isExitBasicBlock)
+		cout <<"Type : EXIT FROM CFG\n"; 
+
+	cout << "Pred :\n";
+
+	BPatch_basicBlock** belements = new BPatch_basicBlock*[sources.size()];
+	sources.elements(belements);
+	for(int i=0; i<sources.size(); i++)
+		cout << "\t<- " << belements[i]->blockNumber << "\n";
+	delete[] belements;
+
+	cout << "Succ:\n";
+	belements =  new BPatch_basicBlock*[targets.size()];
+	targets.elements(belements);
+	for(int j=0; j<targets.size(); j++)
+		cout << "\t-> " << belements[j]->blockNumber << "\n";
+	delete[] belements;
+
+	cout << "Immediate Dominates: ";
+	if(immediateDominates){
+		belements = new BPatch_basicBlock*[immediateDominates->size()];
+		immediateDominates->elements(belements);
+		for(int k=0; k<immediateDominates->size(); k++)
+			cout << belements[k]->blockNumber << " ";
+		delete[] belements;
+	}
+	cout << "\n";
+
+	cout << "Immediate Dominator: ";
+	if(!immediateDominator)
+		cout << "None\n";
+	else
+	  cout << immediateDominator->blockNumber << "\n";
+	
+	cout<<"Liveness Sets"<<endl;
+
+	cout <<"Gen..."<<endl;
+	for (int a = 0; a < BITARRAY_SIZE; a++)
+	  {
+	    if ( bitarray_check(a,gen))
+	      cout<<"1 ";
+	    else
+	      cout<<"0 ";
+	  }
+	cout <<endl<<"Kill..."<<endl;
+	for (int a = 0; a < BITARRAY_SIZE; a++)
+	  {
+	    if ( bitarray_check(a,kill))
+	      cout<<"1 ";
+	    else
+	      cout<<"0 ";
+	  }
+	cout <<endl<<"In..."<<endl;
+	for (int a = 0; a < BITARRAY_SIZE; a++)
+	  {
+	    if ( bitarray_check(a,in))
+	      cout<<"1 ";
+	    else
+	      cout<<"0 ";
+	  }
+	cout <<endl<<"Out..."<<endl;
+	for (int a = 0; a < BITARRAY_SIZE; a++)
+	  {
+	    if ( bitarray_check(a,out))
+	      cout<<"1 ";
+	    else
+	      cout<<"0 ";
+	  }
+	
+
+
+	cout << "\n";
+	cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
+	return true;
+}
+
+/* The liveReg int * is a instance variable in the instPoint classes.
+   This puts the liveness information into that variable so 
+   we can access it from every instPoint without recalculation */
+int BPatch_basicBlock::liveRegistersIntoSetInt(int * liveReg, unsigned long address)
+{
+    
+  if (liveReg != NULL)
+    {
+      
+      liveReg = (int *) malloc(sizeof(int)*BITARRAY_SIZE);
+      
+      BITARRAY newIn;
+  
+      bitarray_init(BITARRAY_SIZE, &newIn);
+      bitarray_copy(&newIn,in);
+      
+      InstrucIter ii(this);
+      
+
+      /* The liveness information from the bitarrays are for the
+	 basic block, we need to do some more gen/kills until
+	 we get to the individual instruction within the 
+	 basic block that we want the liveness info for. */
+
+      /* Change the end address to correspond to the instruction
+	 we are looking at instead the end of the basic block */
+      ii.changeRange(address);
+      
+      while(ii.hasMore()) 
+	{
+	  if (ii.isA_RT_ReadInstruction())
+	    bitarray_set(ii.getRTValue(),&newIn);
+	  if (ii.isA_RA_ReadInstruction())
+	    bitarray_set(ii.getRAValue(),&newIn);
+	  if (ii.isA_RB_ReadInstruction())
+	    bitarray_set(ii.getRBValue(),&newIn);
+	  if (ii.isA_RT_WriteInstruction())
+	    bitarray_unset(ii.getRTValue(),&newIn);
+	  if (ii.isA_RA_WriteInstruction())
+	    bitarray_unset(ii.getRAValue(),&newIn);
+	  ii++;
+	}    
+      
+      /*
+      for (int a = 0; a < BITARRAY_SIZE; a++)
+      {
+      if (bitarray_check(a,&newIn))
+      {
+      liveReg[a] = 1;
+      printf("1 ");
+      }
+      else
+      {
+      liveReg[a] = 0;
+      printf("0 ");
+      }
+      } 
+      printf("\n");
+      */
+    }
+}
+
+#endif 
+
+
 
 //returns the predecessors of the basic block in aset 
 void BPatch_basicBlock::getSourcesInt(BPatch_Vector<BPatch_basicBlock*>& srcs){
@@ -481,8 +938,8 @@ unsigned long BPatch_basicBlock::getStartAddressInt() CONST_EXPORT
     
      //all other platforms have absolute addresses for basic blocks
      //at this point
-     process *proc = flowGraph->getProcess();
-     image *img = flowGraph->getModule()->exec();
+    process *proc = flowGraph->getProcess();
+    image *img = flowGraph->getModule()->exec();
                                                                                
      if (!proc->getBaseAddress(img, imgBaseAddr)) {
         bperr("getBaseAddress error start\n");

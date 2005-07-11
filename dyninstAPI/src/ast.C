@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.149 2005/05/01 23:27:32 rutar Exp $
+// $Id: ast.C,v 1.150 2005/07/11 19:35:22 rutar Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -243,7 +243,7 @@ void registerSpace::fixRefCount(Register reg, int iRefCount)
 {
     for (u_int i=0; i < numRegisters; i++) {
 	if (registers[i].number == reg) {
-	    registers[i].refCount = iRefCount;
+	  registers[i].refCount = iRefCount;
 	    return;
 	}
     }
@@ -255,7 +255,7 @@ void registerSpace::incRefCount(Register reg)
 {
     for (u_int i=0; i < numRegisters; i++) {
 	if (registers[i].number == reg) {
-	    registers[i].refCount++;
+	  registers[i].refCount++;
 	    return;
 	}
     }
@@ -268,10 +268,12 @@ void registerSpace::copyInfo(registerSpace *rs) {
   rs->fpRegisters = new registerSlot[numFPRegisters];
   rs->numRegisters = numRegisters;
   rs->numFPRegisters = numFPRegisters;
-  
+   
   for (i=0; i < numRegisters; i++)
     {
+ 
       rs->registers[i].beenClobbered = registers[i].beenClobbered;
+      //rs->registers[i].startsLive = registers[i].startsLive;
       rs->registers[i].number = registers[i].number;
     }
 
@@ -307,6 +309,26 @@ void registerSpace::resetSpace() {
    }
    highWaterRegister = 0;
 }
+
+
+bool registerSpace::isRegStartsLive(Register reg)
+{
+  return registers[reg].startsLive;
+}
+
+
+int registerSpace::fillDeadRegs(Register * deadRegs, int num)
+{
+  int filled = 0;
+  for (u_int i=0; i < numRegisters && filled < num; i++) {
+    if (registers[i].startsLive == false) {
+      deadRegs[filled] = registers[i].number;
+      filled++;
+    }
+  }
+  return filled;
+}
+
 
 void registerSpace::resetClobbers()
 {
@@ -991,10 +1013,11 @@ Address AstNode::generateTramp(process *proc, const instPoint *location,
 
     initTramps(proc->multithread_capable()); 
 
-    regSpace->resetSpace();
-    
+    //regS->copyInfo(regSpace);
 
+    regSpace->resetSpace();
     regSpace->resetClobbers();
+    regSpace->resetLiveDeadInfo(location->liveRegisters);
 
 #if defined( ia64_unknown_linux2_4 )
 	extern Register deadRegisterList[];
@@ -1017,7 +1040,7 @@ Address AstNode::generateTramp(process *proc, const instPoint *location,
     regSpace->copyInfo(regS);
     regSpace->resetSpace();
     regSpace->resetClobbers();
-        
+       
     return(ret);
 }
 
@@ -1110,6 +1133,7 @@ Register AstNode::allocateAndKeep(registerSpace *rs,
 	keepRegister(dest, ifForks);
     }
 
+    
     return dest;
 }
 
@@ -1358,6 +1382,7 @@ Address AstNode::generateCode_phase2(process *proc,
 	   //    code to get the address 
 	   dest = (Register)loperand->loperand->generateCode_phase2(proc, 
                                                                      rs, insn, base, noCost, ifForks, location);
+	   rs->clobberRegister(dest);
 	   // Broken refCounts?
          } else {
             // error condition
@@ -1375,11 +1400,12 @@ Address AstNode::generateCode_phase2(process *proc,
          loperand->fixChildrenCounts(rs);
 
          src2 = rs->allocateRegister(insn, base, noCost);
+	 rs->clobberRegister(src2);
          switch (loperand->oType) {
            case DataAddr:
               addr = (Address) loperand->oValue;
               assert(addr != 0); // check for NULL
-              emitVstore(storeOp, src1, src2, addr, insn, base, noCost, size);
+              emitVstore(storeOp, src1, src2, addr, insn, base, noCost, rs, size);
               // We are not calling generateCode for the left branch,
               // so need to decrement the refcount by hand
               loperand->decUseCount(rs);
@@ -1395,7 +1421,7 @@ Address AstNode::generateCode_phase2(process *proc,
               assert(addr != 0); // check for NULL
 #endif              
               emitVstore(storeFrameRelativeOp, src1, src2, addr, insn, 
-                         base, noCost, size, location, proc, rs);
+                         base, noCost, rs, size, location, proc);
               loperand->decUseCount(rs);
               break;
 	   case RegOffset: {
@@ -1525,6 +1551,7 @@ Address AstNode::generateCode_phase2(process *proc,
          {
 	     rs->freeRegister(src); // may be able to reuse it for dest
 	     dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
+	     rs->clobberRegister(dest);
 #ifdef alpha_dec_osf4_0
             if (op == divOp)
             {
@@ -1543,7 +1570,7 @@ Address AstNode::generateCode_phase2(process *proc,
             }
             else
 #endif
-               emitImm(op, src, (RegValue)right->oValue, dest, insn, base, noCost);
+               emitImm(op, src, (RegValue)right->oValue, dest, insn, base, noCost, rs);
             // We do not .generateCode for right, so need to update its
             // refcounts manually
             right->decUseCount(rs);
@@ -1554,7 +1581,7 @@ Address AstNode::generateCode_phase2(process *proc,
 	    rs->freeRegister(src); // may be able to reuse it for dest
 	    rs->freeRegister(right_dest); // may be able to reuse it for dest
             dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
-	      
+	    rs->clobberRegister(dest);
 #ifdef alpha_dec_osf4_0
             if (op == divOp)
             {
@@ -1582,6 +1609,7 @@ Address AstNode::generateCode_phase2(process *proc,
       // Allocate a register to return
       if (oType != DataReg) {
          dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
+	 rs->clobberRegister(dest);
       }
       Register temp;
       int tSize;
@@ -1623,6 +1651,7 @@ Address AstNode::generateCode_phase2(process *proc,
            break;
         case DataReg:
            dest = (Address)oValue;
+	   rs->clobberRegister(dest);
            break;
         case PreviousStackFrameDataReg:
            emitLoadPreviousStackFrameRegister((Address) oValue, dest,insn,base,
@@ -1660,7 +1689,7 @@ Address AstNode::generateCode_phase2(process *proc,
            if (src != dest) {
               // Move src to dest. Can't simply return src, since it was not
               // allocated properly
-              emitImm(orOp, src, 0, dest, insn, base, noCost);
+              emitImm(orOp, src, 0, dest, insn, base, noCost, rs);
            }
            break;
         case Param:
@@ -1687,7 +1716,7 @@ Address AstNode::generateCode_phase2(process *proc,
            if (src != dest) {
               // Move src to dest. Can't simply return src, since it was not
               // allocated properly
-              emitImm(orOp, src, 0, dest, insn, base, noCost);
+              emitImm(orOp, src, 0, dest, insn, base, noCost, rs);
            }
            break;
         case DataAddr:
@@ -1828,14 +1857,16 @@ Address AstNode::generateCode_phase2(process *proc,
             keepRegister(tmp, ifForks);
          }
          dest = tmp;
+	 rs->clobberRegister(dest);
       }
       else {
          // On SPARC emitFuncCall always returns O0, which we decided
          // not to use (I guess because Oregs are not preserved across
          // calls), so we need to move it to a register we can return
          dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
+	 rs->clobberRegister(dest);
          // Move tmp to dest
-         emitImm(orOp, tmp, 0, dest, insn, base, noCost);
+         emitImm(orOp, tmp, 0, dest, insn, base, noCost, rs);
       }
    } else if (type == sequenceNode) {
 #if 0 && defined(BPATCH_LIBRARY_F) // mirg: Aren't we losing a reg here?
@@ -1848,6 +1879,7 @@ Address AstNode::generateCode_phase2(process *proc,
 #endif
       dest = roperand->generateCode_phase2(proc, rs, insn, base, 
                                            noCost, ifForks, location);
+      rs->clobberRegister(dest);
    }
 
    // assert (dest != Null_Register); // oh dear, it seems this happens!
