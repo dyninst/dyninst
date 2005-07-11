@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.87 2005/05/01 23:33:32 rutar Exp $
+// $Id: inst-alpha.C,v 1.88 2005/07/11 19:38:03 rutar Exp $
 
 #include "common/h/headers.h"
 
@@ -1414,9 +1414,9 @@ void emitVload(opCode op, Address src1, Register, Register dest,
 }
 
 void emitVstore(opCode op, Register src1, Register src2, Address dest,
-				char *i, Address &base, bool /* noCost */, int size,
-				const instPoint * /* location */, process * /* proc */,
-				registerSpace * /* rs */ )
+		char *i, Address &base, bool /* noCost */,registerSpace *rs, 
+		int size,
+		const instPoint * /* location */, process * /* proc */)
 {
   instruction *insn = (instruction *) ((void*)&i[base]);
   assert(!((unsigned long)insn & (unsigned long)3));
@@ -1468,7 +1468,7 @@ void emitVstore(opCode op, Register src1, Register src2, Address dest,
 
 void emitVupdate(opCode op, RegValue /* src1 */, 
 			    Register /*src2*/, Address /* dest */,
-			    char *i, Address &base, bool /* noCost */)
+			    char *i, Address &base, bool /* noCost */, registerSpace *rs)
 {
   instruction *insn = (instruction *) ((void*)&i[base]);
   assert(!((unsigned long)insn & (unsigned long)3));
@@ -1914,7 +1914,7 @@ bool process::heapIsOk(const pdvector<sym_data> &find_us) {
 }
 
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
-             char *i, Address &base, bool /* noCost */)
+             char *i, Address &base, bool /* noCost */, registerSpace *rs)
 {
   instruction *insn = (instruction *) ((void*)&i[base]);
   assert(!((unsigned long)insn & (unsigned long)3));
@@ -2330,6 +2330,11 @@ createEdgeTramp(process *proc, image *img, BPatch_edge *edge)
 {
 
 }
+
+/* For AIX liveness analysis */
+void registerSpace::resetLiveDeadInfo(const int * liveRegs)
+{}
+
 
 bool registerSpace::clobberRegister(Register reg) 
 {

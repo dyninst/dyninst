@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.207 2005/06/14 04:16:17 rchen Exp $
+ * $Id: inst-x86.C,v 1.208 2005/07/11 19:38:03 rutar Exp $
  */
 #include <iomanip>
 
@@ -3725,9 +3725,9 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
 }
 
 void emitVstore(opCode op, Register src1, Register src2, Address dest,
-			char *ibuf, Address &base, bool /*noCost*/, int /* size */,
-			const instPoint * /* location */, process * /* proc */,
-			registerSpace * /* rs */ )                                 
+		char *ibuf, Address &base, bool /*noCost*/, registerSpace *rs, 
+		int /* size */,
+		const instPoint * /* location */, process * /* proc */)                                 
 {
    unsigned char *insn = (unsigned char *) (&ibuf[base]);
    unsigned char *first = insn;
@@ -3753,7 +3753,7 @@ void emitVstore(opCode op, Register src1, Register src2, Address dest,
 }
 
 void emitVupdate(opCode op, RegValue src1, Register /*src2*/, Address dest, 
-             char *ibuf, Address &base, bool noCost)
+             char *ibuf, Address &base, bool noCost, registerSpace * rs)
 {
     unsigned char *insn = (unsigned char *) (&ibuf[base]);
     unsigned char *first = insn;
@@ -3871,7 +3871,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 
 
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
-             char *ibuf, Address &base, bool)
+             char *ibuf, Address &base, bool, registerSpace *rs)
 {
    unsigned char *insn = (unsigned char *) (&ibuf[base]);
    unsigned char *first = insn;
@@ -6429,6 +6429,11 @@ bool int_function::setReturnValue(process *p, int val)
    size = cur - buffer;
    return p->writeTextSpace((void *) addr, size, buffer);
 }
+
+
+/* For AIX liveness analysis */
+void registerSpace::resetLiveDeadInfo(const int * liveRegs)
+{}
 
 bool registerSpace::clobberRegister(Register /*reg*/) 
 {

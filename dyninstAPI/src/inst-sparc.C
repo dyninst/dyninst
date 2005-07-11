@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.167 2005/05/01 23:33:32 rutar Exp $
+// $Id: inst-sparc.C,v 1.168 2005/07/11 19:38:03 rutar Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -658,6 +658,7 @@ emitOptReturn(instruction i, Register src, char *insn, Address &base,
               bool for_multithreaded) {
     
     unsigned instr = i.raw;
+    registerSpace *rs = NULL;
 
     cout << "Handling a special case for optimized return value." << endl;
 
@@ -665,7 +666,7 @@ emitOptReturn(instruction i, Register src, char *insn, Address &base,
 
     if ((instr&0x02000)>>13)
         emitImm(plusOp, (instr&0x07c000)>>14, instr&0x01fff,
-                ((instr&0x3e000000)>>25)+16, insn, base, noCost);
+                ((instr&0x3e000000)>>25)+16, insn, base, noCost, rs);
     else
         (void) emitV(plusOp, (instr&0x07c000)>>14, instr&0x01fff,
              ((instr&0x3e000000)>>25)+16, insn, base, noCost);
@@ -1141,7 +1142,7 @@ bool rpcMgr::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
 /****************************************************************************/
 
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
-             char *i, Address &base, bool noCost)
+             char *i, Address &base, bool noCost, registerSpace *rs)
 {
         instruction *insn = (instruction *) ((void*)&i[base]);
         RegValue op3 = -1;
@@ -2304,6 +2305,11 @@ createEdgeTramp(process */*proc*/, image */*img*/, BPatch_edge */*edge*/)
 {
 
 }
+
+
+/* For AIX liveness analysis */
+void registerSpace::resetLiveDeadInfo(const int * liveRegs)
+{}
 
 bool registerSpace::clobberRegister(Register /*reg*/) 
 {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc-solaris.C,v 1.163 2005/04/18 20:55:40 legendre Exp $
+// $Id: inst-sparc-solaris.C,v 1.164 2005/07/11 19:38:03 rutar Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 #include "dyninstAPI/src/instPoint.h"
@@ -1246,6 +1246,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
 					Address &base,
 					int size,
 					bool noCost){
+  registerSpace *rs = NULL;
   if(register_num > 31)
     assert(0);
   else if(register_num > 15){
@@ -1266,7 +1267,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
     }	    
     else {
       emitImm(plusOp,(Register) 30,(RegValue)frame_offset, 
-	      dest, insn, base, noCost);
+	      dest, insn, base, noCost,rs);
       emitV(loadIndirOp, dest, 0, dest, insn, base, noCost, size);
     }
   }	  
@@ -1284,7 +1285,7 @@ void emitLoadPreviousStackFrameRegister(Address register_num,
       frame_offset = (register_num * -4);
     //read globals from the stack, they were saved in tramp-sparc.S
     emitImm(plusOp,(Register) 30,(RegValue)frame_offset, 
-	    dest, insn, base, noCost);
+	    dest, insn, base, noCost, rs);
     emitV(loadIndirOp, dest, 0, dest, insn, base, noCost, size);
   }
   /* else assert(0); */
@@ -1801,9 +1802,9 @@ void emitVload(opCode op, Address src1, Register src2, Register dest,
 /****************************************************************************/
 
 void emitVstore(opCode op, Register src1, Register src2, Address dest, 
-				char *i, Address &base, bool /*noCost*/, int /* size */,
-				const instPoint * /* location */, process * /* proc */,
-				registerSpace * /* rs */ )
+		char *i, Address &base, bool /*noCost*/, registerSpace *rs,
+		int /* size */,
+		const instPoint * /* location */, process * /* proc */)
 {
     instruction *insn = (instruction *) ((void*)&i[base]);
 
@@ -1865,7 +1866,7 @@ void emitVstore(opCode op, Register src1, Register src2, Address dest,
 /****************************************************************************/
 
 void emitVupdate(opCode op, RegValue src1, Register /*src2*/, Address dest, 
-              char *i, Address &base, bool noCost)
+              char *i, Address &base, bool noCost, registerSpace * rs)
 {
     instruction *insn = (instruction *) ((void*)&i[base]);
 

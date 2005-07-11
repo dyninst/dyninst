@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.79 2005/06/30 00:51:58 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.80 2005/07/11 19:38:03 rutar Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -782,7 +782,7 @@ bool deleteBaseTramp( process */*proc*/, trampTemplate *) {
 
 /* Required by ast.C */
 void emitImm( opCode op, Register src1, RegValue src2imm, Register dest,
-			  char *ibuf, Address & base, bool /*noCost*/ ) {
+			  char *ibuf, Address & base, bool /*noCost*/, registerSpace *rs ) {
 	switch( op ) {
 		case orOp: {
 			/* Apparently, the bit-wise operation. */
@@ -878,7 +878,7 @@ bool process::heapIsOk( const pdvector<sym_data> & find_us ) {
 
 /* Required by inst.C */
 void emitVupdate( opCode op, RegValue /*src1*/, Register /*src2*/,
-				  Address /*dest*/, char * /*ibuf*/, Address & /*base*/, bool /*noCost*/ ) {
+				  Address /*dest*/, char * /*ibuf*/, Address & /*base*/, bool /*noCost*/, registerSpace * /*rs*/ ) {
 	switch( op ) {
 		case updateCostOp:
 			// fprintf( stderr, "FIXME: no-op'ing emitVupdate(updateCostOp)\n" );
@@ -3747,8 +3747,8 @@ void installTramp( miniTrampHandle *mtHandle,
 
 /* Required by ast.C */
 void emitVstore( opCode op, Register src1, Register src2, Address dest,
-				 char * ibuf, Address & base, bool /*noCost*/, int size,
-				 const instPoint * location, process * proc, registerSpace * rs ) {
+				 char * ibuf, Address & base, bool /*noCost*/, registerSpace * rs, int size,
+				 const instPoint * location, process * proc) {
 	assert( (((Address)ibuf + base) % 16) == 0 );
 	ia64_bundle_t * rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
 
@@ -3984,6 +3984,11 @@ BPatch_point * createInstructionEdgeInstPoint( process* proc, int_function *func
 void createEdgeTramp( process * proc, image * img, BPatch_edge * edge ) {
 	assert( 0 );
 	} /* end createEdgeTramp() */
+
+
+/* For AIX liveness analysis */
+void registerSpace::resetLiveDeadInfo(const int * liveRegs)
+{}
 
 /* For AIX "on the fly" register allocation. */
 bool registerSpace::clobberRegister( Register reg ) {

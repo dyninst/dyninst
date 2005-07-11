@@ -2573,7 +2573,7 @@ void emitVstore(opCode op, Register src1, Register src2, Address dst,
 
 // [updateCostOp]
 void emitVupdate(opCode op, RegValue src1, Register /*src2*/, Address dst, 
-		 char *code, Address &base, bool noCost)
+		 char *code, Address &base, bool noCost, registerSpace * rs)
 {
   TRACE_B( "emitVupdate" );
 
