@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.24 2005/07/11 19:35:22 rutar Exp $
+// $Id: arch-power.h,v 1.25 2005/07/18 16:20:38 rutar Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
@@ -198,16 +198,32 @@ typedef union instructUnion instruction;
  * Define the operation codes
  */
 
+#define X_EXTENDEDop     31
+#define XO_EXTENDEDop    31
+#define X_FP_EXTENDEDop  63
+#define A_FP_EXTENDEDop1  59   
+#define A_FP_EXTENDEDop2  63
+
 // ------------- Op Codes, instruction form I  ------------------
 #define Bop		18	/* (unconditional) branch */
 
 // ------------- Op Codes, instruction form D  ------------------
+#define TIop             3      /* trap immediate */
+#define MULIop           7      /* multiply immediate */
+#define SFIop            8      /* subtract from immediate */
+#define DOZIop           9
+#define CMPLIop         10
 #define CMPIop		11	/* compare immediate */
 #define SIop            12      /* subtract immediate */
+#define AIDOTop         13
 #define CALop		14	/* compute address lower -- ADDIop */
 #define CAUop		15	/* compute address upper -- ADDISop*/
 #define ORILop		24	/* (logical) or immediate lower -- ORIop*/
+#define ORIUop          25
+#define XORILop         26
+#define XORIUop         27 
 #define ANDILop         28      /* and immediate lower -- ANDIop*/
+#define ANDIUop         29
 #define RLDop		30	/* RLD* family -- rotate left doubleword */
 #define Lop		32	/* load (word) (aka lwz op in PowerPC) */
 #define LUop		33
@@ -303,10 +319,92 @@ typedef union instructUnion instruction;
 #define ORop            31      /* or */
 #define ORxop           444     /* or */
 
+// -- Other extended op codes for X, XFX, & XO when op is 31
+#define Txop             4
+#define Axop            10
+#define MULHWUxop       11
+#define MFCRxop         19
+#define SLxop           24
+#define CNTLZxop        26
+#define MASKGxop        29
+#define CMPLxop         32
+#define SUBFxop         40
+#define DCBSxop         54
+#define ANDCxop         60
+#define MULHWxop        75
+#define MFMSRxop        83
+#define DCBFxop         86
+#define LBZXxop         87
+#define NEGxop         104
+#define MULxop         107
+#define CLFxop         118
+#define NORxop         124
+#define SFExop         136
+#define AExop          138
+#define MTCRFxop       144
+#define MTMSRxop       146
+#define SLQxop         152
+#define SLExop         153
+#define SLIQxop        184
+#define SFZExop        200
+#define AZExop         202
+#define MTSRxop        210
+#define SLLQxop        216
+#define SLEQxop        217
+#define SFMExop        232
+#define AMExop         234
+#define MTSRIxop       242
+#define DCBTSTxop      246
+#define SLLIQxop       248
+#define DOZxop         264
+#define LSCBXxop       277
+#define DCBTxop        278
+#define EQVxop         284
+#define TLBIxop        306
+#define XORxop         316
+#define DIVxop         331
+#define MFSPRxop       339
+#define ABSxop         360
+#define ORCxop         412
+#define DIVWUxop       459
+#define DCBIxop        470
+#define NANDxop        476
+#define NABSxop        488
+#define DIVWxop        491
+#define CLIxop         502
+#define CLCSxop        531
+#define SRxop          536
+#define RRIBxop        537
+#define MASKIRxop      541
+#define LFSUXxop       567
+#define MFSRxop        595
+#define MFSRIxop       627
+#define DCLSTxop       630
+#define MFSRINxop      659
+#define SRQxop         664
+#define SRExop         665
+#define SRIQxop        696
+#define SRLQxop        728
+#define SREQxop        729
+#define SRLIQxop       760
+#define SRAxop         792
+#define RACxop         818
+#define SRAIxop        824
+#define EIEIOxop       854
+#define SRAQxop        920
+#define SREAxop        921
+#define EXTSxop        922
+#define SRAIQxop       952
+#define EXTSBxop       954
+#define ICBIxop        982
+#define DCLZxop       1014
+
+
 // ------------- Op Codes, instruction form XL  -----------------
 #define BCLRop		19	/* branch conditional link register */
 #define BCLRxop		16	/* branch conditional link register */
 #define BCCTRxop        528     /* branch conditional count register */
+
 
 // ------------- Op Codes, instruction form XO  -----------------
 /* #define XFPop        31      -- extendened fixed point ops */
@@ -319,12 +417,55 @@ typedef union instructUnion instruction;
 #define DIVSop          31      /* divide short -- XFPop */
 #define DIVSxop         363     /* divide short -- replacing DIVWxop */
 
+// ------------- Extended Floating PointOp Codes, instruction form A ---
+// Op code - 59
+#define FDIVSxop        18
+#define FSUBSxop        20
+#define FADDSxop        21
+#define FMULSxop        25
+#define FMSUBSxop       28
+#define FMADDSxop       29
+#define FNMSUBSxop      30
+#define FNMADDSxop      31
+
+// Op code - 63
+#define FDxop           18
+#define FSxop           20
+#define FAxop           21
+#define FSQRTxop        22
+#define FMxop           25
+#define FMSxop          28
+#define FMAxop          29
+#define FNMSxop         30
+#define FNMAxop         31
+
+
+
+// ------------- Extended Floating Point Op Codes, instruction form X---
+// Op Code - 63
+#define FCMPUxop         0
+#define FRSPxop         12
+#define FCIRxop         14
+#define FCIRZxop        15
+#define FCMPOxop        32
+#define FNEGxop         40
+#define FMRxop          72
+#define FNABSxop       136
+#define FABSxop        264
+#define MFFSxop        583
+
+
+
 // ------------- Op Codes, instruction form SC  -----------------
 #define SVCop		17	/* supervisor call -- used to be SCop */
 
 // ------------- Op Codes, instruction form M  -----------------
+
+#define RLIMIop         20      /* rotate left immediate then mask insert */
 #define RLINMxop        21      /* rotate left immediate then AND with mask
                                  * -- RLWINMxop */
+#define RLMIop          22
+#define RLNMop          23
 
 // -------------------------- Raw instructions ------------------
 /* a few full instructions that are in forms we don't break down by field */

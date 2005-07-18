@@ -92,50 +92,39 @@ bool InstrucIter::isA_RT_WriteInstruction()
   const instruction i = getInstruction();
   if (
       /* XO Form */
-      /*add, addc, adde, addme, addze, divw, divwu, mullw, neg, subf, subfc, subfe, 
-	subfme, subfze, mulhw, mulhwu*/
-      (i.xoform.op == 31 && ( i.xoform.xo == 266 || i.xoform.xo == 10 || i.xoform.xo == 138 ||
-			      i.xoform.xo == 28  || i.xoform.xo == 60 || i.xoform.xo == 491 ||
-			      i.xoform.xo == 40 || i.xoform.xo == 8 || i.xoform.xo == 136 || 
-			      i.xoform.xo == 232 || i.xoform.xo == 200 || i.xoform.xo == 75 ||  
-			      i.xoform.xo == 459 || i.xoform.xo == 235 || i.xoform.xo == 104 ||
-			      i.xoform.xo == 360 || i.xoform.xo == 331 || i.xoform.xo == 363 ||
-			      i.xoform.xo == 264 || i.xoform.xo == 107 || i.xoform.xo == 488 ||
-			      i.xoform.xo == 8 || i.xoform.xo == 136 || i.xoform.xo == 232 ||
-			      i.xoform.xo == 200 || i.xoform.xo == 11 )) ||
-
-       /* macchw, macchws, macchwsu, macchwu, machhw, machhws, machhwsu, machhwu, maclhw, maclhwsu,
-	  maclhwu, maclhws, nmacchw, nmacchws, nmachhw, nmachhws, nmaclhw, nmaclhws */
-       (i.xoform.op == 4 && ( i.xoform.xo == 172 || i.xoform.xo == 236 || i.xoform.xo == 204 ||
-			      i.xoform.xo == 140  || i.xoform.xo == 44 || i.xoform.xo == 108 ||
-			      i.xoform.xo == 76  || i.xoform.xo == 12  || i.xoform.xo == 428 ||
-			      i.xoform.xo == 492 || i.xoform.xo == 460 || i.xoform.xo == 396 || 
-			      i.xoform.xo == 494 || i.xoform.xo == 174 || i.xoform.xo == 238 || 
-			      i.xoform.xo == 46 || i.xoform.xo == 110 || i.xoform.xo == 430)) ||
+      (i.xoform.op == XO_EXTENDEDop
+       && ( i.xoform.xo == CAXxop || i.xoform.xo == Axop 
+	    || i.xoform.xo == AExop || i.xoform.xo == NABSxop 
+	    || i.xoform.xo == ANDCxop || i.xoform.xo == DIVWxop
+	    || i.xoform.xo == SUBFxop || i.xoform.xo == SFxop
+	    || i.xoform.xo == SFExop || i.xoform.xo == SFMExop 
+	    || i.xoform.xo == SFZExop || i.xoform.xo == MULHWxop 
+	    || i.xoform.xo == DIVWUxop || i.xoform.xo == MULSxop 
+	    || i.xoform.xo == NEGxop || i.xoform.xo == ABSxop 
+	    || i.xoform.xo == DIVxop || i.xoform.xo == DIVSxop
+	    || i.xoform.xo == DOZxop || i.xoform.xo == MULxop 
+	    || i.xoform.xo == SFExop || i.xoform.xo == SFMExop 
+	    || i.xoform.xo == SFZExop || i.xoform.xo == MULHWUxop )) ||
 	
 	/* D Form */
-	(i.dform.op == 7 || i.dform.op == 8 || i.dform.op == 9   ) || /* mulli,subtc */
-	(i.dform.op >= 12 && i.dform.op  <= 15) || /* addic, addic., addi, addis */
-	(i.dform.op >= 32 && i.dform.op <=35) || /* lws, lwzu, lbz, lbzu */
-	(i.dform.op >= 40 && i.dform.op <=43) || /* lhz, lhzu, lha, lhau */
+	(i.dform.op == MULIop || i.dform.op == SFIop || i.dform.op == DOZIop   ) || 
+	(i.dform.op >= SIop && i.dform.op  <= CAUop) || 
+	(i.dform.op >= Lop && i.dform.op <= LBZUop) || 
+	(i.dform.op >= LHZop && i.dform.op <= LHAUop) || 
 	
 	/* X Form */
-	/*lbzux, lbzx, lhaux, lhax, lhbrx, lhzux, lhzx,lwarx,lwbrx, dcread
-	  lwzux, lwzx, mfcr, mfdcr, mfmsr, mfspr, mftb, tlbre, tlbsx */
-	(i.xform.op == 31 && ( i.xform.xo == 119 || i.xform.xo == 87 ||
-			       i.xform.xo == 375  || i.xform.xo == 343 || i.xform.xo == 790 ||
-			       i.xform.xo == 311  || i.xform.xo == 279 || i.xform.xo == 20 ||
-			       i.xform.xo == 534  || i.xform.xo == 55 || i.xform.xo == 23 ||
-			       i.xform.xo == 19  || i.xform.xo == 323 || i.xform.xo == 83 ||
-			       i.xform.xo == 339  || i.xform.xo == 371 || i.xform.xo == 946 ||
-			       i.xform.xo == 531  || i.xform.xo == 595 || i.xform.xo == 627 ||
-			       i.xform.xo == 659  || i.xform.xo == 818 ||
-			       i.xform.xo == 914 || i.xform.xo == 486 )) ||
-	 
-	 /* mulchw, mulchwu, mulhhw, mulhhwu, mullhw, mullhwu, 
-	  */
-      (i.xform.op == 4 && ( i.xform.xo == 168  || i.xform.xo == 136 || i.xform.xo == 40 ||
-			    i.xform.xo == 8  || i.xform.xo == 424 || i.xform.xo == 392)))
+      (i.xform.op == X_EXTENDEDop 
+       && ( i.xform.xo == LBZUXxop || i.xform.xo == LBZXxop || 
+	    i.xform.xo == ANDxop || i.xform.xo == LHAUXxop  || 
+	    i.xform.xo == LHAXxop || i.xform.xo == LHBRXxop ||
+	    i.xform.xo == LHZUXxop  || i.xform.xo == LHZXxop || 
+	    i.xform.xo == LWARXxop || i.xform.xo == LWBRXxop  || 
+	    i.xform.xo == LUXxop || i.xform.xo == LXxop ||
+	    i.xform.xo == MFCRxop  ||  
+	    i.xform.xo == MFMSRxop || i.xform.xo == MFSPRxop  || 
+	    i.xform.xo == CLCSxop  || i.xform.xo == MFSRxop || 
+	    i.xform.xo == MFSRIxop ||
+	    i.xform.xo == MFSRINxop  || i.xform.xo == RACxop)))
     
     {
       return true;
@@ -152,26 +141,29 @@ bool InstrucIter::isA_FRT_WriteInstruction()
   const instruction i = getInstruction();
   if (
       /* A Form */
-      (i.aform.op == 63 && ( i.aform.xo == 21 || i.aform.xo == 18 || i.aform.xo == 25 ||
-			      i.aform.xo == 29  || i.aform.xo == 28 || i.aform.xo == 31 ||
-			      i.aform.xo == 30 || i.aform.xo == 22 || i.aform.xo == 14 || 
-			      i.aform.xo == 20 )) ||  
+      (i.aform.op == A_FP_EXTENDEDop2 
+       && ( i.aform.xo == FAxop || i.aform.xo == FDxop || 
+	    i.aform.xo == FMxop || i.aform.xo == FMAxop  || 
+	    i.aform.xo == FMSxop || i.aform.xo == FNMAxop ||
+	    i.aform.xo == FNMSxop || i.aform.xo == FSQRTxop || 
+	    i.aform.xo == FSxop )) ||  
 
-      (i.aform.op == 59 && ( i.aform.xo == 18 || i.aform.xo == 29 || i.aform.xo == 25 ||
-			     i.aform.xo == 28  || i.aform.xo == 30 || i.aform.xo == 31 ||
-			     i.aform.xo == 20 )) ||  
+      (i.aform.op == A_FP_EXTENDEDop1
+       && ( i.aform.xo == FDIVSxop || i.aform.xo == FMADDSxop || 
+	    i.aform.xo == FMULSxop || i.aform.xo == FMSUBSxop  || 
+	    i.aform.xo == FNMSUBSxop || i.aform.xo == FNMADDSxop ||
+	    i.aform.xo == FSUBSxop )) ||  
       
-	/* D Form */
-      (i.dform.op == 56 || i.dform.op == 57 ) || 
-      (i.dform.op >= 48 && i.dform.op  <= 51) ||
+      /* X Form */
+      (i.xform.op == X_FP_EXTENDEDop 
+       && ( i.xform.xo == MFFSxop || i.xform.xo == FABSxop ||
+	    i.xform.xo == FCIRZxop  || i.xform.xo == FMRxop || 
+	    i.xform.xo == FNABSxop || i.xform.xo == FCIRxop ||
+	    i.xform.xo == FNEGxop || i.xform.xo == FRSPxop )) ||
 
-	/* X Form */
-      (i.xform.op == 63 && ( i.xform.xo == 583 || i.xform.xo == 264 ||
-			     i.xform.xo == 15  || i.xform.xo == 72 || i.xform.xo == 136 ||
-			     i.xform.xo == 40 || i.xform.xo == 12 )) ||
-
-      (i.xform.op == 31 && ( i.xform.xo == 631  || i.xform.xo == 599 || i.xform.xo == 823 ||
-			     i.xform.xo == 791  || i.xform.xo == 567 || i.xform.xo == 535 )))
+      (i.xform.op == X_EXTENDEDop
+       && ( i.xform.xo == LFDUXxop  || i.xform.xo == LFDXxop || 
+	    i.xform.xo == LFSUXxop || i.xform.xo == LFSXxop )))
 			     
     {
       return true;
@@ -188,39 +180,49 @@ bool InstrucIter::isA_RT_ReadInstruction()
 {
   const instruction i = getInstruction();
   if (
-      /* XO Form */
-      (i.xoform.op == 31 && i.xoform.xo == 922) ||
-      
       /* D Form */
-      (i.dform.op >= 24 && i.dform.op  <= 29) || 
-      (i.dform.op >= 36 && i.dform.op  <= 39) ||
-      i.dform.op == 47 ||
+      (i.dform.op >= ORILop && i.dform.op  <= ANDIUop) || 
+      (i.dform.op >= STop && i.dform.op  <= STBUop) ||
+      i.dform.op == STMop ||
 
       /* M  Form */
-      (i.mform.op >= 20 && i.mform.op <=23) ||
+      (i.mform.op >= RLIMIop && i.mform.op <= RLNMop) ||
 
 
       /*  XFX Form */
-      (i.xfxform.op == 31 && i.xfxform.xo == 144 ) ||
+      (i.xfxform.op == X_EXTENDEDop && i.xfxform.xo == MTCRFxop ) ||
       
       
        /* X Form */
-      (i.xfxform.op == 31 && ( i.xform.xo == 24 || i.xform.xo == 26 ||
-				i.xform.xo == 28  || i.xform.xo == 29 || i.xform.xo == 60 ||
-				i.xform.xo == 124  || i.xform.xo == 150 ||
-				i.xform.xo == 151  || i.xform.xo == 152 || i.xform.xo == 153 ||
-				i.xform.xo == 183  || i.xform.xo == 184 || i.xform.xo == 215 ||
-				i.xform.xo == 216  || i.xform.xo == 217 || i.xform.xo == 247 ||
-				i.xform.xo == 248  || i.xform.xo == 284 || i.xform.xo == 316 ||
-				i.xform.xo == 412  || i.xform.xo == 444 ||
-				i.xform.xo == 467  || i.xform.xo == 476 || i.xform.xo == 536 ||
-				i.xform.xo == 537  || i.xform.xo == 541 || i.xform.xo == 661 ||
-				i.xform.xo == 662  || i.xform.xo == 664 || i.xform.xo == 665 ||
-				i.xform.xo == 696  || i.xform.xo == 725 || i.xform.xo == 728 ||
-				i.xform.xo == 729  || i.xform.xo == 760 || i.xform.xo == 792 ||
-				i.xform.xo == 824  || i.xform.xo == 920 || i.xform.xo == 921 ||
-				i.xform.xo == 922 || i.xform.xo == 952 || i.xform.xo == 954 )))
-      
+      (i.xfxform.op == X_EXTENDEDop
+       && ( i.xform.xo == SLxop || i.xform.xo == CNTLZxop ||
+	    i.xform.xo == ANDxop  || i.xform.xo == MASKGxop || 
+	    i.xform.xo == ANDCxop || i.xform.xo == EXTSxop ||
+	    i.xform.xo == NORxop  || i.xform.xo == STWCXxop ||
+	    i.xform.xo == STXxop  || i.xform.xo == SLQxop || 
+	    i.xform.xo == SLExop ||
+	    i.xform.xo == STUXxop  || i.xform.xo == SLIQxop || 
+	    i.xform.xo == STBXxop ||
+	    i.xform.xo == SLLQxop  || i.xform.xo == SLEQxop || 
+	    i.xform.xo == STBUXxop ||
+	    i.xform.xo == SLLIQxop  || i.xform.xo == EQVxop || 
+	    i.xform.xo == XORxop ||
+	    i.xform.xo == ORCxop  || i.xform.xo == ORxop ||
+	    i.xform.xo == MTSPRxop  || i.xform.xo == NANDxop || 
+	    i.xform.xo == SRxop ||
+	    i.xform.xo == RRIBxop  || i.xform.xo == MASKIRxop || 
+	    i.xform.xo == STSXxop ||
+	    i.xform.xo == STBRXxop  || i.xform.xo == SRQxop || 
+	    i.xform.xo == SRExop ||
+	    i.xform.xo == SRIQxop  || i.xform.xo == STSIxop || 
+	    i.xform.xo == SRLQxop ||
+	    i.xform.xo == SREQxop  || i.xform.xo == SRLIQxop ||
+	    i.xform.xo == SRAxop ||
+	    i.xform.xo == SRAIxop  || i.xform.xo == SRAQxop || 
+	    i.xform.xo == SREAxop ||
+	    i.xform.xo == EXTSxop || i.xform.xo == SRAIQxop || 
+	    i.xform.xo == EXTSBxop )))
+    
     {
       return true;
     }
@@ -237,14 +239,14 @@ bool InstrucIter::isA_FRT_ReadInstruction()
   const instruction i = getInstruction();
   if (
       /* D Form */
-      (i.dform.op == 44 || i.dform.op == 45 ) || 
-      (i.dform.op >= 52 && i.dform.op  <= 55) ||
+      (i.dform.op == STHop || i.dform.op == STHUop ) || 
+      (i.dform.op >= STFSop && i.dform.op  <= STFDUop) ||
       
       /* X Form */
-      (i.xform.op == 31 && ( i.xform.xo == 407  || i.xform.xo == 439 || i.xform.xo == 663 ||
-			     i.xform.xo == 695  || i.xform.xo == 727 || i.xform.xo == 759 || 
-			     i.xform.xo == 918     ||
-			     i.xform.xo == 919  || i.xform.xo == 951 || i.xform.xo == 983 )))
+      (i.xform.op == X_EXTENDEDop 
+       && ( i.xform.xo == STFSXxop || i.xform.xo == STFSUXxop  || 
+	    i.xform.xo == STFDXxop || i.xform.xo == STFDUXxop ||  
+	    i.xform.xo == STFIWXxop )))
     
     {
       return true;
@@ -256,49 +258,47 @@ bool InstrucIter::isA_FRT_ReadInstruction()
 }  
 
   
-  
-
-  
-  
 /* This function returns true if the instruction reads the RA Register */
 bool InstrucIter::isA_RA_ReadInstruction()
 {
   const instruction i = getInstruction();
   if (
       /* XO Form */
-      (i.xoform.op == 31 && ( i.xoform.xo == 8 || i.xoform.xo == 10 || i.xoform.xo == 11 ||
-			      i.xoform.xo == 40  || i.xoform.xo == 75 || i.xoform.xo == 104 ||
-			      i.xoform.xo == 107 || i.xoform.xo == 136 || i.xoform.xo == 138 || 
-			      i.xoform.xo == 200 || i.xoform.xo == 202 || i.xoform.xo == 232 ||  
-			      i.xoform.xo == 234 || i.xoform.xo == 264 || i.xoform.xo == 266 ||
-			      i.xoform.xo == 331 || i.xoform.xo == 360 || i.xoform.xo == 363 ||
-			      i.xoform.xo == 459 || i.xoform.xo == 488 || i.xoform.xo == 491)) ||
+      (i.xoform.op == XO_EXTENDEDop 
+       && ( i.xoform.xo == SFxop || i.xoform.xo == Axop || i.xoform.xo == MULHWUxop ||
+	    i.xoform.xo == SUBFxop  || i.xoform.xo == MULHWxop || i.xoform.xo == NEGxop ||
+	    i.xoform.xo == MULxop || i.xoform.xo == SFExop || i.xoform.xo == AExop || 
+	    i.xoform.xo == SFZExop || i.xoform.xo == AZExop || i.xoform.xo == SFMExop ||  
+	    i.xoform.xo == AMExop || i.xoform.xo == DOZxop || i.xoform.xo == CAXxop ||
+	    i.xoform.xo == DIVxop || i.xoform.xo == ABSxop || i.xoform.xo == DIVSxop ||
+	    i.xoform.xo == DIVWUxop || i.xoform.xo == NABSxop || i.xoform.xo == DIVWxop)) ||
       
       /* D Form */
-      (i.dform.op == 3 || i.dform.op == 7 || i.dform.op == 8 || i.dform.op == 9   ) || 
-      (i.dform.op >= 10 && i.dform.op  <= 15) ||
-      (i.dform.op >= 32 && i.dform.op <=61) ||
+      (i.dform.op == TIop || i.dform.op == MULIop || 
+       i.dform.op == SFIop || i.dform.op == DOZIop   ) || 
+      (i.dform.op >= CMPLIop && i.dform.op  <= CAUop) ||
+      (i.dform.op >= Lop && i.dform.op <= STFDUop) ||
       
       /* X Form */
-      (i.xform.op == 31 && ( i.xform.xo == 0 || i.xform.xo == 4 ||
-			     i.xform.xo == 20  || i.xform.xo == 23 || i.xform.xo == 32 ||
-			     i.xform.xo == 54  || i.xform.xo == 55 || i.xform.xo == 86 ||
-			     i.xform.xo == 87  || i.xform.xo == 118 || i.xform.xo == 119 ||
-			     i.xform.xo == 150  || i.xform.xo == 151 || i.xform.xo == 183 ||
-			     i.xform.xo == 215  || i.xform.xo == 246 || i.xform.xo == 247 ||
-			     i.xform.xo == 277  || i.xform.xo == 278 || i.xform.xo == 279 ||
-			     i.xform.xo == 306  || i.xform.xo == 331 || i.xform.xo == 343 ||
-			     i.xform.xo == 375  || i.xform.xo == 407 || i.xform.xo == 439 ||
-			     i.xform.xo == 470  || i.xform.xo == 502 || i.xform.xo == 531 ||
-			     i.xform.xo == 533  || i.xform.xo == 534 || i.xform.xo == 535 ||
-			     i.xform.xo == 567  || i.xform.xo == 597 || i.xform.xo == 599 ||
-			     i.xform.xo == 630  || i.xform.xo == 631 || i.xform.xo == 661 ||
-			     i.xform.xo == 662  || i.xform.xo == 663 || i.xform.xo == 695 ||
-			     i.xform.xo == 725  || i.xform.xo == 727 || i.xform.xo == 759 ||
-			     i.xform.xo == 790  || i.xform.xo == 791 || i.xform.xo == 818 ||
-			     i.xform.xo == 823  || i.xform.xo == 918 || i.xform.xo == 919 ||
-			     i.xform.xo == 951  || i.xform.xo == 982 || i.xform.xo == 983 ||
-			     i.xform.xo == 1014 )))
+      (i.xform.op == X_EXTENDEDop
+       && ( i.xform.xo == CMPxop || i.xform.xo == Txop ||
+	    i.xform.xo == LWARXxop  || i.xform.xo == LXxop || i.xform.xo == CMPLxop ||
+	    i.xform.xo == DCBSxop  || i.xform.xo == LUXxop || i.xform.xo == DCBFxop ||
+	    i.xform.xo == LBZXxop  || i.xform.xo == CLFxop || i.xform.xo == LBZUXxop ||
+	    i.xform.xo == STWCXxop  || i.xform.xo == STXxop || i.xform.xo == STUXxop ||
+	    i.xform.xo == STBXxop  || i.xform.xo == DCBTSTxop || i.xform.xo == STBUXxop ||
+	    i.xform.xo == LSCBXxop  || i.xform.xo == DCBTxop || i.xform.xo == LHZXxop ||
+	    i.xform.xo == TLBIxop  || i.xform.xo == DIVxop || i.xform.xo == LHAXxop ||
+	    i.xform.xo == LHAUXxop  || i.xform.xo == STHXxop || i.xform.xo == STHUXxop ||
+	    i.xform.xo == DCBIxop || i.xform.xo == CLIxop || i.xform.xo == CLCSxop ||
+	    i.xform.xo == LSXxop  || i.xform.xo == LWBRXxop || i.xform.xo == LFSXxop ||
+	    i.xform.xo == LFSUXxop  || i.xform.xo == LSIxop || i.xform.xo == LFDXxop ||
+	    i.xform.xo == DCLSTxop  || i.xform.xo == LFDUXxop || i.xform.xo == STSXxop ||
+	    i.xform.xo == STBRXxop  || i.xform.xo == STFSXxop || i.xform.xo == STFSUXxop ||
+	    i.xform.xo == STSIxop  || i.xform.xo == STFDXxop || i.xform.xo == STFDUXxop ||
+	    i.xform.xo == LHBRXxop  || i.xform.xo == RACxop ||
+	    i.xform.xo == STHBRXxop || i.xform.xo == ICBIxop || 
+	    i.xform.xo == STFIWXxop || i.xform.xo == DCLZxop )))
     
     {
       return true;
@@ -316,43 +316,45 @@ bool InstrucIter::isA_RB_ReadInstruction()
   const instruction i = getInstruction();
   if (
       /* XO Form */
-      (i.xoform.op == 31 && ( i.xoform.xo == 8 || i.xoform.xo == 10 || i.xoform.xo == 11 ||
-			      i.xoform.xo == 40  || i.xoform.xo == 75 || 
-			      i.xoform.xo == 107 || i.xoform.xo == 136 || i.xoform.xo == 138 || 
-			      i.xoform.xo == 264 || i.xoform.xo == 266 ||
-			      i.xoform.xo == 331 || i.xoform.xo == 363 ||
-			      i.xoform.xo == 459 || i.xoform.xo == 491)) ||
+      (i.xoform.op == XO_EXTENDEDop
+       && ( i.xoform.xo == SFxop || i.xoform.xo == Axop || i.xoform.xo == MULHWUxop ||
+	    i.xoform.xo == SUBFxop  || i.xoform.xo == MULHWxop || 
+	    i.xoform.xo == MULxop || i.xoform.xo == SFExop 
+	    || i.xoform.xo == AExop || 
+	    i.xoform.xo == DOZxop || i.xoform.xo == CAXxop ||
+	    i.xoform.xo == DIVxop || i.xoform.xo == DIVSxop ||
+	    i.xoform.xo == DIVWUxop || i.xoform.xo == DIVWxop)) ||
       /* M Form */
-      (i.mform.op == 22 || i.mform.op == 23) ||
-
-
+      (i.mform.op == RLMIop || i.mform.op == RLNMop) ||
+     
       /* X Form */
-      (i.xform.op == 31 && ( i.xform.xo == 0 || i.xform.xo == 4 ||
-			     i.xform.xo == 20  || i.xform.xo == 23 || i.xform.xo == 24 ||
-			     i.xform.xo == 28  || i.xform.xo == 29 || i.xform.xo == 32 ||
-			     i.xform.xo == 54  || i.xform.xo == 55 || i.xform.xo == 60 ||
-			     i.xform.xo == 86  || i.xform.xo == 87 || i.xform.xo == 118 ||
-			     i.xform.xo == 119  || i.xform.xo == 124 || i.xform.xo == 150 ||
-			     i.xform.xo == 151  || i.xform.xo == 152 || i.xform.xo == 153 ||
-			     i.xform.xo == 183  || i.xform.xo == 215 || i.xform.xo == 216 ||
-			     i.xform.xo == 217  || i.xform.xo == 246 || i.xform.xo == 247 ||
-			     i.xform.xo == 277  || i.xform.xo == 278 || i.xform.xo == 279 ||
-			     i.xform.xo == 284  || i.xform.xo == 306 || i.xform.xo == 316 ||
-			     i.xform.xo == 331  || i.xform.xo == 343 || i.xform.xo == 375 ||
-			     i.xform.xo == 407  || i.xform.xo == 412 || i.xform.xo == 439 ||
-			     i.xform.xo == 444  || i.xform.xo == 470 || i.xform.xo == 476 ||
-			     i.xform.xo == 502  || i.xform.xo == 533 || i.xform.xo == 534 ||
-			     i.xform.xo == 535  || i.xform.xo == 536 || i.xform.xo == 537 ||
-			     i.xform.xo == 541  || i.xform.xo == 567 || i.xform.xo == 599 ||
-			     i.xform.xo == 630  || i.xform.xo == 631 || i.xform.xo == 661 ||
-			     i.xform.xo == 662  || i.xform.xo == 663 || i.xform.xo == 664 ||
-			     i.xform.xo == 665  || i.xform.xo == 695 || i.xform.xo == 727 ||
-			     i.xform.xo == 729  || i.xform.xo == 759 || i.xform.xo == 790 ||
-			     i.xform.xo == 791  || i.xform.xo == 792 || i.xform.xo == 818 ||
-			     i.xform.xo == 823  || i.xform.xo == 918 || i.xform.xo == 919 ||
-			     i.xform.xo == 920  || i.xform.xo == 921 || i.xform.xo == 951 ||
-			     i.xform.xo == 978  || i.xform.xo == 982 || i.xform.xo == 983 ||
-			     i.xform.xo == 1010  || i.xform.xo == 1014 )))
+      (i.xform.op == X_EXTENDEDop
+       && ( i.xform.xo == CMPxop || i.xform.xo == Txop ||
+	    i.xform.xo == LWARXxop  || i.xform.xo == LXxop || i.xform.xo == SLxop ||
+	    i.xform.xo == ANDxop  || i.xform.xo == MASKGxop || i.xform.xo == CMPLxop ||
+	    i.xform.xo == DCBSxop  || i.xform.xo == LUXxop || i.xform.xo == ANDCxop ||
+	    i.xform.xo == DCBFxop  || i.xform.xo == LBZXxop || i.xform.xo == CLFxop ||
+	    i.xform.xo == LBZUXxop  || i.xform.xo == NORxop || i.xform.xo == STWCXxop ||
+	    i.xform.xo == STXxop  || i.xform.xo == SLQxop || i.xform.xo == SLExop ||
+	    i.xform.xo == STUXxop  || i.xform.xo == STBXxop || i.xform.xo == SLLQxop ||
+	    i.xform.xo == SLEQxop  || i.xform.xo == DCBTSTxop || i.xform.xo == STBUXxop ||
+	    i.xform.xo == LSCBXxop  || i.xform.xo == DCBTxop || i.xform.xo == LHZXxop ||
+	    i.xform.xo == EQVxop  || i.xform.xo == TLBIxop || i.xform.xo == XORxop ||
+	    i.xform.xo == DIVxop  || i.xform.xo == LHAXxop || i.xform.xo == LHAUXxop ||
+	    i.xform.xo == STHXxop  || i.xform.xo == ORCxop || i.xform.xo == STHUXxop ||
+	    i.xform.xo == ORxop || i.xform.xo == DCBIxop || i.xform.xo == NANDxop ||
+	    i.xform.xo == CLIxop  || i.xform.xo == LSXxop || i.xform.xo == LWBRXxop ||
+	    i.xform.xo == LFSXxop  || i.xform.xo == SRxop || i.xform.xo == RRIBxop ||
+	    i.xform.xo == MASKIRxop  || i.xform.xo == LFSUXxop || i.xform.xo == LFDXxop ||
+	    i.xform.xo == DCLSTxop  || i.xform.xo == LFDUXxop || i.xform.xo == STSXxop ||
+	    i.xform.xo == STBRXxop  || i.xform.xo == STFSXxop || i.xform.xo == SRQxop ||
+	    i.xform.xo == SRExop  || i.xform.xo == SRIQxop || i.xform.xo == STFDXxop ||
+	    i.xform.xo == SREQxop  || i.xform.xo == STFDUXxop || i.xform.xo == LHBRXxop ||
+	    i.xform.xo == SRAxop || i.xform.xo == RACxop ||
+	    i.xform.xo == STHBRXxop ||
+	    i.xform.xo == SRAQxop  || i.xform.xo == SREAxop ||
+	    i.xform.xo == ICBIxop || i.xform.xo == STFIWXxop ||
+	    i.xform.xo == DCLZxop )))
     
     {
       return true;
@@ -372,19 +374,22 @@ bool InstrucIter::isA_FRA_ReadInstruction()
   const instruction i = getInstruction();
   if (
       /* A Form */
-      (i.aform.op == 63 && ( i.aform.xo == 18 || i.aform.xo == 20 || i.aform.xo == 21 ||
-			      i.aform.xo == 25  || i.aform.xo == 28 || i.aform.xo == 29 ||
-			     i.aform.xo == 30 || i.aform.xo == 31 )) ||
+      (i.aform.op == A_FP_EXTENDEDop2 
+       && ( i.aform.xo == FDxop || i.aform.xo == FSxop || i.aform.xo == FAxop ||
+	    i.aform.xo == FMxop  || i.aform.xo == FMSxop || i.aform.xo == FMAxop ||
+	    i.aform.xo == FNMSxop || i.aform.xo == FNMAxop )) ||
 
-      (i.aform.op == 59 && ( i.aform.xo == 18 || i.aform.xo == 20 || i.aform.xo == 21 ||
-			     i.aform.xo == 25  || i.aform.xo == 28 || i.aform.xo == 29 ||
-			     i.aform.xo == 30 || i.aform.xo == 31 )) ||  
+      (i.aform.op == A_FP_EXTENDEDop1
+       && ( i.aform.xo == FDIVSxop || i.aform.xo == FSUBSxop || 
+	    i.aform.xo == FADDSxop || i.aform.xo == FMULSxop  || 
+	    i.aform.xo == FMSUBSxop || i.aform.xo == FMADDSxop ||
+	    i.aform.xo == FNMSUBSxop || i.aform.xo == FNMADDSxop )) ||  
       
 	/* XL Form */
-      (i.xlform.op == 56 && i.xlform.xo == 0 ) || 
+      (i.xlform.op == X_FP_EXTENDEDop && i.xlform.xo == FCMPUxop ) || 
      
 	/* X Form */
-      (i.xform.op == 63 && i.xform.xo == 32 ))
+      (i.xform.op == X_FP_EXTENDEDop && i.xform.xo == FCMPOxop ))
 
     {
       return true;
@@ -401,25 +406,34 @@ bool InstrucIter::isA_FRB_ReadInstruction()
   const instruction i = getInstruction();
   if (
       /* A Form */
-      (i.aform.op == 63 && (  i.aform.xo == 18 || i.aform.xo == 20 || i.aform.xo == 21 ||
-			      i.aform.xo == 22 ||
-			      i.aform.xo == 25  || i.aform.xo == 28 || i.aform.xo == 29 ||
-			     i.aform.xo == 30 || i.aform.xo == 31 )) ||
+      (i.aform.op == A_FP_EXTENDEDop2 
+       && (  i.aform.xo == FDxop || i.aform.xo == FSxop || 
+	     i.aform.xo == FAxop ||
+	     i.aform.xo == FSQRTxop ||
+	     i.aform.xo == FMxop  || i.aform.xo == FMSxop || 
+	     i.aform.xo == FMAxop ||
+	     i.aform.xo == FNMSxop || i.aform.xo == FNMAxop )) ||
 
-      (i.aform.op == 59 && ( i.aform.xo == 18 || i.aform.xo == 20 || i.aform.xo == 21 ||
-			     i.aform.xo == 25  || i.aform.xo == 28 || i.aform.xo == 29 ||
-			     i.aform.xo == 30 || i.aform.xo == 31 )) ||  
+      (i.aform.op == A_FP_EXTENDEDop1
+       && ( i.aform.xo == FDIVSxop || i.aform.xo == FSUBSxop || 
+	    i.aform.xo == FADDSxop ||
+	    i.aform.xo == FMULSxop  || i.aform.xo == FMSUBSxop || 
+	    i.aform.xo == FMAxop ||
+	    i.aform.xo == FNMSxop || i.aform.xo == FNMAxop )) ||  
       
 	/* XL Form */
-      (i.xlform.op == 63 && i.xlform.xo == 0 ) || 
+      (i.xlform.op == X_EXTENDEDop 
+       && i.xlform.xo == FCMPUxop ) || 
      
 
 	/* X Form */
-      (i.xform.op == 63 && ( i.xform.xo == 12 || i.xform.xo == 14 || i.xform.xo == 15 ||
-			     i.xform.xo == 32 || i.xform.xo == 38 || i.xform.xo == 40 ||
-			     i.xform.xo == 70 || i.xform.xo == 72 ||
-			     i.xform.xo == 136 || i.xform.xo == 264 )))
-
+      (i.xform.op == X_EXTENDEDop 
+       && ( i.xform.xo == FRSPxop || i.xform.xo == FCIRxop || 
+	    i.xform.xo == FCIRZxop || i.xform.xo == FCMPOxop || 
+	    i.xform.xo == FNEGxop ||
+	    i.xform.xo == FMRxop ||
+	    i.xform.xo == FNABSxop || i.xform.xo == FABSxop )))
+    
     {
       return true;
     }
@@ -437,16 +451,21 @@ bool InstrucIter::isA_FRA_WriteInstruction()
   const instruction i = getInstruction();
   if (
       /* A Form */
-      (i.aform.op == 63 && ( i.aform.xo == 21 || i.aform.xo == 18 || i.aform.xo == 25 ||
-			      i.aform.xo == 29  || i.aform.xo == 28 || i.aform.xo == 31 ||
-			      i.aform.xo == 30 || i.aform.xo == 20 )) ||  
-
-      (i.aform.op == 59 && ( i.aform.xo == 18 || i.aform.xo == 29 || i.aform.xo == 25 ||
-			     i.aform.xo == 28  || i.aform.xo == 30 || i.aform.xo == 31 ||
-			     i.aform.xo == 20 )) ||  
+      (i.aform.op == A_FP_EXTENDEDop2
+       && ( i.aform.xo == FAxop || i.aform.xo == FDxop || i.aform.xo == FMxop ||
+	    i.aform.xo == FMAxop  || i.aform.xo == FMSxop || i.aform.xo == FNMAxop ||
+	    i.aform.xo == FNMSxop || i.aform.xo == FSxop )) ||  
+      
+      (i.aform.op == A_FP_EXTENDEDop1
+       && ( i.aform.xo == FDIVSxop || i.aform.xo == FMADDSxop ||
+	    i.aform.xo == FMULSxop ||
+	    i.aform.xo == FMSUBSxop  || i.aform.xo == FNMSUBSxop 
+	    || i.aform.xo == FNMADDSxop ||
+	    i.aform.xo == FSUBSxop )) ||  
       
 	/* X Form */
-      (i.xform.op == 63 && (i.xform.xo == 32 || i.xform.xo == 0 )))
+      (i.xform.op == X_FP_EXTENDEDop 
+       && (i.xform.xo == FCMPOxop || i.xform.xo == FCMPUxop )))
 
     {
       return true;
@@ -466,40 +485,41 @@ bool InstrucIter::isA_RA_WriteInstruction()
   
   if (
       /* X Form */
-      /*nor, or, orc, slw, sraw, srawi, srw, stbux, and, andc, cntlzw, eqv, extsb, extsh,
-       lhzux, lwzux, lbzux, lhaux, nand, sthux, stwux, xor */
-      ( i.xform.op == 31 && ( i.xform.xo == 124 ||  i.xform.xo == 247 || i.xform.xo == 28 ||
-			      i.xform.xo == 444  || i.xform.xo == 412 || i.xform.xo == 24 ||
-			      i.xform.xo == 60  || i.xform.xo == 257 || i.xform.xo == 284 ||
-			      i.xform.xo == 954  || i.xform.xo == 922  || i.xform.xo == 311  ||
-			      i.xform.xo == 55   || i.xform.xo == 119  || i.xform.xo == 375  ||
-			      i.xform.xo == 476   || i.xform.xo == 439   || i.xform.xo == 183  ||
-			      i.xform.xo == 316  || i.xform.xo == 664   || i.xform.xo == 536   ||  
-			      i.xform.xo == 118   || i.xform.xo == 502   || i.xform.xo == 630  ||
-			      i.xform.xo == 29   || i.xform.xo == 541   || i.xform.xo == 242  ||
-			      i.xform.xo == 537   || i.xform.xo == 24   || i.xform.xo == 153  ||
-			      i.xform.xo == 217   || i.xform.xo == 184   || i.xform.xo == 248  ||
-			      i.xform.xo == 216   || i.xform.xo == 152   || i.xform.xo == 952  ||
-			      i.xform.xo == 920   || i.xform.xo == 792   || i.xform.xo == 824  ||
-			      i.xform.xo == 665   || i.xform.xo == 921   || i.xform.xo == 729  ||
-			      i.xform.xo == 631   || i.xform.xo == 599   || i.xform.xo == 823  ||
-			      i.xform.xo == 791   || i.xform.xo == 567   || i.xform.xo == 535  ||
-			      i.xform.xo == 696   || i.xform.xo == 760   || i.xform.xo == 728  ||
-			      i.xform.xo == 792  || i.xform.xo == 824 || i.xform.xo == 536 )) ||
+      ( i.xform.op == X_EXTENDEDop
+	&& ( i.xform.xo == NORxop ||  i.xform.xo == STBUXxop || i.xform.xo == ANDxop ||
+	     i.xform.xo == ORxop  || i.xform.xo == ORCxop || i.xform.xo == SLxop ||
+	     i.xform.xo == ANDCxop  || i.xform.xo == EQVxop ||
+	     i.xform.xo == EXTSBxop  || i.xform.xo == EXTSxop  || i.xform.xo == LHZUXxop  ||
+	     i.xform.xo == LUXxop   || i.xform.xo == LBZUXxop  || i.xform.xo == LHAUXxop ||
+	     i.xform.xo == NANDxop   || i.xform.xo == STHUXxop   || i.xform.xo == STUXxop  ||
+	     i.xform.xo == XORxop  || i.xform.xo == SRQxop   || i.xform.xo == SRxop   ||  
+	     i.xform.xo == CLFxop   || i.xform.xo == CLIxop   || i.xform.xo == DCLSTxop  ||
+	     i.xform.xo == MASKGxop   || i.xform.xo == MASKIRxop   || i.xform.xo == MTSRIxop  ||
+	     i.xform.xo == RRIBxop   || i.xform.xo == SLxop   || i.xform.xo == SLExop  ||
+	     i.xform.xo == SLEQxop   || i.xform.xo == SLIQxop   || i.xform.xo == SLLIQxop  ||
+	     i.xform.xo == SLLQxop   || i.xform.xo == SLQxop   || i.xform.xo == SRAIQxop  ||
+	     i.xform.xo == SRAQxop   || i.xform.xo == SRAxop   || i.xform.xo == SRAIxop  ||
+	     i.xform.xo == SRExop   || i.xform.xo == SREAxop   || i.xform.xo == SREQxop  ||
+	     i.xform.xo == LFDUXxop   || i.xform.xo == LFDXxop   ||
+	     i.xform.xo == LFSUXxop   || i.xform.xo == LFSXxop  ||
+	     i.xform.xo == SRIQxop   || i.xform.xo == SRLIQxop   || i.xform.xo == SRLQxop  ||
+	     i.xform.xo == SRAxop  || i.xform.xo == SRAIxop || i.xform.xo == SRxop )) ||
       /* XO Form */
-      (i.xoform.op == 31 && ( i.xoform.xo == 8 || i.xoform.xo == 136 || i.xoform.xo == 232 ||
-			      i.xoform.xo == 200)) ||
+      (i.xoform.op == XO_EXTENDEDop 
+       && ( i.xoform.xo == SFxop || i.xoform.xo == SFExop || i.xoform.xo == SFMExop ||
+			      i.xoform.xo == SFZExop)) ||
       
       /* D Form */
-      /* andi., andis., lbzu, lhau, lhzu, lwzu, ori, oris, stbu, sthu, stwu, xori, xoris */ 
-      (i.dform.op == 28 || i.dform.op == 29 || i.dform.op == 35 || i.dform.op == 43 ||
-       i.dform.op == 41 || i.dform.op == 33 || i.dform.op == 24 || i.dform.op == 25 ||
-       i.dform.op == 39 || i.dform.op == 45 || i.dform.op == 37 || i.dform.op == 26 ||
-       i.dform.op == 27 || i.dform.op == 8 || i.dform.op == 12 || i.dform.op == 13) ||
+      (i.dform.op == ANDILop || i.dform.op == ANDIUop || i.dform.op == LBZUop 
+       || i.dform.op == LHAUop ||i.dform.op == LHZUop || i.dform.op == LUop || 
+       i.dform.op == ORILop || i.dform.op == ORIUop || i.dform.op == STBUop || 
+       i.dform.op == STHUop || i.dform.op == STUop || i.dform.op == XORILop ||
+       i.dform.op == XORIUop || i.dform.op == SFIop || i.dform.op == SIop || 
+       i.dform.op == AIDOTop) ||
       
       /* M Form */
-      /* rlwimi, rlwinm, rlwnm */
-      (i.mform.op == 20 || i.mform.op == 21 || i.mform.op == 22 ||  i.mform.op == 23))
+      (i.mform.op == RLIMIop || i.mform.op == RLINMxop || i.mform.op == RLMIop 
+       ||  i.mform.op == RLNMop))
     {
       return true;
     }
@@ -595,8 +615,21 @@ bool InstrucIter::isACallInstruction()
     // could be a call function, and it doesn't need to set the link
     // register if it is the last function call
     //cerr << currentAddreOPmask << endl;
-
-    return (isInsnType(i, OPmask | AALKmask, CALLmatch));
+    
+    
+    //return (isInsnType(i, OPmask | AALKmask, CALLmatch));
+    if ( isInsnType(i, OPmask | AALKmask, CALLmatch))
+    {
+      //Address dest = i.iform.li;
+      //dest <<=2;
+      //printf("Going to 0x%x on the call \n",dest);
+      //printf("Original i is 0x%x\n",i.raw);
+      return true;
+    }
+    else
+      return false;
+	
+    
     
 /*
   const instruction i = getInstruction();
