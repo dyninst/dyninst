@@ -384,14 +384,65 @@ bool BPatch_basicBlock::initRegisterGenKillInt()
     if (ii.isA_RA_WriteInstruction()){
       bitarray_set(ii.getRAValue(),kill);
     }
+
+    if (ii.isAReturnInstruction()){
+      /* Need to gen the possible regurn arguments */
+      bitarray_set(3,gen);
+      bitarray_set(4,gen);
+    }
+
     
-    /* If it is a call instruction we just
+    /* If it is a call instruction we look at which registers are used
+       at the beginning of the called function, If we can't do that, we just
        gen registers 3-10 (the parameter holding volative 
        registers for power) */
     if (ii.isACallInstruction())
       {
-	for (int a = 3; a <= 10; a++)
-	  bitarray_set(a,gen);
+	Address callAddress = ii.getBranchTargetAddress(ii.getCurrentAddress());
+	//printf("Call Address is 0x%x \n",callAddress);
+
+	process *proc = flowGraph->getProcess();
+	int_function * funcc;
+
+	codeRange * range = proc->findCodeRangeByAddress(callAddress);
+
+	if (range)
+	  {
+	    funcc = range->is_function();
+	    if (funcc)
+	      {
+		pdmodule * mod = funcc->pdmod();
+		InstrucIter ah(funcc, proc, mod);
+		while (ah.hasMore())
+		  {
+		    InstrucIter inst(ah);
+		    
+		    if (inst.isA_RT_ReadInstruction()){
+		      bitarray_set(inst.getRTValue(),gen);
+		    }
+		    if (inst.isA_RA_ReadInstruction()){
+		      bitarray_set(inst.getRAValue(),gen);
+		    }
+		    if (inst.isA_RB_ReadInstruction()){
+		      bitarray_set(inst.getRBValue(),gen);
+		    }
+		    if (inst.isACallInstruction())
+		      break;
+		    
+		    Address pos = ah++;
+		  }
+	      }
+	    else
+	      {
+		for (int a = 3; a <= 10; a++)
+		  bitarray_set(a,gen);
+	      }
+	  }
+	else
+	  {
+	    for (int a = 3; a <= 10; a++)
+	      bitarray_set(a,gen);
+	  }
       } 
     ii++;
   } 
@@ -538,14 +589,12 @@ bool BPatch_basicBlock::printAllInt()
 /* The liveReg int * is a instance variable in the instPoint classes.
    This puts the liveness information into that variable so 
    we can access it from every instPoint without recalculation */
-int BPatch_basicBlock::liveRegistersIntoSetInt(int * liveReg, unsigned long address)
+int BPatch_basicBlock::liveRegistersIntoSetInt(int *& liveReg, unsigned long address)
 {
-    
-  if (liveReg != NULL)
+  if (liveReg == NULL)
     {
-      
-      liveReg = (int *) malloc(sizeof(int)*BITARRAY_SIZE);
-      
+      liveReg = new int[BITARRAY_SIZE];
+
       BITARRAY newIn;
   
       bitarray_init(BITARRAY_SIZE, &newIn);
@@ -565,35 +614,26 @@ int BPatch_basicBlock::liveRegistersIntoSetInt(int * liveReg, unsigned long addr
       
       while(ii.hasMore()) 
 	{
-	  if (ii.isA_RT_ReadInstruction())
-	    bitarray_set(ii.getRTValue(),&newIn);
-	  if (ii.isA_RA_ReadInstruction())
-	    bitarray_set(ii.getRAValue(),&newIn);
-	  if (ii.isA_RB_ReadInstruction())
-	    bitarray_set(ii.getRBValue(),&newIn);
 	  if (ii.isA_RT_WriteInstruction())
-	    bitarray_unset(ii.getRTValue(),&newIn);
+	    bitarray_set(ii.getRTValue(),&newIn);
 	  if (ii.isA_RA_WriteInstruction())
-	    bitarray_unset(ii.getRAValue(),&newIn);
+	    bitarray_set(ii.getRAValue(),&newIn);
 	  ii++;
 	}    
-      
-      /*
       for (int a = 0; a < BITARRAY_SIZE; a++)
-      {
-      if (bitarray_check(a,&newIn))
-      {
-      liveReg[a] = 1;
-      printf("1 ");
-      }
-      else
-      {
-      liveReg[a] = 0;
-      printf("0 ");
-      }
-      } 
-      printf("\n");
-      */
+	{
+	  if (bitarray_check(a,&newIn))
+	    {
+	      //printf("1 ");
+	      liveReg[a] = 1;
+	    }
+	  else
+	    {
+	      //printf("0 ");
+	      liveReg[a] = 0;
+	    }
+	} 
+      //printf("\n");
     }
 }
 

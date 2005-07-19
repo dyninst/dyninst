@@ -108,6 +108,7 @@ protected:
    */
   Address currentAddress;
 public:
+  Address getCurrentAddress() { return currentAddress; };
 
   /** returns the instruction in the address of handle */
   instruction getInstruction();

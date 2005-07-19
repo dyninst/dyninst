@@ -497,7 +497,7 @@ public:
 
 	API_EXPORT(Int, (liveReg, address),
 		   
-	int, liveRegistersIntoSet, (int * liveReg, unsigned long address));
+	int, liveRegistersIntoSet, (int *& liveReg, unsigned long address));
 
 #endif
 
