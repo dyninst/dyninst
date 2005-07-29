@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-linux.C,v 1.8 2005/02/24 10:17:15 rchen Exp $
+// $Id: syscall-linux.C,v 1.9 2005/07/29 19:19:51 bernat Exp $
 
 #if defined( arch_x86 ) || defined( arch_x86_64 )
 #define FORK_FUNC "__libc_fork"
@@ -53,83 +53,38 @@
 #error Unsupported linux platform.
 #endif
 
+#include "dyninstAPI/src/miniTramp.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/syscallNotification.h"
 #include "dyninstAPI/src/process.h"
 
-extern bool getInheritedMiniTramp(const miniTrampHandle *parentMT,
-                                  miniTrampHandle *&childMT,
+extern bool getInheritedMiniTramp(const miniTramp *parentMT,
+                                  miniTramp *&childMT,
                                   process *childProc);
 
 syscallNotification::syscallNotification(syscallNotification *parentSN,
-                                         process *p) : preForkInst(NULL),
-                                                       postForkInst(NULL),
-                                                       preExecInst(NULL),
-                                                       postExecInst(NULL),
-                                                       preExitInst(NULL),
-                                                       proc(p) {
+                                         process *child) : preForkInst(NULL),
+                                                           postForkInst(NULL),
+                                                           preExecInst(NULL),
+                                                           postExecInst(NULL),
+                                                           preExitInst(NULL),
+                                                           proc(child) {
     unsigned iter;
-    // We need to copy over the instMappings and get the new mtHandles from
+    // We need to copy over the instMappings and get the new miniTramps from
     // the parent process
     // We don't copy the instMappings, but make new copies.
     if (parentSN->preForkInst) {
-        preForkInst = new instMapping(FORK_FUNC, 
-                                      "DYNINST_instForkEntry",
-                                      FUNC_ENTRY);
-        for (iter = 0; iter < parentSN->preForkInst->mtHandles.size(); iter++) {
-            miniTrampHandle *child = NULL;
-            getInheritedMiniTramp(parentSN->preForkInst->mtHandles[iter],
-                                  child,
-                                  proc);
-            preForkInst->mtHandles.push_back(child);
-        }
-    }
-    if (parentSN->postForkInst) {
-        AstNode *returnVal = new AstNode(AstNode::ReturnVal, (void *)0);
-        postForkInst = new instMapping(FORK_FUNC, "DYNINST_instForkExit",
-                                       FUNC_EXIT|FUNC_ARG,
-                                       returnVal);
-        postForkInst->dontUseTrampGuard();
-        removeAst(returnVal);
-        for (iter = 0; iter < parentSN->postForkInst->mtHandles.size(); iter++) {
-            miniTrampHandle *child = NULL;
-            getInheritedMiniTramp(parentSN->postForkInst->mtHandles[iter],
-                                  child,
-                                  proc);
-            postForkInst->mtHandles.push_back(child);
-        }
+        preForkInst = new instMapping(parentSN->preForkInst, child);
     }
     if (parentSN->preExecInst) {
-        AstNode *arg0 = new AstNode(AstNode::Param, (void *)0);
-        preExecInst = new instMapping(EXEC_FUNC, "DYNINST_instExecEntry",
-                                      FUNC_ENTRY|FUNC_ARG,
-                                      arg0);
-        removeAst(arg0);
-        for (iter = 0; iter < parentSN->preExecInst->mtHandles.size(); iter++) {
-            miniTrampHandle *child = NULL;
-            getInheritedMiniTramp(parentSN->preExecInst->mtHandles[iter],
-                                  child,
-                                  proc);
-            preExecInst->mtHandles.push_back(child);
-        }
+        preExecInst = new instMapping(parentSN->preExecInst, child);
     }
     if (parentSN->postExecInst) {
-        // Nothing
+        postExecInst = new instMapping(parentSN->postExecInst, child);
     }
     if (parentSN->preExitInst) {
-        AstNode *arg0 = new AstNode(AstNode::Param, (void *)0);
-        preExitInst = new instMapping(EXIT_FUNC, "DYNINST_instExitEntry",
-                                      FUNC_ENTRY|FUNC_ARG,
-                                      arg0);
-        removeAst(arg0);
-        for (iter = 0; iter < parentSN->preExitInst->mtHandles.size(); iter++) {
-            miniTrampHandle *child = NULL;
-            getInheritedMiniTramp(parentSN->preExitInst->mtHandles[iter],
-                                  child,
-                                  proc);
-            preExitInst->mtHandles.push_back(child);
-        }
+        preExitInst = new instMapping(parentSN->preExitInst, child);
     }
 }
 
@@ -145,7 +100,7 @@ bool syscallNotification::installPreFork() {
     proc->installInstrRequests(instReqs);
 
     // Check to see if we put anything in the proggie
-    if (preForkInst->mtHandles.size() == 0)
+    if (preForkInst->miniTramps.size() == 0)
         return false;
     return true;
 }
@@ -167,7 +122,7 @@ bool syscallNotification::installPostFork() {
     proc->installInstrRequests(instReqs);
 
     // Check to see if we put anything in the proggie
-    if (postForkInst->mtHandles.size() == 0)
+    if (postForkInst->miniTramps.size() == 0)
         return false;
     return true;
 }    
@@ -187,7 +142,7 @@ bool syscallNotification::installPreExec() {
     proc->installInstrRequests(instReqs);
 
     // Check to see if we put anything in the proggie
-    if (preExecInst->mtHandles.size() == 0)
+    if (preExecInst->miniTramps.size() == 0)
         return false;
     return true;
 }    
@@ -214,7 +169,7 @@ bool syscallNotification::installPreExit() {
     
     proc->installInstrRequests(instReqs);
     // Check to see if we put anything in the proggie
-    if (preExitInst->mtHandles.size() == 0)
+    if (preExitInst->miniTramps.size() == 0)
         return false;
     return true;
 }    
@@ -232,15 +187,15 @@ bool syscallNotification::removePreFork() {
     
     if (!preForkInst) return false;
     
-    miniTrampHandle *handle;
-    for (unsigned i = 0; i < preForkInst->mtHandles.size(); i++) {
-        handle = preForkInst->mtHandles[i];
+    miniTramp *handle;
+    for (unsigned i = 0; i < preForkInst->miniTramps.size(); i++) {
+        handle = preForkInst->miniTramps[i];
         
-        bool removed = deleteInst(proc, handle);
+        bool removed = handle->uninstrument();
         // At some point we should handle a negative return... but I
         // have no idea how.
         assert(removed);
-        // The miniTrampHandle is deleted when the miniTramp is freed, so
+        // The miniTramp is deleted when the miniTramp is freed, so
         // we don't have to.
     }
     delete preForkInst;
@@ -262,15 +217,15 @@ bool syscallNotification::removePostFork() {
         return true;
     }
     
-    miniTrampHandle *handle;
-    for (unsigned i = 0; i < postForkInst->mtHandles.size(); i++) {
-        handle = postForkInst->mtHandles[i];
+    miniTramp *handle;
+    for (unsigned i = 0; i < postForkInst->miniTramps.size(); i++) {
+        handle = postForkInst->miniTramps[i];
         
-        bool removed = deleteInst(proc, handle);
+        bool removed = handle->uninstrument();
         // At some point we should handle a negative return... but I
         // have no idea how.
         assert(removed);
-        // The miniTrampHandle is deleted when the miniTramp is freed, so
+        // The miniTramp is deleted when the miniTramp is freed, so
         // we don't have to.
     }
     delete postForkInst;
@@ -291,15 +246,15 @@ bool syscallNotification::removePreExec() {
         return true;
     }
     
-    miniTrampHandle *handle;
-    for (unsigned i = 0; i < preExecInst->mtHandles.size(); i++) {
-        handle = preExecInst->mtHandles[i];
+    miniTramp *handle;
+    for (unsigned i = 0; i < preExecInst->miniTramps.size(); i++) {
+        handle = preExecInst->miniTramps[i];
         
-        bool removed = deleteInst(proc, handle);
+        bool removed = handle->uninstrument();
         // At some point we should handle a negative return... but I
         // have no idea how.
         assert(removed);
-        // The miniTrampHandle is deleted when the miniTramp is freed, so
+        // The miniTramp is deleted when the miniTramp is freed, so
         // we don't have to.
     }
     delete preExecInst;
@@ -325,15 +280,15 @@ bool syscallNotification::removePreExit() {
         return true;
     }
     
-    miniTrampHandle *handle;
-    for (unsigned i = 0; i < preExitInst->mtHandles.size(); i++) {
-        handle = preExitInst->mtHandles[i];
+    miniTramp *handle;
+    for (unsigned i = 0; i < preExitInst->miniTramps.size(); i++) {
+        handle = preExitInst->miniTramps[i];
         
-        bool removed = deleteInst(proc, handle);
+        bool removed = handle->uninstrument();
         // At some point we should handle a negative return... but I
         // have no idea how.
         assert(removed);
-        // The miniTrampHandle is deleted when the miniTramp is freed, so
+        // The miniTramp is deleted when the miniTramp is freed, so
         // we don't have to.
     }
     delete preExitInst;

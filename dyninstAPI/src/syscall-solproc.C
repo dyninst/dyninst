@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-solproc.C,v 1.5 2004/05/13 15:32:16 bernat Exp $
+// $Id: syscall-solproc.C,v 1.6 2005/07/29 19:19:52 bernat Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -51,6 +51,7 @@
 #include "dyninstAPI/src/syscallNotification.h"
 #include "dyninstAPI/src/sol_proc.h"
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/miniTramp.h"
 
 
 #if defined(bug_aix_proc_broken_fork)
@@ -59,31 +60,19 @@
 #endif
 
 syscallNotification::syscallNotification(syscallNotification *parentSN,
-                                         process *p) : preForkInst(parentSN->preForkInst),
-                                                       postForkInst(parentSN->postForkInst),
-                                                       preExecInst(parentSN->preExecInst),
-                                                       postExecInst(parentSN->postExecInst),
-                                                       preExitInst(parentSN->preExitInst),
-                                                       proc(p) {
+                                         process *child) :
+    preForkInst(parentSN->preForkInst),
+    postForkInst(parentSN->postForkInst),
+    preExecInst(parentSN->preExecInst),
+    postExecInst(parentSN->postExecInst),
+    preExitInst(parentSN->preExitInst),
+    proc(child) {
 
     // We set PR_FORK in the parent, so everything was copied.
     
 #if defined(bug_aix_proc_broken_fork)
-    // Just copying the pointer value isn't a great idea....
-        if (parentSN->postForkInst) {
-            AstNode *returnVal = new AstNode(AstNode::ReturnVal, (void *)0);
-            postForkInst = new instMapping(FORK_FUNC, "DYNINST_instForkExit",
-                                           FUNC_EXIT|FUNC_ARG,
-                                           returnVal);
-            postForkInst->dontUseTrampGuard();
-            removeAst(returnVal);
-            for (unsigned iter = 0; iter < parentSN->postForkInst->mtHandles.size(); iter++) {
-                miniTrampHandle *child = NULL;
-                getInheritedMiniTramp(parentSN->postForkInst->mtHandles[iter],
-                                      child,
-                                      proc);
-                postForkInst->mtHandles.push_back(child);
-            }
+    if (parentSN->postForkInst) {
+        postForkInst = new instMapping(parentSN->postForkInst, child);
     }
 #endif
 
@@ -133,7 +122,7 @@ bool syscallNotification::installPostFork() {
     proc->installInstrRequests(instReqs);
 
     // Check to see if we put anything in the proggie
-    if (postForkInst->mtHandles.size() == 0)
+    if (postForkInst->miniTramps.size() == 0)
         return false;
     return true;
 
@@ -277,16 +266,16 @@ bool syscallNotification::removePostFork() {
         return true;
     }
     
-    miniTrampHandle *handle;
-    for (unsigned i = 0; i < postForkInst->mtHandles.size(); i++) {
-        handle = postForkInst->mtHandles[i];
+    miniTramp *handle;
+    for (unsigned i = 0; i < postForkInst->miniTramps.size(); i++) {
+        handle = postForkInst->miniTramps[i];
         
-        bool removed = deleteInst(proc, handle);
+        bool removed = handle->uninstrument();
         // At some point we should handle a negative return... but I
         // have no idea how.
         
         assert(removed);
-        // The miniTrampHandle is deleted when the miniTramp is freed, so
+        // The miniTramp is deleted when the miniTramp is freed, so
         // we don't have to.
     }
     delete postForkInst;
