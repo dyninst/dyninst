@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.56 2005/06/08 20:58:52 tlmiller Exp $
+// $Id: BPatch_function.C,v 1.57 2005/07/29 19:17:37 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -201,7 +201,7 @@ char *BPatch_function::getMangledNameInt(char *s, int len)
  */
 void *BPatch_function::getBaseAddrInt()
 {
-     return (void *)func->getEffectiveAddress(proc->llproc);
+  return (void *)func->getOriginalAddress();
 }
 
 /*
@@ -212,7 +212,7 @@ void *BPatch_function::getBaseAddrInt()
 */
 void *BPatch_function::getBaseAddrRelative() const
 {
-	return (void *)func->get_address();
+  return (void *)(func->getOriginalAddress() - func->obj()->getBaseAddress());
 }
 
 
@@ -223,7 +223,7 @@ void *BPatch_function::getBaseAddrRelative() const
  */
 unsigned int BPatch_function::getSizeInt() 
 {
-  return func->get_size();
+  return func->getSize();
 }
 
 /*
@@ -277,7 +277,6 @@ BPatch_Vector<BPatch_localVar *> * BPatch_function::getParamsInt()
 BPatch_Vector<BPatch_point*> *BPatch_function::findPointInt(
         const BPatch_procedureLocation loc)
 {
-    process *llproc = proc->llproc;
     // function does not exist!
     if (func == NULL) return NULL;
 
@@ -286,43 +285,46 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointInt(
        return NULL;
 
     // function is generally uninstrumentable (with current technology)
-    if (func->funcEntry(llproc) == NULL) return NULL;
+    if (func->funcEntries().size() == 0) return NULL;
 
     BPatch_Vector<BPatch_point*> *result = new BPatch_Vector<BPatch_point *>;
 
     if (loc == BPatch_entry || loc == BPatch_allLocations) {
-        result->push_back(proc->findOrCreateBPPoint(
-                 this, func->funcEntry(llproc), BPatch_entry));
+        const pdvector<instPoint *> entries = func->funcEntries();
+        for (unsigned foo = 0; foo < entries.size(); foo++)
+            result->push_back(proc->findOrCreateBPPoint(this, 
+                                                        entries[foo], 
+                                                        BPatch_entry));
     }
     switch (loc) {
       case BPatch_entry: // already done
           break;
       case BPatch_allLocations:
         {
-          const pdvector<instPoint *> &Rpoints = func->funcExits(llproc);
-          const pdvector<instPoint *> &Cpoints = func->funcCalls(llproc);
+          const pdvector<instPoint *> &Rpoints = func->funcExits();
+          const pdvector<instPoint *> &Cpoints = func->funcCalls();
           unsigned int c=0, r=0;
           Address cAddr, rAddr;
           while (c < Cpoints.size() || r < Rpoints.size()) {
-              if (c < Cpoints.size()) cAddr = Cpoints[c]->pointAddr();
+              if (c < Cpoints.size()) cAddr = Cpoints[c]->addr();
               else                    cAddr = (Address)(-1);
-              if (r < Rpoints.size()) rAddr = Rpoints[r]->pointAddr();
+              if (r < Rpoints.size()) rAddr = Rpoints[r]->addr();
               else                    rAddr = (Address)(-1);
               if (cAddr <= rAddr) {
-                 result->push_back(proc->findOrCreateBPPoint(
-                                         this, Cpoints[c], BPatch_subroutine));
-                 c++;
-              } else {
-                 result->push_back(proc->findOrCreateBPPoint(
-                                        this, Rpoints[r], BPatch_exit));
-                 r++;
-              }
+                  result->push_back(proc->findOrCreateBPPoint(
+                                                              this, Cpoints[c], BPatch_subroutine));
+	      c++;
+	    } else {
+	      result->push_back(proc->findOrCreateBPPoint(
+							  this, Rpoints[r], BPatch_exit));
+	      r++;
+	    }
           }
           break;
         }
       case BPatch_exit:
         {
-          const pdvector<instPoint *> &points = func->funcExits(llproc);
+          const pdvector<instPoint *> &points = func->funcExits();
           for (unsigned i = 0; i < points.size(); i++) {
              result->push_back(proc->findOrCreateBPPoint(
                                              this, points[i], BPatch_exit));
@@ -331,7 +333,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointInt(
         }
       case BPatch_subroutine:
         {
-          const pdvector<instPoint *> &points = func->funcCalls(llproc);
+          const pdvector<instPoint *> &points = func->funcCalls();
           for (unsigned i = 0; i < points.size(); i++) {
              result->push_back(proc->findOrCreateBPPoint(
                                           this, points[i], BPatch_subroutine));
@@ -354,8 +356,7 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointInt(
 BPatch_point* BPatch_function::createMemInstPoint(void *addr,
                                                   BPatch_memoryAccess* ma)
 {
-  BPatch_point *p = createInstructionInstPoint(proc, (void*) addr, NULL,
-					       this);
+  BPatch_point *p = BPatch_point::createInstructionInstPoint(proc, addr, this);
   if(p)
     p->memacc = ma;
   return p;
@@ -380,8 +381,7 @@ BPatch_point* createInstPointForMemAccess(BPatch_process *proc,
   // Trouble is that updating these should be platfrom independent, while this
   // function also does platform dependent stuff...
   //bperr( "memcreat@%p\n", addr);
-   BPatch_point *p = createInstructionInstPoint(proc, (void*) addr, 
-                                                alternative);
+   BPatch_point *p = BPatch_point::createInstructionInstPoint(proc, (void*) addr, NULL);
    if(p)
       p->memacc = ma;
    return p;
@@ -515,10 +515,10 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointByOp(
   if (func == NULL) return NULL;
 
   // function is generally uninstrumentable (with current technology)
-  if (func->funcEntry(proc->llproc) == NULL) return NULL;
+  if (func->funcEntries().size() == 0) return NULL;
   
   // Use an instruction iterator
-  InstrucIter ii(func, proc->llproc, mod->getModule());
+  InstrucIter ii(func);
 
   return ::findPoint(ops, ii, proc, this);
 }
@@ -569,7 +569,16 @@ BPatch_localVar * BPatch_function::findLocalParamInt(const char * name)
 
 BPatch_flowGraph* BPatch_function::getCFGInt()
 {
-    return func->getCFG(proc->llproc);
+    if (cfg)
+        return cfg;
+    bool valid = false;
+    cfg = new BPatch_flowGraph(this, valid);
+    if (!valid) {
+        delete cfg;
+        cfg = NULL;
+        return NULL;
+    }
+    return cfg;
 }
 
 
