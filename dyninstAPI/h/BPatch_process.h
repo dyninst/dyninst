@@ -55,7 +55,7 @@
 #include <signal.h>
 
 class process;
-class miniTrampHandle;
+class miniTramp;
 class BPatch;
 class BPatch_thread;
 class BPatch_process;
@@ -82,15 +82,6 @@ typedef enum {
   BPatch_oneTimeCodeEvent
 } BPatch_asyncEventType;
 
-/*
- * Used to specify whether a snippet should be installed before other snippets
- * that have previously been inserted at the same point, or after.
- */
-typedef enum {
-    BPatch_firstSnippet,
-    BPatch_lastSnippet
-} BPatch_snippetOrder;
-
 
 /*
  * Contains information about the code that was inserted by an earlier call to
@@ -108,12 +99,12 @@ class BPATCH_DLL_EXPORT BPatchSnippetHandle : public BPatch_eventLock {
 protected:
     process *proc;
 private:
-    BPatch_Vector<miniTrampHandle *> mtHandles;
+    BPatch_Vector<miniTramp *> mtHandles;
       
     BPatchSnippetHandle(process *_proc) : proc(_proc) {};
 
-    void add(miniTrampHandle *pointInstance);
-    void getMiniTrampHandles(BPatch_Vector<miniTrampHandle *> *save_mtHandles) {
+    void add(miniTramp *pointInstance);
+    void getMiniTrampHandles(BPatch_Vector<miniTramp*> *save_mtHandles) {
       for(unsigned i=0; i<mtHandles.size(); i++)
 	(*save_mtHandles).push_back(mtHandles[i]);
     }
@@ -157,11 +148,8 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     friend class BPatch_eventMailbox;
     friend class process;
     friend bool pollForStatusChange();
-
-    friend BPatch_point* createInstructionInstPoint(BPatch_process *proc,
-                                                   void *address,
-                                                   BPatch_point** alternative,
-                                                   BPatch_function* bpf );
+    friend class AstNode; // AST needs to translate instPoint to
+		      // BPatch_point via instp_map
     
     //References to lower level objects
     process *llproc;

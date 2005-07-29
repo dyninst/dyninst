@@ -45,15 +45,26 @@
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_sourceObj.h"
-#include "BPatch_point.h"
 #include "BPatch_type.h"
 #include "BPatch_module.h"
-#include "BPatch_function.h"
+//#include "BPatch_function.h"
 #include "BPatch_eventLock.h"
 
 class AstNode;
 class process;
 class BPatch_process;
+class BPatch_function;
+class BPatch_point;
+
+
+/*
+ * Used to specify whether a snippet should be installed before other snippets
+ * that have previously been inserted at the same point, or after.
+ */
+typedef enum {
+    BPatch_firstSnippet,
+    BPatch_lastSnippet
+} BPatch_snippetOrder;
 
 typedef enum {
     BPatch_lt,

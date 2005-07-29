@@ -45,10 +45,12 @@
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_eventLock.h"
+#include "BPatch_snippet.h" // snippetOrder
+#include "dyninstAPI/src/inst.h" // internal order and when
 
 class process;
 class instPoint;
-class miniTrampHandle;
+class miniTramp;
 class BPatch_thread;
 class BPatch_image;
 class BPatch_function;
@@ -128,11 +130,6 @@ typedef enum BPatch_opCode {
    that here) */
 
 class BPatch_point;
-#if defined( __XLC__ ) || defined(__xlC__)
-BPatch_point* createInstructionInstPoint(process*proc,void*address,
-                                         BPatch_point** alternative,
-                                         BPatch_function* bpf = NULL);
-#endif
 
 typedef void (*BPatchDynamicCallSiteCallback)(BPatch_point *at_point, 
                                               BPatch_function *called_function);
@@ -146,7 +143,15 @@ typedef struct {
 #endif
 #define DYNINST_CLASS_NAME BPatch_point
 
+#if !defined(BPATCH_LIBRARY)
+// Needs getInstPointArgs
+class instRegNode;
+#endif
+
 class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
+#if !defined(BPATCH_LIBRARY)
+    friend class instReqNode;
+#endif
     friend class BPatch_process;
     friend class BPatch_image;
     friend class BPatch_function;
@@ -155,12 +160,11 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     friend class BPatch_asyncEventHandler;
     friend class process;
     friend class BPatch_edge;
-#if !defined (__XLC__) && !defined(__xlC__)
-    friend BPatch_point* createInstructionInstPoint(BPatch_process*proc,
+    
+    static BPatch_point* createInstructionInstPoint(BPatch_process*proc,
                                                     void*address,
-                                                    BPatch_point** alternative,
                                                     BPatch_function* bpf = NULL);
-#endif
+
     friend BPatch_point* createInstPointForMemAccess(BPatch_process *_proc,
 						     void *addr,
 						     BPatch_memoryAccess* ma,
@@ -172,10 +176,15 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
 
     BPatch_procedureLocation pointType;
     BPatch_memoryAccess *memacc;
-
+    // Instruction constructor...
     BPatch_point(BPatch_process *_proc, BPatch_function *_func, 
                  instPoint *_point, BPatch_procedureLocation _pointType, 
                  BPatch_memoryAccess* _ma = NULL);
+    // Edge constructor...
+    BPatch_point(BPatch_process *_proc, BPatch_function *_func,
+                 BPatch_edge *_edge, instPoint *_point);
+
+
     void setLoop(BPatch_basicBlockLoop *l);
 
     // We often create a point with the arbitrary point type,
@@ -188,9 +197,27 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     //    2:  dynamic status unknown (initial value)
     int dynamic_call_site_flag;
 
-    BPatch_Vector<miniTrampHandle *> dynamicMonitoringCalls; // This should be BPatchSnippetHandle
+    BPatch_Vector<miniTramp *> dynamicMonitoringCalls; // This should be BPatchSnippetHandle
 
     instPoint * getPoint() {return point;}
+
+    BPatch_Vector<BPatchSnippetHandle *> preSnippets;
+    BPatch_Vector<BPatchSnippetHandle *> postSnippets;
+    BPatch_Vector<BPatchSnippetHandle *> allSnippets;
+
+    // If we're edge inst
+    BPatch_edge *edge_;
+
+    // And get real info
+    bool getInstPointArgs(BPatch_callWhen when,
+                          BPatch_snippetOrder order,
+                          callWhen &ipWhen,
+                          callOrder &ipOrder);
+
+    void recordSnippet(BPatch_callWhen, BPatch_snippetOrder,
+                       BPatchSnippetHandle*);
+
+
 public:
     //~BPatch_point() { delete memacc; };
 
