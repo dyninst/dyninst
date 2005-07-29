@@ -43,9 +43,8 @@
 #define aix_dl_hdr
 
 #include "common/h/Vector.h"
-#include "dyninstAPI/src/sharedobject.h"
 class process;
-
+class mapped_object;
 //
 // All platform specific dynamic linking info. is in this class
 // each version of this class must have the following funcitons:
@@ -62,23 +61,23 @@ public:
   // process all shared objects that have been mapped into the process's
   // address space
   
-  pdvector< shared_object *> *getSharedObjects(process *);
+  pdvector< mapped_object *> *getSharedObjects(process *);
   
   // handleIfDueToSharedObjectMapping: returns true if the trap was caused
   // by a change to the link maps  
-  bool handleIfDueToSharedObjectMapping(process *, pdvector<shared_object *> **,
+  bool handleIfDueToSharedObjectMapping(process *, pdvector<mapped_object *> **,
 					u_int &, bool &);
   
   
   // returns true if the executable is dynamically linked 
   bool isDynamic() {return dynlinked;}
 
-  pdvector<shared_object *> *processSharedObjects(process *p);
+  pdvector<mapped_object *> *processSharedObjects(process *p);
   
   Address dlopenBrkAddr() const { return dlopen_brk_addr; }
   Address dlcloseBrkAddr() const { return dlclose_brk_addr; }
 
-  bool setLibBreakpoint (process *p, pdvector<shared_object *> *objs);
+  bool setLibBreakpoint (process *p, pdvector<mapped_object *> *objs);
   
 private:
   Address dlopen_brk_addr;

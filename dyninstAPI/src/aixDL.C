@@ -39,16 +39,18 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.58 2005/03/17 23:26:37 bernat Exp $
+// $Id: aixDL.C,v 1.59 2005/07/29 19:18:08 bernat Exp $
 
-#include "dyninstAPI/src/sharedobject.h"
+#include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/arch-power.h"
+#include "dyninstAPI/src/arch.h"
 #include "dyninstAPI/src/inst-power.h"
+#include "dyninstAPI/src/InstrucIter.h"
+#include "dyninstAPI/src/miniTramp.h"
 #include "common/h/debugOstream.h"
 #include <sys/ptrace.h>
 #include <sys/ldr.h>
@@ -57,9 +59,7 @@
 bool dynamic_linking::initialize() {
     // Since we read out of /proc/.../map, there is nothing to do here
 
-   proc->setDynamicLinking();
-   dynlinked = true;
-
+    dynlinked = true;
     return true;
 }
 
@@ -79,47 +79,37 @@ bool dynamic_linking::installTracing() {
   pdvector<instMapping *>instReqs;
   instReqs.push_back(loadInst);
   proc->installInstrRequests(instReqs);
-  if (loadInst->mtHandles.size()) {
-    sharedLibHook *sharedHook = new sharedLibHook(proc, SLH_UNKNOWN,
-						  loadInst);
-    instru_based = true;
-    return true;
+  if (loadInst->miniTramps.size()) {
+      sharedLibHook *sharedHook = new sharedLibHook(proc, SLH_UNKNOWN,
+                                                    loadInst);
+      sharedLibHooks_.push_back(sharedHook);
+      instru_based = true;
+      return true;
   }
   else {
-    pdvector<shared_object *> *objs = proc->sharedObjects();
-    
-    // Get libc
-    shared_object *libc = NULL;
-    fileDescriptor *libc_desc = NULL;
-    for (unsigned i = 0; i < objs->size(); i++) {
-      fileDescriptor_AIX *desc = (fileDescriptor_AIX *)(*objs)[i]->getFileDesc();
-      if (((*objs)[i]->getName().suffixed_by("libc.a")) &&
-	  (desc->member() == "shr.o")) {
-	libc_desc = (fileDescriptor *)desc;
-	libc = ((*objs)[i]);
+      const pdvector<mapped_object *> &objs = proc->mappedObjects();
+      
+      // Get libc
+      mapped_object *libc = NULL;
+      for (unsigned i = 0; i < objs.size(); i++) {
+          const fileDescriptor &desc = objs[i]->getFileDesc();
+          if ((objs[i]->fileName().suffixed_by("libc.a")) &&
+              (desc.member() == "shr.o")) {
+              libc = (objs[i]);
+          }
       }
-    }
-    assert(libc);
+      assert(libc);
     
-    // Now, libc may have been parsed... in which case we pull the function vector
-    // from it. If not, we parse it manually.
-    
-    pdvector<int_function *> *loadFuncs;
-    if (libc->isProcessed()) {
-      loadFuncs = libc->findFuncVectorByPretty(pdstring("load1"));
-    }
-    else {
-      image *libc_image = image::parseImage(libc_desc, libc_desc->addr());
-      assert(libc_image);
-      libc_image->defineModules(proc);
-      loadFuncs = libc_image->findFuncVectorByPretty(pdstring("load1"));
-    }
-    assert(loadFuncs);
-    assert(loadFuncs->size() > 0);
-    
-    int_function *loadfunc = (*loadFuncs)[0];
-    assert(loadfunc);
-    
+      // Now, libc may have been parsed... in which case we pull the function vector
+      // from it. If not, we parse it manually.
+      
+      const pdvector<int_function *> *loadFuncs = libc->findFuncVectorByPretty(pdstring("load1"));
+      assert(loadFuncs);
+      assert(loadFuncs->size() > 0);
+      
+      int_function *loadFunc = (*loadFuncs)[0];
+      assert(loadFunc);
+      
     // There is no explicit place to put a trap, so we'll replace
     // the final instruction (brl) with a trap, and emulate the branch
     // mutator-side
@@ -135,37 +125,25 @@ bool dynamic_linking::installTracing() {
     // them by hand. This should be replaced with either a) instrumentation
     // or b) a better hook (aka r_debug in Linux/Solaris)
 
-    Address loadStart = loadfunc->getOffset();
-    loadStart += libc_desc->addr();
-    Address loadEnd = loadStart + loadfunc->get_size();
-    unsigned loadSize = loadEnd - loadStart + sizeof(instruction);
-    instruction *func_image = (instruction *)malloc(loadSize);
-    proc->readTextSpace((void *)loadStart, loadSize,
-			(void *)func_image);
+    InstrucIter funcIter(loadFunc);
 
-    for (unsigned i = 0; i < (loadSize/sizeof(instruction)); i++) {
-      if (func_image[i].raw == BRraw) {
-	sharedLibHook *sharedHook = new sharedLibHook(proc, SLH_UNKNOWN, 
-						      // not used
-						      loadStart + (i*sizeof(instruction)));
-	sharedLibHooks_.push_back(sharedHook);
-      }
+    while (*funcIter) {
+        instruction insn = funcIter.getInstruction();
+
+        if (insn.raw() == BRraw) {
+            sharedLibHook *sharedHook = new sharedLibHook(proc, SLH_UNKNOWN, 
+                                                          *funcIter);
+            sharedLibHooks_.push_back(sharedHook);
+        }
+        funcIter++;
     }
   }
   return true;
   // TODO: handle dlclose as well
 }
 
-/* Parse a binary to extract all shared objects it
-   contains, and create shared object objects for each
-   of them */
-pdvector< shared_object *> *dynamic_linking::getSharedObjects()
-{
-    pdvector <shared_object *> *new_list = processLinkMaps();
-    return new_list;
-}
-
-pdvector <shared_object *> *dynamic_linking::processLinkMaps()
+// If result has entries, use them as a base (don't double-create)
+bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &result)
 {
     // First things first, get a list of all loader info structures.
     int pid;
@@ -178,7 +156,7 @@ pdvector <shared_object *> *dynamic_linking::processLinkMaps()
     // the executable file.
     
     // We want to fill in this vector.
-    pdvector<shared_object *> *result = new(pdvector<shared_object *>);
+
     int mapfd = proc->getRepresentativeLWP()->map_fd();
     do {
         pread(mapfd, &mapEntry, sizeof(prmap_t), iter*sizeof(prmap_t));
@@ -199,35 +177,36 @@ pdvector <shared_object *> *dynamic_linking::processLinkMaps()
                 pread(mapfd, objname, 256,
                       mapEntry.pr_pathoff);
             }
-            else
-            {
+            else {
                 objname[0] = objname[1] = objname[2] = 0;
             }
             
-            fileDescriptor_AIX *fda = 
-            new fileDescriptor_AIX(objname, objname+strlen(objname)+1,
-                                   (Address) mapEntry.pr_vaddr,
-                                   (Address) next.pr_vaddr,
-                                   pid, false);
+            Address textOrg = (Address) mapEntry.pr_vaddr;
+            Address dataOrg = (Address) next.pr_vaddr;
+            
+            // Round up to next multiple of wordsize;
+            
+            if (textOrg % sizeof(unsigned))
+                textOrg += sizeof(unsigned) - (textOrg % sizeof(unsigned));
+            if (dataOrg % sizeof(unsigned))
+                dataOrg += sizeof(unsigned) - (dataOrg % sizeof(unsigned));
+            
+            fileDescriptor fda = fileDescriptor(objname, 
+                                                textOrg, dataOrg,
+                                                true);
+            fda.setMember(objname+strlen(objname)+1);
+            fda.setPid(pid);
 
 #ifdef DEBUG
-            bperr( "Adding %s:%s with textorg %llx and dataorg %llx\n",
+            fprintf(stderr, "Adding %s:%s with textorg 0x%x and dataorg 0x%x\n",
                     objname, objname+strlen(objname)+1,
-                    mapEntry.pr_vaddr,
-                    next.pr_vaddr);
+                    textOrg, dataOrg);
 #endif
 
-            shared_object *newobj = new shared_object(fda,
-                                                      false,
-                                                      true,
-                                                      true,
-                                                      0,
-						      proc);
-            (*result).push_back(newobj);
+            result.push_back(fda);
         }
-        
     } while (mapEntry.pr_size != 0);    
-    return result;
+    return true;
 }
 
 // handleIfDueToSharedObjectMapping: returns true if the trap was caused
@@ -238,9 +217,12 @@ pdvector <shared_object *> *dynamic_linking::processLinkMaps()
 // error_occurred -- duh
 // return value: true if there was a change to the link map,
 // false otherwise
-bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object *> **changed_objects,
-                                                       u_int &change_type, 
-                                                       bool &error_occurred) {
+bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<mapped_object *> &changed_objects,
+                                                       u_int &change_type) {
+
+    // We discover it by comparing sizes
+    change_type = 0;
+
     // Check to see if any thread hit the breakpoint we inserted
     pdvector<Frame> activeFrames;
     if (!proc->getAllActiveFrames(activeFrames)) {
@@ -263,96 +245,11 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object *>
     if (brk_lwp || 
 	instru_based || 
         force_library_load) {
-        // A thread hit the breakpoint, so process a change in the dynamic objects
-        // List of current shared objects
-        pdvector <shared_object *> *curr_list = proc->sharedObjects();
-        // List of new shared objects (since we cache parsed objects, we
-        // can go overboard safely)
-        pdvector <shared_object *> *new_list = processLinkMaps();
         
-        error_occurred = false; // Boy, we're optimistic.
-        change_type = 0; // Assume no change
-        
-        // I've seen behavior where curr_list should be null, but instead has zero size
-        if (!curr_list || (curr_list->size() == 0)) {
-            change_type = 0;
+        if (!findChangeToLinkMaps(change_type, 
+                                  changed_objects))
             return false;
-        }
-        
-        // Check to see if something was returned by getSharedObjects
-        // They all went away? That's odd
-        if (!new_list) {
-            error_occurred = true;
-            change_type = 2;
-            return false;
-        }
-        
-        if (new_list->size() == curr_list->size())
-            change_type = 0;
-        else if (new_list->size() > curr_list->size())
-            change_type = 1; // Something added
-        else
-            change_type = 2; // Something removed
-        
-        
-        *changed_objects = new(pdvector<shared_object *>);
-        
-        // if change_type is add, figure out what is new
-        if (change_type == 1) {
-            // Compare the two lists, and stick anything new on
-            // the added_list vector (should only be one, but be general)
-            bool found_object = false;
-            for (u_int i = 0; i < new_list->size(); i++) {
-                for (u_int j = 0; j < curr_list->size(); j++) {
-                    // Check for equality -- file descriptor equality, nothing
-                    // else is good enough.
-                    shared_object *sh1 = (*new_list)[i];
-                    shared_object *sh2 = (*curr_list)[j];
-                    fileDescriptor *fd1 = sh1->getFileDesc();
-                    fileDescriptor *fd2 = sh2->getFileDesc();
-                    
-                    if (*fd1 == *fd2) {
-                        found_object = true;
-                        break;
-                    }
-                }
-                // So if found_object is true, we don't care. Set it to false and
-                // loop. Otherwise, add this to the new list of objects
-                if (!found_object) {
-                    (**changed_objects).push_back(((*new_list)[i]));
-                }
-                else found_object = false; // reset
-            }
-        }
-        else if (change_type == 2) {
-            // Compare the two lists, and stick anything deleted on
-            // the removed_list vector (should only be one, but be general)
-            bool found_object = false;
-            // Yes, this almost identical to the previous case. The for loops
-            // are reversed, but that's it. Basically, find items in the larger
-            // list that aren't in the smaller. 
-            for (u_int j = 0; j < curr_list->size(); j++) {
-                for (u_int i = 0; i < new_list->size(); i++) {
-                    // Check for equality -- file descriptor equality, nothing
-                    // else is good enough.
-                    shared_object *sh1 = (*new_list)[i];
-                    shared_object *sh2 = (*curr_list)[j];
-                    fileDescriptor *fd1 = sh1->getFileDesc();
-                    fileDescriptor *fd2 = sh2->getFileDesc();
-                    
-                    if (*fd1 == *fd2) {
-                        found_object = true;
-                        break;
-                    }
-                }
-                // So if found_object is true, we don't care. Set it to false and
-                // loop. Otherwise, add this to the new list of objects
-                if (!found_object) {
-                    (**changed_objects).push_back((*curr_list)[j]);
-                }
-                else found_object = false; // reset
-            }
-        }
+
 	if (brk_lwp) {
 	  // Now we need to fix the PC. We overwrote the return instruction,
 	  // so grab the value in the link register and set the PC to it.
@@ -363,7 +260,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object *>
 	  return true;
         }
 	else
-	  return true;
+            return true;
     }
     return false;
 }
@@ -376,11 +273,12 @@ sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b)
     proc_->readDataSpace((void *)breakAddr_, SLH_SAVE_BUFFER_SIZE,
                          (void *)saved_, true);
 
-    instruction trap_insn;
-    trap_insn.raw = BREAK_POINT_INSN;
-
+    codeGen gen(instruction::size());
+    instruction::generateTrap(gen);
+    
     proc_->writeDataSpace((caddr_t)breakAddr_,
-                         sizeof(instruction),&trap_insn.raw);
+                          gen.used(),
+                          gen.start_ptr());
     
 }
 
@@ -389,17 +287,17 @@ sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, instMapping *inst)
 }
 
 sharedLibHook::~sharedLibHook() {
-  if (breakAddr_)
-    proc_->writeDataSpace((void *)breakAddr_, SLH_SAVE_BUFFER_SIZE, saved_);
-  else if (loadinst_) {
-    if (proc_->isAttached()) {
-      miniTrampHandle *handle;
-      for (unsigned i = 0; i < loadinst_->mtHandles.size(); i++) {
-	handle = loadinst_->mtHandles[i];
-	deleteInst(proc_, handle);
-      }
+    if (breakAddr_)
+        proc_->writeDataSpace((void *)breakAddr_, SLH_SAVE_BUFFER_SIZE, saved_);
+    else if (loadinst_) {
+        if (proc_->isAttached()) {
+            miniTramp *handle;
+            for (unsigned i = 0; i < loadinst_->miniTramps.size(); i++) {
+                handle = loadinst_->miniTramps[i];
+                handle->uninstrument();
+            }
+        }
+        delete loadinst_;
     }
-    delete loadinst_;
-  }
 }
 

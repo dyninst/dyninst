@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.h,v 1.18 2004/03/23 01:12:01 eli Exp $
+// $Id: aix.h,v 1.19 2005/07/29 19:18:07 bernat Exp $
 
 #if !defined(rs6000_ibm_aix3_2) && !defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
 #error "invalid architecture-os inclusion"
@@ -61,7 +61,7 @@
 /* Should be set dynamically */
 /* Nice thing about AIX is that we don't have to overwrite main with
    the call, we just use the empty space after the program */
-#define BYTES_TO_SAVE 256 // should be a multiple of sizeof(instruction)
+#define BYTES_TO_SAVE 256 // should be a multiple of instruction::size()
 
 typedef int handleT; // defined for compatibility with other platforms
                      // not currently used on the AIX platform

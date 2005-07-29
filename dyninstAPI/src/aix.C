@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.198 2005/06/14 04:16:09 rchen Exp $
+// $Id: aix.C,v 1.199 2005/07/29 19:18:06 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -57,10 +57,13 @@
 #include "common/h/Types.h"
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
-#include "dyninstAPI/src/instP.h" // class miniTrampHandle
+#include "dyninstAPI/src/instP.h" // class miniTramp
 #include "common/h/pathName.h"
 #include "dyninstAPI/src/instPoint.h"
+#include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/inst-power.h" // Tramp constants
+#include "dyninstAPI/src/multiTramp.h"
+#include "dyninstAPI/src/InstrucIter.h"
 
 #if defined(AIX_PROC)
 #include <sys/procfs.h>
@@ -124,8 +127,6 @@ extern "C" {
 extern int ioctl(int, int, ...);
 };
 
-extern void generateBreakPoint(instruction &);
-
 // The frame threesome: normal (singlethreaded), thread (given a pthread ID),
 // and LWP (given an LWP/kernel thread).
 // The behavior is identical unless we're in a leaf node where
@@ -141,9 +142,9 @@ Frame Frame::getCallerFrame()
     unsigned binderInfo;
     unsigned savedTOC;
   } linkArea_t;
-
+  
   const int savedLROffset=8;
-  const int compilerInfoOffset=12;
+  //const int compilerInfoOffset=12;
   
 
   linkArea_t thisStackFrame;
@@ -159,9 +160,10 @@ Frame Frame::getCallerFrame()
   bool isLeaf = false;
   bool noFrame = false;
 
+  codeRange *range = getRange();
+  int_function *func = range->is_function();
+
   if (uppermost_) {
-    codeRange *range = getRange();
-    int_function *func = range->is_function();
     if (func) {
       isLeaf = func->makesNoCalls();
       noFrame = func->hasNoStackFrame();
@@ -184,23 +186,27 @@ Frame Frame::getCallerFrame()
     basePCAddr = thisStackFrame.oldFp;
   }
 
-  // Figure out where to grab the LR value from. Switch off a "cookie"
-  // we store if we're in a base tramp or have modified the LR
-  if ((stackFrame.binderInfo & MODIFIED_LR_MASK) == MODIFIED_LR) {
-      // The actual LR is stored in the "compilerInfo" word
-    newPC = stackFrame.compilerInfo;
-    newpcAddr = basePCAddr + compilerInfoOffset;
-    newFP = thisStackFrame.oldFp;
-  }
-  else if ((stackFrame.binderInfo & IN_TRAMP_MASK) == IN_TRAMP) {
-      newPC = stackFrame.savedLR;
-      newpcAddr = basePCAddr + savedLROffset;
+
+  if ((range->is_multitramp() && 
+       range->is_multitramp()->getBaseTrampInstanceByAddr(getPC()) &&
+       range->is_multitramp()->getBaseTrampInstanceByAddr(getPC())->isInInstru(getPC())) ||
+      range->is_minitramp()) {
+      // Oy. We saved the LR in the middle of the tramp; so pull it out
+      // by hand.
+      newpcAddr = basePCAddr + TRAMP_SPR_OFFSET + STK_LR;         
+
+      if (!getProc()->readDataSpace((caddr_t) newpcAddr,
+                                    sizeof(Address),
+                                    (caddr_t) &newPC, false))
+          return Frame();
+
       // Skip the next stack frame, as we "grew" the frame rather than making
       // a new one
       if (!getProc()->readDataSpace((caddr_t) thisStackFrame.oldFp,
-                            sizeof(unsigned),
-                            (caddr_t) &newFP, false))
+                                    sizeof(unsigned),
+                                    (caddr_t) &newFP, false))
           return Frame();
+      // Otherwise must be at a reloc insn
   }
   else if (isLeaf) {
       // isLeaf: get the LR from the register instead of saved location on the stack
@@ -327,22 +333,6 @@ bool Frame::setPC(Address newpc) {
   range_ = NULL;
   return true;
 }
-
-// We stash the actual LR of an instrumented function
-// into the compiler info word on the stack, and a trigger
-// "We've modified the LR" for stackwalking into the binder info word.
-bool Frame::setRealReturnAddr(Address retaddr) {
-  // And write the actual LR into an unused word.
-  if (!getProc()->writeDataSpace((void*)(getFP()+12), sizeof(Address), &retaddr))
-    return false;
-
-  // And write the "we've modified the LR" trigger value
-  Address trigger = MODIFIED_LR;
-  if (!getProc()->writeDataSpace((void*)(getFP()+16), sizeof(Address), &trigger))
-    return false;
-  return true;
-}
-
 
 #ifdef DEBUG 
 void decodeInstr(unsigned instr_raw) {
@@ -732,44 +722,6 @@ void process::inferiorMallocAlign(unsigned &size)
 }
 #endif
 
-bool process::instrSideEffect(Frame &frame, instPoint *inst)
-{
-  // Two cases: fixing a call site, fixing entry/exit tramps.
-
-  int_function *instFunc = inst->pointFunc();
-  if (!instFunc) return false;
-
-  codeRange *range = frame.getRange();
-  if (range->is_function() != instFunc) {
-    // Trivially done
-    return true;
-  }
-
-  if (inst->getPointType() == callSite) {
-    Address insnAfterPoint = inst->absPointAddr(this) + sizeof(instruction);
-    if (frame.getPC() == insnAfterPoint) {
-      if (!frame.setPC(baseMap[inst]->baseAddr + baseMap[inst]->skipPostInsOffset))
-	return false;
-    }
-  }
-  else if (inst->getPointType() == functionExit) {
-    // We hit exit tramps by overwriting the return address from
-    // a function. So... if we're in the same function as the inst
-    // point, we want to overwrite the pc in the _parent_ frame
-    // (AKA our return address)
-    
-    if (frame.getPC() != instFunc->getAddress(this)) {
-      Address exitTrampAddr = baseMap[inst]->baseAddr;
-      Frame parentFrame = frame.getCallerFrame();
-      if (!parentFrame.setRealReturnAddr(parentFrame.getPC()))
-	return false;
-      if (!parentFrame.setPC(exitTrampAddr))
-	return false;
-    }
-  }
-  return true;
-  
-}
 
 #define DEBUG_MSG 0 
 #define _DEBUG_MSG 0
@@ -1197,7 +1149,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 
 	bool openFileError;
 
-	newXCOFF = new writeBackXCOFF( (char *)getImage()->file().c_str(), fullName /*"/tmp/dyninstMutatee"*/ , openFileError);
+	newXCOFF = new writeBackXCOFF((const char *)(getAOut()->fullName().c_str()), fullName /*"/tmp/dyninstMutatee"*/ , openFileError);
 
 	if( openFileError ){
 		delete [] fullName;
@@ -1231,7 +1183,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
         char *data_c = new char[compactedUpdates[0]->size];
         data = (void *) data_c;
 #else
-        data = (void *)(new char[compactedUpdates[0]->size]);
+        (char*) data = new char[compactedUpdates[0]->size];
 #endif
 
 	readDataSpace((void*) compactedUpdates[0]->address,
@@ -1416,7 +1368,6 @@ char * P_cplus_demangle( const char * symbol, bool nativeCompiler, bool includeT
 #include <dlfcn.h> // dlopen constants
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
-extern void generateBreakPoint(instruction &);
 
 /*************************************************************************/
 /***  Code to handle dlopen()ing the runtime library                   ***/
@@ -1444,36 +1395,35 @@ bool checkAllThreadsForBreakpoint(process *proc, Address break_addr)
 {
   pdvector<Frame> activeFrames;
   if (!proc->getAllActiveFrames(activeFrames)) return false;
-  for (unsigned frame_iter = 0; frame_iter < activeFrames.size(); frame_iter++)
-    if (activeFrames[frame_iter].getPC() == break_addr) {
-      return true;
-    }
+  for (unsigned frame_iter = 0; frame_iter < activeFrames.size(); frame_iter++) {
+      if (activeFrames[frame_iter].getPC() == break_addr) {
+          return true;
+      }
+  }
   return false;
 }
 
-bool process::trapDueToDyninstLib()
+bool process::trapDueToDyninstLib(dyn_lwp *lwp)
 {
   // Since this call requires a PTRACE, optimize it slightly
   if (dyninstlib_brk_addr == 0x0) return false;
 
-  bool result = checkAllThreadsForBreakpoint(this, dyninstlib_brk_addr);
-  if(result){ 
-    dyninstlib_brk_addr = 0; //ccw 30 apr 2002 : SPLIT3
-    //dyninstlib_brk_addr and paradynlib_brk_addr may be the same
-    //if they are we dont want to get them mixed up. once we
-    //see this trap is due to dyninst, reset the addr so
-    //we can now catch the paradyn trap
-  }
-  return result;
+  Frame active = lwp->getActiveFrame();
   
+  if (active.getPC() == dyninstlib_brk_addr)
+      return true;
+
+  return false;
 }
 
-bool process::trapAtEntryPointOfMain(Address)
+bool process::trapAtEntryPointOfMain(dyn_lwp *lwp, Address)
 {
-  // Since this call requires a PTRACE, optimize it slightly
-  // This won't trigger (ever) if we are attaching, btw.
   if (main_brk_addr == 0x0) return false;
-  return checkAllThreadsForBreakpoint(this, main_brk_addr);
+
+  Frame active = lwp->getActiveFrame();
+  if (active.getPC() == main_brk_addr)
+      return true;
+  return false;
 }
 
 /*
@@ -1482,13 +1432,13 @@ bool process::trapAtEntryPointOfMain(Address)
  * which is a chunk of space we use for dlopening the RT library.
  */
 
-bool process::handleTrapAtEntryPointOfMain()
+bool process::handleTrapAtEntryPointOfMain(dyn_lwp *)
 {
     
     if (!main_brk_addr) return false;
     // Put back the original insn
     if (!writeDataSpace((void *)main_brk_addr, 
-                        sizeof(instruction), (char *)savedCodeBuffer))
+                        instruction::size(), (char *)savedCodeBuffer))
         return false;
     
     // And zero out the main_brk_addr so we don't accidentally
@@ -1505,23 +1455,33 @@ bool process::handleTrapAtEntryPointOfMain()
 
 bool process::insertTrapAtEntryPointOfMain()
 {
-  int_function *f_main = findOnlyOneFunction("main");
-  if (!f_main) {
-    // we can't instrument main - naim
-    showErrorCallback(108,"main() uninstrumentable");
-    return false;
-  }
-  assert(f_main);
-  Address addr = f_main->getEffectiveAddress(this);
-  // save original instruction first
-  readDataSpace((void *)addr, sizeof(instruction), savedCodeBuffer, true);
-  // and now, insert trap
-  instruction insnTrap;
-  generateBreakPoint(insnTrap);
-  writeDataSpace((void *)addr, sizeof(instruction), (char *)&insnTrap);  
-  main_brk_addr = addr;
-  
-  return true;
+    int_function *f_main = NULL;
+    pdvector<int_function *> funcs;
+    bool res = findFuncsByPretty("main", funcs);
+    if (!res) {
+        // we can't instrument main - naim
+        showErrorCallback(108,"main() uninstrumentable");
+        return false;
+    }
+
+    if( funcs.size() > 1 ) {
+        cerr << __FILE__ << __LINE__ 
+             << ": found more than one main! using the first" << endl;
+    }
+    f_main = funcs[0];
+    assert(f_main);
+
+    Address addr = f_main->getAddress();
+    // save original instruction first
+    readDataSpace((void *)addr, instruction::size(), savedCodeBuffer, true);
+    // and now, insert trap
+    codeGen gen(instruction::size());
+    instruction::generateTrap(gen);
+
+    writeDataSpace((void *)addr, gen.used(), gen.start_ptr());  
+    main_brk_addr = addr;
+    
+    return true;
 }
 
 bool process::getDyninstRTLibName() {
@@ -1562,104 +1522,100 @@ bool process::getDyninstRTLibName() {
  * and continue.
  */
 
-extern void pushStack(char *i, Address &base);
-extern void popStack(char *i, Address &base);
-
 bool process::loadDYNINSTlib()
 {
-  // This is actually much easier than on other platforms, since
-  // by now we have the DYNINSTstaticHeap symbol to work with.
-  // Basically, we can ptrace() anywhere in the text heap we want to,
-  // so go somewhere untouched. Unfortunately, we haven't initialized
-  // the tramp space yet (no point except on AIX) so we can't simply
-  // call inferiorMalloc(). 
+    // This is actually much easier than on other platforms, since
+    // by now we have the DYNINSTstaticHeap symbol to work with.
+    // Basically, we can ptrace() anywhere in the text heap we want to,
+    // so go somewhere untouched. Unfortunately, we haven't initialized
+    // the tramp space yet (no point except on AIX) so we can't simply
+    // call inferiorMalloc(). 
+    
+    // However, if we can get code_len_ + code_off_ from the object file,
+    // then we can use the area above that point freely.
+    
+    // Steps: Get the library name (command line or ENV)
+    //        Get the address for dlopen()
+    //        Write in a call to dlopen()
+    //        Write in a trap after the call
+    //        Write the library name somewhere where dlopen can find it.
+    // Actually, why not write the library name first?
 
-  // However, if we can get code_len_ + code_off_ from the object file,
-  // then we can use the area above that point freely.
+    mapped_object *aout = getAOut();
+    Address aoutEnd = aout->codeAbs() + aout->codeSize();
+    // Testing...
+    // Round it up to the nearest instruction. 
+    aoutEnd += instruction::size() - (aoutEnd % instruction::size());
 
-  // Steps: Get the library name (command line or ENV)
-  //        Get the address for dlopen()
-  //        Write in a call to dlopen()
-  //        Write in a trap after the call
-  //        Write the library name somewhere where dlopen can find it.
-  // Actually, why not write the library name first?
+    Address codeBase = aoutEnd;
 
-  const Object binaryFile = symbols->getObject();
-  Address codeBase = binaryFile.code_off() + binaryFile.code_len();
-  // Round it up to the nearest instruction. 
-  codeBase += sizeof(instruction) - (codeBase % sizeof(instruction));
+    // Though this actually might be okay...
+    assert(aoutEnd < 0x20000000);
+    
+    codeGen scratchCodeBuffer(BYTES_TO_SAVE);
+    Address dyninstlib_addr = 0;
+    Address dlopencall_addr = 0;
+    
+    // Do we want to save whatever is there? Can't see a reason why...
+    
+    // write library name...
+    dyninstlib_addr = codeBase;
 
+    scratchCodeBuffer.copy(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
+    
+    // Need a register space
+    // make sure this syncs with inst-power.C
+    Register liveRegList[] = {10, 9, 8, 7, 6, 5, 4, 3};
+    Register deadRegList[] = {11, 12};
+    unsigned liveRegListSize = sizeof(liveRegList)/sizeof(Register);
+    unsigned deadRegListSize = sizeof(deadRegList)/sizeof(Register);
+    
+    registerSpace *dlopenRegSpace = new registerSpace(deadRegListSize, deadRegList, 
+                                                      liveRegListSize, liveRegList);
+    dlopenRegSpace->resetSpace();
+    
+    pdvector<AstNode*> dlopenAstArgs(2);
+    AstNode *dlopenAst;
+    
+    dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(dyninstlib_addr));
+    dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE);
+    dlopenAst = new AstNode("dlopen", dlopenAstArgs);
+    removeAst(dlopenAstArgs[0]);
+    removeAst(dlopenAstArgs[1]);
 
-  int count = 0; // how much we've written
-  unsigned char scratchCodeBuffer[BYTES_TO_SAVE]; // space
-  Address dyninstlib_addr;
-  Address dlopencall_addr;
-  Address dlopentrap_addr;
+    dlopencall_addr = codeBase + scratchCodeBuffer.used();
 
-  // Do we want to save whatever is there? Can't see a reason why...
+    // We need to push down the stack before we call this
+    pushStack(scratchCodeBuffer);
 
-  // write library name...
-  dyninstlib_addr = (Address) (codeBase + count);
-  writeDataSpace((void *)(codeBase + count), dyninstRT_name.length()+1,
-		 (caddr_t)const_cast<char*>(dyninstRT_name.c_str()));
-  count += dyninstRT_name.length()+sizeof(instruction); // a little padding
+    dlopenAst->generateCode(this, dlopenRegSpace, scratchCodeBuffer,
+                            true, true);
+    removeAst(dlopenAst);
 
-  // Actually, we need to bump count up to a multiple of insnsize
-  count += sizeof(instruction) - (count % sizeof(instruction));
+    popStack(scratchCodeBuffer);
 
-  // Need a register space
-  // make sure this syncs with inst-power.C
-  Register liveRegList[] = {10, 9, 8, 7, 6, 5, 4, 3};
-  Register deadRegList[] = {11, 12};
-  unsigned liveRegListSize = sizeof(liveRegList)/sizeof(Register);
-  unsigned deadRegListSize = sizeof(deadRegList)/sizeof(Register);
+    dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
+    instruction::generateTrap(scratchCodeBuffer);
+    
+    writeDataSpace((void *)codeBase, scratchCodeBuffer.used(), 
+                   scratchCodeBuffer.start_ptr());
+    
+    // save registers
+    assert(savedRegs == NULL);
+    savedRegs = new dyn_saved_regs;
+    bool status = getRepresentativeLWP()->getRegisters(savedRegs);
+    assert((status!=false) && (savedRegs!=(void *)-1));
 
-  registerSpace *dlopenRegSpace = new registerSpace(deadRegListSize, deadRegList, 
-						    liveRegListSize, liveRegList);
-  dlopenRegSpace->resetSpace();
+    assert(dlopencall_addr);
+    assert(dyninstlib_brk_addr);
 
-  Address dyninst_count = 0; // size of generated code
-  pdvector<AstNode*> dlopenAstArgs(2);
-  AstNode *dlopenAst;
-
-  dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(dyninstlib_addr));
-  dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE);
-  dlopenAst = new AstNode("dlopen", dlopenAstArgs);
-  removeAst(dlopenAstArgs[0]);
-  removeAst(dlopenAstArgs[1]);
-  // We need to push down the stack before we call this
-  pushStack((char *)scratchCodeBuffer, dyninst_count);
-  dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
-			  dyninst_count, true, true);
-  popStack((char *)scratchCodeBuffer, dyninst_count);
-  dlopencall_addr = codeBase + count;
-  writeDataSpace((void *)dlopencall_addr, dyninst_count, 
-		 (char *)scratchCodeBuffer);
-  removeAst(dlopenAst);
-  count += dyninst_count;
-
-  instruction insnTrap;
-  generateBreakPoint(insnTrap);
-  dlopentrap_addr = codeBase + count;
-  writeDataSpace((void *)dlopentrap_addr, sizeof(instruction),
-		 (void *)(&insnTrap.raw));
-  count += sizeof(instruction);
-
-  dyninstlib_brk_addr = dlopentrap_addr;
-
-  // save registers
-  assert(savedRegs == NULL);
-  savedRegs = new dyn_saved_regs;
-  bool status = getRepresentativeLWP()->getRegisters(savedRegs);
-  assert((status!=false) && (savedRegs!=(void *)-1));
-
-  if (!getRepresentativeLWP()->changePC(dlopencall_addr, NULL)) {
-    logLine("WARNING: changePC failed in loadDYNINSTlib\n");
-    assert(0);
-  }
-
-  setBootstrapState(loadingRT);
-  return true;
+    if (!getRepresentativeLWP()->changePC(dlopencall_addr, NULL)) {
+        logLine("WARNING: changePC failed in loadDYNINSTlib\n");
+        assert(0);
+    }
+    
+    setBootstrapState(loadingRT_bs);
+    return true;
 }
 
 /*
@@ -1667,17 +1623,17 @@ bool process::loadDYNINSTlib()
  * any existing functions, just restore saved registers. Cool, eh?
  */
 
-bool process::loadDYNINSTlibCleanup()
+bool process::loadDYNINSTlibCleanup(dyn_lwp *lwp)
 {
-  getRepresentativeLWP()->restoreRegisters(*savedRegs);
-  delete savedRegs;
-  savedRegs = NULL;
-  // We was never here.... 
-  
-  // But before we go, reset the dyninstlib_brk_addr so we don't
-  // accidentally trigger it, eh?
-  dyninstlib_brk_addr = 0x0;
-  return true;
+    lwp->restoreRegisters(*savedRegs);
+    delete savedRegs;
+    savedRegs = NULL;
+    // We was never here.... 
+    
+    // But before we go, reset the dyninstlib_brk_addr so we don't
+    // accidentally trigger it, eh?
+    dyninstlib_brk_addr = 0x0;
+    return true;
 }
 
 
@@ -1841,7 +1797,7 @@ bool process::dumpCore_(const pdstring coreFile)
 bool process::dumpImage(const pdstring outFile)
 {
     // formerly OS::osDumpImage()
-    const pdstring &imageFileName = symbols->file();
+    const pdstring &imageFileName = getAOut()->fileName();
     // const Address codeOff = symbols->codeOffset();
     int i;
     int rd;
@@ -1917,7 +1873,7 @@ bool process::dumpImage(const pdstring outFile)
         needsCont = true;
     }
     
-    Address textorg = symbols->desc()->addr();
+    Address textorg = getAOut()->getFileDesc().code();
     baseAddr = aout.text_start - textorg;
 
     sprintf(errorLine, "seeking to %ld as the offset of the text segment \n",
@@ -1949,14 +1905,19 @@ bool process::dumpImage(const pdstring outFile)
 
 }
 
-fileDescriptor *getExecFileDescriptor(pdstring filename, int &status, bool waitForTrap) {
+bool process::getExecFileDescriptor(pdstring filename,
+                                    int pid,
+                                    bool waitForTrap,
+                                    int &status,
+                                    fileDescriptor &desc) {
     // AIX's /proc has a map file which contains data about
     // files loaded into the address space. The first two appear
     // to be the text and data from the process. We'll take it,
     // making sure that the filenames match.
 
     char tempstr[256];
-    int pid = status;
+
+    // Can get rid of this; actually, move to attach.
 
     if (waitForTrap) {
         
@@ -1988,7 +1949,7 @@ fileDescriptor *getExecFileDescriptor(pdstring filename, int &status, bool waitF
         if (!trapped) {
             // Hit the timeout, assume failure
             fprintf(stderr, "Failed to open application /proc status FD\n");
-            return NULL;
+            return false;
         }
         status = SIGTRAP;
         // Explicitly don't close the FD
@@ -1999,7 +1960,7 @@ fileDescriptor *getExecFileDescriptor(pdstring filename, int &status, bool waitF
     map_fd = P_open(tempstr, O_RDONLY, 0);
 
     if (map_fd <= 0)
-        return NULL;
+        return false;
 
     prmap_t text_map;
     char text_name[512];
@@ -2016,47 +1977,194 @@ fileDescriptor *getExecFileDescriptor(pdstring filename, int &status, bool waitF
     // We assume text = entry 0, data = entry 1
     // so they'll have the same names
 
-    fileDescriptor *desc = 
-    (fileDescriptor *) new fileDescriptor_AIX(filename,
-                                              "",
-                                              (Address) text_map.pr_vaddr,
-                                              (Address) data_map.pr_vaddr,
-                                              pid,
-                                              true);
-    
+    Address textOrg = (Address) text_map.pr_vaddr;
+    Address dataOrg = (Address) data_map.pr_vaddr;
 
-    return desc;
+    // Round up to next multiple of wordsize;
+    
+    if (textOrg % sizeof(unsigned))
+        textOrg += sizeof(unsigned) - (textOrg % sizeof(unsigned));
+    if (dataOrg % sizeof(unsigned))
+        dataOrg += sizeof(unsigned) - (dataOrg % sizeof(unsigned));
+    
+    
+    desc = fileDescriptor(filename,
+                          textOrg,
+                          dataOrg,
+                          false); // Not a shared object
+    desc.setPid(pid);
+    
+    return true;
 }
 
 
-void process::copyDanglingMemory(process *child) {
+void process::copyDanglingMemory(process *parent) {
+    assert(parent);
+    assert(parent->status() == stopped);
+    assert(status() == stopped);
+
     // Copy everything in a heap marked "uncopied" over by hand
     pdvector<heapItem *> items = heap.heapActive.values();
     for (unsigned i = 0; i < items.size(); i++) {
         if (items[i]->type == uncopiedHeap) {
             char *buffer = new char[items[i]->length];
-            readDataSpace((void *)items[i]->addr, items[i]->length,
+            parent->readDataSpace((void *)items[i]->addr, items[i]->length,
                           buffer, true);
-            child->writeDataSpace((void *)items[i]->addr, 
+            writeDataSpace((void *)items[i]->addr, 
                                   items[i]->length,
                                   buffer);
             delete [] buffer;
         }
     }
-    // Odd... some changes _aren't_ copied. So add the base tramp
-    // jumps as well (copy from parent)
-    pdvector<trampTemplate *> tramps = baseMap.values();
-    for (unsigned j = 0; j < tramps.size(); j++) {
-        instruction insn;
-        readDataSpace((void *)tramps[j]->location->absPointAddr(this),
-                      sizeof(instruction),
-                      (void *)&insn, true);
-        child->writeDataSpace((void *)tramps[j]->location->absPointAddr(this),
-                              sizeof(instruction),
-                              (void *)&insn);
-    }
-    
+    // Odd... some changes _aren't_ copied.
 
+    // Get all of the multiTramps and recopy the jumps
+    // (copied from parent space)
+
+    pdvector<codeRange *> tramps;
+    multiTramps_.elements(tramps);
+
+    for (unsigned j = 0; j < tramps.size(); j++) {
+        instArea *area = dynamic_cast<instArea *>(tramps[j]);
+        assert(area);
+
+        unsigned char buffer[area->get_size_cr()];
+
+        parent->readDataSpace((void *)area->get_address_cr(),
+                      area->get_size_cr(),
+                      (void *)buffer, true);
+        writeDataSpace((void *)area->get_address_cr(),
+                              area->get_size_cr(),
+                              (void *)buffer);
+    }
 }
+
+
+// findCallee
+int_function *instPoint::findCallee() {
+    if (callee_) {
+        return callee_;
+    }
+
+    if (ipType_ != callSite) {
+        return NULL;
+    }
+
+    if (isDynamicCall()) { 
+        return NULL;
+    }
+
+    // Check if we parsed an intra-module static call
+    assert(img_p_);
+    image_func *icallee = img_p_->getCallee();
+    if (icallee) {
+      // Now we have to look up our specialized version
+      // Can't do module lookup because of DEFAULT_MODULE...
+      const pdvector<int_function *> *possibles = func()->obj()->findFuncVectorByMangled(icallee->symTabName());
+      if (!possibles) {
+          return NULL;
+      }
+      for (unsigned i = 0; i < possibles->size(); i++) {
+          if ((*possibles)[i]->match(icallee)) {
+              callee_ = (*possibles)[i];
+              return callee_;
+          }
+      }
+      // No match... very odd
+      assert(0);
+      return NULL;
+  }
+
+
+    // Other possibilities: call through a function pointer,
+    // or a inter-module call. We handle inter-module calls as
+    // a static function call, since they're bound at load time.
+
+    // Or module == glink.s == "Global_Linkage"
+    if (func()->prettyName().suffixed_by("_linkage")) {
+        // Make sure we're not mistaking a function named
+        // *_linkage for global linkage code. 
+        
+        if ((*insn_).raw != 0x4e800420) // BCTR
+            return NULL;
+        Address TOC_addr = (func()->obj()->parse_img()->getObject()).getTOCoffset();
+
+        // Love the fixed-length platforms; we can go backwards.
+        InstrucIter linkIter(addr(), proc());
+        
+        // Linkage code looks like a bunch of loads, a move, then a jump to CTR.
+        // Find the load.
+
+        Address toc_offset = 0;
+        // Don't run off the function
+        while (*linkIter > func()->getAddress()) {
+            instruction inst = linkIter.getInstruction();
+            if (((*inst).dform.op == Lop) &&
+                ((*inst).dform.rt == 12) &&
+                ((*inst).dform.ra == 2)) {
+                if ((*linkIter) != (addr() - 20)) {
+                    fprintf(stderr, "Odd addr for linkage load: 0x%x, for call at 0x%x, in func %s\n",
+                            *linkIter, addr(), func()->prettyName().c_str());
+                }
+                toc_offset = (*inst).dform.d_or_si;
+                break;
+            }
+            linkIter--;
+        }
+
+        if (toc_offset) {
+            // This should be the contents of R12 in the linkage function
+
+            void *callee_TOC_ptr = func()->obj()->getPtrToData(TOC_addr + toc_offset);
+            Address callee_TOC_entry = *((Address *)callee_TOC_ptr);
+
+            // We need to find what object the callee TOC entry is defined in. This will be the
+            // same place we find the function, later.
+            Address callee_addr = 0;
+            
+            const pdvector<mapped_object *> &m_objs = proc()->mappedObjects();
+            
+            for (unsigned i = 0; i < m_objs.size(); i++) {
+                if ((callee_TOC_entry <= m_objs[i]->dataAbs()) &&
+                    (callee_TOC_entry < (m_objs[i]->dataAbs() + m_objs[i]->dataSize()))) {
+                    // Found it. So grab the target
+                    void *toc_ptr = m_objs[i]->getPtrToData(callee_TOC_entry);
+                    callee_addr = *((Address *)toc_ptr);
+                    break;
+                }
+            }
+            
+            if (!callee_addr) return NULL;
+            // callee_addr: address of function called, contained in image callee_img
+            // Sanity check on callee_addr
+            if ((callee_addr < 0x20000000) ||
+                (callee_addr > 0xdfffffff)) {
+                if (callee_addr != 0) { // unexpected -- where is this function call? Print it out.
+                    bperr( "Skipping illegal address 0x%x in function %s\n",
+                           (unsigned) callee_addr, func()->prettyName().c_str());
+                }
+                return NULL;
+            }
+            
+            // Again, by definition, the function is not in owner.
+            // So look it up.
+            int_function *pdf = 0;
+            codeRange *range = proc()->findCodeRangeByAddress(callee_addr);
+            pdf = range->is_function();
+            
+            if (pdf)
+                {
+                    callee_ = pdf;
+                    return callee_;
+                }
+            else
+                bperr( "Couldn't find target function for address 0x%x, jump at 0x%x\n",
+                       (unsigned) callee_addr,
+                       (unsigned) addr());
+        }
+    }
+    return NULL;
+}
+
 
         

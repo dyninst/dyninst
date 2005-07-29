@@ -50,7 +50,7 @@
 #include <sys/procfs.h>
 #define EXIT_NAME "exit"
 
-#define BYTES_TO_SAVE 512 // should be a multiple of sizeof(instruction)
+#define BYTES_TO_SAVE 512 // should be a multiple of instruction::size()
 
 #define SIGNAL_HANDLER  0
 
