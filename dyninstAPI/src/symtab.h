@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.177 2005/06/08 20:59:07 tlmiller Exp $
+// $Id: symtab.h,v 1.178 2005/07/29 19:19:50 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -69,11 +69,6 @@ extern "C" {
 #include "dyninstAPI/src/codeRange.h"
 #include "dyninstAPI/src/function.h"
 
-#ifndef BPATCH_LIBRARY
-#include "paradynd/src/resource.h"
-
-#define CHECK_ALL_CALL_POINTS  // we depend on this for Paradyn
-#endif
 
 #include "common/h/Types.h"
 #include "common/h/Symbol.h"
@@ -132,7 +127,8 @@ public:
 
 class image;
 class lineTable;
-class int_function;
+class image_func;
+class image_variable;
 class Frame;
 class ExceptionBlock;
 
@@ -141,6 +137,56 @@ class module;
 class BPatch_flowGraph;
 class BPatch_loopTreeNode;
 class instPoint;
+
+class int_variable {
+    // Should subclass this and function off the same thing...
+
+ private:
+    int_variable() {};
+ public:
+    int_variable(image_variable *var, 
+                 Address base,
+                 mapped_module *mod);
+
+    int_variable(int_variable *parVar, mapped_module *child);
+
+    Address getAddress() const { return addr_; }
+    // Can variables have multiple names?
+    const pdvector<pdstring> &prettyNameVector() const;
+    const pdvector<pdstring> &symTabNameVector() const;
+    mapped_module *mod() const { return mod_; };
+
+    Address addr_;
+    unsigned size_;
+    // type?
+    image_variable *ivar_;
+
+    mapped_module *mod_;
+};
+
+class image_variable {
+ private:
+    image_variable() {};
+ public:
+    image_variable(Address offset,
+                   const pdstring &name,
+                   const pdmodule *mod);
+
+    Address getOffset() const;
+    const pdvector<pdstring> &symTabNameVector() const;
+    const pdvector<pdstring> &prettyNameVector() const;
+
+    bool addSymTabName(const pdstring &);
+    bool addPrettyName(const pdstring &);
+
+    const pdmodule *pdmod() const { return pdmod_; }
+
+    pdvector<pdstring> symTabNames_;
+    pdvector<pdstring> prettyNames_;
+
+    Address offset_;
+    const pdmodule *pdmod_;
+};
 
 /* Stores source code to address in text association for modules */
 class lineDict {
@@ -163,20 +209,20 @@ class module {
       language_(lang), addr_(adr){}
    virtual ~module(){}
 
-   pdstring fileName() const { return fileName_; }
-   pdstring fullName() const { return fullName_; }
+   const pdstring &fileName() const { return fileName_; }
+   const pdstring &fullName() const { return fullName_; }
    supportedLanguages language() const { return language_;}
    void setLanguage(supportedLanguages lang) {language_ = lang;}
    Address addr() const { return addr_; }
 
-   virtual pdvector<int_function *> *
-      findFunction (const pdstring &name,pdvector<int_function *> *found) = 0;
-   // virtual pdvector<int_function *> *
+   virtual pdvector<image_func *> *
+      findFunction (const pdstring &name,pdvector<image_func *> *found) = 0;
+   // virtual pdvector<image_func *> *
    // findFunctionFromAll(const pdstring &name,
-   //		  pdvector<int_function *> *found) = 0;
+   //		  pdvector<image_func *> *found) = 0;
 		
    virtual void define(process *proc) = 0;    // defines module to paradyn
-   virtual pdvector<int_function *> *getFunctions() = 0;
+   virtual pdvector<image_func *> *getFunctions() = 0;
 
  private:
    pdstring fileName_;                   // short file 
@@ -191,11 +237,10 @@ class pdmodule: public module {
 
    pdmodule(supportedLanguages lang, Address adr, pdstring &fullNm,
             pdstring &fileNm, image *e): module(lang,adr,fullNm,fileNm),
+#if 0
+       // Moved to mapped_module
       hasParsedLineInformation( false ),
       lineInformation(),
-
-#ifndef BPATCH_LIBRARY
-      modResource(0),
 #endif
       exec_(e), 
 
@@ -214,15 +259,13 @@ class pdmodule: public module {
 #endif
    void define(process *proc);    // defines module to paradyn
 
-   void updateForFork(process *childProcess, const process *parentProcess);
+   pdvector<image_func *> * getFunctions();
 
-   pdvector<int_function *> * getFunctions();
-
-   pdvector<int_function *> *findFunction (const pdstring &name, 
-                                            pdvector<int_function *> *found);
+   pdvector<image_func *> *findFunction (const pdstring &name, 
+                                            pdvector<image_func *> *found);
  
-   pdvector<int_function *> *findFunctionFromAll(const pdstring &name, 
-                  pdvector<int_function *> *found, 
+   pdvector<image_func *> *findFunctionFromAll(const pdstring &name, 
+                  pdvector<image_func *> *found, 
                   bool regex_case_sensitive=true,
                   bool dont_use_regex=false);
 
@@ -233,69 +276,61 @@ class pdmodule: public module {
       libc.a on AIX lacks debug information), which means one of our
       module classes may contain information about an entire object,
       and therefore, multiple functons with the same mangled name. */
-   pdvector<int_function *> *findFunctionByMangled(const pdstring &name);
+   pdvector<image_func *> *findFunctionByMangled(const pdstring &name);
 
    bool isShared() const;
-#ifndef BPATCH_LIBRARY
-   resource *getResource() { return modResource; }
-#endif
-   void dumpMangled(char * prefix);
 
+   void dumpMangled(pdstring &prefix) const;
+#if 0
+   // Moved to mapped_module class
    bool hasParsedLineInformation;
    LineInformation lineInformation;
-   pdstring* processDirectories(pdstring* fn);
+   pdstring* processDirectories(pdstring* fn) const;
 
 #if defined(rs6000_ibm_aix4_1)
 
-   void parseLineInformation(process* proc, 
-                             pdstring* currentSourceFile,
+   void parseLineInformation(pdstring* currentSourceFile,
                              char* symbolName,
                              SYMENT *sym,
                              Address linesfdptr,char* lines,int nlines);
 #endif
 
 #if !defined(mips_sgi_irix6_4) && !defined(alpha_dec_osf4_0) && !defined(i386_unknown_nt4_0)
-   void parseFileLineInfo(process *proc);
+   void parseFileLineInfo(LineInformation &lineInfo, process *proc);
 #endif
 
-   LineInformation & getLineInformation( process * proc );
-   void initLineInformation();
-   void cleanupLineInformation();
-
+#endif // if 0
 
  private:
 
-#ifndef BPATCH_LIBRARY
-   resource *modResource;
-#endif
    image *exec_;                      // what executable it came from 
    lineDict lines_;
    //  list of all found functions in module....
-   // pdvector<int_function*> funcs;
+   // pdvector<image_func*> funcs;
 
    //bool shared_;                      // if image it belongs to is shared lib
 
  public:
 
-   void addFunction( int_function * func );
-   void addTypedPrettyName(int_function *func, const char *prettyName);
-   void removeFunction(int_function *func);
+   void addFunction( image_func * func );
+   void addTypedPrettyName(image_func *func, const char *prettyName);
+   void removeFunction(image_func *func);
 
  private:
 
-   typedef dictionary_hash< pdstring, int_function * >::iterator FunctionsByMangledNameIterator;
-   typedef dictionary_hash< pdstring, pdvector< int_function * > * >::iterator FunctionsByPrettyNameIterator;
-   dictionary_hash< pdstring, pdvector<int_function *> * > allFunctionsByMangledName;
-   dictionary_hash< pdstring, pdvector<int_function *> * > allFunctionsByPrettyName;
+   typedef dictionary_hash< pdstring, image_func * >::iterator FunctionsByMangledNameIterator;
+   typedef dictionary_hash< pdstring, pdvector< image_func * > * >::iterator FunctionsByPrettyNameIterator;
+   dictionary_hash< pdstring, pdvector<image_func *> * > allFunctionsByMangledName;
+   dictionary_hash< pdstring, pdvector<image_func *> * > allFunctionsByPrettyName;
 
-   pdvector <int_function *> allUniqueFunctions;
+   pdvector <image_func *> allUniqueFunctions;
 };
 
 
 
 
 void print_func_vector_by_pretty_name(pdstring prefix,
-                                      pdvector<int_function *>*funcs);
+                                      pdvector<image_func *>*funcs);
 void print_module_vector_by_short_name(pdstring prefix,
                                        pdvector<pdmodule*> *mods);
 pdstring getModuleName(pdstring constraint);
@@ -320,7 +355,7 @@ class internalSym {
 };
 
 
-int rawfuncscmp( int_function*& pdf1, int_function*& pdf2 );
+int rawfuncscmp( image_func*& pdf1, image_func*& pdf2 );
 
 typedef enum {unparsed, symtab, analyzing, analyzed} imageParseState_t;
 
@@ -349,14 +384,14 @@ typedef enum {unparsed, symtab, analyzing, analyzed} imageParseState_t;
 //  belonging to a process....
 class image : public codeRange {
    friend class process;
-   friend class int_function;
+   friend class image_func;
 
    //
    // ****  PUBLIC MEMBER FUBCTIONS  ****
    //
  public:
    static image *parseImage(const pdstring file);
-   static image *parseImage(fileDescriptor *desc, Address newBaseAddr = 0); 
+   static image *parseImage(fileDescriptor &desc); 
 
    // And to get rid of them if we need to re-parse
    static void removeImage(image *img);
@@ -366,18 +401,15 @@ class image : public codeRange {
 
    // And alternates
    static void removeImage(const pdstring file);
-   static void removeImage(fileDescriptor *desc);
-
-   // Cleaning function -- removes all process-dependent info
-   void cleanProcessSpecific(process *p);
+   static void removeImage(fileDescriptor &desc);
 
    // Fills  in raw_funcs with targets in callTargets
    void parseStaticCallTargets( pdvector< Address >& callTargets,
-                                pdvector< int_function* > &raw_funcs,
+                                pdvector< image_func* > &raw_funcs,
                                 pdmodule* mod );
 
-   bool parseFunction( int_function* pdf, pdvector< Address >& callTargets); 
-   image(fileDescriptor *desc, bool &err, Address newBaseAddr = 0); 
+   bool parseFunction( image_func* pdf, pdvector< Address >& callTargets); 
+   image(fileDescriptor &desc, bool &err); 
 
    void analyzeIfNeeded();
 
@@ -399,38 +431,33 @@ class image : public codeRange {
 
    // Check the list of symbols returned by the parser, return
    // name/addr pair
-   bool findInternalSymbol(const pdstring &name, const bool warn, internalSym &iSym);
+   //bool findInternalSymbol(const pdstring &name, const bool warn, internalSym &iSym);
 
-   // Check the list of symbols returned by the parser, return
-   // all which start with the given prefix
-   bool findInternalByPrefix(const pdstring &prefix, pdvector<Symbol> &found) const;
-
-  
    //Address findInternalAddress (const pdstring &name, const bool warn, bool &err);
-   void updateForFork(process *childProcess, const process *parentProcess);
-
    // find the named module  
    pdmodule *findModule(const pdstring &name, bool substring_match = false);
-   pdmodule *findModule(int_function *func);
 
    // Note to self later: find is a const operation, [] isn't, for
    // dictionary access. If we need to make the findFuncBy* methods
    // consts, we can move from [] to find()
 
    // Find the vector of functions associated with a (demangled) name
-   pdvector <int_function *> *findFuncVectorByPretty(const pdstring &name);
-   pdvector <int_function *> *findFuncVectorByMangled(const pdstring &name);
+   pdvector <image_func *> *findFuncVectorByPretty(const pdstring &name);
+   pdvector <image_func *> *findFuncVectorByMangled(const pdstring &name);
 
    // Find the vector of functions determined by a filter function
-   pdvector <int_function *> *findFuncVectorByPretty(functionNameSieve_t bpsieve, 
+   pdvector <image_func *> *findFuncVectorByPretty(functionNameSieve_t bpsieve, 
                                                     void *user_data, 
-                                                    pdvector<int_function *> *found);
-   pdvector <int_function *> *findFuncVectorByMangled(functionNameSieve_t bpsieve, 
+                                                    pdvector<image_func *> *found);
+   pdvector <image_func *> *findFuncVectorByMangled(functionNameSieve_t bpsieve, 
                                                      void *user_data, 
-                                                     pdvector<int_function *> *found);
+                                                     pdvector<image_func *> *found);
 
-   int_function *findOnlyOneFunction(const pdstring &name);
+   image_func *findOnlyOneFunction(const pdstring &name);
 
+#if 0
+   // We're not supporting this anymore. If the caller wants a regex,
+   // they can get the list of all functions and apply a regex.
 #if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
    // REGEX search functions for Pretty and Mangled function names:
    // Callers can either provide a pre-compiled regex struct, or a
@@ -440,25 +467,26 @@ class image : public codeRange {
    // avoiding unnecessary re-compilation overhead.
    //
    // EXPENSIVE TO USE!!  Linearly searches dictionary hashes.  --jaw 01-03
-   int findFuncVectorByPrettyRegex(pdvector<int_function *>*, pdstring pattern,
+   int findFuncVectorByPrettyRegex(pdvector<image_func *>*, pdstring pattern,
                                    bool case_sensitive = TRUE);
-   int findFuncVectorByPrettyRegex(pdvector<int_function *>*, regex_t *);
-   int findFuncVectorByMangledRegex(pdvector<int_function *>*, pdstring pattern,
+   int findFuncVectorByPrettyRegex(pdvector<image_func *>*, regex_t *);
+   int findFuncVectorByMangledRegex(pdvector<image_func *>*, pdstring pattern,
                                     bool case_sensitive = TRUE);
-   int findFuncVectorByMangledRegex(pdvector<int_function *>*, regex_t *);
+   int findFuncVectorByMangledRegex(pdvector<image_func *>*, regex_t *);
+#endif
 #endif
 
    // Given an address (offset into the image), find the function that occupies
    // that address
-   int_function *findFuncByOffset(const Address &offset);
-   int_function *findFuncByEntry(const Address &entry);
+   image_func *findFuncByOffset(const Address &offset);
+   image_func *findFuncByEntry(const Address &entry);
   
    // report modules to paradyn
    void defineModules(process *proc);
   
    //Add an extra pretty name to a known function (needed for handling
    //overloaded functions in paradyn)
-   void addTypedPrettyName(int_function *func, const char *typedName);
+   void addTypedPrettyName(image_func *func, const char *typedName);
 	
    bool symbolExists(const pdstring &); /* Does the symbol exist in the image? */
    void postProcess(const pdstring);          /* Load .pif file */
@@ -475,24 +503,30 @@ class image : public codeRange {
 
    // data member access
 
-   pdstring file() const {return desc_->file();}
+   pdstring file() const {return desc_.file();}
    pdstring name() const { return name_;}
    pdstring pathname() const { return pathname_; }
-   const fileDescriptor *desc() const { return desc_; }
+   const fileDescriptor &desc() const { return desc_; }
    Address codeOffset() const { return codeOffset_;}
-   Address get_address() const { return codeOffset(); }
    Address dataOffset() const { return dataOffset_;}
    Address dataLength() const { return (dataLen_ << 2);} 
    Address codeLength() const { return (codeLen_ << 2);} 
-   unsigned get_size() const { return codeLength(); }
-   codeRange *copy() const { return new image(*this); }
+
+
+   // codeRange versions
+   Address get_address_cr() const { return codeOffset(); }
+   unsigned get_size_cr() const { return codeLength(); }
+
    Address codeValidStart() const { return codeValidStart_; }
    Address codeValidEnd() const { return codeValidEnd_; }
    Address dataValidStart() const { return dataValidStart_; }
    Address dataValidEnd() const { return dataValidEnd_; }
    const Object &getObject() const { return linkedFile; }
 
-   Object &getObjectNC() { return linkedFile; } //ccw 27 july 2000 : this is a TERRIBLE hack : 29 mar 2001
+   // Figure out the address width in the image. Any ideas?
+   unsigned getAddressWidth() const { return linkedFile.getAddressWidth(); };
+
+   //Object &getObjectNC() { return linkedFile; } //ccw 27 july 2000 : this is a TERRIBLE hack : 29 mar 2001
 
    bool isDyninstRTLib() const { return is_libdyninstRT; }
 
@@ -507,8 +541,11 @@ class image : public codeRange {
    inline bool isAllocedCode(const Address &where) const;
    inline bool isAllocedData(const Address &where) const;
    inline bool isAllocedAddress(const Address &where) const;
-   inline const Word get_instruction(Address adr) const;
-   inline const unsigned char *getPtrToInstruction(Address adr) const;
+   //inline const Word get_instruction(Address adr) const;
+   inline void *getPtrToOrigInstruction(Address Offset) const;
+   // Heh... going by address is a really awful way to work on AIX.
+   // Make it explicit.
+   void *getPtrToData(Address offset) const;
 
    inline bool isNativeCompiler() const { return nativeCompiler; }
 
@@ -516,8 +553,19 @@ class image : public codeRange {
    inline bool symbol_info(const pdstring& symbol_name, Symbol& ret);
 
 
-   const pdvector<int_function*> &getAllFunctions();
-  
+   const pdvector<image_func*> &getAllFunctions();
+   const pdvector<image_variable*> &getAllVariables();
+
+   // Get functions that were in a symbol table (exported funcs)
+   const pdvector<image_func *> &getExportedFunctions() const;
+   // And when we parse, we might find more:
+   const pdvector<image_func *> &getCreatedFunctions();
+
+   const pdvector<image_variable *> &getExportedVariables() const;
+   const pdvector<image_variable *> &getCreatedVariables();
+
+   const pdvector<Symbol> getHeaps() const;
+
    // Tests if a symbol starts at a given point
    bool hasSymbolAtPoint(Address point) const;
 
@@ -528,7 +576,7 @@ class image : public codeRange {
 
    // Called from the mdl -- lists of functions to look for
    static void watch_functions(pdstring& name, pdvector<pdstring> *vs, bool is_lib,
-                               pdvector<int_function*> *updateDict);
+                               pdvector<image_func*> *updateDict);
 #else
 
 #endif 
@@ -547,17 +595,17 @@ class image : public codeRange {
 
 
    // Remove a function from the lists of instrumentable functions, once already inserted.
-   int removeFuncFromInstrumentable(int_function *func);
+   int removeFuncFromInstrumentable(image_func *func);
 
-   int_function *makeOneFunction(pdvector<Symbol> &mods,
+   image_func *makeOneFunction(pdvector<Symbol> &mods,
                                 const Symbol &lookUp);
 
-   // addMultipleFunctionNames is called after the argument int_function
+   // addMultipleFunctionNames is called after the argument image_func
    // has been found to have a conflicting address a function that has already
    // been found and inserted into the funcsByAddr map.  We assume that this
    // is a case of function name aliasing, so we merely take the names from the duplicate
    // function and add them as additional names for the one that was already found.
-   void addMultipleFunctionNames(int_function *dup);
+   void addMultipleFunctionNames(image_func *dup);
 				
 
    //
@@ -567,12 +615,12 @@ class image : public codeRange {
    // private methods for findind an excluded function by name or
    //  address....
    //bool find_excluded_function(const pdstring &name,
-   //    pdvector<int_function*> &retList);
-   //int_function *find_excluded_function(const Address &addr);
+   //    pdvector<image_func*> &retList);
+   //image_func *find_excluded_function(const Address &addr);
 
    // A helper routine for removeInstrumentableFunc -- removes function from specified hash
-   void removeFuncFromNameHash(int_function *func, pdstring &fname,
-                               dictionary_hash<pdstring, pdvector<int_function *> > *func_hash);
+   void removeFuncFromNameHash(image_func *func, pdstring &fname,
+                               dictionary_hash<pdstring, pdvector<image_func *> > *func_hash);
 
 #ifdef CHECK_ALL_CALL_POINTS
    void checkAllCallPoints();
@@ -585,22 +633,26 @@ class image : public codeRange {
    pdmodule *getOrCreateModule (const pdstring &modName, const Address modAddr);
    pdmodule *newModule(const pdstring &name, const Address addr, supportedLanguages lang);
 
-   bool symbolsToFunctions(pdvector<Symbol> &mods, pdvector<int_function *> *raw_funcs);
+   bool symbolsToFunctions(pdvector<Symbol> &mods, pdvector<image_func *> *raw_funcs);
 
-   bool addAllVariables();
+   //bool addAllVariables();
+   bool addSymtabVariables();
+   // And all those we find via analysis... like, how?
+   bool addDiscoveredVariables();
+
    void getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> *mod_langs);
    void setModuleLanguages(dictionary_hash<pdstring, supportedLanguages> *mod_langs);
 
    // We have a _lot_ of lookup types; this handles proper entry
-   void enterFunctionInTables(int_function *func, pdmodule *mod);
+   void enterFunctionInTables(image_func *func, pdmodule *mod);
 
-   bool buildFunctionLists(pdvector<int_function *> &raw_funcs);
+   bool buildFunctionLists(pdvector<image_func *> &raw_funcs);
    bool analyzeImage();
    //
    //  ****  PRIVATE DATA MEMBERS  ****
    //
 
-   fileDescriptor *desc_; /* file descriptor (includes name) */
+   fileDescriptor desc_; /* file descriptor (includes name) */
    pdstring name_;		 /* filename part of file, no slashes */
    pdstring pathname_;      /* file name with path */
 
@@ -649,15 +701,27 @@ class image : public codeRange {
    //  funtions.
    codeRangeTree funcsByRange;
    // Keep this one as well for O(1) entry lookups
-   dictionary_hash <Address, int_function *> funcsByEntryAddr;
+   dictionary_hash <Address, image_func *> funcsByEntryAddr;
    // note, a prettyName is not unique, it may map to a function appearing
    // in several modules.  Also only contains instrumentable functions....
-   dictionary_hash <pdstring, pdvector<int_function*>*> funcsByPretty;
+   dictionary_hash <pdstring, pdvector<image_func*>*> funcsByPretty;
    // Hash table holding functions by mangled name.
    // Should contain same functions as funcsByPretty....
-   dictionary_hash <pdstring, pdvector<int_function*>*> funcsByMangled;
-   // And a way to iterate over all the functions efficiently
-   pdvector<int_function *> everyUniqueFunction;
+   dictionary_hash <pdstring, pdvector<image_func*>*> funcsByMangled;
+   // A way to iterate over all the functions efficiently
+   pdvector<image_func *> everyUniqueFunction;
+   // We make an initial list of functions based off the symbol table,
+   // and may create more when we actually analyze. Keep track of
+   // those created ones so we can distinguish them if necessary
+   pdvector<image_func *> createdFunctions;
+   // And the counterpart "ones that are there right away"
+   pdvector<image_func *> exportedFunctions;
+   pdvector<image_variable *> everyUniqueVariable;
+   pdvector<image_variable *> createdVariables;
+   pdvector<image_variable *> exportedVariables;
+
+   // And a list of heaps found in the image. Specially handled via mapped_object.
+   pdvector<Symbol> infHeapSymbols;
 
    // TODO -- get rid of one of these
    // Note : as of 971001 (mcheyney), these hash tables only 
@@ -668,8 +732,10 @@ class image : public codeRange {
    dictionary_hash <pdstring, pdmodule *> modsByFileName;
    dictionary_hash <pdstring, pdmodule*> modsByFullName;
    // Variables indexed by pretty (non-mangled) name
-   dictionary_hash <pdstring, pdvector<pdstring>*> varsByPretty;
- 
+   dictionary_hash <pdstring, pdvector <image_variable *> *> varsByPretty;
+   dictionary_hash <pdstring, pdvector <image_variable *> *> varsByMangled;
+   dictionary_hash <Address, image_variable *> varsByAddr;
+
    int refCount;
 
    imageParseState_t parseState_;
@@ -725,11 +791,6 @@ class ExceptionBlock {
 }; 
 
 
-#ifndef BPATCH_LIBRARY
-// TODO -- remove this
-extern resource *moduleRoot;
-#endif
-
 inline bool lineDict::getLineAddr (const unsigned line, Address &adr) {
    if (!lineMap.defines(line)) {
       return false;
@@ -739,6 +800,7 @@ inline bool lineDict::getLineAddr (const unsigned line, Address &adr) {
    }
 }
 
+#if 0
 inline const Word image::get_instruction(Address adr) const{
    // TODO remove assert
    // assert(isValidAddress(adr));
@@ -762,18 +824,19 @@ inline const Word image::get_instruction(Address adr) const{
       return 0;
    }
 }
+#endif
 
 // return a pointer to the instruction at address adr
-inline const unsigned char *image::getPtrToInstruction(Address adr) const {
-   assert(isValidAddress(adr));
-   if (isCode(adr)) {
-      adr -= codeOffset_;
-      const unsigned char *inst = (const unsigned char *)linkedFile.code_ptr();
-      return (&inst[adr]);
-   } else if (isData(adr)) {
-      adr -= dataOffset_;
-      const unsigned char *inst = (const unsigned char *)linkedFile.data_ptr();
-      return (&inst[adr]);
+inline void *image::getPtrToOrigInstruction(Address offset) const {
+   assert(isValidAddress(offset));
+   if (isCode(offset)) {
+      offset -= codeOffset_;
+      unsigned char *inst = (unsigned char *)linkedFile.code_ptr();
+      return (void *)(&inst[offset]);
+   } else if (isData(offset)) {
+      offset -= dataOffset_;
+      unsigned char *inst = (unsigned char *)linkedFile.data_ptr();
+      return (void *)(&inst[offset]);
    } else {
       abort();
       return 0;
@@ -784,11 +847,11 @@ inline const unsigned char *image::getPtrToInstruction(Address adr) const {
 // Address must be in code or data range since some code may end up
 // in the data segment
 inline bool image::isValidAddress(const Address &where) const{
-   return (isAligned(where) && (isCode(where) || isData(where)));
+    return (instruction::isAligned(where) && (isCode(where) || isData(where)));
 }
 
 inline bool image::isAllocedAddress(const Address &where) const{
-   return (isAligned(where) && (isAllocedCode(where) || isAllocedData(where)));
+    return (instruction::isAligned(where) && (isAllocedCode(where) || isAllocedData(where)));
 }
 
 inline bool image::isCode(const Address &where)  const{
@@ -831,31 +894,10 @@ inline bool image::symbol_info(const pdstring& symbol_name, Symbol &ret_sym) {
        return false;
     }
 
-   if (varsByPretty.defines(symbol_name)) {
-      pdvector<pdstring> *mangledNames = varsByPretty[symbol_name];
-      assert(mangledNames && mangledNames->size() == 1);
-      linkedFile.get_symbols( (*mangledNames)[0], symbols );
-      if( symbols.size() == 1 ) { ret_sym = symbols[0]; return true; }      
-   }
-
    return false;
 }
 
  
-typedef int_function *pdFuncPtr;
-
-struct pdFuncCmp
-{
-    int operator()( const pdFuncPtr &pdf1, const pdFuncPtr &pdf2 ) const
-    {
-        if( pdf1->get_address() > pdf2->get_address() )
-            return 1;
-        if( pdf1->get_address() < pdf2->get_address() )
-            return -1;
-        return 0;
-    }
-};
-
 int instPointCompare( instPoint*& ip1, instPoint*& ip2 );
 int basicBlockCompare( BPatch_basicBlock*& bb1, BPatch_basicBlock*& bb2 );
 

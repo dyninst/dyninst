@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.245 2005/06/09 16:11:42 gquinn Exp $
+ // $Id: symtab.C,v 1.246 2005/07/29 19:19:49 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,17 +59,13 @@
 #include "dyninstAPI/src/showerror.h"
 #include "common/h/debugOstream.h"
 #include "common/h/pathName.h"          // extract_pathname_tail()
-#include "dyninstAPI/src/process.h"   // process::getBaseAddress()
 #include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/func-reloc.h"
 
 #ifndef BPATCH_LIBRARY
 #include "paradynd/src/mdld.h"
 #include "paradynd/src/main.h"
 #include "paradynd/src/init.h"
 #include "common/h/Dictionary.h"
-#else
-extern pdvector<sym_data> syms_to_find;
 #endif
 
 #include "LineInformation.h"
@@ -99,12 +95,17 @@ int codeBytesSeen = 0;
 
 pdmodule *image::newModule(const pdstring &name, const Address addr, supportedLanguages lang)
 {
+
     pdmodule *ret = NULL;
     // modules can be defined several times in C++ due to templates and
     //   in-line member functions.
     if ((ret = findModule(name))) {
       return(ret);
     }
+
+    parsing_printf("=== image, creating new pdmodule %s, addr 0x%x\n",
+                   name.c_str(), addr);
+
     pdstring fileNm, fullNm;
     fullNm = name;
     fileNm = extract_pathname_tail(name);
@@ -201,7 +202,7 @@ static FILE *timeOut=0;
 //   #2 - file format (ELF, COFF)
 //   #3 - file name (a.out, libXXX.so)
 // (in order of decreasing reliability)
-int_function *image::makeOneFunction(pdvector<Symbol> &mods,
+image_func *image::makeOneFunction(pdvector<Symbol> &mods,
 				     const Symbol &lookUp) 
 {
   // find module name
@@ -219,7 +220,22 @@ int_function *image::makeOneFunction(pdvector<Symbol> &mods,
   pdmodule *use = getOrCreateModule(modName, modAddr);
   assert(use);
 
-  int_function *func = new int_function(lookUp.name(), lookUp.addr(), lookUp.size(), use);
+#if defined(arch_ia64)
+  parsing_printf("New function %s at 0x%llx\n",
+          lookUp.name().c_str(), 
+          lookUp.addr());
+#else
+  parsing_printf("New function %s at 0x%x\n",
+          lookUp.name().c_str(), 
+          lookUp.addr());
+#endif
+
+  image_func *func = new image_func(lookUp.name(), 
+                                    lookUp.addr(), 
+                                    lookUp.size(), 
+                                    use, 
+                                    this);
+
   assert(func);
 
   return func;
@@ -229,14 +245,14 @@ int_function *image::makeOneFunction(pdvector<Symbol> &mods,
 
 //Add an extra pretty name to a known function (needed for handling
 //overloaded functions in paradyn)
-void image::addTypedPrettyName( int_function *func, const char *typedName) {
-   pdvector<int_function*> *funcsByPrettyEntry = NULL;
+void image::addTypedPrettyName( image_func *func, const char *typedName) {
+   pdvector<image_func*> *funcsByPrettyEntry = NULL;
    pdstring typed(typedName);
 
    //XXX
    //   fprintf(stderr,"addTypedPrettyName %s\n",typedName);
    if (!funcsByPretty.find(typed, funcsByPrettyEntry)) {
-      funcsByPrettyEntry = new pdvector<int_function*>;
+      funcsByPrettyEntry = new pdvector<image_func*>;
       funcsByPretty[typed] = funcsByPrettyEntry;
    }
    assert(funcsByPrettyEntry);
@@ -250,12 +266,12 @@ void image::addTypedPrettyName( int_function *func, const char *typedName) {
  * the function object.  We also need to add the extra names to the
  * lookup hash tables
  */
-void image::addMultipleFunctionNames(int_function *dup)
+void image::addMultipleFunctionNames(image_func *dup)
 					
 {
   // Obtain the original function at the same address:
-  int_function *orig;
-  assert(funcsByEntryAddr.find(dup->get_address(), orig));
+  image_func *orig;
+  assert(funcsByEntryAddr.find(dup->getOffset(), orig));
 
   pdstring mangled_name = dup->symTabName();
   pdstring pretty_name = dup->prettyName();
@@ -266,9 +282,9 @@ void image::addMultipleFunctionNames(int_function *dup)
 
   /* now we add the names and the function object to the hash tables */
   //  Mangled Hash:
-  pdvector<int_function*> *funcsByMangledEntry = NULL;
+  pdvector<image_func*> *funcsByMangledEntry = NULL;
   if (!funcsByMangled.find(mangled_name, funcsByMangledEntry)) {
-    funcsByMangledEntry = new pdvector<int_function*>;
+    funcsByMangledEntry = new pdvector<image_func*>;
     funcsByMangled[mangled_name] = funcsByMangledEntry;
   }
 
@@ -279,9 +295,9 @@ void image::addMultipleFunctionNames(int_function *dup)
   //XXX
   //   fprintf(stderr,"addMultipleFunctionNames %s\n",pretty_name.c_str());
 
-  pdvector<int_function*> *funcsByPrettyEntry = NULL;
+  pdvector<image_func*> *funcsByPrettyEntry = NULL;
   if(!funcsByPretty.find(pretty_name, funcsByPrettyEntry)) {
-    funcsByPrettyEntry = new pdvector<int_function*>;
+    funcsByPrettyEntry = new pdvector<image_func*>;
     funcsByPretty[pretty_name] = funcsByPrettyEntry;
   }
     
@@ -298,7 +314,7 @@ void image::addMultipleFunctionNames(int_function *dup)
  */
 
 bool image::symbolsToFunctions(pdvector<Symbol> &mods, 
-			       pdvector<int_function *> *raw_funcs)
+			       pdvector<image_func *> *raw_funcs)
 {
 #if defined(TIMED_PARSE)
   struct timeval starttime;
@@ -342,7 +358,7 @@ bool image::symbolsToFunctions(pdvector<Symbol> &mods,
               
               return false;
           }      
-          int_function *main_pdf = makeOneFunction(mods, lookUp);
+          image_func *main_pdf = makeOneFunction(mods, lookUp);
           assert(main_pdf);
           raw_funcs->push_back(main_pdf);
       }
@@ -370,6 +386,8 @@ bool image::symbolsToFunctions(pdvector<Symbol> &mods,
     const Symbol &lookUp = symIter.currval();
     const char *np = lookUp.name().c_str();
 
+    //parsing_printf("Scanning file: symbol %s\n", lookUp.name().c_str());
+
     //    fprintf(stderr,"np %s\n",np);
 
     if (linkedFile.isEEL() && np[0] == '.')
@@ -384,7 +402,7 @@ bool image::symbolsToFunctions(pdvector<Symbol> &mods,
     //  This is now done later while building the "real" maps.
     //  We will have some duplication/aliasing while building up the raw (unclassed) map
     // but these will be weeded out later according to the same criteria.
-    int_function *placeholder;
+    image_func *placeholder;
     if (funcsByEntryAddr.find(lookUp.addr(), placeholder)) {
         // We have already seen a function at this addr. add a second name
         // for this function.
@@ -392,42 +410,50 @@ bool image::symbolsToFunctions(pdvector<Symbol> &mods,
         continue;
     }
 #endif
-    
-    if (lookUp.type() == Symbol::PDST_FUNCTION) {
-		// /* DEBUG */ fprintf( stderr, "%s[%d]: considering function symbol %s in module %s\n", __FILE__, __LINE__, lookUp.name().c_str(), lookUp.module().c_str() );
 
-        pdstring msg;
-        char tempBuffer[40];
-        if (!isValidAddress(lookUp.addr())) {
-            sprintf(tempBuffer,"0x%lx",lookUp.addr());
-            msg = pdstring("Function ") + lookUp.name() + pdstring(" has bad address ")
-            + pdstring(tempBuffer);
-            statusLine(msg.c_str());
-            showErrorCallback(29, msg);
-            return false;
-        }
-        int_function *new_func = makeOneFunction(mods, lookUp);
-        if (!new_func)
-            cerr << __FILE__ << __LINE__ << ":  makeOneFunction returned NULL!" << endl;
-        else
-            raw_funcs->push_back(new_func);
+    if (lookUp.module() == "DYNINSTheap") {
+        infHeapSymbols.push_back(lookUp);
     }
-    
-    if (lookUp.type() ==  Symbol::PDST_OBJECT) {
-        //  JAW: This is here for legacy purposes, I do not know if it still applies:
-        if (lookUp.kludge()) {
-            //logLine(P_strdup(symString.c_str()));
-            // Figure out where this happens
+    else {
+        if (lookUp.type() == Symbol::PDST_FUNCTION) {
+            // /* DEBUG */ fprintf( stderr, "%s[%d]: considering function symbol %s in module %s\n", __FILE__, __LINE__, lookUp.name().c_str(), lookUp.module().c_str() );
             
-            // now find the pseudo functions -- this gets ugly
-            // kludge has been set if the symbol could be a function
-            // WHERE DO WE USE THESE KLUDGES? WHAT PLATFORM???
+            pdstring msg;
+            char tempBuffer[40];
+            if (!isValidAddress(lookUp.addr())) {
+                if (strncmp(lookUp.name().c_str(), "DYNINSTstaticHeap", strlen("DYNINSTstaticHeap"))) {
+                    sprintf(tempBuffer,"0x%lx",lookUp.addr());
+                    msg = pdstring("Function ") + lookUp.name() + pdstring(" has bad address ")
+                        + pdstring(tempBuffer);
+                    statusLine(msg.c_str());
+                    showErrorCallback(29, msg);
+                    return false;
+                }
+            }
             
-            cerr << "Found <KLUDGE> function " << lookUp.name().c_str() 
-                 << ".  All <KLUDGE>  functions currently ignored!  see " 
-                 << __FILE__ << __LINE__ << endl;
-            //kludge_symbols.push_back(lookUp);
-            
+            image_func *new_func = makeOneFunction(mods, lookUp);
+            if (!new_func)
+                cerr << __FILE__ << __LINE__ << ":  makeOneFunction returned NULL!" << endl;
+            else
+                raw_funcs->push_back(new_func);
+        }
+        
+        if (lookUp.type() ==  Symbol::PDST_OBJECT) {
+            //  JAW: This is here for legacy purposes, I do not know if it still applies:
+            if (lookUp.kludge()) {
+                //logLine(P_strdup(symString.c_str()));
+                // Figure out where this happens
+                
+                // now find the pseudo functions -- this gets ugly
+                // kludge has been set if the symbol could be a function
+                // WHERE DO WE USE THESE KLUDGES? WHAT PLATFORM???
+                
+                cerr << "Found <KLUDGE> function " << lookUp.name().c_str() 
+                     << ".  All <KLUDGE>  functions currently ignored!  see " 
+                     << __FILE__ << __LINE__ << endl;
+                //kludge_symbols.push_back(lookUp);
+                
+            }
         }
     }
   }
@@ -454,15 +480,16 @@ bool image::symbolsToFunctions(pdvector<Symbol> &mods,
   return true;
 }
 
-bool image::addAllVariables()
+bool image::addDiscoveredVariables() {
+    // Hrm... we could identify globals via address analysis...
+    return true;
+}
+
+bool image::addSymtabVariables()
 {
    /* Eventually we'll have to do this on all platforms (because we'll retrieve
     * the type information here).
     */
-#if defined(i386_unknown_nt4_0) \
- || defined(mips_unknown_ce2_11) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
    
 #if defined(TIMED_PARSE)
    struct timeval starttime;
@@ -475,25 +502,71 @@ bool image::addAllVariables()
    for(SymbolIter symIter(linkedFile); symIter; symIter++) {
       const pdstring &mangledName = symIter.currkey();
       const Symbol &symInfo = symIter.currval();
-      
+      if (strlen(symInfo.module().c_str()) == 0) {
+          continue;
+      }
+#if 0
+      fprintf(stderr, "Symbol %s, mod %s, addr 0x%x, type %d, linkage %d\n",
+              symInfo.name().c_str(),
+              symInfo.module().c_str(),
+              symInfo.addr(),
+              symInfo.type(),
+              symInfo.linkage());
+#endif
       if (symInfo.type() == Symbol::PDST_OBJECT) {
-         char * unmangledName =
-            P_cplus_demangle( mangledName.c_str(), nativeCompiler );
-         
-         if( unmangledName == NULL ) {
-            unmangledName = strdup( mangledName.c_str() );
-            assert( unmangledName != NULL );
-         }
+          image_variable *var;
+          bool addToMangled = false;
+          bool addToPretty = false;
+          if (varsByAddr.defines(symInfo.addr())) {
+              var = varsByAddr[symInfo.addr()];
+              addToMangled = var->addSymTabName(mangledName);
+          }
+          else {
+              parsing_printf("New variable, mangled %s, module %s...\n",
+                             mangledName.c_str(),
+                             symInfo.module().c_str());
+              pdmodule *use = getOrCreateModule(symInfo.module(),
+                                                symInfo.addr());
+              assert(use);
+              var = new image_variable(symInfo.addr(),
+                                                       mangledName,
+                                                       use);
+              addToMangled = true;
+              exportedVariables.push_back(var);
+          }
 
-         if (varsByPretty.defines(unmangledName)) {
-            (*(varsByPretty[unmangledName])).push_back(pdstring(mangledName));
-         } else {
-            pdvector<pdstring> *varEntry = new pdvector<pdstring>;
-            (*varEntry).push_back(pdstring(mangledName));
-            varsByPretty[unmangledName] = varEntry;
-         }
+          char * unmangledName =
+              P_cplus_demangle( mangledName.c_str(), nativeCompiler );
 
-         free( unmangledName );
+          if (unmangledName) {
+              pdstring prettyName(unmangledName);
+              addToPretty = var->addPrettyName(prettyName);
+          }
+
+          pdvector<image_variable *> *varEntries;
+          if (addToPretty) {
+              if (varsByPretty.defines(unmangledName)) {
+                  varEntries = varsByPretty[unmangledName];
+              }
+              else {
+                  varEntries = new pdvector<image_variable *>;
+                  varsByPretty[unmangledName] = varEntries;
+              }
+              (*varEntries).push_back(var);
+          }
+
+          if (addToMangled) {
+              if (varsByMangled.defines(mangledName)) {
+                  varEntries = varsByMangled[mangledName];
+              }
+              else {
+                  varEntries = new pdvector<image_variable *>;
+                  varsByMangled[mangledName] = varEntries;
+              }
+              (*varEntries).push_back(var);
+          }
+          
+          free( unmangledName );
       }
    }
 
@@ -504,10 +577,9 @@ bool image::addAllVariables()
    unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
    unsigned long difftime = lendtime - lstarttime;
    double dursecs = difftime/(1000 );
-   cout << __FILE__ << ":" << __LINE__ <<": addAllVariables took "<<dursecs <<" msecs" << endl;
+   cout << __FILE__ << ":" << __LINE__ <<": addSymtabVariables took "<<dursecs <<" msecs" << endl;
 #endif
 
-#endif
    return true;
 }
 
@@ -515,6 +587,7 @@ bool image::addAllVariables()
  * will search for symbol NAME or _NAME
  * returns false on failure 
  */
+#if 0
 bool image::findInternalSymbol(const pdstring &name, 
 			       const bool warn, 
 			       internalSym &ret_sym)
@@ -546,30 +619,8 @@ bool image::findInternalSymbol(const pdstring &name,
    }
    return false;
 }
+#endif
 
-bool image::findInternalByPrefix(const pdstring &prefix, 
-				 pdvector<Symbol> &found) const
-{
-  bool flag = false;
-  /*
-    Go through all defined symbols and return those which
-    match the prefix given 
-  */
-  for(SymbolIter symIter(linkedFile); symIter;symIter++) {
-    const Symbol &lookUp = symIter.currval();
-    if (!strncmp(prefix.c_str(), lookUp.name().c_str(),
-		 strlen(prefix.c_str())))
-      {
-	found.push_back(lookUp);
-	flag = true;
-      }
-  }
-  //if (!flag) {
-  //  cerr << __FILE__ << __LINE__ << ":  findInternalByPrefix("<<prefix
-  //	 <<") failed, num symbols: " << linkedFile.nsymbols() << endl;
-  //}
-  return flag;
-}
 pdmodule *image::findModule(const pdstring &name, bool substring_match)
 {
   pdmodule *found = NULL;
@@ -604,8 +655,8 @@ pdmodule *image::findModule(const pdstring &name, bool substring_match)
   //cerr << " (image::findModule) did not find module, returning NULL" << endl;
   if (found) {
     // Just-in-time...
-    if (parseState_ == symtab)
-      analyzeImage();
+      //if (parseState_ == symtab)
+      //analyzeImage();
     return found;
   }
 
@@ -618,7 +669,7 @@ pdmodule *image::findModule(const pdstring &name, bool substring_match)
  */
 bool image::symbolExists(const pdstring &symname)
 {
-  pdvector<int_function *> *pdfv;
+  pdvector<image_func *> *pdfv;
   if (NULL != (pdfv = findFuncVectorByPretty(symname)) && pdfv->size())
     return true;
 
@@ -640,9 +691,9 @@ void image::postProcess(const pdstring pifname)
 
   /* What file to open? */
   if (!(pifname == (char*)NULL)) {
-    fname = pifname;
+      fname = pifname;
   } else {
-    fname = desc_->file() + ".pif";
+      fname = desc_.file() + ".pif";
   }
 
   /* Open the file */
@@ -720,6 +771,37 @@ void image::defineModules(process *proc) {
 #endif
 }
 
+#ifndef BPATCH_LIBRARY
+void dfsCreateLoopResources(BPatch_loopTreeNode *n, resource *res,
+                            image_func *pdf)
+{
+    resource *r = res;
+
+    if (n->loop != NULL) {
+        r = resource::newResource(res, pdf,
+                                  nullString, // abstraction
+                                  pdstring(n->name()),
+                                  timeStamp::ts1970(),
+                                  nullString, // uniquifier
+                                  LoopResourceType,
+                                  MDL_T_LOOP,
+                                  false );
+    }
+
+    for (unsigned i = 0; i < n->children.size(); i++) {
+        // loop resource objects are nested under their parent function rather
+        // than each other. using r instead of res would cause the resource
+        // hierarchy to have loops nested under each other.
+        // dfsCreateLoopResources(n->children[i], r, pdf);
+        dfsCreateLoopResources(n->children[i], res, pdf);
+    }
+}
+#endif
+
+#ifndef BPATCH_LIBRARY
+extern bool should_report_loops;
+#endif
+
 //  Comments on what this does would be nice....
 //  Appears to run over a pdmodule, after all code in it has been processed
 //   and parsed into functions, and define a resource for the module + a 
@@ -738,18 +820,19 @@ void pdmodule::define(process *proc) {
 #ifndef BPATCH_LIBRARY
    for(unsigned i = 0; i < allUniqueFunctions.size(); i++) 
    {
-      int_function * pdf = allUniqueFunctions[i]; 
+      image_func * pdf = allUniqueFunctions[i]; 
 
       if (!pdf->isInstrumentable() ||
-          (pdf->getSize(proc) == 0))
-         continue;
+          (pdf->getSize() == 0))
+          continue;
       // ignore line numbers for now 
       
       //check if the function is overloaded, and store types with the name
       //in the case that it is.  This way, we can differentiate
       //between overloaded functions in the paradyn front-end.
       bool useTyped = false;
-      pdvector<int_function *> *pdfv = 
+
+      pdvector<image_func *> *pdfv =
          allFunctionsByPrettyName[pdf->prettyName()];
       char * prettyWithTypes = NULL;
       
@@ -783,10 +866,36 @@ bool image::hasSymbolAtPoint(Address point) const
     return knownSymAddrs.defines(point);
 }
 
-const pdvector<int_function*> &image::getAllFunctions() 
+const pdvector<image_func*> &image::getAllFunctions() 
 {
   analyzeIfNeeded();
   return everyUniqueFunction;
+}
+
+const pdvector<image_variable*> &image::getAllVariables()
+{
+    analyzeIfNeeded();
+    return everyUniqueVariable;
+}
+
+const pdvector<image_func*> &image::getExportedFunctions() const { return exportedFunctions; }
+
+const pdvector<image_func*> &image::getCreatedFunctions()
+{
+  analyzeIfNeeded();
+  return createdFunctions;
+}
+
+const pdvector<image_variable*> &image::getExportedVariables() const { return exportedVariables; }
+
+const pdvector<image_variable*> &image::getCreatedVariables()
+{
+  analyzeIfNeeded();
+  return createdVariables;
+}
+
+const pdvector<Symbol> image::getHeaps() const {
+    return infHeapSymbols;
 }
 
 const pdvector <pdmodule*> &image::getModules() 
@@ -868,7 +977,7 @@ static bool cache_func_constraint_hash() {
 // Return boolean value indicating whether function is found to
 //  be excluded via "exclude module_name/function_name" (but NOT
 //  via "exclude module_name").
-bool function_is_excluded(int_function *func, pdstring module_name) {
+bool function_is_excluded(image_func *func, pdstring module_name) {
     static bool func_constraint_hash_loaded = FALSE;
 
     pdstring function_name = func->prettyName();
@@ -919,8 +1028,8 @@ bool module_is_excluded(pdmodule *module) {
 //  removing any matches, as opposed to doing to checking 
 //  while adding to some_funcs....
 
-bool filter_excluded_functions(pdvector<int_function*> all_funcs,
-    pdvector<int_function*>& some_funcs, pdstring module_name) {
+bool filter_excluded_functions(pdvector<image_func*> all_funcs,
+    pdvector<image_func*>& some_funcs, pdstring module_name) {
     unsigned i;
 
     pdstring full_name;
@@ -1003,7 +1112,7 @@ unsigned int int_addrHash(const Address& addr) {
  *    physical offset. 
  */
 
-image *image::parseImage(fileDescriptor *desc, Address newBaseAddr)
+image *image::parseImage(fileDescriptor &desc)
 {
   /*
    * Check to see if we have parsed this image at this offset before.
@@ -1016,7 +1125,7 @@ image *image::parseImage(fileDescriptor *desc, Address newBaseAddr)
   // about it. If so, yank the old one out of the images vector -- replace
   // it, basically.
   for (unsigned u=0; u<numImages; u++)
-     if ((*desc) == *(allImages[u]->desc())) {
+     if (desc == allImages[u]->desc()) {
        // We reference count...
        return allImages[u]->clone();
      }
@@ -1024,7 +1133,7 @@ image *image::parseImage(fileDescriptor *desc, Address newBaseAddr)
    * load the symbol table. (This is the a.out format specific routine).
    */
 
-  if(desc->isSharedObject()) 
+  if(desc.isSharedObject()) 
     statusLine("Processing a shared object file");
   else  
     statusLine("Processing an executable file");
@@ -1033,7 +1142,7 @@ image *image::parseImage(fileDescriptor *desc, Address newBaseAddr)
 
   
   // TODO -- kill process here
-  image *ret = new image(desc, err, newBaseAddr); 
+  image *ret = new image(desc, err); 
 
   if (err || !ret) {
      if (ret) {
@@ -1042,25 +1151,7 @@ image *image::parseImage(fileDescriptor *desc, Address newBaseAddr)
      return NULL;
   }
 
-  bool beenReplaced = false;
-
-#ifdef rs6000_ibm_aix4_1 
-  // On AIX, we might have a "stub" image instead of the
-  // actual image we want. So we check to see if we do,
-  // and if so copy over the list. In normal practice,
-  // the stub will be the last entry (as it has been
-  // most recently parsed)
-  for (unsigned i=0; i<numImages; i++)
-    if (allImages[i]->desc()->addr() == (unsigned) -1) {
-      image *imageTemp = allImages[i];
-      allImages[i]=ret;
-      beenReplaced = true;
-      delete imageTemp;
-  }
-  // Add to master image list.
-#endif
-  if (beenReplaced == false) // short-circuit on non-AIX
-    image::allImages.push_back(ret);
+  image::allImages.push_back(ret);
 
   // define all modules.
 #ifndef BPATCH_LIBRARY
@@ -1119,7 +1210,7 @@ void image::removeImage(const pdstring file)
   if (img) image::removeImage(img);
 }
 
-void image::removeImage(fileDescriptor *desc)
+void image::removeImage(fileDescriptor &desc)
 {
   image *img = NULL;
   for (unsigned i = 0; i < allImages.size(); i++) {
@@ -1129,17 +1220,6 @@ void image::removeImage(fileDescriptor *desc)
   }
   if (img) image::removeImage(img);
 }
-
-void image::cleanProcessSpecific(process *p) {
-  // For each module and function, blow away process-specific data.
-  // Includes:
-  // Relocation information
-  
-  for (unsigned i = 0; i < _mods.size(); i++) {
-    _mods[i]->cleanProcessSpecific(p);
-  }
-}
-
 
 //  a helper routine that selects a language based on information from the symtab
 supportedLanguages pickLanguage(pdstring &working_module, char *working_options, 
@@ -1563,34 +1643,31 @@ void image::setModuleLanguages(dictionary_hash<pdstring, supportedLanguages> *mo
 #endif
 }
 
-int addrfunccmp( int_function*& pdf1, int_function*& pdf2 )
+int addrfunccmp( image_func*& pdf1, image_func*& pdf2 )
 {
-    if( pdf1->get_address() > pdf2->get_address() )
+    if( pdf1->getOffset() > pdf2->getOffset() )
         return 1;
-    if( pdf1->get_address() < pdf2->get_address() )
+    if( pdf1->getOffset() < pdf2->getOffset() )
         return -1;
     return 0;
 }
 
-bool image::parseFunction(int_function* pdf, pdvector< Address >& callTargets)
+bool image::parseFunction(image_func* pdf, pdvector< Address >& callTargets)
 {
-  // callTargets: targets of this function (to help identify new functions
-#if defined(cap_stripped_binaries)
-  return pdf->findInstPoints( callTargets, this);
-#else
-  return pdf->findInstPoints( this );
-#endif
+    // callTargets: targets of this function (to help identify new functions
+    // May be returned unmodified
+    return pdf->findInstPoints( callTargets);
 }
 
 void image::parseStaticCallTargets( pdvector< Address >& callTargets,
-                                    pdvector< int_function* > &raw_funcs,
+                                    pdvector< image_func* > &raw_funcs,
                                     pdmodule* mod )
 {
 
   // TODO: I don't think "mod" is the right thing here; should
   // do a lookup by address
     char name[20] = "f";
-    int_function* pdf;
+    image_func* pdf;
 
     for( unsigned j = 0; j < callTargets.size(); j++ )
     {
@@ -1605,12 +1682,14 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
         //best to avoid them. to distinguish between these screwy functions
         //and the unparsed ones that we make up we use UINT_MAX for the sizes 
         //of the unparsed functions
-        pdf = new int_function( name, callTargets[ j ], UINT_MAX, mod);
+        pdf = new image_func( name, callTargets[ j ], UINT_MAX, mod, this);
         pdf->addPrettyName( name );
         
         //we no longer keep separate lists for instrumentable and 
         //uninstrumentable
         parseFunction( pdf, callTargets );  
+	everyUniqueFunction.push_back(pdf);
+	createdFunctions.push_back(pdf);
         enterFunctionInTables( pdf, mod );
         raw_funcs.push_back( pdf );
     }
@@ -1618,15 +1697,12 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
 
 
 // Enter a function in all the appropriate tables
-void image::enterFunctionInTables(int_function *func, pdmodule *mod) {
+void image::enterFunctionInTables(image_func *func, pdmodule *mod) {
   if (!func) return;
 
   funcsByEntryAddr[func->getOffset()] = func;
 
-  // Address tree is straightforward: one func per address
-  Address addrcopy = func->getOffset();
-
-  funcsByRange.insert(addrcopy, func);
+  funcsByRange.insert(func);
   
   // Possibly multiple demangled (pretty) names...
   // And multiple functions (different addr) with the same pretty
@@ -1635,14 +1711,15 @@ void image::enterFunctionInTables(int_function *func, pdmodule *mod) {
        pretty_iter < func->prettyNameVector().size();
        pretty_iter++) {
     pdstring pretty_name = func->prettyNameVector()[pretty_iter];
-    pdvector<int_function *> *funcsByPrettyEntry = NULL;
+    pdvector<image_func *> *funcsByPrettyEntry = NULL;
     
     // Ensure a vector exists
     if (!funcsByPretty.find(pretty_name,			      
 			    funcsByPrettyEntry)) {
-      funcsByPrettyEntry = new pdvector<int_function*>;
+      funcsByPrettyEntry = new pdvector<image_func*>;
       funcsByPretty[pretty_name] = funcsByPrettyEntry;
     }
+
     (*funcsByPrettyEntry).push_back(func);
   }
   
@@ -1651,14 +1728,15 @@ void image::enterFunctionInTables(int_function *func, pdmodule *mod) {
        symtab_iter < func->symTabNameVector().size();
        symtab_iter++) {
     pdstring symtab_name = func->symTabNameVector()[symtab_iter];
-    pdvector<int_function *> *funcsBySymTabEntry = NULL;
+    pdvector<image_func *> *funcsBySymTabEntry = NULL;
     
     // Ensure a vector exists
     if (!funcsByMangled.find(symtab_name,			      
 			    funcsBySymTabEntry)) {
-      funcsBySymTabEntry = new pdvector<int_function*>;
+      funcsBySymTabEntry = new pdvector<image_func*>;
       funcsByMangled[symtab_name] = funcsBySymTabEntry;
     }
+
     (*funcsBySymTabEntry).push_back(func);
   }
 
@@ -1667,16 +1745,16 @@ void image::enterFunctionInTables(int_function *func, pdmodule *mod) {
   
 }  
 
-//buildFunctionLists() iterates through int_functions and constructs demangled 
-//names. Demangling was moved here (names used to be demangled as int_functions 
+//buildFunctionLists() iterates through image_funcs and constructs demangled 
+//names. Demangling was moved here (names used to be demangled as image_funcs 
 //were built) so that language information could be obtained _after_ the 
 //functions and modules were built, but before name demangling takes place.  
 //Thus we can use language information during the demangling process.
 
-bool image::buildFunctionLists(pdvector <int_function *> &raw_funcs) 
+bool image::buildFunctionLists(pdvector <image_func *> &raw_funcs) 
 {
   for (unsigned int i = 0; i < raw_funcs.size(); i++) {
-    int_function *raw = raw_funcs[i];
+    image_func *raw = raw_funcs[i];
     pdmodule *rawmod = raw->pdmod();
 
     assert(raw);
@@ -1708,8 +1786,8 @@ bool image::buildFunctionLists(pdvector <int_function *> &raw_funcs)
     
     // Now, we see if there's already a function object for this
     // address. If so, add a new name; 
-    int_function *possiblyExistingFunction = NULL;
-    funcsByEntryAddr.find(raw->get_address(), possiblyExistingFunction);
+    image_func *possiblyExistingFunction = NULL;
+    funcsByEntryAddr.find(raw->getOffset(), possiblyExistingFunction);
     if (possiblyExistingFunction) {
         // On some platforms we see two symbols, one in a real module
         // and one in DEFAULT_MODULE. Replace DEFAULT_MODULE with
@@ -1740,12 +1818,13 @@ bool image::buildFunctionLists(pdvector <int_function *> &raw_funcs)
   // names, loop through once more and build the address range tree
   // and name lookup tables. 
   for (unsigned j = 0; j < raw_funcs.size(); j++) {
-    int_function *func = raw_funcs[j];
+    image_func *func = raw_funcs[j];
     if (!func) continue;
 
     pdmodule *mod = func->pdmod();
     // May be NULL if it was an alias.
     everyUniqueFunction.push_back(func);
+    exportedFunctions.push_back(func);
     enterFunctionInTables(func, mod);
   }
 
@@ -1755,13 +1834,13 @@ bool image::buildFunctionLists(pdvector <int_function *> &raw_funcs)
 
 void image::analyzeIfNeeded() {
   if (parseState_ == symtab) {
-    analyzeImage();
-    addAllVariables();
+      analyzeImage();
+      addDiscoveredVariables();
   }
 }
 
-//analyzeImage() iterates through int_functions and constructs demangled 
-//names. Demangling was moved here (names used to be demangled as int_functions 
+//analyzeImage() iterates through image_funcs and constructs demangled 
+//names. Demangling was moved here (names used to be demangled as image_funcs 
 //were built) so that language information could be obtained _after_ the 
 //functions and modules were built, but before name demangling takes place.  
 //Thus we can use language information during the demangling process.
@@ -1778,7 +1857,7 @@ bool image::analyzeImage()
   
  // Hold unseen call targets
   pdvector< Address > callTargets;
-  int_function *pdf;
+  image_func *pdf;
   pdmodule *mod = NULL;
 
   assert(parseState_ < analyzed);
@@ -1790,7 +1869,7 @@ bool image::analyzeImage()
     return true;
   }
   
-  pdvector<int_function *> new_functions;  
+  pdvector<image_func *> new_functions;  
 
   for (unsigned i = 0; i < everyUniqueFunction.size(); i++) {
     
@@ -1812,15 +1891,10 @@ bool image::analyzeImage()
   // We start over until things converge; hence the goto target
  top:
   new_functions.clear();
+  // Also adds to lists
   parseStaticCallTargets( callTargets, new_functions, mod );
   // Any new call destinations show up in new_functions
   callTargets.clear(); 
-  // Add all new functions to the big list
-  
-  for (unsigned j = 0; j < new_functions.size(); j++) 
-  {
-      everyUniqueFunction.push_back(new_functions[j]);
-  }
    
   // nothing to do, exit
   if( everyUniqueFunction.size() <= 0 )
@@ -1831,18 +1905,18 @@ bool image::analyzeImage()
   VECTOR_SORT(everyUniqueFunction, addrfunccmp);
   
   Address lastPos;
-  lastPos = everyUniqueFunction[0]->get_address() + 
-      everyUniqueFunction[0]->get_size();
+  lastPos = everyUniqueFunction[0]->getOffset() + 
+      everyUniqueFunction[0]->getSize();
   
   unsigned int rawFuncSize = everyUniqueFunction.size();
   
   for( ; p + 1 < rawFuncSize; p++ )
   {
-      int_function* func1 = everyUniqueFunction[p];
-      int_function* func2 = everyUniqueFunction[p + 1];
+      image_func* func1 = everyUniqueFunction[p];
+      image_func* func2 = everyUniqueFunction[p + 1];
       
-      Address gapStart = func1->get_address() + func1->get_size();
-      Address gapEnd = func2->get_address();
+      Address gapStart = func1->getOffset() + func1->getSize();
+      Address gapEnd = func2->getOffset();
       Address gap = gapEnd - gapStart;
       
       //gap should be big enough to accomodate a function prologue
@@ -1852,19 +1926,20 @@ bool image::analyzeImage()
           while( pos < gapEnd && isCode( pos ) )
           {
               const unsigned char* instPtr;
-              instPtr = this->getPtrToInstruction( pos );
+              instPtr = (const unsigned char *)getPtrToOrigInstruction( pos );
               
               instruction insn;
-              insn.getNextInstruction( instPtr );
+              insn.setInstruction( instPtr );
               if( isFunctionPrologue(insn) && !funcsByEntryAddr.defines(pos))
               {
                   char name[20];
                   numIndir++;
                   sprintf( name, "f%lx", pos );
-                  pdf = new int_function( name, pos, UINT_MAX, mod );
+                  pdf = new image_func( name, pos, UINT_MAX, mod, this);
                   pdf->addPrettyName( name );
                   
                   everyUniqueFunction.push_back(pdf);
+		  createdFunctions.push_back(pdf);
                   enterFunctionInTables(pdf, pdf->pdmod());
                   parseFunction( pdf, callTargets);
                   
@@ -1872,7 +1947,7 @@ bool image::analyzeImage()
                   {
                       for( unsigned r = 0; r < callTargets.size(); r++ )
                       {
-                          if( callTargets[r] < func1->get_address() )
+                          if( callTargets[r] < func1->getOffset() )
                               p++;
                       }
                       goto top; //goto is the devil's construct. repent!! 
@@ -1890,34 +1965,39 @@ bool image::analyzeImage()
   VECTOR_SORT( everyUniqueFunction, addrfunccmp );
   for( unsigned int k = 0; k + 1 < everyUniqueFunction.size(); k++ )
     {
-      int_function* func1 = everyUniqueFunction[ k ];
-      int_function* func2 = everyUniqueFunction[ k + 1 ];
+      image_func* func1 = everyUniqueFunction[ k ];
+      image_func* func2 = everyUniqueFunction[ k + 1 ];
       
-      if( func1->get_address() == 0 ) 
+      if( func1->getOffset() == 0 ) 
           continue;
 
-      assert( func1->get_address() != func2->get_address() );
+      assert( func1->getOffset() != func2->getOffset() );
       
       //look for overlapping functions
 #if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
-      if ((func2->get_address() < func1->get_address() + func1->get_size()) &&
+      if ((func2->getOffset() < func1->getOffset() + func1->getSize()) &&
 	  (strstr(func2->prettyName().c_str(), "nocancel") ||
 	   strstr(func2->prettyName().c_str(), "_L_mutex_lock")))
 	
 	{ 
-	  func1->markAsNeedingRelocation(true);
+            func1->markAsNeedingRelocation(true);
 	}
       else
 #endif
-        if( func2->get_address() < func1->get_address() + func1->get_size() )
+          if( func2->getOffset() < func1->getOffset() + func1->getSize() )
 	  {
             //use the start address of the second function as the upper bound
             //on the end address of the first
-            Address addr = func2->get_address();
-            func1->updateFunctionEnd( addr, this );
+            Address addr = func2->getOffset();
+            func1->updateFunctionEnd(addr);
 	  }
     }    
 #endif
+
+  // And bind all intra-module call points
+  for (unsigned b_iter = 0; b_iter < everyUniqueFunction.size(); b_iter++) {
+      everyUniqueFunction[b_iter]->checkCallPoints();
+  }
   
   parseState_ = analyzed;
   return true;
@@ -1933,14 +2013,14 @@ bool image::analyzeImage()
 //        Both text and data sections have a relocation address
 
 
-image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
+image::image(fileDescriptor &desc, bool &err)
    : 
    desc_(desc),
    is_libdyninstRT(false),
    is_a_out(false),
    main_call_addr_(0),
    nativeCompiler(false),    
-   linkedFile(desc, newBaseAddr,pd_log_perror),//ccw jun 2002
+   linkedFile(desc,pd_log_perror),//ccw jun 2002
    knownJumpTargets(int_addrHash, 8192),
    _mods(0),
    knownSymAddrs(addrHash4),
@@ -1950,14 +2030,16 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
    modsByFileName(pdstring::hash),
    modsByFullName(pdstring::hash),
    varsByPretty(pdstring::hash),
+   varsByMangled(pdstring::hash),
+   varsByAddr(addrHash4),
    refCount(1),
    parseState_(unparsed)
 {
    err = false;
-   name_ = extract_pathname_tail(desc->file());
+   name_ = extract_pathname_tail(desc.file());
 
    //   fprintf(stderr,"img name %s\n",name_.c_str());
-   pathname_ = desc->file();
+   pathname_ = desc.file();
 
    // on some platforms (e.g. Windows) we try to parse
    // the image too soon, before we have a process we can
@@ -1974,6 +2056,7 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
    
    codeOffset_ = linkedFile.code_off();
    dataOffset_ = linkedFile.data_off();
+   
 #if defined(arch_power)
    // The image class expects these to be shifted right by 2... anyone 
    // have _any_ clue why???
@@ -1991,7 +2074,7 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
    // if unable to parse object file (somehow??), try to
    //  notify luser/calling process + return....    
    if (!codeLen_ || !linkedFile.code_ptr()) {
-      pdstring msg = pdstring("Parsing problem with executable file: ") + desc->file();
+      pdstring msg = pdstring("Parsing problem with executable file: ") + desc.file();
       statusLine(msg.c_str());
       msg += "\n";
       logLine(msg.c_str());
@@ -2012,7 +2095,7 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
 
    pdstring msg;
    // give luser some feedback....
-   msg = pdstring("Parsing object file: ") + desc->file();
+   msg = pdstring("Parsing object file: ") + desc.file();
    
    statusLine(msg.c_str());
 
@@ -2096,7 +2179,7 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
    statusLine("winnowing functions");
   
    // a vector to hold all created functions until they are properly classified
-   pdvector<int_function *> raw_funcs; 
+   pdvector<image_func *> raw_funcs; 
 
    // define all of the functions, this also defines all of the modules
    if (!symbolsToFunctions(uniq, &raw_funcs)) {
@@ -2126,8 +2209,12 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
      err = true;
      return;
    }
-   parseState_ = symtab;
 
+   // And symtab variables
+   addSymtabVariables();
+
+   parseState_ = symtab;
+   
    // We now go through each function to identify and build lists
    // of instrumentation points (entry, exit, and call site). For
    // platforms that support stripped binary parsing, this pass
@@ -2138,7 +2225,6 @@ image::image(fileDescriptor *desc, bool &err, Address newBaseAddr)
        err = true;
        return;
      }
-     addAllVariables();
    }
    
 #ifdef CHECK_ALL_CALL_POINTS
@@ -2154,44 +2240,12 @@ image::~image()
   // Only called if we fail to create a process.
 }
 
-
-void pdmodule::updateForFork(process *childProcess, 
-			     const process *parentProcess) {
-  /* Mangled names are unique, so we don't have to nest our loops. */
-  for (unsigned i = 0; i < allUniqueFunctions.size(); i++) {
-    allUniqueFunctions[i]->updateForFork(childProcess, parentProcess);
-  }
-}
-
-#ifdef CHECK_ALL_CALL_POINTS
-void pdmodule::checkAllCallPoints() {
-#if defined(TIMED_PASE)
-  struct timeval starttime;
-  gettimeofday(&starttime, NULL);
-#endif
-
-  for (unsigned i = 0; i < allUniqueFunctions.size(); i++) {
-    allUniqueFunctions[i]->checkCallPoints();
-  }
-
-#if defined(TIMED_PARSE)
-  struct timeval endtime;
-  gettimeofday(&endtime, NULL);
-  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
-  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
-  unsigned long difftime = lendtime - lstarttime;
-  double dursecs = difftime/(1000 );
-  cout << __FILE__ << ":" << __LINE__ <<": checkAllCallPoints took "<<dursecs <<" msecs" << endl;
-#endif
-}
-#endif
-
-pdvector<int_function *> *
-pdmodule::findFunction( const pdstring &name, pdvector<int_function *> * found ) {
+pdvector<image_func *> *
+pdmodule::findFunction( const pdstring &name, pdvector<image_func *> * found ) {
   assert( found != NULL );
   
   if( allFunctionsByPrettyName.defines( name ) ) {
-    pdvector< int_function * > * prettilyNamedFunctions =
+    pdvector< image_func * > * prettilyNamedFunctions =
       allFunctionsByPrettyName.get( name );
     for( unsigned int i = 0; i < prettilyNamedFunctions->size(); i++ ) {
       found->push_back( (*prettilyNamedFunctions)[i] );
@@ -2201,7 +2255,7 @@ pdmodule::findFunction( const pdstring &name, pdvector<int_function *> * found )
   }
   
   if( allFunctionsByMangledName.defines( name ) ) {
-    pdvector< int_function *> * mangledNameFunctions = 
+    pdvector< image_func *> * mangledNameFunctions = 
       allFunctionsByMangledName.get(name);
     for (unsigned int j = 0; j < mangledNameFunctions->size(); j++) {
       found->push_back( (*mangledNameFunctions)[j]); 
@@ -2217,10 +2271,10 @@ pdmodule::findFunction( const pdstring &name, pdvector<int_function *> * found )
  && !defined(mips_unknown_ce2_11)
 
 /* private refactoring functions */
-typedef pdpair< pdstring, int_function * > nameFunctionPair;
-typedef pdpair< pdstring, pdvector< int_function * > * > nameFunctionListPair;
+typedef pdpair< pdstring, image_func * > nameFunctionPair;
+typedef pdpair< pdstring, pdvector< image_func * > * > nameFunctionListPair;
 
-void runCompiledRegexOn( regex_t * compiledRegex, pdvector< nameFunctionPair > * nameToFunctionMap, pdvector< int_function * > * found ) {
+void runCompiledRegexOn( regex_t * compiledRegex, pdvector< nameFunctionPair > * nameToFunctionMap, pdvector< image_func * > * found ) {
 	int status = 0;
 	for( unsigned int i = 0; i < nameToFunctionMap->size(); i++ ) {
 		const char * name = (*nameToFunctionMap)[i].first.c_str();
@@ -2237,7 +2291,7 @@ void runCompiledRegexOn( regex_t * compiledRegex, pdvector< nameFunctionPair > *
 		}
 	} /* end runCompiledRegexOn() */
 
-void runCompiledRegexOnList( regex_t * compiledRegex, pdvector< nameFunctionListPair > * nameToFunctionListMap, pdvector< int_function * > * found ) {
+void runCompiledRegexOnList( regex_t * compiledRegex, pdvector< nameFunctionListPair > * nameToFunctionListMap, pdvector< image_func * > * found ) {
 	int status = 0;
 	for( unsigned int i = 0; i < nameToFunctionListMap->size(); i++ ) {
 		const char * name = (*nameToFunctionListMap)[i].first.c_str();
@@ -2250,7 +2304,7 @@ void runCompiledRegexOnList( regex_t * compiledRegex, pdvector< nameFunctionList
 			return;
 			}
 
-		pdvector< int_function * > * matchingFunctions = (*nameToFunctionListMap)[i].second;
+		pdvector< image_func * > * matchingFunctions = (*nameToFunctionListMap)[i].second;
 		for( unsigned int j = 0; j < matchingFunctions->size(); j++ ) {
 			found->push_back( (*matchingFunctions)[j] );
 			}
@@ -2258,9 +2312,9 @@ void runCompiledRegexOnList( regex_t * compiledRegex, pdvector< nameFunctionList
 	} /* end runCompiledRegexOnList() */
 #endif
 
-pdvector<int_function *> *
+pdvector<image_func *> *
 pdmodule::findFunctionFromAll(const pdstring &name,
-			      pdvector<int_function *> *found, 
+			      pdvector<image_func *> *found, 
 			      bool regex_case_sensitive,
                bool dont_use_regex) 
 {	    
@@ -2325,7 +2379,7 @@ pdmodule::findFunctionFromAll(const pdstring &name,
   return NULL;
 } /* end findFunctionFromAll() */
 
-pdvector<int_function *> *pdmodule::findFunctionByMangled( const pdstring &name )
+pdvector<image_func *> *pdmodule::findFunctionByMangled( const pdstring &name )
 {
   /* By inference from the previous version, we're not interested
      in the uninstrumentable functions. */
@@ -2338,23 +2392,18 @@ pdvector<int_function *> *pdmodule::findFunctionByMangled( const pdstring &name 
   }
 }
 
-void pdmodule::dumpMangled(char * prefix) 
+void pdmodule::dumpMangled(pdstring &prefix) const
 {
   cerr << fileName() << "::dumpMangled("<< prefix << "): " << endl;
   
   for (unsigned i = 0; i < allUniqueFunctions.size(); i++) {
-    int_function * pdf = allUniqueFunctions[i];
-    if( prefix ) {
-      if( ! strncmp( pdf->symTabName().c_str(), prefix, strlen( prefix ) ) ) {
-        cerr << pdf->symTabName() << " ";
+      image_func * pdf = allUniqueFunctions[i];
+      if( ! strncmp( pdf->symTabName().c_str(), prefix.c_str(), strlen( prefix.c_str() ) ) ) {
+          cerr << pdf->symTabName() << " ";
       }
       else {
-        // bperr( "%s is not a prefix of %s\n", prefix, pdf->symTabName().c_str() );
+          // bperr( "%s is not a prefix of %s\n", prefix, pdf->symTabName().c_str() );
       }
-    }
-    else {
-      cerr << pdf->symTabName() << " ";
-    }
   }
   cerr << endl;
 }
@@ -2369,13 +2418,20 @@ void image::checkAllCallPoints() {
 #endif
 pdmodule *image::getOrCreateModule(const pdstring &modName, 
 				   const Address modAddr) {
-  const char *str = modName.c_str();
-  int len = modName.length();
-  assert(len>0);
-  // TODO ignore directory definitions for now
-  if (str[len-1] == '/') 
-    return NULL;
-  return (newModule(modName, modAddr, lang_Unknown));
+    pdmodule *fm = findModule(modName);
+    if (fm) return fm;
+
+    const char *str = modName.c_str();
+    int len = modName.length();
+    //    assert(len>0);
+    if (!len) {
+        cerr << "WARNING: module with no name!" << endl;
+        return findModule("DEFAULT_MODULE");
+    }
+    // TODO ignore directory definitions for now
+    if (str[len-1] == '/') 
+        return NULL;
+    return (newModule(modName, modAddr, lang_Unknown));
 }
 
 
@@ -2386,31 +2442,32 @@ pdmodule *image::getOrCreateModule(const pdstring &modName,
 // Find the function that occupies the given offset. ONLY LOOKS IN THE
 // IMAGE, and does not consider relocated functions. Those must be searched
 // for on the process level (as relocated functions are per-process)
-int_function *image::findFuncByOffset(const Address &offset)  {
+image_func *image::findFuncByOffset(const Address &offset)  {
     codeRange *range;
     bool found = funcsByRange.precessor(offset, range);
     if (!found) {
         return NULL;
     }
-    int_function *func = range->is_function();
+    image_func *func = range->is_image_func();
     assert(func != NULL);
-    assert(func->get_address() <= offset);
+    assert(func->getOffset() <= offset);
+
+    analyzeIfNeeded();
 
     // See if our offset is in the range of the function
-    if (func->get_address() + func->get_size() > offset) {
-      analyzeIfNeeded();
+    if (func->getOffset() + func->getSize() > offset) {
       return func;
     }
     else {
-        return NULL;
+      return NULL;
     }
 }
 
 // Similar to above, but checking by entry (only). Useful for 
 // "who does this call" lookups
-int_function *image::findFuncByEntry(const Address &entry) {
+image_func *image::findFuncByEntry(const Address &entry) {
 
-    int_function *func;
+    image_func *func;
     if (funcsByEntryAddr.find(entry, func)) {
       analyzeIfNeeded();
       return func;
@@ -2422,7 +2479,7 @@ int_function *image::findFuncByEntry(const Address &entry) {
 // Return the vector of functions associated with a pretty (demangled) name
 // Very well might be more than one!
 
-pdvector <int_function *> *image::findFuncVectorByPretty(const pdstring &name)
+pdvector <image_func *> *image::findFuncVectorByPretty(const pdstring &name)
 {
 
     //    fprintf(stderr,"findFuncVectorByPretty %s\n",name.c_str());
@@ -2440,7 +2497,7 @@ pdvector <int_function *> *image::findFuncVectorByPretty(const pdstring &name)
 // Return the vector of functions associated with a mangled name
 // Very well might be more than one! -- multiple static functions in different .o files
 
-pdvector <int_function *> *image::findFuncVectorByMangled(const pdstring &name)
+pdvector <image_func *> *image::findFuncVectorByMangled(const pdstring &name)
 {
 
     //    fprintf(stderr,"findFuncVectorByMangled %s\n",name.c_str());
@@ -2464,8 +2521,8 @@ pdvector <int_function *> *image::findFuncVectorByMangled(const pdstring &name)
 //  "pretty" list, a search on the mangled list is performed.  Due to
 //  duplication between many pretty and mangled names, this function does not
 //  care about the same name appearing in both the pretty and mangled lists.
-int_function *image::findOnlyOneFunction(const pdstring &name) {
-  pdvector<int_function *> *pdfv;
+image_func *image::findOnlyOneFunction(const pdstring &name) {
+  pdvector<image_func *> *pdfv;
 
   pdfv = findFuncVectorByPretty(name);
   if (pdfv != NULL && pdfv->size() > 0) {
@@ -2493,16 +2550,10 @@ int_function *image::findOnlyOneFunction(const pdstring &name) {
   return NULL;
 }
 
-void image::updateForFork(process *childProcess, const process *parentProcess)
-{
-  for(unsigned i=0; i<_mods.size(); i++) {
-    _mods[i]->updateForFork(childProcess, parentProcess);
-  }
-}
-
+#if 0
 #if !defined(i386_unknown_nt4_0) \
  && !defined(mips_unknown_ce2_11) // no regex for M$
-int image::findFuncVectorByPrettyRegex(pdvector<int_function *> *found, pdstring pattern,
+int image::findFuncVectorByPrettyRegex(pdvector<image_func *> *found, pdstring pattern,
 				       bool case_sensitive)
 {
   // This function compiles regex patterns and then calls its overloaded variant,
@@ -2532,7 +2583,7 @@ int image::findFuncVectorByPrettyRegex(pdvector<int_function *> *found, pdstring
   return -1;
 }
 
-int image::findFuncVectorByMangledRegex(pdvector<int_function *> *found, pdstring pattern,
+int image::findFuncVectorByMangledRegex(pdvector<image_func *> *found, pdstring pattern,
 					bool case_sensitive)
 {
   // Almost identical to its "Pretty" counterpart
@@ -2558,15 +2609,17 @@ int image::findFuncVectorByMangledRegex(pdvector<int_function *> *found, pdstrin
 }
 #endif
 
-pdvector<int_function *> *image::findFuncVectorByPretty(functionNameSieve_t bpsieve, 
+#endif
+
+pdvector<image_func *> *image::findFuncVectorByPretty(functionNameSieve_t bpsieve, 
 						       void *user_data,
-						       pdvector<int_function *> *found)
+						       pdvector<image_func *> *found)
 {
-  pdvector<pdvector<int_function *> *> result;
+  pdvector<pdvector<image_func *> *> result;
   //result = funcsByPretty.linear_filter(bpsieve, user_data);
-  dictionary_hash_iter <pdstring, pdvector<int_function*>*> iter(funcsByPretty);
+  dictionary_hash_iter <pdstring, pdvector<image_func*>*> iter(funcsByPretty);
   pdstring fname;
-  pdvector<int_function *> *fmatches;
+  pdvector<image_func *> *fmatches;
   while (iter.next(fname, fmatches)) {
     if ((*bpsieve)(iter.currkey().c_str(), user_data)) {
       result.push_back(fmatches);
@@ -2588,17 +2641,17 @@ pdvector<int_function *> *image::findFuncVectorByPretty(functionNameSieve_t bpsi
   return NULL;
 }
 
-pdvector<int_function *> *image::findFuncVectorByMangled(functionNameSieve_t bpsieve, 
+pdvector<image_func *> *image::findFuncVectorByMangled(functionNameSieve_t bpsieve, 
 							void *user_data,
-							pdvector<int_function *> *found)
+							pdvector<image_func *> *found)
 {
 
-  pdvector<pdvector<int_function *> *> result;
+  pdvector<pdvector<image_func *> *> result;
   // result = funcsByMangled.linear_filter(bpsieve, user_data);
 
-  dictionary_hash_iter <pdstring, pdvector<int_function*>*> iter(funcsByMangled);
+  dictionary_hash_iter <pdstring, pdvector<image_func*>*> iter(funcsByMangled);
   pdstring fname;
-  pdvector<int_function *> *fmatches;
+  pdvector<image_func *> *fmatches;
   while (iter.next(fname, fmatches)) {
     if ((*bpsieve)(fname.c_str(), user_data)) {
       result.push_back(fmatches);
@@ -2621,29 +2674,8 @@ pdvector<int_function *> *image::findFuncVectorByMangled(functionNameSieve_t bps
   return NULL;
 }
 
-#if !defined(i386_unknown_nt4_0) \
- && !defined(mips_unknown_ce2_11) // no regex for M$
-bool regex_filter_func(const pdstring &test, void *comp_pat)
-{
-
-  int err;
-
-  if (0 == (err = regexec( (regex_t *)comp_pat, test.c_str(), 1, NULL, 0 ))){
-    //cerr << test.c_str() << "does match" <<endl;
-    return TRUE; // no error, match
-  }
-  if (REG_NOMATCH == err) {
-    //cerr << test.c_str() << "does not match" <<endl;
-    return FALSE; // no error, but no match
-  }
-  char errbuf[80];
-  regerror( err, (regex_t *)comp_pat, errbuf, 80 );
-  cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
-
-  return FALSE; // error, no match
-}
-
-int image::findFuncVectorByPrettyRegex(pdvector<int_function *> *found, regex_t *comp_pat)
+#if 0
+int image::findFuncVectorByPrettyRegex(pdvector<image_func *> *found, regex_t *comp_pat)
 {
   //  This is a bit ugly in that it has to iterate through the entire dict hash 
   //  to find matches.  If this turns out to be a popular way of searching for
@@ -2651,12 +2683,12 @@ int image::findFuncVectorByPrettyRegex(pdvector<int_function *> *found, regex_t 
   //  preserves the pdstring ordering realation to make this O(1)-ish in that special case.
   //  jaw 01-03
 
-  pdvector<pdvector<int_function *> *> result;
+  pdvector<pdvector<image_func *> *> result;
   //  result = funcsByPretty.linear_filter(&regex_filter_func, (void *) comp_pat);
 
-  dictionary_hash_iter <pdstring, pdvector<int_function*>*> iter(funcsByPretty);
+  dictionary_hash_iter <pdstring, pdvector<image_func*>*> iter(funcsByPretty);
   pdstring fname;
-  pdvector<int_function *> *fmatches;
+  pdvector<image_func *> *fmatches;
   while (iter.next(fname, fmatches)) {
     if ((*regex_filter_func)(fname.c_str(), comp_pat)) {
       result.push_back(fmatches);
@@ -2678,16 +2710,16 @@ int image::findFuncVectorByPrettyRegex(pdvector<int_function *> *found, regex_t 
   return found->size();
 }
 
-int image::findFuncVectorByMangledRegex(pdvector<int_function *> *found, regex_t *comp_pat)
+int image::findFuncVectorByMangledRegex(pdvector<image_func *> *found, regex_t *comp_pat)
 {
   // almost identical to its "Pretty" counterpart.
 
-  pdvector<pdvector<int_function *> *> result;
+  pdvector<pdvector<image_func *> *> result;
   //result = funcsByMangled.linear_filter(&regex_filter_func, (void *) comp_pat);
   //cerr <<"mangled regex result.size() = " << result.size() <<endl;
-  dictionary_hash_iter <pdstring, pdvector<int_function*>*> iter(funcsByMangled);
+  dictionary_hash_iter <pdstring, pdvector<image_func*>*> iter(funcsByMangled);
   pdstring fname;
-  pdvector<int_function *> *fmatches;
+  pdvector<image_func *> *fmatches;
   while (iter.next(fname, fmatches)) {
     if ((*regex_filter_func)(fname.c_str(), comp_pat)) {
       result.push_back(fmatches);
@@ -2705,22 +2737,6 @@ int image::findFuncVectorByMangledRegex(pdvector<int_function *> *found, regex_t
 }
 #endif // !windows
 
-pdmodule *image::findModule(int_function *func) 
-{
-  // We call this function both during parsing and afterwards; don't try to 
-  // analyze functions if we're not done with the symtab parsing.
-  for(unsigned i=0; i<_mods.size(); i++) {
-    pdvector<int_function *> bpfv;
-    if (NULL != _mods[i]->findFunction(func->prettyName(), &bpfv) && bpfv.size()) {
-      analyzeIfNeeded();
-      
-      return _mods[i];
-    }
-  }
-
-  return NULL;
-}
-
 // Returns TRUE if module belongs to a shared library, and FALSE otherwise
 
 bool pdmodule::isShared() const { 
@@ -2728,8 +2744,8 @@ bool pdmodule::isShared() const {
 }
 
 /* Instrumentable-only, by the last version's source. */
-pdvector< int_function * > * pdmodule::getFunctions() {
-  static pdvector< int_function * > pleaseDontGoAwayAndLeaveMeHanging;
+pdvector< image_func * > * pdmodule::getFunctions() {
+  static pdvector< image_func * > pleaseDontGoAwayAndLeaveMeHanging;
   /* Is this going to call the destructor on the previous version? */
   pleaseDontGoAwayAndLeaveMeHanging = allUniqueFunctions;
   exec()->analyzeIfNeeded();
@@ -2737,18 +2753,19 @@ pdvector< int_function * > * pdmodule::getFunctions() {
   return &pleaseDontGoAwayAndLeaveMeHanging;
 } /* end getFunctions() */
 
-void pdmodule::addFunction( int_function * func ) {
+void pdmodule::addFunction( image_func * func ) {
 	allUniqueFunctions.push_back( func );
 
 	for(	unsigned pretty_iter = 0; 
 			pretty_iter < func->prettyNameVector().size();
 			pretty_iter++) {
 		pdstring pretty_name = func->prettyNameVector()[pretty_iter];
-		pdvector<int_function *> * funcsByPrettyEntry = NULL;
+		pdvector<image_func *> * funcsByPrettyEntry = NULL;
 		
 		// Ensure a vector exists
-		if( ! allFunctionsByPrettyName.find( pretty_name, funcsByPrettyEntry ) ) {
-			funcsByPrettyEntry = new pdvector< int_function * >;
+		if( ! allFunctionsByPrettyName.find( pretty_name, 
+                                                     funcsByPrettyEntry ) ) {
+			funcsByPrettyEntry = new pdvector< image_func * >;
 			allFunctionsByPrettyName[pretty_name] = funcsByPrettyEntry;
 			}
 		(*funcsByPrettyEntry).push_back( func );
@@ -2759,40 +2776,40 @@ void pdmodule::addFunction( int_function * func ) {
 			symtab_iter < func->symTabNameVector().size();
 			symtab_iter++) {
 		pdstring symtab_name = func->symTabNameVector()[symtab_iter];
-		pdvector< int_function * > * scratchvec;
+		pdvector< image_func * > * scratchvec;
 
 		if ( allFunctionsByMangledName.find( symtab_name, scratchvec ) ) {
 			bool newAddress = true;
-			pdvector<int_function *> * mangleds = allFunctionsByMangledName[ symtab_name ];
+			pdvector<image_func *> * mangleds = allFunctionsByMangledName[ symtab_name ];
 			for( unsigned i = 0; i < mangleds->size(); i++ ) {
 				if( func->getOffset() == (*mangleds)[i]->getOffset() ) { newAddress = false; }
 				} /* end iteration over existing vector */
 			if( newAddress ) { mangleds->push_back( func ); }
 			} /* end if mangled name already existed */
 		else {
-			pdvector<int_function *> * newvec = new pdvector<int_function *>;
+			pdvector<image_func *> * newvec = new pdvector<image_func *>;
 			(* newvec).push_back( func );
 			allFunctionsByMangledName[symtab_name] = newvec;
 			}
 	  	} /* end iteration over symtab names */
 	} /* end addFunction() */
 
-void pdmodule::addTypedPrettyName(int_function *func, const char *prettyName) {
+void pdmodule::addTypedPrettyName(image_func *func, const char *prettyName) {
   // Add a new pretty name to our lists
   
-  pdvector<int_function *> *funcsByPrettyEntry = NULL;
+  pdvector<image_func *> *funcsByPrettyEntry = NULL;
   // Ensure a vector exists
   if (!allFunctionsByPrettyName.find(pdstring(prettyName),
 				     funcsByPrettyEntry)) {
-    funcsByPrettyEntry = new pdvector<int_function*>;
+    funcsByPrettyEntry = new pdvector<image_func*>;
     allFunctionsByPrettyName[pdstring(prettyName)] = funcsByPrettyEntry;
   }
   (*funcsByPrettyEntry).push_back(func);
 }
 
   
-void pdmodule::removeFunction(int_function *func) {
-  pdvector <int_function *> newUniqueFuncs;
+void pdmodule::removeFunction(image_func *func) {
+  pdvector <image_func *> newUniqueFuncs;
   for (unsigned i = 0; i < allUniqueFunctions.size(); i++) {
     if (allUniqueFunctions[i] != func)
       newUniqueFuncs.push_back(allUniqueFunctions[i]);
@@ -2800,10 +2817,10 @@ void pdmodule::removeFunction(int_function *func) {
   allUniqueFunctions = newUniqueFuncs;
 
   for (unsigned j = 0; j < func->symTabNameVector().size(); j++) {
-    pdvector<int_function *> *temp_vec;
+    pdvector<image_func *> *temp_vec;
     if (allFunctionsByMangledName.find(func->symTabNameVector()[j],
 				       temp_vec)) {
-      pdvector<int_function *> *new_vec = new pdvector<int_function *>;
+      pdvector<image_func *> *new_vec = new pdvector<image_func *>;
       for (unsigned l = 0; l < temp_vec->size(); l++) {
 	if ((*temp_vec)[l] != func)
 	  new_vec->push_back((*temp_vec)[l]);
@@ -2814,10 +2831,10 @@ void pdmodule::removeFunction(int_function *func) {
   }
   
   for (unsigned l = 0; l < func->prettyNameVector().size(); l++) {
-    pdvector<int_function *> *temp_vec;
+    pdvector<image_func *> *temp_vec;
     if (allFunctionsByPrettyName.find(func->prettyNameVector()[l],
 				      temp_vec)) {
-      pdvector<int_function *> *new_vec = new pdvector<int_function *>;
+      pdvector<image_func *> *new_vec = new pdvector<image_func *>;
       for (unsigned k = 0; k < temp_vec->size(); k++) {
 	if ((*temp_vec)[k] != func)
 	  new_vec->push_back((*temp_vec)[k]);
@@ -2828,666 +2845,10 @@ void pdmodule::removeFunction(int_function *func) {
   }
 }
 
-pdstring* pdmodule::processDirectories(pdstring* fn){
-	if(!fn)
-		return NULL;
-
-	if(!strstr(fn->c_str(),"/./") &&
-	   !strstr(fn->c_str(),"/../"))
-		return fn;
-
-	pdstring* ret = NULL;
-	char suffix[10] = "";
-	char prefix[10] = "";
-	char* pPath = new char[strlen(fn->c_str())+1];
-
-	strcpy(pPath,fn->c_str());
-
-	if(pPath[0] == '/')
-           strcpy(prefix, "/");
-	else
-           strcpy(prefix, "");
-
-	if(pPath[strlen(pPath)-1] == '/')
-           strcpy(suffix, "/");
-	else
-           strcpy(suffix, "");
-
-	int count = 0;
-	char* pPathLocs[1024];
-	char* p = strtok(pPath,"/");
-	while(p){
-		if(!strcmp(p,".")){
-			p = strtok(NULL,"/");
-			continue;
-		}
-		else if(!strcmp(p,"..")){
-			count--;
-			if(((count < 0) && (*prefix != '/')) || 
-			   ((count >= 0) && !strcmp(pPathLocs[count],"..")))
-			{
-				count++;
-				pPathLocs[count++] = p;
-			}
-			if(count < 0) count = 0;
-		}
-		else
-			pPathLocs[count++] = p;
-
-		p = strtok(NULL,"/");
-	}
-
-	ret = new pdstring;
-	*ret += prefix;
-	for(int i=0;i<count;i++){
-		*ret += pPathLocs[i];
-		if(i != (count-1))
-			*ret += "/";
-	}
-	*ret += suffix;
-
-	delete[] pPath;
-	delete fn;
-	return ret;
+void *image::getPtrToData(Address offset) const {
+    if (!isData(offset)) return NULL;
+    offset -= dataOffset_;
+    unsigned char *inst = (unsigned char *)linkedFile.data_ptr();
+    return (void *)(&inst[offset]);
 }
-
-
-LineInformation & pdmodule::getLineInformation( process * proc ) {
-#if ! defined( alpha_dec_osf4_0 ) && ! defined( i386_unknown_nt4_0 )
-	if( ! hasParsedLineInformation ) {
-		parseFileLineInfo( proc );
-		hasParsedLineInformation = true;
-		}
-#endif
-
-	return lineInformation;
-	} /* end getLineInformation() */
-
-void pdmodule::cleanProcessSpecific(process *p) {
-  /* Mangled names are unique, so we don't have to nest our loops. */
-  for(unsigned i = 0; i < allUniqueFunctions.size(); i++) 
-    allUniqueFunctions[i]->cleanProcessSpecific(p);
-}
-
-// Parses symtab for file and line info. Should not be called before
-// parseTypes. The ptr to lineInformation should be NULL before this is called.
-#if !defined(rs6000_ibm_aix4_1) \
- && !defined(mips_sgi_irix6_4) \
- && !defined(alpha_dec_osf4_0) \
- && !defined(i386_unknown_nt4_0) \
- && !defined( USES_DWARF_DEBUG )
- 
-/* Parse everything in the file on disk, and cache that we've done so,
-   because our modules may not bear any relation to the name source files. */
-void pdmodule::parseFileLineInfo( process * proc ) {
-	static dictionary_hash< pdstring, bool > haveParsedFileMap( pdstring::hash );
-	
-	image * fileOnDisk = exec();
-	assert( fileOnDisk != NULL );
-	const Object & elfObject = fileOnDisk->getObject();
-
-	const char * fileName = elfObject.getFileName();
-	if( haveParsedFileMap.defines( fileName ) ) { return; } 
-
-	/* We haven't parsed this file already, so iterate over its stab entries. */
-	stab_entry * stabEntry = elfObject.get_stab_info();
-	assert( stabEntry != NULL );
-	const char * nextStabString = stabEntry->getStringBase();
-	
-	const char * currentSourceFile = NULL;
-	pdmodule * currentModule = NULL;
-	Address currentFunctionBase = 0;
-	unsigned int previousLineNo = 0;
-	Address previousLineAddress = 0;
-	bool isPreviousValid = false;
-	
-	Address baseAddress = 0;
-	if( this->isShared() ) {
-		assert( proc->getBaseAddress( fileOnDisk, baseAddress ) );
-		// /* DEBUG */ fprintf( stderr, "%s[%d]: Using 0x%lx as base address of shared object.\n", __FILE__, __LINE__, baseAddress );
-		}
-	
-	for( unsigned int i = 0; i < stabEntry->count(); i++ ) {
-		switch( stabEntry->type( i ) ) {
-		
-			case N_UNDF: /* start of an object file */ {
-				if( isPreviousValid ) {
-					/* DEBUG */ fprintf( stderr, "%s[%d]: unterminated N_SLINE at start of object file.  Line number information will be lost.\n", __FILE__, __LINE__ );
-					}
-			
-				stabEntry->setStringBase( nextStabString );
-				nextStabString = stabEntry->getStringBase() + stabEntry->val( i );
-				
-				currentSourceFile = NULL;
-				isPreviousValid = false;
-				} break;
-				
-			case N_SO: /* compilation source or file name */ {
-				if( isPreviousValid ) {
-					/* Add the previous N_SLINE. */
-					Address currentLineAddress = stabEntry->val( i );
-					
-					// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) to module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
-					currentModule->lineInformation.addLine( currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress  );
-					}
-				
-				const char * sourceFile = stabEntry->name( i );
-				currentSourceFile = strrchr( sourceFile, '/' );
-				if( currentSourceFile == NULL ) { currentSourceFile = sourceFile; }
-				else { ++currentSourceFile; }
-				// /* DEBUG */ fprintf( stderr, "%s[%d]: using file name '%s'\n", __FILE__, __LINE__, currentSourceFile );
-				
-				isPreviousValid = false;
-				} break;
-				
-			case N_SOL: /* file name (possibly an include file) */ {
-				if( isPreviousValid ) {
-					/* Add the previous N_SLINE. */
-					Address currentLineAddress = stabEntry->val( i );
-					// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) to module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
-					currentModule->lineInformation.addLine( currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress  );
-					}
-					
-				const char * sourceFile = stabEntry->name( i );
-				currentSourceFile = strrchr( sourceFile, '/' );
-				if( currentSourceFile == NULL ) { currentSourceFile = sourceFile; }
-				else { ++currentSourceFile; }
-				// /* DEBUG */ fprintf( stderr, "%s[%d]: using file name '%s'\n", __FILE__, __LINE__, currentSourceFile );
-				
-				isPreviousValid = false;
-				} break;
-				
-			case N_FUN: /* a function */ {
-				if( * stabEntry->name( i ) == 0 ) {
-					/* An end-of-function marker.  The value is the size of the function. */
-					if( isPreviousValid ) {
-						/* Add the previous N_SLINE. */
-						Address currentLineAddress = currentFunctionBase + stabEntry->val( i );
-						// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) in module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
-						currentModule->lineInformation.addLine( currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress  );
-						}
-					
-					/* We've added the previous N_SLINE and don't currently have a module. */
-					isPreviousValid = false;
-					currentModule = NULL;
-					break;
-					} /* end if the N_FUN is an end-of-function-marker. */
-							
-				if( isPreviousValid ) {
-					Address currentLineAddress = stabEntry->val( i );
-					// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) in module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
-					currentModule->lineInformation.addLine( currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress  );
-					}
-					
-				currentFunctionBase = stabEntry->val( i );
-				currentFunctionBase += baseAddress;
-				
-				int_function * currentFunction = proc->findFuncByAddr( currentFunctionBase );
-				if( currentFunction == NULL ) {
-					/* DEBUG */ fprintf( stderr, "%s[%d]: failed to find function containing address 0x%lx; line number information will be lost.\n", __FILE__, __LINE__, currentFunctionBase );
-					currentModule = NULL;
-					}
-				else {
-					currentModule = currentFunction->pdmod();
-					assert( currentModule != NULL );
-					}
-											
-				isPreviousValid = false;
-				} break;
-				
-			case N_SLINE: {
-				if( currentModule ) {
-					Address currentLineAddress = currentFunctionBase + stabEntry->val( i );
-					unsigned int currentLineNo = stabEntry->desc( i );
-					
-					if( isPreviousValid ) {
-						// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx) in module %s.\n", __FILE__, __LINE__, currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress, currentModule->fileName().c_str() );
-						currentModule->lineInformation.addLine( currentSourceFile, previousLineNo, previousLineAddress, currentLineAddress  );
-						}
-						
-					previousLineAddress = currentLineAddress;
-					previousLineNo = currentLineNo;
-					isPreviousValid = true;
-					} /* end if we've a module to which to add line information */
-				} break;
-						
-			} /* end switch on the ith stab entry's type */
-		} /* end iteration over stab entries. */
-	
-	haveParsedFileMap[ fileName ] = true;
-	} /* end parseFileLineInfo() */
-	
-#endif 
-
-
-
-#if defined(rs6000_ibm_aix4_1)
-
-#include <linenum.h>
-#include <syms.h>
-#include <set>
-
-/* FIXME: hack. */
-Address trueBaseAddress = 0;
-
-void pdmodule::parseFileLineInfo( process * proc ) {
-	static std::set< image * > haveParsedFileMap;
-	
-    image * fileOnDisk = exec();
-	assert( fileOnDisk != NULL );
-	if( haveParsedFileMap.count( fileOnDisk ) != 0 ) { return; }
-	// /* DEBUG */ fprintf( stderr, "%s[%d]: Considering image at 0x%lx\n", __FILE__, __LINE__, fileOnDisk );
-
-	/* FIXME: hack.  Should be argument to parseLineInformation(), which should in turn be merged
-	   back into here so it can tell how far to extend the range of the last line information point. */
-	Address baseAddress = 0;
-	if( this->isShared() ) {
-		assert( proc->getBaseAddress( fileOnDisk, baseAddress ) );
-		// /* DEBUG */ fprintf( stderr, "%s[%d]: Using 0x%lx as base address of shared object.\n", __FILE__, __LINE__, baseAddress );
-		}
-	trueBaseAddress = baseAddress;
-
-	const Object & xcoffObject = fileOnDisk->getObject();
-
-	/* We haven't parsed this file already, so iterate over its stab entries. */
-	char * stabstr = NULL;
-	int nstabs = 0;
-	Address syms = 0;
-	char * stringpool = NULL;
-	xcoffObject.get_stab_info( stabstr, nstabs, syms, stringpool );
-
-	int nlines = 0;
-	char * lines = NULL;
-	unsigned long linesfdptr;
-	xcoffObject.get_line_info( nlines, lines, linesfdptr );
-
-	/* I'm not sure why the original code thought it should copy (short) names (through here). */
-	char temporaryName[9];
-	char * funcName = NULL;
-	char * currentSourceFile = NULL;
-
-	/* Iterate over STAB entries. */
-	for( int i = 0; i < nstabs; i++ ) {
-		/* sizeof( SYMENT ) is 20, not 18, as it should be. */
-		SYMENT * sym = (SYMENT *)( syms + (i * SYMESZ) );
-	
-		/* Extract the current source file from the C_FILE entries. */
-		if( sym->n_sclass == C_FILE ) {
-			char * moduleName = NULL;
-			
-			/* From the SYMENT. */
-			if( ! sym->n_zeroes ) {
-				moduleName = & stringpool[ sym->n_offset ];
-				}
-			else {
-				memset( temporaryName, 0, 9 );
-				strncpy( temporaryName, sym->n_name, 8 );
-				moduleName = temporaryName;
-				}
-				
-			/* From the AUXENT. */
-			for( int j = 1; j <= sym->n_numaux; j++ ) {
-				union auxent * aux = (union auxent *)( (Address)sym + (j * SYMESZ) );
-				
-				if( aux->x_file._x.x_ftype == XFT_FN ) {
-					if( ! aux->x_file._x.x_zeroes ) {
-						moduleName = & stringpool[ aux->x_file._x.x_offset ];
-						} else {
-						// x_fname is 14 bytes
-						memset( moduleName, 0, 15 );
-						strncpy( moduleName, aux->x_file.x_fname, 14 );
-						}
-					} /* end if proper auxtype */
-				} /* end AUXENT iteration */
-			
-			currentSourceFile = strrchr( moduleName, '/' );
-			if( currentSourceFile == NULL ) { currentSourceFile = moduleName; }
-			else { ++currentSourceFile; }
-
-			/* We're done with this entry. */
-			continue;
-			} /* end if C_FILE */
-	
-		/* This apparently compensates for a bug in the naming of certain entries. */
-		char * nmPtr = NULL;
-		if( 	! sym->n_zeroes && (
-				( sym->n_sclass & DBXMASK ) ||
-				( sym->n_sclass == C_BINCL ) ||
-				( sym->n_sclass == C_EINCL )
-				) ) {
-			if( sym->n_offset < 3 ) {
-				if( sym->n_offset == 2 && stabstr[ 0 ] ) {
-					nmPtr = & stabstr[ 0 ];
-					} else {
-					nmPtr = & stabstr[ sym->n_offset ];
-					}
-				} else if( ! stabstr[ sym->n_offset - 3 ] ) {
-				nmPtr = & stabstr[ sym->n_offset ];
-				} else {
-				/* has off by two error */
-				nmPtr = & stabstr[ sym->n_offset - 2 ];
-				} 
-			} else {
-			// names 8 or less chars on inline, not in stabstr
-			memset( temporaryName, 0, 9 );
-			strncpy( temporaryName, sym->n_name, 8 );
-			nmPtr = temporaryName;
-			} /* end bug compensation */
-
-		/* Now that we've compensated for buggy naming, actually
-		   parse the line information. */
-		if(	( sym->n_sclass == C_BINCL ) 
-			|| ( sym->n_sclass == C_EINCL )
-			|| ( sym->n_sclass == C_FUN ) ) {
-			if( funcName ) {
-				free( funcName );
-				funcName = NULL;
-				}
-			funcName = strdup( nmPtr );
-
-			pdstring pdCSF( currentSourceFile );
-			parseLineInformation( proc, & pdCSF, funcName, (SYMENT *)sym, linesfdptr, lines, nlines );
-			} /* end if we're actually parsing line information */
-		} /* end iteration over STAB entries. */
-
-	if( funcName != NULL ) { 
-		free( funcName );
-		}		
-	haveParsedFileMap.insert( fileOnDisk );
-	} /* end parseFileLineInfo() */
-
-void pdmodule::parseLineInformation(	process * proc,
-										pdstring * currentSourceFile,
-										char * symbolName,
-										SYMENT * sym,
-										Address linesfdptr,
-										char * lines,
-										int nlines ) {
-	union auxent * aux;
-	pdvector<IncludeFileInfo> includeFiles;
-
-	/* if it is beginning of include files then update the data structure
-		that keeps the beginning of the include files. If the include files contain
-		information about the functions and lines we have to keep it */
-	if( sym->n_sclass == C_BINCL ) {
-		includeFiles.push_back( IncludeFileInfo( (sym->n_value - linesfdptr)/LINESZ, symbolName ) );
-		}
-	/* similiarly if the include file contains function codes and line information
-		we have to keep the last line information entry for this include file */
-	else if( sym->n_sclass == C_EINCL ) {
-		if( includeFiles.size() > 0 ) {
-			includeFiles[includeFiles.size()-1].end = (sym->n_value-linesfdptr)/LINESZ;
-			}
-		}
-	/* if the enrty is for a function than we have to collect all info
-	   about lines of the function */
-	else if( sym->n_sclass == C_FUN ) {
-		/* I have no idea what the old code did, except not work very well.
-		   Somebody who understands XCOFF should look at this. */
-		int initialLine = 0;
-		int initialLineIndex = 0;
-		Address funcStartAddress = 0;
-		
-		for( int j = -1; ; --j ) {
-			SYMENT * extSym = (SYMENT *)( ((Address)sym) + (j * SYMESZ) );
-			if( extSym->n_sclass == C_EXT ) {
-				aux = (union auxent *)( ((Address)extSym) + SYMESZ );
-#ifndef __64BIT__
-				initialLineIndex = ( aux->x_sym.x_fcnary.x_fcn.x_lnnoptr - linesfdptr )/LINESZ;
-#endif
-				funcStartAddress = extSym->n_value;
-                break;
-				} /* end if C_EXT found */
-			} /* end search for C_EXT */
-
-        /* access the line information now using the C_FCN entry*/
-		SYMENT * bfSym = (SYMENT *)( ((Address)sym) + SYMESZ );
-		if( bfSym->n_sclass != C_FCN ) {
-			bperr("unable to process line info for %s\n", symbolName);
-			return;
-			}
-
-		aux = (union auxent *)( ((Address)bfSym) + SYMESZ );
-        initialLine = aux->x_sym.x_misc.x_lnsz.x_lnno;
-
-        pdstring whichFile = *currentSourceFile;
-        for( unsigned int j = 0; j < includeFiles.size(); j++ ) {
-            if(	( includeFiles[j].begin <= (unsigned)initialLineIndex )
-            	&& ( includeFiles[j].end >= (unsigned)initialLineIndex ) ) {
-                whichFile = includeFiles[j].name;
-                break;
-            	}
-        	} /* end iteration of include files */
-        
-		char * canonicalSourceFile = strrchr( whichFile.c_str(), '/' );
-		if( canonicalSourceFile == NULL ) { canonicalSourceFile = const_cast< char * >( whichFile.c_str() ); }
-		else { ++canonicalSourceFile; }
-		
-		int_function * currentFunction = proc->findFuncByAddr( funcStartAddress + trueBaseAddress );
-		if( currentFunction == NULL ) {
-			/* Some addresses point to gdb-inaccessible memory; others have symbols (gdb will disassemble them)
-			   but the contents look like garbage, and may be data with symbol names.  (Who knows why.) */
-			// fprintf( stderr, "%s[%d]: failed to find function containing address 0x%lx; line number information will be lost.\n", __FILE__, __LINE__, funcStartAddress + trueBaseAddress );
-			return;
-			}
-		pdmodule * currentModule = currentFunction->pdmod();
-		assert( currentModule != NULL );
-		LineInformation & currentLineInformation = currentModule->lineInformation;
-
-		unsigned int previousLineNo = 0;
-		Address previousLineAddr = 0;
-		bool isPreviousValid = false;
-					
-		/* Iterate over this entry's lines. */
-		for( int j = initialLineIndex + 1; j < nlines; j++ ) {
-			LINENO * lptr = (LINENO *)( lines + (j * LINESZ) );
-			if( ! lptr->l_lnno ) { break; }
-			unsigned int lineNo = lptr->l_lnno + initialLine - 1;
-			Address lineAddr = lptr->l_addr.l_paddr + trueBaseAddress;
-			
-			if( isPreviousValid ) {
-				// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx).\n", __FILE__, __LINE__, canonicalSourceFile, previousLineNo, previousLineAddr, lineAddr );
-				currentLineInformation.addLine( canonicalSourceFile, previousLineNo, previousLineAddr, lineAddr );
-				}
-			
-			previousLineNo = lineNo;
-			previousLineAddr = lineAddr;
-			isPreviousValid = true;
-			} /* end iteration over line information */
-			
-		if( isPreviousValid ) {
-			/* Add the instruction (always 4 bytes on power) pointed at by the last entry.  We'd like to add a
-			   bigger range, but it's not clear how.  (If the function has inlined code, we won't know about
-			   it until we see the next section, so claiming "until the end of the function" will give bogus results.) */
-			// /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx).\n", __FILE__, __LINE__, canonicalSourceFile, previousLineNo, previousLineAddr, previousLineAddr + 4 );
-			currentLineInformation.addLine( canonicalSourceFile, previousLineNo, previousLineAddr, previousLineAddr + 4 );
-			}
-		} /* end if we found a C_FUN symbol */
-	} /* end parseLineInformation() */
-	
-#endif
-
-/* mips-sgi-irix6.5 uses DWARF debug, but the rest of the code
-   isn't set up to take advantage of this. */
-#if defined(USES_DWARF_DEBUG) && !defined(mips_sgi_irix6_4)
-
-#include "elf.h"
-#include "libelf.h"
-#include "dwarf.h"
-#include "libdwarf.h"  
-
-#include "LineInformation.h"
-
-extern void pd_dwarf_handler( Dwarf_Error, Dwarf_Ptr );
-void pdmodule::parseFileLineInfo( process * proc ) {
-	static dictionary_hash< pdstring, bool > haveParsedFileMap( pdstring::hash );
-	
-	/* Determine if we've parsed this file already. */
-	image * moduleImage = exec();
-	assert( moduleImage != NULL );
-	const Object & moduleObject = moduleImage->getObject();	
-	const char * fileName = moduleObject.getFileName();
-
-    if( haveParsedFileMap.defines( fileName ) ) { return; }
-	
-	/* We have not parsed this file already, so wind up libdwarf. */
-	int fd = open( fileName, O_RDONLY );
-	assert( fd != -1 );
-	
-	Dwarf_Debug dbg;
-	int status = dwarf_init(	fd, DW_DLC_READ, & pd_dwarf_handler,
-								moduleObject.getErrFunc(),
-								& dbg, NULL );
-	assert( status != DW_DLV_ERROR );
-	if( status == DW_DLV_NO_ENTRY ) { close( fd ); return; }
-	
-	/* Itereate over the CU headers. */
-	Dwarf_Unsigned header;
-	while( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & header, NULL ) == DW_DLV_OK ) {
-		/* Acquire the CU DIE. */
-		Dwarf_Die cuDIE;
-		status = dwarf_siblingof( dbg, NULL, & cuDIE, NULL);
-		assert( status == DW_DLV_OK );
-
-		/* Acquire this CU's source lines. */
-		Dwarf_Line * lineBuffer;
-		Dwarf_Signed lineCount;
-		status = dwarf_srclines( cuDIE, & lineBuffer, & lineCount, NULL );
-		assert( status != DW_DLV_ERROR );
-		
-		/* It's OK for a CU not to have line information. */
-		if( status != DW_DLV_OK ) {
-			/* Free this CU's DIE. */
-			dwarf_dealloc( dbg, cuDIE, DW_DLA_DIE );
-			continue;
-			}
-		assert( status == DW_DLV_OK );
-		
-		/* The 'lines' returned are actually interval markers; the code
-		   generated from lineNo runs from lineAddr up to but not including
-		   the lineAddr of the next line. */			   
-		bool isPreviousValid = false;
-		Dwarf_Unsigned previousLineNo = 0;
-		Dwarf_Addr previousLineAddr = 0x0;
-		char * previousLineSource = NULL;
-		
-		Address baseAddr = 0;
-		if( this->isShared() ) {
-			assert( proc->getBaseAddress( moduleImage, baseAddr ) );
-			// /* DEBUG */ fprintf( stderr, "%s[%d]: Using 0x%lx as base address of shared object.\n", __FILE__, __LINE__, baseAddress );
-			}
-		
-		/* Iterate over this CU's source lines. */
-		for( int i = 0; i < lineCount; i++ ) {
-			/* Acquire the line number, address, source, and end of sequence flag. */
-			Dwarf_Unsigned lineNo;
-			status = dwarf_lineno( lineBuffer[i], & lineNo, NULL );
-			assert( status == DW_DLV_OK );			
-				
-			Dwarf_Addr lineAddr;
-			status = dwarf_lineaddr( lineBuffer[i], & lineAddr, NULL );
-			assert( status == DW_DLV_OK );
-			lineAddr += baseAddr;
-			
-			char * lineSource;
-			status = dwarf_linesrc( lineBuffer[i], & lineSource, NULL );
-			assert( status == DW_DLV_OK );
-						
-			Dwarf_Bool isEndOfSequence;
-			status = dwarf_lineendsequence( lineBuffer[i], & isEndOfSequence, NULL );
-			assert( status == DW_DLV_OK );
-			
-			if( isPreviousValid ) {
-				/* If we're talking about the same (source file, line number) tuple,
-				   and it isn't the end of the sequence, we can coalesce the range.
-				   (The end of sequence marker marks discontinuities in the ranges.) */
-				if( lineNo == previousLineNo && strcmp( lineSource, previousLineSource ) == 0 && ! isEndOfSequence ) {
-					/* Don't update the prev* values; just keep going until we hit the end of a sequence or
-					   a new sourcefile. */
-					continue;
-					} /* end if we can coalesce this range */
-			
-				/* Determine into which pdmodule this line information should be inserted. */
-				int_function * currentFunction = proc->findFuncByAddr( previousLineAddr );
-				if( currentFunction == NULL ) {
-					// /* DEBUG */ fprintf( stderr, "%s[%d]: failed to find function containing address 0x%lx; line number information will be lost.\n", __FILE__, __LINE__, lineAddr );
-					}
-				else {
-					pdmodule * currentModule = currentFunction->pdmod();
-					assert( currentModule != NULL );
-					
-					char * canonicalLineSource = strrchr( previousLineSource, '/' );
-					if( canonicalLineSource == NULL ) { canonicalLineSource = previousLineSource; }
-					else { ++canonicalLineSource; }
-					
-					/* The line 'canonicalLineSource:previousLineNo' has an address range of [previousLineAddr, lineAddr). */
-					currentModule->lineInformation.addLine( canonicalLineSource, previousLineNo, previousLineAddr, lineAddr );
-				
-					// /* DEBUG */ fprintf( stderr, "%s[%d]: inserted address range [0x%lx, 0x%lx) for source '%s:%u' into module '%s'.\n", __FILE__, __LINE__, previousLineAddr, lineAddr, canonicalLineSource, previousLineNo, currentModule->fileName().c_str() );
-					} /* end if we found the function by its address */
-				} /* end if the previous* variables are valid */
-				
-			/* If the current line ends the sequence, invalidate previous; otherwise, update. */
-			if( isEndOfSequence ) {
-				dwarf_dealloc( dbg, lineSource, DW_DLA_STRING );
-				
-				isPreviousValid = false;
-				}
-			else {
-				if( isPreviousValid ) { dwarf_dealloc( dbg, previousLineSource, DW_DLA_STRING ); }
-
-				previousLineNo = lineNo;
-				previousLineSource = lineSource;
-				previousLineAddr = lineAddr;
-							
-				isPreviousValid = true;
-				} /* end if line was not the end of a sequence */
-			} /* end iteration over source line entries. */
-		
-		/* Free this CU's source lines. */
-		for( int i = 0; i < lineCount; i++ ) {
-			dwarf_dealloc( dbg, lineBuffer[i], DW_DLA_LINE );
-			}
-		dwarf_dealloc( dbg, lineBuffer, DW_DLA_LIST );
-		
-		/* Free this CU's DIE. */
-		dwarf_dealloc( dbg, cuDIE, DW_DLA_DIE );
-		} /* end CU header iteration */
-
-	/* Wind down libdwarf. */
-	Elf * dwarfElf;
-	status = dwarf_get_elf( dbg, & dwarfElf, NULL );
-	assert( status == DW_DLV_OK );
-	                                              
-	status = dwarf_finish( dbg, NULL );
-	assert( status == DW_DLV_OK );
-	close( fd );
-	
-	/* Note that we've parsed this file. */
-	haveParsedFileMap[ fileName ] = true;
-	} /* end parseFileLineInfo() */
-#endif
-
-
-int instPointCompare( instPoint*& ip1, instPoint*& ip2 )
-{
-    if( ip1->pointAddr() > ip2->pointAddr() )
-        return 1;
     
-    if( ip1->pointAddr() < ip2->pointAddr() )
-        return -1;
- 
-    return 0;
-} 
-
-
-// used to compare basicBlocks by starting address for vector sort
-int basicBlockCompare( BPatch_basicBlock*& bb1, BPatch_basicBlock*& bb2 )
-{
-    if( bb1->getRelStart() > bb2->getRelStart() )
-        return 1;
-    if( bb1->getRelStart() < bb2->getRelStart() )
-        return -1;
-    return 0;
-}
-
