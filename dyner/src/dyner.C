@@ -60,6 +60,7 @@
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
+#include "BPatch_function.h"
 #include "breakpoint.h"
 
 extern "C" {
