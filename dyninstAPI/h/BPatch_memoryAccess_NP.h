@@ -39,13 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: BPatch_memoryAccess_NP.h,v 1.14 2004/03/23 19:10:28 eli Exp $ */
+/* $Id: BPatch_memoryAccess_NP.h,v 1.15 2005/07/29 19:17:27 bernat Exp $ */
 
 #ifndef _MemoryAccess_h_
 #define _MemoryAccess_h_
 
+#include <BPatch_Vector.h>
 #include <stdlib.h>
-#include <BPatch_point.h>
+//#include <BPatch_point.h>
 #include <BPatch_instruction.h>
 
 /* Pseudoregisters definitions */
@@ -66,7 +67,7 @@
 
 
 /* This is believed to be machine independent, modulo register numbers of course */
-struct BPATCH_DLL_EXPORT BPatch_addrSpec_NP
+class BPATCH_DLL_EXPORT BPatch_addrSpec_NP
 {
   // the formula is regs[0] + 2 ^ scale * regs[1] + imm
   int imm;      // immediate
@@ -102,11 +103,16 @@ public:
   }
 };
 
-#define BPatch_countSpec_NP BPatch_addrSpec_NP // right now it has the same form
+
+//#define BPatch_countSpec_NP BPatch_addrSpec_NP // right now it has the same form
+// I'm leaving the above around so others can be amused by it.
+
+typedef BPatch_addrSpec_NP BPatch_countSpec_NP;
 
 class BPatch_memoryAccess;
 extern void initOpCodeInfo();
 
+class BPatch_point;
 
 class BPATCH_DLL_EXPORT BPatch_memoryAccess : public BPatch_instruction
 {
@@ -127,8 +133,8 @@ class BPATCH_DLL_EXPORT BPatch_memoryAccess : public BPatch_instruction
   BPatch_countSpec_NP count[nmaxacc_NP];
 
 protected:
-  BPatch_addrSpec_NP getStartAddr(int which = 0) const { return start[which]; }
-  BPatch_countSpec_NP getByteCount(int which = 0) const { return count[which]; }
+  const BPatch_addrSpec_NP *getStartAddr(int which = 0) const { return &(start[which]); }
+  const BPatch_countSpec_NP *getByteCount(int which = 0) const { return &(count[which]); }
 
 
   // initializes only the first access - general case

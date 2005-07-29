@@ -91,6 +91,7 @@ public:
 
     // The following are for internal use by the library only:
     int_function *func;
+    int_function *lowlevel_func() { return func; }
     int_function *PDSEP_pdf() { return func;}
     BPatch_process *getProc() const { return proc; }
 

@@ -45,10 +45,10 @@
 #include "BPatch_Vector.h"
 #include "BPatch_sourceObj.h"
 #include "BPatch_eventLock.h"
-
 #include <vector>
 
-class pdmodule;
+class mapped_module;
+
 class process;
 class BPatch_image;
 class BPatch_function;
@@ -73,7 +73,7 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj, public BPatch_ev
     friend class InstrucIter;
 
     BPatch_process *proc;
-    pdmodule		 *mod;
+    mapped_module      	 *mod;
     BPatch_image	 *img;
     BPatch_Vector<BPatch_function *> * BPfuncs;
     BPatch_Vector<BPatch_function *> * BPfuncs_uninstrumentable;
@@ -83,10 +83,10 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj, public BPatch_ev
 public:
 
     //  This function should go away when paradyn is on top of dyninst
-    pdmodule * getModule() { return mod; }
+    mapped_module* getModule() { return mod; }
 
     // The following functions are for internal use by  the library only:
-    BPatch_module(BPatch_process *_proc, pdmodule *_mod, BPatch_image *img);
+    BPatch_module(BPatch_process *_proc, mapped_module *_mod, BPatch_image *img);
     BPatch_module() : mod(NULL), img(NULL), BPfuncs(NULL),nativeCompiler(false) {
 	_srcType = BPatch_sourceModule;
     };
