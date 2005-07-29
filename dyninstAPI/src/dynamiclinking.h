@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.h,v 1.14 2005/03/17 23:27:12 bernat Exp $
+// $Id: dynamiclinking.h,v 1.15 2005/07/29 19:18:27 bernat Exp $
 
 #if !defined(dynamic_linking_h)
 #define dynamic_linking_h
 
 #include "common/h/Vector.h"
-#include "dyninstAPI/src/sharedobject.h"
+#include "dyninstAPI/src/mapped_object.h"
 #if defined(os_irix)
 #include "dyninstAPI/src/irixDL.h"
 #endif
@@ -74,16 +74,16 @@ class sharedLibHook {
     ~sharedLibHook();
 
     // Fork constructor
-    sharedLibHook(process *p,
-                  sharedLibHook *h);
+    sharedLibHook(const sharedLibHook *pSLH,
+                  process *child);
         
-    bool reachedBreakAddr(Address b) const {return (b == breakAddr_); };
+    bool reachedBreakAddr(Address b) const;
     sharedLibHookType eventType() const { return type_; };
     
   private:
     process *proc_;
     sharedLibHookType type_;
-    char *saved_[SLH_SAVE_BUFFER_SIZE];
+    unsigned char saved_[SLH_SAVE_BUFFER_SIZE];
     Address breakAddr_;
     instMapping *loadinst_;
 };
@@ -98,7 +98,7 @@ public:
     dynamic_linking(process *p);
     
     // Fork constructor
-    dynamic_linking(process *p, dynamic_linking *d);
+    dynamic_linking(const dynamic_linking *pDL, process *child);
     ~dynamic_linking();
 
     // Initialize the dynamic_linking structure (normally grabbing addresses)
@@ -110,7 +110,7 @@ public:
     // the entry point of main().  It gets all shared objects that have been
     // mapped into the process's address space
     // returns 0 on error or if there are no shared objects
-    pdvector< shared_object *> *getSharedObjects();
+    bool getSharedObjects(pdvector<mapped_object *> &);
 
     // returns true if the executable is dynamically linked 
     bool isDynamic(){ return(dynlinked);}
@@ -124,9 +124,9 @@ public:
     // and the change_type value is set to indicate if the object has been 
     // added or removed. On error error_occured is true.
     // This function normally only runs if we're at the dlopen/dlclose break address
-    bool handleIfDueToSharedObjectMapping(pdvector<shared_object *> **changed_objects,
-					  u_int &change_type,
-			bool &error_occured);
+    bool handleIfDueToSharedObjectMapping(pdvector<mapped_object *> &changed_objects,
+					  u_int &change_type);
+
     // Force running handleIfDue... above
     void set_force_library_check(){ force_library_load = true; }
     void unset_force_library_check(){ force_library_load = false; }
@@ -174,19 +174,19 @@ public:
     // process all shared objects that have been mapped into the process's
     // address space.  This routine reads the link maps from the application
     // process to find the shared object file base mappings. returns 0 on error
-    pdvector<shared_object *> *processLinkMaps();
+    bool processLinkMaps(pdvector<fileDescriptor> &);
     
     // findChangeToLinkMaps: This routine returns a shared objects
     // that have been deleted or added to the link maps as indicated by
     // change_type.  If an error occurs it sets error_occured to true.
-    pdvector<shared_object *> *findChangeToLinkMaps(u_int change_type,
-                                                    bool &error_occured);
+    bool findChangeToLinkMaps(u_int &change_type,
+			      pdvector<mapped_object *> &);
     
-    // getNewSharedObjects: returns a vector of shared_object one element for 
+    // getNewSharedObjects: returns a vector of mapped_object one element for 
     // newly mapped shared object. 
     // Returns NULL if there is an error. 
     // And the returned vector needs to be cleaned up.
-    pdvector<shared_object *> *getNewSharedObjects();
+    bool getNewSharedObjects(pdvector<mapped_object *> &);
 
     //////////////// PLATFORM SPECIFIC
     // Could this be wrapped into a sub-object?

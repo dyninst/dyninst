@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.C,v 1.7 2005/03/17 23:27:25 bernat Exp $
+// $Id: dynamiclinking.C,v 1.8 2005/07/29 19:18:26 bernat Exp $
 
 // Cross-platform dynamic linking functions
 
@@ -55,36 +55,27 @@ dynamic_linking::dynamic_linking(process *p): proc(p), dynlinked(false),
 { 
 }
 
-dynamic_linking::dynamic_linking(process *p,
-                                 dynamic_linking *d): proc(p),
-                                                      dynlinked(d->dynlinked),
-                                                      dlopen_addr(d->dlopen_addr),
-						      instru_based(d->instru_based),
-                                                      force_library_load(d->force_library_load),
-                                                      lowestSObaseaddr(d->lowestSObaseaddr),
-                                                      dlopenUsed(d->dlopenUsed)
+dynamic_linking::dynamic_linking(const dynamic_linking *pDL,
+                                 process *child): proc(child),
+                                                  dynlinked(pDL->dynlinked),
+                                                  dlopen_addr(pDL->dlopen_addr),
+                                                  instru_based(pDL->instru_based),
+                                                  force_library_load(pDL->force_library_load),
+                                                  lowestSObaseaddr(pDL->lowestSObaseaddr),
+                                                  dlopenUsed(pDL->dlopenUsed)
 {
 #if defined(os_linux)
-    r_debug_addr = d->r_debug_addr;
-    r_brk_target_addr = d->r_brk_target_addr;
-    previous_r_state = d->previous_r_state;
+    r_debug_addr = pDL->r_debug_addr;
+    r_brk_target_addr = pDL->r_brk_target_addr;
+    previous_r_state = pDL->previous_r_state;
 #endif
 #if defined(os_solaris)
-    r_debug_addr = d->r_debug_addr;
-    r_state = d->r_state;
+    r_debug_addr = pDL->r_debug_addr;
+    r_state = pDL->r_state;
 #endif
-#if defined(os_irix)
-    libc_obj= d->libc_obj;
-    for (unsigned j = 0; j < d->rld_map.size(); j++) {
-        pdElfObjInfo *obj = d->rld_map[j];
-        pdElfObjInfo *newobj = new pdElfObjInfo(*obj);
-        rld_map.push_back(newobj);
-    }
-    
-#endif
-    for (unsigned i = 0; i < d->sharedLibHooks_.size(); i++) {
-        sharedLibHooks_.push_back(new sharedLibHook(proc,
-                                                    d->sharedLibHooks_[i]));
+    for (unsigned i = 0; i < pDL->sharedLibHooks_.size(); i++) {
+        sharedLibHooks_.push_back(new sharedLibHook(pDL->sharedLibHooks_[i],
+                                                    child));
     }
 }
 
@@ -110,11 +101,156 @@ sharedLibHook *dynamic_linking::reachedLibHook(Address a) {
     return NULL;
 }
 
-sharedLibHook::sharedLibHook(process *p, sharedLibHook *h) {
-    proc_ = p;
-    type_ = h->type_;
-    breakAddr_ = h->breakAddr_;
-    memcpy(h->saved_, saved_, SLH_SAVE_BUFFER_SIZE);
+bool sharedLibHook::reachedBreakAddr(Address b) const {
+#if defined(arch_x86)
+    return ((b-1) == breakAddr_);
+#else
+    return (b == breakAddr_); 
+#endif
+};
+
+sharedLibHook::sharedLibHook(const sharedLibHook *pSLH, process *child) :
+    proc_(child),
+    type_(pSLH->type_),
+    breakAddr_(pSLH->breakAddr_),
+    loadinst_(NULL)
+{
+    // FIXME
+    if (pSLH->loadinst_) {
+        loadinst_ = new instMapping(pSLH->loadinst_, child);
+    }
+    memcpy(saved_, pSLH->saved_, SLH_SAVE_BUFFER_SIZE);
 }
 
+// getSharedObjects: gets a complete list of shared objects in the
+// process. Normally used to initialize the process-level shared objects list.
+
+bool dynamic_linking::getSharedObjects(pdvector<mapped_object *> &mapped_objects) {
+    pdvector<fileDescriptor> descs;
+    
+    if (!processLinkMaps(descs))
+        return false;
+    
+    // Skip first entry: always the a.out
+    for (unsigned i = 0; i < descs.size(); i++) {
+        if (descs[i] != proc->getAOut()->getFileDesc()) {
+            mapped_object *newobj = mapped_object::createMappedObject(descs[i], proc);
+            mapped_objects.push_back(newobj);
+#if defined(cap_save_the_world)
+            setlowestSObaseaddr(descs[i].code());
+#endif
+        }           
+    }
+    return true;
+} /* end getSharedObjects() */
+
+
+#if !defined(os_windows) // Where we don't need it and the compiler complains...
+
+// findChangeToLinkMaps: This routine returns a vector of shared objects
+// that have been deleted or added to the link maps as indicated by
+// change_type.  If an error occurs it sets error_occured to true.
+bool dynamic_linking::findChangeToLinkMaps(u_int &change_type,
+					   pdvector<mapped_object *> &changed_objects) {
+  
+  // get list of current shared objects
+  const pdvector<mapped_object *> &curr_list = proc->mappedObjects();
+  if((change_type == SHAREDOBJECT_REMOVED) && (curr_list.size() == 0)) {
+    return false;
+  }
+
+  // get the list from the process via /proc
+  pdvector<fileDescriptor> new_descs;
+  if (!processLinkMaps(new_descs))
+      return false;
+
+  // Some platforms we set here
+  if (!change_type) {
+      if (curr_list.size() > new_descs.size())
+          change_type = SHAREDOBJECT_REMOVED;
+      else if (curr_list.size() < new_descs.size())
+          change_type = SHAREDOBJECT_ADDED;
+      else
+          change_type = SHAREDOBJECT_NOCHANGE;
+  }
+  
+  
+  // if change_type is add then figure out what has been added
+  if(change_type == SHAREDOBJECT_ADDED) {
+      // Look for the one that doesn't match
+      for (unsigned int i=0; i < new_descs.size(); i++) {
+	  bool found = false;
+	  for (unsigned int j = 0; j < curr_list.size(); j++) {
+#if 0
+              fprintf(stderr, "Comparing %s/0x%x/0x%x/%s/%d to %s/0x%x/0x%x/%s/%d\n",
+                      new_descs[i].file().c_str(),
+                      new_descs[i].code(),
+                      new_descs[i].data(),
+                      new_descs[i].member().c_str(),
+                      new_descs[i].pid(),
+                      curr_list[j]->getFileDesc().file().c_str(),
+                      curr_list[j]->getFileDesc().code(),
+                      curr_list[j]->getFileDesc().data(),
+                      curr_list[j]->getFileDesc().member().c_str(),
+                      curr_list[j]->getFileDesc().pid());
+#endif
+              if (new_descs[i] == curr_list[j]->getFileDesc()) {
+                  found = true;
+                  break;
+              }
+	  }
+	  if (!found) {
+              mapped_object *newobj = mapped_object::createMappedObject(new_descs[i],
+                                                                        proc);
+              changed_objects.push_back(newobj);
+
+
+          // SaveTheWorld bookkeeping
+#if defined(cap_save_the_world)
+              char *tmpStr = new char[1+strlen(newobj->fileName().c_str())];
+              strcpy(tmpStr, newobj->fileName().c_str());
+              if( !strstr(tmpStr, "libdyninstAPI_RT.so") && 
+                  !strstr(tmpStr, "libelf.so")){
+                  //bperr(" dlopen: %s \n", tmpStr);
+                  newobj->openedWithdlopen();
+              }
+              setlowestSObaseaddr(newobj->codeBase());
+              delete [] tmpStr;	              
+              // SaveTheWorld bookkeeping
+#endif
+
+	  }
+      }
+  }
+  // if change_type is remove then figure out what has been removed
+  else if((change_type == SHAREDOBJECT_REMOVED) && (curr_list.size())) {
+      // Look for the one that's not in descs
+      bool stillThere[curr_list.size()];
+      for (unsigned k = 0; k < curr_list.size(); k++) 
+          stillThere[k] = false;
+      
+      for (unsigned int i=0; i < new_descs.size(); i++) {
+	  for (unsigned int j = 0; j < curr_list.size(); j++) {
+              if (new_descs[i] == curr_list[j]->getFileDesc()) {
+                  stillThere[j] = true;
+                  break;
+              }
+	  }
+      }
+
+      for (unsigned l = 0; l < curr_list.size(); l++) {
+          if (!stillThere[l])
+              changed_objects.push_back(curr_list[l]);
+      }
+  }
+  return true;
+}
+
+#else
+bool dynamic_linking::findChangeToLinkMaps(u_int &,
+                                           pdvector<mapped_object *> &) {
+    return true;
+}
+
+#endif // defined(os_windows)
      
