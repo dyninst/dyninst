@@ -51,10 +51,9 @@
 #include "BPatch_edge.h"
 #include "BPatch_loopTreeNode.h"
 
-class int_function; // this should go away
+class int_function;
 class process;
 class pdstring;
-class pdmodule;
 
 typedef BPatch_basicBlockLoop BPatch_loop;
 
@@ -79,19 +78,16 @@ class BPATCH_DLL_EXPORT BPatch_flowGraph : public BPatch_eventLock {
                                      BPatch_Vector<BPatch_basicBlockLoop *> &loops,
                                      pdstring level);
  
-  BPatch_flowGraph (int_function *func, 
-                    process *proc, 
-                    pdmodule *mod, 
-                    bool &valid); 
+  BPatch_flowGraph (BPatch_function *func, 
+		    bool &valid); 
 
+  process *ll_proc() const; // Not implemented here to cut down on header files
+  int_function *ll_func() const;
 public:
 
-  //  The following functions will disappear when paradyn uses dyninst
-  //  DO NOT USE
-  const int_function *getFunction() const { return func; }
-  process *getProcess() const { return proc; }
   BPatch_process *getBProcess() const { return bproc; }
-  const pdmodule *getModule() const { return mod; }
+  BPatch_function *getBFunction() const { return func_; }
+  BPatch_module *getModule() const { return mod; }
   //  End of deprecated function
 
   //  Functions for use by Dyninst users
@@ -151,9 +147,12 @@ public:
   API_EXPORT(Int, (name),
   BPatch_basicBlockLoop *,findLoop,(const char *name));
 
+  /*
   API_EXPORT(Int, (edge),
   BPatch_point *,createInstPointAtEdge,(BPatch_edge *edge));
-
+  */
+  // Deprecated... use BPatch_edge->point() instead
+  
   /** find instrumentation points specified by loc, add to points*/
   API_EXPORT(Int, (loc, loop),
   BPatch_Vector<BPatch_point*> *,
@@ -162,10 +161,9 @@ public:
 
  private:
 
-  int_function *func;
-  process *proc;
+  BPatch_function *func_;
   BPatch_process *bproc;
-  pdmodule *mod;
+  BPatch_module *mod;
 
   /** set of basic blocks that are entry to the control flow graph*/
   BPatch_Set<BPatch_basicBlock*> entryBlock;
@@ -177,7 +175,7 @@ public:
   BPatch_Set<BPatch_basicBlockLoop*> *loops;
   
   /** set of all basic blocks that control flow graph has */
-  BPatch_Set<BPatch_basicBlock*> allBlocks;
+  BPatch_Set<BPatch_basicBlock*, BPatch_basicBlock::compare> allBlocks;
 
   /** root of the tree of loops */
   BPatch_loopTreeNode *loopRoot;
@@ -235,7 +233,6 @@ public:
   void findLoopExitInstPoints(BPatch_basicBlockLoop *loop,
                               BPatch_Vector<BPatch_point*> *points);
 
-  BPatch_process *getBProc();
 };
 
 
