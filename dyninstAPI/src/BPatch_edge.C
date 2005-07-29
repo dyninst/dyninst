@@ -47,9 +47,8 @@
 #include "BPatch_edge.h"
 #include "BPatch_flowGraph.h"
 #include "BPatch_basicBlock.h"
-
-// for setting instPoint->addrInFuc
-#include "instPoint.h" 
+#include "instPoint.h"
+#include "process.h"
 
 pdstring 
 edge_type_string(BPatch_edgeType t)
@@ -117,7 +116,6 @@ void BPatch_edge::BPatch_edgeInt(BPatch_basicBlock *s,
 
     type = getType();
 
-    Address addrInFunc = 0;
 }
 
  
@@ -153,25 +151,42 @@ void BPatch_edge::dumpInt()
 }
 
 
+#if 0
 // Only edges created by conditional jumps need edge trampolines
 bool BPatch_edge::needsEdgeTrampInt()
 {
     return type == CondJumpNottaken || type == CondJumpTaken;
 }
+#endif
 
 
-BPatch_point *
-BPatch_edge::instPoint()
+BPatch_point *BPatch_edge::getPoint()
 {
-    if (!point)
-        point = flowGraph->createInstPointAtEdge(this);
-    // the above may fail
-    if (point)
-	// set instPoint's addrInFunc field for catchup to use
-	(point->getPoint())->addrInFunc = addrInFunc;
-    else
-      fprintf(stderr, "BPatch_edge: didn't create point!\n");
+    if (!point) {
+        // BPatch_points typically represent an instruction. This doesn't;
+        // we can have two per instruction (fallthrough edge and target
+        // edge). Argh. 
+        assert(source);
+        assert(target);
+        Address lastInsnAddr = (Address) source->getLastInsnAddress();
 
+        process *ll_proc = flowGraph->getBProcess()->lowlevel_process();
+        assert(ll_proc);
+
+        instPoint *ip = ll_proc->findInstPByAddr(lastInsnAddr);
+        if (!ip) return NULL;
+        
+        BPatch_point *newPoint = new BPatch_point(flowGraph->getBProcess(),
+                                                  flowGraph->getBFunction(),
+                                                  this,
+                                                  ip);
+        if (newPoint) {
+            point = newPoint;
+        }
+        else {
+            fprintf(stderr, "BPatch_edge: didn't create point!\n");
+        }
+    }
     return point;
 }
 
