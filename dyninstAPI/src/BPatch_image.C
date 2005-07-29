@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.73 2005/06/08 20:58:53 tlmiller Exp $
+// $Id: BPatch_image.C,v 1.74 2005/07/29 19:17:38 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -58,6 +58,8 @@
 #include "BPatch_collections.h"
 #include "BPatch_libInfo.h"
 #include "LineInformation.h"
+#include "BPatch_function.h" 
+
 #include "ast.h"
 
 //
@@ -281,7 +283,8 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModulesInt() {
 
   modules_parsed = true;
 
-  pdvector< module * > * pdModules = proc->llproc->getAllModules();
+  pdvector< module * > pdModules;
+  proc->llproc->getAllModules(pdModules);
 
   unsigned int i, j; 
 
@@ -325,6 +328,7 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModulesInt() {
   return modlist;
 } /* end getModules() */
 #else
+
 BPatch_Vector<BPatch_module *> *BPatch_image::getModulesInt() {
   if( modlist && modules_parsed ) { return modlist; }
 
@@ -335,8 +339,8 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModulesInt() {
 
   modules_parsed = true;
 
-  pdvector< module * > * pdModules = proc->llproc->getAllModules();
-
+  pdvector<mapped_module *> modules;
+  proc->llproc->getAllModules(modules);
   unsigned int i, j; 
 
   /* Generate the BPatch_functions for every module before
@@ -346,16 +350,15 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModulesInt() {
   // things turn into a great big mess.
 
   if (BPatch::bpatch->parseDebugInfo() || !BPatch::bpatch->delayedParsingOn()) {
-     for( i = 0; i < pdModules->size(); i++ ) {
-        pdmodule * currentModule = (pdmodule *) ((* pdModules)[i]);
-        pdvector< int_function * > * currentFunctions = 
-           currentModule->getFunctions();
-        for(j = 0; j < currentFunctions->size(); j++ ) {
+    for( i = 0; i < modules.size(); i++ ) {
+      mapped_module * currentModule = modules[i];
+      const pdvector<int_function *> &currentFunctions = currentModule->getAllFunctions();
+      for(j = 0; j < currentFunctions.size(); j++ ) {
            /* The constructor will try to register the bpf with proc's map,
               so check first.  This happens when, for instance, when we parse libunwind
               during BPatch_thread creation. */
-           if( ! proc->func_map->defines( (* currentFunctions)[j] ) ) {
-              new BPatch_function( proc, (* currentFunctions)[j], NULL );
+           if( ! proc->func_map->defines( currentFunctions[j] ) ) {
+              new BPatch_function( proc, currentFunctions[j], NULL );
            }
         } /* end iteration over functions in modules */
      } /* end initial iteration over modules */
@@ -368,23 +371,23 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModulesInt() {
   
   // We may have created a singleton module already -- check to see that we 
   // don't double-create
-  for( i = 0; i < pdModules->size(); i++ ) {
+  for( i = 0; i < modules.size(); i++ ) {
     BPatch_module *bpm = NULL;
-    pdmodule *pdmod = (pdmodule *)(*pdModules)[i];
-
+    mapped_module *map_mod = modules[i];
+    
     for (j = 0; j < modlist->size(); j++) {
-      if ((*modlist)[j]->getModule() == pdmod) {
-	bpm = (*modlist)[j];
-	break;
-      }
+        if ((*modlist)[j]->getModule() == map_mod) {
+            bpm = (*modlist)[j];
+            break;
+        }
     }
     if (!bpm) {
-      bpm = new BPatch_module( proc, pdmod, this );
-      modlist->push_back( bpm );
+        bpm = new BPatch_module( proc, map_mod, this );
+        modlist->push_back( bpm );
     }
-    
+    bpm->getName(moduleName, 255);
     if( strcmp( bpm->getName( moduleName, 255 ), "DEFAULT_MODULE" ) ) { 
-      defaultModule = bpm; 
+        defaultModule = bpm; 
     }
   } /* end of second iteration over modules */		
   assert( defaultModule != NULL ) ;
@@ -436,12 +439,12 @@ BPatch_module *BPatch_image::findModuleInt(const char *name, bool substring_matc
   //  Or:
   //  Modlist created, but only partially populated.  
  
-  pdmodule *pdmod = proc->llproc->findModule(pdstring(name),substring_match);
-  if (!pdmod) return false;
+  mapped_module *mod = proc->llproc->findModule(pdstring(name),substring_match);
+  if (!mod) return false;
 
   if (!modlist) 
     modlist = new BPatch_Vector<BPatch_module *>;
-  BPatch_module *bpmod = new BPatch_module(proc, pdmod, this);
+  BPatch_module *bpmod = new BPatch_module(proc, mod, this);
   modlist->push_back(bpmod);
 
   return bpmod;
@@ -479,83 +482,84 @@ BPatch_point *BPatch_image::createInstPointAtAddrInt(void *address)
  * address	The address that the instrumenation point should refer to.
  */
 BPatch_point *BPatch_image::createInstPointAtAddrWithAlt(void *address,
-                                                  BPatch_point** alternative,
-                                                  BPatch_function* bpf)
+                                                         BPatch_point** alternative,
+                                                         BPatch_function* bpf)
 {
-    unsigned i;
-    process *llproc = proc->llproc;
-    /* First look in the list of non-standard instPoints. */
-    if (proc->instp_map->defines((Address)address)) {
-        return proc->instp_map->get((Address)address);
-    }
+  Address address_int = (Address) address;
 
-    /* Look in the regular instPoints of the enclosing function. */
-    int_function *func;
-    if(bpf)
-        func = (int_function *) bpf->func;
-    else {
-        codeRange *range = llproc->findCodeRangeByAddress((Address) address);
-        if (!range) {
-            return NULL;
-        }
-        
-        int_function *function_ptr = range->is_function();
-        if (!function_ptr)
-            // Address doesn't correspond to a function
-            return NULL;
-        func = function_ptr;
-    }
-    
-    // If it's in an uninstrumentable function, just return an error.
-    if ( !func || !((int_function*)func)->isInstrumentable()){ 
-        return NULL;
-    }
+  unsigned i;
+  process *llproc = proc->llproc;
 
-    Address pointImageBase = 0;
-    if(!func || !func->pdmod())
-       return NULL;
-    image* pointImage = func->pdmod()->exec();
-    llproc->getBaseAddress((const image*)pointImage,pointImageBase);
+  /* See if there is an instPoint at this address */
+  instPoint *p = NULL;
 
-    if (func != NULL) {
-        instPoint *entry = const_cast<instPoint *>(func->funcEntry(NULL));
-        assert(entry);
-        if ((entry->pointAddr() == (Address)address) ||
-            (pointImageBase && 
-             ((entry->pointAddr() + pointImageBase) == (Address)address))) 
-        {
-            return proc->findOrCreateBPPoint(NULL, entry, BPatch_entry);
-        }
-        
-        const pdvector<instPoint*> &exits = func->funcExits(NULL);
-        for (i = 0; i < exits.size(); i++) {
-            assert(exits[i]);
-            if ((exits[i]->pointAddr() == (Address)address) ||
-                (pointImageBase && 
-                 ((exits[i]->pointAddr() + pointImageBase) == (Address)address))) 
-            {
-                return proc->findOrCreateBPPoint(NULL, exits[i], BPatch_exit);
-            }
-        }
-        
-        const pdvector<instPoint*> &calls = func->funcCalls(NULL);
-        for (i = 0; i < calls.size(); i++) {
-            assert(calls[i]);
-            if ((calls[i]->pointAddr() == (Address)address) ||
-                (pointImageBase && 
-                 ((calls[i]->pointAddr() + pointImageBase) == (Address)address))) 
-            {
-                return proc->findOrCreateBPPoint(NULL, calls[i],
-                                                 BPatch_subroutine);
-            }
-        }
+  if ((p = llproc->findInstPByAddr(address_int))) {
+    return proc->findOrCreateBPPoint(NULL, p, BPatch_locInstruction);
+  }
+
+  /* Look in the regular instPoints of the enclosing function. */
+  /* This has an interesting side effect: "instrument the first
+     instruction" may return with "entry instrumentation", which can
+     have different semantics. */
+  int_function *func;
+  if(bpf)
+    func = (int_function *) bpf->func;
+  else {
+    codeRange *range = llproc->findCodeRangeByAddress(address_int);
+    if (!range) {
+      return NULL;
     }
     
-    if(alternative)
-	*alternative = NULL;
+    int_function *function_ptr = range->is_function();
+    if (!function_ptr)
+      // Address doesn't correspond to a function
+      return NULL;
+    func = function_ptr;
+  }
+  
+  // If it's in an uninstrumentable function, just return an error.
+  if ( !func || !((int_function*)func)->isInstrumentable()){ 
+    return NULL;
+  }
+  
+  if(!func || !func->mod())
+    return NULL;
+  
+  const pdvector<instPoint *> entries = func->funcEntries();
+  for (unsigned t = 0; t < entries.size(); t++) {
+      if (entries[t]->match(address_int))
+          {
+              return proc->findOrCreateBPPoint(NULL, entries[t], BPatch_entry);
+          }
+  }
+  const pdvector<instPoint*> &exits = func->funcExits();
+  for (i = 0; i < exits.size(); i++) {
+    assert(exits[i]);
+    if (exits[i]->match(address_int)) {
+      {
+	return proc->findOrCreateBPPoint(NULL, exits[i], BPatch_exit);
+      }
+    }
+      
+    const pdvector<instPoint*> &calls = func->funcCalls();
+    for (i = 0; i < calls.size(); i++) {
+      assert(calls[i]);
+      if (calls[i]->match(address_int)) 
+	{
+	  return proc->findOrCreateBPPoint(NULL, calls[i],
+					   BPatch_subroutine);
+	}
+    }
+  }
+  
+  if(alternative)
+    *alternative = NULL;
+  
+  /* We don't have an instPoint for this address, so make one. */
+  instPoint *newInstP = instPoint::createArbitraryInstPoint(address_int, proc->llproc);
+  if (!newInstP) return NULL;
 
-    /* We don't have an instPoint for this address, so make one. */
-    return createInstructionInstPoint(proc, address, alternative,bpf);
+  return proc->findOrCreateBPPoint(NULL, newInstP, BPatch_locInstruction);
 }
 
 
@@ -574,6 +578,9 @@ BPatch_point *BPatch_image::createInstPointAtAddrWithAlt(void *address,
  * This function would make a lot more sense as a method of the image class,
  * but it's here since it deals with BPatch_functions and not int_functions.
  */
+// 18APR05: removed, as nobody but the (rewritten) findFunction needed it.
+#ifdef NOT_USED_ANYMORE
+
 void BPatch_image::findFunctionInImage(
 	const char *name, 
 	image *img, 
@@ -602,6 +609,8 @@ void BPatch_image::findFunctionInImage(
   }
 }
 
+#endif
+
 /*
  * BPatch_image::findFunctionPatternInImage
  *
@@ -617,6 +626,7 @@ void BPatch_image::findFunctionInImage(
  * This function would make a lot more sense as a method of the image class,
  * but it's here since it deals with BPatch_functions and not int_functions.
  */
+#ifdef NOT_USED_ANYMORE
 #if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
 void BPatch_image::findFunctionPatternInImage(regex_t *comp_pat, 
 					      image *img, 
@@ -642,6 +652,7 @@ void BPatch_image::findFunctionPatternInImage(regex_t *comp_pat,
   }
 }
 #endif
+#endif
 
 /*
  * BPatch_image::findFunction
@@ -663,29 +674,36 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionInt(
   process *llproc = proc->llproc;
   if (NULL == strpbrk(name, REGEX_CHARSET)) {
     //  usual case, no regex
-    findFunctionInImage(name, llproc->getImage(), &funcs, 
-                        incUninstrumentable);
-    
-    if (llproc->dynamiclinking && llproc->shared_objects) {
-       for(unsigned int j = 0; j < llproc->shared_objects->size(); j++){
-          const image *obj_image = ((*llproc->shared_objects)[j])->getImage();
-          if (obj_image) {
-             findFunctionInImage(name, const_cast<image*>(obj_image), 
-                                 &funcs, incUninstrumentable);
-          }
-       }
+    pdvector<int_function *> foundIntFuncs;
+    if (!llproc->findFuncsByAll(pdstring(name), 
+                                foundIntFuncs)) {
+        // Error callback...
+        if (showError) {
+            pdstring msg = pdstring("Image: Unable to find function: ") + 
+                pdstring(name);
+            BPatch_reportError(BPatchSerious, 100, msg.c_str());
+        }
+        return NULL;
     }
-    
+    // We have a list; if we don't want to include uninstrumentable,
+    // scan and check
+    for (unsigned int fi = 0; fi < foundIntFuncs.size(); fi++) {
+      if (foundIntFuncs[fi]->isInstrumentable() || incUninstrumentable) {
+	BPatch_function *foo = proc->findOrCreateBPFunc(foundIntFuncs[fi], NULL);
+	funcs.push_back(foo);
+      }
+    }
+
     if (funcs.size() > 0) {
-       return &funcs;
+      return &funcs;
     } else {
-       
-       if (showError) {
-          pdstring msg = pdstring("Image: Unable to find function: ") + 
-             pdstring(name);
-          BPatch_reportError(BPatchSerious, 100, msg.c_str());
-       }
-       return NULL;
+      
+      if (showError) {
+	pdstring msg = pdstring("Image: Unable to find function: ") + 
+	  pdstring(name);
+	BPatch_reportError(BPatchSerious, 100, msg.c_str());
+      }
+      return NULL;
     }
   }
   
@@ -713,19 +731,50 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionInt(
       return NULL;
    }
    
-   findFunctionPatternInImage(&comp_pat, llproc->getImage(), &funcs, incUninstrumentable);
-   //cerr << "matched regex: " <<name<<"in symbols, results: "<<funcs.size()<<endl;
+   // Regular expression search. This used to be handled at the image
+   // class level, but was moved up here to simplify semantics. We
+   // have to iterate over every function known to the process at some
+   // point, so it might as well be top-level. This is also an
+   // excellent candidate for a "value-added" library.
 
-   if (llproc->dynamiclinking && llproc->shared_objects) {
-      for(unsigned int j = 0; j < llproc->shared_objects->size(); j++){
-         const image *obj_image = ((*llproc->shared_objects)[j])->getImage();
-         if (obj_image) {
-            findFunctionPatternInImage(&comp_pat, const_cast<image*>(obj_image), &funcs, incUninstrumentable);
-            //cerr << "matched regex: " <<name<<"in so, results: "<<funcs.size()<<endl;
-         }
-      }
+   pdvector<int_function *> all_funcs;
+   llproc->getAllFunctions(all_funcs);
+   
+   for (unsigned ai = 0; ai < all_funcs.size(); ai++) {
+     int_function *func = all_funcs[ai];
+     // If it matches, push onto the vector
+     // Check all pretty names (and then all mangled names if there is no match)
+     bool found_match = false;
+     for (unsigned piter = 0; piter < func->prettyNameVector().size(); piter++) {
+       const pdstring &pName = func->prettyNameVector()[piter];
+       int err;
+     
+       if (0 == (err = regexec(&comp_pat, pName.c_str(), 1, NULL, 0 ))){
+	 if (func->isInstrumentable() || incUninstrumentable) {
+	   BPatch_function *foo = proc->findOrCreateBPFunc(func, NULL);
+	   funcs.push_back(foo);
+	 }
+	 found_match = true;
+	 break;
+       }
+     }
+     if (found_match) continue; // Don't check mangled names
+
+     for (unsigned miter = 0; miter < func->symTabNameVector().size(); miter++) {
+       const pdstring &mName = func->symTabNameVector()[miter];
+       int err;
+     
+       if (0 == (err = regexec(&comp_pat, mName.c_str(), 1, NULL, 0 ))){
+	 if (func->isInstrumentable() || incUninstrumentable) {
+	   BPatch_function *foo = proc->findOrCreateBPFunc(func, NULL);
+	   funcs.push_back(foo);
+	 }
+	 found_match = true;
+	 break;
+       }
+     }
    }
-  
+
    regfree(&comp_pat);
 
    if (funcs.size() > 0) {
@@ -751,6 +800,8 @@ BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionPtr(
 }
 #endif
 
+#if NOT_USED_ANYMORE
+// See earlier comment... we're hiding the image class, and going with a global list of functions.
 void BPatch_image::sieveFunctionsInImage(image *img, BPatch_Vector<BPatch_function *> *funcs,
 					 BPatchFunctionNameSieve bpsieve, void *user_data,
 					 bool incUninstrumentable) 
@@ -770,6 +821,7 @@ void BPatch_image::sieveFunctionsInImage(image *img, BPatch_Vector<BPatch_functi
               funcs->push_back(proc->findOrCreateBPFunc(pdfv[i], NULL));
   }
 }
+#endif
 
 /*
  * BPatch_image::findFunction 2
@@ -791,27 +843,56 @@ BPatch_image::findFunctionWithSieve(BPatch_Vector<BPatch_function *> &funcs,
 			   void *user_data, int showError, 
 			   bool incUninstrumentable)
 {
-   process *llproc = proc->llproc;
-  sieveFunctionsInImage(llproc->getImage(), &funcs, bpsieve, user_data, incUninstrumentable);
+    pdvector<int_function *> all_funcs;
+    proc->llproc->getAllFunctions(all_funcs);
   
-  if (llproc->dynamiclinking && llproc->shared_objects) {
-    for(unsigned int j = 0; j < llproc->shared_objects->size(); j++){
-      const image *obj_image = ((*llproc->shared_objects)[j])->getImage();
-      if (obj_image) {
-	sieveFunctionsInImage(const_cast<image *>(obj_image), &funcs, bpsieve, user_data, incUninstrumentable);
+  for (unsigned ai = 0; ai < all_funcs.size(); ai++) {
+    int_function *func = all_funcs[ai];
+    // If it matches, push onto the vector
+    // Check all pretty names (and then all mangled names if there is no match)
+    bool found_match = false;
+    for (unsigned piter = 0; piter < func->prettyNameVector().size(); piter++) {
+      const pdstring &pName = func->prettyNameVector()[piter];
+
+      if ((*bpsieve)(pName.c_str(), user_data)) {
+	if (func->isInstrumentable() || incUninstrumentable) {
+	  BPatch_function *foo = proc->findOrCreateBPFunc(func, NULL);
+	  funcs.push_back(foo);
+	}
+	found_match = true;
+	break;
       }
     }
+    if (found_match) continue; // Don't check mangled names
+    
+#if 0
+    // Apparently don't check mangled at all
+ 
+    for (unsigned miter = 0; miter < func->symTabNameVector().size(); miter++) {
+      const pdstring &mName = func->symTabNameVector()[miter];
+      int err;
+      
+      if (0 == (err = regexec(&comp_pat, mName.c_str(), 1, NULL, 0 ))){
+	if (func->isInstrumentable() || incUninstrumentable) {
+	  BPatch_function *foo = proc->findOrCreateBPFunc(func, NULL);
+	  funcs.push_back(foo);
+	}
+	found_match = true;
+	break;
+      }
+    }
+#endif
   }
 
   if (funcs.size() > 0) {
     return &funcs;
   } 
-    
+  
   if (showError) {
     const char *msg = "No function matches for sieve provided";
     BPatch_reportError(BPatchSerious, 100, msg);
   }
-
+  
   return NULL;
 }
 
@@ -828,55 +909,64 @@ BPatch_image::findFunctionWithSieve(BPatch_Vector<BPatch_function *> &funcs,
  */
 BPatch_variableExpr *BPatch_image::findVariableInt(const char *name, bool showError)
 {
-   process *llproc = proc->llproc;
-    pdstring full_name = pdstring("_") + pdstring(name);
-    Symbol syminfo;
-    if (!llproc->getSymbolInfo(full_name, syminfo)) {
-       pdstring short_name(name);
-       if (!llproc->getSymbolInfo(short_name, syminfo) && showError) {
-          if (defaultNamespacePrefix) {
-             full_name = pdstring(defaultNamespacePrefix) + "." + name;
-             if (!llproc->getSymbolInfo(full_name, syminfo) && showError) {
-                pdstring msg = pdstring("Unable to find variable: ") + full_name;
-                showErrorCallback(100, msg);
+    pdvector<int_variable *> vars;
+    process *llproc = proc->llproc;
+    
+    if (!llproc->findVarsByAll(name, vars)) {
+        // _name?
+        pdstring under_name = pdstring("_") + pdstring(name);
+        if (!llproc->findVarsByAll(under_name, vars)) {
+            // "default Namespace prefix?
+            if (defaultNamespacePrefix) {
+                pdstring prefix_name = pdstring(defaultNamespacePrefix) + pdstring(".") + pdstring(name);
+                if (!llproc->findVarsByAll(prefix_name, vars)) {
+                    if (showError) {
+                        pdstring msg = pdstring("Unable to find variable: ") + pdstring(prefix_name);
+                        showErrorCallback(100, msg);
+                    }
+                    return NULL;
+                }
+            } else {
+                if (showError) {
+                    pdstring msg = pdstring("Unable to find variable: ") + pdstring(name);
+                    showErrorCallback(100, msg);
+                }
                 return NULL;
-             }
-          } else if (showError) {
-             pdstring msg = pdstring("Unable to find variable: ") + pdstring(name);
-             showErrorCallback(100, msg);
-             return NULL;
-          }
-       }
+            }
+        }
+    }
+    assert(vars.size());
+   
+    if (vars.size() > 1) {
+        cerr << "Warning: found multiple matches for var " << name << endl;
     }
 
-    /* FIXME: this will probably cause DWARF to explode. */
-    if( syminfo.type() == Symbol::PDST_FUNCTION)
-      return NULL;
-    
-    BPatch_variableExpr *bpvar = AddrToVarExpr->hash[syminfo.addr()];
+    int_variable *var = vars[0];
+
+    BPatch_variableExpr *bpvar = AddrToVarExpr->hash[var->getAddress()];
     if (bpvar) {
-      return bpvar;
+        return bpvar;
     }
     // XXX - should this stuff really be by image ??? jkh 3/19/99
     BPatch_Vector<BPatch_module *> *mods = getModules();
     BPatch_type *type = NULL;
     for (unsigned int m = 0; m < mods->size(); m++) {
-	BPatch_module *module = (*mods)[m];
-	//bperr("The moduleType address is : %x\n", &(module->getModuleTypes()));
-	type = module->getModuleTypes()->findVariableType(name);
-	if (type) {
-	  break;
-	}	  
+        BPatch_module *module = (*mods)[m];
+        //bperr("The moduleType address is : %x\n", &(module->getModuleTypes()));
+        type = module->getModuleTypes()->findVariableType(name);
+        if (type) {
+            break;
+        }	  
     }
     if (!type) {
         type = BPatch::bpatch->type_Untyped;
     }
-
+    
     char *nameCopy = strdup(name);
     assert(nameCopy);
     BPatch_variableExpr *ret = new BPatch_variableExpr((char *) nameCopy, 
-          proc, (void *)syminfo.addr(), (const BPatch_type *) type);
-    AddrToVarExpr->hash[syminfo.addr()] = ret;
+                                                       proc, (void *)var->getAddress(), (const BPatch_type *) type);
+    AddrToVarExpr->hash[var->getAddress()] = ret;
     return ret;
 }
 
@@ -1016,7 +1106,12 @@ bool BPatch_image::getAddressRangesInt( const char * lineSource, unsigned int li
 
 char *BPatch_image::getProgramNameInt(char *name, unsigned int len) 
 {
-  const char *imname =  proc->llproc->getImage()->name().c_str();
+  if (!proc->llproc->mappedObjects().size()) {
+    // No program defined yet
+    strncpy(name, "<no program defined>", len);
+  }
+ 
+  const char *imname =  proc->llproc->getAOut()->fullName().c_str();
   if (NULL == imname) imname = "<unnamed image>";
 
   strncpy(name, imname, len);
@@ -1025,7 +1120,12 @@ char *BPatch_image::getProgramNameInt(char *name, unsigned int len)
 
 char *BPatch_image::getProgramFileNameInt(char *name, unsigned int len)
 {
-  const char *imname =  proc->llproc->getImage()->file().c_str();
+  if (!proc->llproc->mappedObjects().size()) {
+    // No program defined yet
+    strncpy(name, "<no program defined>", len);
+  }
+ 
+  const char *imname =  proc->llproc->getAOut()->fileName().c_str();
   if (NULL == imname) imname = "<unnamed image file>";
 
   strncpy(name, imname, len);

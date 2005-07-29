@@ -82,14 +82,21 @@ class BPatch_funcMap {
 };
 
 class BPatch_instpMap {
-   dictionary_hash<Address, BPatch_point *> chart;
+  // Note: if we ever have multiple BPatch_points to a single
+  // instPoint (frex, a BPatch_point representing a loop backedge and
+  // a BPatch_point representing the same edge in the CFG), this will
+  // be an instPoint -> vector for BPatch_point map
+   dictionary_hash<const instPoint *, BPatch_point *> chart;
+   static unsigned hash_ip(const instPoint *const &ip) {
+     return (addrHash4((Address)ip));
+   }
  public:
-   BPatch_instpMap() : chart(hash_address) {}
+   BPatch_instpMap() : chart(hash_ip) {}
    ~BPatch_instpMap() { chart.clear(); }
 
-   bool defines(Address a) { return chart.defines(a); }
-   void add(Address a, BPatch_point *bp) { chart[a] = bp; }
-   BPatch_point *get(Address a) { return chart[a]; }
+   bool defines(instPoint *a) { return chart.defines(a); }
+   void add(instPoint *a, BPatch_point *bp) { chart[a] = bp; }
+   BPatch_point *get(const instPoint *a) { return chart[a]; }
 };
 
 #endif /* _BPatch_libInfo_h_ */
