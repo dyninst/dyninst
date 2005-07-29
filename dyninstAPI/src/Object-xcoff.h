@@ -41,7 +41,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.11 2004/03/28 03:37:46 jodom Exp $
+ * $Id: Object-xcoff.h,v 1.12 2005/07/29 19:18:03 bernat Exp $
 ************************************************************************/
 
 
@@ -76,36 +76,6 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-
-class fileDescriptor_AIX : public fileDescriptor {
- public:
-
-  fileDescriptor_AIX():fileDescriptor(), member_(0), data_(0), 
-    pid_(0), is_aout_(0) {}
-  fileDescriptor_AIX(pdstring file):fileDescriptor(file), member_(0),
-    data_(0), pid_(0), is_aout_(0) {}
-  fileDescriptor_AIX(pdstring file, pdstring member,
-		     Address text, Address data,
-		     unsigned pid, bool is_aout) :
-    fileDescriptor(file, text), member_(member), 
-    data_(data), pid_(pid), is_aout_(is_aout) {}
-
-  fileDescriptor_AIX(const fileDescriptor_AIX &fda) :
-    fileDescriptor(fda.file_, fda.addr_),
-    member_(fda.member_), data_(fda.data_), 
-    pid_(fda.pid_), is_aout_(fda.is_aout_) {}
-  ~fileDescriptor_AIX() {}
-
-  const pdstring &member() const { return member_; }
-  Address data() const { return data_; }
-  unsigned pid() const { return pid_; }
-  bool is_aout() const { return is_aout_; }
- private:
-  pdstring member_;
-  Address data_;
-  unsigned pid_;
-  bool is_aout_;
-};
 
 
 #define __AR_BIG__
@@ -161,11 +131,8 @@ class Archive_64 : private Archive {
 
 class Object : public AObject {
 public:
-             Object (const pdstring, void (*)(const char *) = log_msg);
              Object (const Object &);
-	     Object (const pdstring, const Address baseAddr,
-                void (*)(const char *) = log_msg);
-	     Object (fileDescriptor *desc,Address baseAddr = 0,
+	     Object (const fileDescriptor &desc,
                 void (*)(const char *) = log_msg);
     ~Object ();
 
@@ -186,9 +153,9 @@ public:
 	fdptr = linesfdptr_;
     }
 
-    void load_object (bool is_aout, Address baseAddr);
-    void load_archive(int fd, bool is_aout, Address baseAddr);
-    void parse_aout(int fd, int offset, bool is_aout, Address baseAddr = 0);
+    void load_object (bool is_aout);
+    void load_archive(int fd, bool is_aout);
+    void parse_aout(int fd, int offset, bool is_aout);
     bool isEEL() const { return false; }
 
     pdstring member_;

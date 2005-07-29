@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.49 2005/03/14 22:31:58 tlmiller Exp $
+ * $Id: Object.h,v 1.50 2005/07/29 19:18:05 bernat Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -64,40 +64,82 @@ extern int symbol_compare(const Symbol &s1, const Symbol &s2);
 
 // File descriptor information
 class fileDescriptor {
+    static pdstring emptyString;
  public:
-  fileDescriptor():file_(0), addr_(0), shared_(false){}
-  fileDescriptor(pdstring file):file_(file), addr_(0), shared_(false){}
-  fileDescriptor(pdstring file, Address addr):file_(file), addr_(addr), shared_(true){}
-  fileDescriptor(pdstring file, Address addr, bool isShared):file_(file), addr_(addr), shared_(isShared){}
-  
-  fileDescriptor(const fileDescriptor &fd) : file_(fd.file_), addr_(fd.addr_),
-    shared_(fd.shared_) {}
-  virtual ~fileDescriptor() {}
-  
-  bool operator==(const fileDescriptor &fd) const
-  {
-    return IsEqual( &fd );
-  }
+    // Vector requires an empty constructor
+    fileDescriptor();
 
+    // 
+    // Some platforms have split code and data. If yours is not one of them,
+    // hand in the same address for code and data.
+    fileDescriptor(pdstring file, Address code, Address data, bool isShared) :
+        file_(file),
+        member_(emptyString),
+        code_(code),
+        data_(data),
+        shared_(isShared),
+        pid_(0)
+        {}
   
-  const pdstring &file() const { return file_; }
-  Address addr() const { return addr_; };
-  bool isSharedObject() const { return shared_; }
+     ~fileDescriptor() {}
+  
+     bool operator==(const fileDescriptor &fd) const {
+         return IsEqual(fd );
+     }
+     
+     bool operator!=(const fileDescriptor &fd) const {
+         return !IsEqual(fd);
+     }
+     
+     
+     const pdstring &file() const { return file_; }
+     const pdstring &member() const { return member_; }
+     Address code() const { return code_; };
+     Address data() const { return data_; };
+     bool isSharedObject() const { return shared_; }
+     int pid() const { return pid_; }
+     
+     void setMember(pdstring member) { member_ = member; }
+     void setPid(int pid) { pid_ = pid; }
 
- protected:
-  pdstring file_;
-  Address addr_;
-  bool shared_;
+#if defined(os_windows)
+     // Windows gives you file handles. Since I collapsed the fileDescriptors
+     // to avoid having to track allocated/deallocated memory, these moved here.
+     fileDescriptor(pdstring name, Address baseAddr, HANDLE procH, HANDLE fileH) :
+         file_(name), code_(baseAddr), data_(baseAddr), 
+         procHandle_(procH), fileHandle_(fileH),
+         shared_(true) {}
+     HANDLE procHandle() const { return procHandle_; }
+     HANDLE fileHandle() const { return fileHandle_; }
 
-  virtual bool IsEqual( const fileDescriptor* fd ) const
-  {
-    if ((file_ == fd->file_) &&
-	(addr_ == fd->addr_) &&
-	(shared_ == fd->shared_))
-      return true;
-    else
-      return false;
-  }
+ private:
+     HANDLE procHandle_;
+     HANDLE fileHandle_;
+ public:
+#endif
+     
+     
+ private:
+     pdstring file_;
+     // AIX: two strings define an object.
+     pdstring member_; 
+     Address code_;
+     Address data_;
+     bool shared_;
+     int pid_;
+     
+     bool IsEqual( const fileDescriptor &fd ) const
+         {
+             // Don't test isShared, only file name and addresses
+             if ((file_ == fd.file_) &&
+                 (code_ == fd.code_) &&
+                 (data_ == fd.data_) &&
+                 (member_ == fd.member_) &&
+                 (pid_ == fd.pid_))
+                 return true;
+             else
+                 return false;
+         }
 };
 
 // relocation information for calls to functions not in this image
@@ -156,11 +198,11 @@ public:
     	return true;
     }
 
-    const Word*       code_ptr () const { return code_ptr_; } 
+    Word*       code_ptr () const { return code_ptr_; } 
     Address           code_off () const { return code_off_; }
     Address           code_len () const { return code_len_; }
 
-    const Word*       data_ptr () const { return data_ptr_; }
+    Word*       data_ptr () const { return data_ptr_; }
     Address           data_off () const { return data_off_; }
     Address           data_len () const { return data_len_; }
 

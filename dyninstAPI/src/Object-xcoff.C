@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.39 2005/03/14 22:31:57 tlmiller Exp $
+// $Id: Object-xcoff.C,v 1.40 2005/07/29 19:18:02 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -79,7 +79,7 @@
 
 #include "dyninstAPI/src/showerror.h"
 #include "common/h/debugOstream.h"
-#include "arch-power.h"
+#include "arch.h"
 
 #if defined(AIX_PROC)
 #include <sys/procfs.h>
@@ -322,7 +322,9 @@ bool read_from_mem(int pid, Address in_traced, Address in_self, int size) {
         return false;
     }
     
-    int bytesread = pread(fd, (void *)in_self, size, (off_t) in_traced);
+    int bytesread = pread64(fd, (void *)in_self, size, (off64_t) in_traced);
+    if (bytesread == -1) 
+        perror("read_from_mem");
     close(fd);
     return (bytesread == size);
 }
@@ -354,15 +356,8 @@ bool read_from_mem(int pid, Address in_traced, Address in_self, int size) {
 #endif
 
 
-// baseAddr: new field. The address that the rest of the system thinks
-// the library is loaded at. So subtract that from code_off_ and all symbol
-// addresses (before we return).
-
-void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
+void Object::parse_aout(int fd, int offset, bool is_aout)
 {
-    // a.out function addresses are absolute
-    if (is_aout) baseAddr = 0;
-    
    // all these vrble declarations need to be up here due to the gotos,
    // which mustn't cross vrble initializations.  Too bad.
    long i,j;
@@ -510,101 +505,85 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
    // text_reloc: that + value will get you a cup of coffee... the location in
    //               memory where that file's instructions start.
    //           = "text relocation value" = text_org + scnptr - text_start
-   if (text_org_ != (unsigned) -1) { // -1 == illegal flag value, assume 0
-     text_reloc = text_org_ + sectHdr[aout.o_sntext-1].s_scnptr - aout.text_start;
-     // code_off_ is the value in memory such that code_ptr[x] == code_off_ + x
-     code_off_ = text_org_ + sectHdr[aout.o_sntext-1].s_scnptr;
-     if (!is_aout) {
-         text_reloc -= baseAddr;
-         code_off_ -= baseAddr;
-     }
-   }
-   else {
-     text_reloc = 0; code_off_ = 0; // set to illegal
-   }
-   code_len_ = aout.tsize;
 
+   text_reloc = sectHdr[aout.o_sntext-1].s_scnptr - aout.text_start;
+   // code_off_ is the value in memory such that code_ptr[x] == code_off_ + x
+   //code_off_ = text_org_ + sectHdr[aout.o_sntext-1].s_scnptr;
+   // Offset, not absolute, so don't add text_org_
+   code_off_ = sectHdr[aout.o_sntext-1].s_scnptr;
+   
+   code_len_ = aout.tsize;
+   
    //FIND LOADER INFO!
-   if( text_org_ != (unsigned) -1 ){
-       loader_off_ =  text_org_ +  sectHdr[aout.o_snloader-1].s_scnptr;
-       loader_len_ = sectHdr[aout.o_snloader-1].s_size; 
-   }else{
-       loader_off_ = 0;
-       loader_len_ = 0;
-   }
+
+   loader_off_ = sectHdr[aout.o_snloader-1].s_scnptr;
+   loader_len_ = sectHdr[aout.o_snloader-1].s_size; 
 
    if (!seekAndRead(fd, roundup4(sectHdr[aout.o_sntext-1].s_scnptr) + offset,
 		    (void **) &code_ptr_, aout.tsize, true))
-     PARSE_AOUT_DIE("Reading text segment", 49);
-
+       PARSE_AOUT_DIE("Reading text segment", 49);
+   
 #ifdef DEBUG
-   bperr( "text_org_ = %x, scnptr = %x, text_start = %x\n",
+   fprintf(stderr, "text_org_ = %x, scnptr = %x, text_start = %x\n",
 	   (unsigned) text_org_, sectHdr[aout.o_sntext-1].s_scnptr, 
 	   (unsigned) aout.text_start);
-   bperr( "Code pointer: %x, reloc: %x, offset: %x, length: %x\n",
+   fprintf(stderr, "Code pointer: %x, reloc: %x, offset: %x, length: %x\n",
 	   (unsigned) code_ptr_, (unsigned) text_reloc,
 	   (unsigned) code_off_, (unsigned) code_len_);
 #endif
-
+   
    // data_reloc = "relocation value" = data_org_ - aout.data_start
-   if (data_org_ != (unsigned) -1) {
-       data_reloc_ = data_org_ - aout.data_start;
-       // We're forced to get the data segment through ptrace/proc. While
-       // some of the shared libraries are accessible from both the 
-       // mutator and mutatee, all of them are not necessarily mapped. 
-       // Not to mention, things like the table of contents (TOC) are
-       // filled in at load time. Oy.
-       data_ptr_ = (Word *)malloc(aout.dsize);
-
-       // I've seen the data_org_ value start on a halfword-aligned boundary.
-       // Since the first two bytes don't matter that I can tell, we round
-       // to word alignment
-       
-       // Here's a fun one. For the a.out file, we normally have the data in
-       // segment 2 (0x200...). This is not always the case. Programs compiled
-       // with the -bmaxdata flag have the heap in segment 3. In this case, change
-       // the lower bound for the allocation constants in aix.C.
-       extern Address data_low_addr;
-       if (is_aout) {
-           if (data_org_ >= 0x30000000)
+   
+   // I've seen the data_org_ value start on a halfword-aligned boundary.
+   // Since the first two bytes don't matter that I can tell, we round
+   // to word alignment
+   // Oh, and data_start too. And the scnptr... round all of them up.
+   aout.data_start = roundup4(aout.data_start);
+   
+   data_reloc_ = aout.data_start;
+   // We're forced to get the data segment through ptrace/proc. While
+   // some of the shared libraries are accessible from both the 
+   // mutator and mutatee, all of them are not necessarily mapped. 
+   // Not to mention, things like the table of contents (TOC) are
+   // filled in at load time. Oy.
+   data_ptr_ = (Word *)malloc(aout.dsize);
+   
+   
+   // Here's a fun one. For the a.out file, we normally have the data in
+   // segment 2 (0x200...). This is not always the case. Programs compiled
+   // with the -bmaxdata flag have the heap in segment 3. In this case, change
+   // the lower bound for the allocation constants in aix.C.
+   extern Address data_low_addr;
+   if (is_aout) {
+       if (data_org_ >= 0x30000000)
            {
                data_low_addr = 0x30000000;
            }
-           else
+       else
            {
                data_low_addr = 0x20000000;
            }
-       }
-
-#ifdef DEBUG
-     bperr( "data_org_ = %x, data_start = %x\n",
-	     (unsigned) data_org_, 
-	     (unsigned) aout.data_start);
-     bperr( "Data pointer: %x, reloc: %x\n",
-	     (unsigned) data_ptr_, (unsigned) data_reloc_);
-#endif
-     if (!read_from_mem(pid_, roundup4(data_org_),
-                        (Address) data_ptr_, 
-                        aout.dsize)) {
-         // This happens quite often
-     }
-     
-     // data_off_ is the value subtracted from an (absolute) address to
-     // give an offset into the mutator's copy of the data
-     data_off_ = data_org_;
-
-     if (!is_aout) {
-         data_off_ -= baseAddr;
-         data_reloc_ -= baseAddr;
-     }
-   }
-   else {
-       data_reloc_ = 0;
-       data_off_ = 0;
    }
    
 #ifdef DEBUG
-   bperr("data_org_ = %x, scnptr = %x, data_start = %x\n",
+   bperr( "data_org_ = %x, data_start = %x\n",
+          (unsigned) data_org_, 
+          (unsigned) aout.data_start);
+   bperr( "Data pointer: %x, reloc: %x\n",
+          (unsigned) data_ptr_, (unsigned) data_reloc_);
+#endif
+   
+   if (!read_from_mem(pid_, data_org_,
+                      (Address) data_ptr_, 
+                      aout.dsize)) {
+       // This happens quite often
+       cerr << "Warning, memory read failed; data is likely garbage" << endl;
+   }
+   
+   data_off_ = 0;
+   
+#ifdef DEBUG
+   fprintf(stderr, "data_org_ = %x, scnptr = %x, data_start = %x\n",
 	   (unsigned) data_org_, sectHdr[aout.o_sndata-1].s_scnptr, 
 	   (unsigned) aout.data_start);
 #endif
@@ -612,7 +591,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
    data_len_ = aout.dsize;
 
 #ifdef DEBUG
-   bperr( "Data pointer: %x, reloc: %x, offset: %x, length: %x\n",
+   fprintf(stderr,  "Data pointer: %x, reloc: %x, offset: %x, length: %x\n",
 	   (unsigned) data_ptr_, (unsigned) data_reloc_, 
 	   (unsigned) data_off_, (unsigned) data_len_);
 #endif
@@ -700,7 +679,10 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
          
          if (sym->n_scnum == aout.o_sntext) {
              type = Symbol::PDST_FUNCTION;
+             // Trying to make this an offset from the text_org_ addr
              value = sym->n_value + text_reloc;
+             //fprintf(stderr, "Text symbol %s, at 0x%x (0x%x + 0x%x)\n",
+             //name.c_str(), value, sym->n_value, text_reloc);
          } else {
              // bss or data
              csect = (union auxent *)
@@ -709,7 +691,8 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
              if (csect->x_csect.x_smclas == XMC_TC0) { 
                  if (toc_offset)
                      logLine("Found more than one XMC_TC0 entry.");
-                 toc_offset = sym->n_value + data_reloc_;
+                 toc_offset = sym->n_value - data_reloc_;
+                 //fprintf(stderr, "TOC anchor at 0x%x\n", toc_offset);
                  continue;
              }
              
@@ -720,7 +703,19 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
                continue;
            }
            type = Symbol::PDST_OBJECT;
-           value = sym->n_value + data_reloc_;
+
+           if (sym->n_value < aout.data_start) {
+               // Very strange; skip
+               continue;
+           }
+
+           value = sym->n_value - data_reloc_;
+
+
+           // Shift it back down; data_org will be added back in later.
+
+           //fprintf(stderr, "Sym %s, at 0x%x (0x%x - 0x%x)\n",
+           //      name.c_str(), value, sym->n_value, data_reloc_);
        }
        
        // skip .text entries
@@ -745,7 +740,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
            Word *inst = (Word *)((char *)code_ptr_ + value - code_off_);
            // If the instruction we got is a unconditional branch, flag it.
            // I've seen that in some MPI functions as a poor man's aliasing
-           instruction instr;
+           instructUnion instr;
            instr.raw = inst[0];
            if ((instr.iform.op == Bop) &&
                (instr.iform.lk == 0))
@@ -770,7 +765,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
        if (size == 0x18) {
            // See if this is linkage code
            Word *inst = (Word *)((char *)code_ptr_ + value - code_off_);
-           instruction lr12, lr0, bctr;
+           instructUnion lr12, lr0, bctr;
            lr12.raw = inst[0];
            lr0.raw = inst[2];
            bctr.raw = inst[5];
@@ -809,6 +804,8 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
        if( name == "_start" )
            foundStart = true;
 
+       //       fprintf(stderr, "Symbol %s, mod %s, size %d\n",
+       //name.c_str(), modName.c_str(), size);
        Symbol sym(name, modName, type, linkage, value, false, size);
        
        // If we don't want the function size for some reason, comment out
@@ -903,7 +900,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
        //for exit and main
       
        int c;
-       instruction i;
+       instructUnion i;
        int calls = 0;
        
        for( c = 0; code_ptr_[ c ] != 0; c++ );
@@ -924,7 +921,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
            c--;
        }
        
-       Address currAddr = aout.text_start + c * sizeof( instruction );
+       Address currAddr = aout.text_start + c * instruction::size();
        Address mainAddr = 0;
        
        if( ( i.iform.op == Bop ) || ( i.bform.op == BCop ) )
@@ -991,45 +988,47 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
    //to be. the loader could put it before .text, after .data, before .data
    //but beyond 0x1ffffffc, somewhere in ohio.
 
-   
+   // So if loader is near the rest of the text segment, avoid it.
 
-   if( loader_len_ && loader_off_  && is_aout 
-       && ( (loader_off_+ loader_len_) > (code_off_ + code_len_  ))
-       && ((loader_off_+ loader_len_) < 0x1ffffffc) ){
+   heapAddr = 0;
+       // Pick bigger of loader and code, as long as loader is in the same segment
+   
+   if (is_aout &&
+       (loader_off_+loader_len_ < 0x10000000) &&
+       ((loader_off_ + loader_len_) > code_off_ + code_len_))
        heapAddr = loader_off_ + loader_len_;
-   }else{
+   else
        heapAddr = code_off_ + code_len_;
-   }
+
    // MT: I've seen problems writing into a "found" heap that is in the application
    // heap (IE a dlopen'ed library). Since we don't have any problems getting memory
    // there, I'm skipping any heap that is in 0x2.....
-   if (baseAddr < 0x20000000 || 
-       baseAddr >= 0xd0000000) {
+   if (text_org_ < 0x20000000 || 
+       text_org_ >= 0xd0000000) {
        // Word-align the heap
-       heapAddr += (sizeof(instruction)) - (heapAddr % sizeof(instruction));
+       heapAddr += (instruction::size()) - (heapAddr % instruction::size());
        
        // Get the appropriate length
        if (is_aout) // main application binary
-           heapLen = 0x1ffffffc - heapAddr;
+           heapLen = (0x1ffffffc - text_org_) - heapAddr;
        else {
            heapLen = PAGESIZE - (heapAddr % PAGESIZE);
        }
+
        char name_scratch[256];
        sprintf(name_scratch, "DYNINSTstaticHeap_%i_uncopiedHeap_%x_scratchpage",
                (unsigned) heapLen,
                (unsigned) heapAddr);
        name = pdstring(name_scratch);
        modName = pdstring("DYNINSTheap");
-       heapSym = Symbol(name, modName, Symbol::PDST_OBJECT, 
+       heapSym = Symbol(name, modName, Symbol::PDST_FUNCTION, 
                         Symbol::SL_UNKNOWN, heapAddr,
                         false, (int) heapLen);
+
        symbols_[name].push_back( heapSym );
    }
    
-   // Set the table of contents offset
-   // We parse it as an offset above -- we want it as an absolute, so add in
-   // the baseAddr of the object.
-   toc_offset_ = toc_offset + baseAddr;
+   toc_offset_ = toc_offset;
       
    code_vldS_ = code_off_;
    code_vldE_ = code_off_ + code_len_;
@@ -1072,7 +1071,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout, Address baseAddr)
       return; \
       }
 
-void Object::load_archive(int fd, bool is_aout, Address baseAddr)
+void Object::load_archive(int fd, bool is_aout)
 {
   Archive *archive;
 
@@ -1116,7 +1115,7 @@ void Object::load_archive(int fd, bool is_aout, Address baseAddr)
     {
       // At this point, we should be able to read the a.out 
       // file header. 
-      parse_aout(fd, archive->aout_offset, is_aout, baseAddr);
+      parse_aout(fd, archive->aout_offset, is_aout);
     }
   else
     bperr( "Member name %s not found in archive %s!\n",
@@ -1129,7 +1128,7 @@ void Object::load_archive(int fd, bool is_aout, Address baseAddr)
 // file type (archive or a.out). Assumes that two bytes are
 // enough to identify the file format. 
 
-void Object::load_object(bool is_aout, Address baseAddr)
+void Object::load_object(bool is_aout)
 {
   // Load in an object (archive, object, .so)
   int fd = 0;
@@ -1161,13 +1160,13 @@ void Object::load_object(bool is_aout, Address baseAddr)
   // or magic number = "<a", actually "<aiaff>"
   if (magic_number[0] == 0x01) {
     if (magic_number[1] == 0xdf)
-      parse_aout(fd, 0, is_aout, baseAddr);
+      parse_aout(fd, 0, is_aout);
     else 
       //parse_aout_64(fd, 0);
       bperr( "Don't handle 64 bit files yet");
   }
   else if (magic_number[0] == '<') // archive of some sort
-    load_archive(fd, is_aout, baseAddr);
+    load_archive(fd, is_aout);
   else // Fallthrough
     { 
       sprintf(errorLine, "Bad magic number in file %s\n",
@@ -1187,53 +1186,29 @@ void Object::load_object(bool is_aout, Address baseAddr)
 // since static objects are just a.outs, we can use the same
 // function for all
 
-Object::Object(const pdstring file, void (*err_func)(const char *))
-  : AObject(file, err_func) {
-  cerr << "In illegal constructor Object(pdstring, addr, func)" << endl;
-  text_org_ = 0;
-  data_org_ = 0;
-  member_ = "";
-  pid_ = 0;
-  load_object(true, 0);
-}
-
 Object::Object(const Object& obj)
     : AObject(obj) {
   // Copy over org data
   // You know, this really should never be called, but be careful.
   text_org_ = obj.text_org_;
   data_org_ = obj.data_org_;
+  member_ = obj.member_;
   pid_ = obj.pid_;
-  load_object(false, 0);
-}
-
-// For shared object files
-Object::Object(const pdstring file,Address addr,void (*err_func)(const char *))
-    : AObject(file, err_func) {
-  // Okay, interface limitation problems here. We're parsed a 
-  // library name (file) and a text relocation address (addr),
-  // and we want a member name and data relocation address.
-  // Tough.
-
-  cerr << "In illegal constructor Object(pdstring, addr, func)" << endl;
-
-  text_org_ = addr;
-  data_org_ = 0;
-  member_ = "";
-  pid_ = 0;
-  load_object(false, 0);
+  load_object(false);
 }
 
 // More general object creation mechanism
-Object::Object(fileDescriptor *desc, Address baseAddr, void (*err_func)(const char *))
-        : AObject(desc->file(), err_func) {
+Object::Object(const fileDescriptor &desc, void (*err_func)(const char *))
+    : AObject(desc.file(), err_func) {
     // We're passed a descriptor object that contains everything needed.
-    fileDescriptor_AIX *fda = (fileDescriptor_AIX *)desc;
-    text_org_ = fda->addr();
-    data_org_ = fda->data();
-    member_ = fda->member();
-    pid_ = fda->pid();
-    load_object(fda->is_aout(), baseAddr);
+    text_org_ = desc.code();
+    data_org_ = desc.data();
+    member_ = desc.member();
+    pid_ = desc.pid();
+    
+    // We want this to be "if a.out", so... 
+    
+    load_object(!desc.isSharedObject());
 }
 
 Object::~Object() 

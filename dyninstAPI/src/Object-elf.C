@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.90 2005/06/23 18:27:26 legendre Exp $
+ * $Id: Object-elf.C,v 1.91 2005/07/29 19:17:58 bernat Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -895,12 +895,12 @@ void Object::findMain( pdvector< Symbol > &allsymbols )
         const int pushCodeSize = 1;
         
         instruction insn;
-        insn.getNextInstruction( p );
+        insn.setInstruction( p );
     
         while( !insn.isCall() )
         {
             p += insn.size();
-            insn.getNextInstruction( p );
+            insn.setInstruction( p );
         }
         p -= insn.size() - pushCodeSize;
         
@@ -2074,25 +2074,11 @@ stab_entry *Object::get_stab_info() const
     return new stab_entry_64();
 }
 
-Object::Object(const pdstring file, void (*err_func)(const char *))
-    : AObject(file, err_func), EEL(false), symbolNamesByAddr( addrHash ) {
-    load_object();
-    //dump_state_info(cerr);
-}
-
-Object::Object(const pdstring file, const Address /*baseAddr*/, 
-	       void (*err_func)(const char *))
-    : AObject(file, err_func), EEL(false), symbolNamesByAddr( addrHash )  {
-    load_shared_object();
-    //dump_state_info(cerr);
-}
-
-Object::Object(fileDescriptor *desc, Address /*baseAddr*/, void (*err_func)(const char *))
-  : AObject(desc->file(), err_func), EEL(false), symbolNamesByAddr( addrHash ) { //ccw 8 mar 2004
-  if (desc->isSharedObject())
-    load_shared_object();
-  else load_object();
-    
+Object::Object(const fileDescriptor &desc, void (*err_func)(const char *))
+    : AObject(desc.file(), err_func), EEL(false), symbolNamesByAddr( addrHash ) { //ccw 8 mar 2004
+    if (desc.isSharedObject())
+        load_shared_object();
+    else load_object();
 }
 
 Object::Object(const Object& obj)

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.65 2005/06/23 18:27:27 legendre Exp $
+ * $Id: Object-elf.h,v 1.66 2005/07/29 19:17:59 bernat Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -193,14 +193,8 @@ class Object : public AObject {
     void findMain( pdvector< Symbol > &allsymbols );
     Address findDynamic( pdvector< Symbol > &allsymbols );
     bool shared();
-  // executable ctor
-  Object(const pdstring, 
-	 void (*)(const char *) = log_msg);
-  // shared object ctor
-  Object(const pdstring, const Address base, 
-	 void (*)(const char *) = log_msg);  
   // "Filedescriptor" ctor
-  Object(fileDescriptor *desc, Address baseAddr =0 , void (*)(const char *) = log_msg);
+  Object(const fileDescriptor &desc, void (*)(const char *) = log_msg);
   Object(const Object &);
   virtual ~Object();
   const Object& operator=(const Object &);

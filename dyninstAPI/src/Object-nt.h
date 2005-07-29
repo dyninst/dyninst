@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.29 2005/03/15 23:19:24 tlmiller Exp $
+ * $Id: Object-nt.h,v 1.30 2005/07/29 19:18:01 bernat Exp $
 ************************************************************************/
 
 
@@ -67,50 +67,6 @@
 #include <windows.h>
 
 class ExceptionBlock;
-
-class fileDescriptor_Win : public fileDescriptor
-{
-private:
-    HANDLE hProc;
-    HANDLE hFile;
-
-public:
-    fileDescriptor_Win( pdstring file,
-                        HANDLE _hProc,
-                        Address _baseAddr = 0,
-                        HANDLE _hFile = NULL )
-      : fileDescriptor( file, _baseAddr, _baseAddr != 0 ),
-        hProc( _hProc ),
-        hFile( _hFile )
-    { }
-	fileDescriptor_Win( const fileDescriptor_Win& desc )
-		: fileDescriptor( desc ),
-		  hProc( desc.hProc ),
-		  hFile( desc.hFile )
-	{ }
-
-    HANDLE GetProcessHandle( void ) const   { return hProc; }
-    HANDLE GetFileHandle( void ) const   { return hFile; }
-    void SetProcessHandle( HANDLE h ) { hProc = h; }
-    
-    void SetFileHandle( HANDLE h )          { hFile = h; }
-    void SetAddr( Address a )               { addr_ = a; }
-
-protected:
-    virtual bool IsEqual( const fileDescriptor* fd ) const
-    {
-        bool ret = fileDescriptor::IsEqual( fd );
-        if( ret )
-        {
-            fileDescriptor_Win* desc = (fileDescriptor_Win*)fd;
-            ret = ((hProc == desc->GetProcessHandle()) &&
-                    (hFile == desc->GetFileHandle()));
-        }
-        return ret;
-    }
-};
-
-
 
 /************************************************************************
  * class Object
@@ -231,8 +187,7 @@ private:
 
 
 public:
-	Object(fileDescriptor *desc,
-           Address baseAddress = 0,
+	Object(fileDescriptor &desc,
            void (*)(const char *) = log_msg);
 
 	virtual ~Object( void );
@@ -248,7 +203,7 @@ public:
 	bool set_gp_value(Address addr) {  gp_value = addr; return true;} //ccw 27 july 2000
 	Address get_gp_value() const { return gp_value;} //ccw 20 july 2000
 #endif
-    fileDescriptor_Win* GetDescriptor( void ) const     { return desc; }
+        const fileDescriptor& GetDescriptor( void ) const     { return desc; }
 	Module* GetCurrentModule( void )				    { return curModule; }
 
     bool getCatchBlock(ExceptionBlock &b, Address addr, unsigned size = 0) const { return false; }
@@ -276,24 +231,22 @@ private:
 
     HANDLE  hMap;                   // handle to mapping object
     LPVOID  mapAddr;                // location of mapped file in *our* address space
-    fileDescriptor_Win* desc;
+    fileDescriptor desc;
 };
 
 
 
 inline
-Object::Object(fileDescriptor* _desc,
-                Address baseAddress,
+Object::Object(fileDescriptor &_desc,
                 void (*err_func)(const char *)) 
-  : AObject(_desc->file(), err_func),
-    baseAddr(_desc->addr()),
-    hMap( INVALID_HANDLE_VALUE ),
-    mapAddr( NULL ),
-    desc( (fileDescriptor_Win*)_desc ),
-	curModule( NULL ),
-    peHdr( NULL )
+    : AObject(_desc.file(), err_func),
+     baseAddr(_desc.code()),
+     hMap( INVALID_HANDLE_VALUE ),
+     mapAddr( NULL ),
+     desc( _desc ),
+     curModule( NULL ),
+     peHdr( NULL )
 {
-	baseAddr = baseAddress;
     ParseDebugInfo();
 }
 

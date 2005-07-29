@@ -39,10 +39,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object.C,v 1.14 2004/03/23 01:12:00 eli Exp $
+// $Id: Object.C,v 1.15 2005/07/29 19:18:04 bernat Exp $
 
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
+
+pdstring fileDescriptor::emptyString(pdstring(""));
+fileDescriptor::fileDescriptor() {
+    // This shouldn't be called... must be public for pdvector, though
+}
 
 int symbol_compare(const Symbol &s1, const Symbol &s2) {
     // select the symbol with the lowest address

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.33 2005/03/15 23:38:44 lharris Exp $
+// $Id: Object-nt.C,v 1.34 2005/07/29 19:18:00 bernat Exp $
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -423,47 +423,46 @@ SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
 	{
         Object* obj = (Object*)userContext;
         assert( obj != NULL );
-
-		Object::Module* curMod = obj->GetCurrentModule();
-		assert( curMod != NULL );
-
-		// get this symbol's file and line information
-        const fileDescriptor_Win* desc = obj->GetDescriptor();
-        assert( desc != NULL );
-        HANDLE hProc = desc->GetProcessHandle();
-
+        
+        Object::Module* curMod = obj->GetCurrentModule();
+        assert( curMod != NULL );
+        
+        // get this symbol's file and line information
+        const fileDescriptor &desc = obj->GetDescriptor();
+        HANDLE hProc = desc.procHandle();
+        
         IMAGEHLP_LINE64 lineInfo;
-		DWORD dwDisplacement = 0;
+        DWORD dwDisplacement = 0;
         ZeroMemory( &lineInfo, sizeof(lineInfo) );
         lineInfo.SizeOfStruct = sizeof(lineInfo);
-		Object::File* pFile = NULL;
+        Object::File* pFile = NULL;
         if( SymGetLineFromAddr64( hProc,
-									pSymInfo->Address,
-									&dwDisplacement,
-									&lineInfo ) )
-        {
-			// ensure we have a file for this object
-			pFile = curMod->FindFile( lineInfo.FileName );
-			if( pFile == NULL )
-			{
-				pFile = new Object::File( lineInfo.FileName );
-				curMod->AddFile( pFile );
-			}
-        }
+                                  pSymInfo->Address,
+                                  &dwDisplacement,
+                                  &lineInfo ) )
+            {
+                // ensure we have a file for this object
+                pFile = curMod->FindFile( lineInfo.FileName );
+                if( pFile == NULL )
+                    {
+                        pFile = new Object::File( lineInfo.FileName );
+                        curMod->AddFile( pFile );
+                    }
+            }
         else
-        {
-			pFile = curMod->GetDefaultFile();
-        }
-		assert( pFile != NULL );
-
-		// is it a function or not?
+            {
+                pFile = curMod->GetDefaultFile();
+            }
+        assert( pFile != NULL );
+        
+        // is it a function or not?
         // TODO why is there a discrepancy between code base addr for
         // EXEs and DLLs?
-		DWORD symType = ::Symbol::PDST_UNKNOWN;
-		DWORD symLinkage = ::Symbol::SL_UNKNOWN;
+        DWORD symType = ::Symbol::PDST_UNKNOWN;
+        DWORD symLinkage = ::Symbol::SL_UNKNOWN;
         DWORD64 codeLen = obj->code_len() * sizeof(Word);
         DWORD64 codeBase = obj->code_off();
-        if( obj->GetDescriptor()->isSharedObject() )
+        if( obj->GetDescriptor().isSharedObject() )
         {
             codeBase += obj->get_base_addr();
         }
@@ -492,7 +491,7 @@ SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
 
 		// register the symbol
         Address baseAddr = 0;
-        if (obj->GetDescriptor()->isSharedObject()) {
+        if (obj->GetDescriptor().isSharedObject()) {
             baseAddr = obj->get_base_addr();
         }
 
@@ -522,44 +521,44 @@ Object::ParseDebugInfo( void )
 {
     if( baseAddr == 0 )
     {
-		if( desc->addr() == 0 )
-		{
-			// we're being called before we are attached to a process
-			// trick image class into thinking we've done something
-			deferredParse = true;
-			return;
-		}
-		else
-		{
-			// now we have a module base address
-			baseAddr = desc->addr();
-
-			// Initialize our symbol handler
-			//cout << "calling SymInitialize with proc=" << desc->GetProcessHandle() << endl;
-			if( !SymInitialize( desc->GetProcessHandle(), NULL, FALSE ) )
-			{
-				fprintf( stderr, "SymInitialize failed: %x\n", GetLastError() );
-			}
-
-			// ensure we load line number information when we load
-			// modules
-			DWORD dwOpts = SymGetOptions();
-			dwOpts &= ~(SYMOPT_UNDNAME); //want mangled names
-			SymSetOptions(dwOpts | SYMOPT_LOAD_LINES);
-		}
+        if( desc.code() == 0 )
+            {
+                // we're being called before we are attached to a process
+                // trick image class into thinking we've done something
+                deferredParse = true;
+                return;
+            }
+        else
+            {
+                // now we have a module base address
+                baseAddr = desc.code();
+                
+                // Initialize our symbol handler
+                //cout << "calling SymInitialize with proc=" << desc.GetProcessHandle() << endl;
+                if( !SymInitialize( desc.procHandle(), NULL, FALSE ) )
+                    {
+                        fprintf( stderr, "SymInitialize failed: %x\n", GetLastError() );
+                    }
+                
+                // ensure we load line number information when we load
+                // modules
+                DWORD dwOpts = SymGetOptions();
+                dwOpts &= ~(SYMOPT_UNDNAME); //want mangled names
+                SymSetOptions(dwOpts | SYMOPT_LOAD_LINES);
+            }
     }
-	assert( baseAddr != 0 );
+    assert( baseAddr != 0 );
+    
+    // build a Module object for the current module (EXE or DLL)
+    // Note that the CurrentModuleScoper object ensures that the
+    // curModule member will be reset when we leave the scope of
+    // this function.
+    CurrentModuleScoper cms( &curModule );
+    assert( curModule == NULL );
+    curModule = new Object::Module( desc.file(), desc.code() );
 
-	// build a Module object for the current module (EXE or DLL)
-	// Note that the CurrentModuleScoper object ensures that the
-	// curModule member will be reset when we leave the scope of
-	// this function.
-	CurrentModuleScoper cms( &curModule );
-	assert( curModule == NULL );
-	curModule = new Object::Module( desc->file(), desc->addr() );
-
-    HANDLE hProc = desc->GetProcessHandle();
-    HANDLE hFile = desc->GetFileHandle();
+    HANDLE hProc = desc.procHandle();
+    HANDLE hFile = desc.fileHandle();
     assert( hProc != NULL );
     assert( hProc != INVALID_HANDLE_VALUE );
     assert( hFile != NULL );
@@ -618,22 +617,20 @@ Object::ParseDebugInfo( void )
 
         const unsigned char* p;
         p = (const unsigned char*)( ImageRvaToVa( peHdr, mapAddr, eAddr, 0 ));
-
           
-        instruction insn;
-        insn.getNextInstruction( p );
-     
-        
+        instruction insn((const void *)p);
+        p += insn.size();
+        insn.setInstruction(p);
 
         Address curr = eAddr;
         while( !insn.isReturn() )
-        {
-            if( insn.isCall() )
-                callTargets.push_back( insn.getTarget( curr ) );
-            
-            curr += insn.size();
-            p += insn.size();
-            insn.getNextInstruction( p );
+            {
+                if( insn.isCall() )
+                    callTargets.push_back( insn.getTarget( curr ) );
+                
+                curr += insn.size();
+                p += insn.size();
+                insn.setInstruction(p);
             
         }
 
@@ -751,7 +748,7 @@ Object::FindInterestingSections( HANDLE hProc, HANDLE hFile )
  
             code_ptr_    = (Word*)(((char*)mapAddr) +
                             pScnHdr->PointerToRawData);
-            if (GetDescriptor()->isSharedObject())
+            if (GetDescriptor().isSharedObject())
                 code_off_    = pScnHdr->VirtualAddress;
             else
                 code_off_    = baseAddr + pScnHdr->VirtualAddress;
@@ -764,7 +761,7 @@ Object::FindInterestingSections( HANDLE hProc, HANDLE hFile )
 
             data_ptr_    = (Word*)(((char*)mapAddr) +
                             pScnHdr->PointerToRawData);
-            if (GetDescriptor()->isSharedObject())
+            if (GetDescriptor().isSharedObject())
                 data_off_    = pScnHdr->VirtualAddress;
             else
                 data_off_    = baseAddr + pScnHdr->VirtualAddress;

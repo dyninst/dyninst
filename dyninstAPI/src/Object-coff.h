@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-coff.h,v 1.13 2004/03/23 01:11:59 eli Exp $
+ * $Id: Object-coff.h,v 1.14 2005/07/29 19:17:57 bernat Exp $
  * COFF object files.
  * Note - this is DEC OSF/1 coff which probably isn't the real thing
  *
@@ -106,7 +106,7 @@ public:
 	     Object (const pdstring, const Address baseAddr,
                 void (*)(const char *) = log_msg);
 	     // "Filedescriptor" ctor
-	     Object(fileDescriptor *desc, Address baseAddr = 0 , void (*)(const char *) = log_msg);
+	     Object(const fileDescriptor &desc, void (*)(const char *) = log_msg);
 
     virtual ~Object ();
     Object&   operator= (const Object &);
