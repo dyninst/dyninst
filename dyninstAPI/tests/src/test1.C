@@ -79,6 +79,10 @@ using namespace std;
 #include "BPatch_snippet.h"
 #include "test_util.h"
 #include "test1.h"
+#include "BPatch_Set.h"
+#include "BPatch_flowGraph.h"
+#include "BPatch_function.h"
+#include "BPatch_point.h"
 
 // #include <vector.h>
 
@@ -819,7 +823,7 @@ void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
 
     vect5_1.push_back(&expr5_3);
     vect5_1.push_back(&expr5_4);
-
+    
     BPatch_sequence expr5_5(vect5_1);
     checkCost(expr5_5);
     appThread->insertSnippet(expr5_5, *point5_1);
@@ -1750,7 +1754,7 @@ void mutatorTest15a(BPatch_thread *appThread, BPatch_image *appImage)
 {
     insertCallSnippetAt(appThread, appImage, "func15_2", BPatch_entry,
             "call15_1", 15, "setMutationsActive");
-
+    /*
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
     // On the Sparc, functions containing system calls are relocated into the
     // heap when instrumented, making a special case we should check.
@@ -1763,7 +1767,7 @@ void mutatorTest15a(BPatch_thread *appThread, BPatch_image *appImage)
     insertCallSnippetAt(appThread, appImage, "access", BPatch_exit,
 	"call15_2", 15, "setMutationsActive");
 #endif
-
+    */
     replaceFunctionCalls(appThread, appImage, "func15_4", "func15_3",
 	"call15_3", 15, "setMutationsActive", 1);
 }
@@ -2512,63 +2516,66 @@ void mutatorTest23(BPatch_thread *appThread, BPatch_image *appImage)
 #if !defined(mips_sgi_irix6_4)
     if (!mutateeFortran) {
         //     First verify that we can find a local variable in call23_1
-  BPatch_Vector<BPatch_function *> found_funcs;
-    if ((NULL == appImage->findFunction("call23_1", found_funcs, 1)) || !found_funcs.size()) {
-      fprintf(stderr, "    Unable to find function %s\n",
-	      "call23_1");
-      exit(1);
-    }
-
-    if (1 < found_funcs.size()) {
-      fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
-	      __FILE__, __LINE__, found_funcs.size(), "call23_1");
-    }
-
-    BPatch_Vector<BPatch_point *> *point23_1 = found_funcs[0]->findPoint(BPatch_subroutine);
-
-        assert(point23_1);
-
-        BPatch_variableExpr *var1 = appImage->findVariable(*(*point23_1)[0],
-            "localVariable23_1");
-        BPatch_variableExpr *var2 = appImage->findVariable(*(*point23_1)[0],
-            "shadowVariable23_1");
-        BPatch_variableExpr *var3 = appImage->findVariable("shadowVariable23_2");
-        BPatch_variableExpr *var4 = appImage->findVariable("globalVariable23_1");
-
-        if (!var1 || !var2 || !var3 || !var4) {
-            fprintf(stderr, "**Failed** test #23 (local variables)\n");
-            if (!var1)
-                fprintf(stderr, "  can't find local variable localVariable23_1\n");
-            if (!var2)
-                fprintf(stderr, "  can't find local variable shadowVariable23_1\n");
-            if (!var3)
-                fprintf(stderr,"  can't find global variable shadowVariable23_2\n");
-            return;
+        BPatch_Vector<BPatch_function *> found_funcs;
+        if ((NULL == appImage->findFunction("call23_1", found_funcs, 1)) 
+            || !found_funcs.size()) {
+            fprintf(stderr, "    Unable to find function %s\n",
+                    "call23_1");
+            exit(1);
         }
-
-        BPatch_arithExpr expr23_1(BPatch_assign, *var1, BPatch_constExpr(2300001));
-        BPatch_arithExpr expr23_2(BPatch_assign, *var2, BPatch_constExpr(2300012));
-        BPatch_arithExpr expr23_3(BPatch_assign, *var3, BPatch_constExpr(2300023));
-        BPatch_arithExpr expr23_4(BPatch_assign, *var4, *var1);
-
-        BPatch_Vector<BPatch_snippet *> exprs;
-
-        exprs.push_back(&expr23_4); // put this one first so it isn't clobbered
-        exprs.push_back(&expr23_1);
-        exprs.push_back(&expr23_2);
-        exprs.push_back(&expr23_3);
-
-        BPatch_sequence allParts(exprs);
-	
-	// this should not be needed???  JAW
-	//BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(BPatch_subroutine);
-
-	if (!point23_1 || (point23_1->size() < 1)) {
+        
+        if (1 < found_funcs.size()) {
+            fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named %s.  Using the first.\n", 
+                    __FILE__, __LINE__, found_funcs.size(), "call23_1");
+        }
+        
+        BPatch_Vector<BPatch_point *> *point23_calls = found_funcs[0]->findPoint(BPatch_subroutine);    
+        if (!point23_calls || (point23_calls->size() < 1)) {
             fprintf(stderr, "**Failed** test #23 (local variables)\n");
             fprintf(stderr, "  Unable to find point call23_1 - subroutine calls\n");
             exit(1);
         }
-        appThread->insertSnippet(allParts, *point23_1);
+
+        /* We only want the first one... */
+    BPatch_Vector<BPatch_point *> point23_1;
+    point23_1.push_back((*point23_calls)[0]);
+
+    BPatch_variableExpr *var1 = appImage->findVariable(*(point23_1[0]),
+                                                       "localVariable23_1");
+    BPatch_variableExpr *var2 = appImage->findVariable(*(point23_1[0]),
+                                                       "shadowVariable23_1");
+    BPatch_variableExpr *var3 = appImage->findVariable("shadowVariable23_2");
+    BPatch_variableExpr *var4 = appImage->findVariable("globalVariable23_1");
+    
+    if (!var1 || !var2 || !var3 || !var4) {
+        fprintf(stderr, "**Failed** test #23 (local variables)\n");
+        if (!var1)
+            fprintf(stderr, "  can't find local variable localVariable23_1\n");
+        if (!var2)
+            fprintf(stderr, "  can't find local variable shadowVariable23_1\n");
+        if (!var3)
+            fprintf(stderr,"  can't find global variable shadowVariable23_2\n");
+        return;
+    }
+    
+    BPatch_arithExpr expr23_1(BPatch_assign, *var1, BPatch_constExpr(2300001));
+    BPatch_arithExpr expr23_2(BPatch_assign, *var2, BPatch_constExpr(2300012));
+    BPatch_arithExpr expr23_3(BPatch_assign, *var3, BPatch_constExpr(2300023));
+    BPatch_arithExpr expr23_4(BPatch_assign, *var4, *var1);
+    
+    BPatch_Vector<BPatch_snippet *> exprs;
+    
+    exprs.push_back(&expr23_1);
+    exprs.push_back(&expr23_2);
+    exprs.push_back(&expr23_3);
+    exprs.push_back(&expr23_4);
+    
+    BPatch_sequence allParts(exprs);
+    
+    // this should not be needed???  JAW
+    //BPatch_Vector<BPatch_point *> *points = found_funcs[0]->findPoint(BPatch_subroutine);
+    
+    appThread->insertSnippet(allParts, point23_1);
     }
 #endif
 }
@@ -3610,64 +3617,64 @@ void instrument_exit_points( BPatch_thread * app_thread,
 //
 void mutatorTest31( BPatch_thread * appThread, BPatch_image * appImage )
 {
-   const char * foo_name = "func31_2";
-   const char * bar_name = "func31_3";
-   const char * baz_name = "func31_4";
+   const char * func31_2_name = "func31_2";
+   const char * func31_3_name = "func31_3";
+   const char * func31_4_name = "func31_4";
 
    BPatch_image * app_image = appImage;
    BPatch_thread * app_thread = appThread;
   
    BPatch_Vector<BPatch_function *> bpfv;
-   if (NULL == appImage->findFunction(foo_name, bpfv) || !bpfv.size()
+   if (NULL == appImage->findFunction(func31_2_name, bpfv) || !bpfv.size()
        || NULL == bpfv[0]){
-     fprintf(stderr, "    Unable to find function %s\n", foo_name);
+     fprintf(stderr, "    Unable to find function %s\n", func31_2_name);
      exit(1);
    }
 	
-   BPatch_function *foo_function = bpfv[0];
+   BPatch_function *func31_2_function = bpfv[0];
 
    bpfv.clear();
 
-   if (NULL == appImage->findFunction(bar_name, bpfv) || !bpfv.size()
+   if (NULL == appImage->findFunction(func31_3_name, bpfv) || !bpfv.size()
        || NULL == bpfv[0]){
-     fprintf(stderr, "    Unable to find function %s\n", bar_name);
+     fprintf(stderr, "    Unable to find function %s\n", func31_3_name);
      exit(1);
    }
    
-   BPatch_function *bar_function = bpfv[0];
+   BPatch_function *func31_3_function = bpfv[0];
 
    bpfv.clear();
    
-   if (NULL == appImage->findFunction(baz_name, bpfv) || !bpfv.size()
+   if (NULL == appImage->findFunction(func31_4_name, bpfv) || !bpfv.size()
        || NULL == bpfv[0]){
-     fprintf(stderr, "    Unable to find function %s\n", baz_name);
+     fprintf(stderr, "    Unable to find function %s\n", func31_4_name);
      exit(1);
    }
    
-   BPatch_function *baz_function = bpfv[0];
+   BPatch_function *func31_4_function = bpfv[0];
    
    bool old_value = BPatch::bpatch->isTrampRecursive();
    BPatch::bpatch->setTrampRecursive( false );
    
-   BPatch_Vector<BPatch_snippet *> foo_args;
-   BPatch_snippet * foo_snippet =
-      new BPatch_funcCallExpr( * bar_function,
-                               foo_args );
-   instrument_entry_points( app_thread, app_image, foo_function, foo_snippet );
+   BPatch_Vector<BPatch_snippet *> func31_2_args;
+   BPatch_snippet * func31_2_snippet =
+      new BPatch_funcCallExpr( * func31_3_function,
+                               func31_2_args );
+   instrument_entry_points( app_thread, app_image, func31_2_function, func31_2_snippet );
    
-   BPatch_Vector<BPatch_snippet *> bar_args_1;
-   bar_args_1.push_back( new BPatch_constExpr( 1 ) );
-   BPatch_snippet * bar_snippet_1 =
-      new BPatch_funcCallExpr( * baz_function,
-                               bar_args_1 );
-   instrument_entry_points(app_thread, app_image, bar_function, bar_snippet_1);
+   BPatch_Vector<BPatch_snippet *> func31_3_args_1;
+   func31_3_args_1.push_back( new BPatch_constExpr( 1 ) );
+   BPatch_snippet * func31_3_snippet_1 =
+      new BPatch_funcCallExpr( * func31_4_function,
+                               func31_3_args_1 );
+   instrument_entry_points(app_thread, app_image, func31_3_function, func31_3_snippet_1);
 
    BPatch_Vector<BPatch_snippet *> bar_args_2;
    bar_args_2.push_back( new BPatch_constExpr( 2 ) );
    BPatch_snippet * bar_snippet_2 =
-      new BPatch_funcCallExpr( * baz_function,
+      new BPatch_funcCallExpr( * func31_4_function,
                                bar_args_2 );
-   instrument_exit_points(app_thread, app_image, bar_function, bar_snippet_2);
+   instrument_exit_points(app_thread, app_image, func31_3_function, bar_snippet_2);
    
    BPatch::bpatch->setTrampRecursive( old_value );
 }
@@ -3677,22 +3684,22 @@ void mutatorTest31( BPatch_thread * appThread, BPatch_image * appImage )
 /*******************************************************************************/
 
 //
-// Start Test Case #32 - (recursive base tramp)
+// Start Test Case #31 - (recursive base tramp)
 //
 void mutatorTest32( BPatch_thread * appThread, BPatch_image * appImage )
 {
-  const char * foo_name = "func32_2";
-  const char * bar_name = "func32_3";
-  const char * baz_name = "func32_4";
+  const char * func32_2_name = "func32_2";
+  const char * func32_3_name = "func32_3";
+  const char * func32_4_name = "func32_4";
 
   BPatch_image * app_image = appImage;
   BPatch_thread * app_thread = appThread;
 
 
    BPatch_Vector<BPatch_function *> bpfv;
-   if (NULL == appImage->findFunction(foo_name, bpfv) || !bpfv.size()
+   if (NULL == appImage->findFunction(func32_2_name, bpfv) || !bpfv.size()
        || NULL == bpfv[0]){
-     fprintf(stderr, "    Unable to find function %s\n", foo_name);
+     fprintf(stderr, "    Unable to find function %s\n", func32_2_name);
      exit(1);
    }
 	
@@ -3700,9 +3707,9 @@ void mutatorTest32( BPatch_thread * appThread, BPatch_image * appImage )
 
    bpfv.clear();
 
-   if (NULL == appImage->findFunction(bar_name, bpfv) || !bpfv.size()
+   if (NULL == appImage->findFunction(func32_3_name, bpfv) || !bpfv.size()
        || NULL == bpfv[0]){
-     fprintf(stderr, "    Unable to find function %s\n", bar_name);
+     fprintf(stderr, "    Unable to find function %s\n", func32_3_name);
      exit(1);
    }
    
@@ -3710,9 +3717,9 @@ void mutatorTest32( BPatch_thread * appThread, BPatch_image * appImage )
 
    bpfv.clear();
    
-   if (NULL == appImage->findFunction(baz_name, bpfv) || !bpfv.size()
+   if (NULL == appImage->findFunction(func32_4_name, bpfv) || !bpfv.size()
        || NULL == bpfv[0]){
-     fprintf(stderr, "    Unable to find function %s\n", baz_name);
+     fprintf(stderr, "    Unable to find function %s\n", func32_4_name);
      exit(1);
    }
    
@@ -3809,7 +3816,7 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	|| NULL == bpfv[0]){
       fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
       fprintf(stderr, "    Unable to find function %s\n", fn);
-      exit(1);
+      return;
     }
     
     BPatch_function *func2 = bpfv[0];
@@ -3818,7 +3825,7 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     if (cfg == NULL) {
 	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 	fprintf(stderr, "  Unable to get control flow graph of func33_2\n");
-	exit(1);
+        return;
     }
 
     /*
@@ -3838,7 +3845,7 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	if (sources.size() > 0) {
 	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 	    fprintf(stderr, "  An entry basic block has incoming edges in the control flow graph\n");
-	    exit(1);
+            return;
 	}
 
     	BPatch_Vector<BPatch_basicBlock*> targets;
@@ -3846,7 +3853,7 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	if (targets.size() < 1) {
 	    fprintf(stderr, "**Failed** test #33 (control flow graphs\n");
 	    fprintf(stderr, "  An entry basic block has no outgoing edges in the control flow graph\n");
-	    exit(1);
+            return;
 	}
     }
 
@@ -3867,7 +3874,7 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	if (sources.size() < 1) {
 	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 	    fprintf(stderr, "  An exit basic block has no incoming edges in the control flow graph\n");
-	    exit(1);
+            return;
 	}
 
 	BPatch_Vector<BPatch_basicBlock*> targets;
@@ -3875,7 +3882,7 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	if (targets.size() > 0) {
 	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 	    fprintf(stderr, "  An exit basic block has outgoing edges in the control flow graph\n");
-	    exit(1);
+            return;
 	}
     }
 
@@ -3887,7 +3894,7 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     if (blocks.size() < 4) {
 	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 	fprintf(stderr, "  Detected %d basic blocks in func33_2, should be at least four.\n", blocks.size());
-	exit(1);
+        return;
     }
 
     BPatch_basicBlock **block_elements = new BPatch_basicBlock*[blocks.size()];
@@ -3914,16 +3921,16 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 	    fprintf(stderr, "  Detected a basic block in func33_2 with %d incoming edges and %d\n", in.size(), out.size());
 	    fprintf(stderr, "  outgoing edges - neither should be greater than two.\n");
-	    exit(1);
+	    return;
 	} else if (in.size() > 1 && out.size() > 1) {
 	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 	    fprintf(stderr, "  Detected a basic block in func33_2 with %d incoming edges and %d\n", in.size(), out.size());
 	    fprintf(stderr, "  outgoing edges - only one should be greater than one.\n");
-	    exit(1);
+	    return;
 	} else if (in.size() == 0 && out.size() == 0) {
 	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 	    fprintf(stderr, "  Detected a basic block in func33_2 with no incoming or outgoing edges.\n");
-	    exit(1);
+	    return;
 	} else if (in.size() == 2) {
 	    assert(out.size() <= 1);
 
@@ -3931,14 +3938,14 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 		fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 		fprintf(stderr, "  Detected two basic blocks in func33_2 with in degree two, there should only\n");
 		fprintf(stderr, "  be one.\n");
-		exit(1);
+		return;
 	    }
 	    foundInDegreeTwo = true;
 
 	    if (in[0]->getBlockNumber() == in[1]->getBlockNumber()) {
 		fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 		fprintf(stderr, "  Two edges go to the same block (number %d).\n", in[0]->getBlockNumber());
-		exit(1);
+		return;
 	    }
 	} else if (out.size() == 2) {
 	    assert(in.size() <= 1);
@@ -3947,21 +3954,21 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 		fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 		fprintf(stderr, "  Detected two basic blocks in func33_2 with out degree two, there should only\n");
 		fprintf(stderr, "  be one.\n");
-		exit(1);
+		return;
 	    }
 	    foundOutDegreeTwo = true;
 
 	    if (out[0]->getBlockNumber() == out[1]->getBlockNumber()) {
 		fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 		fprintf(stderr, "  Two edges go to the same block (number %d).\n", out[0]->getBlockNumber());
-		exit(1);
+		return;
 	    }
 	} else if (in.size() > 1 || out.size() > 1) {
 	    /* Shouldn't be able to get here. */
 	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 	    fprintf(stderr, "  Detected a basic block in func33_2 with %d incoming edges and %d\n", in.size(), out.size());
 	    fprintf(stderr, "  outgoing edges.\n");
-	    exit(1);
+	    return;
 	}
     }
 
@@ -3970,19 +3977,19 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     if (blocksNoIn > 1) {
 	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 	    fprintf(stderr, "  Detected more than one block in func33_2 with no incoming edges.\n");
-	    exit(1);
+	    return;
     }
 
     if (blocksNoOut > 1) {
 	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 	    fprintf(stderr, "  Detected more than block in func33_2 with no outgoing edges.\n");
-	    exit(1);
+	    return;
     }
 
     if (!foundOutDegreeTwo) {
 	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 	    fprintf(stderr, "  Did not detect the \"if\" statement in func33_2.\n");
-	    exit(1);
+	    return;
     }
 
     /*
@@ -3992,7 +3999,7 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     if (hasBackEdge(entry_blocks[0], empty)) {
 	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 	fprintf(stderr, "  Detected a loop in func33_2, there should not be one.\n");
-	exit(1);
+	return;
     }
 
     /*
@@ -4000,11 +4007,12 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
      */
     bpfv.clear();
     char *fn2 = "func33_3";
-    if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
+    // Bernat, 8JUN05 -- include uninstrumentable here...
+    if (NULL == appImage->findFunction(fn2, bpfv, false, false, true) || !bpfv.size()
 	|| NULL == bpfv[0]){
       fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
       fprintf(stderr, "    Unable to find function %s\n", fn2);
-      exit(1);
+      return;
     }
     
     BPatch_function *func3 = bpfv[0];
@@ -4013,7 +4021,7 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     if (cfg3 == NULL) {
 	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 	fprintf(stderr, "  Unable to get control flow graph of func33_3\n");
-	exit(1);
+	return;
     }
 
     BPatch_Set<BPatch_basicBlock*> blocks3;
@@ -4021,7 +4029,7 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     if (blocks3.size() < 10) {
 	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 	fprintf(stderr, "  Detected %d basic blocks in func33_3, should be at least ten.\n", blocks3.size());
-	exit(1);
+	return;
     }
 
     block_elements = new BPatch_basicBlock*[blocks3.size()];
@@ -4048,7 +4056,7 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	    fprintf(stderr, "  Found basic block in func33_3 with unexpected number of edges.\n");
 	    fprintf(stderr, "  %d incoming edges, %d outgoing edges.\n",
 		    in.size(), out.size());
-	    exit(1);
+	    return;
 	}
     }
 
@@ -4058,7 +4066,7 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	    fprintf(stderr,"  Did not find \"switch\" statement in func33_3.\n");
 	if (!foundSwitchOut)
 	    fprintf(stderr,"  Did not find block afer \"switch\" statement.\n");
-	exit(1);
+	return;
     }
 
     /* Check dominator info. */
@@ -4067,14 +4075,14 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     if (entry3.size() != 1) {
 	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 	fprintf(stderr, "  Detected %d entry basic blocks in func33_3, should have been one.\n", entry_blocks.size());
-	exit(1);
+	return;
     }
 
     for (i = 0; i < (unsigned int) blocks3.size(); i++) {
 	if (!entry3[0]->dominates(block_elements[i])) {
 	    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 	    fprintf(stderr, "  Entry block does not dominate all blocks in func33_3\n");
-	    exit(1);
+	    return;
 	}
     }
 
@@ -4083,14 +4091,14 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     if (exit3.size() != 1) {
        fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
        fprintf(stderr, "  Detected %d exit basic blocks in func33_3, should have been one.\n", exit3.size());
-       exit(1);
+       return;
     }
 
     for (i = 0; i < (unsigned int) exit3.size(); i++) {
        if (!exit3[i]->postdominates(entry3[0])) {
           fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
           fprintf(stderr, "  Exit block %d does not postdominate all entry blocks in func33_3\n", i);
-          exit(1);
+          return;
        }
     }
 
@@ -4132,7 +4140,7 @@ void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	|| NULL == bpfv[0]){
       fprintf(stderr, "**Failed** test #34 (loop information)\n");
       fprintf(stderr, "    Unable to find function %s\n", fn);
-      exit(1);
+      return;
     }
     
     BPatch_function *func2 = bpfv[0];
@@ -4141,7 +4149,7 @@ void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     if (cfg == NULL) {
 	fprintf(stderr, "**Failed** test #34 (loop information)\n");
 	fprintf(stderr, "  Unable to get control flow graph of func34_2\n");
-	exit(1);
+	return;
     }
 
     BPatch_Vector<BPatch_basicBlockLoop*> loops;
@@ -4150,7 +4158,7 @@ void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	fprintf(stderr, "**Failed** test #34 (loop information)\n");
 	fprintf(stderr, "  Detected %d loops, should have been four.\n",
 		loops.size());
-	exit(1);
+	return;
     }
 
     /*
@@ -4168,13 +4176,13 @@ void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     if (outerLoop == NULL) {
 	fprintf(stderr, "**Failed** test #34 (loop information)\n");
 	fprintf(stderr, "  Unable to find a loop containing two other loops.\n");
-	exit(1);
+	return;
     }
 
 //     if (numBackEdges(outerLoop) != 1) {
 // 	fprintf(stderr, "**Failed** test #34 (loop information)\n");
 // 	fprintf(stderr, "  There should be exactly one backedge in the outer loops, but there are %d\n", numBackEdges(outerLoop));
-// 	exit(1);
+// 	return;
 //     }
 
     BPatch_Vector<BPatch_basicBlockLoop*> insideOuterLoop;
@@ -4191,20 +4199,20 @@ void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	    if (foundFirstLoop) {
 		fprintf(stderr, "**Failed** test #34 (loop information)\n");
 		fprintf(stderr, "  Found more than one second-level loop with one nested inside.\n");
-		exit(1);
+		return;
 	    }
 	    foundFirstLoop = true;
 
 // 	    if (numBackEdges(insideOuterLoop[i]) != 1) {
 // 		fprintf(stderr, "**Failed** test #34 (loop information)\n");
 // 		fprintf(stderr, "  There should be exactly one backedge in the first inner loop, but there are %d\n", numBackEdges(tmpLoops[0]));
-// 		exit(1);
+// 		return;
 // 	    }
 
 // 	    if (numBackEdges(tmpLoops[0]) != 1) {
 // 		fprintf(stderr, "**Failed** test #34 (loop information)\n");
 // 		fprintf(stderr, "  There should be exactly one backedge in the third level loop, but there are %d\n", numBackEdges(tmpLoops[0]));
-// 		exit(1);
+// 		return;
 // 	    }
 
 	    if (numContainedLoops(tmpLoops[0]) != 0) {
@@ -4212,26 +4220,26 @@ void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 		fprintf(stderr, "  The first loop at the third level should not have any loops nested inside,\n");
 		fprintf(stderr, "  but %d were detected.\n",
 			numContainedLoops(tmpLoops[0]));
-		exit(1);
+		return;
 	    }
 
 	} else if(tmpLoops.size() == 0) { /* The second loop has none nested. */
 	    if (deepestLoops >= 2) {
 		fprintf(stderr, "**Failed** test #34 (loop information)\n");
 		fprintf(stderr, "  Found more than two loops without any nested inside.\n");
-		exit(1);
+		return;
 	    }
 	    deepestLoops++;
 
 // 	    if (numBackEdges(insideOuterLoop[i]) != 1) {
 // 		fprintf(stderr, "**Failed** test #34 (loop information)\n");
 // 		fprintf(stderr, "  Unexpected number of backedges in loop (%d)\n", numBackEdges(insideOuterLoop[i]));
-// 		exit(1);
+// 		return;
 // 	    }
 	} else { /* All loops should be recognized above. */
 	    fprintf(stderr, "**Failed** test #34 (loop information)\n");
 	    fprintf(stderr, "  Found a loop containing %d loops, should be one or  none.\n", tmpLoops.size());
-	    exit(1);
+	    return;
 	}
     }
 
@@ -4242,7 +4250,7 @@ void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	    fprintf(stderr, "  Could not find the first nested loop.\n");
 	if (deepestLoops < 2)
 	    fprintf(stderr, "  Could not find all the deepest level loops.\n");
-	exit(1);
+	return;
     }
 
     // test getOuterLoops
@@ -4256,7 +4264,7 @@ void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	fprintf(stderr, "**Failed** test #34 (loop information)\n");
 	fprintf(stderr, "  Detected %d outer loops, should have been one.\n",
 		outerLoops.size());
-	exit(1);
+	return;
     }
 
     BPatch_Vector<BPatch_basicBlockLoop*> outerLoopChildren;
@@ -4266,7 +4274,7 @@ void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	fprintf(stderr, "**Failed** test #34 (loop information)\n");
 	fprintf(stderr, "  Detected %d outer loops, should have been two.\n",
 		outerLoopChildren.size());
-	exit(1);
+	return;
     }
 
     BPatch_Vector<BPatch_basicBlockLoop*> outerLoopGrandChildren0;
@@ -4284,7 +4292,7 @@ void mutatorTest34( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 	fprintf(stderr, "  Detected %d and %d outer loops, should have been zero and one.\n",
 		outerLoopGrandChildren0.size(), 
 		outerLoopGrandChildren1.size());
-	exit(1);
+	return;
     }
 #endif    
 }
@@ -4306,7 +4314,7 @@ void mutatorTest35( BPatch_thread * appThread, BPatch_image * appImage )
 	|| NULL == bpfv[0]){
       fprintf(stderr, "**Failed** test #35 (function relocation)\n");
       fprintf(stderr, "    Unable to find function %s\n", fn);
-      exit(1);
+      return;
     }
     
     BPatch_function *foo_function = bpfv[0];
@@ -4382,7 +4390,7 @@ void mutatorTest36(BPatch_thread *appThread, BPatch_image *appImage)
    if ((NULL == appImage->findFunction("func36_1", found_funcs)) || !found_funcs.size()) {
       fprintf(stderr, "    Unable to find function %s\n",
               "func36_1");
-      exit(1);
+      return;
    }
    
    if (1 < found_funcs.size()) {
@@ -4414,7 +4422,7 @@ void mutatorTest36(BPatch_thread *appThread, BPatch_image *appImage)
    if(point36_1 == NULL) {
       fprintf(stderr, "Unable to find callsite %s\n",
               "call36_1");
-      exit(1);
+      return;
    }
 
    BPatch_variableExpr *expr36_1 =findVariable(appImage, "globalVariable36_1", all_points36_1);
@@ -4436,7 +4444,7 @@ void mutatorTest36(BPatch_thread *appThread, BPatch_image *appImage)
       fprintf(stderr,"**Failed** test #36 (callsite parameter referencing)\n");
       fprintf(stderr, "    Unable to locate at least one of "
               "globalVariable36_{1...10}\n");
-      exit(1);
+      return;
 	}
 
    BPatch_Vector<BPatch_snippet *> snippet_seq;
@@ -4560,7 +4568,7 @@ void instrumentFuncLoopsWithCall(BPatch_thread *appThread,
 				 char *inc_func)
 {
     // DON'T RUN FOR NOW
-    return;
+    //return;
 
     // get function * for call_func
     BPatch_Vector<BPatch_function *> funcs;
@@ -4576,7 +4584,7 @@ void instrumentFuncLoopsWithCall(BPatch_thread *appThread,
     if (func == NULL || incVar == NULL) {
 	fprintf(stderr,"**Failed** test #37 (instrument loops)\n");
 	fprintf(stderr,"    Unable to get funcions.\n");
-	exit(1);
+	return;
     }
 
     // create func expr for incVar
@@ -4595,6 +4603,7 @@ void instrumentFuncLoopsWithCall(BPatch_thread *appThread,
 
 void mutatorTest37(BPatch_thread *appThread, BPatch_image *appImage)
 {
+#if 0
     if (mutateeFortran) {
 	return;
     } 
@@ -4604,6 +4613,7 @@ void mutatorTest37(BPatch_thread *appThread, BPatch_image *appImage)
     instrumentFuncLoopsWithCall(appThread, appImage,"call37_2", "inc37_2");
 
     instrumentFuncLoopsWithCall(appThread, appImage,"call37_3", "inc37_3");
+#endif
 }
 
 
@@ -4670,7 +4680,7 @@ void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
 	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
 	fprintf(stderr,"    root loop should have 1 child, found %d.\n",
 		root->children.size());
-	exit(1);
+	return;
     }
 
     // call38_1 and call38_7 should be off the root
@@ -4681,17 +4691,17 @@ void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
 	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
 	fprintf(stderr,"    root loop should have 2 functions, found %d.\n",
 		root->numCallees());
-	exit(1);
+	return;
     }
     if (0 != strcmp("funCall38_1",f38_1)) {
 	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
 	fprintf(stderr,"    expected funCall38_1 not %s.\n",f38_1);
-	exit(1);
+	return;
     }
     if (0 != strcmp("funCall38_7",f38_7)) {
 	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
 	fprintf(stderr,"    expected funCall38_7 not %s.\n",f38_7);
-	exit(1);
+	return;
     }
 
     // the first for loop should have 3 children and 2 functions
@@ -4699,13 +4709,13 @@ void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
 	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
 	fprintf(stderr,"    first for loop found %d funcs not 3.\n", 
 		firstForLoop->numCallees());
-	exit(1);
+	return;
     }
     if (2 != firstForLoop->children.size()) {
 	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
 	fprintf(stderr,"    first for loop had %d children, not 2.\n",
 		firstForLoop->children.size());
-	exit(1);
+	return;
     }
 
     // call38_2, call38_4 and call38_6 should be under the outer loop
@@ -4716,17 +4726,17 @@ void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
     if (0 != strcmp("funCall38_2",f38_2)) {
 	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
 	fprintf(stderr,"    expected funCall38_2 not %s.\n",f38_2);
-	exit(1);
+	return;
     }
     if (0 != strcmp("funCall38_4",f38_4)) {
 	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
 	fprintf(stderr,"    expected funCall38_4 not %s.\n",f38_4);
-	exit(1);
+	return;
     }
     if (0 != strcmp("funCall38_6",f38_6)) {
 	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
 	fprintf(stderr,"    expected funCall38_6 not %s.\n",f38_6);
-	exit(1);
+	return;
     }
 
     // the second for loop should have one child and no nested functions
@@ -4734,14 +4744,14 @@ void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
 	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
 	fprintf(stderr,"    second for loop had %d children, not 1.\n",
 		secondForLoop->children.size());
-	exit(1);
+	return;
     }
     if (0 != secondForLoop->numCallees()) {
 	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
 	fprintf(stderr,"    second for loop had %d funcs (%s), should be 0.\n",
 		secondForLoop->numCallees(),
 		secondForLoop->getCalleeName(0));
-	exit(1);
+	return;
     }
 
     // third for loop has no children and one function funCall38_3
@@ -4749,20 +4759,20 @@ void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
 	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
 	fprintf(stderr,"    third for loop had %d children, not 0.\n",
 		thirdForLoop->children.size());
-	exit(1);
+	return;
     }
     if (1 != thirdForLoop->numCallees()) {
 	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
 	fprintf(stderr,"    third for loop had %d funcs, not 1.\n",
 		thirdForLoop->numCallees());
-	exit(1);
+	return;
     }
 
     const char * f38_3 = thirdForLoop->getCalleeName(0);
     if (0 != strcmp("funCall38_3",f38_3)) {
 	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
 	fprintf(stderr,"    expected funCall38_3 not %s.\n",f38_3);
-	exit(1);
+	return;
     }
 
     // the while loop has no children and one function (funCall38_5)
@@ -4770,20 +4780,20 @@ void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
 	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
 	fprintf(stderr,"    while loop had %d children, not 0.\n",
 		whileLoop->children.size());
-	exit(1);
+	return;
     }
     if (1 != whileLoop->numCallees()) {
 	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
 	fprintf(stderr,"    while loop had %d functions, not 1.\n",
 		whileLoop->numCallees());
-	exit(1);
+	return;
     }
 
     const char * f38_5 = whileLoop->getCalleeName(0);
     if (0 != strcmp("funCall38_5",f38_5)) {
 	fprintf(stderr,"**Failed** test #38 (CFG loop/callee tree)\n");
 	fprintf(stderr,"    expected funCall38_5 not %s.\n",f38_5);
-	exit(1);
+	return;
     }
 }
 
@@ -4818,7 +4828,7 @@ void mutatorTest39(BPatch_thread *appThread, BPatch_image *appImage)
          for (unsigned int i = 0; i < bpmv.size(); ++i)
             fprintf(stderr, "  matched function: %s\n",
                    bpmv[i]->getName(buf, 128));
-         exit(1);
+         return;
     }
 
     bpmv.clear();
@@ -4827,7 +4837,7 @@ void mutatorTest39(BPatch_thread *appThread, BPatch_image *appImage)
          fprintf(stderr, "**Failed test #39 (regex function search)\n");
          fprintf(stderr, "  Expected 1 function matching ^func12_1, got %d\n",
                             bpmv.size());
-         exit(1);
+         return;
     }
 
     if (mutateeFortran) return;
@@ -4842,7 +4852,7 @@ void mutatorTest39(BPatch_thread *appThread, BPatch_image *appImage)
        || (!bpmv.size())) {
          fprintf(stderr, "**Failed test #39 (regex function search)\n");
          fprintf(stderr, "  Expected function(s) matching %s\n",libc_regex);
-         exit(1);
+         return;
     }
 
 #endif
@@ -4860,7 +4870,7 @@ BPatch_function *findFunction40(const char *fname,
       fprintf(stderr, "**Failed test #40 (monitor call sites)\n");
       fprintf(stderr, "  Expected 1 functions matching call40_1, got %d\n",
               bpfv.size());
-         exit(1);
+      return NULL;
   }
   return bpfv[0];
 }
@@ -4872,13 +4882,13 @@ void setVar40(const char *vname, void *addr, BPatch_image *appImage)
    if (NULL == (v = appImage->findVariable(vname))) {
       fprintf(stderr, "**Failed test #40 (monitor call sites)\n");
       fprintf(stderr, "  cannot find variable %s\n", vname);
-         exit(1);
+         return;
    }
 
    if (! v->writeValue(&buf, sizeof(void *),false)) {
       fprintf(stderr, "**Failed test #40 (monitor call sites)\n");
       fprintf(stderr, "  failed to write call site var to mutatee\n");
-      exit(1);
+      return;
    }
 }
 
@@ -4920,7 +4930,7 @@ void mutatorTest40(BPatch_thread *appThread, BPatch_image *appImage)
    if (!calls) {
       fprintf(stderr, "**Failed test #40 (monitor call sites)\n");
       fprintf(stderr, "  cannot find call points for call40_5\n");
-         exit(1);
+         return;
    }
 
    BPatch_Vector<BPatch_point *> dyncalls;
@@ -4935,7 +4945,7 @@ void mutatorTest40(BPatch_thread *appThread, BPatch_image *appImage)
       fprintf(stderr, "  wrong number of dynamic points found (%d -- not 1)\n",
               dyncalls.size());
       fprintf(stderr, "  total number of calls found: %d\n", calls->size());
-         exit(1);
+         return;
    }
 
    // write address of anticipated call site into mutatee var.
@@ -4946,7 +4956,7 @@ void mutatorTest40(BPatch_thread *appThread, BPatch_image *appImage)
    if (! dyncalls[0]->monitorCalls(monitorFunc)) {
       fprintf(stderr, "**Failed test #40 (monitor call sites)\n");
       fprintf(stderr, "  cannot monitor calls\n");
-      exit(1);
+      return;
    }
 #endif
 }
@@ -5018,7 +5028,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
 
     if (appThread == NULL) {
 	fprintf(stderr, "Unable to run test program.\n");
-	exit(1);
+        exit(1);
     }
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
@@ -5179,6 +5189,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
     // above will be in place before the mutatee begins its tests.
 
     dprintf("starting program execution.\n");
+    //sleep(10000);
     appThread->continueExecution();
 
     // Test poll for status change
