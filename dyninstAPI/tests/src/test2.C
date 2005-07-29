@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2.C,v 1.61 2005/07/06 18:28:11 rchen Exp $
+// $Id: test2.C,v 1.62 2005/07/29 19:20:02 bernat Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -73,6 +73,7 @@
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
 #include "BPatch_snippet.h"
+#include "BPatch_function.h"
 #include "test_util.h"
 #include "test2.h"
 

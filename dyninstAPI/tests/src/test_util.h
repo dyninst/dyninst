@@ -42,8 +42,13 @@
 #ifndef _test_h_
 #define _test_h_
 
+#include "BPatch.h"
 #include "BPatch_thread.h"
 #include "BPatch_image.h"
+#include "BPatch_function.h"
+#include "BPatch_snippet.h"
+#include "BPatch_point.h"
+#include "BPatch_process.h"
 
 
 #if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 10 apr 2001 
