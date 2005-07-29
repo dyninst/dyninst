@@ -39,7 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates2.C,v 1.49 2005/06/22 21:38:54 tlmiller Exp $
+
+// $Id: templates2.C,v 1.50 2005/07/29 19:19:56 bernat Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -58,7 +59,7 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/Object.h"
-#include "dyninstAPI/src/sharedobject.h"
+#include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/syscalltrap.h"
 #include "dyninstAPI/src/libState.h"
 
@@ -88,11 +89,14 @@ template class  dictionary_hash_iter <pdstring, pdmodule *>;
 template class  dictionary_hash_iter <pdstring, int_function*>;
 template class  dictionary_hash_iter <pdstring, unsigned>;
 template class  dictionary_hash_iter <pdstring, pdvector<int_function*>*>;
+template class  dictionary_hash_iter <pdstring, pdvector<int_variable*>*>;
+template class  dictionary_hash_iter <pdstring, pdvector<image_func*>*>;
+template class  dictionary_hash_iter <pdstring, pdvector<image_variable*>*>;
 template class  dictionary_hash_iter <unsigned, unsigned>;
 template class  dictionary_hash_iter <unsigned, heapItem*>;
 template class  dictionary_hash_iter <unsigned, int_function*>;
 template class  dictionary_hash_iter <unsigned long, int_function*>;
-template class  pdvector<shared_object *> ;
+template class  pdvector<mapped_object *> ;
 
 template class dictionary_hash<pdstring, libraryCallback *>;
 template class pdvector<dictionary_hash <pdstring, libraryCallback *>::entry>;
@@ -174,7 +178,7 @@ template class pdvector<BPatch_eventMailbox::mb_callback_t>;
 
 #if defined( arch_ia64 )
 #include <list>
-template class std::list< BPatch_basicBlock *>;
+template class std::list< int_basicBlock *>;
 #endif /* defined( arch_ia64 ) */
 
 template class pdvector< Symbol >;
@@ -187,7 +191,13 @@ template class pdvector< dictionary_hash< pdstring, bool >::entry >;
 #include "dyninstAPI/src/LineInformation.h"
 template class LineInformation::SourceLineInternTable;
 
-#if defined( rs6000_ibm_aix5_1 )
+#if defined( rs6000_ibm_aix51 )
 #include <set>
 template class std::set< image * >;
-#endif /* defined( rs6000_ibm_aix5_1 ) */
+#endif
+
+class multiTramp;
+template class dictionary_hash<int, multiTramp *>;
+
+class replacedFunctionCall;
+template class dictionary_hash<Address, replacedFunctionCall *>;

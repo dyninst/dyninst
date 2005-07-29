@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.50 2005/06/08 20:59:08 tlmiller Exp $
+// $Id: templates-nt.C,v 1.51 2005/07/29 19:19:53 bernat Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -57,6 +57,43 @@
 template class dictionary_hash<unsigned int, unsigned int>;
 template class dictionary_hash<unsigned int, heapItem *>;
 template class dictionary_hash<unsigned int, int_function *>;
+class image_func;
+template class pdvector<image_func *>;
+template class dictionary_hash<pdstring, pdvector<image_func *> *>;
+template class dictionary_hash<Address, image_func *>;
+
+class int_variable;
+template class pdvector<int_variable *>;
+template class dictionary_hash<pdstring, int_variable *>;
+template class dictionary_hash<pdstring, pdvector<int_variable *> *>;
+template class dictionary_hash<Address, int_variable *>;
+
+class image_variable;
+template class pdvector<image_variable *>;
+template class dictionary_hash<pdstring, image_variable *>;
+template class dictionary_hash<pdstring, pdvector<image_variable *> *>;
+template class dictionary_hash<Address, image_variable *>;
+
+class instPoint;
+template class dictionary_hash<Address, instPoint *>;
+
+class multiTramp;
+template class dictionary_hash<int, multiTramp *>;
+
+class replacedFunctionCall;
+template class dictionary_hash<Address, replacedFunctionCall *>;
+
+class relocatedInstruction;
+template class dictionary_hash<Address, relocatedInstruction *>;
+
+class BPatch_point;
+template class dictionary_hash<const instPoint *, BPatch_point *>;
+
+class image_basicBlock;
+template class dictionary_hash<Address, image_basicBlock *>;
+
+class fileDescriptor;
+template class pdvector<fileDescriptor>;
 
 template class dictionary_hash<pdstring, unsigned int>;
 template class dictionary_hash<pdstring, pdstring>;
@@ -76,9 +113,9 @@ template class pdvector<inferiorRPCtoDo *>;
 template class pdvector<inferiorRPCinProgress *>;
 
 #include "common/src/List.C"
-template class List<miniTrampHandle*>;
-template class ListBase<miniTrampHandle*, void*>;
-template class dictionary_hash<instPoint const *, trampTemplate *>;
+template class List<miniTramp*>;
+template class ListBase<miniTramp*, void*>;
+template class dictionary_hash<instPoint const *, baseTramp *>;
 
 #include "common/h/String.h"
 #include "dyninstAPI/h/BPatch_thread.h"
@@ -125,3 +162,6 @@ template class pdvector<dictionary_hash <int, BPatch_process *>::entry>;
 
 template class dictionary_hash<const int_function *, BPatch_function *>;
 template class pdvector<dictionary_hash <const int_function *, BPatch_function *>::entry>;
+
+class replacedFunctionCall;
+template class pdvector<replacedFunctionCall *>;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.50 2005/06/08 20:59:09 tlmiller Exp $
+// $Id: templates0.C,v 1.51 2005/07/29 19:19:54 bernat Exp $
 // Generate all the templates in one file.
 
 /*
@@ -78,6 +78,7 @@
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
+#include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
@@ -100,6 +101,12 @@ template class pdvector< IncludeFileInfo >;
 
 #include "dyninstAPI/src/dynamiclinking.h"
 
+#include <set>
+
+class int_function;
+class int_variable;
+class int_basicBlock;
+
 template class  pdvector<dyn_thread *>;
 template class  pdvector< pdvector<dyn_thread *> >;
 template class  pdvector<bool>;
@@ -116,14 +123,20 @@ template class  pdvector<float>;
 template class  pdvector<heapItem*>;
 template class  pdvector<image*>;
 template class  pdvector<instMapping*>;
+class image_instPoint;
+template class  pdvector<image_instPoint *>;
 template class  pdvector<instPoint *>;
 template class  pdvector<BPatch_basicBlock*>;
 template class  pdvector<const instPoint *>;
-template class  pdvector<trampTemplate *>;
+template class  pdvector<instPointInstance *>;
+template class  pdvector<baseTramp *>;
+template class  pdvector<baseTrampInstance *>;
 template class  pdvector<int>;
 template class  pdvector<instruction>;
 template class  pdvector< point_ >;
 template class  pdvector< ExceptionBlock >;
+class codeRange;
+template class  pdvector<codeRange *>;
 
 #ifndef BPATCH_LIBRARY
 class processMetFocusNode;
@@ -146,6 +159,8 @@ template class  pdvector<const threadMetFocusNode_Val *>;
 template class  pdvector<module *>;
 template class  pdvector<pdmodule *>;
 template class  pdvector<int_function*>;
+template class  pdvector<int_variable*>;
+template class  pdvector<int_basicBlock *>;
 class BPatch_basicBlockLoop;
 template class  pdvector<BPatch_basicBlockLoop*>;
 template class  pdvector<process*>;
@@ -158,27 +173,42 @@ template class  pdvector<disabledItem>;
 template class  pdvector<addrVecType>;
 template class  pdvector<pdvector<pdstring> >;
 template class  pdvector<double>;
-template class  pdvector<miniTrampHandle *>;
-template class  pdvector<const miniTrampHandle *>;
-template class  pdvector<returnInstance *>;             //XXX
-template class  pdvector<relocatedFuncInfo *>; 
+
+template class  pdvector<miniTramp *>;
+template class  pdvector<miniTrampInstance *>;
+template class  pdvector<const miniTramp *>;
+template class  pdvector<generatedCodeObject *>;
+
+template class  pdvector<image_func *>;
+template class  pdvector<image_basicBlock *>;
+template class  pdvector<image_variable *>;
+
 template class  pdvector<relocationEntry>;
 template class  pdvector<sharedLibHook *>;
 #if defined(cap_relocation)
-template class pdvector<LocalAlteration*>;
-template class pdvector<FERNode>;
-template class pdvector<FERNode*>;
+//template class pdvector<LocalAlteration*>;
+//template class pdvector<FERNode>;
+//template class pdvector<FERNode*>;
 #endif
-template class pdvector<process::instPendingDeletion *>;
 
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(rs6000_ibm_aix4_1)
 template class pdvector<imageUpdate*>;//ccw 28 oct 2001
 template class pdvector<dataUpdate*> ;//ccw 26 nov 2001
-#endif
+
 
 #ifndef BPATCH_LIBRARY
 template class pdvector<pdvector<pdstring> *>;
 #endif
+
+
+class mapped_module;
+template class pdvector<mapped_module *>;
+
+template class pdvector<mapped_object::foundHeapDesc>;
+
+#include "InstrucIter.h"
+template class pdvector<InstrucIter::previous>;
+
+template class pdvector<fileDescriptor>;
+
+template class std::set<instPoint *>;
+

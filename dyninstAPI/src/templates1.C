@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.65 2005/05/18 20:14:46 rchen Exp $
+//$Id: templates1.C,v 1.66 2005/07/29 19:19:55 bernat Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #pragma implementation("Dictionary.h")
@@ -58,14 +58,13 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/Object.h"
-#include "dyninstAPI/src/sharedobject.h"
 #include "common/h/List.h"
 #include "dyninstAPI/src/FunctionExpansionRecord.h"
 
 class dyn_lwp;
+class image_func;
 
 //begin from templates05
-template class pdvector<instWaitingList *>;
 template class refCounter<string_ll>;
 template class pdvector<heapDescriptor>;
 //end from templates05
@@ -109,23 +108,32 @@ template class pdvector<inferiorRPCtoDo *>;
 template class pdvector<inferiorRPCinProgress *>;
 
 #include "common/src/List.C"
-template class  List<miniTrampHandle*>;
-template class  ListBase<miniTrampHandle*, void*>;
-template class  dictionary_hash <const instPoint *, trampTemplate *>;
-template class  pdvector<dictionary_hash <const instPoint *, trampTemplate *>::entry>;
-template class  dictionary_hash_iter <const instPoint *, trampTemplate *>;
-
 template class  dictionary_hash <Address, Symbol*>;
 template class  pdvector<dictionary_hash <Address, Symbol*>::entry>;
 template class  dictionary_hash <instPoint*, unsigned>;
 template class  pdvector<dictionary_hash <instPoint*, unsigned>::entry>;
 template class  pdvector<dictionary_hash <instPoint*, unsigned long>::entry>;
+template class  dictionary_hash <Address, instPoint*>;
+template class  pdvector<dictionary_hash <Address, instPoint *>::entry>;
 template class  dictionary_hash <pdstring, internalSym*>;
 template class  pdvector<dictionary_hash <pdstring, internalSym*>::entry>;
 template class  dictionary_hash <pdstring, pdmodule *>;
 template class  pdvector<dictionary_hash <pdstring, pdmodule *>::entry>;
 template class  dictionary_hash <pdstring, int_function*>;
 template class  pdvector<dictionary_hash <pdstring, int_function*>::entry>;
+template class  dictionary_hash <pdstring, pdvector<int_variable*>*>;
+template class  pdvector<dictionary_hash <pdstring, pdvector<int_variable*> *>::entry>;
+template class  dictionary_hash <pdstring, pdvector<image_func*> *>;
+
+template class  dictionary_hash <Address, image_func*>;
+template class  pdvector<dictionary_hash <Address, image_func*>::entry>;
+
+template class  dictionary_hash <Address, image_variable*>;
+template class  pdvector<dictionary_hash <Address, image_variable*>::entry>;
+
+template class  dictionary_hash <pdstring, pdvector<image_variable*>*>;
+template class  pdvector<dictionary_hash <pdstring, pdvector<image_variable*> *>::entry>;
+
 template class  dictionary_hash <pdstring, supportedLanguages>;
 template class  pdvector<dictionary_hash <pdstring, supportedLanguages>::entry>;
 template class  dictionary_hash <pdstring, unsigned>;
@@ -157,6 +165,9 @@ template class  pdvector<dictionary_hash <Address, BPatch_variableExpr*>::entry>
 
 template class BPatch_Vector<BPatch_frame>;
 
+template class dictionary_hash <const instPoint *, BPatch_point *>;
+template class pdvector<dictionary_hash<const instPoint *, BPatch_point *>::entry>;
+template class dictionary_hash_iter<const instPoint *, BPatch_point *>;
 
 #ifdef alpha_dec_osf4_0
 template class  dictionary_hash <pdstring, int>;
@@ -179,3 +190,13 @@ template class  dictionary_hash_iter <unsigned long, unsigned long>;
  || defined(ia64_unknown_linux2_4)
 template class pdvector<Elf_X_Shdr *>;
 #endif
+
+class image_basicBlock;
+template class dictionary_hash<Address, image_basicBlock *>;
+template class pdvector<dictionary_hash<Address, image_basicBlock *>::entry>;
+
+class relocatedInstruction;
+template class dictionary_hash<Address, relocatedInstruction *>;
+template class pdvector<dictionary_hash<Address, relocatedInstruction *>::entry>;
+
+template class BPatch_Set<int_basicBlock *>;
