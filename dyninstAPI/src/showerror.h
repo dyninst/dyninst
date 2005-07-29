@@ -59,6 +59,7 @@ extern int dyn_debug_parsing;
 extern int dyn_debug_forkexec;
 extern int dyn_debug_proccontrol;
 extern int dyn_debug_stackwalk;
+extern int dyn_debug_inst;
 
 // C++ prototypes
 #define signal_cerr       if (dyn_debug_signal) cerr
@@ -77,6 +78,7 @@ extern int parsing_printf(const char *format, ...);
 extern int forkexec_printf(const char *format, ...);
 extern int proccontrol_printf(const char *format, ...);
 extern int stackwalk_printf(const char *format, ...);
+extern int inst_printf(const char *format, ...);
 
 // And initialization
 extern bool init_debug();
