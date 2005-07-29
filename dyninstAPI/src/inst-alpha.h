@@ -41,7 +41,7 @@
 
 /*
  * Common definitions to the ALPHA specific instrumentation code.
- * $Id: inst-alpha.h,v 1.6 2004/03/23 01:12:03 eli Exp $
+ * $Id: inst-alpha.h,v 1.7 2005/07/29 19:18:34 bernat Exp $
  */
 
 #ifndef INST_ALPHA_H
@@ -57,10 +57,6 @@
 
 extern registerSpace *regSpace;
 
-extern trampTemplate baseTemplate;
-extern trampTemplate noArgsTemplate;
-extern trampTemplate withArgsTemplate;
-
 #define REG_MT_POS          12   /* register saved to keep the address of */
                                   /* the current vector of counter/timers  */
                                   /* for each thread.                      */
@@ -69,16 +65,8 @@ extern trampTemplate withArgsTemplate;
 
 
 
-bool isCallInsn(const instruction);
-bool isReturnInsn(const image *, Address,bool &lastOne);
 int software_divide(int src1,int src2,int dest,char *i,Address &base,bool noCost,Address divl_addr,bool Imm = false);
 
-extern unsigned long generate_nop(instruction* insn);
-extern void generateBranchInsn(instruction *insn, int offset);
-extern bool isReturnInsn(const image *owner, Address adr, bool &lastOne);
-extern void generateBreakPoint(instruction &insn);
-extern void relocateInstruction(instruction*, Address, Address);
-extern bool isReturn(const instruction insn);
 
 #endif
 

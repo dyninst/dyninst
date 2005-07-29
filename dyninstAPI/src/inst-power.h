@@ -41,7 +41,7 @@
 
 /*
  * inst-power.h - Common definitions to the POWER specific instrumentation code.
- * $Id: inst-power.h,v 1.24 2005/02/17 02:16:21 rutar Exp $
+ * $Id: inst-power.h,v 1.25 2005/07/29 19:18:37 bernat Exp $
  */
 
 #ifndef INST_POWER_H
@@ -67,9 +67,16 @@ extern registerSpace *regSpace;
 
 #define REG_SP		      1		
 #define REG_TOC               2   /* TOC anchor                            */
+// REG_GUARD_OFFSET and REG_GUARD_VALUE could overlap.
 #define REG_GUARD_ADDR        5   /* Arbitrary                             */
 #define REG_GUARD_VALUE       6
-#define REG_GUARD_OFFSET      7
+#define REG_GUARD_OFFSET      6
+
+#define REG_COST_ADDR         5
+#define REG_COST_VALUE        6
+
+#define REG_SCRATCH          10
+
 #define REG_MT_POS           12   /* Register to reserve for MT implementation */
 #define NUM_INSN_MT_PREAMBLE 26   /* number of instructions required for   */
                                   /* the MT preamble.                      */ 
@@ -106,13 +113,82 @@ extern registerSpace *regSpace;
 
 #define FUNC_CALL_SAVE (LINKAREA + FUNCARGS)
 
-/* Cookie values for marking if we're in a tramp */
-#define MODIFIED_LR 0x54a7
-#define MODIFIED_LR_MASK 0xffff
 
+///////////////////////////// Multi-instruction sequences
+class codeGen;
 
-#define IN_TRAMP 0xda73
-#define IN_TRAMP_MASK 0xffff
-
+void saveSPR(codeGen &gen,
+             Register scratchReg,
+             int sprnum,
+             int stkOffset);
+void restoreSPR(codeGen &gen,
+                Register scratchReg,
+                int sprnum,
+                int stkOffset);
+void saveLR(codeGen &gen,
+            Register scratchReg,
+            int stkOffset);
+void restoreLR(codeGen &gen,
+               Register scratchReg,
+               int stkOffset);
+void setBRL(codeGen &gen,
+            Register scratchReg,
+            unsigned val,
+            unsigned ti); // We're lazy and hand in the next insn
+void saveCR(codeGen &gen,
+            Register scratchReg,
+            int stkOffset);
+void restoreCR(codeGen &gen,
+               Register scratchReg,
+               int stkOffset);
+void saveFPSCR(codeGen &gen,
+               Register scratchReg,
+               int stkOffset);
+void restoreFPSCR(codeGen &gen,
+                  Register scratchReg,
+                  int stkOffset);
+void saveRegister(codeGen &gen,
+                  Register reg,
+                  int save_off);
+// We may want to restore a _logical_ register N
+// (that is, the save slot for N) into a different reg.
+// This avoids using a temporary
+void restoreRegister(codeGen &gen,
+                     Register source,
+                     Register dest,
+                     int save_off);
+// Much more common case
+void restoreRegister(codeGen &gen,
+                     Register reg,
+                     int save_off);
+void saveFPRegister(codeGen &gen,
+                    Register reg,
+                    int save_off);
+// See above...
+void restoreFPRegister(codeGen &gen,
+                       Register source,
+                       Register dest,
+                       int save_off);
+void restoreFPRegister(codeGen &gen,
+                       Register reg,
+                       int save_off);
+void pushStack(codeGen &gen);
+void popStack(codeGen &gen);
+unsigned saveGPRegisters(codeGen &gen, 
+                         registerSpace *theRegSpace,
+                         int save_off);
+unsigned restoreGPRegisters(codeGen &gen, 
+                            registerSpace *theRegSpace,
+                            int save_off);
+unsigned saveFPRegisters(codeGen &gen, 
+                         registerSpace *theRegSpace,
+                         int save_off);
+unsigned restoreFPRegisters(codeGen &gen,
+                            registerSpace *theRegSpace,
+                            int save_off);
+unsigned saveSPRegisters(codeGen &gen, 
+                         int save_off);
+unsigned restoreSPRegisters(codeGen &gen, 
+                            int save_off);
 
 #endif

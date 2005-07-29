@@ -39,20 +39,16 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.168 2005/07/11 19:38:03 rutar Exp $
+// $Id: inst-sparc.C,v 1.169 2005/07/29 19:18:38 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
-#include "dyninstAPI/src/instPoint.h"
-
-#include "dyninstAPI/src/FunctionExpansionRecord.h"
 
 #include "dyninstAPI/src/rpcMgr.h"
-#include "dyninstAPI/src/BPatch_libInfo.h"
-
-#ifdef BPATCH_LIBRARY
-#include "BPatch_flowGraph.h"
-#include "BPatch_function.h"
-#endif
+#include "dyninstAPI/src/instPoint.h"
+#include "dyninstAPI/src/multiTramp.h"
+#include "dyninstAPI/src/miniTramp.h"
+#include "dyninstAPI/src/baseTramp.h"
+#include "dyninstAPI/src/InstrucIter.h"
 
 /****************************************************************************/
 /****************************************************************************/
@@ -60,598 +56,13 @@
 
 static dictionary_hash<pdstring, unsigned> funcFrequencyTable(pdstring::hash);
 
-trampTemplate baseTemplate;
-
-//declaration of conservative base trampoline template
-
-trampTemplate conservativeBaseTemplate;
-
-
-
 registerSpace *regSpace;
 
 
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-
-// Constructor for the instPoint class. 
-instPoint::instPoint(int_function *f, Address &adr, const bool delayOK,
-                     instPointType pointType, bool noCall)
-: instPointBase(pointType, adr, f), insnAddr(adr),
-  firstPriorIsDCTI(false), 
-  secondPriorIsDCTI(false),
-  thirdPriorIsDCTI(false), 
-  firstIsDCTI(false), 
-  secondIsDCTI(false), 
-  thirdIsDCTI(false),
-  firstPriorIsAggregate(false),
-  thirdIsAggregate(false), 
-  fourthIsAggregate(false), 
-  fifthIsAggregate(false),
-  usesPriorInstructions(false),
-  numPriorInstructions(0),
-  callIndirect(false), isBranchOut(false),
-  needsLongJump(false), dontUseCall(noCall)
-{
-   image *owner = getOwner();
-   // If the base tramp is too far away from the function for a branch, 
-   // we will need to relocate at least two instructions to the base tramp
-   firstInstruction.raw   = owner->get_instruction(adr);
-
-   // For function call sites 
-   if (getPointType() == callSite) {
-
-      // Grab the second instruction
-      secondInstruction.raw  = owner->get_instruction(adr + 4);
-
-      firstIsDCTI = true;
-
-      // Only need to relocate two instructions as the destination
-      // of the original call is changed to the base tramp, and a call
-      // to the real target is generated in the base tramp
-      size = 2 * sizeof(instruction);
-
-
-      // we may need to move the instruction after the instruction in the
-      // call's delay slot, to deal with the case where the return value
-      // of the called function is a structure.
-      thirdInstruction.raw = owner->get_instruction(adr + 8);
-
-      if ( !IS_VALID_INSN(thirdInstruction) &&
-           thirdInstruction.raw != 0 ) {
-
-         thirdIsAggregate = true;
-         size = 3 * sizeof(instruction);
-      }
-
-
-      // For arbitrary instPoints
-   } else if (getPointType() == otherPoint) {
-
-      // Grab the second instruction
-      secondInstruction.raw  = owner->get_instruction(adr + 4);
-
-      size = 2 * sizeof(instruction);
-
-      if ( isDCTI(firstInstruction) ) {
-         firstIsDCTI = true;
-      }
-
-
-      // Instruction sequence looks like this:
-      //
-      // adr:      insn
-      // adr + 4:  insn
-
-      // If the second instruction is a delayed, control transfer
-      // instruction, we need to also move the instruction in its
-      // delay slot (if it is relocated to the base tramp).
-      if ( isDCTI(secondInstruction) ) {
-
-         secondIsDCTI = true;
-
-         // Will need to relocate a third instruction to the base trampoline
-         // if the base trampoline is outside of the range of a branch
-         thirdInstruction.raw   = owner->get_instruction(adr + 8);
-
-         size = 3 * sizeof(instruction);
-
-         // If the second instruction is a CALL instruction, we may 
-         // need to move the instruction after the instruction in the 
-         // delay slot, to deal with the case where the return value 
-         // of the called function is a structure.
-         if ( isCallInsn(secondInstruction) ) {
-
-            fourthInstruction.raw = owner->get_instruction(adr + 12);
-
-            if ( !IS_VALID_INSN(fourthInstruction) && 
-                 fourthInstruction.raw != 0 ) {
-
-               fourthIsAggregate = true;
-               size = 4 * sizeof(instruction);
-            }
-         }
-      }
-
-      // For function entry instPoints
-   } else if (getPointType() == functionEntry) {
-
-      // Grab the second instruction
-      secondInstruction.raw  = owner->get_instruction(adr + 4);
-
-      // Will need to relocate a third instruction to the base trampoline
-      // if the base trampoline is outside of the range of a branch
-      thirdInstruction.raw   = owner->get_instruction(adr + 8);
-
-      size = 3 * sizeof(instruction);
-
-      // Instruction sequence looks like this:
-      //
-      // adr:      insn
-      // adr + 4:  insn
-      // adr + 8:  insn
-
-
-      // If the first instruction is a delayed, control transfer
-      // instruction, we need to also move the instruction in its
-      // delay slot (if it is relocated to the base tramp).
-      if ( isDCTI(firstInstruction) ) {
-
-         firstIsDCTI = true;
-
-         // If the first instruction is a CALL instruction, we may 
-         // need to move the instruction after the instruction in its 
-         // delay slot, to deal with the case where the return value 
-         // of the called function is a structure.
-         if ( isCallInsn(firstInstruction) ) {
-
-            if ( !IS_VALID_INSN(thirdInstruction) && 
-                 thirdInstruction.raw != 0 ) {
-
-               thirdIsAggregate = true;
-            }
-         }
-      }
-
-
-      // If the second instruction is a delayed, control transfer
-      // instruction, we need to also move the instruction in its
-      // delay slot (if it is relocated to the base tramp).
-      if ( isDCTI(secondInstruction) ) {
-
-         secondIsDCTI = true;
-
-         // If the second instruction is a CALL instruction, we may 
-         // need to move the instruction after the instruction in the 
-         // delay slot, to deal with the case where the return value 
-         // of the called function is a structure.
-         if ( isCallInsn(secondInstruction) ) {
-
-            fourthInstruction.raw = owner->get_instruction(adr + 12);
-
-            if ( !IS_VALID_INSN(fourthInstruction) && 
-                 fourthInstruction.raw != 0 ) {
-
-               fourthIsAggregate = true;
-               size = 4 * sizeof(instruction);
-            }
-         }
-      }
-
-
-      // If the third instruction is a delayed, control transfer
-      // instruction, we need to also move the instruction in its
-      // delay slot (if it is relocated to the base tramp).
-      if ( isDCTI(thirdInstruction) ) {
-
-         thirdIsDCTI = true;
-
-         fourthInstruction.raw = owner->get_instruction(adr + 12);
-
-         // If the third instruction is a CALL instruction, we may 
-         // need to move the instruction after the instruction in the 
-         // delay slot, to deal with the case where the return value 
-         // of the called function is a structure.
-         if ( isCallInsn(thirdInstruction) ) {
-
-            fifthInstruction.raw = owner->get_instruction(adr + 16);
-
-            if ( !IS_VALID_INSN(fifthInstruction) && 
-                 fifthInstruction.raw != 0 ) {
-
-               fifthIsAggregate = true;
-               size = 5 * sizeof(instruction);
-            }
-         }
-      }
-
-
-      // For function exit points
-   } else {
-
-      assert(getPointType() == functionExit);
-
-      firstIsDCTI = true;
-
-      // if the function has no stack frame
-      if (this->hasNoStackFrame()) {
-
-         // If the base trampoline is too far away to use a branch 
-         // instruction, we will need to claim the instructions before
-         // the exit instructions, to be able to transfer to the base
-         // trampoline.
-         usesPriorInstructions = true;
-
-         // Grab the instruction just before the exit instructions  
-         firstPriorInstruction.raw = owner->get_instruction(adr - 4);
-         numPriorInstructions      = 1;
-         size                      = 3 * sizeof(instruction);
-
-
-         // If the first Prior instruction is a DCTI, then this point is part
-         // of a tail call optimization and we need to have firstInstruction
-         // pointing to the DCTI, not the delay slot instruction.
-         if ( isDCTI(firstPriorInstruction) ) {
-
-            firstInstruction.raw  = owner->get_instruction(adr - 4);
-            secondInstruction.raw = owner->get_instruction(adr);
-            numPriorInstructions  = 0;
-            size                  = 2 * sizeof(instruction);
-
-
-         } else {
-
-            // Grab the second instruction
-            secondInstruction.raw  = owner->get_instruction(adr + 4);
-
-
-            // If the 'firstPriorInstruction' is in the delay slot of the 
-            // instruction just before it, we have to copy both of those
-            // instructions to the base tramp
-            if (owner->isValidAddress(adr - 8)) {
-
-               // Grab the instruction before the 'firstPriorInstruction' 
-               secondPriorInstruction.raw = owner->get_instruction(adr - 8);
-
-               if ( isDCTI(secondPriorInstruction) && !delayOK ) {
-
-                  secondPriorIsDCTI    = true;
-                  numPriorInstructions = 2;
-                  size                 = 4 * sizeof(instruction);
-
-               }
-            }
-
-
-            // If the 'firstPriorInstruction' is the aggregate instruction
-            // for a call, we need to copy the three prior instructions to
-            // the base trampoline. 
-            if (owner->isValidAddress(adr - 12)) {
-
-               // Grab the instruction just before secondPriorInstruction 
-               thirdPriorInstruction.raw = owner->get_instruction(adr - 12);
-
-               if ( isDCTI(thirdPriorInstruction) && !delayOK ) {
-
-                  // If the 'firstPriorInstruction' is an aggregate
-                  // instruction for the 'thirdPriorInstruction', copy
-                  // all three prior instructions to the base tramp
-                  if ( !IS_VALID_INSN(firstPriorInstruction) && 
-                       firstPriorInstruction.raw != 0 ) {
-
-                     thirdPriorIsDCTI      = true;
-	                  firstPriorIsAggregate = true;
-                     numPriorInstructions  = 3;
-	                  size                  = 5 * sizeof(instruction);
-                  }
-               }
-            }
-         }
-
-         // Function has a stack frame.
-      } else {
-
-         // Grab the second instruction
-         secondInstruction.raw  = owner->get_instruction(adr + 4);
-
-         // No need to save registers before branching to exit 
-         // instrumentation
-         size = 2 * sizeof(instruction);
-      }
-   }
-
-
-   // return the address in the code segment after this instruction
-   // sequence. (there's a -1 here because one will be added up later in
-   // the function findInstPoints)  
-   adr = pointAddr() + (size - sizeof(instruction));
-}
-
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-// constructor for instPoint class for functions that have been relocated
-instPoint::instPoint(unsigned int id_to_use, int_function *f,
-                     const instruction instr[], int arrayOffset,
-                     Address &adr, bool /*delayOK*/, instPointType pointType)
-: instPointBase(id_to_use, pointType, adr, f), insnAddr(adr),
-  firstPriorIsDCTI(false), 
-  secondPriorIsDCTI(false),
-  thirdPriorIsDCTI(false), 
-  firstIsDCTI(false), 
-  secondIsDCTI(false), 
-  thirdIsDCTI(false),
-  firstPriorIsAggregate(false),
-  thirdIsAggregate(false), 
-  fourthIsAggregate(false), 
-  fifthIsAggregate(false),
-  usesPriorInstructions(false),
-  numPriorInstructions(0),
-  callIndirect(false), isBranchOut(false),
-  needsLongJump(false), dontUseCall(false)
-{
-   // If the base tramp is too far away from the function for a branch, 
-   // we will need to relocate at least two instructions to the base tramp
-   firstInstruction.raw   = instr[arrayOffset].raw;
-   secondInstruction.raw  = instr[arrayOffset + 1].raw;
-
-
-   // For function call sites 
-   if (getPointType() == callSite) {
-
-      //assert( isCallInsn(firstInstruction) );
-
-      firstIsDCTI = true;
-
-      // Only need to relocate two instructions as the destination
-      // of the original call is changed to the base tramp, and a call
-      // to the real target is generated in the base tramp
-      size = 2 * sizeof(instruction);
-
-
-      // we may need to move the instruction after the instruction in the
-      // call's delay slot, to deal with the case where the return value
-      // of the called function is a structure.
-      thirdInstruction.raw = instr[arrayOffset + 2].raw;
-
-      if ( !IS_VALID_INSN(thirdInstruction) &&
-           thirdInstruction.raw != 0 ) {
-
-         thirdIsAggregate = true;
-         size = 3 * sizeof(instruction);
-      }
-
-      // For arbitrary instPoints
-   } else if (getPointType() == otherPoint) {
-
-      // Grab the second instruction
-      secondInstruction.raw  = instr[arrayOffset + 1].raw;
-
-      size = 2 * sizeof(instruction);
-
-      if ( isDCTI(firstInstruction) ) {
-         firstIsDCTI = true;
-      }
-
-
-      // Instruction sequence looks like this:
-      //
-      // adr:      insn
-      // adr + 4:  insn
-
-      // If the second instruction is a delayed, control transfer
-      // instruction, we need to also move the instruction in its
-      // delay slot (if it is relocated to the base tramp).
-      if ( isDCTI(secondInstruction) ) {
-
-         secondIsDCTI = true;
-
-         // Will need to relocate a third instruction to the base trampoline
-         // if the base trampoline is outside of the range of a branch
-         thirdInstruction.raw = instr[arrayOffset + 2].raw;
-
-         size = 3 * sizeof(instruction);
-
-         // If the second instruction is a CALL instruction, we may 
-         // need to move the instruction after the instruction in the 
-         // delay slot, to deal with the case where the return value 
-         // of the called function is a structure.
-         if ( isCallInsn(secondInstruction) ) {
-
-            fourthInstruction.raw = instr[arrayOffset + 3].raw;
-
-            if ( !IS_VALID_INSN(fourthInstruction) && 
-                 fourthInstruction.raw != 0 ) {
-
-               fourthIsAggregate = true;
-               size = 4 * sizeof(instruction);
-            }
-         }
-      }
-
-      // For function entry instPoints
-   } else if (getPointType() == functionEntry) {
-
-      // Will to relocate a third instruction to the base trampoline
-      // if the base trampoline is outside of the range of a branch
-      thirdInstruction.raw = instr[arrayOffset + 2].raw;
-
-      size = 3 * sizeof(instruction);
-
-      // Instruction sequence looks like this:
-      //
-      // adr:      insn
-      // adr + 4:  insn
-      // adr + 8:  insn
-
-
-      // If the first instruction is a delayed, control transfer
-      // instruction, we need to also move the instruction in its
-      // delay slot (if it is relocated to the base tramp).
-      if ( isDCTI(firstInstruction) ) {
-
-         firstIsDCTI = true;
-
-         // If the first instruction is a CALL instruction, we may 
-         // need to move the instruction after the instruction in its 
-         // delay slot, to deal with the case where the return value 
-         // of the called function is a structure.
-         if ( isCallInsn(firstInstruction) ) {
-
-            if ( !IS_VALID_INSN(thirdInstruction) && 
-                 thirdInstruction.raw != 0 ) {
-
-               thirdIsAggregate = true;
-            }
-         }
-      }
-
-
-      // If the second instruction is a delayed, control transfer
-      // instruction, we need to also move the instruction in its
-      // delay slot (if it is relocated to the base tramp).
-      if ( isDCTI(secondInstruction) ) {
-
-         secondIsDCTI = true;
-
-         // If the second instruction is a CALL instruction, we may 
-         // need to move the instruction after the instruction in the 
-         // delay slot, to deal with the case where the return value 
-         // of the called function is a structure.
-         if ( isCallInsn(secondInstruction) ) {
-
-            fourthInstruction.raw = instr[arrayOffset + 3].raw;
-
-            if ( !IS_VALID_INSN(fourthInstruction) && 
-                 fourthInstruction.raw != 0 ) {
-
-               fourthIsAggregate = true;
-               size = 4 * sizeof(instruction);
-            }
-         }
-      }
-
-
-      // If the third instruction is a delayed, control transfer
-      // instruction, we need to also move the instruction in its
-      // delay slot (if it is relocated to the base tramp).
-      if ( isDCTI(thirdInstruction) ) {
-
-         thirdIsDCTI = true;
-
-         fourthInstruction.raw = instr[arrayOffset + 3].raw;
-
-         // If the third instruction is a CALL instruction, we may 
-         // need to move the instruction after the instruction in the 
-         // delay slot, to deal with the case where the return value 
-         // of the called function is a structure.
-         if ( isCallInsn(thirdInstruction) ) {
-
-            fifthInstruction.raw = instr[arrayOffset + 4].raw;
-
-            if ( !IS_VALID_INSN(fifthInstruction) && 
-                 fifthInstruction.raw != 0 ) {
-
-               fifthIsAggregate = true;
-               size = 5 * sizeof(instruction);
-            }
-         }
-      }
-
-      // For function exit points
-   } else {
-
-      assert(getPointType() == functionExit);
-
-      firstIsDCTI = true;
-
-      // if the function has no stack frame
-      if (this->hasNoStackFrame()) {
-
-         // Nops were added to the end of the function, so there is no
-         // need to use prior instructions 
-         size = 3 * sizeof(instruction);
-
-         // Function has a stack frame.
-      } else {
-
-         // No need to save registers before branching to exit 
-         // instrumentation
-         size = 2 * sizeof(instruction);
-      }
-   }
-
-
-   // return the address in the code segment after this instruction
-   // sequence. (there's a -1 here because one will be added up later in
-   // the function findInstPoints)  
-   adr = pointAddr() + (size - sizeof(instruction));
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-// Add the astNode opt to generate one instruction to get the 
-// return value for the compiler optimazed case
-void
-AstNode::optRetVal(AstNode *opt) {
-
-    if (oType == ReturnVal) {
-        cout << "Optimazed Return." << endl;
-        if (loperand == 0) {
-            loperand = opt;
-            return;
-        } else if (opt == 0) {
-            delete loperand;
-            loperand = NULL;
-            return; 
-        }
-    }
-    if (loperand) loperand->optRetVal(opt);
-    if (roperand) roperand->optRetVal(opt);
-    for (unsigned i = 0; i < operands.size(); i++) 
-        operands[i] -> optRetVal(opt);
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-bool 
-processOptimaRet(instPoint *location, AstNode *&ast) {
-
-    // For optimazed return code
-    if (location->getPointType() == functionExit) {
-
-        if ((isInsnType(location->firstInstruction, RETmask, RETmatch)) ||
-            (isInsnType(location->firstInstruction, RETLmask, RETLmatch))) {
-
-            if (isInsnType(location->secondInstruction, RESTOREmask, 
-                                                        RESTOREmatch) &&
-		(location->secondInstruction.raw | 0xc1e82000) != 0xc1e82000) {
-
-                /* cout << "Optimazed Retrun Value:  Addr " << std::hex << 
-                    location->addr << " in "
-                        << location -> func -> prettyName() << endl; */
-                AstNode *opt = new AstNode(AstNode::Constant,
-                                   (void *)location->secondInstruction.raw);
-                ast->optRetVal(opt);
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
+#if 0
 Register
 emitOptReturn(instruction i, Register src, char *insn, Address &base, 
               bool noCost, const instPoint *location,
@@ -674,7 +85,7 @@ emitOptReturn(instruction i, Register src, char *insn, Address &base,
     return emitR(getSysRetValOp, 0, 0, src, insn, base, noCost, location,
                  for_multithreaded);
 }
-
+#endif
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
@@ -735,20 +146,17 @@ void initDefaultPointFrequencyTable()
 float getPointFrequency(instPoint *point)
 {
 
-    int_function *func;
-
-    if (point->getCallee())
-        func = point->getCallee();
-    else
-        func = point->pointFunc();
-
+    int_function *func = point->findCallee();
+    if (!func)
+        func = point->func();
+    
     if (!funcFrequencyTable.defines(func->prettyName())) {
-      // Changing this value from 250 to 100 because predictedCost was
-      // too high - naim 07/18/96
-      return(100); 
-      
+        // Changing this value from 250 to 100 because predictedCost was
+        // too high - naim 07/18/96
+        return(100); 
+        
     } else {
-      return (funcFrequencyTable[func->prettyName()]);
+        return (funcFrequencyTable[func->prettyName()]);
     }
 }
 
@@ -760,142 +168,31 @@ float getPointFrequency(instPoint *point)
 // return cost in cycles of executing at this point.  This is the cost
 //   of the base tramp if it is the first at this point or 0 otherwise.
 //
-int getPointCost(process *proc, const instPoint *point)
+int instPoint::getPointCost()
 {
-    if (proc->baseMap.defines(point)) {
-        return(0);
-    } else {
-        // 70 cycles for base tramp (worst case)
-        return(70);
-    }
+   unsigned worstCost = 0;
+   for (unsigned i = 0; i < instances.size(); i++) {
+       if (instances[i]->multi()) {
+           if (instances[i]->multi()->usesTrap()) {
+              // Stop right here
+              // Actually, probably don't want this if the "always
+              // delivered" instrumentation happens
+              return 9000; // Estimated trap cost
+          }
+          else {
+              // Base tramp cost if we're first at point, otherwise
+              // free (someone else paid)
+              // Which makes no sense, since we're talking an entire instPoint.
+              // So if there is a multitramp hooked up we use the base tramp cost.
+              worstCost = 70; // Magic constant from before time
+          }
+      }
+      else {
+          // No multiTramp, so still free (we're not instrumenting here).
+      }
+  }
+  return worstCost;
 }
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-void initATramp (trampTemplate *thisTemp, Address tramp,
-		 bool isConservative=false)
-{
-   instruction *temp;
-
-   if(!isConservative) {
-    	thisTemp->savePreInsOffset = 
-			((Address)baseTramp_savePreInsn - tramp);
-    	thisTemp->restorePreInsOffset = 
-			((Address)baseTramp_restorePreInsn - tramp);
-    	thisTemp->savePostInsOffset = 
-			((Address)baseTramp_savePostInsn - tramp);
-    	thisTemp->restorePostInsOffset = 
-			((Address)baseTramp_restorePostInsn - tramp);
-   } else {
-      thisTemp->savePreInsOffset =
-         ((Address)conservativeBaseTramp_savePreInsn - tramp);
-      thisTemp->restorePreInsOffset =
-         ((Address)conservativeBaseTramp_restorePreInsn - tramp);
-      thisTemp->savePostInsOffset =
-         ((Address)conservativeBaseTramp_savePostInsn - tramp);
-      thisTemp->restorePostInsOffset =
-         ((Address)conservativeBaseTramp_restorePostInsn - tramp);
-   }
-
-   // TODO - are these offsets always positive?
-   thisTemp->trampTemp = (void *) tramp;
-   for (temp = (instruction*)tramp; temp->raw != END_TRAMP; temp++) {
-      const Address offset = (Address)temp - tramp;
-      switch (temp->raw) {
-        case LOCAL_PRE_BRANCH:
-           thisTemp->localPreOffset = offset;
-           thisTemp->localPreReturnOffset = thisTemp->localPreOffset 
-              + sizeof(temp->raw);
-           break;
-        case LOCAL_POST_BRANCH:
-           thisTemp->localPostOffset = offset;
-           thisTemp->localPostReturnOffset = thisTemp->localPostOffset
-              + sizeof(temp->raw);
-           break;
-        case SKIP_PRE_INSN:
-           thisTemp->skipPreInsOffset = offset;
-           break;
-        case UPDATE_COST_INSN:
-           thisTemp->updateCostOffset = offset;
-           break;
-        case SKIP_POST_INSN:
-           thisTemp->skipPostInsOffset = offset;
-           break;
-        case RETURN_INSN: 
-          thisTemp->returnInsOffset = offset;
-           break;
-        case EMULATE_INSN:
-           thisTemp->emulateInsOffset = offset;
-           break;
-        case CONSERVATIVE_TRAMP_READ_CONDITION:
-           if(isConservative)
-              temp->raw = 0x83408000; /*read condition codes to g1*/
-           break;
-        case CONSERVATIVE_TRAMP_WRITE_CONDITION:
-           if(isConservative)
-              temp->raw = 0x85806000; /*write condition codes fromg1*/
-           break;
-        case RECURSIVE_GUARD_ON_PRE_INSN:
-        case RECURSIVE_GUARD_OFF_PRE_INSN:
-        case RECURSIVE_GUARD_ON_POST_INSN:
-        case RECURSIVE_GUARD_OFF_POST_INSN:
-            break;
-      }       
-   }
-   
-   // Cost with the skip branches.
-   thisTemp->cost = 14;  
-   thisTemp->prevBaseCost = 20 +
-      RECURSIVE_GUARD_ON_CODE_SIZE + RECURSIVE_GUARD_OFF_CODE_SIZE;
-   thisTemp->postBaseCost = 22 +
-      RECURSIVE_GUARD_ON_CODE_SIZE + RECURSIVE_GUARD_OFF_CODE_SIZE;
-   thisTemp->prevInstru = thisTemp->postInstru = false;
-   thisTemp->size = (int) temp - (int) tramp;
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-#if 0
-void initATramp(trampTemplate *thisTemp, Address tramp,
-                bool isConservative=false)
-{
-    initATramp((trampTemplate *)thisTemp, tramp,isConservative);
-    
-    instruction *temp;
-    
-    for (temp = (instruction*)tramp; temp->raw != END_TRAMP; temp++) {
-        const Address offset = (Address)temp - tramp;
-        switch (temp->raw)
-        {
-      case RECURSIVE_GUARD_ON_PRE_INSN:
-          thisTemp->guardOnPre_beginOffset = offset;
-          thisTemp->guardOnPre_endOffset = thisTemp->guardOnPre_beginOffset
-          + RECURSIVE_GUARD_ON_CODE_SIZE * INSN_SIZE;
-          break;
-      case RECURSIVE_GUARD_OFF_PRE_INSN:
-          thisTemp->guardOffPre_beginOffset = offset;
-          thisTemp->guardOffPre_endOffset = thisTemp->guardOffPre_beginOffset
-          + RECURSIVE_GUARD_OFF_CODE_SIZE * INSN_SIZE;
-          break;
-      case RECURSIVE_GUARD_ON_POST_INSN:
-          thisTemp->guardOnPost_beginOffset = offset;
-          thisTemp->guardOnPost_endOffset = thisTemp->guardOnPost_beginOffset
-          + RECURSIVE_GUARD_ON_CODE_SIZE * INSN_SIZE;
-          break;           
-      case RECURSIVE_GUARD_OFF_POST_INSN:
-          thisTemp->guardOffPost_beginOffset = offset;
-          thisTemp->guardOffPost_endOffset =
-          thisTemp->guardOffPost_beginOffset
-          + RECURSIVE_GUARD_OFF_CODE_SIZE * INSN_SIZE;
-          break;
-        }
-    }
-}
-#endif
 
 /****************************************************************************/
 /****************************************************************************/
@@ -907,11 +204,6 @@ void initTramps(bool is_multithreaded)
 
     if (inited) return;
     inited = true;
-
-    initATramp(&baseTemplate, (Address) baseTramp);
-
-    initATramp(&conservativeBaseTemplate,
-	       (Address)conservativeBaseTramp,true);
 
     // registers 8 to 15: out registers 
     // registers 16 to 22: local registers
@@ -931,36 +223,35 @@ void initTramps(bool is_multithreaded)
 /****************************************************************************/
 /****************************************************************************/
 
-void generateNoOp(process *proc, Address addr)
-{
-    instruction insn;
-
-    /* fill with no-op */
-    insn.raw = 0;
-    insn.branch.op = 0;
-    insn.branch.op2 = NOOPop2;
-
-    proc->writeTextWord((caddr_t)addr, insn.raw);
-}
-
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
 /*
  * change the insn at addr to be a branch to newAddr.
  *   Used to add multiple tramps to a point.
  */
-void generateBranch(process *proc, Address fromAddr, Address newAddr)
+unsigned generateAndWriteBranch(process *proc, Address fromAddr, Address newAddr, unsigned fillSize)
 {
-    int disp;
-    instruction insn;
+    // Default
+    if (fillSize == 0) fillSize = 3*instruction::size();
+    int disp = (newAddr - fromAddr);
+    
+    codeGen gen(fillSize);
+    if (instruction::offsetWithinRangeOfBranchInsn(disp)) {
+        instruction::generateBranch(gen,
+                                    fromAddr,
+                                    newAddr);
+        instruction::generateNOOP(gen);
+    }
+    else {
+        instruction::generateImm(gen, SAVEop3, 14, -112, 14);
+        // We're one insn farther along than we should be -- so modify
+        // fromAddr
+        instruction::generateCall(gen, fromAddr + instruction::size(), newAddr);
+        instruction::generateSimple(gen, RESTOREop3, 0, 0, 0);
+    }
 
-    disp = newAddr-fromAddr;
-    generateBranchInsn(&insn, disp);
+    //gen.fillRemaining(codeGen::cgNOP);
 
-    proc->writeTextWord((caddr_t)fromAddr, insn.raw);
+    proc->writeTextSpace((caddr_t)fromAddr, gen.used(), gen.start_ptr());
+    return gen.used();
 }
 /**
 	This function generates branch or call instruction from
@@ -968,173 +259,22 @@ void generateBranch(process *proc, Address fromAddr, Address newAddr)
 	no SAVE and RESTORE is used.
 **/
 
-void generateBranchOrCallNoSaveRestore(process *proc, 
-			Address fromAddr, Address toAddr)
-{
-
-    int disp;
-    instruction insn;
-
-    disp = toAddr-fromAddr;
-    if (offsetWithinRangeOfBranchInsn(disp)){
-    	generateBranchInsn(&insn, disp);
-        proc->writeTextWord((caddr_t)fromAddr, insn.raw);
-    }
-    else{
-		generateCallInsn(&insn,fromAddr,toAddr);
-		proc->writeTextWord((caddr_t)fromAddr, insn.raw);
-    }
-}
-
 /****************************************************************************/
 
 void generateBranchOrCall(process *proc, Address fromAddr, Address newAddr)
 {
-    int disp;
-    instruction insn;
-
-    disp = newAddr-fromAddr;
-    if (offsetWithinRangeOfBranchInsn(disp)){
-    	generateBranchInsn(&insn, disp);
-        proc->writeTextWord((caddr_t)fromAddr, insn.raw);
+    codeGen gen(3*instruction::size());
+    
+    int disp = newAddr-fromAddr;
+    if (instruction::offsetWithinRangeOfBranchInsn(disp)){
+    	instruction::generateBranch(gen, disp);
     }
     else{
-	genImmInsn(&insn,SAVEop3,14,-112,14);
-        proc->writeTextWord((caddr_t)fromAddr, insn.raw);
-
-	fromAddr += sizeof(Address);
-	generateCallInsn(&insn,fromAddr,newAddr);
-        proc->writeTextWord((caddr_t)fromAddr, insn.raw);
-
-	fromAddr += sizeof(Address);
-	genSimpleInsn(&insn,RESTOREop3,0,0,0);
-        proc->writeTextWord((caddr_t)fromAddr, insn.raw);
+        instruction::generateImm(gen, SAVEop3, 14, -112, 14);
+        instruction::generateCall(gen, fromAddr + instruction::size(), newAddr);
+        instruction::generateSimple(gen, RESTOREop3, 0, 0, 0);
     }
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-void generateCall(process *proc, Address fromAddr, Address newAddr)
-{
-    instruction insn; 
-    generateCallInsn(&insn, fromAddr, newAddr);
-
-    proc->writeTextWord((caddr_t)fromAddr, insn.raw);
-
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-/*
- *  change the target of the branch at fromAddr, to be newAddr.
- */
-void changeBranch(process *proc, Address fromAddr, Address newAddr, 
-                  instruction originalBranch) {
-    int disp = newAddr-fromAddr;
-    instruction insn;
-    insn.raw = originalBranch.raw;
-    insn.branch.disp22 = disp >> 2;
-    proc->writeTextWord((caddr_t)fromAddr, insn.raw);
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-int callsTrackedFuncP(instPoint *point)
-{
-    if (point->callIndirect) {
-        return(true);
-    } else {
-        if (point->getCallee()) {
-            return(true);
-        } else {
-            return(false);
-        }
-    }
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-/*
- * return the function asociated with a point.
- *
- *     If the point is a funcation call, and we know the function being called,
- *          then we use that.  Otherwise it is the function that contains the
- *          point.
- *  
- *   This is done to return a better idea of which function we are using.
- */
-int_function *getFunction(instPoint *point)
-{
-    return(point->getCallee() ? point->getCallee() : point->pointFunc());
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-bool rpcMgr::emitInferiorRPCheader(void *insnPtr, Address &baseBytes) 
-{
-   instruction *insn = (instruction *)insnPtr;
-   Address baseInstruc = baseBytes / sizeof(instruction);
-
-   genImmInsn(&insn[baseInstruc++], SAVEop3, 14, -112, 14);
-
-   baseBytes = baseInstruc * sizeof(instruction); // convert back
-   return true;
-}
-
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-bool rpcMgr::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
-                                    unsigned &breakOffset, bool stopForResult,
-                                    unsigned &stopForResultOffset,
-                                    unsigned &justAfter_stopForResultOffset)
-{
-
-   // Sequence: restore, trap, illegal
-
-   instruction *insn = (instruction *)insnPtr;
-   Address baseInstruc = baseBytes / sizeof(instruction);
-
-   if (stopForResult) {
-      // trap insn:
-      genBreakpointTrap(&insn[baseInstruc]);
-      stopForResultOffset = baseInstruc * sizeof(instruction);
-      baseInstruc++;
-      justAfter_stopForResultOffset = baseInstruc * sizeof(instruction);
-   }
-
-
-   genSimpleInsn(&insn[baseInstruc++], RESTOREop3, 0, 0, 0);
-
-   // Now that the inferior has executed the 'restore' instruction, the %in 
-   // and %local registers have been restored.  We mustn't modify them after
-   // this point!! (reminder: the %in and %local registers aren't saved and 
-   // set with ptrace GETREGS/SETREGS call)
-
-
-   // Trap instruction:
-   genBreakpointTrap(&insn[baseInstruc]); // ta 1
-   breakOffset = baseInstruc * sizeof(instruction);
-   baseInstruc++;
-   
-   // And just to make sure that we don't continue from the trap:
-   genUnimplementedInsn(&insn[baseInstruc++]); // UNIMP 0
-
-   baseBytes = baseInstruc * sizeof(instruction); // convert back
-
-   return true; // success
+    proc->writeTextSpace((void *)fromAddr, gen.used(), gen.start_ptr());
 }
 
 /****************************************************************************/
@@ -1142,54 +282,51 @@ bool rpcMgr::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
 /****************************************************************************/
 
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
-             char *i, Address &base, bool noCost, registerSpace *rs)
+             codeGen &gen, bool noCost, registerSpace *)
 {
-        instruction *insn = (instruction *) ((void*)&i[base]);
-        RegValue op3 = -1;
-        int result = -1;
-        switch (op) {
-            // integer ops
-            case plusOp:
-                op3 = ADDop3;
-                genImmInsn(insn, op3, src1, src2imm, dest);
-                break;
-
-            case minusOp:
-                op3 = SUBop3;
-                genImmInsn(insn, op3, src1, src2imm, dest);
-                break;
-
-            case timesOp:
-                op3 = SMULop3;
-                if (isPowerOf2(src2imm,result) && (result<32))
-                  generateLShift(insn, src1, (Register)result, dest);           
+    RegValue op3 = -1;
+    int result = -1;
+    switch (op) {
+        // integer ops
+    case plusOp:
+        op3 = ADDop3;
+        instruction::generateImm(gen, op3, src1, src2imm, dest);
+        break;
+        
+    case minusOp:
+        op3 = SUBop3;
+        instruction::generateImm(gen, op3, src1, src2imm, dest);
+        break;
+        
+    case timesOp:
+        op3 = SMULop3;
+        if (isPowerOf2(src2imm,result) && (result<32))
+                    instruction::generateLShift(gen, src1, (Register)result, dest);           
                 else 
-                  genImmInsn(insn, op3, src1, src2imm, dest);
+                    instruction::generateImm(gen, op3, src1, src2imm, dest);
                 break;
-
+                
             case divOp:
                 op3 = SDIVop3;
                 if (isPowerOf2(src2imm,result) && (result<32))
-                  generateRShift(insn, src1, (Register)result, dest);           
+                    instruction::generateRShift(gen, src1, (Register)result, 
+                                                dest);           
                 else { // needs to set the Y register to zero first
-                  // Set the Y register to zero: Zhichen
-                  genImmInsn(insn, WRYop3, REG_G(0), 0, 0);
-                  base += sizeof(instruction);
-                  insn = (instruction *) ((void*)&i[base]);
-                  genImmInsn(insn, op3, src1, src2imm, dest);
+                    // Set the Y register to zero: Zhichen
+                    instruction::generateImm(gen, WRYop3, REG_G(0), 0, 0);
+                    instruction::generateImm(gen, op3, src1, src2imm, dest);
                 }
-
                 break;
 
             // Bool ops
             case orOp:
                 op3 = ORop3;
-                genImmInsn(insn, op3, src1, src2imm, dest);
+                instruction::generateImm(gen, op3, src1, src2imm, dest);
                 break;
 
             case andOp:
                 op3 = ANDop3;
-                genImmInsn(insn, op3, src1, src2imm, dest);
+                instruction::generateImm(gen, op3, src1, src2imm, dest);
                 break;
 
             // rel ops
@@ -1197,44 +334,36 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
             // the opposite in order to get the right value (e.g. for >=
             // we need BLTcond) - naim
             case eqOp:
-                genImmRelOp(insn, BNEcond, src1, src2imm, dest, base);
-                return;
+                instruction::generateImmRelOp(gen, BNEcond, src1, src2imm, dest);
                 break;
 
             case neOp:
-                genImmRelOp(insn, BEcond, src1, src2imm, dest, base);
-                return;
+                instruction::generateImmRelOp(gen, BEcond, src1, src2imm, dest);
                 break;
 
             case lessOp:
-                genImmRelOp(insn, BGEcond, src1, src2imm, dest, base);
-                return;
+                instruction::generateImmRelOp(gen, BGEcond, src1, src2imm, dest);
                 break;
 
             case leOp:
-                genImmRelOp(insn, BGTcond, src1, src2imm, dest, base);
-                return;
+                instruction::generateImmRelOp(gen, BGTcond, src1, src2imm, dest);
                 break;
 
             case greaterOp:
-                genImmRelOp(insn, BLEcond, src1, src2imm, dest, base);
-                return;
+                instruction::generateImmRelOp(gen, BLEcond, src1, src2imm, dest);
                 break;
 
             case geOp:
-                genImmRelOp(insn, BLTcond, src1, src2imm, dest, base);
-                return;
+                instruction::generateImmRelOp(gen, BLTcond, src1, src2imm, dest);
                 break;
 
             default:
-                Register dest2 = regSpace->allocateRegister(i, base, noCost);
-                (void) emitV(loadConstOp, src2imm, dest2, dest2, i, base, noCost);
-                (void) emitV(op, src1, dest2, dest, i, base, noCost);
+                Register dest2 = regSpace->allocateRegister(gen, noCost);
+                emitV(loadConstOp, src2imm, dest2, dest2, gen, noCost);
+                emitV(op, src1, dest2, dest, gen, noCost);
                 regSpace->freeRegister(dest2);
-                return;
                 break;
         }
-        base += sizeof(instruction);
         return;
 }
 
@@ -1333,8 +462,8 @@ int getInsnCost(opCode op)
 /****************************************************************************/
 
 bool isReturnInsn(instruction instr, Address addr, pdstring name) {
-    if (isInsnType(instr, RETmask, RETmatch) ||
-        isInsnType(instr, RETLmask, RETLmatch)) {
+    if (instr.isInsnType(RETmask, RETmatch) ||
+        instr.isInsnType(RETLmask, RETLmatch)) {
         //  Why 8 or 12?
         //  According to the sparc arch manual (289), ret or retl are
         //   synthetic instructions for jmpl %i7+8, %g0 or jmpl %o7+8, %go.
@@ -1346,11 +475,11 @@ bool isReturnInsn(instruction instr, Address addr, pdstring name) {
         //  So, 8 or 12 here is a heuristic, but doesn't seem to 
         //   absolutely have to be true.
         //  -matt
-        if ((instr.resti.simm13 != 8) && (instr.resti.simm13 != 12) 
-                    && (instr.resti.simm13 != 16)) {
+        if (((*instr).resti.simm13 != 8) && ((*instr).resti.simm13 != 12) 
+                    && ((*instr).resti.simm13 != 16)) {
           sprintf(errorLine,"WARNING: unsupported return at address 0x%lx"
                         " in function %s - appears to be return to PC + %i", 
-                  addr, name.c_str(), (int)instr.resti.simm13);
+                  addr, name.c_str(), (int)(*instr).resti.simm13);
           showErrorCallback(55, errorLine);
         } else { 
           return true;
@@ -1363,23 +492,9 @@ bool isReturnInsn(instruction instr, Address addr, pdstring name) {
 /****************************************************************************/
 /****************************************************************************/
 
-bool isReturnInsn(const image *owner, Address adr, bool &lastOne, pdstring name)
-{
-    instruction instr;
-
-    instr.raw = owner->get_instruction(adr);
-    lastOne = false;
-
-    return isReturnInsn(instr, adr, name);
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
 bool isBranchInsn(instruction instr) {
-    if (instr.branch.op == 0 
-                && (instr.branch.op2 == 2 || instr.branch.op2 == 6)) 
+    if ((*instr).branch.op == 0 
+                && ((*instr).branch.op2 == 2 || (*instr).branch.op2 == 6)) 
           return true;
     return false;
 }
@@ -1387,91 +502,6 @@ bool isBranchInsn(instruction instr) {
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-
-// The exact semantics of the heap are processor specific.
-//
-// find all DYNINST symbols that are data symbols
-//
-bool process::heapIsOk(const pdvector<sym_data> &find_us) {
-  Symbol sym;
-  Address baseAddr;
-
-  // find the main function
-  // first look for main or _main
-  if (!((mainFunction = findOnlyOneFunction("main")) 
-        || (mainFunction = findOnlyOneFunction("_main")))) {
-     pdstring msg = "Cannot find main. Exiting.";
-     statusLine(msg.c_str());
-#if defined(BPATCH_LIBRARY)
-     BPatch_reportError(BPatchWarning, 50, msg.c_str());
-#else
-     showErrorCallback(50, msg);
-#endif
-     return false;
-  }
-
-  for (unsigned i=0; i<find_us.size(); i++) {
-    const pdstring &str = find_us[i].name;
-    if (!getSymbolInfo(str, sym, baseAddr)) {
-      pdstring str1 = pdstring("_") + str.c_str();
-      if (!getSymbolInfo(str1, sym, baseAddr) && find_us[i].must_find) {
-        pdstring msg;
-        msg = pdstring("Cannot find ") + str + pdstring(". Exiting");
-        statusLine(msg.c_str());
-        showErrorCallback(50, msg);
-        return false;
-      }
-    }
-  }
-
-//  pdstring ghb = GLOBAL_HEAP_BASE;
-//  if (!getSymbolInfo(ghb, sym, baseAddr)) {
-//    ghb = U_GLOBAL_HEAP_BASE;
-//    if (!linkedFile.get_symbol(ghb, sym)) {
-//      pdstring msg;
-//      msg = pdstring("Cannot find ") + ghb + pdstring(". Exiting");
-//      statusLine(msg.c_str());
-//      showErrorCallback(50, msg);
-//      return false;
-//    }
-//  }
-//  Address instHeapEnd = sym.addr()+baseAddr;
-//  addInternalSymbol(ghb, instHeapEnd);
-
-
-#ifdef ndef
-  /* Not needed with the new heap type system */
-
-  pdstring ihb = INFERIOR_HEAP_BASE;
-  if (!getSymbolInfo(ihb, sym, baseAddr)) {
-    ihb = UINFERIOR_HEAP_BASE;
-    if (!getSymbolInfo(ihb, sym, baseAddr)) {
-      pdstring msg;
-      msg = pdstring("Cannot find ") + ihb + pdstring(". Cannot use this application");
-      statusLine(msg.c_str());
-      showErrorCallback(50, msg);
-      return false;
-    }
-  }
-
-  Address curr = sym.addr()+baseAddr;
-  // Check that we can patch up user code to jump to our base trampolines
-  // (Perhaps this code is no longer needed for sparc platforms, since we use full
-  // 32-bit jumps)
-  const Address instHeapStart = curr;
-  const Address instHeapEnd = instHeapStart + SYN_INST_BUF_SIZE - 1;
-
-  if (instHeapEnd > getMaxBranch3Insn()) {
-    logLine("*** FATAL ERROR: Program text + data too big for dyninst\n");
-    sprintf(errorLine, "    heap starts at %x and ends at %x; maxbranch=%x\n",
-            instHeapStart, instHeapEnd, getMaxBranch3Insn());
-    logLine(errorLine);
-    return false;
-  }
-#endif
-
-  return true;
-}
 
 /****************************************************************************/
 /****************************************************************************/
@@ -1491,93 +521,12 @@ bool registerSpace::readOnlyRegister(Register /*reg_number*/) {
 /****************************************************************************/
 /****************************************************************************/
 
-bool returnInstance::checkReturnInstance(const pdvector<pdvector<Frame> > &stackWalks)
-{
-  // If false (unsafe) is returned, then 'index' is set to the first unsafe call stack
-  // index.
-  for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++)
-    for (u_int i=0; i < stackWalks[walk_iter].size(); i++) {
-      // Is the following check correct?  Shouldn't the ">" be changed to ">=",
-      // and the "<=" be changed to "<" ??? --ari 6/11/97
-      // No, because we want to return false if the PC is in the stackwalk
-      // footprint (from addr_ to addr_+size_) -- bernat 10OCT02
-        if ((stackWalks[walk_iter][i].getPC() > addr_) && 
-            (stackWalks[walk_iter][i].getPC() < addr_+size_))
-            return false;
-    }
-  
-  return true;
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-void returnInstance::installReturnInstance(process *proc) {
-    proc->writeTextSpace((caddr_t)addr_, instSeqSize, 
-                         (caddr_t) instructionSeq); 
-    installed = true;
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-void generateBreakPoint(instruction &insn) {
-    insn.raw = BREAK_POINT_INSN;
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-void returnInstance::addToReturnWaitingList(Address pc, process *proc) {
-    // if there already is a TRAP set at this pc for this process don't
-    // generate a trap instruction again...you will get the wrong original
-    // instruction if you do a readDataSpace
-    bool found = false;
-    instruction insn;
-    for (u_int i=0; i < instWList.size(); i++) {
-         if (instWList[i]->pc_ == pc && instWList[i]->which_proc == proc) {
-             found = true;
-             insn = instWList[i]->relocatedInstruction;
-             break;
-         }
-    }
-    if(!found) {
-        instruction insnTrap;
-        generateBreakPoint(insnTrap);
-        proc->readDataSpace((caddr_t)pc, sizeof(insn), (char *)&insn, true);
-        proc->writeTextSpace((caddr_t)pc, sizeof(insnTrap), (caddr_t)&insnTrap);
-    }
-    else {
-    }
-
-    instWaitingList *instW = new instWaitingList(instructionSeq,instSeqSize,
-                                                 addr_,pc,insn,pc,proc);
-    instWList.push_back(instW);
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
 bool doNotOverflow(int value)
 {
   // we are assuming that we have 13 bits to store the immediate operand.
   //if ( (value <= 16383) && (value >= -16384) ) return(true);
   if ( (value <= MAX_IMM13) && (value >= MIN_IMM13) ) return(true);
   else return(false);
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-void instWaitingList::cleanUp(process *proc, Address pc) {
-    proc->writeTextSpace((caddr_t)pc, sizeof(relocatedInstruction),
-                    (caddr_t)&relocatedInstruction);
-    proc->writeTextSpace((caddr_t)addr_, instSeqSize, (caddr_t)instructionSeq);
 }
 
 /****************************************************************************/
@@ -1591,39 +540,57 @@ void instWaitingList::cleanUp(process *proc, Address pc) {
 // NOOP, pass NULL as the parameter "func."
 // Returns true if sucessful, false if not.  Fails if the site is not a call
 // site, or if the site has already been instrumented using a base tramp.
-bool process::replaceFunctionCall(const instPoint *point,
-                                  const int_function *func) {
+bool process::replaceFunctionCall(instPoint *point,
+                                  const int_function *newFunc) {
+
    // Must be a call site
    if (point->getPointType() != callSite)
       return false;
 
-   // Cannot already be instrumented with a base tramp
-   if (baseMap.defines(point))
-      return false;
+   inst_printf("Function replacement, point func %s, new func %s, point primary addr 0x%x\n",
+               point->func()->symTabName().c_str(), 
+               newFunc ? newFunc->symTabName().c_str() : "<NULL>",
+               point->addr());
 
-   // Replace the call
-   Address addr = point->pointAddr();
+   instPointIter ipIter(point);
+   instPointInstance *ipInst;
+   while ((ipInst = ipIter++)) {  
+       // Multiple replacements. Wheee...
+       Address pointAddr = ipInst->addr();
+       inst_printf("... replacing 0x%x", pointAddr);
+       codeRange *range;
+       if (multiTramps_.find(pointAddr, range)) {
+           // We instrumented this... not handled yet
+           assert(0);
+       }
+       else {  
+           codeGen gen(instruction::size());
+           if (newFunc == NULL) {
+               instruction::generateNOOP(gen);
+           }
+           else
+               instruction::generateCall(gen,
+                                         pointAddr,
+                                         newFunc->getAddress());
 
-#ifdef BPATCH_LIBRARY
-   // Make sure our address is absolute, and not relative
-   if (point->getBPatch_point() != NULL &&
-       point->getBPatch_point()->func != NULL) {
-      int_function *pdfp;
+          // Before we replace, track the code.
+          // We could be clever with instpoints keeping instructions around, but
+          // it's really not worth it.
+          replacedFunctionCall *newRFC = new replacedFunctionCall();
+          newRFC->callAddr = pointAddr;
+          
+          unsigned char buffer[instruction::size()];
+          readTextSpace((void *)pointAddr, instruction::size(), buffer);
 
-      pdfp = dynamic_cast<int_function *>(point->getBPatch_point()->func->func);
-      if (pdfp != NULL) {
-         Address base;
-         getBaseAddress(pdfp->pdmod()->exec(), base);
-         addr += base;
-      }
+          newRFC->oldCall.allocate(instruction::size());
+          newRFC->oldCall.copy(buffer, instruction::size());
+          newRFC->newCall = gen;
+          
+          replacedFunctionCalls_[pointAddr] = newRFC;
+          
+          writeTextSpace((void *)pointAddr, instruction::size(), gen.start_ptr());
+       }
    }
-#endif
-   if (func == NULL)
-      generateNoOp(this, addr);
-   else
-      generateCall(this, addr,
-                   func->getEffectiveAddress(this));
-
    return true;
 }
 
@@ -1631,65 +598,49 @@ bool process::replaceFunctionCall(const instPoint *point,
 /****************************************************************************/
 /****************************************************************************/
 
-bool process::isDynamicCallSite(instPoint *callSite){
-  int_function *temp;
-  if(!findCallee(*(callSite),temp)){
-    //True call instructions are not dynamic on sparc,
-    //they are always to a pc relative offset
-    if(!isTrueCallInsn(callSite->firstInstruction))
-      return true;
-  }
-  return false;
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
 bool process::getDynamicCallSiteArgs(instPoint *callSite, pdvector<AstNode *> &args){
-
-  if(isJmplInsn(callSite->firstInstruction)){
-
-    //this instruction is a jmpl with i == 1, meaning it
-    //calling function register rs1+simm13
-    if(callSite->firstInstruction.rest.i == 1){
-
-      AstNode *base =  new AstNode(AstNode::PreviousStackFrameDataReg,
-                          (void *) callSite->firstInstruction.rest.rs1);
-      AstNode *offset = new AstNode(AstNode::Constant,
-                        (void *) callSite->firstInstruction.resti.simm13);
-      args.push_back( new AstNode(plusOp, base, offset));
+    const instruction &insn = callSite->insn();
+    if (insn.isJmplInsn()) {
+        //this instruction is a jmpl with i == 1, meaning it
+        //calling function register rs1+simm13
+        if((*insn).rest.i == 1){
+            
+            AstNode *base =  new AstNode(AstNode::PreviousStackFrameDataReg,
+                                         (void *) (*insn).rest.rs1);
+            AstNode *offset = new AstNode(AstNode::Constant,
+                                          (void *) (*insn).resti.simm13);
+            args.push_back( new AstNode(plusOp, base, offset));
+        }
+        
+        //This instruction is a jmpl with i == 0, meaning its
+        //two operands are registers
+        else if((*insn).rest.i == 0){
+            //Calculate the byte offset from the contents of the %fp reg
+            //that the registers from the previous stack frame
+            //specified by rs1 and rs2 are stored on the stack
+            AstNode *callee_addr1 =
+                new AstNode(AstNode::PreviousStackFrameDataReg,
+                            (void *) (*insn).rest.rs1);
+            AstNode *callee_addr2 =
+                new AstNode(AstNode::PreviousStackFrameDataReg,
+                            (void *) (*insn).rest.rs2);
+            args.push_back( new AstNode(plusOp, callee_addr1, callee_addr2));
+        }
+        else assert(0);
+        
+        args.push_back( new AstNode(AstNode::Constant,
+                                    (void *) callSite->addr()));
     }
-
-    //This instruction is a jmpl with i == 0, meaning its
-    //two operands are registers
-    else if(callSite->firstInstruction.rest.i == 0){
-      //Calculate the byte offset from the contents of the %fp reg
-      //that the registers from the previous stack frame
-      //specified by rs1 and rs2 are stored on the stack
-      AstNode *callee_addr1 =
-        new AstNode(AstNode::PreviousStackFrameDataReg,
-                    (void *) callSite->firstInstruction.rest.rs1);
-      AstNode *callee_addr2 =
-        new AstNode(AstNode::PreviousStackFrameDataReg,
-                    (void *) callSite->firstInstruction.rest.rs2);
-      args.push_back( new AstNode(plusOp, callee_addr1, callee_addr2));
+    else if(insn.isTrueCallInsn()){
+        //True call destinations are always statically determinable.
+        //return true;
+        fprintf(stderr, "%s[%d]:  dynamic call is statically determinable, FIXME\n",
+                __FILE__, __LINE__);
+        return false; //  but we don't generate any args here??
     }
-    else assert(0);
-
-    args.push_back( new AstNode(AstNode::Constant,
-                              (void *) callSite->pointAddr()));
-  }
-  else if(isTrueCallInsn(callSite->firstInstruction)){
-    //True call destinations are always statically determinable.
-    //return true;
-    fprintf(stderr, "%s[%d]:  dynamic call is statically determinable, FIXME\n",
-            __FILE__, __LINE__);
-    return false; //  but we don't generate any args here??
-  }
-  else return false;
-
-  return true;
+    else return false;
+    
+    return true;
 }
 
 #ifdef NOTDEF // PDSEP
@@ -1700,27 +651,27 @@ bool process::MonitorCallSite(instPoint *callSite){
     
     //this instruction is a jmpl with i == 1, meaning it
     //calling function register rs1+simm13
-    if(callSite->firstInstruction.rest.i == 1){
+    if((*insn).rest.i == 1){
       
       AstNode *base =  new AstNode(AstNode::PreviousStackFrameDataReg,
-			  (void *) callSite->firstInstruction.rest.rs1);
+			  (void *) (*insn).rest.rs1);
       AstNode *offset = new AstNode(AstNode::Constant, 
-			(void *) callSite->firstInstruction.resti.simm13);
+			(void *) (*insn).resti.simm13);
       the_args[0] = new AstNode(plusOp, base, offset);
     } 
     
     //This instruction is a jmpl with i == 0, meaning its
     //two operands are registers
-    else if(callSite->firstInstruction.rest.i == 0){
+    else if((*insn).rest.i == 0){
       //Calculate the byte offset from the contents of the %fp reg
       //that the registers from the previous stack frame 
       //specified by rs1 and rs2 are stored on the stack
       AstNode *callee_addr1 = 
 	new AstNode(AstNode::PreviousStackFrameDataReg,
-		    (void *) callSite->firstInstruction.rest.rs1);
+		    (void *) (*insn).rest.rs1);
       AstNode *callee_addr2 = 
 	new AstNode(AstNode::PreviousStackFrameDataReg, 
-		    (void *) callSite->firstInstruction.rest.rs2);
+		    (void *) (*insn).rest.rs2);
       the_args[0] = new AstNode(plusOp, callee_addr1, callee_addr2);
     }
     else assert(0);
@@ -1729,7 +680,7 @@ bool process::MonitorCallSite(instPoint *callSite){
 			      (void *) callSite->pointAddr());
     AstNode *func = new AstNode("DYNINSTRegisterCallee", 
 				the_args);
-    miniTrampHandle *mtHandle;
+    miniTramp *mtHandle;
     addInstFunc(this, mtHandle, callSite, func, callPreInsn,
                 orderFirstAtPoint, true, false, true);
   }
@@ -1751,141 +702,37 @@ bool process::MonitorCallSite(instPoint *callSite){
 // CALLEE returns, it returns to the current caller.)  On SPARC, we do
 // this by ensuring that the register context upon entry to CALLEE is
 // the register context of function we are instrumenting, popped once.
-void emitFuncJump(opCode op, char *i, Address &base, 
-		  const int_function *callee, process *proc,
+void emitFuncJump(opCode op, codeGen &gen, 
+		  const int_function *callee, process * /*proc*/,
 		  const instPoint *, bool)
 {
-        assert(op == funcJumpOp);
-        Address addr;
-	void cleanUpAndExit(int status);
+    assert(op == funcJumpOp);
+    Address addr = callee->getAddress();
 
-	addr = callee->getEffectiveAddress(proc);
-	// TODO cast
-	instruction *insn = (instruction *) ((void*)&i[base]);
+    // This must mimic the generateRestores baseTramp method. 
+    // TODO: make this work better :)
 
-        generateSetHi(insn, addr, 13); insn++;
-	// don't want the return address to be used
-        genImmInsn(insn, JMPLop3, 13, LOW10(addr), 0); insn++;
-        genSimpleInsn(insn, RESTOREop3, 0, 0, 0); insn++;
-        base += 3 * sizeof(instruction);
-}
-
-
-// If there is a base trampoline installed for this instPoint delete it
-// and undo the operations done in findAndInstallBaseTramp. (i.e. replace
-// the ba, a and save; call; restore; sequences with the instructions
-// originally at those locations in the function
-bool deleteBaseTramp(process *proc,
-                     trampTemplate *baseTramp)
-{
-    const instPoint *location = baseTramp->location;
-    
-    // If the function has been relocated and the instPoint is from
-    // the original instPoint, change the instPoint to be the one 
-    // in the corresponding relocated function instead
-    if(location->pointFunc()->hasBeenRelocated(proc) && 
-       !location->isRelocatedPointType())
-    {
-        instPoint *reloc_inst_pt = location->getMatchingRelocInstPoint(proc);
-        location = reloc_inst_pt;
+    for (unsigned g_iter = 0; g_iter <= 6; g_iter += 2) {
+        // ldd [%fp + -8], %g0
+        // ldd [%fp + -16], %g2
+        // ldd [%fp + -24], %g4
+        // ldd [%fp + -32], %g6
+        
+        instruction::generateLoadD(gen, REG_FPTR, 
+                                   -(8+(g_iter*4)), REG_G(g_iter));
     }
 
-    // Get the base address of the shared object
-    Address baseAddress;
-    proc->getBaseAddress(location->getOwner(), baseAddress);
+    // And pop the stack
+    // This is left here so that we don't put it back in accidentally.
+    // The jmpl instruction stores the jump address; we don't want that.
+    // So we "invisi-jump" by making the jump, _then_ executing the
+    // restore.
+    //instruction::generateSimple(i, RESTOREop3, 0, 0, 0);
     
-    // Get the address of the instPoint
-    Address ipAddr = location->pointAddr() + baseAddress;
-    
-    // Replace the branch instruction with the instruction that was
-    // originally there
-    if( !location->needsLongJump ) {
-        
-        proc->writeTextWord( (caddr_t)(ipAddr), location->firstInstruction.raw );
-        
-    } else {
-        
-        // A call was used to transfer to the base tramp, clear out the
-        // call and any other instructions that were written into the
-        // function
-        
-        // Address of the first instruction in the instPoint's footprint
-        Address firstAddress = ipAddr;
-        
-        if( location->hasNoStackFrame() ) {
-            
-            if (location->usesPriorInstructions) {
-                
-                firstAddress = ipAddr - 
-                location->numPriorInstructions*sizeof(instruction);
-            }
-            
-            // Replace the instruction overwritten by the save instruction
-            proc->writeTextWord( (caddr_t)(firstAddress), 
-                                 location->firstInstruction.raw );
-            
-            // Replace the instruction overwritten by the call instruction
-            proc->writeTextWord( (caddr_t)(firstAddress) + sizeof(instruction), 
-                                 location->secondInstruction.raw );
-            
-            if (location->getPointType() != otherPoint) {
-                
-                // Replace the instruction overwritten by the nop instruction
-                proc->writeTextWord( (caddr_t)(firstAddress) + 
-                                     2*sizeof(instruction),
-                                     location->thirdInstruction.raw );
-            }
-            
-        } else {
-            
-            if (location->getPointType() == functionEntry) {
-                
-                // Replace the instruction overwritten by the save instruction
-                proc->writeTextWord( (caddr_t)(firstAddress),
-                                     location->firstInstruction.raw);
-                
-                // Replace the instruction overwritten by the call instruction
-                proc->writeTextWord( (caddr_t)(firstAddress) + 
-                                     sizeof(instruction),
-                                     location->secondInstruction.raw);
-                
-                // Replace the instruction overwritten by the nop instruction
-                proc->writeTextWord( (caddr_t)(firstAddress) + 
-                                     2*sizeof(instruction),
-                                     location->thirdInstruction.raw);
-                
-            } else if ( location->getPointType() == callSite || 
-                        location->getPointType() == functionExit ) {
-                
-                // Replace the instruction overwritten by the call instruction
-                proc->writeTextWord( (caddr_t)(firstAddress),
-                                     location->firstInstruction.raw);
-                
-                // Replace the instruction overwritten by the nop instruction
-                proc->writeTextWord( (caddr_t)(firstAddress) + 
-                                     sizeof(instruction),
-                                     location->secondInstruction.raw);
-                
-                
-            } else if (location->getPointType() == otherPoint) {
-                
-                // Replace the instruction overwritten by the call instruction
-                proc->writeTextWord( (caddr_t)(firstAddress), 
-                                     location->firstInstruction.raw );
-                
-                // Replace the instruction overwritten by the nop instruction
-                proc->writeTextWord( (caddr_t)(firstAddress) + 
-                                     sizeof(instruction), 
-                                     location->secondInstruction.raw );
-                
-            }
-        }
-    }
-    
-    // Free up the base trampoline
-    proc->deleteBaseTramp(baseTramp);
-    
-    return true;
+    instruction::generateSetHi(gen, addr, 13);
+    // don't want the return address to be used
+    instruction::generateImm(gen, JMPLop3, 13, LOW10(addr), 0);
+    instruction::generateSimple(gen, RESTOREop3, 0, 0, 0);
 }
 
 #include <sys/systeminfo.h>
@@ -1940,377 +787,6 @@ bool isV9ISA()
   }
 }
 
-/*
- * createInstructionInstPoint
- *
- * Create a BPatch_point instrumentation point at the given address, which
- * is guaranteed not be one of the "standard" inst points.
- *
- * proc         The process in which to create the inst point.
- * address      The address for which to create the point.
- */
-
-BPatch_point* createInstructionInstPoint(BPatch_process *proc, void *address,
-					 BPatch_point** alternative,
-					 BPatch_function* bpf)
-{
-    unsigned i;
-    Address begin_addr,end_addr,curr_addr;
-    bool dontUseCallHere = false;
-    bool needsRelocate = false;
-
-    //the method to check whether conservative base tramp can be installed
-    //or not since it contains condition code instructions which is
-    //available after version8plus of sparc
-
-    if(!isV8plusISA()){
-       cerr << "BPatch_image::createInstPointAtAddr : is not supported for";
-       cerr << " sparc architecture earlier than v8plus\n";
-       return NULL;
-    }
-
-    //bperr "Called for %p\n", address);
-
-    curr_addr = (Address)address;
-
-    //if the address is not aligned then there is a problem
-    if(!isAligned(curr_addr))	
-       return NULL;
-
-    int_function *func = NULL;
-    if(bpf)
-       func = bpf->func;
-    else
-       func = proc->llproc->findFuncByAddr(curr_addr);
-
-    int_function* pointFunction = (int_function*)func;
-    Address pointImageBase = 0;
-    image* pointImage = pointFunction->pdmod()->exec();
-    proc->llproc->getBaseAddress((const image*)pointImage,pointImageBase);
-
-    BPatch_function *bpfunc = proc->func_map->get(func);
-    assert(bpfunc);
-    BPatch_flowGraph *cfg = bpfunc->getCFG();
-    BPatch_Set<BPatch_basicBlock*> allBlocks;
-    cfg->getAllBasicBlocks(allBlocks);
-
-    BPatch_basicBlock** belements =
-                new BPatch_basicBlock*[allBlocks.size()];
-    allBlocks.elements(belements);
-
-    for(i=0; i< (unsigned)allBlocks.size(); i++) {
-       void *bbsa, *bbea;
-       if (belements[i]->getAddressRange(bbsa,bbea)) {
-          begin_addr = (Address)bbsa;
-          if ((begin_addr - INSN_SIZE) == curr_addr) {
-             if (pointFunction->canBeRelocated())
-                needsRelocate = true;
-             else {
-                delete[] belements;
-                BPatch_reportError(BPatchSerious, 118,
-                                   "point uninstrumentable (0)");
-                return NULL;
-             }
-          }
-       }
-    }
-    delete[] belements;
-    
-    curr_addr -= pointImageBase;
-
-    if (func != NULL) {
-       instPoint *entry = const_cast<instPoint *>(func->funcEntry(NULL));
-       assert(entry);
-
-       begin_addr = entry->pointAddr();
-       end_addr = begin_addr + entry->Size();
-
-       if(((begin_addr - INSN_SIZE) <= curr_addr) && 
-          (curr_addr < end_addr)){ 
-          BPatch_reportError(BPatchSerious, 117,
-                             "instrumentation point conflict 1");
-          if(alternative)
-             *alternative = proc->findOrCreateBPPoint(bpfunc, entry, BPatch_entry);
-          return NULL;
-       }
-       
-       const pdvector<instPoint*> &exits = func->funcExits(NULL);
-       for (i = 0; i < exits.size(); i++) {
-          assert(exits[i]);
-          
-          begin_addr = exits[i]->pointAddr();
-          end_addr = begin_addr + exits[i]->Size();
-          
-          if (((begin_addr - INSN_SIZE) <= curr_addr) &&
-              (curr_addr < end_addr)){
-             BPatch_reportError(BPatchSerious, 117,
-                                "instrumentation point conflict 2");
-             if(alternative)
-                *alternative = proc->findOrCreateBPPoint(bpfunc,exits[i],BPatch_exit);
-             return NULL;
-          }
-       }
-
-       const pdvector<instPoint*> &calls = func->funcCalls(NULL);
-       for (i = 0; i < calls.size(); i++) {
-          assert(calls[i]);
-          
-          begin_addr = calls[i]->pointAddr();
-          end_addr = begin_addr + calls[i]->Size();
-          
-          if (((begin_addr - INSN_SIZE) <= curr_addr) &&
-              (curr_addr < end_addr)){
-             BPatch_reportError(BPatchSerious, 117,
-                                "instrumentation point conflict3 ");
-             if(alternative)
-                *alternative = proc->findOrCreateBPPoint(bpfunc,calls[i],BPatch_subroutine);
-             return NULL;
-          }
-       }
-    }
-    
-    curr_addr += pointImageBase;
-
-    /* Check for conflict with a previously created inst point. */
-    // VG(4/24/2002): there is no conflict on v9.
-    if (proc->instp_map->defines(curr_addr - INSN_SIZE)) {
-      //NOTE:if the previous instrumentation point is instrumented and
-      //instrumentation used call instruction, anomaly occurs
-
-      if(alternative)
-        *alternative = proc->instp_map->get(curr_addr-INSN_SIZE);
-
-      if(isV9ISA())
-        proc->instp_map->get(curr_addr-INSN_SIZE)->point->dontUseCall = true;
-      else {
-        BPatch_reportError(BPatchSerious,117,"instrumentation point conflict 4");
-        return NULL;
-      }
-
-    } else if (proc->instp_map->defines(curr_addr + INSN_SIZE)) {
-
-	  if(alternative)
-		*alternative = proc->instp_map->get(curr_addr+INSN_SIZE);
-
-      if(isV9ISA())
-        dontUseCallHere=true;
-      else {
-        BPatch_reportError(BPatchSerious,117,"instrumentation point conflict 5");
-        return NULL;
-      }
-    }
-
-    // VG(4/24/2002): Should also modify this no to bother with b,a on v9
-    /* Check for instrumenting just before or after a branch. */
-
-    bool decrement = false;
-    if ((Address)address > func->getEffectiveAddress(proc->llproc)) {
-		//bperr( "Wierd1=true@%p\n", address);
-		instruction prevInstr;
-		proc->llproc->readTextSpace((char *)address - INSN_SIZE,
-			    sizeof(instruction),
-			    &prevInstr.raw);
-		if (isDCTI(prevInstr)){
-			if((prevInstr.call.op == CALLop) ||
-			   ((prevInstr.call.op != CALLop) && !prevInstr.branch.anneal))
-			{
-				BPatch_reportError(BPatchSerious, 118, "point uninstrumentable (1)");
-				return NULL;
-			}
-			if(!(isV9ISA() && isUBA(prevInstr))) {
-				bperr( "decrement=true@%p\n", address);
-				decrement = true;
-			}
-		}
-    }
-
-    if (((Address)address + INSN_SIZE) < 
-			(func->getEffectiveAddress(proc->llproc) + func->get_size())) {
-		//bperr( "Wierd2=true@%p\n", address); 
-
-		instruction nextInstr;
-		proc->llproc->readTextSpace((char *)address + INSN_SIZE,
-                                  sizeof(instruction),
-                                  &nextInstr.raw);
-
-        //bperr "next@%lx->%x\n", (Address)address + INSN_SIZE, nextInstr.raw);
-        // VG(4/24/2002): If we're on v9 and the next instruction is a DCTI, 
-        // then we cannot use a call.
-        // TODO: There rare case where it is trap was not dealt with...
-
-		if (isDCTI(nextInstr)){
-			proc->llproc->readTextSpace((char *)address + 2*INSN_SIZE,
-								sizeof(instruction),
-								&nextInstr.raw);
-			if(!isNopInsn(nextInstr)){
-				if(isV9ISA())
-					dontUseCallHere=true;
-				else{
-					//bperr( "failes @ %p\n", address);
-					BPatch_reportError(BPatchSerious, 118,"point uninstrumentable (2)");
-					return NULL;
-				}
-			}
-		}
-    }
-
-    if(decrement){
-      address = (void*)((Address)address - INSN_SIZE);
-      curr_addr -= INSN_SIZE;
-    }
-
-    if (needsRelocate == true)
-      pointFunction->markAsNeedingRelocation(true);
-
-    instruction instr;
-    proc->llproc->readTextSpace(address, sizeof(instruction), &instr.raw);
-	
-    curr_addr -= pointImageBase;
-    //then create the instrumentation point object for the address
-    instPoint *newpt = new instPoint(pointFunction,
-                                     (Address &)curr_addr,
-                                     false, // bool delayOk - ignored,
-                                     otherPoint, dontUseCallHere);
-
-    pointFunction->addArbitraryPoint(newpt,proc->llproc);
-
-    return proc->findOrCreateBPPoint(bpfunc, newpt, BPatch_arbitrary);
-}
-
-#ifdef BPATCH_LIBRARY
-/*
- * BPatch_point::getDisplacedInstructions
- *
- * Returns the instructions to be relocated when instrumentation is inserted
- * at this point.  Returns the number of bytes taken up by these instructions.
- *
- * maxSize      The maximum number of bytes of instructions to return.
- * insns        A pointer to a buffer in which to return the instructions.
- */
-int BPatch_point::getDisplacedInstructionsInt(int maxSize, void* insns)
-{
-    int count = 0;
-    instruction copyOut[10];	// I think 7 is the max - jkh 8/3/00
-
-    //
-    // This function is based on what is contained in the instPoint 
-    //    constructor in the file inst-sparc-solaris.C
-    //
-    if (!point->hasNoStackFrame()) {
-	if (point->getPointType() == functionEntry) {
-	    copyOut[count++].raw = point->secondInstruction.raw;
-	    copyOut[count++].raw = point->thirdInstruction.raw;
-
-	    if (point->secondIsDCTI) {
-		if (point->fourthIsAggregate) {
-		    copyOut[count++].raw = point->fourthInstruction.raw;
-		}
-	    }
-
-	    if (point->thirdIsDCTI) {
-		copyOut[count++].raw = point->fourthInstruction.raw;
-		if (point->fifthIsAggregate) {
-		    copyOut[count++].raw = point->fifthInstruction.raw;
-		}
-	    }
-
-	} else if (point->getPointType() == callSite) {
-
-	    copyOut[count++].raw = point->firstInstruction.raw;
-	    copyOut[count++].raw = point->secondInstruction.raw;
-
-	    if (point->thirdIsAggregate) {
-		copyOut[count++].raw = point->thirdInstruction.raw;
-	    }
-
-	} else {
-
-	    copyOut[count++].raw = point->firstInstruction.raw;
-	    copyOut[count++].raw = point->secondInstruction.raw;
-	}
-
-    } else {
-
-	if (point->getPointType() == functionEntry) {
-
-	    copyOut[count++].raw = point->firstInstruction.raw;
-	    copyOut[count++].raw = point->secondInstruction.raw;
-	    copyOut[count++].raw = point->thirdInstruction.raw;
-	    if (point->thirdIsDCTI) {
-		copyOut[count++].raw = point->fourthInstruction.raw;
-	    }
-
-	} else if (point->getPointType() == functionExit) {
-
-	    if (point->thirdPriorIsDCTI && point->firstPriorIsAggregate) {
-		copyOut[count++].raw = point->thirdPriorInstruction.raw;
-		copyOut[count++].raw = point->secondPriorInstruction.raw;
-	    }
-
-	    if (point->secondPriorIsDCTI) {
-		copyOut[count++].raw = point->secondPriorInstruction.raw;
-	    }
-
-            copyOut[count++].raw = point->firstPriorInstruction.raw;
-	    copyOut[count++].raw = point->firstInstruction.raw;
-	    copyOut[count++].raw = point->secondInstruction.raw;
-
-	} else if(point->getPointType() == otherPoint) {
-
-	   copyOut[count++].raw = point->firstInstruction.raw;
-	   copyOut[count++].raw = point->secondInstruction.raw;
-	   if (point->secondIsDCTI) {
-	       copyOut[count++].raw = point->thirdInstruction.raw;
-
-	       if (point->thirdIsAggregate) {
-	           copyOut[count++].raw = point->fourthInstruction.raw;
-	       }
-	   }
-
-	} else {
-
-	   assert(point->getPointType() == callSite);
-	   copyOut[count++].raw = point->firstInstruction.raw;
-	   copyOut[count++].raw = point->secondInstruction.raw;
-	   if (point->thirdIsAggregate) {
-	       copyOut[count++].raw = point->thirdInstruction.raw;
-	   }
-	}
-    }
-
-    if (count * sizeof(instruction) > (unsigned) maxSize) {
-	return -1;
-    } else {
-	memcpy(insns, copyOut, count * sizeof(instruction));
-	return count * sizeof(instruction);
-    }
-}
-
-#endif
-
-
-
-//XXX loop port
-BPatch_point *
-createInstructionEdgeInstPoint(process* /*proc*/, 
-                               int_function */*func*/, 
-                               BPatch_edge */*edge*/)
-{
-    return NULL;
-}
-
-//XXX loop port
-void 
-createEdgeTramp(process */*proc*/, image */*img*/, BPatch_edge */*edge*/)
-{
-
-}
-
-
-/* For AIX liveness analysis */
-void registerSpace::resetLiveDeadInfo(const int * liveRegs)
-{}
-
 bool registerSpace::clobberRegister(Register /*reg*/) 
 {
   return false;
@@ -2321,24 +797,1221 @@ bool registerSpace::clobberFPRegister(Register /*reg*/)
   return false;
 }
 
-unsigned saveRestoreRegistersInBaseTramp(process */*proc*/, trampTemplate */*bt*/,
-                                         registerSpace */*rs*/)
-{
-  return 0;
+extern bool relocateFunction(process *proc, instPoint *&location);
+extern bool branchInsideRange(instruction insn, Address branchAddress, 
+                              Address firstAddress, Address lastAddress); 
+extern instPoint* find_overlap(pdvector<instPoint*> v, Address targetAddress);
+extern void sorted_ips_vector(pdvector<instPoint*>&fill_in);
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+/*
+ * Given an instruction, relocate it to a new address, patching up
+ *   any relative addressing that is present.
+ * 
+ */
+
+bool relocatedInstruction::generateCode(codeGen &gen,
+                                        Address baseInMutatee) {
+
+    if (generated_) {
+        // We already have code... check to see if it's the same addr
+        assert(gen.currAddr(baseInMutatee) == relocAddr);
+        gen.moveIndex(size_);
+        return true;
+    }
+
+    unsigned origOffset = gen.used();
+    relocAddr = gen.currAddr(baseInMutatee);
+
+    inst_printf("Relocating insn, originally 0x%x now 0x%x, disp 0x%x\n",
+                origAddr, relocAddr, relocAddr - origAddr);
+    long long newLongOffset = 0;
+
+    instruction newInsn(insn);
+
+    // TODO: check the function relocation for any PC-calculation tricks.
+
+    // If the instruction is a CALL instruction, calculate the new
+    // offset
+    if (insn.isInsnType(CALLmask, CALLmatch)) {
+        // Check to see if we're a "get-my-pc" combo.
+        // Two forms exist: call +8, and call to a retl/nop 
+        // pair. This is very similar to x86, amusingly enough.
+        // If this is the case, we replace with an immediate load of 
+        // the PC.
+
+        Address target = insn.getTarget(origAddr);
+        if (target == origAddr + (2*instruction::size())) {
+            inst_printf("Relocating get PC combo\n");
+            instruction::generateSetHi(gen, origAddr, REG_O(7));
+            instruction::generateImm(gen, ORop3, REG_O(7),
+                                     LOW10(origAddr), REG_O(7));
+        }
+        else {
+            // Need to check the destination. Grab it with an InstrucIter
+            InstrucIter callTarget(target, multiT->proc());
+            instruction callInsn = callTarget.getInstruction();
+            instruction nextInsn = callTarget.getNextInstruction();
+
+            if (callInsn.isInsnType(RETLmask, RETLmatch)) {
+                inst_printf("Call to immediate return\n");
+                // The old version (in LocalAlteration-Sparc.C)
+                // is _incredibly_ confusing. This should work, 
+                // assuming an iterator-unwound delay slot.
+                // We had a call to a retl/delay pair. 
+                // Build O7, then copy over the delay slot.
+                instruction::generateSetHi(gen, origAddr, REG_O(7));
+                instruction::generateImm(gen, ORop3, REG_O(7),
+                                         LOW10(origAddr), REG_O(7));
+                if (nextInsn.valid()) {
+                    nextInsn.generate(gen);
+                }
+            }
+            else {
+	      if (!targetOverride_) {
+                newLongOffset = origAddr;
+                newLongOffset -= relocAddr;
+                newLongOffset += ((*insn).call.disp30 << 2);
+	      }
+	      else {
+		newLongOffset = targetOverride_ - relocAddr;
+	      }
+
+              (*newInsn).call.disp30 = (int)(newLongOffset >> 2);
+              
+              newInsn.generate(gen);
+              inst_printf("Relocating call, displacement 0x%x\n", newLongOffset);
+            }
+        }
+    } else if (insn.isInsnType(BRNCHmask, BRNCHmatch)||
+	       insn.isInsnType(FBRNCHmask, FBRNCHmatch)) {
+
+	// If the instruction is a Branch instruction, calculate the 
+        // new offset. If the new offset is out of reach after the 
+        // instruction is moved to the base Trampoline, we would do
+        // the following:
+	//    b  address  ......    address: save
+	//                                   call new_offset             
+	//                                   restore 
+      if (!targetOverride_)
+        newLongOffset = (long long)insn.getTarget(origAddr) - relocAddr;
+      else
+	newLongOffset = targetOverride_ - relocAddr;
+        inst_printf("Orig 0x%x, target 0x%x (offset 0x%x), relocated 0x%x, new dist %lld\n",
+                    origAddr, insn.getTarget(origAddr), insn.getOffset(), relocAddr, newLongOffset);
+	// if the branch is too far, then allocate more space in inferior
+	// heap for a call instruction to branch target.  The base tramp 
+	// will branch to this new inferior heap code, which will call the
+	// target of the branch
+
+	if ((newLongOffset < (long long)(-0x7fffffff-1)) ||
+	    (newLongOffset > (long long)0x7fffffff) ||
+	    !instruction::offsetWithinRangeOfBranchInsn((int)newLongOffset)){
+            inst_printf("Relocating branch; new offset %lld farther than branch range; replacing with call\n", newLongOffset);
+            // Replace with a multi-branch series
+            
+            instruction::generateImm(gen,
+                                     SAVEop3,
+                                     REG_SPTR,
+                                     -112,
+                                     REG_SPTR);
+            // Don't use relocAddr here, since we've moved the IP since then.
+            instruction::generateCall(gen,
+                                      gen.currAddr(baseInMutatee),
+                                      insn.getTarget(origAddr));
+            instruction::generateSimple(gen,
+                                        RESTOREop3,
+                                        0, 0, 0);
+	} else {
+	    (*newInsn).branch.disp22 = (int)(newLongOffset >> 2);
+            newInsn.generate(gen);
+	}
+    } else if (insn.isInsnType(TRAPmask, TRAPmatch)) {
+	// There should be no probelm for moving trap instruction
+	// logLine("attempt to relocate trap\n");
+        insn.generate(gen);
+    } 
+    else {
+        /* The rest of the instructions should be fine as is */
+        insn.generate(gen);
+    }
+    
+    // We pin delay instructions.
+    if (insn.isDCTI()) {
+        if (hasDS) {
+            inst_printf("... copying delay slot\n");
+            ds_insn.generate(gen);
+        }
+        if (hasAgg) {
+            inst_printf("... copying aggregate\n");
+            agg_insn.generate(gen);
+        }
+    }
+
+    size_ = gen.used() - origOffset;
+    generated_ = true;
+    
+    return true;
+}
+
+// Determine the maximum amount of space required for relocating
+// an instruction. Must assume the instruction will be relocated
+// anywhere in the address space.
+
+unsigned relocatedInstruction::maxSizeRequired() {
+
+    unsigned size_required = 0;
+
+    if (insn.isInsnType(CALLmask, CALLmatch)) {
+        // We can use the same format.
+        size_required += instruction::size();
+    } else if (insn.isInsnType(BRNCHmask, BRNCHmatch) ||
+               insn.isInsnType(FBRNCHmask, FBRNCHmatch)) {
+        // Worst case: 3 insns (save, call, restore)
+        size_required += 3*instruction::size();
+    }
+    else {
+        // Relocate "in place"
+        size_required += instruction::size();
+    }
+
+    if (insn.isDCTI()) {
+        if (hasDS)
+            size_required += instruction::size();
+        if (hasAgg)
+            size_required += instruction::size();
+    }
+
+    return size_required;
 }
 
 
-trampTemplate *installMergedTramp(process *proc, 
-				  instPoint *&location,
-				  char * i, Address count, 
-				  registerSpace * regS, 
-				  callWhen when,
-				  returnInstance *&retInstance,
-				  bool trampRecursiveDesired,
-				  bool /*noCost*/,
-				  bool& /*deferred*/,
-				  bool /*allowTrap*/)
-{
-  trampTemplate *ret = NULL;
-  return ret;
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+// Should move...
+unsigned miniTramp::interJumpSize() {
+    return 3*instruction::size();
 }
+
+unsigned multiTramp::maxSizeRequired() {
+    // Call?
+
+    return 3*instruction::size();
+}
+
+/* Generate a jump to a base tramp. Return the size of the instruction
+   generated at the instrumentation point. */
+
+bool multiTramp::generateBranchToTramp(codeGen &gen)
+{
+    /* There are three ways to get to the base tramp:
+       1. Ordinary jump instruction.
+       2. Using a short jump to hit nearby space, and long-jumping to the multiTramp. 
+       3. Trap instruction.
+       
+       We currently support #1.
+    */
+    
+    assert(instAddr_);
+    assert(trampAddr_);
+    
+    int dist = (trampAddr_ - instAddr_);
+    if (instruction::offsetWithinRangeOfBranchInsn(dist)) {
+        // Annulled branch
+        instruction::generateBranch(gen, 
+                                    instAddr_,
+                                    trampAddr_);
+        //instruction::generateNOOP(buffer, offset);
+    }
+    else {
+        // We use a save; call; restore triplet.
+        // Problem is, if o7 is live, this doesn't work.
+        if (func()->is_o7_live())
+            return false;
+        if (instSize_ < 3*sizeof(instruction))
+            return false;
+
+        instruction::generateImm(gen, SAVEop3, 14, -112, 14);
+        instruction::generateCall(gen,
+                                  instAddr_ + instruction::size(), 
+                                  trampAddr_);
+        instruction::generateSimple(gen, RESTOREop3, 0, 0, 0);
+    }
+
+    gen.fillRemaining(codeGen::cgNOP);
+    
+    return true;
+}
+
+/* A quick model for the "we're done, branch back/ILL" tramp end */
+
+unsigned trampEnd::maxSizeRequired() {
+    return 4*instruction::size();
+}
+
+bool trampEnd::generateCode(codeGen &gen,
+                            Address baseInMutatee) {
+    if (generated_) {
+        gen.moveIndex(size_);
+        return true;
+    }
+    
+    unsigned origOffset = gen.used();
+    
+
+    if (target_) {
+        if (instruction::offsetWithinRangeOfBranchInsn(target_ - gen.currAddr(baseInMutatee))) {
+            instruction::generateBranch(gen,
+                                        gen.currAddr(baseInMutatee),
+                                        target_);
+        }
+        else {
+            instruction::generateImm(gen, SAVEop3, 14, -112, 14);
+            instruction::generateCall(gen, gen.currAddr(baseInMutatee), target_);
+            instruction::generateSimple(gen, RESTOREop3, 0, 0, 0);
+        }
+    }
+    
+    instruction::generateIllegal(gen);
+    
+    size_ = (gen.used() - origOffset);
+    generated_ = true;
+    
+    return true;
+}
+
+
+// Get the appropriate thread index
+
+bool baseTramp::generateMTCode(codeGen &gen,
+                               registerSpace *) {
+    AstNode *threadPOS;
+    pdvector<AstNode *> dummy;
+    Register src = Null_Register;
+    
+    // registers cleanup
+    regSpace->resetSpace();
+    
+    /* Get the hashed value of the thread */
+    if (!proc()->multithread_ready()) {
+        // Uh oh... we're not ready to build a tramp yet!
+        threadPOS = new AstNode("DYNINSTreturnZero", dummy);
+    }
+    else 
+        threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
+    src = threadPOS->generateCode(proc(), regSpace, gen,
+                                  false, // noCost 
+                                  true); // root node
+    if ((src) != REG_MT_POS) {
+        // This is always going to happen... we reserve REG_MT_POS, so the
+        // code generator will never use it as a destination
+        emitV(orOp, src, 0, REG_MT_POS, gen, false);
+    }
+
+    return true;
+}
+
+bool baseTramp::generateSaves(codeGen &gen,
+                              registerSpace *) {
+    if (isConservative()) {
+        // Yadda
+    }
+
+    int frameShift = 0;
+    if (isConservative()) 
+        frameShift = -256;
+    else 
+        frameShift = -120;
+
+    // save %sp, -120, %sp
+    instruction::generateImm(gen, SAVEop3, REG_SPTR, frameShift, REG_SPTR);
+
+    for (unsigned g_iter = 0; g_iter <= 6; g_iter += 2) {
+        // std %g[iter], [ %fp + -(8 + (g_iter*4))]
+        // Otherwise known as:
+        // std %g0, [ %fp + -8]
+        // std %g2, [ %fp + -16]
+        // std %g4, [ %fp + -24]
+        // std %g6, [ %fp + -32]
+
+        instruction::generateStoreD(gen, REG_G(g_iter), REG_FPTR, 
+                                    -(8+(g_iter*4)));
+    }
+
+
+    if (isConservative()) {
+        for (unsigned f_iter = 0; f_iter <= 30; f_iter += 2) {
+            // std %f[iter], [%fp + -(40 + iter*4)]
+            instruction::generateStoreFD(gen, f_iter, REG_FPTR, 
+                                         -(40 + (f_iter*4)));
+        }
+        
+        // I hate constants... anyone know what this pattern means?
+        // save codes to %g1?
+        instruction saveConditionCodes(0x83408000);
+        saveConditionCodes.generate(gen);
+        
+        // And store them.
+        instruction::generateStore(gen, REG_G(1), REG_FPTR,
+                                   -164);
+    }
+    
+    return true;
+}
+
+bool baseTramp::generateRestores(codeGen &gen,
+                                 registerSpace *) {
+    if (isConservative()) {
+        for (unsigned f_iter = 0; f_iter <= 30; f_iter += 2) {
+            // std %f[iter], [%fp + -(40 + iter*4)]
+            instruction::generateLoadFD(gen, REG_FPTR, 
+                                        -(40+(f_iter*4)), f_iter);
+        }
+        
+        // load them...
+        instruction::generateLoad(gen, REG_FPTR,
+                                  -164, REG_G(1));
+
+        // I hate constants... anyone know what this pattern means?
+        // restore codes from g1?
+        instruction restoreConditionCodes(0x85806000);
+        restoreConditionCodes.generate(gen);
+    }
+
+
+    for (unsigned g_iter = 0; g_iter <= 6; g_iter += 2) {
+        // ldd [%fp + -8], %g0
+        // ldd [%fp + -16], %g2
+        // ldd [%fp + -24], %g4
+        // ldd [%fp + -32], %g6
+        
+        instruction::generateLoadD(gen, REG_FPTR, 
+                                   -(8+(g_iter*4)), REG_G(g_iter));
+    }
+
+    // And pop the stack
+
+    instruction::generateSimple(gen, RESTOREop3, 0, 0, 0);
+
+    return true;
+}
+
+// guardJumpOffset is the offset from the start of the gen
+// (as given to us) where the actual skip jump goes; it's overwritten
+// later when we know how big the miniTramps are.
+bool baseTramp::generateGuardPreCode(codeGen &gen,
+                                     codeBufIndex_t &guardJumpIndex,
+                                     registerSpace *) {
+    assert(guarded());
+    // The jump gets filled in later; allocate space for it now
+    // and stick where it is in guardJumpOffset
+    Address guard_flag_address = proc()->trampGuardBase();
+    if (!guard_flag_address) {
+        guardJumpIndex = 0;
+        return false;
+    }
+
+    // Set the high bits in L0
+    instruction::generateSetHi(gen, guard_flag_address, REG_L(0));
+    if (proc()->multithread_capable()) {
+        int shift_val;
+        isPowerOf2(sizeof(unsigned), shift_val);
+        // multiply index*sizeof(unsigned)
+        instruction::generateLShift(gen, REG_MT_POS, (Register)shift_val, 
+                                    REG_L(3));
+        // And add into L0
+        instruction::generateSimple(gen, ADDop3, REG_L(3), REG_L(0), REG_L(0));
+    }
+    // Put a 0 in L1
+    instruction::generateSimple(gen, ADDop3, REG_G(0), REG_G(0), REG_L(1));
+    // Load, including low bits
+    instruction::generateLoad(gen, REG_L(0), LOW10(guard_flag_address), REG_L(2));
+
+    // Zero out the tramp guard. Why isn't this post-jump?
+    instruction::generateStore(gen, REG_L(1), REG_L(0), LOW10(guard_flag_address));
+
+    // Compare?
+    instruction::generateSimple(gen, SUBop3cc, REG_L(2), REG_G(0), REG_G(0));
+    // And branch
+    guardJumpIndex = gen.getIndex();
+    instruction::generateCondBranch(gen, 0, BEcond, false);
+    // Delay slots suck...
+    instruction::generateNOOP(gen);
+    return true;
+
+}
+
+bool baseTramp::generateGuardPostCode(codeGen &gen,
+                                      codeBufIndex_t &post,
+                                      registerSpace *) {
+    assert(guarded());
+
+    Address guard_flag_address = proc()->trampGuardBase();
+    if (!guard_flag_address) {
+        return false;
+    }
+
+    // Set the high bits in L0
+    instruction::generateSetHi(gen, guard_flag_address, REG_L(0));
+    if (proc()->multithread_capable()) {
+        int shift_val;
+        isPowerOf2(sizeof(unsigned), shift_val);
+        // multiply index*sizeof(unsigned)
+        instruction::generateLShift(gen, REG_MT_POS, (Register)shift_val, 
+                                    REG_L(3));
+        // And add into L0
+        instruction::generateSimple(gen, ADDop3, REG_L(3), REG_L(0), REG_L(0));
+    }
+    // Put a 1 in L1
+    instruction::generateImm(gen, ADDop3, REG_G(0), 1, REG_L(1));
+    // And store
+    instruction::generateStore(gen, REG_L(1), REG_L(0), LOW10(guard_flag_address));
+
+    post = gen.getIndex();
+    return true;
+}
+
+bool baseTrampInstance::finalizeGuardBranch(codeGen &gen,
+                                            int disp) {
+    assert(disp > 0);
+
+    instruction::generateCondBranch(gen, disp, BEcond, false);
+    // Don't have to write; this is still in generation.
+
+    return true;
+}
+
+// Previously emitVupdate
+bool baseTramp::generateCostCode(codeGen &gen, unsigned &costUpdateOffset,
+                                 registerSpace *) {
+    // Load; modify; store.
+    Address costAddr = proc()->getObservedCostAddr();
+    if (!costAddr) return false;
+
+    instruction::generateSetHi(gen, costAddr, REG_L(0));
+    instruction::generateLoad(gen, REG_L(0), LOW10(costAddr), REG_L(1));
+
+    costUpdateOffset = gen.used();
+    // Need to leave three (3) slots -- possibly an immediate load,
+    // possibly a hi/low/add combo
+    instruction::generateNOOP(gen);
+    instruction::generateNOOP(gen);
+    instruction::generateNOOP(gen);
+    // And store
+    instruction::generateStore(gen, REG_L(1), REG_L(0), LOW10(costAddr));
+    return true;
+}
+
+// Update with the appropriate value & write
+void baseTrampInstance::updateTrampCost(unsigned cost) {
+    if (baseT->costSize == 0) return;
+
+    codeGen gen(3*instruction::size());
+
+    if (cost <= MAX_IMM13) {
+        instruction::generateImm(gen, ADDop3, REG_L(1), cost, REG_L(1));
+        instruction::generateNOOP(gen);
+        instruction::generateNOOP(gen);
+    }
+    else {
+        instruction::generateSetHi(gen, cost, REG_L(2));
+        instruction::generateImm(gen, ORop3, REG_L(2), LOW10(cost), REG_L(2));
+        instruction::generateSimple(gen, ADDop3, REG_L(1), REG_L(2), REG_L(1));
+    }
+
+    Address trampCostAddr = trampPreAddr() + baseT->costValueOffset;
+    proc()->writeDataSpace((void *)trampCostAddr,
+                           gen.used(),
+                           gen.start_ptr());
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+//This function returns true if the processor on which the daemon is running
+//is an ultra SPARC, otherwise returns false.
+bool isUltraSparc(){
+  struct utsname u;
+  if(uname(&u) < 0){
+    cerr <<"Trouble in uname(), inst-sparc-solaris.C\n";
+    return false;
+  }
+  if(!strcmp(u.machine, "sun4u")){
+    return 1;
+  }
+  return false;
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+void emitLoadPreviousStackFrameRegister(Address register_num,
+					Register dest,
+					codeGen &gen,
+					int size,
+					bool noCost){
+  if(register_num > 31)
+    assert(0);
+  else if(register_num > 15){
+    /*Need to find it on the stack*/
+    unsigned frame_offset = (register_num-16) * 4;
+    /*generate a FLUSHW instruction, in order to make sure that
+      the registers from the caller are on the caller's stack
+      frame*/
+
+    if(isUltraSparc())
+        instruction::generateFlushw(gen);
+    else 
+        instruction::generateTrapRegisterSpill(gen);
+    
+    if(frame_offset == 0){
+        emitV(loadIndirOp, 30, 0, dest, gen,  noCost, NULL, size);
+    }	    
+    else {
+        emitImm(plusOp,(Register) 30,(RegValue)frame_offset, 
+                dest, gen, noCost);
+        emitV(loadIndirOp, dest, 0, dest, gen, noCost, NULL, size);
+    }
+  }	  
+  else if(register_num > 7) { 
+      //out registers become in registers, so we add 16 to the register
+      //number to find it's value this stack frame. We move it's value
+      //into the destination register
+      emitV(orOp, (Register) register_num + 16, 0,  dest, gen, false);
+  }
+  else /* if(register_num >= 0) */ {
+      int frame_offset;
+      if(register_num % 2 == 0) 
+          frame_offset = (register_num * -4) - 8;
+      else 
+          frame_offset = (register_num * -4);
+      //read globals from the stack, they were saved in tramp-sparc.S
+      emitImm(plusOp,(Register) 30,(RegValue)frame_offset, 
+              dest, gen, noCost);
+      emitV(loadIndirOp, dest, 0, dest, gen, noCost, NULL, size);
+  }
+  /* else assert(0); */
+  
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+Register emitFuncCall(opCode op, 
+		      registerSpace *rs,
+		      codeGen &gen, 
+		      pdvector<AstNode *> &operands, 
+		      process *proc,
+		      bool noCost, Address callee_addr,
+		      const pdvector<AstNode *> &ifForks,
+		      const instPoint *location)
+{
+   assert(op == callOp);
+   pdvector <Register> srcs;
+   void cleanUpAndExit(int status);
+   
+   // sanity check for NULL address argument
+   if (!callee_addr) {
+     char msg[256];
+     sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
+             "callee_addr argument", __FILE__, __LINE__);
+     showErrorCallback(80, msg);
+     assert(0);
+   }
+ 
+   for (unsigned u = 0; u < operands.size(); u++)
+       srcs.push_back(operands[u]->generateCode_phase2(proc, rs, gen,
+                                                       noCost, ifForks,
+                                                       location));
+   
+   for (unsigned u=0; u<srcs.size(); u++){
+      if (u >= 5) {
+         pdstring msg = "Too many arguments to function call in instrumentation code: only 5 arguments can be passed on the sparc architecture.\n";
+         bperr( msg.c_str());
+         showErrorCallback(94,msg);
+         cleanUpAndExit(-1);
+      }
+      instruction::generateSimple(gen, ORop3, 0, srcs[u], u+8);
+      rs->freeRegister(srcs[u]);
+   }
+   
+   // As Ling pointed out to me, the following is rather inefficient.  It does:
+   //   sethi %hi(addr), %o5
+   //   jmpl %o5 + %lo(addr), %o7   ('call' pseudo-instr)
+   //   nop
+   // We can do better:
+   //   call <addr>    (but note that the call true-instr is pc-relative jump)
+   //   nop
+   instruction::generateSetHi(gen, callee_addr, 13);
+   instruction::generateImm(gen, JMPLop3, 13, LOW10(callee_addr), 15); 
+   instruction::generateNOOP(gen);
+   
+   // return value is the register with the return value from the function.
+   // This needs to be %o0 since it is back in the caller's scope.
+   return(REG_O(0));
+}
+ 
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest, 
+              codeGen &gen, bool /*noCost*/)
+{
+    //bperr("emitA(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
+    codeBufIndex_t retval;
+    switch (op) {
+    case ifOp: 
+        // cmp src1,0
+        instruction::generateImm(gen, SUBop3cc, src1, 0, 0);
+	//genSimpleInsn(gen, SUBop3cc, src1, 0, 0); insn++;
+        retval = gen.getIndex();
+        instruction::generateCondBranch(gen, dest, BEcond, false);
+
+	instruction::generateNOOP(gen);
+        break;
+    case branchOp: 
+	// Unconditional branch
+        retval = gen.getIndex();
+        instruction::generateBranch(gen, dest);
+	instruction::generateNOOP(gen);
+        break;
+    case trampPreamble: {
+        return(0);      // let's hope this is expected!
+        }
+    case trampTrailer: 
+        // dest is in words of offset and generateBranchInsn is bytes offset
+        retval = gen.getIndex();
+	instruction::generateBranch(gen, dest);
+        instruction::generateNOOP(gen);
+        // 'course, it's an annulled branch... so we don't really need the noop.
+        // But hey.
+        break;
+    default:
+        abort();        // unexpected op for this emit!
+    }
+    return retval;
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+Register emitR(opCode op, Register src1, Register /*src2*/, Register dest, 
+               codeGen &gen, bool /*noCost*/,
+               const instPoint *location, bool for_multithreaded)
+{
+    //bperr("emitR(op=%d,src1=%d,src2=XX,dest=XX)\n",op,src1);
+
+    // Here is what a "well-named" astFlag seems to mean.
+    // astFlag is true iff the function does not begin with a save
+    // or our instumentation is placed before the save instruction.
+    // Notice that we do emit a save in the basetramp in any case,
+    // so if (astFlag) then arguments are in the previous frame's
+    // O registers (this frame's I registers). If (!astFlag) then
+    // arguments are two frames above us.
+    // For callsite instrumentation, callee's arguments are always
+    // in I registers (remember, we did a save)
+    
+    // From ast.C:
+#if 0
+    if (astFlag || location->getPointType() == callSite)
+        src = emitR(getSysParamOp, (Register)oValue, Null_Register, 
+                    dest, insn, base, noCost, location,
+                    proc->multithread_capable());
+    else 
+        src = emitR(getParamOp, (Address)oValue, Null_Register,
+                    dest, insn, base, noCost, location,
+                    proc->multithread_capable());
+    
+#endif
+    
+#if 0
+    if (loperand) {
+        instruction instr;
+        instr.raw = (unsigned)(loperand->oValue);
+        src = emitOptReturn(instr, dest, insn, base, noCost, location,
+                            proc->multithread_capable());
+    }
+    else if (astFlag)
+        src = emitR(getSysRetValOp, 0, 0, dest, insn, base, noCost, location,
+                    proc->multithread_capable());
+#endif
+
+    // Suppose we can check the instPoint info; for now assume that registers are
+    // requested at function entry, and return at function exit.
+    
+    opCode opToUse;
+    if (op == getParamOp) {
+        if (location->getPointType() == functionEntry) {
+            // Function entry: no save, parameters in input registers.
+            opToUse = getSysParamOp;
+        }
+        else if (location->getPointType() == callSite) {
+            // Call site parameters: in input registers.
+            opToUse = getSysParamOp;
+        }
+        else {
+            // Odd... not entry, not call site. We'll assume a save has
+            // been executed. Really, don't do this.
+            opToUse = getParamOp;
+        }
+    }
+    else if (op == getRetValOp) {
+        assert(location->getPointType() == functionExit);
+        opToUse = getRetValOp;
+    }
+    else {
+        assert(0);
+        return 0;
+    }
+
+    switch(opToUse) {
+    case getParamOp: {
+        if(for_multithreaded) {
+            // saving CT/vector address on the stack
+            instruction::generateStore(gen, REG_MT_POS, REG_FPTR, -40);
+        }
+        // We have managed to emit two saves since the entry point of
+        // the function, so the first 6 parameters are in the previous
+        // frame's I registers, and we need to pick them off the stack
+        
+        // generate the FLUSHW instruction to make sure that previous
+        // windows are written to the register save area on the stack
+        if (isUltraSparc()) {
+            instruction::generateFlushw(gen);
+        }
+        else {
+            instruction::generateTrapRegisterSpill(gen);
+        }
+        
+        if (src1 < 6) {
+            // The arg is in a previous frame's I register. Get it from
+            // the register save area
+            instruction::generateLoad(gen, REG_FPTR, 4*8 + 4*src1, dest);
+        }
+        else {
+            // The arg is on the stack, two frames above us. Get the previous
+            // FP (i6) from the register save area
+            instruction::generateLoad(gen, REG_FPTR, 4*8 + 4*6, dest);
+            // old fp is in dest now
+
+            // Finally, load the arg from the stack
+            instruction::generateLoad(gen, dest, 92 + 4 * (src1 - 6), dest);
+        }
+        
+        if(for_multithreaded) {
+            // restoring CT/vector address back in REG_MT_POS
+            instruction::generateLoad(gen, REG_FPTR, -40, REG_MT_POS);
+        }
+	
+        return dest;
+     }
+    case getSysParamOp: {
+        // We have emitted one save since the entry point of
+        // the function, so the first 6 parameters are in this
+        // frame's I registers
+        if (src1 < 6) {
+            // Param is in an I register
+            return(REG_I(src1));
+        }	
+        else {
+            // Param is on the stack
+            instruction::generateLoad(gen, REG_FPTR, 92 + 4 * (src1 - 6), dest);
+            return dest;
+        }
+     }
+     case getRetValOp: {
+        // We have emitted one save since the exit point of
+        // the function, so the return value is in the previous frame's
+        // I0, and we need to pick it from the stack
+         
+        // generate the FLUSHW instruction to make sure that previous
+        // windows are written to the register save area on the stack
+        if (isUltraSparc()) {
+            instruction::generateFlushw(gen);
+        }
+        else {
+            instruction::generateTrapRegisterSpill(gen);
+        }
+        
+        instruction::generateLoad(gen, REG_FPTR, 4*8, dest); 
+        return dest;
+     }
+     case getSysRetValOp:
+         return(REG_I(0));
+    default:
+        abort();        // unexpected op for this emit!
+    }
+}
+
+#ifdef BPATCH_LIBRARY
+void emitJmpMC(int /*condition*/, int /*offset*/, codeGen & /*baseInsn*/)
+{
+    // Not needed for memory instrumentation, otherwise TBD
+}
+
+// VG(12/02/01): Emit code to add the original value of a register to
+// another. The original value may need to be restored somehow...
+static inline void emitAddOriginal(Register src, Register acc, 
+                                   codeGen &gen, bool noCost)
+{
+    // Plan:
+    // ignore g0 (r0), since we would be adding 0.
+    // get    g1-g4 (r1-r4) from stack (where the base tramp saved them)
+    // get    g5-g7 (r5-r7) also from stack, but issue an warning because
+    // the SPARC psABI cleary states that G5-G7 SHOULD NOT BE EVER WRITTEN
+    // in userland, as they may be changed arbitrarily by signal handlers!
+    // So AFAICT it doesn't make much sense to read them...
+    // get o0-o7 (r8-r15) by "shifting" the window back (i.e. get r24-r31)
+    // get l0-l7 (r16-23) by flushing the register window to stack
+    //                    and geeting them from there
+    // get i0-i7 (r24-31) by --"--
+    // Note: The last two may seem slow, but they're async. trap safe this way
+    
+    // All this is coded as a binary search.
+    
+    bool mustFree = false;
+    Register temp;
+    
+    if (src >= 16) {
+        // VG(12/06/01): Currently saving registers on demand is NOT
+        // implemented on SPARC (dumps assert), so we can safely ignore it
+        temp = regSpace->allocateRegister(gen, noCost);
+        mustFree = true;
+        
+        // Cause repeated spills, till all windows but current are clear
+        instruction::generateFlushw(gen); // only ultraSPARC supported here
+        
+        // the spill trap puts these at offset from the previous %sp now %fp (r30)
+        unsigned offset = (src-16) * sizeof(long); // FIXME for 64bit mutator/32bit mutatee
+        instruction::generateLoad(gen, 30, offset, temp);
+    }
+    else if (src >= 8)
+        temp = src + 16;
+    else if (src >= 1) {
+        // VG(12/06/01): Currently saving registers on demand is NOT
+        // implemented on SPARC (dumps assert), so we can safely ignore it
+        temp = regSpace->allocateRegister(gen, noCost);
+        mustFree = true;
+        
+        // the base tramp puts these at offset from %fp (r30)
+        unsigned offset = ((src%2) ? src : (src+2)) * -sizeof(long); // FIXME too
+        instruction::generateLoad(gen, 30, offset, temp);
+        
+        if (src >= 5)
+            logLine("SPARC WARNING: Restoring original value of g5-g7 is unreliable!");
+    }
+    else // src == 0
+        return;
+    
+    // add temp to dest;
+    emitV(plusOp, temp, acc, acc, gen, noCost, 0);
+    
+    if(mustFree)
+        regSpace->freeRegister(temp);
+}
+
+// VG(11/30/01): Load in destination the effective address given
+// by the address descriptor. Used for memory access stuff.
+void emitASload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen,
+		bool noCost)
+{
+    int imm = as->getImm();
+    int ra  = as->getReg(0);
+    int rb  = as->getReg(1);
+    
+    // TODO: optimize this to generate the minimum number of
+    // instructions; think about schedule
+    
+    // emit code to load the immediate (constant offset) into dest; this
+    // writes at baseInsn+base and updates base, we must update insn...
+    emitVload(loadConstOp, (Address)imm, dest, dest, gen, noCost);
+    
+    // If ra is used in the address spec, allocate a temp register and
+    // get the value of ra from stack into it
+    if(ra > -1)
+        emitAddOriginal(ra, dest, gen, noCost);
+    
+    // If rb is used in the address spec, allocate a temp register and
+    // get the value of ra from stack into it
+    if(rb > -1)
+        emitAddOriginal(rb, dest, gen, noCost);
+}
+
+void emitCSload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen,
+		bool noCost)
+{
+  emitASload(as, dest, gen, noCost);
+}
+#endif
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+//
+// load the original FP (before the dyninst saves) into register dest
+//
+int getFP(codeGen &gen, Register dest)
+{
+    instruction::generateSimple(gen, RESTOREop3, 0, 0, 0);
+    instruction::generateStore(gen, REG_FPTR, REG_SPTR, 68);
+	  
+    instruction::generateImm(gen, SAVEop3, REG_SPTR, -112, REG_SPTR);
+    instruction::generateLoad(gen, REG_SPTR, 112+68, dest); 
+
+
+    return(4*instruction::size());
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+void emitVload(opCode op, Address src1, Register src2, Register dest, 
+               codeGen &gen, bool /*noCost*/, 
+               registerSpace * /*rs*/, int size,
+               const instPoint * /* location */, process * /* proc */) 
+{
+    if (op == loadConstOp) {
+        // dest = src1:imm    TODO
+        
+        if ((src1) > ( unsigned )MAX_IMM13 || (src1) < ( unsigned )MIN_IMM13) {
+            // src1 is out of range of imm13, so we need an extra instruction
+            instruction::generateSetHi(gen, src1, dest);
+            
+	    // or regd,imm,regd
+
+            // Chance for optimization: we should check for LOW10(src1)==0,
+            // and if so, don't generate the following bitwise-or instruction,
+            // since in that case nothing would be done.
+
+	    instruction::generateImm(gen, ORop3, dest, LOW10(src1), dest);
+	} else {
+	    // really or %g0,imm,regd
+	    instruction::generateImm(gen, ORop3, 0, src1, dest);
+	}
+    } else if (op ==  loadOp) {
+	// dest = [src1]   TODO
+	instruction::generateSetHi(gen, src1, dest);
+
+        if (size == 1)
+            instruction::generateLoadB(gen, dest, LOW10(src1), dest);
+        else if (size == 2)
+            instruction::generateLoadH(gen, dest, LOW10(src1), dest);
+        else
+            instruction::generateLoad(gen, dest, LOW10(src1), dest);
+    } else if (op ==  loadFrameRelativeOp) {
+	// return the value that is FP offset from the original fp
+	//   need to restore old fp and save it on the stack to get at it.
+        
+	getFP(gen, dest);
+	if (((int) src1 < MIN_IMM13) || ((int) src1 > MAX_IMM13)) {
+	    // offsets are signed!
+	    int offset = (int) src1;
+
+	    // emit sethi src2, offset
+	    instruction::generateSetHi(gen, offset, src2);
+
+	    // or src2, offset, src2
+	    instruction::generateImm(gen, ORop3, src2, LOW10(offset), src2);
+
+	    // add dest, src2, dest
+	    instruction::generateSimple(gen, ADDop3, dest, src2, src2);
+
+	    instruction::generateLoad(gen, src2, 0, dest);
+	}  else {
+	    instruction::generateLoad(gen, dest, src1, dest);
+	}
+    } else if (op == loadFrameAddr) {
+	// offsets are signed!
+	int offset = (int) src1;
+        
+	getFP(gen, dest);
+
+	if (((int) offset < MIN_IMM13) || ((int) offset > MAX_IMM13)) {
+	    // emit sethi src2, offset
+	    instruction::generateSetHi(gen, offset, src2);
+
+	    // or src2, offset, src2
+	    instruction::generateImm(gen, ORop3, src2, LOW10(offset), src2);
+
+	    // add dest, src2, dest
+	    instruction::generateSimple(gen, ADDop3, dest, src2, dest);
+	}  else {
+	    // fp is in dest, just add the offset
+	    instruction::generateImm(gen, ADDop3, dest, offset, dest);
+	}
+    } else {
+        abort();       // unexpected op for this emit!
+    }
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+void emitVstore(opCode op, Register src1, Register src2, Address dest, 
+                codeGen &gen, bool /*noCost*/, 
+                registerSpace * /*rs*/, int /* size */,
+                const instPoint * /* location */, process * /* proc */)
+{
+    
+    if (op == storeOp) {
+        instruction insn;
+	(*insn).sethi.op = FMT2op;
+	(*insn).sethi.rd = src2;
+	(*insn).sethi.op2 = SETHIop2;
+	(*insn).sethi.imm22 = HIGH22(dest);
+        insn.generate(gen);
+
+	instruction::generateStore(gen, src1, src2, LOW10(dest));
+    } else if (op == storeFrameRelativeOp) {
+	// offsets are signed!
+	int offset = (int) dest;
+
+	getFP(gen, src2);
+
+	if ((offset < MIN_IMM13) || (offset > MAX_IMM13)) {
+	    // We are really one regsiter short here, so we put the
+	    //   value to store onto the stack for part of the sequence
+	    instruction::generateStore(gen, src1, REG_SPTR, 112+68);
+
+	    instruction::generateSetHi(gen, offset, src1);
+
+	    instruction::generateImm(gen, ORop3, src1, LOW10(offset), src1);
+
+	    instruction::generateSimple(gen, ADDop3, src1, src2, src2);
+
+	    instruction::generateLoad(gen, REG_SPTR, 112+68, src1); 
+
+	    instruction::generateStore(gen, src1, src2, 0);
+	} else {
+	    instruction::generateStore(gen, src1, src2, dest);
+	}
+    } else {
+        abort();       // unexpected op for this emit!
+    }
+}
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+void emitV(opCode op, Register src1, Register src2, Register dest, 
+              codeGen &gen, bool /*noCost*/, 
+           registerSpace * /*rs*/, int /* size */,
+           const instPoint * /* location */, process * /* proc */)
+           
+{
+    //bperr("emitV(op=%d,src1=%d,src2=%d,dest=%d)\n",op,src1,src2,dest);
+    
+    assert ((op!=branchOp) && (op!=ifOp) && 
+            (op!=trampTrailer) && (op!=trampPreamble));         // !emitA
+    assert ((op!=getRetValOp) && (op!=getSysRetValOp) &&
+            (op!=getParamOp) && (op!=getSysParamOp));           // !emitR
+    assert ((op!=loadOp) && (op!=loadConstOp));                 // !emitVload
+    assert ((op!=storeOp));                                     // !emitVstore
+    assert ((op!=updateCostOp));                                // !emitVupdate
+    
+    
+    if (op == loadIndirOp) {
+	instruction::generateLoad(gen, src1, 0, dest);
+    } else if (op == storeIndirOp) {
+	instruction::generateStore(gen, src1, dest, 0);
+    } else if (op == noOp) {
+	instruction::generateNOOP(gen);
+    } else if (op == saveRegOp) {
+	// should never be called for this platform.
+        // VG(12/02/01): Unfortunately allocateRegister *may* call this
+	abort();
+    } else {
+        int op3=-1;
+	switch (op) {
+	    // integer ops
+        case plusOp:
+            op3 = ADDop3;
+            break;
+            
+        case minusOp:
+            op3 = SUBop3;
+            break;
+            
+        case timesOp:
+            op3 = SMULop3;
+            break;
+            
+        case divOp:
+            op3 = SDIVop3;
+            //need to set the Y register to Zero, Zhichen
+            instruction::generateImm(gen, WRYop3, REG_G(0), 0, 0);
+            break;
+            
+	    // Bool ops
+        case orOp:
+            op3 = ORop3;
+            break;
+            
+        case andOp:
+            op3 = ANDop3;
+            break;
+            
+	    // rel ops
+	    // For a particular condition (e.g. <=) we need to use the
+            // the opposite in order to get the right value (e.g. for >=
+            // we need BLTcond) - naim
+        case eqOp:
+            instruction::generateRelOp(gen, BNEcond, src1, src2, dest);
+            break;
+            
+        case neOp:
+            instruction::generateRelOp(gen, BEcond, src1, src2, dest);
+            break;
+            
+        case lessOp:
+            instruction::generateRelOp(gen, BGEcond, src1, src2, dest);
+            break;
+            
+        case leOp:
+            instruction::generateRelOp(gen, BGTcond, src1, src2, dest);
+            break;
+            
+        case greaterOp:
+            instruction::generateRelOp(gen, BLEcond, src1, src2, dest);
+            break;
+
+        case geOp:
+            instruction::generateRelOp(gen, BLTcond, src1, src2, dest);
+            break;
+            
+        default:
+            abort();
+            break;
+	}
+        if (op3 != -1) {
+            // I.E. was set above...
+            instruction::generateSimple(gen, op3, src1, src2, dest);
+        }
+      }
+   return;
+}
+
+
+
+/****************************************************************************/
+/****************************************************************************/
+

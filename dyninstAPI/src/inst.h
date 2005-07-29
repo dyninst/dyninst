@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.88 2005/07/11 19:35:22 rutar Exp $
+// $Id: inst.h,v 1.89 2005/07/29 19:18:44 bernat Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -49,54 +49,38 @@
 #include "common/h/String.h"
 #include "ast.h" // enum opCode now defined here.
 #include "common/h/Types.h"
-
-#ifdef BPATCH_LIBRARY
-#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
-#endif
+#include "arch.h" // codeBufIndex_t 
 
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
 
 class instPoint;
-class miniTrampHandle;
-class trampTemplate;
+class miniTramp;
+class baseTramp;
 class process;
 class int_function;
 class metricFocusNode;
-class miniTramps_list;
+class codeGen;
 
 typedef enum { callNoArgs, callRecordType, callFullArgs } callOptions;
-typedef enum { callPreInsn, callPostInsn } callWhen;
+typedef enum { callPreInsn, callPostInsn, callBranchTargetInsn } callWhen;
 typedef enum { orderFirstAtPoint, orderLastAtPoint } callOrder;
-
-extern bool deleteInst(process *proc, miniTrampHandle *&mtHandle);
 
 extern pdvector<Address> getTrampAddressesAtPoint(process *proc, 
                                                   const instPoint *loc,
                                                   callWhen when);
 
 class AstNode;
-class returnInstance;
-
-typedef enum loadMiniTramp_result { success_res, failure_res, deferred_res} loadMiniTramp_result;
 
 /*
  * Insert instrumentation at the specified codeLocation.
  * TODO: make these methods of class process
  */
-loadMiniTramp_result addInstFunc(process *proc,
-                                 miniTrampHandle *&mtHandle, 
-                                 instPoint *&location,
-                                 AstNode *&ast, // ast could change (sysFlag stuff)
-                                 callWhen when,
-                                 callOrder order,
-                                 bool noCost,
-                                 bool trampRecursionDesired,
-                                 bool allowTrap);
 
 // writes to (*mtInfo)
-loadMiniTramp_result loadMergedTramp(miniTrampHandle *&mtHandle,
+#if 0
+loadMiniTramp_result loadMergedTramp(miniTramp *&mtHandle,
                                    process *proc, 
                                    instPoint *&location,
                                    AstNode *&ast, // the ast could be changed 
@@ -104,37 +88,16 @@ loadMiniTramp_result loadMergedTramp(miniTrampHandle *&mtHandle,
                                    returnInstance *&retInstance,
                                    bool trampRecursiveDesired = false,
                                    bool allowTramp = true);
-
-// writes to (*mtInfo)
-loadMiniTramp_result loadMiniTramp(miniTrampHandle *&mtHandle,
-                                   process *proc, 
-                                   instPoint *&location,
-                                   AstNode *&ast, // the ast could be changed 
-                                   callWhen when, callOrder order, bool noCost,
-                                   returnInstance *&retInstance,
-                                   bool trampRecursiveDesired = false,
-                                   bool allowTramp = true);
-
-void hookupMiniTramp(process *proc,
-                     miniTrampHandle *&mtHandle,
-                     callOrder order);
-
+#endif
 /* Utility functions */
 
-bool getInheritedMiniTramp(const miniTrampHandle *parentMT, 
-                           miniTrampHandle *&childMT,
+bool getInheritedMiniTramp(const miniTramp *parentMT, 
+                           miniTramp *&childMT,
                            process *childProc);
 
 float getPointFrequency(instPoint *point);
 int getPointCost(process *proc, const instPoint *point);
 
-/*
- * Test if the inst point is for a call to a tracked function (as opposed to
- *   a function that has been either implictly or explictly suppressed from
- *   instrumentation (i.e. library functions or user suppression of user 
- *   functions).
- */
-int callsTrackedFuncP(instPoint *);
 
 /* return the function asociated with a point. */
 int_function *getFunction(instPoint *point);
@@ -151,6 +114,8 @@ int_function *getFunction(instPoint *point);
 extern AstNode *assignAst(AstNode *);
 extern void removeAst(AstNode *&);
 
+// Container class for "instrument this point with this function". 
+// What I want to know is who is allergic to multi-letter arguments? Yeesh.
 class instMapping {
 public:
   // instMapping(const pdstring f, const pdstring i, const int w, AstNode *a=NULL)
@@ -158,26 +123,29 @@ public:
   // ~instMapping() { removeAst(arg); };
   instMapping(const pdstring f, const pdstring i, const int w, 
 	      callWhen wn, callOrder o, AstNode *a=NULL)
-     : func(f), inst(i), where(w), when(wn), order(o), useTrampGuard(true),
-     mt_only(false), allow_trap(false) {
-    if(a) args.push_back(assignAst(a));
+      : func(f), inst(i), where(w), when(wn), order(o), useTrampGuard(true),
+      mt_only(false), allow_trap(false) {
+      if(a) args.push_back(assignAst(a));
   }
-
+  
   instMapping(const pdstring f, const pdstring i, const int w, AstNode *a=NULL)
-     : func(f), inst(i), where(w), when(callPreInsn), order(orderLastAtPoint),
-       useTrampGuard(true), mt_only(false), allow_trap(false) {
-    if(a) args.push_back(assignAst(a));
+      : func(f), inst(i), where(w), when(callPreInsn), order(orderLastAtPoint),
+      useTrampGuard(true), mt_only(false), allow_trap(false) {
+      if(a) args.push_back(assignAst(a));
   }
-
+  
   instMapping(const pdstring f, const pdstring i, const int w, 
               pdvector<AstNode*> &aList) :
-     func(f), inst(i), where(w), when(callPreInsn), order(orderLastAtPoint),
-     useTrampGuard(true), mt_only(false), allow_trap(false) {
-    for(unsigned u=0; u < aList.size(); u++) {
-      if(aList[u]) args.push_back(assignAst(aList[u]));
-    }
+      func(f), inst(i), where(w), when(callPreInsn), order(orderLastAtPoint),
+      useTrampGuard(true), mt_only(false), allow_trap(false) {
+      for(unsigned u=0; u < aList.size(); u++) {
+          if(aList[u]) args.push_back(assignAst(aList[u]));
+      }
   };
 
+  // Fork
+  instMapping(const instMapping *parMapping, process *child);
+  
   ~instMapping() {
     // an AstNode has referenceCount = 1 when first created, 
     // we perform removeAst when we installInitialRequests in process.C
@@ -202,7 +170,7 @@ public:
   bool useTrampGuard;
   bool mt_only;
   bool allow_trap;
-  pdvector<miniTrampHandle *> mtHandles;
+  pdvector<miniTramp *> miniTramps;
   // AstNode *arg;            /* what to pass as arg0 */
 };
 
@@ -226,53 +194,57 @@ unsigned getPrimitiveCost(const pdstring &name);
  * functions replace "emit" with more strongly typed versions.
  */
 
-// for operations requiring an Address to be returned
-// (e.g., ifOp/branchOp, trampPreambleOp/trampTrailerOp)
-Address  emitA(opCode op, Register src1, Register src2, Register dst, 
-                char *insn, Address &base, bool noCost);
+// The return value is a magic "hand this in when we update" black box;
+// emitA handles emission of things like ifs that need to be updated later.
+codeBufIndex_t emitA(opCode op, Register src1, Register src2, Register dst, 
+                     codeGen &gen, bool noCost);
 
 // for operations requiring a Register to be returned
 // (e.g., getRetValOp, getParamOp, getSysRetValOp, getSysParamOp)
 Register emitR(opCode op, Register src1, Register src2, Register dst, 
-               char *insn, Address &base, bool noCost, 
+               codeGen &gen, bool noCost, 
                const instPoint *location, bool for_multithreaded);
 
 // for general arithmetic and logic operations which return nothing
 void     emitV(opCode op, Register src1, Register src2, Register dst, 
-                char *insn, Address &base, bool noCost, int size = 4,
-                const instPoint * location = NULL, process * proc = NULL, registerSpace * rs = NULL);
+               codeGen &gen, bool noCost, 
+               registerSpace *rs = NULL, int size = 4,
+               const instPoint * location = NULL, process * proc = NULL);
 
 // for loadOp and loadConstOp (reading from an Address)
 void     emitVload(opCode op, Address src1, Register src2, Register dst, 
-                char *insn, Address &base, bool noCost, int size = 4, 
-                const instPoint * location = NULL, process * proc = NULL, registerSpace * rs = NULL );
+                   codeGen &gen, bool noCost, 
+                   registerSpace *rs = NULL, int size = 4, 
+                   const instPoint * location = NULL, process * proc = NULL);
 
 // for storeOp (writing to an Address)
 void     emitVstore(opCode op, Register src1, Register src2, Address dst, 
-		    char *insn, Address &base, bool noCost, registerSpace * rs, int size = 4, 
-                const instPoint * location = NULL, process * proc = NULL);
-
-// for updateCostOp
-void     emitVupdate(opCode op, RegValue src1, Register src2, Address dst, 
-                char *insn, Address &base, bool noCost, registerSpace * rs );
+                    codeGen &gen, bool noCost, 
+                    registerSpace *rs = NULL, int size = 4, 
+                    const instPoint * location = NULL, process * proc = NULL);
 
 // and the retyped original emitImm companion
 void     emitImm(opCode op, Register src, RegValue src2imm, Register dst, 
-                char *insn, Address &base, bool noCost, registerSpace * rs);
+                 codeGen &gen, bool noCost,
+                 registerSpace *rs = NULL);
+
 
 #ifdef BPATCH_LIBRARY
-void emitJmpMC(int condition, int offset, char* baseInsn, Address &base);
+#include "dyninstAPI/h/BPatch_memoryAccess_NP.h"
+class BPatch_addrSpec_NP;
+//class BPatch_countSpec_NP;
+// Don't need the above: countSpec is typedefed to addrSpec
 
-void emitASload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
-		Address &base, bool noCost);
+void emitJmpMC(int condition, int offset, codeGen &gen);
 
-void emitCSload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
-		Address &base, bool noCost);
+void emitASload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen, bool noCost);
+
+void emitCSload(const BPatch_countSpec_NP *as, Register dest, codeGen &gen, bool noCost);
 #endif
 
 // VG(11/06/01): moved here and added location
-Register emitFuncCall(opCode op, registerSpace *rs, char *i, Address &base, 
-		      const pdvector<AstNode *> &operands, 
+Register emitFuncCall(opCode op, registerSpace *rs, codeGen &gen,
+                      pdvector<AstNode *> &operands, 
 		      process *proc, bool noCost, 
 		      Address callee_addr,
 		      const pdvector<AstNode *> &ifForks, // control-flow path

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.16 2005/06/09 17:20:55 gquinn Exp $
+// $Id: inst-x86.h,v 1.17 2005/07/29 19:18:42 bernat Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
@@ -130,6 +130,8 @@
 #define ESI (6)
 #define EDI (7)
 
+class codeGen;
+
 // Define access method for saved register (GPR)
 #define GET_GPR(x, insn) emitMovRMToReg(EAX, EBP, SAVED_EAX_OFFSET-(x*4), insn)
 
@@ -138,28 +140,46 @@
 #define SAVE_VIRTUAL(x, insn) emitMovRegToRM(EBP, -(x*4), EAX, insn)
 
 // low-level code generation functions
-void emitOpRegReg(unsigned opcode, Register dest, Register src, unsigned char *&insn);
-void emitOpRegRM(unsigned opcode, Register dest, Register base, int disp, unsigned char *&insn);
-void emitOpRegImm(int opcode, Register dest, int imm, unsigned char *&insn);
-void emitOpRegRMImm(unsigned opcode, Register dest, Register base, int disp, int imm, unsigned char *&insn);
-void emitOpRMImm(unsigned opcode1, unsigned opcode2, Register base, int disp, int imm, unsigned char *&insn);
-void emitOpRMImm8( unsigned opcode1, unsigned opcode2, Register base, int disp, char imm, unsigned char * & insn );
+void emitOpRegReg(unsigned opcode, Register dest, Register src, codeGen &gen);
+void emitOpRegRM(unsigned opcode, Register dest, Register base, int disp, codeGen &gen);
+void emitOpRegImm(int opcode, Register dest, int imm, codeGen &gen);
+void emitOpRegRMImm(unsigned opcode, Register dest, Register base, int disp, int imm, codeGen &gen);
+void emitOpRMImm(unsigned opcode1, unsigned opcode2, Register base, int disp, int imm, codeGen &gen);
+void emitOpRMImm8( unsigned opcode1, unsigned opcode2, Register base, int disp, char imm, codeGen &gen);
+void emitOpRMReg(unsigned opcode, Register base, int disp,
+                 Register src, codeGen &gen);
 
-void emitMovRegToReg(Register dest, Register src, unsigned char *&insn);
-void emitMovMToReg(Register dest, int disp, unsigned char *&insn);
-void emitMovMBToReg(Register dest, int disp, unsigned char *&insn);
-void emitMovMWToReg(Register dest, int disp, unsigned char *&insn);
-void emitMovRegToM(int disp, Register src, unsigned char *&insn);
-void emitMovImmToReg(Register dest, int imm, unsigned char *&insn);
-void emitMovImmToRM(Register base, int disp, int imm, unsigned char *&insn);
-void emitMovRegToRM(Register base, int disp, Register src, unsigned char *&insn);
-void emitMovRMToReg(Register dest, Register base, int disp, unsigned char *&insn);
 
-void emitSimpleInsn(unsigned opcode, unsigned char *&insn);
+void emitMovRegToReg(Register dest, Register src, codeGen &gen);
+void emitMovMToReg(Register dest, int disp, codeGen &gen);
+void emitMovMBToReg(Register dest, int disp, codeGen &gen);
+void emitMovMWToReg(Register dest, int disp, codeGen &gen);
+void emitMovRegToM(int disp, Register src, codeGen &gen);
+void emitMovImmToReg(Register dest, int imm, codeGen &gen);
+void emitMovImmToRM(Register base, int disp, int imm, codeGen &gen);
+void emitMovRegToRM(Register base, int disp, Register src, codeGen &gen);
+void emitMovRMToReg(Register dest, Register base, int disp, codeGen &gen);
 
-void emitAddRegImm32(Register dest, int imm, unsigned char *&insn);
+void emitSimpleInsn(unsigned opcode, codeGen &gen);
+
+void emitAddRegImm32(Register dest, int imm, codeGen &gen);
 
 // helper functions for emitters
 unsigned char jccOpcodeFromRelOp(unsigned op);
+
+void emitMovImmToMem( Address maddr, int imm,
+                             codeGen &gen);
+void emitLEA(Register base, Register index, unsigned int scale,
+                    RegValue disp, Register dest, codeGen &gen);
+
+
+void emitJump(unsigned disp32, codeGen &gen);
+void emitJccR8(int condition_code, char jump_offset,
+               codeGen &gen);
+void emitPushImm(unsigned int imm, codeGen &gen);
+void emitAddMemImm32(Address dest, int imm, codeGen &gen);
+void emitCallRel32(unsigned disp32, codeGen &gen);
+
+void emitJmpMC(int condition, int offset, codeGen &gen);
 
 #endif

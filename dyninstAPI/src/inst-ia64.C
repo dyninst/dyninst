@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.80 2005/07/11 19:38:03 rutar Exp $
+ * $Id: inst-ia64.C,v 1.81 2005/07/29 19:18:35 bernat Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -73,6 +73,10 @@
 #include "dyninstAPI/src/inst-ia64.h"
 #include "dyninstAPI/src/instPoint.h"	// includes instPoint-ia64.h
 #include "dyninstAPI/src/instP.h"		// class returnInstance
+#include "dyninstAPI/src/InstrucIter.h"
+#include "dyninstAPI/src/multiTramp.h"
+#include "dyninstAPI/src/baseTramp.h"
+#include "dyninstAPI/src/miniTramp.h"
 
 #include "dyninstAPI/src/rpcMgr.h"
 
@@ -139,8 +143,8 @@ Address relocateBaseTrampTemplateTo( Address buffer, Address target ) {
 	/* Always overwrite the jump to instrumentation bundle with a jump
 	   to the bundle past the jump to emulation.  This handles the
 	   inferior RPC case cleanly. */
-	IA64_instruction memoryNOP( NOP_M );
-	IA64_instruction_x longJumpInsn = generateLongBranchTo( target + offsetOfJumpToEmulation + 16 );
+	instruction memoryNOP( NOP_M );
+	instruction_x longJumpInsn = generateLongBranchTo( target + offsetOfJumpToEmulation + 16 );
 	IA64_bundle jumpBundle = IA64_bundle( MLXstop, memoryNOP, longJumpInsn );
 	ia64_bundle_t rawJumpBundle = jumpBundle.getMachineCode();
 	memmove( (void *)(buffer + offsetOfJumpToInstrumentation), & rawJumpBundle, sizeof( ia64_bundle_t ) );
@@ -157,69 +161,59 @@ Address relocateBaseTrampTemplateTo( Address buffer, Address target ) {
 registerSpace * regSpace;
 
 /* Required by ast.C; used for memory instrumentation. */
-void emitCSload( BPatch_addrSpec_NP as, Register dest, char * baseInsn, Address & base, bool noCost ) {
+void emitCSload( const BPatch_addrSpec_NP *as, Register dest, codeGen &gen, bool noCost ) {
 	// /* DEBUG */ fprintf( stderr, "emitCSload: as.imm = %d, as.r1 = %d, as.r2 = %d\n", as.getImm(), as.getReg( 0 ), as.getReg( 1 ) );
 	
 	/* emitCSload()'s first argument should be a BPatch_countSpec_NP.  It's supposed
 	   to set dest to the number calculated by the countSpec, which means that it'll
 	   be filled with bogus numnbers.  Don't complicate emitASload() with the bogosity. */
-	assert( as.getReg( 0 ) == -1 && as.getReg( 1 ) == -1 );
-	emitVload( loadConstOp, as.getImm(), dest, dest, baseInsn, base, noCost );	
-	} /* end emitCSload() */
+	assert( as->getReg( 0 ) == -1 && as->getReg( 1 ) == -1 );
+	emitVload( loadConstOp, as->getImm(), dest, dest, gen, noCost );	
+} /* end emitCSload() */
 
 #define SHORT_IMMEDIATE_MIN 	-8191
 #define SHORT_IMMEDIATE_MAX		8191
 
 /* Required by ast.C */
 void emitVload( opCode op, Address src1, Register src2, Register dest,
-		char * ibuf, Address & base, bool noCost, int size, const instPoint * location, process * proc, registerSpace * rs ) {
-	assert( (((Address)ibuf + base) % 16) == 0 );
-	ia64_bundle_t * rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
-
+				codeGen &gen, bool noCost, registerSpace *rs, 
+				int size, const instPoint * location, 
+				process * proc) {
 	switch( op ) {
 		case loadOp: {
 			/* Stick the address src1 in the temporary register src2. */
-			emitVload( loadConstOp, src1, 0, src2, ibuf, base, noCost, size );
+			emitVload( loadConstOp, src1, 0, src2, gen, noCost, NULL, size);
 
 			/* Load into destination register dest from [src2]. */
-			IA64_instruction loadInsn = generateRegisterLoad( dest, src2, size );
+			instruction loadInsn = generateRegisterLoad( dest, src2, size );
 			IA64_bundle loadBundle( MIIstop, loadInsn, NOP_I, NOP_I );
-			
-			/* Insert bundle. */
-			rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
-			* rawBundlePointer = loadBundle.getMachineCode();
-			base += 16;
+			loadBundle.generate(gen);
+
 			break; }
 
 		case loadConstOp: {
 			// Optimization: if |immediate| <= 22 bits, use generateShortImmediateAdd(), instead.
-			IA64_instruction_x lCO = generateLongConstantInRegister( dest, src1 );
-			* rawBundlePointer = generateBundleFromLongInstruction( lCO ).getMachineCode();
-			base += 16;
+			instruction_x lCO = generateLongConstantInRegister( dest, src1 );
+			generateBundleFromLongInstruction( lCO ).generate(gen);
 			break; }
 
 		case loadFrameRelativeOp: {
 			/* Load size bytes from the address fp + src1 into the register dest. */
-			assert( location->pointFunc()->framePointerCalculator != NULL );			
-
+			assert( location->func()->framePointerCalculator != NULL );			
+			
 			/* framePointerCalculator will leave the frame pointer in framePointer. */
 			pdvector< AstNode * > ifForks;
-			Register framePointer = (Register) location->pointFunc()->framePointerCalculator->generateCode_phase2( proc, rs, ibuf, base, false, ifForks, location );
+			Register framePointer = (Register) location->func()->framePointerCalculator->generateCode_phase2( proc, rs, gen, false, ifForks, location );
 			/* For now, make sure what we don't know can't hurt us. */
 			assert( ifForks.size() == 0 );
 			
-			/* Recalculate this because of the generateCode_phase2() call. */
-			rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
-			
-			IA64_instruction_x longConstant = generateLongConstantInRegister( src2, src1 );
-			IA64_instruction calculateAddress = generateArithmetic( plusOp, framePointer, src2, framePointer ); 
-			IA64_instruction loadFromAddress = generateRegisterLoad( dest, framePointer, size );
+			instruction_x longConstant = generateLongConstantInRegister( src2, src1 );
+			instruction calculateAddress = generateArithmetic( plusOp, framePointer, src2, framePointer ); 
+			instruction loadFromAddress = generateRegisterLoad( dest, framePointer, size );
 			IA64_bundle prepareOffsetBundle( MLXstop, NOP_M, longConstant );
 			IA64_bundle calculateAndLoadBundle( MstopMIstop, calculateAddress, loadFromAddress, NOP_I );
-
-			rawBundlePointer[0] = prepareOffsetBundle.getMachineCode();
-			rawBundlePointer[1] = calculateAndLoadBundle.getMachineCode();
-			base += 32;
+			prepareOffsetBundle.generate(gen);
+			calculateAndLoadBundle.generate(gen);
 
 			rs->freeRegister( framePointer );
 			} break;
@@ -230,20 +224,19 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 			 * src1 = offset
 			 * src2 = base register
 			 */
-			Register trueBase = rs->allocateRegister(ibuf, base, noCost);
+			Register trueBase = rs->allocateRegister(gen, noCost);
 
-			emitLoadPreviousStackFrameRegister( BP_GR0 + src2, trueBase, ibuf, base, size, noCost );
-			rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
+			emitLoadPreviousStackFrameRegister( BP_GR0 + src2, trueBase, gen, 
+												size, noCost );
+			instruction_x longConstant = generateLongConstantInRegister( dest, src1 );
+			instruction calculateAddress = generateArithmetic( plusOp, dest, dest, trueBase );
+			instruction loadFromAddress = generateRegisterLoad( dest, dest, size );
 
-			IA64_instruction_x longConstant = generateLongConstantInRegister( dest, src1 );
-			IA64_instruction calculateAddress = generateArithmetic( plusOp, dest, dest, trueBase );
-			IA64_instruction loadFromAddress = generateRegisterLoad( dest, dest, size );
 			IA64_bundle prepareOffset( MLXstop, NOP_M, longConstant );
 			IA64_bundle calculateAndLoadBundle( MstopMIstop, calculateAddress, loadFromAddress, NOP_I );
 
-			rawBundlePointer[0] = prepareOffset.getMachineCode();
-			rawBundlePointer[1] = calculateAndLoadBundle.getMachineCode();
-			base += 32;
+			prepareOffset.generate(gen);
+			calculateAndLoadBundle.generate(gen);
 
 			rs->freeRegister( trueBase );
 			} break;
@@ -254,53 +247,50 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 			 * src1 = offset
 			 * src2 = base register
 			 */
-			Register trueBase = rs->allocateRegister(ibuf, base, noCost);
+			Register trueBase = rs->allocateRegister(gen, noCost);
 
-			emitLoadPreviousStackFrameRegister( BP_GR0 + src2, trueBase, ibuf, base, size, noCost );
-			rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
+			emitLoadPreviousStackFrameRegister( BP_GR0 + src2, trueBase, gen,
+												size, noCost );
 
-			IA64_instruction_x longConstant = generateLongConstantInRegister( dest, src1 );
-			IA64_instruction calculateAddress = generateArithmetic( plusOp, dest, dest, trueBase );
+			instruction_x longConstant = generateLongConstantInRegister( dest, src1 );
+			instruction calculateAddress = generateArithmetic( plusOp, dest, dest, trueBase );
 			IA64_bundle prepareOffset( MLXstop, NOP_M, longConstant );
 			IA64_bundle calculateBundle( MIIstop, calculateAddress, NOP_I, NOP_I );
 
-			rawBundlePointer[0] = prepareOffset.getMachineCode();
-			rawBundlePointer[1] = calculateBundle.getMachineCode();
-			base += 32;
+			prepareOffset.generate(gen);
+			calculateBundle.generate(gen);
 
 			rs->freeRegister( trueBase );
 			} break;
 
 		case loadFrameAddr: {
 			/* Write the value of the fp + the immediate src1 into the register dest. */
-			assert( location->pointFunc()->framePointerCalculator != NULL );
+			assert( location->func()->framePointerCalculator != NULL );
 
 			/* framePointerCalculator will leave the frame pointer in framePointer. */
 			pdvector< AstNode * > ifForks;
-			Register framePointer = (Register) location->pointFunc()->framePointerCalculator->generateCode_phase2( proc, rs, ibuf, base, false, ifForks, location );
+			Register framePointer = (Register) location->func()->framePointerCalculator->generateCode_phase2( proc, rs, gen, false, ifForks, location );
 			/* For now, make sure what we don't know can't hurt us. */
 			assert( ifForks.size() == 0 );
 			
-			/* Recalculate this because of the generateCode_phase2() call. */
-			rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
-			
-			IA64_instruction memoryNop( NOP_M );
-			IA64_instruction integerNop( NOP_I );
+			instruction memoryNop( NOP_M );
+			instruction integerNop( NOP_I );
+
 			if( SHORT_IMMEDIATE_MIN < ((int)src1) && ((int)src1) < SHORT_IMMEDIATE_MAX ) {
-				IA64_instruction sumFrameAndOffset = generateShortImmediateAdd( dest, src1, framePointer );
+				instruction sumFrameAndOffset = generateShortImmediateAdd( dest, src1, framePointer );
 				IA64_bundle resultBundle( MIIstop, memoryNop, integerNop, sumFrameAndOffset );
-				* rawBundlePointer = resultBundle.getMachineCode();
-				base += 16;
+				resultBundle.generate(gen);
 				}
 			else {
-				IA64_instruction_x longConstant = generateLongConstantInRegister( dest, src1 );
+				instruction_x longConstant = generateLongConstantInRegister( dest, src1 );
 				IA64_bundle setLCBundle( MLXstop, memoryNop, longConstant );
-				IA64_instruction addLongConstantToFP = generateArithmetic( plusOp, dest, dest, framePointer );
+
+				instruction addLongConstantToFP = generateArithmetic( plusOp, dest, dest, framePointer );
 				IA64_bundle resultBundle( MIIstop, memoryNop, integerNop, addLongConstantToFP );
 
-				rawBundlePointer[0] = setLCBundle.getMachineCode();
-				rawBundlePointer[1] = resultBundle.getMachineCode();
-				base += 32;
+				setLCBundle.generate(gen);
+				resultBundle.generate(gen);
+
 				}
 
 			rs->freeRegister( framePointer );						
@@ -311,24 +301,21 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 			abort();
 			break;
 		} /* end switch */
-	} /* end emitVload() */
+} /* end emitVload() */
 
 /* private function, used by emitFuncCall */
-void emitRegisterToRegisterCopy( Register source, Register destination, char * ibuf, Address & base, registerSpace * rs ) {
+void emitRegisterToRegisterCopy( Register source, Register destination, codeGen &gen, registerSpace * rs ) {
 	if( rs != NULL && ! rs->isFreeRegister( destination ) ) {
 		fprintf( stderr, "Destination register %d is (was) not free(d), overwriting.\n", destination );
 		} /* end if destination register is not free */
 
-	IA64_instruction moveInsn( generateRegisterToRegisterMove( source, destination ) );
-	IA64_instruction memoryNOP( NOP_M );
+	instruction moveInsn( generateRegisterToRegisterMove( source, destination ) );
+	instruction memoryNOP( NOP_M );
 	IA64_bundle r2rBundle( MMIstop, memoryNOP, memoryNOP, moveInsn );
+	
+	r2rBundle.generate(gen);
 
-	/* Write the machine code. */
-	assert( (((Address)ibuf + base) % 16) == 0 );
-	ia64_bundle_t * rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
-	* rawBundlePointer = r2rBundle.getMachineCode();
-	base += 16;
-	} /* end emitRegisterToRegisterCopy() */
+} /* end emitRegisterToRegisterCopy() */
 
 /* private refactoring function */
 Register findFreeLocal( registerSpace * rs, char * failure ) {
@@ -345,8 +332,8 @@ Register findFreeLocal( registerSpace * rs, char * failure ) {
 	} /* end findFreeLocal() */
 
 /* Required by ast.C */
-Register emitFuncCall( opCode op, registerSpace * rs, char * ibuf,
-					   Address & base, const pdvector<AstNode *> & operands,
+Register emitFuncCall( opCode op, registerSpace * rs, codeGen &gen,
+					   pdvector<AstNode *> & operands,
 					   process * proc, bool /* noCost */,
 					   Address  callee_addr, 
 					   const pdvector<AstNode *> &ifForks,
@@ -354,9 +341,6 @@ Register emitFuncCall( opCode op, registerSpace * rs, char * ibuf,
 	/* Consistency check. */
 	assert( op == callOp );
 
-	/* We'll get garbage (in debugging) if ibuf isn't aligned. */
-	if( (Address)ibuf % 16 != 0 ) { fprintf( stderr, "Instruction buffer (%p) not aligned!\n", ibuf ); }
-	
 	/*  Sanity check for non NULL address argument */
 	if (!callee_addr) {
 	  char msg[256];
@@ -371,23 +355,23 @@ Register emitFuncCall( opCode op, registerSpace * rs, char * ibuf,
 	/* Generate the code for the arguments. */
 	pdvector< Register > sourceRegisters;
 	for( unsigned int i = 0; i < operands.size(); i++ ) {
-		sourceRegisters.push_back( operands[i]->generateCode_phase2( proc, rs, ibuf, base, false, ifForks, location ) );
-		}
+		sourceRegisters.push_back( operands[i]->generateCode_phase2( proc, rs, gen, false, ifForks, location ) );
+	}
 
 	/* source-to-output register copy */
 	unsigned int outputZero = rs->getRegSlot( NUM_LOCALS )->number;
 	for( unsigned int i = 0; i < sourceRegisters.size(); i++ ) {
 	// fprintf( stderr, "Copying argument in local register %d to output register %d\n", sourceRegisters[i], outputZero + i );
-		emitRegisterToRegisterCopy( sourceRegisters[i], outputZero + i, ibuf, base, rs );
+		emitRegisterToRegisterCopy( sourceRegisters[i], outputZero + i, gen, rs );
 		rs->freeRegister( sourceRegisters[i] );
 		rs->incRefCount( outputZero + i );
-		} /* end source-to-output register copy */
+	} /* end source-to-output register copy */
 
 	/* Since the BT was kind enough to save the GP, return value,
 	   return pointer, ar.pfs, and both scratch registers for us,
 	   we don't bother.  Just set the callee's GP, copy the call
 	   target into a scratch branch register, and indirect to it. */
-	emitVload( loadConstOp, calleeGP, 0, REGISTER_GP, ibuf, base, false /* ? */, 0 );
+	emitVload( loadConstOp, calleeGP, 0, REGISTER_GP, gen, false /* ? */, 0 );
 
 	// /* DEBUG */ fprintf( stderr, "* Constructing call to function 0x%lx\n", callee_addr );
 
@@ -397,199 +381,55 @@ Register emitFuncCall( opCode op, registerSpace * rs, char * ibuf,
 	Register rsRegister = findFreeLocal( rs, "Unable to find local register in which to store callee address, aborting.\n" );
 	rs->incRefCount( rsRegister );
 
-	IA64_instruction integerNOP( NOP_I );
-	IA64_instruction memoryNOP( NOP_M );
+	instruction integerNOP( NOP_I );
+	instruction memoryNOP( NOP_M );
 
 	// fprintf( stderr, "Loading function address into register %d\n", rsRegister );
-	IA64_instruction_x loadCalleeInsn = generateLongConstantInRegister( rsRegister, callee_addr );
+	instruction_x loadCalleeInsn = generateLongConstantInRegister( rsRegister, callee_addr );
 	IA64_bundle loadCalleeBundle( MLXstop, memoryNOP, loadCalleeInsn );
+	
+	loadCalleeBundle.generate(gen);
 
 	// fprintf( stderr, "Copying computed branch in general register %d to branch register %d.\n", rsRegister, BRANCH_SCRATCH );
-	IA64_instruction setBranchInsn = generateRegisterToBranchMove( rsRegister, BRANCH_SCRATCH );
+	instruction setBranchInsn = generateRegisterToBranchMove( rsRegister, BRANCH_SCRATCH );
 	IA64_bundle setBranchBundle( MIIstop, memoryNOP, integerNOP, setBranchInsn );
 
+	setBranchBundle.generate(gen);
+
 	// fprintf( stderr, "Calling function with offset in branch register %d, return pointer in %d\n", BRANCH_SCRATCH, BRANCH_RETURN );
-	IA64_instruction indirectBranchInsn = generateIndirectCallTo( BRANCH_SCRATCH, BRANCH_RETURN );
+	instruction indirectBranchInsn = generateIndirectCallTo( BRANCH_SCRATCH, BRANCH_RETURN );
 	IA64_bundle indirectBranchBundle( MMBstop, memoryNOP, memoryNOP, indirectBranchInsn );
 
-	int bundleCount = 0;
-	ia64_bundle_t * rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
-	rawBundlePointer[bundleCount++] = loadCalleeBundle.getMachineCode();
-	rawBundlePointer[bundleCount++] = setBranchBundle.getMachineCode();
+	indirectBranchBundle.generate(gen);
 
 	/* According to the software conventions, the stack pointer must have sixteen bytes
 	   of scratch space available directly above it.  Give it sixteen bytes nobody's using
 	   to make sure we don't smash the stack.  This, however, is done in the preservation header. */
   
-	rawBundlePointer[bundleCount++] = indirectBranchBundle.getMachineCode();
 	for( unsigned int i = 0; i < sourceRegisters.size(); i++ ) {
 		/* Free all the output registers. */
 		rs->freeRegister( outputZero + i );
 		}
-	base += bundleCount * 16;
 
 	/* copy the result (r8) to a registerSpace register */
 	rs->freeRegister( rsRegister );
-	emitRegisterToRegisterCopy( REGISTER_RV, rsRegister, ibuf, base, rs );
+	emitRegisterToRegisterCopy( REGISTER_RV, rsRegister, gen, rs );
 	// /* DEBUG */ fprintf( stderr, "* emitted function call in buffer at %p\n", ibuf );
 
 	/* return that register */
 	return rsRegister;
-	} /* end emitFuncCall() */
+} /* end emitFuncCall() */
 
-/* Required by symtab.C */
-void int_function::checkCallPoints() {
-	/* We associate int_function*'s with the callee's address.
-
-	   On other architectures, those without explicit call instructions,
-	   we winnow out potential call sites whose target resides in the same function. */
-  if (call_points_have_been_checked) return;
-
-	instPoint * callSite;
-	Address targetAddress;
-	int_function * calledPdF;
-	image * owner = pdmod()->exec();
-	pdvector< instPoint * > pdfCalls;
-
-	for( unsigned int i = 0; i < calls.size(); i++ ) {
-		callSite = calls[i]; assert( callSite );
-		
-		/* Extract the address that callSite calls. */
-		targetAddress = callSite->getTargetAddress();
-
-		calledPdF = owner->findFuncByOffset( targetAddress );
-		if( calledPdF ) {
-			callSite->setCallee( calledPdF );
-			} else {
-			callSite->setCallee( NULL );
-			} /* end calledPdF conditional */
-
-		pdfCalls.push_back( callSite );
-		} /* end callee loop */
-
-	calls = pdfCalls;
-	call_points_have_been_checked = true;
-} /* end checkCallPoints() */
-
-/* Required by symtab.C:
-   Locate the entry point (funcEntry_, an InstPoint), the call sites
-   (calls, vector<instPoint *>), and the return(s) (funcReturns, vector<instPoint *>).
- */
-bool int_function::findInstPoints( const image * i_owner ) {
-  parsed_ = true;
-
-	/* We assume the function boundaries are correct.  [Check jump tables, etc.] */
-	Address addr = (Address)i_owner->getPtrToInstruction( getAddress( 0 ) );
-
-	IA64_iterator iAddr( addr );
-	Address lastI = addr + get_size();
-	Address addressDelta = getAddress( 0 ) - addr;
-
-	/* Generate an instPoint for the function entry. */
-	funcEntry_ = new instPoint( getAddress( 0 ), this, * iAddr, functionEntry );
-
-	IA64_instruction * currInsn;
-	for( ; iAddr < lastI; iAddr++ ) {	
-		currInsn = * iAddr;
-		switch( currInsn->getType() ) {
-			case IA64_instruction::PREDICATED_BRANCH: {
-				/* Some system call -wrapping functions (write(), read()) jump to common code
-				   (at __libc_start_main+560) to handle system calls which return errors,
-				   but this common code returns directly, instead of jumping back to its
-				   callee, which means our exit instrumentation may not be run.
-				   
-				   Laune's new parsing code will handle cases like this, so for now,
-				   use the same wrong assumption as the rest of the code (that symbol
-				   table sizes are correct) to determine the boundaries of the function,
-				   and claim that jumps outside these boundaries are exits. */
-				Address targetAddress = currInsn->getTargetAddress() + iAddr.getEncodedAddress() + addressDelta;
-				targetAddress =  targetAddress - (targetAddress % 16);
-				Address lowAddress = addr + addressDelta;
-				Address highAddress = addr + get_size() + addressDelta;
-				
-				if( ! ( lowAddress <= targetAddress && targetAddress < highAddress ) ) { 
-					// /* DEBUG */ fprintf( stderr, "%s[%d]: 0x%lx targets 0x%lx, outside of 0x%lx to 0x%lx\n", __FILE__, __LINE__, iAddr.getEncodedAddress() + addressDelta, targetAddress, lowAddress, highAddress );
-					funcReturns.push_back( new instPoint( iAddr.getEncodedAddress() + addressDelta, this, currInsn, functionExit ) );
-					}			
-				} break;				
-				
-			case IA64_instruction::RETURN:
-				funcReturns.push_back( new instPoint( iAddr.getEncodedAddress() + addressDelta, this, currInsn, functionExit ) );
-				break;
-				
-			case IA64_instruction::DIRECT_CALL:
-			case IA64_instruction::INDIRECT_CALL:
-				calls.push_back( new instPoint( iAddr.getEncodedAddress() + addressDelta, this, currInsn, callSite) );
-				break;
-
-			case IA64_instruction::ALLOC:
-				allocs.push_back( iAddr.getEncodedAddress() - addr );
-				break;
-				
-			default:
-				break;
-			} /* end instruction type switch */
-		} /* end instruction iteration */
-
-	isInstrumentable_ = 1;
-	return true; // if this function can ever return false, make sure the is_instrumentable flag
-	// is set properly in this function.
-	} /* end findInstPoints() */
-
-/* Required by BPatch_function, image.C */
-BPatch_point *createInstructionInstPoint( BPatch_process * proc, void * address,
-										  BPatch_point ** /*alternative*/, BPatch_function * bpf ) { 
-	/* Since IA-64 instpoints never conflict, we can safely ignore 'alternative'.
-	   Simply verify that the given address is valid and do the construction routines. */
-	uint64_t slotNo = ((Address)address) % 0x10;
-	if( slotNo >= 3 ) { return NULL; }	
-
-	Address alignedAddress = ((Address)address) - slotNo;
-	
-	BPatch_function * bpFunction = bpf;
-
-	int_function * containingFunction = NULL;
-	if( bpf != NULL ) {
-		containingFunction = (int_function *)(bpf->func);
-		}
-	else {
-	   containingFunction = proc->llproc->findFuncByAddr( alignedAddress );
-	   if( containingFunction == NULL ) { return NULL; }
-	   bpFunction = proc->findOrCreateBPFunc( containingFunction, NULL );
-	}
-
-	/* Acquire the owner. */
-	const image * owner = containingFunction->pdmod()->exec();
-
-	/* Acquire the instruction. */
-	Address instructionAddress = (Address)owner->getPtrToInstruction( containingFunction->getAddress( NULL ) );
-	Address baseAddress; assert( proc->llproc->getBaseAddress( owner, baseAddress ) );
-	instructionAddress += alignedAddress - ( containingFunction->getAddress( NULL ) + baseAddress );
-	ia64_bundle_t * bundlePtr = (ia64_bundle_t *) instructionAddress;
-	IA64_bundle theBundle( * bundlePtr );
-	
-	/* Construct the instPoint, which require offset addresses. */
-	Address instPointAddr = ((Address)address) - baseAddress;
-	if( theBundle.hasLongInstruction() && slotNo == 2 ) { instPointAddr--; }
-	
-	IA64_instruction * theInstruction = theBundle.getInstruction( slotNo );
-	instPoint * arbitraryInstPoint = new instPoint( instPointAddr, containingFunction, theInstruction, otherPoint );
-	containingFunction->addArbitraryPoint( arbitraryInstPoint, proc->llproc );
-	return proc->findOrCreateBPPoint( bpFunction, arbitraryInstPoint, BPatch_arbitrary );
-	} /* end createInstructionInstPoint() */
-	
 /* Required by ast.C; used for memory instrumentation. */
-void emitASload( BPatch_addrSpec_NP as, Register dest, char * ibuf, Address & base, bool /*noCost*/ ) {
+void emitASload( const BPatch_addrSpec_NP *as, Register dest, codeGen &gen,  bool /*noCost*/ ) {
 	/* Convert an addrSpec into a value in the destination register. */
 	// /* DEBUG */ fprintf( stderr, "emitASload: as.imm = %d, as.r1 = %d, as.r2 = %d\n", as.getImm(), as.getReg( 0 ), as.getReg( 1 ) );
-	emitLoadPreviousStackFrameRegister( as.getReg( 0 ), dest, ibuf, base, 0, 0 );
-	} /* end emitASload() */
-
-/* Required by process.C */
-void instWaitingList::cleanUp( process *, Address /*addr*/ ) { assert( 0 ); }
+	emitLoadPreviousStackFrameRegister( as->getReg( 0 ), dest, gen, 0, 0 );
+} /* end emitASload() */
 
 /* Required by ast.C */
 Register deadRegisterList[] = { 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF };
+
 void initTramps(bool /*is_multithreaded*/) { 
 	/* Initialize the registerSpace pointer regSpace to the state of the
 	   registers that will exist at the end of the first part of the base
@@ -605,14 +445,12 @@ void initTramps(bool /*is_multithreaded*/) {
 	if( haveInitializedTramps ) { return; } else { haveInitializedTramps = true; }
 
 	regSpace = new registerSpace( sizeof( deadRegisterList )/sizeof( Register ), deadRegisterList, 0, NULL );
-	} /* end initTramps() */
+} /* end initTramps() */
 
 /* Required by ast.C */
 void emitV( opCode op, Register src1, Register src2, Register dest,
-		char * ibuf, Address & base, bool noCost, int size, const instPoint * location, process * proc, registerSpace * rs ) {
-	assert( (((Address)ibuf + base) % 16) == 0 );
-	ia64_bundle_t * rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
-
+			codeGen &gen,  bool noCost, registerSpace *rs, int size, 
+			const instPoint * location, process * proc) {
 	switch( op ) { 
 		case eqOp:
 		case leOp:
@@ -635,62 +473,57 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 			   of our regSpace class, moving it into architecture specific files.
 			   Perhaps for the next release.
 			*/
-			IA64_instruction comparisonInsn = generateComparison( op, dest % 64, src1, src2 );
-			IA64_instruction setTrue = predicateInstruction( dest % 64, generateShortImmediateAdd( dest, 1, REGISTER_ZERO ) );
-			IA64_instruction setFalse = predicateInstruction( (dest + 1) % 64, generateShortImmediateAdd( dest, 0, REGISTER_ZERO ));
+			instruction comparisonInsn = generateComparison( op, dest % 64, src1, src2 );
+			instruction setTrue = predicateInstruction( dest % 64, generateShortImmediateAdd( dest, 1, REGISTER_ZERO ) );
+			instruction setFalse = predicateInstruction( (dest + 1) % 64, generateShortImmediateAdd( dest, 0, REGISTER_ZERO ));
 			IA64_bundle comparisonBundle( MstopMIstop, comparisonInsn, setTrue, setFalse );
-			* rawBundlePointer = comparisonBundle.getMachineCode();
-			base += 16;
+			comparisonBundle.generate(gen);
 			break; }
 
 		case plusOp:
 		case minusOp:
 		case andOp:
 		case orOp: {
-			IA64_instruction arithmeticInsn = generateArithmetic( op, dest, src1, src2 );
-			IA64_instruction integerNOP( NOP_I );
+			instruction arithmeticInsn = generateArithmetic( op, dest, src1, src2 );
+			instruction integerNOP( NOP_I );
 			IA64_bundle arithmeticBundle( MIIstop, arithmeticInsn, integerNOP, integerNOP );
-			* rawBundlePointer = arithmeticBundle.getMachineCode();
-			base += 16;
+			arithmeticBundle.generate(gen);
 			break; }
 
 		case timesOp: {
 			/* Only the floating-point unit has a fixed-point multiplier. */
-			unsigned bundleCount = 0;
-
 			/* The stack already has the extra space that we need, thanks to the preservation
 			   header, so use (arbitrarily) r3 to generate the pointers. */
-			IA64_instruction spillFP2 = generateFPSpillTo( REGISTER_SP, 2 );
-			IA64_instruction secondSpillAddr = generateShortImmediateAdd( 3, +16, REGISTER_SP );
-			IA64_instruction integerNOP( NOP_I );
-			IA64_instruction spillFP3 = generateFPSpillTo( 3, 3 );
+			instruction spillFP2 = generateFPSpillTo( REGISTER_SP, 2 );
+			instruction secondSpillAddr = generateShortImmediateAdd( 3, +16, REGISTER_SP );
+			instruction integerNOP( NOP_I );
+			instruction spillFP3 = generateFPSpillTo( 3, 3 );
 			IA64_bundle spillFP2Bundle( MMIstop, spillFP2, secondSpillAddr, integerNOP );
 			IA64_bundle spillFP3Bundle( MIIstop, spillFP3, integerNOP, integerNOP );
-			rawBundlePointer[ bundleCount++ ] = spillFP2Bundle.getMachineCode();
-			rawBundlePointer[ bundleCount++ ] = spillFP3Bundle.getMachineCode();
+			spillFP2Bundle.generate(gen);
+			spillFP3Bundle.generate(gen);
 			
 			/* Do the multiplication. */
-			IA64_instruction copySrc1 = generateRegisterToFloatMove( src1, 2 );
-			IA64_instruction copySrc2 = generateRegisterToFloatMove( src2, 3 );
-			IA64_instruction fixedMultiply = generateFixedPointMultiply( 2, 2, 3 );
-			IA64_instruction copyDest = generateFloatToRegisterMove( 2, dest );
+			instruction copySrc1 = generateRegisterToFloatMove( src1, 2 );
+			instruction copySrc2 = generateRegisterToFloatMove( src2, 3 );
+			instruction fixedMultiply = generateFixedPointMultiply( 2, 2, 3 );
+			instruction copyDest = generateFloatToRegisterMove( 2, dest );
 			IA64_bundle copySources( MMIstop, copySrc1, copySrc2, integerNOP );
-			IA64_instruction memoryNOP( NOP_M );
+			instruction memoryNOP( NOP_M );
 			IA64_bundle doMultiplication( MFIstop, memoryNOP, fixedMultiply, integerNOP );
 			IA64_bundle copyToDestination( MMIstop, copyDest, memoryNOP, integerNOP );
-			rawBundlePointer[bundleCount++] = copySources.getMachineCode();
-			rawBundlePointer[bundleCount++] = doMultiplication.getMachineCode();
-			rawBundlePointer[bundleCount++] = copyToDestination.getMachineCode();
+			copySources.generate(gen);
+			doMultiplication.generate(gen);
+			copyToDestination.generate(gen);
 
 			/* Restore the FP registers, SP. */
-			IA64_instruction fillFP2 = generateFPFillFrom( REGISTER_SP, 2 );
-			IA64_instruction fillFP3 = generateFPFillFrom( 3, 3 );
+			instruction fillFP2 = generateFPFillFrom( REGISTER_SP, 2 );
+			instruction fillFP3 = generateFPFillFrom( 3, 3 );
 			IA64_bundle fillF2Bundle( MIIstop, fillFP2, integerNOP, integerNOP );
 			IA64_bundle fillF3Bundle( MIIstop, fillFP3, integerNOP, integerNOP );
-			rawBundlePointer[bundleCount++] = fillF2Bundle.getMachineCode();
-			rawBundlePointer[bundleCount++] = fillF3Bundle.getMachineCode();
+			fillF2Bundle.generate(gen);
+			fillF3Bundle.generate(gen);
 			
-			base += (16 * bundleCount);
 			break; }
 
 		case divOp: { /* Call libc's __divsi3(). */
@@ -715,32 +548,28 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 
 			/* Find address for functions __divsi3 */
             pdstring callee = pdstring("__divsi3");
-			bool err = false;
-			Address callee_addr = proc->findInternalAddress(callee, false, err);
-			if (err) {
-			  int_function *calleefunc = proc->findOnlyOneFunction(callee);
-			  if (!calleefunc) {
+			int_function *calleefunc = proc->findOnlyOneFunction(callee);
+			if (!calleefunc) {
 				char msg[256];
 				sprintf(msg, "%s[%d]:  internal error:  unable to find %s",
 						__FILE__, __LINE__, callee.c_str());
 				showErrorCallback(100, msg);
 				assert(0);  // can probably be more graceful
-			  }
-			  callee_addr = calleefunc->getEffectiveAddress(proc);
 			}
+			Address callee_addr = calleefunc->getAddress();
 
 			/* Might want to use funcCall AstNode here */
 
 			/* Call emitFuncCall(). */
 			rs->incRefCount( src1 ); rs->incRefCount( src2 );
-			Register returnRegister = emitFuncCall( op, rs, ibuf, base, operands, proc, noCost, callee_addr, ifForks, location );
+			Register returnRegister = emitFuncCall( op, rs, gen, operands, proc, noCost, callee_addr, ifForks, location );
 			/* A function call does not require any conditional branches, so ensure
 			   that we're not screwing up the current AST by not telling it about stuff. */
 			assert( ifForks.size() == 0 );
 			
 			if( returnRegister != dest ) {
 				rs->freeRegister( dest );
-				emitRegisterToRegisterCopy( returnRegister, dest, ibuf, base, rs );
+				emitRegisterToRegisterCopy( returnRegister, dest, gen, rs );
 				rs->incRefCount( dest );
 				rs->freeRegister( returnRegister );
 				}
@@ -748,24 +577,21 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 
 		case noOp: {
 			IA64_bundle nopBundle( MIIstop, NOP_M, NOP_I, NOP_I );
-			* rawBundlePointer = nopBundle.getMachineCode();
-			base += 16;			
+			nopBundle.generate(gen);
 			break; }
 
 		case storeIndirOp: {
 			/* Store 'size' bytes out of register src1 into the address in dest. */
-			IA64_instruction storeInstruction = generateRegisterStore( dest, src1, size );
+			instruction storeInstruction = generateRegisterStore( dest, src1, size );
 			IA64_bundle storeBundle( MMIstop, storeInstruction, NOP_M, NOP_I );
-			* rawBundlePointer = storeBundle.getMachineCode();
-			base += 16;		
+			storeBundle.generate(gen);
 			break; }
 			
 		case loadIndirOp: {
 			/* Load 'size' bytes from the address in register src1 to the register dest. */
-			IA64_instruction loadInstruction = generateRegisterLoad( dest, src1, size );
+			instruction loadInstruction = generateRegisterLoad( dest, src1, size );
 			IA64_bundle loadBundle( MMIstop, loadInstruction, NOP_M, NOP_I );
-			* rawBundlePointer = loadBundle.getMachineCode();
-			base += 16;			
+			loadBundle.generate(gen);
 			break; }
 
 		default:
@@ -775,29 +601,25 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 		} /* end op switch */
 	} /* end emitV() */
 
-/* Required by inst.C */
-bool deleteBaseTramp( process */*proc*/, trampTemplate *) {
-	return false;
-	}
 
 /* Required by ast.C */
 void emitImm( opCode op, Register src1, RegValue src2imm, Register dest,
-			  char *ibuf, Address & base, bool /*noCost*/, registerSpace *rs ) {
+			  codeGen &gen,  bool /*noCost*/, registerSpace * /*rs*/ ) {
 	switch( op ) {
 		case orOp: {
 			/* Apparently, the bit-wise operation. */
 			if( src2imm == 0 ) {
-				emitRegisterToRegisterCopy( src1, dest, ibuf, base, NULL );
-				} else {
+				emitRegisterToRegisterCopy( src1, dest, gen, NULL );
+			} else {
 				abort();
-				}
+			}
 		} break;
-
-		default:
-			assert( 0 );
+		
+	default:
+		assert( 0 );
 		break;
-		} /* end op switch */
-	} /* end emitImm() */
+	} /* end op switch */
+} /* end emitImm() */
 
 /* Required by ast.C */
 int getInsnCost( opCode op ) {
@@ -850,79 +672,40 @@ int getInsnCost( opCode op ) {
 	return cost;
 	} /* end getInsnCost() */
 
-/* Required by process.C */
-bool process::heapIsOk( const pdvector<sym_data> & find_us ) {
-	/* Set .mainFunction; in the interest of civility, I will
-	   not speculate why this is done here. */
-	if( ! (mainFunction = findOnlyOneFunction( "main" )) ) {
-		statusLine( "Failed to find main()." );
-		showErrorCallback( 50, "Failed to find main()." );
-		return false;
-		}
-
-	/* I will also not speculate why we ask after symbols that
-	   don't need to be found if we don't do anything with them... */
-	pdstring str; Symbol sym; Address baseAddress;
-	for( unsigned int i = 0; i < find_us.size(); i++ ) {
-		if( ! find_us[i].must_find ) { break; }
-		str = find_us[i].name;
-		if( ! getSymbolInfo( str, sym, baseAddress ) && ! getSymbolInfo( "_" + str, sym, baseAddress ) ) {
-			str = "Cannot find symbol \"" + str + "\".";
-			statusLine( str.c_str() );
-			showErrorCallback( 50, str );
-			} /* end a must-find symbol isn't found */
-		} /* end look-up loop */
-			
-	return true;
-	} /* end of heapIsOk() */
-
-/* Required by inst.C */
-void emitVupdate( opCode op, RegValue /*src1*/, Register /*src2*/,
-				  Address /*dest*/, char * /*ibuf*/, Address & /*base*/, bool /*noCost*/, registerSpace * /*rs*/ ) {
-	switch( op ) {
-		case updateCostOp:
-			// fprintf( stderr, "FIXME: no-op'ing emitVupdate(updateCostOp)\n" );
-			break;
-
-		default:
-			assert( 0 );
-			break;
-		} /* end op switch */
-	} /* end emitVupdate() */
-
 /* private refactoring function */
 IA64_bundle generateUnknownRegisterTypeMoveBundle( Address src, Register dest ) {
-		if( BP_GR0 <= src <= BP_GR127 ) {
-			IA64_instruction moveInsn = generateRegisterToRegisterMove( src, dest );
-			return IA64_bundle( MIIstop, NOP_M, NOP_I, moveInsn );
-			}
-		else if( BP_BR0 <= src <= BP_BR7 ) {
-			IA64_instruction moveInsn = generateBranchToRegisterMove( src, dest );
-			return IA64_bundle( MIIstop, NOP_M, NOP_I, moveInsn );
-			}
-		else if( BP_AR0 <= src <= BP_AR63 ) {
-			/* M-unit */
-			IA64_instruction moveInsn = generateApplicationToRegisterMove( src, dest );
-			return IA64_bundle( MIIstop, moveInsn, NOP_I, NOP_I );
-			}
-		else if( BP_AR64 <= src <= BP_AR127 ) {
-			/* I-unit */
-			IA64_instruction moveInsn = generateApplicationToRegisterMove( src, dest );
-			return IA64_bundle( MIIstop, NOP_M, NOP_I, moveInsn );
-			}		
-		else if( BP_PR == src ) {
-			IA64_instruction moveInsn = generatePredicatesToRegisterMove( dest );
-			return IA64_bundle( MIIstop, NOP_M, NOP_I, moveInsn );
-			}
-		else {
-			fprintf( stderr, "[%s][%d]: illegal register number.\n", __FILE__, __LINE__ );
-			assert( 0 );
-			}
-	} /* end generateUnknownRegisterTypeMoveBundle() */
+	if( (BP_GR0 <= src) && (src <= BP_GR127) ) {
+		instruction moveInsn = generateRegisterToRegisterMove( src, dest );
+		return IA64_bundle( MIIstop, NOP_M, NOP_I, moveInsn );
+	}
+	else if( (BP_BR0 <= src) && (src <= BP_BR7) ) {
+		instruction moveInsn = generateBranchToRegisterMove( src, dest );
+		return IA64_bundle( MIIstop, NOP_M, NOP_I, moveInsn );
+	}
+	else if( (BP_AR0 <= src) && (src <= BP_AR63) ) {
+		/* M-unit */
+		instruction moveInsn = generateApplicationToRegisterMove( src, dest );
+		return IA64_bundle( MIIstop, moveInsn, NOP_I, NOP_I );
+	}
+	else if( (BP_AR64 <= src) && (src <= BP_AR127) ) {
+		/* I-unit */
+		instruction moveInsn = generateApplicationToRegisterMove( src, dest );
+		return IA64_bundle( MIIstop, NOP_M, NOP_I, moveInsn );
+	}		
+	else if( BP_PR == src ) {
+		instruction moveInsn = generatePredicatesToRegisterMove( dest );
+		return IA64_bundle( MIIstop, NOP_M, NOP_I, moveInsn );
+	}
+	else {
+		fprintf( stderr, "[%s][%d]: illegal register number.\n", __FILE__, __LINE__ );
+		assert( 0 );
+	}
+} /* end generateUnknownRegisterTypeMoveBundle() */
 
 /* Required by ast.C */
-void emitLoadPreviousStackFrameRegister( Address register_num, Register dest, char * insn,
-										 Address & base, int /*size*/, bool /*noCost*/ )
+void emitLoadPreviousStackFrameRegister( Address register_num, Register dest, 
+										 codeGen &gen,
+										 int /*size*/, bool /*noCost*/ )
 {
     /* Ray: why adjust 'base' instead of 'size' (as before)? */
 	IA64_bundle bundle;
@@ -934,7 +717,7 @@ void emitLoadPreviousStackFrameRegister( Address register_num, Register dest, ch
 		bundle = generateUnknownRegisterTypeMoveBundle( regSpace->storageMap[ register_num ], dest );
 	} else {
 		// Register was stored on the memory stack.
-	
+		
 		int stackOffset = 32 + ( (-regSpace->storageMap[ register_num ] - 1) * 8 );
 		
 		bundle = IA64_bundle( MstopMIstop,
@@ -944,109 +727,102 @@ void emitLoadPreviousStackFrameRegister( Address register_num, Register dest, ch
 	}
 
 	/* Insert bundle. */
-	ia64_bundle_t *rawBundlePointer = (ia64_bundle_t *)((Address)insn + base);
-	*rawBundlePointer = bundle.getMachineCode();
-	base += 16;
+	bundle.generate(gen);
 }
 
-/* Required by BPatch_thread.C */
-void returnInstance::installReturnInstance( process * proc ) { 
-	IA64_instruction_x ** ia64Sequence = (IA64_instruction_x **) instructionSeq;
-	IA64_instruction memoryNOP( NOP_M );
-	IA64_bundle installationBundle( MLXstop, memoryNOP, ** ia64Sequence );	
-	// /* DEBUG */ fprintf( stderr, "Installing return instance at 0x%lx\n", addr_ );
-	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( addr_, proc );
-	iAddr.replaceBundleWith( installationBundle );
-	installed = true;
-	} /* end installReturnInstance() */
-
 /* Required by inst.C */
-void generateBranch( process * proc, Address fromAddr, Address newAddr ) {
+unsigned generateAndWriteBranch( process * proc, 
+								 Address fromAddr, 
+								 Address newAddr,
+								 unsigned fillSize) {
+	// Don't have provisions to fill extra space
+	assert(fillSize == 16);
 	/* Write a branch from fromAddr to newAddr in process proc. */
-	IA64_instruction memoryNOP( NOP_M );
-	IA64_instruction_x longBranch = generateLongBranchTo( newAddr - fromAddr );
+	instruction memoryNOP( NOP_M );
+	instruction_x longBranch = generateLongBranchTo( newAddr - fromAddr );
 	IA64_bundle branchBundle( MLXstop, memoryNOP, longBranch );
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( fromAddr, proc );
 	iAddr.replaceBundleWith( branchBundle );
-	} /* end generateBranch */
+	return 16;
+} /* end generateBranch */
 
 /* in arch-ia64.C */
-extern IA64_instruction::unitType INSTRUCTION_TYPE_ARRAY[(0x20 + 1) * 3];
+extern instruction::unitType INSTRUCTION_TYPE_ARRAY[(0x20 + 1) * 3];
 
 /* private refactoring function */
-IA64_bundle generateBundleFor( IA64_instruction insnToBundle ) {
+IA64_bundle generateBundleFor( instruction insnToBundle ) {
 	/* The instruction to bundle is always short; the long instruction bundling is trivial. */
-	IA64_instruction::unitType iUnitType = INSTRUCTION_TYPE_ARRAY[ (insnToBundle.getTemplateID() * 3) + insnToBundle.getSlotNumber() ];
+	instruction::unitType iUnitType = INSTRUCTION_TYPE_ARRAY[ (insnToBundle.getTemplateID() * 3) + insnToBundle.getSlotNumber() ];
 
-	IA64_instruction integerNOP( NOP_I );
-	IA64_instruction memoryNOP( NOP_M );
+	instruction integerNOP( NOP_I );
+	instruction memoryNOP( NOP_M );
 	
 	switch( iUnitType ) {
-		case IA64_instruction::M:
+		case instruction::M:
 			return IA64_bundle( MIIstop, insnToBundle, integerNOP, integerNOP );
 			break;
-		case IA64_instruction::I:
+		case instruction::I:
 			return IA64_bundle( MIIstop, memoryNOP, insnToBundle, integerNOP );
 			break;
-		case IA64_instruction::B:
+		case instruction::B:
 			return IA64_bundle( MMBstop, memoryNOP, memoryNOP, insnToBundle );
 			break;
-		case IA64_instruction::F:
+		case instruction::F:
 			return IA64_bundle( MFIstop, memoryNOP, insnToBundle, integerNOP );
 			break;
 
-		case IA64_instruction::L:
-		case IA64_instruction::X:
-		case IA64_instruction::RESERVED:
+		case instruction::L:
+		case instruction::X:
+		case instruction::RESERVED:
 		default:
 			fprintf( stderr, "Invalid instruction type in generateBundleFor(), aborting.\n" );
 			abort();
 			break;
 		} /* end iUnitType switch */
-	} /* end generateBundleFor() */
+} /* end generateBundleFor() */
 
 /* private refactoring function */
-void emulateLongInstruction( IA64_instruction_x insnToEmulate, Address originalLocation, ia64_bundle_t * insnPtr, unsigned int & offset, unsigned int & size, Address allocatedAddress ) {
-	IA64_instruction::insnType instructionType = insnToEmulate.getType();
-	insn_tmpl tmpl = { insnToEmulate.getMachineCode().high };
-	insn_tmpl imm  = { insnToEmulate.getMachineCode().low };
+void instruction_x::relocate(codeGen &gen, Address originalLocation,
+							 Address allocatedAddress ) {
+	instruction::insnType instructionType = getType();
+	insn_tmpl tmpl = { getMachineCode().high };
+	insn_tmpl imm  = { getMachineCode().low };
 	int64_t immediate;
-
+	
 	/* originalLocation is NOT an encoded address */
 	switch( instructionType ) {
-		case IA64_instruction::PREDICATED_BRANCH: immediate = GET_X3_TARGET( &tmpl, &imm ); break;
-		case IA64_instruction::DIRECT_CALL:   immediate = GET_X4_TARGET( &tmpl, &imm ); break;
-		default: {
-            IA64_instruction memoryNOP( NOP_M );
-            insnPtr[offset++] = IA64_bundle( MLXstop,
-											 memoryNOP,
-											 insnToEmulate ).getMachineCode();
-			size += 16;
-            return;
-		}
+	case instruction::DIRECT_BRANCH: immediate = GET_X3_TARGET( &tmpl, &imm ); break;
+	case instruction::DIRECT_CALL:   immediate = GET_X4_TARGET( &tmpl, &imm ); break;
+	default: {
+		instruction memoryNOP( NOP_M );
+		IA64_bundle( MLXstop,
+					 memoryNOP,
+					 *this ).generate(gen);
+		return;
 	}
-
+	}
+	
 	/* Correct the immediate by the difference between originalLocation and (insnPtr + size). */
 	/* originalLocation is NOT an encoded address */
 	Address target = immediate + originalLocation;
-	Address source = allocatedAddress + size;
+	Address source = allocatedAddress + gen.used();
 	int64_t displacement = target - source;
-
+	
     switch( instructionType ) {
-		case IA64_instruction::PREDICATED_BRANCH: SET_X3_TARGET( &tmpl, &imm, displacement); break;
-		case IA64_instruction::DIRECT_CALL:   SET_X4_TARGET( &tmpl, &imm, displacement); break;
-		default: break;
+	case instruction::DIRECT_BRANCH: SET_X3_TARGET( &tmpl, &imm, displacement); break;
+	case instruction::DIRECT_CALL:   SET_X4_TARGET( &tmpl, &imm, displacement); break;
+	default: break;
     }
-
-    IA64_instruction_x alteredLong( imm.raw, tmpl.raw, insnToEmulate.getTemplateID() );
-    insnPtr[offset++] = IA64_bundle( MLXstop,
-									 IA64_instruction( NOP_M ),
-									 alteredLong ).getMachineCode();
-    size += 16;
-	} /* end emulateLongInstruction */
+	
+    instruction_x alteredLong( imm.raw, tmpl.raw, getTemplateID() );
+    IA64_bundle( MLXstop,
+				 instruction( NOP_M ),
+				 alteredLong ).generate(gen);
+} /* end emulateLongInstruction */
 
 /* private refactoring function */
-void rewriteShortOffset( IA64_instruction insnToRewrite, Address originalLocation, ia64_bundle_t * insnPtr, unsigned int & offset, unsigned int & size, Address allocatedAddress ) {
+void rewriteShortOffset( instruction insnToRewrite, Address originalLocation,
+						 codeGen &gen, Address allocatedAddress ) {
 	/* We insert a short jump past a long jump to the original target, followed
 	   by the instruction rewritten to branch one bundle backwards.
 	   It's not very elegant, but it's very straightfoward to implement. :) */
@@ -1055,16 +831,16 @@ void rewriteShortOffset( IA64_instruction insnToRewrite, Address originalLocatio
 	   of the instruction we'll rewrite here?  We special-cased direct calls below. */
 
 	/* Skip the long branch. */
-	IA64_instruction memoryNOP( NOP_M );
-	IA64_instruction_x skipInsn = generateLongBranchTo( 32 ); // could be short
+	instruction memoryNOP( NOP_M );
+	instruction_x skipInsn = generateLongBranchTo( 32 ); // could be short
 	IA64_bundle skipInsnBundle( MLXstop, memoryNOP, skipInsn );
-	insnPtr[offset++] = skipInsnBundle.getMachineCode(); size += 16;
+	skipInsnBundle.generate(gen); 
 
 	/* Extract the original target. */
 	insn_tmpl tmpl = { insnToRewrite.getMachineCode() };
-	bool isSpecCheck = ( insnToRewrite.getType() == IA64_instruction::SPEC_CHECK );
+	bool isSpecCheck = ( insnToRewrite.getType() == instruction::SPEC_CHECK );
 	Address originalTarget;
-
+	
 	if( isSpecCheck )
 		originalTarget = GET_M20_TARGET( &tmpl ) + originalLocation;
 	else {
@@ -1076,9 +852,18 @@ void rewriteShortOffset( IA64_instruction insnToRewrite, Address originalLocatio
 
 	/* The long branch. */
 	// /* DEBUG */ fprintf( stderr, "originalTarget 0x%lx = 0x%lx + 0x%lx\n", originalTarget, ( signExtend( signBit, immediate ) << 4 ), originalLocation );
-	IA64_instruction_x longBranch = generateLongBranchTo( originalTarget - (allocatedAddress + size) );
+	// Align originalTarget
+	originalTarget -= originalTarget % 16;
+	// TODO: handle this better. AllocatedAddress is as of the start
+	// of our code generation, but we're a bundle farther. We should
+	// be flexible so that if someone adds in another random bundle we
+	// don't break.
+
+	// 0x10: sizeof(bundle)
+	instruction_x longBranch = generateLongBranchTo( originalTarget - (allocatedAddress + 0x10));
 	IA64_bundle longBranchBundle( MLXstop, memoryNOP, longBranch );
-	insnPtr[offset++] = longBranchBundle.getMachineCode(); size += 16;
+	
+	longBranchBundle.generate(gen);
 
 	/* Rewrite the short immediate. */
 	if( isSpecCheck )
@@ -1087,91 +872,107 @@ void rewriteShortOffset( IA64_instruction insnToRewrite, Address originalLocatio
 		SET_M22_TARGET( &tmpl, -16 );
 
 	/* Emit the rewritten immediate. */
-	IA64_instruction rewrittenInsn( tmpl.raw, insnToRewrite.getTemplateID(), insnToRewrite.getSlotNumber() );
-	insnPtr[offset++] = generateBundleFor( rewrittenInsn ).getMachineCode(); size += 16;
-	} /* end rewriteShortOffset() */
+	instruction rewrittenInsn( tmpl.raw, insnToRewrite.getTemplateID(), insnToRewrite.getSlotNumber() );
+	generateBundleFor( rewrittenInsn ).generate(gen);
+} /* end rewriteShortOffset() */
 
 /* private refactoring function */
-void emulateShortInstruction( IA64_instruction insnToEmulate, Address originalLocation, ia64_bundle_t * insnPtr, unsigned int & offset, unsigned int & size, Address allocatedAddress ) {
-	insn_tmpl tmpl = { insnToEmulate.getMachineCode() };
+void instruction::relocate(codeGen &gen, Address originalLocation,
+						   Address allocatedAddress ) {
+	insn_tmpl tmpl = { getMachineCode() };
 
-	switch( insnToEmulate.getType() ) {
-		case IA64_instruction::PREDICATED_BRANCH:
-		case IA64_instruction::CONDITIONAL_BRANCH:
-			rewriteShortOffset( insnToEmulate, originalLocation, insnPtr, offset, size, allocatedAddress);
-			break; /* end direct jump handling */
-			
-		case IA64_instruction::DIRECT_CALL: {
-			/* Direct calls have to be rewritten as long calls in order to make sure the assertions
-			   installBaseTramp() makes about the frame state in the dynamic unwind information
-			   are true.  (If we call backwards one instruction, the frame there is not the same as
-			   it was at the instruction we're emulating.)  */
-			insn_tmpl tmpl = { insnToEmulate.getMachineCode() };
-			Address originalTarget = GET_M22_TARGET( &tmpl ) + originalLocation;
-			IA64_instruction_x longCall = generateLongCallTo( originalTarget - (allocatedAddress + size), tmpl.B3.b1, tmpl.B3.qp );
-            IA64_instruction memoryNOP( NOP_M );			
-			IA64_bundle longCallBundle( MLXstop, memoryNOP, longCall );
-			insnPtr[offset++] = longCallBundle.getMachineCode(); size += 16;
-			} break; /* end direct call handling */		
+	switch( getType() ) {
+	case instruction::DIRECT_BRANCH:
+		rewriteShortOffset( *this, originalLocation, gen,  allocatedAddress);
+		break; /* end direct jump handling */
+		
+	case instruction::DIRECT_CALL: {
+		/* Direct calls have to be rewritten as long calls in order to make sure the assertions
+		   installBaseTramp() makes about the frame state in the dynamic unwind information
+		   are true.  (If we call backwards one instruction, the frame there is not the same as
+		   it was at the instruction we're emulating.)  */
+		insn_tmpl tmpl = { getMachineCode() };
+		Address originalTarget = GET_M22_TARGET( &tmpl ) + originalLocation - (originalLocation % 16);
+		fprintf(stderr, "Generating long call, origTarget 0x%llx, allocatedAddr 0x%llx\n",
+				originalTarget, allocatedAddress);
+		instruction_x longCall = generateLongCallTo( originalTarget - allocatedAddress,
+													 tmpl.B3.b1, tmpl.B3.qp );
+		instruction memoryNOP( NOP_M );			
+		IA64_bundle longCallBundle( MLXstop, memoryNOP, longCall );
+		longCallBundle.generate(gen);
+	} break; /* end direct call handling */		
+	
+	case instruction::BRANCH_PREDICT:
+		/* We can suffer the performance loss. :) */
+		IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ).generate(gen);
+		
+		break; /* end branch predict handling */
+		
+	case instruction::ALAT_CHECK:
+	case instruction::SPEC_CHECK:
+		/* The advanced load checks can be handled exactly as we 
+		   handle direct branches and calls.  The other three checks
+		   (I&M unit integer speculation, fp speculation) are handled
+		   identically to each other, but their immediates are laid
+		   out a little different, so we can't handle them as we do
+		   the advanced loads. */
+		rewriteShortOffset( *this, originalLocation, gen, allocatedAddress );
+		
+		/* FIXME: the jump back needs to be fixed.  Implies we need to leave the emulated code in-place. */
+		break; /* end speculation check handling */
+		
+	case instruction::BRANCH_IA:
+		assert( 0 );
+		break; /* end branch to x86 handling */
+		
+	case instruction::MOVE_FROM_IP: {
+		/* Replace with a movl of the original IP. */
+		unsigned int originalRegister = tmpl.I25.r1;
+		instruction memoryNOP( NOP_M );
+		instruction_x emulatedIPMove = generateLongConstantInRegister( originalRegister, originalLocation );
+		IA64_bundle ipMoveBundle( MLXstop, memoryNOP, emulatedIPMove );
+		ipMoveBundle.generate(gen);
+		break; } /* end ip move handling */
+		
+	case instruction::INVALID:
+		fprintf( stderr, "Not emulating INVALID instruction.\n" );
+		break;
+		
+	case instruction::ALLOC:
+		// When emulating an alloc instruction, we must insure that it is the
+		// first instruction of an instruction group.
+		IA64_bundle( MstopMIstop, NOP_M, *this, NOP_I ).generate(gen);
+		break;
+		
+	case instruction::RETURN:
+	case instruction::INDIRECT_CALL:
+	case instruction::INDIRECT_BRANCH:
+		/* Branch registers hold absolute addresses. */
+	default:
+		generateBundleFor( *this ).generate(gen);
+		break; /* end default case */
+	} /* end type switch */
+} /* end emulate */
 
-		case IA64_instruction::BRANCH_PREDICT:
-			/* We can suffer the performance loss. :) */
-			insnPtr[offset++] = IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ).getMachineCode(); size += 16;
-			break; /* end branch predict handling */
+/* private refactoring function.  The first argument is
+   self-explanatory; originalLocation refers to the address of the
+   bundle in the remote process.  The insnPtr is a pointer to (start
+   of) the buffer into which the emulated instruction (identified by
+   slotNo) is to be written.  'offset' is the index of the last bundle
+   written to the buffer, and 'size' is the size in bytes of those
+   bundles.  (Granted, one could be calculated from the other, but
+   they should both be readily available.)  Since offset and size are
+   both references, the same variables should be used in each call to
+   emulateBundle() in a given function.  allocatedAddress is where in
+   the remote process the base tramp will be copied. */
 
-		case IA64_instruction::ALAT_CHECK:
-		case IA64_instruction::SPEC_CHECK:
-			/* The advanced load checks can be handled exactly as we 
-			   handle direct branches and calls.  The other three checks
-			   (I&M unit integer speculation, fp speculation) are handled
-			   identically to each other, but their immediates are laid
-			   out a little different, so we can't handle them as we do
-			   the advanced loads. */
-			rewriteShortOffset( insnToEmulate, originalLocation, insnPtr, offset, size, allocatedAddress );
+bool relocatedInstruction::generateCode(codeGen &gen,
+										Address baseInMutatee) {
 
-			/* FIXME: the jump back needs to be fixed.  Implies we need to leave the emulated code in-place. */
-			break; /* end speculation check handling */
+	int slotNo = insn.getSlotNumber();
+	Address originalLocation = origAddr;
+	Address allocatedAddress = gen.currAddr(baseInMutatee);
 
-		case IA64_instruction::BRANCH_IA:
-			assert( 0 );
-			break; /* end branch to x86 handling */
-
-		case IA64_instruction::MOVE_FROM_IP: {
-			/* Replace with a movl of the original IP. */
-			unsigned int originalRegister = tmpl.I25.r1;
-			IA64_instruction memoryNOP( NOP_M );
-			IA64_instruction_x emulatedIPMove = generateLongConstantInRegister( originalRegister, originalLocation );
-			IA64_bundle ipMoveBundle( MLXstop, memoryNOP, emulatedIPMove );
-			insnPtr[offset++] = ipMoveBundle.getMachineCode(); size += 16;
-			break; } /* end ip move handling */
-
-		case IA64_instruction::INVALID:
-			fprintf( stderr, "Not emulating INVALID instruction.\n" );
-			break;
-
-		case IA64_instruction::ALLOC:
-			// When emulating an alloc instruction, we must insure that it is the
-			// first instruction of an instruction group.
-			insnPtr[offset++] = IA64_bundle( MstopMIstop, NOP_M, insnToEmulate, NOP_I ).getMachineCode(); size += 16;
-			break;
-
-		case IA64_instruction::RETURN:
-		case IA64_instruction::INDIRECT_CALL:
-		case IA64_instruction::INDIRECT_BRANCH:
-			/* Branch registers hold absolute addresses. */
-		default:
-			insnPtr[offset++] = generateBundleFor( insnToEmulate ).getMachineCode(); size += 16;
-			break; /* end default case */
-		} /* end type switch */
-	} /* end emulateShortInstruction() */
-
-/* private refactoring function.  The first argument is self-explanatory; originalLocation refers to the address
-   of the bundle in the remote process.  The insnPtr is a pointer to (start of) the buffer into which the emulated instruction
-   (identified by slotNo) is to be written.  'offset' is the index of the last bundle written to the buffer, and 'size'
-   is the size in bytes of those bundles.  (Granted, one could be calculated from the other, but they should both be
-   readily available.)  Since offset and size are both references, the same variables should be used in each call
-   to emulateBundle() in a given function.  allocatedAddress is where in the remote process the base tramp will be copied. */
-void emulateBundle( IA64_bundle bundleToEmulate, Address originalLocation, ia64_bundle_t * insnPtr, unsigned int & offset, unsigned int & size, Address allocatedAddress, int slotNo ) {
 	/* We need to alter all IP-relative instructions to do the Right Thing.  In particular:
 
 		mov rX = ip	->	movl rX = <originalLocation>
@@ -1187,187 +988,203 @@ void emulateBundle( IA64_bundle bundleToEmulate, Address originalLocation, ia64_
 						; the branch registers hold absolute addresses.
 		br.ia		->		; barf: maybe invoke the x86 port? :)
 	*/
-
-	if( slotNo == 0 ) {
-		emulateShortInstruction( bundleToEmulate.getInstruction0(), originalLocation, insnPtr, offset, size, allocatedAddress );
-		return;
-		}
-		
-	/* By convention, an MLX bundle at 0x...0 has its slot 0 instruction at 0x...0, and
-	   its slot 1 instruction at 0x...1; by ignoring requests at slot 2, we make sure that
-	   long instructions are always emulated in the middle, which makes post-position
-	   instrumentation work. */
-	if( bundleToEmulate.hasLongInstruction() && slotNo == 1 ) {
-		emulateLongInstruction( bundleToEmulate.getLongInstruction(), originalLocation, insnPtr, offset, size, allocatedAddress );
-		}
-	else if( bundleToEmulate.hasLongInstruction() && slotNo == 2 ) {
-		fprintf( stderr, "Malformed emulation request: second slot of long instruction, ignoring.\n" );
-		return;
-		}
-	else {
-		/* Which short instruction do we emulate? */
-		if( slotNo == 1 ) {
-			emulateShortInstruction( bundleToEmulate.getInstruction1(), originalLocation, insnPtr, offset, size, allocatedAddress );
-			}
-		else if( slotNo == 2 ) {
-			emulateShortInstruction( bundleToEmulate.getInstruction2(), originalLocation, insnPtr, offset, size, allocatedAddress );
-			}
-		else {
-			assert( 0 );
-			}
-		}
-	} /* end emulateBundle() */
+	
+	/* By convention, an MLX bundle at 0x...0 has its slot 0
+	   instruction at 0x...0, and its slot 1 instruction at 0x...1; by
+	   ignoring requests at slot 2, we make sure that long
+	   instructions are always emulated in the middle, which makes
+	   post-position instrumentation work. */
+	insn.relocate(gen, originalLocation, allocatedAddress);
+	return true;
+} /* end emulateBundle() */
 
 /* Required by BPatch_thread.C */
 #define NEAR_ADDRESS 0x2000000000000000               /* The lower end of the shared memory segment. */
-bool process::replaceFunctionCall( const instPoint * point, const int_function * function ) {
+
+
+bool process::replaceFunctionCall(instPoint * point, 
+								  const int_function * function ) {
 	/* We'll assume that point is a call site, primarily because we don't actually care.
 	   However, the semantics seem to be that we can't replace function calls if we've already
 	   instrumented them (which is, of course, garbage), so we _will_ check that. */
-	if( baseMap.defines( point ) ) {
+    // Must be a call site
+	if (point->getPointType() != callSite)
 		return false;
-		}
 
 	/* We'll need this later. */
-	IA64_instruction memoryNOP( NOP_M );
-
+	instruction memoryNOP( NOP_M );
+	
 	/* Further implicit semantics indicate that a NULL function should be replace by NOPs. */
 	IA64_bundle toInsert;
 	if( function == NULL ) {
 		toInsert = IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I );
-		} /* end if we're inserting NOPs. */
-
-	/* We'd like to generate the call here, but we need to know the IP it'll be
-	   at in order to generate the correct offset.  Grr. */
-
-	/* Since we need a full bundle to guarantee we can make the jump, we'll
-	   need to insert a minitramp to the emulated instructions.  Gather some
-	   of the necessary data. */
-	uint8_t slotNo = point->pointAddr() % 16;
-	Address alignedAddress = point->pointAddr() - slotNo;
-
-	/* We'll construct the minitramp in the mutator's address space and then copy
-	   it over once we're done. */
-	ia64_bundle_t codeBuffer[ 7 ];
-
-	/* However, we need to know the IP we'll be jumping to/from, so allocate
-	   the minitramp now. */
-	bool allocErr; Address allocatedAddress = inferiorMalloc( 7 * sizeof( ia64_bundle_t ), anyHeap, NEAR_ADDRESS, & allocErr );
-	assert( ! allocErr );
-	assert( allocatedAddress % 16 == 0 );
-
-	/* Acquire the bundle we'll be emulating before we overwrite it. */
-	ia64_bundle_t originalBundle;
-	assert( readTextSpace( (void *)alignedAddress, 16, & originalBundle ) );
-	IA64_bundle bundleToEmulate( originalBundle );
-
-	/* Overwrite the original instrumentation point with a jump to the minitramp. */
-	Address offsetToMiniTramp = allocatedAddress /* target */ - alignedAddress /* ip */;
-	IA64_instruction_x lbtMT = generateLongBranchTo( offsetToMiniTramp );
-	IA64_bundle jumpBundle( MLXstop, memoryNOP, lbtMT );
-	ia64_bundle_t rawJumpBundle = jumpBundle.getMachineCode();
-	assert( writeTextSpace( (void *)alignedAddress, 16, & rawJumpBundle ) );
-
-	/* We're not sure how many bundles emulation will take up ahead of time, so offset is an output parameter. */
-	unsigned int offset = 0;
-	unsigned int size = 0;
-
-	/* We don't want to emulate the call instruction itself. */
-	if( slotNo != 0 ) {
-		emulateShortInstruction( bundleToEmulate.getInstruction0(), alignedAddress, codeBuffer, offset, size, allocatedAddress );
-		}
-	else {
-		if( function != NULL ) {
-			/* The SCRAG says that b0 is the return register, but there's no gaurantee of this.
-			   If we have problems, we can decode the call instruction. */
-			uint8_t branchRegister = 0;
-			int64_t callOffset = function->get_address() - (allocatedAddress + (offset * 16));
-
-			IA64_instruction_x callToFunction = generateLongCallTo( callOffset, branchRegister );
-			toInsert = IA64_bundle( MLXstop, memoryNOP, callToFunction );
-			} /* end if we have a function call to insert. */
-
-		codeBuffer[ offset++ ] = toInsert.getMachineCode(); size += 16;
+	} /* end if we're inserting NOPs. */
+	
+	instPointIter ipIter(point);
+	instPointInstance *ipInst;
+	while ((ipInst = ipIter++)) {  
+		// Multiple replacements. Wheee...
+		Address pointAddr = ipInst->addr();
+		
+		codeRange *range;
+		if (multiTramps_.find(pointAddr, range)) {
+			// We instrumented this... not handled yet
+			assert(0);
 		}
 
-	if( bundleToEmulate.hasLongInstruction() ) {
-		if( slotNo == 0 ) {
-			emulateLongInstruction( bundleToEmulate.getLongInstruction(), alignedAddress, codeBuffer, offset, size, allocatedAddress );
-			}
+		/* We'd like to generate the call here, but we need to know the IP it'll be
+		   at in order to generate the correct offset.  Grr. */
+		
+		/* Since we need a full bundle to guarantee we can make the jump, we'll
+		   need to insert a minitramp to the emulated instructions.  Gather some
+		   of the necessary data. */
+		uint8_t slotNo = pointAddr % 16;
+		Address alignedAddress = pointAddr - slotNo;
+		
+		/* We'll construct the minitramp in the mutator's address space and then copy
+		   it over once we're done. */
+		codeGen codeBuffer(7*instruction::size());
+		
+		/* However, we need to know the IP we'll be jumping to/from, so allocate
+		   the minitramp now. */
+		bool allocErr; Address allocatedAddress = inferiorMalloc( 7 * sizeof( ia64_bundle_t ), anyHeap, NEAR_ADDRESS, & allocErr );
+		assert( ! allocErr );
+		assert( allocatedAddress % 16 == 0 );
+		
+		/* Acquire the bundle we'll be emulating before we overwrite it. */
+		ia64_bundle_t originalBundle;
+		assert( readTextSpace( (void *)alignedAddress, 16, & originalBundle ) );
+		IA64_bundle bundleToEmulate( originalBundle );
+		
+		/* Overwrite the original instrumentation point with a jump to the minitramp. */
+		Address offsetToMiniTramp = allocatedAddress /* target */ - alignedAddress /* ip */;
+		instruction_x lbtMT = generateLongBranchTo( offsetToMiniTramp );
+		IA64_bundle jumpBundle( MLXstop, memoryNOP, lbtMT );
+		ia64_bundle_t rawJumpBundle = jumpBundle.getMachineCode();
+		assert( writeTextSpace( (void *)alignedAddress, 16, & rawJumpBundle ) );
+
+
+		// We keep track of these so that we can disable mutations later.
+
+		// In this case we leave the minitramp around, just
+		// overwriting whatever was in the bundle the first time.
+
+		replacedFunctionCall *newRFC = new replacedFunctionCall();
+		newRFC->callAddr = alignedAddress;
+		newRFC->oldCall.allocate(16);
+		newRFC->oldCall.copy(&originalBundle, sizeof(originalBundle));
+
+		newRFC->newCall.allocate(16);
+		newRFC->newCall.copy(&rawJumpBundle, sizeof(rawJumpBundle));
+		replacedFunctionCalls_[alignedAddress] = newRFC;
+
+		/* We don't want to emulate the call instruction itself. */
+		if( slotNo != 0 ) {
+			bundleToEmulate.getInstruction0().relocate(codeBuffer, alignedAddress, allocatedAddress);
+		}
 		else {
 			if( function != NULL ) {
 				/* The SCRAG says that b0 is the return register, but there's no gaurantee of this.
 				   If we have problems, we can decode the call instruction. */
 				uint8_t branchRegister = 0;
-				int64_t callOffset = function->get_address() - (allocatedAddress + (offset * 16));
-
-				IA64_instruction_x callToFunction = generateLongCallTo( callOffset, branchRegister );
+				int64_t callOffset = function->getAddress()- (allocatedAddress + codeBuffer.used());
+				
+				instruction_x callToFunction = generateLongCallTo( callOffset, branchRegister );
 				toInsert = IA64_bundle( MLXstop, memoryNOP, callToFunction );
+			} /* end if we have a function call to insert. */
+			
+			toInsert.generate(codeBuffer);
+		}
+		
+		if( bundleToEmulate.hasLongInstruction() ) {
+			if( slotNo == 0 ) {
+				bundleToEmulate.getLongInstruction().relocate(codeBuffer,
+															  alignedAddress,
+															  allocatedAddress);
+			}
+			else {
+				if( function != NULL ) {
+					/* The SCRAG says that b0 is the return register, but there's no gaurantee of this.
+					   If we have problems, we can decode the call instruction. */
+					uint8_t branchRegister = 0;
+					int64_t callOffset = function->getAddress() - (allocatedAddress + codeBuffer.used());
+					
+					instruction_x callToFunction = generateLongCallTo( callOffset, branchRegister );
+					toInsert = IA64_bundle( MLXstop, memoryNOP, callToFunction );
 				} /* end if we have a function call to insert. */
-
-			codeBuffer[ offset++ ] = toInsert.getMachineCode(); size += 16;			
+				
+				toInsert.generate(codeBuffer);
 			}
 		} /* end if we have a long instruction */
-	else {
-		/* Handle the instruction in slot 1. */
-		if( slotNo != 1 ) {
-			emulateShortInstruction( bundleToEmulate.getInstruction1(), alignedAddress, codeBuffer, offset, size, allocatedAddress );
-			}
 		else {
-			if( function != NULL ) {
-				/* The SCRAG says that b0 is the return register, but there's no gaurantee of this.
-				   If we have problems, we can decode the call instruction. */
-				uint8_t branchRegister = 0;
-				int64_t callOffset = function->get_address() - (allocatedAddress + (offset * 16));
-
-				IA64_instruction_x callToFunction = generateLongCallTo( callOffset, branchRegister );
-				toInsert = IA64_bundle( MLXstop, memoryNOP, callToFunction );
-				} /* end if we have a function call to insert. */
-
-			codeBuffer[ offset++ ] = toInsert.getMachineCode(); size += 16;			
+			/* Handle the instruction in slot 1. */
+			if( slotNo != 1 ) {
+				bundleToEmulate.getInstruction1().relocate(codeBuffer,
+														   alignedAddress,
+														   allocatedAddress);
 			}
-
-		/* Handle the instruction in slot 2. */
-		if( slotNo != 2 ) {
-			emulateShortInstruction( bundleToEmulate.getInstruction2(), alignedAddress, codeBuffer, offset, size, allocatedAddress );
-			}
-		else {
-			if( function != NULL ) {
-				/* The SCRAG says that b0 is the return register, but there's no gaurantee of this.
-				   If we have problems, we can decode the call instruction. */
-				uint8_t branchRegister = 0;
-				int64_t callOffset = function->get_address() - (allocatedAddress + (offset * 16));
-
-				IA64_instruction_x callToFunction = generateLongCallTo( callOffset, branchRegister );
-				toInsert = IA64_bundle( MLXstop, memoryNOP, callToFunction );
+			else {
+				if( function != NULL ) {
+					/* The SCRAG says that b0 is the return register, but there's no gaurantee of this.
+					   If we have problems, we can decode the call instruction. */
+					uint8_t branchRegister = 0;
+					int64_t callOffset = function->getAddress() - (allocatedAddress + codeBuffer.used());
+					
+					instruction_x callToFunction = generateLongCallTo( callOffset, branchRegister );
+					toInsert = IA64_bundle( MLXstop, memoryNOP, callToFunction );
 				} /* end if we have a function call to insert. */
-
-			codeBuffer[ offset++ ] = toInsert.getMachineCode(); size += 16;		
+				
+				toInsert.generate(codeBuffer);
+			}
+			
+			/* Handle the instruction in slot 2. */
+			if( slotNo != 2 ) {
+				bundleToEmulate.getInstruction2().relocate(codeBuffer,
+														   alignedAddress,
+														   allocatedAddress);
+			}
+			else {
+				if( function != NULL ) {
+					/* The SCRAG says that b0 is the return register, but there's no gaurantee of this.
+					   If we have problems, we can decode the call instruction. */
+					uint8_t branchRegister = 0;
+					int64_t callOffset = function->getAddress() - (allocatedAddress + codeBuffer.used());
+					
+					instruction_x callToFunction = generateLongCallTo( callOffset, branchRegister );
+					toInsert = IA64_bundle( MLXstop, memoryNOP, callToFunction );
+				} /* end if we have a function call to insert. */
+				
+				toInsert.generate(codeBuffer);
 			}
 		} /* end if all three are short instructions. */
-
-	/* Append the return jump to the minitramp. */
-	Address returnOffset = ( alignedAddress + 16 ) /* target */ - (allocatedAddress + (offset * 16)) /* IP */;
-	IA64_instruction_x lbtOriginal = generateLongBranchTo( returnOffset );
-	IA64_bundle jumpBackBundle( MLXstop, memoryNOP, lbtOriginal );
-	codeBuffer[ offset++ ] = jumpBackBundle.getMachineCode(); size += 16;
-
-	/* Write the minitramp into the mutatee's address space. */
-	// /* DEBUG */ fprintf( stderr, "* Wrote minitramp at 0x%lx for %d bytes, from 0x%lx\n", allocatedAddress, size + 16, codeBuffer );
-	assert( writeTextSpace( (void *)allocatedAddress, size + 16, & codeBuffer ) );
-
-	// /* DEBUG */ fprintf( stderr, "* Emitted minitramp at local 0x%lx, for instPoint at 0x%lx and remote 0x%lx\n", (Address) & codeBuffer, alignedAddress, allocatedAddress );
-	return false;
-	} /* end replaceFunctionCall() */
+		
+		/* Append the return jump to the minitramp. */
+		Address returnOffset = ( alignedAddress + 16 ) /* target */ - 
+			(allocatedAddress + codeBuffer.used()) /* IP */;
+		instruction_x lbtOriginal = generateLongBranchTo( returnOffset );
+		IA64_bundle jumpBackBundle( MLXstop, memoryNOP, lbtOriginal );
+		jumpBackBundle.generate(codeBuffer);
+		
+		/* Write the minitramp into the mutatee's address space. */
+		// /* DEBUG */ fprintf( stderr, "* Wrote minitramp at 0x%lx for %d bytes, from 0x%lx\n", allocatedAddress, size + 16, codeBuffer );
+		assert( writeTextSpace( (void *)allocatedAddress, 
+								codeBuffer.used(), codeBuffer.start_ptr() ) );
+		
+		// /* DEBUG */ fprintf( stderr, "* Emitted minitramp at local 0x%lx, for instPoint at 0x%lx and remote 0x%lx\n", (Address) & codeBuffer, alignedAddress, allocatedAddress );
+	}
+	
+	return true;
+	
+} /* end replaceFunctionCall() */
 
 /* Private Refactoring Function
 
    Moves preserved unstacked registers to register stack for basetramp.
    FIXME: handling for ar.fpsr (status field 1), ar.rsc (mode), and User Mask.
 */
-void generateRegisterStackSave( ia64_bundle_t * insnPtr, int & bundleCount, unw_dyn_region_info_t * unwindRegion )
+void generateRegisterStackSave( codeGen &gen, unw_dyn_region_info_t * unwindRegion )
 {
-	IA64_instruction insn[ 3 ];
+	instruction insn[ 3 ];
 	IA64_bundle bundle;
 	int slot;
 
@@ -1385,7 +1202,7 @@ void generateRegisterStackSave( ia64_bundle_t * insnPtr, int & bundleCount, unw_
 		// and the memory stack will be shifted down by another 16 bytes.
 		extraStackSize += 16;
 	}
-
+	
 	// Save the general registers.
 	slot = 0;
 	for( Register i = BP_GR0; i < BP_GR0 + 128; ++i ) {
@@ -1401,11 +1218,11 @@ void generateRegisterStackSave( ia64_bundle_t * insnPtr, int & bundleCount, unw_
 			}
 		}
 		if( slot == 3 || (i == BP_GR0 + 127 && slot) ) {
-			if( slot < 2 ) insn[ 1 ] = IA64_instruction( NOP_I );
-			if( slot < 3 ) insn[ 2 ] = IA64_instruction( NOP_I );
-
+			if( slot < 2 ) insn[ 1 ] = instruction( NOP_I );
+			if( slot < 3 ) insn[ 2 ] = instruction( NOP_I );
+			
 			bundle = IA64_bundle( MII, insn[ 0 ], insn[ 1 ], insn[ 2 ] );
-			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			bundle.generate(gen);
 			unwindRegion->insn_count += 3;
 
 			slot = 0;
@@ -1426,10 +1243,10 @@ void generateRegisterStackSave( ia64_bundle_t * insnPtr, int & bundleCount, unw_
 		}
 
 		if( slot == 3 || (i == BP_BR0 + 7 && slot != 1) ) {
-			if( slot < 3 ) insn[ 2 ] = IA64_instruction( NOP_I );
+			if( slot < 3 ) insn[ 2 ] = instruction( NOP_I );
 
 			bundle = IA64_bundle( MII, NOP_I, insn[ 1 ], insn[ 2 ] );
-			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			bundle.generate(gen);
 			unwindRegion->insn_count += 3;
 
 			slot = 1;
@@ -1446,7 +1263,7 @@ void generateRegisterStackSave( ia64_bundle_t * insnPtr, int & bundleCount, unw_
 				// ASSUMPTION:  ar.pfs does not change between instrumentation point
 				//              and basetramp state preservation.
 				insn[ 2 ] = generateApplicationToRegisterMove( i - BP_AR0, regSpace->storageMap[ i ] );
-				insn[ slot++ ] = IA64_instruction( NOP_M );
+				insn[ slot++ ] = instruction( NOP_M );
 				isPFS = true;
 
 			} else {
@@ -1456,10 +1273,10 @@ void generateRegisterStackSave( ia64_bundle_t * insnPtr, int & bundleCount, unw_
 		}
 
 		if( slot == 2 || (i == BP_AR0 + 127 && slot) ) {
-			if( slot < 2 ) insn[ 1 ] = IA64_instruction( NOP_M );
+			if( slot < 2 ) insn[ 1 ] = instruction( NOP_M );
 
 			bundle = IA64_bundle( MMI, insn[ 0 ], insn[ 1 ], ( isPFS ? insn[ 2 ] : NOP_I ) );
-			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			bundle.generate(gen);
 			unwindRegion->insn_count += 3;
 
 			slot = 0;
@@ -1468,7 +1285,7 @@ void generateRegisterStackSave( ia64_bundle_t * insnPtr, int & bundleCount, unw_
 	}
 
 	// Save the predicate registers
-	insn[ 0 ] = IA64_instruction( NOP_M );
+	insn[ 0 ] = instruction( NOP_M );
 	if( regSpace->storageMap[ BP_PR ] > 0 ) {
 		insn[ 1 ] = generatePredicatesToRegisterMove( regSpace->storageMap[ BP_PR ] );
 		_U_dyn_op_save_reg( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE,
@@ -1477,12 +1294,12 @@ void generateRegisterStackSave( ia64_bundle_t * insnPtr, int & bundleCount, unw_
 
 	} else {
 		// This bundle is needed to end the instruction group, regardless.
-		insn[ 1 ] = IA64_instruction( NOP_I );
+		insn[ 1 ] = instruction( NOP_I );
 	}
-	insn[ 2 ] = IA64_instruction( NOP_I );
+	insn[ 2 ] = instruction( NOP_I );
 
 	bundle = IA64_bundle( MIIstop, insn[ 0 ], insn[ 1 ], insn[ 2 ] );
-	insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+	bundle.generate(gen);
 	unwindRegion->insn_count += 3;
 }
 
@@ -1491,9 +1308,9 @@ void generateRegisterStackSave( ia64_bundle_t * insnPtr, int & bundleCount, unw_
    Moves preserved registers back to original location for basetramp trailer.
    FIXME: handling for ar.fpsr (status field 1), ar.rsc (mode), and User Mask.
 */
-void generateRegisterStackRestore( ia64_bundle_t * insnPtr, int & bundleCount, unw_dyn_region_info_t * unwindRegion )
+void generateRegisterStackRestore( codeGen &gen, unw_dyn_region_info_t * unwindRegion )
 {
-	IA64_instruction insn[ 3 ];
+	instruction insn[ 3 ];
 	IA64_bundle bundle;
 	int slot;
 
@@ -1504,11 +1321,11 @@ void generateRegisterStackRestore( ia64_bundle_t * insnPtr, int & bundleCount, u
 			insn[ slot++ ] = generateRegisterToRegisterMove( regSpace->storageMap[ i ], i - BP_GR0 );
 
 		if( slot == 3 || (i == BP_GR0 + 127 && slot) ) {
-			if( slot < 2 ) insn[ 1 ] = IA64_instruction( NOP_I );
-			if( slot < 3 ) insn[ 2 ] = IA64_instruction( NOP_I );
+			if( slot < 2 ) insn[ 1 ] = instruction( NOP_I );
+			if( slot < 3 ) insn[ 2 ] = instruction( NOP_I );
 
 			bundle = IA64_bundle( MII, insn[ 0 ], insn[ 1 ], insn[ 2 ] );
-			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			bundle.generate(gen);
 			unwindRegion->insn_count += 3;
 
 			slot = 0;
@@ -1522,10 +1339,10 @@ void generateRegisterStackRestore( ia64_bundle_t * insnPtr, int & bundleCount, u
 			insn[ slot++ ] = generateRegisterToBranchMove( regSpace->storageMap[ i ], i - BP_BR0 );
 
 		if( slot == 3 || (i == BP_BR0 + 7 && slot != 1) ) {
-			if( slot < 3 ) insn[ 2 ] = IA64_instruction( NOP_I );
+			if( slot < 3 ) insn[ 2 ] = instruction( NOP_I );
 
 			bundle = IA64_bundle( MII, NOP_I, insn[ 1 ], insn[ 2 ] );
-			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			bundle.generate(gen);
 			unwindRegion->insn_count += 3;
 
 			slot = 1;
@@ -1540,7 +1357,7 @@ void generateRegisterStackRestore( ia64_bundle_t * insnPtr, int & bundleCount, u
 			if( i == BP_AR_PFS ) {
 				// Special case for ar.pfs:  Account for I-type move instruction.
 				insn[ 2 ] = generateRegisterToApplicationMove( regSpace->storageMap[ i ], i - BP_AR0 );
-				insn[ slot++ ] = IA64_instruction( NOP_M );
+				insn[ slot++ ] = instruction( NOP_M );
 				isPFS = true;
 
 			} else {
@@ -1550,10 +1367,10 @@ void generateRegisterStackRestore( ia64_bundle_t * insnPtr, int & bundleCount, u
 		}
 
 		if( slot == 2 || (i == BP_AR0 + 127 && slot) ) {
-			if( slot < 2 ) insn[ 1 ] = IA64_instruction( NOP_M );
+			if( slot < 2 ) insn[ 1 ] = instruction( NOP_M );
 
 			bundle = IA64_bundle( MMI, insn[ 0 ], insn[ 1 ], ( isPFS ? insn[ 2 ] : NOP_I ) );
-			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			bundle.generate(gen);
 			unwindRegion->insn_count += 3;
 
 			slot = 0;
@@ -1562,17 +1379,17 @@ void generateRegisterStackRestore( ia64_bundle_t * insnPtr, int & bundleCount, u
 	}
 
 	// Restore the predicate registers
-	insn[ 0 ] = IA64_instruction( NOP_M );
+	insn[ 0 ] = instruction( NOP_M );
 	if( regSpace->storageMap[ BP_PR ] > 0 ) {
 		insn[ 1 ] = generateRegisterToPredicatesMove( regSpace->storageMap[ BP_PR ], ~0x1 );
 	} else {
 		// This bundle is needed to end the instruction group, regardless.
-		insn[ 1 ] = IA64_instruction( NOP_I );
+		insn[ 1 ] = instruction( NOP_I );
 	}
-	insn[ 2 ] = IA64_instruction( NOP_I );
+	insn[ 2 ] = instruction( NOP_I );
 
 	bundle = IA64_bundle( MIIstop, insn[ 0 ], insn[ 1 ], insn[ 2 ] );
-	insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+	bundle.generate(gen);
 	unwindRegion->insn_count += 3;
 }
 
@@ -1580,12 +1397,12 @@ void generateRegisterStackRestore( ia64_bundle_t * insnPtr, int & bundleCount, u
 
    Spills stacked registers to memory stack, if needed.
 */
-void generateMemoryStackSave( ia64_bundle_t * insnPtr, int & bundleCount, bool * usedFPregs, unw_dyn_region_info_t * unwindRegion )
+void generateMemoryStackSave( codeGen &gen, bool * usedFPregs, unw_dyn_region_info_t * unwindRegion )
 {
 	Register temp_gr[ 2 ] = { 6 };
 	Register temp_fr = 6;
 
-	IA64_instruction insn[ 2 ];
+	instruction insn[ 2 ];
 	IA64_bundle bundle;
 	int grStackOffset = 0;
 	int frStackOffset = 0;
@@ -1618,14 +1435,14 @@ void generateMemoryStackSave( ia64_bundle_t * insnPtr, int & bundleCount, bool *
 						   unwindRegion->insn_count + 0, UNW_IA64_SP, (unw_word_t)-16 );
 			_U_dyn_op_add( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE,
 						   unwindRegion->insn_count + 1, UNW_IA64_SP, (unw_word_t)-16 );
-			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			bundle.generate(gen);
 			unwindRegion->insn_count += 3;
 
 			bundle = IA64_bundle( MMIstop,
 								  generateRegisterToFloatMove( temp_gr[ 0 ], temp_fr ),
 								  generateApplicationToRegisterMove( AR_UNAT, temp_gr[ 0 ] ),
 								  NOP_I );
-			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			bundle.generate(gen);
 			unwindRegion->insn_count += 3;
 
 		} else {
@@ -1639,7 +1456,7 @@ void generateMemoryStackSave( ia64_bundle_t * insnPtr, int & bundleCount, bool *
 								  NOP_I );
 			_U_dyn_op_add( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE,
 						   unwindRegion->insn_count + 0, UNW_IA64_SP, (unw_word_t)-16 );
-			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			bundle.generate(gen);
 			unwindRegion->insn_count += 3;
 		}
 
@@ -1648,7 +1465,7 @@ void generateMemoryStackSave( ia64_bundle_t * insnPtr, int & bundleCount, bool *
 							  generateSpillTo( REGISTER_SP, temp_gr[ 0 ], 0 ),
 							  NOP_I,
 							  NOP_I );
-		insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+		bundle.generate(gen);
 		unwindRegion->insn_count += 3;
 	}
 	/* This is always necessary, because of function calls and the floating-point spills for multiplication. */
@@ -1658,7 +1475,7 @@ void generateMemoryStackSave( ia64_bundle_t * insnPtr, int & bundleCount, bool *
 						  NOP_I );
 	_U_dyn_op_add( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE,
 				   unwindRegion->insn_count, UNW_IA64_SP, -regSpace->sizeOfStack );
-	insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+	bundle.generate(gen);
 	unwindRegion->insn_count += 3;
 
 	// Save the general registers, if needed.
@@ -1671,7 +1488,7 @@ void generateMemoryStackSave( ia64_bundle_t * insnPtr, int & bundleCount, bool *
 								  generateShortImmediateAdd( temp_gr[ 0 ], grStackOffset, REGISTER_SP ),
 								  generateSpillTo( temp_gr[ 0 ], i, 0 ),
 								  NOP_I );
-			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			bundle.generate(gen);
 			unwindRegion->insn_count += 3;
 		}
 	}
@@ -1688,14 +1505,14 @@ void generateMemoryStackSave( ia64_bundle_t * insnPtr, int & bundleCount, bool *
 								  generateFloatToRegisterMove( temp_fr, temp_gr[ 0 ] ),
 								  generateShortImmediateAdd( temp_gr[ 1 ], regSpace->sizeOfStack + 16, REGISTER_SP ),
 								  NOP_I );
-			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			bundle.generate(gen);
 			unwindRegion->insn_count += 3;
 
 			bundle = IA64_bundle( MIIstop,
 								  generateFPFillFrom( temp_gr[ 1 ], temp_fr, 0 ),
 								  NOP_I,
 								  NOP_I );
-			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			bundle.generate(gen);
 			unwindRegion->insn_count += 3;
 		}
 	}
@@ -1710,7 +1527,7 @@ void generateMemoryStackSave( ia64_bundle_t * insnPtr, int & bundleCount, bool *
 						  generateShortImmediateAdd( temp_gr[ 0 ], frStackOffset +  0, REGISTER_SP ),
 						  generateShortImmediateAdd( temp_gr[ 1 ], frStackOffset + 16, REGISTER_SP ),
 						  NOP_I );
-	insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+	bundle.generate(gen);
 	unwindRegion->insn_count += 3;
 
 	// Save the floating point registers
@@ -1722,10 +1539,10 @@ void generateMemoryStackSave( ia64_bundle_t * insnPtr, int & bundleCount, bool *
 		}
 
 		if( slot == 2 || (i == 127 && slot) ) {
-			if( slot < 2 ) insn[ 1 ] = IA64_instruction( NOP_M );
+			if( slot < 2 ) insn[ 1 ] = instruction( NOP_M );
 
 			bundle = IA64_bundle( MMIstop, insn[ 0 ], insn[ 1 ], NOP_I );
-			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			bundle.generate(gen);
 			unwindRegion->insn_count += 3;
 
 			slot = 0;
@@ -1736,12 +1553,12 @@ void generateMemoryStackSave( ia64_bundle_t * insnPtr, int & bundleCount, bool *
 /* Private Refactoring Function
    Fills stacked registers from memory stack, if needed.
 */
-void generateMemoryStackRestore( ia64_bundle_t * insnPtr, int & bundleCount, bool * usedFPregs, unw_dyn_region_info_t * unwindRegion )
+void generateMemoryStackRestore( codeGen &gen, bool * usedFPregs, unw_dyn_region_info_t * unwindRegion )
 {
 	Register temp_gr[ 2 ] = { 6 };
 	Register temp_fr = 6;
 
-	IA64_instruction insn[ 2 ];
+	instruction insn[ 2 ];
 	IA64_bundle bundle;
 	int grStackOffset = 0;
 	int frStackOffset = 0;
@@ -1765,7 +1582,7 @@ void generateMemoryStackRestore( ia64_bundle_t * insnPtr, int & bundleCount, boo
 						  generateShortImmediateAdd( temp_gr[ 0 ], frStackOffset +  0, REGISTER_SP ),
 						  generateShortImmediateAdd( temp_gr[ 1 ], frStackOffset + 16, REGISTER_SP ),
 						  NOP_I );
-	insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+	bundle.generate(gen);
 	unwindRegion->insn_count += 3;
 
 	// Restore the FP registers
@@ -1777,10 +1594,10 @@ void generateMemoryStackRestore( ia64_bundle_t * insnPtr, int & bundleCount, boo
 		}
 
 		if( slot == 2 || (i == 127 && slot) ) {
-			if( slot < 2 ) insn[ 1 ] = IA64_instruction( NOP_M );
+			if( slot < 2 ) insn[ 1 ] = instruction( NOP_M );
 
 			bundle = IA64_bundle( MMIstop, insn[ 0 ], insn[ 1 ], NOP_I );
-			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			bundle.generate(gen);
 			unwindRegion->insn_count += 3;
 
 			slot = 0;
@@ -1797,14 +1614,14 @@ void generateMemoryStackRestore( ia64_bundle_t * insnPtr, int & bundleCount, boo
 								  generateShortImmediateAdd( temp_gr[ 1 ], regSpace->sizeOfStack + 16, REGISTER_SP ),
 								  generateFPSpillTo( temp_gr[ 1 ], temp_fr, 0 ),
 								  NOP_I );
-			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			bundle.generate(gen);
 			unwindRegion->insn_count += 3;
 
 			bundle = IA64_bundle( MIIstop,
 								  generateRegisterToFloatMove( temp_gr[ 0 ], temp_fr ),
 								  NOP_I,
 								  NOP_I );
-			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			bundle.generate(gen);
 			unwindRegion->insn_count += 3;
 
 		} else {
@@ -1817,7 +1634,7 @@ void generateMemoryStackRestore( ia64_bundle_t * insnPtr, int & bundleCount, boo
 								  generateRegisterToRegisterMove( regSpace->storageMap[ BP_AR_PFS ], 32 + originalFrameSize ),
 								  NOP_I,
 								  NOP_I );
-			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			bundle.generate(gen);
 			unwindRegion->insn_count += 3;
 		}
 	}
@@ -1832,7 +1649,7 @@ void generateMemoryStackRestore( ia64_bundle_t * insnPtr, int & bundleCount, boo
 								  generateShortImmediateAdd( temp_gr[ 0 ], grStackOffset, REGISTER_SP ),
 								  generateFillFrom( temp_gr[ 0 ], i, 0 ),
 								  NOP_I );
-			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			bundle.generate(gen);
 			unwindRegion->insn_count += 3;
 		}
 	}
@@ -1845,7 +1662,7 @@ void generateMemoryStackRestore( ia64_bundle_t * insnPtr, int & bundleCount, boo
 						  NOP_I,
 						  NOP_I );
 	_U_dyn_op_pop_frames( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE, unwindRegion->insn_count, 1 );
-	insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+	bundle.generate(gen);
 	unwindRegion->insn_count += 3;
 
 	if( grSpillNeeded ) {
@@ -1854,7 +1671,7 @@ void generateMemoryStackRestore( ia64_bundle_t * insnPtr, int & bundleCount, boo
 							  generateFillFrom( REGISTER_SP, temp_gr[ 0 ], 0 ),
 							  generateRegisterToApplicationMove( temp_gr[ 0 ], AR_UNAT ),
 							  NOP_I );
-		insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+		bundle.generate(gen);
 		unwindRegion->insn_count += 3;
 
 		bundle = IA64_bundle( MIIstop,
@@ -1862,7 +1679,7 @@ void generateMemoryStackRestore( ia64_bundle_t * insnPtr, int & bundleCount, boo
 							  NOP_I,
 							  NOP_I );
 		_U_dyn_op_pop_frames( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE, unwindRegion->insn_count, 1 );
-		insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+		bundle.generate(gen);
 		unwindRegion->insn_count += 3;
 
 		if( originalFrameSize == 96 ) {
@@ -1871,14 +1688,14 @@ void generateMemoryStackRestore( ia64_bundle_t * insnPtr, int & bundleCount, boo
 								  generateFPFillFrom( REGISTER_SP, temp_fr, 16 ),
 								  NOP_I );
 			_U_dyn_op_pop_frames( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE, unwindRegion->insn_count + 1, 1 );
-			insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+			bundle.generate(gen);
 			unwindRegion->insn_count += 3;
 		}
 	}
 }
 
 /* private refactoring function */
-bool generatePreservationHeader( ia64_bundle_t * insnPtr, Address & count, bool * whichToPreserve, unw_dyn_region_info_t * unwindRegion ) {
+bool generatePreservationHeader(codeGen &gen, bool * whichToPreserve, unw_dyn_region_info_t * unwindRegion ) {
 	/* For clarity (in the callers, too), handle NULL unwindRegions here. */
 	bool freeUnwindRegion = false;
 	if( unwindRegion == NULL ) {
@@ -1890,11 +1707,8 @@ bool generatePreservationHeader( ia64_bundle_t * insnPtr, Address & count, bool 
 		freeUnwindRegion = true;
 		} /* end if unwindRegion was NULL */
 
-	/* How many bundles did we use?  Update the (byte)'count' at the end. */
-	int bundleCount = 0;
-
-	IA64_instruction integerNOP( NOP_I );
-	IA64_instruction memoryNOP( NOP_M );
+	instruction integerNOP( NOP_I );
+	instruction memoryNOP( NOP_M );
 	IA64_bundle bundle;
 
 	/* Assume, in the absence of information, that we wanted to preserve everything. */
@@ -1947,31 +1761,31 @@ bool generatePreservationHeader( ia64_bundle_t * insnPtr, Address & count, bool 
 							  generateAllocInstructionFor( regSpace, NUM_LOCALS, NUM_OUTPUT, regSpace->originalRotates ),
 							  integerNOP,
 							  integerNOP );
-		insnPtr[ bundleCount++ ] = bundle.getMachineCode();
+		bundle.generate(gen);
 
 		// ar.pfs is initially stashed in the only register known dead register.
+
 		_U_dyn_op_save_reg( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE,
 							unwindRegion->insn_count, UNW_IA64_AR_PFS, 32 + originalFrameSize );
 		unwindRegion->insn_count += 3;
 	}
 
 	// generateMemoryStackSave() *MUST* be called before generateRegisterStackSave()
-	generateMemoryStackSave( insnPtr, bundleCount, whichToPreserve, unwindRegion );
-	generateRegisterStackSave( insnPtr, bundleCount, unwindRegion );
+	generateMemoryStackSave( gen, whichToPreserve, unwindRegion );
+	generateRegisterStackSave( gen, unwindRegion );
 
 	// /* DEBUG */ fprintf( stderr, "Emitted %d-bundle preservation header at 0x%lx\n", bundleCount, (Address)insnPtr ); 
 
 	/* Update the offset. */
 	assert( unwindRegion->op_count < PRESERVATION_UNWIND_OPERATION_COUNT );
 	if( freeUnwindRegion ) { free( unwindRegion ); }
-	count += (bundleCount * 16);
 	return true;
-	} /* end generatePreservationHeader() */
+} /* end generatePreservationHeader() */
 
 /* private refactoring function; assumes that regSpace and
    deadRegisterList are as they were in the corresponding call
    to generatePreservationHeader(). */
-bool generatePreservationTrailer( ia64_bundle_t * insnPtr, Address & count, bool * whichToPreserve, unw_dyn_region_info_t * unwindRegion ) {
+bool generatePreservationTrailer( codeGen &gen, bool * whichToPreserve, unw_dyn_region_info_t * unwindRegion ) {
 	/* For clarity (in the callers, too), handle NULL unwindRegions here. */
 	bool freeUnwindRegion = false;
 	if( unwindRegion == NULL ) {
@@ -1984,11 +1798,10 @@ bool generatePreservationTrailer( ia64_bundle_t * insnPtr, Address & count, bool
 		} /* end if unwindRegion was NULL */
 
 	/* How many bundles did we use?  Update the (byte)'count' at the end. */
-	int bundleCount = 0;
-	int originalFrameSize = regSpace->originalLocals + regSpace->originalOutputs;
+		int originalFrameSize = regSpace->originalLocals + regSpace->originalOutputs;
 
-	IA64_instruction memoryNOP( NOP_M );
-	IA64_instruction integerNOP( NOP_I );
+	instruction memoryNOP( NOP_M );
+	instruction integerNOP( NOP_I );
 
 	/* Assume, in the absence of information, that we wanted to preserve everything. */
 	if( whichToPreserve == NULL ) {
@@ -2026,22 +1839,22 @@ bool generatePreservationTrailer( ia64_bundle_t * insnPtr, Address & count, bool
 		} /* end if whichToPreserve is NULL */
 
 	/* generateRegisterStackRestore() *MUST* be called before generateMemoryStackRestore() */
-	generateRegisterStackRestore( insnPtr, bundleCount, unwindRegion );
-	generateMemoryStackRestore( insnPtr, bundleCount, whichToPreserve, unwindRegion );
+	generateRegisterStackRestore( gen, unwindRegion );
+	generateMemoryStackRestore( gen, whichToPreserve, unwindRegion );
 
 	/* Restore the original frame. */
 	if( originalFrameSize < 96 ) {
 		/* Restore ar.pfs; preserved by the header's alloc instruction. */
-		IA64_instruction movePFS = generateRegisterToApplicationMove( 32 + originalFrameSize, AR_PFS );
+		instruction movePFS = generateRegisterToApplicationMove( 32 + originalFrameSize, AR_PFS );
 		IA64_bundle fifthMoveBundle( MIIstop, memoryNOP, movePFS, integerNOP );
-		insnPtr[ bundleCount ++ ] = fifthMoveBundle.getMachineCode();
+		fifthMoveBundle.generate(gen);
 		unwindRegion->insn_count += 3;
-
+		
 		_U_dyn_op_stop( & unwindRegion->op[ unwindRegion->op_count ] );
 
-		IA64_instruction allocInsn = generateOriginalAllocFor( regSpace );
+		instruction allocInsn = generateOriginalAllocFor( regSpace );
 		IA64_bundle allocBundle( MIIstop, allocInsn, NOP_I, NOP_I );
-		insnPtr[ bundleCount++ ] = allocBundle.getMachineCode();
+		allocBundle.generate(gen);
 		unwindRegion->insn_count += 3;
 	} else {
 		_U_dyn_op_stop( & unwindRegion->op[ unwindRegion->op_count ] );
@@ -2049,15 +1862,14 @@ bool generatePreservationTrailer( ia64_bundle_t * insnPtr, Address & count, bool
 	/* FIXME: It's only after the above alloc executes that anything changes from the
 	   POV of the unwinder, because the preserved values stay where they were
 	   preserved until then. */
-
+	
 	// /* DEBUG */ fprintf( stderr, "Emitted %d-bundle preservation trailer at 0x%lx\n", bundleCount, (Address)insnPtr ); 
 
 	/* Update the offset. */
 	assert( unwindRegion->op_count < PRESERVATION_UNWIND_OPERATION_COUNT );
 	if( freeUnwindRegion ) { free( unwindRegion ); }
-	count += (bundleCount * 16);
 	return true;
-	} /* end generatePreservationTrailer() */
+} /* end generatePreservationTrailer() */
 
 /* Originally from linux-ia64.C's executingSystemCall(). */
 bool needToHandleSyscall( process * proc, bool * pcMayHaveRewound ) {
@@ -2072,7 +1884,7 @@ bool needToHandleSyscall( process * proc, bool * pcMayHaveRewound ) {
 	// Find the correct bundle.
 	iip = getPC( proc->getPid() );
 	reg_tmpl reg = { P_ptrace( PTRACE_PEEKUSER, proc->getPid(), PT_CR_IPSR, 0 ) };
-	if( errno && (reg.raw == -1) ) {
+	if( errno && (reg.raw == (unsigned)-1) ) {
 		// Error reading process information.  Should we assert here?
 		assert(0);
 		}
@@ -2096,18 +1908,18 @@ bool needToHandleSyscall( process * proc, bool * pcMayHaveRewound ) {
 	// Isolate previous instruction.
 	ri = (ri + 2) % 3;
 	IA64_bundle origBundle( rawBundle );
-	IA64_instruction *insn = origBundle.getInstruction(ri);
+	instruction *insn = origBundle.getInstruction(ri);
 
 	// Determine predicate register and remove it from instruction.
 	pr = P_ptrace( PTRACE_PEEKUSER, proc->getPid(), PT_PR, 0 );
 	if (errno && pr == -1) assert(0);
 	pr = ( pr >> insn->getPredicate() ) & 0x1;
 
-	return (insn->getType() == IA64_instruction::SYSCALL && !pr);
+	return (insn->getType() == instruction::SYSCALL && !pr);
 	} /* end needToHandleSyscall() */
 
 #include "dlfcn.h"
-bool emitSyscallHeader( process * proc, void * insnPtr, Address & baseBytes ) {
+bool emitSyscallHeader( process * proc, codeGen &gen) {
 	/* Extract the current slotNo. */
 	errno = 0;
 	reg_tmpl reg = { P_ptrace( PTRACE_PEEKUSER, proc->getPid(), PT_CR_IPSR, 0 ) };
@@ -2127,9 +1939,6 @@ bool emitSyscallHeader( process * proc, void * insnPtr, Address & baseBytes ) {
 	   the one appropriate for the known slotNo.  Copy from 'syscallPrefix'
 	   to 'syscallPrefixCommon', exclusive.  (The last bundle is an spacing-
 	   only NOP bundle.  The iRPC header proper should start there.) */
-
-	assert( ( ((Address)insnPtr) + baseBytes ) % 16 == 0 );
-	ia64_bundle_t * bundlePtr = (ia64_bundle_t *)( ((Address)insnPtr) + baseBytes );
 
 	/* FIXME: (static variable) cache the Addresses below. */
 	/* Calling dlopen() on a NULL string dlopen()s the current executable.
@@ -2182,24 +1991,30 @@ bool emitSyscallHeader( process * proc, void * insnPtr, Address & baseBytes ) {
 	Address prefixCommonAddress = (Address) prefixCommon;
 
 	Address lengthWithoutTrailingNOPs = prefixCommonAddress - syscallPrefixAddress;
-	memcpy( bundlePtr, (const void * )syscallPrefixAddress, lengthWithoutTrailingNOPs );
-	baseBytes += lengthWithoutTrailingNOPs;
+	//memcpy( bundlePtr, (const void * )syscallPrefixAddress, lengthWithoutTrailingNOPs );
+	//baseBytes += lengthWithoutTrailingNOPs;
+
+	gen.copy(syscallPrefix, lengthWithoutTrailingNOPs);
 
 	/* Likewise, we need to rewrite the nop.b bundle at jumpFromNotInSyscallToPrefixCommon
 	   because the assembler jumps are indirected.  (Why can't I force a relative jump?!) */
 	Address jumpAddress = (Address) jumpFromNotInSyscallToPrefixCommon;
-	IA64_instruction memoryNOP( NOP_M );
-	IA64_instruction_x branchPastInSyscall = generateLongBranchTo( prefixCommonAddress - jumpAddress );
+	instruction memoryNOP( NOP_M );
+	instruction_x branchPastInSyscall = generateLongBranchTo( prefixCommonAddress - jumpAddress );
 	IA64_bundle branchPastInSyscallBundle( MLXstop, memoryNOP, branchPastInSyscall );
-	* (bundlePtr + ( (jumpAddress - syscallPrefixAddress) / 16 )) = branchPastInSyscallBundle.getMachineCode();
+
+	codeBufIndex_t index = gen.getIndex();
+	gen.setIndex((jumpAddress - syscallPrefixAddress) / 16);
+	branchPastInSyscallBundle.generate(gen);
+	gen.setIndex(index);
 
 	/* Construct the slot-specific jump bundle. */
 	IA64_bundle firstJumpBundle;
 	IA64_bundle secondJumpBundle;
-	IA64_instruction branchNOP( NOP_B );
+	instruction branchNOP( NOP_B );
 	/* Probably wouldn't hurt to assert that the immediates here are small enough. */
-	IA64_instruction jumpToInSyscall = generateShortImmediateBranch( prefixInSyscallAddress - (syscallPrefixAddress + 0x10 ) );
-	IA64_instruction jumpToNotInSyscall = generateShortImmediateBranch( prefixNotInSyscallAddress - (syscallPrefixAddress + 0x10) );
+	instruction jumpToInSyscall = generateShortImmediateBranch( prefixInSyscallAddress - (syscallPrefixAddress + 0x10 ) );
+	instruction jumpToNotInSyscall = generateShortImmediateBranch( prefixNotInSyscallAddress - (syscallPrefixAddress + 0x10) );
 	switch( slotNo ) {
 		case 0:
 			jumpToInSyscall = generateShortImmediateBranch( prefixInSyscallAddress - syscallPrefixAddress );
@@ -2218,8 +2033,8 @@ bool emitSyscallHeader( process * proc, void * insnPtr, Address & baseBytes ) {
 			assert( 0 );
 			break;
 		}
-	bundlePtr[ 0 ] = firstJumpBundle.getMachineCode();
-	bundlePtr[ 1 ] = secondJumpBundle.getMachineCode();
+	firstJumpBundle.generate(gen);
+	secondJumpBundle.generate(gen);
 
 	// /* DEBUG */ fprintf( stderr, "* iRPC system call handler (prefix) generated at 0x%lx\n", (Address) bundlePtr );
 	return true;
@@ -2228,25 +2043,27 @@ bool emitSyscallHeader( process * proc, void * insnPtr, Address & baseBytes ) {
 /* private refactoring function */
 bool * doFloatingPointStaticAnalysis( const instPoint * location ) {
 	/* Cast away const-ness rather than fix broken int_function::getAddress(). */
-	int_function * functionBase = location->pointFunc();
-	Address mutatorAddress = (Address) location->getOwner()->getPtrToInstruction( functionBase->getAddress( NULL ) ) ;
+	int_function * functionBase = location->func();
 
-	IA64_iterator iAddr( mutatorAddress );
-	Address lastI = mutatorAddress + functionBase->get_size();
+	InstrucIter iAddr(functionBase);
+
 	// /* DEBUG */ fprintf( stderr, "Mutator claims to have mutatee machine code from 0x%lx to 0x%lx\n", mutatorAddress, lastI );
 	// /* DEBUG */ fprintf( stderr, "(claims to be function '%s')\n", functionBase->symTabName().c_str() );
 
 	bool fpUsed = false;
 	bool registersRotated = false;
 	bool * whichToPreserve = (bool *)calloc( 128, sizeof( bool ) );
+	
+	while (iAddr.hasMore()) {
+		instruction currInsn = iAddr.getInstruction();
+		int slotNo = currInsn.getSlotNumber();
+		iAddr++;
 
-	for( int slotNo = 0; iAddr < lastI; iAddr ++ ) {
-		IA64_instruction * currInsn = * iAddr;
-		insn_tmpl tmpl = { currInsn->getMachineCode() };
-
+		insn_tmpl tmpl = { currInsn.getMachineCode() };
+		
 		bool instructionIsFP = false;
 		bool instructionIsMem = false;
-		uint8_t templateID = currInsn->getTemplateID();
+		uint8_t templateID = currInsn.getTemplateID();
 		switch( templateID ) {
 			case 0x00:
 			case 0x01:
@@ -2301,7 +2118,7 @@ bool * doFloatingPointStaticAnalysis( const instPoint * location ) {
 
 			default:
 				break;
-				} /* end switch */
+		} /* end switch */
 
 		if( instructionIsMem ) {
 			/* Decide which fields in the instruction actually contain register numbers. */
@@ -2510,7 +2327,7 @@ bool * doFloatingPointStaticAnalysis( const instPoint * location ) {
 
 	if( registersRotated && fpUsed ) {
 		for( int i = 32; i < 128; i++ ) { whichToPreserve[i] = true; }
-		} /* end if we have to preserve all the stacked registers. */
+	} /* end if we have to preserve all the stacked registers. */
 
 	/* Never try to preserve fp 0, 1, 2 - 5, or 16 - 31, because we don't use
 	   them and the function we're calling will preserve them if it uses them. */
@@ -2541,13 +2358,13 @@ bool * doFloatingPointStaticAnalysis( const instPoint * location ) {
 																	
 	functionBase->usedFPregs = whichToPreserve;
 	return whichToPreserve;
- 	} /* end doFloatingPointStaticAnalysis() */ 
+} /* end doFloatingPointStaticAnalysis() */ 
 
 #define INVALID_CFM 0x10000000000
 extern void initBaseTrampStorageMap( registerSpace *, int, bool * );
 
 /* Required by process.C */
-bool rpcMgr::emitInferiorRPCheader( void * insnPtr, Address & baseBytes ) {
+bool rpcMgr::emitInferiorRPCheader( codeGen &gen ) {
 	/* Extract the CFM. */
 	errno = 0;
 	reg_tmpl reg = { P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CFM, 0 ) };
@@ -2564,7 +2381,7 @@ bool rpcMgr::emitInferiorRPCheader( void * insnPtr, Address & baseBytes ) {
 	Register deadRegisterList[NUM_LOCALS + NUM_OUTPUT];
 	for( int i = 0; i < NUM_LOCALS + NUM_OUTPUT; ++i ) {
 		deadRegisterList[i] = baseReg + i;
-		} /* end deadRegisterList population */
+	} /* end deadRegisterList population */
 	registerSpace rs( NUM_LOCALS + NUM_OUTPUT, deadRegisterList, 0, NULL );
 
 	initBaseTrampStorageMap( &rs, reg.CFM.sof, NULL );
@@ -2577,23 +2394,17 @@ bool rpcMgr::emitInferiorRPCheader( void * insnPtr, Address & baseBytes ) {
 	* regSpace = rs;
 	memcpy( ::deadRegisterList, deadRegisterList, 16 * sizeof( Register ) );
 
-	assert( ( ((Address)insnPtr) + baseBytes ) % 16 == 0 );
-	ia64_bundle_t * bundlePtr = (ia64_bundle_t *)( ((Address)insnPtr) + baseBytes );
-
 	if( needToHandleSyscall( proc_ ) ) {
-		if( ! emitSyscallHeader( proc_, insnPtr, baseBytes ) ) { return false; }
-		bundlePtr = (ia64_bundle_t *)( ((Address)insnPtr) + baseBytes );
-		}
+		if( ! emitSyscallHeader( proc_, gen) ) { return false; }
+	}
 	else {
 		/* We'll be adjusting the PC to the start of the preservation code,
 		   but we can't change the slot number ([i]psr.ri), so we need to soak
 		   up the extra slots with nops.  (Because the syscall header may require
 		   a bundle _before_ the jump target, add two NOPs; the installation routine(s)
 		   will compensate.) */
-		bundlePtr[0] = IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ).getMachineCode();
-		baseBytes += 16; bundlePtr++;
-		bundlePtr[0] = IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ).getMachineCode();		
-		baseBytes += 16; bundlePtr++;
+		IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ).generate(gen);
+		IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ).generate(gen);		
 		}
 
 	/* Determine which of the scratch (f6 - f15, f32 - f127) floating-point
@@ -2606,18 +2417,15 @@ bool rpcMgr::emitInferiorRPCheader( void * insnPtr, Address & baseBytes ) {
 
 	/* Generate the preservation header; don't bother with unwind information
 	   for an inferior RPC.  (It must be the top of the stack.) */
-	return generatePreservationHeader( bundlePtr, baseBytes, whichToPreserve, NULL );
-	} /* end emitInferiorRPCheader() */
+	return generatePreservationHeader( gen, whichToPreserve, NULL );
+} /* end emitInferiorRPCheader() */
 
-bool emitSyscallTrailer( void * insnPtr, Address & baseBytes, uint64_t slotNo ) {
+bool emitSyscallTrailer( codeGen &gen, uint64_t slotNo ) {
 	/* Copy the template from 'syscallSuffix' to 'suffixExitPoint' (inclusive),
 	   and replace the bundle at 'suffixExitPoint' with one which has 
 	   predicated SIGILLs in the right places. */
 
 	// /* DEBUG */ fprintf( stderr, "emitSyscallTrailer() thinks slotNo = %ld\n", slotNo );
-
-	assert( ( ((Address)insnPtr) + baseBytes ) % 16 == 0 );
-	ia64_bundle_t * bundlePtr = (ia64_bundle_t *)( ((Address)insnPtr) + baseBytes );
 
 	/* Grab those two addresses. */
 	char * dlErrorString = NULL;
@@ -2644,16 +2452,15 @@ bool emitSyscallTrailer( void * insnPtr, Address & baseBytes, uint64_t slotNo ) 
 	
 	/* Trailing NOPs are replaced by the constructed SIGILLs. */
 	Address lengthWithTrailingNOPs = ( suffixExitPointAddress + 0x10 ) - syscallSuffixAddress;
-	memcpy( bundlePtr, (const void *)syscallSuffixAddress, lengthWithTrailingNOPs );
-	baseBytes += lengthWithTrailingNOPs;
+	gen.copy(syscallSuffix, lengthWithTrailingNOPs);
 	
 	/* Construct the predicated SIGILLs for the bundle at suffixExitPointAddress. */
 	IA64_bundle predicatedBreakBundle;
 	switch( slotNo ) {
 		case 0: {
 			/* slot 0 NOT, slot 2 IS;; p1 and p2 from assembler */
-			IA64_instruction notInSyscallBreak( TRAP_M );
-			IA64_instruction inSyscallBreak( TRAP_I );
+			instruction notInSyscallBreak( TRAP_M );
+			instruction inSyscallBreak( TRAP_I );
 			notInSyscallBreak = predicateInstruction( 1, notInSyscallBreak );
 			inSyscallBreak = predicateInstruction( 2, inSyscallBreak );
 			// PROBLEM: in this case, the PC may need to be backed up!
@@ -2663,8 +2470,8 @@ bool emitSyscallTrailer( void * insnPtr, Address & baseBytes, uint64_t slotNo ) 
 			
 		case 1: {
 			/* slot 1 NOT, slot 0 IS */
-			IA64_instruction notInSyscallBreak( TRAP_M );
-			IA64_instruction inSyscallBreak( TRAP_M );
+			instruction notInSyscallBreak( TRAP_M );
+			instruction inSyscallBreak( TRAP_M );
 			notInSyscallBreak = predicateInstruction( 1, notInSyscallBreak );
 			inSyscallBreak = predicateInstruction( 2, inSyscallBreak );
 			predicatedBreakBundle = IA64_bundle( MMIstop, inSyscallBreak, notInSyscallBreak, NOP_I );
@@ -2672,9 +2479,9 @@ bool emitSyscallTrailer( void * insnPtr, Address & baseBytes, uint64_t slotNo ) 
 			
 		case 2: {
 			/* slot 2 NOT, slot 1 IS */
-			IA64_instruction memoryNOP( NOP_M );
-			IA64_instruction notInSyscallBreak( TRAP_I );
-			IA64_instruction inSyscallBreak( TRAP_M );
+			instruction memoryNOP( NOP_M );
+			instruction notInSyscallBreak( TRAP_I );
+			instruction inSyscallBreak( TRAP_M );
 			notInSyscallBreak = predicateInstruction( 1, notInSyscallBreak );
 			inSyscallBreak = predicateInstruction( 2, inSyscallBreak );
 			predicatedBreakBundle = IA64_bundle( MMIstop, memoryNOP, inSyscallBreak, notInSyscallBreak );
@@ -2683,34 +2490,32 @@ bool emitSyscallTrailer( void * insnPtr, Address & baseBytes, uint64_t slotNo ) 
 		default:
 			assert( 0 );
 		} /* end slotNo switch */		
-	* (bundlePtr + ((lengthWithTrailingNOPs - 0x10) / 16) ) = predicatedBreakBundle.getMachineCode();
+	codeBufIndex_t index = gen.getIndex();
+	gen.setIndex((lengthWithTrailingNOPs - 0x10)/16);
+	predicatedBreakBundle.generate(gen);
+	gen.setIndex(index);
 
 	// /* DEBUG */ fprintf( stderr, "* iRPC system call handler (suffix) generated at 0x%lx\n", (Address) bundlePtr );
 	return true;
 	} /* end emitSyscallTrailer() */
 
 /* Required by process.C */
-bool rpcMgr::emitInferiorRPCtrailer( void * insnPtr, Address & offset,
-			unsigned & breakOffset, bool shouldStopForResult,
-			unsigned & stopForResultOffset,
-			unsigned & justAfter_stopForResultOffset ) {
+bool rpcMgr::emitInferiorRPCtrailer( codeGen &gen,
+									 unsigned & breakOffset, bool shouldStopForResult,
+									 unsigned & stopForResultOffset,
+									 unsigned & justAfter_stopForResultOffset ) {
 	/* We'll need two of these. */
 	IA64_bundle trapBundle = generateTrapBundle();
 
 	/* Get a real instruction pointer. */
-	assert( ( ((Address)insnPtr) + offset ) % 16 == 0 );
-	ia64_bundle_t * bundlePtr = (ia64_bundle_t *)( ((Address)insnPtr) + offset);
-	unsigned int bundleCount = 0;
-
 	if( shouldStopForResult ) {
 		// * DEBUG */ fprintf( stderr, "* iRPC will stop for result.\n" );
-		stopForResultOffset = offset + (bundleCount * 16);
-		bundlePtr[ bundleCount++ ] = trapBundle.getMachineCode();
-		justAfter_stopForResultOffset = offset + (bundleCount * 16);
+		stopForResultOffset = gen.used();
+		trapBundle.generate(gen);
+		justAfter_stopForResultOffset = gen.used();
 		/* Make sure that we eat the ipsr.ri with a nop. */
-		bundlePtr[ bundleCount++ ] = IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ).getMachineCode();
-		offset += bundleCount * 16;
-		} /* end if we're interested in the result. */
+		IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ).generate(gen);
+	} /* end if we're interested in the result. */
 
 	/* Determine which of the scratch (f6 - f15, f32 - f127) floating-point
 	   registers need to be preserved.  See comment in emitInferiorRPCHeader()
@@ -2720,14 +2525,8 @@ bool rpcMgr::emitInferiorRPCtrailer( void * insnPtr, Address & offset,
 	bool * whichToPreserve = NULL; // doFloatingPointStaticAnalysis( interruptedFunction->funcEntry( proc_ ) );
 
 	/* Generate the restoration code. */
-	bundlePtr = (ia64_bundle_t *)( ((Address)insnPtr) + offset );
-	generatePreservationTrailer( bundlePtr, offset, whichToPreserve, NULL );
+	generatePreservationTrailer( gen, whichToPreserve, NULL );
 
-	/* Regenerate the bundle ptr, etc, to reflect the preservation trailer. */
-	assert( ( ((Address)insnPtr) + offset ) % 16 == 0 );
-	bundlePtr = (ia64_bundle_t *)( ((Address)insnPtr) + offset );
-	bundleCount = 0;
-	
 	/* The SIGILL for the demon needs to happen in the instruction slot
 	   corresponding to ipsr.ri so that the mutatee resumes in the correct
 	   location after the daemon adjusts its PC. */
@@ -2738,9 +2537,9 @@ bool rpcMgr::emitInferiorRPCtrailer( void * insnPtr, Address & offset,
 	assert( slotNo <= 2 );
 
 	if( needToHandleSyscall( proc_ ) ) {
-		if( ! emitSyscallTrailer( insnPtr, offset, slotNo ) ) { return false; }
-		breakOffset = offset - 16;
-		}
+		if( ! emitSyscallTrailer(gen, slotNo ) ) { return false; }
+		breakOffset = gen.used() - 16;
+	}
 	else {
 		IA64_bundle slottedTrapBundle;
 		switch( slotNo ) {
@@ -2755,21 +2554,44 @@ bool rpcMgr::emitInferiorRPCtrailer( void * insnPtr, Address & offset,
 				break;
 			} /* end slotNo switch */
 
-		breakOffset = offset + (bundleCount * 16);
-		bundlePtr[ bundleCount++ ] = slottedTrapBundle.getMachineCode();
-		offset += 16;
-		} /* end if we don't need to handle a syscall */
+		breakOffset = gen.used();
+		slottedTrapBundle.generate(gen);
+	} /* end if we don't need to handle a syscall */
 
 	/* If the demon drops the ball, make sure the mutatee suicides. */
-	bundlePtr = (ia64_bundle_t *)( ((Address)insnPtr) + offset );		
-	bundlePtr[ 0 ] = trapBundle.getMachineCode();
-	offset += 16;
+	trapBundle.generate(gen);
 	return true;
-	} /* end emitInferiorRPCtrailer() */
+} /* end emitInferiorRPCtrailer() */
+
+void baseTrampInstance::updateTrampCost(unsigned cost) {
+	if (baseT->costSize == 0) {
+		return;
+	}
+
+    assert(baseT->costSize);
+
+    Address trampCostAddr = trampPreAddr() + baseT->costValueOffset;
+
+    codeGen gen(baseT->costSize);
+
+    Address costAddr = proc()->getObservedCostAddr();
+#if 0
+	// x86 version
+    emitAddMemImm32(costAddr, cost, gen);
+#endif
+
+    assert(gen.used() == baseT->costSize);
+    
+    proc()->writeDataSpace((void *)trampCostAddr,
+                           gen.used(),
+                           (void *)gen.start_ptr());
+}
 
 
-unsigned int installTrampGuardOn(registerSpace *rs, process *proc, ia64_bundle_t *insnPtr)
-{
+bool baseTramp::generateGuardPreCode(codeGen &gen,
+									 codeBufIndex_t &guardJumpIndex,
+									 registerSpace *rs) {
+
 	// Assumptions: No need to "allocate" registers from registerSpace.  They are
 	//				scratch registers which just came into existence.
 	//
@@ -2777,49 +2599,77 @@ unsigned int installTrampGuardOn(registerSpace *rs, process *proc, ia64_bundle_t
 	//					1 for the miniTramp
 	//					2 for the guardOff bundles
 
+	assert(rs);
+
+	Address trampGuardBase = proc()->trampGuardBase();
+	if (!trampGuardBase) return false;
+
 	int maxRegister = rs->getRegisterCount();
-	Register trampGuardFlagAddr = rs->getRegSlot( maxRegister - 1 )->number;
-	Register trampGuardFlagValue = rs->getRegSlot( maxRegister - 2 )->number;
-
+	trampGuardFlagAddr = rs->getRegSlot( maxRegister - 1 )->number;
+	trampGuardFlagValue = rs->getRegSlot( maxRegister - 2 )->number;
+	
 	IA64_bundle guardOnBundle0( MLXstop,
-								IA64_instruction( NOP_M ),
-								generateLongConstantInRegister( trampGuardFlagAddr, proc->trampGuardAddr() ));
-
+								instruction( NOP_M ),
+								generateLongConstantInRegister( trampGuardFlagAddr, trampGuardBase ));
+	
 	IA64_bundle guardOnBundle1( MstopMIstop,
 								generateRegisterLoad( trampGuardFlagValue, trampGuardFlagAddr, 4 ),
 								generateComparison( eqOp, 6, trampGuardFlagValue, REGISTER_ZERO ),
-								IA64_instruction( NOP_I ));
+								instruction( NOP_I ));
 
 	IA64_bundle guardOnBundle2( MLXstop,
 								generateRegisterStore( trampGuardFlagAddr, REGISTER_ZERO, 4, 7),
 								generateLongBranchTo( +4 << 4, 6 ));
 
-	insnPtr[0] = guardOnBundle0.getMachineCode();
-	insnPtr[1] = guardOnBundle1.getMachineCode();
-	insnPtr[2] = guardOnBundle2.getMachineCode();
+	guardOnBundle0.generate(gen);
+	guardOnBundle1.generate(gen);
+	guardJumpIndex = gen.getIndex();
+	guardOnBundle2.generate(gen);
 
-	return 3; // Number of bundles added to insnPtr
+	return true; 
 }
 
-unsigned int installTrampGuardOff(registerSpace *rs, process *proc, ia64_bundle_t *insnPtr)
+bool baseTramp::generateGuardPostCode(codeGen &gen, codeBufIndex_t &postIndex,
+									  registerSpace *rs) 
 {
+	Address trampGuardBase = proc()->trampGuardBase();
+	if (!trampGuardBase) return false;
+
 	int maxRegister = rs->getRegisterCount();
     Register trampGuardFlagAddr = rs->getRegSlot( maxRegister - 1 )->number;
 	Register trampGuardFlagValue = rs->getRegSlot( maxRegister - 2 )->number;
 
     IA64_bundle guardOffBundle0( MLXstop,
 								 generateShortConstantInRegister( trampGuardFlagValue, 1 ),
-								 generateLongConstantInRegister( trampGuardFlagAddr, proc->trampGuardAddr() ));
+								 generateLongConstantInRegister( trampGuardFlagAddr, proc()->trampGuardBase() ));
 
     IA64_bundle guardOffBundle1( MMIstop,
 								 generateRegisterStore( trampGuardFlagAddr, trampGuardFlagValue, 4 ),
-								 IA64_instruction( NOP_M ),
-								 IA64_instruction( NOP_I ));
+								 instruction( NOP_M ),
+								 instruction( NOP_I ));
 
-    insnPtr[0] = guardOffBundle0.getMachineCode();
-    insnPtr[1] = guardOffBundle1.getMachineCode();
+    guardOffBundle0.generate(gen);
+    guardOffBundle1.generate(gen);
+	postIndex = gen.getIndex();
+	return true;
+}
 
-	return 2; // Number of bundles added to insnPtr
+bool baseTramp::generateCostCode(codeGen &gen,
+								 unsigned &costUpdateOffset,
+								 registerSpace *) {
+    Address costAddr = proc()->getObservedCostAddr();
+    if (!costAddr) return false;
+
+	// Do something
+	costUpdateOffset = 0;
+	return false;
+}
+
+
+bool baseTramp::generateMTCode(codeGen &gen,
+                               registerSpace *) {
+
+	return false;
 }
 
 void registerRemoteUnwindInformation( unw_word_t di, unw_word_t udil, pid_t pid ) {
@@ -2930,11 +2780,10 @@ bool insertAndRegisterDynamicUnwindInformation( unw_dyn_info_t * baseTrampDynami
 	
 	/* We need the address of the _U_dyn_info_list in the remote process in order
 	   to register the baseTrampDynamicInfo. */
-	bool couldNotFind = false;
-	Address addressOfuDIL = proc->findInternalAddress( "_U_dyn_info_list", false, couldNotFind );
-	if( couldNotFind ) {
+	Symbol dyn_info_list;
+	if (!proc->getSymbolInfo( "_U_dyn_info_list", dyn_info_list))
 		return ! proc->isBootstrappedYet();
-		}
+	Address addressOfuDIL = dyn_info_list.addr();
 	
 	/* Register baseTrampDynamicInfo in remote process. */
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: registering remote address range [0x%lx - 0x%lx) with gp = 0x%lx with uDIL at 0x%lx\n", __FILE__, __LINE__, baseTrampDynamicInfo->start_ip, baseTrampDynamicInfo->end_ip, baseTrampDynamicInfo->gp, addressOfuDIL );
@@ -2950,14 +2799,16 @@ bool insertAndRegisterDynamicUnwindInformation( unw_dyn_info_t * baseTrampDynami
  * generation (including the minitramps) for the results to be sensible.
  */
 
+#if 0
+
 /* private refactoring function */
 #define MAX_BASE_TRAMP_SIZE (16 * 512)	// FIXME: it would be a lot cleaner to determine this dynamically.
-trampTemplate * installBaseTramp( Address installationPoint, instPoint * & location, process * proc, bool trampRecursiveDesired = false )
+baseTramp * installBaseTramp( Address installationPoint, instPoint * & location, process * proc, bool trampRecursiveDesired = false )
 { // FIXME: updatecost
 	// /* DEBUG */ fprintf( stderr, "* Installing base tramp.\n" );
 	/* Allocate memory and align as needed. */
-	trampTemplate * baseTramp = new trampTemplate(location, proc);
-
+	baseTramp * baseTramp = new baseTramp(location, proc);
+	
 	bool allocErr; Address allocatedAddress = proc->inferiorMalloc( MAX_BASE_TRAMP_SIZE, anyHeap, NEAR_ADDRESS, & allocErr );
 	if( allocErr ) { fprintf( stderr, "Unable to allocate base tramp, aborting.\n" ); abort(); }
 	if( allocatedAddress % 16 != 0 ) { allocatedAddress = allocatedAddress - (allocatedAddress % 16); }
@@ -3004,7 +2855,7 @@ trampTemplate * installBaseTramp( Address installationPoint, instPoint * & locat
 	/* Determine this instrumentation point's regSpace and deadRegisterList (global variables)
 	   for use by the rest of the code generator.  The generatePreservation*() functions need
 	   this information as well. */
-	bool staticallyAnalyzed = defineBaseTrampRegisterSpaceFor( location, regSpace, deadRegisterList, proc );
+	bool staticallyAnalyzed = defineBaseTrampRegisterSpaceFor( location, regSpace, deadRegisterList);
 	if( ! staticallyAnalyzed ) {
 		fprintf( stderr, "FIXME: Dynamic determination of register frame required but not yet implemented, aborting.\n" );
 		fprintf( stderr, "FIXME: mutatee instrumentation point 0x%lx\n", location->pointAddr() + baseAddress );
@@ -3019,11 +2870,11 @@ trampTemplate * installBaseTramp( Address installationPoint, instPoint * & locat
 	/* CODEGEN: Insert the skipPreInsn nop bundle. */
 	IA64_bundle nopBundle( MIIstop, NOP_M, NOP_I, NOP_I );
 	baseTramp->skipPreInsOffset = baseTramp->size;
-	insnPtr[ bundleCount++ ] = nopBundle.getMachineCode();
+	nopBundle.generate(gen);
 	baseTramp->size += 16;
 	regionOne->insn_count += 3;	
 
-	int_function * pdf = location->pointFunc();
+	int_function * pdf = location->func();
 
 	/* Insert the preservation header. */
 	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
@@ -3044,7 +2895,7 @@ trampTemplate * installBaseTramp( Address installationPoint, instPoint * & locat
 
 	/* CODEGEN: Insert the localPre nop bundle.  (Jump to first minitramp.) */
 	baseTramp->localPreOffset = baseTramp->size;
-	insnPtr[bundleCount++] = nopBundle.getMachineCode(); baseTramp->size += 16; regionOne->insn_count += 3;
+	insnPtr[bundleCount++] = nopBundle.generate(gen); baseTramp->size += 16; regionOne->insn_count += 3;
 	baseTramp->localPreReturnOffset = baseTramp->size;
 
 	if (!trampRecursiveDesired) {
@@ -3104,14 +2955,14 @@ trampTemplate * installBaseTramp( Address installationPoint, instPoint * & locat
 	
 	/* CODEGEN: Replace the skipPre nop bundle with a jump from it to baseTramp->emulateInsOffset. */
 	unsigned int skipPreJumpBundleOffset = baseTramp->skipPreInsOffset / 16;
-	IA64_instruction memoryNOP( NOP_M );
-	IA64_instruction_x skipPreJump = generateLongBranchTo( baseTramp->emulateInsOffset - baseTramp->skipPreInsOffset ); 
+	instruction memoryNOP( NOP_M );
+	instruction_x skipPreJump = generateLongBranchTo( baseTramp->emulateInsOffset - baseTramp->skipPreInsOffset ); 
 	IA64_bundle skipPreJumpBundle( MLXstop, memoryNOP, skipPreJump );
-	instructions[skipPreJumpBundleOffset] = skipPreJumpBundle.getMachineCode();
+	instructions[skipPreJumpBundleOffset] = skipPreJumpBundle.generate(gen);
 
 	/* CODEGEN: Insert the skipPost nop bundle. */
 	baseTramp->skipPostInsOffset = baseTramp->size;
-	insnPtr[bundleCount++] = nopBundle.getMachineCode(); baseTramp->size += 16;
+	insnPtr[bundleCount++] = nopBundle.generate(gen); baseTramp->size += 16;
 	regionTwoB->insn_count += 3;	
 	
 	/* Open region three. */
@@ -3141,7 +2992,7 @@ trampTemplate * installBaseTramp( Address installationPoint, instPoint * & locat
 
 	/* CODEGEN: Insert the localPost nop bundle. */
 	baseTramp->localPostOffset = baseTramp->size;
-	insnPtr[bundleCount++] = nopBundle.getMachineCode(); baseTramp->size += 16; regionThree->insn_count += 3;	
+	insnPtr[bundleCount++] = nopBundle.generate(gen); baseTramp->size += 16; regionThree->insn_count += 3;	
 	baseTramp->localPostReturnOffset = baseTramp->size;
 
 	if (!trampRecursiveDesired) {
@@ -3186,16 +3037,16 @@ trampTemplate * installBaseTramp( Address installationPoint, instPoint * & locat
 
 	/* Insert the jump back to the multi-tramp. */
 	Address returnAddress = installationPoint + 16;
-	IA64_instruction_x returnFromTrampoline = generateLongBranchTo( returnAddress - (baseTramp->baseAddr + baseTramp->size) );
+	instruction_x returnFromTrampoline = generateLongBranchTo( returnAddress - (baseTramp->baseAddr + baseTramp->size) );
 	IA64_bundle returnBundle( MLXstop, memoryNOP, returnFromTrampoline );
-	insnPtr[bundleCount++] = returnBundle.getMachineCode(); baseTramp->size += 16;
+	insnPtr[bundleCount++] = returnBundle.generate(gen); baseTramp->size += 16;
 	regionFourB->insn_count += 3;
 
 	/* Replace the skipPost nop bundle with a jump from it to baseTramp->returnInsOffset. */
 	unsigned int skipPostJumpBundleOffset = baseTramp->skipPostInsOffset / 16;
-	IA64_instruction_x skipPostJump = generateLongBranchTo( baseTramp->returnInsOffset - baseTramp->skipPostInsOffset );
+	instruction_x skipPostJump = generateLongBranchTo( baseTramp->returnInsOffset - baseTramp->skipPostInsOffset );
 	IA64_bundle skipPostJumpBundle( MLXstop, memoryNOP, skipPostJump );
-	instructions[skipPostJumpBundleOffset] = skipPostJumpBundle.getMachineCode();
+	instructions[skipPostJumpBundleOffset] = skipPostJumpBundle.generate(gen);
 
 	/* Copy the instructions from hither to thither. */
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( allocatedAddress, proc );
@@ -3203,8 +3054,8 @@ trampTemplate * installBaseTramp( Address installationPoint, instPoint * & locat
 
 	/* Insert the jump from the multi-tramp.  Do NOT execute at instPoint's instrumentation
 	   if the corresponding instruction will not execute because of predication. */
-	// /* DEBUG */ if( location->iPgetInstruction()->getPredicate() != 0 ) { fprintf( stderr, "%s[%d]: Predicating jump at 0x%lx (for 0x%lx) with PR %d, machine code 0x%lx\n", __FILE__, __LINE__, installationPoint, location->pointAddr() + baseAddress, location->iPgetInstruction()->getPredicate(), location->iPgetInstruction()->getMachineCode() ); }
-	IA64_instruction_x jumpToBaseInstruction = generateLongBranchTo( allocatedAddress - installationPoint, location->iPgetInstruction()->getPredicate() );
+	// /* DEBUG */ if( location->iPgetInstruction()->getPredicate() != 0 ) { fprintf( stderr, "%s[%d]: Predicating jump at 0x%lx (for 0x%lx) with PR %d, machine code 0x%lx\n", __FILE__, __LINE__, installationPoint, location->pointAddr() + baseAddress, location->iPgetInstruction()->getPredicate(), location->iPgetInstruction()->generate(gen) ); }
+	instruction_x jumpToBaseInstruction = generateLongBranchTo( allocatedAddress - installationPoint, location->iPgetInstruction()->getPredicate() );
 	IA64_bundle jumpToBaseBundle( MLXstop, memoryNOP, jumpToBaseInstruction );
 	InsnAddr jAddr = InsnAddr::generateFromAlignedDataAddress( installationPoint, proc );
 	jAddr.replaceBundleWith( jumpToBaseBundle );
@@ -3279,14 +3130,14 @@ Address installMultiTramp(instPoint * & location, process *proc)
 	emulateBundle( bundleToEmulate, origBundleAddr, insnBuffer,
 				   bundleCount, size, allocatedAddress, 0 );
 	while( bundleCount < 3 ) {
-		insnBuffer[ bundleCount++ ] = nopBundle.getMachineCode(); size += 16;
+		insnBuffer[ bundleCount++ ] = nopBundle.generate(gen); size += 16;
 		}
 
 	// Prepare multi-tramp slot 1
 	emulateBundle( bundleToEmulate, origBundleAddr, insnBuffer,
 				   bundleCount, size, allocatedAddress, 1 );
 	while( bundleCount < 6 ) {
-		insnBuffer[ bundleCount++ ] = nopBundle.getMachineCode(); size += 16;
+		insnBuffer[ bundleCount++ ] = nopBundle.generate(gen); size += 16;
 		}
 
 	// Prepare multi-tramp slot 2 (if needed)
@@ -3294,21 +3145,21 @@ Address installMultiTramp(instPoint * & location, process *proc)
 		emulateBundle( bundleToEmulate, origBundleAddr, insnBuffer,
 					   bundleCount, size, allocatedAddress, 2 );
 	while( bundleCount < 9 ) {
-		insnBuffer[ bundleCount++ ] = nopBundle.getMachineCode(); size += 16;
+		insnBuffer[ bundleCount++ ] = nopBundle.generate(gen); size += 16;
 		}
 
-    IA64_instruction_x returnToOrig = generateLongBranchTo( (origBundleAddr + 0x10) -
+    instruction_x returnToOrig = generateLongBranchTo( (origBundleAddr + 0x10) -
 															(allocatedAddress + 0x90) );
-    IA64_bundle returnBundle( MLXstop, IA64_instruction(NOP_M), returnToOrig );
-    insnBuffer[ bundleCount++ ] = returnBundle.getMachineCode(); size += 16;
+    IA64_bundle returnBundle( MLXstop, instruction(NOP_M), returnToOrig );
+    insnBuffer[ bundleCount++ ] = returnBundle.generate(gen); size += 16;
 
 	// Copy the instructions into mutatee.
     InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( allocatedAddress, proc );
     iAddr.writeBundlesFrom( (unsigned char *)insnBuffer, 10 );
 
 	// Replace original bundle
-	IA64_instruction_x jumpToBaseInstruction = generateLongBranchTo( allocatedAddress - origBundleAddr );
-	IA64_bundle jumpToBaseBundle( MLXstop, IA64_instruction(NOP_M), jumpToBaseInstruction );
+	instruction_x jumpToBaseInstruction = generateLongBranchTo( allocatedAddress - origBundleAddr );
+	IA64_bundle jumpToBaseBundle( MLXstop, instruction(NOP_M), jumpToBaseInstruction );
 	InsnAddr jAddr = InsnAddr::generateFromAlignedDataAddress( origBundleAddr, proc );
 	jAddr.replaceBundleWith( jumpToBaseBundle );
 	
@@ -3341,7 +3192,7 @@ Address installMultiTramp(instPoint * & location, process *proc)
 	insertAndRegisterDynamicUnwindInformation( multiTrampDynamicInfo, proc );
 
 	/* It's apparently normal to duplicate the value of ->get_addr() in the call to addCodeRange(). */
-	multitrampTemplate * mttemplate = new multitrampTemplate( allocatedAddress, 10 * 0x10, location );
+	multibaseTramp * mttemplate = new multibaseTramp( allocatedAddress, 10 * 0x10, location );
 	assert( mttemplate != NULL );
 	proc->addCodeRange( allocatedAddress, mttemplate );
 	
@@ -3349,7 +3200,7 @@ Address installMultiTramp(instPoint * & location, process *proc)
 }
 
 /* Required by inst.C */
-trampTemplate * findOrInstallBaseTramp( process * proc, instPoint * & location,
+baseTramp * findOrInstallBaseTramp( process * proc, instPoint * & location,
 										returnInstance * & retInstance,
 										bool trampRecursiveDesired,
 										bool /*noCost*/, bool & /*deferred*/, bool /*allowTrap*/ ) {
@@ -3375,9 +3226,9 @@ trampTemplate * findOrInstallBaseTramp( process * proc, instPoint * & location,
 	/* Clear the multi-tramp slot (3 bundles) to prepare for basetramp install */
 	ia64_bundle_t emptySlot[3];
 	IA64_bundle nopBundle( MMI, NOP_M, NOP_M, NOP_I);
-	emptySlot[0] = nopBundle.getMachineCode();
-	emptySlot[1] = nopBundle.getMachineCode();
-	emptySlot[2] = nopBundle.getMachineCode();
+	emptySlot[0] = nopBundle.generate(gen);
+	emptySlot[1] = nopBundle.generate(gen);
+	emptySlot[2] = nopBundle.generate(gen);
 
 	int slotNo = (location->pointAddr() % 16);
 	Address installAddr = multiTrampAddress + (slotNo * 0x30);
@@ -3385,7 +3236,7 @@ trampTemplate * findOrInstallBaseTramp( process * proc, instPoint * & location,
 	iAddr.writeBundlesFrom( (unsigned char *)emptySlot, 3 );
 
 	/* "install" */
-	trampTemplate * installedBaseTramp = installBaseTramp( installAddr, location,
+	baseTramp * installedBaseTramp = installBaseTramp( installAddr, location,
 														   proc, trampRecursiveDesired );
 	/* FIXME */ if( installedBaseTramp == NULL ) { return NULL; }
 	proc->baseMap[location] = installedBaseTramp;
@@ -3401,20 +3252,19 @@ void generateMTpreamble(char *, Address &, process *) {
 	assert( 0 );	// We don't yet handle multiple threads.
 	} /* end generateMTpreamble() */
 
+#endif
+
 /* Required by ast.C */
-void emitFuncJump(opCode op, char *buf, Address &base, const int_function *callee,
+void emitFuncJump(opCode op, codeGen &gen, const int_function *callee,
 				  process *proc, const instPoint *location, bool) {
 
 	assert(op == funcJumpOp);
 	IA64_bundle bundle;
 
-	assert( ((Address)buf) % 16 == 0 );
-	ia64_bundle_t *insnPtr = (ia64_bundle_t *)(Address)buf;
-
 	// Remove basetramp's frame on memory stack.
 	/* FIXME: we should make use of the unwind_region information here, but this 
 	   is the only minitramp which alters the frame. */
-	generatePreservationTrailer( insnPtr, base, location->pointFunc()->usedFPregs, NULL );
+	generatePreservationTrailer( gen, location->func()->usedFPregs, NULL );
 
 	int outputRegisters = 8;
 	int extraOuts = outputRegisters % 3;
@@ -3432,11 +3282,10 @@ void emitFuncJump(opCode op, char *buf, Address &base, const int_function *calle
 	bundle = IA64_bundle( MII,
 						  generateAllocInstructionFor( regSpace, 5, outputRegisters, 0 ),
 						  (extraOuts >= 1 ? generateRegisterToRegisterMove( 32, offset )
-										  : IA64_instruction( NOP_I )),
+										  : instruction( NOP_I )),
 						  (extraOuts >= 2 ? generateRegisterToRegisterMove( 33, offset + 1 )
-										  : IA64_instruction( NOP_I )));
-	insnPtr[base/16] = bundle.getMachineCode();
-	base += 16;
+										  : instruction( NOP_I )));
+	bundle.generate(gen);
 
 	// Move local regs into output area.
 	for (int i = extraOuts; i < outputRegisters; i += 3) {
@@ -3444,8 +3293,7 @@ void emitFuncJump(opCode op, char *buf, Address &base, const int_function *calle
 							  generateRegisterToRegisterMove( 32 + (i+0), offset + (i+0) ),
 							  generateRegisterToRegisterMove( 32 + (i+1), offset + (i+1) ),
 							  generateRegisterToRegisterMove( 32 + (i+2), offset + (i+2) ));
-		insnPtr[base/16] = bundle.getMachineCode();
-		base += 16;
+		bundle.generate(gen);
 	}
 
 	// Save system state into local registers.  AR.PFS saved earlier by alloc.
@@ -3453,48 +3301,42 @@ void emitFuncJump(opCode op, char *buf, Address &base, const int_function *calle
 						  generateRegisterToRegisterMove( REGISTER_GP, offset - 4 ),
 						  generateBranchToRegisterMove( BRANCH_RETURN, offset - 3 ),
 						  generateBranchToRegisterMove( BRANCH_SCRATCH, offset - 2 ));
-	insnPtr[base/16] = bundle.getMachineCode();
-	base += 16;
+	bundle.generate(gen);
 
 	// Ready the callee address.
-	Address callee_addr = callee->getEffectiveAddress(proc);
+	Address callee_addr = callee->getAddress();
 	bundle = IA64_bundle( MLXstop,
-						  IA64_instruction( NOP_M ),
+						  instruction( NOP_M ),
 						  generateLongConstantInRegister( offset - 1, callee_addr ));
-	insnPtr[base/16] = bundle.getMachineCode();
-	base += 16;
+	bundle.generate(gen);
 
 	// Install GP for callee.
 	bundle = IA64_bundle( MLX,
-						  IA64_instruction( NOP_M ),
+						  instruction( NOP_M ),
 						  generateLongConstantInRegister( REGISTER_GP, proc->getTOCoffsetInfo( callee_addr )));
-	insnPtr[base/16] = bundle.getMachineCode();
-	base += 16;
+	bundle.generate(gen);
 
 	// Copy the callee address and jump.
 	bundle = IA64_bundle( MIBstop,
-						  IA64_instruction( NOP_M ),
+						  instruction( NOP_M ),
 						  generateRegisterToBranchMove( offset - 1, BRANCH_SCRATCH ),
 						  generateIndirectCallTo( BRANCH_SCRATCH, BRANCH_RETURN ));
-	insnPtr[base/16] = bundle.getMachineCode();
-	base += 16;
+	bundle.generate(gen);
 
 	// Restore system state.
 	bundle = IA64_bundle( MII,
 						  generateRegisterToRegisterMove( offset - 4, REGISTER_GP ),
 						  generateRegisterToBranchMove( offset - 3, BRANCH_RETURN ),
 						  generateRegisterToApplicationMove( 32 + regSpace->originalLocals + regSpace->originalOutputs, AR_PFS ));
-	insnPtr[base/16] = bundle.getMachineCode();
-	base += 16;
+	bundle.generate(gen);
 
 	bundle = IA64_bundle( MII,
 						  (extraOuts >= 1 ? generateRegisterToRegisterMove( offset, 32 )
-										  : IA64_instruction( NOP_I )),
+										  : instruction( NOP_I )),
 						  (extraOuts >= 2 ? generateRegisterToRegisterMove( offset + 1, 33 )
-										  : IA64_instruction( NOP_I )),
+										  : instruction( NOP_I )),
 						  generateRegisterToBranchMove( offset - 2, BRANCH_SCRATCH ));
-	insnPtr[base/16] = bundle.getMachineCode();
-	base += 16;
+	bundle.generate(gen);
 
 	// Move output regs back into local area.
 	for (int i = extraOuts; i < outputRegisters; i += 3) {
@@ -3502,30 +3344,28 @@ void emitFuncJump(opCode op, char *buf, Address &base, const int_function *calle
 							  generateRegisterToRegisterMove( offset + (i+0), 32 + (i+0) ),
 							  generateRegisterToRegisterMove( offset + (i+1), 32 + (i+1) ),
 							  generateRegisterToRegisterMove( offset + (i+2), 32 + (i+2) ));
-		insnPtr[base/16] = bundle.getMachineCode();
-		base += 16;
+		bundle.generate(gen);
 	}
 
 	// Restore original register frame.
 	bundle = IA64_bundle( MstopMIstop,
-						  IA64_instruction( NOP_M ),
+						  instruction( NOP_M ),
 						  generateOriginalAllocFor( regSpace ),
-						  IA64_instruction( NOP_M ));
-	insnPtr[base/16] = bundle.getMachineCode();
-	base += 16;
+						  instruction( NOP_M ));
+	bundle.generate(gen);
 
 	// Ignore rest of tramp, and return directly to original caller.
 	bundle = IA64_bundle( MMBstop,
-						  IA64_instruction( NOP_M ),
-						  IA64_instruction( NOP_M ),
+						  instruction( NOP_M ),
+						  instruction( NOP_M ),
 						  generateReturnTo( BRANCH_RETURN ));
-	insnPtr[base/16] = bundle.getMachineCode();
-	base += 16;
+	bundle.generate(gen);
 }
+
 
 /* Required by ast.C */
 Register emitR( opCode op, Register src1, Register /*src2*/, Register dest,
-				char * ibuf, Address & base, bool /*noCost*/,
+				codeGen &gen,  bool /*noCost*/,
 				const instPoint *location, bool /*for_multithreaded*/) {
 	/* FIXME: handle noCost */
 	switch( op ) {
@@ -3541,14 +3381,12 @@ Register emitR( opCode op, Register src1, Register /*src2*/, Register dest,
 				*/
 				int spReg = regSpace->storageMap[ BP_GR0 + REGISTER_SP ];
 				int memStackOffset = (src1 - 8 + 2) * 8;
-				ia64_bundle_t * rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
 
 				IA64_bundle bundle = IA64_bundle( MstopMIstop,
 												  generateShortImmediateAdd(dest, memStackOffset, spReg),
 												  generateRegisterLoad(dest, dest),
-												  IA64_instruction(NOP_M) );
-				*rawBundlePointer = bundle.getMachineCode();
-				base += 16;
+												  instruction(NOP_M) );
+				bundle.generate(gen);
 				return dest;
 
 				} else {
@@ -3559,7 +3397,7 @@ Register emitR( opCode op, Register src1, Register /*src2*/, Register dest,
 				if (location->getPointType() == callSite)
 					regStackOffset = regSpace->originalLocals;
 
-				emitRegisterToRegisterCopy( 32 + regStackOffset + src1, dest, ibuf, base, NULL );
+				emitRegisterToRegisterCopy( 32 + regStackOffset + src1, dest, gen, NULL );
 				return dest;
 				} /* end if it's a parameter in a register. */
 			} break;
@@ -3573,7 +3411,7 @@ Register emitR( opCode op, Register src1, Register /*src2*/, Register dest,
 			   This should be valid for the general case. */
 			   
 			Register retVal = (Register)8;
-			emitRegisterToRegisterCopy(retVal, dest, ibuf, base, NULL);
+			emitRegisterToRegisterCopy(retVal, dest, gen, NULL);
 			return dest;
 			} break;
 
@@ -3587,82 +3425,78 @@ Register emitR( opCode op, Register src1, Register /*src2*/, Register dest,
 void initDefaultPointFrequencyTable() {
 	/* On other platforms, this loads data into a table that's only used
 	   in the function getPointFrequency, which is never called, so we'll do nothing. */
-	} /* end initDefaultPointFrequencyTable() */
+} /* end initDefaultPointFrequencyTable() */
 
 #define DEFAULT_MAGIC_FREQUENCY 100.0
 float getPointFrequency( instPoint * point ) {
-	int_function * func = point->getCallee();
-                                                                                                                                   
-	if( !func ) { func = point->pointFunc(); }
-
-	#if defined( USE_DEFAULT_FREQUENCY_TABLE )
+	int_function * func = point->findCallee();
+	
+	if( !func ) { func = point->func(); }
+	
+#if defined( USE_DEFAULT_FREQUENCY_TABLE )
 	if( ! funcFrequencyTable.defines( func->prettyName() ) ) { return DEFAULT_MAGIC_FREQUENCY; }
   	else{ return (float) funcFrequencyTable[ func->prettyName() ]; }
-	#else
+#else
 	return DEFAULT_MAGIC_FREQUENCY;
-	#endif /* defined( USE_DEFAULT_FREQUENCY_TABLE ) */
-	} /* end getPointFrequency() */
+#endif /* defined( USE_DEFAULT_FREQUENCY_TABLE ) */
+} /* end getPointFrequency() */
 
 /* Required by inst.C, ast.C */
-Address emitA( opCode op, Register src1, Register /*src2*/, Register dest,
-			   char * ibuf, Address & base, bool /*noCost*/ ) {  // FIXME: cost?
+codeBufIndex_t emitA( opCode op, Register src1, Register /*src2*/, Register dest,
+			   codeGen &gen,  bool /*noCost*/ ) {  // FIXME: cost?
 	/* Emit the given opcode, returning its relative offset.  For
 	   multi-bundle opcodes, return the offset of the branch itself;
 	   the code generator will insert the fall-through case directly
 	   after this address. */
-	assert( (((Address)ibuf + base) % 16) == 0 );
-	ia64_bundle_t * rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
+	
+	codeBufIndex_t retval;
 
 	switch( op ) {
 		case trampTrailer: {
-			rawBundlePointer[0] = IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ).getMachineCode();
-
-			base += 16;
-			return (base - 16);
+			retval = gen.getIndex();
+			IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ).generate(gen);
 			break; }
 
 		case ifOp: {
 			/* Branch by offset dest if src1 is zero. */
-
+			
 			/* See note in eqOp case of emitV() about predicate registers */
-			IA64_instruction compareInsn = generateComparison( eqOp, src1 % 64, src1, REGISTER_ZERO );
-			IA64_instruction_x branchInsn = predicateLongInstruction( src1 % 64, generateLongBranchTo( dest ) );
+			instruction compareInsn = generateComparison( eqOp, src1 % 64, src1, REGISTER_ZERO );
+			instruction_x branchInsn = predicateLongInstruction( src1 % 64, generateLongBranchTo( dest ) );
 			IA64_bundle compareBundle( MIIstop, compareInsn, NOP_I, NOP_I );
-			IA64_instruction memoryNOP( NOP_M );
+			instruction memoryNOP( NOP_M );
 			IA64_bundle branchBundle( MLXstop, memoryNOP, branchInsn );
-			rawBundlePointer[0] = compareBundle.getMachineCode();
-			rawBundlePointer[1] = branchBundle.getMachineCode();
-
-			base += 32;
-			return (base - 16);
+			compareBundle.generate(gen);
+			retval = gen.getIndex();
+			branchBundle.generate(gen);
 			break; }
 			
 		case branchOp: {
 			/* Why are we passing 64-bit numbers through a Register type? */
-			IA64_instruction memoryNOP( NOP_M );
-			IA64_instruction_x branchInsn = generateLongBranchTo( dest );
+			instruction memoryNOP( NOP_M );
+			instruction_x branchInsn = generateLongBranchTo( dest );
 			IA64_bundle branchBundle( MLXstop, memoryNOP, branchInsn );
-			rawBundlePointer[0] = branchBundle.getMachineCode();
-			
-			base += 16;
-			return base - 16;
+			retval = gen.getIndex();
+			branchBundle.generate(gen);
 			} break;
 
-		default:
-			assert( 0 );
-			return 0;
-		} /* end op switch */
-	} /* end emitA() */
+	default:
+		assert( 0 );
+		return 0;
+	} /* end op switch */
+	return retval;
+} /* end emitA() */
 
 /* Required by ast.C */
 bool doNotOverflow( int /*value*/ ) { 
 	/* To be on the safe side, we'll say it always overflows,
 	   since it's not clear to me which immediate size(s) are going to be used. */
 	return false;
-	} /* end doNotOverflow() */
+} /* end doNotOverflow() */
 
+#if 0
 /* Required by inst.C; install a single mini-tramp */
-void installTramp( miniTrampHandle *mtHandle,
+void installTramp( miniTramp *mtHandle,
 				   process *proc,
 				   char *code, int codeSize) {
 	/* Book-keeping. */
@@ -3742,56 +3576,48 @@ void installTramp( miniTrampHandle *mtHandle,
 	if( insertNOPAt != 0 ) {
 		InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( insertNOPAt, proc );
 		iAddr.replaceBundleWith( IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ) );
-		}
+	}
 } /* end installTramp() */
+#endif
 
 /* Required by ast.C */
 void emitVstore( opCode op, Register src1, Register src2, Address dest,
-				 char * ibuf, Address & base, bool /*noCost*/, registerSpace * rs, int size,
+				 codeGen &gen,  bool /*noCost*/, registerSpace * rs, int size,
 				 const instPoint * location, process * proc) {
-	assert( (((Address)ibuf + base) % 16) == 0 );
-	ia64_bundle_t * rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
 
 	switch( op ) {
 		case storeOp: {
-			IA64_instruction memoryNOP( NOP_M );
-			IA64_instruction_x loadAddressInsn = generateLongConstantInRegister( src2, dest );
+			instruction memoryNOP( NOP_M );
+			instruction_x loadAddressInsn = generateLongConstantInRegister( src2, dest );
 			IA64_bundle loadBundle( MLXstop, memoryNOP, loadAddressInsn );
-			rawBundlePointer[0] = loadBundle.getMachineCode();
-			base += 16;
+			loadBundle.generate(gen);
 
-			IA64_instruction storeInsn = generateRegisterStore( src2, src1, size );
+			instruction storeInsn = generateRegisterStore( src2, src1, size );
 			IA64_bundle storeBundle( MIIstop, storeInsn, NOP_I, NOP_I );
-			rawBundlePointer[1] = storeBundle.getMachineCode();
-			base += 16;
-			} break;
+			storeBundle.generate(gen);
+		} break;
 
 		case storeFrameRelativeOp: {
 			/* Store size bytes at the address fp + the immediate dest from the register src1,
 			   using the scratch register src2. */
-			assert( location->pointFunc()->framePointerCalculator != NULL );			
+			assert( location->func()->framePointerCalculator != NULL );			
 
 			/* framePointerCalculator will leave the frame pointer in framePointer. */
 			pdvector< AstNode * > ifForks;
-			Register framePointer = (Register) location->pointFunc()->framePointerCalculator->generateCode_phase2( proc, rs, ibuf, base, false, ifForks, location );
+			Register framePointer = (Register) location->func()->framePointerCalculator->generateCode_phase2( proc, rs, gen, false, ifForks, location );
 			/* For now, make sure what we don't know can't hurt us. */
 			assert( ifForks.size() == 0 );
 
-			/* Recalculate this because of the generateCode_phase2() call. */
-			rawBundlePointer = (ia64_bundle_t *)((Address)ibuf + base);
-			
 			/* See the frameAddr case in emitVload() for an optimization. */
-			IA64_instruction memoryNop( NOP_M );
-			IA64_instruction_x loadOffset = generateLongConstantInRegister( src2, dest );
+			instruction memoryNop( NOP_M );
+			instruction_x loadOffset = generateLongConstantInRegister( src2, dest );
 			IA64_bundle loadOffsetBundle( MLXstop, memoryNop, loadOffset );
-			IA64_instruction computeAddress = generateArithmetic( plusOp, src2, src2, framePointer );
-			IA64_instruction storeToAddress = generateRegisterStore( src2, src1, size );
-			IA64_instruction integerNop( NOP_I );
+			instruction computeAddress = generateArithmetic( plusOp, src2, src2, framePointer );
+			instruction storeToAddress = generateRegisterStore( src2, src1, size );
+			instruction integerNop( NOP_I );
 			IA64_bundle computeAndStoreBundle( MstopMIstop, computeAddress, storeToAddress, integerNop );
-			rawBundlePointer[0] = loadOffsetBundle.getMachineCode();
-			rawBundlePointer[1] = computeAndStoreBundle.getMachineCode();
-			base += 32;
-			
+			loadOffsetBundle.generate(gen);
+			computeAndStoreBundle.generate(gen);
 			rs->freeRegister( framePointer );
 			} break;
 
@@ -3803,13 +3629,7 @@ void emitVstore( opCode op, Register src1, Register src2, Address dest,
 	} /* end emitVstore() */
 
 /* Required by ast.C */
-void emitJmpMC( int /*condition*/, int /*offset*/, char * /*baseInsn*/, Address & /*base*/ ) { assert( 0 ); }
-
-/* Required by inst.C */
-void generateNoOp( process * proc, Address addr ) { 
-	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( addr, proc );
-	iAddr.replaceBundleWith( IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ) );
-	} /* end generateNoOp */
+void emitJmpMC( int /*condition*/, int /*offset*/, codeGen &) { assert( 0 ); }
 
 /* -------- implementation of InsnAddr -------- */
 
@@ -3876,7 +3696,7 @@ bool InsnAddr::replaceBundlesWith( const IA64_bundle * replacementBundles, unsig
 	ia64_bundle_t * rawReplacementBundles = (ia64_bundle_t *)malloc( sizeof( ia64_bundle_t ) * numberOfReplacementBundles );
 	for( unsigned int i = 0; i < numberOfReplacementBundles; i++ ) {
 		rawReplacementBundles[i] = replacementBundles[i].getMachineCode();
-		}
+	}
 
 	return myProc->writeTextSpace( (void *)alignedAddress, (numberOfReplacementBundles * 16), rawReplacementBundles );
 	} /* end replaceBundlesWith() */
@@ -3904,10 +3724,11 @@ uint64_t InsnAddr::operator * () {
 
 	/* Return the appropriate left-aligned machine code. */
 	return bundle.getInstruction( offset )->getMachineCode();
-	} /* end operator * () */
+} /* end operator * () */
 
 /* Implementation of IA64_iterator. */
 
+#if 0
 IA64_iterator::IA64_iterator( Address addr ) : encodedAddress( addr ) {
 	currentBundle = IA64_bundle( *(ia64_bundle_t*)addr );
 	} /* end constructor */
@@ -3916,7 +3737,7 @@ bool operator < ( IA64_iterator lhs, IA64_iterator rhs ) {
 	return ( lhs.encodedAddress < rhs.encodedAddress );
 	} /* end operator < () */
 
-IA64_instruction * IA64_iterator::operator * () {
+instruction * IA64_iterator::operator * () {
 	/* Compute the instruction slot. */
 	unsigned short offset = encodedAddress % 16;
 
@@ -3949,42 +3770,7 @@ const IA64_iterator IA64_iterator::operator++ ( int ) {
 	/* Return the proper value. */
 	return rv;
 	} /* end operator ++ */
-
-/* Implementation of instPoint */
-instPoint::instPoint( Address encodedAddress, int_function * pdfn, IA64_instruction * theInsn, instPointType type )  : instPointBase(type, encodedAddress, pdfn), myInstruction( theInsn ) {
-	/* Does not account for base addresses. */
-	myTargetAddress = myInstruction->getTargetAddress() + pointAddr();
-	/* 16-byte align the target to compensate for pointAddr() being encoded. */
-	myTargetAddress = myTargetAddress - (myTargetAddress % 16);
-	} /* end instPoint constructor */
-
-/* The IA-64 instrumentation code always displaces a single three-instruction bundle.
-   We'll return the machine code, since that's easier and the type of insns isn't specificed. */ 
-int BPatch_point::getDisplacedInstructionsInt( int maxSize, void * insns ) {
-	/* If there's not enough room, don't do anything. */
-	if( ((unsigned)maxSize) < sizeof( ia64_bundle_t ) ) { return 0; }
-
-	/* Acquire the machine-code bundle. */
-	Address mutatorAddress = (Address) point->getOwner()->getPtrToInstruction( point->pointAddr() ) ;
-	Address alignedBundleAddress = mutatorAddress - (mutatorAddress % 0x10 );
-
-	/* Copy things over. */
-	* ( ia64_bundle_t *) insns = * (ia64_bundle_t *) alignedBundleAddress;
-
-	return sizeof( ia64_bundle_t );
-	} /* end getDisplacedInstructions() */
-
-/* For edge (loop) instrumentation. */
-BPatch_point * createInstructionEdgeInstPoint( process* proc, int_function *func, BPatch_edge *edge ) {
-	assert( 0 );
-    return NULL;
-	} /* end createInstructionEdgeInstPoint() */
-
-/* For edge (loop) instrumentation. */
-void createEdgeTramp( process * proc, image * img, BPatch_edge * edge ) {
-	assert( 0 );
-	} /* end createEdgeTramp() */
-
+#endif
 
 /* For AIX liveness analysis */
 void registerSpace::resetLiveDeadInfo(const int * liveRegs)
@@ -4004,65 +3790,10 @@ bool registerSpace::clobberFPRegister( Register reg ) {
 	} /* end clobberFPRegister() */
 
 /* For AIX "on the fly" register allocation. */
-unsigned saveRestoreRegistersInBaseTramp( process * proc, trampTemplate * bt, registerSpace * rs ) {
+unsigned saveRestoreRegistersInBaseTramp( process * proc, baseTramp * bt, registerSpace * rs ) {
 	return 0;
 	} /* end saveRestoreRegistersInBaseTramp() */
 
-/*  For AIX merged tramp implementation */
-trampTemplate *installMergedTramp(process *proc, 
-				  instPoint *&location,
-				  char * i, Address count, 
-				  registerSpace * regS, 
-				  callWhen when,
-				  returnInstance *&retInstance,
-				  bool trampRecursiveDesired,
-				  bool /*noCost*/,
-				  bool& /*deferred*/,
-				  bool /*allowTrap*/)
-{
-  trampTemplate *ret = NULL;
-  return ret;
-}
-
-
-
-#if ! defined( BPATCH_LIBRARY )
-
-bool returnInstance::checkReturnInstance( const pdvector< pdvector<Frame> > &stackWalks ) {
-	/* Looted from inst-x86.C */
-	for( unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++ ) {
-		for( u_int i=0; i < stackWalks[ walk_iter ].size(); i++ ) {
-			/* 27FEB03: we no longer return true if we are at the
-			   exact same address as the return instance. In this case
-			   writing a jump is safe. -- bernat */
-			if(	(stackWalks[walk_iter][i].getPC() > addr_) &&
-				(stackWalks[walk_iter][i].getPC() < addr_+size_) ) {
-				bperr( "PC at 0x%lx (thread %d, frame %d) conflicts with inst point 0x%lx\n", stackWalks[walk_iter][i].getPC(), walk_iter, i, addr_);
-				return false;
-				}
-			}
-		}
-	return true;
-	} /* end checkReturnInstance() */
-
-#define BASE_TRAMP_MAGIC_COST 1000 /* in 'cycles' */ 
-int getPointCost( process * proc, const instPoint * point ) {
-	if( proc->baseMap.defines( point ) ) {
-   		return 0;
-   		}
-   	else {
-   		return BASE_TRAMP_MAGIC_COST;
-   		}
-   	} /* end getPointCost() */
-
-#endif /* ! defined( BPATCH_LIBRARY ) */
-
-bool process::isDynamicCallSite( instPoint * callSite ) {
-	switch( callSite->iPgetInstruction()->getType() ) {
-		case IA64_instruction::INDIRECT_CALL: return true;
-		default: return false;
-		}
-	} /* end isDynamicCallSite() */
 
 #if defined( OLD_DYNAMIC_CALLSITE_MONITORING )
 bool process::MonitorCallSite( instPoint * callSite ) {
@@ -4071,7 +3802,7 @@ bool process::MonitorCallSite( instPoint * callSite ) {
 /* This is a really horribly-named function. */
 bool process::getDynamicCallSiteArgs( instPoint * callSite, pdvector<AstNode *> & arguments ) {
 #endif
-	insn_tmpl tmpl = { callSite->iPgetInstruction()->getMachineCode() };
+	insn_tmpl tmpl = { callSite->insn().getMachineCode() };
 	uint64_t targetAddrRegister = tmpl.B4.b2;			
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: monitoring call site for branch register %d\n", __FILE__, __LINE__, targetAddrRegister );
 	
@@ -4080,7 +3811,7 @@ bool process::getDynamicCallSiteArgs( instPoint * callSite, pdvector<AstNode *> 
 	assert( target != NULL );
 	arguments[0] = target;
 	
-	AstNode * source = new AstNode( AstNode::Constant, callSite->pointAddr() );
+	AstNode * source = new AstNode( AstNode::Constant, callSite->addr() );
 	assert( source != NULL );
 	arguments[1] = source;
 
@@ -4088,10 +3819,172 @@ bool process::getDynamicCallSiteArgs( instPoint * callSite, pdvector<AstNode *> 
 	AstNode * callToMonitor = new AstNode( "DYNINSTRegisterCallee", arguments );
 	assert( callToMonitor != NULL );
 	
-	miniTrampHandle * mtHandle = NULL;
+	miniTramp * mtHandle = NULL;
 	addInstFunc(	this, mtHandle, callSite, callToMonitor,
 					callPreInsn, orderFirstAtPoint, true, false, true );
 #endif
 						
 	return true;
 	} /* end MonitorCallSite() */
+
+ 
+bool multiTramp::generateBranchToTramp(codeGen &gen) {
+	// We need to branch from instAddr_ to trampAddr_. We 
+	// do it with a single jump
+	instruction_x jumpToBaseInstruction = generateLongBranchTo(trampAddr_ - instAddr_); 
+	IA64_bundle jumpToBaseBundle(MLXstop, instruction(NOP_M), jumpToBaseInstruction);
+	jumpToBaseBundle.generate(gen);
+	return true;
+}
+
+unsigned relocatedInstruction::maxSizeRequired() {
+	// This can be pruned to be a better estimate.
+
+	return 48; // bundles. I think. Might be 3.
+}
+
+ unsigned multiTramp::maxSizeRequired() {
+	 return 16; // bundle
+ }
+
+ unsigned miniTramp::interJumpSize() {
+	 return 16; // bundle
+ }
+
+ unsigned trampEnd::maxSizeRequired() {
+	 return 32; // bundles
+ }
+
+ bool baseTrampInstance::finalizeGuardBranch(codeGen &gen,
+											 int disp) {
+	 // Note: the long branch divides the displacement by 16, so we don't do that here
+
+	 IA64_bundle guardOnBundle2( MLXstop,
+								 generateRegisterStore( baseT->trampGuardFlagAddr, REGISTER_ZERO, 4, 7),
+								 generateLongBranchTo( disp, 6 ));
+
+	 return true;
+ }
+
+ bool baseTramp::generateSaves(codeGen &gen, registerSpace *rs) {
+	 // Unwind information starts
+	 
+#if 0
+	 baseTrampDynamicInfo = (unw_dyn_info_t *)calloc(1, sizeof(unw_dyn_info_t));
+	 assert(baseTrampDynamicInfo != NULL);
+
+	 baseTrampDynamicInfo->next = NULL;
+	 baseTrampDynamicInfo->prev = NULL;
+#endif
+
+#if 0
+	 // This needs to hit the multi tramp, I think.
+
+	 /* The first region will simply ALIAS to the instrumentation point. */
+	 unw_dyn_region_info_t * regionZero = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 2 ) );
+	 assert( regionZero != NULL );
+	 
+	 regionZero->insn_count = 0;
+	 regionZero->op_count = 2;
+	 // /* DEBUG */ fprintf( stderr, "aliasing basetramp (beginning) to 0x%lx\n", origBundleAddr + baseAddress );
+	 _U_dyn_op_alias( & regionZero->op[0], _U_QP_TRUE, -1, point->addr );
+	 _U_dyn_op_stop( & regionZero->op[1] );
+#endif
+	 
+	 /* Operations for the base tramp proper; this (probably) grossly overestimates the number of operations. */
+	 baseTrampRegion = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( PRESERVATION_UNWIND_OPERATION_COUNT ) );
+	 assert( baseTrampRegion != NULL );
+
+	 //regionOne->next = NULL;
+	 
+	 baseTrampRegion->insn_count = 0;
+	 baseTrampRegion->op_count = 0;
+
+	/* Determine this instrumentation point's regSpace and deadRegisterList (global variables)
+	   for use by the rest of the code generator.  The generatePreservation*() functions need
+	   this information as well. */
+	bool staticallyAnalyzed = defineBaseTrampRegisterSpaceFor( point(), regSpace, deadRegisterList);
+	if( ! staticallyAnalyzed ) {
+		fprintf( stderr, "FIXME: Dynamic determination of register frame required but not yet implemented, aborting.\n" );
+		fprintf( stderr, "FIXME: mutatee instrumentation point 0x%lx\n", point()->addr() );
+		return false;
+	} 
+
+	return generatePreservationHeader(gen, point()->func()->usedFPregs, baseTrampRegion);
+ }
+
+ bool baseTramp::generateRestores(codeGen &gen, registerSpace *rs) {
+	 // Unwind information starts
+	 
+#if 0
+	 baseTrampDynamicInfo = (unw_dyn_info_t *)calloc(1, sizeof(unw_dyn_info_t));
+	 assert(baseTrampDynamicInfo != NULL);
+
+	 baseTrampDynamicInfo->next = NULL;
+	 baseTrampDynamicInfo->prev = NULL;
+#endif
+
+#if 0
+	 // This needs to hit the multi tramp, I think.
+
+	 /* The first region will simply ALIAS to the instrumentation point. */
+	 unw_dyn_region_info_t * regionZero = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 2 ) );
+	 assert( regionZero != NULL );
+	 
+	 regionZero->insn_count = 0;
+	 regionZero->op_count = 2;
+	 // /* DEBUG */ fprintf( stderr, "aliasing basetramp (beginning) to 0x%lx\n", origBundleAddr + baseAddress );
+	 _U_dyn_op_alias( & regionZero->op[0], _U_QP_TRUE, -1, point->addr );
+	 _U_dyn_op_stop( & regionZero->op[1] );
+#endif
+	 
+	 /* Operations for the base tramp proper; this (probably) grossly overestimates the number of operations. */
+#if 0
+	 baseTrampRegion = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( PRESERVATION_UNWIND_OPERATION_COUNT ) );
+	 assert( baseTrampRegion != NULL );
+	 regionOne->next = NULL;
+	 
+	 baseTrampRegion->insn_count = 0;
+	 baseTrampRegion->op_count = 0;
+#endif	 
+	/* Determine this instrumentation point's regSpace and deadRegisterList (global variables)
+	   for use by the rest of the code generator.  The generatePreservation*() functions need
+	   this information as well. */
+	bool staticallyAnalyzed = defineBaseTrampRegisterSpaceFor( point(), regSpace, deadRegisterList);
+	if( ! staticallyAnalyzed ) {
+		fprintf( stderr, "FIXME: Dynamic determination of register frame required but not yet implemented, aborting.\n" );
+		fprintf( stderr, "FIXME: mutatee instrumentation point 0x%lx\n", point()->addr() );
+		return false;
+	} 
+	
+	return generatePreservationTrailer(gen, point()->func()->usedFPregs, baseTrampRegion);
+ }
+
+ unsigned baseTramp::getBTCost() {
+	 // FIXME
+	 return 0;
+ }
+
+ 
+int instPoint::getPointCost()
+{
+  unsigned worstCost = 0;
+  for (unsigned i = 0; i < instances.size(); i++) {
+      if (instances[i]->multi()) {
+          if (instances[i]->multi()->usesTrap()) {
+              // Stop right here
+              // Actually, probably don't want this if the "always
+              // delivered" instrumentation happens
+              return 9000; // Estimated trap cost
+          }
+          else {
+              worstCost = 105; // Magic constant from before time
+          }
+      }
+      else {
+          // No multiTramp, so still free (we're not instrumenting here).
+      }
+  }
+  return worstCost;
+}
+

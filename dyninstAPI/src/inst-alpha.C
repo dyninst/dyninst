@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.88 2005/07/11 19:38:03 rutar Exp $
+// $Id: inst-alpha.C,v 1.89 2005/07/29 19:18:33 bernat Exp $
 
 #include "common/h/headers.h"
 
@@ -61,6 +61,10 @@
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/os.h"
 #include <sstream>
+#include "miniTramp.h"
+#include "multiTramp.h"
+#include "baseTramp.h"
+
 
 /*
    This has not been fully tested.
@@ -103,91 +107,45 @@
 
  */
 
+// We call into the RT lib and use save/restore sequences there. This funclet
+// wraps these calls
+
+void callRTSequence(codeGen &gen,
+		    process *proc,
+		    const pdstring &funcname,
+		    Register scratchReg) {
+  // We still use the call-to-RT model.
+  // Get the addr -- proc-specific
+  pdvector<int_function *> funcs;
+  if (!proc->findFuncsByAll(funcname, funcs))
+    assert(0);
+  assert(funcs.size() == 1);
+  Address calladdr = funcs[0]->getAddress();
+  
+  int remainder = 0;
+  
+  instruction::generateAddress(gen, scratchReg, calladdr, remainder);
+  if (remainder) {
+      instruction::generateLDA(gen, scratchReg, scratchReg, remainder, true);
+  }
+  instruction::generateJump(gen, scratchReg, MD_JSR, REG_RA, remainder);
+}
+
+		    
+
 
 // HACK: This allows the bootstrap code for loading the dyninst library to
 //    skip calling save/restore register code.
 bool skipSaveCalls = false;
 
-// The API for Alphas does not appear to be followed in all cases
-// rather than spend much time and effort disassembling and cursing
-// registers will be saved and restored in the base trampoline
-// A save/restore pair will be executed before and after the relocated
-// instruction.  An obvious optimization is to not do the save/restore
-// when no code is inserted before or after the relocated instruction.
-// 
-
-// static inline Address generate_integer_op(instruction *insn, Address, Address,
-// 					  Address, unsigned&, opCode);
-// static inline Address generate_call_code(instruction*, Address, Address,
-// 					 Address, unsigned&, process *proc);
-// static inline Address generate_tramp_preamble(instruction*, Address,
-// 					      Address, unsigned&);
-static inline void generate_integer_op(instruction *insn, Address, Address,
-					  Address, unsigned long&, opCode,bool Imm = false);
-static inline Address generate_call_code(instruction*, Address, Address,
-					 Address, unsigned long&, process *proc);
-static inline void generate_tramp_preamble(instruction*, Address,
-					      Address, unsigned long&);
-
-typedef enum { dw_long, dw_quad, dw_byte, dw_word } data_width;
-
-#define MASK_4(x)     (x & 0xffffffff)
-#define MASK_2(x)     (x & 0xffff)
-
-const Address shifted_16 = (Address(1)) << 16;
-const Address shifted_32 = (Address(1)) << 32;
-const Address shifted_48 = (Address(1)) << 48;
-const Address bit_15 =     (Address(1)) << 15;
-const Address bit_31 =     (Address(1)) << 31;
-const Address bit_47 =     (Address(1)) << 47;
-
 const char *registerNames[] = { "ren", "stimpy" };
 registerSpace *regSpace;
 Register regList[] = {1, 2, 3, 4, 5, 6, 7, 8};
-
-trampTemplate baseTemplate;
 
 pdstring getStrOp(int /* op */) {
   assert(0);
   return pdstring("");
 }
-
-// BIS (or)  R31, R31, R31
-// unsigned generate_nop(instruction* insn) {
-unsigned long generate_nop(instruction* insn) {
-  insn->raw = 0;
-  // insn.oper.zero = 0; insn.oper.sbz = 0;
-  insn->oper.opcode = OP_BIS;
-  insn->oper.function = FC_BIS;
-  insn->oper.ra = 31;
-  insn->oper.rb = 31;
-  insn->oper.rc = 31;
-  return 1;
-}
-
-inline void generateNOOP(instruction *insn)
-{
-  insn->raw = 0;
-  // insn.oper.zero = 0; insn.oper.sbz = 0;
-  insn->oper.opcode = OP_BIS;
-  insn->oper.function = FC_BIS;
-  insn->oper.ra = 31;
-  insn->oper.rb = 31;
-  insn->oper.rc = 31;
-}
-
-#define FIRST_16(x)       ((x) & 0xffff)
-#define SECOND_16(x)      ((x) >> 16)
-#define THIRD_16(x)       ((x) >> 32)
-
-#define ABS(x)		((x) > 0 ? (x) : -(x))
-
-// TODO -- the max branch is (0x1 << 22)
-// if we limited branches to this distance, dyn. inst. would not work
-// on a 64 bit architecture
-#define MAX_BRANCH	(0x1<<22)
-
-#define MAX_IMM	0x1<<8  // 8 bits
 
 Address getMaxBranch() { 
   return ((Address)(1 << 22));
@@ -200,396 +158,236 @@ bool doNotOverflow(int value)
   else return(false);
 }
 
-void instWaitingList::cleanUp(process * , Address ) {
-    P_abort();
-}
-
-// 
-//
-// unsigned
-// generate_operate(instruction *insn, unsigned reg_a, unsigned reg_b, 
-//		 unsigned reg_c, unsigned opcode, unsigned func_code) {
-unsigned long
-generate_operate(instruction *insn, Register reg_a, Register reg_b, 
-	 Register reg_c, unsigned int opcode, unsigned int func_code) {
-  assert(reg_a < Num_Registers);
-  assert(reg_b < Num_Registers);
-  assert(reg_c < Num_Registers);
-  insn->raw = 0;
-  // insn->oper.zero = 0; insn->oper.sbz = 0;
-  insn->oper.ra = reg_a; insn->oper.rb = reg_b; insn->oper.rc = reg_c;
-  insn->oper.opcode = opcode;
-  insn->oper.function = func_code;
-  return 1;
-}
-
-// 
-//
-// unsigned
-// generate_lit_operate(instruction *insn, unsigned reg_a, int literal,
-//		     unsigned reg_c, unsigned opcode, unsigned func_code) {
-unsigned long
-generate_lit_operate(instruction *insn, Register reg_a, int literal,
-	     Register reg_c, unsigned int opcode, unsigned int func_code) {
-  assert(reg_a < Num_Registers);
-  // literal is 0 to 255
-  assert((literal >= 0) && (literal < MAX_IMM));
-  assert(reg_c < Num_Registers);
-  insn->raw = 0;
-  insn->oper_lit.one = 1;
-  insn->oper_lit.ra = reg_a;
-  insn->oper_lit.lit = literal;
-  insn->oper_lit.rc = reg_c;
-  insn->oper_lit.opcode = opcode;
-  insn->oper_lit.function = func_code;
-  return 1;
-}
-
-// j?? ra, (rb), hint
-// jump to rb, ra gets return address, displacement field provides 
-// instruction fetch hint
-// TODO -- provide a decent hint
-// unsigned
-// generate_jump(instruction *insn, unsigned dest_reg, unsigned ext_code,
-//	      unsigned ret_reg, int hint) {
-unsigned long
-generate_jump(instruction *insn, Register dest_reg, unsigned long ext_code,
-	      Register ret_reg, int hint) {
-  assert(dest_reg < Num_Registers); 
-  assert(ret_reg < Num_Registers); 
-  assert((ext_code == MD_JSR) || (ext_code == MD_JMP));
-
-  // If you want to use this for other ext_code values, then modify the branch
-  // prediction
-
-  insn->raw = 0;
-  insn->mem_jmp.opcode = OP_MEM_BRANCH;
-  insn->mem_jmp.ext = ext_code;
-  insn->mem_jmp.ra = ret_reg;
-  insn->mem_jmp.rb = dest_reg;
-  insn->mem_jmp.disp = hint;
-  return 1;
-}
-
-
-// src_reg --> for unconditional branch, gets return address
-// src_reg --> for conditional branch, is register to test
-// b??  r31, offset   <-- return address written to r31, which is ignored
-//
-// unsigned
-// generate_branch(instruction *insn, unsigned src_reg, int offset, unsigned opcode) {
-unsigned long
-generate_branch(instruction *insn, Register src_reg, int offset,
-                unsigned int opcode) {
-  if (ABS(offset >> 2) > MAX_BRANCH) 
-        { logLine("a branch too far\n"); assert(0); }
-  assert(src_reg < Num_Registers);
-  insn->raw = 0;
-  insn->branch.opcode = opcode;
-  insn->branch.ra = src_reg;
-  insn->branch.disp = offset >> 2;
-  return 1;
-}
-
-void generateBSR(instruction *insn,int offset)
-{
-  generate_branch(insn,REG_RA,offset,OP_BSR);
-
-}
-void generateBranchInsn(instruction *insn, int offset) {
-  generate_branch(insn, REG_ZERO, offset, OP_BR);
-}
-
-// 
-// Set condition flag (a register)
-// unsigned
-// genRelOp(instruction *insn, unsigned opcode, unsigned fcode,
-//	 unsigned src1, unsigned src2, unsigned dest, bool do_not=false) {
-unsigned long
-genRelOp(instruction *insn, unsigned opcode, unsigned fcode, Register src1,
-	 Register src2, Register dest, bool Imm=false, bool do_not=false) {
-  // cmp?? src1, src2, t8      : leave result in t8
-//  unsigned words = generate_operate(insn, src1, src2, dest, opcode, fcode);
-  unsigned long words;
-  if (Imm)
-    words = generate_lit_operate(insn, src1, src2, dest, opcode, fcode);
-  else
-    words = generate_operate(insn, src1, src2, dest, opcode, fcode);
-
-  if (do_not) {
-    // since there is no cmpne -- cmpeq is used and the result must be inverted
-    // 0 -->  1,  1 ---> 0
-    // negate t8, and add 1  (1 --> -1 + 1 = 0,  0 --> -0 +1 = 1 )
-    words += generate_operate(insn+words, REG_ZERO, dest, dest, OP_SUBL, FC_SUBL);
-    words += generate_lit_operate(insn+words, dest, 1, dest, OP_ADDL, FC_ADDL);
-    // dest now contains a 0 or a 1 
-  }
-  return words;
-}
-
-instPoint::instPoint(int_function *f, const instruction &instr, 
-                     Address &adr, const bool, instPointType pointType)
-   : instPointBase(pointType, adr, f), originalInstruction(instr),
-     inDelaySlot(false), isDelayed(false),
-     callIndirect(false), callAggregate(false)
-{
-}
-
-
-
-// lda(h) rdest, literal:16(rstart)
-// put a literal in a register
-// offset is the value before the shift
-// unsigned 
-// generate_lda(instruction *insn, unsigned rdest, unsigned rstart,
-//	     int offset, bool do_low) {
-unsigned long
-generate_lda(instruction *insn, Register rdest, Register rstart,
-	     long offset, bool do_low) {
-
-  // this is not wuite the correct check, but some calls supply the actual
-  //   signed displacement and others supply the raw 16 bits (i.e. not sign
-  //   extended.  - jkh
-  assert(ABS(offset) < (int) shifted_16);
-  // assert(offset >= (- (long) 0xffffffff));
-  assert(rdest < Num_Registers);
-  assert(rstart < Num_Registers);
-
-  insn->raw = 0;
-  insn->mem.opcode = do_low ? OP_LDA : OP_LDAH;
-  insn->mem.ra = rdest;
-  insn->mem.rb = rstart;
-  insn->mem.disp = offset;
-  return 1;
-}
-
-// left == true, shift left
-// left == false, shift right
-// unsigned
-// amount is a literal
-// generate_sxl(instruction *insn, unsigned rdest, unsigned amount,
-//	     bool left, unsigned rsrc) {
-unsigned long
-generate_sxl(instruction *insn, Register rdest, unsigned long amount,
-	     bool left, Register rsrc) {
-  assert(rdest < Num_Registers);
-  assert(amount < Num_Registers);
-  assert(rsrc < Num_Registers);
-  insn->raw = 0;
-  // insn->oper.sbz = 0;
-  // insn->oper.zero = 0;
-
-  insn->oper_lit.opcode = left ? OP_SLL : OP_SRL;
-  insn->oper_lit.function = left ? FC_SLL : FC_SRL;
-  insn->oper_lit.one = 1;
-  insn->oper_lit.ra = rsrc;
-  insn->oper_lit.lit = amount;
-  insn->oper_lit.rc = rdest;
-  return 1;
-}
-
-#define SEXT_16(x) (((x) & bit_15) ? ((x) | 0xffffffffffff0000) : (x))
-
-typedef unsigned long int Offset;
-
-// remainder returns 15 bit offset to be included in load or store
-// returns number of instruction words
-// unsigned generate_address(instruction *insn, 
-//			 unsigned rdest,
-//			 const Address &addr,
-//			 int& remainder) {
-unsigned long generate_address(instruction *insn, 
-			 unsigned long rdest,
-			 const Address &addr,
-			 int& remainder) {
-//  unsigned words = 0;
-  unsigned long words = 0;
-
-  Offset tempAddr = addr;
-  Offset low = tempAddr & 0xffff;
-  tempAddr -= SEXT_16(low);
-  Offset high = (tempAddr >> 16) & 0xffff;
-  tempAddr -= (SEXT_16(high) << 16);
-  Offset third = (tempAddr >> 32) & 0xffff;
-
-  assert((Address)SEXT_16(low) +
-	 ((Address)SEXT_16(high)<<16) +
-	 ((Address)SEXT_16(third)<<32) == addr);
-
-  bool primed = false;
-  if (third) {
-    primed = true;
-    assert(third < shifted_16);
-    generate_lda(insn+words, rdest, REG_ZERO, third, false);
-    words++;
-    generate_sxl(insn+words, rdest, 16, true, rdest);  // move (31:15) to (47:32)
-    words++;
-  }
-
-  if (high) {
-    if (primed)
-      generate_lda(insn+words, rdest, rdest, high, false);
-    else
-      generate_lda(insn+words, rdest, REG_ZERO, high, false);
-    words++; 
-    primed = true;
-  }
-  // a better solution is to use register zero as the base
-  // clear the base register
-  if (!primed) 
-    words += generate_operate(insn+words, REG_ZERO, REG_ZERO, rdest, 
-			      OP_BIS, FC_BIS);
-
-  remainder = low;
-  return words;
-}
-
-// stx rsrc, [rbase + sign_extend(offset:16)]
-// unsigned
-// generate_store(instruction* insn, unsigned rsrc, unsigned rbase, int disp,
-//	       data_width width) {
-unsigned long
-generate_store(instruction* insn, Register rsrc, Register rbase, 
-	int disp, data_width width) {
-  assert(ABS(disp) < (int) shifted_16); 
-  assert(rsrc < Num_Registers); 
-  assert(rbase < Num_Registers);
-  insn->raw = 0;
-  insn->mem.disp = FIRST_16(disp);
-  insn->mem.ra = rsrc;
-  insn->mem.rb = rbase;
-  switch (width) {
-  case dw_long: insn->mem.opcode = OP_STL; break;
-  case dw_quad: insn->mem.opcode = OP_STQ; break;
-  default: assert(0);
-  }
-  return 1;
-}
-
-// ldx rdest, [rbase + sign_extend(offset:16)]
-// unsigned
-// generate_load(instruction *insn, unsigned rdest, unsigned rbase, int disp,
-//	      data_width width) {
-unsigned long
-generate_load(instruction *insn, Register rdest, Register rbase, 
-	int disp, data_width width,bool aligned = true) {
-  assert(ABS(disp) < (int) shifted_16); 
-  assert(rdest < Num_Registers);
-  assert(rbase < Num_Registers);
-  insn->raw = 0;
-  insn->mem.disp = disp;
-  insn->mem.ra = rdest;
-  insn->mem.rb = rbase;
-  switch (width) {
-  case dw_long: insn->mem.opcode = OP_LDL; break;
-  case dw_quad: insn->mem.opcode = OP_LDQ; break;
-  case dw_byte: insn->mem.opcode = OP_LDBU; break;
-  case dw_word: insn->mem.opcode = OP_LDWU; break;
-  default: assert(0);
-  }
-  if (aligned == false)
-    insn->mem.opcode = OP_LDQ_U;
-  if (width == dw_long || width == dw_quad)
-     return 1;
-
-  // Add in the sign extension code
-  insn++;
-  insn->raw = 0;
-  insn->oper.ra = 31;
-  insn->oper.rb = rdest;
-  insn->oper.rc = rdest;
-  insn->oper.opcode = OP_SEXTX;
-  if (width == dw_byte)
-     insn->oper.function = FC_SEXTB;
-  else
-     insn->oper.function = FC_SEXTW;
-  return 2;
-}
-
 
 // Restore argument registers (a0-a4) or v0
-void restoreRegister(instruction *&insn, Address &base, int reg, int dest)
-{
-  assert(reg >= 0);
-  generate_load(insn,dest,REG_SP,(reg<<3),dw_quad);
-  insn++;
-  base += sizeof(instruction);
+void restoreRegister(codeGen &gen,
+		     Register reg,
+		     int dest) {
+  instruction::generateLoad(gen,dest,REG_SP,(reg<<3),dw_quad, true);
 }
 
-// Determine if the called function is a "library" function or a "user" function
-// This cannot be done until all of the functions have been seen, verified, and
-// classified
-//
-void int_function::checkCallPoints() {
-   //  unsigned i;
-   unsigned long i;
-   instPoint *p;
-   Address loc_addr;
-
-   pdvector<instPoint*> non_lib;
-
-   for (i=0; i<calls.size(); ++i) {
-      /* check to see where we are calling */
-      p = calls[i];
-      assert(p);
-
-      if (isJsr(p->originalInstruction)) {
-         // assume this is a library function
-         // since it is a jump through a register
-         // TODO -- should this be deleted here ?
-         p->callIndirect = true;
-         non_lib.push_back(p);
-         //      delete p;
-      } else if (isBsr(p->originalInstruction)) {
-         loc_addr = p->pointAddr() + (p->originalInstruction.branch.disp<<2)+4;
-         non_lib.push_back(p);
-         int_function *pdf = (pdmod()->exec())->findFuncByOffset(loc_addr);
-         
-         if (pdf == NULL)
-         {
-            /* Try alternate entry point in the symbol table */
-            loc_addr = loc_addr - 8;
-            pdf = (pdmod()->exec())->findFuncByOffset(loc_addr);
-         }
-         
-         if (pdf && 1 /*!pdf->isLibTag()*/)
-            p->setCallee(pdf);
-      } else {
-         assert(0);
-      }
-   }
-   calls = non_lib;
+unsigned relocatedInstruction::maxSizeRequired() {
+  // We aren't very smart.
+  unsigned size = instruction::size();
+  if (insn.isCall()) {
+    // We fake RA...
+    // This should only take 5, but hey.
+    size += 6*instruction::size();
+  }
+  return size;
 }
 
-// TODO we cannot find the called function by address at this point in time
-// because the called function may not have been seen.
-//
-Address int_function::newCallPoint(Address, const instruction,
-				  const image *, bool &) {
-    abort();
-    // This is not used on Alpha
+unsigned miniTramp::interJumpSize() {
+  return instruction::size();
 }
 
+unsigned multiTramp::maxSizeRequired() {
+  return instruction::size();
+}
+
+bool baseTramp::generateSaves(codeGen &gen,
+                              registerSpace *) {
+    // decrement stack by 16
+  instruction::generateLDA(gen, REG_SP, REG_SP, -16, true);
+
+  // push ra onto the stack
+  instruction::generateStore(gen, REG_RA, REG_SP, 0, dw_quad);
+
+  // push GP onto the stack
+  instruction::generateStore(gen, REG_GP, REG_SP, 8, dw_quad);
+
+  if (isConservative()) {
+    callRTSequence(gen, proc(), "DYNINSTsave_conservative",
+		   REG_GP);
+  }
+  else {
+    callRTSequence(gen, proc(), "DYNINSTsave_temp",
+		   REG_GP);
+  }
+  return true;
+}
+
+bool baseTramp::generateRestores(codeGen &gen,
+                                 registerSpace *) {
+  if (isConservative()) {
+    callRTSequence(gen, proc(), "DYNINSTrestore_conservative",
+		   REG_GP);
+  }
+  else {
+    callRTSequence(gen, proc(), "DYNINSTrestore_temp",
+		   REG_GP);
+  }
+
+  // load ra from the stack
+  instruction::generateLoad(gen, REG_RA, REG_SP, 0, dw_quad, true);
+
+  // load GP from the stack
+  instruction::generateLoad(gen, REG_GP, REG_SP, 8, dw_quad, true);
+
+  // increment stack by 16
+  instruction::generateLDA(gen, REG_SP, REG_SP, 16, true);
+
+  return true;
+}
+
+unsigned baseTramp::getBTCost() {
+  // FIXME
+  return 0;
+}
+
+bool baseTramp::generateMTCode(codeGen &,
+                               registerSpace *) {
+  // No MT...
+  return true;
+}
+
+bool baseTramp::generateGuardPreCode(codeGen &,
+                                     unsigned &,
+                                     registerSpace *) {
+  // Don't do that funky guard on Alpha
+  return false;
+}
+
+bool baseTramp::generateGuardPostCode(codeGen &,
+				      codeBufIndex_t &,
+                                      registerSpace *) {
+  // Don't do the guard on Alpha
+  return false;
+}
+
+bool baseTramp::generateCostCode(codeGen &,
+                                 unsigned &,
+                                 registerSpace *) {
+  // Skip cost for now...
+    return false;
+}
+
+void baseTrampInstance::updateTrampCost(unsigned) {
+  return;
+}
+
+bool baseTrampInstance::finalizeGuardBranch(codeGen &, int) {
+  // No guard
+  return true;
+}
 //
 // Given and instruction, relocate it to a new address, patching up
 // any relative addressing that is present.
 //
 // Note - currently - only 
 //
-void relocateInstruction(instruction* insn, Address origAddr,
-			 Address targetAddr) {
-  Address newOffset;
 
-  if (isBranchType(*insn)) {
-    newOffset = origAddr - targetAddr + (Address) (insn->branch.disp << 2);
-    insn->branch.disp = newOffset >> 2;
+bool relocatedInstruction::generateCode(codeGen &gen,
+					Address baseInMutatee) {
+    if (generated_) {
+        // We already have code... check to see if it's the same addr
+        assert(gen.currAddr(baseInMutatee) == relocAddr);
+        gen.moveIndex(size_);
+        return true;
+    }
+  
+  unsigned origOffset = gen.used();
+  relocAddr = gen.currAddr(baseInMutatee);
+  int newOffset = 0;
 
-    if (ABS(insn->branch.disp) > MAX_BRANCH) {
-      logLine("a branch too far\n");
+  if (insn.isBranch()) {
+    if (!targetOverride_) {
+      newOffset = insn.getTarget(origAddr) - relocAddr;
+    }
+    else {
+      newOffset = targetOverride_ - relocAddr;
+    }
+    if (ABS(newOffset >> 2) > MAX_BRANCH) {
+      fprintf(stderr, "newOffset 0x%llx, origAddr 0x%llx, relocAddr 0x%llx, target 0x%llx, override 0x%llx\n",
+	      newOffset, origAddr, relocAddr, insn.getTarget(origAddr), targetOverride_);
+
+
+      
+      logLine("A branch too far\n");
       assert(0);
     }
+    instruction newBranch(insn);
+    (*newBranch).branch.disp = newOffset >> 2;
+    newBranch.generate(gen);
   }
-  // The rest of the instructions should be fine as is 
+  else 
+    insn.generate(gen);
+
+  // Calls are ANNOYING. I've seen behavior where RA (the return addr)
+  // is later used in a memory calculation... so after all is said and done,
+  // set RA to what it would have been.
+  // Note: we do this after the original relocation because JSRs don't
+  // trigger "isBranch"
+  if (insn.isCall()) {
+    Address origReturn = origAddr + instruction::size();
+    int remainder = 0;
+    instruction::generateAddress(gen, REG_RA, origReturn, remainder);
+    if (remainder)
+      instruction::generateLDA(gen, REG_RA, REG_RA, remainder, true);
+  }
+  
+  size_ = gen.used() - origOffset;
+  return true;
+}
+
+
+unsigned trampEnd::maxSizeRequired() {
+    // Return branch, illegal.
+    return (2*instruction::size());
+}
+
+/* Generate a jump to a base tramp. Return the size of the instruction
+   generated at the instrumentation point. */
+
+bool multiTramp::generateBranchToTramp(codeGen &gen)
+{
+    /* There are three ways to get to the base tramp:
+       1. Ordinary jump instruction.
+       2. Using a short jump to hit nearby space, and long-jumping to the multiTramp. 
+       3. Trap instruction.
+       
+       We currently support #1.
+    */
+    
+    assert(instAddr_);
+    assert(trampAddr_);
+
+    instruction::generateBranch(gen,
+				instAddr_,
+				trampAddr_);
+
+    gen.fillRemaining(codeGen::cgNOP);
+
+    return true;
+}
+
+// Emit a func 64bit address for the call
+void callAbsolute(codeGen &gen, 
+		  Address funcAddr)
+{
+  int remainder = 0;
+  instruction::generateAddress(gen, REG_GP, funcAddr, remainder);
+  if (remainder)
+    instruction::generateLDA(gen, REG_GP, REG_GP, remainder, true);
+  instruction::generateJump(gen, REG_GP, MD_JSR, REG_RA, remainder);
+}
+ 
+/*
+ * change the insn at fromAddr to be a branch to newAddr.
+ *   Used to add multiple tramps to a point.
+ */
+unsigned generateAndWriteBranch(process *proc, 
+				Address fromAddr, 
+				Address newAddr,
+                                unsigned fillSize) {
+  if (fillSize == 0) fillSize = instruction::size();
+  codeGen gen(fillSize);
+
+  instruction::generateBranch(gen, fromAddr, newAddr);
+  gen.fillRemaining(codeGen::cgNOP);
+
+  proc->writeTextSpace((caddr_t)fromAddr, gen.used(), gen.start_ptr());
+  return gen.used();
 }
 
 registerSpace *createRegisterSpace()
@@ -611,30 +409,20 @@ void initTramps(bool is_multithreaded) {
                                0, NULL, is_multithreaded);
 }
 
-// Emit a func 64bit address for the call
-inline void callAbsolute(instruction *code, 
-			 unsigned long &words, 
-			 Address funcAddr)
-{
-  int remainder;
-  words += generate_address(code+(words), REG_GP, funcAddr, remainder);
-  if (remainder)
-    words += generate_lda(code+(words), REG_GP, REG_GP, remainder, true);
-  words += generate_jump(code+(words), REG_GP, MD_JSR, REG_RA, remainder);
-}
+#if 0
 
 /*
  * Install a base tramp -- fill calls with nop's for now.
  * An obvious optimization is to turn off the save-restore calls when they 
  * are not needed.
  */
-trampTemplate *installBaseTramp(instPoint *location,
+baseTramp *installBaseTramp(instPoint *location,
                                 process *proc) 
 {
 //  unsigned words = 0;
   unsigned long words = 0;
   const int MAX_BASE_TRAMP = 128;
-  trampTemplate *tramp = new trampTemplate(location, proc);
+  baseTramp *tramp = new baseTramp(location, proc);
   
   // XXX - for now assume base tramp is less than 1K
   instruction *code = new instruction[MAX_BASE_TRAMP]; assert(code);
@@ -664,19 +452,6 @@ trampTemplate *installBaseTramp(instPoint *location,
   tramp->skipPreInsOffset = words*4;
   words += generate_nop(code+words);
 
-  // decrement stack by 16
-  tramp->savePreInsOffset = words*4;
-  words += generate_lda(code+words, REG_SP, REG_SP, -16, true);
-
-  // push ra onto the stack
-  words += generate_store(code+words, REG_RA, REG_SP, 0, dw_quad);
-
-  // push GP onto the stack
-  words += generate_store(code+words, REG_GP, REG_SP, 8, dw_quad);
-
-  // Call to DYNINSTsave_temp
-  callAbsolute(code, words, dyn_save);
-
   // local_pre
   tramp->localPreOffset = words * 4;
   words += generate_nop(code+words);
@@ -686,17 +461,6 @@ trampTemplate *installBaseTramp(instPoint *location,
   // **** When you change these code also look at emitFuncJump ****
   // Call to DYNINSTrestore_temp
   tramp->localPreReturnOffset = words * 4;
-  callAbsolute(code, words, dyn_restore);
-
-  // load ra from the stack
-  words += generate_load(code+words, REG_RA, REG_SP, 0, dw_quad);
-
-  // load GP from the stack
-  words += generate_load(code+words, REG_GP, REG_SP, 8, dw_quad);
-
-  // increment stack by 16
-  tramp->restorePreInsOffset = words*4;
-  words += generate_lda(code+words, REG_SP, REG_SP, 16, true);
 
   // *** end code cloned in emitFuncJump ****
 
@@ -770,7 +534,7 @@ trampTemplate *installBaseTramp(instPoint *location,
 
   assert(words < static_cast<const unsigned>(MAX_BASE_TRAMP));
 
-  tramp->size = words * sizeof(instruction);
+  tramp->size = words * instruction::size();
   tramp->baseAddr = proc->inferiorMalloc(tramp->size, textHeap, pointAddr);
   assert(tramp->baseAddr);
 
@@ -806,6 +570,8 @@ trampTemplate *installBaseTramp(instPoint *location,
   return tramp;
 }
 
+#endif
+
 /*
  * emitSaveConservative - generate code to save all registers
  *      used as part of inferrior RPC
@@ -813,37 +579,19 @@ trampTemplate *installBaseTramp(instPoint *location,
  *          for the function call.
  *
  */
-void emitSaveConservative(process *proc, char *code, Address &offset)
+void emitSaveConservative(process *proc, codeGen &gen)
 {
-  unsigned count = 0;
-  int_function *fun_save;
-  instruction *insn = (instruction *) ((void*)&code[offset]);
-
-  Symbol info;
-  Address baseAddr;
-  fun_save = proc->findOnlyOneFunction("DYNINSTsave_conservative");
-  proc->getSymbolInfo("DYNINSTsave_temp", info, baseAddr);
-  assert(fun_save);
-
-  Address dyn_save = fun_save->get_address() + baseAddr;
-
+  // Matches conservative base tramp... TODO call that function
   // decrement stack by 16
-  count += generate_lda(&insn[count], REG_SP, REG_SP, -16, true);
+  instruction::generateLDA(gen, REG_SP, REG_SP, -16, true);
 
   // push T10 onto the stack
-  count += generate_store(&insn[count], REG_T10, REG_SP, 0, dw_quad);
+  instruction::generateStore(gen, REG_T10, REG_SP, 0, dw_quad);
 
   // push ra onto the stack
-  count += generate_store(&insn[count], REG_RA, REG_SP, 8, dw_quad);
+  instruction::generateStore(gen, REG_RA, REG_SP, 8, dw_quad);
 
-  // Call to DYNINSTsave_conservative
-  int remainder;
-  count += generate_address(&insn[count], REG_T10, dyn_save, remainder);
-  if (remainder)
-    count += generate_lda(&insn[count], REG_T10, REG_T10, remainder, true);
-  count += generate_jump(&insn[count], REG_T10, MD_JSR, REG_RA, remainder);
-
-  offset += count * sizeof(instruction);
+  callRTSequence(gen, proc, "DYNINSTsave_conservative", REG_T10);
 }
 
 /*
@@ -853,37 +601,18 @@ void emitSaveConservative(process *proc, char *code, Address &offset)
  *          for the function call.
  *
  */
-void emitRestoreConservative(process *proc, char *code, Address &offset)
+void emitRestoreConservative(process *proc, codeGen &gen)
 {
-  unsigned count = 0;
-  int_function *fun_restore;
-  instruction *insn = (instruction *) ((void*)&code[offset]);
-
-  Symbol info;
-  Address baseAddr;
-  fun_restore = proc->findOnlyOneFunction("DYNINSTrestore_conservative");
-  proc->getSymbolInfo("DYNINSTsave_temp", info, baseAddr);
-  assert(fun_restore);
-
-  Address dyn_restore = fun_restore->get_address() + baseAddr;
-
-  // Call to DYNINSTrestore_temp
-  int remainder;
-  count += generate_address(&insn[count], REG_T10, dyn_restore, remainder);
-  if (remainder)
-    count += generate_lda(&insn[count], REG_T10, REG_T10, remainder, true);
-  count += generate_jump(&insn[count], REG_T10, MD_JSR, REG_RA, remainder);
+  callRTSequence(gen, proc, "DYNINSTrestore_conservative", REG_T10);
 
   // load t10 from the stack
-  count += generate_load(&insn[count], REG_T10, REG_SP, 0, dw_quad);
+  instruction::generateLoad(gen, REG_T10, REG_SP, 0, dw_quad, true);
 
   // load ra from the stack
-  count += generate_load(&insn[count], REG_RA, REG_SP, 8, dw_quad);
+  instruction::generateLoad(gen, REG_RA, REG_SP, 8, dw_quad, true);
 
   // increment stack by 16
-  count += generate_lda(&insn[count], REG_SP, REG_SP, 16, true);
-
-  offset += count * sizeof(instruction);
+  instruction::generateLDA(gen, REG_SP, REG_SP, 16, true);
 }
 
 //
@@ -954,134 +683,35 @@ int getInsnCost(opCode op) {
   }
 }
 
-// void generateNoOp(process *proc, int addr) {
-void generateNoOp(process *proc, unsigned long addr) {
-  instruction insn;
-  generate_nop(&insn);
-  proc->writeTextWord((caddr_t)addr, insn.raw);
-}
-
-/*
- * change the insn at fromAddr to be a branch to newAddr.
- *   Used to add multiple tramps to a point.
- */
-void generateBranch(process *proc, Address fromAddr, Address newAddr) {
-  int disp;
-  instruction insn;
-
-  Address a = ABS((long)((fromAddr+4) - newAddr));
-  Address b = (Address) MAX_BRANCH;
-//  if ((ABS((fromAddr+4) - newAddr)) > (Address) MAX_BRANCH) { 
-if (a > b) {
-    logLine("a branch too far\n"); assert(0);
-  }
-
-  // Note the explicit cast
-  // +4 to use updated pc
-  disp = newAddr - (fromAddr+4);
-  generateBranchInsn(&insn, disp);
-
-  proc->writeTextWord((caddr_t)fromAddr, insn.raw);
-}
-
 // The Alpha does not have a divide instruction
 // The divide is performed in software by calling __divl
-int software_divide(int src1,int src2,int dest,char *i,Address &base,bool,Address divl_addr,bool Imm)
+// This is actually never used; we assert in ast.C instead.
+// Isn't that funny?
+int software_divide(int src1,int src2,int dest,
+		    codeGen &gen,
+		    bool,Address divl_addr,bool Imm)
 {
-  int words;
+  //int words;
   int remainder;
-  instruction *insn = (instruction *) ((void*)&i[base]);
 
-  assert(!((unsigned long)insn & (unsigned long)3));  
   // or src1,src1,a0
-  generate_operate(insn,src1,src1,REG_A0,OP_BIS,FC_BIS);
-  insn++;
-  base+= sizeof(instruction);
+  instruction::generateOperate(gen, src1, src1, REG_A0, OP_BIS, FC_BIS);
   if (Imm)
     // load constant into register a1
-    generate_lit_operate(insn,REG_ZERO,src2,REG_A1, OP_ADDL, FC_ADDL);    
-    else
-      // or src2,src2,a1
-      generate_operate(insn,src2,src2,REG_A1,OP_BIS,FC_BIS);
-  insn++;
-  base+= sizeof(instruction);
+    instruction::generateLitOperate(gen, REG_ZERO, src2, REG_A1, OP_ADDL, FC_ADDL);
+  else
+    // or src2,src2,a1
+    instruction::generateOperate(gen, src2, src2, REG_A1, OP_BIS, FC_BIS);
 
   // jsr __divl
-  words = generate_address(insn, REG_PV,divl_addr, remainder);
+  instruction::generateAddress(gen, REG_PV,divl_addr, remainder);
   if (remainder)
-      words += generate_lda(insn+words, REG_PV, REG_PV, remainder, true);
-  words += generate_jump(insn+words, REG_PV, MD_JSR, REG_RA, remainder);
-  insn += words; base += (words*4);
+    instruction::generateLDA(gen, REG_PV, REG_PV, remainder, true);
+  instruction::generateJump(gen, REG_PV, MD_JSR, REG_RA, remainder);
 
   // or v0,v0,dest
-  generate_operate(insn,REG_V0,REG_V0,dest,OP_BIS,FC_BIS);
-  insn++;
-  base+= sizeof(instruction);  
+  instruction::generateOperate(gen,REG_V0,REG_V0,dest,OP_BIS,FC_BIS);
   return 0;
-}
-
-static inline void
-generate_integer_op(instruction *insn, Address src1, Address src2, 
-		    Address dest, unsigned long& base, opCode op, bool Imm) {
-//		    Address dest, unsigned & base, opCode op) {
-  // integer ops
-//  unsigned op_code=0, func_code=0, words = 0;
-  unsigned op_code=0, func_code=0;
-  unsigned long words = 0;
-
-  switch (op) {
-
-  case plusOp:        op_code = OP_ADDQ; func_code = FC_ADDQ; break;
-  case minusOp:       op_code = OP_SUBQ; func_code = FC_SUBQ; break;
-  case timesOp:       op_code = OP_MULQ; func_code = FC_MULQ; break;
-  case divOp:         assert(0); // shouldn't get here. Call software_divide from the ast
-  case orOp:          op_code = OP_BIS;  func_code = FC_BIS; break;
-  case andOp:         op_code = OP_AND;  func_code = FC_AND; break;
-
-  // The compare instruction leave a one in dest if the compare is true
-  // beq branch when dest is 0 --> and the compare is false
-
-  case eqOp:
-    words += genRelOp(insn, OP_CMPEQ, FC_CMPEQ, src1, src2, dest,Imm);
-    base += words * 4; return;
-
-  case neOp:
-    // last arg == true --> inverts value of comparison		      
-    words += genRelOp(insn, OP_CMPEQ, FC_CMPEQ, src1, src2, dest,Imm,true);
-    base += words * 4; return;
-
-  case lessOp:
-    words += genRelOp(insn, OP_CMPLT, FC_CMPLT, src1, src2, dest,Imm);
-    base += words * 4; return;
-		      
-  case greaterOp:                          
-    words += genRelOp(insn, OP_CMPLE, FC_CMPLE, src1, src2, dest,Imm,true);
-    base += words * 4; return;
-
-  case leOp:
-    words += genRelOp(insn, OP_CMPLE, FC_CMPLE, src1, src2, dest,Imm);
-    base += words * 4; return;
-
-  case geOp:                               
-    words += genRelOp(insn, OP_CMPLE, FC_CMPLT, src1, src2, dest,Imm,true);
-    base += words * 4; return;
-
-  default:
-    assert(0);
-    break;
-  }
-
-  if (Imm) {
-      if ((src2 >= 0) && (src2 < MAX_IMM)) {
-	words += generate_lit_operate(insn+words, src1, src2, dest, op_code, 
-	    func_code);
-      } else {
-	words += generate_operate(insn+words, src1, src2, dest, op_code, func_code);
-      }
-  } else {
-    words += generate_operate(insn+words, src1, src2, dest, op_code, func_code);
-  }
-  base += words * 4; return;
 }
 
 /*
@@ -1091,103 +721,6 @@ generate_integer_op(instruction *insn, Address src1, Address src2,
     ra must be saved because it will be clobbered by a procedure call since 
     it will get the return address. 
  */
-
-/*
-   It would be nice to be able to do relative branches to DYNINST funcs from
-   here.  Unfortunately, I do not have the base address of the trampoline.
- */
-static inline Address
-generate_call_code(instruction *insn, Address src1, Address src2, Address dest,
-		   unsigned long& base, process *proc) {
-//		   unsigned& base, process *proc) {
-  // put parameters in argument registers
-  // register move is "bis src, src, dest"  (bis is logical or)
-  // save and restore the values currently in the argument registers
-//  unsigned words = 0;
-  unsigned long words = 0;
-//  int decrement = -8;
-
-  Symbol info;
-  Address baseAddr;
-
-  proc->getSymbolInfo("DYNINSTsave_misc", info, baseAddr);
-  int_function *fun_save = proc->findOnlyOneFunction("DYNINSTsave_misc");
-  int_function *fun_restore = proc->findOnlyOneFunction("DYNINSTrestore_misc");
-  assert(fun_save && fun_restore);
-  Address dyn_save = fun_save->get_address() + baseAddr;
-  Address dyn_restore = fun_restore->get_address() + baseAddr;
-
-  // save the current values in v0, a0..a5, pv, at, gp
-  // Call to DYNINSTsave_misc
-  int remainder;
-  words += generate_address(insn+words, REG_T10, dyn_save, remainder);
-  if (remainder)
-    words += generate_lda(insn+words, REG_T10, REG_T10, remainder, true);
-  words += generate_jump(insn+words, REG_T10, MD_JSR, REG_RA, remainder);
-
-  // move args to argument registers
-  if (src1 > 0)
-    words += generate_operate(insn+words, src1, src1, REG_A0, OP_BIS, FC_BIS);
-  if (src2 > 0) 
-    words += generate_operate(insn+words, src2, src2, REG_A1, OP_BIS, FC_BIS);
-
-  // Set the value of  pv/t12/r27
-  // I have not found any documentation on this
-  // But the alpha appears to put the callee's address in this register
-  // this register must be saved and restored
-
-  // Jump to the function
-  words += generate_address(insn+words, REG_PV, dest, remainder);
-  if (remainder)
-    words += generate_lda(insn+words, REG_PV, REG_PV, remainder, true);
-
-  // TODO -- clear other argument registers ?
-  words += generate_jump(insn+words, REG_PV, MD_JSR, REG_RA, remainder);
-  
-  // Call to DYNINSTrestore_misc
-  words += generate_address(insn+words, REG_T10, dyn_restore, remainder);
-  if (remainder)
-    words += generate_lda(insn+words, REG_T10, REG_T10, remainder, true);
-  words += generate_jump(insn+words, REG_T10, MD_JSR, REG_RA, remainder);
-
-  base += words * 4; return 0;
-}
-
-static inline void
-generate_tramp_preamble(instruction *insn, Address src1,
-			Address dest, unsigned long& base) {
-//			Address dest, unsigned& base) {
-  // generate code to update the observed cost
-  // a4 holds address, a3 gets loaded
-
-//  unsigned words = 0; int obs_rem;
-  unsigned long words = 0; int obs_rem;
-  // load the current observed cost
-  words += generate_address(insn+words, REG_T11, dest, obs_rem);
-  words += generate_load(insn+words, REG_T10, REG_T11, obs_rem, dw_long);
-
-  // update the observed cost
-  if ((src1 >= 0) && (src1 < MAX_IMM)) {
-    // addl literal, REG_T10, REG_T10       (t10 += literal)
-    words += generate_lit_operate(insn+words, REG_T10, src1, REG_T10,
-				  OP_ADDL, FC_ADDL);
-  } else {
-    // load literal into REG_T9
-    int remainder;
-    words += generate_address(insn+words, REG_T9, src1, remainder);
-    if (remainder)
-      words += generate_lda(insn+words, REG_T9, REG_T9, remainder, true);
-
-    // addl REG_T9, REG_T10, REG_T10       (t10 += t9)
-    words += generate_operate(insn+words, REG_T10, REG_T9, REG_T10, OP_ADDL, FC_ADDL);
-  }
-
-  // store new observed cost  
-  // st REG_T10, obs_rem[REG_T11]
-  words += generate_store(insn+words, REG_T10, REG_T11, obs_rem, dw_long);
-  base += words * 4; 
-  return;
-}
 
 
 // The value returned by emitA can be
@@ -1200,62 +733,62 @@ generate_tramp_preamble(instruction *insn, Address src1,
 //         be used.  The alpha uses the UPDATED pc for branches.
 // 
 
-Address emitA(opCode op, Register src1, Register /*src2*/, Register dest,
-	     char *i, Address &base, bool /*noCost*/) {
+codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
+	      codeGen &gen, bool /*noCost*/) {
+
+  // Return the index before a jump (if any)
+  codeBufIndex_t retval = 0;
 
   //bperr("emitA(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
-
-  instruction *insn = (instruction *) ((void*)&i[base]);
-  assert(!((unsigned long)insn & (unsigned long)3));
 
   switch (op) {
   case ifOp: {
     // beq src1
     // return address used to calculate branch offset
     assert(src1 < Num_Registers);
-    // branch calculations use the updated pc
-    unsigned long words = generate_branch(insn, src1, dest-4, OP_BEQ);
+    // branch calculations use the updated pc - thus the -4
+    retval = gen.getIndex();
+    instruction::generateBranch(gen, src1, dest-instruction::size(), OP_BEQ);
     // return offset of branch instruction
-    base += words * 4; 
-    return (base-4);
+    break;
     }
   case branchOp: {
-    generateBranchInsn(insn, dest-4);
-    base += sizeof(instruction);
-    return(base - sizeof(instruction));
+    retval = gen.getIndex();
+    instruction::generateBranch(gen, dest-instruction::size());
+    break;
     }
   case trampTrailer: {
     // dest is in words of offset and generateBranchInsn is bytes offset
     assert(!dest);
-//    unsigned words = generate_branch(insn, REG_ZERO, dest << 2, OP_BR);
-    unsigned long words = generate_branch(insn, REG_ZERO, dest << 2, OP_BR);
+    //    unsigned words = generate_branch(insn, REG_ZERO, dest << 2, OP_BR);
+    retval = gen.getIndex();
+    instruction::generateBranch(gen, REG_ZERO, dest << 2, OP_BR);
+    instruction::generateIllegal(gen);
     // return the offset of the branch instruction -- not the updated pc
-    base += words * 4; 
-    return (base-4);
+    break;
     }
   case trampPreamble: {
-    generate_tramp_preamble(insn, src1, dest, base);
+    // Don't do this anymore; we update cost once in the base tramp.
+    //generate_tramp_preamble(insn, src1, dest, base);
     return(0);          // let's hope this is expected!
-    }
+  }
   default:
     abort();            // unexpected op for this emit!
   }
+  return retval;
 }
 
 Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
-               char *i, Address &base, bool /*noCost*/,
-               const instPoint * /* location */, bool for_multithreaded) {
+               codeGen &gen, bool /*noCost*/,
+               const instPoint * /* location */, bool /*for_multithreaded*/) {
 
   //bperr("emitR(op=%d,src1=%d,src2=XX,dest=%d)\n",op,src1,dest);
-
-  instruction *insn = (instruction *) ((void*)&i[base]);
-  assert(!((unsigned long)insn & (unsigned long)3));
 
   switch (op) {
   case getRetValOp:
     {
       // Return value register v0 is the 12th register saved in the base tramp
-      restoreRegister(insn,base,12,dest);
+      restoreRegister(gen,12,dest);
       return(dest);
     }
   case getParamOp:
@@ -1265,9 +798,7 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
        * We don't save the parameter registers unless we make a function call,
        * so we can read the values directly out of the registers.
        */
-      unsigned long words =
-	  generate_operate(insn,REG_A0+src1,REG_A0+src1,dest,OP_BIS, FC_BIS);
-      base += words * sizeof(instruction);
+      instruction::generateOperate(gen,REG_A0+src1,REG_A0+src1,dest,OP_BIS, FC_BIS);
       return(dest);
     }
   default:
@@ -1278,212 +809,142 @@ Register emitR(opCode op, Register src1, Register /*src2*/, Register dest,
 
 
 #ifdef BPATCH_LIBRARY
-void emitJmpMC(int condition, int offset, char* baseInsn, Address &base)
+void emitJmpMC(int /*condition*/, int /*disp*/,codeGen & /*gen*/)
 {
   // Not needed for memory instrumentation, otherwise TBD
 }
 
 // VG(11/07/01): Load in destination the effective address given
 // by the address descriptor. Used for memory access stuff.
-void emitASload(BPatch_addrSpec_NP /*as*/, Register /*dest*/,
-		char* /*baseInsn*/, Address &/*base*/, bool /*noCost*/)
+void emitASload(const BPatch_addrSpec_NP * /*as*/, unsigned /*dest*/,
+		codeGen & /*gen*/, bool /*noCost*/)
 {
   // TODO ...
 }
 
-void emitCSload(BPatch_addrSpec_NP as, Register dest, char* baseInsn,
-		Address &base, bool noCost)
+void emitCSload(const BPatch_addrSpec_NP *as, unsigned dest, codeGen &gen,
+		bool noCost)
 {
-  emitASload(as, dest, baseInsn, base, noCost);
+  emitASload(as, dest, gen, noCost);
 }
 #endif
 
 
 void emitVload(opCode op, Address src1, Register, Register dest,
-				char *i, Address &base, bool, int size,
-				const instPoint * /* location */, process * /* proc */,
-				registerSpace * /* rs */ )
+	       codeGen &gen, bool, 
+	       registerSpace *,
+	       int size,
+	       const instPoint * /* location */, process * /* proc */)
 {
-  instruction *insn = (instruction *) ((void*)&i[base]);
-  assert(!((unsigned long)insn & (unsigned long)3));
-
   if (op == loadConstOp) {
     // lda dest, src1 (LITERAL)     --> put the literal value of src1 into dest
     // it may take several instructions to do this
     assert(dest < Num_Registers);
     int remainder;
-    unsigned long words = 0;
+    //unsigned long words = 0;
     // if the constant is a zero -- or it into place
     if (!src1) { 
-      words = generate_operate(insn+words, REG_ZERO, REG_ZERO, 
-			       (unsigned long) dest, OP_BIS, FC_BIS);
-//			       (unsigned) dest, OP_BIS, FC_BIS);
+      instruction::generateOperate(gen, REG_ZERO, REG_ZERO, dest,
+				   OP_BIS, FC_BIS);
     } else {
-//      words = generate_address(insn, (unsigned) dest, src1, remainder);
-      words = generate_address(insn, (unsigned long) dest, src1, remainder);
+      instruction::generateAddress(gen, dest, src1, remainder);
       if (remainder)
-	words +=
-//	  generate_lda(insn+words, (unsigned) dest, (unsigned) dest,
-	  generate_lda(insn+words, (unsigned long) dest, (unsigned long) dest,
-		       remainder, true);
+	instruction::generateLDA(gen, dest, dest, remainder, true);
     }
-    base += words * 4; return;
-
+    return;
   } else if (op ==  loadOp) {
 	// ld? dest, [src1]             --> src1 is a literal
 	// src1 = address to load
 	// src2 = 
 	// dest = register to load
 	int remainder;
-	unsigned long words = generate_address(insn, (unsigned long) dest, src1, remainder);
+	instruction::generateAddress(gen, dest, src1, remainder);
 	if (size == 1) {
-	    words += generate_load(insn+words, (unsigned long) dest, 
-		 (unsigned long) dest, remainder, dw_byte);
+	  instruction::generateLoad(gen, dest, dest, remainder, dw_byte, true);
 	} else if (size == 2) {
-	    words += generate_load(insn+words, (unsigned long) dest, 
-		 (unsigned long) dest, remainder, dw_word);
+	  instruction::generateLoad(gen, dest, dest, remainder, dw_word, true);
 	} else if (size == 4) {
-	    words += generate_load(insn+words, (unsigned long) dest, 
-		 (unsigned long) dest, remainder, dw_long);
+	  instruction::generateLoad(gen, dest, dest, remainder, dw_long, true);
 	} else if (size == 8) {
-	    words += generate_load(insn+words, (unsigned long) dest, 
-		 (unsigned long) dest, remainder, dw_quad);
+	  instruction::generateLoad(gen, dest, dest, remainder, dw_quad, true);
 	} else {
 	    abort();
 	}
-	base += words * 4; return;
-    } else if (op ==  loadFrameRelativeOp) {
-	unsigned long words = 0;
+	return;
+    } else if (op == loadFrameRelativeOp) {
+      //unsigned long words = 0;
 	// frame offset is negative of actual offset.
-	long offset = (long) src1;
+	long stack_off = (long) src1;
 
 	// the saved sp is 16 less than original sp (due to base tramp code)
-	offset += 16;		
+	stack_off += 16;		
 
-	assert(ABS(offset) < 32767);
-	words += generate_load(insn+words, (unsigned long) dest,  REG_SP,
-			       112, dw_quad);
-	assert(ABS(offset) < (1<<30));
-	if (ABS(offset) > 32767) {
-	    Offset low = offset & 0xffff;
-	    offset -= SEXT_16(low);
-	    Offset high = (offset >> 16) & 0xffff;
-	    assert((Address)SEXT_16(low) +
-	     ((Address)SEXT_16(high)<<16) == src1);
+	assert(ABS(stack_off) < 32767);
+	instruction::generateLoad(gen, dest, REG_SP, 112, dw_quad, true);
 
-	    words += generate_lda(insn+words, dest, dest, high, false);
-	    words += generate_load(insn+words, (unsigned long) dest,  dest,
-			       low, dw_long);
-	} else {
-	    words += generate_load(insn+words, (unsigned long) dest,  dest,
-			       offset, dw_long);
-	}
-	base += words * 4; 
+	instruction::generateLoad(gen, dest, dest, stack_off, dw_long, true);
     } else if (op == loadFrameAddr) {
-	unsigned long words = 0;
+      //unsigned long words = 0;
 	// frame offset is signed.
-	long offset = (long) src1;
+	long stack_offset = (long) src1;
 
 	// the saved sp is 16 less than original sp (due to base tramp code)
-	offset += 16;		
+	stack_offset += 16;		
 
 	// load fp into dest
-	words += generate_load(insn+words, (unsigned long) dest,  REG_SP,
-			       112, dw_quad);
+	instruction::generateLoad(gen, dest, REG_SP, 112, dw_quad,true);
 
-	assert(ABS(offset) < (1<<30));
-	if (ABS(offset) > 32767) {
-	    Offset low = offset & 0xffff;
-	    offset -= SEXT_16(low);
-	    Offset high = (offset >> 16) & 0xffff;
-	    assert((Address)SEXT_16(low) +
-	     ((Address)SEXT_16(high)<<16) == src1);
-
-	    // add high bits of offset
-	    words += generate_lda(insn+words, dest, dest, high, false);
-	    // now addd the low bits of the offset
-	    words += generate_lda(insn+words, dest, dest, low, true);
-	} else {
-	    // addd the offset
-	    words += generate_lda(insn+words, dest, dest, offset, true);
-	}
-	base += words * 4; 
+	// addd the offset
+	instruction::generateLDA(gen, dest, dest, stack_offset, true);
     } else {
 	abort();       // unexpected op for this emit!
     }
 }
 
 void emitVstore(opCode op, Register src1, Register src2, Address dest,
-		char *i, Address &base, bool /* noCost */,registerSpace *rs, 
+		codeGen &gen, bool /* noCost */, 
+		registerSpace *,
 		int size,
 		const instPoint * /* location */, process * /* proc */)
 {
-  instruction *insn = (instruction *) ((void*)&i[base]);
-  assert(!((unsigned long)insn & (unsigned long)3));
-
   if (op ==  storeOp) {
     // st? dest, [src1]
     // src1 = value to store
     // src2 = register to hold address
     // dest = address
     int remainder;
-//    unsigned words = generate_address(insn, (unsigned) src2, dest, remainder);
-    unsigned long words = generate_address(insn, (unsigned long) src2, dest, remainder);
-//    words += generate_store(insn+words, (unsigned) src1, (unsigned) src2,
+    instruction::generateAddress(gen, src2, dest, remainder);
     if (size == 8) {
-	words += generate_store(insn+words, (unsigned long) src1, 
-	    (unsigned long) src2, remainder, dw_quad);
+      instruction::generateStore(gen, src1, src2, remainder, dw_quad);
     } else if (size == 4) {
-	words += generate_store(insn+words, (unsigned long) src1, 
-	    (unsigned long) src2, remainder, dw_long);
+      instruction::generateStore(gen, src1, src2, remainder, dw_long);
     } else {
 	abort();
     }
-    base += words * 4; return;
+    return;
   } else if (op ==  storeFrameRelativeOp) {
     // frame offset is signed.
-    long offset = (long) dest;
-
     // the saved sp is 16 less than original sp (due to base tramp code)
-    offset += 16;		
+    dest += 16;		
 
-    assert(ABS(offset) < 32767);
-    unsigned long words = 0;
-    words += generate_load(insn+words, (unsigned long) src2,  REG_SP,
-			       112, dw_quad);
+    assert(ABS(dest) < 32767);
+    instruction::generateLoad(gen, src2, REG_SP, 112, dw_quad, true);
     if (size == 8) {
-	words += generate_store(insn+words, (unsigned long) src1, 
-	    (unsigned long) src2, offset, dw_quad);
+      instruction::generateStore(gen, src1, src2, dest, dw_quad);
     } else if (size == 4) {
-	words += generate_store(insn+words, (unsigned long) src1, 
-	    (unsigned long) src2, offset, dw_long);
+      instruction::generateStore(gen, src1, src2, dest, dw_long);
     } else {
-	abort();
+      abort();
     }
-    base += words * 4; return;
   } else {
-      abort();       // unexpected op for this emit!
+    abort();       // unexpected op for this emit!
   }
 }
-
-void emitVupdate(opCode op, RegValue /* src1 */, 
-			    Register /*src2*/, Address /* dest */,
-			    char *i, Address &base, bool /* noCost */, registerSpace *rs)
-{
-  instruction *insn = (instruction *) ((void*)&i[base]);
-  assert(!((unsigned long)insn & (unsigned long)3));
-
-  if (op == updateCostOp) {
-      return;
-  } else {
-      abort();       // unexpected op for this emit!
-  }
-}
-
 void emitV(opCode op, Register src1, Register src2, Register dest,
-	     char *i, Address &base, bool /*noCost*/, int size,
-	     const instPoint * /* location */, process * /* proc */,
-	     registerSpace * /* rs */ )
+	   codeGen &gen, bool /*noCost*/,
+	   registerSpace *,
+	   int size,
+	   const instPoint * /* location */, process * /* proc */)
 {
   //bperr("emitV(op=%d,src1=%d,src2=%d,dest=%d)\n",op,src1,src2,dest);
 
@@ -1494,33 +955,27 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
     assert ((op!=storeOp));                                     // !emitVstore
     assert ((op!=updateCostOp));                                // !emitVupdate
 
-  instruction *insn = (instruction *) ((void*)&i[base]);
-  assert(!((unsigned long)insn & (unsigned long)3));
-
   data_width width;
   if (size == 4) {
-      width = dw_long;
+    width = dw_long;
   } else if (size == 8) {
-      width = dw_quad;
+    width = dw_quad;
   } else {
-      // should not happen
-      abort();
+    // should not happen
+    abort();
   }
 
   if (op == noOp) {
-    unsigned long words = generate_nop(insn);
-    base += words * 4; 
+    instruction::generateNOOP(gen);
     return;
   } else if (op == loadIndirOp) {
-    unsigned long words = generate_load(insn, dest, src1, 0, width);
-    base += words * 4;
+    instruction::generateLoad(gen, dest, src1, 0, width, true);
     return;
   } else if (op == storeIndirOp) {
-    unsigned long words = generate_store(insn, src1, dest, 0, width);
-    base += words * 4;
+    instruction::generateStore(gen, src1, dest, 0, width);
     return;
   } else {
-    generate_integer_op(insn, src1, src2, dest, base, op);
+    instruction::generateIntegerOp(gen, src1, src2, dest, op, false);
     return;
   }
 }
@@ -1529,13 +984,6 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 /************************************************************************
  * void restore_original_instructions(process* p, instPoint* ip)
 ************************************************************************/
-
-void
-restore_original_instructions(process* p, instPoint* ip) {
-  Address addr = ip->pointAddr();
-  p->writeTextWord((caddr_t)addr, ip->originalInstruction.raw);
-  addr += sizeof(instruction);
-}
 
 // The only non read only registers are those that are allocated - t0...t7
 
@@ -1552,39 +1000,34 @@ bool registerSpace::readOnlyRegister(Register reg_number) {
 //
 // This was in inst.C, but the base tramp cost is machine dependent
 // 
-int getPointCost(process *proc, const instPoint *point)
+
+int instPoint::getPointCost()
 {
-  if (proc->baseMap.defines(point)) {
-    return(0);
-  } else {
-    //  1 : decrement stack
-    //  1 : push ra onto the stack
-    //  3 : bsr to DYNINSTsave_temp (1 for call, 2 cycle branch penalty)
-    // 14 : cost of DYNINSTsave_temp
-    //  2 : empty nop slots
-    //  3 : bsr to DYNINSTrestore_temp (1 for call, 2 cycle branch penalty)
-    // 14 : cost of DYNINSTrestore_temp
-    //  1 : load ra from stack
-    //  1 : increment stack
-    //  1 : slot for relocated instruction
-    //  1 : decrement stack
-    //  1 : push ra onto the stack
-    //  3 : bsr to DYNINSTsave_temp (1 for call, 2 cycle branch penalty)
-    // 14 : cost of DYNINSTsave_temp
-    //  2 : empty nop slots
-    //  3 : bsr to DYNINSTrestore_temp (1 for call, 2 cycle branch penalty)
-    // 14 : cost of DYNINSTrestore_temp
-    //  1 : load ra from stack
-    //  1 : increment stack
-    //  1 : return
-    return(81);
+  unsigned worstCost = 0;
+  for (unsigned i = 0; i < instances.size(); i++) {
+      if (instances[i]->multi()) {
+          if (instances[i]->multi()->usesTrap()) {
+              // Stop right here
+              // Actually, probably don't want this if the "always
+              // delivered" instrumentation happens
+              return 9000; // Estimated trap cost
+          }
+          else {
+	    worstCost = 81; // Magic constant from before time
+          }
+      }
+      else {
+          // No multiTramp, so still free (we're not instrumenting here).
+      }
   }
+  return worstCost;
 }
 
 dictionary_hash<pdstring, unsigned> funcFrequencyTable(pdstring::hash);
 
 void initDefaultPointFrequencyTable()
 {
+#ifdef notdef
     FILE *fp;
     float value;
     char name[512];
@@ -1606,337 +1049,49 @@ void initDefaultPointFrequencyTable()
         bperr("adding %s %f\n", name, value);
     }
     fclose(fp);
-}
-
-
-
-// unsigned findOrInstallBaseTramp(process *proc, 
-trampTemplate *findOrInstallBaseTramp(process *proc, 
-				       instPoint *&location,
-				       returnInstance *&retInstance, 
-				       bool /*trampRecursiveDesired*/,
-				       bool /* noCost */,
-                   bool& /*deferred*/,
-                   bool /*allowTrap*/)
-{
-  trampTemplate *ret;
-  process *globalProc;
-  retInstance = NULL;
-
-#ifdef notdef
-    if (nodePseudoProcess && (proc->symbols == nodePseudoProcess->symbols)){
-	globalProc = nodePseudoProcess;
-	// logLine("findAndInstallBaseTramp global\n");
-    } else {
-        globalProc = proc;
-    }
 #endif
-    globalProc = proc;
-    
-    if (!globalProc->baseMap.defines(location)) {
-        ret = installBaseTramp(location, globalProc);
-        instruction *insn = new instruction;
-        
-        Address pointAddr = location->pointAddr();
-        Address baseAddress;
-        if (proc->getBaseAddress(location->getOwner(), baseAddress)) {
-            pointAddr += baseAddress;
-        }
-        generateBranchInsn(insn, ret->baseAddr - (pointAddr+4));
-        globalProc->baseMap[location] = ret;
-        retInstance = new returnInstance(1, (instruction *)insn,sizeof(instruction), 
-                                         pointAddr, sizeof(instruction)); 
-    } else {
-        ret = globalProc->baseMap[location];
-    }
-    
-    return(ret);
-}
-
-/*
- * Install a single tramp.
- *
- */
-void installTramp(miniTrampHandle *mtHandle, process *proc,
-                  char *code, int codeSize)
-{
-    totalMiniTramps++;
-    insnGenerated += codeSize/sizeof(int);
-
-    // TODO cast
-    proc->writeDataSpace((caddr_t)mtHandle->miniTrampBase, codeSize, code);
-
-    // overwrite branches for skipping instrumentation
-    trampTemplate *base = mtHandle->baseTramp;
-    if(mtHandle->when == callPreInsn && base->prevInstru == false) {
-        base->cost += base->prevBaseCost;
-        base->prevInstru = true;
-        generateNoOp(proc, base->baseAddr + base->skipPreInsOffset);
-    } else if (mtHandle->when == callPostInsn && base->postInstru == false) {
-        base->cost += base->postBaseCost;
-        base->postInstru = true;
-        generateNoOp(proc, base->baseAddr + base->skipPostInsOffset);
-    }
 }
 
 
 float getPointFrequency(instPoint *point)
 {
-   int_function *func;
 
-   if (point->getCallee())
-      func = point->getCallee();
-   else
-      func = point->pointFunc();
+    int_function *func;
 
-   if (!funcFrequencyTable.defines(func->prettyName())) {
-      if (0 /*func->isLibTag()*/) {
-         return(100);
-      } else {
-         return(250);
-      }
-   } else {
-      return (funcFrequencyTable[func->prettyName()]);
-   }
-}
-
-bool isReturn(const instruction insn) {
-    return ((insn.mem_jmp.opcode == OP_MEM_BRANCH) &&
-	    (insn.mem_jmp.ext == MD_RET));
-}
-
-// Borrowed from the POWER version
-bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
-{
-  instruction insn;
-
-  insn.raw = owner->get_instruction(adr);
-  // need to know if this is really the last return.
-  //    for now assume one return per function - jkh 4/12/96
-  lastOne = true;
-  return isReturn(insn);
-}
-
-bool isCallInsn(const instruction i) {
-  return (isBsr(i) || isJsr(i));
-}
-
-bool int_function::findInstPoints(const image *owner) 
-{  
-  parsed_ = true;
-
-   Address adr = get_address();
-   instruction instr;
-   instruction instr2;
-   long gpValue;	// gp needs signed operations
-   bool gpKnown = false;
-   instPoint *point;
-   Address t12Value;
-   bool t12Known = false;
-   instruction frameRestInsn;
-
-   frame_size = 0;
-   // normal linkage on alphas is that the first two instructions load gp.
-   //   In this case, many functions jump past these two instructions, so
-   //   we put the inst point at the third instruction.
-   //   However, system call libs don't always follow this rule, so we
-   //   look for a load of gp in the first two instructions.
-   instr.raw = owner->get_instruction(adr);
-   instr2.raw = owner->get_instruction(adr+4);
-   if ((instr.mem.opcode == OP_LDAH) && (instr.mem.ra == REG_GP) &&
-       (instr2.mem.opcode == OP_LDA) && (instr2.mem.ra == REG_GP)) {
-      // compute the value of the gp
-      gpKnown = true;
-      gpValue = ((long) adr) + (SEXT_16(instr.mem.disp)<<16) + instr2.mem.disp;
-      adr += 8;
-   }
-
-   instr.raw = owner->get_instruction(adr);
-   if (!IS_VALID_INSN(instr)) 
-      goto set_uninstrumentable;
-
-   funcEntry_ = new instPoint(this, instr, adr, true, functionEntry);
-   assert(funcEntry_);
-
-   // perform simple data flow tracking on t12 within a basic block.
-  
-   while (true) {
-      instr.raw = owner->get_instruction(adr);
-
-      bool done;
-
-      // check for lda $sp,n($sp) to guess frame size
-      if (!frame_size && ((instr.raw & 0xffff0000) == 0x23de0000)) {
-         // lda $sp,n($sp)
-         frame_size = -((short) (instr.raw & 0xffff));
-         if (frame_size < 0) {
-            // we missed the setup and found the cleanup
-            frame_size = 0;
-         }
-      }
-
-      // check for return insn and as a side affect decide if we are at the
-      //   end of the function.
-      if (isReturnInsn(owner, adr, done)) {
-         // define the return point
-         // check to see if adr-8 is ldq fp, xx(sp) or ldq sp, xx(sp), if so 
-         // use it as the
-         // address since it will ensure the activation record is still active.
-         // Gcc uses a frame pointer, on others only sp is used.
-
-         frameRestInsn.raw = owner->get_instruction(adr-8);
-         if (((frameRestInsn.raw & 0xffff0000) == 0xa5fe0000) ||
-             ((frameRestInsn.raw & 0xffff0000) == 0x23de0000)) {
-            Address tempAddr = adr - 8;
-            funcReturns.push_back(new instPoint(this, frameRestInsn,
-                                               tempAddr, false, functionExit));
-         } else {
-            funcReturns.push_back(new instPoint(this,instr,adr,false,functionExit));
-         }
-
-         // see if this return is the last one 
-         if (done) goto set_instrumentable;
-      } else if (isCallInsn(instr)) {
-         // define a call point
-         point = new instPoint(this, instr, adr, false,callSite);
-
-         if (isJsr(instr)) {
-            Address destAddr = 0;
-            if ((instr.mem_jmp.rb == REG_T12) && t12Known) {
-               destAddr = t12Value;
-            }
-            point->callIndirect = true;
-            // this is the indirect address
-            point->setCallee((int_function *) destAddr);
-         } else {
-            point->callIndirect = false;
-            point->setCallee(NULL);
-         }
-         calls.push_back(point);
-         t12Known = false;
-      } else if (isJmpType(instr) || isBranchType(instr)) {
-         // end basic block, kill t12
-         t12Known = false;
-      } else if ((instr.mem.opcode == OP_LDQ) && (instr.mem.ra == REG_T12) &&
-                 (instr.mem.rb = REG_GP)) {
-         // intruction is:  ldq t12, disp(gp)
-         if (gpKnown) {
-            t12Value = gpValue + instr.mem.disp;
-            t12Known = true;
-         }
-      }
-
-      // now do the next instruction
-      adr += 4;
-
-   }
-
- set_instrumentable:
-   isInstrumentable_ = 1;
-   return true;
-  
- set_uninstrumentable:
-   isInstrumentable_ = 0;
-   return false;
-}
-
-//
-// Each processor may have a different heap layout.
-//   So we make this processor specific.
-//
-// find all DYNINST symbols that are data symbols
-bool process::heapIsOk(const pdvector<sym_data> &find_us) {
-   bool err;
-   Symbol sym;
-   pdstring str;
-   Address addr;
-   /* Address instHeapStart; */
-
-   // find the main function
-   // first look for main or _main
-   if (!((mainFunction = findOnlyOneFunction("main")) 
-         || (mainFunction = findOnlyOneFunction("_main")))) {
-
-      //  JAW -- added next block as error handling for this case since I was seeing
-      //  duplicate "main" entries causing findOnlyOneFunction() to fail.
-      pdvector<int_function *> bpfv;
-      if (!findAllFuncsByName("main", bpfv) || !bpfv.size()) {
-         pdstring msg = "Cannot find main. Exiting.";
-         statusLine(msg.c_str());
-         showErrorCallback(50, msg);
-         return false;
-      } else {
-         char cmsg[64];
-         sprintf(cmsg, "Found %d mains. Using the first", bpfv.size());
-         pdstring msg = cmsg;
-         statusLine(msg.c_str());
-         showErrorCallback(50, msg);
-         //  YUK -- found more than one main.  Kludge it for now and just take the first
-         mainFunction = bpfv[0];
-      }
-   }
-  
-   for (unsigned long i=0; i<find_us.size(); i++) {
-      addr = findInternalAddress(find_us[i].name, false, err);
-      //bperr("looking for %s\n", find_us[i].name.c_str());
-      if (err) {
-         pdstring msg;
-         msg = pdstring("Cannot find ") + str + pdstring(". Exiting");
-         statusLine(msg.c_str());
-         showErrorCallback(50, msg);
-         return false;
-      }
-   }
-
-#if 0
-   pdstring ghb = "_DYNINSTtext";
-   addr = findInternalAddress(ghb, false, err);
-   if (err) {
-      pdstring msg;
-      msg = pdstring("Cannot find _DYNINSTtext") + pdstring(". Exiting");
-      statusLine(msg.c_str());
-      showErrorCallback(50, msg);
-   }
-   instHeapStart = addr;
-
-   pdstring hd = "DYNINSTdata";
-   addr = findInternalAddress(hd, true, err);
-   if (err) {
-      pdstring msg;
-      msg = pdstring("Cannot find DYNINSTdata") + pdstring(". Exiting");
-      statusLine(msg.c_str());
-      showErrorCallback(50, msg);
-      return false;
-   }
-   instHeapStart = addr;
-#endif
-   return true;
+    func = point->findCallee();
+    if (!func)
+        func = point->func();
+    
+    if (!funcFrequencyTable.defines(func->prettyName())) {
+        // Changing this value from 250 to 100 because predictedCost was
+        // too high - naim 07/18/96
+        return(100);
+    } else {
+        return (funcFrequencyTable[func->prettyName()]);
+    }
 }
 
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
-             char *i, Address &base, bool /* noCost */, registerSpace *rs)
+             codeGen &gen, bool /* noCost */, registerSpace *)
 {
-  instruction *insn = (instruction *) ((void*)&i[base]);
-  assert(!((unsigned long)insn & (unsigned long)3));
-  generate_integer_op(insn, src1, src2imm, dest, base, op, true);
-  return;
+  instruction::generateIntegerOp(gen, src1, src2imm, dest, op, true);
 }
 
 Register
 emitFuncCall(opCode /* op */, 
 	     registerSpace *rs,
-	     char *i, Address &base, 
-	     const pdvector<AstNode *> &operands,
+	     codeGen &gen, 
+	     pdvector<AstNode *> &operands,
 	     process *proc, bool noCost,
 	     Address callee_addr,
 	     const pdvector<AstNode *> &ifForks,
-             const instPoint *location) // FIXME: pass it!
+             const instPoint * /*location*/) // FIXME: pass it!
 {
   pdvector <Register> srcs;
   
   // First, generate the parameters
   for (unsigned u = 0; u < operands.size(); u++)
-    srcs.push_back(operands[u]->generateCode_phase2(proc, rs, i , base, 
+    srcs.push_back(operands[u]->generateCode_phase2(proc, rs, gen,
 						    false, ifForks));
 
   // put parameters in argument registers
@@ -1944,7 +1099,6 @@ emitFuncCall(opCode /* op */,
   // save and restore the values currently in the argument registers
   //  unsigned long words = 0;
 
-  bool err;
   void cleanUpAndExit(int status);
 
   //  Sanity check for NULL address argument
@@ -1957,48 +1111,20 @@ emitFuncCall(opCode /* op */,
    }
  
   int remainder;
-  instruction *insn = (instruction *) ((void*)&i[base]);
-  Address dyn_save;
-  Address dyn_restore;
 
   if (!skipSaveCalls) {
-      int_function *fun_save = proc->findOnlyOneFunction("DYNINSTsave_misc");
-      int_function *fun_restore = proc->findOnlyOneFunction("DYNINSTrestore_misc");
-      assert(fun_save && fun_restore);
-      dyn_save = fun_save->get_address();
-      dyn_restore = fun_restore->get_address();
-
-      Symbol info;
-      Address baseAddr;
-      proc->getSymbolInfo("DYNINSTsave_misc", info, baseAddr);
-
-      dyn_save += baseAddr;
-      dyn_restore += baseAddr;
-
-      // save the current values in v0, a0..a5, pv, at, gp
-      // Call to DYNINSTsave_misc
-      base += (4* generate_address(insn, REG_T10, dyn_save, remainder));
-      if (remainder) {
-	  insn = (instruction *) ((void*)&i[base]);
-	  base += (4 * generate_lda(insn, REG_T10, REG_T10, remainder, true));
-      }
-      insn = (instruction *) ((void*)&i[base]);
-      base += (4 * generate_jump(insn, REG_T10, MD_JSR, REG_RA, remainder));
-
-      //  words += (base - temp_base) / sizeof(insn);
-      //  base = temp_base;
+    callRTSequence(gen, proc, "DYNINSTsave_misc", REG_T10);
   }
 
   for (unsigned u=0; u<srcs.size(); u++){
     if (u >= 5) {
-       pdstring msg = "Too many arguments to function call in instrumentation code: only 5 arguments can be passed on the sparc architecture.\n";
+       pdstring msg = "Too many arguments to function call in instrumentation code: only 5 arguments can be passed on the alpha architecture.\n";
        fprintf(stderr, msg.c_str());
        showErrorCallback(94,msg);
        cleanUpAndExit(-1);
     }
-    insn = (instruction *) ((void*)&i[base]);
-    base += (4 * generate_operate(insn, srcs[u], srcs[u], u+REG_A0, 
-		OP_BIS, FC_BIS));
+    instruction::generateOperate(gen, srcs[u], srcs[u], u+REG_A0, 
+				 OP_BIS, FC_BIS);
   }
 
   // Set the value of  pv/t12/r27
@@ -2007,37 +1133,23 @@ emitFuncCall(opCode /* op */,
   // this register must be saved and restored
 
   // Jump to the function
-  insn = (instruction *) ((void*)&i[base]);
-  base += (4 *generate_address(insn, REG_PV, callee_addr, remainder));
+  instruction::generateAddress(gen, REG_PV, callee_addr, remainder);
   if (remainder)
     {
-      insn = (instruction *) ((void*)&i[base]);
-      base += (4 * generate_lda(insn, REG_PV, REG_PV, remainder, true));
+      instruction::generateLDA(gen, REG_PV, REG_PV, remainder, true);
     }
 
   // TODO -- clear other argument registers ?
-  insn = (instruction *) ((void*)&i[base]);
-  base += (4 * generate_jump(insn, REG_PV, MD_JSR, REG_RA, remainder));
+  instruction::generateJump(gen, REG_PV, MD_JSR, REG_RA, remainder);
   
   if (!skipSaveCalls) {
-      // Call to DYNINSTrestore_misc
-      insn = (instruction *) ((void*)&i[base]);
-      base += (4 * generate_address(insn, REG_T10, dyn_restore, remainder));
-      if (remainder) {
-	  insn = (instruction *) ((void*)&i[base]);
-	  base += (4 * generate_lda(insn, REG_T10, REG_T10, remainder, true));
-      }
-      insn = (instruction *) ((void*)&i[base]);
-      base += ( 4 * generate_jump(insn, REG_T10, MD_JSR, REG_RA, remainder));
+    callRTSequence(gen, proc, "DYNINSTrestore_misc", REG_T10);
   }
 
-  Register dest = rs->allocateRegister(i, base, noCost);
-
-  insn = (instruction *) ((void*)&i[base]);
+  Register dest = rs->allocateRegister(gen, noCost);
 
   // or v0,v0,dest
-  generate_operate(insn,REG_V0,REG_V0,dest,OP_BIS,FC_BIS);
-  base+= sizeof(instruction);
+  instruction::generateOperate(gen, REG_V0, REG_V0, dest, OP_BIS, FC_BIS);
 
   for (unsigned u=0; u<srcs.size(); u++){
     rs->freeRegister(srcs[u]);
@@ -2046,75 +1158,56 @@ emitFuncCall(opCode /* op */,
   return dest;
 }
 
-bool returnInstance::checkReturnInstance(const pdvector< pdvector<Frame> > &stackWalks)
-{
-  // Single instruction jumps == we don't have to implement
-  return true;
-}
- 
-void returnInstance::installReturnInstance(process *proc) {
-    proc->writeTextSpace((caddr_t)addr_, instSeqSize, (caddr_t) instructionSeq); 
-	installed = true;
-}
 
-void returnInstance::addToReturnWaitingList(Address /* pc */, 
-					    process*  /* proc */) 
-{
-    P_abort();
-}
-
-void generateBreakPoint(instruction &insn)
-{
-  insn.raw = BREAK_POINT_INSN;
-}
-
-void generateIllegalInsn(instruction &insn) { // instP.h
-   insn.raw = 0;
-}
-
-// findCallee: returns false unless callee is already set in instPoint
-// dynamic linking not implemented on this platform
-bool process::findCallee(instPoint &instr, int_function *&target){
-
-  if((target = instr.getCallee())) {
-       return true;
-    }
-    if (instr.callIndirect && instr.getCallee()) {
-	// callee contains the address in the mutatee
-	// read the contents of the address
-	Address dest;
-	if (!readDataSpace((caddr_t)(instr.getCallee()), sizeof(Address),
-	    (caddr_t)&(dest),true)) {
-	    return false;
-	}
-	// now lookup the funcation
-	target = findFuncByAddr(dest);
-	if (target) return true;
-    }
-    return false;
-}
-
-bool process::replaceFunctionCall(const instPoint *point,
+bool process::replaceFunctionCall(instPoint *point,
 				  const int_function *newFunc) {
    // Must be a call site
    if (point->getPointType() != callSite)
       return false;
    
-   // Cannot already be instrumented with a base tramp
-   if (baseMap.defines(point))
-      return false;
-   instruction newInsn;
-   if (newFunc == NULL) {	// GCC 3.x requires RA to equal PC on ret.
-      // So, actually replace with 0 length branch.
-      generate_branch(&newInsn, REG_RA, 0, OP_BR);
-      
-   } else {			// Replace with a new call instruction
-      generateBSR(&newInsn, newFunc->get_address() + sizeof(instruction)
-                  - point->pointAddr());
-   }
+   inst_printf("Function replacement, point func %s, new func %s, point primary addr 0x%x\n",
+               point->func()->symTabName().c_str(), newFunc ? newFunc->symTabName().c_str() : "<NULL>",
+               point->addr());
    
-   writeTextSpace((caddr_t)point->pointAddr(), sizeof(instruction), &newInsn);
-    
+   instPointIter ipIter(point);
+   instPointInstance *ipInst;
+   while ((ipInst = ipIter++)) {  
+     // Multiple replacements. Wheee...
+     Address pointAddr = ipInst->addr();
+     inst_printf("... replacing 0x%x", pointAddr);
+     codeRange *range;
+     if (multiTramps_.find(pointAddr, range)) {
+       // We instrumented this... not handled yet
+       assert(0);
+     }
+     else {  
+         codeGen gen(instruction::size());
+         if (newFunc == NULL) {	// Replace with a NOOP
+             inst_printf("... nulling call");
+             instruction::generateBranch(gen, REG_RA, 0, OP_BR);
+         } else {			// Replace with a new call instruction
+             instruction::generateBSR(gen, 
+                                      newFunc->getAddress() + instruction::size() - pointAddr);
+         }
+
+          // Before we replace, track the code.
+          // We could be clever with instpoints keeping instructions around, but
+          // it's really not worth it.
+          replacedFunctionCall *newRFC = new replacedFunctionCall();
+          newRFC->callAddr = pointAddr;
+
+          codeGen old(instruction::size());
+          old.copy(point->insn().ptr(), instruction::size());
+          newRFC->oldCall = old;
+          newRFC->newCall = gen;
+          
+          replacedFunctionCalls_[pointAddr] = newRFC;
+
+         
+         writeTextSpace((caddr_t)pointAddr, gen.used(),
+                        gen.start_ptr());
+     }
+   }
    return true;
 }
 
@@ -2146,97 +1239,67 @@ void process::inferiorMallocAlign(unsigned &size)
 
 // Emit code to jump to function CALLEE without linking.  (I.e., when
 // CALLEE returns, it returns to the current caller.)
-void emitFuncJump(opCode op, 
-		  char *i, Address &base, 
+void emitFuncJump(opCode /*op*/, 
+		  codeGen &gen, 
 		  const int_function *callee, process *proc,
 		  const instPoint *, bool)
 {
+  int remainder = 0;
+  Address addr = callee->getAddress();
 
-    Address addr;
-    int remainder;
-    unsigned long count;
-
-    assert(op == funcJumpOp);
-
-    addr = callee->getEffectiveAddress(proc);
-    /* Address addr2 = callee->getAddress(0); */
-    instruction *insn = (instruction *) ((void*)&i[base]);
-    count = 0;
-
-    // Cleanup stack state from tramp preamble
-
-    // call DYNINSTrestore_temp
-    Symbol info;
-    Address baseAddr;
-    int_function*fun_restore = proc->findOnlyOneFunction("DYNINSTrestore_temp");
-    proc->getSymbolInfo("DYNINSTrestore_temp", info, baseAddr);
-    assert(fun_restore);
-    Address dyn_restore = fun_restore->get_address() + baseAddr;
-
-    callAbsolute(insn, count, dyn_restore);
-
-    // load ra from the stack
-    count += generate_load(&insn[count], REG_RA, REG_SP, 0, dw_quad);
-
-    // load GP from the stack
-    count += generate_load(&insn[count], REG_GP, REG_SP, 8, dw_quad);
-
-    // increment stack by 16
-    count += generate_lda(&insn[count], REG_SP, REG_SP, 16, true);
-
-    // save gp and ra in special location
-    // **** Warning this fails in the case of replacing a mutually recursive
-    //    function
-    Address saveArea = proc->inferiorMalloc(2*sizeof(long), dataHeap, 0);
-
-    count += generate_address(&insn[count], REG_T12, saveArea, remainder);
-    count += generate_store(&insn[count], REG_GP, REG_T12, remainder, 
-	dw_quad); 
-
-    count += generate_store(&insn[count], REG_RA, REG_T12, 
-	remainder+sizeof(long), dw_quad);
-
-    // calling convention seems to expect t12 to contain the address of the
-    //    suboutine being called, so we use t12 to build the address
-    count += generate_address(&insn[count], REG_T12, addr, remainder);
-    if (remainder)
-	count += generate_lda(&insn[count], REG_T12, REG_T12, remainder, true);
-    count += generate_jump(&insn[count], REG_T12, MD_JSR, REG_RA, remainder);
-
-    count += generate_nop(&insn[count]);
-
-    // back after function, restore everything
-    count += generate_address(&insn[count], REG_RA, saveArea, remainder);
-    count += generate_load(&insn[count], REG_GP, REG_RA, remainder, 
-	dw_quad); 
-
-    count += generate_load(&insn[count], REG_RA, REG_RA, 
-	remainder+sizeof(long), dw_quad);
-    count += generate_jump(&insn[count], REG_RA, MD_JMP, REG_ZERO, remainder);
-    count += generate_nop(&insn[count]);
-
-    base += count * sizeof(instruction);
+  callRTSequence(gen, proc, "DYNINSTrestore_temp",
+		 REG_GP);
+  
+  // load ra from the stack
+  instruction::generateLoad(gen, REG_RA, REG_SP, 0, dw_quad, true);
+  
+  // load GP from the stack
+  instruction::generateLoad(gen, REG_GP, REG_SP, 8, dw_quad, true);
+  
+  // increment stack by 16
+  instruction::generateLDA(gen, REG_SP, REG_SP, 16, true);
+  
+  // save gp and ra in special location
+  // **** Warning this fails in the case of replacing a mutually recursive
+  //    function
+  Address saveArea = proc->inferiorMalloc(2*sizeof(long), dataHeap, 0);
+  
+  instruction::generateAddress(gen, REG_T12, saveArea, remainder);
+  instruction::generateStore(gen, REG_GP, REG_T12, remainder, 
+			     dw_quad); 
+  
+  instruction::generateStore(gen, REG_RA, REG_T12, 
+			     remainder+sizeof(long), dw_quad);
+  
+  // calling convention seems to expect t12 to contain the address of the
+  //    suboutine being called, so we use t12 to build the address
+  remainder = 0;
+  instruction::generateAddress(gen, REG_T12, addr, remainder);
+  if (remainder)
+    instruction::generateLDA(gen, REG_T12, REG_T12, remainder, true);
+  instruction::generateJump(gen, REG_T12, MD_JSR, REG_RA, remainder);
+  
+  instruction::generateNOOP(gen);
+  
+  // back after function, restore everything
+  remainder = 0;
+  instruction::generateAddress(gen, REG_RA, saveArea, remainder);
+  instruction::generateLoad(gen, REG_GP, REG_RA, remainder, 
+			    dw_quad, true); 
+  
+  instruction::generateLoad(gen, REG_RA, REG_RA, 
+			    remainder+sizeof(long), dw_quad, true);
+  instruction::generateJump(gen, REG_RA, MD_JMP, REG_ZERO, remainder);
+  instruction::generateNOOP(gen);
 }
 
-void generateMTpreamble(char *, Address &, process *) {
-	assert( 0 );	// We don't yet handle multiple threads.
-	} /* end generateMTpreamble() */
-
 void emitLoadPreviousStackFrameRegister(Address, Register,
-					char *, Address &, int, bool){
+					codeGen &, int, bool){
   assert(0);
 }
  
-bool process::isDynamicCallSite(instPoint *callSite){
-  int_function *temp;
-  if(!findCallee(*(callSite),temp)){
-    return true;
-  }
-  return false;
-}
- 
-bool process::getDynamicCallSiteArgs(instPoint *callSite,
-                                     pdvector<AstNode *> &args)
+bool process::getDynamicCallSiteArgs(instPoint * /*callSite*/,
+                                     pdvector<AstNode *> & /*args*/)
 {
   return false;
 }
@@ -2247,122 +1310,18 @@ bool process::MonitorCallSite(instPoint *callSite){
 }
 #endif
 
-bool deleteBaseTramp(process * /*proc*/, trampTemplate *)
-{
-	cerr << "WARNING : deleteBaseTramp is unimplemented "
-	     << "(after the last instrumentation deleted)" << endl;
-	return false;
-}
-
-
-/*
- * createInstructionInstPoint
- *
- * Create a BPatch_point instrumentation point at the given address, which
- * is guaranteed not be one of the "standard" inst points.
- *
- * proc         The process in which to create the inst point.
- * address      The address for which to create the point.
- */
-BPatch_point *createInstructionInstPoint(BPatch_process *proc, 
-					 void *address,
-					 BPatch_point** /*alternative*/,
-					 BPatch_function* bpf)
-{
-    int_function *func = NULL;
-    if(bpf)
-        func = bpf->func;
-    else
-        func = proc->llproc->findFuncByAddr((Address)address);
-
-    if (!isAligned((Address)address))
-	return NULL;
-
-    instruction instr;
-    proc->llproc->readTextSpace(address, sizeof(instruction), &instr.raw);
-
-    int_function* pointFunction = func;
-    Address pointImageBase = 0;
-    image* pointImage = pointFunction->pdmod()->exec();
-    proc->llproc->getBaseAddress((const image*)pointImage,pointImageBase);
-    Address pointAddress = (Address)address-pointImageBase;
-
-    instPoint *newpt = new instPoint(pointFunction,
-				    (const instructUnion &) instr,
-				    (Address &)pointAddress,
-				    false, // bool delayOk - ignored
-				    otherPoint);
-
-    pointFunction->addArbitraryPoint(newpt,NULL);
-
-
-    return proc->findOrCreateBPPoint(NULL, newpt, BPatch_arbitrary);
-}
-
-#ifdef BPATCH_LIBRARY
-
-#include "BPatch_point.h"
-#include "BPatch_snippet.h"
-
-int BPatch_point::getDisplacedInstructionsInt(int maxSize, void *insns)
-{
-    if (static_cast<unsigned>(maxSize) >= sizeof(instruction))
-        memcpy(insns, &point->originalInstruction.raw, sizeof(instruction));
-
-    return sizeof(instruction);
-}
-
-#endif
-
-
-//XXX loop port
-BPatch_point *
-createInstructionEdgeInstPoint(process* proc, 
-			       int_function *func, 
-			       BPatch_edge *edge)
-{
-    return NULL;
-}
-
-//XXX loop port
-void 
-createEdgeTramp(process *proc, image *img, BPatch_edge *edge)
-{
-
-}
-
-/* For AIX liveness analysis */
-void registerSpace::resetLiveDeadInfo(const int * liveRegs)
-{}
-
-
-bool registerSpace::clobberRegister(Register reg) 
+bool registerSpace::clobberRegister(Register /*reg*/) 
 {
   return false;
 }
 
-bool registerSpace::clobberFPRegister(Register reg)
+bool registerSpace::clobberFPRegister(Register /*reg*/)
 {
   return false;
 }
 
-unsigned saveRestoreRegistersInBaseTramp(process *proc, trampTemplate * bt,
-					 registerSpace * rs)
+unsigned saveRestoreRegistersInBaseTramp(process * /*proc*/, baseTramp * /*bt*/,
+					 registerSpace * /*rs*/)
 {
   return 0;
-}
-
-trampTemplate *installMergedTramp(process *proc, 
-				  instPoint *&location,
-				  char * i, Address count, 
-				  registerSpace * regS, 
-				  callWhen when,
-				  returnInstance *&retInstance,
-				  bool trampRecursiveDesired,
-				  bool /*noCost*/,
-				  bool& /*deferred*/,
-				  bool /*allowTrap*/)
-{
-  trampTemplate *ret = NULL;
-  return ret;
 }

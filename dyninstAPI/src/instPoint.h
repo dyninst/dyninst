@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.18 2005/07/11 19:35:22 rutar Exp $
+// $Id: instPoint.h,v 1.19 2005/07/29 19:18:47 bernat Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -47,142 +47,374 @@
 
 #include <stdlib.h>
 #include "common/h/Types.h"
+#include "dyninstAPI/src/inst.h"
+#include "dyninstAPI/src/arch.h" // instruction
+#include "dyninstAPI/src/codeRange.h"
 
-typedef enum {
-    noneType,
-    functionEntry,
-    functionExit,
-    callSite,
-    otherPoint
-} instPointType;
-
+class image_func;
 class int_function;
 class instPoint;
 class process;
 class image;
+class AstNode;
+class int_basicBlock;
 #if defined(__XLC__) || defined(__xlC__)
 class BPatch_point;
 #endif
+class Frame;
+class instPointInstance;
+
+// Types of points
+typedef enum {
+  noneType,
+  functionEntry,
+  functionExit,
+  callSite,
+  otherPoint
+} instPointType_t;
+
+// We now maintain two data structures, the instPoint and the
+// multiTramp. These were obtained by splitting the old instPoint
+// class into its logical component parts. An instPoint is the
+// user-visible layer, and describes the instrumentation of a single
+// logical (e.g. function entry or edge) or physical (e.g. single
+// instruction) location in the program. The multipoint describes the
+// implementation (which instructions are overwritten) and provides a
+// mapping from instPoints to base tramps.
+
+class multiTramp;
+class instPoint;
+class instruction;
+
+// As above: common class for both parse-time and run-time instPoints
 
 class instPointBase {
-   static unsigned int id_ctr;
-   unsigned int id;       // for tracking matching instPoints in original
-                          // and relocated functions
-
-   bool relocated_;       // true if the function where this instPoint belongs
-                          // has been relocated, and this instPoint has been 
-                          // updated to reflect that relocation. 
-
-   instPointType ipType;
-   Address      addr_;    //The address of this instPoint: this is the address
-                          // of the actual point (i.e. a function entry point,
-                          // a call or a return instruction)
-   int_function *func_;	 //The function where this instPoint belongs to
-   int_function *callee_;	//If this point is a call, the function being called
-
-   instPoint *getMatchingInstPoint(process *p) const;
-
-   // We need this here because BPatch_point gets dropped before
-   // we get to generate code from the AST, and we glue info needed
-   // to generate code for the effective address snippet/node to the
-   // BPatch_point rather than here.
-   friend class BPatch_point;
-   BPatch_point *bppoint; // unfortunately the correspondig BPatch_point
-                          // is created afterwards, so it needs to set this
+ private:
+    instPointBase();
 
  public:
-    //ELI
-    // if this instPoint is created in an edge tramp then this 
-    // address is the address of the jcc instruction
-    Address addrInFunc;
-    
-    int * liveRegisters;
+  static unsigned int id_ctr;  
+  instPointType_t getPointType() const { return ipType_; }
 
-   instPointBase(instPointType iptype, Address addr, int_function *func) :
-     id(id_ctr++), relocated_(false), ipType(iptype), addr_(addr),
-     func_(func), callee_(NULL), bppoint(NULL),addrInFunc(0), 
-     liveRegisters(NULL){ }
+  // Single instruction we're instrumenting (if at all)
+  const instruction &insn() const { return insn_; }
+  instPointBase(instruction insn,
+                instPointType_t type) :
+      ipType_(type),
+      insn_(insn)
+      { id_ = id_ctr++; }
+  // We need to have a manually-set-everything method
+  instPointBase(instruction insn,
+                instPointType_t type,
+                unsigned int id) :
+      id_(id),
+      ipType_(type),
+      insn_(insn)
+      {}
 
-   instPointBase(unsigned int id_to_use, instPointType iptype, Address addr,
-                 int_function *func) :
-     id(id_to_use), relocated_(true), ipType(iptype), addr_(addr),
-     func_(func), callee_(NULL), bppoint(NULL),addrInFunc(0),
-     liveRegisters(NULL){ }
+  int id() const { return id_; }
 
-   virtual ~instPointBase() { }
-
-   unsigned int getID() const { return id; }   
-   bool isRelocatedPointType() const { return relocated_; }   
-   instPointType getPointType() const { return ipType; }
-
-   // returns NULL if can't find a matching relocated inst-point
-   // should be called from an original inst point
-   instPoint *getMatchingRelocInstPoint(process *p) const {
-      if(isRelocatedPointType())
-         return NULL;
-      
-      return getMatchingInstPoint(p);
-   }
-
-   // returns NULL if can't find a matching original inst-point
-   // should be called from a relocated inst point
-   instPoint *getMatchingOrigInstPoint() const {
-      if(! isRelocatedPointType())
-         return NULL;
-      
-      return getMatchingInstPoint(NULL);
-   }
-
-   Address pointAddr() const { return addr_; }
-   int_function *pointFunc() const { return func_; }
-   virtual int_function *getCallee() const { return callee_; }
-
-   image *getOwner() const;
-   Address absPointAddr(process *proc) const;
-   
-   // can't set this in the constructor because call points can't be
-   // classified until all functions have been seen -- this might be cleaned
-   // up
-   void setCallee(int_function * to) { callee_ = to;  }
-
-
-   BPatch_point* getBPatch_point() const { return bppoint; }
-   void setBPatch_point(const BPatch_point *p) { 
-      bppoint = const_cast<BPatch_point *>(p);
-   }
+ protected:
+  unsigned int id_;
+  instPointType_t ipType_;
+  instruction insn_;
 };
 
+class image_instPoint : public instPointBase {
+ private:
+    image_instPoint();
+ public:
+    // Entry/exit
+    image_instPoint(Address offset,
+                  instruction insn,
+		  image_func *func,
+		  instPointType_t type);
+    // Call site
+    image_instPoint(Address offset,
+                    instruction insn,
+                    image_func *func,
+                    Address callTarget_,
+                    bool isDynamicCall);
+  
 
-// architecture-specific implementation of class instPoint
-#if defined(sparc_sun_solaris2_4) \
- || defined(sparc_sun_sunos4_1_3)
-#include "instPoint-sparc.h"
+  Address offset_;
+  Address offset() const { return offset_; }
 
-#elif defined(rs6000_ibm_aix4_1)
-#include "instPoint-power.h"
+  image_func *func() const { return func_; }
+  image_func *func_;
+  // For call-site points:
 
-#elif defined(i386_unknown_nt4_0)
-#include "instPoint-x86.h"
+  image_func *callee_;
+  Address callTarget_;
+  Address callTarget() const { return callTarget_; }
+  bool isDynamicCall_; 
+  bool isDynamicCall() const { return isDynamicCall_; }
 
-#elif defined(i386_unknown_solaris2_5)
-#include "instPoint-x86.h"
+  image_func *getCallee() const { return callee_; }
+  void setCallee(image_func *f) { callee_ = f; }
+  static int compare(image_instPoint *&ip1,
+                     image_instPoint *&ip2) {
+      if (ip1->offset() < ip2->offset())
+          return -1;
+      if (ip2->offset() < ip1->offset())
+          return 1;
+      assert(ip1 == ip2);
+      return 0;
+  };
+};
 
-#elif defined(alpha_dec_osf4_0)
-#include "instPoint-alpha.h"
+// The actual instPoint is a little more interesting. It wraps the
+// abstract view of an instrumentation point. In reality, it may map
+// to multiple addresses (if the function it targets was relocated),
+// and so may use multiple multiTramps. So we have a 1:many
+// mapping. This is taken care of by keeping a vector of iPTarget
+// structures.
 
-#elif defined(i386_unknown_linux2_0) \
-   || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
-#include "instPoint-x86.h"
+class instPointInstance {
+    friend class instPoint;
+    friend class multiTramp;
 
-#elif defined(ia64_unknown_linux2_4)
-#include "instPoint-ia64.h"
+    instPointInstance() { assert(0); }
+ private:
+    instPointInstance(Address a, int_function *f, instPoint *ip) :
+        addr_(a), func_(f), multiID_(0), point(ip) {
+    }
 
-#elif defined(mips_sgi_irix6_4) \
-   || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 29 mar 2001
-#include "instPoint-mips.h"
+    // No end of trouble if this is a subclass..
+    Address addr_; // Address of this particular version
+    int_function *func_; // Function pointer to the specific version
 
-#else
-#error unknown architecture
+    int multiID_;
+
+    instPoint *point; // Backchain pointer
+
+    bool generateInst(bool allowTrap);
+    bool linkInst();
+
+ public:
+    // If we re-generate code we toss the old
+    // multiTramp and make a new one; we then need
+    // to update everyone with a handle to the multi.
+
+    process *proc() const;
+    
+    void updateMulti(int multi);
+
+    multiTramp *multi() const;
+    Address addr() const { return addr_; }
+    int_function *func() const { return func_; }
+
+    void updateVersion();
+};
+
+class instPoint : public instPointBase {
+    friend class instPointInstance;
+    friend class baseTramp;
+ private:
+    // Generic instPoint...
+    instPoint(process *proc,
+              instruction insn,
+              Address addr,
+              int_function *func);
+    // Call-site instPoint
+    instPoint(process *proc,
+              image_instPoint *img_p,
+              Address addr,
+              int_function *func);
+
+    // Fork instPoint
+    instPoint(instPoint *parP,
+              int_function *child);
+
+    // A lot of arbitrary/parse creation work can be shared
+    static bool commonIPCreation(instPoint *newIP,
+                                 int_basicBlock *block);
+
+    // On windows, an internally-defined class cannot access private
+    // members of the "parent" class. This works on all other
+    // platforms. Windows is b0rken...
+#if defined(os_windows)
+ public:
 #endif
+    bool updateInstances();
+    pdvector<instPointInstance *> instances;
+
+    // Adding instances is expensive; if the function
+    // hasn't changed, we can avoid doing so.
+    unsigned funcVersion;
+#if defined(os_windows)
+ private:
+#endif
+ public:
+
+  // Make a new instPoint at an arbitrary location
+  static instPoint *createArbitraryInstPoint(Address addr,
+					     process *proc);
+
+  static instPoint *createParsePoint(int_function *func,
+                                     image_instPoint *img_p);
+
+  static instPoint *createForkedPoint(instPoint *p, int_function *func);
+
+  ~instPoint();
+
+  /* Not sure how this will interact with multiple versions of
+   * functions; for now, it will use a trap only if all versions would
+   * use a trap.
+   */
+  bool usesTrap() const;
+
+  // Get the correct multitramp for a given function (or address)
+  multiTramp *getMulti(int_function *func);
+  multiTramp *getMulti(Address addr);
+
+  // Get the instPointInstance at this addr
+  instPointInstance *getInstInstance(Address addr);
+
+  // Get the appropriate first (or last) miniTramp for the given callWhen
+  miniTramp *getFirstMini(callWhen when);
+  miniTramp *getLastMini(callWhen when);
+
+  // For call-site inst points: TODO: what about relocation? This
+  // keeps pointing at the old version? Or should we get rid of the
+  // instPoint dodge to get the callee and store the information in
+  // the int_function directly?
+  int_function *callee_;
+  bool isDynamicCall_;
+  bool isDynamicCall() const { return isDynamicCall_; }
+
+  // Get the base tramp (conglomerate) corresponding to this instPoint
+  // (conglomerate)
+  // May go out and make a new baseTramp... or find the corresponding
+  // one in a neighboring instPoint.
+  baseTramp *getBaseTramp(callWhen when);
+
+  // Perform retroactive changes to the process, such as changing a
+  // return address or moving a PC value.
+  bool instrSideEffect(Frame &frame);
+
+  // Called after an object is mapped to finalize inter-module calls.
+
+  // findCallee: finds the function called by the instruction corresponding
+  // to the instPoint "instr". If the function call has been bound to an
+  // address, then the callee function is returned in "target" and the
+  // instPoint "callee" data member is set to pt to callee's int_function.
+  // If the function has not yet been bound, then "target" is set to the
+  // int_function associated with the name of the target function (this is
+  // obtained by the PLT and relocation entries in the image), and the instPoint
+  // callee is not set.  If the callee function cannot be found, (e.g. function
+  // pointers, or other indirect calls), it returns false.
+  // Returns false on error (ex. process doesn't contain this instPoint).
+  
+  // TODO: fix original comment; callee_ is set, but returned directly.
+  int_function *findCallee();
+
+  // Is this the instPoint referred to?
+  bool match(Address addr) const;
+
+  process *proc() const { return proc_; }
+
+  int_function *func() const { return func_; }
+
+  Address addr() const { return addr_; }
+
+  // We use a three-phase instrumentation structure:
+
+  // 1) Insert multiple pieces of instrumentation at multiple
+  // 1) locations;
+
+  // 2) Generate code for everything inserted in step 1 as well as all
+  // pre-existing instrumentation that has been modified by step 1;
+
+  // 3) Insert jumps to the code generated in step 2, and relocate
+  // functions if necessary.
+
+  // This function does it all:
+  // Doesn't handle deferring though
+  miniTramp *instrument(AstNode *ast,
+                        callWhen when,
+                        callOrder order,
+                        bool trampRecursive,
+                        bool noCost,
+                        bool allowTrap);
+
+  // Step 1:
+  miniTramp *addInst(AstNode *&ast,
+                     callWhen when,
+                     callOrder order,
+                     bool trampRecursive,
+                     bool noCost);
+
+  // Step 2:
+  bool generateInst(bool allowTrap);
+
+  // Determine whether instrumentation will go in smoothly
+  // At this point, "given the stacks, can we insert a jump
+  // or not"?
+  bool checkInst(pdvector<pdvector<Frame> > &stackWalks);
+
+  // Step 3:
+  // TODO: if we're out-of-lining miniTramps or something, this should
+  // be the call that causes linkage of the OOL MT to occur, just for
+  // completeness of the model.
+  bool linkInst();
+
+  bool createMiniTramp(AstNode *&ast,
+		       bool noCost,
+		       int &trampCost,
+		       Address &trampSize,
+		       Address &retOffset);
+
+  void updateCost(miniTramp *mt);
+
+  int getPointCost();
+
+  class iterator {
+      instPoint *point;
+      unsigned index;
+      iterator();
+  public:
+      iterator(instPoint *point) :
+          point(point), index(0) {
+          point->updateInstances();
+      }
+      instPointInstance *operator*() {
+          if (index < point->instances.size())
+              return point->instances[index];
+          else
+              return NULL;
+      }
+      instPointInstance *operator++(int) {
+          if (index < point->instances.size()) {
+              instPointInstance *inst = point->instances[index];
+              index++;
+              return inst;
+          }
+          return NULL;
+      }
+  };
+
+  baseTramp *preBaseTramp() const { return preBaseTramp_; }
+  baseTramp *postBaseTramp() const { return postBaseTramp_; }
+  baseTramp *targetBaseTramp() const { return targetBaseTramp_; }
+
+  // Register optimization
+  int *liveRegisters;
+  // AIX only.
+
+ private:
+  baseTramp *preBaseTramp_;
+  baseTramp *postBaseTramp_;
+  baseTramp *targetBaseTramp_;
+
+  process *proc_;
+
+  image_instPoint *img_p_;
+
+  int_function *func_;
+  Address addr_;
+};
+
+typedef instPoint::iterator instPointIter;
 
 #endif /* _INST_POINT_H_ */

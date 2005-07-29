@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instP.h,v 1.47 2005/05/01 23:27:32 rutar Exp $
+// $Id: instP.h,v 1.48 2005/07/29 19:18:45 bernat Exp $
 
 #if !defined(instP_h)
 #define instP_h
@@ -53,54 +53,14 @@
 #include "dyninstAPI/src/frame.h"
 
 // base tramp template
-#include "dyninstAPI/src/trampTemplate.h"
+//#include "dyninstAPI/src/baseTramp.h"
 // minitramp data structure
-#include "dyninstAPI/src/miniTrampHandle.h"
-// minitramp list structure
-#include "dyninstAPI/src/installed_miniTramps_list.h"
+//#include "dyninstAPI/src/miniTramp.h"
 
-// class returnInstance: describes how to jmp to the base tramp
-class returnInstance {
-  public:
-    returnInstance() {
-	addr_ = 0;
-	installed = false;
-    }
+class baseTramp;
+class miniTramp;
 
-    returnInstance(unsigned insnsOver, instruction *instSeq, int seqSize, Address addr, int size)
-		   :insnsOverwritten(insnsOver), instructionSeq(instSeq), instSeqSize(seqSize), 
-		   addr_(addr), size_(size), installed(false) {};
-
-    bool checkReturnInstance(const pdvector<pdvector<Frame> > &stackWalks);
-    void installReturnInstance(process *proc);
-    void addToReturnWaitingList(Address pc, process *proc);
-
-    bool Installed() const { return installed; }
-    Address addr() const { return addr_; }
-
-    // return the number of instructions this instructionSeq is going to overwrite
-    // to return true or false: if this instructionSeq will require a stack walk or not
-    //   or if the instructionSeq is going to overwrite more than 1 instruction or not
-    //
-    // 1 for alpha and power, 2 for mips
-    // could be 1, 2, 3, ... for sparc, 0 for unknown
-    // 1 + insnsBefore + insnsAfter at the inst point (location) for x86
-    unsigned InsnsOverwritten() const { return insnsOverwritten; }
-    bool needToWalkStack() const {
-      return (1 != insnsOverwritten);
-    }
-
-  private:
-    unsigned insnsOverwritten;      // number of instructions that will be overwritten
-                                    // when this instructionSeq is installed; 0 means unknown
-    instruction *instructionSeq;    // instructions to be installed
-    int instSeqSize;
-    Address addr_;                  // beginning address
-    int size_;
-    bool installed;
-}; 
-
-
+#if 0
 class instWaitingList {
   public:
     instWaitingList(instruction *i,int s,Address a,Address pc,
@@ -127,15 +87,10 @@ class instWaitingList {
 
 extern pdvector<instWaitingList*> instWList;
 
-extern trampTemplate *findOrInstallBaseTramp(process *proc, 
-                                             instPoint *&location,
-                                             returnInstance *&retInstance,
-                                             bool trampRecursiveDesired,
-                                             bool noCost,
-                                             bool &deferred,
-                                             bool allowTrap);
+#endif
 
-extern trampTemplate *installMergedTramp(process *proc, 
+#if 0
+extern baseTramp *installMergedTramp(process *proc, 
 					 instPoint *&location,
 					 char * insn, Address count,
 					 registerSpace * regS,
@@ -145,19 +100,21 @@ extern trampTemplate *installMergedTramp(process *proc,
 					 bool noCost,
 					 bool &deferred,
 					 bool allowTrap);
+#endif
 
-extern void installTramp(miniTrampHandle *mtHandle, process *proc, char *code, 
-                         int codeSize);
-extern void modifyTrampReturn(process*, Address returnAddr, Address newReturnTo);
 extern void generateReturn(process *proc, Address currAddr, instPoint *location);
-extern void generateEmulationInsn(process *proc, Address addr, instPoint *location);
-extern void generateNoOp(process *proc, Address addr);
 extern void initTramps(bool is_multithreaded);
-extern void generateBranch(process *proc, Address fromAddr, Address newAddr);
+extern void generateBranch(unsigned char *buffer, unsigned &offset,
+                           Address fromAddr, Address toAddr);
+extern unsigned generateAndWriteBranch(process *proc, Address fromAddr, Address toAddr, unsigned fillSize = 0);
 extern void removeTramp(process *proc, instPoint *location);
 extern int flushPtrace();
-extern bool deleteBaseTramp(process *, trampTemplate *);
 
-extern unsigned saveRestoreRegistersInBaseTramp(process *proc, trampTemplate * bt, 
-					 registerSpace * rs);
+extern unsigned saveGPRegister(char *baseInsn, Address &base, Register reg);
+extern unsigned saveRestoreRegistersInBaseTramp(process *proc, baseTramp * bt, 
+						registerSpace * rs);
+
+extern void generateNoopField(unsigned size,
+                              unsigned char *buffer);
+
 #endif
