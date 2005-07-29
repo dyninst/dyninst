@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.115 2005/05/13 09:17:21 jaw Exp $ */
+/* $Id: test1.mutatee.c,v 1.116 2005/07/29 19:20:01 bernat Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -476,6 +476,8 @@ void call19_2()
 volatile int ta = TEST20_A;
 volatile double tb = TEST20_B;
 
+
+
 void call20_1()
 {
     globalVariable20_1 = ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+(ta+
@@ -541,7 +543,6 @@ void call30_1(){ globalVariable30_1 = __LINE__; globalVariable30_2 = (unsigned l
 void func1_1()
 {
     void func1_2();
-
     dprintf("Value of globalVariable1_1 is %d.\n", globalVariable1_1);
 
     func1_2();
@@ -579,6 +580,7 @@ void func4_1()
     kludge = 1;	/* Here so that the following function call isn't the first
 		   instruction */
     func4_2();
+
     if (globalVariable4_1 == 41) {
 	printf("**Failed** test #4 (sequence)\n");
 	printf("    none of the items were executed\n");
@@ -921,6 +923,7 @@ void func14_1()
 		   instruction */
 
     func14_2();
+
     func14_3();
 
     if (globalVariable14_1 == 1 && globalVariable14_2 == 0) {
@@ -953,7 +956,7 @@ void check15result(const char *varname, int value, int expected,
 
 void func15_2()
 {
-  DUMMY_FN_BODY;
+    DUMMY_FN_BODY;
 }
 
 void func15_3()
@@ -981,12 +984,15 @@ void func15_1()
     check15result("globalVariable15_1", globalVariable15_1, 1,
 		  "after first call to instrumented function", &failed);
 
+#if 0
+    // Deprecated pending rewrite of function relocation
 #if defined(sparc_sun_sunos4_1_3) \
  || defined(sparc_sun_solaris2_4)
     /* Test a function that makes a system call (is a special case on Sparc) */
     access(".", R_OK);
     check15result("globalVariable15_2", globalVariable15_2, 2,
 		  "after first call to instrumented function", &failed);
+#endif
 #endif
 
     func15_4();
@@ -1000,12 +1006,13 @@ void func15_1()
     func15_2();
     check15result("globalVariable15_1", globalVariable15_1, 1,
 		  "after second call to instrumented function", &failed);
-
+#if 0
 #if defined(sparc_sun_sunos4_1_3) \
  || defined(sparc_sun_solaris2_4)
     access(".", R_OK);
     check15result("globalVariable15_2", globalVariable15_2, 2,
 		  "after second call to instrumented function", &failed);
+#endif
 #endif
 
     func15_4();
@@ -1019,14 +1026,14 @@ void func15_1()
     func15_2();
     check15result("globalVariable15_1", globalVariable15_1, 2,
 		  "after third call to instrumented function", &failed);
-
+#if 0
 #if defined(sparc_sun_sunos4_1_3) \
  || defined(sparc_sun_solaris2_4)
     access(".", R_OK);
     check15result("globalVariable15_2", globalVariable15_2, 4,
 		  "after third call to instrumented function", &failed);
 #endif
-
+#endif
     func15_4();
     check15result("globalVariable15_3", globalVariable15_3, 101,
 		  "after third call to instrumented function", &failed);
@@ -1194,7 +1201,6 @@ int test20_iter = 50;
 int func20_2(int *int_val, double *double_val)
 {
     int i, ret = 1;
-
     *int_val = tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+
 	       (tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+
 	       (tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+(tc+
@@ -1206,7 +1212,6 @@ int func20_2(int *int_val, double *double_val)
 		  (td+(td+(td+(td+(td+(td+(td+(td+(td+(td+
 		  (td+(td+(td+(td+(td+(td+(td+(td+(td+(td+(td
 		  ))))))))))))))))))))))))))))))))))))))));
-
     for (i = 0; i < test20_iter; i++) {
 	ret *= 3;
 	if (i % 2 == 1) {
@@ -1220,7 +1225,6 @@ int func20_2(int *int_val, double *double_val)
 
 /* The answer we expect from the above is: */
 #define TEST20_ANSWER 1088896211
-
     return ret;
 }
 
@@ -1229,9 +1233,7 @@ void func20_1()
     int ret;
     int int_val;
     double double_val;
-
     ret = func20_2(&int_val, &double_val);
-
     if (globalVariable20_1 == (TEST20_A * TEST20_TIMES) &&
 	eq_doubles(globalVariable20_2, (TEST20_B * (double)TEST20_TIMES)) &&
 	int_val == (TEST20_C * TEST20_TIMES) &&
@@ -1257,6 +1259,7 @@ void func20_1()
     	    printf("    ret contained %d, not %d as expected\n",
 		   ret, TEST20_ANSWER);
     }
+
 }
 
 /*
@@ -1324,7 +1327,6 @@ void func22_1()
 	 printf("**Failed test #22 (replaceFunction)\n");
 	 printf("  Mutatee couldn't get handle for %s\n", libNameA);
     }
-
     call22_5 = (void(*)(int))dlsym(handleA, "call22_5");
     if (! call22_5) {
 	 printf("**Failed test #22 (replaceFunction)\n");
@@ -1420,6 +1422,7 @@ void call23_1()
 
     /* did snippet correctly read local variable in call23_2 */
     verifyScalarValue23("globalVariable23_1", globalVariable23_1, 2300001);
+    dprintf("Leaving call23_1...\n");
 }
 
 void func23_1()
@@ -1986,7 +1989,6 @@ void func31_4( int value )
     {
       printf( "func_31_4 called with value = 0 !\n" );
     }
-
   globalVariable31_4 += value;
 }
 
@@ -2003,9 +2005,7 @@ int func31_1()
   globalVariable31_2 = 0;
   globalVariable31_3 = 0;
   globalVariable31_4 = 0;
-
   func31_2();
-
   passedTest[ 31 ] = ( globalVariable31_3 == 1 );
   if( ! passedTest[ 31 ] )
     {
@@ -2489,12 +2489,12 @@ void call37_3()
 
 
 void func37_1() {
-    
+#if 0    
     printf("Skipped test #37 (instrument loops)\n");
     printf("\t- work in progress\n");
     passedTest[37] = TRUE;
+#endif
 
-    /*
     const int ANSWER37_1 = 17200;
     const int ANSWER37_2 = 42;
     const int ANSWER37_3 = 1650;
@@ -2527,7 +2527,7 @@ void func37_1() {
     if (passedTest[ 37 ]) {
 	printf( "Passed test #37 (instrument loops)\n" );    
     }
-    */
+
 }
 
 
@@ -2782,7 +2782,6 @@ void runTests()
     for (j=0; j <= MAX_TEST; j++) {
 	passedTest [j] = FALSE;
     }
-
     if (runTest[1]) func1_1();
     if (runTest[2]) func2_1();
     if (runTest[3]) func3_1();
