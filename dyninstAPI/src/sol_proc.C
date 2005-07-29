@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.61 2005/03/17 23:26:42 bernat Exp $
+// $Id: sol_proc.C,v 1.62 2005/07/29 19:19:44 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -576,7 +576,7 @@ bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
     // support it
     // nPC MUST be set before PC! On platforms that don't have it,
     // nPC will be overwritten by the PC write
-    GETREG_nPC(local.theIntRegs) = addr + sizeof(instruction);
+    GETREG_nPC(local.theIntRegs) = addr + instruction::size();
     GETREG_PC(local.theIntRegs) = addr;
 
     if (!restoreRegisters(local))
@@ -677,6 +677,11 @@ bool dyn_lwp::realLWP_attach_() {
 }
 
 bool dyn_lwp::representativeLWP_attach_() {
+#if defined(os_aix)
+    // Wait a sec; we often outrun process creation.
+    sleep(2);
+#endif
+
    /*
      Open the /proc file corresponding to process pid
    */
@@ -1000,26 +1005,24 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
    //       << amount << " bytes at loc " << inTraced << endl;
 #if defined(BPATCH_LIBRARY)
 #if defined (sparc_sun_solaris2_4)
-	if(proc_->collectSaveWorldData &&  ((Address) inTraced) >
-      proc_->getDyn()->getlowestSObaseaddr() )
-   {
-		shared_object *sh_obj = NULL;
-		bool result = false;
-		for(unsigned i=0;
-          proc_->shared_objects && !result && i<proc_->shared_objects->size();
-          i++)
-      {
-			sh_obj = (*proc_->shared_objects)[i];
-			result = sh_obj->isinText((Address) inTraced);
-		}
-		if( result  ){
-         /*	bperr(" write at %lx in %s amount %x insn: %x \n", 
-				(off_t)inTraced, sh_obj->getName().c_str(), amount,
-            *(unsigned int*) inSelf);
-            */	
-			sh_obj->setDirty();	
-		}
-	}
+   if(proc_->collectSaveWorldData &&  ((Address) inTraced) >
+      proc_->getDyn()->getlowestSObaseaddr() ) {
+       mapped_object *sh_obj = NULL;
+       bool result = false;
+       const pdvector<mapped_object *> &objs = proc_->mappedObjects();
+       for (unsigned i = 0; i < objs.size(); i++) {
+           sh_obj = objs[i];
+           result = sh_obj->isinText((Address) inTraced);
+           if( result  ){
+               /*	bperr(" write at %lx in %s amount %x insn: %x \n", 
+                        (off_t)inTraced, sh_obj->getName().c_str(), amount,
+                        *(unsigned int*) inSelf);
+                        */	
+               sh_obj->setDirty();	
+               break;
+           }
+       }
+   }
 #endif
 #endif
    off64_t loc;
@@ -1105,10 +1108,6 @@ bool process::set_exit_syscalls(sysset_t *exit)
     return true;    
 }
 
-#if defined(AIX_PROC)
-extern void generateBreakPoint(instruction &insn);
-#endif
-
 syscallTrap *process::trapSyscallExitInternal(Address syscall)
 {
     syscallTrap *trappedSyscall = NULL;
@@ -1160,13 +1159,15 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
                       (void *)&origLR, false);
         trappedSyscall->origLR = origLR;
         
-        Address trapAddr = inferiorMalloc(sizeof(instruction));
+        Address trapAddr = inferiorMalloc(instruction::size());
         trappedSyscall->trapAddr = trapAddr;
-        instruction insn;
-        generateBreakPoint(insn);
 
-        writeDataSpace((void *)trapAddr, sizeof(instruction),
-                       (void *)&insn);
+        codeGen gen(1);
+        instruction::generateTrap(gen);
+
+        writeDataSpace((void *)trapAddr, 
+                       gen.used(),
+                       gen.start_ptr());
         writeDataSpace((void *)(callerFrame.getFP() + 8), 
                        sizeof(Address),
                        (void *)&trapAddr);
@@ -1311,19 +1312,19 @@ procSyscall_t decodeSyscall(process *p, procSignalWhat_t syscall)
 {
    int pid = p->getPid();
 
-    if (syscall == SYSSET_MAP(SYS_fork, pid) ||
-        syscall == SYSSET_MAP(SYS_fork1, pid) ||
-        syscall == SYSSET_MAP(SYS_vfork, pid))
-        return procSysFork;
-    if (syscall == SYSSET_MAP(SYS_exec, pid) || 
-        syscall == SYSSET_MAP(SYS_execve, pid))
-        return procSysExec;
-    if (syscall == SYSSET_MAP(SYS_exit, pid))
-        return procSysExit;
-    // Don't map -- we make this up
-    if (syscall == SYS_load)
-      return procSysLoad;
-
+   if (syscall == SYSSET_MAP(SYS_fork, pid) ||
+       syscall == SYSSET_MAP(SYS_fork1, pid) ||
+       syscall == SYSSET_MAP(SYS_vfork, pid))
+       return procSysFork;
+   if (syscall == SYSSET_MAP(SYS_exec, pid) || 
+       syscall == SYSSET_MAP(SYS_execve, pid))
+       return procSysExec;
+   if (syscall == SYSSET_MAP(SYS_exit, pid))
+       return procSysExit;
+   // Don't map -- we make this up
+   if (syscall == SYS_load)
+       return procSysLoad;
+   
     return procSysOther;
 }
 
@@ -1560,11 +1561,12 @@ int decodeRTSignal(process *proc,
    Address arg;
 
    bool err = false;
-   Address status_addr = proc->findInternalAddress(status_str, false, err);
-   if (err) {
-      // Couldn't find symbol
-      return 0;
-   }
+   pdvector<int_variable *> vars;
+   if (!proc->findVarsByAll(status_str,
+                      vars))
+       return 0;
+   
+   Address status_addr = vars[0]->getAddress();
 
    if (!proc->readDataSpace((void *)status_addr, sizeof(int), 
                             &status, true)) {
@@ -1575,10 +1577,12 @@ int decodeRTSignal(process *proc,
       return 0; // Nothing to see here
    }
 
-   Address arg_addr = proc->findInternalAddress(arg_str, false, err);
-   if (err) {
-      return 0;
-   }
+   vars.clear();
+   if (!proc->findVarsByAll(arg_str,
+                      vars))
+       return 0;
+
+   Address arg_addr = vars[0]->getAddress();
     
    if (!proc->readDataSpace((void *)arg_addr, sizeof(Address),
                             &arg, true))
@@ -1646,11 +1650,13 @@ void specialHandlingOfEvents(const pdvector<procevent *> &events) {
 #endif
 
       if(cur_event->lwp != NULL) {
-         // not necessary now that have lwp info in the event info
-         if(cur_event->why == procSyscallExit && cur_event->what == 2) {
-            cur_proc->setLWPStoppedFromForkExit(
-                                        cur_event->lwp->get_lwp_id());
-         }
+          // not necessary now that have lwp info in the event info
+#if 0
+          // Doesn't seem to be used
+          if(cur_event->why == procSyscallExit && cur_event->what == 2) {
+              cur_proc->setLWPStoppedFromForkExit(cur_event->lwp->get_lwp_id());
+          }
+#endif
       }
    }
 }      

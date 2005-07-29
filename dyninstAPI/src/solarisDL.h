@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.h,v 1.18 2005/03/16 22:59:47 bernat Exp $
+// $Id: solarisDL.h,v 1.19 2005/07/29 19:19:48 bernat Exp $
 
 #if !defined(solaris_dl_hdr)
 #define solaris_dl_hdr
@@ -115,7 +115,7 @@ private:
 #if defined(i386_unknown_solaris2_5)
    static const u_int R_BRK_SAVE_BYTES = 4;
 #else /* Sparc */
-   static const u_int R_BRK_SAVE_BYTES = sizeof(instruction);
+   static const u_int R_BRK_SAVE_BYTES = instruction::size();
 #endif
 
    char r_brk_save[R_BRK_SAVE_BYTES];

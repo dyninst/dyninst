@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.181 2005/05/18 20:14:37 rchen Exp $
+// $Id: solaris.C,v 1.182 2005/07/29 19:19:45 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -64,6 +64,7 @@
 #endif
 
 #include "instPoint.h"
+#include "baseTramp.h"
 
 #include <procfs.h>
 #include <stropts.h>
@@ -101,9 +102,6 @@ extern long sysconf(int);
 #define PC_REG (EIP)
 #define FP_REG (EBP)
 #endif
-
-
-extern void generateBreakPoint(instruction &insn);
 
 
 // already setup on this FD.
@@ -207,11 +205,11 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 	char name[50];	
 	pdvector<imageUpdate*> compactedUpdates;
 	pdvector<imageUpdate*> compactedHighmemUpdates;
-	Address guardFlagAddr= trampGuardAddr();
+	Address guardFlagAddr= trampGuardBase();
 	char *mutatedSharedObjects=0;
 	int mutatedSharedObjectsSize = 0, mutatedSharedObjectsIndex=0;
 	char *directoryName = 0;
-	shared_object *sh_obj;
+	mapped_object *sh_obj;
 	if(!collectSaveWorldData){
 		BPatch_reportError(BPatchSerious,122,"dumpPatchedImage: BPatch_thread::enableDumpPatchedImage() not called.  No mutated binary saved\n");
 		return NULL;
@@ -228,7 +226,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 	unsigned int dl_debug_statePltEntry = 0x00016574;//a pretty good guess
 	unsigned int dyninst_SharedLibrariesSize = 0, mutatedSharedObjectsNumb;
 
-	newElf = new writeBackElf(( char*) getImage()->file().c_str(),
+	newElf = new writeBackElf(( char*) mapped_objects[0]->fileName().c_str(),
 		"/tmp/dyninstMutatee",errFlag);
 	newElf->registerProcess(this);
 	//add section that has, as its address, the original load address of
@@ -236,11 +234,11 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 	//in the correct place when the mutated binary is run.
 
 	Address rtlibAddr;
-	for(int i=0;shared_objects && i<(int)shared_objects->size() ; i++) {
-		sh_obj = (*shared_objects)[i];
-		if( strstr(sh_obj->getName().c_str(),"libdyninstAPI_RT") ) {
-			rtlibAddr = sh_obj->getBaseAddress();
-		}
+	for(int i=0; i < mapped_objects.size() ; i++) {
+            sh_obj = mapped_objects[i];
+            if( strstr(sh_obj->fileName().c_str(),"libdyninstAPI_RT") ) {
+                rtlibAddr = sh_obj->codeBase();
+            }
 	}
 
 	/*fprintf(stderr,"SAVING RTLIB ADDR: %x\n",rtlibAddr);*/
@@ -262,28 +260,31 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 	//	change filesz of Datasegment in PHT
 	//	ehdr needs start of section headers updated
 	// Always save the API_RT lib
-	for(unsigned i=0;shared_objects && i<shared_objects->size() ; i++) {
-		sh_obj = (*shared_objects)[i];
-		if( sh_obj->isDirty() || sh_obj->isDirtyCalled() || strstr(sh_obj->getName().c_str(),"libdyninstAPI_RT")){
-			/*fprintf(stderr,"\nWRITE BACK SHARED OBJ %s\n", sh_obj->getName().c_str());*/
-
-			if(!dldumpSharedLibrary(sh_obj->getName(),directoryName)){
-				char *msg;
-				msg = new char[sh_obj->getName().length() + strlen(directoryName)+128];
-				sprintf(msg,"dumpPatchedImage: %s not saved to %s.\n.\nTry to use the original shared library with the mutated binary.\n",sh_obj->getName().c_str(),directoryName);
-
-				BPatch_reportError(BPatchWarning,0,msg);
-				delete [] msg;
-			}
-		}
-
+        // Libraries: start at index 1
+	for(unsigned i=i; i < mapped_objects.size() ; i++) {
+            sh_obj = mapped_objects[i];
+            if( sh_obj->isDirty() || sh_obj->isDirtyCalled() || strstr(sh_obj->fileName().c_str(),"libdyninstAPI_RT")){
+                /*fprintf(stderr,"\nWRITE BACK SHARED OBJ %s\n", sh_obj->getName().c_str());*/
+                
+                if(!dldumpSharedLibrary(sh_obj->fileName(),directoryName)){
+                    char *msg;
+                    msg = new char[sh_obj->fileName().length() + strlen(directoryName)+128];
+                    sprintf(msg,"dumpPatchedImage: %s not saved to %s.\n.\nTry to use the original shared library with the mutated binary.\n",sh_obj->fileName().c_str(),directoryName);
+                    
+                    BPatch_reportError(BPatchWarning,0,msg);
+                    delete [] msg;
+                }
+            }
+            
 	}
- 
+        
 	dl_debug_statePltEntry = saveWorldSaveSharedLibs(mutatedSharedObjectsSize, 
-		dyninst_SharedLibrariesSize,directoryName, mutatedSharedObjectsNumb);
-
-
-
+                                                         dyninst_SharedLibrariesSize,
+                                                         directoryName, 
+                                                         mutatedSharedObjectsNumb);
+        
+        
+        
 	// for each mutated shared object
 	//	read the .text section from the new file, copy over the instrumentation code, 
 	//	this allows subtest 6 to pass)
@@ -303,35 +304,36 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 		
 		mutatedSharedObjectsSize += mutatedSharedObjectsNumb * sizeof(unsigned int);
 		mutatedSharedObjects = new char[mutatedSharedObjectsSize ];
-		for(unsigned i=0;shared_objects && i<shared_objects->size() ; i++) {
-			sh_obj = (*shared_objects)[i];
-			//i ignore the dyninst RT lib here and in process::saveWorldSaveSharedLibs
-			if(sh_obj->isDirty() || sh_obj->isDirtyCalled()&& NULL==strstr(sh_obj->getName().c_str(),"libdyninstAPI_RT")){ //ccw 24 jul 2003
-				memcpy(  & ( mutatedSharedObjects[mutatedSharedObjectsIndex]),
-					sh_obj->getName().c_str(),
-					strlen(sh_obj->getName().c_str())+1);
-				mutatedSharedObjectsIndex += strlen(
-					sh_obj->getName().c_str())+1;
-				unsigned int baseAddr = sh_obj->getBaseAddress();
-				memcpy( & (mutatedSharedObjects[mutatedSharedObjectsIndex]),
-					&baseAddr, sizeof(unsigned int));
-				mutatedSharedObjectsIndex += sizeof(unsigned int);	
-
-				//set flag
-				unsigned int tmpFlag = ((sh_obj->isDirty()
-							&&  NULL==strstr(sh_obj->getName().c_str(),"libc")) ?1:0);	
-				memcpy( &(mutatedSharedObjects[mutatedSharedObjectsIndex]), &tmpFlag, sizeof(unsigned int));
-				mutatedSharedObjectsIndex += sizeof(unsigned int);	
-
-			}
+                // 1: shared library start (a.out is 0)
+		for(unsigned i=1; i<mapped_objects.size() ; i++) {
+                    sh_obj = mapped_objects[i];
+                    //i ignore the dyninst RT lib here and in process::saveWorldSaveSharedLibs
+                    if(sh_obj->isDirty() || sh_obj->isDirtyCalled()&& NULL==strstr(sh_obj->fileName().c_str(),"libdyninstAPI_RT")){ //ccw 24 jul 2003
+                        memcpy(  & ( mutatedSharedObjects[mutatedSharedObjectsIndex]),
+                                 sh_obj->fileName().c_str(),
+                                 strlen(sh_obj->fileName().c_str())+1);
+                        mutatedSharedObjectsIndex += strlen(
+                                                            sh_obj->fileName().c_str())+1;
+                        unsigned int baseAddr = sh_obj->getBaseAddress();
+                        memcpy( & (mutatedSharedObjects[mutatedSharedObjectsIndex]),
+                                &baseAddr, sizeof(unsigned int));
+                        mutatedSharedObjectsIndex += sizeof(unsigned int);	
+                        
+                        //set flag
+                        unsigned int tmpFlag = ((sh_obj->isDirty()
+                                                 &&  NULL==strstr(sh_obj->fileName().c_str(),"libc")) ?1:0);	
+                        memcpy( &(mutatedSharedObjects[mutatedSharedObjectsIndex]), &tmpFlag, sizeof(unsigned int));
+                        mutatedSharedObjectsIndex += sizeof(unsigned int);	
+                        
+                    }
 		}	
 	}
 	char *dyninst_SharedLibrariesData = saveWorldCreateSharedLibrariesSection(dyninst_SharedLibrariesSize);
-
+        
 	/*newElf = new writeBackElf(( char*) getImage()->file().c_str(),
-		"/tmp/dyninstMutatee",errFlag);
-	newElf->registerProcess(this);*/
-
+          "/tmp/dyninstMutatee",errFlag);
+          newElf->registerProcess(this);*/
+        
 	imageUpdates.sort(imageUpdateSort);// imageUpdate::mysort ); 
 
 	newElf->compactLoadableSections(imageUpdates,compactedUpdates);
@@ -472,9 +474,9 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 	//in the correct place when the mutated binary is run.
 
 	Address rtlibAddr;
-	for(int i=0;shared_objects && i<(int)shared_objects->size() ; i++) {
-		sh_obj = (*shared_objects)[i];
-		if( strstr(sh_obj->getName().c_str(),"libdyninstAPI_RT") ) {
+	for(int i=0;mapped_objects && i<(int)mapped_objects->size() ; i++) {
+		sh_obj = mapped_objects[i];
+		if( strstr(sh_obj->fileName().c_str(),"libdyninstAPI_RT") ) {
 			rtlibAddr = sh_obj->getBaseAddress();
 		}
 	}
@@ -508,11 +510,9 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 bool process::dumpImage(pdstring imageFileName) 
 {
     int newFd;
-    image *im;
     pdstring command;
 
-    im = getImage();
-    pdstring origFile = im->file();
+    pdstring origFile = getAOut()->fileName();
    
     // first copy the entire image file
     command = "cp ";
@@ -588,24 +588,19 @@ bool checkAllThreadsForBreakpoint(process *proc, Address break_addr)
    return false;
 }
 
-bool process::trapAtEntryPointOfMain(Address)
+bool process::trapAtEntryPointOfMain(dyn_lwp *, Address)
 {
     if (main_brk_addr == 0x0) return false;
     return checkAllThreadsForBreakpoint(this, main_brk_addr);
 }
 
-bool process::handleTrapAtEntryPointOfMain()
+bool process::handleTrapAtEntryPointOfMain(dyn_lwp *)
 {
     assert(main_brk_addr);
     
   // restore original instruction 
-#if defined(sparc_sun_solaris2_4)
-    writeDataSpace((void *)main_brk_addr, 
-                   sizeof(instruction), (char *)savedCodeBuffer);
-#else // x86
-    writeDataSpace((void *)main_brk_addr, 2, 
+    writeDataSpace((void *)main_brk_addr, sizeof(savedCodeBuffer), 
                    (char *)savedCodeBuffer);
-#endif
     main_brk_addr = 0;
     return true;
 }
@@ -613,34 +608,42 @@ bool process::handleTrapAtEntryPointOfMain()
 bool process::insertTrapAtEntryPointOfMain()
 {
 
-    int_function *f_main = findOnlyOneFunction("main");
-    if (!f_main) {
-        // we can't instrument main - naim
-        showErrorCallback(108,"main() uninstrumentable");
-        return false;
+    int_function *f_main = 0;
+    pdvector<int_function *> funcs;
+    
+    //first check a.out for function symbol   
+    bool res = findFuncsByPretty("main", funcs);
+    if (!res)
+    {
+        logLine( "a.out has no main function. checking for PLT entry\n" );
+        //we have not found a "main" check if we have a plt entry
+	res = findFuncsByPretty( "DYNINST_pltMain", funcs );
+ 
+	if (!res) {
+            logLine( "no PLT entry for main found\n" );
+            return false;
+	  }       
     }
+    
+    if( funcs.size() > 1 ) {
+        cerr << __FILE__ << __LINE__ 
+             << ": found more than one main! using the first" << endl;
+    }
+    f_main = funcs[0];
     assert(f_main);
-    Address addr = f_main->get_address(); 
+
+    Address addr = f_main->getAddress(); 
+
+    codeGen gen(instruction::size());
+    instruction::generateTrap(gen);
+
     // save original instruction first
-#if defined(sparc_sun_solaris2_4)
-    readDataSpace((void *)addr, sizeof(instruction), savedCodeBuffer, true);
-#else // x86
-    readDataSpace((void *)addr, 2, savedCodeBuffer, true);
-#endif
+    readDataSpace((void *)addr, sizeof(savedCodeBuffer), savedCodeBuffer, true);
     
-    // and now, insert trap
-    instruction insnTrap;
-    generateBreakPoint(insnTrap);
-    
-#if defined(sparc_sun_solaris2_4)
-    writeDataSpace((void *)addr, sizeof(instruction), (char *)&insnTrap);  
-#else //x86. have to use SIGILL instead of SIGTRAP
-    writeDataSpace((void *)addr, 2, insnTrap.ptr());  
-#endif
+    writeDataSpace((void *)addr, gen.used(), gen.start_ptr());
+
     main_brk_addr = addr;
     
-    char buffer[256];
-    readDataSpace((void *)addr, sizeof(instruction), buffer, true);
     return true;
 }
 
@@ -670,235 +673,166 @@ bool process::getDyninstRTLibName() {
 }
 
 bool process::loadDYNINSTlib() {
-  // we will write the following into a buffer and copy it into the
-  // application process's address space
-  // [....LIBRARY's NAME...|code for DLOPEN]
-
-  // write to the application at codeOffset. This won't work if we
-  // attach to a running process.
-  //Address codeBase = this->getImage()->codeOffset();
-  // ...let's try "_start" instead
-  int_function *_startfn = this->findOnlyOneFunction("_start");
-  if (NULL == _startfn) {
+    // we will write the following into a buffer and copy it into the
+    // application process's address space
+    // [....LIBRARY's NAME...|code for DLOPEN]
+    
+    // write to the application at codeOffset. This won't work if we
+    // attach to a running process.
+    //Address codeBase = this->getImage()->codeOffset();
+    // ...let's try "_start" instead
+    int_function *_startfn;
+    
     pdvector<int_function *> funcs;
-    if (!this->findAllFuncsByName("_start", funcs) || !funcs.size()) {
-       fprintf(stderr, "%s[%d]:  could not find _start()\n", __FILE__, __LINE__);
-       return false;
+    bool res = findFuncsByPretty("_start", funcs);
+    if (!res) {
+        // we can't instrument main - naim
+        showErrorCallback(108,"_start() unfound");
+        return false;
     }
-    fprintf(stderr, "%s[%d]:  WARN:  found %d matches for _start()\n", 
-            __FILE__, __LINE__, funcs.size()); 
-    int select_fn = 0;
-    for (unsigned int i = 0; i < funcs.size(); ++i) {
-      const char *modname = funcs[i]->pdmod()->fileName().c_str();
-      fprintf(stderr, "\t[%d]\tin module %s\n",i, modname);
-      if (strstr(modname, "libc.") || strstr(modname, "libdl."))
-         select_fn = i;        
+
+    if( funcs.size() > 1 ) {
+        cerr << __FILE__ << __LINE__ 
+             << ": found more than one _start! using the first" << endl;
     }
-    fprintf(stderr, "%s[%d]: selecting %d\n", __FILE__, __LINE__, select_fn);
-    _startfn = funcs[select_fn];
-  }
+    _startfn = funcs[0];
 
-  Address codeBase = _startfn->getEffectiveAddress(this);
-  assert(codeBase);
+    Address codeBase = _startfn->getAddress();
+    assert(codeBase);
+    
+    // Or should this be readText... it seems like they are identical
+    // the remaining stuff is thanks to Marcelo's ideas - this is what 
+    // he does in NT. The major change here is that we use AST's to 
+    // generate code for dlopen.
+    
+    // savedCodeBuffer[BYTES_TO_SAVE] is declared in process.h
+    readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true);
+    
+    codeGen scratchCodeBuffer(BYTES_TO_SAVE);
 
-  // Or should this be readText... it seems like they are identical
-  // the remaining stuff is thanks to Marcelo's ideas - this is what 
-  // he does in NT. The major change here is that we use AST's to 
-  // generate code for dlopen.
+    // First we write in the dyninst lib string. Vewy simple.
+    Address dyninstlib_addr = codeBase;
+    
+    scratchCodeBuffer.copy(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
 
-  // savedCodeBuffer[BYTES_TO_SAVE] is declared in process.h
-  readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true);
+    // Were we're calling into
+    Address dlopencall_addr = codeBase + scratchCodeBuffer.used();
+    /*
+      fprintf(stderr, "dlopen call addr at 0x%x, for codeBase of 0x%x\n",
+            dlopencall_addr, codeBase);
+    */
 
-  unsigned char scratchCodeBuffer[BYTES_TO_SAVE];
-  pdvector<AstNode*> dlopenAstArgs(2);
-
-  Address count = 0;
-
-//ccw 18 apr 2002 : SPLIT
-  AstNode *dlopenAst;
-
-  // deadList and deadListSize are also used in inst-sparc.C
-  // registers 8 to 15: out registers 
-  // registers 16 to 22: local registers
-  Register deadList[10] = { 16, 17, 18, 19, 20, 21, 22, 0, 0, 0 };
-  unsigned dead_reg_count = 7;
-  if(! multithread_capable()) {
-     deadList[7] = 23;
-     dead_reg_count++;
-  }
-
-  registerSpace *dlopenRegSpace =
-     new registerSpace(dead_reg_count, deadList, (unsigned)0,
-                       NULL, multithread_capable());
-  dlopenRegSpace->resetSpace();
-
-  // we need to make 2 calls to dlopen: one to load libsocket.so.1 and another
-  // one to load libdyninst.so.1 - naim
-
-//ccw 18 apr 2002 : SPLIT
-  dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void*)0);
-  // library name. We use a scratch value first. We will update this parameter
-  // later, once we determine the offset to find the string - naim
-  dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE); // mode
-  dlopenAst = new AstNode("dlopen",dlopenAstArgs);
-  removeAst(dlopenAstArgs[0]);
-  removeAst(dlopenAstArgs[1]);
-
-  Address dyninst_count = 0;
-  dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
-			  dyninst_count, true, true);
-  writeDataSpace((void *)(codeBase+count), dyninst_count, (char *)scratchCodeBuffer);
-// the following seems to be a redundant relic
-//#if defined(sparc_sun_solaris2_4)
-//  dyninst_count += sizeof(instruction);
-//#endif
-  count += dyninst_count;
-
-  instruction insnTrap;
-  generateBreakPoint(insnTrap);
-#if defined(sparc_sun_solaris2_4)
-  writeDataSpace((void *)(codeBase + count), sizeof(instruction), 
-		 (char *)&insnTrap);
-  dyninstlib_brk_addr = codeBase + count;
-  count += sizeof(instruction);
-#else //x86
-  writeDataSpace((void *)(codeBase + count), 2, insnTrap.ptr());
-  dyninstlib_brk_addr = codeBase + count;
-  count += 2;
-#endif
-
-//ccw 18 apr 2002 : SPLIT
-  const char DyninstEnvVar[]="DYNINSTAPI_RT_LIB";
-
-  if (dyninstRT_name.length()) {
-    // use the library name specified on the start-up command-line
-  } else {
-    // check the environment variable
-    if (getenv(DyninstEnvVar) != NULL) {
-      dyninstRT_name = getenv(DyninstEnvVar);
-    } else {
-      pdstring msg = pdstring("Environment variable " + pdstring(DyninstEnvVar)
-                   + " has not been defined for process ") + pdstring(pid);
-      showErrorCallback(101, msg);
-      return false;
+    // deadList and deadListSize are also used in inst-sparc.C
+    // registers 8 to 15: out registers 
+    // registers 16 to 22: local registers
+    Register deadList[10] = { 16, 17, 18, 19, 20, 21, 22, 0, 0, 0 };
+    unsigned dead_reg_count = 7;
+    if(! multithread_capable()) {
+        deadList[7] = 23;
+        dead_reg_count++;
     }
-  }
-  if (access(dyninstRT_name.c_str(), R_OK)) {
-    pdstring msg = pdstring("Runtime library ") + dyninstRT_name +
-                   pdstring(" does not exist or cannot be accessed!");
-    showErrorCallback(101, msg);
-    return false;
-  }
+    
+    registerSpace *dlopenRegSpace =
+        new registerSpace(dead_reg_count, deadList, (unsigned)0,
+                          NULL, multithread_capable());
+    dlopenRegSpace->resetSpace();
 
-  Address dyninstlib_addr = codeBase + count;
+    pdvector<AstNode*> dlopenAstArgs(2);
+    AstNode *dlopenAst;
+    
+    // We call directly into ld.so.1. This used to be handled in 
+    // process::findInternalSymbols, which made it very difficult
+    // to figure out what was going on.
+    Address dlopen_func_addr = dyn->get_dlopen_addr();
+    assert(dlopen_func_addr);
 
-  writeDataSpace((void *)(codeBase + count), dyninstRT_name.length()+1,
-		 (caddr_t)const_cast<char*>(dyninstRT_name.c_str()));
-  count += dyninstRT_name.length()+1;
-  // we have now written the name of the library after the trap - naim
+    //fprintf(stderr, "We want to call 0x%x\n", dlopen_func_addr);
+    // See if we can get a function for it.
+    int_function *dlopenFunc = findFuncByAddr(dlopen_func_addr);
+    //fprintf(stderr, "Attempt to find func pointer: %p\n", dlopenFunc);
 
-//ccw 18 apr 2002 : SPLIT
-  assert(count<=BYTES_TO_SAVE);
-  // The dyninst API doesn't load the socket library
+    dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(dyninstlib_addr));
+    dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE);
+    dlopenAst = new AstNode(dlopen_func_addr, dlopenAstArgs);
+    removeAst(dlopenAstArgs[0]);
+    removeAst(dlopenAstArgs[1]);
 
-//ccw 18 apr 2002 : SPLIT
-  count = 0; // reset count
+    dlopenAst->generateCode(this, dlopenRegSpace, scratchCodeBuffer,
+                            true, true);
+    removeAst(dlopenAst);
 
-  // at this time, we know the offset for the library name, so we fix the
-  // call to dlopen and we just write the code again! This is probably not
-  // very elegant, but it is easy and it works - naim
-  removeAst(dlopenAst); // to avoid leaking memory
-  dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(dyninstlib_addr));
-  dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE);
-  dlopenAst = new AstNode("dlopen",dlopenAstArgs);
-  removeAst(dlopenAstArgs[0]);
-  removeAst(dlopenAstArgs[1]);
-  dyninst_count = 0; // reset count
-  dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
-			  dyninst_count, true, true);
-  writeDataSpace((void *)(codeBase+count), dyninst_count,
-                 (char *)scratchCodeBuffer);
-  removeAst(dlopenAst);
-  count += dyninst_count;
-
-  // save registers
-  savedRegs = new dyn_saved_regs;
-  bool status = getRepresentativeLWP()->getRegisters(savedRegs);
-  assert(status == true);
-
-#if defined(i386_unknown_solaris2_5)
-  /* Setup a new stack frame large enough for arguments to functions
-     called during bootstrap, as generated by the FuncCall AST.  */
-  prgregset_t regs;
-  regs = *(prgregset_t*)&savedRegs;
-  Address theESP = regs[SP_REG];
-  if (!changeIntReg(FP_REG, theESP)) {
-    logLine("WARNING: changeIntReg failed in loadDYNINSTlib\n");
-    assert(0);
-  }
-  if (!changeIntReg(SP_REG, theESP-32)) {
-    logLine("WARNING: changeIntReg failed in loadDYNINSTlib\n");
-    assert(0);
-  }
-#endif
-  if (!getRepresentativeLWP()->changePC(codeBase, NULL)) {
-    logLine("WARNING: changePC failed in loadDYNINSTlib\n");
-    assert(0);
-  }
-  setBootstrapState(loadingRT);
-  return true;
+    // Slap in a breakpoint
+    dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
+    instruction::generateTrap(scratchCodeBuffer);
+    
+    writeDataSpace((void *)codeBase, scratchCodeBuffer.used(), 
+                   scratchCodeBuffer.start_ptr());
+    
+    //fprintf(stderr, "Breakpoint at 0x%x\n", dyninstlib_brk_addr);
+    
+    // save registers
+    savedRegs = new dyn_saved_regs;
+    bool status = getRepresentativeLWP()->getRegisters(savedRegs);
+    assert(status == true);
+    
+    if (!getRepresentativeLWP()->changePC(dlopencall_addr, NULL)) {
+        logLine("WARNING: changePC failed in loadDYNINSTlib\n");
+        assert(0);
+    }
+    setBootstrapState(loadingRT_bs);
+    return true;
 }
 
-bool process::trapDueToDyninstLib()
+bool process::trapDueToDyninstLib(dyn_lwp *)
 {
   if (dyninstlib_brk_addr == 0) return(false);
   return checkAllThreadsForBreakpoint(this, dyninstlib_brk_addr);
 }
 
-bool process::loadDYNINSTlibCleanup()
+bool process::loadDYNINSTlibCleanup(dyn_lwp *)
 {
   // rewrite original instructions in the text segment we use for 
   // the inferiorRPC - naim
   unsigned count = sizeof(savedCodeBuffer);
   //Address codeBase = getImage()->codeOffset();
 
-  int_function *_startfn = this->findOnlyOneFunction("_start");
-  if (NULL == _startfn) {
+  int_function *_startfn;
+
     pdvector<int_function *> funcs;
-    if (!this->findAllFuncsByName("_start", funcs) || !funcs.size()) {
-       fprintf(stderr, "%s[%d]:  could not find _start()\n", __FILE__, __LINE__);
-       return false;
+    bool res = findFuncsByPretty("_start", funcs);
+    if (!res) {
+        // we can't instrument main - naim
+        showErrorCallback(108,"_start() unfound");
+        return false;
     }
-    fprintf(stderr, "%s[%d]:  WARN:  found %d matches for _start()\n",
-            __FILE__, __LINE__, funcs.size());
-    int select_fn = 0;
-    for (unsigned int i = 0; i < funcs.size(); ++i) {
-      const char *modname = funcs[i]->pdmod()->fileName().c_str();
-      fprintf(stderr, "\t[%d]\tin module %s\n",i, modname);
-      if (strstr(modname, "libc.") || strstr(modname, "libdl."))
-         select_fn = i;
+
+    if( funcs.size() > 1 ) {
+        cerr << __FILE__ << __LINE__ 
+             << ": found more than one main! using the first" << endl;
     }
-    fprintf(stderr, "%s[%d]: selecting %d\n", __FILE__, __LINE__, select_fn);
-    _startfn = funcs[select_fn];
-  }
+    _startfn = funcs[0];
 
-  Address codeBase = _startfn->getEffectiveAddress(this);
-  assert(codeBase);
-  if (!writeDataSpace((void *)codeBase, count, (char *)savedCodeBuffer))
-     return false;
+    Address codeBase = _startfn->getAddress();
+    assert(codeBase);
+    if (!writeDataSpace((void *)codeBase, count, (char *)savedCodeBuffer))
+        return false;
 
-  // restore registers
-  if (!getRepresentativeLWP()->restoreRegisters(*savedRegs))
+    // restore registers
+    if (!getRepresentativeLWP()->restoreRegisters(*savedRegs))
      return false;
-  delete savedRegs;
-  savedRegs = NULL;
-  return true;
+    delete savedRegs;
+    savedRegs = NULL;
+    return true;
 }
 
-fileDescriptor *getExecFileDescriptor(pdstring filename, int &, bool)
+bool process::getExecFileDescriptor(pdstring filename,
+                                    int /*pid*/,
+                                    bool /*whocares*/,
+                                    int &,
+                                    fileDescriptor &desc)
 {
-    fileDescriptor *desc = new fileDescriptor(filename);
-    return desc;
+    desc = fileDescriptor(filename, 0, 0, false);
+    return true;
 }
 
 #if defined(USES_DYNAMIC_INF_HEAP)
@@ -952,6 +886,8 @@ Frame Frame::getCallerFrame()
   Address newPC=0;
   Address newFP=0;
   Address newSP=0;
+
+  //fprintf(stderr, "Frame::getCallerFrame for %p\n", this);
 
   if (uppermost_) {
     codeRange *range = getRange();
@@ -1029,8 +965,13 @@ Frame Frame::getCallerFrame()
       // If we're in a base tramp, skip this frame (return getCallerFrame)
       // as we only return minitramps
       codeRange *range = getRange();
-      if (range->is_basetramp()) {
-          return ret.getCallerFrame();
+      if (range->is_multitramp()) {
+          // If we're inside instrumentation only....
+          multiTramp *multi = range->is_multitramp();
+          baseTrampInstance *bti = multi->getBaseTrampInstanceByAddr(getPC());
+          if (bti &&
+              bti->isInInstru(getPC()))
+              return ret.getCallerFrame();
       }
       return ret;
     }
@@ -1101,66 +1042,6 @@ rawTime64 dyn_lwp::getRawCpuTime_sw()
 #endif // BPATCH_LIBRARY
 
 
-bool process::instrSideEffect(Frame &frame, instPoint *inst)
-{
-  int_function *instFunc = inst->pointFunc();
-  if (!instFunc) return false;
-
-  codeRange *range = frame.getRange();
-  if (range->is_function() != instFunc) {
-    return true;
-  }
-
-  if (inst->getPointType() == callSite) {
-    Address insnAfterPoint = inst->absPointAddr(this) + 2*sizeof(instruction);
-
-    if (frame.getPC() == insnAfterPoint) {
-      frame.setPC(baseMap[inst]->baseAddr + baseMap[inst]->skipPostInsOffset);
-    }
-  }
-
-  return true;
-}
-
-#if 0
-// needToAddALeafFrame: returns true if the between the current frame 
-// and the next frame there is a leaf function (this occurs when the 
-// current frame is the signal handler and the function that was executing
-// when the sighandler was called is a leaf function)
-bool process::needToAddALeafFrame(Frame current_frame, Address &leaf_pc){
-
-   // check to see if the current frame is the signal handler 
-   Address frame_pc = current_frame.getPC();
-   Address sig_addr = 0;
-   const image *sig_image = (signal_handler->file())->exec();
-   if(getBaseAddress(sig_image, sig_addr)){
-       sig_addr += signal_handler->getAddress(0);
-   } else {
-       sig_addr = signal_handler->getAddress(0);
-   }
-   u_int sig_size = signal_handler->size();
-   if(signal_handler&&(frame_pc >= sig_addr)&&(frame_pc < (sig_addr+sig_size))){
-       // get the value of the saved PC: this value is stored in the address
-       // specified by the value in register i2 + 44. Register i2 must contain
-       // the address of some struct that contains, among other things, the 
-       // saved PC value.  
-       u_int reg_i2;
-       int fp = current_frame.getFP();
-       if (readDataSpace((caddr_t)(fp+40),sizeof(u_int),(caddr_t)&reg_i2,true)){
-          if (readDataSpace((caddr_t) (reg_i2+44), sizeof(int),
-			    (caddr_t) &leaf_pc,true)){
-	      // if the function is a leaf function return true
-	      int_function *func = findFuncByAddr(leaf_pc);
-	      if(func && func->hasNoStackFrame()) { // formerly "isLeafFunc()"
-		  return(true);
-	      }
-          }
-      }
-   }
-   return false;
-}
-#endif
-
 void print_read_error_info(const relocationEntry entry, 
                            int_function *&target_pdf, Address base_addr) {
 
@@ -1180,10 +1061,10 @@ void print_read_error_info(const relocationEntry entry,
               (target_pdf->symTabName()).c_str());
       logLine(errorLine);
       sprintf(errorLine , "              size %i\n",
-              target_pdf->get_size());
+              target_pdf->getSize());
       logLine(errorLine);
       sprintf(errorLine , "              addr 0x%lx\n",
-              target_pdf->get_address());
+              target_pdf->getAddress());
       logLine(errorLine);
    }
 
@@ -1246,27 +1127,28 @@ bool process::hasBeenBound(const relocationEntry entry,
     //     b,a  <_PROCEDURE_LINKAGE_TABLE_>     sethi  %hi(0xef5eb000), %g1
     //	   nop					jmp  %g1 + 0xbc ! 0xef5eb0bc
 
-    instruction next_insn;
-    Address next_insn_addr = entry.target_addr() + base_addr + 4; 
-    if( !(readDataSpace((caddr_t)next_insn_addr, sizeof(next_insn), 
-		       (char *)&next_insn, true)) ) {
+    unsigned int insnBuf;
+
+    Address next_insn_addr = entry.target_addr() + base_addr + instruction::size(); 
+    if( !(readDataSpace((caddr_t)next_insn_addr, instruction::size(), 
+                        (char *)&insnBuf, true)) ) {
         sprintf(errorLine, "read error in process::hasBeenBound addr 0x%lx"
                 " (readDataSpace next_insn_addr returned 0)\n",
 		next_insn_addr);
 	logLine(errorLine);
 	print_read_error_info(entry, target_pdf, base_addr);
     }
+    instruction next_insn(insnBuf);
     // if this is a b,a instruction, then the function has not been bound
-    if((next_insn.branch.op == FMT2op)  && (next_insn.branch.op2 == BICCop2) 
-       && (next_insn.branch.anneal == 1) && (next_insn.branch.cond == BAcond)) {
+    if(((*next_insn).branch.op == FMT2op)  && ((*next_insn).branch.op2 == BICCop2) 
+       && ((*next_insn).branch.anneal == 1) && ((*next_insn).branch.cond == BAcond)) {
 	return false;
     } 
 
     // if this is a sethi instruction, then it has been bound...get target_addr
-    instruction third_insn;
     Address third_addr = entry.target_addr() + base_addr + 8; 
-    if( !(readDataSpace((caddr_t)third_addr, sizeof(third_insn), 
-		       (char *)&third_insn, true)) ) {
+    if( !(readDataSpace((caddr_t)third_addr, instruction::size(),
+		       (char *)&insnBuf, true)) ) {
         sprintf(errorLine, "read error in process::hasBeenBound addr 0x%lx"
                 " (readDataSpace third_addr returned 0)\n",
 		third_addr);
@@ -1274,13 +1156,15 @@ bool process::hasBeenBound(const relocationEntry entry,
 	print_read_error_info(entry,target_pdf, base_addr);
     }
 
+    instruction third_insn(insnBuf);
+
     // get address of bound function, and return the corr. int_function
-    if((next_insn.sethi.op == FMT2op) && (next_insn.sethi.op2 == SETHIop2)
-	&& (third_insn.rest.op == RESTop) && (third_insn.rest.i == 1)
-	&& (third_insn.rest.op3 == JMPLop3)) {
+    if(((*next_insn).sethi.op == FMT2op) && ((*next_insn).sethi.op2 == SETHIop2)
+	&& ((*third_insn).rest.op == RESTop) && ((*third_insn).rest.i == 1)
+	&& ((*third_insn).rest.op3 == JMPLop3)) {
         
-	Address new_target = (next_insn.sethi.imm22 << 10) & 0xfffffc00; 
-	new_target |= third_insn.resti.simm13;
+	Address new_target = ((*next_insn).sethi.imm22 << 10) & 0xfffffc00; 
+	new_target |= (*third_insn).resti.simm13;
 
         target_pdf = findFuncByAddr(new_target);
 	if(!target_pdf){
@@ -1307,167 +1191,93 @@ bool process::hasBeenBound(const relocationEntry entry,
 // pointers, or other indirect calls), it returns false.
 // Returns false on error (ex. process doesn't contain this instPoint).
 //
-// The assumption here is that for all processes sharing the image containing
-// this instPoint they are going to bind the call target to the same function. 
-// For shared objects this is always true, however this may not be true for
-// dynamic executables.  Two a.outs can be identical except for how they are
-// linked, so a call to fuction foo in one version of the a.out may be bound
-// to function foo in libfoo.so.1, and in the other version it may be bound to 
-// function foo in libfoo.so.2.  We are currently not handling this case, since
-// it is unlikely to happen in practice.
-bool process::findCallee(instPoint &instr, int_function *&target){
-   if((target = instr.getCallee())) {
-      return true; // callee already set
+int_function *instPoint::findCallee() {
+
+   if(callee_) {
+       return callee_;
    }
 
-   // find the corresponding image in this process  
-   image *owner = instr.getOwner();
-   bool found_image = false;
-   Address base_addr = 0;
-   if(symbols == owner) {  found_image = true; } 
-   else if(shared_objects){
-      for(u_int i=0; i < shared_objects->size(); i++){
-         if(owner == ((*shared_objects)[i])->getImage()) {
-            found_image = true;
-            base_addr = ((*shared_objects)[i])->getBaseAddress();
-            break;
-         }
-      }
-   } 
-   if(!found_image) {
-      target = 0;
-      return false; // image not found...this is bad
-   }
+       if (ipType_ != callSite) {
+        return NULL;
+    }
 
-   // get the target address of this function
-   Address target_addr = 0;
-   //    Address insn_addr = instr.pointAddr(); 
-   target_addr = instr.getTargetAddress();
+    if (isDynamicCall()) { 
+        return NULL;
+    }
 
-   if(!target_addr) {  
-      // this is either not a call instruction or an indirect call instr
-      // that we can't get the target address
-      target = 0;
-      return false;
-   }
-
-#if defined(sparc_sun_solaris2_4)
-   /*
-   // I don't see how this is possible -- we relocate after we've determined static
-   // callees -- bernat, 13OCT03
-   // If this instPoint is from a function that was relocated to the heap
-   // then need to get the target address relative to this image   
-   if(target_addr && instr.relocated_) {
-   assert(target_addr > base_addr);
-   target_addr -= base_addr;
-   }
-   */
-#endif
-
-   // see if there is a function in this image at this target address
-   // if so return it
-   int_function *pdf = 0;
-   if( (pdf = owner->findFuncByEntry(target_addr)) ) {
-      target = pdf;
-      instr.setCallee(pdf);
-      return true; // target found...target is in this image
-   }
-
-   // else, get the relocation information for this image
-   const Object &obj = owner->getObject();
-   const pdvector<relocationEntry> *fbt;
-   if(!obj.get_func_binding_table_ptr(fbt)) {
-      target = 0;
-      return false; // target cannot be found...it is an indirect call.
-   }
-
-   // find the target address in the list of relocationEntries
-   for(u_int i=0; i < fbt->size(); i++) {
-      if((*fbt)[i].target_addr() == target_addr) {
-         // check to see if this function has been bound yet...if the
-         // PLT entry for this function has been modified by the runtime
-         // linker
-         int_function *target_pdf = 0;
-         if(hasBeenBound((*fbt)[i], target_pdf, base_addr)) {
-            target = target_pdf;
-            instr.setCallee(target_pdf);
-            return true;  // target has been bound
-         } 
-         else {
-            // just try to find a function with the same name as entry 
-            pdvector<int_function *> pdfv;
-            bool found = findAllFuncsByName((*fbt)[i].name(), pdfv);
-            if(found) {
-               assert(pdfv.size());
-#ifdef BPATCH_LIBRARY
-               if(pdfv.size() > 1)
-                  cerr << __FILE__ << ":" << __LINE__ 
-                       << ": WARNING:  findAllFuncsByName found " 
-                       << pdfv.size() << " references to function " 
-                       << (*fbt)[i].name() << ".  Using the first.\n";
-#endif
-               target = pdfv[0];
-               return true;
+    // Check if we parsed an intra-module static call
+    assert(img_p_);
+    image_func *icallee = img_p_->getCallee();
+    if (icallee) {
+        // Now we have to look up our specialized version
+        // Can't do module lookup because of DEFAULT_MODULE...
+        const pdvector<int_function *> *possibles = func()->obj()->findFuncVectorByMangled(icallee->symTabName());
+        if (!possibles) {
+            return NULL;
+        }
+        for (unsigned i = 0; i < possibles->size(); i++) {
+            if ((*possibles)[i]->match(icallee)) {
+                callee_ = (*possibles)[i];
+                return callee_;
             }
-            else {  
-               // KLUDGE: this is because we are not keeping more than
-               // one name for the same function if there is more
-               // than one.  This occurs when there are weak symbols
-               // that alias global symbols (ex. libm.so.1: "sin" 
-               // and "__sin").  In most cases the alias is the same as 
-               // the global symbol minus one or two leading underscores,
-               // so here we add one or two leading underscores to search
-               // for the name to handle the case where this string 
-               // is the name of the weak symbol...this will not fix 
-               // every case, since if the weak symbol and global symbol
-               // differ by more than leading underscores we won't find
-               // it...when we parse the image we should keep multiple
-               // names for int_functions
+        }
+        // No match... very odd
+        assert(0);
+        return NULL;
+    }
 
-               pdstring s("_");
-               s += (*fbt)[i].name();
-               found = findAllFuncsByName(s, pdfv);
-               if(found) {
-                  assert(pdfv.size());
+    
+    // get the target address of this function
+    Address target_addr = img_p_->callTarget();
+    //    Address insn_addr = instr.pointAddr(); 
+    
+    if(!target_addr) {  
+        // this is either not a call instruction or an indirect call instr
+        // that we can't get the target address
+        return NULL;
+    }
+    
+    
+    // else, get the relocation information for this image
+    const Object &obj = func()->obj()->parse_img()->getObject();
+    const pdvector<relocationEntry> *fbt;
+    if(!obj.get_func_binding_table_ptr(fbt)) {
+        return false; // target cannot be found...it is an indirect call.
+    }
+    
+    // find the target address in the list of relocationEntries
+    Address base_addr = func()->obj()->codeBase();
+    for(u_int i=0; i < fbt->size(); i++) {
+        if((*fbt)[i].target_addr() == target_addr) {
+            // check to see if this function has been bound yet...if the
+            // PLT entry for this function has been modified by the runtime
+            // linker
+            int_function *target_pdf = 0;
+            if(proc()->hasBeenBound((*fbt)[i], target_pdf, base_addr)) {
+                callee_ = target_pdf;
+                return callee_;
+            } 
+            else {
+                // just try to find a function with the same name as entry 
+                pdvector<int_function *> pdfv;
+                bool found = proc()->findFuncsByMangled((*fbt)[i].name(), pdfv);
+                if(found) {
+                    assert(pdfv.size());
 #ifdef BPATCH_LIBRARY
-                  if(pdfv.size() > 1)
-                     cerr << __FILE__ << ":" << __LINE__ 
-                          << ": WARNING: findAllFuncsByName found " 
-                          << pdfv.size() << " references to function " 
-                          << s << ".  Using the first.\n";
+                    if(pdfv.size() > 1)
+                        cerr << __FILE__ << ":" << __LINE__ 
+                             << ": WARNING:  findAllFuncsByName found " 
+                             << pdfv.size() << " references to function " 
+                             << (*fbt)[i].name() << ".  Using the first.\n";
 #endif
-                  target = pdfv[0];
-                  return true;
-               }
-		    
-               s = pdstring("__");
-               s += (*fbt)[i].name();
-               found = findAllFuncsByName(s, pdfv);
-               if(found) {
-                  assert(pdfv.size());
-#ifdef BPATCH_LIBRARY
-                  if(pdfv.size() > 1)
-                     cerr << __FILE__ << ":" << __LINE__ 
-                          << ": WARNING: findAllFuncsByName found " 
-                          << pdfv.size() << " references to function "
-                          << s << ".  Using the first.\n";
-#endif
-                  target = pdfv[0];
-                  return true;
-               }
-               //		    else
-               // 		        cerr << __FILE__ << ":" << __LINE__
-               // 			     << ": WARNING: findAllFuncsByName found no "
-               // 			     << "matches for function " << (*fbt)[i].name() 
-               // 			     << " or its possible aliases\n";
+                    callee_ = pdfv[0];
+                    return callee_;
+                }
             }
-         }
-         target = 0;
-         return false;
-      }
-   }
-   target = 0;
-   return false;  
+            return NULL;
+        }
+    }
+    return NULL;
 }
 
 void loadNativeDemangler() {
