@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.132 2005/07/29 19:18:43 bernat Exp $
+// $Id: inst.C,v 1.133 2005/07/29 22:16:29 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -901,8 +901,6 @@ codeGen::codeGen(const codeGen &g) :
     size_(g.size_),
     allocated_(g.allocated_) {
     if (size_ != 0) {
-        fprintf(stderr, "codeGen copy constructor, copying %d bytes...\n",
-                size_);
         assert(allocated_); 
         buffer_ = (codeBuf_t *) malloc(size_);
         memcpy(buffer_, g.buffer_, size_);
