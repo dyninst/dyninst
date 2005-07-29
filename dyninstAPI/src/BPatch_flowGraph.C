@@ -62,6 +62,7 @@
 #include "LineInformation.h"
 
 #include "BPatch_flowGraph.h"
+#include "mapped_object.h"
 
 const int BPatch_flowGraph::WHITE = 0;
 const int BPatch_flowGraph::GRAY  = 1;
@@ -70,19 +71,17 @@ const int BPatch_flowGraph::BLACK = 2;
 
 // constructor of the class. It creates the CFG and
 // deletes the unreachable code.
-BPatch_flowGraph::BPatch_flowGraph(int_function *func, 
-                                   process *proc, 
-                                   pdmodule *mod, 
+BPatch_flowGraph::BPatch_flowGraph(BPatch_function *func, 
                                    bool &valid)
-  : func(func), proc(proc), bproc(NULL), mod(mod), 
-    loops(NULL), loopRoot(NULL), isDominatorInfoReady(false), 
-    isPostDominatorInfoReady(false), isSourceBlockInfoReady(false) 
+    : func_(func), bproc(func->getProc()), mod(func->getModule()), 
+      loops(NULL), loopRoot(NULL), isDominatorInfoReady(false), 
+      isPostDominatorInfoReady(false), isSourceBlockInfoReady(false) 
 {
    // fill the information of the basic blocks after creating
    // them. The dominator information will also be filled
    valid = true;
 
-   unsigned tmpSize = func->getSize(proc);
+   unsigned tmpSize = func->getSize();
    if(!tmpSize){
      fprintf(stderr, "Func has no size!\n");
 	valid = false;
@@ -158,49 +157,6 @@ BPatch_flowGraph::BPatch_flowGraph(int_function *func,
 
 }
 
-
-
-extern BPatch_point *createInstructionEdgeInstPoint(process* proc, 
-                                                    int_function *func,
-                                                    BPatch_edge *edge);
-
-extern edgeTrampTemplate *createEdgeTramp(process *proc, image *img, BPatch_edge *edge);
-
-
-BPatch_point *BPatch_flowGraph::createInstPointAtEdgeInt(BPatch_edge *edge)
-{
-    int_function *pfunc = (int_function *)func;
-
-    assert(edge->point == NULL);
-
-    if (edge->needsEdgeTramp()) {
-        // if this edge already has an address to instrument (because
-        // its buddy conditional edge has already been instrumented)
-        // then we use it. otherwise we need to create an edge tramp,
-        // this will set instAddr for this edge and its buddy
-        // conditional edge
-        if (!edge->instAddr) 
-	  createEdgeTramp(proc, pfunc->pdmod()->exec(), edge);
-
-        edge->point = createInstructionEdgeInstPoint(proc, pfunc, edge);
-	if (!edge->point)
-	  fprintf(stderr, "BPFG: createInstructionEdgeInstPoint failed\n");
-    }
-    else {
-        // the address of the last instruction of the source block 
-        void *addr = (void *)edge->source->getRelLast();
-
-        // edge->point = createInstPointAtAddr(addr);
-        // XXX this is to remove dependency on BPatch_image, the following
-        // function can be replaced with de-bpachified version in mdl.C
-
-        edge->point = createInstructionInstPoint(getBProc(), addr, NULL, NULL);
-	if (!edge->point)
-	  fprintf(stderr, "BPFG: createInstructionInstPoint failed\n");
-    }
-    return edge->point;
-}
-
 bool DEBUG_LOOP = false;
 
 void 
@@ -220,14 +176,14 @@ BPatch_flowGraph::findLoopExitInstPoints(BPatch_loop *loop,
         for (unsigned j = 0; j < edges.size(); j++) 
             if (!loop->hasBlock(edges[j]->target)) {
 		if (DEBUG_LOOP) edges[j]->dump();
-		BPatch_point *iP = edges[j]->instPoint();
-		if (!iP) {
-		  fprintf(stderr, "ERROR: exit edge had no inst point\n");
+		BPatch_point *bP = edges[j]->getPoint();
+		if (!bP) {
+                    fprintf(stderr, "ERROR: exit edge had no inst point\n");
 		}
                 else {
-                   iP->overrideType(BPatch_locLoopExit);
-                   iP->setLoop(loop);
-                   points->push_back(iP);
+                    bP->overrideType(BPatch_locLoopExit);
+                    bP->setLoop(loop);
+                    points->push_back(bP);
                 }
 		
             }
@@ -277,7 +233,7 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
 
     if (DEBUG_LOOP) 
 	fprintf(stderr,"%s findLoopInstPoints 0x%x\n",
-		func->prettyName().c_str(), loop);
+		ll_func()->prettyName().c_str(), loop);
 
     BPatch_Vector<BPatch_point*> *points = new BPatch_Vector<BPatch_point *>;
 
@@ -296,7 +252,7 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
             // hasBlock is inclusive, checks subloops
             if (!loop->hasBlock(edges[i]->source)) {
 		if (DEBUG_LOOP) edges[i]->dump();
-		BPatch_point *iP = edges[i]->instPoint();
+		BPatch_point *iP = edges[i]->getPoint();
 		if (!iP) {
 		  fprintf(stderr, "ERROR: failed to find loop entry point!\n");
 		} 
@@ -335,7 +291,7 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
         // instrument the head of the loop
         BPatch_point *p;
         void *addr = (void*)loop->getLoopHead()->getRelStart();
-        p = createInstructionInstPoint(getBProc(), addr, NULL, NULL);
+        p = BPatch_point::createInstructionInstPoint(getBProcess(), addr, func_);
         p->overrideType(BPatch_locLoopStartIter);
 	p->setLoop(loop);
 	points->push_back(p);
@@ -349,7 +305,7 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
         // point for the backedge of this loop 
         BPatch_edge *edge = loop->backEdge;
         if (DEBUG_LOOP) edge->dump();
-	BPatch_point *iP = edge->instPoint();
+	BPatch_point *iP = edge->getPoint();
 	iP->overrideType(BPatch_locLoopEndIter);
 	iP->setLoop(loop);
         points->push_back(iP);
@@ -528,36 +484,6 @@ BPatch_flowGraph::getExitBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& nbb)
    return true;
 }
 
-// Small helper function to find first and last instruction address
-// of a given BPatch_loop.
-void
-findBoundries(BPatch_loop *loop, unsigned long &start, unsigned long &end)
-{
-    BPatch_basicBlock *target = loop->getBackEdge()->target;
-    BPatch_basicBlock *source = loop->getBackEdge()->source;
-
-    if (target->getRelStart() > source->getRelStart()) {
-	// Special case (GCC 4.0 and beyond)
-	//
-	// Backedge's target has higher address than source,
-	// meaning loop conditional comes after loop body.
-	//
-	// We must follow the conditional block's target
-	// pointer to find the lowest loop address.
-	source = target;
-
-	BPatch_Vector< BPatch_basicBlock * > blocks;
-	target->getTargets(blocks);
-	assert(blocks.size() > 1);
-
-	if (blocks[0]->getRelStart() < blocks[1]->getRelStart())
-	    target = blocks[0];
-	else
-	    target = blocks[1];
-    }
-    start = target->getRelStart();
-    end   = source->getRelLast();
-}
 
 void 
 BPatch_flowGraph::createLoops()
@@ -593,12 +519,11 @@ BPatch_flowGraph::createLoops()
             BPatch_loop *l1 = allLoops[i];
             BPatch_loop *l2 = allLoops[j];
             
-	    unsigned long l1start, l1end;
-	    unsigned long l2start, l2end;
-
-	    findBoundries(l1, l1start, l1end);
-	    findBoundries(l2, l2start, l2end);
-
+            unsigned long l1start = l1->backEdge->target->getRelStart();
+	    unsigned long l2start = l2->backEdge->target->getRelStart();   
+	    unsigned long l1end   = l1->backEdge->source->getRelLast();
+	    unsigned long l2end   = l2->backEdge->source->getRelLast();
+            
             // if l2 is inside l1
             if (l1start < l2start && l2end < l1end) {
                 // l1 contains l2
@@ -607,14 +532,10 @@ BPatch_flowGraph::createLoops()
                 // l2 has no parent, l1 is best so far
                 if (!l2->parent) 
                     l2->parent = l1;
-                else {
-		    // if l1 is closer to l2 than l2's existing parent
-		    unsigned long pStart, pEnd;
-		    findBoundries(l2->parent, pStart, pEnd);
-
-                    if (l1start > pStart)
+                else 
+                   // if l1 is closer to l2 than l2's existing parent
+                    if (l1start > l2->parent->getLoopHead()->getRelStart()) 
                         l2->parent = l1;
-		}
             }
         }
     }
@@ -689,361 +610,372 @@ BPatch_flowGraph::getOuterLoopsInt(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
 //entryBlocks field of the controlflow grpah. If it is possible
 //to enter a function from many points some modification is needed
 //to insert all entry basic blocks to the esrelevant field of the class.
-bool BPatch_flowGraph::createBasicBlocks() { 
-#if defined(arch_x86) || defined(arch_x86_64) || defined(rs6000_ibm_aix4_1)
+bool BPatch_flowGraph::createBasicBlocks()
+{ 
+    const pdvector< int_basicBlock* > &iblocks	= ll_func()->blocks();
+    for( unsigned int ii = 0; ii < iblocks.size(); ii++ )
+        {
+            BPatch_basicBlock *newblock = new BPatch_basicBlock(iblocks[ii]);
+            newblock->flowGraph = this;
+            if( newblock->isEntryBasicBlock )
+                entryBlock += newblock;
+            if( newblock->isExitBasicBlock )
+                exitBlock += newblock;
+            
+            allBlocks += newblock;
+        }
+    // Okay, we have blocks... now fix up the edges appropriately.
+    // This is incredibly aggravating... there is _NO_ way to find a
+    // block by its number, so we have to do this the !@*@#! slow way...
 
-    pdvector< BPatch_basicBlock* >* blocks	= func->blocks();
+    BPatch_basicBlock** elements = 
+        new BPatch_basicBlock* [allBlocks.size()];
     
-    unsigned int size = blocks->size();     
-    for( unsigned int ii = 0; ii < size; ii++ )
-    {
-        (*blocks)[ii]->blockNumber = ii;
-        (*blocks)[ii]->flowGraph = this;
-        if( (*blocks)[ii]->isEntryBasicBlock )
-            entryBlock += (*blocks)[ii];
-        if( (*blocks)[ii]->isExitBasicBlock )
-            exitBlock += (*blocks)[ii];
-        
-        allBlocks += (*blocks)[ii];
+    allBlocks.elements(elements);
+
+    for (unsigned b_iter = 0; b_iter < allBlocks.size(); b_iter++) {
+        BPatch_basicBlock *bpB = elements[b_iter];
+
+        int_basicBlock *intB = iblocks[bpB->getBlockNumber()];
+
+        pdvector<int_basicBlock *> int_ins;
+        pdvector<int_basicBlock *> int_outs;
+
+        intB->getSources(int_ins);
+        intB->getTargets(int_outs);
+
+        for (unsigned in_iter = 0; in_iter < int_ins.size(); in_iter++) {
+            BPatch_basicBlock *bp_inB = elements[int_ins[in_iter]->id()];
+            assert(bp_inB->getBlockNumber() == int_ins[in_iter]->id());
+            assert(bp_inB);
+            bpB->addSource(bp_inB);
+        }
+
+        for (unsigned out_iter = 0; out_iter < int_outs.size(); out_iter++) {
+            BPatch_basicBlock *bp_outB = elements[int_outs[out_iter]->id()];
+            assert(bp_outB->getBlockNumber() == int_outs[out_iter]->id());
+            assert(bp_outB);
+            bpB->addTarget(bp_outB);
+        }
     }
-    
+
     return true;
+#if 0
+    // Old version
+   Address maddr = relativeAddress + func->get_size();
 
-#else /* [not] defined( arch_x86 ) and [not] defined( arch_x86_64 ) */
+   Address taddr;
 
-	int bno = 0;
-	Address effectiveAddress = (Address) ((void *)func->getEffectiveAddress( proc ));
-	Address relativeAddress = (Address) ((void *)func->get_address());
-	long long diffAddress = effectiveAddress;
-	diffAddress -= relativeAddress;
-
-	InstrucIter ah(func, proc, mod);
-	Address baddr = relativeAddress;
-	Address maddr = relativeAddress + func->get_size();
-	Address taddr;
-	
-	BPatch_Set< Address > leaders;
-	dictionary_hash< Address, BPatch_basicBlock * > leaderToBlock( addrHash );
+   BPatch_Set<Address> leaders;
+   dictionary_hash<Address,BPatch_basicBlock*> leaderToBlock(addrHash);
    
-	/* start inserting the leader information. The initial address of the
-	   function is inserted as a leader and a basic block is created for it
-	   and inserted into the map. */
+   //start inserting the leader information. The initial address of the
+   //function is inserted as a leader and a basic block is created for it
+   //and inserted into the map.
    
-	leaders += relativeAddress;
-	leaderToBlock[relativeAddress] = new BPatch_basicBlock( this, bno++ );
-	allBlocks += leaderToBlock[ relativeAddress ];
+   leaders += relativeAddress;
+   leaderToBlock[relativeAddress] = new BPatch_basicBlock(this, bno++);
+   allBlocks += leaderToBlock[relativeAddress];
    
-	/* Iterate over all instructions in the function. */
-	while( ah.hasMore() ) {
-		InstrucIter inst( ah );
-		Address pos = ah++;
+   //while there are still instructions to check for in the
+   //address space of the function
 
-		if( inst.isACondBranchInstruction() ) {
-			// /* DEBUG */ fprintf( stderr, "%s[%d]: found conditional branch at 0x%lx\n", __FILE__, __LINE__, * inst );
+   while (ah.hasMore()) {
+      //get the inctruction and the address
+      //inst = ah.getInstruction();
+      InstrucIter inst(ah);
+      Address pos = ah++;
 
-			/* If the branch target is inside the function, insert it as a leader. */
-			taddr = inst.getBranchTargetAddress( pos );
+      //if it is a conditional branch 
+      if (inst.isACondBranchInstruction()) {
+         //if also it is inside the function space
+         //then insert the target address as a leader
+         //and create the basic block for the leader
+         taddr = inst.getBranchTargetAddress(pos);
 
-			// /* DEBUG */ fprintf( stderr, "%s[%d]: branch target 0x%lx\n", __FILE__, __LINE__, taddr );
-			if( (baddr <= taddr) && (taddr < maddr) && ! leaders.contains( taddr ) ) {
-				leaders += taddr;
+         if ((baddr <= taddr) && (taddr < maddr) && 
+             !leaders.contains(taddr)) {
+             leaders += taddr;
 
-				leaderToBlock[taddr] = new BPatch_basicBlock( this, bno++ );
-				allBlocks += leaderToBlock[taddr];
-				
-				// /* DEBUG */ fprintf( stderr, "%s[%d]: branch target is a new leader.\n", __FILE__, __LINE__, taddr );
-				} /* end if target is in function */
+             leaderToBlock[taddr] =
+                 new BPatch_basicBlock(this, bno++);
 
-			/* Delay slots are in the same basic block. */
-			if( InstrucIter::delayInstructionSupported() && ! inst.isAnneal() ) { ++ah; }
+            allBlocks += leaderToBlock[taddr];
+         }
+
+         //if the dleay instruction is supported by the
+         //architecture then skip one more instruction         
+         if (InstrucIter::delayInstructionSupported() && !inst.isAnneal())
+            ++ah;
          
-         	/* If the next instruction is in the function, it's a new leader. */
-			taddr = *ah;
-			if( (taddr < maddr) && ! leaders.contains(taddr) ) {
-				leaders += taddr;
-				leaderToBlock[taddr] = new BPatch_basicBlock( this, bno++ );
-				allBlocks += leaderToBlock[taddr];
-				
-				// /* DEBUG */ fprintf( stderr, "%s[%d]: branch fall-through new leader at 0x%lx\n", __FILE__, __LINE__, taddr );
-				}
-			} /* end if instruction is a conditional branch */
-		else if( inst.isAJumpInstruction() ) {
-			/* As a conditional branch, except without the fall-through. */
-			taddr = inst.getBranchTargetAddress(pos);
+         //if the next address is still in the address
+         //space of the function then it is also a leader
+         //since the condition may not be met
+         taddr = *ah;
+         if ((taddr < maddr) && !leaders.contains(taddr)) {
+            leaders += taddr;
+            leaderToBlock[taddr] = new BPatch_basicBlock(this, bno++);
+            allBlocks += leaderToBlock[taddr];
+         }
+      }
+      else if (inst.isAJumpInstruction()) {
+         //if it is unconditional jump then find the
+         //target address and insert it as a leader and create
+         //a basic block for it.
+         taddr = inst.getBranchTargetAddress(pos);
 
-			if( (baddr <= taddr) && (taddr < maddr) && ! leaders.contains(taddr) ) {
-				leaders += taddr;
-				leaderToBlock[taddr] = new BPatch_basicBlock(this, bno++);
-				allBlocks += leaderToBlock[taddr];
-				
-				// /* DEBUG */ fprintf( stderr, "%s[%d]: jump to new leader at 0x%lx\n", __FILE__, __LINE__, taddr );
-				}
+         if ((baddr <= taddr) && (taddr < maddr) && !leaders.contains(taddr)) {
+            leaders += taddr;
+            leaderToBlock[taddr] = new BPatch_basicBlock(this, bno++);
+            allBlocks += leaderToBlock[taddr];
+         }
 
-			/* Delay slots are in the same basic block. */
-			if( InstrucIter::delayInstructionSupported() && !inst.isAnneal() ) { ++ah; }
+         //if the dleay instruction is supported by the
+         //architecture then skip one more instruction
+         if (InstrucIter::delayInstructionSupported() && !inst.isAnneal())
+            ++ah;
 
 #if defined(alpha_dec_osf4_0)
-			taddr = *ah;
-			if( (taddr < maddr) && ! leaders.contains( taddr ) ) {
-				leaders += taddr;
-				leaderToBlock[taddr] = new BPatch_basicBlock(this, bno++);
-				allBlocks += leaderToBlock[taddr];
-				}
+         taddr = *ah;
+         if ((taddr < maddr) && !leaders.contains(taddr)) {
+            leaders += taddr;
+            leaderToBlock[taddr] = new BPatch_basicBlock(this, bno++);
+            allBlocks += leaderToBlock[taddr];
+         }
 #endif
-			} /* end if instruction is an unconditional branch (jump) */
+      }
 #if defined(rs6000_ibm_aix4_1)
-		else if( inst.isAIndirectJumpInstruction( InstrucIter( ah ) ) ) {
+      else if (inst.isAIndirectJumpInstruction(InstrucIter(ah)))
 #else
-		else if( inst.isAIndirectJumpInstruction() ) {
+      else if (inst.isAIndirectJumpInstruction())
 #endif
-			/* If we can identify the possible targets (of a jump table), use
-			   that information to construct the CFG. */
-			InstrucIter ah2( ah );
-			BPatch_Set< Address > possTargets; 
-			ah2.getMultipleJumpTargets( possTargets );
-			Address * telements = new Address[ possTargets.size() ];
-			possTargets.elements( telements );
-			
-			for( unsigned int i = 0; i < possTargets.size(); i++ ) {
-				taddr = telements[i];
-				if( proc->getImage()->isAllocedAddress( taddr ) && (baddr <= taddr) && (taddr < maddr) &&  ! leaders.contains( taddr ) ) {
-					leaders += taddr;
-					leaderToBlock[taddr] = new BPatch_basicBlock(this, bno++);
-					allBlocks += leaderToBlock[taddr];
-					
-					// /* DEBUG */ fprintf( stderr, "%s[%d]: indirect jump to new leader at 0x%lx\n", __FILE__, __LINE__, taddr );
-					}
-				} /* end iteration over possible jump targets */
-			delete[] telements;
+      {
+         InstrucIter ah2(ah);
+         BPatch_Set<Address> possTargets; 
+         ah2.getMultipleJumpTargets(possTargets);
+         Address* telements = new Address[possTargets.size()];
 
-			/* Delay slots are in the same basic block. */
-			if( InstrucIter::delayInstructionSupported() ) { ++ah; }
-			} /* end if instruction is an indirect jump */
+         possTargets.elements(telements);
+
+         for (unsigned int i=0; i < possTargets.size(); i++) {
+            taddr = telements[i];
+            if (proc->getImage()->isAllocedAddress(taddr) &&
+		(baddr <= taddr) && (taddr < maddr) && 
+                !leaders.contains(taddr)) {
+               leaders += taddr;
+               leaderToBlock[taddr] = new BPatch_basicBlock(this, bno++);
+               allBlocks += leaderToBlock[taddr];
+            }
+         }
+         delete[] telements;
+
+         //if the dleay instruction is supported by the
+         //architecture then skip one more instruction
+         if (InstrucIter::delayInstructionSupported())
+            ++ah;
+      }
+
+      else if (inst.isAReturnInstruction()) {
+         if (InstrucIter::delayInstructionSupported())
+            ++ah;
+
+         taddr = *ah;
+
+		 // /* DEBUG */ fprintf( stderr, "%s[%d]: potential leader at 0x%lx\n", __FILE__, __LINE__, taddr );
+         if ((baddr <= taddr) && (taddr < maddr) && !leaders.contains(taddr)) {
+        	// /* DEBUG */ fprintf( stderr, "%s[%d]: 0x%lx is a new leader (after return at 0x%lx).\n", __FILE__, __LINE__, taddr, * inst );
+            leaders += taddr;
+            leaderToBlock[taddr] = new BPatch_basicBlock(this, bno++);
+            allBlocks += leaderToBlock[taddr];
+         }
+      }
+      
 #if defined(ia64_unknown_linux2_4) 
-		/* I think I decided that returns weren't also indirect jumps.  Not sure, though. */
-		else if( inst.isAReturnInstruction() ) {
-			taddr = *ah;
-
-			// /* DEBUG */ fprintf( stderr, "%s[%d]: potential leader (because of return) at 0x%lx\n", __FILE__, __LINE__, taddr );
-			if( (baddr <= taddr) && (taddr < maddr) && !leaders.contains(taddr) ) {
-				leaders += taddr;
-				leaderToBlock[taddr] = new BPatch_basicBlock(this, bno++);
-				allBlocks += leaderToBlock[taddr];
-				
-				// /* DEBUG */ fprintf( stderr, "%s[%d]: 0x%lx is a new leader (after return at 0x%lx).\n", __FILE__, __LINE__, taddr, * inst );
-				}
-			} /* end if instruction is a return */
-      
-		/* I think this is so the reaching-definitions code can always just look at the first instruction to find the alloc. */
-		else if( inst.getInstruction()->getType() == IA64_instruction::ALLOC ) {
-			// /* DEBUG */ fprintf( stderr, "%s[%d]: potential leader (because of alloc) at 0x%lx\n", __FILE__, __LINE__, taddr );
-			if( ! leaders.contains( pos ) ) { 
-				leaders += pos;
-				leaderToBlock[pos] = new BPatch_basicBlock( this, bno++ );
-				allBlocks += leaderToBlock[pos];
-				
-				// /* DEBUG */ fprintf( stderr, "%s[%d]: alloc at 0x%lx is a (new) leader.\n", __FILE__, __LINE__, pos );
-				}
-			} /* end if an alloc instruction */
+      else if( inst.getInstruction()->getType() == IA64_instruction::ALLOC ) {
+        if( ! leaders.contains( pos ) ) { 
+        	// /* DEBUG */ fprintf( stderr, "%s[%d]: alloc at 0x%lx is a (new) leader.\n", __FILE__, __LINE__, pos );
+        	leaders += pos;
+        	leaderToBlock[pos] = new BPatch_basicBlock( this, bno++ );
+        	allBlocks += leaderToBlock[pos];
+        	}
+      	} /* end if an alloc instruction */
 #endif
-		} /* end loop over all instructions in function */
+      }
       
-		/* to process the leaders easily sort the leaders according to their
-		   values, that is according to the address value they have */
-		Address* elements = new Address[leaders.size()];
-		leaders.elements( elements );
+      //to process the leaders easily sort the leaders according to their
+      //values, that is according to the address value they have
+      Address* elements = new Address[leaders.size()];
+      leaders.elements(elements);
+      
+      //insert the first leaders corresponding basic block as a entry
+      //block to the control flow graph.
+      
+      leaderToBlock[elements[0]]->isEntryBasicBlock = true;
+      entryBlock += leaderToBlock[elements[0]];
+      
+      //for each leader take the address value and continue procesing
+      //the instruction till the next leader or the end of the
+      //function space is seen
+      for (unsigned int i=0; i < leaders.size(); i++) {
+         //set the value of address handle to be the value of the leader
+         ah.setCurrentAddress(elements[i]);
 
-		// /* DEBUG: */      
-		// for( unsigned element = 0; element < leaders.size(); element++ ) {
-		//	fprintf( stderr, "%s[%d]: leader: 0x%lx\n", __FILE__, __LINE__, elements[element] );
-		//	}
-		// /* :DEBUG */
-      
-		// insert the first leaders corresponding basic block as a entry
-		// block to the control flow graph.
-		leaderToBlock[elements[0]]->isEntryBasicBlock = true;
-		entryBlock += leaderToBlock[elements[0]];
-      
-		/* for each leader take the address value and continue procesing
-		   the instruction till the next leader or the end of the
-		   function space is seen */
-		for( unsigned int i=0; i < leaders.size(); i++ ) {
-			// set the value of address handle to be the value of the leader
-			ah.setCurrentAddress( elements[i] );
-
-			BPatch_basicBlock * bb = leaderToBlock[elements[i]];
-			bb->startAddress = (Address)(elements[i] + diffAddress);
+         BPatch_basicBlock * bb = leaderToBlock[elements[i]];
+         bb->startAddress = (Address)(elements[i]+diffAddress);
          
-			// was the previous instruction an unconditional jump?
-			bool prevInsIsUncondJump = false;
+	 // was the previous instruction an unconditional jump?
+	 bool prevInsIsUncondJump = false;
 
-			// while the address handle has instructions to process
-			while( ah.hasMore() ) {
-				InstrucIter inst(ah);
-				Address pos = *ah;
+         //while the address handle has instructions to process
+         while (ah.hasMore()) {
+            InstrucIter inst(ah);
+            Address pos = *ah;
             
-            	/* Have we hit the next leader? */
-				if( i < (leaders.size() - 1) && pos == elements[i + 1] ) {
-            		/* If so, end this basic block. */
-					bb->lastInsnAddress = (Address)( ah.prevAddress() + diffAddress );
-					bb->setRelEnd( (Address)( (*ah) + diffAddress ) );
-
-					// /* DEBUG */ fprintf( stderr, "%s[%d]: ending basic block at next leader (last instruction at 0x%lx)\n", __FILE__, __LINE__, bb->lastInsnAddress );
-
-					/* Handle fall-throughs. */
-#if ! defined( arch_ia64 )		
-					if( bb->targets.size() == 0 && ! bb->isExitBasicBlock && ! prevInsIsUncondJump ) {
-#else
-					/* IA-64 return instructions can be predicated and therefore conditional. */
-					bool notUnconditionalExit = true;
-					if( bb->isExitBasicBlock ) {
-						/* Is the previous instruction predicated? */
-						InstrucIter prevInsn( ah );
-						--prevInsn;
-			
-						notUnconditionalExit = (prevInsn.getInstruction()->getPredicate() != 0);
-						// /* DEBUG */ fprintf( stderr, "%s[%d]: return instruction at 0x%lx %s predicated.\n", __FILE__, __LINE__, * prevInsn, notUnconditionalExit ? "was" : "was not" );
-						};
-					if(	bb->targets.size() == 0 && ! prevInsIsUncondJump && notUnconditionalExit ) {
-#endif		  
-						/* Insert the fall-through. */
-						bb->targets += leaderToBlock[pos];
-						leaderToBlock[pos]->sources += bb;    
-
-						// /* DEBUG */ fprintf( stderr, "%s[%d]: inserting fall through to 0x%lx\n", __FILE__, __LINE__, pos );
-						} /* end if we should insert a fall-through */
-					
-					/* If we're at a leader, continue the loop. */						
-					break;
-    	    	    } /* end if we're at the next leader */
-           
-				/* If we're not at the next leader, continue looking. */
-				ah++;
-            
-				prevInsIsUncondJump = false; 
-				
-				/* Hook up conditional branches. */
-				if (inst.isACondBranchInstruction() ) {
-					taddr = inst.getBranchTargetAddress(pos);
-
-				if( (baddr <= taddr) && (taddr < maddr) ) {
-					bb->targets += leaderToBlock[taddr];
-					leaderToBlock[taddr]->sources += bb;
-					
-					// /* DEBUG */ fprintf( stderr, "%s[%d]: adding conditional jump edge to 0x%lx\n", __FILE__, __LINE__, taddr );
-					} 
-				else {
-					/* If the target isn't in the function, consider it an exit. */
-					exitBlock += bb;
-					}
-					
-				if( InstrucIter::delayInstructionSupported() && ! inst.isAnneal() ) { ++ah; }
-               
-				taddr = *ah;
-				if( taddr < maddr ) {
-					bb->targets += leaderToBlock[taddr];
-					leaderToBlock[taddr]->sources += bb;
-					
-					// /* DEBUG */ fprintf( stderr, "%s[%d]: adding fall through edge to 0x%lx\n", __FILE__, __LINE__, taddr );
-					}
-				} /* end if instruction is a conditional branch */
-			else if( inst.isAJumpInstruction() ) {
-				/* As a conditional branch, except without the fallthrough. */
-				taddr = inst.getBranchTargetAddress(pos);
-
-				if( (baddr <= taddr) && (taddr < maddr) ) {
-					bb->targets += leaderToBlock[taddr];
-					leaderToBlock[taddr]->sources += bb;
-					
-					// /* DEBUG */ fprintf( stderr, "%s[%d]: adding unconditional jump edge to 0x%lx\n", __FILE__, __LINE__, taddr );
-					}
-				else {
-					exitBlock += bb;
-					}
-
-				/* flag this unconditional jump so that when we examine the
-				   next instruction and find that it is a leader we will know
-				   there is not a fall-through edge between these two blocks */
-				prevInsIsUncondJump = true; 
-
-				if( InstrucIter::delayInstructionSupported() && ! inst.isAnneal() ) { ++ah; }
-				} /* end if instruction is an unconditional branch */
-#if defined(rs6000_ibm_aix4_1)
-			else if( inst.isAIndirectJumpInstruction( InstrucIter( ah ) ) ) {
-#else
-			else if( inst.isAIndirectJumpInstruction() ) {
-#endif
-			/* If we can identify the possible targets (of a jump table), use
-			   that information to construct the CFG. */
-			InstrucIter ah2( ah );
-			BPatch_Set< Address > possTargets; 
-			ah2.getMultipleJumpTargets( possTargets );
-			Address * telements = new Address[ possTargets.size() ];
-			possTargets.elements( telements );
-
-			for( unsigned int j = 0; j < possTargets.size(); j++) {
-				taddr = telements[j];
-				if( proc->getImage()->isAllocedAddress( taddr ) ) {
-					if( (baddr <= taddr) && (taddr < maddr) ) {
-						bb->targets += leaderToBlock[taddr];
-						leaderToBlock[taddr]->sources += bb;
-						
-						// /* DEBUG */ fprintf( stderr, "%s[%d]: adding edge for indirect jump target 0x%lx\n", __FILE__, __LINE__, taddr );
-						}
-					else {
-						exitBlock += bb;
-						}
-					}
-				 } /* end iteration over possible targets */
-			delete[] telements;
-
-			if( InstrucIter::delayInstructionSupported() ) { ++ah; }
-            } /* end if instruction is an indirect jump */
-		else if( inst.isAReturnInstruction() ) {
-			exitBlock += bb;
-			bb->isExitBasicBlock = true;
-			
-#if defined( arch_ia64 )
-			/* Is the return instruction predicated? */
-			bool conditionalReturn = inst.getInstruction()->getPredicate() != 0;
-			// /* DEBUG */ fprintf( stderr, "%s[%d]: return instruction %s predicated.\n", __FILE__, __LINE__, conditionalReturn ? "was" : "was not" );
-			
-			/* Conditional returns fall through to the next block. */
-			if( conditionalReturn ) {
-				taddr = *ah;
-				if( taddr < maddr ) {
-					bb->targets += leaderToBlock[taddr];
-					leaderToBlock[taddr]->sources += bb;
-					
-					// /* DEBUG */ fprintf( stderr, "%s[%d]: adding fall through edge after return to 0x%lx\n", __FILE__, __LINE__, taddr );
-					}					
-				} /* end if return was conditional */
-#endif /* defined( arch_ia64 ) */
-
-			} /* end if instruction is a return */
-		} /* end iteration over instructions */
-
-	/* If the loop terminated because we ran out of instructions,
-	   terminate the basic block. */
-	if( i == ( leaders.size() - 1 ) ) {
+            // if the next leaders instruction is seen and it is not
+            // the end of the function yet
+            if ((i < (leaders.size()-1)) && (pos == elements[i+1])) {
+		// end of current block
 		bb->lastInsnAddress = (Address)(ah.prevAddress()+diffAddress);
-		bb->setRelEnd((Address)((*ah)+diffAddress));
-		} /* end if we ran out of instructions */
-	} /* end iteration over leaders */
+                bb->setRelEnd((Address)((*ah)+diffAddress));
 
-	/* Clean up. */
-	delete[] elements;
-	
-	// /* DEBUG */ fprintf( stderr, "\n" );
-	return true;
-#endif /* defined( arch_x86 ) or defined( arch_x86_64 ) */
-	} /* end createBasicBlocks() */
+		// if the previous block has no targets inside the current 
+		// function and is not an exit block and the previous 
+		// instruction was not an unconditional jump then we infer
+		// that there is a fall-through edge from bb to the next block
+		// (which pos is the leader of). if the target of return
+		// instructions and jumps outside the function were added to
+		// the basic blocks vector of targets then checking that 
+		// the vector of targets is empty would be enough
+		if (bb->targets.size() == 0 && !bb->isExitBasicBlock
+		    && !prevInsIsUncondJump) {
+		    bb->targets += leaderToBlock[pos];
+		    leaderToBlock[pos]->sources += bb;    
+
+		    prevInsIsUncondJump = false; 
+		}
+
+		// continue to next leader
+		break;
+            }
+            
+            ah++;
+            
+	    prevInsIsUncondJump = false; 
+
+            //if the instruction is conditional branch then
+            //find the target address and find the corresponding 
+            //leader and basic block for it. Then insert the found
+            //basic block to the successor list of current leader's
+            //basic block, and insert current basic block to the
+            //predecessor field of the other one. Do the
+            //same thing for the following ( or the other one
+            //if delay instruction is supported) as a leader.
+            if (inst.isACondBranchInstruction()) {
+               taddr = inst.getBranchTargetAddress(pos);
+
+               if ((baddr <= taddr) && (taddr < maddr)) {
+                  bb->targets += leaderToBlock[taddr];
+                  leaderToBlock[taddr]->sources += bb;
+               } 
+               else {
+                  exitBlock += bb;
+               }
+
+               if (InstrucIter::delayInstructionSupported() && 
+                   !inst.isAnneal())
+                  ++ah;
+               
+               taddr = *ah;
+               if (taddr < maddr) {
+                  bb->targets += leaderToBlock[taddr];
+                  leaderToBlock[taddr]->sources += bb;
+               }
+            }
+            else if (inst.isAJumpInstruction()) {
+               //if the branch is unconditional then only
+               //find the target and leader and basic block 
+               //coressponding to the leader. And update 
+               //predecessor and successor fields of the 
+               //basic blocks.
+               taddr = inst.getBranchTargetAddress(pos);
+
+               if ((baddr <= taddr) && (taddr < maddr)) {
+                  bb->targets += leaderToBlock[taddr];
+                  leaderToBlock[taddr]->sources += bb;
+               }
+               else {
+		   exitBlock += bb;
+               }
+
+	       // flag this unconditional jump so that when we examine the
+	       // next instruction and find that it is a leader we will know
+	       // there is not a fall-through edge between these two blocks
+	       prevInsIsUncondJump = true; 
+
+               if (InstrucIter::delayInstructionSupported() && 
+                   !inst.isAnneal())
+                  ++ah;
+            }
+#if defined(rs6000_ibm_aix4_1)
+            else if (inst.isAIndirectJumpInstruction(InstrucIter(ah)))
+#else
+            else if (inst.isAIndirectJumpInstruction())
+#endif
+            {
+               InstrucIter ah2(ah);
+               BPatch_Set<Address> possTargets; 
+
+               ah2.getMultipleJumpTargets(possTargets);
+               Address* telements = new Address[possTargets.size()];
+               possTargets.elements(telements);
+
+               for (unsigned int j=0; j < possTargets.size(); j++) {
+                  taddr = telements[j];
+		  if (proc->getImage()->isAllocedAddress(taddr)) {
+		    if ((baddr <= taddr) && (taddr < maddr)) {
+		      bb->targets += leaderToBlock[taddr];
+		      leaderToBlock[taddr]->sources += bb;
+		    }
+		    else {
+		      exitBlock += bb;
+		    }
+		  }
+               }
+               delete[] telements;
+
+               //if the dleay instruction is supported by the
+               //architecture then skip one more instruction
+               if (InstrucIter::delayInstructionSupported())
+                  ++ah;
+            }
+            else if (inst.isAReturnInstruction()) {
+               exitBlock += bb;
+               bb->isExitBasicBlock = true;
+            }
+         }
+         //if the while loop terminated due to recahing the
+         //end of the address space of the function then set the
+         //end addresss of the basic block to the last instruction's
+         //address in the address space.
+         if (i == (leaders.size()-1))
+         {
+            bb->lastInsnAddress = (Address)(ah.prevAddress()+diffAddress);
+            bb->setRelEnd((Address)((*ah)+diffAddress));
+         }         
+   
+   }
+   delete[] elements;
+         
+   return true;
+#endif // if 0
+}
 
 
 // This function must be called only after basic blocks have been created
 // by calling createBasicBlocks. It computes the source block for each
 // basic block. For now, a source block is represented by the starting
 // and ending line numbers in the source block for the basic block.
+
 bool BPatch_flowGraph::createSourceBlocksInt() {
 	if( isSourceBlockInfoReady ) { return true; }
 	
@@ -1059,7 +991,7 @@ bool BPatch_flowGraph::createSourceBlocksInt() {
 		InstrucIter insnIterator( currentBlock );
 		
 		for( ; insnIterator.hasMore(); ++insnIterator ) {
-			if( getBProc()->getSourceLines( * insnIterator, lines ) ) {
+                    if( getBProcess()->getSourceLines( * insnIterator, lines ) ) {
 				// /* DEBUG */ fprintf( stderr, "%s[%d]: 0x%lx\n", __FILE__, __LINE__, * insnIterator );
 				}
 			}
@@ -1106,7 +1038,6 @@ bool BPatch_flowGraph::createSourceBlocksInt() {
 	delete elements;
 	return true;
 	} /* end createSourceBlocks() */
-
 
 /* class that calculates the dominators of a flow graph using
    tarjan's algorithms with results an almost linear complexity
@@ -1538,7 +1469,6 @@ void BPatch_flowGraph::createEdges()
         unsigned numTargs = source->targets.size();
 
         // create edges
-        image *img = mod->exec();
         const unsigned char *relocp;
 
         Address lastinsnaddr = source->getRelLast();
@@ -1547,20 +1477,7 @@ void BPatch_flowGraph::createEdges()
 	  continue;
 	}
 	else {
-#if !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) \
- && !defined(i386_unknown_solaris2_5) \
- && !defined(i386_unknown_nt4_0)           
-           // getPtrToInstruction assumes it is passed a relative address,
-           // so need to subtract image base addr
-           Address imgBaseAddr = 0;
-           if (!proc->getBaseAddress(img, imgBaseAddr)) {
-              bperr("getBaseAddress error start\n");
-              abort();
-           }
-           lastinsnaddr -= imgBaseAddr;
-#endif
-           relocp = img->getPtrToInstruction((unsigned long)lastinsnaddr);
+            relocp = (unsigned char *)(ll_proc()->getPtrToOrigInstruction((unsigned long)lastinsnaddr));
         }
 
         if (numTargs == 1) {
@@ -1890,6 +1807,7 @@ void bsort_loops_addr_asc(BPatch_Vector<BPatch_loop*> &v)
             }
 }
 
+
 void 
 dfsCreateLoopHierarchy(BPatch_loopTreeNode * parent,
 		       BPatch_Vector<BPatch_loop *> &loops, 
@@ -1930,15 +1848,13 @@ BPatch_flowGraph::createLoopHierarchy()
 
     dfsCreateLoopHierarchy(loopRoot, outerLoops, "");
 
-    const pdvector<instPoint*> &instPs = func->funcCalls(proc);
+    const pdvector<instPoint*> &instPs = ll_func()->funcCalls();
 
     for (unsigned i = 0; i < instPs.size(); i++) {
-	int_function *f;
-
-	bool found = proc->findCallee(*(instPs[i]), f);
-
-	if (found && f != NULL) 
-	    insertCalleeIntoLoopHierarchy(f, instPs[i]->pointAddr());
+	int_function *f = instPs[i]->findCallee();
+        
+	if (f != NULL) 
+	    insertCalleeIntoLoopHierarchy(f, instPs[i]->addr());
 // 	else 
 // 	    fprintf(stderr, "BPatch_flowGraph::createLoopHierarchy "
 //                     "couldn't find callee by inst point.\n");
@@ -2007,7 +1923,7 @@ BPatch_flowGraph::dfsPrintLoops(BPatch_loopTreeNode *n) {
       //    pdpair<u_short, u_short> mm = getLoopMinMaxSourceLines(n->loop);
       //  printf("%s (source %d-%d)\n", n->name(), mm.first, mm.second);
         
-      printf("%s %s\n", n->name(),func->prettyName().c_str());
+      printf("%s %s\n", n->name(),ll_func()->prettyName().c_str());
   }
 
   for (unsigned i = 0; i < n->children.size(); i++) {
@@ -2038,19 +1954,15 @@ BPatch_flowGraph::dump()
 
 }
 
-BPatch_process *BPatch_flowGraph::getBProc()
-{
-   bool process_exists;
-   if (!bproc)
-   {
-      bproc = BPatch::bpatch->getProcessByPid(proc->getPid(), &process_exists);
-      assert(process_exists);
-   }
-   return bproc;
-}
-
-
 bool BPatch_flowGraph::containsDynamicCallsitesInt()
 {
-   return (func->getNumDynamicCalls(proc) > 0);
+   return (ll_func()->getNumDynamicCalls() > 0);
+}
+
+process *BPatch_flowGraph::ll_proc() const { 
+    return bproc->lowlevel_process();
+}
+
+int_function *BPatch_flowGraph::ll_func() const {
+    return func_->lowlevel_func();
 }

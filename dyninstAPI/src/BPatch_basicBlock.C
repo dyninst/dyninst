@@ -295,12 +295,29 @@ BPatch_basicBlock::BPatch_basicBlock() :
         startAddress(0),
         lastInsnAddress(0),
         endAddr(0), 						       
-		immediateDominates(NULL),
-		immediateDominator(NULL),
-		immediatePostDominates(NULL),
-		immediatePostDominator(NULL),
-		sourceBlocks(NULL),
-		instructions(NULL) {}
+        immediateDominates(NULL),
+        immediateDominator(NULL),
+        immediatePostDominates(NULL),
+        immediatePostDominator(NULL),
+        sourceBlocks(NULL),
+        instructions(NULL) {}
+
+// Specialization constructor
+BPatch_basicBlock::BPatch_basicBlock(const int_basicBlock *ib) :
+    flowGraph(NULL),
+    blockNumber(ib->id()),
+    isEntryBasicBlock(ib->isEntryBlock()),
+    isExitBasicBlock(ib->isExitBlock()),
+    startAddress(ib->firstInsnAddr()),
+    lastInsnAddress(ib->lastInsnAddr()),
+    endAddr(ib->endAddr()), 						       
+    immediateDominates(NULL),
+    immediateDominator(NULL),
+    immediatePostDominates(NULL),
+    immediatePostDominator(NULL),
+    sourceBlocks(NULL),
+    instructions(NULL)
+{}
 
 //The argument is a block number.
 //there is no limitation that two blocks can have 
@@ -398,51 +415,48 @@ bool BPatch_basicBlock::initRegisterGenKillInt()
        registers for power) */
     if (ii.isACallInstruction())
       {
-	Address callAddress = ii.getBranchTargetAddress(ii.getCurrentAddress());
+          Address callAddress = ii.getBranchTargetAddress();
 	//printf("Call Address is 0x%x \n",callAddress);
 
-	process *proc = flowGraph->getProcess();
-	int_function * funcc;
-
-	codeRange * range = proc->findCodeRangeByAddress(callAddress);
-
-	if (range)
-	  {
-	    funcc = range->is_function();
-	    if (funcc)
-	      {
-		pdmodule * mod = funcc->pdmod();
-		InstrucIter ah(funcc, proc, mod);
-		while (ah.hasMore())
-		  {
-		    InstrucIter inst(ah);
-		    
-		    if (inst.isA_RT_ReadInstruction()){
-		      bitarray_set(inst.getRTValue(),gen);
-		    }
-		    if (inst.isA_RA_ReadInstruction()){
-		      bitarray_set(inst.getRAValue(),gen);
-		    }
-		    if (inst.isA_RB_ReadInstruction()){
-		      bitarray_set(inst.getRBValue(),gen);
-		    }
-		    if (inst.isACallInstruction())
-		      break;
-		    
-		    Address pos = ah++;
-		  }
-	      }
-	    else
-	      {
-		for (int a = 3; a <= 10; a++)
-		  bitarray_set(a,gen);
-	      }
-	  }
-	else
-	  {
-	    for (int a = 3; a <= 10; a++)
-	      bitarray_set(a,gen);
-	  }
+          process *proc = flowGraph->getBProcess()->lowlevel_process();
+          int_function * funcc;
+          
+          codeRange * range = proc->findCodeRangeByAddress(callAddress);
+          
+          if (range)
+              {
+                  funcc = range->is_function();
+                  if (funcc)
+                      {
+                          InstrucIter ah(funcc);
+                          while (ah.hasMore())
+                              {
+                                  if (ah.isA_RT_ReadInstruction()){
+                                      bitarray_set(ah.getRTValue(),gen);
+                                  }
+                                  if (ah.isA_RA_ReadInstruction()){
+                                      bitarray_set(ah.getRAValue(),gen);
+                                  }
+                                  if (ah.isA_RB_ReadInstruction()){
+                                      bitarray_set(ah.getRBValue(),gen);
+                                  }
+                                  if (ah.isACallInstruction())
+                                      break;
+                                  
+                                  Address pos = ah++;
+                              }
+                      }
+                  else
+                      {
+                          for (int a = 3; a <= 10; a++)
+                              bitarray_set(a,gen);
+                      }
+              }
+          else
+              {
+                  for (int a = 3; a <= 10; a++)
+                      bitarray_set(a,gen);
+              }
       } 
     ii++;
   } 
@@ -517,14 +531,14 @@ bool BPatch_basicBlock::printAllInt()
 
 	BPatch_basicBlock** belements = new BPatch_basicBlock*[sources.size()];
 	sources.elements(belements);
-	for(int i=0; i<sources.size(); i++)
+	for(unsigned i=0; i<sources.size(); i++)
 		cout << "\t<- " << belements[i]->blockNumber << "\n";
 	delete[] belements;
 
 	cout << "Succ:\n";
 	belements =  new BPatch_basicBlock*[targets.size()];
 	targets.elements(belements);
-	for(int j=0; j<targets.size(); j++)
+	for(unsigned j=0; j<targets.size(); j++)
 		cout << "\t-> " << belements[j]->blockNumber << "\n";
 	delete[] belements;
 
@@ -532,7 +546,7 @@ bool BPatch_basicBlock::printAllInt()
 	if(immediateDominates){
 		belements = new BPatch_basicBlock*[immediateDominates->size()];
 		immediateDominates->elements(belements);
-		for(int k=0; k<immediateDominates->size(); k++)
+		for(unsigned k=0; k<immediateDominates->size(); k++)
 			cout << belements[k]->blockNumber << " ";
 		delete[] belements;
 	}
@@ -601,18 +615,14 @@ int BPatch_basicBlock::liveRegistersIntoSetInt(int *& liveReg, unsigned long add
       bitarray_copy(&newIn,in);
       
       InstrucIter ii(this);
-      
 
       /* The liveness information from the bitarrays are for the
 	 basic block, we need to do some more gen/kills until
 	 we get to the individual instruction within the 
 	 basic block that we want the liveness info for. */
-
-      /* Change the end address to correspond to the instruction
-	 we are looking at instead the end of the basic block */
-      ii.changeRange(address);
       
-      while(ii.hasMore()) 
+      while(ii.hasMore() &&
+            *ii <= address)
 	{
 	  if (ii.isA_RT_WriteInstruction())
 	    bitarray_set(ii.getRTValue(),&newIn);
@@ -635,6 +645,9 @@ int BPatch_basicBlock::liveRegistersIntoSetInt(int *& liveReg, unsigned long add
 	} 
       //printf("\n");
     }
+
+  // Uhh... what is this supposed to return? -- bernat, JUL05
+  return 0;
 }
 
 #endif 
@@ -931,17 +944,15 @@ ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
  */
 BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(const BPatch_Set<BPatch_opCode>& ops) {
 
-  // function is generally uninstrumentable (with current technology)
-  if (flowGraph->getFunction()->funcEntry(flowGraph->getProcess()) == NULL)
-     return NULL;
-
-  // Use an instruction iterator
-  InstrucIter ii(this);
-  BPatch_function *func = 
-     flowGraph->getBProc()->func_map->get(flowGraph->getFunction());
-  
-  return ::findPoint(ops, ii, flowGraph->getBProcess(), func);
-
+    // function is generally uninstrumentable (with current technology)
+    if (!flowGraph->getBFunction()->func->isInstrumentable())
+        return NULL;
+    
+    // Use an instruction iterator
+    InstrucIter ii(this);
+    BPatch_function *func = flowGraph->getBFunction();
+    
+    return ::findPoint(ops, ii, flowGraph->getBProcess(), func);
 }
 
 /*
@@ -970,44 +981,12 @@ BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructionsInt(void) 
 
 unsigned long BPatch_basicBlock::getStartAddressInt() CONST_EXPORT 
 {
-    Address imgBaseAddr = 0;   
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_nt4_0)
-    
-     //all other platforms have absolute addresses for basic blocks
-     //at this point
-    process *proc = flowGraph->getProcess();
-    image *img = flowGraph->getModule()->exec();
-                                                                               
-     if (!proc->getBaseAddress(img, imgBaseAddr)) {
-        bperr("getBaseAddress error start\n");
-        abort();
-     }
-#endif
-     return startAddress + imgBaseAddr;
+  return startAddress;
 }
 
 unsigned long BPatch_basicBlock::getLastInsnAddressInt() CONST_EXPORT 
 {
-    Address imgBaseAddr = 0;   
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_nt4_0) 
-    
-     //all other platforms have absolute addresses for basic blocks
-     //at this point
-     process *proc = flowGraph->getProcess();
-     image *img = flowGraph->getModule()->exec();
-                                                                               
-     if (!proc->getBaseAddress(img, imgBaseAddr)) {
-        bperr("getBaseAddress error last\n");
-        abort();
-     }
-#endif
-     return lastInsnAddress + imgBaseAddr;
+     return lastInsnAddress;
 }
 
 unsigned BPatch_basicBlock::sizeInt() CONST_EXPORT
