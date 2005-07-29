@@ -383,7 +383,7 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
     return ma;
 
   const instruction i = getInstruction();
-  in = new BPatch_instruction(&i.raw, sizeof(instruction));
+  in = new BPatch_instruction(&i.raw, instruction::size());
 
   return in;
 }
@@ -653,11 +653,11 @@ bool InstrucIter::hasPrev(){
     return false;
 }
 Address InstrucIter::prevAddress(){
-    Address ret = currentAddress-sizeof(instruction);
+    Address ret = currentAddress-instruction::size();
     return ret;
 }
 Address InstrucIter::nextAddress(){
-    Address ret = currentAddress + sizeof(instruction);
+    Address ret = currentAddress + instruction::size();
     return ret;
 }
 void InstrucIter::setCurrentAddress(Address addr){
@@ -670,30 +670,30 @@ instruction InstrucIter::getInstruction(){
 }
 instruction InstrucIter::getNextInstruction(){
     instruction ret;
-    ret.raw = addressImage->get_instruction(currentAddress+sizeof(instruction));
+    ret.raw = addressImage->get_instruction(currentAddress+instruction::size());
     return ret;
 }
 instruction InstrucIter::getPrevInstruction(){
     instruction ret;
-    ret.raw = addressImage->get_instruction(currentAddress-sizeof(instruction));
+    ret.raw = addressImage->get_instruction(currentAddress-instruction::size());
     return ret;
 }
 Address InstrucIter::operator++(){
-    currentAddress += sizeof(instruction);
+    currentAddress += instruction::size();
     return currentAddress;
 }
 Address InstrucIter::operator--(){
-    currentAddress -= sizeof(instruction);
+    currentAddress -= instruction::size();
     return currentAddress;
 }
 Address InstrucIter::operator++(int){
     Address ret = currentAddress;
-    currentAddress += sizeof(instruction);
+    currentAddress += instruction::size();
     return ret;
 }
 Address InstrucIter::operator--(int){
     Address ret = currentAddress;
-    currentAddress -= sizeof(instruction);
+    currentAddress -= instruction::size();
     return ret;
 }
 Address InstrucIter::operator*(){

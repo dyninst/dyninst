@@ -65,11 +65,11 @@ bool InstrucIter::isAReturnInstruction()
 {
   const instruction i = getInstruction();
 
-  if((i.resti.op == 0x2) && (i.resti.op3 == 0x38) &&
-     (i.resti.rd == 0) && (i.resti.i == 0x1) &&
-     ((i.resti.rs1 == 0xf) || (i.resti.rs1 == 0x1f)) &&
-     ((i.resti.simm13 == 8) || (i.resti.simm13 == 12)))
-    return true;
+  if(((*i).resti.op == 0x2) && ((*i).resti.op3 == 0x38) &&
+     ((*i).resti.rd == 0) && ((*i).resti.i == 0x1) &&
+     (((*i).resti.rs1 == 0xf) || ((*i).resti.rs1 == 0x1f)) &&
+     (((*i).resti.simm13 == 8) || ((*i).resti.simm13 == 12)))
+      return true;
   return false;
 }
 
@@ -80,12 +80,12 @@ bool InstrucIter::isAIndirectJumpInstruction()
 {
   const instruction i = getInstruction();
 
-  if((i.resti.op == 0x2) && (i.resti.op3 == 0x38) &&
-     (i.resti.rd == 0) && (i.resti.rs1 != 0xf) && 
-     (i.resti.rs1 != 0x1f))
+  if(((*i).resti.op == 0x2) && ((*i).resti.op3 == 0x38) &&
+     ((*i).resti.rd == 0) && ((*i).resti.rs1 != 0xf) && 
+     ((*i).resti.rs1 != 0x1f))
   {
-	if((!i.resti.i && (i.restix.rs2 == 0)) ||
-	   (i.resti.i && (i.resti.simm13 == 0)))
+      if((!(*i).resti.i && ((*i).restix.rs2 == 0)) ||
+	   ((*i).resti.i && ((*i).resti.simm13 == 0)))
 		return true;
   }
   return false;
@@ -98,9 +98,9 @@ bool InstrucIter::isACondBranchInstruction()
 {
   const instruction i = getInstruction();
 
-  if((i.branch.op == 0) &&
-     (i.branch.op2 == 2 || i.branch.op2 == 6) &&
-     (i.branch.cond != 0) && (i.branch.cond != 8))
+  if(((*i).branch.op == 0) &&
+     ((*i).branch.op2 == 2 || (*i).branch.op2 == 6) &&
+     ((*i).branch.cond != 0) && ((*i).branch.cond != 8))
     return true;
   return false;
 }
@@ -111,9 +111,9 @@ bool InstrucIter::isAJumpInstruction()
 {
   const instruction i = getInstruction();
 
-  if((i.branch.op == 0) &&
-     (i.branch.op2 == 2 || i.branch.op2 == 6) &&
-     (i.branch.cond == 8))
+  if(((*i).branch.op == 0) &&
+     ((*i).branch.op2 == 2 || (*i).branch.op2 == 6) &&
+     ((*i).branch.cond == 8))
     return true;
   return false;
 }
@@ -124,7 +124,7 @@ bool InstrucIter::isACallInstruction()
 {
   const instruction i = getInstruction();
 
-  if(i.call.op == 0x1)
+  if((*i).call.op == 0x1)
     return true;
   return false;
 }
@@ -133,7 +133,7 @@ bool InstrucIter::isAnneal()
 {
   const instruction i = getInstruction();
 
-  if(i.branch.anneal)
+  if((*i).branch.anneal)
     return true;
   return false;
 }
@@ -150,26 +150,26 @@ const unsigned int fishyBytes[] = { 0, 1, 8, 4 };
 
 #define btst(x, bit) ((x) & (1<<(bit)))
 
-#define MK_LDi0(bytes, in, rs1, rs2) (new BPatch_memoryAccess(&in.raw, sizeof(instruction), true, false, (bytes), 0, (rs1), (rs2)))
-#define MK_STi0(bytes, in, rs1, rs2) (new BPatch_memoryAccess(&in.raw, sizeof(instruction), false, true, (bytes), 0, (rs1), (rs2)))
-#define MK_LDi1(bytes, in, rs1, simm13) (new BPatch_memoryAccess(&in.raw, sizeof(instruction), true, false, (bytes), (simm13), (rs1), -1))
-#define MK_STi1(bytes, in, rs1, simm13) (new BPatch_memoryAccess(&in.raw, sizeof(instruction), false, true, (bytes), (simm13), (rs1), -1))
-#define MK_PFi0(in, rs1, rs2, f) (new BPatch_memoryAccess(&in.raw, sizeof(instruction), false, false, true, 0, (rs1), (rs2), \
+#define MK_LDi0(bytes, in, rs1, rs2) (new BPatch_memoryAccess(&(*in).raw, instruction::size(), true, false, (bytes), 0, (rs1), (rs2)))
+#define MK_STi0(bytes, in, rs1, rs2) (new BPatch_memoryAccess(&(*in).raw, instruction::size(), false, true, (bytes), 0, (rs1), (rs2)))
+#define MK_LDi1(bytes, in, rs1, simm13) (new BPatch_memoryAccess(&(*in).raw, instruction::size(), true, false, (bytes), (simm13), (rs1), -1))
+#define MK_STi1(bytes, in, rs1, simm13) (new BPatch_memoryAccess(&(*in).raw, instruction::size(), false, true, (bytes), (simm13), (rs1), -1))
+#define MK_PFi0(in, rs1, rs2, f) (new BPatch_memoryAccess(&(*in).raw, instruction::size(), false, false, true, 0, (rs1), (rs2), \
                                            0, -1, -1, (f)))
-#define MK_PFi1(in, rs1, simm13, f) (new BPatch_memoryAccess(&in.raw, sizeof(instruction), false, false, true, (simm13), (rs1), -1, \
+#define MK_PFi1(in, rs1, simm13, f) (new BPatch_memoryAccess(&(*in).raw, instruction::size(), false, false, true, (simm13), (rs1), -1, \
                                               0, -1, -1, (f)))
 
-#define MK_LD(bytes, in) (in.rest.i ? MK_LDi1(bytes, in, in.resti.rs1, in.resti.simm13) : \
-                                      MK_LDi0(bytes, in, in.rest.rs1, in.rest.rs2))
-#define MK_ST(bytes, in) (in.rest.i ? MK_STi1(bytes, in, in.resti.rs1, in.resti.simm13) : \
-                                      MK_STi0(bytes, in, in.rest.rs1, in.rest.rs2))
+#define MK_LD(bytes, in) ((*in).rest.i ? MK_LDi1(bytes, in, (*in).resti.rs1, (*in).resti.simm13) : \
+                                      MK_LDi0(bytes, in, (*in).rest.rs1, (*in).rest.rs2))
+#define MK_ST(bytes, in) ((*in).rest.i ? MK_STi1(bytes, in, (*in).resti.rs1, (*in).resti.simm13) : \
+                                      MK_STi0(bytes, in, (*in).rest.rs1, (*in).rest.rs2))
 #define MK_MA(bytes, in, load, store) \
-          (in.rest.i ? \
-              new BPatch_memoryAccess(&in.raw, sizeof(instruction), (load), (store), (bytes), in.resti.simm13, in.resti.rs1, -1) \
+          ((*in).rest.i ? \
+              new BPatch_memoryAccess(&(*in).raw, instruction::size(), (load), (store), (bytes), (*in).resti.simm13, (*in).resti.rs1, -1) \
               : \
-              new BPatch_memoryAccess(&in.raw, sizeof(instruction), (load), (store), (bytes), 0, in.rest.rs1, in.rest.rs2))
-#define MK_PF(in) (in.rest.i ? MK_PFi1(in, in.resti.rs1, in.resti.simm13, in.resti.rd) : \
-                               MK_PFi0(in, in.rest.rs1, in.rest.rs2, in.rest.rd))
+              new BPatch_memoryAccess(&(*in).raw, instruction::size(), (load), (store), (bytes), 0, (*in).rest.rs1, (*in).rest.rs2))
+#define MK_PF(in) ((*in).rest.i ? MK_PFi1(in, (*in).resti.rs1, (*in).resti.simm13, (*in).resti.rd) : \
+                               MK_PFi0(in, (*in).rest.rs1, (*in).rest.rs2, (*in).rest.rd))
 
 
 // VG(09/20/01): SPARC V9 decoding after the architecture manual.
@@ -177,17 +177,17 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 {
   const instruction i = getInstruction();
 
-  if(i.rest.op != 0x3) // all memory opcodes have op bits 11
+  if((*i).rest.op != 0x3) // all memory opcodes have op bits 11
     return BPatch_memoryAccess::none;
 
-  unsigned int op3 = i.rest.op3;
+  unsigned int op3 = (*i).rest.op3;
 
   if(btst(op3, 4)) { // bit 4 set means alternate space
-    if(i.rest.i) {
+    if((*i).rest.i) {
       logLine("SPARC: Alternate space instruction using ASI register currently unhandled...");
       return BPatch_memoryAccess::none;
     }
-    else if(i.rest.unused != ASI_PRIMARY) { // unused is actually imm_asi
+    else if((*i).rest.unused != ASI_PRIMARY) { // unused is actually imm_asi
       logLine("SPARC: Alternate space instruction using ASI != PRIMARY currently unhandled...");
       return BPatch_memoryAccess::none;
     }
@@ -209,14 +209,15 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
         // the address should always be a doubleword on V9...
         unsigned int b = btst(op3, 1) ? 8 : 4;
         // VG(12/08/01): CAS(X)A uses rs2 as value not address...
-        return new BPatch_memoryAccess(&i.raw, sizeof(instruction), true, true, b, 0, i.resti.rs1, -1);
+        return new BPatch_memoryAccess(&(*i).raw, instruction::size(), true, 
+                                       true, b, 0, (*i).resti.rs1, -1);
       }
     }
     else { // bit 3 zero (1u0xyz) means fp memory op
       bool isStore = btst(op3, 2); // bit 2 gives L/S
       // bits 0-1 encode #bytes except for state register ops,
       // where the number of bits is given by bit 0 from rd
-      unsigned int b = fpBytes[op3 & 0x3][i.rest.rd & 0x1];
+      unsigned int b = fpBytes[op3 & 0x3][(*i).rest.rd & 0x1];
       return isStore ? MK_ST(b, i) : MK_LD(b, i);
     }
   }
@@ -250,7 +251,7 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
     return ma;
 
   const instruction i = getInstruction();
-  in = new BPatch_instruction(&i.raw, sizeof(instruction));
+  in = new BPatch_instruction(&(*i).raw, instruction::size());
 
   return in;
 }
@@ -258,106 +259,216 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
 /** function which returns the offset of control transfer instructions
   * @param i the instruction value 
   */
-Address InstrucIter::getBranchTargetAddress(Address pos)
+Address InstrucIter::getBranchTargetOffset()
 {
   const instruction i = getInstruction();
 
-  int ret;
-  if(i.branch.op == 0)
-    ret = i.branch.disp22;
-  else if(i.call.op == 0x1)
-    ret = i.call.disp30;
-  ret <<= 2;
-  return (Address)(ret+pos);
+  return i.getOffset();
+}
+
+Address InstrucIter::getBranchTargetAddress() {
+    const instruction i = getInstruction();
+    return i.getTarget(current);
 }
 
 void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
-  while(hasMore()){
-    instruction check = getInstruction();
-    if((check.sethi.op == 0x0) && 
-       (check.sethi.op2 == 0x4) &&
-       (check.sethi.rd != 0x0))
-      {
-        register signed offset = check.sethi.imm22 << 10;
-        check = getNextInstruction();
-        if((check.resti.op == 0x2) &&
-           (check.resti.op3 == 0x2) &&
-           (check.resti.i == 0x1)){
-          register signed lowData = check.resti.simm13 & 0x3ff;
-          offset |= lowData;
-          setCurrentAddress((Address)offset);
-          for(;;){
-            check = getInstruction();
-            if(IS_VALID_INSN(check))
-              break;
-            result += check.raw;
-            (*this)++;
-          }
-          return;
-        }
-      }
-    (*this)--;
-  }
+    Address oldCurrent = current;
+    while(hasMore()){
+        instruction check = getInstruction();
+        if(((*check).sethi.op == 0x0) && 
+           ((*check).sethi.op2 == 0x4) &&
+           ((*check).sethi.rd != 0x0))
+            {
+                register signed offset = (*check).sethi.imm22 << 10;
+                check = getNextInstruction();
+                if(((*check).resti.op == 0x2) &&
+                   ((*check).resti.op3 == 0x2) &&
+                   ((*check).resti.i == 0x1)){
+                    register signed lowData = (*check).resti.simm13 & 0x3ff;
+                    offset |= lowData;
+
+                    while(true) { // Probably should calculate max table size
+                        // as on other platforms.
+                        void *targetPtr = NULL;
+                        
+                        if (img_) {
+                            if (img_->isValidAddress(offset))
+                                targetPtr = img_->getPtrToOrigInstruction(offset);
+                        }
+                        else {
+                            // Process
+                            targetPtr = proc_->getPtrToOrigInstruction(offset);
+                        }
+
+                        if (targetPtr == NULL) break;
+
+                        // This is a horrid way to catch the end of the table;
+                        // however, I don't know enough about SPARC to fix it.
+
+                        unsigned target = *((unsigned *)targetPtr);
+
+                        instruction check(target);
+                        if (check.valid()) {
+                            // Apparently, we've hit the end of the... something.
+                            break;
+                        }
+                        if (target == 0) {
+                            // What?
+                            break;
+                        }
+
+                        result += target;
+                        offset += instruction::size();
+                    }
+
+                    setCurrentAddress(oldCurrent);
+                    return;
+                }
+            }
+        (*this)--;
+    }
+    setCurrentAddress(oldCurrent);
 }
 bool InstrucIter::delayInstructionSupported(){
   return true;
 }
 bool InstrucIter::hasMore(){
-  if((currentAddress < (baseAddress + range )) &&
-     (currentAddress >= baseAddress))
-    return true;
-  return false;
+    if((current < (base + range )) &&
+       (current >= base))
+        return true;
+    return false;
 }
 bool InstrucIter::hasPrev(){
-  if((currentAddress < (baseAddress + range )) &&
-     (currentAddress > baseAddress))
+    if((current < (base + range )) &&
+       (current > base))
     return true;
   return false;
 }
-Address InstrucIter::prevAddress(){
-  Address ret = currentAddress-sizeof(instruction);
-  return ret;
+
+Address InstrucIter::peekPrev() {
+    // What about delay slots?
+    Address ret = current-instruction::size();
+    return ret;
 }
-Address InstrucIter::nextAddress(){
-  Address ret = currentAddress + sizeof(instruction);
-  return ret;
+
+Address InstrucIter::peekNext() {
+    // Delay slot?
+    Address ret = current + instruction::size();
+    return ret;
 }
+
 void InstrucIter::setCurrentAddress(Address addr){
-  currentAddress = addr;
+  current = addr;
 }
+
 instruction InstrucIter::getInstruction(){
-  instruction ret;
-  ret.raw = addressImage->get_instruction(currentAddress);
-  return ret;
+    return insn;
 }
+
 instruction InstrucIter::getNextInstruction(){
-  instruction ret;
-  ret.raw = addressImage->get_instruction(currentAddress+sizeof(instruction));
-  return ret;
+    instruction ret;
+    if (img_)
+        (*ret) = *((instructUnion *)img_->getPtrToOrigInstruction(peekNext()));
+    else {
+        (*ret) = *((instructUnion *)proc_->getPtrToOrigInstruction(peekNext()));
+    }
+    return ret;
 }
 instruction InstrucIter::getPrevInstruction(){
-  instruction ret;
-  ret.raw = addressImage->get_instruction(currentAddress-sizeof(instruction));
-  return ret;
+    instruction ret;
+    if (img_)
+        (*ret) = *((instructUnion *)img_->getPtrToOrigInstruction(peekPrev()));
+    else {
+        (*ret) = *((instructUnion *)proc_->getPtrToOrigInstruction(peekPrev()));
+    }
+    return ret;
 }
+
 Address InstrucIter::operator++(){
-  currentAddress += sizeof(instruction);
-  return currentAddress;
+  current += instruction::size();
+  initializeInsn();
+  return current;
 }
 Address InstrucIter::operator--(){
-  currentAddress -= sizeof(instruction);
-  return currentAddress;
+  current -= instruction::size();
+  initializeInsn();
+  return current;
 }
 Address InstrucIter::operator++(int){
-  Address ret = currentAddress;
-  currentAddress += sizeof(instruction);
+  Address ret = current;
+  current += instruction::size();
+  initializeInsn();
   return ret;
 }
 Address InstrucIter::operator--(int){
-  Address ret = currentAddress;
-  currentAddress -= sizeof(instruction);
+  Address ret = current;
+  current -= instruction::size();
+  initializeInsn();
   return ret;
 }
 Address InstrucIter::operator*(){
-  return currentAddress;
+  return current;
 }
+
+// Check to see if we make a stack frame; in Sparc terms,
+// execute a save instruction
+bool InstrucIter::isStackFramePreamble(int &) {
+    while (!isAReturnInstruction() &&
+           !isACondBranchInstruction() &&
+           !isACallInstruction() &&
+           !isADynamicCallInstruction() &&
+           !isAJumpInstruction() &&
+           insn.valid()) {
+        if (insn.isInsnType(SAVEmask, SAVEmatch)) 
+            return true;
+        (*this)++;
+    }
+    return false;
+}
+
+bool InstrucIter::isADynamicCallInstruction() {
+    instruction i = getInstruction();
+    return i.isInsnType(CALLImask, CALLImatch);
+}
+
+void InstrucIter::getAndSkipDSandAgg(instruction &ds,
+                                     bool &validDS,
+                                     instruction &agg,
+                                     bool &validAgg) {
+    validDS = false;
+    validAgg = false;
+    instruction insn = getInstruction();
+    if (!insn.isDCTI())
+        return;
+    // Get the next two instructions, by address
+    // since we don't know where we are in the bbl.
+    
+    void *dsPtr;
+    void *aggPtr;
+
+    if (proc_) {
+        dsPtr = proc_->getPtrToOrigInstruction(current + instruction::size());
+        aggPtr = proc_->getPtrToOrigInstruction(current + 2*instruction::size());
+    }
+    else {
+        assert(img_); 
+        if (!img_->isValidAddress(current + instruction::size())) {
+            fprintf(stderr, "Error: addr 0x%x is not valid!\n",
+                    img_);
+        }
+        else {
+            dsPtr = img_->getPtrToOrigInstruction(current+instruction::size());
+            aggPtr = img_->getPtrToOrigInstruction(current+2*instruction::size());
+        }            
+    }
+    assert(dsPtr);
+    ds.setInstruction((codeBuf_t *)dsPtr);
+    validDS = true;
+    assert(aggPtr);
+    agg.setInstruction((codeBuf_t *)aggPtr);
+    if (!agg.valid()) {
+        if ((*agg).raw != 0x0)
+            validAgg = true;
+    }
+}
+

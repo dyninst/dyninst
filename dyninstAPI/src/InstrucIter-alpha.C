@@ -65,9 +65,9 @@ bool InstrucIter::isAReturnInstruction()
 {
   const instruction i = getInstruction();
 
-  if((i.mem_jmp.opcode == OP_MEM_BRANCH) && 
-     (i.mem_jmp.ext == MD_RET) &&
-     (i.mem_jmp.ra == 31))
+  if(((*i).mem_jmp.opcode == OP_MEM_BRANCH) && 
+     ((*i).mem_jmp.ext == MD_RET) &&
+     ((*i).mem_jmp.ra == 31))
     return true;
   return false;
 }
@@ -79,9 +79,9 @@ bool InstrucIter::isAIndirectJumpInstruction()
 {
   const instruction i = getInstruction();
 
-  if((i.mem_jmp.opcode == OP_MEM_BRANCH) && 
-     (i.mem_jmp.ext == MD_JMP) &&
-     (i.mem_jmp.ra == 31))
+  if(((*i).mem_jmp.opcode == OP_MEM_BRANCH) && 
+     ((*i).mem_jmp.ext == MD_JMP) &&
+     ((*i).mem_jmp.ra == 31))
     return true;
   return false;
 }
@@ -93,10 +93,10 @@ bool InstrucIter::isACondBranchInstruction()
 {
   const instruction i = getInstruction();
 
-  if((i.branch.opcode == OP_BR) || 
-     (i.branch.opcode == OP_BSR))
+  if(((*i).branch.opcode == OP_BR) || 
+     ((*i).branch.opcode == OP_BSR))
     return false;
-  if((i.branch.opcode & ~0xf) == 0x30)
+  if(((*i).branch.opcode & ~0xf) == 0x30)
     return true;
   return false;
 }
@@ -108,8 +108,8 @@ bool InstrucIter::isAJumpInstruction()
 {
   const instruction i = getInstruction();
 
-  if((i.branch.opcode == OP_BR) &&
-     (i.branch.ra == 31))
+  if(((*i).branch.opcode == OP_BR) &&
+     ((*i).branch.ra == 31))
     return true;
   return false;
 }
@@ -121,9 +121,9 @@ bool InstrucIter::isACallInstruction()
 {
   const instruction i = getInstruction();
 
-  if((i.branch.opcode == OP_BSR) ||
-     ((i.mem_jmp.opcode == OP_MEM_BRANCH) && 
-      (i.mem_jmp.ext == MD_JSR)))
+  if(((*i).branch.opcode == OP_BSR) ||
+     (((*i).mem_jmp.opcode == OP_MEM_BRANCH) && 
+      ((*i).mem_jmp.ext == MD_JSR)))
     return true;
   return false;
 }
@@ -136,12 +136,13 @@ bool InstrucIter::isAnneal()
 /** function which returns the offset of control transfer instructions
   * @param i the instruction value 
   */
-Address InstrucIter::getBranchTargetAddress(Address pos)
+Address InstrucIter::getBranchTargetAddress()
 {
+  Address pos = current;
   const instruction i = getInstruction();
 
-  pos += sizeof(instruction);
-  int offset = i.branch.disp << 2;
+  pos += instruction::size();
+  int offset = (*i).branch.disp << 2;
   return (Address)(pos + offset);
 }
 
@@ -164,7 +165,7 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
     return ma;
 
   const instruction i = getInstruction();
-  in = new BPatch_instruction(&i.raw, sizeof(instruction));
+  in = new BPatch_instruction(&(*i).raw, instruction::size());
 
   return in;
 }
@@ -175,7 +176,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
     Address jumpTableLoc = 0;
     Address jumpTableOffset = 0;
     bool jumpTableIndirect;
-    Address initialAddress = currentAddress - INSN_SIZE;
+    Address initialAddress = current - instruction::size();
 
     //
     // Search Backwards for an LDQ LDL or LDAH LDL instruction pair.
@@ -185,15 +186,15 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
     (*this)--;
     while (hasMore()) {
 	check = getInstruction();
-	if (check.mem.opcode == OP_LDL) {
-	    jumpTableOffset = check.mem.disp;
+	if ((*check).mem.opcode == OP_LDL) {
+	    jumpTableOffset = (*check).mem.disp;
 	    (*this)--;
 	    (*this)--;
 	    check = getInstruction();
-	    if ((check.mem.opcode == OP_LDQ || check.mem.opcode == OP_LDAH) &&
-		check.mem.rb == 29) {
-		jumpTableIndirect = (check.mem.opcode == OP_LDQ);
-		jumpTableLoc = check.mem.disp;
+	    if (((*check).mem.opcode == OP_LDQ || (*check).mem.opcode == OP_LDAH) &&
+		(*check).mem.rb == 29) {
+		jumpTableIndirect = ((*check).mem.opcode == OP_LDQ);
+		jumpTableLoc = (*check).mem.disp;
 		break;
 	    }
 	}
@@ -211,29 +212,29 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
     unsigned maxSwitch = 0;
     while (hasMore()){
 	check = getInstruction();
-	if (check.branch.opcode == OP_BEQ) {
+	if ((*check).branch.opcode == OP_BEQ) {
 	    (*this)--;
 	    check = getInstruction();
-	    if (check.oper_lit.opcode == OP_CMPULE &&
-		check.oper_lit.function == FC_CMPULE &&
-		check.oper_lit.one == 1) {
-		maxSwitch = check.oper_lit.lit + 1;
+	    if ((*check).oper_lit.opcode == OP_CMPULE &&
+		(*check).oper_lit.function == FC_CMPULE &&
+		(*check).oper_lit.one == 1) {
+		maxSwitch = (*check).oper_lit.lit + 1;
 		break;
 	    }
 
 	    (*this)--;
 	    check = getInstruction();
-	    if (check.oper_lit.opcode == OP_CMPULE &&
-		check.oper_lit.function == FC_CMPULE &&
-		check.oper_lit.one == 1) {
-		maxSwitch = check.oper_lit.lit + 1;
+	    if ((*check).oper_lit.opcode == OP_CMPULE &&
+		(*check).oper_lit.function == FC_CMPULE &&
+		(*check).oper_lit.one == 1) {
+		maxSwitch = (*check).oper_lit.lit + 1;
 		break;
 	    }
 	}
 	(*this)--;
     }
     if (!maxSwitch){
-	result += (initialAddress + INSN_SIZE);
+	result += (initialAddress + instruction::size());
 	return;
     }
 
@@ -244,17 +245,17 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
     Address gpBase;
     while (hasMore()) {
 	check = getInstruction();
-	if (check.mem.opcode == OP_LDAH && check.mem.ra == 29 &&
-	    (check.mem.rb == 27 || check.mem.rb == 26)) {
+	if ((*check).mem.opcode == OP_LDAH && (*check).mem.ra == 29 &&
+	    ((*check).mem.rb == 27 || (*check).mem.rb == 26)) {
 
-	    int disp = check.mem.disp * 0x10000;
-	    gpBase = (check.mem.rb == 26 ? currentAddress : baseAddress);
+	    int disp = (*check).mem.disp * 0x10000;
+	    gpBase = ((*check).mem.rb == 26 ? current : base);
 
 	    (*this)++;
 	    check = getInstruction();
-	    if (check.mem.opcode == OP_LDA &&
-		check.mem.ra == 29 && check.mem.rb == 29) {
-		disp += check.mem.disp;
+	    if ((*check).mem.opcode == OP_LDA &&
+		(*check).mem.ra == 29 && (*check).mem.rb == 29) {
+		disp += (*check).mem.disp;
 		GOT_Value = gpBase + disp;
 	    }
 	    break;
@@ -264,86 +265,148 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
     if (!GOT_Value)
 	return;
 
-    Address jumpTableAddress;
+    Address jumpTableAddress = 0;
     if (jumpTableIndirect) {
 	jumpTableLoc += GOT_Value;
-	addressProc->readTextSpace((const void*)jumpTableLoc,
-				   sizeof(Address),
-				   (const void*)&jumpTableAddress);
+	if (img_) {
+	  void *jumpTablePtr = img_->getPtrToData(jumpTableLoc);
+	  if (jumpTablePtr) {
+	    jumpTableAddress = *((Address *)jumpTableLoc);
+	  }
+	}
+	else {
+	  proc_->readTextSpace((const void*)jumpTableLoc,
+			       sizeof(Address),
+			       (const void*)&jumpTableAddress);
+	}
     } else {
 	jumpTableAddress = (jumpTableLoc * 0x10000) + GOT_Value;
     }
 
-    for (unsigned int i = 0; i < maxSwitch; i++) {
-	int tableEntryValue;
+    if (jumpTableAddress) {
+      for (unsigned int i = 0; i < maxSwitch; i++) {
+	int tableEntryValue = 0;
 	Address tableEntryAddress = jumpTableAddress + jumpTableOffset;
-
-	tableEntryAddress += i * INSN_SIZE;
-	addressProc->readTextSpace((const void*)tableEntryAddress,
-				   INSN_SIZE,
-				   (const void*)&tableEntryValue);
-	result += (Address)(GOT_Value + tableEntryValue) & ~0x3;
+	
+	tableEntryAddress += i * instruction::size();
+	if (img_) {
+	  void *tableEntryPtr = img_->getPtrToData(tableEntryAddress);
+	  if (tableEntryPtr) {
+	    tableEntryValue = *((Address *)jumpTableLoc);
+	  }
+	}
+	else {	  
+	  proc_->readTextSpace((const void*)tableEntryAddress,
+			       instruction::size(),
+			       (const void*)&tableEntryValue);
+	}
+	if (tableEntryValue) 
+	  result += (Address)(GOT_Value + tableEntryValue) & ~0x3;
+      }
     }
 }
+
 bool InstrucIter::delayInstructionSupported(){
 	return false;
 }
 bool InstrucIter::hasMore(){
-	if((currentAddress < (baseAddress + range )) &&
-	   (currentAddress >= baseAddress))
+	if((current < (base + range )) &&
+	   (current >= base))
 		return true;
 	return false;
 }
 bool InstrucIter::hasPrev(){
-    if((currentAddress < (baseAddress + range )) &&
-       (currentAddress > baseAddress))
+    if((current < (base + range )) &&
+       (current > base))
 	return true;
     return false;
 }
-Address InstrucIter::prevAddress(){
-	Address ret = currentAddress-sizeof(instruction);
+Address InstrucIter::peekPrev(){
+	Address ret = current-instruction::size();
 	return ret;
 }
-Address InstrucIter::nextAddress(){
-	Address ret = currentAddress + sizeof(instruction);
+Address InstrucIter::peekNext(){
+	Address ret = current + instruction::size();
 	return ret;
 }
 void InstrucIter::setCurrentAddress(Address addr){
-	currentAddress = addr;
+	current = addr;
+	initializeInsn();
 }
 instruction InstrucIter::getInstruction(){
-	instruction ret;
-	ret.raw = addressImage->get_instruction(currentAddress);
-	return ret;
+  return insn;
 }
 instruction InstrucIter::getNextInstruction(){
-	instruction ret;
-	ret.raw = addressImage->get_instruction(currentAddress+sizeof(instruction));
-	return ret;
+   instruction ret;
+    if (img_)
+        (*ret) = *((instructUnion *)img_->getPtrToOrigInstruction(current + instruction::size()));
+    else {
+        (*ret) = *((instructUnion *)proc_->getPtrToOrigInstruction(current + instruction::size()));
+    }
+    return ret;
 }
 instruction InstrucIter::getPrevInstruction(){
-	instruction ret;
-	ret.raw = addressImage->get_instruction(currentAddress-sizeof(instruction));
-	return ret;
+    instruction ret;
+    if (img_)
+        (*ret) = *((instructUnion *)img_->getPtrToOrigInstruction(current - instruction::size()));
+    else {
+        (*ret) = *((instructUnion *)proc_->getPtrToOrigInstruction(current - instruction::size()));
+    }
+    return ret;
 }
 Address InstrucIter::operator++(){
-	currentAddress += sizeof(instruction);
-	return currentAddress;
+	current += instruction::size();
+	initializeInsn();
+	return current;
 }
 Address InstrucIter::operator--(){
-	currentAddress -= sizeof(instruction);
-	return currentAddress;
+	current -= instruction::size();
+	initializeInsn();
+	return current;
 }
 Address InstrucIter::operator++(int){
-	Address ret = currentAddress;
-	currentAddress += sizeof(instruction);
+	Address ret = current;
+	current += instruction::size();
+	initializeInsn();
 	return ret;
 }
 Address InstrucIter::operator--(int){
-	Address ret = currentAddress;
-	currentAddress -= sizeof(instruction);
+	Address ret = current;
+	current -= instruction::size();
+	initializeInsn();
 	return ret;
 }
 Address InstrucIter::operator*(){
-	return currentAddress;
+	return current;
+}
+
+bool InstrucIter::isStackFramePreamble(int &frameSize) {
+  // We check the entire block. Don't know when it ends,
+  // so go until we hit a jump.
+  frameSize = 0;
+  bool foundStackPreamble = false;
+  while (!isAReturnInstruction() &&
+	 !isACondBranchInstruction() &&
+	 !isACallInstruction() &&
+	 !isADynamicCallInstruction() &&
+	 !isAJumpInstruction() &&
+	 insn.valid()) {
+    if (((*insn).raw & 0xffff0000) == 0x23de0000) {
+      // That's an lda $sp, n($sp) apparently
+      frameSize = -((short) ((*insn).raw & 0xffff));
+      if (frameSize < 0) {
+	// Missed setup, found cleanup
+	frameSize = 0;
+	return false;
+      }
+      else
+	return true;
+    }
+    (*this)++;
+  }
+  return false;
+}
+
+bool InstrucIter::isADynamicCallInstruction() {
+  return insn.isJsr();
 }

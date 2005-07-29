@@ -86,132 +86,87 @@ class InstrucIter;
   * and iteration on the address apce range for instructions
   */
 class InstrucIter {
-friend class BPatch_instruction;
-protected:
+    friend class BPatch_instruction;
+ protected:
+    
+    /* We can iterate either over a process address space or 
+       within a parsed image */
+    // Only one will be true, and that controls all sorts of stuff
+    // Probably worth making two InstrucIter classes, but so much is similar.
+    process *proc_;
+    image *img_;
+    
+    /* Starting address/offset */
+    Address base;
+    
+    /** the range/length of the address space in bytes */
+    unsigned range;
+    
+    /** current address of the address spce which will be used 
+     * to iterate through the address space
+     */
+    Address current;
 
-  /** process of the function and image */
-  process* addressProc;
+    void initializeInsn();
 
-  /** member which hold the image of that will be used to retrive
-   * instruction values, where the address space resides.
-   */
-  image* addressImage;
+    // For iterating backwards over architectures with variable-length
+    // instructions.  When you go forwards, you push the address on;
+    // when you go back, you pop.
 
-  /** the starting point of the address spce */
-  Address baseAddress;
+    typedef struct {
+        Address prevAddr;
+        void *prevPtr;
+    } previous;
 
-  /** the range/length of the address space in bytes */
-  unsigned range;
+    pdvector<previous> prevInsns;
 
-  /** current address of the address spce which will be used 
-   * to iterate through the address space
-   */
-  Address currentAddress;
-public:
-  Address getCurrentAddress() { return currentAddress; };
-
-  /** returns the instruction in the address of handle */
-  instruction getInstruction();
-
-  /** returns the instruction in the next address of handle */
-  instruction getNextInstruction();
-
-  /** returns the instruction in the prev address of handle */
-  instruction getPrevInstruction();
-
-  /** returns the image */
-  image *getImage() { return addressImage; };
-
-  /** changes the range of the block the InstrucIter will look at */
-  void changeRange(Address stopAddress) 
-    { 
-      range = stopAddress - baseAddress;  
-    }
-
-
-  instruction insn;
-  const unsigned char* instPtr;
-
-public:
-  /** static method that returns true if the delay instruction is supported */
-  static bool delayInstructionSupported ();
-
-  /** constructor
-   * @param bpFunction the BPatch_function to iterate over
-   * @param useRelativeAddr whether we shall store absolute or relative address
-   */
-
-  // added useRelativeAddr to baseAddr line
-  InstrucIter(int_function* func, process* proc, pdmodule *mod, 
-	      bool useRelativeAddr = true) :
-      addressProc(proc),
-      addressImage(mod->exec()),
-      baseAddress((Address) ( useRelativeAddr ? (void *)func->get_address()
-                              : (void *)func->getEffectiveAddress(proc) )),
-      range(func->get_size()),
-      currentAddress((Address) (useRelativeAddr ?
-                                (void *)func->get_address() :
-                                (void *)func->getEffectiveAddress(proc)))
-    {
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_nt4_0)
-        instPtr = mod->exec()->getPtrToInstruction( func->get_address() );
-        insn.getNextInstruction( instPtr );
+ public:
+    
+    /** returns the instruction in the address of handle */
+    instruction getInstruction();
+    
+    /** returns the instruction in the next address of handle */
+    instruction getNextInstruction();
+    
+    /** returns the instruction in the prev address of handle */
+    instruction getPrevInstruction();
+    
+    instruction insn;
+    void* instPtr;
+#if defined(arch_ia64)
+    // We need the bundle to iterate correctly
+    IA64_bundle bundle;
 #endif
+    
+ public:
+    /** static method that returns true if the delay instruction is supported */
+    static bool delayInstructionSupported ();
+
+    // Used in parsing -- relative addrs. Goes over the func linearly,
+    // which may be a spectacularly bad idea.
+    InstrucIter (Address start, image_func *func);
+
+    InstrucIter (image_basicBlock *b);
+    
+    /* Iterate over a function... this goes linearly, which is probably a bad idea */
+    InstrucIter(int_function* func);
+    // Sometimes we don't care about basic blocks...
+    InstrucIter (Address start, int_function *func);
+
+
+    InstrucIter(int_basicBlock* b);
         
-    }
-        
-   InstrucIter( CONST_EXPORT BPatch_basicBlock* bpBasicBlock) :
-       addressProc( bpBasicBlock->flowGraph->getProcess()),
-       addressImage( bpBasicBlock->flowGraph->getModule()->exec()),
-       baseAddress( bpBasicBlock->startAddress ),
-       range( bpBasicBlock->size() ),
-       currentAddress(bpBasicBlock->startAddress)
-    {
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_nt4_0)
-        instPtr =addressImage->getPtrToInstruction(bpBasicBlock->startAddress);
-        insn.getNextInstruction( instPtr ); 
-#endif
+    InstrucIter( CONST_EXPORT BPatch_basicBlock* bpBasicBlock);
 
-    }
-
-
-  /** copy constructor
-   * @param ii InstrucIter to copy
-   */
-    InstrucIter(const InstrucIter& ii) :
-        addressProc(ii.addressProc),
-        addressImage(ii.addressImage),
-        baseAddress(ii.baseAddress),
-        range(ii.range),
-        currentAddress(ii.currentAddress)
-    {
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_nt4_0)
-        instPtr = ii.addressImage->getPtrToInstruction( ii.baseAddress );
-        insn.getNextInstruction( instPtr );
-#endif
-    }
-
-    //used by findInstPoints
-    InstrucIter( Address addr, Address base,  image* img, 
-                 bool useRelativeAddr = true ) :
-        addressImage( img ),
-        baseAddress( base ),
-        currentAddress( addr )
-    {
-#if defined(arch_x86) || defined(arch_x86_64)
-        instPtr = img->getPtrToInstruction( addr );
-        insn.getNextInstruction( instPtr );        
-#endif   
-    }
+    /** copy constructor
+     * @param ii InstrucIter to copy
+     */
+    InstrucIter(const InstrucIter& ii);
+    
+    // Generic "address, process" iterator.
+    InstrucIter( Address addr, unsigned size, process *proc);
+    InstrucIter( Address addr, process *proc);
+    
 
   ~InstrucIter() {  }
 
@@ -219,8 +174,8 @@ public:
    * the InstrucIter
    */
   bool containsAddress(Address addr) { 
-    return ((addr >= baseAddress) && 
-            (addr < (baseAddress + range))); 
+      return ((addr >= base) && 
+              (addr < (base + range))); 
   }
 
   /** method that returns the targets of a multi-branch instruction
@@ -232,13 +187,13 @@ public:
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_nt4_0)
-bool getMultipleJumpTargets( pdvector<Address>& result, 
-                             instruction& tableInsn, 
-                             instruction& maxSwitchInsn, 
-                             bool isAddressInJmp );
+  bool getMultipleJumpTargets( pdvector<Address>& result, 
+                               instruction& tableInsn, 
+                               instruction& maxSwitchInsn, 
+                               bool isAddressInJmp );
 #else
-
-void getMultipleJumpTargets( BPatch_Set< Address >& result );
+  
+  void getMultipleJumpTargets( BPatch_Set< Address >& result );
 
 #endif
 
@@ -250,11 +205,11 @@ void getMultipleJumpTargets( BPatch_Set< Address >& result );
    * current one */
   bool hasPrev();
 
-  /** prev address of the content of the address handle */
-  Address prevAddress();
+  /** Peek at the previous address */
+  Address peekPrev();
 
-  /** next address of the content of the address handle */
-  Address nextAddress();
+  /** And the next address */
+  Address peekNext();
 
   /** set the content of the handle to the argument 
    * @param addr the value that handle will be set to
@@ -293,7 +248,8 @@ void getMultipleJumpTargets( BPatch_Set< Address >& result );
   bool isACallInstruction();
   bool isADynamicCallInstruction();
   bool isAnneal();
-  bool isStackFramePreamble();
+  bool isStackFramePreamble(int &frameSize);
+  bool isReturnValueSave();
   bool isFramePush();
   bool isFrameSetup();
   bool isANopInstruction();
@@ -311,8 +267,8 @@ void getMultipleJumpTargets( BPatch_Set< Address >& result );
   
   
 
-  Address getBranchTargetAddress( Address pos );
-  Address getBranchTarget();
+  Address getBranchTargetOffset();
+  Address getBranchTargetAddress();
 
   BPatch_memoryAccess* isLoadOrStore();
   BPatch_instruction* getBPInstruction();
@@ -326,6 +282,18 @@ void getMultipleJumpTargets( BPatch_Set< Address >& result );
   bool isAIndirectJumpInstruction(InstrucIter);
 #else 
   bool isAIndirectJumpInstruction();
+#endif
+
+#if defined(arch_sparc)
+  // Delay slot happiness. Thing is, a jump ends a basic block (especially
+  // since you can branch into the delay slot, and we don't like overlapping
+  // basic blocks). And I want to keep that. But we still need a way to say
+  // "grab me the delay slot insn", which might _not_ be in a basic block
+  // (say, unconditional jump). So I've added two instructions that go by 
+  // address and grab delay slot (and aggregate doohickey)
+
+  void getAndSkipDSandAgg(instruction &ds, bool &validDS,
+                          instruction &agg, bool &validAgg);
 #endif
 
 };

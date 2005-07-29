@@ -58,6 +58,7 @@
 
 #include "BPatch_Set.h"
 
+
 //some more function used to identify the properties of the instruction
 /**  the instruction used to return from the functions
   * @param i the instruction value 
@@ -95,7 +96,7 @@ bool InstrucIter::isAIndirectJumpInstruction()
     return false;
 }
 
-bool InstrucIter::isStackFramePreamble()
+bool InstrucIter::isStackFramePreamble(int & /*unused*/)
 {
     return ::isStackFramePreamble( insn );
 }
@@ -142,7 +143,7 @@ bool InstrucIter::isACondBranchInstruction()
  */
 bool InstrucIter::isAJumpInstruction()
 {
-    insn.getNextInstruction( instPtr );
+    insn.setInstruction( (unsigned char *)instPtr );
     if((insn.type() & IS_JUMP) &&
        !(insn.type() & INDIR) && 
        !(insn.type() & PTR_WX))
@@ -176,14 +177,15 @@ bool InstrucIter::isAnneal()
 /** function which returns the offset of control transfer instructions
  * @param i the instruction value 
   */
-Address InstrucIter::getBranchTargetAddress( Address pos )
+Address InstrucIter::getBranchTargetOffset()
 {
-    return insn.getTarget( currentAddress );
+    // getTarget returns displacement+address parameter
+    return insn.getTarget(0);
 }
 
-Address InstrucIter::getBranchTarget()
+Address InstrucIter::getBranchTargetAddress()
 {
-    return insn.getTarget( currentAddress );
+    return insn.getTarget(current);
 }
 
 void initOpCodeInfo()
@@ -341,10 +343,15 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
 bool InstrucIter::getMultipleJumpTargets(pdvector<Address>& result,
 					 instruction& tableInsn, 
 					 instruction& maxSwitchInsn,
-                     bool isAddressInJmp )
+                                         bool isAddressInJmp )
 { 
-    int addrWidth = addressImage->getObject().getAddressWidth();
-    Address backupAddress = currentAddress;
+    int addrWidth;
+    if (proc_)
+        addrWidth = proc_->getAddressWidth();
+    else 
+        addrWidth = img_->getAddressWidth();
+
+    Address backupAddress = current;
     bool isWordAddr,isWordOp;
     
     unsigned maxSwitch = 0;
@@ -443,15 +450,22 @@ bool InstrucIter::getMultipleJumpTargets(pdvector<Address>& result,
     {
         Address tableEntry = jumpTable + (i * addrWidth);
         int jumpAddress = 0;
-        if( addressImage->isValidAddress( tableEntry ) )
-        {
-	    if (addrWidth == sizeof(Address))
-		jumpAddress = *(const Address *)addressImage->getPtrToInstruction(tableEntry);
-	    else
-		jumpAddress = *(const int *)addressImage->getPtrToInstruction(tableEntry);
-
-            result.push_back( jumpAddress );
+        if( proc_ &&
+            proc_->isValidAddress( tableEntry ) ) {
+            if (addrWidth == sizeof(Address))
+                jumpAddress = *(const Address *)proc_->getPtrToOrigInstruction(tableEntry);
+            else
+                jumpAddress = *(const int *)proc_->getPtrToOrigInstruction(tableEntry);
         }
+        else if (img_ &&
+                 img_->isValidAddress(tableEntry)) {
+            if (addrWidth == sizeof(Address))
+                jumpAddress = *(const Address *)img_->getPtrToOrigInstruction(tableEntry);
+            else
+                jumpAddress = *(const int *)img_->getPtrToOrigInstruction(tableEntry);
+        }
+        if (jumpAddress)
+            result.push_back(jumpAddress);
     }
     return true;
 }
@@ -463,42 +477,67 @@ bool InstrucIter::delayInstructionSupported()
 
 bool InstrucIter::hasMore()
 {
-    if((currentAddress < (baseAddress + range )) &&
-       (currentAddress >= baseAddress))
+    if((current < (base + range )) &&
+       (current >= base))
         return true;
     return false;
 }
 
 bool InstrucIter::hasPrev()
 {
-    if( currentAddress <= baseAddress )
+    if( current <= base )
         return false;
-    
+
+    if (prevInsns.size() == 0) {
+        // Effectively...
+        return false;
+    }
+
     return true;
 }
 
-Address InstrucIter::prevAddress()
+Address InstrucIter::peekPrev()
 {
-    //incorrect, unnecessary
-    Address i = currentAddress - 1;
-    //		break;
-    return i;
+    if (prevInsns.size()) {
+        return prevInsns.back().prevAddr;
+    }
+    else 
+        return 0;
 }
 
-Address InstrucIter::nextAddress()
-{
-    instPtr += insn.size();
-    currentAddress += insn.size();
-    insn.getNextInstruction( instPtr );
-    
-    return currentAddress;
+Address InstrucIter::peekNext() {
+    Address tmp = current;
+    tmp += insn.size();
+    return tmp;
 }
-
 
 void InstrucIter::setCurrentAddress(Address addr)
 {
-    //don't need this on x86
-    currentAddress = addr;
+    // Make sure the new addr is aligned
+    // This is unsafe if we're looking at anything more than a basic block;
+    // best-effort.
+
+    if (current < addr) {
+        while (current != addr) {
+            if (current > addr) {
+                // We missed; oops.
+                current = addr;
+                break;
+            }
+            assert(current < addr);
+            (*this)++;
+        }
+    }
+    else if (current > addr) {
+        while (current != addr) {
+            if (current < addr) {
+                current = addr;
+                break;
+            }
+            (*this)--;
+        }
+    }
+    initializeInsn();
 }
 
 #if defined(i386_unknown_linux2_0) \
@@ -518,46 +557,67 @@ instruction InstrucIter::getInstruction()
 instruction InstrucIter::getNextInstruction()
 {
     instruction next_insn;
-    next_insn.getNextInstruction( insn.ptr() + insn.size() );
+    next_insn.setInstruction( insn.ptr() + insn.size() );
     
     return next_insn;
 }
 
 instruction InstrucIter::getPrevInstruction()
 {
-    //incorrect, unnecessary
-    return insn;
+    instruction prev_insn;
+    prev_insn.setInstruction((unsigned char *) prevInsns.back().prevPtr);
+
+    return prev_insn;
 }    
 
+// Prefix...
 Address InstrucIter::operator++()
 {
-    currentAddress = nextAddress();
-    return currentAddress;
+    previous prev;
+    prev.prevAddr = current;
+    prev.prevPtr = instPtr;
+    prevInsns.push_back(prev);
+
+    Address tmp = (Address) instPtr;
+    tmp += insn.size();
+    instPtr = (void *) tmp;
+    current += insn.size();
+    insn.setInstruction( (unsigned char *) instPtr );
+    
+    return current;
 }
 
+// Prefix...
 Address InstrucIter::operator--()
 {
-    //incorrect, unecessary
-    currentAddress = prevAddress();
-    return currentAddress;
+    if (prevInsns.size()) {
+        instPtr = prevInsns.back().prevPtr;
+        current = prevInsns.back().prevAddr;
+        insn.setInstruction((unsigned char *) instPtr);
+        prevInsns.pop_back();
+        return current;
+    }
+    else 
+        return 0;
 }
 
+// Postfix...
 Address InstrucIter::operator++(int)
 {
-    Address ret = currentAddress;
-    currentAddress = nextAddress();
+    Address ret = current;
+    ++(*this);
     return ret;
 }
 
+// Postfix...
 Address InstrucIter::operator--(int)
 {
-    //incorrect, unnecessary
-    Address ret = currentAddress;
-    currentAddress = prevAddress();
+    Address ret = current;
+    --(*this);
     return ret;
 }
 
 Address InstrucIter::operator*()
 {
-    return currentAddress;
+    return current;
 }
