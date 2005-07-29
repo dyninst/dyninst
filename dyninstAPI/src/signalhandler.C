@@ -79,3 +79,6 @@ pdvector <procevent *> signalHandler::handleProcessEvents(pdvector<procevent *> 
 }
 
 
+signal_handler_location::signal_handler_location(Address addr, unsigned size) :
+    addr_(addr),
+    size_(size) {}

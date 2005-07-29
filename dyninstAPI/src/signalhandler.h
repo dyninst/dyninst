@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.12 2005/02/25 07:04:47 jaw Exp $
+/* $Id: signalhandler.h,v 1.13 2005/07/29 19:19:43 bernat Exp $
  */
 
 /*
@@ -58,6 +58,8 @@
 #else
 #include "dyninstAPI/src/signalhandler-unix.h"
 #endif
+
+#include "codeRange.h"
 
 class process;
 class dyn_lwp;
@@ -96,6 +98,16 @@ class signalHandler {
    // Returns events it doesn't know what to do with
    pdvector <procevent *> handleProcessEvents(pdvector<procevent *> &foundEvents);
    int handleProcessEvent(const procevent &event);
+};
+
+class signal_handler_location : public codeRange {
+ public:
+    signal_handler_location(Address addr, unsigned size);
+    Address get_address_cr() const { return addr_; }
+    unsigned get_size_cr() const { return size_; }
+ private:
+    Address addr_;
+    unsigned size_;
 };
 
 extern signalHandler *global_sh;
