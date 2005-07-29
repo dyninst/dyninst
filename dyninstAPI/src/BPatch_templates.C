@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_templates.C,v 1.33 2005/04/18 20:55:31 legendre Exp $
+// $Id: BPatch_templates.C,v 1.34 2005/07/29 19:17:44 bernat Exp $
 
 #include <sys/types.h>
 
@@ -91,9 +91,10 @@ class BPatch_type;
 class BPatch_variableExpr;
 class BPatch_localVar;
 class BPatch_sourceObj;
-class miniTrampHandle;
 class BPatch_loopTreeNode;
 class int_function;
+class miniTramp;
+class instPoint;
 
 /* only define the ones not defined with a vector inside  */
 template class BPatch_Vector<BPatch_point *>;
@@ -109,11 +110,11 @@ template class BPatch_Vector<char *>;
 template class BPatch_Vector<BPatch_sourceObj *>;
 template class BPatch_Vector<BPatch_loopTreeNode *>;
 template class BPatch_Vector<int_function *>;
+template class BPatch_Vector<miniTramp *>;
 
 //#ifndef USE_STL_VECTOR
 template class BPatch_Vector<BPatch_localVar *>;
 template class BPatch_Vector<BPatch_field *>;
-template class BPatch_Vector<miniTrampHandle *>;
 template class BPatch_Vector<int>;
 template class BPatch_Vector<unsigned long>;
 //#endif
@@ -126,7 +127,7 @@ template class BPatch_Vector<unsigned short>;
 template struct comparison<int>;
 template class BPatch_Set<int>;
 template class BPatch_Set<BPatch_opCode>;
-template class BPatch_Set< int_function* , funcCmp >;
+template class BPatch_Set< int_function* , int_function::cmpAddr >;
 
 
 class BPatch_basicBlock;
@@ -141,6 +142,7 @@ template class BPatch_Vector<BPatch_cblock*>;
 
 template struct comparison<BPatch_basicBlock*>;
 template class BPatch_Set<BPatch_basicBlock*>;
+template class BPatch_Set<BPatch_basicBlock*, BPatch_basicBlock::compare>; 
 template struct comparison<BPatch_basicBlockLoop*>;
 template class BPatch_Set<BPatch_basicBlockLoop*>;
 

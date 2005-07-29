@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.68 2005/06/08 20:58:56 tlmiller Exp $
+// $Id: BPatch_snippet.C,v 1.69 2005/07/29 19:17:43 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -52,6 +52,7 @@
 #include "BPatch.h"
 #include "BPatch_snippet.h"
 #include "BPatch_type.h"
+#include "BPatch_function.h"
 #include "BPatch_typePrivate.h"
 #include "BPatch_collections.h"
 #include "BPatch_Vector.h"
@@ -285,7 +286,7 @@ void BPatch_arithExpr::BPatch_arithExprBin(BPatch_binOp op,
 {
     assert(BPatch::bpatch != NULL);
 
-    opCode astOp;
+    opCode astOp = undefOp; // Quiet the compiler
     switch(op) {
       case BPatch_assign:
         astOp = storeOp;
@@ -669,27 +670,11 @@ void BPatch_funcCallExpr::BPatch_funcCallExprInt(
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 
 	process *proc = func.getProc()->llproc;
-	if( proc->collectSaveWorldData && ((BPatch_function &)func).isSharedLib()){
-		//we are calling a function in a shared lib
-		//mark that shared lib as dirtyCalled()
-		char filename[4096];
-
-		BPatch_function &funcNC = const_cast<BPatch_function&> (func); 
-		funcNC.getModule()->getName(filename, 4096);
-
-		pdvector<shared_object *> *sharedObjects = proc->sharedObjects();
-
-		bool done = false;
-		for(unsigned int i=0;!done && i<sharedObjects->size();i++){
-			pdstring name = (*sharedObjects)[i]->getName();
-
-			if( strstr( name.c_str(), filename)){
-				(*sharedObjects)[i]->setDirtyCalled();
-				done = true;
-			}
-
-		}
-
+	// We can't define isSharedLib as constant everywhere, so strip
+	// the const definition here.
+	BPatch_function &stripFunc = const_cast<BPatch_function &> (func);
+	if( proc->collectSaveWorldData && stripFunc.isSharedLib()){
+	  stripFunc.func->obj()->setDirtyCalled();
 	}
 #endif
 }

@@ -49,6 +49,7 @@
 #include "BPatch_typePrivate.h"
 #include "BPatch_collections.h"
 #include "showerror.h"
+#include "BPatch_function.h"
 #include "BPatch.h"
 
 #ifdef i386_unknown_nt4_0

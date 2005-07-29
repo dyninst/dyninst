@@ -53,13 +53,14 @@
 #include "instPoint.h"
 #include "function.h" // int_function
 #include "codeRange.h"
-#include "func-reloc.h"
+#include "miniTramp.h"
 
 #include "BPatch_libInfo.h"
 #include "BPatch_asyncEventHandler.h"
 #include "BPatch.h"
 #include "BPatch_thread.h"
 #include "LineInformation.h"
+#include "BPatch_function.h"
 
 extern BPatch_eventMailbox *event_mailbox;
 
@@ -694,14 +695,14 @@ BPatch_variableExpr *BPatch_process::getInheritedVariableInt(
 BPatchSnippetHandle *BPatch_process::getInheritedSnippetInt(
                                                             BPatchSnippetHandle &parentSnippet)
 {
-   // a BPatchSnippetHandle has an miniTrampHandle for each point that
+   // a BPatchSnippetHandle has an miniTramp for each point that
    // the instrumentation is inserted at
-   BPatch_Vector<miniTrampHandle *> parent_mtHandles;
+   BPatch_Vector<miniTramp *> parent_mtHandles;
    parentSnippet.getMiniTrampHandles(&parent_mtHandles);
 
    BPatchSnippetHandle *childSnippet = new BPatchSnippetHandle(llproc);
    for(unsigned i=0; i<parent_mtHandles.size(); i++) {
-      miniTrampHandle *childMT = NULL;
+      miniTramp *childMT = NULL;
       if(!getInheritedMiniTramp(parent_mtHandles[i], childMT, llproc))
          return NULL;
       childSnippet->add(childMT);
@@ -720,9 +721,9 @@ BPatchSnippetHandle *BPatch_process::getInheritedSnippetInt(
  * expr		The snippet to insert.
  * point	The point at which to insert it.
  */
-BPatchSnippetHandle *BPatch_process::insertSnippetInt(
-              const BPatch_snippet &expr, BPatch_point &point, 
-              BPatch_snippetOrder order)
+BPatchSnippetHandle *BPatch_process::insertSnippetInt(const BPatch_snippet &expr, 
+						      BPatch_point &point, 
+						      BPatch_snippetOrder order)
 {
    BPatch_callWhen when;
    if (point.getPointType() == BPatch_exit)
@@ -743,13 +744,12 @@ BPatchSnippetHandle *BPatch_process::insertSnippetInt(
  * expr		The snippet to insert.
  * point	The point at which to insert it.
  */
-BPatchSnippetHandle *BPatch_process::insertSnippetWhen(
-               const BPatch_snippet &expr,
-               BPatch_point &point,
-               BPatch_callWhen when,
-               BPatch_snippetOrder order)
+BPatchSnippetHandle *BPatch_process::insertSnippetWhen(const BPatch_snippet &expr,
+						       BPatch_point &point,
+						       BPatch_callWhen when,
+						       BPatch_snippetOrder order)
 {
-   assert(BPatch::bpatch != NULL);
+  assert(BPatch::bpatch != NULL);
 
    // Can't insert code when mutations are not active.
    if (!mutationsActive)
@@ -757,54 +757,16 @@ BPatchSnippetHandle *BPatch_process::insertSnippetWhen(
    
    // code is null (possibly an empy sequence or earlier error)
    if (!expr.ast) return NULL;
-   
-   callWhen _when;
-   callOrder _order;
-   
-   if (when == BPatch_callBefore)
-      _when = callPreInsn;
-   else if (when == BPatch_callAfter)
-      _when = callPostInsn;
-   else
-      return NULL;
-   
-   if (order == BPatch_firstSnippet)
-      _order = orderFirstAtPoint;
-   else if (order == BPatch_lastSnippet)
-      _order = orderLastAtPoint;
-   else
-      return NULL;
 
-   //
-   // Check for valid combinations of BPatch_procedureLocation & call*
-   // 	Right now we don't allow
-   //		BPatch_callBefore + BPatch_exit
-   //		BPatch_callAfter + BPatch_entry
-   //
-   //	These combinations are intended to be used to mark the point that
-   //      is the last, first valid point where the local variables are
-   //      valid.  This is different than the first/last instruction of
-   //      a subroutine which is what the other combinations of BPatch_entry
-   //	    and BPatch_exit refer to.
-   //
-   if (when == BPatch_callBefore && point.getPointType() == BPatch_exit) {
-      BPatch_reportError(BPatchSerious, 113,
-                         "BPatch_callBefore at BPatch_exit not supported yet");
-      return NULL;
-   }
-   if (when == BPatch_callAfter && point.getPointType() == BPatch_entry) {
-      BPatch_reportError(BPatchSerious, 113,
-                         "BPatch_callAfter at BPatch_entry not supported yet");
-      return NULL;
-   }
-
-    if ((point.getPointType() == BPatch_exit)) {
-       //  XXX - Hack! 
-       //  The semantics of pre/post insn at exit are setup for the new
-       //  defintion of using this to control before/after stack creation,
-       //  but the lower levels of dyninst don't know about this yet.
-       _when = callPreInsn;
-    }
+   // Build the internal arguments based on inputs and BPatch_point 
+   // overrides
+   
+   callWhen ipWhen;
+   callOrder ipOrder;
+   
+   if (!point.getInstPointArgs(when, order,
+                               ipWhen, ipOrder))
+       return NULL;
 
    if (BPatch::bpatch->isTypeChecked()) {
       assert(expr.ast);
@@ -814,7 +776,7 @@ BPatchSnippetHandle *BPatch_process::insertSnippetWhen(
    }
    
    BPatchSnippetHandle *handle = new BPatchSnippetHandle(llproc);
-   AstNode *ast = (AstNode *)expr.ast;
+   AstNode *ast = expr.ast;
    instPoint *&ip = (instPoint*&) point.point;
    
    if (point.proc != this) {
@@ -856,7 +818,7 @@ BPatchSnippetHandle *BPatch_process::insertSnippetWhen(
        bb->getAddressRange(startAddr, endAddr);
 
        instPoint * iPo = point.getPoint();
-       Address pA = iPo->pointAddr();
+       Address pA = iPo->addr();
 
        char fName[1023];
        tmpFunc->getMangledName(fName, 1023); fName[1023] = '\0';
@@ -882,18 +844,17 @@ BPatchSnippetHandle *BPatch_process::insertSnippetWhen(
       use_recursive_tramps = true;
 #endif
 
+   // Arguably this should be moved to a BPatch_point method...
+   miniTramp *result  = ip->instrument(ast, ipWhen, ipOrder,
+				       use_recursive_tramps, false, true);
+   if(!result)
+     {
+       return NULL;
+     }
+   handle->add(result);
 
-   miniTrampHandle *mtHandle;
-   loadMiniTramp_result result;
-   result = addInstFunc(llproc, mtHandle, ip, ast, _when, _order, false, 
-                        use_recursive_tramps, true);
-   if(result != success_res) 
-   {
-      delete handle;
-      return NULL;
-   }
-   
-   handle->add(mtHandle);
+   point.recordSnippet(when, order, handle);
+
    return handle;
 }
 
@@ -989,7 +950,7 @@ bool BPatch_process::deleteSnippetInt(BPatchSnippetHandle *handle)
 {   
    if (handle->proc == llproc) {
       for (unsigned int i=0; i < handle->mtHandles.size(); i++)
-         deleteInst(llproc, handle->mtHandles[i]);
+	handle->mtHandles[i]->uninstrument();
       delete handle;
       return true;
    } 
@@ -1325,10 +1286,7 @@ BPatch_function *BPatch_process::findFunctionByAddrInt(void *addr)
    if (!range)
       return NULL;
 
-   if (range->is_relocated_func())
-      func = range->is_relocated_func()->func();
-   else
-      func = range->is_function();
+   func = range->is_function();
     
    if (!func)
       return NULL;
@@ -1441,8 +1399,8 @@ BPatch_function *BPatch_process::findOrCreateBPFunc(int_function* ifunc,
   }
   
   // Find the module that contains the function
-  if (bpmod == NULL && ifunc->pdmod() != NULL) {
-    bpmod = getImage()->findModule(ifunc->pdmod()->fileName().c_str());
+  if (bpmod == NULL && ifunc->mod() != NULL) {
+    bpmod = getImage()->findModule(ifunc->mod()->fileName().c_str());
   }
 
   // findModule has a tendency to make new function objects... so
@@ -1456,24 +1414,20 @@ BPatch_function *BPatch_process::findOrCreateBPFunc(int_function* ifunc,
 }
 
 BPatch_point *BPatch_process::findOrCreateBPPoint(BPatch_function *bpfunc, 
-              instPoint *ip, BPatch_procedureLocation pointType)
+						  instPoint *ip, 
+						  BPatch_procedureLocation pointType)
 {
-   Address addr = ip->pointAddr();
-   if (ip->getOwner() != NULL) {
-      Address baseAddr;
-      if (llproc->getBaseAddress(ip->getOwner(), baseAddr)) {
-         addr += baseAddr;
-      }
-   }
+    assert(ip);
+   if (instp_map->defines(ip)) 
+      return instp_map->get(ip);
 
-   if (instp_map->defines(addr)) 
-      return instp_map->get(addr);
-   
    if (bpfunc == NULL) 
-      bpfunc = findOrCreateBPFunc(ip->pointFunc(), NULL);
-
+       bpfunc = findOrCreateBPFunc(ip->func(), NULL);
+   
    BPatch_point *pt = new BPatch_point(this, bpfunc, ip, pointType);
-   instp_map->add(addr, pt);
+
+   instp_map->add(ip, pt);
+
    return pt;
 }
 
@@ -1521,7 +1475,7 @@ bool BPatch_process::addSharedObjectInt(const char *name,
  *
  * instance	The instance to add.
  */
-void BPatchSnippetHandle::add(miniTrampHandle *pointInstance)
+void BPatchSnippetHandle::add(miniTramp *pointInstance)
 {
    mtHandles.push_back(pointInstance);
 }

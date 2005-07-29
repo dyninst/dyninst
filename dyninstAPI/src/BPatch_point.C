@@ -52,6 +52,7 @@
 #include "BPatch_snippet.h"
 #include "BPatch_type.h"
 #include "BPatch_image.h"
+#include "BPatch_function.h"
 #include "BPatch_collections.h"
 #include "BPatch_asyncEventHandler.h"
 #include "BPatch.h"
@@ -61,16 +62,18 @@
 #include "symtab.h"
 #include "instPoint.h"
 #include "instP.h"
+#include "baseTramp.h"
+#include "miniTramp.h"
 
 /*
- * Private constructor
+ * Private constructor, insn
  */
 BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func, instPoint *_point,
-	     BPatch_procedureLocation _pointType, BPatch_memoryAccess* _ma) :
-  // Note: MIPSPro compiler complains about redefinition of default argument
-  proc(_proc), func(_func), point(_point), pointType(_pointType), memacc(_ma)
+                           BPatch_procedureLocation _pointType, BPatch_memoryAccess* _ma) :
+    // Note: MIPSPro compiler complains about redefinition of default argument
+    proc(_proc), func(_func), point(_point), pointType(_pointType), memacc(_ma),
+    edge_(NULL)
 {
-  point->bppoint = this;
   if (_pointType == BPatch_subroutine)
     dynamic_call_site_flag = 2; // dynamic status unknown
   else
@@ -79,6 +82,85 @@ BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func, instPo
   // doesn't work right. We create an entry point as a set of edge points,
   // but not all edge points are loop points.
   loop = NULL;
+
+  // And check to see if there's already instrumentation there (from a fork, say)
+
+  pdvector<miniTramp *> mts;
+
+  // Preinsn
+  // TODO: this will grab _everything_, including internal instrumentation.
+  // We need a "type" flag on the miniTramp that specifies whether instru is
+  // internal, BPatch-internal (dynamic monitoring), or user-added.
+
+  baseTramp *bt = point->getBaseTramp(callPreInsn);
+  assert(bt);
+  miniTramp *mt = bt->firstMini;
+  while (mt) {
+      if (mt->instP == point)
+          mts.push_back(mt);
+      mt = mt->next;
+  }
+  for(unsigned i=0; i<mts.size(); i++) {
+      BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc->llproc);
+      handle->add(mts[i]);
+      preSnippets.push_back(handle);
+  }
+  // And now post.
+  mts.clear();
+  bt = point->getBaseTramp(callPostInsn);
+  assert(bt);
+  mt = bt->firstMini;
+  while (mt) {
+      if (mt->instP == point)
+          mts.push_back(mt);
+      mt = mt->next;
+  }
+  for(unsigned ii=0; ii<mts.size(); ii++) {
+      BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc->llproc);
+      handle->add(mts[ii]);
+      preSnippets.push_back(handle);
+  }
+}
+
+/*
+ * Private constructor, edge
+ */
+BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func, 
+                           BPatch_edge *_edge, instPoint *_point) :
+    // Note: MIPSPro compiler complains about redefinition of default argument
+    proc(_proc), func(_func), point(_point), pointType(BPatch_locInstruction), memacc(NULL),
+    dynamic_call_site_flag(0), edge_(_edge)
+{
+  // I'd love to have a "loop" constructor, but the code structure
+  // doesn't work right. We create an entry point as a set of edge points,
+  // but not all edge points are loop points.
+  loop = NULL;
+  // We override that later... also, a single edge could be multiple loops. We need
+  // "virtual" points.   
+
+  // And check to see if there's already instrumentation there (from a fork, say)
+
+  pdvector<miniTramp *> mts;
+
+  // Preinsn
+  
+  baseTramp *bt = point->getBaseTramp(callPreInsn);
+  assert(bt);
+  miniTramp *mt = bt->firstMini;
+  while (mt) {
+      if (mt->instP == point)
+          mts.push_back(mt);
+      mt = mt->next;
+  }
+  
+  for(unsigned i=0; i<mts.size(); i++) {
+      BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc->llproc);
+      handle->add(mts[i]);
+      preSnippets.push_back(handle);
+  }
+
+  // No post-insn
+
 }
 
 /*
@@ -156,9 +238,12 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
    
    int_function *_func;
    
-   if (!proc->llproc->findCallee(*point, _func))
-    	return NULL;
-   
+   _func = point->findCallee();
+   if (!_func) {
+       fprintf(stderr, "findCallee failed in getCalledFunction\n");
+       return NULL;
+   }
+
    if (_func != NULL)
       ret = proc->func_map->get(_func);
    else
@@ -174,67 +259,25 @@ const BPatch_memoryAccess *BPatch_point::getMemoryAccessInt()
 
 const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippetsInt() 
 {
-    pdvector<miniTrampHandle *> mt_buf;
+    allSnippets.clear();
 
-    trampTemplate *baseTramp = proc->llproc->baseMap[point];
-
-    if (baseTramp && baseTramp->pre_minitramps) {
-        List<miniTrampHandle *>::iterator preIter = baseTramp->pre_minitramps->get_begin_iter();
-        List<miniTrampHandle *>::iterator preEnd = baseTramp->pre_minitramps->get_end_iter();
-        for (; preIter != preEnd; preIter++) {
-            mt_buf.push_back(*preIter);
-        }
-    }
-    if (baseTramp && baseTramp->post_minitramps) {
-        List<miniTrampHandle *>::iterator postIter = baseTramp->post_minitramps->get_begin_iter();
-        List<miniTrampHandle *>::iterator postEnd = baseTramp->post_minitramps->get_end_iter();
-        for (; postIter != postEnd; postIter++) {
-            mt_buf.push_back(*postIter);
-        }
-    }
+    for (unsigned pre = 0; pre < preSnippets.size(); pre++) 
+        allSnippets.push_back(preSnippets[pre]);
+    for (unsigned post = 0; post < postSnippets.size(); post++) 
+        allSnippets.push_back(postSnippets[post]);
     
-    BPatch_Vector<BPatchSnippetHandle *> snippetVec;
-    
-    for(unsigned i=0; i<mt_buf.size(); i++) {
-        BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc->llproc);
-        handle->add(mt_buf[i]);
-        
-        snippetVec.push_back(handle);
-    }
-    return snippetVec;
+    return allSnippets;
 }
 
 const BPatch_Vector<BPatchSnippetHandle *> 
 BPatch_point::getCurrentSnippetsByWhen(BPatch_callWhen when) 
 {
-    pdvector<miniTrampHandle *> mt_buf;
-
-    trampTemplate *baseTramp = proc->llproc->baseMap[point];
-
-    if(when == BPatch_callBefore) {
-        List<miniTrampHandle *>::iterator preIter = baseTramp->pre_minitramps->get_begin_iter();
-        List<miniTrampHandle *>::iterator preEnd = baseTramp->pre_minitramps->get_end_iter();
-        for (; preIter != preEnd; preIter++) {
-            mt_buf.push_back(*preIter);
-        }
-    } else if(when == BPatch_callAfter) {
-        List<miniTrampHandle *>::iterator postIter = baseTramp->post_minitramps->get_begin_iter();
-        List<miniTrampHandle *>::iterator postEnd = baseTramp->post_minitramps->get_end_iter();
-        for (; postIter != postEnd; postIter++) {
-            mt_buf.push_back(*postIter);
-        }
+    if (when == BPatch_callBefore)
+        return preSnippets;
+    else {
+        assert(when == BPatch_callAfter);
+        return postSnippets;
     }
-
-    BPatch_Vector<BPatchSnippetHandle *> snippetVec;
-    
-    for(unsigned i=0; i<mt_buf.size(); i++) {
-        BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc->llproc);
-        handle->add(mt_buf[i]);
-        
-        snippetVec.push_back(handle);
-    }
-
-    return snippetVec;
 }
 
 /*
@@ -244,7 +287,7 @@ BPatch_point::getCurrentSnippetsByWhen(BPatch_callWhen when)
  */
 void *BPatch_point::getAddressInt()
 {
-    return (void *)point->absPointAddr(proc->llproc);
+    return (void *)point->addr();
 }
 
 
@@ -254,21 +297,12 @@ void *BPatch_point::getAddressInt()
  * Returns true if this point is or would be instrumented with a trap, rather
  * than a jump to the base tramp, false otherwise.  On platforms that do not
  * use traps (everything other than x86), it always returns false;
+ *
  */
 bool BPatch_point::usesTrap_NPInt()
 {
-#if defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_nt4_0) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
-    assert(point);
-    assert(proc);
-    assert(proc->llproc);
-
-    return point->usesTrap(proc->llproc);
-#else
-    return false;
-#endif
+  assert(point);
+  return point->usesTrap();
 }
 
 /*
@@ -288,7 +322,7 @@ bool BPatch_point::isDynamicInt()
     assert(proc->llproc);
     assert(point);
 
-    bool is_dyn = proc->llproc->isDynamicCallSite(point);
+    bool is_dyn = point->isDynamicCall();
     dynamic_call_site_flag = is_dyn ? 1 : 0;
     return is_dyn;
 #else
@@ -331,31 +365,31 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb ) {
   int_function * fb = user_cb->func;
 
   // Monitoring function
-  AstNode * func = new AstNode( fb, args );
-  miniTrampHandle * mtHandle = NULL;
-  addInstFunc(	proc->llproc, mtHandle, point, func, callPreInsn,
-					orderLastAtPoint,
-					true,	/* noCost flag   */
-					false,	/* trampRecursiveDesired flag */
-					true );	/* allowTrap */
-
-  if ( ! mtHandle ) {
+  AstNode * ast = new AstNode( fb, args );
+  miniTramp *res = point->instrument(ast,
+				     callPreInsn,
+				     orderLastAtPoint,
+				     true,
+				     false,
+				     true);
+  
+  if ( ! res ) {
      fprintf( stderr,"%s[%d]:  insertSnippet failed, cannot monitor call site\n",
                __FILE__, __LINE__ );
      return NULL;
   }
 
-  dynamicMonitoringCalls.push_back(mtHandle);
+  dynamicMonitoringCalls.push_back(res);
 
   //  Return pointer to handle as unique id, user does not need to know its a
-  //  miniTrampHandle.
+  //  miniTramp.
 
-  return (void*) mtHandle;
+  return (void*) res;
 } /* end monitorCalls() */
 
 bool BPatch_point::stopMonitoringInt(void * handle)
 {
-  miniTrampHandle *target = NULL, *mtHandle = (miniTrampHandle *) handle;
+  miniTramp *target = NULL, *mtHandle = (miniTramp *) handle;
 
   for (unsigned int i = 0 ; i < dynamicMonitoringCalls.size(); ++i) {
     if (!target) {
@@ -383,7 +417,7 @@ bool BPatch_point::stopMonitoringInt(void * handle)
   }
 
   bool ret;
-  ret = deleteInst(proc->llproc, target);
+  ret = target->uninstrument();
 
   return ret;
 }
@@ -416,3 +450,140 @@ bool BPatch_point::removeDynamicCallCallbackInt(void *handle)
   BPatch_asyncEventHandler *eventHandler = BPatch::bpatch->eventHandler;
   return eventHandler->removeDynamicCallCallback(handle);
 }
+
+/*
+ * BPatch_point::getDisplacedInstructions
+ *
+ * Returns the instructions to be relocated when instrumentation is inserted
+ * at this point.  Returns the number of bytes taken up by these instructions.
+ *
+ * maxSize      The maximum number of bytes of instructions to return.
+ * insns        A pointer to a buffer in which to return the instructions.
+ */
+
+int BPatch_point::getDisplacedInstructionsInt(int maxSize, void* insns)
+{
+    // This is a stupid idea... but there's a test case, so make it happy.
+    // We overwrite the entire basic block... 
+
+    // So, we return the instruction "overwritten". Wrong, but what the heck...
+    const instruction &insn = point->insn();
+    unsigned size = (maxSize < insn.size()) ? maxSize : insn.size();
+    memcpy(insns, (const void *)insn.ptr(), size);
+    return insn.size();
+}
+
+bool BPatch_point::getInstPointArgs(BPatch_callWhen when,
+                                    BPatch_snippetOrder order,
+                                    callWhen &ipWhen,
+                                    callOrder &ipOrder) {
+    // Edge instrumentation: overrides inputs
+    if (edge_) {
+        if (when == BPatch_callAfter) {
+            // Can't do this... there is no "before" or 
+            // "after" for an edge
+            return false;
+        }
+        switch(edge_->type) {
+        case CondJumpTaken:
+        case UncondJump:
+            ipWhen = callBranchTargetInsn;
+            break;
+        case CondJumpNottaken:
+        case NonJump:
+            ipWhen = callPostInsn;
+        default:
+            assert(0);
+        }
+    }
+    else {
+        // Instruction level
+        if (when == BPatch_callBefore)
+            ipWhen = callPreInsn;
+        else if (when == BPatch_callAfter)
+            ipWhen = callPostInsn;
+        else
+            return false;
+    }
+
+    if (order == BPatch_firstSnippet)
+        ipOrder = orderFirstAtPoint;
+    else if (order == BPatch_lastSnippet)
+        ipOrder = orderLastAtPoint;
+    else
+        return false;
+    
+    //
+    // Check for valid combinations of BPatch_procedureLocation & call*
+    // 	Right now we don't allow
+    //		BPatch_callBefore + BPatch_exit
+    //		BPatch_callAfter + BPatch_entry
+    //
+    //	These combinations are intended to be used to mark the point that
+    //      is the last, first valid point where the local variables are
+    //      valid.  This is different than the first/last instruction of
+    //      a subroutine which is what the other combinations of BPatch_entry
+    //	    and BPatch_exit refer to.
+    //
+    if (when == BPatch_callBefore && getPointType() == BPatch_exit) {
+        BPatch_reportError(BPatchSerious, 113,
+                           "BPatch_callBefore at BPatch_exit not supported yet");
+        return false;
+    }
+    if (when == BPatch_callAfter && getPointType() == BPatch_entry) {
+        BPatch_reportError(BPatchSerious, 113,
+                           "BPatch_callAfter at BPatch_entry not supported yet");
+        return false;
+    }
+    
+    if ((getPointType() == BPatch_exit)) {
+        //  XXX - Hack! 
+        //  The semantics of pre/post insn at exit are setup for the new
+        //  defintion of using this to control before/after stack creation,
+        //  but the lower levels of dyninst don't know about this yet.
+        ipWhen = callPreInsn;
+    }
+    
+    return true;
+}
+
+void BPatch_point::recordSnippet(BPatch_callWhen when,
+                                 BPatch_snippetOrder order,
+                                 BPatchSnippetHandle *handle) {
+    if (when == BPatch_callBefore)
+        if (order == BPatch_firstSnippet) {
+            preSnippets.push_front(handle);
+        }
+        else {
+            preSnippets.push_back(handle);
+        }
+    else {
+        if (order == BPatch_firstSnippet) {
+            postSnippets.push_front(handle);
+        }
+        else {
+            postSnippets.push_back(handle);
+        }
+    }        
+
+}
+
+// Create an arbitrary BPatch point
+        BPatch_point *BPatch_point::createInstructionInstPoint(BPatch_process *proc,
+                                                       void *address,
+                                                       BPatch_function *bpf) {
+    // The useful prototype for instPoints:
+    // createArbitraryInstPoint(addr, proc);
+    
+    Address internalAddr = (Address) address;
+    process *internalProc = proc->lowlevel_process();
+
+    instPoint *iPoint = instPoint::createArbitraryInstPoint(internalAddr,
+                                                            internalProc);
+
+    if (!iPoint)
+        return NULL;
+
+    return proc->findOrCreateBPPoint(bpf, iPoint, BPatch_arbitrary);
+}
+                                                            

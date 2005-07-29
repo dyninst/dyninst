@@ -39,16 +39,16 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.127 2005/04/18 20:55:32 legendre Exp $
+// $Id: BPatch_thread.C,v 1.128 2005/07/29 19:17:45 bernat Exp $
 
 #define BPATCH_FILE
 
 #include "BPatch_thread.h"
 #include "BPatch.h"
 #include "process.h"
-#include "trampTemplate.h"
+#include "baseTramp.h"
 #include "instPoint.h"
-#include "dyninstAPI/src/miniTrampHandle.h"
+#include "miniTramp.h"
 
 /*
  * BPatch_thread::getCallStack
@@ -86,19 +86,11 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
         bool isInstrumentation = false;
 
         Frame frame = stackWalks[0][i];
+        fprintf(stderr, "Checking frame %d of %d\n", i, stackWalks[0].size());
+        frame.calcFrameType();
         if (frame.frameType_ != FRAME_unset) {
             isSignalFrame = frame.isSignalFrame();
             isInstrumentation = frame.isInstrumentation();
-        }
-        else {
-            codeRange *range = frame.getRange();
-            if (range) {
-                // Check if we're in a base or minitramp
-                trampTemplate *bt = range->is_basetramp();
-                miniTrampHandle *mt = range->is_minitramp();
-                multitrampTemplate *mtt = range->is_multitramp();
-                if (bt || mt || mtt) isInstrumentation = true;
-            }
         }
 
         stack.push_back(BPatch_frame(this,
@@ -110,19 +102,18 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
             codeRange *range = frame.getRange();
             if (range) {
                 // Get the minitramp -> base tramp -> location
-                trampTemplate *bt = range->is_basetramp();
-                miniTrampHandle *mt = range->is_minitramp();
-                multitrampTemplate *mtt = range->is_multitramp();
-                
+                multiTramp *multi = range->is_multitramp();
+                miniTrampInstance *mti = range->is_minitramp();
+
                 Address ipAddr = 0;                
-                if( !bt && !mt && mtt ) {
-                	ipAddr = mtt->location->absPointAddr(proc->llproc);
-                	}
-                if( !bt && mt )
-                    bt = mt->baseTramp;
-                if( bt ) {
-                    ipAddr = bt->location->absPointAddr(proc->llproc);
-                    }
+                if (mti) {
+                    ipAddr = mti->baseTI->baseT->origInstAddr();
+                }
+                else {
+                    assert(multi);
+                    ipAddr = multi->instToUninstAddr(frame.getPC());
+                }
+
                 if( ipAddr != 0 ) {
                     stack.push_back(BPatch_frame(this,
                                                  (void *)ipAddr,
