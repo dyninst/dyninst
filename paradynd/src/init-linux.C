@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-linux.C,v 1.26 2004/10/19 08:37:45 jaw Exp $
+// $Id: init-linux.C,v 1.27 2005/07/29 19:20:05 bernat Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/init.h"
@@ -53,7 +53,7 @@
 bool initOS() {
    BPatch_snippet *cmdArg;
    
-   if (process::pdFlavor == "mpi") {
+   if (pd_process::pdFlavor == "mpi") {
       instMPI();
    } 
    cmdArg = new BPatch_paramExpr(4);

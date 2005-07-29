@@ -347,7 +347,10 @@ inst_insert_result_t processMetFocusNode::insertInstrumentation() {
        return inst_insert_failure;
    }
 
-   insertJumpsToTramps();
+   pdvector <pdvector <Frame> > stackWalks;
+   proc()->walkStacks(stackWalks);
+
+   insertJumpsToTramps(stackWalks);
    
    // We may need to modify certain pieces of the process state to ensure
    // that instrumentation runs properly. Two known cases:
@@ -361,8 +364,6 @@ inst_insert_result_t processMetFocusNode::insertInstrumentation() {
    //    then everything works.
 
    // We need a stack walk for both this and catchup; take it once.
-   pdvector <pdvector <Frame> > stackWalks;
-   proc()->walkStacks(stackWalks);
 
    doInstrumentationFixup(stackWalks);
 
@@ -726,18 +727,6 @@ pdvector<const instrDataNode*> processMetFocusNode::getFlagDataNodes() const {
   return buff;
 }
 
-bool processMetFocusNode::needToWalkStack() {
-   bool anyNeeded = false;
-
-   pdvector<instrCodeNode *> codeNodes;
-   getAllCodeNodes(&codeNodes);
-
-   for(unsigned i=0; i<codeNodes.size(); i++) {
-      if(codeNodes[i]->needToWalkStack())  anyNeeded = true;
-   }
-   return anyNeeded;
-}
-
 // Patch up the application to make it jump to the base trampoline(s) of this
 // metric.  (The base trampoline and mini-tramps have already been installed
 // in the inferior heap).  We must first check to see if it's safe to install
@@ -758,7 +747,13 @@ bool processMetFocusNode::needToWalkStack() {
 // other threads that are unsafe.  It seems to me that we should be doing
 // this check again when a TRAP arrives...but for each thread (right now,
 // there's no stack walk for other threads).  --ari
-bool processMetFocusNode::insertJumpsToTramps() {
+
+// 11JUN05 - we no longer have a separate "return instance" structure. Instead,
+// each instPoint has a "linkInst" call that is made to link in instrumentation,
+// and the necessary info is stored there. There is also a checkInst call
+// that returns whether it is safe to put in instrumentation.
+
+bool processMetFocusNode::insertJumpsToTramps(pdvector<pdvector<Frame > >&stackWalks) {
    assert(trampsHookedUp() == false);
 
    // pause once for all primitives for this component
@@ -770,14 +765,6 @@ bool processMetFocusNode::insertJumpsToTramps() {
    pdvector<instrCodeNode *> codeNodes;
    getAllCodeNodes(&codeNodes);
    
-   // Vector of stack walks, one per thread
-   pdvector<pdvector<Frame> > stackWalks; 
-
-   if (needToWalkStack()) {
-     proc()->walkStacks(stackWalks);
-     // ndx 0 is where the pc is now; ndx 1 is the call site;
-     // ndx 2 is the call site's call site, etc...
-   }
    // Some platforms overwrite a single instruction, so no need
    // for a stack walk since writing is always safe.
 

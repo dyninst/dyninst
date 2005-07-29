@@ -177,7 +177,7 @@ class processMetFocusNode : public metricFocusNode {
   bool hasBeenCatchuped();
   bool trampsHookedUp();
   bool hasDeferredInstr();
-  bool insertJumpsToTramps();
+  bool insertJumpsToTramps(pdvector<pdvector<Frame > >&stackWalks);
   bool instrInserted() { return instrInserted_; }
   bool instrLoaded();
 
@@ -190,7 +190,7 @@ class processMetFocusNode : public metricFocusNode {
   void prepareForSampling();
   void prepareForSampling(threadMetFocusNode *thrNode);
   void stopSamplingThr(threadMetFocusNode_Val *thrNodeVal);
-  bool needToWalkStack() ;  // const;  , make this const in the future
+  //bool needToWalkStack() ;  // const;  , make this const in the future
 
   timeStamp getStartTime() { return procStartTime; }
 

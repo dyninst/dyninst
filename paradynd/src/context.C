@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.122 2005/06/23 18:27:24 legendre Exp $ */
+/* $Id: context.C,v 1.123 2005/07/29 19:20:04 bernat Exp $ */
 
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_thread.h"
@@ -82,18 +82,19 @@ void createThread(traceThread *fr) {
     assert(fr);
     process *dyn_proc = process::findProcess(fr->ppid);
     
+#if 0
     if(fr->tid == 0) {
         // we see these at times from a multi-threaded forked off child process
         dyn_proc->receivedInvalidThrCreateMsg();
         return;
     }
-    
+#endif    
     dyn_thread *foundThr = dyn_proc->getThread(fr->tid);
     if(foundThr != NULL) {
         // received a duplicate thread create, can happen if rpcs launched on
         // lwps of a MT forked off child process get run on same threads, since
         // lwps changed between threads
-        dyn_proc->receivedInvalidThrCreateMsg();
+        // dyn_proc->receivedInvalidThrCreateMsg();
         return;
     }
     
@@ -134,12 +135,12 @@ void createThread(traceThread *fr) {
    // tell front-end about thread start function for newly created threads
    // We need the module, which could be anywhere (including a library)
    int_function *func = thr->get_start_func();
-   
-   BPatch_process *bproc = proc->get_bprocess();
-   BPatch_function *bpfunc = bproc->get_function(func);
 
-   resource *r = pd_module::getFunctionResource(bpfunc);
-   pdstring res_string = r->full_name();
+   mapped_module *foundMod = func->mod();
+   assert(foundMod != NULL);
+   resource *modRes = foundMod->getResource();
+   pdstring start_func_str = thr->get_start_func()->prettyName();
+   pdstring res_string = modRes->full_name() + "/" + start_func_str;
 
    pd_image *im = proc->getImage();
    pdstring fl = im->get_file();

@@ -47,10 +47,17 @@
 #include "dyninstAPI/h/BPatch_snippet.h"
 #include "dyninstAPI/h/BPatch_thread.h"
 #include "dyninstAPI/src/instP.h" // for mtHandle
+#include "dyninstAPI/src/miniTramp.h"
 
 class instrDataNode;
 class instReqNode;
 class pd_process;
+
+typedef enum { unknown_res,  // Default
+	       failure_res,  // Failed (memory allocation failure)
+	       unlinked_res, // Basetramp failed somehow
+	       success_res }  loadMiniTramp_result;
+
 
 class catchupReq {
  public:
@@ -80,9 +87,12 @@ class instReqNode {
  public:
    instReqNode(BPatch_point *iPoint, BPatch_snippet *iSnip, 
                BPatch_callWhen iWhen, BPatch_snippetOrder o) :
-      point(iPoint), snip(iSnip),
-      when(iWhen), order(o), loadedIntoApp_(false), trampsHookedUp_(false),
-      rinstance(NULL), rpcCount(0), loadInstAttempts(0) 
+       point(iPoint), snip(iSnip),
+       when(iWhen), order(o), 
+       instrAdded_(false),
+       instrGenerated_(false),
+       instrLinked_(false),
+       rpcCount(0), loadInstAttempts(0) 
    {
    }
    
@@ -90,26 +100,36 @@ class instReqNode {
    
    // normal copy constructor, used eg. in vector<instReqNode> expansion
    instReqNode(const instReqNode &par) : 
-      point(par.point), snip(par.snip), when(par.when), 
-      order(par.order), mtHandle(par.mtHandle), 
-      loadedIntoApp_(par.loadedIntoApp_), trampsHookedUp_(par.trampsHookedUp_),
-      rinstance(par.rinstance), rpcCount(par.rpcCount), 
-      loadInstAttempts(par.loadInstAttempts)
+       point(par.point), snip(par.snip), when(par.when), 
+       order(par.order), mtHandle(par.mtHandle), 
+       instrAdded_(par.instrAdded_),
+       instrGenerated_(par.instrGenerated_),
+       instrLinked_(par.instrLinked_),                       
+       rpcCount(par.rpcCount), 
+       loadInstAttempts(par.loadInstAttempts)
    { }
    
    // special copy constructor used for fork handling
    instReqNode(const instReqNode &par, pd_process *childProc);
 
-   bool instrLoaded()    const { return loadedIntoApp_;    }
-   bool trampsHookedUp() const { return trampsHookedUp_;   }
+   bool instrAdded()    const { return instrAdded_; }
+   bool instrGenerated()    const { return instrGenerated_; }
+   bool instrLinked()       const { return instrLinked_; }
 
-   loadMiniTramp_result loadInstrIntoApp(pd_process *theProc, 
-					 returnInstance *&retInstance);
-   void hookupJumps(pd_process *proc);
-   void disable(pd_process *proc);
+   bool addInstr(pd_process *theProc);
+   bool generateInstr();
+   // This is handed down... if we optimized the stack walking
+   // code to realize that we could return the same one
+   // if the stack is walked multiple times, then we'd be cool
+   // with letting the low-level code check for its own stuff.
+   // As it is, this is safer.
+   bool checkInstr(pdvector<pdvector<Frame> > &stackWalks);
+   bool linkInstr();
+
+   void disable();
    timeLength cost(pd_process *theProc) const;
-   returnInstance *getRInstance() const { return rinstance; }
-   void setAffectedDataNodes(miniTrampHandleFreeCallback cb, void *v); 
+   //returnInstance *getRInstance() const { return rinstance; }
+   void setAffectedDataNodes(miniTrampFreeCallback cb, void *v); 
    
    void catchupRPCCallback(void *returnValue);
    
@@ -120,7 +140,7 @@ class instReqNode {
    BPatch_snippet* Snippet()  {return snip;}
    BPatch_callWhen When() {return when;}
    BPatch_snippetOrder Order() { return order; }
-   miniTrampHandle *miniTramp() { return mtHandle; }
+   miniTramp *MiniTramp() { return mtHandle; }
 
  private:
    BPatch_point *point;
@@ -128,12 +148,11 @@ class instReqNode {
    BPatch_callWhen  when;
    BPatch_snippetOrder order;
    
-   miniTrampHandle *mtHandle;
+   miniTramp *mtHandle;
 
-   bool loadedIntoApp_;
-   bool trampsHookedUp_;
-   
-   returnInstance *rinstance;
+   bool instrAdded_;
+   bool instrGenerated_;
+   bool instrLinked_;
    
    // Counts the number of rpcs which have successfully completed for this
    // node.  This is needed because we may need to manually trigger multiple

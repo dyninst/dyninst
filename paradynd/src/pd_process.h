@@ -160,11 +160,19 @@ class pd_process {
    bool created_via_attach;
    BPatch_function *monitorFunc; // func in RT lib used for monitoring call sites
    bool use_loops;
+
+
  public:
    // Paradyn daemon arguments, etc.
    static pdvector<pdstring> arg_list; // the arguments of paradynd
    // Paradyn RT name if set on the command line
    static pdstring defaultParadynRTname;
+
+   // Type of daemon
+   static pdstring pdFlavor;
+
+   // Program name we were started with
+   static pdstring programName;
 
    unsigned numOfActCounters_is;
    unsigned numOfActProcTimers_is;
@@ -330,7 +338,7 @@ class pd_process {
 
    bool catchupSideEffect(Frame &frame, instReqNode *inst) {
       process *llproc = dyninst_process->lowlevel_process();
-      return llproc->instrSideEffect(frame, inst->Point()->PDSEP_instPoint());
+      return inst->Point()->PDSEP_instPoint()->instrSideEffect(frame);
    }
 
    int getTraceLink() {
@@ -516,7 +524,7 @@ class pd_process {
    }
 
    bool wasRunningWhenAttached() { 
-      return dyninst_process->lowlevel_process()->wasRunningWhenAttached();
+       return dyninst_process->lowlevel_process()->wasRunningWhenAttached();
    }
 
    pd_thread *STthread() { 
@@ -571,7 +579,7 @@ class pd_process {
    bool setParadynLibParams(load_cause_t ldcause);
    // And associated callback function
    static void setParadynLibParamsCallback(process *p, pdstring libname, 
-                                           shared_object *libobj, void *data);
+                                           mapped_object *libobj, void *data);
    
    // Handles final initialization
    bool finalizeParadynLib();
@@ -607,6 +615,8 @@ pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir,
                              bool parse_loops);
 pd_process *pd_attachProcess(const pdstring &progpath, int pid,
                              bool parse_loops);
+pd_process *pd_attachToCreatedProcess(const pdstring &progpath, int pid, 
+                                      bool parse_loops);
 
 #endif
 

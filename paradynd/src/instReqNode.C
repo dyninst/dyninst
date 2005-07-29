@@ -56,13 +56,17 @@ const int MAX_INSERTION_ATTEMPTS_USING_RELOCATION = 1000;
 
 //  PDSEP -- Question -- should we be doing a hard (not just pointer) copy of snippet?
 instReqNode::instReqNode(const instReqNode &par, pd_process *childProc) : 
-   point(par.point), snip(par.snip), when(par.when), 
-   order(par.order), loadedIntoApp_(par.loadedIntoApp_), 
-   trampsHookedUp_(par.trampsHookedUp_), 
-   rinstance(par.rinstance), rpcCount(par.rpcCount), 
+   point(par.point), snip(par.snip), 
+   when(par.when), order(par.order),
+   instrAdded_(par.instrAdded_), 
+   instrGenerated_(par.instrGenerated_),
+   instrLinked_(par.instrLinked_),
+   rpcCount(par.rpcCount), 
    loadInstAttempts(par.loadInstAttempts)
 {
-    if(!par.instrLoaded() || !par.trampsHookedUp()) {
+    if(!par.instrAdded() || 
+       !par.instrGenerated() || 
+       !par.instrLinked()) {
         // can't setup the child if the parent isn't setup
         return;
     }
@@ -74,115 +78,134 @@ instReqNode::instReqNode(const instReqNode &par, pd_process *childProc) :
 
 
 // returns false if instr insert was deferred
-loadMiniTramp_result instReqNode::loadInstrIntoApp(pd_process *theProc,
-					      returnInstance *&retInstance) {
-   if(loadedIntoApp_) return success_res;
-      
-   ++loadInstAttempts;
+// Runs generate and install... but not link
+bool instReqNode::addInstr(pd_process *theProc) {
+    if(instrGenerated()) return true;
+    
+    ++loadInstAttempts;
 #if defined(cap_relocation)
-   if(loadInstAttempts == MAX_INSERTION_ATTEMPTS_USING_RELOCATION) {
-      BPatch_function *bpf = const_cast<BPatch_function *>(point->getFunction());
-      int_function *function_not_inserted = bpf->PDSEP_pdf();
-
-      if(function_not_inserted != NULL)
-         function_not_inserted->markAsNeedingRelocation(false);
-   }
+    if(loadInstAttempts == MAX_INSERTION_ATTEMPTS_USING_RELOCATION) {
+        BPatch_function *bpf = const_cast<BPatch_function *>(point->getFunction());
+        int_function *function_not_inserted = bpf->PDSEP_pdf();
+        
+        if(function_not_inserted != NULL)
+            function_not_inserted->markAsNeedingRelocation(false);
+    }
 #endif
-   
-   // NEW: We may manually trigger the instrumentation, via a call to
-   // postRPCtoDo()
-   
-   bool trampRecursiveDesired = false;
-
-   // --------------------------------------------------------------
-   // can remove this once implement MT tramp guards on linux
+    
+    // NEW: We may manually trigger the instrumentation, via a call to
+    // postRPCtoDo()
+    
+    bool trampRecursiveDesired = false;
+    
+    // --------------------------------------------------------------
+    // can remove this once implement MT tramp guards on linux
 #if defined(os_linux)
-   // ignore tramp guards on MT Linux until it is implemented
-   if(theProc->multithread_capable())
-      trampRecursiveDesired = true;
+    // ignore tramp guards on MT Linux until it is implemented
+    if(theProc->multithread_capable())
+        trampRecursiveDesired = true;
 #endif
-   // --------------------------------------------------------------
+    // --------------------------------------------------------------
+    
+    // addInstFunc() is one of the key routines in all paradynd.  It installs a
+    // base tramp at the point (if needed), generates code for the tramp, calls
+    // inferiorMalloc() in the text heap to get space for it, and actually
+    // inserts the instrumentation.
+    
+    //  PDSEP -- eventually need to use insertSnippet here
+    AstNode * l_ast = snip->PDSEP_ast();
+    AstNode * &lr_ast = l_ast;
+    
+    
+    //  PDSEP, these switches will go away....
+    callWhen cw = callPreInsn;
+    callOrder co = orderFirstAtPoint;
+    
+    // OVERRIDE: We say BPatch_callBefore/BPatch_exit; we need
+    // BPatch_callAfter/BPatch_exit. ARGH.
+    // FIXME SOMEWHERE ELSE
+    if ((point->getPointType() == BPatch_exit) &&
+        (when == BPatch_callBefore))
+        when = BPatch_callAfter;
 
-   // addInstFunc() is one of the key routines in all paradynd.  It installs a
-   // base tramp at the point (if needed), generates code for the tramp, calls
-   // inferiorMalloc() in the text heap to get space for it, and actually
-   // inserts the instrumentation.
 
-   //  PDSEP -- eventually need to use insertSnippet here
-   AstNode * l_ast = snip->PDSEP_ast();
-   AstNode * &lr_ast = l_ast;
-
-
-//  PDSEP, these switches will go away....
-   callWhen cw = callPreInsn;
-   callOrder co = orderFirstAtPoint;
-   switch (when) {
-     case BPatch_callBefore: cw = callPreInsn;
-        break;
-     case BPatch_callAfter: cw = callPostInsn;
-        break;
-   }
-   switch (order) {
-     case BPatch_firstSnippet: co = orderFirstAtPoint;
-        break;
-     case BPatch_lastSnippet: co = orderLastAtPoint;
-        break;
-   }
-
-   instPoint *pt = point->PDSEP_instPoint();
-   loadMiniTramp_result res = 
-      loadMiniTramp(mtHandle,
-                    theProc->get_dyn_process()->PDSEP_process(),
-                    pt, lr_ast, cw, co,
-                    false, // false --> don't exclude cost
-                    retInstance,
-                    trampRecursiveDesired,
-                    true);
-   if(theProc->hasExited()) {
-      res = failure_res;
-   }
-   rinstance = retInstance;
-   
-   if(res == success_res) {
-       loadedIntoApp_ = true;
-   }
-   
-
-   return res;
+    if (!point->getInstPointArgs(when, order,
+                                 cw, co)) {
+        return false;
+    }
+    
+    if(theProc->hasExited()) {
+        return false;
+    }
+    
+    instPoint *pt = point->PDSEP_instPoint();
+    
+    miniTramp *mt = pt->addInst(lr_ast,
+                                cw,
+                                co,
+                                trampRecursiveDesired,
+                                false); // noCost
+    
+    if (!mt) {
+        return false;
+    }
+    
+    instrAdded_ = true;
+    
+    return true;
 }
 
-void instReqNode::hookupJumps(pd_process *proc) {
-   if(trampsHookedUp()) 
-      return;
-//  PDSEP, these switches will go away....
-   callOrder co = orderFirstAtPoint;
-   switch (order) {
-     case BPatch_firstSnippet: co = orderFirstAtPoint;
-        break;
-     case BPatch_lastSnippet: co = orderLastAtPoint;
-        break;
-   }
+bool instReqNode::generateInstr() {
+    if(instrGenerated()) 
+        return true;
+    
+    instPoint *pt = point->PDSEP_instPoint();
+    
+    if (!pt->generateInst(false))
+        return false;
+    
+    instrGenerated_ = true;
 
-   hookupMiniTramp(proc->get_dyn_process()->lowlevel_process(), mtHandle,
-                   co);
-   // since we've used it for it's only stated purpose, get rid of it
-   trampsHookedUp_ = true;
+    return true;
 }
 
-void instReqNode::setAffectedDataNodes(miniTrampHandleFreeCallback cb, 
+bool instReqNode::checkInstr(pdvector<pdvector<Frame> > &stackWalks) {
+    if (instrLinked()) return true;
+    
+    instPoint *pt = point->PDSEP_instPoint();
+
+    if (!pt->checkInst(stackWalks))
+        return false;
+
+    return true;
+}
+
+bool instReqNode::linkInstr() {
+    if (instrLinked()) return true;
+    instPoint *pt = point->PDSEP_instPoint();
+    
+    if (!pt->linkInst())
+        return false;
+    instrLinked_ = true;
+    return true;
+}
+
+void instReqNode::setAffectedDataNodes(miniTrampFreeCallback cb, 
                                        void *v) {
-    assert(loadedIntoApp_ == true);
+    assert(instrAdded() == true);
     mtHandle->registerCallback(cb, v);
 }
 
-void instReqNode::disable(pd_process *proc)
+void instReqNode::disable()
 {
   //cerr << "in instReqNode (" << this << ")::disable  loadedIntoApp = "
   //     << loadedIntoApp << ", hookedUp: " << trampsHookedUp_
   //     << ", deleting inst: " << mtHandle.inst << "\n";
   //     << " points to check\n";
-   if(loadedIntoApp_ == true && trampsHookedUp_ == true)
-      deleteInst(proc->get_dyn_process()->lowlevel_process(), mtHandle);
+    if(instrAdded() == true && instrGenerated() == true) {
+        assert(mtHandle);
+        mtHandle->uninstrument();
+    }
 }
 
 instReqNode::~instReqNode()
@@ -196,14 +219,14 @@ timeLength instReqNode::cost(pd_process *theProc) const
   // cost of <stmtA> is currently included, even if it's actually not called.
   // Feel free to change the maxCost call below to ast->minCost or
   // ast->avgCost if the semantics need to be changed.
-   process *llproc = theProc->get_dyn_process()->lowlevel_process();
-  int unitCostInCycles = snip->PDSEP_ast()->maxCost() 
-                       + getPointCost(llproc, point->PDSEP_instPoint()) +
-                        getInsnCost(trampPreamble) + getInsnCost(trampTrailer);
-  timeLength unitCost(unitCostInCycles, getCyclesPerSecond());
-  float frequency = getPointFrequency(point->PDSEP_instPoint());
-  timeLength value = unitCost * frequency;
-  return(value);
+    process *llproc = theProc->get_dyn_process()->lowlevel_process();
+    int unitCostInCycles = snip->PDSEP_ast()->maxCost() 
+        + point->PDSEP_instPoint()->getPointCost() +
+        getInsnCost(trampPreamble) + getInsnCost(trampTrailer);
+    timeLength unitCost(unitCostInCycles, getCyclesPerSecond());
+    float frequency = getPointFrequency(point->PDSEP_instPoint());
+    timeLength value = unitCost * frequency;
+    return(value);
 }
 
 void instReqNode::catchupRPCCallback(void * /*returnValue*/ ) {

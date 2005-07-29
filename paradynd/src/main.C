@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.136 2005/03/14 22:17:54 legendre Exp $
+// $Id: main.C,v 1.137 2005/07/29 19:20:11 bernat Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -496,7 +496,7 @@ main( int argc, char* argv[] )
    //
    // process command line args passed in
    //
-   process::programName = argv[0];
+   pd_process::programName = argv[0];
    bool aflag;
 #ifdef DEBUG
    // Print command line args
@@ -633,7 +633,7 @@ main( int argc, char* argv[] )
    //
     
    
-   process::pdFlavor = pd_flavor;
+   pd_process::pdFlavor = pd_flavor;
 #ifdef PDYN_DEBUG
    cerr << "pd_flavor: " << pd_flavor.c_str() << endl;
 #endif
@@ -784,11 +784,17 @@ StartOrAttach( void )
        p->pause();
 
    } else if (startByCreateAttach) {
-      if (newProcCmdLine.size()){
-         AttachToCreatedProcess(pd_attpid,newProcCmdLine[0]); 
-      } else {
-         AttachToCreatedProcess(pd_attpid,"");
-      }
+       pd_process *p;
+       if (newProcCmdLine.size()){
+           p = pd_attachToCreatedProcess(newProcCmdLine[0], 
+                                         pd_attpid,
+                                         enableLoops);
+       } else {
+           p = pd_attachToCreatedProcess("", 
+                                         pd_attpid,
+                                         enableLoops);
+       }
+       if (!p) return -1;
    }
    
    isInfProcAttached = true;

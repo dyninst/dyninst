@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.179 2005/06/01 21:53:49 legendre Exp $
+// $Id: perfStream.C,v 1.180 2005/07/29 19:20:14 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/timing.h" // getCyclesPerSecond
@@ -255,6 +255,7 @@ extern bool TRACE_BURST_HAS_COMPLETED;
 unsigned mid_hash(const unsigned &mid) {return mid;}
 dictionary_hash<unsigned, unsigned> traceOn(mid_hash);
 
+
 // Read trace data from process proc.
 void processTraceStream(process *dproc)
 {
@@ -399,11 +400,15 @@ void processTraceStream(process *dproc)
          }
          case TR_EXEC_FAILED: 
             { 
-               int pid = *(int *)recordData;
-               pd_process *p = getProcMgr().find_pd_process(pid);
-               p->get_dyn_process()->lowlevel_process()->inExec = false;
-               p->get_dyn_process()->lowlevel_process()->execFilePath =
-                  pdstring("");
+#if 0
+                int pid = *(int *)recordData;
+                pd_process *p = getProcMgr().find_pd_process(pid);
+                p->get_dyn_process()->lowlevel_process()->inExec = false;
+                p->get_dyn_process()->lowlevel_process()->execFilePath =
+                    pdstring("");
+#endif
+                // Shouldn't happen... asserting to be sure
+                assert(0);
             }
             break;
             
@@ -411,13 +416,11 @@ void processTraceStream(process *dproc)
             {
                int_function *caller, *callee;
                resource *caller_res, *callee_res;
-               image *symbols = dproc->getImage();
                callercalleeStruct *c = (struct callercalleeStruct *) 
                   ((void*)recordData);
                
                //cerr << "DYNAMIC trace record received!!, caller = " << hex 
                //   << c->caller << " callee = " << c->callee << dec << endl;
-               assert(symbols);	
                // Have to look in main image and (possibly) in shared objects
                codeRange *range;
                range = dproc->findCodeRangeByAddress(c->caller);
@@ -453,7 +456,7 @@ void processTraceStream(process *dproc)
                  notify the front end.*/
                if (callee_res && caller_res)
                {
-                  tp->AddCallGraphDynamicChildCallback(symbols->file(),
+                  tp->AddCallGraphDynamicChildCallback(dproc->getAOut()->fileName(),
                                                        caller_res->full_name(),
                                                        callee_res->full_name());
                }
@@ -510,6 +513,7 @@ void processTraceStream(process *dproc)
            dproc->bufEnd - dproc->bufStart);
     dproc->bufEnd = dproc->bufEnd - dproc->bufStart;
 }
+
 
 extern pdvector<int> deferredMetricIDs;
 

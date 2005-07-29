@@ -52,9 +52,6 @@
 #include "paradynd/src/pd_module.h"
 
 #include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/func-reloc.h"
-
-#include "dyninstAPI/src/edgeTrampTemplate.h"
 
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/src/inst.h"
@@ -78,6 +75,8 @@ extern void pd_execCallback(pd_process *proc);
 
 pdvector<pdstring> pd_process::arg_list;
 pdstring pd_process::defaultParadynRTname;
+pdstring pd_process::pdFlavor;
+pdstring pd_process::programName;
 
 extern resource *machineResource;
 
@@ -235,6 +234,18 @@ pd_process *pd_attachProcess(const pdstring &progpath, int pid, bool parse_loops
     statusLine(buffer.c_str());
 	
     return proc;
+}
+
+pd_process *pd_attachToCreatedProcess(const pdstring &progpath,
+                                      int pid,
+                                      bool examineLoops) {
+    // This has atrophied and needs to be fixed;
+    // instead of horrible behavior I'm going to have it
+    // break.
+    
+    // We need a Dyninst-level attach to created mechanism...
+
+    return NULL;
 }
 
 void pd_process::init() {
@@ -965,7 +976,7 @@ bool pd_process::finalizeParadynLib() {
 
     // Override tramp guard address
     process *llproc = dyninst_process->lowlevel_process();
-    llproc->setTrampGuardAddr((Address) bs_record.tramp_guard_base);
+    llproc->setTrampGuardBase((Address) bs_record.tramp_guard_base);
 
     // Override thread index address
     llproc->updateThreadIndexAddr((Address) bs_record.thread_index_base);
@@ -1721,6 +1732,10 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
 				    BPatch_point *bpPoint,
 				    BPatch_callWhen when,
 				    BPatch_snippetOrder order) {
+    fprintf(stderr, "WARNING: skipping catchup!\n");
+    return false;
+
+#if 0
   
     // Use a previous lookup if it's there.
     codeRange *range = frame.getRange();
@@ -2025,6 +2040,8 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
        else
           fprintf(stderr, "catchup not needed, ret false\n=======\n");
     }
+#endif
+    bool catchupNeeded = false;
     return catchupNeeded;
 }
 

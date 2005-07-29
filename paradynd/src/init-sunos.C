@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.51 2004/10/07 00:45:58 jaw Exp $ */
+/* $Id: init-sunos.C,v 1.52 2005/07/29 19:20:06 bernat Exp $ */
 
 #include <sys/time.h>
 #include "paradynd/src/internalMetrics.h"
@@ -60,7 +60,7 @@ bool initOS() {
    initialRequestsPARADYN += new pdinstMapping("system", "DYNINSTsystem",
                                                FUNC_ENTRY);
 
-   if (process::pdFlavor == "mpi") {
+   if (pd_process::pdFlavor == "mpi") {
       instMPI();
       retVal = new BPatch_retExpr();
       initialRequestsPARADYN += new pdinstMapping("fork", "DYNINSTmpi_fork", 

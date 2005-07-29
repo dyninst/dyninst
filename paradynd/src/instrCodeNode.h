@@ -70,7 +70,7 @@ class instrCodeNode_Val {
   const pdstring name;  // could be either a metric name or a constraint name
   const Focus focus;
   pdvector<instReqNode *> instRequests;
-  pdvector<returnInstance *> baseTrampInstances;
+  //pdvector<returnInstance *> baseTrampInstances;
   bool trampsNeedHookup_;
 
   // instrCodeNodes (actually instrCodeNode_Vals) can be shared so we want to
@@ -107,16 +107,14 @@ class instrCodeNode_Val {
 
   pdstring getKeyName();
   pdvector<instReqNode*> &getInstRequests() { return instRequests; }
-  pdvector<returnInstance *> &getBaseTrampInstances() { 
-    return baseTrampInstances;
-  }
+
   bool getDontInsertData() const { return dontInsertData_; }
   void incrementRefCount() { referenceCount++; }
   void decrementRefCount() { referenceCount--; }
   int getRefCount() { return referenceCount; }
   void getDataNodes(pdvector<instrDataNode *> *saveBuf);
   void cleanupDataRefNodes();
-  void cleanupMiniTrampHandle(miniTrampHandle *mt);
+  void cleanupMiniTrampHandle(miniTramp *mt);
 
   // Perform partial cleanup when somebody deletes instrCodeNode. We
   // cannot free the memory right away, because of outstanding
@@ -127,7 +125,7 @@ class instrCodeNode_Val {
   void registerCallback(instReqNode *newInstReq);
 
   // A minitramp is being deleted
-  void handleCallback(miniTrampHandle *mt);
+  void handleCallback(miniTramp *mt);
 
   // Check if the node can now be safely deleted -- has no outstanding
   // callbacks and the deletion has already been initiated.
@@ -213,7 +211,7 @@ class instrCodeNode {
   bool trampsNeedHookup() { return V.trampsNeedHookup_; }
   bool needsCatchup() { return V.needsCatchup_; }
 
-  bool needToWalkStack(); // const;
+  //bool needToWalkStack(); // const;
   bool insertJumpsToTramps(pdvector<pdvector<Frame> > &stackWalks);
   void addInst(BPatch_point *point, BPatch_snippet *, 
                BPatch_callWhen when, BPatch_snippetOrder o);
