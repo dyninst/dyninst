@@ -39,9 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: MemoryAccess.C,v 1.5 2004/03/23 19:10:45 eli Exp $ */
+/* $Id: MemoryAccess.C,v 1.6 2005/07/29 19:17:55 bernat Exp $ */
 
-#include <BPatch_memoryAccess_NP.h>
+#include "BPatch_memoryAccess_NP.h"
+#include "BPatch_point.h"
+#include "BPatch_Vector.h"
 
 BPatch_memoryAccess* const BPatch_memoryAccess::none = init_tables();
 
