@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.138 2005/03/17 13:45:30 bernat Exp $
+// $Id: pdwinnt.C,v 1.139 2005/07/29 19:19:04 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -165,8 +165,8 @@ void dumpMem(process *p, void * addr, unsigned nbytes) {
     {
         printf("Function %s, addr=0x%lx, sz=%d\n", 
                 f->prettyName().c_str(),
-                f->getAddress(p),
-                f->get_size());
+                f->getAddress(),
+                f->getSize());
     }
     p->readDataSpace((void *)((unsigned)addr-32), nbytes, buf, true);
     printf("## 0x%lx:\n", (unsigned)addr-32);
@@ -311,8 +311,8 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
        	    // the address of the function itself rather than
        	    // trying to do the much more difficult task of finding
        	    // the original address of the relocated instruction
-       	    patchedAddrReturn.Offset = fp->get_address();
-       	    sf.AddrReturn = patchedAddrReturn;
+              patchedAddrReturn.Offset = fp->getAddress();
+              sf.AddrReturn = patchedAddrReturn;
           }
           
           // retry the stack step
@@ -333,7 +333,7 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
        	    // the address of the function itself rather than
        	    // trying to do the much more difficult task of finding
        	    // the original address of the relocated instruction
-       	    patchedAddrPC.Offset = fp->get_address();
+       	    patchedAddrPC.Offset = fp->getAddress();
        	    sf.AddrPC = patchedAddrPC;
           }
           
@@ -490,30 +490,30 @@ DWORD handleBreakpoint(process *proc, const procevent &event) {
       event.info.u.Exception.ExceptionRecord.ExceptionAddress);
 */
               
-    if (!proc->reachedBootstrapState(bootstrapped)) {
+    if (!proc->reachedBootstrapState(bootstrapped_bs)) {
         // If we're attaching, the OS sends a stream of debug events
         // to the mutator informing it of the status of the process.
         // This finishes with a breakpoint that basically says
         // "We're done, have fun". Check for that here.
         if (proc->wasCreatedViaAttach() &&
-            !proc->reachedBootstrapState(initialized)) {
-            proc->setBootstrapState(initialized);
+            !proc->reachedBootstrapState(initialized_bs)) {
+            proc->setBootstrapState(initialized_bs);
             return DBG_CONTINUE;
         }
         
         // Wait for the process to hit main before we start
         // doing things to it (creation only)
-        if(!proc->reachedBootstrapState(begun)) {
-            proc->setBootstrapState(begun);
+        if(!proc->reachedBootstrapState(begun_bs)) {
+            proc->setBootstrapState(begun_bs);
             proc->insertTrapAtEntryPointOfMain();
             proc->continueProc();
             return DBG_CONTINUE;
         }
     
         // When we hit main, cleanup and set init state
-        if (proc->trapAtEntryPointOfMain(addr)) {
-            proc->handleTrapAtEntryPointOfMain(); // cleanup
-            proc->setBootstrapState(initialized);
+        if (proc->trapAtEntryPointOfMain(NULL, addr)) {
+            proc->handleTrapAtEntryPointOfMain(NULL); // cleanup
+            proc->setBootstrapState(initialized_bs);
             return DBG_CONTINUE;
     }
     
@@ -522,8 +522,8 @@ DWORD handleBreakpoint(process *proc, const procevent &event) {
         if (proc->dyninstlib_brk_addr &&
             (proc->dyninstlib_brk_addr == addr)) {
             proc->dyninstlib_brk_addr = 0;
-            proc->loadDYNINSTlibCleanup();
-            proc->setBootstrapState(loadedRT);
+            proc->loadDYNINSTlibCleanup(NULL);
+            proc->setBootstrapState(loadedRT_bs);
             return DBG_CONTINUE;
         }
     }
@@ -749,7 +749,9 @@ DWORD handleProcessCreate(const procevent &event) {
       proc->threads[0]->update_lwp(rep_lwp);
    }
 
-   
+#if 0
+   // TODO FIXME - this should be stored and rolled into setAOut
+
    if( proc->getImage()->getObject().have_deferred_parsing() )
    {
       fileDescriptor_Win* oldDesc = 
@@ -778,7 +780,7 @@ DWORD handleProcessCreate(const procevent &event) {
       proc->overwriteImage( img );
       
    }
-
+#endif
    proc->continueProc();
 
    return DBG_CONTINUE;
@@ -854,43 +856,30 @@ DWORD handleDllLoad(const procevent &event) {
    
    handleT procHandle = proc->getRepresentativeLWP()->getProcessHandle();
    
-   fileDescriptor* desc =
-      new fileDescriptor_Win(imageName, (HANDLE)procHandle,
-                             (Address)info.u.LoadDll.lpBaseOfDll,
-                             info.u.LoadDll.hFile );
+   fileDescriptor desc(imageName, 
+                       (Address)info.u.LoadDll.lpBaseOfDll,
+                       (HANDLE)procHandle,
+                       info.u.LoadDll.hFile );
    
    // discover structure of new DLL, and incorporate into our
    // list of known DLLs
    if (imageName.length() > 0) {
-      shared_object *so = new shared_object( desc,
-                                             false,
-                                             true,
-                                             true,
-                                             0, 
-					     proc);
-      assert(proc->dyn);
-      if (!proc->shared_objects) {
-         proc->shared_objects = new pdvector<shared_object *>;
-      }
-      (*(proc->shared_objects)).push_back(so);
-      proc->addCodeRange((Address) info.u.LoadDll.lpBaseOfDll,
-                         so);
-      
+       mapped_object *newobj = mapped_object::createMappedObject(desc, proc);
+
 #ifndef BPATCH_LIBRARY
-      tp->resourceBatchMode(true);
+       tp->resourceBatchMode(true);
 #endif 
-      proc->addASharedObject(so,(Address) info.u.LoadDll.lpBaseOfDll); //ccw 20 jun 2002
+       proc->addASharedObject(newobj);
 #ifndef BPATCH_LIBRARY
-      tp->resourceBatchMode(false);
+       tp->resourceBatchMode(false);
 #endif 
-      proc->setDynamicLinking();
         
       char dllFilename[_MAX_FNAME];
       _splitpath(imageName.c_str(),
                  NULL, NULL, dllFilename, NULL);
       
       // See if there is a callback registered for this library
-      proc->runLibraryCallback(pdstring(dllFilename), so);
+      proc->runLibraryCallback(pdstring(dllFilename), newobj);
       
    }
    
@@ -983,7 +972,7 @@ int signalHandler::handleProcessEvent(const procevent &event) {
         ret = handleProcessExitWin(event);
         break;
      case procProcessSelfTermination:
-        ret = handleProcessSelfTermination(event);
+        ret = handleProcessExitWin(event);
         break;
      case procDllLoad:
         
@@ -1078,14 +1067,8 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
         why = procThreadExit;
         break;
      case EXIT_PROCESS_DEBUG_EVENT:
-        if(proc->get_windows_termination_requested()) {
-           why = procProcessSelfTermination;
-           what = 0;
-           proc->set_windows_termination_requested(false);
-        } else {
-           why = procProcessExit;
-           what = info.u.ExitProcess.dwExitCode;
-        }
+         why = procProcessExit;
+         what = info.u.ExitProcess.dwExitCode;
         break;
      case LOAD_DLL_DEBUG_EVENT:
         why = procDllLoad;
@@ -1148,7 +1131,6 @@ bool dyn_lwp::continueLWP_(int /*signalToContinueWith*/) {
  */
 terminateProcStatus_t process::terminateProc_()
 {
-    windows_termination_requested = true;
     OS::osKill(pid);
     return terminateSucceeded;
 }
@@ -1873,11 +1855,6 @@ rawTime64 dyn_lwp::getRawCpuTime_sw()
   return now;
 }
 
-bool process::instrSideEffect(Frame &frame, instPoint *inst)
-{
-  return true;
-}
-
 #endif
 
 #ifdef mips_unknown_ce2_11 //ccw 2 aug 2000 : 29 mar 2001
@@ -1923,11 +1900,16 @@ bool process::heapIsOk(const pdvector<sym_data>&findUs)
 #endif
 
 
-fileDescriptor*
-getExecFileDescriptor(pdstring filename, int& status, bool)
+bool process::getExecFileDescriptor(pdstring filename,
+                                    int,
+                                    bool,
+                                    int &status,
+                                    fileDescriptor &desc)
 {
-    // "status" holds the process handle
-    return new fileDescriptor_Win( filename, (HANDLE)status );
+    // TODO: store the process and file handles in the process class
+    // and reuse them here
+    desc = fileDescriptor(filename, 0, (HANDLE)status, 0);
+    return true;
 }
 
 bool getLWPIDs(pdvector <unsigned> &LWPids)
@@ -2179,35 +2161,38 @@ bool dyn_lwp::realLWP_attach_() {
 }
 
 bool dyn_lwp::representativeLWP_attach_() {
-   if(proc_->createdViaAttach) {
+    if(proc_->wasCreatedViaAttach()) {
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-      if (!BPatch::bpatch->rDevice->RemoteDebugActiveProcess(getPid()))
-      {
-         return false;
-      }
-      procHandle_ = 
-         BPatch::bpatch->rDevice->RemoteOpenProcess(PROCESS_ALL_ACCESS,
-                                                    false, getPid());
-      assert( procHandle_ != NULL );
-      return true;
+        if (!BPatch::bpatch->rDevice->RemoteDebugActiveProcess(getPid()))
+            {
+                return false;
+            }
+        procHandle_ = 
+            BPatch::bpatch->rDevice->RemoteOpenProcess(PROCESS_ALL_ACCESS,
+                                                       false, getPid());
+        assert( procHandle_ != NULL );
+        return true;
 #else
-      if (!DebugActiveProcess(getPid()))
-      {
-         //printf("Error: DebugActiveProcess failed\n");
-         return false;
-      }
+        if (!DebugActiveProcess(getPid()))
+            {
+                //printf("Error: DebugActiveProcess failed\n");
+                return false;
+            }
 #endif
-   }
+    }
 
-   // We either created this process, or we have just attached it.
-   // In either case, our descriptor already has a valid process handle.
-   fileDescriptor_Win* fdw = (fileDescriptor_Win*)(proc_->getImage()->desc());
-   assert( fdw != NULL );
+#if 0
+    // Obsolete    
+    // We either created this process, or we have just attached it.
+    // In either case, our descriptor already has a valid process handle.
 
-   if(fdw->GetProcessHandle() != INVALID_HANDLE_VALUE)
-      setProcessHandle(fdw->GetProcessHandle());
-   
-   return true;
+    assert( fdw != NULL );
+    
+    if(fdw->GetProcessHandle() != INVALID_HANDLE_VALUE)
+        setProcessHandle(fdw->GetProcessHandle());
+#endif
+
+    return true;
 }
 
 void dyn_lwp::realLWP_detach_()
@@ -2250,7 +2235,7 @@ bool process::insertTrapAtEntryPointOfMain() {
         }
         
     }
-    main_brk_addr = mainFunc->get_address();
+    main_brk_addr = mainFunc->getAddress();
     
     readDataSpace((void*) (main_brk_addr), BYTES_TO_SAVE, (void*)savedCodeBuffer, false);
     
@@ -2266,7 +2251,7 @@ bool process::insertTrapAtEntryPointOfMain() {
 
 // True if we hit the trap at the entry of main
 
-bool process::trapAtEntryPointOfMain(Address trapAddr) {
+bool process::trapAtEntryPointOfMain(dyn_lwp *,Address trapAddr) {
     if (!main_brk_addr) return false;
     if (trapAddr == main_brk_addr) {
         return true;
@@ -2276,7 +2261,7 @@ bool process::trapAtEntryPointOfMain(Address trapAddr) {
 
 
 // Clean up after breakpoint in main() is hit
-bool process::handleTrapAtEntryPointOfMain()
+bool process::handleTrapAtEntryPointOfMain(dyn_lwp *)
 {
     // Rewrite saved registers and code buffer
     assert(main_brk_addr);
@@ -2323,8 +2308,7 @@ bool process::getDyninstRTLibName() {
 // Load the dyninst library
 bool process::loadDYNINSTlib()
 {
-    Address codeBase = getImage()->codeOffset();
-    Address LoadLibBase;
+    Address codeBase = getAOut()->codeBase();
     Address LoadLibAddr;
     Symbol sym;
 
@@ -2345,91 +2329,90 @@ bool process::loadDYNINSTlib()
 		}
 	}
 #else
-
-	if (!getSymbolInfo("_LoadLibraryA@4", sym, LoadLibBase) &&
-		!getSymbolInfo("_LoadLibraryA", sym, LoadLibBase ) &&
-		!getSymbolInfo("LoadLibraryA", sym, LoadLibBase ) )
-    {
-	    printf("unable to find function LoadLibrary\n");
-	    assert(0);
-    }
-    LoadLibAddr = sym.addr() + LoadLibBase;
-    assert(LoadLibAddr);
+	if (!getSymbolInfo("_LoadLibraryA@4", sym) &&
+            !getSymbolInfo("_LoadLibraryA", sym) &&
+            !getSymbolInfo("LoadLibraryA", sym))
+            {
+                printf("unable to find function LoadLibrary\n");
+                assert(0);
+            }
+        LoadLibAddr = sym.addr();
+        assert(LoadLibAddr);
 #endif
-    char ibuf[BYTES_TO_SAVE];
-    char *iptr = ibuf;
+        char ibuf[BYTES_TO_SAVE];
+        char *iptr = ibuf;
 	memset(ibuf, '\0', BYTES_TO_SAVE);//ccw 25 aug 2000
-
-    // Code overview:
-    // Dynininst library name
-    //    Executable code begins here:
-    // Push (address of dyninst lib name)
-    // Call LoadLibrary
-    // Pop (cancel push)
-    // Trap
-
-    process::dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
-
-    if (!process::dyninstRT_name.length())
-        // if environment variable unset, use the default name/strategy
-        process::dyninstRT_name = "libdyninstAPI_RT.dll";
+        
+        // Code overview:
+        // Dynininst library name
+        //    Executable code begins here:
+        // Push (address of dyninst lib name)
+        // Call LoadLibrary
+        // Pop (cancel push)
+        // Trap
+        
+        process::dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
+        
+        if (!process::dyninstRT_name.length())
+            // if environment variable unset, use the default name/strategy
+            process::dyninstRT_name = "libdyninstAPI_RT.dll";
 	
-    // make sure that directory separators are what LoadLibrary expects
-    strcpy(iptr, process::dyninstRT_name.c_str());
-    for (unsigned int i=0; i<strlen(iptr); i++)
-        if (iptr[i]=='/') iptr[i]='\\';
-
-    // 4: give us plenty of room after the string to start instructions
-    int instructionOffset = strlen(iptr) + 4;
-    // Regenerate the pointer
-    iptr = &(ibuf[instructionOffset]);
-    
-    // At this point, the buffer contains the name of the dyninst
-    // RT lib. We now generate code to load this string into memory
-    // via a call to LoadLibrary
-
-    // push nameAddr ; 5 bytes
-    *iptr++ = (char)0x68; 
-    // Argument for push
-    *(int *)iptr = codeBase; // string at codeBase
-    iptr += sizeof(int);
-
-    int offsetFromBufferStart = (int)iptr - (int)ibuf;
-    offsetFromBufferStart += 5; // Skip next instruction as well.
-    // call LoadLibrary ; 5 bytes
-    *iptr++ = (char)0xe8;
-   
-    // Jump offset is relative
-    *(int *)iptr = LoadLibAddr - (codeBase + 
-                                  offsetFromBufferStart); // End of next instruction
-    iptr += sizeof(int);
-
-
-    // add sp, 4 (Pop)
-    *iptr++ = (char)0x83; *iptr++ = (char)0xc4; *iptr++ = (char)0x04;
-
-    // int3
-    *iptr = (char)0xcc;
-
-    int offsetToTrap = (int) iptr - (int) ibuf;
-    readDataSpace((void *)codeBase, BYTES_TO_SAVE, savedCodeBuffer, false);
-    writeDataSpace((void *)codeBase, BYTES_TO_SAVE, ibuf);
-    
-    flushInstructionCache_((void *)codeBase, BYTES_TO_SAVE);
-
+        // make sure that directory separators are what LoadLibrary expects
+        strcpy(iptr, process::dyninstRT_name.c_str());
+        for (unsigned int i=0; i<strlen(iptr); i++)
+            if (iptr[i]=='/') iptr[i]='\\';
+        
+        // 4: give us plenty of room after the string to start instructions
+        int instructionOffset = strlen(iptr) + 4;
+        // Regenerate the pointer
+        iptr = &(ibuf[instructionOffset]);
+        
+        // At this point, the buffer contains the name of the dyninst
+        // RT lib. We now generate code to load this string into memory
+        // via a call to LoadLibrary
+        
+        // push nameAddr ; 5 bytes
+        *iptr++ = (char)0x68; 
+        // Argument for push
+        *(int *)iptr = codeBase; // string at codeBase
+        iptr += sizeof(int);
+        
+        int offsetFromBufferStart = (int)iptr - (int)ibuf;
+        offsetFromBufferStart += 5; // Skip next instruction as well.
+        // call LoadLibrary ; 5 bytes
+        *iptr++ = (char)0xe8;
+        
+        // Jump offset is relative
+        *(int *)iptr = LoadLibAddr - (codeBase + 
+                                      offsetFromBufferStart); // End of next instruction
+        iptr += sizeof(int);
+        
+        
+        // add sp, 4 (Pop)
+        *iptr++ = (char)0x83; *iptr++ = (char)0xc4; *iptr++ = (char)0x04;
+        
+        // int3
+        *iptr = (char)0xcc;
+        
+        int offsetToTrap = (int) iptr - (int) ibuf;
+        readDataSpace((void *)codeBase, BYTES_TO_SAVE, savedCodeBuffer, false);
+        writeDataSpace((void *)codeBase, BYTES_TO_SAVE, ibuf);
+        
+        flushInstructionCache_((void *)codeBase, BYTES_TO_SAVE);
+        
 #ifdef mips_unknown_ce2_11 //ccw 22 aug 2000
-    assert(0 && "Need to update dyninst lib load instructions");
+        assert(0 && "Need to update dyninst lib load instructions");
 #else
-    dyninstlib_brk_addr = codeBase + offsetToTrap;
+        dyninstlib_brk_addr = codeBase + offsetToTrap;
 #endif
-
-    savedRegs = new dyn_saved_regs;
-    bool status = getRepresentativeLWP()->getRegisters(savedRegs);
-    assert(status == true);
-    getRepresentativeLWP()->changePC(codeBase + instructionOffset, NULL);
-    
-    setBootstrapState(loadingRT);
-    return true;
+        
+        savedRegs = new dyn_saved_regs;
+        bool status = getRepresentativeLWP()->getRegisters(savedRegs);
+        assert(status == true);
+        getRepresentativeLWP()->changePC(codeBase + instructionOffset, NULL);
+        
+        setBootstrapState(loadingRT_bs);
+        return true;
 }
 
 
@@ -2437,7 +2420,7 @@ bool process::loadDYNINSTlib()
 // Not used on NT. We'd have to rewrite the
 // prototype to take a PC. Handled inline.
 // True if trap is from dyninst load finishing
-bool process::trapDueToDyninstLib()
+bool process::trapDueToDyninstLib(dyn_lwp *)
 {
     assert(0);
     return true;
@@ -2446,7 +2429,7 @@ bool process::trapDueToDyninstLib()
 
 
 // Cleanup after dyninst lib loaded
-bool process::loadDYNINSTlibCleanup()
+bool process::loadDYNINSTlibCleanup(dyn_lwp *)
 {
     // First things first: 
     assert(savedRegs != NULL);
@@ -2454,11 +2437,11 @@ bool process::loadDYNINSTlibCleanup()
     delete savedRegs;
     savedRegs = NULL;
 
-    writeDataSpace((void *)getImage()->codeOffset(),
-				      BYTES_TO_SAVE,
-				      (void *)savedCodeBuffer);
+    writeDataSpace((void *)getAOut()->codeBase(),
+                   BYTES_TO_SAVE,
+                   (void *)savedCodeBuffer);
 
-    flushInstructionCache_((void *)getImage()->codeOffset(), BYTES_TO_SAVE);
+    flushInstructionCache_((void *)getAOut()->codeBase(), BYTES_TO_SAVE);
 
     dyninstlib_brk_addr = 0;
 

@@ -50,9 +50,11 @@
 #include "BPatch_collections.h"
 #include "LineInformation.h"
 #include "BPatch_typePrivate.h"
+#include "BPatch_function.h"
 #include "util.h"
 #include "Object.h"
 #include "symtab.h"
+#include "mapped_object.h"
 #include <ldfcn.h>  // *** GCC 3.x bug: (Short explanation)
 		    // <ldfcn.h> must be included after "BPatch.h"
 
@@ -1086,7 +1088,7 @@ void eCoffParseProc(BPatch_module *mod, eCoffSymbol &symbol, bool skip)
 			// 
 			// So, we use the following manual search instead.
 			Object &img =
-			    const_cast<Object &>(mod->getModule()->exec()->getObject());
+			  const_cast<Object &>(mod->getModule()->pmod()->exec()->getObject());
 			pdvector< Symbol > symbols;
 			img.get_symbols( symbol.name, symbols );
 

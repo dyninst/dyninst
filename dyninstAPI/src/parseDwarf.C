@@ -429,43 +429,6 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 				opStack.push( (Dwarf_Signed)(locations[i].lr_number) );
 				break;
 
-			case DW_OP_breg0:
-			case DW_OP_breg1:
-			case DW_OP_breg2:
-			case DW_OP_breg3:
-			case DW_OP_breg4:
-			case DW_OP_breg5:
-			case DW_OP_breg6:
-			case DW_OP_breg7:
-			case DW_OP_breg8:
-			case DW_OP_breg9:
-			case DW_OP_breg10:
-			case DW_OP_breg11:
-			case DW_OP_breg12:
-			case DW_OP_breg13:
-			case DW_OP_breg14:
-			case DW_OP_breg15:
-			case DW_OP_breg16:
-			case DW_OP_breg17:
-			case DW_OP_breg18:
-			case DW_OP_breg19:
-			case DW_OP_breg20:
-			case DW_OP_breg21:
-			case DW_OP_breg22:
-			case DW_OP_breg23:
-			case DW_OP_breg24:
-			case DW_OP_breg25:
-			case DW_OP_breg26:
-			case DW_OP_breg27:
-			case DW_OP_breg28:
-			case DW_OP_breg29:
-			case DW_OP_breg30:
-			case DW_OP_breg31:
-				if( storageClass != NULL) { * storageClass = BPatch_storageRegOffset; }
-				if( regNum != NULL ) { * regNum = locations[i].lr_atom - DW_OP_breg0; }
-				opStack.push( (Dwarf_Signed)(locations[i].lr_number) );
-				break;
-
 			case DW_OP_bregx:
 				if( storageClass != NULL ) { * storageClass = BPatch_storageRegOffset; }
 				if( regNum != NULL ) { * regNum = locations[i].lr_number; }
@@ -749,7 +712,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			BPatch_function * currentFunction = NULL,
 			BPatch_typeCommon * currentCommonBlock = NULL,
 			BPatch_fieldListType * currentEnclosure = NULL ) {
-	/* optimization */ tail_recusion:;
+	/* optimization */ tail_recursion:;
 	Dwarf_Half dieTag;
 	int status = dwarf_tag( dieEntry, & dieTag, NULL );
 	assert( status == DW_DLV_OK );
@@ -839,30 +802,38 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 			/* Try to find the function by its mangled name. */
 			Dwarf_Addr baseAddr = 0;
-			image * fileOnDisk = module->getModule()->exec();
-			pdvector< int_function * > * functions = fileOnDisk->findFuncVectorByMangled( functionName );
-
-			if( functions == NULL || functions->size() == 0 ) {
+			mapped_object* fileOnDisk = module->getModule()->obj();
+			const pdvector< int_function * > *ret_funcs = fileOnDisk->findFuncVectorByMangled(functionName);
+			pdvector<int_function *> functions;
+			if (ret_funcs) {
+				for (unsigned foo = 0; foo < ret_funcs->size(); foo++)
+					functions.push_back((*ret_funcs)[foo]);
+			}
+			else {
 				/* If we can't find it by mangled name, try searching by address. */
 				status = dwarf_lowpc( dieEntry, & baseAddr, NULL );
 				if( status == DW_DLV_OK ) {
 					/* The base addresses in DWARF appear to be image-relative. */
 					// int_function * intFunction = proc->findFuncByAddr( baseAddr );
-					int_function * intFunction = fileOnDisk->findFuncByOffset( baseAddr );
+					Address absAddr = fileOnDisk->getBaseAddress() + baseAddr;
+					int_function * intFunction = fileOnDisk->findFuncByAddr( absAddr );
 					if( intFunction != NULL ) {
-						if( functions == NULL ) { functions = new pdvector< int_function * >(); }
-						functions->push_back( intFunction );
-						}
+						functions.push_back( intFunction );
 					}
 				}
-				
-			if( functions == NULL || functions->size() == 0 ) {
+			}
+			if( functions.size() == 0 ) { // Still....
 				/* If we can't find it by address, try searching by pretty name. */
 				if( baseAddr != 0 ) { /* DEBUG */ fprintf( stderr, "%s[%d]: unable to locate function %s by address 0x%lx\n", __FILE__, __LINE__, functionName, baseAddr ); }
-				functions = fileOnDisk->findFuncVectorByPretty( functionName );
+				const pdvector<int_function *> *prettyFuncs = fileOnDisk->findFuncVectorByPretty(functionName);
+				if (prettyFuncs) {
+					for (unsigned bar = 0; bar < prettyFuncs->size(); bar++) {
+						functions.push_back((*prettyFuncs)[bar]);
+					}
 				}
-
-			if( functions == NULL || functions->size() == 0 ) {
+			}
+			
+			if( functions.size() == 0 ) {
 				/* Don't parse the children, since we can't add them. */
 				// /* DEBUG */ fprintf( stderr, "Failed to find function '%s'\n", functionName );
 				parsedChild = true;
@@ -871,7 +842,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				dwarf_dealloc( dbg, functionName, DW_DLA_STRING );
 				break;
 				}
-			else if( functions != NULL && functions->size() > 1 ) {
+			else if( functions.size() > 1 ) {
 				// /* DEBUG */ fprintf( stderr, "Warning: found more than one function '%s', unable to do anything reasonable.\n", functionName );
 
 				/* Don't parse the children, since we can't add them. */
@@ -882,9 +853,9 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				break;		
 				}
 			else {
-				int_function * newIntFunction = (*functions)[0];
+				int_function * newIntFunction = functions[0];
 				newFunction = proc->registerNewFunction( newIntFunction );
-				} /* end findFunction() cases */
+			} /* end findFunction() cases */
 
 			/* Once we've found the BPatch_function pointer corresponding to this
 			   DIE, record its frame base.  A declaration entry may not have a 
@@ -1725,7 +1696,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 	if( status == DW_DLV_OK ) {
 		/* Do the tail-call optimization by hand. */
 		dieEntry = siblingDwarf;
-		goto tail_recusion;
+		goto tail_recursion;
 		}
 
 	/* When would we return false? :) */
@@ -1735,11 +1706,11 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 extern void pd_dwarf_handler( Dwarf_Error, Dwarf_Ptr );
 
 void BPatch_module::parseDwarfTypes() {
-	image * moduleImage = mod->exec();
-	assert( moduleImage != NULL );
-	const Object & moduleObject = moduleImage->getObject();
-	const char * fileName = moduleObject.getFileName();
-	// /* DEBUG */ const char * moduleFileName = mod->fileName().c_str();
+  image * moduleImage = mod->obj()->parse_img();
+  assert( moduleImage != NULL );
+  const Object & moduleObject = moduleImage->getObject();
+  const char * fileName = moduleObject.getFileName();
+  // /* DEBUG */ const char * moduleFileName = mod->fileName().c_str();
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: parsing object '%s' for module '%s'\n", __FILE__, __LINE__, fileName, moduleFileName );
 
 	/* Cache type collections on a per-image basis.  (Since BPatch_functions are solitons, we don't have to cache them.) */

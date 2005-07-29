@@ -51,6 +51,7 @@
 #include "BPatch_module.h"
 #include "BPatch_collections.h"
 #include "BPatch_typePrivate.h"
+#include "BPatch_function.h"
 #include "showerror.h"
 #include "Object.h" // For looking up compiler type
 

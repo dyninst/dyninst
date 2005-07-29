@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinntDL.C,v 1.2 2004/03/23 01:12:08 eli Exp $
+// $Id: pdwinntDL.C,v 1.3 2005/07/29 19:19:05 bernat Exp $
 
 #include "dynamiclinking.h"
 #include "process.h"
@@ -53,9 +53,7 @@ sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b)
 sharedLibHook::~sharedLibHook() {}
 
 bool dynamic_linking::initialize() {
-   proc->setDynamicLinking();
    dynlinked = true;
-
    return true;
 }
 
@@ -65,14 +63,15 @@ bool dynamic_linking::installTracing()
     return true;
 }
 
-bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object *>**, u_int &, bool &) {
+bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<mapped_object *> &,
+                                                       u_int &) {
     // This can be called by a platform indep. layer that wants
     // to get the list of new libraries loaded. 
     return false;
 }
 
-pdvector<shared_object *> *dynamic_linking::getSharedObjects() {
-    // We will fill the list in by getting debug events from
-    // the OS. For now, just return a new vector.
-    return new pdvector<shared_object *>;
+bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &) {
+    // Empty list so nothing happens
+
+    return true;
 }
