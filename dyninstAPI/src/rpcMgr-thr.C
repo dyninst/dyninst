@@ -190,6 +190,7 @@ irpcLaunchState_t rpcThr::runPendingIRPC() {
     // Should unify this.
     bool status = lwp->getRegisters(theSavedRegs);
     inferiorrpc_printf("RPC saved registers: %d\n", status);
+
     if (status == false) {
         // Can happen if we're in a syscall, which is caught above
         return irpcError;

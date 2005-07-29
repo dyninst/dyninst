@@ -62,6 +62,9 @@ struct dyn_saved_regs;
 class rpcLWP;
 class rpcThr;
 class rpcMgr;
+class baseTramp;
+
+class codeGen;
 
 // RPC state enumerated type
 typedef enum { irpcNotValid, irpcNotRunning, irpcRunning, irpcWaitingForSignal,
@@ -115,6 +118,7 @@ struct inferiorRPCinProgress {
 // information
 
 class rpcThr {
+    friend class rpcMgr;
   private:
     // Handle to the 'parent' rpcMgr
     rpcMgr *mgr_;
@@ -133,6 +137,7 @@ class rpcThr {
     
   public:
     rpcThr(rpcMgr *mgr, dyn_thread *thr) : mgr_(mgr), thr_(thr), pendingRPC_(NULL), runningRPC_(NULL) {};
+    rpcThr(rpcThr *parThr, rpcMgr *cMgr, dyn_thread *cthr);
     
     dyn_thread *get_thr() const { return thr_; }
 
@@ -182,6 +187,7 @@ class rpcThr {
 // information.
 
 class rpcLWP {
+    friend class rpcMgr;
   private:
     // Handle to the 'parent' rpcMgr
     rpcMgr *mgr_;
@@ -199,6 +205,9 @@ class rpcLWP {
 
   public:
     rpcLWP(rpcMgr *mgr, dyn_lwp *lwp) : mgr_(mgr), lwp_(lwp), pendingRPC_(NULL), runningRPC_(NULL) {} ;
+    rpcLWP(rpcLWP *parThr, rpcMgr *cMgr, dyn_lwp *clwp);
+
+
     dyn_lwp *get_lwp() const { return lwp_; }
 
     // Returns ID of the RPC posted
@@ -249,6 +258,8 @@ static inline unsigned rpcLwpHash(unsigned const &index)
   // so we don't want the number to be huge.
 }
 
+#define  MAX_IRPC_SIZE 0x100000
+
 class rpcMgr {
     friend class rpcThr;
     friend class rpcLWP;
@@ -287,9 +298,13 @@ class rpcMgr {
 
     // Prevent launchRPCs from being entered recursively
     bool recursionGuard;
+
+    baseTramp *irpcTramp;
     
   public:
-   rpcMgr(process *proc) : processingProcessRPC(false), proc_(proc), lwps_(rpcLwpHash), recursionGuard(false) { };
+   rpcMgr(process *proc);
+   rpcMgr(rpcMgr *parRpcMgr, process *child);
+   ~rpcMgr();
 
    void addThread(dyn_thread *thr);
    void deleteThread(dyn_thread *thr);
@@ -336,9 +351,9 @@ class rpcMgr {
                           Register &resultReg, bool lowmem);
 
    
-   bool emitInferiorRPCheader(void *, Address &baseBytes);
-
-   bool emitInferiorRPCtrailer(void *, Address &baseBytes,
+   bool emitInferiorRPCheader(codeGen &gen);
+   
+   bool emitInferiorRPCtrailer(codeGen &gen,
                                unsigned &breakOffset,
                                bool stopForResult,
                                unsigned &stopForResultOffset,

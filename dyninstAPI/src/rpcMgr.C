@@ -43,10 +43,350 @@
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/instP.h" // initTramps
+#include "dyninstAPI/src/baseTramp.h" // irpc code
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/ast.h"
+
+rpcMgr::rpcMgr(process *proc) :
+    processingProcessRPC(false),
+    proc_(proc),
+    lwps_(rpcLwpHash),
+    recursionGuard(false) {
+    // We use a base tramp skeleton to generate iRPCs.
+    irpcTramp = new baseTramp();
+    irpcTramp->rpcMgr_ = this;
+    irpcTramp->setRecursive(true);
+}
+
+// Fork constructor. For each thread/LWP in the parent, check to 
+// see if it still exists, and if so copy over all state. Also 
+// copy all current RPC state. Oy.
+rpcMgr::rpcMgr(rpcMgr *pRM, process *child) :
+    processingProcessRPC(pRM->processingProcessRPC),
+    proc_(child),
+    lwps_(rpcLwpHash),
+    recursionGuard(pRM->recursionGuard) {
+    // We use a base tramp skeleton to generate iRPCs.
+    irpcTramp = new baseTramp();
+    irpcTramp->rpcMgr_ = this;
+    irpcTramp->setRecursive(true);
+
+    // Make all necessary thread and LWP managelets.
+    
+    for (unsigned i = 0; i < pRM->thrs_.size(); i++) {
+        unsigned tid = pRM->thrs_[i]->thr_->get_tid();
+        dyn_thread *cthr = child->getThread(tid);
+        if (!cthr) continue; // Whee, not there any more. 
+        rpcThr *newT = new rpcThr(pRM->thrs_[i],
+                                  this,
+                                  cthr);
+        thrs_.push_back(newT);
+    }
+
+    // Check LWPS
+    dictionary_hash<unsigned, rpcLWP *>::iterator lwp_iter = pRM->lwps_.begin();
+    while (lwp_iter != pRM->lwps_.end()) {
+        unsigned lwp_id = (*lwp_iter)->lwp_->get_lwp_id();
+
+        lwp_iter++;
+
+        // This doesn't handle the case if the LWP ID changed (linux PID)
+        // but I'm _really_ not worried about this.
+
+        dyn_lwp *clwp = child->lookupLWP(lwp_id);
+        if (!clwp) {
+            continue;
+        }
+        rpcLWP *newL = new rpcLWP(*lwp_iter,
+                                  this,
+                                  clwp);
+        lwps_[lwp_id] = newL;
+    }
+
+    // Okay, we have those... we need to build:
+    // allPostedRPCs_;
+    // postedProcessRPCs_;
+    // allRunningRPCs_;
+    // allPendingRPCs_;
+
+    // allPosted is built from thr+lwp+proc, and thr/lwp already built internally;
+    // but we create it so that we get ordering right. 
+    // postedProcess we create
+    // allRunning already done;
+    // allPending already done.
+        
+    for (unsigned ii = 0; ii < pRM->postedProcessRPCs_.size(); ii++) {
+        inferiorRPCtoDo *newRPC = new inferiorRPCtoDo;
+        inferiorRPCtoDo *oldRPC = pRM->postedProcessRPCs_[ii];
+        
+        newRPC->action = assignAst(oldRPC->action);
+        newRPC->noCost = oldRPC->noCost;
+        newRPC->callbackFunc = oldRPC->callbackFunc;
+        newRPC->userData = oldRPC->userData;
+        newRPC->lowmem = oldRPC->lowmem;
+        newRPC->id = oldRPC->id;
+        assert(!oldRPC->thr); // It's a process RPC
+        assert(!oldRPC->lwp);
+        postedProcessRPCs_.push_back(newRPC);
+    }
+
+    // This is horridly inefficient
+    for (unsigned iii = 0; iii < pRM->allPostedRPCs_.size(); iii++) {
+        inferiorRPCtoDo *oldRPC = pRM->postedProcessRPCs_[iii];
+        bool found = false;
+        if (oldRPC->thr) {
+            unsigned tid = oldRPC->thr->get_tid();
+            for (unsigned j = 0; j < thrs_.size(); j++) {
+                if (thrs_[j]->thr_->get_tid() == tid) {
+                    rpcThr *thr = thrs_[j];
+                    // Now find the matching (ID) RPC
+                    for (unsigned k = 0; k < thr->postedRPCs_.size(); k++)
+                        if (thr->postedRPCs_[k]->id == oldRPC->id) {
+                            found = true;
+                            allPostedRPCs_.push_back(thr->postedRPCs_[k]);
+                            break;
+                        }
+
+                }
+                if (found) break;
+            }
+        }
+        else if (oldRPC->lwp) {
+            unsigned lid = oldRPC->lwp->get_lwp_id();
+            rpcLWP *lwp = lwps_[lid];
+            assert(lwp);
+            // Now find the matching (ID) RPC
+            for (unsigned k = 0; k < lwp->postedRPCs_.size(); k++) {
+                if (lwp->postedRPCs_[k]->id == oldRPC->id) {
+                    found = true;
+                    allPostedRPCs_.push_back(lwp->postedRPCs_[k]);
+                    break;
+                }
+            }
+        }
+        else {
+            for (unsigned i = 0; i < postedProcessRPCs_.size(); i++) {
+                if (postedProcessRPCs_[i]->id == oldRPC->id) {
+                    found = true;
+                    allPostedRPCs_.push_back(postedProcessRPCs_[i]);
+                    break;
+                }
+            }
+        }
+        assert(found);
+    }
+}
+
+rpcThr::rpcThr(rpcThr *parT, rpcMgr *cM, dyn_thread *cT) :
+    mgr_(cM),
+    thr_(cT) {
+    for (unsigned i = 0; i < parT->postedRPCs_.size(); i++) {
+        inferiorRPCtoDo *newRPC = new inferiorRPCtoDo;
+        inferiorRPCtoDo *oldRPC = parT->postedRPCs_[i];
+
+        newRPC->action = assignAst(oldRPC->action);
+        newRPC->noCost = oldRPC->noCost;
+        newRPC->callbackFunc = oldRPC->callbackFunc;
+        newRPC->userData = oldRPC->userData;
+        newRPC->lowmem = oldRPC->lowmem;
+        newRPC->id = oldRPC->id;
+        assert(oldRPC->thr);
+        newRPC->thr = cT;
+        assert(!oldRPC->lwp);
+        postedRPCs_.push_back(newRPC);
+    }
+    
+    if (parT->pendingRPC_) {
+        inferiorRPCinProgress *newProg = new inferiorRPCinProgress;
+        inferiorRPCinProgress *oldProg = parT->pendingRPC_;
+        
+        inferiorRPCtoDo *newRPC = new inferiorRPCtoDo;
+        inferiorRPCtoDo *oldRPC = oldProg->rpc;
+
+        newRPC->action = assignAst(oldRPC->action);
+        newRPC->noCost = oldRPC->noCost;
+        newRPC->callbackFunc = oldRPC->callbackFunc;
+        newRPC->userData = oldRPC->userData;
+        newRPC->lowmem = oldRPC->lowmem;
+        newRPC->id = oldRPC->id;
+        assert(oldRPC->thr);
+        newRPC->thr = cT;
+        assert(!oldRPC->lwp);
+        
+        newProg->rpc = newRPC;
+        if (oldProg->savedRegs) {
+            newProg->savedRegs = new dyn_saved_regs;
+            memcpy(newProg->savedRegs, oldProg->savedRegs, sizeof(dyn_saved_regs));
+        }
+        else newProg->savedRegs = NULL;
+        newProg->origPC = oldProg->origPC;
+        newProg->runProcWhenDone = oldProg->runProcWhenDone;
+        newProg->rpcStartAddr = oldProg->rpcStartAddr;
+        newProg->rpcResultAddr = oldProg->rpcResultAddr;
+        newProg->rpcContPostResultAddr = oldProg->rpcContPostResultAddr;
+        newProg->rpcCompletionAddr = oldProg->rpcCompletionAddr;
+        newProg->resultRegister = oldProg->resultRegister;
+        newProg->resultValue = oldProg->resultValue;
+        
+        newProg->rpcthr = this;
+        newProg->rpclwp = NULL;
+        newProg->isProcessRPC = oldProg->isProcessRPC;
+        newProg->state = oldProg->state;
+        
+        pendingRPC_ =  newProg;
+    }
+        
+
+    if (parT->runningRPC_) {
+        inferiorRPCinProgress *newProg = new inferiorRPCinProgress;
+        inferiorRPCinProgress *oldProg = parT->runningRPC_;
+        
+        inferiorRPCtoDo *newRPC = new inferiorRPCtoDo;
+        inferiorRPCtoDo *oldRPC = oldProg->rpc;
+
+        newRPC->action = assignAst(oldRPC->action);
+        newRPC->noCost = oldRPC->noCost;
+        newRPC->callbackFunc = oldRPC->callbackFunc;
+        newRPC->userData = oldRPC->userData;
+        newRPC->lowmem = oldRPC->lowmem;
+        newRPC->id = oldRPC->id;
+        assert(oldRPC->thr);
+        newRPC->thr = cT;
+        assert(!oldRPC->lwp);
+        
+        newProg->rpc = newRPC;
+        if (oldProg->savedRegs) {
+            newProg->savedRegs = new dyn_saved_regs;
+            memcpy(newProg->savedRegs, oldProg->savedRegs, sizeof(dyn_saved_regs));
+        }
+        else newProg->savedRegs = NULL;
+        newProg->origPC = oldProg->origPC;
+        newProg->runProcWhenDone = oldProg->runProcWhenDone;
+        newProg->rpcStartAddr = oldProg->rpcStartAddr;
+        newProg->rpcResultAddr = oldProg->rpcResultAddr;
+        newProg->rpcContPostResultAddr = oldProg->rpcContPostResultAddr;
+        newProg->rpcCompletionAddr = oldProg->rpcCompletionAddr;
+        newProg->resultRegister = oldProg->resultRegister;
+        newProg->resultValue = oldProg->resultValue;
+        
+        newProg->rpcthr = this;
+        newProg->rpclwp = NULL;
+        newProg->isProcessRPC = oldProg->isProcessRPC;
+        newProg->state = oldProg->state;
+        
+        runningRPC_ =  newProg;
+    }
+}
+    
+
+rpcLWP::rpcLWP(rpcLWP *parL, rpcMgr *cM, dyn_lwp *cL) :
+    mgr_(cM),
+    lwp_(cL) {
+    for (unsigned i = 0; i < parL->postedRPCs_.size(); i++) {
+        inferiorRPCtoDo *newRPC = new inferiorRPCtoDo;
+        inferiorRPCtoDo *oldRPC = parL->postedRPCs_[i];
+
+        newRPC->action = assignAst(oldRPC->action);
+        newRPC->noCost = oldRPC->noCost;
+        newRPC->callbackFunc = oldRPC->callbackFunc;
+        newRPC->userData = oldRPC->userData;
+        newRPC->lowmem = oldRPC->lowmem;
+        newRPC->id = oldRPC->id;
+        assert(!oldRPC->thr);
+        assert(oldRPC->lwp);
+        newRPC->lwp = cL;
+        postedRPCs_.push_back(newRPC);
+    }
+    
+    if (parL->pendingRPC_) {
+        inferiorRPCinProgress *newProg = new inferiorRPCinProgress;
+        inferiorRPCinProgress *oldProg = parL->pendingRPC_;
+        
+        inferiorRPCtoDo *newRPC = new inferiorRPCtoDo;
+        inferiorRPCtoDo *oldRPC = oldProg->rpc;
+
+        newRPC->action = assignAst(oldRPC->action);
+        newRPC->noCost = oldRPC->noCost;
+        newRPC->callbackFunc = oldRPC->callbackFunc;
+        newRPC->userData = oldRPC->userData;
+        newRPC->lowmem = oldRPC->lowmem;
+        newRPC->id = oldRPC->id;
+        assert(!oldRPC->thr);
+        newRPC->lwp = cL;
+        assert(oldRPC->lwp);
+        
+        newProg->rpc = newRPC;
+        if (oldProg->savedRegs) {
+            newProg->savedRegs = new dyn_saved_regs;
+            memcpy(newProg->savedRegs, oldProg->savedRegs, sizeof(dyn_saved_regs));
+        }
+        else newProg->savedRegs = NULL;
+        newProg->origPC = oldProg->origPC;
+        newProg->runProcWhenDone = oldProg->runProcWhenDone;
+        newProg->rpcStartAddr = oldProg->rpcStartAddr;
+        newProg->rpcResultAddr = oldProg->rpcResultAddr;
+        newProg->rpcContPostResultAddr = oldProg->rpcContPostResultAddr;
+        newProg->rpcCompletionAddr = oldProg->rpcCompletionAddr;
+        newProg->resultRegister = oldProg->resultRegister;
+        newProg->resultValue = oldProg->resultValue;
+        
+        newProg->rpcthr = NULL;
+        newProg->rpclwp = this;
+        newProg->isProcessRPC = oldProg->isProcessRPC;
+        newProg->state = oldProg->state;
+        
+        pendingRPC_ =  newProg;
+    }
+        
+
+    if (parL->runningRPC_) {
+        inferiorRPCinProgress *newProg = new inferiorRPCinProgress;
+        inferiorRPCinProgress *oldProg = parL->runningRPC_;
+        
+        inferiorRPCtoDo *newRPC = new inferiorRPCtoDo;
+        inferiorRPCtoDo *oldRPC = oldProg->rpc;
+
+        newRPC->action = assignAst(oldRPC->action);
+        newRPC->noCost = oldRPC->noCost;
+        newRPC->callbackFunc = oldRPC->callbackFunc;
+        newRPC->userData = oldRPC->userData;
+        newRPC->lowmem = oldRPC->lowmem;
+        newRPC->id = oldRPC->id;
+        assert(!oldRPC->thr);
+        newRPC->lwp = cL;
+        assert(oldRPC->lwp);
+        
+        newProg->rpc = newRPC;
+        if (oldProg->savedRegs) {
+            newProg->savedRegs = new dyn_saved_regs;
+            memcpy(newProg->savedRegs, oldProg->savedRegs, sizeof(dyn_saved_regs));
+        }
+        else newProg->savedRegs = NULL;
+        newProg->origPC = oldProg->origPC;
+        newProg->runProcWhenDone = oldProg->runProcWhenDone;
+        newProg->rpcStartAddr = oldProg->rpcStartAddr;
+        newProg->rpcResultAddr = oldProg->rpcResultAddr;
+        newProg->rpcContPostResultAddr = oldProg->rpcContPostResultAddr;
+        newProg->rpcCompletionAddr = oldProg->rpcCompletionAddr;
+        newProg->resultRegister = oldProg->resultRegister;
+        newProg->resultValue = oldProg->resultValue;
+        
+        newProg->rpcthr = NULL;
+        newProg->rpclwp = this;
+        newProg->isProcessRPC = oldProg->isProcessRPC;
+        newProg->state = oldProg->state;
+        
+        runningRPC_ =  newProg;
+    }
+}
+    
+
+rpcMgr::~rpcMgr() {
+    delete irpcTramp;
+}
 
 // post RPC toDo for process
 unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
@@ -217,6 +557,7 @@ bool rpcMgr::handleSignalIfDueToIRPC(dyn_lwp *lwp_of_trap) {
           activeFrame = rpcLwp->get_lwp()->getActiveFrame();
        }
        if (activeFrame.getPC() == currRPC->rpcResultAddr) {
+
           if(rpcThr)
              rpcThr->getReturnValueIRPC();
           else {
@@ -276,6 +617,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
     // First, idiot check. If there aren't any RPCs to run, then
     // don't do anything. Reason: launchRPCs is called several times
     // a second in the daemon main loop
+    inferiorrpc_printf("Call to launchRPCs, recursionGuard %d\n", recursionGuard);
     if (recursionGuard) {
         // Error case: somehow launchRPCs was entered recursively
         cerr <<  "Error: inferior RPC mechanism was used in an unsafe way!" << endl;
@@ -297,6 +639,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
     
     // We have a central list of all posted or pending RPCs... if those are empty
     // then don't bother doing work
+    inferiorrpc_printf("%d posted RPCss...\n", allPostedRPCs_.size());
     if (allPostedRPCs_.size() == 0) {
       // Here's an interesting design question. "wasRunning" means "what do I do
       // after the RPCs are done". Now, if there weren't any RPCs, do we 
@@ -465,8 +808,6 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
     return false;
 }
 
-void generateMTpreamble(char *, Address &, process *);
-
 Address rpcMgr::createRPCImage(AstNode *action,
                                bool noCost,
                                bool shouldStopForResult,
@@ -479,114 +820,171 @@ Address rpcMgr::createRPCImage(AstNode *action,
    // You must free it yourself when done.
    // Note how this is, in many ways, a greatly simplified version of
    // addInstFunc().
-  
+
+    // Rather than worrying about saving mutator-side, we run this as a
+    // conservative base tramp. They're really the same thing, 
+    // with some extra bits at the end.
+
    // Temp tramp structure: save; code; restore; trap; illegal
    // the illegal is just to make sure that the trap never returns
    // note that we may not need to save and restore anything, since we've
    // already done a GETREGS and we'll restore with a SETREGS, right?
    // unsigned char insnBuffer[4096];
-   unsigned char insnBuffer[8192];
-  
-   // initializes "regSpace", but only the 1st time called
-   initTramps(proc_->multithread_capable()); 
-   extern registerSpace *regSpace;
-   regSpace->resetSpace();
-  
-   Address count = 0; // number of bytes required for RPCtempTramp
-  
-   // The following is implemented in an arch-specific source file...
-   // isFunclet added since we might save more registers based on that
-   // Temporary: isFunclet disabled
-   if (!emitInferiorRPCheader(insnBuffer, count)) {
-      // a fancy dialog box is probably called for here...
-      cerr << "createRPCtempTramp failed because emitInferiorRPCheader failed."
-           << endl;
-      return 0;
-   }
+    codeGen irpcBuf(MAX_IRPC_SIZE);
+    
+    // initializes "regSpace", but only the 1st time called
+    initTramps(proc_->multithread_capable()); 
+    extern registerSpace *regSpace;
+    regSpace->resetSpace();
+    
+    // Saves registers (first half of the base tramp) and whatever other
+    // irpc-specific magic is necessary
+    if (!emitInferiorRPCheader(irpcBuf)) {
+        // a fancy dialog box is probably called for here...
+        cerr << "createRPCtempTramp failed because emitInferiorRPCheader failed."
+             << endl;
+        return 0;
+    }
 
-   if (proc_->multithread_ready()) {
-      // We need to put in a branch past the rest of the RPC (to the trailer,
-      // actually) if the MT information given is incorrect. That's the
-      // skipBRaddr part.
-      generateMTpreamble((char*)insnBuffer,count, proc_);
-   }
+    resultReg = (Register)action->generateCode(proc_, regSpace,
+                                               irpcBuf,
+                                               noCost, true);
+    
+    if (!shouldStopForResult) {
+        regSpace->freeRegister(resultReg);
+    }
+    else
+        ; // in this case, we'll call freeRegister() the inferior rpc completes
+    
+    // Now, the trailer (restore, TRAP, illegal)
+    // (the following is implemented in an arch-specific source file...)   
+    // breakOffset: where the irpc ends
+    // stopForResultOffset: we expect a trap here if we're getting a result back
+    // justAfter_stopForResultOffset: where to continue the process at (next insn)
 
-   resultReg = (Register)action->generateCode(proc_, regSpace,
-                                              (char*)insnBuffer,
-                                              count, noCost, true);
-
-   if (!shouldStopForResult) {
-      regSpace->freeRegister(resultReg);
-   }
-   else
-      ; // in this case, we'll call freeRegister() the inferior rpc completes
-  
-   // Now, the trailer (restore, TRAP, illegal)
-   // (the following is implemented in an arch-specific source file...)   
-   unsigned breakOffset, stopForResultOffset, justAfter_stopForResultOffset;
-   if (!emitInferiorRPCtrailer(insnBuffer, count, breakOffset,
-                               shouldStopForResult, stopForResultOffset,
-                               justAfter_stopForResultOffset)) {
-      // last 4 args except shouldStopForResult are modified by the call
-      cerr << "createRPCtempTramp failed because "
-           << "emitInferiorRPCtrailer failed." << endl;
-      return 0;
-   }
-   Address tempTrampBase;
-   if (lowmem)
-   {
-      /* lowmemHeap should always have free space, so this will not
-         require a recursive inferior RPC. */
-      tempTrampBase = proc_->inferiorMalloc(count, lowmemHeap);
-   }
-   else
-   {
-      /* May cause another inferior RPC to dynamically allocate a new heap
-         in the inferior. */
-      tempTrampBase = proc_->inferiorMalloc(count, anyHeap);
-   }
-   assert(tempTrampBase);
-
-   breakAddr                      = tempTrampBase + breakOffset;
-   if (shouldStopForResult) {
-      stopForResultAddr           = tempTrampBase + stopForResultOffset;
-      justAfter_stopForResultAddr = tempTrampBase + 
-                                    justAfter_stopForResultOffset;
-   } 
-   else {
-      stopForResultAddr = justAfter_stopForResultAddr = 0;
-   }
-  
-   inferiorrpc_cerr << "createRPCtempTramp: temp tramp base=" << (void*)tempTrampBase
-		    << ", stopForResultAddr=" << (void*)stopForResultAddr
-		    << ", justAfter_stopForResultAddr="
-		    << (void*)justAfter_stopForResultAddr
-		    << ", breakAddr=" << (void*)breakAddr
-		    << ", count=" << count << " so end addr="
-		    << (void*)(tempTrampBase + count - 1) << endl;
-  
-  
-   /* Now, write to the tempTramp, in the inferior addr's data space
-      (all tramps are allocated in data space) */
-   /*
-     bperr( "IRPC:\n");
-     for (unsigned i = 0; i < count/4; i++)
-     bperr( "0x%x\n", ((int *)insnBuffer)[i]);
-     bperr("\n\n\n\n\n");
-   */
-   
-   assert( count < 8192 );
-   if (!proc_->writeDataSpace((void*)tempTrampBase, count, insnBuffer)) {
-      // should put up a nice error dialog window
-      cerr << "createRPCtempTramp failed because writeDataSpace failed" <<endl;
-      return 0;
-   }
-  
-   extern unsigned int trampBytes; // stats.h
-   trampBytes += count;
-
-   return tempTrampBase;
+    unsigned breakOffset, stopForResultOffset, justAfter_stopForResultOffset;
+    if (!emitInferiorRPCtrailer(irpcBuf, breakOffset,
+                                shouldStopForResult, stopForResultOffset,
+                                justAfter_stopForResultOffset)) {
+        // last 4 args except shouldStopForResult are modified by the call
+        cerr << "createRPCtempTramp failed because "
+             << "emitInferiorRPCtrailer failed." << endl;
+        return 0;
+    }
+    Address tempTrampBase;
+    inferiorrpc_printf("Allocating RPC image... lowmem %d, count %d\n",
+                       lowmem, irpcBuf.used());
+    if (lowmem)
+        {
+            /* lowmemHeap should always have free space, so this will not
+               require a recursive inferior RPC. */
+            tempTrampBase = proc_->inferiorMalloc(irpcBuf.used(), lowmemHeap);
+        }
+    else
+        {
+            /* May cause another inferior RPC to dynamically allocate a new heap
+               in the inferior. */
+            // This is currently broken; noticed when I wasn't adding
+            // the heaps correctly. Problem is, I'm not sure how to fix
+            // it up, so leaving for now -- bernat, 12MAY05
+            // The recursive allocation, that is. We don't like starting another
+            // RPC at this point.
+            
+            tempTrampBase = proc_->inferiorMalloc(irpcBuf.used(), anyHeap);
+        }
+    assert(tempTrampBase);
+    
+    breakAddr                      = tempTrampBase + breakOffset;
+    if (shouldStopForResult) {
+        stopForResultAddr           = tempTrampBase + stopForResultOffset;
+        justAfter_stopForResultAddr = tempTrampBase + 
+            justAfter_stopForResultOffset;
+    } 
+    else {
+        stopForResultAddr = justAfter_stopForResultAddr = 0;
+    }
+    
+    inferiorrpc_cerr << "createRPCtempTramp: temp tramp base=" << (void*)tempTrampBase
+                     << ", stopForResultAddr=" << (void*)stopForResultAddr
+                     << ", justAfter_stopForResultAddr="
+                     << (void*)justAfter_stopForResultAddr
+                     << ", breakAddr=" << (void*)breakAddr
+                     << ", count=" << irpcBuf.used() << " so end addr="
+                     << (void*)(tempTrampBase + irpcBuf.used()) << endl;
+    
+    
+    /* Now, write to the tempTramp, in the inferior addr's data space
+       (all tramps are allocated in data space) */
+    /*
+      bperr( "IRPC:\n");
+      for (unsigned i = 0; i < count/4; i++)
+      bperr( "0x%x\n", ((int *)insnBuffer)[i]);
+      bperr("\n\n\n\n\n");
+    */
+    
+    if (!proc_->writeDataSpace((void*)tempTrampBase, irpcBuf.used(), irpcBuf.start_ptr())) {
+        // should put up a nice error dialog window
+        cerr << "createRPCtempTramp failed because writeDataSpace failed" <<endl;
+        return 0;
+    }
+        
+    return tempTrampBase;
 }
+
+/* ***************************************************** */
+
+
+#if !defined(arch_ia64)
+
+// IA64 has to figure out what to save before it can do things correctly. This is very
+// nasty (see inst-ia64.C), and so we're leaving it alone. Everyone else
+// is relatively normal. If the saves are ever wrapped into a function we could
+// probably get rid of the ifdef
+
+bool rpcMgr::emitInferiorRPCheader(codeGen &gen) 
+{
+    assert(irpcTramp);
+    irpcTramp->generateBT();
+    gen.copy(irpcTramp->preTrampCode_);
+    return true;
+}
+
+bool rpcMgr::emitInferiorRPCtrailer(codeGen &gen,
+                                    unsigned &breakOffset,
+                                    bool shouldStopForResult,
+                                    unsigned &stopForResultOffset,
+                                    unsigned &justAfter_stopForResultOffset) {
+    if (shouldStopForResult) {
+        // Trappity!
+        stopForResultOffset = gen.used();
+        instruction::generateTrap(gen);
+        justAfter_stopForResultOffset = gen.used();
+    }
+    assert(irpcTramp);
+    irpcTramp->generateBT();
+    gen.copy(irpcTramp->postTrampCode_);
+    // We can't do a SIGTRAP since SIGTRAP is reserved in x86.
+    // So we do a SIGILL instead.
+    breakOffset = gen.used();
+    instruction::generateTrap(gen);
+    
+    instruction::generateIllegal(gen);
+
+#if defined(arch_x86) 
+     // X86 traps at the next insn, not the trap. So shift the
+     // offsets accordingly
+     if (shouldStopForResult) {
+         stopForResultOffset += 1;
+     }
+     breakOffset += 1;
+#endif
+         
+
+    return true;
+}
+
+#endif
+
 
 bool rpcMgr::cancelRPC(unsigned id) {
   inferiorrpc_printf("Cancelling RPC %d...\n", id);
