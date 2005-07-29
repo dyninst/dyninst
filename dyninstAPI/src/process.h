@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.326 2005/06/30 00:52:03 tlmiller Exp $
+/* $Id: process.h,v 1.327 2005/07/29 19:19:07 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -88,7 +88,7 @@
 #include <sys/procfs.h>
 #endif
 
-#include "dyninstAPI/src/sharedobject.h"
+#include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
 
 #if defined( ia64_unknown_linux2_4 )
@@ -105,13 +105,16 @@ extern unsigned activeProcesses; // number of active processes
    // a (static) member vrble of class process
 
 class instPoint;
-class trampTemplate;
-class miniTrampHandle;
-class instReqNode;
+class multiTramp;
+class baseTramp;
+class miniTramp;
+class generatedCodeObject;
 class dyn_thread;
+// We track so we can disable mutations; these use a different mechanism
+// than instrumentation. UNIFY.
+class replacedFunctionCall;
 // TODO a kludge - to prevent recursive includes
 class image;
-class instPoint;
 class dyn_lwp;
 class rpcMgr;
 class syscallNotification;
@@ -130,7 +133,15 @@ typedef enum { textHeap=0x01,
                lowmemHeap=0x1000 }
         inferiorHeapType;
 typedef pdvector<Address> addrVecType;
-typedef enum { unstarted, begun, initialized, loadingRT, loadedRT, bootstrapped } bootstrapState_t;
+
+typedef enum { unstarted_bs, 
+               attached_bs, 
+               begun_bs, 
+               initialized_bs, 
+               loadingRT_bs, 
+               loadedRT_bs, 
+               bootstrapped_bs } bootstrapState_t;
+
 typedef enum { terminateFailed, terminateSucceeded, alreadyTerminated } terminateProcStatus_t;
 
 const int LOAD_DYNINST_BUF_SIZE = 256;
@@ -245,6 +256,8 @@ class heapDescriptor {
 
 class inferiorHeap {
  public:
+    void clear();
+    
   inferiorHeap(): heapActive(addrHash16) {
       freed = 0; disabledListTotalMem = 0; totalFreeMemAvailable = 0;
   }
@@ -260,35 +273,7 @@ class inferiorHeap {
   pdvector<heapItem *> bufferPool;        // distributed heap segments -- csserra
 };
  
-#ifdef BPATCH_SET_MUTATIONS_ACTIVE
-class mutationRecord {
-public:
-    mutationRecord *next;
-    mutationRecord *prev;
-
-    Address     addr;
-    int         size;
-    void        *data;
-
-    mutationRecord(Address _addr, int _size, const void *_data);
-    ~mutationRecord();
-};
-
-class mutationList {
-private:
-    mutationRecord      *head;
-    mutationRecord      *tail;
-public:
-    mutationList() : head(NULL), tail(NULL) {};
-    ~mutationList();
-
-    void insertHead(Address addr, int size, const void *data);
-    void insertTail(Address addr, int size, const void *data);
-    mutationRecord *getHead() { return head; }
-    mutationRecord *getTail() { return tail; }
-};
-#endif /* BPATCH_SET_MUTATIONS_ACTIVE */
-
+#if 0
 static inline unsigned ipHash(const instPoint * const &ip)
 {
   // assume all addresses are 4-byte aligned
@@ -298,44 +283,54 @@ static inline unsigned ipHash(const instPoint * const &ip)
   // how about %'ing by a huge prime number?  Nah, x % y == x when x < y 
   // so we don't want the number to be huge.
 }
-
-
-static inline unsigned miniTrampHandleHash(miniTrampHandle * const &inst) {
-   unsigned result = (unsigned)(Address)inst;
-   result >>= 2;
-   return result; // how about %'ing by a huge prime number?
-//  return ((unsigned)inst);
-}
+#endif
 
 typedef void (*continueCallback)(timeStamp timeOfCont);
 
-// Get the file descriptor for the (eventually) 'symbols' image
-// Necessary data to load and parse the executable file
-fileDescriptor *getExecFileDescriptor(pdstring filename,
-				      int &status,
-				      bool); // bool for AIX
-
 class process {
- friend class ptraceKludge;
- friend class dyn_thread;
- friend class dyn_lwp;
- friend Address loadDyninstDll(process *, char Buffer[]);
+    friend class ptraceKludge;
+    friend class dyn_thread;
+    friend class dyn_lwp;
+    friend Address loadDyninstDll(process *, char Buffer[]);
+    friend class multiTramp;
 
-  //  
-  //  PUBLIC MEMBERS FUNCTIONS
-  //  
-
+    //  
+    //  PUBLIC MEMBERS FUNCTIONS
+    //  
+    
  public:
+    
+    // Default constructor
+    process(int pid);
+    
+    // Creation work
+    bool setupCreated(int iTraceLink);
+    bool setupAttached();
+    // Similar case... process execs, we need to clean everything out
+    // and reload the runtime library. This is basically creation,
+    // just without someone calling us to make sure it happens...
+    bool setupExec();
 
-  //removed for output redirection
-  process(int iPid, image *iImage, int iTraceLink);
+    // And fork...
+    bool setupFork();
+
+    // Shared creation tasks
+    bool setupGeneral();
+
+    // And parse/get the a.out
+    // Doing this post-attach allows us to one-pass parse things that need it (e.g., AIX)
+    bool setAOut(fileDescriptor &desc);
+    bool setMainFunction();
+
+
+  process(int iPid, mapped_object *aout, int iTraceLink);
      // this is the "normal" ctor
 
-  process(int iPid, image *iSymbols,
+  process(int iPid, mapped_object *aout,
           bool& success);
-     // this is the "attach" ctor
+  // this is the "attach" ctor
 
-  process(const process &parentProc, int iPid, int iTrace_fd);
+  process(const process *parentProc, int iPid, int iTrace_fd);
      // this is the "fork" ctor
 
   protected:  
@@ -349,8 +344,6 @@ class process {
   // Get a vector of the active frames of all threads in the process
   bool getAllActiveFrames(pdvector<Frame> &activeFrames);
 
-  bool collectSaveWorldData;//this is set to collect data for
-				//save the world
 
   // Is the current address "after" the given instPoint?
   bool triggeredInStackFrame(Frame &frame,
@@ -389,12 +382,13 @@ class process {
   unsigned getIndexToThread(unsigned index);
   void setIndexToThread(unsigned index, unsigned value);
   void updateThreadIndexAddr(Address addr);
-  
-  private:
-  Address threadIndexAddr;
-  public:
+ public:
 
+  // Current process state
   processState status() const { return status_;}
+
+  // State when we attached;
+  bool wasRunningWhenAttached() const { return stateWhenAttached_ == running; }
 
   // update the status on the whole process (ie. process state and all lwp
   // states)
@@ -420,10 +414,6 @@ class process {
 
   void continueAfterNextStop() { continueAfterNextStop_ = true; }
   static process *findProcess(int pid);
-  bool findInternalSymbol(const pdstring &name, bool warn, internalSym &ret_sym)
-         const;
-
-  Address findInternalAddress(const pdstring &name, bool warn, bool &err) const;
 
 char * systemPrelinkCommand;
 #if defined(sparc_sun_solaris2_4) \
@@ -451,31 +441,31 @@ char * systemPrelinkCommand;
 #else
   char* dumpPatchedImage(pdstring outFile) { return NULL; } 
 #endif
-	bool applyMutationsToTextSection(char *textSection, int textAddr, int textSize);
+	bool applyMutationsToTextSection(char *textSection, unsigned textAddr, unsigned textSize);
 	
 
   bool dumpImage(pdstring outFile);
   
-  bool symbol_info(const pdstring &name, Symbol &ret) {
-     assert(symbols);
-     return symbols->symbol_info(name, ret);
-  }
-
   // This will find the named symbol in the image or in a shared object
+  // Necessary since some things don't show up as a function or variable.
   bool getSymbolInfo( const pdstring &name, Symbol &ret );
 
+  // Not at all sure we want to use this anymore...
   void overwriteImage( image* img ) {
-      if (symbols != NULL)
-	  deleteCodeRange(symbols->codeOffset());
-      symbols = img;
-      addCodeRange(img->codeOffset(), img);
+    assert(0);
   }
 
-  image *getImage() const {
-     assert(symbols);
-     return symbols;
-  }
-  int getAddressWidth() { return getImage()->getObject().getAddressWidth(); }
+  // Appears to be the system pointer size. 
+  // FIXME, someone... please...
+  unsigned getAddressWidth() { return sizeof(void *); }
+
+  // The process keeps maps of valid (i.e. allocated) address ranges
+  bool isValidAddress(Address);
+
+  // And "get me a local pointer to XX" -- before we modified it.
+  void *getPtrToOrigInstruction(Address);
+  // ... and after
+  void *getPtrToModifiedInstruction(Address);
 
   // this is only used on aix so far - naim
   // And should really be defined in a arch-dependent place, not process.h - bernat
@@ -483,10 +473,7 @@ char * systemPrelinkCommand;
 
   bool dyninstLibAlreadyLoaded() { return runtime_lib != 0; }
 
-  bool deferredContinueProc;
   void updateActiveCT(bool flag, CTelementType type);
-
-  rpcMgr *theRpcMgr;
 
   rpcMgr *getRpcMgr() const { return theRpcMgr; }
 
@@ -500,25 +487,20 @@ char * systemPrelinkCommand;
   bool changeIntReg(int reg, Address addr);
 #endif
 
-  bool instrSideEffect(Frame &frame, instPoint *inst);
-
   void installInstrRequests(const pdvector<instMapping*> &requests);
-  void recognize_threads(process *parent);
+  void recognize_threads(const process *parent);
   // Get LWP handles from /proc (or as appropriate)
   void determineLWPs(pdvector<unsigned> &lwp_ids);
 
   int getPid() const { return pid;}
 
-  bool heapIsOk(const pdvector<sym_data>&);
-
-
   /***************************************************************************
    **** Runtime library initialization code (Dyninst)                     ****
    ***************************************************************************/
   bool loadDyninstLib();
-  bool setDyninstLibPtr(shared_object *libobj);
+  bool setDyninstLibPtr(mapped_object *libobj);
   bool setDyninstLibInitParams();
-  static void dyninstLibLoadCallback(process *, pdstring libname, shared_object *libobj, void *data);
+  static void dyninstLibLoadCallback(process *, pdstring libname, mapped_object *libobj, void *data);
   bool finalizeDyninstLib();
   
   bool iRPCDyninstInit();
@@ -526,38 +508,21 @@ char * systemPrelinkCommand;
                                             void *data, void *ret);
   
   // Get the list of inferior heaps from:
-  bool getInfHeapList(pdvector<heapDescriptor> &infHeaps); // Whole process
-  bool getInfHeapList(const image *theImage,
-                      pdvector<heapDescriptor> &infHeaps,
-                      Address baseAddr); // Single image
 
-  void addInferiorHeap(const image *theImage, Address baseAddr = 0);
+  bool getInfHeapList(pdvector<heapDescriptor> &infHeaps); // Whole process
+  bool getInfHeapList(const mapped_object *theObj,
+                      pdvector<heapDescriptor> &infHeaps); // Single mapped object
+
+  void addInferiorHeap(const mapped_object *obj);
 
   void initInferiorHeap();
 
   /* Find the tramp guard addr and set it */
   bool initTrampGuard();
 
-#ifdef BPATCH_SET_MUTATIONS_ACTIVE
-  bool isAddrInHeap(Address addr) 
-    {
-      for (unsigned i = 0; i < heap.bufferPool.size(); i++) {
-        heapItem *seg = heap.bufferPool[i];
-        if (addr >= seg->addr && addr < seg->addr + seg->length)
-          return true;
-      }
-      return false;
-    }
-#endif
-
   void saveWorldData(Address address, int size, const void* src);
 
 #if defined(cap_save_the_world)
-  pdvector<imageUpdate*> imageUpdates;//ccw 28 oct 2001
-  pdvector<imageUpdate*> highmemUpdates;//ccw 20 nov 2001
-  pdvector<dataUpdate*>  dataUpdates;//ccw 26 nov 2001
-  pdvector<pdstring> loadLibraryCalls;//ccw 14 may 2002 
-  pdvector<pdstring> loadLibraryUpdates;//ccw 14 may 2002
 
   char* saveWorldFindDirectory();
 
@@ -577,19 +542,10 @@ char * systemPrelinkCommand;
   
 #if defined(os_aix)
   void addLib(char *lname);//ccw 30 jul 2002
-  int requestTextMiniTramp; //ccw 20 jul 2002
 #endif // os_aix
 
 #endif // cap_save_the_world
 
-#if !defined(os_windows) 
-  //ccw 3 sep 2002
-  //These variables are used by UNIX.C during the loading
-  //of the runtime libraries.
-  //
-  bool finishedDYNINSTinit;
-  int RPCafterDYNINSTinit;
-#endif // os_windows
 
   bool writeDataSpace(void *inTracedProcess,
                       u_int amount, const void *inSelf);
@@ -611,8 +567,7 @@ char * systemPrelinkCommand;
   }
   void independentLwpControlInit();
 
-  enum { NoSignal = -1 };   // matches declaration in dyn_lwp.h
-  bool continueProc(int signalToContinueWith = NoSignal);
+  bool continueProc(int signalToContinueWith = -1);
 
   bool terminateProc();
 
@@ -629,7 +584,9 @@ char * systemPrelinkCommand;
   ~process();
   bool pause();
 
-  bool replaceFunctionCall(const instPoint *point,const int_function *newFunc);
+  // instPoint isn't const; it may get an updated list of
+  // instances since we generate them lazily.
+  bool replaceFunctionCall(instPoint *point,const int_function *newFunc);
 
   bool dumpCore(const pdstring coreFile);
   bool attach();
@@ -637,7 +594,6 @@ char * systemPrelinkCommand;
   bool setProcessFlags();
   bool unsetProcessFlags(); // Counterpart to above
   
-  bool isDynamicCallSite(instPoint *callSite); 
   bool getDynamicCallSiteArgs(instPoint *callSite, 
                               pdvector<AstNode *> &args);
                               
@@ -651,39 +607,28 @@ char * systemPrelinkCommand;
 #endif
 
   // Trampoline guard get/set functions
-  Address trampGuardAddr(void) { return trampGuardAddr_; }
-  void setTrampGuardAddr(Address addr) { trampGuardAddr_ = addr; }
+  Address trampGuardBase(void) { return trampGuardBase_; }
+  void setTrampGuardBase(Address addr) { trampGuardBase_ = addr; }
   
   //  
   //  PUBLIC DATA MEMBERS
   //  
 
-  // the following 2 vrbles probably belong in a different class:
-  static pdstring programName; // the name of paradynd (specifically, argv[0])
-  static pdstring pdFlavor;
-  pdstring dyninstRT_name; // the filename of the dyninst runtime library
 
-  // These member vrbles should be made private!
-  int traceLink;                /* pipe to transfer traces data over */
+  // Need a code range of multiTramps
+  // Look up to see if a multiTramp already covers this address.
+  multiTramp *findMultiTramp(Address addr);
+  // Add...
+  void addMultiTramp(multiTramp *multi);
+  // And remove.
+  void removeMultiTramp(multiTramp *multi);
 
-  // the following 3 are used in perfStream.C
-  char buffer[2048];
-  unsigned bufStart;
-  unsigned bufEnd;
+  ////////////////////////////////////////////////
+  // Address to <X> mappings
+  ////////////////////////////////////////////////
 
-  //removed for output redirection
-  //int ioLink;                   /* pipe to transfer stdout/stderr over */
-
-  Address previousSignalAddr_;
   
-  bool continueAfterNextStop_;
 
-  /* map an inst point to its base tramp */
-  dictionary_hash<const instPoint*, trampTemplate *> baseMap;   
-
-  // More #if defined(uses_traps_and_can't_mask_signals
-  // Trap address to base tramp address (for trap instrumentation)
-  dictionary_hash<Address, Address> trampTrapMapping;
 
 #if defined( os_linux )
   public:
@@ -697,16 +642,9 @@ char * systemPrelinkCommand;
   bool readAuxvInfo();
   
  
-  private: 
-  Address vsyscall_start_;
-  Address vsyscall_end_;
-  Address vsyscall_text_;
-  void *vsyscall_data_;
 #endif
   
   private:
-  bootstrapState_t bootstrapState;
-  bool suppressCont_;
 
   public:
   // True if we've reached or past a certain state
@@ -728,6 +666,11 @@ char * systemPrelinkCommand;
 		   << getBootstrapStateAsString() << endl;
   }  
 
+  void resetBootstrapState(bootstrapState_t state) {
+      // Every so often we need to force this to a particular value
+      bootstrapState = state;
+  }
+
  // Callbacksfor higher level code (like BPatch) to learn about new 
  //  functions and InstPoints.
  private:
@@ -747,26 +690,11 @@ char * systemPrelinkCommand;
        
  // inferior heap management
  public:
-  bool splitHeaps;              /* are there separate code/data heaps? */
-  inferiorHeap heap;            /* the heap */
-
-
-#ifndef BPATCH_LIBRARY
-#ifdef PAPI
-  papiMgr* papi;
-  papiMgr* getPapiMgr() { return papi; }
-#endif
-
-#endif
 
   //
   //  PRIVATE DATA MEMBERS (and structure definitions)....
   //
  private:
-  unsigned char savedCodeBuffer[BYTES_TO_SAVE];
-#if defined(arch_x86) || defined(arch_x86_64)
-  unsigned char savedStackFrame[BYTES_TO_SAVE];
-#endif
 
 
 /////////////////////////////////////////////////////////////////
@@ -782,30 +710,16 @@ char * systemPrelinkCommand;
   bool checkTrappedSyscallsInternal(Address syscall);
     
   private:
-  // Tracing for whatever mechanism we use to notify us of syscalls made
-  // by the process (fork/exec/exit)
-  syscallNotification *tracedSyscalls_;
-
-// A list of traps inserted at system calls
-  pdvector<syscallTrap *> syscallTraps_;
   
   // Trampoline guard location -- actually an addr in the runtime library.
-  Address trampGuardAddr_;
 
-  processState status_;         /* running, stopped, etc. */
   
   //
   //  PRIVATE MEMBER FUNCTIONS
   // 
 
-
-  bool need_to_wait(void) ;
-  // The follwing 5 routines are implemented in an arch-specific .C file
-
  public:
 
-  Address dyninstlib_brk_addr;
-  Address main_brk_addr;
 
   bool getDyninstRTLibName();
   bool loadDYNINSTlib();
@@ -815,19 +729,23 @@ char * systemPrelinkCommand;
   bool loadDYNINSTlib_libc20();
   bool loadDYNINSTlib_libc21();
 #endif
-  bool loadDYNINSTlibCleanup();
-  bool trapDueToDyninstLib();
+  bool loadDYNINSTlibCleanup(dyn_lwp *trappingLWP);
+  bool trapDueToDyninstLib(dyn_lwp *trappingLWP);
 
   // trapAddress is not set on non-NT, we discover it inline
-  bool trapAtEntryPointOfMain(Address trapAddress = 0);
-  bool wasCreatedViaAttach() { return createdViaAttach; }
-  bool wasCreatedViaFork() { return createdViaFork; }
-  bool wasRunningWhenAttached() { return wasRunningWhenAttached_; }
+  bool trapAtEntryPointOfMain(dyn_lwp *checkLWP, Address trapAddress = 0);
+  bool wasCreatedViaAttach() { return creationMechanism_ == attached_cm; }
+  bool wasCreatedViaAttachToCreated() { return creationMechanism_ == attachedToCreated_cm; }
+
+  // This is special, since it's orthogonal to the others. We're forked if
+  // the "parent process" is non-null
+  bool wasCreatedViaFork() { return parent != NULL; }
+
+
   bool insertTrapAtEntryPointOfMain();
-  bool handleTrapAtEntryPointOfMain();
+  bool handleTrapAtEntryPointOfMain(dyn_lwp *trappingLWP);
 
   
-  bool wasCreatedViaAttachToCreated() {return createdViaAttachToCreated; } // Ana
 
   pdstring getProcessStatus() const;
 
@@ -837,17 +755,7 @@ char * systemPrelinkCommand;
       // trick to determine the full-path-name, even though "progpath" may
       // be unspecified (empty string)
 
-  // Used when we get traps for both child and parent of a fork.
-  int childPid;
-  int parentPid;
-  int childHasSignalled() { return childPid; };
-  int parentHasSignalled() { return parentPid; };
-  void setChildHasSignalled(int c) { childPid = c; };
-  void setParentHasSignalled(int c) { parentPid = c; };
-
-  // get and set info. specifying if this is a dynamic executable
-  void setDynamicLinking(){ dynamiclinking = true;}
-  bool isDynamicallyLinked() { return (dynamiclinking); }
+  bool isDynamicallyLinked() const { return mapped_objects.size() > 1; }
 
   // handleIfDueToSharedObjectMapping: if a trap instruction was caused by
   // a dlopen or dlclose event then return true
@@ -862,36 +770,27 @@ char * systemPrelinkCommand;
   bool unregisterLoadLibraryCallback(pdstring libname);  
 
   // Run a callback (if appropriate)
-  bool runLibraryCallback(pdstring libname, shared_object *libobj);
+  bool runLibraryCallback(pdstring libname, mapped_object *libobj);
     
   private:
-  // Hashtable of registered callbacks
-  dictionary_hash<pdstring, libraryCallback *> loadLibraryCallbacks_;
 
   public:
-  // Insert instrumentation necessary to detect shared objects.
-  bool initSharedObjects();
-  
-
-#if !defined(BPATCH_LIBRARY)
-  bool handleStopDueToExecEntry();
-#endif
 
   // getSharedObjects: This routine is called before main() to get and
   // process all shared objects that have been mapped into the process's
   // address space
-  bool getSharedObjects();
+  bool processSharedObjects();
 
   // addASharedObject: This routine is called whenever a new shared object
   // has been loaded by the run-time linker after the process starts running
   // It processes the image, creates new resources
-  bool addASharedObject(shared_object *, Address newBaseAddr = 0);
+  bool addASharedObject(mapped_object *);
 
   // return the list of dynamically linked libs
-  pdvector<shared_object *> *sharedObjects() { return shared_objects;  } 
+  const pdvector<mapped_object *> &mappedObjects() { return mapped_objects;  } 
 
   // getMainFunction: returns the main function for this process
-  int_function *getMainFunction() const { return mainFunction; }
+  int_function *getMainFunction() const { return main_function; }
 
 #if !defined(BPATCH_LIBRARY)
   // findOneFunction: returns the function associated with function "func"
@@ -899,7 +798,6 @@ char * systemPrelinkCommand;
   // shared object images for this function.  
   // mcheyney - should return NULL if function is excluded!!!!
   int_function *findOnlyOneFunction(resource *func,resource *mod);
-  int_function *findOnlyOneFunction(pdstring func_name, pdstring mod_name);
 
   //this routine searches for a function in a module.  Note that res is a vector
   // due to gcc emitting duplicate constructors/destructors
@@ -933,41 +831,49 @@ char * systemPrelinkCommand;
     return false;
   }
     
-  void setLWPStoppedFromForkExit(unsigned lwp_id) {
-     LWPstoppedFromForkExit = lwp_id;
-  }
-  unsigned getLWPStoppedFromForkExit() {
-     return LWPstoppedFromForkExit;
-  }
-
-  
   dyn_thread *STdyn_thread();
-
-  // findOnlyOneFunction: returns the function associated with function 
-  // "func_name"
-  // This routine checks both the a.out image and any shared object images 
-  // for this function.  It fails if more than one match is found.
-  // findOnlyOnefunctionFromAll:  also checks uninstrumentable functions
-  int_function *findOnlyOneFunction(const pdstring &func_name) const;
 
   // findFuncByName: returns function associated with "func_name"
   // This routine checks both the a.out image and any shared object images 
   // for this function
   //int_function *findFuncByName(const pdstring &func_name);
 
-  // And do it, returning a vector if multiple matches
-  bool findAllFuncsByName(const pdstring &func_name, pdvector<int_function *> &res);
+  bool findFuncsByAll(const pdstring &funcname,
+                      pdvector<int_function *> &res,
+                      const pdstring &libname = "");
 
-  // Most find* routines check pretty names first, then check the mangled
-  // hashes when a match cannot be found.  Sometimes, however, we want
-  // to go right to the mangled hash.
-  bool findFuncsByMangled(const pdstring &func_name, pdvector<int_function *> &res);
+  // Specific versions...
+  bool findFuncsByPretty(const pdstring &funcname,
+                         pdvector<int_function *> &res,
+                         const pdstring &libname = "");
+  bool findFuncsByMangled(const pdstring &funcname, 
+                          pdvector<int_function *> &res,
+                          const pdstring &libname = "");
+
+  bool findVarsByAll(const pdstring &varname,
+                     pdvector<int_variable *> &res,
+                     const pdstring &libname = "");
+
+  void getLibAndFunc(const pdstring &name,
+                     pdstring &func,
+                     pdstring &lib);
+
+  // And we often internally want to wrap the above to return one
+  // and only one func...
+  int_function *findOnlyOneFunction(const pdstring &name,
+                                    const pdstring &libname = "");
+
   // Find the code sequence containing an address
   // Note: fix the name....
   codeRange *findCodeRangeByAddress(Address addr);
   int_function *findFuncByAddr(Address addr);
   
-  bool addCodeRange(Address addr, codeRange *codeobj);
+  instPoint *findInstPByAddr(Address addr);
+  // Should be called once per address an instPoint points to
+  // (multiples for relocated functions)
+  void registerInstPointAddr(Address addr, instPoint *inst);
+
+  bool addCodeRange(codeRange *codeobj);
   bool deleteCodeRange(Address addr);
     
   // No function is pushed onto return vector if address can't be resolved
@@ -982,19 +888,15 @@ char * systemPrelinkCommand;
   //  if substring_match is true, the first module whose name contains
   //  the provided string is returned.
 
-  pdmodule *findModule(const pdstring &mod_name, bool substring_match = false);
-  // getSymbolInfo:  get symbol info of symbol associated with name n
-  // this routine starts looking a.out for symbol and then in shared objects
-  // baseAddr is set to the base address of the object containing the symbol
-  bool getSymbolInfo(const pdstring &n, Symbol &info, Address &baseAddr) const;
+  mapped_module *findModule(const pdstring &mod_name, bool substring_match = false);
 
   // getAllFunctions: returns a vector of all functions defined in the
   // a.out and in the shared objects
-  pdvector<int_function *> *getAllFunctions();
+  void getAllFunctions(pdvector<int_function *> &);
 
   // getAllModules: returns a vector of all modules defined in the
   // a.out and in the shared objects
-  pdvector<module *> *getAllModules();
+  void getAllModules(pdvector<mapped_module *> &);
 
   void triggerNormalExitCallback(int exitCode);
   void triggerSignalExitCallback(int signalnum);  
@@ -1006,38 +908,19 @@ char * systemPrelinkCommand;
   // this function makes no callback to dyninst but only does cleanup work
   void handleProcessExit();
 
-  // getBaseAddress: sets baseAddress to the base address of the 
-  // image corresponding to which.  It returns true  if image is mapped
-  // in processes address space, otherwise it returns 0
-  bool getBaseAddress(const image *which, Address &baseAddress) const;
-
-  // findCallee: finds the function called by the instruction corresponding
-  // to the instPoint "instr". If the function call has been bound to an
-  // address, then the callee function is returned in "target" and the
-  // instPoint "callee" data member is set to pt to callee's int_function.
-  // If the function has not yet been bound, then "target" is set to the
-  // int_function associated with the name of the target function (this is
-  // obtained by the PLT and relocation entries in the image), and the instPoint
-  // callee is not set.  If the callee function cannot be found, (e.g. function
-  // pointers, or other indirect calls), it returns false.
-  // Returns false on error (ex. process doesn't contain this instPoint).
-  bool findCallee(instPoint &instr, int_function *&target);
-
 #ifndef BPATCH_LIBRARY
   bool SearchRelocationEntries(const image *owner, instPoint &instr,
                                int_function *&target,
                                Address target_addr, Address base_addr);
 #endif
 
-  // findSignalHandler: if signal_handler is 0, then it checks all images
-  // associtated with this process for the signal handler function.
-  // Otherwise, the signal handler function has already been found
-  void findSignalHandler();
+  // Checks the mapped object for signal handlers
+  void findSignalHandler(mapped_object *obj);
 
   void handleForkEntry();
 #if defined(os_aix)
   // Manually copy inferior heaps past the end of text segments
-  void copyDanglingMemory(process *child);
+  void copyDanglingMemory(process *parent);
 #endif
   void handleForkExit(process *child);
   void handleExecEntry(char *arg0);
@@ -1047,33 +930,8 @@ char * systemPrelinkCommand;
   // Returns true if handling was done
   bool handleSyscallExit(procSignalWhat_t syscall, dyn_lwp *lwp_with_event);
   
-  // For platforms where we can't specifically tell if a signal is due to
-  // fork or exec and have to guess
-  bool nextTrapIsFork;
-  bool nextTrapIsExec;
-
-  // For handleExecExit on platforms where we can't get the
-  // path string from the PID
-  pdstring execPathArg;		// Argument given to exec
-  pdstring execFilePath;	// Full path info
-  
-  //  wasExeced: returns true is the process did an exec...this is set
-  //  in handleExec()
-  bool wasExeced(){ return execed_;}
-  private:
-  bool execed_;  // true if this process does an exec...set in handleExec
-
-  pdvector<instMapping*> tracingRequests;
-
-  /* If we use instrumentation to catch syscalls, the points are stored here */
-  instMapping *preForkInst, *postForkInst, *preExecInst, *postExecInst, *preExitInst;
-
   public:
 
-  // True if we're in the process of an exec (from exec entry until we load
-  // the dyninst RT lib)
-  bool inExec;
-  
   dyn_thread *getThread(unsigned tid);
   dyn_lwp *getLWP(unsigned lwp_id);
 
@@ -1110,11 +968,7 @@ char * systemPrelinkCommand;
 #if defined(os_osf)
   int waitforRPC(int *status,bool block = false);
 #endif
-  process *getParent() const {return parent;}
-
-#if defined(hppa1_1_hp_hpux)
-  bool freeNotOK;
-#endif
+  const process *getParent() const {return parent;}
 
  public:
 
@@ -1123,7 +977,7 @@ char * systemPrelinkCommand;
 
    bool extractBootstrapStruct(DYNINST_bootstrapStruct *);
    bool isBootstrappedYet() const {
-      return bootstrapState == bootstrapped;
+       return bootstrapState == bootstrapped_bs;
    }
 #if !defined(BPATCH_LIBRARY)
    void setParadynBootstrap() {
@@ -1134,37 +988,12 @@ char * systemPrelinkCommand;
    bool isParadynBootstrapped() {
        return PARADYNhasBootstrapped;
    }
+   bool PARADYNhasBootstrapped;
 #endif
    
 private:
   // Since we don't define these, 'private' makes sure they're not used:
   process &operator=(const process &); // assign oper
-
-#if !defined(BPATCH_LIBRARY)  //ccw 22 apr 2002 : SPLIT
-  bool PARADYNhasBootstrapped;
-#endif
-  // the next two variables are used when we are loading dyninstlib
-  // They are used by the special inferior RPC that makes the call to load the
-  // library -- we use a special inferior RPC because the regular RPC assumes
-  // that the inferior heap already exists, which is not true if libdyninstRT
-  // has not been loaded yet.
-  char savedData[LOAD_DYNINST_BUF_SIZE];
-  struct dyn_saved_regs *savedRegs;
-
-
-  process *parent;        /* parent of this process */
-  image *symbols;               /* information related to the process */
-  shared_object *runtime_lib;           /* shortcut to the runtime library */
-  codeRangeTree *codeRangesByAddr_;
-
-  int pid;                      /* id of this process */
-
-#ifndef BPATCH_LIBRARY
-  // This is being used to avoid time going backwards in
-  // getInferiorProcessCPUtime. We can't use a static variable inside this
-  // procedure because there is one previous for each process - naim 5/28/97
-  rawTime64 previous; 
-#endif
 
 public:
 
@@ -1172,56 +1001,18 @@ public:
 
   Address getObservedCostAddr() const { return costAddr_; }
   void updateObservedCostAddr(Address addr) { costAddr_ = addr;}
+
+
+  // Add a signal handler that was detected
+  void addSignalHandler(Address addr, unsigned size);
   
-  
-#ifdef BPATCH_SET_MUTATIONS_ACTIVE
+  // Used to be ifdefed, now not because of rework
+  // Goes right to the multitramp and installs/uninstalls
+  // jumps.
    bool uninstallMutations();
    bool reinstallMutations();
-#endif /* BPATCH_SET_MUTATIONS_ACTIVE */
-
-#if defined(os_windows)
-   void set_windows_termination_requested(bool val) {
-      windows_termination_requested = val;   
-   }
-   bool get_windows_termination_requested() {
-      return windows_termination_requested;
-   }
-
- private:
-   bool windows_termination_requested;
-#endif // os_windows
 
 private:
-  bool createdViaAttach;
-     // set in the ctor.  True iff this process was created with an attach,
-     // as opposed to being fired up by paradynd.  On fork, has the value of
-     // the parent process.  On exec, no change.
-     // This vrble is important because it tells us what to do when we exit.
-     // If we created via attach, we should (presumably) detach but not fry
-     // the application; otherwise, a kill(pid, 9) is called for.
-
-  // This is set by the constructor to the obvious value, and is rarely used.
-  // Specifically, I made it so that the Linux version could still do a full
-  // ptrace_attach, even though the rest of paradyn assumes we are Solaris 
-  // and have an inherit_tracing_state flag -- DAN
-  bool createdViaFork;
-
-  bool createdViaAttachToCreated;
-  // This is set by constructor. True if thisprocess was created by an 
-  // extern process and the process has been stopped just after the exec()
-  // system call. -- Ana
-
-  // the following 2 are defined only if 'createdViaAttach' is true; action is
-  // taken on these vrbles once DYNINSTinit completes.
-
-  bool wasRunningWhenAttached_;
-  bool needToContinueAfterDYNINSTinit;
-
-  // for processing observed cost (see method processCost())
-  int64_t cumObsCost; // in cycles
-  unsigned lastObsCostLow; // in cycles
-
-  Address costAddr_;
 
   bool flushInstructionCache_(void *baseAddr, size_t size); //ccw 25 june 2001
   void clearProcessEvents();
@@ -1263,10 +1054,6 @@ private:
   // this lwp represents the process as a whole (ie. all of the individual
   // lwps combined).  This lwp will be NULL if no such lwp exists which is
   // the case for multi-threaded linux processes.
-  dyn_lwp *representativeLWP;
-  dictionary_hash<unsigned, dyn_lwp *> real_lwps;
-
-  pdvector<dyn_thread *> threads;   /* threads belonging to this process */
 
   // /proc platforms
 #if defined(cap_proc)
@@ -1280,55 +1067,26 @@ private:
     bool get_status(pstatus_t *) const;
 #endif // cap_proc_fd
 
-  private:
-  // TODO: public access functions. The NT handler needs direct access
-  // to this (or a NT-compatible handleIfDueToSharedObjectMapping)
+
   public:
-  dynamic_linking *dyn;   // platform specific dynamic linking routines & data
 
-  bool dynamiclinking;   // if true this a.out has a .dynamic section
-  pdvector<shared_object *> *shared_objects;  // list of dynamically linked libs
-  private:
-  // The set of all functions and modules from the shared objects that show
-  // up on the Where axis (both  instrumentable and uninstrumentable due to 
-  // exclude_lib or exclude_func),  and all the functions from the a.out that
-  // are between DYNINSTStart and DYNINSTend
-  // TODO: these lists for a.out functions and modules should be handled the 
-  // same way as for shared object functions and modules
-  pdvector<int_function *> *all_functions;
-  pdvector<module *> *all_modules;
-
-  // these are a restricted set of functions and modules which are those  
-  // from the a.out and shared objects that are instrumentable (not excluded 
-  // through the mdl "exclude_lib" or "exclude_func" option) 
-  // "excluded" now means never able to instrument
-  pdvector<module *> *some_modules;  
-  pdvector<int_function *> *some_functions; 
-
-  
-#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
-public:
-  void addSignalHandlerAddr(Address a) { signal_restore.push_back(a); }
-  
-private:
-  pdvector<Address> signal_restore;   // addresses of signal context restore functions
-                                    // (for stack walking)
-#else // !os_linux
-  int_function *signal_handler;  // signal handler function (for stack walking)
-#endif
-
-  int_function *mainFunction;  // the main function for this process,
-                              // this is usually, but not always, "main"
-
-  unsigned LWPstoppedFromForkExit;                                 
-
+    static bool getExecFileDescriptor(pdstring filename,
+                                      int pid,
+                                      bool waitForTrap, // Should we wait for process init
+                                      int &status,
+                                      fileDescriptor &desc);
+    mapped_object *getAOut() { assert(mapped_objects.size()); return mapped_objects[0];}
+    
+ public:
+  // Needed by instPoint
   // hasBeenBound: returns true if the runtime linker has bound the
   // function symbol corresponding to the relocation entry in at the address 
   // specified by entry and base_addr.  If it has been bound, then the callee 
   // function is returned in "target_pdf", else it returns false. 
   bool hasBeenBound(const relocationEntry entry, int_function *&target_pdf, 
                     Address base_addr) ;
-  
+ private:
+
   bool isRunning_() const;
      // needed to initialize the 'wasRunningWhenAttached' member vrble. 
      // Determines whether the process is running by doing a low-level OS
@@ -1340,24 +1098,10 @@ private:
      // platform; after all, the output from the "ps" command can be used
      // (T --> return false, S or R --> return true, other --> return ?)
 
-#ifdef BPATCH_SET_MUTATIONS_ACTIVE
-   mutationList beforeMutationList, afterMutationList;
-
-   bool saveOriginalInstructions(Address addr, int size);
-   bool writeMutationList(mutationList &list);
-#endif
-
-   int invalid_thr_create_msgs;
-
-  public:
-   int numInvalidThrCreateMsgs() const { return invalid_thr_create_msgs; }
-   void receivedInvalidThrCreateMsg() { invalid_thr_create_msgs++; }
-
  private:
    static void inferiorMallocCallback(process *proc, unsigned /* rpc_id */,
                                       void *data, void *result);
 
-   bool inInferiorMallocDynamic;
    void inferiorMallocDynamic(int size, Address lo, Address hi);
    void inferiorFreeCompact(inferiorHeap *hp);
    int findFreeIndex(unsigned size, int type, Address lo, Address hi);
@@ -1376,46 +1120,207 @@ private:
 			  Address near_=0, bool *err=NULL);
    void inferiorFree(Address item);
 
-   // Maybe this should be in a different file... instead of crudding up
-   // process.h more
-   // Easy fix: subclass both base tramp and minitramp off the same
-   // kind of object which has certain things in common (base address and size)
-   struct instPendingDeletion {
-     // Stupid duplication...
-     miniTrampHandle *oldMini;
-     trampTemplate *oldBase;
-   };
-
-   // Closely related: deletion of minitramps
-   void deleteMiniTramp(miniTrampHandle *delInst);
-   bool checkIfMiniTrampAlreadyDeleted(miniTrampHandle *delInst);
-   // And the associated deletion of a base tramp
-   void deleteBaseTramp(trampTemplate *baseTramp);
-
-
-   // See if we can insert the mini-tramp or not, we can't do it if 
-   // the process is stopped within the tramp we are trying to insert to
-   bool canInsertHere(trampTemplate *baseTramp);
-
 
 /*Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type=anyHeap,
                        Address near_=0, bool *err=NULL);
 void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
 */
 // garbage collect instrumentation
+
+   void deleteGeneratedCode(generatedCodeObject *del);
    void gcInstrumentation();
    void gcInstrumentation(pdvector<pdvector<Frame> >&stackWalks);
- private:
-   pdvector<instPendingDeletion *> pendingGCInstrumentation;
-   
-#if defined( ia64_unknown_linux2_4 )
-	public:
-		 unw_addr_space * unwindAddressSpace;
-		 void * unwindProcessArg;
-		 
-		/* Map an aligned address to its multi-tramp */
-		dictionary_hash<Address, Address> multiTrampMap;		
+
+  ///////////////////////////////////////////////////
+  // Process class members
+  ///////////////////////////////////////////////////
+  int tmp;
+  
+
+  ///////////////////////////////
+  // Core process data
+  ///////////////////////////////
+  int pid;
+  const process *parent;
+  pdvector<mapped_object *> mapped_objects;
+  // And a shortcut pointer
+  mapped_object *runtime_lib;
+  // ... and keep the name around
+  pdstring dyninstRT_name;
+
+  // We have to perform particular steps based on how we were started.
+  typedef enum { unknown_cm, 
+                 created_cm, 
+                 attached_cm, 
+                 attachedToCreated_cm } creationMechanism_t;
+
+  // Use accessor method that checks before returning...
+  creationMechanism_t creationMechanism_; 
+  // Users may want to leave a process in the same state as it was;
+  // for example, if attached.
+  processState stateWhenAttached_;
+
+  int_function *main_function; // Usually, but not always, "main"
+
+  ///////////////////////////////
+  // Shared library handling
+  ///////////////////////////////
+  dictionary_hash<pdstring, libraryCallback *> loadLibraryCallbacks_;
+  dynamic_linking *dyn;
+
+  
+  ///////////////////////////////
+  // Process control
+  ///////////////////////////////
+  dyn_lwp *representativeLWP;
+  // LWPs are index by their id
+  dictionary_hash<unsigned, dyn_lwp *> real_lwps;
+  // Threads are accessed by index.
+  pdvector<dyn_thread *> threads;
+
+  bool deferredContinueProc;
+  Address previousSignalAddr_;
+  bool continueAfterNextStop_;
+  bool suppressCont_;
+  // Defined in os.h
+  processState status_;         /* running, stopped, etc. */
+
+  //// Exec
+  // For platforms where we have to guess what the next signal is caused by.
+  // Currently: Linux/ptrace
+  bool nextTrapIsExec;
+  // More sure then looking at /proc/pid
+  pdstring execPathArg;		// Argument given to exec
+  pdstring execFilePath;	// Full path info
+
+  ///////////////////////////////
+  // RPCs
+  ///////////////////////////////
+  rpcMgr *theRpcMgr;
+
+
+  ///////////////////////////////
+  // Save The World
+  ///////////////////////////////
+  bool collectSaveWorldData;//this is set to collect data for
+				//save the world
+
+  pdvector<imageUpdate*> imageUpdates;//ccw 28 oct 2001
+  pdvector<imageUpdate*> highmemUpdates;//ccw 20 nov 2001
+  pdvector<dataUpdate*>  dataUpdates;//ccw 26 nov 2001
+  pdvector<pdstring> loadLibraryCalls;//ccw 14 may 2002 
+  pdvector<pdstring> loadLibraryUpdates;//ccw 14 may 2002
+  int requestTextMiniTramp; //ccw 20 jul 2002
+
+
+  // Pipe between mutator and mutatee
+  int traceLink;                /* pipe to transfer traces data over */
+
+  // the following 3 are used in perfStream.C
+  // Should migrate to process level when we get the LL tracePipe
+  char buffer[2048];
+  unsigned bufStart;
+  unsigned bufEnd;
+
+
+  ///////////////////////////////
+  // Address lookup members
+  ///////////////////////////////
+  // Trap address to base tramp address (for trap instrumentation)
+  dictionary_hash<Address, Address> trampTrapMapping;
+  // Address to instPoint mapping
+  dictionary_hash<Address, instPoint *> instPMapping_;
+  // There may be duplicate entries in the above.
+
+  // Address to executable code pieces (functions, miniTramps, baseTramps, ...) mapping
+  codeRangeTree codeRangesByAddr_;
+  // Get a mutator-side pointer to mutatee-side data without readDataSpace...
+  // codeRangeTree readableSections_;
+  // codeSections_ and dataSections_ instead...
+  // Address -> multiTramp mapping...
+  codeRangeTree multiTramps_;
+  // And an integer->multiTramp so we can replace multis easily
+  dictionary_hash<int, multiTramp *> multiTrampDict;
+
+  // Keep track of function replacements so that we can fix them
+  // up later
+  dictionary_hash<Address, replacedFunctionCall *> replacedFunctionCalls_;
+
+  // Address -> instruction pointer (with sanity checking)
+  codeRangeTree codeSections_;
+  codeRangeTree dataSections_;
+
+  // Signal handling!
+  codeRangeTree signalHandlerLocations_;
+
+  //////////////////
+  // Startup and initialization
+  //////////////////
+  bootstrapState_t bootstrapState;
+  unsigned char savedCodeBuffer[BYTES_TO_SAVE];
+#if defined(arch_x86) || defined(arch_x86_64)
+  unsigned char savedStackFrame[BYTES_TO_SAVE];
 #endif
+  dyn_saved_regs *savedRegs;
+
+  Address dyninstlib_brk_addr;
+  Address main_brk_addr;
+
+  bool runProcessAfterInit;  
+
+  ////////////////////
+  // Inferior heap
+  ////////////////////
+  bool splitHeaps;              /* are there separate code/data heaps? */
+  bool heapInitialized_;
+  inferiorHeap heap;            /* the heap */
+  bool inInferiorMallocDynamic; // The oddest recursion problem...
+
+  /////////////////////
+  // System call and signal handling
+  /////////////////////
+  // Tracing for whatever mechanism we use to notify us of syscalls made
+  // by the process (fork/exec/exit)
+  syscallNotification *tracedSyscalls_;
+
+  // A list of traps inserted at system calls
+  pdvector<syscallTrap *> syscallTraps_;
+
+  /////////////////////
+  // Instrumentation
+  /////////////////////
+  pdvector<instMapping *> tracingRequests;
+  pdvector<generatedCodeObject *> pendingGCInstrumentation;
+
+  // Total observed cost. To avoid 64-bit math in the base tramps, we
+  // use a 32-bit temporary accumulator and periodically dump it to
+  // this variable.
+  uint64_t cumulativeObsCost;
+  unsigned lastObsCostLow; // Value of counter last time we checked it
+  Address costAddr_; // Address of global cost in the mutatee
+
+  Address threadIndexAddr; // Thread ID->index mapping
+  Address trampGuardBase_; // Tramp recursion index mapping
+
+  ///////////////////////////////
+  // Platform-specific
+  ///////////////////////////////
+
+#if defined(arch_ia64)
+  unw_addr_space * unwindAddressSpace;
+  void * unwindProcessArg;
+#endif
+
+#if defined(os_linux)
+  //////////////////
+  // Linux vsyscall stuff
+  //////////////////
+  Address vsyscall_start_;
+  Address vsyscall_end_;
+  Address vsyscall_text_;
+  void *vsyscall_data_;
+#endif
+
 
 };
 
@@ -1427,7 +1332,7 @@ process *ll_createProcess(const pdstring file, pdvector<pdstring> *argv,
 
 process *ll_attachProcess(const pdstring &progpath, int pid);
 
-bool  AttachToCreatedProcess(int pid, const pdstring &progpath);
+process *ll_attachToCreatedProcess(int pid, const pdstring &progpath);
 
 bool isInferiorAllocated(process *p, Address block);
 
