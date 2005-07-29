@@ -69,6 +69,8 @@
 #endif
 
 #include "BPatch_eventLock.h"
+#include "BPatch_function.h"
+#include "BPatch_point.h"
 #include "util.h"
 #include "process.h"
 
@@ -124,7 +126,7 @@ bool BPatch_eventMailbox::executeUserCallbacks()
         {
           BPatchUserEventCallback cb = (BPatchUserEventCallback) cbs[i].cb;
           void *buf = (void *) cbs[i].arg1;
-          unsigned long bufsize = (unsigned long) cbs[i].arg2;
+          unsigned int bufsize = (unsigned int) cbs[i].arg2;
 
           if (!buf || !cb) {
             err = true;
