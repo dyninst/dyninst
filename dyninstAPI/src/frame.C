@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.C,v 1.9 2005/03/16 22:02:21 bernat Exp $
+// $Id: frame.C,v 1.10 2005/07/29 19:18:30 bernat Exp $
 
 #include <stdio.h>
 #include <iostream>
@@ -47,11 +47,9 @@
 #include "dyn_thread.h"
 #include "dyn_lwp.h"
 #include "function.h"
-#include "func-reloc.h"
 #include "instPoint.h"
-#include "trampTemplate.h"
-#include "miniTrampHandle.h"
-#include "edgeTrampTemplate.h"
+#include "baseTramp.h"
+#include "miniTramp.h"
 #include "frame.h"
 
 
@@ -67,10 +65,9 @@ Frame::Frame() :
   lwp_(NULL), 
   range_(0), 
   hasValidCursor(false),
-  pcAddr_(0)
-  {
+  pcAddr_(0) {
     stackwalk_cerr << "*** Null frame ***" << endl;
-  }
+}
 
 
 Frame::Frame(Address pc, Address fp, Address sp,
@@ -89,6 +86,7 @@ Frame::Frame(Address pc, Address fp, Address sp,
 
 Frame::Frame(Address pc, Address fp, Address sp,
 	     Address pcAddr, Frame *f) : 
+    frameType_(FRAME_unset),
   uppermost_(false),
   pc_(pc), fp_(fp), 
   sp_(sp),
@@ -128,14 +126,18 @@ extern void calcVSyscallFrame(process *p);
 
 void Frame::calcFrameType()
 {
+    // Can be called multiple times...
+    if (frameType_ != FRAME_unset) {
+        return;
+    }
+
    int_function *func;
-   relocatedFuncInfo *reloc;
-   miniTrampHandle *mini;
-   trampTemplate *base;
-   edgeTrampTemplate *edge;
+   miniTrampInstance *mini;
+   multiTramp *multi;
 
    // Without a process pointer, we're not going to get far.
-   assert(getProc());
+   if (!getProc())
+       return;
 
    // Checking for a signal handler must go before the vsyscall check
    // since (on Linux) the signal handler is _inside_ the vsyscall page.
@@ -157,16 +159,18 @@ void Frame::calcFrameType()
    codeRange *range = getRange();
 
    func = range->is_function();
-   base = range->is_basetramp();
+   multi = range->is_multitramp();
    mini = range->is_minitramp();
-   reloc = range->is_relocated_func();
-   edge = range->is_edge_tramp(); 
 
-   if (base != NULL || mini != NULL) {
-     frameType_ = FRAME_instrumentation;
-     return;
+   if (mini != NULL) {
+       frameType_ = FRAME_instrumentation;
+       return;
    }
-   else if (reloc != NULL || func != NULL || edge != NULL) {
+   else if (multi != NULL) {
+       frameType_ = FRAME_instrumentation;
+       return;
+   }
+   else if (func != NULL) {
      frameType_ = FRAME_normal;
      return;
    }
@@ -182,11 +186,9 @@ void Frame::calcFrameType()
 ostream & operator << ( ostream & s, Frame & f ) {
 	codeRange * range = f.getRange();
 	int_function * func_ptr = range->is_function();
-	trampTemplate * basetramp_ptr = range->is_basetramp();
-	miniTrampHandle * minitramp_ptr = range->is_minitramp();
-	relocatedFuncInfo * reloc_ptr = range->is_relocated_func();
-	multitrampTemplate * multitramp_ptr = range->is_multitramp();
-	edgeTrampTemplate *edgetramp_ptr = range->is_edge_tramp();
+        multiTramp *multi_ptr = range->is_multitramp();
+	miniTrampInstance * minitramp_ptr = range->is_minitramp();
+
 	s << "PC: 0x" << std::hex << f.getPC() << " ";
 	switch (f.frameType_) {
 	case FRAME_unset:
@@ -195,18 +197,23 @@ ostream & operator << ( ostream & s, Frame & f ) {
 	case FRAME_instrumentation:
 	  s << "[Instrumentation:";
 	  if (minitramp_ptr) {
-	    s << "mt from "
-	      << minitramp_ptr->baseTramp->location->pointFunc()->prettyName() 
+	    s << "mt from ["
+	      << minitramp_ptr->baseTI->multiT->func()->prettyName() 
 	      << "]";
 	  }
-	  else if (basetramp_ptr) {
-	    s << "bt from "
-	      << basetramp_ptr->location->pointFunc()->prettyName() 
-	      << "]";
-	  }
-	  if( multitramp_ptr ) {
-	    s << "[mt from " 
-	      << multitramp_ptr->location->pointFunc()->prettyName() << "]";
+	  else if (multi_ptr) {
+              baseTrampInstance *bti = multi_ptr->getBaseTrampInstanceByAddr(f.getPC());
+              if (bti) {
+                  s << "bt from ";
+              }
+              else {
+                  s << "multitramp from ";
+              }
+              
+              s << "[" << multi_ptr->func()->prettyName() << "/";
+              s << std::hex << "0x" << multi_ptr->instToUninstAddr(f.getPC()) << std::dec;
+              s << "]";
+
 	  }
 	  break;
 	case FRAME_signalhandler:
@@ -216,9 +223,6 @@ ostream & operator << ( ostream & s, Frame & f ) {
 	  if( func_ptr ) {
 	    s << "[" << func_ptr->prettyName() << "]";
 	  }
-	  if( reloc_ptr ) {
-	    s << "[" << reloc_ptr->func()->prettyName() << " *RELOCATED*]";
-	  }
 	  break;
 	case FRAME_syscall:
 	  s << "[SYSCALL]";
@@ -226,6 +230,9 @@ ostream & operator << ( ostream & s, Frame & f ) {
 	case FRAME_unknown:
 	  s << "[UNKNOWN]";
 	  break;
+        default:
+            s << "[ERROR!]";
+            break;
 	}
 	s << " FP: 0x" << std::hex << f.getFP() << " PID: " << std::dec << f.getPID() << " "; 
 	if( f.getThread() ) {
