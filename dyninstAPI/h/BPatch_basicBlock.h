@@ -47,13 +47,13 @@
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"
 #include "BPatch_sourceBlock.h" 
-#include "BPatch_point.h"
 #include "BPatch_instruction.h"
 #include "BPatch_eventLock.h"
 #include "BPatch_edge.h"
 
 class image;
 class int_function;
+class int_basicBlock;
 
 /* Currently all this bitarray stuff is just for power, 
    but could be extended as we do liveness stuff for other platforms */
@@ -507,13 +507,32 @@ public:
         void dump();
 
 	/** constructor of class */
-	BPatch_basicBlock(BPatch_flowGraph*, int);
+	BPatch_basicBlock(const int_basicBlock *ib);
+
+	/** constructor of class */
+	BPatch_basicBlock(BPatch_flowGraph *fg, int bno);
 
 	/** constructor of class */
 	BPatch_basicBlock();
 
 	/** method to set the block id */
 	void setBlockNumber(int);
+
+        // The compare object needs blockNumber. On Windows, though, the compiler
+        // complains that blockNumber is private. So... 
+        int getBlockNumberCompare() const { return blockNumber; }
+
+        /** And a sensible comparison operator for bpatch set */
+        struct compare {
+            int operator()(const BPatch_basicBlock *b1, const BPatch_basicBlock *b2) const {
+                if (b1->getBlockNumberCompare() < b2->getBlockNumberCompare())
+                    return -1;
+                if (b1->getBlockNumberCompare() > b2->getBlockNumberCompare())
+                    return 1;
+                return 0;
+            }
+        };
+
 };
 
 #endif /* _BPatch_basicBlock_h_ */

@@ -82,13 +82,6 @@ class BPATCH_DLL_EXPORT BPatch_edge : public BPatch_eventLock{
 
     ~,BPatch_edge,());
 
-    // BPatch_edge::needsEdgeTramp
-    //
-    // Only edges created by conditional jumps need edge trampolines
-    API_EXPORT(Int, (),
-
-    bool,needsEdgeTramp,());
-    
     // BPatch_edge::dump
     //
     // print internal data
@@ -114,7 +107,7 @@ class BPATCH_DLL_EXPORT BPatch_edge : public BPatch_eventLock{
 
     const unsigned char *relocationPointer;
 
-    BPatch_point *instPoint();
+    BPatch_point *getPoint();
 
     unsigned long addrInFunc;
     
