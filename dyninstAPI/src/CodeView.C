@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CodeView.C,v 1.22 2005/06/08 20:58:57 tlmiller Exp $
+// $Id: CodeView.C,v 1.23 2005/07/29 19:17:47 bernat Exp $
 
 #include <assert.h>
 
@@ -51,6 +51,7 @@
 #include "dyninstAPI/src/CodeView.h"
 #include "dyninstAPI/src/NTTypes.h"
 #include "dyninstAPI/src/BPatch_typePrivate.h"
+#include "dyninstAPI/h/BPatch_function.h"
 
 
 //---------------------------------------------------------------------------
