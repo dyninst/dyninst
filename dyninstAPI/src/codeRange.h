@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.h,v 1.8 2005/03/01 23:07:42 bernat Exp $
+// $Id: codeRange.h,v 1.9 2005/07/29 19:18:24 bernat Exp $
 
 
 #ifndef _codeRangeTree_h_
@@ -52,6 +52,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include "common/h/Types.h"
+#include "common/h/Vector.h"
 
 /** template class for codeRangeTree. The implementation is based on red black
   * tree implementation for efficiency concerns and for getting sorted
@@ -66,33 +67,37 @@ typedef enum { TREE_RED, TREE_BLACK } color_t;
 
 class int_function;
 class image;
-class shared_object;
-class trampTemplate;
-class miniTrampHandle;
-class relocatedFuncInfo;
-class edgeTrampTemplate;
-class multitrampTemplate;
+class mapped_object;
+class multiTramp;
+class baseTrampInstance;
+class miniTrampInstance;
+class image_func;
+class signal_handler_location;
 
 class codeRange {
   public:
     codeRange() { }
     virtual ~codeRange() { }
 
-    virtual Address get_address() const = 0;
-    virtual unsigned get_size() const = 0;
-    virtual codeRange *copy() const = 0;
+    virtual Address get_address_cr() const = 0;
+    virtual unsigned get_size_cr() const = 0;
 
     // returns NULL if not of type
     // so some people who don't like dynamic_cast don't have to be troubled
     // by it's use
-    trampTemplate *is_basetramp();
-    miniTrampHandle *is_minitramp();
+    // Don't use this; baseTramps aren't top-level members in the
+    //process codeRangeByAddr tree. Instead, use multiTramp and
+    //getBaseTrampInstance.
+    baseTrampInstance *is_basetramp_multi();
+    miniTrampInstance *is_minitramp();
     int_function *is_function();
     image *is_image();
-    shared_object *is_shared_object();
-    relocatedFuncInfo *is_relocated_func();
-    edgeTrampTemplate *is_edge_tramp();
-    multitrampTemplate *is_multitramp();
+    mapped_object *is_mapped_object();
+    multiTramp *is_multitramp();
+
+    image_func *is_image_func();
+
+    signal_handler_location *is_signal_handler_location();
 };
 
 class codeRangeTree {
@@ -171,8 +176,15 @@ class codeRangeTree {
     // infix traverse of the RB tree. It traverses the tree in ascending order
     void traverse(codeRange **,entry*,int&) const;
 
+    // Vector version of above
+    // infix traverse of the RB tree. It traverses the tree in ascending order
+    void traverse(pdvector<codeRange *> &all, entry*) const;
+
     // deletes the tree structure for deconstructor.
     void destroy(entry*);
+
+    /** copy constructor */
+    codeRangeTree(const codeRangeTree &y) {};
 
   public:
 
@@ -182,12 +194,6 @@ class codeRangeTree {
 	setData = nil;
     }
 
-    /** copy constructor */
-    codeRangeTree(const codeRangeTree &y) {
-	nil = new entry;
-	setSize = y.setSize;
-	setData = replicateTree(y.setData, NULL, y.nil, nil);
-    }
     
     /** destructor which deletes all tree structure and allocated entries */
     ~codeRangeTree() {
@@ -204,7 +210,7 @@ class codeRangeTree {
     /** inserts the element in the tree 
      * @param 1 element that will be inserted
      */
-    void insert(Address, codeRange *);
+    void insert(codeRange *);
 
     /** removes the element in the tree 
      * @param 1 element that will be removed  
@@ -233,8 +239,14 @@ class codeRangeTree {
      */
     codeRange ** elements(codeRange **) const;
 
+    // And vector-style
+    bool elements(pdvector<codeRange *> &) const;
+
     // method that replicates the tree structure of this tree
     entry* replicateTree(entry*,entry*,entry*,entry*);
+
+    // Remove all entries in the tree
+    void clear();
 };
 
 #endif /* _codeRangeTree_h_ */

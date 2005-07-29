@@ -39,49 +39,49 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.C,v 1.8 2005/03/01 23:07:41 bernat Exp $
+// $Id: codeRange.C,v 1.9 2005/07/29 19:18:23 bernat Exp $
 
 #include <stdio.h>
 #include "codeRange.h"
 
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/trampTemplate.h"
-#include "dyninstAPI/src/miniTrampHandle.h"
-#include "dyninstAPI/src/sharedobject.h"
+#include "dyninstAPI/src/baseTramp.h"
+#include "dyninstAPI/src/miniTramp.h"
+#include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/function.h"
-#include "dyninstAPI/src/func-reloc.h"
-#include "dyninstAPI/src/edgeTrampTemplate.h"
+#include "dyninstAPI/src/instPoint.h"
 
-multitrampTemplate *codeRange::is_multitramp() {
-   return dynamic_cast<multitrampTemplate *>(this);
+multiTramp *codeRange::is_multitramp() {
+   return dynamic_cast<multiTramp *>(this);
 }
 
-trampTemplate *codeRange::is_basetramp() {
-   return dynamic_cast<trampTemplate *>(this);
+// This is a special case... the multitramp is the thing in the
+// codeRange tree, but people think of baseTramps.
+// So this is dangerous to use, actually.
+baseTrampInstance *codeRange::is_basetramp_multi() {
+   return dynamic_cast<baseTrampInstance *>(this);
 }
 
-miniTrampHandle *codeRange::is_minitramp() {
-   return dynamic_cast<miniTrampHandle *>(this);
+miniTrampInstance *codeRange::is_minitramp() {
+   return dynamic_cast<miniTrampInstance *>(this);
 }
 
 int_function *codeRange::is_function() {
    return dynamic_cast<int_function *>(this);
 }
 
+image_func *codeRange::is_image_func() {
+   return dynamic_cast<image_func *>(this);
+}
+
+
+
 image *codeRange::is_image() {
    return dynamic_cast<image *>(this);
 }
 
-shared_object *codeRange::is_shared_object() {
-   return dynamic_cast<shared_object *>(this);
-}
-
-relocatedFuncInfo *codeRange::is_relocated_func() {
-   return dynamic_cast<relocatedFuncInfo *>(this);
-}
-
-edgeTrampTemplate *codeRange::is_edge_tramp() {
-   return dynamic_cast<edgeTrampTemplate *>(this);
+mapped_object *codeRange::is_mapped_object() {
+   return dynamic_cast<mapped_object *>(this);
 }
 
 void codeRangeTree::leftRotate(entry* pivot){
@@ -196,11 +196,11 @@ codeRangeTree::entry *codeRangeTree::treeInsert(Address key, codeRange *value)
 	while(x != nil){
 		y = x;
         if (key < x->key) 
-			x = x->left;
-		else if(key > x->key)
-			x = x->right;
-		else
-			return NULL;
+            x = x->left;
+        else if(key > x->key)
+            x = x->right;
+        else
+            return NULL;
 	}	
 	entry* z = new entry(key, value, nil);
 	z->parent = y;
@@ -238,12 +238,12 @@ codeRangeTree::entry *codeRangeTree::treeSuccessor(entry* x) const{
 codeRangeTree::entry *codeRangeTree::find_internal(Address element) const{
 	entry* x = setData;
 	while(x != nil){
-        if (element < x->key)
-            x = x->left;
-        else if (element > x->key)
-            x = x->right;
-        else
-            return x;
+            if (element < x->key)
+                x = x->left;
+            else if (element > x->key)
+                x = x->right;
+            else
+                return x;
 	}	
 	return NULL;
 }
@@ -260,11 +260,26 @@ void codeRangeTree::traverse(codeRange ** all, entry* node, int& n) const{
 		traverse(all,node->right,n);
 }
 
+
+void codeRangeTree::traverse(pdvector<codeRange *> &all, entry* node) const{
+	if(node == nil)
+		return;
+	if(node->left != nil)
+		traverse(all,node->left);
+        all.push_back(node->value);
+	if(node->right != nil)
+		traverse(all,node->right);
+}
+
 //////////////////////////// PUBLIC FUNCTIONS ////////////////////////////////
 
- void codeRangeTree::insert(Address key, codeRange *value) {
-	entry* x = treeInsert(key, value);
-	if(!x) return;
+void codeRangeTree::insert(codeRange *value) {
+    assert(value->get_address_cr() > 0);
+	entry* x = treeInsert(value->get_address_cr(), value);
+	if(!x) {
+            // We're done.
+            return;
+        }
 	x->color = TREE_RED;
 	while((x != setData) && (x->parent->color == TREE_RED)){
 		if(x->parent == x->parent->parent->left){
@@ -344,10 +359,35 @@ void codeRangeTree::destroy(entry* node){
 }
 
 bool codeRangeTree::find(Address key, codeRange *& value) const{
-	entry* x = find_internal(key);
-   if (!x) return false;
-   value = x->value;
-   return true;
+    value = NULL;
+    if (!precessor(key, value))
+        return false;
+    // Check to see if the range works
+    if (!value->get_size_cr()) {
+        cerr << "Warning: size was 0..." << endl;
+    }
+    if (key >= (value->get_address_cr() + value->get_size_cr())) {
+        return false;
+    }
+    // We can also underflow
+    if (key < value->get_address_cr())
+        return false;
+    return true;
+#if 0
+    fprintf(stderr, "codeRangeTree::find for 0x%x\n", key);
+    entry* x = find_internal(key);
+    fprintf(stderr, "find_internal returned %p\n", x);
+    if (!x) return false;
+    value = x->value;
+    assert(value->get_address_cr() <= key); // Otherwise it wouldn't have been returned.
+
+    if (key >= (value->get_address_cr() + value->get_size_cr())) {
+        fprintf(stderr, "... ret false\n");
+        return false;
+    }
+    fprintf(stderr, "... ret true\n");
+    return true;
+#endif
 }
 
 bool codeRangeTree::precessor(Address key, codeRange * &value) const{
@@ -370,7 +410,6 @@ bool codeRangeTree::precessor(Address key, codeRange * &value) const{
     if (x == nil) {
         // Ran out of tree to search... get the parent
         assert(last != NULL);
-        
         if (last != nil) {
             value = last->value;
             return true;
@@ -419,18 +458,15 @@ codeRange ** codeRangeTree::elements(codeRange ** buffer) const{
 	return buffer;
 }
 
+bool codeRangeTree::elements(pdvector<codeRange *> &buffer) const{
+	if(setData == nil) return false;
+	traverse(buffer,setData);	
+        return true;
+}
 
-codeRangeTree::entry *codeRangeTree::replicateTree(entry* node,entry* parent,
-                                                   entry* oldNil,entry* newNil)
-{
-	if(node == oldNil)
-		return newNil;	
-
-	entry* newNode = new entry(*node);
-	newNode->value = newNode->value->copy();
-
-	newNode->parent = parent; 
-	newNode->left = replicateTree(node->left,newNode,oldNil,newNil);
-	newNode->right = replicateTree(node->right,newNode,oldNil,newNil);
-	return newNode; 
+void codeRangeTree::clear() {
+    if (setData == nil) return;
+    destroy(setData);
+    setData = nil;
+    setSize = 0;
 }
