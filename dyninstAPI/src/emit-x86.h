@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.1 2005/06/09 17:20:55 gquinn Exp $
+ * $Id: emit-x86.h,v 1.2 2005/07/29 19:18:29 bernat Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -50,34 +50,37 @@
 #include "common/h/headers.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/instPoint.h"
+#include "dyninstAPI/src/arch-x86.h"
+
+class codeGen;
 
 // class for encapsulating
 // platform dependent code generation functions
 class Emitter {
 
  public:
-    virtual void emitIf(Register expr_reg, Register target, unsigned char*& insn) = 0;
-    virtual void emitOp(unsigned opcode, Register dest, Register src1, Register src2, unsigned char*& insn) = 0;
+    virtual codeBufIndex_t emitIf(Register expr_reg, Register target, codeGen &gen) = 0;
+    virtual void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen) = 0;
     virtual void emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
-			   unsigned char*& insn) = 0;
-    virtual void emitRelOp(unsigned op, Register dest, Register src1, Register src2, unsigned char*& insn) = 0;
-    virtual void emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, unsigned char*& insn) = 0;
-    virtual void emitDiv(Register dest, Register src1, Register src2, unsigned char*& insn) = 0;
-    virtual void emitTimesImm(Register dest, Register src1, RegValue src2imm, unsigned char*& insn) = 0;
-    virtual void emitDivImm(Register dest, Register src1, RegValue src2imm, unsigned char*& insn) = 0;
-    virtual void emitLoad(Register dest, Address addr, int size, unsigned char*& insn) = 0;
-    virtual void emitLoadConst(Register dest, Address imm, unsigned char*& insn) = 0;
-    virtual void emitLoadIndir(Register dest, Register addr_reg, unsigned char*& insn) = 0;
-    virtual void emitLoadFrameRelative(Register dest, Address offset, unsigned char*& insn) = 0;
-    virtual void emitLoadFrameAddr(Register dest, Address offset, unsigned char*& insn) = 0;
-    virtual void emitStore(Address addr, Register src, unsigned char*& insn) = 0;
-    virtual void emitStoreIndir(Register addr_reg, Register src, unsigned char*& insn) = 0;
-    virtual void emitStoreFrameRelative(Address offset, Register src, Register scratch, unsigned char*& insn) = 0;
-    virtual Register emitCall(opCode op, registerSpace *rs, char *ibuf, Address &base, const pdvector<AstNode *> &operands,
+			   codeGen &gen) = 0;
+    virtual void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen) = 0;
+    virtual void emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen) = 0;
+    virtual void emitDiv(Register dest, Register src1, Register src2, codeGen &gen) = 0;
+    virtual void emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen) = 0;
+    virtual void emitDivImm(Register dest, Register src1, RegValue src2imm, codeGen &gen) = 0;
+    virtual void emitLoad(Register dest, Address addr, int size, codeGen &gen) = 0;
+    virtual void emitLoadConst(Register dest, Address imm, codeGen &gen) = 0;
+    virtual void emitLoadIndir(Register dest, Register addr_reg, codeGen &gen) = 0;
+    virtual void emitLoadFrameRelative(Register dest, Address offset, codeGen &gen) = 0;
+    virtual void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen) = 0;
+    virtual void emitStore(Address addr, Register src, codeGen &gen) = 0;
+    virtual void emitStoreIndir(Register addr_reg, Register src, codeGen &gen) = 0;
+    virtual void emitStoreFrameRelative(Address offset, Register src, Register scratch, codeGen &gen) = 0;
+    virtual Register emitCall(opCode op, registerSpace *rs, codeGen &gen, const pdvector<AstNode *> &operands,
 			      process *proc, bool noCost, Address callee_addr, const pdvector<AstNode *> &ifForks,
 			      const instPoint *location) = 0;
-    virtual void emitGetRetVal(Register dest, unsigned char*& insn) = 0;
-    virtual void emitGetParam(Register dest, Register param_num, instPointType pt_type, unsigned char*& insn) = 0;
+    virtual void emitGetRetVal(Register dest, codeGen &gen) = 0;
+    virtual void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen) = 0;
 };
 
 // current set of code generation functions
@@ -93,28 +96,28 @@ void emit64();
 class Emitter32 : public Emitter {
 
 public:
-    virtual void emitIf(Register expr_reg, Register target, unsigned char*& insn);
-    virtual void emitOp(unsigned opcode, Register dest, Register src1, Register src2, unsigned char*& insn);
-    virtual void emitRelOp(unsigned op, Register dest, Register src1, Register src2, unsigned char*& insn);
-    virtual void emitDiv(Register dest, Register src1, Register src2, unsigned char*& insn);
+    virtual codeBufIndex_t emitIf(Register expr_reg, Register target, codeGen &gen);
+    virtual void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen);
+    virtual void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen);
+    virtual void emitDiv(Register dest, Register src1, Register src2, codeGen &gen);
     virtual void emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
-			   unsigned char*& insn);
-    virtual void emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, unsigned char*& insn);
-    virtual void emitTimesImm(Register dest, Register src1, RegValue src1imm, unsigned char*& insn);
-    virtual void emitDivImm(Register dest, Register src1, RegValue src1imm, unsigned char*& insn);
-    virtual void emitLoad(Register dest, Address addr, int size, unsigned char*& insn);
-    virtual void emitLoadConst(Register dest, Address imm, unsigned char*& insn);
-    virtual void emitLoadIndir(Register dest, Register addr_reg, unsigned char*& insn);
-    virtual void emitLoadFrameRelative(Register dest, Address offset, unsigned char*& insn);
-    virtual void emitLoadFrameAddr(Register dest, Address offset, unsigned char*& insn);
-    virtual void emitStore(Address addr, Register src, unsigned char*& insn);
-    virtual void emitStoreIndir(Register addr_reg, Register src, unsigned char*& insn);
-    virtual void emitStoreFrameRelative(Address offset, Register src, Register scratch, unsigned char*& insn);
-    virtual Register emitCall(opCode op, registerSpace *rs, char *ibuf, Address &base, const pdvector<AstNode *> &operands,
+			   codeGen &gen);
+    virtual void emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen);
+    virtual void emitTimesImm(Register dest, Register src1, RegValue src1imm, codeGen &gen);
+    virtual void emitDivImm(Register dest, Register src1, RegValue src1imm, codeGen &gen);
+    virtual void emitLoad(Register dest, Address addr, int size, codeGen &gen);
+    virtual void emitLoadConst(Register dest, Address imm, codeGen &gen);
+    virtual void emitLoadIndir(Register dest, Register addr_reg, codeGen &gen);
+    virtual void emitLoadFrameRelative(Register dest, Address offset, codeGen &gen);
+    virtual void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
+    virtual void emitStore(Address addr, Register src, codeGen &gen);
+    virtual void emitStoreIndir(Register addr_reg, Register src, codeGen &gen);
+    virtual void emitStoreFrameRelative(Address offset, Register src, Register scratch, codeGen &gen);
+    virtual Register emitCall(opCode op, registerSpace *rs, codeGen &gen, const pdvector<AstNode *> &operands,
 			      process *proc, bool noCost, Address callee_addr, const pdvector<AstNode *> &ifForks,
 			      const instPoint *location);
-    virtual void emitGetRetVal(Register dest, unsigned char*& insn);
-    virtual void emitGetParam(Register dest, Register param_num, instPointType pt_type, unsigned char*& insn);
+    virtual void emitGetRetVal(Register dest, codeGen &gen);
+    virtual void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen);
 
 };
 
