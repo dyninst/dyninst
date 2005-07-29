@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: api_showerror.C,v 1.17 2005/03/07 21:18:32 bernat Exp $
+// $Id: api_showerror.C,v 1.18 2005/07/29 19:18:11 bernat Exp $
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -188,6 +188,7 @@ int dyn_debug_parsing = 0;
 int dyn_debug_forkexec = 0;
 int dyn_debug_proccontrol = 0;
 int dyn_debug_stackwalk = 0;
+int dyn_debug_inst = 0;
 
 bool init_debug() {
   char *p;
@@ -218,6 +219,11 @@ bool init_debug() {
   if ( (p=getenv("DYNINST_DEBUG_STACKWALK"))) {
     fprintf(stderr, "Enabling DyninstAPI stack walking debug\n");
     dyn_debug_stackwalk = 1;
+  }
+
+  if ( (p=getenv("DYNINST_DEBUG_INST"))) {
+    fprintf(stderr, "Enabling DyninstAPI inst debug\n");
+    dyn_debug_inst = 1;
   }
   return true;
 }
@@ -311,6 +317,21 @@ int proccontrol_printf(const char *format, ...)
 int stackwalk_printf(const char *format, ...)
 {
   if (!dyn_debug_stackwalk) return 0;
+  if (NULL == format) return -1;
+
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  return ret;
+}
+
+
+
+int inst_printf(const char *format, ...)
+{
+  if (!dyn_debug_inst) return 0;
   if (NULL == format) return -1;
 
   va_list va;
