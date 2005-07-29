@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.178 2005/07/29 19:19:50 bernat Exp $
+// $Id: symtab.h,v 1.179 2005/07/29 22:16:30 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -73,12 +73,6 @@ extern "C" {
 #include "common/h/Types.h"
 #include "common/h/Symbol.h"
 #include "dyninstAPI/src/inst.h"
-
-#ifndef mips_unknown_ce2_11 //ccw 8 apr 2001
-#include "dyninstAPI/src/FunctionExpansionRecord.h"
-class LocalAlterationSet;
-#endif
-
 
 typedef bool (*functionNameSieve_t)(const char *test,void *data);
 #define RH_SEPERATOR '/'

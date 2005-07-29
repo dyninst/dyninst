@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.51 2005/07/29 19:19:54 bernat Exp $
+// $Id: templates0.C,v 1.52 2005/07/29 22:16:31 bernat Exp $
 // Generate all the templates in one file.
 
 /*
@@ -83,11 +83,6 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/Object.h"
-
-#if defined(cap_relocation)
-#include "dyninstAPI/src/LocalAlteration.h"
-#include "dyninstAPI/src/FunctionExpansionRecord.h"
-#endif
 
 #if !defined(BPATCH_LIBRARY)
 #include "paradynd/src/instReqNode.h"
@@ -185,11 +180,6 @@ template class  pdvector<image_variable *>;
 
 template class  pdvector<relocationEntry>;
 template class  pdvector<sharedLibHook *>;
-#if defined(cap_relocation)
-//template class pdvector<LocalAlteration*>;
-//template class pdvector<FERNode>;
-//template class pdvector<FERNode*>;
-#endif
 
 template class pdvector<imageUpdate*>;//ccw 28 oct 2001
 template class pdvector<dataUpdate*> ;//ccw 26 nov 2001

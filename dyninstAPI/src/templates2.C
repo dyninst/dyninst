@@ -40,7 +40,7 @@
  */
 
 
-// $Id: templates2.C,v 1.50 2005/07/29 19:19:56 bernat Exp $
+// $Id: templates2.C,v 1.51 2005/07/29 22:16:33 bernat Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -63,7 +63,6 @@
 #include "dyninstAPI/src/syscalltrap.h"
 #include "dyninstAPI/src/libState.h"
 
-#include "dyninstAPI/src/FunctionExpansionRecord.h"
 #include "dyninstAPI/src/signalhandler.h"
 
 #ifndef alpha_dec_osf4_0

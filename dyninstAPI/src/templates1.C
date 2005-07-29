@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.66 2005/07/29 19:19:55 bernat Exp $
+//$Id: templates1.C,v 1.67 2005/07/29 22:16:32 bernat Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #pragma implementation("Dictionary.h")
@@ -59,7 +59,6 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/Object.h"
 #include "common/h/List.h"
-#include "dyninstAPI/src/FunctionExpansionRecord.h"
 
 class dyn_lwp;
 class image_func;
