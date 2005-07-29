@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.99 2005/06/02 20:38:09 tlmiller Exp $
+// $Id: BPatch.C,v 1.100 2005/07/29 19:17:32 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -872,6 +872,12 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
    if (!proc)
       return;
    BPatch_process *process = info->procsByPid[proc->getPid()];
+   if (!process) {
+       // Error during startup can cause this -- we have a partially
+       // constructed process object, but it was never registered with
+       // bpatch
+       return;
+   }
    assert(process);
    process->setExitedViaSignal(signalnum);
    process->setUnreportedTermination(true);
@@ -941,7 +947,7 @@ BPatch_thread *BPatch::createProcessInt(const char *path, const char *argv[],
 {
     clearError();
 
-	if( path == NULL ) { return NULL; }
+    if( path == NULL ) { return NULL; }
 
     BPatch_process *ret = 
        new BPatch_process(path, const_cast<char **>(argv), 
