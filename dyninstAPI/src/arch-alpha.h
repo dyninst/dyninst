@@ -43,6 +43,8 @@
 #define arch_alpha_hdr
 
 #include <assert.h>
+#include "ast.h" // opCode
+
 
 // This is actually a "Software Trap" instruction.
 // Changed to get GCC 3.x working.
@@ -95,18 +97,20 @@ struct if_Operate_lit {
   unsigned opcode:6;
 };
 
-union instructUnion {
+typedef union {
   struct if_PAL          pal;
   struct if_Branch       branch;
   struct if_Mem          mem;
   struct if_Mem_jmp      mem_jmp;
   struct if_Operate      oper;
   struct if_Operate_lit  oper_lit;
-  unsigned               raw;
-};
+  u_int32_t               raw;
+} instructUnion;
 
-typedef union instructUnion instruction;
-#define INSN_SIZE	sizeof(instruction)
+// Code generation
+
+typedef instructUnion codeBuf_t;
+typedef unsigned codeBufIndex_t;
 
 // ************************************************************************
 // Memory format opcodes
@@ -406,98 +410,211 @@ typedef union instructUnion instruction;
 #define OP_IMB       0x00
 #define FC_IMB       0x0086
 
-inline bool isInsnType(const instruction i,
-                       const unsigned mask,
-                       const unsigned match) {
-  return ((i.raw & mask) == match);
-}
+typedef enum { dw_long, dw_quad, dw_byte, dw_word } data_width;
 
-inline bool isJmpType(const instruction& insn) {
-  return ((insn.mem_jmp.opcode == OP_MEM_BRANCH) &&
-	  ((insn.mem_jmp.ext == MD_JMP) ||
-	   (insn.mem_jmp.ext == MD_JSR) ||
-	   (insn.mem_jmp.ext == MD_RET) ||
-	   (insn.mem_jmp.ext == MD_JSR_CO)));
-}
+#define MASK_4(x)     (x & 0xffffffff)
+#define MASK_2(x)     (x & 0xffff)
 
-inline bool isBranchType(const instruction& insn) {
-  return ((insn.branch.opcode == OP_BSR) ||
-          (insn.branch.opcode == OP_BR) ||
-          (insn.branch.opcode == OP_BLBC) ||
-          (insn.branch.opcode == OP_BLBS) ||
-          (insn.branch.opcode == OP_FBEQ) ||
-          (insn.branch.opcode == OP_FBNE) ||
-          (insn.branch.opcode == OP_BEQ) ||
-          (insn.branch.opcode == OP_BNE) ||
-          (insn.branch.opcode == OP_FBLT) ||
-          (insn.branch.opcode == OP_FBGE) ||
-          (insn.branch.opcode == OP_BLT) ||
-          (insn.branch.opcode == OP_BGE) ||
-          (insn.branch.opcode == OP_FBLE) ||
-          (insn.branch.opcode == OP_FBGT) ||
-          (insn.branch.opcode == OP_BLE) ||
-          (insn.branch.opcode == OP_BGT));
-}
+const Address shifted_16 = (Address(1)) << 16;
+const Address shifted_32 = (Address(1)) << 32;
+const Address shifted_48 = (Address(1)) << 48;
+const Address bit_15 =     (Address(1)) << 15;
+const Address bit_31 =     (Address(1)) << 31;
+const Address bit_47 =     (Address(1)) << 47;
 
-inline bool isBsr(const instruction& insn) {
-  return (insn.branch.opcode == OP_BSR);
-}
+#define FIRST_16(x)       ((x) & 0xffff)
+#define SECOND_16(x)      ((x) >> 16)
+#define THIRD_16(x)       ((x) >> 32)
 
-inline bool isJsr(const instruction& insn) {
-  return ((insn.mem_jmp.opcode == OP_MEM_BRANCH) &&
-	  (insn.mem_jmp.ext == MD_JSR));
-}
-/*
-inline bool isReturnInsn(const image *owner, Address adr, bool &lastOne)
-{
-  instruction insn;
+#define ABS(x)		((x) > 0 ? (x) : -(x))
 
-  insn.raw = owner->get_instruction(adr);
-  // need to know if this is really the last return.
-  //    for now assume one return per function - jkh 4/12/96
-  lastOne = true;
-  return ((insn.mem_jmp.opcode == OP_MEM_BRANCH) &&
-	  (insn.mem_jmp.ext == MD_RET));
-}
+// TODO -- the max branch is (0x1 << 22)
+// if we limited branches to this distance, dyn. inst. would not work
+// on a 64 bit architecture
+#define MAX_BRANCH	(0x1<<22)
 
-inline bool isCallInsn(const instruction i) {
-  return (isBsr(i) || isJsr(i));
-}
-*/
+#define MAX_IMM	0x1<<8  // 8 bits
 
-// align to word boundaries
-inline bool isAligned(const Address addr)
-{
-  return(!(addr & 0x3));
-}
+#define SEXT_16(x) (((x) & bit_15) ? ((x) | 0xffffffffffff0000) : (x))
+typedef unsigned long int Offset;
 
 
-inline bool IS_VALID_INSN(const instruction& insn) {
-  return (((insn.mem.opcode >= 0x20) &&
-	   (insn.mem.opcode <= 0x2f)) ||
-	  (insn.mem.opcode == 0x0b) ||
-	  (insn.mem.opcode == 0x0f) ||
-	  (insn.mem.opcode == 0x08) ||
-	  (insn.mem.opcode == 0x09) ||
-	  ((insn.mem.opcode == 0x18) && 
-	   (insn.mem.disp == 0x0000) ||
-	   (insn.mem.disp == 0x4000)) ||
-	   // these are are larger than the field - jkh 12/1/98
-	   // (insn.mem.disp == 0x8000) ||
-	   // (insn.mem.disp == 0xe000) ||
-	   // (insn.mem.disp == 0xf000) ||
-	  (insn.mem.opcode == 0x1a) ||
-	  ((insn.branch.opcode >= 0x30) &&
-	   (insn.branch.opcode <= 0x3f)) ||
-	  (insn.oper.opcode == 0x10) ||        // integer operations
-	  (insn.oper.opcode == 0x11) ||
-	  (insn.oper.opcode == 0x12) ||
-	  (insn.oper.opcode == 0x13) ||
-	  (insn.oper.opcode == 0x15) ||	       // floating point
-	  (insn.oper.opcode == 0x16) ||	       // floating point
-	  (insn.oper.opcode == 0x17) ||        // floating point
-	  (insn.oper.opcode == 0x00));         // PAL code
-}
+class instruction {
+ private:
+    static codeBuf_t *insnPtr(codeGen &gen);
+    static codeBuf_t *ptrAndInc(codeGen &gen);
+ public:
+    instruction() {insn_.raw = 0;};
+    instruction(unsigned int raw) { insn_.raw = raw; }
+
+    instruction(const instruction &insn) :
+        insn_(insn.insn_) {};
+    instruction(instructUnion &insn) :
+        insn_(insn) {};
+    
+    void setInstruction(codeBuf_t *ptr, Address = 0);
+
+    static void generateTrap(codeGen &gen);    
+    static void generateIllegal(codeGen &gen);
+
+
+    // All of these write into a buffer
+    static void generateLoad(codeGen &gen, Register rdest, Register rbase,
+			     int disp, data_width width, bool aligned);
+    static void generateStore(codeGen &gen, Register rsrc, Register rbase,
+			     int disp, data_width width);
+    static void generateNOOP(codeGen &gen, unsigned size = 4);
+    static void generateOperate(codeGen &gen, Register reg_a, Register reg_b,
+				Register reg_c, unsigned int opcode, 
+				unsigned int func_code);
+    static void generateLitOperate(codeGen &gen, Register reg_a, int literal,
+				   Register reg_c, unsigned opcode, unsigned func_code);
+
+    static void generateJump(codeGen &gen, Register dest_reg, unsigned long ext_code,
+			     Register ret_reg, int hint);
+    static void generateBranch(codeGen &gen, Register src_reg, int disp,
+			       unsigned int opcode);
+    // Known displacement
+    static void generateBranch(codeGen &gen, int disp);
+    // From-to combo
+    static void generateBranch(codeGen &gen, Address from, Address to);
+
+    static void generateBSR(codeGen &gen, int disp);
+    static void generateRel(codeGen &gen, unsigned opcode, unsigned fcode,
+			    Register src1, Register src2, Register dest,
+			    bool Imm, bool do_not);
+    static void generateLDA(codeGen &gen, Register rdest, Register rstart,
+			    long disp, bool do_low);
+    static void generateSXL(codeGen &gen, Register rdest, unsigned long amount,
+			    bool left, Register rsrc);
+    static void generateAddress(codeGen &gen, Register rdest, const Address &addr,
+				int &remainder);
+    static void generateIntegerOp(codeGen &gen, Register src1, Register src2,
+				  Register dest, opCode op, bool Imm);
+
+    // We need instruction::size() all _over_ the place.
+    static unsigned size() { return sizeof(instructUnion); } 
+
+    Address getBranchOffset() const;
+    void setBranchOffset(Address newOffset);
+    Address getTarget(Address origAddr) const;
+
+    void write(codeGen &gen);
+    void generate(codeGen &gen);
+
+  // return the type of the instruction
+  unsigned type() const;
+
+  // return a pointer to the instruction
+  const unsigned char *ptr() const { return (const unsigned char *)&insn_; }
+
+  const unsigned int &raw() const { return insn_.raw; }
+  
+  const unsigned opcode() const;
+
+  // For external modification
+  instructUnion &operator* () { return insn_; }
+  const instructUnion &operator* () const { return insn_; }
+  
+  // Local version
+  bool isInsnType(const unsigned mask, const unsigned match) const { 
+      return ((insn_.raw & mask) == match);
+  }
+
+  bool isJmp() const {
+      return ((insn_.mem_jmp.opcode == OP_MEM_BRANCH) &&
+              ((insn_.mem_jmp.ext == MD_JMP) ||
+               (insn_.mem_jmp.ext == MD_JSR) ||
+               (insn_.mem_jmp.ext == MD_RET) ||
+               (insn_.mem_jmp.ext == MD_JSR_CO)));
+  }
+
+  bool isBranch() const {
+      return ((insn_.branch.opcode == OP_BSR) ||
+              (insn_.branch.opcode == OP_BR) ||
+              (insn_.branch.opcode == OP_BLBC) ||
+              (insn_.branch.opcode == OP_BLBS) ||
+              (insn_.branch.opcode == OP_FBEQ) ||
+              (insn_.branch.opcode == OP_FBNE) ||
+              (insn_.branch.opcode == OP_BEQ) ||
+              (insn_.branch.opcode == OP_BNE) ||
+              (insn_.branch.opcode == OP_FBLT) ||
+              (insn_.branch.opcode == OP_FBGE) ||
+              (insn_.branch.opcode == OP_BLT) ||
+              (insn_.branch.opcode == OP_BGE) ||
+              (insn_.branch.opcode == OP_FBLE) ||
+              (insn_.branch.opcode == OP_FBGT) ||
+              (insn_.branch.opcode == OP_BLE) ||
+              (insn_.branch.opcode == OP_BGT));
+  }
+
+  bool isBsr() const {
+      return (insn_.branch.opcode == OP_BSR);
+  }
+  
+  bool isJsr() const {
+      return ((insn_.mem_jmp.opcode == OP_MEM_BRANCH) &&
+              (insn_.mem_jmp.ext == MD_JSR));
+  }
+  // align to word boundaries
+  static bool isAligned(const Address addr) {
+      return(!(addr & 0x3));
+  }
+  
+  
+  bool valid() const;
+
+
+/* -- CHECK !!!!!
+ * catch small ints that are invalid instructions
+ * opcode 0 is really reserved, not illegal (with the exception of all 0's).
+ *
+ * opcodes 1, 4-6, 56-57, 60-61 are illegal.
+ *
+ * opcodes 2, 30, 58, 62 are illegal in 32 bit implementations, but are
+ *    defined in 64 bit implementations.
+ *
+ * opcodes 19, 30, 31, 59, 62, 63 contain extended op codes that are unused.
+ */
+
+  bool isCall() const;
+
+  bool isCondBranch() const;
+  bool isUncondBranch() const;
+  
+  bool isReturn() const;
+
+#if 0
+  // Copied from arch-x86... implement as needed
+  bool isCallIndir() const { return (type_ & IS_CALL) && (type_ & INDIR); }
+  bool isReturn() const { return (type_ & IS_RET) || (type_ & IS_RETF); }
+  bool isRetFar() const { return type_ & IS_RETF; }
+  bool isJumpIndir() const { return (type_ & IS_JUMP) && (type_ & INDIR); }
+  bool isJumpDir() const
+    { return ~(type_ & INDIR) && ((type_ & IS_JUMP) || (type_ & IS_JCC)); }
+  bool isUncondJump() const
+    { return ((type_ & IS_JUMP) && !(type_ & IS_JCC)); }
+  bool isIndir() const { return type_ & INDIR; }
+  bool isIllegal() const { return type_ & ILLEGAL; }
+  bool isLeave() const { return *ptr_ == 0xC9; }  
+  bool isMoveRegMemToRegMem() const 
+    { const unsigned char* p = op_ptr_ ? op_ptr_ : ptr_;
+      return *p == MOV_R8_TO_RM8   || *p == MOV_R16_TO_RM16 ||
+             *p == MOV_R32_TO_RM32 || *p ==  MOV_RM8_TO_R8  ||
+             *p == MOV_RM16_TO_R16 || *p == MOV_RM32_TO_R32;   }
+  bool isXORRegMemRegMem() const
+      { const unsigned char* p = op_ptr_ ? op_ptr_ : ptr_;
+        return *p == XOR_RM16_R16 || *p ==  XOR_RM32_R32 ||
+               *p ==  XOR_R8_RM8  || *p ==  XOR_R16_RM16 ||
+               *p == XOR_R32_RM32; }
+  bool isANearBranch() const { return isJumpDir(); }
+
+  bool isTrueCallInsn() const { return (isCall() && !isCallIndir()); }
+#endif
+
+ private:
+  instructUnion insn_;
+};
 
 
 #endif

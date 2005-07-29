@@ -39,10 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.25 2005/07/18 16:20:38 rutar Exp $
+// $Id: arch-power.h,v 1.26 2005/07/29 19:18:16 bernat Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
+
+// Code generation
 
 /*
  * Define power instruction information.
@@ -164,7 +166,7 @@ struct aform {
   unsigned rc:  1;
 };
 
-union instructUnion {
+typedef union {
   struct iform  iform;  // branch;
   struct bform  bform;  // cbranch;
   struct dform  dform;
@@ -179,9 +181,14 @@ union instructUnion {
   struct aform  aform;
   struct genericform generic;
   unsigned int  raw;
-};
+} instructUnion;
 
-typedef union instructUnion instruction;
+// instruction is now a class for platform-indep.
+
+// Mmmm alignment
+typedef instructUnion codeBuf_t;
+typedef unsigned codeBufIndex_t;
+
 
 /*
  * Register saving constants
@@ -523,6 +530,9 @@ typedef union instructUnion instruction;
 #define Bmask		OPmask | AAmask
 #define Bmatch		0x48000000 /* pc relative unconditional branch */
 #define BCmatch		0x40000000 /* pc relative conditional branch */
+#define BAAmatch		0x48000002 /* pc relative unconditional branch */
+#define BCAAmatch		0x40000002 /* pc relative conditional branch */
+
 
 
 #define BREAK_POINT_INSN 0x7d821008  /* trap */
@@ -533,13 +543,102 @@ typedef union instructUnion instruction;
 #define LOW(x)  ((x)%65536)
 #define HIGH(x) ((x)/65536)
 
+#define ABS(x)		((x) > 0 ? x : -x)
+//#define MAX_BRANCH	0x1<<23
+#define MAX_BRANCH      0x01fffffc
+#define MAX_CBRANCH	0x1<<13
 
-inline bool isInsnType(const instruction i,
-		       const unsigned mask,
-		       const unsigned match)
-{
-  return ((i.raw & mask) == match);
-}
+#define MAX_IMM		0x1<<15		/* 15 plus sign == 16 bits */
+
+// Delcared some other functions in inst-power.C
+// bool isCallInsn(const instruction);
+// bool isReturnInsn(const image *, Address, bool&);
+
+// Define bounds for immediate offsets
+#define MIN_IMM16	-32768
+#define MAX_IMM16	32767
+
+///////////////////////////////////////////////////////
+// Bum bum bum.....
+///////////////////////////////////////////////////////
+
+class registerSpace;
+class codeGen;
+
+class instruction {
+ private:
+    static instructUnion *insnPtr(codeGen &gen);
+    static instructUnion *ptrAndInc(codeGen &gen);
+ public:
+    instruction() {insn_.raw = 0;};
+    instruction(unsigned int raw) { insn_.raw = raw; }
+
+    instruction(const instruction &insn) :
+        insn_(insn.insn_) {};
+    instruction(instructUnion &insn) :
+        insn_(insn) {};
+    
+    void setInstruction(codeBuf_t *ptr, Address = 0);
+
+    
+    // All of these write into a buffer
+    static void generateTrap(codeGen &gen);
+    static void generateIllegal(codeGen &gen);
+
+    static void generateBranch(codeGen &gen,
+                               int jump_off,
+                               bool link = false);
+    static void generateBranch(codeGen &gen,
+                               Address from,
+                               Address to,
+                               bool link = false);
+    static void generateImm(codeGen &gen, int op,
+                            Register rt, Register ra, int immd);
+    static void generateLShift(codeGen &gen, Register rs,
+                               int shift, Register ra);
+    static void generateRShift(codeGen &gen, Register rs,
+                               int shift, Register ra);
+    static void generateNOOP(codeGen &gen, unsigned size = 4);
+    
+    static void generateSimple(codeGen &gen,
+                               int op, Register src1,
+                               Register src2, Register dest);
+    static void generateRelOp(codeGen &gen, int cond,
+                              int mode, Register rs1,
+                              Register rs2, Register rd);
+    static void loadImmIntoReg(codeGen &gen, Register rt,
+                               unsigned value);
+    
+    // We need instruction::size() all _over_ the place.
+    static unsigned size() { return sizeof(instructUnion); } 
+
+    Address getBranchOffset() const;
+    void setBranchOffset(Address newOffset);
+
+    void write(codeGen &gen);
+    void generate(codeGen &gen);
+
+  // return the type of the instruction
+  unsigned type() const;
+
+  // return a pointer to the instruction
+  const unsigned char *ptr() const { return (const unsigned char *)&insn_; }
+
+  const unsigned int &raw() const { return insn_.raw; }
+  
+  const unsigned opcode() const;
+
+  // For external modification
+  instructUnion &operator* () { return insn_; }
+  const instructUnion &operator* () const { return insn_; }
+  
+  // Local version
+  bool isInsnType(const unsigned mask, const unsigned match) const { 
+      return ((insn_.raw & mask) == match);
+  }
+
+  Address getTarget(Address insnAddr) const;
+
 
 /* -- CHECK !!!!!
  * catch small ints that are invalid instructions
@@ -552,23 +651,48 @@ inline bool isInsnType(const instruction i,
  *
  * opcodes 19, 30, 31, 59, 62, 63 contain extended op codes that are unused.
  */
-inline bool IS_VALID_INSN(instruction insn)
-{
-  return(insn.iform.op > 0);
-}
 
-// addresses on power are aligned to word boundaries
-inline bool isAligned(const Address addr)
-{
-  return(!(addr & 0x3));
-}
+  bool valid() const { return insn_.iform.op > 0; }
 
-// Delcared some other functions in inst-power.C
-// bool isCallInsn(const instruction);
-// bool isReturnInsn(const image *, Address, bool&);
+  bool isCall() const;
 
-// Define bounds for immediate offsets
-#define MIN_IMM16	-32768
-#define MAX_IMM16	32767
+  static bool isAligned(Address addr) {
+      return !(addr & 0x3);
+  }
 
+  bool isCondBranch() const;
+  bool isUncondBranch() const;
+  
+
+#if 0
+  // Copied from arch-x86... implement as needed
+  bool isCallIndir() const { return (type_ & IS_CALL) && (type_ & INDIR); }
+  bool isReturn() const { return (type_ & IS_RET) || (type_ & IS_RETF); }
+  bool isRetFar() const { return type_ & IS_RETF; }
+  bool isJumpIndir() const { return (type_ & IS_JUMP) && (type_ & INDIR); }
+  bool isJumpDir() const
+    { return ~(type_ & INDIR) && ((type_ & IS_JUMP) || (type_ & IS_JCC)); }
+  bool isUncondJump() const
+    { return ((type_ & IS_JUMP) && !(type_ & IS_JCC)); }
+  bool isIndir() const { return type_ & INDIR; }
+  bool isIllegal() const { return type_ & ILLEGAL; }
+  bool isLeave() const { return *ptr_ == 0xC9; }  
+  bool isMoveRegMemToRegMem() const 
+    { const unsigned char* p = op_ptr_ ? op_ptr_ : ptr_;
+      return *p == MOV_R8_TO_RM8   || *p == MOV_R16_TO_RM16 ||
+             *p == MOV_R32_TO_RM32 || *p ==  MOV_RM8_TO_R8  ||
+             *p == MOV_RM16_TO_R16 || *p == MOV_RM32_TO_R32;   }
+  bool isXORRegMemRegMem() const
+      { const unsigned char* p = op_ptr_ ? op_ptr_ : ptr_;
+        return *p == XOR_RM16_R16 || *p ==  XOR_RM32_R32 ||
+               *p ==  XOR_R8_RM8  || *p ==  XOR_R16_RM16 ||
+               *p == XOR_R32_RM32; }
+  bool isANearBranch() const { return isJumpDir(); }
+
+  bool isTrueCallInsn() const { return (isCall() && !isCallIndir()); }
+#endif
+
+ private:
+  instructUnion insn_;
+};
 #endif

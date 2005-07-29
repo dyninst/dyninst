@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.77 2005/07/11 19:35:22 rutar Exp $
+// $Id: ast.h,v 1.78 2005/07/29 19:18:22 bernat Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -58,7 +58,7 @@
 class process;
 class instPoint;
 class int_function;
-
+class codeGen;
 
 // a register number, e.g. [0,31]
 // typedef int reg; // see new Register type in "common/h/Types.h"
@@ -101,7 +101,8 @@ typedef enum { plusOp,
 	       updateCostOp,
 	       funcJumpOp,        // Jump to function without linkage
 	       branchOp,
-               ifMCOp
+               ifMCOp,
+	       undefOp
 } opCode;
 
 class registerSlot {
@@ -123,7 +124,7 @@ class registerSpace {
 	registerSpace(const unsigned int dCount, Register *deads,
                  const unsigned int lCount, Register *lives,
                  bool multithreaded = false);
-	Register allocateRegister(char *insn, Address &base, bool noCost);
+	Register allocateRegister(codeGen &gen, bool noCost);
 	// Free the specified register (decrement its refCount)
 	void freeRegister(Register k);
 	// Free the register even if its refCount is greater that 1
@@ -234,6 +235,8 @@ class AstNode {
 	AstNode(opCode ot, AstNode *l, AstNode *r, AstNode *e = NULL);
         AstNode(const pdstring &func, pdvector<AstNode *> &ast_args);
         AstNode(int_function *func, pdvector<AstNode *> &ast_args);
+        // And for a blind jump to a known address
+        AstNode(Address funcAddr, pdvector<AstNode *> &ast_args);
 	AstNode(int_function *func); // FuncJump (for replaceFunction)
 
         AstNode(AstNode *src);
@@ -241,17 +244,17 @@ class AstNode {
 
        ~AstNode();
 
-        Address generateTramp(process *proc, const instPoint *location, char *i,
-			      Address &base, int *trampCost, bool noCost,
+        Address generateTramp(process *proc, const instPoint *location, codeGen &gen, 
+                              int *trampCost, bool noCost,
 			      registerSpace *rs);
-	Address generateCode(process *proc, registerSpace *rs, char *i, 
-			     Address &base, bool noCost, bool root,
+	Address generateCode(process *proc, registerSpace *rs, codeGen &gen, 
+                             bool noCost, bool root,
 			     const instPoint *location = NULL);
-	Address generateCode_phase2(process *proc, registerSpace *rs, char *i, 
-				    Address &base, bool noCost,
+	Address generateCode_phase2(process *proc, registerSpace *rs, codeGen &gen,
+                                    bool noCost,
 				    const pdvector<AstNode*> &ifForks,
 				    const instPoint *location = NULL);
-
+        
 	
 
 	enum CostStyleType { Min, Avg, Max };
@@ -307,7 +310,7 @@ class AstNode {
         // node is shared
 	Register allocateAndKeep(registerSpace *rs, 
 				 const pdvector<AstNode*> &ifForks,
-				 char *insn, Address &base, bool noCost);
+				 codeGen &gen, bool noCost);
 
 	// Check to see if path1 is a subpath of path2
 	bool subpath(const pdvector<AstNode*> &path1, 
@@ -323,12 +326,6 @@ class AstNode {
         void printRC(void);
 	bool accessesParam(void);         // Does this AST access "Param"
 
-#if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)  
-	bool astFlag;  
-	void sysFlag(instPoint *location);    
-
-	void optRetVal(AstNode *opt);
-#endif
 	void setOValue(void *arg) { oValue = (void *) arg; }
 	const void *getOValue() { return oValue; }
 	// only function that's defined in metric.C (only used in metri.C)
@@ -349,6 +346,7 @@ class AstNode {
 	opCode op;		    // only for opCode nodes
 	pdstring callee;		    // only for call nodes
 	int_function *calleefunc;  // only for call nodes
+        Address calleefuncAddr;
 	pdvector<AstNode *> operands; // only for call nodes
 	operandType oType;	    // for operand nodes
 	void *oValue;	            // operand value for operand nodes
@@ -384,11 +382,10 @@ void terminateAst(AstNode *&ast);
 
 void emitLoadPreviousStackFrameRegister(Address register_num,
 					Register dest,
-					char *insn,
-					Address &base,
+                                        codeGen &gen,
 					int size,
 					bool noCost);
-void emitFuncJump(opCode op, char *i, Address &base,
+void emitFuncJump(opCode op, codeGen &gen,
 		  const int_function *func, process *proc,
 		  const instPoint *loc, bool noCost);
 

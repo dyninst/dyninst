@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.150 2005/07/11 19:35:22 rutar Exp $
+// $Id: ast.C,v 1.151 2005/07/29 19:18:21 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -54,6 +54,7 @@
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/src/BPatch_collections.h"
 #include "dyninstAPI/h/BPatch_type.h"
+#include "dyninstAPI/src/BPatch_libInfo.h" // For instPoint->BPatch_point mapping
 
 #if defined(BPATCH_LIBRARY)
 #include "dyninstAPI/h/BPatch_point.h"
@@ -154,7 +155,7 @@ void registerSpace::initFloatingPointRegisters(const unsigned int count, Registe
 
 
 
-Register registerSpace::allocateRegister(char *insn, Address &base, bool noCost) 
+Register registerSpace::allocateRegister(codeGen &gen, bool noCost) 
 {
     unsigned i;
 
@@ -177,7 +178,7 @@ Register registerSpace::allocateRegister(char *insn, Address &base, bool noCost)
             // trampoline - naim
 	    // 
 	    // Same goes for ia64 - rchen
- 	    emitV(saveRegOp, registers[i].number, 0, 0, insn, base, noCost);
+ 	    emitV(saveRegOp, registers[i].number, 0, 0, gen, noCost);
 #endif
 	    registers[i].refCount = 1;
 #if !defined(rs6000_ibm_aix4_1) \
@@ -452,6 +453,7 @@ AstNode &AstNode::operator=(const AstNode &src) {
    if (type == callNode) {
       callee = src.callee; // defined only for call nodes
       calleefunc = src.calleefunc;
+      calleefuncAddr = src.calleefuncAddr;
       for (unsigned i=0;i<src.operands.size();i++) 
         operands.push_back(assignAst(src.operands[i]));
    }
@@ -470,11 +472,6 @@ AstNode &AstNode::operator=(const AstNode &src) {
    roperand = assignAst(src.roperand);
    eoperand = assignAst(src.eoperand);
 
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)
-   astFlag = src.astFlag;
-#endif
-   
    size = src.size;
    bptype = src.bptype;
    doTypeCheck = src.doTypeCheck;
@@ -502,10 +499,6 @@ AstNode::AstNode() {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)  
-    astFlag = false;
-#endif
    // used in mdl.C
    type = opCodeNode;
    op = noOp;
@@ -523,16 +516,14 @@ AstNode::AstNode(const pdstring &func, AstNode *l, AstNode *r) {
 #if defined(ASTDEBUG)
     ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)  
-    astFlag = false;
-#endif
+
     referenceCount = 1;
     useCount = 0;
     kept_register = Null_Register;
     type = callNode;
     callee = func;
     calleefunc = NULL;
+    calleefuncAddr = 0;
     loperand = roperand = eoperand = NULL;
     if (l) operands.push_back(assignAst(l));
     if (r) operands.push_back(assignAst(r));
@@ -545,10 +536,7 @@ AstNode::AstNode(const pdstring &func, AstNode *l) {
 #if defined(ASTDEBUG)
     ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)  
-    astFlag = false;
-#endif
+
     referenceCount = 1;
     useCount = 0;
     kept_register = Null_Register;
@@ -556,6 +544,7 @@ AstNode::AstNode(const pdstring &func, AstNode *l) {
     loperand = roperand = eoperand = NULL;
     callee = func;
     calleefunc = NULL;
+    calleefuncAddr = 0;
     if (l) operands.push_back(assignAst(l));
     size = 4;
     bptype = NULL;
@@ -566,10 +555,7 @@ AstNode::AstNode(const pdstring &func, pdvector<AstNode *> &ast_args) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)  
-    astFlag = false;
-#endif
+
    referenceCount = 1;
    useCount = 0;
    kept_register = Null_Register;
@@ -579,6 +565,26 @@ AstNode::AstNode(const pdstring &func, pdvector<AstNode *> &ast_args) {
    type = callNode;
    callee = func;
    calleefunc = NULL;
+   calleefuncAddr = 0;
+   size = 4;
+   bptype = NULL;
+   doTypeCheck = true;
+}
+
+AstNode::AstNode(Address funcAddr, pdvector<AstNode *> &ast_args) {
+#if defined(ASTDEBUG)
+   ASTcounter();
+#endif
+
+   referenceCount = 1;
+   useCount = 0;
+   kept_register = Null_Register;
+   for (unsigned i=0;i<ast_args.size();i++) 
+     if (ast_args[i]) operands.push_back(assignAst(ast_args[i]));
+   loperand = roperand = eoperand = NULL;
+   type = callNode;
+   calleefunc = NULL;
+   calleefuncAddr = funcAddr;
    size = 4;
    bptype = NULL;
    doTypeCheck = true;
@@ -591,10 +597,7 @@ AstNode::AstNode(int_function *func, pdvector<AstNode *> &ast_args) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)  
-    astFlag = false;
-#endif
+
    referenceCount = 1;
    useCount = 0;
    kept_register = Null_Register;
@@ -604,6 +607,7 @@ AstNode::AstNode(int_function *func, pdvector<AstNode *> &ast_args) {
    type = callNode;
    callee = func->symTabName();
    calleefunc = func;
+   calleefuncAddr = 0;
    size = 4;
    bptype = NULL;
    doTypeCheck = true;
@@ -617,10 +621,7 @@ AstNode::AstNode(int_function *func) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)  
-    astFlag = false;
-#endif
+
    referenceCount = 1;
    useCount = 0;
    kept_register = Null_Register;
@@ -629,6 +630,7 @@ AstNode::AstNode(int_function *func) {
    op = funcJumpOp;
    callee = func->symTabName();
    calleefunc = func;
+   calleefuncAddr = 0;
    size = 4;
    bptype = NULL;
    doTypeCheck = true;
@@ -639,10 +641,7 @@ AstNode::AstNode(operandType ot, void *arg) {
 #if defined(ASTDEBUG)
     ASTcounterNP();
 #endif
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)  
-    astFlag = false;
-#endif
+
     referenceCount = 1;
     useCount = 0;
     kept_register = Null_Register;
@@ -666,10 +665,7 @@ AstNode::AstNode(operandType ot, int which) : whichMA(which)
 #if defined(ASTDEBUG)
   ASTcounterNP();
 #endif
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)  
-  astFlag = false;
-#endif
+
   referenceCount = 1;
   useCount = 0;
   kept_register = Null_Register;
@@ -696,10 +692,7 @@ AstNode::AstNode(operandType ot, AstNode *l) {
 #if defined(ASTDEBUG)
     ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)  
-    astFlag = false;
-#endif
+
     referenceCount = 1;
     useCount = 0;
     kept_register = Null_Register;
@@ -719,10 +712,7 @@ AstNode::AstNode(AstNode *l, AstNode *r) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)  
-    astFlag = false;
-#endif
+
    referenceCount = 1;
    useCount = 0;
    kept_register = Null_Register;
@@ -739,10 +729,7 @@ AstNode::AstNode(opCode ot) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)  
-    astFlag = false;
-#endif
+
    // a private constructor
    referenceCount = 1;
    useCount = 0;
@@ -759,10 +746,7 @@ AstNode::AstNode(opCode ot, AstNode *l) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)  
-    astFlag = false;
-#endif
+
    // a private constructor
    referenceCount = 1;
    useCount = 0;
@@ -781,10 +765,7 @@ AstNode::AstNode(opCode ot, AstNode *l, AstNode *r, AstNode *e) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)  
-    astFlag = false;
-#endif
+
    referenceCount = 1;
    useCount = 0;
    kept_register = Null_Register;
@@ -804,10 +785,7 @@ AstNode::AstNode(AstNode *src) {
 #if defined(ASTDEBUG)
    ASTcounter();
 #endif
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)  
-    astFlag = false;
-#endif
+
    referenceCount = 1;
    useCount = 0;
    kept_register = Null_Register;
@@ -819,6 +797,7 @@ AstNode::AstNode(AstNode *src) {
    if (type == callNode) {
       callee = src->callee;     // defined only for call nodes
       calleefunc = src->calleefunc;
+      calleefuncAddr = src->calleefuncAddr;
       for (unsigned i=0;i<src->operands.size();i++) {
         if (src->operands[i]) operands.push_back(assignAst(src->operands[i]));
       }
@@ -979,7 +958,7 @@ void terminateAst(AstNode *&ast) {
 // generates the code for the ast, not just for the trampoline
 // VG(11/06/01): Added location, needed by effective address AST node
 Address AstNode::generateTramp(process *proc, const instPoint *location,
-			       char *i, Address &count,
+                               codeGen &gen,
 			       int *trampCost, bool noCost, 
 			       registerSpace *regS) {
     static AstNode *trailer=NULL;
@@ -987,9 +966,9 @@ Address AstNode::generateTramp(process *proc, const instPoint *location,
                                                        // used to estimate cost
     static AstNode *preambleTemplate=NULL;
     if (!preambleTemplate) {
-      AstNode *tmp1 = new AstNode(Constant, (void *) 0);
-      preambleTemplate = new AstNode(trampPreamble, tmp1);
-      removeAst(tmp1);
+        AstNode *tmp1 = new AstNode(Constant, (void *) 0);
+        preambleTemplate = new AstNode(trampPreamble, tmp1);
+        removeAst(tmp1);
     }
     // private constructor; assumes NULL for right child
     
@@ -1017,24 +996,25 @@ Address AstNode::generateTramp(process *proc, const instPoint *location,
 
     regSpace->resetSpace();
     regSpace->resetClobbers();
-    regSpace->resetLiveDeadInfo(location->liveRegisters);
+    // FIXME liveRegisters
+    //regSpace->resetLiveDeadInfo(location->liveRegisters);
 
 #if defined( ia64_unknown_linux2_4 )
 	extern Register deadRegisterList[];
-	defineBaseTrampRegisterSpaceFor( location, regSpace, deadRegisterList, proc );
+	defineBaseTrampRegisterSpaceFor( location, regSpace, deadRegisterList);
 #endif
 
     Address ret=0;
     if (type != opCodeNode || op != noOp) {
         Register tmp;
-	preamble->generateCode(proc, regSpace, i, count, noCost, true);
+	preamble->generateCode(proc, regSpace, gen, noCost, true);
         removeAst(preamble);
-	tmp = (Register)generateCode(proc, regSpace, i, count, noCost, true, location);
+	tmp = (Register)generateCode(proc, regSpace, gen, noCost, true, location);
         regSpace->freeRegister(tmp);
-        ret = trailer->generateCode(proc, regSpace, i, count, noCost, true);
+        ret = trailer->generateCode(proc, regSpace, gen, noCost, true);
     } else {
         removeAst(preamble);
-        emitV(op, 1, 0, 0, i, count, noCost);   // op==noOp
+        emitV(op, 1, 0, 0, gen, noCost);   // op==noOp
     }
     
     regSpace->copyInfo(regS);
@@ -1122,10 +1102,10 @@ void AstNode::printUseCount(void)
 // node is shared
 Register AstNode::allocateAndKeep(registerSpace *rs, 
 				  const pdvector<AstNode*> &ifForks,
-				  char *insn, Address &base, bool noCost)
+				  codeGen &gen, bool noCost)
 {
     // Allocate a register
-    Register dest = rs->allocateRegister(insn, base, noCost);
+    Register dest = rs->allocateRegister(gen, noCost);
     rs->fixRefCount(dest, useCount+1);
 
     // Make this register available for sharing
@@ -1162,8 +1142,7 @@ Register AstNode::allocateAndKeep(registerSpace *rs,
 //
 Address AstNode::generateCode(process *proc,
 			      registerSpace *rs,
-			      char *insn, 
-			      Address &base, bool noCost, bool root,
+			      codeGen &gen, bool noCost, bool root,
 			      const instPoint *location) {
   // Note: MIPSPro compiler complains about redefinition of default argument
   if (root) {
@@ -1180,7 +1159,7 @@ Address AstNode::generateCode(process *proc,
   pdvector<AstNode*> ifForks;
 
   // note: this could return the value "(Address)(-1)" -- csserra
-  Address tmp = generateCode_phase2(proc, rs, insn, base, noCost, 
+  Address tmp = generateCode_phase2(proc, rs, gen, noCost, 
 				    ifForks, location);
   // rs->checkLeaks(tmp);
 
@@ -1196,14 +1175,11 @@ Address AstNode::generateCode(process *proc,
 // VG(11/06/01): Make sure location is passed to all descendants
 Address AstNode::generateCode_phase2(process *proc,
 				     registerSpace *rs,
-				     char *insn, 
-				     Address &base, bool noCost,
+				     codeGen &gen, bool noCost,
 				     const pdvector<AstNode*> &ifForks,
 				     const instPoint *location) {
    // Note: MIPSPro compiler complains about redefinition of default argument
    Address addr;
-   Address fromAddr;
-   Address startInsn;
    Register src1, src2;
    Register src = Null_Register;
    Register dest = Null_Register;
@@ -1245,143 +1221,173 @@ Address AstNode::generateCode_phase2(process *proc,
          // We are not calling loperand->generateCode_phase2,
          // so we decrement its useCount by hand.
          loperand->decUseCount(rs);
-         (void)emitA(branchOp, 0, 0, (RegValue)offset, insn, base, noCost);
+         (void)emitA(branchOp, 0, 0, (RegValue)offset, gen, noCost);
       } else if (op == ifOp) {
-         // This ast cannot be shared because it doesn't return a register
-         src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
-         startInsn = base;
-         fromAddr = emitA(op, src, 0, 0, insn, base, noCost);
-         rs->freeRegister(src);
-
-         // The flow of control forks. We need to add the forked node to 
+          // This ast cannot be shared because it doesn't return a register
+          src = (Register)loperand->generateCode_phase2(proc, rs, gen, noCost, ifForks, location);
+          codeBufIndex_t ifIndex= gen.getIndex();
+          codeBufIndex_t thenSkipStart = emitA(op, src, 0, 0, gen, noCost);
+          rs->freeRegister(src);
+          
+          // The flow of control forks. We need to add the forked node to 
          // the path
          pdvector<AstNode*> thenFork = ifForks;
          thenFork.push_back(roperand);
-         Register tmp = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, thenFork, location);
+         Register tmp = (Register)roperand->generateCode_phase2(proc, rs, gen, noCost, thenFork, location);
          rs->freeRegister(tmp);
 
-         // Is there an else clause?  If yes, generate branch over it
-         Address else_fromAddr = 0;
-         Address else_startInsn = base;
-         if (eoperand) 
-            else_fromAddr = emitA(branchOp, 0, 0, 0,
-                                  insn, base, noCost);
 
+         // Is there an else clause?  If yes, generate branch over it
+         codeBufIndex_t elseSkipStart = 0;
+         codeBufIndex_t elseSkipIndex = gen.getIndex();
+         if (eoperand) 
+             elseSkipStart = emitA(branchOp, 0, 0, 0,
+                                   gen, noCost);
+         // Now that we've generated the "then" section, rewrite the if
+         // conditional branch.
+         codeBufIndex_t elseStartIndex = gen.getIndex();
+
+         gen.setIndex(ifIndex);
          // call emit again now with correct offset.
-         (void) emitA(op, src, 0, (Register) (base-fromAddr), 
-                      insn, startInsn, noCost);
-	   
+         // This backtracks over current code.
+         // If/when we vectorize, we can do this in a two-pass arrangement
+         (void) emitA(op, src, 0, 
+                      (Register) codeGen::getDisplacement(thenSkipStart, elseStartIndex),
+                      gen, noCost);
+         gen.setIndex(elseStartIndex);
+
          if (eoperand) {
             // If there's an else clause, we need to generate code for it.
             pdvector<AstNode*> elseFork = ifForks;
             elseFork.push_back(eoperand);// Add the forked node to the path
-            tmp = (Register)eoperand->generateCode_phase2(proc, rs, insn,
-                                                          base, noCost, 
+            tmp = (Register)eoperand->generateCode_phase2(proc, rs, gen,
+                                                          noCost, 
                                                           elseFork,
                                                           location);
             rs->freeRegister(tmp);
 
             // We also need to fix up the branch at the end of the "true"
             // clause to jump around the "else" clause.
-            emitA(branchOp, 0, 0, (Register) (base-else_fromAddr),
-                  insn, else_startInsn, noCost);
+            codeBufIndex_t endIndex = gen.getIndex();
+            gen.setIndex(elseSkipIndex);
+            emitA(branchOp, 0, 0, 
+                  (Register) codeGen::getDisplacement(elseSkipStart, endIndex),
+                  gen, noCost);
+            gen.setIndex(endIndex);
          }
       }
 #ifdef BPATCH_LIBRARY
       else if (op == ifMCOp) {
-         startInsn = base;
-         assert(location);
+          assert(location);
 
          // TODO: Right now we get the condition from the memory access info,
          // because scanning for memory accesses is the only way to detect these
          // conditional instructions. The right way(TM) would be to attach that
          // info directly to the point...
-         const BPatch_memoryAccess* ma = location->getBPatch_point()->getMemoryAccess();
+	 // Okay. The info we need is stored in the BPatch_point. We have the instPoint. 
+	 // Yay.
+
+	 // Since someone who shall not be named removed the BPatch
+	 // link from the process class, we perform a PID-based
+	 // lookup.
+	 BPatch_process *bproc = BPatch::bpatch->getProcessByPid(proc->getPid());
+	 BPatch_point *bpoint = bproc->instp_map->get(location);
+
+         const BPatch_memoryAccess* ma = bpoint->getMemoryAccess();
          assert(ma);
          int cond = ma->conditionCode_NP();
          if(cond > -1) {
-            emitJmpMC(cond, 0 /* target, changed later */, insn, base);
-            fromAddr = base;  // here base points after the jcc
-            // Add the snippet to the ifForks, as AM has indicated...
-            pdvector<AstNode*> thenFork = ifForks;
-            thenFork.push_back(loperand);
-            // generate code with the right path
-            Register tmp = (Register)loperand->generateCode_phase2(proc, rs, insn, base,
-                                                                   noCost, thenFork, location);
-            rs->freeRegister(tmp);
+             codeBufIndex_t startIndex = gen.getIndex();
+             emitJmpMC(cond, 0 /* target, changed later */, gen);
+             codeBufIndex_t fromIndex = gen.getIndex();
+             // Add the snippet to the ifForks, as AM has indicated...
+             pdvector<AstNode*> thenFork = ifForks;
+             thenFork.push_back(loperand);
+             // generate code with the right path
+             Register tmp = (Register)loperand->generateCode_phase2(proc, rs, gen,
+                                                                    noCost, thenFork, location);
+             rs->freeRegister(tmp);
+             codeBufIndex_t endIndex = gen.getIndex();
             // call emit again now with correct offset.
-            emitJmpMC(cond, base-fromAddr, insn, startInsn);
+             gen.setIndex(startIndex);
+             emitJmpMC(cond, codeGen::getDisplacement(fromIndex, endIndex), gen);
+             gen.setIndex(endIndex);
          }
          else {
-            Register tmp = (Register)loperand->generateCode_phase2(proc, rs, insn, base,
-                                                                   noCost, ifForks, location);
-            rs->freeRegister(tmp);
+             Register tmp = (Register)loperand->generateCode_phase2(proc, rs, gen,
+                                                                    noCost, ifForks, location);
+             rs->freeRegister(tmp);
          }
       }
 #endif          
       else if (op == whileOp) {
-         Address top = base ;
-         src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
-         startInsn = base;
-         fromAddr = emitA(ifOp, src, 0, 0, insn, base, noCost);
-         rs->freeRegister(src);
-         if (roperand) {
-            pdvector<AstNode*> whileFork = ifForks;
-            whileFork.push_back(eoperand);//Add the forked node to the path
-            Register tmp = 
-               (Register)roperand->generateCode_phase2(proc, rs, insn, 
-                                                       base, noCost, 
-                                                       whileFork, 
-                                                       location);
-            rs->freeRegister(tmp);
-         }
-         //jump back
-         (void) emitA(branchOp, 0, 0, (Register)(top-base),
-                      insn, base, noCost) ;
+          codeBufIndex_t top = gen.getIndex();
+          src = (Register)loperand->generateCode_phase2(proc, rs, gen, noCost, ifForks, location);
+          codeBufIndex_t startIndex = gen.getIndex();
+          codeBufIndex_t fromIndex = emitA(ifOp, src, 0, 0, gen, noCost);
+          rs->freeRegister(src);
+          if (roperand) {
+              pdvector<AstNode*> whileFork = ifForks;
+              whileFork.push_back(eoperand);//Add the forked node to the path
+              Register tmp = 
+                  (Register)roperand->generateCode_phase2(proc, rs, 
+                                                          gen, noCost,
+                                                          whileFork, 
+                                                          location);
+              rs->freeRegister(tmp);
+          }
+          //jump back
+          (void) emitA(branchOp, 0, 0, codeGen::getDisplacement(top, gen.getIndex()),
+                       gen, noCost);
 
-         // call emit again now with correct offset.
-         (void) emitA(ifOp, src, 0, (Register) (base-fromAddr), 
-                      insn, startInsn, noCost);
-         // sprintf(errorLine,"branch forward %d\n", base - fromAddr);
+          // Rewind and replace the skip jump
+          codeBufIndex_t endIndex = gen.getIndex();
+          gen.setIndex(startIndex);
+          (void) emitA(ifOp, src, 0, (Register) codeGen::getDisplacement(fromIndex, endIndex), 
+                       gen, noCost);
+          gen.setIndex(endIndex);
+          // sprintf(errorLine,"branch forward %d\n", base - fromAddr);
       } else if (op == doOp) {
-         assert(0) ;
+          assert(0) ;
       } else if (op == getAddrOp) {
-         if (loperand->oType == DataAddr) {
-            addr = (Address) loperand->oValue;
-            assert(addr != 0); // check for NULL
-            dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
-
-	    rs->clobberRegister(dest);
-	    
-            emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
+          if (loperand->oType == DataAddr) {
+              addr = (Address) loperand->oValue;
+              assert(addr != 0); // check for NULL
+              dest = allocateAndKeep(rs, ifForks, gen, noCost);
+              
+              rs->clobberRegister(dest);
+              
+              emitVload(loadConstOp, addr, dest, dest, gen, noCost);
          } else if (loperand->oType == FrameAddr) {
             // load the address fp + addr into dest
-            dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
-            Register temp = rs->allocateRegister(insn, base, noCost);
+            dest = allocateAndKeep(rs, ifForks, gen, noCost);
+            Register temp = rs->allocateRegister(gen, noCost);
             addr = (Address) loperand->oValue;
 
 	    rs->clobberRegister(dest);
 	    
-            emitVload(loadFrameAddr, addr, temp, dest, insn, 
-                      base, noCost, size, location, proc, rs );
+            emitVload(loadFrameAddr, addr, temp, dest, gen,
+                      noCost, rs, size, location, proc);
             rs->freeRegister(temp);
          } else if (loperand->oType == RegOffset) {
 	    assert(loperand->loperand);
 
             // load the address reg + addr into dest
-            dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
+            dest = allocateAndKeep(rs, ifForks, gen, noCost);
             addr = (Address) loperand->loperand->oValue;
 
 	    rs->clobberRegister(dest);
 	    
-            emitVload(loadRegRelativeAddr, addr, (long)loperand->oValue, dest, insn, 
-                      base, noCost, size, location, proc, rs );
+            emitVload(loadRegRelativeAddr, addr, (long)loperand->oValue, dest, gen,
+                      noCost, rs, size, location, proc);
          } else if (loperand->oType == DataIndir) {	
 	   // taking address of pointer de-ref returns the original
 	   //    expression, so we simple generate the left child's 
 	   //    code to get the address 
 	   dest = (Register)loperand->loperand->generateCode_phase2(proc, 
-                                                                     rs, insn, base, noCost, ifForks, location);
+                                                                    rs, gen, 
+                                                                    noCost, 
+                                                                    ifForks, location);
 	   rs->clobberRegister(dest);
 	   // Broken refCounts?
          } else {
@@ -1390,7 +1396,8 @@ Address AstNode::generateCode_phase2(process *proc,
          }
       } else if (op == storeOp) {
          // This ast cannot be shared because it doesn't return a register
-         src1 = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
+         src1 = (Register)roperand->generateCode_phase2(proc, rs, gen, 
+                                                        noCost, ifForks, location);
          // loperand's value will be invalidated. Discard the cached reg
          if (loperand->hasKeptRegister()) {
             loperand->forceUnkeepAndFree(rs);
@@ -1399,13 +1406,13 @@ Address AstNode::generateCode_phase2(process *proc,
          // it, so we need to bump up their useCounts
          loperand->fixChildrenCounts(rs);
 
-         src2 = rs->allocateRegister(insn, base, noCost);
+         src2 = rs->allocateRegister(gen, noCost);
 	 rs->clobberRegister(src2);
          switch (loperand->oType) {
            case DataAddr:
               addr = (Address) loperand->oValue;
               assert(addr != 0); // check for NULL
-              emitVstore(storeOp, src1, src2, addr, insn, base, noCost, rs, size);
+              emitVstore(storeOp, src1, src2, addr, gen, noCost, rs, size);
               // We are not calling generateCode for the left branch,
               // so need to decrement the refcount by hand
               loperand->decUseCount(rs);
@@ -1420,8 +1427,8 @@ Address AstNode::generateCode_phase2(process *proc,
                  important things, like the return address, on the stack. */
               assert(addr != 0); // check for NULL
 #endif              
-              emitVstore(storeFrameRelativeOp, src1, src2, addr, insn, 
-                         base, noCost, rs, size, location, proc);
+              emitVstore(storeFrameRelativeOp, src1, src2, addr, gen, 
+                         noCost, rs, size, location, proc);
               loperand->decUseCount(rs);
               break;
 	   case RegOffset: {
@@ -1434,10 +1441,10 @@ Address AstNode::generateCode_phase2(process *proc,
 	      rs->clobberRegister(src2);
 	    
 	      emitVload(loadRegRelativeAddr, addr, (long)loperand->oValue, src2,
-			insn, base, noCost, size, location, proc, rs );
+			gen, noCost, rs, size, location, proc);
 
 	      // Same as DataIndir at this point.
-	      emitV(storeIndirOp, src1, 0, src2, insn, base, noCost, size, location, proc, rs);
+	      emitV(storeIndirOp, src1, 0, src2, gen, noCost, rs, size, location, proc);
 	      loperand->decUseCount(rs);
 	      break;
            }
@@ -1446,12 +1453,12 @@ Address AstNode::generateCode_phase2(process *proc,
               // *(+ base offset) = src1
               Register tmp = 
                  (Register)loperand->loperand->generateCode_phase2(proc, rs, 
-                                                                   insn, base,
+                                                                   gen,
                                                                    noCost,
                                                                    ifForks,
                                                                    location);
               // tmp now contains address to store into
-              emitV(storeIndirOp, src1, 0, tmp, insn, base, noCost, size, location, proc, rs);
+              emitV(storeIndirOp, src1, 0, tmp, gen, noCost, rs, size, location, proc);
               rs->freeRegister(tmp);
               loperand->decUseCount(rs);
               break;
@@ -1460,8 +1467,8 @@ Address AstNode::generateCode_phase2(process *proc,
               // Could be an error, could be an attempt to load based on an arithmetic expression
               if (type == opCodeNode) {
                  // Generate the left hand side, store the right to that address
-                 Register tmp = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
-                 emitV(storeIndirOp, src1, 0, tmp, insn, base, noCost, size, location, proc, rs);
+                 Register tmp = (Register)loperand->generateCode_phase2(proc, rs, gen, noCost, ifForks, location);
+                 emitV(storeIndirOp, src1, 0, tmp, gen, noCost, rs, size, location, proc);
                  rs->freeRegister(tmp);
               }
               else {
@@ -1477,14 +1484,18 @@ Address AstNode::generateCode_phase2(process *proc,
          rs->freeRegister(src1);
          rs->freeRegister(src2);
       } else if (op == storeIndirOp) {
-         src1 = (Register)roperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
-         src2 = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
-         emitV(op, src1, 0, src2, insn, base, noCost);          
+         src1 = (Register)roperand->generateCode_phase2(proc, rs, gen, noCost, ifForks, location);
+         src2 = (Register)loperand->generateCode_phase2(proc, rs, gen, noCost, ifForks, location);
+         emitV(op, src1, 0, src2, gen, noCost);          
          rs->freeRegister(src1);
          rs->freeRegister(src2);
       } else if (op == trampTrailer) {
          // This ast cannot be shared because it doesn't return a register
-         return emitA(op, 0, 0, 0, insn, base, noCost);
+          codeBufIndex_t ret_index = emitA(op, 0, 0, 0, gen, noCost);
+          // Convert to a bytecount
+          // From 0: assume we're starting at the beginning of the code generator. Not a tremendous
+          // assumption but valid in all cases.
+          return gen.getDisplacement(0, ret_index);
       } else if (op == trampPreamble) {
          // This ast cannot be shared because it doesn't return a register
 #if defined(i386_unknown_solaris2_5) \
@@ -1494,10 +1505,10 @@ Address AstNode::generateCode_phase2(process *proc,
          Address costAddr = 0; // for now... (won't change if noCost is set)
          loperand->decUseCount(rs);
          costAddr = proc->getObservedCostAddr();
-         return emitA(op, 0, 0, 0, insn, base, noCost);
+         return emitA(op, 0, 0, 0, gen, noCost);
 #endif
       } else if (op == funcJumpOp) {
-         emitFuncJump(funcJumpOp, insn, base, calleefunc, proc,
+         emitFuncJump(funcJumpOp, gen, calleefunc, proc,
                       location, noCost);
       } else {
          AstNode *left = assignAst(loperand);
@@ -1539,7 +1550,7 @@ Address AstNode::generateCode_phase2(process *proc,
          src = Null_Register;
          right_dest = Null_Register;
          if (left) {
-            src = (Register)left->generateCode_phase2(proc, rs, insn, base,
+            src = (Register)left->generateCode_phase2(proc, rs, gen,
                                                       noCost, ifForks,
                                                       location);
          }
@@ -1550,7 +1561,7 @@ Address AstNode::generateCode_phase2(process *proc,
              (type == opCodeNode))
          {
 	     rs->freeRegister(src); // may be able to reuse it for dest
-	     dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
+	     dest = allocateAndKeep(rs, ifForks, gen, noCost);
 	     rs->clobberRegister(dest);
 #ifdef alpha_dec_osf4_0
             if (op == divOp)
@@ -1570,17 +1581,17 @@ Address AstNode::generateCode_phase2(process *proc,
             }
             else
 #endif
-               emitImm(op, src, (RegValue)right->oValue, dest, insn, base, noCost, rs);
+               emitImm(op, src, (RegValue)right->oValue, dest, gen, noCost, rs);
             // We do not .generateCode for right, so need to update its
             // refcounts manually
             right->decUseCount(rs);
          }
          else {
             if (right)
-               right_dest = (Register)right->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
+               right_dest = (Register)right->generateCode_phase2(proc, rs, gen, noCost, ifForks, location);
 	    rs->freeRegister(src); // may be able to reuse it for dest
 	    rs->freeRegister(right_dest); // may be able to reuse it for dest
-            dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
+            dest = allocateAndKeep(rs, ifForks, gen, noCost);
 	    rs->clobberRegister(dest);
 #ifdef alpha_dec_osf4_0
             if (op == divOp)
@@ -1600,7 +1611,7 @@ Address AstNode::generateCode_phase2(process *proc,
             }
             else
 #endif
-               emitV(op, src, right_dest, dest, insn, base, noCost, size, location, proc, rs);
+               emitV(op, src, right_dest, dest, gen, noCost, rs, size, location, proc);
          }
          removeAst(left);
          removeAst(right);
@@ -1608,7 +1619,7 @@ Address AstNode::generateCode_phase2(process *proc,
    } else if (type == operandNode) {
       // Allocate a register to return
       if (oType != DataReg) {
-         dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
+         dest = allocateAndKeep(rs, ifForks, gen, noCost);
 	 rs->clobberRegister(dest);
       }
       Register temp;
@@ -1617,28 +1628,28 @@ Address AstNode::generateCode_phase2(process *proc,
 #if defined(BPATCH_LIBRARY)
       BPatch_type *Type;
       const BPatch_memoryAccess* ma;
-      BPatch_addrSpec_NP start;
-      BPatch_countSpec_NP count;
+      const BPatch_addrSpec_NP *start;
+      const BPatch_countSpec_NP *count;
 #endif
       switch (oType) {
         case Constant:
 	  rs->clobberRegister(dest);
 	  emitVload(loadConstOp, (Address)oValue, dest, dest, 
-                     insn, base, noCost);
+                     gen, noCost);
            break;
         case ConstantPtr:
 	  rs->clobberRegister(dest);
 	  emitVload(loadConstOp, (*(Address *) oValue), dest, dest, 
-                     insn, base, noCost);
+                     gen, noCost);
            break;
         case DataPtr:
            addr = (Address) oValue;
            assert(addr != 0); // check for NULL
 	   rs->clobberRegister(dest);
-	   emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
+	   emitVload(loadConstOp, addr, dest, dest, gen, noCost);
            break;
         case DataIndir:
-           src = (Register)loperand->generateCode_phase2(proc, rs, insn, base, noCost, ifForks, location);
+           src = (Register)loperand->generateCode_phase2(proc, rs, gen, noCost, ifForks, location);
 #ifdef BPATCH_LIBRARY
            Type = const_cast<BPatch_type *> (getType());
            assert(Type);
@@ -1646,7 +1657,7 @@ Address AstNode::generateCode_phase2(process *proc,
 #else
            tSize = sizeof(int);
 #endif
-           emitV(loadIndirOp, src, 0, dest, insn, base, noCost, tSize, location, proc, rs); 
+           emitV(loadIndirOp, src, 0, dest, gen, noCost, rs, tSize, location, proc); 
            rs->freeRegister(src);
            break;
         case DataReg:
@@ -1654,13 +1665,13 @@ Address AstNode::generateCode_phase2(process *proc,
 	   rs->clobberRegister(dest);
            break;
         case PreviousStackFrameDataReg:
-           emitLoadPreviousStackFrameRegister((Address) oValue, dest,insn,base,
+            emitLoadPreviousStackFrameRegister((Address) oValue, dest, gen,
                                               size, noCost);
            break;
         case DataId:	
 	rs->clobberRegister(dest);
 	emitVload(loadConstOp, (Address)oValue, dest, dest, 
-		  insn, base, noCost);
+		  gen, noCost);
 	  break;
       case DataValue:
 	addr = (Address) oValue;
@@ -1668,70 +1679,40 @@ Address AstNode::generateCode_phase2(process *proc,
 	   
 	   rs->clobberRegister(dest);
       
-           emitVload(loadOp, addr, dest, dest, insn, base, noCost);
+           emitVload(loadOp, addr, dest, dest, gen, noCost);
            break;
       case ReturnVal:
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)  
-	if (loperand) {
-              instruction instr;
-              instr.raw = (unsigned)(loperand->oValue);
-              src = emitOptReturn(instr, dest, insn, base, noCost, location,
-                                  proc->multithread_capable());
-           }
-           else if (astFlag)
-              src = emitR(getSysRetValOp, 0, 0, dest, insn, base, noCost, location,
-                          proc->multithread_capable());
-           else 
-#endif
-              src = emitR(getRetValOp, 0, 0, dest, insn, base, noCost, location,
-                          proc->multithread_capable());
-           if (src != dest) {
+          src = emitR(getRetValOp, 0, 0, dest, gen, noCost, location,
+                      proc->multithread_capable());
+          if (src != dest) {
               // Move src to dest. Can't simply return src, since it was not
               // allocated properly
-              emitImm(orOp, src, 0, dest, insn, base, noCost, rs);
-           }
-           break;
+              emitImm(orOp, src, 0, dest, gen, noCost, rs);
+          }
+          break;
         case Param:
-#if defined(sparc_sun_sunos4_1_3) \
- || defined(sparc_sun_solaris2_4)  
-           // Here is what a "well-named" astFlag seems to mean.
-           // astFlag is true iff the function does not begin with a save
-           // or our instumentation is placed before the save instruction.
-           // Notice that we do emit a save in the basetramp in any case,
-           // so if (astFlag) then arguments are in the previous frame's
-           // O registers (this frame's I registers). If (!astFlag) then
-           // arguments are two frames above us.
-           // For callsite instrumentation, callee's arguments are always
-           // in I registers (remember, we did a save)
-           if (astFlag || location->getPointType() == callSite)
-              src = emitR(getSysParamOp, (Register)oValue, Null_Register, 
-                          dest, insn, base, noCost, location,
-                          proc->multithread_capable());
-           else 
-#endif
-              src = emitR(getParamOp, (Address)oValue, Null_Register,
-                          dest, insn, base, noCost, location,
-                          proc->multithread_capable());
-           if (src != dest) {
-              // Move src to dest. Can't simply return src, since it was not
-              // allocated properly
-              emitImm(orOp, src, 0, dest, insn, base, noCost, rs);
-           }
-           break;
+            src = emitR(getParamOp, (Address)oValue, Null_Register,
+                        dest, gen, noCost, location,
+                        proc->multithread_capable());
+            if (src != dest) {
+                // Move src to dest. Can't simply return src, since it was not
+                // allocated properly
+                emitImm(orOp, src, 0, dest, gen, noCost, rs);
+            }
+            break;
         case DataAddr:
            addr = (Address) oValue;
 
 	   rs->clobberRegister(dest);
 	   
-           emitVload(loadOp, addr, dest, dest, insn, base, noCost, size);
+           emitVload(loadOp, addr, dest, dest, gen, noCost, NULL, size);
            break;
         case FrameAddr:
            addr = (Address) oValue;
-           temp = rs->allocateRegister(insn, base, noCost);
+           temp = rs->allocateRegister(gen, noCost);
 	   rs->clobberRegister(dest);
 
-           emitVload(loadFrameRelativeOp, addr, temp, dest, insn, base, noCost, size, location, proc, rs );
+           emitVload(loadFrameRelativeOp, addr, temp, dest, gen, noCost, rs, size, location, proc);
            rs->freeRegister(temp);
            break;
         case RegOffset:
@@ -1742,15 +1723,19 @@ Address AstNode::generateCode_phase2(process *proc,
 
 	   rs->clobberRegister(dest);
 	   
-	   emitVload(loadRegRelativeOp, addr, (long)oValue, dest, insn, base, noCost, size, location, proc, rs );
+	   emitVload(loadRegRelativeOp, addr, (long)oValue, dest, gen, noCost, rs, size, location, proc);
 	   break;
-        case EffectiveAddr:
+      case EffectiveAddr: {
+
            // VG(11/05/01): get effective address
            // VG(07/31/02): take care which one
 #ifdef BPATCH_LIBRARY
            // 1. get the point being instrumented & memory access info
            assert(location);
-           ma = location->getBPatch_point()->getMemoryAccess();
+	   
+	   BPatch_process *bproc = BPatch::bpatch->getProcessByPid(proc->getPid());
+	   BPatch_point *bpoint = bproc->instp_map->get(location);
+           ma = bpoint->getMemoryAccess();
            if(!ma) {
               bpfatal( "Memory access information not available at this point.\n");
               bpfatal( "Make sure you create the point in a way that generates it.\n");
@@ -1763,17 +1748,21 @@ Address AstNode::generateCode_phase2(process *proc,
               assert(0);
            }
            start = ma->getStartAddr(whichMA);
-           emitASload(start, dest, insn, base, noCost);
+           emitASload(start, dest, gen, noCost);
 #else
            bpfatal( "Effective address feature not supported w/o BPatch!\n");
            assert(0);
 #endif
            break;
-        case BytesAccessed:
+      }
+      case BytesAccessed: {
 #ifdef BPATCH_LIBRARY
            // 1. get the point being instrumented & memory access info
            assert(location);
-           ma = location->getBPatch_point()->getMemoryAccess();
+
+	   BPatch_process *bproc = BPatch::bpatch->getProcessByPid(proc->getPid());
+	   BPatch_point *bpoint = bproc->instp_map->get(location);
+           ma = bpoint->getMemoryAccess();
            if(!ma) {
               bpfatal( "Memory access information not available at this point.\n");
               bpfatal("Make sure you create the point in a way that generates it.\n");
@@ -1786,12 +1775,13 @@ Address AstNode::generateCode_phase2(process *proc,
               assert(0);
            }
            count = ma->getByteCount(whichMA);
-           emitCSload(count, dest, insn, base, noCost);
+           emitCSload(count, dest, gen, noCost);
 #else
            bpfatal( "Byte count feature not supported w/o BPatch!\n");
            assert(0);
 #endif
            break;
+      }
         case ConstantString:
            // XXX This is for the pdstring type.  If/when we fix the pdstring type
            // to make it less of a hack, we'll need to change this.
@@ -1813,7 +1803,7 @@ Address AstNode::generateCode_phase2(process *proc,
 
 	   rs->clobberRegister(dest);
 
-           emitVload(loadConstOp, addr, dest, dest, insn, base, noCost);
+           emitVload(loadConstOp, addr, dest, dest, gen, noCost);
            break;
         default:
            cerr << "Unknown oType " << oType << endl;
@@ -1821,32 +1811,33 @@ Address AstNode::generateCode_phase2(process *proc,
            break;
       }
    } else if (type == callNode) {
-     // VG(11/06/01): This platform independent fn calls a platfrom
-     // dependent fn which calls it back for each operand... Have to
-     // fix those as well to pass location...
-     Address callee_addr = (Address)NULL;
-     bool err = false;
-
-     if (calleefunc)
-       callee_addr = calleefunc->getEffectiveAddress(proc); 
-     else {
-       callee_addr = proc->findInternalAddress(callee, false, err);
-       if (err) {
-  
-	 calleefunc = proc->findOnlyOneFunction(callee);
-	 if (!calleefunc) {
-	   char msg[256];
-	   sprintf(msg, "%s[%d]:  internal error:  unable to find %s",
-		   __FILE__, __LINE__, callee.c_str());
-	   showErrorCallback(100, msg);
-	   assert(0);  // can probably be more graceful
-	   }
-	 callee_addr = calleefunc->getEffectiveAddress(proc);
+       // VG(11/06/01): This platform independent fn calls a platfrom
+       // dependent fn which calls it back for each operand... Have to
+       // fix those as well to pass location...
+       if (calleefuncAddr) {
+           // Nothing...
        }
-     }
+       else if (calleefunc)
+           calleefuncAddr = calleefunc->getAddress(); 
+       else {
+           pdvector<int_function *> calleeFuncs;
+           proc->findFuncsByAll(callee, calleeFuncs);
+           
+           if (!calleeFuncs.size()) {
+               char msg[256];
+               sprintf(msg, "%s[%d]:  internal error:  unable to find %s",
+                       __FILE__, __LINE__, callee.c_str());
+               showErrorCallback(100, msg);
+               assert(0);  // can probably be more graceful
+           }
+           else if (calleeFuncs.size() > 1)
+               cerr << "Warning: multiple matches in AST function call code, using first" << endl;
+           
+           calleefuncAddr = calleeFuncs[0]->getOriginalAddress();
+       }
      
-      Register tmp = emitFuncCall(callOp, rs, insn, base, operands,  
-                                  proc, noCost, callee_addr, ifForks, 
+      Register tmp = emitFuncCall(callOp, rs, gen, operands,  
+                                  proc, noCost, calleefuncAddr, ifForks, 
                                   location);
       if (!rs->isFreeRegister(tmp)) {
          // On some platforms, emitFuncCall properly reserves a register
@@ -1863,21 +1854,21 @@ Address AstNode::generateCode_phase2(process *proc,
          // On SPARC emitFuncCall always returns O0, which we decided
          // not to use (I guess because Oregs are not preserved across
          // calls), so we need to move it to a register we can return
-         dest = allocateAndKeep(rs, ifForks, insn, base, noCost);
+         dest = allocateAndKeep(rs, ifForks, gen, noCost);
 	 rs->clobberRegister(dest);
          // Move tmp to dest
-         emitImm(orOp, tmp, 0, dest, insn, base, noCost, rs);
+         emitImm(orOp, tmp, 0, dest, gen, noCost, rs);
       }
    } else if (type == sequenceNode) {
 #if 0 && defined(BPATCH_LIBRARY_F) // mirg: Aren't we losing a reg here?
-      (void) loperand->generateCode_phase2(proc, rs, insn, base, noCost, 
+      (void) loperand->generateCode_phase2(proc, rs, gen, noCost, 
                                            ifForks, location);
 #else
-      Register tmp = loperand->generateCode_phase2(proc, rs, insn, base, 
+      Register tmp = loperand->generateCode_phase2(proc, rs, gen, 
                                                    noCost, ifForks,location);
       rs->freeRegister(tmp);
 #endif
-      dest = roperand->generateCode_phase2(proc, rs, insn, base, 
+      dest = roperand->generateCode_phase2(proc, rs, gen, 
                                            noCost, ifForks, location);
       rs->clobberRegister(dest);
    }

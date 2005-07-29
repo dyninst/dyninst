@@ -47,7 +47,7 @@
 #define _ARCH_MIPS_H_
 
 /*
- * $Id: arch-mips.h,v 1.9 2004/03/23 01:12:01 eli Exp $
+ * $Id: arch-mips.h,v 1.10 2005/07/29 19:18:15 bernat Exp $
  */
 
 #include "common/h/Types.h" // for "Address"
@@ -164,7 +164,7 @@ union instructUnion {
 };
 
 typedef union instructUnion instruction;
-#define INSN_SIZE (sizeof(instruction))
+#define INSN_SIZE (instruction::size())
 
 
 /*

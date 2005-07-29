@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.31 2005/06/14 04:15:52 rchen Exp $
+// $Id: arch-x86.C,v 1.32 2005/07/29 19:18:18 bernat Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -51,7 +51,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include "common/h/Types.h"
-#include "arch-x86.h"
+#include "arch.h"
 #include "util.h"
 
 // tables and pseudotables
@@ -2907,8 +2907,8 @@ unsigned get_instruction(const unsigned char* addr, unsigned &insnType,
   return r1;
 }
 
-long addressOfMachineInsn(instruction *insn) {
-  return (long)insn->ptr();
+int addressOfMachineInsn(instruction *insn) {
+  return (int)insn->ptr();
 }
 
 int sizeOfMachineInsn(instruction *insn) {
@@ -3029,8 +3029,8 @@ bool isFunctionPrologue( instruction& insn1 )
         return true;
 
     instruction insn2, insn3;
-    insn2.getNextInstruction( insn1.ptr() + insn1.size() );       
-    insn3.getNextInstruction( insn2.ptr() + insn2.size() );
+    insn2.setInstruction( insn1.ptr() + insn1.size() );       
+    insn3.setInstruction( insn2.ptr() + insn2.size() );
     
     const unsigned char* p = insn1.ptr();
     const unsigned char* q = insn2.ptr();
@@ -3071,8 +3071,8 @@ bool isFunctionPrologue( instruction& insn1 )
 bool isStackFramePreamble( instruction& insn1 )
 {       
     instruction insn2, insn3;
-    insn2.getNextInstruction( insn1.ptr() + insn1.size() );       
-    insn3.getNextInstruction( insn2.ptr() + insn2.size() );
+    insn2.setInstruction( insn1.ptr() + insn1.size() );       
+    insn3.setInstruction( insn2.ptr() + insn2.size() );
 
     const unsigned char* p = insn1.op_ptr();
     const unsigned char* q = insn2.op_ptr();
@@ -3301,4 +3301,78 @@ int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
   }
  
   return -1;
+}
+
+// We keep an array-let that represents various fixed
+// insns
+unsigned char illegalRep[2] = {0x0f, 0x0b};
+unsigned char trapRep[1] = {0xCC};
+
+void instruction::generateIllegal(codeGen &gen) {
+    instruction insn;
+    insn.setInstruction(illegalRep);
+    insn.generate(gen);
+}
+
+void instruction::generateTrap(codeGen &gen) {
+    instruction insn;
+    insn.setInstruction(trapRep);
+    insn.generate(gen);
+}
+
+
+    
+/*
+ * change the insn at addr to be a branch to newAddr.
+ *   Used to add multiple tramps to a point.
+ */
+
+void instruction::generateBranch(codeGen &gen,
+                                 Address fromAddr, Address toAddr) {
+    int disp32 = (int)(toAddr - (fromAddr + JUMP_REL32_SZ));
+    generateBranch(gen, disp32);
+}
+
+void instruction::generateBranch(codeGen &gen,
+                                 int disp32) {
+    if (disp32 >= 0)
+        assert ((unsigned)disp32 < unsigned(1<<31));
+    else
+        assert ((unsigned)(-disp32) < unsigned(1<<31));
+    
+    GET_PTR(insn, gen);
+    *insn++ = 0xE9;
+    *((int *)insn) = disp32;
+    insn += sizeof(int);
+    SET_PTR(insn, gen);
+    return;
+}
+
+void instruction::generateCall(codeGen &gen,
+                               Address from,
+                               Address target) {
+    // TODO 64bit fixme
+    int disp = target - (from + CALL_REL32_SZ);
+    GET_PTR(insn, gen);
+    *insn++ = 0xE8;
+    *((int *)insn) = disp;
+    insn += sizeof(int);
+    SET_PTR(insn, gen);
+}
+
+void instruction::generateNOOP(codeGen &gen, unsigned size) {
+    // Be more efficient here...
+    while (size) {
+        GET_PTR(insn, gen);
+        *insn++ = NOP;
+        SET_PTR(insn, gen);
+        size -= sizeof(unsigned char);
+    }
+}
+
+void instruction::generate(codeGen &gen) {
+    assert(ptr_);
+    assert(size_);
+    memcpy(gen.cur_ptr(), ptr_, size_);
+    gen.moveIndex(size_);
 }

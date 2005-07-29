@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.27 2005/06/14 04:15:56 rchen Exp $
+// $Id: arch-x86.h,v 1.28 2005/07/29 19:18:19 bernat Exp $
 // x86 instruction declarations
 
 #if !defined(i386_unknown_solaris2_5) \
@@ -51,6 +51,13 @@
 
 #ifndef _ARCH_X86_H
 #define _ARCH_X86_H
+
+// Code generation
+
+typedef unsigned char codeBuf_t;
+typedef unsigned codeBufIndex_t;
+
+class codeGen;
 
 #if defined(i386_unknown_nt4_0)
 // disable VC++ warning C4800: (performance warning)
@@ -375,12 +382,26 @@ Address get_target(const unsigned char *instr, unsigned type, unsigned size,
 		   Address addr);
 
 
+// Size of a jump rel32 instruction
+#define JUMP_REL32_SZ (5)
+#define JUMP_SZ (5)
+// Size of a call rel32 instruction
+#define CALL_REL32_SZ (5)
+
+#define PUSH_RM_OPC1 (0xFF)
+#define PUSH_RM_OPC2 (6)
+#define CALL_RM_OPC1 (0xFF)
+#define CALL_RM_OPC2 (2)
+#define PUSH_EBP (0x50+EBP)
+#define SUB_REG_IMM32 (5)
+#define LEAVE (0xC9)
+
 class instruction {
  public:
-  instruction(): type_(0), size_(0), ptr_(0), op_ptr_(0) {}
+    instruction(): type_(0), size_(0), ptr_(0), op_ptr_(0) {}
 
   instruction(const unsigned char *p, unsigned type, unsigned sz, const unsigned char* op = 0):
-    type_(type), size_(sz), ptr_(p), op_ptr_(op ? op : p) {}
+      type_(type), size_(sz), ptr_(p), op_ptr_(op ? op : p) {}
 
   instruction(const instruction &insn) {
     type_ = insn.type_;
@@ -389,10 +410,15 @@ class instruction {
     op_ptr_ = insn.op_ptr_;
   }
 
-  unsigned getNextInstruction(const unsigned char *p) {
-    ptr_ = p;
-    size_ = get_instruction(ptr_, type_, &op_ptr_);
-    return size_;
+  instruction(const void *ptr) :
+      type_(0), size_(0), ptr_(NULL), op_ptr_(0) {
+      setInstruction((const unsigned char*)ptr);
+  }
+
+  unsigned setInstruction(const unsigned char *p, Address = 0) {
+      ptr_ = p;
+      size_ = get_instruction(ptr_, type_, &op_ptr_);
+      return size_;
   }
 
   // if the instruction is a jump or call, return the target, else return zero
@@ -407,10 +433,25 @@ class instruction {
   unsigned type() const { return type_; }
 
   // return a pointer to the instruction
-  const unsigned char *ptr() const { return ptr_; }
-  
+  const unsigned char *ptr() const { 
+      return ptr_; 
+  }
+
   // return a pointer to the instruction's opcode
   const unsigned char* op_ptr() const { return op_ptr_; }
+
+  // Code generation
+  static void generateBranch(codeGen &gen, Address from, Address to); 
+  static void generateBranch(codeGen &gen, int disp); 
+  static void generateCall(codeGen &gen, Address from, Address to);
+
+  // We may want to generate an efficient set 'o nops
+  static void generateNOOP(codeGen &gen, unsigned size);
+  
+  static void generateIllegal(codeGen &gen);
+  static void generateTrap(codeGen &gen);
+
+  void generate(codeGen &gen);
 
   bool isCall() const { return type_ & IS_CALL; }
   bool isCallIndir() const { return (type_ & IS_CALL) && (type_ & INDIR); }
@@ -435,7 +476,11 @@ class instruction {
         return *p == XOR_RM16_R16 || *p ==  XOR_RM32_R32 ||
                *p ==  XOR_R8_RM8  || *p ==  XOR_R16_RM16 ||
                *p == XOR_R32_RM32; }
-            
+  bool isANearBranch() const { return isJumpDir(); }
+
+  bool isTrueCallInsn() const { return (isCall() && !isCallIndir()); }
+
+  static bool isAligned(const Address ) { return true; }
 
  private:
   unsigned type_;   // type of the instruction (e.g. IS_CALL | INDIR)
@@ -450,7 +495,7 @@ int set_disp(bool setDisp, instruction *insn, int newOffset, bool outOfFunc);
 int displacement(const unsigned char *instr, unsigned type);
 
 int sizeOfMachineInsn(instruction *insn);
-long addressOfMachineInsn(instruction *insn);
+int addressOfMachineInsn(instruction *insn);
 
 int get_instruction_operand(const unsigned char *i_ptr, Register& base_reg,
 			    Register& index_reg, int& displacement, 
@@ -459,8 +504,6 @@ void decode_SIB(unsigned sib, unsigned& scale, Register& index_reg, Register& ba
 const unsigned char* skip_headers(const unsigned char*,bool&,bool&);
 
 /* addresses on x86 don't have to be aligned */
-inline bool isAligned(const Address ) { return true; }
-
 /* Address bounds of new dynamic heap segments.  On x86 we don't try
 to allocate new segments near base tramps, so heap segments can be
 allocated anywhere (the tramp address "x" is ignored). */

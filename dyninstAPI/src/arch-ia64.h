@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.31 2005/06/16 03:15:06 tlmiller Exp $
+// $Id: arch-ia64.h,v 1.32 2005/07/29 19:18:14 bernat Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -73,31 +73,63 @@
 */
 
 class IA64_bundle;
+class codeGen;
 
 struct ia64_bundle_t {
 	uint64_t low;
 	uint64_t high;
 	};
 
-class IA64_instruction {
+// Code generation
+
+typedef ia64_bundle_t codeBuf_t;
+typedef unsigned codeBufIndex_t;
+
+
+class instruction {
 	friend class IA64_bundle;
 
-	public:
-		IA64_instruction( uint64_t insn = 0, uint8_t templ = 0x20, uint8_t slotN = 3 );
+ public:
+	instruction( uint64_t insn = 0, uint8_t templ = 0x20, uint8_t slotN = 3 );
 
-		const void * ptr() const;
-		uint32_t size() const { return 16; }
+	void setInstruction(codeBuf_t *instPtr, Address addr);
 
-		uint64_t getMachineCode() const { return instruction; }
+	// Emulation
+	virtual void relocate(codeGen &gen, Address origAddr, Address relocAddr);
 
-		enum insnType { RETURN, BRANCH_IA, DIRECT_CALL, PREDICATED_BRANCH,
-						CONDITIONAL_BRANCH,
-						INDIRECT_CALL, INDIRECT_BRANCH, BRANCH_PREDICT,
-						ALAT_CHECK, SPEC_CHECK, MOVE_FROM_IP, OTHER,
-						INVALID, ALLOC, INTEGER_STORE, INTEGER_16_STORE,
-						INTEGER_LOAD, INTEGER_16_LOAD, FP_STORE, FP_LOAD,
-						INTEGER_PAIR_LOAD, FP_PAIR_LOAD, PREFETCH, BREAK,
-						SYSCALL };
+	// For branches
+	Address getTarget(Address origAddr) const;
+
+	// Generation methods; these actually make bundles, but the higher-level
+	// code doesn't have to care about it.
+	static void generateBranch(codeGen &gen, Address from, Address to);
+	static void generateIllegal(codeGen &gen);
+	static void generateNOOP(codeGen &gen, unsigned fillsize = 16);
+	static void generateTrap(codeGen &gen);
+
+	const void * ptr() const;
+
+	static uint32_t size() { return 16; }
+
+	static bool isAligned(const Address address) { 
+		Address slotNo = address % 0x10;
+		Address bundle = address - slotNo;
+		return	( slotNo == 0 || slotNo == 1 || slotNo == 2 ) && 
+			( bundle + slotNo == address );
+	}
+	
+	static instruction createBreakPoint();
+	static instruction createIlegal();
+
+	uint64_t getMachineCode() const { return insn_; }
+	
+	enum insnType { RETURN, BRANCH_IA, DIRECT_CALL, DIRECT_BRANCH,
+					INDIRECT_CALL, INDIRECT_BRANCH, BRANCH_PREDICT,
+					ALAT_CHECK, SPEC_CHECK, MOVE_FROM_IP, OTHER,
+					INVALID, ALLOC, INTEGER_STORE, INTEGER_16_STORE,
+					INTEGER_LOAD, INTEGER_16_LOAD, FP_STORE, FP_LOAD,
+					INTEGER_PAIR_LOAD, FP_PAIR_LOAD, PREFETCH, BREAK,
+					SYSCALL };
 
 		enum unitType { M, I, F, B, L, X, RESERVED };
 		virtual insnType getType() const;
@@ -108,29 +140,36 @@ class IA64_instruction {
 
 		uint8_t getTemplateID() const { return templateID; }
 		uint8_t getSlotNumber() const { return slotNumber; }
+		
+		virtual bool isLongInsn() const { return false; }
 
 	protected:
-		uint64_t instruction;
+		uint64_t insn_;
 		uint8_t templateID;
 		uint8_t slotNumber;
 	}; /* end the 41 bit instruction */
 
-class IA64_instruction_x : public IA64_instruction {
+class instruction_x : public instruction {
 	friend class IA64_bundle;
 
 	public:
-		IA64_instruction_x( uint64_t lowHalf = 0, uint64_t highHalf = 0, uint8_t templ = 0x20 );
+		instruction_x( uint64_t lowHalf = 0, uint64_t highHalf = 0, uint8_t templ = 0x20 );
 
-		ia64_bundle_t getMachineCode() const { ia64_bundle_t r = { instruction, instruction_x }; return r; }	
+		ia64_bundle_t getMachineCode() const { ia64_bundle_t r = { insn_, insn_x_ }; return r; }	
 
 		virtual insnType getType() const;
 		virtual unitType getUnitType() const;
 
 		virtual Address getTargetAddress() const;
 		virtual uint8_t getPredicate() const;
+		
+		virtual bool isLongInsn() const { return true; }
+
+		// Emulation
+		virtual void relocate(codeGen &gen, Address origAddr, Address relocAddr);
 
 	private:
-		uint64_t instruction_x;
+		uint64_t insn_x_;
 
 	}; /* end the 82 bit instruction */
 
@@ -138,54 +177,48 @@ class IA64_bundle {
 	public:
 		IA64_bundle( uint64_t lowHalfBundle = 0, uint64_t highHalfBundle = 0 );
 		IA64_bundle( uint8_t templateID, uint64_t instruction0, uint64_t instruction1, uint64_t instruction2 );
-		IA64_bundle( uint8_t templateID, const IA64_instruction & instruction0, const IA64_instruction instruction1, const IA64_instruction instruction2 );
+		IA64_bundle( uint8_t templateID, const instruction & instruction0, const instruction instruction1, const instruction instruction2 );
 		IA64_bundle( ia64_bundle_t rawBundle );
-		IA64_bundle( uint8_t templateID, const IA64_instruction & instruction0, const IA64_instruction_x & instructionLX );
+		IA64_bundle( uint8_t templateID, const instruction & instruction0, const instruction_x & instructionLX );
 
 		ia64_bundle_t getMachineCode() const { return myBundle; }
 		const ia64_bundle_t * getMachineCodePtr() const { return & myBundle; }
 
 		uint8_t getTemplateID() const { return templateID; }
-		IA64_instruction getInstruction0() const { return instruction0; }
-		IA64_instruction getInstruction1() const { return instruction1; }
-		IA64_instruction getInstruction2() const { return instruction2; }
-		IA64_instruction * getInstruction( unsigned int slot );
+		instruction getInstruction0() const { return instruction0; }
+		instruction getInstruction1() const { return instruction1; }
+		instruction getInstruction2() const { return instruction2; }
+		instruction * getInstruction( unsigned int slot );
 
-		bool setInstruction( IA64_instruction &newInst );
-		bool setInstruction( IA64_instruction_x &newInst );
+		bool setInstruction( instruction &newInst );
+		bool setInstruction( instruction_x &newInst );
 
 		bool hasLongInstruction() { return templateID == 0x05 || templateID == 0x04; }
-		IA64_instruction_x getLongInstruction();
+		instruction_x getLongInstruction();
+
+		void generate(codeGen &gen);
 
 	private:
-		IA64_instruction instruction0;
-		IA64_instruction instruction1;
-		IA64_instruction instruction2;
-		IA64_instruction_x longInstruction;
+		instruction instruction0;
+		instruction instruction1;
+		instruction instruction2;
+		instruction_x longInstruction;
 		uint8_t templateID;
 
 		ia64_bundle_t myBundle;
 	}; /* end the 128 bit bundle */
 
-typedef IA64_instruction * instruction;
 
 #include "inst-ia64.h"
 
 /* Required by symtab.h, which seems to use it to check
    _instruction_ alignment. */
-inline bool isAligned( const Address address ) {
-	Address slotNo = address % 0x10;
-	Address bundle = address - slotNo;
-	return	( slotNo == 0 || slotNo == 1 || slotNo == 2 ) && 
-			( bundle + slotNo == address );
-	} /* end isAligned() */
-
 /* Required by linux.C to find the address bounds
    of new dynamic heap segments. */
 inline Address region_lo( const Address /* x */ ) {
 	/* We're guessing the shared memory region. */
 	return 0x2000000000000000;
-	} /* end region_lo */
+} /* end region_lo */
 
 /* Required by linux.C to find the address bounds
    of new dynamic heap segments. */
@@ -208,53 +241,53 @@ int addressOfMachineInsn( instruction * insn );
 /* Required by linux-ia64.C */
 class registerSpace;
 bool extractAllocatedRegisters( uint64_t allocInsn, uint64_t * allocatedLocal, uint64_t * allocatedOutput, uint64_t * allocatedRotate );
-IA64_instruction generateAllocInstructionFor( registerSpace * rs, int locals, int outputs, int rotates );
-IA64_instruction generateOriginalAllocFor( registerSpace * rs );
+instruction generateAllocInstructionFor( registerSpace * rs, int locals, int outputs, int rotates );
+instruction generateOriginalAllocFor( registerSpace * rs );
 
-IA64_instruction generateShortConstantInRegister( unsigned int registerN, int imm22 );
-IA64_instruction_x generateLongConstantInRegister( unsigned int registerN, long long int imm64 );
-IA64_instruction_x generateLongCallTo( long long int displacement64, unsigned int branchRegister, Register predicate = 0 );
+instruction generateShortConstantInRegister( unsigned int registerN, int imm22 );
+instruction_x generateLongConstantInRegister( unsigned int registerN, long long int imm64 );
+instruction_x generateLongCallTo( long long int displacement64, unsigned int branchRegister, Register predicate = 0 );
 
 /* Required by linuxDL.C */
-IA64_instruction generateReturnTo( unsigned int branchRegister );
-IA64_instruction_x generateLongBranchTo( long long int displacement64, Register predicate = 0 );
+instruction generateReturnTo( unsigned int branchRegister );
+instruction_x generateLongBranchTo( long long int displacement64, Register predicate = 0 );
 
 /* Convience method for inst-ia64.C */
-IA64_bundle generateBundleFromLongInstruction( IA64_instruction_x longInstruction );
+IA64_bundle generateBundleFromLongInstruction( instruction_x longInstruction );
 void alterLongMoveAtTo( Address target, Address imm64 );
 
 /* Required by inst-ia64.C */
-IA64_instruction generateRegisterToRegisterMove( Register source, Register destination );
-IA64_instruction generateIPToRegisterMove( Register destination );
-IA64_instruction generateBranchToRegisterMove( Register source, Register destination );
-IA64_instruction generateRegisterToBranchMove( Register source, Register destination, int immediate = 0 );
-IA64_instruction generateShortImmediateAdd( Register destination, int immediate, Register source );
-IA64_instruction generateIndirectCallTo( Register indirect, Register rp );
-IA64_instruction generatePredicatesToRegisterMove( Register destination );
-IA64_instruction generateRegisterToPredicatesMove( Register source, int64_t imm64 );
-IA64_instruction generateRegisterStore( Register address, Register source, int size = 8, Register predicate = 0 );
-IA64_instruction generateRegisterStoreImmediate( Register address, Register source, int imm9, int size = 8, Register predicate = 0 );
-IA64_instruction generateRegisterLoad( Register destination, Register address, int size = 8 );
-IA64_instruction generateRegisterLoadImmediate( Register destination, Register address, int imm9, int size = 8 );
-IA64_instruction generateRegisterToApplicationMove( Register source, Register destination );
-IA64_instruction generateApplicationToRegisterMove( Register source, Register destination );
+instruction generateRegisterToRegisterMove( Register source, Register destination );
+instruction generateIPToRegisterMove( Register destination );
+instruction generateBranchToRegisterMove( Register source, Register destination );
+instruction generateRegisterToBranchMove( Register source, Register destination, int immediate = 0 );
+instruction generateShortImmediateAdd( Register destination, int immediate, Register source );
+instruction generateIndirectCallTo( Register indirect, Register rp );
+instruction generatePredicatesToRegisterMove( Register destination );
+instruction generateRegisterToPredicatesMove( Register source, int64_t imm64 );
+instruction generateRegisterStore( Register address, Register source, int size = 8, Register predicate = 0 );
+instruction generateRegisterStoreImmediate( Register address, Register source, int imm9, int size = 8, Register predicate = 0 );
+instruction generateRegisterLoad( Register destination, Register address, int size = 8 );
+instruction generateRegisterLoadImmediate( Register destination, Register address, int imm9, int size = 8 );
+instruction generateRegisterToApplicationMove( Register source, Register destination );
+instruction generateApplicationToRegisterMove( Register source, Register destination );
 
-IA64_instruction generateSpillTo( Register address, Register source, int64_t imm9 = 0 );
-IA64_instruction generateFillFrom( Register address, Register destination, int64_t imm9 = 0 );
-IA64_instruction generateFPSpillTo( Register address, Register source, int64_t imm9 = 0 );
-IA64_instruction generateFPFillFrom( Register address, Register destination, int64_t imm9 = 0 );
-IA64_instruction generateRegisterToFloatMove( Register source, Register destination );
-IA64_instruction generateFloatToRegisterMove( Register source, Register destination );
-IA64_instruction generateFixedPointMultiply( Register destination, Register lhs, Register rhs );
+instruction generateSpillTo( Register address, Register source, int64_t imm9 = 0 );
+instruction generateFillFrom( Register address, Register destination, int64_t imm9 = 0 );
+instruction generateFPSpillTo( Register address, Register source, int64_t imm9 = 0 );
+instruction generateFPFillFrom( Register address, Register destination, int64_t imm9 = 0 );
+instruction generateRegisterToFloatMove( Register source, Register destination );
+instruction generateFloatToRegisterMove( Register source, Register destination );
+instruction generateFixedPointMultiply( Register destination, Register lhs, Register rhs );
 
-IA64_instruction generateShortImmediateBranch( int64_t target25 );
+instruction generateShortImmediateBranch( int64_t target25 );
 
 #include "ast.h"
-IA64_instruction generateComparison( opCode op, Register destination, Register lhs, Register rhs );
-IA64_instruction generateArithmetic( opCode op, Register destination, Register lhs, Register rhs );
+instruction generateComparison( opCode op, Register destination, Register lhs, Register rhs );
+instruction generateArithmetic( opCode op, Register destination, Register lhs, Register rhs );
 
-IA64_instruction predicateInstruction( Register predicate, IA64_instruction insn );
-IA64_instruction_x predicateLongInstruction( Register predicate, IA64_instruction_x longInsn );
+instruction predicateInstruction( Register predicate, instruction insn );
+instruction_x predicateLongInstruction( Register predicate, instruction_x longInsn );
 
 /* For ast.C */
 class instPoint;
@@ -267,7 +300,7 @@ class registerSpace;
 #define NUM_PRESERVED 34
 #define NUM_LOCALS 8
 #define NUM_OUTPUT 8
-bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace * regSpace, Register * deadRegisterList, process * proc );
+bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace * regSpace, Register * deadRegisterList);
 
 /* Constants for code generation. */
 #define BRANCH_SCRATCH		6	

@@ -39,14 +39,20 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.33 2005/03/17 19:40:55 jodom Exp $
+// $Id: arch-sparc.h,v 1.34 2005/07/29 19:18:17 bernat Exp $
 
-#if !defined(sparc_sun_sunos4_1_3) && !defined(sparc_sun_solaris2_4)
+#if !defined(arch_sparc)
 #error "invalid architecture-os inclusion"
 #endif
 
 #ifndef _ARCH_SPARC_H
 #define _ARCH_SPARC_H
+
+// Code generation
+
+typedef unsigned int codeBuf_t;
+typedef unsigned codeBufIndex_t;
+
 
 /*
  * Define sparc instruction information.
@@ -102,7 +108,7 @@ struct fmt3i {
     signed simm13:13;
 };
 
-union instructUnion {
+typedef union {
     struct fmt1	call;
     struct fmt2	branch;
     struct fmt2a sethi;
@@ -110,9 +116,7 @@ union instructUnion {
     struct fmt3i resti;
     struct fmt3ix restix;
     unsigned int raw;
-};
-
-typedef union instructUnion instruction;
+} instructUnion;
 
 /* Address space identifiers */
 #define ASI_PRIMARY 0x80
@@ -257,127 +261,6 @@ typedef union instructUnion instruction;
 #define BREAK_POINT_INSN 0x91d02001   /* ta 1 */
 #define SPILL_REGISTERS_INSN 0x91d02003 /*ta 3*/
 
-
-inline bool isInsnType(const instruction i,
-		       const unsigned mask,
-		       const unsigned match) {
-  return ((i.raw & mask) == match);
-}
-
-/*
-   Return boolean value specifying whether instruction is NOP....
- */
-inline bool isNopInsn(const instruction i) {
-    if (i.sethi.op == 0 && i.sethi.op2 == 0x4) {
-        return true;
-    }
-    return false;
-}
-
-inline bool isCallInsn(const instruction i) {
-  return (isInsnType(i, CALLmask, CALLmatch) ||
-	  isInsnType(i, CALLImask, CALLImatch));
-}
-
-//  is instruction i a "true" call?
-//  2 types of call insn in sparc:
-//    true call - call to fixed address (really pc rel addr, but disass will show
-//     fixed addr - for your convenience)....
-//    jmpl (jump & link) - call to register | register + const |
-//       register + register, and stick return address in some 
-//       register.  If dest register is 07, a disassembler should
-//       show a "call" insn.
-inline bool isTrueCallInsn(const instruction i) {
-    return (i.call.op == 0x1);
-}
-
-inline bool isJmplCallInsn(const instruction i) {
-    // condition for jmpl insn
-    if (i.resti.op == 0x2 && i.resti.op3 == 0x38) {
-        // condition for dest register == 07
-	if (i.resti.rd == 15) {
-	    return true;
-	}
-    }
-    return false;
-}
-
-inline bool isJmplInsn(const instruction i){
-  if (i.resti.op == 0x2 && i.resti.op3 == 0x38)
-    return true;
-  return false;
-}
-
-// VG(04/24/2002): There is another conditional branch (BPr op2=3),
-// and another one (FBPfcc op2=7). This function is not used in
-// Dyninst and it should not be!
-inline bool isCondBranch(const instruction i){
-  if (i.branch.op == 0 && (i.branch.op2 == 2 || i.branch.op2 == 6)) {
-    if ((i.branch.cond != 0) && (i.branch.cond != 8))  
-      return true;
-  }
-  return false;
-}
-
-// VG(4/24/200): DCTI = delayed control-transfer instruction
-// It was incomplete on v9, so here's a quick rewrite:
-inline bool isDCTI(const instruction insn) {
-  return (insn.call.op == 1 || // call
-          (insn.branch.op == 0 && // branches (BPcc, Bicc, BPr, FBPfcc, FBfcc)
-           insn.branch.op2 != 0 &&
-           insn.branch.op2 != 4 &&
-           insn.branch.op2 != 7) ||
-          (insn.rest.op == 2 &&  // JMPL, RETURN
-           ((insn.rest.op3 | 1) == 0x39))
-          );
-/*   return (insn.call.op == CALLop || */
-/* 	  isInsnType(insn, JMPLmask, JMPLmatch) || */
-/* 	  isInsnType(insn, FBRNCHmask, FBRNCHmatch) || */
-/* 	  isInsnType(insn, BRNCHmask, BRNCHmatch)); */
-}
-
-inline bool isAnnulled(const instruction i) {
-  return i.branch.anneal == 1;
-}
-
-// VG(4/24/200): UB = unconditional branch
-inline bool isUB(const instruction i) {
-  // Only Bicc(010), BPcc(001), FBfcc (110), FBPfcc(101) can be unconditional
-  if(i.branch.op==00 && ((i.branch.op2 & 3) == 1 ||
-                         (i.branch.op2 & 3) == 2) &&
-     // 0x0=never; 0x8=always
-     (i.branch.cond == 0x0 || i.branch.cond == 0x8))
-    return true;
-  return false;
-}
-
-// VG(4/24/200): UBA = unconditional branch anulled
-inline bool isUBA(const instruction i) {
-  return isUB(i) && isAnnulled(i);
-}
-
-/* catch small ints that are invalid instructions */
-/*
- * insn.call.op checks for CALL or Format 3 insns
- * op2 == {2,4,6,7} checks for valid format 2 instructions.
- *    See SPARC Arch manual v8 p. 44.
- *
- */
-inline bool IS_VALID_INSN(const instruction insn) {
-  return ((insn.call.op) || ((insn.branch.op2 == 2) ||
-			     (insn.branch.op2 == 4) ||
-			     (insn.branch.op2 == 6) ||
-			     (insn.branch.op2 == 7)));
-}
-
-/* addresses on sparc are aligned to word boundaries */
-inline bool isAligned(const Address addr) { return !(addr & 0x3); }
-
-int get_disp(instruction *insn);
-int set_disp(bool setDisp, instruction *insn, int newOffset, bool outOfFunc);
-int sizeOfMachineInsn(instruction *insn);
-int addressOfMachineInsn(instruction *insn);
-
 #define region_lo(x) ( (x > (0x1 << 23))? (x-(0x1 << 23)):0x0 )
 #define region_hi(x) ( (x > (-1UL - (1<<23))) ? -1UL : (x + (0x1 << 23)))
 
@@ -399,7 +282,255 @@ private:
 	short regNumber;
 };
 
-void get_register_operands(const instruction&,
-			   InsnRegister*,InsnRegister*,InsnRegister*);
+class codeGen;
+
+class instruction {
+ private:
+    static instructUnion *insnPtr(codeGen &gen);
+    static instructUnion *ptrAndInc(codeGen &gen);
+ public:
+    instruction() {insn_.raw = 0;};
+    instruction(unsigned int raw) { insn_.raw = raw; }
+
+    instruction(const instruction &insn) :
+        insn_(insn.insn_) {};
+    instruction(instructUnion &insn) :
+        insn_(insn) {};
+    
+    void setInstruction(codeBuf_t *ptr, Address = 0);
+
+    static bool offsetWithinRangeOfBranchInsn(int off);
+    
+    static void generateTrap(codeGen &gen);
+    static void generateIllegal(codeGen &gen);
+
+    static void generateNOOP(codeGen &gen,
+                             unsigned size = 4);
+    static void generateBranch(codeGen &gen,
+                               int jump_off);
+    static void generateBranch(codeGen &gen,
+                               Address from,
+                               Address to);
+    static void generateCall(codeGen &gen,
+                             Address fromAddr,
+                             Address toAddr);
+    static void generateJmpl(codeGen &gen,
+                             int rs1,
+                             int jump_off,
+                             int rd);
+    static void generateCondBranch(codeGen &gen,
+                                   int jump_off,
+                                   unsigned condition,
+                                   bool annul);
+    static void generateAnnulledBranch(codeGen &gen,
+                                       int jump_off);
+    static void generateSimple(codeGen &gen,
+                               int op,
+                               Register rs1,
+                               Register rs2,
+                               Register rd);
+    static void generateImm(codeGen &gen,
+                            int op,
+                            Register rs1,
+                            int immd,
+                            Register rd);
+    static void generateImmRelOp(codeGen &gen,
+                               int cond,
+                               Register rs1,
+                               int immd,
+                                 Register rd);
+    static void generateRelOp(codeGen &gen,
+                              int cond,
+                              Register rs1,
+                              Register rs2,
+                              Register rd);
+    static void generateSetHi(codeGen &gen,
+                              int src1,
+                              int dest);
+    static void generateStore(codeGen &gen,
+                              int rd,
+                              int rs1,
+                              int store_off);
+    static void generateLShift(codeGen &gen,
+                               int rs1,
+                               int shift,
+                               int rd);
+    static void generateRShift(codeGen &gen,
+                               int rs1,
+                               int shift,
+                               int rd);
+    static void generateLoad(codeGen &gen,
+                             int rs1,
+                             int load_off,
+                             int rd);
+    static void generateStoreD(codeGen &gen,
+                               int rd,
+                               int rs1,
+                               int shift);
+    static void generateLoadD(codeGen &gen,
+                               int rs1,
+                               int load_off,
+                               int rd);
+    static void generateLoadB(codeGen &gen,
+                              int rs1,
+                              int load_off,
+                              int rd);    
+    static void generateLoadH(codeGen &gen,
+                              int rs1,
+                              int load_off,
+                              int rd);
+    static void generateStoreFD(codeGen &gen,
+                                int rd,
+                                int rs1,
+                                int shift);
+    static void generateLoadFD(codeGen &gen,
+                               int rs1,
+                               int load_off,
+                               int rd);
+    static void generateFlushw(codeGen &gen);
+    static void generateTrapRegisterSpill(codeGen &gen);
+  
+    void write(codeGen &gen);
+    void generate(codeGen &gen);
+
+  // return the type of the instruction
+  unsigned type() const;
+
+  // return a pointer to the instruction
+  const unsigned char *ptr() const { return (const unsigned char *)&insn_; }
+
+  const unsigned int &raw() const { return insn_.raw; }
+  
+  const unsigned opcode() const;
+
+  // For external modification
+  instructUnion &operator* () { return insn_; }
+  const instructUnion &operator* () const { return insn_; }
+  
+  Address getTarget(Address insnAddr) const;
+  Address getOffset() const;
+
+  bool isInsnType(const unsigned mask,
+                  const unsigned match) const {
+      return ((insn_.raw & mask) == match);
+  }
+
+  bool isCall() const;
+
+  void get_register_operands(InsnRegister *,
+                             InsnRegister *,
+                             InsnRegister *);
+
+  //  is instruction i a "true" call?
+  //  2 types of call insn in sparc:
+  //    true call - call to fixed address (really pc rel addr, but disass will show
+  //     fixed addr - for your convenience)....
+  //    jmpl (jump & link) - call to register | register + const |
+  //       register + register, and stick return address in some 
+  //       register.  If dest register is 07, a disassembler should
+  //       show a "call" insn.
+  bool isTrueCallInsn() const {
+      return (insn_.call.op == 0x1);
+  }
+  
+  bool isJmplCallInsn() const {
+      // condition for jmpl insn
+      if (insn_.resti.op == 0x2 && insn_.resti.op3 == 0x38) {
+          // condition for dest register == 07
+          if (insn_.resti.rd == 15) {
+              return true;
+          }
+      }
+      return false;
+  }
+  
+  inline bool isJmplInsn() const{
+      if (insn_.resti.op == 0x2 && insn_.resti.op3 == 0x38)
+          return true;
+      return false;
+  }
+    
+  // VG(4/24/200): DCTI = delayed control-transfer instruction
+  // It was incomplete on v9, so here's a quick rewrite:
+  bool isDCTI() const {
+      return (insn_.call.op == 1 || // call
+              (insn_.branch.op == 0 && // branches (BPcc, Bicc, BPr, FBPfcc, FBfcc)
+               insn_.branch.op2 != 0 &&
+               insn_.branch.op2 != 4 &&
+               insn_.branch.op2 != 7) ||
+              (insn_.rest.op == 2 &&  // JMPL, RETURN
+               ((insn_.rest.op3 | 1) == 0x39))
+              );
+      /*   return (insn_.call.op == CALLop || */
+      /* 	  isInsnType(insn, JMPLmask, JMPLmatch) || */
+      /* 	  isInsnType(insn, FBRNCHmask, FBRNCHmatch) || */
+      /* 	  isInsnType(insn, BRNCHmask, BRNCHmatch)); */
+  }
+  
+  bool isAnnulled() const {
+      return insn_.branch.anneal == 1;
+  }
+  
+  // VG(4/24/200): UB = unconditional branch
+  inline bool isUB() const {
+      // Only Bicc(010), BPcc(001), FBfcc (110), FBPfcc(101) can be unconditional
+      if(insn_.branch.op==00 && ((insn_.branch.op2 & 3) == 1 ||
+                                 (insn_.branch.op2 & 3) == 2) &&
+         // 0x0=never; 0x8=always
+         (insn_.branch.cond == 0x0 || insn_.branch.cond == 0x8))
+          return true;
+      return false;
+  }
+  
+  // VG(4/24/200): UBA = unconditional branch anulled
+  bool isUBA() const {
+      return isUB() && isAnnulled();
+  }
+
+  bool isRestore() const {
+      return (insn_.rest.op == 2 && insn_.rest.op3 == RESTOREop3);
+  }
+
+  bool isMovToO7() const {
+      return (insn_.rest.op == 2 && insn_.rest.op3 == ORop3 &&
+              insn_.rest.rd == 15 && insn_.rest.rs1 == 0);
+  }
+  
+  /* catch small ints that are invalid instructions */
+  /*
+   * insn.call.op checks for CALL or Format 3 insns
+   * op2 == {2,4,6,7} checks for valid format 2 instructions.
+   *    See SPARC Arch manual v8 p. 44.
+   *
+   */
+  inline bool valid() const {
+      return ((insn_.call.op) || ((insn_.branch.op2 == 2) ||
+                                  (insn_.branch.op2 == 4) ||
+                                  (insn_.branch.op2 == 6) ||
+                                  (insn_.branch.op2 == 7)));
+  }
+  
+  /* addresses on sparc are aligned to word boundaries */
+  static bool isAligned(const Address addr) { return !(addr & 0x3); }
+  
+  int get_disp();
+  void set_disp(bool setDisp, int newOffset, bool outOfFunc);
+  static unsigned size();
+  
+  bool isUncondBranch() const;
+  bool isCondBranch() const;
+  
+  bool isNop() const {
+      if (insn_.sethi.op == 0 && insn_.sethi.op2 == 0x4) {
+          return true;
+      }
+      return false;
+  }
+  
+ private:
+  instructUnion insn_;
+
+  
+};
 
 #endif

@@ -39,7 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch.h,v 1.16 2005/02/24 10:15:12 rchen Exp $
+// Architecture include. Use this one instead of arch-<platform>
+// $Id: arch.h,v 1.17 2005/07/29 19:18:20 bernat Exp $
+
+#if !defined(arch_h)
+#define arch_h
 
 #if defined(sparc_sun_sunos4_1_3) \
  || defined(sparc_sun_solaris2_4)
@@ -67,5 +71,100 @@
 
 #else
 #error "unknown architecture"
+
+#endif
+
+// Code generation
+// This class wraps the actual code generation mechanism: we keep a buffer
+// and a pointer to where we are in the buffer. This may vary by platform,
+// hence the typedef wrappers.
+class codeGen {
+    // Instruction modifies these.
+    friend class instruction;
+ public:
+    // Default constructor -- makes an empty generation area
+    codeGen();
+    // Make a generation buffer with the given size
+    codeGen(unsigned size);
+    // Use a preallocated buffer
+    codeGen(codeBuf_t *buf, int size);
+    ~codeGen();
+
+    // Copy constructor. Deep-copy -- allocates
+    // a new buffer
+    codeGen(const codeGen &);
+
+    // We consider our pointer to either be the start
+    // of the buffer, or NULL if the buffer is empty
+    bool operator==(void *ptr);
+    bool operator!=(void *ptr);
+    bool operator()();
+
+    // Assignment....
+    codeGen &operator=(const codeGen &param);
+    
+    // Allocate a certain amount of space
+    void allocate(unsigned);
+    // And invalidate
+    void invalidate();
+
+    // Finally, tighten down the memory usage. This frees the 
+    // buffer if it's bigger than necessary and copies everything
+    // to a new fixed buffer.
+    void finalize();
+    
+    // Copy a buffer into here and move the offset
+    void copy(const void *buf, const unsigned size);
+    // Similar, but slurp from the start of the parameter
+    void copy(codeGen &gen);
+
+    // How much space are we using?
+    unsigned used() const;
+
+    // Blind pointer to the start of the code area
+    void *start_ptr() const;
+    // With ptr() and used() you can copy into the mutatee.
+
+    void *cur_ptr() const;
+
+    // For things that make a copy of the current pointer and
+    // play around with it. This recalculates the current offset
+    // based on a new pointer
+    void update(codeBuf_t *ptr);
+
+    // Set the offset at a particular location.
+    void setIndex(codeBufIndex_t offset);
+
+    codeBufIndex_t getIndex() const;
+
+    // Move up or down a certain amount
+    void moveIndex(int disp);
+
+    // To calculate a jump between the "from" and where we are
+    static int getDisplacement(codeBufIndex_t from, codeBufIndex_t to);
+
+    // For code generation -- given the current state of 
+    // generation and a base address in the mutatee, 
+    // produce a "current" address.
+    Address currAddr(const Address base) const;
+    
+    enum { cgNOP, cgTrap, cgIllegal };
+
+    void fill(int fillSize, int fillType);
+    // Since we have a known size
+    void fillRemaining(int fillType);
+
+ private:
+    codeBuf_t *buffer_;
+    codeBufIndex_t offset_;
+    unsigned size_;
+
+    bool allocated_;
+};
+
+// For platforms that require bit-twiddling. These should go away in the future.
+#define GET_PTR(insn, gen) codeBuf_t *insn = (codeBuf_t *)gen.cur_ptr()
+#define SET_PTR(insn, gen) gen.update(insn)
+#define REGET_PTR(insn, gen) insn = (codeBuf_t *)gen.cur_ptr()
 
 #endif
