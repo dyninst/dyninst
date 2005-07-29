@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.10 2005/07/29 19:18:32 bernat Exp $
+// $Id: function.h,v 1.11 2005/07/29 22:16:25 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -300,97 +300,6 @@ class int_function : public codeRange {
 
    void *getPtrToOrigInstruction(Address addr) const;
 
-#if defined(cap_relocation0)
-   bool fillInRelocInstPoints(int_function *original_func);
-
-   int relocateInstructionWithFunction(bool setDisp, 
-                                       instruction *insn, 
-                                       Address origAddr, 
-                                       Address targetAddr, 
-                                       Address oldFunctionAddr, 
-                                       unsigned originalCodeSize);
-
-   int patchOffset(bool setDisp, LocalAlterationSet *alteration_set, 
-                   instruction& insn, Address adr, 
-                   Address firstAddress, unsigned originalCodeSize);
-
-   relocatedFuncInfo *findAndApplyAlterations(instPoint *&location,
-					      u_int &newAdr,
-					      unsigned &size_change);
-
-   int calculateAlterations(instruction *&oldCode,
-			    LocalAlterationSet &normalized_alteration_set,
-			    Address &mutator, Address &mutatee);
-   
-   int relocatedSizeChange();
-
-   // Manually load and parse the code stream for the function.
-   // Should probably be eliminated; performs straight-through parsing
-   // that is really pretty ugly.
-   bool loadCode();
-
-   bool expandInstPoints(LocalAlterationSet *temp_alteration_set, 
-                         LocalAlterationSet &normalized_alteration_set, 
-                         Address baseAddress, Address mutator, 
-                         Address mutatee, instruction oldCode[], 
-                         unsigned numberOfInstructions);
-
-   bool PA_attachGeneralRewrites(LocalAlterationSet *temp_alteration_set, 
-                                 Address baseAddress, Address firstAddress,
-                                 instruction loadedCode[], 
-                                 unsigned numInstructions, int codeSize);
-
-
-   bool PA_attachBranchOverlaps(LocalAlterationSet *temp_alteration_set, 
-                                Address baseAddress, Address firstAddress,
-                                instruction loadedCode[],
-                                unsigned  numberOfInstructions, int codeSize);
-
-   bool PA_expandLoopBlocks(LocalAlterationSet *temp_alteration_set,
-			    process *proc);
-
-   bool discoverAlterations(LocalAlterationSet *temp_alteration_set, 
-                            LocalAlterationSet &normalized_alteration_set,
-                            Address baseAddress, Address firstAddress, 
-                            instruction originalCode[], int originalCodeSize); 
-
-   bool applyAlterations(LocalAlterationSet &normalized_alteration_set,
-                         Address mutator, Address mutatee, Address newAdr, 
-                         instruction originalCode[], 
-                         unsigned originalCodeSize, instruction newCode[],
-			 relocatedFuncInfo *reloc);
-
-   bool updateAlterations(LocalAlterationSet *temp_alteration_set,
-                          LocalAlterationSet &normalized_alteration_set,
-                          instruction *oldCode, 
-                          Address baseAddress, Address firstAddress,
-                          int &totalSizeChange);
-
-   bool relocateFunction(instPoint *&location);
-
-   void sorted_ips_vector(pdvector<instPoint*>&fill_in);
-
-   void copyInstruction(instruction &newInsn, instruction &oldInsn,  
-                        unsigned &codeOffset);
-
-   int expandInstructions(LocalAlterationSet &alteration_set, 
-                          instruction &insn, 
-                          Address offset,
-                          instruction &newCodeInsn);
-
-   int fixRelocatedInstruction(bool setDisp, instruction *insn, 
-                               Address origAddr, Address targetAddr);
-
-   bool branchInsideRange(instruction insn, Address branchAddress, 
-                          Address firstAddress, Address lastAddress);
-
-   bool trueCallInsideRange(instruction insn, Address callAddress, 
-                            Address firstAddress, Address lastAddress);
-
-   instPoint *find_overlap(pdvector<instPoint*> v, Address targetAddress);
-
-#endif /*cap_relocation*/
-
    bool hasBeenRelocated() const { return (relocatedFuncs_.size() != 0); }
 
    ////////////////////////////////////////////////
@@ -409,19 +318,7 @@ class int_function : public codeRange {
 
    codeRange *copy() const;
     
-#if 0
-
-   bool PA_attachTailCalls(LocalAlterationSet *temp_alteration_set);
-
-   bool PA_attachBasicBlockEndRewrites(LocalAlterationSet *temp_alteration_set,
-                                       Address baseAddress,
-                                       Address firstAddress);
-   //
-   // NEW routines for function code rewrites using peephole alterations....
-   //
-   bool readFunctionCode(const image *owner, instruction *into);
-
-#elif defined(arch_alpha)
+#if defined(arch_alpha)
    int frame_size() const { return ifunc_->frame_size; };
 
 #endif
