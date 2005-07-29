@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.209 2005/07/29 19:18:41 bernat Exp $
+ * $Id: inst-x86.C,v 1.210 2005/07/29 22:16:28 bernat Exp $
  */
 #include <iomanip>
 
@@ -74,11 +74,6 @@
 #include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "InstrucIter.h"
-
-// for function relocation
-//#include "dyninstAPI/src/func-reloc.h" 
-#include "dyninstAPI/src/LocalAlteration.h"
-#include "dyninstAPI/src/LocalAlteration-x86.h"
 
 #include <sstream>
 

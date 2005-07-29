@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.223 2005/07/29 19:18:36 bernat Exp $
+ * $Id: inst-power.C,v 1.224 2005/07/29 22:16:26 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1269,8 +1269,6 @@ unsigned generateAndWriteBranch(process *proc,
                                 unsigned fillSize) {
     if (fillSize == 0) fillSize = instruction::size();
 
-    fprintf(stderr, "generateAndWriteBranch, 0x%x to 0x%x, fillsize %d\n",
-            fromAddr, newAddr, fillSize);
     codeGen gen(fillSize);
     instruction::generateBranch(gen,
                                 fromAddr,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.169 2005/07/29 19:18:38 bernat Exp $
+// $Id: inst-sparc.C,v 1.170 2005/07/29 22:16:27 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -192,6 +192,10 @@ int instPoint::getPointCost()
       }
   }
   return worstCost;
+}
+
+unsigned baseTramp::getBTCost() {
+    return 70; // Need to dynamically configure!
 }
 
 /****************************************************************************/
