@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.137 2005/03/16 20:55:59 legendre Exp $
+// $Id: unix.C,v 1.138 2005/07/29 19:19:57 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -61,11 +61,6 @@
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/stats.h"
-
-// BREAK_POINT_INSN
-#if defined(AIX_PROC)
-#include "dyninstAPI/src/arch-power.h"
-#endif
 
 /*****************************************************************************
  * forkNewProcess: starts a new process, setting up trace and io links between
@@ -434,14 +429,14 @@ int handleSigTrap(const procevent &event) {
     /////////////////////////////////////////
     // Init section
     /////////////////////////////////////////
-   
-    if (!proc->reachedBootstrapState(bootstrapped)) {
-        if (!proc->reachedBootstrapState(begun)) {
+
+    if (!proc->reachedBootstrapState(bootstrapped_bs)) {
+        if (!proc->reachedBootstrapState(begun_bs)) {
             // We've created the process, but haven't reached main. 
             // This would be a perfect place to load the dyninst library,
             // but all the other shared libs aren't initialized yet. 
             // So we wait for main to be entered before working on the process.
-            proc->setBootstrapState(begun);
+            proc->setBootstrapState(begun_bs);
             if (proc->insertTrapAtEntryPointOfMain()) {
                 pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
                 buffer += pdstring(", attached to process, stepping to main");       
@@ -463,23 +458,18 @@ int handleSigTrap(const procevent &event) {
             // Now we wait for the entry point trap to be reached
             return 1;
         }
-        else if (proc->trapAtEntryPointOfMain()) {
-            proc->handleTrapAtEntryPointOfMain();
-            proc->setBootstrapState(initialized);
-            // If we're in an exec, this is when we know it is actually finished
-            if (proc->wasExeced()) {
-                // special case where can't wait to continue process
-                proc->loadDyninstLib();
-            }
+        else if (proc->trapAtEntryPointOfMain(event.lwp)) {
+            proc->handleTrapAtEntryPointOfMain(event.lwp);
+            proc->setBootstrapState(initialized_bs);
             return 1;
         }
-        else if (proc->trapDueToDyninstLib()) {
+        else if (proc->trapDueToDyninstLib(event.lwp)) {
             pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
             buffer += pdstring(", loaded dyninst library");
             statusLine(buffer.c_str());
             signal_cerr << "trapDueToDyninstLib returned true, trying to handle\n";
-            proc->loadDYNINSTlibCleanup();
-            proc->setBootstrapState(loadedRT);
+            proc->loadDYNINSTlibCleanup(event.lwp);
+            proc->setBootstrapState(loadedRT_bs);
             return 1;
         }
     }
@@ -522,18 +512,6 @@ int handleSigTrap(const procevent &event) {
  || defined(ia64_unknown_linux2_4)
     if (proc->nextTrapIsExec) {
         return handleExecExit(event);
-    }
-#endif
-
-#if defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
-    // On AIX 4.3 we get a spurrious SIGTRAP from the child process
-    // after a fork().  The SIGTRAP originates in __fork().
-    // As a last resort on AIX, we check to see if this is the
-    // cause of the SIGTRAP before we give up.
-    if(proc->nextTrapIsFork){
-      proc->continueProc();
-      proc->nextTrapIsFork = false;
-      return 1;
     }
 #endif
 
@@ -590,6 +568,16 @@ int handleSigCritical(const procevent &event) {
    for (unsigned thr_iter = 0; thr_iter <  proc->threads.size(); thr_iter++) {
        dyn_lwp *lwp = proc->threads[thr_iter]->get_lwp();
        if (lwp) {
+#if defined(arch_alpha)
+	 dyn_saved_regs regs;
+	 lwp->getRegisters(&regs);
+	 
+	 fprintf(stderr, "GP: %lx\n", regs.theIntRegs.regs[REG_GP]);
+	 fprintf(stderr, "SP: %lx\n", regs.theIntRegs.regs[REG_SP]);
+	 fprintf(stderr, "FP: %lx\n", regs.theIntRegs.regs[15]);
+	 fprintf(stderr, "RA: %lx\n", regs.theIntRegs.regs[REG_RA]);
+#endif
+
            pdvector<Frame> stackWalk;
            lwp->walkStack(stackWalk);
            
@@ -598,11 +586,12 @@ int handleSigCritical(const procevent &event) {
                    lwp->get_lwp_id());
 	   for (unsigned foo = 0; foo < stackWalk.size(); foo++)
 	     signal_cerr << "   " << foo << ": " << stackWalk[foo] << endl;
+
+
        }
    }
 
    proc->dumpImage("imagefile");
-   
    forwardSigToProcess(event);
    return 1;
 }
@@ -615,20 +604,6 @@ int handleSignal(const procevent &event) {
       case SIGTRAP:
          // Big one's up top. We use traps for most of our process control
          ret = handleSigTrap(event);
-
-#if defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
-         //after we have handled a trap on AIX, be sure we reset the
-         //nextTrapIsFork flag. This flag may be reset in handleSigTrap 
-         //on AIX 4.x  It will not be reset in that function on AIX 5.
-         //
-         //This is probably unnecessary.  nextTrapIsFork is only checked
-         //in handleSigTrap as a last resort, if any other SIGTRAP is
-         //expected that will be handled first (correctly).  This only
-         //causes a problem if the mutatee is trying to send itself a 
-         //SIGTRAP. If this flag is still set dyninst will just eat the
-         //trap rather than passing it back to the mutatee.
-         proc->nextTrapIsFork = false; 
-#endif
 
 /////////////////////////////////////////////
 // Trap based instrumentation
@@ -652,6 +627,8 @@ int handleSignal(const procevent &event) {
           if (proc->getRpcMgr()->handleSignalIfDueToIRPC(event.lwp)) {
               ret = 1;
           }
+          if (ret == 0)
+              ret = handleSigCritical(event);
           break;
       case SIGCHLD:
          // Ignore
@@ -688,6 +665,8 @@ int handleSignal(const procevent &event) {
  // Unfortunately, there's that 5% difference...
 
  int handleForkEntry(const procevent &event) {
+     signal_printf("Welcome to FORK ENTRY for process %d\n",
+                   event.proc->getPid());
      event.proc->handleForkEntry();
      return 1;
  }
@@ -729,12 +708,14 @@ int handleSignal(const procevent &event) {
 
  /* Only dyninst for now... paradyn should use this soon */
  int handleForkExit(const procevent &event) {
+     signal_printf("Welcome to FORK EXIT for process %d\n",
+                   event.proc->getPid());
+
      process *proc = event.proc;
-     proc->nextTrapIsFork = false;
      // Fork handler time
      extern pdvector<process*> processVec;
      int childPid = event.info;
-
+     
      if (childPid == getpid()) {
          // this is a special case where the normal createProcess code
          // has created this process, but the attach routine runs soon
@@ -743,6 +724,9 @@ int handleSignal(const procevent &event) {
          // the process - jkh 1/31/00
          return 1;
      } else if (childPid > 0) {
+
+         fprintf(stderr, "Caught exit of fork(), child %d, on process %d\n", childPid, proc->getPid());
+         
          unsigned int i;
          for (i=0; i < processVec.size(); i++) {
              if (processVec[i] && 
@@ -750,22 +734,28 @@ int handleSignal(const procevent &event) {
          }
          if (i== processVec.size()) {
              // this is a new child, register it with dyninst
+             // Lose a race condition between us and the OS
              sleep(1);
-             process *theChild = new process(*proc, (int)childPid, -1);
-             if (theChild) {
-                 processVec.push_back(theChild);
-                 activeProcesses++;
 
-                 theChild->set_status(stopped);
+             // We leave the parent paused until the child is finished,
+             // so that we can be sure to copy everything correctly.
 
+             process *theChild = new process(proc, (int)childPid, -1);
+
+             if (theChild->setupFork()) {
                  proc->handleForkExit(theChild);
+
+                 // Okay, let 'er rip
+                 fprintf(stderr, "Continuing parent...\n");
 		 proc->continueProc();
+                 fprintf(stderr, "Continuing child...\n");
 		 theChild->continueProc();
-            }
-            else {
-                // Can happen if we're forking something we can't trace
-	      proc->continueProc();
-            }
+             }
+             else {
+                 // Can happen if we're forking something we can't trace
+                 delete theChild;
+                 proc->continueProc();
+             }
         }
     }
     return 1;
@@ -779,12 +769,6 @@ int handleExecExit(const procevent &event) {
         // Failed exec, do nothing
         return 1;
     }
-#if defined(mips_sgi_irix6_4)
-    // MIPS returns non-zero if the exec succeeded, not -1
-    if ((int)event.info != 0) {
-        return 1;
-    }
-#endif
 
     proc->execFilePath = proc->tryToFindExecutable(proc->execPathArg, proc->getPid());
     // As of Solaris 2.8, we get multiple exec signals per exec.
@@ -792,63 +776,35 @@ int handleExecExit(const procevent &event) {
     // kernel as an exec call, since the process is paused
     // and PR_SYSEXIT is set. We want to ignore all traps 
     // but the last one.
-    bool isThisAnExecInTheRunningProgram = 
-    proc->reachedBootstrapState(initialized);
-    bool areWeInTheProcessOfHandlingAnExec = proc->wasExeced();
-    if(isThisAnExecInTheRunningProgram || 
-       areWeInTheProcessOfHandlingAnExec)
-    {
-        // since Solaris causes multiple traps associated with trapping
-        // on exit of exec syscall, we do proper exec handling
-        // (eg. cause process::handleExec to be called) for each trap
-        // so when "real" exec trap occurs, will handle correctly.  I'm
-        // considering the "real" exec trap as the one that occurs when
-        // the execed process has been created and we're paused at the
-        // end of "exec".  The other execs seem to occur at some other
-        // point in the exec process syscall an the "execed" process
-        // hasn't been created yet.
-        
-        // because of these multiple exec exit notices, the sequence
-        // of the process status goes something like this
-        // false exec notice:  boostrapped    =>  unstarted (handleExec)
-        // handleSigChild:     unstarted      =>  begun (trap at main)
-        // false exec notice:  begun          =>  unstarted (handleExec)
-        // handleSigChild:     unstarted      =>  begun (trap at main)
-        // real exec notice:   begun          =>  unstarted (handleExec)
-        // handleSigChild:     unstarted      =>  begun (trap at main)
-        // trap at main:       begun          =>  initialized
-        proc->inExec = true; 
-        proc->set_status(stopped);
-        pdvector<heapItem *> emptyHeap;
-        proc->heap.bufferPool = emptyHeap;
-#ifndef BPATCH_LIBRARY
-        // Mimic bump-up in process constructor
-        tp->resourceBatchMode(true);
-#endif
-        // Clean out internal data structures for the process
-        // We should have an exec "constructor"
-        
-        // Unlike fork, handleExecExit doesn't do all processing required.
-        // We finish up when the trap at main() is reached.
-        proc->handleExecExit();
-        
-        // Note: on Solaris this is called multiple times before anything
-        // actually happens. Therefore handleExec must handle being called
-        // multiple times. We know that we're done when we hit the trap at main.
-        // Oh, and install that here.
+    
+    // We also see an exec as the first signal in a process we create. 
+    if (!proc->reachedBootstrapState(begun_bs)) {
+        return handleSigTrap(event);
     }
-    proc->setBootstrapState(begun);
+    
+    // Unlike fork, handleExecExit doesn't do all processing required.
+    // We finish up when the trap at main() is reached.
+    proc->handleExecExit();
+    
+    // Note: on Solaris this is called multiple times before anything
+    // actually happens. Therefore handleExec must handle being called
+    // multiple times. We know that we're done when we hit the trap at main.
+    // Oh, and install that here.
+    /*
+    proc->setBootstrapState(begun_bs);
     if (!proc->insertTrapAtEntryPointOfMain()) {
-      proc->continueProc();
-      // We should actually delete any mention of this
-      // process... including (for Paradyn) removing it from the
-      // frontend.
-      proc->triggerNormalExitCallback(0);
-      proc->handleProcessExit();
+        proc->continueProc();
+        // We should actually delete any mention of this
+        // process... including (for Paradyn) removing it from the
+        // frontend.
+        proc->triggerNormalExitCallback(0);
+        proc->handleProcessExit();
     }
     else {
         proc->continueProc();
     }
+    */
+
     return 1;
 }
 
@@ -909,9 +865,12 @@ int signalHandler::handleProcessEvent(const procevent &event) {
    signal_cerr << "handleProcessEvent, pid: " << proc->getPid() << ", why: "
 	       << event.why << ", what: " << event.what << ", lwps: "
 	       << event.lwp->get_lwp_id() << endl;
-   Frame activeFrame;
-   if (dyn_debug_signal) activeFrame = event.lwp->getActiveFrame();
-   signal_cerr << "Event active frame: " << activeFrame << endl;
+#if 0
+   if (dyn_debug_signal) { 
+       Frame activeFrame = event.lwp->getActiveFrame();
+       signal_cerr << "Event active frame: " << activeFrame << endl;
+   }
+#endif
 
    int ret = 0;
    if(proc->hasExited()) {

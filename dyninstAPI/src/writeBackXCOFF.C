@@ -111,7 +111,7 @@ void writeBackXCOFF::parseXCOFF(XCOFF *file){
 }
 
 
-writeBackXCOFF::writeBackXCOFF(char* oldFileName, char* newFileName,bool &error, 
+writeBackXCOFF::writeBackXCOFF(const char* oldFileName, const char* newFileName,bool &error, 
 	bool debugOutputFlag, int numbScns)
 	: maxSections(numbScns), numberSections(0), debugFlag(debugOutputFlag) {
 

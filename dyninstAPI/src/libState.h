@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: libState.h,v 1.4 2004/03/23 01:12:05 eli Exp $
+/* $Id: libState.h,v 1.5 2005/07/29 19:18:51 bernat Exp $
  */
 
 #ifndef _LIBSTATE_H_
@@ -48,7 +48,7 @@
 #include "common/h/Types.h"
 
 class process;
-class shared_object;
+class mapped_object;
 
 // State of any given library being loaded into the inferior process.
 typedef enum { libUnloaded, libLoading, libInitializing, libLoaded, libReady } libraryState_t;
@@ -59,7 +59,7 @@ void setLibState(libraryState_t &lib, libraryState_t state);
 
 // Callback type for loading a library (callback made when library is detected as
 // loaded in sharedObjectMapping
-typedef void(*loadLibraryCallbackFunc)(process *p, pdstring libname, shared_object *libobj, void *data);
+typedef void(*loadLibraryCallbackFunc)(process *p, pdstring libname, mapped_object *libobj, void *data);
 
 // Structure to contain library callbacks
 struct libraryCallback {
