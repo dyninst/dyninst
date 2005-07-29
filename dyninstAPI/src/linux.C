@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.169 2005/06/30 00:52:01 tlmiller Exp $
+// $Id: linux.C,v 1.170 2005/07/29 19:18:54 bernat Exp $
 
 #include <fstream>
 
@@ -63,7 +63,7 @@
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/trampTemplate.h"
+#include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/signalhandler.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -87,7 +87,6 @@
 #include "papi.h"
 #endif
 
-extern void generateBreakPoint(instruction &insn);
 
 #if defined(PTRACEDEBUG) && !defined(PTRACEDEBUG_ALWAYS)
 static bool debug_ptrace = false;
@@ -200,12 +199,17 @@ int decodeRTSignal(process *proc,
    int status;
    Address arg;
 
-   bool err = false;
-   Address status_addr = proc->findInternalAddress(status_str, false, err);
-   if (err) {
-      // Couldn't find symbol
-      return 0;
+   pdvector<int_variable *> vars;
+   if (!proc->findVarsByAll(status_str, 
+                            vars)) {
+       // Can restrict to a particular library... might be worth it to streamline.
+       // Hell... why not make this a process member and keep the addresses around?
+       assert(0);
+       return 0;
    }
+   assert(vars.size() == 1); // findVarsByAll should return false if we didn't find anything
+
+   Address status_addr = vars[0]->getAddress();
 
    if (!proc->readDataSpace((void *)status_addr, sizeof(int), 
                             &status, true)) {
@@ -217,10 +221,15 @@ int decodeRTSignal(process *proc,
       return 0; // Nothing to see here
    }
 
-   Address arg_addr = proc->findInternalAddress(arg_str, false, err);
-   if (err) {
-      return 0;
+   vars.clear();
+   if (!proc->findVarsByAll(arg_str,
+                            vars)) {
+       assert(0);
+       return 0;
    }
+   assert(vars.size() == 1);
+
+   Address arg_addr = vars[0]->getAddress();
     
    if (!proc->readDataSpace((void *)arg_addr, sizeof(Address),
                             &arg, true))
@@ -273,7 +282,6 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
      if (!block) {
         wait_options |= WNOHANG;
      }
-
      result = waitpid( wait_arg, &status, wait_options );
      if (result < 0 && errno == ECHILD) {
         return false; /* nothing to wait for */
@@ -351,31 +359,41 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
         case SIGTRAP:
         {
            Frame sigframe = pertinentLWP->getActiveFrame();
+
            if (pertinentProc->trampTrapMapping.defines(sigframe.getPC())) {
               why = procInstPointTrap;
               info = pertinentProc->trampTrapMapping[sigframe.getPC()];
            }
-           // Also seen traps at PC+1
-           else if (pertinentProc->trampTrapMapping.defines(sigframe.getPC()-1)) 
+
+           // Trap on x86 gets reported as PC+sizeof(trap) == pc+1...
+           // However, we handle that when we insert a trap (we add the expected PC)
+           // So we never check -1
+#if 0
+           if (pertinentProc->trampTrapMapping.defines(sigframe.getPC()-1)) 
            {
               why = procInstPointTrap;
               info = pertinentProc->trampTrapMapping[sigframe.getPC()-1];
            }
+#endif
            break;
         }
         case SIGCHLD:
            // Linux fork() sends a SIGCHLD once the fork has been created
            why = procForkSigChild;
            break;
+           // Since we're not using detach-on-the-fly or any special trap handling,
+           // we can nuke this and go back to using traps everywhere
         case SIGILL:
-           Address pc = getPC(pertinentPid);
-           
-           if(pc == pertinentProc->dyninstlib_brk_addr ||
-              pc == pertinentProc->main_brk_addr || 
-              pertinentProc->getDyn()->reachedLibHook(pc)) {
-               what = SIGTRAP;
-           }
-           break;
+#if defined(arch_ia64)
+            // IA64 still uses illegals; we want to "fake" a trap occasionally
+            Address pc = getPC(pertinentPid);
+            if ((pc == pertinentProc->dyninstlib_brk_addr) ||
+                (pc == pertinentProc->main_brk_addr) ||
+                pertinentProc->getDyn()->reachedLibHook(pc)) 
+                what = SIGTRAP;
+#endif
+            break;
+
       }
    }
 
@@ -536,28 +554,27 @@ dyn_lwp *process::createRepresentativeLWP() {
    return initialLWP;
 }
 
-bool process::trapAtEntryPointOfMain(Address)
+bool process::trapAtEntryPointOfMain(dyn_lwp *trappingLWP, Address)
 {
-  // is the trap instr at main_brk_addr?
-  if( getPC(getPid()) == (Address)main_brk_addr)
-    return(true);
-  else
-    return(false);
+    if (main_brk_addr == 0x0) return false;
+    assert(trappingLWP);
+    Frame active = trappingLWP->getActiveFrame();
+    if (active.getPC() == main_brk_addr ||
+        (active.getPC()-1) == main_brk_addr)
+        return true;
+    return false;
 }
 
-bool process::trapDueToDyninstLib()
+bool process::trapDueToDyninstLib(dyn_lwp *trappingLWP)
 {
-  // is the trap instr at dyninstlib_brk_addr?
-  if( getPC(getPid()) == (Address)dyninstlib_brk_addr){
-	  dyninstlib_brk_addr = 0; //ccw 30 apr 2002 : SPLIT3
-	  //dyninstlib_brk_addr and paradynlib_brk_addr may be the same
-	  //if they are we dont want to get them mixed up. once we
-	  //see this trap is due to dyninst, reset the addr so
-	  //we can now catch the paradyn trap
-    return(true);
-  } else{
-    return(false);
-  }
+    // is the trap instr at dyninstlib_brk_addr?
+    if (dyninstlib_brk_addr == 0) return false;
+    assert(trappingLWP);
+    Frame active = trappingLWP->getActiveFrame();
+    if (active.getPC() == dyninstlib_brk_addr ||
+        (active.getPC()-1) == dyninstlib_brk_addr)
+        return true;
+    return false;
 }
 
 bool process::setProcessFlags() {
@@ -969,18 +986,18 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
    if (proc_->collectSaveWorldData) {
        codeRange *range = NULL;
-	proc_->codeRangesByAddr_->precessor((Address)inTraced, range); //findCodeRangeByAddress((Address)inTraced);
-	if(range){
-	        shared_object *sharedobj_ptr = range->is_shared_object();
-	       if (sharedobj_ptr) {
-        	   // If we're writing into a shared object, mark it as dirty.
-	           // _Unless_ we're writing "__libc_sigaction"
-        	   int_function *func = range->is_function();
-	           if ((! func) || (func->prettyName() != "__libc_sigaction")){
-        	      sharedobj_ptr->setDirty();
-		   }
-	       }
-	}
+       proc_->codeRangesByAddr_.precessor((Address)inTraced, range); //findCodeRangeByAddress((Address)inTraced);
+       if(range){
+	 mapped_object *mappedobj_ptr = range->is_mapped_object();
+	 if (mappedobj_ptr) {
+	   // If we're writing into a shared object, mark it as dirty.
+	   // _Unless_ we're writing "__libc_sigaction"
+	   int_function *func = range->is_function();
+	   if ((! func) || (func->prettyName() != "__libc_sigaction")){
+	     mappedobj_ptr->setDirty();
+	   }
+	 }
+       }
    }
 #endif
 #endif
@@ -1383,19 +1400,22 @@ procSyscall_t decodeSyscall(process * /*p*/, procSignalWhat_t what)
 }
 
 bool process::dumpImage( pdstring imageFileName ) {
-    /* What we do is duplicate the original file,
-       and replace the copy's .text section with
-       the (presumably instrumented) in-memory
-       executable image.  Note that we don't seem
-       to be concerned with making sure that we
-       actually grab the instrumentation code itself... */
+	/* What we do is duplicate the original file,
+	   and replace the copy's .text section with
+	   the (presumably instrumented) in-memory
+	   executable image.  Note that we don't seem
+	   to be concerned with making sure that we
+	   actually grab the instrumentation code itself... */
+	
+	/* Acquire the filename. */
+  if (!mapped_objects.size()) {
+    return false;
+  }
 
-    /* Acquire the filename. */
-    image * theImage = getImage();
-    pdstring originalFileName = theImage->file();
-
-    /* Use system() to execute the copy. */
-    pdstring copyCommand = "cp " + originalFileName + " " + imageFileName;
+  pdstring originalFileName = mapped_objects[0]->fullName();
+	
+	/* Use system() to execute the copy. */
+	pdstring copyCommand = "cp " + originalFileName + " " + imageFileName;
     system( copyCommand.c_str() );
 
     /* Open the copy so we can use libelf to find the .text section. */
@@ -1459,8 +1479,8 @@ int getNumberOfCPUs()
 //Returns true if the function is part of the PLT table
 bool isPLT(int_function *f)
 {
-  const Object &obj = f->pdmod()->exec()->getObject();
-  return obj.is_offset_in_plt(f->getOffset());
+  const Object &obj = f->mod()->obj()->parse_img()->getObject();
+  return obj.is_offset_in_plt(f->ifunc()->getOffset());
 }
 
 // findCallee: finds the function called by the instruction corresponding
@@ -1473,169 +1493,101 @@ bool isPLT(int_function *f)
 // callee is not set.  If the callee function cannot be found, (ex. function
 // pointers, or other indirect calls), it returns false.
 // Returns false on error (ex. process doesn't contain this instPoint).
-//
-// The assumption here is that for all processes sharing the image containing
-// this instPoint they are going to bind the call target to the same function. 
-// For shared objects this is always true, however this may not be true for
-// dynamic executables.  Two a.outs can be identical except for how they are
-// linked, so a call to fuction foo in one version of the a.out may be bound
-// to function foo in libfoo.so.1, and in the other version it may be bound to 
-// function foo in libfoo.so.2.  We are currently not handling this case, since
-// it is unlikely to happen in practice.
-bool process::findCallee(instPoint &instr, int_function *&target){
 
-   target = instr.getCallee();
-   if (target && !isPLT(target)) {
-      return true; // callee already set
-   }   
+int_function *instPoint::findCallee() {
 
-   // find the corresponding image in this process  
-   const image *owner = instr.getOwner();
-   bool found_image = false;
-   Address base_addr = 0;
-   if(symbols == owner) {  found_image = true; } 
-   else if(shared_objects){
-      for(u_int i=0; i < shared_objects->size(); i++){
-         if(owner == ((*shared_objects)[i])->getImage()) {
-            found_image = true;
-            base_addr = ((*shared_objects)[i])->getBaseAddress();
-            break;
-         }
+  // Already been bound
+  if (callee_) {
+      return callee_;
+  }  
+  if (ipType_ != callSite) {
+      // Assert?
+      return NULL; 
+  }
+  if (isDynamicCall()) {
+      return NULL;
+  }
+
+  assert(img_p_);
+  image_func *icallee = img_p_->getCallee(); 
+  if (icallee) {
+      // Now we have to look up our specialized version
+      // Can't do module lookup because of DEFAULT_MODULE...
+      const pdvector<int_function *> *possibles = func()->obj()->findFuncVectorByMangled(icallee->symTabName());
+      if (!possibles) {
+          return NULL;
       }
-   } 
-
-   if(!found_image) {
-     target = 0;
-     return false; // image not found...this is bad
-   }
-
-  
-   // get the target address of this function
-   Address target_addr = instr.getTargetAddressAbs(this);
-   if(!target_addr) {
+      for (unsigned i = 0; i < possibles->size(); i++) {
+          if ((*possibles)[i]->match(icallee)) {
+              callee_ = (*possibles)[i];
+              return callee_;
+          }
+      }
+      // No match... very odd
+      assert(0);
+      return NULL;
+  }
+  // Do this the hard way - an inter-module jump
+  // get the target address of this function
+  Address target_addr = img_p_->callTarget();
+  if(!target_addr) {
       // this is either not a call instruction or an indirect call instr
       // that we can't get the target address
-      target = 0;
-      return false;
-    }
+      return NULL;
+  }
 
-    // see if there is a function in this image at this target address
-    // if so return it
-    int_function *pdf = this->findFuncByAddr(target_addr);
-    if (pdf && !isPLT(pdf))
-    {
-      int_function *caller = instr.pointFunc();
-      target = pdf;
-      instr.setCallee(pdf);
-      return true; // target found...target is in this image
-    }
-   
-    // else, get the relocation information for this image
-    const Object &obj = owner->getObject();
-    const pdvector<relocationEntry> *fbt;
-    if(!obj.get_func_binding_table_ptr(fbt)) {
-       target = 0;
-       return false; // target cannot be found...it is an indirect call.
-    }
-
-    // find the target address in the list of relocationEntries
-    Address rel_target_addr = instr.getTargetAddress();
-    for(u_int i=0; i < fbt->size(); i++) {
-      if((*fbt)[i].target_addr() == rel_target_addr) {
+  // get the relocation information for this image
+  const Object &obj = func()->obj()->parse_img()->getObject();
+  const pdvector<relocationEntry> *fbt;
+  if(!obj.get_func_binding_table_ptr(fbt)) {
+      return false; // target cannot be found...it is an indirect call.
+  }
+  
+  Address base_addr = func()->obj()->codeBase();
+   // find the target address in the list of relocationEntries
+   for(u_int i=0; i < fbt->size(); i++) {
+      if((*fbt)[i].target_addr() == target_addr) {
          // check to see if this function has been bound yet...if the
          // PLT entry for this function has been modified by the runtime
          // linker
          int_function *target_pdf = 0;
-         if(hasBeenBound((*fbt)[i], target_pdf, base_addr)) {
-            target = target_pdf;
-            instr.setCallee(target_pdf);
-            return true;  // target has been bound
+         if(proc()->hasBeenBound((*fbt)[i], target_pdf, base_addr)) {
+	   callee_ = target_pdf;
+	   return callee_;  // target has been bound
          } 
          else {
-            pdvector<int_function *> pdfv;
-            bool found = findAllFuncsByName((*fbt)[i].name(), pdfv);
-            if(found) {
-               assert(pdfv.size());
-               for (unsigned j=0; j<pdfv.size(); j++)
-               {
-                  if (!isPLT(pdfv[j]))
-                  {
-                     target = pdfv[j];
-                     return true;
-                  }
-               }
-               target = pdfv[0];
-               return true;
-            }
-            else {  
-               // KLUDGE: this is because we are not keeping more than
-               // one name for the same function if there is more
-               // than one.  This occurs when there are weak symbols
-               // that alias global symbols (ex. libm.so.1: "sin" 
-               // and "__sin").  In most cases the alias is the same as 
-               // the global symbol minus one or two leading underscores,
-               // so here we add one or two leading underscores to search
-               // for the name to handle the case where this string 
-               // is the name of the weak symbol...this will not fix 
-               // every case, since if the weak symbol and global symbol
-               // differ by more than leading underscores we won't find
-               // it...when we parse the image we should keep multiple
-               // names for int_functions
-
-               pdstring s("_");
-	       s += (*fbt)[i].name();
-	       found = findAllFuncsByName(s, pdfv);
-	       if(found) {
-             assert(pdfv.size());
+	   pdvector<int_function *> pdfv;
+	   bool found = proc()->findFuncsByMangled((*fbt)[i].name(), pdfv);
+	   if(found) {
+	     assert(pdfv.size());
 #ifdef BPATCH_LIBRARY
-             if(pdfv.size() > 1)
-                cerr << __FILE__ << ":" << __LINE__ 
-                     << ": WARNING: findAllFuncsByName found " 
-                     << pdfv.size() << " references to function " 
-                     << s << ".  Using the first.\n";
+	     if(pdfv.size() > 1)
+	       cerr << __FILE__ << ":" << __LINE__ 
+		    << ": WARNING:  findAllFuncsByName found " 
+		    << pdfv.size() << " references to function " 
+		    << (*fbt)[i].name() << ".  Using the first.\n";
 #endif
-             target = pdfv[0];
-             return true;
-	       }
-		    
-	       s = pdstring("__");
-	       s += (*fbt)[i].name();
-	       found = findAllFuncsByName(s, pdfv);
-	       if(found) {
-             assert(pdfv.size());
-#ifdef BPATCH_LIBRARY
-             if(pdfv.size() > 1)
-                cerr << __FILE__ << ":" << __LINE__ 
-                     << ": WARNING: findAllFuncsByName found " 
-                     << pdfv.size() << " references to function "
-                     << s << ".  Using the first.\n";
-#endif
-             target = pdfv[0];
-             return true;
-	       }
-#ifdef BPATCH_LIBRARY
-	       else
-             cerr << __FILE__ << ":" << __LINE__
-                  << ": WARNING: findAllFuncsByName found no "
-                  << "matches for function " << (*fbt)[i].name() 
-                  << " or its possible aliases\n";
-#endif
-            }
+	     callee_ = pdfv[0];
+	     return callee_;
+	   }
          }
-         target = 0;
-         return false;
+         return NULL;
       }
-    }
-    target = 0;
-    return false;  
+   }
+   return NULL;  
 }
 
-fileDescriptor *getExecFileDescriptor(pdstring filename,
-				     int &,
-				     bool)
+bool process::getExecFileDescriptor(pdstring filename,
+                                    int /*pid*/,
+                                    bool /*whocares*/,
+                                    int &,
+                                    fileDescriptor &desc)
 {
-  fileDescriptor *desc = new fileDescriptor(filename);
-  return desc;
+    desc = fileDescriptor(filename, 
+                          0, // code
+                          0, // data
+                          false); // a.out
+    return true;
 }
 
 #if defined(USES_DYNAMIC_INF_HEAP)
@@ -1682,6 +1634,7 @@ bool dyn_lwp::realLWP_attach_() {
 }
 
 bool dyn_lwp::representativeLWP_attach_() {
+
    // step 1) /proc open: attach to the inferior process memory file
    char procName[128];
    sprintf(procName, "/proc/%d/mem", (int) proc_->getPid());
@@ -1698,10 +1651,10 @@ bool dyn_lwp::representativeLWP_attach_() {
    // already-running process?  (Seems that in the latter case, no SIGTRAP
    // is automatically generated)
    
-
    // Only if we are really attaching rather than spawning the inferior
    // process ourselves do we need to call PTRACE_ATTACH
-   if(proc_->wasCreatedViaAttach() || proc_->wasCreatedViaFork() || 
+   if(proc_->wasCreatedViaAttach() || 
+      proc_->wasCreatedViaFork() || 
       proc_->wasCreatedViaAttachToCreated())
    {
       startup_cerr << "process::attach() doing PTRACE_ATTACH" << endl;
@@ -1801,7 +1754,7 @@ bool process::readAuxvInfo()
   if (fd == -1)
   {
     //This is expected on linux 2.4 systems
-    return false;
+      return false;
   }
 
   do {
@@ -1864,18 +1817,17 @@ Address findFunctionToHijack(process *p)
    Address codeBase;
    unsigned i;
    for(i = 0; i < N_DYNINST_LOAD_HIJACK_FUNCTIONS; i++ ) {
-      bool err;
       const char *func_name = DYNINST_LOAD_HIJACK_FUNCTIONS[i];
-      codeBase = p->findInternalAddress(func_name, false, err);
-      if (err || !codeBase)
-      {
-         int_function *func = p->findOnlyOneFunction(func_name);
-         codeBase = func ? func->getAddress(NULL) : 0;
-      }
-      if (codeBase)
-         break;
-   }
 
+      pdvector<int_function *> hijacks;
+      if (!p->findFuncsByAll(func_name, hijacks))
+          return 0;
+      codeBase = hijacks[0]->getAddress();
+
+      if (codeBase)
+          break;
+   }
+   
   return codeBase;
 } /* end findFunctionToHijack() */
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.89 2005/03/07 21:18:35 bernat Exp $
+// $Id: irix.C,v 1.90 2005/07/29 19:18:48 bernat Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -1089,8 +1089,8 @@ Frame dyn_lwp::getActiveFrame()
  
 static bool basetrampRegSaved(Address pc, Register reg,
                               const instPoint *ip,
-                              trampTemplate *bt,
-                              miniTrampHandle *mt)
+                              baseTramp *bt,
+                              miniTramp *mt)
 {
   if (!ip) return false;
   if (mt) return true;
@@ -1132,8 +1132,8 @@ Frame Frame::getCallerFrame()
     return Frame();
   }
     
-  trampTemplate *bt = range->is_basetramp();
-  miniTrampHandle  *mt = range->is_minitramp();
+  baseTramp *bt = range->is_basetramp();
+  miniTramp  *mt = range->is_minitramp();
   const instPoint     *ip = NULL;
   if (mt) bt = mt->baseTramp;
   if (bt) ip = bt->location;
@@ -1245,8 +1245,8 @@ Frame Frame::getCallerFrame()
     
     // determine location of caller $pc (native code, basetramp, minitramp)
     instPoint *ip2 = NULL;
-    trampTemplate *bt2 = NULL;
-    miniTrampHandle *mt2 = NULL;
+    baseTramp *bt2 = NULL;
+    miniTramp *mt2 = NULL;
     int_function *caller = NULL;
     range = getProc()->findCodeRangeByAddress(ra);
     if (range) {

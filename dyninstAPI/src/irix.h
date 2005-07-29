@@ -50,7 +50,7 @@
 
 #define EXIT_NAME "_exithandle"
 
-#define BYTES_TO_SAVE 256 // should be a multiple of sizeof(instruction)
+#define BYTES_TO_SAVE 256 // should be a multiple of instruction::size()
 
 #define SIGNAL_HANDLER	 "sigacthandler"
 

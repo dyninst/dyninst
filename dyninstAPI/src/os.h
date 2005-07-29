@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: os.h,v 1.28 2005/02/24 10:16:45 rchen Exp $
+// $Id: os.h,v 1.29 2005/07/29 19:18:58 bernat Exp $
 
 #ifndef _OS_HDR
 #define _OS_HDR
@@ -84,7 +84,7 @@
 #include "common/h/String.h"
 #include "common/h/Types.h"
 
-typedef enum { neonatal, running, stopped, detached, exited, execing, deleted } processState;
+typedef enum { neonatal, running, stopped, detached, exited, execing, deleted, unknown_ps } processState;
 
 class OS {
 public:

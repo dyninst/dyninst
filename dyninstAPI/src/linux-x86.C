@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.70 2005/04/18 20:55:43 legendre Exp $
+// $Id: linux-x86.C,v 1.71 2005/07/29 19:18:53 bernat Exp $
 
 #include <fstream>
 
@@ -58,10 +58,10 @@
 #include <elf.h>
 #include <libelf.h>
 
-#include "dyninstAPI/src/miniTrampHandle.h"
-#include "dyninstAPI/src/trampTemplate.h"
+#include "dyninstAPI/src/miniTramp.h"
+#include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/func-reloc.h"
+//#include "dyninstAPI/src/func-reloc.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -88,9 +88,6 @@
 //#include "saveSharedLibrary.h" 
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
-
-extern bool isValidAddress(process *proc, Address where);
-extern void generateBreakPoint(instruction &insn);
 
 const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
 
@@ -214,6 +211,7 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs) {
 
    bool retVal = true;
    
+
    assert(get_lwp_id() != 0);
    if( P_ptrace( PTRACE_SETREGS, get_lwp_id(), 0,(long)&(regs.gprs) ) )
    {
@@ -274,7 +272,7 @@ Address getPC(int pid) {
    }
 }
 
-bool process::loadDYNINSTlibCleanup()
+bool process::loadDYNINSTlibCleanup(dyn_lwp *trappingLWP)
 {
   // rewrite original instructions in the text segment we use for 
   // the inferiorRPC - naim
@@ -285,16 +283,9 @@ bool process::loadDYNINSTlibCleanup()
 
   writeDataSpace((void *)codeBase, count, (char *)savedCodeBuffer);
 
-  dyn_lwp *lwp_to_use = NULL;
-
-  if(process::IndependentLwpControl() && getRepresentativeLWP() == NULL)
-     lwp_to_use = getInitialThread()->get_lwp();
-  else
-     lwp_to_use = getRepresentativeLWP();
-  
   // restore registers
   assert(savedRegs != NULL);
-  lwp_to_use->restoreRegisters(*savedRegs);
+  trappingLWP->restoreRegisters(*savedRegs);
 
   // restore the stack frame of _start()
   user_regs_struct *theIntRegs = (user_regs_struct *)savedRegs;
@@ -315,12 +306,23 @@ bool process::loadDYNINSTlibCleanup()
   return true;
 }
 
-bool process::handleTrapAtEntryPointOfMain()
+bool process::handleTrapAtEntryPointOfMain(dyn_lwp *trappingLWP)
 {
     assert(main_brk_addr);
+    assert(trappingLWP);
     // restore original instruction 
-    if (!writeDataSpace((void *)main_brk_addr, 2, (char *)savedCodeBuffer))
+    // Use this for the size -- make sure that we're using the same
+    // insn in both places. Or give savedCodeBuffer a size twin.
+
+    if (!writeDataSpace((void *)main_brk_addr, sizeof(savedCodeBuffer), (char *)savedCodeBuffer))
         return false;
+
+    if (! trappingLWP->changePC(main_brk_addr,NULL))
+        {
+            logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
+            assert(0);
+        }
+    
     main_brk_addr = 0;
     return true;
 }
@@ -328,48 +330,56 @@ bool process::handleTrapAtEntryPointOfMain()
 bool process::insertTrapAtEntryPointOfMain()
 {
     int_function *f_main = 0;
-    pdvector<int_function *> *pdfv=NULL;
+    pdvector<int_function *> funcs;
     
     //first check a.out for function symbol   
-    pdfv = symbols->findFuncVectorByPretty( "main" );
-    if( pdfv == NULL || !pdfv->size() )
+    bool res = findFuncsByPretty("main", funcs);
+    if (!res)
     {
         logLine( "a.out has no main function. checking for PLT entry\n" );
         //we have not found a "main" check if we have a plt entry
-        pdfv = symbols->findFuncVectorByPretty( "DYNINST_pltMain" );
-        
-        if( pdfv == NULL || !pdfv->size() )
-        {
+	res = findFuncsByPretty( "DYNINST_pltMain", funcs );
+ 
+	if (!res) {
             logLine( "no PLT entry for main found\n" );
             return false;
-        }       
+	  }       
     }
     
-    if( pdfv->size() > 1 )
-    {
+    if( funcs.size() > 1 ) {
         cerr << __FILE__ << __LINE__ 
              << ": found more than one main! using the first" << endl;
     }
-    f_main = (*pdfv)[0];
+    f_main = funcs[0];
     assert(f_main);
-    Address addr = f_main->get_address();
-    
+    Address addr = f_main->getAddress();
+
+    // and now, insert trap
+    // For some reason, using a trap breaks but using an illegal works. Anyone 
+    // have any idea?
+    // It looks like the trap PC is actual PC + 1...
+    // This is ugly, but we'll have the "check if this was entry of main" function
+    // check main_brk_addr or main_brk_addr + 1...
+    startup_printf("Saving %d bytes from entry of main...\n", 
+                   sizeof(savedCodeBuffer));
+
     // save original instruction first
-    if (!readDataSpace((void *)addr, 2, savedCodeBuffer, true)) {
+    if (!readDataSpace((void *)addr, sizeof(savedCodeBuffer), savedCodeBuffer, true)) {
         fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
+        fprintf(stderr, "Failed to read at address 0x%x\n", addr);
         return false;
     }
+
+    codeGen gen(1);
+    instruction::generateTrap(gen);
     
-    // and now, insert trap
-    instruction insnTrap;
-    generateBreakPoint(insnTrap);
-    
-    
-  // x86. have to use SIGILL instead of SIGTRAP
-    if (!writeDataSpace((void *)addr, 2, insnTrap.ptr()))
+    if (!writeDataSpace((void *)addr, gen.used(), gen.start_ptr()))
         return false;
+
     
     main_brk_addr = addr;
+
+    signal_printf("Added trap at entry of main, address 0x%x\n", main_brk_addr);
     return true;
 }
 
@@ -387,7 +397,6 @@ void emitCallRel32(unsigned disp32, unsigned char *&insn);
                               // use the frame pointer (also result of gcc's
                               // -fomit-frame-pointer)
 #define TRAMP            0x6  //Trampoline
-#define EDGE_TRAMP       0x7  //Edge tramp
 
 extern bool isFramePush(instruction &i);
 void *parseVsyscallPage(char *buffer, unsigned dso_size, process *p);
@@ -452,12 +461,10 @@ static void getVSyscallSignalSyms(char *buffer, unsigned dso_size, process *p)
 	    // We hates them, my precioussss....
 	    Address signal_addr = syms[i].st_value;
 	    if (signal_addr < p->getVsyscallStart()) {
-	      fprintf(stderr, "Warning: saw signal handler address of 0x%x, guessing it's an offset...\n",
-		      signal_addr);
-	      p->addSignalHandlerAddr(syms[i].st_value + p->getVsyscallStart());
+	      p->addSignalHandler(syms[i].st_value + p->getVsyscallStart(), 4);
 	    }
 	    else 
-	      p->addSignalHandlerAddr(syms[i].st_value);
+	      p->addSignalHandler(syms[i].st_value, 4);
 	  } 
 	}
       }
@@ -482,8 +489,9 @@ void calcVSyscallFrame(process *p)
    * If we've already calculated and cached the DSO information then 
    * just return.
    **/
-  if (p->getVsyscallStart() != 0x0)
+  if (p->getVsyscallStart() != 0x0) {
     return; 
+  }
 
   /**
    * Read the location of the vsyscall page from /proc/.
@@ -516,7 +524,6 @@ void calcVSyscallFrame(process *p)
      // as any others.
      memcpy(buffer, (void *) p->getVsyscallStart(), dso_size);
   }
-
   getVSyscallSignalSyms(buffer, dso_size, p);
   result = parseVsyscallPage(buffer, dso_size, p);
   p->setVsyscallData(result);
@@ -528,11 +535,10 @@ static int getFrameStatus(process *p, unsigned pc)
 {
    codeRange *range;
 
-   int_function *func;
-   relocatedFuncInfo *reloc;
-   miniTrampHandle *mini;
-   trampTemplate *base;
-   edgeTrampTemplate *edge;
+   int_function *func = NULL;
+   miniTrampInstance *mini = NULL;
+   multiTramp *multi = NULL;
+   baseTrampInstance *base = NULL;
 
    calcVSyscallFrame(p);
 
@@ -543,38 +549,24 @@ static int getFrameStatus(process *p, unsigned pc)
 
    range = p->findCodeRangeByAddress(pc);
    func = range->is_function();
-   base = range->is_basetramp();
+   multi = range->is_multitramp();
    mini = range->is_minitramp();
-   reloc = range->is_relocated_func();
-   edge = range->is_edge_tramp();
+   if (multi)
+       base = multi->getBaseTrampInstanceByAddr(pc);
 
-   if (base != NULL || mini != NULL) {
-     if (base) {
-        Address pc_in_tramp = pc - base->baseAddr;
-        // A bit of a note, here: if we're in the base tramp,
-        // but _not_ in pre/post instrumentation, then we're
-        // _not_ in an instrumentation frame (nstead, we're
-        // in a normal frame
-        if (pc_in_tramp <= (unsigned) base->skipPreInsOffset)
-           // Haven't saved/created yet...
-           func = const_cast<int_function *>(base->location->pointFunc());
-        else if (pc_in_tramp <= (unsigned) base->emulateInsOffset)
-           // In pre instrumentation..
+   if (base) {
+       if (base->isInInstru(pc))
            return TRAMP;
-        else if (pc_in_tramp <= (unsigned) base->skipPostInsOffset)
-           // Emulating instructions, between save points
-           func = const_cast<int_function *>(base->location->pointFunc());
-        else 
-           // In post-instrumentation
-           return TRAMP;
-     }
-     else
+       else
+           func = base->multiT->func();
+   }
+   else if (multi) {
+       // Not in base tramp instrumented... we're effectively in the func
+       func = multi->func();
+   }
+   else if (mini) {
        return TRAMP;
    }
-   if (reloc != NULL && func == NULL)
-      func = reloc->func();
-   else if (edge != NULL && func == NULL)
-     func = p->findFuncByAddr(pc);
    
    if (func == NULL)
       return UNKNOWN;
@@ -595,26 +587,25 @@ static bool isPrevInstrACall(Address addr, process *p, int_function **callee)
    if (range == NULL)
      return false;
    
-   relocatedFuncInfo *reloc_ptr = range->is_relocated_func();
    int_function *func_ptr = range->is_function();
 
-   if (reloc_ptr != NULL)
-      callsites = reloc_ptr->funcCallSites();
-   else if (func_ptr != NULL)
-      callsites = func_ptr->funcCalls(NULL);
+   if (func_ptr != NULL)
+     callsites = func_ptr->funcCalls();
    else
      return false;
       
    for (unsigned i = 0; i < callsites.size(); i++)
    {
      instPoint *site = callsites[i];
-     if (site->absPointAddr(p) + site->insnAtPoint().size() == addr)
-     {
-       *callee = site->getCallee();
-       return true;
+
+     // Argh. We need to check for each call site in each
+     // instantiation of the function.
+     if (site->match(addr - site->insn().size())) {
+	 *callee = site->findCallee();
+	 return true;
      }
    }   
-
+   
    return false; 
 }
 
@@ -624,25 +615,29 @@ static bool isPrevInstrACall(Address addr, process *p, int_function **callee)
  * walk.  This function returns true in this case.  offset is the distance
  * from the top of the stack to the return value for the caller.
  **/
-static bool hasAllocatedFrame(Address addr, process *p, int &offset)
+static bool hasAllocatedFrame(Address addr, process *proc, int &offset)
 {
-   image *img = p->getImage();
-   if (img->isValidAddress(addr))
-   {
-      InstrucIter ii(addr, addr, img, false);
-      if (ii.isAReturnInstruction() ||
-          ii.isStackFramePreamble())
-      {
-         offset = 0;
-         return false;
-      }
-      if (ii.isFrameSetup())
-      {
-         offset = 4;
-         return false;
-      }
-   }
-   return true;       
+    int frameSizeDontCare;
+    codeRange *range = proc->findCodeRangeByAddress(addr);
+
+    if (range) {
+        InstrucIter ii(range->get_address_cr(),
+                       range->get_size_cr(),
+                       proc);
+        ii.setCurrentAddress(addr);
+        if (ii.isAReturnInstruction() ||
+            ii.isStackFramePreamble(frameSizeDontCare))
+            {
+                offset = 0;
+                return false;
+            }
+        if (ii.isFrameSetup())
+            {
+                offset = 4;
+                return false;
+            }
+    }
+    return true;       
 }
 
 /**
@@ -650,50 +645,33 @@ static bool hasAllocatedFrame(Address addr, process *p, int &offset)
  * if the trampoline was called by function entry or exit
  * instrumentation.
  **/
-static bool isEntryExitInstrumentation(Frame f)
+static bool isInEntryExitInstrumentation(Frame f)
 {
    codeRange *range = f.getRange();
-   miniTrampHandle *mini = range->is_minitramp();
-   trampTemplate *base = range->is_basetramp();
+   miniTrampInstance *miniTI = range->is_minitramp();
+   multiTramp *multi = range->is_multitramp();
+   baseTrampInstance *baseTI = NULL;
+   if (multi) baseTI = multi->getBaseTrampInstanceByAddr(f.getPC());
 
-   if (base == NULL)
+   if (baseTI == NULL)
    {
-      if (mini == NULL)
+      if (miniTI == NULL)
          return false;
-      base = mini->baseTramp;
+      baseTI = miniTI->baseTI;
    }
-   const instPoint *instp = base->location;
-   if (instp == NULL) 
-      return false;
-
-   if (instp->getPointType() == functionEntry || 
-       instp->getPointType() == functionExit)
-      return true;
+   const instPoint *preInst = baseTI->baseT->preInstP;
+   if (preInst && 
+       (preInst->getPointType() == functionEntry ||
+        preInst->getPointType() == functionExit)) 
+       // Not sure yet if function exit will be preInst or postInst...
+       return true;
+   const instPoint *postInst = baseTI->baseT->postInstP;
+   if (postInst &&
+       postInst->getPointType() == functionExit) 
+       return true;
 
    return false;
 }
-
-bool process::instrSideEffect( Frame &frame, instPoint * inst)
-{
-  int_function *instFunc = inst->pointFunc();
-  if (!instFunc) return false;
-
-  codeRange *range = frame.getRange();
-  if (range->is_function() != instFunc) {
-    return true;
-  }
-
-  if (inst->getPointType() == callSite) {
-    Address insnAfterPoint = inst->absPointAddr(this) + 5;
-    // Callsite = 5 bytes.
-    if (frame.getPC() == insnAfterPoint) {
-      frame.setPC(baseMap[inst]->baseAddr + baseMap[inst]->skipPostInsOffset);
-    }
-  }
-
-  return true;
-}
-
 
 extern int tramp_pre_frame_size;
 
@@ -819,7 +797,7 @@ Frame Frame::getCallerFrame()
        **/
       int offset = 0;
       if (!hasAllocatedFrame(pc_, getProc(), offset) || 
-          (prevFrameValid && isEntryExitInstrumentation(prevFrame)))
+          (prevFrameValid && isInEntryExitInstrumentation(prevFrame)))
       {
          addrs.fp = offset + sp_;
          if (!getProc()->readDataSpace((caddr_t) addrs.fp, sizeof(int), 
@@ -1051,7 +1029,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 	char *directoryName = 0;
 	unsigned int baseAddr ;
 	unsigned int tmpFlag;
-	shared_object *sh_obj;
+	mapped_object *mapped_obj;
 
 	if(!collectSaveWorldData){
                 BPatch_reportError(BPatchSerious,122,"dumpPatchedImage: BPatch_thread::enableDumpPatchedImage() not called.  No mutated binary saved\n");
@@ -1075,17 +1053,18 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 
 	// PRELINK every shared lib marked dirty or dirtycalled to the new directory:
 	// Always save the API_RT lib
-	for(unsigned i=0;shared_objects && i<shared_objects->size() ; i++) {
-		sh_obj = (*shared_objects)[i];
-		if( (sh_obj->isDirty() || sh_obj->isDirtyCalled() || strstr(sh_obj->getName().c_str(),"libdyninstAPI_RT") ) &&
-				NULL== strstr(sh_obj->getName().c_str(),"ld-linux.so") &&  /* do not save some libs*/
-				NULL==strstr(sh_obj->getName().c_str(),"libc")){ 
-			/*fprintf(stderr,"\nWRITE BACK SHARED OBJ %s\n", sh_obj->getName().c_str());*/
+	for(unsigned i=0; i < mapped_objects.size() ; i++) {
+		mapped_obj = mapped_objects[i];
+		if((mapped_obj->isSharedLib()) && 
+		   (mapped_obj->isDirty() || mapped_obj->isDirtyCalled() || strstr(mapped_obj->fileName().c_str(),"libdyninstAPI_RT") ) &&
+				NULL== strstr(mapped_obj->fileName().c_str(),"ld-linux.so") &&  /* do not save some libs*/
+				NULL==strstr(mapped_obj->fileName().c_str(),"libc")){ 
+			/*fprintf(stderr,"\nWRITE BACK SHARED OBJ %s\n", mapped_obj->getName().c_str());*/
 
-			if(!prelinkSharedLibrary(sh_obj->getName(),directoryName, sh_obj->getBaseAddress())){
+			if(!prelinkSharedLibrary(mapped_obj->fileName(),directoryName, mapped_obj->codeBase())){
 				char *msg;
-				msg = new char[sh_obj->getName().length() + strlen(directoryName)+128];
-				sprintf(msg,"dumpPatchedImage: %s not saved to %s.\n.\nTry to use the original shared library with the mutated binary.\n",sh_obj->getName().c_str(),directoryName);
+				msg = new char[mapped_obj->fileName().length() + strlen(directoryName)+128];
+				sprintf(msg,"dumpPatchedImage: %s not saved to %s.\n.\nTry to use the original shared library with the mutated binary.\n",mapped_obj->fileName().c_str(),directoryName);
 
 				BPatch_reportError(BPatchWarning,0,msg);
 				delete [] msg;
@@ -1114,21 +1093,22 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 		mutatedSharedObjectsSize += mutatedSharedObjectsNumb * sizeof(unsigned int);
 		mutatedSharedObjects = new char[mutatedSharedObjectsSize];
 		//i ignore the dyninst RT lib here and in process::saveWorldSaveSharedLibs
-		for(int i=0;shared_objects && i<(int)shared_objects->size() ; i++) {
-			sh_obj = (*shared_objects)[i];
-			if( (sh_obj->isDirty() || sh_obj->isDirtyCalled()) && 
+		for(unsigned i=0; i < mapped_objects.size() ; i++) {
+			mapped_obj = mapped_objects[i];
+			if((mapped_obj->isSharedLib()) && 
+			   (mapped_obj->isDirty() || mapped_obj->isDirtyCalled()) && 
 				/* there are a number of libraries that we cannot save even if they are
 					mutated. */
-				NULL==strstr(sh_obj->getName().c_str(),"libdyninstAPI_RT") && 
-				NULL== strstr(sh_obj->getName().c_str(),"ld-linux.so") && 
-				NULL==strstr(sh_obj->getName().c_str(),"libc")){ //ccw 24 jul 2003
+				NULL==strstr(mapped_obj->fileName().c_str(),"libdyninstAPI_RT") && 
+				NULL== strstr(mapped_obj->fileName().c_str(),"ld-linux.so") && 
+				NULL==strstr(mapped_obj->fileName().c_str(),"libc")){ //ccw 24 jul 2003
 
-				//bperr(" mutatedSharedObjectsIndex %d %s\n", mutatedSharedObjectsIndex,sh_obj->getName().c_str() ); //ccw 8 mar 2004
+				//bperr(" mutatedSharedObjectsIndex %d %s\n", mutatedSharedObjectsIndex,mapped_obj->fileName().c_str() ); //ccw 8 mar 2004
 				memcpy(  & ( mutatedSharedObjects[mutatedSharedObjectsIndex]),
-					sh_obj->getName().c_str(),
-					strlen(sh_obj->getName().c_str())+1);
+					mapped_obj->fileName().c_str(),
+					strlen(mapped_obj->fileName().c_str())+1);
 
-				mutatedSharedObjectsIndex += strlen( sh_obj->getName().c_str())+1;
+				mutatedSharedObjectsIndex += strlen( mapped_obj->fileName().c_str())+1;
 
 				/* 	LINUX PROBLEM. in the link_map structure the map->l_addr field is NOT
 					the load address of the dynamic object, as the documentation says.  It is the
@@ -1141,17 +1121,17 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 
 				Symbol info;
 				pdstring dynamicSection = "_DYNAMIC";
-				sh_obj->getSymbolInfo(dynamicSection,info);
-				baseAddr = sh_obj->getBaseAddress() + info.addr();
-				//fprintf(stderr," %s DYNAMIC ADDR: %x\n",sh_obj->getName().c_str(), baseAddr);
+				mapped_obj->getSymbolInfo(dynamicSection,info);
+				baseAddr = mapped_obj->codeBase() + info.addr();
+				//fprintf(stderr," %s DYNAMIC ADDR: %x\n",mapped_obj->fileName().c_str(), baseAddr);
 
-				//baseAddr = sh_obj->getBaseAddress();
+				//baseAddr = mapped_obj->getBaseAddress();
 				memcpy( & (mutatedSharedObjects[mutatedSharedObjectsIndex]), &baseAddr, sizeof(unsigned int));
 				mutatedSharedObjectsIndex += sizeof(unsigned int);	
 
 
 				//set flag
-				tmpFlag = ((sh_obj->isDirty() &&  NULL==strstr(sh_obj->getName().c_str(),"libc"))?1:0);	
+				tmpFlag = ((mapped_obj->isDirty() &&  NULL==strstr(mapped_obj->fileName().c_str(),"libc"))?1:0);	
 				memcpy( &(mutatedSharedObjects[mutatedSharedObjectsIndex]), &tmpFlag, sizeof(unsigned int));
 				mutatedSharedObjectsIndex += sizeof(unsigned int);	
 
@@ -1163,17 +1143,17 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 	char *dyninst_SharedLibrariesData =saveWorldCreateSharedLibrariesSection(dyninst_SharedLibrariesSize);
 	
 		
-	writeBackElf *newElf = new writeBackElf((const char*) getImage()->file().c_str(),
-			                "/tmp/dyninstMutatee",errFlag);
+	writeBackElf *newElf = new writeBackElf((const char*) mapped_objects[0]->parse_img()->file().c_str(),
+						"/tmp/dyninstMutatee",errFlag);
         newElf->registerProcess(this);
 
 	//libdyninstAPI_RT.so.  The RT lib will check to see that it is loaded
 	//in the correct place when the mutated binary is run.
 	Address rtlibAddr;
-	for(int i=0;shared_objects && i<(int)shared_objects->size() ; i++) {
-		sh_obj = (*shared_objects)[i];
-		if( strstr(sh_obj->getName().c_str(),"libdyninstAPI_RT") ) {
-			//rtlibAddr = sh_obj->getBaseAddress();
+	for(unsigned i=0; i < mapped_objects.size() ; i++) {
+		mapped_obj = mapped_objects[i];
+		if( strstr(mapped_obj->fileName().c_str(),"libdyninstAPI_RT") ) {
+			//rtlibAddr = mapped_obj->getBaseAddress();
 			/* 	LINUX PROBLEM. in the link_map structure the map->l_addr field is NOT
 				the load address of the dynamic object, as the documentation says.  It is the
 				RELOCATED address of the object. If the object was not relocated then the
@@ -1185,9 +1165,9 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 
 			Symbol info;
 			pdstring dynamicSection = "_DYNAMIC";
-			sh_obj->getSymbolInfo(dynamicSection,info);
-			rtlibAddr = sh_obj->getBaseAddress() + info.addr();
-			//fprintf(stderr," %s DYNAMIC ADDR: %x\n",sh_obj->getName().c_str(), rtlibAddr);
+			mapped_obj->getSymbolInfo(dynamicSection,info);
+			rtlibAddr = mapped_obj->codeBase() + info.addr();
+			//fprintf(stderr," %s DYNAMIC ADDR: %x\n",mapped_obj->fileName().c_str(), rtlibAddr);
 		}
 	}
 
@@ -1282,9 +1262,9 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall) {
         if (!readDataSpace( (void*)syscall, 2, trappedSyscall->saved_insn, true))
           fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
 
-        instruction insnTrap;
-        generateBreakPoint(insnTrap);
-        writeDataSpace((void *)syscall, 2, insnTrap.ptr());
+        codeGen gen(1);
+        instruction::generateTrap(gen);
+        writeDataSpace((void *)syscall, gen.used(), gen.start_ptr());
 
         syscallTraps_.push_back(trappedSyscall);
         
@@ -1355,10 +1335,10 @@ void print_read_error_info(const relocationEntry entry,
 	    (target_pdf->symTabName()).c_str());
     logLine(errorLine);
     sprintf(errorLine , "              size %i\n",
-	    target_pdf->get_size());
+	    target_pdf->getSize());
     logLine(errorLine);
     sprintf(errorLine , "              addr 0x%x\n",
-	    (unsigned)target_pdf->get_address());
+	    (unsigned)target_pdf->getAddress());
     logLine(errorLine);
 
     sprintf(errorLine, "  base_addr  0x%x\n", (unsigned)base_addr);
@@ -1410,6 +1390,7 @@ instruction generateTrapInstruction() {
 
 
 bool process::getDyninstRTLibName() {
+    startup_printf("dyninstRT_name: %s\n", dyninstRT_name.c_str());
     if (dyninstRT_name.length() == 0) {
         // Get env variable
         if (getenv("DYNINSTAPI_RT_LIB") != NULL) {
@@ -1475,7 +1456,7 @@ bool process::loadDYNINSTlib_libc21() {
 #if false && defined(PTRACEDEBUG)
   debug_ptrace = true;
 #endif
-
+  startup_printf("**** LIBC21 dlopen for RT lib\n");
   // do_dlopen takes a struct argument. This is as follows:
   // const char *libname;
   // int mode;
@@ -1494,12 +1475,7 @@ bool process::loadDYNINSTlib_libc21() {
 
   startup_printf("(%d) writing in dlopen call at addr %p\n", getPid(), (void *)codeBase);
 
-  // savedCodeBuffer[BYTES_TO_SAVE] is declared in process.h
-
-  if (!readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true))
-         fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
-
-  unsigned char scratchCodeBuffer[BYTES_TO_SAVE];
+  codeGen scratchCodeBuffer(BYTES_TO_SAVE);
 
   // we need to make a call to dlopen to open our runtime library
 
@@ -1507,65 +1483,63 @@ bool process::loadDYNINSTlib_libc21() {
   // Variables what we're filling in
   Address dyninstlib_str_addr = 0;
   Address dlopen_call_addr = 0;
-  unsigned code_size = 0;
 
-  bool err;
-  Address dlopen_addr = findInternalAddress(DL_OPEN_FUNC_NAME, false, err);
-  assert(!err);
+  pdvector<int_function *> dlopen_funcs;
+  if (!findFuncsByAll(DL_OPEN_FUNC_NAME, dlopen_funcs))
+      assert(0);
 
-  for (unsigned foo = 0; foo < BYTES_TO_SAVE; foo++)
-    scratchCodeBuffer[foo] = NOP;
-  unsigned char *buf_ptr = scratchCodeBuffer;
+  Address dlopen_addr = dlopen_funcs[0]->getAddress();
 
   assert(dyninstRT_name.length() < BYTES_TO_SAVE);
   // We now fill in the scratch code buffer with appropriate data
   startup_cerr << "Dyninst RT lib name: " << dyninstRT_name << endl;
-  strncpy((char *)scratchCodeBuffer, dyninstRT_name.c_str(), BYTES_TO_SAVE);
-  dyninstlib_str_addr = codeBase;
-  code_size += dyninstRT_name.length()+1;
+
+  dyninstlib_str_addr = codeBase + scratchCodeBuffer.used();
+  scratchCodeBuffer.copy(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
+
   startup_printf("(%d) dyninst str addr at 0x%x\n", getPid(), dyninstlib_str_addr);
 
+  startup_printf("(%d) after copy, %d used\n", getPid(), scratchCodeBuffer.used());
+
   // Now the real work begins...
-  dlopen_call_addr = codeBase + code_size;
-  buf_ptr = &(scratchCodeBuffer[code_size]);
+  dlopen_call_addr = codeBase + scratchCodeBuffer.used();
 
   // Push caller
-  emitPushImm(dlopen_addr, buf_ptr);
-  code_size += 5;
+  emitPushImm(dlopen_addr, scratchCodeBuffer);
+
   // Push hole for result
-  emitPushImm(0, buf_ptr);
-  code_size += 5;
+  emitPushImm(0, scratchCodeBuffer);
+
   // Push mode
-  emitPushImm(DLOPEN_MODE, buf_ptr);
-  code_size += 5;
+  emitPushImm(DLOPEN_MODE, scratchCodeBuffer);
+
   // Push string addr
-  emitPushImm(dyninstlib_str_addr, buf_ptr);
-  code_size += 5;
+  emitPushImm(dyninstlib_str_addr, scratchCodeBuffer);
+
   // Push the addr of the struct: esp
-  *(buf_ptr) = PUSHESP;
-  buf_ptr++;
-  code_size++;
-  
-  Address disp = dlopen_addr - (codeBase+code_size + 5);
-  emitCallRel32(disp, buf_ptr);
-  code_size += 5;
+  emitSimpleInsn(PUSHESP, scratchCodeBuffer);
+
+  startup_printf("(%d): emitting call from 0x%x to 0x%x\n",
+                 getPid(), codeBase + scratchCodeBuffer.used(), dlopen_addr);
+  instruction::generateCall(scratchCodeBuffer, scratchCodeBuffer.used() + codeBase, dlopen_addr);
 
   // And the break point
-  instruction insnTrap;
-  generateBreakPoint(insnTrap);
-  memcpy(buf_ptr, insnTrap.ptr(), 2); // 2 == size of trap
-  dyninstlib_brk_addr = codeBase + code_size;
-  code_size += 2;
+  dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
+  instruction::generateTrap(scratchCodeBuffer);
 
-  // Ah, hell, why not....
-  //writeDataSpace((void *)0x0055bc90, 2, insnTrap.ptr());
-  //writeDataSpace((void *)0x55b320, 2, insnTrap.ptr());
-
+  startup_printf("(%d) dyninst lib string addr at 0x%x\n", getPid(), dyninstlib_str_addr);
+  startup_printf("(%d) dyninst lib call addr at 0x%x\n", getPid(), dlopen_call_addr);
   startup_printf("(%d) break address is at %p\n", getPid(), (void *) dyninstlib_brk_addr);
-  startup_printf("(%d) writing %d bytes\n", getPid(), code_size);
+  startup_printf("(%d) writing %d bytes\n", getPid(), scratchCodeBuffer.used());
 
-  startup_printf("(%d) Writing from %p to %p\n", getPid(), (char *)scratchCodeBuffer, (char *)codeBase);
-  writeDataSpace((void *)(codeBase), code_size, (char *)scratchCodeBuffer);
+  // savedCodeBuffer[BYTES_TO_SAVE] is declared in process.h
+  // We can tighten this up if we record how much we saved
+
+  if (!readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true))
+         fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
+
+  startup_printf("(%d) Writing from %p to %p\n", getPid(), (char *)scratchCodeBuffer.start_ptr(), (char *)codeBase);
+  writeDataSpace((void *)(codeBase), scratchCodeBuffer.used(), scratchCodeBuffer.start_ptr());
 
   // save registers
   dyn_lwp *lwp_to_use = NULL;
@@ -1622,7 +1596,7 @@ bool process::loadDYNINSTlib_libc21() {
 #endif
 
 
-  setBootstrapState(loadingRT);
+  setBootstrapState(loadingRT_bs);
   return true;
 }
 
@@ -1636,6 +1610,8 @@ bool process::loadDYNINSTlib_libc20() {
   // application process's address space
   // [....LIBRARY's NAME...|code for DLOPEN]
 
+  startup_printf("**** LIBC20 dlopen for RT lib\n");
+
   // write to the application at codeOffset. This won't work if we
   // attach to a running process.
 
@@ -1643,8 +1619,8 @@ bool process::loadDYNINSTlib_libc20() {
 
   if(!codeBase)
   {
-      startup_cerr << "Couldn't find a point to insert dlopen call" << endl;
-      return false;
+    startup_cerr << "Couldn't find a point to insert dlopen call" << endl;
+    return false;
   }
 
   startup_printf("(%d) writing in dlopen call at addr %p\n", getPid(), (void *)codeBase);
@@ -1659,14 +1635,18 @@ bool process::loadDYNINSTlib_libc20() {
   if (!readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true))
          fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
 
-  unsigned char scratchCodeBuffer[BYTES_TO_SAVE];
+  codeGen scratchCodeBuffer(BYTES_TO_SAVE);
+  Address dyninstlib_addr = 0;
+  Address dlopencall_addr = 0;
+
+  // Copy the dlopen string
+  dyninstlib_addr = codeBase;
+
+  scratchCodeBuffer.copy(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
+
   pdvector<AstNode*> dlopenAstArgs( 2 );
 
-  unsigned count = 0;
-  Address dyninst_count = 0;
-
   AstNode *dlopenAst;
-
   // deadList and deadListSize are defined in inst-sparc.C - naim
   extern Register deadList[];
   extern int deadListSize;
@@ -1676,7 +1656,7 @@ bool process::loadDYNINSTlib_libc20() {
   // we need to make a call to dlopen to open our runtime library
 
   startup_printf("(%d) using stack arguments to dlopen\n", getPid());
-  dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void*)0);
+  dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void*)dyninstlib_addr);
   // library name. We use a scratch value first. We will update this parameter
   // later, once we determine the offset to find the string - naim
   dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE); // mode
@@ -1684,49 +1664,17 @@ bool process::loadDYNINSTlib_libc20() {
   removeAst(dlopenAstArgs[0]);
   removeAst(dlopenAstArgs[1]);
   
-  dyninst_count = 0;
-  dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
-			  dyninst_count, true, true);
-
-  writeDataSpace((void *)(codeBase+count), dyninst_count, (char *)scratchCodeBuffer);
-  count += dyninst_count;
-
-  instruction insnTrap;
-  generateBreakPoint(insnTrap);
-  writeDataSpace((void *)(codeBase + count), 2, insnTrap.ptr());
-  dyninstlib_brk_addr = codeBase + count;
-  startup_printf("(%d) break address is at %p\n", getPid(), (void *) dyninstlib_brk_addr);
-  count += 2;
-
-  //ccw 29 apr 2002 : SPLIT3
-  // process::getDyninstRTLibName() must be called prior to running
-  // the following code.  Usually from process::loadDyninstLib() in
-  // process.C.
-  Address dyninstlib_addr = (Address) (codeBase + count);
-  writeDataSpace((void *)(codeBase + count), dyninstRT_name.length()+1,
-		 (caddr_t)const_cast<char*>(dyninstRT_name.c_str()));
-  count += dyninstRT_name.length()+1;
-  startup_printf("(%d) library to load: %s\n", getPid(), dyninstRT_name.c_str());
-  // we have now written the name of the library after the trap - naim
-
-  assert(count<=BYTES_TO_SAVE);
-
-  count = 0; // reset count
-  
-  // at this time, we know the offset for the library name, so we fix the
-  // call to dlopen and we just write the code again! This is probably not
-  // very elegant, but it is easy and it works - naim
-  removeAst(dlopenAst); // to avoid leaking memory
-  dlopenAstArgs[0] = new AstNode(AstNode::Constant, (void *)(dyninstlib_addr));
-  dlopenAstArgs[1] = new AstNode(AstNode::Constant, (void*)DLOPEN_MODE);
-  dlopenAst = new AstNode(DL_OPEN_FUNC_NAME,dlopenAstArgs);
-  removeAst(dlopenAstArgs[0]);
-  removeAst(dlopenAstArgs[1]);
-  dyninst_count = 0; // reset count
-  dlopenAst->generateCode(this, dlopenRegSpace, (char *)scratchCodeBuffer,
-			  dyninst_count, true, true);
-  writeDataSpace((void *)(codeBase+count), dyninst_count, (char *)scratchCodeBuffer);
+  dlopencall_addr = codeBase + scratchCodeBuffer.used();
+  dlopenAst->generateCode(this, dlopenRegSpace, scratchCodeBuffer,
+			  true, true);
   removeAst(dlopenAst);
+
+  dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();  
+  instruction::generateTrap(scratchCodeBuffer);
+
+  writeDataSpace((void *)codeBase, 
+                 scratchCodeBuffer.used(),
+                 scratchCodeBuffer.start_ptr());
 
   // save registers
   dyn_lwp *lwp_to_use = NULL;
@@ -1781,7 +1729,7 @@ bool process::loadDYNINSTlib_libc20() {
 #endif
 
 
-  setBootstrapState(loadingRT);
+  setBootstrapState(loadingRT_bs);
   return true;
 }
 

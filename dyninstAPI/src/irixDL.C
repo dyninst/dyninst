@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irixDL.C,v 1.26 2005/01/18 18:34:09 bernat Exp $
+// $Id: irixDL.C,v 1.27 2005/07/29 19:18:50 bernat Exp $
 
 #include <stdio.h>
 #include <sys/ucontext.h>             // gregset_t
@@ -96,7 +96,7 @@ sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b)
     instruction trap_insn;
     genTrap(&trap_insn);
     proc_->writeDataSpace((caddr_t)breakAddr_,
-                         sizeof(instruction),&trap_insn.raw);
+                         instruction::size(),&trap_insn.raw);
     
 }
 

@@ -39,9 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.42 2005/03/07 21:19:48 bernat Exp $
+// $Id: osfDL.C,v 1.43 2005/07/29 19:19:00 bernat Exp $
 
-#include "dyninstAPI/src/sharedobject.h"
+#include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_lwp.h"
@@ -49,7 +49,7 @@
 #include "dyninstAPI/src/arch-alpha.h"
 #include "dyninstAPI/src/inst-alpha.h"
 #include "common/h/debugOstream.h"
-
+#include "dyninstAPI/src/InstrucIter.h"
 
 #include <sys/types.h>
 #include <sys/procfs.h>
@@ -60,8 +60,6 @@
 #include <dlfcn.h>
 #include <poll.h>
 #include <filehdr.h>
-
-void generateBreakPoint(instruction &insn);
 
 #ifdef DEBUG
 static void dumpMap(int proc_fd);
@@ -115,43 +113,27 @@ bool dynamic_linking::initialize() {
 
     // step 1: figure out if this is a dynamic executable. 
 
-    // force load of object
-    (void) proc->getImage()->getObject();
-
     // Use the symbol _call_add_pc_range_table as the test for a 
-    // dynamically linked obj
-    pdstring dyn_str = pdstring("__INIT_00_add_pc_range_table");
-    internalSym dyn_sym;
-    bool found = proc->findInternalSymbol(dyn_str, false, dyn_sym);
-    if (!found) {
-	// static, nothing to do.
-        bpinfo("program is statically linked\n");
-        return false;
-    }
-
-    proc->setDynamicLinking();
-    dynlinked = true;
-
-    return true;
+  // dynamically linked obj
+  pdstring dyn_str = pdstring("__INIT_00_add_pc_range_table");
+  Symbol dyn_sym;
+  if (!proc->getSymbolInfo(dyn_str, dyn_sym)) {
+    // static, nothing to do.
+    bpinfo("program is statically linked\n");
+    return false;
+  }
+  
+  dynlinked = true;
+  
+  return true;
 }
 
 
-// getSharedObjects: This routine is called after attaching to
-// an already running process p, or when a process reaches the breakpoint at
-// the entry point of main().  It gets all shared objects that have been
-// mapped into the process's address space, and returns 0 on error or if 
-// there are no shared objects.
-// The assumptions are that the dynamic linker has already run, and that
-// a /proc file descriptor has been opened for the application process.
-// TODO: 
-// dlclose events should result in a call to removeASharedObject
-pdvector< shared_object *> *dynamic_linking::getSharedObjects() {
+// processLinkMaps: get a list of all loaded objects in fileDescriptor form.
+bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs) {
     
     int proc_fd = proc->getRepresentativeLWP()->get_fd();
-    if(!proc_fd){ return 0;}
-
-    // step 2: find the base address and file descriptor of ld.so.1
-    pdvector<shared_object *> *result = new(pdvector<shared_object *>);
+    if(!proc_fd){ return false;}
 
     // step 2: get the runtime loader table from the process
     Address ldr_base_addr;
@@ -162,129 +144,90 @@ pdvector< shared_object *> *dynamic_linking::getSharedObjects() {
     assert(proc->readDataSpace((const void*)ldr_base_addr,sizeof(ldr_context), &first, true));
     assert(proc->readDataSpace((const void *) first.head,sizeof(ldr_module), &module, true));
     
-    bool first_time = true;
     while (module.next != first.head) {
-        if (module.nregions == 0)
+      if (module.nregions == 0)
 	{ 
-		assert(proc->readDataSpace((const void *) module.next,sizeof(ldr_module), &module,true));
-		continue;
+	  assert(proc->readDataSpace((const void *) module.next,sizeof(ldr_module), &module,true));
+	  continue;
         }
-        pdstring obj_name = pdstring(readDataString(proc, module.name));
-	ldr_region *regions;
-
-	regions = (ldr_region *) malloc(module.nregions * sizeof(ldr_region));
-	assert(proc->readDataSpace((const void *) module.regions, 
-	    sizeof(ldr_region)*module.nregions, regions, true));
-
-	long offset = regions[0].mapaddr - regions[0].vaddr;
+      pdstring obj_name = pdstring(readDataString(proc, module.name));
+      ldr_region *regions;
+      
+      regions = (ldr_region *) malloc(module.nregions * sizeof(ldr_region));
+      assert(proc->readDataSpace((const void *) module.regions, 
+				 sizeof(ldr_region)*module.nregions, regions, true));
+      
+      long offset = regions[0].mapaddr - regions[0].vaddr;
 #ifdef notdef
-	if (offset) {
-	    bperr("*** shared lib at non-default offset **: ");
-	    bperr("    %s\n", obj_name.c_str());
-	    bperr("    offset = %ld\n", offset);
-	} else {
-	    bperr("*** shared lib **: ");
-	    bperr("    %s\n", obj_name.c_str());
-	    bperr("    at = %ld\n", regions[0].mapaddr);
-	}
+      if (offset) {
+	bperr("*** shared lib at non-default offset **: ");
+	bperr("    %s\n", obj_name.c_str());
+	bperr("    offset = %ld\n", offset);
+      } else {
+	bperr("*** shared lib **: ");
+	bperr("    %s\n", obj_name.c_str());
+	bperr("    at = %ld\n", regions[0].mapaddr);
+      }
 #endif
+      
+      for (int i=0; i < module.nregions; i++) {
+	long newoffset = regions[i].mapaddr - regions[i].vaddr;
+	if (newoffset != offset) {
+	  bperr( "shared lib regions have different offsets\n");
+	}
+	regions[i].name = (long unsigned) readDataString(proc,
+							 (void *) regions[i].name);
+	// bperr("  region %d (%s) ", i, regions[i].name);
+	// bperr("addr = %lx, ", regions[i].vaddr);
+	// bperr("mapped at = %lx, ", regions[i].mapaddr);
+	// bperr("size = %x\n", regions[i].size);
+      }
+      descs.push_back(fileDescriptor(obj_name, 
+				     offset,
+				     offset,
+				     true));
 
-	for (int i=0; i < module.nregions; i++) {
-	    long newoffset = regions[i].mapaddr - regions[i].vaddr;
-	    if (newoffset != offset) {
-		bperr( "shared lib regions have different offsets\n");
-	    }
-	    regions[i].name = (long unsigned) readDataString(proc,
-		(void *) regions[i].name);
-	    // bperr("  region %d (%s) ", i, regions[i].name);
-	    // bperr("addr = %lx, ", regions[i].vaddr);
-	    // bperr("mapped at = %lx, ", regions[i].mapaddr);
-	    // bperr("size = %x\n", regions[i].size);
-	}
-	if(obj_name != proc->getImage()->file() &&
-	   obj_name != proc->getImage()->name()) {
-        if((!(proc->wasExeced())) || (proc->wasExeced() && !first_time)){
-            shared_object *newobj = new shared_object(obj_name,
-                                                      offset,false,true,true,0, proc);
-            result->push_back(newobj);
-        }
-	}
-    
-	first_time = false;
-	free(regions);
-	assert(proc->readDataSpace((const void *) module.next,sizeof(ldr_module), &module,true));
+      free(regions);
+      assert(proc->readDataSpace((const void *) module.next,sizeof(ldr_module), &module,true));
     }
-    return result;
+    return true;
 }
 
-bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<shared_object *> **shObjects, u_int &changeType, bool & /* err */)
+
+bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<mapped_object *> &changed_objects,
+						       u_int &changeType)
 {
   Address pc;
   
   struct dyn_saved_regs regs;
-
+  
   pc = proc->getRepresentativeLWP()->getActiveFrame().getPC();
-
+  
   sharedLibHook *hook = reachedLibHook(pc);
   // dumpMap(proc->getProcFileDescriptor());
   if (force_library_load ||
       hook) {
-      int event;
-      if (hook) {
-          event = hook->eventType();
-      }
-      else
-          event = SLH_INSERT_POST;
+    fprintf(stderr, "Reached dlopen trap point, force %d\n", force_library_load);
+    // findChangeToLinkMaps figures out the change type.
 
-      switch(event) {
-
-    case SLH_INSERT_POST:
-    {
-        changeType = SHAREDOBJECT_ADDED;
-        
-        *shObjects = new pdvector<shared_object *>;
-        // get list of current shared objects defined for the process
-        pdvector<shared_object *> *curr_list = proc->sharedObjects();
-        
-        // get the list from the process via /proc
-        pdvector<shared_object *> *new_shared_objs = getSharedObjects();
-        
-        for (unsigned int i=0; i < new_shared_objs->size(); i++) {
-            pdstring new_name = ((*new_shared_objs)[i])->getName();
-            
-            unsigned int j;
-            for (j=0; j < curr_list->size(); j++) {
-                pdstring curr_name = ((*new_shared_objs)[j])->getName();
-                if (curr_name == new_name) {
-                    break;
-                }
-            }
-            if (j == curr_list->size()) {
-                (*shObjects)->push_back(((*new_shared_objs)[i]));
-                (*new_shared_objs)[i] = NULL;
-            }
-        }
+    if (!findChangeToLinkMaps(changeType,
+			      changed_objects)) {
+      fprintf(stderr, "findChange failed\n");
+      return false;
     }
-    break;
-    default:
-        cerr << "Unhandled case in handleIfDueToSharedObject..." << endl;
-        
-        break;
-      }
-
-      if (force_library_load) return true;
-      else {
-          // delete new_shared_objs;
-          // Get return address
-          bool status = proc->getRepresentativeLWP()->getRegisters(&regs);
-          
-          // We overwrote a return instruction to put the trap in.
-          // We need to patch that up with a return to the caller
-          
-          Address retAddr = (regs.theIntRegs).regs[REG_RA];
-          proc->getRepresentativeLWP()->changePC(retAddr, NULL);
-          return true;
-      }
+    
+    if (force_library_load) return true;
+    else {
+      // Get return address
+      proc->getRepresentativeLWP()->getRegisters(&regs);
+      
+      // We overwrote a return instruction to put the trap in.
+      // We need to patch that up with a return to the caller
+      
+      Address retAddr = (regs.theIntRegs).regs[REG_RA];
+      proc->getRepresentativeLWP()->changePC(retAddr, NULL);
+      return true;
+    }
   }
   return false;
 }
@@ -296,29 +239,33 @@ bool dynamic_linking::installTracing()
 {
     Address ret_addr = 0;
     instruction trapInsn;
-    instruction tempSpace[1024];
-    
+
     // Replace the return instruction with a trap. We'll
     // patch up the return mutator-side, just like Solaris.
 
-    // XXX - assume dlopen is less than 1K instructions long
-    bool err;
-    Address openAddr = proc->findInternalAddress("dlopen", false, err);
-    assert(!err);
-    proc->readDataSpace((void *)openAddr, INSN_SIZE*1024, tempSpace, true);
-    /* Now look for the return address */
-    for (int i=0; i < 1024; i++) {
-        if (isReturn(tempSpace[i])) {
-            ret_addr = openAddr + (i*INSN_SIZE);
-            break;
-        }
+    // There's actually two returns - handled now.
+
+    pdvector<int_function *> dlopen_funcs;
+    if (!proc->findFuncsByAll("dlopen", dlopen_funcs))
+      return false;
+    if (dlopen_funcs.size() > 1) {
+      fprintf(stderr, "Warning, found multiple copies of dlopen, using the first\n");
     }
-    assert(ret_addr);
+    Address openAddr = dlopen_funcs[0]->getAddress();
 
-    sharedLibHook *sharedHook = new sharedLibHook(proc, SLH_INSERT_POST,
-                                                  ret_addr);
-
-    sharedLibHooks_.push_back(sharedHook);
+    InstrucIter dlopen_iter(dlopen_funcs[0]);
+    while (dlopen_iter.hasMore()) {
+      if (dlopen_iter.getInstruction().isReturn()) {
+	ret_addr = *dlopen_iter;
+	sharedLibHook *sharedHook = new sharedLibHook(proc, SLH_INSERT_POST,
+						      ret_addr);
+	sharedLibHooks_.push_back(sharedHook);
+      }
+      dlopen_iter++;
+    }
+    
+    if (sharedLibHooks_.size() == 0)
+      return false;
     return true;
 }
 
@@ -329,15 +276,16 @@ sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b)
     proc_->readDataSpace((void *)breakAddr_, SLH_SAVE_BUFFER_SIZE,
                          (void *)saved_, true);
 
-    generateBreakPoint((instruction &) trapInsn);
+    codeGen gen(instruction::size());
+    instruction::generateTrap(gen);
 
-    proc_->writeDataSpace((caddr_t)breakAddr_, sizeof(instruction),
-                         (caddr_t) &trapInsn);
+    proc_->writeDataSpace((caddr_t)breakAddr_, gen.used(),
+                          gen.start_ptr());
 }
 
 
 sharedLibHook::~sharedLibHook() {
-    proc_->writeDataSpace((void *)breakAddr_, sizeof(instruction), saved_);
+    proc_->writeDataSpace((void *)breakAddr_, instruction::size(), saved_);
 }
 
 #ifdef DEBUG

@@ -43,9 +43,8 @@
 #define nt_dl_hdr
 
 #include "common/h/Vector.h"
-#include "dyninstAPI/src/sharedobject.h"
 class process;
-
+class mapped_object;
 //
 // All platform specific dynamic linking info. is in this class
 // each version of this class must have the following funcitons:
@@ -61,17 +60,17 @@ public:
     // getSharedObjects: This routine is called before main() to get and
     // process all shared objects that have been mapped into the process's
     // address space
-    pdvector< shared_object *> *getSharedObjects(process *){ return &sharedObjects;}
+    pdvector< mapped_object *> *getSharedObjects(process *){ return &sharedObjects;}
 
     // handleIfDueToSharedObjectMapping: returns true if the trap was caused
     // by a change to the link maps  
-    bool handleIfDueToSharedObjectMapping(process *, pdvector<shared_object *> **,
+    bool handleIfDueToSharedObjectMapping(process *, pdvector<mapped_object *> **,
 			       u_int &, bool &){ return false;}
 
     // returns true if the executable is dynamically linked 
     bool isDynamic(){ return(dynlinked);}
 
-   pdvector<shared_object *> sharedObjects;
+   pdvector<mapped_object *> sharedObjects;
 
 private:
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.76 2005/03/17 13:45:30 bernat Exp $
+// $Id: osf.C,v 1.77 2005/07/29 19:18:59 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -56,9 +56,8 @@
 #include <fcntl.h>
 #include <ldfcn.h>
 #include "showerror.h"
-#ifndef BPATCH_LIBRARY
-#include "main.h"
-#endif 
+#include "instPoint.h"
+
 #include <sys/procfs.h>
 #include <sys/poll.h>
 #include <sys/fault.h>
@@ -77,58 +76,9 @@
 #define RA_REGNUM 26
 extern bool exists_executable(const pdstring &fullpathname);
 
-extern void generateBreakPoint(instruction &);
-
 int getNumberOfCPUs()
 {
   return(1);
-}
-
-
-bool rpcMgr::emitInferiorRPCheader(void *insnPtr, Address &baseBytes) {
-
-  extern void emitSaveConservative(process *, char *, Address &baseBytes);
-
-  emitSaveConservative(proc_, (char *) insnPtr, baseBytes);
-
-  return true;
-}
-
-bool rpcMgr::emitInferiorRPCtrailer(void *insnPtr, Address &baseBytes,
-				     unsigned &breakOffset,
-				     bool stopForResult,
-				     unsigned &stopForResultOffset,
-				     unsigned &justAfter_stopForResultOffset) {
-  instruction *insn = (instruction *)insnPtr;
-  Address baseInstruc = baseBytes / sizeof(instruction);
-
-
-  extern void generate_nop(instruction*);
-  extern void emitRestoreConservative(process *, char *, Address &baseBytes);
-
-  emitRestoreConservative(proc_, (char *) insnPtr, baseBytes);
-
-  if (stopForResult) {
-    generateBreakPoint(insn[baseInstruc]);
-    stopForResultOffset = baseInstruc * sizeof(instruction);
-    baseInstruc++;
-
-    justAfter_stopForResultOffset = baseInstruc * sizeof(instruction);
-  }
-  
-  // Trap instruction (breakpoint):
-  generateBreakPoint(insn[baseInstruc]);
-  breakOffset = baseInstruc * sizeof(instruction);
-  baseInstruc++;
-
-  // And just to make sure that we don't continue, we put an illegal
-  // insn here:
-  extern void generateIllegalInsn(instruction &);
-  generateIllegalInsn(insn[baseInstruc++]);
-
-  baseBytes = baseInstruc * sizeof(instruction); // convert back
-
-  return true;
 }
 
 Address dyn_lwp::readRegister(Register /*reg*/)
@@ -338,7 +288,7 @@ int process::waitforRPC(int *status, bool /* block */)
 #endif
 #endif
 
-procSyscall_t decodeSyscall(process *p, procSignalWhat_t syscall)
+procSyscall_t decodeSyscall(process * /*p*/, procSignalWhat_t syscall)
 {
     if (syscall == SYS_fork ||
         syscall == SYS_vfork)
@@ -351,7 +301,7 @@ procSyscall_t decodeSyscall(process *p, procSignalWhat_t syscall)
     return procSysOther;
 }
 
-int decodeProcStatus(process *proc,
+int decodeProcStatus(process * /*proc*/,
                      procProcStatus_t status,
                      procSignalWhy_t &why,
                      procSignalWhat_t &what,
@@ -408,7 +358,7 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
     static int selected_fds = 0; 
     // The current FD we're processing.
     static int curr = 0;
-    prstatus_t stat;
+    //prstatus_t stat;
 
     if (selected_fds == 0) {
         for (unsigned u = 0; u < processVec.size(); u++) {
@@ -548,7 +498,7 @@ Frame Frame::getCallerFrame()
   Address newPC=0;
   Address newFP=0;
   Address newSP=0;
-  Address newpcAddr=0;
+  //Address newpcAddr=0;
 
   if (uppermost_) {
       int proc_fd = getProc()->getRepresentativeLWP()->get_fd();
@@ -556,8 +506,8 @@ Frame Frame::getCallerFrame()
 	newPC = theIntRegs.regs[PC_REGNUM];  
 	if (newPC) {
           currFunc = getProc()->findFuncByAddr(newPC);
-          if (currFunc && currFunc->frame_size) {
-	    newFP = theIntRegs.regs[SP_REGNUM] + currFunc->frame_size;  
+          if (currFunc && currFunc->frame_size()) {
+	    newFP = theIntRegs.regs[SP_REGNUM] + currFunc->frame_size();
 	    newSP = theIntRegs.regs[SP_REGNUM];
 	    //bperr(" %s fp=%lx\n",currFunc->prettyName().c_str(), newFP);
           } else {
@@ -579,9 +529,9 @@ Frame Frame::getCallerFrame()
           newPC = values[0];
           
           currFunc = getProc()->findFuncByAddr(newPC);
-          if (currFunc && currFunc->frame_size) {
+          if (currFunc && currFunc->frame_size()) {
               newSP = fp_;		/* current stack pointer is old fp */
-              newFP = fp_ + currFunc->frame_size;  
+              newFP = fp_ + currFunc->frame_size();  
               //bperr(" %s fp=%lx\n",currFunc->prettyName().c_str(), newFP);
           } else {
               sprintf(errorLine, "%s[%d]: pc %lx, not in a known function\n", 
@@ -682,11 +632,10 @@ bool process::dumpImage()
     struct stat statBuf;
     SCNHDR sectHdr;
     LDFILE      *ldptr = NULL;
-    image       *im;
+    //image       *im;
     long text_size , text_start,file_ofs;
 
-    im = getImage();
-    pdstring origFile = im->file();
+    pdstring origFile = getAOut()->fileName();
 
     ifd = open(origFile.c_str(), O_RDONLY, 0);
     if (ifd < 0) {
@@ -719,7 +668,7 @@ bool process::dumpImage()
     /* read header and section headers */
     /* Uses ldopen to parse the section headers */
     /* try */ 
-    if (!(ldptr = ldopen((char *) origFile.c_str(), ldptr))) {
+    if (!(ldptr = ldopen((char *)origFile.c_str(), ldptr))) {
        perror("Error in Open");
        exit(-1);
      }
@@ -870,12 +819,14 @@ rawTime64 dyn_lwp::getRawCpuTime_sw()
 }
 #endif
 
-fileDescriptor *getExecFileDescriptor(pdstring filename,
-				     int &,
-				     bool)
+bool process::getExecFileDescriptor(pdstring filename,
+                                    int /*pid*/,
+                                    bool /*whocares*/,
+                                    int &,
+                                    fileDescriptor &desc)
 {
-  fileDescriptor *desc = new fileDescriptor(filename);
-  return desc;
+    desc = fileDescriptor(filename, 0, 0, false);
+    return true;
 }
 
 bool dyn_lwp::realLWP_attach_() {
@@ -893,7 +844,7 @@ bool dyn_lwp::representativeLWP_attach_() {
    char procName[128];    
    sprintf(procName, "/proc/%d", (int)getPid());
    fd_ = P_open(procName, O_RDWR, 0);
-   if (fd_ == (unsigned) -1) {
+   if (fd_ == -1) {
       perror("Error opening process file descriptor");
       return false;
    }
@@ -918,7 +869,7 @@ void loadNativeDemangler() {}
 
 
 
-bool process::trapDueToDyninstLib()
+bool process::trapDueToDyninstLib(dyn_lwp *)
 {
   Address pc;
   prstatus_t stat;
@@ -945,13 +896,32 @@ bool process::trapDueToDyninstLib()
   return ret;
 }
 
-bool process::loadDYNINSTlibCleanup()
+bool process::loadDYNINSTlibCleanup(dyn_lwp *)
 {
     dyninstlib_brk_addr = 0x0;
     
   // restore code and registers
-  bool err;
-  Address code = findInternalAddress("_start", false, err);
+    //bool err;
+
+  int_function *_startfn;
+
+    pdvector<int_function *> funcs;
+    bool res = findFuncsByMangled("_start", funcs);
+    if (!res) {
+        // we can't instrument main - naim
+      if (!findFuncsByMangled("__start", funcs)) {
+        showErrorCallback(108,"process::loadDYNINSTlibCleanup: _start() unfound");
+        return false;
+      }
+    }
+    if( funcs.size() > 1 ) {
+      cerr << __FILE__ << __LINE__ 
+             << ": found more than one main! using the first" << endl;
+    }
+    _startfn = funcs[0];
+
+    Address code = _startfn->getAddress();
+
   assert(code);
   writeDataSpace((void *)code, sizeof(savedCodeBuffer), savedCodeBuffer);
 
@@ -1040,56 +1010,71 @@ bool process::insertTrapAtEntryPointOfMain()
 
   // save trap address: start of main()
   // TODO: use start of "_main" if exists?
-  bool err;
+  //bool err;
   int countdown = 10;
 
-  main_brk_addr = findInternalAddress("main", false, err);
-  if (!main_brk_addr) {
+    int_function *f_main = NULL;
+    pdvector<int_function *> funcs;
+    bool res = findFuncsByPretty("main", funcs);
+    if (!res) {
+        // we can't instrument main - naim
+        showErrorCallback(108,"main() uninstrumentable");
+        return false;
+    }
+
+    if( funcs.size() > 1 ) {
+        cerr << __FILE__ << __LINE__ 
+             << ": found more than one main! using the first" << endl;
+    }
+    f_main = funcs[0];
+    assert(f_main);
+
+    main_brk_addr = f_main->getAddress();
+    if (!main_brk_addr) {
       // failed to locate main
       showErrorCallback(108,"Failed to locate main().\n");
       return false;
-  }
-  assert(main_brk_addr);
-
-  // dumpMap(proc_fd);
-
-  while (!osfTestProc(getRepresentativeLWP()->get_fd(), (void *)main_brk_addr))
-  {
-      // POSSIBLE BUG:  We expect the first SIGTRAP to occur after a
-      // successful exec call, but we seem to get an early signal.
-      // At the time of the first SIGTRAP, attempts to read or write the
-      // child data space fail.
-      //
-      // If the child is instructed to continue, it will eventually stop
-      // in a useable state (before the first instruction of main).  However,
-      // a SIGTRAP will *NOT* be generated on the second stop.  PROCFS also
-      // stops in a strange state (prstatus_t.pr_info.si_code == 0).
-      //
-      // Looks like this code was in place before.  I don't know why it was
-      // removed. (I renamed waitProc() to osfWaitProc() to avoid confusion
-      // with process' waitProcs() class method)
-      //
-      // Ray Chen 03/22/02
-      if (--countdown < 0) {
-         // looped too many times.
-         showErrorCallback(108, "Could not access mutatee (even after 10 tries).\n");
-         return false;
+    }
+    assert(main_brk_addr);
+    
+    // dumpMap(proc_fd);
+    
+    while (!osfTestProc(getRepresentativeLWP()->get_fd(), (void *)main_brk_addr))
+      {
+	// POSSIBLE BUG:  We expect the first SIGTRAP to occur after a
+	// successful exec call, but we seem to get an early signal.
+	// At the time of the first SIGTRAP, attempts to read or write the
+	// child data space fail.
+	//
+	// If the child is instructed to continue, it will eventually stop
+	// in a useable state (before the first instruction of main).  However,
+	// a SIGTRAP will *NOT* be generated on the second stop.  PROCFS also
+	// stops in a strange state (prstatus_t.pr_info.si_code == 0).
+	//
+	// Looks like this code was in place before.  I don't know why it was
+	// removed. (I renamed waitProc() to osfWaitProc() to avoid confusion
+	// with process' waitProcs() class method)
+	//
+	// Ray Chen 03/22/02
+	if (--countdown < 0) {
+	  // looped too many times.
+	  showErrorCallback(108, "Could not access mutatee (even after 10 tries).\n");
+	  return false;
+	}
+	
+	getRepresentativeLWP()->continueLWP_(dyn_lwp::NoSignal);
+	osfWaitProc(getRepresentativeLWP()->get_fd());
       }
-      
-      getRepresentativeLWP()->continueLWP_(NoSignal);
-      osfWaitProc(getRepresentativeLWP()->get_fd());
-  }
-  readDataSpace((void *)main_brk_addr, INSN_SIZE, savedCodeBuffer, true);
+    readDataSpace((void *)main_brk_addr, instruction::size(), savedCodeBuffer, true);
 
-  // insert trap instruction
-  instruction trapInsn;
-  generateBreakPoint(trapInsn);
-
-  writeDataSpace((void *)main_brk_addr, INSN_SIZE, &trapInsn);
-  return true;
+    codeGen gen(instruction::size());
+    instruction::generateTrap(gen);
+    
+    writeDataSpace((void *)main_brk_addr, gen.used(), gen.start_ptr());
+    return true;
 }
 
-bool process::trapAtEntryPointOfMain(Address)
+bool process::trapAtEntryPointOfMain(dyn_lwp *, Address)
 {
   Address pc;
 
@@ -1105,11 +1090,11 @@ bool process::trapAtEntryPointOfMain(Address)
   return ret;
 }
 
-bool process::handleTrapAtEntryPointOfMain()
+bool process::handleTrapAtEntryPointOfMain(dyn_lwp *)
 {
-    // restore original instruction to entry point of main()
-    writeDataSpace((void *)main_brk_addr, INSN_SIZE, savedCodeBuffer);
-
+  // restore original instruction to entry point of main()
+  writeDataSpace((void *)main_brk_addr, instruction::size(), savedCodeBuffer);
+  
     // set PC to be value at the address.
    gregset_t theIntRegs;
    dyn_lwp *replwp = getRepresentativeLWP();
@@ -1175,25 +1160,37 @@ bool process::loadDYNINSTlib()
     //bperr( ">>> process::loadDYNINSTlib()\n");
 
   // use "_start" as scratch buffer to invoke dlopen() on DYNINST
-  bool err;
+  //bool err;
   extern bool skipSaveCalls;
-  Address baseAddr = findInternalAddress("_start", false, err);
+  
+  int_function *_startfn;
+  
+  pdvector<int_function *> funcs;
+  if (!findFuncsByMangled("_start", funcs) &&
+      !findFuncsByMangled("__start", funcs)) {
+    // we can't instrument main - naim
+    showErrorCallback(108,"process::loadDYNINSTlib: _start() unfound");
+    return false;
+  }
+  
+  if( funcs.size() > 1 ) {
+    cerr << __FILE__ << __LINE__ 
+	 << ": found more than one _start! using the first" << endl;
+  }
+  _startfn = funcs[0];
+  
+  Address baseAddr = _startfn->getAddress();
   assert(baseAddr);
-  char buf_[BYTES_TO_SAVE];
-  char *buf = buf_;
-  instruction illegalInsn;
-  Address bufSize = 0;
 
-  memset(buf, '\0', BYTES_TO_SAVE);
+  fprintf(stderr, "baseAddress for dlopen: %llx\n", baseAddr);
+
+  codeGen gen(BYTES_TO_SAVE);
 
   // step 0: illegal instruction (code)
-  extern void generateIllegalInsn(instruction &);
-  generateIllegalInsn((instruction &) illegalInsn);
-  bcopy((char *) &illegalInsn, buf, INSN_SIZE);
-  bufSize += INSN_SIZE;
-
+  instruction::generateIllegal(gen);
+  
   // step 1: DYNINST library string (data)
-  Address libAddr = baseAddr + bufSize;
+  Address libAddr = baseAddr + gen.used();
 #ifdef BPATCH_LIBRARY
   char *libVar = "DYNINSTAPI_RT_LIB";
 #else
@@ -1208,17 +1205,14 @@ bool process::loadDYNINSTlib()
   }
 
   int libSize = strlen(libName) + 1;
-  strcpy((char *) &buf[bufSize], libName);
-
-  int npad = INSN_SIZE - (libSize % INSN_SIZE);
-  bufSize += (libSize + npad);
+  gen.copy(libName, libSize);
 
   // step 2: inferior dlopen() call (code)
-  Address codeAddr = baseAddr + bufSize;
+  Address dlopenAddr = gen.currAddr(baseAddr);
 
   extern registerSpace *createRegisterSpace();
   registerSpace *regs = createRegisterSpace();
-
+  
   pdvector<AstNode*> args(2);
   AstNode *call;
   pdstring callee = "dlopen";
@@ -1228,46 +1222,106 @@ bool process::loadDYNINSTlib()
   call = new AstNode(callee, args);
   removeAst(args[0]);
   removeAst(args[1]);
-
+  
   // inferior dlopen(): generate code
   regs->resetSpace();
-
+  
   skipSaveCalls = true;		// don't save register, we've done it!
-  call->generateCode(this, regs, buf, bufSize, true, true);
+  call->generateCode(this, regs, gen, true, true);
   skipSaveCalls = false;
 
   removeAst(call);
 
+  Address trapAddr = gen.currAddr(baseAddr);
+  instruction::generateTrap(gen);
+  
   // save registers and "_start" code
   readDataSpace((void *)baseAddr, BYTES_TO_SAVE, (void *) savedCodeBuffer,true);
   savedRegs = new dyn_saved_regs;
   bool status = getRepresentativeLWP()->getRegisters(savedRegs);
   assert(status == true);
-
-  // step 3: trap instruction (code)
-  Address trapAddr = baseAddr + bufSize;
-  instruction bkpt;
-  generateBreakPoint((instruction &) bkpt);
-  bcopy((char *) &bkpt, &buf[bufSize], INSN_SIZE);
-  bufSize += INSN_SIZE;
-
-  // step 4: write inferior dlopen code and set PC
-  assert(bufSize <= BYTES_TO_SAVE);
+  
+  
   // bperr( "writing %ld bytes to <0x%08lx:_start>, $pc = 0x%lx\n",
-      // bufSize, baseAddr, codeAddr);
+  // bufSize, baseAddr, codeAddr);
   // bperr( ">>> loadDYNINSTlib <0x%lx(_start): %ld insns>\n",
-      // baseAddr, bufSize/INSN_SIZE);
-  writeDataSpace((void *)baseAddr, bufSize, (void *)buf);
-  bool ret = getRepresentativeLWP()->changePC(codeAddr, savedRegs);
+  // baseAddr, bufSize/instruction::size());
+
+  writeDataSpace((void *)baseAddr, gen.used(), gen.start_ptr());
+  bool ret = getRepresentativeLWP()->changePC(dlopenAddr, savedRegs);
   assert(ret);
 
   dyninstlib_brk_addr = trapAddr;
-  setBootstrapState(loadingRT);
+  setBootstrapState(loadingRT_bs);
   
   return true;
 }
 
-void process::determineLWPs(pdvector<unsigned> &all_lwps)
+void process::determineLWPs(pdvector<unsigned> & /*all_lwps*/)
 {
   return;
 }
+
+// findCallee: returns false unless callee is already set in instPoint
+// dynamic linking not implemented on this platform
+int_function *instPoint::findCallee() {
+  if (callee_) {
+    return callee_;
+  }
+  
+  if (ipType_ != callSite) {
+    return NULL;
+  }
+  
+  if (isDynamicCall()) { 
+    return NULL;
+  }
+  
+  // Check if we parsed an intra-module static call
+  assert(img_p_);
+  image_func *icallee = img_p_->getCallee();
+  if (icallee) {
+    // Now we have to look up our specialized version
+    // Can't do module lookup because of DEFAULT_MODULE...
+    const pdvector<int_function *> *possibles = func()->obj()->findFuncVectorByMangled(icallee->symTabName());
+    if (!possibles) {
+      return NULL;
+    }
+    for (unsigned i = 0; i < possibles->size(); i++) {
+      if ((*possibles)[i]->match(icallee)) {
+	callee_ = (*possibles)[i];
+	return callee_;
+      }
+    }
+    // No match... very odd
+    assert(0);
+    return NULL;
+  }
+  
+#if 0
+  // Not sure what this was supposed to do... instr.getCallee() would
+  // always be false if callIndirect is true.
+
+  // Ahh... there's an AIX-similar "load and jump" combo. We determined this
+  // via parsing in an unsafe way; this should be updated if this causes
+  // a problem.
+
+  if((target = instr.getCallee())) {
+    return true;
+  }
+  if (instr.callIndirect && instr.getCallee()) {
+    // callee contains the address in the mutatee
+    // read the contents of the address
+    Address dest;
+    if (!readDataSpace((caddr_t)(instr.getCallee()), sizeof(Address),
+		       (caddr_t)&(dest),true)) {
+      return false;
+    }
+    // now lookup the funcation
+    target = findFuncByAddr(dest);
+    if (target) return true;
+  }
+#endif
+  return NULL;
+}
+

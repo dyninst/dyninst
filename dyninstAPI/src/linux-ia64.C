@@ -57,28 +57,6 @@
 #include <asm/ptrace_offsets.h>
 #include <dlfcn.h>
 
-/* For proces::instrSideEffects() */
-#include "instPoint.h"
-#include "trampTemplate.h"
-
-
-/* Required by linux.C */
-void generateBreakPoint( instruction & /* insn */ ) {
-	assert( 0 );
-	} /* end generateBreakPoint() */
-
-/* Require by insertTrapAtEntryPointOfMain() */
-IA64_bundle generateTrapBundle() {
-	/* Note: we're using 0x80000 as our break.m immediate,
-	   which is defined to be a debugger breakpoint.  If this
-	   gets flaky, anything up to 0x0FFFFF will generate a SIGTRAP. */
-
-	/* Actually, what we're going to do is generate
-	   a SIGILL, (0x40000) because SIGTRAP does silly things. */
-
-	return IA64_bundle( MIIstop, TRAP_M, NOP_I, NOP_I );
-	} /* end generateTrapBundle() */
-
 /* dyn_lwp::getRegisters()
  * 
  * Entire user state can be described by struct pt_regs
@@ -115,29 +93,6 @@ bool dyn_lwp::changePC( Address loc, dyn_saved_regs * regs ) {
 	return ::changePC( proc_->getPid(), loc );
 	} /* end changePC() */
 
-bool process::instrSideEffect( Frame & frame, instPoint * inst ) {
-	int_function * instFunc = inst->pointFunc();
-	if( ! instFunc ) {
-		return false;
-		}
-
-	codeRange * range = frame.getRange();
-	if( range->is_function() != instFunc ) {
-		return true;
-		}
-
-	if( inst->getPointType() == callSite ) {
-		/* Go to the next bundle and mask off the slot number, if any. */
-		Address returnFromCall = ( ((inst->absPointAddr( this ) + 0x10) >> 2) << 2 );
-
-		// /* DEBUG */ fprintf( stderr, "%s[%d]: returnFromCall = 0x%lx, frame.getPC() = 0x%lx\n", __FILE__, __LINE__, returnFromCall, frame.getPC() );
-		if( frame.getPC() == returnFromCall ) {
-			frame.setPC( baseMap[inst]->baseAddr + baseMap[inst]->skipPostInsOffset );
-			}
-		}
-		
-	return true;
-	} /* end process::instrSideEffect() */
 
 void printRegs( void * /* save */ ) {
 	assert( 0 );
@@ -215,54 +170,46 @@ Address getPC( int pid ) {
 	return pc;
 	} /* end getPC() */
 
-bool process::handleTrapAtEntryPointOfMain() {
-	/* Try to find main(). */
-	int_function * f_main = NULL;
-
-	pdvector<int_function *> * pdfv = NULL;
-	if( NULL == ( pdfv = symbols->findFuncVectorByPretty("main") ) || pdfv->size() == 0 ) {
-		return false;
-  		}
-  
-	if (pdfv->size() > 1) {
-		cerr << __FILE__ << __LINE__ << ": found more than one main! using the first" << endl;
-		}
-	
-	f_main = (* pdfv)[0];
-	assert( f_main );
-
-	/* Replace the original code. */
-	Address addr = f_main->get_address();	
-	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( addr, this );
-	iAddr.writeMyBundleFrom( savedCodeBuffer );
-
-	return true;
+bool process::handleTrapAtEntryPointOfMain(dyn_lwp * /*dontcare*/) {
+    InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( main_brk_addr, this );
+    iAddr.writeMyBundleFrom( savedCodeBuffer );
+    
+    main_brk_addr = 0;
+    return true;
 } /* end handleTrapAtEntryPointOfMain() */
 
 bool process::insertTrapAtEntryPointOfMain() {
-	/* Try to find main(). */
-	int_function * f_main = NULL;
+    int_function *f_main = 0;
+    pdvector<int_function *> funcs;
+    
+    //first check a.out for function symbol   
+    bool res = findFuncsByPretty("main", funcs);
+    if (!res)
+    {
+        logLine( "a.out has no main function. checking for PLT entry\n" );
+        //we have not found a "main" check if we have a plt entry
+	res = findFuncsByPretty( "DYNINST_pltMain", funcs );
+ 
+	if (!res) {
+            logLine( "no PLT entry for main found\n" );
+            return false;
+	  }       
+    }
+    
+    if( funcs.size() > 1 ) {
+        cerr << __FILE__ << __LINE__ 
+             << ": found more than one main! using the first" << endl;
+    }
+    f_main = funcs[0];
+    assert(f_main);
+    Address addr = f_main->getAddress();
 
-	pdvector<int_function *> * pdfv = NULL;
-	if( NULL == ( pdfv = symbols->findFuncVectorByPretty("main") ) || pdfv->size() == 0 ) {
-		return false;
-  		}
-  
-	if (pdfv->size() > 1) {
-		cerr << __FILE__ << __LINE__ << ": found more than one main! using the first" << endl;
-		}
-	
-	f_main = (* pdfv)[0];
-	assert( f_main );
-	
-	/* Save the original code and replace it with a trap bundle. */
-	Address addr = f_main->get_address();
-	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( addr, this );
-	iAddr.saveMyBundleTo( savedCodeBuffer );
-	iAddr.replaceBundleWith( generateTrapBundle() );
-	
-	main_brk_addr = addr;
-	return true;
+    InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( addr, this );
+    iAddr.saveMyBundleTo( savedCodeBuffer );
+    iAddr.replaceBundleWith( generateTrapBundle() );
+    
+    main_brk_addr = addr;
+    return true;
 } /* end insertTrapAtEntryPointOfMain() */
 
 #define BIT_8_3		0x1F8
@@ -342,11 +289,13 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
 		// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(pid = %d): did not recognize pc 0x%lx; may be (in) vsyscall page.\n", pid, ip );
 		}
 	else {
-		if( range->is_basetramp() != NULL || range->is_minitramp() != NULL || range->is_multitramp() != NULL ) {
+		if( range->is_minitramp() != NULL || 
+                    range->is_multitramp() != NULL ) {
 			// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(pid = %d): pc 0x%lx is in base or mini or multi tramp.\n", pid, ip );
 			isTrampoline = true;
 			}	
-		if( range->is_function() != NULL && range->is_function()->symTabName() == "__libc_start_main" ) {
+		if( range->is_function() != NULL && 
+                    range->is_function()->symTabName() == "__libc_start_main" ) {
 			isUppermost = true;
 			}
 		}
@@ -381,8 +330,8 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
 	else {
 		/* Some other error occured. */
 		fprintf( stderr, "unw_step() failed: %d (pc = 0x%lx)\n", status, ip );
-		assert( 0 );
-		}
+                isUppermost = true;
+        }
 
 	/* FIXME: multithread implementation. */
 	dyn_thread * dynThread = NULL;
@@ -492,51 +441,41 @@ bool process::loadDYNINSTlib() {
 	   This is effectively an inferior RPC with the caveat that we're
 	   overwriting code instead of allocating memory from the RT heap. 
 	   (So 'hijack' doesn't mean quite what you might think.) */
-	Address entry = findFunctionToHijack(this);	// We can avoid using InsnAddr because we know 
-															// that function entry points are aligned.
-	if( !entry ) { return false; }
+	Address codeBase = findFunctionToHijack(this);	
+
+	if( !codeBase ) { return false; }
         
 	/* FIXME: Check the glibc version.  If it's not appropriate, die. */
 
 	/* Fetch the name of the run-time library. */
 	const char DyninstEnvVar[]="DYNINSTAPI_RT_LIB";
-
+        
 	if( ! dyninstRT_name.length() ) { // we didn't get anything on the command line
-		if (getenv(DyninstEnvVar) != NULL) {
-			dyninstRT_name = getenv(DyninstEnvVar);
-			} else {
-			pdstring msg = pdstring( "Environment variable " + pdstring( DyninstEnvVar )
-					+ " has not been defined for process " ) + pdstring( pid );
-			showErrorCallback(101, msg);
-			return false;
-			} /* end if enviromental variable not found */
-		} /* end enviromental variable extraction */
-
-	/* Locate the entry point to _dl_open(). */
-	bool err; Address dlopenAddr = findInternalAddress( "_dl_open", true, err );
-	assert( dlopenAddr );
-
-	/* Save the function we're going to hijack. */
-	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( entry, this );
-	iAddr.saveBundlesTo( savedCodeBuffer, sizeof( savedCodeBuffer ) / 16 );
-
+            if (getenv(DyninstEnvVar) != NULL) {
+                dyninstRT_name = getenv(DyninstEnvVar);
+            } else {
+                pdstring msg = pdstring( "Environment variable " + pdstring( DyninstEnvVar )
+                                         + " has not been defined for process " ) + pdstring( pid );
+                showErrorCallback(101, msg);
+                return false;
+            } /* end if enviromental variable not found */
+        } /* end enviromental variable extraction */
+        
 	/* Save the current PC. */
 	savedPC = getPC( pid );	
-
+        
 	/* _dl_open() takes three arguments: a pointer to the library name,
 	   the DLOPEN_MODE, and the return address of the current frame
 	   (that is, the location of the SIGILL-generating bundle we'll use
 	   to handleIfDueToDyninstLib()).  We construct the first here. */
-	   
+        
 	/* Write the string to entry, and then move the PC to the next bundle. */
-	iAddr.writeStringAtOffset( 0, dyninstRT_name.c_str(), dyninstRT_name.length() );
-	Address firstInstruction = entry + dyninstRT_name.length();
-	firstInstruction -= (firstInstruction % 16);
-	firstInstruction += 0x10;
-	Address stringAddress = entry;
-	
-	/* Now that we know where the code will start, move the PC there. */
-	changePC( pid, firstInstruction );
+        codeGen gen(BYTES_TO_SAVE);
+        
+        Address dyninstlib_addr = gen.used() + codeBase;
+        gen.copy(dyninstRT_name.c_str(), dyninstRT_name.length()+1);
+        
+        Address dlopencall_addr = gen.used() + codeBase;
 	
 	/* At this point, we use the generic iRPC headers and trailers
 	   around the call to _dl_open.  (Note that pre-1.35 versions
@@ -544,48 +483,45 @@ bool process::loadDYNINSTlib() {
 	   strapping a new port.  The current complexity is to handle
 	   the attach() case, where we don't know if execution was stopped
 	   at the entry the entry point to a function. */
-	
-	Address offset = 0;
-	ia64_bundle_t callBundles[ CODE_BUFFER_SIZE ];
-	Address maxOffset = (CODE_BUFFER_SIZE - 1) * sizeof( ia64_bundle_t );
-	bool ok = theRpcMgr->emitInferiorRPCheader( callBundles, offset );
+
+	bool ok = theRpcMgr->emitInferiorRPCheader(gen);
 	assert( ok );
-	assert( offset < maxOffset );
 	
 	/* Generate the call to _dl_open with a large dummy constant as the
 	   the third argument to make sure we generate the same size code the second
 	   time around, with the correct "return address." (dyninstlib_brk_addr) */
+        // As a quick note, we want to "return" to the beginning of the restore
+        // segment, not dyninstlib_brk_addr (or we skip all the restores).
+        // Of course, we're not sure what this addr represents....
+
 	pdvector< AstNode * > dlOpenArguments( 3 );
 	AstNode * dlOpenCall;
 	
-	dlOpenArguments[ 0 ] = new AstNode( AstNode::Constant, (void *)stringAddress );
+	dlOpenArguments[ 0 ] = new AstNode( AstNode::Constant, (void *)dyninstlib_addr );
 	dlOpenArguments[ 1 ] = new AstNode( AstNode::Constant, (void *)DLOPEN_MODE );
 	dlOpenArguments[ 2 ] = new AstNode( AstNode::Constant, (void *)0xFFFFFFFFFFFFFFFF );
 	dlOpenCall = new AstNode( "_dl_open", dlOpenArguments );
 	
 	/* Remember where we originally generated the call. */
-	Address originalOffset = offset;
+        codeBufIndex_t index = gen.getIndex();
 	
 	/* emitInferiorRPCheader() configures (the global) registerSpace for us. */
-	dlOpenCall->generateCode( this, regSpace, (char *)(& callBundles), offset, true, true );
-	
-	unsigned breakOffset, resultOffset, justAfterResultOffset;
-	ok = theRpcMgr->emitInferiorRPCtrailer( callBundles, offset, breakOffset, false, resultOffset, justAfterResultOffset );
-	assert( ok );
-	assert( offset < maxOffset );
+	dlOpenCall->generateCode( this, regSpace, gen, true, true );
 
-	/* Let everyone else know that we're expecting a SIGILL. */
-	dyninstlib_brk_addr = firstInstruction + breakOffset;
+        // Okay, we're done with the generation, and we know where we'll be.
+        // Go back and regenerate it
+        Address dlopenRet = codeBase + gen.used();
+        gen.setIndex(index);
 
 	/* Clean up the reference counts before regenerating. */
 	removeAst( dlOpenCall );
 	removeAst( dlOpenArguments[ 2 ] );
 	
-	dlOpenArguments[ 2 ] = new AstNode( AstNode::Constant, (void *)dyninstlib_brk_addr );
+	dlOpenArguments[ 2 ] = new AstNode( AstNode::Constant, (void *)dlopenRet );
 	dlOpenCall = new AstNode( "_dl_open", dlOpenArguments );
 	
 	/* Regenerate the call at the same original location with the correct constants. */
-	dlOpenCall->generateCode( this, regSpace, (char *)(& callBundles), originalOffset, true, true );
+	dlOpenCall->generateCode( this, regSpace, gen, true, true );
 
 	/* Clean up the reference counting. */
 	removeAst( dlOpenCall );
@@ -593,16 +529,36 @@ bool process::loadDYNINSTlib() {
 	removeAst( dlOpenArguments[ 1 ] );
 	removeAst( dlOpenArguments[ 2 ] );
 
+        // Okay, that was fun. Now restore. And trap. And stuff.
+        
+	
+	unsigned breakOffset, resultOffset, justAfterResultOffset;
+	ok = theRpcMgr->emitInferiorRPCtrailer(gen, breakOffset, false, 
+                                               resultOffset, justAfterResultOffset );
+	assert( ok );
+
+	/* Let everyone else know that we're expecting a SIGILL. */
+	dyninstlib_brk_addr = codeBase + breakOffset;
+
+        assert(gen.used() < BYTES_TO_SAVE);
+
+	/* Save the function we're going to hijack. */
+	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( codeBase, this );
+	iAddr.saveBundlesTo( savedCodeBuffer, gen.used() / 16 );
+
 	/* Write the call into the mutatee. */
-	InsnAddr jAddr = InsnAddr::generateFromAlignedDataAddress( firstInstruction, this );
-	jAddr.writeBundlesFrom( (unsigned char *)(& callBundles), offset / 16 );
+	InsnAddr jAddr = InsnAddr::generateFromAlignedDataAddress( codeBase, this );
+	jAddr.writeBundlesFrom( (unsigned char *)gen.start_ptr(), gen.used() / 16 );
+
+	/* Now that we know where the code will start, move the PC there. */
+	changePC( pid, dlopencall_addr );
 
 	/* Let them know we're working on it. */
-	setBootstrapState( loadingRT );
+	setBootstrapState( loadingRT_bs );
 	return true;
-	} /* end dlopenDYNINSTlib() */
+} /* end dlopenDYNINSTlib() */
 
-bool process::loadDYNINSTlibCleanup() {
+bool process::loadDYNINSTlibCleanup(dyn_lwp * /*ignored*/) {
 	/* We function did we hijack? */
 	Address entry = findFunctionToHijack(this);	// We can avoid using InsnAddr because we know 
 															// that function entry points are aligned.
@@ -642,8 +598,8 @@ bool Frame::setPC( Address addr ) {
 	return true;
 	} /* end Frame::setPC() */
 
-#include <miniTrampHandle.h>
-#include <trampTemplate.h>	
+#include <miniTramp.h>
+#include <baseTramp.h>	
 #include <instPoint.h>
 Frame Frame::getCallerFrame() {
 	// /* DEBUG */ fprintf( stderr, "getCallerFrame(): getting caller's frame (ip = 0x%lx, fp = 0x%lx, sp = 0x%lx).\n", getPC(), getFP(), getSP() );
@@ -765,8 +721,9 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall) {
         assert( (Address)&(trappedSyscall->saved_insn) % 8 == 0 );
         uint64_t * savedBundle = (uint64_t *)(Address)&(trappedSyscall->saved_insn);
         int64_t ipsr_ri;
+
         IA64_bundle trapBundle;
-        IA64_instruction newInst;
+        instruction newInst;
         
         // Determine exact interruption point (IIP and IPSR.ri)
         codeBase = getPC(pid);
@@ -780,7 +737,7 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall) {
 
         // Modify current bundle
         trapBundle = IA64_bundle(savedBundle[0], savedBundle[1]);
-        newInst = IA64_instruction(0x0, 0, ipsr_ri);
+        newInst = instruction(0x0, 0, ipsr_ri);
         trapBundle.setInstruction(newInst);
         
         // Write modified bundle
