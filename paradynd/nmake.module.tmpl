@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.47 2005/04/19 20:10:00 legendre Exp $
+# $Id: nmake.module.tmpl,v 1.48 2005/07/29 19:17:18 bernat Exp $
 #
 
 TARGET	      = paradynd.exe
@@ -125,6 +125,13 @@ OBJS      = $(OBJS) ast.obj \
 		stats.obj \
 		symtab.obj \
 		function.obj \
+                image-func.obj \
+                variable.obj \
+                mapped_object.obj \
+                InstrucIter-xplat.obj \
+                multiTramp.obj \
+                baseTramp.obj \
+                miniTramp.obj \
 		util.obj \
  		mdl.obj \
  		mdld_data.obj \
@@ -138,8 +145,6 @@ OBJS      = $(OBJS) ast.obj \
 		rpcMgr.obj \
 		rpcMgr-thr.obj \
 		rpcMgr-lwp.obj \
-		installed_miniTramps_list.obj \
-		sharedobject.obj \
 		LineInformation.obj \
 		processMgr.obj \
                 pd_process.obj \
@@ -153,8 +158,6 @@ OBJS      = $(OBJS) ast.obj \
 		templatesIGEN.obj \
                 templatesPD-nt.obj \
 		templates-nt.obj \
-		trampTemplate.obj \
-		edgeTrampTemplate.obj \
 		codeRange.obj 
 
 !ifdef USES_SHM_SAMPLING

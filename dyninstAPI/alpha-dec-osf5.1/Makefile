@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2005/02/09 03:27:43 jaw Exp $
+# $Id: Makefile,v 1.7 2005/07/29 19:17:10 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -34,9 +34,11 @@ SRCS =		 ../src/inst-osf.C \
 		../src/dynamiclinking.C \
 		 ../src/unix.C \
                  ../src/inst-alpha.C \
+		../src/arch-alpha.C \
 		 ../src/Object-coff.C \
 		 ../src/parseCoff.C \
 		 ../src/parseStab.C \
+		../src/image-alpha.C \
 		 ../src/InstrucIter-alpha.C \
 		 ../../common/src/osfKludges.C \
 		 ../../common/src/timing-aix.C \

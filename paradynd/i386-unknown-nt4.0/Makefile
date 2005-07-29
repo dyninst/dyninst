@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.23 2005/06/13 19:14:42 gquinn Exp $
+# $Id: Makefile,v 1.24 2005/07/29 19:17:20 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -21,17 +21,14 @@ SRCS =		../src/pdwinnt.C \
 		../src/inst-winnt.C \
 		../src/inst-x86.C \
 		../src/emit-x86.C \
-		../src/func-reloc.C \
-		../src/LocalAlteration.C \
-		../src/LocalAlteration-x86.C \
-		../src/FunctionExpansionRecord.C \
 		../src/arch-x86.C \
 		../../rtinst/src/RThwtimer-winnt.c \
 		../../dyninstAPI/src/InstrucIter-x86.C \
 		../../dyninstAPI/src/syscall-nt.C \
 		../../dyninstAPI/src/pdwinntDL.C \
-		../../dyninstAPI/src/dynamiclinking.obj \
-		../src/debug.C
+		../../dyninstAPI/src/dynamiclinking.C \
+		../src/debug.C \
+		../../dyninstAPI/src/image-x86.C
 
 OBJS = 		pdwinnt.obj \
 		Object-nt.obj \
@@ -40,17 +37,14 @@ OBJS = 		pdwinnt.obj \
 		inst-winnt.obj \
 		inst-x86.obj \
 		emit-x86.obj \
-		func-reloc.obj \
-		LocalAlteration.obj \
-		LocalAlteration-x86.obj \
-		FunctionExpansionRecord.obj \
 		arch-x86.obj \
 		RThwtimer-winnt.obj \
 		InstrucIter-x86.obj \
 		syscall-nt.obj \
 		pdwinntDL.obj \
 		dynamiclinking.obj \
-		debug.obj
+		debug.obj \
+		image-x86.obj
 
 CXXFLAGS 	= $(CXXFLAGS) -DNO_MDL_PRINT -MT
 

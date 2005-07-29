@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.8 2005/01/21 23:45:07 bernat Exp $
+# $Id: Makefile,v 1.9 2005/07/29 19:17:21 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -41,7 +41,8 @@ SRCS 	= \
 		../../dyninstAPI/src/inst-ia64.C \
 		../../dyninstAPI/src/arch-ia64.C \
 		../../dyninstAPI/src/InstrucIter-ia64.C \
-		../../dyninstAPI/src/ia64-template.s
+		../../dyninstAPI/src/ia64-template.s \
+		../../dyninstAPI/src/image-ia64.C
 
 # The different debug flags.
 #MYFLAGS	+= -DPDYN_DEBUG

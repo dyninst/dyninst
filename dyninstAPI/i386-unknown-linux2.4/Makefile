@@ -1,12 +1,12 @@
 #
-# $Id: Makefile,v 1.25 2005/06/09 17:20:14 gquinn Exp $
+# $Id: Makefile,v 1.26 2005/07/29 19:17:11 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
 #USES_SHM_SAMPLING = true
 #USES_PAPI = true
-#DEBUG_FLAG = -g
+DEBUG_FLAG = -g
 NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
 USES_LIBELF = true
@@ -34,14 +34,11 @@ SRCS =          ../src/linux.C \
                 ../src/unix.C \
 		../src/parseStab.C \
 		../src/InstrucIter-x86.C \
-		../src/func-reloc.C \
-	        ../src/LocalAlteration.C \
-	        ../src/LocalAlteration-x86.C \
-		../src/FunctionExpansionRecord.C \
 		../src/addLibraryLinux.C \
 		../src/writeBackElf.C \
 		../src/saveSharedLibrary.C \
 		../src/parseDwarf.C \
+		../src/image-x86.C \
 		../../common/src/linuxKludges.C \
 		../../common/src/timing-linux.C \
 		../src/syscall-linux.C

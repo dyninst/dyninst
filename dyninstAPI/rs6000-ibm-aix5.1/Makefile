@@ -10,6 +10,8 @@ DO_INLINE_ALL           = true
 #NO_IMPLICIT_TEMPLATES    = true
 #AUTO_TEMPLATES 		 = true
 
+DEBUG_FLAG = -g
+
 
 ifdef COVERAGE
 NO_OPT_FLAG		= true
@@ -42,13 +44,15 @@ SRCS =		../src/aix.C \
 		../src/inst-aix.C \
 		../src/parseStab.C \
 		../src/Object-xcoff.C \
+		../src/image-power.C \
 		../src/unix.C \
+		../src/arch-power.C \
 		../src/InstrucIter-power.C \
 		../../common/src/aixv41Kludges.C \
 		../../common/src/timing-aix.C \
 		../src/writeBackXCOFF.C  \
 		../src/syscall-solproc.C
-#		../src/addLibraryXCOFF.C
+#		../src/addLibraryXCOFF.C 
 
 
 # Include the module-specific Makefile, which defines everything about

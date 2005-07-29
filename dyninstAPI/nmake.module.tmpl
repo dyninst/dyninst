@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.42 2005/04/18 20:55:04 legendre Exp $
+# $Id: nmake.module.tmpl,v 1.43 2005/07/29 19:17:09 bernat Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -53,6 +53,9 @@ SRCS	     = $(SRCS) BPatch.C \
 		CodeView.C \
 		inst.C \
 		instPoint.C \
+                multiTramp.C \
+                baseTramp.C \
+                miniTramp.C \
 		Object.C \
 		Object-nt.C \
 		process.C \
@@ -63,15 +66,15 @@ SRCS	     = $(SRCS) BPatch.C \
 		rpcMgr.C \
 		rpcMgr-thr.C \
 		rpcMgr-lwp.C \
-		installed_miniTramps_list.C \
 		stats.C \
 		symtab.C \
 		function.C \
+                variable.C \
+                mapped_object.C \
+                image-func.C \
 		util.C \
-		sharedobject.C \
-		trampTemplate.C \
-		edgeTrampTemplate.C \
 		codeRange.C \
+                InstrucIter-xplat.C \
                 ../../common/src/Dictionary.C \
                 ../../common/src/Ident.C \
                 ../../common/src/String.C \
@@ -117,6 +120,9 @@ OBJS         = $(OBJS) BPatch.obj \
 		CodeView.obj \
 		inst.obj \
 		instPoint.obj \
+                multiTramp.obj \
+                baseTramp.obj \
+                miniTramp.obj \
 		Object.obj \
 		Object-nt.obj \
 		process.obj \
@@ -127,14 +133,14 @@ OBJS         = $(OBJS) BPatch.obj \
       		rpcMgr.obj \
 		rpcMgr-thr.obj \
 		rpcMgr-lwp.obj \
-		installed_miniTramps_list.obj \
-		trampTemplate.obj \
-		edgeTrampTemplate.obj \
 		stats.obj \
 		symtab.obj \
+                mapped_object.obj \
 		function.obj \
+                variable.obj \
+                image-func.obj \
 		util.obj \
-		sharedobject.obj \
+                InstrucIter-xplat.obj \
                 Dictionary.obj \
                 Ident.obj \
                 String.obj \

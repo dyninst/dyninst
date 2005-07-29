@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.12 2005/03/22 02:52:11 legendre Exp $
+# $Id: Makefile,v 1.13 2005/07/29 19:17:22 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -23,22 +23,18 @@ SRCS =		../../dyninstAPI/src/solaris.C \
 		../../dyninstAPI/src/solarisMT.C \
 		../src/proc-solaris.C \
 		../../dyninstAPI/src/inst-sparc.C \
-		../../dyninstAPI/src/inst-sparc-solaris.C \
 		../../dyninstAPI/src/inst-sunos.C \
 		../../dyninstAPI/src/parseStab.C \
 		../../dyninstAPI/src/Object-elf.C \
-		../../dyninstAPI/src/tramp-sparc.s \
 		../../dyninstAPI/src/unix.C \
-		../../dyninstAPI/src/FunctionExpansionRecord.C \
-		../../dyninstAPI/src/LocalAlteration.C \
-		../../dyninstAPI/src/func-reloc.C \
-		../../dyninstAPI/src/LocalAlteration-Sparc.C \
 		../../dyninstAPI/src/InstrucIter-sparc.C \
-      ../../dyninstAPI/src/writeBackElf.C \
-      ../../dyninstAPI/src/addLibrary.C \
-      ../../dyninstAPI/src/saveSharedLibrary.C \
+		../../dyninstAPI/src/writeBackElf.C \
+		../../dyninstAPI/src/addLibrary.C \
+		../../dyninstAPI/src/saveSharedLibrary.C \
 		../../dyninstAPI/src/syscall-solproc.C \
-		../../dyninstAPI/src/editSharedLibrary.C
+		../../dyninstAPI/src/editSharedLibrary.C \
+		../../dyninstAPI/src/arch-sparc.C \
+		../../dyninstAPI/src/image-sparc.C
 
 CXXFLAGS 	+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP
 CFLAGS 		+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP

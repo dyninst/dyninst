@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.29 2005/06/13 19:14:27 gquinn Exp $
+# $Id: Makefile,v 1.30 2005/07/29 19:17:12 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -21,15 +21,12 @@ SRCS =		../src/pdwinnt.C \
 		../src/inst-winnt.C \
 		../src/inst-x86.C \
 		../src/emit-x86.C \
-		../src/func-reloc.C \
-		../src/LocalAlteration.C \
-		../src/LocalAlteration-x86.C \
-		../src/FunctionExpansionRecord.C \
 		../src/arch-x86.C \
 		../src/InstrucIter-x86.C \
 		../src/syscall-nt.C \
 		../src/pdwinntDL.C \
-		../src/dynamiclinking.C     
+		../src/dynamiclinking.C \
+		../src/image-x86.C 
 #		../src/MapSymbols.C 
 # ccw 13 july 2001
 
@@ -38,15 +35,12 @@ OBJS = 		pdwinnt.obj \
 		inst-x86.obj \
 		arch-x86.obj \
 		emit-x86.obj \
-		func-reloc.obj \
-		LocalAlteration.obj \
-		LocalAlteration-x86.obj \
-		FunctionExpansionRecord.obj \
 		InstrucIter-x86.obj \
 		codeRange.obj \
 		syscall-nt.obj \
 		pdwinntDL.obj \
-		dynamiclinking.obj
+		dynamiclinking.obj \
+		image-x86.obj
 
 #		MapSymbols.obj 
 # ccw 13 july 2001

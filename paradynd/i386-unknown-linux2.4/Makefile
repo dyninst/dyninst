@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.26 2005/06/09 18:42:35 gquinn Exp $
+# $Id: Makefile,v 1.27 2005/07/29 19:17:19 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -43,17 +43,14 @@ SRCS =		../../dyninstAPI/src/linux.C \
 		../../dyninstAPI/src/parseDwarf.C \
 		../../dyninstAPI/src/parseStab.C \
 		../../dyninstAPI/src/Object-elf.C \
-		../../dyninstAPI/src/func-reloc.C \
-	        ../../dyninstAPI/src/LocalAlteration.C \
-	        ../../dyninstAPI/src/LocalAlteration-x86.C \
-	        ../../dyninstAPI/src/FunctionExpansionRecord.C \
+		../../dyninstAPI/src/image-x86.C \
 		../../dyninstAPI/src/unix.C  \
 		../../rtinst/src/RThwtimer-linux.c \
 		../../dyninstAPI/src/InstrucIter-x86.C \
 		../../dyninstAPI/src/addLibraryLinux.C \
 		../../dyninstAPI/src/writeBackElf.C \
 		../../dyninstAPI/src/saveSharedLibrary.C \
-		../../dyninstAPI/src/syscall-linux.C
+		../../dyninstAPI/src/syscall-linux.C 
 
 MYFLAGS		+= -DNO_MDL_PRINT
 MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)

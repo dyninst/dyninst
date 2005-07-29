@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.62 2005/06/08 20:58:40 tlmiller Exp $
+# $Id: make.module.tmpl,v 1.63 2005/07/29 19:17:08 bernat Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -67,7 +67,7 @@ SRCS	     +=	../src/BPatch.C \
 		../src/BPatch_function.C \
 		../src/BPatch_snippet.C \
 		../src/BPatch_thread.C \
-      ../src/BPatch_process.C \
+              ../src/BPatch_process.C \
 		../src/BPatch_type.C \
 		../src/BPatch_init.C \
 		../src/BPatch_module.C \
@@ -84,26 +84,28 @@ SRCS	     +=	../src/BPatch.C \
 		../src/dummy.C \
 		../src/api_showerror.C \
 		../src/ast.C \
-		../src/inst.C \
-		../src/instPoint.C \
+       		../src/inst.C \
+                ../src/multiTramp.C \
+                ../src/baseTramp.C \
+                ../src/miniTramp.C \
+                ../src/InstrucIter-xplat.C \
 		../src/dyn_thread.C \
 		../src/process.C \
 		../src/dyn_lwp.C \
 		../src/frame.C \
-      ../src/signalhandler.C \
+              ../src/signalhandler.C \
 		../src/rpcMgr.C \
 		../src/rpcMgr-lwp.C \
 		../src/rpcMgr-thr.C \
-		../src/installed_miniTramps_list.C \
-		../src/trampTemplate.C \
-		../src/edgeTrampTemplate.C \
 		../src/codeRange.C \
 		../src/stats.C \
 		../src/symtab.C \
+		../src/image-func.C \
+		../src/mapped_object.C \
 		../src/function.C \
+                ../src/variable.C \
 		../src/util.C \
-		../src/sharedobject.C \
-		../src/LineInformation.C \
+       		../src/LineInformation.C \
 		../src/BPatch_instruction.C \
 		../src/BPatch_asyncEventHandler.C \
 		../src/BPatch_eventLock.C \

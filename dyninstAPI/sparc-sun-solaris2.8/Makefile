@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.19 2005/03/18 04:34:56 chadd Exp $
+# $Id: Makefile,v 1.20 2005/07/29 19:17:15 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -22,16 +22,10 @@ SRCS =		../src/solaris.C \
 		../src/dynamiclinking.C \
 		../src/sol_proc.C \
 		../src/inst-sparc.C \
-		../src/inst-sparc-solaris.C \
 		../src/inst-sunos.C \
 		../src/parseStab.C \
 		../src/Object-elf.C \
-		../src/tramp-sparc.s \
 		../src/unix.C \
-		../src/FunctionExpansionRecord.C \
-		../src/LocalAlteration.C \
-		../src/LocalAlteration-Sparc.C \
-		../src/func-reloc.C \
 		../src/InstrucIter-sparc.C \
 		../../common/src/solarisKludges.C \
 		../../common/src/timing-solaris.C \
@@ -39,7 +33,9 @@ SRCS =		../src/solaris.C \
 		../src/addLibrary.C \
 		../src/saveSharedLibrary.C \
 		../src/syscall-solproc.C \
-		../src/editSharedLibrary.C
+		../src/editSharedLibrary.C \
+		../src/arch-sparc.C \
+		../src/image-sparc.C
 
 # VG(12/02/01) Using -g here seems a bad idea since it is passed from
 # make.confing any way and it is actually configurable there via
