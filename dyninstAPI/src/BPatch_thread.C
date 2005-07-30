@@ -39,16 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.128 2005/07/29 19:17:45 bernat Exp $
+// $Id: BPatch_thread.C,v 1.129 2005/07/30 03:26:48 bernat Exp $
 
 #define BPATCH_FILE
 
 #include "BPatch_thread.h"
 #include "BPatch.h"
 #include "process.h"
-#include "baseTramp.h"
-#include "instPoint.h"
-#include "miniTramp.h"
 
 /*
  * BPatch_thread::getCallStack
@@ -86,7 +83,6 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
         bool isInstrumentation = false;
 
         Frame frame = stackWalks[0][i];
-        fprintf(stderr, "Checking frame %d of %d\n", i, stackWalks[0].size());
         frame.calcFrameType();
         if (frame.frameType_ != FRAME_unset) {
             isSignalFrame = frame.isSignalFrame();
@@ -98,31 +94,11 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
                                      (void*)stackWalks[0][i].getFP(),
                                      isSignalFrame, isInstrumentation));
         if (isInstrumentation) {
-            // Fake a frame at the address of the instrumentation
-            codeRange *range = frame.getRange();
-            if (range) {
-                // Get the minitramp -> base tramp -> location
-                multiTramp *multi = range->is_multitramp();
-                miniTrampInstance *mti = range->is_minitramp();
-
-                Address ipAddr = 0;                
-                if (mti) {
-                    ipAddr = mti->baseTI->baseT->origInstAddr();
-                }
-                else {
-                    assert(multi);
-                    ipAddr = multi->instToUninstAddr(frame.getPC());
-                }
-
-                if( ipAddr != 0 ) {
-                    stack.push_back(BPatch_frame(this,
-                                                 (void *)ipAddr,
-                                                 // Fake this
-                                                 (void *)frame.getFP(),
-                                                 false, // not signal handler,
-                                                 false)); // not inst.
-                }
-            }
+            stack.push_back(BPatch_frame(this,
+                                         (void *)stackWalks[0][i].getUninstAddr(),
+                                         (void *)stackWalks[0][i].getFP(),
+                                         false, // not signal handler,
+                                         false)); // not inst.
         }
     }
     return true;
