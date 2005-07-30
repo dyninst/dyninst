@@ -149,8 +149,8 @@ inline P_sig_handler P_signal (int SIGNUM, P_sig_handler ACTION) {
 inline char * P_strcat (char *TO, const char *FROM) {
   return (strcat(TO, FROM));}
 
-inline const char * P_strchr (const char *STRING, int C) {return (strchr(STRING, C));}
-inline char * P_strchr (char *STRING, int C) {return (strchr(STRING, C));}
+inline const char * P_strchr (const char *P_STRING, int C) {return (strchr(P_STRING, C));}
+inline char * P_strchr (char *P_STRING, int C) {return (strchr(P_STRING, C));}
 
 inline int P_strcmp (const char *S1, const char *S2) {
   return (strcmp(S1, S2));}
@@ -165,20 +165,20 @@ inline int P_strncmp (const char *S1, const char *S2, size_t SIZE) {
 inline char * P_strncpy (char *TO, const char *FROM, size_t SIZE) {
   return (strncpy(TO, FROM, SIZE));}
 
-inline const char * P_strrchr (const char *STRING, int C) {return (strrchr(STRING, C));}
-inline char * P_strrchr (char *STRING, int C) {return (strrchr(STRING, C));}
+inline const char * P_strrchr (const char *P_STRING, int C) {return (strrchr(P_STRING, C));}
+inline char * P_strrchr (char *P_STRING, int C) {return (strrchr(P_STRING, C));}
 
 inline const char * P_strstr (const char *HAYSTACK, const char *NEEDLE) {return (strstr(HAYSTACK, NEEDLE));}
 inline char * P_strstr (char *HAYSTACK, const char *NEEDLE) {return (strstr(HAYSTACK, NEEDLE));}
 
-inline double P_strtod (const char *STRING, char **TAILPTR) {
-  return (strtod(STRING, TAILPTR));}
-inline char * P_strtok (char *NEWSTRING, const char *DELIMITERS) {
-  return (strtok(NEWSTRING, DELIMITERS));}
-inline long int P_strtol (const char *STRING, char **TAILPTR, int BASE) {
-  return (strtol(STRING, TAILPTR, BASE));}
-inline unsigned long int P_strtoul(const char *STRING, char **TAILPTR, int BASE) { 
-  return (strtoul(STRING, TAILPTR, BASE));}
+inline double P_strtod (const char *P_STRING, char **TAILPTR) {
+  return (strtod(P_STRING, TAILPTR));}
+inline char * P_strtok (char *NEWP_STRING, const char *DELIMITERS) {
+  return (strtok(NEWP_STRING, DELIMITERS));}
+inline long int P_strtol (const char *P_STRING, char **TAILPTR, int BASE) {
+  return (strtol(P_STRING, TAILPTR, BASE));}
+inline unsigned long int P_strtoul(const char *P_STRING, char **TAILPTR, int BASE) { 
+  return (strtoul(P_STRING, TAILPTR, BASE));}
 
 /* BSD */
 inline int P_accept (int SOCK, struct sockaddr *ADDR, size_t *LENGTH_PTR) {

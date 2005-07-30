@@ -85,7 +85,7 @@ extern "C" {
 #include <sys/select.h>
 #include <procinfo.h>
 #include <sys/un.h>
-    
+
 extern int fork();
 extern int vfork();
 
@@ -135,15 +135,15 @@ extern int P_shmctl(int, int, struct shmid_ds *);
 /* ANSI */
 extern void P_exit (int STATUS);
 extern int P_fflush(FILE *stream);
-extern char * P_fgets (char *S, int COUNT, FILE *STREAM);
+extern char * P_fgets (char *S, int P_COUNT, FILE *STREAM);
 extern void * P_malloc (size_t SIZE);
 extern void * P_memcpy (void *A1, const void *A2, size_t SIZE);
-extern void * P_memset (void *BLOCK, int C, unsigned SIZE);
+extern void * P_memset (void *BLOCK, int P_C, unsigned SIZE);
 extern void P_perror (const char *MESSAGE);
 typedef void (*P_sig_handler)(int);
 extern P_sig_handler P_signal(int SIGNUM, P_sig_handler ACTION);
 extern char * P_strcat (char *TO, const char *FROM);
-extern char * P_strchr (const char *STRING, int C);
+extern char * P_strchr (const char *P_STRING, int P_C);
 extern int P_strcmp (const char *S1, const char *S2);
 extern char * P_strcpy (char *TO, const char *FROM);
 extern char *P_strdup(const char *S);
@@ -151,12 +151,12 @@ extern size_t P_strlen (const char *S);
 extern char * P_strncat (char *TO, const char *FROM, size_t SIZE);
 extern int P_strncmp (const char *S1, const char *S2, size_t SIZE);
 extern char * P_strncpy (char *TO, const char *FROM, size_t SIZE);
-extern char * P_strrchr (const char *STRING, int C);
+extern char * P_strrchr (const char *P_STRING, int P_C);
 extern char * P_strstr (const char *HAYSTACK, const char *NEEDLE);
-extern double P_strtod (const char *STRING, char **TAILPTR);
-extern char * P_strtok (char *NEWSTRING, const char *DELIMITERS);
-extern long int P_strtol (const char *STRING, char **TAILPTR, int BASE);
-extern unsigned long int P_strtoul(const char *STRING, char **TAILPTR, int BASE);
+extern double P_strtod (const char *P_STRING, char **TAILPTR);
+extern char * P_strtok (char *NEWP_STRING, const char *DELIMITERS);
+extern long int P_strtol (const char *P_STRING, char **TAILPTR, int BASE);
+extern unsigned long int P_strtoul(const char *P_STRING, char **TAILPTR, int BASE);
 
 /* BSD */
 extern int P_accept (int SOCK, struct sockaddr *ADDR, size_t *LENGTH_PTR);
