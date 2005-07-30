@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-sparc.C,v 1.1 2005/07/29 19:22:49 bernat Exp $
+ * $Id: arch-sparc.C,v 1.2 2005/07/30 03:26:49 bernat Exp $
  */
 
 #include "common/h/Types.h"
@@ -526,7 +526,7 @@ void instruction::set_disp(bool setDisp,
 
 InsnRegister::InsnRegister() 
 	: wordCount(0),
-	  regType(InsnRegister::None),
+	  regType(InsnRegister::NoneReg),
 	  regNumber(-1) {};
 
 InsnRegister::InsnRegister(char isD,InsnRegister::RegisterType rt,
@@ -565,7 +565,7 @@ void InsnRegister::print(){
 	}
 
 	if((regType != InsnRegister::SpecialReg) &&
-	   (regType != InsnRegister::None))
+	   (regType != InsnRegister::NoneReg))
 		for(int i=0;i<wordCount;i++)
 			cerr << regNumber+i;
 	cerr << "] ";
@@ -741,7 +741,7 @@ void instruction::get_register_operands(InsnRegister* rd,
                     *rs2 = InsnRegister(1, InsnRegister::GlobalIntReg,
                                         (short)(insn_.rest.rs2));
                 char wC = 1;
-                InsnRegister::RegisterType rt = InsnRegister::None;
+                InsnRegister::RegisterType rt = InsnRegister::NoneReg;
                 short rn = -1;
                 
                 unsigned firstTag = insn_.rest.op3 & 0x30;

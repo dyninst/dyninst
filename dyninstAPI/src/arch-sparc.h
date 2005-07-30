@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.34 2005/07/29 19:18:17 bernat Exp $
+// $Id: arch-sparc.h,v 1.35 2005/07/30 03:26:50 bernat Exp $
 
 #if !defined(arch_sparc)
 #error "invalid architecture-os inclusion"
@@ -266,7 +266,7 @@ typedef union {
 
 class InsnRegister {
 public:
-	enum RegisterType { GlobalIntReg=0, FloatReg, CoProcReg, SpecialReg, None};
+	enum RegisterType { GlobalIntReg=0, FloatReg, CoProcReg, SpecialReg, NoneReg};
 
 	InsnRegister();
 	InsnRegister(char isD, RegisterType rt, short rn);
