@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.22 2005/03/01 23:07:53 bernat Exp $
+// $Id: frame.h,v 1.23 2005/07/30 03:26:58 bernat Exp $
 
 #ifndef FRAME_H
 #define FRAME_H
@@ -95,6 +95,9 @@ class Frame {
   }
 
   Address  getPC() const { return pc_; }
+  // New method: unwind instrumentation
+  Address  getUninstAddr(); // calls getRange so can't be const
+
   Address  getFP() const { return fp_; }
   Address  getSP() const { return sp_; }
   unsigned getPID() const { return pid_; }

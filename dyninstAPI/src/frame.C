@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.C,v 1.10 2005/07/29 19:18:30 bernat Exp $
+// $Id: frame.C,v 1.11 2005/07/30 03:26:57 bernat Exp $
 
 #include <stdio.h>
 #include <iostream>
@@ -183,6 +183,34 @@ void Frame::calcFrameType()
    return;
 }
 
+Address Frame::getUninstAddr() {
+    codeRange *range = getRange();
+    int_function *f_ptr = range->is_function();
+    multiTramp *m_ptr = range->is_multitramp();
+    miniTrampInstance *mt_ptr = range->is_minitramp();
+    baseTrampInstance *bt_ptr = range->is_basetramp_multi();
+
+    if (f_ptr)
+        return getPC();
+    else if (m_ptr) {
+        // Figure out where in the multiTramp we are
+        return m_ptr->instToUninstAddr(getPC());
+    }
+    else if (mt_ptr) {
+        // Don't need the actual PC for minitramps
+        return mt_ptr->uninstrumentedAddr();
+    }
+    else if (bt_ptr) {
+        // Don't need actual PC here either
+        return bt_ptr->uninstrumentedAddr();
+    }
+    else {
+        // Where are we?
+        return getPC();
+    }
+}
+
+
 ostream & operator << ( ostream & s, Frame & f ) {
 	codeRange * range = f.getRange();
 	int_function * func_ptr = range->is_function();
@@ -197,9 +225,8 @@ ostream & operator << ( ostream & s, Frame & f ) {
 	case FRAME_instrumentation:
 	  s << "[Instrumentation:";
 	  if (minitramp_ptr) {
-	    s << "mt from ["
-	      << minitramp_ptr->baseTI->multiT->func()->prettyName() 
-	      << "]";
+	    s << "mt from "
+	      << minitramp_ptr->baseTI->multiT->func()->prettyName();
 	  }
 	  else if (multi_ptr) {
               baseTrampInstance *bti = multi_ptr->getBaseTrampInstanceByAddr(f.getPC());
@@ -210,11 +237,13 @@ ostream & operator << ( ostream & s, Frame & f ) {
                   s << "multitramp from ";
               }
               
-              s << "[" << multi_ptr->func()->prettyName() << "/";
-              s << std::hex << "0x" << multi_ptr->instToUninstAddr(f.getPC()) << std::dec;
-              s << "]";
-
+              s << multi_ptr->func()->prettyName();
 	  }
+
+          // And the address
+          s << std::hex << "/0x" << f.getUninstAddr();
+          s << "]" << std::dec;
+          
 	  break;
 	case FRAME_signalhandler:
 	  s << "[SIGNAL HANDLER]";
