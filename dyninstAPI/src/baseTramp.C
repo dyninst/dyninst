@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.1 2005/07/29 19:22:50 bernat Exp $
+// $Id: baseTramp.C,v 1.2 2005/07/30 03:26:51 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -1053,4 +1053,14 @@ instPoint *baseTramp::point() const {
     else if (postInstP) return postInstP;
     else assert(0);
     return NULL;
+}
+
+Address baseTrampInstance::uninstrumentedAddr() const {
+    if (fallthrough_)
+        return fallthrough_->uninstrumentedAddr();
+    else if (previous_)
+        return previous_->uninstrumentedAddr();
+    else 
+        assert(0);
+    return 0;
 }

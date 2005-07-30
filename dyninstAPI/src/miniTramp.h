@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.h,v 1.1 2005/07/29 19:23:02 bernat Exp $
+// $Id: miniTramp.h,v 1.2 2005/07/30 03:26:54 bernat Exp $
 
 #ifndef MINI_TRAMP_H
 #define MINI_TRAMP_H
@@ -97,6 +97,8 @@ class miniTrampInstance : public generatedCodeObject {
   unsigned get_size_cr() const; // needs miniTramp and is so defined
                                 // in .C file
 
+  Address uninstrumentedAddr() const;
+  
   unsigned maxSizeRequired();
 
   bool generateCode(codeGen &gen,
@@ -159,7 +161,7 @@ class miniTramp {
     assert(returnOffset);
     return returnOffset;
   }
-  
+
   // Register a callback for when the mini is finally deleted...
   void registerCallback(miniTrampFreeCallback cb, void *data) {
     callback = cb;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.1 2005/07/29 19:23:04 bernat Exp $
+// $Id: multiTramp.h,v 1.2 2005/07/30 03:26:56 bernat Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -124,6 +124,12 @@ class generatedCodeObject : public codeRange {
 
     virtual bool shouldGenerate() { return true; }
 
+    // For stack unwinding: give us the "uninstrumented" address (AKA
+    // where we would have been) - since all instrumentation occurs at
+    // a 'single' point, we can do this.
+
+    virtual Address uninstrumentedAddr() const = 0;
+
     // And modification times
     bool generated_;
     bool installed_;
@@ -201,6 +207,8 @@ class trampEnd : public generatedCodeObject {
     unsigned get_size_cr() const { assert(0); return 0; }
 
     Address target() { return target_; }
+
+    virtual Address uninstrumentedAddr() const { return target_; }
     
  private:
     multiTramp *multi_;
@@ -274,6 +282,8 @@ class relocatedInstruction : public generatedCodeObject {
     // Original or relocated?
     Address get_address_cr() const { return relocAddr; }
     unsigned get_size_cr() const { return size_; }
+
+    virtual Address uninstrumentedAddr() const { return origAddr; }
 
  private:
     // TODO: move to vector of instructions
@@ -443,6 +453,11 @@ class multiTramp : public generatedCodeObject {
   Address instToUninstAddr(Address addr);
   // Returns 0 if the addr isn't within the tramp
   Address uninstToInstAddr(Address addr);
+
+  // Can't call this on a multiTramp as it covers multiple
+  // instructions...
+  Address uninstrumentedAddr() const { assert(0); return 0; }
+
 
   process *proc() const;
 

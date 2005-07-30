@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.1 2005/07/29 19:23:01 bernat Exp $
+// $Id: miniTramp.C,v 1.2 2005/07/30 03:26:53 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -585,3 +585,7 @@ bool getInheritedMiniTramp(const miniTramp *parentMT,
     return false;
 }
 
+Address miniTrampInstance::uninstrumentedAddr() const {
+    // We're "in" the baseTramp, so it knows what's going on
+    return baseTI->uninstrumentedAddr();
+}

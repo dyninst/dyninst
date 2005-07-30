@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.1 2005/07/29 19:23:03 bernat Exp $
+// $Id: multiTramp.C,v 1.2 2005/07/30 03:26:55 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -1036,13 +1036,6 @@ Address multiTramp::instToUninstAddr(Address addr) {
         if (bti && bti->isInInstance(addr)) {
             // If we're pre for an insn, return that;
             // else return the insn we're post/target for.
-            relocatedInstruction *tmp = dynamic_cast<relocatedInstruction *>(bti->fallthrough_);
-            if (tmp) return tmp->origAddr;
-            tmp = dynamic_cast<relocatedInstruction *>(bti->previous_);
-            if (tmp) return tmp->origAddr;
-            // Uhhh... we're not pre or post?
-            assert(0);
-            return 0;
         }
         if (end) {
             // Ah hell. 
