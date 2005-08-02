@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_Vector.h,v 1.17 2004/07/28 07:24:45 jaw Exp $
+// $Id: BPatch_Vector.h,v 1.18 2005/08/02 19:30:24 bernat Exp $
 
 #ifndef _BPatch_Vector_h_
 #define _BPatch_Vector_h_
@@ -81,7 +81,8 @@ class BPATCH_DLL_EXPORT BPatch_Vector {
     void	reserve(int n);
     inline void	copy_from(const BPatch_Vector &);
 public:
-    BPatch_Vector(int n = 0);
+    BPatch_Vector();
+    BPatch_Vector(int n);
     BPatch_Vector(const BPatch_Vector<T> &);
     ~BPatch_Vector();
 
@@ -148,6 +149,10 @@ BPatch_Vector<T>::BPatch_Vector(int n) : reserved(0), len(0), data(NULL)
     assert(n >= 0);
     if (n > 0) reserve(n);
 }
+
+// Default constructor
+template<class T>
+BPatch_Vector<T>::BPatch_Vector() : reserved(0), len(0), data(NULL) {}
 
 // Copy constructor.
 template<class T>
