@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.2 2005/08/03 05:28:11 bernat Exp $
+ * $Id: image-x86.C,v 1.3 2005/08/03 23:00:55 bernat Exp $
  */
 
 #include "common/h/Vector.h"
@@ -481,7 +481,8 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                     return false;
                 }
 
-                if ((*ah.getPrevInstruction().ptr()) == POP_EBX) {
+                if (ah.peekPrev() &&
+                    (*ah.getPrevInstruction().ptr()) == POP_EBX) {
                     //this looks like a tail call
                     currBlk->isExitBlock_ = true;
                     break;
