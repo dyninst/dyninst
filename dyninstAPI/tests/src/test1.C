@@ -4603,7 +4603,6 @@ void instrumentFuncLoopsWithCall(BPatch_thread *appThread,
 
 void mutatorTest37(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if 0
     if (mutateeFortran) {
 	return;
     } 
@@ -4613,7 +4612,6 @@ void mutatorTest37(BPatch_thread *appThread, BPatch_image *appImage)
     instrumentFuncLoopsWithCall(appThread, appImage,"call37_2", "inc37_2");
 
     instrumentFuncLoopsWithCall(appThread, appImage,"call37_3", "inc37_3");
-#endif
 }
 
 
