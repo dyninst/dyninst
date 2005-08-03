@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.170 2005/07/29 22:16:27 bernat Exp $
+// $Id: inst-sparc.C,v 1.171 2005/08/03 23:01:00 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -820,18 +820,14 @@ extern void sorted_ips_vector(pdvector<instPoint*>&fill_in);
 bool relocatedInstruction::generateCode(codeGen &gen,
                                         Address baseInMutatee) {
 
-    if (generated_) {
-        // We already have code... check to see if it's the same addr
-        assert(gen.currAddr(baseInMutatee) == relocAddr);
-        gen.moveIndex(size_);
+    if (alreadyGenerated(gen, baseInMutatee))
         return true;
-    }
-
+    generateSetup(gen, baseInMutatee);
+    
     unsigned origOffset = gen.used();
-    relocAddr = gen.currAddr(baseInMutatee);
 
     inst_printf("Relocating insn, originally 0x%x now 0x%x, disp 0x%x\n",
-                origAddr, relocAddr, relocAddr - origAddr);
+                origAddr, relocAddr(), relocAddr() - origAddr);
     long long newLongOffset = 0;
 
     instruction newInsn(insn);
@@ -877,11 +873,11 @@ bool relocatedInstruction::generateCode(codeGen &gen,
             else {
 	      if (!targetOverride_) {
                 newLongOffset = origAddr;
-                newLongOffset -= relocAddr;
+                newLongOffset -= relocAddr();
                 newLongOffset += ((*insn).call.disp30 << 2);
 	      }
 	      else {
-		newLongOffset = targetOverride_ - relocAddr;
+		newLongOffset = targetOverride_ - relocAddr();
 	      }
 
               (*newInsn).call.disp30 = (int)(newLongOffset >> 2);
@@ -901,11 +897,11 @@ bool relocatedInstruction::generateCode(codeGen &gen,
 	//                                   call new_offset             
 	//                                   restore 
       if (!targetOverride_)
-        newLongOffset = (long long)insn.getTarget(origAddr) - relocAddr;
+        newLongOffset = (long long)insn.getTarget(origAddr) - relocAddr();
       else
-	newLongOffset = targetOverride_ - relocAddr;
+	newLongOffset = targetOverride_ - relocAddr();
         inst_printf("Orig 0x%x, target 0x%x (offset 0x%x), relocated 0x%x, new dist %lld\n",
-                    origAddr, insn.getTarget(origAddr), insn.getOffset(), relocAddr, newLongOffset);
+                    origAddr, insn.getTarget(origAddr), insn.getOffset(), relocAddr(), newLongOffset);
 	// if the branch is too far, then allocate more space in inferior
 	// heap for a call instruction to branch target.  The base tramp 
 	// will branch to this new inferior heap code, which will call the
@@ -922,7 +918,7 @@ bool relocatedInstruction::generateCode(codeGen &gen,
                                      REG_SPTR,
                                      -112,
                                      REG_SPTR);
-            // Don't use relocAddr here, since we've moved the IP since then.
+            // Don't use relocAddr() here, since we've moved the IP since then.
             instruction::generateCall(gen,
                                       gen.currAddr(baseInMutatee),
                                       insn.getTarget(origAddr));
@@ -955,7 +951,7 @@ bool relocatedInstruction::generateCode(codeGen &gen,
         }
     }
 
-    size_ = gen.used() - origOffset;
+    size_ = gen.currAddr(baseInMutatee) - addrInMutatee_;
     generated_ = true;
     
     return true;

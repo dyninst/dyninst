@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.134 2005/08/03 05:28:12 bernat Exp $
+// $Id: inst.C,v 1.135 2005/08/03 23:01:02 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -835,13 +835,10 @@ bool instPoint::instrSideEffect(Frame &frame)
 // Sparc has its own version... how annoying. It's in inst-sparc.C
 bool trampEnd::generateCode(codeGen &gen,
                             Address baseInMutatee) {
-    if (generated_) {
-        gen.moveIndex(size_);
+    if (alreadyGenerated(gen, baseInMutatee))
         return true;
-    }
     
-    // For size calculation -- the delta of new code.
-    unsigned start = gen.used();
+    generateSetup(gen, baseInMutatee);
 
     if (target_) {
         instruction::generateBranch(gen,
@@ -851,7 +848,7 @@ bool trampEnd::generateCode(codeGen &gen,
     // And a sigill insn
     instruction::generateIllegal(gen);
     
-    size_ = gen.used() - start;
+    size_ = gen.currAddr(baseInMutatee) - addrInMutatee_;
     generated_ = true;
     
     return true;
@@ -1112,4 +1109,8 @@ instMapping::instMapping(const instMapping *parIM,
         assert(cMT);
         miniTramps.push_back(cMT);
     }
+}
+
+Address relocatedInstruction::relocAddr() const {
+    return addrInMutatee_;
 }

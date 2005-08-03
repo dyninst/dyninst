@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.210 2005/07/29 22:16:28 bernat Exp $
+ * $Id: inst-x86.C,v 1.211 2005/08/03 23:01:01 bernat Exp $
  */
 #include <iomanip>
 
@@ -182,17 +182,13 @@ unsigned relocatedInstruction::maxSizeRequired() {
 
 bool relocatedInstruction::generateCode(codeGen &gen,
                                         Address baseInMutatee) {
-    if (generated_) {
-        // We already have code... check to see if it's the same addr
-        assert(gen.currAddr(baseInMutatee) == relocAddr);
-        gen.moveIndex(size_);
+    if (alreadyGenerated(gen, baseInMutatee))
         return true;
-    }
+    generateSetup(gen, baseInMutatee);
 
     // We grab the maximum space we might need
     GET_PTR(insnBuf, gen);
     size_ = 0;
-    relocAddr = gen.currAddr(baseInMutatee);
     
     /* 
        Relative address instructions need to be modified. The relative address
@@ -312,12 +308,12 @@ bool relocatedInstruction::generateCode(codeGen &gen,
             if (*origInsn == JCXZ) {
                 if (!targetOverride_) {
                     oldDisp = (int)*(const char *)(origInsn+1);
-                    newDisp = (origAddr + 2) + oldDisp - (relocAddr + 9);
+                    newDisp = (origAddr + 2) + oldDisp - (addrInMutatee_ + 9);
                 }
                 else {
                     // Override the target to go somewhere else
                     oldDisp = 0;
-                    newDisp = targetOverride_ - (relocAddr + 9);
+                    newDisp = targetOverride_ - (addrInMutatee_ + 9);
                 }
                 *newInsn++ = *origInsn; *(newInsn++) = 2; // jcxz 2
                 *newInsn++ = 0xEB; *newInsn++ = 5;        // jmp 5
@@ -344,11 +340,11 @@ bool relocatedInstruction::generateCode(codeGen &gen,
                 assert(newSz!=UINT_MAX);
                 if (!targetOverride_) {
                     oldDisp = (int)*(const char *)origInsn;
-                    newDisp = (origAddr + 2) + oldDisp - (relocAddr + newSz);
+                    newDisp = (origAddr + 2) + oldDisp - (addrInMutatee_ + newSz);
                 }
                 else {
                     oldDisp = 0;
-                    newDisp = targetOverride_ - (relocAddr + newSz);
+                    newDisp = targetOverride_ - (addrInMutatee_ + newSz);
                 }
                 *((int *)newInsn) = newDisp;
                 newInsn += sizeof(int);
@@ -366,11 +362,11 @@ bool relocatedInstruction::generateCode(codeGen &gen,
             *newInsn++ = *origInsn++;
             if (!targetOverride_) {
                 oldDisp = *((const short *)origInsn);
-                newDisp = (origAddr + 5) + oldDisp - (relocAddr + 3);
+                newDisp = (origAddr + 5) + oldDisp - (addrInMutatee_ + 3);
             }
             else {
                 oldDisp = 0;
-                newDisp = targetOverride_ -  (relocAddr + 3);
+                newDisp = targetOverride_ -  (addrInMutatee_ + 3);
             }
             *((int *)newInsn) = newDisp;
             newInsn += sizeof(int);
@@ -390,11 +386,11 @@ bool relocatedInstruction::generateCode(codeGen &gen,
             *newInsn++ = *origInsn++;
             if (!targetOverride_) {
                 oldDisp = *((const int *)origInsn);
-                newDisp = (origAddr + insnSz) + oldDisp - (relocAddr + insnSz);
+                newDisp = (origAddr + insnSz) + oldDisp - (addrInMutatee_ + insnSz);
             }
             else {
                 oldDisp = 0;
-                newDisp = targetOverride_ - (relocAddr + insnSz);
+                newDisp = targetOverride_ - (addrInMutatee_ + insnSz);
             }
             *((int *)newInsn) = newDisp;
             newInsn += sizeof(int);
@@ -406,10 +402,10 @@ bool relocatedInstruction::generateCode(codeGen &gen,
         }
     }
 
-    size_ = (newInsn - insnBuf);
     SET_PTR(newInsn, gen);
 
     inst_printf("Emitted new instruction; size is %d\n", size_);
+    size_ = gen.currAddr(baseInMutatee) - addrInMutatee_;
     generated_ = true;
 
     return true;

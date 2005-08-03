@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.89 2005/07/29 19:18:33 bernat Exp $
+// $Id: inst-alpha.C,v 1.90 2005/08/03 23:00:57 bernat Exp $
 
 #include "common/h/headers.h"
 
@@ -279,55 +279,52 @@ bool baseTrampInstance::finalizeGuardBranch(codeGen &, int) {
 
 bool relocatedInstruction::generateCode(codeGen &gen,
 					Address baseInMutatee) {
-    if (generated_) {
-        // We already have code... check to see if it's the same addr
-        assert(gen.currAddr(baseInMutatee) == relocAddr);
-        gen.moveIndex(size_);
+    if (alreadyGenerated(gen, baseInMutatee))
         return true;
+    generateSetup(gen, baseInMutatee);
+    
+    unsigned origOffset = gen.used();
+    int newOffset = 0;
+    
+    if (insn.isBranch()) {
+        if (!targetOverride_) {
+            newOffset = insn.getTarget(origAddr) - relocAddr();
+        }
+        else {
+            newOffset = targetOverride_ - relocAddr();
+        }
+        if (ABS(newOffset >> 2) > MAX_BRANCH) {
+            fprintf(stderr, "newOffset 0x%llx, origAddr 0x%llx, relocAddr() 0x%llx, target 0x%llx, override 0x%llx\n",
+                    newOffset, origAddr, relocAddr(), insn.getTarget(origAddr), targetOverride_);
+            
+            
+            
+            logLine("A branch too far\n");
+            assert(0);
+        }
+        instruction newBranch(insn);
+        (*newBranch).branch.disp = newOffset >> 2;
+        newBranch.generate(gen);
     }
-  
-  unsigned origOffset = gen.used();
-  relocAddr = gen.currAddr(baseInMutatee);
-  int newOffset = 0;
-
-  if (insn.isBranch()) {
-    if (!targetOverride_) {
-      newOffset = insn.getTarget(origAddr) - relocAddr;
+    else 
+        insn.generate(gen);
+    
+    // Calls are ANNOYING. I've seen behavior where RA (the return addr)
+    // is later used in a memory calculation... so after all is said and done,
+    // set RA to what it would have been.
+    // Note: we do this after the original relocation because JSRs don't
+    // trigger "isBranch"
+    if (insn.isCall()) {
+        Address origReturn = origAddr + instruction::size();
+        int remainder = 0;
+        instruction::generateAddress(gen, REG_RA, origReturn, remainder);
+        if (remainder)
+            instruction::generateLDA(gen, REG_RA, REG_RA, remainder, true);
     }
-    else {
-      newOffset = targetOverride_ - relocAddr;
-    }
-    if (ABS(newOffset >> 2) > MAX_BRANCH) {
-      fprintf(stderr, "newOffset 0x%llx, origAddr 0x%llx, relocAddr 0x%llx, target 0x%llx, override 0x%llx\n",
-	      newOffset, origAddr, relocAddr, insn.getTarget(origAddr), targetOverride_);
-
-
-      
-      logLine("A branch too far\n");
-      assert(0);
-    }
-    instruction newBranch(insn);
-    (*newBranch).branch.disp = newOffset >> 2;
-    newBranch.generate(gen);
-  }
-  else 
-    insn.generate(gen);
-
-  // Calls are ANNOYING. I've seen behavior where RA (the return addr)
-  // is later used in a memory calculation... so after all is said and done,
-  // set RA to what it would have been.
-  // Note: we do this after the original relocation because JSRs don't
-  // trigger "isBranch"
-  if (insn.isCall()) {
-    Address origReturn = origAddr + instruction::size();
-    int remainder = 0;
-    instruction::generateAddress(gen, REG_RA, origReturn, remainder);
-    if (remainder)
-      instruction::generateLDA(gen, REG_RA, REG_RA, remainder, true);
-  }
-  
-  size_ = gen.used() - origOffset;
-  return true;
+    
+    size_ = gen.currAddr(baseInMutatee) - addrInMutatee_;
+    generated_ = true;
+    return true;
 }
 
 

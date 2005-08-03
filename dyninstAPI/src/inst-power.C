@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.224 2005/07/29 22:16:26 bernat Exp $
+ * $Id: inst-power.C,v 1.225 2005/08/03 23:00:59 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -221,30 +221,25 @@ unsigned relocatedInstruction::maxSizeRequired() {
 
 bool relocatedInstruction::generateCode(codeGen &gen,
                                         Address baseInMutatee) {
-    if (generated_) {
-        // We already have code... check to see if it's the same addr
-        if ((baseInMutatee + gen.used()) == relocAddr) {
-            gen.moveIndex(size_);
-            return true;
-        }
-    }
+    if (alreadyGenerated(gen, baseInMutatee))
+        return true;
+    generateSetup(gen, baseInMutatee);
 
     unsigned origOffset = gen.used();
-    relocAddr = gen.currAddr(baseInMutatee);
     int newOffset = 0;
 
     if (insn.isUncondBranch()) {
         // unconditional pc relative branch.
 
       if (!targetOverride_) 
-        newOffset = origAddr - relocAddr + (int)insn.getBranchOffset(); 
+        newOffset = origAddr - relocAddr() + (int)insn.getBranchOffset(); 
       else {
 	// We need to pin the jump
-	newOffset = targetOverride_ - relocAddr;
+	newOffset = targetOverride_ - relocAddr();
       }
         if (ABS(newOffset) >= MAX_BRANCH) {
             fprintf(stderr, "At address 0x%x, original 0x%x, offset 0x%x, abs 0x%x, max 0x%x\n",
-                    relocAddr, origAddr, newOffset, ABS(newOffset), MAX_BRANCH);
+                    relocAddr(), origAddr, newOffset, ABS(newOffset), MAX_BRANCH);
             logLine("a branch too far\n");
             assert(0);
         } else {
@@ -256,9 +251,9 @@ bool relocatedInstruction::generateCode(codeGen &gen,
     else if (insn.isCondBranch()) {
         // conditional pc relative branch.
       if (!targetOverride_)
-        newOffset = origAddr - relocAddr + insn.getBranchOffset();
+        newOffset = origAddr - relocAddr() + insn.getBranchOffset();
       else
-	newOffset = targetOverride_ - relocAddr;
+	newOffset = targetOverride_ - relocAddr();
         if (ABS(newOffset) >= MAX_CBRANCH) {
             if (((*insn).bform.bo & BALWAYSmask) == BALWAYScond) {
                 assert((*insn).bform.bo == BALWAYScond);
@@ -329,9 +324,8 @@ bool relocatedInstruction::generateCode(codeGen &gen,
         insn.generate(gen);
     }
     
-    size_ = gen.used() - origOffset;
+    size_ = gen.currAddr(baseInMutatee) - addrInMutatee_;
     generated_ = true;
-
     return true;
 }
 

@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.82 2005/08/03 22:06:48 tlmiller Exp $
+ * $Id: inst-ia64.C,v 1.83 2005/08/03 23:00:58 bernat Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -1029,6 +1029,9 @@ void instruction::relocate(codeGen &gen, Address originalLocation,
 
 bool relocatedInstruction::generateCode(codeGen &gen,
 										Address baseInMutatee) {
+	if (alreadyGenerated(gen, baseInMutatee))
+		return true;
+	generateSetup(gen, baseInMutatee);
 
 	int slotNo = insn.getSlotNumber();
 	Address originalLocation = origAddr;
@@ -1056,6 +1059,9 @@ bool relocatedInstruction::generateCode(codeGen &gen,
 	   instructions are always emulated in the middle, which makes
 	   post-position instrumentation work. */
 	insn.relocate(gen, originalLocation, allocatedAddress);
+
+    size_ = gen.currAddr(baseInMutatee) - addrInMutatee_;
+    generated_ = true;
 	return true;
 } /* end emulateBundle() */
 
