@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.h,v 1.2 2005/07/30 03:26:52 bernat Exp $
+// $Id: baseTramp.h,v 1.3 2005/08/03 05:28:07 bernat Exp $
 
 // baseTramp class definition
 
@@ -311,12 +311,15 @@ class baseTramp {
 
     void setRecursive(bool trampRecursive);
     bool getRecursive() const;
+
+    // Return one or the other; undefined which one if both are set.
+    // Returns null if an rpcMgr tramp
+    instPoint *point() const;
+
  private:
     // Easier to do logic this way...
     bool guarded() const { return (guardState_ == guarded_BTR); }
 
-    // Return one or the other; undefined which one if both are set.
-    instPoint *point() const;
 
     unsigned instVersion_;
 };
