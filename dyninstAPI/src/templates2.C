@@ -40,7 +40,7 @@
  */
 
 
-// $Id: templates2.C,v 1.51 2005/07/29 22:16:33 bernat Exp $
+// $Id: templates2.C,v 1.52 2005/08/03 05:28:29 bernat Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -50,7 +50,9 @@
 #endif
 
 #include "common/h/String.h"
+#include "common/h/Symbol.h"
 
+#if 0
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
@@ -64,6 +66,7 @@
 #include "dyninstAPI/src/libState.h"
 
 #include "dyninstAPI/src/signalhandler.h"
+#endif
 
 #ifndef alpha_dec_osf4_0
 // ld on Alpha complains about the vector<pdstring> class being
@@ -78,74 +81,86 @@ template class pdvector<pdstring>;
 template class pdpair<pdstring, pdvector<pdstring> >;
 
 template class pdvector<pdpair<pdstring, pdvector<pdstring> > >;
+
+
+class Symbol;
+template class  dictionary_hash_iter <Address, Symbol*>;
+
+//template class  dictionary_hash_iter <instPoint*, unsigned>;
+template class  dictionary_hash_iter <pdstring, Symbol>;
+class pdmodule;
+template class  dictionary_hash_iter <pdstring, pdmodule *>;
+class int_function;
+template class  dictionary_hash_iter <pdstring, int_function*>;
+template class  dictionary_hash_iter <pdstring, pdvector<int_function*>*>;
+template class  dictionary_hash_iter <unsigned, int_function*>;
 template class pdvector<pdvector<int_function * >* >;
 
-template class  dictionary_hash_iter <Address, Symbol*>;
-template class  dictionary_hash_iter <instPoint*, unsigned>;
-template class  dictionary_hash_iter <pdstring, Symbol>;
-template class  dictionary_hash_iter <pdstring, internalSym*>;
-template class  dictionary_hash_iter <pdstring, pdmodule *>;
-template class  dictionary_hash_iter <pdstring, int_function*>;
 template class  dictionary_hash_iter <pdstring, unsigned>;
-template class  dictionary_hash_iter <pdstring, pdvector<int_function*>*>;
+
+class int_variable;
 template class  dictionary_hash_iter <pdstring, pdvector<int_variable*>*>;
+class image_func;
 template class  dictionary_hash_iter <pdstring, pdvector<image_func*>*>;
+class image_variable;
 template class  dictionary_hash_iter <pdstring, pdvector<image_variable*>*>;
+
 template class  dictionary_hash_iter <unsigned, unsigned>;
+class heapItem;
 template class  dictionary_hash_iter <unsigned, heapItem*>;
-template class  dictionary_hash_iter <unsigned, int_function*>;
 template class  dictionary_hash_iter <unsigned long, int_function*>;
+
+class mapped_object;
 template class  pdvector<mapped_object *> ;
 
+class libraryCallback;
 template class dictionary_hash<pdstring, libraryCallback *>;
 template class pdvector<dictionary_hash <pdstring, libraryCallback *>::entry>;
 
+class syscallTrap;
 template class pdvector<syscallTrap *>;
 
 /* ***************************************************************************** */
 
 template class dictionary_hash <pdstring, Symbol>;
 template class pdvector<dictionary_hash <pdstring, Symbol>::entry>;
-template class pdvector<dictionary_hash<Address, BPatch_point *>::entry>;
 
-template class dictionary_hash<pdstring, BPatch_type *>;
-template class dictionary_hash<int, BPatch_type *>;
-template class dictionary_hash<pdstring, BPatch_localVar *>;
-template class dictionary_hash<int, BPatch_thread *>;
+class BPatch_point;
+template class pdvector<dictionary_hash<Address, BPatch_point *>::entry>;
 template class dictionary_hash<Address, BPatch_point *>;
 
+class BPatch_type;
+template class dictionary_hash<pdstring, BPatch_type *>;
+template class dictionary_hash<int, BPatch_type *>;
 template class dictionary_hash_iter<pdstring, BPatch_type *>;
 template class pdvector<dictionary_hash <pdstring, BPatch_type *>::entry>;
 template class dictionary_hash_iter<int, BPatch_type *>;
 template class pdvector<dictionary_hash <int, BPatch_type *>::entry>;
+class BPatch_localVar;
+template class dictionary_hash<pdstring, BPatch_localVar *>;
 template class dictionary_hash_iter<pdstring, BPatch_localVar *>;
 template class pdvector<dictionary_hash <pdstring, BPatch_localVar *>::entry>;
+template class pdvector<BPatch_localVar *>;
+class BPatch_thread;
+template class dictionary_hash<int, BPatch_thread *>;
 template class dictionary_hash_iter<int, BPatch_thread *>;
 template class pdvector<dictionary_hash <int, BPatch_thread *>::entry>;
 
-template class pdvector<BPatch_localVar *>;
+class BPatch_field;
 template class pdvector<BPatch_field *>;
 
+class procevent;
 template class pdvector<procevent *>;
 
 template class pdvector<pdpair<pdstring, pdvector<pdstring> *> >;
 template class dictionary_hash <pdstring, pdvector<pdstring> *>;
 template class pdvector<dictionary_hash <pdstring, pdvector<pdstring> *>::entry>;
 
-template class pdvector<inferiorRPCtoDo>;
-template class pdvector<inferiorRPCinProgress>;
-
 template class pdvector<dictionary_hash <unsigned int, Address>::entry>;
 
 class BPatch_basicBlock;
-
 template class  dictionary_hash<Address,BPatch_basicBlock*>;
 template class  pdvector<dictionary_hash<Address,BPatch_basicBlock*>::entry>;
-
-#ifndef BPATCH_LIBRARY
-class defInst;
-template class pdvector<defInst *>;
-#endif
 
 #if defined( USES_DWARF_DEBUG )
 #include <stack>
@@ -154,6 +169,7 @@ template class std::stack< long int >;
 #include <map>
 template class std::map< unsigned int, char * >;
 
+class BPatch_typeCollection;
 template class dictionary_hash< pdstring, BPatch_typeCollection * >;
 template class pdvector<dictionary_hash <pdstring, BPatch_typeCollection *>::entry>;
 #endif

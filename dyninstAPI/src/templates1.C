@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.67 2005/07/29 22:16:32 bernat Exp $
+//$Id: templates1.C,v 1.68 2005/08/03 05:28:28 bernat Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #pragma implementation("Dictionary.h")
@@ -50,6 +50,7 @@
 
 #include "common/h/String.h"
 
+#if 0
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
@@ -59,13 +60,10 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/Object.h"
 #include "common/h/List.h"
-
-class dyn_lwp;
-class image_func;
+#endif
 
 //begin from templates05
 template class refCounter<string_ll>;
-template class pdvector<heapDescriptor>;
 //end from templates05
 
 #if defined(BPATCH_LIBRARY)
@@ -79,107 +77,111 @@ class BPatch_field;
 class BPatch_variableExpr;
 #endif
 
-#if defined(mips_sgi_irix6_4)
-#include "dyninstAPI/src/irixDL.h" // dsoEvent_t
-template class  pdvector<pdDsoEvent *>;
-template class  pdvector<pdElfObjInfo *>;
-template class  pdvector<pdvector<int> >;
-template class  pdvector<pdElfSym *>;
-#endif
 template class  dictionary_hash <Address, unsigned>;
 // symbolNamesByAddr
 template class  dictionary_hash <Address, pdstring>;
 
 template class  pdvector<dictionary_hash <Address, unsigned>::entry>;
 template class  dictionary_hash_iter <Address, unsigned>;
+template class  dictionary_hash <pdstring, unsigned>;
+template class  pdvector<dictionary_hash <pdstring, unsigned>::entry>;
+template class  pdvector<dictionary_hash <Address, pdstring>::entry>;
 
 // For the LWP list in the process class
+class dyn_lwp;
 template class  dictionary_hash <unsigned, dyn_lwp *>;
 template class  pdvector<dictionary_hash <unsigned, dyn_lwp *>::entry>;
 template class  dictionary_hash_iter <unsigned, dyn_lwp *>;
 
-#include "dyninstAPI/src/rpcMgr.h"
+class rpcLWP;
+class rpcThr;
+class inferiorRPCtoDo;
+class inferiorRPCinProgress;
 template class  dictionary_hash<unsigned, rpcLWP *>;
 template class  pdvector<dictionary_hash <unsigned, rpcLWP *>::entry>;
 template class pdvector<rpcThr *>;
-
 template class pdvector<inferiorRPCtoDo *>;
 template class pdvector<inferiorRPCinProgress *>;
 
 #include "common/src/List.C"
+class Symbol;
 template class  dictionary_hash <Address, Symbol*>;
 template class  pdvector<dictionary_hash <Address, Symbol*>::entry>;
+
+class instPoint;
 template class  dictionary_hash <instPoint*, unsigned>;
 template class  pdvector<dictionary_hash <instPoint*, unsigned>::entry>;
 template class  pdvector<dictionary_hash <instPoint*, unsigned long>::entry>;
 template class  dictionary_hash <Address, instPoint*>;
 template class  pdvector<dictionary_hash <Address, instPoint *>::entry>;
-template class  dictionary_hash <pdstring, internalSym*>;
-template class  pdvector<dictionary_hash <pdstring, internalSym*>::entry>;
+
+
+class pdmodule;
 template class  dictionary_hash <pdstring, pdmodule *>;
 template class  pdvector<dictionary_hash <pdstring, pdmodule *>::entry>;
+
+class int_function;
 template class  dictionary_hash <pdstring, int_function*>;
 template class  pdvector<dictionary_hash <pdstring, int_function*>::entry>;
+template class  dictionary_hash <pdstring, pdvector<int_function*>*>;
+template class  pdvector<dictionary_hash <pdstring, pdvector<int_function*>*>::entry>;
+template class  dictionary_hash <Address, int_function*>;
+template class  pdvector<dictionary_hash <Address, int_function*>::entry>;
+template class  dictionary_hash<int_function *,int_function *>;
+
+class int_variable;
 template class  dictionary_hash <pdstring, pdvector<int_variable*>*>;
 template class  pdvector<dictionary_hash <pdstring, pdvector<int_variable*> *>::entry>;
-template class  dictionary_hash <pdstring, pdvector<image_func*> *>;
 
+class image_func;
+template class  dictionary_hash <pdstring, pdvector<image_func*> *>;
 template class  dictionary_hash <Address, image_func*>;
 template class  pdvector<dictionary_hash <Address, image_func*>::entry>;
 
+class image_variable;
 template class  dictionary_hash <Address, image_variable*>;
 template class  pdvector<dictionary_hash <Address, image_variable*>::entry>;
-
 template class  dictionary_hash <pdstring, pdvector<image_variable*>*>;
 template class  pdvector<dictionary_hash <pdstring, pdvector<image_variable*> *>::entry>;
 
+#include "symtab.h" // supportedLanguages is a typedef; could move.
 template class  dictionary_hash <pdstring, supportedLanguages>;
 template class  pdvector<dictionary_hash <pdstring, supportedLanguages>::entry>;
-template class  dictionary_hash <pdstring, unsigned>;
-template class  pdvector<dictionary_hash <pdstring, unsigned>::entry>;
-template class  dictionary_hash <pdstring, pdvector<int_function*>*>;
-template class  pdvector<dictionary_hash <pdstring, pdvector<int_function*>*>::entry>;
-template class  dictionary_hash <unsigned, heapItem*>;
-template class  dictionary_hash <unsigned long, heapItem*>;
-template class  pdvector<dictionary_hash <unsigned, heapItem*>::entry>;
-template class  pdvector<dictionary_hash <unsigned long, heapItem*>::entry>;
-template class  dictionary_hash <unsigned, int_function*>;
-template class  dictionary_hash <unsigned long, int_function*>;
-template class  pdvector<dictionary_hash <unsigned, int_function*>::entry>;
-template class  pdvector<dictionary_hash <unsigned long, pdstring>::entry>;
 
+class heapItem;
+template class  dictionary_hash <Address, heapItem*>;
+template class  pdvector<dictionary_hash <Address, heapItem*>::entry>;
+
+class BPatch_process;
 template class dictionary_hash<int, BPatch_process *>;
 template class pdvector<dictionary_hash <int, BPatch_process *>::entry>;
 
+class BPatch_function;
 template class dictionary_hash<const int_function *, BPatch_function *>;
 template class pdvector<dictionary_hash <const int_function *, BPatch_function *>::entry>;
-#ifndef BPATCH_LIBRARY
-template class  dictionary_hash <int_function*, int_function*>;
-template class  pdvector<dictionary_hash <int_function*, int_function*>::entry>;
-#endif
 template class  dictionary_hash <int_function*, BPatch_function*>;
 template class  pdvector<dictionary_hash<int_function*, BPatch_function*>::entry>;
+
+class BPatch_variableExpr;
 template class  dictionary_hash <Address, BPatch_variableExpr*>;
 template class  pdvector<dictionary_hash <Address, BPatch_variableExpr*>::entry>;
 
+#include "BPatch_frame.h"
 template class BPatch_Vector<BPatch_frame>;
 
+class BPatch_point;
 template class dictionary_hash <const instPoint *, BPatch_point *>;
 template class pdvector<dictionary_hash<const instPoint *, BPatch_point *>::entry>;
 template class dictionary_hash_iter<const instPoint *, BPatch_point *>;
 
-#ifdef alpha_dec_osf4_0
 template class  dictionary_hash <pdstring, int>;
 template class  pdvector<dictionary_hash <pdstring, int>::entry>;
-#endif
-
-template class  pdvector<dictionary_hash <unsigned long, int_function*>::entry>;
 template class  dictionary_hash <unsigned, unsigned>;
 template class  pdvector<dictionary_hash <unsigned, unsigned>::entry>;
-template class  dictionary_hash <unsigned, unsigned long>;
-template class  dictionary_hash <unsigned long, unsigned long>;
-template class  pdvector<dictionary_hash <unsigned long, unsigned long>::entry>;
-template class  dictionary_hash_iter <unsigned long, unsigned long>;
+template class  dictionary_hash <unsigned, Address>;
+template class  dictionary_hash <Address, Address>;
+template class  pdvector<dictionary_hash <Address, Address>::entry>;
+template class  dictionary_hash_iter <Address, Address>;
 
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) \
@@ -187,6 +189,7 @@ template class  dictionary_hash_iter <unsigned long, unsigned long>;
  || defined(sparc_sun_solaris2_4) \
  || defined(mips_sgi_irix_6_4) \
  || defined(ia64_unknown_linux2_4)
+class Elf_X_Shdr;
 template class pdvector<Elf_X_Shdr *>;
 #endif
 
@@ -198,4 +201,5 @@ class relocatedInstruction;
 template class dictionary_hash<Address, relocatedInstruction *>;
 template class pdvector<dictionary_hash<Address, relocatedInstruction *>::entry>;
 
+class int_basicBlock;
 template class BPatch_Set<int_basicBlock *>;

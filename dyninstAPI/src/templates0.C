@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.52 2005/07/29 22:16:31 bernat Exp $
+// $Id: templates0.C,v 1.53 2005/08/03 05:28:27 bernat Exp $
 // Generate all the templates in one file.
 
 /*
@@ -74,6 +74,8 @@
 
 #include "common/h/String.h"
 
+#if 0
+
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
@@ -83,116 +85,135 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/Object.h"
-
-#if !defined(BPATCH_LIBRARY)
-#include "paradynd/src/instReqNode.h"
-#include "paradynd/src/processMetFocusNode.h"
-#endif
+#endif // if 0
 
 #if defined(rs6000_ibm_aix4_1)
 #include "LineInformation.h"
 template class pdvector< IncludeFileInfo >;
 #endif
 
-#include "dyninstAPI/src/dynamiclinking.h"
+// #include "dyninstAPI/src/dynamiclinking.h"
 
 #include <set>
 
-class int_function;
-class int_variable;
-class int_basicBlock;
+template class  pdvector<float>;
+template class  pdvector<int>;
+template class  pdvector<bool>;
+template class  pdvector<pdstring>;
+template class  pdvector<pdvector<pdstring> >;
+template class  pdvector<unsigned>;
+template class  pdvector<unsigned long>;
+template class  pdvector<long>;
+template class  pdvector<double>;
 
+class dyn_thread;
 template class  pdvector<dyn_thread *>;
 template class  pdvector< pdvector<dyn_thread *> >;
-template class  pdvector<bool>;
-template class  pdvector<AstNode>;
+
+class AstNode;
+//template class  pdvector<AstNode>;
 template class  pdvector<AstNode *>;
+
+// Included above
+template class  pdvector<Symbol>;
 template class  pdvector<Symbol*>;
+
+#include "frame.h"
 template class  pdvector<Frame>;
 template class  pdvector<Frame*>;
 template class  pdvector<pdvector<Frame> >;
 template class  pdvector<pdvector<Frame*> >;
 
-template class  pdvector<Symbol>;
-template class  pdvector<float>;
+class heapItem;
 template class  pdvector<heapItem*>;
+
+class image;
 template class  pdvector<image*>;
-template class  pdvector<instMapping*>;
+
 class image_instPoint;
 template class  pdvector<image_instPoint *>;
+
+class instPoint;
 template class  pdvector<instPoint *>;
-template class  pdvector<BPatch_basicBlock*>;
 template class  pdvector<const instPoint *>;
+
+class instPointInstance;
 template class  pdvector<instPointInstance *>;
+
+class BPatch_basicBlock;
+template class  pdvector<BPatch_basicBlock*>;
+
+class baseTramp;
+class baseTrampInstance;
 template class  pdvector<baseTramp *>;
 template class  pdvector<baseTrampInstance *>;
-template class  pdvector<int>;
+
+#include "arch.h"
 template class  pdvector<instruction>;
-template class  pdvector< point_ >;
+
+#include "symtab.h"
 template class  pdvector< ExceptionBlock >;
+
 class codeRange;
 template class  pdvector<codeRange *>;
 
-#ifndef BPATCH_LIBRARY
-class processMetFocusNode;
-
-template class  pdvector<machineMetFocusNode *>;
-template class  pdvector<processMetFocusNode *>;
-template class  pdvector<instrCodeNode *>;
-template class  pdvector<const instrCodeNode *>;
-template class  pdvector<instrDataNode *>;
-template class  pdvector<threadMetFocusNode *>;
-template class  pdvector<catchupReq>;
-template class  pdvector<catchupReq*>;
-template class  pdvector<pdvector<catchupReq *> >;
-// Temporary structs used in processMetFocusNode.C
-template class  pdvector<catchup_t>;
-template class  pdvector<sideEffect_t>;
-template class  pdvector<threadMetFocusNode_Val *>;
-template class  pdvector<const threadMetFocusNode_Val *>;
-#endif
+class module;
 template class  pdvector<module *>;
+
+class pdmodule;
 template class  pdvector<pdmodule *>;
+
+class int_function;
 template class  pdvector<int_function*>;
+class int_variable;
 template class  pdvector<int_variable*>;
+class int_basicBlock;
 template class  pdvector<int_basicBlock *>;
+
 class BPatch_basicBlockLoop;
 template class  pdvector<BPatch_basicBlockLoop*>;
+
+class process;
 template class  pdvector<process*>;
-template class  pdvector<pdstring>;
-template class  pdvector<sym_data>;
-template class  pdvector<unsigned>;
-template class  pdvector<unsigned long>;
-template class  pdvector<long>;
+
+#include "infHeap.h"
 template class  pdvector<disabledItem>;
 template class  pdvector<addrVecType>;
-template class  pdvector<pdvector<pdstring> >;
-template class  pdvector<double>;
+template class pdvector<heapDescriptor>;
 
+class miniTramp;
+class miniTrampInstance;
 template class  pdvector<miniTramp *>;
 template class  pdvector<miniTrampInstance *>;
 template class  pdvector<const miniTramp *>;
+
+class generatedCodeObject;
 template class  pdvector<generatedCodeObject *>;
 
+class image_func;
+class image_basicBlock;
+class image_variable;
 template class  pdvector<image_func *>;
 template class  pdvector<image_basicBlock *>;
 template class  pdvector<image_variable *>;
 
+#include "Object.h"
 template class  pdvector<relocationEntry>;
+
+class sharedLibHook;
 template class  pdvector<sharedLibHook *>;
 
+#include "imageUpdate.h"
 template class pdvector<imageUpdate*>;//ccw 28 oct 2001
 template class pdvector<dataUpdate*> ;//ccw 26 nov 2001
 
-
-#ifndef BPATCH_LIBRARY
-template class pdvector<pdvector<pdstring> *>;
-#endif
-
+class instMapping;
+template class pdvector<instMapping *>;
 
 class mapped_module;
 template class pdvector<mapped_module *>;
 
+#include "mapped_object.h"
 template class pdvector<mapped_object::foundHeapDesc>;
 
 #include "InstrucIter.h"
