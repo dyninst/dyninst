@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.170 2005/07/29 19:18:54 bernat Exp $
+// $Id: linux.C,v 1.171 2005/08/03 05:28:13 bernat Exp $
 
 #include <fstream>
 
@@ -204,7 +204,7 @@ int decodeRTSignal(process *proc,
                             vars)) {
        // Can restrict to a particular library... might be worth it to streamline.
        // Hell... why not make this a process member and keep the addresses around?
-       assert(0);
+       // We might not have the RT lib yet...
        return 0;
    }
    assert(vars.size() == 1); // findVarsByAll should return false if we didn't find anything
@@ -275,7 +275,6 @@ int decodeRTSignal(process *proc,
 bool checkForEventLinux(procevent *new_event, int wait_arg, 
                         bool block, int wait_options)
 {
-
    int result = 0, status = 0;
 
      //  wait (check) for process events
@@ -287,8 +286,9 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
         return false; /* nothing to wait for */
      } else if (result < 0) {
         perror("checkForEventLinux: waitpid failure");
-     } else if(result == 0)
+     } else if(result == 0) {
         return false;
+     }
 
    int pertinentPid = result;
 
@@ -876,9 +876,9 @@ bool process::stop_()
   {
     return false;
   }
-  if (status() == exited)
-    return false;
-
+  if (status() == exited) {
+      return false;
+  }
   //Stop all other LWPs
   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
   unsigned index = 0;
