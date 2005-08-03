@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.327 2005/07/29 19:19:07 bernat Exp $
+/* $Id: process.h,v 1.328 2005/08/03 05:28:23 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -72,6 +72,8 @@
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/imageUpdate.h"
+
+#include "dyninstAPI/src/infHeap.h"
 
 #if (! defined( BPATCH_LIBRARY )) && defined( PAPI )
 #include "paradynd/src/papiMgr.h"
@@ -124,155 +126,6 @@ class BPatch_thread;
 class BPatch_function;
 #endif
 
-typedef enum { HEAPfree, HEAPallocated } heapStatus;
-// Bit pattern...
-typedef enum { textHeap=0x01,
-               dataHeap=0x02,
-               uncopiedHeap=0x04, // AIX -- not copied on fork
-               anyHeap=0x7, // OR of the previous three
-               lowmemHeap=0x1000 }
-        inferiorHeapType;
-typedef pdvector<Address> addrVecType;
-
-typedef enum { unstarted_bs, 
-               attached_bs, 
-               begun_bs, 
-               initialized_bs, 
-               loadingRT_bs, 
-               loadedRT_bs, 
-               bootstrapped_bs } bootstrapState_t;
-
-typedef enum { terminateFailed, terminateSucceeded, alreadyTerminated } terminateProcStatus_t;
-
-const int LOAD_DYNINST_BUF_SIZE = 256;
-
-typedef struct sym_data {
-  pdstring name;
-  bool must_find;
-} sym_data;
-
-class heapItem {
- public:
-  heapItem() : 
-    addr(0), length(0), type(anyHeap), dynamic(true), status(HEAPfree) {}
-  heapItem(Address a, int n, inferiorHeapType t, 
-           bool d = true, heapStatus s = HEAPfree) :
-    addr(a), length(n), type(t), dynamic(d), status(s) {}
-  heapItem(const heapItem *h) :
-    addr(h->addr), length(h->length), type(h->type), 
-    dynamic(h->dynamic), status(h->status) {}
-  heapItem(const heapItem &h) :
-    addr(h.addr), length(h.length), type(h.type), 
-    dynamic(h.dynamic), status(h.status) {}
-  heapItem &operator=(const heapItem &src) {
-    addr = src.addr;
-    length = src.length;
-    type = src.type;
-    dynamic = src.dynamic;
-    status = src.status;
-    return *this;
-  }
-
-  Address addr;
-  unsigned length;
-  inferiorHeapType type;
-  bool dynamic; // part of a dynamically allocated segment?
-  heapStatus status;
-};
-
-
-// disabledItem: an item on the heap that we are trying to free.
-// "pointsToCheck" corresponds to predecessor code blocks
-// (i.e. prior minitramp/basetramp code)
-class disabledItem {
- public:
-  disabledItem() : block() {}
-
-  disabledItem(heapItem *h, const pdvector<addrVecType> &preds) :
-    block(h), pointsToCheck(preds) {}
-  disabledItem(const disabledItem &src) :
-    block(src.block), pointsToCheck(src.pointsToCheck) {}
-
-  // TODO: unused?
-  disabledItem(Address ip, inferiorHeapType iht,
-               const pdvector<addrVecType> &ipts) :
-    block(ip, 0, iht), pointsToCheck(ipts) { 
-    bperr( "error: unused disabledItem ctor\n");
-    assert(0);
-  }
-  disabledItem &operator=(const disabledItem &src) {
-    if (&src == this) return *this; // check for x=x    
-    block = src.block;
-    pointsToCheck = src.pointsToCheck;
-    return *this;
-  }
-
-
- ~disabledItem() {}
-  
-  heapItem block;                    // inferior heap block
-  pdvector<addrVecType> pointsToCheck; // list of addresses to check against PCs
-
-  Address getPointer() const {return block.addr;}
-  inferiorHeapType getHeapType() const {return block.type;}
-  const pdvector<addrVecType> &getPointsToCheck() const {return pointsToCheck;}
-  pdvector<addrVecType> &getPointsToCheck() {return pointsToCheck;}
-};
-
-/* Dyninst heap class */
-/*
-  This needs a better name. Contains a name, and address, and a size.
-  Any ideas?
-*/
-class heapDescriptor {
- public:
-  heapDescriptor(const pdstring name,
-		 Address addr,
-		 unsigned int size,
-		 const inferiorHeapType type):
-    name_(name),addr_(addr),size_(size), type_(type) {}
-  heapDescriptor():
-    name_(pdstring("")),addr_(0),size_(0),type_(anyHeap) {}
-  ~heapDescriptor() {}
-  heapDescriptor &operator=(const heapDescriptor& h)
-    {
-      name_ = h.name();
-      addr_ = h.addr();
-      size_ = h.size();
-      type_ = h.type();
-      return *this;
-    }
-  const pdstring &name() const {return name_;}
-  const Address &addr() const {return addr_;}
-  const unsigned &size() const {return size_;}
-  const inferiorHeapType &type() const {return type_;}
- private:
-  pdstring name_;
-  Address addr_;
-  unsigned size_;
-  inferiorHeapType type_;
-};
-
-
-class inferiorHeap {
- public:
-    void clear();
-    
-  inferiorHeap(): heapActive(addrHash16) {
-      freed = 0; disabledListTotalMem = 0; totalFreeMemAvailable = 0;
-  }
-  inferiorHeap(const inferiorHeap &src);  // create a new heap that is a copy
-                                          // of src (used on fork)
-  dictionary_hash<Address, heapItem*> heapActive; // active part of heap 
-  pdvector<heapItem*> heapFree;           // free block of data inferior heap 
-  pdvector<disabledItem> disabledList;    // items waiting to be freed.
-  int disabledListTotalMem;             // total size of item waiting to free
-  int totalFreeMemAvailable;            // total free memory in the heap
-  int freed;                            // total reclaimed (over time)
-
-  pdvector<heapItem *> bufferPool;        // distributed heap segments -- csserra
-};
- 
 #if 0
 static inline unsigned ipHash(const instPoint * const &ip)
 {

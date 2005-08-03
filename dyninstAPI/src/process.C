@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.542 2005/07/29 19:19:06 bernat Exp $
+// $Id: process.C,v 1.543 2005/08/03 05:28:22 bernat Exp $
 
 #include <ctype.h>
 
@@ -395,6 +395,11 @@ void process::inferiorFreeCompact(inferiorHeap *hp)
       heapItem *h1 = freeList[i-1];
       heapItem *h2 = freeList[i];
       assert(h1->length != 0);
+      if (h1->addr + h1->length > h2->addr) {
+          fprintf(stderr, "Error: heap 1 (0x%x to 0x%x) overlaps heap 2 (0x%x to 0x%x)\n",
+                  h1->addr, h1->addr + h1->length,
+                  h2->addr, h2->addr + h2->length);
+      }
       assert(h1->addr + h1->length <= h2->addr);
       if (h1->addr + h1->length == h2->addr
           && h1->type == h2->type) {
@@ -1103,6 +1108,18 @@ void process::addInferiorHeap(const mapped_object *obj)
                     infHeaps[j].addr() + infHeaps[j].size(),
                     infHeaps[j].name().c_str());
 #endif
+#if defined(arch_power)
+            // MT: I've seen problems writing into a "found" heap that
+            // is in the application heap (IE a dlopen'ed
+            // library). Since we don't have any problems getting
+            // memory there, I'm skipping any heap that is in 0x2.....
+            
+            if ((infHeaps[j].addr() > 0x20000000) &&
+                (infHeaps[j].addr() < 0xd0000000) &&
+                (infHeaps[j].type() == uncopiedHeap))
+                continue;
+#endif            
+
             heapItem *h = new heapItem (infHeaps[j].addr(), infHeaps[j].size(),
                                         infHeaps[j].type(), false);
             heap.bufferPool.push_back(h);
@@ -1530,6 +1547,7 @@ void process::inferiorFree(Address block)
 // (and the process object is deleted) and when it execs
 
 void process::deleteProcess() {
+
   // A lot of the behavior here is keyed off the current process status....
   // if it is exited we'll delete things without performing any operations
   // on the process. Otherwise we'll attempt to reverse behavior we've made.
@@ -1814,6 +1832,7 @@ process::process(int ipid) :
  || defined(alpha_dec_osf4_0)
     splitHeaps = true;
 #endif
+
 }
 
 //
@@ -1895,18 +1914,25 @@ bool process::setupAttached() {
       return false;
    }
 
+   startup_printf("[%d]: attached, getting current process state\n", getPid());
+
    // Record what the process was doing when we attached, for possible
    // use later.
    if (isRunning_()) {
+       startup_printf("[%d]: process running when attached, pausing...\n", getPid());
        stateWhenAttached_ = running; 
        set_status(running);
-       pause();
+       if (!pause())
+           return false;
    }
    else {
+       startup_printf("[%d]: attached to previously paused process\n", getPid());
        stateWhenAttached_ = stopped;
        set_status(stopped);
    }
+   startup_printf("[%d]: setupAttached returning true\n", getPid());
 
+   assert(status() == stopped);
    return true;
 }
 
@@ -2227,9 +2253,6 @@ bool process::setupGeneral() {
     // Need to have a.out at this point
     assert(mapped_objects.size() > 0);
 
-    processVec.push_back(this);
-    activeProcesses++;
-
     if (reachedBootstrapState(bootstrapped_bs)) 
         return true;
 
@@ -2513,8 +2536,14 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
     process *theProc = new process(pid);
     assert(theProc);
 
+    // We need to add this as soon as possible, since a _lot_ of things
+    // do lookups.
+    processVec.push_back(theProc);
+    activeProcesses++;
+
     if (!theProc->setupCreated(traceLink)) {
         cleanupBPatchHandle(pid);
+        processVec.pop_back();
         delete theProc;
         return NULL;
     }
@@ -2525,6 +2554,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
     if (!process::getExecFileDescriptor(file, pid, true, status, desc)) {
         cerr << "Failed to find exec descriptor" << endl;
         cleanupBPatchHandle(pid);
+        processVec.pop_back();
         delete theProc;
         return NULL;
     }
@@ -2532,12 +2562,14 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
 
     if (!theProc->setAOut(desc)) {
         cleanupBPatchHandle(pid);
+        processVec.pop_back();
         delete theProc;
         return NULL;
     }
 
     if (!theProc->setupGeneral()) {
         cleanupBPatchHandle(pid);
+        processVec.pop_back();
         delete theProc;
         return NULL;
     }
@@ -2582,7 +2614,12 @@ process *ll_attachProcess(const pdstring &progpath, int pid)
   process *theProc = new process(pid);
   assert(theProc);
 
+  // Add this as we can't do _anything_ without a process to look up.
+  processVec.push_back(theProc);
+  activeProcesses++;
+
   if (!theProc->setupAttached()) {
+        processVec.pop_back();
       delete theProc;
       return NULL;
   }
@@ -2603,15 +2640,18 @@ process *ll_attachProcess(const pdstring &progpath, int pid)
                              false,
                              status, 
                              desc)) {
+        processVec.pop_back();
       delete theProc;
       return NULL;
   }
   
   if (!theProc->setAOut(desc)) {
+        processVec.pop_back();
       delete theProc;
       return NULL;
   }
   if (!theProc->setupGeneral()) {
+        processVec.pop_back();
       delete theProc;
       return NULL;
   }
@@ -2638,8 +2678,13 @@ process *ll_attachToCreatedProcess(int pid, const pdstring &progpath)
     process *theProc = new process(pid);
     assert(theProc);
 
+    // Add immediately
+    processVec.push_back(theProc);
+    activeProcesses++;
+
     // This is the same as attaching...
     if (!theProc->setupAttached()) {
+        processVec.pop_back();
         delete theProc;
         return NULL;
     }
@@ -2666,11 +2711,13 @@ process *ll_attachToCreatedProcess(int pid, const pdstring &progpath)
                                pid, 
                                false,
                                status, desc)) {
+        processVec.pop_back();
         delete theProc;
         return false;
     } 
 
     if (!theProc->setAOut(desc)) {
+        processVec.pop_back();
         delete theProc;
         return NULL;
     }
@@ -2686,6 +2733,7 @@ process *ll_attachToCreatedProcess(int pid, const pdstring &progpath)
     // Process ran for about a second....
     // should now be stopped at main
     if (!theProc->setupGeneral()) {
+        processVec.pop_back();
         delete theProc;
         return NULL;
     }
@@ -3002,10 +3050,14 @@ bool process::attach() {
    // representativeLWP since there is no lwp which controls the entire
    // process for MT linux.
 
+   startup_printf("[%d]: attaching to representative LWP\n", getPid());
+
    if(! getRepresentativeLWP()->attach())
       return false;
 
    while (lwp_iter.next(index, lwp)) {
+       startup_printf("[%d]: attaching to LWP %d\n", getPid(), index);
+
       if (!lwp->attach()) {
          deleteLWP(lwp);
          return false;
@@ -3014,7 +3066,7 @@ bool process::attach() {
    // Fork calls attach() but is probably past this; silencing warning
    if (!reachedBootstrapState(attached_bs))
        setBootstrapState(attached_bs);
-
+   startup_printf("[%d]: setting process flags\n", getPid());
    return setProcessFlags();
 }
 
@@ -3774,9 +3826,11 @@ bool process::pause() {
    // reached first break.  We never want to pause before reaching the first
    // break (trap, actually).  But should we be returning true or false in
    // this case?
+
   if(! reachedBootstrapState(initialized_bs)) {
     return true;
   }
+
 
 #if defined(sparc_sun_solaris2_4)
    clearProcessEvents();
@@ -3790,8 +3844,10 @@ bool process::pause() {
    }
 
    result = stop_();
-   if (!result)
+   if (!result) {
+       bperr ("Warning: low-level paused failed, process is not paused\n");
      return false;
+   }
    status_ = stopped;
    return true;
 }
@@ -3851,6 +3907,15 @@ bool process::handleIfDueToSharedObjectMapping(){
        // with each element in the vector of changed_objects
        // for now, just delete shared_objects to avoid memory leeks
        for(u_int i=0; i < changed_objs.size(); i++){
+           // Remove from mapped_objects list
+           for (unsigned j = 0; j < mapped_objects.size(); j++) {
+               if (changed_objs[i] == mapped_objects[j]) {
+                   assert(j != 0); // Better not delete the a.out. That makes things unhappy.
+                   mapped_objects[j] = mapped_objects.back();
+                   mapped_objects.pop_back();
+                   break;
+               }
+           }
            delete changed_objs[i];
        }
        return true;
@@ -4471,6 +4536,7 @@ int_function *process::findFuncByAddr(Address addr) {
 }
 
 bool process::addCodeRange(codeRange *codeobj) {
+
    codeRangesByAddr_.insert(codeobj);
    codeRange *temp;
 #if 0
@@ -4637,84 +4703,6 @@ void process::findSignalHandler(mapped_object *obj){
     }
 
 }
-
-#if 0
-// Make it go away...
-bool process::findInternalSymbol(const pdstring &name, bool warn,
-                                 internalSym &ret_sym) const
-{
-     // On some platforms, internal symbols may be dynamic linked
-     // so we search both the a.out and the shared objects
-     Symbol sym;
-     Address baseAddr;
-     static const pdstring underscore = "_";
-
-     if (getSymbolInfo(name, sym)
-         || getSymbolInfo(underscore+name, sym)) {
-         ret_sym = internalSym(sym.addr(), name);
-        return true;
-     }
-
-     if (warn) {
-        pdstring msg;
-        msg = pdstring("Unable to find symbol: ") + name;
-        statusLine(msg.c_str());
-        showErrorCallback(28, msg);
-     }
-     return false;
-}
-#endif
-
-#if 0
-Address process::findInternalAddress(const pdstring &name, bool warn, bool &err) const {
-     // On some platforms, internal symbols may be dynamic linked
-     // so we search both the a.out and the shared objects
-     Symbol sym;
-     Address baseAddr;
-     static const pdstring underscore = "_";
-#if !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(ia64_unknown_linux2_4) \
- && !defined(alpha_dec_osf4_0) \
- && !defined(i386_unknown_nt4_0) \
- && !defined(mips_unknown_ce2_11) //ccw 20 july 2000
-     // we use "dlopen" because we took out the leading "_"'s from the name
-     if (name==pdstring("dlopen")) {
-       // if the function is dlopen, we use the address in ld.so.1 directly
-       baseAddr = dyn->get_dlopen_addr();
-       if (baseAddr != (Address)NULL) {
-         err = false;
-         return baseAddr;
-       } else {
-         err = true;
-         return 0;
-       }
-       // replace above with tighter code below
-       //err = (baseAddr != 0);
-       //return baseAddr;
-     }
-#endif
-
-     if (getSymbolInfo(name, sym, baseAddr)
-         || getSymbolInfo(underscore+name, sym, baseAddr)) {
-        err = false;
-#ifdef mips_unknown_ce2_11 //ccw 29 mar 2001
-        return sym.addr();//+baseAddr; ///ccw 28 oct 2000 THIS ADDS TOO MUCH TO THE LIBDYNINSTAPI.DLL!
-#else
-        return sym.addr()+baseAddr;
-#endif
-     }
-
-     if (warn) {
-        pdstring msg;
-        msg = pdstring("Unable to find symbol: ") + name;
-        statusLine(msg.c_str());
-        showErrorCallback(28, msg);
-     }
-     err = true;
-     return 0;
-}
-#endif
 
 bool process::continueProc(int signalToContinueWith) {
 

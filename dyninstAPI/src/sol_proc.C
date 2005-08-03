@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.62 2005/07/29 19:19:44 bernat Exp $
+// $Id: sol_proc.C,v 1.63 2005/08/03 05:28:24 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -1045,10 +1045,11 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int amount, void *inSelf) {
     off64_t loc;
     loc = (off64_t) ((unsigned) inTraced);
 
-    if(pread64(as_fd(), inSelf, amount, loc) != (int)amount) {
+    int res = pread64(as_fd(), inSelf, amount, loc);
+    if (res != (int) amount) {
         perror("readDataSpace");
-        bperr( "From 0x%x (mutator) to 0x%x (mutatee), %d bytes\n",
-                (int)inSelf, (int)inTraced, amount);
+        bperr( "From 0x%x (mutator) to 0x%x (mutatee), %d bytes, got %d\n",
+                (int)inSelf, (int)inTraced, amount, res);
         return false;
     }
     return true;
