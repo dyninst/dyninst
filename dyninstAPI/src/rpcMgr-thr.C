@@ -245,7 +245,7 @@ irpcLaunchState_t rpcThr::runPendingIRPC() {
         cerr << "launchRPC failed: couldn't set PC" << endl;
         return irpcError;
     }
-    inferiorrpc_printf("Changed PC to addr 0x%x\n", runningRPC_->rpcStartAddr);
+    inferiorrpc_printf("Changed PC to addr 0x%lx\n", runningRPC_->rpcStartAddr);
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
       // handle system call interruption:
