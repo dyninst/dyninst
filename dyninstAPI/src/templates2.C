@@ -40,7 +40,7 @@
  */
 
 
-// $Id: templates2.C,v 1.53 2005/08/03 22:06:50 tlmiller Exp $
+// $Id: templates2.C,v 1.54 2005/08/03 23:01:06 bernat Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -207,7 +207,7 @@ template class pdvector< dictionary_hash< pdstring, bool >::entry >;
 #include "dyninstAPI/src/LineInformation.h"
 template class LineInformation::SourceLineInternTable;
 
-#if defined( rs6000_ibm_aix51 )
+#if defined(os_aix)
 #include <set>
 template class std::set< image * >;
 #endif
@@ -217,3 +217,4 @@ template class dictionary_hash<int, multiTramp *>;
 
 class replacedFunctionCall;
 template class dictionary_hash<Address, replacedFunctionCall *>;
+

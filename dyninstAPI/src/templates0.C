@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.53 2005/08/03 05:28:27 bernat Exp $
+// $Id: templates0.C,v 1.54 2005/08/03 23:01:05 bernat Exp $
 // Generate all the templates in one file.
 
 /*
@@ -223,3 +223,7 @@ template class pdvector<fileDescriptor>;
 
 template class std::set<instPoint *>;
 
+#if defined(arch_power)
+class fileOpener;
+template class pdvector<fileOpener *>;
+#endif
