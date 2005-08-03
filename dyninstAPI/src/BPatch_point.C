@@ -473,18 +473,22 @@ int BPatch_point::getDisplacedInstructionsInt(int maxSize, void* insns)
     return insn.size();
 }
 
-bool BPatch_point::getInstPointArgs(BPatch_callWhen when,
-                                    BPatch_snippetOrder order,
-                                    callWhen &ipWhen,
-                                    callOrder &ipOrder) {
+// This isn't a point member because it relies on instPoint.h, which
+// we don't want to include in BPatch_point.h. If we had a public "enumerated types"
+// header file this could move.
+bool BPatchToInternalArgs(BPatch_point point,
+                          BPatch_callWhen when,
+                          BPatch_snippetOrder order,
+                          callWhen &ipWhen,
+                          callOrder &ipOrder) {
     // Edge instrumentation: overrides inputs
-    if (edge_) {
+    if (point.edge()) {
         if (when == BPatch_callAfter) {
             // Can't do this... there is no "before" or 
             // "after" for an edge
             return false;
         }
-        switch(edge_->type) {
+        switch(point.edge()->type) {
         case CondJumpTaken:
         case UncondJump:
             ipWhen = callBranchTargetInsn;
@@ -505,7 +509,7 @@ bool BPatch_point::getInstPointArgs(BPatch_callWhen when,
         else
             return false;
     }
-
+    
     if (order == BPatch_firstSnippet)
         ipOrder = orderFirstAtPoint;
     else if (order == BPatch_lastSnippet)
@@ -525,18 +529,18 @@ bool BPatch_point::getInstPointArgs(BPatch_callWhen when,
     //      a subroutine which is what the other combinations of BPatch_entry
     //	    and BPatch_exit refer to.
     //
-    if (when == BPatch_callBefore && getPointType() == BPatch_exit) {
+    if (when == BPatch_callBefore && point.getPointType() == BPatch_exit) {
         BPatch_reportError(BPatchSerious, 113,
                            "BPatch_callBefore at BPatch_exit not supported yet");
         return false;
     }
-    if (when == BPatch_callAfter && getPointType() == BPatch_entry) {
+    if (when == BPatch_callAfter && point.getPointType() == BPatch_entry) {
         BPatch_reportError(BPatchSerious, 113,
                            "BPatch_callAfter at BPatch_entry not supported yet");
         return false;
     }
     
-    if ((getPointType() == BPatch_exit)) {
+    if ((point.getPointType() == BPatch_exit)) {
         //  XXX - Hack! 
         //  The semantics of pre/post insn at exit are setup for the new
         //  defintion of using this to control before/after stack creation,
@@ -569,7 +573,7 @@ void BPatch_point::recordSnippet(BPatch_callWhen when,
 }
 
 // Create an arbitrary BPatch point
-        BPatch_point *BPatch_point::createInstructionInstPoint(BPatch_process *proc,
+BPatch_point *BPatch_point::createInstructionInstPoint(BPatch_process *proc,
                                                        void *address,
                                                        BPatch_function *bpf) {
     // The useful prototype for instPoints:

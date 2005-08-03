@@ -169,7 +169,7 @@ BPatch_process::BPatch_process(const char *path, char *argv[], char *envp[],
            "Dyninst was unable to create the specified process");
       return;
    }
-   
+
    llproc->newFunctionCallback(createBPFuncCB);
    llproc->newInstPointCallback(createBPPointCB);
 
@@ -744,6 +744,14 @@ BPatchSnippetHandle *BPatch_process::insertSnippetInt(const BPatch_snippet &expr
  * expr		The snippet to insert.
  * point	The point at which to insert it.
  */
+// This handles conversion without requiring inst.h in a header file...
+extern bool BPatchToInternalArgs(BPatch_point point,
+                                 BPatch_callWhen when,
+                                 BPatch_snippetOrder order,
+                                 callWhen &ipWhen,
+                                 callOrder &ipOrder);
+                           
+
 BPatchSnippetHandle *BPatch_process::insertSnippetWhen(const BPatch_snippet &expr,
 						       BPatch_point &point,
 						       BPatch_callWhen when,
@@ -764,8 +772,7 @@ BPatchSnippetHandle *BPatch_process::insertSnippetWhen(const BPatch_snippet &exp
    callWhen ipWhen;
    callOrder ipOrder;
    
-   if (!point.getInstPointArgs(when, order,
-                               ipWhen, ipOrder))
+   if (!BPatchToInternalArgs(point, when, order, ipWhen, ipOrder))
        return NULL;
 
    if (BPatch::bpatch->isTypeChecked()) {
@@ -912,7 +919,6 @@ BPatchSnippetHandle *BPatch_process::insertSnippetAtPoints(
                  BPatch_snippetOrder order)
 {
    BPatchSnippetHandle *handle = new BPatchSnippetHandle(llproc);
-   
    for (unsigned int i = 0; i < points.size(); i++) {
       BPatch_point *point = points[i];
       BPatch_callWhen when;

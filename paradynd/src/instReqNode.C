@@ -76,6 +76,12 @@ instReqNode::instReqNode(const instReqNode &par, pd_process *childProc) :
 	assert(res == true);
 }
 
+// This handles conversion without requiring inst.h in a header file...
+extern bool BPatchToInternalArgs(BPatch_point point,
+                                 BPatch_callWhen when,
+                                 BPatch_snippetOrder order,
+                                 callWhen &ipWhen,
+                                 callOrder &ipOrder);
 
 // returns false if instr insert was deferred
 // Runs generate and install... but not link
@@ -129,10 +135,8 @@ bool instReqNode::addInstr(pd_process *theProc) {
         when = BPatch_callAfter;
 
 
-    if (!point->getInstPointArgs(when, order,
-                                 cw, co)) {
+    if (!BPatchToInternalArgs(*point, when, order, cw, co))
         return false;
-    }
     
     if(theProc->hasExited()) {
         return false;
