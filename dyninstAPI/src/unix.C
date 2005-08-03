@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.138 2005/07/29 19:19:57 bernat Exp $
+// $Id: unix.C,v 1.139 2005/08/03 23:01:07 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -725,8 +725,6 @@ int handleSignal(const procevent &event) {
          return 1;
      } else if (childPid > 0) {
 
-         fprintf(stderr, "Caught exit of fork(), child %d, on process %d\n", childPid, proc->getPid());
-         
          unsigned int i;
          for (i=0; i < processVec.size(); i++) {
              if (processVec[i] && 
@@ -746,9 +744,7 @@ int handleSignal(const procevent &event) {
                  proc->handleForkExit(theChild);
 
                  // Okay, let 'er rip
-                 fprintf(stderr, "Continuing parent...\n");
 		 proc->continueProc();
-                 fprintf(stderr, "Continuing child...\n");
 		 theChild->continueProc();
              }
              else {
