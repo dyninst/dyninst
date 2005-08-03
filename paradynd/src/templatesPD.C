@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesPD.C,v 1.43 2005/06/01 21:53:50 legendre Exp $
+// $Id: templatesPD.C,v 1.44 2005/08/03 05:28:33 bernat Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -67,6 +67,9 @@
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/shmMgr.h"
 #include "paradynd/src/shmSegment.h"
+
+class instMapping;
+template class  pdvector<instMapping*>;
 
 template class dictionary_hash <unsigned, pdvector<mdl_type_desc> >;
 template class pdvector<dictionary_hash <unsigned, pdvector<mdl_type_desc> >::entry>;
@@ -192,3 +195,19 @@ template class pdvector<BPatch_snippet *>;
 
 template class dictionary_hash<BPatch_function *, resource *>;
 template class dictionary_hash<BPatch_basicBlockLoop *, resource *>;
+
+class processMetFocusNode;
+
+template class  pdvector<machineMetFocusNode *>;
+template class  pdvector<processMetFocusNode *>;
+template class  pdvector<instrCodeNode *>;
+template class  pdvector<const instrCodeNode *>;
+template class  pdvector<threadMetFocusNode *>;
+template class  pdvector<catchupReq>;
+template class  pdvector<catchupReq*>;
+template class  pdvector<pdvector<catchupReq *> >;
+// Temporary structs used in processMetFocusNode.C
+template class  pdvector<catchup_t>;
+template class  pdvector<sideEffect_t>;
+template class  pdvector<threadMetFocusNode_Val *>;
+template class  pdvector<const threadMetFocusNode_Val *>;
