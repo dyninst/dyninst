@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.50 2005/07/29 19:18:05 bernat Exp $
+ * $Id: Object.h,v 1.51 2005/08/03 05:28:04 bernat Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -210,6 +210,9 @@ public:
     Address           code_vldE () const { return code_vldE_; }
     Address           data_vldS () const { return data_vldS_; }
     Address           data_vldE () const { return data_vldE_; }
+
+    Address loader_off() const { return loader_off_; }
+    unsigned loader_len() const { return loader_len_; }
 
     int getAddressWidth() const { return addressWidth_nbytes; }
 

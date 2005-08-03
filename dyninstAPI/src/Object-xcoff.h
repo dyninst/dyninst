@@ -41,7 +41,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.12 2005/07/29 19:18:03 bernat Exp $
+ * $Id: Object-xcoff.h,v 1.13 2005/08/03 05:28:03 bernat Exp $
 ************************************************************************/
 
 
@@ -81,11 +81,13 @@ extern "C" {
 #define __AR_BIG__
 #define __AR_SMALL__
 #include <ar.h>
+class fileOpener;
+
 // Object to represent both the 32-bit and 64-bit archive headers
 // for ar files (libraries)
 class Archive {
  public:
-  Archive (int file) : member_name(0),fd(file) {}
+  Archive (fileOpener *f) : member_name(0), fo_(f) {}
   virtual ~Archive () {}
   
   virtual int read_arhdr() = 0;
@@ -98,12 +100,13 @@ class Archive {
  protected:
   unsigned long long first_offset;
   unsigned long long last_offset;
-  int fd;
+
+  fileOpener *fo_;
 };
 
 class Archive_32 : private Archive {
  public:
-  Archive_32 (int file) : Archive(file) {};
+  Archive_32 (fileOpener *file) : Archive(file) {};
   ~Archive_32 () {if (member_name) free(member_name);};
   virtual int read_arhdr();
   virtual int read_mbrhdr();
@@ -115,7 +118,7 @@ class Archive_32 : private Archive {
 
 class Archive_64 : private Archive {
  public:
-  Archive_64 (int file) : Archive(file) {};
+  Archive_64 (fileOpener *file) : Archive(file) {};
   ~Archive_64 () {if (member_name) free(member_name);};
   virtual int read_arhdr();
   virtual int read_mbrhdr();
@@ -125,55 +128,107 @@ class Archive_64 : private Archive {
   struct ar_hdr_big memberhdr;
 };
 
+// We want to mmap a file once, then go poking around inside it. So we
+// need to tie a few things together.
+
+class fileOpener {
+ public:
+    static pdvector<fileOpener *> openedFiles;
+    static fileOpener *openFile(const pdstring &f);
+    
+    void closeFile();
+
+    fileOpener(const pdstring &f) : refcount_(1), 
+        fileName_(f), fd_(0), 
+        size_(0), mmapStart_(NULL),
+        offset_(0) {}
+    ~fileOpener();
+
+    bool open();
+    bool mmap();
+    bool unmap();
+    bool close();
+
+    bool pread(void *buf, unsigned size, unsigned offset);
+    bool read(void *buf, unsigned size);
+    bool seek(int offset);
+    bool set(unsigned addr);
+    // No write :)
+    // Get me a pointer into the mapped area
+    void *ptr() const;
+
+    const pdstring &file() const { return fileName_; }
+    int fd() const { return fd_; }
+    unsigned size() const { return size_; }
+
+ private:
+    int refcount_;
+    pdstring fileName_;
+    int fd_;
+    unsigned size_;
+    void *mmapStart_;
+
+    // Where were we last reading?
+    unsigned offset_;
+};
+
 /************************************************************************
  * class Object
 ************************************************************************/
 
 class Object : public AObject {
-public:
-             Object (const Object &);
-	     Object (const fileDescriptor &desc,
-                void (*)(const char *) = log_msg);
-    ~Object ();
-
+ private:
+    // We _really_ never want this to be called...
+    Object (const Object &);
     Object&   operator= (const Object &);
-    Address getTOCoffset() const { return toc_offset_; }
-    Address data_reloc () const { return data_reloc_; }
 
-    void get_stab_info(char *&stabstr, int &nstabs, Address &stabs, char *&stringpool) const {
+public:
+    Object (const fileDescriptor &desc,
+            void (*)(const char *) = log_msg);
+    ~Object ();
+    
+    Address getTOCoffset() const { return toc_offset_; }
+
+    // AIX does some weirdness with addresses. We don't want to touch local
+    // symbols to get addresses right, but that means that the base address
+    // needs to have a small value added back in. On shared objects.
+    Address data_reloc () const { return data_reloc_; }
+    Address text_reloc () const { return text_reloc_; }
+    
+    void get_stab_info(char *&stabstr, int &nstabs, SYMENT *&stabs, char *&stringpool) const {
 	stabstr = (char *) stabstr_;
 	nstabs = nstabs_;
-	stabs = stabs_;
+	stabs = (SYMENT *) stabs_;
 	stringpool = (char *) stringpool_;
     }
-
+    
     void get_line_info(int& nlines, char*& lines,unsigned long& fdptr) const {
 	nlines = nlines_;
 	lines = (char*) linesptr_; 
 	fdptr = linesfdptr_;
     }
 
-    void load_object (bool is_aout);
-    void load_archive(int fd, bool is_aout);
-    void parse_aout(int fd, int offset, bool is_aout);
+    void load_object(bool is_aout);
+    void load_archive(bool is_aout);
+    void parse_aout(int offset, bool is_aout);
     bool isEEL() const { return false; }
+
+    // We mmap big files and piece them out; this handles the mapping
+    // and reading and pointerage and...
+    fileOpener *fo_;
 
     pdstring member_;
     Address toc_offset_;
     Address data_reloc_;
+    Address text_reloc_;
+
     int  nstabs_;
     int  nlines_;
-    Address stabstr_;
-    Address stabs_;
-    Address stringpool_;
-    Address linesptr_;
+    void *stabstr_;
+    void *stabs_;
+    void *stringpool_;
+    void *linesptr_;
     Address linesfdptr_;
-    // Offset to actual start of text segment (for relocation)
-    Address text_org_;
-    // Offset to actual start of data segment (for relocation)
-    Address data_org_;
-    // Process PID (used for ptrace_read)
-    unsigned pid_;    
 };
 
 

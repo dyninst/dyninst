@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.40 2005/07/29 19:18:02 bernat Exp $
+// $Id: Object-xcoff.C,v 1.41 2005/08/03 05:28:02 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -92,47 +92,6 @@
 #define C_WEAKEXT 0
 #endif
 
-//
-// Seek to the desired offset and read the passed length of the file
-//   into dest.  If any errors are detected, log a message and return false.
-//
-bool seekAndRead(int fd, int offset, void **dest, int length, bool allocate)
-{
-    int cnt;
-
-    if (allocate) {
-	*dest = malloc(length);
-    }
-
-    if (!*dest) {
-	sprintf(errorLine, "Unable to parse executable file: failed allocation, size %d\n", length);
-	logLine(errorLine);
-	showErrorCallback(42, (const char *) errorLine);
-	return false;
-    }
-#ifdef __alpha
-    prmap_t tmp;
-    tmp.pr_vaddr = (char*)offset;
-    cnt = lseek(proc_fd, (off_t) tmp.pr_vaddr, SEEK_SET);
-#else
-    cnt = lseek(fd, offset, SEEK_SET);
-#endif
-    if (cnt != offset) {
-        sprintf(errorLine, "Unable to parse executable file: failed seek\n");
-	logLine(errorLine);
-	showErrorCallback(42, (const char *) errorLine);
-	return false;
-    }
-    cnt = read(fd, *dest, length);
-    if (cnt != length) {
-        sprintf(errorLine, "Unable to parse executable file: failed read\n");
-	logLine(errorLine);
-	showErrorCallback(42, (const char *) errorLine);
-	return false;
-    }
-    return true;
-}
-
 unsigned long roundup4(unsigned long val) {
    while (val % 4 != 0)
       val++;
@@ -145,16 +104,11 @@ unsigned long roundup4(unsigned long val) {
 int Archive_32::read_arhdr()
 {
   char tmpstring[13];
-#ifdef __alpha
-  prmap_t tmp;
-  tmp.pr_vaddr = 0;
-  lseek(proc_fd, (off_t) tmp.pr_vaddr, SEEK_SET);
-#else 
-  lseek(fd, 0, SEEK_SET);
-#endif 
-  int cnt = read(fd, &filehdr, sizeof(struct fl_hdr));
-  if (cnt != sizeof(struct fl_hdr))
-    return -1;
+
+  if (!fo_->set(0))
+      return -1;
+  if (!fo_->read(&filehdr, sizeof(struct fl_hdr)))
+      return -1;
   if (strncmp(filehdr.fl_magic, AIAMAG, SAIAMAG))
     return -1;
   strncpy(tmpstring, filehdr.fl_fstmoff, 12);
@@ -171,16 +125,13 @@ int Archive_32::read_arhdr()
 int Archive_64::read_arhdr()
 {
   char tmpstring[21];
-#ifdef __alpha
-  prmap_t tmp;
-  tmp.pr_vaddr = 0;
-  lseek(proc_fd, (off_t) tmp.pr_vaddr, SEEK_SET);
-#else
-  lseek(fd, 0, SEEK_SET);
-#endif
-  int cnt = read(fd, &filehdr, sizeof(struct fl_hdr_big));
-  if (cnt != sizeof(struct fl_hdr_big))
-    return -1;
+
+  if (!fo_->set(0))
+      return -1;
+
+  if (!fo_->read(&filehdr, sizeof(struct fl_hdr_big)))
+      return -1;
+
   if (strncmp(filehdr.fl_magic, AIAMAGBIG, SAIAMAG))
     return -1;
   strncpy(tmpstring, filehdr.fl_fstmoff, 21);
@@ -206,87 +157,202 @@ int Archive_64::read_arhdr()
 
 int Archive_32::read_mbrhdr()
 {
-  int cnt;
-  char tmpstring[13];
+    char tmpstring[13];
+    
+    if (next_offset == 0) return -1;
 
-  if (next_offset == 0) return -1;
-#ifdef __alpha
-  prmap_t tmp;
-  tmp.pr_vaddr = next_offset;
-  lseek(proc_fd, (off_t) tmp.pr_vaddr, SEEK_SET);
-#else
-  lseek(fd, next_offset, SEEK_SET);
-#endif 
-  // Don't read last two bytes (first two bytes of the name)
-  cnt = read(fd, &memberhdr, sizeof(struct ar_hdr) - 2);
-  if (cnt != (sizeof(struct ar_hdr) - 2)) return -1;
-  strncpy(tmpstring, memberhdr.ar_namlen, 4);
-  tmpstring[4] = 0; member_len = atol(tmpstring);
-  if (member_name) free(member_name);
-  member_name = (char *)malloc(member_len+1);
-  cnt = read(fd, member_name, member_len);
-  if (cnt != member_len) return -1;
-  // Terminating null
-  member_name[member_len] = 0;
+    if (!fo_->set(next_offset))
+        return -1;
 
-  // Set the file offset for this member
-  aout_offset = next_offset + sizeof(struct ar_hdr) + member_len;
-  if (aout_offset % 2) aout_offset += 1;
+    if (!fo_->read(&memberhdr, sizeof(struct ar_hdr) - 2))
+        return -1;
 
-  // Fix up next_offset
-  if (next_offset == last_offset)
-    next_offset = 0; // termination condition
-  else {
-    strncpy(tmpstring, memberhdr.ar_nxtmem, 12);
-    tmpstring[12] = 0; next_offset = atol(tmpstring);
-    if (next_offset % 2) next_offset++;
-  }
-
-  return 0;
+    strncpy(tmpstring, memberhdr.ar_namlen, 4);
+    tmpstring[4] = 0; member_len = atol(tmpstring);
+    if (member_name) free(member_name);
+    member_name = (char *)malloc(member_len+1);
+    
+    if (!fo_->read(member_name, member_len))
+        return -1;
+    // Terminating null
+    member_name[member_len] = 0;
+    
+    // Set the file offset for this member
+    aout_offset = next_offset + sizeof(struct ar_hdr) + member_len;
+    if (aout_offset % 2) aout_offset += 1;
+    
+    // Fix up next_offset
+    if (next_offset == last_offset)
+        next_offset = 0; // termination condition
+    else {
+        strncpy(tmpstring, memberhdr.ar_nxtmem, 12);
+        tmpstring[12] = 0; next_offset = atol(tmpstring);
+        if (next_offset % 2) next_offset++;
+    }
+    
+    return 0;
 }
 // 64-bit function. Differences: structure size
 // A lot of shared code. 
 int Archive_64::read_mbrhdr()
 {
-  int cnt;
   char tmpstring[21];
   
   if (next_offset == 0) return -1;
-#ifdef __alpha
-  prmap_t tmp;
-  tmp.pr_vaddr = next_offset;
-  lseek(proc_fd, (off_t) tmp.pr_vaddr, SEEK_SET);
-#else
-  lseek(fd, next_offset, SEEK_SET);
-#endif
-  // Don't read last two bytes (first two bytes of the name)
-  cnt = read(fd, &memberhdr, sizeof(struct ar_hdr_big) - 2);
-  if (cnt != (sizeof(struct ar_hdr_big) - 2)) return -1;
-  strncpy(tmpstring, memberhdr.ar_namlen, 4);
-  tmpstring[4] = 0; member_len = atol(tmpstring);
-  if (member_name) free(member_name);
-  member_name = (char *)malloc(member_len+1);
-  cnt = read(fd, member_name, member_len);
-  if (cnt != member_len) return -1;
-  // Terminating null
-  member_name[member_len] = 0;
 
-  // Set the file offset for this member
-  aout_offset = next_offset + sizeof(struct ar_hdr_big) + member_len;
-  if (aout_offset % 2) aout_offset += 1;
+    if (!fo_->set(next_offset))
+        return -1;
 
-  // Fix up next_offset
-  if (next_offset == last_offset)
-    next_offset = 0; // termination condition
-  else {
-    strncpy(tmpstring, memberhdr.ar_nxtmem, 20);
-    tmpstring[20] = 0; next_offset = atol(tmpstring);
-    if (next_offset % 2) next_offset++;
-  }
+    if (!fo_->read(&memberhdr, sizeof(struct ar_hdr_big) - 2))
+        return -1;
 
-  return 0;
+    strncpy(tmpstring, memberhdr.ar_namlen, 4);
+    tmpstring[4] = 0; member_len = atol(tmpstring);
+    if (member_name) free(member_name);
+    member_name = (char *)malloc(member_len+1);
+
+    if (!fo_->read(member_name, member_len))
+        return -1;
+    // Terminating null
+    member_name[member_len] = 0;
+    
+    // Set the file offset for this member
+    aout_offset = next_offset + sizeof(struct ar_hdr_big) + member_len;
+    if (aout_offset % 2) aout_offset += 1;
+    
+    // Fix up next_offset
+    if (next_offset == last_offset)
+        next_offset = 0; // termination condition
+    else {
+        strncpy(tmpstring, memberhdr.ar_nxtmem, 20);
+        tmpstring[20] = 0; next_offset = atol(tmpstring);
+        if (next_offset % 2) next_offset++;
+    }
+
+    return 0;
 }
 
+// Wrapper to handle the 1:many mapping of archives and members
+
+pdvector<fileOpener *> fileOpener::openedFiles;
+
+fileOpener *fileOpener::openFile(const pdstring &f) {
+    for (unsigned i = 0; i < openedFiles.size(); i++) {
+        if (openedFiles[i]->file() == f) {
+            openedFiles[i]->refcount_++;
+            return openedFiles[i];
+        }
+    }
+
+    // New file. Neeefty.
+    fileOpener *newFO = new fileOpener(f);
+    assert(newFO);
+    
+    if (!newFO->open())
+        return NULL;
+    if (!newFO->mmap())
+        return NULL;
+
+    openedFiles.push_back(newFO);
+
+    return newFO;
+}
+
+bool fileOpener::open() {
+    if (fd_ != 0)
+        return true;
+    // Open ze file....
+    fd_ = ::open(fileName_.c_str(), O_RDONLY, 0); 
+    if (fd_ < 0) {
+        sprintf(errorLine, "Unable to open %s: %s\n",
+                fileName_.c_str(), strerror(errno));
+        statusLine(errorLine);
+        showErrorCallback(27, errorLine);
+        fd_ = 0;
+        return false;
+    }
+
+    // Set size
+    struct stat statBuf;
+    int ret;
+    ret = fstat(fd_, &statBuf);
+    if (ret == -1) {
+        sprintf(errorLine, "Unable to stat %s: %s\n",
+                fileName_.c_str(), strerror(errno));
+        statusLine(errorLine);
+        showErrorCallback(27, errorLine);
+        return false;
+    }
+    assert(ret == 0);
+    size_ = statBuf.st_size;
+    assert(size_);
+    return true;
+}
+
+bool fileOpener::mmap() {
+    assert(fd_);
+    assert(size_);
+
+    if (mmapStart_ != NULL)
+        return true;
+
+    mmapStart_ = ::mmap(NULL, size_, PROT_READ, MAP_SHARED, fd_, 0);
+
+    if (mmapStart_ == MAP_FAILED) {
+        sprintf(errorLine, "Unable to mmap %s: %s\n",
+                fileName_.c_str(), strerror(errno));
+        statusLine(errorLine);
+        showErrorCallback(27, errorLine);
+        mmapStart_ = NULL;
+        return false;
+    }
+
+    return true;
+}
+    
+bool fileOpener::set(unsigned addr) {
+    assert(fd_);
+    assert(size_);
+    assert(mmapStart_);
+
+    if (addr >= size_) {
+        fprintf(stderr, "Warning: attempting to set offset to address %d (0x%x) greater than size %d (0x%x)\n",
+                addr, addr,
+                size_, size_);
+        return false;
+    }
+    offset_ = addr;
+    return true;
+}
+
+bool fileOpener::read(void *buf, unsigned size) {
+    assert(fd_);
+    assert(size_);
+    assert(mmapStart_);
+
+    if ((offset_ + size) >= size_)
+        return false;
+
+    memcpy(buf, ptr(), size);
+
+    offset_ += size;
+    return true;
+}
+
+bool fileOpener::seek(int offset) {
+    if ((((int) offset_ + offset) < 0) ||
+        ((offset_ + offset) >= size_))
+        return false;
+    offset_ += offset;
+    return true;
+}
+
+void *fileOpener::ptr() const {
+    // Return a pointer to the current offset
+    char *tmpPtr = (char *)mmapStart_ + offset_;
+    return (void *)tmpPtr;
+}
+    
 // This function parses a 32-bit XCOFF file, either as part of an
 // archive (library) or from an a.out file. It takes an open file
 // descriptor from which it reads its data. In addition, it loads the
@@ -301,73 +367,22 @@ int Archive_64::read_mbrhdr()
 
 // File parsing error macro, assumes errorLine defined
 #define PARSE_AOUT_DIE(errType, errCode) { \
-      sprintf(errorLine, "Error parsing a.out file %s(%s): %s\n", \
+      sprintf(errorLine, "Error parsing a.out file %s(%s): %s \n", \
               file_.c_str(), member_.c_str(), errType); \
       statusLine(errorLine); \
       showErrorCallback(errCode,(const char *) errorLine); \
-      goto cleanup; \
+      return; \
       }
 
-// At the point when we read the application, we may or may not
-// have a process object defined. This means we have to have our
-// own memory reading code. Grr... useless duplication of effort.
-
-#if defined(AIX_PROC) 
-bool read_from_mem(int pid, Address in_traced, Address in_self, int size) {
-    char procname[256];
-    sprintf(procname, "/proc/%d/as", pid);
-    int fd = open(procname, O_RDONLY, 0);
-    if (fd <= 0) {
-        perror("Opening FD for parse read");
-        return false;
-    }
-    
-    int bytesread = pread64(fd, (void *)in_self, size, (off64_t) in_traced);
-    if (bytesread == -1) 
-        perror("read_from_mem");
-    close(fd);
-    return (bytesread == size);
-}
-#else
-// Write something here...
-bool read_from_mem(int pid, Address in_traced, Address in_self, int size) {
-    int amount = size;
-    
-    while (size >= 1024) {
-        if (ptrace(PT_READ_BLOCK, pid, (int *)in_traced, 
-                   1024, (int *)in_self) == -1) {
-            perror("Reading memory of inferior process");
-            return false;
-        }
-        size -= 1024;
-        in_traced += 1024;
-        in_self += 1024;
-    }
-    if (size > 0)
-        if (ptrace(PT_READ_BLOCK, pid, (int *)in_traced,
-                   size, (int *)in_self) == -1) {
-            perror("Reading memory of inferior process");
-            return false;
-        }
-    return true;
-}
-
-
-#endif
-
-
-void Object::parse_aout(int fd, int offset, bool is_aout)
+void Object::parse_aout(int offset, bool is_aout)
 {
    // all these vrble declarations need to be up here due to the gotos,
    // which mustn't cross vrble initializations.  Too bad.
    long i,j;
-   int cnt;
    pdstring name;
    bool foundMain = false;
    bool foundStart = false;
    unsigned value;
-   int poolOffset;
-   int poolLength;
    union auxent *aux;
    struct filehdr hdr;
    struct syment *sym;
@@ -377,225 +392,177 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
    Symbol::SymbolType type; 
    bool foundDebug = false;
 
-   int *lengthPtr = &poolLength;
    struct syment *symbols = NULL;
    struct scnhdr *sectHdr = NULL;
    Symbol::SymbolLinkage linkage = Symbol::SL_UNKNOWN;
    unsigned toc_offset = 0;
    pdstring modName;
 
-   unsigned int nlines=0;
    int linesfdptr=0;
    struct lineno* lines=NULL;
 
-   // Amounts to relocate symbol addresses
-   unsigned text_reloc;
-
-
-   // Creating extra inferior heap space
-   Address heapAddr;
-   Address heapLen;
-   Symbol heapSym;
-   
    // Get to the right place in the file (not necessarily 0)
-#ifdef __alpha
-   prmap_t tmp;
-   tmp.pr_vaddr = offset;
-   lseek(proc_fd, (off_t) tmp.pr_vaddr, SEEK_SET);
-#else
-   lseek(fd, offset, SEEK_SET);
-#endif
-   // Load and check the XCOFF file header
-   cnt = read(fd, &hdr, sizeof(struct filehdr));
-   if (cnt != sizeof(struct filehdr))
-     PARSE_AOUT_DIE("Reading file header", 49);
+   if (!fo_->set(offset))
+       PARSE_AOUT_DIE("Seeking to correct offset", 49);
 
-   if (hdr.f_magic == 0x1ef)
-     {
+   if (!fo_->read(&hdr, sizeof(struct filehdr)))
+       PARSE_AOUT_DIE("Reading file header", 49);
+
+   if (hdr.f_magic == 0x1ef) {
        // XCOFF64 file! We don't handle those yet.
-       cerr << "Unhandled XCOFF64 file" << endl;
-       return;
-     }
+         bperr("Unhandled XCOFF64 header found!\n");
+         return;
+   }
    
-   if (hdr.f_magic != 0x1df)
-     {
+   if (hdr.f_magic != 0x1df) {
        bperr( "Possible problem, magic number is %x, should be %x\n",
-	       hdr.f_magic, 0x1df);
-     }
-
-   // Load and check the a.out (auxiliary) header
-   cnt = read(fd, &aout, sizeof(struct aouthdr));
-   if (cnt != sizeof(struct aouthdr)) 
-     PARSE_AOUT_DIE("Reading a.out header", 49);
-
-   // Load the section headers
-   sectHdr = (struct scnhdr *) malloc(sizeof(struct scnhdr) * hdr.f_nscns);
-   assert(sectHdr);
-   cnt = read(fd, sectHdr, sizeof(struct scnhdr) * hdr.f_nscns);
-   if ((unsigned) cnt != sizeof(struct scnhdr)* hdr.f_nscns)
-     PARSE_AOUT_DIE("Reading section headers", 49);
+              hdr.f_magic, 0x1df);
+   }
    
-   if( hdr.f_symptr )
-   {
-       //if binary is not stripped 
-       if (!seekAndRead(fd, hdr.f_symptr + offset, (void**) &symbols, 
-                        hdr.f_nsyms * SYMESZ, true))
+   if (!fo_->read(&aout, sizeof(struct aouthdr)))
+       PARSE_AOUT_DIE("Reading a.out header", 49);
+
+
+   sectHdr = (struct scnhdr *) fo_->ptr();
+   fo_->seek(sizeof(struct scnhdr) * hdr.f_nscns);
+
+   if (!sectHdr)
+       PARSE_AOUT_DIE("Reading section headers", 49);
+   
+   //if binary is not stripped 
+   if( hdr.f_symptr ) {
+       fo_->set(offset + hdr.f_symptr);
+       symbols = (struct syment *) fo_->ptr();
+       fo_->seek(hdr.f_nsyms * SYMESZ);
+       
+       if (!symbols)
            PARSE_AOUT_DIE("Reading symbol table", 49);
    }
    // Consistency check
    if ((unsigned) aout.text_start != sectHdr[aout.o_sntext-1].s_paddr)
-     PARSE_AOUT_DIE("Checking text address", 49);
+       PARSE_AOUT_DIE("Checking text address", 49);
    if ((unsigned) aout.tsize != sectHdr[aout.o_sntext-1].s_size) 
-     PARSE_AOUT_DIE("Checking text size", 49);
+       PARSE_AOUT_DIE("Checking text size", 49);
    if ((unsigned) aout.data_start != sectHdr[aout.o_sndata-1].s_paddr) 
-     PARSE_AOUT_DIE("Checking data address", 49);
+       PARSE_AOUT_DIE("Checking data address", 49);
    if ((unsigned long) aout.dsize != sectHdr[aout.o_sndata-1].s_size)
-     PARSE_AOUT_DIE("Checking data size", 49);
+       PARSE_AOUT_DIE("Checking data size", 49);
 
     /*
     * Get the pdstring pool, if there is one
     */
-   stringPool = NULL;
    if( hdr.f_nsyms ) 
    {
-       poolOffset = hdr.f_symptr + hdr.f_nsyms * SYMESZ;
-       /* length is stored in the first 4 bytes of the string pool */
-       if(!seekAndRead(fd, poolOffset + offset, (void**) &lengthPtr, 
-                       sizeof(int), false))
-           PARSE_AOUT_DIE("Reading string pool size", 49);
-       if( poolLength > 0 ) 
-       {
-           if (!seekAndRead(fd, poolOffset + offset, (void**) &stringPool, 
-                            poolLength, true)) 
-               PARSE_AOUT_DIE("Reading string pool", 49);
-       }
+       // We want to go after the symbol table...
+       if (!fo_->set(offset + hdr.f_symptr + (hdr.f_nsyms*SYMESZ)))
+           PARSE_AOUT_DIE("Could not seek to string pool", 49);
+       Address stringPoolSize;
+       fo_->read(&stringPoolSize, 4);
+       
+       if (!fo_->set(offset + hdr.f_symptr + (hdr.f_nsyms*SYMESZ)))
+           PARSE_AOUT_DIE("Could not seek to string pool", 49);
+
+       // First 4 bytes is the length; this is included in the string pool pointer
+       stringPool = (char *)fo_->ptr();
+
+       if (!stringPool)
+           PARSE_AOUT_DIE("Getting pointer to string pool", 49);
    }
    
    /* find the text section such that we access the line information */
+   nlines_ = 0;
    for (i=0; i < hdr.f_nscns; i++)
    {
        if (sectHdr[i].s_flags & STYP_TEXT) {
-           nlines = sectHdr[i].s_nlnno;
+           nlines_ = sectHdr[i].s_nlnno;
            
            /* if there is overflow in the number of lines */
-           if (nlines == 65535)
+           if (nlines_ == 65535)
                for (j=0; j < hdr.f_nscns; j++)
                    if ((sectHdr[j].s_flags & STYP_OVRFLO) &&
                        (sectHdr[j].s_nlnno == (i+1))){
-                       nlines = (unsigned int)(sectHdr[j].s_vaddr);
+                       nlines_ = (unsigned int)(sectHdr[j].s_vaddr);
                        break;
                    }
            
            /* There may not be any line information. */
-           if (nlines == 0)
+           if (nlines_ == 0)
                continue;
-           
+
            /* read the line information table */
-           if (!seekAndRead(fd,sectHdr[i].s_lnnoptr + offset,(void**) &lines,
-                            nlines*LINESZ,true))
+           if (!fo_->set(offset + sectHdr[i].s_lnnoptr))
+               PARSE_AOUT_DIE("Seeking to line information table", 49);
+           lines = (struct lineno *)fo_->ptr();
+           if (!lines)
                PARSE_AOUT_DIE("Reading line information table", 49);
+           fo_->seek(nlines_ * LINESZ);
            
            linesfdptr = sectHdr[i].s_lnnoptr;
            break;
        }
    }
-     
-   // Dyninst/Paradyn meanings
-   // code_ptr_: location where mutator has the text segment in memory
-   // text_reloc: that + value will get you a cup of coffee... the location in
-   //               memory where that file's instructions start.
-   //           = "text relocation value" = text_org + scnptr - text_start
 
-   text_reloc = sectHdr[aout.o_sntext-1].s_scnptr - aout.text_start;
-   // code_off_ is the value in memory such that code_ptr[x] == code_off_ + x
-   //code_off_ = text_org_ + sectHdr[aout.o_sntext-1].s_scnptr;
-   // Offset, not absolute, so don't add text_org_
-   code_off_ = sectHdr[aout.o_sntext-1].s_scnptr;
-   
+   // Time to set up a lot of variables.
+   // code_ptr_: a pointer to the text segment
+   // code_off_: Subtracted from an offset before lookup occurs
+   // code_len_: Size of text in bytes
+   // text_reloc_: the amount to add to the "base address" given us by the system.
+
+   // data_ptr_: a pointer to the data segment
+   // data_off_: subtracted from a data offset before lookup occurs
+   // data_len_: size of data in bytes.
+   // data_reloc_: the amount to add to the "base address" given us by the system.
+
+   // Temporaries: the file is loaded read-only and thus we can't modify it.
+   Address fileTextOffset = roundup4(sectHdr[aout.o_sntext-1].s_scnptr);
+   Address fileDataOffset = roundup4(sectHdr[aout.o_sndata-1].s_scnptr);
+
+   if (!fo_->set(fileTextOffset + offset))
+       PARSE_AOUT_DIE("Seeking to start of text segment", 49);
+   code_ptr_ = (Word *)fo_->ptr();
+   if (!code_ptr_)
+       PARSE_AOUT_DIE("Reading text segment", 49);
+
+   if (!fo_->set(fileDataOffset + offset))
+       PARSE_AOUT_DIE("Seeking to start of data segment", 49);
+   data_ptr_ = (Word *)fo_->ptr();
+   if (!code_ptr_)
+       PARSE_AOUT_DIE("Reading data segment", 49);
+
+   // Offsets; symbols will be offset from the virtual address. Grab
+   // that now.  These are defined (and asserted, above) to be equal
+   // to the s_paddr (and s_vaddr) fields in their respective
+   // sections.
+   code_off_ = roundup4(aout.text_start);
+   data_off_ = roundup4(aout.data_start);
+
+   // As above, these are equal to the s_size fields in the respective fields.
    code_len_ = aout.tsize;
+   data_len_ = aout.dsize;
    
    //FIND LOADER INFO!
 
    loader_off_ = sectHdr[aout.o_snloader-1].s_scnptr;
    loader_len_ = sectHdr[aout.o_snloader-1].s_size; 
 
-   if (!seekAndRead(fd, roundup4(sectHdr[aout.o_sntext-1].s_scnptr) + offset,
-		    (void **) &code_ptr_, aout.tsize, true))
-       PARSE_AOUT_DIE("Reading text segment", 49);
-   
-#ifdef DEBUG
-   fprintf(stderr, "text_org_ = %x, scnptr = %x, text_start = %x\n",
-	   (unsigned) text_org_, sectHdr[aout.o_sntext-1].s_scnptr, 
-	   (unsigned) aout.text_start);
-   fprintf(stderr, "Code pointer: %x, reloc: %x, offset: %x, length: %x\n",
-	   (unsigned) code_ptr_, (unsigned) text_reloc,
-	   (unsigned) code_off_, (unsigned) code_len_);
-#endif
-   
-   // data_reloc = "relocation value" = data_org_ - aout.data_start
-   
-   // I've seen the data_org_ value start on a halfword-aligned boundary.
-   // Since the first two bytes don't matter that I can tell, we round
-   // to word alignment
-   // Oh, and data_start too. And the scnptr... round all of them up.
-   aout.data_start = roundup4(aout.data_start);
-   
-   data_reloc_ = aout.data_start;
-   // We're forced to get the data segment through ptrace/proc. While
-   // some of the shared libraries are accessible from both the 
-   // mutator and mutatee, all of them are not necessarily mapped. 
-   // Not to mention, things like the table of contents (TOC) are
-   // filled in at load time. Oy.
-   data_ptr_ = (Word *)malloc(aout.dsize);
-   
-   
-   // Here's a fun one. For the a.out file, we normally have the data in
-   // segment 2 (0x200...). This is not always the case. Programs compiled
-   // with the -bmaxdata flag have the heap in segment 3. In this case, change
-   // the lower bound for the allocation constants in aix.C.
-   extern Address data_low_addr;
-   if (is_aout) {
-       if (data_org_ >= 0x30000000)
-           {
-               data_low_addr = 0x30000000;
-           }
-       else
-           {
-               data_low_addr = 0x20000000;
-           }
-   }
-   
-#ifdef DEBUG
-   bperr( "data_org_ = %x, data_start = %x\n",
-          (unsigned) data_org_, 
-          (unsigned) aout.data_start);
-   bperr( "Data pointer: %x, reloc: %x\n",
-          (unsigned) data_ptr_, (unsigned) data_reloc_);
-#endif
-   
-   if (!read_from_mem(pid_, data_org_,
-                      (Address) data_ptr_, 
-                      aout.dsize)) {
-       // This happens quite often
-       cerr << "Warning, memory read failed; data is likely garbage" << endl;
-   }
-   
-   data_off_ = 0;
-   
-#ifdef DEBUG
-   fprintf(stderr, "data_org_ = %x, scnptr = %x, data_start = %x\n",
-	   (unsigned) data_org_, sectHdr[aout.o_sndata-1].s_scnptr, 
-	   (unsigned) aout.data_start);
+#if 0
+   fprintf(stderr, "Loader offset: 0x%x, len 0x%x\n", loader_off_, loader_len_);
+   fprintf(stderr, "Loader vaddr: 0x%x\n", sectHdr[aout.o_snloader-1].s_vaddr);
 #endif
 
-   data_len_ = aout.dsize;
+   text_reloc_ = fileTextOffset;
+   data_reloc_ = fileDataOffset;
 
-#ifdef DEBUG
-   fprintf(stderr,  "Data pointer: %x, reloc: %x, offset: %x, length: %x\n",
-	   (unsigned) data_ptr_, (unsigned) data_reloc_, 
-	   (unsigned) data_off_, (unsigned) data_len_);
+   // And some debug output
+#if defined(DEBUG)
+   fprintf(stderr, "Data dump from %s/%s\n",
+           file_.c_str(), member_.c_str());
+   fprintf(stderr, "Text offset in file: 0x%x (0x%x + 0x%x), virtual address 0x%x, size %d (0x%x) bytes\n",
+           fileTextOffset + offset, fileTextOffset, offset, code_off_, code_len_, code_len_);
+   fprintf(stderr, "Data offset in file: 0x%x (0x%x + 0x%x), virtual address 0x%x, size %d (0x%x) bytes\n",
+           fileDataOffset + offset, fileDataOffset, offset, data_off_, data_len_, data_len_);
 #endif
-
+   
    foundDebug = false;
 
    // Find the debug symbol table.
@@ -609,44 +576,38 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
    }
    if( foundDebug ) 
    {
-       stabs_ = (long unsigned int) symbols;
+       stabs_ = (void *) symbols;
        nstabs_ = hdr.f_nsyms;
-       stringpool_ = (long unsigned int) stringPool;
-       
+       stringpool_ = (void *) stringPool;
+       if( hdr.f_nsyms ) {
+           if (!fo_->set(sectHdr[i].s_scnptr + offset))
+               PARSE_AOUT_DIE("Seeking to initialized debug section", 49);
 
-       if( hdr.f_nsyms )
-       {
-           if (!seekAndRead(fd, roundup4(sectHdr[i].s_scnptr + offset),
-                            (void **) &stabstr_, sectHdr[i].s_size, true))
+           stabstr_ = fo_->ptr();
+           if (!stabstr_) 
                PARSE_AOUT_DIE("Reading initialized debug section", 49);
        }
-
-       linesptr_ = (long unsigned int) lines;
-       nlines_ = (int)nlines; 
-       linesfdptr_ = linesfdptr;
+       
+       linesptr_ = (void *) lines;
+       linesfdptr_ = linesfdptr + offset;
    }
    else
    {
        // Not all files have debug information. Libraries tend not to.
-       stabs_ = 0;
+       stabs_ = NULL;
        nstabs_ = 0;
-       stringpool_ = 0;
-       stabstr_ = 0;
-       linesptr_ = 0;
+       stringpool_ = NULL;
+       stabstr_ = NULL;
+       linesptr_ = NULL;
        nlines_ = 0;
        linesfdptr_ = 0;
    }
    
-   // At this point, check to see if our memory (*_org_) values are
-   // valid. If not, break -- there's only so much you can do, and
-   // reading blind into memory doesn't count.
-   if (text_org_ == (unsigned) -1) goto cleanup;
-
    // Now the symbol table itself:
    for (i=0; i < hdr.f_nsyms; i++) 
    {
      /* do the pointer addition by hand since sizeof(struct syment)
-      *   seems to be 20 not 18 as it should be */
+      *   seems to be 20 not 18 as it should be. Mmm alignment. */
      sym = (struct syment *) (((unsigned) symbols) + i * SYMESZ);
 
 
@@ -679,10 +640,11 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
          
          if (sym->n_scnum == aout.o_sntext) {
              type = Symbol::PDST_FUNCTION;
-             // Trying to make this an offset from the text_org_ addr
-             value = sym->n_value + text_reloc;
-             //fprintf(stderr, "Text symbol %s, at 0x%x (0x%x + 0x%x)\n",
-             //name.c_str(), value, sym->n_value, text_reloc);
+             value = sym->n_value;
+             /*
+             fprintf(stderr, "Text symbol %s, at 0x%x\n",
+                     name.c_str(), value);
+             */
          } else {
              // bss or data
              csect = (union auxent *)
@@ -691,8 +653,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
              if (csect->x_csect.x_smclas == XMC_TC0) { 
                  if (toc_offset)
                      logLine("Found more than one XMC_TC0 entry.");
-                 toc_offset = sym->n_value - data_reloc_;
-                 //fprintf(stderr, "TOC anchor at 0x%x\n", toc_offset);
+                 toc_offset = sym->n_value;
                  continue;
              }
              
@@ -709,13 +670,13 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
                continue;
            }
 
-           value = sym->n_value - data_reloc_;
+           value = sym->n_value;
 
 
            // Shift it back down; data_org will be added back in later.
 
-           //fprintf(stderr, "Sym %s, at 0x%x (0x%x - 0x%x)\n",
-           //      name.c_str(), value, sym->n_value, data_reloc_);
+           //fprintf(stderr, "Sym %s, at 0x%x\n",
+           //      name.c_str(), value);
        }
        
        // skip .text entries
@@ -859,6 +820,7 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
                  }
              }
          }
+
          //dump << "found module \"" << name << "\"" << endl;
          
          // Hack time. Break it down
@@ -958,6 +920,9 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
        symbols_[ "__start" ].push_back( sym1 );       
    }
 
+#if 0
+   // This got moved to Dyninst-land. Well, it will....
+
    // We grab the space at the end of the various objects to use as
    // trampoline space. This allows us to instrument those objects 
    // (reasonably) safely.
@@ -999,34 +964,29 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
        heapAddr = loader_off_ + loader_len_;
    else
        heapAddr = code_off_ + code_len_;
-
-   // MT: I've seen problems writing into a "found" heap that is in the application
-   // heap (IE a dlopen'ed library). Since we don't have any problems getting memory
-   // there, I'm skipping any heap that is in 0x2.....
-   if (text_org_ < 0x20000000 || 
-       text_org_ >= 0xd0000000) {
-       // Word-align the heap
-       heapAddr += (instruction::size()) - (heapAddr % instruction::size());
-       
-       // Get the appropriate length
-       if (is_aout) // main application binary
-           heapLen = (0x1ffffffc - text_org_) - heapAddr;
-       else {
-           heapLen = PAGESIZE - (heapAddr % PAGESIZE);
-       }
-
-       char name_scratch[256];
-       sprintf(name_scratch, "DYNINSTstaticHeap_%i_uncopiedHeap_%x_scratchpage",
-               (unsigned) heapLen,
-               (unsigned) heapAddr);
-       name = pdstring(name_scratch);
-       modName = pdstring("DYNINSTheap");
-       heapSym = Symbol(name, modName, Symbol::PDST_FUNCTION, 
-                        Symbol::SL_UNKNOWN, heapAddr,
-                        false, (int) heapLen);
-
-       symbols_[name].push_back( heapSym );
+   
+   // Word-align the heap
+   heapAddr += (instruction::size()) - (heapAddr % instruction::size());
+   
+   // Get the appropriate length
+   if (is_aout) // main application binary
+       heapLen = (0x1ffffffc - text_org_) - heapAddr;
+   else {
+       heapLen = PAGESIZE - (heapAddr % PAGESIZE);
    }
+   
+   char name_scratch[256];
+   sprintf(name_scratch, "DYNINSTstaticHeap_%i_uncopiedHeap_%x_scratchpage",
+           (unsigned) heapLen,
+           (unsigned) heapAddr);
+   name = pdstring(name_scratch);
+   modName = pdstring("DYNINSTheap");
+   heapSym = Symbol(name, modName, Symbol::PDST_FUNCTION, 
+                    Symbol::SL_UNKNOWN, heapAddr,
+                    false, (int) heapLen);
+   
+   symbols_[name].push_back( heapSym );
+#endif
    
    toc_offset_ = toc_offset;
       
@@ -1035,13 +995,6 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
    data_vldS_ = data_off_;
    data_vldE_ = data_off_ + data_len_;
 
- cleanup:
-
-   if (sectHdr) free(sectHdr);
-   if (stringPool && !foundDebug) free(stringPool);
-   if (symbols && !foundDebug) free(symbols);
-   if (lines && !foundDebug) free(lines);
-   
    return;
 }
 
@@ -1070,57 +1023,53 @@ void Object::parse_aout(int fd, int offset, bool is_aout)
       showErrorCallback(errCode,(const char *) errorLine); \
       return; \
       }
+   
+void Object::load_archive(bool is_aout) {
+    Archive *archive;
+    
+    // Determine archive type
+    // Start at the beginning...
+    if (!fo_->set(0))
+        PARSE_AR_DIE("Seeking to file start", 49);
 
-void Object::load_archive(int fd, bool is_aout)
-{
-  Archive *archive;
+    char magic_number[SAIAMAG];
+    if (!fo_->read(magic_number, SAIAMAG))
+        PARSE_AR_DIE("Reading magic number", 49);
 
-  // Determine archive type
-#ifdef __alpha
-  prmap_t tmp;
-  tmp.pr_vaddr = 0;
-  lseek(proc_fd, (off_t) tmp.pr_vaddr, SEEK_SET);
-#else
-  lseek(fd, 0, SEEK_SET);
-#endif
-  char magic_number[SAIAMAG];
-  int cnt = read(fd, magic_number, SAIAMAG);
-  if (cnt != SAIAMAG)
-    PARSE_AR_DIE("Reading magic number", 49);
-  if (!strncmp(magic_number, AIAMAG, SAIAMAG))
-    archive = (Archive *) new Archive_32(fd);
-  else if (!strncmp(magic_number, AIAMAGBIG, SAIAMAG))
-    archive = (Archive *) new Archive_64(fd);
-  else
-    PARSE_AR_DIE("Unknown magic number", 49);
-
-  if (archive->read_arhdr())
-    PARSE_AR_DIE("Reading file header", 49);
-
-  bool found = false;
-
-  while (archive->next_offset != 0)
-    {
-      if (archive->read_mbrhdr())
-	PARSE_AR_DIE("Reading member header", 49);
-
-      if (!strncmp(archive->member_name, 
-		   member_.c_str(), 
-		   archive->member_len - 1)) {
-	found = true;
-	break; // Got the right one
-      }
-    }
-  if (found) // found the right member
-    {
-      // At this point, we should be able to read the a.out 
-      // file header. 
-      parse_aout(fd, archive->aout_offset, is_aout);
-    }
-  else
-    bperr( "Member name %s not found in archive %s!\n",
-	    member_.c_str(), file_.c_str());
-  return;
+    if (!strncmp(magic_number, AIAMAG, SAIAMAG))
+        archive = (Archive *) new Archive_32(fo_);
+    else if (!strncmp(magic_number, AIAMAGBIG, SAIAMAG))
+        archive = (Archive *) new Archive_64(fo_);
+    else
+        PARSE_AR_DIE("Unknown magic number", 49);
+    
+    if (archive->read_arhdr())
+        PARSE_AR_DIE("Reading file header", 49);
+    
+    bool found = false;
+    
+    while (archive->next_offset != 0)
+        {
+            if (archive->read_mbrhdr())
+                PARSE_AR_DIE("Reading member header", 49);
+            
+            if (!strncmp(archive->member_name, 
+                         member_.c_str(), 
+                         archive->member_len - 1)) {
+                found = true;
+                break; // Got the right one
+            }
+        }
+    if (found) // found the right member
+        {
+            // At this point, we should be able to read the a.out 
+            // file header. 
+            parse_aout(archive->aout_offset, is_aout);
+        }
+    else
+        bperr( "Member name %s not found in archive %s!\n",
+               member_.c_str(), file_.c_str());
+    return;
 }
 
 // This is our all-purpose-parse-anything function. 
@@ -1130,52 +1079,46 @@ void Object::load_archive(int fd, bool is_aout)
 
 void Object::load_object(bool is_aout)
 {
-  // Load in an object (archive, object, .so)
-  int fd = 0;
-  unsigned char magic_number[2];
-  int cnt;
+    // Load in an object (archive, object, .so)
 
-  fd = open(file_.c_str(), O_RDONLY, 0);
-  if (fd <0) {
-    sprintf(errorLine, "Unable to open file %s\n", 
-	    file_.c_str());
-    statusLine(errorLine);
-    showErrorCallback(27,(const char *) errorLine);
-    return;
-  }
-  
-  cnt = read(fd, magic_number, 2);
-  
-  if (cnt != 2) {
-    sprintf(errorLine, "Error reading file %s\n", 
-	    file_.c_str());
-    statusLine(errorLine);
-    showErrorCallback(49,(const char *) errorLine);
-    close(fd);
-    return;
-  }
-  
-  // a.out file: magic number = 0x01df
-  // archive file: magic number = 0x3c62 "<b", actually "<bigaf>"
-  // or magic number = "<a", actually "<aiaff>"
-  if (magic_number[0] == 0x01) {
-    if (magic_number[1] == 0xdf)
-      parse_aout(fd, 0, is_aout);
-    else 
-      //parse_aout_64(fd, 0);
-      bperr( "Don't handle 64 bit files yet");
-  }
-  else if (magic_number[0] == '<') // archive of some sort
-    load_archive(fd, is_aout);
-  else // Fallthrough
-    { 
-      sprintf(errorLine, "Bad magic number in file %s\n",
-	      file_.c_str());
-      statusLine(errorLine);
-      showErrorCallback(49,(const char *) errorLine);
+    assert(fo_);
+
+    unsigned char magic_number[2];
+    if (!fo_->set(0)) {
+        sprintf(errorLine, "Error reading file %s\n", 
+                file_.c_str());
+        statusLine(errorLine);
+        showErrorCallback(49,(const char *) errorLine);
+        return;
     }
-  if (fd) close(fd);
-  return;
+
+    if (!fo_->read((void *)magic_number, 2)) {
+        sprintf(errorLine, "Error reading file %s\n", 
+                file_.c_str());
+        statusLine(errorLine);
+        showErrorCallback(49,(const char *) errorLine);
+        return;
+    }
+
+    // a.out file: magic number = 0x01df
+    // archive file: magic number = 0x3c62 "<b", actually "<bigaf>"
+    // or magic number = "<a", actually "<aiaff>"
+    if (magic_number[0] == 0x01) {
+        if (magic_number[1] == 0xdf)
+            parse_aout(0, is_aout);
+        else 
+            //parse_aout_64(fd, 0);
+            bperr( "Don't handle 64 bit files yet");
+    }
+    else if (magic_number[0] == '<') // archive of some sort
+        load_archive(is_aout);
+    else {// Fallthrough
+        sprintf(errorLine, "Bad magic number in file %s\n",
+                file_.c_str());
+        statusLine(errorLine);
+        showErrorCallback(49,(const char *) errorLine);
+    }
+    return;
 }
 
 // There are three types of "shared" files:
@@ -1188,24 +1131,17 @@ void Object::load_object(bool is_aout)
 
 Object::Object(const Object& obj)
     : AObject(obj) {
-  // Copy over org data
-  // You know, this really should never be called, but be careful.
-  text_org_ = obj.text_org_;
-  data_org_ = obj.data_org_;
-  member_ = obj.member_;
-  pid_ = obj.pid_;
-  load_object(false);
+    // You know, this really should never be called, but be careful.
+    assert(0);
 }
 
 // More general object creation mechanism
 Object::Object(const fileDescriptor &desc, void (*err_func)(const char *))
     : AObject(desc.file(), err_func) {
-    // We're passed a descriptor object that contains everything needed.
-    text_org_ = desc.code();
-    data_org_ = desc.data();
     member_ = desc.member();
-    pid_ = desc.pid();
     
+    fo_ = fileOpener::openFile(desc.file());
+    assert(fo_);
     // We want this to be "if a.out", so... 
     
     load_object(!desc.isSharedObject());
@@ -1242,7 +1178,7 @@ bool parseCompilerType(Object *objPtr)
     const char *stabstrs = 0;
     char *stabstr=NULL;
 
-    objPtr->get_stab_info(stabstr, stab_nsyms, ((Address&) syms), stringPool);
+    objPtr->get_stab_info(stabstr, stab_nsyms, syms, stringPool);
 
     for (int i=0;i<stab_nsyms;i++) {
         SYMENT *sym = (SYMENT *) (((unsigned) syms) + i * SYMESZ);
