@@ -222,6 +222,12 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
 }
 
 void InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses ) {
+    /* FIXME: we also see a pattern (in libc) in which the address calculated from
+       the gp is the address of the table, not of the location to look it up.  (One
+       less indirection, in other words.)  TODO: find out if this is just what
+       gcc does for libraries, or if we have to do actual dataflow analysis to determine
+       which case is happening. */
+
     /* The IA-64 SCRAG defines a pattern similar to the power's.  At some constant offset
        from the GP, there's a jump table whose 64-bit entries are offsets from the base
        address of the table to the target.  We assume that the nearest previous
