@@ -543,8 +543,8 @@ void BPatch_module::parseTypes()
   
   const Object &objPtr = imgPtr->getObject();
 
-    //Using the Object to get the pointers to the .stab and .stabstr
-    objPtr.get_stab_info(stabstr, nstabs, ((Address&) syms), stringPool); 
+  //Using the Object to get the pointers to the .stab and .stabstr
+  objPtr.get_stab_info(stabstr, nstabs, syms, stringPool); 
 
     this->BPfuncs = this->getProcedures();
 
@@ -703,7 +703,7 @@ void BPatch_module::parseTypes()
 
 	      // Since this whole function is AIX only, we're ok to get this info
 
-	      staticBlockBaseAddr = tsym->n_value + mod->obj()->parse_img()->getObject().data_reloc();
+	      staticBlockBaseAddr = tsym->n_value;
 
 	      /*
 	      char *staticName, tempName[9];

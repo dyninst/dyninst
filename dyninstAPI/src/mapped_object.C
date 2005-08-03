@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.1 2005/07/29 19:22:59 bernat Exp $
+// $Id: mapped_object.C,v 1.2 2005/08/03 05:28:18 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/symtab.h"
@@ -65,16 +65,49 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
     proc_(proc),
     analyzed_(false)
 { 
-    parsing_printf("File descriptor address: 0x%x\n", fileDesc.code());
     // Set occupied range (needs to be ranges)
     codeBase_ = fileDesc.code();
     dataBase_ = fileDesc.data();
-#if 0
-    fprintf(stderr,"Creating new mapped_object %s, code 0x%x-0x%x/%d, data 0x%x-0x%x/%d\n",
-                   fullName_.c_str(),
-                   codeAbs(), codeAbs()+codeSize(), codeSize(),
-                   dataAbs(), dataAbs() + dataSize(), dataSize());
+
+#if defined(arch_power)
+    // AIX defines "virtual" addresses for an a.out inside the file as
+    // well as when the system loads the object. As far as I can tell,
+    // this only happens for the a.out (for shobjs the file-addresses
+    // are 0).  The file-provided addresses are correct, but the
+    // OS-provided addresses are not. So if the file includes
+    // addresses, use those.  If it doesn't, all of the offsets are
+    // from a "section start" that isn't our start. Getting a headache
+    // yet? So _that_ needs to be adjusted. We've stored these values
+    // in the Object file. We could also adjust all addresses of
+    // symbols, but...
+    if (image_->codeOffset() >= codeBase_) {
+        codeBase_ = 0;
+    }
+    else {
+        codeBase_ += image_->getObject().text_reloc();
+    }
+    if (image_->dataOffset() >= dataBase_) {
+        dataBase_ = 0;
+    }
+    else {
+        // *laughs* You'd think this was the same way, right?
+        // Well, you're WRONG!
+        // For some reason we don't need to add in the data_reloc_...
+        //dataBase_ += image_->getObject().data_reloc();
+    }
 #endif
+
+#if 0
+    fprintf(stderr, "Creating new mapped_object %s/%s\n",
+            fullName_.c_str(), getFileDesc().member().c_str());
+    fprintf(stderr, "codeBase 0x%x, codeOffset 0x%x, size %d\n",
+            codeBase_, image_->codeOffset(), image_->codeLength());
+    fprintf(stderr, "dataBase 0x%x, dataOffset 0x%x, size %d\n",
+            dataBase_, image_->dataOffset(), image_->dataLength());
+    fprintf(stderr, "fileDescriptor: code at 0x%x, data 0x%x\n",
+            fileDesc.code(), fileDesc.data());
+#endif
+
     // Sets "fileName_"
     set_short_name();
     
@@ -605,19 +638,60 @@ void mapped_object::getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const 
         } 
     }
 
-    // And there are those that live only as symbols.
-    const pdvector<Symbol> &heapSyms = parse_img()->getHeaps();
-    for (unsigned i = 0; i < heapSyms.size(); i++) {
-        foundHeapDesc tmp;
-        tmp.name = heapSyms[i].name();
-        tmp.addr = heapSyms[i].addr();
-        if (heapSyms[i].type() == Symbol::PDST_OBJECT)
-            tmp.addr += dataBase();
-        else 
-            tmp.addr += codeBase();
-        foundHeaps.push_back(tmp);
+    // AIX: we scavenge space. Do that here.
+
+#if defined(arch_power)
+    // ...
+
+    // a.out: from the end of the loader to 0x20000000
+    // Anything in 0x2....: skip
+    // Anything in 0xd....: to the next page
+
+    foundHeapDesc tmp;
+    Address start = 0;
+    unsigned size = 0;
+    
+#if 0
+    fprintf(stderr, "Looking for inferior heap in %s/%s, codeAbs 0x%x (0x%x/0x%x)\n",
+            getFileDesc().file().c_str(),
+            getFileDesc().member().c_str(),
+            codeAbs(),
+            codeBase(),
+            codeOffset());
+#endif
+
+    if (codeAbs() >= 0xd0000000) {
+        start = codeAbs() + codeSize();
+        start += instruction::size() - (start % (Address)instruction::size());
+        size = PAGESIZE - (start % PAGESIZE);
+    }
+    else if (codeAbs() > 0x20000000) {
+        // ...
+    }
+    else if (codeAbs() > 0x10000000) {
+        // We also have the loader; there is no information on where
+        // it goes (ARGH) so we pad the end of the code segment to
+        // try and avoid it.
+        start = codeAbs() + codeSize() + image_->getObject().loader_len();
+        start += instruction::size() - (start % (Address)instruction::size());
+        size = (0x20000000 - start);
     }
 
+
+    if (start) {
+        char name_scratch[1024];
+        snprintf(name_scratch, 1023,
+                 "DYNINSTstaticHeap_%i_uncopiedHeap_0x%lx_scratchpage_%s",
+                 (unsigned) size,
+                 start,
+                 fileName().c_str());
+        
+        tmp.name = pdstring(name_scratch);
+        tmp.addr = start;
+        
+        foundHeaps.push_back(tmp);
+    }
+#endif
 }
     
 
@@ -949,7 +1023,7 @@ void mapped_module::parseFileLineInfo() {
 	/* We haven't parsed this file already, so iterate over its stab entries. */
 	char * stabstr = NULL;
 	int nstabs = 0;
-	Address syms = 0;
+	SYMENT * syms = 0;
 	char * stringpool = NULL;
 	xcoffObject.get_stab_info( stabstr, nstabs, syms, stringpool );
 
@@ -959,51 +1033,56 @@ void mapped_module::parseFileLineInfo() {
 	xcoffObject.get_line_info( nlines, lines, linesfdptr );
 
 	/* I'm not sure why the original code thought it should copy (short) names (through here). */
-	char temporaryName[9];
+	char temporaryName[256];
 	char * funcName = NULL;
 	char * currentSourceFile = NULL;
+        char *moduleName = NULL;
 
 	/* Iterate over STAB entries. */
 	for( int i = 0; i < nstabs; i++ ) {
 		/* sizeof( SYMENT ) is 20, not 18, as it should be. */
-		SYMENT * sym = (SYMENT *)( syms + (i * SYMESZ) );
+		SYMENT * sym = (SYMENT *)( (unsigned)syms + (i * SYMESZ) );
+
+                /* Get the name (period) */
+                if (!sym->n_zeroes) {
+                    moduleName = &stringpool[sym->n_offset];
+                } else {
+                    memset(temporaryName, 0, 9);
+                    strncpy(temporaryName, sym->n_name, 8);
+                    moduleName = temporaryName;
+                }
+
 	
 		/* Extract the current source file from the C_FILE entries. */
 		if( sym->n_sclass == C_FILE ) {
-			char * moduleName = NULL;
-			
-			/* From the SYMENT. */
-			if( ! sym->n_zeroes ) {
-				moduleName = & stringpool[ sym->n_offset ];
-				}
-			else {
-				memset( temporaryName, 0, 9 );
-				strncpy( temporaryName, sym->n_name, 8 );
-				moduleName = temporaryName;
-				}
-				
-			/* From the AUXENT. */
-			for( int j = 1; j <= sym->n_numaux; j++ ) {
-				union auxent * aux = (union auxent *)( (Address)sym + (j * SYMESZ) );
-				
-				if( aux->x_file._x.x_ftype == XFT_FN ) {
-					if( ! aux->x_file._x.x_zeroes ) {
-						moduleName = & stringpool[ aux->x_file._x.x_offset ];
-						} else {
-						// x_fname is 14 bytes
-						memset( moduleName, 0, 15 );
-						strncpy( moduleName, aux->x_file.x_fname, 14 );
-						}
-					} /* end if proper auxtype */
-				} /* end AUXENT iteration */
-			
-			currentSourceFile = strrchr( moduleName, '/' );
-			if( currentSourceFile == NULL ) { currentSourceFile = moduleName; }
-			else { ++currentSourceFile; }
+                    if (!strcmp(moduleName, ".file")) {
+                        // The actual name is in an aux record.
 
-			/* We're done with this entry. */
-			continue;
-			} /* end if C_FILE */
+                        int j;
+                        /* has aux record with additional information. */
+                        for (j=1; j <= sym->n_numaux; j++) {
+                            union auxent *aux = (union auxent *) ((char *) sym + j * SYMESZ);
+                            if (aux->x_file._x.x_ftype == XFT_FN) {
+                                // this aux record contains the file name.
+                                if (!aux->x_file._x.x_zeroes) {
+                                    moduleName = &stringpool[aux->x_file._x.x_offset];
+                                } else {
+                                    // x_fname is 14 bytes
+                                    memset(temporaryName, 0, 15);
+                                    strncpy(temporaryName, aux->x_file.x_fname, 14);
+                                    moduleName = temporaryName;
+                                }
+                            }
+                        }
+                    }
+			
+                    currentSourceFile = strrchr( moduleName, '/' );
+                    if( currentSourceFile == NULL ) { currentSourceFile = moduleName; }
+                    else { ++currentSourceFile; }
+                    
+                    /* We're done with this entry. */
+                    continue;
+                } /* end if C_FILE */
 	
 		/* This apparently compensates for a bug in the naming of certain entries. */
 		char * nmPtr = NULL;
