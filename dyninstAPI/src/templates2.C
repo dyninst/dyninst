@@ -40,7 +40,7 @@
  */
 
 
-// $Id: templates2.C,v 1.52 2005/08/03 05:28:29 bernat Exp $
+// $Id: templates2.C,v 1.53 2005/08/03 22:06:50 tlmiller Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -192,6 +192,7 @@ template class pdvector<user_event_cb_record>;
 template class pdvector<BPatch_eventMailbox::mb_callback_t>;
 
 #if defined( arch_ia64 )
+class int_basicBlock;
 #include <list>
 template class std::list< int_basicBlock *>;
 #endif /* defined( arch_ia64 ) */
