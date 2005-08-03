@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.179 2005/07/29 22:16:30 bernat Exp $
+// $Id: symtab.h,v 1.180 2005/08/03 05:28:26 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -90,17 +90,6 @@ typedef enum { lang_Unknown,
 	       lang_Fortran_with_pretty_debug,
 	       lang_CMFortran
 	       } supportedLanguages;
-
-enum { EntryPt, CallPt, ReturnPt, OtherPt };
-class point_ {
-public:
-   point_(): point(0), index(0), type(0) {};
-   point_(instPoint *p, unsigned i, unsigned t): point(p), index(i), type(t)
-       {  };
-   instPoint *point;
-   unsigned index;
-   unsigned type;
-};
 
 /* contents of line number field if line is unknown */
 #define UNKNOWN_LINE	0
@@ -330,25 +319,6 @@ void print_module_vector_by_short_name(pdstring prefix,
 pdstring getModuleName(pdstring constraint);
 pdstring getFunctionName(pdstring constraint);
 
-/*
- * symbols we need to find from our RTinst library.  This is how we know
- *   were our inst primatives got loaded as well as the data space variables
- *   we use to put counters/timers and inst trampolines.  An array of these
- *   is placed in the image structure.
- *
- */
-class internalSym {
- public:
-   internalSym() { }
-   internalSym(const Address adr, const pdstring &nm) : name(nm), addr(adr) { }
-   Address getAddr() const { return addr;}
-
- private:
-   pdstring name;            /* name as it appears in the symbol table. */
-   Address addr;      /* absolute address of the symbol */
-};
-
-
 int rawfuncscmp( image_func*& pdf1, image_func*& pdf2 );
 
 typedef enum {unparsed, symtab, analyzing, analyzed} imageParseState_t;
@@ -425,7 +395,6 @@ class image : public codeRange {
 
    // Check the list of symbols returned by the parser, return
    // name/addr pair
-   //bool findInternalSymbol(const pdstring &name, const bool warn, internalSym &iSym);
 
    //Address findInternalAddress (const pdstring &name, const bool warn, bool &err);
    // find the named module  
@@ -503,8 +472,8 @@ class image : public codeRange {
    const fileDescriptor &desc() const { return desc_; }
    Address codeOffset() const { return codeOffset_;}
    Address dataOffset() const { return dataOffset_;}
-   Address dataLength() const { return (dataLen_ << 2);} 
-   Address codeLength() const { return (codeLen_ << 2);} 
+   Address dataLength() const { return dataLen_;} 
+   Address codeLength() const { return codeLen_;} 
 
 
    // codeRange versions
@@ -669,7 +638,6 @@ class image : public codeRange {
    // data from the symbol table 
    Object linkedFile;
 
-   //dictionary_hash <pdstring, internalSym*> iSymsMap;   // internal RTinst symbols
 
    // A vector of all images. Used to avoid duplicating
    // an "image" that already exists.
@@ -805,12 +773,10 @@ inline const Word image::get_instruction(Address adr) const{
 
    if (isCode(adr)) {
       adr -= codeOffset_;
-      adr >>= 2;
       const Word *inst = linkedFile.code_ptr();
       return (inst[adr]);
    } else if (isData(adr)) {
       adr -= dataOffset_;
-      adr >>= 2;
       const Word *inst = linkedFile.data_ptr();
       return (inst[adr]);
    } else {
@@ -850,7 +816,7 @@ inline bool image::isAllocedAddress(const Address &where) const{
 
 inline bool image::isCode(const Address &where)  const{
    return (linkedFile.code_ptr() && 
-           (where >= codeOffset_) && (where < (codeOffset_+(codeLen_<<2))));
+           (where >= codeOffset_) && (where < (codeOffset_+codeLen_)));
 }
 
 #if defined( arch_x86 )
@@ -861,7 +827,7 @@ inline bool image::isText( const Address &where) const
 #endif
 inline bool image::isData(const Address &where)  const{
    return (linkedFile.data_ptr() && 
-           (where >= dataOffset_) && (where < (dataOffset_+(dataLen_<<2))));
+           (where >= dataOffset_) && (where < (dataOffset_+dataLen_)));
 }
 
 inline bool image::isAllocedCode(const Address &where)  const{

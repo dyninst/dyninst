@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.246 2005/07/29 19:19:49 bernat Exp $
+ // $Id: symtab.C,v 1.247 2005/08/03 05:28:25 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1124,11 +1124,25 @@ image *image::parseImage(fileDescriptor &desc)
   // AIX: it's possible that we're reparsing a file with better information
   // about it. If so, yank the old one out of the images vector -- replace
   // it, basically.
-  for (unsigned u=0; u<numImages; u++)
-     if (desc == allImages[u]->desc()) {
-       // We reference count...
-       return allImages[u]->clone();
-     }
+  for (unsigned u=0; u<numImages; u++) {
+#if 0
+      fprintf(stderr, "Comparing %s/0x%x/0x%x/%s/%d to %s/0x%x/0x%x/%s/%d\n",
+              desc.file().c_str(),
+              desc.code(),
+              desc.data(),
+              desc.member().c_str(),
+              desc.pid(),
+              allImages[u]->desc().file().c_str(),
+              allImages[u]->desc().code(),
+              allImages[u]->desc().data(),
+              allImages[u]->desc().member().c_str(),
+              allImages[u]->desc().pid());
+#endif
+      if (desc == allImages[u]->desc()) {
+          // We reference count...
+          return allImages[u]->clone();
+      }
+  }
   /*
    * load the symbol table. (This is the a.out format specific routine).
    */
@@ -2057,15 +2071,9 @@ image::image(fileDescriptor &desc, bool &err)
    codeOffset_ = linkedFile.code_off();
    dataOffset_ = linkedFile.data_off();
    
-#if defined(arch_power)
-   // The image class expects these to be shifted right by 2... anyone 
-   // have _any_ clue why???
-   codeLen_ = linkedFile.code_len() >> 2;
-   dataLen_ = linkedFile.data_len() >> 2;
-#else
    codeLen_ = linkedFile.code_len();
    dataLen_ = linkedFile.data_len();
-#endif
+
    codeValidStart_ = linkedFile.code_vldS();
    codeValidEnd_ = linkedFile.code_vldE();
    dataValidStart_ = linkedFile.data_vldS();
