@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.h,v 1.3 2005/08/03 05:28:07 bernat Exp $
+// $Id: baseTramp.h,v 1.4 2005/08/03 23:00:52 bernat Exp $
 
 // baseTramp class definition
 
@@ -151,6 +151,8 @@ class baseTrampInstance : public generatedCodeObject {
     bool isEmpty();
 
     void updateTrampCost(unsigned cost);
+
+    instPoint *findInstPointByAddr(Address addr);
 
     unsigned genVersion;
 

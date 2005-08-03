@@ -39,10 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.C,v 1.11 2005/07/30 03:26:57 bernat Exp $
+// $Id: frame.C,v 1.12 2005/08/03 23:00:53 bernat Exp $
 
 #include <stdio.h>
 #include <iostream>
+#include "frame.h"
 #include "process.h"
 #include "dyn_thread.h"
 #include "dyn_lwp.h"
@@ -50,7 +51,6 @@
 #include "instPoint.h"
 #include "baseTramp.h"
 #include "miniTramp.h"
-#include "frame.h"
 
 
 Frame::Frame() : 
@@ -182,6 +182,36 @@ void Frame::calcFrameType()
    frameType_ = FRAME_unset;
    return;
 }
+
+// Get the instPoint corresponding with this frame
+instPoint *Frame::getPoint() {
+    // Easy check:
+    if (getPC() == getUninstAddr())
+        return NULL;
+
+    codeRange *range = getRange();
+    
+    multiTramp *m_ptr = range->is_multitramp();
+    miniTrampInstance *mt_ptr = range->is_minitramp();
+    baseTrampInstance *bt_ptr = range->is_basetramp_multi();
+
+    if (mt_ptr) {
+        return mt_ptr->mini->instP;
+    }
+    else if (m_ptr) {
+        // We're in a multiTramp, so between instPoints. 
+        // However, we're in a multiTramp and not the original code, so 
+        // we do need to discover an instpoint. We're not in a baseTramp,
+        // so that's not a problem; other options are relocated instruction
+        // or trampEnd.
+        return m_ptr->findInstPointByAddr(getPC());
+    }
+    return NULL;
+}
+            
+        
+        
+    
 
 Address Frame::getUninstAddr() {
     codeRange *range = getRange();

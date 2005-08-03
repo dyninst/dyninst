@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.3 2005/08/03 05:28:20 bernat Exp $
+// $Id: multiTramp.h,v 1.4 2005/08/03 23:01:04 bernat Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -78,6 +78,12 @@ class generatedCodeObject : public codeRange {
 
     virtual bool generateCode(codeGen &gen,
                               Address baseInMutatee) = 0;
+
+    // Aaaand a helper function; returns true if we're already
+    // done
+    bool alreadyGenerated(codeGen &gen, Address baseInMutatee);
+    // And some global setting
+    bool generateSetup(codeGen &gen, Address baseInMutatee);
 
     // And actually write things in. This call is "recursive",
     // in that it will call into subsidiary objects (e.g.,
@@ -145,13 +151,21 @@ class generatedCodeObject : public codeRange {
     Address pinnedOffset;
 
     // Amount of space actually used.
-    unsigned size_;
+    unsigned size_;    
+
+    // And where we ended up
+    Address addrInMutatee_;
+
+    Address get_address_cr() const { return addrInMutatee_; }
+    unsigned get_size_cr() const { return size_; }
 
     generatedCodeObject() :
         generated_(false),
         installed_(false),
         linked_(false),
         pinnedOffset(0),
+        size_(0),
+        addrInMutatee_(0),
         previous_(NULL),
         fallthrough_(NULL),
         target_(NULL) 
@@ -163,6 +177,7 @@ class generatedCodeObject : public codeRange {
         linked_(old->linked_),
         pinnedOffset(old->pinnedOffset),
         size_(old->size_),
+        addrInMutatee_(old->addrInMutatee_),
         previous_(NULL),
         fallthrough_(NULL),
         target_(NULL)// These must be set later
@@ -203,9 +218,6 @@ class trampEnd : public generatedCodeObject {
 
     generatedCodeObject *replaceCode(generatedCodeObject *newParent);
 
-    Address get_address_cr() const { assert(0); return 0; }
-    unsigned get_size_cr() const { assert(0); return 0; }
-
     Address target() { return target_; }
 
     virtual Address uninstrumentedAddr() const { return target_; }
@@ -222,6 +234,7 @@ class relocatedInstruction : public generatedCodeObject {
     relocatedInstruction(instruction & i,
                          Address o,
                          multiTramp *m) :
+        generatedCodeObject(),
         insn(i),
 #if defined(arch_sparc)
         ds_insn(0),
@@ -229,10 +242,11 @@ class relocatedInstruction : public generatedCodeObject {
         hasDS(false),
         hasAgg(false),
 #endif
-        origAddr(o), relocAddr(0), 
+        origAddr(o), 
         multiT(m), targetOverride_(0) {}
     relocatedInstruction(relocatedInstruction *prev,
                          multiTramp *m) :
+        generatedCodeObject(),
         insn(prev->insn),
 #if defined(arch_sparc)
         ds_insn(prev->ds_insn),
@@ -241,7 +255,6 @@ class relocatedInstruction : public generatedCodeObject {
         hasAgg(prev->hasAgg),
 #endif
         origAddr(prev->origAddr),
-        relocAddr(0),
         multiT(m),
         targetOverride_(prev->targetOverride_) {}
 
@@ -263,8 +276,9 @@ class relocatedInstruction : public generatedCodeObject {
 #endif
 
     Address origAddr;
-    Address relocAddr;
     multiTramp *multiT;
+
+    Address relocAddr() const;
 
     unsigned maxSizeRequired();
 
@@ -279,10 +293,6 @@ class relocatedInstruction : public generatedCodeObject {
 
     generatedCodeObject *replaceCode(generatedCodeObject *newParent);
     
-    // Original or relocated?
-    Address get_address_cr() const { return relocAddr; }
-    unsigned get_size_cr() const { return size_; }
-
     virtual Address uninstrumentedAddr() const { return origAddr; }
 
  private:
@@ -453,6 +463,9 @@ class multiTramp : public generatedCodeObject {
   Address instToUninstAddr(Address addr);
   // Returns 0 if the addr isn't within the tramp
   Address uninstToInstAddr(Address addr);
+
+  // Returns the closest instPoint that we're at
+  instPoint *findInstPointByAddr(Address addr);
 
   // Can't call this on a multiTramp as it covers multiple
   // instructions...

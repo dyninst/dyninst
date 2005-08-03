@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.3 2005/08/03 05:28:19 bernat Exp $
+// $Id: multiTramp.C,v 1.4 2005/08/03 23:01:03 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -1036,7 +1036,7 @@ Address multiTramp::instToUninstAddr(Address addr) {
         baseTrampInstance *bti = dynamic_cast<baseTrampInstance *>(obj);
         trampEnd *end = dynamic_cast<trampEnd *>(obj);
 
-        if (insn && addr == insn->relocAddr)
+        if (insn && addr == insn->relocAddr())
             return insn->origAddr;
         if (bti && bti->isInInstance(addr)) {
             // If we're pre for an insn, return that;
@@ -1052,6 +1052,41 @@ Address multiTramp::instToUninstAddr(Address addr) {
     assert(0);
     return 0;
 }
+
+instPoint *multiTramp::findInstPointByAddr(Address addr) {
+    // Like the instToUninst above; but this time find the
+    // closest instPoint that we're in. If we're in a baseTramp
+    // or relocatedInstruction it's easy. trampEnd goes to predecessor
+    // if there is one. Returns NULL if we're in instrumentation
+    // but not at an instPoint (i.e., if we're inside a basic block
+    // but not at the instPoint).
+
+    generatedCFG_t::iterator cfgIter(generatedCFG_);
+    generatedCodeObject *obj = NULL;
+    
+    while ((obj = cfgIter++)) {
+        if ((obj->get_address_cr() <= addr) &&
+            (addr < (obj->get_address_cr() + obj->get_size_cr()))) {
+            relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);
+            baseTrampInstance *bti = dynamic_cast<baseTrampInstance *>(obj);
+            trampEnd *end = dynamic_cast<trampEnd *>(obj);
+            if (end) {
+                // We don't want the tramp end; so see if there is a previous
+                // base tramp or instruction
+                insn = dynamic_cast<relocatedInstruction *>(obj->previous_);
+                bti = dynamic_cast<baseTrampInstance *>(obj->previous_);
+            }
+            assert(insn || bti);
+
+            if (insn)
+                return proc()->findInstPByAddr(addr);
+            else if (bti) {
+                return bti->findInstPointByAddr(addr);
+            }
+        }
+    }
+    return NULL;
+}    
 
 Address multiTramp::uninstToInstAddr(Address addr) {
     // The reverse of the above; given an original address,
@@ -1070,7 +1105,7 @@ Address multiTramp::uninstToInstAddr(Address addr) {
     if (pre) {
         return pre->trampPreAddr();
     }
-    return insn->relocAddr;
+    return insn->relocAddr();
 }
 
 ////////////////////////////////////////////////////////////////////
@@ -1416,7 +1451,6 @@ bool multiTramp::hasChanged() {
     if (changedSinceLastGeneration_) {
         return true;
     }
-    
     generatedCFG_t::iterator cfgIter(generatedCFG_);
     generatedCodeObject *obj = NULL;
     
@@ -1457,10 +1491,10 @@ relocatedInstruction::relocatedInstruction(const relocatedInstruction *parRI,
     hasAgg(parRI->hasAgg),
 #endif
     origAddr(parRI->origAddr),
-    relocAddr(parRI->relocAddr),
     multiT(cMT),
     targetOverride_(parRI->targetOverride_)
-{}
+{
+}
 
 
 generatedCodeObject *relocatedInstruction::replaceCode(generatedCodeObject *newParent) {
@@ -1601,4 +1635,24 @@ generatedCodeObject *generatedCodeObject::setFallthrough(generatedCodeObject *ob
     }
 }
 
+bool generatedCodeObject::alreadyGenerated(codeGen &gen,
+                                           Address baseInMutatee) {
+    if (generated_) {
+        if (gen.currAddr(baseInMutatee) != addrInMutatee_) {
+            fprintf(stderr, "ERROR: current address 0x%x != previous address 0x%x\n",
+                    gen.currAddr(baseInMutatee), addrInMutatee_);
+        }
+        assert(gen.currAddr(baseInMutatee) == addrInMutatee_);
+        assert(size_);
+        gen.moveIndex(size_);
+        return true;
+    }
+    return false;
+}
+
+bool generatedCodeObject::generateSetup(codeGen &gen,
+                                        Address baseInMutatee) {
+    addrInMutatee_ = gen.currAddr(baseInMutatee);
+    return true;
+}
 

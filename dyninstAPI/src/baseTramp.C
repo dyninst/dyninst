@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.2 2005/07/30 03:26:51 bernat Exp $
+// $Id: baseTramp.C,v 1.3 2005/08/03 23:00:51 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -235,7 +235,9 @@ unsigned baseTrampInstance::get_size_cr() const {
     // Odd... especially if there are minitramps in the middle. 
     // For now return a+b; eventually we'll need a codeRange
     // that can handle noncontiguous ranges.
-    assert(baseT); return (baseT->preSize + baseT->instSize + baseT->postSize);
+    assert(baseT);
+    Address endAddr = trampPostAddr() + baseT->postSize;
+    return endAddr - get_address_cr();
 }
 
 
@@ -540,6 +542,31 @@ bool baseTrampInstance::isInInstru(Address pc) {
     assert(baseT);
     return (pc >= (trampPreAddr() + baseT->saveStartOffset) &&
             pc < (trampPostAddr() + baseT->restoreEndOffset));
+}
+
+instPoint *baseTrampInstance::findInstPointByAddr(Address addr) {
+    assert(baseT);
+    // Weird, this.
+    // If we're in pre-instru, return the prior instP (if it exists)
+    // If we're in post, return the next one
+    // If only one exists, well...
+    if (baseT->preInstP != NULL &&
+        baseT->postInstP == NULL) return baseT->preInstP;
+    else if (baseT->preInstP == NULL &&
+             baseT->postInstP != NULL) return baseT->postInstP;
+    else if (baseT->preInstP != NULL &&
+             baseT->postInstP != NULL) {
+        assert(addr > trampPreAddr());
+        if (addr <= (trampPreAddr() + baseT->preSize))
+            return baseT->preInstP;
+        assert(addr > trampPostAddr());
+        if (addr <= (trampPostAddr() + baseT->postSize))
+            return baseT->postInstP;
+        assert(0);
+    }
+    else {
+        return NULL;
+    }
 }
 
 // If all miniTramps are removed, nuke the baseTramp
