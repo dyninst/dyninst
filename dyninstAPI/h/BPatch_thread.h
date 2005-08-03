@@ -50,72 +50,12 @@
 #include "BPatch_snippet.h"
 #include "BPatch_eventLock.h"
 #include "BPatch_process.h"
+#include "BPatch_frame.h"
 
 class process;
 class BPatch;
 class BPatch_thread;
 class BPatch_process;
-
-
-/*
- * Frame information needed for stack walking
- */
-typedef enum {
-    BPatch_frameNormal,
-    BPatch_frameSignal,
-    BPatch_frameTrampoline
-} BPatch_frameType;
-
-#ifdef DYNINST_CLASS_NAME
-#undef DYNINST_CLASS_NAME
-#endif
-#define DYNINST_CLASS_NAME BPatch_frame
-
-class BPATCH_DLL_EXPORT BPatch_frame : public BPatch_eventLock{
-    friend class BPatch_thread;
-    friend class BPatch_Vector<BPatch_frame>;
-    BPatch_thread *thread;
-
-    void *pc;
-    void *fp;
-    bool isSignalFrame;
-    bool isTrampoline;
-    BPatch_frame();
-    BPatch_frame(BPatch_thread *_thread, void *_pc, void *_fp, 
-                 bool isf = false, bool istr = false);
-
-public:
-    //  BPatch_frame::getFrameType
-    //  Returns type of frame: BPatch_frameNormal for a stack frame for a 
-    //  function, BPatch_frameSignal for the stack frame created when a signal 
-    //  is delivered, or BPatch_frameTrampoline for a stack frame created by 
-    //  internal Dyninst instrumentation.
-    API_EXPORT(Int, (),
-
-    BPatch_frameType,getFrameType,());
-
-    //  BPatch_frame::getPC
-    //  Returns:  value of program counter
-    API_EXPORT(Int, (),
-
-    void *,getPC,()); 
-
-    //  BPatch_frame::getFP
-    API_EXPORT(Int, (),
-
-    void *,getFP,()); 
-
-    //  BPatch_frame::findFunction
-    //  Returns:  the function corresponding to this stack frame, NULL 
-    //   if there is none
-    API_EXPORT(Int, (),
-
-    BPatch_function *,findFunction,());
-   
-    // The following are planned but no yet implemented:
-    // int getSignalNumber();
-    // BPatch_point *findPoint();
-};
 
 /*
  * Represents a thread of execution.
