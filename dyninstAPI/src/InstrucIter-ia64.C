@@ -273,13 +273,13 @@ void InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
         jumpTableOffset = GET_A5_IMM( &tmpl );
         
         /* We've found the jumpTableOffset, stop looking. */
-        /* DEBUG */ fprintf( stderr, "ip: 0x%lx jumpTableOffset = %ld\n", current, jumpTableOffset );
+        // /* DEBUG */ fprintf( stderr, "ip: 0x%lx jumpTableOffset = %ld\n", current, jumpTableOffset );
         break;
     } while( true );
     
     /* Calculate the jump table's address. */
     Address jumpTableAddressAddress = gpAddress + jumpTableOffset;
-    /* DEBUG */ fprintf( stderr, "jumpTableAddressAddress = 0x%lx\n", jumpTableAddressAddress );
+    // /* DEBUG */ fprintf( stderr, "jumpTableAddressAddress = 0x%lx\n", jumpTableAddressAddress );
     
     /* Assume that the nearest previous immediate-register compare
        is range-checking the jump-table offset.  Extract that
@@ -305,7 +305,7 @@ void InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
         maxTableLength = GET_A8_COUNT( &tmpl );
         
         /* We've found a cmp.ltu; stop looking. */
-        /* DEBUG */ fprintf( stderr, "maxTableLength = %ld\n", maxTableLength );
+        // /* DEBUG */ fprintf( stderr, "maxTableLength = %ld\n", maxTableLength );
         break;
     } while( true );
     
@@ -324,7 +324,7 @@ void InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
     }
         
 
-     /* DEBUG */ fprintf( stderr, "jumpTableAddress = 0x%lx\n", jumpTableAddress );
+    // /* DEBUG */ fprintf( stderr, "jumpTableAddress = 0x%lx\n", jumpTableAddress );
     
     /* Check for Intel compiler signature.
        
@@ -356,7 +356,7 @@ void InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
         isGCC = false;
         break;
     } while( true );
-     /* DEBUG */ fprintf( stderr, "baseJumpAddress = 0x%lx\n", baseJumpAddress );
+    // /* DEBUG */ fprintf( stderr, "baseJumpAddress = 0x%lx\n", baseJumpAddress );
     
     /* Read n entries from the jump table, summing with jumpTableAddress
        to add to the set targetAddresses. */
