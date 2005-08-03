@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.41 2005/07/29 19:19:47 bernat Exp $
+// $Id: solarisDL.C,v 1.42 2005/08/03 05:28:14 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -235,7 +235,7 @@ bool dynamic_linking::find_dlopen(int ld_fd, Address ld_base_addr){
 // other shared objects, so adding instrumentation here is ugly. 
 
 sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b) 
-        : proc_(p), type_(t), breakAddr_(b) {
+        : proc_(p), type_(t), breakAddr_(b), loadinst_(NULL) {
 
 
     // Before putting in the breakpoint, save what is currently at the

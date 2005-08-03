@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.43 2005/07/29 19:19:00 bernat Exp $
+// $Id: osfDL.C,v 1.44 2005/08/03 05:28:16 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -270,7 +270,7 @@ bool dynamic_linking::installTracing()
 }
 
 sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b)
-        :proc_(p), type_(t), breakAddr_(b) {
+        :proc_(p), type_(t), breakAddr_(b), loadinst_(NULL) {
     instruction trapInsn;
     
     proc_->readDataSpace((void *)breakAddr_, SLH_SAVE_BUFFER_SIZE,

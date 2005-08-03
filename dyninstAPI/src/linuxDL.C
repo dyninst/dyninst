@@ -478,7 +478,7 @@ bool dynamic_linking::get_ld_info(Address &addr, char **path){
 ////////////// IA-64 breakpoint routines
 
 sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b) 
-        : proc_(p), type_(t), breakAddr_(b) {
+        : proc_(p), type_(t), breakAddr_(b), loadinst_(NULL) {
 
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( breakAddr_, proc_ );
 	/* Save the original instructions. */
@@ -499,7 +499,7 @@ sharedLibHook::~sharedLibHook() {
 
 /////////////// x86-linux breakpoint insertion routines
 sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b) 
-        : proc_(p), type_(t), breakAddr_(b) {
+        : proc_(p), type_(t), breakAddr_(b), loadinst_(NULL) {
 
     // Before putting in the breakpoint, save what is currently at the
     // location that will be overwritten.

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinntDL.C,v 1.3 2005/07/29 19:19:05 bernat Exp $
+// $Id: pdwinntDL.C,v 1.4 2005/08/03 05:28:17 bernat Exp $
 
 #include "dynamiclinking.h"
 #include "process.h"
@@ -48,7 +48,7 @@
 // Write in stubs to make the platform-indep code happy
 
 sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b) 
-        : proc_(p), type_(t), breakAddr_(b) {}
+        : proc_(p), type_(t), breakAddr_(b), loadInst_(NULL) {}
 
 sharedLibHook::~sharedLibHook() {}
 
