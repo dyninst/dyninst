@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.139 2005/07/29 19:19:04 bernat Exp $
+// $Id: pdwinnt.C,v 1.140 2005/08/03 05:28:21 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -1856,49 +1856,6 @@ rawTime64 dyn_lwp::getRawCpuTime_sw()
 }
 
 #endif
-
-#ifdef mips_unknown_ce2_11 //ccw 2 aug 2000 : 29 mar 2001
-
-#include "inst-mips.h"
-//this comes from irix.C
-bool process::heapIsOk(const pdvector<sym_data>&findUs)
-{ 
-	
-  //ccw 12 oct 2000 NEED TO FIND WinMain here or _WinMain then try to find main or _main
-//	DebugBreak();
-
-
-  if (!(mainFunction = findOnlyOneFunction("WinMain")) &&
-	  !(mainFunction = findOnlyOneFunction("_WinMain"))) {
-		fprintf(stderr, "process::heapIsOk(): failed to find \"WinMain\"\n");
-
-		if (!(mainFunction = findOnlyOneFunction("main")) &&
-		!(mainFunction = findOnlyOneFunction("_main"))) {
-
-			if (!(mainFunction = findOnlyOneFunction("wWinMain")) &&
-				!(mainFunction = findOnlyOneFunction("_wWinMain"))) {
-
-				fprintf(stderr, "process::heapIsOk(): failed to find \"main\"\n");
-				return false;
-			}
-	  }	
-  }
-
-  for (unsigned i = 0; i < findUs.size(); i++) {
-    const pdstring &name = findUs[i].name;
-    /*
-    Address addr = lookup_fn(this, name);
-    if (!addr && findUs[i].must_find) {
-      fprintf(stderr, "process::heapIsOk(): failed to find \"%s\"\n", name.c_str());
-      return false;
-    }
-    */
-  }
-
-  return true;
-}
-#endif
-
 
 bool process::getExecFileDescriptor(pdstring filename,
                                     int,
