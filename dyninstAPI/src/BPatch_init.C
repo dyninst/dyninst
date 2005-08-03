@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_init.C,v 1.18 2005/02/24 10:15:27 rchen Exp $
+// $Id: BPatch_init.C,v 1.19 2005/08/03 05:27:56 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -55,7 +55,6 @@ int numberOfCPUs_;
 
 pdvector<instMapping*> initialRequests;
 
-pdvector<sym_data> syms_to_find;
 char *lvl_str(BPatchErrorLevel lvl)
 {
   switch(lvl) {
