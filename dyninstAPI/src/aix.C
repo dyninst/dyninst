@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.199 2005/07/29 19:18:06 bernat Exp $
+// $Id: aix.C,v 1.200 2005/08/03 05:28:05 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -57,10 +57,10 @@
 #include "common/h/Types.h"
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
-#include "dyninstAPI/src/instP.h" // class miniTramp
 #include "common/h/pathName.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/baseTramp.h"
+#include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/inst-power.h" // Tramp constants
 #include "dyninstAPI/src/multiTramp.h"
 #include "dyninstAPI/src/InstrucIter.h"
@@ -146,7 +146,6 @@ Frame Frame::getCallerFrame()
   const int savedLROffset=8;
   //const int compilerInfoOffset=12;
   
-
   linkArea_t thisStackFrame;
   linkArea_t lastStackFrame;
   linkArea_t stackFrame;
@@ -186,26 +185,46 @@ Frame Frame::getCallerFrame()
     basePCAddr = thisStackFrame.oldFp;
   }
 
+  // See if we're in instrumentation
+  baseTrampInstance *bti = NULL;
 
-  if ((range->is_multitramp() && 
-       range->is_multitramp()->getBaseTrampInstanceByAddr(getPC()) &&
-       range->is_multitramp()->getBaseTrampInstanceByAddr(getPC())->isInInstru(getPC())) ||
-      range->is_minitramp()) {
+  if (range->is_multitramp()) {
+      bti = range->is_multitramp()->getBaseTrampInstanceByAddr(getPC());
+      if (bti) {
+          // If we're not in instru, then re-set this to NULL
+          if (!bti->isInInstru(getPC()))
+              bti = NULL;
+      }
+  }
+  else if (range->is_minitramp()) {
+      bti = range->is_minitramp()->baseTI;
+  }
+  if (bti) {
       // Oy. We saved the LR in the middle of the tramp; so pull it out
       // by hand.
-      newpcAddr = basePCAddr + TRAMP_SPR_OFFSET + STK_LR;         
+      newpcAddr = fp_ + TRAMP_SPR_OFFSET + STK_LR;         
+      newFP = thisStackFrame.oldFp;
 
       if (!getProc()->readDataSpace((caddr_t) newpcAddr,
                                     sizeof(Address),
                                     (caddr_t) &newPC, false))
           return Frame();
 
-      // Skip the next stack frame, as we "grew" the frame rather than making
-      // a new one
-      if (!getProc()->readDataSpace((caddr_t) thisStackFrame.oldFp,
-                                    sizeof(unsigned),
-                                    (caddr_t) &newFP, false))
-          return Frame();
+      // Instrumentation makes its own frame; we want to skip the
+      // function frame if there is one as well.
+      instPoint *point = bti->baseT->point();
+      assert(point); // Will only be null if we're in an inferior RPC, which can't be.
+      // If we're inside the function (callSite or arbitrary; bad assumption about
+      // arbitrary but we don't know exactly where the frame was constructed) and the
+      // function has a frame, tear it down as well.
+      if ((point->getPointType() == callSite ||
+          point->getPointType() == otherPoint) &&
+          !point->func()->hasNoStackFrame()) {
+          if (!getProc()->readDataSpace((caddr_t) thisStackFrame.oldFp,
+                                        sizeof(unsigned),
+                                        (caddr_t) &newFP, false))
+              return Frame();
+      }
       // Otherwise must be at a reloc insn
   }
   else if (isLeaf) {
@@ -251,7 +270,6 @@ Frame Frame::getCallerFrame()
 #ifdef DEBUG_STACKWALK
   fprintf(stderr, "PC %x, FP %x\n", newPC, newFP);
 #endif
-
   return Frame(newPC, newFP, 0, newpcAddr, this);
 }
 
@@ -1393,6 +1411,8 @@ char * P_cplus_demangle( const char * symbol, bool nativeCompiler, bool includeT
 
 bool checkAllThreadsForBreakpoint(process *proc, Address break_addr)
 {
+    startup_printf("[%d] Checking all process threads for breakpoint 0x%x\n",
+                   proc->getPid(), break_addr);
   pdvector<Frame> activeFrames;
   if (!proc->getAllActiveFrames(activeFrames)) return false;
   for (unsigned frame_iter = 0; frame_iter < activeFrames.size(); frame_iter++) {
@@ -1472,6 +1492,10 @@ bool process::insertTrapAtEntryPointOfMain()
     assert(f_main);
 
     Address addr = f_main->getAddress();
+    
+    startup_printf("[%d]: inserting trap at 0x%x\n",
+                   getPid(), addr);
+
     // save original instruction first
     readDataSpace((void *)addr, instruction::size(), savedCodeBuffer, true);
     // and now, insert trap
@@ -1524,12 +1548,8 @@ bool process::getDyninstRTLibName() {
 
 bool process::loadDYNINSTlib()
 {
-    // This is actually much easier than on other platforms, since
-    // by now we have the DYNINSTstaticHeap symbol to work with.
-    // Basically, we can ptrace() anywhere in the text heap we want to,
-    // so go somewhere untouched. Unfortunately, we haven't initialized
-    // the tramp space yet (no point except on AIX) so we can't simply
-    // call inferiorMalloc(). 
+    // We use the address of main() to load the library, saving what's
+    // there and restoring later
     
     // However, if we can get code_len_ + code_off_ from the object file,
     // then we can use the area above that point freely.
@@ -1541,17 +1561,15 @@ bool process::loadDYNINSTlib()
     //        Write the library name somewhere where dlopen can find it.
     // Actually, why not write the library name first?
 
-    mapped_object *aout = getAOut();
-    Address aoutEnd = aout->codeAbs() + aout->codeSize();
+    int_function *scratch = findOnlyOneFunction("main");
+    if (!scratch) return false;
     // Testing...
     // Round it up to the nearest instruction. 
-    aoutEnd += instruction::size() - (aoutEnd % instruction::size());
+    Address codeBase = scratch->getAddress();
 
-    Address codeBase = aoutEnd;
+    startup_printf("[%d]: using address of 0x%x for call to dlopen\n",
+                   getPid(), codeBase);
 
-    // Though this actually might be okay...
-    assert(aoutEnd < 0x20000000);
-    
     codeGen scratchCodeBuffer(BYTES_TO_SAVE);
     Address dyninstlib_addr = 0;
     Address dlopencall_addr = 0;
@@ -1585,6 +1603,8 @@ bool process::loadDYNINSTlib()
 
     dlopencall_addr = codeBase + scratchCodeBuffer.used();
 
+    startup_printf("[%d]: call to dlopen starts at 0x%x\n", getPid(), dlopencall_addr);
+
     // We need to push down the stack before we call this
     pushStack(scratchCodeBuffer);
 
@@ -1596,6 +1616,11 @@ bool process::loadDYNINSTlib()
 
     dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
     instruction::generateTrap(scratchCodeBuffer);
+
+    startup_printf("[%d]: call to dlopen breaks at 0x%x\n", getPid(),
+                   dyninstlib_brk_addr);
+
+    readDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer, true);
     
     writeDataSpace((void *)codeBase, scratchCodeBuffer.used(), 
                    scratchCodeBuffer.start_ptr());
@@ -1629,7 +1654,15 @@ bool process::loadDYNINSTlibCleanup(dyn_lwp *lwp)
     delete savedRegs;
     savedRegs = NULL;
     // We was never here.... 
+
+    int_function *scratch = findOnlyOneFunction("main");
+    if (!scratch) return false;
+    // Testing...
+    // Round it up to the nearest instruction. 
+    Address codeBase = scratch->getAddress();
     
+    writeDataSpace((void *)codeBase, sizeof(savedCodeBuffer), savedCodeBuffer);
+
     // But before we go, reset the dyninstlib_brk_addr so we don't
     // accidentally trigger it, eh?
     dyninstlib_brk_addr = 0x0;
@@ -1806,7 +1839,6 @@ bool process::dumpImage(const pdstring outFile)
     int cnt;
     int total;
     int length;
-    Address baseAddr;
 
     char buffer[4096];
     struct filehdr hdr;
@@ -1873,10 +1905,9 @@ bool process::dumpImage(const pdstring outFile)
         needsCont = true;
     }
     
-    Address textorg = getAOut()->getFileDesc().code();
-    baseAddr = aout.text_start - textorg;
+    Address baseAddr = getAOut()->codeAbs();
 
-    sprintf(errorLine, "seeking to %ld as the offset of the text segment \n",
+    sprintf(errorLine, "seeking to 0x%lx as the offset of the text segment \n",
             baseAddr);
     logLine(errorLine);
     sprintf(errorLine, "Code offset = 0x%lx\n", baseAddr);
@@ -1914,6 +1945,10 @@ bool process::getExecFileDescriptor(pdstring filename,
     // files loaded into the address space. The first two appear
     // to be the text and data from the process. We'll take it,
     // making sure that the filenames match.
+
+    // Amusingly, we don't use the filename parameter; we need to match with
+    // later /proc reads, and little things like pathnames kinda get in the way.
+    
 
     char tempstr[256];
 
@@ -1986,13 +2021,26 @@ bool process::getExecFileDescriptor(pdstring filename,
         textOrg += sizeof(unsigned) - (textOrg % sizeof(unsigned));
     if (dataOrg % sizeof(unsigned))
         dataOrg += sizeof(unsigned) - (dataOrg % sizeof(unsigned));
-    
-    
-    desc = fileDescriptor(filename,
+
+   // Here's a fun one. For the a.out file, we normally have the data in
+   // segment 2 (0x200...). This is not always the case. Programs compiled
+   // with the -bmaxdata flag have the heap in segment 3. In this case, change
+   // the lower bound for the allocation constants in aix.C.
+   extern Address data_low_addr;
+   if (dataOrg >= 0x30000000)
+       data_low_addr = 0x30000000;
+   else
+       data_low_addr = 0x20000000;
+
+    // Check if text_name substring matches filename?
+
+    desc = fileDescriptor(text_name,
                           textOrg,
                           dataOrg,
                           false); // Not a shared object
-    desc.setPid(pid);
+    // Try and track the types of descriptors created in aixDL.C...
+    desc.setMember("");
+    //desc.setPid(pid);
     
     return true;
 }
