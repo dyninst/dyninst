@@ -61,6 +61,7 @@ class BPatch_thread;
 class BPatch_process;
 class BPatch_funcMap;
 class BPatch_instpMap;
+class int_function;
 
 typedef enum {
   BPatch_nullEvent,

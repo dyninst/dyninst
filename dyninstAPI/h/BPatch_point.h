@@ -46,7 +46,6 @@
 #include "BPatch_Vector.h"
 #include "BPatch_eventLock.h"
 #include "BPatch_snippet.h" // snippetOrder
-#include "dyninstAPI/src/inst.h" // internal order and when
 
 class process;
 class instPoint;
@@ -143,15 +142,7 @@ typedef struct {
 #endif
 #define DYNINST_CLASS_NAME BPatch_point
 
-#if !defined(BPATCH_LIBRARY)
-// Needs getInstPointArgs
-class instRegNode;
-#endif
-
 class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
-#if !defined(BPATCH_LIBRARY)
-    friend class instReqNode;
-#endif
     friend class BPatch_process;
     friend class BPatch_image;
     friend class BPatch_function;
@@ -208,12 +199,6 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     // If we're edge inst
     BPatch_edge *edge_;
 
-    // And get real info
-    bool getInstPointArgs(BPatch_callWhen when,
-                          BPatch_snippetOrder order,
-                          callWhen &ipWhen,
-                          callOrder &ipOrder);
-
     void recordSnippet(BPatch_callWhen, BPatch_snippetOrder,
                        BPatchSnippetHandle*);
 
@@ -225,6 +210,8 @@ public:
     //  DO NOT USE
     instPoint * PDSEP_instPoint() {return point;}
 
+    // Hack to get edge information. DO NOT USE.
+    const BPatch_edge *edge() const { return edge_; }
 
     // Get the loop ID
     API_EXPORT(Int, (),
