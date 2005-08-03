@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.C,v 1.9 2005/07/29 19:18:23 bernat Exp $
+// $Id: codeRange.C,v 1.10 2005/08/03 05:28:08 bernat Exp $
 
 #include <stdio.h>
 #include "codeRange.h"
@@ -94,8 +94,9 @@ void codeRangeTree::leftRotate(entry* pivot){
 	if(y->left != nil)
 		y->left->parent = pivot;
 	y->parent = pivot->parent;
-	if(!pivot->parent)
+	if(!pivot->parent) {
 		setData = y;
+        }
 	else if(pivot == pivot->parent->left)
 		pivot->parent->left = y;
 	else
@@ -115,8 +116,9 @@ void codeRangeTree::rightRotate(entry* pivot){
 	if(x->right != nil)
 		x->right->parent = pivot;
 	x->parent = pivot->parent;
-	if(!pivot->parent)
+	if(!pivot->parent) {
 		setData = x;
+        }
 	else if(pivot == pivot->parent->left)
 		pivot->parent->left = x;
 	else
@@ -195,17 +197,18 @@ codeRangeTree::entry *codeRangeTree::treeInsert(Address key, codeRange *value)
 	entry* x = setData;
 	while(x != nil){
 		y = x;
-        if (key < x->key) 
-            x = x->left;
-        else if(key > x->key)
-            x = x->right;
-        else
-            return NULL;
+                if (key < x->key) 
+                    x = x->left;
+                else if(key > x->key)
+                    x = x->right;
+                else
+                    return NULL;
 	}	
 	entry* z = new entry(key, value, nil);
 	z->parent = y;
-	if(!y)
+	if(!y) {
 		setData = z;
+        }
 	else {
         if (key < y->key)
             y->left = z;
@@ -238,10 +241,12 @@ codeRangeTree::entry *codeRangeTree::treeSuccessor(entry* x) const{
 codeRangeTree::entry *codeRangeTree::find_internal(Address element) const{
 	entry* x = setData;
 	while(x != nil){
-            if (element < x->key)
+            if (element < x->key) {
                 x = x->left;
-            else if (element > x->key)
+            }
+            else if (element > x->key) {
                 x = x->right;
+            }
             else
                 return x;
 	}	
@@ -274,7 +279,6 @@ void codeRangeTree::traverse(pdvector<codeRange *> &all, entry* node) const{
 //////////////////////////// PUBLIC FUNCTIONS ////////////////////////////////
 
 void codeRangeTree::insert(codeRange *value) {
-    assert(value->get_address_cr() > 0);
 	entry* x = treeInsert(value->get_address_cr(), value);
 	if(!x) {
             // We're done.
@@ -329,8 +333,9 @@ void codeRangeTree::insert(codeRange *value) {
 	entry* y=((z->left == nil)||(z->right == nil)) ? z : treeSuccessor(z);
 	entry* x=(y->left != nil) ? y->left : y->right;
 	x->parent = y->parent;
-	if(!y->parent)
+	if(!y->parent) {
 		setData = x;
+        }
 	else if(y == y->parent->left)
 		y->parent->left = x;
 	else
