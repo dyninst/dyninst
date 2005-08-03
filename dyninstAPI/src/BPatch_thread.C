@@ -39,13 +39,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.129 2005/07/30 03:26:48 bernat Exp $
+// $Id: BPatch_thread.C,v 1.130 2005/08/03 23:00:50 bernat Exp $
 
 #define BPATCH_FILE
 
 #include "BPatch_thread.h"
 #include "BPatch.h"
 #include "process.h"
+#include "BPatch_libInfo.h"
+
 
 /*
  * BPatch_thread::getCallStack
@@ -81,6 +83,7 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
     for (unsigned int i = 0; i < stackWalks[0].size(); i++) {
         bool isSignalFrame = false;
         bool isInstrumentation = false;
+        BPatch_point *point = NULL;
 
         Frame frame = stackWalks[0][i];
         frame.calcFrameType();
@@ -89,16 +92,51 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
             isInstrumentation = frame.isInstrumentation();
         }
 
-        stack.push_back(BPatch_frame(this,
-                                     (void*)stackWalks[0][i].getPC(),
-                                     (void*)stackWalks[0][i].getFP(),
-                                     isSignalFrame, isInstrumentation));
         if (isInstrumentation) {
+            // This is a bit of a slog, actually. We want to only show
+            // bpatch points that exist, not describe internals to the
+            // user. So instead of calling findOrCreateBPPoint, we manually
+            // poke through the mapping table. If there isn't a point, we
+            // skip this instrumentation frame instead
+            instPoint *iP = frame.getPoint();
+            fprintf(stderr, "got iP %p\n", iP);
+            if (iP && proc->instp_map->defines(iP))
+                point = proc->instp_map->get(iP);
+            fprintf(stderr, "and point %p\n", point);
+            if (point) {
+                stack.push_back(BPatch_frame(this,
+                                             (void*)stackWalks[0][i].getPC(),
+                                             (void*)stackWalks[0][i].getFP(),
+                                             false,
+                                             true,
+                                             point));
+                // And the "top-level function" one.
+                stack.push_back(BPatch_frame(this,
+                                             (void *)stackWalks[0][i].getUninstAddr(),
+                                             (void *)stackWalks[0][i].getFP(),
+                                             false, // not signal handler,
+                                             false, // not inst.
+                                             NULL, // No point
+                                             true)); // Synthesized frame
+            }
+            else {
+                // No point = internal instrumentation, make it go away.
+                stack.push_back(BPatch_frame(this,
+                                             (void *)stackWalks[0][i].getUninstAddr(),
+                                             (void *)stackWalks[0][i].getFP(),
+                                             false, // not signal handler,
+                                             false, // not inst.
+                                             NULL, // No point
+                                             false)); // Synthesized frame
+                
+            }
+        }
+        else {
+            // Not instrumentation, normal case
             stack.push_back(BPatch_frame(this,
-                                         (void *)stackWalks[0][i].getUninstAddr(),
+                                         (void *)stackWalks[0][i].getPC(),
                                          (void *)stackWalks[0][i].getFP(),
-                                         false, // not signal handler,
-                                         false)); // not inst.
+                                         isSignalFrame));
         }
     }
     return true;
@@ -120,54 +158,4 @@ unsigned BPatch_thread::getTidInt()
    assert(0);
    return 0;
 }
-
-/***************************************************************************
- * BPatch_frame
- ***************************************************************************/
-
-/*
- * BPatch_frame::getFrameType()
- *
- * Returns the type of frame: BPatch_frameNormal for the stack frame for a
- * function, BPatch_frameSignal for the stack frame created when a signal is
- * delivered, or BPatch_frameTrampoline for a stack frame for a trampoline.
- */
-BPatch_frameType BPatch_frame::getFrameTypeInt()
-{
-	if( isSignalFrame ) { return BPatch_frameSignal; }
-	else if( isTrampoline ) { return BPatch_frameTrampoline; }
-	else { return BPatch_frameNormal; } 
-}
-
-void *BPatch_frame::getPCInt() 
-{
-  return pc;
-}
-void *BPatch_frame::getFPInt()
-{
-  return fp;
-}
-
-/*
- * BPatch_frame::findFunction()
- *
- * Returns the function associated with the stack frame, or NULL if there is
- * none.
- */
-BPatch_function *BPatch_frame::findFunctionInt()
-{
-    return thread->findFunctionByAddr(getPC());
-}
-
-BPatch_frame::BPatch_frame() : 
-   thread(NULL), pc(NULL), fp(NULL), isSignalFrame(false), 
-   isTrampoline(false) 
-{
-};
-
-BPatch_frame::BPatch_frame(BPatch_thread *_thread, void *_pc, void *_fp, 
-                           bool isf, bool istr) :
-	thread(_thread), pc(_pc), fp(_fp), isSignalFrame(isf), isTrampoline(istr) 
-{
-};
 
