@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.59 2005/07/29 19:18:08 bernat Exp $
+// $Id: aixDL.C,v 1.60 2005/08/03 05:28:06 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -152,8 +152,7 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &result)
     pid = proc->getPid();
     
     prmap_t mapEntry;
-    int iter = 2; // We start off with the third entry. The first two are
-    // the executable file.
+    int iter = 0; // Starting with the a.out is _just fine_.
     
     // We want to fill in this vector.
 
@@ -195,7 +194,7 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &result)
                                                 textOrg, dataOrg,
                                                 true);
             fda.setMember(objname+strlen(objname)+1);
-            fda.setPid(pid);
+            //fda.setPid(pid);
 
 #ifdef DEBUG
             fprintf(stderr, "Adding %s:%s with textorg 0x%x and dataorg 0x%x\n",
