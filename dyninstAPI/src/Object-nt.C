@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.34 2005/07/29 19:18:00 bernat Exp $
+// $Id: Object-nt.C,v 1.35 2005/08/03 05:28:01 bernat Exp $
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -207,7 +207,7 @@ Object::Module::DefineSymbols( const Object* obj,
             ::Symbol::SL_GLOBAL,
             obj->code_off(),
             false,
-            obj->code_len() * sizeof(Word) ) );
+            obj->code_len()) );
 
         // add symbols for each of the module's symbols
         for( pdvector<Object::File*>::const_iterator iter = files.begin();
@@ -311,13 +311,13 @@ Object::Module::PatchSymbolSizes( const Object* obj,
                     if( sym->GetType() == ::Symbol::PDST_FUNCTION )
                     {
                         // size is remainder of the .text section
-                        cb = (obj->code_off() + obj->code_len()*sizeof(Word)) - 
+                        cb = (obj->code_off() + obj->code_len()) - 
 							sym->GetAddr();
                     }
                     else
                     {
                         // size is remainder of the .data section
-                        cb = (obj->data_off() + obj->data_len()*sizeof(Word)) - 
+                        cb = (obj->data_off() + obj->data_len()) - 
 							sym->GetAddr();
                     }
                 }
@@ -460,7 +460,7 @@ SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
         // EXEs and DLLs?
         DWORD symType = ::Symbol::PDST_UNKNOWN;
         DWORD symLinkage = ::Symbol::SL_UNKNOWN;
-        DWORD64 codeLen = obj->code_len() * sizeof(Word);
+        DWORD64 codeLen = obj->code_len();
         DWORD64 codeBase = obj->code_off();
         if( obj->GetDescriptor().isSharedObject() )
         {
@@ -683,9 +683,9 @@ Object::ParseDebugInfo( void )
     // the .text and .data sections are perfectly mapped to code/data segments
 
     code_vldS_ = code_off_;
-    code_vldE_ = code_off_ + code_len_ * sizeof(Word);
+    code_vldE_ = code_off_ + code_len_;
     data_vldS_ = data_off_;
-    data_vldE_ = data_off_ + data_len_ * sizeof(Word);
+    data_vldE_ = data_off_ + data_len_;
 }
 
 
@@ -752,7 +752,7 @@ Object::FindInterestingSections( HANDLE hProc, HANDLE hFile )
                 code_off_    = pScnHdr->VirtualAddress;
             else
                 code_off_    = baseAddr + pScnHdr->VirtualAddress;
-            code_len_    = pScnHdr->Misc.VirtualSize / sizeof(Word);
+            code_len_    = pScnHdr->Misc.VirtualSize;
         }
         else if( strncmp( (const char*)pScnHdr->Name, ".data", 5 ) == 0 )
         {
@@ -765,7 +765,7 @@ Object::FindInterestingSections( HANDLE hProc, HANDLE hFile )
                 data_off_    = pScnHdr->VirtualAddress;
             else
                 data_off_    = baseAddr + pScnHdr->VirtualAddress;
-            data_len_    = pScnHdr->Misc.VirtualSize / sizeof(Word);
+            data_len_    = pScnHdr->Misc.VirtualSize;
         }
 
         pScnHdr += 1;

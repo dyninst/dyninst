@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.91 2005/07/29 19:17:58 bernat Exp $
+ * $Id: Object-elf.C,v 1.92 2005/08/03 05:28:00 bernat Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -237,7 +237,7 @@ bool Object::loaded_elf(Elf_X &elf, Address& txtaddr, Address& bssaddr,
 		txtaddr = scnp->sh_addr();
 	    code_ptr_ = (Word *)(void*)&file_ptr_[scnp->sh_offset() - EXTRA_SPACE];
 	    code_off_ = scnp->sh_addr() - EXTRA_SPACE;
-	    code_len_ = (scnp->sh_size() + EXTRA_SPACE) / sizeof(Word);
+	    code_len_ = scnp->sh_size() + EXTRA_SPACE;
 	}
 	if (strcmp(name, TEXT_NAME) == 0) {
 	    text_addr_ = scnp->sh_addr();
@@ -2020,8 +2020,7 @@ void Object::find_code_and_data(Elf_X &elf,
 	    if (code_ptr_ == 0 && code_off_ == 0 && code_len_ == 0) {
 		code_ptr_ = (Word *)(void*)&file_ptr_[phdr.p_offset()];
 		code_off_ = (Address)phdr.p_vaddr();
-		code_len_ = (unsigned)phdr.p_memsz() / sizeof(Word);
-		// Will sizeof(Word) cause a problem for 32/64 bit platforms?
+		code_len_ = (unsigned)phdr.p_memsz();
 	    }
 
 	} else if ((phdr.p_vaddr() <= bssaddr) && 
@@ -2030,8 +2029,7 @@ void Object::find_code_and_data(Elf_X &elf,
 	    if (data_ptr_ == 0 && data_off_ == 0 && data_len_ == 0) {
 		data_ptr_ = (Word *)(void *)&file_ptr_[phdr.p_offset()];
 		data_off_ = (Address)phdr.p_vaddr();
-		data_len_ = (unsigned)phdr.p_memsz() / sizeof(Word);
-		// Will sizeof(Word) cause a problem for 32/64 bit platforms?
+		data_len_ = (unsigned)phdr.p_memsz();
 	    }
 	}
     }
@@ -2041,8 +2039,8 @@ void Object::find_code_and_data(Elf_X &elf,
 const char *Object::elf_vaddr_to_ptr(Address vaddr) const
 {
   const char *ret = NULL;
-  unsigned code_size_ = code_len_ * sizeof(Word);
-  unsigned data_size_ = data_len_ * sizeof(Word);
+  unsigned code_size_ = code_len_;
+  unsigned data_size_ = data_len_;
 
 #if defined(mips_sgi_irix6_4)
   vaddr -= base_addr;
@@ -2236,14 +2234,14 @@ void Object::get_valid_memory_areas(Elf_X &elf)
 
 	if (shdr.sh_flags() & SHF_ALLOC) { // This section is in memory
 	    if (code_off_ <= shdr.sh_addr() &&
-		shdr.sh_addr() <= code_off_ + code_len_ * sizeof(Word)) {
+		shdr.sh_addr() <= code_off_ + code_len_) {
 		if (shdr.sh_addr() < code_vldS_)
 		    code_vldS_ = shdr.sh_addr();
 		if (shdr.sh_addr() + shdr.sh_size() > code_vldE_)
 		    code_vldE_ = shdr.sh_addr() + shdr.sh_size();
 
 	    } else if (data_off_ <= shdr.sh_addr() &&
-		       shdr.sh_addr() <= data_off_ + data_len_ * sizeof(Word)) {
+		       shdr.sh_addr() <= data_off_ + data_len_) {
 		if (shdr.sh_addr() < data_vldS_)
 		    data_vldS_ = shdr.sh_addr();
 		if (shdr.sh_addr() + shdr.sh_size() > data_vldE_)

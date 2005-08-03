@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.26 2005/07/29 19:17:56 bernat Exp $
+// $Id: Object-coff.C,v 1.27 2005/08/03 05:27:59 bernat Exp $
 
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
@@ -196,7 +196,7 @@ static inline bool find_data_region(pdvector<Address>& all_addr,
 
   max_adr = current;
   
-  data_len = (max_adr - min_adr) / sizeof(Word);
+  data_len = (max_adr - min_adr);
   data_off = min_adr;
   assert(min_adr <= all_addr[K_D_INDEX]);
   assert(max_adr >= all_addr[K_D_INDEX] + all_size[K_D_INDEX]);
@@ -210,14 +210,14 @@ static inline bool read_data_region(pdvector<Address>& all_addr,
 				    unsigned long& data_len, Address& data_off,
 				    Word *buffer, LDFILE *ldptr) {
   unsigned index, max = all_disk.size();
-  Address max_adr = data_off + data_len * sizeof(Word);
+  Address max_adr = data_off + data_len;
   assert(all_size.size() == all_addr.size());
   assert(all_disk.size() == all_addr.size());
   for (index=0; index<max; index++) {
     if ((all_addr[index] >= data_off) &&
 	((all_addr[index] + all_size[index]) <= max_adr)) {
       if (ldfseek(ldptr, all_disk[index], SEEK_SET) == -1) return false;
-      Word *buf_temp = buffer + ((all_addr[index] - data_off) / sizeof(Word));
+      Word *buf_temp = buffer + (all_addr[index] - data_off);
       if (ldfread((void*) buf_temp, 1, all_size[index], ldptr) != all_size[index])
 	return false;
     }
@@ -399,9 +399,9 @@ void Object::load_object(bool sharedLibrary) {
 
 	// COFF doesn't have segments, so the entire code/data sections are valid
 	code_vldS_ = code_off_;
-	code_vldE_ = code_off_ + code_len_ * sizeof(Word);
+	code_vldE_ = code_off_ + code_len_;
 	data_vldS_ = data_off_;
-	data_vldE_ = data_off_ + code_len_ * sizeof(Word);
+	data_vldE_ = data_off_ + code_len_;
 
         // Check for the symbol table
 	if (!(sym_tab_ptr = PSYMTAB(ldptr))) {
@@ -617,7 +617,7 @@ void Object::load_object(bool sharedLibrary) {
                   size = (unsigned)allSymbols[v].addr()
                          - (unsigned)allSymbols[u].addr();
 	    } else {
-                  size = (unsigned)(code_off_+code_len_*sizeof(Word))
+                size = (unsigned)(code_off_+code_len_)
                          - (unsigned)allSymbols[u].addr();
 	    }
 	}
