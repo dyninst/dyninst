@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.89 2005/03/23 04:34:24 legendre Exp $
+// $Id: init.C,v 1.90 2005/08/03 05:28:34 bernat Exp $
 
 
 #include "paradynd/src/internalMetrics.h"
@@ -91,7 +91,7 @@ internalMetric *active_threads = NULL;
 int numberOfCPUs;
 
 pdvector<pdinstMapping*> initialRequestsPARADYN;//ccw 19 apr 2002 : SPLIT  ALSO CHANGED BELOW 
-pdvector<sym_data> syms_to_findPARADYN; //ccw 19 apr 2002 : SPLIT
+//pdvector<sym_data> syms_to_findPARADYN; //ccw 19 apr 2002 : SPLIT
 
 BPatch *__bpatch = NULL;
 
@@ -419,6 +419,8 @@ bool paradyn_init() {
        internalMetric::firstSample_ForInitActualValue);
   activeProcs->setStyle(SampledFunction);
 
+
+#if 0
   sym_data sd;
 
   sd.name = "DYNINST_bootstrap_info"; sd.must_find = true; syms_to_findPARADYN += sd;
@@ -429,6 +431,7 @@ bool paradyn_init() {
   // be found when we call heapIsOk, so we don't want to set must_find 
   // to true here
   sd.name = EXIT_NAME; sd.must_find = false; syms_to_findPARADYN += sd;
+#endif
 
   // The main function is platform dependent, and it is not always 'main'
   //sd.name = "main"; sd.must_find = true; syms_to_find += sd;
