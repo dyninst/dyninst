@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.1 2005/07/29 19:22:58 bernat Exp $
+ * $Id: image-x86.C,v 1.2 2005/08/03 05:28:11 bernat Exp $
  */
 
 #include "common/h/Vector.h"
@@ -163,14 +163,8 @@ bool checkEntry( instruction insn, Address offset, image_func *func )
     } 
   else if (insn.isCall()) 
     {
-      // TODO: handle calls at entry point
-      // call at entry point
-      //instPoint *p = new instPoint(this, owner, adr, functionEntr, insn);
-      //calls += p;
-      //points[npoints++] = point_(p, numInsns, CallPt);
-      //bperr("Function %s, call at entry point\n", 
-      //prettyName().c_str());
-      //return false;
+        // So?
+        return true;
     }
   return true;
 }
@@ -391,9 +385,15 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
         {    
             currAddr = *ah;
             insnSize = ah.getInstruction().size();
-                       
+#if 0
+            fprintf(stderr, "... checking 0x%x (%d)\n", currAddr, currAddr - getOffset());
+            for (unsigned foo = 0; foo < insnSize; foo++) {
+                fprintf(stderr, "%02hhx ", *(((char *)ah.getInstruction().ptr())+foo));
+            }
+            fprintf(stderr, "\n");
+#endif                       
             if( visited.contains( currAddr ) ) {
-                //parsing_printf("... already touched addr 0x%x\n", currAddr);
+                parsing_printf("... already touched addr 0x%x\n", currAddr);
                 break;
             }
             else 
@@ -688,7 +688,7 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
             } 
             else if( ah.isAReturnInstruction() ) 
             {
-                //parsing_printf("... 0x%x is a return\n", currAddr);
+                parsing_printf("... 0x%x (%d) is a return\n", currAddr, currAddr - getOffset());
                 currBlk->lastInsnOffset_ = currAddr;
                 currBlk->blockEndOffset_ = currAddr + insnSize;
                 currBlk->isExitBlock_ = true;

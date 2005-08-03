@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.C,v 1.8 2005/07/29 19:18:26 bernat Exp $
+// $Id: dynamiclinking.C,v 1.9 2005/08/03 05:28:09 bernat Exp $
 
 // Cross-platform dynamic linking functions
 
@@ -134,6 +134,14 @@ bool dynamic_linking::getSharedObjects(pdvector<mapped_object *> &mapped_objects
     // Skip first entry: always the a.out
     for (unsigned i = 0; i < descs.size(); i++) {
         if (descs[i] != proc->getAOut()->getFileDesc()) {
+#if 0
+            fprintf(stderr, "DEBUG: match pattern %d, %d, %d, %d, %d\n",
+                    descs[i].file() == proc->getAOut()->getFileDesc().file(),
+                    descs[i].code() == proc->getAOut()->getFileDesc().code(),
+                    descs[i].data() == proc->getAOut()->getFileDesc().data(),
+                    descs[i].member() == proc->getAOut()->getFileDesc().member(),
+                    descs[i].pid() == proc->getAOut()->getFileDesc().pid());
+#endif
             mapped_object *newobj = mapped_object::createMappedObject(descs[i], proc);
             mapped_objects.push_back(newobj);
 #if defined(cap_save_the_world)
@@ -239,8 +247,9 @@ bool dynamic_linking::findChangeToLinkMaps(u_int &change_type,
       }
 
       for (unsigned l = 0; l < curr_list.size(); l++) {
-          if (!stillThere[l])
+          if (!stillThere[l]) {
               changed_objects.push_back(curr_list[l]);
+          }
       }
   }
   return true;

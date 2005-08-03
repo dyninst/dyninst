@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.1 2005/07/29 19:22:53 bernat Exp $
+// $Id: image-func.C,v 1.2 2005/08/03 05:28:10 bernat Exp $
 
 #include "function.h"
 #include "process.h"
@@ -264,20 +264,15 @@ image_instPoint::image_instPoint(Address offset,
 
 
 void image_basicBlock::debugPrint() {
-#if defined(arch_ia64)
     // 64-bit
-    parsing_printf("Block %d: starts 0x%llx, last 0x%llx, end 0x%llx\n",
+    parsing_printf("Block %d: starts 0x%lx (%d), last 0x%lx (%d), end 0x%lx (%d)\n",
                    blockNumber_,
                    firstInsnOffset_,
+                   firstInsnOffset_ - func_->getOffset(),
                    lastInsnOffset_,
-                   blockEndOffset_);
-#else
-    parsing_printf("Block %d: starts 0x%x, last 0x%x, end 0x%x\n",
-                   blockNumber_,
-                   firstInsnOffset_,
-                   lastInsnOffset_,
-                   blockEndOffset_);
-#endif
+                   lastInsnOffset_ - func_->getOffset(),
+                   blockEndOffset_,
+                   blockEndOffset_ - func_->getOffset());
     parsing_printf("  Flags: entry %d, exit %d\n",
                    isEntryBlock_, isExitBlock_);
     parsing_printf("  Sources:\n");

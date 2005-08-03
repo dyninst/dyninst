@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.133 2005/07/29 22:16:29 bernat Exp $
+// $Id: inst.C,v 1.134 2005/08/03 05:28:12 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -286,55 +286,60 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr, process *proc) {
     instPoint *newIP = proc->findInstPByAddr(addr);
     if (newIP) return newIP;
 
-  // Check to see if we're creating the new instPoint on an
-  // instruction boundary. First, find the containing function.
-  codeRange *range = proc->findCodeRangeByAddress(addr);
-  if (!range) {
-      inst_printf("Failed to find address, ret null\n");
-      return NULL;
-  }
-  int_function *func = range->is_function();
-  if (!func) {
-      inst_printf("Address not in function, ret null\n");
-      return NULL;
-  }
+    // Check to see if we're creating the new instPoint on an
+    // instruction boundary. First, find the containing function.
+    codeRange *range = proc->findCodeRangeByAddress(addr);
+    if (!range) {
+        inst_printf("Failed to find address, ret null\n");
+        return NULL;
+    }
+    int_function *func = range->is_function();
+    if (!func) {
+        inst_printf("Address not in function, ret null\n");
+        return NULL;
+    }
 
-  int_basicBlock *block = func->findBlockByAddr(addr);
-  if (!block) {
-      inst_printf("Can't find block for addr, ret null\n");
-      return NULL;
-  }
-
-  InstrucIter newIter(block);
-  while ((*newIter) < addr) newIter++;
-  if (*newIter != addr) {
-      inst_printf("Unaligned try for instruction iterator, ret null\n");
-      return NULL; // Not aligned
-  }
+    inst_printf("Point is offset %d (0x%x) from start of function %s\n",
+                addr - func->getAddress(), 
+                addr - func->getAddress(), 
+                func->symTabName().c_str());
+    
+    int_basicBlock *block = func->findBlockByAddr(addr);
+    if (!block) {
+        inst_printf("Can't find block for addr, ret null\n");
+        return NULL;
+    }
+    
+    InstrucIter newIter(block);
+    while ((*newIter) < addr) newIter++;
+    if (*newIter != addr) {
+        inst_printf("Unaligned try for instruction iterator, ret null\n");
+        return NULL; // Not aligned
+    }
 #if defined(arch_sparc)
-      // Can't instrument delay slots
-  if (newIter.hasPrev()) {
-      if (newIter.getPrevInstruction().isDCTI()) {
-          return NULL;
-      }
-  }
+    // Can't instrument delay slots
+    if (newIter.hasPrev()) {
+        if (newIter.getPrevInstruction().isDCTI()) {
+            return NULL;
+        }
+    }
 #endif
-
-  newIP = new instPoint(proc,
-                        newIter.getInstruction(),
-                        addr,
-                        func);
-  
-  if (!commonIPCreation(newIP,
-                        block)) {
-      delete newIP;
-      inst_printf("Failed common IP creation, ret null\n");
-      return NULL;
-  }
-  
-  func->addArbitraryPoint(newIP);
-
-  return newIP;
+    
+    newIP = new instPoint(proc,
+                          newIter.getInstruction(),
+                          addr,
+                          func);
+    
+    if (!commonIPCreation(newIP,
+                          block)) {
+        delete newIP;
+        inst_printf("Failed common IP creation, ret null\n");
+        return NULL;
+    }
+    
+    func->addArbitraryPoint(newIP);
+    
+    return newIP;
 }
  
 bool instPoint::commonIPCreation(instPoint *newIP,
@@ -880,6 +885,8 @@ codeGen::codeGen(unsigned size) :
     size_(size),
     allocated_(true) {
     buffer_ = (codeBuf_t *)malloc(size);
+    if (!buffer_)
+        fprintf(stderr, "Malloc failed for buffer of size %d\n", size_);
     assert(buffer_);
 }
 
