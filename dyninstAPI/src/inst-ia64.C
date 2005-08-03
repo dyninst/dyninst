@@ -43,7 +43,7 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.81 2005/07/29 19:18:35 bernat Exp $
+ * $Id: inst-ia64.C,v 1.82 2005/08/03 22:06:48 tlmiller Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -621,55 +621,116 @@ void emitImm( opCode op, Register src1, RegValue src2imm, Register dest,
 	} /* end op switch */
 } /* end emitImm() */
 
+#define STATE_SAVE_COST     48
+#define STATE_RESTORE_COST  48
+
 /* Required by ast.C */
 int getInsnCost( opCode op ) {
-	/* FIXME: correct costs. */
+    /* We'll measure cost mostly in instructions. */
+    int cost = 3;
 
-	int cost = 0;
-	switch( op ) {
-		case noOp:
-		case loadIndirOp:
-		case saveRegOp:
-		case plusOp:
-		case minusOp:
-		case timesOp:
-		case divOp:
-		case loadConstOp:
-		case loadOp:
-		case loadFrameRelativeOp:
-		case loadFrameAddr:
-		case storeOp:
-		case storeIndirOp:
-		case storeFrameRelativeOp:
-		case ifOp:
-		case eqOp:
-		case neOp:
-		case lessOp:
-		case greaterOp:
-		case leOp:
-		case geOp:
-		case branchOp:
-		case callOp:
-		case whileOp:
-		case doOp:
-		case updateCostOp:
-		case trampPreamble:
-		case trampTrailer:
-		case orOp:
-		case andOp:
-		case getRetValOp:
-		case getSysRetValOp:
-		case getSysParamOp:
-		case getParamOp:
-		case getAddrOp:
-		case funcJumpOp:
-			cost = 1;
-			break;
+    switch( op ) {
+        case saveRegOp:
+            /* DEBUG */ fprintf( stderr, "%s[%d]: do I /implement/ saveRegOp?\n", __FILE__, __LINE__ );
+            cost = 3;
+            break;
 
-		default: cost = 0; break;
-		} /* end op switch */
+        case getSysRetValOp:
+            /* DEBUG */ fprintf( stderr, "%s[%d]: do I /implement/ getSysRetValOp?\n", __FILE__, __LINE__ );
+            cost = 3;
+            break;
 
-	return cost;
+        case whileOp:
+            /* DEBUG */ fprintf( stderr, "%s[%d]: do I /implement/ whileOp?\n", __FILE__, __LINE__ );
+            cost = 3;
+            break;
+
+        case doOp:
+            /* DEBUG */ fprintf( stderr, "%s[%d]: do I /implement/ doOp?\n", __FILE__, __LINE__ );
+            cost = 3;
+            break;
+
+        case getSysParamOp:
+            /* DEBUG */ fprintf( stderr, "%s[%d]: do I /implement/ getSysParamOp?\n", __FILE__, __LINE__ );
+            cost = 3;
+            break;
+
+        case getAddrOp:
+            /* Turns into loadConstOp, loadFrameAddr, or loadRegRelativeAddr. */
+            cost = 6;
+            break;
+
+        case noOp:
+
+        case plusOp:
+        case minusOp:
+
+        case andOp:
+        case orOp:
+
+        case eqOp:
+        case neOp:
+        case lessOp:
+        case greaterOp:
+        case leOp:
+        case geOp:
+
+        case getParamOp:
+        case getRetValOp:
+
+        case loadOp:
+        case loadIndirOp:
+        case loadConstOp:
+        case storeIndirOp:
+            cost = 3;
+            break;
+
+        case storeOp:
+        case storeFrameRelativeOp:
+        case loadFrameAddr:
+        case loadFrameRelativeOp:
+
+        case ifOp:
+        case branchOp:
+            cost = 6;
+            break;
+
+        case timesOp:
+            cost = 21;
+            break;
+
+        case divOp:
+            /* Incurs the cost of a function call. */
+            cost = 30;
+        case callOp:
+            cost += 197;
+            break;
+
+        case updateCostOp:
+            cost = 6;
+            break;
+
+        case trampPreamble:
+            cost = STATE_SAVE_COST;
+            break;
+
+        case funcJumpOp:
+            /* Mostly the cost of the trampTrailer. */
+            cost = 6;
+        case trampTrailer:
+            cost += STATE_RESTORE_COST;
+            break;
+
+        case ifMCOp:
+            /* for emitJmpMC(), which isn't implemented. */
+            break;
+
+        default:
+            fprintf( stderr, "%s[%d]: unrecognized opCode %d\n", __FILE__, __LINE__, op );
+            break;
+        } /* end op switch */
+
+    return cost;	
 	} /* end getInsnCost() */
 
 /* private refactoring function */
