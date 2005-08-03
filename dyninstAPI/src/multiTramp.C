@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.2 2005/07/30 03:26:55 bernat Exp $
+// $Id: multiTramp.C,v 1.3 2005/08/03 05:28:19 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -243,6 +243,8 @@ multiTramp::~multiTramp() {
     if (savedCodeBuf_)
         free(savedCodeBuf_);
 
+    // And this is why we want a process pointer ourselves. Trusting the
+    // function to still be around is... iffy... at best.
     proc()->deleteCodeRange(get_address_cr());
     proc()->inferiorFree(trampAddr_);
 
@@ -552,6 +554,7 @@ multiTramp::multiTramp(Address addr,
     trampSize_(0),
     instSize_(size),
     func_(func),
+    proc_(func->proc()),
     insns_(addrHash4),
     generatedMultiT_(),
     jumpBuf_(size),
@@ -575,6 +578,7 @@ multiTramp::multiTramp(multiTramp *oM) :
     trampSize_(0),
     instSize_(oM->instSize_),
     func_(oM->func_),
+    proc_(oM->proc_),
     insns_(addrHash4),
     generatedMultiT_(), // Not copied
     jumpBuf_(oM->instSize_), // Not copied
@@ -596,6 +600,7 @@ multiTramp::multiTramp(const multiTramp *parMulti, process *child) :
     trampSize_(parMulti->trampSize_),
     instSize_(parMulti->instSize_),
     func_(NULL),
+    proc_(child),
     insns_(addrHash4),
     generatedMultiT_(parMulti->generatedMultiT_),
     jumpBuf_(parMulti->jumpBuf_),
@@ -729,7 +734,7 @@ void multiTramp::addInstInstance(instPointInstance *instInstance) {
 // To avoid mass include inclusion
 int_function *multiTramp::func() const { return func_; }
 
-process *multiTramp::proc() const { return func_->proc(); }
+process *multiTramp::proc() const { return proc_; }
 
 int fooDebugFlag = 0;
 
@@ -1396,6 +1401,7 @@ generatedCodeObject *multiTramp::replaceCode(generatedCodeObject *newParent) {
 
     // And final checking
     assert(newMulti->func_);
+    assert(newMulti->proc_);
 
     assert(newMulti->instAddr_);
     assert(newMulti->instSize_);

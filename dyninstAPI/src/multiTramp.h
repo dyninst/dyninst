@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.2 2005/07/30 03:26:56 bernat Exp $
+// $Id: multiTramp.h,v 1.3 2005/08/03 05:28:20 bernat Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -483,6 +483,7 @@ class multiTramp : public generatedCodeObject {
   unsigned instSize_; // Size of the original instrumented area
 
   int_function *func_;
+  process *proc_;
   // A list of tramp structures we created a baseTramp stores
   // offsets for various points. We keep it separate to avoid clogging
   // up this structure.
