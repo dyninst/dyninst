@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 /*
- * $Id: RThwtimer-linux.h,v 1.3 2004/07/23 20:39:16 tlmiller Exp $
+ * $Id: RThwtimer-linux.h,v 1.4 2005/08/03 22:06:51 tlmiller Exp $
  */
 #ifndef __RTHWTIMER_LINUX
 #define __RTHWTIMER_LINUX
@@ -84,7 +84,7 @@ typedef union {
 
 #define getTSC(var)				\
 {								\
-asm( "mov %0 = ar44" : "=r" (var) );	\
+asm volatile( "mov %0 = ar.itc" : "=r" (var) :: "memory" );	\
 }
 
 #endif
