@@ -302,7 +302,7 @@ int ParentNode::proc_newSubTree( Packet& packet ) const
                         rootname.c_str( ), rootport, rootrank ));
 
             // since this child is a backend, I'm a leaf
-            *((bool*)&isLeaf_) = true;
+            *(const_cast< bool * >( (const bool*)&isLeaf_) ) = true;
 
             const RemoteNode *cur_node = new RemoteNode( threaded,
                                                    rootname,

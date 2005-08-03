@@ -537,13 +537,13 @@ void tfilter_IntEqClass( const std::vector < Packet >&packets_in,
     for( i = 0; i < classes.size(  ); i++ ) {
         mrn_dbg( 3, mrn_printf(FLF, stderr,
 		    "\tclass %d: val = %u, nMems = %u, mems = ", i,
-		    ( ( unsigned int * )( packets_out[0][0]->val.p) )[i],
-		    ( ( unsigned int * )( packets_out[0][1]->val.p) )[i] ));
+		    ( ( const unsigned int * )( packets_out[0][0]->val.p) )[i],
+		    ( ( const unsigned int * )( packets_out[0][1]->val.p) )[i] ));
 	for( unsigned int j = 0;
-	     j < ( ( unsigned int * )( packets_out[0][1]->val.p ) )[i];
+	     j < ( ( const unsigned int * )( packets_out[0][1]->val.p ) )[i];
 	     j++ ) {
 	    mrn_dbg( 3, mrn_printf(FLF, stderr, "%d ",
-			( ( unsigned int * )( packets_out[0][2]->val.
+			( ( const unsigned int * )( packets_out[0][2]->val.
 					      p ) )[curMem] ));
 	    curMem++;
 	}

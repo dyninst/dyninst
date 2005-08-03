@@ -217,7 +217,7 @@ int Message::send( int sock_fd )
 
         Packet curPacket = *iter;
 
-        ncbufs[i].buf = (char *)curPacket.get_Buffer( );
+        ncbufs[i].buf = const_cast< char * >( curPacket.get_Buffer( ) );
         ncbufs[i].len = curPacket.get_BufferLen( );
         packet_sizes[i] = curPacket.get_BufferLen( );
 

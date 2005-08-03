@@ -212,7 +212,7 @@ int RemoteNode::accept_Connection( int lsock_fd, bool do_connect ) const
     int retval = 0;
 
     if( do_connect ) {
-        if( ( *((int*)&sock_fd) = getSocketConnection(lsock_fd)) == -1){
+        if( ( *(const_cast< int * >( & sock_fd )) = getSocketConnection(lsock_fd)) == -1){
             mrn_dbg(1, mrn_printf(FLF, stderr, "get_socket_connection() failed\n"));
             error( MRN_ESYSTEM, "getSocketConnection(): %s\n",
                    strerror(errno) );
@@ -221,15 +221,15 @@ int RemoteNode::accept_Connection( int lsock_fd, bool do_connect ) const
     }
     else {
         // socket is already connected
-        *((int*)&sock_fd) = lsock_fd;
+        *(const_cast< int * >( & sock_fd )) = lsock_fd;
     }
     assert( sock_fd != -1 );
 
     if(threaded){
         mrn_dbg(3, mrn_printf(FLF, stderr, "Creating Downstream recv thread ...\n"));
         retval = XPlat::Thread::Create( RemoteNode::recv_thread_main,
-                                        (void *) this,
-                                        (long int *)&recv_thread_id );
+                                        const_cast< void * >( (const void *) this ),
+                                        const_cast< long int * >( (const long int *) & recv_thread_id ) );
         if(retval != 0){
             error( MRN_ESYSTEM, "XPlat::Thread::Create() failed: %s\n",
                     strerror(errno) );
@@ -237,8 +237,8 @@ int RemoteNode::accept_Connection( int lsock_fd, bool do_connect ) const
         }
         mrn_dbg(3, mrn_printf(FLF, stderr, "Creating Downstream send thread ...\n"));
         retval = XPlat::Thread::Create( RemoteNode::send_thread_main,
-                                        (void *) this,
-                                        (long int *)&send_thread_id );
+                                        const_cast< void * >( (const void *) this ),
+                                        const_cast< long int * >( (const long int *) & send_thread_id ) );
         if(retval != 0){
             error( MRN_ESYSTEM, "XPlat::Thread::Create() failed: %s\n",
                     strerror(errno) );
@@ -263,7 +263,7 @@ const
     mrn_dbg(3, mrn_printf(FLF, stderr, "In new_InternalNode(%s:%d) ...\n",
                hostname.c_str(), port ));
 
-    *((bool*)&_is_internal_node) = true;
+    *(const_cast< bool * >( (const bool*)&_is_internal_node )) = true;
 
     // set up arguments for the new process
     std::vector <std::string> args;
@@ -347,13 +347,13 @@ const
     // establish connection with the backend
     // because we created the process and delivered its rank on 
     // the command line, the back-end should know its own rank.
-    *((int *)&sock_fd) = connect_to_backend( listening_sock_fd, &be_rank );
+    *(const_cast< int * >( (const int *)&sock_fd) ) = connect_to_backend( listening_sock_fd, &be_rank );
     if( sock_fd == -1 )
     {
         // callee handled the error
         return -1;
     }
-    *((int*)&rank) = be_rank;
+    *(const_cast< int * >( (const int*)&rank) ) = be_rank;
 
     mrn_dbg(5, mrn_printf(FLF, stderr, "success!.\nnew_Application() calling accept()...\n"));
     // finalize the connection

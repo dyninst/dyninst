@@ -32,7 +32,7 @@ DataElement::~DataElement()
     case FLOAT_ARRAY_T:
     case DOUBLE_ARRAY_T:
         if( val.p != NULL){
-            free( (void*)val.p );
+            free( const_cast< void *>( val.p ) );
         }
         break;
     case CHAR_T:

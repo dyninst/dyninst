@@ -72,7 +72,7 @@ InternalNode::~InternalNode( void )
 
     for( iter = children_nodes.begin(  ); iter != children_nodes.end(  );
          iter++ ) {
-        delete( RemoteNode * ) ( *iter );
+        delete ( const RemoteNode * ) ( *iter );
     }
 }
 

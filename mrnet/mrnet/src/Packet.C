@@ -160,7 +160,7 @@ PacketData::~PacketData()
 
     for( unsigned int i=0; i < data_elements.size(); i++ ){
         if( destroy_data ){
-            ((DataElement *)data_elements[i])->set_DestroyData( true );
+            (const_cast< DataElement * >( data_elements[i] ))->set_DestroyData( true );
         }
         //fprintf( stderr, "ZZZ: deleting data_elem[%d]: %p\n",
                  //i, data_elements[i] );
@@ -252,7 +252,7 @@ bool_t PacketData::pdr_packet( PDR * pdrs, PacketData * pkt )
         std::string cur_fmt = fmt.substr( curPos, curLen );
 
         if( pdrs->p_op == PDR_ENCODE ) {
-            cur_elem = (DataElement *)pkt->data_elements[i];
+            cur_elem = const_cast< DataElement *>( pkt->data_elements[i] );
         }
         else if( pdrs->p_op == PDR_DECODE ) {
             cur_elem = new DataElement;
@@ -472,7 +472,7 @@ void PacketData::ArgList2DataElementArray( va_list arg_list )
             break;
         case STRING_T:
             cur_elem->val.p = ( void * )va_arg( arg_list, void * );
-            cur_elem->array_len = strlen( ( char * )cur_elem->val.p );
+            cur_elem->array_len = strlen( ( const char * )cur_elem->val.p );
             break;
         default:
             assert( 0 );
@@ -491,7 +491,7 @@ void PacketData::DataElementArray2ArgList( va_list arg_list ) const
 {
     int i = 0;
     const DataElement * cur_elem=NULL;
-    const void *tmp_ptr;
+    void *tmp_ptr;
 
     mrn_dbg( 3, mrn_printf(FLF, stderr,
                 "In DataElementArray2ArgList, packet(%p)\n", this ));
@@ -568,7 +568,7 @@ void PacketData::DataElementArray2ArgList( va_list arg_list ) const
         case FLOAT_ARRAY_T:
         case DOUBLE_ARRAY_T:
         case STRING_ARRAY_T:
-            tmp_ptr = ( const void * )va_arg( arg_list, void ** );
+            tmp_ptr = ( void * )va_arg( arg_list, void ** );
             assert( tmp_ptr != NULL );
             *( ( const void ** )tmp_ptr ) = cur_elem->val.p;
             tmp_ptr = ( void * )va_arg( arg_list, int * );
@@ -577,7 +577,7 @@ void PacketData::DataElementArray2ArgList( va_list arg_list ) const
             break;
         case STRING_T:
             tmp_ptr = ( void * )va_arg( arg_list, char ** );
-            *( ( char ** )tmp_ptr ) = ( char * )cur_elem->val.p;
+            *( ( char ** )tmp_ptr ) = ( char * ) const_cast< void * >( cur_elem->val.p );
             break;
         default:
             assert( 0 );
