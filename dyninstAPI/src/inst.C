@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.135 2005/08/03 23:01:02 bernat Exp $
+// $Id: inst.C,v 1.136 2005/08/04 22:54:26 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -658,7 +658,9 @@ instPoint *instPoint::createForkedPoint(instPoint *parP, int_function *child) {
             if (neighbor) {
                 // We're second. So make and fix up their side.
                 newIP->preBaseTramp_ = new baseTramp(parPre, proc);
+                newIP->preBaseTramp_->preInstP = newIP;
                 neighbor->postBaseTramp_ = newIP->preBaseTramp_;
+                neighbor->postBaseTramp_->postInstP = neighbor;
             }
             else {
                 // We're first, so wait.
@@ -668,6 +670,7 @@ instPoint *instPoint::createForkedPoint(instPoint *parP, int_function *child) {
         else {
             // Nobody else, so make a copy
             newIP->preBaseTramp_ = new baseTramp(parPre, proc);
+            newIP->preBaseTramp_->preInstP = newIP;
         }
     }
 
@@ -685,7 +688,9 @@ instPoint *instPoint::createForkedPoint(instPoint *parP, int_function *child) {
             if (neighbor) {
                 // We're second. Make and fix
                 newIP->postBaseTramp_ = new baseTramp(parPost, proc);
+                newIP->postBaseTramp_->postInstP = newIP;
                 neighbor->preBaseTramp_ = newIP->postBaseTramp_;
+                neighbor->preBaseTramp_->postInstP = neighbor;
             }
             else {
                 // First...
@@ -694,6 +699,7 @@ instPoint *instPoint::createForkedPoint(instPoint *parP, int_function *child) {
         else {
             // No neighbor
             newIP->postBaseTramp_ = new baseTramp(parPost, proc);
+            newIP->postBaseTramp_->postInstP = newIP;
         }
     }
 
@@ -703,6 +709,7 @@ instPoint *instPoint::createForkedPoint(instPoint *parP, int_function *child) {
 
         // Unlike others, can't share, so make now.
         newIP->targetBaseTramp_ = new baseTramp(parTarget, proc);
+        newIP->targetBaseTramp_->postInstP = newIP;
     }
 
     if (newIP->preBaseTramp_)
