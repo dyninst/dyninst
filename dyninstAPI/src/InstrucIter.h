@@ -278,11 +278,7 @@ class InstrucIter {
   unsigned getRBValue();
   void printOpCode();
 
-#if defined(rs6000_ibm_aix4_1)
-  bool isAIndirectJumpInstruction(InstrucIter);
-#else 
   bool isAIndirectJumpInstruction();
-#endif
 
 #if defined(arch_sparc)
   // Delay slot happiness. Thing is, a jump ends a basic block (especially

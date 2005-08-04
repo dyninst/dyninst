@@ -69,6 +69,7 @@ void InstrucIter::initializeInsn() {
         if (!img_->isValidAddress(current)) {
             fprintf(stderr, "Error: addr 0x%x is not valid!\n",
                     img_);
+            assert(0);
         }
         else instPtr = img_->getPtrToOrigInstruction(current);
     }            
@@ -87,6 +88,8 @@ InstrucIter::InstrucIter(int_function* func) :
     base(func->getAddress()),
     range(func->getSize()),
     current(base) {
+    assert(current >= base);
+    assert(current < base+range);
     initializeInsn();
 }
 
@@ -96,6 +99,8 @@ InstrucIter::InstrucIter(Address addr, int_function* func) :
     base(addr),
     range(func->getSize()),
     current(base) {
+    assert(current >= base);
+    assert(current < base+range);
     initializeInsn();
 }
 
@@ -106,6 +111,8 @@ InstrucIter::InstrucIter(int_basicBlock* b) :
     base(b->firstInsnAddr()),
     range(b->getSize()),
     current(base) {
+    assert(current >= base);
+    assert(current < base+range);
     initializeInsn();
 }
 
@@ -115,6 +122,15 @@ InstrucIter::InstrucIter(image_basicBlock *b) :
     base(b->firstInsnOffset()),
     range(b->getSize()),
     current(base) {
+    assert(current >= base);
+    // The range might be 0.
+    if (range) {
+        if (current >= (base+range)) {
+            fprintf(stderr, "Error: current 0x%x >= 0x%x (0x%x + 0x%x)\n",
+                    current, base+range, base, range);
+        assert(current < base+range);
+        }
+    }
     initializeInsn();
 }
 
@@ -125,10 +141,12 @@ InstrucIter::InstrucIter( CONST_EXPORT BPatch_basicBlock* bpBasicBlock) :
     base(bpBasicBlock->startAddress),
     range(bpBasicBlock->size()),
     current(base) {
+    assert(current >= base);
+    assert(current < base+range);
     initializeInsn();
 }
 
-//instPtr =addressImage->getPtrToInstruction(bpBasicBlock->startAddress);
+//instPtr =addressImage->getPtrToInstruction(bpBasicBlock->currentAddress);
 //insn.getNextInstruction( instPtr ); 
 
 
@@ -143,6 +161,7 @@ InstrucIter::InstrucIter(const InstrucIter& ii) :
     current(ii.current),
     prevInsns(ii.prevInsns)
 {
+    assert(current >= base);
     initializeInsn();
 }
 
@@ -164,9 +183,8 @@ InstrucIter::InstrucIter( Address addr, process *proc) :
         // we may be grabbing the PLT or new code. On the other hand, nobody knows
         // what the range is.
         base = addr;
-        // We set range so that base+range = (Address) -1; that is, so that base+range will always
-        // be bigger than current.
-        range = ((Address) -1) - base;
+
+        range = 0;
     }
     initializeInsn();
 }
@@ -179,11 +197,13 @@ InstrucIter::InstrucIter( Address addr, unsigned size, process *proc) :
     range(size),
     current(addr)
 {
+    assert(current >= base);
+    assert(current < base+range);
     initializeInsn();
 }
 
 // Used in parsing -- relative addrs
-InstrucIter::InstrucIter(Address start, image_func *func) :
+InstrucIter::InstrucIter(Address current, image_func *func) :
     proc_(NULL),
     img_(func->img()),
     base(func->getOffset()),
@@ -191,7 +211,36 @@ InstrucIter::InstrucIter(Address start, image_func *func) :
     // parsing, so calling getSize is
     // a bad idea as it may
     // trigger... parsing.
-    current(start) {
+    current(current) {
+    assert(current >= base);
     initializeInsn();
 }
 
+bool InstrucIter::hasMore()
+{
+    if (range == 0) return true; // Unsafe iteration, but there is more
+
+    if((current < (base + range )) &&
+       (current >= base))
+        return true;
+    return false;
+}
+
+bool InstrucIter::hasPrev()
+{
+    
+    if( current > base )
+    //if((current < (baseAddress + range )) &&
+    // (current > baseAddress))
+	return true;
+
+    //cerr << "hasprev" << std::hex << current 
+    //   << " "  << baseAddress << " "  << range << endl;
+#if defined(arch_x86) || defined(arch_x86_64) // arch_has_variable_length_insns...
+    if (prevInsns.size() == 0) 
+        // There is more, but we can't access...
+        return false;
+#endif
+
+    return false;
+}

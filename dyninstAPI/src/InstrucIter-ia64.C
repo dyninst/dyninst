@@ -407,28 +407,6 @@ bool InstrucIter::delayInstructionSupported()
     return false;
 }
 
-bool InstrucIter::hasMore()
-{
-    if( (current >= base) &&
-        addressIsValidInsnAddr( current ) &&
-        current < (base + range) ) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-bool InstrucIter::hasPrev()
-{
-	if( (current > base) &&
-		addressIsValidInsnAddr( current ) &&
-		current < (base + range) ) {
-		return true;
-	} else {
-		return false;
-	}
-}
-
 Address InstrucIter::peekPrev()
 {
     int instructionSlot = extractInstructionSlot( current ); 

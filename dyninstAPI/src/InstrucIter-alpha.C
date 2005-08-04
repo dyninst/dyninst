@@ -309,18 +309,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 bool InstrucIter::delayInstructionSupported(){
 	return false;
 }
-bool InstrucIter::hasMore(){
-	if((current < (base + range )) &&
-	   (current >= base))
-		return true;
-	return false;
-}
-bool InstrucIter::hasPrev(){
-    if((current < (base + range )) &&
-       (current > base))
-	return true;
-    return false;
-}
+
 Address InstrucIter::peekPrev(){
 	Address ret = current-instruction::size();
 	return ret;

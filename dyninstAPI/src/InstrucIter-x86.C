@@ -475,27 +475,6 @@ bool InstrucIter::delayInstructionSupported()
     return false;
 }
 
-bool InstrucIter::hasMore()
-{
-    if((current < (base + range )) &&
-       (current >= base))
-        return true;
-    return false;
-}
-
-bool InstrucIter::hasPrev()
-{
-    if( current <= base )
-        return false;
-
-    if (prevInsns.size() == 0) {
-        // Effectively...
-        return false;
-    }
-
-    return true;
-}
-
 Address InstrucIter::peekPrev()
 {
     if (prevInsns.size()) {
