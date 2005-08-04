@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-power.C,v 1.1 2005/07/29 19:22:56 bernat Exp $
+// $Id: image-power.C,v 1.2 2005/08/04 22:54:25 bernat Exp $
 
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
@@ -185,54 +185,49 @@ bool image_func::findInstPoints(pdvector<Address> &callTargets)
                     currBlk->addTarget( leadersToBlock[ t2 ] );
                     break;
                 }
-             else if( ah.isAIndirectJumpInstruction( ah ) )
-             {
-                 parsing_printf("ind branch\n");
-                 //parsing_printf("Copying iter for indirect jump\n");
-                 InstrucIter ah2( ah );
-                 currBlk->lastInsnOffset_ = currAddr;
-                 currBlk->blockEndOffset_ = currAddr + insnSize;
-                 
-                 if( currAddr >= funcEnd )
-                     funcEnd = currAddr + insnSize;
-                 
-                 BPatch_Set< Address > res;
-                 ah2.getMultipleJumpTargets( res );
-                                  
-                 BPatch_Set< Address >::iterator iter;
-                 iter = res.begin();
-                 bool leavesFunc = false;
-                 while( iter != res.end() )
-                 {
-                     if( *iter < funcBegin )
-                     {
-                         leavesFunc = true;
-                     }
-                     else
-                     {
-                         if( !leaders.contains( *iter ) )
-                         {
-                             leadersToBlock[ *iter ] = new image_basicBlock(this, *iter);
-                             leaders += *iter;
-                             jmpTargets.push_back( *iter );
-                             blockList.push_back( leadersToBlock[ *iter] );
-                         }                        
-                         currBlk->addTarget( leadersToBlock[ *iter ] );
-                         leadersToBlock[ *iter ]->addSource( currBlk );
-                     }
-                     iter++;
-                 }                 
-                 if (leavesFunc) {
-                     currBlk->isExitBlock_ = true;
-                     // And make an inst point
-                     p = new image_instPoint(currAddr, 
-                                             ah.getInstruction(),
-                                             this,
-                                             functionExit);
-                     parsing_printf("Function exit at 0x%x\n", *ah);
-                     funcReturns.push_back(p);
-                 }
-                 break;
+            else if(ah.isAIndirectJumpInstruction())  {
+                parsing_printf("ind branch\n");
+                //parsing_printf("Copying iter for indirect jump\n");
+                InstrucIter ah2( ah );
+                currBlk->lastInsnOffset_ = currAddr;
+                currBlk->blockEndOffset_ = currAddr + insnSize;
+                
+                if( currAddr >= funcEnd )
+                    funcEnd = currAddr + insnSize;
+                
+                BPatch_Set< Address > res;
+                ah2.getMultipleJumpTargets( res );
+                
+                BPatch_Set< Address >::iterator iter;
+                iter = res.begin();
+                bool leavesFunc = false;
+                while( iter != res.end() ) {
+                    if( *iter < funcBegin ) {
+                        leavesFunc = true;
+                    }
+                    else {
+                        if( !leaders.contains( *iter ) ) {
+                            leadersToBlock[ *iter ] = new image_basicBlock(this, *iter);
+                            leaders += *iter;
+                            jmpTargets.push_back( *iter );
+                            blockList.push_back( leadersToBlock[ *iter] );
+                        }                        
+                        currBlk->addTarget( leadersToBlock[ *iter ] );
+                        leadersToBlock[ *iter ]->addSource( currBlk );
+                    }
+                    iter++;
+                }                 
+                if (leavesFunc) {
+                    currBlk->isExitBlock_ = true;
+                    // And make an inst point
+                    p = new image_instPoint(currAddr, 
+                                            ah.getInstruction(),
+                                            this,
+                                            functionExit);
+                    parsing_printf("Function exit at 0x%x\n", *ah);
+                    funcReturns.push_back(p);
+                }
+                break;
              }             
              else if( ah.isAReturnInstruction() ||
                       !ah.getInstruction().valid())
