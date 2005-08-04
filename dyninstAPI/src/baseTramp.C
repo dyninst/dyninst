@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.3 2005/08/03 23:00:51 bernat Exp $
+// $Id: baseTramp.C,v 1.4 2005/08/04 22:54:23 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -600,7 +600,7 @@ void baseTramp::deleteIfEmpty() {
 // Global fixing of all BT jumps
 bool baseTramp::correctBTJumps() {
     for (unsigned i = 0; i < instances.size(); i++) {
-        codeGen gen;
+        codeGen gen(miniTramp::interJumpSize());
         instances[i]->generateBranchToMT(gen);
         proc()->writeDataSpace((void *)(instances[i]->trampPreAddr() + instStartOffset),
                                gen.used(),
@@ -934,7 +934,7 @@ void baseTrampInstance::removeCode(generatedCodeObject *subObject) {
         else {
             // When we in-line, this will need to change. For now,
             // we can always fix jumps by hand
-            codeGen gen;
+            codeGen gen(miniTramp::interJumpSize());
             generateBranchToMT(gen);
             proc()->writeDataSpace((void *)(trampPreAddr() + baseT->instStartOffset),
                                    gen.used(),
