@@ -144,13 +144,13 @@ bool instReqNode::addInstr(pd_process *theProc) {
     
     instPoint *pt = point->PDSEP_instPoint();
     
-    miniTramp *mt = pt->addInst(lr_ast,
-                                cw,
-                                co,
-                                trampRecursiveDesired,
-                                false); // noCost
+    mtHandle = pt->addInst(lr_ast,
+                           cw,
+                           co,
+                           trampRecursiveDesired,
+                           false); // noCost
     
-    if (!mt) {
+    if (!mtHandle) {
         return false;
     }
     
