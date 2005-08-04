@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.180 2005/08/03 05:28:26 bernat Exp $
+// $Id: symtab.h,v 1.181 2005/08/04 22:54:29 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -496,24 +496,24 @@ class image : public codeRange {
    bool isAOut() const { return is_a_out; }
  
 #if defined( arch_x86 )
-   inline bool isText(const Address& where ) const;
+   bool isText(const Address& where ) const;
 #endif
-   inline bool isCode(const Address &where) const;
-   inline bool isData(const Address &where) const;
-   inline bool isValidAddress(const Address &where) const;
-   inline bool isAllocedCode(const Address &where) const;
-   inline bool isAllocedData(const Address &where) const;
-   inline bool isAllocedAddress(const Address &where) const;
-   //inline const Word get_instruction(Address adr) const;
-   inline void *getPtrToOrigInstruction(Address Offset) const;
+   bool isCode(const Address &where) const;
+   bool isData(const Address &where) const;
+   bool isValidAddress(const Address &where) const;
+   bool isAllocedCode(const Address &where) const;
+   bool isAllocedData(const Address &where) const;
+   bool isAllocedAddress(const Address &where) const;
+   //const Word get_instruction(Address adr) const;
+   void *getPtrToOrigInstruction(Address Offset) const;
    // Heh... going by address is a really awful way to work on AIX.
    // Make it explicit.
    void *getPtrToData(Address offset) const;
 
-   inline bool isNativeCompiler() const { return nativeCompiler; }
+   bool isNativeCompiler() const { return nativeCompiler; }
 
    // Return symbol table information
-   inline bool symbol_info(const pdstring& symbol_name, Symbol& ret);
+   bool symbol_info(const pdstring& symbol_name, Symbol& ret);
 
 
    const pdvector<image_func*> &getAllFunctions();
@@ -762,102 +762,6 @@ inline bool lineDict::getLineAddr (const unsigned line, Address &adr) {
    }
 }
 
-#if 0
-inline const Word image::get_instruction(Address adr) const{
-   // TODO remove assert
-   // assert(isValidAddress(adr));
-   if(!isValidAddress(adr)){
-      // logLine("address not valid in get_instruction\n");
-      return 0;
-   }
-
-   if (isCode(adr)) {
-      adr -= codeOffset_;
-      const Word *inst = linkedFile.code_ptr();
-      return (inst[adr]);
-   } else if (isData(adr)) {
-      adr -= dataOffset_;
-      const Word *inst = linkedFile.data_ptr();
-      return (inst[adr]);
-   } else {
-      abort();
-      return 0;
-   }
-}
-#endif
-
-// return a pointer to the instruction at address adr
-inline void *image::getPtrToOrigInstruction(Address offset) const {
-   assert(isValidAddress(offset));
-   if (isCode(offset)) {
-      offset -= codeOffset_;
-      unsigned char *inst = (unsigned char *)linkedFile.code_ptr();
-      return (void *)(&inst[offset]);
-   } else if (isData(offset)) {
-      offset -= dataOffset_;
-      unsigned char *inst = (unsigned char *)linkedFile.data_ptr();
-      return (void *)(&inst[offset]);
-   } else {
-      abort();
-      return 0;
-   }
-}
-
-
-// Address must be in code or data range since some code may end up
-// in the data segment
-inline bool image::isValidAddress(const Address &where) const{
-    return (instruction::isAligned(where) && (isCode(where) || isData(where)));
-}
-
-inline bool image::isAllocedAddress(const Address &where) const{
-    return (instruction::isAligned(where) && (isAllocedCode(where) || isAllocedData(where)));
-}
-
-inline bool image::isCode(const Address &where)  const{
-   return (linkedFile.code_ptr() && 
-           (where >= codeOffset_) && (where < (codeOffset_+codeLen_)));
-}
-
-#if defined( arch_x86 )
-inline bool image::isText( const Address &where) const
-{
-    return ( linkedFile.isText( where ) );
-}
-#endif
-inline bool image::isData(const Address &where)  const{
-   return (linkedFile.data_ptr() && 
-           (where >= dataOffset_) && (where < (dataOffset_+dataLen_)));
-}
-
-inline bool image::isAllocedCode(const Address &where)  const{
-   return (linkedFile.code_ptr() && 
-           (where >= codeValidStart_) && (where < codeValidEnd_));
-}
-
-inline bool image::isAllocedData(const Address &where)  const{
-   return (linkedFile.data_ptr() && 
-           (where >= dataValidStart_) && (where < dataValidEnd_));
-}
-
-inline bool image::symbol_info(const pdstring& symbol_name, Symbol &ret_sym) {
-
-   /* We temporarily adopt the position that an image has exactly one
-      symbol per name.  While local functions (etc) make this untrue, it
-      dramatically minimizes the amount of rewriting. */
-   pdvector< Symbol > symbols;
-   linkedFile.get_symbols( symbol_name, symbols );
-   if( symbols.size() == 1 ) {
-       ret_sym = symbols[0];
-       return true;
-       } else if ( symbols.size() > 1 ) {
-       return false;
-    }
-
-   return false;
-}
-
- 
 int instPointCompare( instPoint*& ip1, instPoint*& ip2 );
 int basicBlockCompare( BPatch_basicBlock*& bb1, BPatch_basicBlock*& bb2 );
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.247 2005/08/03 05:28:25 bernat Exp $
+ // $Id: symtab.C,v 1.248 2005/08/04 22:54:27 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2860,3 +2860,75 @@ void *image::getPtrToData(Address offset) const {
     return (void *)(&inst[offset]);
 }
     
+// return a pointer to the instruction at address adr
+void *image::getPtrToOrigInstruction(Address offset) const {
+   assert(isValidAddress(offset));
+   if (isCode(offset)) {
+      offset -= codeOffset_;
+      unsigned char *inst = (unsigned char *)linkedFile.code_ptr();
+      return (void *)(&inst[offset]);
+   } else if (isData(offset)) {
+      offset -= dataOffset_;
+      unsigned char *inst = (unsigned char *)linkedFile.data_ptr();
+      return (void *)(&inst[offset]);
+   } else {
+      abort();
+      return 0;
+   }
+}
+
+
+// Address must be in code or data range since some code may end up
+// in the data segment
+bool image::isValidAddress(const Address &where) const{
+    return (instruction::isAligned(where) && (isCode(where) || isData(where)));
+}
+
+bool image::isAllocedAddress(const Address &where) const{
+    return (instruction::isAligned(where) && (isAllocedCode(where) || isAllocedData(where)));
+}
+
+bool image::isCode(const Address &where)  const{
+   return (linkedFile.code_ptr() && 
+           (where >= codeOffset_) && (where < (codeOffset_+codeLen_)));
+}
+
+#if defined( arch_x86 )
+bool image::isText( const Address &where) const
+{
+    return ( linkedFile.isText( where ) );
+}
+#endif
+bool image::isData(const Address &where)  const{
+   return (linkedFile.data_ptr() && 
+           (where >= dataOffset_) && (where < (dataOffset_+dataLen_)));
+}
+
+bool image::isAllocedCode(const Address &where)  const{
+   return (linkedFile.code_ptr() && 
+           (where >= codeValidStart_) && (where < codeValidEnd_));
+}
+
+bool image::isAllocedData(const Address &where)  const{
+   return (linkedFile.data_ptr() && 
+           (where >= dataValidStart_) && (where < dataValidEnd_));
+}
+
+bool image::symbol_info(const pdstring& symbol_name, Symbol &ret_sym) {
+
+   /* We temporarily adopt the position that an image has exactly one
+      symbol per name.  While local functions (etc) make this untrue, it
+      dramatically minimizes the amount of rewriting. */
+   pdvector< Symbol > symbols;
+   linkedFile.get_symbols( symbol_name, symbols );
+   if( symbols.size() == 1 ) {
+       ret_sym = symbols[0];
+       return true;
+       } else if ( symbols.size() > 1 ) {
+       return false;
+    }
+
+   return false;
+}
+
+ 
