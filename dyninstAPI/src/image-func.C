@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.2 2005/08/03 05:28:10 bernat Exp $
+// $Id: image-func.C,v 1.3 2005/08/04 22:54:24 bernat Exp $
 
 #include "function.h"
 #include "process.h"
@@ -381,7 +381,13 @@ bool image_func::cleanBlockList() {
             ///parsing_printf("Block %d has zero size; expanding to block %d\n",
             //b1->blockNumber_,
             //b2->blockNumber_);
-            //find the end of this block
+
+            //find the end of this block.
+
+            // Make the iterator happy; we can set the end offset to
+            // the start of b2. It will be that or smaller.
+            b1->blockEndOffset_ = b2->firstInsnOffset();
+
             InstrucIter ah( b1 );
             while( *ah + ah.getInstruction().size() < b2->firstInsnOffset() )
                 ah++;
