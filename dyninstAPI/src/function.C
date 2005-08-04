@@ -56,8 +56,9 @@ int_function::int_function(image_func *f,
 			   Address baseAddr,
 			   mapped_module *mod) :
 #if defined(arch_ia64)
-    framePointerCalculator(NULL),
-    usedFPregs(NULL),
+	/* image_funcs are reference-counted, so we don't have to clone these. */
+    framePointerCalculator( assignAst( f->framePointerCalculator ) ),
+    usedFPregs( f->usedFPregs ),
 #endif
     size_(f->get_size_cr()),
     ifunc_(f),
@@ -95,10 +96,9 @@ int_function::int_function(image_func *f,
     // we need it.
 
 #if defined(arch_ia64)
-    // IA64 alloc time
-    for (unsigned i = 0; i < f->allocs.size(); i++) {
-        allocs.push_back(baseAddr + f->allocs[i]);
-    }
+	for( unsigned i = 0; i < f->allocs.size(); i++ ) {
+		allocs.push_back( baseAddr + f->allocs[i] );
+		}        
 #endif
 
 }
@@ -106,6 +106,11 @@ int_function::int_function(image_func *f,
 
 int_function::int_function(const int_function *parFunc,
                            mapped_module *childMod) :
+#if defined(arch_ia64)
+	/* image_funcs are reference-counted, so we don't have to clone these. */
+    framePointerCalculator( assignAst( parFunc->ifunc_->framePointerCalculator ) ),
+    usedFPregs( parFunc->ifunc_->usedFPregs ),
+#endif
     addr_(parFunc->addr_),
     size_(parFunc->size_),
     ifunc_(parFunc->ifunc_),
@@ -148,12 +153,23 @@ int_function::int_function(const int_function *parFunc,
      }
 
 #if defined(arch_ia64)
-    // IA64 alloc time
-     for (unsigned i = 0; i < parFunc->allocs.size(); i++) {
-         allocs.push_back(parFunc->allocs[i]);
-     }
+	for( unsigned i = 0; i < parFunc->allocs.size(); i++ ) {
+		allocs.push_back( parFunc->allocs[i] );
+		}
+     
+	if( usedFPregs == NULL && parFunc->usedFPregs != NULL ) {
+		/* Clone the usedFPregs, since int_functions can go away. */
+		usedFPregs = (bool *)malloc( 128 * sizeof( bool ) );
+		assert( usedFPregs != NULL );
+		memcpy( usedFPregs, parFunc->usedFPregs, 128 * sizeof( bool ) );
+		}
+     
+    /* ASTs are reference-counted, so assignAst() will prevent fPC from
+       vanishing even if f does. */
+	if( framePointerCalculator == NULL && parFunc->framePointerCalculator != NULL ) {
+		framePointerCalculator = assignAst( parFunc->framePointerCalculator );
+		}
 #endif
-
 
      // TODO: relocated functions
 }
