@@ -39,11 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-alpha.C,v 1.1 2005/07/29 19:22:47 bernat Exp $
+// $Id: arch-alpha.C,v 1.2 2005/08/05 22:23:06 bernat Exp $
 
 #include "common/h/headers.h"
 #include "alpha.h"
-#include "arch-alpha.h"
+#include "arch.h"
 #include "showerror.h"
 #include "util.h"
 
