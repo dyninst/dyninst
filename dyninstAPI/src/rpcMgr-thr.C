@@ -45,6 +45,110 @@
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/rpcMgr.h"
 
+rpcThr::rpcThr(rpcThr *parT, rpcMgr *cM, dyn_thread *cT) :
+    mgr_(cM),
+    thr_(cT),
+    pendingRPC_(NULL),
+    runningRPC_(NULL)
+{
+    for (unsigned i = 0; i < parT->postedRPCs_.size(); i++) {
+        inferiorRPCtoDo *newRPC = new inferiorRPCtoDo;
+        inferiorRPCtoDo *oldRPC = parT->postedRPCs_[i];
+
+        newRPC->action = assignAst(oldRPC->action);
+        newRPC->noCost = oldRPC->noCost;
+        newRPC->callbackFunc = oldRPC->callbackFunc;
+        newRPC->userData = oldRPC->userData;
+        newRPC->lowmem = oldRPC->lowmem;
+        newRPC->id = oldRPC->id;
+        assert(oldRPC->thr);
+        newRPC->thr = cT;
+        assert(!oldRPC->lwp);
+        postedRPCs_.push_back(newRPC);
+    }
+    
+    if (parT->pendingRPC_) {
+        inferiorRPCinProgress *newProg = new inferiorRPCinProgress;
+        inferiorRPCinProgress *oldProg = parT->pendingRPC_;
+        
+        inferiorRPCtoDo *newRPC = new inferiorRPCtoDo;
+        inferiorRPCtoDo *oldRPC = oldProg->rpc;
+
+        newRPC->action = assignAst(oldRPC->action);
+        newRPC->noCost = oldRPC->noCost;
+        newRPC->callbackFunc = oldRPC->callbackFunc;
+        newRPC->userData = oldRPC->userData;
+        newRPC->lowmem = oldRPC->lowmem;
+        newRPC->id = oldRPC->id;
+        assert(oldRPC->thr);
+        newRPC->thr = cT;
+        assert(!oldRPC->lwp);
+        
+        newProg->rpc = newRPC;
+        if (oldProg->savedRegs) {
+            newProg->savedRegs = new dyn_saved_regs;
+            memcpy(newProg->savedRegs, oldProg->savedRegs, sizeof(dyn_saved_regs));
+        }
+        else newProg->savedRegs = NULL;
+        newProg->origPC = oldProg->origPC;
+        newProg->runProcWhenDone = oldProg->runProcWhenDone;
+        newProg->rpcStartAddr = oldProg->rpcStartAddr;
+        newProg->rpcResultAddr = oldProg->rpcResultAddr;
+        newProg->rpcContPostResultAddr = oldProg->rpcContPostResultAddr;
+        newProg->rpcCompletionAddr = oldProg->rpcCompletionAddr;
+        newProg->resultRegister = oldProg->resultRegister;
+        newProg->resultValue = oldProg->resultValue;
+        
+        newProg->rpcthr = this;
+        newProg->rpclwp = NULL;
+        newProg->isProcessRPC = oldProg->isProcessRPC;
+        newProg->state = oldProg->state;
+        
+        pendingRPC_ =  newProg;
+    }
+        
+
+    if (parT->runningRPC_) {
+        inferiorRPCinProgress *newProg = new inferiorRPCinProgress;
+        inferiorRPCinProgress *oldProg = parT->runningRPC_;
+        
+        inferiorRPCtoDo *newRPC = new inferiorRPCtoDo;
+        inferiorRPCtoDo *oldRPC = oldProg->rpc;
+
+        newRPC->action = assignAst(oldRPC->action);
+        newRPC->noCost = oldRPC->noCost;
+        newRPC->callbackFunc = oldRPC->callbackFunc;
+        newRPC->userData = oldRPC->userData;
+        newRPC->lowmem = oldRPC->lowmem;
+        newRPC->id = oldRPC->id;
+        assert(oldRPC->thr);
+        newRPC->thr = cT;
+        assert(!oldRPC->lwp);
+        
+        newProg->rpc = newRPC;
+        if (oldProg->savedRegs) {
+            newProg->savedRegs = new dyn_saved_regs;
+            memcpy(newProg->savedRegs, oldProg->savedRegs, sizeof(dyn_saved_regs));
+        }
+        else newProg->savedRegs = NULL;
+        newProg->origPC = oldProg->origPC;
+        newProg->runProcWhenDone = oldProg->runProcWhenDone;
+        newProg->rpcStartAddr = oldProg->rpcStartAddr;
+        newProg->rpcResultAddr = oldProg->rpcResultAddr;
+        newProg->rpcContPostResultAddr = oldProg->rpcContPostResultAddr;
+        newProg->rpcCompletionAddr = oldProg->rpcCompletionAddr;
+        newProg->resultRegister = oldProg->resultRegister;
+        newProg->resultValue = oldProg->resultValue;
+        
+        newProg->rpcthr = this;
+        newProg->rpclwp = NULL;
+        newProg->isProcessRPC = oldProg->isProcessRPC;
+        newProg->state = oldProg->state;
+        
+        runningRPC_ =  newProg;
+    }
+}
+
 int rpcThr::postIRPC(inferiorRPCtoDo *todo) {
     postedRPCs_.push_back(todo);
     return todo->id;
