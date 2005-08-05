@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-solproc.C,v 1.6 2005/07/29 19:19:52 bernat Exp $
+// $Id: syscall-solproc.C,v 1.7 2005/08/05 22:23:17 bernat Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -224,7 +224,7 @@ bool syscallNotification::installPreExit() {
 
 bool syscallNotification::removePreFork() {
     if (!preForkInst) return false;
-    if (!proc->isAttached()) {
+    if (!proc->isAttached() || proc->execing()) {
         preForkInst = NULL;
         return true;
     }
@@ -260,8 +260,8 @@ bool syscallNotification::removePostFork() {
 
 #if defined(bug_aix_proc_broken_fork) 
 
-    if (!proc->isAttached()) {
-        if (postForkInst) delete postForkInst;
+    if (!proc->isAttached() || proc->execing()) {
+        delete postForkInst;
         postForkInst = NULL;
         return true;
     }
@@ -277,13 +277,13 @@ bool syscallNotification::removePostFork() {
         assert(removed);
         // The miniTramp is deleted when the miniTramp is freed, so
         // we don't have to.
-    }
+    } 
     delete postForkInst;
     postForkInst = NULL;
     return true;
 #else
 
-    if (!proc->isAttached()) {
+    if (!proc->isAttached() || proc->execing()) {
         postForkInst = NULL;
         return true;
     }
@@ -319,7 +319,7 @@ bool syscallNotification::removePreExec() {
         return false;
     }
     
-    if (!proc->isAttached()) {
+    if (!proc->isAttached() || proc->execing()) {
         preExecInst = NULL;
         return true;
     }
@@ -348,7 +348,8 @@ bool syscallNotification::removePreExec() {
 
 bool syscallNotification::removePostExec() {
     if (!postExecInst) return false;
-    if (!proc->isAttached()) {
+    // <whistles>
+    if (!proc->isAttached() || proc->execing()) {
         postExecInst = NULL;
         return true;
     }
@@ -376,7 +377,7 @@ bool syscallNotification::removePostExec() {
 
 bool syscallNotification::removePreExit() {
     if (!preExitInst) return false;
-    if (!proc->isAttached()) {
+    if (!proc->isAttached() || proc->execing()) {
         preExitInst = NULL;
         return true;
     }

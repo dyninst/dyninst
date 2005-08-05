@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-linux.C,v 1.9 2005/07/29 19:19:51 bernat Exp $
+// $Id: syscall-linux.C,v 1.10 2005/08/05 22:23:15 bernat Exp $
 
 #if defined( arch_x86 ) || defined( arch_x86_64 )
 #define FORK_FUNC "__libc_fork"
@@ -179,7 +179,7 @@ bool syscallNotification::installPreExit() {
 /////// Remove pre-fork instrumentation
 
 bool syscallNotification::removePreFork() {
-    if (!proc->isAttached()) {
+    if (!proc->isAttached() || proc->execing()) {
         delete preForkInst;
         preForkInst = NULL;
         return true;
@@ -211,7 +211,7 @@ bool syscallNotification::removePostFork() {
 
     if (!postForkInst) return false;
 
-    if (!proc->isAttached()) {
+    if (!proc->isAttached() || proc->execing()) {
         delete postForkInst;
         postForkInst = NULL;
         return true;
@@ -240,7 +240,7 @@ bool syscallNotification::removePostFork() {
 bool syscallNotification::removePreExec() {
     if (!preExecInst) return false;
 
-    if (!proc->isAttached()) {
+    if (!proc->isAttached() || proc->execing()) {
         delete preExecInst;
         preExecInst = NULL;
         return true;
@@ -274,7 +274,7 @@ bool syscallNotification::removePostExec() {
 bool syscallNotification::removePreExit() {
     if (!preExitInst) return false;
 
-    if (!proc->isAttached()) {
+    if (!proc->isAttached() || proc->execing()) {
         delete preExitInst;
         preExitInst = NULL;
         return true;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.139 2005/08/03 23:01:07 bernat Exp $
+// $Id: unix.C,v 1.140 2005/08/05 22:23:18 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -461,6 +461,10 @@ int handleSigTrap(const procevent &event) {
         else if (proc->trapAtEntryPointOfMain(event.lwp)) {
             proc->handleTrapAtEntryPointOfMain(event.lwp);
             proc->setBootstrapState(initialized_bs);
+            // If we were execing, we now know we finished
+            if (proc->execing()) {
+                proc->finishExec();
+            }
             return 1;
         }
         else if (proc->trapDueToDyninstLib(event.lwp)) {
@@ -774,6 +778,7 @@ int handleExecExit(const procevent &event) {
     // but the last one.
     
     // We also see an exec as the first signal in a process we create. 
+    // That's because it... wait for it... execed!
     if (!proc->reachedBootstrapState(begun_bs)) {
         return handleSigTrap(event);
     }
@@ -781,25 +786,6 @@ int handleExecExit(const procevent &event) {
     // Unlike fork, handleExecExit doesn't do all processing required.
     // We finish up when the trap at main() is reached.
     proc->handleExecExit();
-    
-    // Note: on Solaris this is called multiple times before anything
-    // actually happens. Therefore handleExec must handle being called
-    // multiple times. We know that we're done when we hit the trap at main.
-    // Oh, and install that here.
-    /*
-    proc->setBootstrapState(begun_bs);
-    if (!proc->insertTrapAtEntryPointOfMain()) {
-        proc->continueProc();
-        // We should actually delete any mention of this
-        // process... including (for Paradyn) removing it from the
-        // frontend.
-        proc->triggerNormalExitCallback(0);
-        proc->handleProcessExit();
-    }
-    else {
-        proc->continueProc();
-    }
-    */
 
     return 1;
 }
