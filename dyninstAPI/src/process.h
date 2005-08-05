@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.328 2005/08/03 05:28:23 bernat Exp $
+/* $Id: process.h,v 1.329 2005/08/05 22:23:10 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -106,6 +106,18 @@ extern unsigned activeProcesses; // number of active processes
    // how about just processVec.size() instead?  At least, this should be made
    // a (static) member vrble of class process
 
+typedef enum { unstarted_bs, 
+               attached_bs, 
+               begun_bs, 
+               initialized_bs, 
+               loadingRT_bs, 
+               loadedRT_bs, 
+               bootstrapped_bs } bootstrapState_t;
+
+typedef enum { terminateFailed, terminateSucceeded, alreadyTerminated } terminateProcStatus_t;
+
+const int LOAD_DYNINST_BUF_SIZE = 256;
+
 class instPoint;
 class multiTramp;
 class baseTramp;
@@ -162,7 +174,9 @@ class process {
     // Similar case... process execs, we need to clean everything out
     // and reload the runtime library. This is basically creation,
     // just without someone calling us to make sure it happens...
-    bool setupExec();
+    bool prepareExec();
+    // Once we're sure an exec is finishing, there's all sorts of work to do.
+    bool finishExec();
 
     // And fork...
     bool setupFork();
@@ -242,6 +256,9 @@ class process {
 
   // State when we attached;
   bool wasRunningWhenAttached() const { return stateWhenAttached_ == running; }
+
+  // Are we in the middle of an exec?
+  bool execing() const { return inExec_; }
 
   // update the status on the whole process (ie. process state and all lwp
   // states)
@@ -1045,6 +1062,7 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   // More sure then looking at /proc/pid
   pdstring execPathArg;		// Argument given to exec
   pdstring execFilePath;	// Full path info
+  bool inExec_; // Used to be a status vrble, but is orthogonal to running/stopped
 
   ///////////////////////////////
   // RPCs

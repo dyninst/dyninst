@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.543 2005/08/03 05:28:22 bernat Exp $
+// $Id: process.C,v 1.544 2005/08/05 22:23:09 bernat Exp $
 
 #include <ctype.h>
 
@@ -1560,7 +1560,7 @@ void process::deleteProcess() {
     
   // If this assert fires check whether we're setting the status vrble correctly
   // before calling this function
-  assert(!isAttached() || !reachedBootstrapState(bootstrapped_bs));
+  assert(!isAttached() || !reachedBootstrapState(bootstrapped_bs) || execing());
 
   // pid remains untouched
   // parent remains untouched
@@ -1597,7 +1597,7 @@ void process::deleteProcess() {
   // This differs on exec; we need to kill all but the representative LWP
   // Duplicate code for ease of reading
 
-  if (status() == execing) {
+  if (execing()) {
       while (lwp_iter.next(index, lwp)) {
           if (process::IndependentLwpControl() &&
               (index == (unsigned)getPid())) {
@@ -1692,8 +1692,8 @@ void process::deleteProcess() {
 
   // Get rid of our syscall tracing.
   if (tracedSyscalls_) {
-    delete tracedSyscalls_;
-    tracedSyscalls_ = NULL;
+      delete tracedSyscalls_;
+      tracedSyscalls_ = NULL;
   }
 
   for (iter = 0; iter < syscallTraps_.size(); iter++) 
@@ -1787,6 +1787,7 @@ process::process(int ipid) :
     suppressCont_(false),
     status_(neonatal),
     nextTrapIsExec(false),
+    inExec_(false),
     theRpcMgr(NULL),
     collectSaveWorldData(true),
     requestTextMiniTramp(false),
@@ -1938,7 +1939,7 @@ bool process::setupAttached() {
 
 int HACKSTATUS = 0;
 
-bool process::setupExec() {
+bool process::prepareExec() {
     ///////////////////////////// CONSTRUCTION STAGE ///////////////////////////
     // For all intents and purposes: a new id.
     // However, we don't want to make a new object since all sorts
@@ -1946,6 +1947,12 @@ bool process::setupExec() {
     // which would allow us to swap out processes; but hey.
 
     // We should be attached to the process
+
+    // setupExec must get us to the point of putting a trap at the
+    // beginning of main. We then continue. We might get called again,
+    // or we might go into loading the dyninst lib; impossible to
+    // tell.
+    //
 
 #if defined(AIX_PROC)
     // AIX oddly detaches from the process... fix that here
@@ -1959,6 +1966,8 @@ bool process::setupExec() {
 
     // First, duplicate constructor.
 
+    assert(theRpcMgr == NULL);
+    assert(dyn == NULL);
     theRpcMgr = new rpcMgr(this);
     dyn = new dynamic_linking(this);
 
@@ -1979,12 +1988,15 @@ bool process::setupExec() {
         return false;
     }
 
+    // Probably not going to find anything (as we haven't loaded the
+    // RT lib yet, and that's where most of the space is). However,
+    // any shared object added after this point will have infHeaps
+    // auto-added.
+    startup_printf("Initializing vector heap\n");
+    initInferiorHeap();
 
     // Now from setupGeneral...
     createInitialThread();
-    // Don't add us back again :)
-
-    initInferiorHeap();
 
     // Status: stopped.
     set_status(stopped);
@@ -1995,11 +2007,15 @@ bool process::setupExec() {
     setBootstrapState(begun_bs);
     insertTrapAtEntryPointOfMain();
     continueProc();
-    
+
+    return true;
+}
+
+bool process::finishExec() {
     bool res = loadDyninstLib();
     if (!res)
         return false;
-
+    
     while(!reachedBootstrapState(bootstrapped_bs)) {
         // We're waiting for something... so wait
         // true: block until a signal is received (efficiency)
@@ -2014,21 +2030,11 @@ bool process::setupExec() {
     
     if (!initTrampGuard())
         assert(0);
-
+    
     set_status(stopped); // was 'exited'
     
-    // TODO: We should remove (code) items from the where axis, if the exec'd process
-    // was the only one who had them.
-    
-    // the exec'd process has the same fd's as the pre-exec, so we don't need
-    // to re-initialize traceLink (is this right???)
-    
-    // we don't need to re-attach after an exec (is this right???)
-    
-    // We don't make the exec callback here since this can be called
-    // more than once if we get multiple exec "exits", plus the proces
-    // isn't Dyninst-ready. We make the callback once the RT library is
-    // loaded
+    inExec_ = false;
+    BPatch::bpatch->registerExec(this);
 
     return true;
 }
@@ -2341,6 +2347,7 @@ process::process(const process *parentProc, int childPid, int childTrace_fd) :
     suppressCont_(parentProc->suppressCont_),
     status_(parentProc->status_),
     nextTrapIsExec(parentProc->nextTrapIsExec),
+    inExec_(parentProc->inExec_),
     theRpcMgr(NULL), // Set later
     collectSaveWorldData(parentProc->collectSaveWorldData),
     requestTextMiniTramp(parentProc->requestTextMiniTramp),
@@ -3171,7 +3178,7 @@ bool process::finalizeDyninstLib() {
 
    // Ready to rock
    setBootstrapState(bootstrapped_bs);
-   
+
    return true;
 }
 
@@ -4933,26 +4940,24 @@ void process::handleExecEntry(char *arg0) {
    We finish by bootstrapping here (actually, we call setupExec)
 */
 void process::handleExecExit() {
-    if (status() == execing)
-        return; // Already here... 
-
+    inExec_ = true;
     // NOTE: for shm sampling, the shm segment has been removed, so we
     //       mustn't try to disable any dataReqNodes in the standard way...
     nextTrapIsExec = false;
 #if !defined(BPATCH_LIBRARY) //ccw 22 apr 2002 : SPLIT
 	PARADYNhasBootstrapped = false;
 #endif
-   // all instrumentation that was inserted in this process is gone.
-   // set exited here so that the disables won't try to write to process
-   set_status(execing);
 
    // Should probably be renamed to clearProcess... deletes anything
    // unnecessary
    deleteProcess();
 
-   setupExec();
+   prepareExec();
+   // The companion finishExec gets called from unix.C...
 
-   BPatch::bpatch->registerExec(this);
+   // Do not call this here; instead we call it at the end of finalizeDyninstLib
+   // so that dyninsts are available
+   //BPatch::bpatch->registerExec(this);
 }
 
 bool process::checkTrappedSyscallsInternal(Address syscall)
@@ -5102,7 +5107,6 @@ bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
 bool process::isAttached() const {
     if (status_ == exited ||
         status_ == detached ||
-        status_ == execing ||
 	status_ == deleted)
         return false;
     else
