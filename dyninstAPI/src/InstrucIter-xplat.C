@@ -228,12 +228,6 @@ bool InstrucIter::hasMore()
 
 bool InstrucIter::hasPrev()
 {
-    
-    if( current > base )
-    //if((current < (baseAddress + range )) &&
-    // (current > baseAddress))
-	return true;
-
     //cerr << "hasprev" << std::hex << current 
     //   << " "  << baseAddress << " "  << range << endl;
 #if defined(arch_x86) || defined(arch_x86_64) // arch_has_variable_length_insns...
@@ -241,6 +235,11 @@ bool InstrucIter::hasPrev()
         // There is more, but we can't access...
         return false;
 #endif
+    
+    if( current > base )
+    //if((current < (baseAddress + range )) &&
+    // (current > baseAddress))
+	return true;
 
     return false;
 }
