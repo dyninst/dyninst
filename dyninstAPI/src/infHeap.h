@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: infHeap.h,v 1.1 2005/08/03 05:27:53 bernat Exp $
+/* $Id: infHeap.h,v 1.2 2005/08/05 22:23:07 bernat Exp $
  * Inferior heap primitives, moved from process.h to ease compilation
  */
 
@@ -60,18 +60,6 @@ typedef enum { textHeap=0x01,
                lowmemHeap=0x1000 }
         inferiorHeapType;
 typedef pdvector<Address> addrVecType;
-
-typedef enum { unstarted_bs, 
-               attached_bs, 
-               begun_bs, 
-               initialized_bs, 
-               loadingRT_bs, 
-               loadedRT_bs, 
-               bootstrapped_bs } bootstrapState_t;
-
-typedef enum { terminateFailed, terminateSucceeded, alreadyTerminated } terminateProcStatus_t;
-
-const int LOAD_DYNINST_BUF_SIZE = 256;
 
 class heapItem {
  public:
