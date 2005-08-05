@@ -1108,7 +1108,9 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
                     jumpOffset = *((int *)img_->getPtrToOrigInstruction(tableEntry));
                 
                 //fprintf(stderr, "jumpOffset 0x%x\n", jumpOffset);
-                result += (Address)(jumpStart+jumpOffset);
+                Address res = (Address)(jumpStart + jumpOffset);
+                if (img_->isCode(res))
+                    result += (Address)(jumpStart+jumpOffset);
                 //fprintf(stderr, "Entry of 0x%x\n", (Address)(jumpStart + jumpOffset));
             }
             else {
