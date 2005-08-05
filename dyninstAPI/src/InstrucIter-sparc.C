@@ -292,7 +292,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
                         void *targetPtr = NULL;
                         
                         if (img_) {
-                            if (img_->isValidAddress(offset))
+                            if (img_->isCode(offset))
                                 targetPtr = img_->getPtrToOrigInstruction(offset);
                         }
                         else {
@@ -305,17 +305,32 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
                         // This is a horrid way to catch the end of the table;
                         // however, I don't know enough about SPARC to fix it.
 
-                        unsigned target = *((unsigned *)targetPtr);
+                        Address target = *((Address *)targetPtr);
+                        bool valid = true;
+
+                        if (img_) {
+                            if (!img_->isCode(target))
+                                valid = false;
+                            // I've seen this as well, when they pad
+                            // jump tables.
+                            if (target == img_->codeOffset())
+                                valid = false;
+                        }
+                        else {
+                            if (!proc_->getPtrToOrigInstruction(target))
+                                valid = false;
+                        }
 
                         instruction check(target);
                         if (check.valid()) {
                             // Apparently, we've hit the end of the... something.
-                            break;
+                            valid = false;
                         }
                         if (target == 0) {
                             // What?
-                            break;
+                            valid = false;
                         }
+                        if (!valid) break;
 
                         result += target;
                         offset += instruction::size();
