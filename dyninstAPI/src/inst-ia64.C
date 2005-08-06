@@ -43,7 +43,6 @@
 
 /*
  * inst-ia64.C - ia64 dependent functions and code generator
- * $Id: inst-ia64.C,v 1.83 2005/08/03 23:00:58 bernat Exp $
  */
 
 /* Note that these should all be checked for (linux) platform
@@ -2630,31 +2629,27 @@ bool rpcMgr::emitInferiorRPCtrailer( codeGen &gen,
 	return true;
 } /* end emitInferiorRPCtrailer() */
 
-void baseTrampInstance::updateTrampCost(unsigned cost) {
-	if (baseT->costSize == 0) {
+void baseTrampInstance::updateTrampCost( unsigned cost ) {
+	if( baseT->costSize == 0 ) {
 		return;
-	}
+		}
+	assert( baseT->costSize != 0 );
+	/* FIXME */ return;
+		
+	assert( cost < (1 << 14 ) );
+    codeGen gen( baseT->costSize );
+    /* FIXME: refactor the code from generateCostCode() because allocateRegister() may not always return
+       the same thing, and it's clumsy to carry around a register number. */
+	/* FIXME */ // IA64_instruction addInstruction = generateShortImmediateAdd( valueRegister, cost, valueRegister );
+	/* FIXME */ // IA64_bundle addBundle( MIIstop, addInstruction, NOP_I, NOP_I );
+	/* FIXME */ // addBundle.generate( gen );
 
-    assert(baseT->costSize);
+	Address trampCostAddr = trampPreAddr() + baseT->costValueOffset;
+    proc()->writeDataSpace( (void *) trampCostAddr, gen.used(), (void *) gen.start_ptr() );
+	} /* end updateTrampCost() */
 
-    Address trampCostAddr = trampPreAddr() + baseT->costValueOffset;
-
-    codeGen gen(baseT->costSize);
-
-    Address costAddr = proc()->getObservedCostAddr();
-#if 0
-	// x86 version
-    emitAddMemImm32(costAddr, cost, gen);
-#endif
-
-    assert(gen.used() == baseT->costSize);
-    
-    proc()->writeDataSpace((void *)trampCostAddr,
-                           gen.used(),
-                           (void *)gen.start_ptr());
-}
-
-
+#define GUARD_PREDICATE_TRUE	6
+#define GUARD_PREDICATE_FALSE	7
 bool baseTramp::generateGuardPreCode(codeGen &gen,
 									 codeBufIndex_t &guardJumpIndex,
 									 registerSpace *rs) {
@@ -2681,17 +2676,24 @@ bool baseTramp::generateGuardPreCode(codeGen &gen,
 	
 	IA64_bundle guardOnBundle1( MstopMIstop,
 								generateRegisterLoad( trampGuardFlagValue, trampGuardFlagAddr, 4 ),
-								generateComparison( eqOp, 6, trampGuardFlagValue, REGISTER_ZERO ),
+								generateComparison( eqOp, GUARD_PREDICATE_TRUE, trampGuardFlagValue, REGISTER_ZERO ),
 								instruction( NOP_I ));
 
-	IA64_bundle guardOnBundle2( MLXstop,
-								generateRegisterStore( trampGuardFlagAddr, REGISTER_ZERO, 4, 7),
-								generateLongBranchTo( +4 << 4, 6 ));
+	IA64_bundle guardOnBundle2( MIIstop,
+								generateRegisterStore( trampGuardFlagAddr, REGISTER_ZERO, 4, GUARD_PREDICATE_FALSE ),
+								instruction( NOP_I ),
+								instruction( NOP_I ));
+
+	/* This displacement is fixed up in finalizeGuardBranch(). */
+	IA64_bundle guardOnBundle3( MLXstop,
+								instruction( NOP_M ),
+								generateLongBranchTo( 0 << 4, GUARD_PREDICATE_TRUE ));
 
 	guardOnBundle0.generate(gen);
 	guardOnBundle1.generate(gen);
-	guardJumpIndex = gen.getIndex();
 	guardOnBundle2.generate(gen);
+	guardJumpIndex = gen.getIndex();
+	guardOnBundle3.generate(gen); 
 
 	return true; 
 }
@@ -2721,16 +2723,31 @@ bool baseTramp::generateGuardPostCode(codeGen &gen, codeBufIndex_t &postIndex,
 	return true;
 }
 
-bool baseTramp::generateCostCode(codeGen &gen,
-								 unsigned &costUpdateOffset,
-								 registerSpace *) {
+bool baseTramp::generateCostCode( codeGen & gen, unsigned & costUpdateOffset, registerSpace * rSpace ) {
     Address costAddr = proc()->getObservedCostAddr();
-    if (!costAddr) return false;
-
-	// Do something
-	costUpdateOffset = 0;
-	return false;
-}
+    if( ! costAddr ) {
+    	return false;
+    	}
+    
+    Register addressRegister = rSpace->allocateRegister( gen, false );
+    Register valueRegister = rSpace->allocateRegister( gen, false );
+    
+    
+    emitVload( loadOp, costAddr, addressRegister, valueRegister, gen, false, rSpace );
+    
+    /* Give myself a full bundle here to add a constant to a register. */
+    costUpdateOffset = gen.used();
+    IA64_bundle nopBundle( MIIstop, NOP_M, NOP_I, NOP_I );
+    nopBundle.generate( gen );
+    
+    emitV( storeIndirOp, valueRegister, 0 /* not used */, addressRegister, gen, false, rSpace );
+    
+    
+    rSpace->freeRegister( valueRegister );
+    rSpace->freeRegister( addressRegister );
+    
+    return true;
+	} /* end generateCostCode() */
 
 
 bool baseTramp::generateMTCode(codeGen &gen,
@@ -3906,34 +3923,32 @@ bool multiTramp::generateBranchToTramp(codeGen &gen) {
 
 unsigned relocatedInstruction::maxSizeRequired() {
 	// This can be pruned to be a better estimate.
-
 	return 48; // bundles. I think. Might be 3.
-}
+	}
 
- unsigned multiTramp::maxSizeRequired() {
-	 return 16; // bundle
- }
+unsigned multiTramp::maxSizeRequired() {
+	return 16; // bundle
+	}
 
- unsigned miniTramp::interJumpSize() {
-	 return 16; // bundle
- }
+unsigned miniTramp::interJumpSize() {
+	return 16; // bundle
+	}
 
- unsigned trampEnd::maxSizeRequired() {
-	 return 32; // bundles
- }
+unsigned trampEnd::maxSizeRequired() {
+	return 32; // bundles
+	}
 
- bool baseTrampInstance::finalizeGuardBranch(codeGen &gen,
-											 int disp) {
-	 // Note: the long branch divides the displacement by 16, so we don't do that here
+bool baseTrampInstance::finalizeGuardBranch( codeGen & gen, int displacement ) {
+	/* Displacement is in bytes. */
+	IA64_bundle guardOnBundle3( MLXstop,
+								instruction( NOP_M ),
+								generateLongBranchTo( displacement, GUARD_PREDICATE_TRUE ));
+	guardOnBundle3.generate( gen );
 
-	 IA64_bundle guardOnBundle2( MLXstop,
-								 generateRegisterStore( baseT->trampGuardFlagAddr, REGISTER_ZERO, 4, 7),
-								 generateLongBranchTo( disp, 6 ));
+	return true;
+	}
 
-	 return true;
- }
-
- bool baseTramp::generateSaves(codeGen &gen, registerSpace *rs) {
+bool baseTramp::generateSaves(codeGen &gen, registerSpace *rs) {
 	 // Unwind information starts
 	 
 #if 0
