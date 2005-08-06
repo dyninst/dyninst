@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.43 2005/07/29 19:18:13 bernat Exp $
+// $Id: arch-ia64.C,v 1.44 2005/08/06 03:38:46 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -111,7 +111,11 @@ instruction::instruction( uint64_t insn, uint8_t templ, uint8_t slotN ) {
 } /* end IA64_Instruction() */
 
 const void * instruction::ptr() const { 
-	return NULL;
+	return & insn_;
+	} /* end ptr() */
+	
+const void * instruction_x::ptr() const { 
+	return & insn_x_;
 	} /* end ptr() */
 
 uint8_t instruction::getPredicate() const {

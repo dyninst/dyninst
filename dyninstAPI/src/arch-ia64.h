@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.32 2005/07/29 19:18:14 bernat Exp $
+// $Id: arch-ia64.h,v 1.33 2005/08/06 03:38:46 tlmiller Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -107,7 +107,7 @@ class instruction {
 	static void generateNOOP(codeGen &gen, unsigned fillsize = 16);
 	static void generateTrap(codeGen &gen);
 
-	const void * ptr() const;
+	virtual const void * ptr() const;
 
 	static uint32_t size() { return 16; }
 
@@ -164,6 +164,8 @@ class instruction_x : public instruction {
 		virtual uint8_t getPredicate() const;
 		
 		virtual bool isLongInsn() const { return true; }
+		
+		virtual const void * ptr() const;
 
 		// Emulation
 		virtual void relocate(codeGen &gen, Address origAddr, Address relocAddr);
