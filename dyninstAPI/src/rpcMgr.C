@@ -50,6 +50,10 @@
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/ast.h"
 
+#if defined(arch_x86_64)
+#include "dyninstAPI/src/emit-x86.h"
+#endif
+
 rpcMgr::rpcMgr(process *proc) :
     processingProcessRPC(false),
     proc_(proc),
@@ -628,6 +632,14 @@ Address rpcMgr::createRPCImage(AstNode *action,
     
     // initializes "regSpace", but only the 1st time called
     initTramps(proc_->multithread_capable()); 
+
+#if defined(arch_x86_64)
+    if (proc()->getAddressWidth() == 8)
+	emit64();
+    else
+	emit32();
+#endif
+
     extern registerSpace *regSpace;
     regSpace->resetSpace();
     
@@ -764,7 +776,7 @@ bool rpcMgr::emitInferiorRPCtrailer(codeGen &gen,
     
     instruction::generateIllegal(gen);
 
-#if defined(arch_x86) 
+#if defined(arch_x86) || defined(arch_x86_64)
      // X86 traps at the next insn, not the trap. So shift the
      // offsets accordingly
      if (shouldStopForResult) {

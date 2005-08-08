@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.C,v 1.9 2005/08/03 05:28:09 bernat Exp $
+// $Id: dynamiclinking.C,v 1.10 2005/08/08 20:23:33 gquinn Exp $
 
 // Cross-platform dynamic linking functions
 
@@ -102,7 +102,7 @@ sharedLibHook *dynamic_linking::reachedLibHook(Address a) {
 }
 
 bool sharedLibHook::reachedBreakAddr(Address b) const {
-#if defined(arch_x86)
+#if defined(arch_x86) || defined(arch_x86_64)
     return ((b-1) == breakAddr_);
 #else
     return (b == breakAddr_); 

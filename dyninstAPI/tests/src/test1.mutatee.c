@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.117 2005/08/03 05:28:31 bernat Exp $ */
+/* $Id: test1.mutatee.c,v 1.118 2005/08/08 20:23:36 gquinn Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -2365,7 +2365,7 @@ void func36_1()
               globalVariable36_6);
       failure = 1;
    }
-#if !defined(alpha_dec_osf4_0)   /* alpha doesn't handle more than 6 */
+#if !defined(alpha_dec_osf4_0) && !defined(arch_x86_64)  /* alpha and AMD64 don't handle more than 6 */
    if(globalVariable36_7 != 7) {
       fprintf(stderr, "   for test 36, expecting arg7 value of 7, got %d\n",
               globalVariable36_7);
@@ -2393,10 +2393,10 @@ void func36_1()
    }
 #else
    fprintf(stderr,
-   "    test 36: alpha currently doesn't handle referencing more than\n");
+   "    test 36: AMD64 and alpha currently do not handle referencing more than\n");
    
    fprintf(stderr,
-   "    6 callsite args, so not testing past 6 args on alpha currently\n");
+   "    6 callsite args, so not testing past 6 args\n");
 #endif
 
    if(failure == 0) {

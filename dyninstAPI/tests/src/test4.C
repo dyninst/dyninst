@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4.C,v 1.29 2005/07/06 18:28:17 rchen Exp $
+// $Id: test4.C,v 1.30 2005/08/08 20:23:36 gquinn Exp $
 //
 
 #include <stdio.h>
@@ -61,7 +61,7 @@
 #include "test_util.h"
 
 
-const char *mutateeNameRoot = "test4a.mutatee";
+const char *mutateeNameRoot = "./test4a.mutatee";
 
 int inTest;		// current test #
 int expectError;

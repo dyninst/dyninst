@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.136 2005/08/04 22:54:26 bernat Exp $
+// $Id: inst.C,v 1.137 2005/08/08 20:23:33 gquinn Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -262,7 +262,7 @@ bool instPoint::match(Address a) const {
     if (a == addr()) return true;
 
     for (unsigned i = 0; i < instances.size(); i++)
-        if (instances[0]->addr() == a)
+        if (instances[i]->addr() == a)
             return true;
     return false;
 }

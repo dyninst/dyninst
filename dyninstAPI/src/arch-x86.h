@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.28 2005/07/29 19:18:19 bernat Exp $
+// $Id: arch-x86.h,v 1.29 2005/08/08 20:23:33 gquinn Exp $
 // x86 instruction declarations
 
 #if !defined(i386_unknown_solaris2_5) \
@@ -95,12 +95,15 @@ typedef int dword_t;   /* a double word (32-bit) operand */
 #define PTR_WW  (1<<15)  /* 4-byte pointer */
 #define PTR_WD  (1<<16)  /* 6-byte pointer */
 #define PTR_WX  (1<<17)  /* 4 or 6-byte pointer */
+#define REL_D_DATA (1<<18) /* AMD64 RIP-relative data addressing */
 
 /* prefixes */
-#define PREFIX_INST (1<<20) /* instruction prefix */
-#define PREFIX_SEG  (1<<21) /* segment override prefix */
-#define PREFIX_OPR  (1<<22) /* operand size override */
-#define PREFIX_ADDR (1<<23) /* address size override */
+#define PREFIX_INST   (1<<20) /* instruction prefix */
+#define PREFIX_SEG    (1<<21) /* segment override prefix */
+#define PREFIX_OPR    (1<<22) /* operand size override */
+#define PREFIX_ADDR   (1<<23) /* address size override */
+#define PREFIX_REX    (1<<24) /* AMD64 REX prefix */
+#define PREFIX_OPCODE (1<<25) /* prefix is part of opcode (SSE) */
 
 /* end of instruction type descriptor values */
 
@@ -192,6 +195,7 @@ class ia32_prefixes
   // For 64-bit CPUs, an additional REX prefix is possible,
   // so this array is extended to 5 elements
   unsigned char prfx[5];
+  unsigned char opcode_prefix;
  public:
   unsigned int const getCount() const { return count; }
   unsigned char getPrefix(unsigned char group) const { return prfx[group]; }
@@ -199,6 +203,7 @@ class ia32_prefixes
   bool rexR() const { return prfx[4] & 0x4; }
   bool rexX() const { return prfx[4] & 0x2; }
   bool rexB() const { return prfx[4] & 0x1; }
+  unsigned char getOpcodePrefix() const { return opcode_prefix; }
 };
 
 //VG(6/20/02): To support Paradyn without forcing it to include BPatch_memoryAccess, we
@@ -319,15 +324,17 @@ class ia32_instruction
   ia32_memacc    *mac;
   ia32_condition *cond;
   unsigned int   legacy_type;
+  bool           rip_relative_data;
 
 
  public:
   ia32_instruction(ia32_memacc* _mac = NULL, ia32_condition* _cnd = NULL)
-    : mac(_mac), cond(_cnd) {}
+    : mac(_mac), cond(_cnd), rip_relative_data(false) {}
 
   unsigned int getSize() const { return size; }
   unsigned int getPrefixCount() const { return prf.getCount(); }
   unsigned int getLegacyType() const { return legacy_type; }
+  bool hasRipRelativeData() const { return rip_relative_data; }
   const ia32_memacc& getMac(int which) const { return mac[which]; }
   const ia32_condition& getCond() const { return *cond; }
 };
@@ -495,13 +502,13 @@ int set_disp(bool setDisp, instruction *insn, int newOffset, bool outOfFunc);
 int displacement(const unsigned char *instr, unsigned type);
 
 int sizeOfMachineInsn(instruction *insn);
-int addressOfMachineInsn(instruction *insn);
+long addressOfMachineInsn(instruction *insn);
 
 int get_instruction_operand(const unsigned char *i_ptr, Register& base_reg,
 			    Register& index_reg, int& displacement, 
 			    unsigned& scale, unsigned &mod);
 void decode_SIB(unsigned sib, unsigned& scale, Register& index_reg, Register& base_reg);
-const unsigned char* skip_headers(const unsigned char*,bool&,bool&);
+const unsigned char* skip_headers(const unsigned char*, ia32_prefixes* = NULL);
 
 /* addresses on x86 don't have to be aligned */
 /* Address bounds of new dynamic heap segments.  On x86 we don't try
@@ -509,6 +516,12 @@ to allocate new segments near base tramps, so heap segments can be
 allocated anywhere (the tramp address "x" is ignored). */
 inline Address region_lo(const Address /*x*/) { return 0x00000000; }
 inline Address region_hi(const Address /*x*/) { return 0xf0000000; }
+
+#if defined(arch_x86_64)
+// range functions for AMD64
+inline Address region_lo_64(const Address x) { return x & 0xffffffff80000000; }
+inline Address region_hi_64(const Address x) { return x | 0x000000007fffffff; }
+#endif
 
 bool insn_hasSIB(unsigned,unsigned&,unsigned&,unsigned&);
 bool insn_hasDisp8(unsigned ModRM);

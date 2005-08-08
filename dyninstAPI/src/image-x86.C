@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.3 2005/08/03 23:00:55 bernat Exp $
+ * $Id: image-x86.C,v 1.4 2005/08/08 20:23:33 gquinn Exp $
  */
 
 #include "common/h/Vector.h"
@@ -482,7 +482,8 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                 }
 
                 if (ah.peekPrev() &&
-                    (*ah.getPrevInstruction().ptr()) == POP_EBX) {
+                    (*ah.getPrevInstruction().op_ptr()) == POP_EBX) {
+
                     //this looks like a tail call
                     currBlk->isExitBlock_ = true;
                     break;
@@ -509,11 +510,10 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                 int j = allInstructions.size() - 2;
                 assert(j > 0);
 
-                const unsigned char* ptr = ah.getInstruction().ptr();
+                const unsigned char* ptr = ah.getInstruction().op_ptr();
                 assert( *ptr == 0xff );
-                
                 ptr++;
-                if( (*ptr & 0xc7) != 0x04)
+                if( (*ptr & 0xc7) != 0x04) // if not SIB
                 {
                     isAddInJmp = false;
                     //jump via register so examine the previous instructions 
@@ -524,7 +524,7 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                     while(findReg.hasPrev()) {
                         findReg--;
                         parsing_printf("Checking 0x%x for register...\n", *findReg);
-                        if ((*findReg.getInstruction().ptr()) == MOVREGMEM_REG) {
+                        if ((*findReg.getInstruction().op_ptr()) == MOVREGMEM_REG) {
                             tableInsn = findReg.getInstruction();
                             foundTableInsn = true;
                             parsing_printf("Found register at 0x%x\n", *findReg);

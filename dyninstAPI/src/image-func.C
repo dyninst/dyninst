@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.3 2005/08/04 22:54:24 bernat Exp $
+// $Id: image-func.C,v 1.4 2005/08/08 20:23:33 gquinn Exp $
 
 #include "function.h"
 #include "process.h"
@@ -296,7 +296,7 @@ bool image_func::cleanBlockList() {
     //points_[u].point->checkInstructions();
     // Should also make multipoint decisions
 
-#if !defined(arch_x86) && !defined(arch_power)
+#if !defined(arch_x86) && !defined(arch_power) && !defined(arch_x86_64)
     // We need to make sure all the blocks are inside the function
     pdvector<image_basicBlock *>cleanedList;
     for (unsigned foo = 0; foo < blockList.size(); foo++) {

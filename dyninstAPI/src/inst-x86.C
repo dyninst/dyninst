@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.211 2005/08/03 23:01:01 bernat Exp $
+ * $Id: inst-x86.C,v 1.212 2005/08/08 20:23:33 gquinn Exp $
  */
 #include <iomanip>
 
@@ -293,8 +293,9 @@ bool relocatedInstruction::generateCode(codeGen &gen,
                         newInsn++;
                         unsigned int *temp = (unsigned int *)newInsn;
                         *temp = EIP;
-                        assert(sizeof(unsigned int *)==4);
-                        newInsn += sizeof(unsigned int *);
+                        //assert(sizeof(unsigned int *)==4);
+                        //newInsn += sizeof(unsigned int *);
+                        newInsn += 4;  // fix for AMD64
                         done = true;
                     }
                 }
@@ -370,13 +371,19 @@ bool relocatedInstruction::generateCode(codeGen &gen,
             }
             *((int *)newInsn) = newDisp;
             newInsn += sizeof(int);
-        } else if (insnType & REL_D) {
+        } else if (insnType & REL_D || insnType & REL_D_DATA) {
+
             // Skip prefixes
             unsigned nPrefixes = 0;
             if (insnType & PREFIX_OPR)
                 nPrefixes++;
             if (insnType & PREFIX_SEG)
                 nPrefixes++;
+	    if (insnType & PREFIX_OPCODE)
+		nPrefixes++;
+            if (insnType & PREFIX_REX)
+                nPrefixes++;
+
             for (unsigned u = 0; u < nPrefixes; u++)
                 *newInsn++ = *origInsn++;
             
@@ -384,6 +391,11 @@ bool relocatedInstruction::generateCode(codeGen &gen,
             if (*origInsn == 0x0F)
                 *newInsn++ = *origInsn++;
             *newInsn++ = *origInsn++;
+
+	    // skip over ModRM byte for RIP-relative data
+	    if (insnType & REL_D_DATA)
+		*newInsn++ = *origInsn++;
+
             if (!targetOverride_) {
                 oldDisp = *((const int *)origInsn);
                 newDisp = (origAddr + insnSz) + oldDisp - (addrInMutatee_ + insnSz);
@@ -394,6 +406,14 @@ bool relocatedInstruction::generateCode(codeGen &gen,
             }
             *((int *)newInsn) = newDisp;
             newInsn += sizeof(int);
+
+	    // copy the rest of the instruction for RIP-relative data (there may be an immediate)
+	    // we can do this since the insn size will always be the same
+	    if (insnType & REL_D_DATA) {
+		origInsn += sizeof(int);
+		while (newInsn - insnBuf < (int)insnSz)
+		    *newInsn++ = *origInsn++;
+	    }
         }
         else {
             /* instruction is unchanged */
@@ -411,56 +431,55 @@ bool relocatedInstruction::generateCode(codeGen &gen,
     return true;
 }
 
-registerSpace *regSpace;
 
+
+registerSpace *regSpace32;
+#if defined(arch_x86_64)
+registerSpace *regSpace64;
+#endif
+registerSpace *regSpace;
 
 bool registerSpace::readOnlyRegister(Register) {
   return false;
 }
 
-/*
-   We don't use the machine registers to store temporaries,
-   but "virtual registers" that are located on the stack.
-   The stack frame for a tramp is:
+Register deadList32[NUM_VIRTUAL_REGISTERS];
+int deadList32Size = sizeof(deadList32);
 
-     ebp->    saved ebp (4 bytes)
-     ebp-4:   128-byte space for 32 virtual registers (32*4 bytes)
-     ebp-132: saved registers (8*4 bytes)
-     ebp-164: saved flags registers (4 bytes)
-     ebp-168: (MT only) thread index
-
-     The temporaries are assigned numbers from 1 so that it is easier
-     to refer to them: -(reg*4)[ebp]. So the first reg is -4[ebp].
-
-     We are using a fixed number of temporaries now (32), but we could 
-     change to using an arbitrary number.
-
-*/
-
-#define TRAMP_FRAME_SIZE (128)
-
-Register deadList[NUM_VIRTUAL_REGISTERS];
-int deadListSize = sizeof(deadList);
+#if defined(arch_x86_64)
+// we do non-arg registers here first - followed by arg registers in reverse order
+Register deadList64[] = {RBX, R10, R11, R12, R13, R14, R15, R9, R8, RCX, RDX, RSI, RDI};
+int deadList64Size = sizeof(deadList64);
+#endif
 
 void initTramps(bool is_multithreaded)
 {
-   static bool inited = false;
+    static bool inited = false;
 
-   if (inited) return;
-   inited = true;
-   
-   unsigned regs_to_loop_over;
-   if(is_multithreaded)
-      regs_to_loop_over = NUM_VIRTUAL_REGISTERS - 1;
-   else
-      regs_to_loop_over = NUM_VIRTUAL_REGISTERS;
+    if (inited) return;
+    inited = true;
 
-   for (unsigned u = 0; u < regs_to_loop_over; u++) {
-      deadList[u] = u+1;
-   }
+    unsigned regs_to_loop_over;
+    if(is_multithreaded)
+	regs_to_loop_over = NUM_VIRTUAL_REGISTERS - 1;
+    else
+	regs_to_loop_over = NUM_VIRTUAL_REGISTERS;
 
-   regSpace = new registerSpace(deadListSize/sizeof(Register), deadList,
-                                0, NULL, is_multithreaded);
+    for (unsigned u = 0; u < regs_to_loop_over; u++) {
+	deadList32[u] = u+1;
+    }
+
+    regSpace32 = new registerSpace(deadList32Size/sizeof(Register), deadList32,
+				   0, NULL, is_multithreaded);
+
+#if defined(arch_x86_64)
+    assert(!is_multithreaded);
+    regSpace64 = new registerSpace(deadList64Size/sizeof(Register), deadList64,
+				   0, NULL, is_multithreaded);
+#endif
+
+    // default to 32-bit
+    regSpace = regSpace32;
 }
 
 
@@ -469,10 +488,28 @@ unsigned generateAndWriteBranch(process *proc,
                                 Address newAddr,
                                 unsigned fillSize)
 {
-    if (fillSize == 0) fillSize = JUMP_REL32_SZ;
+    if (fillSize == 0) fillSize = BASE_TO_MINI_JMP_SIZE;
     codeGen gen(fillSize);
+
+#if defined(arch_x86_64)
+    long disp = newAddr - (fromAddr + JUMP_REL32_SZ);
+    if (disp > I32_MAX || disp < I32_MIN) {
+
+	// need to use an indirect jmp
+	emitMovImmToReg64(RAX, newAddr, true, gen);
+	emitSimpleInsn(0xff, gen); // group 5
+	emitSimpleInsn(0xe0, gen); // mod = 11, reg = 4 (call Ev), r/m = 0 (RAX)
+    }
+    else {
+	// can use a direct jump
+	instruction::generateBranch(gen, fromAddr, newAddr);
+	gen.fillRemaining(codeGen::cgNOP);
+    }
+#else
+    // we can always use a direct jump on x86
     instruction::generateBranch(gen, fromAddr, newAddr);
     gen.fillRemaining(codeGen::cgNOP);
+#endif
     
     proc->writeTextSpace((caddr_t)fromAddr, gen.used(), gen.start_ptr());
     return gen.used();
@@ -480,7 +517,8 @@ unsigned generateAndWriteBranch(process *proc,
 
 // Should move...
 unsigned miniTramp::interJumpSize() {
-    return JUMP_REL32_SZ;
+
+    return BASE_TO_MINI_JMP_SIZE;
 }
 
 unsigned multiTramp::maxSizeRequired() {
@@ -531,6 +569,7 @@ bool multiTramp::generateBranchToTramp(codeGen &gen)
         // We're doing a trap. Now, we know that trap addrs are reported
         // as "finished" address... so use that one (not instAddr_)
         instruction::generateTrap(gen);
+	// This is why we use currAddr() _after_ we generate, not before.
         proc()->trampTrapMapping[gen.currAddr(instAddr_)] = trampAddr_;
         fprintf(stderr, "Multitramp %p using trap to reach MT: addr 0x%x, size %d, to addr 0x%x\n", this, instAddr_, instSize_, trampAddr_);
     }
@@ -540,165 +579,33 @@ bool multiTramp::generateBranchToTramp(codeGen &gen)
     return true;
 }
 
-bool baseTramp::generateSaves(codeGen &gen,
-                              registerSpace *) {
-    // These crank the saves forward
-    emitSimpleInsn(PUSHFD, gen);
-    emitSimpleInsn(PUSHAD, gen);
-    // For now, we'll do all saves then do the guard. Could inline
-    // Return addr for stack frame walking; for lack of a better idea,
-    // we grab the original instPoint address
-    if (preInstP)
-        emitPushImm(preInstP->addr(), gen);
-    else if (postInstP) {
-        emitPushImm(postInstP->addr(), gen);
-    }
-    else {
-        assert(rpcMgr_);
-    }
+bool baseTramp::generateSaves(codeGen& gen, registerSpace*) {
 
-    emitSimpleInsn(PUSH_EBP, gen);
-    emitMovRegToReg(EBP, ESP, gen);
-    
-    if (isConservative()) {
-        // Allocate space for temporaries and floating points
-        emitOpRegImm(5, ESP, TRAMP_FRAME_SIZE+FSAVE_STATE_SIZE, gen);
-        emitOpRegRM(FSAVE, FSAVE_OP, EBP, -(TRAMP_FRAME_SIZE) - FSAVE_STATE_SIZE, gen);
-    } else {
-        // Allocate space for temporaries
-        emitOpRegImm(5, ESP, TRAMP_FRAME_SIZE, gen);
-    }
-    return true;
+    return x86_emitter->emitBTSaves(this, gen);
 }
 
-bool baseTramp::generateRestores(codeGen &gen,
-                                 registerSpace *) {
-    if (isConservative()) {
-        emitOpRegRM(FRSTOR, FRSTOR_OP, EBP, -TRAMP_FRAME_SIZE - FSAVE_STATE_SIZE, gen);
-    }
-    emitSimpleInsn(LEAVE, gen);
-    emitSimpleInsn(POP_EAX, gen);
-    emitSimpleInsn(POPAD, gen);
-    emitSimpleInsn(POPFD, gen);
-    return true;
+bool baseTramp::generateRestores(codeGen &gen, registerSpace*) {
+
+    return x86_emitter->emitBTRestores(this, gen);
 }
 
-bool baseTramp::generateMTCode(codeGen &gen,
-                               registerSpace *) {
-    AstNode *threadPOS;
-    pdvector<AstNode *> dummy;
-    Register src = Null_Register;
-    // registers cleanup
-    regSpace->resetSpace();
-    
-    /* Get the hashed value of the thread */
-    if (!proc()->multithread_ready()) {
-        // Uh oh... we're not ready to build a tramp yet!
-        //cerr << "WARNING: tramp constructed without RT multithread support!"
-        //     << endl;
-        threadPOS = new AstNode("DYNINSTreturnZero", dummy);
-    }
-    else 
-        threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
-    
-    src = threadPOS->generateCode(proc(), regSpace, gen,
-                                  false, // noCost 
-                                  true); // root node
-    
-    
-    // AST generation uses a base pointer and a current address; the lower-level
-    // code uses a current pointer. Convert between the two.
-    LOAD_VIRTUAL(src, gen);
-    SAVE_VIRTUAL(REG_MT_POS, gen);
-    
-    return true;
-} 
+bool baseTramp::generateMTCode(codeGen &gen, registerSpace*) {
+
+    return x86_emitter->emitBTMTCode(this, gen);
+}
 
 bool baseTramp::generateGuardPreCode(codeGen &gen,
-                                     codeBufIndex_t &guardJumpIndex,
-                                     registerSpace *) {
-    assert(guarded());
+                                     codeBufIndex_t &guardJumpOffset,
+				     registerSpace*) {
 
-    // The jump gets filled in later; allocate space for it now
-    // and stick where it is in guardJumpOffset
-    Address guard_flag_address = proc()->trampGuardBase();
-    if (!guard_flag_address) {
-        return false;
-    }
-    
-   /* guard-on code before pre instr */
-   /* Code generated:
-    * --------------
-    * cmpl   $0x0, (guard flag address)
-    * je     <after guard-off code>
-    * movl   $0x0, (guard flag address)
-    */
-
-   /*            CMP_                       (memory address)__  0 */
-    inst_printf("guard_flag_addr 0x%x\n", guard_flag_address);
-    if (proc()->multithread_capable()) 
-        {
-            inst_printf("Generating MT code\n");
-            // Load the index into EAX
-            LOAD_VIRTUAL(REG_MT_POS, gen);
-            // Shift by sizeof(int) and add guard_flag_address
-            emitLEA(Null_Register, EAX, 2, guard_flag_address, EAX, gen);
-            // Compare to 0
-            emitOpRMImm8(0x83, 0x07, EAX, 0, 0, gen);
-        }
-    else {
-        inst_printf("Emitting normal code\n");
-        emitOpRMImm8(0x83, 0x07, Null_Register, guard_flag_address, 0, gen);
-    }
-    guardJumpIndex = gen.getIndex();
-
-    // We might have to 5-byte around if there's a lot of inlined minitramps
-    // When we fix this, we might use a smaller jump (and leave the rest as noops)
-    guardBranchSize = JUMP_REL32_SZ;
-    instruction::generateNOOP(gen, JUMP_REL32_SZ);
-    
-    if (proc()->multithread_capable()) 
-        {
-            emitMovImmToRM(EAX, 0, 0, gen);
-        }
-    else {
-        emitMovImmToMem( guard_flag_address, 0, gen );
-    }
-    
-    return true;
+    return x86_emitter->emitBTGuardPreCode(this, gen, guardJumpOffset);
 }
 
 bool baseTramp::generateGuardPostCode(codeGen &gen,
-                                      codeBufIndex_t &guardTargetIndex,
-                                      registerSpace *) {
-    assert(guarded());
-    Address guard_flag_address = proc()->trampGuardBase();
-    if (!guard_flag_address) {
-        return false;
-    }
-    
-    assert(guard_flag_address);
-    /* guard-off code after pre instr */
-   /* Code generated:
-    * --------------
-    * movl   $0x1, (guard flag address)
-    */
-   if (proc()->multithread_capable()) 
-       {
-       inst_printf("Generating MT guard post code\n");
-       // Load the index into EAX
-       LOAD_VIRTUAL(REG_MT_POS, gen);
-       // Shift by sizeof(int) and add guard_flag_address
-       emitLEA(Null_Register, EAX, 2, guard_flag_address, EAX, gen);
-       emitMovImmToRM(EAX, 0, 1, gen);
-   }
-   else {
-       inst_printf("Generating non-MT guard post code\n");
-       emitMovImmToMem( guard_flag_address, 1, gen );
-   }
-   guardTargetIndex = gen.getIndex();
+				      codeBufIndex_t &guardTargetIndex,
+				      registerSpace *) {
 
-   return true;
+    return x86_emitter->emitBTGuardPostCode(this, gen, guardTargetIndex);
 }
 
 bool baseTrampInstance::finalizeGuardBranch(codeGen &gen,
@@ -745,10 +652,7 @@ bool baseTramp::generateCostCode(codeGen &gen, unsigned &costUpdateOffset,
     inst_printf("costAddr is 0x%x\n", costAddr);
     if (!costAddr) return false;
 
-    costUpdateOffset = gen.used();
-    // Dummy for now; we update at generation time.
-    emitAddMemImm32(costAddr, 0, gen); 
-    return true;
+    return x86_emitter->emitBTCostCode(this, gen, costUpdateOffset);
 }
 
 // And update the same in an atomic action
@@ -763,7 +667,17 @@ void baseTrampInstance::updateTrampCost(unsigned cost) {
 
     Address costAddr = proc()->getObservedCostAddr();
 
-    emitAddMemImm32(costAddr, cost, gen);
+    if (proc()->getAddressWidth() == 4) {
+	emitAddMemImm32(costAddr, cost, gen);    
+    }
+    else {
+#if defined(arch_x86_64)
+	emitMovImmToReg64(RAX, costAddr, true, gen);
+	emitOpRMImm(0x81, 0, RAX, 0, cost, gen);
+#else
+	assert(0);
+#endif
+    }
 
     // We can assert this here as we regenerate the entire
     // cost section
@@ -833,7 +747,11 @@ static inline void emitJcc(int condition, int offset,
  * walk out of base tramps.  Should be treated as a constant, but the
  * C++ scoping rules for const are stupid.
  **/
-int tramp_pre_frame_size = 36; //Stack space allocated by 'pushf; pusha'
+
+int tramp_pre_frame_size_32 = 36; //Stack space allocated by 'pushf; pusha'
+
+int tramp_pre_frame_size_64 = 8 + 16 * 8 + 128; // stack space allocated by pushing flags and 16 GPRs
+                                                // and skipping the 128-byte red zone
 
 bool can_do_relocation(process *proc,
                        const pdvector<pdvector<Frame> > &stackWalks,
@@ -920,6 +838,11 @@ static inline unsigned char makeSIBbyte(unsigned Scale, unsigned Index,
   return ((Scale & 0x3) << 6) + ((Index & 0x7) << 3) + (Base & 0x7);
 }
 
+static void emitAddressingMode(Register base, Register index,
+                               unsigned int scale, RegValue disp,
+                               int reg_opcode, codeGen &gen);
+
+
 /* 
    Emit the ModRM byte and displacement for addressing modes.
    base is a register (EAX, ECX, EDX, EBX, EBP, ESI, EDI)
@@ -929,30 +852,34 @@ static inline unsigned char makeSIBbyte(unsigned Scale, unsigned Index,
 static inline void emitAddressingMode(Register base, RegValue disp,
                                       int reg_opcode, codeGen &gen)
 {
-    GET_PTR(insn, gen);
     // MT linux uses ESP+4
-    //assert(base != ESP);
-   if (base == Null_Register) {
-      *insn++ = makeModRMbyte(0, reg_opcode, 5);
-      *((int *)insn) = disp;
-      insn += sizeof(int);
-   } else if (disp == 0 && base != EBP) {
-      *insn++ = makeModRMbyte(0, reg_opcode, base);
-   } else if (disp >= -128 && disp <= 127) {
-      *insn++ = makeModRMbyte(1, reg_opcode, base);
-      *((char *)insn++) = (char) disp;
-   } else {
-      *insn++ = makeModRMbyte(2, reg_opcode, base);
-      *((int *)insn) = disp;
-      insn += sizeof(int);
-  }
-   SET_PTR(insn, gen);
+    // we need an SIB in that case
+    if (base == ESP) {
+	emitAddressingMode(ESP, Null_Register, 0, disp, reg_opcode, gen);
+	return;
+    }
+    GET_PTR(insn, gen);
+    if (base == Null_Register) {
+	*insn++ = makeModRMbyte(0, reg_opcode, 5);
+	*((int *)insn) = disp;
+	insn += sizeof(int);
+    } else if (disp == 0 && base != EBP) {
+	*insn++ = makeModRMbyte(0, reg_opcode, base);
+    } else if (disp >= -128 && disp <= 127) {
+	*insn++ = makeModRMbyte(1, reg_opcode, base);
+	*((char *)insn++) = (char) disp;
+    } else {
+	*insn++ = makeModRMbyte(2, reg_opcode, base);
+	*((int *)insn) = disp;
+	insn += sizeof(int);
+    }
+    SET_PTR(insn, gen);
 }
 
 // VG(7/30/02): emit a fully fledged addressing mode: base+index<<scale+disp
-static inline void emitAddressingMode(Register base, Register index,
-                                      unsigned int scale, RegValue disp,
-                                      int reg_opcode, codeGen &gen)
+static void emitAddressingMode(Register base, Register index,
+			       unsigned int scale, RegValue disp,
+			       int reg_opcode, codeGen &gen)
 {
    bool needSIB = (base == ESP) || (index != Null_Register);
 
@@ -1360,35 +1287,32 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
     codeBufIndex_t retval = 0;
 
    switch (op) {
-   case ifOp: {
-       // if src1 == 0 jump to dest
-       // src1 is a temporary
-       // dest is a target address
-       retval = x86_emitter->emitIf(src1, dest, gen);
-
-       break;
-   }
-   case branchOp: {
-       // dest is the displacement from the current value of insn
-       // this will need to work for both 32-bits and 64-bits
-       // (since there is no JMP rel64)
-       instruction::generateBranch(gen, dest);
-       retval = gen.getIndex();
-       break;
-   }
-   case trampTrailer: {
-       // generate the template for a jump -- actual jump is generated
-       // elsewhere
-       retval = gen.getIndex();
-       instruction::generateBranch(gen, 0);
-       instruction::generateIllegal(gen);
-       break;
-   }
-   case trampPreamble: {
-       break;
-   }
-   default:
-       abort();        // unexpected op for this emit!
+     case ifOp: {
+	 // if src1 == 0 jump to dest
+	 // src1 is a temporary
+	 // dest is a target address
+	 retval = x86_emitter->emitIf(src1, dest, gen);
+	 break;
+     }
+     case branchOp: {
+	// dest is the displacement from the current value of insn
+	// this will need to work for both 32-bits and 64-bits
+	// (since there is no JMP rel64)
+	 instruction::generateBranch(gen, dest);
+	 retval = gen.getIndex();
+	 break;
+     }
+     case trampTrailer: {
+	 // generate the template for a jump -- actual jump is generated
+	 // elsewhere
+	 retval = gen.getIndex();
+	 instruction::generateNOOP(gen, BASE_TO_MINI_JMP_SIZE);
+     }
+     case trampPreamble: {
+	 break;
+     }
+     default:
+        abort();        // unexpected op for this emit!
    }
 
    return retval;
@@ -1832,7 +1756,7 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
 }
 
 
-
+// TODO: mux this between x86 and AMD64
 int getInsnCost(opCode op)
 {
    if (op == loadConstOp) {
@@ -2083,20 +2007,25 @@ void emitFuncJump(opCode op,
 		  const int_function *callee, process *,
 		  const instPoint *loc, bool)
 {
-    assert(op == funcJumpOp);
-    
-    Address addr = callee->getOriginalAddress();
-    
     // This must mimic the generateRestores baseTramp method. 
     // TODO: make this work better :)
-    
-    if (loc->getPointType() == otherPoint)
+
+    assert(op == funcJumpOp);
+
+    Address addr = callee->getOriginalAddress();
+    instPointType_t ptType = loc->getPointType();
+    x86_emitter->emitFuncJump(addr, ptType, gen);
+}
+
+void Emitter32::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
+{       
+    if (ptType == otherPoint)
         emitOpRegRM(FRSTOR, FRSTOR_OP, EBP, -TRAMP_FRAME_SIZE - FSAVE_STATE_SIZE, gen);
     emitSimpleInsn(LEAVE, gen);     // leave
     emitSimpleInsn(POP_EAX, gen);
     emitSimpleInsn(POPAD, gen);     // popad
     emitSimpleInsn(POPFD, gen);
-
+    
     GET_PTR(insn, gen);
     *insn++ = 0x68; /* push 32 bit immediate */
     *((int *)insn) = addr; /* the immediate */
@@ -2106,19 +2035,14 @@ void emitFuncJump(opCode op,
 
     instruction::generateIllegal(gen);
 }
+
 void emitLoadPreviousStackFrameRegister(Address register_num,
                                         Register dest,
                                         codeGen &gen,
                                         int,
                                         bool){
-  //Previous stack frame register is stored on the stack,
-  //it was stored there at the begining of the base tramp.
-
-  //Calculate the register's offset from the frame pointer in EBP
-  unsigned offset = SAVED_EAX_OFFSET - (register_num * 4);
   
-  emitMovRMToReg(EAX, EBP, offset, gen); //mov eax, offset[ebp]
-  emitMovRegToRM(EBP, -(dest*4), EAX, gen); //mov dest, 0[eax]
+  x86_emitter->emitLoadPreviousStackFrameRegister(register_num, dest, gen);
 }
 
 // First AST node: target of the call
@@ -2139,17 +2063,19 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
                                           displacement, scale, Mod);
       switch(addr_mode){
 
+	  // casting first to long, then void* in calls to the AstNode
+	  // constructor below avoids a mess of compiler warnings on AMD64
         case REGISTER_DIRECT:
            {
               args.push_back( new AstNode(AstNode::PreviousStackFrameDataReg,
-                                        (void *) base_reg));
+                                        (void *)(long) base_reg));
               break;
            }
         case REGISTER_INDIRECT:
            {
               AstNode *prevReg =
                  new AstNode(AstNode::PreviousStackFrameDataReg,
-                             (void *) base_reg);
+                             (void *)(long) base_reg);
               args.push_back( new AstNode(AstNode::DataIndir, prevReg));
               break;
            }
@@ -2157,9 +2083,9 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
            {
               AstNode *prevReg =
                  new AstNode(AstNode::PreviousStackFrameDataReg,
-                             (void *) base_reg);
+                             (void *)(long) base_reg);
               AstNode *offset = new AstNode(AstNode::Constant,
-                                            (void *) displacement);
+                                            (void *)(long) displacement);
               AstNode *sum = new AstNode(plusOp, prevReg, offset);
 
               args.push_back( new AstNode(AstNode::DataIndir, sum));
@@ -2168,7 +2094,7 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
         case DISPLACED:
            {
               AstNode *offset = new AstNode(AstNode::Constant,
-                                            (void *) displacement);
+                                            (void *)(long) displacement);
               args.push_back( new AstNode(AstNode::DataIndir, offset));
               break;
            }
@@ -2186,13 +2112,13 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
 
                  AstNode *index =
                     new AstNode(AstNode::PreviousStackFrameDataReg,
-                                (void *) index_reg);
+                                (void *)(long) index_reg);
                  AstNode *base =
                     new AstNode(AstNode::PreviousStackFrameDataReg,
-                                (void *) base_reg);
+                                (void *)(long) base_reg);
 
                  AstNode *disp = new AstNode(AstNode::Constant,
-                                             (void *) displacement);
+                                             (void *)(long) displacement);
 
                  if(scale == 1){ //No need to do the multiplication
                     if(useBaseReg){
@@ -2210,7 +2136,7 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
                  }
                  else {
                     AstNode *scale_factor
-                       = new AstNode(AstNode::Constant, (void *) scale);
+                       = new AstNode(AstNode::Constant, (void *)(long) scale);
                     AstNode *index_scale_product = new AstNode(timesOp, index,
                                                                scale_factor);
                     if(useBaseReg){
@@ -2234,9 +2160,9 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
                       << callSite->addr() << std::dec << endl;
                  AstNode *base =
                     new AstNode(AstNode::PreviousStackFrameDataReg,
-                                (void *) base_reg);
+                                (void *)(long) base_reg);
                  AstNode *disp = new AstNode(AstNode::Constant,
-                                             (void *) displacement);
+                                             (void *)(long) displacement);
                  AstNode *effective_address =  new AstNode(plusOp, base,
                                                            disp);
                  args.push_back( new AstNode(AstNode::DataIndir,

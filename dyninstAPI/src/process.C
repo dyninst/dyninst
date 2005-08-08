@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.544 2005/08/05 22:23:09 bernat Exp $
+// $Id: process.C,v 1.545 2005/08/08 20:23:34 gquinn Exp $
 
 #include <ctype.h>
 
@@ -277,7 +277,10 @@ bool process::walkStackFromFrame(Frame startFrame,
     currentFrame = currentFrame.getCallerFrame(); 
   }
   // Clean up after while loop (push end frame)
-  stackWalk.push_back(currentFrame);
+  // FIXME: get LastFrame on AMD64 des not work the same as on other platforms
+  //        since the FP is not always zero
+  if (currentFrame.getProc() != NULL)
+      stackWalk.push_back(currentFrame);
 
 #ifndef BPATCH_LIBRARY
   stopTimingStackwalk();
@@ -2978,7 +2981,7 @@ bool process::setDyninstLibInitParams() {
 
    if (!findVarsByAll("libdyninstAPI_RT_init_localCause",
                       vars,
-                      "libdyninstAPI_RT.so.1"))
+                      dyninstRT_name))
        if (!findVarsByAll("_libdyninstAPI_RT_init_localCause",
                           vars))
            assert(0 && "Could not find necessary internal variable");
@@ -3420,7 +3423,7 @@ void process::processCost(unsigned obsCostLow,
 // library (eg. libpthreads.a on AIX).  There are cases where we are querying
 // whether the app is multi-threaded, but it can't be determined yet but it
 // also isn't necessary to know.
-#if defined( BPATCH_LIBRARY ) || defined( ia64_unknown_linux2_4 )
+#if defined( BPATCH_LIBRARY ) || defined( ia64_unknown_linux2_4 ) || defined(arch_x86_64)
 bool process::multithread_capable(bool) { return false; }
 #else
 bool process::multithread_capable(bool ignore_if_mt_not_set)

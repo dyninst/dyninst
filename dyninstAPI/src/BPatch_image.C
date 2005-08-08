@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.74 2005/07/29 19:17:38 bernat Exp $
+// $Id: BPatch_image.C,v 1.75 2005/08/08 20:23:32 gquinn Exp $
 
 #define BPATCH_FILE
 
@@ -265,70 +265,6 @@ bool BPatch_image::setFuncModulesCallback(BPatch_function *bpf, void *data)
   return true;
 }
 
-#if 0
-/*
- * BPatch_image::getModules
- *
- * Returns a list of all procedures in the image upon success, and NULL
- * upon failure.
- */
-BPatch_Vector<BPatch_module *> *BPatch_image::getModulesInt() {
-  char moduleName[255];   
-  if( modlist && modules_parsed ) return modlist;
-
-  // We may have a singleton bpatch module in the vector
-  if (!modlist) modlist = new BPatch_Vector< BPatch_module *>;
-
-  if( modlist == NULL ) { return NULL; }
-
-  modules_parsed = true;
-
-  pdvector< module * > pdModules;
-  proc->llproc->getAllModules(pdModules);
-
-  unsigned int i, j; 
-
-  /* Generate the BPatch_functions for every module before
-     constructing the BPatch_modules.  This allows us to
-     parse the debug information once per image.*/
-  for (i = 0; i < pdModules->size(); i++)
-  {
-  
-     pdmodule *currentModule = (pdmodule *) (*pdModules)[i];
-     BPatch_module *bpm = NULL;
-
-     // We may have created a singleton module already -- check to see that we 
-     // don't double-create
-     for (j = 0; j < modlist->size(); j++) {
-        if ((*modlist)[j]->getModule() == currentModule) {
-           bpm = (*modlist)[j];
-           break;
-        }
-     }
-
-     if (BPatch::bpatch->parseDebugInfo() || !BPatch::bpatch->delayedParsingOn()) 
-     {
-        pdvector<int_function *> *currentFunctions = currentModule->getFunctions();
-        for(j = 0; j < currentFunctions->size(); j++)
-           if (!proc->func_map->defines((*currentFunctions)[j]))
-              new BPatch_function(proc, (* currentFunctions)[j], bpm);
-     }
-     
-     if (!bpm) {
-        bpm = new BPatch_module( proc, currentModule, this );
-        modlist->push_back( bpm );
-     }        
-     if( strcmp( bpm->getName( moduleName, 255 ), "DEFAULT_MODULE" ) ) { 
-        defaultModule = bpm; 
-     }
-  }
-  assert( defaultModule != NULL ) ;
-  
-  proc->func_map->map(setFuncModulesCallback, this);
-  return modlist;
-} /* end getModules() */
-#else
-
 BPatch_Vector<BPatch_module *> *BPatch_image::getModulesInt() {
   if( modlist && modules_parsed ) { return modlist; }
 
@@ -394,7 +330,6 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModulesInt() {
   proc->func_map->map(setFuncModulesCallback, this);
   return modlist;
 } /* end getModules() */
-#endif
 
 /*
  * BPatch_image::findModule

@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.35 2005/02/24 10:15:37 rchen Exp $
+ * $Id: dyn_lwp.h,v 1.36 2005/08/08 20:23:33 gquinn Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -191,7 +191,7 @@ class dyn_lwp
 
 #if defined( os_linux )
   bool deliverPtrace(int req, Address addr, Address data);
-  int deliverPtraceReturn(int req, Address addr, Address data);
+  long deliverPtraceReturn(int req, Address addr, Address data);
 
   bool removeSigStop();  
   bool isRunning() const;

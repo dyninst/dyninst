@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.32 2005/07/29 19:18:18 bernat Exp $
+// $Id: arch-x86.C,v 1.33 2005/08/08 20:23:32 gquinn Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -2727,6 +2727,13 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& 
         }
         else
           nib += ia32_decode_modrm(addrSzAttr, addr);
+
+	// also need to check for AMD64 rip-relative data addressing
+	// occurs when mod == 0 and r/m == 101
+	if (mode_64)
+	    if ((addr[0] & 0xc7) == 0x05)
+		instruct.rip_relative_data = true;
+
         break;
       case am_I: /* immediate data */
       case am_J: /* instruction pointer offset */
@@ -2793,14 +2800,17 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref)
 {
   pref.count = 0;
   pref.prfx[0] = pref.prfx[1] = pref.prfx[2] = pref.prfx[3] = pref.prfx[4] = 0;
+  pref.opcode_prefix = 0;
   bool in_prefix = true;
 
   while(in_prefix) {
     switch(addr[0]) {
     case PREFIX_REPNZ:
     case PREFIX_REP:
-      if(addr[1]==0x0F && sse_prefix[addr[2]])
-        break;
+	if(addr[1]==0x0F && sse_prefix[addr[2]]) {
+	    pref.opcode_prefix = addr[0];
+	    break;
+	}
     case PREFIX_LOCK:
       ++pref.count;
       pref.prfx[0] = addr[0];
@@ -2815,10 +2825,12 @@ bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes& pref)
       pref.prfx[1] = addr[0];
       break;
     case PREFIX_SZOPER:
-      if(addr[1]==0x0F && sse_prefix[addr[2]])
-        break;
-      ++pref.count;
-      pref.prfx[2] = addr[0];
+	if(addr[1]==0x0F && sse_prefix[addr[2]]) {
+	    pref.opcode_prefix = addr[0];
+	    break;
+	}
+	++pref.count;
+	pref.prfx[2] = addr[0];
       break;
     case PREFIX_SZADDR:
       ++pref.count;
@@ -2867,6 +2879,10 @@ unsigned int ia32_emulate_old_type(ia32_instruction& instruct)
     insnType |= PREFIX_OPR;
   if (pref.getPrefix(1))
     insnType |= PREFIX_SEG; // no distinction between segments
+  if (mode_64 && pref.getPrefix(4))
+    insnType |= PREFIX_REX;
+  if (pref.getOpcodePrefix())
+      insnType |= PREFIX_OPCODE;
 
   // this still works for AMD64, since there is no "REL_Q"
   // actually, it will break if there is both a REX.W and operand
@@ -2883,6 +2899,10 @@ unsigned int ia32_emulate_old_type(ia32_instruction& instruct)
     else
       insnType |= PTR_WD;
   }
+
+  // AMD64 rip-relative data
+  if (instruct.hasRipRelativeData())
+      insnType |= REL_D_DATA;
 
   return insnType;
 }
@@ -2907,8 +2927,8 @@ unsigned get_instruction(const unsigned char* addr, unsigned &insnType,
   return r1;
 }
 
-int addressOfMachineInsn(instruction *insn) {
-  return (int)insn->ptr();
+long addressOfMachineInsn(instruction *insn) {
+  return (long)insn->ptr();
 }
 
 int sizeOfMachineInsn(instruction *insn) {
@@ -2922,16 +2942,12 @@ Address get_target(const unsigned char *instr, unsigned type, unsigned size,
   return (Address)(addr + size + disp);
 }
 
-const unsigned char*
-skip_headers(const unsigned char* addr, bool& isWordAddr,bool& isWordOp);
-
 // get the displacement of a jump or call
 int displacement(const unsigned char *instr, unsigned type) {
 
   int disp = 0;
-  bool temp1, temp2;
   //skip prefix
-  instr = skip_headers( instr, temp1, temp2 );
+  instr = skip_headers( instr );
   
   if (type & IS_JUMP) {
     if (type & REL_B) {
@@ -2986,19 +3002,13 @@ void decode_SIB(unsigned sib, unsigned& scale, Register& index_reg, Register& ba
 }
 
 const unsigned char*
-skip_headers(const unsigned char* addr, bool& isWordAddr,bool& isWordOp)
+skip_headers(const unsigned char* addr, ia32_prefixes* prefs)
 {
-  isWordAddr = false;
-  isWordOp = false;
-
-  ia32_prefixes prefs;
-
-  ia32_decode_prefixes(addr, prefs);
-  if(prefs.getPrefix(2) == PREFIX_SZOPER && !prefs.rexW())
-    isWordOp = true;
-  if(prefs.getPrefix(3) == PREFIX_SZADDR)
-    isWordAddr = true;
-  return addr+prefs.getCount();
+  ia32_prefixes default_prefs;
+  if (prefs == NULL)
+      prefs = &default_prefs;
+  ia32_decode_prefixes(addr, *prefs);
+  return addr + prefs->getCount();
 }
 
 bool insn_hasSIB(unsigned ModRMbyte,unsigned& Mod,unsigned& Reg,unsigned& RM){
@@ -3102,11 +3112,10 @@ int set_disp(bool setDisp, instruction *insn, int newOffset, bool outOfFunc) {
 
   unsigned char *instr = (const_cast<unsigned char *> (insn->ptr()));
   unsigned type = insn->type();
-  bool temp1, temp2;
 
   if (!((type & IS_JUMP) || (type & IS_JCC) || (type & IS_CALL))) return 0; 
 
-  instr = const_cast<unsigned char *>(skip_headers(instr, temp1, temp2));
+  instr = const_cast<unsigned char *>(skip_headers(instr));
 
   if (type & IS_CALL) {
     if (type & REL_W) {
@@ -3212,7 +3221,8 @@ int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
   unsigned RM=0;
   unsigned REG;
   unsigned SIBbyte = 0;
-  bool hasSIB, temp1, temp2;
+  bool hasSIB;
+  ia32_prefixes prefs;
 
   // Initialize default values to an appropriately devilish number 
   base_reg = 666;
@@ -3221,7 +3231,7 @@ int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
   scale = 0;
   Mod = 0;
   
-  ptr = skip_headers(ptr, temp1, temp2);  
+  ptr = skip_headers(ptr, &prefs);  
   desc = &oneByteMap[*ptr++];
 
   if (desc->tabidx != Grp5) {
@@ -3244,6 +3254,7 @@ int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
     if(REG == 2){ // call to 32-bit near pointer
       if (Mod == 3){ //Standard call where address is in register
 	base_reg = (Register) RM;
+	if (prefs.rexB()) base_reg += 8;
 	return REGISTER_DIRECT;
       }
       else if (Mod == 2){
@@ -3251,10 +3262,13 @@ int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
 	ptr+= wordSzB;
 	if(hasSIB){
 	  decode_SIB(SIBbyte, scale, index_reg, base_reg);
+	  if (prefs.rexB()) base_reg += 8;
+	  if (prefs.rexX()) index_reg += 8;
 	  return SIB;
 	}	
 	else {
 	  base_reg = (Register) RM;
+	  if (prefs.rexB()) base_reg += 8;
 	  return REGISTER_INDIRECT_DISPLACED; 
 	}
       }
@@ -3263,10 +3277,13 @@ int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
 	ptr+= byteSzB;
 	if(hasSIB){
 	  decode_SIB(SIBbyte, scale, index_reg, base_reg);
+	  if (prefs.rexB()) base_reg += 8;
+	  if (prefs.rexX()) index_reg += 8;
 	  return SIB;
 	}
 	else {
 	  base_reg = (Register) RM;
+	  if (prefs.rexB()) base_reg += 8;
 	  return REGISTER_INDIRECT_DISPLACED; 
 	}
       }
@@ -3279,6 +3296,8 @@ int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
 	  }
 	  else 
 	    displacement = 0;
+	  if (prefs.rexB()) base_reg += 8;
+	  if (prefs.rexX()) index_reg += 8;
 	  return SIB;
 	}
 	else if(RM == 5){ //The disp32 field from Table 2-2 of IA guide
@@ -3288,6 +3307,7 @@ int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
 	}
 	else {
 	  base_reg = (Register) RM;
+	  if (prefs.rexB()) base_reg += 8;
 	  return REGISTER_INDIRECT;
 	}
       }

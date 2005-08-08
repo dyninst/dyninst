@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.71 2005/07/29 19:18:53 bernat Exp $
+// $Id: linux-x86.C,v 1.72 2005/08/08 20:23:33 gquinn Exp $
 
 #include <fstream>
 
@@ -71,6 +71,7 @@
 #include "dyninstAPI/src/util.h" // getCurrWallTime
 #include "common/h/pathName.h"
 #include "dyninstAPI/src/inst-x86.h"
+#include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/InstrucIter.h"
 
@@ -255,7 +256,7 @@ Frame dyn_lwp::getActiveFrame()
 
 Address getPC(int pid) {
    Address regaddr = offsetof(struct user_regs_struct, PTRACE_REG_IP);
-   int res;
+   long res;
    res = P_ptrace (PTRACE_PEEKUSER, pid, regaddr, 0);
    if(errno == ESRCH) { //ccw 6 sep 2002
       //pause and try again, let the mutatee have time
@@ -366,7 +367,7 @@ bool process::insertTrapAtEntryPointOfMain()
     // save original instruction first
     if (!readDataSpace((void *)addr, sizeof(savedCodeBuffer), savedCodeBuffer, true)) {
         fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
-        fprintf(stderr, "Failed to read at address 0x%x\n", addr);
+        fprintf(stderr, "Failed to read at address 0x%lx\n", addr);
         return false;
     }
 
@@ -493,6 +494,12 @@ void calcVSyscallFrame(process *p)
     return; 
   }
 
+#if defined(arch_x86_64)
+  // FIXME: HACK to disable vsyscall page for AMD64, for now
+  p->setVsyscallRange(0x1000, 0x0);
+  p->setVsyscallData(NULL);
+#endif
+
   /**
    * Read the location of the vsyscall page from /proc/.
    **/
@@ -531,7 +538,7 @@ void calcVSyscallFrame(process *p)
   return;
 }
 
-static int getFrameStatus(process *p, unsigned pc)
+static int getFrameStatus(process *p, unsigned long pc)
 {
    codeRange *range;
 
@@ -633,7 +640,7 @@ static bool hasAllocatedFrame(Address addr, process *proc, int &offset)
             }
         if (ii.isFrameSetup())
             {
-                offset = 4;
+                offset = proc->getAddressWidth();
                 return false;
             }
     }
@@ -673,18 +680,16 @@ static bool isInEntryExitInstrumentation(Frame f)
    return false;
 }
 
-extern int tramp_pre_frame_size;
+extern int tramp_pre_frame_size_32;
+extern int tramp_pre_frame_size_64;
 
 //The estimated maximum frame size when having to do an 
 // exhaustive search for a frame.
 #define MAX_STACK_FRAME_SIZE 8192
 
 // x86_64 uses a different stack address than standard x86.
-#if defined(x86_64_unknown_linux2_4)
-#define MAX_STACK_FRAME_ADDR 0xffffffffffffffff
-#else
-#define MAX_STACK_FRAME_ADDR 0xbfffffff
-#endif
+#define MAX_STACK_FRAME_ADDR_64 0x0000007fbfffffff
+#define MAX_STACK_FRAME_ADDR_32 0xbfffffff
 
 //Constant values used for the registers in the vsyscall page.
 #define DW_CFA  0
@@ -692,6 +697,19 @@ extern int tramp_pre_frame_size;
 #define DW_EBP 5
 #define DW_PC  8
 #define MAX_DW_VALUE 8
+
+// constants for walking out of a signal handler
+// these are offsets from the stack pointer in the signal
+// tramp (__restore or __restore_rt) into the sigcontext
+// struct that is placed on the sigtramp's frame
+// TODO: obtain these from the appropriate header files
+#define SIG_HANDLER_FP_OFFSET_32 28
+#define SIG_HANDLER_PC_OFFSET_32 60
+#define SIG_HANDLER_FRAME_SIZE_32 64
+#define SIG_HANDLER_FP_OFFSET_64 120
+#define SIG_HANDLER_PC_OFFSET_64 168
+#define SIG_HANDLER_FRAME_SIZE_64 576
+
 
 Frame Frame::getCallerFrame()
 {
@@ -707,8 +725,8 @@ Frame Frame::getCallerFrame()
     * frame-pointer, and the saved return address is in EBP-4.
     **/
    struct {
-      int fp;
-      int rtn;
+      Address fp;
+      Address rtn;
    } addrs;
 
    int status;
@@ -772,12 +790,32 @@ Frame Frame::getCallerFrame()
         goto done;
       }
    }
-   else if (status == SIG_HANDLER &&
-       getProc()->readDataSpace((caddr_t)(sp_+28), sizeof(int),
-			(caddr_t)&addrs.fp, true) &&
-       getProc()->readDataSpace((caddr_t)(sp_+60), sizeof(int),
-			(caddr_t)&addrs.rtn, true))
-   {  
+   else if (status == SIG_HANDLER)
+   {
+       int fp_offset, pc_offset, frame_size;
+       if (getProc()->getAddressWidth() == 4) {
+	   fp_offset = SIG_HANDLER_FP_OFFSET_32;
+	   pc_offset = SIG_HANDLER_PC_OFFSET_32;
+	   frame_size = SIG_HANDLER_FRAME_SIZE_32;
+       }
+       else {
+	   fp_offset = SIG_HANDLER_FP_OFFSET_64;
+	   pc_offset = SIG_HANDLER_PC_OFFSET_64;
+	   frame_size = SIG_HANDLER_FRAME_SIZE_64;
+       }
+
+       if (!getProc()->readDataSpace((caddr_t)(sp_+fp_offset), sizeof(Address),
+				     (caddr_t)&addrs.fp, true)) {
+	   // FIXME
+	   assert(0);
+       }
+       if (!getProc()->readDataSpace((caddr_t)(sp_+pc_offset), sizeof(Address),
+				     (caddr_t)&addrs.rtn, true)) {
+	   // FIXME
+	   assert(0);
+       }
+
+
       /**
        * If the current frame is for the signal handler function, then we need 
        * to read the information about the next frame from the data saved by 
@@ -785,7 +823,7 @@ Frame Frame::getCallerFrame()
        **/
      newFP = addrs.fp;
      newPC = addrs.rtn;
-     newSP = sp_ + 64;
+     newSP = sp_ + frame_size;
       goto done;
    }   
    else if ((status == ALLOCATES_FRAME || status == TRAMP))
@@ -796,28 +834,30 @@ Frame Frame::getCallerFrame()
        * appropriate data from the frame pointer.
        **/
       int offset = 0;
-      if (!hasAllocatedFrame(pc_, getProc(), offset) || 
+      // FIXME: for tramps, we need to check if we've saved the FP yet
+      if ((status != TRAMP && !hasAllocatedFrame(pc_, getProc(), offset)) || 
           (prevFrameValid && isInEntryExitInstrumentation(prevFrame)))
       {
          addrs.fp = offset + sp_;
-         if (!getProc()->readDataSpace((caddr_t) addrs.fp, sizeof(int), 
+         if (!getProc()->readDataSpace((caddr_t) addrs.fp, sizeof(Address), 
                                (caddr_t) &addrs.rtn, true))
             return Frame();
          newPC = addrs.rtn;
          newFP = fp_;
-         newSP = addrs.fp+4;
+         newSP = addrs.fp + getProc()->getAddressWidth();
       }
       else
       {
-         if (!getProc()->readDataSpace((caddr_t) fp_, 2*sizeof(int), (caddr_t) &addrs, 
+         if (!getProc()->readDataSpace((caddr_t) fp_, 2*sizeof(Address), (caddr_t) &addrs, 
                                true))
             return Frame();
          newFP = addrs.fp;
          newPC = addrs.rtn;
-         newSP = fp_+8;
+         newSP = fp_+ (2 * sizeof(Address));
       }
       if (status == TRAMP)
-	newSP += tramp_pre_frame_size;
+	newSP += 
+	    getProc()->getAddressWidth() == 8 ? tramp_pre_frame_size_64 : tramp_pre_frame_size_32;
       goto done;
    }
    else if (status == SAVES_FP_NOFRAME || status == NO_USE_FP)
@@ -833,22 +873,29 @@ Frame Frame::getCallerFrame()
        *  - Peek ahead.  If the stack trace from following the address doesn't
        *     end with the top of the stack, we probably shouldn't follow it.
        **/
-      unsigned long estimated_sp;
-      unsigned long estimated_ip;
-      unsigned long estimated_fp;
-      unsigned long stack_top;
+      Address estimated_sp;
+      Address estimated_ip;
+      Address estimated_fp;
+      Address stack_top;
       int_function *callee;
       bool result;
 
       /**
        * Calculate the top of the stack.
        **/
+      Address max_stack_frame_addr =
+#if defined(arch_x86_64)
+	  getProc()->getAddressWidth() == 8 ? MAX_STACK_FRAME_ADDR_64 : MAX_STACK_FRAME_ADDR_32;
+#else
+          MAX_STACK_FRAME_ADDR_32;
+#endif
+
       stack_top = 0;
-      if (sp_ < MAX_STACK_FRAME_ADDR && sp_ > MAX_STACK_FRAME_ADDR - 0x200000)
+      if (sp_ < max_stack_frame_addr && sp_ > max_stack_frame_addr - 0x200000)
       {
 	  //If we're within two megs of the linux x86 default stack, we'll
 	  // assume that's the one in use.
-	  stack_top = MAX_STACK_FRAME_ADDR - 3; // Points to first possible integer
+	  stack_top = max_stack_frame_addr - 3; // Points to first possible integer
 						// ** SIZE ISSUE **
       }
       else if (getProc()->multithread_capable() && thread_ != NULL)
@@ -867,8 +914,8 @@ Frame Frame::getCallerFrame()
       estimated_sp = sp_;
       for (; estimated_sp < stack_top; estimated_sp++)
       {
-         result = getProc()->readDataSpace((caddr_t) estimated_sp, sizeof(int), 
-                                   (caddr_t) &estimated_ip, false);
+	  result = getProc()->readDataSpace((caddr_t) estimated_sp, sizeof(Address), 
+					    (caddr_t) &estimated_ip, false);
          
          if (!result) break;
 
@@ -927,7 +974,7 @@ Frame Frame::getCallerFrame()
 
          newPC = estimated_ip;
          newFP = estimated_fp;
-         newSP = estimated_sp+4;
+         newSP = estimated_sp + getProc()->getAddressWidth();
          goto done;
       }
    }
@@ -955,7 +1002,7 @@ Frame Frame::getCallerFrame()
 }
 
 bool Frame::setPC(Address newpc) {
-  fprintf(stderr, "Implement me! Changing frame PC from %x to %x\n",
+  fprintf(stderr, "Implement me! Changing frame PC from %lx to %lx\n",
 	  pc_, newpc);
   pc_ = newpc;
   range_ = NULL;
@@ -1237,7 +1284,7 @@ Address dyn_lwp::readRegister(Register /*reg*/) {
            << "       successive pauses and continues with ptrace calls\n";
    }
 
-   int ret = deliverPtraceReturn(PTRACE_PEEKUSER, offsetof(struct user_regs_struct, PTRACE_REG_AX), 0);
+   long ret = deliverPtraceReturn(PTRACE_PEEKUSER, offsetof(struct user_regs_struct, PTRACE_REG_AX), 0);
    return (Address)ret;
 }
 
@@ -1504,24 +1551,56 @@ bool process::loadDYNINSTlib_libc21() {
   // Now the real work begins...
   dlopen_call_addr = codeBase + scratchCodeBuffer.used();
 
-  // Push caller
-  emitPushImm(dlopen_addr, scratchCodeBuffer);
+#if defined(arch_x86_64)
+  if (getAddressWidth() == 4) {
+#endif
 
-  // Push hole for result
-  emitPushImm(0, scratchCodeBuffer);
+      // Push caller
+      emitPushImm(dlopen_addr, scratchCodeBuffer);
+      
+      // Push hole for result
+      emitPushImm(0, scratchCodeBuffer);
+      
+      // Push mode
+      emitPushImm(DLOPEN_MODE, scratchCodeBuffer);
+      
+      // Push string addr
+      emitPushImm(dyninstlib_str_addr, scratchCodeBuffer);
+      
+      // Push the addr of the struct: esp
+      emitSimpleInsn(PUSHESP, scratchCodeBuffer);
+      
+      startup_printf("(%d): emitting call from 0x%x to 0x%x\n",
+		     getPid(), codeBase + scratchCodeBuffer.used(), dlopen_addr);
+      instruction::generateCall(scratchCodeBuffer, scratchCodeBuffer.used() + codeBase, dlopen_addr);
+      
+#if defined(arch_x86_64)
+  } else {
 
-  // Push mode
-  emitPushImm(DLOPEN_MODE, scratchCodeBuffer);
+      // Push caller
+      emitMovImmToReg64(RAX, dlopen_addr, true, scratchCodeBuffer);
+      emitSimpleInsn(0x50, scratchCodeBuffer); // push %rax
 
-  // Push string addr
-  emitPushImm(dyninstlib_str_addr, scratchCodeBuffer);
+      // Push hole for result
+      emitSimpleInsn(0x50, scratchCodeBuffer); // push %rax
 
-  // Push the addr of the struct: esp
-  emitSimpleInsn(PUSHESP, scratchCodeBuffer);
+      // Push padding and mode
+      emitMovImmToReg64(EAX, DLOPEN_MODE, false, scratchCodeBuffer); // 32-bit mov: clears high dword
+      emitSimpleInsn(0x50, scratchCodeBuffer); // push %rax
 
-  startup_printf("(%d): emitting call from 0x%x to 0x%x\n",
-                 getPid(), codeBase + scratchCodeBuffer.used(), dlopen_addr);
-  instruction::generateCall(scratchCodeBuffer, scratchCodeBuffer.used() + codeBase, dlopen_addr);
+      // Push string addr
+      emitMovImmToReg64(RAX, dyninstlib_str_addr, true, scratchCodeBuffer);
+      emitSimpleInsn(0x50, scratchCodeBuffer); // push %rax
+      
+      // Set up the argument: the current stack pointer
+      emitMovRegToReg64(RDI, RSP, true, scratchCodeBuffer);
+      
+      // The call (must be done through a register in order to reach)
+      emitMovImmToReg64(RAX, dlopen_addr, true, scratchCodeBuffer);
+      emitSimpleInsn(0xff, scratchCodeBuffer); // group 5
+      emitSimpleInsn(0xd0, scratchCodeBuffer); // mod = 11, ext_op = 2 (call Ev), r/m = 0 (RAX)
+  }
+#endif
 
   // And the break point
   dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
@@ -1648,9 +1727,9 @@ bool process::loadDYNINSTlib_libc20() {
 
   AstNode *dlopenAst;
   // deadList and deadListSize are defined in inst-sparc.C - naim
-  extern Register deadList[];
-  extern int deadListSize;
-  registerSpace *dlopenRegSpace = new registerSpace(deadListSize/sizeof(int), deadList, 0, NULL);
+  extern Register deadList32[];
+  extern int deadList32Size;
+  registerSpace *dlopenRegSpace = new registerSpace(deadList32Size/sizeof(int), deadList32, 0, NULL);
   dlopenRegSpace->resetSpace();
 
   // we need to make a call to dlopen to open our runtime library

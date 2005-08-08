@@ -85,9 +85,7 @@ bool InstrucIter::isAIndirectJumpInstruction()
            we are looking for the one with the indirect register
            addressing mode one of which ModR/M contains 4 in its
            reg/opcode field */
-        bool isWordAddr,isWordOp;
-        const unsigned char* ptr = 
-            skip_headers(insn.ptr(),isWordAddr,isWordOp);
+        const unsigned char* ptr = insn.op_ptr();
         assert(*ptr == 0xff);
         ptr++;
         if((*ptr & 0x38) == 0x20) 
@@ -355,8 +353,7 @@ bool InstrucIter::getMultipleJumpTargets(pdvector<Address>& result,
     bool isWordAddr,isWordOp;
     
     unsigned maxSwitch = 0;
-    const unsigned char* ptr = 
-        skip_headers(maxSwitchInsn.ptr(),isWordAddr,isWordOp);
+    const unsigned char* ptr = maxSwitchInsn.op_ptr();
 
 
     //get the imm value from the compare instruction and store it in 
@@ -412,7 +409,7 @@ bool InstrucIter::getMultipleJumpTargets(pdvector<Address>& result,
     }
     
     Address jumpTable = 0;
-    ptr = skip_headers(tableInsn.ptr(),isWordAddr,isWordOp);
+    ptr = tableInsn.op_ptr();
     if(isAddressInJmp || (!isAddressInJmp && (*ptr == 0x8b)))
     {
         ptr++;
@@ -430,9 +427,6 @@ bool InstrucIter::getMultipleJumpTargets(pdvector<Address>& result,
                 jumpTable |= *(ptr+1);
                 jumpTable <<= 8;
                 jumpTable |= *ptr;
-
-            } else if (addrWidth == sizeof(Address)) {
-		jumpTable = *(const Address *)ptr;
 
 	    } else {
 		jumpTable = *(const int *)ptr;

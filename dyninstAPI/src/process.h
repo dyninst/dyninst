@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.329 2005/08/05 22:23:10 bernat Exp $
+/* $Id: process.h,v 1.330 2005/08/08 20:23:34 gquinn Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -327,7 +327,7 @@ char * systemPrelinkCommand;
 
   // Appears to be the system pointer size. 
   // FIXME, someone... please...
-  unsigned getAddressWidth() { return sizeof(void *); }
+  unsigned getAddressWidth() { return mapped_objects[0]->parse_img()->getObject().getAddressWidth(); }
 
   // The process keeps maps of valid (i.e. allocated) address ranges
   bool isValidAddress(Address);

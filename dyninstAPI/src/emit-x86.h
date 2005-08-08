@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.2 2005/07/29 19:18:29 bernat Exp $
+ * $Id: emit-x86.h,v 1.3 2005/08/08 20:23:33 gquinn Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -51,6 +51,7 @@
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/arch-x86.h"
+#include "dyninstAPI/src/baseTramp.h"
 
 class codeGen;
 
@@ -73,6 +74,7 @@ class Emitter {
     virtual void emitLoadIndir(Register dest, Register addr_reg, codeGen &gen) = 0;
     virtual void emitLoadFrameRelative(Register dest, Address offset, codeGen &gen) = 0;
     virtual void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen) = 0;
+    virtual void emitLoadPreviousStackFrameRegister(Address register_num, Register dest, codeGen &gen) = 0;
     virtual void emitStore(Address addr, Register src, codeGen &gen) = 0;
     virtual void emitStoreIndir(Register addr_reg, Register src, codeGen &gen) = 0;
     virtual void emitStoreFrameRelative(Address offset, Register src, Register scratch, codeGen &gen) = 0;
@@ -81,6 +83,13 @@ class Emitter {
 			      const instPoint *location) = 0;
     virtual void emitGetRetVal(Register dest, codeGen &gen) = 0;
     virtual void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen) = 0;
+    virtual void emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen) = 0;
+    virtual bool emitBTSaves(baseTramp* bt, codeGen &gen) = 0;
+    virtual bool emitBTRestores(baseTramp* bt, codeGen &gen) = 0;
+    virtual bool emitBTMTCode(baseTramp* bt, codeGen &gen) = 0;
+    virtual bool emitBTGuardPreCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardJumpIndex) = 0;
+    virtual bool emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardTargetIndex) = 0;
+    virtual bool emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costValue) = 0;
 };
 
 // current set of code generation functions
@@ -96,29 +105,41 @@ void emit64();
 class Emitter32 : public Emitter {
 
 public:
-    virtual codeBufIndex_t emitIf(Register expr_reg, Register target, codeGen &gen);
-    virtual void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen);
-    virtual void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen);
-    virtual void emitDiv(Register dest, Register src1, Register src2, codeGen &gen);
-    virtual void emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
+    codeBufIndex_t emitIf(Register expr_reg, Register target, codeGen &gen);
+    void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen);
+    void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen);
+    void emitDiv(Register dest, Register src1, Register src2, codeGen &gen);
+    void emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
 			   codeGen &gen);
-    virtual void emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen);
-    virtual void emitTimesImm(Register dest, Register src1, RegValue src1imm, codeGen &gen);
-    virtual void emitDivImm(Register dest, Register src1, RegValue src1imm, codeGen &gen);
-    virtual void emitLoad(Register dest, Address addr, int size, codeGen &gen);
-    virtual void emitLoadConst(Register dest, Address imm, codeGen &gen);
-    virtual void emitLoadIndir(Register dest, Register addr_reg, codeGen &gen);
-    virtual void emitLoadFrameRelative(Register dest, Address offset, codeGen &gen);
-    virtual void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
-    virtual void emitStore(Address addr, Register src, codeGen &gen);
-    virtual void emitStoreIndir(Register addr_reg, Register src, codeGen &gen);
-    virtual void emitStoreFrameRelative(Address offset, Register src, Register scratch, codeGen &gen);
-    virtual Register emitCall(opCode op, registerSpace *rs, codeGen &gen, const pdvector<AstNode *> &operands,
+    void emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen);
+    void emitTimesImm(Register dest, Register src1, RegValue src1imm, codeGen &gen);
+    void emitDivImm(Register dest, Register src1, RegValue src1imm, codeGen &gen);
+    void emitLoad(Register dest, Address addr, int size, codeGen &gen);
+    void emitLoadConst(Register dest, Address imm, codeGen &gen);
+    void emitLoadIndir(Register dest, Register addr_reg, codeGen &gen);
+    void emitLoadFrameRelative(Register dest, Address offset, codeGen &gen);
+    void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
+    void emitLoadPreviousStackFrameRegister(Address register_num, Register dest, codeGen &gen);
+    void emitStore(Address addr, Register src, codeGen &gen);
+    void emitStoreIndir(Register addr_reg, Register src, codeGen &gen);
+    void emitStoreFrameRelative(Address offset, Register src, Register scratch, codeGen &gen);
+    Register emitCall(opCode op, registerSpace *rs, codeGen &gen,
+			      const pdvector<AstNode *> &operands,
 			      process *proc, bool noCost, Address callee_addr, const pdvector<AstNode *> &ifForks,
 			      const instPoint *location);
-    virtual void emitGetRetVal(Register dest, codeGen &gen);
-    virtual void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen);
-
+    void emitGetRetVal(Register dest, codeGen &gen);
+    void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen);
+    void emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen);
+    bool emitBTSaves(baseTramp* bt, codeGen &gen);
+    bool emitBTRestores(baseTramp* bt, codeGen &gen);
+    bool emitBTMTCode(baseTramp* bt, codeGen &gen);
+    bool emitBTGuardPreCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardJumpIndex);
+    bool emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardTargetIndex);
+    bool emitBTCostCode(baseTramp* bt, codeGen& gen, unsigned& costValue);
 };
+
+// some useful 64-bit codegen functions
+void emitMovRegToReg64(Register dest, Register src, bool is_64, codeGen &gen);
+void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen);
 
 #endif

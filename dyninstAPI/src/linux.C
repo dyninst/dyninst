@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.171 2005/08/03 05:28:13 bernat Exp $
+// $Id: linux.C,v 1.172 2005/08/08 20:23:33 gquinn Exp $
 
 #include <fstream>
 
@@ -114,7 +114,7 @@ bool dyn_lwp::deliverPtrace(int request, Address addr, Address data) {
 // Some ptrace requests in Linux return the value rather than storing at the address in data
 // (especially PEEK requests)
 // - nash
-int dyn_lwp::deliverPtraceReturn(int request, Address addr, Address data) {
+long dyn_lwp::deliverPtraceReturn(int request, Address addr, Address data) {
    bool needToCont = false;
    int len = proc_->getAddressWidth();
 
@@ -125,7 +125,7 @@ int dyn_lwp::deliverPtraceReturn(int request, Address addr, Address data) {
          needToCont = true;
    }
 
-   int ret = P_ptrace(request, get_lwp_id(), addr, data, len);
+   long ret = P_ptrace(request, get_lwp_id(), addr, data, len);
 
    if(request != PTRACE_DETACH  &&  needToCont == true)
       continueLWP();
@@ -1597,8 +1597,19 @@ void process::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
 {
   if (near)
     {
+#if !defined(arch_x86_64)
       lo = region_lo(near);
       hi = region_hi(near);  
+#else
+      if (getAddressWidth() == 8) {
+	  lo = region_lo_64(near);
+	  hi = region_hi_64(near);
+      }
+      else {
+	  lo = region_lo(near);
+	  hi = region_hi(near);  
+      }
+#endif
     }
 }
 

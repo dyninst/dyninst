@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-linux.C,v 1.10 2005/08/05 22:23:15 bernat Exp $
+// $Id: syscall-linux.C,v 1.11 2005/08/08 20:23:34 gquinn Exp $
 
 #if defined( arch_x86 ) || defined( arch_x86_64 )
 #define FORK_FUNC "__libc_fork"
@@ -163,6 +163,8 @@ bool syscallNotification::installPreExit() {
                                   FUNC_ENTRY|FUNC_ARG,
                                   arg0);
     removeAst(arg0);
+
+    preExitInst->allow_trap = true;
 
     pdvector<instMapping *> instReqs;
     instReqs.push_back(preExitInst);

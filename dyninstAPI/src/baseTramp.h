@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.h,v 1.4 2005/08/03 23:00:52 bernat Exp $
+// $Id: baseTramp.h,v 1.5 2005/08/08 20:23:33 gquinn Exp $
 
 // baseTramp class definition
 
@@ -318,10 +318,10 @@ class baseTramp {
     // Returns null if an rpcMgr tramp
     instPoint *point() const;
 
- private:
     // Easier to do logic this way...
     bool guarded() const { return (guardState_ == guarded_BTR); }
 
+ private:
 
     unsigned instVersion_;
 };

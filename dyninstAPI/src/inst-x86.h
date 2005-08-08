@@ -39,12 +39,36 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.17 2005/07/29 19:18:42 bernat Exp $
+// $Id: inst-x86.h,v 1.18 2005/08/08 20:23:33 gquinn Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
 
+#include "dyninstAPI/src/ast.h"
+
 // some x86 definitions
+
+
+/*
+   We don't use the machine registers to store temporaries,
+   but "virtual registers" that are located on the stack.
+   The stack frame for a tramp is:
+
+     ebp->    saved ebp (4 bytes)
+     ebp-4:   128-byte space for 32 virtual registers (32*4 bytes)
+     ebp-132: saved registers (8*4 bytes)
+     ebp-164: saved flags registers (4 bytes)
+     ebp-168: (MT only) thread index
+
+     The temporaries are assigned numbers from 1 so that it is easier
+     to refer to them: -(reg*4)[ebp]. So the first reg is -4[ebp].
+
+     We are using a fixed number of temporaries now (32), but we could 
+     change to using an arbitrary number.
+
+*/
+
+#define TRAMP_FRAME_SIZE (128)
 #define NUM_VIRTUAL_REGISTERS (32)   /* number of virtual registers */
 
 /*
@@ -119,8 +143,10 @@
 
 #endif
 
-// The general machine registers. 
+// The general machine registers.
 // These values are taken from the Pentium manual and CANNOT be changed.
+
+// 32-bit
 #define EAX (0)
 #define ECX (1)
 #define EDX (2)
@@ -129,6 +155,38 @@
 #define EBP (5)
 #define ESI (6)
 #define EDI (7)
+
+// 64-bit
+#define RAX (0)
+#define RCX (1)
+#define RDX (2)
+#define RBX (3)
+#define RSP (4)
+#define RBP (5)
+#define RSI (6)
+#define RDI (7)
+#define R8 (8)
+#define R9 (9)
+#define R10 (10)
+#define R11 (11)
+#define R12 (12)
+#define R13 (13)
+#define R14 (14)
+#define R15 (15)
+
+// on AMD64, we sometimes can't reach our minitramp from the basetramp with
+// a direct jump. we always can on x86
+#if defined(arch_x86_64)
+#define BASE_TO_MINI_JMP_SIZE 12
+#else
+#define BASE_TO_MINI_JMP_SIZE JUMP_REL32_SZ
+#endif
+
+// 32 and 64-bit register spaces
+extern registerSpace* regSpace32;
+#if defined(arch_x86_64)
+extern registerSpace* regSpace64;
+#endif
 
 class codeGen;
 
@@ -146,9 +204,6 @@ void emitOpRegImm(int opcode, Register dest, int imm, codeGen &gen);
 void emitOpRegRMImm(unsigned opcode, Register dest, Register base, int disp, int imm, codeGen &gen);
 void emitOpRMImm(unsigned opcode1, unsigned opcode2, Register base, int disp, int imm, codeGen &gen);
 void emitOpRMImm8( unsigned opcode1, unsigned opcode2, Register base, int disp, char imm, codeGen &gen);
-void emitOpRMReg(unsigned opcode, Register base, int disp,
-                 Register src, codeGen &gen);
-
 
 void emitMovRegToReg(Register dest, Register src, codeGen &gen);
 void emitMovMToReg(Register dest, int disp, codeGen &gen);
@@ -159,18 +214,17 @@ void emitMovImmToReg(Register dest, int imm, codeGen &gen);
 void emitMovImmToRM(Register base, int disp, int imm, codeGen &gen);
 void emitMovRegToRM(Register base, int disp, Register src, codeGen &gen);
 void emitMovRMToReg(Register dest, Register base, int disp, codeGen &gen);
+void emitMovImmToMem(Address maddr, int imm, codeGen &gen);
+
+void emitPushImm(unsigned int imm, codeGen &gen);
 
 void emitSimpleInsn(unsigned opcode, codeGen &gen);
 
 void emitAddRegImm32(Register dest, int imm, codeGen &gen);
+void emitAddMemImm32(Address dest, int imm, codeGen &gen);
 
-// helper functions for emitters
-unsigned char jccOpcodeFromRelOp(unsigned op);
-
-void emitMovImmToMem( Address maddr, int imm,
-                             codeGen &gen);
 void emitLEA(Register base, Register index, unsigned int scale,
-                    RegValue disp, Register dest, codeGen &gen);
+	     RegValue disp, Register dest, codeGen &gen);
 
 
 void emitJump(unsigned disp32, codeGen &gen);
@@ -181,5 +235,7 @@ void emitAddMemImm32(Address dest, int imm, codeGen &gen);
 void emitCallRel32(unsigned disp32, codeGen &gen);
 
 void emitJmpMC(int condition, int offset, codeGen &gen);
+// helper functions for emitters
+unsigned char jccOpcodeFromRelOp(unsigned op);
 
 #endif

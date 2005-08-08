@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.29 2005/03/16 22:59:49 bernat Exp $
+ * $Id: RTlinux.c,v 1.30 2005/08/08 20:23:40 gquinn Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -61,10 +61,12 @@
 #include <sys/ptrace.h>
 
 
-#ifndef ia64_unknown_linux2_4
+#if !defined(ia64_unknown_linux2_4)
 extern struct sigaction DYNINSTactTrap;
 extern struct sigaction DYNINSTactTrapApp;
-#else
+#endif
+
+#if defined(ia64_unknown_linux2_4) || defined(x86_64_unknown_linux2_4)
 #include <errno.h>
 #include <sys/mman.h>
 
@@ -72,14 +74,14 @@ extern double DYNINSTstaticHeap_32K_lowmemHeap_1[];
 extern double DYNINSTstaticHeap_4M_anyHeap_1[];
 
 void _start( void ) {
-	/* fprintf( stderr, "*** Initializing dyninstAPI runtime.\n" ); */
+    //fprintf( stderr, "*** Initializing dyninstAPI runtime.\n" );
 
 	/* Grab the page size, to align the heap pointer. */
 	long int pageSize = sysconf( _SC_PAGESIZE );
 	if( pageSize == 0 || pageSize == - 1 ) {
 		fprintf( stderr, "*** Failed to obtain page size, guessing 16K.\n" );
 		perror( "_start" );
-		pageSize = 1024 * 1024 * 16;
+		pageSize = 1024 * 16;
 		} /* end pageSize initialization */
 
 	/* Align the heap pointer. */
@@ -108,7 +110,9 @@ void _start( void ) {
 		}
 	/* fprintf( stderr, "*** Marked memory from 0x%lx to 0x%lx executable.\n", alignedHeapPointer, alignedHeapPointer + adjustedSize ); */
 	}
+#endif
 
+#if defined(ia64_unknown_linux2_4)
 /* Ensure we an executable block of memory. */
 void R_BRK_TARGET() {
         /* Make sure we've got room for two bundles. */
@@ -392,12 +396,11 @@ void DYNINSTlock_spinlock(dyninst_spinlock *mut)
 
  asm (
          "  .Loop: \n"
-         "  movq        8(%rbp), %rcx  # &mut in rcx \n"
          "  movq        $0, %rax       # 0 (unlocked) in rax\n"
          "  movq        $1, %rdx       # 1 (locked) in rdx \n"
          "  lock  \n"
-         "  cmpxchgq    %rdx, (%rcx)   # try to atomically store rdx (1 = locked) \n"
-         "                             # only if we are unlocked (rcx == rax) \n"
+         "  cmpxchgq    %rdx, (%rdi)   # try to atomically store rdx (1 = locked) \n"
+         "                             # only if we are unlocked (rdi == rax) \n"
          "  jnz         .Loop          # if failure, zero flag set, spin again. \n"
      );
 

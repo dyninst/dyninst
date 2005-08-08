@@ -2001,7 +2001,7 @@ void mutatorTest17(BPatch_thread *appThread, BPatch_image *appImage)
     checkCost(call17_2Expr);
 
     // test interface to call into insertSnippet with only one parameter
-    BPatch_point aPoint = *(*point17_2)[0];
+    BPatch_point &aPoint = *(*point17_2)[0];
     appThread->insertSnippet(call17_2Expr, aPoint, BPatch_callAfter, BPatch_lastSnippet);
 }
 
@@ -4454,7 +4454,7 @@ void mutatorTest36(BPatch_thread *appThread, BPatch_image *appImage)
    snippet_seq.push_back(makeTest36paramExpr(expr36_4, 3));
    snippet_seq.push_back(makeTest36paramExpr(expr36_5, 4));
    snippet_seq.push_back(makeTest36paramExpr(expr36_6, 5));
-#if !defined(alpha_dec_osf4_0)   /* alpha doesn't handle more than 6 */
+#if !defined(alpha_dec_osf4_0) && !defined(arch_x86_64)  /* alpha and AMD64 don't handle more than 6 */
    snippet_seq.push_back(makeTest36paramExpr(expr36_7, 6));
    snippet_seq.push_back(makeTest36paramExpr(expr36_8, 7));
 
@@ -4883,7 +4883,7 @@ void setVar40(const char *vname, void *addr, BPatch_image *appImage)
          return;
    }
 
-   if (! v->writeValue(&buf, sizeof(void *),false)) {
+   if (! v->writeValue(&buf, sizeof(unsigned int),false)) {
       fprintf(stderr, "**Failed test #40 (monitor call sites)\n");
       fprintf(stderr, "  failed to write call site var to mutatee\n");
       return;

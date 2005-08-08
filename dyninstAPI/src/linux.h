@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.18 2005/07/29 19:18:55 bernat Exp $
+// $Id: linux.h,v 1.19 2005/08/08 20:23:34 gquinn Exp $
 
 #if !defined(i386_unknown_linux2_0) \
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
@@ -64,7 +64,11 @@
 
 #define EXIT_NAME "_exit"
 
+#if !defined(arch_x86_64)
 #define SIGNAL_HANDLER	 "__restore"
+#else
+#define SIGNAL_HANDLER   "__restore_rt"
+#endif
 
 typedef int handleT; // a /proc file descriptor
 
