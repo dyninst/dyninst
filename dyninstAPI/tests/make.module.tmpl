@@ -220,11 +220,6 @@ ifdef M_ABI
 	$(M_GXX) $(M_ABI_FLAG) $(CXXFLAGS) $(MUTATEE_CXXFLAGS_GNU) -c $< -o $@
 endif
 
-$(CALL35_1_OBJ): $(CALL35_1_SRC)
-	$(M_GCC) -c $< $(CFLAGS) $(MUTATEE_CFLAGS_GNU) -o $@ 
-$(TEST6_AS_OBJ_GNU): $(TEST6_AS_SRC)
-	$(TEST6_AS_GNU) $(TEST6_ASFLAGS_GNU) -o $@ $<
-
 ifdef M_ABI
 $(CALL35_1_OBJ_ABI): $(CALL35_1_SRC_ABI)
 	$(M_GCC) $(M_ABI_FLAG) -c $< $(CFLAGS) $(MUTATEE_CFLAGS_GNU) -o $@ 
@@ -273,6 +268,15 @@ native_mutatees: $(MUTATEES_NATIVE_CC) $(MUTATEES_NATIVE_CXX) $(MUTATEES_NATIVE_
 testlibs: $(TESTLIBS) $(TESTLIBS_ABI)
 
 .PHONY: clean install distclean mutators mutatees testlibs gnu_mutatees native_mutatees
+
+
+# Despite the look, this isn't actually a pattern rule and so is
+# defined _after_ all:
+$(CALL35_1_OBJ): $(CALL35_1_SRC)
+	$(M_GCC) -c $< $(CFLAGS) $(MUTATEE_CFLAGS_GNU) -o $@ 
+$(TEST6_AS_OBJ_GNU): $(TEST6_AS_SRC)
+	$(TEST6_AS_GNU) $(TEST6_ASFLAGS_GNU) -o $@ $<
+
 
 #######################################################################
 ###  Build command for test libraries
