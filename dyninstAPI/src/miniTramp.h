@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.h,v 1.2 2005/07/30 03:26:54 bernat Exp $
+// $Id: miniTramp.h,v 1.3 2005/08/08 22:39:27 bernat Exp $
 
 #ifndef MINI_TRAMP_H
 #define MINI_TRAMP_H
@@ -120,6 +120,7 @@ class miniTrampInstance : public generatedCodeObject {
   unsigned cost();
 
   process *proc();
+
 };
 
 class miniTramp {
@@ -148,6 +149,16 @@ class miniTramp {
   static unsigned interJumpSize();
   // Between mini tramps
   static unsigned intraJumpSize();
+
+
+  // Catchup...
+
+  // Returns true if newMT is "after" (later in the chain) than the
+  // curMT (and we're out-of-lining), _OR_ if the miniTramps
+  // are generated in-line (in which case we miss it
+  // completely). TODO: in-line needs to update this.
+  
+  static bool catchupRequired(miniTramp *curMT, miniTramp *newMT);
 
   // Generate the code necessary
   // We use a single global image of a minitramp.
@@ -188,7 +199,7 @@ class miniTramp {
 
   void deleteMTI(miniTrampInstance *);
 
-  // This can go away when base tramps become singular...
+  // This is nice for back-tracking.
   callWhen when; /* Pre or post */
 
   int cost;		     // cost in cycles of this inst req.

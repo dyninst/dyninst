@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.4 2005/08/03 23:01:03 bernat Exp $
+// $Id: multiTramp.C,v 1.5 2005/08/08 22:39:28 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
 #include "baseTramp.h"
+#include "miniTramp.h"
 #include "instPoint.h"
 #include "process.h"
 #include "InstrucIter.h"
@@ -1041,10 +1042,31 @@ Address multiTramp::instToUninstAddr(Address addr) {
         if (bti && bti->isInInstance(addr)) {
             // If we're pre for an insn, return that;
             // else return the insn we're post/target for.
+            baseTramp *baseT = bti->baseT;
+            instPoint *point = NULL;
+            if (baseT->preInstP)
+                point = baseT->preInstP;
+            else if (baseT->postInstP)
+                point = baseT->postInstP;
+            else
+                assert(0);
+            for (unsigned i = 0; i < point->instances.size(); i++) {
+                // We check by ID instead of pointer because we may
+                // have been replaced by later instrumentation, but 
+                // are still being executed.
+                if (point->instances[i]->multiID() == id_)
+                    return point->addr();
+            }
+            // No match: bad data structures.
+            assert(0);
         }
         if (end) {
             // Ah hell. 
-            return end->target();
+            // Umm... see if we're in the size_ area
+            if ((end->addrInMutatee_ <= addr) &&
+                (addr < (end->addrInMutatee_ + size_))) {
+                return end->target();
+            }
         }
     }
 
@@ -1656,3 +1678,122 @@ bool generatedCodeObject::generateSetup(codeGen &gen,
     return true;
 }
 
+bool generatedCodeObject::objIsChild(generatedCodeObject *obj) {
+    assert(this != NULL);
+    // Recursive descent. First, base case:
+    if (fallthrough_ &&
+        (obj == fallthrough_))
+        return true;
+    if (target_ &&
+        (obj == target_))
+        return true;
+    if (fallthrough_ &&
+        fallthrough_->objIsChild(obj))
+        return true;
+    if (target_ &&
+        target_->objIsChild(obj))
+        return true;
+    return false;
+}
+
+bool multiTramp::catchupRequired(Address pc, miniTramp *newMT,
+                                 codeRange *range) {
+    // range is optional, and might be NULL. It's provided to avoid
+    // having to do two billion codeRange lookups
+    if (range == NULL)
+        range = proc()->findCodeRangeByAddress(pc);
+    // Oopsie...
+    if (!range) assert(0);
+
+    multiTramp *rangeMulti = range->is_multitramp();
+    miniTrampInstance *rangeMTI = range->is_minitramp();
+    baseTrampInstance *rangeBTI = NULL;
+
+    assert((rangeMulti != NULL) || (rangeMTI != NULL));
+
+    if (rangeMTI) {
+        assert(rangeMTI->baseTI->multiT == this);
+        
+        // Check to see if we're at an equivalent miniTramp. If not, 
+        // fall through
+        if (rangeMTI->mini->instP == newMT->instP) {
+            // This is easier
+            return miniTramp::catchupRequired(rangeMTI->mini, newMT);
+        }
+        else {
+            rangeMulti = rangeMTI->baseTI->multiT;
+            // And we need to fake the PC. Good thing
+            // it's passed by value...
+            // Pick the post address; doesn't really matter
+            pc = rangeMTI->baseTI->trampPostAddr();
+        }
+    }
+    
+    assert(rangeMulti == this);
+
+    // We're not in miniTramps (or have faked a PC). However, we can't safely do
+    // a linear comparison because the multiTramp is a CFG -- if we've done 
+    // branch instrumentation, then we need to check that.
+    // We also need to worry about being in the baseTrampInstance... the easiest thing
+    // to do is run through the CFG iterator. We could also codeRange this once
+    // generation has hit. 
+    
+    generatedCFG_t::iterator cfgIter(generatedCFG_);
+    generatedCodeObject *obj = NULL;
+
+    // This is probably overkill, but I want to get it right. Optimize later.
+    generatedCodeObject *pcObj = NULL;
+    // This is the baseTrampInstance for the new instrumentation.
+    baseTrampInstance *newBTI = NULL;
+    
+    while ((obj = cfgIter++)) {
+        relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);
+        baseTrampInstance *bti = dynamic_cast<baseTrampInstance *>(obj);
+        trampEnd *end = dynamic_cast<trampEnd *>(obj);
+
+        // Check to see if we're at the instPoint
+        if (insn && pc == insn->relocAddr()) {
+            pcObj = insn;
+            break;
+        }
+        else if (bti) {
+            // Can be either the instPoint or the original instruction,
+            // so check both
+            if (bti->isInInstance(pc))
+                pcObj = bti;
+            if (bti->baseT == newMT->baseT)
+                newBTI = bti;
+        }
+        else if (end) {
+            if ((end->addrInMutatee_ <= pc) &&
+                (pc < (end->addrInMutatee_ + end->size_)))
+                pcObj = end;
+        }
+        if ((newBTI != NULL) &&
+            (pcObj != NULL))
+            break;
+    }
+
+    assert(newBTI != NULL);
+    assert(pcObj != NULL);
+
+    if (newBTI == pcObj) {
+        // Argh....
+        // If we're in pre-insn, then return false. Post-insn, return true
+        assert(pc >= newBTI->trampPreAddr());
+        if (pc < (newBTI->trampPreAddr() + newBTI->baseT->preSize))
+            return false;
+        if (pc >= newBTI->trampPostAddr())
+            return true;
+        assert(0);
+    }
+    else {
+        // So we return true if we've already passed the point. 
+        // So start with the BTI, and return true if the pcObj is
+        // the child
+        return newBTI->objIsChild(pcObj);
+    }
+
+    assert(0);
+    return false;
+}

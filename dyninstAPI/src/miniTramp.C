@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.2 2005/07/30 03:26:53 bernat Exp $
+// $Id: miniTramp.C,v 1.3 2005/08/08 22:39:26 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -588,4 +588,27 @@ bool getInheritedMiniTramp(const miniTramp *parentMT,
 Address miniTrampInstance::uninstrumentedAddr() const {
     // We're "in" the baseTramp, so it knows what's going on
     return baseTI->uninstrumentedAddr();
+}
+
+// Returns true if the "current" is after the "new". Currently does not
+// handle in-lining, where you might need catchup even if you're 
+// "before".
+bool miniTramp::catchupRequired(miniTramp *curMT, miniTramp *newMT) {
+    // We start at current and iterate. If we see new, stop. If
+    // we hit the end, stop.
+    miniTramp *iterMT = newMT;
+
+    while (iterMT) {
+        if (iterMT == curMT) {
+            // Oops, we just hit our current.
+            return true;
+        }
+        iterMT = iterMT->next;
+    }
+
+    // We didn't hit it. Optimistically assume that newMT is after
+    // curMT, and thus we don't need to worry. 
+    
+    // TODO INLINE
+    return false;
 }

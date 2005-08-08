@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.4 2005/08/03 23:01:04 bernat Exp $
+// $Id: multiTramp.h,v 1.5 2005/08/08 22:39:29 bernat Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -158,6 +158,8 @@ class generatedCodeObject : public codeRange {
 
     Address get_address_cr() const { return addrInMutatee_; }
     unsigned get_size_cr() const { return size_; }
+
+    bool objIsChild(generatedCodeObject *obj);
 
     generatedCodeObject() :
         generated_(false),
@@ -471,6 +473,11 @@ class multiTramp : public generatedCodeObject {
   // instructions...
   Address uninstrumentedAddr() const { assert(0); return 0; }
 
+  // Mmmm breaking logic up
+  // Returns true if the PC is in the multiTramp (or sub-areas)
+  // and after the given miniTramp. Returns false if it's before.
+  // Asserts if the PC is not "in" the multiTramp at all.
+  bool catchupRequired(Address pc, miniTramp *newMT, codeRange *range = NULL);
 
   process *proc() const;
 

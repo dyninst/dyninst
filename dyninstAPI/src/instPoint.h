@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.19 2005/07/29 19:18:47 bernat Exp $
+// $Id: instPoint.h,v 1.20 2005/08/08 22:39:25 bernat Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -201,6 +201,7 @@ class instPointInstance {
     void updateMulti(int multi);
 
     multiTramp *multi() const;
+    int multiID() const { return multiID_; } // We need this to handle backtracing
     Address addr() const { return addr_; }
     int_function *func() const { return func_; }
 
@@ -210,6 +211,7 @@ class instPointInstance {
 class instPoint : public instPointBase {
     friend class instPointInstance;
     friend class baseTramp;
+    friend class multiTramp;
  private:
     // Generic instPoint...
     instPoint(process *proc,
@@ -351,13 +353,25 @@ class instPoint : public instPointBase {
   // Determine whether instrumentation will go in smoothly
   // At this point, "given the stacks, can we insert a jump
   // or not"?
-  bool checkInst(pdvector<pdvector<Frame> > &stackWalks);
+  bool checkInst(pdvector<Address> &checkPCs);
 
   // Step 3:
   // TODO: if we're out-of-lining miniTramps or something, this should
   // be the call that causes linkage of the OOL MT to occur, just for
   // completeness of the model.
   bool linkInst();
+
+  // Catchup: 1) does a PC correspond to the area covered by an
+  // instPoint (aka multiTramp). 2) is the PC "before" or "after"
+  // the provided new instrumentation?
+  // Mmm catchup result: not in instrumentation, pre, or post.
+  typedef enum { noMatch_c, notMissed_c, missed_c } catchup_result_t;
+
+  // Explicitly does not require a frame; while that would be nice, 
+  // we're eventually going to be called by Dyninst, and the BPatch_frame
+  // class doesn't have a Frame member (although it's arguable that it should).
+  catchup_result_t catchupRequired(Address pc,
+                                   miniTramp *mt);
 
   bool createMiniTramp(AstNode *&ast,
 		       bool noCost,

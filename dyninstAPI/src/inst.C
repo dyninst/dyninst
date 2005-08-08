@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.137 2005/08/08 20:23:33 gquinn Exp $
+// $Id: inst.C,v 1.138 2005/08/08 22:39:24 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -479,22 +479,17 @@ bool instPoint::generateInst(bool allowTrap) {
     return success;
 }
 
-// Return false if the PC falls inside the basic block the instPoint
-// belongs to...
-bool instPoint::checkInst(pdvector<pdvector<Frame> > &stackWalks) {
-    for (unsigned sI = 0; sI < stackWalks.size(); sI++) {
-        for (unsigned fI = 0; fI < stackWalks[sI].size(); fI++) {
-            Frame &ref = stackWalks[sI][fI];
-            int_function *fF = proc()->findFuncByAddr(ref.getPC());
-            if ((fF == NULL) ||
-                (fF != func())) continue;
-            int_basicBlock *fB = fF->findBlockByAddr(ref.getPC());
-            if (!fB) continue;
-            for (unsigned iI = 0; iI < instances.size(); iI++) {
-                if ((fB->firstInsnAddr() <= instances[iI]->addr()) &&
-                    (fB->endAddr() > instances[iI]->addr()))
-                    return false;
-            }
+// Return false if the PC is within the jump range of any of our
+// multiTramps
+bool instPoint::checkInst(pdvector<Address> &checkPCs) {
+    
+    for (unsigned sI = 0; sI < checkPCs.size(); sI++) {
+        Address pc = checkPCs[sI];
+        for (unsigned iI = 0; iI < instances.size(); iI++) {
+            multiTramp *mt = instances[iI]->multi();
+            if ((pc >= mt->instAddr()) ||
+                (pc < (mt->instAddr() + mt->instSize())))
+                return false;
         }
     }
     return true;
@@ -1120,4 +1115,61 @@ instMapping::instMapping(const instMapping *parIM,
 
 Address relocatedInstruction::relocAddr() const {
     return addrInMutatee_;
+}
+
+instPoint::catchup_result_t instPoint::catchupRequired(Address pc,
+                                                       miniTramp *mt) {
+    // If the PC isn't in a multiTramp that corresponds to one of
+    // our instances, return noMatch_c
+
+    // If the PC is in an older version of the current multiTramp,
+    // return missed
+    
+    // If we're in a miniTramp chain, then hand it off to the 
+    // multitramp.
+
+    // Otherwise, hand it off to the multiTramp....
+    codeRange *range = proc()->findCodeRangeByAddress(pc);
+    
+    multiTramp *rangeMT = range->is_multitramp();
+    miniTrampInstance *rangeMTI = range->is_minitramp();
+
+    if ((rangeMT == NULL) &&
+        (rangeMTI == NULL)) {
+        // We _cannot_ be in the jump footprint. So we missed.
+        return noMatch_c;
+    }
+
+    if (rangeMTI) {
+        // Back out to the multiTramp for now
+        rangeMT = rangeMTI->baseTI->multiT;
+    }
+
+    assert(rangeMT != NULL);
+
+    unsigned curID = rangeMT->id();
+
+    bool found = false;
+
+    for (unsigned i = 0; i < instances.size(); i++) {
+        if (instances[i]->multiID() == curID) {
+            found = true;
+            // If not the same one, we replaced. Return missed.
+            if (instances[i]->multi() != rangeMT) {
+                return missed_c;
+            }
+            else {
+                // It is the same one; toss into low-level logic
+                if (rangeMT->catchupRequired(pc, mt, range))
+                    return missed_c;
+                else
+                    return notMissed_c;
+            }
+            break;
+        }
+    }
+
+    assert(!found);
+
+    return noMatch_c;
 }
