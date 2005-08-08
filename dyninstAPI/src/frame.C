@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.C,v 1.12 2005/08/03 23:00:53 bernat Exp $
+// $Id: frame.C,v 1.13 2005/08/08 22:39:22 bernat Exp $
 
 #include <stdio.h>
 #include <iostream>
@@ -193,7 +193,6 @@ instPoint *Frame::getPoint() {
     
     multiTramp *m_ptr = range->is_multitramp();
     miniTrampInstance *mt_ptr = range->is_minitramp();
-    baseTrampInstance *bt_ptr = range->is_basetramp_multi();
 
     if (mt_ptr) {
         return mt_ptr->mini->instP;
@@ -209,9 +208,17 @@ instPoint *Frame::getPoint() {
     return NULL;
 }
             
-        
-        
-    
+int_function *Frame::getFunc() {
+    codeRange *range = getRange();
+    if (range->is_function())
+        return range->is_function();
+    else if (range->is_multitramp())
+        return range->is_multitramp()->func();
+    else if (range->is_minitramp())
+        return range->is_minitramp()->baseTI->multiT->func();
+    else 
+        return NULL;
+}
 
 Address Frame::getUninstAddr() {
     codeRange *range = getRange();

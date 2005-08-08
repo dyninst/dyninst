@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.24 2005/08/03 23:00:54 bernat Exp $
+// $Id: frame.h,v 1.25 2005/08/08 22:39:23 bernat Exp $
 
 #ifndef FRAME_H
 #define FRAME_H
@@ -58,6 +58,7 @@ class dyn_lwp;
 class codeRange;
 class instPoint;
 class miniTramp;
+class int_function;
 
 typedef enum { FRAME_unset, FRAME_instrumentation, FRAME_signalhandler, FRAME_normal, FRAME_syscall, FRAME_unknown } frameType_t;
 
@@ -99,8 +100,6 @@ class Frame {
   Address  getPC() const { return pc_; }
   // New method: unwind instrumentation
   Address  getUninstAddr(); // calls getRange so can't be const
-  instPoint *getPoint(); // If we're in instrumentation returns the appropriate point
-
   Address  getFP() const { return fp_; }
   Address  getSP() const { return sp_; }
   unsigned getPID() const { return pid_; }
@@ -111,6 +110,10 @@ class Frame {
   bool	   isSignalFrame() const { return frameType_ == FRAME_signalhandler;}
   bool 	   isInstrumentation() const { return frameType_ == FRAME_instrumentation;}
   bool     isSyscall() const { return frameType_ == FRAME_syscall; }
+
+  instPoint *getPoint(); // If we're in instrumentation returns the appropriate point
+  int_function *getFunc(); // As above
+
   codeRange *getRange();
   void setRange (codeRange *range); 
   friend std::ostream & operator << ( std::ostream & s, Frame & m );
