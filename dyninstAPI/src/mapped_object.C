@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.2 2005/08/03 05:28:18 bernat Exp $
+// $Id: mapped_object.C,v 1.3 2005/08/08 22:39:30 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/symtab.h"
@@ -286,23 +286,23 @@ char *mapped_object::getModulePart(pdstring &full_path_name) {
     return 0;
 }
 
-mapped_module *mapped_object::findModule(pdstring m_name, bool substring_match)
+mapped_module *mapped_object::findModule(pdstring m_name, bool wildcard)
 {
     //parsing_printf("findModule for %s (substr match %d)\n",
-    //m_name.c_str(), substring_match);
+    //m_name.c_str(), wildcard);
     for (unsigned i = 0; i < everyModule.size(); i++) {
         if (everyModule[i]->fileName() == m_name ||
             everyModule[i]->fullName() == m_name ||
-            (substring_match &&
+            (wildcard &&
              (everyModule[i]->fileName().wildcardEquiv(m_name) ||
-              everyModule[i]->fileName().wildcardEquiv(m_name)))) {
+              everyModule[i]->fullName().wildcardEquiv(m_name)))) {
             //parsing_printf("... found!\n");
             return everyModule[i];
         }
     }
-    // Create a new one...
-    
-    pdmodule *pdmod = image_->findModule(m_name, substring_match);
+    // Create a new one IF there's one in the child pd_module
+   
+    pdmodule *pdmod = image_->findModule(m_name, wildcard);
     if (pdmod) {
         mapped_module *mod = mapped_module::createMappedModule(this,
                                                                pdmod);

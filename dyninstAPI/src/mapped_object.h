@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.h,v 1.1 2005/07/29 19:23:00 bernat Exp $
+// $Id: mapped_object.h,v 1.2 2005/08/08 22:39:31 bernat Exp $
 
 #if !defined(_mapped_object_h)
 #define _mapped_object_h
@@ -225,7 +225,7 @@ class mapped_object : public codeRange {
 
     process *proc() const;
 
-    mapped_module *findModule(pdstring m_name, bool substring_match = false);
+    mapped_module *findModule(pdstring m_name, bool wildcard = false);
     mapped_module *findModule(const pdmodule *mod);
 
     // This way we can avoid parsing everything as it comes in; we

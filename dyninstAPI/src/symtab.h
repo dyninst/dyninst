@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.181 2005/08/04 22:54:29 bernat Exp $
+// $Id: symtab.h,v 1.182 2005/08/08 22:39:33 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -398,7 +398,7 @@ class image : public codeRange {
 
    //Address findInternalAddress (const pdstring &name, const bool warn, bool &err);
    // find the named module  
-   pdmodule *findModule(const pdstring &name, bool substring_match = false);
+   pdmodule *findModule(const pdstring &name, bool wildcard = false);
 
    // Note to self later: find is a const operation, [] isn't, for
    // dictionary access. If we need to make the findFuncBy* methods

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.248 2005/08/04 22:54:27 bernat Exp $
+ // $Id: symtab.C,v 1.249 2005/08/08 22:39:32 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -621,45 +621,46 @@ bool image::findInternalSymbol(const pdstring &name,
 }
 #endif
 
-pdmodule *image::findModule(const pdstring &name, bool substring_match)
+pdmodule *image::findModule(const pdstring &name, bool wildcard)
 {
   pdmodule *found = NULL;
   //cerr << "image::findModule " << name << " , " << find_if_excluded
   //     << " called" << endl;
 
-  if (substring_match) {
-    //  if we want a substring, have to iterate over all module names
-    //  this is ok b/c there are not usually more than a handful or so
-    //
-    dictionary_hash_iter<pdstring, pdmodule *> mi(modsByFileName);
-    pdstring pds; pdmodule *mod;
-
-    while (mi.next(pds, mod)){
-      if (strstr(pds.c_str(), name.c_str())) {
-        found = mod;
-        break;
+  if (!wildcard) {
+      if (modsByFileName.defines(name)) {
+          //cerr << " (image::findModule) found module in modsByFileName" << endl;
+          found = modsByFileName[name];
       }
-    }
+      else if (modsByFullName.defines(name)) {
+          //cerr << " (image::findModule) found module in modsByFullName" << endl;
+          found = modsByFullName[name];
+      }
   }
   else {
-    if (modsByFileName.defines(name)) {
-      //cerr << " (image::findModule) found module in modsByFileName" << endl;
-      found = modsByFileName[name];
-    }
-    else if (modsByFullName.defines(name)) {
-      //cerr << " (image::findModule) found module in modsByFullName" << endl;
-      found = modsByFullName[name];
-    }
+      //  if we want a substring, have to iterate over all module names
+      //  this is ok b/c there are not usually more than a handful or so
+      //
+      dictionary_hash_iter<pdstring, pdmodule *> mi(modsByFileName);
+      pdstring pds; pdmodule *mod;
+      
+      while (mi.next(pds, mod)){
+          if (mod->fileName().wildcardEquiv(name) ||
+              mod->fullName().wildcardEquiv(name)) {
+              found = mod; 
+              break;
+          }
+      }
   }
-
+  
   //cerr << " (image::findModule) did not find module, returning NULL" << endl;
   if (found) {
-    // Just-in-time...
+      // Just-in-time...
       //if (parseState_ == symtab)
       //analyzeImage();
-    return found;
+      return found;
   }
-
+  
   return NULL;
 }
 
