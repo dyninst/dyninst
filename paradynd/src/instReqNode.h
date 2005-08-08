@@ -140,6 +140,7 @@ class instReqNode {
    BPatch_snippet* Snippet()  {return snip;}
    BPatch_callWhen When() {return when;}
    BPatch_snippetOrder Order() { return order; }
+   // This is what needs to change...
    miniTramp *MiniTramp() { return mtHandle; }
 
  private:

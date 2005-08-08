@@ -548,30 +548,6 @@ bool instrCodeNode::insertJumpsToTramps(pdvector<pdvector<Frame> > &stackWalks) 
        instR->linkInstr();
    }
 
-#if 0
-   // for each inst point walk the stack to determine if it can be
-   // inserted now (it can if it is not currently on the stack)
-   // If some can not be inserted, then find the first safe point on
-   // the stack where all can be inserted, and set a break point  
-
-   for (unsigned u=0; u<rsize; u++) {
-      returnInstance *curBaseTramp = baseTrampInstances[u];
-
-      // checkReturnInstance lives in the inst-<arch>.C files
-      bool installSafe = curBaseTramp->checkReturnInstance(stackWalks);
-
-      if (installSafe) {
-         process *llproc = proc()->get_dyn_process()->lowlevel_process();
-         curBaseTramp->installReturnInstance(llproc);
-         delay_elm[u] = false;
-      } else {
-         delay_install = true;
-         delay_elm[u] = true;
-      }
-   }
-
-#endif
-
    markTrampsAsHookedUp();
    return true;
 }

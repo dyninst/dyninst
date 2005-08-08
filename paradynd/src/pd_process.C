@@ -1729,9 +1729,9 @@ typedef enum {beforeInstru, baseEntry, preInsn,
 	      emulInsns, postInsn, baseExit, afterInstru, nowhere} logicalPCLocation_t;
 
 bool pd_process::triggeredInStackFrame(Frame &frame,
-				    BPatch_point *bpPoint,
-				    BPatch_callWhen when,
-				    BPatch_snippetOrder order) {
+                                       BPatch_point *bpPoint,
+                                       BPatch_callWhen when,
+                                       BPatch_snippetOrder order) {
     fprintf(stderr, "WARNING: skipping catchup!\n");
     return false;
 
@@ -1745,51 +1745,6 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
 
     instPoint *point = bpPoint->PDSEP_instPoint();
     
-    // Can't figure it out if we don't know where we are
-    if (!range) {
-      if (pd_debug_catchup && frame.getPC()) // 0 PC is uninteresting
-         fprintf(stderr, 
-          "ERROR: can't find owner for pc 0x%lx in pid %d, failing catchup\n",
-          frame.getPC(), frame.getPID());
-      return false;
-    }
-
-    if(pd_debug_catchup) {
-      fprintf(stderr, "--------\n");
-       fprintf(stderr, "Catchup for PC 0x%lx (%d), instpoint at 0x%lx (%s), ",
-               frame.getPC(), 
-               frame.getThread() == NULL ? -1 : frame.getThread()->get_tid(),
-               point->absPointAddr(dyninst_process->lowlevel_process()),
-               point->pointFunc()->prettyName().c_str());
-       fprintf(stderr, "point type is ");
-       if (bpPoint->getPointType() == BPatch_locEntry)
-	 fprintf(stderr, "FuncEntry, ");
-       else if (bpPoint->getPointType() == BPatch_locExit)
-	 fprintf(stderr, "FuncExit, ");
-       else if (bpPoint->getPointType() == BPatch_locSubroutine)
-	 fprintf(stderr, "CallSite, ");
-       else if (bpPoint->getPointType() == BPatch_locLoopEntry)
-	 fprintf(stderr, "LoopEntry, ");
-       else if (bpPoint->getPointType() == BPatch_locLoopExit)
-	 fprintf(stderr, "LoopExit, ");
-       else if (bpPoint->getPointType() == BPatch_locLoopStartIter)
-	 fprintf(stderr, "LoopStartIter, ");
-       else if (bpPoint->getPointType() == BPatch_locLoopEndIter)
-	 fprintf(stderr, "LoopEndIter, ");
-       else fprintf(stderr, "other, ");
-
-       fprintf(stderr, "callWhen is ");
-       if (when == BPatch_callBefore)
-	 fprintf(stderr, "callBefore");
-       else
-	 fprintf(stderr, "callAfter");
-       fprintf(stderr, ", order is ");
-       if (order == BPatch_firstSnippet)
-	 fprintf(stderr, "insertFirst");
-       else
-	 fprintf(stderr, "insertLast");
-       fprintf(stderr,"\n");
-    }
 
     // Most of the checking is based on "Am I before, after, or during the
     // instrumentation point". We check that first to see if we need to care.

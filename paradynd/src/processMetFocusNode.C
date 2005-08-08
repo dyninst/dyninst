@@ -318,10 +318,13 @@ inst_insert_result_t processMetFocusNode::insertInstrumentation() {
     }
    
    if(instrLoaded()) {
-       assert(trampsHookedUp());
-       assert(hasBeenCatchuped());
-       instrInserted_ = true;
-       return inst_insert_success;
+       // TODO: fix this... instrLoaded now doesn't mean that instrumentation
+       // has been hooked up.
+       if (trampsHookedUp()) {
+           assert(hasBeenCatchuped());
+           instrInserted_ = true;
+           return inst_insert_success;
+       }
    }
 
    pauseProcess();

@@ -45,6 +45,11 @@
 #include "paradynd/src/pd_process.h"
 #include "pdutil/h/pdDebugOstream.h"
 
+// Catchup
+#include "dyninstAPI/src/dyn_thread.h"
+#include "dyninstAPI/src/frame.h"
+#include "dyninstAPI/src/instPoint.h"
+
 const int MAX_INSERTION_ATTEMPTS_USING_RELOCATION = 1000;
 
 /*
@@ -169,19 +174,30 @@ bool instReqNode::generateInstr() {
         return false;
     
     instrGenerated_ = true;
-
+    
     return true;
 }
 
 bool instReqNode::checkInstr(pdvector<pdvector<Frame> > &stackWalks) {
-    if (instrLinked()) return true;
+    if (instrLinked())
+        return true;
     
     instPoint *pt = point->PDSEP_instPoint();
+    
+    pdvector<Address> pcs;
+    
+    for (unsigned sI = 0; sI < stackWalks.size(); sI++) {
+        for (unsigned fI = 0; fI < stackWalks[sI].size(); fI++) {
+            /*
+              // For bpatch_frame...
+            if (stackWalks[sI][fI].isSynthesized()) 
+                continue;
+            */
+            pcs.push_back((Address)stackWalks[sI][fI].getPC());
+        }
+    }
 
-    if (!pt->checkInst(stackWalks))
-        return false;
-
-    return true;
+    return pt->checkInst(pcs);
 }
 
 bool instReqNode::linkInstr() {
@@ -216,14 +232,13 @@ instReqNode::~instReqNode()
 {
 }
 
-timeLength instReqNode::cost(pd_process *theProc) const
+timeLength instReqNode::cost(pd_process *) const
 {
   // Currently the predicted cost represents the maximum possible cost of the
   // snippet.  For instance, for the statement "if(cond) <stmtA> ..."  the
   // cost of <stmtA> is currently included, even if it's actually not called.
   // Feel free to change the maxCost call below to ast->minCost or
   // ast->avgCost if the semantics need to be changed.
-    process *llproc = theProc->get_dyn_process()->lowlevel_process();
     int unitCostInCycles = snip->PDSEP_ast()->maxCost() 
         + point->PDSEP_instPoint()->getPointCost() +
         getInsnCost(trampPreamble) + getInsnCost(trampTrailer);
@@ -237,13 +252,180 @@ void instReqNode::catchupRPCCallback(void * /*returnValue*/ ) {
    ++rpcCount;
 }
 
+typedef enum {nowhere_l, 
+              beforePoint_l, 
+              notMissed_l, 
+              missed_l, 
+              afterPoint_l} logicalPCLocation_t;
+extern bool pd_debug_catchup;
 
 bool instReqNode::triggeredInStackFrame(Frame &frame, 
                                         pd_process *p)
 {
-   return p->triggeredInStackFrame(frame, point,
-                                   when, order);
+    // Things we have:
+    // mtHandle: a miniTramp
+    // point: a BPatch_point
+
+    // We first see if we're before, during, or after the BPatch_point. Before and
+    // after have odd meanings, since functions aren't really linear widgets. So
+    // we try and get this to match.
+
+    instPoint *iP = Point()->PDSEP_instPoint();
+
+    if (frame.getPC() == 0) return false;
+    
+    if(pd_debug_catchup) {
+        fprintf(stderr, "--------\n");
+        fprintf(stderr, "Catchup for PC 0x%lx (%d), instpoint at 0x%lx (%s), ",
+                frame.getPC(), 
+                frame.getThread() == NULL ? -1 : frame.getThread()->get_tid(),
+                iP->addr(),
+                iP->func()->prettyName().c_str());
+        fprintf(stderr, "point type is ");
+        if (Point()->getPointType() == BPatch_locEntry)
+            fprintf(stderr, "FuncEntry, ");
+        else if (Point()->getPointType() == BPatch_locExit)
+            fprintf(stderr, "FuncExit, ");
+        else if (Point()->getPointType() == BPatch_locSubroutine)
+            fprintf(stderr, "CallSite, ");
+        else if (Point()->getPointType() == BPatch_locLoopEntry)
+            fprintf(stderr, "LoopEntry, ");
+        else if (Point()->getPointType() == BPatch_locLoopExit)
+            fprintf(stderr, "LoopExit, ");
+        else if (Point()->getPointType() == BPatch_locLoopStartIter)
+            fprintf(stderr, "LoopStartIter, ");
+        else if (Point()->getPointType() == BPatch_locLoopEndIter)
+            fprintf(stderr, "LoopEndIter, ");
+        else fprintf(stderr, "other, ");
+        
+        fprintf(stderr, "callWhen is ");
+        if (When() == BPatch_callBefore)
+            fprintf(stderr, "callBefore");
+        else
+            fprintf(stderr, "callAfter");
+        fprintf(stderr, ", order is ");
+        if (Order() == BPatch_firstSnippet)
+            fprintf(stderr, "insertFirst");
+        else
+            fprintf(stderr, "insertLast");
+        fprintf(stderr,"\n");
+    }
+
+    // First, if we're not even in the right _function_, then break out.
+    // Note: a lot of this logic should be moved to the BPatch layer. For now,
+    // it's here.
+
+    if (frame.getFunc() != Point()->getFunction()->PDSEP_pdf())
+        return false;
+
+    // If we're inside the function, find whether we're before, inside, or after the point.
+    // This is done by address comparison and used to demultiplex the logic below.
+    
+    logicalPCLocation_t location;
+
+    instPoint::catchup_result_t iPresult = iP->catchupRequired(frame.getPC(), mtHandle);
+
+    if (iPresult == instPoint::notMissed_c)
+        location = notMissed_l;
+    else if (iPresult == instPoint::missed_c)
+        location = missed_l;
+    else
+        location = nowhere_l;
+
+    // We check for the instPoint before this because we use instrumentation
+    // that may cover multiple instructions.
+    // USE THE UNINSTRUMENTED ADDR :)
+    if (location == nowhere_l) {
+        // Back off to address comparison
+        if ((Address)Point()->getAddress() < frame.getUninstAddr())
+            location = afterPoint_l;
+        else
+            location = beforePoint_l;
+    }
+
+    if (pd_debug_catchup) {
+        switch(location) {
+        case beforePoint_l:
+            fprintf(stderr, "strictly before point...");
+            break;
+        case notMissed_l:
+            fprintf(stderr, "before point...");
+            break;
+        case missed_l:
+            fprintf(stderr, "after point...");
+            break;
+        case afterPoint_l:
+            fprintf(stderr, "strictly after point...");
+            break;
+        case nowhere_l:
+            fprintf(stderr, "serious problem with the compiler...");
+            break;
+        }    
+    }
+
+
+    bool catchupNeeded = false;
+    
+    // We split cases out by the point type
+    // All of these must fit the following criteria:
+    // An object with a well-defined entry and exit;
+    // An object where we can tell if a PC is "within".
+    // Examples: functions, basic blocks, loops
+    switch(Point()->getPointType()) {
+    case BPatch_locEntry:
+        // Entry is special, since it's one of the rare
+        // cases where "after" is good enough. TODO:
+        // check whether we're "in" a function in a manner
+        // similar to loops.
+        // We know we can get away with >= because we're in the
+        // function; if not we'd have already returned.
+        if (location >= missed_l)
+            catchupNeeded = true;
+        break;
+    case BPatch_locExit:
+        // Only do this if we triggered "missed". If we're
+        // after, we might well be later in the function.
+        // If this is true, we're cancelling an earlier entry
+        // catchup.
+        if (location == missed_l)
+            catchupNeeded = true;
+        break;
+    case BPatch_subroutine:
+        // Call sites. Again, only if missed; otherwise we may
+        // just be elsewhere
+        if (location == missed_l)
+            catchupNeeded = true;
+        break;
+    case BPatch_locLoopEntry:
+    case BPatch_locLoopStartIter:
+        if (location == missed_l)
+            catchupNeeded = true;
+        if (location == afterPoint_l) {
+            BPatch_basicBlockLoop *loop = Point()->getLoop();
+            if (loop->containsAddressInclusive(frame.getUninstAddr()))
+                catchupNeeded = true;
+        }
+        break;
+    case BPatch_locLoopExit:
+    case BPatch_locLoopEndIter:
+        // See earlier treatment of, well, everything else
+        if (location == missed_l)
+            catchupNeeded = true;
+        break;
+
+    case BPatch_locBasicBlockEntry:
+    case BPatch_locBasicBlockExit:       
+    default:
+        // Nothing here
+        break;
+    }
+    
+    if (pd_debug_catchup) {
+        if (catchupNeeded)
+            fprintf(stderr, "catchup needed, ret true\n========\n");
+        else
+            fprintf(stderr, "catchup not needed, ret false\n=======\n");
+    }
+    
+    return catchupNeeded;
 }
-
-
-

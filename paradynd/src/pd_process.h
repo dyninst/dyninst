@@ -337,8 +337,7 @@ class pd_process {
    }
 
    bool catchupSideEffect(Frame &frame, instReqNode *inst) {
-      process *llproc = dyninst_process->lowlevel_process();
-      return inst->Point()->PDSEP_instPoint()->instrSideEffect(frame);
+       return inst->Point()->PDSEP_instPoint()->instrSideEffect(frame);
    }
 
    int getTraceLink() {
