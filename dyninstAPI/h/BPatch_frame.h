@@ -75,6 +75,12 @@ class BPATCH_DLL_EXPORT BPatch_frame : public BPatch_eventLock{
     // don't want to see this frame. To make life simpler for everyone, we
     // add a "only call if you know what you're doing" flag.
     bool isSynthFrame;
+
+    // This is _so_ much easier than looking it up later. If we're
+    // in instrumentation, stash the point
+    BPatch_point *point_;
+
+public:
     BPatch_frame();
     BPatch_frame(BPatch_thread *_thread, 
                  void *_pc, void *_fp, 
@@ -82,11 +88,7 @@ class BPATCH_DLL_EXPORT BPatch_frame : public BPatch_eventLock{
                  bool istr = false, BPatch_point *point = NULL,
                  bool isSynth = false);
 
-    // This is _so_ much easier than looking it up later. If we're
-    // in instrumentation, stash the point
-    BPatch_point *point_;
 
-public:
     //  BPatch_frame::getFrameType
     //  Returns type of frame: BPatch_frameNormal for a stack frame for a 
     //  function, BPatch_frameSignal for the stack frame created when a signal 
@@ -112,6 +114,10 @@ public:
 
     void *,getFP,()); 
 
+    // 
+    API_EXPORT(Int, (),
+    int, getTID, ());
+
     //  BPatch_frame::findFunction
     //  Returns:  the function corresponding to this stack frame, NULL 
     //   if there is none
@@ -124,6 +130,8 @@ public:
 
     API_EXPORT(Int, (), 
     BPatch_point *,findPoint,());
+
+    friend std::ostream & operator << ( std::ostream & s, BPatch_frame & m );
 
 };
 
