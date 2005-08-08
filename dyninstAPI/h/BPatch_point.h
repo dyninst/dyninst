@@ -57,6 +57,7 @@ class BPatch_memoryAccess;
 class BPatchSnippetHandle;
 class BPatch_basicBlockLoop;
 class BPatch_process;
+class BPatch_frame;
 
 /*
  * Used to specify whether a snippet is to be called before the instructions
@@ -337,6 +338,13 @@ public:
     API_EXPORT(Int, (),
 
     bool,usesTrap_NP,());
+
+    // If the program is executing inside the area covered (depending on platform)
+    // by the BPatch_point, did the instrumentation go in "before" or "after" where
+    // we are now? Since Dyninst does not define _how_ instrumentation is implemented,
+    // this may vary.
+    API_EXPORT(Int, (snippet, frame), 
+               bool, snippetWasMissed, (BPatchSnippetHandle *snippet, BPatch_frame &frame));
 
 #ifdef IBM_BPATCH_COMPAT
     void *getPointAddress() { return getAddress(); }
