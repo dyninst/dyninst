@@ -447,6 +447,19 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     API_EXPORT(Int, (handle),
     bool,deleteSnippet,(BPatchSnippetHandle *handle));
 
+    // Occasionally users need to insert a set of instrumentation as an atomic action.
+    // We provide this capability by "wrapping" a set of instrumentation with an explicit
+    // start/end pair.
+    // Of course, for this to work correctly Dyninst will need to honor the "checkInst"
+    // section of an instPoint, which currently does not happen. Fun.
+
+    API_EXPORT_V(Int, (), 
+    void, startInsertionRange, ());
+
+
+    API_EXPORT_V(Int, (), 
+    void, endInsertionRange, ());
+
     //  BPatch_process::setMutationsActive
     //  
     //  Turn on/off instrumentation
@@ -501,6 +514,12 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
 
     API_EXPORT(Int, (libname, reload),
     bool,loadLibrary,(const char *libname, bool reload = false));
+
+    //  BPatch_process::getAllCallStacks
+    //  
+    //  Returns a vector of (vector of) BPatch_frame, representing the current call stack
+    API_EXPORT(Int, (stack),
+    bool,getAllCallStacks,(BPatch_Vector<BPatch_Vector<BPatch_frame> >& stack));
 
     //  BPatch_process::getLineAndFile
     //  
