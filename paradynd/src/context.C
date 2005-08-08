@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.123 2005/07/29 19:20:04 bernat Exp $ */
+/* $Id: context.C,v 1.124 2005/08/08 19:59:50 bernat Exp $ */
 
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_thread.h"
@@ -136,12 +136,12 @@ void createThread(traceThread *fr) {
    // We need the module, which could be anywhere (including a library)
    int_function *func = thr->get_start_func();
 
-   mapped_module *foundMod = func->mod();
-   assert(foundMod != NULL);
-   resource *modRes = foundMod->getResource();
-   pdstring start_func_str = thr->get_start_func()->prettyName();
-   pdstring res_string = modRes->full_name() + "/" + start_func_str;
-
+   BPatch_process *bproc = proc->get_bprocess();
+   BPatch_function *bpfunc = bproc->get_function(func);
+   
+   resource *r = pd_module::getFunctionResource(bpfunc);
+   pdstring res_string = r->full_name();
+   
    pd_image *im = proc->getImage();
    pdstring fl = im->get_file();
    
