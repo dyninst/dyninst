@@ -92,7 +92,7 @@ public:
     // The following are for internal use by the library only:
     int_function *func;
     int_function *lowlevel_func() { return func; }
-    int_function *PDSEP_pdf() { return func;}
+    int_function *PDSEP_pdf() const { return func;}
     BPatch_process *getProc() const { return proc; }
 
     BPatch_function(BPatch_process *_proc, int_function *_func, BPatch_module *mod = NULL);
