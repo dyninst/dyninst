@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.330 2005/08/08 20:23:34 gquinn Exp $
+/* $Id: process.h,v 1.331 2005/08/08 22:39:35 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -167,7 +167,10 @@ class process {
     
     // Default constructor
     process(int pid);
-    
+
+    // Fork constructor
+    process(const process *parentProc, int iPid, int iTrace_fd);
+
     // Creation work
     bool setupCreated(int iTraceLink);
     bool setupAttached();
@@ -189,16 +192,6 @@ class process {
     bool setAOut(fileDescriptor &desc);
     bool setMainFunction();
 
-
-  process(int iPid, mapped_object *aout, int iTraceLink);
-     // this is the "normal" ctor
-
-  process(int iPid, mapped_object *aout,
-          bool& success);
-  // this is the "attach" ctor
-
-  process(const process *parentProc, int iPid, int iTrace_fd);
-     // this is the "fork" ctor
 
   protected:  
   bool walkStackFromFrame(Frame currentFrame, // Where to start walking from
@@ -757,8 +750,11 @@ char * systemPrelinkCommand;
   // and if it is it returns 0.  If check_excluded is false it doesn't check
   //  if substring_match is true, the first module whose name contains
   //  the provided string is returned.
-
-  mapped_module *findModule(const pdstring &mod_name, bool substring_match = false);
+  // Wildcard: handles "*" and "?"
+  mapped_module *findModule(const pdstring &mod_name, bool wildcard = false);
+  // And the same for objects
+  // Wildcard: handles "*" and "?"
+  mapped_object *findObject(const pdstring &obj_name, bool wildcard = false);
 
   // getAllFunctions: returns a vector of all functions defined in the
   // a.out and in the shared objects

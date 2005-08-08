@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.545 2005/08/08 20:23:34 gquinn Exp $
+// $Id: process.C,v 1.546 2005/08/08 22:39:34 bernat Exp $
 
 #include <ctype.h>
 
@@ -3437,7 +3437,7 @@ bool process::multithread_capable(bool ignore_if_mt_not_set)
        }
    }
    
-   if(mapped_objects.size() == 0) {
+   if(mapped_objects.size() <= 1) {
        if(! ignore_if_mt_not_set) {
            cerr << "   can't query MT state, assert\n";
            assert(false);
@@ -3445,15 +3445,15 @@ bool process::multithread_capable(bool ignore_if_mt_not_set)
        return false;
    }
 
-   if(findModule("libthread.so.1") ||  // Solaris
-      findModule("libpthreads.a")  ||  // AIX
-      findModule("libpthread.so.0"))   // Linux
+   if(findObject("libthread.so*") ||  // Solaris
+      findObject("libpthreads.*")  ||  // AIX
+      findObject("libpthread.so*"))   // Linux
    {
-      cached_result = cached_mt_true;
-      return true;
+       cached_result = cached_mt_true;
+       return true;
    } else {
-      cached_result = cached_mt_false;
-      return false;
+       cached_result = cached_mt_false;
+       return false;
    }
 }
 #endif
@@ -4640,16 +4640,31 @@ instPoint *process::findInstPByAddr(Address addr) {
 // findModule: returns the module associated with mod_name 
 // this routine checks both the a.out image and any shared object
 // images for this resource
-mapped_module *process::findModule(const pdstring &mod_name, bool substring_match)
+mapped_module *process::findModule(const pdstring &mod_name, bool wildcard)
 {
     // KLUDGE: first search any shared libraries for the module name 
     //  (there is only one module in each shared library, and that 
     //  is the library name)
     for(u_int j=0; j < mapped_objects.size(); j++){
-        mapped_module *mod = mapped_objects[j]->findModule(mod_name, substring_match);
+        mapped_module *mod = mapped_objects[j]->findModule(mod_name, wildcard);
         if (mod) {
             return (mod);
         }
+    }
+    return NULL;
+}
+
+// findObject: returns the object associated with obj_name 
+// This just iterates over the mapped object vector
+mapped_object *process::findObject(const pdstring &obj_name, bool wildcard)
+{
+    for(u_int j=0; j < mapped_objects.size(); j++){
+        if (mapped_objects[j]->fileName() == obj_name ||
+            mapped_objects[j]->fullName() == obj_name ||
+            (wildcard &&
+             (mapped_objects[j]->fileName().wildcardEquiv(obj_name) ||
+              mapped_objects[j]->fullName().wildcardEquiv(obj_name))))
+            return mapped_objects[j];
     }
     return NULL;
 }
