@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.140 2005/08/03 05:28:21 bernat Exp $
+// $Id: pdwinnt.C,v 1.141 2005/08/11 21:20:24 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -1308,7 +1308,7 @@ Frame Frame::getCallerFrame(process *p) const
 bool Frame::setPC(Address newpc) {
   fprintf(stderr, "Implement me! Changing frame PC from %x to %x\n",
 	  pc_, newpc);
-  return true;
+  return false;
 }
 
 bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs) {

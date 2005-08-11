@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.77 2005/07/29 19:18:59 bernat Exp $
+// $Id: osf.C,v 1.78 2005/08/11 21:20:23 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -547,7 +547,7 @@ Frame Frame::getCallerFrame()
 bool Frame::setPC(Address newpc) {
   fprintf(stderr, "Implement me! Changing frame PC from %x to %x\n",
 	  pc_, newpc);
-  return true;
+  return false;
 }
 
 bool process::dumpCore_(const pdstring coreFile) 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.182 2005/07/29 19:19:45 bernat Exp $
+// $Id: solaris.C,v 1.183 2005/08/11 21:20:25 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -981,7 +981,7 @@ Frame Frame::getCallerFrame()
 bool Frame::setPC(Address newpc) {
   fprintf(stderr, "Implement me! Changing frame PC from %x to %x\n",
 	  pc_, newpc);
-  return true;
+  return false;
 }
 
 
