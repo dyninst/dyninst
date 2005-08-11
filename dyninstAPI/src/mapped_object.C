@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.3 2005/08/08 22:39:30 bernat Exp $
+// $Id: mapped_object.C,v 1.4 2005/08/11 21:20:20 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/symtab.h"
@@ -294,8 +294,8 @@ mapped_module *mapped_object::findModule(pdstring m_name, bool wildcard)
         if (everyModule[i]->fileName() == m_name ||
             everyModule[i]->fullName() == m_name ||
             (wildcard &&
-             (everyModule[i]->fileName().wildcardEquiv(m_name) ||
-              everyModule[i]->fullName().wildcardEquiv(m_name)))) {
+             (m_name.wildcardEquiv(everyModule[i]->fileName()) ||
+              m_name.wildcardEquiv(everyModule[i]->fullName())))) {
             //parsing_printf("... found!\n");
             return everyModule[i];
         }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.546 2005/08/08 22:39:34 bernat Exp $
+// $Id: process.C,v 1.547 2005/08/11 21:20:21 bernat Exp $
 
 #include <ctype.h>
 
@@ -3445,9 +3445,9 @@ bool process::multithread_capable(bool ignore_if_mt_not_set)
        return false;
    }
 
-   if(findObject("libthread.so*") ||  // Solaris
-      findObject("libpthreads.*")  ||  // AIX
-      findObject("libpthread.so*"))   // Linux
+   if(findObject("libthread.so*", true) ||  // Solaris
+      findObject("libpthreads.*", true)  ||  // AIX
+      findObject("libpthread.so*", true))   // Linux
    {
        cached_result = cached_mt_true;
        return true;
@@ -3580,10 +3580,10 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
    
    bool res = stopped_lwp->writeDataSpace(inTracedProcess, size, inSelf);
    if (!res) {
-      pdstring msg = pdstring("System error: unable to write to process data "
-                              "space (WDS):") + pdstring(strerror(errno));
-      showErrorCallback(38, msg);
-      return false;
+       pdstring msg = pdstring("System error: unable to write to process data "
+                               "space (WDS):") + pdstring(strerror(errno));
+       showErrorCallback(38, msg);
+       return false;
    }
 
    if(needToCont) {
@@ -4662,8 +4662,8 @@ mapped_object *process::findObject(const pdstring &obj_name, bool wildcard)
         if (mapped_objects[j]->fileName() == obj_name ||
             mapped_objects[j]->fullName() == obj_name ||
             (wildcard &&
-             (mapped_objects[j]->fileName().wildcardEquiv(obj_name) ||
-              mapped_objects[j]->fullName().wildcardEquiv(obj_name))))
+             (obj_name.wildcardEquiv(mapped_objects[j]->fileName()) ||
+              obj_name.wildcardEquiv(mapped_objects[j]->fullName()))))
             return mapped_objects[j];
     }
     return NULL;

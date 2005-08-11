@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.249 2005/08/08 22:39:32 bernat Exp $
+ // $Id: symtab.C,v 1.250 2005/08/11 21:20:22 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -645,8 +645,8 @@ pdmodule *image::findModule(const pdstring &name, bool wildcard)
       pdstring pds; pdmodule *mod;
       
       while (mi.next(pds, mod)){
-          if (mod->fileName().wildcardEquiv(name) ||
-              mod->fullName().wildcardEquiv(name)) {
+          if (name.wildcardEquiv(mod->fileName()) ||
+              name.wildcardEquiv(mod->fullName())) {
               found = mod; 
               break;
           }
