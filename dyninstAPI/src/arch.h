@@ -40,7 +40,7 @@
  */
 
 // Architecture include. Use this one instead of arch-<platform>
-// $Id: arch.h,v 1.17 2005/07/29 19:18:20 bernat Exp $
+// $Id: arch.h,v 1.18 2005/08/11 21:20:08 bernat Exp $
 
 #if !defined(arch_h)
 #define arch_h
@@ -150,7 +150,7 @@ class codeGen {
     
     enum { cgNOP, cgTrap, cgIllegal };
 
-    void fill(int fillSize, int fillType);
+    void fill(unsigned fillSize, int fillType);
     // Since we have a known size
     void fillRemaining(int fillType);
 
