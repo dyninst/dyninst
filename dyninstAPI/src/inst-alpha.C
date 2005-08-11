@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.90 2005/08/03 23:00:57 bernat Exp $
+// $Id: inst-alpha.C,v 1.91 2005/08/11 21:20:10 bernat Exp $
 
 #include "common/h/headers.h"
 
@@ -349,9 +349,13 @@ bool multiTramp::generateBranchToTramp(codeGen &gen)
     assert(instAddr_);
     assert(trampAddr_);
 
+    unsigned origUsed = gen.used();
     instruction::generateBranch(gen,
 				instAddr_,
 				trampAddr_);
+    // Set if we trap-fill
+    // branchSize_ = gen.used() - origUsed;
+    
 
     gen.fillRemaining(codeGen::cgNOP);
 

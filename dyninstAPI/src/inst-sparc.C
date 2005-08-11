@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.171 2005/08/03 23:01:00 bernat Exp $
+// $Id: inst-sparc.C,v 1.172 2005/08/11 21:20:11 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -1020,7 +1020,7 @@ bool multiTramp::generateBranchToTramp(codeGen &gen)
     
     assert(instAddr_);
     assert(trampAddr_);
-    
+    unsigned origUsed = gen.used();
     int dist = (trampAddr_ - instAddr_);
     if (instruction::offsetWithinRangeOfBranchInsn(dist)) {
         // Annulled branch
@@ -1043,6 +1043,8 @@ bool multiTramp::generateBranchToTramp(codeGen &gen)
                                   trampAddr_);
         instruction::generateSimple(gen, RESTOREop3, 0, 0, 0);
     }
+    // Set if we ever trap-fill
+    //branchSize_ = gen.used() - origUsed;
 
     gen.fillRemaining(codeGen::cgNOP);
     
