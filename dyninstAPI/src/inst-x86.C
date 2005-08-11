@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.212 2005/08/08 20:23:33 gquinn Exp $
+ * $Id: inst-x86.C,v 1.213 2005/08/11 21:20:14 bernat Exp $
  */
 #include <iomanip>
 
@@ -545,36 +545,42 @@ bool multiTramp::generateBranchToTramp(codeGen &gen)
     
     assert(instAddr_);
     assert(trampAddr_);
-    
+    unsigned origUsed = gen.used();
+
     /* Ordinary 5-byte jump */
     if (instSize_ >= JUMP_REL32_SZ) {
         instruction::generateBranch(gen, instAddr_, trampAddr_);
     }
     /* Extra slot */
     else { /* Trap */
+        /*
+        fprintf(stderr, "MultiTramp requires trap at 0x%x to 0x%x, func %s\n",
+                instAddr(), instAddr()+instSize(), func()->prettyName().c_str());
+        */
         if (!canUseTrap_) {
-#ifdef INST_TRAP_DEBUG
-            cerr << "Tried to insert trap in function " 
-                 << point->pointFunc()->prettyName() << " @"
-                 << (void*)point->pointAddr() << ", but traps were disallowed" 
-                 << endl;            
-#endif
             return false;
         }
-#ifdef INST_TRAP_DEBUG
-        cerr << "Warning: unable to insert jump in function " 
-             << point->pointFunc()->prettyName() << " @"
-             << (void*)point->pointAddr() << ". Using trap!" << endl;
-#endif
         // We're doing a trap. Now, we know that trap addrs are reported
         // as "finished" address... so use that one (not instAddr_)
+        proc()->trampTrapMapping[gen.currAddr(instAddr_)+1] = trampAddr_;
         instruction::generateTrap(gen);
-	// This is why we use currAddr() _after_ we generate, not before.
-        proc()->trampTrapMapping[gen.currAddr(instAddr_)] = trampAddr_;
-        fprintf(stderr, "Multitramp %p using trap to reach MT: addr 0x%x, size %d, to addr 0x%x\n", this, instAddr_, instSize_, trampAddr_);
     }
-    
-    gen.fillRemaining(codeGen::cgNOP);
+
+    branchSize_ = gen.used() - origUsed;
+    // We play a cute trick with the rest of the overwritten space: fill it with
+    // traps. If one is hit, we can transfer the PC into the multiTramp without
+    // further problems. Cute, eh?
+    while (gen.used() < instSize()) {
+        Address origAddr = gen.currAddr(instAddr_);
+        Address addrInMulti = uninstToInstAddr(origAddr);
+        // x86: traps read at PC + 1
+        if (addrInMulti) {
+            // addrInMulti may be 0 if our trap instruction does not
+            // map onto a real instruction
+            proc()->trampTrapMapping[origAddr+1] = addrInMulti;
+        }
+        instruction::generateTrap(gen);
+    }
 
     return true;
 }

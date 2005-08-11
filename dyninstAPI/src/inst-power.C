@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.225 2005/08/03 23:00:59 bernat Exp $
+ * $Id: inst-power.C,v 1.226 2005/08/11 21:20:13 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1012,11 +1012,22 @@ bool multiTramp::generateBranchToTramp(codeGen &gen)
     assert(instAddr_);
     assert(trampAddr_);
 
+    unsigned origUsed = gen.used();
     instruction::generateBranch(gen,
                                 instAddr_,
                                 trampAddr_);
+    branchSize_ = gen.used() - origUsed;
 
-    gen.fillRemaining(codeGen::cgNOP);
+    // We play a cute trick with the rest of the overwritten space: fill it with
+    // traps. If one is hit, we can transfer the PC into the multiTramp without
+    // further problems. Cute, eh?
+    while (gen.used() < instSize()) {
+        Address origAddr = gen.currAddr(instAddr_);
+        Address addrInMulti = uninstToInstAddr(origAddr);
+
+        proc()->trampTrapMapping[origAddr] = addrInMulti;
+        instruction::generateTrap(gen);
+    }
 
     return true;
 }
