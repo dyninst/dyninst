@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.4 2005/08/04 22:54:23 bernat Exp $
+// $Id: baseTramp.C,v 1.5 2005/08/11 21:20:09 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -986,7 +986,8 @@ process *baseTrampInstance::proc() const {
 
 
 void baseTrampInstance::invalidateCode() {
-    assert(!linked_);
+    generatedCodeObject::invalidateCode();
+    trampAddr_ = 0;
     for (unsigned i = 0; i < mtis.size(); i++)
         mtis[i]->invalidateCode();
 }
