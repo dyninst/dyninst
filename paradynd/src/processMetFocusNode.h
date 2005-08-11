@@ -88,7 +88,7 @@ class processMetFocusNode : public metricFocusNode {
   const Focus focus;
 
   bool dontInsertData_;
-  bool currentlyPaused;
+  bool runWhenFinished_;
   bool instrInserted_;  // ie. instr:  loaded & tramps hookedup & catchuped
   pdvector<catchup_t >   catchupASTList;
   pdvector<unsigned> rpc_id_buf;
@@ -174,16 +174,22 @@ class processMetFocusNode : public metricFocusNode {
   void print();
   void initializeForSampling(timeStamp timeOfCont, pdSample initValue);
   void initAggInfoObjects(timeStamp timeOfCont, pdSample initValue);
-  bool hasBeenCatchuped();
-  bool trampsHookedUp();
-  bool hasDeferredInstr();
-  bool insertJumpsToTramps(pdvector<pdvector<Frame > >&stackWalks);
+
   bool instrInserted() { return instrInserted_; }
   bool instrLoaded();
+  bool instrLinked();
+  bool instrCatchuped();
+  bool instrDeferred();
 
-  inst_insert_result_t loadInstrIntoApp();
-  void doCatchupInstrumentation(pdvector<pdvector<Frame> > &stackWalks);
-  void doInstrumentationFixup(pdvector<pdvector<Frame> > &stackWalks);
+  // If false: loading failed (very odd case)
+  bool loadInstrIntoApp();
+  // If false: jumps failed, try again later.
+  bool insertJumpsToTramps(pdvector<pdvector<Frame > >&stackWalks);
+  // If false: instrumentation fixup failed (assert failure)
+  bool doInstrumentationFixup(pdvector<pdvector<Frame> > &stackWalks);
+  // If false: catchup failed (assert failure)
+  bool doCatchupInstrumentation(pdvector<pdvector<Frame> > &stackWalks);
+  
   inst_insert_result_t insertInstrumentation();
   
   pdvector<const instrDataNode *> getFlagDataNodes() const;

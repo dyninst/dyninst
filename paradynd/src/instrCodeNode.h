@@ -71,14 +71,17 @@ class instrCodeNode_Val {
   const Focus focus;
   pdvector<instReqNode *> instRequests;
   //pdvector<returnInstance *> baseTrampInstances;
-  bool trampsNeedHookup_;
 
   // instrCodeNodes (actually instrCodeNode_Vals) can be shared so we want to
   // store catchup tracking information in this class, as opposed to storing
   // it in a processMetFocusNode
-  bool needsCatchup_;
-  bool instrDeferred_;
+
+
   bool instrLoaded_;
+  bool instrLinked_;
+  bool instrDeferred_;
+  bool instrCatchuped_;
+
   pd_process *proc_;
   bool dontInsertData_;
   int referenceCount;
@@ -93,13 +96,7 @@ class instrCodeNode_Val {
   }
 
   instrCodeNode_Val(const pdstring &name_, const Focus &f, pd_process *p,
-		    bool dontInsertData, HwEvent* hw) : 
-     sampledDataNode(NULL), constraintDataNode(NULL), name(name_), focus(f), 
-     trampsNeedHookup_(false), needsCatchup_(false), instrDeferred_(false), 
-     instrLoaded_(false), proc_(p), dontInsertData_(dontInsertData), 
-      referenceCount(0), hwEvent(hw),
-      pendingDeletion(false), numCallbacks(0)
-  { }
+		    bool dontInsertData, HwEvent* hw);
 
   instrCodeNode_Val(const instrCodeNode_Val &par, pd_process *childProc);
   
@@ -158,7 +155,7 @@ class instrCodeNode {
   //bool condMatch(instrCodeNode *mn, pdvector<dataReqNode*> &data_tuple1,
   //               pdvector<dataReqNode*> &data_tuple2);
   pdvector<instReqNode*> getInstRequests() { return V.getInstRequests(); }
-  inst_insert_result_t loadInstrIntoApp();
+  bool loadInstrIntoApp();
   long getID() { return reinterpret_cast<long>(&V); }
   instrCodeNode_Val *getInternalData() { return &V; }
   // should make it private
@@ -199,8 +196,9 @@ class instrCodeNode {
   const Focus& getFocus() const { return V.focus; }
   static pdstring collectThreadName;
   const instrDataNode* getFlagDataNode() const;
-  void markTrampsAsHookedUp() { V.trampsNeedHookup_ = false; }
-  void markAsCatchupDone() { V.needsCatchup_ = false; }
+  void markTrampsAsHookedUp() { V.instrLinked_ = true; }
+  void markAsCatchupDone() { V.instrCatchuped_ = true; }
+
   void unmarkAsDeferred() {
     V.instrDeferred_ = false;
   }
@@ -208,8 +206,8 @@ class instrCodeNode {
   // these aren't thread specific because the instrumentation deals with the
   // code and the code is shared by all the threads
   bool instrLoaded() { return V.instrLoaded_; }
-  bool trampsNeedHookup() { return V.trampsNeedHookup_; }
-  bool needsCatchup() { return V.needsCatchup_; }
+  bool instrLinked() { return V.instrLinked_; }
+  bool instrCatchuped() { return V.instrCatchuped_; }
 
   //bool needToWalkStack(); // const;
   bool insertJumpsToTramps(pdvector<pdvector<Frame> > &stackWalks);

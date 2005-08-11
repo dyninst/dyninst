@@ -63,10 +63,10 @@ processMetFocusNode::processMetFocusNode(pd_process *p,
   : metricVarCodeNode(NULL), aggregator(agg_op, getCurrSamplingRate()),
     parentNode(NULL), aggInfo(NULL), proc_(p), aggOp(agg_op), 
     metric_name(metname), focus(focus_), dontInsertData_(arg_dontInsertData),
-    currentlyPaused(false), instrInserted_(false),
+    runWhenFinished_(false), instrInserted_(false),
     isBeingDeleted_(false)
 { 
-  // /* DEBUG */ fprintf(stderr, "new procMetFocus, currentlyPaused off\n");
+  // /* DEBUG */ fprintf(stderr, "new procMetFocus, runWhenFinished_ off\n");
 }
 
 processMetFocusNode::processMetFocusNode(const processMetFocusNode &par, 
@@ -74,8 +74,10 @@ processMetFocusNode::processMetFocusNode(const processMetFocusNode &par,
    aggregator(par.aggOp, getCurrSamplingRate()), // start with fresh aggregator
    // set by recordAsParent(), in propagateToForkedProcess
    parentNode(NULL), aggInfo(NULL), proc_(childProc),
-   metric_name(par.metric_name), isBeingDeleted_(false),
-   focus(adjustFocusForPid(par.focus, childProc->getPid()))
+   metric_name(par.metric_name), 
+   focus(adjustFocusForPid(par.focus, childProc->getPid())),
+   dontInsertData_(par.dontInsertData_), runWhenFinished_(par.runWhenFinished_),
+   isBeingDeleted_(par.isBeingDeleted_)
 {
    metricVarCodeNode = instrCodeNode::copyInstrCodeNode(*par.metricVarCodeNode,
 							childProc);
@@ -119,11 +121,13 @@ processMetFocusNode::processMetFocusNode(const processMetFocusNode &par,
    procStartTime = par.procStartTime;
    
    dontInsertData_ = par.dontInsertData_;
-   currentlyPaused = par.currentlyPaused;
+   runWhenFinished_ = par.runWhenFinished_;
    
    catchupASTList = par.catchupASTList;
    instrInserted_ = par.instrInserted_;
 }
+
+// Multiplexes across multiple codeNodes; AND operation
 
 bool processMetFocusNode::instrLoaded() {
    bool allCompInserted = true;
@@ -145,38 +149,43 @@ bool processMetFocusNode::instrLoaded() {
    return allCompInserted;
 }
 
-bool processMetFocusNode::hasBeenCatchuped() {
-  pdvector<instrCodeNode *> codeNodes;
-  getAllCodeNodes(&codeNodes);
+// Multiplexes across multiple codeNodes; AND operation
 
-  if(codeNodes.size() == 0)  return false;
 
-  bool hookedUp = true;
-  for(unsigned i=0; i<codeNodes.size(); i++) {
-    instrCodeNode *codeNode = codeNodes[i];
-    if(codeNode->needsCatchup() == true) {
-      hookedUp = false;
-      break;
+bool processMetFocusNode::instrCatchuped() {
+    pdvector<instrCodeNode *> codeNodes;
+    getAllCodeNodes(&codeNodes);
+    
+    if(codeNodes.size() == 0)  return false;
+    
+    bool catchupDone = true;
+    for(unsigned i=0; i<codeNodes.size(); i++) {
+        instrCodeNode *codeNode = codeNodes[i];
+        if(!codeNode->instrCatchuped()) {
+            catchupDone = false;
+            break;
+        }
     }
-  }
-  return hookedUp;
+    return catchupDone;
 }
 
-bool processMetFocusNode::trampsHookedUp() {
-  pdvector<instrCodeNode *> codeNodes;
-  getAllCodeNodes(&codeNodes);
+// Multiplexes across multiple codeNodes; AND operation
 
-  if(codeNodes.size() == 0)  return false;
-
-  bool hookedUp = true;
-  for(unsigned i=0; i<codeNodes.size(); i++) {
-    instrCodeNode *codeNode = codeNodes[i];
-    if(codeNode->trampsNeedHookup() == true) {
-      hookedUp = false;
-      break;
+bool processMetFocusNode::instrLinked() {
+    pdvector<instrCodeNode *> codeNodes;
+    getAllCodeNodes(&codeNodes);
+    
+    if(codeNodes.size() == 0)  return false;
+    
+    bool linked = true;
+    for(unsigned i=0; i<codeNodes.size(); i++) {
+        instrCodeNode *codeNode = codeNodes[i];
+        if(!codeNode->instrLinked()) {
+            linked = false;
+            break;
+        }
     }
-  }
-  return hookedUp;
+    return linked;
 }
 
 
@@ -312,75 +321,135 @@ void registerAsDeferred(int metricID) {
 }
 
 inst_insert_result_t processMetFocusNode::insertInstrumentation() {
+    //fprintf(stderr, "InsertInstrumentation for %p, status done %d, inserted %d, hooked %d, catchuped %d\n", this, instrInserted(), instrLoaded(), instrLinked(), instrCatchuped());
     assert(dontInsertData() == false);  // code doesn't have allocated variables
     if(instrInserted()) {
         return inst_insert_success;
     }
-   
-   if(instrLoaded()) {
-       // TODO: fix this... instrLoaded now doesn't mean that instrumentation
-       // has been hooked up.
-       if (trampsHookedUp()) {
-           assert(hasBeenCatchuped());
-           instrInserted_ = true;
-           return inst_insert_success;
-       }
-   }
 
-   pauseProcess();
-   if(proc()->hasExited()) {
-      // though technically we failed to insert instrumentation, from the
-      // perspective of the machineMetFocusNode, it succeeded.
-      return inst_insert_success;
-   }
-   inst_insert_result_t insert_status = loadInstrIntoApp();
+    // We may have already "inserted" the instrumentation; that is, we are sharing
+    // with previously existing code. 
+    if (instrLoaded() && instrLinked()) {
+        // If linked, then catchuped
+        assert(instrCatchuped());
+        instrInserted_ = true;
+        return inst_insert_success;
+    }
 
-   if(insert_status == inst_insert_deferred) {
-       continueProcess();
-       if(hasDeferredInstr()) {
-           registerAsDeferred(getMetricID());
-           return inst_insert_deferred;
-       }
-   } else if(insert_status == inst_insert_failure) {
-       continueProcess();
-       pdstring msg = pdstring("Unable to load instrumentation for metric focus ")
-                    + getFullName() + " into process with pid " 
-                    + pdstring(proc()->getPid());
-       showErrorCallback(126, msg);
-       return inst_insert_failure;
-   }
+    // There are three steps we take:
+    // 1) Load instrumentation
+    // 2) Link instrumentation ("hook up tramps")
+    // 3) Do catchup
+    // If #2 is done, assert #3 as they must be atomic. However, there can be
+    // arbitrary time between #1 and #2.
 
-   pdvector <pdvector <Frame> > stackWalks;
-   proc()->walkStacks(stackWalks);
+    // Since instrInserted did not return true, there is work to do. Pause the
+    // process for correctness.
 
-   insertJumpsToTramps(stackWalks);
-   
-   // We may need to modify certain pieces of the process state to ensure
-   // that instrumentation runs properly. Two known cases:
-   // 1) If an active call site (call site on the stack) is instrumented,
-   //    we need to modify the return address to be in instrumentation
-   //    and not at the original return addr.
-   // 2) AIX only: if we instrument with an entry/exit pair, modify the
-   //    return address of the function to point into the exit tramp rather
-   //    than the return addr. 
-   //    Note that #2 overwrites #1; but if we perform the fixes in this order
-   //    then everything works.
+    // This is our pauseProcess, it tracks whether the process was paused
+    // when instrumentation was inserted.
+    pauseProcess();
+    if(proc()->hasExited()) {
+        // though technically we failed to insert instrumentation, from the
+        // perspective of the machineMetFocusNode, it succeeded.
+        return inst_insert_success;
+    }
+    
+    bool res;
 
-   // We need a stack walk for both this and catchup; take it once.
+    if (!instrLoaded())
+        res = loadInstrIntoApp();
+    else
+        res = true;
+    
+    if (!res) {
+        continueProcess();
+        pdstring msg = pdstring("Unable to load instrumentation for metric focus ")
+            + getFullName() + " into process with pid " 
+            + pdstring(proc()->getPid());
+        showErrorCallback(126, msg);
+        return inst_insert_failure;
+    }
 
-   doInstrumentationFixup(stackWalks);
+    // We've loaded instrumentation, now try to hook it up.
+    // We know we're not hooked up because otherwise instrInserted
+    // would be true, above.
 
-   // Now that the timers and counters have been allocated on the heap, and
-   // the instrumentation added, we can manually execute instrumentation we
-   // may have processed at function entry points and pre-instruction call
-   // sites which have already executed.
-   // Note: this must run IMMEDIATELY after inserting the jumps to tramps
-   doCatchupInstrumentation(stackWalks);
-   // Changes for MT: process will be continued by inferior RPCs
-   // This is because the inferior RPCs may complete after the instrumentation
-   // path, and so they must leave the process in a paused state.
-   instrInserted_ = true;
-   return inst_insert_success;
+    // We take a stack walk to assist in both inserting jumps (which needs to
+    // know PCs) and in catchup. It's more efficient to do it once.
+
+    assert(!instrLinked());
+
+    pdvector <pdvector <Frame> > stackWalks;
+    proc()->walkStacks(stackWalks);
+
+    if (pd_debug_catchup) {
+        for (unsigned thr_iter = 0; thr_iter < stackWalks.size(); thr_iter++) {
+            pdvector<Frame> &stackWalk = stackWalks[thr_iter];
+            
+            fprintf(stderr, "Dumping stack walk for thread %d\n",
+                    stackWalk[0].getThread()->get_tid());
+            for (unsigned a = 0; a < stackWalk.size(); a++) {
+                cerr << stackWalk[a] << endl;
+            }
+            fprintf(stderr, "------------------\n");
+        }
+    }
+
+    // Before we insert jumps we run a set of "instrumentation fixups". 
+    // This code attempts to move the PC in each frame to an equivalent
+    // location inside instrumentation (if there is a correspondence). 
+    // It's sort of like catchup, but for the PC instead of instrumentation.
+    // This may modify the stack walk.
+
+    // We may need to modify certain pieces of the process state to ensure
+    // that instrumentation runs properly. Two known cases:
+    // 1) If the PC is inside a basic block that is newly instrumented,
+    //    move the PC into the equivalent location in the multitramp.
+    //    This includes frames on the stack if the return addr is inside
+    //    a basic block.
+    // 2) Possible: move the PC from an "old" multitramp to the new one (?)
+    // TODO: we need to make this work.
+    // Assertion case: if we modify PCs, we can inserted jumps to tramps.
+
+    bool modified = doInstrumentationFixup(stackWalks);
+    assert(res);
+    
+
+    res = insertJumpsToTramps(stackWalks);
+    
+    if (!res) {
+        assert(!modified);
+        // We defer and try again later.
+        continueProcess();
+        // If any of the instrCodeNodes are marked as deferred...
+        if(instrDeferred()) {
+            registerAsDeferred(getMetricID());
+            return inst_insert_deferred;
+        }
+        else
+            return inst_insert_failure;
+    }
+    
+    // Now that the timers and counters have been allocated on the heap, and
+    // the instrumentation added, we can manually execute instrumentation we
+    // may have inserted that was "missed" because we did not insert at
+    // time 0.
+    // Note: this must run IMMEDIATELY after inserting the jumps to tramps or
+    // our state snapshot is invalid.
+
+    // Catchup must not have been done already...
+    assert(!instrCatchuped());
+
+    res = doCatchupInstrumentation(stackWalks);
+
+    // Changes for MT: process will be continued by inferior RPCs or doCatchup...
+    // This is because the inferior RPCs may complete after the instrumentation
+    // path, and so they must leave the process in a paused state.
+
+    assert(res); // No fallback for failed catchup.
+    instrInserted_ = true;
+    return inst_insert_success;
 }
 
 // We may need to modify certain pieces of the process state to ensure
@@ -394,28 +463,31 @@ inst_insert_result_t processMetFocusNode::insertInstrumentation() {
 //    Note that #2 overwrites #1; but if we perform the fixes in this order
 //    then everything works.
 
-void processMetFocusNode::doInstrumentationFixup(pdvector<pdvector<Frame> >&stackWalks) {
+bool processMetFocusNode::doInstrumentationFixup(pdvector<pdvector<Frame> >&stackWalks) {
+    bool modified = false;
+    // These return true if anything was modified
 
-  for (unsigned cIter = 0; cIter < constraintCodeNodes.size(); cIter++) {
-    pdvector<instReqNode *> instRequests = constraintCodeNodes[cIter]->getInstRequests();
-    for (unsigned iIter = 0; iIter < instRequests.size(); iIter++) {
-      for (unsigned thrIter = 0; thrIter < stackWalks.size(); thrIter++) {
-	for (unsigned sIter = 0; sIter < stackWalks[thrIter].size(); sIter++) {
-	  proc_->catchupSideEffect(stackWalks[thrIter][sIter],
-				   instRequests[iIter]);
-	}
-      }
+    for (unsigned cIter = 0; cIter < constraintCodeNodes.size(); cIter++) {
+        pdvector<instReqNode *> instRequests = constraintCodeNodes[cIter]->getInstRequests();
+        for (unsigned iIter = 0; iIter < instRequests.size(); iIter++) {
+            for (unsigned thrIter = 0; thrIter < stackWalks.size(); thrIter++) {
+                for (unsigned sIter = 0; sIter < stackWalks[thrIter].size(); sIter++) {
+                    modified |= proc_->catchupSideEffect(stackWalks[thrIter][sIter],
+                                                         instRequests[iIter]);
+                }
+            }
+        }
     }
-  }
-  pdvector<instReqNode *> instRequests2 = metricVarCodeNode->getInstRequests();
-  for (unsigned iIter2 = 0; iIter2 < instRequests2.size(); iIter2++) {
-    for (unsigned thrIter2 = 0; thrIter2 < stackWalks.size(); thrIter2++) {
-      for (unsigned sIter2 = 0; sIter2 < stackWalks[thrIter2].size(); sIter2++) {
-	proc_->catchupSideEffect(stackWalks[thrIter2][sIter2],
-				 instRequests2[iIter2]);
-      }
+    pdvector<instReqNode *> instRequests2 = metricVarCodeNode->getInstRequests();
+    for (unsigned iIter2 = 0; iIter2 < instRequests2.size(); iIter2++) {
+        for (unsigned thrIter2 = 0; thrIter2 < stackWalks.size(); thrIter2++) {
+            for (unsigned sIter2 = 0; sIter2 < stackWalks[thrIter2].size(); sIter2++) {
+                modified |= proc_->catchupSideEffect(stackWalks[thrIter2][sIter2],
+                                                     instRequests2[iIter2]);
+            }
+        }
     }
-  }
+    return modified;
 }
 
 
@@ -439,21 +511,22 @@ void processMetFocusNode::doInstrumentationFixup(pdvector<pdvector<Frame> >&stac
 //       No -> don't manually trigger n's instrumentation.
 //       Yes -> run (a copy) of n's instrumentation via inferior RPC
 //         
-void processMetFocusNode::doCatchupInstrumentation(pdvector<pdvector<Frame> >&stackWalks) {
+bool processMetFocusNode::doCatchupInstrumentation(pdvector<pdvector<Frame> >&stackWalks) {
     // doCatchupInstrumentation is now the primary control
     // of whether a process runs or not. 
     // The process may have been paused when we inserted instrumentation.
-    // If so, the value of "currentlyPaused" is 0 (user paused)
-    // If we paused to insert the value of currentlyPaused is 1
-    // /* DEBUG */ fprintf(stderr, "doCatchup entry, currentlyPaused = %d\n", currentlyPaused);
-    assert(hasBeenCatchuped() == false);
-
+    // If so, the value of "runWhenFinished_" is 0 (user paused)
+    // If we paused to insert the value of runWhenFinished_ is 1
+    // /* DEBUG */ fprintf(stderr, "doCatchup entry, runWhenFinished_ = %d\n", runWhenFinished_);
+    assert(!instrCatchuped());
+    
     prepareCatchupInstr(stackWalks);
     bool catchupPosted = postCatchupRPCs();
-
+    
     if (!catchupPosted) {
-      if (currentlyPaused) continueProcess();
-      return;
+        // Nothing to do here...
+        if (runWhenFinished_) continueProcess();
+        return true;
     }
     
     // Get them all cleared out
@@ -463,14 +536,16 @@ void processMetFocusNode::doCatchupInstrumentation(pdvector<pdvector<Frame> >&st
     //    our purposes
     // 3) Waiting for a system call, no trap. Nothing we can do but
     //    wait and pick it up somewhere else.
-    if (!proc_->launchRPCs(currentlyPaused)) {
-      if (currentlyPaused) continueProcess();
-      return;
+    if (!proc_->launchRPCs(runWhenFinished_)) {
+        if (runWhenFinished_) 
+            continueProcess();
+        return true;
     }
-    // currentlyPaused now becomes the state to leave the process in when we're
+    // runWhenFinished_ now becomes the state to leave the process in when we're
     // done with catchup. For a little while, we'll be out of sync with the 
     // actual process. This is annoying, but necessary, since we can't effectively
     // do synchronous catchup RPCs.
+    return true;
 }
 
 //
@@ -495,100 +570,92 @@ void processMetFocusNode::doCatchupInstrumentation(pdvector<pdvector<Frame> >&st
 //         
 
 void processMetFocusNode::prepareCatchupInstr(pdvector<pdvector<Frame> > &stackWalks) {
-  for (unsigned thr_iter = 0; thr_iter < stackWalks.size(); thr_iter++) {
-    pdvector<Frame> stackWalk = stackWalks[thr_iter];
-
-    if (pd_debug_catchup) {
-      fprintf(stderr, "Dumping stack walk for thread %d\n",
-	      stackWalk[0].getThread()->get_tid());
-      for (unsigned a = 0; a < stackWalk.size(); a++) {
-	cerr << stackWalk[a] << endl;
-      }
-      fprintf(stderr, "------------------\n");
-    }
-    
-    // Convert the stack walks into a similar list of catchupReq nodes, which
-    // maps 1:1 onto the stack walk and includes a vector of instReqNodes that
-    // need to be executed
-    pdvector<catchupReq *> catchupWalk;
-    for (unsigned f=0; f<stackWalk.size(); f++) {
-      catchupWalk.push_back(new catchupReq(stackWalk[f]));
-    }
-    
-    // Now go through all associated code nodes, and add appropriate bits to
-    // the catchup request list.
-    for (unsigned cIter = 0; cIter < constraintCodeNodes.size(); cIter++)
-      constraintCodeNodes[cIter]->prepareCatchupInstr(catchupWalk);
-    // Get the metric code node catchup list
-    metricVarCodeNode->prepareCatchupInstr(catchupWalk);
-    
-    // Note: stacks are delivered to us in bottom-up order (most recent to
-    // main()), and we want to execute from main down. So loop through
-    // backwards and add to the main list. We can go one thread at a time,
-    // because multiple threads will not interfere with each other.
-    
-    // See comment below for sparc info
-    
-    // can't do "conglomerate rpcs" until bug #369 "AST sequence node
-    // generation" is fixed
+    for (unsigned thr_iter = 0; thr_iter < stackWalks.size(); thr_iter++) {
+        pdvector<Frame> &stackWalk = stackWalks[thr_iter];
+        
+        
+        // Convert the stack walks into a similar list of catchupReq nodes, which
+        // maps 1:1 onto the stack walk and includes a vector of instReqNodes that
+        // need to be executed
+        pdvector<catchupReq *> catchupWalk;
+        for (unsigned f=0; f<stackWalk.size(); f++) {
+            catchupWalk.push_back(new catchupReq(stackWalk[f]));
+        }
+        
+        // Now go through all associated code nodes, and add appropriate bits to
+        // the catchup request list.
+        for (unsigned cIter = 0; cIter < constraintCodeNodes.size(); cIter++)
+            constraintCodeNodes[cIter]->prepareCatchupInstr(catchupWalk);
+        // Get the metric code node catchup list
+        metricVarCodeNode->prepareCatchupInstr(catchupWalk);
+        
+        // Note: stacks are delivered to us in bottom-up order (most recent to
+        // main()), and we want to execute from main down. So loop through
+        // backwards and add to the main list. We can go one thread at a time,
+        // because multiple threads will not interfere with each other.
+        
+        // See comment below for sparc info
+        
+        // can't do "conglomerate rpcs" until bug #369 "AST sequence node
+        // generation" is fixed
 #if defined(CONGLOMERATE_RPCS)
-    // Then through each frame in the stack walk
-    AstNode *conglomerate = NULL;
-    for(int j = catchupWalk.size()-1; j >= 0; j--) { 
-      catchupReq *curCReq = catchupWalk[j];
-      // Note: backwards iteration
-      if ((curCReq->reqNodes).size()) {   // Means we have a catchup request
-	// What we want to do: build a single big AST then launch it as
-	// an RPC.
-	for (unsigned k1 = 0; k1<(curCReq->reqNodes).size(); k1++) {
-	  AstNode *AST = curCReq->reqNodes[k1]->Snippet()->PDSEP_ast();
-	  if (!conglomerate) {
-	    conglomerate = AST;
-	  }
-	  else { // Need to combine with a SequenceNode
-	    AstNode *old = conglomerate;
-	    conglomerate = new AstNode(conglomerate, AST);
-	    removeAst(old);
-	  }
-	}
-      }
-    }
-    
-    if (conglomerate) {
-      catchup_t catchup;
-      //conglomerate->print();
-      catchup.ast = conglomerate;
-      catchup.thread = catchupWalk[0]->frame.getThread();
-      catchupASTList.push_back(catchup);      
-    }
+        // Then through each frame in the stack walk
+        AstNode *conglomerate = NULL;
+        for(int j = catchupWalk.size()-1; j >= 0; j--) { 
+            catchupReq *curCReq = catchupWalk[j];
+            // Note: backwards iteration
+            if ((curCReq->reqNodes).size()) {   // Means we have a catchup request
+                // What we want to do: build a single big AST then launch it as
+                // an RPC.
+                for (unsigned k1 = 0; k1<(curCReq->reqNodes).size(); k1++) {
+                    AstNode *AST = curCReq->reqNodes[k1]->Snippet()->PDSEP_ast();
+                    if (!conglomerate) {
+                        conglomerate = AST;
+                    }
+                    else { // Need to combine with a SequenceNode
+                        AstNode *old = conglomerate;
+                        conglomerate = new AstNode(conglomerate, AST);
+                        removeAst(old);
+                    }
+                }
+            }
+        }
+        
+        if (conglomerate) {
+            catchup_t catchup;
+            //conglomerate->print();
+            catchup.ast = conglomerate;
+            catchup.thread = catchupWalk[0]->frame.getThread();
+            catchupASTList.push_back(catchup);      
+        }
 #else
-    // Sparc (and linux) is currently having problems with AST sequences,
-    // especially if the sequences include several copies of the same AST
-    // tree. So we post as individual iRPCs
-    
-    // Then through each frame in the stack walk
-    for(int j = catchupWalk.size()-1; j >= 0; j--) { 
-      catchupReq *curCReq = catchupWalk[j];
-      // Note: backwards iteration
-      if ((curCReq->reqNodes).size()) {   // Means we have a catchup request
-	// What we want to do: build a single big AST then launch it as
-	// an RPC.
-	for (unsigned k1 = 0; k1<(curCReq->reqNodes).size(); k1++) {
-	  AstNode *AST = curCReq->reqNodes[k1]->Snippet()->PDSEP_ast();
-	  catchup_t catchup;
-	  catchup.ast = AST;
-	  catchup.thread = catchupWalk[0]->frame.getThread();
-	  catchupASTList.push_back(catchup);
-	}
-      }
-    }
+        // Sparc (and linux) is currently having problems with AST sequences,
+        // especially if the sequences include several copies of the same AST
+        // tree. So we post as individual iRPCs
+        
+        // Then through each frame in the stack walk
+        for(int j = catchupWalk.size()-1; j >= 0; j--) { 
+            catchupReq *curCReq = catchupWalk[j];
+            // Note: backwards iteration
+            if ((curCReq->reqNodes).size()) {   // Means we have a catchup request
+                // What we want to do: build a single big AST then launch it as
+                // an RPC.
+                for (unsigned k1 = 0; k1<(curCReq->reqNodes).size(); k1++) {
+                    AstNode *AST = curCReq->reqNodes[k1]->Snippet()->PDSEP_ast();
+                    catchup_t catchup;
+                    catchup.ast = AST;
+                    catchup.thread = catchupWalk[0]->frame.getThread();
+                    catchupASTList.push_back(catchup);
+                }
+            }
+        }
 #endif
-  }
-
-   pdvector<instrCodeNode *> allCodeNodes;
-   getAllCodeNodes(&allCodeNodes);
-   for(unsigned i=0; i<allCodeNodes.size(); i++)
-      allCodeNodes[i]->markAsCatchupDone();
+    }
+    
+    pdvector<instrCodeNode *> allCodeNodes;
+    getAllCodeNodes(&allCodeNodes);
+    for(unsigned i=0; i<allCodeNodes.size(); i++)
+        allCodeNodes[i]->markAsCatchupDone();
 }
 
 /*
@@ -673,23 +740,22 @@ void processMetFocusNode::initAggInfoObjects(timeStamp startTime,
   }
 }
 
-inst_insert_result_t processMetFocusNode::loadInstrIntoApp()
+bool processMetFocusNode::loadInstrIntoApp()
 {
-   pdvector<instrCodeNode *> codeNodes;
-   getAllCodeNodes(&codeNodes);
-
-   // mark remaining prim. components as deferred if we come upon
-   // one deferred component
-   for (unsigned j=0; j<codeNodes.size(); j++) {
-      instrCodeNode *codeNode = codeNodes[j];
-      inst_insert_result_t status = codeNode->loadInstrIntoApp();
-      
-      if(status != inst_insert_success) {
-         return status;
-      }
-   }
-
-   return inst_insert_success;
+    pdvector<instrCodeNode *> codeNodes;
+    getAllCodeNodes(&codeNodes);
+    
+    // If we hit an error stop immediately.
+    for (unsigned j=0; j<codeNodes.size(); j++) {
+        instrCodeNode *codeNode = codeNodes[j];
+        bool res = codeNode->loadInstrIntoApp();
+        
+        if (!res) {
+            return false;
+        }
+    }
+    
+    return true;
 }
 
 void processMetFocusNode::removeDataNodes()
@@ -757,7 +823,7 @@ pdvector<const instrDataNode*> processMetFocusNode::getFlagDataNodes() const {
 // that returns whether it is safe to put in instrumentation.
 
 bool processMetFocusNode::insertJumpsToTramps(pdvector<pdvector<Frame > >&stackWalks) {
-   assert(trampsHookedUp() == false);
+    assert(!instrLinked());
 
    // pause once for all primitives for this component
    
@@ -837,28 +903,28 @@ void processMetFocusNode::removeProcNodesToDeleteLater() {
 }
 
 void processMetFocusNode::pauseProcess() {
-  // /* DEBUG */ fprintf(stderr, "procMetFoc, pauseProc %d\n", currentlyPaused);
-  if(currentlyPaused == true)  return;
+  // /* DEBUG */ fprintf(stderr, "procMetFoc, pauseProc %d\n", runWhenFinished_);
+  if(runWhenFinished_ == true)  return;
   if (proc()->isStopped()) return; // at startup, process can be stopped, but not "paused"
-                                 // don't need to pause, and setting currentlyPaused
+                                 // don't need to pause, and setting runWhenFinished_
                                  // will result in the process getting started at
                                  // a bad moment.
   if (proc()->pause())
   {
-    currentlyPaused = true;
+    runWhenFinished_ = true;
   }
 
 }
 
 void processMetFocusNode::continueProcess() {
-  // /* DEBUG */ fprintf(stderr, "procMetFoc, paused %d\n", currentlyPaused);
-  if(currentlyPaused) {
-      proc()->continueProc();
-      currentlyPaused = false;
-   }
+    // /* DEBUG */ fprintf(stderr, "procMetFoc, paused %d\n", runWhenFinished_);
+    if(runWhenFinished_) {
+        proc()->continueProc();
+        runWhenFinished_ = false;
+    }
 }
 
-bool processMetFocusNode::hasDeferredInstr() {
+bool processMetFocusNode::instrDeferred() {
   bool hasDeferredComp = false;
 
   pdvector<instrCodeNode *> codeNodes;

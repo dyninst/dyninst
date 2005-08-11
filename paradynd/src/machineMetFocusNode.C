@@ -308,10 +308,10 @@ bool machineMetFocusNode::hasDeferredInstr() {
   bool hasDeferredComp = false;
 
   for(unsigned i=0; i<procNodes.size(); i++) {
-    if(procNodes[i]->hasDeferredInstr()) {
-      hasDeferredComp = true;
-      break;
-    }
+      if(procNodes[i]->instrDeferred()) {
+          hasDeferredComp = true;
+          break;
+      }
   }
   return hasDeferredComp;
 }

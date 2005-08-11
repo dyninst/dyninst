@@ -109,15 +109,6 @@ bool instReqNode::addInstr(pd_process *theProc) {
     
     bool trampRecursiveDesired = false;
     
-    // --------------------------------------------------------------
-    // can remove this once implement MT tramp guards on linux
-#if defined(os_linux)
-    // ignore tramp guards on MT Linux until it is implemented
-    if(theProc->multithread_capable())
-        trampRecursiveDesired = true;
-#endif
-    // --------------------------------------------------------------
-    
     // addInstFunc() is one of the key routines in all paradynd.  It installs a
     // base tramp at the point (if needed), generates code for the tramp, calls
     // inferiorMalloc() in the text heap to get space for it, and actually
@@ -126,7 +117,6 @@ bool instReqNode::addInstr(pd_process *theProc) {
     //  PDSEP -- eventually need to use insertSnippet here
     AstNode * l_ast = snip->PDSEP_ast();
     AstNode * &lr_ast = l_ast;
-    
     
     //  PDSEP, these switches will go away....
     callWhen cw = callPreInsn;
@@ -140,9 +130,11 @@ bool instReqNode::addInstr(pd_process *theProc) {
         when = BPatch_callAfter;
 
 
-    if (!BPatchToInternalArgs(*point, when, order, cw, co))
+    if (!BPatchToInternalArgs(*point, when, order, cw, co)) {
+        fprintf(stderr, "ERROR: unable to convert Dyninst inst args to internals\n");
         return false;
-    
+    }    
+
     if(theProc->hasExited()) {
         return false;
     }
@@ -170,9 +162,10 @@ bool instReqNode::generateInstr() {
     
     instPoint *pt = point->PDSEP_instPoint();
     
-    if (!pt->generateInst(false))
+    if (!pt->generateInst(true)) { // Allow traps for now
         return false;
-    
+    }
+
     instrGenerated_ = true;
     
     return true;

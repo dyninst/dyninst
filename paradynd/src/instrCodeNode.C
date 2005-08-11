@@ -64,7 +64,7 @@ dictionary_hash<pdstring, instrCodeNode_Val*>
 static void cleanupDataInCodeNode(void *temp, miniTramp *);
 
 instrCodeNode *instrCodeNode::newInstrCodeNode(pdstring name_, const Focus &f,
-                                   pd_process *proc, bool arg_dontInsertData, 
+                                               pd_process *proc, bool arg_dontInsertData, 
                                                pdstring hw_cntr_str)
 {
   instrCodeNode_Val *nodeVal;
@@ -140,9 +140,23 @@ instrCodeNode::instrCodeNode(instrCodeNode_Val *val)
 {  
 }
 
+instrCodeNode_Val::instrCodeNode_Val(const pdstring &name_, const Focus &f, pd_process *p,
+                                     bool dontInsertData, HwEvent* hw) : 
+    sampledDataNode(NULL), constraintDataNode(NULL), name(name_), focus(f), 
+    instrLoaded_(false), instrLinked_(false),
+    instrDeferred_(false), instrCatchuped_(false),
+    proc_(p), dontInsertData_(dontInsertData), 
+    referenceCount(0), hwEvent(hw),
+    pendingDeletion(false), numCallbacks(0)
+{ 
+}
+
 instrCodeNode_Val::instrCodeNode_Val(const instrCodeNode_Val &par,
 				     pd_process *childProc) :
   name(par.name), focus(adjustFocusForPid(par.focus, childProc->getPid())),
+  instrLoaded_(par.instrLoaded_), instrLinked_(par.instrLinked_),
+  instrDeferred_(par.instrDeferred_), instrCatchuped_(par.instrCatchuped_),
+  proc_(childProc),
   hwEvent(par.hwEvent), pendingDeletion(par.pendingDeletion),
   numCallbacks(0)
 {
@@ -174,13 +188,6 @@ instrCodeNode_Val::instrCodeNode_Val(const instrCodeNode_Val &par,
 	 registerCallback(newInstReq);
       }
    }
-   trampsNeedHookup_ = par.trampsNeedHookup_;
-   needsCatchup_ = par.needsCatchup_;
-   instrDeferred_ = par.instrDeferred_;
-   instrLoaded_ = par.instrLoaded_;
-   proc_ = childProc;
-   
-   dontInsertData_ = par.dontInsertData_;
    referenceCount = 0;  // this node when created, starts out unshared
 }
 
@@ -336,7 +343,7 @@ void prepareCatchupInstr_debug(instReqNode &iRN)
 
 void instrCodeNode::prepareCatchupInstr(pdvector<catchupReq *> &stackWalk)
 {
-   if(needsCatchup()==false) return;
+    if (instrCatchuped()) return;
 
    // Okay, we have a stack frame and a list of instPoints (instRequests). We
    // want to get a list of the instRequests that are on the stack. So, we
@@ -422,67 +429,68 @@ void instrCodeNode::prepareCatchupInstr(pdvector<catchupReq *> &stackWalk)
    // all of the threads
 }
 
-inst_insert_result_t instrCodeNode::loadInstrIntoApp() {
-   if(instrLoaded()) {
-      return inst_insert_success;
-   }
-
-   V.trampsNeedHookup_ = true;
-   V.needsCatchup_ = true;
-  
-   // Loop thru "instRequests", an array of instReqNode:
-   // (Here we insert code instrumentation, tramps, etc. via addInstFunc())
-   unsigned int inst_size = V.instRequests.size();
-   //cerr << "instrCodeNode id: " << getID() << " attempted insert of " 
-   //     << inst_size << " instRequests\n";
-   for(unsigned u1=0; u1<inst_size; u1++) {
-      // code executed later (prepareCatchupInstr) may also manually trigger 
-      // the instrumentation via inferiorRPC.
-       instReqNode *instReq = V.instRequests[u1];
-
-       if(instReq->instrGenerated())  continue;
-       
-       bool success = instReq->addInstr(proc());
-
-       if (!success) return inst_insert_failure;
-
-       success = instReq->generateInstr();
-
-       if (!success) return inst_insert_failure;
+bool instrCodeNode::loadInstrIntoApp() {
+    if(instrLoaded()) {
+        return true;
+    }
+    // These need to be consistent; if not, move them into
+    // this class.
+    assert(V.instrLinked_ == false);
+    assert(V.instrCatchuped_ == false);
+    
+    // Loop thru "instRequests", an array of instReqNode:
+    // (Here we insert code instrumentation, tramps, etc. via addInstFunc())
+    unsigned int inst_size = V.instRequests.size();
+    //cerr << "instrCodeNode id: " << getID() << " attempted insert of " 
+    //     << inst_size << " instRequests\n";
+    for(unsigned u1=0; u1<inst_size; u1++) {
+        // code executed later (prepareCatchupInstr) may also manually trigger 
+        // the instrumentation via inferiorRPC.
+        instReqNode *instReq = V.instRequests[u1];
+        
+        if(instReq->instrGenerated())  continue;
+        
+        bool success = instReq->addInstr(proc());
+        
+        if (!success) return false;
+        
+        success = instReq->generateInstr();
+        
+        if (!success) return false;
 #if 0       
-       // Commented out deferred instru 'cause we don't
-       // relocate right now.
-       unmarkAsDeferred();
-       switch(res) {
-       case deferred_res:
-           markAsDeferred();
-           //           cerr << "marking " << (void*)this << " " << u1+1 << " / "
-           //     << inst_size << " as deferred\n";
-           return inst_insert_deferred;
-           break;
-       case failure_res:
-           //cerr << "instRequest.insertInstr - wasn't successful\n";
-           return inst_insert_failure;
-           break;
-       case success_res:
-           //cerr << "instrRequest # " << u1+1 << " / " << inst_size
-           //     << "inserted\n";
-           // Interesting... it's possible that this minitramp writes to more
-           // than one variable (data, constraint, "temp" vector)
-           {
-               pdvector<instrDataNode *> affectedNodes;
-               getDataNodes(&affectedNodes);
-               for (unsigned i = 0; i < affectedNodes.size(); i++)
-                   affectedNodes[i]->incRefCount();
-               V.registerCallback(instReq);
-               break;
-           }
-       }
+        // Commented out deferred instru 'cause we don't
+        // relocate right now.
+        unmarkAsDeferred();
+        switch(res) {
+        case deferred_res:
+            markAsDeferred();
+            //           cerr << "marking " << (void*)this << " " << u1+1 << " / "
+            //     << inst_size << " as deferred\n";
+            return inst_insert_deferred;
+            break;
+        case failure_res:
+            //cerr << "instRequest.insertInstr - wasn't successful\n";
+            return inst_insert_failure;
+            break;
+        case success_res:
+            //cerr << "instrRequest # " << u1+1 << " / " << inst_size
+            //     << "inserted\n";
+            // Interesting... it's possible that this minitramp writes to more
+            // than one variable (data, constraint, "temp" vector)
+            {
+                pdvector<instrDataNode *> affectedNodes;
+                getDataNodes(&affectedNodes);
+                for (unsigned i = 0; i < affectedNodes.size(); i++)
+                    affectedNodes[i]->incRefCount();
+                V.registerCallback(instReq);
+                break;
+            }
+        }
 #endif
-
-   }
-   V.instrLoaded_ = true;
-   return inst_insert_success;
+        
+    }
+    V.instrLoaded_ = true;
+    return inst_insert_success;
 }
 
 void instrCodeNode::prepareForSampling(
@@ -515,41 +523,48 @@ void instrCodeNode::stopSamplingThr(threadMetFocusNode_Val *thrNodeVal) {
 }
 
 bool instrCodeNode::insertJumpsToTramps(pdvector<pdvector<Frame> > &stackWalks) {
-   if(trampsNeedHookup()==false) return true;
+    if (instrLinked()) return true;
 
-   unsigned rsize = V.instRequests.size();
-
-   bool delay_install = false; // true if some instr. needs to be delayed 
-   pdvector<bool> delay_elm(rsize); // wch instr. to delay
-
-   for(unsigned k=0; k < rsize; k++) {
-       instReqNode *instR = V.instRequests[k];
-
-       bool canInstall = instR->checkInstr(stackWalks);
-       
-       if (!canInstall) {
-           delay_elm[k] = true;
-           delay_install = true;
-       }
-       else {
-           delay_elm[k] = false;
-       }
-   }
-
-   // We really want to install or delay everything as a single
-   // set...
-
-   if (delay_install)
-       return false;
-
-   for (unsigned i = 0; i < rsize; i++) {
-       instReqNode *instR = V.instRequests[i];
-
-       instR->linkInstr();
-   }
-
-   markTrampsAsHookedUp();
-   return true;
+    unsigned rsize = V.instRequests.size();
+    
+    bool delay_install = false; // true if some instr. needs to be delayed 
+    pdvector<bool> delay_elm(rsize); // wch instr. to delay
+    
+    unmarkAsDeferred();
+    
+    for(unsigned k=0; k < rsize; k++) {
+        instReqNode *instR = V.instRequests[k];
+        
+        bool canInstall = instR->checkInstr(stackWalks);
+        
+        if (!canInstall) {
+            delay_elm[k] = true;
+            delay_install = true;
+        }
+        else {
+            delay_elm[k] = false;
+        }
+    }
+    
+    // We really want to install or delay everything as a single
+    // set...
+    
+    if (delay_install) {
+        // Defer
+        markAsDeferred();
+        return false;
+    }
+    
+    bool res = true;
+    
+    for (unsigned i = 0; i < rsize; i++) {
+        instReqNode *instR = V.instRequests[i];
+        res &= instR->linkInstr();
+    }
+    if (!res) return false; // Horrible case... 
+    
+    markTrampsAsHookedUp();
+    return true;
 }
 
 timeLength instrCodeNode::cost() const {
