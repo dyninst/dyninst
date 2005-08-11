@@ -3915,9 +3915,11 @@ bool process::getDynamicCallSiteArgs( instPoint * callSite, pdvector<AstNode *> 
 bool multiTramp::generateBranchToTramp(codeGen &gen) {
 	// We need to branch from instAddr_ to trampAddr_. We 
 	// do it with a single jump
+	unsigned origUsed = gen.used();
 	instruction_x jumpToBaseInstruction = generateLongBranchTo(trampAddr_ - instAddr_); 
 	IA64_bundle jumpToBaseBundle(MLXstop, instruction(NOP_M), jumpToBaseInstruction);
 	jumpToBaseBundle.generate(gen);
+	branchSize_ = gen.used() - origUsed;
 	return true;
 }
 
