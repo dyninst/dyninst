@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.200 2005/08/03 05:28:05 bernat Exp $
+// $Id: aix.C,v 1.201 2005/08/11 21:20:06 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -274,82 +274,59 @@ Frame Frame::getCallerFrame()
 }
 
 bool Frame::setPC(Address newpc) {
-
-  // Encapsulate all the logic necessary to set a new PC in a frame
-  // If the function is a leaf function, we need to overwrite the LR directly.
-  // The return addr for a frame is basically the parent's pc...
-
-  if (pc_ == newpc) return true;
-
-  if (isUppermost()) {
-    if (getLWP())
-      getLWP()->changePC(newpc, NULL);
-    else if (getThread())
-      getThread()->get_lwp()->changePC(newpc, NULL);
-    else 
-      getProc()->getRepresentativeLWP()->changePC(newpc, NULL);
-  }
-  else if (pcAddr_ == 1) {
-    // Stomp the LR
-    dyn_lwp *lwp = getLWP();
-    if (lwp && lwp->get_lwp_id()) {
-      // Get the current LR and reset it to our new version
-#if defined(AIX_PROC)
-      dyn_saved_regs regs;
-      bool status = lwp->getRegisters(&regs);
-      if (!status) {
-	bperr( "Failure to get registers in catchupSideEffect\n");
-	return false;
-      }
-      regs.theIntRegs.__lr = newpc;
-      if (!lwp->restoreRegisters(regs)) {
-	bperr( "Failure to restore registers in catchupSideEffect\n");
-	return false;
-      }
-#else
-      struct ptsprs spr_contents;
-      Address oldLR;
-      if (P_ptrace(PTT_READ_SPRS, lwp->get_lwp_id(),
-		   (int *)&spr_contents, 0, 0) == -1) {
-	perror("Failed to read SPRS in catchupSideEffect");
-	return false;
-      }
-      spr_contents.pt_lr = (unsigned) newpc;
-      if (P_ptrace(PTT_WRITE_SPRS, lwp->get_lwp_id(),
-		   (int *)&spr_contents, 0, 0) == -1) {
-	perror("Failed to write SPRS in catchupSideEffect");
-	return false;
-      }
-#endif
+    
+    // Encapsulate all the logic necessary to set a new PC in a frame
+    // If the function is a leaf function, we need to overwrite the LR directly.
+    // The return addr for a frame is basically the parent's pc...
+    
+    if (pc_ == newpc) return true;
+    
+    if (isUppermost()) {
+        if (getLWP())
+            getLWP()->changePC(newpc, NULL);
+        else if (getThread())
+            getThread()->get_lwp()->changePC(newpc, NULL);
+        else 
+            getProc()->getRepresentativeLWP()->changePC(newpc, NULL);
     }
-    else {
-      // Process-wide
-#if defined(AIX_PROC)
-      dyn_saved_regs regs;
-      bool status = getProc()->getRepresentativeLWP()->getRegisters(&regs);
-      if (!status) {
-	bperr("Failure to get registers in catchupSideEffect\n");
-	return false;
-      }
-      regs.theIntRegs.__lr = newpc;
-      getProc()->getRepresentativeLWP()->restoreRegisters(regs);
-#else
-      if (P_ptrace(PT_WRITE_GPR, getPID(), (void *)LR, newpc, 0) == -1) {
-	perror("Failed to write LR in catchupSideEffect");
-	return false;
-      }
-#endif
+    else if (pcAddr_ == 1) {
+        // Stomp the LR
+        dyn_lwp *lwp = getLWP();
+        if (lwp && lwp->get_lwp_id()) {
+            // Get the current LR and reset it to our new version
+            dyn_saved_regs regs;
+            bool status = lwp->getRegisters(&regs);
+            if (!status) {
+                bperr( "Failure to get registers in catchupSideEffect\n");
+                return false;
+            }
+            regs.theIntRegs.__lr = newpc;
+            if (!lwp->restoreRegisters(regs)) {
+                bperr( "Failure to restore registers in catchupSideEffect\n");
+                return false;
+            }
+        }
+        else {
+            // Process-wide
+            dyn_saved_regs regs;
+            bool status = getProc()->getRepresentativeLWP()->getRegisters(&regs);
+            if (!status) {
+                bperr("Failure to get registers in catchupSideEffect\n");
+                return false;
+            }
+            regs.theIntRegs.__lr = newpc;
+            getProc()->getRepresentativeLWP()->restoreRegisters(regs);
+        }
     }
-  }
-  else {    
-    // The LR is stored at pcAddr
-    getProc()->writeDataSpace((void*)pcAddr_, sizeof(Address), 
-			      &newpc);
-  }
-  
-  pc_ = newpc;
-  range_ = NULL;
-  return true;
+    else {    
+        // The LR is stored at pcAddr
+        getProc()->writeDataSpace((void*)pcAddr_, sizeof(Address), 
+                                  &newpc);
+    }
+    
+    pc_ = newpc;
+    range_ = NULL;
+    return true;
 }
 
 #ifdef DEBUG 
