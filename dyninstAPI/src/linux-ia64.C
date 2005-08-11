@@ -576,27 +576,28 @@ bool process::loadDYNINSTlibCleanup(dyn_lwp * /*ignored*/) {
 	} /* end loadDYNINSTlibCleanup() */
 
 bool Frame::setPC( Address addr ) {
-	/* setPC() should only be called on a frame from a stackwalk.
-	   If it isn't, we can duplicate the code below in getCallerFrame()
-	   in order to create the necessary unwindCursor. */
-	assert( this->hasValidCursor );
-	
-	/* Sanity-checking: ensure that the frame libunwind is setting is the same frame we are. */
-	Address ip;
-	unw_get_reg( & this->unwindCursor, UNW_IA64_IP, &ip );
-	assert( ip == pc_ );
-	
-	/* Update the PC in the remote process. */
-	int status = unw_set_reg( & this->unwindCursor, UNW_IA64_IP, addr );
-	if( status != 0 ) {
-		fprintf( stderr, "Unable to set frame's PC: libunwind error %d\n", status );
-		return false;
-		}
-	
-	/* Remember that we've done so. */
-	pc_ = addr;
-	return true;
-	} /* end Frame::setPC() */
+    /* setPC() should only be called on a frame from a stackwalk.
+       If it isn't, we can duplicate the code below in getCallerFrame()
+       in order to create the necessary unwindCursor. */
+    assert( this->hasValidCursor );
+    
+    /* Sanity-checking: ensure that the frame libunwind is setting is the same frame we are. */
+    Address ip;
+    unw_get_reg( & this->unwindCursor, UNW_IA64_IP, &ip );
+    assert( ip == pc_ );
+    
+    /* Update the PC in the remote process. */
+    int status = unw_set_reg( & this->unwindCursor, UNW_IA64_IP, addr );
+    if( status != 0 ) {
+        fprintf( stderr, "Unable to set frame's PC: libunwind error %d\n", status );
+        return false;
+    }
+    
+    /* Remember that we've done so. */
+    pc_ = addr;
+    range_ = NULL; // This has changed.
+    return true;
+} /* end Frame::setPC() */
 
 #include <miniTramp.h>
 #include <baseTramp.h>	
