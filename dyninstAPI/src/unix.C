@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.140 2005/08/05 22:23:18 bernat Exp $
+// $Id: unix.C,v 1.141 2005/08/11 21:20:26 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -594,7 +594,10 @@ int handleSigCritical(const procevent &event) {
 
        }
    }
-
+   if (dyn_debug_signal) {
+       signal_printf("Critical signal received, spinning to allow debugger to attach\n");
+       while(1) sleep(10);
+   }
    proc->dumpImage("imagefile");
    forwardSigToProcess(event);
    return 1;
@@ -847,12 +850,10 @@ int signalHandler::handleProcessEvent(const procevent &event) {
    signal_cerr << "handleProcessEvent, pid: " << proc->getPid() << ", why: "
 	       << event.why << ", what: " << event.what << ", lwps: "
 	       << event.lwp->get_lwp_id() << endl;
-#if 0
    if (dyn_debug_signal) { 
        Frame activeFrame = event.lwp->getActiveFrame();
        signal_cerr << "Event active frame: " << activeFrame << endl;
    }
-#endif
 
    int ret = 0;
    if(proc->hasExited()) {
