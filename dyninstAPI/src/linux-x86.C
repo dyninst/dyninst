@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.72 2005/08/08 20:23:33 gquinn Exp $
+// $Id: linux-x86.C,v 1.73 2005/08/11 21:20:19 bernat Exp $
 
 #include <fstream>
 
@@ -1002,11 +1002,11 @@ Frame Frame::getCallerFrame()
 }
 
 bool Frame::setPC(Address newpc) {
-  fprintf(stderr, "Implement me! Changing frame PC from %lx to %lx\n",
-	  pc_, newpc);
-  pc_ = newpc;
-  range_ = NULL;
-  return true;
+    fprintf(stderr, "Implement me! Changing frame PC from %lx to %lx\n",
+            pc_, newpc);
+    //pc_ = newpc;
+    //range_ = NULL;
+    return false;
 }
 
 void process::setPrelinkCommand(char *command){
