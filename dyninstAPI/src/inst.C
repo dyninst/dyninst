@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.138 2005/08/08 22:39:24 bernat Exp $
+// $Id: inst.C,v 1.139 2005/08/11 21:20:15 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -487,9 +487,23 @@ bool instPoint::checkInst(pdvector<Address> &checkPCs) {
         Address pc = checkPCs[sI];
         for (unsigned iI = 0; iI < instances.size(); iI++) {
             multiTramp *mt = instances[iI]->multi();
-            if ((pc >= mt->instAddr()) ||
-                (pc < (mt->instAddr() + mt->instSize())))
-                return false;
+            if ((pc >= mt->instAddr()) &&
+                (pc < (mt->instAddr() + mt->instSize()))) {
+                // We have a conflict. Now, we may still be able to make this 
+                // work; if we're not conflicting on the actual branch, we
+                // may have trap-filled the remainder which allows us to
+                // catch and transfer.
+                if (pc < (mt->instAddr() + mt->branchSize())) {
+                    // We're in the jump area, conflict.
+                    fprintf(stderr, "MT conflict (MT from 0x%x to 0x%x, 0x%x to 0x%x dangerous), PC 0x%x\n",
+                            mt->instAddr(),
+                            mt->instAddr() + mt->instSize(), 
+                            mt->instAddr(),
+                            mt->instAddr() + mt->branchSize(),
+                            pc);
+                    return false;
+                }
+            }
         }
     }
     return true;
@@ -800,37 +814,42 @@ process *instPointInstance::proc() const {
 
 bool instPoint::instrSideEffect(Frame &frame)
 {
-  assert(instances.size());
-  updateInstances();
-
-  for (unsigned i = 0; i < instances.size(); i++) {
-      instPointInstance *target = instances[i];
-      
-      int_function *instFunc = target->func();
-      if (!instFunc) return false;
-      
-      codeRange *range = frame.getRange();
-      if (range->is_function() != instFunc) {
-          // Not in this function at all, so skip
-          continue;
-      }
-      
-      // Question: generalize into "if the PC is in instrumentation,
-      // move to the equivalent address?" 
-      // Sure....
-      
-      // See previous call-specific version below; however, this
-      // _should_ work.
-      Address newPC = target->multi()->uninstToInstAddr(frame.getPC());
-      if (newPC) 
-          frame.setPC(newPC);
-
-      // That's if we want to move into instrumentation. Mental note:
-      // check to see if we're handling return points correctly; we should
-      // be. If calls ever end basic blocks, we'll have to fix this.
-
-  }
-  return true;
+    bool modified = false;
+    
+    assert(instances.size());
+    // We explicitly do not update instances here; we're
+    // between installing and linking, so don't change the 
+    // instInstance list.
+    //updateInstances();
+    
+    for (unsigned i = 0; i < instances.size(); i++) {
+        instPointInstance *target = instances[i];
+        
+        int_function *instFunc = target->func();
+        if (!instFunc) return false;
+        
+        codeRange *range = frame.getRange();
+        if (range->is_function() != instFunc) {
+            // Not in this function at all, so skip
+            continue;
+        }
+        
+        // Question: generalize into "if the PC is in instrumentation,
+        // move to the equivalent address?" 
+        // Sure....
+        
+        // See previous call-specific version below; however, this
+        // _should_ work.
+        Address newPC = target->multi()->uninstToInstAddr(frame.getPC());
+        if (newPC) {
+            if (frame.setPC(newPC))
+                modified = true;
+        }
+        // That's if we want to move into instrumentation. Mental note:
+        // check to see if we're handling return points correctly; we should
+        // be. If calls ever end basic blocks, we'll have to fix this.
+    }
+    return modified;
 }
 
 #if !defined(arch_sparc)
@@ -1070,11 +1089,26 @@ Address codeGen::currAddr(const Address base) const {
     return (offset_ * CODE_GEN_OFFSET_SIZE) + base;
 }
 
-void codeGen::fill(int fillSize, int fillType) {
-    if (fillType == cgNOP) {
+void codeGen::fill(unsigned fillSize, int fillType) {
+    switch(fillType) {
+    case cgNOP:
         instruction::generateNOOP(*this, fillSize);
+        break;
+    case cgTrap: {
+        unsigned curUsed = used();
+        while ((used() - curUsed > (unsigned) fillSize))
+            instruction::generateTrap(*this);
+        assert((used() - curUsed) == (unsigned) fillSize);
+        break;
     }
-    else {
+    case cgIllegal: {
+        unsigned curUsed = used();
+        while ((used() - curUsed > (unsigned) fillSize))
+            instruction::generateIllegal(*this);
+        assert((used() - curUsed) == (unsigned) fillSize);
+        break;
+    }
+    default:
         assert(0 && "unimplemented");
     }
 }

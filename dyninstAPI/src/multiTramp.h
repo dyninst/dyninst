@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.5 2005/08/08 22:39:29 bernat Exp $
+// $Id: multiTramp.h,v 1.6 2005/08/11 21:20:17 bernat Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -456,6 +456,7 @@ class multiTramp : public generatedCodeObject {
 
   Address instAddr() const { return instAddr_; }
   unsigned instSize() const { return instSize_; }
+  unsigned branchSize() const { return branchSize_; }
 
   // If we're really out of ideas for getting to a multitramp. Ouch.
   bool usesTrap() const { return usesTrap_; }
@@ -501,6 +502,8 @@ class multiTramp : public generatedCodeObject {
   Address trampAddr_;  // Where we are
   unsigned trampSize_; // Size of the generated multiTramp
   unsigned instSize_; // Size of the original instrumented area
+  unsigned branchSize_; // Size of the branch instruction(s) used
+  // to get to the multiTramp; the remainder is trap-filled.
 
   int_function *func_;
   process *proc_;
