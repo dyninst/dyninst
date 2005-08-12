@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.29 2005/08/08 20:23:33 gquinn Exp $
+// $Id: arch-x86.h,v 1.30 2005/08/12 14:01:37 gquinn Exp $
 // x86 instruction declarations
 
 #if !defined(i386_unknown_solaris2_5) \
@@ -204,6 +204,8 @@ class ia32_prefixes
   bool rexX() const { return prfx[4] & 0x2; }
   bool rexB() const { return prfx[4] & 0x1; }
   unsigned char getOpcodePrefix() const { return opcode_prefix; }
+  unsigned char getAddrSzPrefix() const { return prfx[3]; }
+  unsigned char getOperSzPrefix() const { return prfx[2]; }
 };
 
 //VG(6/20/02): To support Paradyn without forcing it to include BPatch_memoryAccess, we

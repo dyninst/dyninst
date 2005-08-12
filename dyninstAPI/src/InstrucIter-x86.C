@@ -350,12 +350,14 @@ bool InstrucIter::getMultipleJumpTargets(pdvector<Address>& result,
         addrWidth = img_->getAddressWidth();
 
     Address backupAddress = current;
-    bool isWordAddr,isWordOp;
     
     unsigned maxSwitch = 0;
-    const unsigned char* ptr = maxSwitchInsn.op_ptr();
 
-
+    ia32_prefixes pref;
+    const unsigned char* ptr = skip_headers(maxSwitchInsn.ptr(), &pref);
+    bool isWordAddr = pref.getAddrSzPrefix();
+    bool isWordOp = pref.getOperSzPrefix();
+    
     //get the imm value from the compare instruction and store it in 
     //maxSwitch
     if( *ptr == 0x3d )
