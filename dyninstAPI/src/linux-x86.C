@@ -39,14 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.73 2005/08/11 21:20:19 bernat Exp $
+// $Id: linux-x86.C,v 1.74 2005/08/15 22:20:20 bernat Exp $
 
 #include <fstream>
 
 #include "dyninstAPI/src/process.h"
 
 #include <sys/ptrace.h>
-#include <asm/ptrace.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
 #include <dlfcn.h>

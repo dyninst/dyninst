@@ -316,6 +316,10 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
 		// /* DEBUG */ bperr( "createFrameFromUnwindCursor(pid = %d): unwind information invalid for this frame (ip = 0x%lx, sp = 0x%lx, tp = 0x%lx), unable to acquire frame pointer.  (Probably within a pre-main function.)\n", pid, ip, sp, tp );
 		isUppermost = true;
 		}
+        else if( status == -UNW_EINVALIDIP ) {
+            // /* DEBUG */ bperr("createFrameFromUnwindCursor(pid = %d): invalid ip encountered (ip = 0x%lx, sp = 0x%lx, tp = 0x%lx), unable to acquire frame pointer.\n", pid, ip, sp, tp);
+            isUppermost = true;
+        }
 	else if( status == 0 ) {
 	  	/* This is the uppermost frame. */
 	  	// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(pid = %d): unwind information indicates that this is the uppermost frame.\n", pid );
