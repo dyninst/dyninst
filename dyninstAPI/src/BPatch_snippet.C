@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.69 2005/07/29 19:17:43 bernat Exp $
+// $Id: BPatch_snippet.C,v 1.70 2005/08/15 22:19:49 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -572,6 +572,21 @@ void BPatch_constExpr::BPatch_constExprLong(long value)
     printf("generating long constant\n");
     fflush(stdout);
 }
+
+void BPatch_constExpr::BPatch_constExprLongLong(long long value) {
+    ast = new AstNode(AstNode::Constant, (void *)value);
+    assert(BPatch::bpatch != NULL);
+    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+    
+    BPatch_type *type = BPatch::bpatch->stdTypes->findType("long long");
+    if (type == NULL) {
+        type = BPatch::bpatch->builtInTypes->findBuiltInType("long long");
+    }
+    assert(type != NULL);
+
+    ast->setType(type);
+}
+
 #else
 
 void BPatch_constExpr::BPatch_constExprLongLong(long long value)
