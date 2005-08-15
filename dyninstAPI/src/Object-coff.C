@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.27 2005/08/03 05:27:59 bernat Exp $
+// $Id: Object-coff.C,v 1.28 2005/08/15 22:40:30 bernat Exp $
 
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
@@ -275,7 +275,7 @@ void Object::load_object(bool sharedLibrary) {
 	    // << "\tEnd: " << secthead.s_vaddr + secthead.s_size << endl;
 
 	    if (!P_strcmp(secthead.s_name, ".text")) {
-	      code_len_ = Word(secthead.s_size >> LOG_WORD);
+	      code_len_ = (Word) secthead.s_size;
 	      Word *buffer = new Word[code_len_+1];
 	      code_ptr_ = buffer;
 	      code_off_ = (Address) secthead.s_vaddr;
