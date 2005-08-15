@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.4 2005/08/08 20:23:33 gquinn Exp $
+ * $Id: image-x86.C,v 1.5 2005/08/15 22:20:12 bernat Exp $
  */
 
 #include "common/h/Vector.h"
@@ -423,37 +423,21 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                 {
                     currBlk->isExitBlock_ = true;
                 }
-                else
-                {
-                    jmpTargets.push_back( target );
-                    
-                    //check if a basicblock object has been 
-                    //created for the target
-                    if( !leaders.contains( target ) )
-                    {
-                        //if not, then create one
-                        leadersToBlock[ target ] = new image_basicBlock(this, target);
-                        leaders += target;
-                        blockList.push_back( leadersToBlock[ target ] );
-                    }
-                    leadersToBlock[ target ]->addSource( currBlk );
-                    currBlk->addTarget( leadersToBlock[ target ] );
+                else {
+                    addBasicBlock(target,
+                                  currBlk,
+                                  leaders,
+                                  leadersToBlock,
+                                  jmpTargets);
                 }
                 
                 Address t2 = currAddr + insnSize;
-                jmpTargets.push_back( t2 );
-                
-                //check if a basicblock 
-                //object has be created for fall through
-                if( !leaders.contains( t2 ) )
-                {
-                    leadersToBlock[ t2 ] = new image_basicBlock(this, t2);
-                    leaders += t2;
-                    blockList.push_back( leadersToBlock[ t2 ] );
-                }
 
-                leadersToBlock[ t2 ]->addSource( currBlk );
-                currBlk->addTarget( leadersToBlock[ t2 ] );
+                addBasicBlock(t2,
+                              currBlk,
+                              leaders,
+                              leadersToBlock,
+                              jmpTargets);
                 break;
             }
             else if( ah.isAIndirectJumpInstruction() ) 
@@ -595,18 +579,12 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                         {
                             currBlk->isExitBlock_ = true;
                         }
-                        else
-                        {
-                            if( !leaders.contains( res ) )
-                            {
-                                leadersToBlock[res] = new image_basicBlock(this, res);
-                                leaders += res;
-                                jmpTargets.push_back( res );
-                                blockList.push_back( leadersToBlock[res]);
-                            }                        
-                            currBlk->addTarget( leadersToBlock[ res ] );
-
-                            leadersToBlock[ res ]->addSource( currBlk );
+                        else {
+                            addBasicBlock(res,
+                                          currBlk,
+                                          leaders,
+                                          leadersToBlock,
+                                          jmpTargets);
                         }
                     }                   
                 } 
@@ -629,15 +607,13 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                 ExceptionBlock b;
                 if (img()->getObject().getCatchBlock(b, val))
                 {
-                   //Create a basic block for the catch block
-                   Address cstart = b.catchStart();
-                   jmpTargets.push_back(cstart);
-                   if (!leaders.contains(cstart))
-                   {
-                      leadersToBlock[cstart] = new image_basicBlock(this, cstart);
-                      leaders += cstart;
-                      blockList.push_back(leadersToBlock[cstart]);
-                   }
+                    //Create a basic block for the catch block
+                    Address cstart = b.catchStart();
+                    addBasicBlock(cstart,
+                                  currBlk,
+                                  leaders,
+                                  leadersToBlock,
+                                  jmpTargets);
                 }                
 
                 if( !img()->isValidAddress( target ) )
@@ -673,17 +649,11 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                 }
                 else
                 {
-                    //assume intra procedural jump
-                    if( !leaders.contains( target ) )
-                    {
-                        leadersToBlock[ target ] = new image_basicBlock(this, target);
-                        leaders += target;
-                        blockList.push_back( leadersToBlock[ target ] );
-                    }
-                    leadersToBlock[ target ]->addSource( currBlk );	    
-                    currBlk->addTarget( leadersToBlock[ target ] ); 
-                    
-                    jmpTargets.push_back( target );
+                    addBasicBlock(target,
+                                  currBlk,
+                                  leaders,
+                                  leadersToBlock,
+                                  jmpTargets);
                 }
                 break;
             } 

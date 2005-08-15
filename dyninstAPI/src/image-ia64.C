@@ -38,7 +38,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-ia64.C,v 1.1 2005/07/29 19:22:55 bernat Exp $
+// $Id: image-ia64.C,v 1.2 2005/08/15 22:20:10 bernat Exp $
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -106,6 +106,15 @@ bool image_func::findInstPoints(pdvector<Address> & /*callTargets*/)
 
         while( true ) {
             currAddr = *ah;
+
+            if ((currAddr < funcBegin) ||
+                (currAddr >= funcEnd)) {
+                // Must not have seen a return....
+                currBlk->lastInsnOffset_ = ah.peekPrev();
+                currBlk->blockEndOffset_ = currAddr;
+                break;
+            }
+
             if( visited.contains( currAddr ) )
                 break;
             else
@@ -179,8 +188,6 @@ bool image_func::findInstPoints(pdvector<Address> & /*callTargets*/)
                  bool leavesFunc = false;
                  while( iter != res.end() )
                  {
-                     fprintf(stderr, "Target of %llx\n", *iter);
-
                      if((*iter < funcBegin) ||
                         (*iter >= funcEnd))
                          {
@@ -294,7 +301,7 @@ bool image_func::findInstPoints(pdvector<Address> & /*callTargets*/)
              }
             else if( ah.getInstruction().getType() == instruction::ALLOC ) {
                 allocs.push_back(currAddr);
-                //parsing_printf("Alloc insn\n");
+                parsing_printf("Alloc insn (0x%llx)\n", currAddr);
                 // Alloc's don't actually start basic blocks, but our analysis
                 // has an easier time if they do. -- todd
                 if( ! leaders.contains( currAddr ) ) { 
@@ -304,10 +311,14 @@ bool image_func::findInstPoints(pdvector<Address> & /*callTargets*/)
                     leadersToBlock[currAddr]->addSource(currBlk);
                     currBlk->addTarget(leadersToBlock[currAddr]);
                     currBlk = leadersToBlock[currAddr];
+
+                    // And end the old one
+                    currBlk->lastInsnOffset_ = ah.peekPrev();
+                    currBlk->blockEndOffset_ = currAddr;
                 }
             } /* end if an alloc instruction */
             else {
-                //parsing_printf("Non-control-flow insn\n");
+                parsing_printf("Non-control-flow insn (0x%lx)\n", currAddr);
             }
             ah++;
         }                   

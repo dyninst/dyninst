@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.4 2005/08/08 20:23:33 gquinn Exp $
+// $Id: image-func.C,v 1.5 2005/08/15 22:20:08 bernat Exp $
 
 #include "function.h"
 #include "process.h"
@@ -262,6 +262,31 @@ image_instPoint::image_instPoint(Address offset,
         assert(!isDynamicCall_);
 }
 
+bool image_func::addBasicBlock(Address newAddr,
+                               image_basicBlock *oldBlock,
+                               BPatch_Set<Address> &leaders,
+                               dictionary_hash<Address, image_basicBlock *> &leadersToBlock,
+                               pdvector<Address> &jmpTargets) {
+    // Doublecheck 
+    if (!image_->isCode(newAddr))
+        return false;
+
+    // Add to jump targets = local parse points
+    jmpTargets.push_back(newAddr);
+
+    // Make a new basic block for this target
+    if (!leaders.contains(newAddr)) {
+        leadersToBlock[newAddr] = new image_basicBlock(this, newAddr);
+        leaders += newAddr;
+        blockList.push_back(leadersToBlock[newAddr]);
+    }
+    // In any case, add source<->target mapping
+    assert(leadersToBlock[newAddr]);
+    leadersToBlock[newAddr]->addSource(oldBlock);
+    oldBlock->addTarget(leadersToBlock[newAddr]);
+
+    return true;
+}
 
 void image_basicBlock::debugPrint() {
     // 64-bit

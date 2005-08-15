@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.1 2005/07/29 19:22:54 bernat Exp $
+// $Id: image-func.h,v 1.2 2005/08/15 22:20:09 bernat Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -54,6 +54,9 @@
 #if !defined(BPATCH_LIBRARY)
 #include "paradynd/src/resource.h"
 #endif
+
+#include "dyninstAPI/h/BPatch_Set.h"
+#include "common/h/Dictionary.h"
 
 class pdmodule;
 
@@ -202,6 +205,16 @@ class image_func : public codeRange {
    // Defined in inst-<arch>.C
    // The address vector is "possible call targets you might be interested in".
    bool findInstPoints( pdvector<Address >& );
+
+   // Helper function: create a new basic block and add to various data structures
+   // (if the new addr is valid)
+   bool addBasicBlock(Address newAddr,
+                      image_basicBlock *oldBlock,
+                      BPatch_Set<Address> &leaders,
+                      dictionary_hash<Address, image_basicBlock *> &leadersToBlock,
+                      pdvector<Address> &jmpTargets); 
+   // And it uses blockList as well
+
    // Platform-independent sorting/cleaning/fixing of instPoints and
    // basic blocks.
    bool cleanBlockList();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-power.C,v 1.2 2005/08/04 22:54:25 bernat Exp $
+// $Id: image-power.C,v 1.3 2005/08/15 22:20:11 bernat Exp $
 
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
@@ -158,31 +158,19 @@ bool image_func::findInstPoints(pdvector<Address> &callTargets)
                         funcReturns.push_back(p);
                     }
                     else {
-                        jmpTargets.push_back( target );
-                        
-                        //check if a basicblock object has been 
-                        //created for the target
-                        if( !leaders.contains( target ) )
-                            {
-                                //if not, then create one
-                                leadersToBlock[ target ] = new image_basicBlock (this, target);
-                                leaders += target;
-                                blockList.push_back( leadersToBlock[ target ] );
-                            }
-                        leadersToBlock[ target ]->addSource( currBlk );
-                        currBlk->addTarget( leadersToBlock[ target ] );
+                        addBasicBlock(target,
+                                      currBlk,
+                                      leaders,
+                                      leadersToBlock,
+                                      jmpTargets);
                     }            
                     
                     Address t2 = currAddr + insnSize;
-                    jmpTargets.push_back( t2 );
-                    if( !leaders.contains( t2 ) )
-                        {
-                            leadersToBlock[ t2 ] = new image_basicBlock(this, t2);
-                            leaders += t2;
-                            blockList.push_back( leadersToBlock[ t2 ] );
-                        }                 
-                    leadersToBlock[ t2 ]->addSource( currBlk );
-                    currBlk->addTarget( leadersToBlock[ t2 ] );
+                    addBasicBlock(t2,
+                                  currBlk,
+                                  leaders,
+                                  leadersToBlock,
+                                  jmpTargets);
                     break;
                 }
             else if(ah.isAIndirectJumpInstruction())  {
@@ -206,14 +194,11 @@ bool image_func::findInstPoints(pdvector<Address> &callTargets)
                         leavesFunc = true;
                     }
                     else {
-                        if( !leaders.contains( *iter ) ) {
-                            leadersToBlock[ *iter ] = new image_basicBlock(this, *iter);
-                            leaders += *iter;
-                            jmpTargets.push_back( *iter );
-                            blockList.push_back( leadersToBlock[ *iter] );
-                        }                        
-                        currBlk->addTarget( leadersToBlock[ *iter ] );
-                        leadersToBlock[ *iter ]->addSource( currBlk );
+                        addBasicBlock(*iter,
+                                      currBlk,
+                                      leaders,
+                                      leadersToBlock,
+                                      jmpTargets);
                     }
                     iter++;
                 }                 
@@ -276,18 +261,11 @@ bool image_func::findInstPoints(pdvector<Address> &callTargets)
                  }
                  else
                  {
-                     jmpTargets.push_back( target );
-                     //check if a basicblock object has been 
-                     //created for the target
-                     if( !leaders.contains( target ) )
-                     {
-                         //if not, then create one
-                         leadersToBlock[ target ] = new image_basicBlock(this, target);
-                         leaders += target;
-                         blockList.push_back( leadersToBlock[ target ] );
-                     }                     
-                     leadersToBlock[ target ]->addSource( currBlk );
-                     currBlk->addTarget( leadersToBlock[ target ] );
+                     addBasicBlock(target,
+                                   currBlk,
+                                   leaders,
+                                   leadersToBlock,
+                                   jmpTargets);
                  }                 
                  break;                 
              }
