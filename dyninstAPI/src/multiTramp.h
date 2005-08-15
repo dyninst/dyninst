@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.6 2005/08/11 21:20:17 bernat Exp $
+// $Id: multiTramp.h,v 1.7 2005/08/15 22:20:22 bernat Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -79,11 +79,11 @@ class generatedCodeObject : public codeRange {
     virtual bool generateCode(codeGen &gen,
                               Address baseInMutatee) = 0;
 
-    // Aaaand a helper function; returns true if we're already
-    // done
-    bool alreadyGenerated(codeGen &gen, Address baseInMutatee);
-    // And some global setting
+    // And some global setting up state
     bool generateSetup(codeGen &gen, Address baseInMutatee);
+
+    // Collected code
+    bool alreadyGenerated(codeGen &gen, Address baseInMutatee);
 
     // And actually write things in. This call is "recursive",
     // in that it will call into subsidiary objects (e.g.,
@@ -233,16 +233,14 @@ class relocatedInstruction : public generatedCodeObject {
  private:
     relocatedInstruction() {};
  public:
-    relocatedInstruction(instruction & i,
+    relocatedInstruction(instruction *i,
                          Address o,
                          multiTramp *m) :
         generatedCodeObject(),
         insn(i),
 #if defined(arch_sparc)
-        ds_insn(0),
-        agg_insn(0),
-        hasDS(false),
-        hasAgg(false),
+        ds_insn(NULL),
+        agg_insn(NULL),
 #endif
         origAddr(o), 
         multiT(m), targetOverride_(0) {}
@@ -253,8 +251,6 @@ class relocatedInstruction : public generatedCodeObject {
 #if defined(arch_sparc)
         ds_insn(prev->ds_insn),
         agg_insn(prev->agg_insn),
-        hasDS(prev->hasDS),
-        hasAgg(prev->hasAgg),
 #endif
         origAddr(prev->origAddr),
         multiT(m),
@@ -264,17 +260,15 @@ class relocatedInstruction : public generatedCodeObject {
                          multiTramp *cMT,
                          process *child);
 
-    instruction insn;
+    ~relocatedInstruction();
+
+    instruction *insn;
 
 #if defined(arch_sparc)
     // We wrap delay slots; not going to allow instrumentation
     // of them (as it's a pain)
-    instruction ds_insn;
-    instruction agg_insn;
-    void setDS(instruction insn) { ds_insn = insn; hasDS = true; }
-    void setAgg(instruction insn) { agg_insn = insn; hasAgg = true; }
-    bool hasDS;
-    bool hasAgg;
+    instruction *ds_insn;
+    instruction *agg_insn;
 #endif
 
     Address origAddr;

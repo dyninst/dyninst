@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.6 2005/08/11 21:20:16 bernat Exp $
+// $Id: multiTramp.C,v 1.7 2005/08/15 22:20:21 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -306,7 +306,7 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
     relocatedInstruction *prev = NULL;
     
     while (insnIter.hasMore()) {
-        instruction insn = insnIter.getInstruction();
+        instruction *insn = insnIter.getInsnPtr();
         Address insnAddr = *insnIter;
 
         relocatedInstruction *reloc = new relocatedInstruction(insn, insnAddr, newMulti);
@@ -330,16 +330,15 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
         // if it exists. These functions advance the iterator; effectively
         // we're gluing delay slot and jump together.
         
-        if (insn.isDCTI()) {
-            instruction ds, agg;
-            bool validDS, validAgg;
-            insnIter.getAndSkipDSandAgg(ds, validDS, agg, validAgg);
-            
-            if (validDS) {
-                reloc->setDS(ds);
+        if (insn->isDCTI()) {
+            instruction *ds, *agg;
+            insnIter.getAndSkipDSandAgg(ds, agg);
+
+            if (ds) {
+                reloc->ds_insn = ds;
             }
-            if (validAgg) {
-                reloc->setAgg(agg);
+            if (agg) {
+                reloc->agg_insn = agg;
             }
         }
 #endif
@@ -1522,17 +1521,22 @@ relocatedInstruction::relocatedInstruction(const relocatedInstruction *parRI,
                                            multiTramp *cMT,
                                            process *child) :
     generatedCodeObject(parRI, child),
-    insn(parRI->insn),
-#if defined(arch_sparc)
-    ds_insn(parRI->ds_insn),
-    agg_insn(parRI->agg_insn),
-    hasDS(parRI->hasDS),
-    hasAgg(parRI->hasAgg),
-#endif
     origAddr(parRI->origAddr),
     multiT(cMT),
     targetOverride_(parRI->targetOverride_)
 {
+    insn = parRI->insn->copy();
+#if defined(arch_sparc)
+    if (parRI->ds_insn)
+        ds_insn = parRI->ds_insn->copy();
+    else
+        ds_insn = NULL;
+    if (parRI->agg_insn)
+        agg_insn = parRI->agg_insn->copy();
+    else
+        agg_insn = NULL;
+#endif
+
 }
 
 
@@ -1545,6 +1549,23 @@ generatedCodeObject *relocatedInstruction::replaceCode(generatedCodeObject *newP
     relocatedInstruction *newInsn = new relocatedInstruction(this,
                                                              newMulti);
     return newInsn;
+}
+
+relocatedInstruction::~relocatedInstruction() {
+    // We need to check if someone else grabbed these pointers... or reference
+    // count. For now, _do not delete_ since someone else might have
+    // grabbed the ptr
+
+#if 0
+    if (insn)
+        delete insn;
+#if defined(arch_sparc)
+    if (ds_insn) 
+        delete ds_insn;
+    if (agg_insn)
+        delete agg_insn;
+#endif
+#endif
 }
 
 trampEnd::trampEnd(const trampEnd *parEnd,
@@ -1579,14 +1600,13 @@ generatedCodeObject *generatedCFG_t::iterator::operator++(int) {
                     cur_, cur_->fallthrough_,
                     cur_->fallthrough_->previous_,
                     cur_);
-#if 0
             baseTrampInstance *bti = dynamic_cast<baseTrampInstance *>(cur_);
             relocatedInstruction *reloc = dynamic_cast<relocatedInstruction *>(cur_);
             trampEnd *te = dynamic_cast<trampEnd *>(cur_);
             if (bti)
                 fprintf(stderr, "current is a base tramp\n");
             else if (reloc)
-                fprintf(stderr, "current is relocated insn from 0x%llx\n",
+                fprintf(stderr, "current is relocated insn from 0x%lx\n",
                         reloc->origAddr);
             else if (te)
                 fprintf(stderr, "current is tramp end\n");
@@ -1605,13 +1625,12 @@ generatedCodeObject *generatedCFG_t::iterator::operator++(int) {
             reloc = dynamic_cast<relocatedInstruction *>(cur_->fallthrough_->previous_);
             te = dynamic_cast<trampEnd *>(cur_->fallthrough_->previous_);
             if (bti)
-                fprintf(stderr, "previous is a base tramp\n");
+                fprintf(stderr, "next->previous is a base tramp\n");
             else if (reloc)
-                fprintf(stderr, "previous is relocated insn from 0x%llx\n", 
+                fprintf(stderr, "next->previous is relocated insn from 0x%llx\n", 
                         reloc->origAddr);
             else if (te)
-                fprintf(stderr, "previous is tramp end\n");
-#endif
+                fprintf(stderr, "next->previous is tramp end\n");
         }
         assert(cur_->fallthrough_->previous_ == cur_);
         cur_ = cur_->fallthrough_;
