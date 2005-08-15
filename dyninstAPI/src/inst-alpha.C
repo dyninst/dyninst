@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.92 2005/08/15 22:20:13 bernat Exp $
+// $Id: inst-alpha.C,v 1.93 2005/08/15 22:30:31 bernat Exp $
 
 #include "common/h/headers.h"
 
@@ -302,7 +302,7 @@ bool relocatedInstruction::generateCode(codeGen &gen,
             logLine("A branch too far\n");
             assert(0);
         }
-        instruction newBranch(insn);
+        instruction newBranch(*insn);
         (*newBranch).branch.disp = newOffset >> 2;
         newBranch.generate(gen);
     }
