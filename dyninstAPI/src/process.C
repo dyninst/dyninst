@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.547 2005/08/11 21:20:21 bernat Exp $
+// $Id: process.C,v 1.548 2005/08/15 22:20:23 bernat Exp $
 
 #include <ctype.h>
 
@@ -48,6 +48,13 @@
 #endif
 
 #include <set>
+
+
+#include <sys/time.h>
+#include <sys/resource.h>
+#include <unistd.h>
+
+
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/function.h"
@@ -1824,6 +1831,13 @@ process::process(int ipid) :
     , vsyscall_data_(NULL)
 #endif
 {
+
+    // Let's try to profile memory usage
+#if defined(PROFILE_MEM_USAGE)
+   void *mem_usage = sbrk(0);
+   fprintf(stderr, "Process creation: sbrk %p\n", mem_usage);
+#endif
+
     theRpcMgr = new rpcMgr(this);    
     dyn = new dynamic_linking(this);
 
@@ -2584,7 +2598,14 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
         return NULL;
     }
 
-    return theProc;    
+
+    // Let's try to profile memory usage
+#if defined(PROFILE_MEM_USAGE)
+   void *mem_usage = sbrk(0);
+   fprintf(stderr, "Post process: sbrk %p\n", mem_usage);
+#endif
+
+     return theProc;    
 }
 
 

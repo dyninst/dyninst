@@ -5089,57 +5089,219 @@ int mutatorMAIN(char *pathname, bool useAttach)
          dprintf("func %s\n", (*p)[i]->name());
     }
     */
+    // Let's try to profile memory usage
+#if defined(PROFILE_MEM_USAGE)
+   void *mem_usage = sbrk(0);
+   fprintf(stderr, "pre 1: sbrk %p\n", mem_usage);
+#endif
+
     if (runTest[1]) mutatorTest1(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 2: sbrk %p\n", mem_usage);
+#endif
     if (runTest[2]) mutatorTest2(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 3: sbrk %p\n", mem_usage);
+#endif
     if (runTest[3]) mutatorTest3(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 4: sbrk %p\n", mem_usage);
+#endif
     if (runTest[4]) mutatorTest4(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 5: sbrk %p\n", mem_usage);
+#endif
     if (runTest[5]) mutatorTest5(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 6: sbrk %p\n", mem_usage);
+#endif
     if (runTest[6]) mutatorTest6(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 7: sbrk %p\n", mem_usage);
+#endif
     if (runTest[7]) mutatorTest7(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 8: sbrk %p\n", mem_usage);
+#endif
     if (runTest[8]) mutatorTest8(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 9: sbrk %p\n", mem_usage);
+#endif
     if (runTest[9]) mutatorTest9(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 10: sbrk %p\n", mem_usage);
+#endif
     if (runTest[10]) mutatorTest10(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 11: sbrk %p\n", mem_usage);
+#endif
     if (runTest[11]) mutatorTest11(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 12: sbrk %p\n", mem_usage);
+#endif
 
     if (runTest[12]) mutatorTest12a(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 13: sbrk %p\n", mem_usage);
+#endif
 
     if (runTest[13]) mutatorTest13(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 14: sbrk %p\n", mem_usage);
+#endif
     if (runTest[14]) mutatorTest14(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 15: sbrk %p\n", mem_usage);
+#endif
 
     if (runTest[15]) mutatorTest15a(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 16: sbrk %p\n", mem_usage);
+#endif
 
-    if (runTest[16]) mutatorTest16(appThread, appImage);
+   if (runTest[16]) mutatorTest16(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 17: sbrk %p\n", mem_usage);    
+#endif
 
     if (runTest[17]) mutatorTest17(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 18: sbrk %p\n", mem_usage);    
+#endif
     if (runTest[18]) mutatorTest18(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 20: sbrk %p\n", mem_usage);    
+#endif
     if (runTest[20]) mutatorTest20(appThread, appImage);
 
     if (runTest[21] || runTest[22]) readyTest21or22(appThread);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 21: sbrk %p\n", mem_usage);    
+#endif
     if (runTest[21]) mutatorTest21(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 22: sbrk %p\n", mem_usage);    
+#endif
     if (runTest[22]) mutatorTest22(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 23: sbrk %p\n", mem_usage);    
+#endif
     if (runTest[23]) mutatorTest23(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 24: sbrk %p\n", mem_usage);    
+#endif
     if (runTest[24]) mutatorTest24(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 25: sbrk %p\n", mem_usage);    
+#endif
     if (runTest[25]) mutatorTest25(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 26: sbrk %p\n", mem_usage);    
+#endif
     if (runTest[26]) mutatorTest26(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 27: sbrk %p\n", mem_usage);    
+#endif
     if (runTest[27]) mutatorTest27(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 28: sbrk %p\n", mem_usage);    
+#endif
     if (runTest[28]) mutatorTest28(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 29: sbrk %p\n", mem_usage);    
+#endif
     if (runTest[29]) mutatorTest29(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 30: sbrk %p\n", mem_usage);    
+#endif
     if (runTest[30]) mutatorTest30(appThread, appImage);
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 31: sbrk %p\n", mem_usage);    
+#endif
 
     if( runTest[ 31 ] ) mutatorTest31( appThread, appImage );
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 32: sbrk %p\n", mem_usage);    
+#endif
     if( runTest[ 32 ] ) mutatorTest32( appThread, appImage );
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 33: sbrk %p\n", mem_usage);    
+#endif
 
     if( runTest[ 33 ] ) mutatorTest33( appThread, appImage );
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 34: sbrk %p\n", mem_usage);    
+#endif
     if( runTest[ 34 ] ) mutatorTest34( appThread, appImage );
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 35: sbrk %p\n", mem_usage);    
+#endif
 
     if( runTest[ 35 ] ) mutatorTest35( appThread, appImage );
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 36: sbrk %p\n", mem_usage);    
+#endif
 
     if( runTest[ 36 ] ) mutatorTest36( appThread, appImage );
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 37: sbrk %p\n", mem_usage);    
+#endif
     
     if( runTest[ 37 ] ) mutatorTest37( appThread, appImage );
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 38: sbrk %p\n", mem_usage);    
+#endif
     if( runTest[ 38 ] ) mutatorTest38( appThread, appImage );
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 39: sbrk %p\n", mem_usage);    
+#endif
     if( runTest[ 39 ] ) mutatorTest39( appThread, appImage );
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "pre 40: sbrk %p\n", mem_usage);    
+#endif
     if( runTest[ 40 ] ) mutatorTest40( appThread, appImage );
+#if defined(PROFILE_MEM_USAGE)
+   mem_usage = sbrk(0);
+   fprintf(stderr, "post 40: sbrk %p\n", mem_usage);    
+#endif
 
     
     /* the following bit of code saves the mutatee in its mutated state to the
@@ -5214,6 +5376,12 @@ int mutatorMAIN(char *pathname, bool useAttach)
     delete appThread;
 
     dprintf("Done.\n");
+
+    // Let's try to profile memory usage
+#if defined(PROFILE_MEM_USAGE)
+    mem_usage = sbrk(0);
+   fprintf(stderr, "Post test: sbrk %p\n", mem_usage);
+#endif
     return retVal;
 }
 
