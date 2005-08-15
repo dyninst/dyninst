@@ -612,6 +612,7 @@ BPatch_flowGraph::getOuterLoopsInt(BPatch_Vector<BPatch_basicBlockLoop*>& lbb)
 //to insert all entry basic blocks to the esrelevant field of the class.
 bool BPatch_flowGraph::createBasicBlocks()
 { 
+    assert(ll_func());
     const pdvector< int_basicBlock* > &iblocks	= ll_func()->blocks();
     for( unsigned int ii = 0; ii < iblocks.size(); ii++ )
         {
