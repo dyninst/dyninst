@@ -1032,7 +1032,7 @@ bool relocatedInstruction::generateCode(codeGen &gen,
 		return true;
 	generateSetup(gen, baseInMutatee);
 
-	int slotNo = insn.getSlotNumber();
+	int slotNo = insn->getSlotNumber();
 	Address originalLocation = origAddr;
 	Address allocatedAddress = gen.currAddr(baseInMutatee);
 
@@ -1057,7 +1057,7 @@ bool relocatedInstruction::generateCode(codeGen &gen,
 	   ignoring requests at slot 2, we make sure that long
 	   instructions are always emulated in the middle, which makes
 	   post-position instrumentation work. */
-	insn.relocate(gen, originalLocation, allocatedAddress);
+	insn->relocate(gen, originalLocation, allocatedAddress);
 
     size_ = gen.currAddr(baseInMutatee) - addrInMutatee_;
     generated_ = true;

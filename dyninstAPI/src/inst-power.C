@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.226 2005/08/11 21:20:13 bernat Exp $
+ * $Id: inst-power.C,v 1.227 2005/08/15 22:20:15 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -210,9 +210,9 @@ unsigned relocatedInstruction::maxSizeRequired() {
     // short range, we _do_ handle moving them through a complicated
     // "jump past an unconditional branch" combo.
 
-    if (insn.isCondBranch()) {
+    if (insn->isCondBranch()) {
         // Maybe... so worst-case
-        if (((*insn).bform.bo & BALWAYSmask) != BALWAYScond) {
+        if (((**insn).bform.bo & BALWAYSmask) != BALWAYScond) {
             return 3*instruction::size();
         }
     }
@@ -228,11 +228,11 @@ bool relocatedInstruction::generateCode(codeGen &gen,
     unsigned origOffset = gen.used();
     int newOffset = 0;
 
-    if (insn.isUncondBranch()) {
+    if (insn->isUncondBranch()) {
         // unconditional pc relative branch.
 
       if (!targetOverride_) 
-        newOffset = origAddr - relocAddr() + (int)insn.getBranchOffset(); 
+        newOffset = origAddr - relocAddr() + (int)insn->getBranchOffset(); 
       else {
 	// We need to pin the jump
 	newOffset = targetOverride_ - relocAddr();
@@ -243,22 +243,22 @@ bool relocatedInstruction::generateCode(codeGen &gen,
             logLine("a branch too far\n");
             assert(0);
         } else {
-            instruction newInsn(insn);
+            instruction newInsn(*insn);
             newInsn.setBranchOffset(newOffset);
             newInsn.generate(gen);
         }
     } 
-    else if (insn.isCondBranch()) {
+    else if (insn->isCondBranch()) {
         // conditional pc relative branch.
       if (!targetOverride_)
-        newOffset = origAddr - relocAddr() + insn.getBranchOffset();
+        newOffset = origAddr - relocAddr() + insn->getBranchOffset();
       else
 	newOffset = targetOverride_ - relocAddr();
         if (ABS(newOffset) >= MAX_CBRANCH) {
-            if (((*insn).bform.bo & BALWAYSmask) == BALWAYScond) {
-                assert((*insn).bform.bo == BALWAYScond);
+            if (((**insn).bform.bo & BALWAYSmask) == BALWAYScond) {
+                assert((**insn).bform.bo == BALWAYScond);
 
-                bool link = ((*insn).bform.lk == 1);
+                bool link = ((**insn).bform.lk == 1);
                 instruction::generateBranch(gen, newOffset, link);
             } else {
                 // Figure out if the original branch was predicted as taken or not
@@ -276,15 +276,15 @@ bool relocatedInstruction::generateCode(codeGen &gen,
               // alone if positive.
               
               // Get the old flags (includes the predict bit)
-              int flags = (*insn).bform.bo;
+              int flags = (**insn).bform.bo;
 
-              if ((*insn).bform.bd < 0) {
+              if ((**insn).bform.bd < 0) {
                   // Flip the bit.
                   // xor operator
                   flags ^= BPREDICTbit;
               }
               
-              instruction newCondBranch(insn);
+              instruction newCondBranch(*insn);
               (*newCondBranch).bform.lk = 0; // This one is non-linking for sure
               
               // Set up the flags
@@ -306,22 +306,22 @@ bool relocatedInstruction::generateCode(codeGen &gen,
               instruction::generateBranch(gen,
                                           2*instruction::size());
 
-              bool link = ((*insn).bform.lk == 1);
+              bool link = ((**insn).bform.lk == 1);
               instruction::generateBranch(gen,
                                           newOffset - 2*instruction::size(),
                                           link);
           }
       } else {
-          instruction newInsn(insn);
+          instruction newInsn(*insn);
           (*newInsn).bform.bd = (newOffset >> 2);
           newInsn.generate(gen);
       }
-    } else if ((*insn).iform.op == SVCop) {
+    } else if ((**insn).iform.op == SVCop) {
         logLine("attempt to relocate a system call\n");
         assert(0);
     } 
     else {
-        insn.generate(gen);
+        insn->generate(gen);
     }
     
     size_ = gen.currAddr(baseInMutatee) - addrInMutatee_;

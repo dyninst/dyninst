@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.172 2005/08/11 21:20:11 bernat Exp $
+// $Id: inst-sparc.C,v 1.173 2005/08/15 22:20:16 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -830,20 +830,20 @@ bool relocatedInstruction::generateCode(codeGen &gen,
                 origAddr, relocAddr(), relocAddr() - origAddr);
     long long newLongOffset = 0;
 
-    instruction newInsn(insn);
+    instruction newInsn(*insn);
 
     // TODO: check the function relocation for any PC-calculation tricks.
 
     // If the instruction is a CALL instruction, calculate the new
     // offset
-    if (insn.isInsnType(CALLmask, CALLmatch)) {
+    if (insn->isInsnType(CALLmask, CALLmatch)) {
         // Check to see if we're a "get-my-pc" combo.
         // Two forms exist: call +8, and call to a retl/nop 
         // pair. This is very similar to x86, amusingly enough.
         // If this is the case, we replace with an immediate load of 
         // the PC.
 
-        Address target = insn.getTarget(origAddr);
+        Address target = insn->getTarget(origAddr);
         if (target == origAddr + (2*instruction::size())) {
             inst_printf("Relocating get PC combo\n");
             instruction::generateSetHi(gen, origAddr, REG_O(7));
@@ -874,7 +874,7 @@ bool relocatedInstruction::generateCode(codeGen &gen,
 	      if (!targetOverride_) {
                 newLongOffset = origAddr;
                 newLongOffset -= relocAddr();
-                newLongOffset += ((*insn).call.disp30 << 2);
+                newLongOffset += ((**insn).call.disp30 << 2);
 	      }
 	      else {
 		newLongOffset = targetOverride_ - relocAddr();
@@ -886,8 +886,8 @@ bool relocatedInstruction::generateCode(codeGen &gen,
               inst_printf("Relocating call, displacement 0x%x\n", newLongOffset);
             }
         }
-    } else if (insn.isInsnType(BRNCHmask, BRNCHmatch)||
-	       insn.isInsnType(FBRNCHmask, FBRNCHmatch)) {
+    } else if (insn->isInsnType(BRNCHmask, BRNCHmatch)||
+	       insn->isInsnType(FBRNCHmask, FBRNCHmatch)) {
 
 	// If the instruction is a Branch instruction, calculate the 
         // new offset. If the new offset is out of reach after the 
@@ -897,11 +897,11 @@ bool relocatedInstruction::generateCode(codeGen &gen,
 	//                                   call new_offset             
 	//                                   restore 
       if (!targetOverride_)
-        newLongOffset = (long long)insn.getTarget(origAddr) - relocAddr();
+        newLongOffset = (long long)insn->getTarget(origAddr) - relocAddr();
       else
 	newLongOffset = targetOverride_ - relocAddr();
         inst_printf("Orig 0x%x, target 0x%x (offset 0x%x), relocated 0x%x, new dist %lld\n",
-                    origAddr, insn.getTarget(origAddr), insn.getOffset(), relocAddr(), newLongOffset);
+                    origAddr, insn->getTarget(origAddr), insn->getOffset(), relocAddr(), newLongOffset);
 	// if the branch is too far, then allocate more space in inferior
 	// heap for a call instruction to branch target.  The base tramp 
 	// will branch to this new inferior heap code, which will call the
@@ -921,7 +921,7 @@ bool relocatedInstruction::generateCode(codeGen &gen,
             // Don't use relocAddr() here, since we've moved the IP since then.
             instruction::generateCall(gen,
                                       gen.currAddr(baseInMutatee),
-                                      insn.getTarget(origAddr));
+                                      insn->getTarget(origAddr));
             instruction::generateSimple(gen,
                                         RESTOREop3,
                                         0, 0, 0);
@@ -929,25 +929,25 @@ bool relocatedInstruction::generateCode(codeGen &gen,
 	    (*newInsn).branch.disp22 = (int)(newLongOffset >> 2);
             newInsn.generate(gen);
 	}
-    } else if (insn.isInsnType(TRAPmask, TRAPmatch)) {
+    } else if (insn->isInsnType(TRAPmask, TRAPmatch)) {
 	// There should be no probelm for moving trap instruction
 	// logLine("attempt to relocate trap\n");
-        insn.generate(gen);
+        insn->generate(gen);
     } 
     else {
         /* The rest of the instructions should be fine as is */
-        insn.generate(gen);
+        insn->generate(gen);
     }
     
     // We pin delay instructions.
-    if (insn.isDCTI()) {
-        if (hasDS) {
+    if (insn->isDCTI()) {
+        if (ds_insn) {
             inst_printf("... copying delay slot\n");
-            ds_insn.generate(gen);
+            ds_insn->generate(gen);
         }
-        if (hasAgg) {
+        if (agg_insn) {
             inst_printf("... copying aggregate\n");
-            agg_insn.generate(gen);
+            agg_insn->generate(gen);
         }
     }
 
@@ -965,11 +965,11 @@ unsigned relocatedInstruction::maxSizeRequired() {
 
     unsigned size_required = 0;
 
-    if (insn.isInsnType(CALLmask, CALLmatch)) {
+    if (insn->isInsnType(CALLmask, CALLmatch)) {
         // We can use the same format.
         size_required += instruction::size();
-    } else if (insn.isInsnType(BRNCHmask, BRNCHmatch) ||
-               insn.isInsnType(FBRNCHmask, FBRNCHmatch)) {
+    } else if (insn->isInsnType(BRNCHmask, BRNCHmatch) ||
+               insn->isInsnType(FBRNCHmask, FBRNCHmatch)) {
         // Worst case: 3 insns (save, call, restore)
         size_required += 3*instruction::size();
     }
@@ -978,10 +978,10 @@ unsigned relocatedInstruction::maxSizeRequired() {
         size_required += instruction::size();
     }
 
-    if (insn.isDCTI()) {
-        if (hasDS)
+    if (insn->isDCTI()) {
+        if (ds_insn)
             size_required += instruction::size();
-        if (hasAgg)
+        if (agg_insn)
             size_required += instruction::size();
     }
 

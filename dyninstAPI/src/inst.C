@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.139 2005/08/11 21:20:15 bernat Exp $
+// $Id: inst.C,v 1.140 2005/08/15 22:20:18 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -471,6 +471,7 @@ miniTramp *instPoint::instrument(AstNode *ast,
 
 bool instPoint::generateInst(bool allowTrap) {
     updateInstances();
+
     bool success = true;
     for (unsigned i = 0; i < instances.size(); i++) {
         if (!instances[i]->generateInst(allowTrap))
@@ -746,7 +747,7 @@ trampEnd::trampEnd(multiTramp *multi, Address target) :
 {}
 
 Address relocatedInstruction::originalTarget() const {
-  return insn.getTarget(origAddr);
+  return insn->getTarget(origAddr);
 }
 
 void relocatedInstruction::overrideTarget(Address newTarget) {
@@ -856,9 +857,6 @@ bool instPoint::instrSideEffect(Frame &frame)
 // Sparc has its own version... how annoying. It's in inst-sparc.C
 bool trampEnd::generateCode(codeGen &gen,
                             Address baseInMutatee) {
-    if (alreadyGenerated(gen, baseInMutatee))
-        return true;
-    
     generateSetup(gen, baseInMutatee);
 
     if (target_) {

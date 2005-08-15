@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.213 2005/08/11 21:20:14 bernat Exp $
+ * $Id: inst-x86.C,v 1.214 2005/08/15 22:20:17 bernat Exp $
  */
 #include <iomanip>
 
@@ -115,11 +115,11 @@ unsigned relocatedInstruction::maxSizeRequired() {
 
     // TODO: pc-relative ops
 
-   const unsigned char *origInsn = insn.ptr();
+   const unsigned char *origInsn = insn->ptr();
 
    unsigned maxSize = 0;
 
-   if (insn.type() & REL_B) {
+   if (insn->type() & REL_B) {
        /* replace with rel32 instruction, opcode is one byte. */
        if (*origInsn == JCXZ) {
            // Replace with:
@@ -130,23 +130,23 @@ unsigned relocatedInstruction::maxSizeRequired() {
            return 9;
       }
       else {
-          if (insn.type() & IS_JCC) {
+          if (insn->type() & IS_JCC) {
               /* Change a Jcc rel8 to Jcc rel32.  Must generate a new opcode: a
                  0x0F followed by (old opcode + 16) */
               return 6;
           }
-          else if (insn.type() & IS_JUMP) {
+          else if (insn->type() & IS_JUMP) {
               /* change opcode to 0xE9 */
               return 5;
           }
           assert(0);
       }
    }
-   else if (insn.type() & REL_W) {
+   else if (insn->type() & REL_W) {
       /* Skip prefixes */
-      if (insn.type() & PREFIX_OPR)
+      if (insn->type() & PREFIX_OPR)
           maxSize++;
-      if (insn.type() & PREFIX_SEG)
+      if (insn->type() & PREFIX_SEG)
           maxSize++;
       /* opcode is unchanged, just relocate the displacement */
       if (*origInsn == (unsigned char)0x0F)
@@ -156,10 +156,10 @@ unsigned relocatedInstruction::maxSizeRequired() {
       maxSize += 5;
 
       return maxSize;
-   } else if (insn.type() & REL_D) {
-       if (insn.type() & PREFIX_OPR)
+   } else if (insn->type() & REL_D) {
+       if (insn->type() & PREFIX_OPR)
            maxSize++;
-       if (insn.type() & PREFIX_SEG)
+       if (insn->type() & PREFIX_SEG)
            maxSize++;
        
        /* opcode is unchanged, just relocate the displacement */
@@ -170,7 +170,7 @@ unsigned relocatedInstruction::maxSizeRequired() {
        return maxSize;
    }
    else {
-       return insn.size();
+       return insn->size();
    }
    assert(0);
    return 0;
@@ -220,9 +220,9 @@ bool relocatedInstruction::generateCode(codeGen &gen,
        
    */
 
-    const unsigned char *origInsn = insn.ptr();
-    unsigned insnType = insn.type();
-    unsigned insnSz = insn.size();
+    const unsigned char *origInsn = insn->ptr();
+    unsigned insnType = insn->type();
+    unsigned insnSz = insn->size();
     // This moves as we emit code
     unsigned char *newInsn = insnBuf;
 
@@ -233,27 +233,27 @@ bool relocatedInstruction::generateCode(codeGen &gen,
     
     // Check to see if we're doing the "get my PC" via a call
     // We do this first as those aren't "real" jumps.
-    if (insn.isCall() && !insn.isCallIndir()) {
+    if (insn->isCall() && !insn->isCallIndir()) {
         // A possibility...
         // Two types: call(0) (AKA call(me+5));
         // or call to a move/return combo.
 
         // First, call(me)
-        Address target = insn.getTarget(origAddr);
+        Address target = insn->getTarget(origAddr);
         inst_printf("Target of insn at 0x%x: 0x%x, insn size %d\n",
-                    origAddr, target, insn.size());
+                    origAddr, target, insn->size());
         // Big if tree: "if we go to the next insn"
         // Also could do with an instrucIter... or even have
         // parsing label it for us. 
         // TODO: label in parsing (once)
         
-        if (target == (origAddr + insn.size())) {
+        if (target == (origAddr + insn->size())) {
             inst_printf("Found get EIP call\n");
 
             *newInsn = 0x68; // What opcode is this?
             newInsn++;
 
-            Address EIP = origAddr + insn.size();
+            Address EIP = origAddr + insn->size();
             inst_printf("Adding immediate load of 0x%x\n", EIP);
             unsigned int *temp = (unsigned int *) newInsn;
             *temp = EIP;
@@ -288,7 +288,7 @@ bool relocatedInstruction::generateCode(codeGen &gen,
                     if ((*(ptr + 2) == 0x24)) {
                         inst_printf("And source register right\n");
                         // Okay, put the PC into the 'reg'
-                        Address EIP = origAddr + insn.size();
+                        Address EIP = origAddr + insn->size();
                         *newInsn = 0xb8 + reg; // Opcode???
                         newInsn++;
                         unsigned int *temp = (unsigned int *)newInsn;

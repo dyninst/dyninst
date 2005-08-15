@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.91 2005/08/11 21:20:10 bernat Exp $
+// $Id: inst-alpha.C,v 1.92 2005/08/15 22:20:13 bernat Exp $
 
 #include "common/h/headers.h"
 
@@ -169,7 +169,7 @@ void restoreRegister(codeGen &gen,
 unsigned relocatedInstruction::maxSizeRequired() {
   // We aren't very smart.
   unsigned size = instruction::size();
-  if (insn.isCall()) {
+  if (insn->isCall()) {
     // We fake RA...
     // This should only take 5, but hey.
     size += 6*instruction::size();
@@ -286,16 +286,16 @@ bool relocatedInstruction::generateCode(codeGen &gen,
     unsigned origOffset = gen.used();
     int newOffset = 0;
     
-    if (insn.isBranch()) {
+    if (insn->isBranch()) {
         if (!targetOverride_) {
-            newOffset = insn.getTarget(origAddr) - relocAddr();
+            newOffset = insn->getTarget(origAddr) - relocAddr();
         }
         else {
             newOffset = targetOverride_ - relocAddr();
         }
         if (ABS(newOffset >> 2) > MAX_BRANCH) {
             fprintf(stderr, "newOffset 0x%llx, origAddr 0x%llx, relocAddr() 0x%llx, target 0x%llx, override 0x%llx\n",
-                    newOffset, origAddr, relocAddr(), insn.getTarget(origAddr), targetOverride_);
+                    newOffset, origAddr, relocAddr(), insn->getTarget(origAddr), targetOverride_);
             
             
             
@@ -307,14 +307,14 @@ bool relocatedInstruction::generateCode(codeGen &gen,
         newBranch.generate(gen);
     }
     else 
-        insn.generate(gen);
+        insn->generate(gen);
     
     // Calls are ANNOYING. I've seen behavior where RA (the return addr)
     // is later used in a memory calculation... so after all is said and done,
     // set RA to what it would have been.
     // Note: we do this after the original relocation because JSRs don't
     // trigger "isBranch"
-    if (insn.isCall()) {
+    if (insn->isCall()) {
         Address origReturn = origAddr + instruction::size();
         int remainder = 0;
         instruction::generateAddress(gen, REG_RA, origReturn, remainder);
