@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.35 2005/07/30 03:26:50 bernat Exp $
+// $Id: arch-sparc.h,v 1.36 2005/08/15 22:20:05 bernat Exp $
 
 #if !defined(arch_sparc)
 #error "invalid architecture-os inclusion"
@@ -297,6 +297,8 @@ class instruction {
     instruction(instructUnion &insn) :
         insn_(insn) {};
     
+    instruction *copy() const;
+
     void setInstruction(codeBuf_t *ptr, Address = 0);
 
     static bool offsetWithinRangeOfBranchInsn(int off);

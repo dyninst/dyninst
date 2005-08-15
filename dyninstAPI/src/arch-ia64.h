@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.33 2005/08/06 03:38:46 tlmiller Exp $
+// $Id: arch-ia64.h,v 1.34 2005/08/15 22:20:01 bernat Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -91,6 +91,8 @@ class instruction {
 
  public:
 	instruction( uint64_t insn = 0, uint8_t templ = 0x20, uint8_t slotN = 3 );
+
+	instruction *copy() const;
 
 	void setInstruction(codeBuf_t *instPtr, Address addr);
 
@@ -154,6 +156,8 @@ class instruction_x : public instruction {
 
 	public:
 		instruction_x( uint64_t lowHalf = 0, uint64_t highHalf = 0, uint8_t templ = 0x20 );
+		
+		instruction_x *copy() const;
 
 		ia64_bundle_t getMachineCode() const { ia64_bundle_t r = { insn_, insn_x_ }; return r; }	
 

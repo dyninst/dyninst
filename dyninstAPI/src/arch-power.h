@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.26 2005/07/29 19:18:16 bernat Exp $
+// $Id: arch-power.h,v 1.27 2005/08/15 22:20:03 bernat Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
@@ -578,6 +578,8 @@ class instruction {
     instruction(instructUnion &insn) :
         insn_(insn) {};
     
+    instruction *copy() const;
+
     void setInstruction(codeBuf_t *ptr, Address = 0);
 
     

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-sparc.C,v 1.2 2005/07/30 03:26:49 bernat Exp $
+ * $Id: arch-sparc.C,v 1.3 2005/08/15 22:20:04 bernat Exp $
  */
 
 #include "common/h/Types.h"
@@ -59,13 +59,17 @@
 /****************************************************************************/
 /****************************************************************************/
 
+instruction *instruction::copy() const {
+    return new instruction(*this);
+}
+
 void instruction::generateTrap(codeGen &gen) {
     instruction insn(BREAK_POINT_INSN);
     insn.generate(gen);
 }
 
 void instruction::generateIllegal(codeGen &gen) {
-    instruction insn(0);
+    instruction insn;
     insn.generate(gen);
 }
 

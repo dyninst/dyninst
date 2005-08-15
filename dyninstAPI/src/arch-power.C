@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.1 2005/07/29 19:22:48 bernat Exp $
+ * $Id: arch-power.C,v 1.2 2005/08/15 22:20:02 bernat Exp $
  */
 
 #include "common/h/Types.h"
@@ -49,8 +49,12 @@
 #include "util.h"
 #include "showerror.h"
 
+instruction *instruction::copy() const {
+    return new instruction(*this);
+}
+
 void instruction::generateIllegal(codeGen &gen) { // instP.h
-    instruction insn(0);
+    instruction insn;
     insn.generate(gen);
 }
 

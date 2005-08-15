@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.44 2005/08/06 03:38:46 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.45 2005/08/15 22:20:00 bernat Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -1333,4 +1333,12 @@ void instruction::generateBranch(codeGen &gen, Address from, Address to) {
 
 Address instruction::getTarget(Address origAddr) const {
 	return origAddr + getTargetAddress();
+}
+
+instruction *instruction::copy() const {
+	return new instruction(insn_, templateID, slotNumber);
+}
+
+instruction_x *instruction_x::copy() const {
+	return new instruction_x(insn_, insn_x_, templateID);
 }

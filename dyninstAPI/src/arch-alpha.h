@@ -452,6 +452,8 @@ class instruction {
     instruction(instructUnion &insn) :
         insn_(insn) {};
     
+    instruction *copy() const;
+
     void setInstruction(codeBuf_t *ptr, Address = 0);
 
     static void generateTrap(codeGen &gen);    

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.30 2005/08/12 14:01:37 gquinn Exp $
+// $Id: arch-x86.h,v 1.31 2005/08/15 22:20:07 bernat Exp $
 // x86 instruction declarations
 
 #if !defined(i386_unknown_solaris2_5) \
@@ -418,6 +418,8 @@ class instruction {
     ptr_ = insn.ptr_;
     op_ptr_ = insn.op_ptr_;
   }
+  
+  instruction *copy() const;
 
   instruction(const void *ptr) :
       type_(0), size_(0), ptr_(NULL), op_ptr_(0) {

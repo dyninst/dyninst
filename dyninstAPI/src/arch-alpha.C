@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-alpha.C,v 1.2 2005/08/05 22:23:06 bernat Exp $
+// $Id: arch-alpha.C,v 1.3 2005/08/15 22:19:58 bernat Exp $
 
 #include "common/h/headers.h"
 #include "alpha.h"
@@ -504,6 +504,10 @@ Address instruction::getBranchOffset() const {
   return insn_.branch.disp << 2;
 }
 
+instruction *instruction::copy() const {
+    return new instruction(*this);
+}
+
 bool instruction::valid() const {
 
 #if 0
@@ -582,3 +586,4 @@ bool instruction::valid() const {
 	  (insn_.oper.opcode == 0x00));         // PAL code
 #endif
 }
+

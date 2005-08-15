@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.33 2005/08/08 20:23:32 gquinn Exp $
+// $Id: arch-x86.C,v 1.34 2005/08/15 22:20:06 bernat Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -3327,6 +3327,12 @@ int get_instruction_operand(const unsigned char *ptr, Register& base_reg,
 // insns
 unsigned char illegalRep[2] = {0x0f, 0x0b};
 unsigned char trapRep[1] = {0xCC};
+
+instruction *instruction::copy() const {
+    // Or should we copy? I guess it depends on who allocated
+    // the memory...
+    return new instruction(*this);
+}
 
 void instruction::generateIllegal(codeGen &gen) {
     instruction insn;
