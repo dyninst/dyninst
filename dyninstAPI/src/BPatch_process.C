@@ -184,6 +184,12 @@ BPatch_process::BPatch_process(const char *path, char *argv[], char *envp[],
 
    while (!llproc->isBootstrappedYet() && !statusIsTerminated())
       BPatch::bpatch->getThreadEvent(false);
+
+    // Let's try to profile memory usage
+#if defined(PROFILE_MEM_USAGE)
+   void *mem_usage = sbrk(0);
+   fprintf(stderr, "Post BPatch_process: sbrk %p\n", mem_usage);
+#endif
 }
 
 /*
