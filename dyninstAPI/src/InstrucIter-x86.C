@@ -529,6 +529,11 @@ instruction InstrucIter::getInstruction()
     return insn;
 }
 
+instruction *InstrucIter::getInsnPtr() {
+    instruction *insnPtr = new instruction(insn);
+    return insnPtr;
+}
+
 instruction InstrucIter::getNextInstruction()
 {
     instruction next_insn;

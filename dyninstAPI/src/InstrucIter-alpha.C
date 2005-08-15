@@ -325,6 +325,12 @@ void InstrucIter::setCurrentAddress(Address addr){
 instruction InstrucIter::getInstruction(){
   return insn;
 }
+
+instruction *InstrucIter::getInsnPtr() {
+    instruction *insnPtr = new instruction(insn);
+    return insnPtr;
+}
+
 instruction InstrucIter::getNextInstruction(){
    instruction ret;
     if (img_)

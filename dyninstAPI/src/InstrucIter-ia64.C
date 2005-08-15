@@ -528,8 +528,8 @@ bool InstrucIter::isStackFramePreamble(int &) {
 void InstrucIter::initializeInsn() {
     unsigned short slotno = current % 16;
     Address aligned = current - slotno;
-
-   if (proc_) {
+    
+    if (proc_) {
         instPtr = proc_->getPtrToOrigInstruction(aligned);
     }
     else {
@@ -540,19 +540,52 @@ void InstrucIter::initializeInsn() {
         }
         else instPtr = img_->getPtrToOrigInstruction(aligned);
     }            
+    
+    ia64_bundle_t *rawBundle = (ia64_bundle_t *)instPtr;
+    bundle = IA64_bundle(*rawBundle);
+    
+    if (bundle.hasLongInstruction() && 
+        (slotno == 2)) {
+        cerr << "Attempt to grab the middle of a long instruction!" << endl;
+        assert(0);
+    }
+    
+    instruction *newInsn = bundle.getInstruction(slotno);
+    
+    insn = *newInsn;
+    
+    // Aaaand delete newInsn...
+    delete newInsn;
+}
 
-   ia64_bundle_t *rawBundle = (ia64_bundle_t *)instPtr;
-   bundle = IA64_bundle(*rawBundle);
+instruction *InstrucIter::getInsnPtr() {
+    unsigned short slotno = current % 16;
+    Address aligned = current - slotno;
+    
+    if (proc_) {
+        instPtr = proc_->getPtrToOrigInstruction(aligned);
+    }
+    else {
+        assert(img_); 
+        if (!img_->isValidAddress(aligned)) {
+            fprintf(stderr, "Error: addr 0x%x is not valid!\n",
+                    img_);
+        }
+        else instPtr = img_->getPtrToOrigInstruction(aligned);
+    }            
+    
+    ia64_bundle_t *rawBundle = (ia64_bundle_t *)instPtr;
+    bundle = IA64_bundle(*rawBundle);
+    
+    if (bundle.hasLongInstruction() && 
+        (slotno == 2)) {
+        cerr << "Attempt to grab the middle of a long instruction!" << endl;
+        assert(0);
+    }
+    
+    instruction *newInsn = bundle.getInstruction(slotno);
 
-   if (bundle.hasLongInstruction() && 
-       (slotno == 2)) {
-       cerr << "Attempt to grab the middle of a long instruction!" << endl;
-       assert(0);
-   }
-
-   instruction *newInsn = bundle.getInstruction(slotno);
-
-   insn = *newInsn;
+    return newInsn;
 }
                
 bool InstrucIter::isADynamicCallInstruction()

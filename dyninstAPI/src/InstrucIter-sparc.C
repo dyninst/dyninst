@@ -368,6 +368,12 @@ instruction InstrucIter::getInstruction(){
     return insn;
 }
 
+instruction *InstrucIter::getInsnPtr() {
+    instruction *insnPtr = new instruction(insn);
+    return insnPtr;
+}
+
+
 instruction InstrucIter::getNextInstruction(){
     instruction ret;
     if (img_)
@@ -434,17 +440,16 @@ bool InstrucIter::isADynamicCallInstruction() {
     return i.isInsnType(CALLImask, CALLImatch);
 }
 
-void InstrucIter::getAndSkipDSandAgg(instruction &ds,
-                                     bool &validDS,
-                                     instruction &agg,
-                                     bool &validAgg) {
-    validDS = false;
-    validAgg = false;
+void InstrucIter::getAndSkipDSandAgg(instruction* &ds,
+                                     instruction* &agg) {
     instruction insn = getInstruction();
     if (!insn.isDCTI())
         return;
     // Get the next two instructions, by address
     // since we don't know where we are in the bbl.
+
+    ds = NULL;
+    agg = NULL;
     
     void *dsPtr;
     void *aggPtr;
@@ -465,13 +470,16 @@ void InstrucIter::getAndSkipDSandAgg(instruction &ds,
         }            
     }
     assert(dsPtr);
-    ds.setInstruction((codeBuf_t *)dsPtr);
-    validDS = true;
+    ds = new instruction(*(unsigned int *)dsPtr);
     assert(aggPtr);
-    agg.setInstruction((codeBuf_t *)aggPtr);
-    if (!agg.valid()) {
-        if ((*agg).raw != 0x0)
-            validAgg = true;
+    agg = new instruction(*(unsigned int *)aggPtr);
+    if (!agg->valid()) {
+        if ((**agg).raw != 0x0)
+            return;
     }
+    // Otherwise, not what we want.
+    delete agg;
+    agg = NULL;
+    return;
 }
 

@@ -125,6 +125,10 @@ class InstrucIter {
     /** returns the instruction in the address of handle */
     instruction getInstruction();
     
+    // And a pointer if we need to worry about virtualization. This is
+    // "user needs to get rid of it" defined.
+    instruction *getInsnPtr();
+
     /** returns the instruction in the next address of handle */
     instruction getNextInstruction();
     
@@ -288,8 +292,8 @@ class InstrucIter {
   // (say, unconditional jump). So I've added two instructions that go by 
   // address and grab delay slot (and aggregate doohickey)
 
-  void getAndSkipDSandAgg(instruction &ds, bool &validDS,
-                          instruction &agg, bool &validAgg);
+  void getAndSkipDSandAgg(instruction* &ds,
+                          instruction* &agg);
 #endif
 
 };
