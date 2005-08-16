@@ -186,7 +186,7 @@ BPatch_module::BPatch_module( BPatch_process *_proc, mapped_module *_mod,
 	  if(!proc->func_map->defines( function )) {
 	    if (!BPatch::bpatch->delayedParsingOn()) {
 	      // We're not delaying and there's no function. Make one.
-	      BPatch_function *bpf = new BPatch_function(proc, function, this);
+	      BPatch_function *bpf = new BPatch_function(proc, function, NULL);
 	      assert( bpf != NULL );
 	    }
 	  }
