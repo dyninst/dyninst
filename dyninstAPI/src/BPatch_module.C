@@ -138,7 +138,7 @@ char *BPatch_module::getFullNameInt(char *buffer, int length)
 BPatch_module::BPatch_module( BPatch_process *_proc, mapped_module *_mod,
                               BPatch_image *_img ) :
    proc( _proc ), mod( _mod ), img( _img ), BPfuncs( NULL ), 
-   BPfuncs_uninstrumentable( NULL )    
+   BPfuncs_uninstrumentable( NULL ), moduleTypes(NULL)
 {
 #if defined(TIMED_PARSE)
 	struct timeval starttime;
@@ -186,6 +186,9 @@ BPatch_module::BPatch_module( BPatch_process *_proc, mapped_module *_mod,
 	  if(!proc->func_map->defines( function )) {
 	    if (!BPatch::bpatch->delayedParsingOn()) {
 	      // We're not delaying and there's no function. Make one.
+	      // Don't assign the module owner yet; causes recursion into
+	      // DWARF parsing in some situations, and the module will 
+	      // pick it up later.
 	      BPatch_function *bpf = new BPatch_function(proc, function, NULL);
 	      assert( bpf != NULL );
 	    }
@@ -197,6 +200,12 @@ BPatch_module::BPatch_module( BPatch_process *_proc, mapped_module *_mod,
 	}
 	moduleTypes = NULL;
 	parseTypesIfNecessary();
+	
+	/* Give the functions modules. */
+	for( unsigned int i = 0; i < functions.size(); i++ ) {
+		assert( proc->func_map->defines( functions[i] ) );
+		proc->func_map->get(functions[i])->setModule(this);
+		}
 
 #if defined(TIMED_PARSE)
     struct timeval endtime;
