@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.30 2005/08/08 20:23:40 gquinn Exp $
+ * $Id: RTlinux.c,v 1.31 2005/08/20 00:56:19 tlmiller Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -86,7 +86,7 @@ void _start( void ) {
 
 	/* Align the heap pointer. */
 	unsigned long int alignedHeapPointer = (unsigned long int)DYNINSTstaticHeap_4M_anyHeap_1;
-	unsigned long long adjustedSize = alignedHeapPointer + 4 * 1024 * 1024;
+	unsigned long long adjustedSize = alignedHeapPointer + (4 * 1024 * 1024);
 	alignedHeapPointer = (alignedHeapPointer) & ~(pageSize - 1);
 	adjustedSize -= alignedHeapPointer;
 
