@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.3 2005/08/08 22:39:26 bernat Exp $
+// $Id: miniTramp.C,v 1.4 2005/08/20 00:56:18 tlmiller Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -147,8 +147,24 @@ bool miniTramp::generateMT() {
     if (miniTrampCode_()) return true;
 
     miniTrampCode_.allocate(MAX_MINITRAMP_SIZE);
-    Register blank[] = {1};
-    registerSpace * regS = new registerSpace(0, blank, 0, blank, false);
+    
+    registerSpace * regS = NULL;
+#if defined( arch_ia64 )
+	/* FIXME: We should be able to cache this in the baseTramp or its location. */
+	extern unsigned int deadRegisterListLength;
+	extern Register deadRegisterList[];
+	
+	regS = new registerSpace( deadRegisterListLength, deadRegisterList, 0, NULL );
+
+	regS->resetSpace();
+	regS->resetClobbers();
+	regS->resetLiveDeadInfo( instP->liveRegisters );
+	
+	defineBaseTrampRegisterSpaceFor( instP, regS, deadRegisterList );
+#else
+	Register blank[] = {1};
+	regS = new registerSpace(0, blank, 0, blank, false);
+#endif /* defined( arch_ia64 ) */
     
     /* VG(11/06/01): Added location, needed by effective address AST node */
     returnOffset = ast_->generateTramp(proc(), instP,
@@ -163,34 +179,6 @@ bool miniTramp::generateMT() {
     
     return true;
 }
-
-#if 0
-bool instPoint::allocateAndCopy(miniTrampInstance *mti, unsigned size) {
-    // TODO: figure out where this miniTramp is near
-    // (platform-specific depending on jump style); allocate memory
-    // near that point; copy from the global buffer into allocated
-    // memory.
-
-    miniTramp *mini = mti->mini;
-    Address near = 0;
-    
-    // Okay, we want to allocate near the miniTramp before us (or
-    // after, if there is no before). So we get the appropriate miniT,
-    // use the baseTrampInstance to get the miniTrampInstance that
-    // corresponds to that, and go from there
-
-    miniTramp *nearby = mini->next;
-    if (!nearby) nearby = mini->prev;
-
-    if (nearby) {
-        miniTrampInstance *nearI = nearby->getMTInstanceByBTI(mti->baseTI);
-        assert(nearI);
-        near = nearI->trampBase;
-    }
-
-
-}
-#endif
 
 bool miniTramp::correctMTJumps() {
     for (unsigned i = 0; i < instances.size(); i++) {
