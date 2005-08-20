@@ -57,27 +57,6 @@
 #include <asm/ptrace_offsets.h>
 #include <dlfcn.h>
 
-/* dyn_lwp::getRegisters()
- * 
- * Entire user state can be described by struct pt_regs
- * and struct switch_stack.  It's tempting to try and use
- * pt_regs only, but only syscalls are that well behaved.
- * We must support running arbitrary code.
- */
-bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs)
-{
-	/* (Almost) All the state preservation is done mutatee-side,
-	   except for the syscall handler's predicate registers,
-	   so we don't need to anything except the PC. */
-	errno = 0;
-	regs->pc = P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CR_IIP, 0 );
-	assert( ! errno );
-	regs->restorePredicateRegistersFromStack =
-	   needToHandleSyscall( proc_, &regs->pcMayHaveRewound );
-
-	return true;
-}
-
 bool changePC( int pid, Address loc ) { 
 	/* We assume until further notice that all of our jumps
 	   are properly (bundle) aligned, because we should be
@@ -93,10 +72,11 @@ bool dyn_lwp::changePC( Address loc, dyn_saved_regs * regs ) {
 	return ::changePC( proc_->getPid(), loc );
 	} /* end changePC() */
 
-
+/* This should really be printRegisters().  I also have to admit
+   to some puzzlement as to the type of the parameter... */
 void printRegs( void * /* save */ ) {
 	assert( 0 );
-	} /* end printReg[isters, should be]() */
+	} /* end printRegs() */
 
 /* The iRPC header/trailer generators handle the special
    case of being in a system call when it's time to run the iRPC. */
@@ -104,8 +84,33 @@ bool dyn_lwp::executingSystemCall() {
 	return false;
 	} /* end executingSystemCall() */
 
-bool dyn_lwp::restoreRegisters_( const struct dyn_saved_regs &regs )
-{
+/* dyn_lwp::getRegisters()
+ * 
+ * Entire user state can be described by struct pt_regs
+ * and struct switch_stack.  It's tempting to try and use
+ * pt_regs only, but only syscalls are that well behaved.
+ * We must support running arbitrary code.
+ */
+bool dyn_lwp::getRegisters_( struct dyn_saved_regs *regs ) {
+	errno = 0;
+	regs->pc = P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CR_IIP, 0 );
+	assert( ! errno );
+
+	/* If the PC may have rewound, handle it intelligently. */
+	needToHandleSyscall( proc_, & regs->pcMayHaveRewound );
+	
+	/* We use the basetramp preservation code in our inferior RPCs, so we
+	   don't have to preserve anything.  The only exception is the predicate
+	   registers, because we may need them to handle system calls correctly.
+	   (We predicate break instructions based on if the kernel attempted to
+	   restart the system call.) */
+	regs->pr = P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_PR, 0 );
+	assert( ! errno );
+	
+	return true;
+	} /* end getRegisters_() */
+
+bool dyn_lwp::restoreRegisters_( const struct dyn_saved_regs &regs ) {
 	/* Restore the PC. */
 	if( ! regs.pcMayHaveRewound ) {
 		changePC( regs.pc, NULL );
@@ -113,11 +118,9 @@ bool dyn_lwp::restoreRegisters_( const struct dyn_saved_regs &regs )
 	else {
 		/* The flag could have only been set if the ipsr.ri at
 		   construction-(and therefore run-)time ispr.ri was 0.  If it's 0
-		   after the syscall trailer completes, then there we were not in a
-		   syscall and the original regs->pc is correct.  If it's 2, then we
-		   really want the last instruction of the _previous_ bundle and need
-		   to adjust the PC.  Otherwise, we abort because of system
-		   corruption. */
+		   after the syscall trailer completes, then the original regs->pc
+		   is correct.  If it's 2, then the PC rewound and we adjust
+		   adjust regs->pc appropriately.  No other cases are possible. */
         errno = 0;
 		uint64_t ipsr = P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CR_IPSR, 0 );
 		assert( ! errno );
@@ -139,30 +142,16 @@ bool dyn_lwp::restoreRegisters_( const struct dyn_saved_regs &regs )
 				assert( 0 );
 				break;
 			} /* end ispr_ri switch */
-		}
+		} /* end if pcMayHaveRewound */
 
-	if( regs.restorePredicateRegistersFromStack ) {
-		errno = 0;
-		Address stackPointer = P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_R12, 0 );
-		assert( ! errno );
-		stackPointer -= 48;
-
-		uint64_t predicateRegisters = P_ptrace( PTRACE_PEEKDATA, proc_->getPid(), stackPointer, 0 );
-		assert( ! errno );
-
-		assert( P_ptrace( PTRACE_POKEUSER, proc_->getPid(), PT_PR, (Address) & predicateRegisters ) != -1 );
-		} /* end predicate register restoration. */
+	/* Restore the predicate registers. */
+	int status = P_ptrace( PTRACE_POKEUSER, proc_->getPid(), PT_PR, regs.pr );
+	assert( status == 0 );
 
     return true;
-}
+	} /* end restoreRegisters_() */
 
 Address getPC( int pid ) {
-	
-	/* worry: 0x0000000100000000 is the IT offset of the PSR, (PT_CR_IPSR)
-	   which will tell us if we've gotten a virtual or a
-	   real address as the PC.  If we got a virtual address,
-	   I think we're kind of screwed. */
-
 	errno = 0;
 	Address pc = P_ptrace( PTRACE_PEEKUSER, pid, PT_CR_IIP, 0 );
 	assert( ! errno );
@@ -261,7 +250,7 @@ Address dyn_lwp::readRegister( Register reg ) {
 #include <libunwind-ptrace.h>
 
 /* Refactored from getActiveFrame() and getCallerFrame(). */
-Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP, pid_t pid, bool /* isActiveFrame */ ) {
+Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP, pid_t pid ) {
 	Address ip = 0, sp = 0, fp = 0, tp = 0;
 	bool isUppermost = false, isSignalFrame = false, isTrampoline = false;
 	int status = 0;
@@ -286,60 +275,39 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
     /* Determine if this is a trampoline frame. */
 	codeRange * range = dynLWP->proc()->findCodeRangeByAddress( ip );
 	if( range == NULL ) {
-		// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(pid = %d): did not recognize pc 0x%lx; may be (in) vsyscall page.\n", pid, ip );
+		/* FIXME */ // This is most likely because inferior RPCs aren't added to the code range tree.
+		/* DEBUG */ fprintf( stderr, "%s[%d]: warning: no code range found for ip 0x%lx\n", __FILE__, __LINE__, ip );
 		}
 	else {
-		if( range->is_minitramp() != NULL || 
-                    range->is_multitramp() != NULL ) {
-			// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(pid = %d): pc 0x%lx is in base or mini or multi tramp.\n", pid, ip );
+		if( range->is_minitramp() != NULL || range->is_multitramp() != NULL ) {
 			isTrampoline = true;
 			}	
-		if( range->is_function() != NULL && 
-                    range->is_function()->symTabName() == "__libc_start_main" ) {
+		if( range->is_function() != NULL && range->is_function()->symTabName() == "__libc_start_main" ) {
 			isUppermost = true;
 			}
 		}
 
 	/* Duplicate the current frame's cursor, since we'll be unwinding past it. */
 	unw_cursor_t currentFrameCursor = * unwindCursor;
-		
-	/* I could've just ptrace()d the ip, sp, and tp, but
-	   I couldn't have gotten the frame pointer.  With libunwind,
-	   the frame pointer is simply the stack pointer of the previous frame. */
+	
+	/* Determine if this is the upper-most frame, and set the frame pointer
+	   if it is not. */
 	status = unw_step( unwindCursor );
-  
-	if( status == -UNW_ENOINFO ) {
-	  	// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(pid = %d): no unwind information available for this frame (ip = 0x%lx, sp = 0x%lx, tp = 0x%lx), unable to acquire frame pointer.  (Probably an inferior RPC.)\n", pid, ip, sp, tp );
+	if( status <= 0 ) {
 		isUppermost = true;
 		}
-	else if( status == -UNW_EINVAL && range->is_function() != NULL ) {
-		// /* DEBUG */ bperr( "createFrameFromUnwindCursor(pid = %d): unwind information invalid for this frame (ip = 0x%lx, sp = 0x%lx, tp = 0x%lx), unable to acquire frame pointer.  (Probably within a pre-main function.)\n", pid, ip, sp, tp );
-		isUppermost = true;
-		}
-        else if( status == -UNW_EINVALIDIP ) {
-            // /* DEBUG */ bperr("createFrameFromUnwindCursor(pid = %d): invalid ip encountered (ip = 0x%lx, sp = 0x%lx, tp = 0x%lx), unable to acquire frame pointer.\n", pid, ip, sp, tp);
-            isUppermost = true;
-        }
-	else if( status == 0 ) {
-	  	/* This is the uppermost frame. */
-	  	// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(pid = %d): unwind information indicates that this is the uppermost frame.\n", pid );
-	  	isUppermost = true;
-	  	}
-	else if( status > 0 ) {
-	  	/* The cursor is now one frame up. */
-	 	isUppermost = false;
-	  	status = unw_get_reg( unwindCursor, UNW_IA64_SP, & fp );
+		
+	/* Since the rest of dyninst ignores isUppermost for some reason,
+	   fake it by setting the frame pointer to 0. */
+	if( ! isUppermost ) {
+		/* Set the frame pointer. */
+		status = unw_get_reg( unwindCursor, UNW_IA64_SP, & fp );
 		assert( status == 0 );
 		}
-	else {
-		/* Some other error occured. */
-		fprintf( stderr, "unw_step() failed: %d (pc = 0x%lx)\n", status, ip );
-                isUppermost = true;
-        }
-
+	
 	/* FIXME: multithread implementation. */
 	dyn_thread * dynThread = NULL;
-    
+
 	Frame currentFrame( ip, fp, sp, pid, dynLWP->proc(), dynThread, dynLWP, isUppermost );
 	currentFrame.setUnwindCursor( currentFrameCursor );
 	currentFrame.setRange( range );
@@ -354,7 +322,6 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
 		currentFrame.frameType_ = FRAME_normal;
 		}
 	
-	// /* DEBUG */ fprintf( stderr, "createFrameFromUnwindCursor(pid = %d): ip = 0x%lx, fp = 0x%lx, sp = 0x%lx, tp = 0x%lx\n", pid, ip, fp, sp, tp );
 	return currentFrame;
 	} /* end createFrameFromUnwindCursor() */
 
@@ -362,17 +329,13 @@ Frame dyn_lwp::getActiveFrame() {
 	int status = 0;
 	process * proc = proc_;
 	
-	// /* DEBUG */ fprintf( stderr, "getActiveFrame(): working on process %d\n", proc->getPid() );
-
 	/* Initialize the unwinder. */
 	if( proc->unwindAddressSpace == NULL ) {
-		// /* DEBUG */ fprintf( stderr, "getActiveFrame(): Creating unwind address space for process pid %d\n", proc->getPid() );
 		proc->unwindAddressSpace = unw_create_addr_space( & _UPT_accessors, 0 );
 		assert( proc->unwindAddressSpace != NULL );
 		}
 	
 	if( proc->unwindProcessArg == NULL ) {
-		// /* DEBUG */ fprintf( stderr, "getActiveFrame(): Creating unwind context for process pid %d\n", proc->getPid() );
 		proc->unwindProcessArg = _UPT_create( proc->getPid() );
 		assert( proc->unwindProcessArg != NULL );
 		}
@@ -386,10 +349,9 @@ Frame dyn_lwp::getActiveFrame() {
 	assert( status == 0 );
 	
 	/* Generate a Frame from the unwinder. */
-	// /* DEBUG */ fprintf( stderr, "getActiveFrame(): creating active frame from unwind cursor.\n" );
-	Frame currentFrame = createFrameFromUnwindCursor( unwindCursor, this, proc->getPid(), true );
+	Frame currentFrame = createFrameFromUnwindCursor( unwindCursor, this, proc->getPid() );
 	
-	/* createFrameFromUnwindCursor() allocates a new cursor for the Frame it returns. */
+	/* createFrameFromUnwindCursor() copies the unwind cursor into the Frame it returns */
 	free( unwindCursor );
 	
 	/* Return the result. */
@@ -607,19 +569,15 @@ bool Frame::setPC( Address addr ) {
 #include <baseTramp.h>	
 #include <instPoint.h>
 Frame Frame::getCallerFrame() {
-	// /* DEBUG */ fprintf( stderr, "getCallerFrame(): getting caller's frame (ip = 0x%lx, fp = 0x%lx, sp = 0x%lx).\n", getPC(), getFP(), getSP() );
-
 	int status = 0;
 
 	/* Initialize the unwinder. */
 	if( getProc()->unwindAddressSpace == NULL ) {
-		// /* DEBUG */ fprintf( stderr, "Creating unwind address space for process pid %d\n", proc->getPid() );
 		getProc()->unwindAddressSpace = unw_create_addr_space( & _UPT_accessors, 0 );
 		assert( getProc()->unwindAddressSpace != NULL );
 		}
 	
 	if( getProc()->unwindProcessArg == NULL ) {
-		// /* DEBUG */ fprintf( stderr, "Creating unwind context for process pid %d\n", proc->getPid() );
 		getProc()->unwindProcessArg = _UPT_create( getProc()->getPid() );
 		assert( getProc()->unwindProcessArg != NULL );
 		}
@@ -628,10 +586,7 @@ Frame Frame::getCallerFrame() {
 
 	Frame currentFrame;
 	if( ! this->hasValidCursor ) {
-		/* dyn_thread.C will call getActiveFrame() and then rebuild the frame,
-		   which removes the unwindCursor (and leaks memory, because the stack
-		   walk never terminates).  Sigh. */
-		// /* DEBUG */ fprintf( stderr, "getCallerFrame(): frame has no unwind cursor, starting over.\n" );
+		/* DEBUG */ fprintf( stderr, "%s[%d]: no valid cursor in frame, regenerating.\n", __FILE__, __LINE__ );
 
 		/* Allocate an unwindCursor for this stackwalk. */
 		unw_cursor_t * unwindCursor = (unw_cursor_t *)malloc( sizeof( unw_cursor_t ) );
@@ -642,16 +597,16 @@ Frame Frame::getCallerFrame() {
 		assert( status == 0 );
 
 		/* Unwind to the current frame. */
-		currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, getProc()->getPid(), true );
+		currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, getProc()->getPid() );
 		while( ! currentFrame.isUppermost() ) {
 			if( getFP() == currentFrame.getFP() && getSP() == currentFrame.getSP() && getPC() == currentFrame.getPC() ) {
-				currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, getProc()->getPid(), false );
+				currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, getProc()->getPid() );
 				break;
 				} /* end if we've found this frame */
-			currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, getProc()->getPid(), false );
+			currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, getProc()->getPid() );
 			}
 			
-		/* createFrameFromUnwindCursor() allocates a new cursor for the Frame it returns. */
+		/* createFrameFromUnwindCursor() copies the unwind cursor into the Frame it returns. */
 		free( unwindCursor );	
 		} /* end if this frame was copied before being unwound. */
 	else {
@@ -672,9 +627,9 @@ Frame Frame::getCallerFrame() {
 		assert( status > 0 );
 
 		/* Create a Frame from the unwound cursor. */
-		currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, getProc()->getPid(), false );
+		currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, getProc()->getPid() );
 		
-		/* createFrameFromUnwindCursor() allocates a new cursor for the Frame it returns. */
+		/* createFrameFromUnwindCursor() copies the unwind cursor into the Frame it returns. */
 		free( unwindCursor );	
 		} /* end if this frame was _not_ copied before being unwound. */
 	

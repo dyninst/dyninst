@@ -48,19 +48,13 @@
 #include "inst-ia64.h"
 #include <sys/ptrace.h>
 
+/* Why is this here? */
 IA64_bundle generateTrapBundle();
 
-#if defined( MUTATOR_SAVES_REGISTERS )
 struct dyn_saved_regs {
-    struct pt_regs pt;
-    struct switch_stack ss;
-};
-#else
-struct dyn_saved_regs {
-	Address pc;
-	bool restorePredicateRegistersFromStack;
-	bool pcMayHaveRewound;
+	Address		pc;
+	bool		pcMayHaveRewound;
+	uint64_t	pr;
 	};
-#endif
-
+	
 #endif
