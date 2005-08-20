@@ -813,7 +813,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<mapped_object*> 
       
       /* We've inserted a return statement at r_brk_target_addr
 	 for our use here. */
-      fprintf(stderr, "Changing PC to 0x%llx\n", r_brk_target_addr);
+      // fprintf(stderr, "Changing PC to 0x%llx\n", r_brk_target_addr);
       assert(r_brk_target_addr);
       lwp_to_use->changePC( r_brk_target_addr, NULL );
 #endif
