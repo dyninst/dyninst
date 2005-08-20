@@ -654,6 +654,7 @@ address_of_jump_to_emulation#:
 ##
 
 .global syscallPrefix#
+.proc syscallPrefix#
 syscallPrefix#:
 	# We'll insert jumps into these bundles as appropriate for 
 	# the ipsr.ri known at construction time.
@@ -661,6 +662,7 @@ syscallPrefix#:
 	.bbb { nop.b 0x0; nop.b 0x0; nop.b 0x0 };;
 
 .global prefixNotInSyscall#
+.proc prefixNotInSyscall#
 prefixNotInSyscall#:
 	adds sp = -16,sp;;
 	stf.spill [sp] = f6, -16;;
@@ -673,23 +675,24 @@ prefixNotInSyscall#:
 	ldf.fill f6 = [sp];;
 	adds sp = -16,sp;;
 .global jumpFromNotInSyscallToPrefixCommon
+.proc jumpFromNotInSyscallToPrefixCommon
 jumpFromNotInSyscallToPrefixCommon:
 	.bbb { nop.b 0x0; nop.b 0x0; nop.b 0x0 }
 
 .global prefixInSyscall#
+.proc prefixInSyscall#
 prefixInSyscall#:
 	adds sp = -16,sp;;
 	stf.spill [sp] = f6, -16;;
 	setf.sig f6 = r2;;
 	# This is the only place where the prefices differ.
 	mov r2 = 1;;
-	st8 [sp] = r2;;
+	st8 [sp] = r2, 16;;
 	getf.sig r2 = f6;;
-	adds sp = 16,sp;;
-	ldf.fill f6 = [sp];;
-	adds sp = -16,sp;;
+	ldf.fill f6 = [sp], -16;;
 
 .global prefixCommon#
+.proc prefixCommon#
 prefixCommon#:
 	# This bundle will not be copied by the installation
 	# routine; it's just here to ensure spacing.
@@ -697,20 +700,20 @@ prefixCommon#:
 
 
 .global syscallSuffix#
+.proc syscallSuffix#
 syscallSuffix#:
 	adds sp = 16,sp;;
-	stf.spill [sp] = f6, -32;;
+	stf.spill [sp] = f6, -16;;
 	setf.sig f6 = r2;;
-	mov r2 = pr;;
-	st8 [sp] = r2, 16;;
-	ld8 r2 = [sp];;
+	ld8 r2 = [sp], 16;;
+	# We're preserving the predicate registers mutator-side.
 	cmp.eq p1,p2 = 0, r2;;
 	
-	adds sp = 16,sp;;
 	getf.sig r2 = f6;;
 	ldf.fill f6 = [sp], 16;;
 
 .global suffixExitPoint#
+.proc suffixExitPoint#
 suffixExitPoint#:
 	# This bundle will be overwritten by a bundle
 	# with predicated SIGILLS in the right places.
