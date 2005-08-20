@@ -186,33 +186,29 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 			/* Load into destination register dest from [src2]. */
 			instruction loadInsn = generateRegisterLoad( dest, src2, size );
 			IA64_bundle loadBundle( MIIstop, loadInsn, NOP_I, NOP_I );
-			loadBundle.generate(gen);
-
-			break; }
+			loadBundle.generate( gen );
+			} break;
 
 		case loadConstOp: {
 			// Optimization: if |immediate| <= 22 bits, use generateShortImmediateAdd(), instead.
 			instruction_x lCO = generateLongConstantInRegister( dest, src1 );
-			generateBundleFromLongInstruction( lCO ).generate(gen);
-			break; }
+			generateBundleFromLongInstruction( lCO ).generate( gen );
+			} break;
 
 		case loadFrameRelativeOp: {
 			/* Load size bytes from the address fp + src1 into the register dest. */
 			assert( location->func()->framePointerCalculator != NULL );			
 			
 			/* framePointerCalculator will leave the frame pointer in framePointer. */
-			pdvector< AstNode * > ifForks;
-			Register framePointer = (Register) location->func()->framePointerCalculator->generateCode_phase2( proc, rs, gen, false, ifForks, location );
-			/* For now, make sure what we don't know can't hurt us. */
-			assert( ifForks.size() == 0 );
+			Register framePointer = (Register) location->func()->framePointerCalculator->generateCode( proc, rs, gen, false, true, location );
 			
 			instruction_x longConstant = generateLongConstantInRegister( src2, src1 );
 			instruction calculateAddress = generateArithmetic( plusOp, framePointer, src2, framePointer ); 
 			instruction loadFromAddress = generateRegisterLoad( dest, framePointer, size );
 			IA64_bundle prepareOffsetBundle( MLXstop, NOP_M, longConstant );
 			IA64_bundle calculateAndLoadBundle( MstopMIstop, calculateAddress, loadFromAddress, NOP_I );
-			prepareOffsetBundle.generate(gen);
-			calculateAndLoadBundle.generate(gen);
+			prepareOffsetBundle.generate( gen );
+			calculateAndLoadBundle.generate( gen );
 
 			rs->freeRegister( framePointer );
 			} break;
@@ -223,10 +219,9 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 			 * src1 = offset
 			 * src2 = base register
 			 */
-			Register trueBase = rs->allocateRegister(gen, noCost);
+			Register trueBase = rs->allocateRegister( gen, noCost );
 
-			emitLoadPreviousStackFrameRegister( BP_GR0 + src2, trueBase, gen, 
-												size, noCost );
+			emitLoadPreviousStackFrameRegister( BP_GR0 + src2, trueBase, gen, size, noCost );
 			instruction_x longConstant = generateLongConstantInRegister( dest, src1 );
 			instruction calculateAddress = generateArithmetic( plusOp, dest, dest, trueBase );
 			instruction loadFromAddress = generateRegisterLoad( dest, dest, size );
@@ -246,18 +241,17 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 			 * src1 = offset
 			 * src2 = base register
 			 */
-			Register trueBase = rs->allocateRegister(gen, noCost);
+			Register trueBase = rs->allocateRegister( gen, noCost );
 
-			emitLoadPreviousStackFrameRegister( BP_GR0 + src2, trueBase, gen,
-												size, noCost );
+			emitLoadPreviousStackFrameRegister( BP_GR0 + src2, trueBase, gen, size, noCost );
 
 			instruction_x longConstant = generateLongConstantInRegister( dest, src1 );
 			instruction calculateAddress = generateArithmetic( plusOp, dest, dest, trueBase );
 			IA64_bundle prepareOffset( MLXstop, NOP_M, longConstant );
 			IA64_bundle calculateBundle( MIIstop, calculateAddress, NOP_I, NOP_I );
 
-			prepareOffset.generate(gen);
-			calculateBundle.generate(gen);
+			prepareOffset.generate( gen );
+			calculateBundle.generate( gen );
 
 			rs->freeRegister( trueBase );
 			} break;
@@ -267,10 +261,7 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 			assert( location->func()->framePointerCalculator != NULL );
 
 			/* framePointerCalculator will leave the frame pointer in framePointer. */
-			pdvector< AstNode * > ifForks;
-			Register framePointer = (Register) location->func()->framePointerCalculator->generateCode_phase2( proc, rs, gen, false, ifForks, location );
-			/* For now, make sure what we don't know can't hurt us. */
-			assert( ifForks.size() == 0 );
+			Register framePointer = (Register) location->func()->framePointerCalculator->generateCode( proc, rs, gen, false, true, location );
 			
 			instruction memoryNop( NOP_M );
 			instruction integerNop( NOP_I );
@@ -278,7 +269,7 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 			if( SHORT_IMMEDIATE_MIN < ((int)src1) && ((int)src1) < SHORT_IMMEDIATE_MAX ) {
 				instruction sumFrameAndOffset = generateShortImmediateAdd( dest, src1, framePointer );
 				IA64_bundle resultBundle( MIIstop, memoryNop, integerNop, sumFrameAndOffset );
-				resultBundle.generate(gen);
+				resultBundle.generate( gen );
 				}
 			else {
 				instruction_x longConstant = generateLongConstantInRegister( dest, src1 );
@@ -287,9 +278,8 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 				instruction addLongConstantToFP = generateArithmetic( plusOp, dest, dest, framePointer );
 				IA64_bundle resultBundle( MIIstop, memoryNop, integerNop, addLongConstantToFP );
 
-				setLCBundle.generate(gen);
-				resultBundle.generate(gen);
-
+				setLCBundle.generate( gen );
+				resultBundle.generate( gen );
 				}
 
 			rs->freeRegister( framePointer );						
@@ -300,21 +290,16 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 			abort();
 			break;
 		} /* end switch */
-} /* end emitVload() */
+	} /* end emitVload() */
 
-/* private function, used by emitFuncCall */
-void emitRegisterToRegisterCopy( Register source, Register destination, codeGen &gen, registerSpace * rs ) {
-	if( rs != NULL && ! rs->isFreeRegister( destination ) ) {
-		fprintf( stderr, "Destination register %d is (was) not free(d), overwriting.\n", destination );
-		} /* end if destination register is not free */
-
+/* private function, used by emitFuncCall() */
+void emitRegisterToRegisterCopy( Register source, Register destination, codeGen & gen, registerSpace * rs ) {
 	instruction moveInsn( generateRegisterToRegisterMove( source, destination ) );
 	instruction memoryNOP( NOP_M );
 	IA64_bundle r2rBundle( MMIstop, memoryNOP, memoryNOP, moveInsn );
 	
 	r2rBundle.generate(gen);
-
-} /* end emitRegisterToRegisterCopy() */
+	} /* end emitRegisterToRegisterCopy() */
 
 /* private refactoring function */
 Register findFreeLocal( registerSpace * rs, char * failure ) {
@@ -331,23 +316,22 @@ Register findFreeLocal( registerSpace * rs, char * failure ) {
 	} /* end findFreeLocal() */
 
 /* Required by ast.C */
-Register emitFuncCall( opCode op, registerSpace * rs, codeGen &gen,
-					   pdvector<AstNode *> & operands,
+Register emitFuncCall( opCode op, registerSpace * rs, codeGen & gen,
+					   pdvector< AstNode * > & operands,
 					   process * proc, bool /* noCost */,
-					   Address  callee_addr, 
-					   const pdvector<AstNode *> &ifForks,
+					   Address callee_addr, 
+					   const pdvector< AstNode * > & ifForks,
 					   const instPoint *location) { 
 	/* Consistency check. */
 	assert( op == callOp );
 
-	/*  Sanity check for non NULL address argument */
-	if (!callee_addr) {
-	  char msg[256];
-	  sprintf(msg, "%s[%d]:  internal error:  emitFuncCall called w/out"
-			  "callee_addr argument", __FILE__, __LINE__);
-	  showErrorCallback(80, msg);
-	  assert(0);
-	}
+	/* Sanity check for non-NULL address argument */
+	if( ! callee_addr ) {
+		char msg[256];
+		snprintf( msg, 255, "%s[%d]: internal error:  emitFuncCall called without callee_addr argument", __FILE__, __LINE__ );
+		showErrorCallback( 80, msg );
+		assert(0);
+		}
  
 	Address calleeGP = proc->getTOCoffsetInfo( callee_addr );
 
@@ -355,16 +339,16 @@ Register emitFuncCall( opCode op, registerSpace * rs, codeGen &gen,
 	pdvector< Register > sourceRegisters;
 	for( unsigned int i = 0; i < operands.size(); i++ ) {
 		sourceRegisters.push_back( operands[i]->generateCode_phase2( proc, rs, gen, false, ifForks, location ) );
-	}
+		}
 
 	/* source-to-output register copy */
 	unsigned int outputZero = rs->getRegSlot( NUM_LOCALS )->number;
 	for( unsigned int i = 0; i < sourceRegisters.size(); i++ ) {
-	// fprintf( stderr, "Copying argument in local register %d to output register %d\n", sourceRegisters[i], outputZero + i );
+		// fprintf( stderr, "Copying argument in local register %d to output register %d\n", sourceRegisters[i], outputZero + i );
 		emitRegisterToRegisterCopy( sourceRegisters[i], outputZero + i, gen, rs );
 		rs->freeRegister( sourceRegisters[i] );
 		rs->incRefCount( outputZero + i );
-	} /* end source-to-output register copy */
+		} /* end source-to-output register copy */
 
 	/* Since the BT was kind enough to save the GP, return value,
 	   return pointer, ar.pfs, and both scratch registers for us,
@@ -372,9 +356,6 @@ Register emitFuncCall( opCode op, registerSpace * rs, codeGen &gen,
 	   target into a scratch branch register, and indirect to it. */
 	emitVload( loadConstOp, calleeGP, 0, REGISTER_GP, gen, false /* ? */, 0 );
 
-	// /* DEBUG */ fprintf( stderr, "* Constructing call to function 0x%lx\n", callee_addr );
-
-	/* FIXME: could use output registers, if past sourceRegisters.size(). */
 	/* Grab a register -- temporary for transfer to branch register,
 	   and a registerSpace register for the return value. */
 	Register rsRegister = findFreeLocal( rs, "Unable to find local register in which to store callee address, aborting.\n" );
@@ -411,28 +392,27 @@ Register emitFuncCall( opCode op, registerSpace * rs, codeGen &gen,
 		}
 
 	/* copy the result (r8) to a registerSpace register */
-	rs->freeRegister( rsRegister );
 	emitRegisterToRegisterCopy( REGISTER_RV, rsRegister, gen, rs );
-	// /* DEBUG */ fprintf( stderr, "* emitted function call in buffer at %p\n", ibuf );
 
-	/* return that register */
+	/* return that register (still allocated) */
 	return rsRegister;
-} /* end emitFuncCall() */
+	} /* end emitFuncCall() */
 
 /* Required by ast.C; used for memory instrumentation. */
 void emitASload( const BPatch_addrSpec_NP *as, Register dest, codeGen &gen,  bool /*noCost*/ ) {
 	/* Convert an addrSpec into a value in the destination register. */
 	// /* DEBUG */ fprintf( stderr, "emitASload: as.imm = %d, as.r1 = %d, as.r2 = %d\n", as.getImm(), as.getReg( 0 ), as.getReg( 1 ) );
 	emitLoadPreviousStackFrameRegister( as->getReg( 0 ), dest, gen, 0, 0 );
-} /* end emitASload() */
+	} /* end emitASload() */
 
 /* Required by ast.C */
 Register deadRegisterList[] = { 0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xA, 0xB, 0xC, 0xD, 0xE, 0xF };
+unsigned int deadRegisterListLength = sizeof( deadRegisterList ) / sizeof( Register );
 
-void initTramps(bool /*is_multithreaded*/) { 
+void initTramps( bool /* is_multithreaded */ ) { 
 	/* Initialize the registerSpace pointer regSpace to the state of the
 	   registers that will exist at the end of the first part of the base
-	   tramp's code.  (That is, for the minitramps.
+	   tramp's code.  (That is, for the minitramps.)
 
 	   The difficulty here is that the register numbers are expected to be
 	   physical registers, but we can't determine those until we know which
@@ -567,9 +547,7 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 			assert( ifForks.size() == 0 );
 			
 			if( returnRegister != dest ) {
-				rs->freeRegister( dest );
 				emitRegisterToRegisterCopy( returnRegister, dest, gen, rs );
-				rs->incRefCount( dest );
 				rs->freeRegister( returnRegister );
 				}
 			break; }
@@ -603,7 +581,7 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 
 /* Required by ast.C */
 void emitImm( opCode op, Register src1, RegValue src2imm, Register dest,
-			  codeGen &gen,  bool /*noCost*/, registerSpace * /*rs*/ ) {
+			  codeGen & gen,  bool /* noCost */, registerSpace * ) {
 	switch( op ) {
 		case orOp: {
 			/* Apparently, the bit-wise operation. */
@@ -702,7 +680,9 @@ int getInsnCost( opCode op ) {
             /* Incurs the cost of a function call. */
             cost = 30;
         case callOp:
-            cost += 197;
+        	/* Assuming this doesn't include cost of argument construction
+        	   or actual delay time, we use (about) thirteen bundles. */
+            cost += 39;
             break;
 
         case updateCostOp:
@@ -953,8 +933,6 @@ void instruction::relocate(codeGen &gen, Address originalLocation,
 		   it was at the instruction we're emulating.)  */
 		insn_tmpl tmpl = { getMachineCode() };
 		Address originalTarget = GET_M22_TARGET( &tmpl ) + originalLocation - (originalLocation % 16);
-		fprintf(stderr, "Generating long call, origTarget 0x%llx, allocatedAddr 0x%llx\n",
-				originalTarget, allocatedAddress);
 		instruction_x longCall = generateLongCallTo( originalTarget - allocatedAddress,
 													 tmpl.B3.b1, tmpl.B3.qp );
 		instruction memoryNOP( NOP_M );			
@@ -1025,16 +1003,15 @@ void instruction::relocate(codeGen &gen, Address originalLocation,
    both references, the same variables should be used in each call to
    emulateBundle() in a given function.  allocatedAddress is where in
    the remote process the base tramp will be copied. */
-
-bool relocatedInstruction::generateCode(codeGen &gen,
-										Address baseInMutatee) {
-	if (alreadyGenerated(gen, baseInMutatee))
+   
+bool relocatedInstruction::generateCode( codeGen & gen, Address baseInMutatee ) {
+	if( alreadyGenerated( gen, baseInMutatee ) ) {
 		return true;
-	generateSetup(gen, baseInMutatee);
+		}
+	generateSetup( gen, baseInMutatee );
 
-	int slotNo = insn->getSlotNumber();
 	Address originalLocation = origAddr;
-	Address allocatedAddress = gen.currAddr(baseInMutatee);
+	Address allocatedAddress = gen.currAddr( baseInMutatee );
 
 	/* We need to alter all IP-relative instructions to do the Right Thing.  In particular:
 
@@ -1057,16 +1034,15 @@ bool relocatedInstruction::generateCode(codeGen &gen,
 	   ignoring requests at slot 2, we make sure that long
 	   instructions are always emulated in the middle, which makes
 	   post-position instrumentation work. */
-	insn->relocate(gen, originalLocation, allocatedAddress);
+	insn->relocate( gen, originalLocation, allocatedAddress );
 
-    size_ = gen.currAddr(baseInMutatee) - addrInMutatee_;
+    size_ = gen.currAddr( baseInMutatee ) - addrInMutatee_;
     generated_ = true;
 	return true;
 } /* end emulateBundle() */
 
 /* Required by BPatch_thread.C */
 #define NEAR_ADDRESS 0x2000000000000000               /* The lower end of the shared memory segment. */
-
 
 bool process::replaceFunctionCall(instPoint * point, 
 								  const int_function * function ) {
@@ -1950,7 +1926,7 @@ bool needToHandleSyscall( process * proc, bool * pcMayHaveRewound ) {
 	// Find the correct bundle.
 	iip = getPC( proc->getPid() );
 	reg_tmpl reg = { P_ptrace( PTRACE_PEEKUSER, proc->getPid(), PT_CR_IPSR, 0 ) };
-	if( errno && (reg.raw == (unsigned)-1) ) {
+	if( errno && (reg.raw == ((unsigned long)-1)) ) {
 		// Error reading process information.  Should we assert here?
 		assert(0);
 		}
@@ -1981,10 +1957,18 @@ bool needToHandleSyscall( process * proc, bool * pcMayHaveRewound ) {
 	if (errno && pr == -1) assert(0);
 	pr = ( pr >> insn->getPredicate() ) & 0x1;
 
-	return (insn->getType() == instruction::SYSCALL && !pr);
+	return (insn->getType() == instruction::SYSCALL && pr);
 	} /* end needToHandleSyscall() */
 
 #include "dlfcn.h"
+
+/* From ia64-template.s. */
+extern void (* syscallPrefix)();
+extern void (* prefixNotInSyscall)();
+extern void (* prefixInSyscall)();
+extern void (* prefixCommon)();
+extern void (* jumpFromNotInSyscallToPrefixCommon)();
+
 bool emitSyscallHeader( process * proc, codeGen &gen) {
 	/* Extract the current slotNo. */
 	errno = 0;
@@ -2006,78 +1990,32 @@ bool emitSyscallHeader( process * proc, codeGen &gen) {
 	   to 'syscallPrefixCommon', exclusive.  (The last bundle is an spacing-
 	   only NOP bundle.  The iRPC header proper should start there.) */
 
-	/* FIXME: (static variable) cache the Addresses below. */
-	/* Calling dlopen() on a NULL string dlopen()s the current executable.
-	   This neatly sidesteps the problem of making sure we're looking at the right library
-	   when we look for our code templates.
-	   
-	   It's also worth noting that labels also marked as functions return pointers to the
-	   function pointer, not the function pointer proper.  This is probably PIC breakage. */
-	char * dlErrorString = NULL;
-	void * handle = dlopen( NULL, RTLD_NOW );
-	assert( handle != NULL );
-
-	void * syscallPrefix = dlsym( handle, "syscallPrefix" );
-	if( (dlErrorString = dlerror()) != NULL ) {
-		fprintf( stderr, "%s\n", dlErrorString ); assert( 0 );
-		}
-	assert( syscallPrefix != NULL );
-
-	void * prefixNotInSyscall = dlsym( handle, "prefixNotInSyscall" );
-	if( (dlErrorString = dlerror()) != NULL ) {
-		fprintf( stderr, "%s\n", dlErrorString ); assert( 0 );
-		}
-	assert( prefixNotInSyscall != NULL );
-
-	void * prefixInSyscall = dlsym( handle, "prefixInSyscall" );
-	if( (dlErrorString = dlerror()) != NULL ) {
-		fprintf( stderr, "%s\n", dlErrorString ); assert( 0 );
-		}
-	assert( prefixInSyscall != NULL );
-
-	void * prefixCommon = dlsym( handle, "prefixCommon" );
-	if( (dlErrorString = dlerror()) != NULL ) {
-		fprintf( stderr, "%s\n", dlErrorString ); assert( 0 );
-		}
-	assert( prefixCommon != NULL );		
-
-	void * jumpFromNotInSyscallToPrefixCommon = dlsym( handle, "jumpFromNotInSyscallToPrefixCommon" );
-	if( (dlErrorString = dlerror()) != NULL ) {
-		fprintf( stderr, "%s\n", dlErrorString ); assert( 0 );
-		}
-	assert( jumpFromNotInSyscallToPrefixCommon != NULL );	
+	/* The linker is doing Something Funky, but what we want is the address of
+	   what we're claiming are a bunch of function pointers. */
+	Address syscallPrefixAddress = (Address)(& syscallPrefix);
+	Address prefixNotInSyscallAddress = (Address)(& prefixNotInSyscall);
+	Address prefixInSyscallAddress = (Address)(& prefixInSyscall);
+	Address prefixCommonAddress = (Address)(& prefixCommon);
+	Address jumpAddress = (Address)(& jumpFromNotInSyscallToPrefixCommon);
 	
-	dlclose( handle );
-
-	/* Since the linker will indirect functions one level,
-	   we don't declare any of the assembly blocks functions. */
-	Address syscallPrefixAddress = (Address) syscallPrefix;
-	Address prefixNotInSyscallAddress = (Address) prefixNotInSyscall;
-	Address prefixInSyscallAddress = (Address) prefixInSyscall;
-	Address prefixCommonAddress = (Address) prefixCommon;
-
 	Address lengthWithoutTrailingNOPs = prefixCommonAddress - syscallPrefixAddress;
-	//memcpy( bundlePtr, (const void * )syscallPrefixAddress, lengthWithoutTrailingNOPs );
-	//baseBytes += lengthWithoutTrailingNOPs;
-
-	gen.copy(syscallPrefix, lengthWithoutTrailingNOPs);
+	gen.copy( (void *)syscallPrefixAddress, lengthWithoutTrailingNOPs );
+	int endOfTemplateIndex = gen.getIndex();
 
 	/* Likewise, we need to rewrite the nop.b bundle at jumpFromNotInSyscallToPrefixCommon
 	   because the assembler jumps are indirected.  (Why can't I force a relative jump?!) */
-	Address jumpAddress = (Address) jumpFromNotInSyscallToPrefixCommon;
 	instruction memoryNOP( NOP_M );
 	instruction_x branchPastInSyscall = generateLongBranchTo( prefixCommonAddress - jumpAddress );
 	IA64_bundle branchPastInSyscallBundle( MLXstop, memoryNOP, branchPastInSyscall );
 
-	codeBufIndex_t index = gen.getIndex();
-	gen.setIndex((jumpAddress - syscallPrefixAddress) / 16);
+	gen.setIndex( (jumpAddress - syscallPrefixAddress) / 16 );
 	branchPastInSyscallBundle.generate(gen);
-	gen.setIndex(index);
 
 	/* Construct the slot-specific jump bundle. */
 	IA64_bundle firstJumpBundle;
 	IA64_bundle secondJumpBundle;
 	instruction branchNOP( NOP_B );
+	
 	/* Probably wouldn't hurt to assert that the immediates here are small enough. */
 	instruction jumpToInSyscall = generateShortImmediateBranch( prefixInSyscallAddress - (syscallPrefixAddress + 0x10 ) );
 	instruction jumpToNotInSyscall = generateShortImmediateBranch( prefixNotInSyscallAddress - (syscallPrefixAddress + 0x10) );
@@ -2099,8 +2037,11 @@ bool emitSyscallHeader( process * proc, codeGen &gen) {
 			assert( 0 );
 			break;
 		}
-	firstJumpBundle.generate(gen);
-	secondJumpBundle.generate(gen);
+		
+	gen.setIndex( 0 );
+	firstJumpBundle.generate( gen );
+	secondJumpBundle.generate( gen );
+	gen.setIndex( endOfTemplateIndex );
 
 	// /* DEBUG */ fprintf( stderr, "* iRPC system call handler (prefix) generated at 0x%lx\n", (Address) bundlePtr );
 	return true;
@@ -2441,13 +2382,14 @@ bool rpcMgr::emitInferiorRPCheader( codeGen &gen ) {
 
 	/* Set regSpace for the code generator. */
 	int baseReg = 32 + reg.CFM.sof + NUM_PRESERVED;
-	if( baseReg > 128 - (NUM_LOCALS + NUM_OUTPUT) )
+	if( baseReg > 128 - (NUM_LOCALS + NUM_OUTPUT) ) {
 		baseReg = 128 - (NUM_LOCALS + NUM_OUTPUT); // Never allocate over 128 registers.
+		}
 
 	Register deadRegisterList[NUM_LOCALS + NUM_OUTPUT];
 	for( int i = 0; i < NUM_LOCALS + NUM_OUTPUT; ++i ) {
 		deadRegisterList[i] = baseReg + i;
-	} /* end deadRegisterList population */
+		} /* end deadRegisterList population */
 	registerSpace rs( NUM_LOCALS + NUM_OUTPUT, deadRegisterList, 0, NULL );
 
 	initBaseTrampStorageMap( &rs, reg.CFM.sof, NULL );
@@ -2462,7 +2404,7 @@ bool rpcMgr::emitInferiorRPCheader( codeGen &gen ) {
 
 	if( needToHandleSyscall( proc_ ) ) {
 		if( ! emitSyscallHeader( proc_, gen) ) { return false; }
-	}
+		}
 	else {
 		/* We'll be adjusting the PC to the start of the preservation code,
 		   but we can't change the slot number ([i]psr.ri), so we need to soak
@@ -2473,52 +2415,31 @@ bool rpcMgr::emitInferiorRPCheader( codeGen &gen ) {
 		IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ).generate(gen);		
 		}
 
-	/* Determine which of the scratch (f6 - f15, f32 - f127) floating-point
-	   registers need to be preserved.  It's been brought to my attention that 
-	   figuring this out will probably take longer than just spilling all the fp
-	   registers, considering that an iRPC only runs once. */
-	// Address interruptedAddress = getPC( proc_->getPid() );
-	// int_function * interruptedFunction = proc_->findFuncByAddr( interruptedAddress );
-	bool * whichToPreserve = NULL; // doFloatingPointStaticAnalysis( interruptedFunction->funcEntry( proc_ ) );
+	/* It'll probably be faster just to spill all the FP registers,
+	   given that this code'll only be running once. */
+	bool * whichToPreserve = NULL;
 
 	/* Generate the preservation header; don't bother with unwind information
 	   for an inferior RPC.  (It must be the top of the stack.) */
 	return generatePreservationHeader( gen, whichToPreserve, NULL );
-} /* end emitInferiorRPCheader() */
+	} /* end emitInferiorRPCheader() */
 
+/* From ia64-template.s. */
+extern void (* syscallSuffix)();
+extern void (* suffixExitPoint)();
 bool emitSyscallTrailer( codeGen &gen, uint64_t slotNo ) {
 	/* Copy the template from 'syscallSuffix' to 'suffixExitPoint' (inclusive),
 	   and replace the bundle at 'suffixExitPoint' with one which has 
 	   predicated SIGILLs in the right places. */
 
-	// /* DEBUG */ fprintf( stderr, "emitSyscallTrailer() thinks slotNo = %ld\n", slotNo );
-
-	/* Grab those two addresses. */
-	char * dlErrorString = NULL;
-	void * handle = dlopen( NULL, RTLD_NOW );
-	assert( handle != NULL );
-
-	void * syscallSuffix = dlsym( handle, "syscallSuffix" );
-	if( (dlErrorString = dlerror()) != NULL ) {
-		fprintf( stderr, "%s\n", dlErrorString ); assert( 0 );
-		}
-	assert( syscallSuffix != NULL );
-	
-	void * suffixExitPoint= dlsym( handle, "suffixExitPoint" );
-	if( (dlErrorString = dlerror()) != NULL ) {
-		fprintf( stderr, "%s\n", dlErrorString ); assert( 0 );
-		}
-	assert( suffixExitPoint != NULL );
-	
-	dlclose( handle );
-	
 	/* Copy the code template. */
-	Address syscallSuffixAddress = (Address) syscallSuffix;
-	Address suffixExitPointAddress = (Address) suffixExitPoint;
+	Address syscallSuffixAddress = (Address)(& syscallSuffix );
+	Address suffixExitPointAddress = (Address)(& suffixExitPoint );
 	
 	/* Trailing NOPs are replaced by the constructed SIGILLs. */
 	Address lengthWithTrailingNOPs = ( suffixExitPointAddress + 0x10 ) - syscallSuffixAddress;
-	gen.copy(syscallSuffix, lengthWithTrailingNOPs);
+	gen.copy( (void *)syscallSuffixAddress, lengthWithTrailingNOPs );
+	int predicatedBreakBundleIndex = gen.getIndex() - 1;
 	
 	/* Construct the predicated SIGILLs for the bundle at suffixExitPointAddress. */
 	IA64_bundle predicatedBreakBundle;
@@ -2555,11 +2476,12 @@ bool emitSyscallTrailer( codeGen &gen, uint64_t slotNo ) {
 			
 		default:
 			assert( 0 );
-		} /* end slotNo switch */		
+		} /* end slotNo switch */
+		
 	codeBufIndex_t index = gen.getIndex();
-	gen.setIndex((lengthWithTrailingNOPs - 0x10)/16);
-	predicatedBreakBundle.generate(gen);
-	gen.setIndex(index);
+	gen.setIndex( predicatedBreakBundleIndex );
+	predicatedBreakBundle.generate( gen );
+	gen.setIndex( index );
 
 	// /* DEBUG */ fprintf( stderr, "* iRPC system call handler (suffix) generated at 0x%lx\n", (Address) bundlePtr );
 	return true;
@@ -2633,19 +2555,21 @@ void baseTrampInstance::updateTrampCost( unsigned cost ) {
 	if( baseT->costSize == 0 ) {
 		return;
 		}
-	assert( baseT->costSize != 0 );
-	/* FIXME */ return;
-		
-	assert( cost < (1 << 14 ) );
-    codeGen gen( baseT->costSize );
-    /* FIXME: refactor the code from generateCostCode() because allocateRegister() may not always return
-       the same thing, and it's clumsy to carry around a register number. */
-	/* FIXME */ // IA64_instruction addInstruction = generateShortImmediateAdd( valueRegister, cost, valueRegister );
-	/* FIXME */ // IA64_bundle addBundle( MIIstop, addInstruction, NOP_I, NOP_I );
-	/* FIXME */ // addBundle.generate( gen );
+	assert( baseT->costSize != 0 );		
+	assert( baseT->valueRegister != 0 );
+	assert( baseT->addressRegister != 0 );
+    
+	codeGen gen( baseT->costSize );
+	
+	instruction_x setCost = generateLongConstantInRegister( baseT->addressRegister, cost );
+	generateBundleFromLongInstruction( setCost ).generate( gen );
+
+	instruction addInstruction = generateArithmetic( plusOp, baseT->valueRegister, baseT->addressRegister, baseT->valueRegister );
+	IA64_bundle addBundle( MIIstop, addInstruction, NOP_I, NOP_I );
+	addBundle.generate( gen );
 
 	Address trampCostAddr = trampPreAddr() + baseT->costValueOffset;
-    proc()->writeDataSpace( (void *) trampCostAddr, gen.used(), (void *) gen.start_ptr() );
+	proc()->writeDataSpace( (void *) trampCostAddr, gen.used(), (void *) gen.start_ptr() );
 	} /* end updateTrampCost() */
 
 #define GUARD_PREDICATE_TRUE	6
@@ -2729,18 +2653,21 @@ bool baseTramp::generateCostCode( codeGen & gen, unsigned & costUpdateOffset, re
     	return false;
     	}
     
-    Register addressRegister = rSpace->allocateRegister( gen, false );
-    Register valueRegister = rSpace->allocateRegister( gen, false );
+    assert( rSpace != NULL );    
+	addressRegister = rSpace->allocateRegister( gen, false );
+    valueRegister = rSpace->allocateRegister( gen, false );
     
     
     emitVload( loadOp, costAddr, addressRegister, valueRegister, gen, false, rSpace );
     
-    /* Give myself a full bundle here to add a constant to a register. */
+    /* In the general case, we need a bundle to set addressRegister to the cost,
+       and another to add it to valueRegister. */    
     costUpdateOffset = gen.used();
     IA64_bundle nopBundle( MIIstop, NOP_M, NOP_I, NOP_I );
     nopBundle.generate( gen );
+    nopBundle.generate( gen );
     
-    emitV( storeIndirOp, valueRegister, 0 /* not used */, addressRegister, gen, false, rSpace );
+    emitVstore( storeOp, valueRegister, addressRegister, costAddr, gen, false, rSpace );
     
     
     rSpace->freeRegister( valueRegister );
@@ -2887,11 +2814,10 @@ bool insertAndRegisterDynamicUnwindInformation( unw_dyn_info_t * baseTrampDynami
 
 /* private refactoring function */
 #define MAX_BASE_TRAMP_SIZE (16 * 512)	// FIXME: it would be a lot cleaner to determine this dynamically.
-baseTramp * installBaseTramp( Address installationPoint, instPoint * & location, process * proc, bool trampRecursiveDesired = false )
-{ // FIXME: updatecost
+baseTramp * installBaseTramp( Address installationPoint, instPoint * & location, process * proc, bool trampRecursiveDesired = false ) {
 	// /* DEBUG */ fprintf( stderr, "* Installing base tramp.\n" );
 	/* Allocate memory and align as needed. */
-	baseTramp * baseTramp = new baseTramp(location, proc);
+	baseTramp * baseTramp = new baseTramp( location, proc );
 	
 	bool allocErr; Address allocatedAddress = proc->inferiorMalloc( MAX_BASE_TRAMP_SIZE, anyHeap, NEAR_ADDRESS, & allocErr );
 	if( allocErr ) { fprintf( stderr, "Unable to allocate base tramp, aborting.\n" ); abort(); }
@@ -2900,6 +2826,11 @@ baseTramp * installBaseTramp( Address installationPoint, instPoint * & location,
 	/* Initialize the tramp template. */
 	baseTramp->baseAddr = allocatedAddress;
 	baseTramp->size = 0;
+
+	/* Based on tramp header/trailer cost. */
+	baseTramp->prevBaseCost = STATE_SAVE_COST + STATE_RESTORE_COST;
+	baseTramp->postBaseCost = STATE_SAVE_COST + STATE_RESTORE_COST;
+	baseTramp->cost = baseTramp->prevBaseCost + baseTramp->postBaseCost;
 
 	/* Acquire the base address of the object we're instrumenting. */
 	Address baseAddress; assert( proc->getBaseAddress( location->getOwner(), baseAddress ) );
@@ -2939,7 +2870,7 @@ baseTramp * installBaseTramp( Address installationPoint, instPoint * & location,
 	/* Determine this instrumentation point's regSpace and deadRegisterList (global variables)
 	   for use by the rest of the code generator.  The generatePreservation*() functions need
 	   this information as well. */
-	bool staticallyAnalyzed = defineBaseTrampRegisterSpaceFor( location, regSpace, deadRegisterList);
+	bool staticallyAnalyzed = defineBaseTrampRegisterSpaceFor( location, regSpace, deadRegisterList );
 	if( ! staticallyAnalyzed ) {
 		fprintf( stderr, "FIXME: Dynamic determination of register frame required but not yet implemented, aborting.\n" );
 		fprintf( stderr, "FIXME: mutatee instrumentation point 0x%lx\n", location->pointAddr() + baseAddress );
@@ -3010,12 +2941,6 @@ baseTramp * installBaseTramp( Address installationPoint, instPoint * & location,
 	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
 	bundleCount = 0;
 
-	/* Removing the last pre-position minitramp will insert a jump
-	   from skipPreInsnOffset to updateCostOffset, in attempt to make
-	   sure the cost is still updated... not sure why.  See inst.C's
-	   clearBaseBranch(). */
-	baseTramp->updateCostOffset = baseTramp->size;
-	
 	/* Prepare bundle for emulation */
 	const ia64_bundle_t *origBundlePtr =
 		(const ia64_bundle_t *)location->getOwner()->getPtrToInstruction( origBundleAddr );
@@ -3287,8 +3212,8 @@ Address installMultiTramp(instPoint * & location, process *proc)
 baseTramp * findOrInstallBaseTramp( process * proc, instPoint * & location,
 										returnInstance * & retInstance,
 										bool trampRecursiveDesired,
-										bool /*noCost*/, bool & /*deferred*/, bool /*allowTrap*/ ) {
-	/* TODO: handle if trampRecursiveDesired; handle if noCast, handle if deferred. */
+										bool / *noCost */, bool & /* deferred */, bool /* allowTrap */ ) {
+	/* FIXME: handle the latter three booleans. */
  
 	/* proc->baseMap is in the relevant variable here; check to see if the given
 	   instPoint already has a base tramp ("find"), and if not, "install" one. */
@@ -3509,7 +3434,7 @@ Register emitR( opCode op, Register src1, Register /*src2*/, Register dest,
 void initDefaultPointFrequencyTable() {
 	/* On other platforms, this loads data into a table that's only used
 	   in the function getPointFrequency, which is never called, so we'll do nothing. */
-} /* end initDefaultPointFrequencyTable() */
+	} /* end initDefaultPointFrequencyTable() */
 
 #define DEFAULT_MAGIC_FREQUENCY 100.0
 float getPointFrequency( instPoint * point ) {
@@ -3687,10 +3612,7 @@ void emitVstore( opCode op, Register src1, Register src2, Address dest,
 			assert( location->func()->framePointerCalculator != NULL );			
 
 			/* framePointerCalculator will leave the frame pointer in framePointer. */
-			pdvector< AstNode * > ifForks;
-			Register framePointer = (Register) location->func()->framePointerCalculator->generateCode_phase2( proc, rs, gen, false, ifForks, location );
-			/* For now, make sure what we don't know can't hurt us. */
-			assert( ifForks.size() == 0 );
+			Register framePointer = (Register) location->func()->framePointerCalculator->generateCode( proc, rs, gen, false, true, location );
 
 			/* See the frameAddr case in emitVload() for an optimization. */
 			instruction memoryNop( NOP_M );
@@ -3857,24 +3779,21 @@ const IA64_iterator IA64_iterator::operator++ ( int ) {
 #endif
 
 /* For AIX liveness analysis */
-void registerSpace::resetLiveDeadInfo(const int * liveRegs)
-{}
+void registerSpace::resetLiveDeadInfo( const int * ) {
+	} /* end resetLiveDeadInfo() */
 
 /* For AIX "on the fly" register allocation. */
-bool registerSpace::clobberRegister( Register reg ) {
+bool registerSpace::clobberRegister( Register ) {
 	return false;
 	} /* end clobberRegister() */
 
-
-/* For AIX "on the fly" register allocation; currently not called
-   from anywhere.  (2005-020-23) */
-bool registerSpace::clobberFPRegister( Register reg ) {
-	assert( 0 );
+/* For AIX "on the fly" register allocation. */
+bool registerSpace::clobberFPRegister( Register ) {
 	return false;
 	} /* end clobberFPRegister() */
 
 /* For AIX "on the fly" register allocation. */
-unsigned saveRestoreRegistersInBaseTramp( process * proc, baseTramp * bt, registerSpace * rs ) {
+unsigned saveRestoreRegistersInBaseTramp( process *, baseTramp *, registerSpace * ) {
 	return 0;
 	} /* end saveRestoreRegistersInBaseTramp() */
 
@@ -3987,7 +3906,7 @@ bool baseTramp::generateSaves(codeGen &gen, registerSpace *rs) {
 	/* Determine this instrumentation point's regSpace and deadRegisterList (global variables)
 	   for use by the rest of the code generator.  The generatePreservation*() functions need
 	   this information as well. */
-	bool staticallyAnalyzed = defineBaseTrampRegisterSpaceFor( point(), regSpace, deadRegisterList);
+	bool staticallyAnalyzed = defineBaseTrampRegisterSpaceFor( point(), regSpace, deadRegisterList );
 	if( ! staticallyAnalyzed ) {
 		fprintf( stderr, "FIXME: Dynamic determination of register frame required but not yet implemented, aborting.\n" );
 		fprintf( stderr, "FIXME: mutatee instrumentation point 0x%lx\n", point()->addr() );
@@ -4034,24 +3953,24 @@ bool baseTramp::generateSaves(codeGen &gen, registerSpace *rs) {
 	/* Determine this instrumentation point's regSpace and deadRegisterList (global variables)
 	   for use by the rest of the code generator.  The generatePreservation*() functions need
 	   this information as well. */
-	bool staticallyAnalyzed = defineBaseTrampRegisterSpaceFor( point(), regSpace, deadRegisterList);
+	bool staticallyAnalyzed = defineBaseTrampRegisterSpaceFor( point(), regSpace, deadRegisterList );
 	if( ! staticallyAnalyzed ) {
 		fprintf( stderr, "FIXME: Dynamic determination of register frame required but not yet implemented, aborting.\n" );
 		fprintf( stderr, "FIXME: mutatee instrumentation point 0x%lx\n", point()->addr() );
 		return false;
-	} 
+		} 
 	
 	return generatePreservationTrailer(gen, point()->func()->usedFPregs, baseTrampRegion);
- }
+	}
 
- unsigned baseTramp::getBTCost() {
-	 // FIXME
-	 return 0;
- }
+
+unsigned baseTramp::getBTCost() {
+	/* This seems to be defined to return a random constant.  Lovely. */
+	return STATE_SAVE_COST + STATE_RESTORE_COST;
+	} /* end getBTCost() */
 
  
-int instPoint::getPointCost()
-{
+int instPoint::getPointCost() {
   unsigned worstCost = 0;
   for (unsigned i = 0; i < instances.size(); i++) {
       if (instances[i]->multi()) {
