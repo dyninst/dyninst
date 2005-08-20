@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.5 2005/01/24 20:45:02 tlmiller Exp $
+# $Id: Makefile,v 1.6 2005/08/20 00:56:20 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -15,7 +15,7 @@ include ../../make.config
 LD				= $(GCC)
 LDFLAGS			= -shared -ldl
 
-CFLAGS          = -Dia64_unknown_linux2_4 -g -O2
+CFLAGS          += -Dia64_unknown_linux2_4 -g -O2
 CFLAGS			+= -fPIC
 CFLAGS          += -I. -I../..
 
