@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.5 2005/08/11 21:20:09 bernat Exp $
+// $Id: baseTramp.C,v 1.6 2005/08/20 00:56:11 tlmiller Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -137,11 +137,11 @@ baseTramp::baseTramp() :
     totalClobbered(0),
     trampGuardFlagAddr(0),
     trampGuardFlagValue(0),
-#if 0
-    saveRegion(NULL),
-    restoreRegion(NULL),
-    codeRegion(NULL),
-#endif
+#if defined( arch_ia64 )
+	baseTrampRegion( NULL ),
+	addressRegister( 0 ),
+	valueRegister( 0 ),
+#endif /* defined( arch_ia64 ) */    
     preInstP(NULL),
     postInstP(NULL),
     rpcMgr_(NULL),
@@ -180,11 +180,11 @@ baseTramp::baseTramp(const baseTramp *pt, process *proc) :
     totalClobbered(pt->totalClobbered),
     trampGuardFlagAddr(pt->trampGuardFlagAddr),
     trampGuardFlagValue(pt->trampGuardFlagValue),
-#if 0
-    saveRegion(NULL),
-    restoreRegion(NULL),
-    codeRegion(NULL),
-#endif
+#if defined( arch_ia64 )
+	baseTrampRegion( NULL ),
+	addressRegister( pt->addressRegister ),
+	valueRegister( pt->valueRegister ),
+#endif /* defined( arch_ia64 ) */    
     preInstP(NULL),
     postInstP(NULL),
     firstMini(NULL),
