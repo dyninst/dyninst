@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.151 2005/07/29 19:18:21 bernat Exp $
+// $Id: ast.C,v 1.152 2005/08/23 21:46:22 rutar Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -111,7 +111,7 @@ registerSpace::registerSpace(const unsigned int deadCount, Register *dead,
   unsigned i;
   numRegisters = deadCount + liveCount;
   registers = new registerSlot[numRegisters];
- 
+  spFlag = 1;   // Save SPR (right now for Power) unless we hear different
   numFPRegisters = 0;
  
    // load dead ones
@@ -148,6 +148,8 @@ void registerSpace::initFloatingPointRegisters(const unsigned int count, Registe
   numFPRegisters = count;
   for (i = 0; i < count; i++)
     {
+      fpRegisters[i].needsSaving = true;
+      fpRegisters[i].startsLive = true;
       fpRegisters[i].number = fp[i];
       fpRegisters[i].beenClobbered = false;
     }
@@ -996,9 +998,8 @@ Address AstNode::generateTramp(process *proc, const instPoint *location,
 
     regSpace->resetSpace();
     regSpace->resetClobbers();
-    // FIXME liveRegisters
-    //regSpace->resetLiveDeadInfo(location->liveRegisters);
-
+    
+    
 #if defined( ia64_unknown_linux2_4 )
 	extern Register deadRegisterList[];
 	defineBaseTrampRegisterSpaceFor( location, regSpace, deadRegisterList);

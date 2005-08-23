@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.227 2005/08/15 22:20:15 bernat Exp $
+ * $Id: inst-power.C,v 1.228 2005/08/23 21:46:23 rutar Exp $
  */
 
 #include "common/h/headers.h"
@@ -383,6 +383,7 @@ void initTramps(bool is_multithreaded)
        deadRegList[0] = 12;
     }
 
+    
     regSpace = 
        new registerSpace(dead_reg_count, deadRegList, 
                          sizeof(liveRegList)/sizeof(Register), liveRegList,
@@ -842,11 +843,11 @@ unsigned saveGPRegisters(codeGen &gen,
     for(u_int i = 0; i < theRegSpace->getRegisterCount(); i++) {
         registerSlot *reg = theRegSpace->getRegSlot(i);
         if (reg->startsLive) {
-            saveRegister(gen, reg->number, save_off);
-            numRegs++;
+	  saveRegister(gen, reg->number, save_off);
+	  numRegs++;
         }
     }
-    
+        
     return numRegs;
 }
 
@@ -904,15 +905,29 @@ unsigned restoreGPRegisters(codeGen &gen,
  */
 
 unsigned saveFPRegisters(codeGen &gen,
-                         registerSpace * /*...*/,
+                         registerSpace * theRegSpace,
                          int save_off)
 {
-    unsigned numRegs = 0;
+  
+  unsigned numRegs = 0;
+  for(u_int i = 0; i < theRegSpace->getFPRegisterCount(); i++) {
+    registerSlot *reg = theRegSpace->getFPRegSlot(i);
+    if (reg->startsLive) {
+      saveFPRegister(gen, reg->number, save_off);
+      numRegs++;
+    }
+  }
+  
+  return numRegs;
+  
+  /*
+  unsigned numRegs = 0;
     for (unsigned i = 0; i <= 13; i++) {
         numRegs++;
         saveFPRegister(gen, i, save_off);
     }
     return numRegs;
+  */
 }
 
 /*
@@ -925,13 +940,28 @@ unsigned restoreFPRegisters(codeGen &gen,
                             registerSpace *theRegSpace,
                             int save_off)
 {
+  
+  unsigned numRegs = 0;
+  for(u_int i = 0; i < theRegSpace->getFPRegisterCount(); i++) {
+    registerSlot *reg = theRegSpace->getFPRegSlot(i);
+    if (reg->startsLive) {
+      restoreFPRegister(gen, reg->number, save_off);
+      numRegs++;
+    }
+  }
+  
+  return numRegs;
 
+  
+  /*
     unsigned numRegs = 0;
     for (unsigned i = 0; i <= 13; i++) {
         numRegs++;
         restoreFPRegister(gen, i, save_off);
     }
     return numRegs;
+  */
+
 
     /*
     unsigned numRegs = 0;
@@ -963,11 +993,13 @@ unsigned restoreFPRegisters(codeGen &gen,
  */
 
 unsigned saveSPRegisters(codeGen &gen,
+			 registerSpace * theRegSpace,
                          int save_off)
 {
     saveCR(gen, 10, save_off + STK_CR);           
     saveSPR(gen, 10, SPR_XER, save_off + STK_XER);
-    saveSPR(gen, 10, SPR_SPR0, save_off + STK_SPR0);
+    if (theRegSpace->getSPFlag())
+      saveSPR(gen, 10, SPR_SPR0, save_off + STK_SPR0);
     saveFPSCR(gen, 10, save_off + STK_FP_CR);
     return 4; // register saved
 }
@@ -978,11 +1010,14 @@ unsigned saveSPRegisters(codeGen &gen,
  */
 
 unsigned restoreSPRegisters(codeGen &gen,
+			    registerSpace *theRegSpace,
                             int save_off)
 {
     restoreCR(gen, 10, save_off + STK_CR);
     restoreSPR(gen, 10, SPR_XER, save_off + STK_XER);
-    restoreSPR(gen, 10, SPR_SPR0, save_off + STK_SPR0);
+    if (theRegSpace->getSPFlag())
+      restoreSPR(gen, 10, SPR_SPR0, save_off + STK_SPR0);
+    
     restoreFPSCR(gen, 10, save_off + STK_FP_CR);
     return 4; // restored
 }
@@ -1082,6 +1117,7 @@ bool baseTramp::generateSaves(codeGen &gen,
     // No more cookie. FIX aix stackwalking.
     if (isConservative()) {
         saveSPRegisters(gen,
+			theRegSpace,
                         TRAMP_SPR_OFFSET);
     }
     // If we're at a callsite (or unknown) save the count register
@@ -1100,7 +1136,7 @@ bool baseTramp::generateRestores(codeGen &gen,
                    SPR_CTR, TRAMP_SPR_OFFSET + STK_CTR);
     }
     if (isConservative()) {
-        restoreSPRegisters(gen, TRAMP_SPR_OFFSET);
+        restoreSPRegisters(gen, theRegSpace, TRAMP_SPR_OFFSET);
     }
 
     // LR
@@ -1657,73 +1693,56 @@ Register emitFuncCall(opCode /* ocode */,
        //cout << "Function Name is " << funcc->prettyName() << endl;
        
        if (funcc) {           
-             InstrucIter ah(funcc);
-             
-             //while there are still instructions to check for in the
-             //address space of the function
-             
-             while (ah.hasMore()) {
+	 InstrucIter ah(funcc);
+	 
+	 //while there are still instructions to check for in the
+	 //address space of the function
+	 
+	 while (ah.hasMore()) {
 
-                 if (ah.isA_RT_WriteInstruction())
-                     {
-                         
-                         //cout<<"Writes to RT for ";
-                         //inst.printOpCode();
-                         //cout<<" and register ";
-                         //cout<< inst.getRTValue() << endl;
-                         
-                         rs->clobberRegister(ah.getRTValue());
-                     }
-                 if (ah.isA_RA_WriteInstruction())
-                     {
-                         
-                         //cout<<"Writes to RA for ";
-                         //inst.printOpCode();
-                         //cout<<" and register ";
-                         //cout<<inst.getRAValue()<<endl;
-                         
-                         rs->clobberRegister(ah.getRAValue());
-                     }
-                 if (ah.isA_FRT_WriteInstruction())
-                     {
-                         
-                         //cout<<"Writes to FRT for ";
-                         //ah.printOpCode();
-                         //cout<<" and register ";
-                         //cout<<ah.getRTValue()<<endl;
-                         
-                         rs->clobberFPRegister(ah.getRTValue());
-                     }
-                 if (ah.isA_FRA_WriteInstruction())
-                     {
-                         
-                         //cout<<"Writes to FRA for ";
-                         //ah.printOpCode();
-                         //cout<<" and register ";
-                         //cout<<ah.getRAValue()<<endl;
-                         
-                         rs->clobberFPRegister(ah.getRAValue());
-                     }
-                 if (ah.isAReturnInstruction()){
-                 }
-                 else if (ah.isACondBranchInstruction()){
-                 }
-                 else if (ah.isAJumpInstruction()){
-                 }
-                 else if (ah.isACallInstruction()){
-                     clobberAll = true;
-                 }
-                 else if (ah.isAnneal()){
-                 }
-                 else{
-                 }
-                 ah++;
-             }
+	   if (ah.isA_RT_WriteInstruction())
+	     {
+	       
+	       rs->clobberRegister(ah.getRTValue());
+	     }
+	   if (ah.isA_RA_WriteInstruction())
+	     {
+	       rs->clobberRegister(ah.getRAValue());
+	     }
+	   if (ah.isA_FRT_WriteInstruction())
+	     {
+	       rs->clobberFPRegister(ah.getRTValue());
+	     }
+	   if (ah.isA_FRA_WriteInstruction())
+	     {
+	       
+	       //cout<<"Writes to FRA for ";
+	       //ah.printOpCode();
+	       //cout<<" and register ";
+	       //cout<<ah.getRAValue()<<endl;
+	       
+	       rs->clobberFPRegister(ah.getRAValue());
+	     }
+	   if (ah.isAReturnInstruction()){
+	   }
+	   else if (ah.isACondBranchInstruction()){
+	   }
+	   else if (ah.isAJumpInstruction()){
+	   }
+	   else if (ah.isACallInstruction()){
+	     clobberAll = true;
+	   }
+	   else if (ah.isAnneal()){
+	   }
+	   else{
+	   }
+	   ah++;
 	 }
+       }
      }
-
    
-
+   
+   
    /////////////// Clobber the registers if needed
 
    if (clobberAll)
@@ -2514,16 +2533,25 @@ bool registerSpace::clobberFPRegister(Register reg)
 // Takes information from instPoint and resets
 // regSpace liveness information accordingly
 // Right now, all the registers are assumed to be live by default
-void registerSpace::resetLiveDeadInfo(const int * liveRegs)
+void registerSpace::resetLiveDeadInfo(const int * liveRegs, 
+				      const int * liveFPRegs,
+				      const int * liveSPRegs)
 {
   registerSlot *regSlot = NULL;
-  
-  if (liveRegs != NULL)
+  registerSlot *regFPSlot = NULL;
+
+  if (liveRegs != NULL & liveFPRegs != NULL)
     {
       /*
+      printf("GPR  ");
       for (int a = 0; a < 32; a++)
 	printf("%d ",liveRegs[a]);
       printf("\n");
+      
+      printf("FPR  ");
+      for (int a = 0; a < 32; a++)
+	printf("%d ",liveFPRegs[a]);
+	printf("\n");
       */
 
       for (u_int i = 0; i < regSpace->getRegisterCount(); i++)
@@ -2540,7 +2568,24 @@ void registerSpace::resetLiveDeadInfo(const int * liveRegs)
 	      registers[i].startsLive = false;
 	    }
 	}
+
+       for (u_int i = 0; i < regSpace->getFPRegisterCount(); i++)
+	{
+	  regFPSlot = regSpace->getFPRegSlot(i);
+	  if (  liveFPRegs[ (int) fpRegisters[i].number ] == 1 )
+	    {
+	      fpRegisters[i].needsSaving = true;
+	      fpRegisters[i].startsLive = true;
+	    }
+	  else
+	    {
+	      fpRegisters[i].needsSaving = false;
+	      fpRegisters[i].startsLive = false;
+	    }
+	}
     }
+  if (liveSPRegs != NULL)
+    spFlag = liveSPRegs[0];
 }
 
 

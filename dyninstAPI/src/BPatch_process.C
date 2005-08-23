@@ -843,7 +843,12 @@ BPatchSnippetHandle *BPatch_process::insertSnippetWhen(const BPatch_snippet &exp
 	 /* When we have the actual basic block belonging to the 
 	    inst address, we put the live Registers in for that inst point*/
 	 
-	 bb->liveRegistersIntoSet(iPo->liveRegisters, pA );
+	 bb->liveRegistersIntoSet(iPo->liveRegisters, iPo->liveFPRegisters, pA );
+
+	 /* Function for handling special purpose registers on platforms,
+	    for Power it figures out MX register usage (big performance hit) ... 
+	    may be extended later for other special purpose registers */
+	 bb->liveSPRegistersIntoSet(iPo->liveSPRegisters, pA);
 
 	 //bb->printAll();
        }

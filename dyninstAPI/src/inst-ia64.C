@@ -3778,10 +3778,6 @@ const IA64_iterator IA64_iterator::operator++ ( int ) {
 	} /* end operator ++ */
 #endif
 
-/* For AIX liveness analysis */
-void registerSpace::resetLiveDeadInfo( const int * ) {
-	} /* end resetLiveDeadInfo() */
-
 /* For AIX "on the fly" register allocation. */
 bool registerSpace::clobberRegister( Register ) {
 	return false;

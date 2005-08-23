@@ -260,16 +260,20 @@ class InstrucIter {
   
   bool isA_RT_WriteInstruction();
   bool isA_RA_WriteInstruction(); 
-  bool isA_FRT_WriteInstruction(); 
-  bool isA_FRA_WriteInstruction(); 
+ 
   bool isA_RT_ReadInstruction();
   bool isA_RA_ReadInstruction(); 
+  bool isA_RB_ReadInstruction();
+
+  bool isA_FRT_WriteInstruction(); 
+  bool isA_FRA_WriteInstruction(); 
+
   bool isA_FRT_ReadInstruction(); 
   bool isA_FRA_ReadInstruction(); 
-  bool isA_RB_ReadInstruction();
   bool isA_FRB_ReadInstruction();
-  
-  
+  bool isA_FRC_ReadInstruction();
+
+  bool isA_MX_Instruction();
 
   Address getBranchTargetOffset();
   Address getBranchTargetAddress();
@@ -280,6 +284,10 @@ class InstrucIter {
   unsigned getRTValue();
   unsigned getRAValue();
   unsigned getRBValue();
+  unsigned getFRTValue();
+  unsigned getFRAValue();
+  unsigned getFRBValue();
+  unsigned getFRCValue();
   void printOpCode();
 
   bool isAIndirectJumpInstruction();

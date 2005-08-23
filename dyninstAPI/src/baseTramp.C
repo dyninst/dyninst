@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.6 2005/08/20 00:56:11 tlmiller Exp $
+// $Id: baseTramp.C,v 1.7 2005/08/23 21:46:23 rutar Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -811,8 +811,15 @@ bool baseTramp::generateBT() {
         theRegSpace = conservativeRegSpace;
     else
         theRegSpace = regSpace;
-#endif
 
+    
+    instPoint * location = point();
+    theRegSpace->resetLiveDeadInfo(location->liveRegisters,
+				location->liveFPRegisters,
+				location->liveSPRegisters);
+
+#endif
+    
     saveStartOffset = preTrampCode_.used();
     inst_printf("Starting saves: offset %d\n", saveStartOffset);
     generateSaves(preTrampCode_, regSpace);
@@ -1079,7 +1086,8 @@ void baseTrampInstance::deleteMTI(miniTrampInstance *mti) {
 instPoint *baseTramp::point() const {
     if (preInstP) return preInstP;
     else if (postInstP) return postInstP;
-    else assert(0);
+    //else 
+    //assert(0);
     return NULL;
 }
 

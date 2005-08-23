@@ -148,16 +148,19 @@ private:
 	/* Liveness analysis variables */
 	/** gen registers */
 	BITARRAY * gen;
+	BITARRAY * genFP;
 
 	/** kill registers */
 	BITARRAY * kill;
+	BITARRAY * killFP;
 	
 	/** in registers */
 	BITARRAY * in;
+	BITARRAY * inFP;
 
 	/** out registers */
 	BITARRAY * out;
-
+	BITARRAY * outFP;
 
 
 #if defined( arch_ia64 )
@@ -483,9 +486,9 @@ public:
 
 	/** BPatch_basicBlock::updateRegisternOut */
 	/** Initializes the gen/kill sets for register liveness analysis */
-	API_EXPORT(Int, (),
+	API_EXPORT(Int, (isFP),
 
-	bool,updateRegisterInOut,());
+	bool,updateRegisterInOut,(bool isFP));
 
 	API_EXPORT(Int, (),
 
@@ -493,11 +496,21 @@ public:
 
 	API_EXPORT(Int, (),
 
+	BITARRAY *, getInFPSet, ());
+
+	API_EXPORT(Int, (),
+
 	bool,printAll,());
 
-	API_EXPORT(Int, (liveReg, address),
+	API_EXPORT(Int, (liveReg, liveFPReg, address),
 		   
-	int, liveRegistersIntoSet, (int *& liveReg, unsigned long address));
+	int, liveRegistersIntoSet, (int *& liveReg, int *& liveFPReg,
+				    unsigned long address));
+
+	API_EXPORT(Int, (liveSPReg, address),
+		   
+	int, liveSPRegistersIntoSet, (int *& liveSPReg,
+				    unsigned long address));
 
 #endif
 

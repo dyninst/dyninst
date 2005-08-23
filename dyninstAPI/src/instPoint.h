@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.20 2005/08/08 22:39:25 bernat Exp $
+// $Id: instPoint.h,v 1.21 2005/08/23 21:46:23 rutar Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -100,8 +100,8 @@ class instPointBase {
   const instruction &insn() const { return insn_; }
   instPointBase(instruction insn,
                 instPointType_t type) :
-      ipType_(type),
-      insn_(insn)
+    ipType_(type),
+    insn_(insn), liveRegisters(NULL), liveFPRegisters(NULL), liveSPRegisters(NULL) 
       { id_ = id_ctr++; }
   // We need to have a manually-set-everything method
   instPointBase(instruction insn,
@@ -109,11 +109,17 @@ class instPointBase {
                 unsigned int id) :
       id_(id),
       ipType_(type),
-      insn_(insn)
+    insn_(insn), liveRegisters(NULL), liveFPRegisters(NULL), liveSPRegisters(NULL)
       {}
 
   int id() const { return id_; }
-
+  
+  // Register optimization
+  int *liveRegisters;
+  int *liveFPRegisters;
+  int *liveSPRegisters;
+  // AIX only.
+  
  protected:
   unsigned int id_;
   instPointType_t ipType_;
@@ -217,8 +223,7 @@ class instPoint : public instPointBase {
     instPoint(process *proc,
               instruction insn,
               Address addr,
-              int_function *func);
-    // Call-site instPoint
+              int_function *func);    // Call-site instPoint
     instPoint(process *proc,
               image_instPoint *img_p,
               Address addr,
@@ -412,10 +417,7 @@ class instPoint : public instPointBase {
   baseTramp *postBaseTramp() const { return postBaseTramp_; }
   baseTramp *targetBaseTramp() const { return targetBaseTramp_; }
 
-  // Register optimization
-  int *liveRegisters;
-  // AIX only.
-
+  
  private:
   baseTramp *preBaseTramp_;
   baseTramp *postBaseTramp_;

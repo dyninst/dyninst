@@ -143,11 +143,22 @@ BPatch_flowGraph::BPatch_flowGraph(BPatch_function *func,
    do {
      change = false;
      for (unsigned int i = 0; i < allBlocks.size(); i++) {
-       if (blocks[i]->updateRegisterInOut()) 
+       if (blocks[i]->updateRegisterInOut(false)) 
 	 change = true;
      }
    } while (change);
   
+   change = true;
+
+   // Same thing for floating point
+   do {
+     change = false;
+     for (unsigned int i = 0; i < allBlocks.size(); i++) {
+       if (blocks[i]->updateRegisterInOut(true)) 
+	 change = true;
+     }
+   } while (change);
+
    delete[] blocks;
    
    // LIVENESS ANALYSIS CODE STOPS

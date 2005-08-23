@@ -86,6 +86,56 @@ unsigned InstrucIter::getRBValue(void)
   return (*i).xform.rb;
 }
 
+unsigned InstrucIter::getFRTValue(void)
+{
+  const instruction i = getInstruction();
+  return (*i).aform.frt;
+}
+
+unsigned InstrucIter::getFRAValue(void)
+{
+  const instruction i = getInstruction();
+  return (*i).aform.fra;
+}
+
+unsigned InstrucIter::getFRBValue(void)
+{
+  const instruction i = getInstruction();
+  return (*i).aform.frb;
+}
+
+unsigned InstrucIter::getFRCValue(void)
+{
+  const instruction i = getInstruction();
+  return (*i).aform.frc;
+}
+
+/* Returns true if the instruction reads/writes the MX (SPR0) SP Register */
+bool InstrucIter::isA_MX_Instruction()
+{
+  const instruction i = getInstruction();
+  if (
+      ((*i).xform.op == X_EXTENDEDop
+       && ( (*i).xform.xo == SREQxop || (*i).xform.xo == SLEQxop ||
+	    (*i).xform.xo == SLLIQxop || (*i).xform.xo == SRLIQxop ||
+	    (*i).xform.xo == SRLQxop || (*i).xform.xo == SLLQxop ||
+	    (*i).xform.xo == SLIQxop || (*i).xform.xo == SRQxop ||
+	    (*i).xform.xo == SLQxop || (*i).xform.xo == SRIQxop ||
+	    (*i).xform.xo == SRAIQxop || (*i).xform.xo == SREAxop ||
+	    (*i).xform.xo == STSXxop || (*i).xform.xo == STSIxop ||
+	    (*i).xform.xo == LSCBXxop
+	    ))
+      ||
+      ((*i).xoform.op == XO_EXTENDEDop
+       && ( (*i).xoform.xo == DIVxop || (*i).xoform.xo == DIVSxop ||
+	    (*i).xoform.xo == MULxop )))
+    return true;
+  else
+    return false;
+}
+
+
+
 /* This function returns true if the instruction affects the RD Register */
 bool InstrucIter::isA_RT_WriteInstruction()
 {
@@ -427,6 +477,20 @@ bool InstrucIter::isA_FRB_ReadInstruction()
     }
 }  
 
+/* This function returns true if the instruction reads the FRC Registers */
+bool InstrucIter::isA_FRC_ReadInstruction()
+{
+ const instruction i = getInstruction();
+ if (
+     /* A Form */
+     ((*i).aform.op == A_FP_EXTENDEDop2
+      && ( (*i).aform.xo == FMxop || (*i).aform.xo == FMSxop || (*i).aform.xo == FMAxop ||
+	   (*i).aform.xo == FNMSxop  || (*i).aform.xo == FNMAxop )))
+   return true;
+ else
+   return false;
+	   
+}
 
 
 /* This function returns true if the instruction affects the FRA Register */
@@ -466,9 +530,6 @@ bool InstrucIter::isA_FRA_WriteInstruction()
 bool InstrucIter::isA_RA_WriteInstruction()
 {
   const instruction i = getInstruction();
-  //if ( (*i).xform.op == 31 )
-  //  printf("la la %d \n", (*i).xform.xo);
-
   if (
       /* X Form */
       ( (*i).xform.op == X_EXTENDEDop

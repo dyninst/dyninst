@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.78 2005/07/29 19:18:22 bernat Exp $
+// $Id: ast.h,v 1.79 2005/08/23 21:46:23 rutar Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -131,7 +131,8 @@ class registerSpace {
 	void forceFreeRegister(Register k);
 	void resetSpace();
 	void resetClobbers();
-	void resetLiveDeadInfo(const int* liveRegs);
+	void resetLiveDeadInfo(const int* liveRegs,
+			       const int *, const int *);
 
 	// Check to see if the register is free
 	bool isFreeRegister(Register k);
@@ -177,6 +178,8 @@ class registerSpace {
 	registerSlot *getRegSlot(Register k) { return (&registers[k]); }
 	registerSlot *getFPRegSlot(Register k) { return (&fpRegisters[k]); }
 
+	int getSPFlag() {return spFlag;}
+	
 	void copyInfo(registerSpace *rs);
 
 
@@ -191,6 +194,7 @@ class registerSpace {
 	Register highWaterRegister;
 	registerSlot *registers;
 	registerSlot *fpRegisters;
+	int spFlag;
    bool is_multithreaded;
 #if defined(ia64_unknown_linux2_4)
 
