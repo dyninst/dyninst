@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.214 2005/08/15 22:20:17 bernat Exp $
+ * $Id: inst-x86.C,v 1.215 2005/08/24 15:22:07 rutar Exp $
  */
 #include <iomanip>
 
@@ -2246,10 +2246,6 @@ bool int_function::setReturnValue(int val)
     return proc()->writeTextSpace((void *) addr, gen.used(), gen.start_ptr());
 }
 
-
-/* For AIX liveness analysis */
-void registerSpace::resetLiveDeadInfo(const int *)
-{}
 
 bool registerSpace::clobberRegister(Register /*reg*/) 
 {
