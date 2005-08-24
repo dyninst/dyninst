@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.172 2005/08/08 20:23:33 gquinn Exp $
+// $Id: linux.C,v 1.173 2005/08/24 21:04:03 jaw Exp $
 
 #include <fstream>
 
@@ -1756,7 +1756,7 @@ bool process::readAuxvInfo()
   unsigned page_size = 0x0;
   struct {
     int type;
-    int value;
+    Address value;
   } auxv_entry;
   
   sprintf(buffer, "/proc/%d/auxv", pid);

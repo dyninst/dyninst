@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.31 2005/08/20 00:56:19 tlmiller Exp $
+ * $Id: RTlinux.c,v 1.32 2005/08/24 21:04:03 jaw Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -58,7 +58,9 @@
 #include <errno.h>
 #include <unistd.h>
 
+#ifdef NOTDEF // PDSEP
 #include <sys/ptrace.h>
+#endif
 
 
 #if !defined(ia64_unknown_linux2_4)
@@ -165,7 +167,6 @@ DYNINSTos_init(int calledByFork, int calledByAttach)
     }
 #endif /* !ia64_unknown_linux2_4 */
 
-    ptrace(PTRACE_TRACEME, 0, 0, 0);
 }
 
 /****************************************************************************
