@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.4 2005/08/20 00:56:18 tlmiller Exp $
+// $Id: miniTramp.C,v 1.5 2005/08/24 17:24:05 rutar Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -158,7 +158,6 @@ bool miniTramp::generateMT() {
 
 	regS->resetSpace();
 	regS->resetClobbers();
-	regS->resetLiveDeadInfo( instP->liveRegisters );
 	
 	defineBaseTrampRegisterSpaceFor( instP, regS, deadRegisterList );
 #else
