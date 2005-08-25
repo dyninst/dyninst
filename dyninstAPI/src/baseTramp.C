@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.7 2005/08/23 21:46:23 rutar Exp $
+// $Id: baseTramp.C,v 1.8 2005/08/25 22:45:21 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -794,8 +794,8 @@ bool baseTramp::generateBT() {
      */
 
     // We should catch if we're regenerating
-    assert(!preTrampCode_());
-    assert(!postTrampCode_());
+    assert(preTrampCode_ == NULL);
+    assert(postTrampCode_ == NULL);
 
     preTrampCode_.allocate(PRE_TRAMP_SIZE);
     postTrampCode_.allocate(POST_TRAMP_SIZE);
@@ -1099,4 +1099,9 @@ Address baseTrampInstance::uninstrumentedAddr() const {
     else 
         assert(0);
     return 0;
+}
+
+void *baseTrampInstance::getPtrToInstruction(Address addr) const {
+    assert(0); // FIXME if we do out-of-line baseTramps
+    return NULL;
 }
