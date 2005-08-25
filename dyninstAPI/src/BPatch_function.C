@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.57 2005/07/29 19:17:37 bernat Exp $
+// $Id: BPatch_function.C,v 1.58 2005/08/25 22:44:57 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -201,7 +201,7 @@ char *BPatch_function::getMangledNameInt(char *s, int len)
  */
 void *BPatch_function::getBaseAddrInt()
 {
-  return (void *)func->getOriginalAddress();
+  return (void *)func->getAddress();
 }
 
 /*
@@ -212,7 +212,7 @@ void *BPatch_function::getBaseAddrInt()
 */
 void *BPatch_function::getBaseAddrRelative() const
 {
-  return (void *)(func->getOriginalAddress() - func->obj()->getBaseAddress());
+  return (void *)(func->getAddress() - func->obj()->getBaseAddress());
 }
 
 
@@ -223,7 +223,7 @@ void *BPatch_function::getBaseAddrRelative() const
  */
 unsigned int BPatch_function::getSizeInt() 
 {
-  return func->getSize();
+    return func->getSize_NP();
 }
 
 /*
