@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.5 2005/08/15 22:20:12 bernat Exp $
+ * $Id: image-x86.C,v 1.6 2005/08/25 22:45:33 bernat Exp $
  */
 
 #include "common/h/Vector.h"
@@ -120,7 +120,7 @@ bool isRealCall(instruction insn, Address adr, image *img,
 
    // Get a pointer to the call target
    const unsigned char *target =
-      (const unsigned char *)img->getPtrToOrigInstruction(targetOffset);
+      (const unsigned char *)img->getPtrToInstruction(targetOffset);
 
    // The target instruction is a  mov
    if (*(target) == 0x8b) {
@@ -325,7 +325,7 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
 
         size_ = ah.getInstruction().size();
         isInstrumentable_ = false;
-        //parsing_printf("Jump or call at entry of function\n");
+        parsing_printf("Jump or call at entry of function\n");
         return false;
     }
     
@@ -351,8 +351,6 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
     {
         canBeRelocated = false;
     }
-
-    canBeRelocated_ = canBeRelocated;
     
     // get all the instructions for this function, and define the
     // instrumentation points.  
@@ -440,8 +438,7 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                               jmpTargets);
                 break;
             }
-            else if( ah.isAIndirectJumpInstruction() ) 
-            { 
+            else if( ah.isAIndirectJumpInstruction() ) {
                 currBlk->lastInsnOffset_ = currAddr;
                 currBlk->blockEndOffset_ = currAddr + insnSize;
                 parsing_printf("... indirect jump at 0x%x\n", currAddr);
@@ -454,12 +451,11 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                 
                 //if register indirect then table address will be taken from
                 //previous insn
-
+                
                 numInsns = allInstructions.size() - 2;
-                if( numInsns == 0 )
-                {
-                   // this "function" is a single instruction long
-                   // (a jmp to the "real" function)
+                if( numInsns == 0 ) {
+                    // this "function" is a single instruction long
+                    // (a jmp to the "real" function)
                     parsing_printf("... uninstrumentable due to 0 size\n");
                     isInstrumentable_ = false;
                     return false;
@@ -467,7 +463,7 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
 
                 if (ah.peekPrev() &&
                     (*ah.getPrevInstruction().op_ptr()) == POP_EBX) {
-
+                    
                     //this looks like a tail call
                     currBlk->isExitBlock_ = true;
                     break;
@@ -478,120 +474,111 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                 pdvector< image_basicBlock* > in;
                 currBlk->getSources( in );
                 
+                bool understood = true;
                 //we can't find the targets of this indirect jump
 
                 if( in.size() < 1 )
                 {
                     parsing_printf("... uninstrumentable, unable to find targets of indirect jump\n");
-                    isInstrumentable_ = false;
-                    return false;
+                    canBeRelocated = false;
+                    understood = false;
                 }
-
-                instruction tableInsn = ah.getInstruction();
-                instruction maxSwitch;
-                bool isAddInJmp = true;
-                
-                int j = allInstructions.size() - 2;
-                assert(j > 0);
-
-                const unsigned char* ptr = ah.getInstruction().op_ptr();
-                assert( *ptr == 0xff );
-                ptr++;
-                if( (*ptr & 0xc7) != 0x04) // if not SIB
-                {
-                    isAddInJmp = false;
-                    //jump via register so examine the previous instructions 
-                    //in current block to determine the register value
-                    bool foundTableInsn = false;
-                
-                    InstrucIter findReg(ah);
-                    while(findReg.hasPrev()) {
-                        findReg--;
-                        parsing_printf("Checking 0x%x for register...\n", *findReg);
-                        if ((*findReg.getInstruction().op_ptr()) == MOVREGMEM_REG) {
-                            tableInsn = findReg.getInstruction();
-                            foundTableInsn = true;
-                            parsing_printf("Found register at 0x%x\n", *findReg);
-                            break;    
-                        }
-                    }
-                    if( !foundTableInsn )
-                    {
-                        //can't determine register contents
-                        //give up on this function
-                        parsing_printf("... uninstrumentable, unable to determine reg contents\n");
-                        isInstrumentable_ = false;
-                        return false;
-                    }
-                }    
-                //now examine the instructions in my source block to 
-                //get the maximum switch value
-                //we are looking for the cmp instruction before the 
-                //conditional jump
-                Address saddr = in[0]->firstInsnOffset();
-                InstrucIter iter( in[0] );
-                instruction ins = iter.getInstruction();
-                iter++;
-                bool foundMaxSwitch = false;
-                while( *iter < in[0]->endOffset() )
-                {
-                    if( iter.getInstruction().type() & IS_JCC )
-                    {
-                        maxSwitch = ins;
-                        foundMaxSwitch = true;
-                    }
-                    ins = iter.getInstruction();
-                    iter++;
-                }
-                 
-                if( !foundMaxSwitch )
-                {
-                    parsing_printf("... uninstrumentable, unable to fix max switch size\n");
-                    isInstrumentable_ = false;
-                    return false;
-                }
-                //found the max switch assume jump table
-                else
-                {
-                    pdvector< Address > result;
-                    if( !ah.getMultipleJumpTargets( result, tableInsn, 
-                                                    maxSwitch, isAddInJmp ) )
-                    {
-                        //getMultipleJumpTargets failed.
-                        //give up on this function
-
-                        //XXX
-                        parsing_printf("... getMultipleJumpTargets failed, uninstrumentable\n");
-                        isInstrumentable_ = false;
-                        break;
-
-                        return false;
-                    }
-                    for( unsigned l = 0; l < result.size(); l++ )
-                    {
-                        Address res = result[ l ];
-                        if( !img()->isValidAddress( res ) )
-                            continue;
-                        //parsing_printf("... %d target is 0x%x\n",
-                        //l,
-                        //res);
-                        if( res < funcBegin )
+                else {
+                    instruction tableInsn = ah.getInstruction();
+                    instruction maxSwitch;
+                    bool isAddInJmp = true;
+                    
+                    int j = allInstructions.size() - 2;
+                    assert(j > 0);
+                    
+                    const unsigned char* ptr = ah.getInstruction().op_ptr();
+                    assert( *ptr == 0xff );
+                    ptr++;
+                    if( (*ptr & 0xc7) != 0x04) // if not SIB
                         {
-                            currBlk->isExitBlock_ = true;
+                            isAddInJmp = false;
+                            //jump via register so examine the previous instructions 
+                            //in current block to determine the register value
+                            bool foundTableInsn = false;
+                            
+                            InstrucIter findReg(ah);
+                            while(findReg.hasPrev()) {
+                                findReg--;
+                                parsing_printf("Checking 0x%x for register...\n", *findReg);
+                                if ((*findReg.getInstruction().op_ptr()) == MOVREGMEM_REG) {
+                                    tableInsn = findReg.getInstruction();
+                                    foundTableInsn = true;
+                                    parsing_printf("Found register at 0x%x\n", *findReg);
+                                    break;    
+                                }
+                            }
+                            if( !foundTableInsn )
+                                {
+                                    //can't determine register contents
+                                    //give up on this function
+                                    canBeRelocated = false;
+                                    break;
+                                }
                         }
-                        else {
-                            addBasicBlock(res,
-                                          currBlk,
-                                          leaders,
-                                          leadersToBlock,
-                                          jmpTargets);
+                    //now examine the instructions in my source block to 
+                    //get the maximum switch value
+                    //we are looking for the cmp instruction before the 
+                    //conditional jump
+                    Address saddr = in[0]->firstInsnOffset();
+                    InstrucIter iter( in[0] );
+                    instruction ins = iter.getInstruction();
+                    iter++;
+                    bool foundMaxSwitch = false;
+                    while( *iter < in[0]->endOffset() ) {
+                        if( iter.getInstruction().type() & IS_JCC ) {
+                            maxSwitch = ins;
+                            foundMaxSwitch = true;
                         }
-                    }                   
-                } 
-                break; 
+                        ins = iter.getInstruction();
+                        iter++;
+                    }
+                    
+                    if( !foundMaxSwitch ) {
+                        parsing_printf("... uninstrumentable, unable to fix max switch size\n");
+                        canBeRelocated = false;
+                        break;
+                    }
+                    //found the max switch assume jump table
+                    else {
+                        pdvector< Address > result;
+                        if( !ah.getMultipleJumpTargets( result, tableInsn, 
+                                                        maxSwitch, isAddInJmp )) {
+                            //getMultipleJumpTargets failed.
+                            //give up on this function
+                            
+                            //XXX
+                            parsing_printf("... getMultipleJumpTargets failed, uninstrumentable\n");
+                            canBeRelocated = false;
+                            break;
+                        }
+                        for( unsigned l = 0; l < result.size(); l++ ) {
+                            Address res = result[ l ];
+                            if( !img()->isValidAddress( res ) )
+                                continue;
+                            //parsing_printf("... %d target is 0x%x\n",
+                            //l,
+                            //res);
+                            if( res < funcBegin ) {
+                                currBlk->isExitBlock_ = true;
+                            }
+                            else {
+                                addBasicBlock(res,
+                                              currBlk,
+                                              leaders,
+                                              leadersToBlock,
+                                              jmpTargets);
+                            }
+                        }                   
+                    } 
+                    break; 
+                }
             }
-            else if ( ah.isAJumpInstruction() ) 
-            {
+            else if ( ah.isAJumpInstruction() ) {
                 currBlk->lastInsnOffset_ = currAddr;
                 currBlk->blockEndOffset_ = currAddr + insnSize;
                 
@@ -599,14 +586,13 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                     funcEnd = currAddr + insnSize;
                 
                 Address target = ah.getBranchTargetAddress();
-
+                
                 //parsing_printf("... 0x%x is a jump to 0x%x\n",
                 //currAddr, target);
                 Address val = *ah + insnSize;
 
                 ExceptionBlock b;
-                if (img()->getObject().getCatchBlock(b, val))
-                {
+                if (img()->getObject().getCatchBlock(b, val)) {
                     //Create a basic block for the catch block
                     Address cstart = b.catchStart();
                     addBasicBlock(cstart,
@@ -726,14 +712,10 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                     if( validTarget == false ) 
                     {
                         parsing_printf("... invalid call target\n");
-                        isInstrumentable_ = false;
-                        return false;
+                        // Do we want this?
+                        //canBeRelocated = false;
+                        break;
                     }
-                    else {
-                        //parsing_printf("... not real call, skipping inst point\n");
-                    }
-                    // Force relocation when instrumenting function
-                    //needs_relocation_ = true;
                 }
             }
             else if ( ah.isALeaveInstruction() )
@@ -761,10 +743,14 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
 
     cleanBlockList();
 
+
+    canBeRelocated_ = canBeRelocated;
     
     size_ = funcEnd - funcBegin;
 
     isInstrumentable_ = true;
+    parsing_printf("... done with parsing\n");
+
     return true;    
 }
 
