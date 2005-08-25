@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.5 2005/08/15 22:20:08 bernat Exp $
+// $Id: image-func.C,v 1.6 2005/08/25 22:45:29 bernat Exp $
 
 #include "function.h"
 #include "process.h"
@@ -327,6 +327,12 @@ bool image_func::cleanBlockList() {
     for (unsigned foo = 0; foo < blockList.size(); foo++) {
         if ((blockList[foo]->firstInsnOffset() < getOffset()) ||
             (blockList[foo]->firstInsnOffset() >= getOffset() + getSize())) {
+            inst_printf("Block %d at 0x%lx is outside of function (0x%lx to 0x%lx)\n",
+                        foo,
+                        blockList[foo]->firstInsnOffset(),
+                        getOffset(),
+                        getOffset() + getSize());
+                        
             delete blockList[foo];
         }
         else
@@ -350,7 +356,7 @@ bool image_func::cleanBlockList() {
     for( unsigned int iii = 0; iii < blockList.size(); iii++ )
     {
         blockList[iii]->blockNumber_ = iii;
-        //blockList[iii]->debugPrint();
+        blockList[iii]->debugPrint();
     }
   
     for( unsigned int r = 0; r + 1 < blockList.size(); r++ )
@@ -455,3 +461,18 @@ void image_func::checkCallPoints() {
     }
 }
 
+void *image_basicBlock::getPtrToInstruction(Address addr) const {
+    if (addr < firstInsnOffset_) return NULL;
+    if (addr >= blockEndOffset_) return NULL;
+    return func()->img()->getPtrToInstruction(addr);
+}
+
+void *image_func::getPtrToInstruction(Address addr) const {
+    if (addr < offset_) return NULL;
+    if (blockList.size() == 0) return NULL;
+    for (unsigned i = 0; i < blockList.size(); i++) {
+        void *ptr = blockList[i]->getPtrToInstruction(addr);
+        if (ptr) return ptr;
+    }
+    return NULL;
+}
