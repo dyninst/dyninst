@@ -38,7 +38,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-ia64.C,v 1.2 2005/08/15 22:20:10 bernat Exp $
+// $Id: image-ia64.C,v 1.3 2005/08/25 22:45:31 bernat Exp $
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -61,8 +61,8 @@ bool image_func::findInstPoints(pdvector<Address> & /*callTargets*/)
         } 
     parsed_ = true;
     
-    parsing_printf("findInstPoints for func %s, at 0x%llx\n",
-		   symTabName().c_str(), getOffset());
+    parsing_printf("findInstPoints for func %s, at 0x%llx, size %d\n",
+		   symTabName().c_str(), getOffset(), getSize());
     
     BPatch_Set< Address > leaders;
     dictionary_hash< Address, image_basicBlock* > leadersToBlock( addrHash );
@@ -125,51 +125,48 @@ bool image_func::findInstPoints(pdvector<Address> & /*callTargets*/)
 
             if( ah.isACondBranchInstruction() )
                 {
-                    //parsing_printf("cond branch\n");
+                    parsing_printf("cond branch\n");
                     currBlk->lastInsnOffset_ = currAddr; 
                     currBlk->blockEndOffset_ = ah.peekNext();
                     
                     Address target = ah.getBranchTargetAddress();
                     // img()->addJumpTarget(target);
 
+                    bool exit = false;
+
                     if( (target < funcBegin) ||
 			(target >= funcBegin + size_)) {
-		      currBlk->isExitBlock_ = true;
-		      // And make an inst point
-		      p = new image_instPoint(currAddr, 
-					      ah.getInstruction(),
-					      this,
-					      functionExit);
-		      //parsing_printf("Function exit at 0x%x\n", *ah);
-		      funcReturns.push_back(p);
+                        exit = true;
                     }
                     else {
-                        jmpTargets.push_back( target );
-                        
-                        //check if a basicblock object has been 
-                        //created for the target
-                        if( !leaders.contains( target ) )
-                            {
-                                //if not, then create one
-                                leadersToBlock[ target ] = new image_basicBlock (this, target);
-                                leaders += target;
-                                blockList.push_back( leadersToBlock[ target ] );
-                            }
-                        
-                        leadersToBlock[ target ]->addSource( currBlk );
-                        currBlk->addTarget( leadersToBlock[ target ] );
-                    }            
+                        addBasicBlock(target,
+                                      currBlk,
+                                      leaders,
+                                      leadersToBlock,
+                                      jmpTargets);
+                    }                        
                     
                     Address t2 = ah.peekNext();
-                    jmpTargets.push_back( t2 );
-                    if( !leaders.contains( t2 ) )
-                        {
-                            leadersToBlock[ t2 ] = new image_basicBlock(this, t2);
-                            leaders += t2;
-                            blockList.push_back( leadersToBlock[ t2 ] );
-                        }                 
-                    leadersToBlock[ t2 ]->addSource( currBlk );
-                    currBlk->addTarget( leadersToBlock[ t2 ] );
+                    if (t2 < funcBegin+size_) {
+                        addBasicBlock(t2,
+                                      currBlk,
+                                      leaders,
+                                      leadersToBlock,
+                                      jmpTargets);
+                    }
+                    else {
+                        exit = true;
+                    }
+                    if (exit) {
+                        currBlk->isExitBlock_ = true;
+                        // And make an inst point
+                        p = new image_instPoint(currAddr, 
+                                                ah.getInstruction(),
+                                                this,
+                                                functionExit);
+                        parsing_printf("Function exit at 0x%x\n", *ah);
+                        funcReturns.push_back(p);
+                    }
                     break;
                 }
              else if( ah.isAIndirectJumpInstruction() )
@@ -195,15 +192,11 @@ bool image_func::findInstPoints(pdvector<Address> & /*callTargets*/)
                          }
                      else
                      {
-                         if( !leaders.contains( *iter ) )
-                         {
-                             leadersToBlock[ *iter ] = new image_basicBlock(this, *iter);
-                             leaders += *iter;
-                             jmpTargets.push_back( *iter );
-                             blockList.push_back( leadersToBlock[ *iter] );
-                         }                        
-                         currBlk->addTarget( leadersToBlock[ *iter ] );
-                         leadersToBlock[ *iter ]->addSource( currBlk );
+                         addBasicBlock(*iter,
+                                       currBlk,
+                                       leaders,
+                                       leadersToBlock,
+                                       jmpTargets);
                      }
                      iter++;
                  }                 
@@ -264,18 +257,11 @@ bool image_func::findInstPoints(pdvector<Address> & /*callTargets*/)
                  }
                  else
                  {
-                     jmpTargets.push_back( target );
-                     //check if a basicblock object has been 
-                     //created for the target
-                     if( !leaders.contains( target ) )
-                     {
-                         //if not, then create one
-                         leadersToBlock[ target ] = new image_basicBlock(this, target);
-                         leaders += target;
-                         blockList.push_back( leadersToBlock[ target ] );
-                     }                     
-                     leadersToBlock[ target ]->addSource( currBlk );
-                     currBlk->addTarget( leadersToBlock[ target ] );
+                     addBasicBlock(target,
+                                   currBlk,
+                                   leaders,
+                                   leadersToBlock,
+                                   jmpTargets);
                  }                 
                  break;                 
              }
@@ -304,17 +290,15 @@ bool image_func::findInstPoints(pdvector<Address> & /*callTargets*/)
                 parsing_printf("Alloc insn (0x%llx)\n", currAddr);
                 // Alloc's don't actually start basic blocks, but our analysis
                 // has an easier time if they do. -- todd
-                if( ! leaders.contains( currAddr ) ) { 
-                    leadersToBlock[currAddr] = new image_basicBlock(this, currAddr);
-                    leaders += currAddr;
-                    blockList.push_back(leadersToBlock[currAddr]);
-                    leadersToBlock[currAddr]->addSource(currBlk);
-                    currBlk->addTarget(leadersToBlock[currAddr]);
-                    currBlk = leadersToBlock[currAddr];
-
-                    // And end the old one
-                    currBlk->lastInsnOffset_ = ah.peekPrev();
-                    currBlk->blockEndOffset_ = currAddr;
+                if (currAddr == currBlk->firstInsnOffset()) {
+                    // Cool, we're done
+                }
+                else {
+                    addBasicBlock(currAddr,
+                                  currBlk,
+                                  leaders,
+                                  leadersToBlock,
+                                  jmpTargets);
                 }
             } /* end if an alloc instruction */
             else {
