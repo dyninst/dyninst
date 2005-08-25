@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.2 2005/08/15 22:20:09 bernat Exp $
+// $Id: image-func.h,v 1.3 2005/08/25 22:45:30 bernat Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -102,6 +102,7 @@ class image_basicBlock : public codeRange {
 
     Address get_address_cr() const { return firstInsnOffset(); }
     unsigned get_size_cr() const { return getSize(); }
+    void *getPtrToInstruction(Address addr) const;
 
     void addTarget(image_basicBlock *target);
     void addSource(image_basicBlock *source);
@@ -173,6 +174,8 @@ class image_func : public codeRange {
    unsigned get_size_cr() const { return size_; } // May be incorrect
                                                   // but is
                                                   // consistent.
+   void *getPtrToInstruction(Address addr) const;
+
 
    // Should be operator==
    bool match(image_func *p);
