@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.173 2005/08/24 21:04:03 jaw Exp $
+// $Id: linux.C,v 1.174 2005/08/25 22:45:44 bernat Exp $
 
 #include <fstream>
 
@@ -363,6 +363,10 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
            if (pertinentProc->trampTrapMapping.defines(sigframe.getPC())) {
               why = procInstPointTrap;
               info = pertinentProc->trampTrapMapping[sigframe.getPC()];
+              /*
+              fprintf(stderr, "Trapping, address 0x%lx to 0x%lx\n",
+                      sigframe.getPC(), info);
+              */
            }
 
            // Trap on x86 gets reported as PC+sizeof(trap) == pc+1...
