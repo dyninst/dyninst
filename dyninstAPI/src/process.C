@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.548 2005/08/15 22:20:23 bernat Exp $
+// $Id: process.C,v 1.549 2005/08/25 22:45:51 bernat Exp $
 
 #include <ctype.h>
 
@@ -1676,7 +1676,8 @@ void process::deleteProcess() {
   codeRangesByAddr_.clear();
   
   // Iterate and clear? instPoint deletion should handle it.
-  multiTramps_.clear();
+  // What about replaced functions?
+  modifiedAreas_.clear();
   multiTrampDict.clear();
 
   // Blow away the replacedFunctionCalls list; codeGens are taken
@@ -2605,7 +2606,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
    fprintf(stderr, "Post process: sbrk %p\n", mem_usage);
 #endif
 
-     return theProc;    
+   return theProc;    
 }
 
 
@@ -3335,21 +3336,10 @@ bool process::findVarsByAll(const pdstring &varname,
 // copy for images, or a relocated function's self copy.
 // TODO: is this really worth it? Or should we just use ptrace?
 
-void *process::getPtrToOrigInstruction(Address addr) {
+void *process::getPtrToInstruction(Address addr) {
     codeRange *range;
     if (codeSections_.find(addr, range)) {
-        if (range->is_mapped_object()) {
-            // We're in a mapped object... so pass through
-            return range->is_mapped_object()->getPtrToOrigInstruction(addr);
-        }
-        else if (range->is_function()) {
-            // Relocated function
-            return range->is_function()->getPtrToOrigInstruction(addr);
-        }
-        else {
-            // TODO: do we care about tramps? Possibly...
-            assert(0);
-        }
+        return range->getPtrToInstruction(addr);
     }
     else if (dataSections_.find(addr, range)) {
         mappedObjData *data = dynamic_cast<mappedObjData *>(range);
@@ -4537,7 +4527,7 @@ codeRange *process::findCodeRangeByAddress(Address addr) {
 
    mapped_object *mobj = range->is_mapped_object();
    if (mobj) {
-       codeRange *obj_range = mobj->findFuncByAddr(addr);
+       codeRange *obj_range = mobj->findCodeRangeByAddress(addr);
        if (obj_range) range = obj_range;
    }
 
@@ -4579,19 +4569,24 @@ bool process::addCodeRange(codeRange *codeobj) {
    if (dynamic_cast<mapped_object *>(codeobj))
        fprintf(stderr, "... mobj\n");
 #endif
-   mapped_object *obj = dynamic_cast<mapped_object *>(codeobj);
-   if (obj) {
-       // Technically multiTramp bodies and miniTramps could be considered
-       // in this, but that makes life very complicated.
+   if (codeobj->is_mapped_object() ||
+       codeobj->is_multitramp() ||
+       codeobj->is_minitramp() ||
+       codeobj->is_basicBlockInstance()) {
+       // Chunk of executable code - add to codeSections_
+       codeSections_.insert(codeobj);
+#if 0
        if (!codeSections_.find(codeobj->get_address_cr(),
                                temp)) {
            codeSections_.insert(codeobj);
        }
-       // Hack... add data range
-       mappedObjData *data = new mappedObjData(obj);
-       dataSections_.insert(data);
+#endif
+       if (codeobj->is_mapped_object()) {
+           // Hack... add data range
+           mappedObjData *data = new mappedObjData(codeobj->is_mapped_object());
+           dataSections_.insert(data);
+       }
    }
-
    return true;
 }
 
@@ -4608,12 +4603,13 @@ bool process::deleteCodeRange(Address addr) {
 multiTramp *process::findMultiTramp(Address addr) {
     codeRange *range;
 
-    if (multiTramps_.find(addr, range)) {
-        instArea *area = dynamic_cast<instArea *>(range);
-        assert(area);
-        return area->multi;
-    }
+    if (!modifiedAreas_.find(addr, range))
+        return false;
     
+    instArea *area = dynamic_cast<instArea *>(range);
+    
+    if (area)
+        return area->multi;
     return NULL;
 }
 
@@ -4622,18 +4618,22 @@ void process::addMultiTramp(multiTramp *newMulti) {
     assert(newMulti->instAddr());
 
     codeRange *range;
-    if (multiTramps_.find(newMulti->instAddr(), range)) {
+    if (modifiedAreas_.find(newMulti->instAddr(), range)) {
         // We're overriding. Keep the instArea but update pointer.
         instArea *area = dynamic_cast<instArea *>(range);
+        // It could be something else, which should have been
+        // caught already
+        if (!area) {
+            fprintf(stderr, "ERROR: failed to find mt at 0x%lx\n",
+                    newMulti->instAddr());
+        }
         assert(area);
         area->multi = newMulti;
         return;
     }
     else {
         instArea *area = new instArea(newMulti);
-        inst_printf("Adding multiTramp from 0x%x to 0x%x\n",
-                    area->get_address_cr(), area->get_size_cr() + area->get_address_cr());
-        multiTramps_.insert(area);
+        modifiedAreas_.insert(area);
     }
 }
 
@@ -4647,7 +4647,59 @@ void process::removeMultiTramp(multiTramp *oldMulti) {
         return;
     }
     // Pull the corresponding instArea out of the tree.
-    multiTramps_.remove(oldMulti->instAddr());
+    modifiedAreas_.remove(oldMulti->instAddr());
+}
+
+void process::addModifiedCallsite(replacedFunctionCall *RFC) {
+    codeRange *range;
+    if (modifiedAreas_.find(RFC->get_address_cr(), range)) {
+        assert(dynamic_cast<replacedFunctionCall *>(range));
+        modifiedAreas_.remove(RFC->get_address_cr());
+        delete range;
+    }
+    assert(RFC);
+    modifiedAreas_.insert(RFC);
+    replacedFunctionCalls_[RFC->callAddr] = RFC;
+}
+
+void process::addFunctionReplacement(functionReplacement *fr,
+                                     pdvector<codeRange *> &overwrittenObjs) {
+    assert(fr);
+    Address currAddr = fr->get_address_cr();
+    codeRange *range;
+    while (modifiedAreas_.find(currAddr, range)) {
+        overwrittenObjs.push_back(range);
+        modifiedAreas_.remove(currAddr);
+        currAddr += range->get_size_cr();
+    }
+
+    modifiedAreas_.insert(fr);
+}
+
+codeRange *process::findModifiedPointByAddr(Address addr) {
+    codeRange *range = NULL;
+    if (modifiedAreas_.find(addr, range)) {
+        assert(range);
+        return range;
+    }
+    return NULL;
+}
+
+void process::removeModifiedPoint(Address addr) {
+    modifiedAreas_.remove(addr);
+}
+
+Address process::getReplacedCallAddr(Address origAddr) const {
+    if (replacedFunctionCalls_.defines(origAddr))
+        return replacedFunctionCalls_[origAddr]->newTargetAddr;
+    return 0;
+}
+
+bool process::wasCallReplaced(Address origAddr) const {
+    if (replacedFunctionCalls_.find(origAddr))
+        return true;
+    else
+        return false;
 }
 
 instPoint *process::findInstPByAddr(Address addr) {
@@ -5039,6 +5091,13 @@ void process::registerInstPointAddr(Address addr, instPoint *inst) {
     }
 }
 
+void process::unregisterInstPointAddr(Address addr, instPoint *inst) {
+    if (instPMapping_.defines(addr)) {
+        // No silently overriding instPoints
+        instPMapping_.undef(addr);
+    }
+}
+
 void process::installInstrRequests(const pdvector<instMapping*> &requests) {
     for (unsigned lcv=0; lcv < requests.size(); lcv++) {
         instMapping *req = requests[lcv];
@@ -5072,11 +5131,10 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
              for (unsigned j=0; j < func_rets.size(); j++) {
                  instPoint *func_ret = func_rets[j];
                  miniTramp *mt = func_ret->instrument(ast,
-                                                 req->when,
-                                                 req->order,
-                                                 (!req->useTrampGuard),
-                                                 false,
-                                                 req->allow_trap);
+                                                      req->when,
+                                                      req->order,
+                                                      (!req->useTrampGuard),
+                                                      false);
                  if (mt)
                      req->miniTramps.push_back(mt);
              }
@@ -5094,8 +5152,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
                                                       req->when,
                                                       req->order,
                                                       (!req->useTrampGuard),
-                                                      false, // nocost
-                                                      req->allow_trap);
+                                                      false); // nocost
                  if (mt)
                      req->miniTramps.push_back(mt);
              }
@@ -5112,8 +5169,7 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
                                                            req->when,
                                                            req->order,
                                                            (!req->useTrampGuard),
-                                                           false,
-                                                           req->allow_trap);
+                                                           false);
                  if (mt) req->miniTramps.push_back(mt);
              }
              BPatch::bpatch->setMergeTramp(mtramp);
@@ -5224,8 +5280,9 @@ bool process::uninstallMutations() {
     multiTramp *mTramp;
     for (; multiTrampIter; multiTrampIter++) {
         mTramp = multiTrampIter.currval();
-        assert(mTramp);
-        mTramp->disable();
+        if (mTramp) {
+            mTramp->disable();
+        }
     }
 
     dictionary_hash_iter<Address, replacedFunctionCall *> rfcIter(replacedFunctionCalls_);
@@ -5251,8 +5308,8 @@ bool process::reinstallMutations() {
     multiTramp *mTramp;
     for (; multiTrampIter; multiTrampIter++) {
         mTramp = multiTrampIter.currval();
-        assert(mTramp);
-        mTramp->enable();
+        if (mTramp) 
+            mTramp->enable();
     }
 
     dictionary_hash_iter<Address, replacedFunctionCall *> rfcIter(replacedFunctionCalls_);

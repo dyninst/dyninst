@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.331 2005/08/08 22:39:35 bernat Exp $
+/* $Id: process.h,v 1.332 2005/08/25 22:45:52 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -127,6 +127,7 @@ class dyn_thread;
 // We track so we can disable mutations; these use a different mechanism
 // than instrumentation. UNIFY.
 class replacedFunctionCall;
+class functionReplacement;
 // TODO a kludge - to prevent recursive includes
 class image;
 class dyn_lwp;
@@ -326,9 +327,7 @@ char * systemPrelinkCommand;
   bool isValidAddress(Address);
 
   // And "get me a local pointer to XX" -- before we modified it.
-  void *getPtrToOrigInstruction(Address);
-  // ... and after
-  void *getPtrToModifiedInstruction(Address);
+  void *getPtrToInstruction(Address);
 
   // this is only used on aix so far - naim
   // And should really be defined in a arch-dependent place, not process.h - bernat
@@ -485,6 +484,20 @@ char * systemPrelinkCommand;
   void addMultiTramp(multiTramp *multi);
   // And remove.
   void removeMultiTramp(multiTramp *multi);
+
+  // Replaced function calls...
+  void addModifiedCallsite(replacedFunctionCall *RFC);
+
+  // And replaced functions
+  void addFunctionReplacement(functionReplacement *,
+                              pdvector<codeRange *> &overwrittenObjs);
+
+  codeRange *findModifiedPointByAddr(Address addr);
+  void removeModifiedPoint(Address addr);
+
+  // Did we override the address of this call?
+  Address getReplacedCallAddr(Address origAddr) const;
+  bool wasCallReplaced(Address origAddr) const;
 
   ////////////////////////////////////////////////
   // Address to <X> mappings
@@ -735,6 +748,7 @@ char * systemPrelinkCommand;
   // Should be called once per address an instPoint points to
   // (multiples for relocated functions)
   void registerInstPointAddr(Address addr, instPoint *inst);
+  void unregisterInstPointAddr(Address addr, instPoint *inst);
 
   bool addCodeRange(codeRange *codeobj);
   bool deleteCodeRange(Address addr);
@@ -1105,7 +1119,7 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   // codeRangeTree readableSections_;
   // codeSections_ and dataSections_ instead...
   // Address -> multiTramp mapping...
-  codeRangeTree multiTramps_;
+  codeRangeTree modifiedAreas_;
   // And an integer->multiTramp so we can replace multis easily
   dictionary_hash<int, multiTramp *> multiTrampDict;
 
