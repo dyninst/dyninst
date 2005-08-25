@@ -124,10 +124,24 @@ int_function::int_function(const int_function *parFunc,
 #endif
     version_(parFunc->version_)
  {
-     // Construct the blocklist;
-     if (parFunc->blockList.size() > 0) {
-         blocks();
+     // Construct the raw blocklist;
+     for (unsigned i = 0; i < parFunc->blockList.size(); i++) {
+         int_basicBlock *block = new int_basicBlock(parFunc->blockList[i], this);
+         blockList.push_back(block);
      }
+     
+     // And hook up sources/targets
+     for (unsigned i = 0; i < blockList.size(); i++) {
+         int_basicBlock *child = blockList[i];
+         int_basicBlock *parent = parFunc->blockList[i];
+         for (unsigned t = 0; t < parent->targets_.size(); t++) {
+             child->targets_.push_back(blockList[parent->targets_[t]->id()]);
+         }
+         for (unsigned s = 0; s < parent->sources_.size(); s++) {
+             child->sources_.push_back(blockList[parent->sources_[s]->id()]);
+         }
+     }         
+
 
      for (unsigned i = 0; i < parFunc->entryPoints_.size(); i++) {
          instPoint *parP = parFunc->entryPoints_[i];
@@ -543,6 +557,22 @@ int_basicBlock::int_basicBlock(const image_basicBlock *ib, Address baseAddr, int
     func_->addBBLInstance(inst);
 }
 
+int_basicBlock::int_basicBlock(const int_basicBlock *parent, int_function *func) :
+    isEntryBlock_(parent->isEntryBlock_),
+    isExitBlock_(parent->isExitBlock_),
+    blockNumber_(parent->blockNumber_),
+    dataFlowGen(NULL),
+    dataFlowKill(NULL),
+    func_(func),
+    ib_(parent->ib_) {
+    for (unsigned i = 0; i < parent->instances_.size(); i++) {
+        bblInstance *bbl = new bblInstance(parent->instances_[i], this);
+        instances_.push_back(bbl);
+        func_->addBBLInstance(bbl);
+    }
+}
+
+
 bblInstance *int_basicBlock::origInstance() const {
     assert(instances_.size());
     return instances_[0];
@@ -604,6 +634,33 @@ bblInstance::bblInstance(int_basicBlock *parent, int version) :
     block_(parent),
     version_(version)
 {};
+
+bblInstance::bblInstance(const bblInstance *parent, int_basicBlock *block) :
+#if defined(cap_relocation)
+    changedAddrs_(parent->changedAddrs_),
+    insns_(parent->insns_),
+    maxSize_(parent->maxSize_),
+    appliedMods_(parent->appliedMods_),
+    generatedBlock_(parent->generatedBlock_),    
+#endif
+    firstInsnAddr_(parent->firstInsnAddr_),
+    lastInsnAddr_(parent->lastInsnAddr_),
+    blockEndAddr_(parent->blockEndAddr_),
+    block_(block),
+    version_(parent->version_) {
+#if defined(cap_relocation)
+    if (parent->origInstance_) {
+        origInstance_ = block->instVer(parent->origInstance_->version_);
+        jumpToBlock = new functionReplacement(*(parent->jumpToBlock));
+    }
+    else {
+        origInstance_ = NULL;
+        jumpToBlock = NULL;
+    }
+#endif
+    // TODO relocation
+}
+        
 
 int_basicBlock *bblInstance::block() const {
     assert(block_);

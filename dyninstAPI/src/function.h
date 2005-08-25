@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.12 2005/08/25 22:45:27 bernat Exp $
+// $Id: function.h,v 1.13 2005/08/25 23:12:04 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -92,6 +92,7 @@ class bblInstance : public codeRange {
     bblInstance(int_basicBlock *parent, int version);
  public:
     bblInstance(Address start, Address last, Address end, int_basicBlock *parent, int version);
+    bblInstance(const bblInstance *parent, int_basicBlock *block);
 
     Address firstInsnAddr() const { return firstInsnAddr_; }
     Address lastInsnAddr() const { return lastInsnAddr_; }
@@ -159,6 +160,7 @@ class int_basicBlock {
     friend class int_function;
  public:
     int_basicBlock(const image_basicBlock *ib, Address baseAddr, int_function *func);
+    int_basicBlock(const int_basicBlock *parent, int_function *func);
 
     bool isEntryBlock() const { return isEntryBlock_; }
     bool isExitBlock() const { return isExitBlock_; }

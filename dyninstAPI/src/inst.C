@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.141 2005/08/25 22:45:41 bernat Exp $
+// $Id: inst.C,v 1.142 2005/08/25 23:12:04 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -682,15 +682,14 @@ instPoint *instPoint::createForkedPoint(instPoint *parP, int_basicBlock *child) 
     // Add to the process
     for (unsigned i = 0; i < parP->instances.size(); i++) {
         instPointInstance *pI = parP->instances[i];
-        assert(0);
-        /*
         instPointInstance *nI = new instPointInstance(pI->addr_,
-                                                      child, // FIXME
+                                                      child->instVer(i), 
                                                       newIP);
+        // could also call child->func()->findBlockInstance...
+
         nI->multiID_ = pI->multiID_;
         newIP->instances.push_back(nI);
         proc->registerInstPointAddr(pI->addr_, newIP);
-        */
     }
 
     // And make baseTramp-age. If we share one, the first guy
