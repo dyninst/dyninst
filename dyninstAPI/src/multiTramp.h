@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.7 2005/08/15 22:20:22 bernat Exp $
+// $Id: multiTramp.h,v 1.8 2005/08/25 22:45:50 bernat Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -158,6 +158,7 @@ class generatedCodeObject : public codeRange {
 
     Address get_address_cr() const { return addrInMutatee_; }
     unsigned get_size_cr() const { return size_; }
+    virtual void *getPtrToInstruction(Address addr) const = 0;
 
     bool objIsChild(generatedCodeObject *obj);
 
@@ -223,6 +224,8 @@ class trampEnd : public generatedCodeObject {
     Address target() { return target_; }
 
     virtual Address uninstrumentedAddr() const { return target_; }
+    
+    void *getPtrToInstruction(Address addr) const;
     
  private:
     multiTramp *multi_;
@@ -290,6 +293,8 @@ class relocatedInstruction : public generatedCodeObject {
     generatedCodeObject *replaceCode(generatedCodeObject *newParent);
     
     virtual Address uninstrumentedAddr() const { return origAddr; }
+
+    void *getPtrToInstruction(Address addr) const;
 
  private:
     // TODO: move to vector of instructions
@@ -377,8 +382,7 @@ class multiTramp : public generatedCodeObject {
   // First-time constructor
   multiTramp(Address addr,
              unsigned size,
-             int_function *func,
-             bool allowTrap);
+             int_function *func);
   // If we're regenerating for some reason, 
   // we use the old one for info rather than having to 
   // redo everything.
@@ -404,8 +408,7 @@ class multiTramp : public generatedCodeObject {
   // us to replace them "under the hood"
 
   static int findOrCreateMultiTramp(Address pointAddr, 
-                                    process *proc,
-                                    bool allowTrap);
+                                    process *proc); 
 
   // MultiTramps span several instructions. By default, they cover a
   // basic block on non-IA64 platforms; due to the inefficiency of our
@@ -423,10 +426,14 @@ class multiTramp : public generatedCodeObject {
   // Fork constructor. Must copy over all sub-objects as well.
   multiTramp(const multiTramp *parentMulti, process *child);
 
+  // Error codes!
+  typedef enum { mtSuccess, mtAllocFailed, mtJumpTooLarge,
+                 mtWriteFailed, mtError } mtErrorCode_t;
+
   // Entry point for code generation: from an instPointInstance
-  bool generateMultiTramp();
-  bool installMultiTramp();
-  bool linkMultiTramp();
+  mtErrorCode_t generateMultiTramp();
+  mtErrorCode_t installMultiTramp();
+  mtErrorCode_t linkMultiTramp();
 
   // Temporarily install or remove
   bool disable();
@@ -446,14 +453,13 @@ class multiTramp : public generatedCodeObject {
   Address get_address_cr() const { return trampAddr_; }
   unsigned get_size_cr() const { return trampSize_; }
 
+  void *getPtrToInstruction(Address addr) const;
+
   Address getAddress() const { return trampAddr_; }
 
   Address instAddr() const { return instAddr_; }
   unsigned instSize() const { return instSize_; }
   unsigned branchSize() const { return branchSize_; }
-
-  // If we're really out of ideas for getting to a multitramp. Ouch.
-  bool usesTrap() const { return usesTrap_; }
 
   // Address in the multitramp -> equivalent in uninstrumented terms
   // Kind of the reverse of base tramp instances...
@@ -480,7 +486,12 @@ class multiTramp : public generatedCodeObject {
   bool generateCode(codeGen &gen,
                     Address baseInMutatee);
 
+  // The most that we can need to get to a multitramp...
   unsigned maxSizeRequired();
+  // the space needed for a jump to this particular multitramp...
+  unsigned sizeDesired() const { return branchSize_; };
+  bool usesTrap() const { return usedTrap_; };
+
   bool hasChanged();
   bool installCode();
   void invalidateCode();
@@ -497,7 +508,8 @@ class multiTramp : public generatedCodeObject {
   unsigned trampSize_; // Size of the generated multiTramp
   unsigned instSize_; // Size of the original instrumented area
   unsigned branchSize_; // Size of the branch instruction(s) used
-  // to get to the multiTramp; the remainder is trap-filled.
+  // to get to the multiTramp (in a perfect world)
+  bool usedTrap_;
 
   int_function *func_;
   process *proc_;
@@ -526,9 +538,9 @@ class multiTramp : public generatedCodeObject {
   void updateInstInstances();
 
   bool generateBranchToTramp(codeGen &gen);
+  bool generateTrapToTramp(codeGen &gen);
+  bool fillJumpBuf(codeGen &gen);
 
-  bool usesTrap_;
-  bool canUseTrap_;
   bool changedSinceLastGeneration_;
 
   void setFirstInsn(generatedCodeObject *obj) { generatedCFG_.setStart(obj); }
@@ -545,15 +557,21 @@ class instArea : public codeRange {
     multiTramp *multi;
     Address get_address_cr() const { assert(multi); return multi->instAddr(); }
     unsigned get_size_cr() const { assert(multi); return multi->instSize(); }
+    void *getPtrToInstruction(Address addr) const { assert(0); return NULL; }
 };
 
 
 
 /////////////////
 // Sticking this here for now
-class replacedFunctionCall {
+class replacedFunctionCall : public codeRange {
  public:
+    Address get_address_cr() const { return callAddr; }
+    unsigned get_size_cr() const { return callSize; }
+    void *getPtrToInstruction(Address addr) const { assert(0); return NULL; }
     Address callAddr;
+    unsigned callSize;
+    Address newTargetAddr;
     codeGen newCall;
     codeGen oldCall;
 };

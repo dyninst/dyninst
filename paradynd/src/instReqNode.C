@@ -95,6 +95,7 @@ bool instReqNode::addInstr(pd_process *theProc) {
     
     ++loadInstAttempts;
 #if defined(cap_relocation)
+#if 0
     if(loadInstAttempts == MAX_INSERTION_ATTEMPTS_USING_RELOCATION) {
         BPatch_function *bpf = const_cast<BPatch_function *>(point->getFunction());
         int_function *function_not_inserted = bpf->PDSEP_pdf();
@@ -102,6 +103,7 @@ bool instReqNode::addInstr(pd_process *theProc) {
         if(function_not_inserted != NULL)
             function_not_inserted->markAsNeedingRelocation(false);
     }
+#endif
 #endif
     
     // NEW: We may manually trigger the instrumentation, via a call to
@@ -162,7 +164,12 @@ bool instReqNode::generateInstr() {
     
     instPoint *pt = point->PDSEP_instPoint();
     
-    if (!pt->generateInst(true)) { // Allow traps for now
+    if (!pt->generateInst()) {
+        fprintf(stderr, "********** generate failed\n");
+        return false;
+    }
+    if (!pt->installInst()) {
+        fprintf(stderr, "********** install failed\n");
         return false;
     }
 
@@ -197,8 +204,10 @@ bool instReqNode::linkInstr() {
     if (instrLinked()) return true;
     instPoint *pt = point->PDSEP_instPoint();
     
-    if (!pt->linkInst())
+    if (!pt->linkInst()) {
+        fprintf(stderr, "*********** linkInst failed\n");
         return false;
+    }
     instrLinked_ = true;
     return true;
 }

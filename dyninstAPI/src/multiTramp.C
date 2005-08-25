@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.7 2005/08/15 22:20:21 bernat Exp $
+// $Id: multiTramp.C,v 1.8 2005/08/25 22:45:49 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -185,7 +185,7 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
         // We're empty. Time to leave.
         if (savedCodeBuf_) {
             // Okay, they're all empty. Overwrite the jump to this guy with the saved buffer.
-            bool res = proc()->writeDataSpace((void *)instAddr_,
+            bool res = proc()->writeTextSpace((void *)instAddr_,
                                              instSize_,
                                              (void *)savedCodeBuf_);
             // This better work, or we're going to be jumping into all sorts
@@ -246,6 +246,7 @@ multiTramp::~multiTramp() {
 
     // And this is why we want a process pointer ourselves. Trusting the
     // function to still be around is... iffy... at best.
+    proc()->removeMultiTramp(this);
     proc()->deleteCodeRange(get_address_cr());
     proc()->inferiorFree(trampAddr_);
 
@@ -254,26 +255,23 @@ multiTramp::~multiTramp() {
 
 // Assumes there is no matching multiTramp at this address
 int multiTramp::findOrCreateMultiTramp(Address pointAddr, 
-                                       process *proc,
-                                       bool allowTrap) {
+                                       process *proc) {
     multiTramp *newMulti = proc->findMultiTramp(pointAddr);
-    
     if (newMulti) {
         // Check whether we're in trap shape
         // Sticks to false if it ever is false
-        newMulti->canUseTrap_ &= allowTrap;
         return newMulti->id();
     }
 
     // Multitramps need to know their functions, so look it up.
     codeRange *range = proc->findCodeRangeByAddress(pointAddr);
     if (!range) {
-        inst_printf("No code range at 0x%x, ret NULL\n", pointAddr);
+        fprintf(stderr, "No code range at 0x%x, ret NULL\n", pointAddr);
         return 0;
     }
     int_function *func = range->is_function();
     if (!func) {
-        inst_printf("No function in createMultiTramp, ret NULL\n");
+        fprintf(stderr, "No function in createMultiTramp, ret NULL\n");
         return 0;
     }
 
@@ -294,10 +292,13 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
         return 0;
     }
 
+    // Cannot make a point here if someone else got there first
+    if (proc->findModifiedPointByAddr(startAddr))
+        return 0;
+
     newMulti = new multiTramp(startAddr,
                               size,
-                              func,
-                              allowTrap);
+                              func);
     
     // Iterate over the covered instructions and pull each one
     InstrucIter insnIter(startAddr,
@@ -373,23 +374,15 @@ bool multiTramp::getMultiTrampFootprint(Address instAddr,
         inst_printf("No code range at 0x%x, ret NULL\n", instAddr);
         return false;
     }
-    int_function *func = range->is_function();
-    if (!func) {
-        inst_printf("No function in createMultiTramp, ret NULL\n");
+    bblInstance *bbl = range->is_basicBlockInstance();
+    if (!bbl) {
+        inst_printf("No basic block instance in createMultiTramp, ret NULL\n");
         return false;
     }
-
-    int_basicBlock *block = func->findBlockByAddr(instAddr);
-    if (!block)  {
-        inst_printf("No block in createMultiTramp, ret NULL\n");
-        assert(0); // This is an assert; if we have a function, we
-        // should have a basic block.
-        return false;
-    }
-
+    
     // start is the start of the basic block, size is the size
-    startAddr = block->firstInsnAddr();
-    size = (unsigned) block->getSize();
+    startAddr = bbl->firstInsnAddr();
+    size = (unsigned) bbl->getSize();
 
     return true;
 #endif
@@ -545,8 +538,7 @@ void multiTramp::updateInstInstances() {
 
 multiTramp::multiTramp(Address addr,
                        unsigned size,
-                       int_function *func,
-                       bool allowTrap) :
+                       int_function *func) :
     generatedCodeObject(),
     id_(id_ctr++),
     instAddr_(addr),
@@ -554,13 +546,12 @@ multiTramp::multiTramp(Address addr,
     trampSize_(0),
     instSize_(size),
     branchSize_(0),
+    usedTrap_(false),
     func_(func),
     proc_(func->proc()),
     insns_(addrHash4),
     generatedMultiT_(),
     savedCodeBuf_(NULL),
-    usesTrap_(false),
-    canUseTrap_(allowTrap),
     changedSinceLastGeneration_(false)
 {
     // .. filled in by createMultiTramp
@@ -578,14 +569,13 @@ multiTramp::multiTramp(multiTramp *oM) :
     trampSize_(0),
     instSize_(oM->instSize_),
     branchSize_(0),
+    usedTrap_(false),
     func_(oM->func_),
     proc_(oM->proc_),
     insns_(addrHash4),
     generatedMultiT_(), // Not copied
     jumpBuf_(), // Not copied
     savedCodeBuf_(NULL),
-    usesTrap_(oM->usesTrap_),
-    canUseTrap_(oM->canUseTrap_),
     changedSinceLastGeneration_(true) 
 {
     // This is superficial and insufficient to recreate the multiTramp; please
@@ -601,14 +591,13 @@ multiTramp::multiTramp(const multiTramp *parMulti, process *child) :
     trampSize_(parMulti->trampSize_),
     instSize_(parMulti->instSize_),
     branchSize_(parMulti->branchSize_),
+    usedTrap_(parMulti->usedTrap_),
     func_(NULL),
     proc_(child),
     insns_(addrHash4),
     generatedMultiT_(parMulti->generatedMultiT_),
     jumpBuf_(parMulti->jumpBuf_),
     savedCodeBuf_(NULL),
-    usesTrap_(parMulti->usesTrap_),
-    canUseTrap_(parMulti->canUseTrap_),
     changedSinceLastGeneration_(parMulti->changedSinceLastGeneration_) 
 {
     // TODO:
@@ -761,8 +750,8 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
     // We might be getting called but nothing changed...
     if (!generated_) {
         assert(!trampAddr_);
-        assert(!generatedMultiT_());
-        assert(!jumpBuf_());
+        assert(generatedMultiT_ == NULL);
+        assert(jumpBuf_ == NULL);
         // A multiTramp is the code sequence for a set of instructions in
         // a basic block and all baseTramps, etc. that are being used for
         // those instructions. We use a recursive code generation
@@ -830,7 +819,10 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
         trampAddr_ = proc()->inferiorMalloc(size_required,
                                             heapToUse,
                                             instAddr_);
-
+        if (!trampAddr_) {
+            fprintf(stderr, "Failed to inferiorMalloc, ret false\n");
+            return false;
+        }
         generatedMultiT_.allocate(size_required);
 
         // We don't want to generate the jump buffer until after
@@ -839,8 +831,8 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
     }
     else {
         assert(!changedSinceLastGeneration_);
-        assert(generatedMultiT_());
-        assert(jumpBuf_());
+        assert(generatedMultiT_ != NULL);
+        assert(jumpBuf_ != NULL);
         assert(trampAddr_);
 
         // We go through the motions again to give everyone
@@ -897,6 +889,8 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
     // a jump
     assert(instAddr_);
     assert(instSize_);
+
+    changedSinceLastGeneration_ = false;
     
     if (!generated_) {
         jumpBuf_.allocate(instSize_);
@@ -907,8 +901,6 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
             return false;
         }
     }
-
-    changedSinceLastGeneration_ = false;
     
     //debugBreakpoint();
     
@@ -921,11 +913,20 @@ bool multiTramp::installCode() {
     assert(generatedMultiT_.used() == trampSize_); // Nobody messed with things
     assert(generated_);
 
+    // Try to branch to the tramp, but if we can't use a trap
+    if (branchSize_ > instSize_) {
+        // Crud. Go with traps.
+        jumpBuf_.setIndex(0);
+        generateTrapToTramp(jumpBuf_);
+    }
+    fillJumpBuf(jumpBuf_);
+
     if (!installed_) {
-        proc()->writeDataSpace((void *)trampAddr_,
-                               trampSize_,
-                               generatedMultiT_.start_ptr());
-        proc()->addCodeRange(this);
+        bool success = proc()->writeTextSpace((void *)trampAddr_,
+                                              trampSize_,
+                                              generatedMultiT_.start_ptr());
+        if (success) proc()->addCodeRange(this);
+        else return false;
     }
 
 
@@ -944,8 +945,6 @@ bool multiTramp::installCode() {
 // The multitramp has been installed; now actually put the jump
 // in. Also has the fun job of relocating the PC to the new tramp (if
 // possible).
-// allowTrap is funny --  whoever is the first instPoint to ask for an install
-// wins.
 
 bool multiTramp::linkCode() {
     // Relocation should be done before this is called... not sure when though.
@@ -958,6 +957,19 @@ bool multiTramp::linkCode() {
     assert(jumpBuf_.used() == instSize_);
 
     if (!linked_) {
+        codeRange *prevRange = proc()->findModifiedPointByAddr(instAddr_);
+        if (prevRange != NULL) {
+            // Someone's already here....
+            if (prevRange->is_function_replacement()) {
+                // Don't install here, just dummy-return true
+                return true;
+            }
+            else if (prevRange->is_replaced_call()) {
+                // TODO
+                fprintf(stderr, "ERROR: instrumentation stomping on replaced call!\n");
+            }
+        }
+
         if (!savedCodeBuf_) {
             // We may have an old version's savedCode.
             
@@ -988,38 +1000,55 @@ bool multiTramp::linkCode() {
 }
 
 // And a wrapper for the above
-bool multiTramp::linkMultiTramp() {
+multiTramp::mtErrorCode_t multiTramp::linkMultiTramp() {
     assert(!hasChanged()); // since we generated code...
 
-    return linkCode();
+    if (linkCode())
+        return mtSuccess;
+    else {
+        fprintf(stderr, "Linking multiTramp failed!\n");
+        return mtError;
+    }
 }
 
-bool multiTramp::installMultiTramp() {
+multiTramp::mtErrorCode_t multiTramp::installMultiTramp() {
     assert(!hasChanged()); // Since we generated code...
-    
-    return installCode();
+
+    // See if there is enough room to fit the jump in... then
+    // decide whether to go ahead or not.
+
+    if (installCode())
+        return mtSuccess;
+    else {
+        fprintf(stderr, "multiTramp::install failed!\n");
+        return mtError;
+    }
 }
 
 bool multiTramp::enable() {
+    if (!linked_)
+        return true;
     // Copy in the jumpBuf. Like linkCode
     assert(jumpBuf_.used() == instSize_);
     
     if (!proc()->writeTextSpace((void *)instAddr_,
                                 jumpBuf_.used(),
                                 jumpBuf_.start_ptr())) 
-        assert(0);
+        return false;
     return true;
 }
 
 
 bool multiTramp::disable() {
     // This could also be "whoops, not ready, skip"
+    if (!linked_)
+        return true;
 
     assert(savedCodeBuf_);
     if (!proc()->writeTextSpace((void *)instAddr_,
                                 instSize_,
                                 savedCodeBuf_))
-        assert(0);
+        return false;
     return true;
 }
 
@@ -1163,7 +1192,7 @@ Address multiTramp::uninstToInstAddr(Address addr) {
 // instrumentation state. If not, regenerate the multiTramp; this may be
 // done in-place or via replacement.
 
-bool multiTramp::generateMultiTramp() {
+multiTramp::mtErrorCode_t multiTramp::generateMultiTramp() {
     updateInstInstances();
     if (hasChanged()) {
         if (linked_) {
@@ -1174,16 +1203,24 @@ bool multiTramp::generateMultiTramp() {
             bool res = multiTramp::replaceMultiTramp(this, deleteReplaced);
             if (deleteReplaced)
                 removeCode(NULL);
-            return res;
+            if (res) 
+                return mtSuccess;
+            else
+                return mtError;
         }
-        
         if (installed_ || generated_) {
             // Odd case... we generated, but never installed. Huh.
             invalidateCode();
         }
     }
-    return generateCode(jumpBuf_,
-                        instAddr_);
+    // TODO: generatedCodeObjects return booleans. We need a broader
+    // error return type, probably #defines
+    if (generateCode(jumpBuf_, instAddr_))
+        return mtSuccess;
+    else {
+        fprintf(stderr, "mt::generateCode failed!!!\n");
+        return mtError;
+    }
 }
 
 void generatedCodeObject::invalidateCode() {
@@ -1206,10 +1243,10 @@ void multiTramp::invalidateCode() {
         obj->invalidateCode();
     }
     
-    if (generatedMultiT_())
+    if (generatedMultiT_ != NULL)
         generatedMultiT_.invalidate();
 
-    if (jumpBuf_()) {
+    if (jumpBuf_ != NULL) {
         jumpBuf_.invalidate();
     }
 
@@ -1274,7 +1311,7 @@ bool multiTramp::replaceMultiTramp(multiTramp *oldMulti,
     if (oldMulti->generated()) {
         // We don't want to just call generateMultiTramp; that's possibly
         // what called us.
-        assert(!newMulti->jumpBuf_());
+        assert(newMulti->jumpBuf_ == NULL);
         res = newMulti->generateCode(newMulti->jumpBuf_,
                                      newMulti->instAddr_);
         if (!res) return false;
@@ -1289,7 +1326,11 @@ bool multiTramp::replaceMultiTramp(multiTramp *oldMulti,
     }
 
     // Process update
-    newMulti->proc()->addMultiTramp(newMulti);
+    codeRange *range = newMulti->proc()->findModifiedPointByAddr(newMulti->instAddr());
+    // Range may be null, since we can replace before we link the first time
+    if (range && range->is_multitramp())
+        newMulti->proc()->addMultiTramp(newMulti);
+    // Otherwise is function relocation... so don't overwrite.
 
     // Caller decides whether to remove the original version
     deleteReplaced = true;
@@ -1466,8 +1507,8 @@ generatedCodeObject *multiTramp::replaceCode(generatedCodeObject *newParent) {
 
     // Buffers: generatedMultiT_, savedCodeBuf_, and jumpBuf_.
     // generatedMultiT_ and jumpBuf_ are multiTramp specific.
-    assert(!newMulti->generatedMultiT_());
-    assert(!newMulti->jumpBuf_());
+    assert(newMulti->generatedMultiT_ == NULL);
+    assert(newMulti->jumpBuf_ == NULL);
     // and savedCodeBuf_ we want to take
     newMulti->savedCodeBuf_ = savedCodeBuf_;
     savedCodeBuf_ = NULL;
@@ -1743,7 +1784,6 @@ bool multiTramp::catchupRequired(Address pc, miniTramp *newMT,
 
     multiTramp *rangeMulti = range->is_multitramp();
     miniTrampInstance *rangeMTI = range->is_minitramp();
-    baseTrampInstance *rangeBTI = NULL;
 
     assert((rangeMulti != NULL) || (rangeMTI != NULL));
 
@@ -1789,21 +1829,25 @@ bool multiTramp::catchupRequired(Address pc, miniTramp *newMT,
 
         // Check to see if we're at the instPoint
         if (insn && pc == insn->relocAddr()) {
+            assert(pcObj == NULL);
             pcObj = insn;
-            break;
         }
         else if (bti) {
             // Can be either the instPoint or the original instruction,
             // so check both
-            if (bti->isInInstance(pc))
+            if (bti->isInInstance(pc)) {
+                assert(pcObj == NULL);
                 pcObj = bti;
+            }
             if (bti->baseT == newMT->baseT)
                 newBTI = bti;
         }
         else if (end) {
             if ((end->addrInMutatee_ <= pc) &&
-                (pc < (end->addrInMutatee_ + end->size_)))
+                (pc < (end->addrInMutatee_ + end->size_))) {
+                assert(pcObj == NULL);
                 pcObj = end;
+            }
         }
         if ((newBTI != NULL) &&
             (pcObj != NULL))
@@ -1832,4 +1876,76 @@ bool multiTramp::catchupRequired(Address pc, miniTramp *newMT,
 
     assert(0);
     return false;
+}
+
+bool relocatedInstruction::generateCode(codeGen &gen,
+                                        Address baseInMutatee) {
+    if (alreadyGenerated(gen, baseInMutatee))
+        return true;
+    generateSetup(gen, baseInMutatee);
+
+    if (!insn->generate(gen,
+                        multiT->proc(),
+                        origAddr,
+                        addrInMutatee_,
+                        0, // fallthrough is not overridden
+                        targetOverride_))
+        return false;
+
+#if defined(arch_sparc) 
+    // We pin delay instructions.
+    if (insn->isDCTI()) {
+        if (ds_insn) {
+            inst_printf("... copying delay slot\n");
+            ds_insn->generate(gen);
+        }
+        if (agg_insn) {
+            inst_printf("... copying aggregate\n");
+            agg_insn->generate(gen);
+        }
+    }
+#endif
+
+    inst_printf("Emitted new instruction; size is %d\n", size_);
+    size_ = gen.currAddr(baseInMutatee) - addrInMutatee_;
+    generated_ = true;
+
+    return true;
+}
+
+bool multiTramp::fillJumpBuf(codeGen &gen) {
+    // We play a cute trick with the rest of the overwritten space: fill it with
+    // traps. If one is hit, we can transfer the PC into the multiTramp without
+    // further problems. Cute, eh?
+    while (gen.used() < instSize()) {
+        Address origAddr = gen.currAddr(instAddr_);
+        Address addrInMulti = uninstToInstAddr(origAddr);
+        if (addrInMulti) {
+            // addrInMulti may be 0 if our trap instruction does not
+            // map onto a real instruction
+#if defined(arch_x86) || defined(arch_x86_64)
+            // x86: traps read at PC + 1
+            proc()->trampTrapMapping[origAddr+1] = addrInMulti;
+#else
+            proc()->trampTrapMapping[origAddr] = addrInMulti;
+#endif
+        }
+        instruction::generateTrap(gen);
+    }
+    return true;
+}
+
+bool multiTramp::generateTrapToTramp(codeGen &gen) {
+    // We're doing a trap. Now, we know that trap addrs are reported
+    // as "finished" address... so use that one (not instAddr_)
+#if defined(arch_x86) || defined(arch_x86_64)
+    proc()->trampTrapMapping[gen.currAddr(instAddr_)+1] = trampAddr_;
+#else
+    proc()->trampTrapMapping[gen.currAddr(instAddr_)] = trampAddr_;
+#endif
+    unsigned start = gen.used();
+    instruction::generateTrap(gen);
+    branchSize_ = gen.used() - start;
+
+    return true;
 }
