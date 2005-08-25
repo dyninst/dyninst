@@ -184,7 +184,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
     // backwards, so look for LDL first.
     //
     (*this)--;
-    while (hasMore()) {
+    while (hasPrev()) {
 	check = getInstruction();
 	if ((*check).mem.opcode == OP_LDL) {
 	    jumpTableOffset = (*check).mem.disp;
@@ -334,18 +334,18 @@ instruction *InstrucIter::getInsnPtr() {
 instruction InstrucIter::getNextInstruction(){
    instruction ret;
     if (img_)
-        (*ret) = *((instructUnion *)img_->getPtrToOrigInstruction(current + instruction::size()));
+        (*ret) = *((instructUnion *)img_->getPtrToInstruction(current + instruction::size()));
     else {
-        (*ret) = *((instructUnion *)proc_->getPtrToOrigInstruction(current + instruction::size()));
+        (*ret) = *((instructUnion *)proc_->getPtrToInstruction(current + instruction::size()));
     }
     return ret;
 }
 instruction InstrucIter::getPrevInstruction(){
     instruction ret;
     if (img_)
-        (*ret) = *((instructUnion *)img_->getPtrToOrigInstruction(current - instruction::size()));
+        (*ret) = *((instructUnion *)img_->getPtrToInstruction(current - instruction::size()));
     else {
-        (*ret) = *((instructUnion *)proc_->getPtrToOrigInstruction(current - instruction::size()));
+        (*ret) = *((instructUnion *)proc_->getPtrToInstruction(current - instruction::size()));
     }
     return ret;
 }
