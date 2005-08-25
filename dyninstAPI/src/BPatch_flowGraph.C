@@ -1489,7 +1489,7 @@ void BPatch_flowGraph::createEdges()
 	  continue;
 	}
 	else {
-            relocp = (unsigned char *)(ll_proc()->getPtrToOrigInstruction((unsigned long)lastinsnaddr));
+            relocp = (unsigned char *)(ll_proc()->getPtrToInstruction((unsigned long)lastinsnaddr));
         }
 
         if (numTargs == 1) {
