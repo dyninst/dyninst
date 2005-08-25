@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.74 2005/08/15 22:20:20 bernat Exp $
+// $Id: linux-x86.C,v 1.75 2005/08/25 22:45:43 bernat Exp $
 
 #include <fstream>
 
@@ -1380,9 +1380,12 @@ void print_read_error_info(const relocationEntry entry,
     sprintf(errorLine , "              prettyName %s\n",
 	    (target_pdf->symTabName()).c_str());
     logLine(errorLine);
+    /*
+      // Size bad. <smack>
     sprintf(errorLine , "              size %i\n",
 	    target_pdf->getSize());
     logLine(errorLine);
+    */
     sprintf(errorLine , "              addr 0x%x\n",
 	    (unsigned)target_pdf->getAddress());
     logLine(errorLine);
