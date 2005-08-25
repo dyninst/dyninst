@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-alpha.C,v 1.3 2005/08/15 22:19:58 bernat Exp $
+// $Id: arch-alpha.C,v 1.4 2005/08/25 22:45:09 bernat Exp $
 
 #include "common/h/headers.h"
 #include "alpha.h"
@@ -186,6 +186,19 @@ void instruction::generateBranch(codeGen &gen, Address from, Address to) {
     int displacement = to - (from + instruction::size());
     generateBranch(gen, displacement);
 }
+
+unsigned instruction::jumpSize(Address from, Address to) {
+    int disp = (to - from);
+    return jumpSize(disp);
+}
+
+unsigned instruction::jumpSize(int disp) {
+    if (ABS(disp >> 2) > MAX_BRANCH) {
+        fprintf(stderr, "Warning: Alpha doesn't handle multi-word jumps!\n");
+    }
+    return instruction::size();
+}
+
 
 // 
 // Set condition flag (a register)
@@ -585,5 +598,57 @@ bool instruction::valid() const {
 	  (insn_.oper.opcode == 0x17) ||        // floating point
 	  (insn_.oper.opcode == 0x00));         // PAL code
 #endif
+}
+
+
+//
+// Given and instruction, relocate it to a new address, patching up
+// any relative addressing that is present.
+//
+
+bool instruction::generate(codeGen &gen,
+			   process *,
+			   Address origAddr,
+			   Address relocAddr,
+			   Address fallthroughOverride,
+			   Address targetOverride) {
+    int newOffset = 0;
+    
+    if (isBranch()) {
+        if (!targetOverride) {
+            newOffset = getTarget(origAddr) - relocAddr;
+        }
+        else {
+            newOffset = targetOverride - relocAddr;
+        }
+        if (ABS(newOffset >> 2) > MAX_BRANCH) {
+            fprintf(stderr, "newOffset 0x%llx, origAddr 0x%llx, relocAddr 0x%llx, target 0x%llx, override 0x%llx\n",
+                    newOffset, origAddr, relocAddr, getTarget(origAddr), targetOverride);
+            
+            
+            
+            logLine("A branch too far\n");
+            assert(0);
+        }
+        instruction newBranch(insn_);
+        (*newBranch).branch.disp = newOffset >> 2;
+        newBranch.generate(gen);
+    }
+    else 
+        generate(gen);
+    
+    // Calls are ANNOYING. I've seen behavior where RA (the return addr)
+    // is later used in a memory calculation... so after all is said and done,
+    // set RA to what it would have been.
+    // Note: we do this after the original relocation because JSRs don't
+    // trigger "isBranch"
+    if (isCall()) {
+        Address origReturn = origAddr + instruction::size();
+        int remainder = 0;
+        instruction::generateAddress(gen, REG_RA, origReturn, remainder);
+        if (remainder)
+            instruction::generateLDA(gen, REG_RA, REG_RA, remainder, true);
+    }
+    return true;
 }
 

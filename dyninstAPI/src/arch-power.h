@@ -39,12 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.27 2005/08/15 22:20:03 bernat Exp $
+// $Id: arch-power.h,v 1.28 2005/08/25 22:45:14 bernat Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
 
 // Code generation
+
+class process;
 
 /*
  * Define power instruction information.
@@ -620,6 +622,10 @@ class instruction {
     void write(codeGen &gen);
     void generate(codeGen &gen);
 
+    // And tell us how much space we'll need...
+    static unsigned jumpSize(Address from, Address to);
+    static unsigned jumpSize(int disp);
+    
   // return the type of the instruction
   unsigned type() const;
 
@@ -640,7 +646,15 @@ class instruction {
   }
 
   Address getTarget(Address insnAddr) const;
-
+  
+  unsigned spaceToRelocate() const;
+  bool generate(codeGen &gen,
+                process *proc,
+                Address origAddr,
+                Address newAddr,
+                Address fallthroughOverride = 0,
+                Address targetOverride = 0);
+  
 
 /* -- CHECK !!!!!
  * catch small ints that are invalid instructions

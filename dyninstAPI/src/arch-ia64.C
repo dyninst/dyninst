@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.45 2005/08/15 22:20:00 bernat Exp $
+// $Id: arch-ia64.C,v 1.46 2005/08/25 22:45:11 bernat Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -616,8 +616,8 @@ Address instruction_x::getTargetAddress() const {
 int_basicBlock * findBasicBlockInCFG( Address addr, 
 									  const pdvector<int_basicBlock *> &blocks) {
 	for (unsigned i = 0; i < blocks.size(); i++) {
-		if ((blocks[i]->firstInsnAddr() <= addr) &&
-			(addr < blocks[i]->endAddr()))
+		if ((blocks[i]->origInstance()->firstInsnAddr() <= addr) &&
+			(addr < blocks[i]->origInstance()->endAddr()))
 			return blocks[i];
 	}
 	return NULL;
@@ -845,12 +845,12 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location,
 			int_basicBlock * allocBlock = * reachingAllocs->begin();
 			// /* DEBUG */ fprintf( stderr, "%s[%d]: reaching alloc at 0x%lx\n", __FILE__, __LINE__, allocBlock->firstInsnAddr() );
 			
-			Address encodedAddress = allocBlock->firstInsnAddr();
+			Address encodedAddress = allocBlock->origInstance()->firstInsnAddr();
 			unsigned short slotNumber = encodedAddress % 16;
 			Address alignedOffset = encodedAddress - pdf->getAddress() - slotNumber;
 			
 			Address fnEntryOffset = pdf->getAddress();
-			Address fnEntryAddress = (Address)location->proc()->getPtrToOrigInstruction(fnEntryOffset);
+			Address fnEntryAddress = (Address)location->proc()->getPtrToInstruction(fnEntryOffset);
 			assert( fnEntryAddress % 16 == 0 );
 			const ia64_bundle_t * rawBundlePointer = (const ia64_bundle_t *) fnEntryAddress;
 			IA64_bundle allocBundle = rawBundlePointer[ alignedOffset / 16 ];

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.34 2005/08/15 22:20:06 bernat Exp $
+// $Id: arch-x86.C,v 1.35 2005/08/25 22:45:17 bernat Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -53,6 +53,8 @@
 #include "common/h/Types.h"
 #include "arch.h"
 #include "util.h"
+#include "showerror.h"
+#include "InstrucIter.h"
 
 // tables and pseudotables
 enum {
@@ -3401,4 +3403,314 @@ void instruction::generate(codeGen &gen) {
     assert(size_);
     memcpy(gen.cur_ptr(), ptr_, size_);
     gen.moveIndex(size_);
+}
+
+unsigned instruction::spaceToRelocate() const {
+    // List of instructions that might be painful:
+    // jumps (displacement will change)
+    // call (displacement will change)
+    // PC-relative ops
+
+    // TODO: pc-relative ops
+
+   const unsigned char *origInsn = ptr();
+
+   unsigned maxSize = 0;
+
+   if (type() & REL_B) {
+       /* replace with rel32 instruction, opcode is one byte. */
+       if (*origInsn == JCXZ) {
+           // Replace with:
+           // jcxz 2    2 bytes
+           //  jmp 5    2 bytes
+           // jmp rel32 5 bytes
+           
+           return 9;
+      }
+      else {
+          if (type() & IS_JCC) {
+              /* Change a Jcc rel8 to Jcc rel32.  Must generate a new opcode: a
+                 0x0F followed by (old opcode + 16) */
+              return 6;
+          }
+          else if (type() & IS_JUMP) {
+              /* change opcode to 0xE9 */
+              return 5;
+          }
+          assert(0);
+      }
+   }
+   else if (type() & REL_W) {
+      /* Skip prefixes */
+      if (type() & PREFIX_OPR)
+          maxSize++;
+      if (type() & PREFIX_SEG)
+          maxSize++;
+      /* opcode is unchanged, just relocate the displacement */
+      if (*origInsn == (unsigned char)0x0F)
+          maxSize++;
+
+      // opcode, 32-bit displacement
+      maxSize += 5;
+
+      return maxSize;
+   } else if (type() & REL_D) {
+       if (type() & PREFIX_OPR)
+           maxSize++;
+       if (type() & PREFIX_SEG)
+           maxSize++;
+       
+       /* opcode is unchanged, just relocate the displacement */
+       if (*origInsn == 0x0F)
+           maxSize++;
+       
+       maxSize += 5;
+       return maxSize;
+   }
+   else {
+       return size();
+   }
+   assert(0);
+   return 0;
+}
+
+bool instruction::generate(codeGen &gen,
+                           process *proc,
+                           Address origAddr, // Could be kept in the instruction class..
+                           Address newAddr,
+                           Address fallthroughOverride,
+                           Address targetOverride) {
+    // We grab the maximum space we might need
+    GET_PTR(insnBuf, gen);
+    
+    /* 
+       Relative address instructions need to be modified. The relative address
+       can be a 8, 16, or 32-byte displacement relative to the next instruction.
+       Since we are relocating the instruction to a different area, we have
+       to replace 8 and 16-byte displacements with 32-byte displacements.
+       
+       All relative address instructions are one or two-byte opcode followed
+       by a displacement relative to the next instruction:
+       
+       CALL rel16 / CALL rel32
+       Jcc rel8 / Jcc rel16 / Jcc rel32
+       JMP rel8 / JMP rel16 / JMP rel32
+       
+       The only two-byte opcode instructions are the Jcc rel16/rel32,
+       all others have one byte opcode.
+       
+       The instruction JCXZ/JECXZ rel8 does not have an equivalent with rel32
+       displacement. We must generate code to emulate this instruction:
+       
+       JCXZ rel8
+       
+       becomes
+       
+       A0: JCXZ 2 (jump to A4)
+       A2: JMP 5  (jump to A9)
+       A4: JMP rel32 (relocated displacement)
+       A9: ...
+       
+   */
+
+    const unsigned char *origInsn = ptr();
+    unsigned insnType = type();
+    unsigned insnSz = size();
+    // This moves as we emit code
+    unsigned char *newInsn = insnBuf;
+
+    int oldDisp;
+    int newDisp;
+
+    bool done = false;
+    
+    // Check to see if we're doing the "get my PC" via a call
+    // We do this first as those aren't "real" jumps.
+    if (isCall() && !isCallIndir()) {
+        // A possibility...
+        // Two types: call(0) (AKA call(me+5));
+        // or call to a move/return combo.
+
+        // First, call(me)
+        Address target = getTarget(origAddr);
+        // Big if tree: "if we go to the next insn"
+        // Also could do with an instrucIter... or even have
+        // parsing label it for us. 
+        // TODO: label in parsing (once)
+        
+        if (target == (origAddr + size())) {
+            *newInsn = 0x68; // What opcode is this?
+            newInsn++;
+
+            Address EIP = origAddr + size();
+            unsigned int *temp = (unsigned int *) newInsn;
+            *temp = EIP;
+            // No 9-byte jumps...
+            assert(sizeof(unsigned int *) == 4);
+            newInsn += sizeof(unsigned int *);
+            assert((newInsn - insnBuf) == 5);
+            done = true;
+        }
+        else {
+            // Get us an instrucIter
+            InstrucIter callTarget(target, proc);
+            instruction firstInsn = callTarget.getInstruction();
+            instruction secondInsn = callTarget.getNextInstruction();
+            if (firstInsn.isMoveRegMemToRegMem() &&
+                secondInsn.isReturn()) {
+                // We need to fake this by figuring out the register
+                // target (assuming we're moving stack->reg),
+                // and constructing an immediate with the value of the
+                // original address of the call (+size)
+                // This was copied from function relocation code... I 
+                // don't understand most of it -- bernat
+                const unsigned char *ptr = firstInsn.ptr();
+                unsigned char modrm = *(ptr + 1);
+                unsigned char reg = (modrm >> 3) & 0x3;
+                // Source register... 
+                if ((modrm == 0x0c) || (modrm == 0x1c)) {
+                    // Check source register (%esp == 0x24)
+                    if ((*(ptr + 2) == 0x24)) {
+                        // Okay, put the PC into the 'reg'
+                        Address EIP = origAddr + size();
+                        *newInsn = 0xb8 + reg; // Opcode???
+                        newInsn++;
+                        unsigned int *temp = (unsigned int *)newInsn;
+                        *temp = EIP;
+                        //assert(sizeof(unsigned int *)==4);
+                        //newInsn += sizeof(unsigned int *);
+                        newInsn += 4;  // fix for AMD64
+                        done = true;
+                    }
+                }
+            }
+        }
+    }
+    if (!done) {
+        // If call-specialization didn't take care of us
+        if (insnType & REL_B) {
+            /* replace with rel32 instruction, opcode is one byte. */
+            if (*origInsn == JCXZ) {
+                if (targetOverride == 0) {
+                    oldDisp = (int)*(const char *)(origInsn+1);
+                    newDisp = (origAddr + 2) + oldDisp - (newAddr + 9);
+                }
+                else {
+                    // Override the target to go somewhere else
+                    oldDisp = 0;
+                    newDisp = targetOverride - (newAddr + 9);
+                }
+                *newInsn++ = *origInsn; *(newInsn++) = 2; // jcxz 2
+                *newInsn++ = 0xEB; *newInsn++ = 5;        // jmp 5
+                *newInsn++ = 0xE9;                        // jmp rel32
+                *((int *)newInsn) = newDisp;
+                newInsn += sizeof(int);
+            }
+            else {
+                unsigned newSz=UINT_MAX;
+                if (insnType & IS_JCC) {
+                    /* Change a Jcc rel8 to Jcc rel32.  Must generate a new opcode: a
+                       0x0F followed by (old opcode + 16) */
+                    unsigned char opcode = *origInsn++;
+                    *newInsn++ = 0x0F;
+                    *newInsn++ = opcode + 0x10;
+                    newSz = 6;
+                }
+                else if (insnType & IS_JUMP) {
+                    /* change opcode to 0xE9 */
+                    origInsn++;
+                    *newInsn++ = 0xE9;
+                    newSz = 5;
+                }
+                assert(newSz!=UINT_MAX);
+                if (targetOverride == 0) {
+                    oldDisp = (int)*(const char *)origInsn;
+                    newDisp = (origAddr + 2) + oldDisp - (newAddr + newSz);
+                }
+                else {
+                    oldDisp = 0;
+                    newDisp = targetOverride - (newAddr + newSz);
+                }
+                *((int *)newInsn) = newDisp;
+                newInsn += sizeof(int);
+            }
+        }
+        else if (insnType & REL_W) {
+            /* Skip prefixes */
+            if (insnType & PREFIX_OPR)
+                origInsn++;
+            if (insnType & PREFIX_SEG)
+                origInsn++;
+            /* opcode is unchanged, just relocate the displacement */
+            if (*origInsn == (unsigned char)0x0F)
+                *newInsn++ = *origInsn++;
+            *newInsn++ = *origInsn++;
+            if (targetOverride == 0) {
+                oldDisp = *((const short *)origInsn);
+                newDisp = (origAddr + 5) + oldDisp - (newAddr + 3);
+            }
+            else {
+                oldDisp = 0;
+                newDisp = targetOverride -  (newAddr + 3);
+            }
+            *((int *)newInsn) = newDisp;
+            newInsn += sizeof(int);
+        } else if (insnType & REL_D || insnType & REL_D_DATA) {
+
+            // Skip prefixes
+            unsigned nPrefixes = 0;
+            if (insnType & PREFIX_OPR)
+                nPrefixes++;
+            if (insnType & PREFIX_SEG)
+                nPrefixes++;
+	    if (insnType & PREFIX_OPCODE)
+		nPrefixes++;
+            if (insnType & PREFIX_REX)
+                nPrefixes++;
+
+            for (unsigned u = 0; u < nPrefixes; u++)
+                *newInsn++ = *origInsn++;
+            
+            /* opcode is unchanged, just relocate the displacement */
+            if (*origInsn == 0x0F)
+                *newInsn++ = *origInsn++;
+            *newInsn++ = *origInsn++;
+
+	    // skip over ModRM byte for RIP-relative data
+	    if (insnType & REL_D_DATA)
+		*newInsn++ = *origInsn++;
+
+            if (targetOverride == 0) {
+                oldDisp = *((const int *)origInsn);
+                newDisp = (origAddr + insnSz) + oldDisp - (newAddr + insnSz);
+            }
+            else {
+                oldDisp = 0;
+                newDisp = targetOverride - (newAddr + insnSz);
+            }
+            *((int *)newInsn) = newDisp;
+            newInsn += sizeof(int);
+
+	    // copy the rest of the instruction for RIP-relative data (there may be an immediate)
+	    // we can do this since the insn size will always be the same
+	    if (insnType & REL_D_DATA) {
+		origInsn += sizeof(int);
+		while (newInsn - insnBuf < (int)insnSz)
+		    *newInsn++ = *origInsn++;
+	    }
+        }
+        else {
+            /* instruction is unchanged */
+            for (unsigned u = 0; u < insnSz; u++)
+                *newInsn++ = *origInsn++;
+        }
+    }
+
+    SET_PTR(newInsn, gen);
+    return true;
+}
+
+unsigned instruction::jumpSize(Address from, Address to) {
+    // Overkill!
+    return JUMP_REL32_SZ;
 }

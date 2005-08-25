@@ -40,7 +40,7 @@
  */
 
 // Architecture include. Use this one instead of arch-<platform>
-// $Id: arch.h,v 1.18 2005/08/11 21:20:08 bernat Exp $
+// $Id: arch.h,v 1.19 2005/08/25 22:45:19 bernat Exp $
 
 #if !defined(arch_h)
 #define arch_h
@@ -96,9 +96,8 @@ class codeGen {
 
     // We consider our pointer to either be the start
     // of the buffer, or NULL if the buffer is empty
-    bool operator==(void *ptr);
-    bool operator!=(void *ptr);
-    bool operator()();
+    bool operator==(void *ptr) const;
+    bool operator!=(void *ptr) const;
 
     // Assignment....
     codeGen &operator=(const codeGen &param);
@@ -125,7 +124,11 @@ class codeGen {
     void *start_ptr() const;
     // With ptr() and used() you can copy into the mutatee.
 
+    // Pointer to the current location...
     void *cur_ptr() const;
+
+    // And pointer to a given offset
+    void *get_ptr(unsigned offset) const;
 
     // For things that make a copy of the current pointer and
     // play around with it. This recalculates the current offset

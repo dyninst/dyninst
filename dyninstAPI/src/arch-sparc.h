@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.36 2005/08/15 22:20:05 bernat Exp $
+// $Id: arch-sparc.h,v 1.37 2005/08/25 22:45:16 bernat Exp $
 
 #if !defined(arch_sparc)
 #error "invalid architecture-os inclusion"
@@ -53,6 +53,7 @@
 typedef unsigned int codeBuf_t;
 typedef unsigned codeBufIndex_t;
 
+class process;
 
 /*
  * Define sparc instruction information.
@@ -395,6 +396,14 @@ class instruction {
     void write(codeGen &gen);
     void generate(codeGen &gen);
 
+    unsigned spaceToRelocate() const;
+    bool generate(codeGen &gen,
+                  process *proc,
+                  Address origAddr,
+                  Address newAddr,
+                  Address fallthroughOverride = 0,
+                  Address targetOverride = 0);
+
   // return the type of the instruction
   unsigned type() const;
 
@@ -411,6 +420,11 @@ class instruction {
   
   Address getTarget(Address insnAddr) const;
   Address getOffset() const;
+
+  // And tell us how much space we'll need...
+  static unsigned jumpSize(Address from, Address to);
+  static unsigned jumpSize(int disp);
+
 
   bool isInsnType(const unsigned mask,
                   const unsigned match) const {

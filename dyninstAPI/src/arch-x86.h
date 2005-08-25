@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.31 2005/08/15 22:20:07 bernat Exp $
+// $Id: arch-x86.h,v 1.32 2005/08/25 22:45:18 bernat Exp $
 // x86 instruction declarations
 
 #if !defined(i386_unknown_solaris2_5) \
@@ -58,6 +58,7 @@ typedef unsigned char codeBuf_t;
 typedef unsigned codeBufIndex_t;
 
 class codeGen;
+class process; // relocation may need to look up a target
 
 #if defined(i386_unknown_nt4_0)
 // disable VC++ warning C4800: (performance warning)
@@ -390,18 +391,21 @@ unsigned get_instruction(const unsigned char *instr, unsigned &instType,
 Address get_target(const unsigned char *instr, unsigned type, unsigned size,
 		   Address addr);
 
-
 // Size of a jump rel32 instruction
 #define JUMP_REL32_SZ (5)
 #define JUMP_SZ (5)
 // Size of a call rel32 instruction
 #define CALL_REL32_SZ (5)
 
+// Xplat: how much will it take to do a full-range branch.
+// TODO: update for AMD64
+#define FULL_RANGE_BRANCH_SIZE JUMP_REL32_SZ
+
 #define PUSH_RM_OPC1 (0xFF)
 #define PUSH_RM_OPC2 (6)
 #define CALL_RM_OPC1 (0xFF)
 #define CALL_RM_OPC2 (2)
-#define PUSH_EBP (0x50+EBP)
+#define PUSH_EBP (0x50+REGNUM_EBP)
 #define SUB_REG_IMM32 (5)
 #define LEAVE (0xC9)
 
@@ -440,6 +444,10 @@ class instruction {
   // return the size of the instruction in bytes
   unsigned size() const { return size_; }
 
+  // And the size necessary to reproduce this instruction
+  // at some random point.
+  unsigned spaceToRelocate() const;
+
   // return the type of the instruction
   unsigned type() const { return type_; }
 
@@ -456,13 +464,28 @@ class instruction {
   static void generateBranch(codeGen &gen, int disp); 
   static void generateCall(codeGen &gen, Address from, Address to);
 
+  // And tell us how much space we'll need...
+  static unsigned jumpSize(Address from, Address to);
+  static unsigned jumpSize(int disp);
+
   // We may want to generate an efficient set 'o nops
-  static void generateNOOP(codeGen &gen, unsigned size);
+  static void generateNOOP(codeGen &gen, unsigned size = 1);
   
   static void generateIllegal(codeGen &gen);
   static void generateTrap(codeGen &gen);
 
   void generate(codeGen &gen);
+
+  // And generate an equivalent stream somewhere else...
+  // fallthroughOverride and targetOverride are used for
+  // making the behavior of jumps change. It won't work for 
+  // jumptables; that should be cleared up sometime.
+  bool generate(codeGen &gen,
+                process *proc,
+                Address origAddr,
+                Address newAddr,
+                Address fallthroughOverride = 0,
+                Address targetOverride = 0);
 
   bool isCall() const { return type_ & IS_CALL; }
   bool isCallIndir() const { return (type_ & IS_CALL) && (type_ & INDIR); }

@@ -562,6 +562,18 @@ class instruction {
   static bool isAligned(const Address addr) {
       return(!(addr & 0x3));
   }
+
+    unsigned spaceToRelocate() const;
+    bool generate(codeGen &gen,
+                  process *proc,
+                  Address origAddr,
+                  Address newAddr,
+                  Address fallthroughOverride = 0,
+                  Address targetOverride = 0);
+    
+    // And tell us how much space we'll need...
+    static unsigned jumpSize(Address from, Address to);
+    static unsigned jumpSize(int disp);
   
   
   bool valid() const;

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.2 2005/08/15 22:20:02 bernat Exp $
+ * $Id: arch-power.C,v 1.3 2005/08/25 22:45:13 bernat Exp $
  */
 
 #include "common/h/Types.h"
@@ -336,3 +336,121 @@ bool instruction::isCondBranch() const {
     return isInsnType(Bmask, BCmatch);
 }
 
+unsigned instruction::jumpSize(Address from, Address to) {
+    int disp = (to - from);
+    return jumpSize(disp);
+}
+
+unsigned instruction::jumpSize(int disp) {
+    if (ABS(disp) >= MAX_BRANCH) {
+        fprintf(stderr, "Warning: AIX doesn't handle multi-word jumps!\n");
+    }
+    return instruction::size();
+}
+
+bool instruction::generate(codeGen &gen,
+                           process *proc,
+                           Address origAddr,
+                           Address relocAddr,
+                           Address fallthroughOverride,
+                           Address targetOverride) {
+
+    int newOffset = 0;
+
+    if (isUncondBranch()) {
+        // unconditional pc relative branch.
+        
+        if (!targetOverride) 
+            newOffset = origAddr - relocAddr + (int)getBranchOffset(); 
+        else {
+            // We need to pin the jump
+            newOffset = targetOverride - relocAddr;
+        }
+        if (ABS(newOffset) >= MAX_BRANCH) {
+            fprintf(stderr, "At address 0x%x, original 0x%x, offset 0x%x, abs 0x%x, max 0x%x\n",
+                    relocAddr, origAddr, newOffset, ABS(newOffset), MAX_BRANCH);
+            logLine("a branch too far\n");
+            assert(0);
+        } else {
+            instruction newInsn(insn_);
+            newInsn.setBranchOffset(newOffset);
+            newInsn.generate(gen);
+        }
+    } 
+    else if (isCondBranch()) {
+        // conditional pc relative branch.
+      if (!targetOverride)
+        newOffset = origAddr - relocAddr + getBranchOffset();
+      else
+	newOffset = targetOverride - relocAddr;
+        if (ABS(newOffset) >= MAX_CBRANCH) {
+            if ((insn_.bform.bo & BALWAYSmask) == BALWAYScond) {
+                assert(insn_.bform.bo == BALWAYScond);
+
+                bool link = (insn_.bform.lk == 1);
+                instruction::generateBranch(gen, newOffset, link);
+            } else {
+                // Figure out if the original branch was predicted as taken or not
+                // taken.  We'll set up our new branch to be predicted the same way
+                // the old one was.
+                
+              // This makes my brain melt... here's what I think is happening. 
+              // We have two sources of information, the bd (destination) 
+              // and the predict bit. 
+              // The processor predicts the jump as taken if the offset
+              // is negative, and not taken if the offset is positive. 
+              // The predict bit says "invert whatever you decided".
+              // Since we're forcing the offset to positive, we need to
+              // invert the bit if the offset was negative, and leave it
+              // alone if positive.
+              
+              // Get the old flags (includes the predict bit)
+              int flags = insn_.bform.bo;
+
+              if (insn_.bform.bd < 0) {
+                  // Flip the bit.
+                  // xor operator
+                  flags ^= BPREDICTbit;
+              }
+              
+              instruction newCondBranch(insn_);
+              (*newCondBranch).bform.lk = 0; // This one is non-linking for sure
+              
+              // Set up the flags
+              (*newCondBranch).bform.bo = flags;
+              
+              // Change the branch to move one instruction ahead
+              (*newCondBranch).bform.bd = 2;
+              
+              newCondBranch.generate(gen);
+
+              // We don't "relocate" the fallthrough target of a conditional
+              // branch; instead relying on a third party to make sure
+              // we go back to where we want to. So in this case we 
+              // generate a "dink" branch to skip past the next instruction.
+              // We could also just invert the condition on the first branch;
+              // but I don't have the POWER manual with me.
+              // -- bernat, 15JUN05
+
+              instruction::generateBranch(gen,
+                                          2*instruction::size());
+
+              bool link = (insn_.bform.lk == 1);
+              instruction::generateBranch(gen,
+                                          newOffset - 2*instruction::size(),
+                                          link);
+          }
+      } else {
+          instruction newInsn(insn_);
+          (*newInsn).bform.bd = (newOffset >> 2);
+          newInsn.generate(gen);
+      }
+    } else if (insn_.iform.op == SVCop) {
+        logLine("attempt to relocate a system call\n");
+        assert(0);
+    } 
+    else {
+        generate(gen);
+    }
+}
+                           

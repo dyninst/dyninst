@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.34 2005/08/15 22:20:01 bernat Exp $
+// $Id: arch-ia64.h,v 1.35 2005/08/25 22:45:12 bernat Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -50,6 +50,8 @@
 
 #ifndef _ARCH_IA64_H
 #define _ARCH_IA64_H
+
+class process; 
 
 #include "common/h/Types.h"
 
@@ -97,8 +99,17 @@ class instruction {
 	void setInstruction(codeBuf_t *instPtr, Address addr);
 
 	// Emulation
-	virtual void relocate(codeGen &gen, Address origAddr, Address relocAddr);
-
+    unsigned spaceToRelocate() const;
+    virtual bool generate(codeGen &gen,
+						  process *proc,
+						  Address origAddr,
+						  Address newAddr,
+						  Address fallthroughOverride = 0,
+						  Address targetOverride = 0);
+	// And tell us how much space we'll need...
+	static unsigned jumpSize(Address from, Address to) { return 16; }
+	static unsigned jumpSize(int disp) { return 16; }
+  
 	// For branches
 	Address getTarget(Address origAddr) const;
 
@@ -172,8 +183,13 @@ class instruction_x : public instruction {
 		virtual const void * ptr() const;
 
 		// Emulation
-		virtual void relocate(codeGen &gen, Address origAddr, Address relocAddr);
-
+		virtual bool generate(codeGen &gen,
+							  process *proc,
+							  Address origAddr,
+							  Address newAddr,
+							  Address fallthroughOverride = 0,
+							  Address targetOverride = 0);
+							  
 	private:
 		uint64_t insn_x_;
 

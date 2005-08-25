@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-sparc.C,v 1.3 2005/08/15 22:20:04 bernat Exp $
+ * $Id: arch-sparc.C,v 1.4 2005/08/25 22:45:15 bernat Exp $
  */
 
 #include "common/h/Types.h"
@@ -49,6 +49,7 @@
 #include "inst-sparc.h"
 #include "util.h"
 #include "showerror.h"
+#include "InstrucIter.h"
 
 //inline unsigned getMaxBranch1Insn() {
 //   // The length we can branch using just 1 instruction is dictated by the
@@ -495,6 +496,22 @@ int instruction::get_disp()
   return disp;
 }
 
+
+unsigned instruction::jumpSize(Address from, Address to) {
+    int disp = (to - from);
+    return jumpSize(disp);
+}
+
+unsigned instruction::jumpSize(int disp) {
+    if (offsetWithinRangeOfBranchInsn(disp)) {
+        return instruction::size();
+    }
+    else {
+        // Save/call/restore triplet
+        return 3*instruction::size();
+    }
+}
+
 /****************************************************************************/
 
 /****************************************************************************/
@@ -522,6 +539,125 @@ void instruction::set_disp(bool setDisp,
             insn_.branch.disp22 = newOffset >> 2;
         }
     }
+}
+
+bool instruction::generate(codeGen &gen,
+                           process *proc,
+                           Address origAddr,
+                           Address relocAddr,
+                           Address fallthroughOverride,
+                           Address targetOverride) {
+    long long newLongOffset = 0;
+
+    instruction newInsn(insn_);
+
+    // TODO: check the function relocation for any PC-calculation tricks.
+
+    // If the instruction is a CALL instruction, calculate the new
+    // offset
+    if (isInsnType(CALLmask, CALLmatch)) {
+        // Check to see if we're a "get-my-pc" combo.
+        // Two forms exist: call +8, and call to a retl/nop 
+        // pair. This is very similar to x86, amusingly enough.
+        // If this is the case, we replace with an immediate load of 
+        // the PC.
+
+        Address target = getTarget(origAddr);
+        if (target == origAddr + (2*instruction::size())) {
+            inst_printf("Relocating get PC combo\n");
+            instruction::generateSetHi(gen, origAddr, REG_O(7));
+            instruction::generateImm(gen, ORop3, REG_O(7),
+                                     LOW10(origAddr), REG_O(7));
+        }
+        else {
+            // Need to check the destination. Grab it with an InstrucIter
+            InstrucIter callTarget(target, proc);
+            instruction callInsn = callTarget.getInstruction();
+            instruction nextInsn = callTarget.getNextInstruction();
+
+            if (callInsn.isInsnType(RETLmask, RETLmatch)) {
+                inst_printf("Call to immediate return\n");
+                // The old version (in LocalAlteration-Sparc.C)
+                // is _incredibly_ confusing. This should work, 
+                // assuming an iterator-unwound delay slot.
+                // We had a call to a retl/delay pair. 
+                // Build O7, then copy over the delay slot.
+                instruction::generateSetHi(gen, origAddr, REG_O(7));
+                instruction::generateImm(gen, ORop3, REG_O(7),
+                                         LOW10(origAddr), REG_O(7));
+                if (nextInsn.valid()) {
+                    nextInsn.generate(gen);
+                }
+            }
+            else {
+	      if (!targetOverride) {
+                newLongOffset = origAddr;
+                newLongOffset -= relocAddr;
+                newLongOffset += (insn_.call.disp30 << 2);
+	      }
+	      else {
+		newLongOffset = targetOverride - relocAddr;
+	      }
+
+              (*newInsn).call.disp30 = (int)(newLongOffset >> 2);
+              
+              newInsn.generate(gen);
+              inst_printf("Relocating call, displacement 0x%x\n", newLongOffset);
+            }
+        }
+    } else if (isInsnType(BRNCHmask, BRNCHmatch)||
+	       isInsnType(FBRNCHmask, FBRNCHmatch)) {
+
+	// If the instruction is a Branch instruction, calculate the 
+        // new offset. If the new offset is out of reach after the 
+        // instruction is moved to the base Trampoline, we would do
+        // the following:
+	//    b  address  ......    address: save
+	//                                   call new_offset             
+	//                                   restore 
+      if (!targetOverride)
+        newLongOffset = (long long)getTarget(origAddr) - relocAddr;
+      else
+	newLongOffset = targetOverride - relocAddr;
+        inst_printf("Orig 0x%x, target 0x%x (offset 0x%x), relocated 0x%x, new dist %lld\n",
+                    origAddr, getTarget(origAddr), getOffset(), relocAddr, newLongOffset);
+	// if the branch is too far, then allocate more space in inferior
+	// heap for a call instruction to branch target.  The base tramp 
+	// will branch to this new inferior heap code, which will call the
+	// target of the branch
+
+	if ((newLongOffset < (long long)(-0x7fffffff-1)) ||
+	    (newLongOffset > (long long)0x7fffffff) ||
+	    !instruction::offsetWithinRangeOfBranchInsn((int)newLongOffset)){
+            inst_printf("Relocating branch; new offset %lld farther than branch range; replacing with call\n", newLongOffset);
+            // Replace with a multi-branch series
+            
+            instruction::generateImm(gen,
+                                     SAVEop3,
+                                     REG_SPTR,
+                                     -112,
+                                     REG_SPTR);
+            // Don't use relocAddr here, since we've moved the IP since then.
+            instruction::generateCall(gen,
+                                      relocAddr + instruction::size(),
+                                      getTarget(origAddr));
+            instruction::generateSimple(gen,
+                                        RESTOREop3,
+                                        0, 0, 0);
+	} else {
+	    (*newInsn).branch.disp22 = (int)(newLongOffset >> 2);
+            newInsn.generate(gen);
+	}
+    } else if (isInsnType(TRAPmask, TRAPmatch)) {
+	// There should be no probelm for moving trap instruction
+	// logLine("attempt to relocate trap\n");
+        generate(gen);
+    } 
+    else {
+        /* The rest of the instructions should be fine as is */
+        generate(gen);
+    }
+    
 }
 
 /****************************************************************************/
