@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.4 2005/08/11 21:20:20 bernat Exp $
+// $Id: mapped_object.C,v 1.5 2005/08/25 22:45:45 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/symtab.h"
@@ -397,21 +397,26 @@ const pdvector <int_variable *> *mapped_object::findVarVectorByMangled(const pds
       return NULL;
 } 
 
-int_function *mapped_object::findFuncByAddr(const Address &addr)  {
+codeRange *mapped_object::findCodeRangeByAddress(const Address &addr)  {
     codeRange *range;
-    if (!funcsByAddr_.find(addr, range)) {
+    if (!codeRangesByAddr_.find(addr, range)) {
         return NULL;
     }
+    return range;
+}
+
+codeRange *mapped_module::findCodeRangeByAddress(const Address &addr)  {
+    return obj()->findCodeRangeByAddress(addr);
+}
+
+int_function *mapped_object::findFuncByAddr(const Address &addr) {
+    codeRange *range = findCodeRangeByAddress(addr);
+    if (!range) return NULL;
     return range->is_function();
 }
 
 int_function *mapped_module::findFuncByAddr(const Address &addr)  {
-    int_function *obj_func = obj()->findFuncByAddr(addr);
-    if (!obj_func) return NULL;
-    if (obj_func->mod() == this)
-        return obj_func;
-    else
-        return NULL;
+    return obj()->findFuncByAddr(addr);
 }
 
 const pdvector<mapped_module *> &mapped_object::getModules() {
@@ -481,8 +486,13 @@ void mapped_object::addFunctionToIndices(int_function *func) {
     (*funcsBySymTabEntry).push_back(func);
   }  
 
-  // And addresses...
-  funcsByAddr_.insert(func);
+  // Now, add the "function" to the codeRange tree. We
+  // do this at the basic block level...
+  const pdvector<int_basicBlock *> &blocks = func->blocks();
+  for (unsigned i = 0; i < blocks.size(); i++) {
+      codeRangesByAddr_.insert(blocks[i]->origInstance());
+  }
+
 }  
 
 // Enter a function in all the appropriate tables
@@ -695,14 +705,14 @@ void mapped_object::getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const 
 }
     
 
-void *mapped_object::getPtrToOrigInstruction(Address addr) const {
+void *mapped_object::getPtrToInstruction(Address addr) const {
     if (addr < codeAbs()) return NULL;
     if (addr >= (codeAbs() + codeSize())) return NULL;
 
     // Only subtract off the codeBase, not the codeBase plus
     // codeOffset -- the image class includes the codeOffset.
     Address offset = addr - codeBase();
-    return image_->getPtrToOrigInstruction(offset);
+    return image_->getPtrToInstruction(offset);
 }
 
 void *mapped_object::getPtrToData(Address addr) const {

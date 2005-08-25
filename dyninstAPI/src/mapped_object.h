@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.h,v 1.2 2005/08/08 22:39:31 bernat Exp $
+// $Id: mapped_object.h,v 1.3 2005/08/25 22:45:46 bernat Exp $
 
 #if !defined(_mapped_object_h)
 #define _mapped_object_h
@@ -110,7 +110,9 @@ class mapped_module {
                                  pdvector<int_function *> &funcs);
     
     int_function *findFuncByAddr(const Address &address);
-    
+    codeRange *findCodeRangeByAddress(const Address &address);
+
+
     void dumpMangled(pdstring prefix) const;
     
     /////////////////////////////////////////////////////
@@ -239,7 +241,8 @@ class mapped_object : public codeRange {
 
     void getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const;
 
-    void *getPtrToOrigInstruction(Address addr) const;
+    // codeRange method
+    void *getPtrToInstruction(Address addr) const;
     void *getPtrToData(Address addr) const;
 
     const pdvector<int_function *> &getAllFunctions();
@@ -270,7 +273,9 @@ class mapped_object : public codeRange {
 
     const pdvector<int_function *> *findFuncVectorByPretty(const pdstring &funcname);
     const pdvector<int_function *> *findFuncVectorByMangled(const pdstring &funcname); 
+
     int_function *findFuncByAddr(const Address &address);
+    codeRange *findCodeRangeByAddress(const Address &address);
 
     const pdvector<int_variable *> *findVarVectorByPretty(const pdstring &varname);
     const pdvector<int_variable *> *findVarVectorByMangled(const pdstring &varname); 
@@ -329,7 +334,7 @@ private:
     dictionary_hash< pdstring, pdvector<int_variable *> * > allVarsByMangledName;
     dictionary_hash< pdstring, pdvector<int_variable *> * > allVarsByPrettyName;
 
-    codeRangeTree funcsByAddr_;
+    codeRangeTree codeRangesByAddr_;
 
     void addFunctionToIndices(int_function *func);
     void addVarToIndices(int_variable *var);
@@ -353,6 +358,7 @@ class mappedObjData : public codeRange {
     mappedObjData(mapped_object *obj_) : obj(obj_) {};
     Address get_address_cr() const { return obj->dataAbs(); }
     unsigned get_size_cr() const { return obj->dataSize(); }
+    void *getPtrToInstruction(Address addr) const { assert(0); return NULL; }
     mapped_object *obj;
 };
 
