@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.228 2005/08/23 21:46:23 rutar Exp $
+ * $Id: inst-power.C,v 1.229 2005/08/25 22:45:36 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -217,116 +217,6 @@ unsigned relocatedInstruction::maxSizeRequired() {
         }
     }
     return instruction::size();
-}
-
-bool relocatedInstruction::generateCode(codeGen &gen,
-                                        Address baseInMutatee) {
-    if (alreadyGenerated(gen, baseInMutatee))
-        return true;
-    generateSetup(gen, baseInMutatee);
-
-    unsigned origOffset = gen.used();
-    int newOffset = 0;
-
-    if (insn->isUncondBranch()) {
-        // unconditional pc relative branch.
-
-      if (!targetOverride_) 
-        newOffset = origAddr - relocAddr() + (int)insn->getBranchOffset(); 
-      else {
-	// We need to pin the jump
-	newOffset = targetOverride_ - relocAddr();
-      }
-        if (ABS(newOffset) >= MAX_BRANCH) {
-            fprintf(stderr, "At address 0x%x, original 0x%x, offset 0x%x, abs 0x%x, max 0x%x\n",
-                    relocAddr(), origAddr, newOffset, ABS(newOffset), MAX_BRANCH);
-            logLine("a branch too far\n");
-            assert(0);
-        } else {
-            instruction newInsn(*insn);
-            newInsn.setBranchOffset(newOffset);
-            newInsn.generate(gen);
-        }
-    } 
-    else if (insn->isCondBranch()) {
-        // conditional pc relative branch.
-      if (!targetOverride_)
-        newOffset = origAddr - relocAddr() + insn->getBranchOffset();
-      else
-	newOffset = targetOverride_ - relocAddr();
-        if (ABS(newOffset) >= MAX_CBRANCH) {
-            if (((**insn).bform.bo & BALWAYSmask) == BALWAYScond) {
-                assert((**insn).bform.bo == BALWAYScond);
-
-                bool link = ((**insn).bform.lk == 1);
-                instruction::generateBranch(gen, newOffset, link);
-            } else {
-                // Figure out if the original branch was predicted as taken or not
-                // taken.  We'll set up our new branch to be predicted the same way
-                // the old one was.
-                
-              // This makes my brain melt... here's what I think is happening. 
-              // We have two sources of information, the bd (destination) 
-              // and the predict bit. 
-              // The processor predicts the jump as taken if the offset
-              // is negative, and not taken if the offset is positive. 
-              // The predict bit says "invert whatever you decided".
-              // Since we're forcing the offset to positive, we need to
-              // invert the bit if the offset was negative, and leave it
-              // alone if positive.
-              
-              // Get the old flags (includes the predict bit)
-              int flags = (**insn).bform.bo;
-
-              if ((**insn).bform.bd < 0) {
-                  // Flip the bit.
-                  // xor operator
-                  flags ^= BPREDICTbit;
-              }
-              
-              instruction newCondBranch(*insn);
-              (*newCondBranch).bform.lk = 0; // This one is non-linking for sure
-              
-              // Set up the flags
-              (*newCondBranch).bform.bo = flags;
-              
-              // Change the branch to move one instruction ahead
-              (*newCondBranch).bform.bd = 2;
-              
-              newCondBranch.generate(gen);
-
-              // We don't "relocate" the fallthrough target of a conditional
-              // branch; instead relying on a third party to make sure
-              // we go back to where we want to. So in this case we 
-              // generate a "dink" branch to skip past the next instruction.
-              // We could also just invert the condition on the first branch;
-              // but I don't have the POWER manual with me.
-              // -- bernat, 15JUN05
-
-              instruction::generateBranch(gen,
-                                          2*instruction::size());
-
-              bool link = ((**insn).bform.lk == 1);
-              instruction::generateBranch(gen,
-                                          newOffset - 2*instruction::size(),
-                                          link);
-          }
-      } else {
-          instruction newInsn(*insn);
-          (*newInsn).bform.bd = (newOffset >> 2);
-          newInsn.generate(gen);
-      }
-    } else if ((**insn).iform.op == SVCop) {
-        logLine("attempt to relocate a system call\n");
-        assert(0);
-    } 
-    else {
-        insn->generate(gen);
-    }
-    
-    size_ = gen.currAddr(baseInMutatee) - addrInMutatee_;
-    generated_ = true;
-    return true;
 }
 
 Register deadRegs[] = {10, REG_GUARD_ADDR, REG_GUARD_VALUE, REG_GUARD_OFFSET};
@@ -2685,13 +2575,13 @@ bool process::hasBeenBound(const relocationEntry ,int_function *&, Address ) {
 // Returns true if sucessful, false if not.  Fails if the site is not a call
 // site, or if the site has already been instrumented using a base tramp.
 bool process::replaceFunctionCall(instPoint *point,
-				  const int_function *newFunc) {
+				  const int_function *func) {
    // Must be a call site
    if (point->getPointType() != callSite)
       return false;
 
    inst_printf("Function replacement, point func %s, new func %s, point primary addr 0x%x\n",
-               point->func()->symTabName().c_str(), newFunc ? newFunc->symTabName().c_str() : "<NULL>",
+               point->func()->symTabName().c_str(), func ? func->symTabName().c_str() : "<NULL>",
                point->addr());
 
   instPointIter ipIter(point);
@@ -2701,35 +2591,55 @@ bool process::replaceFunctionCall(instPoint *point,
       Address pointAddr = ipInst->addr();
       inst_printf("... replacing 0x%x", pointAddr);
       codeRange *range;
-      if (multiTramps_.find(pointAddr, range)) {
-          // We instrumented this... not handled yet
-          assert(0);
-      }
-      else {  
-          codeGen gen(instruction::size());
-          if (newFunc == NULL) {	// Replace with a NOOP
-              instruction::generateNOOP(gen);
-          } else {			// Replace with a new call instruction
-              instruction::generateBranch(gen, pointAddr, newFunc->getAddress(), true);
-          }
-          
-          // Before we replace, track the code.
-          // We could be clever with instpoints keeping instructions around, but
-          // it's really not worth it.
-          replacedFunctionCall *newRFC = new replacedFunctionCall();
-          newRFC->callAddr = pointAddr;
 
-          codeGen old(instruction::size());
-          old.copy(point->insn().ptr(), instruction::size());
-          newRFC->oldCall = old;
-          newRFC->newCall = gen;
-          
-          replacedFunctionCalls_[pointAddr] = newRFC;
-          
-          
-          writeTextSpace((caddr_t)pointAddr, gen.used(), gen.start_ptr());
-          inst_printf("...done\n");
+      if (modifiedAreas_.find(pointAddr, range)) {
+          multiTramp *multi = range->is_multitramp();
+          if (multi) {
+              // We pre-create these guys... so check to see if
+              // there's anything there
+              if (!multi->generated()) {
+                  removeMultiTramp(multi);
+              }
+              else {
+                  // TODO: modify the callsite in the multitramp.
+                  assert(0);
+              }
+          }
+          if (dynamic_cast<functionReplacement *>(range)) {
+              // We overwrote this in a function replacement...
+              continue; 
+          }
       }
+      
+      codeGen gen(instruction::size());
+      if (func == NULL) {	// Replace with a NOOP
+          instruction::generateNOOP(gen);
+      } else {			// Replace with a new call instruction
+          instruction::generateBranch(gen, pointAddr, func->getAddress(), true);
+      }
+      
+      // Before we replace, track the code.
+      // We could be clever with instpoints keeping instructions around, but
+      // it's really not worth it.
+      replacedFunctionCall *newRFC = new replacedFunctionCall();
+      newRFC->callAddr = pointAddr;
+
+      newRFC->callSize = instruction::size();
+      if (func)
+          newRFC->newTargetAddr = func->getAddress();
+      else
+          newRFC->newTargetAddr = 0;
+      
+      codeGen old(instruction::size());
+      old.copy(point->insn().ptr(), instruction::size());
+      newRFC->oldCall = old;
+      newRFC->newCall = gen;
+      
+      replacedFunctionCalls_[pointAddr] = newRFC;
+      
+      
+      writeTextSpace((caddr_t)pointAddr, gen.used(), gen.start_ptr());
+      inst_printf("...done\n");
   }
   return true;
 }

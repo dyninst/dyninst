@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.18 2005/08/08 20:23:33 gquinn Exp $
+// $Id: inst-x86.h,v 1.19 2005/08/25 22:45:40 bernat Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
@@ -147,32 +147,32 @@
 // These values are taken from the Pentium manual and CANNOT be changed.
 
 // 32-bit
-#define EAX (0)
-#define ECX (1)
-#define EDX (2)
-#define EBX (3)
-#define ESP (4)
-#define EBP (5)
-#define ESI (6)
-#define EDI (7)
+#define REGNUM_EAX (0)
+#define REGNUM_ECX (1)
+#define REGNUM_EDX (2)
+#define REGNUM_EBX (3)
+#define REGNUM_ESP (4)
+#define REGNUM_EBP (5)
+#define REGNUM_ESI (6)
+#define REGNUM_EDI (7)
 
 // 64-bit
-#define RAX (0)
-#define RCX (1)
-#define RDX (2)
-#define RBX (3)
-#define RSP (4)
-#define RBP (5)
-#define RSI (6)
-#define RDI (7)
-#define R8 (8)
-#define R9 (9)
-#define R10 (10)
-#define R11 (11)
-#define R12 (12)
-#define R13 (13)
-#define R14 (14)
-#define R15 (15)
+#define REGNUM_RAX (0)
+#define REGNUM_RCX (1)
+#define REGNUM_RDX (2)
+#define REGNUM_RBX (3)
+#define REGNUM_RSP (4)
+#define REGNUM_RBP (5)
+#define REGNUM_RSI (6)
+#define REGNUM_RDI (7)
+#define REGNUM_R8 (8)
+#define REGNUM_R9 (9)
+#define REGNUM_R10 (10)
+#define REGNUM_R11 (11)
+#define REGNUM_R12 (12)
+#define REGNUM_R13 (13)
+#define REGNUM_R14 (14)
+#define REGNUM_R15 (15)
 
 // on AMD64, we sometimes can't reach our minitramp from the basetramp with
 // a direct jump. we always can on x86
@@ -191,11 +191,11 @@ extern registerSpace* regSpace64;
 class codeGen;
 
 // Define access method for saved register (GPR)
-#define GET_GPR(x, insn) emitMovRMToReg(EAX, EBP, SAVED_EAX_OFFSET-(x*4), insn)
+#define GET_GPR(x, insn) emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, SAVED_EAX_OFFSET-(x*4), insn)
 
 // Define access method for virtual registers (stack-based)
-#define LOAD_VIRTUAL(x, insn) emitMovRMToReg(EAX, EBP, -(x*4), insn)
-#define SAVE_VIRTUAL(x, insn) emitMovRegToRM(EBP, -(x*4), EAX, insn)
+#define LOAD_VIRTUAL(x, insn) emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -(x*4), insn)
+#define SAVE_VIRTUAL(x, insn) emitMovRegToRM(REGNUM_EBP, -(x*4), REGNUM_EAX, insn)
 
 // low-level code generation functions
 void emitOpRegReg(unsigned opcode, Register dest, Register src, codeGen &gen);

@@ -822,8 +822,17 @@ IA64_bundle generateBundleFor( instruction insnToBundle ) {
 } /* end generateBundleFor() */
 
 /* private refactoring function */
-void instruction_x::relocate(codeGen &gen, Address originalLocation,
-							 Address allocatedAddress ) {
+bool instruction_x::generate(codeGen &gen, 
+							 process *,
+							 Address originalLocation,
+							 Address allocatedAddress,
+							 Address,
+							 Address fallthroughTarget) {
+	if (fallthroughTarget) {
+		fprintf(stderr, "WARNING: ignoring redirected branch target of 0x%lx!\n",
+				fallthroughTarget);
+	}
+
 	instruction::insnType instructionType = getType();
 	insn_tmpl tmpl = { getMachineCode().high };
 	insn_tmpl imm  = { getMachineCode().low };
@@ -838,7 +847,7 @@ void instruction_x::relocate(codeGen &gen, Address originalLocation,
 		IA64_bundle( MLXstop,
 					 memoryNOP,
 					 *this ).generate(gen);
-		return;
+		return true;
 	}
 	}
 	
@@ -858,6 +867,8 @@ void instruction_x::relocate(codeGen &gen, Address originalLocation,
     IA64_bundle( MLXstop,
 				 instruction( NOP_M ),
 				 alteredLong ).generate(gen);
+
+	return true;
 } /* end emulateLongInstruction */
 
 /* private refactoring function */
@@ -917,8 +928,17 @@ void rewriteShortOffset( instruction insnToRewrite, Address originalLocation,
 } /* end rewriteShortOffset() */
 
 /* private refactoring function */
-void instruction::relocate(codeGen &gen, Address originalLocation,
-						   Address allocatedAddress ) {
+bool instruction::generate(codeGen &gen, 
+						   process *,
+						   Address originalLocation,
+						   Address allocatedAddress,
+						   Address,
+						   Address fallthroughTarget) {
+	if (fallthroughTarget) {
+		fprintf(stderr, "WARNING: ignoring redirected branch target of 0x%lx!\n",
+				fallthroughTarget);
+	}
+	
 	insn_tmpl tmpl = { getMachineCode() };
 
 	switch( getType() ) {
@@ -990,62 +1010,15 @@ void instruction::relocate(codeGen &gen, Address originalLocation,
 		generateBundleFor( *this ).generate(gen);
 		break; /* end default case */
 	} /* end type switch */
-} /* end emulate */
 
-/* private refactoring function.  The first argument is
-   self-explanatory; originalLocation refers to the address of the
-   bundle in the remote process.  The insnPtr is a pointer to (start
-   of) the buffer into which the emulated instruction (identified by
-   slotNo) is to be written.  'offset' is the index of the last bundle
-   written to the buffer, and 'size' is the size in bytes of those
-   bundles.  (Granted, one could be calculated from the other, but
-   they should both be readily available.)  Since offset and size are
-   both references, the same variables should be used in each call to
-   emulateBundle() in a given function.  allocatedAddress is where in
-   the remote process the base tramp will be copied. */
-   
-bool relocatedInstruction::generateCode( codeGen & gen, Address baseInMutatee ) {
-	if( alreadyGenerated( gen, baseInMutatee ) ) {
-		return true;
-		}
-	generateSetup( gen, baseInMutatee );
-
-	Address originalLocation = origAddr;
-	Address allocatedAddress = gen.currAddr( baseInMutatee );
-
-	/* We need to alter all IP-relative instructions to do the Right Thing.  In particular:
-
-		mov rX = ip	->	movl rX = <originalLocation>
-		brp.*		->	nop.m	; Is an architectural nop, and we've already destroyed performance by doing the instrumentation.
-		brl.*		->	brl.*	; correct the offset by the difference between originalLocation and (allocatedAddress + size)
-		check.*		->	check.*	; replace target25 with an offset to a brl to the original target, as adjusted for brl.*
-		br.[cond|call]	->	brl.*	; direct only; fix as brl.*
-		br.cloop	->	
-		br.c[top|exit]	->
-		br.w[top|exit]	->	br.*	; can handle as per the check.* instructions.
-		br.[cond|call]i	->	br.*	; 
-		br.ret		->	br.ret	; The three indirect branches can be safely duplicated:
-						; the branch registers hold absolute addresses.
-		br.ia		->		; barf: maybe invoke the x86 port? :)
-	*/
-	
-	/* By convention, an MLX bundle at 0x...0 has its slot 0
-	   instruction at 0x...0, and its slot 1 instruction at 0x...1; by
-	   ignoring requests at slot 2, we make sure that long
-	   instructions are always emulated in the middle, which makes
-	   post-position instrumentation work. */
-	insn->relocate( gen, originalLocation, allocatedAddress );
-
-    size_ = gen.currAddr( baseInMutatee ) - addrInMutatee_;
-    generated_ = true;
 	return true;
-} /* end emulateBundle() */
+} /* end emulate */
 
 /* Required by BPatch_thread.C */
 #define NEAR_ADDRESS 0x2000000000000000               /* The lower end of the shared memory segment. */
 
 bool process::replaceFunctionCall(instPoint * point, 
-								  const int_function * function ) {
+								  const int_function * func ) {
 	/* We'll assume that point is a call site, primarily because we don't actually care.
 	   However, the semantics seem to be that we can't replace function calls if we've already
 	   instrumented them (which is, of course, garbage), so we _will_ check that. */
@@ -1058,7 +1031,7 @@ bool process::replaceFunctionCall(instPoint * point,
 	
 	/* Further implicit semantics indicate that a NULL function should be replace by NOPs. */
 	IA64_bundle toInsert;
-	if( function == NULL ) {
+	if( func == NULL ) {
 		toInsert = IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I );
 	} /* end if we're inserting NOPs. */
 	
@@ -1069,9 +1042,23 @@ bool process::replaceFunctionCall(instPoint * point,
 		Address pointAddr = ipInst->addr();
 		
 		codeRange *range;
-		if (multiTramps_.find(pointAddr, range)) {
-			// We instrumented this... not handled yet
-			assert(0);
+		if (modifiedAreas_.find(pointAddr, range)) {
+			multiTramp *multi = range->is_multitramp();
+			if (multi) {
+				// We pre-create these guys... so check to see if
+				// there's anything there
+				if (!multi->generated()) {
+					removeMultiTramp(multi);
+				}
+				else {
+					// TODO: modify the callsite in the multitramp.
+					assert(0);
+				}
+			}
+			if (dynamic_cast<functionReplacement *>(range)) {
+				// We overwrote this in a function replacement...
+				continue; 
+			}
 		}
 
 		/* We'd like to generate the call here, but we need to know the IP it'll be
@@ -1113,6 +1100,12 @@ bool process::replaceFunctionCall(instPoint * point,
 
 		replacedFunctionCall *newRFC = new replacedFunctionCall();
 		newRFC->callAddr = alignedAddress;
+		newRFC->callSize = 16;
+		if (func)
+			newRFC->newTargetAddr = func->getAddress();
+		else
+			newRFC->newTargetAddr = 0;
+
 		newRFC->oldCall.allocate(16);
 		newRFC->oldCall.copy(&originalBundle, sizeof(originalBundle));
 
@@ -1122,14 +1115,14 @@ bool process::replaceFunctionCall(instPoint * point,
 
 		/* We don't want to emulate the call instruction itself. */
 		if( slotNo != 0 ) {
-			bundleToEmulate.getInstruction0().relocate(codeBuffer, alignedAddress, allocatedAddress);
+			bundleToEmulate.getInstruction0().generate(codeBuffer, this, alignedAddress, allocatedAddress);
 		}
 		else {
-			if( function != NULL ) {
+			if( func != NULL ) {
 				/* The SCRAG says that b0 is the return register, but there's no gaurantee of this.
 				   If we have problems, we can decode the call instruction. */
 				uint8_t branchRegister = 0;
-				int64_t callOffset = function->getAddress()- (allocatedAddress + codeBuffer.used());
+				int64_t callOffset = func->getAddress()- (allocatedAddress + codeBuffer.used());
 				
 				instruction_x callToFunction = generateLongCallTo( callOffset, branchRegister );
 				toInsert = IA64_bundle( MLXstop, memoryNOP, callToFunction );
@@ -1140,16 +1133,17 @@ bool process::replaceFunctionCall(instPoint * point,
 		
 		if( bundleToEmulate.hasLongInstruction() ) {
 			if( slotNo == 0 ) {
-				bundleToEmulate.getLongInstruction().relocate(codeBuffer,
+				bundleToEmulate.getLongInstruction().generate(codeBuffer,
+															  this,
 															  alignedAddress,
 															  allocatedAddress);
 			}
 			else {
-				if( function != NULL ) {
+				if( func != NULL ) {
 					/* The SCRAG says that b0 is the return register, but there's no gaurantee of this.
 					   If we have problems, we can decode the call instruction. */
 					uint8_t branchRegister = 0;
-					int64_t callOffset = function->getAddress() - (allocatedAddress + codeBuffer.used());
+					int64_t callOffset = func->getAddress() - (allocatedAddress + codeBuffer.used());
 					
 					instruction_x callToFunction = generateLongCallTo( callOffset, branchRegister );
 					toInsert = IA64_bundle( MLXstop, memoryNOP, callToFunction );
@@ -1161,16 +1155,17 @@ bool process::replaceFunctionCall(instPoint * point,
 		else {
 			/* Handle the instruction in slot 1. */
 			if( slotNo != 1 ) {
-				bundleToEmulate.getInstruction1().relocate(codeBuffer,
+				bundleToEmulate.getInstruction1().generate(codeBuffer,
+														   this,
 														   alignedAddress,
 														   allocatedAddress);
 			}
 			else {
-				if( function != NULL ) {
+				if( func != NULL ) {
 					/* The SCRAG says that b0 is the return register, but there's no gaurantee of this.
 					   If we have problems, we can decode the call instruction. */
 					uint8_t branchRegister = 0;
-					int64_t callOffset = function->getAddress() - (allocatedAddress + codeBuffer.used());
+					int64_t callOffset = func->getAddress() - (allocatedAddress + codeBuffer.used());
 					
 					instruction_x callToFunction = generateLongCallTo( callOffset, branchRegister );
 					toInsert = IA64_bundle( MLXstop, memoryNOP, callToFunction );
@@ -1181,16 +1176,17 @@ bool process::replaceFunctionCall(instPoint * point,
 			
 			/* Handle the instruction in slot 2. */
 			if( slotNo != 2 ) {
-				bundleToEmulate.getInstruction2().relocate(codeBuffer,
+				bundleToEmulate.getInstruction2().generate(codeBuffer,
+														   this,
 														   alignedAddress,
 														   allocatedAddress);
 			}
 			else {
-				if( function != NULL ) {
+				if( func != NULL ) {
 					/* The SCRAG says that b0 is the return register, but there's no gaurantee of this.
 					   If we have problems, we can decode the call instruction. */
 					uint8_t branchRegister = 0;
-					int64_t callOffset = function->getAddress() - (allocatedAddress + codeBuffer.used());
+					int64_t callOffset = func->getAddress() - (allocatedAddress + codeBuffer.used());
 					
 					instruction_x callToFunction = generateLongCallTo( callOffset, branchRegister );
 					toInsert = IA64_bundle( MLXstop, memoryNOP, callToFunction );

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.173 2005/08/15 22:20:16 bernat Exp $
+// $Id: inst-sparc.C,v 1.174 2005/08/25 22:45:37 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -545,7 +545,7 @@ bool doNotOverflow(int value)
 // Returns true if sucessful, false if not.  Fails if the site is not a call
 // site, or if the site has already been instrumented using a base tramp.
 bool process::replaceFunctionCall(instPoint *point,
-                                  const int_function *newFunc) {
+                                  const int_function *func) {
 
    // Must be a call site
    if (point->getPointType() != callSite)
@@ -553,7 +553,7 @@ bool process::replaceFunctionCall(instPoint *point,
 
    inst_printf("Function replacement, point func %s, new func %s, point primary addr 0x%x\n",
                point->func()->symTabName().c_str(), 
-               newFunc ? newFunc->symTabName().c_str() : "<NULL>",
+               func ? func->symTabName().c_str() : "<NULL>",
                point->addr());
 
    instPointIter ipIter(point);
@@ -563,37 +563,55 @@ bool process::replaceFunctionCall(instPoint *point,
        Address pointAddr = ipInst->addr();
        inst_printf("... replacing 0x%x", pointAddr);
        codeRange *range;
-       if (multiTramps_.find(pointAddr, range)) {
-           // We instrumented this... not handled yet
-           assert(0);
-       }
-       else {  
-           codeGen gen(instruction::size());
-           if (newFunc == NULL) {
-               instruction::generateNOOP(gen);
+       if (modifiedAreas_.find(pointAddr, range)) {
+           multiTramp *multi = range->is_multitramp();
+           if (multi) {
+               // We pre-create these guys... so check to see if
+               // there's anything there
+               if (!multi->generated()) {
+                   removeMultiTramp(multi);
+               }
+               else {
+                   // TODO: modify the callsite in the multitramp.
+                   assert(0);
+               }
            }
-           else
-               instruction::generateCall(gen,
-                                         pointAddr,
-                                         newFunc->getAddress());
-
-          // Before we replace, track the code.
-          // We could be clever with instpoints keeping instructions around, but
-          // it's really not worth it.
-          replacedFunctionCall *newRFC = new replacedFunctionCall();
-          newRFC->callAddr = pointAddr;
-          
-          unsigned char buffer[instruction::size()];
-          readTextSpace((void *)pointAddr, instruction::size(), buffer);
-
-          newRFC->oldCall.allocate(instruction::size());
-          newRFC->oldCall.copy(buffer, instruction::size());
-          newRFC->newCall = gen;
-          
-          replacedFunctionCalls_[pointAddr] = newRFC;
-          
-          writeTextSpace((void *)pointAddr, instruction::size(), gen.start_ptr());
+           if (dynamic_cast<functionReplacement *>(range)) {
+               // We overwrote this in a function replacement...
+               continue; 
+           }
        }
+
+       codeGen gen(instruction::size());
+       if (func == NULL) {
+           instruction::generateNOOP(gen);
+       }
+       else
+           instruction::generateCall(gen,
+                                     pointAddr,
+                                     func->getAddress());
+       
+       // Before we replace, track the code.
+       // We could be clever with instpoints keeping instructions around, but
+       // it's really not worth it.
+       replacedFunctionCall *newRFC = new replacedFunctionCall();
+       newRFC->callAddr = pointAddr;
+       newRFC->callSize = point->insn().size();
+       if (func)
+           newRFC->newTargetAddr = func->getAddress();
+       else
+           newRFC->newTargetAddr = 0;
+       
+       unsigned char buffer[instruction::size()];
+       readTextSpace((void *)pointAddr, instruction::size(), buffer);
+       
+       newRFC->oldCall.allocate(instruction::size());
+       newRFC->oldCall.copy(buffer, instruction::size());
+       newRFC->newCall = gen;
+       
+       replacedFunctionCalls_[pointAddr] = newRFC;
+       
+       writeTextSpace((void *)pointAddr, instruction::size(), gen.start_ptr());
    }
    return true;
 }
@@ -810,152 +828,6 @@ extern void sorted_ips_vector(pdvector<instPoint*>&fill_in);
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
-
-/*
- * Given an instruction, relocate it to a new address, patching up
- *   any relative addressing that is present.
- * 
- */
-
-bool relocatedInstruction::generateCode(codeGen &gen,
-                                        Address baseInMutatee) {
-
-    if (alreadyGenerated(gen, baseInMutatee))
-        return true;
-    generateSetup(gen, baseInMutatee);
-    
-    unsigned origOffset = gen.used();
-
-    inst_printf("Relocating insn, originally 0x%x now 0x%x, disp 0x%x\n",
-                origAddr, relocAddr(), relocAddr() - origAddr);
-    long long newLongOffset = 0;
-
-    instruction newInsn(*insn);
-
-    // TODO: check the function relocation for any PC-calculation tricks.
-
-    // If the instruction is a CALL instruction, calculate the new
-    // offset
-    if (insn->isInsnType(CALLmask, CALLmatch)) {
-        // Check to see if we're a "get-my-pc" combo.
-        // Two forms exist: call +8, and call to a retl/nop 
-        // pair. This is very similar to x86, amusingly enough.
-        // If this is the case, we replace with an immediate load of 
-        // the PC.
-
-        Address target = insn->getTarget(origAddr);
-        if (target == origAddr + (2*instruction::size())) {
-            inst_printf("Relocating get PC combo\n");
-            instruction::generateSetHi(gen, origAddr, REG_O(7));
-            instruction::generateImm(gen, ORop3, REG_O(7),
-                                     LOW10(origAddr), REG_O(7));
-        }
-        else {
-            // Need to check the destination. Grab it with an InstrucIter
-            InstrucIter callTarget(target, multiT->proc());
-            instruction callInsn = callTarget.getInstruction();
-            instruction nextInsn = callTarget.getNextInstruction();
-
-            if (callInsn.isInsnType(RETLmask, RETLmatch)) {
-                inst_printf("Call to immediate return\n");
-                // The old version (in LocalAlteration-Sparc.C)
-                // is _incredibly_ confusing. This should work, 
-                // assuming an iterator-unwound delay slot.
-                // We had a call to a retl/delay pair. 
-                // Build O7, then copy over the delay slot.
-                instruction::generateSetHi(gen, origAddr, REG_O(7));
-                instruction::generateImm(gen, ORop3, REG_O(7),
-                                         LOW10(origAddr), REG_O(7));
-                if (nextInsn.valid()) {
-                    nextInsn.generate(gen);
-                }
-            }
-            else {
-	      if (!targetOverride_) {
-                newLongOffset = origAddr;
-                newLongOffset -= relocAddr();
-                newLongOffset += ((**insn).call.disp30 << 2);
-	      }
-	      else {
-		newLongOffset = targetOverride_ - relocAddr();
-	      }
-
-              (*newInsn).call.disp30 = (int)(newLongOffset >> 2);
-              
-              newInsn.generate(gen);
-              inst_printf("Relocating call, displacement 0x%x\n", newLongOffset);
-            }
-        }
-    } else if (insn->isInsnType(BRNCHmask, BRNCHmatch)||
-	       insn->isInsnType(FBRNCHmask, FBRNCHmatch)) {
-
-	// If the instruction is a Branch instruction, calculate the 
-        // new offset. If the new offset is out of reach after the 
-        // instruction is moved to the base Trampoline, we would do
-        // the following:
-	//    b  address  ......    address: save
-	//                                   call new_offset             
-	//                                   restore 
-      if (!targetOverride_)
-        newLongOffset = (long long)insn->getTarget(origAddr) - relocAddr();
-      else
-	newLongOffset = targetOverride_ - relocAddr();
-        inst_printf("Orig 0x%x, target 0x%x (offset 0x%x), relocated 0x%x, new dist %lld\n",
-                    origAddr, insn->getTarget(origAddr), insn->getOffset(), relocAddr(), newLongOffset);
-	// if the branch is too far, then allocate more space in inferior
-	// heap for a call instruction to branch target.  The base tramp 
-	// will branch to this new inferior heap code, which will call the
-	// target of the branch
-
-	if ((newLongOffset < (long long)(-0x7fffffff-1)) ||
-	    (newLongOffset > (long long)0x7fffffff) ||
-	    !instruction::offsetWithinRangeOfBranchInsn((int)newLongOffset)){
-            inst_printf("Relocating branch; new offset %lld farther than branch range; replacing with call\n", newLongOffset);
-            // Replace with a multi-branch series
-            
-            instruction::generateImm(gen,
-                                     SAVEop3,
-                                     REG_SPTR,
-                                     -112,
-                                     REG_SPTR);
-            // Don't use relocAddr() here, since we've moved the IP since then.
-            instruction::generateCall(gen,
-                                      gen.currAddr(baseInMutatee),
-                                      insn->getTarget(origAddr));
-            instruction::generateSimple(gen,
-                                        RESTOREop3,
-                                        0, 0, 0);
-	} else {
-	    (*newInsn).branch.disp22 = (int)(newLongOffset >> 2);
-            newInsn.generate(gen);
-	}
-    } else if (insn->isInsnType(TRAPmask, TRAPmatch)) {
-	// There should be no probelm for moving trap instruction
-	// logLine("attempt to relocate trap\n");
-        insn->generate(gen);
-    } 
-    else {
-        /* The rest of the instructions should be fine as is */
-        insn->generate(gen);
-    }
-    
-    // We pin delay instructions.
-    if (insn->isDCTI()) {
-        if (ds_insn) {
-            inst_printf("... copying delay slot\n");
-            ds_insn->generate(gen);
-        }
-        if (agg_insn) {
-            inst_printf("... copying aggregate\n");
-            agg_insn->generate(gen);
-        }
-    }
-
-    size_ = gen.currAddr(baseInMutatee) - addrInMutatee_;
-    generated_ = true;
-    
-    return true;
-}
 
 // Determine the maximum amount of space required for relocating
 // an instruction. Must assume the instruction will be relocated

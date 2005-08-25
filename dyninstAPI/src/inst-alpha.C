@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.93 2005/08/15 22:30:31 bernat Exp $
+// $Id: inst-alpha.C,v 1.94 2005/08/25 22:45:34 bernat Exp $
 
 #include "common/h/headers.h"
 
@@ -270,63 +270,6 @@ bool baseTrampInstance::finalizeGuardBranch(codeGen &, int) {
   // No guard
   return true;
 }
-//
-// Given and instruction, relocate it to a new address, patching up
-// any relative addressing that is present.
-//
-// Note - currently - only 
-//
-
-bool relocatedInstruction::generateCode(codeGen &gen,
-					Address baseInMutatee) {
-    if (alreadyGenerated(gen, baseInMutatee))
-        return true;
-    generateSetup(gen, baseInMutatee);
-    
-    unsigned origOffset = gen.used();
-    int newOffset = 0;
-    
-    if (insn->isBranch()) {
-        if (!targetOverride_) {
-            newOffset = insn->getTarget(origAddr) - relocAddr();
-        }
-        else {
-            newOffset = targetOverride_ - relocAddr();
-        }
-        if (ABS(newOffset >> 2) > MAX_BRANCH) {
-            fprintf(stderr, "newOffset 0x%llx, origAddr 0x%llx, relocAddr() 0x%llx, target 0x%llx, override 0x%llx\n",
-                    newOffset, origAddr, relocAddr(), insn->getTarget(origAddr), targetOverride_);
-            
-            
-            
-            logLine("A branch too far\n");
-            assert(0);
-        }
-        instruction newBranch(*insn);
-        (*newBranch).branch.disp = newOffset >> 2;
-        newBranch.generate(gen);
-    }
-    else 
-        insn->generate(gen);
-    
-    // Calls are ANNOYING. I've seen behavior where RA (the return addr)
-    // is later used in a memory calculation... so after all is said and done,
-    // set RA to what it would have been.
-    // Note: we do this after the original relocation because JSRs don't
-    // trigger "isBranch"
-    if (insn->isCall()) {
-        Address origReturn = origAddr + instruction::size();
-        int remainder = 0;
-        instruction::generateAddress(gen, REG_RA, origReturn, remainder);
-        if (remainder)
-            instruction::generateLDA(gen, REG_RA, REG_RA, remainder, true);
-    }
-    
-    size_ = gen.currAddr(baseInMutatee) - addrInMutatee_;
-    generated_ = true;
-    return true;
-}
-
 
 unsigned trampEnd::maxSizeRequired() {
     // Return branch, illegal.
@@ -409,169 +352,6 @@ void initTramps(bool is_multithreaded) {
   regSpace = new registerSpace(sizeof(regList)/sizeof(Register), regList,
                                0, NULL, is_multithreaded);
 }
-
-#if 0
-
-/*
- * Install a base tramp -- fill calls with nop's for now.
- * An obvious optimization is to turn off the save-restore calls when they 
- * are not needed.
- */
-baseTramp *installBaseTramp(instPoint *location,
-                                process *proc) 
-{
-//  unsigned words = 0;
-  unsigned long words = 0;
-  const int MAX_BASE_TRAMP = 128;
-  baseTramp *tramp = new baseTramp(location, proc);
-  
-  // XXX - for now assume base tramp is less than 1K
-  instruction *code = new instruction[MAX_BASE_TRAMP]; assert(code);
-
-  int_function *fun_save;
-  int_function *fun_restore;
-
-  Symbol info;
-  Address baseAddr;
-
-  if (location->getPointType() == otherPoint) {
-      fun_save = proc->findOnlyOneFunction("DYNINSTsave_conservative");
-      fun_restore = proc->findOnlyOneFunction("DYNINSTrestore_conservative");
-      proc->getSymbolInfo("DYNINSTsave_conservative", info, baseAddr);
-  } else {
-      fun_save = proc->findOnlyOneFunction("DYNINSTsave_temp");
-      fun_restore = proc->findOnlyOneFunction("DYNINSTrestore_temp");
-      proc->getSymbolInfo("DYNINSTsave_temp", info, baseAddr);
-  }
-
-  assert(fun_save && fun_restore);
-  Address dyn_save = fun_save->get_address() + baseAddr;
-  Address dyn_restore = fun_restore->get_address() + baseAddr;
-
-  // Pre branch
-  instruction *skipPreBranch = &code[words];
-  tramp->skipPreInsOffset = words*4;
-  words += generate_nop(code+words);
-
-  // local_pre
-  tramp->localPreOffset = words * 4;
-  words += generate_nop(code+words);
-
-  words += generate_nop(code+words);
-
-  // **** When you change these code also look at emitFuncJump ****
-  // Call to DYNINSTrestore_temp
-  tramp->localPreReturnOffset = words * 4;
-
-  // *** end code cloned in emitFuncJump ****
-
-  // slot for emulate instruction
-  tramp->emulateInsOffset = words*4;
-  instruction *reloc = &code[words]; 
-  *reloc = location->originalInstruction;
-  words += 1;
-  // Do actual relocation once we know the base address of the tramp
-
-  // compute effective address of this location
-  Address pointAddr = location->pointAddr();
-  Address baseAddress;
-  if(proc->getBaseAddress(location->getOwner(), baseAddress)){
-      pointAddr += baseAddress;
-  }
-
-  // If the relocated insn is a Jsr or Bsr then 
-  // appropriately set Register Ra
-  if (isCallInsn(location->originalInstruction)) {
-      int remainder;
-      words += generate_address(code+words, REG_RA, pointAddr+4,remainder);
-      if (remainder)
-	words += generate_lda(code+words, REG_RA, REG_RA, remainder, true);
-  }
-
-  // Post branch
-  instruction *skipPostBranch = &code[words];
-  tramp->skipPostInsOffset = words*4;
-  words += generate_nop(code+words);
-
-  // decrement stack by 16
-  tramp->savePostInsOffset = words*4;
-  words += generate_lda(code+words, REG_SP, REG_SP, -16, true);
-
-  // push ra onto the stack
-  words += generate_store(code+words, REG_RA, REG_SP, 0, dw_quad);
-
-  // push GP onto the stack
-  words += generate_store(code+words, REG_GP, REG_SP, 8, dw_quad);
-
-  // Call to DYNINSTsave_temp
-  callAbsolute(code, words, dyn_save);
-
-  // local_post
-  tramp->localPostOffset = words * 4;
-  words += generate_nop(code+words);
-
-  // Call to DYNINSTrestore_temp
-  tramp->localPostReturnOffset = words * 4;
-  callAbsolute(code, words, dyn_restore);
-
-  // load ra from the stack
-  words += generate_load(code+words, REG_RA, REG_SP, 0, dw_quad);
-
-  // load GP from the stack
-  words += generate_load(code+words, REG_GP, REG_SP, 8, dw_quad);
-
-  // increment stack by 16
-  tramp->restorePostInsOffset = words*4;
-  words += generate_lda(code+words, REG_SP, REG_SP, 16, true);
-
-  // slot for return (branch) instruction
-  // actual code after we know its locations
-  // branchFromAddr offset from base until we know base of tramp 
-  tramp->returnInsOffset = (words * 4);		
-  instruction *branchBack = &code[words];
-  words += 1;
-
-  words += generate_nop(code+words);
-
-  assert(words < static_cast<const unsigned>(MAX_BASE_TRAMP));
-
-  tramp->size = words * instruction::size();
-  tramp->baseAddr = proc->inferiorMalloc(tramp->size, textHeap, pointAddr);
-  assert(tramp->baseAddr);
-
-  // pointAddr + 4 is address of instruction after relocated instr
-  // branchFromAddr = address of the branch insn that returns to user code
-  // branchFromAddr + 4 is updated pc when branch instruction executes
-  // we assumed this one was instruction long before
-
-  // update now that we know base
-  Address branchFromAddr = tramp->returnInsOffset + tramp->baseAddr;
-
-  int count = generate_branch(branchBack, REG_ZERO,
-			   (pointAddr+4) - (branchFromAddr+4), OP_BR);
-  assert(count == 1);
-
-  // Do actual relocation once we know the base address of the tramp
-  relocateInstruction(reloc, pointAddr, 
-       tramp->baseAddr + tramp->emulateInsOffset);
-
-  // Generate skip pre and post instruction branches
-  generateBranchInsn(skipPreBranch,
-		     tramp->emulateInsOffset - (tramp->skipPreInsOffset+4));
-  generateBranchInsn(skipPostBranch,
-		     tramp->returnInsOffset - (tramp->skipPostInsOffset+4));
-
-  tramp->prevInstru = false;
-  tramp->postInstru = false;
-
-  proc->writeDataSpace((caddr_t)tramp->baseAddr, tramp->size, (caddr_t) code);
-  proc->addCodeRange(tramp->baseAddr, tramp);
-  
-  delete (code);
-  return tramp;
-}
-
-#endif
 
 /*
  * emitSaveConservative - generate code to save all registers
@@ -1161,13 +941,13 @@ emitFuncCall(opCode /* op */,
 
 
 bool process::replaceFunctionCall(instPoint *point,
-				  const int_function *newFunc) {
+				  const int_function *func) {
    // Must be a call site
    if (point->getPointType() != callSite)
       return false;
    
    inst_printf("Function replacement, point func %s, new func %s, point primary addr 0x%x\n",
-               point->func()->symTabName().c_str(), newFunc ? newFunc->symTabName().c_str() : "<NULL>",
+               point->func()->symTabName().c_str(), func ? func->symTabName().c_str() : "<NULL>",
                point->addr());
    
    instPointIter ipIter(point);
@@ -1177,37 +957,56 @@ bool process::replaceFunctionCall(instPoint *point,
      Address pointAddr = ipInst->addr();
      inst_printf("... replacing 0x%x", pointAddr);
      codeRange *range;
-     if (multiTramps_.find(pointAddr, range)) {
-       // We instrumented this... not handled yet
-       assert(0);
-     }
-     else {  
-         codeGen gen(instruction::size());
-         if (newFunc == NULL) {	// Replace with a NOOP
-             inst_printf("... nulling call");
-             instruction::generateBranch(gen, REG_RA, 0, OP_BR);
-         } else {			// Replace with a new call instruction
-             instruction::generateBSR(gen, 
-                                      newFunc->getAddress() + instruction::size() - pointAddr);
-         }
 
-          // Before we replace, track the code.
-          // We could be clever with instpoints keeping instructions around, but
-          // it's really not worth it.
-          replacedFunctionCall *newRFC = new replacedFunctionCall();
-          newRFC->callAddr = pointAddr;
-
-          codeGen old(instruction::size());
-          old.copy(point->insn().ptr(), instruction::size());
-          newRFC->oldCall = old;
-          newRFC->newCall = gen;
-          
-          replacedFunctionCalls_[pointAddr] = newRFC;
-
-         
-         writeTextSpace((caddr_t)pointAddr, gen.used(),
-                        gen.start_ptr());
-     }
+      if (modifiedAreas_.find(pointAddr, range)) {
+          multiTramp *multi = range->is_multitramp();
+          if (multi) {
+              // We pre-create these guys... so check to see if
+              // there's anything there
+              if (!multi->generated()) {
+                  removeMultiTramp(multi);
+              }
+              else {
+                  // TODO: modify the callsite in the multitramp.
+                  assert(0);
+              }
+          }
+          if (dynamic_cast<functionReplacement *>(range)) {
+              // We overwrote this in a function replacement...
+              continue; 
+          }
+      }
+      
+      codeGen gen(instruction::size());
+      if (func == NULL) {	// Replace with a NOOP
+          inst_printf("... nulling call");
+          instruction::generateBranch(gen, REG_RA, 0, OP_BR);
+      } else {			// Replace with a new call instruction
+          instruction::generateBSR(gen, 
+                                   func->getAddress() + instruction::size() - pointAddr);
+      }
+      
+      // Before we replace, track the code.
+      // We could be clever with instpoints keeping instructions around, but
+      // it's really not worth it.
+      replacedFunctionCall *newRFC = new replacedFunctionCall();
+      newRFC->callAddr = pointAddr;
+      newRFC->callSize = instruction::size();
+      if (func)
+          newRFC->newTargetAddr = func->getAddress();
+      else
+          newRFC->newTargetAddr = 0;
+      
+      codeGen old(instruction::size());
+      old.copy(point->insn().ptr(), instruction::size());
+      newRFC->oldCall = old;
+      newRFC->newCall = gen;
+      
+      replacedFunctionCalls_[pointAddr] = newRFC;
+      
+      
+      writeTextSpace((caddr_t)pointAddr, gen.used(),
+                     gen.start_ptr());
    }
    return true;
 }

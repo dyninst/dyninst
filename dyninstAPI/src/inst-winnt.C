@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-winnt.C,v 1.20 2005/07/29 19:18:40 bernat Exp $
+// $Id: inst-winnt.C,v 1.21 2005/08/25 22:45:38 bernat Exp $
 
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/os.h"
@@ -208,7 +208,7 @@ int_function *instPoint::findCallee()
           return NULL;
       
       // get a "local" pointer to the call target instruction
-      const void *insnLocalAddr = proc()->getPtrToOrigInstruction(callTarget);
+      const void *insnLocalAddr = proc()->getPtrToInstruction(callTarget);
       instruction callTargetInst(insnLocalAddr);
       
       if( callTargetInst.isJumpDir() ||

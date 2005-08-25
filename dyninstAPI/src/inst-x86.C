@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.215 2005/08/24 15:22:07 rutar Exp $
+ * $Id: inst-x86.C,v 1.216 2005/08/25 22:45:39 bernat Exp $
  */
 #include <iomanip>
 
@@ -107,330 +107,8 @@ unsigned trampEnd::maxSizeRequired() {
  * an instruction -- used for allocating the new area
  */
 unsigned relocatedInstruction::maxSizeRequired() {
-
-    // List of instructions that might be painful:
-    // jumps (displacement will change)
-    // call (displacement will change)
-    // PC-relative ops
-
-    // TODO: pc-relative ops
-
-   const unsigned char *origInsn = insn->ptr();
-
-   unsigned maxSize = 0;
-
-   if (insn->type() & REL_B) {
-       /* replace with rel32 instruction, opcode is one byte. */
-       if (*origInsn == JCXZ) {
-           // Replace with:
-           // jcxz 2    2 bytes
-           //  jmp 5    2 bytes
-           // jmp rel32 5 bytes
-           
-           return 9;
-      }
-      else {
-          if (insn->type() & IS_JCC) {
-              /* Change a Jcc rel8 to Jcc rel32.  Must generate a new opcode: a
-                 0x0F followed by (old opcode + 16) */
-              return 6;
-          }
-          else if (insn->type() & IS_JUMP) {
-              /* change opcode to 0xE9 */
-              return 5;
-          }
-          assert(0);
-      }
-   }
-   else if (insn->type() & REL_W) {
-      /* Skip prefixes */
-      if (insn->type() & PREFIX_OPR)
-          maxSize++;
-      if (insn->type() & PREFIX_SEG)
-          maxSize++;
-      /* opcode is unchanged, just relocate the displacement */
-      if (*origInsn == (unsigned char)0x0F)
-          maxSize++;
-
-      // opcode, 32-bit displacement
-      maxSize += 5;
-
-      return maxSize;
-   } else if (insn->type() & REL_D) {
-       if (insn->type() & PREFIX_OPR)
-           maxSize++;
-       if (insn->type() & PREFIX_SEG)
-           maxSize++;
-       
-       /* opcode is unchanged, just relocate the displacement */
-       if (*origInsn == 0x0F)
-           maxSize++;
-       
-       maxSize += 5;
-       return maxSize;
-   }
-   else {
-       return insn->size();
-   }
-   assert(0);
-   return 0;
+    return insn->spaceToRelocate();
 }
-
-/*
- * Clear the vector
- */
-
-bool relocatedInstruction::generateCode(codeGen &gen,
-                                        Address baseInMutatee) {
-    if (alreadyGenerated(gen, baseInMutatee))
-        return true;
-    generateSetup(gen, baseInMutatee);
-
-    // We grab the maximum space we might need
-    GET_PTR(insnBuf, gen);
-    size_ = 0;
-    
-    /* 
-       Relative address instructions need to be modified. The relative address
-       can be a 8, 16, or 32-byte displacement relative to the next instruction.
-       Since we are relocating the instruction to a different area, we have
-       to replace 8 and 16-byte displacements with 32-byte displacements.
-       
-       All relative address instructions are one or two-byte opcode followed
-       by a displacement relative to the next instruction:
-       
-       CALL rel16 / CALL rel32
-       Jcc rel8 / Jcc rel16 / Jcc rel32
-       JMP rel8 / JMP rel16 / JMP rel32
-       
-       The only two-byte opcode instructions are the Jcc rel16/rel32,
-       all others have one byte opcode.
-       
-       The instruction JCXZ/JECXZ rel8 does not have an equivalent with rel32
-       displacement. We must generate code to emulate this instruction:
-       
-       JCXZ rel8
-       
-       becomes
-       
-       A0: JCXZ 2 (jump to A4)
-       A2: JMP 5  (jump to A9)
-       A4: JMP rel32 (relocated displacement)
-       A9: ...
-       
-   */
-
-    const unsigned char *origInsn = insn->ptr();
-    unsigned insnType = insn->type();
-    unsigned insnSz = insn->size();
-    // This moves as we emit code
-    unsigned char *newInsn = insnBuf;
-
-    int oldDisp;
-    int newDisp;
-
-    bool done = false;
-    
-    // Check to see if we're doing the "get my PC" via a call
-    // We do this first as those aren't "real" jumps.
-    if (insn->isCall() && !insn->isCallIndir()) {
-        // A possibility...
-        // Two types: call(0) (AKA call(me+5));
-        // or call to a move/return combo.
-
-        // First, call(me)
-        Address target = insn->getTarget(origAddr);
-        inst_printf("Target of insn at 0x%x: 0x%x, insn size %d\n",
-                    origAddr, target, insn->size());
-        // Big if tree: "if we go to the next insn"
-        // Also could do with an instrucIter... or even have
-        // parsing label it for us. 
-        // TODO: label in parsing (once)
-        
-        if (target == (origAddr + insn->size())) {
-            inst_printf("Found get EIP call\n");
-
-            *newInsn = 0x68; // What opcode is this?
-            newInsn++;
-
-            Address EIP = origAddr + insn->size();
-            inst_printf("Adding immediate load of 0x%x\n", EIP);
-            unsigned int *temp = (unsigned int *) newInsn;
-            *temp = EIP;
-            // No 9-byte jumps...
-            assert(sizeof(unsigned int *) == 4);
-            newInsn += sizeof(unsigned int *);
-            assert((newInsn - insnBuf) == 5);
-            done = true;
-        }
-        else {
-            // Get us an instrucIter
-            InstrucIter callTarget(target, multiT->proc());
-            instruction firstInsn = callTarget.getInstruction();
-            instruction secondInsn = callTarget.getNextInstruction();
-            inst_printf("Checking for call to thunk...\n");
-            if (firstInsn.isMoveRegMemToRegMem() &&
-                secondInsn.isReturn()) {
-                inst_printf("Found mov/ret...\n");
-                // We need to fake this by figuring out the register
-                // target (assuming we're moving stack->reg),
-                // and constructing an immediate with the value of the
-                // original address of the call (+size)
-                // This was copied from function relocation code... I 
-                // don't understand most of it -- bernat
-                const unsigned char *ptr = firstInsn.ptr();
-                unsigned char modrm = *(ptr + 1);
-                unsigned char reg = (modrm >> 3) & 0x3;
-                // Source register... 
-                if ((modrm == 0x0c) || (modrm == 0x1c)) {
-                    inst_printf("Passed modrm\n");
-                    // Check source register (%esp == 0x24)
-                    if ((*(ptr + 2) == 0x24)) {
-                        inst_printf("And source register right\n");
-                        // Okay, put the PC into the 'reg'
-                        Address EIP = origAddr + insn->size();
-                        *newInsn = 0xb8 + reg; // Opcode???
-                        newInsn++;
-                        unsigned int *temp = (unsigned int *)newInsn;
-                        *temp = EIP;
-                        //assert(sizeof(unsigned int *)==4);
-                        //newInsn += sizeof(unsigned int *);
-                        newInsn += 4;  // fix for AMD64
-                        done = true;
-                    }
-                }
-            }
-        }
-    }
-    if (!done) {
-        // If call-specialization didn't take care of us
-        if (insnType & REL_B) {
-            /* replace with rel32 instruction, opcode is one byte. */
-            if (*origInsn == JCXZ) {
-                if (!targetOverride_) {
-                    oldDisp = (int)*(const char *)(origInsn+1);
-                    newDisp = (origAddr + 2) + oldDisp - (addrInMutatee_ + 9);
-                }
-                else {
-                    // Override the target to go somewhere else
-                    oldDisp = 0;
-                    newDisp = targetOverride_ - (addrInMutatee_ + 9);
-                }
-                *newInsn++ = *origInsn; *(newInsn++) = 2; // jcxz 2
-                *newInsn++ = 0xEB; *newInsn++ = 5;        // jmp 5
-                *newInsn++ = 0xE9;                        // jmp rel32
-                *((int *)newInsn) = newDisp;
-                newInsn += sizeof(int);
-            }
-            else {
-                unsigned newSz=UINT_MAX;
-                if (insnType & IS_JCC) {
-                    /* Change a Jcc rel8 to Jcc rel32.  Must generate a new opcode: a
-                       0x0F followed by (old opcode + 16) */
-                    unsigned char opcode = *origInsn++;
-                    *newInsn++ = 0x0F;
-                    *newInsn++ = opcode + 0x10;
-                    newSz = 6;
-                }
-                else if (insnType & IS_JUMP) {
-                    /* change opcode to 0xE9 */
-                    origInsn++;
-                    *newInsn++ = 0xE9;
-                    newSz = 5;
-                }
-                assert(newSz!=UINT_MAX);
-                if (!targetOverride_) {
-                    oldDisp = (int)*(const char *)origInsn;
-                    newDisp = (origAddr + 2) + oldDisp - (addrInMutatee_ + newSz);
-                }
-                else {
-                    oldDisp = 0;
-                    newDisp = targetOverride_ - (addrInMutatee_ + newSz);
-                }
-                *((int *)newInsn) = newDisp;
-                newInsn += sizeof(int);
-            }
-        }
-        else if (insnType & REL_W) {
-            /* Skip prefixes */
-            if (insnType & PREFIX_OPR)
-                origInsn++;
-            if (insnType & PREFIX_SEG)
-                origInsn++;
-            /* opcode is unchanged, just relocate the displacement */
-            if (*origInsn == (unsigned char)0x0F)
-                *newInsn++ = *origInsn++;
-            *newInsn++ = *origInsn++;
-            if (!targetOverride_) {
-                oldDisp = *((const short *)origInsn);
-                newDisp = (origAddr + 5) + oldDisp - (addrInMutatee_ + 3);
-            }
-            else {
-                oldDisp = 0;
-                newDisp = targetOverride_ -  (addrInMutatee_ + 3);
-            }
-            *((int *)newInsn) = newDisp;
-            newInsn += sizeof(int);
-        } else if (insnType & REL_D || insnType & REL_D_DATA) {
-
-            // Skip prefixes
-            unsigned nPrefixes = 0;
-            if (insnType & PREFIX_OPR)
-                nPrefixes++;
-            if (insnType & PREFIX_SEG)
-                nPrefixes++;
-	    if (insnType & PREFIX_OPCODE)
-		nPrefixes++;
-            if (insnType & PREFIX_REX)
-                nPrefixes++;
-
-            for (unsigned u = 0; u < nPrefixes; u++)
-                *newInsn++ = *origInsn++;
-            
-            /* opcode is unchanged, just relocate the displacement */
-            if (*origInsn == 0x0F)
-                *newInsn++ = *origInsn++;
-            *newInsn++ = *origInsn++;
-
-	    // skip over ModRM byte for RIP-relative data
-	    if (insnType & REL_D_DATA)
-		*newInsn++ = *origInsn++;
-
-            if (!targetOverride_) {
-                oldDisp = *((const int *)origInsn);
-                newDisp = (origAddr + insnSz) + oldDisp - (addrInMutatee_ + insnSz);
-            }
-            else {
-                oldDisp = 0;
-                newDisp = targetOverride_ - (addrInMutatee_ + insnSz);
-            }
-            *((int *)newInsn) = newDisp;
-            newInsn += sizeof(int);
-
-	    // copy the rest of the instruction for RIP-relative data (there may be an immediate)
-	    // we can do this since the insn size will always be the same
-	    if (insnType & REL_D_DATA) {
-		origInsn += sizeof(int);
-		while (newInsn - insnBuf < (int)insnSz)
-		    *newInsn++ = *origInsn++;
-	    }
-        }
-        else {
-            /* instruction is unchanged */
-            for (unsigned u = 0; u < insnSz; u++)
-                *newInsn++ = *origInsn++;
-        }
-    }
-
-    SET_PTR(newInsn, gen);
-
-    inst_printf("Emitted new instruction; size is %d\n", size_);
-    size_ = gen.currAddr(baseInMutatee) - addrInMutatee_;
-    generated_ = true;
-
-    return true;
-}
-
 
 
 registerSpace *regSpace32;
@@ -541,46 +219,24 @@ bool multiTramp::generateBranchToTramp(codeGen &gen)
        3. Trap instruction.
        
        We currently support #s 1 and 3.
+       This function assumes unlimited space; we check if there's enough room
+       later.
     */
     
     assert(instAddr_);
     assert(trampAddr_);
     unsigned origUsed = gen.used();
 
-    /* Ordinary 5-byte jump */
-    if (instSize_ >= JUMP_REL32_SZ) {
-        instruction::generateBranch(gen, instAddr_, trampAddr_);
-    }
-    /* Extra slot */
-    else { /* Trap */
-        /*
-        fprintf(stderr, "MultiTramp requires trap at 0x%x to 0x%x, func %s\n",
-                instAddr(), instAddr()+instSize(), func()->prettyName().c_str());
-        */
-        if (!canUseTrap_) {
-            return false;
-        }
-        // We're doing a trap. Now, we know that trap addrs are reported
-        // as "finished" address... so use that one (not instAddr_)
-        proc()->trampTrapMapping[gen.currAddr(instAddr_)+1] = trampAddr_;
-        instruction::generateTrap(gen);
+    // TODO: we can use shorter branches, ya know.
+    if (instSize_ < JUMP_REL32_SZ) {
+        branchSize_ = JUMP_REL32_SZ;
+        return true;
     }
 
+    /* Ordinary 5-byte jump */
+    instruction::generateBranch(gen, instAddr_, trampAddr_);
+
     branchSize_ = gen.used() - origUsed;
-    // We play a cute trick with the rest of the overwritten space: fill it with
-    // traps. If one is hit, we can transfer the PC into the multiTramp without
-    // further problems. Cute, eh?
-    while (gen.used() < instSize()) {
-        Address origAddr = gen.currAddr(instAddr_);
-        Address addrInMulti = uninstToInstAddr(origAddr);
-        // x86: traps read at PC + 1
-        if (addrInMulti) {
-            // addrInMulti may be 0 if our trap instruction does not
-            // map onto a real instruction
-            proc()->trampTrapMapping[origAddr+1] = addrInMulti;
-        }
-        instruction::generateTrap(gen);
-    }
 
     return true;
 }
@@ -851,7 +507,7 @@ static void emitAddressingMode(Register base, Register index,
 
 /* 
    Emit the ModRM byte and displacement for addressing modes.
-   base is a register (EAX, ECX, EDX, EBX, EBP, ESI, EDI)
+   base is a register (EAX, ECX, REGNUM_EDX, EBX, EBP, REGNUM_ESI, REGNUM_EDI)
    disp is a displacement
    reg_opcode is either a register or an opcode
 */
@@ -860,8 +516,8 @@ static inline void emitAddressingMode(Register base, RegValue disp,
 {
     // MT linux uses ESP+4
     // we need an SIB in that case
-    if (base == ESP) {
-	emitAddressingMode(ESP, Null_Register, 0, disp, reg_opcode, gen);
+    if (base == REGNUM_ESP) {
+	emitAddressingMode(REGNUM_ESP, Null_Register, 0, disp, reg_opcode, gen);
 	return;
     }
     GET_PTR(insn, gen);
@@ -869,7 +525,7 @@ static inline void emitAddressingMode(Register base, RegValue disp,
 	*insn++ = makeModRMbyte(0, reg_opcode, 5);
 	*((int *)insn) = disp;
 	insn += sizeof(int);
-    } else if (disp == 0 && base != EBP) {
+    } else if (disp == 0 && base != REGNUM_EBP) {
 	*insn++ = makeModRMbyte(0, reg_opcode, base);
     } else if (disp >= -128 && disp <= 127) {
 	*insn++ = makeModRMbyte(1, reg_opcode, base);
@@ -887,18 +543,18 @@ static void emitAddressingMode(Register base, Register index,
 			       unsigned int scale, RegValue disp,
 			       int reg_opcode, codeGen &gen)
 {
-   bool needSIB = (base == ESP) || (index != Null_Register);
+   bool needSIB = (base == REGNUM_ESP) || (index != Null_Register);
 
    if(!needSIB) {
       emitAddressingMode(base, disp, reg_opcode, gen);
       return;
    }
    
-   assert(index != ESP);
+   assert(index != REGNUM_ESP);
    
    if(index == Null_Register) {
-      assert(base == ESP); // not necessary, but sane
-      index = 4;           // (==ESP) which actually means no index in SIB
+      assert(base == REGNUM_ESP); // not necessary, but sane
+      index = 4;           // (==REGNUM_ESP) which actually means no index in SIB
    }
 
    GET_PTR(insn, gen);
@@ -909,7 +565,7 @@ static void emitAddressingMode(Register base, Register index,
       *((int *)insn) = disp;
       insn += sizeof(int);
    }
-   else if(disp == 0 && base != EBP) { // EBP must have 0 disp8; emit [base+index<<scale]
+   else if(disp == 0 && base != REGNUM_EBP) { // EBP must have 0 disp8; emit [base+index<<scale]
        *insn++ = makeModRMbyte(0, reg_opcode, 4);
        *insn++ = makeSIBbyte(scale, index, base);
    }
@@ -1254,7 +910,7 @@ Register Emitter32::emitCall(opCode op,
    // push arguments in reverse order, last argument first
    // must use int instead of unsigned to avoid nasty underflow problem:
    for (int i=srcs.size() - 1 ; i >= 0; i--) {
-       emitOpRMReg(PUSH_RM_OPC1, EBP, -(srcs[i]*4), PUSH_RM_OPC2, gen);
+       emitOpRMReg(PUSH_RM_OPC1, REGNUM_EBP, -(srcs[i]*4), PUSH_RM_OPC2, gen);
        rs->freeRegister(srcs[i]);
    }
 
@@ -1262,16 +918,16 @@ Register Emitter32::emitCall(opCode op,
    // we are using an indirect call here because we don't know the
    // address of this instruction, so we can't use a relative call.
    // TODO: change this to use a direct call
-   emitMovImmToReg(EAX, callee_addr, gen);       // mov eax, addr
-   emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, EAX, gen);   // call *(eax)
+   emitMovImmToReg(REGNUM_EAX, callee_addr, gen);       // mov eax, addr
+   emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);   // call *(eax)
 
    // reset the stack pointer
    if (srcs.size() > 0)
-      emitOpRegImm(0, ESP, srcs.size()*4, gen); // add esp, srcs.size()*4
+      emitOpRegImm(0, REGNUM_ESP, srcs.size()*4, gen); // add esp, srcs.size()*4
 
    // allocate a (virtual) register to store the return value
    Register ret = rs->allocateRegister(gen, noCost);
-   emitMovRegToRM(EBP, -(ret*4), EAX, gen);
+   emitMovRegToRM(REGNUM_EBP, -(ret*4), REGNUM_EAX, gen);
 
    return ret;
 }
@@ -1387,7 +1043,7 @@ void emitJmpMC(int condition, int offset, codeGen &gen)
     //bperr("OC: %x, NC: %x\n", condition, condition ^ 0x01);
     condition ^= 0x01; // flip last bit to negate the tttn condition
     
-    emitMovRMToReg(EAX, EBP, SAVED_EFLAGS_OFFSET, gen); // mov eax, offset[ebp]
+    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, SAVED_EFLAGS_OFFSET, gen); // mov eax, offset[ebp]
     emitSimpleInsn(0x50, gen);  // push eax
     emitSimpleInsn(POPFD, gen); // popfd
     emitJcc(condition, offset, gen);
@@ -1401,7 +1057,7 @@ static inline void restoreGPRtoGPR(Register reg, Register dest,
     // the value to a virtual (stack based) register, which is not what I want!
     
     // mov dest, offset[ebp]
-    emitMovRMToReg(dest, EBP, SAVED_EAX_OFFSET-(reg<<2), gen);
+    emitMovRMToReg(dest, REGNUM_EBP, SAVED_EAX_OFFSET-(reg<<2), gen);
 }
 
 // VG(11/07/01): Load in destination the effective address given
@@ -1417,7 +1073,7 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen, bool 
 
    // VG(7/30/02): given that we use virtual (stack allocated) registers for
    // our inter-snippet temporaries, I assume all real registers to be fair
-   // game.  So, we restore the original registers in EAX and EDX - this
+   // game.  So, we restore the original registers in EAX and REGNUM_EDX - this
    // allows us to generate a lea (load effective address instruction) that
    // will make the cpu do the math for us.
 
@@ -1426,19 +1082,19 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen, bool 
    //bperr( "ASLOAD: ra=%d rb=%d sc=%d imm=%d\n", ra, rb, sc, imm);
 
    if(havera)
-      restoreGPRtoGPR(ra, EAX, gen);        // mov eax, [saved_ra]
+      restoreGPRtoGPR(ra, REGNUM_EAX, gen);        // mov eax, [saved_ra]
 
    if(haverb)
-      restoreGPRtoGPR(rb, EDX, gen);        // mov edx, [saved_rb]
+      restoreGPRtoGPR(rb, REGNUM_EDX, gen);        // mov edx, [saved_rb]
 
    // Emit the lea to do the math for us:
 
    // e.g. lea eax, [eax + edx * sc + imm] if both ra and rb had to be
    // restored
-   emitLEA((havera ? EAX : Null_Register), (haverb ? EDX : Null_Register),
-           sc, imm, EAX, gen);
+   emitLEA((havera ? REGNUM_EAX : Null_Register), (haverb ? REGNUM_EDX : Null_Register),
+           sc, imm, REGNUM_EAX, gen);
 
-   emitMovRegToRM(EBP, -(dest<<2), EAX, gen); // mov (virtual reg) dest, eax
+   emitMovRegToRM(REGNUM_EBP, -(dest<<2), REGNUM_EAX, gen); // mov (virtual reg) dest, eax
 }
 
 void emitCSload(const BPatch_countSpec_NP *as, Register dest,
@@ -1454,7 +1110,7 @@ void emitCSload(const BPatch_countSpec_NP *as, Register dest,
    // count is at most 1 register or constant or hack (aka pseudoregister)
    assert((ra == -1) &&
           ((rb == -1) ||
-            ((imm == 0) && (rb == 1 /*ECX */ || rb >= IA32_EMULATE))));
+            ((imm == 0) && (rb == 1 /*REGNUM_ECX */ || rb >= IA32_EMULATE))));
 
    if(rb >= IA32_EMULATE) {
       // TODO: firewall code to ensure that direction is up
@@ -1468,13 +1124,13 @@ void emitCSload(const BPatch_countSpec_NP *as, Register dest,
            // compute (saved_ecx - ecx) << sc;
 
            // mov eax, offset[ebp]
-           emitMovRMToReg(EAX, EBP, SAVED_EFLAGS_OFFSET, gen);
+           emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, SAVED_EFLAGS_OFFSET, gen);
 
            emitSimpleInsn(0x50, gen);  // push eax
            emitSimpleInsn(POPFD, gen); // popfd
-           restoreGPRtoGPR(EAX, EAX, gen);
-           restoreGPRtoGPR(ECX, ECX, gen);
-           restoreGPRtoGPR(EDI, EDI, gen);
+           restoreGPRtoGPR(REGNUM_EAX, REGNUM_EAX, gen);
+           restoreGPRtoGPR(REGNUM_ECX, REGNUM_ECX, gen);
+           restoreGPRtoGPR(REGNUM_EDI, REGNUM_EDI, gen);
            emitSimpleInsn(neg ? 0xF2 : 0xF3, gen); // rep(n)e
            switch(sc) {
              case 0:
@@ -1488,13 +1144,13 @@ void emitCSload(const BPatch_countSpec_NP *as, Register dest,
              default:
                 assert(!"Wrong scale!");
            }
-           restoreGPRtoGPR(ECX, EAX, gen); // old ecx -> eax
-           emitSubRegReg(EAX, ECX, gen); // eax = eax - ecx
+           restoreGPRtoGPR(REGNUM_ECX, REGNUM_EAX, gen); // old ecx -> eax
+           emitSubRegReg(REGNUM_EAX, REGNUM_ECX, gen); // eax = eax - ecx
            if(sc > 0)
-              emitSHL(EAX, sc, gen);              // shl eax, scale
+              emitSHL(REGNUM_EAX, sc, gen);              // shl eax, scale
 
            // mov (virtual reg) dest, eax
-           emitMovRegToRM(EBP, -(dest<<2), EAX, gen);
+           emitMovRegToRM(REGNUM_EBP, -(dest<<2), REGNUM_EAX, gen);
 
            break;
         case IA32_NECMPS:
@@ -1504,13 +1160,13 @@ void emitCSload(const BPatch_countSpec_NP *as, Register dest,
            // compute (saved_ecx - ecx) << sc;
 
            // mov eax, offset[ebp]
-           emitMovRMToReg(EAX, EBP, SAVED_EFLAGS_OFFSET, gen);
+           emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, SAVED_EFLAGS_OFFSET, gen);
 
            emitSimpleInsn(0x50, gen);  // push eax
            emitSimpleInsn(POPFD, gen); // popfd
-           restoreGPRtoGPR(ECX, ECX, gen);
-           restoreGPRtoGPR(ESI, ESI, gen);
-           restoreGPRtoGPR(EDI, EDI, gen);
+           restoreGPRtoGPR(REGNUM_ECX, REGNUM_ECX, gen);
+           restoreGPRtoGPR(REGNUM_ESI, REGNUM_ESI, gen);
+           restoreGPRtoGPR(REGNUM_EDI, REGNUM_EDI, gen);
            emitSimpleInsn(neg ? 0xF2 : 0xF3, gen); // rep(n)e
            switch(sc) {
              case 0:
@@ -1524,13 +1180,13 @@ void emitCSload(const BPatch_countSpec_NP *as, Register dest,
              default:
                 assert(!"Wrong scale!");
            }
-           restoreGPRtoGPR(ECX, EAX, gen); // old ecx -> eax
-           emitSubRegReg(EAX, ECX, gen); // eax = eax - ecx
+           restoreGPRtoGPR(REGNUM_ECX, REGNUM_EAX, gen); // old ecx -> eax
+           emitSubRegReg(REGNUM_EAX, REGNUM_ECX, gen); // eax = eax - ecx
            if(sc > 0)
-              emitSHL(EAX, sc, gen);              // shl eax, scale
+              emitSHL(REGNUM_EAX, sc, gen);              // shl eax, scale
 
            // mov (virtual reg) dest, eax
-           emitMovRegToRM(EBP, -(dest<<2), EAX, gen);
+           emitMovRegToRM(REGNUM_EBP, -(dest<<2), REGNUM_EAX, gen);
 
            break;
         default:
@@ -1541,15 +1197,15 @@ void emitCSload(const BPatch_countSpec_NP *as, Register dest,
       //bperr( "!!!In case rb > -1!!!\n");
       // TODO: 16-bit pseudoregisters
       assert(rb < 8); 
-      restoreGPRtoGPR(rb, EAX, gen);        // mov eax, [saved_rb]
+      restoreGPRtoGPR(rb, REGNUM_EAX, gen);        // mov eax, [saved_rb]
       if(sc > 0)
-         emitSHL(EAX, sc, gen);              // shl eax, scale
+         emitSHL(REGNUM_EAX, sc, gen);              // shl eax, scale
 
       // mov (virtual reg) dest, eax
-      emitMovRegToRM(EBP, -(dest<<2), EAX, gen);
+      emitMovRegToRM(REGNUM_EBP, -(dest<<2), REGNUM_EAX, gen);
    }
    else
-      emitMovImmToRM(EBP, -(dest<<2), imm, gen);
+      emitMovImmToRM(REGNUM_EBP, -(dest<<2), imm, gen);
 }
 #endif
 
@@ -1702,8 +1358,8 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
       // dest has the address where src1 is to be stored
       // src1 is an immediate value
       // src2 is a "scratch" register, we don't need it in this architecture
-      emitMovImmToReg(EAX, dest, gen);
-      emitMovImmToRM(EAX, 0, src1, gen);
+      emitMovImmToReg(REGNUM_EAX, dest, gen);
+      emitMovImmToRM(REGNUM_EAX, 0, src1, gen);
    } else {
       unsigned opcode1;
       unsigned opcode2;
@@ -1967,41 +1623,56 @@ bool process::replaceFunctionCall(instPoint *point,
       Address pointAddr = ipInst->addr();
 
       codeRange *range;
-      if (multiTramps_.find(pointAddr, range)) {
-          // We instrumented this... not handled yet
-          assert(0);
-      }
-      else {
-          codeGen gen(point->insn().size());
-          // Uninstrumented
-          // Replace the call
-          if (func == NULL) {	// Replace with NOOPs
-              gen.fillRemaining(codeGen::cgNOP);
-          } else { // Replace with a call to a different function
-              // XXX Right only, call has to be 5 bytes -- sometime, we should make
-              // it work for other calls as well.
-              assert(point->insn().size() == CALL_REL32_SZ);
-              instruction::generateCall(gen, pointAddr, func->getAddress());
+      if (modifiedAreas_.find(pointAddr, range)) {
+          multiTramp *multi = range->is_multitramp();
+          if (multi) {
+              // We pre-create these guys... so check to see if
+              // there's anything there
+              if (!multi->generated()) {
+                  removeMultiTramp(multi);
+              }
+              else {
+                  // TODO: modify the callsite in the multitramp.
+                  assert(0);
+              }
           }
-
-          // Before we replace, track the code.
-          // We could be clever with instpoints keeping instructions around, but
-          // it's really not worth it.
-          replacedFunctionCall *newRFC = new replacedFunctionCall();
-          newRFC->callAddr = pointAddr;
-
-          codeGen old(point->insn().size());
-          old.copy(point->insn().ptr(), point->insn().size());
-                      
-          newRFC->oldCall = old;
-          newRFC->newCall = gen;
-          
-          replacedFunctionCalls_[pointAddr] = newRFC;
-          
-          writeTextSpace((void *)pointAddr, gen.used(), gen.start_ptr());
-
-
+          if (dynamic_cast<functionReplacement *>(range)) {
+              // We overwrote this in a function replacement...
+              continue; 
+          }
       }
+      codeGen gen(point->insn().size());
+      // Uninstrumented
+      // Replace the call
+      if (func == NULL) {	// Replace with NOOPs
+          gen.fillRemaining(codeGen::cgNOP);
+      } else { // Replace with a call to a different function
+          // XXX Right only, call has to be 5 bytes -- sometime, we should make
+          // it work for other calls as well.
+          assert(point->insn().size() == CALL_REL32_SZ);
+          instruction::generateCall(gen, pointAddr, func->getAddress());
+      }
+      
+      // Before we replace, track the code.
+      // We could be clever with instpoints keeping instructions around, but
+      // it's really not worth it.
+      replacedFunctionCall *newRFC = new replacedFunctionCall();
+      newRFC->callAddr = pointAddr;
+      newRFC->callSize = point->insn().size();
+      if (func)
+          newRFC->newTargetAddr = func->getAddress();
+      else
+          newRFC->newTargetAddr = 0;
+
+      codeGen old(point->insn().size());
+      old.copy(point->insn().ptr(), point->insn().size());
+      
+      newRFC->oldCall = old;
+      newRFC->newCall = gen;
+      
+      addModifiedCallsite(newRFC);
+      
+      writeTextSpace((void *)pointAddr, gen.used(), gen.start_ptr());
   }
   return true;
 }
@@ -2016,9 +1687,11 @@ void emitFuncJump(opCode op,
     // This must mimic the generateRestores baseTramp method. 
     // TODO: make this work better :)
 
+    // TODO: what about multiple entry points? Heh.
+
     assert(op == funcJumpOp);
 
-    Address addr = callee->getOriginalAddress();
+    Address addr = callee->getAddress();
     instPointType_t ptType = loc->getPointType();
     x86_emitter->emitFuncJump(addr, ptType, gen);
 }
@@ -2026,7 +1699,7 @@ void emitFuncJump(opCode op,
 void Emitter32::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
 {       
     if (ptType == otherPoint)
-        emitOpRegRM(FRSTOR, FRSTOR_OP, EBP, -TRAMP_FRAME_SIZE - FSAVE_STATE_SIZE, gen);
+        emitOpRegRM(FRSTOR, FRSTOR_OP, REGNUM_EBP, -TRAMP_FRAME_SIZE - FSAVE_STATE_SIZE, gen);
     emitSimpleInsn(LEAVE, gen);     // leave
     emitSimpleInsn(POP_EAX, gen);
     emitSimpleInsn(POPAD, gen);     // popad
@@ -2240,7 +1913,7 @@ bool int_function::setReturnValue(int val)
     codeGen gen(16);
 
     Address addr = getAddress();
-    emitMovImmToReg(EAX, val, gen);
+    emitMovImmToReg(REGNUM_EAX, val, gen);
     emitSimpleInsn(0xc3, gen); //ret
     
     return proc()->writeTextSpace((void *) addr, gen.used(), gen.start_ptr());
