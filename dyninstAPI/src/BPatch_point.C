@@ -302,7 +302,8 @@ void *BPatch_point::getAddressInt()
 bool BPatch_point::usesTrap_NPInt()
 {
   assert(point);
-  return point->usesTrap();
+  return false;
+  //return point->usesTrap();
 }
 
 /*
@@ -370,8 +371,7 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb ) {
 				     callPreInsn,
 				     orderLastAtPoint,
 				     true,
-				     false,
-				     true);
+				     false);
   
   if ( ! res ) {
      fprintf( stderr,"%s[%d]:  insertSnippet failed, cannot monitor call site\n",

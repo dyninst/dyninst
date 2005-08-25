@@ -864,7 +864,7 @@ BPatchSnippetHandle *BPatch_process::insertSnippetWhen(const BPatch_snippet &exp
 
    // Arguably this should be moved to a BPatch_point method...
    miniTramp *result  = ip->instrument(ast, ipWhen, ipOrder,
-				       use_recursive_tramps, false, true);
+				       use_recursive_tramps, false);
    if(!result)
      {
        return NULL;
