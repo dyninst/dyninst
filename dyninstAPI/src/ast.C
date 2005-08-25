@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.152 2005/08/23 21:46:22 rutar Exp $
+// $Id: ast.C,v 1.153 2005/08/25 22:45:20 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1834,7 +1834,8 @@ Address AstNode::generateCode_phase2(process *proc,
            else if (calleeFuncs.size() > 1)
                cerr << "Warning: multiple matches in AST function call code, using first" << endl;
            
-           calleefuncAddr = calleeFuncs[0]->getOriginalAddress();
+           // TODO multiple entry points
+           calleefuncAddr = calleeFuncs[0]->getAddress();
        }
      
       Register tmp = emitFuncCall(callOp, rs, gen, operands,  
