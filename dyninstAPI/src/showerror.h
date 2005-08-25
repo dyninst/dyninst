@@ -60,6 +60,7 @@ extern int dyn_debug_forkexec;
 extern int dyn_debug_proccontrol;
 extern int dyn_debug_stackwalk;
 extern int dyn_debug_inst;
+extern int dyn_debug_relocation;
 
 // C++ prototypes
 #define signal_cerr       if (dyn_debug_signal) cerr
@@ -69,6 +70,7 @@ extern int dyn_debug_inst;
 #define forkexec_cerr     if (dyn_debug_forkexec) cerr
 #define proccontrol_cerr  if (dyn_debug_proccontrol) cerr
 #define stackwalk_cerr    if (dyn_debug_stackwalk) cerr
+#define relocation_cerr    if (dyn_debug_relocation) cerr
 
 // C prototypes
 extern int signal_printf(const char *format, ...);
@@ -79,6 +81,7 @@ extern int forkexec_printf(const char *format, ...);
 extern int proccontrol_printf(const char *format, ...);
 extern int stackwalk_printf(const char *format, ...);
 extern int inst_printf(const char *format, ...);
+extern int reloc_printf(const char *format, ...);
 
 // And initialization
 extern bool init_debug();
