@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.140 2005/08/15 22:20:18 bernat Exp $
+// $Id: inst.C,v 1.141 2005/08/25 22:45:41 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -88,7 +88,8 @@ miniTramp *instPoint::addInst(AstNode *&ast,
 
 
     baseTramp *baseT = getBaseTramp(when);
-    
+    if (!baseT) return NULL;
+
     // Will complain if we have multiple miniTramps that don't agree
     baseT->setRecursive(trampRecursive);
     
@@ -144,7 +145,6 @@ unsigned findTags(const pdstring ) {
 // multiTramps existing.
 
 baseTramp *instPoint::getBaseTramp(callWhen when) {
-
     if (when == callPreInsn) {
         if (preBaseTramp_)
             return preBaseTramp_;
@@ -181,7 +181,6 @@ baseTramp *instPoint::getBaseTramp(callWhen when) {
                                             proc(),
                                             mtStartAddr,
                                             mtSize)) {
-        assert(0);
         return NULL;
     }
 
@@ -267,18 +266,6 @@ bool instPoint::match(Address a) const {
     return false;
 }
 
-bool instPoint::usesTrap() const {
-    // We report trap usage if all multiTs use a trap. This could also
-    // be if one uses, or be removed entirely.
-
-    for (unsigned i = 0; i < instances.size(); i++) {
-        if (instances[i]->multi() &&
-            (!instances[i]->multi()->usesTrap()))
-            return false;
-    }
-    return true;
-}
-
 instPoint *instPoint::createArbitraryInstPoint(Address addr, process *proc) {
   // See if we get lucky
 
@@ -293,24 +280,22 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr, process *proc) {
         inst_printf("Failed to find address, ret null\n");
         return NULL;
     }
-    int_function *func = range->is_function();
-    if (!func) {
-        inst_printf("Address not in function, ret null\n");
+    bblInstance *bbl = range->is_basicBlockInstance();
+    if (!bbl) {
+        inst_printf("Address not in known code, ret null\n");
         return NULL;
     }
+    int_basicBlock *block = bbl->block();
+    assert(block);
+    // For now: we constrain the address to be in the original instance
+    // of the basic block.
+    if (block->origInstance() != bbl)
+        return NULL;
 
-    inst_printf("Point is offset %d (0x%x) from start of function %s\n",
-                addr - func->getAddress(), 
-                addr - func->getAddress(), 
-                func->symTabName().c_str());
-    
-    int_basicBlock *block = func->findBlockByAddr(addr);
-    if (!block) {
-        inst_printf("Can't find block for addr, ret null\n");
-        return NULL;
-    }
-    
-    InstrucIter newIter(block);
+    int_function *func = bbl->func();
+    assert(func); // If we're in a basic block, we have to be able to follow it back.
+
+    InstrucIter newIter(bbl);
     while ((*newIter) < addr) newIter++;
     if (*newIter != addr) {
         inst_printf("Unaligned try for instruction iterator, ret null\n");
@@ -328,10 +313,9 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr, process *proc) {
     newIP = new instPoint(proc,
                           newIter.getInstruction(),
                           addr,
-                          func);
+                          block);
     
-    if (!commonIPCreation(newIP,
-                          block)) {
+    if (!commonIPCreation(newIP)) {
         delete newIP;
         inst_printf("Failed common IP creation, ret null\n");
         return NULL;
@@ -342,10 +326,9 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr, process *proc) {
     return newIP;
 }
  
-bool instPoint::commonIPCreation(instPoint *newIP,
-                                 int_basicBlock * /*block*/) {
-
-    newIP->updateInstances();
+bool instPoint::commonIPCreation(instPoint *) {
+    // Delay until generation....
+    //newIP->updateInstances();
 
 #if 0
     // Now handled in getBaseTramp_, left here
@@ -386,48 +369,73 @@ bool instPoint::commonIPCreation(instPoint *newIP,
 // that everything works right.
 
 bool instPoint::updateInstances() {
-    unsigned funcVer = func()->version();
-    
-    if (funcVer == funcVersion) return true;
-
-    // For each copy of the function:
-    //   make an instPointInstance
-    //   check for an existing multiTramp
-    // By convention, instances[0] is the first version of the function
-    
-    funcIterator funcIter(func());
-    int_function *funcInstance = NULL;
-    unsigned c = 0;
-    while ( (funcInstance = *funcIter) != NULL) {
-        inst_printf("Creating instance for function version %d...",
-                    c++);
-        // Can anything in here fail? If so, need error handling
-
-        // Yay inefficient
-        bool found = false;
-        for (unsigned i = 0; i < instances.size(); i++) {
-            if (instances[i]->func() == funcInstance) {
-                found = true;
-                break;
-            }
+    if (func()->version() == funcVersion)
+        return true;
+    else if (func()->version() < funcVersion) {
+        const pdvector<bblInstance *> &bbls = block()->instances();
+        assert(bbls.size() < instances.size());
+        for (unsigned i = instances.size(); i > bbls.size(); i--) {
+            instPointInstance *inst = instances[i-1];
+            instances.pop_back();
+            // Delete...
+            proc()->unregisterInstPointAddr(inst->addr(), this);
         }
-
-        if (!found) {
-            Address newAddr = funcInstance->equivAddr(func(), addr());
+        funcVersion = func()->version();
+        return true;
+    }
+    else {
+        // For each instance of the basic block we're attached to,
+        // make an instPointInstance with the appropriate addr
+        // Might be smaller as well...
+        
+        const pdvector<bblInstance *> &bbls = block()->instances();
+        assert(instances.size() < bbls.size());
+        for (unsigned i = instances.size(); i < bbls.size(); i++) {
+            bblInstance *bblI = bbls[i];
+            
+            Address newAddr = bblI->equivAddr(block()->origInstance(), addr());
             instPointInstance *ipInst = new instPointInstance(newAddr,
-                                                              funcInstance,
+                                                              bblI,
                                                               this);
             instances.push_back(ipInst);
             // Register with the process before asking for a multitramp
             proc()->registerInstPointAddr(newAddr, this);
         }
+        
+        // We need all instances to stay in step; so if the first (default)
+        // instance is generated/installed/linked, then make sure any new
+        // instances are the same.
+        bool generated = false;
+        bool installed = false;
+        bool linked = false;
+        
+        if (instances[0]->multi()) {
+            generated = instances[0]->multi()->generated();
+            installed = instances[0]->multi()->installed();
+            linked = instances[0]->multi()->linked();
+        }
+        
+        // Check whether there's something at my address...
+        for (unsigned i = 0; i < instances.size(); i++) {
 
-
-        // Next!
-        funcIter++;
+            if (!instances[i]->multi()) {
+                instances[i]->multiID_ = multiTramp::findOrCreateMultiTramp(instances[i]->addr(),
+                                                                            proc());
+                if (instances[i]->multi()) {
+                    if (generated) {
+                        instances[i]->multi()->generateMultiTramp();
+                    }
+                    if (installed) {
+                        instances[i]->multi()->installMultiTramp();
+                    }
+                    if (linked) {
+                        instances[i]->multi()->linkMultiTramp();
+                    }
+                }
+            }
+        }
+        funcVersion = func()->version();
     }
-    funcVersion = funcVer;
-    
     return true;
 }
 
@@ -436,20 +444,24 @@ miniTramp *instPoint::instrument(AstNode *ast,
                                  callWhen when,
                                  callOrder order,
                                  bool trampRecursive,
-                                 bool noCost,
-                                 bool allowTrap) {
+                                 bool noCost) {
     
-    inst_printf("instrument(%p, %d, %d, %d, %d, %d)\n",
-                ast, when, order, trampRecursive, noCost,
-                allowTrap);
+    inst_printf("instrument(%p, %d, %d, %d, %d)\n",
+                ast, when, order, trampRecursive, noCost);
 
     miniTramp *mini = addInst(ast, when, order, trampRecursive, noCost);
     if (!mini) {
         cerr << "instPoint::instrument: failed addInst, ret NULL" << endl;
         return NULL;
     }
-    if (!generateInst(allowTrap)) {
+
+    if (!generateInst()) {
         cerr << "instPoint::instrument: failed generateInst, ret NULL" << endl;
+        return NULL;
+    }
+
+    if (!installInst()) {
+        cerr << "instPoint::instrument: failed installInst, ret NULL" << endl;
         return NULL;
     }
 
@@ -469,13 +481,26 @@ miniTramp *instPoint::instrument(AstNode *ast,
 // by any jumps. This allows for us to atomically add multiple different
 // instPoints at the same time.
 
-bool instPoint::generateInst(bool allowTrap) {
+bool instPoint::generateInst() {
     updateInstances();
 
     bool success = true;
     for (unsigned i = 0; i < instances.size(); i++) {
-        if (!instances[i]->generateInst(allowTrap))
+        if (!instances[i]->generateInst()) {
+            fprintf(stderr, "Failed generation for instance %d!\n",
+                    i);
             success = false;
+        }
+    }
+    return success;
+}
+
+bool instPoint::installInst() {
+    bool success = true;
+    for (unsigned i = 0; i < instances.size(); i++) {
+        if (!instances[i]->installInst()) {
+            success = false;
+        }
     }
     return success;
 }
@@ -507,6 +532,12 @@ bool instPoint::checkInst(pdvector<Address> &checkPCs) {
             }
         }
     }
+#if defined(cap_relocation)
+    // Yay check relocation
+    if (!func()->relocationCheck(checkPCs))
+        return false;
+#endif
+
     return true;
 }
 
@@ -514,8 +545,11 @@ bool instPoint::linkInst() {
     bool success = true;
 
     for (unsigned i = 0; i < instances.size(); i++) {
-        if (!instances[i]->linkInst())
+        if (!instances[i]->linkInst()) {
+            fprintf(stderr, "instance %d failed link\n",
+                    i);
             success = false;
+        }
     }
     return success;
 }
@@ -531,9 +565,9 @@ instPointInstance *instPoint::getInstInstance(Address addr) {
 instPoint::instPoint(process *proc,
                      instruction insn,
                      Address addr,
-                     int_function *func) : 
+                     int_basicBlock *block) :
     instPointBase(insn, otherPoint),
-    funcVersion(0),
+    funcVersion(-1),
     callee_(NULL),
     isDynamicCall_(false),
     preBaseTramp_(NULL),
@@ -541,8 +575,12 @@ instPoint::instPoint(process *proc,
     targetBaseTramp_(NULL),
     proc_(proc),
     img_p_(NULL),
-    func_(func),
-    addr_(addr)
+    block_(block),
+    addr_(addr),
+    liveRegisters(NULL),
+    liveFPRegisters(NULL),
+    liveSPRegisters(NULL)
+
 {
 }
 
@@ -550,11 +588,11 @@ instPoint::instPoint(process *proc,
 instPoint::instPoint(process *proc,
                      image_instPoint *img_p,
                      Address addr,
-                     int_function *func) :
+                     int_basicBlock *block) :
     instPointBase(img_p->insn(),
                   img_p->getPointType(),
                   img_p->id()),
-    funcVersion(0),
+    funcVersion(-1),
     callee_(NULL),
     isDynamicCall_(img_p->isDynamicCall()),
     preBaseTramp_(NULL),
@@ -562,15 +600,18 @@ instPoint::instPoint(process *proc,
     targetBaseTramp_(NULL),
     proc_(proc),
     img_p_(img_p),
-    func_(func),
-    addr_(addr)
+    block_(block),
+    addr_(addr),
+    liveRegisters(NULL),
+    liveFPRegisters(NULL),
+    liveSPRegisters(NULL)
 {
 
 }
 
 // Copying over from fork
 instPoint::instPoint(instPoint *parP,
-                     int_function *child) :
+                     int_basicBlock *child) :
     instPointBase(parP->insn(),
                   parP->getPointType(),
                   parP->id()),
@@ -582,8 +623,12 @@ instPoint::instPoint(instPoint *parP,
     targetBaseTramp_(NULL),
     proc_(child->proc()),
     img_p_(parP->img_p_),
-    func_(child),
-    addr_(parP->addr()) {
+    block_(child),
+    addr_(parP->addr()),
+    liveRegisters(NULL),
+    liveFPRegisters(NULL),
+    liveSPRegisters(NULL)
+ {
 }
                   
 
@@ -609,22 +654,17 @@ instPoint *instPoint::createParsePoint(int_function *func,
                 offsetInFunc,
                 absAddr);
     
-    if (absAddr > (func->getAddress() + func->getSize())) {
-        assert(0); // Something broke
-    }
-
     int_basicBlock *block = func->findBlockByAddr(absAddr);
+    if (!block) return false; // Not in the function...
     assert(block);
-
 
     newIP = new instPoint(func->proc(),
                           img_p,
                           absAddr,
-                          func);
+                          block);
     
     inst_printf("Entering common IP creation...\n");
-    if (!commonIPCreation(newIP,
-                          block)) {
+    if (!commonIPCreation(newIP)) {
         delete newIP;
         return NULL;
     }
@@ -633,7 +673,7 @@ instPoint *instPoint::createParsePoint(int_function *func,
     return newIP;
 }
 
-instPoint *instPoint::createForkedPoint(instPoint *parP, int_function *child) {
+instPoint *instPoint::createForkedPoint(instPoint *parP, int_basicBlock *child) {
     // Make a copy of the parent instPoint. We don't have multiTramps yet,
     // which is okay; just get the ID right.
     instPoint *newIP = new instPoint(parP, child);
@@ -642,12 +682,15 @@ instPoint *instPoint::createForkedPoint(instPoint *parP, int_function *child) {
     // Add to the process
     for (unsigned i = 0; i < parP->instances.size(); i++) {
         instPointInstance *pI = parP->instances[i];
+        assert(0);
+        /*
         instPointInstance *nI = new instPointInstance(pI->addr_,
                                                       child, // FIXME
                                                       newIP);
         nI->multiID_ = pI->multiID_;
         newIP->instances.push_back(nI);
         proc->registerInstPointAddr(pI->addr_, newIP);
+        */
     }
 
     // And make baseTramp-age. If we share one, the first guy
@@ -757,19 +800,23 @@ void relocatedInstruction::overrideTarget(Address newTarget) {
 // allowTrap shouldn't really go here; problem is, 
 // multiple instPoints might use the same multiTramp,
 // and I'm not sure how to handle it.
-bool instPointInstance::generateInst(bool allowTrap) {
-
+bool instPointInstance::generateInst() {
     // Do all the hard work; this will create a complete
     // instrumentation structure and copy it into the address
     // space, but not link it up. We do that later. It may also
     // change the multiTramp we have a pointer to, though that's
-    // handled through the multi() wrapper.
-
-    if (!multiID_) {
-        multiID_ = multiTramp::findOrCreateMultiTramp(addr(), proc(), allowTrap);
+    // handled through the multi() wrapper.    
+    if (!multi()) {
+        multiID_ = multiTramp::findOrCreateMultiTramp(addr(),
+                                                      proc());
     }
-    
-    if (!multi()->generateMultiTramp()) {
+    if (!multi()) {
+        fprintf(stderr, "No multiTramp for instInstance %p, ret false\n", this);
+        return false;
+    }
+
+    if (multi()->generateMultiTramp() != multiTramp::mtSuccess) {
+        fprintf(stderr, "Instance failed to generate multiTramp, ret false\n");
         return false;
     }
     // Can and will set our multiTramp ID if there isn't one already;
@@ -777,13 +824,36 @@ bool instPointInstance::generateInst(bool allowTrap) {
     // This allows us to regenerate multiTramps without having to 
     // worry about changing pointers.
     
+    // See if we're big enough to put the branch jump in. If not, trap.
+    // Can also try to relocate; we'll still trap _here_, but another
+    // ipInstance will be created that can jump.
+#if defined(cap_relocation)
+    if (block_->getSize() < multi()->sizeDesired()) {
+        // Can make new ipInstances, but they're brought up to 
+        // date in updateInstances
+        func()->expandForInstrumentation();
+        // Always work off the first version of the function
+        func()->relocationGenerate(func()->enlargeMods(), 0);
+    }
+#endif
+
+    return true;
+}
+
+bool instPointInstance::installInst() {
+    assert(multi());
     // We now "install", that is copy the generated code into the 
     // addr space. This doesn't link.
+
+#if defined(cap_relocation)
+    // This is harmless to call if there isn't a relocation in-flight
+    func()->relocationInstall();
+#endif
     
-    if (!multi()->installMultiTramp()) {
+    if (multi()->installMultiTramp() != multiTramp::mtSuccess) {
+        fprintf(stderr, "Instance failed to install multiTramp, ret false\n");
         return false;
     }
-
     return true;
 }
 
@@ -793,7 +863,19 @@ bool instPointInstance::linkInst() {
     // Ah, well.
     assert(multi());
 
-    return multi()->linkMultiTramp();
+#if defined(cap_relocation)
+    // This is ignored (for now), is handled in updateInstInstances...
+    pdvector<codeRange *> overwrittenObjs;
+    // This is harmless to call if there isn't a relocation in-flight
+    func()->relocationLink(overwrittenObjs);
+#endif
+    
+    if (multi()->linkMultiTramp() != multiTramp::mtSuccess) {
+        fprintf(stderr, "ipInst: linkMulti returned false for 0x%lx\n",
+                addr());
+        return false;
+    }
+    return true;
 }
 
 multiTramp *instPointInstance::multi() const {
@@ -802,7 +884,7 @@ multiTramp *instPointInstance::multi() const {
     return multiTramp::getMulti(multiID_, proc());
 }
 
-void instPointInstance::updateMulti(int id) {
+void instPointInstance::updateMulti(unsigned id) {
     if (multiID_)
         assert(id == multiID_);
     else
@@ -811,6 +893,10 @@ void instPointInstance::updateMulti(int id) {
 
 process *instPointInstance::proc() const {
     return point->proc();
+}
+
+int_function *instPointInstance::func() const {
+    return point->func();
 }
 
 bool instPoint::instrSideEffect(Frame &frame)
@@ -825,22 +911,13 @@ bool instPoint::instrSideEffect(Frame &frame)
     
     for (unsigned i = 0; i < instances.size(); i++) {
         instPointInstance *target = instances[i];
-        
-        int_function *instFunc = target->func();
-        if (!instFunc) return false;
-        
-        codeRange *range = frame.getRange();
-        if (range->is_function() != instFunc) {
-            // Not in this function at all, so skip
-            continue;
-        }
-        
         // Question: generalize into "if the PC is in instrumentation,
         // move to the equivalent address?" 
         // Sure....
         
         // See previous call-specific version below; however, this
         // _should_ work.
+
         Address newPC = target->multi()->uninstToInstAddr(frame.getPC());
         if (newPC) {
             if (frame.setPC(newPC))
@@ -932,19 +1009,12 @@ codeGen::codeGen(const codeGen &g) :
         buffer_ = NULL;
 }
 
-bool codeGen::operator==(void *p) {
+bool codeGen::operator==(void *p) const {
     return (p == (void *)buffer_);
 }
 
-bool codeGen::operator!=(void *p) {
+bool codeGen::operator!=(void *p) const {
     return (p != (void *)buffer_);
-}
-
-bool codeGen::operator()() {
-    if (buffer_ && used())
-        return true;
-    else
-        return false;
 }
 
 codeGen &codeGen::operator=(const codeGen &g) {
@@ -1033,6 +1103,17 @@ void *codeGen::cur_ptr() const {
     assert(sizeof(codeBuf_t) == CODE_GEN_OFFSET_SIZE);
     codeBuf_t *ret = buffer_;
     ret += offset_;
+    return (void *)ret;
+}
+
+void *codeGen::get_ptr(unsigned offset) const {
+    assert(buffer_);
+    assert(offset < size_);
+    assert(sizeof(codeBuf_t) == CODE_GEN_OFFSET_SIZE);
+    assert((offset % CODE_GEN_OFFSET_SIZE) == 0);
+    unsigned index = offset / CODE_GEN_OFFSET_SIZE;
+    codeBuf_t *ret = buffer_;
+    ret += index;
     return (void *)ret;
 }
 
@@ -1204,4 +1285,33 @@ instPoint::catchup_result_t instPoint::catchupRequired(Address pc,
     assert(!found);
 
     return noMatch_c;
+}
+
+int_basicBlock *instPoint::block() const { 
+    assert(block_);
+    return block_;
+}
+
+int_function *instPoint::func() const {
+    return block()->func();
+}
+
+void *relocatedInstruction::getPtrToInstruction(Address) const {
+    assert(0); // FIXME if we do out-of-line baseTramps
+    return NULL;
+}
+
+void *trampEnd::getPtrToInstruction(Address) const {
+    assert(0); // FIXME if we do out-of-line baseTramps
+    return NULL;
+}
+
+void *multiTramp::getPtrToInstruction(Address addr) const {
+    if (!installed_) return NULL;
+    if (addr < trampAddr_) return NULL;
+    if (addr >= (trampAddr_ + trampSize_)) return NULL;
+
+    addr -= trampAddr_;
+    assert(generatedMultiT_ != NULL);
+    return generatedMultiT_.get_ptr(addr);
 }

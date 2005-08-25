@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.21 2005/08/23 21:46:23 rutar Exp $
+// $Id: instPoint.h,v 1.22 2005/08/25 22:45:42 bernat Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -101,7 +101,7 @@ class instPointBase {
   instPointBase(instruction insn,
                 instPointType_t type) :
     ipType_(type),
-    insn_(insn), liveRegisters(NULL), liveFPRegisters(NULL), liveSPRegisters(NULL) 
+    insn_(insn)
       { id_ = id_ctr++; }
   // We need to have a manually-set-everything method
   instPointBase(instruction insn,
@@ -109,17 +109,11 @@ class instPointBase {
                 unsigned int id) :
       id_(id),
       ipType_(type),
-    insn_(insn), liveRegisters(NULL), liveFPRegisters(NULL), liveSPRegisters(NULL)
+    insn_(insn)
       {}
 
   int id() const { return id_; }
-  
-  // Register optimization
-  int *liveRegisters;
-  int *liveFPRegisters;
-  int *liveSPRegisters;
-  // AIX only.
-  
+    
  protected:
   unsigned int id_;
   instPointType_t ipType_;
@@ -182,20 +176,23 @@ class instPointInstance {
 
     instPointInstance() { assert(0); }
  private:
-    instPointInstance(Address a, int_function *f, instPoint *ip) :
-        addr_(a), func_(f), multiID_(0), point(ip) {
+    instPointInstance(Address a, bblInstance *b, instPoint *ip) :
+        addr_(a), block_(b), multiID_(0), point(ip), disabled(false) {
     }
 
     // No end of trouble if this is a subclass..
     Address addr_; // Address of this particular version
-    int_function *func_; // Function pointer to the specific version
+    bblInstance *block_; // And the block instance we're attached to.
 
-    int multiID_;
+    unsigned multiID_;
 
     instPoint *point; // Backchain pointer
 
-    bool generateInst(bool allowTrap);
+    bool generateInst();
+    bool installInst();
     bool linkInst();
+
+    bool disabled;
 
  public:
     // If we re-generate code we toss the old
@@ -203,13 +200,14 @@ class instPointInstance {
     // to update everyone with a handle to the multi.
 
     process *proc() const;
+    int_function *func() const;
     
-    void updateMulti(int multi);
+    void updateMulti(unsigned multi);
 
     multiTramp *multi() const;
-    int multiID() const { return multiID_; } // We need this to handle backtracing
+    unsigned multiID() const { return multiID_; } // We need this to handle backtracing
     Address addr() const { return addr_; }
-    int_function *func() const { return func_; }
+    bblInstance *block() const { return block_; }
 
     void updateVersion();
 };
@@ -223,36 +221,31 @@ class instPoint : public instPointBase {
     instPoint(process *proc,
               instruction insn,
               Address addr,
-              int_function *func);    // Call-site instPoint
+              int_basicBlock *block);
+
     instPoint(process *proc,
               image_instPoint *img_p,
               Address addr,
-              int_function *func);
+              int_basicBlock *block);
 
     // Fork instPoint
     instPoint(instPoint *parP,
-              int_function *child);
+              int_basicBlock *child);
 
     // A lot of arbitrary/parse creation work can be shared
-    static bool commonIPCreation(instPoint *newIP,
-                                 int_basicBlock *block);
+    static bool commonIPCreation(instPoint *newIP);
 
     // On windows, an internally-defined class cannot access private
     // members of the "parent" class. This works on all other
     // platforms. Windows is b0rken...
-#if defined(os_windows)
+
  public:
-#endif
     bool updateInstances();
     pdvector<instPointInstance *> instances;
 
     // Adding instances is expensive; if the function
     // hasn't changed, we can avoid doing so.
-    unsigned funcVersion;
-#if defined(os_windows)
- private:
-#endif
- public:
+    int funcVersion;
 
   // Make a new instPoint at an arbitrary location
   static instPoint *createArbitraryInstPoint(Address addr,
@@ -261,15 +254,9 @@ class instPoint : public instPointBase {
   static instPoint *createParsePoint(int_function *func,
                                      image_instPoint *img_p);
 
-  static instPoint *createForkedPoint(instPoint *p, int_function *func);
+  static instPoint *createForkedPoint(instPoint *p, int_basicBlock *child);
 
   ~instPoint();
-
-  /* Not sure how this will interact with multiple versions of
-   * functions; for now, it will use a trap only if all versions would
-   * use a trap.
-   */
-  bool usesTrap() const;
 
   // Get the correct multitramp for a given function (or address)
   multiTramp *getMulti(int_function *func);
@@ -320,8 +307,9 @@ class instPoint : public instPointBase {
   bool match(Address addr) const;
 
   process *proc() const { return proc_; }
-
-  int_function *func() const { return func_; }
+  
+  int_basicBlock *block() const;
+  int_function *func() const;
 
   Address addr() const { return addr_; }
 
@@ -342,8 +330,7 @@ class instPoint : public instPointBase {
                         callWhen when,
                         callOrder order,
                         bool trampRecursive,
-                        bool noCost,
-                        bool allowTrap);
+                        bool noCost);
 
   // Step 1:
   miniTramp *addInst(AstNode *&ast,
@@ -353,14 +340,18 @@ class instPoint : public instPointBase {
                      bool noCost);
 
   // Step 2:
-  bool generateInst(bool allowTrap);
+  bool generateInst();
+  // And 3:
+  // We split this so that we can relocate between generation and installing
+  bool installInst();
+
 
   // Determine whether instrumentation will go in smoothly
   // At this point, "given the stacks, can we insert a jump
   // or not"?
   bool checkInst(pdvector<Address> &checkPCs);
 
-  // Step 3:
+  // Step 4:
   // TODO: if we're out-of-lining miniTramps or something, this should
   // be the call that causes linkage of the OOL MT to occur, just for
   // completeness of the model.
@@ -427,8 +418,16 @@ class instPoint : public instPointBase {
 
   image_instPoint *img_p_;
 
-  int_function *func_;
+  // The block we're attached to.
+  int_basicBlock *block_;
   Address addr_;
+
+ public:
+  // Register optimization
+  int *liveRegisters;
+  int *liveFPRegisters;
+  int *liveSPRegisters;
+  // AIX only.
 };
 
 typedef instPoint::iterator instPointIter;
