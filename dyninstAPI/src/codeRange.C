@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.C,v 1.10 2005/08/03 05:28:08 bernat Exp $
+// $Id: codeRange.C,v 1.11 2005/08/25 22:45:23 bernat Exp $
 
 #include <stdio.h>
 #include "codeRange.h"
@@ -52,7 +52,11 @@
 #include "dyninstAPI/src/instPoint.h"
 
 multiTramp *codeRange::is_multitramp() {
-   return dynamic_cast<multiTramp *>(this);
+    if (dynamic_cast<multiTramp *>(this))
+        return dynamic_cast<multiTramp *>(this);
+    else if (dynamic_cast<instArea *>(this))
+        return (dynamic_cast<instArea *>(this))->multi;
+    return NULL;
 }
 
 // This is a special case... the multitramp is the thing in the
@@ -66,14 +70,35 @@ miniTrampInstance *codeRange::is_minitramp() {
    return dynamic_cast<miniTrampInstance *>(this);
 }
 
+bblInstance *codeRange::is_basicBlockInstance() {
+    return dynamic_cast<bblInstance *>(this);
+}
+
+int_basicBlock *codeRange::is_basicBlock() {
+    bblInstance *block = dynamic_cast<bblInstance *>(this);
+    if (block)
+        return block->block();
+    return NULL;
+}
+
 int_function *codeRange::is_function() {
-   return dynamic_cast<int_function *>(this);
+    bblInstance *block = dynamic_cast<bblInstance *>(this);
+    if (block)
+        return block->func();
+    return NULL;
 }
 
 image_func *codeRange::is_image_func() {
    return dynamic_cast<image_func *>(this);
 }
 
+replacedFunctionCall *codeRange::is_replaced_call() {
+    return dynamic_cast<replacedFunctionCall *>(this);
+}
+
+functionReplacement *codeRange::is_function_replacement() {
+    return dynamic_cast<functionReplacement *>(this);
+}
 
 
 image *codeRange::is_image() {

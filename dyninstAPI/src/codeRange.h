@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.h,v 1.9 2005/07/29 19:18:24 bernat Exp $
+// $Id: codeRange.h,v 1.10 2005/08/25 22:45:24 bernat Exp $
 
 
 #ifndef _codeRangeTree_h_
@@ -66,6 +66,8 @@
 typedef enum { TREE_RED, TREE_BLACK } color_t;
 
 class int_function;
+class int_basicBlock;
+class bblInstance;
 class image;
 class mapped_object;
 class multiTramp;
@@ -73,6 +75,8 @@ class baseTrampInstance;
 class miniTrampInstance;
 class image_func;
 class signal_handler_location;
+class functionReplacement;
+class replacedFunctionCall;
 
 class codeRange {
   public:
@@ -82,6 +86,8 @@ class codeRange {
     virtual Address get_address_cr() const = 0;
     virtual unsigned get_size_cr() const = 0;
 
+    virtual void *getPtrToInstruction(Address addr) const = 0;
+
     // returns NULL if not of type
     // so some people who don't like dynamic_cast don't have to be troubled
     // by it's use
@@ -90,12 +96,23 @@ class codeRange {
     //getBaseTrampInstance.
     baseTrampInstance *is_basetramp_multi();
     miniTrampInstance *is_minitramp();
+
+    // This is actually a fake; we don't have int_functions as
+    // code ranges. However, there are many times we want to know
+    // if we're in a function, and this suffices. We actually do a
+    // basic block lookup, then transform that into a function.
     int_function *is_function();
+    int_basicBlock *is_basicBlock();
+    bblInstance *is_basicBlockInstance();
+
     image *is_image();
     mapped_object *is_mapped_object();
     multiTramp *is_multitramp();
 
     image_func *is_image_func();
+
+    replacedFunctionCall *is_replaced_call();
+    functionReplacement *is_function_replacement();
 
     signal_handler_location *is_signal_handler_location();
 };
