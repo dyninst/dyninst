@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.250 2005/08/11 21:20:22 bernat Exp $
+ // $Id: symtab.C,v 1.251 2005/08/25 22:45:58 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1702,11 +1702,12 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
         
         //we no longer keep separate lists for instrumentable and 
         //uninstrumentable
-        parseFunction( pdf, callTargets );  
-	everyUniqueFunction.push_back(pdf);
-	createdFunctions.push_back(pdf);
-        enterFunctionInTables( pdf, mod );
-        raw_funcs.push_back( pdf );
+        if (parseFunction( pdf, callTargets )) {
+            everyUniqueFunction.push_back(pdf);
+            createdFunctions.push_back(pdf);
+            enterFunctionInTables( pdf, mod );
+            raw_funcs.push_back( pdf );
+        }
     }
 }
 
@@ -1941,7 +1942,7 @@ bool image::analyzeImage()
           while( pos < gapEnd && isCode( pos ) )
           {
               const unsigned char* instPtr;
-              instPtr = (const unsigned char *)getPtrToOrigInstruction( pos );
+              instPtr = (const unsigned char *)getPtrToInstruction( pos );
               
               instruction insn;
               insn.setInstruction( instPtr );
@@ -2862,7 +2863,7 @@ void *image::getPtrToData(Address offset) const {
 }
     
 // return a pointer to the instruction at address adr
-void *image::getPtrToOrigInstruction(Address offset) const {
+void *image::getPtrToInstruction(Address offset) const {
    assert(isValidAddress(offset));
    if (isCode(offset)) {
       offset -= codeOffset_;
