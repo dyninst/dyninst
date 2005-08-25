@@ -49,6 +49,7 @@
 #include "function.h"
 
 class InstrucIter;
+class bblInstance;
 
 /*
    VG (02/19/02): New abstraction layer for instruction parsing.
@@ -95,7 +96,7 @@ class InstrucIter {
     // Probably worth making two InstrucIter classes, but so much is similar.
     process *proc_;
     image *img_;
-    
+
     /* Starting address/offset */
     Address base;
     
@@ -158,7 +159,7 @@ class InstrucIter {
     InstrucIter (Address start, int_function *func);
 
 
-    InstrucIter(int_basicBlock* b);
+    InstrucIter(bblInstance *b);
         
     InstrucIter( CONST_EXPORT BPatch_basicBlock* bpBasicBlock);
 

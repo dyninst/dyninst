@@ -960,7 +960,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
     else {
         pdvector<mapped_object *> m_objs = proc_->mappedObjects();
         for (unsigned i = 0; i < m_objs.size(); i++) {
-            void *ptr = m_objs[i]->getPtrToOrigInstruction(current);
+            void *ptr = m_objs[i]->getPtrToInstruction(current);
             if (ptr) {
                 TOC_address = m_objs[i]->parse_img()->getObject().getTOCoffset();
                 TOC_address += m_objs[i]->dataBase();
@@ -1166,7 +1166,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
                     jumpOffset = *((int *)img_->getPtrToData(tableEntry));
                 }
                 else
-                    jumpOffset = *((int *)img_->getPtrToOrigInstruction(tableEntry));
+                    jumpOffset = *((int *)img_->getPtrToInstruction(tableEntry));
                 
                 //fprintf(stderr, "jumpOffset 0x%x\n", jumpOffset);
                 Address res = (Address)(jumpStart + jumpOffset);
@@ -1180,17 +1180,17 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
         }
     }
     else {
-        void *ptr = proc_->getPtrToOrigInstruction(jumpStartAddress);
+        void *ptr = proc_->getPtrToInstruction(jumpStartAddress);
         assert(ptr);
         jumpStart = *((Address *)ptr);
         ptr = NULL;
-        ptr = proc_->getPtrToOrigInstruction(tableStartAddress);
+        ptr = proc_->getPtrToInstruction(tableStartAddress);
         assert(ptr);
         tableStart = *((Address *)ptr);
 
         for(int i=0;i<maxSwitch;i++){
             Address tableEntry = adjustEntry + tableStart + (i * instruction::size());
-            ptr = proc_->getPtrToOrigInstruction(tableEntry);
+            ptr = proc_->getPtrToInstruction(tableEntry);
             assert(ptr);
             int jumpOffset = *((int *)ptr);
             result += (Address)(jumpStart+jumpOffset);
@@ -1237,9 +1237,9 @@ instruction InstrucIter::getNextInstruction()
 {
     instruction ret;
     if (img_)
-        (*ret) = *((instructUnion *)img_->getPtrToOrigInstruction(current + instruction::size()));
+        (*ret) = *((instructUnion *)img_->getPtrToInstruction(current + instruction::size()));
     else {
-        (*ret) = *((instructUnion *)proc_->getPtrToOrigInstruction(current + instruction::size()));
+        (*ret) = *((instructUnion *)proc_->getPtrToInstruction(current + instruction::size()));
     }
     return ret;
 }
@@ -1248,9 +1248,9 @@ instruction InstrucIter::getPrevInstruction()
 {
     instruction ret;
     if (img_)
-        (*ret) = *((instructUnion *)img_->getPtrToOrigInstruction(current - instruction::size()));
+        (*ret) = *((instructUnion *)img_->getPtrToInstruction(current - instruction::size()));
     else {
-        (*ret) = *((instructUnion *)proc_->getPtrToOrigInstruction(current - instruction::size()));
+        (*ret) = *((instructUnion *)proc_->getPtrToInstruction(current - instruction::size()));
     }
     return ret;
 }

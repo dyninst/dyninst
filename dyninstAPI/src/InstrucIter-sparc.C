@@ -293,11 +293,11 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
                         
                         if (img_) {
                             if (img_->isCode(offset))
-                                targetPtr = img_->getPtrToOrigInstruction(offset);
+                                targetPtr = img_->getPtrToInstruction(offset);
                         }
                         else {
                             // Process
-                            targetPtr = proc_->getPtrToOrigInstruction(offset);
+                            targetPtr = proc_->getPtrToInstruction(offset);
                         }
 
                         if (targetPtr == NULL) break;
@@ -317,7 +317,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
                                 valid = false;
                         }
                         else {
-                            if (!proc_->getPtrToOrigInstruction(target))
+                            if (!proc_->getPtrToInstruction(target))
                                 valid = false;
                         }
 
@@ -377,18 +377,18 @@ instruction *InstrucIter::getInsnPtr() {
 instruction InstrucIter::getNextInstruction(){
     instruction ret;
     if (img_)
-        (*ret) = *((instructUnion *)img_->getPtrToOrigInstruction(peekNext()));
+        (*ret) = *((instructUnion *)img_->getPtrToInstruction(peekNext()));
     else {
-        (*ret) = *((instructUnion *)proc_->getPtrToOrigInstruction(peekNext()));
+        (*ret) = *((instructUnion *)proc_->getPtrToInstruction(peekNext()));
     }
     return ret;
 }
 instruction InstrucIter::getPrevInstruction(){
     instruction ret;
     if (img_)
-        (*ret) = *((instructUnion *)img_->getPtrToOrigInstruction(peekPrev()));
+        (*ret) = *((instructUnion *)img_->getPtrToInstruction(peekPrev()));
     else {
-        (*ret) = *((instructUnion *)proc_->getPtrToOrigInstruction(peekPrev()));
+        (*ret) = *((instructUnion *)proc_->getPtrToInstruction(peekPrev()));
     }
     return ret;
 }
@@ -455,8 +455,8 @@ void InstrucIter::getAndSkipDSandAgg(instruction* &ds,
     void *aggPtr;
 
     if (proc_) {
-        dsPtr = proc_->getPtrToOrigInstruction(current + instruction::size());
-        aggPtr = proc_->getPtrToOrigInstruction(current + 2*instruction::size());
+        dsPtr = proc_->getPtrToInstruction(current + instruction::size());
+        aggPtr = proc_->getPtrToInstruction(current + 2*instruction::size());
     }
     else {
         assert(img_); 
@@ -465,8 +465,8 @@ void InstrucIter::getAndSkipDSandAgg(instruction* &ds,
                     img_);
         }
         else {
-            dsPtr = img_->getPtrToOrigInstruction(current+instruction::size());
-            aggPtr = img_->getPtrToOrigInstruction(current+2*instruction::size());
+            dsPtr = img_->getPtrToInstruction(current+instruction::size());
+            aggPtr = img_->getPtrToInstruction(current+2*instruction::size());
         }            
     }
     assert(dsPtr);

@@ -244,7 +244,7 @@ void InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
     else {
         pdvector<mapped_object *> m_objs = proc_->mappedObjects();
         for (unsigned i = 0; i < m_objs.size(); i++) {
-            void *ptr = m_objs[i]->getPtrToOrigInstruction(current);
+            void *ptr = m_objs[i]->getPtrToInstruction(current);
             if (ptr) {
                 gpAddress = m_objs[i]->parse_img()->getObject().getTOCoffset();
                 break;
@@ -324,7 +324,7 @@ void InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
         jumpTableAddress = *((Address *)ptr);
     }
     else {
-        void *ptr = proc_->getPtrToOrigInstruction(jumpTableAddressAddress);
+        void *ptr = proc_->getPtrToInstruction(jumpTableAddressAddress);
         if (!ptr) return;
         jumpTableAddress = *((Address *)ptr);
     }
@@ -384,7 +384,7 @@ void InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
             finalAddr += *((uint64_t *)ptr);
         }
         else {
-            void *ptr = proc_->getPtrToOrigInstruction(jumpTableAddress + (sizeof(uint64_t) * i));
+            void *ptr = proc_->getPtrToInstruction(jumpTableAddress + (sizeof(uint64_t) * i));
             if (!ptr) continue;
             finalAddr += *((uint64_t *)ptr);
         }
@@ -417,14 +417,14 @@ Address InstrucIter::peekPrev()
         Address temp = current - 16;
         void *tmpPtr;
         if (proc_) {
-            tmpPtr = proc_->getPtrToOrigInstruction(temp);
+            tmpPtr = proc_->getPtrToInstruction(temp);
         }
         else {
             assert(img_); 
             if (!img_->isValidAddress(temp)) {
                 assert(0);
             }
-            else tmpPtr = img_->getPtrToOrigInstruction(temp);
+            else tmpPtr = img_->getPtrToInstruction(temp);
         }            
         
         ia64_bundle_t *rawBundle = (ia64_bundle_t *)tmpPtr;
@@ -530,7 +530,7 @@ void InstrucIter::initializeInsn() {
     Address aligned = current - slotno;
     
     if (proc_) {
-        instPtr = proc_->getPtrToOrigInstruction(aligned);
+        instPtr = proc_->getPtrToInstruction(aligned);
     }
     else {
         assert(img_); 
@@ -538,7 +538,7 @@ void InstrucIter::initializeInsn() {
             fprintf(stderr, "Error: addr 0x%x is not valid!\n",
                     img_);
         }
-        else instPtr = img_->getPtrToOrigInstruction(aligned);
+        else instPtr = img_->getPtrToInstruction(aligned);
     }            
     
     ia64_bundle_t *rawBundle = (ia64_bundle_t *)instPtr;
@@ -563,7 +563,7 @@ instruction *InstrucIter::getInsnPtr() {
     Address aligned = current - slotno;
     
     if (proc_) {
-        instPtr = proc_->getPtrToOrigInstruction(aligned);
+        instPtr = proc_->getPtrToInstruction(aligned);
     }
     else {
         assert(img_); 
@@ -571,7 +571,7 @@ instruction *InstrucIter::getInsnPtr() {
             fprintf(stderr, "Error: addr 0x%x is not valid!\n",
                     img_);
         }
-        else instPtr = img_->getPtrToOrigInstruction(aligned);
+        else instPtr = img_->getPtrToInstruction(aligned);
     }            
     
     ia64_bundle_t *rawBundle = (ia64_bundle_t *)instPtr;

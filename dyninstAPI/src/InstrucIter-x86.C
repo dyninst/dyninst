@@ -449,16 +449,16 @@ bool InstrucIter::getMultipleJumpTargets(pdvector<Address>& result,
         if( proc_ &&
             proc_->isValidAddress( tableEntry ) ) {
             if (addrWidth == sizeof(Address))
-                jumpAddress = *(const Address *)proc_->getPtrToOrigInstruction(tableEntry);
+                jumpAddress = *(const Address *)proc_->getPtrToInstruction(tableEntry);
             else
-                jumpAddress = *(const int *)proc_->getPtrToOrigInstruction(tableEntry);
+                jumpAddress = *(const int *)proc_->getPtrToInstruction(tableEntry);
         }
         else if (img_ &&
                  img_->isValidAddress(tableEntry)) {
             if (addrWidth == sizeof(Address))
-                jumpAddress = *(const Address *)img_->getPtrToOrigInstruction(tableEntry);
+                jumpAddress = *(const Address *)img_->getPtrToInstruction(tableEntry);
             else
-                jumpAddress = *(const int *)img_->getPtrToOrigInstruction(tableEntry);
+                jumpAddress = *(const int *)img_->getPtrToInstruction(tableEntry);
         }
         if (jumpAddress)
             result.push_back(jumpAddress);

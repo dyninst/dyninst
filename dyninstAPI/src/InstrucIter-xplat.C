@@ -62,7 +62,7 @@
 
 void InstrucIter::initializeInsn() {
     if (proc_) {
-        instPtr = proc_->getPtrToOrigInstruction(current);
+        instPtr = proc_->getPtrToInstruction(current);
     }
     else {
         assert(img_); 
@@ -71,7 +71,7 @@ void InstrucIter::initializeInsn() {
                     img_);
             assert(0);
         }
-        else instPtr = img_->getPtrToOrigInstruction(current);
+        else instPtr = img_->getPtrToInstruction(current);
     }            
     if (!instPtr) {
         fprintf(stderr, "ERROR: no pointer for address 0x%x\n",
@@ -82,11 +82,12 @@ void InstrucIter::initializeInsn() {
 }
 #endif
 
+// FIXME: should do an in-order iteration over basic blocks or something
 InstrucIter::InstrucIter(int_function* func) :
     proc_(func->proc()),
     img_(NULL),
     base(func->getAddress()),
-    range(func->getSize()),
+    range(func->getSize_NP()),
     current(base) {
     assert(current >= base);
     assert(current < base+range);
@@ -97,7 +98,7 @@ InstrucIter::InstrucIter(Address addr, int_function* func) :
     proc_(func->proc()),
     img_(NULL),
     base(addr),
-    range(func->getSize()),
+    range(func->getSize_NP()),
     current(base) {
     assert(current >= base);
     assert(current < base+range);
@@ -105,7 +106,7 @@ InstrucIter::InstrucIter(Address addr, int_function* func) :
 }
 
 
-InstrucIter::InstrucIter(int_basicBlock* b) :
+InstrucIter::InstrucIter(bblInstance* b) :
     proc_(b->proc()),
     img_(NULL),
     base(b->firstInsnAddr()),
@@ -171,21 +172,13 @@ InstrucIter::InstrucIter( Address addr, process *proc) :
     img_(NULL),
     current(addr)
 {
-   // Need to set base and range. Any ideas? Basic block? 
-    codeRange *cr = proc_->findCodeRangeByAddress(addr);
-    if (cr->is_function()) {
-        base = cr->is_function()->getAddress();
-        // This can and will trigger full analysis...
-        range = cr->is_function()->getSize();
-    }
-    else {
-        // There's all sorts of reasons to iterate over the middle of nowhere;
-        // we may be grabbing the PLT or new code. On the other hand, nobody knows
-        // what the range is.
-        base = addr;
+    // There's all sorts of reasons to iterate over the middle of nowhere;
+    // we may be grabbing the PLT or new code. On the other hand, nobody knows
+    // what the range is.
+    // Did I mention this is dangerous?
+    base = addr;
+    range = 0;
 
-        range = 0;
-    }
     initializeInsn();
 }
 
