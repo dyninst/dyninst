@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.54 2005/08/03 23:01:05 bernat Exp $
+// $Id: templates0.C,v 1.55 2005/08/25 22:46:00 bernat Exp $
 // Generate all the templates in one file.
 
 /*
@@ -143,6 +143,9 @@ template class  pdvector<instPointInstance *>;
 class BPatch_basicBlock;
 template class  pdvector<BPatch_basicBlock*>;
 
+class instruction;
+template class  pdvector<instruction *>;
+
 class baseTramp;
 class baseTrampInstance;
 template class  pdvector<baseTramp *>;
@@ -169,6 +172,8 @@ class int_variable;
 template class  pdvector<int_variable*>;
 class int_basicBlock;
 template class  pdvector<int_basicBlock *>;
+class bblInstance;
+template class  pdvector<bblInstance *>;
 
 class BPatch_basicBlockLoop;
 template class  pdvector<BPatch_basicBlockLoop*>;
@@ -227,3 +232,6 @@ template class std::set<instPoint *>;
 class fileOpener;
 template class pdvector<fileOpener *>;
 #endif
+
+class funcMod;
+template class pdvector<funcMod *>;
