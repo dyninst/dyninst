@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.11 2005/07/29 22:16:25 bernat Exp $
+// $Id: function.h,v 1.12 2005/08/25 22:45:27 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -66,49 +66,118 @@ class BPatch_loopTreeNode;
 class BPatch_basicBlock;
 class BPatch_basicBlockLoop;
 
+class instPointInstance;
+
 #include "dyninstAPI/h/BPatch_Set.h"
 
 class instPoint;
 
 class Frame;
 
+class functionReplacement;
+
 class int_function;
+class int_basicBlock;
 
-class relocShift : public codeRange {
-    friend class int_function;
- public:
-    unsigned get_shift() const { return shift;}
-    Address get_address_cr() const { return offset;}
-    unsigned get_size_cr() const { return size;}
- private:
-    Address offset;
-    unsigned size;
-    unsigned shift;
-};
+class funcMod;
 
-class int_basicBlock : public codeRange {
+// A specific instance (relocated version) of a basic block
+// It's really a semi-smart struct...
+class bblInstance : public codeRange {
+    friend class int_basicBlock;
     friend class int_function;
+
+    // "We'll set things up later" constructor. Private because only int_basicBlock
+    // should be playing in here
+    bblInstance(int_basicBlock *parent, int version);
  public:
-    int_basicBlock(const image_basicBlock *ib, Address baseAddr, int_function *func);
+    bblInstance(Address start, Address last, Address end, int_basicBlock *parent, int version);
 
     Address firstInsnAddr() const { return firstInsnAddr_; }
     Address lastInsnAddr() const { return lastInsnAddr_; }
     // Just to be obvious -- this is the end addr of the block
     Address endAddr() const { return blockEndAddr_; }
     Address getSize() const { return blockEndAddr_ - firstInsnAddr_; }
+
+    // And equivalence in addresses...
+    Address equivAddr(bblInstance *otherBBL, Address otherAddr) const;
+
+    // As a note: do _NOT_ create an address-based comparison of this
+    // class unless you just need some sort of ordering. We may create these
+    // blocks in some random place; depending on address is just plain dumb.
+
+    Address get_address_cr() const { return firstInsnAddr(); }
+    unsigned get_size_cr() const { return getSize(); }
+    void *getPtrToInstruction(Address addr) const;
     
+    process *proc() const;
+    int_function *func() const;
+    int_basicBlock *block() const;
+
+#if defined(cap_relocation)
+    // Get the most space necessary to relocate this basic block,
+    // using worst-case analysis.
+    bool relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods);
+    unsigned sizeRequired();
+    // Pin a block to a particular address; in theory, we can only
+    // do these for blocks that can be entered via jumps, but for now
+    // we do it all the time.
+    void setStartAddr(Address addr);
+
+    // And generate a moved copy into ze basic block
+    bool generate();
+    // And write the block into the addr space
+    bool install();
+    // Check for safety...
+    bool check(pdvector<Address> &checkPCs);
+    // Link things up
+    bool link(pdvector<codeRange *> &overwrittenObjs);
+
+
+#endif
+
+ private:
+#if defined(cap_relocation)
+    dictionary_hash<Address, Address> changedAddrs_;
+    pdvector<instruction *> insns_;
+    unsigned maxSize_;
+    bblInstance *origInstance_;
+    pdvector<funcMod *> appliedMods_;
+    codeGen generatedBlock_; // Kept so we can quickly iterate over the block
+    // in the future.
+    functionReplacement *jumpToBlock; // Kept here between generate->link
+#endif
+
+    Address firstInsnAddr_;
+    Address lastInsnAddr_;
+    Address blockEndAddr_;
+    int_basicBlock *block_;
+    int version_;
+};
+
+class int_basicBlock {
+    friend class int_function;
+ public:
+    int_basicBlock(const image_basicBlock *ib, Address baseAddr, int_function *func);
+
     bool isEntryBlock() const { return isEntryBlock_; }
     bool isExitBlock() const { return isExitBlock_; }
-
+    
     static int compare(int_basicBlock *&b1,
                        int_basicBlock *&b2) {
-        if (b1->firstInsnAddr() < b2->firstInsnAddr())
+        // First instance: original bbl.
+        if (b1->instances_[0]->firstInsnAddr() < b2->instances_[0]->firstInsnAddr())
             return -1;
-        if (b2->firstInsnAddr() < b1->firstInsnAddr())
+        if (b2->instances_[0]->firstInsnAddr() < b1->instances_[0]->firstInsnAddr())
             return 1;
         assert(b1 == b2);
         return 0;
     }
+
+    const pdvector<bblInstance *> &instances() const;
+    bblInstance *origInstance() const;
+    bblInstance *instVer(unsigned index) const;
+    void removeVersion(unsigned index);
 
     void debugPrint();
 
@@ -116,9 +185,6 @@ class int_basicBlock : public codeRange {
     void getTargets(pdvector<int_basicBlock *> &outs) const;
 
     int_basicBlock *getFallthrough() const;
-
-    Address get_address_cr() const { return firstInsnAddr(); }
-    unsigned get_size_cr() const { return getSize(); }
 
     void addTarget(int_basicBlock *target);
     void addSource(int_basicBlock *source);
@@ -142,13 +208,9 @@ class int_basicBlock : public codeRange {
     BPatch_Set<int_basicBlock *> *getDataFlowOut();
     BPatch_Set<int_basicBlock *> *getDataFlowIn();
     int_basicBlock *getDataFlowGen();
-    int_basicBlock *getDataFlowKill();
+    int_basicBlock *getDataFlowKill();    
 
  private:
-    Address firstInsnAddr_;
-    Address lastInsnAddr_;
-    Address blockEndAddr_;
-
     bool isEntryBlock_;
     bool isExitBlock_;
 
@@ -165,10 +227,15 @@ class int_basicBlock : public codeRange {
 
     int_function *func_;
     const image_basicBlock *ib_;
+
+    // A single "logical" basic block may correspond to multiple
+    // physical areas of code. In particular, we may relocate the
+    // block (either replaced or duplicated).
+    pdvector<bblInstance *> instances_;
 };
 
-class int_function : public codeRange {
-  friend class funcIterator;
+class int_function {
+  friend class int_basicBlock;
  public:
    static pdstring emptyString;
 
@@ -195,25 +262,16 @@ class int_function : public codeRange {
    const pdvector<pdstring> &prettyNameVector() { return ifunc_->prettyNameVector(); }
 
    // May change when we relocate...
-   unsigned getSize();
    Address getAddress() const {return addr_;}
+   // Don't use this...
+   unsigned getSize_NP() const;
 
-   // And we always want an original This will always return the
-   // original address of the function, no matter how many times it
-   // has been relocated.
-   Address getOriginalAddress() const;
-   
-   int_function *getOriginalFunc() const;
 
    // Not defined here so we don't have to play header file magic
    image_func *ifunc() const;
    mapped_module *mod() const;
    mapped_object *obj() const;
    process *proc() const;
-
-   // coderange needs a get_address...
-   Address get_address_cr() const { return getAddress(); }
-   unsigned get_size_cr() const { return size_; }
 
    // Necessary for BPatch_set which needs a structure with a ()
    // operator. Odd.
@@ -250,6 +308,8 @@ class int_function : public codeRange {
    // Perform a lookup (either linear or log(n)).
    int_basicBlock *findBlockByAddr(Address addr);
    int_basicBlock *findBlockByOffset(Address offset) { return findBlockByAddr(offset + getAddress()); }
+   bblInstance *findBlockInstanceByAddr(Address addr);
+
 
    bool hasNoStackFrame() const {return ifunc_->hasNoStackFrame();}
    bool makesNoCalls() const {return ifunc_->makesNoCalls();}
@@ -287,20 +347,8 @@ class int_function : public codeRange {
    // Relocation
    ////////////////////////////////////////////////
 
-   bool needsRelocation() const {return needs_relocation_;}
-   void markAsNeedingRelocation(bool value) { needs_relocation_ = value; }
    bool canBeRelocated() const { return canBeRelocated_; }
-   // Given an address in a different version, find the equivalent address here.
-   Address equivAddr(int_function *other_func, Address addrInOther) const;
-   
-   Address offsetInOriginal(Address offsetInSelf) const;
-   Address offsetInSelf(Address offsetInOriginal) const;
-   // If we've relocated since the last time someone asked
-   unsigned version() const { return version_; }
-
-   void *getPtrToOrigInstruction(Address addr) const;
-
-   bool hasBeenRelocated() const { return (relocatedFuncs_.size() != 0); }
+   int version() const { return version_; }
 
    ////////////////////////////////////////////////
    // Misc
@@ -362,14 +410,38 @@ class int_function : public codeRange {
    bool * usedFPregs;
 #endif
 
+#if defined(cap_relocation)
+   // These are defined in reloc-func.C to keep large chunks of
+   // functionality separate!
+
+   // Deceptively simple... take a list of requested changes,
+   // and make a copy of the function somewhere out in space.
+   // Defaults to the first version of the function = 0
+   bool relocationGenerate(pdvector<funcMod *> &mods, int version = 0);
+   // The above gives us a set of basic blocks that have little
+   // code segments. Install them in the address space....
+   bool relocationInstall();
+   // Check whether we can overwrite...
+   bool relocationCheck(pdvector<Address> &checkPCs);
+   // And overwrite code with jumps to the relocated version
+   bool relocationLink(pdvector<codeRange *> &overwritten_objs);
+
+   // Cleanup code: remove (back to) the latest installed version...
+   bool relocationInvalidate();
+
+   // A top-level function; for each instPoint, see if we need to 
+   // relocate the function.
+   bool expandForInstrumentation();
+
+   pdvector<funcMod *> &enlargeMods() { return enlargeMods_; }
+
+#endif
+
  private:
 
    ///////////////////// Basic func info
-   Address addr_; // Absolute address
-   unsigned size_;             /* the function size, in bytes, used to
-                                  define the function boundaries. This may not
-                                  be exact, and may not be used on all 
-                                  platforms. */
+   Address addr_; // Absolute address of the start of the function
+
    image_func *ifunc_;
    mapped_module *mod_; // This is really a dodge; translate a list of
 			// image_funcs to int_funcs
@@ -385,58 +457,73 @@ class int_function : public codeRange {
    pdvector<instPoint*> callPoints_;	/* pointer to the calls */
    pdvector<instPoint*> arbitraryPoints_;	       /* pointer to the calls */
 
-   pdvector<int_function *>relocatedFuncs_; // Pointer to relocated
-                                            // versions (which may
-                                            // have been
-                                            // since relocated)
-   // Does not include shift
-   codeRangeTree relocOffsetsFwd_; // When we relocate, instructions
-                               // move. This assumes that they stay at an
-                               // offset from the original (not, say,
-                               // reorganized completely).
-                               // Offsets are from the previous version.
-   // Includes shift
-   codeRangeTree relocOffsetsBkwd_; // We need to be able to calculate
-                                // both directions -- given an addr in
-                                // me, find the equivalent in the
-                                // original; and given an addr in the
-                                // original, find the equiv in
-                                // me. AFAIK, we need two trees to do
-                                // this, one which includes the shift
-                                // (so I can look up an addr in "me")
-                                // and one that does _not_ (so I can
-                                // look up an addr in the original).
-
-   int_function *previousFunc_;  // And back pointer
-   // these are for relocated functions
-   bool needs_relocation_;	   // true if func will be relocated when instr
-
    bool canBeRelocated_;           // True if nothing prevents us from
-   // relocating function
+                                   // relocating the function
 
-   void *code_;
+#if defined(cap_relocation)
+   // Status tracking variables
+   int generatedVersion_;
+   int installedVersion_;
+   int linkedVersion_;
 
-   // Misc
+   // We want to keep around expansions for instrumentation
+   pdvector<funcMod *> enlargeMods_;
+#endif
 
-   unsigned version_;
+   // Used to sync with instPoints
+   int version_;
+
+
+   codeRangeTree blocksByAddr_;
+   void addBBLInstance(bblInstance *instance);
+   void deleteBBLInstance(bblInstance *instance);
 
 #ifndef BPATCH_LIBRARY
    resource *funcResource;
 #endif
 };
 
-// Breadth-first iterator
-class funcIterator {
-  friend class int_function;
+// All-purpose; use for function relocation, actual function
+// replacement, etc.
+class functionReplacement : public codeRange {
+
  public:
-  funcIterator(int_function *startFunc);
-  int_function *operator*();
-  // postfix increment
-  int_function *operator++(int);
+    functionReplacement(int_basicBlock *sourceBlock,
+                        int_basicBlock *targetBlock,
+                        unsigned sourceVersion = 0,
+                        unsigned targetVersion = 0);
+    ~functionReplacement() {};
+
+    void *getPtrToInstruction(Address addr) const { assert(0); return NULL; }
+    unsigned maxSizeRequired();
+
+    bool generateFuncRep();
+    bool installFuncRep();
+    bool checkFuncRep(pdvector<Address> &checkPCs);
+    bool linkFuncRep(pdvector<codeRange *> &overwrittenObjs);
+    void removeFuncRep();
+    
+    bool overwritesMultipleBlocks();
+
+    Address get_address_cr() const;
+    unsigned get_size_cr() const;
 
  private:
-  pdvector<int_function *> unusedFuncs_;
-  unsigned index;
+    codeGen jumpToRelocated;
+    codeGen origInsns;
+
+    int_basicBlock *sourceBlock_;
+    int_basicBlock *targetBlock_;
+
+    // If no relocation, these will be zero.
+    unsigned sourceVersion_;
+    unsigned targetVersion_;
+
+    // We may need more room than there is in a block;
+    // this makes things "interesting".
+    bool overwritesMultipleBlocks_; 
 };
+
+
 
 #endif /* FUNCTION_H */
