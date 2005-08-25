@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.5 2005/08/24 17:24:05 rutar Exp $
+// $Id: miniTramp.C,v 1.6 2005/08/25 22:45:47 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -144,7 +144,7 @@ bool miniTramp::generateMT() {
     inst_printf("AST pointer is %p\n", ast_);
 
     // This can be called multiple times
-    if (miniTrampCode_()) return true;
+    if (miniTrampCode_ != NULL) return true;
 
     miniTrampCode_.allocate(MAX_MINITRAMP_SIZE);
     
@@ -598,4 +598,14 @@ bool miniTramp::catchupRequired(miniTramp *curMT, miniTramp *newMT) {
     
     // TODO INLINE
     return false;
+}
+
+void *miniTrampInstance::getPtrToInstruction(Address addr) const {
+    if (!installed_) return NULL;
+    if (addr < trampBase) return NULL;
+    if (addr >= (trampBase + mini->returnOffset)) return NULL;
+
+    addr -= trampBase;
+    assert(mini->miniTrampCode_ != NULL);
+    return mini->miniTrampCode_.get_ptr(addr);
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.h,v 1.3 2005/08/08 22:39:27 bernat Exp $
+// $Id: miniTramp.h,v 1.4 2005/08/25 22:45:48 bernat Exp $
 
 #ifndef MINI_TRAMP_H
 #define MINI_TRAMP_H
@@ -96,6 +96,7 @@ class miniTrampInstance : public generatedCodeObject {
   Address get_address_cr() const { return trampBase; }
   unsigned get_size_cr() const; // needs miniTramp and is so defined
                                 // in .C file
+  void *getPtrToInstruction(Address addr) const;
 
   Address uninstrumentedAddr() const;
   
