@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.201 2005/08/11 21:20:06 bernat Exp $
+// $Id: aix.C,v 1.202 2005/08/25 22:45:07 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -2046,21 +2046,18 @@ void process::copyDanglingMemory(process *parent) {
     // Get all of the multiTramps and recopy the jumps
     // (copied from parent space)
 
-    pdvector<codeRange *> tramps;
-    multiTramps_.elements(tramps);
+    pdvector<codeRange *> mods;
+    modifiedAreas_.elements(mods);
 
-    for (unsigned j = 0; j < tramps.size(); j++) {
-        instArea *area = dynamic_cast<instArea *>(tramps[j]);
-        assert(area);
+    for (unsigned j = 0; j < mods.size(); j++) {
+        unsigned char buffer[mods[j]->get_size_cr()];
 
-        unsigned char buffer[area->get_size_cr()];
-
-        parent->readDataSpace((void *)area->get_address_cr(),
-                      area->get_size_cr(),
-                      (void *)buffer, true);
-        writeDataSpace((void *)area->get_address_cr(),
-                              area->get_size_cr(),
-                              (void *)buffer);
+        parent->readDataSpace((void *)mods[j]->get_address_cr(),
+                              mods[j]->get_size_cr(),
+                              (void *)buffer, true);
+        writeDataSpace((void *)mods[j]->get_address_cr(),
+                       mods[j]->get_size_cr(),
+                       (void *)buffer);
     }
 }
 
