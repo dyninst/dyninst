@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.183 2005/08/11 21:20:25 bernat Exp $
+// $Id: solaris.C,v 1.184 2005/08/25 22:45:57 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1059,9 +1059,6 @@ void print_read_error_info(const relocationEntry entry,
       logLine(errorLine);    
       sprintf(errorLine , "              prettyName %s\n",
               (target_pdf->symTabName()).c_str());
-      logLine(errorLine);
-      sprintf(errorLine , "              size %i\n",
-              target_pdf->getSize());
       logLine(errorLine);
       sprintf(errorLine , "              addr 0x%lx\n",
               target_pdf->getAddress());
