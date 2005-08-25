@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.141 2005/08/11 21:20:26 bernat Exp $
+// $Id: unix.C,v 1.142 2005/08/25 22:46:48 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -478,6 +478,18 @@ int handleSigTrap(const procevent &event) {
         }
     }
 
+    //////////////////////////////
+    // Trap safety section
+    //////////////////////////////
+    Frame af = event.lwp->getActiveFrame();
+    if (proc->trampTrapMapping.defines(af.getPC())) {
+        event.lwp->changePC(proc->trampTrapMapping[af.getPC()], NULL);
+        fprintf(stderr, "Trapping from 0x%lx to 0x%lx\n",
+                af.getPC(), proc->trampTrapMapping[af.getPC()]);
+        proc->continueProc();
+        return 1;
+    }
+
     
 ///////////////////////////////////
 // Inferior RPC section
@@ -598,6 +610,7 @@ int handleSigCritical(const procevent &event) {
        signal_printf("Critical signal received, spinning to allow debugger to attach\n");
        while(1) sleep(10);
    }
+   fprintf(stderr, "Process dying with critical signal...\n");
    proc->dumpImage("imagefile");
    forwardSigToProcess(event);
    return 1;
