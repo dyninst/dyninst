@@ -84,6 +84,9 @@ class ThreadLibrary;
 
 class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eventLock {
     friend class ThreadLibrary;
+    friend class BPatch_module; // access to findOrCreate...
+    friend class process; // Which also needs findOrCreate because we upcall when a library is loaded.
+
     BPatch_process *proc;
     char *defaultNamespacePrefix;
 
@@ -94,8 +97,7 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     BPatch_image(BPatch_process *_proc);
     BPatch_image();
     virtual ~BPatch_image();
-    bool                 ModuleListExist();
-    void                 addModuleIfExist(BPatch_module *bpmod);
+
     BPatch_variableExpr	*createVarExprByName(BPatch_module *mod, const char *name);
     void setDefaultNamespacePrefix(char *name) { defaultNamespacePrefix = name; }
     // End functions for internal use only
@@ -280,9 +282,10 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
 #endif
 
 private:
-    BPatch_Vector<BPatch_module *> *modlist;
+    BPatch_Vector<BPatch_module *> modlist;
     BPatch_module *defaultModule;
-    bool modules_parsed; // Is modlist up to date
+
+    BPatch_module *findOrCreateModule(mapped_module *base);
     
     AddrToVarExprHash *AddrToVarExpr;
 
