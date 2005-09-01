@@ -198,7 +198,7 @@ class InstrucIter {
                                bool isAddressInJmp );
 #else
   
-  void getMultipleJumpTargets( BPatch_Set< Address >& result );
+  bool getMultipleJumpTargets( BPatch_Set< Address >& result );
 
 #endif
 

@@ -54,6 +54,7 @@
 #include "symtab.h"
 #include "instPoint.h"
 #include "InstrucIter.h"
+#include "mapped_object.h"
 
 #include "BPatch_memoryAccess_NP.h"
 #include "BPatch_Set.h"
@@ -950,7 +951,7 @@ Address InstrucIter::getBranchTargetAddress()
 }
 
 
-void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
+bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 {
     Address initialAddress = current;
     Address TOC_address = 0;
@@ -978,7 +979,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
     if( !hasPrev() ) {
         result += (initialAddress + instruction::size());
         setCurrentAddress(initialAddress);
-        return;
+        return false;
     }
     
     // Check if the previous instruction is a move to CTR or LR;
@@ -993,7 +994,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
     } else {
         result += (initialAddress + instruction::size());
         setCurrentAddress(initialAddress);
-        return;
+        return false;
     }
     
     // In the pattern we've seen, if the instruction previous to this is
@@ -1074,7 +1075,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
     if (tableStartAddress == 0)  {
         //fprintf(stderr, "No table start addr, returning\n"); 
         setCurrentAddress(initialAddress);
-        return;
+        return false;
     }
 
     setCurrentAddress(initialAddress);
@@ -1098,7 +1099,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
         result += (initialAddress + instruction::size());
         //fprintf(stderr, "No maximum, returning\n");
         setCurrentAddress(initialAddress);
-        return;
+        return false;
     }
 
     Address jumpStart = 0;
@@ -1114,7 +1115,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
         if (jumpStartPtr == NULL ||
             (jumpStart != (initialAddress+instruction::size()))) {
             setCurrentAddress(initialAddress);
-            return;
+            return false;
         }
         void *tableStartPtr = img_->getPtrToData(tableStartAddress);
         //fprintf(stderr, "tableStartPtr (0x%x) = %p\n", tableStartAddress, tableStartPtr);
@@ -1122,7 +1123,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
             tableStart = *((Address *)tableStartPtr);
         else {
             setCurrentAddress(initialAddress);                    
-            return;
+            return false;
         }
         //fprintf(stderr, "... tableStart 0x%x\n", tableStart);
 
@@ -1197,7 +1198,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
         }
     }        
     setCurrentAddress(initialAddress);
-
+    return true;
 }
 
 bool InstrucIter::delayInstructionSupported()

@@ -53,6 +53,7 @@
 #include "arch.h"
 #include "util.h"
 #include "process.h"
+#include "mapped_object.h"
 #include "symtab.h"
 #include "instPoint.h"
 #include "InstrucIter.h"
@@ -221,7 +222,7 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
     return in;
 }
 
-void InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses ) {
+bool InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses ) {
     /* FIXME: we also see a pattern (in libc) in which the address calculated from
        the gp is the address of the table, not of the location to look it up.  (One
        less indirection, in other words.)  TODO: find out if this is just what
@@ -259,7 +260,7 @@ void InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
     Address jumpTableOffset = 0;
     do {
         /* Rewind one instruction. */
-        if( ! hasPrev() ) { return; } (*this)--;
+        if( ! hasPrev() ) { return false; } (*this)--;
         
         /* Acquire it. */
         instruction insn = getInstruction();
@@ -294,7 +295,7 @@ void InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
     uint64_t maxTableLength = 0;
     do {
         /* Rewind one instruction. */
-        if( ! hasPrev() ) { return; } (*this)--;
+        if( ! hasPrev() ) { return false; } (*this)--;
         
         /* Acquire it. */
         instruction insn = getInstruction();
@@ -320,12 +321,12 @@ void InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
 
     if (img_) {
         void *ptr = img_->getPtrToData(jumpTableAddressAddress);
-        if (!ptr) return;
+        if (!ptr) return false;
         jumpTableAddress = *((Address *)ptr);
     }
     else {
         void *ptr = proc_->getPtrToInstruction(jumpTableAddressAddress);
-        if (!ptr) return;
+        if (!ptr) return false;
         jumpTableAddress = *((Address *)ptr);
     }
         
@@ -400,6 +401,7 @@ void InstrucIter::getMultipleJumpTargets( BPatch_Set<Address> & targetAddresses 
     } /* end jump table iteration */
     
     setCurrentAddress( originalAddress );
+    return true;
 } /* end getMultipleJumpTargets() */
 
 bool InstrucIter::delayInstructionSupported()

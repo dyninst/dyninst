@@ -271,7 +271,7 @@ Address InstrucIter::getBranchTargetAddress() {
     return i.getTarget(current);
 }
 
-void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
+bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
     Address oldCurrent = current;
     while(hasMore()){
         instruction check = getInstruction();
@@ -300,7 +300,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
                             targetPtr = proc_->getPtrToInstruction(offset);
                         }
 
-                        if (targetPtr == NULL) break;
+                        if (targetPtr == NULL) return false;
 
                         // This is a horrid way to catch the end of the table;
                         // however, I don't know enough about SPARC to fix it.
@@ -330,19 +330,20 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result){
                             // What?
                             valid = false;
                         }
-                        if (!valid) break;
+                        if (!valid) return false;
 
                         result += target;
                         offset += instruction::size();
                     }
 
                     setCurrentAddress(oldCurrent);
-                    return;
+                    return true;
                 }
             }
         (*this)--;
     }
     setCurrentAddress(oldCurrent);
+    return false;
 }
 bool InstrucIter::delayInstructionSupported(){
   return true;
