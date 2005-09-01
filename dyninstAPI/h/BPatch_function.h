@@ -83,15 +83,15 @@ class BPATCH_DLL_EXPORT BPatch_function: public BPatch_sourceObj, public BPatch_
     BPatch_flowGraph* cfg;
     bool cfgCreated;
 
-    void *getBaseAddrRelative() const;
     BPatch_point* createMemInstPoint(void *addr, BPatch_memoryAccess* ma);
+
+    int_function *func;
 
 public:
     virtual	~BPatch_function();
 
     // The following are for internal use by the library only:
-    int_function *func;
-    int_function *lowlevel_func() { return func; }
+    int_function *lowlevel_func() const { return func; }
     int_function *PDSEP_pdf() const { return func;}
     BPatch_process *getProc() const { return proc; }
 
