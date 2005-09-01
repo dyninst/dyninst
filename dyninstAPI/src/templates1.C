@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-//$Id: templates1.C,v 1.68 2005/08/03 05:28:28 bernat Exp $
+//$Id: templates1.C,v 1.69 2005/09/01 22:18:45 bernat Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #pragma implementation("Dictionary.h")
@@ -137,12 +137,16 @@ class image_func;
 template class  dictionary_hash <pdstring, pdvector<image_func*> *>;
 template class  dictionary_hash <Address, image_func*>;
 template class  pdvector<dictionary_hash <Address, image_func*>::entry>;
+template class  dictionary_hash<const image_func *, int_function *>;
+template class  pdvector<dictionary_hash<const image_func *, int_function *>::entry>;
 
 class image_variable;
 template class  dictionary_hash <Address, image_variable*>;
 template class  pdvector<dictionary_hash <Address, image_variable*>::entry>;
 template class  dictionary_hash <pdstring, pdvector<image_variable*>*>;
 template class  pdvector<dictionary_hash <pdstring, pdvector<image_variable*> *>::entry>;
+template class  dictionary_hash<const image_variable *, int_variable *>;
+template class  pdvector<dictionary_hash<const image_variable *, int_variable *>::entry>;
 
 #include "symtab.h" // supportedLanguages is a typedef; could move.
 template class  dictionary_hash <pdstring, supportedLanguages>;

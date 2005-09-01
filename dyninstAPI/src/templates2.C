@@ -40,7 +40,7 @@
  */
 
 
-// $Id: templates2.C,v 1.54 2005/08/03 23:01:06 bernat Exp $
+// $Id: templates2.C,v 1.55 2005/09/01 22:18:46 bernat Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -168,11 +168,11 @@ template class std::deque< long int >;
 template class std::stack< long int >;
 #include <map>
 template class std::map< unsigned int, char * >;
+#endif
 
 class BPatch_typeCollection;
 template class dictionary_hash< pdstring, BPatch_typeCollection * >;
 template class pdvector<dictionary_hash <pdstring, BPatch_typeCollection *>::entry>;
-#endif
 
 /* For use with regexes.  gcc 2.95.3 on alpha needs these to be made explicit. */
 template class pdvector< pdpair< pdstring, int_function *> >;
