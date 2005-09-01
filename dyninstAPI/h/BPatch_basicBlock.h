@@ -114,7 +114,7 @@ private:
          * i.e. the first Address that is outside the block  
          * needed on x86 because of variable length instructions
          */
-        unsigned long endAddr;
+        unsigned long endAddress;
 
 	/** set of basic blocks that this basicblock dominates immediately*/
 	BPatch_Set<BPatch_basicBlock*>* immediateDominates;
@@ -364,44 +364,10 @@ public:
 
         unsigned long,getLastInsnAddress,() CONST_EXPORT);
        
-        //basic blocks on x86 store relative addresses
-        //we manipulate them with these functions
-
-	/** BPatch_basicBlock::getRelStart   */
-
+        /** BPatch_basicBlock::getEndAddress    */
+        
         API_EXPORT(Int, (),
-
-        unsigned long,getRelStart,() CONST_EXPORT);
-
-	/** BPatch_basicBlock::getRelLast   */
-
-        API_EXPORT(Int, (),
-
-        unsigned long,getRelLast,() CONST_EXPORT);
-
-	/** BPatch_basicBlock::getRelEnd   */
-
-        API_EXPORT(Int, (),
-
-        unsigned long,getRelEnd,() CONST_EXPORT);
-
-	/** BPatch_basicBlock::setRelStart   */
-
-        API_EXPORT(Int, (sAddr),
-
-        unsigned long,setRelStart,(unsigned long sAddr));
-
-	/** BPatch_basicBlock::setRelLast   */
-
-        API_EXPORT(Int, (eAddr),
-
-        unsigned long,setRelLast,(unsigned long eAddr));
-
-	/** BPatch_basicBlock::setRelEnd   */
-
-        API_EXPORT(Int, (eAddr),
-
-        unsigned long,setRelEnd,(unsigned long eAddr));
+        unsigned long, getEndAddress, () CONST_EXPORT);
 
 	/** BPatch_basicBlock::addSource   */
 
