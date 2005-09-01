@@ -52,12 +52,12 @@
 class BPatch_basicBlockLoop;
 
 void BPatch_loopTreeNode::BPatch_loopTreeNodeCtor(BPatch_basicBlockLoop *l, 
-					     const char *n) {
+                                                  const char *n)
+{
     loop = l;
     hierarchicalName = NULL;
     if (n != NULL) {
-	hierarchicalName = new char[strlen(n)+1]; 
-	strcpy(hierarchicalName, n);
+        hierarchicalName = strdup(n);
     }
 }
  
@@ -74,7 +74,7 @@ const char *
 BPatch_loopTreeNode::nameInt()
 {
     assert(loop != NULL);
-    return (const char *)hierarchicalName; 
+    return hierarchicalName; 
 }
 
 unsigned int
@@ -84,12 +84,11 @@ BPatch_loopTreeNode::numCalleesInt() {
 
 
 void BPatch_loopTreeNode::BPatch_loopTreeNode_dtor() {
-    delete loop;
-
+    // Loops are deleted by BPatch_flowGraph...
     for (unsigned i = 0; i < children.size(); i++)
 	delete children[i];
-
-    delete[] hierarchicalName;
+    if (hierarchicalName)
+        free(hierarchicalName);
     // don't delete callees!
 }
 
