@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.332 2005/08/25 22:45:52 bernat Exp $
+/* $Id: process.h,v 1.333 2005/09/01 22:18:39 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -54,14 +54,13 @@
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
-#include "dyninstAPI/src/Object.h"
 #include "common/h/String.h"
 #include "common/h/vectorSet.h"
 #include "common/h/Dictionary.h"
 #include "common/h/Types.h"
 #include "common/h/Timer.h"
-#include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/os.h"
+#include "dyninstAPI/src/inst.h" // callWhen
 #include "dyninstAPI/src/frame.h"
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/syscalltrap.h"
@@ -70,7 +69,7 @@
 #include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/codeRange.h"
 
-#include "dyninstAPI/src/symtab.h"
+//#include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/imageUpdate.h"
 
 #include "dyninstAPI/src/infHeap.h"
@@ -90,8 +89,6 @@
 #include <sys/procfs.h>
 #endif
 
-#include "dyninstAPI/src/mapped_object.h"
-#include "dyninstAPI/src/dynamiclinking.h"
 
 #if defined( ia64_unknown_linux2_4 )
 #include <libunwind.h>
@@ -123,14 +120,24 @@ class multiTramp;
 class baseTramp;
 class miniTramp;
 class generatedCodeObject;
-class dyn_thread;
-// We track so we can disable mutations; these use a different mechanism
-// than instrumentation. UNIFY.
 class replacedFunctionCall;
 class functionReplacement;
-// TODO a kludge - to prevent recursive includes
-class image;
+
+class dyn_thread;
 class dyn_lwp;
+
+class Object;
+class relocationEntry;
+class fileDescriptor;
+class Symbol;
+class image;
+class mapped_object;
+class mapped_module;
+class dynamic_linking;
+class int_variable;
+class int_function;
+
+
 class rpcMgr;
 class syscallNotification;
 
@@ -320,8 +327,7 @@ char * systemPrelinkCommand;
   }
 
   // Appears to be the system pointer size. 
-  // FIXME, someone... please...
-  unsigned getAddressWidth() { return mapped_objects[0]->parse_img()->getObject().getAddressWidth(); }
+  unsigned getAddressWidth(); 
 
   // The process keeps maps of valid (i.e. allocated) address ranges
   bool isValidAddress(Address);
@@ -958,13 +964,13 @@ private:
     mapped_object *getAOut() { assert(mapped_objects.size()); return mapped_objects[0];}
     
  public:
-  // Needed by instPoint
-  // hasBeenBound: returns true if the runtime linker has bound the
-  // function symbol corresponding to the relocation entry in at the address 
-  // specified by entry and base_addr.  If it has been bound, then the callee 
-  // function is returned in "target_pdf", else it returns false. 
-  bool hasBeenBound(const relocationEntry entry, int_function *&target_pdf, 
-                    Address base_addr) ;
+    // Needed by instPoint
+    // hasBeenBound: returns true if the runtime linker has bound the
+    // function symbol corresponding to the relocation entry in at the address 
+    // specified by entry and base_addr.  If it has been bound, then the callee 
+    // function is returned in "target_pdf", else it returns false. 
+    bool hasBeenBound(const relocationEntry &entry, int_function *&target_pdf, 
+                      Address base_addr) ;
  private:
 
   bool isRunning_() const;
