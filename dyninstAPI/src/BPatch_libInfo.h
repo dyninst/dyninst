@@ -67,6 +67,11 @@ class BPatch_funcMap {
       { return chart.defines(func); }
    void add(const int_function *func, BPatch_function *bfunc) 
       { chart[func] = bfunc; }
+   void undefine(const int_function *func) {
+       if (func == NULL) return;
+       if (chart.defines(func))
+           chart.undef(func);
+   }
    BPatch_function *get(const int_function *func) 
       { return chart[func]; }
    void map(bool (*f)(BPatch_function *, void *), void *data ) {
