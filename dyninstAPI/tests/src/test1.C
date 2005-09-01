@@ -2161,32 +2161,57 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 
     BPatch_function *f = bpfv[0];
 
-    BPatch_point *p = NULL;
-    bool found_one = false;
-
-    if (f->getSize() == 0) {
+    // We really don't want to use function size... grab a flowgraph and
+    // do this right.
+    BPatch_flowGraph *cfg = f->getCFG();
+    if (!cfg) {
 	fprintf(stderr, "**Failed** test #20 (instrumentation at arbitrary points)\n");
-	fprintf(stderr, "    getSize returned a size of 0 for the function \"func20_2\"\n");
+	fprintf(stderr, "    no flowgraph for function 20_2\n");
 	exit(1);
     }
+
+    BPatch_point *p = NULL;
+    bool found_one = false;
 
     /* We expect certain errors from createInstPointAtAddr. */
     BPatchErrorCallback oldError =
 	bpatch->registerErrorCallback(createInstPointError);
 
-    for (unsigned int i = 0; i < f->getSize(); i+= 1) {
-	p = appImage->createInstPointAtAddr((char *)f->getBaseAddr() + i);
+    BPatch_Set<BPatch_basicBlock *> blocks;
+    if (!cfg->getAllBasicBlocks(blocks))
+        assert(0); // This can't return false :)
+    if (blocks.size() == 0) {
+	fprintf(stderr, "**Failed** test #20 (instrumentation at arbitrary points)\n");
+	fprintf(stderr, "    no blocks for function 20_2\n");
+	exit(1);
+    }
+    
 
-	if (p) {
-	    if (p->getPointType() == BPatch_arbitrary) {
-		found_one = true;
-		if (appThread->insertSnippet(call20_1Expr, *p) == NULL) {
-		    fprintf(stderr,
-		      "Unable to insert snippet into function \"func20_2.\"\n");
-		    exit(1);
-		}
-	    }
-	}
+    BPatch_Set<BPatch_basicBlock *>::iterator blockIter = blocks.begin();
+    for (; blockIter != blocks.end(); blockIter++) {
+        BPatch_basicBlock *block = *blockIter;
+        assert(block);
+
+        for (unsigned long i = block->getStartAddress();
+             i < block->getEndAddress();
+             i++) {
+            // This is the second stupidest way to do this. The stupidest 
+            // is the old way: from start to (start+size) by 1. This at least
+            // uses basic blocks. We _should_ be using an instruction iterator
+            // of some sort...
+            p = appImage->createInstPointAtAddr((char *)block->getStartAddress());
+            
+            if (p) {
+                if (p->getPointType() == BPatch_arbitrary) {
+                    found_one = true;
+                    if (appThread->insertSnippet(call20_1Expr, *p) == NULL) {
+                        fprintf(stderr,
+                                "Unable to insert snippet into function \"func20_2.\"\n");
+                        exit(1);
+                    }
+                }
+            }
+        }
     }
 
     bpatch->registerErrorCallback(oldError);
@@ -2217,7 +2242,7 @@ void readyTest21or22(BPatch_thread *appThread)
 	if (! appThread->loadLibrary(libA)) {
 	     fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
 	     fprintf(stderr, "  Mutator couldn't load %s into mutatee\n", libNameA);
-	     exit(1);
+             exit(1);
 	}
 	if (! appThread->loadLibrary(libB)) {
 	     fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
@@ -2264,7 +2289,7 @@ void mutatorTest21(BPatch_thread *, BPatch_image *appImage)
 	 else if (!strncmp(libNameB, buf, strlen(libNameB)))
 	      modB = m;
     }
-    if (! modA || ! modB) {
+    if (! modA || ! modB ) {
 	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
 	 fprintf(stderr, "  Mutator couldn't find shlib in mutatee\n");
          for (unsigned int j = 0; j < mods->size(); ++j) {
