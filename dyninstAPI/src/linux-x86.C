@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.75 2005/08/25 22:45:43 bernat Exp $
+// $Id: linux-x86.C,v 1.76 2005/09/01 22:18:26 bernat Exp $
 
 #include <fstream>
 
@@ -73,6 +73,8 @@
 #include "dyninstAPI/src/emit-x86.h"
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/InstrucIter.h"
+
+#include "dyninstAPI/src/mapped_object.h" 
 
 #ifndef BPATCH_LIBRARY
 #include "common/h/Time.h"
@@ -940,8 +942,8 @@ Frame Frame::getCallerFrame()
          // just skip everything else and assume we've got the correct return
          // value (fingers crossed).
          int_function *cur_func = getProc()->findFuncByAddr(pc_);
-         if (cur_func != NULL && callee != NULL &&
-             cur_func->match(callee))
+         if (cur_func != NULL &&
+             cur_func == callee)
 	   {
 	     newPC = estimated_ip;
 	     newFP = estimated_fp;
@@ -1398,7 +1400,7 @@ void print_read_error_info(const relocationEntry entry,
 // function symbol corresponding to the relocation entry in at the address
 // specified by entry and base_addr.  If it has been bound, then the callee 
 // function is returned in "target_pdf", else it returns false.
-bool process::hasBeenBound(const relocationEntry entry, 
+bool process::hasBeenBound(const relocationEntry &entry, 
 			   int_function *&target_pdf, Address base_addr) {
 
     if (status() == exited) return false;

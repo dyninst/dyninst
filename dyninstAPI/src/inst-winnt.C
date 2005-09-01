@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-winnt.C,v 1.21 2005/08/25 22:45:38 bernat Exp $
+// $Id: inst-winnt.C,v 1.22 2005/09/01 22:18:24 bernat Exp $
 
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/os.h"
@@ -155,7 +155,7 @@ void initLibraryFunctions()
 
 // hasBeenBound: returns false
 // dynamic linking not implemented on this platform
-bool process::hasBeenBound(const relocationEntry ,int_function *&, Address ) {
+bool process::hasBeenBound(const relocationEntry &,int_function *&, Address ) {
     return false;
 }
 

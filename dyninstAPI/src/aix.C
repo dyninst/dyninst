@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.202 2005/08/25 22:45:07 bernat Exp $
+// $Id: aix.C,v 1.203 2005/09/01 22:18:08 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -64,6 +64,9 @@
 #include "dyninstAPI/src/inst-power.h" // Tramp constants
 #include "dyninstAPI/src/multiTramp.h"
 #include "dyninstAPI/src/InstrucIter.h"
+
+#include "mapped_module.h"
+#include "mapped_object.h"
 
 #if defined(AIX_PROC)
 #include <sys/procfs.h>
@@ -2087,7 +2090,7 @@ int_function *instPoint::findCallee() {
           return NULL;
       }
       for (unsigned i = 0; i < possibles->size(); i++) {
-          if ((*possibles)[i]->match(icallee)) {
+          if ((*possibles)[i]->ifunc() == icallee) {
               callee_ = (*possibles)[i];
               return callee_;
           }

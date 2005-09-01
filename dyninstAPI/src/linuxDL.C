@@ -549,8 +549,9 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs) {
     do {
 	pdstring obj_name = pdstring(link_elm->l_name());
         if (obj_name == "" &&
-            link_elm->l_addr() == 0)
+            link_elm->l_addr() == 0) {
             continue;
+        }
 
 	if (!link_elm->is_valid()) {
 	    delete link_elm;
@@ -558,7 +559,6 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs) {
             startup_printf("Link element invalid! (2)\n");
 	    return 0;
 	}
-        
         descs.push_back(fileDescriptor(obj_name, 
                                        link_elm->l_addr(), link_elm->l_addr(),
                                        true));

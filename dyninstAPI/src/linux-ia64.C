@@ -50,6 +50,10 @@
 #include "inst-ia64.h"
 #include "process.h"
 #include "dyn_lwp.h"
+#include "function.h"
+
+// For relocationEntry
+#include "Object.h"
 
 /* For emitInferiorRPC*(). */
 #include "rpcMgr.h"
@@ -755,15 +759,15 @@ int dyn_lwp::hasReachedSyscallTrap() {
 	} /* end hasReachedSyscallTrap() */
 
 /* Required by linux.C */
-bool process::hasBeenBound( const relocationEntry entry, int_function * & target_pdf, Address base_addr ) {
+bool process::hasBeenBound( const relocationEntry &entry, int_function * & target_pdf, Address base_addr ) {
 	/* A PLT entry always looks up a function descriptor in the FD table in the .IA_64.pltoff section; if
 	   the function hasn't been bound yet, that FD's function pointer will point to another PLT entry.
 	   (Which will jump to the first, special PLT entry that calls the linker.) 
 	   
 	   The relocation entry points directly to the descriptor, so only a single indirection is necessary. */
 	   
-	Address gotAddress = entry.rel_addr() + base_addr;
-	assert( gotAddress % 16 == 0 );
+    Address gotAddress = entry.rel_addr() + base_addr;
+    assert( gotAddress % 16 == 0 );
 	// /* DEBUG */ fprintf( stderr, "hasBeenBound(): checking entry at 0x%lx\n", gotAddress );
 
 	Address functionAddress;

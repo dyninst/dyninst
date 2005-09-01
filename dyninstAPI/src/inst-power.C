@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.229 2005/08/25 22:45:36 bernat Exp $
+ * $Id: inst-power.C,v 1.230 2005/09/01 22:18:23 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -2558,7 +2558,7 @@ bool doNotOverflow(int value)
 // quite make sense. Given the target address, we can scan the function
 // lists until we find the desired function.
 
-bool process::hasBeenBound(const relocationEntry ,int_function *&, Address ) {
+bool process::hasBeenBound(const relocationEntry &,int_function *&, Address ) {
   // What needs doing:
   // Locate call instruction
   // Decipher call instruction (static/dynamic call, global linkage code)

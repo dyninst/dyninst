@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: infHeap.h,v 1.2 2005/08/05 22:23:07 bernat Exp $
+/* $Id: infHeap.h,v 1.3 2005/09/01 22:18:22 bernat Exp $
  * Inferior heap primitives, moved from process.h to ease compilation
  */
 
@@ -50,6 +50,7 @@
 #include "common/h/vectorSet.h"
 #include "common/h/Dictionary.h"
 #include "common/h/Types.h"
+#include "util.h"
 
 typedef enum { HEAPfree, HEAPallocated } heapStatus;
 // Bit pattern...
@@ -103,13 +104,6 @@ class disabledItem {
   disabledItem(const disabledItem &src) :
     block(src.block), pointsToCheck(src.pointsToCheck) {}
 
-  // TODO: unused?
-  disabledItem(Address ip, inferiorHeapType iht,
-               const pdvector<addrVecType> &ipts) :
-    block(ip, 0, iht), pointsToCheck(ipts) { 
-    bperr( "error: unused disabledItem ctor\n");
-    assert(0);
-  }
   disabledItem &operator=(const disabledItem &src) {
     if (&src == this) return *this; // check for x=x    
     block = src.block;

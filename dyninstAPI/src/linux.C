@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.174 2005/08/25 22:45:44 bernat Exp $
+// $Id: linux.C,v 1.175 2005/09/01 22:18:27 bernat Exp $
 
 #include <fstream>
 
@@ -72,6 +72,11 @@
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/util.h" // getCurrWallTime
 #include "common/h/pathName.h"
+#include "mapped_object.h"
+#include "mapped_module.h"
+
+#include "dynamiclinking.h"
+
 #ifndef BPATCH_LIBRARY
 #include "common/h/Time.h"
 #include "common/h/timing.h"
@@ -1483,8 +1488,8 @@ int getNumberOfCPUs()
 //Returns true if the function is part of the PLT table
 bool isPLT(int_function *f)
 {
-  const Object &obj = f->mod()->obj()->parse_img()->getObject();
-  return obj.is_offset_in_plt(f->ifunc()->getOffset());
+    const Object &obj = f->mod()->obj()->parse_img()->getObject();
+    return obj.is_offset_in_plt(f->ifunc()->getOffset());
 }
 
 // findCallee: finds the function called by the instruction corresponding
@@ -1522,7 +1527,7 @@ int_function *instPoint::findCallee() {
           return NULL;
       }
       for (unsigned i = 0; i < possibles->size(); i++) {
-          if ((*possibles)[i]->match(icallee)) {
+          if ((*possibles)[i]->ifunc() == icallee) {
               callee_ = (*possibles)[i];
               return callee_;
           }
