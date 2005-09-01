@@ -48,6 +48,9 @@
 #include "dwarf.h"
 #include "libdwarf.h"
 
+#include "mapped_module.h"
+#include "mapped_object.h"
+
 #include "BPatch_module.h"
 #include "BPatch_typePrivate.h"
 #include "BPatch_collections.h"
@@ -802,7 +805,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 			/* Try to find the function by its mangled name. */
 			Dwarf_Addr baseAddr = 0;
-			mapped_object* fileOnDisk = module->getModule()->obj();
+			mapped_object* fileOnDisk = module->lowlevel_mod()->obj();
 			const pdvector< int_function * > *ret_funcs = fileOnDisk->findFuncVectorByMangled(functionName);
 			pdvector<int_function *> functions;
 			if (ret_funcs) {
@@ -874,7 +877,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 					
 #if defined(ia64_unknown_linux2_4)
 				/* Convert location list to an AST for later code generation. */
-				newFunction->func->framePointerCalculator = convertFrameBaseToAST( locationList, listLength );
+				newFunction->lowlevel_func()->framePointerCalculator = convertFrameBaseToAST( locationList, listLength );
 #endif
 				
 				deallocateLocationList( dbg, locationList, listLength );
@@ -896,6 +899,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
 				assert( status == DW_DLV_OK );
 
+				parsing_printf("%s/%d: ret type %d\n",
+							   __FILE__, __LINE__, typeOffset);
 				returnType = module->getModuleTypes()->findOrCreateType( typeOffset );
 				newFunction->setReturnType( returnType );
 
@@ -1007,6 +1012,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				
 				/* The typeOffset forms a module-unique type identifier,
 				   so the BPatch_type look-ups by it rather than name. */
+				parsing_printf("%s/%d: %s/%d\n",
+							   __FILE__, __LINE__, variableName, typeOffset);
 				BPatch_type * variableType = module->getModuleTypes()->findOrCreateType( typeOffset );
 				dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 				
@@ -1087,6 +1094,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			
 				/* The typeOffset forms a module-unique type identifier,
 				   so the BPatch_type look-ups by it rather than name. */
+				parsing_printf("%s/%d: %s/%d\n",
+							   __FILE__, __LINE__, variableName, typeOffset);
 				BPatch_type * variableType = module->getModuleTypes()->findOrCreateType( typeOffset );
 
 				dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
@@ -1219,6 +1228,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			
 			/* The typeOffset forms a module-unique type identifier,
 			   so the BPatch_type look-ups by it rather than name. */
+			parsing_printf("%s/%d: %s/%d\n",
+						   __FILE__, __LINE__, parameterName, typeOffset);
 			BPatch_type * parameterType = module->getModuleTypes()->findOrCreateType( typeOffset );
 
 			dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
@@ -1303,6 +1314,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 
 				/* Look up the referenced type. */
+				parsing_printf("%s/%d: %s/%d\n",
+							   __FILE__, __LINE__, definedName, typeOffset);
 				referencedType = module->getModuleTypes()->findOrCreateType( typeOffset );
 				}
 
@@ -1335,6 +1348,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 			dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 			
+			parsing_printf("%s/%d: %s/%d\n",
+						   __FILE__, __LINE__, arrayName, typeOffset);
 			BPatch_type * elementType = module->getModuleTypes()->findOrCreateType( typeOffset );
 
 			/* Find the range(s) of the elements. */
@@ -1394,6 +1409,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 			dwarf_dealloc( dbg, scAttr, DW_DLA_ATTR );
 
+			parsing_printf("%s/%d: inherited %d\n",
+						   __FILE__, __LINE__, scOffset);
 			BPatch_type * superClass = module->getModuleTypes()->findOrCreateType( scOffset );
 
 			/* Acquire the visibility, if any.  DWARF calls it accessibility
@@ -1505,6 +1522,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 			dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 			
+			parsing_printf("%s/%d: %s/%d\n",
+						   __FILE__, __LINE__, memberName, typeOffset);
 			BPatch_type * memberType = module->getModuleTypes()->findOrCreateType( typeOffset );
 				
 			Dwarf_Attribute locationAttr;
@@ -1599,6 +1618,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				} else {			
 				status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
 				assert( status == DW_DLV_OK );
+				parsing_printf("%s/%d: %s/%d\n",
+							   __FILE__, __LINE__, typeName, typeOffset);
 				typeModified = module->getModuleTypes()->findOrCreateType( typeOffset );
 				typeSize = typeModified->getSize();
 
@@ -1638,6 +1659,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				} else {			
 				status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
 				assert( status == DW_DLV_OK );
+				parsing_printf("%s/%d: %s/%d\n",
+							   __FILE__, __LINE__, typeName, typeOffset);
 				typePointedTo = module->getModuleTypes()->findOrCreateType( typeOffset );
 
 				dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
@@ -1706,28 +1729,21 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 extern void pd_dwarf_handler( Dwarf_Error, Dwarf_Ptr );
 
 void BPatch_module::parseDwarfTypes() {
-  image * moduleImage = mod->obj()->parse_img();
-  assert( moduleImage != NULL );
-  const Object & moduleObject = moduleImage->getObject();
-  const char * fileName = moduleObject.getFileName();
-  // /* DEBUG */ const char * moduleFileName = mod->fileName().c_str();
-	// /* DEBUG */ fprintf( stderr, "%s[%d]: parsing object '%s' for module '%s'\n", __FILE__, __LINE__, fileName, moduleFileName );
+	const char *fileName = mod->obj()->fullName().c_str();
+	// Man do we do to a lot of trouble for this...
+	const Object &moduleObject = mod->obj()->parse_img()->getObject();
+	assert(fileName);
+	assert(moduleTypes);
 
-	/* Cache type collections on a per-image basis.  (Since BPatch_functions are solitons, we don't have to cache them.) */
-	static dictionary_hash< pdstring, BPatch_typeCollection * > fileToTypesMap( pdstring::hash );
-	if( fileToTypesMap.defines( fileName ) ) {
-		// /* DEBUG */ fprintf( stderr, "%s[%d]: found cache for file '%s' (module '%s')\n", __FILE__, __LINE__, fileName, moduleFileName );
-		this->moduleTypes = fileToTypesMap[ fileName ];
-
-		if (BPfuncs != NULL) {
-		   for (unsigned int i = 0; i < BPfuncs->size(); i++) {
-			  (*BPfuncs)[i]->fixupUnknown(this);
-		   }
+	if (moduleTypes->dwarfParsed()) {
+		BPatch_Vector<BPatch_function *> *bpfuncs = getProcedures(true);
+		assert(bpfuncs);
+		for (unsigned int i = 0; i < bpfuncs->size(); i++) {
+			(*bpfuncs)[i]->fixupUnknown(this);
 		}
-
+		delete bpfuncs;
 		return;
-		}
-
+	}
 	/* Start the dwarven debugging. */
 	Dwarf_Debug dbg;
 
@@ -1836,16 +1852,14 @@ void BPatch_module::parseDwarfTypes() {
 		} /* end iteration over variables. */
 
 	/* Fix the type references in functions. */
-	if( BPfuncs != NULL ) {
-		for( unsigned int i = 0; i < BPfuncs->size(); i++ ) {
-			(*BPfuncs)[i]->fixupUnknown(this);
-			} /* end iteration over functions. */
-		} /* end if BPfuncs is non-NULL. */
-
-	/* Cache the parsed debug information. */
-	// /* DEBUG */ fprintf( stderr, "%s[%d]: caching parse results for object '%s'\n", __FILE__, __LINE__, fileName );
-	fileToTypesMap[ fileName ] = this->getModuleTypes();
-	} /* end parseDwarfTypes() */
+	BPatch_Vector<BPatch_function *> *bpfuncs = getProcedures(true);
+	assert(bpfuncs);
+	for (unsigned int i = 0; i < bpfuncs->size(); i++) {
+		(*bpfuncs)[i]->fixupUnknown(this);
+	}
+	delete bpfuncs;
+	moduleTypes->setDwarfParsed();
+} /* end parseDwarfTypes() */
 
 
 #if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
