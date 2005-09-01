@@ -46,7 +46,9 @@
 #include "BPatch_Vector.h"
 #include "BPatch_eventLock.h"
 #include "BPatch_snippet.h" // snippetOrder
+#include "BPatch_Set.h"
 
+class InstrucIter;
 class process;
 class instPoint;
 class miniTramp;
@@ -58,6 +60,7 @@ class BPatchSnippetHandle;
 class BPatch_basicBlockLoop;
 class BPatch_process;
 class BPatch_frame;
+
 
 /*
  * Used to specify whether a snippet is to be called before the instructions
@@ -147,6 +150,7 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     friend class BPatch_process;
     friend class BPatch_image;
     friend class BPatch_function;
+    friend class BPatch_basicBlock;
     friend class BPatch_basicBlockLoop;
     friend class BPatch_flowGraph; // Access to setLoop
     friend class BPatch_asyncEventHandler;
@@ -156,11 +160,11 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     static BPatch_point* createInstructionInstPoint(BPatch_process*proc,
                                                     void*address,
                                                     BPatch_function* bpf = NULL);
+    // Create a set of points, all that match a given op in the given instruciter.
+    static BPatch_Vector<BPatch_point *> *getPoints(const BPatch_Set<BPatch_opCode> &ops,
+                                                    InstrucIter &ii,
+                                                    BPatch_function *bpf);
 
-    friend BPatch_point* createInstPointForMemAccess(BPatch_process *_proc,
-						     void *addr,
-						     BPatch_memoryAccess* ma,
-						     BPatch_point** alternative);
     BPatch_process *proc;
     const BPatch_function	*func;
     BPatch_basicBlockLoop *loop;
@@ -170,8 +174,8 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     BPatch_memoryAccess *memacc;
     // Instruction constructor...
     BPatch_point(BPatch_process *_proc, BPatch_function *_func, 
-                 instPoint *_point, BPatch_procedureLocation _pointType, 
-                 BPatch_memoryAccess* _ma = NULL);
+                 instPoint *_point, BPatch_procedureLocation _pointType);
+
     // Edge constructor...
     BPatch_point(BPatch_process *_proc, BPatch_function *_func,
                  BPatch_edge *_edge, instPoint *_point);
@@ -203,6 +207,7 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     void recordSnippet(BPatch_callWhen, BPatch_snippetOrder,
                        BPatchSnippetHandle*);
 
+    void attachMemAcc(BPatch_memoryAccess *memacc);
 
 public:
     //~BPatch_point() { delete memacc; };
