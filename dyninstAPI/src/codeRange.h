@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.h,v 1.10 2005/08/25 22:45:24 bernat Exp $
+// $Id: codeRange.h,v 1.11 2005/09/01 22:18:10 bernat Exp $
 
 
 #ifndef _codeRangeTree_h_
@@ -77,6 +77,7 @@ class image_func;
 class signal_handler_location;
 class functionReplacement;
 class replacedFunctionCall;
+class image_basicBlock;
 
 class codeRange {
   public:
@@ -86,7 +87,7 @@ class codeRange {
     virtual Address get_address_cr() const = 0;
     virtual unsigned get_size_cr() const = 0;
 
-    virtual void *getPtrToInstruction(Address addr) const = 0;
+    virtual void *getPtrToInstruction(Address) const { assert(0); return NULL; }
 
     // returns NULL if not of type
     // so some people who don't like dynamic_cast don't have to be troubled
@@ -110,6 +111,7 @@ class codeRange {
     multiTramp *is_multitramp();
 
     image_func *is_image_func();
+    image_basicBlock *is_image_basicBlock();
 
     replacedFunctionCall *is_replaced_call();
     functionReplacement *is_function_replacement();
@@ -220,7 +222,7 @@ class codeRangeTree {
 
     /** returns the cardinality of the tree , number of elements */
     int size() const { return setSize; }
-
+    
     /** returns true if tree is empty */
     bool empty() const { return (setData == nil); }
 
