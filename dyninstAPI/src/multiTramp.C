@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.8 2005/08/25 22:45:49 bernat Exp $
+// $Id: multiTramp.C,v 1.9 2005/09/01 22:18:34 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -865,8 +865,11 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
             relocInsn->overrideTarget(trampAddr_ + obj->target_->pinnedOffset);
         }
         
-        obj->generateCode(generatedMultiT_,
-                          trampAddr_);
+        if (!obj->generateCode(generatedMultiT_,
+                               trampAddr_)) {
+            // Whoa...
+            return false;
+        }
 
         inst_printf("After node: mutatee 0x%x, offset %d, size req %d\n",
                     generatedMultiT_.currAddr(trampAddr_),
@@ -1041,8 +1044,9 @@ bool multiTramp::enable() {
 
 bool multiTramp::disable() {
     // This could also be "whoops, not ready, skip"
-    if (!linked_)
+    if (!linked_) {
         return true;
+    }
 
     assert(savedCodeBuf_);
     if (!proc()->writeTextSpace((void *)instAddr_,
@@ -1331,6 +1335,9 @@ bool multiTramp::replaceMultiTramp(multiTramp *oldMulti,
     if (range && range->is_multitramp())
         newMulti->proc()->addMultiTramp(newMulti);
     // Otherwise is function relocation... so don't overwrite.
+    else
+        fprintf(stderr, "Function replacement already there, not adding at 0x%lx\n",
+                newMulti->instAddr());
 
     // Caller decides whether to remove the original version
     deleteReplaced = true;
@@ -1569,11 +1576,11 @@ relocatedInstruction::relocatedInstruction(const relocatedInstruction *parRI,
     insn = parRI->insn->copy();
 #if defined(arch_sparc)
     if (parRI->ds_insn)
-        ds_insn = parRI->ds_insn->copy();
+        ds_insn = parRI->ds_insn;
     else
         ds_insn = NULL;
     if (parRI->agg_insn)
-        agg_insn = parRI->agg_insn->copy();
+        agg_insn = parRI->agg_insn;
     else
         agg_insn = NULL;
 #endif
@@ -1596,17 +1603,6 @@ relocatedInstruction::~relocatedInstruction() {
     // We need to check if someone else grabbed these pointers... or reference
     // count. For now, _do not delete_ since someone else might have
     // grabbed the ptr
-
-#if 0
-    if (insn)
-        delete insn;
-#if defined(arch_sparc)
-    if (ds_insn) 
-        delete ds_insn;
-    if (agg_insn)
-        delete agg_insn;
-#endif
-#endif
 }
 
 trampEnd::trampEnd(const trampEnd *parEnd,
@@ -1884,13 +1880,17 @@ bool relocatedInstruction::generateCode(codeGen &gen,
         return true;
     generateSetup(gen, baseInMutatee);
 
+    // addrInMutatee_ == base for this insn
     if (!insn->generate(gen,
                         multiT->proc(),
                         origAddr,
                         addrInMutatee_,
                         0, // fallthrough is not overridden
-                        targetOverride_))
+                        targetOverride_)) {
+        fprintf(stderr, "WARNING: returned false from relocate insn (orig at 0x%lx, now 0x%lx)\n",
+                origAddr, addrInMutatee_);
         return false;
+    }
 
 #if defined(arch_sparc) 
     // We pin delay instructions.
@@ -1906,10 +1906,8 @@ bool relocatedInstruction::generateCode(codeGen &gen,
     }
 #endif
 
-    inst_printf("Emitted new instruction; size is %d\n", size_);
     size_ = gen.currAddr(baseInMutatee) - addrInMutatee_;
     generated_ = true;
-
     return true;
 }
 

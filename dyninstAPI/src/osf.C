@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.78 2005/08/11 21:20:23 bernat Exp $
+// $Id: osf.C,v 1.79 2005/09/01 22:18:36 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -747,7 +747,8 @@ bool process::dumpImage()
 terminateProcStatus_t process::terminateProc_()
 {
     long flags = PRFS_KOLC;
-    if (ioctl (getRepresentativeLWP()->get_fd(), PIOCSSPCACT, &flags) < 0)
+    if (getRepresentativeLWP() &&
+        ioctl (getRepresentativeLWP()->get_fd(), PIOCSSPCACT, &flags) < 0)
         return terminateFailed;
 
     // just to make sure it is dead

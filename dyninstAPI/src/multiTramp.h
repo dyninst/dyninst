@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.8 2005/08/25 22:45:50 bernat Exp $
+// $Id: multiTramp.h,v 1.9 2005/09/01 22:18:35 bernat Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -158,7 +158,6 @@ class generatedCodeObject : public codeRange {
 
     Address get_address_cr() const { return addrInMutatee_; }
     unsigned get_size_cr() const { return size_; }
-    virtual void *getPtrToInstruction(Address addr) const = 0;
 
     bool objIsChild(generatedCodeObject *obj);
 
@@ -557,7 +556,6 @@ class instArea : public codeRange {
     multiTramp *multi;
     Address get_address_cr() const { assert(multi); return multi->instAddr(); }
     unsigned get_size_cr() const { assert(multi); return multi->instSize(); }
-    void *getPtrToInstruction(Address addr) const { assert(0); return NULL; }
 };
 
 
@@ -568,7 +566,6 @@ class replacedFunctionCall : public codeRange {
  public:
     Address get_address_cr() const { return callAddr; }
     unsigned get_size_cr() const { return callSize; }
-    void *getPtrToInstruction(Address addr) const { assert(0); return NULL; }
     Address callAddr;
     unsigned callSize;
     Address newTargetAddr;

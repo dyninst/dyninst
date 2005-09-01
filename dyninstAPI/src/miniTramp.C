@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.6 2005/08/25 22:45:47 bernat Exp $
+// $Id: miniTramp.C,v 1.7 2005/09/01 22:18:33 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -47,6 +47,9 @@
 #include "instP.h"
 #include "instPoint.h"
 #include "process.h"
+
+// for AIX
+#include "function.h"
 
 int miniTramp::_id = 1;
 
