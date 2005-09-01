@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.49 2005/08/03 23:00:48 bernat Exp $
+# $Id: nmake.module.tmpl,v 1.50 2005/09/01 22:17:40 bernat Exp $
 #
 
 TARGET	      = paradynd.exe
@@ -128,7 +128,8 @@ OBJS      = $(OBJS) ast.obj \
 		function.obj \
                 image-func.obj \
                 variable.obj \
-                mapped_object.obj \
+                mapped_object.obj \ 
+                mapped_module.obj \
                 InstrucIter-xplat.obj \
                 multiTramp.obj \
                 baseTramp.obj \
