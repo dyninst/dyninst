@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-sparc.C,v 1.4 2005/08/25 22:45:15 bernat Exp $
+ * $Id: arch-sparc.C,v 1.5 2005/09/01 22:18:09 bernat Exp $
  */
 
 #include "common/h/Types.h"
@@ -631,7 +631,7 @@ bool instruction::generate(codeGen &gen,
 	    !instruction::offsetWithinRangeOfBranchInsn((int)newLongOffset)){
             inst_printf("Relocating branch; new offset %lld farther than branch range; replacing with call\n", newLongOffset);
             // Replace with a multi-branch series
-            
+            fprintf(stderr, "Using call for long branch\n");
             instruction::generateImm(gen,
                                      SAVEop3,
                                      REG_SPTR,
@@ -640,7 +640,7 @@ bool instruction::generate(codeGen &gen,
             // Don't use relocAddr here, since we've moved the IP since then.
             instruction::generateCall(gen,
                                       relocAddr + instruction::size(),
-                                      getTarget(origAddr));
+                                      newLongOffset);
             instruction::generateSimple(gen,
                                         RESTOREop3,
                                         0, 0, 0);
@@ -657,7 +657,7 @@ bool instruction::generate(codeGen &gen,
         /* The rest of the instructions should be fine as is */
         generate(gen);
     }
-    
+    return true;
 }
 
 /****************************************************************************/
