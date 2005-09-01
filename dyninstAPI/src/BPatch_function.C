@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.58 2005/08/25 22:44:57 bernat Exp $
+// $Id: BPatch_function.C,v 1.59 2005/09/01 22:17:53 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -80,13 +80,15 @@ BPatch_function::BPatch_function(BPatch_process *_proc, int_function *_func,
   
   _srcType = BPatch_sourceFunction;
 
-  if (mod) getModule()->parseTypesIfNecessary();
-
   localVariables = new BPatch_localVarCollection;
   funcParameters = new BPatch_localVarCollection;
   retType = NULL;
 
   proc->func_map->add(_func, this);
+  if (mod) {
+      // Track for deletion
+      mod->all_funcs.push_back(this);
+  }
 };
 
 /*
@@ -103,13 +105,15 @@ BPatch_function::BPatch_function(BPatch_process *_proc, int_function *_func,
 
   _srcType = BPatch_sourceFunction;
 
-  getModule()->parseTypesIfNecessary();
-
   localVariables = new BPatch_localVarCollection;
   funcParameters = new BPatch_localVarCollection;
   retType = _retType;
 
   proc->func_map->add(_func, this);
+  if (mod) {
+      // Track for deletion
+      mod->all_funcs.push_back(this);
+  }
 };
 
 
@@ -117,9 +121,19 @@ BPatch_function::~BPatch_function()
 {
     // if (ast != NULL)
         // removeAst(ast);
+#if 0
+    // TODO!!!
+    // There appears to be some illegal sharing going on here that needs to
+    // be tracked down. Instead of leaking the entire function, we'll only
+    // leak the variable collections...
     if (localVariables) delete localVariables;
     if (funcParameters) delete funcParameters;
+#endif
     if (cfg) delete cfg;
+
+    // Remove us from the proc map...
+    if (proc && proc->func_map)
+        proc->func_map->undefine(lowlevel_func());
 }
 
 /* 
@@ -203,18 +217,6 @@ void *BPatch_function::getBaseAddrInt()
 {
   return (void *)func->getAddress();
 }
-
-/*
-* BPatch_function::getBaseAddrRelative
-*
-* Returns the starting address of the function in the module, relative
-* to the module.
-*/
-void *BPatch_function::getBaseAddrRelative() const
-{
-  return (void *)(func->getAddress() - func->obj()->getBaseAddress());
-}
-
 
 /*
  * BPatch_function::getSize
@@ -349,155 +351,6 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointInt(
     return result;
 }
 
-// VG(03/01/02): Temporary speed fix - use the new function on AIX
-#ifdef rs6000_ibm_aix4_1
-
-// VG(03/01/02): There can be NO alternative point for a mem inst point
-BPatch_point* BPatch_function::createMemInstPoint(void *addr,
-                                                  BPatch_memoryAccess* ma)
-{
-  BPatch_point *p = BPatch_point::createInstructionInstPoint(proc, addr, this);
-  if(p)
-    p->memacc = ma;
-  return p;
-}
-
-#else
-
-BPatch_point* BPatch_function::createMemInstPoint(void * /*addr */,
-                                                  BPatch_memoryAccess* /*ma*/)
-{
-  return NULL;
-}
-
-// VG(09/17/01): created this 'cause didn't want to add more 
-// platform independent code to inst-XXX.C
-BPatch_point* createInstPointForMemAccess(BPatch_process *proc,
-					  void *addr,
-					  BPatch_memoryAccess* ma,
-					  BPatch_point** alternative = NULL)
-{
-  // VG(09/17/01): This seems the right fuction to update all data structures
-  // Trouble is that updating these should be platfrom independent, while this
-  // function also does platform dependent stuff...
-  //bperr( "memcreat@%p\n", addr);
-   BPatch_point *p = BPatch_point::createInstructionInstPoint(proc, (void*) addr, NULL);
-   if(p)
-      p->memacc = ma;
-   return p;
-}
-#endif
-
-
-/*
- * findPoint (formerly BPatch_function::findPoint) (VG 09/05/01)
- *
- * Returns a vector of the instrumentation points from a procedure or basic
- * block that is identified by the parameters, or returns NULL upon failure.
- * (Points are sorted by address in the vector returned.)
- *
- * ops          The points within the procedure/basic block to return. A set 
- *              of op codes defined in BPatch_opCode (BPatch_point.h)
- * ii           The iterator over the set of instructions to parse
- * proc         The process object
- * bpf          The BPatch_function object we are in 
- */
-BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops,
-					  InstrucIter &ii, 
-					  BPatch_process *proc,
-					  BPatch_function *bpf)
-{
-  BPatch_Vector<BPatch_point*> *result = new BPatch_Vector<BPatch_point *>;
-
-  int osize = ops.size();
-  BPatch_opCode* opa = new BPatch_opCode[osize];
-  ops.elements(opa);
-
-  bool findLoads = false, findStores = false, findPrefetch = false;
-
-  for(int i=0; i<osize; ++i) {
-    switch(opa[i]) {
-    case BPatch_opLoad: findLoads = true; break;
-    case BPatch_opStore: findStores = true; break;	
-    case BPatch_opPrefetch: findPrefetch = true; break;	
-    }
-  }
-
-  //Address relativeAddress = (Address)getBaseAddrRelative();
-
-  //instruction inst;
-  //int xx = -1;
-
-  while(ii.hasMore()) {
-
-    //inst = ii.getInstruction();
-    Address addr = *ii;     // XXX this gives the address *stored* by ii...
-
-    BPatch_memoryAccess* ma = ii.isLoadOrStore();
-    ii++;
-    
-    if(!ma)
-      continue;
-
-    //BPatch_addrSpec_NP start = ma.getStartAddr();
-    //BPatch_countSpec_NP count = ma.getByteCount();
-    //int imm = start.getImm();
-    //int ra  = start.getReg(0);
-    //int rb  = start.getReg(1);
-    //int cnt = count.getImm();
-    //short int fcn = ma.prefetchType();
-    bool skip = false;
-
-    if(findLoads && ma->hasALoad()) {
-      //bperr( "LD[%d]: [%x -> %x], %d(%d)(%d) #%d\n",
-      //      ++xx, addr, inst, imm, ra, rb, cnt);
-#if defined(os_aix)
-      BPatch_point* p = bpf->createMemInstPoint((void *)addr, ma);
-#else
-      /* This is freaking stupid.  There has to be a better way to get the absolute address in the mutatee. */
-      // /* DEBUG */ fprintf( stderr, "%s[%d]: 0x%lx\n", __FILE__, __LINE__, (addr - (Address)bpf->getBaseAddrRelative()) + (Address)bpf->getBaseAddr() );
-      BPatch_point* p = createInstPointForMemAccess(proc, (void*) ((addr - (Address)bpf->getBaseAddrRelative()) + (Address)bpf->getBaseAddr()), ma);
-#endif
-      if(p)
-        result->push_back(p);
-      skip = true;
-    }
-
-    if(findStores && !skip && ma->hasAStore()) {
-      //bperr( "ST[%d]: [%x -> %x], %d(%d)(%d) #%d\n",
-      //      ++xx, addr, inst, imm, ra, rb, cnt);
-#if defined(os_aix)
-      BPatch_point* p = bpf->createMemInstPoint((void *)addr, ma);
-#else
-      /* This is freaking stupid.  There has to be a better way to get the absolute address in the mutatee. */
-      // /* DEBUG */ fprintf( stderr, "%s[%d]: 0x%lx\n", __FILE__, __LINE__, (addr - (Address)bpf->getBaseAddrRelative()) + (Address)bpf->getBaseAddr() );
-      BPatch_point* p = createInstPointForMemAccess(proc, (void*) ((addr - (Address)bpf->getBaseAddrRelative()) + (Address)bpf->getBaseAddr()), ma);
-#endif
-      if(p)
-        result->push_back(p);
-      skip = true;
-    }
-
-    if(findPrefetch && !skip && ma->hasAPrefetch_NP()) {
-      //bperr( "PF[%d]: [%x -> %x], %d(%d)(%d) #%d %%%d\n",
-      //      ++xx, addr, inst, imm, ra, rb, cnt, fcn);
-      // XXX this leaks...
-#if defined(os_aix)
-      BPatch_point* p = bpf->createMemInstPoint((void *)addr, ma);
-#else
-      /* This is freaking stupid.  There has to be a better way to get the absolute address in the mutatee. */
-      // /* DEBUG */ fprintf( stderr, "%s[%d]: 0x%lx\n", __FILE__, __LINE__, (addr - (Address)bpf->getBaseAddrRelative()) + (Address)bpf->getBaseAddr() );
-      BPatch_point* p = createInstPointForMemAccess(proc, (void*) ((addr - (Address)bpf->getBaseAddrRelative()) + (Address)bpf->getBaseAddr()), ma);
-#endif
-      if(p)
-        result->push_back(p);
-      skip = true;
-    }
-  }
-
-  return result;
-}
-
 /*
  * BPatch_function::findPoint (VG 09/05/01)
  *
@@ -519,8 +372,8 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointByOp(
   
   // Use an instruction iterator
   InstrucIter ii(func);
-
-  return ::findPoint(ops, ii, proc, this);
+    
+  return BPatch_point::getPoints(ops, ii, this);
 }
 
 /*
@@ -548,9 +401,9 @@ void BPatch_function::addParam(const char * _name, BPatch_type *_type,
  */
 BPatch_localVar * BPatch_function::findLocalVarInt(const char * name)
 {
-  BPatch_localVar * var = localVariables->findLocalVar(name);
-  return (var);
-
+    mod->parseTypesIfNecessary();
+    BPatch_localVar * var = localVariables->findLocalVar(name);
+    return (var);
 }
 
 /*
@@ -561,9 +414,9 @@ BPatch_localVar * BPatch_function::findLocalVarInt(const char * name)
  */
 BPatch_localVar * BPatch_function::findLocalParamInt(const char * name)
 {
-
-  BPatch_localVar * var = funcParameters->findLocalVar(name);
-  return (var);
+    mod->parseTypesIfNecessary();
+    BPatch_localVar * var = funcParameters->findLocalVar(name);
+    return (var);
 
 }
 
