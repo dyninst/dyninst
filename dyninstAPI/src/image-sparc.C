@@ -40,7 +40,7 @@
  */
 
 
-// $Id: image-sparc.C,v 1.2 2005/08/25 22:45:32 bernat Exp $
+// $Id: image-sparc.C,v 1.3 2005/09/01 22:18:20 bernat Exp $
 
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
@@ -143,7 +143,7 @@ static inline bool JmpNopTC(instruction instr, instruction nexti,
     // if sequence is detected, but not at end of fn 
     //  (last 2 instructions....), return value indicating possible TC.
     //  This should (eventually) mark the fn as uninstrumenatble....
-    if (addr != (func->getOffset() + func->getSize() - 8)) {
+    if (addr != (func->getEndOffset() - 2*instruction::size())) {
         return 0;
     }
     
@@ -223,13 +223,13 @@ bool image_func::findInstPoints(pdvector<Address> &callTargets)
     parsed_ = true;
 
     parsing_printf("findInstPoints for func %s, at 0x%x, size %d\n",
-            symTabName().c_str(), getOffset(), getSize());
+            symTabName().c_str(), getOffset(), getSymTabSize());
 
     makesNoCalls_ = true;
     noStackFrame = true;
     int insnSize = instruction::size();
 
-    if (getSize() <= 3*insnSize)
+    if (getSymTabSize() <= 3*insnSize)
         return false;
 
    BPatch_Set< Address > leaders;
@@ -298,7 +298,7 @@ bool image_func::findInstPoints(pdvector<Address> &callTargets)
         while( true ) {
             currAddr = *ah;
 
-            if (currAddr >= getOffset() + getSize())
+            if (currAddr >= getEndOffset())
                 break;
 
             if( visited.contains( currAddr ) )
@@ -342,8 +342,8 @@ bool image_func::findInstPoints(pdvector<Address> &callTargets)
 
                     bool exit = false;
 
-                    if( (target < funcBegin) ||
-			(target >= funcBegin + size_)) {
+                    if( (target < getOffset()) ||
+			(target >= getEndOffset())) {
                         exit = true;
                     }
                     else {
@@ -355,7 +355,7 @@ bool image_func::findInstPoints(pdvector<Address> &callTargets)
                     }                        
                     
                     Address t2 = ah.peekNext();
-                    if (t2 < funcBegin+size_) {
+                    if (t2 < getEndOffset()) {
                         addBasicBlock(t2,
                                       currBlk,
                                       leaders,
@@ -389,7 +389,8 @@ bool image_func::findInstPoints(pdvector<Address> &callTargets)
                      funcEnd = currAddr + insnSize;
                  
                  BPatch_Set< Address > res;
-                 ah2.getMultipleJumpTargets( res );
+                 if (!ah2.getMultipleJumpTargets( res ))
+                     isInstrumentable_ = false;
                                   
                  BPatch_Set< Address >::iterator iter;
                  iter = res.begin();
@@ -399,7 +400,7 @@ bool image_func::findInstPoints(pdvector<Address> &callTargets)
                  while( iter != res.end() )
                  {
                      if( *iter < funcBegin ||
-                         *iter >= getOffset() + getSize()) {
+                         *iter >= getEndOffset()) {
                          leavesFunc = true;
                      }
                      else
@@ -467,7 +468,7 @@ bool image_func::findInstPoints(pdvector<Address> &callTargets)
                  Address target = ah.getBranchTargetAddress();
 
 		 if( (target < funcBegin) ||
-		     (target >= funcBegin + size_)) {
+		     (target >= getEndOffset())) {
                      currBlk->isExitBlock_ = true;
                      // And make an inst point
                      p = new image_instPoint(currAddr, 
@@ -521,9 +522,9 @@ bool image_func::findInstPoints(pdvector<Address> &callTargets)
                          else {
                              // Should check if all target is inside function...
                              parsing_printf("Call target 0x%x, func 0x%x to 0x%x\n",
-                                     callTarget, getOffset(), getOffset()+getSize());
+                                            callTarget, getOffset(), getEndOffset());
                              if (callTarget < getOffset() ||
-                                 callTarget >= getOffset() + getSize()) {
+                                 callTarget >= getEndOffset()) {
                                  p = new image_instPoint(currAddr,
                                                          ah.getInstruction(),
                                                          this,
@@ -544,9 +545,6 @@ bool image_func::findInstPoints(pdvector<Address> &callTargets)
     }
     
     cleanBlockList();
-
-    
-    size_ = funcEnd - funcBegin;
     
     isInstrumentable_ = true;
     return true;

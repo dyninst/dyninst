@@ -39,12 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.6 2005/08/25 22:45:29 bernat Exp $
+// $Id: image-func.C,v 1.7 2005/09/01 22:18:16 bernat Exp $
 
 #include "function.h"
-#include "process.h"
 #include "instPoint.h"
 #include "InstrucIter.h"
+#include "symtab.h"
+#include "showerror.h"
 
 pdstring image_func::emptyString("");
 
@@ -59,12 +60,11 @@ pdstring image_func::emptyString("");
 // 
 image_func::image_func(const pdstring &symbol,
 		       Address offset, 
-		       const unsigned size,
+		       const unsigned symTabSize,
 		       pdmodule *m,
 		       image *i) :
-  line_(0),
-  offset_(offset),
-  size_(size),
+  startOffset_(offset),
+  symTabSize_(symTabSize),
   mod_(m),
   image_(i),
   parsed_(false),
@@ -73,7 +73,7 @@ image_func::image_func(const pdstring &symbol,
   savesFP_(false),
   call_points_have_been_checked(false),
   isTrap(false),
-  isInstrumentable_(false),
+  isInstrumentable_(true),
 #if defined(arch_ia64)
   framePointerCalculator(NULL),
   usedFPregs(NULL),
@@ -83,27 +83,17 @@ image_func::image_func(const pdstring &symbol,
   originalCode(NULL),
   o7_live(false)
 {
-  symTabName_.push_back(symbol);
+#if defined(cap_stripped_binaries)
+    endOffset_ = startOffset_;
+#else
+    endOffset_ = startOffset_ + symTabSize_;
+#endif
+    symTabName_.push_back(symbol);
 }
 
 
 image_func::~image_func() { 
   /* TODO */ 
-}
-
-
-// coming to dyninstAPI/src/symtab.hC
-// needed in metric.C
-bool image_func::match(image_func *fb)
-{
-  if (this == fb)
-    return true;
-  else
-    return ((symTabName_ == fb->symTabName_) &&
-	    (prettyName_ == fb->prettyName_) &&
-	    (line_       == fb->line_) &&
-	    (offset_     == fb->offset_) &&
-	    (size_       == fb->size_));
 }
 
 void image_func::changeModule(pdmodule *mod) {
@@ -112,35 +102,6 @@ void image_func::changeModule(pdmodule *mod) {
   // FUNCTION.
   mod_ = mod;
 }
-
-#ifdef DEBUG
-/*
-  Debuggering info for function_prototype....
- */
-ostream & function_prototype::operator<<(ostream &s) const {
-  
-    unsigned i=0;
-    s << "Mangled name(s): " << symTabName_[0];
-    for(i = 1; i < symTabName_.size(); i++) {
-        s << ", " << symTabName_[i];
-    }
-
-    s << "\nPretty name(s): " << prettyName_[0];
-    for(i = 1; i < prettyName_.size(); i++) {
-        s << ", " << prettyName_[i];
-    }
-      s << "\nline_ = " << line_ << " addr_ = "<< addr_ << " size_ = ";
-      s << size_ << endl;
-  
-    return s;
-}
-
-ostream &operator<<(ostream &os, function_prototype &f) {
-    return f.operator<<(os);
-}
-
-#endif
-
 
 bool image_func::isInstrumentableByFunctionName()
 {
@@ -163,12 +124,9 @@ bool image_func::isInstrumentableByFunctionName()
     return true;
 }
 
-
-// passing in a value of 0 for p will return the original size
-// otherwise, if the process is relocated it will return the new size
-unsigned image_func::getSize() {
-  if (!parsed_) image_->analyzeIfNeeded();
-  return size_;
+Address image_func::getEndOffset() {
+    if (!parsed_) image_->analyzeIfNeeded();
+    return endOffset_;
 }
 
 
@@ -326,12 +284,12 @@ bool image_func::cleanBlockList() {
     pdvector<image_basicBlock *>cleanedList;
     for (unsigned foo = 0; foo < blockList.size(); foo++) {
         if ((blockList[foo]->firstInsnOffset() < getOffset()) ||
-            (blockList[foo]->firstInsnOffset() >= getOffset() + getSize())) {
+            (blockList[foo]->firstInsnOffset() >= getEndOffset())) {
             inst_printf("Block %d at 0x%lx is outside of function (0x%lx to 0x%lx)\n",
                         foo,
                         blockList[foo]->firstInsnOffset(),
                         getOffset(),
-                        getOffset() + getSize());
+                        getEndOffset());
                         
             delete blockList[foo];
         }
@@ -429,6 +387,28 @@ bool image_func::cleanBlockList() {
             b2->addSource( b1 );	            
         }        
     }    
+    for (unsigned r = 0; r < blockList.size(); r++) {
+        // Check sources and targets for legality
+        image_basicBlock *b1 = blockList[r];
+        for (unsigned s = 0; s < b1->sources_.size(); s++) {
+            if ((b1->sources_[s]->id() >= blockList.size()) ||
+                (b1->sources_[s]->id() < 0)) {
+                fprintf(stderr, "WARNING: block %d in function %s has illegal source block %d\n",
+                        b1->id(), symTabName().c_str(), b1->sources_[s]->id());
+                b1->removeSource(b1->sources_[s]);
+            }
+        }
+        for (unsigned t = 0; t < b1->targets_.size(); t++) {
+            if ((b1->targets_[t]->id() >= blockList.size()) ||
+                (b1->targets_[t]->id() < 0)) {
+                fprintf(stderr, "WARNING: block %d in function %s has illegal target block %d\n",
+                        b1->id(), symTabName().c_str(), b1->targets_[t]->id());
+                b1->removeTarget(b1->targets_[t]);
+            }
+        }
+
+    }
+
     parsing_printf("CLEANED BLOCK LIST\n");
     for (unsigned foo = 0; foo < blockList.size(); foo++) {
         blockList[foo]->debugPrint();
@@ -461,6 +441,111 @@ void image_func::checkCallPoints() {
     }
 }
 
+
+#if defined(cap_stripped_binaries)
+
+//correct parsing errors that overestimate the function's size by
+// 1. updating all the vectors of instPoints
+// 2. updating the vector of basicBlocks
+// 3. updating the function size
+// 4. update the address of the last basic block if necessary
+void image_func::updateFunctionEnd(Address newEnd)
+{
+
+    //update the size
+    endOffset_ = newEnd;
+    //remove out of bounds call Points
+    //assumes that calls was sorted by address in findInstPoints
+    for( int i = (int)calls.size() - 1; i >= 0; i-- )
+        {
+            if( calls[ i ]->offset() >= newEnd )
+                {
+                    delete calls[ i ];
+                    calls.pop_back();
+                }
+            else 
+                break;
+        }
+    //remove out of bounds return points
+    //assumes that funcReturns was sorted by address in findInstPoints
+    for( int j = (int)funcReturns.size() - 1; j >= 0; j-- )
+        {
+            if( funcReturns[ j ]->offset() >= newEnd )
+                {
+                    delete funcReturns[ j ];
+                    funcReturns.pop_back();
+                }
+            else
+                break;
+        }
+    //remove out of bounds basicBlocks
+    //assumes blockList was sorted by start address in findInstPoints
+    for( int k = (int) blockList.size() - 1; k >= 0; k-- )
+        {
+            image_basicBlock* curr = blockList[ k ];
+            if( curr->firstInsnOffset() >= newEnd )
+                {
+                    //remove all references to this block from the flowgraph
+                    //my source blocks should no longer have me as a target
+                    pdvector< image_basicBlock* > ins;
+                    curr->getSources( ins );
+                    for( unsigned o = 0; o < ins.size(); o++ )
+                        {
+                            ins[ o ]->removeTarget(curr);
+                            ins[ o ]->isExitBlock_ = true;
+                        } 
+                    
+                    //my target blocks should no longer have me as a source 
+                    pdvector< image_basicBlock* > outs;
+                    curr->getTargets( outs );
+                    for( unsigned p = 0; p < outs.size(); p++ )
+                        {
+                            outs[ p ]->removeSource(curr);
+                        }                     
+                    delete curr;
+                    blockList.pop_back();          
+                }
+            else
+                break;
+        } 
+    
+    //we might need to correct the end address of the last basic block
+    int n = blockList.size() - 1;
+    if( n >= 0 && blockList[n]->endOffset() >= newEnd )
+        {
+            parsing_printf("Updating block end: new end of function 0x%x\n",
+                           newEnd);
+            blockList[n]->debugPrint();
+            
+            // TODO: Ask Laune; this doesn't look like it's doing what we want.
+            image_basicBlock* blk = blockList[n];
+            
+            InstrucIter ah(blk);	
+            while( ah.peekNext() < newEnd )
+                ah++;
+            
+            blk->lastInsnOffset_ = *ah ;
+            blk->blockEndOffset_ = ah.peekNext();
+            
+            if (!blk->isExitBlock_) {
+                blk->isExitBlock_ = true;
+                // Make a new exit point
+                image_instPoint *p = new image_instPoint(*ah,
+                                                         ah.getInstruction(),
+                                                         this,
+                                                         functionExit);
+                funcReturns.push_back(p);
+            }
+            
+            parsing_printf("After fixup:\n");
+            blk->debugPrint();
+        }
+    
+}    
+
+#endif
+
+
 void *image_basicBlock::getPtrToInstruction(Address addr) const {
     if (addr < firstInsnOffset_) return NULL;
     if (addr >= blockEndOffset_) return NULL;
@@ -468,8 +553,9 @@ void *image_basicBlock::getPtrToInstruction(Address addr) const {
 }
 
 void *image_func::getPtrToInstruction(Address addr) const {
-    if (addr < offset_) return NULL;
-    if (blockList.size() == 0) return NULL;
+    if (addr < startOffset_) return NULL;
+    if (!parsed_) image_->analyzeIfNeeded();
+    if (addr >= endOffset_) return NULL;
     for (unsigned i = 0; i < blockList.size(); i++) {
         void *ptr = blockList[i]->getPtrToInstruction(addr);
         if (ptr) return ptr;

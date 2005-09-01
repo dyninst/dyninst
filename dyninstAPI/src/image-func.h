@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.3 2005/08/25 22:45:30 bernat Exp $
+// $Id: image-func.h,v 1.4 2005/09/01 22:18:17 bernat Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -142,7 +142,7 @@ class image_func : public codeRange {
    // Almost everything gets filled in later.
    image_func(const pdstring &symbol, 
 	      Address offset, 
-	      const unsigned size, 
+	      const unsigned symTabSize, 
 	      pdmodule *m,
 	      image *i);
    
@@ -161,24 +161,23 @@ class image_func : public codeRange {
       if (prettyName_.size() > 0) return prettyName_[0];
       else return emptyString;
    }
-   const pdvector<pdstring> &symTabNameVector() { return symTabName_; }
-   const pdvector<pdstring> &prettyNameVector() { return prettyName_; }
+   const pdvector<pdstring> &symTabNameVector() const { return symTabName_; }
+   const pdvector<pdstring> &prettyNameVector() const { return prettyName_; }
    void addSymTabName(pdstring name) { symTabName_.push_back(name); }
    void addPrettyName(pdstring name) { prettyName_.push_back(name); }
 
-   Address getOffset() const {return offset_;}
-   unsigned getSize();
-   
+   Address getOffset() const {return startOffset_;}
+   Address getEndOffset(); // May trigger parsing
+   unsigned getSymTabSize() const { return symTabSize_; }
+
    // coderange needs a get_address...
    Address get_address_cr() const { return getOffset();}
-   unsigned get_size_cr() const { return size_; } // May be incorrect
-                                                  // but is
-                                                  // consistent.
+   unsigned get_size_cr() const { return symTabSize_; } // May be
+                                                        // incorrect
+                                                        // but is
+                                                        // consistent.
    void *getPtrToInstruction(Address addr) const;
 
-
-   // Should be operator==
-   bool match(image_func *p);
 
    // extra debuggering info....
    ostream & operator<<(ostream &s) const;
@@ -226,8 +225,8 @@ class image_func : public codeRange {
    
    void canFuncBeInstrumented( bool b ) { isInstrumentable_ = b; };
 
-   bool isTrapFunc() {return isTrap;}
-   bool isInstrumentable() { return isInstrumentable_; }
+   bool isTrapFunc() const {return isTrap;}
+   bool isInstrumentable() const { return isInstrumentable_; }
 
 #if defined(cap_stripped_binaries)
    // Update if symtab is incorrect
@@ -284,12 +283,9 @@ class image_func : public codeRange {
    ///////////////////// Basic func info
    pdvector<pdstring> symTabName_;	/* name as it appears in the symbol table */
    pdvector<pdstring> prettyName_;	/* user's view of name (i.e. de-mangled) */
-   int line_;			/* first line of function */
-   Address offset_;		/* address of the start of the func */
-   unsigned size_;             /* the function size, in bytes, used to
-                                  define the function boundaries. This may not
-                                  be exact, and may not be used on all 
-                                  platforms. */
+   Address startOffset_;		/* address of the start of the func */
+   Address endOffset_;          /* Address of the (next instruction after) the end of the func */
+   unsigned symTabSize_;        /* What we get from the symbol table (if any) */
    pdmodule *mod_;		/* pointer to file that defines func. */
    image *image_;
    bool parsed_;                /* Set to true in findInstPoints */

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-power.C,v 1.3 2005/08/15 22:20:11 bernat Exp $
+// $Id: image-power.C,v 1.4 2005/09/01 22:18:19 bernat Exp $
 
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
@@ -184,7 +184,8 @@ bool image_func::findInstPoints(pdvector<Address> &callTargets)
                     funcEnd = currAddr + insnSize;
                 
                 BPatch_Set< Address > res;
-                ah2.getMultipleJumpTargets( res );
+                if (!ah2.getMultipleJumpTargets( res ))
+                    isInstrumentable_ = false;
                 
                 BPatch_Set< Address >::iterator iter;
                 iter = res.begin();
@@ -299,8 +300,7 @@ bool image_func::findInstPoints(pdvector<Address> &callTargets)
     cleanBlockList();
 
     
-    size_ = funcEnd - funcBegin;
+    endOffset_ = funcEnd;
     
-    isInstrumentable_ = true;
     return true;
 }

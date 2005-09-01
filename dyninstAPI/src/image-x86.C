@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.6 2005/08/25 22:45:33 bernat Exp $
+ * $Id: image-x86.C,v 1.7 2005/09/01 22:18:21 bernat Exp $
  */
 
 #include "common/h/Vector.h"
@@ -168,97 +168,6 @@ bool checkEntry( instruction insn, Address offset, image_func *func )
     }
   return true;
 }
-
-//correct parsing errors that overestimate the function's size by
-// 1. updating all the vectors of instPoints
-// 2. updating the vector of basicBlocks
-// 3. updating the function size
-// 4. update the address of the last basic block if necessary
-void image_func::updateFunctionEnd(Address newEnd)
-{
-
-  //update the size
-  size_ = newEnd - getOffset();
-  //remove out of bounds call Points
-  //assumes that calls was sorted by address in findInstPoints
-  for( int i = (int)calls.size() - 1; i >= 0; i-- )
-    {
-      if( calls[ i ]->offset() >= newEnd )
-        {
-	  delete calls[ i ];
-	  calls.pop_back();
-        }
-      else 
-	break;
-    }
-  //remove out of bounds return points
-  //assumes that funcReturns was sorted by address in findInstPoints
-  for( int j = (int)funcReturns.size() - 1; j >= 0; j-- )
-    {
-      if( funcReturns[ j ]->offset() >= newEnd )
-        {
-	  delete funcReturns[ j ];
-	  funcReturns.pop_back();
-        }
-      else
-	break;
-    }
-    //remove out of bounds basicBlocks
-    //assumes blockList was sorted by start address in findInstPoints
-  for( int k = (int) blockList.size() - 1; k >= 0; k-- )
-      {
-          image_basicBlock* curr = blockList[ k ];
-          if( curr->firstInsnOffset() >= newEnd )
-              {
-                  //remove all references to this block from the flowgraph
-                  //my source blocks should no longer have me as a target
-                  pdvector< image_basicBlock* > ins;
-                  curr->getSources( ins );
-                  for( unsigned o = 0; o < ins.size(); o++ )
-                      {
-                          ins[ o ]->removeTarget(curr);
-                          ins[ o ]->isExitBlock_ = true;
-                      } 
-                  
-                  //my target blocks should no longer have me as a source 
-                  pdvector< image_basicBlock* > outs;
-                  curr->getTargets( outs );
-                  for( unsigned p = 0; p < outs.size(); p++ )
-                      {
-                          outs[ p ]->removeSource(curr);
-                      }                     
-                  delete curr;
-                  blockList.pop_back();          
-              }
-          else
-              break;
-      } 
-
-    //we might need to correct the end address of the last basic block
-    int n = blockList.size() - 1;
-    if( n >= 0 && blockList[n]->endOffset() >= newEnd )
-    {
-        parsing_printf("Updating block end: new end of function 0x%x\n",
-                       newEnd);
-        blockList[n]->debugPrint();
-
-        // TODO: Ask Laune; this doesn't look like it's doing what we want.
-        image_basicBlock* blk = blockList[n];
-        
-        InstrucIter ah(blk);	
-        while( *ah + ah.getInstruction().size() < newEnd )
-            ah++;
-        
-        blk->lastInsnOffset_ = *ah ;
-        blk->blockEndOffset_ = *ah + ah.getInstruction().size() ;
-        blk->isExitBlock_ = true;
-        parsing_printf("After fixup:\n");
-        blk->debugPrint();
-    }
-
-    
-}    
-
  
 /*****************************************************************************
 findInstpoints: uses recursive disassembly to parse a function. instPoints and
@@ -284,9 +193,12 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
         //prettyName() == "winStart" ||
         //prettyName() == "winFini" )
     {
-        size_ = 0; 
+        endOffset_ = startOffset_; 
         return true;
     }
+
+    // We're optimistic
+    isInstrumentable_ = true;
          
     pdvector< instruction > allInstructions;   
     pdvector< instPoint* > foo;
@@ -305,15 +217,14 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
     Address funcEnd = funcBegin; 
     Address currAddr = funcBegin;
     
-    if( !isInstrumentableByFunctionName() || getSize() == 0 )
+    if( !isInstrumentableByFunctionName() || getSymTabSize() == 0 )
     {
         parsing_printf("... uninstrumentable by func name or size equals zero\n");
+        endOffset_ = startOffset_;
         isInstrumentable_ = false;
         return false;
     }  
     
-    size_ = 0; //shouldn't need this, but better safe than sorry
-
     InstrucIter ah( funcBegin, this ); 
     if( !checkEntry( ah.getInstruction(), funcBegin, this ) )
     {
@@ -323,7 +234,7 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
             callTargets.push_back( target );
         }
 
-        size_ = ah.getInstruction().size();
+        endOffset_ = ah.peekNext();
         isInstrumentable_ = false;
         parsing_printf("Jump or call at entry of function\n");
         return false;
@@ -439,6 +350,20 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                 break;
             }
             else if( ah.isAIndirectJumpInstruction() ) {
+                // Block-comment time
+                // The critical point with a jumptable is identifying
+                // the start of basic blocks. Our instrumentation
+                // assumes that it knows where basic blocks are,
+                // and will cause all sorts of bad if it turns out
+                // we accidentally combined one because we didn't
+                // catch a jumptable jump. Now, most jumptables
+                // piece up correctly anyway; but we can't assume that
+                // because it's not guaranteed. So if we're not 100% sure
+                // about a jumptable, we label the function uninstrumentable.
+
+                // Also, we cannot relocate a function with a jumptable (a control/
+                // data dependence, technically). 
+
                 currBlk->lastInsnOffset_ = currAddr;
                 currBlk->blockEndOffset_ = currAddr + insnSize;
                 parsing_printf("... indirect jump at 0x%x\n", currAddr);
@@ -458,6 +383,7 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                     // (a jmp to the "real" function)
                     parsing_printf("... uninstrumentable due to 0 size\n");
                     isInstrumentable_ = false;
+                    endOffset_ = startOffset_;
                     return false;
                 }
 
@@ -480,6 +406,7 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                 if( in.size() < 1 )
                 {
                     parsing_printf("... uninstrumentable, unable to find targets of indirect jump\n");
+                    isInstrumentable_ = false;
                     canBeRelocated = false;
                     understood = false;
                 }
@@ -517,6 +444,7 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                                     //can't determine register contents
                                     //give up on this function
                                     canBeRelocated = false;
+                                    isInstrumentable_ = false;
                                     break;
                                 }
                         }
@@ -541,6 +469,7 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                     if( !foundMaxSwitch ) {
                         parsing_printf("... uninstrumentable, unable to fix max switch size\n");
                         canBeRelocated = false;
+                        isInstrumentable_ = false;
                         break;
                     }
                     //found the max switch assume jump table
@@ -554,6 +483,7 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                             //XXX
                             parsing_printf("... getMultipleJumpTargets failed, uninstrumentable\n");
                             canBeRelocated = false;
+                            isInstrumentable_ = false;
                             break;
                         }
                         for( unsigned l = 0; l < result.size(); l++ ) {
@@ -746,9 +676,8 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
 
     canBeRelocated_ = canBeRelocated;
     
-    size_ = funcEnd - funcBegin;
+    endOffset_ = funcEnd;
 
-    isInstrumentable_ = true;
     parsing_printf("... done with parsing\n");
 
     return true;    

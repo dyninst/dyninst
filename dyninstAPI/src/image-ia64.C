@@ -38,7 +38,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-ia64.C,v 1.3 2005/08/25 22:45:31 bernat Exp $
+// $Id: image-ia64.C,v 1.4 2005/09/01 22:18:18 bernat Exp $
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -61,15 +61,15 @@ bool image_func::findInstPoints(pdvector<Address> & /*callTargets*/)
         } 
     parsed_ = true;
     
-    parsing_printf("findInstPoints for func %s, at 0x%llx, size %d\n",
-		   symTabName().c_str(), getOffset(), getSize());
+    parsing_printf("findInstPoints for func %s, at 0x%lx, end 0x%lx, size %d\n",
+		   symTabName().c_str(), getOffset(), getEndOffset(), getSymTabSize());
     
     BPatch_Set< Address > leaders;
     dictionary_hash< Address, image_basicBlock* > leadersToBlock( addrHash );
     
     // FIXME: laune's parser: this is wrong
     Address funcBegin = getOffset();
-    Address funcEnd = funcBegin + getSize();
+    Address funcEnd = getEndOffset();
     
     InstrucIter ah (funcBegin, this);
 
@@ -135,7 +135,7 @@ bool image_func::findInstPoints(pdvector<Address> & /*callTargets*/)
                     bool exit = false;
 
                     if( (target < funcBegin) ||
-			(target >= funcBegin + size_)) {
+			(target >= funcEnd)) {
                         exit = true;
                     }
                     else {
@@ -147,7 +147,7 @@ bool image_func::findInstPoints(pdvector<Address> & /*callTargets*/)
                     }                        
                     
                     Address t2 = ah.peekNext();
-                    if (t2 < funcBegin+size_) {
+                    if (t2 < funcEnd) {
                         addBasicBlock(t2,
                                       currBlk,
                                       leaders,
@@ -178,7 +178,8 @@ bool image_func::findInstPoints(pdvector<Address> & /*callTargets*/)
                  currBlk->blockEndOffset_ = ah.peekNext();
                                   
                  BPatch_Set< Address > res;
-                 ah2.getMultipleJumpTargets( res );
+                 if (!ah2.getMultipleJumpTargets( res ))
+                     isInstrumentable_ = false;
                                   
                  BPatch_Set< Address >::iterator iter;
                  iter = res.begin();
@@ -246,7 +247,7 @@ bool image_func::findInstPoints(pdvector<Address> & /*callTargets*/)
                  Address target = ah.getBranchTargetAddress();
 
 		 if( (target < funcBegin) ||
-		     (target >= funcBegin + size_)) {
+		     (target >= funcEnd)) {
 		   currBlk->isExitBlock_ = true;
 		   // And make an inst point
 		   p = new image_instPoint(currAddr, 
@@ -310,9 +311,6 @@ bool image_func::findInstPoints(pdvector<Address> & /*callTargets*/)
 
     cleanBlockList();
 
-    
-    size_ = funcEnd - funcBegin;
-    
     isInstrumentable_ = true;
     return true;
 }
