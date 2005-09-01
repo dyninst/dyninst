@@ -64,62 +64,63 @@
 #include "instP.h"
 #include "baseTramp.h"
 #include "miniTramp.h"
+#include "InstrucIter.h"
 
 /*
  * Private constructor, insn
  */
 BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func, instPoint *_point,
-                           BPatch_procedureLocation _pointType, BPatch_memoryAccess* _ma) :
+                           BPatch_procedureLocation _pointType) :
     // Note: MIPSPro compiler complains about redefinition of default argument
-    proc(_proc), func(_func), point(_point), pointType(_pointType), memacc(_ma),
+    proc(_proc), func(_func), point(_point), pointType(_pointType), memacc(NULL),
     edge_(NULL)
 {
-  if (_pointType == BPatch_subroutine)
-    dynamic_call_site_flag = 2; // dynamic status unknown
-  else
-    dynamic_call_site_flag = 0; // not a call site, so not a dynamic call site.
-  // I'd love to have a "loop" constructor, but the code structure
-  // doesn't work right. We create an entry point as a set of edge points,
-  // but not all edge points are loop points.
-  loop = NULL;
-
-  // And check to see if there's already instrumentation there (from a fork, say)
-
-  pdvector<miniTramp *> mts;
-
-  // Preinsn
-  // TODO: this will grab _everything_, including internal instrumentation.
-  // We need a "type" flag on the miniTramp that specifies whether instru is
-  // internal, BPatch-internal (dynamic monitoring), or user-added.
-
-  baseTramp *bt = point->getBaseTramp(callPreInsn);
-  assert(bt);
-  miniTramp *mt = bt->firstMini;
-  while (mt) {
-      if (mt->instP == point)
-          mts.push_back(mt);
-      mt = mt->next;
-  }
-  for(unsigned i=0; i<mts.size(); i++) {
-      BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc->llproc);
-      handle->add(mts[i]);
-      preSnippets.push_back(handle);
-  }
-  // And now post.
-  mts.clear();
-  bt = point->getBaseTramp(callPostInsn);
-  assert(bt);
-  mt = bt->firstMini;
-  while (mt) {
-      if (mt->instP == point)
-          mts.push_back(mt);
-      mt = mt->next;
-  }
-  for(unsigned ii=0; ii<mts.size(); ii++) {
-      BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc->llproc);
-      handle->add(mts[ii]);
-      preSnippets.push_back(handle);
-  }
+    if (_pointType == BPatch_subroutine)
+        dynamic_call_site_flag = 2; // dynamic status unknown
+    else
+        dynamic_call_site_flag = 0; // not a call site, so not a dynamic call site.
+    // I'd love to have a "loop" constructor, but the code structure
+    // doesn't work right. We create an entry point as a set of edge points,
+    // but not all edge points are loop points.
+    loop = NULL;
+    
+    // And check to see if there's already instrumentation there (from a fork, say)
+    
+    pdvector<miniTramp *> mts;
+    
+    // Preinsn
+    // TODO: this will grab _everything_, including internal instrumentation.
+    // We need a "type" flag on the miniTramp that specifies whether instru is
+    // internal, BPatch-internal (dynamic monitoring), or user-added.
+    
+    baseTramp *bt = point->getBaseTramp(callPreInsn);
+    assert(bt);
+    miniTramp *mt = bt->firstMini;
+    while (mt) {
+        if (mt->instP == point)
+            mts.push_back(mt);
+        mt = mt->next;
+    }
+    for(unsigned i=0; i<mts.size(); i++) {
+        BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc->llproc);
+        handle->add(mts[i]);
+        preSnippets.push_back(handle);
+    }
+    // And now post.
+    mts.clear();
+    bt = point->getBaseTramp(callPostInsn);
+    assert(bt);
+    mt = bt->firstMini;
+    while (mt) {
+        if (mt->instP == point)
+            mts.push_back(mt);
+        mt = mt->next;
+    }
+    for(unsigned ii=0; ii<mts.size(); ii++) {
+        BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc->llproc);
+        handle->add(mts[ii]);
+        preSnippets.push_back(handle);
+    }
 }
 
 /*
@@ -252,9 +253,29 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
    return ret;
 }
 
+void BPatch_point::attachMemAcc(BPatch_memoryAccess *newMemAcc) {
+    if (memacc) {
+        // Change if we ever want to override these...
+        assert(newMemAcc == memacc);
+    }
+    else
+        memacc = newMemAcc;
+}
+
 const BPatch_memoryAccess *BPatch_point::getMemoryAccessInt()
 {
-  return memacc;
+    if (memacc) { 
+        return memacc;
+    }
+    fprintf(stderr, "No memory access recorded for 0x%lx, grabbing now...\n",
+            point->addr());
+    assert(point);
+    // Try to find it... we do so through an InstrucIter
+    InstrucIter ii(point->addr(), point->proc());
+    BPatch_memoryAccess *ma = ii.isLoadOrStore();
+
+    attachMemAcc(ma);
+    return ma;
 }
 
 const BPatch_Vector<BPatchSnippetHandle *> BPatch_point::getCurrentSnippetsInt() 
@@ -363,7 +384,7 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb ) {
   }
 
   // construct function call and insert
-  int_function * fb = user_cb->func;
+  int_function * fb = user_cb->lowlevel_func();
 
   // Monitoring function
   AstNode * ast = new AstNode( fb, args );
@@ -590,4 +611,70 @@ BPatch_point *BPatch_point::createInstructionInstPoint(BPatch_process *proc,
 
     return proc->findOrCreateBPPoint(bpf, iPoint, BPatch_arbitrary);
 }
-                                                            
+
+// findPoint refactoring
+BPatch_Vector<BPatch_point*> *BPatch_point::getPoints(const BPatch_Set<BPatch_opCode>& ops,
+                                        InstrucIter &ii, 
+                                        BPatch_function *bpf) {
+    BPatch_Vector<BPatch_point*> *result = new BPatch_Vector<BPatch_point *>;
+    
+    int osize = ops.size();
+    BPatch_opCode* opa = new BPatch_opCode[osize];
+    ops.elements(opa);
+    
+    bool findLoads = false, findStores = false, findPrefetch = false;
+    
+    for(int i=0; i<osize; ++i) {
+        switch(opa[i]) {
+        case BPatch_opLoad: findLoads = true; break;
+        case BPatch_opStore: findStores = true; break;	
+        case BPatch_opPrefetch: findPrefetch = true; break;	
+        }
+    }
+    
+    while(ii.hasMore()) {
+        
+        //inst = ii.getInstruction();
+        Address addr = *ii;     // XXX this gives the address *stored* by ii...
+        
+        BPatch_memoryAccess* ma = ii.isLoadOrStore();
+        ii++;
+        
+        if(!ma)
+            continue;
+        
+        //BPatch_addrSpec_NP start = ma.getStartAddr();
+        //BPatch_countSpec_NP count = ma.getByteCount();
+        //int imm = start.getImm();
+        //int ra  = start.getReg(0);
+        //int rb  = start.getReg(1);
+        //int cnt = count.getImm();
+        //short int fcn = ma.prefetchType();
+        bool add = false;
+        
+        if(findLoads && ma->hasALoad()) {
+            add = true;
+        }
+        else if (findStores && ma->hasAStore()) {
+            add = true;
+        }
+        else if (findPrefetch && ma->hasAPrefetch_NP()) {
+            add = true;
+        }
+        
+        if (add) {
+            BPatch_point *p = BPatch_point::createInstructionInstPoint(bpf->getProc(),
+                                                                       (void *)addr,
+                                                                       bpf);
+            if (p) {
+                if (p->memacc == NULL)
+                    p->attachMemAcc(ma);
+                else
+                    delete ma;
+                result->push_back(p);
+            }
+        }
+    }
+    return result;
+}
+                                                          
