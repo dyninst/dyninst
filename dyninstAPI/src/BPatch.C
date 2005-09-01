@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.100 2005/07/29 19:17:32 bernat Exp $
+// $Id: BPatch.C,v 1.101 2005/09/01 22:17:47 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -142,7 +142,7 @@ BPatch::BPatch()
      * Initialize hash table of standard types.
      */
     BPatch_type *newType;
-    stdTypes = new BPatch_typeCollection;
+    stdTypes = BPatch_typeCollection::getGlobalTypeCollection();
     stdTypes->addType(newType = new BPatch_typeScalar(-1, sizeof(int), "int"));
     newType->decrRefCount();
     BPatch_type *charType = new BPatch_typeScalar(-2, sizeof(char), "char");
@@ -167,7 +167,7 @@ BPatch::BPatch()
     /*
      * Initialize hash table of API types.
      */
-    APITypes = new BPatch_typeCollection;
+    APITypes = BPatch_typeCollection::getGlobalTypeCollection();
 
     /*
      *  Initialize hash table of Built-in types.
@@ -341,11 +341,15 @@ void BPatch::BPatch_dtor()
     type_Error->decrRefCount();
     type_Untyped->decrRefCount();
 
-    delete stdTypes;
+    if (stdTypes)
+        BPatch_typeCollection::freeTypeCollection(stdTypes);
+    if (APITypes)
+        BPatch_typeCollection::freeTypeCollection(APITypes);
 
-	if(systemPrelinkCommand){
-		delete [] systemPrelinkCommand;
-	}
+
+    if(systemPrelinkCommand){
+        delete [] systemPrelinkCommand;
+    }
     bpatch = NULL;
 }
 
@@ -842,6 +846,8 @@ void BPatch::registerExec(process *proc)
    BPatch_process *process = info->procsByPid[proc->getPid()];
    assert(process);
    // build a new BPatch_image for this one
+   if (process->image)
+       delete process->image;
    process->image = new BPatch_image(process);
    
    if (execCallback) {
