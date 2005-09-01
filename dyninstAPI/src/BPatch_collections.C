@@ -47,6 +47,11 @@
 #include "BPatch_collections.h"
 #include "BPatch_Vector.h"
 #include "BPatch.h"
+
+// Dwarf stuff
+#include "mapped_object.h"
+#include "mapped_module.h"
+
 //#include "BPatch_type.h"
 
 
@@ -117,6 +122,58 @@ BPatch_Vector<BPatch_localVar *> *BPatch_localVarCollection::getAllVars() {
     return localVarVec;
 }
   
+// Could be somewhere else... for DWARF-work.
+dictionary_hash<pdstring, BPatch_typeCollection * > BPatch_typeCollection::fileToTypesMap(pdstring::hash);
+
+/*
+ * Reference count
+ */
+
+BPatch_typeCollection *BPatch_typeCollection::getGlobalTypeCollection() {
+    BPatch_typeCollection *tc = new BPatch_typeCollection();
+    tc->refcount++;
+    return tc;
+}
+
+BPatch_typeCollection *BPatch_typeCollection::getModTypeCollection(BPatch_module *bpmod) {
+    assert(bpmod);
+    mapped_object *moduleImage = bpmod->lowlevel_mod()->obj();
+    assert( moduleImage != NULL );
+#if defined(USES_DWARF_DEBUG)
+    // TODO: can we use this on other platforms as well?    
+    if( fileToTypesMap.defines( moduleImage->fullName() ) ) {
+        // /* DEBUG */ fprintf( stderr, "%s[%d]: found cache for file '%s' (module '%s')\n", __FILE__, __LINE__, fileName, moduleFileName );
+        BPatch_typeCollection *cachedTC = fileToTypesMap [ moduleImage->fullName() ];
+        cachedTC->refcount++;
+        return cachedTC;
+    }
+#endif
+
+    BPatch_typeCollection *newTC = new BPatch_typeCollection();
+    fileToTypesMap[moduleImage->fullName()] = newTC;
+    newTC->refcount++;
+    return newTC;
+}
+
+void BPatch_typeCollection::freeTypeCollection(BPatch_typeCollection *tc) {
+    assert(tc);
+    tc->refcount--;
+    if (tc->refcount == 0) {
+        // Nuke...
+        // Do we want to? We could always leave 'em around to reduce parsing time.
+#if 0
+        dictionary_hash_iter<pdstring, BPatch_typeCollection *> iter(fileToTypesMap);
+        for (; iter; iter++) {
+            if (iter.currval() == tc) {
+                fileToTypesMap.undef(iter.currkey());
+                break;
+            }
+        }
+        delete tc;
+#endif
+    }
+}
+
 /*
  * BPatch_typeCollection::BPatch_typeCollection
  *
@@ -124,9 +181,11 @@ BPatch_Vector<BPatch_localVar *> *BPatch_localVarCollection::getAllVars() {
  * for the type, by Name and ID.
  */
 BPatch_typeCollection::BPatch_typeCollection():
-  typesByName(pdstring::hash),
-  globalVarsByName(pdstring::hash),
-  typesByID(intHash)
+    typesByName(pdstring::hash),
+    globalVarsByName(pdstring::hash),
+    typesByID(intHash),
+    refcount(0),
+    dwarfParsed_(false)
 {
   /* Initialize hash tables: typesByName, typesByID */
 }
@@ -139,44 +198,45 @@ BPatch_typeCollection::BPatch_typeCollection():
  */
 BPatch_typeCollection::~BPatch_typeCollection()
 {
- 
-  // delete all of the types
-  // This doesn't seem to work - jkh 1/31/00
-#ifdef notdef
-  dictionary_hash_iter<pdstring, BPatch_type *> ti(typesByName);
-  dictionary_hash_iter<int, BPatch_type *> tid(typesByID);
-  dictionary_hash_iter<pdstring, BPatch_type *> gi(globalVarsByName);
- 
-  pdstring      gname; 
+    // We sometimes directly delete (refcount == 1) or go through the
+    // decRefCount (which will delete when refcount == 0)
+    assert(refcount == 0 ||
+           refcount == 1);
+    // delete all of the types
+    // This doesn't seem to work - jkh 1/31/00
+#if 0
+    dictionary_hash_iter<pdstring, BPatch_type *> ti(typesByName);
+    dictionary_hash_iter<int, BPatch_type *> tid(typesByID);
+    dictionary_hash_iter<pdstring, BPatch_type *> gi(globalVarsByName);
+    
+    pdstring      gname; 
     pdstring	name;
-  BPatch_type	*type;
-  int         id;
-  while (tid.next(id, type))
-    delete type;
-  
-  
-  // Underlying types deleted already just need to get rid of pointers
-  while (ti.next(name, type))
-    type = NULL;
-  
-  // delete globalVarsByName collection
-  while (gi.next(name, type))
-    delete type;
-#endif
-
-  for (dictionary_hash_iter<int, BPatch_type *> it = typesByID.begin();
-       it != typesByID.end();
-       it ++) {
-     (*it)->decrRefCount();
-  }
-  for (dictionary_hash_iter<pdstring, BPatch_type *> it2 = typesByName.begin();
-       it2 != typesByName.end();
-       it2 ++) {
-     (*it2)->decrRefCount();
-  }
-  
+    BPatch_type	*type;
+    int         id;
+    while (tid.next(id, type))
+        delete type;
+    
+    
+    // Underlying types deleted already just need to get rid of pointers
+    while (ti.next(name, type))
+        type = NULL;
+    
+    // delete globalVarsByName collection
+    while (gi.next(name, type))
+        delete type;
+    
+    for (dictionary_hash_iter<int, BPatch_type *> it = typesByID.begin();
+         it != typesByID.end();
+         it ++) {
+        (*it)->decrRefCount();
+    }
+    for (dictionary_hash_iter<pdstring, BPatch_type *> it2 = typesByName.begin();
+         it2 != typesByName.end();
+         it2 ++) {
+        (*it2)->decrRefCount();
+    }
+#endif    
 }
-
 
 /*
  * BPatch_typeCollection::findType

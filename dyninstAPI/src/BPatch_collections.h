@@ -69,6 +69,10 @@ public:
   
 
 
+/*
+ * Due to DWARF weirdness, this can be shared between multiple BPatch_modules.
+ * So we reference-count to make life easier.
+ */
 class BPatch_typeCollection {
     friend class BPatch_image;
     friend class BPatch_module;
@@ -76,9 +80,28 @@ class BPatch_typeCollection {
     dictionary_hash<pdstring, BPatch_type *> typesByName;
     dictionary_hash<pdstring, BPatch_type *> globalVarsByName;
     dictionary_hash<int, BPatch_type *> typesByID;
-public:
-    BPatch_typeCollection();
+
     ~BPatch_typeCollection();
+
+    unsigned refcount;
+    BPatch_typeCollection();
+
+    // DWARF:
+    /* Cache type collections on a per-image basis.  (Since
+       BPatch_functions are solitons, we don't have to cache them.) */
+    static dictionary_hash< pdstring, BPatch_typeCollection * > fileToTypesMap;
+
+    // DWARF...
+    bool dwarfParsed_;
+
+public:
+    static BPatch_typeCollection *getGlobalTypeCollection();
+    static BPatch_typeCollection *getModTypeCollection(BPatch_module *mod);
+    static void freeTypeCollection(BPatch_typeCollection *tc);
+
+    // DWARF...
+    bool dwarfParsed() { return dwarfParsed_; }
+    void setDwarfParsed() { dwarfParsed_ = true; }
 
     BPatch_type	*findType(const char *name);
     BPatch_type	*findType(const int & ID);
