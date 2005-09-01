@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.41 2005/08/03 05:28:02 bernat Exp $
+// $Id: Object-xcoff.C,v 1.42 2005/09/01 22:18:07 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -248,11 +248,16 @@ fileOpener *fileOpener::openFile(const pdstring &f) {
     fileOpener *newFO = new fileOpener(f);
     assert(newFO);
     
-    if (!newFO->open())
+    if (!newFO->open()) {
+        fprintf(stderr, "File %s\n", f.c_str());
+        perror("Opening file");
         return NULL;
-    if (!newFO->mmap())
+    }
+    if (!newFO->mmap()) {
+        fprintf(stderr, "File %s\n", f.c_str());
+        perror("mmaping file");
         return NULL;
-
+    }
     openedFiles.push_back(newFO);
 
     return newFO;
