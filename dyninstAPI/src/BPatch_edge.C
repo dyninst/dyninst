@@ -76,7 +76,7 @@ BPatch_edge::getType()
 
     if ((itype & IS_JUMP) || (itype & IS_JCC)) 
         if (itype & IS_JCC) 
-            if (source->getRelEnd() == target->getRelStart()) 
+            if (source->getEndAddress() == target->getStartAddress()) 
                 return CondJumpNottaken;
             else 
                 return CondJumpTaken;
@@ -142,10 +142,10 @@ void BPatch_edge::dumpInt()
 //             target->getRelLast());
 
     fprintf(stderr," 0x%x, 0x%x --> 0x%x, 0x%x %s\n",
-            source->getRelStart(),
-            source->getRelLast(),
-            target->getRelStart(),
-            target->getRelLast(),
+            source->getStartAddress(),
+            source->getEndAddress(),
+            target->getStartAddress(),
+            target->getEndAddress(),
 	    edge_type_string(type).c_str());
 
 }

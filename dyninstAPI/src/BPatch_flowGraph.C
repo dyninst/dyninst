@@ -301,7 +301,7 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
 
         // instrument the head of the loop
         BPatch_point *p;
-        void *addr = (void*)loop->getLoopHead()->getRelStart();
+        void *addr = (void*)loop->getLoopHead()->getStartAddress();
         p = BPatch_point::createInstructionInstPoint(getBProcess(), addr, func_);
         p->overrideType(BPatch_locLoopStartIter);
 	p->setLoop(loop);
@@ -530,10 +530,10 @@ BPatch_flowGraph::createLoops()
             BPatch_loop *l1 = allLoops[i];
             BPatch_loop *l2 = allLoops[j];
             
-            unsigned long l1start = l1->backEdge->target->getRelStart();
-	    unsigned long l2start = l2->backEdge->target->getRelStart();   
-	    unsigned long l1end   = l1->backEdge->source->getRelLast();
-	    unsigned long l2end   = l2->backEdge->source->getRelLast();
+            unsigned long l1start = l1->backEdge->target->getStartAddress();
+	    unsigned long l2start = l2->backEdge->target->getStartAddress();   
+	    unsigned long l1end   = l1->backEdge->source->getLastInsnAddress();
+	    unsigned long l2end   = l2->backEdge->source->getLastInsnAddress();
             
             // if l2 is inside l1
             if (l1start < l2start && l2end < l1end) {
@@ -545,7 +545,7 @@ BPatch_flowGraph::createLoops()
                     l2->parent = l1;
                 else 
                    // if l1 is closer to l2 than l2's existing parent
-                    if (l1start > l2->parent->getLoopHead()->getRelStart()) 
+                    if (l1start > l2->parent->getLoopHead()->getStartAddress()) 
                         l2->parent = l1;
             }
         }
@@ -1483,7 +1483,7 @@ void BPatch_flowGraph::createEdges()
         // create edges
         const unsigned char *relocp;
 
-        Address lastinsnaddr = source->getRelLast();
+        Address lastinsnaddr = source->getLastInsnAddress();
 	if (lastinsnaddr == 0) {
 	  fprintf(stderr, "ERROR: 0 addr for block end!\n");
 	  continue;
@@ -1680,7 +1680,7 @@ void BPatch_flowGraph::findAndDeleteUnreachable()
 		    // remove B from vec of all blocks
 //                     fprintf(stderr, "bb %u [0x%x 0x%x]\n",
 //                             bb->blockNo(),
-//                             bb->getRelStart(),
+//                             bb->getStartAddress(),
 //                             bb->getRelEnd() );
 
 		    allBlocks.remove(bb);
@@ -1959,8 +1959,8 @@ BPatch_flowGraph::dump()
     for (unsigned i=0; i < allBlocks.size(); i++) {
         fprintf(stderr,"[%u 0x%x 0x%x]\n",
                 blocks[i]->blockNo(),
-                blocks[i]->getRelStart(), 
-                blocks[i]->getRelEnd());
+                blocks[i]->getStartAddress(), 
+                blocks[i]->getEndAddress());
         
     }
 

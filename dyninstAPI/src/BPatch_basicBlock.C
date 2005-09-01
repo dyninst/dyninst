@@ -54,15 +54,6 @@
 #include "BPatch_instruction.h"
 #include "BPatch_libInfo.h"
 
-
-
-
-extern BPatch_Vector<BPatch_point*> *findPoint(const BPatch_Set<BPatch_opCode>& ops,
-					       InstrucIter &ii, 
-					       BPatch_process *proc,
-					       BPatch_function *bpf);
-
-
 /* Bit array functions for liveness calculation */
 
 void dispose(BITARRAY** bitarray)
@@ -294,7 +285,7 @@ BPatch_basicBlock::BPatch_basicBlock() :
         isExitBasicBlock(false),
         startAddress(0),
         lastInsnAddress(0),
-        endAddr(0), 						       
+        endAddress(0), 						       
         immediateDominates(NULL),
         immediateDominator(NULL),
         immediatePostDominates(NULL),
@@ -310,7 +301,7 @@ BPatch_basicBlock::BPatch_basicBlock(const int_basicBlock *ib) :
     isExitBasicBlock(ib->isExitBlock()),
     startAddress(ib->origInstance()->firstInsnAddr()),
     lastInsnAddress(ib->origInstance()->lastInsnAddr()),
-    endAddr(ib->origInstance()->endAddr()), 						       
+    endAddress(ib->origInstance()->endAddr()), 						       
     immediateDominates(NULL),
     immediateDominator(NULL),
     immediatePostDominates(NULL),
@@ -330,15 +321,15 @@ BPatch_basicBlock::BPatch_basicBlock(BPatch_flowGraph* fg, int bno) :
 		blockNumber(bno),
 		isEntryBasicBlock(false),
 		isExitBasicBlock(false),
-        startAddress(0),
-        lastInsnAddress(0),
-        endAddr(0),    
+                startAddress(0),
+                lastInsnAddress(0),
+                endAddress(0),    
 		immediateDominates(NULL),
 		immediateDominator(NULL),
 		immediatePostDominates(NULL),
 		immediatePostDominator(NULL),
-		sourceBlocks(NULL),
-        instructions(NULL) {}
+                sourceBlocks(NULL),
+                instructions(NULL) {}
 
 
 //destructor of the class BPatch_basicBlock
@@ -1001,8 +992,8 @@ void BPatch_basicBlock::setBlockNumber(int bno){
 bool BPatch_basicBlock::getAddressRangeInt(void*& _startAddress,
                                            void*& _lastInsnAddress)
 {
-	_startAddress = (void *)getStartAddress();
-	_lastInsnAddress =(void *)(getStartAddress()-startAddress+lastInsnAddress);
+	_startAddress = (void *)startAddress;
+	_lastInsnAddress =(void *)endAddress;
         return true;
 }
 
@@ -1107,7 +1098,7 @@ BPatch_Vector<BPatch_point*> *BPatch_basicBlock::findPointInt(const BPatch_Set<B
     InstrucIter ii(this);
     BPatch_function *func = flowGraph->getBFunction();
     
-    return ::findPoint(ops, ii, flowGraph->getBProcess(), func);
+    return BPatch_point::getPoints(ops, ii, func);
 }
 
 /*
@@ -1144,54 +1135,14 @@ unsigned long BPatch_basicBlock::getLastInsnAddressInt() CONST_EXPORT
      return lastInsnAddress;
 }
 
+unsigned long BPatch_basicBlock::getEndAddressInt() CONST_EXPORT
+{
+    return endAddress;
+}
+
 unsigned BPatch_basicBlock::sizeInt() CONST_EXPORT
 {
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_nt4_0)
-    //variable length instructions on x86
-    return endAddr - startAddress;
-#elif defined(ia64_unknown_linux2_4)
-	/* Basic blocks can go from mid-bundle to mid-bundle (which looks
-	   like variable-length instructions). */
-    return endAddr - startAddress;
-#else
-    //4 byte instructions on all other platforms
-    return 4 + lastInsnAddress - startAddress;
-#endif
-
-}
-
-unsigned long BPatch_basicBlock::getRelStartInt() CONST_EXPORT
-{
-    return startAddress;
-}
-
-unsigned long BPatch_basicBlock::getRelEndInt() CONST_EXPORT 
-{
-    return endAddr;
-}
-
-unsigned long BPatch_basicBlock::getRelLastInt() CONST_EXPORT
-{
-    return lastInsnAddress;
-}
-
-unsigned long BPatch_basicBlock::setRelStartInt(unsigned long sAddr)
-{
-    return startAddress = sAddr; 
-}
-
-
-unsigned long BPatch_basicBlock::setRelLastInt(unsigned long eAddr)
-{
-    return lastInsnAddress = eAddr;
-}
-
-unsigned long BPatch_basicBlock::setRelEndInt(unsigned long eAddr)
-{
-    return endAddr = eAddr;
+    return endAddress - startAddress;
 }
 
 bool BPatch_basicBlock::addSourceInt(BPatch_basicBlock *b) 
@@ -1216,7 +1167,7 @@ bool BPatch_basicBlock::removeTargetInt(BPatch_basicBlock *b)
 
 void BPatch_basicBlock::dump() 
 {
-    fprintf(stderr,"(b %u 0x%x 0x%x)\n",blockNumber,startAddress,endAddr);
+    fprintf(stderr,"(b %u 0x%x 0x%x)\n",blockNumber,startAddress,endAddress);
 }
 
 void BPatch_basicBlock::getIncomingEdgesInt(BPatch_Vector<BPatch_edge*>& inc)
