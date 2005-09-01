@@ -224,7 +224,7 @@ class BPATCH_DLL_EXPORT BPatch_typeTypedef : public BPatch_type, public BPatch_f
    BPatch_type *base; /* The type that we refer to */
    unsigned int sizeHint;
  protected:
-   void updateSize() { size = sizeHint ? sizeHint : base->getSize(); }
+   void updateSize();
  public:
    BPatch_typeTypedef(int _ID, BPatch_type *_base, const char *_name = NULL, unsigned int _sizeHint = 0);
    BPatch_typeTypedef(BPatch_type *_base, const char *_name);
