@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.70 2005/08/15 22:19:49 bernat Exp $
+// $Id: BPatch_snippet.C,v 1.71 2005/09/01 22:18:00 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -58,6 +58,8 @@
 #include "BPatch_Vector.h"
 #include "common/h/Time.h"
 #include "common/h/timing.h"
+
+#include "mapped_object.h" // for savetheworld
 
 //  This will be removed:
 
@@ -149,8 +151,12 @@ AstNode *generateArrayRef(const BPatch_snippet &lOperand,
     //  We have to be a little forgiving of the
     const BPatch_typeArray *arrayType = dynamic_cast<const BPatch_typeArray *>(lOperand.ast->getType());
     if (!arrayType) {
-	BPatch_reportError(BPatchSerious, 109,
-	       "array reference has no type information, or array reference to non-array type");
+        if (lOperand.ast->getType() == NULL) 
+            BPatch_reportError(BPatchSerious, 109,
+                               "array reference has no type information");
+        else
+            BPatch_reportError(BPatchSerious, 109,
+                               "array reference has array reference to non-array type");
 	return NULL;
     }
 
@@ -665,7 +671,7 @@ void BPatch_funcCallExpr::BPatch_funcCallExprInt(
     //  jaw 08/03  part of cplusplus bugfix -- using pretyName
     //  to generate function calls can lead to non uniqueness probs
     //  in the case of overloaded callee functions.
-    ast = new AstNode(func.func, ast_args);
+    ast = new AstNode(func.lowlevel_func(), ast_args);
 
     for (i = 0; i < args.size(); i++)
         removeAst(ast_args[i]);
@@ -680,16 +686,14 @@ void BPatch_funcCallExpr::BPatch_funcCallExprInt(
 		to see if func is in a shared lib. if it
 		is marked that shared lib as dirtyCalled()
 	*/
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
+#if defined(cap_save_the_world)
 
 	process *proc = func.getProc()->llproc;
 	// We can't define isSharedLib as constant everywhere, so strip
 	// the const definition here.
 	BPatch_function &stripFunc = const_cast<BPatch_function &> (func);
 	if( proc->collectSaveWorldData && stripFunc.isSharedLib()){
-	  stripFunc.func->obj()->setDirtyCalled();
+            stripFunc.lowlevel_func()->obj()->setDirtyCalled();
 	}
 #endif
 }
@@ -710,7 +714,7 @@ void BPatch_funcJumpExpr::BPatch_funcJumpExprInt(
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(i386_unknown_nt4_0) \
  || defined(ia64_unknown_linux2_4)
-    ast = new AstNode(func.func);
+    ast = new AstNode(func.lowlevel_func());
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
 #else
