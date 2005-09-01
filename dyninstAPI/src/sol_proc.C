@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.63 2005/08/03 05:28:24 bernat Exp $
+// $Id: sol_proc.C,v 1.64 2005/09/01 22:18:41 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -60,6 +60,11 @@
 #include "dyninstAPI/src/stats.h"
 #include "common/h/pathName.h" // for path name manipulation routines
 #include "dyninstAPI/src/sol_proc.h"
+
+#include "function.h"
+#include "mapped_object.h"
+#include "mapped_module.h"
+#include "dynamiclinking.h" //getlowestSO...
 
 /*
    osTraceMe is called after we fork a child process to set

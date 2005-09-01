@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.184 2005/08/25 22:45:57 bernat Exp $
+// $Id: solaris.C,v 1.185 2005/09/01 22:18:42 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -56,6 +56,10 @@
 #include "common/h/debugOstream.h"
 #include "common/h/solarisKludges.h"
 #include "dyninstAPI/src/editSharedLibrary.h" //ccw 11 mar 2005
+
+#include "mapped_module.h"
+#include "mapped_object.h"
+#include "dynamiclinking.h"
 
 #if defined (sparc_sun_solaris2_4)
 #include "dyninstAPI/src/inst-sparc.h"
@@ -1073,7 +1077,7 @@ void print_read_error_info(const relocationEntry entry,
 // function symbol corresponding to the relocation entry in at the address
 // specified by entry and base_addr.  If it has been bound, then the callee 
 // function is returned in "target_pdf", else it returns false.
-bool process::hasBeenBound(const relocationEntry entry, 
+bool process::hasBeenBound(const relocationEntry &entry, 
 			   int_function *&target_pdf, Address base_addr) {
 
 // TODO: the x86 and sparc versions should really go in seperate files 
@@ -1213,7 +1217,7 @@ int_function *instPoint::findCallee() {
             return NULL;
         }
         for (unsigned i = 0; i < possibles->size(); i++) {
-            if ((*possibles)[i]->match(icallee)) {
+          if ((*possibles)[i]->ifunc() == icallee) {
                 callee_ = (*possibles)[i];
                 return callee_;
             }

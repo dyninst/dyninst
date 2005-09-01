@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: util.h,v 1.31 2004/06/21 19:35:29 pcroth Exp $
+// $Id: util.h,v 1.32 2005/09/01 22:18:47 bernat Exp $
 
 #ifndef UTIL_H
 #define UTIL_H
@@ -82,6 +82,9 @@ unsigned addrHash16(const Address &addr);
    // use when you know the address is divisible by 16 (lo 4 bits 0)
 unsigned addrHash(const Address &addr);
    // use when you cannot assume anything about the address
+
+unsigned ptrHash4(void *ptr);
+unsigned ptrHash16(void *ptr);
 
 inline unsigned intHash(const int &val) {
   return val;

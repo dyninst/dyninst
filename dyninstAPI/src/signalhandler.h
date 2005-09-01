@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.14 2005/08/25 22:45:56 bernat Exp $
+/* $Id: signalhandler.h,v 1.15 2005/09/01 22:18:40 bernat Exp $
  */
 
 /*
@@ -105,7 +105,6 @@ class signal_handler_location : public codeRange {
     signal_handler_location(Address addr, unsigned size);
     Address get_address_cr() const { return addr_; }
     unsigned get_size_cr() const { return size_; }
-    void *getPtrToInstruction(Address addr) const { assert(0); return NULL; }
 
  private:
     Address addr_;
