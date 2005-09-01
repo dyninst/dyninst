@@ -39,15 +39,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: variable.C,v 1.1 2005/07/29 19:23:07 bernat Exp $
+// $Id: variable.C,v 1.2 2005/09/01 22:18:48 bernat Exp $
 
 // Variable.C
 
-#include "dyninstAPI/src/symtab.h"
+#include "mapped_object.h"
 
 image_variable::image_variable(Address offset,
                                const pdstring &name,
-                               const pdmodule *mod) :
+                               pdmodule *mod) :
     offset_(offset),
     pdmod_(mod) {
     symTabNames_.push_back(name);
