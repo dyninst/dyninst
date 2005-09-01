@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.549 2005/08/25 22:45:51 bernat Exp $
+// $Id: process.C,v 1.550 2005/09/01 22:18:38 bernat Exp $
 
 #include <ctype.h>
 
@@ -82,6 +82,8 @@
 
 #include "dyninstAPI/src/rpcMgr.h"
 
+#include "mapped_module.h"
+#include "mapped_object.h"
 
 #include "dyninstAPI/h/BPatch.h"
 
@@ -344,12 +346,6 @@ bool process::walkStacks(pdvector<pdvector<Frame> >&stackWalks)
     }
   }
   return true;
-}
-
-
-static Address alignAddress(Address addr, unsigned align) {
-  Address skew = addr % align;
-  return (skew) ? (((addr/align)+1)*align) : addr;
 }
 
 extern "C" int heapItemCmpByAddr(const heapItem **A, const heapItem **B)
@@ -1659,13 +1655,16 @@ void process::deleteProcess() {
 
   trampTrapMapping.clear();
 
+  // Each instPoint may have several instances -- this gets instances and makes
+  // a unique set
   std::set<instPoint *> allInstPoints;
   dictionary_hash_iter<Address, instPoint *> ipIter(instPMapping_);
   for (; ipIter; ipIter++) {
       instPoint *p = ipIter.currval();
       allInstPoints.insert(p);
   }
-  
+
+  // And this deletes the set.
   for (std::set<instPoint *>::iterator ip = allInstPoints.begin();
        ip != allInstPoints.end();
        ip++) {
@@ -2232,6 +2231,9 @@ bool process::setupFork() {
     activeProcesses++;
     return true;
 }
+
+
+unsigned process::getAddressWidth() { return mapped_objects[0]->parse_img()->getObject().getAddressWidth(); }
 
 bool process::setAOut(fileDescriptor &desc) {
     assert(reachedBootstrapState(attached_bs));
@@ -3591,6 +3593,8 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
    
    bool res = stopped_lwp->writeDataSpace(inTracedProcess, size, inSelf);
    if (!res) {
+       fprintf(stderr, "WDS: %d bytes from %p to %p\n",
+               size, inSelf, inTracedProcess);
        pdstring msg = pdstring("System error: unable to write to process data "
                                "space (WDS):") + pdstring(strerror(errno));
        showErrorCallback(38, msg);
@@ -3931,6 +3935,8 @@ bool process::handleIfDueToSharedObjectMapping(){
            // Remove from mapped_objects list
            for (unsigned j = 0; j < mapped_objects.size(); j++) {
                if (changed_objs[i] == mapped_objects[j]) {
+                   if (j == 0)
+                       while(1);
                    assert(j != 0); // Better not delete the a.out. That makes things unhappy.
                    mapped_objects[j] = mapped_objects.back();
                    mapped_objects.pop_back();
@@ -4108,34 +4114,20 @@ bool process::addASharedObject(mapped_object *new_obj) {
     }
 #endif
 
-    // Will eventually be rolled into the above
-    assert(BPatch::bpatch);
-
-    // And if we've already built the module list, then append these...
-    BPatch_process *bProc = BPatch::bpatch->getProcessByPid(pid);
-    if (!bProc) return true; // Done
-    BPatch_image *bImage = bProc->getImage();
-    assert(bImage); // This we can assert to be true
-    if (!bImage->ModuleListExist()) return true; // We'll catch 'em later...
+    if (BPatch::bpatch->dynLibraryCallback) {
+        BPatch_process *bProc = BPatch::bpatch->getProcessByPid(pid);
+        if (!bProc) return true; // Done
+        BPatch_image *bImage = bProc->getImage();
+        assert(bImage); // This we can assert to be true
     
-    const pdvector<mapped_module *> &modlist = new_obj->getModules();
-    // This should all be moved to the bpatch layer
-    if (modlist.size()) {
-        
-        for (unsigned i = 0; i < modlist.size(); i++) {
-            mapped_module *curr = modlist[i];
-            pdstring name = curr->fileName();
-            
-            BPatch_module *bpmod = NULL;
-            if ((name != "DYN_MODULE") && (name != "LIBRARY_MODULE")) {
-                //cout << __FILE__ << ":" << __LINE__ << ": creating module " << name << endl;
-                bpmod = new BPatch_module(bProc, curr, bImage);
-                bImage->addModuleIfExist(bpmod);
-            }
-            
-            // XXX - jkh Add the BPatch_funcs here
-            
-            if (BPatch::bpatch->dynLibraryCallback) {
+        const pdvector<mapped_module *> &modlist = new_obj->getModules();
+        // This should all be moved to the bpatch layer
+        if (modlist.size()) {
+            for (unsigned i = 0; i < modlist.size(); i++) {
+                mapped_module *curr = modlist[i];
+                
+                BPatch_module *bpmod = bImage->findOrCreateModule(curr);
+                
                 event_mailbox->executeOrRegisterCallback(BPatch::bpatch->dynLibraryCallback,
                                                          bProc, bpmod, true);
                 //BPatch::bpatch->dynLibraryCallback(thr, bpmod, true);
@@ -4747,9 +4739,7 @@ mapped_object *process::findObject(const pdstring &obj_name, bool wildcard)
 
 void process::getAllFunctions(pdvector<int_function *> &funcs) {
     for (unsigned i = 0; i < mapped_objects.size(); i++) {
-        const pdvector<int_function *> &obj_funcs = mapped_objects[i]->getAllFunctions();
-        for (unsigned j = 0; j < obj_funcs.size(); j++)
-            funcs.push_back(obj_funcs[j]);
+        mapped_objects[i]->getAllFunctions(funcs);
     }
 }
       
@@ -4759,8 +4749,9 @@ void process::getAllFunctions(pdvector<int_function *> &funcs) {
 void process::getAllModules(pdvector<mapped_module *> &mods){
     for (unsigned i = 0; i < mapped_objects.size(); i++) {
         const pdvector<mapped_module *> &obj_mods = mapped_objects[i]->getModules();
-        for (unsigned j = 0; j < obj_mods.size(); j++) 
+        for (unsigned j = 0; j < obj_mods.size(); j++) {
             mods.push_back(obj_mods[j]);
+        }
     }
 }
 
@@ -5094,6 +5085,7 @@ void process::registerInstPointAddr(Address addr, instPoint *inst) {
 void process::unregisterInstPointAddr(Address addr, instPoint *inst) {
     if (instPMapping_.defines(addr)) {
         // No silently overriding instPoints
+        assert(instPMapping_[addr] == inst);
         instPMapping_.undef(addr);
     }
 }
@@ -5283,6 +5275,7 @@ bool process::uninstallMutations() {
         if (mTramp) {
             mTramp->disable();
         }
+        
     }
 
     dictionary_hash_iter<Address, replacedFunctionCall *> rfcIter(replacedFunctionCalls_);
