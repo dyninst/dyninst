@@ -75,19 +75,19 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj, public BPatch_ev
     BPatch_process *proc;
     mapped_module      	 *mod;
     BPatch_image	 *img;
-    BPatch_Vector<BPatch_function *> * BPfuncs;
-    BPatch_Vector<BPatch_function *> * BPfuncs_uninstrumentable;
+    // Used in the destructor.
+    BPatch_Vector<BPatch_function *> all_funcs;
 
     bool nativeCompiler;
      
 public:
 
     //  This function should go away when paradyn is on top of dyninst
-    mapped_module* getModule() { return mod; }
+    mapped_module* lowlevel_mod() { return mod; }
 
     // The following functions are for internal use by  the library only:
     BPatch_module(BPatch_process *_proc, mapped_module *_mod, BPatch_image *img);
-    BPatch_module() : mod(NULL), img(NULL), BPfuncs(NULL),nativeCompiler(false) {
+    BPatch_module() : mod(NULL), img(NULL),nativeCompiler(false) {
 	_srcType = BPatch_sourceModule;
     };
     virtual ~BPatch_module();
@@ -228,7 +228,7 @@ private:
     // in both DWARF and STABS format.
     void parseStabTypes();
     void parseDwarfTypes();
-
+    
 };
 
 #ifdef IBM_BPATCH_COMPAT
