@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.13 2005/08/25 23:12:04 bernat Exp $
+// $Id: function.h,v 1.14 2005/09/01 22:18:14 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -93,6 +93,7 @@ class bblInstance : public codeRange {
  public:
     bblInstance(Address start, Address last, Address end, int_basicBlock *parent, int version);
     bblInstance(const bblInstance *parent, int_basicBlock *block);
+    ~bblInstance();
 
     Address firstInsnAddr() const { return firstInsnAddr_; }
     Address lastInsnAddr() const { return lastInsnAddr_; }
@@ -161,6 +162,7 @@ class int_basicBlock {
  public:
     int_basicBlock(const image_basicBlock *ib, Address baseAddr, int_function *func);
     int_basicBlock(const int_basicBlock *parent, int_function *func);
+    ~int_basicBlock();
 
     bool isEntryBlock() const { return isEntryBlock_; }
     bool isExitBlock() const { return isExitBlock_; }
@@ -260,17 +262,17 @@ class int_function {
 
    const pdstring &symTabName() const;
    const pdstring &prettyName() const { return ifunc_->prettyName(); };
-   const pdvector<pdstring> &symTabNameVector() { return ifunc_->symTabNameVector(); }
-   const pdvector<pdstring> &prettyNameVector() { return ifunc_->prettyNameVector(); }
+   const pdvector<pdstring> &symTabNameVector() const { return ifunc_->symTabNameVector(); }
+   const pdvector<pdstring> &prettyNameVector() const { return ifunc_->prettyNameVector(); }
 
    // May change when we relocate...
    Address getAddress() const {return addr_;}
    // Don't use this...
-   unsigned getSize_NP() const;
+   unsigned getSize_NP();
 
 
    // Not defined here so we don't have to play header file magic
-   image_func *ifunc() const;
+   const image_func *ifunc() const;
    mapped_module *mod() const;
    mapped_object *obj() const;
    process *proc() const;
@@ -287,10 +289,6 @@ class int_function {
 	 return 0;
      }
    };
-
-   // Should be operator==
-   bool match(int_function *p) const;
-   bool match(image_func *f) const { return (f == ifunc_); }
 
    // extra debuggering info....
    ostream & operator<<(ostream &s) const;
@@ -496,7 +494,6 @@ class functionReplacement : public codeRange {
                         unsigned targetVersion = 0);
     ~functionReplacement() {};
 
-    void *getPtrToInstruction(Address addr) const { assert(0); return NULL; }
     unsigned maxSizeRequired();
 
     bool generateFuncRep();

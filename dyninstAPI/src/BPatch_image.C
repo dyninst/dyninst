@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.75 2005/08/08 20:23:32 gquinn Exp $
+// $Id: BPatch_image.C,v 1.76 2005/09/01 22:17:54 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -51,6 +51,9 @@
 #include "symtab.h"
 #include "instPoint.h"
 #include "instP.h"
+
+#include "mapped_module.h"
+#include "mapped_object.h"
 
 #include "BPatch.h"
 #include "BPatch_image.h"
@@ -83,9 +86,6 @@ class AddrToVarExprHash {
 BPatch_image::BPatch_image(BPatch_process *_proc) :
    proc(_proc), defaultNamespacePrefix(NULL)
 {
-    modlist = NULL;
-    modules_parsed = false;
-
     AddrToVarExpr = new AddrToVarExprHash();
 
     _srcType = BPatch_sourceProgram;
@@ -98,8 +98,7 @@ BPatch_image::BPatch_image(BPatch_process *_proc) :
  */
 BPatch_image::BPatch_image() :
         proc(NULL), 
-        defaultNamespacePrefix(NULL),
-        modlist(NULL)
+        defaultNamespacePrefix(NULL)
 {
     AddrToVarExpr = new AddrToVarExprHash();
     
@@ -112,10 +111,9 @@ BPatch_image::BPatch_image() :
  */
 BPatch_image::~BPatch_image()
 {
-    // modules are shared by multuple programs, don't delete them
-    // for (unsigned int i = 0; i < modlist->size(); i++) {
-	 // delete (*modlist)[i];
-    // }
+    for (unsigned int i = 0; i < modlist.size(); i++) {
+	 delete modlist[i];
+    }
     delete AddrToVarExpr;
 }
 /*
@@ -266,69 +264,21 @@ bool BPatch_image::setFuncModulesCallback(BPatch_function *bpf, void *data)
 }
 
 BPatch_Vector<BPatch_module *> *BPatch_image::getModulesInt() {
-  if( modlist && modules_parsed ) { return modlist; }
+    pdvector<mapped_module *> modules;
+    proc->llproc->getAllModules(modules);
 
-  // We may have a singleton bpatch module in the vector
-  if (!modlist) modlist = new BPatch_Vector< BPatch_module *>;
-
-  if( modlist == NULL ) { return NULL; }
-
-  modules_parsed = true;
-
-  pdvector<mapped_module *> modules;
-  proc->llproc->getAllModules(modules);
-  unsigned int i, j; 
-
-  /* Generate the BPatch_functions for every module before
-     constructing the BPatch_modules.  This allows us to
-     parse the debug information once per image.*/
-  // This is done if we've got debug parsing turned on -- otherwise
-  // things turn into a great big mess.
-
-  if (BPatch::bpatch->parseDebugInfo() || !BPatch::bpatch->delayedParsingOn()) {
-    for( i = 0; i < modules.size(); i++ ) {
-      mapped_module * currentModule = modules[i];
-      const pdvector<int_function *> &currentFunctions = currentModule->getAllFunctions();
-      for(j = 0; j < currentFunctions.size(); j++ ) {
-           /* The constructor will try to register the bpf with proc's map,
-              so check first.  This happens when, for instance, when we parse libunwind
-              during BPatch_thread creation. */
-           if( ! proc->func_map->defines( currentFunctions[j] ) ) {
-              new BPatch_function( proc, currentFunctions[j], NULL );
-           }
-        } /* end iteration over functions in modules */
-     } /* end initial iteration over modules */
-  }
-  /* With all the BPatch_functions created, generate the modules.
-     The BPatch_module constructor will set its bpfs to point to itself,
-     and the parser will cache per-image type collections. */
-  char moduleName[255];   
-  BPatch_module * defaultModule = NULL;
-  
-  // We may have created a singleton module already -- check to see that we 
-  // don't double-create
-  for( i = 0; i < modules.size(); i++ ) {
-    BPatch_module *bpm = NULL;
-    mapped_module *map_mod = modules[i];
+    if (modules.size() == modlist.size())
+        return &modlist;
     
-    for (j = 0; j < modlist->size(); j++) {
-        if ((*modlist)[j]->getModule() == map_mod) {
-            bpm = (*modlist)[j];
-            break;
-        }
+    // We may have created a singleton module already -- check to see that we 
+    // don't double-create
+    for(unsigned i = 0; i < modules.size(); i++ ) {
+        mapped_module *map_mod = modules[i];
+        findOrCreateModule(map_mod);
     }
-    if (!bpm) {
-        bpm = new BPatch_module( proc, map_mod, this );
-        modlist->push_back( bpm );
-    }
-    bpm->getName(moduleName, 255);
-    if( strcmp( bpm->getName( moduleName, 255 ), "DEFAULT_MODULE" ) ) { 
-        defaultModule = bpm; 
-    }
-  } /* end of second iteration over modules */		
-  assert( defaultModule != NULL ) ;
-  proc->func_map->map(setFuncModulesCallback, this);
-  return modlist;
+    
+    //proc->func_map->map(setFuncModulesCallback, this);
+    return &modlist;
 } /* end getModules() */
 
 /*
@@ -345,44 +295,34 @@ BPatch_module *BPatch_image::findModuleInt(const char *name, bool substring_matc
     return NULL;
   }
 
-  if (modlist) {
-    BPatch_module *target = NULL;
-    char buf[512];
-    for (unsigned int i = 0; i < modlist->size(); ++i) {
-      BPatch_module *mod = (*modlist)[i];
+  BPatch_module *target = NULL;
+  
+  char buf[512];
+  for (unsigned int i = 0; i < modlist.size(); ++i) {
+      BPatch_module *mod = modlist[i];
       assert(mod);
       mod->getName(buf, 512); 
       if (substring_match) 
-        if (strstr(buf, name)) {
-          target = mod;
-          break;
-        }
-      else  //exact match required
-        if (!strcmp(name, buf)) {
-          target = mod;
-          break;
-        }
-
-    }
-    if (target) 
-      return target;
+          if (strstr(buf, name)) {
+              target = mod;
+              break;
+          }
+          else  //exact match required
+              if (!strcmp(name, buf)) {
+                  target = mod;
+                  break;
+              }
   }
 
-  //  Either:
-  // No modlist yet. Don't call getModules since that's massive 
-  // overkill. 
-  //  Or:
-  //  Modlist created, but only partially populated.  
- 
+  if (target) 
+      return target;
+  
   mapped_module *mod = proc->llproc->findModule(pdstring(name),substring_match);
   if (!mod) return false;
+  
+  target = findOrCreateModule(mod);
 
-  if (!modlist) 
-    modlist = new BPatch_Vector<BPatch_module *>;
-  BPatch_module *bpmod = new BPatch_module(proc, mod, this);
-  modlist->push_back(bpmod);
-
-  return bpmod;
+  return target;
 }
 
 /*
@@ -438,11 +378,11 @@ BPatch_point *BPatch_image::createInstPointAtAddrWithAlt(void *address,
      have different semantics. */
   int_function *func;
   if(bpf)
-    func = (int_function *) bpf->func;
+      func = (int_function *) bpf->lowlevel_func();
   else {
-    codeRange *range = llproc->findCodeRangeByAddress(address_int);
-    if (!range) {
-      return NULL;
+      codeRange *range = llproc->findCodeRangeByAddress(address_int);
+      if (!range) {
+          return NULL;
     }
     
     int_function *function_ptr = range->is_function();
@@ -497,98 +437,6 @@ BPatch_point *BPatch_image::createInstPointAtAddrWithAlt(void *address,
   return proc->findOrCreateBPPoint(NULL, newInstP, BPatch_locInstruction);
 }
 
-
-/*
- * BPatch_image::findFunctionInImage
- *
- * Searches a single image (class image object) for all functions of
- * the given name.  Results are returned in the vector that is passed in.
- * Note that the vector is not cleared first, so anything in the vector
- * when it is passed in remains there.
- *
- * name		The name of function to look up.
- * img		The image to search.
- * funcs	The vector in which to return the results.
- *
- * This function would make a lot more sense as a method of the image class,
- * but it's here since it deals with BPatch_functions and not int_functions.
- */
-// 18APR05: removed, as nobody but the (rewritten) findFunction needed it.
-#ifdef NOT_USED_ANYMORE
-
-void BPatch_image::findFunctionInImage(
-	const char *name, 
-	image *img, 
-	BPatch_Vector<BPatch_function*> *funcs,
-	bool incUninstrumentable)
-{
-  pdvector<int_function*> *pdfv;
-  pdvector<int_function *> raw_found_functions;
-
-  if ((pdfv = img->findFuncVectorByPretty(name)) != NULL) {
-    assert(pdfv->size() > 0);
-  } 
-  else {
-    // Basically, assert that any mangled name match would also
-    // show up in the pretty name match. 
-    pdfv = img->findFuncVectorByMangled(name);
-  }
-  
-  if (pdfv == NULL) return;
-
-  for (unsigned i = 0; i < pdfv->size(); i++) {
-    if ((*pdfv)[i]->isInstrumentable() || incUninstrumentable) {
-       BPatch_function * foo = proc->findOrCreateBPFunc((*pdfv)[i], NULL);
-       funcs->push_back(foo);
-    }
-  }
-}
-
-#endif
-
-/*
- * BPatch_image::findFunctionPatternInImage
- *
- * Searches a single image (class image object) for all functions that match
- * the given regex pattern.  Results are returned in the vector that is passed in.
- * Note that the vector is not cleared first, so anything in the vector
- * when it is passed in remains there.
- *
- * pattern	The compiled regex pattern of function to look up.
- * img		The image to search.
- * funcs	The vector in which to return the results.
- *
- * This function would make a lot more sense as a method of the image class,
- * but it's here since it deals with BPatch_functions and not int_functions.
- */
-#ifdef NOT_USED_ANYMORE
-#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
-void BPatch_image::findFunctionPatternInImage(regex_t *comp_pat, 
-					      image *img, 
-					      BPatch_Vector<BPatch_function*> *funcs,
-					      bool incUninstrumentable)
-{
-  pdvector<int_function*> pdfv;
-  
-  img->findFuncVectorByPrettyRegex(&pdfv, comp_pat);
-  
-  for (unsigned int i = 0; i < pdfv.size(); i++) {
-    if (incUninstrumentable || pdfv[i]->isInstrumentable())
-      funcs->push_back(proc->findOrCreateBPFunc(pdfv[i], NULL));
-  }   
-  if (!pdfv.size()) { // didn't find any pretty matches, try mangled    
-    img->findFuncVectorByMangledRegex(&pdfv, comp_pat);
-    for (unsigned int j = 0; j < pdfv.size(); ++j) {
-      if (pdfv[j]->isInstrumentable() ||
-	  incUninstrumentable) {
-	funcs->push_back(proc->findOrCreateBPFunc(pdfv[j], NULL));
-      }
-    }
-  }
-}
-#endif
-#endif
-
 /*
  * BPatch_image::findFunction
  *
@@ -600,11 +448,11 @@ void BPatch_image::findFunctionPatternInImage(regex_t *comp_pat,
  * funcs	The vector in which to place the results.
  */
 
-
-BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionInt(
-	const char *name, BPatch_Vector<BPatch_function*> &funcs, bool showError,
-	bool regex_case_sensitive,
-	bool incUninstrumentable)
+BPatch_Vector<BPatch_function*> *BPatch_image::findFunctionInt(const char *name, 
+                                                               BPatch_Vector<BPatch_function*> &funcs, 
+                                                               bool showError,
+                                                               bool regex_case_sensitive,
+                                                               bool incUninstrumentable)
 {
   process *llproc = proc->llproc;
   if (NULL == strpbrk(name, REGEX_CHARSET)) {
@@ -911,7 +759,7 @@ BPatch_variableExpr *BPatch_image::findVariableInt(const char *name, bool showEr
 //	name	- name of the variable to find.
 //
 BPatch_variableExpr *BPatch_image::findVariableInScope(BPatch_point &scp,
-						const char *name)
+                                                       const char *name)
 {
     // Get the function to search for it's local variables.
     // XXX - should really use more detailed scoping info here - jkh 6/30/99
@@ -997,34 +845,6 @@ BPatch_type *BPatch_image::findTypeInt(const char *name)
 
 }
 
-/*
- * BPatch_image::addModule
- *
- * Adds a new module to the BPatch_module vector
- * if modlist exists. 
- *
- * bpmod is a pointer to the BPatch_module to add to the vector
- */
-void BPatch_image::addModuleIfExist(BPatch_module *bpmod){
-
-  if( modlist )
-    modlist->push_back(bpmod);
-  
-}
-
-/*
- * BPatch_image::ModuleListExist
- *
- * Checks to see if modlist has been created.
- */
-bool BPatch_image::ModuleListExist(){
-
-  if ( modlist )
-    return true;
-  else
-    return false;
-}
-
 bool BPatch_image::getAddressRangesInt( const char * lineSource, unsigned int lineNo, std::vector< LineInformation::AddressRange > & ranges ) {
 	unsigned int originalSize = ranges.size();
 
@@ -1041,16 +861,16 @@ bool BPatch_image::getAddressRangesInt( const char * lineSource, unsigned int li
 
 char *BPatch_image::getProgramNameInt(char *name, unsigned int len) 
 {
-  if (!proc->llproc->mappedObjects().size()) {
-    // No program defined yet
-    strncpy(name, "<no program defined>", len);
-  }
- 
-  const char *imname =  proc->llproc->getAOut()->fullName().c_str();
-  if (NULL == imname) imname = "<unnamed image>";
-
-  strncpy(name, imname, len);
-  return name;
+    if (!proc->llproc->mappedObjects().size()) {
+        // No program defined yet
+        strncpy(name, "<no program defined>", len);
+    }
+    
+    const char *imname =  proc->llproc->getAOut()->fullName().c_str();
+    if (NULL == imname) imname = "<unnamed image>";
+    
+    strncpy(name, imname, len);
+    return name;
 }
 
 char *BPatch_image::getProgramFileNameInt(char *name, unsigned int len)
@@ -1077,3 +897,20 @@ int  BPatch_image::lpTypeInt()
     return 0;
 };
 #endif
+
+BPatch_module *BPatch_image::findOrCreateModule(mapped_module *base) {
+    BPatch_module *bpm = NULL;
+    for (unsigned j = 0; j < modlist.size(); j++) {
+        if (modlist[j]->lowlevel_mod() == base) {
+            bpm = modlist[j];
+            break;
+        }
+    }
+    if (bpm == NULL) {
+        bpm = new BPatch_module( proc, base, this );
+        modlist.push_back( bpm );
+    }
+    assert(bpm != NULL);
+    return bpm;
+}
+    

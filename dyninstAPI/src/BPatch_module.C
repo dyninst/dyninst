@@ -45,7 +45,6 @@
 #define BPATCH_FILE
 
 #include "process.h"
-#include "symtab.h"
 #include "showerror.h"
 #include "BPatch.h"
 #include "BPatch_module.h"
@@ -55,6 +54,10 @@
 #include "common/h/String.h"
 #include "BPatch_typePrivate.h"    // For BPatch_type related stuff
 #include "BPatch_Vector.h"
+
+#include "mapped_module.h"
+#include "mapped_object.h"
+#include "symtab.h"
 
 #if defined(TIMED_PARSE)
 #include <sys/time.h>
@@ -69,7 +72,6 @@ int max_line_per_addr =0;
 #include "dwarf.h"
 #include "libdwarf.h"
 #endif
-
 
 //char * BPatch_module::current_func_name = NULL;
 //char * BPatch_module::current_mangled_func_name = NULL;
@@ -137,76 +139,69 @@ char *BPatch_module::getFullNameInt(char *buffer, int length)
 
 BPatch_module::BPatch_module( BPatch_process *_proc, mapped_module *_mod,
                               BPatch_image *_img ) :
-   proc( _proc ), mod( _mod ), img( _img ), BPfuncs( NULL ), 
-   BPfuncs_uninstrumentable( NULL ), moduleTypes(NULL)
+   proc( _proc ), mod( _mod ), img( _img ), 
+   moduleTypes(NULL)
 {
 #if defined(TIMED_PARSE)
-	struct timeval starttime;
-	gettimeofday(&starttime, NULL);
+    struct timeval starttime;
+    gettimeofday(&starttime, NULL);
 #endif
-
-	_srcType = BPatch_sourceModule;
-	nativeCompiler = _mod->isNativeCompiler();
-
-	switch(mod->language()) {
-		case lang_C:
-			setLanguage( BPatch_c );
-			break;
-			
-		case lang_CPlusPlus:
-		case lang_GnuCPlusPlus:
-			setLanguage( BPatch_cPlusPlus );
-			break;
-			
-		case lang_Fortran_with_pretty_debug:
-			setLanguage( BPatch_f90_demangled_stabstr );
-			break;
-			
-		case lang_Fortran:
-		case lang_CMFortran:
-			setLanguage( BPatch_fortran );
-			break;
-			
-		case lang_Assembly:
-			setLanguage( BPatch_assembly );
-			break;
-
-		case lang_Unknown: 
-		default:
-			setLanguage( BPatch_unknownLanguage );
-			break;
-	} /* end language switch */
-
-	const pdvector< int_function * >  &functions = mod->getAllFunctions();
-	for( unsigned int i = 0; i < functions.size(); i++ ) {
-	  /* The bpfs for a shared object module won't have been built by now,
-	     but generating them on the fly is OK because each .so is a single module
-	     for our purposes. */
-	  int_function * function = functions[i];
-	  if(!proc->func_map->defines( function )) {
-	    if (!BPatch::bpatch->delayedParsingOn()) {
-	      // We're not delaying and there's no function. Make one.
-	      // Don't assign the module owner yet; causes recursion into
-	      // DWARF parsing in some situations, and the module will 
-	      // pick it up later.
-	      BPatch_function *bpf = new BPatch_function(proc, function, NULL);
-	      assert( bpf != NULL );
-	    }
-	  }
-	  else {
-	    // There's a function... make sure we're its module
-	    proc->func_map->get(function)->setModule(this);
-	  }
-	}
-	moduleTypes = NULL;
-	parseTypesIfNecessary();
-	
-	/* Give the functions modules. */
-	for( unsigned int i = 0; i < functions.size(); i++ ) {
-		assert( proc->func_map->defines( functions[i] ) );
-		proc->func_map->get(functions[i])->setModule(this);
-		}
-
+    
+    _srcType = BPatch_sourceModule;
+    nativeCompiler = _mod->isNativeCompiler();
+    
+    switch(mod->language()) {
+    case lang_C:
+        setLanguage( BPatch_c );
+        break;
+        
+    case lang_CPlusPlus:
+    case lang_GnuCPlusPlus:
+        setLanguage( BPatch_cPlusPlus );
+        break;
+        
+    case lang_Fortran_with_pretty_debug:
+        setLanguage( BPatch_f90_demangled_stabstr );
+        break;
+        
+    case lang_Fortran:
+    case lang_CMFortran:
+        setLanguage( BPatch_fortran );
+        break;
+        
+    case lang_Assembly:
+        setLanguage( BPatch_assembly );
+        break;
+        
+    case lang_Unknown: 
+    default:
+        setLanguage( BPatch_unknownLanguage );
+        break;
+    } /* end language switch */
+#if 0    
+    if (!BPatch::bpatch->delayedParsingOn()) {
+        
+        const pdvector< int_function * >  &functions = mod->getAllFunctions();
+        for( unsigned int i = 0; i < functions.size(); i++ ) {
+            /* The bpfs for a shared object module won't have been built by now,
+               but generating them on the fly is OK because each .so is a single module
+               for our purposes. */
+            int_function * function = functions[i];
+            if(!proc->func_map->defines( function )) {
+                // We're not delaying and there's no function. Make one.
+                // Don't assign the module owner yet; causes recursion into
+                // DWARF parsing in some situations, and the module will 
+                // pick it up later.
+                BPatch_function *bpf = new BPatch_function(proc, function, this);
+                assert( bpf != NULL );
+            }
+            else {
+                assert(proc->func_map->get(functions[i])->getModule() == this);
+            }
+        }
+    }
+#endif
+    
 #if defined(TIMED_PARSE)
     struct timeval endtime;
     gettimeofday(&endtime, NULL);
@@ -221,44 +216,38 @@ BPatch_module::BPatch_module( BPatch_process *_proc, mapped_module *_mod,
 
 BPatch_module::~BPatch_module()
 {
-  if (moduleTypes) delete moduleTypes;
-
-    for (unsigned int f = 0; f < BPfuncs->size(); f++) {
-	delete (*BPfuncs)[f];
+    if (moduleTypes) {
+        BPatch_typeCollection::freeTypeCollection(moduleTypes);
     }
-    delete BPfuncs;
-
-    if (BPfuncs_uninstrumentable) {
-      for (unsigned int f = 0; f < BPfuncs_uninstrumentable->size(); f++) {
-	delete (*BPfuncs_uninstrumentable)[f];
-      }
-      delete BPfuncs_uninstrumentable;
-    }    
+    for (unsigned i = 0; i < all_funcs.size(); i++) {
+        delete all_funcs[i];
+    }
 }
 
 void BPatch_module::parseTypesIfNecessary() {
-  if (moduleTypes) return;
+    if (moduleTypes) return; // Already done
+    
+    moduleTypes = BPatch_typeCollection::getModTypeCollection(this);
+    
+    // We create all functions before parsing types; this is necessary
+    // to prevent infinite recursion.
+    
+    if( BPatch::bpatch->parseDebugInfo() ) {
+        // This gets slightly complex. We need to ensure that all
+        // modules in the image are defined, since there is a slight
+        // mismatch between BPatch's view of a "module" and the
+        // debugging info's view.  It's easy enough to do.
 
-  moduleTypes = new BPatch_typeCollection;
-#if ! defined( mips_sgi_irix6_4 )
-  if( BPatch::bpatch->parseDebugInfo() ) {
-#if defined( rs6000_ibm_aix4_1 ) || defined( alpha_dec_osf4_0 ) || defined( i386_unknown_nt4_0 )
-    /* These platforms don't have 2-phase parsing, so init
-       LineInformation and assume that parseTypes() fills it in. */
-    parseTypes();
-#else
-    parseTypes();
-#endif
-  } /* end if we're supposed to parse debug information */
-  else {
-    /*
-      // Well, no... the user said "don't parse debug info", so we're
-      // not parsing debug info.
-    cerr	<< __FILE__ << __LINE__ << ":  WARNING:  skipping parse of debug info for " 
-		<< mod->fileName() << endl;
-    */
-  } /* end if we're not supposed to parse debug information */
-#endif /* ! defined( mips_sgi_irix6_4 ) */
+        const pdvector<mapped_module *> &map_mods = mod->obj()->getModules();
+        for (unsigned i = 0; i < map_mods.size(); i++) {
+            // use map_mods[i] instead of a name to get a precise match
+            BPatch_module *bpmod = img->findOrCreateModule(map_mods[i]);
+            assert(bpmod);
+            bpmod->getProcedures(); // Ensures that all functions are defined.
+            bpmod->parseTypesIfNecessary(); // Since we should debug parse at the object level
+        }
+        parseTypes();
+    } 
 }
 
 BPatch_typeCollection *BPatch_module::getModuleTypesInt() {
@@ -275,22 +264,17 @@ BPatch_typeCollection *BPatch_module::getModuleTypesInt() {
 BPatch_Vector<BPatch_function *> *
 BPatch_module::getProceduresInt(bool incUninstrumentable)
 {
-    if (BPfuncs) return BPfuncs;
+    BPatch_Vector<BPatch_function *> *retfuncs = new BPatch_Vector<BPatch_function *>;
     
-    BPfuncs = new BPatch_Vector<BPatch_function *>;
-
-    if (BPfuncs == NULL) return NULL;
-
     const pdvector<int_function *> &funcs = mod->getAllFunctions();
 
     for (unsigned int f = 0; f < funcs.size(); f++)
-      if (incUninstrumentable || funcs[f]->isInstrumentable()) 
-	{
-	  BPatch_function *func = proc->findOrCreateBPFunc(funcs[f], this);
-	  BPfuncs->push_back(func);
-	}
+        if (incUninstrumentable || funcs[f]->isInstrumentable()) {
+            BPatch_function * bpfunc = proc->findOrCreateBPFunc(funcs[f], this);
+            retfuncs->push_back(bpfunc);
+        }
     
-    return BPfuncs;
+    return retfuncs;
 }
 
 /*
@@ -299,7 +283,7 @@ BPatch_module::getProceduresInt(bool incUninstrumentable)
  * Returns a vector of BPatch_function* with the same name that is provided or
  * NULL if no function with that name is in the module.  This function
  * searches the BPatch_function vector of the module followed by
- * the int_function of the module.  If a int_function is found, then
+ * the int_function of the module.  If a int_function is found
  * a BPatch_function is created and added to the BPatch_function vector of
  * the module.
  * name The name of function to look up.
@@ -332,9 +316,6 @@ BPatch_module::findFunctionInt(const char *name,
                   {
                       BPatch_function * bpfunc = proc->findOrCreateBPFunc(int_funcs[piter], this);
                       funcs.push_back(bpfunc);
-                      if (!proc->func_map->defines(int_funcs[piter])) {
-                          this->BPfuncs->push_back(bpfunc);
-                      }
                   }
           }
       }
@@ -346,9 +327,6 @@ BPatch_module::findFunctionInt(const char *name,
                       {
                           BPatch_function * bpfunc = proc->findOrCreateBPFunc(int_funcs[miter], this);
                           funcs.push_back(bpfunc);
-                          if (!proc->func_map->defines(int_funcs[miter])) {
-                              this->BPfuncs->push_back(bpfunc);
-                          }
                       }
               }
           }
@@ -389,10 +367,10 @@ BPatch_module::findFunctionInt(const char *name,
    // point, so it might as well be top-level. This is also an
    // excellent candidate for a "value-added" library.
    
-   const pdvector<int_function *> &all_funcs = mod->getAllFunctions();
+   const pdvector<int_function *> &int_funcs = mod->getAllFunctions();
    
-   for (unsigned ai = 0; ai < all_funcs.size(); ai++) {
-     int_function *func = all_funcs[ai];
+   for (unsigned ai = 0; ai < int_funcs.size(); ai++) {
+     int_function *func = int_funcs[ai];
      // If it matches, push onto the vector
      // Check all pretty names (and then all mangled names if there is no match)
      bool found_match = false;
@@ -467,11 +445,9 @@ BPatch_module::findFunctionByAddressInt(void *addr, BPatch_Vector<BPatch_functio
     return NULL;
   }
   if (incUninstrumentable || pdfunc->isInstrumentable()) {
-     bpfunc = proc->findOrCreateBPFunc(pdfunc, this);
-     if (bpfunc) {
-        funcs.push_back(bpfunc);
-        if (!proc->func_map->defines(pdfunc))
-           this->BPfuncs->push_back(bpfunc);
+      bpfunc = proc->findOrCreateBPFunc(pdfunc, this);
+      if (bpfunc) {
+          funcs.push_back(bpfunc);
      }
   }
   return &funcs;
@@ -496,9 +472,6 @@ BPatch_function * BPatch_module::findFunctionByMangledInt(const char *mangled_na
   
   if (incUninstrumentable || pdfunc->isInstrumentable()) {
       bpfunc = proc->findOrCreateBPFunc(pdfunc, this);
-      if (!proc->func_map->defines(pdfunc)) {
-          this->BPfuncs->push_back(bpfunc);
-      }
   }
   
   return bpfunc;
@@ -554,9 +527,6 @@ void BPatch_module::parseTypes()
 
   //Using the Object to get the pointers to the .stab and .stabstr
   objPtr.get_stab_info(stabstr, nstabs, syms, stringPool); 
-
-    this->BPfuncs = this->getProcedures();
-
 
     objPtr.get_line_info(nlines,lines,linesfdptr); 
 
@@ -780,15 +750,13 @@ void BPatch_module::parseTypes()
    assert( moduleImage != NULL );
    const Object & moduleObject = moduleImage->getObject();	
 
-   this->BPfuncs = this->getProcedures();
-  
    if (moduleObject.hasStabInfo()) { 
       parseStabTypes(); 
    }
 	
 #if defined( USES_DWARF_DEBUG )
    if (moduleObject.hasDwarfInfo()) { 
-      parseDwarfTypes(); 
+       parseDwarfTypes(); 
    }
 #endif
 } 
@@ -1139,9 +1107,6 @@ void BPatch_module::parseTypes()
   //Get the path name of the process
   char *file = (char *)(imgPtr->file()).c_str();
 
-  // with BPatch_functions
-  this->BPfuncs = this->getProcedures();
-
   parseCoff(this, file, mod->fileName(),mod->getLineInformation());
 }
 
@@ -1164,9 +1129,6 @@ void BPatch_module::parseTypes()
 
   //Using mapped_module to get the image Object.
   imgPtr = mod->obj()->parse_img();
-
-  // with BPatch_functions
-  this->BPfuncs = this->getProcedures();
 
   // trying to get at codeview symbols
   // need text section id and addr of codeview symbols
@@ -1276,11 +1238,24 @@ bool BPatch_module::getLineNumbersInt(unsigned int &start, unsigned int &end)
 
 bool BPatch_module::getAddressRangeInt(void * &start, void * &end)
 {
-  return false;
+    // Code? Data? We'll do code for now...
+    start = (void *)(mod->obj()->codeAbs());
+    end = (void *)(mod->obj()->codeAbs() + mod->obj->codeSize());
+    return true;
 }
 char *BPatch_module::getUniqueStringInt(char *buffer, int length)
 {
-    getName(buffer, length);
+    // Get the start and end address of this module
+    void* start = NULL;
+    void* end = NULL;
+    getAddressRange(start, end);
+    
+    // Form unique name from module name and start address
+    int written = snprintf(buffer, length, "%llx|%s",
+                           start, mod->fileName().c_str());
+    assert((written >= 0) && (written < length));
+    
+    // Return the unique name to the caller
     return buffer;
 }
 

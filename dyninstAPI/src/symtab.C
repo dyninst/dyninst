@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.251 2005/08/25 22:45:58 bernat Exp $
+ // $Id: symtab.C,v 1.252 2005/09/01 22:18:43 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -412,7 +412,8 @@ bool image::symbolsToFunctions(pdvector<Symbol> &mods,
 #endif
 
     if (lookUp.module() == "DYNINSTheap") {
-        infHeapSymbols.push_back(lookUp);
+        // Do nothing for now; we really don't want to report it as
+        // a real symbol.
     }
     else {
         if (lookUp.type() == Symbol::PDST_FUNCTION) {
@@ -824,7 +825,7 @@ void pdmodule::define(process *proc) {
       image_func * pdf = allUniqueFunctions[i]; 
 
       if (!pdf->isInstrumentable() ||
-          (pdf->getSize() == 0))
+          (pdf->getEndOffset() == pdf->getOffset()))
           continue;
       // ignore line numbers for now 
       
@@ -893,10 +894,6 @@ const pdvector<image_variable*> &image::getCreatedVariables()
 {
   analyzeIfNeeded();
   return createdVariables;
-}
-
-const pdvector<Symbol> image::getHeaps() const {
-    return infHeapSymbols;
 }
 
 const pdvector <pdmodule*> &image::getModules() 
@@ -1718,6 +1715,7 @@ void image::enterFunctionInTables(image_func *func, pdmodule *mod) {
 
   funcsByEntryAddr[func->getOffset()] = func;
 
+  // TODO: out-of-line insertion here
   funcsByRange.insert(func);
   
   // Possibly multiple demangled (pretty) names...
@@ -1850,6 +1848,8 @@ bool image::buildFunctionLists(pdvector <image_func *> &raw_funcs)
 
 void image::analyzeIfNeeded() {
   if (parseState_ == symtab) {
+      parsing_printf("ANALYZING IMAGE %s\n",
+              file().c_str());
       analyzeImage();
       addDiscoveredVariables();
   }
@@ -1922,7 +1922,7 @@ bool image::analyzeImage()
   
   Address lastPos;
   lastPos = everyUniqueFunction[0]->getOffset() + 
-      everyUniqueFunction[0]->getSize();
+      everyUniqueFunction[0]->getSymTabSize();
   
   unsigned int rawFuncSize = everyUniqueFunction.size();
   
@@ -1931,7 +1931,7 @@ bool image::analyzeImage()
       image_func* func1 = everyUniqueFunction[p];
       image_func* func2 = everyUniqueFunction[p + 1];
       
-      Address gapStart = func1->getOffset() + func1->getSize();
+      Address gapStart = func1->getOffset() + func1->getSymTabSize();
       Address gapEnd = func2->getOffset();
       Address gap = gapEnd - gapStart;
       
@@ -1991,22 +1991,22 @@ bool image::analyzeImage()
       
       //look for overlapping functions
 #if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
-      if ((func2->getOffset() < func1->getOffset() + func1->getSize()) &&
+      if ((func2->getOffset() < func1->getEndOffset()) &&
 	  (strstr(func2->prettyName().c_str(), "nocancel") ||
 	   strstr(func2->prettyName().c_str(), "_L_mutex_lock")))
-	
-	{ 
-            func1->markAsNeedingRelocation(true);
-	}
+          
+          { 
+              func1->markAsNeedingRelocation(true);
+          }
       else
 #endif
-          if( func2->getOffset() < func1->getOffset() + func1->getSize() )
-	  {
-            //use the start address of the second function as the upper bound
-            //on the end address of the first
-            Address addr = func2->getOffset();
-            func1->updateFunctionEnd(addr);
-	  }
+          if( func2->getOffset() < func1->getEndOffset() )
+              {
+                  //use the start address of the second function as the upper bound
+                  //on the end address of the first
+                  Address addr = func2->getOffset();
+                  func1->updateFunctionEnd(addr);
+              }
     }    
 #endif
 
@@ -2230,12 +2230,6 @@ image::image(fileDescriptor &desc, bool &err)
    // platforms that support stripped binary parsing, this pass
    // is also used to fix function sizes and identify functions not in
    // the symbol table.
-   if (!BPatch::bpatch->delayedParsingOn()) {
-     if (!analyzeImage()) {
-       err = true;
-       return;
-     }
-   }
    
 #ifdef CHECK_ALL_CALL_POINTS
    statusLine("checking call points");
@@ -2452,25 +2446,20 @@ pdmodule *image::getOrCreateModule(const pdstring &modName,
 // Find the function that occupies the given offset. ONLY LOOKS IN THE
 // IMAGE, and does not consider relocated functions. Those must be searched
 // for on the process level (as relocated functions are per-process)
-image_func *image::findFuncByOffset(const Address &offset)  {
+codeRange *image::findCodeRangeByOffset(const Address &offset) {
     codeRange *range;
-    bool found = funcsByRange.precessor(offset, range);
-    if (!found) {
+    if (!funcsByRange.find(offset, range)) {
         return NULL;
     }
-    image_func *func = range->is_image_func();
-    assert(func != NULL);
-    assert(func->getOffset() <= offset);
-
     analyzeIfNeeded();
+    return range;
+}
 
-    // See if our offset is in the range of the function
-    if (func->getOffset() + func->getSize() > offset) {
-      return func;
-    }
-    else {
-      return NULL;
-    }
+image_func *image::findFuncByOffset(const Address &offset)  {
+    codeRange *range = findCodeRangeByOffset(offset);
+    image_func *func = range->is_image_func();
+
+    return func;
 }
 
 // Similar to above, but checking by entry (only). Useful for 
@@ -2489,7 +2478,7 @@ image_func *image::findFuncByEntry(const Address &entry) {
 // Return the vector of functions associated with a pretty (demangled) name
 // Very well might be more than one!
 
-pdvector <image_func *> *image::findFuncVectorByPretty(const pdstring &name)
+const pdvector <image_func *> *image::findFuncVectorByPretty(const pdstring &name)
 {
 
     //    fprintf(stderr,"findFuncVectorByPretty %s\n",name.c_str());
@@ -2507,7 +2496,7 @@ pdvector <image_func *> *image::findFuncVectorByPretty(const pdstring &name)
 // Return the vector of functions associated with a mangled name
 // Very well might be more than one! -- multiple static functions in different .o files
 
-pdvector <image_func *> *image::findFuncVectorByMangled(const pdstring &name)
+const pdvector <image_func *> *image::findFuncVectorByMangled(const pdstring &name)
 {
 
     //    fprintf(stderr,"findFuncVectorByMangled %s\n",name.c_str());
@@ -2515,12 +2504,39 @@ pdvector <image_func *> *image::findFuncVectorByMangled(const pdstring &name)
   bperr( "%s[%d]:  inside findFuncVectorByMangled\n", __FILE__, __LINE__);
 #endif
   if (funcsByMangled.defines(name)) {
-    analyzeIfNeeded();
-    return funcsByMangled[name];
+      analyzeIfNeeded();
+      return funcsByMangled[name];
   }
-
+  
   return NULL;
 }
+
+const pdvector <image_variable *> *image::findVarVectorByPretty(const pdstring &name)
+{
+    //    fprintf(stderr,"findVariableVectorByPretty %s\n",name.c_str());
+#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
+  bperr( "%s[%d]:  inside findVariableVectorByPretty\n", __FILE__, __LINE__);
+#endif
+  if (varsByPretty.defines(name)) {
+      analyzeIfNeeded();
+      return varsByPretty[name];
+  }
+  return NULL;
+}
+
+const pdvector <image_variable *> *image::findVarVectorByMangled(const pdstring &name)
+{
+    //    fprintf(stderr,"findVariableVectorByPretty %s\n",name.c_str());
+#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
+  bperr( "%s[%d]:  inside findVariableVectorByPretty\n", __FILE__, __LINE__);
+#endif
+  if (varsByMangled.defines(name)) {
+      analyzeIfNeeded();
+      return varsByMangled[name];
+  }
+  return NULL;
+}
+
 
 //  image::findOnlyOneFunction(const pdstring &name)
 //  
@@ -2532,7 +2548,7 @@ pdvector <image_func *> *image::findFuncVectorByMangled(const pdstring &name)
 //  duplication between many pretty and mangled names, this function does not
 //  care about the same name appearing in both the pretty and mangled lists.
 image_func *image::findOnlyOneFunction(const pdstring &name) {
-  pdvector<image_func *> *pdfv;
+  const pdvector<image_func *> *pdfv;
 
   pdfv = findFuncVectorByPretty(name);
   if (pdfv != NULL && pdfv->size() > 0) {
@@ -2754,13 +2770,9 @@ bool pdmodule::isShared() const {
 }
 
 /* Instrumentable-only, by the last version's source. */
-pdvector< image_func * > * pdmodule::getFunctions() {
-  static pdvector< image_func * > pleaseDontGoAwayAndLeaveMeHanging;
-  /* Is this going to call the destructor on the previous version? */
-  pleaseDontGoAwayAndLeaveMeHanging = allUniqueFunctions;
+const pdvector< image_func * >  &pdmodule::getFunctions()  {
   exec()->analyzeIfNeeded();
-  /* Warning: hack.  Why doesn't this conversion work normally? */
-  return &pleaseDontGoAwayAndLeaveMeHanging;
+  return allUniqueFunctions;
 } /* end getFunctions() */
 
 void pdmodule::addFunction( image_func * func ) {
@@ -2931,6 +2943,17 @@ bool image::symbol_info(const pdstring& symbol_name, Symbol &ret_sym) {
     }
 
    return false;
+}
+
+
+bool image::findSymByPrefix(const pdstring &prefix, pdvector<Symbol> &ret) {
+    unsigned start = ret.size();
+    for (SymbolIter symIter(linkedFile); symIter; symIter++) {
+        const Symbol &lookUp = symIter.currval();
+        if (lookUp.name().prefixed_by(prefix))
+            ret.push_back(symIter.currval());
+    }
+    return ret.size() > start;
 }
 
  

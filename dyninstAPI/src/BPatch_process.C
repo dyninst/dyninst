@@ -55,6 +55,8 @@
 #include "codeRange.h"
 #include "miniTramp.h"
 
+#include "mapped_module.h"
+
 #include "BPatch_libInfo.h"
 #include "BPatch_asyncEventHandler.h"
 #include "BPatch.h"
@@ -1017,8 +1019,8 @@ bool BPatch_process::replaceFunctionCallInt(BPatch_point &point,
    // Can't make changes to code when mutations are not active.
    if (!mutationsActive)
       return false;
-   assert(point.point && newFunc.func);
-   return llproc->replaceFunctionCall(point.point, newFunc.func);
+   assert(point.point && newFunc.lowlevel_func());
+   return llproc->replaceFunctionCall(point.point, newFunc.lowlevel_func());
 }
 
 /*
@@ -1054,13 +1056,15 @@ bool BPatch_process::replaceFunctionInt(BPatch_function &oldFunc,
 #if defined(os_solaris) || defined(os_osf) || defined(os_linux) || \
     defined(os_windows) \
 
-   assert(oldFunc.func && newFunc.func);
-   if (!mutationsActive)
-      return false;
-   
-   // Self replacement is a nop
-   if (oldFunc.func == newFunc.func)
-      return true;
+    assert(oldFunc.lowlevel_func() && newFunc.lowlevel_func());
+    if (!mutationsActive)
+        return false;
+    
+    // Self replacement is a nop
+    // We should just test direct equivalence here...
+    if (oldFunc.lowlevel_func() == newFunc.lowlevel_func()) {
+        return true;
+    }
 
    bool old_recursion_flag = BPatch::bpatch->isTrampRecursive();
    BPatch::bpatch->setTrampRecursive( true );
@@ -1417,7 +1421,7 @@ BPatch_function *BPatch_process::findOrCreateBPFunc(int_function* ifunc,
   
   // Find the module that contains the function
   if (bpmod == NULL && ifunc->mod() != NULL) {
-    bpmod = getImage()->findModule(ifunc->mod()->fileName().c_str());
+      bpmod = getImage()->findModule(ifunc->mod()->fileName().c_str());
   }
 
   // findModule has a tendency to make new function objects... so

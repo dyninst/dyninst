@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.h,v 1.3 2005/08/25 22:45:46 bernat Exp $
+// $Id: mapped_object.h,v 1.4 2005/09/01 22:18:32 bernat Exp $
 
 #if !defined(_mapped_object_h)
 #define _mapped_object_h
@@ -58,6 +58,37 @@
 #define CHECK_ALL_CALL_POINTS  // we depend on this for Paradyn
 #endif
 
+class mapped_module;
+
+class int_variable {
+    // Should subclass this and function off the same thing...
+
+ private:
+    int_variable() {};
+ public:
+    int_variable(image_variable *var, 
+                 Address base,
+                 mapped_module *mod);
+
+    int_variable(int_variable *parVar, mapped_module *child);
+
+    Address getAddress() const { return addr_; }
+    // Can variables have multiple names?
+    const pdvector<pdstring> &prettyNameVector() const;
+    const pdvector<pdstring> &symTabNameVector() const;
+    mapped_module *mod() const { return mod_; };
+
+    const image_variable *ivar() const { return ivar_; }
+
+    Address addr_;
+    unsigned size_;
+    // type?
+    image_variable *ivar_;
+
+    mapped_module *mod_;
+};
+
+
 /*
  * A class for link map information about a shared object that is mmapped 
  * by the dynamic linker into the applications address space at runtime. 
@@ -66,117 +97,18 @@
 #define 	SHAREDOBJECT_ADDED	1
 #define 	SHAREDOBJECT_REMOVED	2
 
-class mapped_module;
-class mapped_object;
 
-class parse_image;
-
-
-// pdmodule equivalent The internals tend to use images, while the
-// BPatch layer uses modules. On the other hand, "module" means
-// "compilation unit for the a.out, or the entire image for a
-// library". At some point this will need to be fixed, which will be a
-// major pain.
-
-class mapped_module {
- public:
-    static mapped_module *createMappedModule(mapped_object *obj,
-                                             const pdmodule *pdmod);
-
-    mapped_object *obj() const;
-    const pdmodule *pmod() const;
-
-    const pdstring &fileName() const;
-    const pdstring &fullName() const;
-
-    process *proc() const;
-
-    //bool analyze();
-    
-    // A lot of stuff shared with the internal module
-    // Were we compiled with the native compiler?
-    bool isNativeCompiler() const;
-
-    supportedLanguages language() const;
-    
-    const pdvector<int_function *> &getAllFunctions();
-    
-    bool findFuncVectorByPretty(const pdstring &funcname,
-                                pdvector<int_function *> &funcs);
-    // Yeah, we can have multiple mangled matches -- for libraries there
-    // is a single module. Even if we went multiple, we might not have
-    // module information, and so we can get collisions.
-    bool findFuncVectorByMangled(const pdstring &funcname,
-                                 pdvector<int_function *> &funcs);
-    
-    int_function *findFuncByAddr(const Address &address);
-    codeRange *findCodeRangeByAddress(const Address &address);
-
-
-    void dumpMangled(pdstring prefix) const;
-    
-    /////////////////////////////////////////////////////
-    // Line information
-    /////////////////////////////////////////////////////
-    // Line info is something we _definitely_ don't want multiple copies
-    // of. So instead we provide pass-through functions that handle
-    // things like converting absolute addresses (external) into offsets
-    // (internal).
-    
-    pdstring* processDirectories(pdstring* fn) const;
-
-    // Have we parsed line information yet?
-    bool lineInformation() const { return lineInfoValid_; }
-
-#if defined(arch_power)
-    void parseLineInformation(	process * proc,
-                                pdstring * currentSourceFile,
-                                char * symbolName,
-                                SYMENT * sym,
-                                Address linesfdptr,
-                                char * lines,
-                                int nlines );
-#endif
-
-    // We're not generic-asizing line information yet, so this
-    // calls into the pdmodule class to do the work.
-    LineInformation &getLineInformation();
-    // Given a line in the module, get the set of addresses that it maps
-    // to. Calls the internal getAddrFromLine and then adds the base
-    // address to the returned list of offsets.
-    bool getAddrFromLine(unsigned lineNum,
-                         pdvector<Address> &addresses,
-                         bool exactMatch);
-    
-    void addFunction(int_function *func);
-    void addVariable(int_variable *var);
-
-#ifndef BPATCH_LIBRARY
-   resource *getResource() { return modResource; }
-#endif
-
-#ifndef BPATCH_LIBRARY
-   resource *modResource;
-#endif
-
- private:
-   void parseFileLineInfo();
-
-    const pdmodule *internal_mod_;
-    mapped_object *obj_;
-    
-    mapped_module();
-    mapped_module(mapped_object *obj,
-                  const pdmodule *pdmod);
-
-    pdvector<int_function *> everyUniqueFunction;
-    pdvector<int_variable *> everyUniqueVariable;
-    bool lineInfoValid_;
-    LineInformation lineInfo_;
-};
-
+// mapped_object represents a file in memory. It will be a collection
+// of modules (basically, .o's) that are referred to as a unit and
+// loaded as a unit.  The big reason for this is 1) per-process
+// specialization and 2) a way to reduce memory; to create objects for
+// all functions ahead of time is wasteful and expensive. So
+// basically, the mapped_object "wins" if it can return useful
+// information without having to allocate memory.
 
 class mapped_object : public codeRange {
+    friend class mapped_module; // for findFunction
+    friend class int_function;
  private:
     mapped_object();
     mapped_object(fileDescriptor fileDesc, 
@@ -228,7 +160,7 @@ class mapped_object : public codeRange {
     process *proc() const;
 
     mapped_module *findModule(pdstring m_name, bool wildcard = false);
-    mapped_module *findModule(const pdmodule *mod);
+    mapped_module *findModule(pdmodule *mod);
 
     // This way we can avoid parsing everything as it comes in; we
     // only care about existence and address, and only if they're in
@@ -245,31 +177,29 @@ class mapped_object : public codeRange {
     void *getPtrToInstruction(Address addr) const;
     void *getPtrToData(Address addr) const;
 
-    const pdvector<int_function *> &getAllFunctions();
-    const pdvector<int_variable *> &getAllVariables();
+    // Try to avoid using these if you can, since they'll trigger
+    // parsing and allocation. 
+    bool getAllFunctions(pdvector<int_function *> &funcs);
+    bool getAllVariables(pdvector<int_variable *> &vars);
 
-#if defined(cap_save_the_world)
-	bool isinText(Address addr){ 
-	  return ((addr >= codeBase_) && (addr < (codeBase_ + codeSize())));
-	}
-	void openedWithdlopen() { dlopenUsed = true; }; 
-	bool isopenedWithdlopen() { return dlopenUsed; };
-#endif
-
-        bool  getSymbolInfo(const pdstring &n,Symbol &info);
-
-    // from a string that is a complete path name to a function in a module
-    // (ie. "/usr/lib/libc.so.1/write") return a string with the function
-    // part removed.  return 0 on error
-    char *getModulePart(pdstring &full_path_name) ;
-
-    // Get list of ALL modules, not just included ones.
     const pdvector<mapped_module *> &getModules();
 
-    // TODO: get rid of me...
-    // Oh, and find out why this is different from the other symbol functions
-    bool symbol_info(pdstring, Symbol &);
+#if defined(cap_save_the_world)
+    bool isinText(Address addr){ 
+        return ((addr >= codeBase_) && (addr < (codeBase_ + codeSize())));
+    }
+    void openedWithdlopen() { dlopenUsed = true; }; 
+    bool isopenedWithdlopen() { return dlopenUsed; };
+#endif
 
+    // Annoying low-level requirement... direct access to the symbol table.
+    bool  getSymbolInfo(const pdstring &n,Symbol &info);
+
+    // All name lookup functions are vectorized, because you can have
+    // multiple overlapping names for all sorts of reasons.
+    // Demangled/"pretty": easy overlap (overloaded funcs, etc.).
+    // Mangled: multiple modules with static/private functions and
+    // we've lost the module name.
 
     const pdvector<int_function *> *findFuncVectorByPretty(const pdstring &funcname);
     const pdvector<int_function *> *findFuncVectorByMangled(const pdstring &funcname); 
@@ -281,9 +211,7 @@ class mapped_object : public codeRange {
     const pdvector<int_variable *> *findVarVectorByMangled(const pdstring &varname); 
     
 
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
+#if defined(cap_save_the_world)
 	//this marks the shared object as dirty, mutated
 	//so it needs saved back to disk during saveworld 
 
@@ -325,8 +253,8 @@ private:
 
     pdvector<mapped_module *> everyModule;
 
-    pdvector<int_function *> everyUniqueFunction;
-    pdvector<int_variable *> everyUniqueVariable;
+    dictionary_hash<const image_func *, int_function *> everyUniqueFunction;
+    dictionary_hash<const image_variable *, int_variable *> everyUniqueVariable;
 
     dictionary_hash< pdstring, pdvector<int_function *> * > allFunctionsByMangledName;
     dictionary_hash< pdstring, pdvector<int_function *> * > allFunctionsByPrettyName;
@@ -336,8 +264,11 @@ private:
 
     codeRangeTree codeRangesByAddr_;
 
-    void addFunctionToIndices(int_function *func);
-    void addVarToIndices(int_variable *var);
+    int_function *findFunction(image_func *img_func);
+    int_variable *findVariable(image_variable *img_var);
+    // And those call...
+    void addFunction(int_function *func);
+    void addVariable(int_variable *var);
 
     bool dirty_; // marks the shared object as dirty 
     bool dirtyCalled_;//see comment for setDirtyCalled
@@ -350,6 +281,11 @@ private:
 
     mapped_module *getOrCreateForkedModule(mapped_module *mod);
 
+    // from a string that is a complete path name to a function in a module
+    // (ie. "/usr/lib/libc.so.1/write") return a string with the function
+    // part removed.  return 0 on error
+    char *getModulePart(pdstring &full_path_name) ;
+
 };
 
 // Aggravation: a mapped object might very well occupy multiple "ranges". 
@@ -358,7 +294,6 @@ class mappedObjData : public codeRange {
     mappedObjData(mapped_object *obj_) : obj(obj_) {};
     Address get_address_cr() const { return obj->dataAbs(); }
     unsigned get_size_cr() const { return obj->dataSize(); }
-    void *getPtrToInstruction(Address addr) const { assert(0); return NULL; }
     mapped_object *obj;
 };
 

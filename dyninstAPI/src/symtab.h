@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.183 2005/08/25 22:45:59 bernat Exp $
+// $Id: symtab.h,v 1.184 2005/09/01 22:18:44 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -121,39 +121,13 @@ class BPatch_flowGraph;
 class BPatch_loopTreeNode;
 class instPoint;
 
-class int_variable {
-    // Should subclass this and function off the same thing...
-
- private:
-    int_variable() {};
- public:
-    int_variable(image_variable *var, 
-                 Address base,
-                 mapped_module *mod);
-
-    int_variable(int_variable *parVar, mapped_module *child);
-
-    Address getAddress() const { return addr_; }
-    // Can variables have multiple names?
-    const pdvector<pdstring> &prettyNameVector() const;
-    const pdvector<pdstring> &symTabNameVector() const;
-    mapped_module *mod() const { return mod_; };
-
-    Address addr_;
-    unsigned size_;
-    // type?
-    image_variable *ivar_;
-
-    mapped_module *mod_;
-};
-
 class image_variable {
  private:
     image_variable() {};
  public:
     image_variable(Address offset,
                    const pdstring &name,
-                   const pdmodule *mod);
+                   pdmodule *mod);
 
     Address getOffset() const;
     const pdvector<pdstring> &symTabNameVector() const;
@@ -162,13 +136,13 @@ class image_variable {
     bool addSymTabName(const pdstring &);
     bool addPrettyName(const pdstring &);
 
-    const pdmodule *pdmod() const { return pdmod_; }
+    pdmodule *pdmod() const { return pdmod_; }
 
     pdvector<pdstring> symTabNames_;
     pdvector<pdstring> prettyNames_;
 
     Address offset_;
-    const pdmodule *pdmod_;
+    pdmodule *pdmod_;
 };
 
 /* Stores source code to address in text association for modules */
@@ -198,14 +172,6 @@ class module {
    void setLanguage(supportedLanguages lang) {language_ = lang;}
    Address addr() const { return addr_; }
 
-   virtual pdvector<image_func *> *
-      findFunction (const pdstring &name,pdvector<image_func *> *found) = 0;
-   // virtual pdvector<image_func *> *
-   // findFunctionFromAll(const pdstring &name,
-   //		  pdvector<image_func *> *found) = 0;
-		
-   virtual void define(process *proc) = 0;    // defines module to paradyn
-   virtual pdvector<image_func *> *getFunctions() = 0;
 
  private:
    pdstring fileName_;                   // short file 
@@ -242,10 +208,10 @@ class pdmodule: public module {
 #endif
    void define(process *proc);    // defines module to paradyn
 
-   pdvector<image_func *> * getFunctions();
+   const pdvector<image_func *>  &getFunctions();
 
    pdvector<image_func *> *findFunction (const pdstring &name, 
-                                            pdvector<image_func *> *found);
+                                         pdvector<image_func *> *found);
  
    pdvector<image_func *> *findFunctionFromAll(const pdstring &name, 
                   pdvector<image_func *> *found, 
@@ -405,8 +371,14 @@ class image : public codeRange {
    // consts, we can move from [] to find()
 
    // Find the vector of functions associated with a (demangled) name
-   pdvector <image_func *> *findFuncVectorByPretty(const pdstring &name);
-   pdvector <image_func *> *findFuncVectorByMangled(const pdstring &name);
+   // Returns internal pointer, so label as const
+   const pdvector <image_func *> *findFuncVectorByPretty(const pdstring &name);
+   const pdvector <image_func *> *findFuncVectorByMangled(const pdstring &name);
+   // Variables: nearly identical
+   const pdvector <image_variable *> *findVarVectorByPretty(const pdstring &name);
+   const pdvector <image_variable *> *findVarVectorByMangled(const pdstring &name);
+
+
 
    // Find the vector of functions determined by a filter function
    pdvector <image_func *> *findFuncVectorByPretty(functionNameSieve_t bpsieve, 
@@ -418,31 +390,14 @@ class image : public codeRange {
 
    image_func *findOnlyOneFunction(const pdstring &name);
 
-#if 0
-   // We're not supporting this anymore. If the caller wants a regex,
-   // they can get the list of all functions and apply a regex.
-#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
-   // REGEX search functions for Pretty and Mangled function names:
-   // Callers can either provide a pre-compiled regex struct, or a
-   // string pattern which will then be compiled.  This is set up
-   // like this to provide a way for higher level functions to 
-   // scan different images with the same compiled pattern -- thus
-   // avoiding unnecessary re-compilation overhead.
-   //
-   // EXPENSIVE TO USE!!  Linearly searches dictionary hashes.  --jaw 01-03
-   int findFuncVectorByPrettyRegex(pdvector<image_func *>*, pdstring pattern,
-                                   bool case_sensitive = TRUE);
-   int findFuncVectorByPrettyRegex(pdvector<image_func *>*, regex_t *);
-   int findFuncVectorByMangledRegex(pdvector<image_func *>*, pdstring pattern,
-                                    bool case_sensitive = TRUE);
-   int findFuncVectorByMangledRegex(pdvector<image_func *>*, regex_t *);
-#endif
-#endif
-
    // Given an address (offset into the image), find the function that occupies
    // that address
    image_func *findFuncByOffset(const Address &offset);
+   // (Possibly) faster version checking only entry address
    image_func *findFuncByEntry(const Address &entry);
+
+   // And raw version
+   codeRange *findCodeRangeByOffset(const Address &offset);
   
    // report modules to paradyn
    void defineModules(process *proc);
@@ -513,7 +468,8 @@ class image : public codeRange {
 
    // Return symbol table information
    bool symbol_info(const pdstring& symbol_name, Symbol& ret);
-
+   // And used for finding inferior heaps.... hacky, but effective.
+   bool findSymByPrefix(const pdstring &prefix, pdvector<Symbol> &ret);
 
    const pdvector<image_func*> &getAllFunctions();
    const pdvector<image_variable*> &getAllVariables();
@@ -525,8 +481,6 @@ class image : public codeRange {
 
    const pdvector<image_variable *> &getExportedVariables() const;
    const pdvector<image_variable *> &getCreatedVariables();
-
-   const pdvector<Symbol> getHeaps() const;
 
    // Tests if a symbol starts at a given point
    bool hasSymbolAtPoint(Address point) const;
@@ -588,9 +542,6 @@ class image : public codeRange {
    void checkAllCallPoints();
 #endif
 
-#if 0
-   bool addInternalSymbol(const pdstring &str, const Address symValue);
-#endif
    // creates the module if it does not exist
    pdmodule *getOrCreateModule (const pdstring &modName, const Address modAddr);
    pdmodule *newModule(const pdstring &name, const Address addr, supportedLanguages lang);
@@ -681,9 +632,6 @@ class image : public codeRange {
    pdvector<image_variable *> createdVariables;
    pdvector<image_variable *> exportedVariables;
 
-   // And a list of heaps found in the image. Specially handled via mapped_object.
-   pdvector<Symbol> infHeapSymbols;
-
    // TODO -- get rid of one of these
    // Note : as of 971001 (mcheyney), these hash tables only 
    //  hold entries in includedMods --> this implies that
@@ -700,25 +648,6 @@ class image : public codeRange {
    int refCount;
 
    imageParseState_t parseState_;
-};
-
-/*
- * a definition of a library function that we may wish to identify.  This is
- *   how we describe it to the symbol table parser, not how it appears in
- *   the symbol table.  Library functions are placed in a pseudo module 
- *   named LIBRARY_MODULE. 
- *
- */
-
-
-class libraryFunc {
- public:
-   libraryFunc(const pdstring n, unsigned t) : name(n), tags(t) { }
-   unsigned getTags() const { return tags;}
-
- private:
-   pdstring name;
-   unsigned tags;
 };
 
 /**

@@ -50,6 +50,13 @@
 #include "InstrucIter.h"
 #include "multiTramp.h"
 
+#include "mapped_object.h"
+#include "mapped_module.h"
+
+#if defined(cap_relocation)
+#include "reloc-func.h"
+#endif
+
 pdstring int_function::emptyString("");
 
 
@@ -198,23 +205,26 @@ int_function::int_function(const int_function *parFunc,
 }
 
 int_function::~int_function() { 
-  /* TODO */ 
+    // ifunc_ doesn't keep tabs on us, so don't need to let it know.
+    // mod_ is cleared by the mapped_object
+    // blockList isn't allocated
+    // flowGraph is taken care of by BPatch...
+    // instPoints are process level (should be deleted here and refcounted)
+
+#if defined(cap_relocation)
+    for (unsigned i = 0; i < enlargeMods_.size(); i++)
+        delete enlargeMods_[i];
+    enlargeMods_.clear();
+#endif
 }
 
 // This needs to go away: how is "size" defined? Used bytes? End-start?
 
-unsigned int_function::getSize_NP() const {
-    return ifunc_->getSize();
-}
-
-// coming to dyninstAPI/src/symtab.hC
-// needed in metric.C
-bool int_function::match(int_function *fb) const
-{
-  if (this == fb)
-    return true;
-  else
-    return ifunc_->match(fb->ifunc_);
+unsigned int_function::getSize_NP()  {
+    blocks();
+    if (blockList.size() == 0) return 0;
+    return (blockList.back()->origInstance()->endAddr() - 
+            blockList.front()->origInstance()->firstInsnAddr());
 }
 
 void int_function::addArbitraryPoint(instPoint *insp) {
@@ -353,14 +363,22 @@ const pdvector<int_basicBlock *> &int_function::blocks() {
         
         for (unsigned i = 0; i < img_blocks.size(); i++) {
             blockList.push_back(new int_basicBlock(img_blocks[i],
-                                               base,
-                                               this));
+                                                   base,
+                                                   this));
+            // And add to the mapped_object code range
+            obj()->codeRangesByAddr_.insert(blockList.back()->origInstance());
         }
         // Now that we have the correct list, patch up sources/targets
         for (unsigned j = 0; j < img_blocks.size(); j++) {
             pdvector<image_basicBlock *> targets;
             img_blocks[j]->getTargets(targets);
             for (unsigned t = 0; t < targets.size(); t++) {
+                if ((targets[t]->id() >= blockList.size()) ||
+                    (targets[t]->id() < 0)) {
+                    fprintf(stderr, "WARNING: omitting illegal target %d block %d for block %d, function %s\n",
+                            t, targets[t]->id(), blockList[j]->id(), symTabName().c_str());
+                    continue;
+                }
                 inst_printf("Adding target to block %d, block %d (of %d)\n",
                             j, targets[t]->id(),
                             blockList.size());
@@ -370,12 +388,21 @@ const pdvector<int_basicBlock *> &int_function::blocks() {
             pdvector<image_basicBlock *> sources;
             img_blocks[j]->getSources(sources);
             for (unsigned s = 0; s < sources.size(); s++) {
+                if ((sources[s]->id() >= blockList.size()) ||
+                    (sources[s]->id() < 0)) {
+                    fprintf(stderr, "WARNING: omitting illegal target %d block %d for block %d, function %s\n",
+                            s, sources[s]->id(), blockList[j]->id(), symTabName().c_str());
+                    continue;
+                }
                 inst_printf("Adding source to block %d, block %d (of %d)\n",
                             j, sources[s]->id(),
                             blockList.size());
                 blockList[j]->addSource(blockList[sources[s]->id()]);
             }
         }
+    }
+    if (blockList.size() == 0) {
+        fprintf(stderr, "WARNING: no blocks in function %s!\n", symTabName().c_str());
     }
     // And a quick consistency check...
     return blockList;
@@ -499,7 +526,7 @@ void int_function::deleteBBLInstance(bblInstance *instance) {
     blocksByAddr_.remove(instance->firstInsnAddr());
 }
 
-image_func *int_function::ifunc() const {
+const image_func *int_function::ifunc() const {
     return ifunc_;
 }
 
@@ -572,6 +599,17 @@ int_basicBlock::int_basicBlock(const int_basicBlock *parent, int_function *func)
     }
 }
 
+int_basicBlock::~int_basicBlock() {
+    if (dataFlowIn) delete dataFlowIn;
+    if (dataFlowOut) delete dataFlowOut;
+    // Do not delete dataFlowGen and dataFlowKill; they're legal pointers
+    // don't kill func_;
+    // don't kill ib_;
+    for (unsigned i = 0; i < instances_.size(); i++) {
+        delete instances_[i];
+    }
+    instances_.clear();
+}
 
 bblInstance *int_basicBlock::origInstance() const {
     assert(instances_.size());
@@ -660,7 +698,16 @@ bblInstance::bblInstance(const bblInstance *parent, int_basicBlock *block) :
 #endif
     // TODO relocation
 }
-        
+
+bblInstance::~bblInstance() {
+#if defined(cap_relocation)
+    for (unsigned i = 0; i < insns_.size(); i++)
+        delete insns_[i];
+    insns_.clear();
+    // appliedMods is deleted by the function....
+    // jumpToBlock is deleted by the process....
+#endif
+}
 
 int_basicBlock *bblInstance::block() const {
     assert(block_);
