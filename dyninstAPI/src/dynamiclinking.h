@@ -39,18 +39,20 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.h,v 1.15 2005/07/29 19:18:27 bernat Exp $
+// $Id: dynamiclinking.h,v 1.16 2005/09/01 22:18:12 bernat Exp $
 
 #if !defined(dynamic_linking_h)
 #define dynamic_linking_h
 
 #include "common/h/Vector.h"
-#include "dyninstAPI/src/mapped_object.h"
-#if defined(os_irix)
-#include "dyninstAPI/src/irixDL.h"
-#endif
+#include "common/h/Types.h"
+#include "common/h/String.h"
 
 class process;
+class instMapping;
+class mapped_object;
+class fileDescriptor;
+
 
 // Encapsulate a shared object event/mapping pair
 

@@ -39,12 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.C,v 1.10 2005/08/08 20:23:33 gquinn Exp $
+// $Id: dynamiclinking.C,v 1.11 2005/09/01 22:18:11 bernat Exp $
 
 // Cross-platform dynamic linking functions
 
 #include "dyninstAPI/src/dynamiclinking.h"
 #include "dyninstAPI/src/process.h"
+#include "mapped_object.h"
 
 dynamic_linking::dynamic_linking(process *p): proc(p), dynlinked(false),
                                               dlopen_addr(0), 
@@ -232,10 +233,17 @@ bool dynamic_linking::findChangeToLinkMaps(u_int &change_type,
   }
   // if change_type is remove then figure out what has been removed
   else if((change_type == SHAREDOBJECT_REMOVED) && (curr_list.size())) {
+      fprintf(stderr, "SHOBJ_REMOVED: current size %d\n", curr_list.size());
+      fprintf(stderr, "... %d new\n", new_descs.size());
       // Look for the one that's not in descs
       bool stillThere[curr_list.size()];
       for (unsigned k = 0; k < curr_list.size(); k++) 
           stillThere[k] = false;
+#if defined(os_linux)
+      // Linux never includes the a.out in its list of libraries. This makes a
+      // certain amount of sense, but is still annoying.
+      stillThere[0] = true;
+#endif
       
       for (unsigned int i=0; i < new_descs.size(); i++) {
 	  for (unsigned int j = 0; j < curr_list.size(); j++) {
