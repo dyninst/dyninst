@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.6 2005/09/01 22:18:31 bernat Exp $
+// $Id: mapped_object.C,v 1.7 2005/09/02 16:32:14 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -486,8 +486,12 @@ const pdvector <int_variable *> *mapped_object::findVarVectorByMangled(const pds
 
 codeRange *mapped_object::findCodeRangeByAddress(const Address &addr)  {
     // Quick bounds check...
-    if (addr < codeAbs()) return NULL;
-    if (addr >= (codeAbs() + codeSize())) return NULL;
+    if (addr < codeAbs()) { 
+        return NULL; 
+    }
+    if (addr >= (codeAbs() + codeSize())) {
+        return NULL;
+    }
 
     codeRange *range;
     if (codeRangesByAddr_.find(addr, range)) {
@@ -501,8 +505,9 @@ codeRange *mapped_object::findCodeRangeByAddress(const Address &addr)  {
 
     if (img_range->is_image_func()) {
         image_func *img_func = img_range->is_image_func();
-        findFunction(img_func);
-        
+        int_function *func = findFunction(img_func);
+        assert(func);
+        func->blocks(); // Adds to codeRangesByAddr_...
         // And repeat...
         bool res = codeRangesByAddr_.find(addr, range);
         

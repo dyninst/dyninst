@@ -135,6 +135,8 @@ int_function::int_function(const int_function *parFunc,
      for (unsigned i = 0; i < parFunc->blockList.size(); i++) {
          int_basicBlock *block = new int_basicBlock(parFunc->blockList[i], this);
          blockList.push_back(block);
+         // And push into object codeRange...
+         obj()->codeRangesByAddr_.insert(blockList.back()->origInstance());
      }
      
      // And hook up sources/targets
