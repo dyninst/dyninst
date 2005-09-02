@@ -48,6 +48,9 @@
 #include "paradynd/src/pd_thread.h"
 #include "common/h/Vector.h"
 
+#include "dyninstAPI/src/frame.h"
+
+
 class machineMetFocusNode;
 class instrCodeNode;
 class threadMetFocusNode;

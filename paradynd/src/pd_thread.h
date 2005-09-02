@@ -45,8 +45,14 @@
 #ifndef __PD_THREAD__
 #define __PD_THREAD__
 
-#include "dyninstAPI/src/dyn_thread.h"
+#include "rtinst/h/rtinst.h" // virtualTimer, must include or conflict
+#include "common/h/Vector.h"
 
+class resource;
+class dyn_thread;
+class pd_process;
+class Frame;
+class int_function;
 
 class pd_thread {
    dyn_thread *dyninst_thread;
@@ -61,12 +67,10 @@ class pd_thread {
 
    dyn_thread *get_dyn_thread() { return dyninst_thread; }
 
-   unsigned get_tid() const { return dyninst_thread->get_tid(); }
-   unsigned get_index() const { return dyninst_thread->get_index(); }
-   int_function* get_start_func() { return dyninst_thread->get_start_func(); }
-   bool walkStack(pdvector<Frame> &stackWalk) {
-      return dyninst_thread->walkStack(stackWalk);
-   }
+   unsigned get_tid() const;
+   unsigned get_index() const;
+   int_function* get_start_func() const;
+   bool walkStack(pdvector<Frame> &stackWalk);
    void update_rid(resource *rid_) { rid = rid_; } 
    resource* get_rid() { return rid; }
 

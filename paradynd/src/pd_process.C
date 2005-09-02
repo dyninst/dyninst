@@ -51,6 +51,7 @@
 #include "paradynd/src/pd_image.h"
 #include "paradynd/src/pd_module.h"
 
+#include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/function.h"
 
 #include "dyninstAPI/h/BPatch.h"
@@ -63,6 +64,10 @@
 #endif
 
 #include "paradynd/src/debug.h"
+
+#include "paradynd/src/mdld.h"
+
+#include "common/h/Symbol.h"
 
 // Set in main.C
 extern int termWin_port;

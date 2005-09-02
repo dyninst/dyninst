@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.124 2005/08/08 19:59:50 bernat Exp $ */
+/* $Id: context.C,v 1.125 2005/09/02 00:45:21 bernat Exp $ */
 
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_thread.h"
@@ -53,7 +53,10 @@
 #include "processMgr.h"
 #include "paradynd/src/pd_image.h"
 #include "paradynd/src/pd_module.h"
+#include "dyninstAPI/src/function.h"
+#include "dyninstAPI/src/dyn_thread.h"
 
+#include "paradynd/src/comm.h"
 
 #if !defined(i386_unknown_nt4_0)
 extern int termWin_port; //defined in main.C

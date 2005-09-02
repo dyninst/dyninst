@@ -45,6 +45,9 @@
 #include "paradynd/src/pd_process.h"
 #include "pdutil/h/pdDebugOstream.h"
 
+#include "dyninstAPI/src/function.h"
+#include "dyninstAPI/h/BPatch_function.h"
+
 // Catchup
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/frame.h"

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.550 2005/09/01 22:18:38 bernat Exp $
+// $Id: process.C,v 1.551 2005/09/02 00:45:17 bernat Exp $
 
 #include <ctype.h>
 
@@ -4184,7 +4184,9 @@ bool process::processSharedObjects() {
 // Semantics of excluded functions - Once "exclude" works for both
 // static and dynamically linked objects, this should return NULL
 // if the function being sought is excluded....
+#if 0
 #ifndef BPATCH_LIBRARY
+#include "paradynd/src/resource.h"
 int_function *process::findOnlyOneFunction(resource *func, resource *mod){
     if((!func) || (!mod)) { return 0; }
     if(func->mdlType() != MDL_T_PROCEDURE) { return 0; }
@@ -4245,6 +4247,7 @@ bool process::findAllFuncsByName(resource *func, resource *mod,
 #endif
 
 #endif /* BPATCH_LIBRARY */
+#endif
 
 // Parse name into library name and function name. If no library is specified,
 // lib gets the empty string "". 

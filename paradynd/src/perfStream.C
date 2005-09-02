@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.180 2005/07/29 19:20:14 bernat Exp $
+// $Id: perfStream.C,v 1.181 2005/09/02 00:45:29 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/timing.h" // getCyclesPerSecond
@@ -64,6 +64,8 @@
 #include "pdutil/h/airtStreambuf.h"
 #include "pdutil/h/mdl_data.h"
 #include "paradynd/src/debug.h"
+
+#include "dyninstAPI/src/mapped_object.h"
 
 // trace data streams
 #include "common/h/Dictionary.h"

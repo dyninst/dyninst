@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.175 2005/04/18 20:55:54 legendre Exp $
+// $Id: mdl.C,v 1.176 2005/09/02 00:45:24 bernat Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -63,6 +63,8 @@
 #include "paradynd/src/init.h"
 #include "paradynd/src/mdld_data.h"
 #include "paradynd/src/debug.h"
+
+#include "dyninstAPI/src/function.h"
 
 // for REG_MT_POS
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
@@ -3360,7 +3362,7 @@ static bool walk_deref(mdl_var& ret, pdvector<unsigned>& types)
                       	}
                       
                       /* Assuming, of course, that the MDL doesn't specify mangled names. */
-                      pdvector< pdstring > calleeNames = callee->func->prettyNameVector();
+                      pdvector< pdstring > calleeNames = callee->lowlevel_func()->prettyNameVector();
                       for( unsigned int i = 0; i < calleeNames.size(); i++ ) {
                       	pdstring calleeName = calleeNames[i];
                       	// /* DEBUG */ fprintf( stderr, "%s[%d]: calleeName[%d] = %s\n", __FILE__, __LINE__, i, calleeName.c_str() );

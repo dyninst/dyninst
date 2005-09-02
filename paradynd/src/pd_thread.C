@@ -42,6 +42,18 @@
 
 #include "paradynd/src/pd_thread.h"
 #include "paradynd/src/pd_process.h"
+#include "dyninstAPI/src/dyn_thread.h"
+
+// Moved from the .h to get rid of cross-.h includes
+
+unsigned pd_thread::get_tid() const { return dyninst_thread->get_tid(); }
+unsigned pd_thread::get_index() const { return dyninst_thread->get_index(); }
+int_function* pd_thread::get_start_func() const { return dyninst_thread->get_start_func(); }
+bool pd_thread::walkStack(pdvector<Frame> &stackWalk) {
+    return dyninst_thread->walkStack(stackWalk);
+}
+
+
 
 
 /*

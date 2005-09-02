@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesPD.C,v 1.44 2005/08/03 05:28:33 bernat Exp $
+// $Id: templatesPD.C,v 1.45 2005/09/02 00:45:33 bernat Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -67,6 +67,8 @@
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/shmMgr.h"
 #include "paradynd/src/shmSegment.h"
+
+#include "common/h/Symbol.h"
 
 class instMapping;
 template class  pdvector<instMapping*>;

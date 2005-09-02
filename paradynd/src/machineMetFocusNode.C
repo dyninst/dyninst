@@ -52,6 +52,8 @@
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/debug.h"
 
+#include "paradynd/src/mdld.h" // makeProcessMetFocusNode...
+
 extern pdRPC *tp;
 
 dictionary_hash<unsigned, machineMetFocusNode*> 

@@ -51,6 +51,9 @@
 #include "paradynd/src/pd_thread.h"
 #include "paradynd/src/debug.h"
 
+#include "dyninstAPI/src/dyn_thread.h"
+#include "dyninstAPI/src/function.h"
+
 void checkProcStatus();  
   
 inline unsigned ui_hash_(const unsigned &u) { return u; }

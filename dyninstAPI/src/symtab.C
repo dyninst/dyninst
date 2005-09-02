@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.252 2005/09/01 22:18:43 bernat Exp $
+ // $Id: symtab.C,v 1.253 2005/09/02 00:45:20 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -665,6 +665,7 @@ pdmodule *image::findModule(const pdstring &name, bool wildcard)
   return NULL;
 }
 
+#if 0
 #ifndef BPATCH_LIBRARY
 /* 
  * return 0 if symbol <symname> exists in image, non-zero if it does not
@@ -752,6 +753,7 @@ void image::postProcess(const pdstring pifname)
   }
   return;
 }
+#endif
 #endif
 
 void image::defineModules(process *proc) {

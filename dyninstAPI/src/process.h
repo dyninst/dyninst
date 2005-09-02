@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.333 2005/09/01 22:18:39 bernat Exp $
+/* $Id: process.h,v 1.334 2005/09/02 00:45:19 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -679,6 +679,7 @@ char * systemPrelinkCommand;
   // and module "mod".  This routine checks both the a.out image and any
   // shared object images for this function.  
   // mcheyney - should return NULL if function is excluded!!!!
+  class resource;
   int_function *findOnlyOneFunction(resource *func,resource *mod);
 
   //this routine searches for a function in a module.  Note that res is a vector
