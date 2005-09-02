@@ -170,7 +170,7 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
   return in;
 }
 
-void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
+bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 {
     instruction check;
     Address jumpTableLoc = 0;
@@ -202,7 +202,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 	(*this)--;
     }
     if (!jumpTableLoc)
-	return;
+	return false;
 
     //
     // Search for a CMPULE BEQ instruction pair.
@@ -235,7 +235,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
     }
     if (!maxSwitch){
 	result += (initialAddress + instruction::size());
-	return;
+	return false;
     }
 
     //
@@ -263,7 +263,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 	(*this)--;
     }
     if (!GOT_Value)
-	return;
+	return false;
 
     Address jumpTableAddress = 0;
     if (jumpTableIndirect) {
@@ -304,6 +304,7 @@ void InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
 	  result += (Address)(GOT_Value + tableEntryValue) & ~0x3;
       }
     }
+    return true;
 }
 
 bool InstrucIter::delayInstructionSupported(){

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.79 2005/09/01 22:18:36 bernat Exp $
+// $Id: osf.C,v 1.80 2005/09/02 22:00:10 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -67,6 +67,9 @@
 #include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/signalhandler.h"
 #include "dyninstAPI/src/dyn_thread.h"
+
+#include "mapped_object.h"
+#include "function.h"
 
 #define V0_REGNUM 0	/* retval from integer funcs */
 #define PC_REGNUM 31
@@ -746,19 +749,20 @@ bool process::dumpImage()
  */
 terminateProcStatus_t process::terminateProc_()
 {
-    long flags = PRFS_KOLC;
-    if (getRepresentativeLWP() &&
-        ioctl (getRepresentativeLWP()->get_fd(), PIOCSSPCACT, &flags) < 0)
-        return terminateFailed;
-
-    // just to make sure it is dead
-    if (kill(getPid(), 9)) {
-      if (errno == ESRCH)
-	return alreadyTerminated;
-      else
-	return terminateFailed;
-    }
-    return terminateSucceeded;
+  fprintf(stderr, "TP: %p\n", getRepresentativeLWP());
+  long flags = PRFS_KOLC;
+  if (getRepresentativeLWP())
+    if (ioctl (getRepresentativeLWP()->get_fd(), PIOCSSPCACT, &flags) < 0)
+      return terminateFailed;
+  
+  // just to make sure it is dead
+  if (kill(getPid(), 9)) {
+    if (errno == ESRCH)
+      return alreadyTerminated;
+    else
+      return terminateFailed;
+  }
+  return terminateSucceeded;
 }
 
 dyn_lwp *process::createRepresentativeLWP() {
@@ -1289,7 +1293,7 @@ int_function *instPoint::findCallee() {
       return NULL;
     }
     for (unsigned i = 0; i < possibles->size(); i++) {
-      if ((*possibles)[i]->match(icallee)) {
+      if ((*possibles)[i]->ifunc() == icallee) {
 	callee_ = (*possibles)[i];
 	return callee_;
       }
