@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.1 2005/08/25 22:45:53 bernat Exp $
+// $Id: reloc-func.C,v 1.2 2005/09/02 22:07:53 bernat Exp $
 
 // We'll also try to limit this to relocation-capable platforms
 // in the Makefile. Just in case, though....
@@ -300,6 +300,12 @@ bool int_function::expandForInstrumentation() {
     // relocate multiple times, we will have discarded versions instead
     // of a long chain. 
 
+    if (!canBeRelocated_) {
+        fprintf(stderr, "Skipping relocation of function %s: has non-reloc constructs\n",
+                symTabName().c_str());
+        return false;
+    }
+
     for (unsigned i = 0; i < blockList.size(); i++) {
         bblInstance *bblI = blockList[i]->origInstance();
         assert(bblI->block() == blockList[i]);
@@ -435,6 +441,9 @@ bool bblInstance::generate() {
             block_->getTargets(targets);
             if (targets.size() > 2) {
                 // Multiple jump... we can't handle this yet
+                fprintf(stderr, "ERROR: attempt to relocate function %s with indirect jump!\n",
+                        block_->func()->symTabName().c_str());
+                       
                 return false;
             }
             // So we have zero, one, or two targets; one of them
@@ -487,6 +496,10 @@ bool bblInstance::install() {
     assert(firstInsnAddr_);
     assert(generatedBlock_ != NULL);
     assert(maxSize_);
+    if (maxSize_ != generatedBlock_.used()) {
+        fprintf(stderr, "ERROR: max size of block is %d, but %d used!\n",
+                maxSize_, generatedBlock_.used());
+    }
     assert(generatedBlock_.used() == maxSize_);
     
     bool success = proc()->writeTextSpace((void *)firstInsnAddr_,

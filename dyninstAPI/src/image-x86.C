@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.7 2005/09/01 22:18:21 bernat Exp $
+ * $Id: image-x86.C,v 1.8 2005/09/02 22:07:52 bernat Exp $
  */
 
 #include "common/h/Vector.h"
@@ -199,10 +199,10 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
 
     // We're optimistic
     isInstrumentable_ = true;
+    canBeRelocated_ = true;
          
     pdvector< instruction > allInstructions;   
     pdvector< instPoint* > foo;
-    bool canBeRelocated = true;
     image_instPoint *p;
     unsigned numInsns = 0;
     noStackFrame = true; // Initial assumption
@@ -260,7 +260,7 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
     //jump table inside this function. 
     if (prettyName() == "__libc_start_main") 
     {
-        canBeRelocated = false;
+        canBeRelocated_ = false;
     }
     
     // get all the instructions for this function, and define the
@@ -369,7 +369,7 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                 parsing_printf("... indirect jump at 0x%x\n", currAddr);
                 //if this instructions goes to a jumpTable, 
                 //we retrieve the addresses from the table
-                checkIfRelocatable( ah.getInstruction(), canBeRelocated );
+                checkIfRelocatable( ah.getInstruction(), canBeRelocated_ );
                 
                 if( currAddr >= funcEnd )
                     funcEnd = currAddr + insnSize;
@@ -407,7 +407,7 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                 {
                     parsing_printf("... uninstrumentable, unable to find targets of indirect jump\n");
                     isInstrumentable_ = false;
-                    canBeRelocated = false;
+                    canBeRelocated_ = false;
                     understood = false;
                 }
                 else {
@@ -443,7 +443,7 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                                 {
                                     //can't determine register contents
                                     //give up on this function
-                                    canBeRelocated = false;
+                                    canBeRelocated_ = false;
                                     isInstrumentable_ = false;
                                     break;
                                 }
@@ -468,7 +468,7 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                     
                     if( !foundMaxSwitch ) {
                         parsing_printf("... uninstrumentable, unable to fix max switch size\n");
-                        canBeRelocated = false;
+                        canBeRelocated_ = false;
                         isInstrumentable_ = false;
                         break;
                     }
@@ -482,7 +482,7 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                             
                             //XXX
                             parsing_printf("... getMultipleJumpTargets failed, uninstrumentable\n");
-                            canBeRelocated = false;
+                            canBeRelocated_ = false;
                             isInstrumentable_ = false;
                             break;
                         }
@@ -643,7 +643,7 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                     {
                         parsing_printf("... invalid call target\n");
                         // Do we want this?
-                        //canBeRelocated = false;
+                        //canBeRelocated_ = false;
                         break;
                     }
                 }
@@ -658,24 +658,8 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
         }
     }    
 
-    //if the function contains a jump to a jump table, we can't relocate
-    if ( !canBeRelocated ) 
-    {
-        // Function would have needed relocation 
-#ifdef DEBUG_FUNC_RELOC      
-        if ( needs_relocation_ == true ) 
-	  cerr << "Jump Table: Can't relocate function"
-	       << prettyName().c_str() << endl;
-#endif
-	//needs_relocation_ = false;
-    }
-
-
     cleanBlockList();
 
-
-    canBeRelocated_ = canBeRelocated;
-    
     endOffset_ = funcEnd;
 
     parsing_printf("... done with parsing\n");

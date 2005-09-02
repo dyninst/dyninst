@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.9 2005/09/01 22:18:34 bernat Exp $
+// $Id: multiTramp.C,v 1.10 2005/09/02 22:07:52 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -266,7 +266,6 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
     // Multitramps need to know their functions, so look it up.
     codeRange *range = proc->findCodeRangeByAddress(pointAddr);
     if (!range) {
-        fprintf(stderr, "No code range at 0x%x, ret NULL\n", pointAddr);
         return 0;
     }
     int_function *func = range->is_function();
@@ -371,7 +370,6 @@ bool multiTramp::getMultiTrampFootprint(Address instAddr,
     // Otherwise, make one.
     codeRange *range = proc->findCodeRangeByAddress(instAddr);
     if (!range) {
-        inst_printf("No code range at 0x%x, ret NULL\n", instAddr);
         return false;
     }
     bblInstance *bbl = range->is_basicBlockInstance();

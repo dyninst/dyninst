@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.142 2005/08/25 23:12:04 bernat Exp $
+// $Id: inst.C,v 1.143 2005/09/02 22:07:52 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -394,12 +394,19 @@ bool instPoint::updateInstances() {
             bblInstance *bblI = bbls[i];
             
             Address newAddr = bblI->equivAddr(block()->origInstance(), addr());
-            instPointInstance *ipInst = new instPointInstance(newAddr,
-                                                              bblI,
-                                                              this);
-            instances.push_back(ipInst);
-            // Register with the process before asking for a multitramp
-            proc()->registerInstPointAddr(newAddr, this);
+
+            // However, check if we can do a multiTramp at this point (as we may have
+            // overwritten with a jump). If we can't, then skip the instance.
+            unsigned multiID_ = multiTramp::findOrCreateMultiTramp(newAddr, proc());
+            if (multiID_) {
+                instPointInstance *ipInst = new instPointInstance(newAddr,
+                                                                  bblI,
+                                                                  this);
+                
+                instances.push_back(ipInst);
+                // Register with the process before asking for a multitramp
+                proc()->registerInstPointAddr(newAddr, this);
+            }
         }
         
         // We need all instances to stay in step; so if the first (default)
@@ -431,6 +438,10 @@ bool instPoint::updateInstances() {
                     if (linked) {
                         instances[i]->multi()->linkMultiTramp();
                     }
+                }
+                else {
+                    fprintf(stderr, "ERROR: instance %p, addr 0x%lx, IP %p, no multitramp!\n",
+                            instances[i], instances[i]->addr(), this);
                 }
             }
         }
@@ -830,9 +841,10 @@ bool instPointInstance::generateInst() {
     if (block_->getSize() < multi()->sizeDesired()) {
         // Can make new ipInstances, but they're brought up to 
         // date in updateInstances
-        func()->expandForInstrumentation();
-        // Always work off the first version of the function
-        func()->relocationGenerate(func()->enlargeMods(), 0);
+        if (func()->expandForInstrumentation()) {
+            // Always work off the first version of the function
+            func()->relocationGenerate(func()->enlargeMods(), 0);
+        }
     }
 #endif
 
@@ -840,14 +852,14 @@ bool instPointInstance::generateInst() {
 }
 
 bool instPointInstance::installInst() {
-    assert(multi());
-    // We now "install", that is copy the generated code into the 
-    // addr space. This doesn't link.
-
 #if defined(cap_relocation)
     // This is harmless to call if there isn't a relocation in-flight
     func()->relocationInstall();
 #endif
+
+    assert(multi());
+    // We now "install", that is copy the generated code into the 
+    // addr space. This doesn't link.
     
     if (multi()->installMultiTramp() != multiTramp::mtSuccess) {
         fprintf(stderr, "Instance failed to install multiTramp, ret false\n");
@@ -857,17 +869,17 @@ bool instPointInstance::installInst() {
 }
 
 bool instPointInstance::linkInst() {
-    // Funny thing is, we might very well try to link a multiTramp
-    // multiple times...
-    // Ah, well.
-    assert(multi());
-
 #if defined(cap_relocation)
     // This is ignored (for now), is handled in updateInstInstances...
     pdvector<codeRange *> overwrittenObjs;
     // This is harmless to call if there isn't a relocation in-flight
     func()->relocationLink(overwrittenObjs);
 #endif
+
+    // Funny thing is, we might very well try to link a multiTramp
+    // multiple times...
+    // Ah, well.
+    assert(multi());
     
     if (multi()->linkMultiTramp() != multiTramp::mtSuccess) {
         fprintf(stderr, "ipInst: linkMulti returned false for 0x%lx\n",
