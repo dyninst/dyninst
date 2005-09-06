@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.59 2005/09/01 22:17:53 bernat Exp $
+// $Id: BPatch_function.C,v 1.60 2005/09/06 18:58:44 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -235,7 +235,8 @@ unsigned int BPatch_function::getSizeInt()
  */
 BPatch_type *BPatch_function::getReturnTypeInt()
 {
-  return retType;
+    mod->parseTypesIfNecessary();
+    return retType;
 }
 
 /*
@@ -253,7 +254,8 @@ BPatch_module *BPatch_function::getModuleInt()
 
 BPatch_Vector<BPatch_localVar *> * BPatch_function::getParamsInt()
 {
-  return &params;
+    mod->parseTypesIfNecessary();
+    return &params;
 }
 
 
@@ -417,7 +419,6 @@ BPatch_localVar * BPatch_function::findLocalParamInt(const char * name)
     mod->parseTypesIfNecessary();
     BPatch_localVar * var = funcParameters->findLocalVar(name);
     return (var);
-
 }
 
 BPatch_flowGraph* BPatch_function::getCFGInt()
@@ -437,7 +438,8 @@ BPatch_flowGraph* BPatch_function::getCFGInt()
 
 BPatch_Vector<BPatch_localVar *> *BPatch_function::getVarsInt() 
 {
-      return localVariables->getAllVars(); 
+    mod->parseTypesIfNecessary();
+    return localVariables->getAllVars(); 
 }
 
 BPatch_Vector<BPatch_variableExpr *> *BPatch_function::findVariableInt(
