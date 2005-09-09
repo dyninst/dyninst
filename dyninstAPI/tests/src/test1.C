@@ -2056,16 +2056,11 @@ void mutatorTest18(BPatch_thread *appThread, BPatch_image *appImage)
     expr18_1->writeValue(&n,true); //ccw 31 jul 2002
 }
 
-void test19_oneTimeCodeCallback(BPatch_thread *thread,
-				void *userData,
-				void *returnValue)
+void test19_oneTimeCodeCallback(BPatch_thread */*thread*/,
+                                void *userData,
+                                void */*returnValue*/)
 {
-    bool dummy = (userData == NULL) || (returnValue == NULL) || (thread == NULL);
-
-    if (dummy)
-      *(int *)userData = 1;
-    else
-      *(int *)userData = 1;
+   *(int *)userData = 1;
 }
 
 //
@@ -2689,9 +2684,11 @@ void mutatorTest24(BPatch_thread *appThread, BPatch_image *appImage)
 
         // now the local variables
         //     localVariable24_1[1] = 2400005
-        BPatch_arithExpr assignment5(BPatch_assign,
-            BPatch_arithExpr(BPatch_ref, *lvar, BPatch_constExpr(1)),
-            BPatch_constExpr(2400005));
+        BPatch_arithExpr *bpae = new BPatch_arithExpr(BPatch_ref, 
+                                                      *lvar, 
+                                                      BPatch_constExpr(1));
+        BPatch_constExpr *bpce = new BPatch_constExpr(2400005);
+        BPatch_arithExpr assignment5(BPatch_assign, *bpae, *bpce);
         appThread->insertSnippet(assignment5, *point24_1);
 
         //     localVariable24_1[globalVariable24_2] = 2400006
@@ -2701,8 +2698,9 @@ void mutatorTest24(BPatch_thread *appThread, BPatch_image *appImage)
         appThread->insertSnippet(assignment6, *point24_1);
 
         //     globalVariable24_6 = localVariable24_1[79]
-        BPatch_arithExpr assignment7(BPatch_assign, *gvar[6],
-            BPatch_arithExpr(BPatch_ref, *lvar, BPatch_constExpr(79)));
+        BPatch_arithExpr *ae = 
+           new BPatch_arithExpr(BPatch_ref, *lvar, BPatch_constExpr(79));
+        BPatch_arithExpr assignment7(BPatch_assign, *gvar[6],*ae);
         appThread->insertSnippet(assignment7, *point24_1);
 
         //     globalVariable24_7 = localVariable24_1[globalVariable24_4]
@@ -4648,10 +4646,9 @@ void mutatorTest37(BPatch_thread *appThread, BPatch_image *appImage)
 void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
 {
     if (mutateeFortran) {
-	return;
+       return;
     } 
-    BPatch_image *dummy = appThread->getImage();
-    assert (dummy == appImage);
+    assert(appThread->getImage());
 
     BPatch_Vector<BPatch_function *> funcs0;
     
@@ -4824,7 +4821,7 @@ void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
 //  Test case 39:  verify that regex search is working
 //
 
-void mutatorTest39(BPatch_thread *appThread, BPatch_image *appImage)
+void mutatorTest39(BPatch_thread */*appThread*/, BPatch_image *appImage)
 {
   //  Note:  regex search by module is covered in test 21
 #if defined(sparc_sun_solaris2_4) \
@@ -4915,7 +4912,7 @@ void setVar40(const char *vname, void *addr, BPatch_image *appImage)
    }
 }
 
-void mutatorTest40(BPatch_thread *appThread, BPatch_image *appImage)
+void mutatorTest40(BPatch_thread */*appThread*/, BPatch_image *appImage)
 {
 
 #if !defined(alpha_dec_osf4_0) \
@@ -4931,7 +4928,6 @@ void mutatorTest40(BPatch_thread *appThread, BPatch_image *appImage)
    const char *callSiteAddrVarName = "callsite40_5_addr";
 
    BPatch_function *monitorFunc = NULL;
-   BPatch_variableExpr *callSiteVar = NULL;
    BPatch_Vector<BPatch_function *> bpfv;
 
   BPatch_function *call40_1 = findFunction40("call40_1", appImage);
@@ -5068,7 +5064,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();
-
+    
     // Signal the child that we've attached
     if (useAttach) {
 	signalAttached(appThread, appImage);

@@ -453,11 +453,11 @@ bool mutatorTest2()
 #define TESTNAME "thread create callback"
 
 int test3_threadCreateCounter = 0;
-void threadCreateCB(BPatch_thread *thr, unsigned long thread_id)
+void threadCreateCB(BPatch_process * /*proc*/, BPatch_thread *thr)
 {
   if (debugPrint)
      fprintf(stderr, "%s[%d]:  thread %lu start event for pid %d", __FILE__, __LINE__,
-               thread_id, thr->getPid());
+               thr->getTid(), thr->getPid());
   test3_threadCreateCounter++;
 //  fprintf(stderr, "%s[%d]:  got a thread start event: %d\n", __FILE__, __LINE__,
 //          test3_threadCreateCounter);
@@ -469,8 +469,8 @@ bool mutatorTest3()
   int err = 0;
 
   BPatchAsyncThreadEventCallback createcb = threadCreateCB;
-  if (!appThread->registerAsyncThreadEventCallback(BPatch_threadCreateEvent,
-                                              createcb)) {
+  if (!bpatch->registerThreadEventCallback(BPatch_threadCreateEvent, createcb)) 
+  {
     FAIL(TESTNO, TESTNAME);
     fprintf(stderr, "%s[%d]:  failed to register thread callback\n",
            __FILE__, __LINE__);
@@ -499,8 +499,7 @@ bool mutatorTest3()
 
   appThread->stopExecution();
 
-  if (!appThread->removeAsyncThreadEventCallback(BPatch_threadCreateEvent,
-                                            createcb)) {
+  if (!bpatch->removeThreadEventCallback(BPatch_threadCreateEvent, createcb)) {
     FAIL(TESTNO, TESTNAME);
     fprintf(stderr, "%s[%d]:  failed to remove thread callback\n",
            __FILE__, __LINE__);
@@ -519,11 +518,11 @@ bool mutatorTest3()
 #define TESTNAME "thread exit callback"
 
 int test4_threadDestroyCounter = 0;
-void threadDestroyCB(BPatch_thread *thr, unsigned long thread_id)
+void threadDestroyCB(BPatch_process * /*proc*/, BPatch_thread *thr)
 {
   if (debugPrint)
-    fprintf(stderr, "%s[%d]:  thread %lu destroy event for pid %d\n", __FILE__, __LINE__,
-            thread_id, thr->getPid());
+    fprintf(stderr, "%s[%d]:  thread %lu destroy event for pid %d\n", 
+            __FILE__, __LINE__, thr->getTid(), thr->getPid());
   test4_threadDestroyCounter++;
  // fprintf(stderr, "%s[%d]:  got a thread destroy event: %d\n", __FILE__, __LINE__,
   //        test4_threadDestroyCounter);
@@ -535,8 +534,8 @@ bool mutatorTest4()
   int err = 0;
 
   BPatchAsyncThreadEventCallback destroycb = threadDestroyCB;
-  if (!appThread->registerAsyncThreadEventCallback(BPatch_threadDestroyEvent,
-                                              destroycb)) {
+  if (!bpatch->registerThreadEventCallback(BPatch_threadDestroyEvent, destroycb)) 
+  {
     FAIL(TESTNO, TESTNAME);
     fprintf(stderr, "%s[%d]:  failed to register thread callback\n",
            __FILE__, __LINE__);
@@ -566,8 +565,7 @@ bool mutatorTest4()
 
   appThread->stopExecution();
 
-  if (!appThread->removeAsyncThreadEventCallback(BPatch_threadDestroyEvent,
-                                            destroycb)) {
+  if (!bpatch->removeThreadEventCallback(BPatch_threadDestroyEvent, destroycb)) {
     FAIL(TESTNO, TESTNAME);
     fprintf(stderr, "%s[%d]:  failed to remove thread callback\n",
            __FILE__, __LINE__);
@@ -609,7 +607,7 @@ bool findThreadIndex(unsigned long tid, unsigned int &index)
   return false;
 }
 
-void test5cb(void *buf, unsigned int bufsize)
+void test5cb(BPatch_process * /*proc*/, void *buf, unsigned int bufsize)
 {
   static int destroy_counter = 0;
   if (debugPrint)
@@ -685,7 +683,7 @@ bool mutatorTest5()
   BPatchSnippetHandle *unlockHandle = at(mutUnlockPt, reportUnlock, TESTNO, TESTNAME); 
 
   BPatchUserEventCallback cb = test5cb;
-  if (!appThread->getProcess()->registerUserEventCallback(cb)) {
+  if (!bpatch->registerUserEventCallback(cb)) {
     FAIL(TESTNO, TESTNAME);
     fprintf(stderr, "%s[%d]: could not register callback\n", __FILE__, __LINE__);
     return false;
@@ -715,7 +713,7 @@ bool mutatorTest5()
 
   appThread->getProcess()->stopExecution();
 
-  if (!appThread->getProcess()->removeUserEventCallback(test5cb)) {
+  if (!bpatch->removeUserEventCallback(test5cb)) {
     FAIL(TESTNO, TESTNAME);
     fprintf(stderr, "%s[%d]:  failed to remove callback\n",
            __FILE__, __LINE__);
