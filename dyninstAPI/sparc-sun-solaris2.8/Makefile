@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.20 2005/07/29 19:17:15 bernat Exp $
+# $Id: Makefile,v 1.21 2005/09/09 18:06:02 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -50,7 +50,7 @@ TFLAGS		+= -DUSES_ELF32_ONLY
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS 		+= -g
 
-SYSLIBS = -lelf -lsocket -lnsl -ldl
+SYSLIBS = -lelf -lsocket -lnsl -ldl -lrt
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
