@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.76 2005/09/01 22:17:54 bernat Exp $
+// $Id: BPatch_image.C,v 1.77 2005/09/09 15:56:58 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -193,7 +193,12 @@ BPatch_variableExpr *BPatch_image::createVarExprByName(BPatch_module *mod, const
     assert(type);
     if (!proc->llproc->getSymbolInfo(name, syminfo)) {
        bperr("unable to find variable %s\n", name);
+       return NULL;
     }
+    // Error case. 
+    if (syminfo.addr() == 0)
+        return NULL;
+
     BPatch_variableExpr *var = AddrToVarExpr->hash[syminfo.addr()];
     if (!var) {
        var = new BPatch_variableExpr( const_cast<char *>(name), proc,
@@ -230,7 +235,8 @@ BPatch_Vector<BPatch_variableExpr *> *BPatch_image::getGlobalVariablesInt()
 	for (int j = 0; j < limit; j++) {
 	    pdstring name = keys[j];
 	    var = createVarExprByName(module, name.c_str());
-	    varlist->push_back(var);
+            if (var != NULL)
+                varlist->push_back(var);
 	}
     }
 

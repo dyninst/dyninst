@@ -1185,7 +1185,8 @@ bool BPatch_module::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
   for (int j = 0; j < limit; j++) {
     pdstring name = keys[j];
     var = img->createVarExprByName(this, name.c_str());
-    vars.push_back(var);
+    if (var != NULL)
+        vars.push_back(var);
   }
   if (limit) 
     return true;
