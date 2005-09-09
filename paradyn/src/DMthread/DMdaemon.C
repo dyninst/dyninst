@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.152 2005/03/13 23:44:13 legendre Exp $
+ * $Id: DMdaemon.C,v 1.153 2005/09/09 18:07:24 legendre Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -2225,15 +2225,12 @@ bool paradynDaemon::newExecutable(const pdstring &machineArg,
 #endif
    }
 
-   bool shouldReportLoops = 
-      tunableConstantRegistry::findBoolTunableConstant("EnableLoops").getValue();
-
    paradynDaemon *daemon;
    if ((daemon=getDaemonHelper(machine, login, name)) == (paradynDaemon*) NULL)
       return false;
 
    performanceStream::ResourceBatchMode(batchStart);
-   int pid = daemon->addExecutable(argv, dir, (bool) shouldReportLoops);
+   int pid = daemon->addExecutable(argv, dir);
    performanceStream::ResourceBatchMode(batchEnd);
 
    // did the application get started ok?
@@ -2269,11 +2266,8 @@ bool paradynDaemon::attachStub(const pdstring &machine,
       return false;
 
   daemon->afterAttach_ = afterAttach;
-   bool shouldReportLoops = 
-      tunableConstantRegistry::findBoolTunableConstant("EnableLoops").getValue();
-
   performanceStream::ResourceBatchMode(batchStart);
-  bool success = daemon->attach(cmd, the_pid, afterAttach, shouldReportLoops);
+  bool success = daemon->attach(cmd, the_pid, afterAttach);
   performanceStream::ResourceBatchMode(batchEnd);
 
   if (daemon->did_error_occur())

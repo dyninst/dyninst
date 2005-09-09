@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.121 2005/03/14 22:17:53 legendre Exp $ */
+/* $Id: dynrpc.C,v 1.122 2005/09/09 18:07:25 legendre Exp $ */
 
 #include "paradynd/src/metricFocusNode.h"
 #include "paradynd/src/machineMetFocusNode.h"
@@ -307,47 +307,14 @@ void dynRPC::setSampleRate(double sampleInterval)
     // if the sampleInterval is less than the BASESAMPLEINTERVAL ignore
     // use currSamplingRate to determine if the change to DYNINSTsampleMultiple
     // needs to be made
-    timeLength newSampleRate(timeLength(sampleInterval, timeUnit::sec()));
-
-    if(newSampleRate != getCurrSamplingRate()){
+   timeLength newSampleRate(timeLength(sampleInterval, timeUnit::sec()));
+   
+   if(newSampleRate != getCurrSamplingRate()){
       // sample_multiple:  .2 sec  => 1 ;  .4 sec => 2 ;  .8 sec => 4
-         int sample_multiple = static_cast<int>(
-	   ((newSampleRate.getD(timeUnit::sec())+.01) / BASEBUCKETWIDTH_SECS));
-
-//	 char buffer[200];
-//	 sprintf(buffer, "ari fold; sampleInterval=%g so sample_multiple now %d\n",
-//		 sampleInterval, *sample_multiple);
-//	 logLine(buffer);
-         
-	// setSampleMultiple(sample_multiple);
-	// set the sample multiple in all processes
-	 processMgr::procIter itr = getProcMgr().begin();
-	 while(itr != getProcMgr().end()) {
-	    pd_process *proc = *itr++;
-	    if (!proc)
-	       continue;
-	    if(!proc->isTerminated()) {
-              BPatch_image *appImage = proc->get_dyn_process()->getImage();
-              assert(appImage);
-
-              const char *vname = "DYNINSTsampleMultiple";
-              BPatch_variableExpr *v_dsm = appImage->findVariable(vname);
-              if (! v_dsm) {
-                fprintf(stderr, "%s[%d]:  could not find var named %s\n", 
-                        __FILE__, __LINE__, vname);
-                assert(0  && "fatal internal error");
-              }
-              if (! v_dsm->writeValue((void *) &sample_multiple)) {
-                 fprintf(stderr, "%s[%d]:  could not write var named %s\n", 
-                         __FILE__, __LINE__, vname);
-                 assert(0  && "fatal internal error");
-              }
-	    }
-	 }
-	 setCurrSamplingRate(newSampleRate);
-	 machineMetFocusNode::updateAllAggInterval(newSampleRate);
-    }
-    return;
+      setCurrSamplingRate(newSampleRate);
+      machineMetFocusNode::updateAllAggInterval(newSampleRate);
+   }
+   return;
 }
 
 bool dynRPC::detachProgram(int program, bool pause)
@@ -460,10 +427,9 @@ void dynRPC::MonitorDynamicCallSites(pdstring function_name){
 //
 // start a new program for the tool.
 //
-int dynRPC::addExecutable(pdvector<pdstring> argv, pdstring dir, 
-                          bool parse_loops)
+int dynRPC::addExecutable(pdvector<pdstring> argv, pdstring dir)
 {
-  pd_process *p = pd_createProcess(argv, dir, parse_loops);
+  pd_process *p = pd_createProcess(argv, dir);
   metricFocusNode::handleNewProcess(p);
   if (p) {
     return 1;
@@ -478,15 +444,14 @@ int dynRPC::addExecutable(pdvector<pdstring> argv, pdstring dir,
 // the symbol table off disk.
 // values for 'afterAttach': 1 --> pause, 2 --> run, 0 --> leave as is
 //
-bool dynRPC::attach(pdstring progpath, int pid, int afterAttach, 
-                    bool parse_loops)
+bool dynRPC::attach(pdstring progpath, int pid, int afterAttach)
 {
   startup_cerr << "WELCOME to dynRPC::attach" << endl;
   startup_cerr << "progpath=" << progpath << endl;
   startup_cerr << "pid=" << pid << endl;
   startup_cerr << "afterAttach=" << afterAttach << endl;
 
-    pd_process *p = pd_attachProcess(progpath, pid, parse_loops);
+    pd_process *p = pd_attachProcess(progpath, pid);
     if (!p) return false;
     
     metricFocusNode::handleNewProcess(p);
