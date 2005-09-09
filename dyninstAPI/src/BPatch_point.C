@@ -517,7 +517,9 @@ bool BPatchToInternalArgs(BPatch_point point,
         case CondJumpNottaken:
         case NonJump:
             ipWhen = callPostInsn;
+            break;
         default:
+            fprintf(stderr, "Unknown edge type %d\n", point.edge()->type);
             assert(0);
         }
     }
