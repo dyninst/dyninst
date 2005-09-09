@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.76 2005/09/01 22:18:26 bernat Exp $
+// $Id: linux-x86.C,v 1.77 2005/09/09 15:57:05 bernat Exp $
 
 #include <fstream>
 
@@ -628,7 +628,8 @@ static bool hasAllocatedFrame(Address addr, process *proc, int &offset)
     int frameSizeDontCare;
     codeRange *range = proc->findCodeRangeByAddress(addr);
 
-    if (range) {
+    if (range &&
+        range->is_basicBlockInstance()) {
         InstrucIter ii(range->get_address_cr(),
                        range->get_size_cr(),
                        proc);
