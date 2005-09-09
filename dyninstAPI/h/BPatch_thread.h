@@ -56,6 +56,7 @@ class process;
 class BPatch;
 class BPatch_thread;
 class BPatch_process;
+class dyn_thread;
 
 /*
  * Represents a thread of execution.
@@ -71,18 +72,25 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     friend bool pollForStatusChange();
     friend class BPatch_asyncEventHandler;
 
+    bool legacy_destructor;
     BPatch_process *proc;
+    dyn_thread *llthread;
+    unsigned index;
+    bool updated;
 
  protected:
-    BPatch_thread(BPatch_process *parent);
+    BPatch_thread(BPatch_process *parent, int ind, int lwp_id);
+    BPatch_thread(BPatch_process *parent, dyn_thread *dthr);
+
+    void updateValues(int tid, unsigned long stack_start, 
+                      BPatch_function *initial_func, int lwp_id);
  public:
 
     /**
      * The following function are all deprecated.  They've been replaced
-     * by equivently named function in BPatch_process.  See BPatch_process.h
+     * by equivently named functions in BPatch_process.  See BPatch_process.h
      * for documentation.
      **/  
-    ~BPatch_thread() { delete proc; }
     BPatch_image *getImage() { return proc->getImage(); }
     int getPid() { return proc->getPid(); }
     bool stopExecution() { return proc->stopExecution(); }
@@ -145,18 +153,6 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     BPatch_function *findFunctionByAddr(void *addr)
        { return proc->findFunctionByAddr(addr); }
     void enableDumpPatchedImage() { proc->enableDumpPatchedImage(); }
-    bool registerAsyncThreadEventCallback(BPatch_asyncEventType type,
-                                          BPatchAsyncThreadEventCallback cb)
-       { return proc->registerAsyncThreadEventCallback(type, cb); }
-    bool removeAsyncThreadEventCallback(BPatch_asyncEventType type,
-                                        BPatchAsyncThreadEventCallback cb)
-       { return proc->removeAsyncThreadEventCallback(type, cb); }
-    //    bool registerAsyncThreadEventCallbackMutateeSide(BPatch_asyncEventType type,
-    //                                          BPatchAsyncThreadEventCallback cb)
-    //       { return proc->registerAsyncThreadEventCallbackMutateeSide(type, cb); }
-    //    bool removeAsyncThreadEventCallbackMutateeSide(BPatch_asyncEventType type,
-    //                                        BPatchAsyncThreadEventCallback cb)
-    //       { return proc->removeAsyncThreadEventCallbackMutateeSide(type, cb); }
 #ifdef IBM_BPATCH_COMPAT
     bool addSharedObject(const char *name, const unsigned long loadaddr)
        { return proc->addSharedObject(name, loadaddr); }
@@ -167,7 +163,6 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     //  Returns a vector of BPatch_frame, representing the current call stack
     API_EXPORT(Int, (stack),
     bool,getCallStack,(BPatch_Vector<BPatch_frame>& stack));
-
     //  BPatch_thread::getProcess
     //
     //  Returns a pointer to the process that owns this thread
@@ -176,6 +171,24 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
 
     API_EXPORT(Int, (),
     unsigned, getTid, ());
+
+    API_EXPORT(Int, (),
+    int, getLWP, ());
+
+    API_EXPORT(Int, (),
+    unsigned, getBPatchID, ());
+
+    API_EXPORT(Int, (),
+    BPatch_function *, getInitialFunc, ());
+    
+    API_EXPORT(Int, (),
+    unsigned long, getStackTopAddr, ());
+
+    API_EXPORT_DTOR(_dtor, (),
+    ~,BPatch_thread,());
+
+    API_EXPORT(Int, (),
+    int, proc_fd, ());
 
     // DO NOT USE
     // this function should go away as soon as Paradyn links against Dyninst

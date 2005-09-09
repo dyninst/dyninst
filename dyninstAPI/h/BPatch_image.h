@@ -219,6 +219,12 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
                      int showError=0,
                      bool incUninstrumentable = false));
 
+    //  BPatch_image::findFunction(Address)
+    //
+    //  Returns a function at a specified address
+    API_EXPORT(Int, (addr),
+               BPatch_function *, findFunction,(unsigned long addr));
+
     //  BPatch_image::findVariable
     //  
     //  Returns global variable matching <name> in the image.  NULL if not found.

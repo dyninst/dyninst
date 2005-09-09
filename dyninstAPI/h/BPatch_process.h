@@ -55,6 +55,8 @@
 #include <signal.h>
 
 class process;
+class dyn_thread;
+class miniTrampHandle;
 class miniTramp;
 class BPatch;
 class BPatch_thread;
@@ -68,10 +70,9 @@ typedef enum {
   BPatch_newConnectionEvent,
   BPatch_internalShutDownEvent,
   BPatch_threadCreateEvent,
-  BPatch_threadStartEvent,
-  BPatch_threadStopEvent,
   BPatch_threadDestroyEvent,
   BPatch_dynamicCallEvent,
+  BPatch_userEvent,
   BPatch_errorEvent,
   BPatch_dynLibraryEvent,
   BPatch_preForkEvent,
@@ -79,7 +80,6 @@ typedef enum {
   BPatch_execEvent,
   BPatch_exitEvent,
   BPatch_signalEvent,
-  BPatch_userEvent,
   BPatch_oneTimeCodeEvent
 } BPatch_asyncEventType;
 
@@ -114,9 +114,6 @@ public:
     API_EXPORT_DTOR(_dtor, (),
     ~,BPatchSnippetHandle,());
 };
-
-typedef void (*BPatchAsyncThreadEventCallback)(BPatch_thread *thr, unsigned long thread_id);
-typedef void (*BPatchUserEventCallback)(void *buf, unsigned int bufsize);
 
 typedef enum {
    NoExit,
@@ -197,6 +194,8 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
                               void *userData,
                               bool synchronous);
 
+    static void deleteThreadCB(process *p, dyn_thread *thr);
+    static void newThreadCB(process *p, int id, int lwp);
     protected:
     // for creating a process
     BPatch_process(const char *path, char *argv[], char *envp[] = NULL, 
@@ -207,6 +206,11 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     // for forking
     BPatch_process(int childPid, process *proc);
 
+    // Create a new thread in this proc
+    BPatch_thread *createOrUpdateBPThread(int lwp, int tid, unsigned index, 
+                                          unsigned long stack_start, 
+                                          unsigned long start_addr);
+    void deleteBPThread(BPatch_thread *thrd);
     BPatch_function *findOrCreateBPFunc(int_function *ifunc, 
                                         BPatch_module *bpmod);
     BPatch_point *findOrCreateBPPoint(BPatch_function *bpfunc, instPoint *ip,
@@ -217,6 +221,8 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     static BPatch_function *createBPFuncCB(process *p, int_function *f);
     static BPatch_point *createBPPointCB(process *p, int_function *f,
                                          instPoint *ip, int type);
+    void updateThreadInfo();
+
     public:
 
     // DO NOT USE
@@ -348,6 +354,12 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     API_EXPORT(Int, (tid),
     BPatch_thread *, getThread, (unsigned tid));
 
+    //  BPatch_process::getThread
+    //
+    //  Returns one of this process's threads, given an index
+    API_EXPORT(Int, (index),
+    BPatch_thread *, getThreadByIndex, (unsigned index));
+
     //  BPatch_process::dumpCore
     //  
     //  Produce a core dump file <file> for the mutatee process
@@ -447,19 +459,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     API_EXPORT(Int, (handle),
     bool,deleteSnippet,(BPatchSnippetHandle *handle));
 
-    // Occasionally users need to insert a set of instrumentation as an atomic action.
-    // We provide this capability by "wrapping" a set of instrumentation with an explicit
-    // start/end pair.
-    // Of course, for this to work correctly Dyninst will need to honor the "checkInst"
-    // section of an instPoint, which currently does not happen. Fun.
-
-    API_EXPORT_V(Int, (), 
-    void, startInsertionRange, ());
-
-
-    API_EXPORT_V(Int, (), 
-    void, endInsertionRange, ());
-
     //  BPatch_process::setMutationsActive
     //  
     //  Turn on/off instrumentation
@@ -515,12 +514,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     API_EXPORT(Int, (libname, reload),
     bool,loadLibrary,(const char *libname, bool reload = false));
 
-    //  BPatch_process::getAllCallStacks
-    //  
-    //  Returns a vector of (vector of) BPatch_frame, representing the current call stack
-    API_EXPORT(Int, (stack),
-    bool,getAllCallStacks,(BPatch_Vector<BPatch_Vector<BPatch_frame> >& stack));
-
     //  BPatch_process::getLineAndFile
     //  
     //  Method that retrieves the line number and file name corresponding 
@@ -541,59 +534,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     //  
     API_EXPORT_V(Int, (),
     void,enableDumpPatchedImage,());
-
-    //  BPatch_process::registerAsyncThreadEventCallback
-    //  
-    //  Specifies a user defined function to call when a thread event of
-    //  <type> occurs
-    //  
-    //  relevant event types:  BPatch_threadCreateEvent, BPatch_threadStartEvent
-    //                         BPatch_threadStopEvent, BPatch_threadDestroyEvent 
-    //  BPatchAsyncThreadEventCallback is:
-    //  void (*BPatchAsyncThreadEventCallback)(BPatch_thread *thr, int thread_id);
-
-    API_EXPORT(Int, (type,cb),
-    bool,registerAsyncThreadEventCallback,(BPatch_asyncEventType type, 
-                                           BPatchAsyncThreadEventCallback cb));
-
-    API_EXPORT(Int, (type,cb),
-    bool,removeAsyncThreadEventCallback,(BPatch_asyncEventType type,
-                                         BPatchAsyncThreadEventCallback cb));
-
-    //  BPatch_thread::registerAsyncThreadEventCallback
-    //
-    //  Specifies a user defined function to execute in the mutatee when a 
-    //  thread event of <type> occurs.
-    //  Typically function will be loaded into mutatee in a user defined 
-    //  shared library (see loadLibrary()).
-    //  The function <cb> _must_ have the following prototype:
-    //    void user_cb(int thread_id);
-    //  XXX  This will change.
-
-    API_EXPORT(MutateeSide, (type,cb),
-    bool,registerAsyncThreadEventCallback,(BPatch_asyncEventType type,
-                                           BPatch_function *cb));
-
-    API_EXPORT(MutateeSide, (type,cb),
-    bool,removeAsyncThreadEventCallback,(BPatch_asyncEventType type,
-                                         BPatch_function *cb));
-
-
-
-    //  BPatch_process::registerUserEventCallback
-    //  
-    //  Specifies a user defined function to call when a "user event" 
-    //  occurs, user events are trigger by calls to the function DYNINSTuserMessage(void *, int)
-    //  in the runtime library.
-    //  
-    //  BPatchUserEventCallback is:
-    //  void (*BPatchUserEventCallback)(void *msg, unsigned int msg_size);
-
-    API_EXPORT(Int, (cb),
-    bool,registerUserEventCallback,(BPatchUserEventCallback cb)); 
-
-    API_EXPORT(Int, (cb),
-    bool,removeUserEventCallback,(BPatchUserEventCallback cb));
 
 #ifdef IBM_BPATCH_COMPAT
     API_EXPORT(Int, (name, loadaddr),

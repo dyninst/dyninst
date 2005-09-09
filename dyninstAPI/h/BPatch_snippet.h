@@ -556,4 +556,16 @@ class BPATCH_DLL_EXPORT BPatch_ifMachineConditionExpr : public BPatch_snippet {
   BPatch_ifMachineConditionExpr,(const BPatch_snippet &tClause));
 };
 
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_threadIndexExpr
+
+class BPATCH_DLL_EXPORT BPatch_threadIndexExpr : public BPatch_snippet {
+  //
+  // BPatch_threadIndexExpr::BPatch_threadIndexExpr
+  API_EXPORT_CTOR(Int, (proc),
+  BPatch_threadIndexExpr,(BPatch_process *proc));
+};
+
 #endif /* _BPatch_snippet_h_ */

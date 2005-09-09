@@ -114,10 +114,6 @@ public:
 
     void *,getFP,()); 
 
-    // 
-    API_EXPORT(Int, (),
-    int, getTID, ());
-
     //  BPatch_frame::findFunction
     //  Returns:  the function corresponding to this stack frame, NULL 
     //   if there is none

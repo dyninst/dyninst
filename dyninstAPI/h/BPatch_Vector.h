@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_Vector.h,v 1.18 2005/08/02 19:30:24 bernat Exp $
+// $Id: BPatch_Vector.h,v 1.19 2005/09/09 18:06:07 legendre Exp $
 
 #ifndef _BPatch_Vector_h_
 #define _BPatch_Vector_h_
@@ -94,6 +94,7 @@ public:
     void	push_front(const T& x);
     void        clear();
     void        resize(int sz);
+    void erase(int n);
 
     T&		operator[](int n) const;
 };
@@ -105,24 +106,24 @@ public:
 template<class T>
 void BPatch_Vector<T>::reserve(int n)
 {
-    if (n > reserved) { // If we haven't already reserved enough space
-	// Generally we double the size each time we reserve memory, so
-	// that we're not doing it for every insertion.
-	if (reserved*2 > n) n = reserved*2;
+   if (n > reserved) { // If we haven't already reserved enough space
+      // Generally we double the size each time we reserve memory, so
+      // that we're not doing it for every insertion.
+      if (reserved*2 > n) n = reserved*2;
 
-	// Create a new array with enough space
-	T* new_data = new T[n];
+      // Create a new array with enough space
+      T* new_data = new T[n];
+      
+      // Copy the entries from the old array to the new one
+      for (int i = 0; i < len; i++)
+         new_data[i] = data[i];
 
-	// Copy the entries from the old array to the new one
-	for (int i = 0; i < len; i++)
-	    new_data[i] = data[i];
-
-	// Get rid of the old array and set up to use the new one
-	if( data != NULL ) delete [] data;
-	data = new_data;
-	reserved = n;
-    }
-    assert(data != NULL || n == 0);
+      // Get rid of the old array and set up to use the new one
+      if( data != NULL ) delete [] data;
+      data = new_data;
+      reserved = n;
+   }
+   assert(data != NULL || n == 0);
 }
 
 // Copy the contents of another vector into this one.
@@ -241,6 +242,18 @@ T& BPatch_Vector<T>::operator[](int n) const
 {
     assert(data != NULL && n >= 0 && n < len);
     return data[n];
+}
+
+// delete the nth element
+template<class T>
+void BPatch_Vector<T>::erase(int n) 
+{
+   assert(data != NULL && n >= 0 && n < len);
+   for (int i=n; i<len-1; i++)
+   {
+      data[i] = data[i+1];
+   }
+   len--;
 }
 
 #endif /* BPATCH_DLL_IMPORT */

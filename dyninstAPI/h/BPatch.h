@@ -60,6 +60,9 @@ class BPatch_asyncEventHandler;
 class int_function;
 class process;
 
+typedef void (*BPatchAsyncThreadEventCallback)(BPatch_process *proc, BPatch_thread *thr);
+typedef void (*BPatchUserEventCallback)(BPatch_process *proc, void *buf, 
+                                        unsigned int bufsize);
 typedef enum {
     BPatchFatal, BPatchSerious, BPatchWarning, BPatchInfo
 } BPatchErrorLevel;
@@ -332,6 +335,35 @@ public:
     API_EXPORT(Int, (func),
     BPatchOneTimeCodeCallback, registerOneTimeCodeCallback,(BPatchOneTimeCodeCallback func));
 
+    //  BPatch::registerThreadEventCallback
+    //  Registers a callback to run when a thread is created
+    API_EXPORT(Int, (type,cb),
+    bool,registerThreadEventCallback,(BPatch_asyncEventType type, 
+                                      BPatchAsyncThreadEventCallback cb));
+
+    //  BPatch::removeThreadEventCallback
+    //  Registers a callback to run when a thread is destroyed
+    API_EXPORT(Int, (type,cb),
+    bool,removeThreadEventCallback,(BPatch_asyncEventType type,
+                                    BPatchAsyncThreadEventCallback cb));
+
+    //  BPatch::registerUserEventCallback
+    //  
+    //  Specifies a user defined function to call when a "user event" 
+    //  occurs, user events are trigger by calls to the function 
+    //  DYNINSTuserMessage(void *, int) in the runtime library.
+    //  
+    //  BPatchUserEventCallback is:
+    //  void (*BPatchUserEventCallback)(void *msg, unsigned int msg_size);
+
+    API_EXPORT(Int, (cb),
+    bool,registerUserEventCallback,(BPatchUserEventCallback cb)); 
+
+    API_EXPORT(Int, (cb),
+    bool,removeUserEventCallback,(BPatchUserEventCallback cb));
+
+
+
     //  BPatch::getThreads:
     //  Get a vector of all threads in mutatee process
     API_EXPORT(Int, (),
@@ -390,11 +422,24 @@ public:
 
     void,setDelayedParsing,(bool x));
 
+    // BPatch::processCreate:
+    // Create a new mutatee process
+    API_EXPORT(Int, (path, argv, envp, stdin_fd, stdout_fd, stderr_fd),
+    BPatch_process *,processCreate,(const char *path,
+                                    const char *argv[],
+                                    const char *envp[] = NULL,
+                                    int stdin_fd=0,
+                                    int stdout_fd=1,
+                                    int stderr_fd=2));
+
+    // BPatch::processAttach
+    // Attach to mutatee process
+    API_EXPORT(Int, (path, pid),
+    BPatch_process *,processAttach,(const char *path, int pid));
 
     // BPatch::createProcess:
     // Create a new mutatee process
     API_EXPORT(Int, (path, argv, envp, stdin_fd, stdout_fd, stderr_fd),
-
     BPatch_thread *,createProcess,(const char *path,
                                    const char *argv[],
                                    const char *envp[] = NULL,
@@ -405,7 +450,6 @@ public:
     // BPatch::attachProcess:
     // Attach to mutatee process
     API_EXPORT(Int, (path, pid),
-
     BPatch_thread *,attachProcess,(const char *path, int pid));
 
     // BPatch::createEnum:
