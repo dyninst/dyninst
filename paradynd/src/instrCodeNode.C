@@ -312,13 +312,14 @@ void instrCodeNode_Val::cleanupDataRefNodes() {
 }
 
 // A debug function for prepareCatchupInstr
+#define NAME_LEN 2048
 void prepareCatchupInstr_debug(instReqNode &iRN)
 {
   BPatch_function *instPoint_fn = const_cast<BPatch_function *>(iRN.Point()->getFunction());
      
   if (instPoint_fn) {
-    char buf[2048];
-    instPoint_fn->getName(buf, 2048);
+    char buf[NAME_LEN];
+    instPoint_fn->getName(buf, NAME_LEN);
     cerr << "instP function: " << buf << " ";
   }
 

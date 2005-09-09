@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.176 2005/09/02 00:45:24 bernat Exp $
+// $Id: mdl.C,v 1.177 2005/09/09 18:07:40 legendre Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -417,9 +417,9 @@ BPatch_snippet *createTimer(const pdstring &func, BPatch_variableExpr *dataPtr,
 // which adds this observed cost update code.
 
 BPatch_snippet *createIf(BPatch_boolExpr *expression, BPatch_snippet *action,
-                        BPatch_thread *appThread)
+                         BPatch_process *appProc)
 {
-  if(appThread != NULL) {
+  if(appProc != NULL) {
     // add code to the snippet to update the global observed cost variable
     // we want to add the minimum cost of the body.  Observe the following
     // example
@@ -434,7 +434,7 @@ BPatch_snippet *createIf(BPatch_boolExpr *expression, BPatch_snippet *action,
 
     //  Var in Dyninst RT:  DYNINSTobsCostLow -- this should be moved!
     BPatch_variableExpr *obsCostVar;
-    obsCostVar = appThread->getImage()->findVariable("DYNINSTobsCostLow", true);
+    obsCostVar = appProc->getImage()->findVariable("DYNINSTobsCostLow", true);
     if (!obsCostVar) {
       fprintf(stderr, "%s[%d]:  cannot find variable: DYNINSTobsCostLow!\n",
              __FILE__, __LINE__);
@@ -924,8 +924,8 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
              // a mdl name...
              char addr_name[64];
              sprintf(addr_name, "addr_%p", (void *)(long)addr);
-             BPatch_thread *appThread = global_proc->get_dyn_process();
-             snip = new BPatch_variableExpr(addr_name, appThread->getProcess(),
+             BPatch_process *appProc = global_proc->get_dyn_process();
+             snip = new BPatch_variableExpr(addr_name, appProc,
                                            (void *)(long)addr, inttype);
            }
            else
@@ -2493,13 +2493,8 @@ bool createThreadNodes(processMetFocusNode **procNode_arg,
          while(itr != proc->endThrMark()) {
             pd_thread *thr = *itr;
             itr++;
-            pdstring start_func_name;
-            start_func_name = thr->get_start_func() ? 
-               thr->get_start_func()->prettyName()
-               : pdstring("no start func!");
-            
-            pdstring thrName = pdstring("thr_") + pdstring(thr->get_tid()) + "{" + 
-                             start_func_name + "}";
+            pdstring thrName = pdstring("thr_") + pdstring(thr->get_tid()) + 
+               "{" + thr->get_initial_func_name() + "}";
             focus_with_thr.set_thread(thrName);
             threadMetFocusNode *thrNode = threadMetFocusNode::
                newThreadMetFocusNode(metname, focus_with_thr, thr);

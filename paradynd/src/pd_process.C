@@ -59,6 +59,7 @@
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/InstrucIter.h"
 #include "dyninstAPI/src/instPoint.h"
+#include "dyninstAPI/src/dyn_thread.h"
 #if defined(i386_unknown_nt4_0)
 #include <Windows.h>
 #endif
@@ -74,6 +75,7 @@ extern int termWin_port;
 extern pdstring pd_machine;
 extern PDSOCKET connect_Svr(pdstring machine,int port);
 extern pdRPC *tp;
+extern pdvector<pdinstMapping*> initialRequestsPARADYN; 
 
 // Exec callback
 extern void pd_execCallback(pd_process *proc);
@@ -85,11 +87,9 @@ pdstring pd_process::programName;
 
 extern resource *machineResource;
 
-bool should_report_loops = false;
+extern pdstring formatLibParadynName(pdstring orig);
 
-void addLibraryCallback(BPatch_thread *thr,
-                        BPatch_module *mod,
-                        bool load)
+void addLibraryCallback(BPatch_process *thr, BPatch_module *mod, bool load)
 {
   if (!mod) {
     fprintf(stderr, "%s[%d]:  addModuleCallback called w/out module!\n",
@@ -97,12 +97,12 @@ void addLibraryCallback(BPatch_thread *thr,
     return;
   }
 
-  BPatch_thread *appThread = NULL;
+  BPatch_process *appProc = NULL;
   pd_process *parent_proc = NULL;
   for (unsigned int i = 0; i < pd_image::all_pd_images.size(); ++i) {
     parent_proc = pd_image::all_pd_images[i]->getParentProc();
-    appThread = parent_proc->get_dyn_process();
-    if (appThread  == thr) {
+    appProc = parent_proc->get_dyn_process();
+    if (appProc  == thr) {
       break; 
     }
     parent_proc = NULL;
@@ -142,9 +142,9 @@ void addLibraryCallback(BPatch_thread *thr,
 
 // Global "create a new pd_process object" functions
 
-pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir,
-                             bool parse_loops) {
-#if !defined(i386_unknown_nt4_0)
+pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir)
+{
+#if !defined(os_windows)
     if (termWin_port == -1)
         return NULL;
     
@@ -163,20 +163,20 @@ pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir,
 	// procStopFromDYNINSTinit().  Prevents a diabolical w/w deadlock on
 	// solaris --ari
 	tp->resourceBatchMode(true);
-   should_report_loops = parse_loops;
-#if !defined(i386_unknown_nt4_0)
-    pd_process *proc = new pd_process(argv[0], argv, dir, 0, stdout_fd, 2, 
-                                      parse_loops);
+#if defined(os_windows)
+    pd_process *proc = new pd_process(argv[0], argv, dir, 0, 1, 2);
 #else 
-    pd_process *proc = new pd_process(argv[0], argv, dir, 0, 1, 2, 
-                                      parse_loops);
+    pd_process *proc = new pd_process(argv[0], argv, dir, 0, stdout_fd, 2);
 #endif
     if ( (proc == NULL) || (proc->get_dyn_process() == NULL) ) {
-#if !defined(i386_unknown_nt4_0)
-        CLOSEPDSOCKET(stdout_fd);
+#if !defined(os_windows)
+       CLOSEPDSOCKET(stdout_fd);
 #endif
         return NULL;
     }
+    
+    //Add to process manager
+    getProcMgr().addProcess(proc);
 
     // Load the paradyn runtime lib
     if (!proc->getSharedMemMgr()->initialize()) {
@@ -194,8 +194,6 @@ pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir,
     process *llproc = proc->get_dyn_process()->lowlevel_process();
     if(!costMetric::addProcessToAll(llproc))
         assert(false);
-    
-    getProcMgr().addProcess(proc);
 
     pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
     buffer += pdstring(", ready");
@@ -204,13 +202,12 @@ pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir,
     return proc;
 }
 
-pd_process *pd_attachProcess(const pdstring &progpath, int pid, bool parse_loops)
+pd_process *pd_attachProcess(const pdstring &progpath, int pid)
 { 
     // Avoid deadlock
 	tp->resourceBatchMode(true);
 
-   should_report_loops = parse_loops;
-    pd_process *proc = new pd_process(progpath, pid, parse_loops);
+   pd_process *proc = new pd_process(progpath, pid);
 
     if (!proc || !proc->get_dyn_process()) return NULL;
 
@@ -232,8 +229,6 @@ pd_process *pd_attachProcess(const pdstring &progpath, int pid, bool parse_loops
 
     getProcMgr().addProcess(proc);
 
-    llproc->recognize_threads(NULL);
-
     pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
     buffer += pdstring(", ready");
     statusLine(buffer.c_str());
@@ -241,9 +236,8 @@ pd_process *pd_attachProcess(const pdstring &progpath, int pid, bool parse_loops
     return proc;
 }
 
-pd_process *pd_attachToCreatedProcess(const pdstring &progpath,
-                                      int pid,
-                                      bool examineLoops) {
+pd_process *pd_attachToCreatedProcess(const pdstring &/*progpath*/, 
+                                      int /*pid*/) {
     // This has atrophied and needs to be fixed;
     // instead of horrible behavior I'm going to have it
     // break.
@@ -259,13 +253,7 @@ void pd_process::init() {
     buffer += pdstring(", initializing daemon-side data");
     statusLine(buffer.c_str());
 
-    process *lowlevel_proc = get_dyn_process()->lowlevel_process();
 
-    for(unsigned i=0; i<lowlevel_proc->threads.size(); i++) {
-        pd_thread *thr = new pd_thread(lowlevel_proc->threads[i], this);
-	addThread(thr);
-    }
-    
     theVariableMgr = new variableMgr(this, getSharedMemMgr(),
                                      maxNumberOfThreads());
     buffer = pdstring("PID=") + pdstring(getPid());
@@ -291,14 +279,14 @@ void pd_process::init() {
        has_mt_resource_heirarchies_been_defined = true;
     }
     FillInCallGraphStatic();
+    findThreads();
 }
 
 // Creation constructor
 pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
                        const pdstring dir, int stdin_fd, int stdout_fd,
-                       int stderr_fd, bool loops) 
+                       int stderr_fd) 
         : monitorFunc(NULL),
-          use_loops(loops),
           numOfActCounters_is(0), numOfActProcTimers_is(0),
           numOfActWallTimers_is(0), 
           cpuTimeMgr(NULL),
@@ -323,23 +311,22 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
     char *path = new char[  argv0.length() + 5];
     strcpy(path, argv0.c_str());
     getBPatch().setTypeChecking(false);
-    dyninst_process = getBPatch().createProcess(path, 
+    dyninst_process = getBPatch().processCreate(path, 
         (const char **) argv_array, NULL, 
         stdin_fd, stdout_fd, stderr_fd);
-    if (dyninst_process == 0) {
+    if (!dyninst_process) {
        // createProcess will print proper error message in the paradyn msg box
        P__exit(-1);
     }
-    bproc = dyninst_process->getProcess();
 
     delete []argv_array;
-    delete path;
+    delete []path;
 
     created_via_attach = false;
 
     img = new pd_image(dyninst_process->getImage(), this);
 
-    pdstring img_name = img->name();
+    pdstring img_name = img->get_file();
     if (img_name == (char *) NULL) {
       //  this will cause an assertion failure in newResource()
       fprintf(stderr, "%s[%d]:  unnamed image!\n", __FILE__, __LINE__);
@@ -349,7 +336,7 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
     rid = resource::newResource(machineResource, // parent
 				(void*)this, // handle
 				nullString, // abstraction
-				img->name(), // process name
+				img->get_file(), // process name
 				timeStamp::ts1970(), // creation time
 				buff, // unique name (?)
                 ProcessResourceType,
@@ -380,9 +367,8 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
 }
 
 // Attach constructor
-pd_process::pd_process(const pdstring &progpath, int pid, bool loops)
+pd_process::pd_process(const pdstring &progpath, int pid)
         : monitorFunc(NULL),
-          use_loops(loops),
           numOfActCounters_is(0), numOfActProcTimers_is(0),
           numOfActWallTimers_is(0), 
           cpuTimeMgr(NULL),
@@ -393,10 +379,9 @@ pd_process::pd_process(const pdstring &progpath, int pid, bool loops)
           inExec(false)
 {
     getBPatch().setTypeChecking(false);
-    dyninst_process = getBPatch().attachProcess(progpath.c_str(), pid);
-    bproc = dyninst_process->getProcess();    
+    dyninst_process = getBPatch().processAttach(progpath.c_str(), pid);
     img = new pd_image(dyninst_process->getImage(), this);
-    pdstring img_name = img->name();
+    pdstring img_name = img->get_file();
     if (img_name == (char *) NULL) {
       //  this will cause an assertion failure in newResource()
       fprintf(stderr, "%s[%d]:  unnamed image!\n", __FILE__, __LINE__);
@@ -406,7 +391,7 @@ pd_process::pd_process(const pdstring &progpath, int pid, bool loops)
     rid = resource::newResource(machineResource, // parent
                                 (void*)this, // handle
                                 nullString, // abstraction
-                                img->name(),
+                                img->get_file(),
                                 timeStamp::ts1970(), // creation time
                                 buff, // unique name (?)
                                 ProcessResourceType,
@@ -442,10 +427,9 @@ pd_process::pd_process(const pdstring &progpath, int pid, bool loops)
 extern void CallGraphSetEntryFuncCallback(pdstring exe_name, pdstring r, int tid);
 
 // fork constructor
-pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
+pd_process::pd_process(const pd_process &parent, BPatch_process *childDynProc) :
         dyninst_process(childDynProc), 
         monitorFunc(NULL),
-        use_loops(parent.use_loops),
         cpuTimeMgr(NULL),
 #ifdef PAPI
         papi(NULL),
@@ -453,7 +437,6 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
         paradynRTState(libLoaded), inExec(false),
         paradynRTname(parent.paradynRTname)
 {
-   bproc = childDynProc->getProcess();
    img = new pd_image(dyninst_process->getImage(), this);
 
    // Call fork initialization code
@@ -470,7 +453,7 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
    if (dyninst_process->oneTimeCode(fork_init_expr) != (void *)123)
        fprintf(stderr, "Error running forked child init function\n");
    
-   pdstring img_name = img->name();
+   pdstring img_name = img->get_file();
    if (img_name == (char *) NULL) {
      //  this will cause an assertion failure in newResource()
      fprintf(stderr, "%s[%d]:  unnamed image!\n", __FILE__, __LINE__);
@@ -480,7 +463,7 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
    rid = resource::newResource(machineResource, // parent
                                (void*)this, // handle
                                nullString, // abstraction
-                               img->name(),
+                               img->get_file(),
                                timeStamp::ts1970(), // creation time
                                buff, // unique name (?)
                                ProcessResourceType,
@@ -512,43 +495,16 @@ pd_process::pd_process(const pd_process &parent, BPatch_thread *childDynProc) :
                               false, wasRunningWhenAttached());
    
    // Thread time. We keep our own list of threads in the process.
-
-   // Back off the paradyn bootstrap level
-
-   // DYNINST SEP
-   process *cp = childDynProc->PDSEP_process();
-   if (parent.dyninst_process->PDSEP_process()->multithread_ready()) {
-     for (unsigned i = 0; i < cp->threads.size(); i++) {
-       dyn_thread *thr = cp->threads[i];
-       pd_thread *pd_thr = new pd_thread(thr, this);
-       addThread(pd_thr);
-       // This is mostly duplicated from context.C::createThread.
-       // Problem is, in this case we _have_ threads already...     
-       resource *rid;
-       pdstring buffer;
-       buffer = pdstring("thr_") + 
-	 pdstring(thr->get_tid()) + 
-	 pdstring("{") + 
-	 thr->get_start_func()->prettyName() +
-	 pdstring("}");
-       rid = resource::newResource(get_rid(),
-				   (void *)cp->threads[i],
-				   nullString, 
-				   buffer,
-				   timeStamp::ts1970(),
-				   "",
-				   ThreadResourceType,
-				   MDL_T_STRING,
-				   true);
-       pd_thr->update_rid(rid);
-       pd_thr->resetInferiorVtime(getVirtualTimer(thr->get_index()));
-     }
-   }
-   else {
-      // Make the "dummy" primary thread
-      for (unsigned j = 0; j < cp->threads.size(); j++) {
-         pd_thread *thr = new pd_thread(cp->threads[j], this);
-         addThread(thr);
+   BPatch_Vector<BPatch_thread *> threads;
+   childDynProc->getThreads(threads);
+   for (unsigned i=0; i<threads.size(); i++)
+   {
+      pd_thread *pd_thr = new pd_thread(threads[i], this);
+      addThread(pd_thr);
+      if (dyninst_process->isMultithreaded())
+      {
+         // This is mostly duplicated from context.C::createThread.
+         // Problem is, in this case we _have_ threads already...     
       }
    }
 }
@@ -690,21 +646,27 @@ void pd_process::initAfterFork(pd_process * /*parentProc*/) {
  **** Fork/Exec handling code                                    ****
  ********************************************************************/
 
-void pd_process::paradynPreForkDispatch(BPatch_thread *parent,
-                                        BPatch_thread * /*child*/) {
+void pd_process::paradynPreForkDispatch(BPatch_thread* p,
+                                        BPatch_thread* /*child*/) 
+{
+   BPatch_process *parent = p->getProcess();
    pd_process *matching_pd_process = getProcMgr().find_pd_process(parent);
    if(matching_pd_process)
       matching_pd_process->preForkHandler();
 }
 
-void pd_process::paradynPostForkDispatch(BPatch_thread *parent,
-                                         BPatch_thread *child) {
+void pd_process::paradynPostForkDispatch(BPatch_thread *p, BPatch_thread *c) 
+{
+   BPatch_process *parent = p->getProcess();
+   BPatch_process *child = c->getProcess();
    pd_process *matching_pd_process = getProcMgr().find_pd_process(parent);
    if(matching_pd_process)
       matching_pd_process->postForkHandler(child);
 }
 
-void pd_process::paradynExecDispatch(BPatch_thread *dyn_proc) {
+void pd_process::paradynExecDispatch(BPatch_thread *dyn_thread) 
+{
+   BPatch_process *dyn_proc = dyn_thread->getProcess();
    pd_process *matching_pd_process = getProcMgr().find_pd_process(dyn_proc);
    if(matching_pd_process) {
       matching_pd_process->execHandler();
@@ -713,7 +675,8 @@ void pd_process::paradynExecDispatch(BPatch_thread *dyn_proc) {
 
 void pd_process::paradynExitDispatch(BPatch_thread *thread, 
                                      BPatch_exitType exit_type) {
-   pd_process *matching_pd_process = getProcMgr().find_pd_process(thread);
+   BPatch_process *dyn_proc = thread->getProcess();
+   pd_process *matching_pd_process = getProcMgr().find_pd_process(dyn_proc);
    int code = 0;
    assert(thread->terminationStatus() == exit_type);
 
@@ -732,14 +695,11 @@ void pd_process::preForkHandler() {
 }
 
 // this is the parent
-void pd_process::postForkHandler(BPatch_thread *child) {
-   BPatch_thread *parent = dyninst_process;
-   process *parentDynProc = parent->lowlevel_process();
-   process *childDynProc  = child->lowlevel_process();
-   assert(childDynProc->status() == stopped);
+void pd_process::postForkHandler(BPatch_process *child) {
+   BPatch_process *parent = dyninst_process;
+   assert(child->isStopped());
 
-   pd_process *parentProc = 
-     getProcMgr().find_pd_process(parentDynProc->getPid());
+   pd_process *parentProc = getProcMgr().find_pd_process(parent->getPid());
    if (!parentProc) {
      logLine("Error in forkProcess: could not find parent process\n");
      return;
@@ -748,7 +708,7 @@ void pd_process::postForkHandler(BPatch_thread *child) {
    pd_process *childProc = new pd_process(*parentProc, child);
    getProcMgr().addProcess(childProc);
    metricFocusNode::handleFork(parentProc, childProc);
-   childDynProc->setParadynBootstrap();
+   childProc->findThreads();
 
    // I don't think we want to continue the process here... hand it back
    // to Dyninst -- bernat, 28APR04
@@ -796,376 +756,158 @@ void pd_process::execHandler() {
 // Load and initialize the paradyn runtime library.
 bool pd_process::loadParadynLib(load_cause_t ldcause) 
 {
-#if defined(sparc_sun_solaris2_4)
-    // Sparc requires libsocket to be loaded before the paradyn lib can be :/
-    loadAuxiliaryLibrary("libsocket.so");
-#endif
+   bool result;
+   initOSPreLib();
 
-    assert(isStopped());
+   assert(isStopped());
+   
+   pdstring buffer = pdstring("PID=") + pdstring(getPid());
+   buffer += pdstring(", loading Paradyn RT lib via iRPC");
+   statusLine(buffer.c_str());
+   
+   setLibState(paradynRTState, libLoading);
+   
+   pdstring libname = formatLibParadynName(paradynRTname);
 
-    pdstring buffer = pdstring("PID=") + pdstring(getPid());
-    buffer += pdstring(", loading Paradyn RT lib via iRPC");
-    statusLine(buffer.c_str());
-
-    setLibState(paradynRTState, libLoading);
-#if defined (i386_unknown_nt4_0)
-     // Another FIXME: NT strips the path from the loaded
-     // library for recognition purposes.
-     char dllFilename[_MAX_FNAME];
-     _splitpath (paradynRTname.c_str(),
-            NULL, NULL, dllFilename, NULL);
-    if (!dyninst_process->loadLibrary(dllFilename)) {
+   result = dyninst_process->loadLibrary(libname.c_str());
+   if (!result)
+   {
       fprintf(stderr, "%s[%d]:  failed to load %s, fatal...\n",
-              __FILE__, __LINE__, dllFilename);
+              __FILE__, __LINE__, libname.c_str());
       return false;
-    }
-    fprintf(stderr, "%s[%d]:  loaded %s\n", __FILE__, __LINE__, dllFilename);
-#else
+   }
 
-    if (!dyninst_process->loadLibrary(paradynRTname.c_str())) {
-      fprintf(stderr, "%s[%d]:  failed to load %s, fatal...\n",
-              __FILE__, __LINE__, paradynRTname.c_str());
-      return false;
-    }
-#endif
-    if (!setParadynLibParams(ldcause)) {
+   if (!runParadynInit(ldcause)) {
       fprintf(stderr, "%s[%d]:  failed set lib params for %s, fatal...\n",
               __FILE__, __LINE__, paradynRTname.c_str());
       return false;
-    }
+   }
 
-    setLibState(paradynRTState, libLoaded);
+   setLibState(paradynRTState, libLoaded);
+   
+   buffer = pdstring("PID=") + pdstring(getPid());
+   buffer += pdstring(", finalizing Paradyn RT lib");
+   statusLine(buffer.c_str());
+   
+   // Now call finalizeParadynLib which will handle any initialization
+   finalizeParadynLib(ldcause);
 
-    buffer = pdstring("PID=") + pdstring(getPid());
-    buffer += pdstring(", finalizing Paradyn RT lib");
-    statusLine(buffer.c_str());
-
-    // Now call finalizeParadynLib which will handle any initialization
-    if (!finalizeParadynLib()) {
-        buffer = pdstring("PID=") + pdstring(getPid());
-        buffer += pdstring(", finalizing Paradyn RT lib via iRPC");
-        statusLine(buffer.c_str());
-        // Paradyn init probably hasn't run, so trigger it with an
-        // inferior RPC
-        iRPCParadynInit();
-    }
-    assert(reachedLibState(paradynRTState, libReady));
-    return true;
-
+   assert(reachedLibState(paradynRTState, libReady));
+   return true;
 }
 
-void pd_process::paradynLibLoadCallback(process * /*p*/, unsigned /* rpc_id */,
-                                        void *data, void * /*ret*/)
+/**
+ * Causes PARADYN_init in the RT library to be run.
+ **/
+bool pd_process::runParadynInit(load_cause_t ldcause)
 {
-    // Paradyn library has been loaded (via inferior RPC).
-    pd_process *pd_p = (pd_process *)data;
-    pd_p->setParadynLibLoaded();
-}
+   BPatch_Vector<BPatch_snippet *> args;    
 
-// Set the parameters to the RT lib via address space writes
-// Mimics the argument creation in iRPC... below
-bool pd_process::setParadynLibParams(load_cause_t ldcause)
-{
-    Symbol sym;
-    // TODO: this shouldn't be paradynPid, it should be traceConnectInfo
-    int paradynPid = traceConnectInfo;
-    // UNIX: the daemon's PID. NT: a socket.
+   //Argument 1 is the paradynPID
+   int paradynPid = dyninst_process->getPid();
+   BPatch_constExpr pid_param(paradynPid);
+   args.push_back(&pid_param);
 
-    // We can now initialize the shared metadata, since the library exists
-    if (!shmMetaData->initialize()) {
-        assert(0 && "Failed to allocate required shared metadata variables");
-    }
-    
-    BPatch_image *appImage = dyninst_process->getImage();
-    assert(appImage); 
+   //Argument 2 tells how the process was created
+   int creationMethod;
+   if(ldcause == create_load)      creationMethod = 0;
+   else if(ldcause == attach_load) creationMethod = 1;
+   else if(ldcause == exec_load)   creationMethod = 4;
+   else assert(0);
+   BPatch_constExpr create_param(creationMethod);
+   args.push_back(&create_param);
 
-    const char *vname = "libparadynRT_init_localparadynPid";
-    BPatch_variableExpr *v_pid = appImage->findVariable(vname);
-    if (! v_pid) {
-      fprintf(stderr, "%s[%d]:  could not find var named %s\n", __FILE__, __LINE__, vname);
-      assert(0  && "fatal init error");
-    }
-    if (! v_pid->writeValue((void *) &paradynPid)) {
-      fprintf(stderr, "%s[%d]:  could not write var named %s\n", __FILE__, __LINE__, vname);
-      assert(0  && "fatal init error");
-    }
+   //Argument 3 is a pointer to the virtual timers
+   if (!shmMetaData->initialize()) {
+      assert(0 && "Failed to allocate required shared metadata variables");
+   }    
+   Address daemonVirtTimers = (Address) shmMetaData->getVirtualTimers();
+   Address virtTimers = getSharedMemMgr()->daemonToApplic(daemonVirtTimers);
+   BPatch_constExpr timers_param(virtTimers);
+   args.push_back(&timers_param);
 
-    int creationMethod;
-    if(ldcause == create_load)      creationMethod = 0;
-    else if(ldcause == attach_load) creationMethod = 1;
-    else if(ldcause == exec_load)   creationMethod = 4;
-    else assert(0);
+   //Argument 4 is the Observed cost
+   Address daemonCost = (Address) shmMetaData->getObservedCost();
+   Address appObsCost = getSharedMemMgr()->daemonToApplic(daemonCost);
+   dyninst_process->lowlevel_process()->updateObservedCostAddr(appObsCost);
+   BPatch_constExpr cost_param(appObsCost);
+   args.push_back(&cost_param);
 
-    vname = "libparadynRT_init_localcreationMethod";
-    BPatch_variableExpr *v_cm = appImage->findVariable(vname);
-    if (! v_cm) {
-      fprintf(stderr, "%s[%d]:  could not find var named %s\n", __FILE__, __LINE__, vname);
-      assert(0  && "fatal init error");
-    }
-    if (! v_cm->writeValue((void *) &creationMethod)) {
-      fprintf(stderr, "%s[%d]:  could not write var named %s\n", __FILE__, __LINE__, vname);
-      assert(0  && "fatal init error");
-    }
-
-
-    int maxThreads = maxNumberOfThreads();
-
-    vname = "libparadynRT_init_localmaxThreads";
-    BPatch_variableExpr *v_maxt = appImage->findVariable(vname);
-    if (! v_maxt) {
-      fprintf(stderr, "%s[%d]:  could not find var named %s\n", __FILE__, __LINE__, vname);
-      assert(0  && "fatal init error");
-    }
-    if (! v_maxt->writeValue((void *) &maxThreads)) {
-      fprintf(stderr, "%s[%d]:  could not write var named %s\n", __FILE__, __LINE__, vname);
-      assert(0  && "fatal init error");
-    }
-
-    
-    Address virtTimers = getSharedMemMgr()->daemonToApplic((Address)shmMetaData->getVirtualTimers());
-
-    vname = "libparadynRT_init_localVirtualTimers";
-    BPatch_variableExpr *v_vts = appImage->findVariable(vname);
-    if (! v_vts) {
-      fprintf(stderr, "%s[%d]:  could not find var named %s\n", __FILE__, __LINE__, vname);
-      assert(0  && "fatal init error");
-    }
-    if (! v_vts->writeValue((void *) &virtTimers)) {
-      fprintf(stderr, "%s[%d]:  could not write var named %s\n", __FILE__, __LINE__, vname);
-      assert(0  && "fatal init error");
-    }
-
-    // And now that we have our new (shared) observed cost address, update the
-    // internal process one
-    Address obsCostInApplic = getSharedMemMgr()->daemonToApplic((Address)shmMetaData->getObservedCost());
-
-    dyninst_process->lowlevel_process()->updateObservedCostAddr(obsCostInApplic);
-
-    vname = "libparadynRT_init_localObservedCost";
-    BPatch_variableExpr *v_obsCost = appImage->findVariable(vname);
-    if (! v_obsCost) {
-      fprintf(stderr, "%s[%d]:  could not find var named %s\n", __FILE__, __LINE__, vname);
-      assert(0  && "fatal init error");
-    }
-    if (! v_obsCost->writeValue((void *) &obsCostInApplic)) {
-      fprintf(stderr, "%s[%d]:  could not write var named %s\n", __FILE__, __LINE__, vname);
-      assert(0  && "fatal init error");
-    }
-
-    return true;
-}
-
-bool pd_process::finalizeParadynLib() {
-    // Check to see if paradyn init has been run, and if
-    // not run it manually via inferior RPC
-    pdstring str;
-
-    if (reachedLibState(paradynRTState, libReady))
-        return true;
-    
-    PARADYN_bootstrapStruct bs_record;
-    if (!extractBootstrapStruct(&bs_record)){
-        assert(false);
-    }
-    
-    // Read the structure; if event 0 then it's undefined! (not yet written)
-    if (bs_record.event == 0) {
-        return false;
-    }
-    
-    assert(bs_record.pid == getPid());
-    
-    const bool calledFromFork   = (bs_record.event == 2);
-    const bool calledFromExec   = (bs_record.event == 4);
-    //const bool calledFromAttach = (bs_record.event == 3);
-
-    // Override tramp guard address
-    process *llproc = dyninst_process->lowlevel_process();
-    llproc->setTrampGuardBase((Address) bs_record.tramp_guard_base);
-
-    // Override thread index address
-    llproc->updateThreadIndexAddr((Address) bs_record.thread_index_base);
-
-    if (!calledFromFork) {
-        // MT: need to set Paradyn's bootstrap state or the instrumentation
-        // basetramps will be created in ST mode
-        llproc->setParadynBootstrap();
-
-        // Install initial instrumentation requests
-        extern pdvector<pdinstMapping*> initialRequestsPARADYN; // init.C //ccw 18 apr 2002 : SPLIT
-        installInstrRequests(initialRequestsPARADYN); 
-        str=pdstring("PID=") + pdstring(bs_record.pid) + ", propagating mi's...";
-        statusLine(str.c_str());
-    }
-
-    if (calledFromExec) {
-        pd_execCallback(this);
-    }
-
-    str=pdstring("PID=") + pdstring(bs_record.pid) + ", executing new-prog callback...";
-    statusLine(str.c_str());
-    
-    timeStamp currWallTime = calledFromExec ? timeStamp::ts1970():getWallTime();
-    if (!calledFromExec && !calledFromFork) {
-        // The following must be done before any samples are sent to
-        // paradyn; otherwise, prepare for an assert fail.
-        
-        if (!isInitFirstRecordTime())
-            setFirstRecordTime(currWallTime);
-    }
-    assert(isStopped());
-    
-    tp->newProgramCallbackFunc(bs_record.pid, arg_list, 
-                               machineResource->part_name(),
-                               calledFromExec,
-                               wasRunningWhenAttached());
-    // in paradyn, this will call paradynDaemon::addRunningProgram().
-    // If the state of the application as a whole is 'running' paradyn will
-    // soon issue an igen call to us that'll continue this process.
-    if (!calledFromExec) {
-        tp->setDaemonStartTime(getPid(), currWallTime.getD(timeUnit::sec(), 
-                                                           timeBase::bStd()));
-    }
-    // verify that the wall and cpu timer levels chosen by the daemon
-    // are available in the rt library
-    verifyTimerLevels();
-    writeTimerLevels();
-    
-    // Set library state to "ready"
-    setLibState(paradynRTState, libReady);
-
-    // Add callbacks for events we care about
-    /*
-      dyninst_process->registerPreForkCallback(paradynPreForkDispatch);
-    */
-    getBPatch().registerExecCallback(paradynExecDispatch);
-    getBPatch().registerPostForkCallback(paradynPostForkDispatch);
-    getBPatch().registerExitCallback(paradynExitDispatch);
-
-    return true;
-}
-
-
-
-// Run paradyn init via an inferior RPC
-bool pd_process::iRPCParadynInit() {
-   pdvector<AstNode *> the_args;
-
-    // We're using the set-globals-and-call-wrapper method now,
-    // to get around problems with argument list size and
-    // instrumentation generation.
-/*    
-    // Argument 1: Paradyd PID (or socket ID on NT)
-    the_args[0] = new AstNode(AstNode::Constant, (void *)traceConnectInfo); // Global var set in perfStream.C
-
-    // Argument 2: creation method (created/attached/forked/other)
-    // need to switch from wasForked, wasCreated, and wasAttached  to
-    // using ldcause, as in pd_process::loadParadynLib(load_cause_t ldcause)
-    if (wasForked) // Forked overrides (?)
-        the_args[1] = new AstNode(AstNode::Constant, (void *)2);
-    else if (wasCreated) 
-        the_args[1] = new AstNode(AstNode::Constant, (void *)0);
-    else if (wasAttached)
-        the_args[1] = new AstNode(AstNode::Constant, (void *)1);
-
-    // Argument 3: number of threads to support
-    the_args[2] = new AstNode(AstNode::Constant, (void *)maxNumberOfThreads());
-    
-    // Argument 4: shared segment key
-    the_args[3] = new AstNode(AstNode::Constant, (void *)dyninst_process->getShmKeyUsed());
-    
-    // Argument 5: shared segment size
-    the_args[4] = new AstNode(AstNode::Constant, (void *)dyninst_process->getShmHeapTotalNumBytes());
-    
-    // Argument 6: Offset to the metadata in the shared segment
-    // FIXME: initialization should take place elsewhere
-    the_args[5] = new AstNode(AstNode::Constant, (void *)sharedMetaDataOffset);
-*/  
-
-    // That's a lot of arguments. Now construct the call to paradyn init
-    AstNode *paradyn_init = new AstNode("libparadynRT_init", the_args);
-    postRPCtoDo(paradyn_init, false, // noCost
-                pd_process::paradynInitCompletionCallback,
-                (void *)this, // User data
-                false,
-                NULL, NULL); // Not metric definition
-
-    // And force a flush...
-    while(!reachedLibState(paradynRTState, libReady)) {
-       if(hasExited()) {
-           fprintf(stderr, "%s[%d]:  bootstrap aborted, appl. terminated\n", __FILE__, __LINE__);
-           return false;
-       }
-        launchRPCs(false);
-        if (!reachedLibState(paradynRTState, libReady))
-          getSH()->checkForAndHandleProcessEvents(true);
-    }
-    return true;
-}
-
-void pd_process::paradynInitCompletionCallback(process* /*p*/,
-                                               unsigned /* rpc_id */,
-                                               void* data, 
-                                               void* /*ret*/) {
-    // Run finalizeParadynLib on the appropriate 
-    // pd_process class
-    pd_process *pd_p = (pd_process *) data;
-    pd_p->finalizeParadynLib();
-}
-
-bool pd_process::extractBootstrapStruct(PARADYN_bootstrapStruct *bs_record)
-{
-
-    BPatch_image *appImage = dyninst_process->getImage();
-    assert(appImage);
-
-    const char *vname = "PARADYN_bootstrap_info";
-    BPatch_variableExpr *v_bs = appImage->findVariable(vname);
-    if (! v_bs) {
-      fprintf(stderr, "%s[%d]:  could not find var named %s\n", 
-              __FILE__, __LINE__, vname);
-      assert(0  && "fatal init error");
-    }
-    if (! v_bs->readValue((void *) bs_record, sizeof(*bs_record))) {
-      fprintf(stderr, "%s[%d]:  could not read var named %s\n", 
-              __FILE__, __LINE__, vname);
+   //Find the function 'PARADYN_init'
+   BPatch_image *appImage = dyninst_process->getImage();
+   assert(appImage);     
+   BPatch_Vector<BPatch_function *> funcs;
+   appImage->findFunction("PARADYNinit", funcs);
+   if (funcs.size() != 1)
+   {
+      fprintf(stderr, "[%s:%u] - Paradyn internal error. "
+              "Found %u copies of PARADYN_init.  Expected 1.\n",
+              __FILE__, __LINE__, funcs.size());
       return false;
-    }
-
-#if 0 
-    // DEPRECATED
-
-    // address-in-memory: re-read pointer field with proper alignment
-    // (see rtinst/h/trace.h)
-    assert(sizeof(int64_t) == 8); // sanity check
-    assert(sizeof(int32_t) == 4); // sanity check
+   }
+   BPatch_function *PARADYN_init = funcs[0];
     
-    // read pointer size
-    int32_t ptr_size;
-    internalSym sym2;
-    bool ret2;
-    ret2 = findInternalSymbol("PARADYN_attachPtrSize", true, sym2);
-    if (!ret2) return false;
-    ret2 = readDataSpace((void *)sym2.getAddr(), sizeof(int32_t), 
-                         &ptr_size, true);
-    if (!ret2) return false;
-    // problem scenario: 64-bit application, 32-bit paradynd
-    assert((size_t)ptr_size <= sizeof(bs_record->appl_attachedAtPtr.ptr));
+   //Call it via an inferior RPC
+   BPatch_funcCallExpr init_paradyn_rt(*PARADYN_init, args);
+   dyninst_process->oneTimeCode(init_paradyn_rt);
+   
+   return true;
+}
+
+bool pd_process::finalizeParadynLib(load_cause_t ldcause)
+{
+   pdstring str;
+
+   if (reachedLibState(paradynRTState, libReady))
+      return true;
+   
+   if (ldcause != attach_load) {
+      // Install initial instrumentation requests
+      installInstrRequests(initialRequestsPARADYN); 
+      str=pdstring("PID=") + pdstring(dyninst_process->getPid()) + 
+         ", propagating mi's...";
+      statusLine(str.c_str());
+   }
+
+   if (ldcause == exec_load) {
+      pd_execCallback(this);
+   }
+
+   str=pdstring("PID=") + pdstring(dyninst_process->getPid()) + 
+      ", executing new-prog callback...";
+   statusLine(str.c_str());
     
-    // re-align pointer if necessary
-    if ((size_t)ptr_size < sizeof(bs_record->appl_attachedAtPtr.ptr)) {
-        // assumption: 32-bit application, 64-bit paradynd
-        printf(" ERROR %d != %d \n", ptr_size, (int) sizeof(int32_t));  //ccw 5 jun 2002 SPLIT
-        assert(ptr_size == sizeof(int32_t));
-        assert(sizeof(bs_record->appl_attachedAtPtr.ptr) == sizeof(int64_t));
-        assert(sizeof(bs_record->appl_attachedAtPtr.words.hi) == sizeof(int32_t));
-        // read 32-bit pointer from high word
-        Address val_a = (unsigned)bs_record->appl_attachedAtPtr.words.hi;
-        void *val_p = (void *)val_a;
-        bs_record->appl_attachedAtPtr.ptr = val_p;
-    }
-#endif    
-    return true;
+   timeStamp currWallTime = (ldcause==exec_load) ? timeStamp::ts1970() 
+                                                 : getWallTime();
+   if (!isInitFirstRecordTime())
+      setFirstRecordTime(currWallTime);
+   assert(isStopped());
+   
+   tp->newProgramCallbackFunc(dyninst_process->getPid(), arg_list, 
+                              machineResource->part_name(),
+                              (ldcause==exec_load),
+                              wasRunningWhenAttached());
+   // in paradyn, this will call paradynDaemon::addRunningProgram().
+   // If the state of the application as a whole is 'running' paradyn will
+   // soon issue an igen call to us that'll continue this process.
+   if (ldcause != exec_load)
+      tp->setDaemonStartTime(getPid(), currWallTime.getD(timeUnit::sec(), 
+                                                         timeBase::bStd()));
+   
+   // verify that the wall and cpu timer levels chosen by the daemon
+   // are available in the rt library
+   verifyTimerLevels();
+   writeTimerLevels();
+   
+   // Set library state to "ready"
+   setLibState(paradynRTState, libReady);
+    
+   // Add callbacks for events we care about
+   getBPatch().registerExecCallback(paradynExecDispatch);
+   getBPatch().registerPostForkCallback(paradynPostForkDispatch);
+   getBPatch().registerExitCallback(paradynExitDispatch);
+   
+   return true;
 }
 
 // There is no reason why we need to use the same library for all
@@ -1174,10 +916,7 @@ bool pd_process::getParadynRTname() {
     
     // Replace with better test for MT-ness
    char ParadynEnvVar[20];
-   if(multithread_capable())      
-      strcpy(ParadynEnvVar, "PARADYN_LIB_MT");
-   else
-      strcpy(ParadynEnvVar, "PARADYN_LIB");
+   strcpy(ParadynEnvVar, "PARADYN_LIB");
     
     // If there is a default set, use it
     if (defaultParadynRTname.length())
@@ -1306,8 +1045,16 @@ rawTime64 pd_process::getRawCpuTime_hw(int lwp)
       // get cpu time for whole process
       return getAllLwpRawCpuTime_hw();
    } else {
-      dyn_lwp *thelwp = dyninst_process->lowlevel_process()->lookupLWP(lwp);
-      return thelwp->getRawCpuTime_hw();
+      threadMgr::thrIter itr = beginThr();
+      pd_thread *thr = NULL;
+      for (; itr != endThrMark(); itr++)
+         if ((*itr)->get_lwp() == lwp)
+         {
+            thr = *itr;
+            break;
+         }
+      assert(thr);
+      return thr->getRawCpuTime_hw();
    }
 }
 
@@ -1317,8 +1064,16 @@ rawTime64 pd_process::getRawCpuTime_sw(int lwp)
       // get cpu time for whole process
       return getAllLwpRawCpuTime_sw();      
    } else {
-      dyn_lwp *thelwp = dyninst_process->lowlevel_process()->lookupLWP(lwp);
-      return thelwp->getRawCpuTime_sw();
+      threadMgr::thrIter itr = beginThr();
+      pd_thread *thr = NULL;
+      for (; itr != endThrMark(); itr++) 
+         if ((*itr)->get_lwp() == lwp)
+         {
+            thr = *itr;
+            break;
+         }
+      assert(thr);
+      return thr->getRawCpuTime_sw();
    }
 }
 
@@ -1750,7 +1505,6 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
 
     instPoint *point = bpPoint->PDSEP_instPoint();
     
-
     // Most of the checking is based on "Am I before, after, or during the
     // instrumentation point". We check that first to see if we need to care.
     Address collapsedFrameAddr;
@@ -2034,7 +1788,7 @@ BPatch_module *pd_process::findModule(const pdstring &mod_name,bool check_exclud
 bool pd_process::installInstrRequests(const pdvector<pdinstMapping*> &requests)
 {
   BPatch_image *appImage = img->get_dyn_image();
-  BPatch_thread *appThread = get_dyn_process();
+  BPatch_process *appProc = get_dyn_process();
   bool err = false;
 
   for (unsigned i = 0; i < requests.size(); ++i) {
@@ -2105,7 +1859,7 @@ bool pd_process::installInstrRequests(const pdvector<pdinstMapping*> &requests)
              BPatchSnippetHandle *snipHandle;
              //  allow_trap is always true with insertSnippet
              //  useTrampGuard is generally controlled by BPatch::isTrampRecursive
-             snipHandle = appThread->insertSnippet(*snip, *exit_pt,
+             snipHandle = appProc->insertSnippet(*snip, *exit_pt,
                                                    req->when, req->order);
              if (NULL == snipHandle) {
                //  this request failed, but keep going...
@@ -2138,7 +1892,7 @@ bool pd_process::installInstrRequests(const pdvector<pdinstMapping*> &requests)
            BPatchSnippetHandle *snipHandle;
            //  allow_trap is always true with insertSnippet
            //  useTrampGuard is generally controlled by BPatch::isTrampRecursive
-           snipHandle = appThread->insertSnippet(*snip, *entry_pt,
+           snipHandle = appProc->insertSnippet(*snip, *entry_pt,
                                                  req->when, req->order);
            if (NULL == snipHandle) {
              //  this request failed, but keep going...
@@ -2171,7 +1925,7 @@ bool pd_process::installInstrRequests(const pdvector<pdinstMapping*> &requests)
              BPatchSnippetHandle *snipHandle;
              //  allow_trap is always true with insertSnippet
              //  useTrampGuard is generally controlled by BPatch::isTrampRecursive
-             snipHandle = appThread->insertSnippet(*snip, *call_pt,
+             snipHandle = appProc->insertSnippet(*snip, *call_pt,
                                                    req->when, req->order);
              if (NULL == snipHandle) {
                //  this request failed, but keep going...
@@ -2245,6 +1999,103 @@ bool pd_process::findAllFuncsByName(resource *func, resource *mod,
 bool pd_process::isStopped() const {return dyninst_process->isStopped();}
 bool pd_process::isTerminated() const {return dyninst_process->isTerminated();}
 bool pd_process::isDetached() const {return dyninst_process->isDetached();}
-bool pd_process::continueProc() { 
-  return dyninst_process->continueExecution(); 
+bool pd_process::continueProc() {return dyninst_process->continueExecution();}
+
+/**
+ * Dyninst calls this function when a new thread is found
+ **/
+void pd_process::pdNewThread(BPatch_process *proc, BPatch_thread *thr)
+{
+   pd_process *pd_proc = NULL;
+   processMgr::procIter itr = getProcMgr().begin();
+   for (; itr != getProcMgr().end(); itr++)
+   {
+      if ((*itr)->get_dyn_process() == proc)
+      {
+         pd_proc = *itr;
+         break;
+      }
+   }
+   assert(pd_proc);
+
+   int thread_id = thr->getBPatchID();
+   pd_thread *foundThr = pd_proc->findThread(thread_id);
+   if(foundThr) {
+      // received a duplicate thread create, can happen if rpcs launched on
+      // lwps of a MT forked off child process get run on same threads, since
+      // lwps changed between threads
+      return;
+   }
+
+   // Ignore new threads until initialization is finished.  We'll manually
+   // create everything then.
+   //   if (paradynRTState < libLoaded)
+   //   return;
+
+   //Create pd_thread object
+   pd_thread *pd_thr = new pd_thread(thr, pd_proc);
+   pd_proc->addThread(pd_thr);
+
+   //Make one thread object if we're working on a single threaded app, and
+   // don't report it to the FE.
+   if (!pd_proc->multithread_capable())
+      return;
+   metricFocusNode::handleNewThread(pd_proc, pd_thr);
+
+   //Create new resource for this thread
+   pdstring buffer = pdstring("thr_") + pdstring(pd_thr->get_tid()) + 
+      pdstring("{") + pd_thr->get_initial_func_name() + pdstring("}");
+   resource *rid = resource::newResource(pd_proc->get_rid(),
+                                         (void *) pd_thr,
+                                         nullString, 
+                                         buffer,
+                                         timeStamp::ts1970(),
+                                         "",
+                                         ThreadResourceType,
+                                         MDL_T_STRING,
+                                         true);
+   pd_thr->update_rid(rid);
+   unsigned index = pd_thr->get_index();
+   pd_thr->resetInferiorVtime(pd_proc->getVirtualTimer(index));  
+
+   // tell front-end about thread start function for newly created threads
+   BPatch_function *initial_func = pd_thr->get_dyn_thread()->getInitialFunc();
+   resource *funcRes = pd_module::getFunctionResource(initial_func);
+   pdstring full_res_name(funcRes->full_name());
+   CallGraphSetEntryFuncCallback(pd_proc->getImage()->get_file(), full_res_name,
+                                 pd_thr->get_tid());   
+}
+
+/**
+ * Dyninst calls this function when a thread is destroyed
+ **/
+void pd_process::pdDeadThread(BPatch_process *proc, BPatch_thread *thr)
+{
+   pd_process *pdproc = NULL;
+   processMgr::procIter itr = getProcMgr().begin();
+   for (; itr != getProcMgr().end(); itr++)
+   {
+      pdproc = *itr;
+      if (!pdproc) continue;
+      if (pdproc->get_dyn_process() == proc) break;
+      pdproc = NULL;
+   }
+   assert(pdproc);
+
+   pd_thread *pdthr = pdproc->findThread(thr->getTid());
+   assert(pdthr);
+   pdproc->removeThread(pdthr);
+
+   delete pdthr;
+}
+
+void pd_process::findThreads()
+{
+   BPatch_Vector<BPatch_thread *> thrds;
+   dyninst_process->getThreads(thrds);
+   
+   for (unsigned i=0; i<thrds.size(); i++)
+   {
+      pdNewThread(dyninst_process, thrds[i]);
+   }
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.52 2005/07/29 19:20:06 bernat Exp $ */
+/* $Id: init-sunos.C,v 1.53 2005/09/09 18:07:32 legendre Exp $ */
 
 #include <sys/time.h>
 #include "paradynd/src/internalMetrics.h"
@@ -101,21 +101,21 @@ bool initOS() {
    // Thread SyncObjects
    // mutex
    BPatch_paramExpr *arg0 = new BPatch_paramExpr(0);
-   mapping = new pdinstMapping("_cmutex_lock",  "DYNINSTreportNewMutex", 
+   mapping = new pdinstMapping("_cmutex_lock",  "PARADYNreportNewMutex", 
                              FUNC_ENTRY|FUNC_ARG, arg0);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
 
 
    arg0 = new BPatch_paramExpr(0);
-   mapping = new pdinstMapping("pthread_mutex_init", "DYNINSTreportNewMutex",
+   mapping = new pdinstMapping("pthread_mutex_init", "PARADYNreportNewMutex",
                              FUNC_ENTRY|FUNC_ARG, arg0);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
 
 
    arg0 = new BPatch_paramExpr(0);
-   mapping = new pdinstMapping("pthread_mutex_lock", "DYNINSTreportNewMutex",
+   mapping = new pdinstMapping("pthread_mutex_lock", "PARADYNreportNewMutex",
                              FUNC_ENTRY|FUNC_ARG, arg0);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
@@ -124,7 +124,7 @@ bool initOS() {
    // rwlock
    //
    arg0 = new BPatch_paramExpr(0);
-   mapping = new pdinstMapping("_lrw_rdlock", "DYNINSTreportNewRwLock", 
+   mapping = new pdinstMapping("_lrw_rdlock", "PARADYNreportNewRwLock", 
                              FUNC_ENTRY|FUNC_ARG, arg0);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
@@ -133,7 +133,7 @@ bool initOS() {
    //Semaphore
    //
    arg0 = new BPatch_paramExpr(0);
-   mapping = new pdinstMapping("_sema_wait_cancel", "DYNINSTreportNewSema", 
+   mapping = new pdinstMapping("_sema_wait_cancel", "PARADYNreportNewSema", 
                              FUNC_ENTRY|FUNC_ARG, arg0);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
@@ -142,7 +142,7 @@ bool initOS() {
    // Conditional variable
    //
    arg0 = new BPatch_paramExpr(0);
-   mapping = new pdinstMapping("_cond_wait_cancel", "DYNINSTreportNewCondVar", 
+   mapping = new pdinstMapping("_cond_wait_cancel", "PARADYNreportNewCondVar", 
                              FUNC_ENTRY|FUNC_ARG, arg0);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
@@ -194,3 +194,12 @@ void initWallTimeMgrPlt() {
                                 &getRawWallTime_hrtime,"swWallTimeFPtrInfo");
 }
 
+void pd_process::initOSPreLib()
+{
+   loadAuxiliaryLibrary("libsocket.so");
+}
+
+pdstring formatLibParadynName(pdstring orig)
+{
+   return orig;
+}

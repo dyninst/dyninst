@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.24 2005/03/16 20:53:32 bernat Exp $
+// $Id: varInstanceHKs.C,v 1.25 2005/09/09 18:08:07 legendre Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -61,6 +61,9 @@ genericHK &genericHK::operator=(const genericHK &src) {
    return *this;
 }
 
+void genericHK::setThrClient(threadMetFocusNode_Val *thrclient) {
+   thrNodeVal = thrclient;
+}
 
 /* ************************************************************************* */
 
@@ -653,5 +656,6 @@ void hwTimerHK::initializeAfterFork(rawType *curElem, rawTime64 curRawTime)
   curElem->start = curRawTime;
   curElem->total = 0;
 }
+
 #endif
 

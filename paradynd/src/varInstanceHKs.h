@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.h,v 1.8 2004/05/11 19:02:03 bernat Exp $
+// $Id: varInstanceHKs.h,v 1.9 2005/09/09 18:08:08 legendre Exp $
 // contains houseKeeping (HK) classes used as the first template input type
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -72,7 +72,7 @@ class genericHK {
    genericHK() : thrNodeVal(NULL) {
       // trampsUsingMe is initialized to empty array
    }
-  ~genericHK() {}
+   virtual ~genericHK() { };
    genericHK &operator=(const genericHK &src);
 
    // Given a list of inferior process PC-registers representing a stack
@@ -81,9 +81,7 @@ class genericHK {
    // fall within any "trampsUsingMe", previously passed to
    // makePendingFree().
 
-   void setThrClient(threadMetFocusNode_Val *thrclient) {
-     thrNodeVal = thrclient;
-   }
+   void setThrClient(threadMetFocusNode_Val *thrclient);
    threadMetFocusNode_Val* getThrNodeVal() { return thrNodeVal; }
 
    void setHwEvent(HwEvent* hw) {
@@ -105,7 +103,7 @@ class intCounterHK : public genericHK {
   intCounterHK() : genericHK() {
   }
 
-  ~intCounterHK() {}
+  ~intCounterHK() { };
   intCounterHK &operator=(const intCounterHK &src);
 
   void assertWellDefined() const {
@@ -139,7 +137,7 @@ class wallTimerHK : public genericHK {
     lastTimeValueUsed(timeLength::Zero()) {
   }
   
-  ~wallTimerHK() {}
+  ~wallTimerHK() { };
   wallTimerHK &operator=(const wallTimerHK &src);
   
   void assertWellDefined() const {
@@ -187,7 +185,7 @@ class processTimerHK : public genericHK {
   {
   }
   
-  ~processTimerHK() {}
+  ~processTimerHK() { };
   processTimerHK &operator=(const processTimerHK &src);
 
   static void initializeAfterFork(rawType *curElem, rawTime64 curRawTime);
@@ -233,8 +231,8 @@ class hwTimerHK : public genericHK {
   {
   }
   
-  ~hwTimerHK() {}
-  hwTimerHK &operator=(const hwTimerHK &src);
+  ~hwTimerHK() { };
+ hwTimerHK &operator=(const hwTimerHK &src);
 
   static void initializeAfterFork(rawType *curElem, rawTime64 curRawTime);
   
@@ -255,7 +253,7 @@ class hwCounterHK : public genericHK {
   hwCounterHK() : genericHK() {
   }
 
-  ~hwCounterHK() {}
+  ~hwCounterHK() { };
   hwCounterHK &operator=(const hwCounterHK &src);
 
   static void initializeAfterFork(rawType *curElem, rawTime64 curRawTime) { }

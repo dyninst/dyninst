@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-winnt.C,v 1.15 2004/10/07 00:45:58 jaw Exp $
+// $Id: init-winnt.C,v 1.16 2005/09/09 18:07:33 legendre Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/init.h"
@@ -119,5 +119,25 @@ void initWallTimeMgrPlt() {
   getWallTimeMgr().installLevel(wallTimeMgr_t::LEVEL_TWO, yesFunc,
 				perfCtrFreq, hrtimeBase,&getRawWallTime_hrtime,
 				"swWallTimeFPtrInfo");
+}
+
+void pd_process::initOSPreLib()
+{
+}
+
+pdstring formatLibParadynName(pdstring orig)
+{
+   return orig;
+}
+
+/**
+ * NT strips the path from the loaded library for
+ * recognition purposed
+ **/
+pdstring formatLibParadynName(pdstring orig)
+{
+   char dllFilename[_MAX_FNAME];
+   _splitpath(orig.c_str(), NULL, NULL, dllFilename, NULL);
+   return pdstring(dllFilename);
 }
 

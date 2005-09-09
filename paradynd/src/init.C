@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.90 2005/08/03 05:28:34 bernat Exp $
+// $Id: init.C,v 1.91 2005/09/09 18:07:34 legendre Exp $
 
 
 #include "paradynd/src/internalMetrics.h"
@@ -69,7 +69,7 @@ extern pdRPC *tp;
 extern int getNumberOfCPUs();
 
 extern unsigned enable_pd_samplevalue_debug;
-extern void addLibraryCallback(BPatch_thread *, BPatch_module *, bool);
+extern void addLibraryCallback(BPatch_process *, BPatch_module *, bool);
 
 internalMetric *activeProcs = NULL;
 internalMetric *sampling_rate = NULL;
@@ -93,21 +93,28 @@ int numberOfCPUs;
 pdvector<pdinstMapping*> initialRequestsPARADYN;//ccw 19 apr 2002 : SPLIT  ALSO CHANGED BELOW 
 //pdvector<sym_data> syms_to_findPARADYN; //ccw 19 apr 2002 : SPLIT
 
-BPatch *__bpatch = NULL;
+BPatch *bpatch = NULL;
+
 
 void initBPatch() {
-  if(__bpatch == NULL) {
-    __bpatch = new BPatch;
-    // Don't trust defaults
-    __bpatch->setDebugParsing(false);
-    __bpatch->setBaseTrampDeletion(false); // Untested
-    __bpatch->setTypeChecking(false);
-    __bpatch->setTrampRecursive(false);
-    __bpatch->setForcedRelocation_NP(false);
-    __bpatch->setAutoRelocation_NP(true);
-    __bpatch->setDelayedParsing(false);
-  }
+  if(bpatch)
+     return;
 
+  bpatch = new BPatch;
+  // Don't trust defaults
+  bpatch->setDebugParsing(false);
+  bpatch->setBaseTrampDeletion(false); // Untested
+  bpatch->setTypeChecking(false);
+  bpatch->setTrampRecursive(false);
+  bpatch->setForcedRelocation_NP(false);
+  bpatch->setAutoRelocation_NP(true);
+  bpatch->setDelayedParsing(false);
+
+  bpatch->registerThreadEventCallback(BPatch_threadCreateEvent, 
+                                        pd_process::pdNewThread);
+  bpatch->registerThreadEventCallback(BPatch_threadDestroyEvent, 
+                                        pd_process::pdDeadThread);
+  bpatch->registerUserEventCallback(recvUserEvent);
 }
 
 pdSample computeSamplingRate(const machineMetFocusNode *) {
@@ -252,7 +259,7 @@ bool paradyn_init() {
   initPapi();
   initProcMgr();
   initBPatch();
-  //__bpatch->registerDynLibraryCallback((BPatchDynLibraryCallback) (addLibraryCallback));
+  //bpatch->registerDynLibraryCallback((BPatchDynLibraryCallback) (addLibraryCallback));
 
   machineRoot = resource::newResource(rootResource, NULL, nullString,
 				      pdstring("Machine"), timeStamp::ts1970(), 

@@ -3,16 +3,12 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.81 2005/09/01 22:17:39 bernat Exp $
+# $Id: make.module.tmpl,v 1.82 2005/09/09 18:07:27 legendre Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
 CXXFLAGS	     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
 TFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
-
-#CFLAGS         += THROTTLE_RS
-#CXXFLAGS       += THROTTLE_RS
-#KFLAGS         += THROTTLE_RS
 
 #TEMPORARY, FOR DEBUGGING....
 #CXXFLAGS	+= -DDEBUG_CALL_POINTS
@@ -25,7 +21,6 @@ VPATH	     += ../../paradynd/src:../../paradyn/h:../../dyninstAPI/src:\
 SRCS	     += ../../dyninstAPI/src/ast.C \
 		../src/comm.C \
 		../src/context.C \
-		../src/debugger.C \
 		../src/dynrpc.C \
 		../src/init.C \
 		../../dyninstAPI/src/inst.C \
@@ -44,9 +39,7 @@ SRCS	     += ../../dyninstAPI/src/ast.C \
 		../src/instReqNode.C \
 		../src/internalMetrics.C \
 		../src/costmetrics.C \
-		../src/metricDefs-critPath.C \
       ../../dyninstAPI/src/api_showerror.C \
-		../../dyninstAPI/src/BPatch_init.C \
 		../../dyninstAPI/src/BPatch.C \
 		../../dyninstAPI/src/BPatch_type.C \
 		../../dyninstAPI/src/BPatch_thread.C \
@@ -65,7 +58,7 @@ SRCS	     += ../../dyninstAPI/src/ast.C \
 		../../dyninstAPI/src/BPatch_flowGraph.C \
 		../../dyninstAPI/src/BPatch_asyncEventHandler.C \
 		../../dyninstAPI/src/BPatch_eventLock.C \
-                ../../dyninstAPI/src/BPatch_frame.C \
+		../../dyninstAPI/src/BPatch_frame.C \
 		../../dyninstAPI/src/Object.C \
 		../../dyninstAPI/src/MemoryAccess.C \
 		../../dyninstAPI/src/BPatch_instruction.C \

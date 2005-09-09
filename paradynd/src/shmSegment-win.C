@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment-win.C,v 1.1 2004/05/11 19:02:05 bernat Exp $
+// $Id: shmSegment-win.C,v 1.2 2005/09/09 18:08:02 legendre Exp $
 //----------------------------------------------------------------------------
 //
 // Definition of the ShmSegment class.
@@ -230,7 +230,7 @@ ShmSegment::Open( key_t key, unsigned int size, void* addr )
     return shm;
 }
 
-ShmSegment *ShmSegment::Copy(BPatch_thread *child_thr,
+ShmSegment *ShmSegment::Copy(BPatch_process *child_thr,
                              bool sameAddress) {
     // Not implemented
     assert(0 && "Not implemented");

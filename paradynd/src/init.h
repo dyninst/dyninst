@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.h,v 1.40 2004/10/07 00:45:58 jaw Exp $
+// $Id: init.h,v 1.41 2005/09/09 18:07:35 legendre Exp $
 
 #ifndef INIT_HDR
 #define INIT_HDR
@@ -48,12 +48,12 @@
 
 class BPatch;
 
-extern BPatch *__bpatch;
+extern BPatch *bpatch;
 
 extern void initBPatch();
 inline BPatch &getBPatch() {
-   assert(__bpatch != NULL);
-   return *__bpatch;
+   assert(bpatch != NULL);
+   return *bpatch;
 }
 
 // DON'T use these - private of sorts
@@ -134,8 +134,7 @@ inline void stopTimingStackwalk() {
     elapsedStackwalkTime += (getWallTime() - startStackwalk);
 }
 
-
-
+void recvUserEvent(BPatch_process *p, void *buffer, unsigned size);
 
 #endif
 

@@ -47,7 +47,7 @@
 #include "common/h/Types.h"
 #include "paradynd/src/pd_process.h"
 #include "dyninstAPI/h/BPatch.h"
-#include "dyninstAPI/h/BPatch_thread.h"
+#include "dyninstAPI/h/BPatch_process.h"
 
 
 void pd_process::initCpuTimeMgrPlt() {

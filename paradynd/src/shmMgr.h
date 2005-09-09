@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.h,v 1.14 2004/07/15 16:52:32 gquinn Exp $
+/* $Id: shmMgr.h,v 1.15 2005/09/09 18:08:00 legendre Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -59,7 +59,7 @@
 #define SHARED_MUTATEE_LIB "libsharedMutatee.so.1"
 #endif
 
-class BPatch_thread;
+class BPatch_process;
 class ShmSegment;
 
 class shmMgrPreallocInternal
@@ -98,15 +98,15 @@ class shmMgr {
     unsigned freespace;
     pdvector<shmMgrPreallocInternal *> prealloc;
 
-    BPatch_thread *app_thread;
+    BPatch_process *app_thread;
 
     bool freeWhenDeleted;
     
   public:
     
     shmMgr();
-    shmMgr(BPatch_thread *thr, key_t shmSegKey, unsigned shmSize_, bool freeWhenDel = true);
-    shmMgr(const shmMgr *par, BPatch_thread *child_thr, bool sameAddress);
+    shmMgr(BPatch_process *thr, key_t shmSegKey, unsigned shmSize_, bool freeWhenDel = true);
+    shmMgr(const shmMgr *par, BPatch_process *child_thr, bool sameAddress);
     ~shmMgr();
 
     bool initialize();

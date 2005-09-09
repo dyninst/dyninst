@@ -43,6 +43,7 @@
 
 
 #include "paradynd/src/pd_module.h"
+#include "paradynd/src/pd_image.h"
 #include "paradynd/src/resource.h"
 #include "paradynd/src/comm.h"
 #include "dyninstAPI/src/symtab.h" // for ResourceFullName()
@@ -71,10 +72,11 @@ static unsigned loop_hash(const bp_loop_ptr_t &loop)
    return ((unsigned) loop >> 1);
 }
 
+#define NAME_LEN 512
 pd_module::pd_module(BPatch_module *dmod) : dyn_module(dmod) 
 { 
-  char buf[512];
-  dmod->getName(buf, 512);
+  char buf[NAME_LEN];
+  dmod->getName(buf, NAME_LEN);
   _name = pdstring(buf);
 
   is_excluded = module_is_excluded(dmod);
@@ -83,7 +85,7 @@ pd_module::pd_module(BPatch_module *dmod) : dyn_module(dmod)
   all_funcs = dmod->getProcedures();
   if (!all_funcs || !all_funcs->size()) {
     // ok to just get rid of printout if this happens a lot:
-     //fprintf(stderr, "%s[%d]:  WARNING:  module %s has no functions\n", 
+     //fprintf(stderr, "%s[%d]: WARNING:  module %s has no functions\n", 
      //      __FILE__, __LINE__, buf);
     return;
   }
@@ -204,15 +206,13 @@ void pd_module::FillInCallGraphStatic(pd_process *proc)
 
       // register that callee_resources holds list of resource*s 
       //  describing children of resource r....
-      BPatch_image *appImage = (BPatch_image* ) get_dyn_module()->getObjParent();
-      char buf[1024];
-      appImage->getProgramFileName(buf, 1024);
-      pdstring exe_name = pdstring(buf);
+      pdstring exe_name = proc->getImage()->get_file();
 
       pdstring resource_full_name = res->full_name();
       BPatch_loopTreeNode *root = bpf->getCFG()->getLoopTree();
       FillInCallGraphNodeNested(exe_name, resource_full_name,
-                                resource_full_name, root, proc->get_bprocess());
+                                resource_full_name, root, 
+                                proc->get_dyn_process());
 
       //Locate the dynamic call sites within the function, and notify 
       //the front end as to their existence
@@ -221,15 +221,12 @@ void pd_module::FillInCallGraphStatic(pd_process *proc)
    }
 }
 
-#define NAME_LEN 256
 void pd_module::createResources()
 {
    char name[NAME_LEN];
-
-   dyn_module->getName(name, NAME_LEN);
    mod_resource = resource::newResource(moduleRoot, this,
                                         nullString,
-                                        pdstring(name),
+                                        _name,
                                         timeStamp::ts1970(),
                                         pdstring(),
                                         ModuleResourceType,

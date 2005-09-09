@@ -53,8 +53,7 @@ rawTime64 pd_process::getAllLwpRawCpuTime_hw() {
    threadMgr::thrIter itr = thrMgr().begin();
    for(; itr != thrMgr().end(); itr++) {
       pd_thread *thr = *itr;
-      dyn_lwp *lwp = thr->get_dyn_thread()->get_lwp();
-      total += lwp->getRawCpuTime_hw();
+      total += thr->getRawCpuTime_hw();
    }
    return total;
 }
@@ -65,8 +64,7 @@ rawTime64 pd_process::getAllLwpRawCpuTime_sw() {
 
    for(; itr != thrMgr().end(); itr++) {
       pd_thread *thr = *itr;
-      dyn_lwp *lwp = thr->get_dyn_thread()->get_lwp();
-      total += lwp->getRawCpuTime_sw();
+      total += thr->getRawCpuTime_sw();
    }
    return total;
 }
@@ -98,4 +96,82 @@ void pd_process::initCpuTimeMgrPlt() {
                             &pd_process::getRawCpuTime_sw,"swCpuTimeFPtrInfo");
 }
 
+rawTime64 pd_thread::getRawCpuTime_hw()
+{
+   rawTime64 result = 0;
+  
+#ifdef PAPI
+   result = papi()->getCurrentVirtCycles();
+#endif
+  
+   if (result < hw_previous_) 
+   {
+      logLine("********* time going backwards in paradynd **********\n");
+      result = hw_previous_;
+   }
+   else 
+      hw_previous_ = result;
+   
+   return result;
+}
 
+rawTime64 pd_thread::getRawCpuTime_sw()
+{
+   rawTime64 result = 0;
+   int bufsize = 255;
+   unsigned long utime, stime;
+   char procfn[bufsize], *buf;
+   
+   sprintf( procfn, "/proc/%d/stat", dyninst_thread->getLWP());
+   
+   int fd;
+
+   // The reason for this complicated method of reading and sseekf-ing is
+   // to ensure that we read enough of the buffer 'atomically' to make sure
+   // the data is consistent.  Is this necessary?  I *think* so. - nash
+   do {
+      fd = P_open(procfn, O_RDONLY, 0);
+      if (fd < 0) {
+         perror("getInferiorProcessCPUtime (open)");
+         return false;
+      }
+      
+      buf = new char[ bufsize ];
+      
+      if ((int)P_read( fd, buf, bufsize ) < 0) {
+         perror("getInferiorProcessCPUtime");
+         return false;
+      }
+      
+      /* While I'd bet that any of the numbers preceding utime and stime 
+         could overflow a signed int on IA-64, the compiler whines if you 
+         add length specifiers to elements whose conversion has been 
+         surpressed. */
+      if(2==sscanf(buf,
+            "%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %lu %lu ",
+             &utime, &stime ) ) 
+      {
+         // These numbers are in 'jiffies' or timeslices.
+         // Oh, and I'm also assuming that process time includes system time
+         result = static_cast<rawTime64>(utime) + static_cast<rawTime64>(stime);
+         break;
+      }
+
+      delete [] buf;
+      bufsize = bufsize * 2;
+      
+      P_close( fd );
+   } while ( true );
+   
+   delete [] buf;
+   P_close(fd);
+   
+   if (result < sw_previous_) {
+      logLine("********* time going backwards in paradynd **********\n");
+      result = sw_previous_;
+   }
+   else 
+      sw_previous_ = result;
+   
+   return result;
+}

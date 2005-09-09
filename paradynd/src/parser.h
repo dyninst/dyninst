@@ -39,51 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * parser.h
- *
- * $Log: parser.h,v $
- * Revision 1.6  2004/10/07 00:45:59  jaw
- * eliminates many "pass through" functions in pd_process.h.  These are
- * functions that simply wrap calls to class process(), via the
- * BPatch_thread::lowlevel_process().
- * Since pd_process::status() no longer exists, paradynd is no longer aware
- * of "neonatal" processes.  I don't think this should be a problem, since
- * createProcess() and attachProcess() should be atomic.
- *
- * more BPatch_variableExpr's now used for getting/setting vars in
- * paradyn runtime lib.
- *
- * eliminates paradynd references to class instMapping -- using instead a
- * new class called pdinstMapping.  pdinstMapping is analagous to instMapping,
- * except it is a container class for BPatch_snippets instead of AstNodes.
- * When instrumentation specified by a pdinstMapping is inserted, insertSnippet
- * is used.
- *
- * Revision 1.5  2004/09/21 05:33:45  jaw
- * Change MDL to use BPatch_snippets insetad of AstNodes
- *
- * Revision 1.4  2004/03/23 01:12:35  eli
- * Updated copyright string
- *
- * Revision 1.3  1996/08/16 21:19:29  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.2  1994/09/22 02:19:28  markc
- * Changed names for resource classes
- *
- * Revision 1.1  1994/01/27  20:31:33  hollings
- * Iinital version of paradynd speaking dynRPC igend protocol.
- *
- * Revision 1.2  1993/10/19  15:27:54  hollings
- * AST based mini-tramp code generator.
- *
- * Revision 1.1  1993/03/19  22:51:05  hollings
- * Initial revision
- *
- *
- */
-
 struct parseStack {
     int                 i;
     double              f;

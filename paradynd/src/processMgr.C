@@ -55,7 +55,7 @@ bool isProcMgrInitialized()
    return (theProcMgr != NULL);
 }
 
-pd_process *processMgr::find_pd_process(BPatch_thread *dyn_proc) {
+pd_process *processMgr::find_pd_process(BPatch_process *dyn_proc) {
    for(unsigned i=0; i<procBuf.size(); i++) {
       pd_process *curProc = procBuf[i];
       if(curProc  &&  curProc->get_dyn_process() == dyn_proc) {

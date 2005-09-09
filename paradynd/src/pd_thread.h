@@ -45,6 +45,8 @@
 #ifndef __PD_THREAD__
 #define __PD_THREAD__
 
+#include "dyninstAPI/h/BPatch_thread.h"
+#include "paradynd/src/pd_process.h"
 #include "rtinst/h/rtinst.h" // virtualTimer, must include or conflict
 #include "common/h/Vector.h"
 
@@ -55,28 +57,34 @@ class Frame;
 class int_function;
 
 class pd_thread {
-   dyn_thread *dyninst_thread;
+   BPatch_thread *dyninst_thread;
    pd_process *pd_proc;
    resource *rid;
+   pdstring initial_func_name;
+
+   rawTime64 hw_previous_;
+   rawTime64 sw_previous_;
 
  public:
-   pd_thread(dyn_thread *t, pd_process *p) :
-      dyninst_thread(t), pd_proc(p), rid(NULL)
-   {  
-   }
+   pd_thread(BPatch_thread *t, pd_process *p);
 
-   dyn_thread *get_dyn_thread() { return dyninst_thread; }
+   BPatch_thread *get_dyn_thread() { return dyninst_thread; }
 
-   unsigned get_tid() const;
-   unsigned get_index() const;
-   int_function* get_start_func() const;
-   bool walkStack(pdvector<Frame> &stackWalk);
+   unsigned get_tid() const { return dyninst_thread->getTid(); }
+   unsigned get_index() const { return dyninst_thread->getBPatchID(); }
+   int get_lwp() const { return dyninst_thread->getLWP(); }
+   BPatch_function* get_start_func() {return dyninst_thread->getInitialFunc();}
+   bool walkStack(BPatch_Vector<BPatch_frame> &stackWalk);
+
    void update_rid(resource *rid_) { rid = rid_; } 
    resource* get_rid() { return rid; }
 
+   rawTime64 getRawCpuTime_hw();
+   rawTime64 getRawCpuTime_sw();
+
    rawTime64  getInferiorVtime(virtualTimer*, bool&);
    bool       resetInferiorVtime(virtualTimer*);
-
+   pdstring get_initial_func_name() { return initial_func_name; }
 };
 
 

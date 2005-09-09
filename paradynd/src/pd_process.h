@@ -53,7 +53,7 @@
 #include "dyninstAPI/src/process.h" // for getRpcMgr and everything else
 
 #include "dyninstAPI/h/BPatch_Vector.h"
-#include "dyninstAPI/h/BPatch_thread.h"
+#include "dyninstAPI/h/BPatch_process.h"
 #include "dyninstAPI/h/BPatch_snippet.h"
 #include "paradynd/src/threadMgr.h"
 #include "paradynd/src/timeMgr.h"
@@ -148,8 +148,7 @@ public:
 class pd_image;
 
 class pd_process {
-   BPatch_thread *dyninst_process;
-   BPatch_process *bproc;
+   BPatch_process *dyninst_process;
 
    threadMgr thr_mgr;
 
@@ -159,9 +158,6 @@ class pd_process {
    resource *rid;
    bool created_via_attach;
    BPatch_function *monitorFunc; // func in RT lib used for monitoring call sites
-   bool use_loops;
-
-
  public:
    // Paradyn daemon arguments, etc.
    static pdvector<pdstring> arg_list; // the arguments of paradynd
@@ -181,14 +177,13 @@ class pd_process {
  public:
    // Creation constructor
    pd_process(const pdstring argv0, pdvector<pdstring> &argv,
-              const pdstring dir, int stdin_fd, int stdout_fd, int stderr_fd,
-              bool loops);
+              const pdstring dir, int stdin_fd, int stdout_fd, int stderr_fd);
 
    // Attach constructor
-   pd_process(const pdstring &progpath, int pid, bool loops);
+   pd_process(const pdstring &progpath, int pid);
   
    // fork constructor
-   pd_process(const pd_process &parent, BPatch_thread *childDynProc);
+   pd_process(const pd_process &parent, BPatch_process *childDynProc);
    
    ~pd_process();
    
@@ -198,10 +193,12 @@ class pd_process {
    void addThread(pd_thread *thr) { thr_mgr.addThread(thr); }
    void removeThread(pd_thread *thr) { thr_mgr.removeThread(thr); }
    void removeThread(int tid) { thr_mgr.removeThread(tid); }
+   pd_thread *findThread(int tid) { return thr_mgr.find_pd_thread(tid); }
    threadMgr::thrIter beginThr() { return thr_mgr.begin(); }
    threadMgr::thrIter endThrMark() { return thr_mgr.end(); }
    unsigned numThr() const { return thr_mgr.size(); }
 
+   void findThreads();
    bool doMajorShmSample();
    bool doMinorShmSample();
 
@@ -301,11 +298,8 @@ class pd_process {
   
    // ========  PASS THROUGH FUNCTIONS ===============================
 
-   BPatch_thread *get_dyn_process() {
+   BPatch_process *get_dyn_process() {
       return dyninst_process;
-   }
-   BPatch_process *get_bprocess() {
-      return bproc;
    }
 
    bool isStopped() const;
@@ -315,6 +309,10 @@ class pd_process {
    int getPid() const { return dyninst_process->getPid(); }
    bool pause(); 
    shmMgr *getSharedMemMgr() { return sharedMemManager; }
+
+   //Callbacks that are invoked from Dyninst when a thread is created or destroyed
+   static void pdNewThread(BPatch_process *proc, BPatch_thread *thr); 
+   static void pdDeadThread(BPatch_process *proc, BPatch_thread *thr); 
 
    bool detachProcess(const bool leaveRunning) {
       return dyninst_process->detach(leaveRunning);
@@ -337,7 +335,7 @@ class pd_process {
    }
 
    bool catchupSideEffect(Frame &frame, instReqNode *inst) {
-       return inst->Point()->PDSEP_instPoint()->instrSideEffect(frame);
+      return inst->Point()->PDSEP_instPoint()->instrSideEffect(frame);
    }
 
    int getTraceLink() {
@@ -548,7 +546,7 @@ class pd_process {
 
   private:
    void preForkHandler();
-   void postForkHandler(BPatch_thread *child);
+   void postForkHandler(BPatch_process *child);
    void execHandler();
    void exitHandler();
    
@@ -559,35 +557,27 @@ class pd_process {
   // Returns once paradyn lib is loaded and initialized
    typedef enum { create_load, attach_load, exec_load } load_cause_t;
    bool loadParadynLib(load_cause_t ldcause);
-  
+
   private:
    libraryState_t paradynRTState;
    libraryState_t auxLibState; // Needed for solaris
    
-   // We load via an inferior RPC, so we need a callback
-   static void paradynLibLoadCallback(process *, unsigned /* rpc_id */,
-                                      void *data, void *ret);
    void setParadynLibLoaded() { setLibState(paradynRTState, libLoaded); }
-   
+
+   //This function allows the OS specific files to do initialization
+   //just before the Paradyn RT library loads
+   void initOSPreLib();
+
    // Replace with BPatch::loadLibrary
    bool loadAuxiliaryLibrary(pdstring libname);
    static void loadAuxiliaryLibraryCallback(process *, unsigned /* rpc_id */,
                                             void *data, void *ret);
    
    // Sets the parameters to paradynInit
-   bool setParadynLibParams(load_cause_t ldcause);
-   // And associated callback function
-   static void setParadynLibParamsCallback(process *p, pdstring libname, 
-                                           mapped_object *libobj, void *data);
+   bool runParadynInit(load_cause_t ldcause);
    
    // Handles final initialization
-   bool finalizeParadynLib();
-   // For when we can't call paradynInit from _init method
-   bool iRPCParadynInit();
-   static void paradynInitCompletionCallback(process *, unsigned /* rpc_id */,
-                                             void *data, void *ret);
-   
-   bool extractBootstrapStruct(PARADYN_bootstrapStruct *bs_record);
+   bool finalizeParadynLib(load_cause_t ldcause);
    
    bool getParadynRTname();
    
@@ -610,12 +600,11 @@ class pd_process {
 
 
 // Shouldn't these be static members of class pd_process?
-pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir, 
-                             bool parse_loops);
-pd_process *pd_attachProcess(const pdstring &progpath, int pid,
-                             bool parse_loops);
-pd_process *pd_attachToCreatedProcess(const pdstring &progpath, int pid, 
-                                      bool parse_loops);
+pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir);
+pd_process *pd_attachProcess(const pdstring &progpath, int pid);
+pd_process *pd_attachToCreatedProcess(const pdstring &progpath, int pid);
+
+pdstring formatLibParadynName(pdstring orig);
 
 #endif
 

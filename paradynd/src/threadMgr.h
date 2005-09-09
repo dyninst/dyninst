@@ -46,8 +46,6 @@
 #include "common/h/Vector.h"
 
 class pd_thread;
-class dyn_thread;
-
 
 class threadMgr {
    pdvector<pd_thread *> thrBuf;
@@ -66,7 +64,6 @@ class threadMgr {
    void removeThread(unsigned tid);
    void removeThread(pd_thread *p);
 
-   pd_thread *find_pd_thread(dyn_thread *dyn_thr);
    pd_thread *find_pd_thread(int tid);
 };
 

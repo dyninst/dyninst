@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment-unix.C,v 1.13 2004/07/21 21:27:32 pcroth Exp $
+// $Id: shmSegment-unix.C,v 1.14 2005/09/09 18:08:01 legendre Exp $
 //----------------------------------------------------------------------------
 //
 // Definition of the ShmSegment class.
@@ -287,7 +287,7 @@ ShmSegment::Open( key_t key, unsigned int size, void* addr )
 // if different
 
 ShmSegment *
-ShmSegment::Copy(BPatch_thread *child_thr, bool sameAddr) {
+ShmSegment::Copy(BPatch_process *child_thr, bool sameAddr) {
     // Now, create a new segment of the same size as this one,
     // and attach the child in the same place
     key_t key = GetKey();

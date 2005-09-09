@@ -42,69 +42,6 @@
 #ifndef METDEF_H
 #define METDEF_H
 
-/* 
- * $Log: metricDef.h,v $
- * Revision 1.11  2004/10/07 00:45:58  jaw
- * eliminates many "pass through" functions in pd_process.h.  These are
- * functions that simply wrap calls to class process(), via the
- * BPatch_thread::lowlevel_process().
- * Since pd_process::status() no longer exists, paradynd is no longer aware
- * of "neonatal" processes.  I don't think this should be a problem, since
- * createProcess() and attachProcess() should be atomic.
- *
- * more BPatch_variableExpr's now used for getting/setting vars in
- * paradyn runtime lib.
- *
- * eliminates paradynd references to class instMapping -- using instead a
- * new class called pdinstMapping.  pdinstMapping is analagous to instMapping,
- * except it is a container class for BPatch_snippets instead of AstNodes.
- * When instrumentation specified by a pdinstMapping is inserted, insertSnippet
- * is used.
- *
- * Revision 1.10  2004/09/21 05:33:45  jaw
- * Changes mdl to use BPatch_snippets instead of AstNodes. 
- *
- * Revision 1.9  2004/03/23 01:12:35  eli
- * Updated copyright string
- *
- * Revision 1.8  2002/05/10 18:37:39  schendel
- * add ability in daemon to adjust existing metric-focuses for thread creation
- *   - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- * removed extraneous header file, metric.h;
- * changed name of class from metricDefinitionNode to metricFocusNode;
- *
- * Revision 1.7  1997/02/21 20:16:00  naim
- * Moving files from paradynd to dyninstAPI + eliminating references to
- * dataReqNode from the ast class. This is the first pre-dyninstAPI commit! - naim
- *
- * Revision 1.6  1996/08/16 21:19:25  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.5  1995/02/16 08:53:45  markc
- * Corrected error in comments -- I put a "star slash" in the comment.
- *
- * Revision 1.4  1995/02/16  08:33:55  markc
- * Changed igen interfaces to use strings/vectors rather than char igen-arrays
- * Changed igen interfaces to use bool, not Boolean.
- * Cleaned up symbol table parsing - favor properly labeled symbol table objects
- * Updated binary search for modules
- * Moved machine dependnent ptrace code to architecture specific files.
- * Moved machine dependent code out of class process.
- * Removed almost all compiler warnings.
- * Use "posix" like library to remove compiler warnings
- *
- * Revision 1.3  1994/11/10  18:58:10  jcargill
- * The "Don't Blame Me Either" commit
- *
- * Revision 1.2  1994/11/09  18:40:18  rbi
- * the "Don't Blame Me" commit
- *
- * Revision 1.1  1994/11/01  16:58:06  markc
- * Prototypes
- *
- */
-
-
 #ifdef NOTDEF // PDSEP
 #include "dyninstAPI/src/ast.h"
 

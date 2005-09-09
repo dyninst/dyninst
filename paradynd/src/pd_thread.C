@@ -41,20 +41,11 @@
 
 
 #include "paradynd/src/pd_thread.h"
+#include "dyninstAPI/h/BPatch_function.h"
 #include "paradynd/src/pd_process.h"
 #include "dyninstAPI/src/dyn_thread.h"
 
 // Moved from the .h to get rid of cross-.h includes
-
-unsigned pd_thread::get_tid() const { return dyninst_thread->get_tid(); }
-unsigned pd_thread::get_index() const { return dyninst_thread->get_index(); }
-int_function* pd_thread::get_start_func() const { return dyninst_thread->get_start_func(); }
-bool pd_thread::walkStack(pdvector<Frame> &stackWalk) {
-    return dyninst_thread->walkStack(stackWalk);
-}
-
-
-
 
 /*
 // Useful for debugging.  Keeps a history of last VT_MAXRECS of virtual
@@ -126,6 +117,19 @@ void vt_showTrace(char *msg) {
 unsigned pos_junk = 101;
 */
 
+#define NAME_LEN 1024
+pd_thread::pd_thread(BPatch_thread *t, pd_process *p) :
+   dyninst_thread(t), pd_proc(p), rid(NULL), hw_previous_(0), sw_previous_(0)
+{  
+   char name[NAME_LEN];
+   BPatch_function *f = t->getInitialFunc();
+   if (f)
+   {
+      f->getName(name, NAME_LEN);
+      initial_func_name = name; //overloaded '=' does a copy
+   }
+}
+
 rawTime64 pd_thread::getInferiorVtime(virtualTimer *vTimer, bool& success) {
    rawTime64 ret ;
    success = true ;
@@ -134,8 +138,6 @@ rawTime64 pd_thread::getInferiorVtime(virtualTimer *vTimer, bool& success) {
       success = false ;
       return 0 ;
    }
-   
-   dyninst_thread->updateLWP();
    
    volatile const int protector2 = vTimer->protector2;
    
@@ -174,7 +176,6 @@ bool pd_thread::resetInferiorVtime(virtualTimer *vTimer) {
    if (!vTimer) {
      return false;
    }
-   dyninst_thread->updateLWP();
    if (vTimer->protector1 != vTimer->protector2)
      return false;
 
@@ -193,7 +194,7 @@ bool pd_thread::resetInferiorVtime(virtualTimer *vTimer) {
 
    // Start the timer
    if (vTimer->counter == 0) {
-     vTimer->lwp = dyninst_thread->get_lwp()->get_lwp_id();
+     vTimer->lwp = get_lwp();
      vTimer->rt_fd = 0;
      vTimer->start = pd_proc->getRawCpuTime(vTimer->lwp);
      vTimer->rt_previous = vTimer->start;
@@ -204,3 +205,7 @@ bool pd_thread::resetInferiorVtime(virtualTimer *vTimer) {
    return true;
 }
 
+bool pd_thread::walkStack(BPatch_Vector<BPatch_frame> &stackWalk) 
+{
+   return dyninst_thread->getCallStack(stackWalk);
+}

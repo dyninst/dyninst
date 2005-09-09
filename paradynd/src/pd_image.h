@@ -52,7 +52,7 @@ class pd_process;
 class pd_module;
 
 class pd_image {
-   friend void addLibraryCallback(BPatch_thread *, BPatch_module *, bool);
+   friend void addLibraryCallback(BPatch_process *, BPatch_module *, bool);
    static pdvector<pd_image *> all_pd_images;
 
  public:
@@ -65,8 +65,9 @@ class pd_image {
 
    BPatch_image *get_dyn_image() {  return appImage; }
    pd_process *getParentProc() {return parent_proc;}
-   pdstring name() const { return _name; }
+   pdstring exeName() const { return _name; }
 
+   
    // report statically determinable caller-callee relationship to paradyn....
    void FillInCallGraphStatic(pd_process *p);
 

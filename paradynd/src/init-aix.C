@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-aix.C,v 1.35 2005/02/17 21:10:57 bernat Exp $
+// $Id: init-aix.C,v 1.36 2005/09/09 18:07:30 legendre Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/pd_process.h"
@@ -137,7 +137,6 @@ bool initOS()
     // Official gotten-from-tracing name. While pthread_create() is the
     // call made from user space, _pthread_body is the parent of any created
     // thread, and so is a good place to instrument.
-    pdinstMapping *mapping;
     mapping = new pdinstMapping("_pthread_body", "DYNINST_dummy_create",
                               FUNC_ENTRY, BPatch_callBefore, BPatch_firstSnippet);
     mapping->markAs_MTonly();
@@ -166,7 +165,7 @@ bool initOS()
     // Thread SyncObjects
     // mutex
     BPatch_snippet* arg0 = new BPatch_paramExpr(0);
-    mapping = new pdinstMapping("pthread_mutex_init", "DYNINSTreportNewMutex", 
+    mapping = new pdinstMapping("pthread_mutex_init", "PARADYNreportNewMutex", 
                               FUNC_ENTRY|FUNC_ARG, arg0);
     mapping->markAs_MTonly();
     initialRequestsPARADYN.push_back(mapping);
@@ -175,7 +174,7 @@ bool initOS()
     // rwlock
     //
     arg0 = new BPatch_paramExpr(0);
-    mapping = new pdinstMapping("pthread_rwlock_init", "DYNINSTreportNewRwLock", 
+    mapping = new pdinstMapping("pthread_rwlock_init", "PARADYNreportNewRwLock", 
                               FUNC_ENTRY|FUNC_ARG, arg0);
     mapping->markAs_MTonly();
     initialRequestsPARADYN.push_back(mapping);
@@ -184,7 +183,7 @@ bool initOS()
     //Semaphore
     //
     arg0 = new BPatch_paramExpr(0);
-    mapping = new pdinstMapping("i_need_a_name", "DYNINSTreportNewSema", 
+    mapping = new pdinstMapping("i_need_a_name", "PARADYNreportNewSema", 
                               FUNC_ENTRY|FUNC_ARG, arg0);
     mapping->markAs_MTonly();
     initialRequestsPARADYN.push_back(mapping);
@@ -193,7 +192,7 @@ bool initOS()
     // Conditional variable
     //
     arg0 = new BPatch_paramExpr(0); 
-    mapping = new pdinstMapping("pthread_cond_init", "DYNINSTreportNewCondVar", 
+    mapping = new pdinstMapping("pthread_cond_init", "PARADYNreportNewCondVar", 
                               FUNC_ENTRY|FUNC_ARG, arg0);
     mapping->markAs_MTonly();
     initialRequestsPARADYN.push_back(mapping);
@@ -254,4 +253,13 @@ void initWallTimeMgrPlt() {
   getWallTimeMgr().installLevel(wallTimeMgr_t::LEVEL_TWO, yesFunc,
 				timeUnit::ns(), timeBase::b1970(),
 				&getRawWallTime_ns, "swWallTimeFPtrInfo");
+}
+
+void pd_process::initOSPreLib()
+{
+}
+
+pdstring formatLibParadynName(pdstring orig)
+{
+   return orig;
 }

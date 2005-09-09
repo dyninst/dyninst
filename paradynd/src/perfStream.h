@@ -43,7 +43,7 @@
 #ifndef PERF_STREAM_H
 #define PERF_STREAM_H
 
-// $Id: perfStream.h,v 1.15 2004/10/07 00:45:59 jaw Exp $
+// $Id: perfStream.h,v 1.16 2005/09/09 18:07:51 legendre Exp $
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
@@ -54,7 +54,6 @@ extern bool firstSampleReceived;
 extern void createResource(traceHeader *header, struct _newresource *r);
 extern void processArchDependentTraceStream();
 extern void processAppIO(process *p);
-extern void processTraceStream(process *p);
 extern int traceConnectInfo;
 extern pdstring traceSocketPath; /* file path of trace socket */
 

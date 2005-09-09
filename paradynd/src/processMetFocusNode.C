@@ -52,6 +52,7 @@
 #include "paradynd/src/debug.h"
 
 #include "dyninstAPI/src/dyn_thread.h"
+#include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/function.h"
 
 void checkProcStatus();  
@@ -991,7 +992,7 @@ void processMetFocusNode::propagateToNewThread(pd_thread *thr)
    if(getFocus().thread_defined()) return;
 
    pdstring thrName = pdstring("thr_") + pdstring(thr->get_tid()) + "{" + 
-                      thr->get_start_func()->prettyName() + "}";
+                      thr->get_initial_func_name() + "}";
    Focus focus_with_thr = getFocus();
    focus_with_thr.set_thread(thrName);
    threadMetFocusNode *thrNode = threadMetFocusNode::

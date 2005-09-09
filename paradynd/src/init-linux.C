@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-linux.C,v 1.27 2005/07/29 19:20:05 bernat Exp $
+// $Id: init-linux.C,v 1.28 2005/09/09 18:07:31 legendre Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/init.h"
@@ -68,39 +68,11 @@ bool initOS() {
    // call made from user space, _pthread_body is the parent of any created
    // thread, and so is a good place to instrument.
    pdinstMapping *mapping;
-   mapping = new pdinstMapping("start_thread", "DYNINST_dummy_create",
-                               FUNC_ENTRY, BPatch_callBefore, BPatch_firstSnippet,
-                               NULL, no_warn);
-   mapping->markAs_MTonly();
-   initialRequestsPARADYN.push_back(mapping);
-   
-
-   mapping = new pdinstMapping("pthread_exit", "DYNINSTthreadDelete", 
-                               FUNC_ENTRY, BPatch_callBefore, BPatch_lastSnippet,
-                               NULL, no_warn);
-   mapping->markAs_MTonly();
-   initialRequestsPARADYN.push_back(mapping);
-   
-   
-   // Should really be the longjmp in the pthread library
-   mapping = new pdinstMapping("_longjmp", "DYNINSTthreadStart",
-                               FUNC_ENTRY, BPatch_callBefore, BPatch_lastSnippet,
-                               NULL, no_warn) ;
-   mapping->markAs_MTonly();
-   initialRequestsPARADYN.push_back(mapping);
-   
-   
-   mapping = new pdinstMapping("_usched_swtch", "DYNINSTthreadStop",
-                               FUNC_ENTRY, BPatch_callBefore, BPatch_lastSnippet, 
-                               NULL, no_warn) ;
-   mapping->markAs_MTonly();
-   initialRequestsPARADYN.push_back(mapping);
-   
 
    // Thread SyncObjects
    // mutex
    BPatch_snippet* arg0 = new BPatch_paramExpr(0);
-   mapping = new pdinstMapping("pthread_mutex_init", "DYNINSTreportNewMutex", 
+   mapping = new pdinstMapping("pthread_mutex_init", "PARADYNreportNewMutex", 
                              FUNC_ENTRY|FUNC_ARG, arg0, no_warn);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
@@ -110,7 +82,7 @@ bool initOS() {
    // rwlock
    //
    arg0 = new BPatch_paramExpr(0);
-   mapping = new pdinstMapping("pthread_rwlock_init", "DYNINSTreportNewRwLock", 
+   mapping = new pdinstMapping("pthread_rwlock_init", "PARADYNreportNewRwLock", 
                              FUNC_ENTRY|FUNC_ARG, arg0, no_warn);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
@@ -119,7 +91,7 @@ bool initOS() {
    //Semaphore
    //
    arg0 = new BPatch_paramExpr(0);
-   mapping = new pdinstMapping("i_need_a_name", "DYNINSTreportNewSema", 
+   mapping = new pdinstMapping("i_need_a_name", "PARADYNreportNewSema", 
                              FUNC_ENTRY|FUNC_ARG, arg0, no_warn);
    mapping->markAs_MTonly();
    initialRequestsPARADYN.push_back(mapping);
@@ -128,29 +100,9 @@ bool initOS() {
    // Conditional variable
    //
    arg0 = new BPatch_paramExpr(0);
-   mapping = new pdinstMapping("pthread_cond_init", "DYNINSTreportNewCondVar", 
+   mapping = new pdinstMapping("pthread_cond_init", "PARADYNreportNewCondVar", 
                                FUNC_ENTRY|FUNC_ARG, arg0, no_warn);
    mapping->markAs_MTonly();
-   initialRequestsPARADYN.push_back(mapping);
-   // =======
-
-   // Protect our signal handler by overriding any which the application
-   // may already have or subsequently install.
-   // Note that this is currently replicated in dyninstAPI_init until
-   // dyninst is updated to refer to this (or a similar) initialization.
-   const char *sigactionF="__sigaction";
-   pdvector<BPatch_snippet*> argList(3);
-   static BPatch_paramExpr  sigArg(0); argList[0] = &sigArg;
-   static BPatch_paramExpr  actArg(1); argList[1] = &actArg;
-   static BPatch_paramExpr oactArg(2); argList[2] = &oactArg;
-
-   mapping = new pdinstMapping(sigactionF, "DYNINSTdeferSigHandler",
-                               FUNC_ENTRY|FUNC_ARG, argList, warn);
-   initialRequestsPARADYN.push_back(mapping);
-
-   mapping = new pdinstMapping(sigactionF, "DYNINSTresetSigHandler",
-                               FUNC_EXIT|FUNC_ARG, BPatch_callAfter,
-                               BPatch_lastSnippet, argList, warn);
    initialRequestsPARADYN.push_back(mapping);
 
    return true;
@@ -182,6 +134,14 @@ void initWallTimeMgrPlt() {
 				&getRawTime1970, "swWallTimeFPtrInfo");
 }
 
+void pd_process::initOSPreLib()
+{
+}
+
+pdstring formatLibParadynName(pdstring orig)
+{
+   return orig;
+}
 
 
 

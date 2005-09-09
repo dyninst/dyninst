@@ -45,7 +45,7 @@
 
 #include "common/h/Vector.h"
 #include "dyninstAPI/h/BPatch_snippet.h"
-#include "dyninstAPI/h/BPatch_thread.h"
+#include "dyninstAPI/h/BPatch_process.h"
 #include "dyninstAPI/src/instP.h" // for mtHandle
 #include "dyninstAPI/src/miniTramp.h"
 

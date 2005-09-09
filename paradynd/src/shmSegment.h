@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment.h,v 1.4 2004/05/11 19:02:00 bernat Exp $
+// $Id: shmSegment.h,v 1.5 2005/09/09 18:08:04 legendre Exp $
 //----------------------------------------------------------------------------
 //
 // Declaration of ShmSegment class.
@@ -52,7 +52,7 @@
 #define SHMSEGMENT_H
 
 #include "dyninstAPI/h/BPatch.h"
-#include "dyninstAPI/h/BPatch_thread.h"
+#include "dyninstAPI/h/BPatch_process.h"
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
 
@@ -100,10 +100,10 @@ public:
     static  ShmSegment* Create( key_t& key, unsigned int size, bool freeWhenDeleted );
     static  ShmSegment* Open( key_t key, unsigned int size, void *addr);
 
-    ShmSegment* Copy(BPatch_thread *child_thr, bool sameAddress);
+    ShmSegment* Copy(BPatch_process *child_thr, bool sameAddress);
 
-    bool attach(BPatch_thread *appthread, Address baseAddr = 0);
-    bool detach(BPatch_thread *appthread);
+    bool attach(BPatch_process *appthread, Address baseAddr = 0);
+    bool detach(BPatch_process *appthread);
     
     ~ShmSegment( void );
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: shmMgr.C,v 1.24 2004/08/13 19:33:25 legendre Exp $
+/* $Id: shmMgr.C,v 1.25 2005/09/09 18:07:59 legendre Exp $
  * shmMgr: an interface to allocating/freeing memory in the 
  * shared segment. Will eventually support allocating a new
  * shared segment and attaching to it.
@@ -49,15 +49,15 @@
 #include "shmMgr.h"
 #include "shmSegment.h"
 #include "paradynd/src/pd_process.h"
-#include "dyninstAPI/h/BPatch_thread.h"
+#include "dyninstAPI/h/BPatch_process.h"
 #include "paradynd/src/init.h"
-extern void addLibraryCallback(BPatch_thread *, BPatch_module *, bool);
+extern void addLibraryCallback(BPatch_process *, BPatch_module *, bool);
 
 shmMgr::shmMgr()
 {
 }
 
-shmMgr::shmMgr(BPatch_thread *thr, key_t shmSegKey, unsigned shmSize_, bool freeWhenDel) :
+shmMgr::shmMgr(BPatch_process *thr, key_t shmSegKey, unsigned shmSize_, bool freeWhenDel) :
         nextKeyToTry(shmSegKey), shmSegSize(shmSize_), totalShmSize(0), freespace(0),
         app_thread(thr), freeWhenDeleted(freeWhenDel)
 {
@@ -66,52 +66,54 @@ shmMgr::shmMgr(BPatch_thread *thr, key_t shmSegKey, unsigned shmSize_, bool free
 bool shmMgr::initialize() {
 
     // Get the name of the shared memory library (if specified in environment)
-    const char *shm_lib_name = getenv("PARADYN_LIB_SHARED");
-    if (!shm_lib_name)
-	shm_lib_name = SHARED_MUTATEE_LIB;
+   const char *shm_lib_name = getenv("PARADYN_LIB_SHARED");
+   if (!shm_lib_name)
+      shm_lib_name = SHARED_MUTATEE_LIB;
 
-    //getBPatch().registerDynLibraryCallback((BPatchDynLibraryCallback) (addLibraryCallback));
-    // Load the shared memory library via Dyninst's loadLibrary
-    if (!app_thread->loadLibrary(shm_lib_name, true)) {
-        fprintf(stderr, "Failed to load shared memory library\n");
-        return false;
-    }
-    BPatch_Vector<BPatch_module *> * mods = app_thread->getImage()->getModules();
-    static char mnamebuf[512];
-    BPatch_module *shm_mod = NULL;
-    for (unsigned int i = 0; i < mods->size(); ++i) {
+   //getBPatch().registerDynLibraryCallback((BPatchDynLibraryCallback) (addLibraryCallback));
+   // Load the shared memory library via Dyninst's loadLibrary
+   assert(app_thread->isStopped());
+   if (!app_thread->loadLibrary(shm_lib_name, true)) {
+      fprintf(stderr, "Failed to load shared memory library\n");
+      return false;
+   }
+   BPatch_Vector<BPatch_module *> * mods = app_thread->getImage()->getModules();
+   static char mnamebuf[512];
+   BPatch_module *shm_mod = NULL;
+   for (unsigned int i = 0; i < mods->size(); ++i) {
       (*mods)[i]->getName(mnamebuf, 512);
       if (!strcmp(mnamebuf, shm_lib_name)) {
-        shm_mod = (*mods)[i];
-        break;
+         shm_mod = (*mods)[i];
+         break;
       }
-    }
-    if (!shm_mod) {
+   }
+   if (!shm_mod) {
       fprintf(stderr, "%s[%d}:  Could not find module %s\n", __FILE__, __LINE__, shm_lib_name);
-    } 
+   } 
 
-    // Proactively make the first segment
-    ShmSegment *new_seg = ShmSegment::Create(nextKeyToTry, shmSegSize, freeWhenDeleted);
-    if (new_seg == NULL) {
-        // No luck
-        fprintf(stderr, "Failed creation\n");
-        return false;
-    }
-    if (!new_seg->attach(app_thread)) {
-        fprintf(stderr, "Failed attach\n");
-        return false;
-    }
-    
-    nextKeyToTry++;
-    totalShmSize += shmSegSize;
-    freespace += shmSegSize;
-    theShms.push_back(new_seg);
-
-    return true;
+   // Proactively make the first segment
+   ShmSegment *new_seg = ShmSegment::Create(nextKeyToTry, shmSegSize, freeWhenDeleted);
+   if (new_seg == NULL) {
+      // No luck
+      fprintf(stderr, "Failed creation\n");
+      return false;
+   }
+   if (!new_seg->attach(app_thread)) {
+      fprintf(stderr, "Failed attach\n");
+      return false;
+   }
+   
+   nextKeyToTry++;
+   totalShmSize += shmSegSize;
+   freespace += shmSegSize;
+   theShms.push_back(new_seg);
+   assert(app_thread->isStopped());
+   
+   return true;
 }
 
 
-shmMgr::shmMgr(const shmMgr *par, BPatch_thread *child_thr, bool sameAddress) :
+shmMgr::shmMgr(const shmMgr *par, BPatch_process *child_thr, bool sameAddress) :
         nextKeyToTry(par->nextKeyToTry), shmSegSize(par->shmSegSize), 
         totalShmSize(par->totalShmSize), freespace(par->freespace),
         app_thread(child_thr), freeWhenDeleted(par->freeWhenDeleted)

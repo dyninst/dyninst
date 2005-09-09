@@ -74,6 +74,7 @@ pd_module *pd_image::get_pd_module(BPatch_module *dyn_mod) {
    return NULL;
 }
 
+#define NAME_LEN 512
 pd_image::pd_image(BPatch_image *d_image, pd_process *p_proc) :
    appImage(d_image), parent_proc(p_proc)
 {
@@ -85,10 +86,10 @@ pd_image::pd_image(BPatch_image *d_image, pd_process *p_proc) :
       addModule(curr);
    }
 
-   char namebuf[512];
-   d_image->getProgramName(namebuf, 512);
+   char namebuf[NAME_LEN];
+   d_image->getProgramName(namebuf, NAME_LEN);
    _name = pdstring(namebuf);
-   d_image->getProgramFileName(namebuf, 512);
+   d_image->getProgramFileName(namebuf, NAME_LEN);
    _fname = pdstring(namebuf);
    //fprintf(stderr, "%s[%d]:  new pd_image: '%s'/'%s'\n", 
    //        __FILE__, __LINE__, _name.c_str(), _fname.c_str());

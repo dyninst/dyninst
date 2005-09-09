@@ -60,18 +60,6 @@ void threadMgr::removeThread(unsigned tid) {
    }
 }
 
-pd_thread *threadMgr::find_pd_thread(dyn_thread *dyn_thr) {
-   thrIter itr = thrBuf.begin();
-   while(itr != thrBuf.end()) {
-      pd_thread *curThr = (*itr);
-      itr++;
-      if(curThr->get_dyn_thread() == dyn_thr) {
-	 return curThr;
-      }
-   }
-   return NULL;
-}
-
 pd_thread *threadMgr::find_pd_thread(int tid) {
    thrIter itr = thrBuf.begin();
    while(itr != thrBuf.end()) {

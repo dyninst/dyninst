@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.137 2005/07/29 19:20:11 bernat Exp $
+// $Id: main.C,v 1.138 2005/09/09 18:07:39 legendre Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -65,7 +65,6 @@ Ident V_Uid(V_libpdutil,"Paradyn");
 
 int StartOrAttach( void );
 bool isInfProcAttached = false;
-bool enableLoops = false;
 pdstring* newProcDir = NULL;
 pdvector<pdstring> newProcCmdLine;
 static bool reportedSelf = false;
@@ -78,10 +77,6 @@ pdstring osName;
 int pd_debug=0;
 
 int ready;
-
-#ifdef mips_sgi_irix6_4
-extern bool execIrixMPIProcess(pdvector<pdstring> &argv);
-#endif
 
 unsigned SHARED_SEGMENT_SIZE = 2097152;
 
@@ -125,11 +120,6 @@ bool frontendExited = false;
 
 // Now also cleans up shm segs by deleting all processes  -ari
 void cleanUpAndExit(int status) {
-#if !defined(i386_unknown_nt4_0)
-   // delete the trace socket file
-   unlink(traceSocketPath.c_str());
-#endif
-
    // Don't send anything more to the frontend, for safety.
    frontendExited = true;
    // TODO: replace this with a real check. But right now we only call
@@ -254,10 +244,6 @@ RPC_undo_arg_list (pdstring &flavor, unsigned argc, char **argv,
       //the MPI implementation - MPICH or LAM
       MPI_impl = optarg;
       break;
-    case 'o':
-      //Enable loops
-      enableLoops = true;
-      break;
          
     default:
       err = true;
@@ -293,12 +279,10 @@ void RPC_undo_environment_work(){
    putenv("PARADYN_MPI=");
 }
 
-static
-void
-PauseIfDesired( void )
+static void PauseIfDesired( void )
 {
 	char *pdkill = getenv( "PARADYND_DEBUG" );
-	if( pdkill && ( *pdkill == 'y' || *pdkill == 'Y' ) )
+   if( pdkill && ( *pdkill == 'y' || *pdkill == 'Y' ) )
 	{
 		int pid = getpid();
 		cerr << "breaking for debug in controllerMainLoop...pid=" << pid << endl;
@@ -444,7 +428,7 @@ InitLocallyStarted( char* [] , const pdstring& )
 	// note that we do not need to report to our front end in this case
 }
 
-#if !defined(i386_unknown_nt4_0)
+#if !defined(os_windows)
 void sighup_handler( int ) {
    // we get SIGHUP when Paradyn closes our connection
    // we want to ignore this, and close 
@@ -694,11 +678,6 @@ main( int argc, char* argv[] )
    sighupInit();
 #endif
 
-   // Set up the trace socket. This is needed before we try
-   // to attach to a process
-   extern void setupTraceSocket();
-   setupTraceSocket();
-
    if (!paradyn_init()) 
    {
       abort();
@@ -739,60 +718,40 @@ StartOrAttach( void )
 {
    bool startByAttach = false;
    bool startByCreateAttach = false;
-#ifdef mips_sgi_irix6_4
-   struct utsname unameInfo;
-   if ( P_uname(&unameInfo) == -1 )
-   {
-      perror("uname");
-      return false;
-   }
-   
-   // osName is used in irix.C and process.C
-   osName = unameInfo.sysname;
-   
-   if ( pd_flavor == "mpi" && osName.prefixed_by("IRIX") )
-   {
-      if ( !execIrixMPIProcess(newProcCmdLine) )
-         return(0);
-   }
-   else
-#endif
       
-      // spawn the given process, if necessary
-      if (newProcCmdLine.size() && (pd_attpid==0))
-      {
-         // ignore return val (is this right?)
-         pd_createProcess(newProcCmdLine, *newProcDir, enableLoops); 
-      } 
-      else if (pd_attpid && (pd_flag==2))
-      {
-         // We attach after doing a last bit of initialization, below
-         startByAttach = true;
-      }
-      else if (pd_attpid && (pd_flag==3))
-      {
-         // We attach to a just created application after doing a
-         // last bit of initialization, below
-         startByCreateAttach = true;
-      }
+   // spawn the given process, if necessary
+   if (newProcCmdLine.size() && (pd_attpid==0))
+   {
+      // ignore return val (is this right?)
+      pd_createProcess(newProcCmdLine, *newProcDir); 
+   } 
+   else if (pd_attpid && (pd_flag==2))
+   {
+      // We attach after doing a last bit of initialization, below
+      startByAttach = true;
+   }
+   else if (pd_attpid && (pd_flag==3))
+   {
+      // We attach to a just created application after doing a
+      // last bit of initialization, below
+      startByCreateAttach = true;
+   }
    
    if (startByAttach) {
-       pd_process *p = pd_attachProcess("", pd_attpid, enableLoops);
-       
-       if (!p) return -1;
-       // Leave process paused in this case
-       p->pause();
-
+      pd_process *p = pd_attachProcess("", pd_attpid);
+      
+      if (!p) return -1;
+      // Leave process paused in this case
+      p->pause();
+      
    } else if (startByCreateAttach) {
        pd_process *p;
        if (newProcCmdLine.size()){
            p = pd_attachToCreatedProcess(newProcCmdLine[0], 
-                                         pd_attpid,
-                                         enableLoops);
+                                         pd_attpid);
        } else {
            p = pd_attachToCreatedProcess("", 
-                                         pd_attpid,
-                                         enableLoops);
+                                         pd_attpid);
        }
        if (!p) return -1;
    }

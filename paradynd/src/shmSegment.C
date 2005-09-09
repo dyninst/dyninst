@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment.C,v 1.2 2005/01/11 22:45:07 legendre Exp $
+// $Id: shmSegment.C,v 1.3 2005/09/09 18:08:03 legendre Exp $
 //----------------------------------------------------------------------------
 
 #include "common/h/headers.h"
@@ -50,7 +50,7 @@ const unsigned ShmSegment::cookie = 0xdeadbeef;
 
 
 // Cross-platform shmSegment definitions
-bool ShmSegment::attach(BPatch_thread *appThread, Address baseAddr) {
+bool ShmSegment::attach(BPatch_process *appProc, Address baseAddr) {
     BPatch_Vector<BPatch_snippet *>init_args;
     BPatch_constExpr init_key(GetKey());
     BPatch_constExpr init_size(GetSize());
@@ -58,20 +58,25 @@ bool ShmSegment::attach(BPatch_thread *appThread, Address baseAddr) {
     init_args.push_back(&init_key);
     init_args.push_back(&init_size);
     init_args.push_back(&addr);
-    
+
+    assert(appProc->isStopped());
     BPatch_Vector<BPatch_function *>init_func;
-    if ((NULL == appThread->getImage()->findFunction("RTsharedAttach",
+    if ((NULL == appProc->getImage()->findFunction("RTsharedAttach",
                                                      init_func)) ||
         init_func.size() == 0) {
         fprintf(stderr, "Failed to find shared init function\n");
         return false;
     }
+    assert(appProc->isStopped());
     BPatch_funcCallExpr init_expr(*(init_func[0]), init_args);
+    assert(appProc->isStopped());
     
     // We return the address attached to by the child -- set up
     // argument grabbing
 
-    baseAddrInApplic = (Address) appThread->oneTimeCode(init_expr);
+    assert(appProc->isStopped());
+    baseAddrInApplic = (Address) appProc->oneTimeCode(init_expr);
+    assert(appProc->isStopped());
 
     if (baseAddrInApplic != (Address) -1) {
         if (baseAddr &&
@@ -84,11 +89,12 @@ bool ShmSegment::attach(BPatch_thread *appThread, Address baseAddr) {
         return true;
     }
     fprintf(stderr, "Attach failed!\n");
+    assert(appProc->isStopped());
     
     return false;
 }
 
-bool ShmSegment::detach(BPatch_thread *appThread) {
+bool ShmSegment::detach(BPatch_process *appProc) {
     BPatch_Vector<BPatch_snippet *>init_args;
     BPatch_constExpr init_key(GetKey());
     BPatch_constExpr init_size(GetSize());
@@ -98,7 +104,7 @@ bool ShmSegment::detach(BPatch_thread *appThread) {
     init_args.push_back(&addr);
 
     BPatch_Vector<BPatch_function *>init_func;
-    if ((NULL == appThread->getImage()->findFunction("RTsharedDetach",
+    if ((NULL == appProc->getImage()->findFunction("RTsharedDetach",
                                                      init_func)) ||
         init_func.size() == 0) {
         fprintf(stderr, "Failed to find shared init function\n");
@@ -109,7 +115,7 @@ bool ShmSegment::detach(BPatch_thread *appThread) {
     // We return the address attached to by the child -- set up
     // argument grabbing
 
-    baseAddrInApplic = (Address) appThread->oneTimeCode(init_expr);
+    baseAddrInApplic = (Address) appProc->oneTimeCode(init_expr);
     
     if (baseAddrInApplic != (Address) -1) {
         attached = true;
