@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.6 2005/09/09 18:06:40 legendre Exp $
+ * $Id: emit-x86.C,v 1.7 2005/09/09 19:19:48 gquinn Exp $
  */
 
 #include <assert.h>
@@ -655,10 +655,10 @@ public:
 codeBufIndex_t Emitter64::emitIf(Register expr_reg, Register target, codeGen &gen)
 {
     // sub RAX, RAX
-    emitOpRegReg64(0x29, RAX, RAX, true, gen);
+    emitOpRegReg64(0x29, REGNUM_RAX, REGNUM_RAX, true, gen);
 
     // cmp %expr_reg, RAX
-    emitOpRegReg64(0x3B, RAX, expr_reg, true, gen);
+    emitOpRegReg64(0x3B, REGNUM_RAX, expr_reg, true, gen);
 
     // Retval: where the jump is in this sequence
     codeBufIndex_t retval = gen.getIndex();
@@ -756,13 +756,13 @@ void Emitter64::emitDiv(Register dest, Register src1, Register src2, codeGen &ge
 {
     // push RDX if it's in use, since we will need it
     bool save_rdx = false;
-    if (!regSpace->isFreeRegister(RDX)) {
+    if (!regSpace->isFreeRegister(REGNUM_RDX)) {
 	save_rdx = true;
-	emitPushReg64(RDX, gen);
+	emitPushReg64(REGNUM_RDX, gen);
     }
 
     // mov %src1, %rax
-    emitMovRegToReg64(RAX, src1, true, gen);
+    emitMovRegToReg64(REGNUM_RAX, src1, true, gen);
 
     // cqo (sign extend RAX into RDX)
     emitSimpleInsn(0x48, gen); // REX.W
@@ -772,11 +772,11 @@ void Emitter64::emitDiv(Register dest, Register src1, Register src2, codeGen &ge
     emitOpRegReg64(0xF7, 0x7, src2, true, gen);
 
     // mov %rax, %dest
-    emitMovRegToReg64(dest, RAX, true, gen);
+    emitMovRegToReg64(dest, REGNUM_RAX, true, gen);
 
     // pop rdx if it needed to be saved
     if (save_rdx)
-	emitPopReg64(RDX, gen);
+	emitPopReg64(REGNUM_RDX, gen);
 }
 
 void Emitter64::emitTimesImm(Register dest, Register src1, RegValue src2imm, codeGen &gen)
@@ -820,9 +820,9 @@ void Emitter64::emitDivImm(Register dest, Register src1, RegValue src2imm, codeG
 
 	// push RDX if it's in use, since we will need it
 	bool save_rdx = false;
-	if (!regSpace->isFreeRegister(RDX)) {
+	if (!regSpace->isFreeRegister(REGNUM_RDX)) {
 	    save_rdx = true;
-	    emitPushReg64(RDX, gen);
+	    emitPushReg64(REGNUM_RDX, gen);
 	}
 
 	// need to put dividend in RDX:RAX
@@ -836,18 +836,18 @@ void Emitter64::emitDivImm(Register dest, Register src1, RegValue src2imm, codeG
 	emitPushImm(src2imm, gen);
 
 	// idiv (%rsp)
-	emitOpRegRM64(0xF7, 0x7 /* opcode extension */, RSP, 0, true, gen);
+	emitOpRegRM64(0xF7, 0x7 /* opcode extension */, REGNUM_RSP, 0, true, gen);
 
 	// mov %rax, %dest ; set the result
-	emitMovRegToReg64(dest, RAX, true, gen);
+	emitMovRegToReg64(dest, REGNUM_RAX, true, gen);
 
 	// pop the immediate off the stack
 	// add $8, %rsp
-	emitOpRegImm8_64(0x83, 0x0, RSP, 8, true, gen);
+	emitOpRegImm8_64(0x83, 0x0, REGNUM_RSP, 8, true, gen);
 
 	// pop rdx if it needed to be saved
 	if (save_rdx)
-	    emitPopReg64(RDX, gen);
+	    emitPopReg64(REGNUM_RDX, gen);
     }
 }
 
@@ -861,10 +861,10 @@ void Emitter64::emitLoad(Register dest, Address addr, int size, codeGen &gen)
 	assert(size == 4 || size == 8);
 	
 	// mov $addr, %rax
-	emitMovImmToReg64(RAX, addr, true, gen);
+	emitMovImmToReg64(REGNUM_RAX, addr, true, gen);
 	
 	// mov (%rax), %dest
-	emitMovRMToReg64(dest, RAX, 0, size == 8, gen);
+	emitMovRMToReg64(dest, REGNUM_RAX, 0, size == 8, gen);
     }
 }
 
@@ -884,16 +884,16 @@ void Emitter64::emitLoadFrameRelative(Register dest, Address offset, codeGen &ge
     // FIXME: we assume int (size == 4) for now
 
     // mov (%rbp), %rax
-    emitMovRMToReg64(RAX, RBP, 0, true, gen);
+    emitMovRMToReg64(REGNUM_RAX, REGNUM_RBP, 0, true, gen);
 
     // mov offset(%rax), %dest
-    emitMovRMToReg64(dest, RAX, offset, false, gen);
+    emitMovRMToReg64(dest, REGNUM_RAX, offset, false, gen);
 }
 
 void Emitter64::emitLoadFrameAddr(Register dest, Address offset, codeGen &gen)
 {
     // mov (%rbp), %dest
-    emitMovRMToReg64(dest, RBP, 0, true, gen);
+    emitMovRMToReg64(dest, REGNUM_RBP, 0, true, gen);
 
     // add $offset, %dest
     emitOpRegImm64(0x81, 0x0, dest, offset, true, gen);
@@ -903,7 +903,7 @@ void Emitter64::emitLoadFrameAddr(Register dest, Address offset, codeGen &gen)
 
 void Emitter64::emitLoadPreviousStackFrameRegister(Address register_num, Register dest, codeGen &gen)
 {
-    emitMovRMToReg64(dest, RBP, (SAVED_RAX_OFFSET - register_num) * 8, true, gen);
+    emitMovRMToReg64(dest, REGNUM_RBP, (SAVED_RAX_OFFSET - register_num) * 8, true, gen);
 }
 
 void Emitter64::emitStore(Address addr, Register src, codeGen &gen)
@@ -911,10 +911,10 @@ void Emitter64::emitStore(Address addr, Register src, codeGen &gen)
     // FIXME: we assume int (size == 4) for now
 
     // mov $addr, %rax
-    emitMovImmToReg64(RAX, addr, true, gen);
+    emitMovImmToReg64(REGNUM_RAX, addr, true, gen);
 
     // mov %src, (%rax)
-    emitMovRegToRM64(RAX, 0, src, false, gen);
+    emitMovRegToRM64(REGNUM_RAX, 0, src, false, gen);
 }
 
 void Emitter64::emitStoreIndir(Register addr_reg, Register src, codeGen &gen)
@@ -928,13 +928,13 @@ void Emitter64::emitStoreFrameRelative(Address offset, Register src, Register /*
     // FIXME: we assume int (size == 4) for now
 
     // mov (%rbp), %rax
-    emitMovRMToReg64(RAX, RBP, 0, true, gen);
+    emitMovRMToReg64(REGNUM_RAX, REGNUM_RBP, 0, true, gen);
     
     // mov %src, offset(%rax)
-    emitMovRegToRM64(RAX, offset, src, false, gen);
+    emitMovRegToRM64(REGNUM_RAX, offset, src, false, gen);
 }
 
-static Register amd64_arg_regs[] = {RDI, RSI, RDX, RCX, R8, R9};
+static Register amd64_arg_regs[] = {REGNUM_RDI, REGNUM_RSI, REGNUM_RDX, REGNUM_RCX, REGNUM_R8, REGNUM_R9};
 #define AMD64_ARG_REGS (sizeof(amd64_arg_regs) / sizeof(Register))
 Register Emitter64::emitCall(opCode op, registerSpace *rs, codeGen &gen, const pdvector<AstNode *> &operands,
 			     process *proc, bool noCost, Address callee_addr, const pdvector<AstNode *> &ifForks,
@@ -990,13 +990,13 @@ Register Emitter64::emitCall(opCode op, registerSpace *rs, codeGen &gen, const p
 // FIXME: comment here on the stack layout
 void Emitter64::emitGetRetVal(Register dest, codeGen &gen)
 {
-    emitMovRMToReg64(dest, RBP, SAVED_RAX_OFFSET * 8, true, gen);
+    emitMovRMToReg64(dest, REGNUM_RBP, SAVED_RAX_OFFSET * 8, true, gen);
 }
 
 void Emitter64::emitGetParam(Register dest, Register param_num, instPointType_t /*pt_type*/, codeGen &gen)
 {
     assert(param_num <= 6);
-    emitMovRMToReg64(dest, RBP, (SAVED_RAX_OFFSET - amd64_arg_regs[param_num]) * 8, true, gen);
+    emitMovRMToReg64(dest, REGNUM_RBP, (SAVED_RAX_OFFSET - amd64_arg_regs[param_num]) * 8, true, gen);
 }
 
 static void emitPushImm16_64(unsigned short imm, codeGen &gen)
@@ -1021,7 +1021,7 @@ void Emitter64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
     if (ptType == otherPoint) {
 
 	// pop the old RSP value into RAX
-	emitPopReg64(RAX, gen);
+	emitPopReg64(REGNUM_RAX, gen);
 	
 	// restore saved FP state
 	// fxrstor (%rsp) ; 0x0f 0xae 0x04 0x24
@@ -1033,18 +1033,18 @@ void Emitter64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
 	SET_PTR(insn, gen);
 	
 	// restore stack pointer (deallocates FP save area)
-	emitMovRegToReg64(RSP, RAX, true, gen);
+	emitMovRegToReg64(REGNUM_RSP, REGNUM_RAX, true, gen);
     }
 
     // tear down the stack frame (LEAVE)
     emitSimpleInsn(0xC9, gen);
 
     // pop "fake" return address
-    emitPopReg64(RAX, gen);
+    emitPopReg64(REGNUM_RAX, gen);
 
     // restore saved registers (POP R15, POP R14, ...)
     for (int reg = 15; reg >= 0; reg--) {
-	//if (reg == RSP) continue;
+	//if (reg == REGNUM_RSP) continue;
 	emitPopReg64(reg, gen);
     }
 
@@ -1095,18 +1095,18 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
     
     // save all registers (PUSH RAX, PUSH RCX, ...)
     for (int reg = 0; reg < 16; reg++) {
-	//if (reg == RSP) continue;
+	//if (reg == REGNUM_RSP) continue;
 	emitPushReg64(reg, gen);
     }
 
     // push a return address for stack walking
     if (bt->preInstP) {
-	emitMovImmToReg64(RAX, bt->preInstP->addr(), true, gen);
-	emitPushReg64(RAX, gen);
+	emitMovImmToReg64(REGNUM_RAX, bt->preInstP->addr(), true, gen);
+	emitPushReg64(REGNUM_RAX, gen);
     }
     else if (bt->postInstP) {
-	emitMovImmToReg64(RAX, bt->postInstP->addr(), true, gen);
-	emitPushReg64(RAX, gen);
+	emitMovImmToReg64(REGNUM_RAX, bt->postInstP->addr(), true, gen);
+	emitPushReg64(REGNUM_RAX, gen);
     }
     else {
 	assert(bt->rpcMgr_);
@@ -1116,7 +1116,7 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
     // pushl %rbp        (0x55)
     // movl  %rsp, %rbp  (0x48 0x89 0xe5)
     emitSimpleInsn(0x55, gen);
-    emitMovRegToReg64(RBP, RSP, true, gen);
+    emitMovRegToReg64(REGNUM_RBP, REGNUM_RSP, true, gen);
 
     if (bt->isConservative()) {
 	
@@ -1130,9 +1130,9 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
 	//   fxsave (%rsp)           ; save the state
 	//   push %rax               ; save the old stack pointer
 
-	emitMovRegToReg64(RAX, RSP, true, gen);
-	emitOpRegImm64(0x81, 5, RSP, 512, true, gen);
-	emitOpRegImm64(0x81, 4, RSP, -16, true, gen);
+	emitMovRegToReg64(REGNUM_RAX, REGNUM_RSP, true, gen);
+	emitOpRegImm64(0x81, 5, REGNUM_RSP, 512, true, gen);
+	emitOpRegImm64(0x81, 4, REGNUM_RSP, -16, true, gen);
 
 	// fxsave (%rsp) ; 0x0f 0xae 0x04 0x24
 	REGET_PTR(buffer, gen);
@@ -1142,7 +1142,7 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
 	*buffer++ = 0x24;
 	SET_PTR(buffer, gen);
 
-	emitPushReg64(RAX, gen);
+	emitPushReg64(REGNUM_RAX, gen);
     }
 
     return true;
@@ -1153,7 +1153,7 @@ bool Emitter64::emitBTRestores(baseTramp* bt, codeGen &gen)
     if (bt->isConservative()) {
 
 	// pop the old RSP value into RAX
-	emitPopReg64(RAX, gen);
+	emitPopReg64(REGNUM_RAX, gen);
 
 	// restore saved FP state
 	// fxrstor (%rsp) ; 0x0f 0xae 0x04 0x24
@@ -1165,7 +1165,7 @@ bool Emitter64::emitBTRestores(baseTramp* bt, codeGen &gen)
 	SET_PTR(buffer, gen);
 
 	// restore stack pointer (deallocates FP save area)
-	emitMovRegToReg64(RSP, RAX, true, gen);
+	emitMovRegToReg64(REGNUM_RSP, REGNUM_RAX, true, gen);
     }
 
     // tear down the stack frame (LEAVE)
@@ -1173,11 +1173,11 @@ bool Emitter64::emitBTRestores(baseTramp* bt, codeGen &gen)
 
     // pop "fake" return address
     if (!bt->rpcMgr_)
-	emitPopReg64(RAX, gen);
+	emitPopReg64(REGNUM_RAX, gen);
 
     // restore saved registers (POP R15, POP R14, ...)
     for (int reg = 15; reg >= 0; reg--) {
-	//if (reg == RSP) continue;
+	//if (reg == REGNUM_RSP) continue;
 	emitPopReg64(reg, gen);
     }
 
@@ -1220,8 +1220,8 @@ bool Emitter64::emitBTGuardPreCode(baseTramp* bt, codeGen &gen, unsigned& guardJ
     }
     else {
         inst_printf("Emitting normal code\n");
-        emitMovImmToReg64(RAX, guard_flag_address, true, gen);
-        emitOpMemImm64(0x81, 0x7, RAX, 0, false, gen);
+        emitMovImmToReg64(REGNUM_RAX, guard_flag_address, true, gen);
+        emitOpMemImm64(0x81, 0x7, REGNUM_RAX, 0, false, gen);
     }
     
     guardJumpIndex = gen.getIndex();
@@ -1236,7 +1236,7 @@ bool Emitter64::emitBTGuardPreCode(baseTramp* bt, codeGen &gen, unsigned& guardJ
 	    assert(0);
     }
     else {
-	emitMovImmToRM(RAX, 0, 0, gen);
+	emitMovImmToRM(REGNUM_RAX, 0, 0, gen);
     }
     
     return true;
@@ -1258,7 +1258,7 @@ bool Emitter64::emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t 
    }
    else {
        inst_printf("Generating non-MT guard post code\n");
-       emitMovImmToReg64(RAX, guard_flag_address, true, gen);
+       emitMovImmToReg64(REGNUM_RAX, guard_flag_address, true, gen);
        emitMovImmToRM(REGNUM_EAX, 0, 1, gen);
    }
    guardTargetIndex = gen.getIndex();
@@ -1273,7 +1273,7 @@ bool Emitter64::emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costUpdate
     if (!costAddr) return false;
     costUpdateOffset = gen.used();    
 
-    emitMovImmToReg64(RAX, costAddr, true, gen);
+    emitMovImmToReg64(REGNUM_RAX, costAddr, true, gen);
     
     // this will be overwritten with: add $cost, (%rax) ;[0x81 0x00 <cost>] - 6 bytes
     instruction::generateNOOP(gen, 6);

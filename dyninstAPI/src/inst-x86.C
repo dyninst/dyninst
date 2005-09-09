@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.217 2005/09/09 18:06:45 legendre Exp $
+ * $Id: inst-x86.C,v 1.218 2005/09/09 19:19:48 gquinn Exp $
  */
 #include <iomanip>
 
@@ -125,7 +125,9 @@ int deadList32Size = sizeof(deadList32);
 
 #if defined(arch_x86_64)
 // we do non-arg registers here first - followed by arg registers in reverse order
-Register deadList64[] = {RBX, R10, R11, R12, R13, R14, R15, R9, R8, RCX, RDX, RSI, RDI};
+Register deadList64[] = {REGNUM_RBX, REGNUM_R10, REGNUM_R11, REGNUM_R12,
+			 REGNUM_R13, REGNUM_R14, REGNUM_R15, REGNUM_R9,
+			 REGNUM_R8, REGNUM_RCX, REGNUM_RDX, REGNUM_RSI, REGNUM_RDI};
 int deadList64Size = sizeof(deadList64);
 #endif
 
@@ -173,7 +175,7 @@ unsigned generateAndWriteBranch(process *proc,
     if (disp > I32_MAX || disp < I32_MIN) {
 
 	// need to use an indirect jmp
-	emitMovImmToReg64(RAX, newAddr, true, gen);
+	emitMovImmToReg64(REGNUM_RAX, newAddr, true, gen);
 	emitSimpleInsn(0xff, gen); // group 5
 	emitSimpleInsn(0xe0, gen); // mod = 11, reg = 4 (call Ev), r/m = 0 (RAX)
     }
@@ -332,8 +334,8 @@ void baseTrampInstance::updateTrampCost(unsigned cost) {
     }
     else {
 #if defined(arch_x86_64)
-	emitMovImmToReg64(RAX, costAddr, true, gen);
-	emitOpRMImm(0x81, 0, RAX, 0, cost, gen);
+	emitMovImmToReg64(REGNUM_RAX, costAddr, true, gen);
+	emitOpRMImm(0x81, 0, REGNUM_RAX, 0, cost, gen);
 #else
 	assert(0);
 #endif

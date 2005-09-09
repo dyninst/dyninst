@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.78 2005/09/09 18:06:48 legendre Exp $
+// $Id: linux-x86.C,v 1.79 2005/09/09 19:19:49 gquinn Exp $
 
 #include <fstream>
 
@@ -1583,25 +1583,25 @@ bool process::loadDYNINSTlib_libc21() {
   } else {
 
       // Push caller
-      emitMovImmToReg64(RAX, dlopen_addr, true, scratchCodeBuffer);
+      emitMovImmToReg64(REGNUM_RAX, dlopen_addr, true, scratchCodeBuffer);
       emitSimpleInsn(0x50, scratchCodeBuffer); // push %rax
 
       // Push hole for result
       emitSimpleInsn(0x50, scratchCodeBuffer); // push %rax
 
       // Push padding and mode
-      emitMovImmToReg64(EAX, DLOPEN_MODE, false, scratchCodeBuffer); // 32-bit mov: clears high dword
+      emitMovImmToReg64(REGNUM_EAX, DLOPEN_MODE, false, scratchCodeBuffer); // 32-bit mov: clears high dword
       emitSimpleInsn(0x50, scratchCodeBuffer); // push %rax
 
       // Push string addr
-      emitMovImmToReg64(RAX, dyninstlib_str_addr, true, scratchCodeBuffer);
+      emitMovImmToReg64(REGNUM_RAX, dyninstlib_str_addr, true, scratchCodeBuffer);
       emitSimpleInsn(0x50, scratchCodeBuffer); // push %rax
       
       // Set up the argument: the current stack pointer
-      emitMovRegToReg64(RDI, RSP, true, scratchCodeBuffer);
+      emitMovRegToReg64(REGNUM_RDI, REGNUM_RSP, true, scratchCodeBuffer);
       
       // The call (must be done through a register in order to reach)
-      emitMovImmToReg64(RAX, dlopen_addr, true, scratchCodeBuffer);
+      emitMovImmToReg64(REGNUM_RAX, dlopen_addr, true, scratchCodeBuffer);
       emitSimpleInsn(0xff, scratchCodeBuffer); // group 5
       emitSimpleInsn(0xd0, scratchCodeBuffer); // mod = 11, ext_op = 2 (call Ev), r/m = 0 (RAX)
   }
