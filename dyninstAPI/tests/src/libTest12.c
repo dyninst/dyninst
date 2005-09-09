@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <dyninstRTExport.h>
-#include <test12.h>
+#include "test12.h"
 
 /*
   A library of functions used in test12.  

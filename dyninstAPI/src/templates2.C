@@ -40,7 +40,7 @@
  */
 
 
-// $Id: templates2.C,v 1.55 2005/09/01 22:18:46 bernat Exp $
+// $Id: templates2.C,v 1.56 2005/09/09 15:57:10 bernat Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -178,6 +178,8 @@ template class pdvector<dictionary_hash <pdstring, BPatch_typeCollection *>::ent
 template class pdvector< pdpair< pdstring, int_function *> >;
 template class pdvector< pdpair< pdstring, pdvector< int_function * > * > >;
 
+
+
 #include "BPatch_asyncEventHandler.h"
 /* From class BPatch_asyncEventHandler */
 template class pdvector<process_record>;
@@ -204,8 +206,8 @@ template class pdvector<dictionary_hash < pdstring, pdvector <Symbol> >::entry>;
 template class dictionary_hash< pdstring, bool >;
 template class pdvector< dictionary_hash< pdstring, bool >::entry >;
 
-#include "dyninstAPI/src/LineInformation.h"
-template class LineInformation::SourceLineInternTable;
+/* #include "dyninstAPI/src/LineInformation.h" */
+/* template LineInformation::SourceLineInternTable; */
 
 #if defined(os_aix)
 #include <set>
@@ -214,7 +216,8 @@ template class std::set< image * >;
 
 class multiTramp;
 template class dictionary_hash<int, multiTramp *>;
+template class pdvector<dictionary_hash <int, multiTramp *>::entry>;
 
 class replacedFunctionCall;
 template class dictionary_hash<Address, replacedFunctionCall *>;
-
+template class pdvector<dictionary_hash<Address, replacedFunctionCall *>::entry>;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.253 2005/09/02 00:45:20 bernat Exp $
+ // $Id: symtab.C,v 1.254 2005/09/09 15:57:06 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2271,119 +2271,6 @@ pdmodule::findFunction( const pdstring &name, pdvector<image_func *> * found ) {
   }
   return NULL;
 } /* end findFunction() */
-
-
-#if !defined(i386_unknown_nt4_0) \
- && !defined(mips_unknown_ce2_11)
-
-/* private refactoring functions */
-typedef pdpair< pdstring, image_func * > nameFunctionPair;
-typedef pdpair< pdstring, pdvector< image_func * > * > nameFunctionListPair;
-
-void runCompiledRegexOn( regex_t * compiledRegex, pdvector< nameFunctionPair > * nameToFunctionMap, pdvector< image_func * > * found ) {
-	int status = 0;
-	for( unsigned int i = 0; i < nameToFunctionMap->size(); i++ ) {
-		const char * name = (*nameToFunctionMap)[i].first.c_str();
-		status = regexec( compiledRegex, name, 1, NULL, 0 );
-		if( status == REG_NOMATCH ) { continue; }
-		if( status != 0 ) {
-			char errorString[80];
-			regerror( status, compiledRegex, errorString, 80 );
-			bperr("runCompiledRegexOn() regular expression execution error: '%s'\n", errorString ); 
-			return;
-			}
-
-		found->push_back( (*nameToFunctionMap)[i].second );
-		}
-	} /* end runCompiledRegexOn() */
-
-void runCompiledRegexOnList( regex_t * compiledRegex, pdvector< nameFunctionListPair > * nameToFunctionListMap, pdvector< image_func * > * found ) {
-	int status = 0;
-	for( unsigned int i = 0; i < nameToFunctionListMap->size(); i++ ) {
-		const char * name = (*nameToFunctionListMap)[i].first.c_str();
-		status = regexec( compiledRegex, name, 1, NULL, 0 );
-		if( status == REG_NOMATCH ) { continue; }
-		if( status != 0 ) {
-			char errorString[80];
-			regerror( status, compiledRegex, errorString, 80 );
-			bperr("runCompiledRegexOn() regular expression execution error: '%s'\n", errorString ); 
-			return;
-			}
-
-		pdvector< image_func * > * matchingFunctions = (*nameToFunctionListMap)[i].second;
-		for( unsigned int j = 0; j < matchingFunctions->size(); j++ ) {
-			found->push_back( (*matchingFunctions)[j] );
-			}
-		}
-	} /* end runCompiledRegexOnList() */
-#endif
-
-pdvector<image_func *> *
-pdmodule::findFunctionFromAll(const pdstring &name,
-			      pdvector<image_func *> *found, 
-			      bool regex_case_sensitive,
-               bool dont_use_regex) 
-{	    
-  /* Are we doing a regex search? */
-  if( dont_use_regex || NULL == strpbrk( name.c_str(), REGEX_CHARSET )) {
-    /* Checks pretty and mangled instrumentable function names. */
-    if( NULL != findFunction( name, found ) && found->size() != 0 ) {
-      exec()->analyzeIfNeeded();
-      return found;
-    }
-    
-    return NULL;
-  }
-  
-  /* We're doing a regular expression search, which is not yet implemented
-     on Microsoft platforms. */
-#if !defined(i386_unknown_nt4_0) \
- && !defined(mips_unknown_ce2_11)
-  regex_t comp_pat;
-  int err = 0;
-  int cflags = REG_NOSUB | REG_EXTENDED;
-  
-  if( !regex_case_sensitive ) {
-    cflags |= REG_ICASE;
-  }
-  
-  if (0 != (err = regcomp( &comp_pat, name.c_str(), cflags ) ) ) {
-    char errbuf[80];
-    regerror( err, &comp_pat, errbuf, 80 );
-    cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
-    return NULL;
-  }
-  
-  /* Run the regular expression against, in order:
-     the pretty names of instrumentable functions,
-     the mangled names of instrumentable functions,
-     the pretty names of uninstrumentable functions,
-     and the mangled names of uninstrumentable functions,
-     returning as soon as any regex succceeds.  (Note:
-     this is wrong, but follows the previous semantics.) */
-  
-  pdvector< nameFunctionListPair > instrumentablePrettyPairs = allFunctionsByPrettyName.keysAndValues();
-  runCompiledRegexOnList( & comp_pat, & instrumentablePrettyPairs, found );
-  if( found->size() != 0 ) { 
-    regfree( & comp_pat ); 
-    exec()->analyzeIfNeeded();
-    return found; 
-  }
-  
-  pdvector< nameFunctionListPair > instrumentableMangledPairs = allFunctionsByMangledName.keysAndValues();
-  runCompiledRegexOnList( & comp_pat, & instrumentableMangledPairs, found );
-  if( found->size() != 0 ) { 
-    regfree( & comp_pat ); 
-    exec()->analyzeIfNeeded();
-    return found; 
-  }
-  
-  regfree( & comp_pat );
-#endif
-  
-  /* We didn't find anything. */
-  return NULL;
-} /* end findFunctionFromAll() */
 
 pdvector<image_func *> *pdmodule::findFunctionByMangled( const pdstring &name )
 {

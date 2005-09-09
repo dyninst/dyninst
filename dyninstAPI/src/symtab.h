@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.184 2005/09/01 22:18:44 bernat Exp $
+// $Id: symtab.h,v 1.185 2005/09/09 15:57:07 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -213,11 +213,6 @@ class pdmodule: public module {
    pdvector<image_func *> *findFunction (const pdstring &name, 
                                          pdvector<image_func *> *found);
  
-   pdvector<image_func *> *findFunctionFromAll(const pdstring &name, 
-                  pdvector<image_func *> *found, 
-                  bool regex_case_sensitive=true,
-                  bool dont_use_regex=false);
-
    /* We can see more than one function with the same mangled
       name in the same object, because it's OK for different
       modules in the same object to define the same (local) symbol.

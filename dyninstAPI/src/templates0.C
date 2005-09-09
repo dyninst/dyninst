@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.55 2005/08/25 22:46:00 bernat Exp $
+// $Id: templates0.C,v 1.56 2005/09/09 15:57:08 bernat Exp $
 // Generate all the templates in one file.
 
 /*
@@ -199,6 +199,7 @@ class image_func;
 class image_basicBlock;
 class image_variable;
 template class  pdvector<image_func *>;
+template class  pdvector<pdvector<image_func *> *>;
 template class  pdvector<image_basicBlock *>;
 template class  pdvector<image_variable *>;
 
