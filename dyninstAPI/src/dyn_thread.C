@@ -44,6 +44,50 @@
 #include "dyninstAPI/src/rpcMgr.h"
 
 
+dyn_thread::dyn_thread(process *pproc) : 
+   tid(0), 
+   index(0), 
+   stack_addr(0),
+   start_pc(0), 
+   start_func(NULL),
+   pending_tramp_addr(ADDR_NULL),
+   useRPCStack_(false)
+{ 
+   proc = pproc; 
+   lwp  = pproc->getRepresentativeLWP();
+   proc->addThread(this);
+}
+
+dyn_thread::dyn_thread(process *proc_, unsigned index_, dyn_lwp *lwp_) :
+    tid(0),
+    index(index_),
+    lwp(lwp_),
+    stack_addr(0),
+    start_pc(0),
+    start_func(NULL),
+    pending_tramp_addr( ADDR_NULL ),
+    useRPCStack_(false)
+{
+   proc = proc_;
+   proc->addThread(this);
+}
+
+dyn_thread::dyn_thread(dyn_thread *src, process *child)
+{
+   assert(src && child);
+   tid = src->tid;
+   index = src->index;
+   lwp  = child->getRepresentativeLWP();
+   stack_addr = src->stack_addr;
+   start_pc = src->start_pc;
+   resumestate_p = src->resumestate_p;
+   start_func = src->start_func;
+   proc = child;
+   pending_tramp_addr = ADDR_NULL;
+   useRPCStack_ = false;
+   proc->addThread(this);
+}
+
 // This will need to be filled in if we (ever) handle migrating threads
 bool dyn_thread::updateLWP()
 {
@@ -83,7 +127,7 @@ dyn_lwp *dyn_thread::get_lwp()
 {
   if (proc->multithread_ready(true))
     updateLWP();
-  return lwp;
+   return lwp;
 }
 
 bool dyn_thread::savePreRPCStack()
@@ -106,3 +150,7 @@ void dyn_thread::clearPreRPCStack() {
 }
 
 
+dyn_thread::~dyn_thread() 
+{
+}
+  

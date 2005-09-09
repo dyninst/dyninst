@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscallNotification.h,v 1.2 2004/03/23 01:12:10 eli Exp $
+// $Id: syscallNotification.h,v 1.3 2005/09/09 18:07:12 legendre Exp $
 
 #if !defined(SYSCALL_NOTIFICATION_H)
 #define SYSCALL_NOTIFICATION_H
@@ -58,18 +58,20 @@ class syscallNotification {
     instMapping *preExecInst;
     instMapping *postExecInst;
     instMapping *preExitInst;
+    instMapping *preLwpExitInst;
     process *proc;
     
   public:
     syscallNotification() :
     preForkInst(NULL), postForkInst(NULL),
     preExecInst(NULL), postExecInst(NULL),
-    preExitInst(NULL) { assert(0 && "ILLEGAL USE OF DEFAULT CONSTRUCTOR"); }
+    preExitInst(NULL), preLwpExitInst(NULL)
+       { assert(0 && "ILLEGAL USE OF DEFAULT CONSTRUCTOR"); }
 
     syscallNotification(process *p) :
     preForkInst(NULL), postForkInst(NULL),
     preExecInst(NULL), postExecInst(NULL),
-    preExitInst(NULL), proc(p) {};
+    preExitInst(NULL), preLwpExitInst(NULL), proc(p) {};
 
     // fork constructor
     syscallNotification(syscallNotification *parentSN,
@@ -83,6 +85,7 @@ class syscallNotification {
         if (preExecInst) removePreExec();
         if (postExecInst) removePostExec();
         if (preExitInst) removePreExit();
+        if (preLwpExitInst) removePreLwpExit();
     }
     
     bool installPreFork();
@@ -90,12 +93,14 @@ class syscallNotification {
     bool installPreExec();
     bool installPostExec();
     bool installPreExit();
+    bool installPreLwpExit();
 
     bool removePreFork();
     bool removePostFork();
     bool removePreExec();
     bool removePostExec();
     bool removePreExit();
+    bool removePreLwpExit();
 };
 
 #endif

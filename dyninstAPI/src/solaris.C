@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.185 2005/09/01 22:18:42 bernat Exp $
+// $Id: solaris.C,v 1.186 2005/09/09 18:07:05 legendre Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -989,63 +989,6 @@ bool Frame::setPC(Address newpc) {
 }
 
 
-#if !defined(BPATCH_LIBRARY)
-rawTime64 dyn_lwp::getRawCpuTime_hw()
-{
-  return 0;
-}
-
-/* return unit: nsecs */
-rawTime64 dyn_lwp::getRawCpuTime_sw() 
-{
-  // returns user time from the u or proc area of the inferior process,
-  // which in turn is presumably obtained by using a /proc ioctl to obtain
-  // it (solaris).  It must not stop the inferior process in order to obtain
-  // the result, nor can it assure that the inferior has been stopped.  The
-  // result MUST be "in sync" with rtinst's DYNINSTgetCPUtime().
-  
-  rawTime64 result;
-  prusage_t theUsage;
-
-#ifdef PURE_BUILD
-  // explicitly initialize "theUsage" struct (to pacify Purify)
-  memset(&theUsage, '\0', sizeof(prusage_t));
-#endif
-
-  // compute the CPU timer for the whole process
-  if(is_attached()) {
-     if(pread(usage_fd(), &theUsage, sizeof(prusage_t), 0) 
-        != sizeof(prusage_t))
-     {
-        perror("getInfCPU: read");
-        return -1;  // perhaps the process ended
-     }
-  }
-  else return -1; // perhaps the process ended
-
-  result =  (theUsage.pr_utime.tv_sec + theUsage.pr_stime.tv_sec) * 1000000000LL;
-  result += (theUsage.pr_utime.tv_nsec+ theUsage.pr_stime.tv_nsec);
-
-  if (result < sw_previous_) // Time ran backwards?
-  {
-      // When the process exits we often get a final time call.
-      // If the result is 0(.0), don't print an error.
-      if (result) {
-          char errLine[150];
-          sprintf(errLine,"process::getRawCpuTime_sw - time going backwards in "
-                  "daemon - cur: %lld, prev: %lld\n", result, sw_previous_);
-          cerr << errLine;
-          logLine(errLine);
-      }
-      result = sw_previous_;
-  }
-  else sw_previous_=result;
-  
-  return result;
-}
-#endif // BPATCH_LIBRARY
-
-
 void print_read_error_info(const relocationEntry entry, 
                            int_function *&target_pdf, Address base_addr) {
 
@@ -1290,3 +1233,14 @@ void loadNativeDemangler() {
       dlsym(hDemangler, "cplus_demangle");
 }
 // vim:ts=5:
+
+bool process::initMT()
+{
+   return true;
+}
+
+#include <sched.h>
+void dyninst_yield()
+{
+   sched_yield();
+}

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-linux.C,v 1.11 2005/08/08 20:23:34 gquinn Exp $
+// $Id: syscall-linux.C,v 1.12 2005/09/09 18:07:09 legendre Exp $
 
 #if defined( arch_x86 ) || defined( arch_x86_64 )
 #define FORK_FUNC "__libc_fork"
@@ -176,6 +176,11 @@ bool syscallNotification::installPreExit() {
     return true;
 }    
 
+bool syscallNotification::installPreLwpExit() {
+   preLwpExitInst = NULL;
+   return true;
+}
+
 //////////////////////////////////////////////////////
 
 /////// Remove pre-fork instrumentation
@@ -274,8 +279,6 @@ bool syscallNotification::removePostExec() {
 /////// Remove pre-exit instrumentation
 
 bool syscallNotification::removePreExit() {
-    if (!preExitInst) return false;
-
     if (!proc->isAttached() || proc->execing()) {
         delete preExitInst;
         preExitInst = NULL;
@@ -296,6 +299,10 @@ bool syscallNotification::removePreExit() {
     delete preExitInst;
     preExitInst = NULL;
     return true;
+}
+
+bool syscallNotification::removePreLwpExit() {
+   return true;
 }
 
 //////////////////////////////////////////////

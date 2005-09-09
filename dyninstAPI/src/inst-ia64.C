@@ -2396,6 +2396,7 @@ bool rpcMgr::emitInferiorRPCheader( codeGen &gen ) {
 	/* The code generator needs to know about the register space
 	   as well, so just take advantage of the existing globals. */
 	* regSpace = rs;
+
 	memcpy( ::deadRegisterList, deadRegisterList, 16 * sizeof( Register ) );
 
 	if( needToHandleSyscall( proc_ ) ) {
@@ -3983,3 +3984,10 @@ int instPoint::getPointCost() {
   return worstCost;
 }
 
+/**
+ * Fills in an indirect function pointer at 'addr' to point to 'f'.
+ **/
+bool writeFunctionPtr(process *p, Address addr, int_function *f)
+{
+   return true;
+}

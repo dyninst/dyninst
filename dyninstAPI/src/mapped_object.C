@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.7 2005/09/02 16:32:14 bernat Exp $
+// $Id: mapped_object.C,v 1.8 2005/09/09 18:06:51 legendre Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -291,32 +291,32 @@ char *mapped_object::getModulePart(pdstring &full_path_name) {
 
 mapped_module *mapped_object::findModule(pdstring m_name, bool wildcard)
 {
-    //parsing_printf("findModule for %s (substr match %d)\n",
-    //m_name.c_str(), wildcard);
-    for (unsigned i = 0; i < everyModule.size(); i++) {
-        if (everyModule[i]->fileName() == m_name ||
-            everyModule[i]->fullName() == m_name ||
-            (wildcard &&
-             (m_name.wildcardEquiv(everyModule[i]->fileName()) ||
-              m_name.wildcardEquiv(everyModule[i]->fullName())))) {
-            //parsing_printf("... found!\n");
-            return everyModule[i];
-        }
-    }
-    // Create a new one IF there's one in the child pd_module
-   
-    pdmodule *pdmod = image_->findModule(m_name, wildcard);
-    if (pdmod) {
-        mapped_module *mod = mapped_module::createMappedModule(this,
-                                                               pdmod);
-        everyModule.push_back(mod);
-        //parsing_printf("... made new module!\n");
-        return mod;
-    }
-    else {
-        //parsing_printf("... error, no module found...\n");
-        return NULL;
-    }
+   parsing_printf("findModule for %s (substr match %d)\n",
+                  m_name.c_str(), wildcard);
+   for (unsigned i = 0; i < everyModule.size(); i++) {
+      if (everyModule[i]->fileName() == m_name ||
+          everyModule[i]->fullName() == m_name ||
+          (wildcard &&
+           (m_name.wildcardEquiv(everyModule[i]->fileName()) ||
+            m_name.wildcardEquiv(everyModule[i]->fullName())))) {
+         //parsing_printf("... found!\n");
+         return everyModule[i];
+      }
+   }
+   // Create a new one IF there's one in the child pd_module
+    
+   pdmodule *pdmod = image_->findModule(m_name, wildcard);
+   if (pdmod) {
+      mapped_module *mod = mapped_module::createMappedModule(this,
+                                                             pdmod);
+      everyModule.push_back(mod);
+      //parsing_printf("... made new module!\n");
+      return mod;
+   }
+   else {
+      //parsing_printf("... error, no module found...\n");
+      return NULL;
+   }
 }
 
 
@@ -854,7 +854,3 @@ mapped_module *mapped_object::getOrCreateForkedModule(mapped_module *parMod) {
     return childModule;
 
 }
-
-
-
-

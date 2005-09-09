@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.36 2005/08/08 20:23:33 gquinn Exp $
+ * $Id: dyn_lwp.h,v 1.37 2005/09/09 18:06:37 legendre Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -148,11 +148,6 @@ class dyn_lwp
   bool isWaitingForSyscall() const;
   int hasReachedSyscallTrap();
   
-#if !defined(BPATCH_LIBRARY)
-  // Timing functions
-  rawTime64 getRawCpuTime_hw();
-  rawTime64 getRawCpuTime_sw();
-#endif
   int getLastSignal() { return lastSig_; }
   void setSignal(int sig) { lastSig_ = sig; }
 
@@ -323,11 +318,6 @@ class dyn_lwp
   handleT procHandle_; // Process-specific, as opposed to thread-specific,
                        // handle. Currently used by NT
 
-#if !defined(BPATCH_LIBRARY)
-  rawTime64 hw_previous_;
-  rawTime64 sw_previous_;
-#endif
-  
   // System call interruption, currently for Solaris, only.  If the
   // process is sleeping in a system call during an inferior RPC
   // attempt, we interrupt the system call, perform the RPC, and
@@ -343,9 +333,6 @@ class dyn_lwp
   dyn_saved_regs *syscallreg_; // Registers during sleeping syscall
                           // (note we do not save FP registers)
   sigset_t sighold_;       // Blocked signals during sleeping syscall
-#endif
-#if defined( os_linux )
-  int sigStopsQueued;
 #endif
 
   int lastSig_;

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.92 2005/08/03 05:28:00 bernat Exp $
+ * $Id: Object-elf.C,v 1.93 2005/09/09 18:06:26 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -2073,14 +2073,16 @@ stab_entry *Object::get_stab_info() const
 }
 
 Object::Object(const fileDescriptor &desc, void (*err_func)(const char *))
-    : AObject(desc.file(), err_func), EEL(false), symbolNamesByAddr( addrHash ) { //ccw 8 mar 2004
+    : AObject(desc.file(), err_func), fileName(NULL), EEL(false), 
+   symbolNamesByAddr( addrHash ) { //ccw 8 mar 2004
     if (desc.isSharedObject())
         load_shared_object();
     else load_object();
 }
 
 Object::Object(const Object& obj)
-    : AObject(obj), EEL(false), symbolNamesByAddr( addrHash ) {
+    : AObject(obj), fileName(NULL), EEL(false), symbolNamesByAddr( addrHash ) 
+{
     load_object();
 }
 
@@ -2107,7 +2109,9 @@ Object::operator=(const Object& obj) {
     return *this;
 }
 
-Object::~Object() {
+Object::~Object()
+{
+   if (fileName) free(fileName);
 }
 
 void Object::log_elferror(void (*)(const char *), const char* msg) {
@@ -2258,33 +2262,35 @@ void Object::get_valid_memory_areas(Elf_X &elf)
 //
 bool parseCompilerType(Object *objPtr) 
 {
-    stab_entry *stabptr = objPtr->get_stab_info();
-    const char *next_stabstr = stabptr->getStringBase();
+   stab_entry *stabptr = objPtr->get_stab_info();
+   const char *next_stabstr = stabptr->getStringBase();
+   
+   for (unsigned int i=0; i < stabptr->count(); ++i) {
+      // if (stabstrs) bperr("parsing #%d, %s\n", stabptr->type(i), stabptr->name(i));
+      switch (stabptr->type(i)) {
 
-    for (unsigned int i=0; i < stabptr->count(); ++i) {
-	// if (stabstrs) bperr("parsing #%d, %s\n", stabptr->type(i), stabptr->name(i));
-	switch (stabptr->type(i)) {
+         case N_UNDF: /* start of object file */
+            /* value contains offset of the next string table for next module */
+            // assert(stabptr.nameIdx(i) == 1);
+            stabptr->setStringBase(next_stabstr);
+            next_stabstr = stabptr->getStringBase() + stabptr->val(i);
+            break;
 
-	case N_UNDF: /* start of object file */
-	    /* value contains offset of the next string table for next module */
-	    // assert(stabptr.nameIdx(i) == 1);
-	    stabptr->setStringBase(next_stabstr);
-	    next_stabstr = stabptr->getStringBase() + stabptr->val(i);
-	    break;
-
-	case N_OPT: /* Compiler options */
-	    delete stabptr;
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_solaris2_5)      
-	    if (strstr(stabptr->name(i), "Sun") != NULL ||
-		strstr(stabptr->name(i), "Forte") != NULL)
-		return true;
+         case N_OPT: /* Compiler options */
+#if defined(os_sparc) 
+            if (strstr(stabptr->name(i), "Sun") != NULL ||
+                strstr(stabptr->name(i), "Forte") != NULL)
+            {
+               delete stabptr;
+               return true;
+            }
 #endif
-	    return false;
-	}
-    }
-    delete stabptr;
-    return false; // Shouldn't happen - maybe N_OPT stripped
+            delete stabptr;
+            return false;
+      }
+   }
+   delete stabptr;
+   return false; // Shouldn't happen - maybe N_OPT stripped
 }
 
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.77 2005/09/09 15:56:58 bernat Exp $
+// $Id: BPatch_image.C,v 1.78 2005/09/09 18:06:20 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -260,6 +260,10 @@ bool BPatch_image::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 bool BPatch_image::setFuncModulesCallback(BPatch_function *bpf, void *data)
 {
   BPatch_image *img = (BPatch_image *) data;
+  if (bpf->getModule() == NULL && bpf->func->mod() != NULL) {
+    bpf->mod = img->findModule(bpf->func->mod()->fileName().c_str());
+  }
+
   if( bpf->getModule() == NULL ) {
      char name[256];
      fprintf(stderr, "Warning: bpf '%s' unclaimed, setting to DEFAULT_MODULE\n",
@@ -292,7 +296,6 @@ BPatch_Vector<BPatch_module *> *BPatch_image::getModulesInt() {
  *
  * Returns module with <name>, NULL if not found
  */
-
 BPatch_module *BPatch_image::findModuleInt(const char *name, bool substring_match) 
 {
   if (!name) {
@@ -683,6 +686,20 @@ BPatch_image::findFunctionWithSieve(BPatch_Vector<BPatch_function *> &funcs,
   }
   
   return NULL;
+}
+
+/*
+ * BPatch_image::findFunctionP
+ *
+ * Finds a function based on an address in the mutatee
+ */
+BPatch_function *BPatch_image::findFunctionInt(unsigned long addr)
+{
+   int_function *ifunc = proc->llproc->findFuncByAddr(addr);
+   if (!ifunc)
+      return NULL;
+      
+   return proc->findOrCreateBPFunc(ifunc, NULL);
 }
 
 /*

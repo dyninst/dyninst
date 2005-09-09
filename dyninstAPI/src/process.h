@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.334 2005/09/02 00:45:19 bernat Exp $
+/* $Id: process.h,v 1.335 2005/09/09 18:06:59 legendre Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -99,6 +99,7 @@
 extern unsigned SHARED_SEGMENT_SIZE;
 #endif
 
+#define MAX_THREADS 32
 extern unsigned activeProcesses; // number of active processes
    // how about just processVec.size() instead?  At least, this should be made
    // a (static) member vrble of class process
@@ -221,29 +222,6 @@ class process {
 
   bool isInSignalHandler(Address addr);
 
-  // Notify daemon of threads
-
-  dyn_thread *createThread(
-      int tid, 
-      unsigned index, 
-      unsigned lwp,
-      unsigned stackbase, 
-      unsigned startpc, 
-      void* resumestate_p, 
-      bool);
-  // For initial thread (assume main is top func)
-  void updateThread(dyn_thread *thr, int tid, unsigned index,
-                    unsigned lwp,
-                    void* resumestate_p) ;
-  // For new threads
-  void updateThread(
-    dyn_thread *thr, 
-    int tid, 
-    unsigned index,
-    unsigned lwp,
-    unsigned stackbase,
-    unsigned startpc, 
-    void* resumestate_p);
   void deleteThread(int tid);
 
   // Thread index functions
@@ -345,10 +323,6 @@ char * systemPrelinkCommand;
 
   rpcMgr *getRpcMgr() const { return theRpcMgr; }
 
-#ifdef INFERIOR_RPC_DEBUG
-  void CheckAppTrapIRPCInfo();
-#endif
-
   bool getCurrPCVector(pdvector <Address> &currPCs);
 
 #if defined(os_solaris) && (defined(arch_x86) || defined(arch_x86_64))
@@ -356,9 +330,9 @@ char * systemPrelinkCommand;
 #endif
 
   void installInstrRequests(const pdvector<instMapping*> &requests);
-  void recognize_threads(const process *parent);
+  void recognize_threads(const process *parent = NULL);
   // Get LWP handles from /proc (or as appropriate)
-  void determineLWPs(pdvector<unsigned> &lwp_ids);
+  bool determineLWPs(pdvector<unsigned> &lwp_ids);
 
   int getPid() const { return pid;}
 
@@ -374,7 +348,8 @@ char * systemPrelinkCommand;
   bool iRPCDyninstInit();
   static void DYNINSTinitCompletionCallback(process *, unsigned /* rpc_id */,
                                             void *data, void *ret);
-  
+  bool initMT();
+
   // Get the list of inferior heaps from:
 
   bool getInfHeapList(pdvector<heapDescriptor> &infHeaps); // Whole process
@@ -387,7 +362,6 @@ char * systemPrelinkCommand;
 
   /* Find the tramp guard addr and set it */
   bool initTrampGuard();
-
   void saveWorldData(Address address, int size, const void* src);
 
 #if defined(cap_save_the_world)
@@ -476,8 +450,6 @@ char * systemPrelinkCommand;
 
   // Trampoline guard get/set functions
   Address trampGuardBase(void) { return trampGuardBase_; }
-  void setTrampGuardBase(Address addr) { trampGuardBase_ = addr; }
-  
   //  
   //  PUBLIC DATA MEMBERS
   //  
@@ -553,23 +525,38 @@ char * systemPrelinkCommand;
       bootstrapState = state;
   }
 
- // Callbacksfor higher level code (like BPatch) to learn about new 
+ // Callbacks for higher level code (like BPatch) to learn about new 
  //  functions and InstPoints.
  private:
   BPatch_function *(*new_func_cb)(process *p, int_function *f);
   BPatch_point *(*new_instp_cb)(process *p, int_function *f, instPoint *ip, 
                                 int type);
+  void (*thrd_del_cb)(process *p, dyn_thread *thr);
+  void (*thrd_new_cb)(process *p, int id, int lwp);
  public:
-  BPatch_function *registerNewFunction(int_function *f) 
+  //Trigger the callbacks from a lower level
+  BPatch_function *newFunctionCB(int_function *f) 
      { assert(new_func_cb); return new_func_cb(this, f); }
-  BPatch_point *registerNewInstPoint(int_function *f, instPoint *pt, int type)
+  BPatch_point *newInstPointCB(int_function *f, instPoint *pt, int type)
      { assert(new_instp_cb); return new_instp_cb(this, f, pt, type); }
-  void newFunctionCallback(BPatch_function *(*f)(process *p, int_function *f))
+  void deleteThreadCB(dyn_thread *thr)
+     { assert(thrd_del_cb); thrd_del_cb(this, thr); }
+  void newThreadCB(int id, int lwp)
+     { assert(thrd_new_cb); thrd_new_cb(this, id, lwp); }
+
+  //Register callbacks from the higher level
+  void registerFunctionCallback(BPatch_function *(*f)(process *p, 
+                                                      int_function *f))
      { new_func_cb = f; };
-  void newInstPointCallback(BPatch_point *(*f)(process *p, int_function *f, 
-                                               instPoint *ip, int type))
+  void registerInstPointCallback(BPatch_point *(*f)(process *p, int_function *f,
+                                                    instPoint *ip, int type))
      { new_instp_cb = f; }
-       
+  void registerDeleteThrdCallback(void (*f)(process *, dyn_thread *))
+     { thrd_del_cb = f; }
+  void registerNewThrdCallback(void (*f)(process *, int, int))
+     { thrd_new_cb = f; }
+  
+  void warnOfThreadDelete(dyn_thread *thr);
  // inferior heap management
  public:
 
@@ -704,15 +691,7 @@ char * systemPrelinkCommand;
   bool multithread_capable(bool ignore_if_mt_not_set = false);
 
   // Do we have the RT-side multithread functions available
-  bool multithread_ready(bool ignore_if_mt_not_set = false) {
-    if (!multithread_capable(ignore_if_mt_not_set))
-      return false;
-#if !defined(BPATCH_LIBRARY)
-    if (PARADYNhasBootstrapped)
-      return true;
-#endif
-    return false;
-  }
+  bool multithread_ready(bool ignore_if_mt_not_set = false);
     
   dyn_thread *STdyn_thread();
 
@@ -843,6 +822,7 @@ char * systemPrelinkCommand;
   }
 
   dyn_thread *createInitialThread();
+  void addThread(dyn_thread *thread);
   dyn_lwp *createRepresentativeLWP();
 
   // fictional lwps aren't saved in the real_lwps vector
@@ -851,7 +831,7 @@ char * systemPrelinkCommand;
 
   void deleteLWP(dyn_lwp *lwp_to_delete);
 
-
+  int maxNumberOfThreads();
 #if defined(os_osf)
   int waitforRPC(int *status,bool block = false);
 #endif
@@ -863,21 +843,8 @@ char * systemPrelinkCommand;
                    timeStamp processTime);
 
    bool extractBootstrapStruct(DYNINST_bootstrapStruct *);
-   bool isBootstrappedYet() const {
-       return bootstrapState == bootstrapped_bs;
-   }
-#if !defined(BPATCH_LIBRARY)
-   void setParadynBootstrap() {
-       // This should be in paradyn's pd_process object, but is
-       // needed for the is_multithreaded check
-       PARADYNhasBootstrapped = true;
-   }
-   bool isParadynBootstrapped() {
-       return PARADYNhasBootstrapped;
-   }
-   bool PARADYNhasBootstrapped;
-#endif
-   
+   bool isBootstrappedYet() const;
+  
 private:
   // Since we don't define these, 'private' makes sure they're not used:
   process &operator=(const process &); // assign oper
@@ -956,7 +923,6 @@ private:
 
 
   public:
-
     static bool getExecFileDescriptor(pdstring filename,
                                       int pid,
                                       bool waitForTrap, // Should we wait for process init
@@ -1063,8 +1029,10 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   // LWPs are index by their id
   dictionary_hash<unsigned, dyn_lwp *> real_lwps;
   // Threads are accessed by index.
+  int max_number_of_threads;
   pdvector<dyn_thread *> threads;
 
+  int mapIndexToTid(int index);
   bool deferredContinueProc;
   Address previousSignalAddr_;
   bool continueAfterNextStop_;

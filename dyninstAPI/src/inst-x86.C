@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.216 2005/08/25 22:45:39 bernat Exp $
+ * $Id: inst-x86.C,v 1.217 2005/09/09 18:06:45 legendre Exp $
  */
 #include <iomanip>
 
@@ -109,7 +109,6 @@ unsigned trampEnd::maxSizeRequired() {
 unsigned relocatedInstruction::maxSizeRequired() {
     return insn->spaceToRelocate();
 }
-
 
 registerSpace *regSpace32;
 #if defined(arch_x86_64)
@@ -252,7 +251,6 @@ bool baseTramp::generateRestores(codeGen &gen, registerSpace*) {
 }
 
 bool baseTramp::generateMTCode(codeGen &gen, registerSpace*) {
-
     return x86_emitter->emitBTMTCode(this, gen);
 }
 
@@ -855,6 +853,7 @@ unsigned char jccOpcodeFromRelOp(unsigned op)
      case geOp: return JL_R8;
      default: assert(0);
    }
+   return 0x0;
 }
 
 static inline void emitEnter(short imm16, codeGen &gen) {
@@ -1930,11 +1929,19 @@ bool registerSpace::clobberFPRegister(Register /*reg*/)
   return false;
 }
 
-unsigned saveRestoreRegistersInBaseTramp(process */*proc*/, 
-                                         baseTramp */*bt*/,
-                                         registerSpace */*rs*/)
+unsigned saveRestoreRegistersInBaseTramp(process * /*proc*/, 
+                                         baseTramp * /*bt*/,
+                                         registerSpace * /*rs*/)
 {
   return 0;
 }
 
+/**
+ * Fills in an indirect function pointer at 'addr' to point to 'f'.
+ **/
+bool writeFunctionPtr(process *p, Address addr, int_function *f)
+{
+   Address val_to_write = f->getAddress();
+   return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);   
+}
 

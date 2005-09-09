@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.80 2005/09/02 22:00:10 bernat Exp $
+// $Id: osf.C,v 1.81 2005/09/09 18:06:53 legendre Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -749,7 +749,6 @@ bool process::dumpImage()
  */
 terminateProcStatus_t process::terminateProc_()
 {
-  fprintf(stderr, "TP: %p\n", getRepresentativeLWP());
   long flags = PRFS_KOLC;
   if (getRepresentativeLWP())
     if (ioctl (getRepresentativeLWP()->get_fd(), PIOCSSPCACT, &flags) < 0)
@@ -1262,9 +1261,9 @@ bool process::loadDYNINSTlib()
   return true;
 }
 
-void process::determineLWPs(pdvector<unsigned> & /*all_lwps*/)
+bool process::determineLWPs(pdvector<unsigned> & /*all_lwps*/)
 {
-  return;
+  return true;
 }
 
 // findCallee: returns false unless callee is already set in instPoint
@@ -1330,3 +1329,6 @@ int_function *instPoint::findCallee() {
   return NULL;
 }
 
+void dyninst_yield()
+{
+}

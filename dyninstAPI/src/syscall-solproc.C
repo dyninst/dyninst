@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-solproc.C,v 1.7 2005/08/05 22:23:17 bernat Exp $
+// $Id: syscall-solproc.C,v 1.8 2005/09/09 18:07:11 legendre Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -218,6 +218,28 @@ bool syscallNotification::installPreExit() {
     return true;
 }    
 
+
+/////////// Pre-lwp-exit instrumentation
+
+bool syscallNotification::installPreLwpExit() {
+    // Get existing flags, add pre-lwp-exit, and set
+    int proc_pid = proc->getPid();
+    
+    sysset_t *entryset = SYSSET_ALLOC(proc_pid);
+    
+    if (!proc->get_entry_syscalls(entryset)) return false;;
+
+    if (SYSSET_MAP(SYS_lwp_exit, proc_pid) != -1) {
+        praddsysset(entryset, SYSSET_MAP(SYS_lwp_exit, proc_pid));
+    }
+    if (!proc->set_entry_syscalls(entryset)) return false;;
+    // Make sure our removal code gets run
+    preLwpExitInst = SYSCALL_INSTALLED;
+    SYSSET_FREE(entryset);
+    return true;
+}    
+
+
 //////////////////////////////////////////////////////
 
 /////// Remove pre-fork instrumentation
@@ -250,8 +272,6 @@ bool syscallNotification::removePreFork() {
     preForkInst = NULL;
     return true;
 }
-
-    
 
 /////// Remove post-fork instrumentation
 
@@ -395,6 +415,32 @@ bool syscallNotification::removePreExit() {
     if (!proc->set_entry_syscalls(entryset)) return false;;
     SYSSET_FREE(entryset);
     preExitInst = NULL;
+    
+    return true;
+}
+
+/////// Remove pre-exit instrumentation
+
+bool syscallNotification::removePreLwpExit() {
+    if (!preLwpExitInst) return false;
+    if (!proc->isAttached()) {
+        preLwpExitInst = NULL;
+        return true;
+    }
+
+    // Get existing flags, add pre-exit, and set
+    int proc_pid = proc->getPid();
+    
+    sysset_t *entryset = SYSSET_ALLOC(proc_pid);
+    
+    if (!proc->get_entry_syscalls(entryset)) return false;;
+
+    if (SYSSET_MAP(SYS_lwp_exit, proc_pid) != -1) {
+        prdelsysset(entryset, SYSSET_MAP(SYS_lwp_exit, proc_pid));
+    }
+    if (!proc->set_entry_syscalls(entryset)) return false;;
+    SYSSET_FREE(entryset);
+    preLwpExitInst = NULL;
     
     return true;
 }

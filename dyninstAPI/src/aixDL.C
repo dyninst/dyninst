@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.61 2005/08/05 22:23:05 bernat Exp $
+// $Id: aixDL.C,v 1.62 2005/09/09 18:06:31 legendre Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -232,14 +232,14 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<mapped_object *>
     sharedLibHook *hook;
 
     if (!instru_based) {
-      for (unsigned frame_iter = 0; frame_iter < activeFrames.size();frame_iter++)
-	{
-	  hook = reachedLibHook(activeFrames[frame_iter].getPC());
-	  if (hook) {
-            brk_lwp = activeFrames[frame_iter].getLWP();
-            break;
-	  }
-	}
+       for (unsigned frame_iter = 0; frame_iter < activeFrames.size();frame_iter++)
+       {
+          hook = reachedLibHook(activeFrames[frame_iter].getPC());
+          if (hook) {
+             brk_lwp = activeFrames[frame_iter].getLWP();
+             break;
+          }
+       }
     }
     if (brk_lwp || 
 	instru_based || 
@@ -248,7 +248,6 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<mapped_object *>
         if (!findChangeToLinkMaps(change_type, 
                                   changed_objects))
             return false;
-
 	if (brk_lwp) {
 	  // Now we need to fix the PC. We overwrote the return instruction,
 	  // so grab the value in the link register and set the PC to it.
@@ -257,9 +256,9 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<mapped_object *>
 	  assert(status == true);
 	  brk_lwp->changePC(regs.theIntRegs.__lr, NULL);
 	  return true;
-        }
+   }
 	else
-            return true;
+      return true;
     }
     return false;
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.101 2005/09/01 22:17:47 bernat Exp $
+// $Id: BPatch.C,v 1.102 2005/09/09 18:06:15 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -64,7 +64,6 @@
 #include "nt_signal_emul.h"
 #endif
 
-extern bool dyninstAPI_init();
 extern void loadNativeDemangler();
 extern BPatch_eventMailbox *event_mailbox;
 
@@ -79,6 +78,9 @@ extern unsigned int ptraceOtherOps;
 extern unsigned int ptraceOps;
 extern unsigned int ptraceBytes;
 
+void defaultErrorFunc(BPatchErrorLevel level, int num, const char **params);
+
+extern void dyninst_yield();
 
 /*
  * BPatch::BPatch
@@ -111,20 +113,14 @@ BPatch::BPatch()
 
     // Save a pointer to the one-and-only bpatch object.
     if (bpatch == NULL){
-	bpatch = this;
-#ifdef mips_unknown_ce2_11 //ccw 10 aug 2000 : 28 mar 2001
-	rDevice = new remoteDevice(); //ccw 8 aug 2000
-#endif
-	}
-
-    /* XXX else
-     * 	(indicate an error somehow)
-     */
-
-    // XXX dyninstAPI_init returns success/failure -- should pass on somehow
-    dyninstAPI_init();
+       bpatch = this;
+    }
+    
+    initDefaultPointFrequencyTable();
+    BPatch::bpatch->registerErrorCallback(defaultErrorFunc);
+    bpinfo("installed default error reporting function");
     initCyclesPerSecond();
-
+    
     init_debug();
 
     /*
@@ -690,6 +686,34 @@ void BPatch::formatErrorString(char *dst, int size,
 	*dst = '\0';
 }
 
+static char *lvl_str(BPatchErrorLevel lvl)
+{
+  switch(lvl) {
+    case BPatchFatal: return "FATAL";
+    case BPatchSerious: return "SERIOUS";
+    case BPatchWarning: return "WARN";
+    case BPatchInfo: return "INFO";
+  };
+  return "BAD ERR CODE";
+}
+
+void defaultErrorFunc(BPatchErrorLevel level, int num, const char **params)
+{
+    char line[256];
+
+    if ((level == BPatchWarning) || (level == BPatchInfo)) {
+         // ignore low level errors/warnings in the default reporter
+         return;
+    }
+
+    const char *msg = BPatch::bpatch->getEnglishErrorString(num);
+    BPatch::bpatch->formatErrorString(line, sizeof(line), msg, params);
+
+    if (num != -1) {
+       fprintf(stderr,"%s #%d: %s\n", lvl_str(level),num, line);
+    }
+}
+
 
 /*
  * BPatch::getThreadByPid
@@ -866,6 +890,7 @@ void BPatch::registerNormalExit(process *proc, int exitcode)
    process->setExitCode(exitcode);
    process->setExitedNormally();
    process->setUnreportedTermination(true);
+   event_mailbox->executeOrRegisterCallback(BPatch_threadDestroyEvent, process, 0);
    if (exitCallback) {
       //exitCallback(thread, ExitedNormally);
       event_mailbox->executeOrRegisterCallback(exitCallback, process,
@@ -887,10 +912,11 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
    assert(process);
    process->setExitedViaSignal(signalnum);
    process->setUnreportedTermination(true);
+   event_mailbox->executeOrRegisterCallback(BPatch_threadDestroyEvent, process, 0);
    if (exitCallback) {
       //exitCallback(thread, ExitedViaSignal);
-      event_mailbox->executeOrRegisterCallback(exitCallback, process, 
-                                               ExitedViaSignal);
+          event_mailbox->executeOrRegisterCallback(exitCallback, process, 
+                                                   ExitedViaSignal);
    }
 }
 
@@ -931,7 +957,7 @@ void BPatch::unRegisterProcess(int pid)
 
 
 /*
- * BPatch::createProcessInt
+ * BPatch::processCreateInt
  *
  * Create a process and return a BPatch_process representing it.
  * Returns NULL upon failure.
@@ -947,7 +973,7 @@ void BPatch::unRegisterProcess(int pid)
  * stderr_fd	file descriptor to use for stderr for the application
 
  */
-BPatch_thread *BPatch::createProcessInt(const char *path, const char *argv[], 
+BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[], 
                                          const char *envp[], int stdin_fd, 
                                          int stdout_fd, int stderr_fd)
 {
@@ -963,7 +989,7 @@ BPatch_thread *BPatch::createProcessInt(const char *path, const char *argv[],
     if (!ret->llproc ||
         (ret->llproc->status() != stopped) ||
         !ret->llproc->isBootstrappedYet()) 
-    {
+    { 
        delete ret;
        reportError(BPatchFatal, 68, "create process failed bootstrap");
        return NULL;
@@ -981,14 +1007,30 @@ BPatch_thread *BPatch::createProcessInt(const char *path, const char *argv[],
     //BPatch_thread::enableDumpPatchedImage() if they want to use the save the world
     //functionality.
     ret->llproc->collectSaveWorldData = false;
+    ret->updateThreadInfo();
 
-    assert(ret->threads.size() > 0);
-    return ret->threads[0];
+    return ret;
 }
 
+/*
+ * BPatch::createProcess
+ * This function is deprecated, see processCreate
+ */
+BPatch_thread *BPatch::createProcessInt(const char *path, const char *argv[], 
+                                         const char *envp[], int stdin_fd, 
+                                         int stdout_fd, int stderr_fd)
+{
+   BPatch_process *ret = processCreate(path, argv, envp, stdin_fd, 
+                                       stdout_fd, stderr_fd);
+   if (!ret)
+      return NULL;
+
+   assert(ret->threads.size() > 0);
+   return ret->threads[0];
+}
 
 /*
- * BPatch::attachProcess
+ * BPatch::processAttach
  *
  * Attach to a running process and return a BPatch_thread representing it.
  * Returns NULL upon failure.
@@ -996,7 +1038,7 @@ BPatch_thread *BPatch::createProcessInt(const char *path, const char *argv[],
  * path		The pathname of the executable for the process.
  * pid		The id of the process to attach to.
  */
-BPatch_thread *BPatch::attachProcessInt(const char *path, int pid)
+BPatch_process *BPatch::processAttachInt(const char *path, int pid)
 {
    clearError();
    
@@ -1014,7 +1056,7 @@ BPatch_thread *BPatch::attachProcessInt(const char *path, int pid)
       delete ret;
       return NULL;
    }
-#if !defined (os_osf) && !defined (os_windows) && !defined(os_irix)  && !defined(arch_ia64)
+#if defined(cap_async_events)
    if (!eventHandler->connectToProcess(ret)) {
       bperr("%s[%d]:  eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
       return NULL;
@@ -1025,9 +1067,23 @@ BPatch_thread *BPatch::attachProcessInt(const char *path, int pid)
     //BPatch_thread::enableDumpPatchedImage() if they want to use the save the world
     //functionality.
    ret->llproc->collectSaveWorldData = false;
+   ret->updateThreadInfo();
 
-   assert(ret->threads.size() > 0);
-   return ret->threads[0];
+   return ret;
+}
+
+/*
+ * BPatch::attachProcess
+ * This function is deprecated, see processAttach
+ */
+BPatch_thread *BPatch::attachProcessInt(const char *path, int pid)
+{
+   BPatch_process *proc = processAttach(path, pid);
+   if (!proc)
+      return NULL;
+   
+   assert(proc->threads.size() > 0);
+   return proc->threads[0];
 }
 
 /*
@@ -1069,6 +1125,9 @@ bool BPatch::getThreadEvent(bool block)
  * 		set to false to poll and return immediately, whether or not a
  * 		change occurred.
  */
+extern unsigned long primary_thread_id;
+extern int lock_depth;
+
 bool BPatch::getThreadEventOnly(bool block)
 {
    bool	result = false;
@@ -1095,10 +1154,17 @@ bool BPatch::getThreadEventOnly(bool block)
      int timeout;
      do {
        __LOCK;
-       timeout = block ? 1 : 0/*ms*/;
-       result = getSH()->checkForProcessEvents(&events, -1, timeout);
+       if (threadID() == primary_thread_id)
+          result = event_mailbox->executeUserCallbacks();
+       if (!result)
+       {
+          timeout = block ? 1 : 0;
+          result = getSH()->checkForProcessEvents(&events, -1, timeout);
+       }
        //  checkForProcessEvents sets timeout to zero if poll times out.
+       lock_depth--;
        __UNLOCK;
+       dyninst_yield();
      } while(!result && !timeout && block);
    }
 
@@ -1609,3 +1675,30 @@ void BPatch::updateStats()
   stats.ptraceBytes = ptraceBytes;
   stats.insnGenerated = insnGenerated;
 }
+
+bool BPatch::registerThreadEventCallbackInt(BPatch_asyncEventType type,
+                                            BPatchAsyncThreadEventCallback cb)
+{
+   bool ret = eventHandler->registerThreadEventCallback(type, cb);
+   if (ret) asyncActive = true;
+   return ret;
+}
+
+bool BPatch::removeThreadEventCallbackInt(BPatch_asyncEventType type,
+                                          BPatchAsyncThreadEventCallback cb)
+{
+   return eventHandler->removeThreadEventCallback(type, cb);
+}
+
+bool BPatch::registerUserEventCallbackInt(BPatchUserEventCallback cb)
+{
+   bool ret = eventHandler->registerUserEventCallback(cb);
+   if (ret) asyncActive = true;
+   return ret;
+}
+
+bool BPatch::removeUserEventCallbackInt(BPatchUserEventCallback cb)
+{
+   return eventHandler->removeUserEventCallback(cb);
+}
+

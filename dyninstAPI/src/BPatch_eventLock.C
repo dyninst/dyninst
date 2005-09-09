@@ -86,33 +86,10 @@ BPatch_eventLock::BPatch_eventLock()
 #endif
 #endif // !Windows
   event_mailbox = new BPatch_eventMailbox();
-  
+   
   mutex_created = true;
 }
 
-#ifdef NOTDEF
-bool BPatch_eventLock::init() 
-{
-  if (mutex_created) return;
-#if defined(os_windows)
-  InitializeCriticalSection(&global_mutex);
-#else
-  pthread_mutexattr_t mutex_type;
-  pthread_mutexattr_init(&mutex_type);
-#if defined(arch_ia64)
-  if (0 != pthread_mutexattr_setkind_np(&mutex_type, PTHREAD_MUTEX_TYPE))
-    return false;
-#else
-  if (0 != pthread_mutexattr_settype(&mutex_type, PTHREAD_MUTEX_TYPE))
-    return false;
-#endif
-  if (0 != pthread_mutex_init(&global_mutex, &mutex_type))
-    return false;
-#endif // !Windows
-  mutex_created = true;
-  return true;
-}
-#endif
 BPatch_eventLock::~BPatch_eventLock() {};
 
 #if defined(os_windows)
@@ -121,8 +98,6 @@ int BPatch_eventLock::_Lock(const char *__file__, unsigned int __line__) const
 {
   EnterCriticalSection(&global_mutex);
   lock_depth++;
-  if ((threadID() == primary_thread_id) && (lock_depth == 1))
-    event_mailbox->executeUserCallbacks();
   return 0;
 }
 
@@ -159,14 +134,6 @@ int BPatch_eventLock::_Lock(const char *__file__, unsigned int __line__) const
             __file__, __line__, STRERROR(err, buf), err);
   }
   lock_depth++;
-#ifdef DEBUG_MUTEX
-  fprintf(stderr, "%s[%d]:  lock, depth = %d\n", __file__, __line__, lock_depth);
-#endif
-
-  unsigned long tid = threadID();
-  if ((tid == primary_thread_id) && (lock_depth == 1))
-    event_mailbox->executeUserCallbacks();
-
   return err;
 }
 
@@ -188,9 +155,6 @@ int BPatch_eventLock::_Unlock(const char *__file__, unsigned int __line__) const
 {
   int err = 0;
   lock_depth--;
-#ifdef DEBUG_MUTEX
-  fprintf(stderr, "%s[%d]:  unlock, lock depth will be %d \n", __file__, __line__, lock_depth);
-#endif
   if(0 != (err = pthread_mutex_unlock(&global_mutex))){
     ERROR_BUFFER;
     fprintf(stderr, "%s[%d]:  failed to unlock mutex: %s[%d]\n",

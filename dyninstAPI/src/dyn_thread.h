@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyn_thread.h,v 1.19 2005/07/29 19:18:25 bernat Exp $
+// $Id: dyn_thread.h,v 1.20 2005/09/09 18:06:39 legendre Exp $
 
 #ifndef _DYNTHREAD_H_
 #define _DYNTHREAD_H_
@@ -55,53 +55,11 @@ class dyn_thread {
 
  public:
   //
-  dyn_thread(process *pproc) : 
-    tid(0),
-    index(0),
-    stack_addr(0),
-    start_pc(0),
-    start_func(NULL),
-    pending_tramp_addr( ADDR_NULL ),
-    useRPCStack_(false)
-    { 
-      proc = pproc; 
-      ppid = pproc->getPid();
-      lwp  = pproc->getRepresentativeLWP();
-      proc->getRpcMgr()->addThread(this);
-    }
-  dyn_thread(process *proc_, unsigned tid_, unsigned index_, dyn_lwp *lwp_) :
-    tid(tid_),
-    index(index_),
-    lwp(lwp_),
-    stack_addr(0),
-    start_pc(0),
-    start_func(NULL),
-    pending_tramp_addr( ADDR_NULL ),
-    useRPCStack_(false)
-    {
-      proc = proc_;
-      ppid = proc_->getPid();
-      proc->getRpcMgr()->addThread(this);
-    }
+  dyn_thread(process *pproc);
+  dyn_thread(process *proc_, unsigned index_, dyn_lwp *lwp_);
+  dyn_thread(dyn_thread *src, process *child);
+  ~dyn_thread();
 
-  dyn_thread(dyn_thread *src, process *child) {
-      assert(src && child);
-      ppid = child->getPid();
-      tid = src->tid;
-      index = src->index;
-      lwp  = child->getRepresentativeLWP();
-      stack_addr = src->stack_addr;
-      start_pc = src->start_pc;
-      resumestate_p = src->resumestate_p;
-      start_func = src->start_func;
-      proc = child;
-      pending_tramp_addr = ADDR_NULL;
-      useRPCStack_ = false;
-      updateLWP();
-  }
-
-  ~dyn_thread() {
-  }
   
   // Get the active frame (PC, SP, FP) of the thread
   // calls dyn_lwp::getActiveFrame if necessary

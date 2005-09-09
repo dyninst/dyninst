@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.66 2005/07/29 19:17:59 bernat Exp $
+ * $Id: Object-elf.h,v 1.67 2005/09/09 18:06:27 legendre Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -255,7 +255,7 @@ class Object : public AObject {
   unsigned  file_size_;          // mapped ELF file
   char     *file_ptr_;           // mapped ELF file
   
-  const char * fileName;
+  char * fileName;
   //Symbol    mainSym_;
   Address   fini_addr_;
   Address   text_addr_; //.text section 

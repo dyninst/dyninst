@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.79 2005/08/23 21:46:23 rutar Exp $
+// $Id: ast.h,v 1.80 2005/09/09 18:06:33 legendre Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -124,6 +124,7 @@ class registerSpace {
 	registerSpace(const unsigned int dCount, Register *deads,
                  const unsigned int lCount, Register *lives,
                  bool multithreaded = false);
+   ~registerSpace();
 	Register allocateRegister(codeGen &gen, bool noCost);
 	// Free the specified register (decrement its refCount)
 	void freeRegister(Register k);
@@ -180,7 +181,7 @@ class registerSpace {
 
 	int getSPFlag() {return spFlag;}
 	
-	void copyInfo(registerSpace *rs);
+	void copyInfo(registerSpace *rs) const;
 
 
 	bool readOnlyRegister(Register k);
@@ -188,6 +189,8 @@ class registerSpace {
 	// Used for assertion checking.
 	void checkLeaks(Register to_exclude);
    bool for_multithreaded() { return is_multithreaded; }
+
+   registerSpace &operator=(const registerSpace &src);
  private:
 	u_int numRegisters;
 	u_int numFPRegisters;

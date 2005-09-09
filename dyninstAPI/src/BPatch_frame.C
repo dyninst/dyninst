@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_frame.C,v 1.1 2005/08/04 13:11:55 bernat Exp $
+// $Id: BPatch_frame.C,v 1.2 2005/09/09 18:06:19 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -84,7 +84,9 @@ void *BPatch_frame::getFPInt()
  */
 BPatch_function *BPatch_frame::findFunctionInt()
 {
-    return thread->findFunctionByAddr(getPC());
+   if (!getPC())
+      return NULL;
+   return thread->findFunctionByAddr(getPC());
 }
 
 BPatch_frame::BPatch_frame() : 

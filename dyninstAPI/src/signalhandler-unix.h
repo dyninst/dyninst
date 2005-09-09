@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-unix.h,v 1.13 2005/02/15 17:43:55 legendre Exp $
+/* $Id: signalhandler-unix.h,v 1.14 2005/09/09 18:07:03 legendre Exp $
  */
 
 /*
@@ -90,7 +90,7 @@ typedef enum {
     procSuspended,
     procInstPointTrap,
     procForkSigChild,
-    procUndefined
+    procUndefined,
 } procSignalWhy_t;
 
 /*
@@ -128,6 +128,9 @@ typedef unsigned int procSignalWhat_t;
 #if !defined(SYS_vfork)
 #define SYS_vfork 1007
 #endif
+#if !defined(SYS_lwp_exit)
+#define SYS_lwp_exit 1008
+#endif
 
 /*
  * Info parameter: return value, address, etc.
@@ -152,6 +155,7 @@ typedef enum {
     procSysExit,
     // Library load "syscall". Used by AIX.
     procSysLoad,
+    procLwpExit,
     procSysOther
 } procSyscall_t;
 

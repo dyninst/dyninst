@@ -64,7 +64,10 @@ MUTATORS = 	test1 \
 		test8 \
 		test9 \
 		test10 \
-		test12 
+		test12 \
+		test13 \
+		test14
+      
 
 FORALL_MUTATORS = test_util
 
@@ -78,7 +81,9 @@ MUTATEES_C = 	test1.mutatee \
 		test8.mutatee \
 		test9.mutatee \
 		test10.mutatee \
-		test12.mutatee 
+		test12.mutatee \
+		test13.mutatee \
+		test14.mutatee 
 
 # MUTATEES_CXX specifies a subset of MUTATEES_C that are also compiled with a C++ compiler
 MUTATEES_CXX =	test1.mutatee \
@@ -284,7 +289,7 @@ $(TEST6_AS_OBJ_GNU): $(TEST6_AS_SRC)
 
 $(TESTLIBS): %.so : %.c $(DEPENDDIR)/%.dep
 ifdef MAKE_SHARED_LIB
-	$(CC) -g -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(CC) -g -c $(CFLAGS) -I$(TO_CORE)/dyninstAPI_RT/h $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
 	$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $*.o -o $@
 else
 	$(CC) $(TESTLIB_FLAGS) -I$(TO_CORE)/dyninstAPI_RT/h -I../src/ $(filter %.c,$^) -o $@
@@ -341,6 +346,10 @@ MUTATEE_SPECIFIC_LIBS_GNU 	+= $(MUTATEE_TEST9_EXTRA_LIB)
 MUTATEE_SPECIFIC_LIBS_GNU 	+= 12.-lpthread
 MUTATEE_SPECIFIC_LIBS_NATIVE 	+= $(MUTATEE_TEST9_EXTRA_LIB)
 MUTATEE_SPECIFIC_LIBS_NATIVE 	+= 12.-lpthread
+MUTATEE_SPECIFIC_LIBS_GNU += 13.-lpthread
+MUTATEE_SPECIFIC_LIBS_GNU += 14.-lpthread
+MUTATEE_SPECIFIC_LIBS_NATIVE 	+= 13.-lpthread
+MUTATEE_SPECIFIC_LIBS_NATIVE 	+= 14.-lpthread
 
 ifdef M_ABI
 MUTATEE_SPECIFIC_LIBS_GNU_ABI 	+= $(MUTATEE_TEST9_EXTRA_LIB_ABI)

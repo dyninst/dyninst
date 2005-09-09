@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.254 2005/09/09 15:57:06 bernat Exp $
+ // $Id: symtab.C,v 1.255 2005/09/09 18:07:06 legendre Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -567,7 +567,8 @@ bool image::addSymtabVariables()
               (*varEntries).push_back(var);
           }
           
-          free( unmangledName );
+          if (unmangledName)
+             free( unmangledName );
       }
    }
 

@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.28 2004/09/13 21:48:02 legendre Exp $
+ * $Id: dyn_lwp.C,v 1.29 2005/09/09 18:06:36 legendre Exp $
  */
 
 #include "common/h/headers.h"
@@ -56,15 +56,8 @@ dyn_lwp::dyn_lwp() :
   lwp_id_(0),
   fd_(0),
   procHandle_(INVALID_HANDLE_VALUE),
-#if !defined(BPATCH_LIBRARY)
-  hw_previous_(0),
-  sw_previous_(0),
-#endif
   stoppedInSyscall_(false),
   postsyscallpc_(0),
-#if defined( os_linux )
-  sigStopsQueued(0),
-#endif
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
   cached_regs(NULL),
@@ -79,15 +72,8 @@ dyn_lwp::dyn_lwp(unsigned lwp, process *proc) :
   lwp_id_(lwp),
   fd_(INVALID_HANDLE_VALUE),
   procHandle_(INVALID_HANDLE_VALUE),
-#if !defined(BPATCH_LIBRARY)
-  hw_previous_(0),
-  sw_previous_(0),
-#endif
   stoppedInSyscall_(false),
   postsyscallpc_(0),
-#if defined( os_linux )
-  sigStopsQueued(0),
-#endif
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
   cached_regs(NULL),
@@ -102,26 +88,19 @@ dyn_lwp::dyn_lwp(const dyn_lwp &l) :
   lwp_id_(l.lwp_id_),
   fd_(INVALID_HANDLE_VALUE),
   procHandle_(INVALID_HANDLE_VALUE),
-#if !defined(BPATCH_LIBRARY)
-  hw_previous_(0),
-  sw_previous_(0),
-#endif
   stoppedInSyscall_(false),
   postsyscallpc_(0),
-#if defined( os_linux )
-  sigStopsQueued(0),
-#endif
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
   cached_regs(NULL),
   isRunningIRPC(false), is_attached_(false)
 {
-    bperr( "LWP copy constructor\n");
 }
 
 dyn_lwp::~dyn_lwp()
 {
-   detach();
+  if (status_ != exited)
+    detach();
 }
 
 // TODO is this safe here ?
@@ -148,7 +127,7 @@ bool dyn_lwp::continueLWP(int signalToContinueWith) {
 
    bool ret = continueLWP_(signalToContinueWith);
    if(ret == false) {
-      perror("continueProc_()");
+      perror("continueLWP()");
    }
 
 #if !defined(mips_unknown_ce2_11) && !defined(i386_unknown_nt4_0)

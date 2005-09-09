@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.25 2005/08/08 22:39:23 bernat Exp $
+// $Id: frame.h,v 1.26 2005/09/09 18:06:41 legendre Exp $
 
 #ifndef FRAME_H
 #define FRAME_H
 
-#include <iostream>
+#include "common/h/std_namesp.h"
 #include "common/h/Types.h"
 
 #if defined( arch_ia64 )

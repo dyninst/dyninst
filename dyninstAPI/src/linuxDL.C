@@ -291,11 +291,15 @@ bool dynamic_linking::get_ld_info(Address &addr, char **path){
   // Allow the user to specify the directory to search for the ld library
   // within, otherwise, follow the standard /lib (from the filesystem spec)
   // Environment variable = LD_PATH
-  char *ldpath;
-  ldpath = getenv( "LD_PATH" );
-  if( !ldpath ) {
+  char *ldpath_env, *ldpath;
+  ldpath_env = getenv( "LD_PATH" );
+  if( !ldpath_env ) {
     ldpath = new char[ strlen(ldlibpath)+1 ];
     strcpy( ldpath, ldlibpath );
+  }
+  else {
+     ldpath = new char[ strlen(ldpath_env)+1 ];
+     strcpy( ldpath, ldpath_env );
   }
 
   // Allow the user to specify the exact file which is the ld library for
@@ -311,7 +315,8 @@ bool dynamic_linking::get_ld_info(Address &addr, char **path){
 
   FILE *maps = P_fopen( buf, "r" );
   if( !maps ) {
-    return false;
+     delete [] ldpath;
+     return false;
   }
 
   dirent **dirents = NULL;
@@ -324,6 +329,7 @@ bool dynamic_linking::get_ld_info(Address &addr, char **path){
   bool proc_maps_path = false;
   if( !P_fgets( lbuf, 199, maps ) ) { // Read in a line
     fclose( maps );
+    delete [] ldpath;
     return false;
   }
   if( 1 == sscanf( lbuf, "%*x-%*x %*s %*x %*x:%*x %*d %s", buf ) ) {
@@ -331,6 +337,7 @@ bool dynamic_linking::get_ld_info(Address &addr, char **path){
   }
   if( -1 == fseek( maps, 0L, SEEK_SET ) ) {
     fclose( maps );
+    delete [] ldpath;
     return false;
   }
 
@@ -359,14 +366,16 @@ bool dynamic_linking::get_ld_info(Address &addr, char **path){
   if( !proc_maps_path && !ldspec ) {
     // Scan /lib for files conforming to the criteria in scandir_select_ld
     // above, and sort them via the given (in dirent.h) alphasort function
-    num_dents = scandir( ldpath, &dirents, scandir_select_ld, alphasort );
-    if( num_dents == -1 ) {
-      fclose( maps );
-      return false;
-    } else if ( !num_dents ) {
-      fclose( maps );
-      return false;
-    }
+     num_dents = scandir( ldpath, &dirents, scandir_select_ld, alphasort );
+     if( num_dents == -1 ) {
+        fclose( maps );
+        delete [] ldpath;
+        return false;
+     } else if ( !num_dents ) {
+        fclose( maps );
+        delete [] ldpath;
+        return false;
+     }
   }
 
   // Scan through the /proc/*/maps file, checking for the first mapping which
@@ -380,72 +389,95 @@ bool dynamic_linking::get_ld_info(Address &addr, char **path){
   dev_t t_device;
   ino_t t_inode = 0, t_last_inode = 0;
   while( !feof( maps ) && !(*path) ) {
-    // Format of lines in /proc/*/maps
-    //  original (without pathname):
-    //    40000000-40009000 r-xp 00000000 03:02 232624
-    //    mapped address range :  permissions : offset in file : device number : inode
-    //  new uname -r >= 2.1.? (with pathname):
-    //    40000000-40009000 r-xp 00000000 08:01 28674      /lib/ld-2.0.7.so
-    //    as above : path to mapped file
+     // Format of lines in /proc/*/maps
+     //  original (without pathname):
+     //    40000000-40009000 r-xp 00000000 03:02 232624
+     //    mapped address range :  permissions : offset in file : device number : inode
+     //  new uname -r >= 2.1.? (with pathname):
+     //    40000000-40009000 r-xp 00000000 08:01 28674      /lib/ld-2.0.7.so
+     //    as above : path to mapped file
 
-    if( !P_fgets( lbuf, 199, maps ) )  // Read in a line
-      { errcode = 1; break; }
+     // Read in a line
+     if( !P_fgets( lbuf, 199, maps ) ) { 
+        errcode = 1; 
+        break; 
+     }
 
-    if( !( token = strtok( lbuf, " " ) ) )  // Get the address range
-      { errcode = 2; break; }
-    if( 1 != sscanf( token, "%lx-%*x", &t_addr ) )  // Read the range start address
-      { errcode = 2; break; }
+     // Get the address range
+     if( !( token = strtok( lbuf, " " ) ) ) { 
+        errcode = 2; 
+        break; 
+     }
+     // Read the range start address
+     if( 1 != sscanf( token, "%lx-%*x", &t_addr ) ) {
+        errcode = 2; 
+        break; 
+     }
+     // Get the permissions
+     if( !( token = strtok( NULL, " " ) ) ) {
+       errcode = 2; 
+       break; 
+     }
+     // Get the file offset
+     if( !( token = strtok( NULL, " " ) ) ) { 
+        errcode = 2; 
+        break; 
+     }
+     // Get the device
+     if( !( token = strtok( NULL, " " ) ) ) 
+     {
+        errcode = 2; 
+        break; 
+     }
+     {
+        int dev_major, dev_minor;
+        if( 2 != sscanf( token, "%x:%x", &dev_major, &dev_minor ) ) {
+           errcode = 2; 
+           break; 
+        }
+        t_device = ( ( dev_major & 0xff ) << 8 ) | dev_minor;
+     }
 
-    if( !( token = strtok( NULL, " " ) ) )  // Get the permissions
-      { errcode = 2; break; }
-    if( !( token = strtok( NULL, " " ) ) )  // Get the file offset
-      { errcode = 2; break; }
-
-    if( !( token = strtok( NULL, " " ) ) )  // Get the device
-      { errcode = 2; break; }
-    {
-      int dev_major, dev_minor;
-      if( 2 != sscanf( token, "%x:%x", &dev_major, &dev_minor ) )
-	{ errcode = 2; break; }
-      t_device = ( ( dev_major & 0xff ) << 8 ) | dev_minor;
-    }
-
-    if( !( token = strtok( NULL, " \n" ) ) )  // Get the inode
-      { errcode = 2; break; }
-    t_inode = atoi( token );
-
-    // Check this mapping's path name for "ld" and ".so", and succeed if found
-    if( proc_maps_path && t_inode != 0 && t_inode != t_last_inode ) {
-      if( !( token = strtok( NULL, " \n" ) ) )
-	{ errcode = 3; break; }
-      char *fname = strrchr( token, '/' ) + 1;
-      if( fname && !strncmp( "ld", fname, 2 ) && strstr( fname, ".so" ) ) {
-	addr = t_addr;
-	*path = new char[ strlen( token ) + 1 ];
-	strcpy( *path, token );
-      }
-    }
-    // Scan through the found dirents for this inode and succeed if found
-    else if( t_inode != 0 && t_inode != t_last_inode ) {
-      for( int i=0; i < num_dents; i++ )
-	if( (ino_t)(dirents[i]->d_ino) == t_inode ) {
-	  struct stat t_stat;
-	  addr = t_addr;
-	  *path = new char[ strlen( ldpath ) + strlen( dirents[i]->d_name ) + 2 ];
-	  strcpy( *path, ldpath );
-	  strcat( *path, "/" );
-	  strcat( *path, dirents[i]->d_name );
-	  if( stat( *path, &t_stat ) ) {
-	    delete *path;
-	    *path = NULL;
-	  } else {
-	  }
-	}
-    }
-
-    t_last_inode = t_inode;
+     // Get the inode
+     if( !( token = strtok( NULL, " \n" ) ) ) { 
+        errcode = 2; 
+        break; 
+     }
+     t_inode = atoi( token );
+     
+     // Check this mapping's path name for "ld" and ".so", and succeed if found
+     if( proc_maps_path && t_inode != 0 && t_inode != t_last_inode ) {
+        if( !( token = strtok( NULL, " \n" ) ) ) { 
+           errcode = 3; 
+           break; 
+        }
+        char *fname = strrchr( token, '/' ) + 1;
+        if( fname && !strncmp( "ld", fname, 2 ) && strstr( fname, ".so" ) ) {
+           addr = t_addr;
+           *path = new char[ strlen( token ) + 1 ];
+           strcpy( *path, token );
+        }
+     }
+     // Scan through the found dirents for this inode and succeed if found
+     else if( t_inode != 0 && t_inode != t_last_inode ) {
+        for( int i=0; i < num_dents; i++ ) {
+           if( (ino_t)(dirents[i]->d_ino) == t_inode ) {
+              struct stat t_stat;
+              addr = t_addr;
+              *path = new char[strlen(ldpath) + strlen(dirents[i]->d_name) + 2];
+              strcpy( *path, ldpath );
+              strcat( *path, "/" );
+              strcat( *path, dirents[i]->d_name );
+              if( stat( *path, &t_stat ) ) {
+                 delete *path;
+                 *path = NULL;
+              }
+           }
+        }
+     }
+     t_last_inode = t_inode;
   }
-
+  
   switch( errcode ) {
   case 1:
     perror( "dynamic_linking::get_ld_info -> fgets (unexpected)" );
@@ -459,17 +491,19 @@ bool dynamic_linking::get_ld_info(Address &addr, char **path){
   }
 
   if( num_dents > 0 && dirents ) {
-    for( int i=0; i < num_dents; i++ )
-      if( dirents[i] )
-	delete dirents[i];
-    delete dirents;
+     for( int i=0; i < num_dents; i++ )
+        if( dirents[i] )
+           delete dirents[i];
+     delete dirents;
   }
 
+  delete [] ldpath;
+  
   fclose( maps );
   if( *path )
-    return true;
+     return true;
   else
-    return false;
+     return false;
 }
 
 

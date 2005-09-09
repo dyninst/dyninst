@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.89 2005/07/29 19:18:44 bernat Exp $
+// $Id: inst.h,v 1.90 2005/09/09 18:06:47 legendre Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -271,5 +271,7 @@ extern Address getMaxBranch();
 // find these internal functions before finding any other functions
 // extern dictionary_hash<pdstring, unsigned> tagDict;
 extern dictionary_hash <pdstring, unsigned> primitiveCosts;
+
+bool writeFunctionPtr(process *p, Address addr, int_function *f);
 
 #endif

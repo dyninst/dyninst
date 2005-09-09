@@ -166,6 +166,7 @@ bool rpcLWP::isWaitingForBreakpoint() const {
 // We _do not_ check process-wide RPCs here
 bool rpcLWP::isReadyForIRPC() const {
     if (isProcessingIRPC()) {
+       fprintf(stderr, "[%s:%u] - Already processing rpc\n", __FILE__, __LINE__);
         return false;    }
     if (postedRPCs_.size() > 0) {
         return true;

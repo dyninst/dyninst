@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.175 2005/09/01 22:18:27 bernat Exp $
+// $Id: linux.C,v 1.176 2005/09/09 18:06:49 legendre Exp $
 
 #include <fstream>
 
@@ -55,10 +55,13 @@
 #include <sys/user.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <linux/wait.h>
+#include <sys/wait.h>
 #include <dirent.h>
 #include <sys/resource.h>
 #include <math.h> // for floor()
-#include <unistd.h> // for sysconf()
+#include <unistd.h>
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/function.h"
@@ -92,6 +95,19 @@
 #include "papi.h"
 #endif
 
+//These values can be different on different platforms, and don't seem to be
+//consistently defined in the system's include files.
+#if !defined(PTRACE_SETOPTIONS)
+#if defined(arch_x86)
+#define PTRACE_SETOPTIONS 21
+#elif defined(arch_ia64)
+#define PTRACE_SETOPTIONS 0x4200
+#endif
+#endif
+
+#if !defined(PT_TRACE_EXIT)
+#define PTRACE_O_TRACEEXIT 0x40
+#endif
 
 #if defined(PTRACEDEBUG) && !defined(PTRACEDEBUG_ALWAYS)
 static bool debug_ptrace = false;
@@ -108,7 +124,11 @@ bool dyn_lwp::deliverPtrace(int request, Address addr, Address data) {
    }
 
    bool ret = (P_ptrace(request, get_lwp_id(), addr, data, len) != -1);
-   if (!ret) perror("Internal ptrace");
+   if (!ret) 
+   {
+      fprintf(stderr, "%d - ", get_lwp_id());
+      perror("Internal ptrace");
+   }
    
    if(request != PTRACE_DETACH  &&  needToCont == true)
       continueLWP();
@@ -273,7 +293,129 @@ int decodeRTSignal(process *proc,
         break;
    }
    return 1;
+}
 
+static void get_linux_version(int &major, int &minor)
+{
+   static int maj = 0, min = 0;
+   int result;
+   FILE *f;
+   if (maj)
+   {
+      major = maj;
+      minor = min;
+      return;
+   }
+
+   f = fopen("/proc/version", "r");
+   if (!f)
+   {
+      //Assume 2.4, which is the earliest version we support
+      major = maj = 2;
+      minor = min = 4;
+      return;
+   }
+   result = fscanf(f, "Linux version %d.%d", &major, &minor);
+   fclose(f);
+
+   if (result != 2)
+   {
+      major = maj = 2;
+      minor = min = 4;
+      return;
+   }
+
+   maj = major;
+   min = minor;
+   return;
+}
+
+static pdvector<pdstring> attached_lwp_ids;
+static void add_lwp_to_poll_list(dyn_lwp *lwp)
+{
+   char filename[64];
+   int lwpid, major, minor;
+   struct stat buf;
+
+   get_linux_version(major, minor);   
+   if ((major == 2 && minor > 4) || (major >= 3))
+      return;
+   if (!lwp->proc()->multithread_capable(true))
+      return;
+   
+   lwpid = lwp->get_lwp_id();
+   snprintf(filename, 64, "/proc/%d", lwpid);
+   if (stat(filename, &buf) == 0)
+   {
+      attached_lwp_ids.push_back(pdstring(lwpid));
+      return;
+   }
+
+   snprintf(filename, 64, "/proc/.%d", lwpid);
+   if (stat(filename, &buf) == 0)
+   {
+      attached_lwp_ids.push_back(pdstring(".") + pdstring(lwpid));
+      return;
+   }
+   
+   fprintf(stderr, "[%s:%u] - Internal Error.  Could not find new process %d"
+           " in /proc area.  Thread deletion callbacks may not work\n", 
+           __FILE__, __LINE__, lwpid);
+}
+
+static void remove_lwp_from_poll_list(int lwp_id)
+{
+   for (unsigned i=0; i<attached_lwp_ids.size(); i++)
+   {
+      const char *lname = attached_lwp_ids[i].c_str();
+      if (*lname == '.') lname++;
+      if (atoi(lname) == lwp_id)
+      {
+         attached_lwp_ids.erase(i, i);
+      }
+   }
+}
+
+static int find_dead_lwps()
+{
+   struct stat buf;
+   char filename[64];
+   int lwpid;
+
+   for (unsigned i=0; i<attached_lwp_ids.size(); i++)
+   {
+      snprintf(filename, 64, "/proc/.%s", attached_lwp_ids[i].c_str());
+      if (stat(filename, &buf) != 0)
+      {
+         const char *s = attached_lwp_ids[i].c_str();
+         if (*s == '.') s++;
+         lwpid = atoi(s);
+         remove_lwp_from_poll_list(lwpid);
+         return lwpid;
+      }
+   }
+   return 0;
+}
+
+/**
+ * This is a bad hack.  On Linux 2.4 waitpid doesn't return for dead threads,
+ * so we poll for any dead threads before calling waitpid, and if they exist
+ * we simulate the result as if waitpid had returned the desired value.
+ **/
+static pid_t linux_waitpid(pid_t pid, int *status, int options, bool *lwp_died)
+{
+   if (pid == -1)
+   {
+      int dead_lwp = find_dead_lwps();
+      if (dead_lwp)
+      {
+         *status = 0;
+         *lwp_died = true;
+         return dead_lwp;
+      }
+   }
+   *lwp_died = false;
+   return waitpid(pid, status, options);
 }
 
 // returns true if got event, false otherwise
@@ -281,19 +423,21 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
                         bool block, int wait_options)
 {
    int result = 0, status = 0;
+   bool dead_lwp = 0;
+   //  wait (check) for process events
+   if (!block) {
+      wait_options |= WNOHANG;
+   }
 
-     //  wait (check) for process events
-     if (!block) {
-        wait_options |= WNOHANG;
-     }
-     result = waitpid( wait_arg, &status, wait_options );
-     if (result < 0 && errno == ECHILD) {
-        return false; /* nothing to wait for */
-     } else if (result < 0) {
-        perror("checkForEventLinux: waitpid failure");
-     } else if(result == 0) {
-        return false;
-     }
+   //   result = waitpid( wait_arg, &status, wait_options );
+   result = linux_waitpid( wait_arg, &status, wait_options, &dead_lwp );
+   if (result < 0 && errno == ECHILD) {
+      return false;
+   } else if (result < 0) {
+      perror("checkForEventLinux: waitpid failure");
+   } else if(result == 0) {
+      return false;
+   }
 
    int pertinentPid = result;
 
@@ -302,13 +446,13 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
    // to a (SYSEXIT,fork) pair. Don't do that yet.
    process *pertinentProc = process::findProcess(pertinentPid);
    dyn_lwp *pertinentLWP  = NULL;
-
+   dyn_thread *pertinentThread = NULL;
    if(pertinentProc) {
       // Got a signal, process is stopped.
       if(process::IndependentLwpControl() &&
          pertinentProc->getRepresentativeLWP() == NULL) {
          if (!pertinentProc->getInitialThread())
-	   return false; //We must be shutting down
+            return false; //We must be shutting down
          pertinentLWP = pertinentProc->getInitialThread()->get_lwp();
       } else {
          pertinentLWP = pertinentProc->getRepresentativeLWP();
@@ -333,22 +477,44 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
    procSignalWhy_t  why  = procUndefined;
    procSignalWhat_t what = 0;
    procSignalInfo_t info = 0;
-   
-   if (WIFEXITED(status)) {
-      // Process exited via signal
+   bool process_exited = WIFEXITED(status) || dead_lwp;
+
+   if(! pertinentProc)
+      return false;
+
+   if (process_exited && pertinentPid == pertinentProc->getPid())
+   {
+      // Main process exited via signal
+      signal_printf("[%s:%u] - Main process exited\n", __FILE__, __LINE__);
       why = procExitedNormally;
       what = WEXITSTATUS(status);
+   }
+   else if (process_exited)
+   {
+      proccontrol_cerr << "[checkForEventLinux] - Recieved a thread deletion event for "
+                       << pertinentLWP->get_lwp_id() << endl;
+      signal_cerr << "[checkForEventLinux] - Recieved a thread deletion event for "
+                  << pertinentLWP->get_lwp_id() << endl;
+      // Thread exited via signal
+      why = procSyscallEntry;
+      what = SYS_lwp_exit;
    }
    else if (WIFSIGNALED(status)) {
       why = procExitedViaSignal;
       what = WTERMSIG(status);
+      signal_printf("[%s:%u] - %d exited with signal %d\n", __FILE__, __LINE__, 
+                    pertinentPid, what);
    }
    else if (WIFSTOPPED(status)) {
       // More interesting (and common) case.  This is where return value
       // faking would occur as well. procSignalled is a generic return.  For
       // example, we translate SIGILL to SIGTRAP in a few cases
+
       why = procSignalled;
       what = WSTOPSIG(status);
+
+      signal_printf("[%s:%u] - %d was signaled with %d\n", __FILE__, __LINE__, 
+                    pertinentPid, what);
 
       switch(what) {
         case SIGSTOP:
@@ -406,15 +572,16 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
       }
    }
 
-   if(! pertinentProc)
-      return false;
-
    (*new_event).proc = pertinentProc;
    (*new_event).lwp  = pertinentLWP;
+   (*new_event).thr  = pertinentThread;
    (*new_event).why  = why;
    (*new_event).what = what;
    (*new_event).info = info;
 
+   //   fprintf(stderr, "EVENT: Proc = %d, LWP = %d, Why = %d, What = %d, Wait_arg = %d\n",
+   //           new_event->proc->getPid(), new_event->lwp->get_lwp_id(), 
+	//   new_event->why, new_event->what, wait_arg);
    return true;
 }
 
@@ -520,10 +687,7 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
            slp.tv_nsec = wait_time /*ms*/ * 1000 /*us*/ * 1000 /*ns*/;
          }
           //fprintf(stderr, "%s[%d]:  before nanosleep\n", __FILE__, __LINE__);
-         if (-1 == nanosleep(&slp, &rem)) {
-           fprintf(stderr, "%s[%d]:  nanosleep: %d:%s\n", __FILE__, __LINE__,
-                  errno, strerror(errno));
-         }
+         nanosleep(&slp, &rem);
          //  can check remaining time to see if we have _really_ timed out
          //  (but do we really care?)
 
@@ -675,8 +839,8 @@ static dyn_lwp *doWaitUntilStopped(process *p, int pid, bool shouldBlock)
   pdvector<int> other_lwps;
   unsigned i;
 
-  /*
-   fprintf(stderr, "%s[%d]:  doWiatUntilStopped, pid = %d, block = %s\n",
+ /*
+  fprintf(stderr, "%s[%d]:  doWaitUntilStopped, pid = %d, block = %s\n",
            __FILE__, __LINE__, pid, shouldBlock ? "true" : "false");
   proccontrol_cerr << "doWaitUntilStopped called on " << pid 
         << " (shouldBlock = " << shouldBlock << ")\n"; 
@@ -714,7 +878,9 @@ static dyn_lwp *doWaitUntilStopped(process *p, int pid, bool shouldBlock)
           other_lwps.push_back(new_event.lwp->get_lwp_id());
           proccontrol_cerr << "\tpostponing " << new_event.what << endl;
        }
-       else if (didProcReceiveInstTrap(new_event.why)) 
+       else if (didProcReceiveInstTrap(new_event.why) ||
+                (didProcReceiveSignal(new_event.why) && 
+                 new_event.what == SIGTRAP)) 
        {
           proccontrol_cerr << "\tReceived trap\n";
           new_event.lwp->changePC(new_event.lwp->getActiveFrame().getPC() - 1, 
@@ -766,8 +932,8 @@ static dyn_lwp *doWaitUntilStopped(process *p, int pid, bool shouldBlock)
   {
     //Throw back the extra signals we caught.
      proccontrol_cerr << "\tResending " << other_sigs[i] 
-           << "to " << other_lwps[i] << endl;
-    lwp_kill(other_lwps[i], other_sigs[i]);
+                      << "to " << other_lwps[i] << endl;
+     lwp_kill(other_lwps[i], other_sigs[i]);
   }
 
   if (stopped_lwp)
@@ -796,6 +962,10 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
    {
      return false;
    }
+   if (status() == exited)
+   {
+      return true;
+   }
 
    ptraceOps++; 
    ptraceOtherOps++;
@@ -814,7 +984,6 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
     * to deliver the signal.  This leaves that thread is a different state
     * than the others, and it won't actually respond to the PTRACE_CONT.  
     **/
-
    ret = P_kill(get_lwp_id(), SIGCONT);
    if (ret == -1)
      return false;
@@ -846,7 +1015,7 @@ bool process::continueProc_(int sig)
   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
   while (lwp_iter.next(index, lwp))
   {
-    if (lwp->status() == running)
+    if (lwp->status() == running || lwp->status() == exited)
       continue;
     bool result = lwp->continueLWP(sig);
     if (result)
@@ -933,19 +1102,24 @@ terminateProcStatus_t process::terminateProc_()
     return terminateSucceeded;
 }
 
-void dyn_lwp::realLWP_detach_() {
-    if(! proc_->isAttached()) {
+void dyn_lwp::realLWP_detach_() 
+{
+   int result;
+   if(! proc_->isAttached()) {
       if (! proc_->hasExited())
-        cerr << "Detaching, but not attached" << endl;
+         cerr << "Detaching, but not attached" << endl;
       return;
-    }
+   }
     
-    cerr <<"Detaching..." << endl;
-    ptraceOps++;
-    ptraceOtherOps++;
-    bperr( "%d\n", deliverPtrace(PTRACE_DETACH, 1, SIGCONT));
-    
-    return;
+   if (status() != exited)
+   {
+      //An exited lwp has already auto-detached
+      ptraceOps++;
+      ptraceOtherOps++;
+      result = deliverPtrace(PTRACE_DETACH, 1, SIGCONT);
+   }
+   remove_lwp_from_poll_list(get_lwp_id());
+   return;
 }
 
 void dyn_lwp::representativeLWP_detach_() {
@@ -958,6 +1132,8 @@ void dyn_lwp::representativeLWP_detach_() {
     ptraceOps++;
     ptraceOtherOps++;
     deliverPtrace(PTRACE_DETACH, 1, SIGCONT);
+
+    remove_lwp_from_poll_list(get_lwp_id());
     return;
 }
 
@@ -983,7 +1159,7 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
 {
    unsigned char *ap = (unsigned char*) inTraced;
    const unsigned char *dp = (const unsigned char*) inSelf;
-   Address w;               /* ptrace I/O buffer */
+   Address w = 0x0;               /* ptrace I/O buffer */
    int len = sizeof(Address); /* address alignment of ptrace I/O requests */
    unsigned cnt;
 
@@ -1196,7 +1372,7 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
 bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf) {
      const unsigned char *ap = (const unsigned char*) inTraced;
      unsigned char *dp = (unsigned char*) inSelf;
-     Address w;               /* ptrace I/O buffer */
+     Address w = 0x0;               /* ptrace I/O buffer */
      int len = proc_->getAddressWidth(); /* address alignment of ptrace I/O requests */
      unsigned cnt;
 
@@ -1276,26 +1452,63 @@ pdstring process::tryToFindExecutable(const pdstring & /* iprogpath */, int pid)
 }
 
 
-void process::determineLWPs(pdvector<unsigned> &all_lwps)
+bool process::determineLWPs(pdvector<unsigned> &lwp_ids)
 {
-  char procdir[128];
+  char name[128];
   struct dirent *direntry;
   
-  sprintf(procdir, "/proc/%d/task", getPid());
-  DIR *dirhandle = opendir(procdir);
-
-  //Only works on Linux 2.6
+  /**
+   * Linux 2.6:
+   **/
+  sprintf(name, "/proc/%d/task", getPid());
+  DIR *dirhandle = opendir(name);
   if (dirhandle)
   {
-    while((direntry = readdir(dirhandle)) != NULL) {
-      unsigned lwp_id = atoi(direntry->d_name);
-      if (lwp_id) 
-	all_lwps.push_back(lwp_id);
-    }
-    closedir(dirhandle);
-    return;
+     //Only works on Linux 2.6
+     while((direntry = readdir(dirhandle)) != NULL) {
+        unsigned lwp_id = atoi(direntry->d_name);
+        if (lwp_id) 
+           lwp_ids.push_back(lwp_id);
+     }
+     closedir(dirhandle);
+     return true;
   }
-} 
+  /**
+   * Linux 2.4:
+   *
+   * PIDs that are created by pthreads have a '.' prepending their name
+   * in /proc.  We'll check all of those for the ones that have this lwp
+   * as a parent pid.
+   **/
+  dirhandle = opendir("/proc");
+  if (!dirhandle)
+  {
+     //No /proc directory.  I give up.  No threads for you.
+     return false;
+  } 
+  while ((direntry = readdir(dirhandle)) != NULL)
+  {
+     if (direntry->d_name[0] != '.')
+        continue;
+     unsigned lwp_id = atoi(direntry->d_name+1);
+     int lwp_ppid;
+     if (!lwp_id) 
+        continue;
+     sprintf(name, "/proc/%d/stat", lwp_id);
+     FILE *fd = fopen(name, "r");
+     if (!fd)
+        continue;
+     fscanf(fd, "%*d %*s %*c %d", &lwp_ppid);
+     fclose(fd);
+     if (lwp_ppid != getPid())
+        continue;
+     lwp_ids.push_back(lwp_id);
+  }
+  closedir(dirhandle);
+  lwp_ids.push_back(getPid());
+  
+  return true;
+}
 
 #if !defined(BPATCH_LIBRARY)
 #ifdef PAPI
@@ -1305,86 +1518,6 @@ papiMgr* dyn_lwp::papi() {
 
 }
 #endif
-#endif
-
-
-#if !defined(BPATCH_LIBRARY)
-
-rawTime64 dyn_lwp::getRawCpuTime_hw()
-{
-  rawTime64 result = 0;
-  
-#ifdef PAPI
-  result = papi()->getCurrentVirtCycles();
-#endif
-  
-  if (result < hw_previous_) {
-    logLine("********* time going backwards in paradynd **********\n");
-    result = hw_previous_;
-  }
-  else 
-    hw_previous_ = result;
-  
-  return result;
-}
-
-rawTime64 dyn_lwp::getRawCpuTime_sw()
-{
-  rawTime64 result = 0;
-  int bufsize = 150;
-  unsigned long utime, stime;
-  char procfn[bufsize], *buf;
-
-  sprintf( procfn, "/proc/%d/stat", get_lwp_id());
-
-  int fd;
-
-  // The reason for this complicated method of reading and sseekf-ing is
-  // to ensure that we read enough of the buffer 'atomically' to make sure
-  // the data is consistent.  Is this necessary?  I *think* so. - nash
-  do {
-    fd = P_open(procfn, O_RDONLY, 0);
-    if (fd < 0) {
-      perror("getInferiorProcessCPUtime (open)");
-      return false;
-    }
-
-    buf = new char[ bufsize ];
-
-    if ((int)P_read( fd, buf, bufsize-1 ) < 0) {
-      perror("getInferiorProcessCPUtime");
-      return false;
-    }
-
-	/* While I'd bet that any of the numbers preceding utime and stime could overflow 
-	   a signed int on IA-64, the compiler whines if you add length specifiers to
-	   elements whose conversion has been surpressed. */
-    if(2==sscanf(buf,"%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %lu %lu "
-		 , &utime, &stime ) ) {
-      // These numbers are in 'jiffies' or timeslices.
-      // Oh, and I'm also assuming that process time includes system time
-      result = static_cast<rawTime64>(utime) + static_cast<rawTime64>(stime);
-      break;
-    }
-
-    delete [] buf;
-    bufsize = bufsize * 2;
-
-    P_close( fd );
-  } while ( true );
-
-  delete [] buf;
-  P_close(fd);
-
-  if (result < sw_previous_) {
-    logLine("********* time going backwards in paradynd **********\n");
-    result = sw_previous_;
-  }
-  else 
-    sw_previous_ = result;
-
-  return result;
-}
 #endif
 
 
@@ -1399,6 +1532,9 @@ procSyscall_t decodeSyscall(process * /*p*/, procSignalWhat_t what)
          break;
       case SYS_exit:
          return procSysExit;
+         break;
+      case SYS_lwp_exit:
+         return procLwpExit;
          break;
       default:
          return procSysOther;
@@ -1629,7 +1765,6 @@ void process::inferiorMallocAlign(unsigned &size)
 }
 #endif
 
-
 bool dyn_lwp::realLWP_attach_() {
    char procName[128];
    sprintf(procName, "/proc/%d/mem", get_lwp_id());
@@ -1638,18 +1773,21 @@ bool dyn_lwp::realLWP_attach_() {
      fd_ = INVALID_HANDLE_VALUE;
 
    startup_cerr << "process::attach() doing PTRACE_ATTACH" << endl;
+
    if( 0 != P_ptrace(PTRACE_ATTACH, get_lwp_id(), 0, 0) )
    {
       perror( "process::attach - PTRACE_ATTACH" );
       return false;
    }
    
+   add_lwp_to_poll_list(this);
    if (0 > waitpid(get_lwp_id(), NULL, __WCLONE)) {
       perror("process::attach - waitpid");
       exit(1);
    }
 
-   continueLWP();
+   if (proc_->status() == running)
+      continueLWP();
    return true;
 }
 
@@ -1683,6 +1821,7 @@ bool dyn_lwp::representativeLWP_attach_() {
          perror( "process::attach - PTRACE_ATTACH" );
          return false;
       }
+      add_lwp_to_poll_list(this);
 
       if (0 > waitpid(getPid(), NULL, 0)) {
          perror("process::attach - waitpid");
@@ -1851,3 +1990,160 @@ Address findFunctionToHijack(process *p)
   return codeBase;
 } /* end findFunctionToHijack() */
 
+/**
+ * Searches for function in order, with preference given first 
+ * to libpthread, then to libc, then to the process.
+ **/
+static void findThreadFuncs(process *p, pdstring func, 
+                            pdvector<int_function *> &result)
+{
+   bool found = false;
+   mapped_module *lpthread = p->findModule("libpthread*", true);
+   if (lpthread)
+      found = lpthread->findFuncVectorByPretty(func, result);
+   if (found)
+      return;
+
+   mapped_module *lc = p->findModule("libc.so*", true);
+   if (lc)
+      found = lc->findFuncVectorByPretty(func, result);
+   if (found)
+      return;
+   
+   p->findFuncsByPretty(func, result);
+}
+
+bool process::initMT()
+{
+   unsigned i;
+   bool res;
+
+#if !defined(cap_threads)
+   return true;
+#endif
+
+   /**
+    * Instrument thread_create with calls to DYNINST_dummy_create
+    **/
+   //Find create_thread
+   pdvector<int_function *> thread_init_funcs;
+   findThreadFuncs(this, "create_thread", thread_init_funcs);
+   findThreadFuncs(this, "start_thread", thread_init_funcs);
+   if (thread_init_funcs.size() < 1)
+   {
+      fprintf(stderr, "[%s:%d] - Found no copies of create_thread, expected 1\n",
+              __FILE__, __LINE__);
+      return false;
+   }
+   //Find DYNINST_dummy_create
+   int_function *dummy_create = findOnlyOneFunction("DYNINST_dummy_create");
+   if (!dummy_create)
+   {
+     fprintf(stderr, "[%s:%d] - Couldn't find DYNINST_dummy_create",
+             __FILE__, __LINE__);
+      return false;
+   }
+   //Instrument
+   for (i=0; i<thread_init_funcs.size(); i++)
+   {
+      pdvector<AstNode *> args;
+      AstNode call_dummy_create(dummy_create, args);
+      AstNode *ast = &call_dummy_create;
+      const pdvector<instPoint *> &ips = thread_init_funcs[i]->funcEntries();
+      for (unsigned j=0; j<ips.size(); j++)
+      {
+         miniTramp *mt;
+         mt = ips[j]->instrument(ast, callPreInsn, orderFirstAtPoint, false, 
+                                 false);
+         if (!mt)
+         {
+            fprintf(stderr, "[%s:%d] - Couldn't instrument thread_create\n",
+                    __FILE__, __LINE__);
+         }
+         //TODO: Save the mt objects for detach
+      }
+   }
+#if 0
+      /*
+   //Find functions that are run on pthread exit
+   pdvector<int_function *> thread_dest_funcs;
+   findThreadFuncs(this, "__pthread_do_exit", &thread_dest_funcs);
+   findThreadFuncs(this, "pthread_exit", &thread_dest_funcs);
+   findThreadFuncs(this, "deallocate_tsd", &thread_dest_funcs);
+   if (!thread_dest_funcs.size())
+   {
+      fprintf(stderr,"[%s:%d] - Found 0 copies of pthread_exit, expected 1\n",
+              __FILE__, __LINE__);
+      return false;
+   }
+   //Find DYNINSTthreadDestroy
+   int_function *threadDestroy = findOnlyOneFunction("DYNINSTthreadDestroy");
+   if (!threadDestroy)
+   {
+      fprintf(stderr, "[%s:%d] - Couldn't find DYNINSTthreadDestroy",
+              __FILE__, __LINE__);
+      return false;
+   }
+   //Instrument
+   for (i=0; i<thread_dest_funcs.size(); i++)
+   {
+      pdvector<AstNode *> args;
+      AstNode call_thread_destroy(threadDestroy, args);
+      AstNode *ast = &call_thread_destroy;
+      miniTrampHandle *mthandle;
+      instPoint *ip = thread_dest_funcs[i]->funcEntry(this);
+
+      result = addInstFunc(this, mthandle, ip, ast, callPostInsn, 
+                           orderFirstAtPoint, true, true, true);
+      if (result != success_res)
+      {
+         fprintf(stderr, "[%s:%d] - Couldn't instrument thread_destroy\n",
+                 __FILE__, __LINE__);
+      }
+   }
+      */
+#endif
+   /**
+    * Have dyn_pthread_self call the actual pthread_self
+    **/
+   //Find dyn_pthread_self
+   pdvector<int_variable *> ptself_syms;
+   res = findVarsByAll("DYNINST_pthread_self", ptself_syms);
+   if (!res)
+   {
+      fprintf(stderr, "[%s:%d] - Couldn't find any dyn_pthread_self, expected 1\n",
+              __FILE__, __LINE__);
+   }
+   assert(ptself_syms.size() == 1);
+   Address dyn_pthread_self = ptself_syms[0]->getAddress();
+   //Find pthread_self
+   pdvector<int_function *> pthread_self_funcs;
+   findThreadFuncs(this, "pthread_self", pthread_self_funcs);   
+   if (pthread_self_funcs.size() != 1)
+   {
+      fprintf(stderr, "[%s:%d] - Found %d pthread_self functions, expected 1\n",
+              __FILE__, __LINE__, pthread_self_funcs.size());
+      for (unsigned j=0; j<pthread_self_funcs.size(); j++)
+      {
+         int_function *ps = pthread_self_funcs[j];
+         fprintf(stderr, "[%s:%u] - %s in module %s at %x\n", __FILE__, __LINE__,
+                 ps->prettyName().c_str(), ps->mod()->fullName().c_str(), 
+                 ps->getAddress());
+      }
+      return false;
+   }   
+   //Replace
+   res = writeFunctionPtr(this, dyn_pthread_self, pthread_self_funcs[0]);
+   if (!res)
+   {
+      fprintf(stderr, "[%s:%d] - Couldn't update dyn_pthread_self\n",
+              __FILE__, __LINE__, pthread_self_funcs.size());
+      return false;
+   }
+   return true;
+}
+
+void dyninst_yield()
+{
+   pthread_yield();
+}

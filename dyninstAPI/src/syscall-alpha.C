@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-alpha.C,v 1.2 2004/03/23 01:12:10 eli Exp $
+// $Id: syscall-alpha.C,v 1.3 2005/09/09 18:07:08 legendre Exp $
 
 #include <sys/procfs.h>
 #include <sys/syscall.h>
@@ -138,6 +138,11 @@ bool syscallNotification::installPreExit() {
     praddset(&entryset, SYS_exit);
     if (!proc->set_entry_syscalls(&entryset)) return false;
     preExitInst = SYSCALL_INSTALLED;
+    return true;
+}    
+
+
+bool syscallNotification::installPreLwpExit() {
     return true;
 }    
 
@@ -249,3 +254,6 @@ bool syscallNotification::removePreExit() {
 }
 
 
+bool syscallNotification::removePreLwpExit() {
+    return true;
+}    

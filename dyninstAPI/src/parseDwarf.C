@@ -857,7 +857,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				}
 			else {
 				int_function * newIntFunction = functions[0];
-				newFunction = proc->registerNewFunction( newIntFunction );
+				newFunction = proc->newFunctionCB( newIntFunction );
 			} /* end findFunction() cases */
 
 			/* Once we've found the BPatch_function pointer corresponding to this

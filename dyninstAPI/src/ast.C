@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.153 2005/08/25 22:45:20 bernat Exp $
+// $Id: ast.C,v 1.154 2005/09/09 18:06:32 legendre Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -99,7 +99,8 @@ extern bool doNotOverflow(int value);
 registerSpace::registerSpace(const unsigned int deadCount, Register *dead, 
                              const unsigned int liveCount, Register *live,
                              bool multithreaded) :
-  is_multithreaded(multithreaded)
+   highWaterRegister(0), registers(NULL), fpRegisters(NULL), 
+   is_multithreaded(multithreaded)
 {
 #if defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_linux2_0) \
@@ -139,6 +140,14 @@ registerSpace::registerSpace(const unsigned int deadCount, Register *dead,
          }
       }
    }
+}
+
+registerSpace::~registerSpace()
+{
+  if (registers)
+     delete [] registers;
+  if (fpRegisters)
+     delete [] fpRegisters; 
 }
 
 void registerSpace::initFloatingPointRegisters(const unsigned int count, Register *fp)
@@ -205,89 +214,108 @@ Register registerSpace::allocateRegister(codeGen &gen, bool noCost)
 void registerSpace::freeRegister(Register reg) 
 {
     for (u_int i=0; i < numRegisters; i++) {
-	if (registers[i].number == reg) {
-	    registers[i].refCount--;
+       if (registers[i].number == reg) {
+          registers[i].refCount--;
 #if defined(ia64_unknown_linux2_4)
-		if( registers[i].refCount < 0 ) {
-			bperr( "Freed free register!\n" );
-			registers[i].refCount = 0;
-			}
+          if( registers[i].refCount < 0 ) {
+             bperr( "Freed free register!\n" );
+             registers[i].refCount = 0;
+          }
 #endif
-	    return;
-	}
+          return;
+       }
     }
 }
 
 // Free the register even if its refCount is greater that 1
 void registerSpace::forceFreeRegister(Register reg) 
 {
-    for (u_int i=0; i < numRegisters; i++) {
-	if (registers[i].number == reg) {
-	    registers[i].refCount = 0;
-	    return;
-	}
-    }
+   for (u_int i=0; i < numRegisters; i++) {
+      if (registers[i].number == reg) {
+         registers[i].refCount = 0;
+         return;
+      }
+   }
 }
 
 bool registerSpace::isFreeRegister(Register reg) {
-
-    for (u_int i=0; i < numRegisters; i++) {
-	if ((registers[i].number == reg) &&
-	    (registers[i].refCount > 0)) {
-	    return false;
-	}
-    }
-    return true;
+   for (u_int i=0; i < numRegisters; i++) {
+       if ((registers[i].number == reg) &&
+           (registers[i].refCount > 0)) {
+          return false;
+       }
+   }
+   return true;
 }
 
 // Manually set the reference count of the specified register
 // we need to do so when reusing an already-allocated register
 void registerSpace::fixRefCount(Register reg, int iRefCount)
 {
-    for (u_int i=0; i < numRegisters; i++) {
-	if (registers[i].number == reg) {
-	  registers[i].refCount = iRefCount;
-	    return;
-	}
-    }
+   for (u_int i=0; i < numRegisters; i++) {
+      if (registers[i].number == reg) {
+         registers[i].refCount = iRefCount;
+         return;
+      }
+   }
 }
 
 // Bump up the reference count. Occasionally, we underestimate it
 // and call this routine to correct this.
 void registerSpace::incRefCount(Register reg)
 {
-    for (u_int i=0; i < numRegisters; i++) {
-	if (registers[i].number == reg) {
-	  registers[i].refCount++;
-	    return;
-	}
-    }
+   for (u_int i=0; i < numRegisters; i++) {
+      if (registers[i].number == reg) {
+         registers[i].refCount++;
+         return;
+      }
+   }
     // assert(false && "Can't find register");
 }
 
-void registerSpace::copyInfo(registerSpace *rs) {
-  u_int i;
-  rs->registers = new registerSlot[numRegisters];
-  rs->fpRegisters = new registerSlot[numFPRegisters];
-  rs->numRegisters = numRegisters;
-  rs->numFPRegisters = numFPRegisters;
+void registerSpace::copyInfo( registerSpace *rs ) const {
+   /* Not quite sure why this isn't a copy constructor. */
+   rs->numRegisters = this->numRegisters;
+   rs->numFPRegisters = this->numFPRegisters;
+   rs->highWaterRegister = this->highWaterRegister;
    
-  for (i=0; i < numRegisters; i++)
-    {
- 
-      rs->registers[i].beenClobbered = registers[i].beenClobbered;
-      //rs->registers[i].startsLive = registers[i].startsLive;
+   rs->registers = this->numRegisters ? 
+      new registerSlot[ this->numRegisters ] :
+      NULL;
+   rs->fpRegisters = this->numFPRegisters ? 
+      new registerSlot[ this->numFPRegisters ] :
+      NULL;
+   
+   rs->is_multithreaded = this->is_multithreaded;
+   rs->spFlag = this->spFlag;
+
+#if defined(arch_ia64)
+   rs->originalLocals = this->originalLocals;
+   rs->originalOutputs = this->originalOutputs;
+   rs->originalRotates = this->originalRotates;
+   rs->sizeOfStack = this->sizeOfStack;
+   memcpy(rs->storageMap, this->storageMap, BP_R_MAX * sizeof(int));
+#endif
+
+   /* Duplicate the registerSlot arrays. */
+   for( unsigned int i = 0; i < this->numRegisters; i++ ) {
       rs->registers[i].number = registers[i].number;
-    }
-
-  for (i=0; i < numFPRegisters; i++)
-    {
-      rs->fpRegisters[i].beenClobbered = fpRegisters[i].beenClobbered;
-      rs->fpRegisters[i].number = fpRegisters[i].number;
-    }
-}
-
-
+      rs->registers[i].refCount = registers[i].refCount;
+      rs->registers[i].needsSaving = registers[i].needsSaving;
+      rs->registers[i].mustRestore = registers[i].mustRestore;
+      rs->registers[i].startsLive = registers[i].startsLive;
+      rs->registers[i].beenClobbered = registers[i].beenClobbered;
+   }
+   
+   for( unsigned int j = 0; j < this->numFPRegisters; j++ ) {
+      rs->fpRegisters[j].number = fpRegisters[j].number;
+      rs->fpRegisters[j].refCount = fpRegisters[j].refCount;
+      rs->fpRegisters[j].needsSaving = fpRegisters[j].needsSaving;
+      rs->fpRegisters[j].mustRestore = fpRegisters[j].mustRestore;
+      rs->fpRegisters[j].startsLive = fpRegisters[j].startsLive;
+      rs->fpRegisters[j].beenClobbered = fpRegisters[j].beenClobbered;
+   }
+} /* end registerSpace::copyInfo() */
 
 void registerSpace::resetSpace() {
    for (u_int i=0; i < numRegisters; i++) {
@@ -2325,4 +2353,10 @@ void AstNode::getChildren(pdvector<AstNode*> *children)
     for (unsigned i=0; i<operands.size(); i++) {
 	children->push_back(operands[i]);
     }
+}
+
+registerSpace &registerSpace::operator=(const registerSpace &src)
+{
+   src.copyInfo(this);
+   return *this;
 }

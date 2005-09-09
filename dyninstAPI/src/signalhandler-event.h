@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-event.h,v 1.3 2004/03/23 01:12:09 eli Exp $
+/* $Id: signalhandler-event.h,v 1.4 2005/09/09 18:07:02 legendre Exp $
  */
 
 /*
@@ -57,11 +57,13 @@
 
 class process;
 class dyn_lwp;
+class dyn_thread;
 
 class procevent {
  public:
    process *proc;
    dyn_lwp *lwp;  // the lwps causing the event (not the representative lwp)
+   dyn_thread *thr;// the thread that triggered the event, may not always be set
    procSignalWhy_t why;
    procSignalWhat_t what;
    procSignalInfo_t info;

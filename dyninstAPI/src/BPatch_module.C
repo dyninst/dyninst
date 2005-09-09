@@ -142,6 +142,7 @@ BPatch_module::BPatch_module( BPatch_process *_proc, mapped_module *_mod,
    proc( _proc ), mod( _mod ), img( _img ), 
    moduleTypes(NULL)
 {
+   unsigned i;
 #if defined(TIMED_PARSE)
     struct timeval starttime;
     gettimeofday(&starttime, NULL);
@@ -182,7 +183,7 @@ BPatch_module::BPatch_module( BPatch_process *_proc, mapped_module *_mod,
     if (!BPatch::bpatch->delayedParsingOn()) {
         
         const pdvector< int_function * >  &functions = mod->getAllFunctions();
-        for( unsigned int i = 0; i < functions.size(); i++ ) {
+        for( i = 0; i < functions.size(); i++ ) {
             /* The bpfs for a shared object module won't have been built by now,
                but generating them on the fly is OK because each .so is a single module
                for our purposes. */
@@ -201,7 +202,7 @@ BPatch_module::BPatch_module( BPatch_process *_proc, mapped_module *_mod,
         }
     }
 #endif
-    
+
 #if defined(TIMED_PARSE)
     struct timeval endtime;
     gettimeofday(&endtime, NULL);

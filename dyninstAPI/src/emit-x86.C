@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.5 2005/08/25 22:45:25 bernat Exp $
+ * $Id: emit-x86.C,v 1.6 2005/09/09 18:06:40 legendre Exp $
  */
 
 #include <assert.h>
@@ -336,14 +336,10 @@ bool Emitter32::emitBTMTCode(baseTramp* bt, codeGen &gen)
     regSpace->resetSpace();
     
     /* Get the hashed value of the thread */
-    if (!bt->proc()->multithread_ready()) {
-        // Uh oh... we're not ready to build a tramp yet!
-        //cerr << "WARNING: tramp constructed without RT multithread support!"
-        //     << endl;
-        threadPOS = new AstNode("DYNINSTreturnZero", dummy);
-    }
-    else 
-        threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
+    if (bt->threaded())
+       threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
+    else
+       threadPOS = new AstNode("DYNINSTreturnZero", dummy);
     
     src = threadPOS->generateCode(bt->proc(), regSpace, gen,
                                   false, // noCost 
@@ -379,16 +375,16 @@ bool Emitter32::emitBTGuardPreCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& 
 
    /*            CMP_                       (memory address)__  0 */
     inst_printf("guard_flag_addr 0x%x\n", guard_flag_address);
-    if (bt->proc()->multithread_capable()) 
-        {
-            inst_printf("Generating MT code\n");
-            // Load the index into REGNUM_EAX
-            LOAD_VIRTUAL(REG_MT_POS, gen);
-            // Shift by sizeof(int) and add guard_flag_address
-            emitLEA(Null_Register, REGNUM_EAX, 2, guard_flag_address, REGNUM_EAX, gen);
-            // Compare to 0
-            emitOpRMImm8(0x83, 0x07, REGNUM_EAX, 0, 0, gen);
-        }
+    if (bt->threaded()) 
+    {
+       inst_printf("Generating MT code\n");
+       // Load the index into REGNUM_EAX
+       LOAD_VIRTUAL(REG_MT_POS, gen);
+       // Shift by sizeof(int) and add guard_flag_address
+       emitLEA(Null_Register, REGNUM_EAX, 2, guard_flag_address, REGNUM_EAX, gen);
+       // Compare to 0
+       emitOpRMImm8(0x83, 0x07, REGNUM_EAX, 0, 0, gen);
+    }
     else {
         inst_printf("Emitting normal code\n");
         emitOpRMImm8(0x83, 0x07, Null_Register, guard_flag_address, 0, gen);
@@ -400,10 +396,10 @@ bool Emitter32::emitBTGuardPreCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& 
     bt->guardBranchSize = JUMP_REL32_SZ;
     instruction::generateNOOP(gen, JUMP_REL32_SZ);
     
-    if (bt->proc()->multithread_capable()) 
-        {
-            emitMovImmToRM(REGNUM_EAX, 0, 0, gen);
-        }
+    if (bt->threaded())
+    {
+       emitMovImmToRM(REGNUM_EAX, 0, 0, gen);
+    }
     else {
         emitMovImmToMem( guard_flag_address, 0, gen );
     }
@@ -425,8 +421,8 @@ bool Emitter32::emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t&
     * --------------
     * movl   $0x1, (guard flag address)
     */
-   if (bt->proc()->multithread_capable()) 
-       {
+   if (bt->threaded())
+   {
        inst_printf("Generating MT guard post code\n");
        // Load the index into REGNUM_EAX
        LOAD_VIRTUAL(REG_MT_POS, gen);
@@ -1218,14 +1214,14 @@ bool Emitter64::emitBTGuardPreCode(baseTramp* bt, codeGen &gen, unsigned& guardJ
     }
     
     inst_printf("guard_flag_addr 0x%p\n", (void*)guard_flag_address);
-    if (bt->proc()->multithread_capable()) 
-        {
-	    assert(0);
-        }
+    if (bt->threaded()) 
+    {
+       assert(0);
+    }
     else {
         inst_printf("Emitting normal code\n");
-	emitMovImmToReg64(RAX, guard_flag_address, true, gen);
-	emitOpMemImm64(0x81, 0x7, RAX, 0, false, gen);
+        emitMovImmToReg64(RAX, guard_flag_address, true, gen);
+        emitOpMemImm64(0x81, 0x7, RAX, 0, false, gen);
     }
     
     guardJumpIndex = gen.getIndex();
@@ -1235,10 +1231,10 @@ bool Emitter64::emitBTGuardPreCode(baseTramp* bt, codeGen &gen, unsigned& guardJ
     bt->guardBranchSize = JUMP_REL32_SZ;
     instruction::generateNOOP(gen, JUMP_REL32_SZ);
     
-    if (bt->proc()->multithread_capable()) 
-	{
+    if (bt->threaded()) 
+    {
 	    assert(0);
-	}
+    }
     else {
 	emitMovImmToRM(RAX, 0, 0, gen);
     }
@@ -1256,7 +1252,7 @@ bool Emitter64::emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t 
     }
     assert(guard_flag_address);
 
-   if (bt->proc()->multithread_capable()) 
+   if (bt->threaded())
    {
        assert(0);
    }

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.230 2005/09/01 22:18:23 bernat Exp $
+ * $Id: inst-power.C,v 1.231 2005/09/09 18:06:43 legendre Exp $
  */
 
 #include "common/h/headers.h"
@@ -723,11 +723,11 @@ unsigned saveGPRegisters(codeGen &gen,
         if ((reg->number >= 10 && reg->number <= 12) || 
             reg->number == REG_GUARD_ADDR || reg->number == REG_GUARD_VALUE
             || reg->number == 0) {
-            saveRegister(gen, reg->number, save_off, offset);
+            saveRegister(gen, reg->number, save_off);
             numRegs++;
         }
     }
-#endif
+#else
 
     unsigned numRegs = 0;
     for(u_int i = 0; i < theRegSpace->getRegisterCount(); i++) {
@@ -737,7 +737,8 @@ unsigned saveGPRegisters(codeGen &gen,
 	  numRegs++;
         }
     }
-        
+#endif
+    
     return numRegs;
 }
 
@@ -774,8 +775,7 @@ unsigned restoreGPRegisters(codeGen &gen,
                     }
             }
     }
-#endif
-
+#else
     unsigned numRegs = 0;
     for(u_int i = 0; i < theRegSpace->getRegisterCount(); i++) {
         registerSlot *reg = theRegSpace->getRegSlot(i);
@@ -784,7 +784,8 @@ unsigned restoreGPRegisters(codeGen &gen,
             numRegs++;
         }
     }
-    
+#endif
+
     return numRegs;
 }
 
@@ -1064,14 +1065,10 @@ bool baseTramp::generateMTCode(codeGen &gen,
     regSpace->resetSpace();
     
     /* Get the hashed value of the thread */
-    if (!proc()->multithread_ready()) {
-        // Uh oh... we're not ready to build an MT tramp yet. 
-        // Probably haven't loaded the RT library
-        // DUMB. Dumb dumb dumb. Let's just do an immediate load 0.
-        threadPOS = new AstNode("DYNINSTreturnZero", dummy);
-    }
-    else 
-        threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
+    if (threaded()) 
+       threadPOS = new AstNode("DYNINSTreturnZero", dummy);
+    else
+       threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
     src = threadPOS->generateCode(proc(), regSpace, gen,
                                   false, // noCost 
                                   true); // root node
@@ -1100,7 +1097,7 @@ bool baseTramp::generateGuardPreCode(codeGen &gen,
               gen, false);
     // MT; if we're MTing we have a base (hence trampGuardBase()) but
     // need to index it to get our base
-    if (proc()->multithread_capable()) {
+    if (threaded()) {
         // Build the offset in a spare register
         emitImm(timesOp, (Register) REG_MT_POS, (RegValue) sizeof(unsigned),
                 REG_GUARD_OFFSET, gen, false);
@@ -2838,4 +2835,15 @@ bool process::MonitorCallSite(instPoint *callSite){
 }
 #endif // NOTDEF // PDSEP
 
+bool writeFunctionPtr(process *p, Address addr, int_function *f)
+{
+   Address buffer[3];
+   Address val_to_write = f->getAddress();
+   Address toc = p->getTOCoffsetInfo(val_to_write);
+   buffer[0] = val_to_write;
+   buffer[1] = toc;
+   buffer[2] = 0x0;
 
+   p->writeDataSpace((void *) addr, sizeof(buffer), buffer);
+   return true;
+}

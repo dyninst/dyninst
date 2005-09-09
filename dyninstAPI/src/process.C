@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.551 2005/09/02 00:45:17 bernat Exp $
+// $Id: process.C,v 1.552 2005/09/09 18:06:57 legendre Exp $
 
 #include <ctype.h>
 
@@ -48,12 +48,6 @@
 #endif
 
 #include <set>
-
-
-#include <sys/time.h>
-#include <sys/resource.h>
-#include <unistd.h>
-
 
 
 #include "common/h/headers.h"
@@ -75,6 +69,7 @@
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/dynamiclinking.h"
 #include "dyninstAPI/src/BPatch_asyncEventHandler.h"
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 // #include "paradynd/src/mdld.h"
 #include "common/h/Timer.h"
 #include "common/h/Time.h"
@@ -144,6 +139,8 @@ extern pdstring osName;
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 extern void cleanupVsysinfo(void *ehd);
 #endif
+
+pdvector<instMapping*> initialRequests;
 
 void printLoadDyninstLibraryError() {
     cerr << "Paradyn/Dyninst failed to load the runtime library. This is normally caused by " << endl;
@@ -802,7 +799,9 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
    return dl_debug_statePltEntry;
 }
 	
-bool process::applyMutationsToTextSection(char *textSection, unsigned textAddr, unsigned textSize){
+bool process::applyMutationsToTextSection(char* /*textSection*/, unsigned /*textAddr*/, 
+                                          unsigned /*textSize*/)
+{
     // Uhh... what does this do?
 #if 0
 	mutationRecord *mr = afterMutationList.getHead();
@@ -813,8 +812,9 @@ bool process::applyMutationsToTextSection(char *textSection, unsigned textAddr, 
             }
             mr = mr->next;
 	}
-#endif
 	return true;
+#endif
+   return true;
 }
 
 char* process::saveWorldCreateSharedLibrariesSection(int dyninst_SharedLibrariesSize){
@@ -1169,16 +1169,16 @@ bool process::initTrampGuard()
   // which resides in the runtime library. However, this is not
   // enough for MT paradyn. So Paradyn overrides this setting as 
   // part of its initialization.
-  // Repeat: OVERRIDDEN LATER FOR PARADYN
-    const pdstring vrbleName = "DYNINSTtrampGuard";
+    const pdstring vrbleName = "DYNINST_tramp_guards";
     pdvector<int_variable *> vars;
-    if (!findVarsByAll(vrbleName,
-                       vars)) {
+    if (!findVarsByAll(vrbleName, vars)) 
+    {
         return false;
     }
     assert(vars.size() == 1);
-    trampGuardBase_ = vars[0]->getAddress();
-    assert(trampGuardBase_);
+
+    readDataSpace((void *) vars[0]->getAddress(), sizeof(Address), &trampGuardBase_, 
+                  true);
     return true;
 }
 
@@ -1625,7 +1625,6 @@ void process::deleteProcess() {
       }
       real_lwps.clear();
       
-      // If we're execing, don't delete the rep LWP
       if (representativeLWP) {
           delete representativeLWP;
           representativeLWP = NULL;
@@ -1778,9 +1777,6 @@ process::~process()
 // cases.
 process::process(int ipid) :
     cached_result(not_cached), // MOVE ME
-#if !defined(BPATCH_LIBRARY)
-    PARADYNhasBootstrapped(false), // FIXME!!!
-#endif
     pid(ipid),
     parent(NULL),
     runtime_lib(NULL),
@@ -1791,6 +1787,7 @@ process::process(int ipid) :
     dyn(NULL),
     representativeLWP(NULL),
     real_lwps(CThash),
+    max_number_of_threads(MAX_THREADS),
     deferredContinueProc(false),
     previousSignalAddr_(0),
     continueAfterNextStop_(false),
@@ -1840,7 +1837,6 @@ process::process(int ipid) :
 
     theRpcMgr = new rpcMgr(this);    
     dyn = new dynamic_linking(this);
-
     createRepresentativeLWP();
 
     // Not sure we need this anymore... on AIX you can run code
@@ -1900,9 +1896,7 @@ bool process::setupCreated(int iTraceLink) {
 // Attach version of the above: no trace pipe, but we assume that
 // main() has been reached and passed. Someday we could unify the two
 // if someone has a good way of saying "has main been reached".
-
 bool process::setupAttached() {
-
     creationMechanism_ = attached_cm;
     // We're post-main... run the bootstrapState forward
 
@@ -1987,7 +1981,6 @@ bool process::prepareExec() {
     assert(dyn == NULL);
     theRpcMgr = new rpcMgr(this);
     dyn = new dynamic_linking(this);
-
     int status = 0;
 
     // False: not waitin' for a signal (theoretically, we already got
@@ -2044,9 +2037,6 @@ bool process::finishExec() {
     
     if(process::IndependentLwpControl())
         independentLwpControlInit();
-    
-    if (!initTrampGuard())
-        assert(0);
     
     set_status(stopped); // was 'exited'
     
@@ -2118,14 +2108,19 @@ bool process::setupFork() {
     if(process::IndependentLwpControl())
         independentLwpControlInit();
 
-    recognize_threads(parent);
-
     /////////////////////////
     // RPC manager
     /////////////////////////
     
     theRpcMgr = new rpcMgr(parent->theRpcMgr, this);
     assert(theRpcMgr);
+
+    /////////////////////////
+    // Find new threads
+    /////////////////////////    
+
+    recognize_threads(parent);
+
 
     /////////////////////////
     // Inferior heap
@@ -2331,13 +2326,8 @@ bool process::setupGeneral() {
     if(process::IndependentLwpControl())
         independentLwpControlInit();
     
-    startup_printf("Initializing tramp guard\n");
-    if (!initTrampGuard())
-        assert(0);
-
     return true;
 }
-
 
 //
 // Process "fork" ctor, for when a process which is already being monitored by
@@ -2347,9 +2337,6 @@ bool process::setupGeneral() {
 
 process::process(const process *parentProc, int childPid, int childTrace_fd) : 
     cached_result(parentProc->cached_result), // MOVE ME
-#if !defined(BPATCH_LIBRARY)
-    PARADYNhasBootstrapped(true), // FIXME!!!
-#endif
     pid(childPid),
     parent(parentProc),
     runtime_lib(NULL), // Set later
@@ -2361,6 +2348,7 @@ process::process(const process *parentProc, int childPid, int childTrace_fd) :
     dyn(NULL),  // Set later
     representativeLWP(NULL), // Set later
     real_lwps(CThash),
+    max_number_of_threads(parentProc->max_number_of_threads),
     deferredContinueProc(parentProc->deferredContinueProc),
     previousSignalAddr_(parentProc->previousSignalAddr_),
     continueAfterNextStop_(parentProc->continueAfterNextStop_),
@@ -2400,15 +2388,12 @@ process::process(const process *parentProc, int childPid, int childTrace_fd) :
     , vsyscall_text_(parentProc->vsyscall_text_)
     , vsyscall_data_(parentProc->vsyscall_data_)
 #endif
-
 {
 }
 
 static void cleanupBPatchHandle(int pid)
 {
-#ifdef BPATCH_LIBRARY
    BPatch::bpatch->unRegisterProcess(pid);
-#endif
 }
 
 extern bool forkNewProcess(pdstring &file, pdstring dir,
@@ -2541,7 +2526,8 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
         // forkNewProcess is responsible for displaying error messages
         // Note: if the fork succeeds, but exec fails, forkNew...
         // will return true. 
-        return NULL;
+       fprintf(stderr, "[%s:%u] - Couldn't fork\n", __FILE__, __LINE__);
+       return NULL;
     }
     startup_cerr << "Fork new process... succeeded" << endl;
 
@@ -2588,6 +2574,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
     HACKSTATUS = status;
 
     if (!theProc->setAOut(desc)) {
+       fprintf(stderr, "[%s:%u] - Couldn't setAOut\n", __FILE__, __LINE__);
         cleanupBPatchHandle(pid);
         processVec.pop_back();
         delete theProc;
@@ -2595,6 +2582,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
     }
 
     if (!theProc->setupGeneral()) {
+       fprintf(stderr, "[%s:%u] - Couldn't setupGeneral\n", __FILE__, __LINE__);
         cleanupBPatchHandle(pid);
         processVec.pop_back();
         delete theProc;
@@ -2821,7 +2809,7 @@ process *ll_attachToCreatedProcess(int pid, const pdstring &progpath)
 bool process::loadDyninstLib() {
   startup_printf("Entry to loadDyninstLib\n");
   // Wait for the process to get to an initialized (dlopen exists)
-    // state
+  // state
   while (!reachedBootstrapState(initialized_bs)) {
       startup_printf("Waiting for process to reach initialized state...\n");
       if(hasExited()) {
@@ -2878,7 +2866,7 @@ bool process::loadDyninstLib() {
 
     // Set up a callback to be run when dyninst lib is loaded
     // Windows has some odd naming problems, so we only use the root
-#if defined(i386_unknown_nt4_0)
+#if defined(os_windows)
     char dllFilename[_MAX_FNAME];
     _splitpath( dyninstRT_name.c_str(),
                 NULL, NULL, dllFilename, NULL);
@@ -2947,9 +2935,9 @@ bool process::loadDyninstLib() {
         buffer = pdstring("PID=") + pdstring(pid);
         buffer += pdstring(", finalizing library via inferior RPC");
         statusLine(buffer.c_str());    
-        iRPCDyninstInit();
+        iRPCDyninstInit();        
     }
-    
+
     buffer = pdstring("PID=") + pdstring(pid);
     buffer += pdstring(", dyninst RT lib ready");
     statusLine(buffer.c_str());    
@@ -3013,16 +3001,21 @@ bool process::setDyninstLibInitParams() {
    writeDataSpace((void*)vars[0]->getAddress(), sizeof(int), (void *)&cause);
    vars.clear();
 
-   if (!findVarsByAll("libdyninstAPI_RT_init_localPid",
-                      vars))
-       if (!findVarsByAll("_libdyninstAPI_RT_init_localPid",
-                          vars))
+   if (!findVarsByAll("libdyninstAPI_RT_init_localPid", vars))
+       if (!findVarsByAll("_libdyninstAPI_RT_init_localPid", vars))
            assert(0 && "Could not find necessary internal variable");
    assert(vars.size() == 1);
    writeDataSpace((void*)vars[0]->getAddress(), sizeof(int), (void *)&pid);
-   
-   startup_cerr << "process::installBootstrapInst() complete" << endl;
-   
+   vars.clear();   
+
+   if (!findVarsByAll("libdyninstAPI_RT_init_maxthreads", vars))
+       if (!findVarsByAll("_libdyninstAPI_RT_init_maxthreads", vars))
+           assert(0 && "Could not find necessary internal variable");
+   assert(vars.size() == 1);
+   writeDataSpace((void*)vars[0]->getAddress(), sizeof(int), (void *) &max_number_of_threads);
+   vars.clear();   
+
+   startup_cerr << "process::installBootstrapInst() complete" << endl;   
    return true;
 }
 
@@ -3035,7 +3028,11 @@ void process::dyninstLibLoadCallback(process *p, pdstring /*ignored*/,
 
 // Call DYNINSTinit via an inferiorRPC
 bool process::iRPCDyninstInit() {
+    startup_printf("[%s:%u] - Running DYNINSTinit via irpc\n", __FILE__, __LINE__);
     // Duplicates the parameter code in setDyninstLibInitParams()
+    int pid = getpid();
+    int maxthreads = maxNumberOfThreads();
+
     int cause = 0;
     switch (creationMechanism_) {
     case created_cm:
@@ -3053,11 +3050,12 @@ bool process::iRPCDyninstInit() {
         break;
    }
 
-    pdvector<AstNode*> the_args(2);
+    pdvector<AstNode*> the_args(3);
     the_args[0] = new AstNode(AstNode::Constant, (void*)(Address)cause);
     the_args[1] = new AstNode(AstNode::Constant, (void*)(Address)pid);
+    the_args[2] = new AstNode(AstNode::Constant, (void*)(Address)maxthreads);
     AstNode *dynInit = new AstNode("DYNINSTinit", the_args);
-    removeAst(the_args[0]); removeAst(the_args[1]);
+    removeAst(the_args[0]); removeAst(the_args[1]); removeAst(the_args[2]);
     getRpcMgr()->postRPCtoDo(dynInit,
                              true, // Don't update cost
                              process::DYNINSTinitCompletionCallback,
@@ -3072,6 +3070,7 @@ bool process::iRPCDyninstInit() {
            return false;
         getSH()->checkForAndHandleProcessEvents(true);
     }
+    startup_printf("[%s:%u] - Ran DYNINSTinit via irpc\n", __FILE__, __LINE__);
     return true;
 }
 
@@ -3125,7 +3124,9 @@ bool process::finalizeDyninstLib() {
       assert(false);
 
    // Read the structure; if event 0 then it's undefined! (not yet written)
-   if (bs_record.event == 0){
+   if (bs_record.event == 0)
+   {
+       startup_printf("[%s:%u] - bs_record.event is undefined\n");
        return false;
    }
 
@@ -3181,6 +3182,8 @@ bool process::finalizeDyninstLib() {
              cerr << "Warning: failed post-exec notification setup" << endl;
           if (!tracedSyscalls_->installPreExit()) 
              cerr << "Warning: failed pre-exit notification setup" << endl;
+          if (!tracedSyscalls_->installPreLwpExit()) 
+             cerr << "Warning: failed pre-lwp-exit notification setup" << endl;
           //#ifdef i386_unknown_linux2_0
           //}
           //#endif
@@ -3197,7 +3200,18 @@ bool process::finalizeDyninstLib() {
        }
        
    }
-   
+
+   startup_printf("Initializing tramp guard\n");
+   if (!initTrampGuard())
+      assert(0);
+
+#if defined(cap_threads)
+   if (multithread_capable())
+   {
+      initMT();
+   }
+#endif
+
    if (!calledFromAttach) {
        pdstring str=pdstring("PID=") + pdstring(bs_record.pid) + ", dyninst ready.";
        statusLine(str.c_str());
@@ -3436,11 +3450,12 @@ void process::processCost(unsigned obsCostLow,
 // library (eg. libpthreads.a on AIX).  There are cases where we are querying
 // whether the app is multi-threaded, but it can't be determined yet but it
 // also isn't necessary to know.
-#if defined( BPATCH_LIBRARY ) || defined( ia64_unknown_linux2_4 ) || defined(arch_x86_64)
-bool process::multithread_capable(bool) { return false; }
-#else
 bool process::multithread_capable(bool ignore_if_mt_not_set)
 {
+#if !defined(cap_threads)
+   return false;
+#endif
+
    if(cached_result != not_cached) {
        if(cached_result == cached_mt_true) {
            return true;
@@ -3469,7 +3484,18 @@ bool process::multithread_capable(bool ignore_if_mt_not_set)
        return false;
    }
 }
-#endif
+
+void process::addThread(dyn_thread *thread)
+{
+   getRpcMgr()->addThread(thread);
+   threads.push_back(thread);
+}
+
+bool process::multithread_ready(bool ignore_if_mt_not_set) {
+   if (!multithread_capable(ignore_if_mt_not_set))
+      return false;
+   return isBootstrappedYet();
+}
 
 dyn_lwp *process::query_for_stopped_lwp() {
    dyn_lwp *foundLWP = NULL;
@@ -3963,6 +3989,8 @@ bool process::handleIfDueToSharedObjectMapping(){
 bool process::registerLoadLibraryCallback(pdstring libname, 
                                           loadLibraryCallbackFunc callback,
                                           void *data) {
+   startup_printf("[%s:%u] - At top of registerLoadLibraryCallback", 
+                  __FILE__, __LINE__);
     if (loadLibraryCallbacks_.defines(libname)) {
         cerr << "Possible error: predefined callback for "
              << libname << " being overwritten!" << endl;
@@ -4067,9 +4095,9 @@ bool process::addASharedObject(mapped_object *new_obj) {
     //}
 
     parsing_printf("Adding shared object %s, addr range 0x%x to 0x%x\n",
-		   new_obj->fileName().c_str(), 
-                   new_obj->getBaseAddress(),
-                   new_obj->get_size_cr());
+           new_obj->fileName().c_str(), 
+           new_obj->getBaseAddress(),
+           new_obj->get_size_cr());
     // TODO: check for "is_elf64" consistency (Object)
 
     // If the static inferior heap has been initialized, then 
@@ -4554,7 +4582,6 @@ int_function *process::findFuncByAddr(Address addr) {
 bool process::addCodeRange(codeRange *codeobj) {
 
    codeRangesByAddr_.insert(codeobj);
-   codeRange *temp;
 #if 0
    fprintf(stderr, "addCodeRange for %p\n", codeobj);
    if (dynamic_cast<multiTramp *>(codeobj))
@@ -4571,6 +4598,7 @@ bool process::addCodeRange(codeRange *codeobj) {
        // Chunk of executable code - add to codeSections_
        codeSections_.insert(codeobj);
 #if 0
+       codeRange *temp;
        if (!codeSections_.find(codeobj->get_address_cr(),
                                temp)) {
            codeSections_.insert(codeobj);
@@ -4812,7 +4840,8 @@ bool process::continueProc(int signalToContinueWith) {
     showErrorCallback(38, "System error: can't continue process");
     return false;
   }
-  status_ = running;
+  if (status_ != exited)
+     status_ = running;
   return true;
 }
 
@@ -4949,9 +4978,10 @@ void process::triggerNormalExitCallback(int exitCode) {
       return;
    }
    BPatch::bpatch->registerNormalExit(this, exitCode);
-   
+
    // And continue the process so that it exits normally
    continueProc();
+   set_status(exited);
 }
 
 void process::triggerSignalExitCallback(int signalnum) {
@@ -5029,9 +5059,6 @@ void process::handleExecExit() {
     // NOTE: for shm sampling, the shm segment has been removed, so we
     //       mustn't try to disable any dataReqNodes in the standard way...
     nextTrapIsExec = false;
-#if !defined(BPATCH_LIBRARY) //ccw 22 apr 2002 : SPLIT
-	PARADYNhasBootstrapped = false;
-#endif
 
    // Should probably be renamed to clearProcess... deletes anything
    // unnecessary
@@ -5467,13 +5494,12 @@ void process::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks)
   }
 }
 
-dyn_thread *process::createInitialThread() {
+dyn_thread *process::createInitialThread() 
+{
    assert(threads.size() == 0);
    dyn_thread *initialThread = new dyn_thread(this);
-   threads.push_back(initialThread);
    return initialThread;
 }
-
 
 dyn_thread *process::getThread(unsigned tid) {
    dyn_thread *thr;
@@ -5504,13 +5530,13 @@ dyn_lwp *process::getLWP(unsigned lwp_id)
      return NULL;
   }
 
-  //The created lwp is running, so the process is running.
-  if (status_ == stopped) {
-#if defined(os_linux)
-    status_ = running;
-#endif
+  if (IndependentLwpControl())
+  {
+     if (status_ == running)
+        set_lwp_status(foundLWP, running);
+     else if (status_ == stopped)
+        set_lwp_status(foundLWP, stopped);
   }
-
   return foundLWP;
 }
 
@@ -5544,150 +5570,43 @@ dyn_lwp *process::createRealLWP(unsigned lwp_id, int /*lwp_index*/) {
 void process::deleteLWP(dyn_lwp *lwp_to_delete) {
    if(real_lwps.size() > 0 && lwp_to_delete!=NULL) {
       theRpcMgr->deleteLWP(lwp_to_delete);
-      unsigned index = lwp_to_delete->get_lwp_id();
-      if (index)
-          real_lwps.undef(index);
+      lwp_to_delete->get_lwp_id();
+      real_lwps.undef(lwp_to_delete->get_lwp_id());
    }
+   if (lwp_to_delete == representativeLWP)
+      representativeLWP = NULL;
    delete lwp_to_delete;
 }
 
 
 // Called for new threads
-
-dyn_thread *process::createThread(
-    int tid, 
-    unsigned pos, 
-    unsigned lwp,
-    unsigned stackbase, 
-    unsigned startpc, 
-    void* resumestate_p,  
-    bool /*bySelf*/)
-{
-  dyn_thread *thr;
-  //bperr( "Received notice of new thread.... tid %d, pos %d, stackbase 0x%x, startpc 0x%x\n", tid, pos, stackbase, startpc);
-  // creating new thread
-  thr = new dyn_thread(this, tid, pos, NULL);
-
-  thr->update_lwp(getLWP(lwp));
-  threads += thr;
-  thr->update_resumestate_p(resumestate_p);
-  int_function *pdf ;
-
-  if (startpc) {
-      thr->update_stack_addr(stackbase) ;
-      thr->update_start_pc(startpc) ;
-      codeRange *range = findCodeRangeByAddress(startpc);
-      pdf = range->is_function();
-      thr->update_start_func(pdf) ;
-  } else {
-      assert(main_function);
-      thr->update_start_pc(0);
-      thr->update_start_func(main_function);
-      thr->update_stack_addr(stackbase);
-  }
-
-  //sprintf(errorLine,"+++++ creating new thread{%s/0x%x}, pos=%u, tid=%d, stack=0x%x, resumestate=0x%x, by[%s]\n",
-  //pdf->prettyName().c_str(), startpc, pos,tid,stackbase,(unsigned)resumestate_p, bySelf?"Self":"Parent");
-//logLine(errorLine);
-  return(thr);
-}
-
-//
-// CALLED for mainThread
-//
-void process::updateThread(dyn_thread *thr, int tid, 
-                           unsigned index, unsigned lwp,
-                           void* resumestate_p)
-{
-  assert(thr);
-  thr->update_tid(tid);
-  thr->update_index(index);
-  thr->update_lwp(getLWP(lwp));
-  thr->update_resumestate_p(resumestate_p);
-  assert(main_function);
-
-  //unsigned addr = f_main->addr();
-  //thr->update_start_pc(addr) ;
-  thr->update_start_pc(0);
-  thr->update_start_func(main_function);
-
-  thr->updateLWP();
-
-  //sprintf(errorLine,"+++++ updateThread--> creating new thread{main}, index=%u, tid=%d, resumestate=0x%x\n", index,tid, (unsigned) resumestate_p);
-  //logLine(errorLine);
-}
-
-//
-// CALLED from Attach
-//
-void process::updateThread(
-    dyn_thread *thr, 
-    int tid, 
-    unsigned index, 
-    unsigned lwp,
-    unsigned stackbase, 
-    unsigned startpc, 
-    void* resumestate_p) 
-{
-  assert(thr);
-  //  
-  sprintf(errorLine," updateThread(tid=%d, index=%d, stackaddr=0x%x, startpc=0x%x)\n",
-	 tid, index, stackbase, startpc);
-  logLine(errorLine);
-
-  thr->update_tid(tid);
-  thr->update_index(index);
-  thr->update_lwp(getLWP(lwp));
-  thr->update_resumestate_p(resumestate_p);
-
-  int_function *pdf;
-
-  if(startpc) {
-    thr->update_start_pc(startpc) ;
-    codeRange *range = findCodeRangeByAddress(startpc);
-    pdf = range->is_function();
-    thr->update_start_func(pdf) ;
-    thr->update_stack_addr(stackbase) ;
-  } else {
-      assert(main_function);
-      thr->update_start_pc(startpc) ;
-      //thr->update_start_pc(pdf->addr()) ;
-      thr->update_start_func(main_function);
-      thr->update_stack_addr(stackbase);
-  } //else
-
-  //sprintf(errorLine,"+++++ creating new thread{%s/0x%x}, index=%u, tid=%d, stack=0x%xs, resumestate=0x%x\n",
-  //pdf->prettyName().c_str(), startpc, index, tid, stackbase, (unsigned) resumestate_p);
-  //logLine(errorLine);
-}
-
 void process::deleteThread(int tid)
 {
-// TODO: dyninst migration: we need THREAD_AWAITING_DELETION defined
-#if defined(BPATCH_LIBRARY)
-#define THREAD_AWAITING_DELETION 42
-#endif
-   pdvector<dyn_thread *>::iterator iter = threads.end();
-   while(iter != threads.begin()) {
-      dyn_thread *thr = *(--iter);
-      if(thr->get_tid() != (unsigned) tid)  continue;
-      
-      // ===  Found It  ==========================
-      // Set the INDEX to "reusable"
-      // Note: we don't acquire a lock. This is okay, because we're simply
-      //       clearing the bit, which was not usable before now anyway.
-      assert(getIndexToThread(thr->get_index()) == THREAD_AWAITING_DELETION);
-      setIndexToThread(thr->get_index(), 0);
-      
-      getRpcMgr()->deleteThread(thr);
+  processState newst = running;
+  pdvector<dyn_thread *>::iterator iter = threads.end();
+  while(iter != threads.begin()) {
+    dyn_thread *thr = *(--iter);
+    dyn_lwp *lwp = thr->get_lwp();
+    //Find the deleted thread
+    if(thr->get_tid() != (unsigned) tid) 
+    {
+      //Update the process state, since deleting a thread may change it.
+      if (lwp->status() == stopped)
+         newst = stopped;
+      continue;
+    } 
+    //Delete the thread
+    getRpcMgr()->deleteThread(thr);
+    delete thr;
 
-      delete thr;    
-      //sprintf(errorLine,"----- deleting thread, tid=%d, threads.size()=%d\n",
-      //        tid, threads.size());
-      //logLine(errorLine);
+    //Delete the lwp below the thread
+    deleteLWP(lwp);
 
-      threads.erase(iter);
-   }
+    threads.erase(iter);  
+  }
+  
+  if (threads.size() && (status_ == running || status_ == stopped))
+    status_ = newst;
 }
 
 // Pull whatever is in the slot out of the inferior process
@@ -5711,75 +5630,202 @@ void process::updateThreadIndexAddr(Address addr) {
     threadIndexAddr = addr;
 }
 
-void process::recognize_threads(const process *parent) {
-    if (!multithread_capable()) {
-        // Easy job
-        assert(parent->threads.size() == 1);
-        dyn_thread *new_thr = new dyn_thread(parent->threads[0], this);
-        threads.push_back(new_thr);
-    }
-    else {
-        pdvector<unsigned> lwp_ids;
-        determineLWPs(lwp_ids);
-        
-        // We have LWPs with objects. The parent has a vector of threads.
-        // Hook them up.
-        
-        threads.clear();
-        
-        for (unsigned thr_iter = 0; thr_iter < parent->threads.size(); thr_iter++) {
-            unsigned matching_lwp = 0;
-            dyn_thread *par_thread = parent->threads[thr_iter];
-            forkexec_printf("Updating thread %d (tid %d)\n",
-                            thr_iter, par_thread->get_tid());
-            
-            for (unsigned lwp_iter = 0; lwp_iter < lwp_ids.size(); lwp_iter++) {
-                if (lwp_ids[lwp_iter] == 0) continue;
-                dyn_lwp *lwp = getLWP(lwp_ids[lwp_iter]);
-                
-                forkexec_printf("... checking against LWP %d\n", lwp->get_lwp_id());
-                
-                if (par_thread->get_lwp()->executingSystemCall()) {
-                    // Must be the forking thread. Look for an LWP in a matching call
-                    Address par_syscall = par_thread->get_lwp()->getCurrentSyscall();
-                    if (!lwp->executingSystemCall())
-                        continue;
-                    Address cur_syscall = lwp->getCurrentSyscall();
-                    if (par_syscall == cur_syscall) {
-                        matching_lwp = lwp_ids[lwp_iter];
-                        forkexec_printf("... Match: syscall %d = %d\n",
-                                        par_syscall, cur_syscall);
-                        break;
-                    }
-                }
-                else {
-                    // Not in a system call, match active frames
-                    Frame parFrame = par_thread->get_lwp()->getActiveFrame();
-                    Frame lwpFrame = lwp->getActiveFrame();
-                    if ((parFrame.getPC() == lwpFrame.getPC()) &&
-                        (parFrame.getFP() == lwpFrame.getFP()) &&
-                        (parFrame.getSP() == lwpFrame.getSP())) {
-                        forkexec_cerr << "... Match: " << lwpFrame << endl;
-                        matching_lwp = lwp_ids[lwp_iter];
-                        break;
-                    }
-                }
-            }
-            if (matching_lwp) {
-                // Make a new thread with details from the old
-                dyn_thread *new_thr = new dyn_thread(par_thread, this);
-                new_thr->update_lwp(getLWP(matching_lwp));
-                threads.push_back(new_thr);
-                forkexec_printf("Creating new thread %d (tid %d) on lwp %d, parent was on %d\n",
-                                thr_iter, new_thr->get_tid(), new_thr->get_lwp()->get_lwp_id(),
-                                par_thread->get_lwp()->get_lwp_id());
-            }
-            else {
-                forkexec_printf("Failed to find match for thread %d (tid %d), assuming deleted\n",
-                                thr_iter, par_thread->get_tid());
-            }
-        }
-    }
-    return;
+//used to pass multiple values with the doneRegistering callback
+typedef struct done_reg_bundle_t {
+   pdvector<int> *lwps;
+   pdvector<int> *indexes;
+   unsigned *num_completed;
+   int this_lwp;
+} done_reg_bundle_t;
+
+static void doneRegistering(process *, unsigned, void *data, void *result) 
+{
+   done_reg_bundle_t *pairs = (done_reg_bundle_t *) data;
+   
+   int index = (int) result;
+   int lwp_id = pairs->this_lwp;
+
+   pairs->lwps->push_back(lwp_id);
+   pairs->indexes->push_back(index);
+   (*pairs->num_completed)++;
+   free(pairs);
 }
 
+void process::recognize_threads(const process *parent) 
+{
+  pdvector<unsigned> lwp_ids;
+  unsigned i;
+  int result;
+
+  if (!multithread_capable()) {
+     // Easy case
+     if (parent) {
+        assert(parent->threads.size() == 1);
+        new dyn_thread(parent->threads[0], this);
+        //The constructor automatically adds the thread to the process list,
+        // thus it's safe to not keep a pointer to the new thread
+     }
+     return;
+  }
+
+  result = determineLWPs(lwp_ids);
+  if (!result)
+  {
+     forkexec_printf("Error. Recognize_threads couldn't determine LWPs\n");
+     return;
+  }     
+
+  //If !parent, then we're not a forked process and we can just assign the threads to
+  //LWPs arbitrarly.  This is most used in the attach/create cases. 
+  if (!parent)
+  {
+     unsigned num_completed = 0;
+     //Parallel arrays for simplicity
+     pdvector<int> ret_indexes;
+     pdvector<int> ret_lwps;
+     assert(status() == stopped);
+
+
+     /**
+      * Step 1: Find the lwp ids running in this process 
+      *         (done above in determineLWPs)
+      * Step 2: Run DYNINSTthreadIndex as an iRPC on each lwp
+      * Step 3: Have doneRegistering() map the return values of 
+      *         DYNINSTthreadIndex to the lwp we ran the iRPC on
+      * Step 4: Create (if it doesn't exist) threads using the index and
+      *         lwps
+      **/
+     for (i = 0; i < lwp_ids.size(); i++)
+     {
+        unsigned lwp_id = lwp_ids[i];
+        dyn_lwp *lwp = getLWP(lwp_id);
+        
+        pdvector<AstNode *> ast_args;
+        AstNode *ast = new AstNode("DYNINSTthreadIndex", ast_args);
+
+        done_reg_bundle_t *bundle = (done_reg_bundle_t*) 
+           malloc(sizeof(done_reg_bundle_t));
+        bundle->indexes = &ret_indexes;
+        bundle->lwps = &ret_lwps;
+        bundle->this_lwp = lwp_id;
+        bundle->num_completed = &num_completed;
+        getRpcMgr()->postRPCtoDo(ast, true, doneRegistering, bundle, false, 
+                                 NULL, lwp);
+     }
+     while(num_completed != lwp_ids.size())
+     {
+        getRpcMgr()->launchRPCs(false);
+        if(hasExited()) return;
+        getSH()->checkForAndHandleProcessEvents(false);
+     }
+
+     assert(ret_lwps.size() == ret_indexes.size());
+
+     assert(status() == stopped);
+     for (i=0; i<ret_lwps.size(); i++)
+     {
+        newThreadCB(ret_indexes[i], ret_lwps[i]);
+     }
+
+     assert(status() == stopped);
+     return;
+  }
+  
+  // We have LWPs with objects. The parent has a vector of threads.
+  // Hook them up.
+  for (unsigned thr_iter = 0; thr_iter < parent->threads.size(); thr_iter++) {
+     unsigned matching_lwp = 0;
+     dyn_thread *par_thread = parent->threads[thr_iter];
+     forkexec_printf("Updating thread %d (tid %d)\n",
+                     thr_iter, par_thread->get_tid());
+     threads.clear();
+  
+     for (unsigned lwp_iter = 0; lwp_iter < lwp_ids.size(); lwp_iter++) {
+        if (lwp_ids[lwp_iter] == 0) continue;
+        dyn_lwp *lwp = getLWP(lwp_ids[lwp_iter]);
+        
+        forkexec_printf("... checking against LWP %d\n", lwp->get_lwp_id());
+        
+        if (par_thread->get_lwp()->executingSystemCall()) {
+           // Must be the forking thread. Look for an LWP in a matching call
+           Address par_syscall = par_thread->get_lwp()->getCurrentSyscall();
+           if (!lwp->executingSystemCall())
+              continue;
+           Address cur_syscall = lwp->getCurrentSyscall();
+           if (par_syscall == cur_syscall) {
+              matching_lwp = lwp_ids[lwp_iter];
+              forkexec_printf("... Match: syscall %d = %d\n",
+                              par_syscall, cur_syscall);
+              break;
+           }
+        }
+        else {
+           // Not in a system call, match active frames
+           Frame parFrame = par_thread->get_lwp()->getActiveFrame();
+           Frame lwpFrame = lwp->getActiveFrame();
+           if ((parFrame.getPC() == lwpFrame.getPC()) &&
+               (parFrame.getFP() == lwpFrame.getFP()) &&
+               (parFrame.getSP() == lwpFrame.getSP())) {
+              forkexec_cerr << "... Match: " << lwpFrame << endl;
+              matching_lwp = lwp_ids[lwp_iter];
+              break;
+           }
+        }
+     }
+     if (matching_lwp) {
+        // Make a new thread with details from the old
+        dyn_thread *new_thr = new dyn_thread(par_thread, this);
+        new_thr->update_lwp(getLWP(matching_lwp));
+        threads.push_back(new_thr);
+        forkexec_printf("Creating new thread %d (tid %d) on lwp %d, parent was on %d\n",
+                        thr_iter, new_thr->get_tid(), new_thr->get_lwp()->get_lwp_id(),
+                        par_thread->get_lwp()->get_lwp_id());
+     }
+     else {
+        forkexec_printf("Failed to find match for thread %d (tid %d), assuming deleted\n",
+                        thr_iter, par_thread->get_tid());
+     }
+  }
+  return;
+}
+
+int process::maxNumberOfThreads()
+{
+   if (!multithread_capable())
+      return 1;
+   return max_number_of_threads; 
+}
+// vim:set ts=5:
+
+
+bool process::isBootstrappedYet() const {
+   return bootstrapState == bootstrapped_bs;
+}
+
+static void mapIndexToTid_cb(process *, unsigned, void *data, void *result)
+{
+   int *tid = (int *) data;
+   *tid = (int) result;
+}
+
+//Turn a thread index into a tid via an iRPC
+int process::mapIndexToTid(int index)
+{
+   int tid = -1;
+   pdvector<AstNode *> ast_args;
+   AstNode arg1(AstNode::Constant, (void *) index);
+   ast_args.push_back(&arg1);
+   AstNode call_get_tid("DYNINST_getThreadFromIndex", ast_args);
+
+   getRpcMgr()->postRPCtoDo(&call_get_tid, true, mapIndexToTid_cb, &tid,
+                            false, NULL, NULL);
+
+   while (tid == -1)
+   {
+      getRpcMgr()->launchRPCs(false);
+      if(hasExited()) return -1;
+      getSH()->checkForAndHandleProcessEvents(false);
+   }
+
+   return tid;
+}

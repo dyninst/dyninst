@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.141 2005/08/11 21:20:24 bernat Exp $
+// $Id: pdwinnt.C,v 1.142 2005/09/09 18:06:55 legendre Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -713,8 +713,7 @@ DWORD handleThreadCreate(const procevent &event) {
    dyn_lwp *l = proc->createFictionalLWP(event.info.dwThreadId);
    l->setFileHandle(event.info.u.CreateThread.hThread);
    l->attach();
-   dyn_thread *t = new dyn_thread(proc, event.info.dwThreadId, // thread ID
-                                  proc->threads.size(), // POS in threads array (and rpcMgr thrs_ array?)
+   dyn_thread *t = new dyn_thread(proc, proc->threads.size(), // POS in threads array (and rpcMgr thrs_ array?)
                                   l); // dyn_lwp object for thread handle
    proc->threads.push_back(t);
    proc->continueProc();
@@ -738,7 +737,7 @@ DWORD handleProcessCreate(const procevent &event) {
    }
 
    if (proc->threads.size() == 0) {
-      dyn_thread *t = new dyn_thread(proc, info.dwThreadId, // thread ID,
+      dyn_thread *t = new dyn_thread(proc, 
                                      0, // POS (main thread is always 0)
                                      rep_lwp);
       // define the main thread
@@ -2528,7 +2527,16 @@ Frame dyn_thread::getActiveFrameMT() {
    return Frame();
 }  // not used until MT supported
 
-void process::determineLWPs(pdvector<unsigned> &all_lwps)
+bool process::determineLWPs(pdvector<unsigned> &lwp_ids)
 {
-   return;
+   return true;
+}
+
+bool process::initMT()
+{
+   return true;
+}
+
+void dyninst_yield()
+{
 }

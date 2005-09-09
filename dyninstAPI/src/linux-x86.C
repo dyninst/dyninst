@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.77 2005/09/09 15:57:05 bernat Exp $
+// $Id: linux-x86.C,v 1.78 2005/09/09 18:06:48 legendre Exp $
 
 #include <fstream>
 
@@ -215,7 +215,7 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs) {
    
 
    assert(get_lwp_id() != 0);
-   if( P_ptrace( PTRACE_SETREGS, get_lwp_id(), 0,(long)&(regs.gprs) ) )
+   if( P_ptrace( PTRACE_SETREGS, get_lwp_id(), 0, (long)&(regs.gprs)))
    {
       perror("dyn_lwp::restoreRegisters PTRACE_SETREGS" );
       retVal = false;
@@ -754,9 +754,9 @@ Frame Frame::getCallerFrame()
         if (!getProc()->readDataSpace((caddr_t) sp_, sizeof(int), 
                              (caddr_t) &addrs.rtn, true))
           return Frame();
-	newFP = fp_;
-	newPC = addrs.rtn;
-	newSP = sp_+4;
+        newFP = fp_;
+        newPC = addrs.rtn;
+        newSP = sp_+4;
         goto done;
       }
       else
@@ -850,8 +850,8 @@ Frame Frame::getCallerFrame()
       }
       else
       {
-         if (!getProc()->readDataSpace((caddr_t) fp_, 2*sizeof(Address), (caddr_t) &addrs, 
-                               true))
+         if (!getProc()->readDataSpace((caddr_t) fp_, 2*sizeof(Address), 
+                                       (caddr_t) &addrs, true))
             return Frame();
          newFP = addrs.fp;
          newPC = addrs.rtn;

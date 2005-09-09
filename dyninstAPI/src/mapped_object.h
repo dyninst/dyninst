@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.h,v 1.4 2005/09/01 22:18:32 bernat Exp $
+// $Id: mapped_object.h,v 1.5 2005/09/09 18:06:52 legendre Exp $
 
 #if !defined(_mapped_object_h)
 #define _mapped_object_h
@@ -96,7 +96,6 @@ class int_variable {
 #define 	SHAREDOBJECT_NOCHANGE	0
 #define 	SHAREDOBJECT_ADDED	1
 #define 	SHAREDOBJECT_REMOVED	2
-
 
 // mapped_object represents a file in memory. It will be a collection
 // of modules (basically, .o's) that are referred to as a unit and

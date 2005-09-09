@@ -53,6 +53,7 @@
 #include "instPoint.h"
 #include "function.h" // int_function
 #include "codeRange.h"
+#include "dyn_thread.h"
 #include "miniTramp.h"
 
 #include "mapped_module.h"
@@ -141,8 +142,10 @@ BPatch_process::BPatch_process(const char *path, char *argv[], char *envp[],
    pdvector<pdstring> argv_vec;
    pdvector<pdstring> envp_vec;
    // Contruct a vector out of the contents of argv
-   for(int i = 0; argv[i] != NULL; i++)
-      argv_vec.push_back(argv[i]);
+   if (argv) {
+      for(int i = 0; argv[i] != NULL; i++)
+         argv_vec.push_back(argv[i]);
+   }
     
    // Construct a vector out of the contents of envp
    if(envp) {
@@ -171,23 +174,29 @@ BPatch_process::BPatch_process(const char *path, char *argv[], char *envp[],
            "Dyninst was unable to create the specified process");
       return;
    }
-
-   llproc->newFunctionCallback(createBPFuncCB);
-   llproc->newInstPointCallback(createBPPointCB);
+   
+   llproc->registerFunctionCallback(createBPFuncCB);
+   llproc->registerInstPointCallback(createBPPointCB);
+   llproc->registerDeleteThrdCallback(deleteThreadCB);
+   llproc->registerNewThrdCallback(newThreadCB);
 
    // Add this object to the list of processes
    assert(BPatch::bpatch != NULL);
    BPatch::bpatch->registerProcess(this);
 
    // Create an initial thread
-   threads.push_back(new BPatch_thread(this));
+   dyn_thread *dynthr = llproc->getInitialThread();
+   BPatch_thread *initial_thread = new BPatch_thread(this, dynthr);
+   threads.push_back(initial_thread);
 
    image = new BPatch_image(this);
 
    while (!llproc->isBootstrappedYet() && !statusIsTerminated())
+   {
       BPatch::bpatch->getThreadEvent(false);
+   }
 
-    // Let's try to profile memory usage
+   // Let's try to profile memory usage
 #if defined(PROFILE_MEM_USAGE)
    void *mem_usage = sbrk(0);
    fprintf(stderr, "Post BPatch_process: sbrk %p\n", mem_usage);
@@ -212,9 +221,6 @@ BPatch_process::BPatch_process(const char *path, int pid)
    func_map = new BPatch_funcMap();
    instp_map = new BPatch_instpMap();
 
-   // Create an initial thread
-   threads.push_back(new BPatch_thread(this));
-
    // Add this object to the list of threads
    assert(BPatch::bpatch != NULL);
    BPatch::bpatch->registerProcess(this, pid);
@@ -229,8 +235,15 @@ BPatch_process::BPatch_process(const char *path, int pid)
       return;
    }
 
-   llproc->newFunctionCallback(createBPFuncCB);
-   llproc->newInstPointCallback(createBPPointCB);
+   // Create an initial thread
+   dyn_thread *dynthr = llproc->getInitialThread();
+   BPatch_thread *initial_thread = new BPatch_thread(this, dynthr);
+   threads.push_back(initial_thread);
+
+   llproc->registerFunctionCallback(createBPFuncCB);
+   llproc->registerInstPointCallback(createBPPointCB);
+   llproc->registerDeleteThrdCallback(deleteThreadCB);
+   llproc->registerNewThrdCallback(newThreadCB);
 
    // Just to be sure, pause the process....
    llproc->pause();
@@ -263,10 +276,14 @@ BPatch_process::BPatch_process(int /*pid*/, process *nProc)
    instp_map = new BPatch_instpMap();
 
    // Create an initial thread
-   threads.push_back(new BPatch_thread(this));
+   dyn_thread *dynthr = llproc->getInitialThread();
+   BPatch_thread *initial_thread = new BPatch_thread(this, dynthr);
+   threads.push_back(initial_thread);
 
-   llproc->newFunctionCallback(createBPFuncCB);
-   llproc->newInstPointCallback(createBPPointCB);
+   llproc->registerFunctionCallback(createBPFuncCB);
+   llproc->registerInstPointCallback(createBPPointCB);
+   llproc->registerDeleteThrdCallback(deleteThreadCB);
+   llproc->registerNewThrdCallback(newThreadCB);
 
    image = new BPatch_image(this);
 }
@@ -282,6 +299,11 @@ void BPatch_process::BPatch_process_dtor()
        !BPatch::bpatch->eventHandler->detachFromProcess(this)) {
       bperr("%s[%d]:  trouble decoupling async event handler for process %d\n",
             __FILE__, __LINE__, getPid());
+   }
+
+   for (int i=threads.size()-1; i>=0; i--)
+   {
+      deleteBPThread(threads[i]);
    }
 
    if (image)
@@ -987,9 +1009,9 @@ bool BPatch_process::deleteSnippetInt(BPatchSnippetHandle *handle)
  * activate	If set to true, execution of snippets is enabled.  If false,
  *		execution is disabled.
  */
+#ifdef BPATCH_SET_MUTATIONS_ACTIVE
 bool BPatch_process::setMutationsActiveInt(bool activate)
 {
-#ifdef BPATCH_SET_MUTATIONS_ACTIVE
    // If not activating or deactivating, just return.
    if ((activate && mutationsActive) || (!activate && !mutationsActive))
       return true;
@@ -1000,9 +1022,11 @@ bool BPatch_process::setMutationsActiveInt(bool activate)
       llproc->uninstallMutations();
    
    mutationsActive = activate;
-#endif
    return true;
 }
+#else
+bool BPatch_process::setMutationsActiveInt(bool) { return true; }
+#endif
 
 /*
  * BPatch_process::replaceFunctionCall
@@ -1223,7 +1247,11 @@ bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
  *
  * libname	The name of the library to load.
  */
+#if defined(cap_save_the_world) && defined(BPATCH_LIBRARY)
 bool BPatch_process::loadLibraryInt(const char *libname, bool reload)
+#else
+bool BPatch_process::loadLibraryInt(const char *libname, bool)
+#endif
 {
    stopExecution();
    if (!statusIsStopped()) {
@@ -1267,12 +1295,10 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool reload)
       return false;
    }
 
-#ifdef BPATCH_LIBRARY
-#if defined(os_solaris) || (defined(os_linux) && defined(arch_x86)) || defined(os_aix)
+#if defined(cap_save_the_world) && defined(BPATCH_LIBRARY)
 	if(llproc->collectSaveWorldData && reload){
 		llproc->saveWorldloadLibrary(libname);	
 	}
-#endif
 #endif
    return true;
 }
@@ -1324,64 +1350,6 @@ void BPatch_process::enableDumpPatchedImageInt(){
 	llproc->collectSaveWorldData=true;
 }
 
-bool BPatch_process::registerAsyncThreadEventCallbackInt(
-           BPatch_asyncEventType type,
-           BPatchAsyncThreadEventCallback cb)
-{
-   bool ret = false;
-   BPatch_asyncEventHandler *handler = BPatch::bpatch->eventHandler;
-   ret = handler->registerThreadEventCallback(this, type, cb);
-   if (ret) BPatch::bpatch->asyncActive = true;
-   return ret;
-}
-
-bool BPatch_process::removeAsyncThreadEventCallbackInt(
-           BPatch_asyncEventType type,
-           BPatchAsyncThreadEventCallback cb)
-{
-   bool ret = false;
-   BPatch_asyncEventHandler *handler = BPatch::bpatch->eventHandler;
-   ret =  handler->removeThreadEventCallback(this, type, cb);
-   if (ret) BPatch::bpatch->asyncActive = true;
-   return ret;
-}
-
-bool BPatch_process::registerAsyncThreadEventCallbackMutateeSide(
-           BPatch_asyncEventType type,
-           BPatch_function *cb)
-{
-   BPatch_asyncEventHandler *handler = BPatch::bpatch->eventHandler;
-   return handler->registerThreadEventCallback(this, type, cb);
-}
-
-bool BPatch_process::removeAsyncThreadEventCallbackMutateeSide(
-           BPatch_asyncEventType type,
-           BPatch_function *cb)
-{
-   BPatch_asyncEventHandler *handler = BPatch::bpatch->eventHandler;
-   return handler->removeThreadEventCallback(this, type, cb);
-}
-
-
-bool BPatch_process::registerUserEventCallbackInt(
-           BPatchUserEventCallback cb)
-{
-   bool ret = false;
-   BPatch_asyncEventHandler *handler = BPatch::bpatch->eventHandler;
-   ret = handler->registerUserEventCallback(this, cb);
-   if (ret) BPatch::bpatch->asyncActive = true;
-   return ret;
-}
-
-bool BPatch_process::removeUserEventCallbackInt(
-           BPatchUserEventCallback cb)
-{
-   bool ret = false;
-   BPatch_asyncEventHandler *handler = BPatch::bpatch->eventHandler;
-   ret =  handler->removeUserEventCallback(this, cb);
-   if (ret) BPatch::bpatch->asyncActive = true;
-   return ret;
-}
 
 void BPatch_process::setExitedViaSignal(int signalnumber) {
    exitedViaSignal = true;
@@ -1408,6 +1376,14 @@ BPatch_thread *BPatch_process::getThreadInt(unsigned tid)
 {
    for (unsigned i=0; i<threads.size(); i++)
       if (threads[i]->getTid() == tid)
+         return threads[i];
+   return NULL;
+}
+
+BPatch_thread *BPatch_process::getThreadByIndexInt(unsigned index)
+{
+   for (unsigned i=0; i<threads.size(); i++)
+      if (threads[i]->getBPatchID() == index)
          return threads[i];
    return NULL;
 }
@@ -1470,6 +1446,80 @@ BPatch_point *BPatch_process::createBPPointCB(process *p, int_function *f,
    return proc->findOrCreateBPPoint(func, ip, (BPatch_procedureLocation) type);
 }
 
+BPatch_thread *BPatch_process::createOrUpdateBPThread(int lwp, int tid, 
+                                                      unsigned index, 
+                                                      unsigned long stack_start, 
+                                                      unsigned long start_addr)
+{
+   BPatch_thread *thr = NULL;
+
+   //Find this thread if it already exists.
+   for (unsigned i=0; i<threads.size(); i++) 
+      if (threads[i]->getBPatchID() == index) 
+      {
+         thr = threads[i];
+         break;
+      }
+
+   //Needs creating
+   if (!thr) 
+   {
+      thr = new BPatch_thread(this, index, lwp);
+      threads.push_back(thr);
+   }
+
+   //Update the non-esential values for the thread
+   BPatch_function *initial_func = getImage()->findFunction(start_addr);
+   thr->updateValues(tid, stack_start, initial_func, lwp);   
+   return thr;
+}
+
+/**
+ * Called by a Dyninst callback - Add the delete thread event to 
+ * our event queue.
+ **/
+void BPatch_process::deleteThreadCB(process *p, dyn_thread *thr)
+{
+   BPatch_process *bproc = BPatch::bpatch->getProcessByPid(p->getPid());
+   BPatch_thread *bthrd = bproc->getThread(thr->get_tid());
+
+   event_mailbox->executeOrRegisterCallback(BPatch_threadDestroyEvent, bproc, 
+				   bthrd->getBPatchID());
+}
+
+/**
+ * Not used for all thread creation.  In this case all we have is a new
+ * index (that may already exist) and a lwp.  
+ * 
+ **/
+void BPatch_process::newThreadCB(process *p, int index, int lwp)
+{
+   BPatch_process *bproc = BPatch::bpatch->getProcessByPid(p->getPid());
+   BPatch_thread *bpthrd = bproc->getThreadByIndex(index);
+   if (bpthrd && bpthrd->updated)
+      //Already 
+      return;
+   bproc->createOrUpdateBPThread(lwp, -1, index, 0, 0);
+}
+
+/**
+ * Called when a delete thread event is read out of the event queue
+ **/
+void BPatch_process::deleteBPThread(BPatch_thread *thrd)
+{
+   if (!thrd->getBPatchID()) 
+   {
+      //Don't delete if this is the initial thread.  Some Dyninst programs
+      // may use the initial BPatch_thread as a handle instead of the 
+      // BPatch_process, and we don't want to delete that handle out from
+      // under the users.
+      return;
+   }
+      
+   thrd->legacy_destructor = false;
+   delete thrd;      
+}
+
 #ifdef IBM_BPATCH_COMPAT
 /**
  * In IBM's code, this is a wrapper for _BPatch_thread->addSharedObject (linux)
@@ -1518,4 +1568,18 @@ BPatch_function *BPatch_process::get_function(int_function *f)
    if (!func_map->defines(f))
       return NULL;
    return func_map->get(f); 
+}
+
+extern void dyninst_yield();
+void BPatch_process::updateThreadInfo()
+{
+   if (!llproc->multithread_capable())
+      return;
+   
+   llproc->recognize_threads(NULL);
+   
+   //We want to startup the event handler thread even if there's
+   // no registered handlers so we can start getting MT events.
+   if (!BPatch::bpatch->eventHandler->startupThread())
+       return;
 }

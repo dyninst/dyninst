@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.144 2005/09/09 15:57:03 bernat Exp $
+// $Id: inst.C,v 1.145 2005/09/09 18:06:46 legendre Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -527,7 +527,7 @@ bool instPoint::checkInst(pdvector<Address> &checkPCs) {
         Address pc = checkPCs[sI];
         for (unsigned iI = 0; iI < instances.size(); iI++) {
             multiTramp *mt = instances[iI]->multi();
-            if ((pc >= mt->instAddr()) &&
+            if ((pc > mt->instAddr()) &&
                 (pc < (mt->instAddr() + mt->instSize()))) {
                 // We have a conflict. Now, we may still be able to make this 
                 // work; if we're not conflicting on the actual branch, we
@@ -992,6 +992,7 @@ codeGen::codeGen(unsigned size) :
     size_(size),
     allocated_(true) {
     buffer_ = (codeBuf_t *)malloc(size);
+    memset(buffer_, 0, size);
     if (!buffer_)
         fprintf(stderr, "Malloc failed for buffer of size %d\n", size_);
     assert(buffer_);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.142 2005/08/25 22:46:48 bernat Exp $
+// $Id: unix.C,v 1.143 2005/09/09 18:07:14 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -453,7 +453,7 @@ int handleSigTrap(const procevent &event) {
                 // frontend.
                 proc->triggerNormalExitCallback(0);
                 proc->handleProcessExit();
-		proc->continueProc();
+                proc->continueProc();
             }
             // Now we wait for the entry point trap to be reached
             return 1;
@@ -472,6 +472,7 @@ int handleSigTrap(const procevent &event) {
             buffer += pdstring(", loaded dyninst library");
             statusLine(buffer.c_str());
             signal_cerr << "trapDueToDyninstLib returned true, trying to handle\n";
+            startup_cerr << "trapDueToDyninstLib returned true, trying to handle\n";
             proc->loadDYNINSTlibCleanup(event.lwp);
             proc->setBootstrapState(loadedRT_bs);
             return 1;
@@ -658,7 +659,7 @@ int handleSignal(const procevent &event) {
       case SIGIOT:
       case SIGBUS:
       case SIGSEGV:
-	ret = handleSigCritical(event);
+         ret = handleSigCritical(event);
          break;
       case SIGCONT:
 #if defined(os_linux)
@@ -700,31 +701,58 @@ int handleSignal(const procevent &event) {
      return 1;
  }
 
- int handleSyscallEntry(const procevent &event) {
-    process *proc = event.proc;
-    procSyscall_t syscall = decodeSyscall(proc, event.what);
-    int ret = 0;
-    switch (syscall) {
+int handleLwpExit(const procevent &event) 
+{
+   process *proc = event.proc;
+   dyn_lwp *lwp = event.lwp;
+   dyn_thread *thr = NULL;
+   //Find the exiting thread
+   for (unsigned i=0; i<proc->threads.size(); i++)
+      if (proc->threads[i]->get_lwp()->get_lwp_id() == lwp->get_lwp_id())
+      {
+         thr = proc->threads[i];
+         break;
+      }
+   if (!thr)
+   {
+      return 0;
+   }
+
+   if (proc->IndependentLwpControl())
+      proc->set_lwp_status(event.lwp, exited);
+   proc->deleteThreadCB(thr);
+
+   return 1;
+}
+
+int handleSyscallEntry(const procevent &event) {
+   process *proc = event.proc;
+   procSyscall_t syscall = decodeSyscall(proc, event.what);
+   int ret = 0;
+   switch (syscall) {
       case procSysFork:
-          ret = handleForkEntry(event);
-          break;
+         ret = handleForkEntry(event);
+         break;
       case procSysExec:
          ret = handleExecEntry(event);
          break;
       case procSysExit:
-          proc->triggerNormalExitCallback(event.info);
-          ret = 1;
-          break;
+         proc->triggerNormalExitCallback(event.info);
+         ret = 1;
+         break;
+      case procLwpExit:
+         ret = handleLwpExit(event);
+         break;
       default:
-      // Check process for any other syscall
-      // we may have trapped on entry to?
-      ret = 0;
-      break;
-    }
-    // Continue the process post-handling
-    proc->continueProc();
-    return ret;
- }
+         // Check process for any other syscall
+         // we may have trapped on entry to?
+         ret = 0;
+         break;
+   }
+   // Continue the process post-handling
+   proc->continueProc();
+   return ret;
+}
 
  /* Only dyninst for now... paradyn should use this soon */
  int handleForkExit(const procevent &event) {
@@ -764,8 +792,8 @@ int handleSignal(const procevent &event) {
                  proc->handleForkExit(theChild);
 
                  // Okay, let 'er rip
-		 proc->continueProc();
-		 theChild->continueProc();
+                 proc->continueProc();
+                 theChild->continueProc();
              }
              else {
                  // Can happen if we're forking something we can't trace

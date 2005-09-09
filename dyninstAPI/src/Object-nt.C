@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.35 2005/08/03 05:28:01 bernat Exp $
+// $Id: Object-nt.C,v 1.36 2005/09/09 18:06:28 legendre Exp $
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -411,6 +411,7 @@ SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
 	// The values for pSymInfo->Tag are not currently documented in the PSDK.
 	// They are defined in the 'cvconst.h' header from the DIA SDK.
 	//
+   printf("[%s:%u] - Got symbol %s\n", __FILE__, __LINE__, pSymInfo->Name);
 	if( (pSymInfo->Flags & SYMFLAG_EXPORT) ||
 		(pSymInfo->Flags & SYMFLAG_FUNCTION) ||
 		(pSymInfo->Flags & SYMFLAG_PARAMETER) ||
@@ -591,6 +592,7 @@ Object::ParseDebugInfo( void )
 
     // obtain info about the module - how can we without a module handle?
     // parse symbols for the module
+    printf(stderr, "[%s:%u] - Asking for it\n", __FILE__, __LINE__);
     if( !SymEnumSymbols( hProc,                     // process handle
                             baseAddr,               // load address
                             "",                     // symbol mask (we use none)

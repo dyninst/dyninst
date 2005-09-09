@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.185 2005/09/09 15:57:07 bernat Exp $
+// $Id: symtab.h,v 1.186 2005/09/09 18:07:07 legendre Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -312,7 +312,7 @@ class image : public codeRange {
    friend class image_func;
 
    //
-   // ****  PUBLIC MEMBER FUBCTIONS  ****
+   // ****  PUBLIC MEMBER FUNCTIONS  ****
    //
  public:
    static image *parseImage(const pdstring file);

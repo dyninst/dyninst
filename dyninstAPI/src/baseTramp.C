@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.9 2005/09/09 15:57:01 bernat Exp $
+// $Id: baseTramp.C,v 1.10 2005/09/09 18:06:34 legendre Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -152,6 +152,7 @@ baseTramp::baseTramp() :
     postTrampCode_(),
     valid(false),
     guardState_(unset_BTR),
+    suppress_threads_(false),
     instVersion_()
 {
 }
@@ -193,6 +194,7 @@ baseTramp::baseTramp(const baseTramp *pt, process *proc) :
     postTrampCode_(pt->postTrampCode_),
     valid(pt->valid),
     guardState_(pt->guardState_),
+    suppress_threads_(pt->suppress_threads_),
     instVersion_(pt->instVersion_)
 {
 
@@ -1105,7 +1107,26 @@ Address baseTrampInstance::uninstrumentedAddr() const {
     return 0;
 }
 
-void *baseTrampInstance::getPtrToInstruction(Address addr) const {
+bool baseTramp::threaded() const {
+   if (!proc()->multithread_capable() || suppress_threads_)
+      return false;
+   return true;
+}
+
+void baseTramp::setThreaded(bool new_val)
+{
+   if (suppress_threads_ != new_val)
+      return;
+   if (valid)
+   {
+      valid = false;
+      preTrampCode_.invalidate();
+      postTrampCode_.invalidate();
+   }
+   suppress_threads_ = !new_val;
+}
+
+void *baseTrampInstance::getPtrToInstruction(Address /*addr*/ ) const {
     assert(0); // FIXME if we do out-of-line baseTramps
     return NULL;
 }

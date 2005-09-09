@@ -39,15 +39,18 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.130 2005/08/03 23:00:50 bernat Exp $
+// $Id: BPatch_thread.C,v 1.131 2005/09/09 18:06:25 legendre Exp $
 
 #define BPATCH_FILE
 
 #include "BPatch_thread.h"
 #include "BPatch.h"
-#include "process.h"
 #include "BPatch_libInfo.h"
-
+#include "BPatch_function.h"
+#include "process.h"
+#include "dyn_thread.h"
+#include "dyn_lwp.h"
+#include "BPatch_libInfo.h"
 
 /*
  * BPatch_thread::getCallStack
@@ -58,95 +61,162 @@
  */
 bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
 {
-    pdvector<pdvector<Frame> > stackWalks;
+   pdvector<Frame> stackWalk;   
+   bool was_stopped = false;
 
-    proc->llproc->walkStacks(stackWalks);
+   was_stopped = proc->isStopped();
+   if (!was_stopped)
+      proc->stopExecution();
 
-    // We can only handle one thread right now; change when we begin to handle
-    // multiple threads.
-    assert(stackWalks.size() == 1);
+   llthread->walkStack(stackWalk);
 
-    // The internal representation of a stack walk treats instrumentation
-    // as part of the original instrumented function. That is to say, if A() 
-    // calls B(), and B() is instrumented, the stack will appear as so:
-    // A()
-    // instrumentation
+   // The internal representation of a stack walk treats instrumentation
+   // as part of the original instrumented function. That is to say, if A() 
+   // calls B(), and B() is instrumented, the stack will appear as so:
+   // A()
+   // instrumentation
 
-    // We want it to look like so:
-    // A()
-    // B()
-    // instrumentation
+   // We want it to look like so:
+   // A()
+   // B()
+   // instrumentation
 
-    // We handle this by adding a synthetic frame to the stack walk whenever
-    // we discover an instrumentation frame.
+   // We handle this by adding a synthetic frame to the stack walk whenever
+   // we discover an instrumentation frame.
 
-    for (unsigned int i = 0; i < stackWalks[0].size(); i++) {
-        bool isSignalFrame = false;
-        bool isInstrumentation = false;
-        BPatch_point *point = NULL;
+   for (unsigned int i = 0; i < stackWalk.size(); i++) {
+      bool isSignalFrame = false;
+      bool isInstrumentation = false;
+      BPatch_point *point = NULL;
 
-        Frame frame = stackWalks[0][i];
-        frame.calcFrameType();
-        if (frame.frameType_ != FRAME_unset) {
-            isSignalFrame = frame.isSignalFrame();
-            isInstrumentation = frame.isInstrumentation();
-        }
+      Frame frame = stackWalk[i];
+      frame.calcFrameType();
+      if (frame.frameType_ != FRAME_unset) {
+         isSignalFrame = frame.isSignalFrame();
+         isInstrumentation = frame.isInstrumentation();
+      }
 
-        if (isInstrumentation) {
-            // This is a bit of a slog, actually. We want to only show
-            // bpatch points that exist, not describe internals to the
-            // user. So instead of calling findOrCreateBPPoint, we manually
-            // poke through the mapping table. If there isn't a point, we
-            // skip this instrumentation frame instead
-            instPoint *iP = frame.getPoint();
-            fprintf(stderr, "got iP %p\n", iP);
-            if (iP && proc->instp_map->defines(iP))
-                point = proc->instp_map->get(iP);
-            fprintf(stderr, "and point %p\n", point);
-            if (point) {
-                stack.push_back(BPatch_frame(this,
-                                             (void*)stackWalks[0][i].getPC(),
-                                             (void*)stackWalks[0][i].getFP(),
-                                             false,
-                                             true,
-                                             point));
-                // And the "top-level function" one.
-                stack.push_back(BPatch_frame(this,
-                                             (void *)stackWalks[0][i].getUninstAddr(),
-                                             (void *)stackWalks[0][i].getFP(),
-                                             false, // not signal handler,
-                                             false, // not inst.
-                                             NULL, // No point
-                                             true)); // Synthesized frame
-            }
-            else {
-                // No point = internal instrumentation, make it go away.
-                stack.push_back(BPatch_frame(this,
-                                             (void *)stackWalks[0][i].getUninstAddr(),
-                                             (void *)stackWalks[0][i].getFP(),
-                                             false, // not signal handler,
-                                             false, // not inst.
-                                             NULL, // No point
-                                             false)); // Synthesized frame
-                
-            }
-        }
-        else {
-            // Not instrumentation, normal case
+      if (isInstrumentation) {
+         // This is a bit of a slog, actually. We want to only show
+         // bpatch points that exist, not describe internals to the
+         // user. So instead of calling findOrCreateBPPoint, we manually
+         // poke through the mapping table. If there isn't a point, we
+         // skip this instrumentation frame instead
+         instPoint *iP = frame.getPoint();
+         if (iP && proc->instp_map->defines(iP))
+            point = proc->instp_map->get(iP);
+         if (point) {
             stack.push_back(BPatch_frame(this,
-                                         (void *)stackWalks[0][i].getPC(),
-                                         (void *)stackWalks[0][i].getFP(),
-                                         isSignalFrame));
-        }
-    }
-    return true;
+                                         (void*)stackWalk[i].getPC(),
+                                         (void*)stackWalk[i].getFP(),
+                                         false,
+                                         true,
+                                         point));
+            // And the "top-level function" one.
+            stack.push_back(BPatch_frame(this,
+                                         (void *)stackWalk[i].getUninstAddr(),
+                                         (void *)stackWalk[i].getFP(),
+                                         false, // not signal handler,
+                                         false, // not inst.
+                                         NULL, // No point
+                                         true)); // Synthesized frame
+         }
+         else {
+            // No point = internal instrumentation, make it go away.
+            stack.push_back(BPatch_frame(this,
+                                         (void *)stackWalk[i].getUninstAddr(),
+                                         (void *)stackWalk[i].getFP(),
+                                         false, // not signal handler,
+                                         false, // not inst.
+                                         NULL, // No point
+                                         false)); // Synthesized frame
+                
+         }
+      }
+      else {
+         // Not instrumentation, normal case
+         stack.push_back(BPatch_frame(this,
+                                      (void *)stackWalk[i].getPC(),
+                                      (void *)stackWalk[i].getFP(),
+                                      isSignalFrame));
+      }
+   }
+   if (!was_stopped)
+      proc->continueExecution();
+   return true;
 }
 
-BPatch_thread::BPatch_thread(BPatch_process *parent) 
+BPatch_thread::BPatch_thread(BPatch_process *parent, int ind, int lwp_id) 
 {
    proc = parent;
+   index = ind;
+   dyn_lwp *lwp = proc->llproc->getLWP(lwp_id);
+   if (!lwp)
+      lwp = new dyn_lwp(lwp_id, proc->llproc);
+   llthread = new dyn_thread(proc->llproc, index, lwp);   
+   legacy_destructor = true;
+   updated = false;
 }
 
+BPatch_thread::BPatch_thread(BPatch_process *parent, dyn_thread *dthr)
+{
+   index = 0;
+   proc = parent;
+   llthread = dthr;
+   legacy_destructor = true;
+   updated = false;
+}
+
+void BPatch_thread::updateValues(int tid, unsigned long stack_start,
+                                 BPatch_function *initial_func, int lwp_id)
+{
+   BPatch_Vector<BPatch_frame> stack;
+
+   dyn_lwp *lwp = proc->llproc->getLWP(lwp_id);
+
+   updated = true;
+   llthread->update_stack_addr(stack_start);
+   llthread->update_lwp(lwp);
+
+   if (tid == -1)
+   {
+      //Expensive... uses an iRPC to get it from the RT library
+      tid = proc->llproc->mapIndexToTid(index);
+   }
+   llthread->update_tid(tid);
+
+   //If initial_func or stack_start aren't provided then
+   // we can update them with a stack walk
+   if (!initial_func || !stack_start)
+   {
+      getCallStack(stack);
+
+      int pos = stack.size() - 1;
+      //Consider stack_start as starting at the first
+      //function with a stack frame.
+      while ((!stack_start || !initial_func) && (pos >= 0))
+      {
+         if (!stack_start)
+            stack_start = (unsigned long) stack[pos].getFP();
+         if (!initial_func)
+         {
+            initial_func = stack[pos].findFunction();
+         }
+         pos--;
+      }
+   }
+
+   if (initial_func)
+   {
+      llthread->update_start_func(initial_func->func);
+   }
+   llthread->update_stack_addr(stack_start);
+}
+
+unsigned BPatch_thread::getBPatchIDInt()
+{
+   return index;
+}
 
 BPatch_process *BPatch_thread::getProcessInt() 
 {
@@ -155,7 +225,57 @@ BPatch_process *BPatch_thread::getProcessInt()
 
 unsigned BPatch_thread::getTidInt()
 {
-   assert(0);
-   return 0;
+   return llthread->get_tid();
 }
 
+int BPatch_thread::getLWPInt()
+{
+   return llthread->get_lwp()->get_lwp_id();
+}
+
+BPatch_function *BPatch_thread::getInitialFuncInt()
+{
+   int_function *ifunc = llthread->get_start_func();
+   if (!ifunc)
+      return NULL;
+   return proc->func_map->get(ifunc);
+}
+
+unsigned long BPatch_thread::getStackTopAddrInt()
+{
+   return llthread->get_stack_addr();
+}
+
+
+/**
+ * We can't overload destructors, and this function used to defined in
+ * the API to delete the process.  We don't know if any users are still
+ * depending on that behavior, so any regular call to this destructor
+ * will trigger the 'delete proc'
+ *    
+ * To get the "overloaded" and new destructor, set legacy_destructor
+ * to false before calling.  This should be okay since it's only used
+ * by internal code (should only be called through BPatch_process).
+ **/    
+void BPatch_thread::BPatch_thread_dtor()
+{
+   for (unsigned i=0; i<proc->threads.size(); i++)
+      if (proc->threads[i] == this)
+      {
+         proc->threads.erase(i);
+         break;
+      }
+   if (legacy_destructor)
+   {
+      delete proc;
+   }
+   else
+   {
+      proc->llproc->deleteThread(getTid());
+   }
+}
+
+int BPatch_thread::proc_fdInt()
+{
+   return llthread->get_lwp()->usage_fd();
+}

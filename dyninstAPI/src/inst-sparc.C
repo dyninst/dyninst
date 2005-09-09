@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.174 2005/08/25 22:45:37 bernat Exp $
+// $Id: inst-sparc.C,v 1.175 2005/09/09 18:06:44 legendre Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -973,10 +973,8 @@ bool baseTramp::generateMTCode(codeGen &gen,
     regSpace->resetSpace();
     
     /* Get the hashed value of the thread */
-    if (!proc()->multithread_ready()) {
-        // Uh oh... we're not ready to build a tramp yet!
+    if (!threaded()) 
         threadPOS = new AstNode("DYNINSTreturnZero", dummy);
-    }
     else 
         threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
     src = threadPOS->generateCode(proc(), regSpace, gen,
@@ -1093,7 +1091,7 @@ bool baseTramp::generateGuardPreCode(codeGen &gen,
 
     // Set the high bits in L0
     instruction::generateSetHi(gen, guard_flag_address, REG_L(0));
-    if (proc()->multithread_capable()) {
+    if (threaded()) {
         int shift_val;
         isPowerOf2(sizeof(unsigned), shift_val);
         // multiply index*sizeof(unsigned)
@@ -1133,7 +1131,7 @@ bool baseTramp::generateGuardPostCode(codeGen &gen,
 
     // Set the high bits in L0
     instruction::generateSetHi(gen, guard_flag_address, REG_L(0));
-    if (proc()->multithread_capable()) {
+    if (threaded()) {
         int shift_val;
         isPowerOf2(sizeof(unsigned), shift_val);
         // multiply index*sizeof(unsigned)

@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.64 2005/09/01 22:18:41 bernat Exp $
+// $Id: sol_proc.C,v 1.65 2005/09/09 18:07:04 legendre Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -479,18 +479,21 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs)
     return true;
 }
 
-void process::determineLWPs(pdvector<unsigned > &lwp_ids) {
+bool process::determineLWPs(pdvector<unsigned > &lwp_ids) {
    char procdir[128];
-   sprintf(procdir, "/proc/%d/lwp", getPid());
+   snprintf(procdir, 128, "/proc/%d/lwp", getPid());
    DIR *dirhandle = opendir(procdir);
-   struct dirent *direntry;
-   while((direntry= readdir(dirhandle)) != NULL) {
-      char str[100];
-      strncpy(str, direntry->d_name, direntry->d_reclen);
-      unsigned lwp_id = atoi(direntry->d_name);
-      lwp_ids.push_back(lwp_id);
+   if (dirhandle)
+   {
+      struct dirent *direntry;
+      while((direntry = readdir(dirhandle)) != NULL) {
+         unsigned lwp_id = atoi(direntry->d_name);
+         if (!lwp_id) continue;
+         lwp_ids.push_back(lwp_id);
+      }
+      closedir(dirhandle);
    }
-   closedir(dirhandle);
+   return true;
 }
 
 // Restore registers saved as above.
@@ -1086,7 +1089,8 @@ bool process::set_entry_syscalls(sysset_t *entry)
     *bufptr = PCSENTRY; bufptr++;
     memcpy(bufptr, entry, SYSSET_SIZE(entry));
 
-    dyn_lwp *replwp = getRepresentativeLWP();        
+    dyn_lwp *replwp = getRepresentativeLWP();
+
     if (write(replwp->ctl_fd(), bufentry, bufentrysize) != bufentrysize){
        delete [] bufentry;
        return false;
@@ -1318,19 +1322,20 @@ procSyscall_t decodeSyscall(process *p, procSignalWhat_t syscall)
 {
    int pid = p->getPid();
 
-   if (syscall == SYSSET_MAP(SYS_fork, pid) ||
-       syscall == SYSSET_MAP(SYS_fork1, pid) ||
-       syscall == SYSSET_MAP(SYS_vfork, pid))
-       return procSysFork;
-   if (syscall == SYSSET_MAP(SYS_exec, pid) || 
-       syscall == SYSSET_MAP(SYS_execve, pid))
-       return procSysExec;
-   if (syscall == SYSSET_MAP(SYS_exit, pid))
-       return procSysExit;
-   // Don't map -- we make this up
-   if (syscall == SYS_load)
-       return procSysLoad;
-   
+    if (syscall == SYSSET_MAP(SYS_fork, pid) ||
+        syscall == SYSSET_MAP(SYS_fork1, pid) ||
+        syscall == SYSSET_MAP(SYS_vfork, pid))
+        return procSysFork;
+    if (syscall == SYSSET_MAP(SYS_exec, pid) || 
+        syscall == SYSSET_MAP(SYS_execve, pid))
+        return procSysExec;
+    if (syscall == SYSSET_MAP(SYS_exit, pid))
+        return procSysExit;
+    if (syscall == SYSSET_MAP(SYS_lwp_exit, pid))
+        return procLwpExit;
+    // Don't map -- we make this up
+    if (syscall == SYS_load)
+      return procSysLoad;
     return procSysOther;
 }
 
@@ -1629,6 +1634,7 @@ int decodeRTSignal(process *proc,
         assert(0);
         break;
    }
+
    return 1;
 
 }
@@ -1743,11 +1749,13 @@ pdstring process::tryToFindExecutable(const pdstring &iprogpath, int pid) {
   // This is called by exec, so we might have a valid file path. If so,
   // use it... otherwise go to /proc. Helps with exec aliasing problems.
 
-  int filedes = open(iprogpath.c_str(), O_RDONLY);
-  if (filedes != -1) {
-    close(filedes);
-    return iprogpath;
-  }
+   if (iprogpath.c_str()) {
+       int filedes = open(iprogpath.c_str(), O_RDONLY);
+       if (filedes != -1) {
+          close(filedes);
+          return iprogpath;
+       }
+   }
 
   // We need to dereference the /proc link.
   // Case 1: multiple copies of the same file opened with multiple

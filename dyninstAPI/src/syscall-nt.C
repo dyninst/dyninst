@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-nt.C,v 1.2 2004/03/23 01:12:10 eli Exp $
+// $Id: syscall-nt.C,v 1.3 2005/09/09 18:07:10 legendre Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/inst.h"
@@ -87,6 +87,10 @@ bool syscallNotification::installPreExit() {
     return true;
 }    
 
+bool syscallNotification::installPreLwpExit() {
+    return true;
+}    
+
 //////////////////////////////////////////////////////
 
 /////// Remove pre-fork instrumentation
@@ -120,3 +124,6 @@ bool syscallNotification::removePreExit() {
 }
 
 
+bool syscallNotification::removePreLwpExit() {
+    return true;
+}    
