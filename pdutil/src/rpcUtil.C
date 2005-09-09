@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.95 2005/01/14 20:57:54 tlmiller Exp $
+// $Id: rpcUtil.C,v 1.96 2005/09/09 18:08:10 legendre Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -1270,141 +1270,135 @@ CreateSocketPair( PDSOCKET& localSock, PDSOCKET& remoteSock )
 #endif
 static const pdstring get_local_ip_address()
 {
-    static pdstring ip_address("");
-    char ip_address_buf[256];
-    static int first_time_ip_address=1;
-
-    if( !first_time_ip_address ){
-        return ip_address;
-    }
-    first_time_ip_address = 0;
-
+   static pdstring ip_address("");
+   char ip_address_buf[256];
+   static int first_time_ip_address=1;
+   
+   if( !first_time_ip_address ){
+      return ip_address;
+   }
+   first_time_ip_address = 0;
+   
 #if ! defined( i386_unknown_nt4_0 )
-
+   
 	int sockfd = socket( AF_INET, SOCK_STREAM, 0 );
 	if( sockfd < 0 ) {
 		fprintf( stderr, "%s[%d]: failed socket():", __FILE__, __LINE__ ); perror( "" );
 		return ip_address;
-		}
+   }
 	
-	/* Initialize the loop. */
-	char * unalignedAllocation = (char *)malloc( 1 );
-	if( unalignedAllocation == NULL ) {
-		fprintf( stderr, "%s[%d]: failed malloc():", __FILE__, __LINE__ ); perror( "" );
-		return ip_address;
-		}
-		
+	char *unalignedAllocation = NULL;
 	struct ifconf ifc; ifc.ifc_len = 0;
 	int bufferSize = 0;
 	int length = 0;
 	
 	do {
-		free( unalignedAllocation );
+      if (unalignedAllocation)
+         free( unalignedAllocation );
 		length = ifc.ifc_len;
 		bufferSize += 3 * sizeof( struct ifreq );
 		
-		unalignedAllocation = (char *)malloc( bufferSize + sizeof( struct ifreq ) );
-		if( unalignedAllocation == NULL ) {
-			fprintf( stderr, "%s[%d]: failed malloc():", __FILE__, __LINE__ ); perror( "" );
+		unalignedAllocation = (char *) malloc(bufferSize + sizeof(struct ifreq));
+		if(!unalignedAllocation) {
+			fprintf( stderr, "%s[%d]: failed malloc():", __FILE__, __LINE__ ); 
+         perror( "" );
 			return ip_address;
-			}
-			
-		ifc.ifc_buf = unalignedAllocation - ((unsigned long)unalignedAllocation % sizeof( struct ifreq )) + sizeof( struct ifreq );
+      }
+      memset(unalignedAllocation, 0, bufferSize + sizeof(struct ifreq));
+      
+		ifc.ifc_buf = unalignedAllocation - 
+         ((unsigned long)unalignedAllocation % sizeof( struct ifreq )) + 
+         sizeof( struct ifreq );
 		ifc.ifc_len = bufferSize - (ifc.ifc_buf - unalignedAllocation);
-		// /* DEBUG */ fprintf( stderr, "unalignedAllocation: %p, ifc.ifc_buf: %p, ifc.ifc_len = %d\n", unalignedAllocation, ifc.ifc_buf, ifc.ifc_len );
-
+      
 		if( ioctl( sockfd, IOCTL_FOR_INTERFACES, & ifc ) < 0 ) {
-			fprintf( stderr, "%s[%d]: failed ioctl():", __FILE__, __LINE__ ); perror( "" );
+			fprintf( stderr, "%s[%d]: failed ioctl():", __FILE__, __LINE__ ); 
+         perror( "" );
 			return ip_address;			
-			}
-		
-		// /* DEBUG */ fprintf( stderr, "bufferSize: %d, length: %d, ifc.ifc_len: %d.\n", bufferSize, length, ifc.ifc_len );
-		} while( length != ifc.ifc_len );
+      }
+   } while( length != ifc.ifc_len );
 		
 	char * colonPointer = NULL;
 	char lastInterfaceName[ IFNAMSIZ ] = "";
 	for( unsigned int i = 0; i < (length / sizeof( struct ifreq )); i++ ) {
 		struct ifreq * ifr = & ifc.ifc_req[ i ];
-		
-		// /* DEBUG */ fprintf( stderr, "%s[%d]: considering interface %d (%s)...\n", __FILE__, __LINE__, i, ifr->ifr_name, ifr->ifr_addr.sa_family );	
-		
 		if( ifr->ifr_addr.sa_family != AF_INET ) {
-			// /* DEBUG */ fprintf( stderr, "%s[%d]: interface %d (%s) has address family %d, not AF_INET.\n", __FILE__, __LINE__, i, ifr->ifr_name, ifr->ifr_addr.sa_family );	
 			continue;
-			}
-			
+      }
+      
 		/* Detect and ignore aliases. */
 		colonPointer = strchr( ifr->ifr_name, ':' );
 		if( colonPointer != NULL ) { * colonPointer = '\0'; }
 		
 		if( strcmp( lastInterfaceName, ifr->ifr_name ) == 0 ) {
-			/* DEBUG */ fprintf( stderr, "%s[%d]: inferface %d (%s) is an alias.\n", __FILE__, __LINE__, i, ifr->ifr_name );
+         //Interface is an alias
 			continue;
-			}
-			
+      }
+      
 		/* Grab the interface flags: is the interface down? */
 		struct ifreq ifrcopy = * ifr;
 		
 		if( ioctl( sockfd, SIOCGIFFLAGS, & ifrcopy ) < 0 ) {
-			fprintf( stderr, "%s[%d]: failed ioctl():", __FILE__, __LINE__ ); perror( "" );
+			fprintf( stderr, "%s[%d]: failed ioctl():", __FILE__, __LINE__ ); 
+         perror( "" );
 			return ip_address;
-			}
+      }
 			
 		int flags = ifrcopy.ifr_flags;
 		if( flags & IFF_UP == 0 ) {
-			/* DEBUG */ fprintf( stderr, "%s[%d]: inferface %d (%s) is not up.\n", __FILE__, __LINE__, i, ifr->ifr_name );
+         //Interface isn't up
 			continue;
-			}
+      }
 			
 		/* Is the interface the loopback address? */
 		struct in_addr inetAddress;
-        struct sockaddr_in * socketAddr = (struct sockaddr_in *) & ifr->ifr_addr;
-        memcpy( & inetAddress.s_addr, (void *) & (socketAddr->sin_addr), sizeof( inetAddress.s_addr) );
-        if( inetAddress.s_addr == LOOPBACK_IP ) {
-			// /* DEBUG */ fprintf( stderr, "%s[%d]: inferface %d (%s) is a loop-back address.\n", __FILE__, __LINE__, i, ifr->ifr_name );
+      struct sockaddr_in * socketAddr = (struct sockaddr_in *) &ifr->ifr_addr;
+      memcpy(&inetAddress.s_addr, &(socketAddr->sin_addr), 
+             sizeof(inetAddress.s_addr));
+      if( inetAddress.s_addr == LOOPBACK_IP ) {
 			continue;
-			}
-        
-        /* Otherwise, it's a valid interface, so convert its IP address to a string and return it. */
-        if( inet_ntop( AF_INET, (const void *) & inetAddress, ip_address_buf, sizeof( ip_address_buf ) ) == NULL ) {
-			fprintf( stderr, "%s[%d]: failed inet_ntop():", __FILE__, __LINE__ ); perror( "" );
+      }
+      
+      /* Otherwise, it's a valid interface, so convert its IP address to a string and return it. */
+      if( inet_ntop( AF_INET, (const void *) & inetAddress, ip_address_buf, sizeof( ip_address_buf ) ) == NULL ) {
+			fprintf( stderr, "%s[%d]: failed inet_ntop():", __FILE__, __LINE__ ); 
+         perror( "" );
 			return ip_address;
-        	}
-        
-		// /* DEBUG */ fprintf( stderr, "%s[%d]: inferface %d (%s) has IP %s.\n", __FILE__, __LINE__, i, ifr->ifr_name, ip_address_buf );
-        ip_address = ip_address_buf;
-        return ip_address;		
-		} /* end iteration over interfaces */
-
+      }
+      
+      ip_address = ip_address_buf;
+      return ip_address;		
+   } /* end iteration over interfaces */
+   
 #else /* i386_unknown_nt4_0 */
 
-    unsigned long num_adapters;
-    
-    if( GetNumberOfInterfaces( &num_adapters ) != NO_ERROR ){
-        cerr << "Failed GetNumberOfInterfaces()" <<endl;
-    }
-    num_adapters--; //exclude loopback interface
-
-    PIP_ADAPTER_INFO pAdapterInfo = new IP_ADAPTER_INFO[num_adapters];
-    unsigned long OutBufLen = sizeof(IP_ADAPTER_INFO) * num_adapters;
-
-    if( GetAdaptersInfo( pAdapterInfo, &OutBufLen) != ERROR_SUCCESS ){
-        cerr << "Failed GetAdaptersInfo()" <<endl;
-    }
-
-    PIP_ADAPTER_INFO tmp_adapter_info;
-    for(tmp_adapter_info = pAdapterInfo; tmp_adapter_info;
-        tmp_adapter_info = tmp_adapter_info->Next){
-        if( tmp_adapter_info->Type == MIB_IF_TYPE_ETHERNET ){
-            ip_address = tmp_adapter_info->IpAddressList.IpAddress.String;
-            return ip_address;
-        }
-    }
-    
+   unsigned long num_adapters;
+   
+   if( GetNumberOfInterfaces( &num_adapters ) != NO_ERROR ){
+      cerr << "Failed GetNumberOfInterfaces()" <<endl;
+   }
+   num_adapters--; //exclude loopback interface
+   
+   PIP_ADAPTER_INFO pAdapterInfo = new IP_ADAPTER_INFO[num_adapters];
+   unsigned long OutBufLen = sizeof(IP_ADAPTER_INFO) * num_adapters;
+   
+   if( GetAdaptersInfo( pAdapterInfo, &OutBufLen) != ERROR_SUCCESS ){
+      cerr << "Failed GetAdaptersInfo()" <<endl;
+   }
+   
+   PIP_ADAPTER_INFO tmp_adapter_info;
+   for(tmp_adapter_info = pAdapterInfo; tmp_adapter_info;
+       tmp_adapter_info = tmp_adapter_info->Next){
+      if( tmp_adapter_info->Type == MIB_IF_TYPE_ETHERNET ){
+         ip_address = tmp_adapter_info->IpAddressList.IpAddress.String;
+         return ip_address;
+      }
+   }
+   
 #endif
 
-    fprintf(stderr, "No network interface seems to be enabled. IP unknown!\n");
-    return ip_address;
+   fprintf(stderr, "No network interface seems to be enabled. IP unknown!\n");
+   return ip_address;
 }
 
 // get the current (localhost) machine name, e.g. "grilled"
