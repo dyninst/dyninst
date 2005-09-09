@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.143 2005/09/02 22:07:52 bernat Exp $
+// $Id: inst.C,v 1.144 2005/09/09 15:57:03 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -439,10 +439,13 @@ bool instPoint::updateInstances() {
                         instances[i]->multi()->linkMultiTramp();
                     }
                 }
-                else {
-                    fprintf(stderr, "ERROR: instance %p, addr 0x%lx, IP %p, no multitramp!\n",
-                            instances[i], instances[i]->addr(), this);
-                }
+                /*
+                  // Not actually an error anymore, leaving in for debug purposes
+                  else {
+                  fprintf(stderr, "ERROR: instance %p, addr 0x%lx, IP %p, no multitramp!\n",
+                  instances[i], instances[i]->addr(), this);
+                  }
+                */
             }
         }
         funcVersion = func()->version();
