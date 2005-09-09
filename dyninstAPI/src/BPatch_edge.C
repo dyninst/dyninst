@@ -115,7 +115,6 @@ void BPatch_edge::BPatch_edgeInt(BPatch_basicBlock *s,
     conditionalBuddy = NULL;
 
     type = getType();
-
 }
 
  
@@ -173,9 +172,15 @@ BPatch_point *BPatch_edge::getPoint()
         process *ll_proc = flowGraph->getBProcess()->lowlevel_process();
         assert(ll_proc);
 
-        instPoint *ip = ll_proc->findInstPByAddr(lastInsnAddr);
-        if (!ip) return NULL;
-        
+        //instPoint *ip = ll_proc->findInstPByAddr(lastInsnAddr);
+        instPoint *ip = instPoint::createArbitraryInstPoint(lastInsnAddr, ll_proc);
+                                                          
+        if (ip == NULL) {
+            fprintf(stderr, "Failed to find inst point at address 0x%lx\n",
+                    lastInsnAddr);
+            return NULL;
+        }
+
         BPatch_point *newPoint = new BPatch_point(flowGraph->getBProcess(),
                                                   flowGraph->getBFunction(),
                                                   this,
