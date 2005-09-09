@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.145 2005/09/09 18:06:46 legendre Exp $
+// $Id: inst.C,v 1.146 2005/09/09 18:18:42 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include <assert.h>
@@ -249,7 +249,7 @@ baseTramp *instPoint::getBaseTramp(callWhen when) {
         assert(!targetBaseTramp_);
         assert(when == callBranchTargetInsn);
         targetBaseTramp_ = new baseTramp();
-        postBaseTramp_->postInstP = this;
+        targetBaseTramp_->postInstP = this;
         return targetBaseTramp_;
     }
     
