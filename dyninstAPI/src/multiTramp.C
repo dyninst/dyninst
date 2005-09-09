@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.10 2005/09/02 22:07:52 bernat Exp $
+// $Id: multiTramp.C,v 1.11 2005/09/09 15:57:02 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -164,7 +164,8 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
                 bti->removeCode(this);
             }
             else {
-                stillInst = true;
+                if (!bti->isEmpty())
+                    stillInst = true;
             }
             if (stillInst && foundBTI)
                 break;

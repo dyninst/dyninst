@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.8 2005/08/25 22:45:21 bernat Exp $
+// $Id: baseTramp.C,v 1.9 2005/09/09 15:57:01 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -254,7 +254,7 @@ bool baseTrampInstance::generateCode(codeGen &gen,
 
     if (!generated_) {
 
-        if (mtis.size() == 0) {
+        if (isEmpty()) {
             hadMini = false;
             return true;
         }
@@ -358,7 +358,7 @@ bool baseTrampInstance::installCode() {
     // call into minitramps and then ensure that all jumps
     // are correct.
 
-    if (mtis.size() == 0) return true;
+    if (isEmpty()) return true;
 
     // If in-line...
 
@@ -569,6 +569,10 @@ instPoint *baseTrampInstance::findInstPointByAddr(Address addr) {
     }
 }
 
+bool baseTrampInstance::isEmpty() {
+    return (mtis.size() == 0);
+}
+
 // If all miniTramps are removed, nuke the baseTramp
 // Chains to multiTramp->deleteIfEmpty
 // But for now puts in the "skip" jump if all miniTramps are removed
@@ -652,7 +656,7 @@ bool baseTrampInstance::shouldGenerate() {
 unsigned baseTrampInstance::maxSizeRequired() {
     updateMTInstances();
 
-    if (mtis.size() == 0)
+    if (isEmpty())
         return 0;
 
     if (!baseT->valid)
@@ -930,7 +934,7 @@ void baseTrampInstance::removeCode(generatedCodeObject *subObject) {
         }
         
         // See if this is the last MTI; if so, delete ourselves.
-        if (mtis.size() == 0) {
+        if (isEmpty()) {
             // We didn't allocate, so we don't call deleteGenerated...
             //proc()->deleteGeneratedCode(this);
             multiT->removeCode(this);
@@ -971,7 +975,7 @@ bool baseTrampInstance::safeToFree(codeRange *range) {
         return false;
 
     // Better not be freeing ourselves if we have sub-mtis left...
-    assert(mtis.size() == 0);
+    assert(isEmpty());
 
     // If the PC is in any of the miniTramps, we're not
     // good.
@@ -1012,7 +1016,7 @@ bool baseTrampInstance::hasChanged() {
 bool baseTrampInstance::linkCode() {
     // TODO inline
 
-    if (mtis.size() == 0) return true;
+    if (isEmpty()) return true;
 
     unsigned cost = 0;
     for (unsigned i = 0; i < mtis.size(); i++) {
