@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.22 2005/02/09 03:27:51 jaw Exp $
+# $Id: make.module.tmpl,v 1.23 2005/09/09 18:05:33 legendre Exp $
 #
 
 ifndef TARGET
@@ -12,19 +12,8 @@ endif
 
 TARGET3_SO	= libparadynRT.so.1
 
-ifdef INCLUDE_CP_PROFILING
-TARGET2		= libdyninstCP.o
-CP_OBJS		= RTcriticalPath.o
-endif
-
-ifdef BUILD_CODE_BLOCKS        
-ALT_TARGET	= DYNINSTstartCode.o DYNINSTendCode.o 
-endif
-
 MODCC         = $(CC)
 MODCFLAGS     = $(CFLAGS)
-
-SRCS	     += ../src/RTinst.c ../src/RTend.c
 
 ifdef USES_SHM_SAMPLING
 CFLAGS	+= -DSHM_SAMPLING

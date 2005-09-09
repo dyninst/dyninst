@@ -39,337 +39,242 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.45 2005/05/13 09:17:21 jaw Exp $ */
+/* $Id: RTcommon.c,v 1.46 2005/09/09 18:05:16 legendre Exp $ */
 
-#if defined(i386_unknown_nt4_0)
-#include <process.h>
-#define getpid _getpid
-#else
-#if !defined(mips_unknown_ce2_11) /*ccw 15 may 2000 : 29 mar 2001*/
-#include <unistd.h>
-#endif
-
-#endif
-#if !defined(mips_unknown_ce2_11) /*ccw 15 may 2000 : 29 mar 2001*/
 #include <assert.h>
-#endif
-
+#include <stdlib.h>
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
+#include "RTcommon.h"
+#include "RTthread.h"
 
-/* Stop in some sort of Dyninst-approved fashion */
-extern void DYNINSTbreakPoint();
-
-/* Platform-specific initialization */
-extern void DYNINSTos_init(int calledByFork, int calledByAttach);
-
-unsigned int DYNINSTversion = 1;
 unsigned int DYNINSTobsCostLow;
-unsigned int DYNINSThasInitialized = 0; /* 0 : has not initialized
-					   2 : initialized by Dyninst
-					   3 : initialized by Paradyn */
+unsigned int DYNINSThasInitialized;
+unsigned DYNINST_max_num_threads;
+struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
 
-struct DYNINST_bootstrapStruct DYNINST_bootstrap_info ={0,0,0} ; /*ccw 10 oct 2000 : 29 mar 2001*/
-
-/* Instrumentation heaps */
-#if defined( ia64_unknown_linux2_4 )
-
-/* Yoinked from dyninstAPI/src/arch-ia64.h; the IA-64 requires that
-   instruction be 16-byte aligned, so we have to align the heaps if
-   we want to use them for inferior RPCs. */
+/**
+ * Allocate the Dyninst heaps
+ * 
+ * The IA-64 requires that instruction be 16-byte aligned, so we have to 
+ * align the heaps if we want to use them for inferior RPCs. 
+ **/
+#if defined(arch_ia64)
 typedef struct { uint64_t low; uint64_t high; } ia64_bundle_t;
-ia64_bundle_t DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof( ia64_bundle_t )] __attribute__((aligned));
-ia64_bundle_t DYNINSTstaticHeap_32K_lowmemHeap_1[32*1024/sizeof( ia64_bundle_t )] __attribute__((aligned));
-ia64_bundle_t DYNINSTstaticHeap_4M_anyHeap_1[4*1024*1024/sizeof( ia64_bundle_t )] __attribute__((aligned));
-#else 
-
-double DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof(double)];
-double DYNINSTstaticHeap_32K_lowmemHeap_1[32*1024/sizeof(double)];
-double DYNINSTstaticHeap_4M_anyHeap_1[4*1024*1024/sizeof(double)];
-
-#endif
-
-/* Trampoline guard */
-int DYNINSTtrampGuard=1;
-
-/* Written to by daemon just before launching an inferior RPC */
-rpcInfo curRPC = { 0, 0, 0 };
-unsigned pcAtLastIRPC;  /* just used to check for errors */
-/* 1 = a trap was ignored and needs to be regenerated
-   0 = there is not a trap that hasn't been processed */
-int trapNotHandled = 0;
-
-#ifdef DEBUG_PRINT_RT
-int DYNINSTdebugPrintRT = 1;
+#define HEAP_TYPE ia64_bundle_t
+#define ALIGN_ATTRIB __attribute((aligned))
 #else
-int DYNINSTdebugPrintRT = 0;
+#define HEAP_TYPE double
+#define ALIGN_ATTRIB 
 #endif
 
-/* One some platforms we can tell when a fork or exec
-   is occurring through system-provided events. On
-   others we do it ourselves.
-   Enumerated type defined in header file
-*/
-DYNINST_synch_event_t DYNINST_synch_event_id = DSE_undefined;
+HEAP_TYPE DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
+HEAP_TYPE DYNINSTstaticHeap_32K_lowmemHeap_1[32*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
+HEAP_TYPE DYNINSTstaticHeap_4M_anyHeap_1[4*1024*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
 
-/* And storage for the syscall's arguments (if needed) */
+
+/**
+ * One some platforms we can tell when a fork or exec is occurring through 
+ * system-provided events. On others we do it ourselves.  Enumerated type 
+ * defined in header file
+ **/
+DYNINST_synch_event_t DYNINST_synch_event_id = DSE_undefined;
 void *DYNINST_synch_event_arg1;
 
-int DYNINST_mutatorPid = -1;
-
-extern const char V_libdyninstAPI_RT[];
-
-double DYNINSTdummydouble = 4321.71; /* Global so the compiler won't
-					optimize away FP code in initFPU */
-static void initFPU()
-{
-       /* Init the FPU.  We've seen bugs with Linux (e.g., Redhat 6.2
-	  stock kernel on PIIIs) where processes started by Paradyn
-	  started with FPU uninitialized. */
-       double x = 17.1234;
-       DYNINSTdummydouble *= x;
-}
-
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(rs6000_ibm_aix4_1)
-int isMutatedExec = 0;
-#else
-void RTmutatedBinary_init() {
-    return;
-}
-#endif
-
-/*
- * The Dyninst API arranges for this function to be called at the entry to
- * main().
- */
-void DYNINSTinit(int cause, int pid)
-{
-    extern dyninst_spinlock *thelockp;
-    int calledByFork = 0, calledByAttach = 0;
-    thelockp->lock = 0;
-    initFPU();
-    
-    DYNINST_mutatorPid = pid;
-    
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(rs6000_ibm_aix4_1)
-	/* this checks to see if this is a restart or a
-	  	normal attach  ccw 19 nov 2001*/
-	
-/* 
-	isElfFile;
-#else
-	isXCOFFfile;
-#endif
-*/
-	if(isMutatedExec){
-		fflush(stdout);
-		cause = 9;
-	}
-#endif
-
-    DYNINSThasInitialized = 2;
-
-    if (cause == 2) calledByFork = 1;
-    else if (cause == 3) calledByAttach = 1;
-    
-    /* sanity check */
-#if !defined(mips_unknown_ce2_11) /*ccw 15 may 2000 : 29 mar 2001*/
-    assert(sizeof(int64_t) == 8);
-    assert(sizeof(int32_t) == 4);
-#endif
-    
-#ifndef mips_unknown_ce2_11 /*ccw 23 july 2001*/
-    RTprintf("%s\n", V_libdyninstAPI_RT);
-#endif
-    
-    DYNINSTos_init(calledByFork, calledByAttach);
-    
-#if !defined(mips_unknown_ce2_11) /*ccw 16 may 2000 : 29 mar 2001*/
-    DYNINST_bootstrap_info.pid = getpid();
-#endif
-    DYNINST_bootstrap_info.ppid = pid;
-    
-    DYNINST_bootstrap_info.event = cause;
-}
-
-/* These variables are used to pass arguments into DYNINSTinit
-   when it is called as an _init function */
+/**
+ * These variables are used to pass arguments into DYNINSTinit
+ * when it is called as an _init function 
+ **/
 int libdyninstAPI_RT_init_localCause=-1;
 int libdyninstAPI_RT_init_localPid=-1;
+int libdyninstAPI_RT_init_maxthreads=-1;
 
-#if defined(i386_unknown_nt4_0)  /*ccw 13 june 2001*/
-#include <windows.h>
+int DYNINST_mutatorPid;
+int DYNINSTdebugPrintRT;
+int isMutatedExec = 0;
 
-/* this function is automatically called when windows loads this dll
- if we are launching a mutatee to instrument, dyninst will place
- the correct values in libdyninstAPI_RT_DLL_localPid and
- libdyninstAPI_RT_DLL_localCause and they will be passed to
- DYNINSTinit to correctly initialize the dll.  this keeps us
- from having to instrument two steps from the mutator (load and then 
- the execution of DYNINSTinit()
-*/
-int DllMainCalledOnce = 0;
-BOOL WINAPI DllMain(
-  HINSTANCE hinstDLL,  /* handle to DLL module */
-  DWORD fdwReason,     /* reason for calling function */
-  LPVOID lpvReserved   /* reserved */
-){
-	if(DllMainCalledOnce == 0){
-		DllMainCalledOnce++;
-		if(libdyninstAPI_RT_init_localPid != -1 || libdyninstAPI_RT_init_localCause != -1){
-			DYNINSTinit(libdyninstAPI_RT_init_localCause,libdyninstAPI_RT_init_localPid);
-		}
-	}
-	return 1; 
+unsigned *DYNINST_tramp_guards;
+
+tc_lock_t DYNINST_trace_lock;
+
+/**
+ * Init the FPU.  We've seen bugs with Linux (e.g., Redhat 6.2 stock kernel on 
+ * PIIIs) where processes started by Paradyn started with FPU uninitialized. 
+ * DYNINSTdummydouble is global so the compiler won't optimize away FP code
+ * in initFPU
+ **/
+double DYNINSTdummydouble = 4321.71;                                    
+static void initFPU()
+{
+   double x = 17.1234;
+   DYNINSTdummydouble *= x;
 }
+
+static void initTrampGuards(unsigned maxthreads)
+{
+   unsigned i;
+   //We allocate maxthreads+1 because maxthreads is sometimes used as an
+   //error value to mean we don't know what thread this is.  Sometimes used
+   //during the early setup phases.
+   DYNINST_tramp_guards = (unsigned *) malloc((maxthreads+1)*sizeof(unsigned));
+   for (i=0; i<maxthreads; i++)
+   {
+      DYNINST_tramp_guards[i] = 1;
+   }
+}
+
+/**
+ * The Dyninst API arranges for this function to be called at the entry to
+ * main() via libdyninstAPI_RT_init (defined in RTposix.c and RTwinnt.c).
+ * libdyninstAPI_RT_init is called by one of the following methods:
+ *    GCC: link with gcc -shared, and use __attribute__((constructor));
+ *    AIX: ld with -binitfini:libdyninstAPI_RT_init
+ *    Solaris: ld with -z initarray=libdyninstAPI_RT_init
+ *    Linux: ld with -init libdyninstAPI_RT_init
+ *           gcc with -Wl,-init -Wl,...
+ **/
+void DYNINSTinit(int cause, int pid, int maxthreads)
+{
+   int calledByFork = 0, calledByAttach = 0;
+   initFPU();
+
+   tc_lock_init(&DYNINST_trace_lock);
+   DYNINST_mutatorPid = pid;
+   
+   if (isMutatedExec) {
+      fflush(stdout);
+      cause = 9;
+   }
+
+   calledByFork = (cause == 2);
+   calledByAttach = (cause == 3);
+   DYNINSThasInitialized = 1;
+   DYNINST_max_num_threads = maxthreads;
+
+   /* sanity check */
+   assert(sizeof(int64_t) == 8);
+   assert(sizeof(int32_t) == 4);
+   
+   RTprintf("%s\n", V_libdyninstAPI_RT);
+   initTrampGuards(DYNINST_max_num_threads);
+
+#if defined(cap_async_events)
+   DYNINSTasyncConnect(DYNINST_mutatorPid);
+#endif
+   DYNINSTos_init(calledByFork, calledByAttach);
+   DYNINST_initialize_index_list();
+      
+
+   DYNINST_bootstrap_info.pid = dyn_pid_self();
+   DYNINST_bootstrap_info.ppid = pid;    
+   DYNINST_bootstrap_info.event = cause;
+}
+
  
-
-#else
-
-/* _init table of methods:
-   GCC: link with gcc -shared, and use __attribute__((constructor));
-   AIX: ld with -binitfini:libdyninstAPI_RT_init
-   Solaris: ld with -z initarray=libdyninstAPI_RT_init
-   Linux: ld with -init libdyninstAPI_RT_init
-          gcc with -Wl,-init -Wl,...
-          
-*/
-
-/* Convince GCC to run _init when the library is loaded */
-#ifdef __GNUC
-void libdyninstAPI_RT_init(void) __attribute__ ((constructor));
-#endif
-
-/* UNIX-style initialization through _init */
-int initCalledOnce = 0;
-void libdyninstAPI_RT_init() {
-    if (initCalledOnce) return;
-    initCalledOnce++;
-/* Has its own call-once protection, and so can be called here */
-    RTmutatedBinary_init();
-    
-    if(libdyninstAPI_RT_init_localCause != -1 ||
-       libdyninstAPI_RT_init_localPid != -1) {
-        DYNINSTinit(libdyninstAPI_RT_init_localCause,
-                    libdyninstAPI_RT_init_localPid);
-    }
-}
-
-#endif
-/* Does what it's called. Used by the paradyn daemon as a 
-   default in certain cases (MT in particular)
-*/
-
+/**
+ * Does what it's called. Used by the paradyn daemon as a default in certain 
+ * cases (MT in particular)
+ **/
 int DYNINSTreturnZero()
 {
-  return 0;
+   return 0;
 }
 
 /* Used to instrument (and report) the entry of fork */
 void DYNINST_instForkEntry() {
-    /* Set the state so the mutator knows what's up */
-    DYNINST_synch_event_id = DSE_forkEntry;
-    DYNINST_synch_event_arg1 = NULL;
-    /* Stop ourselves */
-    DYNINSTbreakPoint();
-    /* Once the stop completes, clean up */
-    DYNINST_synch_event_id = DSE_undefined;
-    DYNINST_synch_event_arg1 = NULL;
+   /* Set the state so the mutator knows what's up */
+   DYNINST_synch_event_id = DSE_forkEntry;
+   DYNINST_synch_event_arg1 = NULL;
+   /* Stop ourselves */
+   DYNINSTbreakPoint();
+   /* Once the stop completes, clean up */
+   DYNINST_synch_event_id = DSE_undefined;
+   DYNINST_synch_event_arg1 = NULL;
 }
 
        
 /* Used to instrument (and report) the exit of fork */
 void DYNINST_instForkExit(void *arg1) {
-    /* Set the state so the mutator knows what's up */
-    
-    DYNINST_synch_event_id = DSE_forkExit;
-    DYNINST_synch_event_arg1 = arg1;
-    /* Stop ourselves */
-    DYNINSTbreakPoint();
-    /* Once the stop completes, clean up */
-    DYNINST_synch_event_id = DSE_undefined;
-    DYNINST_synch_event_arg1 = NULL;
+   /* Set the state so the mutator knows what's up */    
+   DYNINST_synch_event_id = DSE_forkExit;
+   DYNINST_synch_event_arg1 = arg1;
+   /* Stop ourselves */
+   DYNINSTbreakPoint();
+   /* Once the stop completes, clean up */
+   DYNINST_synch_event_id = DSE_undefined;
+   DYNINST_synch_event_arg1 = NULL;
 }
 
        
 /* Used to instrument (and report) the entry of exec */
 void DYNINST_instExecEntry(void *arg1) {
-    /* Set the state so the mutator knows what's up */
-    DYNINST_synch_event_id = DSE_execEntry;
-    DYNINST_synch_event_arg1 = arg1;
-    /* Stop ourselves */
-    DYNINSTbreakPoint();
-    /* Once the stop completes, clean up */
-    DYNINST_synch_event_id = DSE_undefined;
-    DYNINST_synch_event_arg1 = NULL;
+   /* Set the state so the mutator knows what's up */
+   DYNINST_synch_event_id = DSE_execEntry;
+   DYNINST_synch_event_arg1 = arg1;
+   /* Stop ourselves */
+   DYNINSTbreakPoint();
+   /* Once the stop completes, clean up */
+   DYNINST_synch_event_id = DSE_undefined;
+   DYNINST_synch_event_arg1 = NULL;
 }
 
        
 /* Used to instrument (and report) the exit of exec */
 void DYNINST_instExecExit(void *arg1) {
-    /* Set the state so the mutator knows what's up */
-    DYNINST_synch_event_id = DSE_execExit;
-    DYNINST_synch_event_arg1 = arg1;
-    /* Stop ourselves */
-    DYNINSTbreakPoint();
-    /* Once the stop completes, clean up */
-    DYNINST_synch_event_id = DSE_undefined;
-    DYNINST_synch_event_arg1 = NULL;
+   /* Set the state so the mutator knows what's up */
+   DYNINST_synch_event_id = DSE_execExit;
+   DYNINST_synch_event_arg1 = arg1;
+   /* Stop ourselves */
+   DYNINSTbreakPoint();
+   /* Once the stop completes, clean up */
+   DYNINST_synch_event_id = DSE_undefined;
+   DYNINST_synch_event_arg1 = NULL;
 }
 
        
 /* Used to instrument (and report) the entry of exit */
 void DYNINST_instExitEntry(void *arg1) {
-    /* Set the state so the mutator knows what's up */
-    DYNINST_synch_event_id = DSE_exitEntry;
-    DYNINST_synch_event_arg1 = arg1;
-    /* Stop ourselves */
-    DYNINSTbreakPoint();
-    /* Once the stop completes, clean up */
-    DYNINST_synch_event_id = DSE_undefined;
-    DYNINST_synch_event_arg1 = NULL;
+   /* Set the state so the mutator knows what's up */
+   DYNINST_synch_event_id = DSE_exitEntry;
+   DYNINST_synch_event_arg1 = arg1;
+   /* Stop ourselves */
+   DYNINSTbreakPoint();
+   /* Once the stop completes, clean up */
+   DYNINST_synch_event_id = DSE_undefined;
+   DYNINST_synch_event_arg1 = NULL;
 }
 
 /* Used to instrument (and report) the entry of exit */
 void DYNINST_instLoadLibrary(void *arg1) {
-    /* Set the state so the mutator knows what's up */
-    DYNINST_synch_event_id = DSE_loadLibrary;
-    DYNINST_synch_event_arg1 = arg1;
-    /* Stop ourselves */
-    DYNINSTbreakPoint();
-    /* Once the stop completes, clean up */
-    DYNINST_synch_event_id = DSE_undefined;
-    DYNINST_synch_event_arg1 = NULL;
+   /* Set the state so the mutator knows what's up */
+   DYNINST_synch_event_id = DSE_loadLibrary;
+   DYNINST_synch_event_arg1 = arg1;
+   /* Stop ourselves */
+   DYNINSTbreakPoint();
+   /* Once the stop completes, clean up */
+   DYNINST_synch_event_id = DSE_undefined;
+   DYNINST_synch_event_arg1 = NULL;
 }
 
-void DYNINSTunlock_spinlock(dyninst_spinlock *mut)
-{
-  mut->lock = 0;
-}
-
-extern int DYNINSTwriteEvent(void *ev, int sz); /* posix or windows */
-extern void LockCommsMutex();
-extern void UnlockCommsMutex();
-unsigned long int getThreadID() {return 0;}
-
-/* DYNINSTasyncDynFuncCall */
-/* Used to report addresses of functions called at dynamic call sites */
-       
+/**
+ * Used to report addresses of functions called at dynamic call sites 
+ **/     
 int DYNINSTasyncDynFuncCall (void * call_target, void *call_addr)
 {
   int err = 0;
+  int result;
   rtBPatch_asyncEventRecord ev;
   BPatch_dynamicCallRecord call_ev;
 
-  LockCommsMutex();
-
+  result = tc_lock_lock(&DYNINST_trace_lock);
+  if (result == DYNINST_DEAD_LOCK)
+  {
+     fprintf(stderr, "[%s:%d] - Error in libdyninstAPI_RT: trace pipe deadlock\n",
+             __FILE__, __LINE__);
+     return -1;
+  }
+ 
   ev.type = rtBPatch_dynamicCallEvent;
-  ev.pid = getpid();
+  ev.pid = dyn_pid_self();
   err = DYNINSTwriteEvent((void *) &ev, sizeof(rtBPatch_asyncEventRecord));
 
   if (err) {
@@ -389,92 +294,27 @@ int DYNINSTasyncDynFuncCall (void * call_target, void *call_addr)
   }
 
  done:
-  UnlockCommsMutex();
+  tc_lock_unlock(&DYNINST_trace_lock);
   return err;
 }
 
-int DYNINSTreportThreadEvent(rtBPatch_asyncEventType t, long unsigned int tid)
-{
-  int err = 0;
-  rtBPatch_asyncEventRecord ev;
-  BPatch_threadEventRecord thread_ev;
-  ev.type = t;
-  ev.pid = getpid();
-  err = DYNINSTwriteEvent((void *) &ev, sizeof(rtBPatch_asyncEventRecord));
-
-  if (err) {
-    fprintf(stderr, "%s[%d]:  write error\n",
-            __FILE__, __LINE__);
-    goto done;
-  }
-
-  thread_ev.start_func_addr = NULL;
-  thread_ev.tid = tid;
-  err = DYNINSTwriteEvent((void *) &thread_ev, sizeof(BPatch_threadEventRecord));
-  if (err) {
-    fprintf(stderr, "%s[%d]:  write error\n",
-            __FILE__, __LINE__);
-    goto done;
-  }
-
-
- done:
-  return err;
-}
-
-int DYNINSTasyncThreadCreate()
-{
-  long unsigned int tid;
-  int ret = -1;
-  LockCommsMutex();
-  tid = getThreadID();
-  ret = DYNINSTreportThreadEvent(rtBPatch_threadCreateEvent, tid);
-
-  UnlockCommsMutex();
-  return ret;
-}
-int DYNINSTasyncThreadDestroy()
-{
-  long unsigned int tid;
-  int ret = -1;
-  LockCommsMutex();
-  tid = getThreadID();
-  ret = DYNINSTreportThreadEvent(rtBPatch_threadDestroyEvent, tid);
-  UnlockCommsMutex();
-  return ret;
-}
-int DYNINSTasyncThreadStart()
-{
-  long unsigned int tid;
-  int ret = -1;
-  LockCommsMutex();
-  tid = getThreadID();
-  ret = DYNINSTreportThreadEvent(rtBPatch_threadStartEvent, tid);
-  UnlockCommsMutex();
-  return ret;
-}
-int DYNINSTasyncThreadStop()
-{
-  long unsigned int tid;
-  int ret = -1;
-  LockCommsMutex();
-  tid = getThreadID();
-  ret = DYNINSTreportThreadEvent(rtBPatch_threadStopEvent, tid);
-  UnlockCommsMutex();
-  return ret;
-}
 int DYNINSTuserMessage(void *msg, unsigned int msg_size)
 {
-  int err = 0;
+  int err = 0, result;
   rtBPatch_asyncEventRecord ev;
 
-  LockCommsMutex();
+  result = tc_lock_lock(&DYNINST_trace_lock);
+  if (result == DYNINST_DEAD_LOCK)
+  {
+     fprintf(stderr, "[%s:%d] - Error in libdyninstAPI_RT: trace pipe deadlock\n",
+             __FILE__, __LINE__);
+     return -1;
+  }
 
   ev.type = rtBPatch_userEvent;
-  ev.pid = getpid();
+  ev.pid = dyn_pid_self();
   ev.size = msg_size;
   err = DYNINSTwriteEvent((void *) &ev, sizeof(rtBPatch_asyncEventRecord));
-
 
   if (err) {
     fprintf(stderr, "%s[%d]:  write error\n",
@@ -491,6 +331,28 @@ int DYNINSTuserMessage(void *msg, unsigned int msg_size)
   }
 
  done:
-  UnlockCommsMutex();
+  tc_lock_unlock(&DYNINST_trace_lock);
   return err;
 }
+
+int tc_lock_init(tc_lock_t *t)
+{
+  t->mutex = 0;
+  t->tid = -1;
+  return 0;
+}
+
+int tc_lock_unlock(tc_lock_t *t)
+{
+  t->tid = -1;
+  t->mutex = 0;
+  return 0;
+}
+    
+int tc_lock_destroy(tc_lock_t *t)
+{
+  t->tid = -1;
+  t->mutex = 0;
+  return 0;
+}
+

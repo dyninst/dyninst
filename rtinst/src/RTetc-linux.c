@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-linux.c,v 1.31 2005/01/11 22:46:43 legendre Exp $ */
+/* $Id: RTetc-linux.c,v 1.32 2005/09/09 18:05:40 legendre Exp $ */
 
 /************************************************************************
  * RTetc-linux.c: clock access functions, etc.
@@ -56,91 +56,46 @@
 #include <math.h>
 #include <errno.h>
 
-#include <sys/procfs.h> /* /proc PIOCUSAGE */
+#include <sys/procfs.h>
 #include <stdio.h>
-#include <fcntl.h> /* O_RDONLY */
-/* #include <sigcontext.h> - included in signal.h */
-#include <unistd.h> /* getpid() */
+#include <fcntl.h>
+#include <unistd.h>
 #include <limits.h>
+#include <pthread.h>
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
 #include "rtinst/h/RThwtimer-linux.h"
-
-#ifdef PAPI
-#include "papi.h"
-#endif
-
-#if defined(SHM_SAMPLING) && defined(MT_THREAD)
-#include <pthread.h>
 #include "thread-compat.h"
-#endif
-
-/*extern int    gettimeofday(struct timeval *, struct timezone *);*/
-extern void perror(const char *);
 
 /************************************************************************
  * symbolic constants.
 ************************************************************************/
-
-static int procfd = -1;
-#ifdef HRTIME
-struct hrtime_struct *hr_cpu_map = NULL;
-#endif
 
 rawTime64 cpuPrevious_hw  = 0;
 rawTime64 cpuPrevious_sw  = 0;
 rawTime64 wallPrevious_hw = 0;
 rawTime64 wallPrevious_sw = 0;
 
-/* PARADYNos_init formerly "void DYNINSTgetCPUtimeInitialize(void)" */
-void PARADYNos_init(int calledByFork, int calledByAttach) {
-#ifdef HRTIME
-  if(isLibhrtimeAvail(&hr_cpu_map, (int)getpid()))
-    hintBestCpuTimerLevel  = HARDWARE_TIMER_LEVEL;
-  else
-#endif
+void PARADYNos_init(int calledByFork, int calledByAttach) 
+{
+   hintBestCpuTimerLevel  = SOFTWARE_TIMER_LEVEL;
+   if(isTSCAvail()) {
+      hintBestWallTimerLevel = HARDWARE_TIMER_LEVEL;   
+   }
+   else {
+      hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
+   }
 
-#ifdef PAPI
-  if(isPapiAvail()) {
-    hintBestCpuTimerLevel  = HARDWARE_TIMER_LEVEL;
-  }
-  else
-#endif
-
-    hintBestCpuTimerLevel  = SOFTWARE_TIMER_LEVEL;
-  if(isTSCAvail()) {
-    hintBestWallTimerLevel = HARDWARE_TIMER_LEVEL;   
-  }
-  else {
-    hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
-  }
-
-  /* needs to be reinitialized when fork occurs */
-  cpuPrevious_hw = 0;
-  cpuPrevious_sw = 0;
-  wallPrevious_hw = 0;
-  wallPrevious_sw = 0;
-
-#ifdef notdef   /* Has this ever been active on this platform? */
-   /* This must be done once for each process (including forked) children */
-    char str[20];
-    sprintf(str, "/proc/%d", (int)getpid());
-   /* have to use syscall here for applications that have their own
-      versions of open, poll...In these cases there is no guarentee that
-      things have been initialized so that the application's version of
-      open can be used when this open call occurs (in DYNINSTinit)
-   */
-    procfd = _syscall2(SYS_open,str, O_RDONLY);
-    if (procfd < 0) {
-      fprintf(stderr, "open of /proc failed in PARADYNos_init\n");
-      perror("open");
-      abort();
-    }
-#endif
+   /* needs to be reinitialized when fork occurs */
+   cpuPrevious_hw = 0;
+   cpuPrevious_sw = 0;
+   wallPrevious_hw = 0;
+   wallPrevious_sw = 0;
 }
 
-void PARADYN_forkEarlyInit() {
+void PARADYN_forkEarlyInit() 
+{
 }
 
 static unsigned long long mulMillion(unsigned long long in) {
@@ -180,31 +135,22 @@ static int MaxRollbackReport = INT_MAX; /* report all rollbacks */
    method:      libhrtime get_hrvtime()
    return unit: ticks
 */
-rawTime64 
-DYNINSTgetCPUtime_hw(void) {
+rawTime64 DYNINSTgetCPUtime_hw(void) 
+{
   static int cpuRollbackOccurred = 0;
   rawTime64 now=0, tmp_cpuPrevious = cpuPrevious_hw;
 
-#ifdef HRTIME  
-  now = hrtimeGetVtime(hr_cpu_map);
-#endif
-
-#ifdef PAPI
-  now = (rawTime64) PAPI_get_virt_cyc();
-#endif
-
   if (now < tmp_cpuPrevious) {
     if (cpuRollbackOccurred < MaxRollbackReport) {
-#ifndef MT_THREAD
       rtUIMsg traceData;
       sprintf(traceData.msgString, "CPU time rollback %lld with current time: "
 	      "%lld ticks, using previous value %lld ticks.",
 	      tmp_cpuPrevious - now, now, tmp_cpuPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
-      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData),
-				 &traceData, 1, 1, 1);
-#endif
+      PARADYNgenerateTraceRecord(TR_ERROR, 
+                                 sizeof(traceData), &traceData, 
+                                 1, 1);
     }
     cpuRollbackOccurred++;
     now = cpuPrevious_hw;
@@ -218,8 +164,8 @@ DYNINSTgetCPUtime_hw(void) {
    method:      times()
    return unit: jiffies  
 */
-rawTime64
-DYNINSTgetCPUtime_sw(void) {
+rawTime64 DYNINSTgetCPUtime_sw(void) 
+{
   static int cpuRollbackOccurred = 0;
   rawTime64 now=0, tmp_cpuPrevious = cpuPrevious_sw;
   struct tms tm;
@@ -229,16 +175,15 @@ DYNINSTgetCPUtime_sw(void) {
   
   if (now < tmp_cpuPrevious) {
     if (cpuRollbackOccurred < MaxRollbackReport) {
-#ifndef MT_THREAD
       rtUIMsg traceData;
       sprintf(traceData.msgString, "CPU time rollback %lld with current time: "
 	      "%lld jiffies, using previous value %lld jiffies.",
 	      tmp_cpuPrevious - now, now, tmp_cpuPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
-      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData),
-				 &traceData, 1, 1, 1);
-#endif
+      PARADYNgenerateTraceRecord(TR_ERROR, 
+                                 sizeof(traceData), &traceData, 
+                                 1, 1);
     }
     cpuRollbackOccurred++;
     now = cpuPrevious_sw;
@@ -252,8 +197,8 @@ DYNINSTgetCPUtime_sw(void) {
    method:      direct read of TSC (ie. time stamp counter) register
    return unit: ticks
 */
-rawTime64
-DYNINSTgetWalltime_hw(void) {
+rawTime64 DYNINSTgetWalltime_hw(void) 
+{
   static int wallRollbackOccurred = 0;
   rawTime64 now, tmp_wallPrevious = wallPrevious_hw;
   struct timeval tv;
@@ -262,16 +207,15 @@ DYNINSTgetWalltime_hw(void) {
 
   if (now < tmp_wallPrevious) {
     if (wallRollbackOccurred < MaxRollbackReport) {
-#ifndef MT_THREAD
       rtUIMsg traceData;
       sprintf(traceData.msgString,"Wall time rollback %lld with current time: "
 	      "%lld ticks, using previous value %lld ticks.",
                 tmp_wallPrevious - now, now, tmp_wallPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
-      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 
-			       1, 1, 1);
-#endif
+      PARADYNgenerateTraceRecord(TR_ERROR, 
+                                 sizeof(traceData), &traceData, 
+                                 1, 1);
     }
     wallRollbackOccurred++;
     wallPrevious_hw = now;
@@ -286,8 +230,8 @@ DYNINSTgetWalltime_hw(void) {
    method:      gettimeofday()
    return unit: microseconds
 */
-rawTime64
-DYNINSTgetWalltime_sw(void) {
+rawTime64 DYNINSTgetWalltime_sw(void) 
+{
   static int wallRollbackOccurred = 0;
   rawTime64 now, tmp_wallPrevious = wallPrevious_sw;
   struct timeval tv;
@@ -303,16 +247,15 @@ DYNINSTgetWalltime_sw(void) {
 
   if (now < tmp_wallPrevious) {
     if (wallRollbackOccurred < MaxRollbackReport) {
-#ifndef MT_THREAD
       rtUIMsg traceData;
       sprintf(traceData.msgString,"Wall time rollback %lld with current time: "
 	      "%lld usecs, using previous value %lld usecs.",
                 tmp_wallPrevious - now, now, tmp_wallPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
-      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 
-			       1, 1, 1);
-#endif
+      PARADYNgenerateTraceRecord(TR_ERROR, 
+                                 sizeof(traceData), &traceData, 
+                                 1, 1);
     }
     wallRollbackOccurred++;
     wallPrevious_sw = now;
@@ -322,24 +265,14 @@ DYNINSTgetWalltime_sw(void) {
   return(now);
 }
 
-
-/* Need to implement the following */
-unsigned PARADYNgetFD(unsigned lwp)
-{
-  return 0;
-}
-
-
-#ifdef MT_THREAD
-
 /* Software Level --- 
    method:      times()
    return unit: jiffies  
 
    this version doesn't check for rollbacks
 */
-rawTime64
-DYNINSTgetCPUtimeMT_sw(void) {
+rawTime64 DYNINSTgetCPUtimeMT_sw(void) 
+{
   rawTime64 now=0;
   struct tms tm;
   
@@ -350,8 +283,7 @@ DYNINSTgetCPUtimeMT_sw(void) {
 }
 
 
-rawTime64
-DYNINSTgetCPUtime_LWP(unsigned lwp_id, unsigned fd)
+rawTime64 DYNINSTgetCPUtime_LWP(unsigned lwp_id, unsigned fd)
 {
    int cur_lwp = P_lwp_self();
    rawTime64 result = 0;
@@ -368,5 +300,8 @@ DYNINSTgetCPUtime_LWP(unsigned lwp_id, unsigned fd)
    return result;
 }
 
-#endif
-
+/* Need to implement the following */
+unsigned PARADYNgetFD(unsigned lwp)
+{
+  return 0;
+}

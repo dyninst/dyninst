@@ -44,6 +44,12 @@
  *   functions for a normal Sparc with SUNOS.
  *
  * $Log: RTsparc.c,v $
+ * Revision 1.13  2005/09/09 18:05:47  legendre
+ * Reorganized both the Paradyn and Dyninst runtime libraries.  Some big chunks
+ * of the Paradyn library that deal with threads were moved down into the
+ * dyninst library.  We no longer have seperate runtime libraries for
+ * threads and non-thread versions.
+ *
  * Revision 1.12  2004/03/23 01:12:43  eli
  * Updated copyright string
  *
@@ -89,7 +95,6 @@
 #include <kvm.h>
 #include <errno.h>
 
-#include "kludges.h"
 #include "rtinst/h/rtinst.h"
 
 extern time64 DYNINSTgetCPUtime(void);

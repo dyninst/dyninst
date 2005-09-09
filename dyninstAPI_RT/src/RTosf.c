@@ -43,10 +43,6 @@
  * RTosf.c: mutatee-side library function specific to OSF
 ************************************************************************/
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
-#if !defined (EXPORT_SPINLOCKS_AS_HEADER)
-/* everything should be under this flag except for the assembly code
-   that handles the runtime spinlocks  -- this is imported into the
-   test suite for direct testing */
 
 #include <stdio.h>
 #include <errno.h>
@@ -54,7 +50,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <dlfcn.h>                    /* dlopen() */
-
+#include "dyninstAPI_RT/src/RTthread.h"
 /* The alpha does not have a divide instruction */
 /* Division is emulated in software */
 int divide(int a,int b)
@@ -87,8 +83,8 @@ int DYNINSTloadLibrary(char *libname)
 void DYNINSTos_init(int calledByFork, int calledByAttach)
 {
 }
-#endif /* EXPORT SPINLOCKS */
-void DYNINSTlock_spinlock(dyninst_spinlock *mut)
+
+int tc_lock_lock(tc_lock_t *tc)
 {
 
  asm (
@@ -112,6 +108,22 @@ void DYNINSTlock_spinlock(dyninst_spinlock *mut)
          "  3:          mb           # memory barrier, and we're done\n"
      );
 
-
+ return 0;
 
 }
+
+void DYNINST_initialize_index_list()
+{
+}
+
+int dyn_pid_self()
+{
+  return getpid();
+}
+
+
+
+
+
+
+

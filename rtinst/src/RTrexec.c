@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: RTrexec.c,v 1.7 2004/03/23 01:12:43 eli Exp $
+ * $Id: RTrexec.c,v 1.8 2005/09/09 18:05:46 legendre Exp $
  * Code to trap rexec call and munge command.
  */
 #include <sys/types.h>
@@ -53,35 +53,17 @@ char *realCommand;
 
 int DYNINSTrexec(char *cmd)
 {
-     char *pdArgs;
+   char *pdArgs;
 
-     pdArgs = (char *) getenv("PARADYN_MASTER_INFO");
-     if (!pdArgs) {
-	 printf("unable to get PARADYN_MASTER_INFO\n");
-	 return (-1);
-     }
-     realCommand = (char *)  malloc(strlen(pdArgs)+strlen(cmd)+20);
-     sprintf(realCommand, "paradynd %s -runme %s", pdArgs, cmd);
-     printf("Instrumented rexec. This call is not currently supported\n");
-     printf("CMD = %s\n", realCommand);
-
-     /* XXX - HACK !!! */
-     /* Get Back previous argument list */
-     /* We need to load the 5th argument to rexec with our version of cmd */
-#if 0
-     /* Disable for now, since we don't actually use this code 
-	( and it's getting in the way of compiling with xlc) */
-#if defined(rs6000_ibm_aix3_2) || defined(rs6000_ibm_aix4_1)
-     {
-	 register int temp asm("r10");
-	 register volatile char *cmdPtr asm("r9") = realCommand;
-	 asm("oriu  10, 1, 0");
-	 asm("cal 1, 80(1)");	/* restore old stack pointer */
-	 asm("ai 1, 1, 184");	/* add previous offset back */
-	 asm("st 9, -36(1)");	/* get correct value */
-	 asm("oriu  1, 10, 0");
-      }
-#endif
-#endif
-     return(0);
+   pdArgs = (char *) getenv("PARADYN_MASTER_INFO");
+   if (!pdArgs) {
+      printf("unable to get PARADYN_MASTER_INFO\n");
+      return (-1);
+   }
+   realCommand = (char *)  malloc(strlen(pdArgs)+strlen(cmd)+20);
+   sprintf(realCommand, "paradynd %s -runme %s", pdArgs, cmd);
+   printf("Instrumented rexec. This call is not currently supported\n");
+   printf("CMD = %s\n", realCommand);
+   
+   return(0);
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RThwtimer-linux.c,v 1.3 2004/03/23 01:12:43 eli Exp $ */
+/* $Id: RThwtimer-linux.c,v 1.4 2005/09/09 18:05:43 legendre Exp $ */
 
 /************************************************************************
  * RThwtimer-linux.c: linux hardware level timer support functions
@@ -52,12 +52,10 @@
 #include <setjmp.h>
 #include "rtinst/h/RThwtimer-linux.h"
 
-void int_handler(int errno);
 
 static volatile sig_atomic_t jumpok = 0;
 static sigjmp_buf jmpbuf;
-
-void int_handler(int errno)  {
+static void int_handler(int errno)  {
   /* removes warning */  errno = errno;
   if(jumpok == 0)  return;
   siglongjmp(jmpbuf, 1);
@@ -88,39 +86,6 @@ int isTSCAvail(void)  {
   }
   return retVal;
 }
-
-
-#ifdef HRTIME
-#include <unistd.h>
-
-int isLibhrtimeAvail(struct hrtime_struct **hr_cpu_link, int pid) {
-  int error;
-  
-  if(! isTSCAvail()) {
-    return 0;
-  }
-  
-  error = hrtime_init();
-  if (error < 0) {
-    return 0;
-  }
-
-  error = get_hrtime_struct(pid, hr_cpu_link);
-  if (error < 0) {
-    return 0;
-  }
-  return 1;
-}
-
-// this matches the function in RThwtimer-x86.h, used for non-optimizing
-// rtinst library in which case the extern inline function is ignored 
-rawTime64 hrtimeGetVtime(struct hrtime_struct *hr_cpu_link) {
-  hrtime_t current;
-  get_hrvtime(hr_cpu_link, &current);
-  return (rawTime64)(current);
-}
-
-#endif
 
 
 

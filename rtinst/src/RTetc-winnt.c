@@ -42,7 +42,7 @@
 /************************************************************************
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  *
- * $Id: RTetc-winnt.c,v 1.16 2004/05/11 19:02:10 bernat Exp $
+ * $Id: RTetc-winnt.c,v 1.17 2005/09/09 18:05:42 legendre Exp $
  *
  ************************************************************************/
 
@@ -89,13 +89,6 @@ void PARADYNos_init(int calledByFork, int calledByAttach) {
 }
 
 void PARADYN_forkEarlyInit() {
-}
-
-void
-PARADYNbreakPoint(void) {
-  DYNINSTbreakPoint();
-  /* On other (posix) platforms, we follow with DYNINSTgenerateTraceRecord
-     but curiously not here. */
 }
 
 unsigned DYNINSTgetCurrentThreadId() {

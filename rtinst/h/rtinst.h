@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.62 2004/05/11 19:02:07 bernat Exp $
+ * $Id: rtinst.h,v 1.63 2005/09/09 18:05:34 legendre Exp $
  * This file contains the extended instrumentation functions that are provided
  *   by the Paradyn run-time instrumentation layer.
  */
@@ -48,11 +48,6 @@
 #ifndef _RTINST_H
 #define _RTINST_H
 
-
-/* We sometimes include this into assembly files, so guard the struct defs. */
-#if !defined(__ASSEMBLER__)
-#include "../src/RTconst.h" 
-#include "tc-lock.h" /* Locking structures */
 
 /* The rawTime64 type represents time in a native or raw time unit, as in the
    time samples taken from the rtinst library.  We're using this typedef'd
@@ -90,35 +85,12 @@
    example, it would take a 3GHz machine 97 years to count up from 0 to 2^63.
 */
 
-#include "common/h/Types.h" /* ccw 22 apr 2002 : SPLIT we used to include dyninstAPI_RT.h 
-				BUT no longer. this is the only necessary thing we carry over*/
-extern int PARADYNdebugPrintRT;  /* declared in RTinst.c */
-#if !defined(RTprintf)
-#define RTprintf                if (PARADYNdebugPrintRT) printf /* ccw 22 apr 2002 : SPLIT */
-#endif
+#include "common/h/Types.h" 
 
 typedef int64_t rawTime64;
 
-
-/* parameters to an instrumented function */
-typedef enum { processTime, wallTime } timerType;
-
-struct sampleIdRec {
-    unsigned int id;
-    /* formerly an aggregate bit, but that's now obsolete */
-};
-typedef struct sampleIdRec sampleId;
-
-/* struct endStatsRec in dyninstAPI_RT.h */
-
 struct intCounterRec {
-   int64_t value;    /* this field must be first for setValue to work -jkh */
-  /* seems to be unused, implementing atomic loads and stores for the counters
-     should make this method unnecessary anyways - bhs
-    unsigned char theSpinner;
-    mutex serving 2 purposes:
-      (1) so paradynd won't sample while we're in middle of updating and
-      (2) so multiple LWPs or threads won't update at the same time */ 
+   int64_t value;  /* this field must be first for setValue to work -jkh */
 };
 typedef struct intCounterRec intCounter;
 
@@ -145,10 +117,7 @@ struct tHwTimerRec {
 };
 typedef struct tHwTimerRec tHwTimer;
 
-/* Almost the same as a standard timer, but with extra
-   goodies. */
-
-struct virtualTimerRec {
+typedef struct virtualTimerRec {
    volatile rawTime64 total;
    volatile rawTime64 start;
    volatile int counter;
@@ -161,11 +130,9 @@ struct virtualTimerRec {
    rawTime64 rt_previous; /* Previous value for RT lib */
    /* Daemon-specific data is in the dyn_lwp object */
    unsigned pad[5];
-};
+} virtualTimer;
 
-typedef struct virtualTimerRec virtualTimer;
-
-struct tTimerRec {
+typedef struct tTimerRec {
   volatile rawTime64 total;
   volatile rawTime64 start;
   volatile int counter;
@@ -180,16 +147,8 @@ struct tTimerRec {
       vrbles in the _opposite_ order that rtinst writes them!!! */
    volatile int protector1;
    volatile int protector2;
-};
+} tTimer;
 
-typedef struct tTimerRec tTimer;
-
-typedef int traceStream;
-
-void DYNINSTgenerateTraceRecord(traceStream sid, short type, 
-			        short length,
-                                void *eventData, int flush,
-			        rawTime64 wall_time, rawTime64 process_time);
 /* see comments in rtinst.C for description of the following */
 #define UNASSIGNED_TIMER_LEVEL 0
 #define HARDWARE_TIMER_LEVEL 1
@@ -197,11 +156,6 @@ void DYNINSTgenerateTraceRecord(traceStream sid, short type,
 
 extern int hintBestCpuTimerLevel;
 extern int hintBestWallTimerLevel;
-
-#ifdef PAPI
-#define PAPI_PERFCTR_LEVEL 1
-extern int hintBestPerfCtrLevel;
-#endif
 
 typedef rawTime64 (*timeQueryFuncPtr_t)(void);
 extern timeQueryFuncPtr_t PARADYNgetCPUtime;
@@ -237,12 +191,8 @@ extern virtualTimer *virtualTimers;
 /* Address of observed cost counter */
 extern unsigned *RTobserved_cost;
 
-/* Several more things are allocated in the processes' address space --
-   shared memory is unnecessary, as reads and writes can be slow. These
-   will eventually be moved into dyninst */
-extern unsigned *tramp_guards;
-extern unsigned *indexToThreads;
+void PARADYNgenerateTraceRecord(short type, short length, void *eventData,
+                                rawTime64 wall_time, rawTime64 process_time);
 
-#endif /*!defined(__ASSEMBLER__)*/
 
 #endif

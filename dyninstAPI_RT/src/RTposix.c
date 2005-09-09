@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.14 2005/04/12 05:14:21 jaw Exp $
+ * $Id: RTposix.c,v 1.15 2005/09/09 18:05:20 legendre Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -58,6 +58,7 @@
 #include <sys/un.h>
 #include <pwd.h>
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
+#include "RTcommon.h"
 
 /************************************************************************
  * void DYNINSTbreakPoint(void)
@@ -67,17 +68,37 @@
 
 void DYNINSTbreakPoint(void)
 {
-
-#if defined(bug_irix_broken_sigstop)
-     /* there is a bug in all 6.5 versions of IRIX through 6.5.9f that
-        cause a PIOCSTRACE on SIGSTOP to starve (at least under the
-        conditions that we are throwing it in.)  So on IRIX, we use
-        SIGEMT.   -- willb, 10/4/2000 */
-     kill(getpid(), SIGEMT);
-#else
-     kill(getpid(), SIGSTOP);
-#endif
+   kill(getpid(), SIGSTOP);
 }
+
+#if !defined(cap_save_the_world)
+void RTmutatedBinary_init() 
+{
+    return;
+}
+#endif
+
+#ifdef __GNUC
+void libdyninstAPI_RT_init(void) __attribute__ ((constructor));
+#endif
+
+void libdyninstAPI_RT_init() 
+{
+   static int initCalledOnce = 0;
+   if (initCalledOnce) return;
+   initCalledOnce++;
+
+   RTmutatedBinary_init();
+   
+   if (libdyninstAPI_RT_init_localCause != -1 && 
+       libdyninstAPI_RT_init_localPid != -1 &&
+       libdyninstAPI_RT_init_maxthreads != -1)
+   {
+      DYNINSTinit(libdyninstAPI_RT_init_localCause, libdyninstAPI_RT_init_localPid,
+                  libdyninstAPI_RT_init_maxthreads);
+   }
+}
+
 
 /************************************************************************
  * void DYNINSTasyncConnect(int pid)
@@ -85,26 +106,16 @@ void DYNINSTbreakPoint(void)
  * Connect to mutator's async handler thread. <pid> is pid of mutator
 ************************************************************************/
 
-int async_socket = -1;
-dyninst_spinlock thelock;
-dyninst_spinlock *thelockp = &thelock;
-int needToDisconnect = 0;
-extern void DYNINSTlock_spinlock(dyninst_spinlock *);
-extern void DYNINSTunlock_spinlock(dyninst_spinlock *);
-void DYNINSTlock_thelock()
-{
-  DYNINSTlock_spinlock(thelockp);
-}
-void DYNINSTunlock_thelock()
-{
-  DYNINSTunlock_spinlock(thelockp);
-}
+static int async_socket = -1;
+static int needToDisconnect = 0;
 
 int DYNINSTwriteEvent(void *ev, int sz);
-void exit_func(void)
+
+static void exit_func(void)
 {
   if (needToDisconnect) close (async_socket);
 }
+
 int DYNINSTasyncConnect(int pid)
 {
   
@@ -114,14 +125,19 @@ int DYNINSTasyncConnect(int pid)
   rtBPatch_asyncEventRecord ev;
   uid_t euid;
   struct passwd *passwd_info;
-  char path[100];
+  char path[255];
 
+  if (async_socket != -1)
+  {
+     fprintf(stderr, "[%s:%u] - DYNINSTasyncConnect already initialized\n",
+             __FILE__, __LINE__);
+     return 0;
+  }
   euid = geteuid();
   passwd_info = getpwuid(euid);
   assert(passwd_info);
 
-  sprintf(path, "%s/dyninstAsync.%s.%d", P_tmpdir, passwd_info->pw_name, pid); /* P_tmpdir in <stdio.h> */
-
+  snprintf(path, 255, "%s/dyninstAsync.%s.%d", P_tmpdir, passwd_info->pw_name, pid);
   sock_fd = socket(PF_UNIX, SOCK_STREAM, 0);
   if (sock_fd < 0) {
     perror("DYNINSTasyncConnect() socket()");
@@ -137,11 +153,13 @@ int DYNINSTasyncConnect(int pid)
 
   /* maybe need to do fcntl to set nonblocking writes on this fd */
 
+  assert(async_socket == -1);
   async_socket = sock_fd;
 
   /* after connecting, we need to send along our pid */
   ev.type = rtBPatch_newConnectionEvent;
   ev.pid = getpid();
+
   err = DYNINSTwriteEvent((void *) &ev, sizeof(rtBPatch_asyncEventRecord));
 
   if (err) {
@@ -150,11 +168,10 @@ int DYNINSTasyncConnect(int pid)
   }
   /* initialize spinlock */
   
-  thelock.lock = 0; 
   needToDisconnect = 1;
 
  /* atexit(exit_func); */
-  return 1; /*true*/
+  return 1; 
 
 }
 
@@ -168,7 +185,7 @@ int DYNINSTasyncDisconnect()
 int DYNINSTwriteEvent(void *ev, int sz)
 {
   int res;
-
+  int i;
 try_again:
   res = write(async_socket, ev, sz); 
   if (-1 == res) {
@@ -188,12 +205,4 @@ try_again:
   return 0;
 }
 
-void LockCommsMutex()
-{
-  DYNINSTlock_spinlock(&thelock);
-}
-void UnlockCommsMutex()
-{
-  DYNINSTunlock_spinlock(&thelock);
-}
 

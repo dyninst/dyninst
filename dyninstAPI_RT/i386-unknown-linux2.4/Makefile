@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.17 2005/03/16 23:20:34 bernat Exp $
+# $Id: Makefile,v 1.18 2005/09/09 18:05:07 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -34,15 +34,18 @@ else
 LIBS    += -lelf
 endif
 
-ASFLAGS         += 
+AS = gcc
+ASFLAGS         += -c
 
 SRCS		+= ../src/RTposix.c \
 		   ../src/RTlinux.c \
-		   ../src/RTsig.c \
 		   ../src/RTheap.c \
          ../src/RTheap-linux.c \
 		   ../src/RTmutatedBinary.c \
-			../src/RTmutatedBinary_ELF.c 
+			../src/RTmutatedBinary_ELF.c \
+			../src/RTthread.c \
+			../src/RTthread-index.c \
+			../src/RTthread-x86.c
 
 #CFLAGS += -DDEBUG_PRINT_RT    # enable debug/trace messages from library
 

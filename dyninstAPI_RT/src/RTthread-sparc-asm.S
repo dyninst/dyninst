@@ -1,7 +1,9 @@
-#include "RTconst.h"
+#define DYNINST_LIVE_LOCK      -1
+#define DYNINST_DEAD_LOCK      -2
+
 /*
  * The Sparc implementation reserves the global register %g7 for holding
- * a pointer to the currect thread, thus allowing quck access the current
+ * a pointer to the currect thread, thus allowing quick access the current
  * LWP and process.
  */
 
@@ -37,7 +39,7 @@ x:
 */
         ENTRY(tc_lock_lock)
         save    %sp,-96,%sp
-        call    pthread_self,0     ! Result = %o0
+        call    dyn_pthread_self,0     ! Result = %o0
         nop
         or      %g0,%o0,%i1
 
@@ -49,7 +51,7 @@ x:
         ld      [%i0+4],%o1              /* if (mp->tid == tid) */
         cmp     %o1,%i1
         bne     .tc_lock_lock_TEST /* spin */
-	nop                              
+        nop                              
         ret                              /* self dead lock */
         restore %g0,DYNINST_DEAD_LOCK,%o0
 .tc_lock_lock_DONE:
@@ -63,7 +65,7 @@ x:
 */
         ENTRY(tc_lock_trylock)
         save    %sp,-96,%sp
-        call    pthread_self,0     ! Result = %o0
+        call    dyn_pthread_self,0     ! Result = %o0
         nop
         or      %g0,%o0,%i1
 	ldstub   [%i0], %o0

@@ -43,11 +43,13 @@
 #define _RT_THREAD_H_
 
 /* Compatibility layer between pthreads and solaris threads */
-#if defined(rs6000_ibm_aix4_1) | defined(i386_unknown_linux2_0)
+#if defined(os_aix) || defined(os_linux)
 #include <pthread.h>
-#else /* solaris threads */
+#elif defined(os_solaris)
 #include <thread.h>
 #include <synch.h>
+#else
+#error "Unknown OS"
 #endif
 
 #include "thread-compat.h"
@@ -76,44 +78,12 @@ rawTime64 getThreadCPUTime(unsigned index, int *valid);
 void DYNINSTstartThreadTimer(tTimer *timer);
 void DYNINSTstopThreadTimer(tTimer *timer);
 
-/* RTthread-management.c */
-int DYNINST_reportThreadUpdate(int flag);
-void DYNINST_reportNewThread(unsigned index, int tid);
-void DYNINST_reportThreadDeletion(unsigned index, int tid);
-void DYNINSTthreadDelete(void);
-unsigned DYNINSTthreadCreate(int tid);
-void DYNINST_dummy_create(void);
-void DYNINSTthreadStart(void);
-void DYNINSTthreadStop(void);
-
-/* RTthread-index.c */
-void DYNINST_initialize_index_list();
-unsigned DYNINST_alloc_index(int tid);
-void DYNINST_free_index(unsigned index, int tid);
-unsigned DYNINST_lookup_index(int tid);
-unsigned DYNINSTthreadIndexSLOW(int tid);
-
-/* RTthread-<arch> */
-unsigned DYNINSTthreadIndexFAST();
-void *DYNINSTthreadSaneLocalStorage(void);
-unsigned DYNINSTthreadContext();
-int DYNINSTthreadIndex();
-
-/* RTthread-<os> */
-void DYNINST_ThreadPInfo(void*, void**, int *, long*, int*, void**/*&resumestate_t*/);
-int  DYNINST_ThreadInfo(void**, int *, long*, int*, void** /*&resumestate_t*/);
-
 /* RTetc-<os> */
 rawTime64 DYNINSTgetCPUtime_LWP(unsigned lwp_id, unsigned fd);
 
 /* RTthread.c */
 extern unsigned DYNINST_initialize_done;
 void DYNINST_initialize_once();
-extern tc_lock_t DYNINST_traceLock;
-extern unsigned *DYNINST_indexHash;
-
-/* RTinst.c */
-unsigned MAX_NUMBER_OF_THREADS;
 
 #endif
 

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.16 2005/02/09 03:27:49 jaw Exp $
+# $Id: Makefile,v 1.17 2005/09/09 18:05:11 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -37,6 +37,7 @@ CC              = $(GCC)
 LD              = $(GCC)
 CFLAGS          += -fpic
 LDFLAGS		= -ldl -lelf -lsocket -shared -nostdlib -lgcc -z initarray=libdyninstAPI_RT_init
+ASFLAGS		+= -K PIC
 #ccw 19 nov 2001
 endif
 
@@ -48,7 +49,9 @@ SRCS		+= ../src/RTposix.c \
 		   ../src/RTheap-solaris.c \
 		   ../src/RTheap-svr4.c \
 			../src/RTmutatedBinary.c \
-			../src/RTmutatedBinary_ELF.c
+			../src/RTmutatedBinary_ELF.c \
+			../src/RTthread-sparc-asm.s
+
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

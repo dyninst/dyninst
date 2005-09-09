@@ -39,23 +39,27 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef _TC_LOCK_H_
-#define _TC_LOCK_H_
+#ifndef _RTCOMMON_H_
+#define _RTCOMMON_H_
 
-#include "RTconst.h"
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
+#include "RTthread.h"
 
-typedef struct {
-  int mutex ;
-  int tid ;
-} tc_lock_t ;
+void DYNINSTbreakPoint();
+void DYNINSTos_init(int calledByFork, int calledByAttach);
+void DYNINSTinit(int cause, int pid, int maxthreads);
+void RTmutatedBinary_init();
+int DYNINSTreturnZero();
+int DYNINSTwriteEvent(void *ev, int sz);
 
-#define DECLARE_TC_LOCK(l) 	   tc_lock_t l={0 ,-1}
-#define EXTERN_DECLARE_TC_LOCK(l)  extern tc_lock_t l
+extern int DYNINSTdebuPrintRT;
+extern int DYNINST_mutatorPid;
+extern const char V_libdyninstAPI_RT[];
+extern int libdyninstAPI_RT_init_localCause;
+extern int libdyninstAPI_RT_init_localPid;
+extern int libdyninstAPI_RT_init_maxthreads;
+extern int DYNINSTdebugPrintRT;
+extern tc_lock_t DYNINST_trace_lock;
 
-int tc_lock_init(tc_lock_t* ) ;
-int tc_lock_lock(tc_lock_t* ) ;
-int tc_lock_trylock(tc_lock_t*) ;
-int tc_lock_unlock(tc_lock_t* ) ;
-int tc_lock_destroy(tc_lock_t* ) ;
-
-#endif /* _TC_LOCK_H_ */
+#endif
+       

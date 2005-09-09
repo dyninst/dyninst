@@ -39,10 +39,38 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
+#ifndef _RTTHREAD_H_
+#define _RTTHREAD_H_
 
-/* The marker for the beginning of the DYNINST code */
-/* Note, this is different from DYNINSTstartCode */
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
+#include "dyninstAPI_RT/h/dyninstRTExport.h"
 
-void DYNINSTfirst() { }
+int dyn_pthread_self();    //Thread library identifier
+int dyn_lwp_self();        //LWP used by the kernel identifier
+int dyn_pid_self();        //PID identifier representing the containing process
 
-unsigned DYNINSTversion = 1;
+unsigned DYNINSTthreadIndexFAST();
+unsigned DYNINSTthreadIndexSLOW();
+int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev);
+
+unsigned DYNINST_getThreadFromIndex(int index);
+unsigned DYNINST_alloc_index(unsigned tid);
+int DYNINST_free_index(unsigned tid);
+void DYNINST_initialize_index_list();
+
+
+extern int DYNINST_multithread_capable;
+extern unsigned DYNINST_max_num_threads;
+
+typedef dyninst_lock_t tc_lock_t;
+
+#define DECLARE_TC_LOCK(l)         tc_lock_t l={0 ,-1}
+
+int tc_lock_init(tc_lock_t*);
+int tc_lock_lock(tc_lock_t*);
+int tc_lock_trylock(tc_lock_t*);
+int tc_lock_unlock(tc_lock_t*);
+int tc_lock_destroy(tc_lock_t*);
+
+
+#endif

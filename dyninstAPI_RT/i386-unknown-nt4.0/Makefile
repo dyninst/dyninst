@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.13 2005/02/09 03:27:49 jaw Exp $
+# $Id: Makefile,v 1.14 2005/09/09 18:05:08 legendre Exp $
 #
 #
 # Define any symbols needed to invoke configuration changes in make.config
@@ -17,9 +17,9 @@ LD		= link
 #LDFLAGS		= -DLL -debug -debugtype:coff -PDB:NONE -base:0x60000000 
 LDFLAGS		= -DLL -debug -PDB:NONE -base:0x60000000 /NODEFAULTLIB:libc.lib
 
-SRCS		= $(SRCS) ../src/RTwinnt.c
+SRCS		= $(SRCS) ../src/RTwinnt.c ../src/RTthread-x86.obj
 
-OBJS		= RTwinnt.obj
+OBJS		= RTwinnt.obj RTthread-x86.obj
 
 # enable debug/trace messages from library
 #CFLAGS		= $(CFLAGS) -DDEBUG_PRINT_RT

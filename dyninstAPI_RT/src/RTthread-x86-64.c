@@ -39,14 +39,39 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-#ifndef _RT_CONST_H_
-#define _RT_CONST_H_
+#include "dyninstAPI_RT/src/RTthread.h"
 
-/* Thread control constants */
-#define THREAD_AWAITING_DELETION ((unsigned) -2)
+int atomic_set(int *val)
+{
+   //TODO: Fill in with atomic get and set
+   *val = 1;
+   return 1;
+}
 
-#define DYNINST_DEAD_LOCK      -2
-#define DYNINST_LIVE_LOCK      -1
-#define DYNINST_UNLOCK_NONE    -3
+int tc_lock_lock(tc_lock_t *tc)
+{
+   int me;
+   int lock_val;
 
-#endif /* _RT_CONST_H_ */
+   me = dyn_pthread_self();
+   if (me == tc->tid)
+      return DYNINST_DEAD_LOCK;
+
+   while (1) {
+      lock_val = 1;
+      if (tc->mutex == 0 && atomic_set(&tc->mutex))
+      {
+         tc->tid = me;
+         break;
+      }
+   }
+   return 0;
+}
+
+unsigned DYNINSTthreadIndexFAST() {
+   return 0;
+}
+
+void DYNINST_initialize_index_list()
+{
+}

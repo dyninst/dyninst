@@ -19,9 +19,42 @@
 
     Returns zero on success, nonzero on failure.
   */
-
 extern int DYNINSTuserMessage(void *msg, unsigned int msg_size);
 
+
+/**
+ * These function implement a locking mechanism that can be used by 
+ * a user's runtime library.
+ * 
+ * Be sure to always check for DYNINST_LIVE_LOCK and DYNINST_DEAD_LOCK.
+ * When instrumenting multithread or signal-based application as these error
+ * conditions can trigger even on simple synchronization mechanisms.
+ **/
+
+//The contents of this structure are subject to change between
+// dyninst versions.  Don't rely on it.
+typedef struct {
+   int mutex;
+   int tid;
+} dyninst_lock_t;
+
+//Return values for 'dyninst_lock'
+#define DYNINST_LIVE_LOCK      -1
+#define DYNINST_DEAD_LOCK      -2
+
+//Declare a lock already initialized
+#define DECLARE_DYNINST_LOCK(lck) dyninst_lock_t lck = {0, 0}
+
+extern void dyninst_init_lock(dyninst_lock_t *lock);
+extern void dyninst_free_lock(dyninst_lock_t *lock);
+extern int dyninst_lock(dyninst_lock_t *lock);
+extern void dyninst_unlock(dyninst_lock_t *lock);
+
+/**
+ * Functions for retrieving information about threads
+ **/
+extern unsigned dyninst_maxNumOfThreads();
+extern unsigned dyninst_threadIndex();
 
 #endif
 #endif

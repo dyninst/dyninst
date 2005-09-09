@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.24 2005/05/13 09:17:21 jaw Exp $
+ * $Id: dyninstAPI_RT.h,v 1.25 2005/09/09 18:05:13 legendre Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -58,16 +58,11 @@
 
 #define SYN_INST_BUF_SIZE (1024*1024*4)
 
-/* We sometimes include this into assembly files, so guard the struct defs. */
-#if !defined(__ASSEMBLER__)
-
 #include <stdio.h>
-#include "common/h/Types.h"
 
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(ia64_unknown_linux2_4)
-#include "dyninstAPI/src/linux-signals.h"  // jaw 06-02 -- source definition of SIG_REATTACH
+#include "common/h/Types.h"
+#if defined(os_linux)
+#include "dyninstAPI/src/linux-signals.h"
 #endif
 
 /* If we must make up a boolean type, we should make it unique */
@@ -86,55 +81,14 @@ struct DYNINST_bootstrapStruct {
    int ppid; /* parent of forked process */
 };
 
-#if defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(i386_unknown_nt4_0) \
- || defined(mips_unknown_ce2_11) /*ccw 26 july 2000 : 29 mar 2001*/ \
- || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-/*
-   The tramp table is used when we need to insert traps in instrumentation
-   points. It is used by the trap handler to lookup the base tramp for
-   an address (point).
-
-   The table is updated by the paradyn daemon.
-*/
-
-#define TRAMPTABLESZ (4096)
-
-#define HASH1(x) ((x) % TRAMPTABLESZ)
-#define HASH2(x) (((x) % TRAMPTABLESZ-1) | 1)
-
-typedef struct trampTableEntryStruct trampTableEntry;
-struct trampTableEntryStruct {
-  unsigned key;
-  unsigned val;
-};
-
-#endif
-
 typedef enum {DSE_undefined, DSE_forkEntry, DSE_forkExit, DSE_execEntry, DSE_execExit, DSE_exitEntry, DSE_loadLibrary} DYNINST_synch_event_t;
-
-struct rpcInfoStruct {
-  int runningInferiorRPC;  /* 1 running irpc, 0 not running */
-  unsigned begRPCAddr;
-  unsigned endRPCAddr;
-};
-typedef struct rpcInfoStruct rpcInfo;
-extern rpcInfo curRPC;
-extern unsigned pcAtLastIRPC;
-extern int trapNotHandled;  /* 1 a trap hasn't been handled, 0 traps handled */
 
 extern int DYNINSTdebugPrintRT; /* control run-time lib debug/trace prints */
 #if !defined(RTprintf)
 #define RTprintf                if (DYNINSTdebugPrintRT) printf
-                                /* Yes, this is crude, but this is plain C */
 #endif
 
-typedef struct {
-  int lock;
-} dyninst_spinlock;
-
+#define THREAD_AWAITING_DELETION -2
 
 #define ERROR_STRING_LENGTH 256
 typedef enum {
@@ -142,8 +96,6 @@ typedef enum {
   rtBPatch_newConnectionEvent,
   rtBPatch_internalShutDownEvent,
   rtBPatch_threadCreateEvent,
-  rtBPatch_threadStartEvent,
-  rtBPatch_threadStopEvent,
   rtBPatch_threadDestroyEvent,
   rtBPatch_dynamicCallEvent,
   rtBPatch_userEvent
@@ -164,11 +116,17 @@ typedef struct {
 } BPatch_dynamicCallRecord;
 
 typedef struct {
-  long unsigned int tid;
-  void *start_func_addr;
-} BPatch_threadEventRecord;
+   int ppid;         //Parent process's pid
+   int tid;          //Thread library ID for thread
+   int lwp;          //OS id for thread
+   int index;        //The dyninst index for this thread
+   void *stack_addr; //The top of this thread's stack
+   void *start_pc;   //The pc of this threads initial function
+} BPatch_newThreadEventRecord;
 
-#endif /* !defined(__ASSEMBLER__) */
+typedef struct {
+   int index;        //Index of the dead thread
+} BPatch_deleteThreadEventRecord;
 
 #include "dyninstRTExport.h"
 #endif /* _DYNINSTAPI_RT_H */

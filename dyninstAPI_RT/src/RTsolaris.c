@@ -40,16 +40,11 @@
  */
 
 /************************************************************************
- * $Id: RTsolaris.c,v 1.20 2005/04/12 05:14:22 jaw Exp $
+ * $Id: RTsolaris.c,v 1.21 2005/09/09 18:05:21 legendre Exp $
  * RTsolaris.c: mutatee-side library function specific to Solaris
  ************************************************************************/
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
-#if !defined (EXPORT_SPINLOCKS_AS_HEADER)
-/* everything should be under this flag except for the assembly code
-   that handles the runtime spinlocks  -- this is imported into the
-   test suite for direct testing */
-
 
 #include <signal.h>
 #include <sys/ucontext.h>
@@ -81,164 +76,10 @@ void
 DYNINSTos_init(int calledByFork, int calledByAttach)
 {
     RTprintf("DYNINSTos_init(%d,%d)\n", calledByFork, calledByAttach);
-#ifdef i386_unknown_solaris2_5
-    /*
-       Install trap handler.
-       This is currently being used only on the x86 platform.
-    */
-    DYNINSTactTrap.sa_handler = DYNINSTtrapHandler;
-    DYNINSTactTrap.sa_flags = 0;
-    sigfillset(&DYNINSTactTrap.sa_mask);
-    if (sigaction(SIGTRAP, &DYNINSTactTrap, &DYNINSTactTrapApp) != 0) {
-        perror("sigaction(SIGTRAP) install");
-	assert(0);
-	abort();
-    }
-
-    RTprintf("DYNINSTtrapHandler installed @ 0x%08X\n", DYNINSTactTrap.sa_handler);
-
-    if (DYNINSTactTrapApp.sa_flags&SA_SIGINFO) {
-        if (DYNINSTactTrapApp.sa_sigaction != NULL) {
-            RTprintf("App's TRAP sigaction @ 0x%08X displaced!\n",
-                   DYNINSTactTrapApp.sa_sigaction);
-        }
-    } else {
-        if (DYNINSTactTrapApp.sa_handler != NULL) {
-            RTprintf("App's TRAP handler @ 0x%08X displaced!\n",
-                   DYNINSTactTrapApp.sa_handler);
-        }
-    }
-#endif
-
     DYNINSTheap_setbounds();
     /* uncomment this if you want instrumentation written out in core files */
     /* setmemwrite(); */
 }
-
-
-
-
-
-/****************************************************************************
-   The trap handler. Currently being used only on x86 platform.
-
-   Traps are used when we can't insert a jump at a point. The trap
-   handler looks up the address of the base tramp for the point that
-   uses the trap, and set the pc to this base tramp.
-   The paradynd is responsible for updating the tramp table when it
-   inserts instrumentation.
-*****************************************************************************/
-
-#ifdef i386_unknown_solaris2_5
-trampTableEntry DYNINSTtrampTable[TRAMPTABLESZ];
-/*static unsigned*/ int DYNINSTtotalTraps = 0;
-/* native CC type/name decorations aren't handled yet by dyninst */
-
-static unsigned lookup(unsigned key) {
-    unsigned u;
-    unsigned k;
-    for (u = HASH1(key); 1; u = (u + HASH2(key)) % TRAMPTABLESZ) {
-      k = DYNINSTtrampTable[u].key;
-      if (k == 0)
-        return 0;
-      else if (k == key)
-        return DYNINSTtrampTable[u].val;
-    }
-    /* not reached */
-}
-
-void DYNINSTtrapHandler(int sig, siginfo_t *info, ucontext_t *uap) {
-    unsigned pc = uap->uc_mcontext.gregs[PC];
-    unsigned nextpc;
-
-    /* If we're in the process of running an inferior RPC, we'll
-       ignore the trap here and have the daemon rerun the trap
-       instruction when the inferior rpc is done.  Because the default
-       behavior is for the daemon to reset the PC to it's previous
-       value and the PC is still at the trap instruction, we don't
-       need to make any additional adjustments to the PC in the
-       daemon.
-
-       This is used only on x86 platforms, so if multithreading is
-       ever extended to x86 platforms, then perhaps this would need to
-       be modified for that.  */
-
-    if(curRPC.runningInferiorRPC == 1) {
-      /* If the current PC is somewhere in the RPC then it's a trap that
-	 occurred just before the RPC and is just now getting delivered.
-	 That is we want to ignore it here and regenerate it later. */
-      if(curRPC.begRPCAddr <= pc && pc <= curRPC.endRPCAddr) {
-      /* If a previous trap didn't get handled on this next irpc (assumes one 
-	 trap per irpc) then we have a bug, a trap didn't get regenerated */
-	/* printf("trapHandler, begRPCAddr: %x, pc: %x, endRPCAddr: %x\n",
-	   curRPC.begRPCAddr, pc, curRPC.endRPCAddr);
-	*/
-	assert(trapNotHandled==0);
-	trapNotHandled = 1; 
-	return;
-      }
-      else  ;   /* a trap occurred as a result of a function call within the */ 
-	        /* irpc, these traps we want to handle */
-    }
-    else { /* not in an irpc */
-      if(trapNotHandled == 1) {
-	/* Ok good, the trap got regenerated.
-	   Check to make sure that this trap is the one corresponding to the one
-	   that needs to get regenerated.
-	*/
-	assert(pcAtLastIRPC == pc);
-	trapNotHandled = 0;
-	/* we'll then continue to process the trap */
-      }
-    }
-    nextpc = lookup(pc);
-
-    if (!nextpc) {
-      /* kludge: maybe the PC was not automatically adjusted after the trap */
-      /* this happens for a forked process */
-      pc--;
-      nextpc = lookup(pc);
-    }
-
-    if (nextpc) {
-      RTprintf("DYNINST trap [%d] 0x%08X -> 0x%08X\n",
-               DYNINSTtotalTraps, pc, nextpc);
-      uap->uc_mcontext.gregs[PC] = nextpc;
-    } else {
-      if ((DYNINSTactTrapApp.sa_flags&SA_SIGINFO)) {
-          if (DYNINSTactTrapApp.sa_sigaction != NULL) {
-              void (*handler)(int,siginfo_t*,ucontext_t*) =
-                  (void(*)(int,siginfo_t*,ucontext_t*))DYNINSTactTrapApp.sa_sigaction;
-              RTprintf("DYNINST trap [%d] 0x%08X DEFERED to 0x%08X!\n",
-                       DYNINSTtotalTraps, pc, DYNINSTactTrapApp.sa_sigaction);
-              sigprocmask(SIG_SETMASK, &DYNINSTactTrapApp.sa_mask, NULL);
-              (*handler)(sig,info,uap);
-              sigprocmask(SIG_SETMASK, &DYNINSTactTrap.sa_mask, NULL);
-          } else {
-              printf("DYNINST trap [%d] 0x%08X missing SA_SIGACTION!\n",
-                    DYNINSTtotalTraps, pc);
-              abort();
-          }
-      } else {
-          if (DYNINSTactTrapApp.sa_handler != NULL) {
-              void (*handler)(int,siginfo_t*,ucontext_t*) =
-                  (void(*)(int,siginfo_t*,ucontext_t*))DYNINSTactTrapApp.sa_sigaction;
-              RTprintf("DYNINST trap [%d] 0x%08X DEFERED to 0x%08X!\n",
-                    DYNINSTtotalTraps, pc, DYNINSTactTrapApp.sa_sigaction);
-              sigprocmask(SIG_SETMASK, &DYNINSTactTrapApp.sa_mask, NULL);
-              (*handler)(sig,info,uap);
-              sigprocmask(SIG_SETMASK, &DYNINSTactTrap.sa_mask, NULL);
-          } else {
-              printf("DYNINST trap [%d] 0x%08X missing SA_HANDLER!\n",
-                    DYNINSTtotalTraps, pc);
-              abort();
-          }
-      }
-    }
-    DYNINSTtotalTraps++;
-}
-
-#endif
 
 char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
 int DYNINSTloadLibrary(char *libname)
@@ -261,16 +102,6 @@ int DYNINSTloadLibrary(char *libname)
   } else
     return 1;
 }
-
-/*
-int DYNINSTloadLibrary(char *libname)
-{
-    if (dlopen(libname, RTLD_NOW | RTLD_GLOBAL) != NULL)
-	return 1;
-    else
-	return 0;
-}
-*/
 
 
 /*
@@ -338,98 +169,17 @@ int setmemwrite()
     close(pfd);
     return 0;
 }
-#endif /* EXPORT SPINLOCKS */
-void DYNINSTlock_spinlock(dyninst_spinlock *mut)
+
+int dyn_pthread_self()
 {
-
-#if  (os_solaris == 9)
-  /*  This might only work for solaris 2.9 since it uses cas. */
-  /*  The command -Av9 needs to be sent to the solaris assembler */
-  /*  also works with -Av8plus, and analagous solaris cc command option */
-#if defined __GNUC__
- asm (
-     " 1:                       \n"
-     " mov      1, %%g2         \n" /* l0 <- 1 */
-     " mov      0, %%g0         \n" /* g0 <- 0 */
-     " cas      [%0],%%g0,%%g2  \n" /* if (lock == g0) lock = %l0, atomic compare/swap */
-     " brz,pn   %%g2,out        \n" /* if (l0 == 0) after the swap, it worked, goto done */
-
-     " 2:                       \n" /* if not, spin until lock is not set anymore */
-     " ld       [%0], %%g2      \n" /* l0 <- mut->lock */
-     " brnz,pt  %%g2,2b         \n" /* if (lock != 0) spin*/
-     " b,a      1b              \n" /* else try to obtain lock again (goto 1) */
-
-     " out:                     \n" /* last step, memory barrier */
-     " membar   #LoadLoad | #LoadStore | #StoreLoad | #StoreStore\n"
-     : :  "r" (mut) :  "g0", "g2", "memory");
-#else
- asm (
-     " 1:                       \n"
-     " mov      1, %l2          \n" /* l0 <- 1 */
-     " mov      0, %l0          \n" /* g0 <- 0 */
-     " cas      [%i0],%l0,%l2   \n" /* if (lock == g0) lock = %l0, atomic compare/swap */
-     " cmp      %l2,0           \n" /* */
-     " be       out             \n"  /* else, got lock, done*/
-
-     " 2:                       \n" /* if not, spin until lock is not set anymore */
-     " ld       [%i0], %l2      \n" /* l0 <- mut->lock */
-     " cmp      %l2,0           \n" /* */
-     " bne      2b              \n"  /* else, got lock, done*/
-     " b,a      1b              \n" /* else try to obtain lock again (goto 1) */
-
-     " out:                     \n" /* last step, memory barrier */
-     " membar   #LoadLoad | #LoadStore | #StoreLoad | #StoreStore\n"
-     );
-
-#endif
-
-#else /* solaris 8 */
-
-#if defined __GNUC__
-
- asm (
-     " 1:                       \n"
-     " ldstub   [%0],%%g3       \n" /* get old lock value, store lock val of all ones */
-     " cmp      %%g3,0          \n" /* if (old lock != 0), someone has lock, spin*/
-     " be       out             \n"  /* else, got lock, done*/
-     " nop                      \n"
-
-     " 2:                       \n"  /* if not, spin until lock is not set anymore */
-     " ld       [%0], %%g3      \n" /* l0 <- mut->lock */
-     " cmp      %%g3,0          \n"  /* if (old lock != 0), someone has lock, spin*/
-
-     " bne      2b              \n" /* if (lock != 0) spin*/
-     " nop                      \n"
-     " b,a      1b              \n"  /* else try to obtain lock again (goto 1) */
-     " nop                      \n"
-
-     " out:                     \n" /* last step, memory barrier */
-     : : "r" (mut) : "g3", "memory");
-
-#else /* sun cc */
-
- asm (
-     " 1:                       \n"
-     " ldstub   [%i0],%g3       \n" /* get old lock value, store lock val of all ones */
-     " cmp      %g3,0           \n" /* if (old lock != 0), someone has lock, spin*/
-     " be       out             \n"  /* else, got lock, done*/
-     " nop                      \n"
-
-     " 2:                       \n"  /* if not, spin until lock is not set anymore */
-     " ld       [%i0], %g3      \n" /* l0 <- mut->lock */
-     " cmp      %g3,0           \n"  /* if (old lock != 0), someone has lock, spin*/
-
-     " bne      2b              \n" /* if (lock != 0) spin*/
-     " nop                      \n"
-     " b,a      1b              \n"  /* else try to obtain lock again (goto 1) */
-     " nop                      \n"
-
-     " out:                     \n" /* last step, memory barrier */
-     );
-
-#endif /* gnuc vs suncc switch */
-
-#endif /* solaris 8-9 switch */
-
+     return 0;
 }
 
+void DYNINST_initialize_index_list()
+{
+}
+
+int dyn_pid_self()
+{
+   return getpid();
+}

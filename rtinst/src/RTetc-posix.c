@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTetc-posix.c,v 1.75 2004/05/11 19:02:09 bernat Exp $
+ * $Id: RTetc-posix.c,v 1.76 2005/09/09 18:05:41 legendre Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -70,43 +70,8 @@
 
 #include <math.h>
 
-#include "kludges.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
-
-
-/************************************************************************
- * void PARADYNbreakPoint(void)
- *
- * stop oneself.
-************************************************************************/
-
-/* ccw 22 apr 2002 :  from dyninstAPI_RT/src/RTposix.c*/
-void pDYNINSTbreakPoint(void) /* ccw 5 sep 2002 */
-{
-#if !defined(bug_irix_broken_sigstop)
-     fprintf(stderr, "Kill %d\n", getpid());
-     kill(getpid(), SIGKILL);
-     sleep(10);
-#else
-     /* there is a bug in all 6.5 versions of IRIX through 6.5.9f that
-        cause a PIOCSTRACE on SIGSTOP to starve (at least under the
-        conditions that we are throwing it in.)  So on IRIX, we use
-        SIGEMT.   -- willb, 10/4/2000 */
-     kill(getpid(), SIGEMT);
-#endif
-     fprintf(stderr, "Returning from pDYNINSTbreadkPoint\n");
-}
-
-void
-PARADYNbreakPoint(void) {
-    int sample;
-    fprintf(stderr, "Calling DYNINSTbreakPoint\n");
-    pDYNINSTbreakPoint();/* ccw 5 sep 2002 */
-    DYNINSTgenerateTraceRecord(0, TR_SYNC, 0, &sample, 0, 0.0, 0.0);
-}
-
-
 
 /************************************************************************
  * void DYNINST_install_ualarm_interval(unsigned interval)
@@ -116,48 +81,6 @@ PARADYNbreakPoint(void) {
 ************************************************************************/
 
 extern void DYNINSTalarmExpire(int signo);
-
-#ifndef SHM_SAMPLING
-void
-DYNINST_install_ualarm(unsigned interval) {
-    struct itimerval it;
-    struct sigaction act;
-
-    act.sa_handler = DYNINSTalarmExpire;
-    act.sa_flags   = 0;
-
-    /* for AIX - default (non BSD) library does not restart - jkh 7/26/95 */
-#if defined(SA_RESTART)
-    act.sa_flags  |= SA_RESTART;
-#endif
-
-    sigfillset(&act.sa_mask);
-
-#if defined(i386_unknown_solaris2_5) || defined(rs6000_ibm_aix4_1) 
-    /* we need to catch SIGTRAP inside the alarm handler */    
-    sigdelset(&act.sa_mask, SIGTRAP);
-#endif
-
-    if (sigaction(SIGALRM, &act, 0) == -1) {
-        perror("sigaction(SIGALRM)");
-        abort();
-    }
-
-    it.it_value.tv_sec     = interval / 1000000;
-    it.it_value.tv_usec    = interval % 1000000;
-    it.it_interval.tv_sec  = interval / 1000000;
-    it.it_interval.tv_usec = interval % 1000000;
-
-    if (setitimer(ITIMER_REAL, &it, 0) == -1) {
-        perror("setitimer");
-        abort();
-    }
-}
-#endif
-
-
-
-
 
 static int DYNINST_trace_fd = -1; /* low-level version of DYNINSTtraceFp */
 static FILE* DYNINSTtraceFp = 0;
@@ -354,9 +277,9 @@ DYNINSTreportNewMem(char *data_structure, void *va, int memory_size, int blk_siz
     newRes.va = (int)(Address)align_va ;
     newRes.memSize = memory_size ;
     newRes.blkSize = blk_size ;
-    DYNINSTgenerateTraceRecord(0, TR_NEW_MEMORY, 
-				sizeof(struct _traceMemory), 
-                                &newRes, 1, 0.0, 0.0);
+    PARADYNgenerateTraceRecord(TR_NEW_MEMORY, 
+                               sizeof(struct _traceMemory),  &newRes, 
+                               0.0, 0.0);
 }
 
 /*Change into DYNINSTfallIn in the future*/

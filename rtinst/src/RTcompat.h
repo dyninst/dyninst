@@ -42,13 +42,13 @@
 #ifndef RT_COMPAT_
 #define RT_COMPAT_
 
-#if defined(rs6000_ibm_aix4_1)
+#if defined(arch_power)
 /* sync on powerPC is actually more general than just a memory barrier,
    more like a total execution barrier, but the general use we are concerned
    of here is as a memory barrier 
 */
 #define MEMORY_BARRIER     asm volatile ("sync")
-#elif defined( arch_ia64 )
+#elif defined(arch_ia64)
 #define MEMORY_BARRIER     asm volatile ( "mf" )
 #else
 #define MEMORY_BARRIER

@@ -62,7 +62,6 @@
 #include <string.h>
 #include <math.h>
 
-#include "kludges.h"
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
 
@@ -331,4 +330,9 @@ int DYNINST_ThreadInfo(void** stkbase, int* tidp, long *startpc, int* lwpidp, vo
     return 1 ;
   }
   return 0;
+}
+
+int dyn_pthread_self()
+{
+   return 0;
 }

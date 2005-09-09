@@ -39,18 +39,43 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * Utility functions for piggybacking information onto data messages.
- *
- */
+#include <pthread.h>
+#include "RTthread.h"
 
-/* message passing library specific routines */
-void DYNINSTpiggyPackInt(int *val);
-void DYNINSTpiggyPackDouble(double *val);
-void DYNINSTpiggyPackStr(char *val);
-void DYNINSTpiggyUnpackInt(int *val);
-void DYNINSTpiggyUnpackDouble(double *val);
-void DYNINSTpiggyUnpackStr(char **val);
+unsigned DYNINSTthreadIndexFAST()
+{
+   return 0;
+}
 
-/* generic routines */
-void DYNINSTProcessPiggyMessage();
+int tc_lock_lock(tc_lock_t *lock)
+{
+   /* If we've already got the lock, fail. */
+   pthread_t myid = dyn_pthread_self();
+   if( myid == lock->tid ) {
+      return DYNINST_DEAD_LOCK;
+   }
+   
+   /* Loop until we acquire the lock. */
+   
+   /* Assumes tc->mutex is a 4-byte value. */
+   __asm__ __volatile__ (
+         "mov ar.ccv = r0\n"
+         "mov r22 = 1;;\n"
+         "1: cmpxchg4.acq r21 = [%0], r22, ar.ccv;;\n"
+         "cmp.eq p6, p7 = r21, r0;;\n"
+         /* if we read a zero from memory, we've acquired the lock, 
+            so p7 -> we did not acquire the lock */
+         "(p7) br.cond.spnt.few 1b;;\n"
+         : /* no output */
+         : "r" (& lock->mutex)
+         : "p6", "p7", "r21", "r22", "ar.ccv", "memory"
+         );      
+   /* Lay claim to it. */
+   lock->tid = myid;
+   return 0;
+} /* end tc_lock_lock() */
+
+void DYNINST_initialize_index_list()
+{
+}
+

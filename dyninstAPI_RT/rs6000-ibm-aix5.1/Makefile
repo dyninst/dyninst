@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 2005/03/07 20:26:45 jaw Exp $
+# $Id: Makefile,v 1.8 2005/09/09 18:05:10 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -20,12 +20,15 @@ CFLAGS	+= -Wa,-mppc
 #CFLAGS += -DUSE_PROF
 ASFLAGS += -I../..
 
-SRCS         += ../src/RTposix.c \
-		../src/RTaix.c \
-                ../src/RTheap.c \
-	        ../src/RTheap-aix.c \
-		../src/RTmutatedBinary.c \
-		../src/RTmutatedBinary_XCOFF.c
+SRCS  += ../src/RTposix.c \
+	../src/RTaix.c \
+	../src/RTheap.c \
+	../src/RTheap-aix.c \
+	../src/RTmutatedBinary.c \
+	../src/RTmutatedBinary_XCOFF.c \
+	../src/RTthread-power-asm.s \
+	../src/RTthread-index.c \
+	../src/RTthread.c
 
 LD		= $(LINKER)
 
@@ -78,8 +81,12 @@ space.o: libSpace.o
 
 libSpace.o:
 	$(CC) -c -o libSpace.o ../src/libSpace.s
+
 space.o: libSpace.o
 	ld -o space.o -bexpall -bnoentry -bM:SRE libSpace.o
+
+RTthread-power-asm.o:
+	$(CC) -c $(CFLAGS) ../src/RTthread-power-asm.s
 
 install: $(TARGET3_SO)
 	-$(CP) $(TARGET3_SO) $(DEST)

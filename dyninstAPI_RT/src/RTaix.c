@@ -44,13 +44,11 @@
 ************************************************************************/
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
-#if !defined (EXPORT_SPINLOCKS_AS_HEADER)
-/* everything should be under this flag except for the assembly code
-   that handles the runtime spinlocks  -- this is imported into the
-   test suite for direct testing */
-
+#include "RTthread.h"
 #include <dlfcn.h> /* dlopen constants */
 #include <stdio.h>
+#include <pthread.h>
+
 /************************************************************************
  * void DYNINSTos_init(void)
  *
@@ -58,69 +56,149 @@
 ************************************************************************/
 
 void DYNINSTstaticHeap_1048576_textHeap_libSpace(void);
-void
-DYNINSTos_init(int calledByFork, int calledByAttach)
-{
-/* Text heap initialization. Call this to force the library to
-   be included by the linker */
-#ifdef USES_LIB_TEXT_HEAP
-    /* Dummy call to get the library space actually included
-       (not pruned by an optimizing linker) */
-    DYNINSTstaticHeap_1048576_textHeap_libSpace();
-#endif
 
+void DYNINSTos_init(int calledByFork, int calledByAttach)
+{
+   /* Text heap initialization. Call this to force the library to
+      be included by the linker */
+#ifdef USES_LIB_TEXT_HEAP
+   /* Dummy call to get the library space actually included
+      (not pruned by an optimizing linker) */
+   DYNINSTstaticHeap_1048576_textHeap_libSpace();
+#endif
 }
+
+#define NOT_SETUP_ERR 0x2468ace0
 
 char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
 int DYNINSTloadLibrary(char *libname)
 {
-  void *res;
-  char *err_str;
-  gLoadLibraryErrorString[0]='\0';
-  
-  if (NULL == (res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL))) {
-    /* An error has occurred */
-    perror( "DYNINSTloadLibrary -- dlopen" );
+   void *res;
+   char *err_str;
+   gLoadLibraryErrorString[0]='\0';
+   
+   if (NULL == (res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL))) {
+      /* An error has occurred */
+      perror( "DYNINSTloadLibrary -- dlopen" );
     
-    if (NULL != (err_str = dlerror()))
-      strncpy(gLoadLibraryErrorString, err_str, ERROR_STRING_LENGTH);
-    else 
-      sprintf(gLoadLibraryErrorString,"unknown error with dlopen");
-    
-    /*fprintf(stderr, "%s[%d]: %s\n",__FILE__,__LINE__,gLoadLibraryErrorString);*/
-    return 0;  
-  } else
-    return 1;
+      if (NULL != (err_str = dlerror()))
+         strncpy(gLoadLibraryErrorString, err_str, ERROR_STRING_LENGTH);
+      else 
+         sprintf(gLoadLibraryErrorString,"unknown error with dlopen");
+      
+      /*fprintf(stderr, "%s[%d]: %s\n", __FILE__, __LINE__,
+                gLoadLibraryErrorString);*/
+      return 0;  
+   } else
+      return 1;
 }
 
-#endif /* EXPORT_SPINLOCKS_AS_HEADER */
-
-#ifdef __GNUC__
-void DYNINSTlock_spinlock(dyninst_spinlock *mut)
+void DYNINST_ThreadPInfo(void* tls, void** stkbase, int* tid, 
+                         long *pc, int* lwp, void** rs) 
 {
-
- asm (
-         "  .Loop:\n"
-         " lwarx        4,0,3    # &lock in R3, reserves addr in R3 for future atomic store\n"
-         "                       # R4 <- *R3         \n"
-         " cmpwi        4,1      # if lock set, spin.\n"
-         " beq-         .Loop                        \n"
-         " lil          5,1      # R5 <- 1 (indicate mutex is locked)  \n"
-         " stwcx.       5,0,3    # atomic store R5 in memory given by R3 (&lock)\n"
-         " bne-         .Loop    # atomic store failed, try again   \n"
-         " isync                 # memory barrier, ensures lock obtained before cont\n"
-     );
-
+   unsigned pthread_context;
+   int *func_ptr;
+   struct __pthrdsinfo *ptr = (struct __pthrdsinfo *) tls;
+   *stkbase = (void*) (ptr->__pi_stackaddr);
+   /**tid = (int) ptr->__pi_ptid;*/
+   /**lwp = (int) ptr->__pi_tid;*/
+   *rs = &(ptr->__pi_context);
+   /* The PC is a little different. We grab the thread context
+      from a partial pthread structure. That +200 gives us the 
+      function pointer to the start function. That gives us the
+      start */
+   pthread_context = DYNINSTthreadContext();
+   pthread_context+=92;
+   func_ptr = (int *)*((int *)pthread_context);
+   *pc = *func_ptr;
 }
-#else
 
-/* Later version of xlc have a -qasm=gcc option.  But our version does not... */
+int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
+{
+   struct __pthrdsinfo pthread_desc;
+   int pthread_desc_size = sizeof(struct __pthrdsinfo);
+   int registers[1024];
+   int regsize = 1024*sizeof(int);
 
-void DYNINSTlock_spinlock_inline(dyninst_spinlock *mut);
-#pragma mc_func DYNINSTlock_spinlock_inline {"7c801828" "2c040001" "41a2fff8" "38a00001" "7ca0192d" "40a2ffec" "4c00012c" }
+   int tidp, lwpid;
+   long startpc;
+   void *stkbase, *rs_p;
 
-void DYNINSTlock_spinlock(dyninst_spinlock *mut) {
-  DYNINSTlock_spinlock_inline(mut);
- }
+   int result;
 
-#endif
+   pthread_t pthread_id;
+   pthread_id = dyn_pthread_self();
+
+   result = dyn_pthread_getthrds_np(&pthread_id, PTHRDSINFO_QUERY_ALL,
+                                    &pthread_desc, pthread_desc_size,
+                                    registers, &regsize);
+   if (result)
+   {
+      if (result != NOT_SETUP_ERR)
+         perror("RTthread-aix:DYNINST_ThreadInfo");
+      else
+         fprintf(stderr, "[%s:%u] - TInfo not yet setup\n", __FILE__, __LINE__);
+      return 0;
+   }
+
+   DYNINST_ThreadPInfo((void *)&pthread_desc, &stkbase, &tidp, &startpc, 
+                       &lwpid, &rs_p);
+
+   ev->stack_addr = stkbase;
+   ev->start_pc = (void *) startpc;
+
+   /*
+   fprintf(stderr, "DYNINST_ThreadInfo, stkbase=%x, tid=%d, " 
+           "startpc=%x, lwp=%d, resumestate=%x\n",
+           (unsigned) *stkbase, *tidp, *startpc, *lwpid, (unsigned)*rs_p);
+   */
+	  
+   return 1;
+}
+
+int dyn_pid_self()
+{
+   return getpid();
+}
+
+int dyn_lwp_self()
+{
+   return thread_self();
+}
+
+typedef struct {
+   void *func;
+   unsigned toc;
+   void *dummy;
+} call_record_t;
+typedef int (*DYNINST_pself_t)(void);
+typedef int (*DYNINST_pgetthrds_np_t)(pthread_t *, int, struct __pthrdsinfo *, 
+                                      int, void *, int *);
+
+call_record_t DYNINST_pthread_self_record;
+DYNINST_pself_t DYNINST_pthread_self = 
+    (DYNINST_pself_t) &DYNINST_pthread_self_record;
+int dyn_pthread_self()
+{
+   if (!DYNINST_pthread_self_record.func)
+   {
+      return -1;
+   }
+   return (*DYNINST_pthread_self)();
+}
+
+call_record_t DYNINST_pthread_getthrds_np_record;
+DYNINST_pgetthrds_np_t DYNINST_pthread_getthrds_np =
+   (DYNINST_pgetthrds_np_t) &DYNINST_pthread_getthrds_np_record;
+int dyn_pthread_getthrds_np(pthread_t *thread, int mode, 
+                            struct __pthrdsinfo *buf, int bufsize,
+                            void *regbuf, int *regbufsize)
+{
+   if (!DYNINST_pthread_getthrds_np_record.func)
+   {
+      return NOT_SETUP_ERR;
+   }
+   return (*DYNINST_pthread_getthrds_np)(thread, mode, buf, bufsize, 
+                                         regbuf, regbufsize);
+}
+

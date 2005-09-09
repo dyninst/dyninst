@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 2004/03/06 14:19:18 bernat Exp $
+# $Id: Makefile,v 1.8 2005/09/09 18:05:38 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -44,8 +44,7 @@ endif
 VPATH        = ../src
 #:../../dyninstAPI_RT/src # ccw 18 apr 2002 : SPLIT
 
-SRCS	     += ../src/RTfirst.c \
-		../src/RTetc-posix.c \
+SRCS	     += ../src/RTetc-posix.c \
 		../src/RTetc-solaris.c \
 		../src/RTrexec.c
 

@@ -39,14 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTtext-alpha.S,v 1.6 2005/05/13 09:17:22 jaw Exp $
+/* $Id: RTtext-alpha.S,v 1.7 2005/09/09 18:05:22 legendre Exp $
  * create an array to use as a heap for new instructions.
  *
  * .space	SYN_INST_BUF_SIZES 
  */
 
 #define ASSEMBLER 1
-#include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 
         .set noat
         .text
@@ -56,3 +55,22 @@
 _DYNINSTstaticHeap_4M_textHeap_1:
 	.space	4194304
 	.end _DYNINSTstaticHeap_4M_textHeap_1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

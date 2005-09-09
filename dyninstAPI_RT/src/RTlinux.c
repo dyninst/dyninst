@@ -40,43 +40,30 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.32 2005/08/24 21:04:03 jaw Exp $
+ * $Id: RTlinux.c,v 1.33 2005/09/09 18:05:18 legendre Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
-#if !defined (EXPORT_SPINLOCKS_AS_HEADER)
-/* everything should be under this flag except for the assembly code
-   that handles the runtime spinlocks  -- this is imported into the
-   test suite for direct testing */
-
-#include <signal.h>
 #include <assert.h>
 #include <stdio.h>
-#include <dlfcn.h>
-#include <link.h>
 #include <errno.h>
 #include <unistd.h>
+#include <dlfcn.h>
+#include <sys/types.h>
 
-#ifdef NOTDEF // PDSEP
-#include <sys/ptrace.h>
-#endif
+#if defined(arch_ia64) || defined(arch_x86_64)
 
-
-#if !defined(ia64_unknown_linux2_4)
-extern struct sigaction DYNINSTactTrap;
-extern struct sigaction DYNINSTactTrapApp;
-#endif
-
-#if defined(ia64_unknown_linux2_4) || defined(x86_64_unknown_linux2_4)
 #include <errno.h>
 #include <sys/mman.h>
 
 extern double DYNINSTstaticHeap_32K_lowmemHeap_1[];
 extern double DYNINSTstaticHeap_4M_anyHeap_1[];
 
-void _start( void ) {
-    //fprintf( stderr, "*** Initializing dyninstAPI runtime.\n" );
+void _start( void ) 
+{
+   int result;
+	RTprintf("*** Initializing dyninstAPI runtime.\n" );
 
 	/* Grab the page size, to align the heap pointer. */
 	long int pageSize = sysconf( _SC_PAGESIZE );
@@ -84,44 +71,58 @@ void _start( void ) {
 		fprintf( stderr, "*** Failed to obtain page size, guessing 16K.\n" );
 		perror( "_start" );
 		pageSize = 1024 * 16;
-		} /* end pageSize initialization */
+   } /* end pageSize initialization */
 
 	/* Align the heap pointer. */
-	unsigned long int alignedHeapPointer = (unsigned long int)DYNINSTstaticHeap_4M_anyHeap_1;
+	unsigned long int alignedHeapPointer = 
+      (unsigned long int) DYNINSTstaticHeap_4M_anyHeap_1;
 	unsigned long long adjustedSize = alignedHeapPointer + (4 * 1024 * 1024);
 	alignedHeapPointer = (alignedHeapPointer) & ~(pageSize - 1);
 	adjustedSize -= alignedHeapPointer;
 
 	/* Make the heap's page executable. */
-	if( mprotect( (void *)alignedHeapPointer, adjustedSize, PROT_READ | PROT_WRITE | PROT_EXEC ) != 0 ) {
-		fprintf( stderr, "*** Unable to mark DYNINSTstaticHeap_4M_anyHeap_1 executable!\n" );
+   result = mprotect((void *) alignedHeapPointer, adjustedSize, 
+                     PROT_READ | PROT_WRITE | PROT_EXEC);
+   if (result != 0)
+   {
+		fprintf(stderr, 
+        "[%s:%d]: Couldn't make DYNINSTstaticHeap_4M_anyHeap_1 executable!\n",
+              __FILE__, __LINE__);
 		perror( "_start" );
-		}
-	/* fprintf( stderr, "*** Marked memory from 0x%lx to 0x%lx executable.\n", alignedHeapPointer, alignedHeapPointer + adjustedSize ); */
+   }
+	RTprintf("*** Marked memory from 0x%lx to 0x%lx executable.\n", 
+            alignedHeapPointer, alignedHeapPointer + adjustedSize );
 
 	/* Mark _both_ heaps executable. */
-	alignedHeapPointer = (unsigned long int)DYNINSTstaticHeap_32K_lowmemHeap_1;
+	alignedHeapPointer = (unsigned long int) DYNINSTstaticHeap_32K_lowmemHeap_1;
 	adjustedSize = alignedHeapPointer + 32 * 1024;
 	alignedHeapPointer = (alignedHeapPointer) & ~(pageSize - 1);
 	adjustedSize -= alignedHeapPointer;
 
 	/* Make the heap's page executable. */
-	if( mprotect( (void *)alignedHeapPointer, adjustedSize, PROT_READ | PROT_WRITE | PROT_EXEC ) != 0 ) {
-		fprintf( stderr, "*** Unable to mark DYNINSTstaticHeap_4M_anyHeap_1 executable!\n" );
+   result = mprotect((void *) alignedHeapPointer, adjustedSize, 
+                     PROT_READ | PROT_WRITE | PROT_EXEC );
+   if (result != 0 ) 
+   {
+		fprintf(stderr, 
+        "[%s:%d]: Couldn't make DYNINSTstaticHeap_4M_anyHeap_1 executable!\n",
+              __FILE__, __LINE__);
 		perror( "_start" );
-		}
-	/* fprintf( stderr, "*** Marked memory from 0x%lx to 0x%lx executable.\n", alignedHeapPointer, alignedHeapPointer + adjustedSize ); */
-	}
+   }
+	RTprintf("*** Marked memory from 0x%lx to 0x%lx executable.\n", 
+            alignedHeapPointer, alignedHeapPointer + adjustedSize );
+}
 #endif
 
-#if defined(ia64_unknown_linux2_4)
+#if defined(arch_ia64)
 /* Ensure we an executable block of memory. */
 void R_BRK_TARGET() {
         /* Make sure we've got room for two bundles. */
         asm( "nop 0" ); asm( "nop 0" ); asm( "nop 0" );
         asm( "nop 0" ); asm( "nop 0" ); asm( "nop 0" );
         }
-#endif
+
+#endif /*arch_ia64*/
 
 /************************************************************************
  * void DYNINSTos_init(void)
@@ -129,182 +130,10 @@ void R_BRK_TARGET() {
  * OS initialization function
 ************************************************************************/
 
-/* this handler's sigcontext arg is an undocumented feature of Linux    */
-/* (requires the non-siginfo handler to be installed by sigaction.)     */
-void DYNINSTtrapHandler(int sig, struct sigcontext uap);
-
-void
-DYNINSTos_init(int calledByFork, int calledByAttach)
+void DYNINSTos_init(int calledByFork, int calledByAttach)
 {
     RTprintf("DYNINSTos_init(%d,%d)\n", calledByFork, calledByAttach);
-
-    /*
-       Install trap handler.  Currently being used only on x86 platforms.
-    */
-    
-#ifndef ia64_unknown_linux2_4
-    DYNINSTactTrap.sa_handler = (void(*)(int))DYNINSTtrapHandler;
-    DYNINSTactTrap.sa_flags = 0;
-    sigfillset(&DYNINSTactTrap.sa_mask);
-    if (sigaction(SIGTRAP, &DYNINSTactTrap, &DYNINSTactTrapApp) != 0) {
-        perror("sigaction(SIGTRAP) install");
-	assert(0);
-	abort();
-    }
-    
-    RTprintf("DYNINSTtrapHandler installed @ 0x%08X\n", DYNINSTactTrap.sa_handler);
-
-    if (DYNINSTactTrapApp.sa_flags&SA_SIGINFO) {
-        if (DYNINSTactTrapApp.sa_sigaction != NULL) {
-            RTprintf("App's TRAP sigaction @ 0x%08X displaced!\n",
-                   DYNINSTactTrapApp.sa_sigaction);
-        }
-    } else {
-        if (DYNINSTactTrapApp.sa_handler != NULL) {
-            RTprintf("App's TRAP handler @ 0x%08X displaced!\n",
-                   DYNINSTactTrapApp.sa_handler);
-        }
-    }
-#endif /* !ia64_unknown_linux2_4 */
-
 }
-
-/****************************************************************************
-   The trap handler. Currently being used only on x86 platform.
-
-   Traps are used when we can't insert a jump at a point. The trap
-   handler looks up the address of the base tramp for the point that
-   uses the trap, and set the pc to this base tramp.
-   The paradynd is responsible for updating the tramp table when it
-   inserts instrumentation.
-*****************************************************************************/
-
-#ifndef ia64_unknown_linux2_4
-
-#ifndef IP_REG
-#if defined(__x86_64__) && __WORDSIZE == 64
-#define IP_REG rip	// 64-bit x86 ip
-#else
-#define IP_REG eip
-#endif
-#endif
-
-trampTableEntry DYNINSTtrampTable[TRAMPTABLESZ];
-unsigned DYNINSTtotalTraps = 0;
-
-static unsigned lookup(unsigned key) {
-    unsigned u;
-    unsigned k;
-    for (u = HASH1(key); 1; u = (u + HASH2(key)) % TRAMPTABLESZ) {
-      k = DYNINSTtrampTable[u].key;
-      if (k == 0)
-        return 0;
-      else if (k == key)
-        return DYNINSTtrampTable[u].val;
-    }
-    /* not reached */
-    assert(0);
-    abort();
-}
-
-void DYNINSTtrapHandler(int sig, struct sigcontext uap) {
-    unsigned pc = uap.IP_REG;
-    unsigned nextpc;
-
-    /* If we're in the process of running an inferior RPC, we'll
-       ignore the trap here and have the daemon rerun the trap
-       instruction when the inferior rpc is done.  Because the default
-       behavior is for the daemon to reset the PC to it's previous
-       value and the PC is still at the trap instruction, we don't
-       need to make any additional adjustments to the PC in the
-       daemon.
-
-       This is used only on x86 platforms, so if multithreading is
-       ever extended to x86 platforms, then perhaps this would need to
-       be modified for that.
-
-       I haven't seen the irpc trap bug with linux version.  This is
-       probably because on linux we have the application's traps sent
-       to the daemon and forwarded back to the application.  However,
-       if trap signals are ever changed to be handled locally by the
-       application, we'll be ready for it.  */
-
-    if(curRPC.runningInferiorRPC == 1) {
-      /* If the current PC is somewhere in the RPC then it's a trap that
-	 occurred just before the RPC and is just now getting delivered.
-	 That is we want to ignore it here and regenerate it later. */
-      if(curRPC.begRPCAddr <= pc && pc <= curRPC.endRPCAddr) {
-      /* If a previous trap didn't get handled on this next irpc (assumes one 
-	 trap per irpc) then we have a bug, a trap didn't get regenerated */
-	/* printf("trapHandler, begRPCAddr: %x, pc: %x, endRPCAddr: %x\n",
-	   curRPC.begRPCAddr, pc, curRPC.endRPCAddr);
-	*/
-	assert(trapNotHandled==0);
-	trapNotHandled = 1; 
-	return;
-      }
-      else  ;   /* a trap occurred as a result of a function call within the */ 
-	        /* irpc, these traps we want to handle */
-    }
-    else { /* not in an irpc */
-      if(trapNotHandled == 1) {
-	/* Ok good, the trap got regenerated.
-	   Check to make sure that this trap is the one corresponding to the 
-	   one that needs to get regenerated.
-	*/
-	assert(pcAtLastIRPC == pc);
-	trapNotHandled = 0;
-	/* we'll then continue to process the trap */
-      }
-    }
-    nextpc = lookup(--pc);
-
-    if (!nextpc) {
-      /* kludge: the PC may have been at or right after the trap */
-      pc++;
-      nextpc = lookup(pc);
-    }
-
-    if (nextpc) {
-      RTprintf("DYNINST trap [%d] 0x%08X -> 0x%08X\n",
-               DYNINSTtotalTraps, pc, nextpc);
-      uap.IP_REG = nextpc;
-    } else {
-      if ((DYNINSTactTrapApp.sa_flags&SA_SIGINFO)) {
-        if (DYNINSTactTrapApp.sa_sigaction != NULL) {
-          siginfo_t info; /* dummy */
-          void (*handler)(int,siginfo_t*,void*) =
-                (void(*)(int,siginfo_t*,void*))DYNINSTactTrapApp.sa_sigaction;
-          RTprintf("DYNINST trap [%d] 0x%08X DEFERED to A0x%08X!\n",
-                DYNINSTtotalTraps, pc, DYNINSTactTrapApp.sa_sigaction);
-          memset(&info,0,sizeof(info));
-          sigprocmask(SIG_SETMASK, &DYNINSTactTrapApp.sa_mask, NULL);
-          (*handler)(sig,&info,NULL);
-          sigprocmask(SIG_SETMASK, &DYNINSTactTrap.sa_mask, NULL);
-        } else {
-          printf("DYNINST trap [%d] 0x%08X missing SA_SIGACTION!\n",
-                  DYNINSTtotalTraps, pc);
-          abort();
-        }
-      } else {
-        if (DYNINSTactTrapApp.sa_handler != NULL) {
-          void (*handler)(int,struct sigcontext) =
-              (void(*)(int,struct sigcontext))DYNINSTactTrapApp.sa_handler;
-          RTprintf("DYNINST trap [%d] 0x%08X DEFERED to H0x%08X!\n",
-                DYNINSTtotalTraps, pc, DYNINSTactTrapApp.sa_handler);
-          sigprocmask(SIG_SETMASK, &DYNINSTactTrapApp.sa_mask, NULL);
-          (*handler)(sig,uap);
-          sigprocmask(SIG_SETMASK, &DYNINSTactTrap.sa_mask, NULL);
-        } else {
-          printf("DYNINST trap [%d] 0x%08X missing SA_HANDLER!\n",
-                  DYNINSTtotalTraps, pc);
-          abort();
-        }
-      }
-    }
-    DYNINSTtotalTraps++;
-}
-#endif /* !ia64_unknown_linux2_4 */
 
 typedef struct dlopen_args {
   const char *libname;
@@ -318,39 +147,41 @@ void *(*DYNINST_do_dlopen)(dlopen_args_t *) = NULL;
 char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
 
 static int get_dlopen_error() {
-  char *err_str;
-  err_str = dlerror();
-  if (err_str) {
-    strncpy(gLoadLibraryErrorString, err_str, ERROR_STRING_LENGTH);
-    return 1;
-  }
-  else {
-    sprintf(gLoadLibraryErrorString,"unknown error with dlopen");
-    return 0;
-  }
-  return 0;
+   char *err_str;
+   err_str = dlerror();
+   if (err_str) {
+      strncpy(gLoadLibraryErrorString, err_str, ERROR_STRING_LENGTH);
+      return 1;
+   }
+   else {
+      sprintf(gLoadLibraryErrorString,"unknown error with dlopen");
+      return 0;
+   }
+   return 0;
 }
 
 int DYNINSTloadLibrary(char *libname)
 {
-  void *res;
-  char *err_str;
-  gLoadLibraryErrorString[0]='\0';
-  if (res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL)) {
-    return 1;
-  }
-  else {
-    get_dlopen_error();
-#ifdef i386_unknown_linux2_0
-    if (strstr(gLoadLibraryErrorString, "invalid caller") != NULL &&
-	DYNINST_do_dlopen != NULL) {
-      /* dlopen on recent glibcs has a "security check" so that
-	 only registered modules can call it. Unfortunately, progs
-	 that don't include libdl break this check, so that we
-	 can only call _dl_open (the dlopen worker function) from
-	 within glibc. We do this by calling do_dlopen
-	 We fool this check by calling an addr written by the
-	 mutator */
+   void *res;
+   char *err_str;
+   gLoadLibraryErrorString[0]='\0';
+   res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL);
+   if (res)
+   {
+      return 1;
+   }
+ 
+   get_dlopen_error();
+#if defined(arch_x86)
+   /* dlopen on recent glibcs has a "security check" so that
+      only registered modules can call it. Unfortunately, progs
+      that don't include libdl break this check, so that we
+      can only call _dl_open (the dlopen worker function) from
+      within glibc. We do this by calling do_dlopen
+      We fool this check by calling an addr written by the
+      mutator */
+   if (strstr(gLoadLibraryErrorString, "invalid caller") != NULL &&
+       DYNINST_do_dlopen != NULL) {
       dlopen_args_t args;
       args.libname = libname;
       args.mode = RTLD_NOW | RTLD_GLOBAL;
@@ -362,72 +193,168 @@ int DYNINSTloadLibrary(char *libname)
       (*DYNINST_do_dlopen)(&args);
       // Duplicate the above
       if (args.result != NULL)
-	return 1;
+      {
+         return 1;
+      }
       else
-	get_dlopen_error();
-    }
+         get_dlopen_error();
+   }
 #endif
+   return 0;
+}
+
+//Define this value so that we can compile on a system that doesn't have
+// gettid and still run on one that does.
+#ifndef SYS_gettid
+#define SYS_gettid 224
+#endif
+
+int dyn_lwp_self()
+{
+   static int gettid_not_valid = 0;
+   int result;
+
+   if (gettid_not_valid)
+      return getpid();
+
+   result = syscall(SYS_gettid);
+   if (result == -1 && errno == ENOSYS)
+   {
+      gettid_not_valid = 1;
+      return getpid();
+   }
+   return result;  
+}
+
+int dyn_pid_self()
+{
+   return getpid();
+}
+
+int (*DYNINST_pthread_self)(void);
+int dyn_pthread_self()
+{
+   if (!DYNINST_pthread_self) {
+      return -1;
+   }
+   return (*DYNINST_pthread_self)();
+}
+
+
+/**
+ * We need to extract certain pieces of information from the usually opaque 
+ * type pthread_t.  Unfortunately, libc doesn't export this information so 
+ * we're reverse engineering it out of pthread_t.  The following structure
+ * tells us at what offsets it look off of the return value of pthread_self
+ * for the lwp, pid, initial start function (the one passed to pthread_create)
+ * and the top of this thread's stack.  We have multiple entries in positions, 
+ * one for each different version of libc we've seen.
+ **/
+#define POS_ENTRIES 3
+#define READ_FROM_BUF(pos, type) *((type *)(buffer+pos))
+
+typedef struct pthread_offset_t
+{
+   unsigned lwp_pos;
+   unsigned pid_pos;
+   unsigned start_func_pos;
+   unsigned stck_start_pos;
+} pthread_offset_t;
+
+static pthread_offset_t positions[POS_ENTRIES] = { { 72, 476, 516, 576 },
+                                                   { 72, 76, 516, 84 },
+                                                   { 72, 476, 516, 80 } };
+
+int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
+{
+  static int err_printed = 0;
+  int i;
+  char *buffer;
+
+  ev->stack_addr = 0x0;
+  ev->start_pc = 0x0;
+  buffer = (char *) ev->tid;
+
+  for (i = 0; i < POS_ENTRIES; i++)
+  {
+     if ((READ_FROM_BUF(positions[i].pid_pos, pid_t) != ev->ppid) ||
+         (READ_FROM_BUF(positions[i].lwp_pos, int) != ev->lwp))
+        continue;
+     ev->stack_addr = READ_FROM_BUF(positions[i].stck_start_pos, void *);
+     ev->start_pc = READ_FROM_BUF(positions[i].start_func_pos, void *);
+     return 1;
   }
+  
+  if (!err_printed)
+  {
+    //If you get this error, then Dyninst is having trouble figuring out
+    //how to read the information from the positions structure above.
+    //It needs a new entry filled in.  Running the commented out program
+    //that follows this function can help you collect the necessary data.
+    fprintf(stderr, "[%s:%d] Unable to parse the pthread_t structure for this"
+	    " version of libpthread.  Making a best guess effort.\n", 
+	    __FILE__, __LINE__);
+    err_printed = 1;
+  }
+   
+  return 1;
+}
+
+
+/*
+//Small program for finding the correct values to fill in pos_in_pthreadt
+// above
+#include <pthread.h>
+#include <stdio.h>
+#include <sys/syscall.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+#define gettid() syscall(SYS_gettid)
+
+pthread_attr_t attr;
+
+void *foo(void *f) {
+  pid_t pid, tid;
+  unsigned stack_addr;
+  unsigned best_stack = 0xffffffff;
+  int best_stack_pos = 0;
+  void *start_func;
+  int *p;
+  int i = 0;
+  pid = getpid();
+  tid = gettid();
+  start_func = foo;
+  //x86 only.  
+  asm("movl %%ebp,%0" : "=r" (stack_addr));
+  p = (int *) pthread_self();
+  while (i < 1000)
+  {
+    if (*p == (unsigned) pid)
+      printf("pid @ %d\n", i);
+    if (*p == (unsigned) tid)
+      printf("lwp @ %d\n", i);
+    if (*p > stack_addr && *p < best_stack)
+    {
+      best_stack = *p;
+      best_stack_pos = i;
+    }
+    if (*p == (unsigned) start_func)
+      printf("func @ %d\n", i);
+    i += sizeof(int);
+    p++;
+  }  
+  printf("stack @ %d\n", best_stack_pos);
+  return NULL;
+}
+
+int main(int argc, char *argv[])
+{
+  pthread_t t;
+  void *result;
+  pthread_attr_init(&attr);
+  pthread_create(&t, &attr, foo, NULL);
+  pthread_join(t, &result);
   return 0;
 }
-
-
-#endif /* EXPORT SPINLOCKS */
-
-void DYNINSTlock_spinlock(dyninst_spinlock *mut)
-{
-#if defined (arch_x86) || (defined(arch_x86_64) && __WORDSIZE == 32)
-  /*  same assembly as for x86 windows, just different format for asm stmt */
-  /*  so if you change one, make the same changes in the other, please */
-
- asm (
-         "  .Loop: \n"
-         "  movl        8(%ebp), %ecx  # &mut in ecx \n"
-         "  movl        $0, %eax       # 0 (unlocked) in eax\n"
-         "  movl        $1, %edx       # 1 (locked) in edx \n"
-         "  lock  \n"
-         "  cmpxchgl    %edx, (%ecx)   # try to atomically store edx (1 = locked) \n"
-         "                             # only if we are unlocked (ecx == eax) \n"
-         "  jnz         .Loop          # if failure, zero flag set, spin again. \n"
-     );
-
-#elif defined(arch_x86_64) && __WORDSIZE == 64
-  /*  same assembly as for x86 windows, just different format for asm stmt */
-  /*  so if you change one, make the same changes in the other, please */
-
- asm (
-         "  .Loop: \n"
-         "  movq        $0, %rax       # 0 (unlocked) in rax\n"
-         "  movq        $1, %rdx       # 1 (locked) in rdx \n"
-         "  lock  \n"
-         "  cmpxchgq    %rdx, (%rdi)   # try to atomically store rdx (1 = locked) \n"
-         "                             # only if we are unlocked (rdi == rax) \n"
-         "  jnz         .Loop          # if failure, zero flag set, spin again. \n"
-     );
-
-#elif defined (arch_ia64)
-
- asm (
-         "  1:                                      \n"
-         "  ld4                 r31=[%0]            \n" /* r31 <- lock value*/
-         " ;;                                       \n"
-         "  cmp.ne              p15,p0=r31,r0       \n" /* test lock set */
-         "  (p15) br.cond.sptk  1b                  \n" /* yes:  spin */
-         " ;;                                       \n" /* no: try to obtain lock */
-         "  mov                 r31=1               \n" /* r31 <- 1, desired lock val */
-         "  mov                 ar.ccv=0            \n" /* set value to compare to */
-         "                                          \n" /* unlocked lock ( = 0) */
-         " ;;                                       \n"
-         "  cmpxchg4.acq        r31=[%0],r31,ar.ccv \n" /* if (lock == ar.ccv) lock = r31 */
-         " ;;                                       \n"
-         "  cmp.ne              p15,p0=r31,r0       \n" /* test r31 to see if xchg worked */
-         "  (p15) br.cond.sptk  1b                  \n" /* if r31 != 0, lock failed, spin*/
-         " ;;                                       \n"
-         "  end:                                    \n" /* else, we got the lock, done */
- ::"r"(mut):"ar.ccv", "p15", "p0", "r31","memory");
-
-
-#else
-#error
-#endif
-}
+*/

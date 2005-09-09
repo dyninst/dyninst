@@ -50,15 +50,18 @@
 #include <syscall.h>
 #endif
 
-#if defined(rs6000_ibm_aix4_1) | defined(i386_unknown_linux2_0)
+#if defined(os_aix) || defined(os_linux)
 #include <pthread.h>
 typedef pthread_key_t                     dyninst_key_t;
 typedef pthread_cond_t                    dyninst_cond_t;
 typedef pthread_mutex_t                   dyninst_mutex_t;
 typedef pthread_t                         dyninst_t;
-#if !defined(i386_unknown_linux2_0)
+#if !defined(os_linux)
 typedef pthread_rwlock_t                  dyninst_rwlock_t;
+#else
+typedef void                              dyninst_rwlock_t;
 #endif
+typedef void                              dyninst_sema_t;
 
 #define P_thread_getspecific(key)         pthread_getspecific(key)
 #define P_thread_setspecific(key, val)    pthread_setspecific(key,val)

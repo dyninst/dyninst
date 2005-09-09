@@ -40,28 +40,19 @@
  */
 
 /************************************************************************
- * $Id: RTwinnt.c,v 1.12 2005/04/12 15:55:41 rchen Exp $
+ * $Id: RTwinnt.c,v 1.13 2005/09/09 18:05:32 legendre Exp $
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  ************************************************************************/
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
-#if !defined (EXPORT_SPINLOCKS_AS_HEADER)
-/* everything should be under this flag except for the assembly code
-   that handles the runtime spinlocks  -- this is imported into the
-   test suite for direct testing */
-
-
-#ifndef mips_unknown_ce2_11 //ccw 29 mar 2001
-#include <assert.h>
-#endif
+#include "RTcommon.h"
+#include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
 //#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#ifndef mips_unknown_ce2_11 //ccw 29 mar 2001
 #include <mmsystem.h>
 #include <errno.h>
 #include <limits.h>
-#endif
 #include <process.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -85,10 +76,33 @@ DYNINSTbreakPoint(void) {
 
 void DYNINSTos_init(int calledByFork, int calledByAttach)
 {
-#ifndef mips_unknown_ce2_11 //ccw 23 july 2001
   RTprintf("DYNINSTos_init(%d,%d)\n", calledByFork, calledByAttach);
-#endif
 }
+
+/* this function is automatically called when windows loads this dll
+ if we are launching a mutatee to instrument, dyninst will place
+ the correct values in libdyninstAPI_RT_DLL_localPid and
+ libdyninstAPI_RT_DLL_localCause and they will be passed to
+ DYNINSTinit to correctly initialize the dll.  this keeps us
+ from having to instrument two steps from the mutator (load and then 
+ the execution of DYNINSTinit()
+*/
+
+BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
+{
+   static int DllMainCalledOnce = 0;
+	if(DllMainCalledOnce)
+      return 1;
+   DllMainCalledOnce++;
+
+   if(libdyninstAPI_RT_init_localPid != -1 || libdyninstAPI_RT_init_localCause != -1)
+      DYNINSTinit(libdyninstAPI_RT_init_localCause, libdyninstAPI_RT_init_localPid,
+                  libdyninstAPI_RT_init_maxthreads);
+
+	return 1; 
+}
+ 
+
 
 char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
 int DYNINSTloadLibrary(char *libname)
@@ -106,13 +120,12 @@ int DYNINSTloadLibrary(char *libname)
 }
 int DYNINSTwriteEvent(void *ev, int sz);
 /************************************************************************
- * void DYNINSTasyncConnect(int pid)
+ * void DYNINSTasyncConnect()
  *
  * Connect to mutator's async handler thread. <pid> is pid of mutator
-************************************************************************/
+ ************************************************************************/
 //CRITICAL_SECTION comms_mutex;
-dyninst_spinlock thelock;
-dyninst_spinlock *thelockp = &thelock;
+
 int async_socket = -1;
 int connect_port = 0;
 int DYNINSTasyncConnect()
@@ -172,7 +185,6 @@ int DYNINSTasyncConnect()
 
   //InitializeCriticalSection(&comms_mutex);
   //fprintf(stderr, "%s[%d]: DYNINSTasyncConnect appears to have succeeded\n", __FILE__, __LINE__);
-  thelock.lock = 0;
   fprintf(stderr, "%s[%d]:  leaving DYNINSTasyncConnect\n", __FILE__, __LINE__);
   return 1; /*true*/
 }
@@ -192,67 +204,18 @@ int DYNINSTwriteEvent(void *ev, int sz)
     return 0;
   }
   return 1;
-
-#ifdef NOTDEF
-  int res;
-
-try_again:
-  res = write(async_socket, ev, sz);
-  if (-1 == res) {
-    if (errno == EINTR || errno == EAGAIN)
-       goto try_again;
-    else {
-       perror("write");
-       abort();
-    }
-  }
-  if (res != sz) {
-    /*  maybe we need logic to handle partial writes? */
-    fprintf(stderr, "%s[%d]:  partial ? write error, %d bytes, should be %d\n",
-            __FILE__, __LINE__, res, sz);
-    abort();
-  }
-  return res;
-#endif
 }
-void DYNINSTlock_spinlock(dyninst_spinlock *mut);
-extern void DYNINSTunlock_spinlock(dyninst_spinlock *mut);
-void LockCommsMutex()
+
+void DYNINST_initialize_index_list()
 {
-  //fprintf(stderr, "%s[%d]:  before enter crit\n", __FILE__, __LINE__);
-  //EnterCriticalSection(&comms_mutex);
-  //fprintf(stderr, "%s[%d]:  after enter crit\n", __FILE__, __LINE__);
-  DYNINSTlock_spinlock(&thelock);
 }
-void UnlockCommsMutex()
+
+int dyn_pid_self()
 {
-  //fprintf(stderr, "%s[%d]:  before leave crit\n", __FILE__, __LINE__);
-  //LeaveCriticalSection(&comms_mutex);
-  //fprintf(stderr, "%s[%d]:  after leave crit\n", __FILE__, __LINE__);
-  DYNINSTunlock_spinlock(&thelock);
+   return _getpid();
 }
-#endif /* EXPORT SPINLOCKS */
-void DYNINSTlock_spinlock(dyninst_spinlock *mut)
+
+int dyn_pthread_self()
 {
-  /*  same assembly as for x86 linux, just different format for asm stmt */
-  /*  so if you change one, make the same changes in the other, please */
-  /*msdn.microsoft.com/library/default.asp?url=/library/en-us/vclang/html/_langref___asm.asp*/
-
- /* seperate command to get arg into ecx */
- __asm mov ecx,mut 
-
- /* thus this should work whether or not we compiler with __fastcall */
- /* (which passes args in registers instead of on the stack */
-
- __asm  {
-           a_loop:
-                                          ; movl        8(%ebp), %ecx
-           mov        eax,0 ;
-           mov        edx,1 ;
-           lock cmpxchg   [ecx], edx ;
-
-           jnz         a_loop
-     }
-
+   return 0;
 }
-

@@ -195,16 +195,9 @@ void DYNINSTstartThreadTimer(tTimer* timer)
    rawTime64 start, old_start ;
    int valid = 0;  
    int i;
-#if defined(i386_unknown_linux2_0)
-   unsigned index = DYNINSTthreadIndexSLOW(P_thread_self());
-#else
-   unsigned index = DYNINSTthreadIndexFAST();
-#endif
-
-   if (indexToThreads[index] != P_thread_self()) {
-       return;
-   }
    
+   unsigned index = dyninst_threadIndex();
+
    if(!timer)
       i = *((int *)0); /* abort() sometimes doesn't leave good stack traces */
    
@@ -238,16 +231,8 @@ void DYNINSTstopThreadTimer(tTimer* timer)
 {
     int i;
 
-#if defined(i386_unknown_linux2_0)
-   unsigned index = DYNINSTthreadIndexSLOW(P_thread_self());
-#else
-   unsigned index = DYNINSTthreadIndexFAST();
-#endif
+    unsigned index = dyninst_threadIndex();
    
-    if (indexToThreads[index] != P_thread_self()) {
-        return;
-    }
-    
     if (!timer)
         i = *((int *)0);
     

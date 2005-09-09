@@ -41,15 +41,15 @@
 
 /************************************************************************
  *
- * RTthread.c: platform independent runtime instrumentation functions for threads
+ * RTthread.c: platform independent runtime instrumentation functions 
+ * for threads
  *
  ************************************************************************/
 
-#include "RTthread.h"
+#include <stdlib.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
-
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -60,38 +60,33 @@
 #include <string.h>
 #include <math.h>
 
-#include "kludges.h"
-
-#include <stdlib.h>
+#include "RTthread.h"
 
 #include "pdutil/h/resource.h"
+#include "dyninstAPI_RT/h/dyninstRTExport.h"
 
-unsigned          DYNINST_initialize_done=0;
-DECLARE_TC_LOCK(DYNINST_traceLock) ;
-DECLARE_TC_LOCK(DYNINST_initLock) ;
-unsigned *DYNINST_indexHash ;
+static unsigned PARADYN_initialize_done;
+static DECLARE_DYNINST_LOCK(PARADYN_initLock);
 
 /**************************** INITIALIZATION ********************************/
 
 /*
-  DYNINSthreadPos has three levels,
-  [1] a global register, see DYNINSTthreadPos in RTsolaris_asm.s
-  [2] thread specific data, _threadPos
-  [3] search the hash table: DYNINST_hash_insertPOS ...
-*/
-
-/*
- * Run from the DYNINSTinit?
+ * Run from the PARADYNinit
  */
+void PARADYN_initialize_once() 
+{
+   int result;
+   unsigned i;
+   unsigned max_threads = dyninst_maxNumOfThreads();
 
-void DYNINST_initialize_once(char *DYNINST_shmSegAttachedPtr) {
-  if (DYNINST_DEAD_LOCK == tc_lock_lock(&DYNINST_initLock))
-    return;
-  if (!DYNINST_initialize_done) {
-    unsigned i;
-    DYNINST_initialize_index_list();
-    DYNINST_initialize_done=1;
-    for (i = 0; i < MAX_NUMBER_OF_THREADS; i++) {
+   result = dyninst_lock(&PARADYN_initLock);
+   if (result == DYNINST_DEAD_LOCK || DYNINST_LIVE_LOCK)
+      return;
+
+   if (PARADYN_initialize_done) 
+      goto done;
+
+   for (i = 0; i < max_threads; i++) {
       virtualTimers[i].total = 0;
       virtualTimers[i].start = 0;
       virtualTimers[i].counter = 0;
@@ -100,9 +95,11 @@ void DYNINST_initialize_once(char *DYNINST_shmSegAttachedPtr) {
       virtualTimers[i].protector1 = 0;
       virtualTimers[i].protector2 = 0;
       virtualTimers[i].rt_previous = 0;
-    }    
-  }
-  tc_lock_unlock(&DYNINST_initLock);
+   }    
+   PARADYN_initialize_done=1;
+
+ done:   
+   dyninst_unlock(&PARADYN_initLock);
 }
 
 
@@ -111,37 +108,33 @@ void DYNINST_initialize_once(char *DYNINST_shmSegAttachedPtr) {
  *   SyncObject for MT applications
  *
  *======================================*/
+
+#define MAX_SYNC_OBJS 400
 typedef struct SyncObj_s {
   unsigned id;
   struct SyncObj_s *next;
 } SyncObj ;
 
-#define MAX_SYNC_OBJS 400
-SyncObj syncObj_cells[MAX_SYNC_OBJS];
-int next_free_syncObj_cell = 0 ;
-DECLARE_TC_LOCK(DYNINST_syncObjLock) ;
+static SyncObj syncObj_cells[MAX_SYNC_OBJS];
+static int next_free_syncObj_cell = 0 ;
+static DECLARE_DYNINST_LOCK(PARADYN_syncObjLock) ;
 
-void initialize_SyncObj_of_1_kind(SyncObj* Res[], tc_lock_t L[], int max){
-  int i;
-  for (i=0; i<max; i++) {
-    Res[i]= NULL ;
-    tc_lock_init(&(L[i]));
-  }
-}
-
-int next_syncObj_index(void) {
-  int next ;
-  tc_lock_lock(&DYNINST_syncObjLock);
+static int next_syncObj_index(void) 
+{
+  int next;
+  dyninst_lock(&PARADYN_syncObjLock);
   next = next_free_syncObj_cell++;
-  tc_lock_unlock(&DYNINST_syncObjLock);
-  return next ;
+  dyninst_unlock(&PARADYN_syncObjLock);
+  return next;
 }
 
-int lookup_syncobject(SyncObj* Res[], tc_lock_t L[], int max, unsigned res) {
+static int lookup_syncobject(SyncObj* Res[], dyninst_lock_t L[], int max, 
+                             unsigned res) 
+{
   int ret ;
   int pos = res%max ;
   SyncObj* ptr = Res[pos] ;
-  tc_lock_lock(&(L[pos])) ;
+  dyninst_lock(&(L[pos])) ;
   while(ptr) {
     if (ptr->id == res) break ;
     ptr = ptr->next ;
@@ -158,7 +151,7 @@ int lookup_syncobject(SyncObj* Res[], tc_lock_t L[], int max, unsigned res) {
       ret = 0 ;
   } else
     ret =  0 ;
-  tc_lock_unlock(&(L[pos])) ;
+  dyninst_unlock(&(L[pos])) ;
   return ret ;
 }
 
@@ -166,23 +159,22 @@ int lookup_syncobject(SyncObj* Res[], tc_lock_t L[], int max, unsigned res) {
 /*----------------------------*
  *  Conditional Variables     *
  *----------------------------*/
-
 #define MAX_CV_RES 20
-SyncObj*    DYNINSTcvRes[MAX_CV_RES] ;
-tc_lock_t DYNINSTcvResLock[MAX_CV_RES] ;
+static SyncObj*    PARADYNcvRes[MAX_CV_RES] ;
+static dyninst_lock_t PARADYNcvResLock[MAX_CV_RES] ;
 
-void DYNINSTreportNewCondVar(dyninst_cond_t* cvp){
+void PARADYNreportNewCondVar(dyninst_cond_t* cvp){
 
-  if (lookup_syncobject(DYNINSTcvRes, DYNINSTcvResLock, MAX_CV_RES, (unsigned) cvp)){
+  if (lookup_syncobject(PARADYNcvRes, PARADYNcvResLock, MAX_CV_RES, (unsigned) cvp)){
     struct _newresource newRes ;
     memset(&newRes, '\0', sizeof(newRes));
     sprintf(newRes.name, "SyncObject/CondVar/%d", (unsigned) cvp) ;
     strcpy(newRes.abstraction, "BASE");
     newRes.mdlType = RES_TYPE_INT;
     newRes.btype = CondVarResourceType;
-    DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE,
-                        sizeof(struct _newresource), &newRes, 1,
-                        0,0);
+    PARADYNgenerateTraceRecord(TR_NEW_RESOURCE,
+                               sizeof(struct _newresource), &newRes,
+                               0, 0);
   }
 }
 
@@ -190,12 +182,12 @@ void DYNINSTreportNewCondVar(dyninst_cond_t* cvp){
  *  Mutex lock     *
  *-----------------*/
 #define MAX_MUTEX_RES 20
-SyncObj*    DYNINSTmutexRes[MAX_MUTEX_RES] ;
-tc_lock_t DYNINSTmutexResLock[MAX_MUTEX_RES] ;
+static SyncObj*    PARADYNmutexRes[MAX_MUTEX_RES] ;
+static dyninst_lock_t PARADYNmutexResLock[MAX_MUTEX_RES] ;
 
-void DYNINSTreportNewMutex(dyninst_mutex_t* m){
-
-  if (lookup_syncobject(DYNINSTmutexRes, DYNINSTmutexResLock,
+void PARADYNreportNewMutex(dyninst_mutex_t* m)
+{
+  if (lookup_syncobject(PARADYNmutexRes, PARADYNmutexResLock,
       MAX_MUTEX_RES, (unsigned )m)){
     struct _newresource newRes ;
     memset(&newRes, '\0', sizeof(newRes));
@@ -203,80 +195,64 @@ void DYNINSTreportNewMutex(dyninst_mutex_t* m){
     strcpy(newRes.abstraction, "BASE");
     newRes.mdlType = RES_TYPE_INT;
     newRes.btype = MutexResourceType;
-    DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE,
-                        sizeof(struct _newresource), &newRes, 1,
-                        0,0);
+    PARADYNgenerateTraceRecord(TR_NEW_RESOURCE,
+                        sizeof(struct _newresource), &newRes,
+                        0, 0);
   }
 }
 
 /*-----------------*
  *  rw_lock        *
  *-----------------*/
-
 #define MAX_RWLOCK_RES 20
-#if !defined(i386_unknown_linux2_0)
-SyncObj*    DYNINSTrwlockRes[MAX_RWLOCK_RES] ;
-tc_lock_t DYNINSTrwlockResLock[MAX_RWLOCK_RES] ;
+static SyncObj*    PARADYNrwlockRes[MAX_RWLOCK_RES] ;
+static dyninst_lock_t PARADYNrwlockResLock[MAX_RWLOCK_RES] ;
 
-void DYNINSTreportNewRwLock(dyninst_rwlock_t* p){
+void PARADYNreportNewRwLock(dyninst_rwlock_t* p){
 
-  if (lookup_syncobject(DYNINSTrwlockRes, DYNINSTrwlockResLock, MAX_RWLOCK_RES, (unsigned)p)){
-    struct _newresource newRes ;
-    memset(&newRes, '\0', sizeof(newRes));
-    sprintf(newRes.name, "SyncObject/RwLock/%d", (unsigned) p) ;
-    strcpy(newRes.abstraction, "BASE");
-    newRes.mdlType = RES_TYPE_INT;
-    newRes.btype = RWLockResourceType;
-    DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE,
-                        sizeof(struct _newresource), &newRes, 1,
-                        0,0);
+  if (lookup_syncobject(PARADYNrwlockRes, PARADYNrwlockResLock, 
+                        MAX_RWLOCK_RES, (unsigned)p))
+  {
+     struct _newresource newRes ;
+     memset(&newRes, '\0', sizeof(newRes));
+     sprintf(newRes.name, "SyncObject/RwLock/%d", (unsigned) p) ;
+     strcpy(newRes.abstraction, "BASE");
+     newRes.mdlType = RES_TYPE_INT;
+     newRes.btype = RWLockResourceType;
+     PARADYNgenerateTraceRecord(TR_NEW_RESOURCE,
+                                sizeof(struct _newresource), &newRes,
+                                0,0);
   }
 }
-#endif
 
 /*-----------------*
  *  Semaphore      *
  *-----------------*/
 #define MAX_SEMA_RES 20
-SyncObj*    DYNINSTsemaRes[MAX_SEMA_RES] ;
-tc_lock_t DYNINSTsemaResLock[MAX_SEMA_RES] ;
+static SyncObj*    PARADYNsemaRes[MAX_SEMA_RES] ;
+static dyninst_lock_t PARADYNsemaResLock[MAX_SEMA_RES] ;
 
-#if !defined(rs6000_ibm_aix4_1) && !defined(i386_unknown_linux2_0)
-void DYNINSTreportNewSema(dyninst_sema_t* p){
-
-  if (lookup_syncobject(DYNINSTsemaRes, DYNINSTsemaResLock, MAX_SEMA_RES, (unsigned)p)){
-    struct _newresource newRes ;
-    memset(&newRes, '\0', sizeof(newRes));
-    sprintf(newRes.name, "SyncObject/Semaphore/%d", (unsigned) p) ;
-    strcpy(newRes.abstraction, "BASE");
-    newRes.mdlType = RES_TYPE_INT;
-    newRes.btype = SemaphoreResourceType;
-    DYNINSTgenerateTraceRecord(0, TR_NEW_RESOURCE,
-                        sizeof(struct _newresource), &newRes, 1,
-                        0,0);
+void PARADYNreportNewSema(dyninst_sema_t* p)
+{
+  if (lookup_syncobject(PARADYNsemaRes, PARADYNsemaResLock, 
+                        MAX_SEMA_RES, (unsigned)p))
+  {
+     struct _newresource newRes ;
+     memset(&newRes, '\0', sizeof(newRes));
+     sprintf(newRes.name, "SyncObject/Semaphore/%d", (unsigned) p) ;
+     strcpy(newRes.abstraction, "BASE");
+     newRes.mdlType = RES_TYPE_INT;
+     newRes.btype = SemaphoreResourceType;
+     PARADYNgenerateTraceRecord(TR_NEW_RESOURCE,
+                                sizeof(struct _newresource), &newRes,
+                                0, 0);
   }
 }
-#endif
 
-void DYNINST_initialize_SyncObj(void) {
-  initialize_SyncObj_of_1_kind(DYNINSTcvRes, DYNINSTcvResLock, MAX_CV_RES);
-  initialize_SyncObj_of_1_kind(DYNINSTmutexRes, DYNINSTmutexResLock, MAX_MUTEX_RES);
-#if !defined(i386_unknown_linux2_0)
-  initialize_SyncObj_of_1_kind(DYNINSTrwlockRes, DYNINSTrwlockResLock, MAX_RWLOCK_RES);
-#endif
-  initialize_SyncObj_of_1_kind(DYNINSTsemaRes, DYNINSTsemaResLock, MAX_SEMA_RES);
+void newPDThread(int index)
+{
+   if (virtualTimers) {
+      _VirtualTimerDestroy(&(virtualTimers[index]));
+      _VirtualTimerStart(&(virtualTimers[index]), THREAD_CREATE) ;
+   }
 }
-
-void mt_printf(const char *fmt, ...) {
-#ifdef MT_DEBUG
-   va_list args;
-   va_start(args, fmt);
-
-   vfprintf(stderr, fmt, args);
-
-   va_end(args);
-
-   fflush(stderr);
-#endif
-}
-

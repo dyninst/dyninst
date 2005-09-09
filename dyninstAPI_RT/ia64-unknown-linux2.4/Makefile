@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.12 2005/06/02 19:59:32 tlmiller Exp $
+# $Id: Makefile,v 1.13 2005/09/09 18:05:09 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -24,9 +24,9 @@ ASFLAGS		=
 SRCS		+= \
 				../src/RTposix.c \
 				../src/RTlinux.c \
-				../src/RTsig.c \
 				../src/RTheap.c \
-				../src/RTheap-linux.c
+				../src/RTheap-linux.c \
+				../src/RTthread-ia64.c
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
