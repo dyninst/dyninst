@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: String.C,v 1.28 2004/03/23 01:11:54 eli Exp $
+// $Id: String.C,v 1.29 2005/09/09 18:05:59 legendre Exp $
 
 #include <assert.h>
 #include "common/h/headers.h"
@@ -161,7 +161,9 @@ string_ll::string_ll()
 }
 
 string_ll::string_ll(const char* str)
-    : str_(STRDUP(str)), len_(STRLEN(str)) {
+{
+   str_ = str ? STRDUP(str) : NULL;
+   len_ = str ? STRLEN(str) : 0;
    key_ = 0; // lazy key define
 }
 
@@ -173,7 +175,7 @@ string_ll::string_ll(const char *str, unsigned len) {
       len = strlen(str);
 
    len_ = len;
-   str_ = new char[len+1];
+   str_ = (char *) malloc(sizeof(char) * (len+1));
    (void) P_memcpy(str_, str, len);
    str_[len] = '\0';
 
@@ -256,8 +258,12 @@ string_ll::string_ll(double d) {
 }
 
 string_ll::~string_ll() { 
-   delete [] str_;
-   str_ = 0;
+   assert(this);
+   if (str_)
+   {
+      free(str_);
+      str_ = 0;
+   }
 }
 
 string_ll&
@@ -266,7 +272,7 @@ string_ll::operator=(const char* str) {
         return *this;
     }
 
-    delete [] str_; str_ = 0;
+    free(str_); str_ = 0;
 
     str_ = STRDUP(str);
     len_ = STRLEN(str);
@@ -282,7 +288,7 @@ string_ll::operator=(const string_ll& s) {
         return *this;
     }
 
-    delete [] str_; str_ = 0;
+    free(str_); str_ = 0;
 
     str_ = STRDUP(s.str_);
     len_ = s.len_;
@@ -294,14 +300,14 @@ string_ll::operator=(const string_ll& s) {
 string_ll&
 string_ll::operator+=(const string_ll& s) {
     unsigned nlen = len_ + s.len_;
-    char*    ptr  = new char[nlen+1];
+    char*    ptr  = (char *) malloc(sizeof(char) * (nlen+1));
     assert(ptr);
 
     memcpy(ptr, str_, len_);
     memcpy(&ptr[len_], s.str_, s.len_);
     ptr[nlen] = '\0';
 
-    delete[] str_; str_ = 0;
+    free(str_); str_ = 0;
     str_ = ptr;
     len_ = nlen;
 
@@ -317,14 +323,15 @@ string_ll::operator+=(const char *ptr) {
 
    const int ptr_len = P_strlen(ptr);
    const unsigned nlen = len_ + ptr_len;
-   char *new_ptr = new char[nlen+1];
+   char *new_ptr = (char *) malloc(sizeof(char) * (nlen+1));
    assert(new_ptr);
 
    memcpy(new_ptr, str_, len_);
    memcpy(&new_ptr[len_], ptr, ptr_len);
    new_ptr[nlen] = '\0';
   
-   delete [] str_;
+   if (str_)
+      free(str_);
    str_ = new_ptr;
    len_ = nlen;
 
@@ -451,7 +458,8 @@ string_ll::STRDUP(const char* str) {
     }
 
     unsigned size = P_strlen(str)+1;
-    char*    p    = new char[size];
+    char*    p    = (char *)malloc(sizeof(char) * size);
+    assert(p);
 
     (void) P_memcpy(p, str, size);
     return p;
