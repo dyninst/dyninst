@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.164 2005/02/21 22:28:53 legendre Exp $
+// $Id: DMmain.C,v 1.165 2005/09/09 18:07:26 legendre Exp $
 
 #include <assert.h>
 extern "C" {
@@ -196,7 +196,13 @@ void dynRPCUser::AddCallGraphNodeCallback(pdstring exe_name, pdstring r_name) {
 
   // get (or create) call graph corresponding to program....
   cg = CallGraph::FindCallGraph(exe_name);
-  assert(cg);
+  if (!cg)
+  {
+     fprintf(stderr, "[%s:%u] - Fatal Error.  Tried to add resource %s to "
+             "non-existant exec %s\n", __FILE__, __LINE__, r_name.c_str(),
+             exe_name.c_str());
+     assert(cg);
+  }
 
   // resource whose name is passed in <resource> should have been previously
   //  registered w/ data manager....
