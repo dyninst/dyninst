@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.70 2005/05/18 20:14:06 rchen Exp $
+# $Id: Makefile,v 1.71 2005/09/09 18:05:54 legendre Exp $
 #
 
 TO_CORE = .
@@ -31,9 +31,7 @@ ParadynVC	= visi \
 subSystems	= $(ParadynD) $(ParadynFE) $(ParadynVC)
 DyninstAPI	= ready dyninstAPI_RT dyninstAPI dyninstAPI/tests dyner codeCoverage
 
-threadComps	= rtinst/multi-thread-aware
-
-allSubdirs	= $(basicComps) $(subSystems) dyninstAPI dyninstAPI_RT dyninstAPI/tests dyner codeCoverage $(threadComps)
+allSubdirs	= $(basicComps) $(subSystems) dyninstAPI dyninstAPI_RT dyninstAPI/tests dyner codeCoverage
 
 # "fullSystem" is the list of all Paradyn & DyninstAPI components to build:
 # set DONT_BUILD_PARADYN or DONT_BUILD_DYNINST in make.config.local if desired
@@ -51,10 +49,6 @@ endif
 ifndef DONT_BUILD_VISIS
 fullSystem	+= $(ParadynVC)
 Build_list	+= ParadynVC
-endif
-ifndef DONT_BUILD_PD_MT
-fullSystem	+= $(threadComps)
-Build_list	+= threadComps
 endif
 endif
 
@@ -156,7 +150,7 @@ world: intro
 
 # "make Paradyn" and "make DyninstAPI" are also useful and valid build targets!
 
-Paradyn ParadynD ParadynFE ParadynVC DyninstAPI basicComps subSystems threadComps: 
+Paradyn ParadynD ParadynFE ParadynVC DyninstAPI basicComps subSystems: 
 	$(MAKE) $($@)
 	@echo "Build of $@ complete."
 	@date
