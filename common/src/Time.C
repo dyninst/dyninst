@@ -56,7 +56,7 @@ const timeUnit *timeUnit::_ns = NULL;
 const timeUnit *timeUnit::_us = NULL;
 const timeUnit *timeUnit::_ms = NULL;
 const timeUnit *timeUnit::_sec = NULL;
-const timeUnit *timeUnit::_min = NULL;
+const timeUnit *timeUnit::_minute = NULL;
 const timeUnit *timeUnit::_hour = NULL;
 const timeUnit *timeUnit::_day = NULL;
 const timeUnit *timeUnit::_year = NULL;
@@ -86,7 +86,7 @@ const timeUnit *timeUnit::minHelp() {
   return new timeUnit(fraction(I64_C(60) * ns_per_sec));
 }
 const timeUnit *timeUnit::hourHelp() {
-  int64_t ns_per_min = min().get_ns_per_unit().getNumer();
+  int64_t ns_per_min = minute().get_ns_per_unit().getNumer();
   return new timeUnit(fraction(I64_C(60) * ns_per_min));
 }
 const timeUnit *timeUnit::dayHelp() {
@@ -274,9 +274,9 @@ const timeLength *timeLength::_sec = NULL;
 const timeLength *timeLength::secHelp() {
   return new timeLength(1, timeUnit::sec());
 }
-const timeLength *timeLength::_min = NULL;
+const timeLength *timeLength::_minute = NULL;
 const timeLength *timeLength::minHelp() {
-  return new timeLength(1, timeUnit::min());
+  return new timeLength(1, timeUnit::minute());
 }
 const timeLength *timeLength::_hour = NULL;
 const timeLength *timeLength::hourHelp() {
@@ -367,8 +367,8 @@ ostream& operator<<(ostream&s, timeLength z) {
   tUser -= timeLength(days,timeUnit::day());
   int hours = static_cast<int>(tUser.getI(timeUnit::hour()));
   tUser -= timeLength(hours,timeUnit::hour());
-  int mins  = static_cast<int>(tUser.getI(timeUnit::min()));
-  tUser -= timeLength(mins,timeUnit::min());
+  int mins  = static_cast<int>(tUser.getI(timeUnit::minute()));
+  tUser -= timeLength(mins,timeUnit::minute());
   int secs  = static_cast<int>(tUser.getI(timeUnit::sec()));
   tUser -= timeLength(secs,timeUnit::sec());
   int ms    = static_cast<int>(tUser.getI(timeUnit::ms()));

@@ -68,14 +68,14 @@
 class timeUnit {
  private:
   // logically const
-  static const timeUnit *_leapYear, *_year, *_day, *_hour, *_min;
+  static const timeUnit *_leapYear, *_year, *_day, *_hour, *_minute;
   static const timeUnit *_sec, *_ms, *_us, *_ns;
   static const timeUnit *nsHelp(),  *usHelp(),   *msHelp(),  *secHelp();
   static const timeUnit *minHelp(), *hourHelp(), *dayHelp(), *yearHelp();
   static const timeUnit *leapYearHelp();
  public:
   static const timeUnit &ns(), &us(), &ms(), &sec();
-  static const timeUnit &min(), &hour(), &day(), &year(), &leapYear();
+  static const timeUnit &minute(), &hour(), &day(), &year(), &leapYear();
 
  public:
   typedef enum { sparse, verbose } ostream_fmt; 
@@ -127,9 +127,9 @@ inline const timeUnit &timeUnit::sec() {
   if(_sec==NULL) _sec = secHelp();
   return *_sec;
 }
-inline const timeUnit &timeUnit::min() {
-  if(_min==NULL)  _min = minHelp();
-  return *_min;
+inline const timeUnit &timeUnit::minute() {
+  if(_minute==NULL)  _minute = minHelp();
+  return *_minute;
 }
 inline const timeUnit &timeUnit::hour() {
   if(_hour==NULL) _hour = hourHelp();
@@ -430,14 +430,14 @@ inline const relTimeStamp &relTimeStamp::Zero() {
 class timeLength : public timeParent {
  private:
   // logically const
-  static const timeLength *_zero, *_ns, *_us, *_ms, *_sec, *_min;
+  static const timeLength *_zero, *_ns, *_us, *_ms, *_sec, *_minute;
   static const timeLength *_hour, *_day, *_year, *_leapYear;
   static const timeLength *ZeroHelp(), *nsHelp(), *usHelp(), *msHelp();
   static const timeLength *secHelp(), *minHelp(), *hourHelp(), *dayHelp();
   static const timeLength *yearHelp(), *leapYearHelp();
  public:
   static const timeLength &Zero(), &ns(), &us(), &ms(), &sec();
-  static const timeLength &min(), &hour(), &day(), &year(), &leapYear();
+  static const timeLength &minute(), &hour(), &day(), &year(), &leapYear();
 
   // need this constructor to use in vector container class
   timeLength() { }
@@ -500,9 +500,9 @@ inline const timeLength &timeLength::sec() {
   if(_sec == NULL) _sec = secHelp();
   return *_sec;
 }
-inline const timeLength &timeLength::min() {
-  if(_min == NULL) _min = minHelp();
-  return *_min;
+inline const timeLength &timeLength::minute() {
+  if(_minute == NULL) _minute = minHelp();
+  return *_minute;
 }
 inline const timeLength &timeLength::hour() {
   if(_hour == NULL) _hour = hourHelp();

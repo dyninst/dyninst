@@ -52,7 +52,7 @@
  * header files.
 ************************************************************************/
 
-#include <iostream>
+#include "common/h/std_namesp.h"
 #include "common/h/headers.h"
 
 
