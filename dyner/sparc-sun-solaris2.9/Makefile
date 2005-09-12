@@ -18,7 +18,7 @@ include $(TO_CORE)/make.config
 #CXXFLAGS += -DUSES_DYNAMIC_INF_HEAP
 #CFLAGS += -g -DUSES_DYNAMIC_INF_HEAP
 
-SYSLIBS   += -lelf -lnsl -ldl -lsocket
+SYSLIBS   += -lelf -lnsl -ldl -lsocket -lrt
 IFLAGS    += -I/usr/imports/include
 
 # Include the module-specific Makefile, which defines everything about
