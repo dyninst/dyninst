@@ -70,10 +70,10 @@ class BPATCH_DLL_EXPORT BPatch_edge : public BPatch_eventLock{
     // BPatch_edge::BPatch_edge
     //
     // constructor
-    API_EXPORT_CTOR(Int, (s,t,fg,rp),
+    API_EXPORT_CTOR(Int, (s,t,fg),
 
     BPatch_edge,(BPatch_basicBlock *s, BPatch_basicBlock *t, 
-                 BPatch_flowGraph *fg, const unsigned char *rp));
+                 BPatch_flowGraph *fg));
 
     // BPatch_edge::~BPatch_edge
     //
@@ -97,19 +97,9 @@ class BPATCH_DLL_EXPORT BPatch_edge : public BPatch_eventLock{
 
     BPatch_flowGraph *flowGraph;
 
-    // conditional jumps create two edges, the taken edge and the
-    // nottaken (fallthrough) edge. these edges point to each other
-    // through this conditionalBuddy pointer
-    BPatch_edge *conditionalBuddy;
-
     BPatch_point *point;
-    void *instAddr;
-
-    const unsigned char *relocationPointer;
 
     BPatch_point *getPoint();
-
-    unsigned long addrInFunc;
     
  private:
 
