@@ -65,6 +65,7 @@
 #include "baseTramp.h"
 #include "miniTramp.h"
 #include "InstrucIter.h"
+#include "BPatch_edge.h"
 
 /*
  * Private constructor, insn
