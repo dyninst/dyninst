@@ -49,7 +49,7 @@
 #include "BPatch_sourceBlock.h" 
 #include "BPatch_instruction.h"
 #include "BPatch_eventLock.h"
-#include "BPatch_edge.h"
+//#include "BPatch_edge.h"
 
 class image;
 class int_function;
