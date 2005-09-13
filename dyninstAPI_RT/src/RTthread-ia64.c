@@ -75,7 +75,3 @@ int tc_lock_lock(tc_lock_t *lock)
    return 0;
 } /* end tc_lock_lock() */
 
-void DYNINST_initialize_index_list()
-{
-}
-

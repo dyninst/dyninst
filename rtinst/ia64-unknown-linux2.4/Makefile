@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2005/08/20 00:56:20 tlmiller Exp $
+# $Id: Makefile,v 1.7 2005/09/13 00:23:15 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -21,18 +21,20 @@ CFLAGS          += -I. -I../..
 
 VPATH			= ../src
 
-SRCS			+= 	../src/RTfirst.c \
-					../src/RTetc-posix.c \
+SRCS			+= ../src/RTetc-posix.c \
 					../src/RTetc-linux.c \
 					../src/RThwtimer-linux.c \
 					../src/RTrexec.c \
-					../src/RTpapi.c
-					
+					../src/RTinst.c \
+					../src/RTmpi.c \
+					../src/RTthread.c \
+					../src/RTthread-timer.c
+
 ifdef USES_LIBHRTIME
 	CFLAGS		+= -I$(HRTIME_INCDIR) -DHRTIME
 	LIBS		+= -L$(HRTIME_LIBDIR) $(HRTIME_LIB)
 endif
-                                                                                
+
 # enable debug/trace messages from library
 # CFLAGS			+= -DSHM_SAMPLING_DEBUG
 # CFLAGS			+= -DDEBUG_PRINT_RT

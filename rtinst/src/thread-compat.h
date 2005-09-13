@@ -46,7 +46,7 @@
 #ifndef _THREAD_COMPAT_
 #define _THREAD_COMPAT
 
-#if defined(i386_unknown_linux2_0)
+#if defined(os_linux)
 #include <syscall.h>
 #endif
 
@@ -67,7 +67,7 @@ typedef void                              dyninst_sema_t;
 #define P_thread_setspecific(key, val)    pthread_setspecific(key,val)
 #define P_thread_key_create(key,dest)     pthread_key_create(key,dest)
 #define P_thread_self()                   pthread_self()
-#if defined(i386_unknown_linux2_0)
+#if defined(os_linux)
 #define P_lwp_self()                      syscall(SYS_gettid)
 #elif defined(rs6000_ibm_aix4_1)
 #define P_lwp_self()                      thread_self()
