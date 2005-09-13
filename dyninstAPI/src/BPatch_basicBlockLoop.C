@@ -47,6 +47,8 @@
 #include "common/h/std_namesp.h"
 #include "BPatch_basicBlockLoop.h"
 
+#include "BPatch_edge.h"
+
 //constructors
 //internal use only
 
