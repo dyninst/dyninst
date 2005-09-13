@@ -48,12 +48,13 @@
 #include "BPatch_basicBlock.h"
 #include "BPatch_basicBlockLoop.h"
 #include "BPatch_eventLock.h"
-#include "BPatch_edge.h"
 #include "BPatch_loopTreeNode.h"
 
 class int_function;
 class process;
 class pdstring;
+
+class BPatch_edge;
 
 typedef BPatch_basicBlockLoop BPatch_loop;
 
