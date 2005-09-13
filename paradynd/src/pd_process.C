@@ -823,7 +823,7 @@ bool pd_process::runParadynInit(load_cause_t ldcause)
    }    
    Address daemonVirtTimers = (Address) shmMetaData->getVirtualTimers();
    Address virtTimers = getSharedMemMgr()->daemonToApplic(daemonVirtTimers);
-   BPatch_constExpr timers_param(virtTimers);
+   BPatch_constExpr timers_param((void *) virtTimers);
    args.push_back(&timers_param);
 
    //Argument 4 is the Observed cost
@@ -2080,10 +2080,13 @@ void pd_process::pdDeadThread(BPatch_process *proc, BPatch_thread *thr)
       if (pdproc->get_dyn_process() == proc) break;
       pdproc = NULL;
    }
-   assert(pdproc);
+   if (!pdproc)
+      return;
 
    pd_thread *pdthr = pdproc->findThread(thr->getTid());
-   assert(pdthr);
+   if (!pdthr)
+      return;
+
    pdproc->removeThread(pdthr);
 
    delete pdthr;
