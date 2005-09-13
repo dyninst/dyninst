@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.11 2005/09/09 15:57:02 bernat Exp $
+// $Id: multiTramp.C,v 1.12 2005/09/13 21:33:09 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -899,6 +899,9 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
         // We set this = true before we call generateBranchToTramp
         generated_ = true;
         if (!generateBranchToTramp(jumpBuf_)) {
+            // This failing is serious. For little things like "we need to
+            // use a trap", return true but set branchSize > instSize...
+            // TODO: clean me up :)
             invalidateCode();
             return false;
         }
@@ -1076,7 +1079,9 @@ Address multiTramp::instToUninstAddr(Address addr) {
         baseTrampInstance *bti = dynamic_cast<baseTrampInstance *>(obj);
         trampEnd *end = dynamic_cast<trampEnd *>(obj);
 
-        if (insn && addr == insn->relocAddr())
+        if (insn && 
+            (addr >= insn->relocAddr()) &&
+            (addr < insn->relocAddr() + insn->get_size_cr()))
             return insn->origAddr;
         if (bti && bti->isInInstance(addr)) {
             // If we're pre for an insn, return that;
@@ -1823,7 +1828,9 @@ bool multiTramp::catchupRequired(Address pc, miniTramp *newMT,
         trampEnd *end = dynamic_cast<trampEnd *>(obj);
 
         // Check to see if we're at the instPoint
-        if (insn && pc == insn->relocAddr()) {
+        if (insn && 
+            (pc >= insn->relocAddr()) &&
+            (pc < insn->relocAddr() + insn->get_size_cr())) {
             assert(pcObj == NULL);
             pcObj = insn;
         }
@@ -1943,6 +1950,8 @@ bool multiTramp::generateTrapToTramp(codeGen &gen) {
     unsigned start = gen.used();
     instruction::generateTrap(gen);
     branchSize_ = gen.used() - start;
+
+    usedTrap_ = true;
 
     return true;
 }
