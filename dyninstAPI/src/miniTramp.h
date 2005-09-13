@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.h,v 1.4 2005/08/25 22:45:48 bernat Exp $
+// $Id: miniTramp.h,v 1.5 2005/09/13 21:33:08 bernat Exp $
 
 #ifndef MINI_TRAMP_H
 #define MINI_TRAMP_H
@@ -196,7 +196,12 @@ class miniTramp {
   // And the instPoint we belong to.
   instPoint *instP;
 
-  process *proc() const;
+  // instPs can go away... keep a local process pointer to let us
+  // use it in the future.
+
+  process *proc_;
+
+  process *proc() const { return proc_; }
 
   void deleteMTI(miniTrampInstance *);
 
