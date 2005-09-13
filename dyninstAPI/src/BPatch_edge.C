@@ -49,6 +49,7 @@
 #include "BPatch_basicBlock.h"
 #include "instPoint.h"
 #include "process.h"
+#include "InstrucIter.h"
 
 pdstring 
 edge_type_string(BPatch_edgeType t)
@@ -63,43 +64,29 @@ edge_type_string(BPatch_edgeType t)
     return ts;
 }
 
-
-#if defined(arch_x86) || defined(arch_x86_64)
 BPatch_edgeType 
 BPatch_edge::getType()
 {
-    unsigned itype;
-
-    get_instruction(relocationPointer, itype);
-
-    // XXX indirect jumps not handled  (itype & INDIR)
-
-    if ((itype & IS_JUMP) || (itype & IS_JCC)) 
-        if (itype & IS_JCC) 
-            if (source->getEndAddress() == target->getStartAddress()) 
-                return CondJumpNottaken;
-            else 
-                return CondJumpTaken;
+    InstrucIter sourceIter(source);
+    sourceIter.setCurrentAddress(source->getLastInsnAddress());
+    
+    if (sourceIter.isACondBranchInstruction()) {
+        if (source->getEndAddress() == target->getStartAddress()) 
+            return CondJumpNottaken;
         else 
-            return UncondJump;
+            return CondJumpTaken;
+    }
+    else if (sourceIter.isAJumpInstruction())
+        return UncondJump;
     else 
         return NonJump;
 }
-#else
-//XXX loop port
-BPatch_edgeType
-BPatch_edge::getType()
-{
-    return NonJump;
-}
-#endif
 
 
 void BPatch_edge::BPatch_edgeInt(BPatch_basicBlock *s, 
-                         BPatch_basicBlock *t, 
-                         BPatch_flowGraph *fg,
-                         const unsigned char *rp)
-
+                                 BPatch_basicBlock *t, 
+                                 BPatch_flowGraph *fg)
+    
 {
     assert(s != NULL);
     assert(t != NULL);
@@ -107,12 +94,9 @@ void BPatch_edge::BPatch_edgeInt(BPatch_basicBlock *s,
     source = s;
     target = t;
     flowGraph = fg;
-    relocationPointer = rp;
     // point is set when this edge is instrumented. instAddr is set
     // when either this edge or its conditional buddy is instrumented
     point = NULL;    
-    instAddr = NULL; 
-    conditionalBuddy = NULL;
 
     type = getType();
 }
