@@ -52,6 +52,8 @@
 #include "common/h/Pair.h"
 #include "common/h/String.h"
 
+#include "BPatch_edge.h"
+
 #include "util.h"
 #include "process.h"
 #include "symtab.h"
@@ -989,67 +991,67 @@ bool BPatch_flowGraph::createBasicBlocks()
 // and ending line numbers in the source block for the basic block.
 
 bool BPatch_flowGraph::createSourceBlocksInt() {
-	if( isSourceBlockInfoReady ) { return true; }
+    if( isSourceBlockInfoReady ) { return true; }
+    
+    /* Iterate over every basic block, looking for the lines corresponding to the
+       addresses it contains. */
+    BPatch_basicBlock ** elements = new BPatch_basicBlock * [ allBlocks.size() ];
+    allBlocks.elements( elements );
+    
+    for( unsigned int i = 0; i < allBlocks.size(); i++ ) {
+        BPatch_basicBlock * currentBlock = elements[i];
 	
-	/* Iterate over every basic block, looking for the lines corresponding to the
-	   addresses it contains. */
-	BPatch_basicBlock ** elements = new BPatch_basicBlock * [ allBlocks.size() ];
-	allBlocks.elements( elements );
-	
-	for( unsigned int i = 0; i < allBlocks.size(); i++ ) {
-		BPatch_basicBlock * currentBlock = elements[i];
-	
-		std::vector< LineInformation::LineNoTuple > lines;
-		InstrucIter insnIterator( currentBlock );
-		
-		for( ; insnIterator.hasMore(); ++insnIterator ) {
-                    if( getBProcess()->getSourceLines( * insnIterator, lines ) ) {
-				// /* DEBUG */ fprintf( stderr, "%s[%d]: 0x%lx\n", __FILE__, __LINE__, * insnIterator );
-				}
-			}
-			
-		if( lines.size() != 0 ) {
-			if( ! currentBlock->sourceBlocks ) {
-				currentBlock->sourceBlocks = new BPatch_Vector< BPatch_sourceBlock * >();
-				}
-				
-			BPatch_Set< unsigned short > lineNos;
-			const char * currentSourceFile = lines[0].first;
-			for( unsigned int j = 0; j < lines.size(); j++ ) {
-				if( strcmp( currentSourceFile, lines[j].first ) == 0 ) {
-					lineNos.insert( lines[j].second );
-					continue;
-					}
-					
-				// /* DEBUG */ fprintf( stderr, "%s[%d]: Inserting %s:", __FILE__, __LINE__, currentSourceFile );
-				// /* DEBUG */ BPatch_Set< unsigned short >::iterator iter = lineNos.begin();
-				// /* DEBUG */ for( ; iter != lineNos.end(); iter++ ) { fprintf( stderr, " %d", * iter ); }
-				// /* DEBUG */ fprintf( stderr, "\n" );
-				BPatch_sourceBlock * sourceBlock = new BPatch_sourceBlock( currentSourceFile, lineNos );
-				currentBlock->sourceBlocks->push_back( sourceBlock );
-				
-				/* Wonder why there isn't a clear().  (For that matter, why there isn't a const_iterator
-				   or a prefix increment operator for the iterator.) */
-				lineNos = BPatch_Set< unsigned short >();
-				currentSourceFile = lines[j].first;
-				lineNos.insert( lines[j].second );
-				}
-			if( lineNos.size() != 0 ) {
-				// /* DEBUG */ fprintf( stderr, "%s[%d]: Inserting %s:", __FILE__, __LINE__, currentSourceFile );
-				// /* DEBUG */ BPatch_Set< unsigned short >::iterator iter = lineNos.begin();
-				// /* DEBUG */ for( ; iter != lineNos.end(); iter++ ) { fprintf( stderr, " %d", * iter ); }
-				// /* DEBUG */ fprintf( stderr, "\n" );
-				
-				BPatch_sourceBlock * sourceBlock = new BPatch_sourceBlock( currentSourceFile, lineNos );
-				currentBlock->sourceBlocks->push_back( sourceBlock );
-				}				
-			
-			} /* end if we found anything */
-		} /* end iteration over all basic blocks */
-		
-	delete elements;
-	return true;
-	} /* end createSourceBlocks() */
+        std::vector< LineInformation::LineNoTuple > lines;
+        InstrucIter insnIterator( currentBlock );
+        
+        for( ; insnIterator.hasMore(); ++insnIterator ) {
+            if( getBProcess()->getSourceLines( * insnIterator, lines ) ) {
+                // /* DEBUG */ fprintf( stderr, "%s[%d]: 0x%lx\n", __FILE__, __LINE__, * insnIterator );
+            }
+        }
+        
+        if( lines.size() != 0 ) {
+            if( ! currentBlock->sourceBlocks ) {
+                currentBlock->sourceBlocks = new BPatch_Vector< BPatch_sourceBlock * >();
+            }
+            
+            BPatch_Set< unsigned short > lineNos;
+            const char * currentSourceFile = lines[0].first;
+            for( unsigned int j = 0; j < lines.size(); j++ ) {
+                if( strcmp( currentSourceFile, lines[j].first ) == 0 ) {
+                    lineNos.insert( lines[j].second );
+                    continue;
+                }
+                
+                // /* DEBUG */ fprintf( stderr, "%s[%d]: Inserting %s:", __FILE__, __LINE__, currentSourceFile );
+                // /* DEBUG */ BPatch_Set< unsigned short >::iterator iter = lineNos.begin();
+                // /* DEBUG */ for( ; iter != lineNos.end(); iter++ ) { fprintf( stderr, " %d", * iter ); }
+                // /* DEBUG */ fprintf( stderr, "\n" );
+                BPatch_sourceBlock * sourceBlock = new BPatch_sourceBlock( currentSourceFile, lineNos );
+                currentBlock->sourceBlocks->push_back( sourceBlock );
+                
+                /* Wonder why there isn't a clear().  (For that matter, why there isn't a const_iterator
+                   or a prefix increment operator for the iterator.) */
+                lineNos = BPatch_Set< unsigned short >();
+                currentSourceFile = lines[j].first;
+                lineNos.insert( lines[j].second );
+            }
+            if( lineNos.size() != 0 ) {
+                // /* DEBUG */ fprintf( stderr, "%s[%d]: Inserting %s:", __FILE__, __LINE__, currentSourceFile );
+                // /* DEBUG */ BPatch_Set< unsigned short >::iterator iter = lineNos.begin();
+                // /* DEBUG */ for( ; iter != lineNos.end(); iter++ ) { fprintf( stderr, " %d", * iter ); }
+                // /* DEBUG */ fprintf( stderr, "\n" );
+                
+                BPatch_sourceBlock * sourceBlock = new BPatch_sourceBlock( currentSourceFile, lineNos );
+                currentBlock->sourceBlocks->push_back( sourceBlock );
+            }				
+            
+        } /* end if we found anything */
+    } /* end iteration over all basic blocks */
+    
+    delete [] elements;
+    return true;
+} /* end createSourceBlocks() */
 
 /* class that calculates the dominators of a flow graph using
    tarjan's algorithms with results an almost linear complexity
@@ -1481,20 +1483,16 @@ void BPatch_flowGraph::createEdges()
         unsigned numTargs = source->targets.size();
 
         // create edges
-        const unsigned char *relocp;
 
         Address lastinsnaddr = source->getLastInsnAddress();
 	if (lastinsnaddr == 0) {
 	  fprintf(stderr, "ERROR: 0 addr for block end!\n");
 	  continue;
 	}
-	else {
-            relocp = (unsigned char *)(ll_proc()->getPtrToInstruction((unsigned long)lastinsnaddr));
-        }
 
         if (numTargs == 1) {
             BPatch_edge *edge;
-            edge = new BPatch_edge(source, targs[0], this, relocp);
+            edge = new BPatch_edge(source, targs[0], this);
 
             targs[0]->incomingEdges += edge;
             source->outgoingEdges += edge;
@@ -1509,10 +1507,10 @@ void BPatch_flowGraph::createEdges()
 
             // conditional jumps create two edges from a block
             BPatch_edge *edge0 = 
-                new BPatch_edge(source, targs[0], this, relocp); 
+                new BPatch_edge(source, targs[0], this); 
 
             BPatch_edge *edge1 = 
-                new BPatch_edge(source, targs[1], this, relocp); 
+                new BPatch_edge(source, targs[1], this); 
 
 //             fprintf(stderr, "t2 %2d %2d\n",source->blockNo(),
 //                     targs[0]->blockNo());
@@ -1524,9 +1522,6 @@ void BPatch_flowGraph::createEdges()
 
             targs[0]->incomingEdges += edge0;
             targs[1]->incomingEdges += edge1;
-
-            edge0->conditionalBuddy = edge1;
-            edge1->conditionalBuddy = edge0;
 
             if (targs[0]->dominates(source))
                 (*backEdges) += edge0;
