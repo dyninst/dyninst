@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.h,v 1.5 2005/09/13 21:33:08 bernat Exp $
+// $Id: miniTramp.h,v 1.6 2005/09/14 21:21:53 bernat Exp $
 
 #ifndef MINI_TRAMP_H
 #define MINI_TRAMP_H
@@ -144,13 +144,6 @@ class miniTramp {
   miniTramp(const miniTramp *parMini, baseTramp *childT, process *proc);
   
   ~miniTramp();
-
-  // From base tramp to mini tramp (or the reverse)
-  // Platform specific
-  static unsigned interJumpSize();
-  // Between mini tramps
-  static unsigned intraJumpSize();
-
 
   // Catchup...
 

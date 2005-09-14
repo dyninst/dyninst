@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.9 2005/09/14 16:24:58 bernat Exp $
+// $Id: miniTramp.C,v 1.10 2005/09/14 21:21:52 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -215,7 +215,7 @@ unsigned miniTrampInstance::maxSizeRequired() {
 
     if (mini->baseT->firstMini == mini) {
         inst_printf("Size request for first mini\n");
-        return miniTramp::interJumpSize();
+        return instruction::maxJumpSize();
     }
     return 0;
 }
@@ -240,12 +240,12 @@ bool miniTrampInstance::generateCode(codeGen &gen,
     // Are we first?
     if (mini->baseT->firstMini == mini) {
         if (!generated_) { 
-            gen.fill(miniTramp::interJumpSize(),
+            gen.fill(instruction::maxJumpSize(),
                      codeGen::cgNOP);
-            mini->baseT->instSize = miniTramp::interJumpSize();
+            mini->baseT->instSize = instruction::maxJumpSize();
         }
         else {
-            gen.moveIndex(miniTramp::interJumpSize());
+            gen.moveIndex(instruction::maxJumpSize());
         }
     }
     // And make-y the code
@@ -418,7 +418,7 @@ bool miniTrampInstance::linkCode() {
         generateAndWriteBranch(mini->proc(), 
                                trampBase + mini->returnOffset,
                                nextI->trampBase,
-                               miniTramp::interJumpSize());
+                               instruction::maxJumpSize());
     }
     else {
         // Last one; go to the base tramp
@@ -433,7 +433,7 @@ bool miniTrampInstance::linkCode() {
         generateAndWriteBranch(mini->proc(),
                                (trampBase + mini->returnOffset),
                                baseTI->miniTrampReturnAddr(),
-                               miniTramp::interJumpSize());
+                               instruction::maxJumpSize());
 #endif
     }
 
