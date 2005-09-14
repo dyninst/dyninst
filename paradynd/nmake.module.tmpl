@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.50 2005/09/01 22:17:40 bernat Exp $
+# $Id: nmake.module.tmpl,v 1.51 2005/09/14 21:21:30 bernat Exp $
 #
 
 TARGET	      = paradynd.exe
@@ -81,6 +81,7 @@ OBJS      = $(OBJS) ast.obj \
 		debugger.obj \
 		dynrpc.obj \
 		init.obj \
+                arch.obj \
 		inst.obj \
 		instPoint.obj \
 		main.obj \
