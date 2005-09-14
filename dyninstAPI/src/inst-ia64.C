@@ -3838,19 +3838,7 @@ bool multiTramp::generateBranchToTramp(codeGen &gen) {
 unsigned relocatedInstruction::maxSizeRequired() {
 	// This can be pruned to be a better estimate.
 	return 48; // bundles. I think. Might be 3.
-	}
-
-unsigned multiTramp::maxSizeRequired() {
-	return 16; // bundle
-	}
-
-unsigned miniTramp::interJumpSize() {
-	return 16; // bundle
-	}
-
-unsigned trampEnd::maxSizeRequired() {
-	return 32; // bundles
-	}
+}
 
 bool baseTrampInstance::finalizeGuardBranch( codeGen & gen, int displacement ) {
 	/* Displacement is in bytes. */
@@ -3858,9 +3846,9 @@ bool baseTrampInstance::finalizeGuardBranch( codeGen & gen, int displacement ) {
 								instruction( NOP_M ),
 								generateLongBranchTo( displacement, GUARD_PREDICATE_TRUE ));
 	guardOnBundle3.generate( gen );
-
+	
 	return true;
-	}
+}
 
 bool baseTramp::generateSaves(codeGen &gen, registerSpace *rs) {
 	 // Unwind information starts

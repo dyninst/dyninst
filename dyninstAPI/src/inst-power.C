@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.231 2005/09/09 18:06:43 legendre Exp $
+ * $Id: inst-power.C,v 1.232 2005/09/14 21:21:46 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -914,51 +914,6 @@ unsigned restoreSPRegisters(codeGen &gen,
 }
 
 
-/* A quick model for the "we're done, branch back/ILL" tramp end */
-
-
-unsigned trampEnd::maxSizeRequired() {
-    // Return branch, illegal.
-    return (2*instruction::size());
-}
-
-/* Generate a jump to a base tramp. Return the size of the instruction
-   generated at the instrumentation point. */
-
-bool multiTramp::generateBranchToTramp(codeGen &gen)
-{
-    /* There are three ways to get to the base tramp:
-       1. Ordinary jump instruction.
-       2. Using a short jump to hit nearby space, and long-jumping to the multiTramp. 
-       3. Trap instruction.
-       
-       We currently support #1.
-    */
-    
-    assert(instAddr_);
-    assert(trampAddr_);
-
-    unsigned origUsed = gen.used();
-    instruction::generateBranch(gen,
-                                instAddr_,
-                                trampAddr_);
-    branchSize_ = gen.used() - origUsed;
-
-    // We play a cute trick with the rest of the overwritten space: fill it with
-    // traps. If one is hit, we can transfer the PC into the multiTramp without
-    // further problems. Cute, eh?
-    while (gen.used() < instSize()) {
-        Address origAddr = gen.currAddr(instAddr_);
-        Address addrInMulti = uninstToInstAddr(origAddr);
-
-        proc()->trampTrapMapping[origAddr] = addrInMulti;
-        instruction::generateTrap(gen);
-    }
-
-    return true;
-}
-
-
 bool baseTrampInstance::finalizeGuardBranch(codeGen &gen,
                                             int disp) {
     // Assumes that preCode is generated
@@ -1135,6 +1090,11 @@ bool baseTramp::generateGuardPostCode(codeGen &gen, codeBufIndex_t &index,
                                       registerSpace *) {
     assert(guarded());
 
+    Address trampGuardFlagAddr = proc()->trampGuardBase();
+    if (!trampGuardFlagAddr) {
+        return false;
+    }
+
     // Load addr; modify; store.
     instruction::generateImm(gen, Lop, REG_GUARD_ADDR, 1, STK_GUARD);
     
@@ -1195,7 +1155,7 @@ unsigned generateAndWriteBranch(process *proc,
                                 Address fromAddr,
                                 Address newAddr,
                                 unsigned fillSize) {
-    if (fillSize == 0) fillSize = instruction::size();
+    if (fillSize == 0) fillSize = instruction::maxJumpSize();
 
     codeGen gen(fillSize);
     instruction::generateBranch(gen,
@@ -1206,18 +1166,6 @@ unsigned generateAndWriteBranch(process *proc,
 
     proc->writeTextSpace((void *)fromAddr, gen.used(), gen.start_ptr());
     return gen.used();
-}
-
-unsigned miniTramp::interJumpSize() {
-    // Multi-insn jump
-    
-    return (4*instruction::size());
-}
-
-unsigned multiTramp::maxSizeRequired() {
-    // Could investigate multi-insn jumps;
-    // for now, relocate
-    return instruction::size();
 }
 
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
@@ -1731,31 +1679,8 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
         return(0);              // let's hope this is expected!
     }        
     case trampTrailer: {
-	/*
-          for(u_int i = 0; i < regSpace->getRegisterCount(); i++) {
-	  registerSlot *reg = regSpace->getRegSlot(i);
-	  if (reg->beenClobbered) {
-          restoreRegister(insn, reg->number, TRAMP_GPR_OFFSET);
-          regSpace->unClobberRegister(reg->number);
-	  }
-          }
-	*/
-	
-        /*
-	// restore the registers we have saved
-	for (unsigned i = 0; i < regSpace->getRegisterCount(); i++) {
-	    registerSlot *reg = regSpace->getRegSlot(i);
-	    if (reg->mustRestore) {
-		// cleanup register space for next trampoline.
-		reg->needsSaving = true;
-		reg->mustRestore = false;
-		// actually restore the register.
-		restoreRegister(insn,base,reg->number,8);
-	    }
-	}
-        */
         retval = gen.getIndex();
-	instruction::generateBranch(gen, dest);
+        gen.fill(instruction::maxJumpSize(), codeGen::cgNOP);
         instruction::generateIllegal(gen);
         break;
       }
@@ -2612,7 +2537,7 @@ bool process::replaceFunctionCall(instPoint *point,
       if (func == NULL) {	// Replace with a NOOP
           instruction::generateNOOP(gen);
       } else {			// Replace with a new call instruction
-          instruction::generateBranch(gen, pointAddr, func->getAddress(), true);
+          instruction::generateCall(gen, pointAddr, func->getAddress());
       }
       
       // Before we replace, track the code.

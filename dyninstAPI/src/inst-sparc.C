@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.175 2005/09/09 18:06:44 legendre Exp $
+// $Id: inst-sparc.C,v 1.176 2005/09/14 21:21:47 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -221,64 +221,6 @@ void initTramps(bool is_multithreaded)
     regSpace = new registerSpace(dead_reg_count, deadList, 0, NULL,
                                  is_multithreaded);
     assert(regSpace);
-}
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-/*
- * change the insn at addr to be a branch to newAddr.
- *   Used to add multiple tramps to a point.
- */
-unsigned generateAndWriteBranch(process *proc, Address fromAddr, Address newAddr, unsigned fillSize)
-{
-    // Default
-    if (fillSize == 0) fillSize = 3*instruction::size();
-    int disp = (newAddr - fromAddr);
-    
-    codeGen gen(fillSize);
-    if (instruction::offsetWithinRangeOfBranchInsn(disp)) {
-        instruction::generateBranch(gen,
-                                    fromAddr,
-                                    newAddr);
-        instruction::generateNOOP(gen);
-    }
-    else {
-        instruction::generateImm(gen, SAVEop3, 14, -112, 14);
-        // We're one insn farther along than we should be -- so modify
-        // fromAddr
-        instruction::generateCall(gen, fromAddr + instruction::size(), newAddr);
-        instruction::generateSimple(gen, RESTOREop3, 0, 0, 0);
-    }
-
-    //gen.fillRemaining(codeGen::cgNOP);
-
-    proc->writeTextSpace((caddr_t)fromAddr, gen.used(), gen.start_ptr());
-    return gen.used();
-}
-/**
-	This function generates branch or call instruction from
-	fromAddr to the toAddr. If call inst is generated
-	no SAVE and RESTORE is used.
-**/
-
-/****************************************************************************/
-
-void generateBranchOrCall(process *proc, Address fromAddr, Address newAddr)
-{
-    codeGen gen(3*instruction::size());
-    
-    int disp = newAddr-fromAddr;
-    if (instruction::offsetWithinRangeOfBranchInsn(disp)){
-    	instruction::generateBranch(gen, disp);
-    }
-    else{
-        instruction::generateImm(gen, SAVEop3, 14, -112, 14);
-        instruction::generateCall(gen, fromAddr + instruction::size(), newAddr);
-        instruction::generateSimple(gen, RESTOREop3, 0, 0, 0);
-    }
-    proc->writeTextSpace((void *)fromAddr, gen.used(), gen.start_ptr());
 }
 
 /****************************************************************************/
@@ -866,101 +808,6 @@ unsigned relocatedInstruction::maxSizeRequired() {
 /****************************************************************************/
 /****************************************************************************/
 
-// Should move...
-unsigned miniTramp::interJumpSize() {
-    return 3*instruction::size();
-}
-
-unsigned multiTramp::maxSizeRequired() {
-    // Call?
-
-    return 3*instruction::size();
-}
-
-/* Generate a jump to a base tramp. Return the size of the instruction
-   generated at the instrumentation point. */
-
-bool multiTramp::generateBranchToTramp(codeGen &gen)
-{
-    /* There are three ways to get to the base tramp:
-       1. Ordinary jump instruction.
-       2. Using a short jump to hit nearby space, and long-jumping to the multiTramp. 
-       3. Trap instruction.
-       
-       We currently support #1.
-    */
-    
-    assert(instAddr_);
-    assert(trampAddr_);
-    unsigned origUsed = gen.used();
-    int dist = (trampAddr_ - instAddr_);
-    if (instruction::offsetWithinRangeOfBranchInsn(dist)) {
-        // Annulled branch
-        instruction::generateBranch(gen, 
-                                    instAddr_,
-                                    trampAddr_);
-        //instruction::generateNOOP(buffer, offset);
-    }
-    else {
-        // We use a save; call; restore triplet.
-        // Problem is, if o7 is live, this doesn't work.
-        if (func()->is_o7_live())
-            return false;
-        if (instSize_ < 3*sizeof(instruction))
-            return false;
-
-        instruction::generateImm(gen, SAVEop3, 14, -112, 14);
-        instruction::generateCall(gen,
-                                  instAddr_ + instruction::size(), 
-                                  trampAddr_);
-        instruction::generateSimple(gen, RESTOREop3, 0, 0, 0);
-    }
-    // Set if we ever trap-fill
-    //branchSize_ = gen.used() - origUsed;
-
-    gen.fillRemaining(codeGen::cgNOP);
-    
-    return true;
-}
-
-/* A quick model for the "we're done, branch back/ILL" tramp end */
-
-unsigned trampEnd::maxSizeRequired() {
-    return 4*instruction::size();
-}
-
-bool trampEnd::generateCode(codeGen &gen,
-                            Address baseInMutatee) {
-    if (generated_) {
-        gen.moveIndex(size_);
-        return true;
-    }
-    
-    unsigned origOffset = gen.used();
-    
-
-    if (target_) {
-        if (instruction::offsetWithinRangeOfBranchInsn(target_ - gen.currAddr(baseInMutatee))) {
-            instruction::generateBranch(gen,
-                                        gen.currAddr(baseInMutatee),
-                                        target_);
-        }
-        else {
-            instruction::generateImm(gen, SAVEop3, 14, -112, 14);
-            instruction::generateCall(gen, gen.currAddr(baseInMutatee), target_);
-            instruction::generateSimple(gen, RESTOREop3, 0, 0, 0);
-        }
-    }
-    
-    instruction::generateIllegal(gen);
-    
-    size_ = (gen.used() - origOffset);
-    generated_ = true;
-    
-    return true;
-}
-
-
 // Get the appropriate thread index
 
 bool baseTramp::generateMTCode(codeGen &gen,
@@ -1361,12 +1208,11 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
         return(0);      // let's hope this is expected!
         }
     case trampTrailer: 
-        // dest is in words of offset and generateBranchInsn is bytes offset
+	 // generate the template for a jump -- actual jump is generated
+	 // elsewhere
         retval = gen.getIndex();
-	instruction::generateBranch(gen, dest);
-        instruction::generateNOOP(gen);
-        // 'course, it's an annulled branch... so we don't really need the noop.
-        // But hey.
+        gen.fill(instruction::maxJumpSize(), codeGen::cgNOP);
+        instruction::generateIllegal(gen);
         break;
     default:
         abort();        // unexpected op for this emit!

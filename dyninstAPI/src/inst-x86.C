@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.218 2005/09/09 19:19:48 gquinn Exp $
+ * $Id: inst-x86.C,v 1.219 2005/09/14 21:21:48 bernat Exp $
  */
 #include <iomanip>
 
@@ -97,10 +97,6 @@ void BaseTrampTrapHandler(int); //siginfo_t*, ucontext_t*);
 
 /* A quick model for the "we're done, branch back/ILL" tramp end */
 
-unsigned trampEnd::maxSizeRequired() {
-    // +2 for illegal insn
-    return JUMP_REL32_SZ + 2;
-}
 
 /*
  * Worst-case scenario for how much room it will take to relocate
@@ -161,86 +157,6 @@ void initTramps(bool is_multithreaded)
     regSpace = regSpace32;
 }
 
-
-unsigned generateAndWriteBranch(process *proc, 
-                                Address fromAddr, 
-                                Address newAddr,
-                                unsigned fillSize)
-{
-    if (fillSize == 0) fillSize = BASE_TO_MINI_JMP_SIZE;
-    codeGen gen(fillSize);
-
-#if defined(arch_x86_64)
-    long disp = newAddr - (fromAddr + JUMP_REL32_SZ);
-    if (disp > I32_MAX || disp < I32_MIN) {
-
-	// need to use an indirect jmp
-	emitMovImmToReg64(REGNUM_RAX, newAddr, true, gen);
-	emitSimpleInsn(0xff, gen); // group 5
-	emitSimpleInsn(0xe0, gen); // mod = 11, reg = 4 (call Ev), r/m = 0 (RAX)
-    }
-    else {
-	// can use a direct jump
-	instruction::generateBranch(gen, fromAddr, newAddr);
-	gen.fillRemaining(codeGen::cgNOP);
-    }
-#else
-    // we can always use a direct jump on x86
-    instruction::generateBranch(gen, fromAddr, newAddr);
-    gen.fillRemaining(codeGen::cgNOP);
-#endif
-    
-    proc->writeTextSpace((caddr_t)fromAddr, gen.used(), gen.start_ptr());
-    return gen.used();
-}
-
-// Should move...
-unsigned miniTramp::interJumpSize() {
-
-    return BASE_TO_MINI_JMP_SIZE;
-}
-
-unsigned multiTramp::maxSizeRequired() {
-    // A jump to the multiTramp, 
-    // todo: in-line :)
-
-    return JUMP_REL32_SZ;
-}
-
-/* Generate a jump to a base tramp. Return the size of the instruction
-   generated at the instrumentation point. */
-
-// insn: buffer to generate code
-
-bool multiTramp::generateBranchToTramp(codeGen &gen)
-{
-    /* There are three ways to get to the base tramp:
-       1. Ordinary 5-byte jump instruction.
-       2. Using a short jump to hit nearby space, and long-jumping to the multiTramp. 
-       3. Trap instruction.
-       
-       We currently support #s 1 and 3.
-       This function assumes unlimited space; we check if there's enough room
-       later.
-    */
-    
-    assert(instAddr_);
-    assert(trampAddr_);
-    unsigned origUsed = gen.used();
-
-    // TODO: we can use shorter branches, ya know.
-    if (instSize_ < JUMP_REL32_SZ) {
-        branchSize_ = JUMP_REL32_SZ;
-        return true;
-    }
-
-    /* Ordinary 5-byte jump */
-    instruction::generateBranch(gen, instAddr_, trampAddr_);
-
-    branchSize_ = gen.used() - origUsed;
-
-    return true;
-}
 
 bool baseTramp::generateSaves(codeGen& gen, registerSpace*) {
 
@@ -966,10 +882,12 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
 	 break;
      }
      case trampTrailer: {
-	 // generate the template for a jump -- actual jump is generated
-	 // elsewhere
-	 retval = gen.getIndex();
-	 instruction::generateNOOP(gen, BASE_TO_MINI_JMP_SIZE);
+         // generate the template for a jump -- actual jump is generated
+         // elsewhere
+         retval = gen.getIndex();
+         gen.fill(instruction::maxJumpSize(), codeGen::cgNOP);
+         instruction::generateIllegal(gen);
+         break;
      }
      case trampPreamble: {
 	 break;

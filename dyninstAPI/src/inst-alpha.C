@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.94 2005/08/25 22:45:34 bernat Exp $
+// $Id: inst-alpha.C,v 1.95 2005/09/14 21:21:44 bernat Exp $
 
 #include "common/h/headers.h"
 
@@ -177,14 +177,6 @@ unsigned relocatedInstruction::maxSizeRequired() {
   return size;
 }
 
-unsigned miniTramp::interJumpSize() {
-  return instruction::size();
-}
-
-unsigned multiTramp::maxSizeRequired() {
-  return instruction::size();
-}
-
 bool baseTramp::generateSaves(codeGen &gen,
                               registerSpace *) {
     // decrement stack by 16
@@ -271,40 +263,6 @@ bool baseTrampInstance::finalizeGuardBranch(codeGen &, int) {
   return true;
 }
 
-unsigned trampEnd::maxSizeRequired() {
-    // Return branch, illegal.
-    return (2*instruction::size());
-}
-
-/* Generate a jump to a base tramp. Return the size of the instruction
-   generated at the instrumentation point. */
-
-bool multiTramp::generateBranchToTramp(codeGen &gen)
-{
-    /* There are three ways to get to the base tramp:
-       1. Ordinary jump instruction.
-       2. Using a short jump to hit nearby space, and long-jumping to the multiTramp. 
-       3. Trap instruction.
-       
-       We currently support #1.
-    */
-    
-    assert(instAddr_);
-    assert(trampAddr_);
-
-    unsigned origUsed = gen.used();
-    instruction::generateBranch(gen,
-				instAddr_,
-				trampAddr_);
-    // Set if we trap-fill
-    // branchSize_ = gen.used() - origUsed;
-    
-
-    gen.fillRemaining(codeGen::cgNOP);
-
-    return true;
-}
-
 // Emit a func 64bit address for the call
 void callAbsolute(codeGen &gen, 
 		  Address funcAddr)
@@ -316,23 +274,6 @@ void callAbsolute(codeGen &gen,
   instruction::generateJump(gen, REG_GP, MD_JSR, REG_RA, remainder);
 }
  
-/*
- * change the insn at fromAddr to be a branch to newAddr.
- *   Used to add multiple tramps to a point.
- */
-unsigned generateAndWriteBranch(process *proc, 
-				Address fromAddr, 
-				Address newAddr,
-                                unsigned fillSize) {
-  if (fillSize == 0) fillSize = instruction::size();
-  codeGen gen(fillSize);
-
-  instruction::generateBranch(gen, fromAddr, newAddr);
-  gen.fillRemaining(codeGen::cgNOP);
-
-  proc->writeTextSpace((caddr_t)fromAddr, gen.used(), gen.start_ptr());
-  return gen.used();
-}
 
 registerSpace *createRegisterSpace()
 {
@@ -539,14 +480,12 @@ codeBufIndex_t emitA(opCode op, Register src1, Register /*src2*/, Register dest,
     break;
     }
   case trampTrailer: {
-    // dest is in words of offset and generateBranchInsn is bytes offset
-    assert(!dest);
-    //    unsigned words = generate_branch(insn, REG_ZERO, dest << 2, OP_BR);
-    retval = gen.getIndex();
-    instruction::generateBranch(gen, REG_ZERO, dest << 2, OP_BR);
-    instruction::generateIllegal(gen);
-    // return the offset of the branch instruction -- not the updated pc
-    break;
+      // generate the template for a jump -- actual jump is generated
+      // elsewhere
+      retval = gen.getIndex();
+      gen.fill(instruction::maxJumpSize(), codeGen::cgNOP);
+      instruction::generateIllegal(gen);
+      break;
     }
   case trampPreamble: {
     // Don't do this anymore; we update cost once in the base tramp.
