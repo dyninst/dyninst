@@ -574,7 +574,8 @@ class instruction {
     // And tell us how much space we'll need...
     static unsigned jumpSize(Address from, Address to);
     static unsigned jumpSize(int disp);
-  
+    static unsigned maxJumpSize();
+
   
   bool valid() const;
 

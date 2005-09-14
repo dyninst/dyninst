@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-alpha.C,v 1.4 2005/08/25 22:45:09 bernat Exp $
+// $Id: arch-alpha.C,v 1.5 2005/09/14 21:21:31 bernat Exp $
 
 #include "common/h/headers.h"
 #include "alpha.h"
@@ -199,6 +199,10 @@ unsigned instruction::jumpSize(int disp) {
     return instruction::size();
 }
 
+unsigned instruction::maxJumpSize() {
+    // TODO: full-range branch
+    return instruction::size();
+}
 
 // 
 // Set condition flag (a register)

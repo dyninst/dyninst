@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.3 2005/08/25 22:45:13 bernat Exp $
+ * $Id: arch-power.C,v 1.4 2005/09/14 21:21:34 bernat Exp $
  */
 
 #include "common/h/Types.h"
@@ -92,6 +92,10 @@ void instruction::generateBranch(codeGen &gen, int disp, bool link)
 void instruction::generateBranch(codeGen &gen, Address from, Address to, bool link) {
     int disp = (to - from);
     generateBranch(gen, disp, link);
+}
+
+void instruction::generateCall(codeGen &gen, Address from, Address to) {
+    generateBranch(gen, from, to, true);
 }
 
 
@@ -346,6 +350,12 @@ unsigned instruction::jumpSize(int disp) {
         fprintf(stderr, "Warning: AIX doesn't handle multi-word jumps!\n");
     }
     return instruction::size();
+}
+
+unsigned instruction::maxJumpSize() {
+    // TODO: some way to do a full-range branch
+    // For now, a BRL-jump'll do.
+    return 4*instruction::size();
 }
 
 bool instruction::generate(codeGen &gen,

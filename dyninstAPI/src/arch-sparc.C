@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-sparc.C,v 1.5 2005/09/01 22:18:09 bernat Exp $
+ * $Id: arch-sparc.C,v 1.6 2005/09/14 21:21:36 bernat Exp $
  */
 
 #include "common/h/Types.h"
@@ -142,23 +142,26 @@ void instruction::generateBranch(codeGen &gen, int jump_off)
 {
     instruction insn;
     
-    if (!offsetWithinRangeOfBranchInsn(jump_off)) {
-        char buffer[100];
-	sprintf(buffer, "a Branch too far; offset=%d\n", jump_off);
-	logLine(buffer);
-	//showErrorCallback(52, buffer);
-	assert(false && "a Branch too far");
-	return;
+    if (offsetWithinRangeOfBranchInsn(jump_off)) {
+        (*insn).raw = 0;
+        (*insn).branch.op = 0;
+        (*insn).branch.cond = BAcond;
+        (*insn).branch.op2 = BICCop2;
+        (*insn).branch.anneal = true;
+        (*insn).branch.disp22 = jump_off >> 2;
+        // logLine("ba,a %x\n", offset);
+        insn.generate(gen);
     }
-
-    (*insn).raw = 0;
-    (*insn).branch.op = 0;
-    (*insn).branch.cond = BAcond;
-    (*insn).branch.op2 = BICCop2;
-    (*insn).branch.anneal = true;
-    (*insn).branch.disp22 = jump_off >> 2;
-    // logLine("ba,a %x\n", offset);
-    insn.generate(gen);
+    else {
+        instruction::generateImm(gen, SAVEop3, 14, -112, 14);
+        jump_off -= instruction::size(); // To compensate for the saveOp
+        // Copied from generateCall...
+        (*insn).raw = 0;
+        (*insn).call.op = 01;
+        (*insn).call.disp30 = jump_off >> 2;
+        insn.generate(gen);
+        instruction::generateSimple(gen, RESTOREop3, 0, 0, 0);
+    }
 }
 
 void instruction::generateBranch(codeGen &gen, Address from, Address to)
@@ -167,7 +170,8 @@ void instruction::generateBranch(codeGen &gen, Address from, Address to)
     generateBranch(gen, disp);
 }
 
-void instruction::generateCall(codeGen &gen, Address fromAddr, 
+void instruction::generateCall(codeGen &gen, 
+                               Address fromAddr, 
                                Address toAddr)
 {
     instruction insn;
@@ -512,6 +516,11 @@ unsigned instruction::jumpSize(int disp) {
     }
 }
 
+unsigned instruction::maxJumpSize() {
+    // Save/call/restore triplet
+    return 3*instruction::size();
+}
+
 /****************************************************************************/
 
 /****************************************************************************/
@@ -631,7 +640,6 @@ bool instruction::generate(codeGen &gen,
 	    !instruction::offsetWithinRangeOfBranchInsn((int)newLongOffset)){
             inst_printf("Relocating branch; new offset %lld farther than branch range; replacing with call\n", newLongOffset);
             // Replace with a multi-branch series
-            fprintf(stderr, "Using call for long branch\n");
             instruction::generateImm(gen,
                                      SAVEop3,
                                      REG_SPTR,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.37 2005/08/25 22:45:16 bernat Exp $
+// $Id: arch-sparc.h,v 1.38 2005/09/14 21:21:37 bernat Exp $
 
 #if !defined(arch_sparc)
 #error "invalid architecture-os inclusion"
@@ -424,6 +424,7 @@ class instruction {
   // And tell us how much space we'll need...
   static unsigned jumpSize(Address from, Address to);
   static unsigned jumpSize(int disp);
+  static unsigned maxJumpSize();
 
 
   bool isInsnType(const unsigned mask,

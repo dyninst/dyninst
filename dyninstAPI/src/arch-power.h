@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.28 2005/08/25 22:45:14 bernat Exp $
+// $Id: arch-power.h,v 1.29 2005/09/14 21:21:35 bernat Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
@@ -583,7 +583,7 @@ class instruction {
     instruction *copy() const;
 
     void setInstruction(codeBuf_t *ptr, Address = 0);
-
+    
     
     // All of these write into a buffer
     static void generateTrap(codeGen &gen);
@@ -596,6 +596,10 @@ class instruction {
                                Address from,
                                Address to,
                                bool link = false);
+    static void generateCall(codeGen &gen,
+                             Address from,
+                             Address to);
+
     static void generateImm(codeGen &gen, int op,
                             Register rt, Register ra, int immd);
     static void generateLShift(codeGen &gen, Register rs,
@@ -625,59 +629,60 @@ class instruction {
     // And tell us how much space we'll need...
     static unsigned jumpSize(Address from, Address to);
     static unsigned jumpSize(int disp);
+    static unsigned maxJumpSize();
+
+    // return the type of the instruction
+    unsigned type() const;
     
-  // return the type of the instruction
-  unsigned type() const;
-
-  // return a pointer to the instruction
-  const unsigned char *ptr() const { return (const unsigned char *)&insn_; }
-
-  const unsigned int &raw() const { return insn_.raw; }
-  
-  const unsigned opcode() const;
-
-  // For external modification
-  instructUnion &operator* () { return insn_; }
-  const instructUnion &operator* () const { return insn_; }
-  
-  // Local version
-  bool isInsnType(const unsigned mask, const unsigned match) const { 
-      return ((insn_.raw & mask) == match);
-  }
-
-  Address getTarget(Address insnAddr) const;
-  
-  unsigned spaceToRelocate() const;
-  bool generate(codeGen &gen,
-                process *proc,
-                Address origAddr,
-                Address newAddr,
-                Address fallthroughOverride = 0,
-                Address targetOverride = 0);
-  
-
-/* -- CHECK !!!!!
- * catch small ints that are invalid instructions
- * opcode 0 is really reserved, not illegal (with the exception of all 0's).
- *
- * opcodes 1, 4-6, 56-57, 60-61 are illegal.
- *
- * opcodes 2, 30, 58, 62 are illegal in 32 bit implementations, but are
- *    defined in 64 bit implementations.
- *
- * opcodes 19, 30, 31, 59, 62, 63 contain extended op codes that are unused.
- */
-
-  bool valid() const { return insn_.iform.op > 0; }
-
-  bool isCall() const;
-
-  static bool isAligned(Address addr) {
-      return !(addr & 0x3);
-  }
-
-  bool isCondBranch() const;
-  bool isUncondBranch() const;
+    // return a pointer to the instruction
+    const unsigned char *ptr() const { return (const unsigned char *)&insn_; }
+    
+    const unsigned int &raw() const { return insn_.raw; }
+    
+    const unsigned opcode() const;
+    
+    // For external modification
+    instructUnion &operator* () { return insn_; }
+    const instructUnion &operator* () const { return insn_; }
+    
+    // Local version
+    bool isInsnType(const unsigned mask, const unsigned match) const { 
+        return ((insn_.raw & mask) == match);
+    }
+    
+    Address getTarget(Address insnAddr) const;
+    
+    unsigned spaceToRelocate() const;
+    bool generate(codeGen &gen,
+                  process *proc,
+                  Address origAddr,
+                  Address newAddr,
+                  Address fallthroughOverride = 0,
+                  Address targetOverride = 0);
+    
+    
+    /* -- CHECK !!!!!
+     * catch small ints that are invalid instructions
+     * opcode 0 is really reserved, not illegal (with the exception of all 0's).
+     *
+     * opcodes 1, 4-6, 56-57, 60-61 are illegal.
+     *
+     * opcodes 2, 30, 58, 62 are illegal in 32 bit implementations, but are
+     *    defined in 64 bit implementations.
+     *
+     * opcodes 19, 30, 31, 59, 62, 63 contain extended op codes that are unused.
+     */
+    
+    bool valid() const { return insn_.iform.op > 0; }
+    
+    bool isCall() const;
+    
+    static bool isAligned(Address addr) {
+        return !(addr & 0x3);
+    }
+    
+    bool isCondBranch() const;
+    bool isUncondBranch() const;
   
 
 #if 0

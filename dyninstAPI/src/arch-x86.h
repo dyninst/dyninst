@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.32 2005/08/25 22:45:18 bernat Exp $
+// $Id: arch-x86.h,v 1.33 2005/09/14 21:21:39 bernat Exp $
 // x86 instruction declarations
 
 #if !defined(i386_unknown_solaris2_5) \
@@ -467,6 +467,8 @@ class instruction {
   // And tell us how much space we'll need...
   static unsigned jumpSize(Address from, Address to);
   static unsigned jumpSize(int disp);
+  static unsigned maxJumpSize();
+
 
   // We may want to generate an efficient set 'o nops
   static void generateNOOP(codeGen &gen, unsigned size = 1);
