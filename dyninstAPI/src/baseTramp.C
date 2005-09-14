@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.10 2005/09/09 18:06:34 legendre Exp $
+// $Id: baseTramp.C,v 1.11 2005/09/14 21:21:41 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -135,9 +135,9 @@ baseTramp::baseTramp() :
     clobberedGPR(NULL),
     clobberedFPR(NULL),
     totalClobbered(0),
+#if defined( arch_ia64 )
     trampGuardFlagAddr(0),
     trampGuardFlagValue(0),
-#if defined( arch_ia64 )
 	baseTrampRegion( NULL ),
 	addressRegister( 0 ),
 	valueRegister( 0 ),
@@ -179,9 +179,9 @@ baseTramp::baseTramp(const baseTramp *pt, process *proc) :
     clobberedGPR(NULL),
     clobberedFPR(NULL),
     totalClobbered(pt->totalClobbered),
+#if defined( arch_ia64 )
     trampGuardFlagAddr(pt->trampGuardFlagAddr),
     trampGuardFlagValue(pt->trampGuardFlagValue),
-#if defined( arch_ia64 )
 	baseTrampRegion( NULL ),
 	addressRegister( pt->addressRegister ),
 	valueRegister( pt->valueRegister ),
@@ -606,7 +606,7 @@ void baseTramp::deleteIfEmpty() {
 // Global fixing of all BT jumps
 bool baseTramp::correctBTJumps() {
     for (unsigned i = 0; i < instances.size(); i++) {
-        codeGen gen(miniTramp::interJumpSize());
+        codeGen gen(instruction::maxJumpSize());
         instances[i]->generateBranchToMT(gen);
         proc()->writeDataSpace((void *)(instances[i]->trampPreAddr() + instStartOffset),
                                gen.used(),
@@ -947,7 +947,7 @@ void baseTrampInstance::removeCode(generatedCodeObject *subObject) {
         else {
             // When we in-line, this will need to change. For now,
             // we can always fix jumps by hand
-            codeGen gen(miniTramp::interJumpSize());
+            codeGen gen(instruction::maxJumpSize());
             generateBranchToMT(gen);
             proc()->writeDataSpace((void *)(trampPreAddr() + baseT->instStartOffset),
                                    gen.used(),
@@ -1039,7 +1039,7 @@ bool baseTrampInstance::linkCode() {
     generateAndWriteBranch(baseT->proc(), 
                            leave, 
                            arrive, 
-                           miniTramp::interJumpSize());
+                           instruction::maxJumpSize());
 #endif
 
     // Cost calculation

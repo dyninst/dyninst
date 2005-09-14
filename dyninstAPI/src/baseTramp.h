@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.h,v 1.8 2005/09/09 18:06:35 legendre Exp $
+// $Id: baseTramp.h,v 1.9 2005/09/14 21:21:42 bernat Exp $
 
 // baseTramp class definition
 
@@ -213,9 +213,15 @@ class baseTramp {
     registerSpace *theRegSpace;
 #endif
 
+#if defined(arch_ia64)
+    // TODO: when we start dynamically deciding what regs to
+    // use, stick this on other platforms as well. Oh, and
+    // make sure that AIX isn't declaring a temporary with the
+    // same name...
     // For flexible generation...
     Register trampGuardFlagAddr;
     Register trampGuardFlagValue;
+#endif
 
     // And if we do unwind info
 #if defined( arch_ia64 )
