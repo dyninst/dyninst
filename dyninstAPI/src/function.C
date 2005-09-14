@@ -357,7 +357,7 @@ int_basicBlock *int_function::findBlockByAddr(Address addr) {
 
 
 const pdvector<int_basicBlock *> &int_function::blocks() {
-    inst_printf("blocks() for %s\n", symTabName().c_str());
+    parsing_printf("blocks() for %s\n", symTabName().c_str());
     if (blockList.size() == 0) {
         Address base = getAddress() - ifunc_->getOffset();
         // TODO: create flowgraph pointer...
@@ -381,7 +381,7 @@ const pdvector<int_basicBlock *> &int_function::blocks() {
                             t, targets[t]->id(), blockList[j]->id(), symTabName().c_str());
                     continue;
                 }
-                inst_printf("Adding target to block %d, block %d (of %d)\n",
+                parsing_printf("Adding target to block %d, block %d (of %d)\n",
                             j, targets[t]->id(),
                             blockList.size());
                 blockList[j]->addTarget(blockList[targets[t]->id()]);
@@ -396,7 +396,7 @@ const pdvector<int_basicBlock *> &int_function::blocks() {
                             s, sources[s]->id(), blockList[j]->id(), symTabName().c_str());
                     continue;
                 }
-                inst_printf("Adding source to block %d, block %d (of %d)\n",
+                parsing_printf("Adding source to block %d, block %d (of %d)\n",
                             j, sources[s]->id(),
                             blockList.size());
                 blockList[j]->addSource(blockList[sources[s]->id()]);
