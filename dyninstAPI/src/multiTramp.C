@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.12 2005/09/13 21:33:09 bernat Exp $
+// $Id: multiTramp.C,v 1.13 2005/09/14 21:21:54 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -1939,6 +1939,42 @@ bool multiTramp::fillJumpBuf(codeGen &gen) {
     return true;
 }
 
+
+/* Generate a jump to a base tramp. Return the size of the instruction
+   generated at the instrumentation point. */
+
+// insn: buffer to generate code
+
+#if !defined(arch_ia64)
+// Again, IA64 has its own version. TODO: can it use the same mechanism we use here?
+bool multiTramp::generateBranchToTramp(codeGen &gen)
+{
+    assert(instAddr_);
+    assert(trampAddr_);
+    unsigned origUsed = gen.used();
+
+    // TODO: we can use shorter branches, ya know.
+    if (instSize_ < instruction::jumpSize(instAddr_, trampAddr_)) {
+        branchSize_ = instruction::jumpSize(instAddr_, trampAddr_);
+        return true;
+    }
+#if defined(arch_sparc)
+    int dist = (trampAddr_ - instAddr_);
+    if (!instruction::offsetWithinRangeOfBranchInsn(dist) &&
+        func()->is_o7_live()) {
+        // We can't use our multi-insn jump, so we must trap
+        return false;
+    }
+#endif
+
+    instruction::generateBranch(gen, instAddr_, trampAddr_);
+
+    branchSize_ = gen.used() - origUsed;
+
+    return true;
+}
+#endif
+
 bool multiTramp::generateTrapToTramp(codeGen &gen) {
     // We're doing a trap. Now, we know that trap addrs are reported
     // as "finished" address... so use that one (not instAddr_)
@@ -1954,4 +1990,20 @@ bool multiTramp::generateTrapToTramp(codeGen &gen) {
     usedTrap_ = true;
 
     return true;
+}
+
+void *multiTramp::getPtrToInstruction(Address addr) const {
+    if (!installed_) return NULL;
+    if (addr < trampAddr_) return NULL;
+    if (addr >= (trampAddr_ + trampSize_)) return NULL;
+
+    addr -= trampAddr_;
+    assert(generatedMultiT_ != NULL);
+    return generatedMultiT_.get_ptr(addr);
+}
+
+unsigned multiTramp::maxSizeRequired() {
+    // A jump to the multiTramp, 
+    // todo: in-line :)
+    return instruction::maxJumpSize();
 }
