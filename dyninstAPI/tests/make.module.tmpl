@@ -258,6 +258,8 @@ clean:
 	$(RM) $(MUTATORS) $(MUTATEES_GCC) $(MUTATEES_GXX) $(MUTATEES_GCC_ABI) $(MUTATEES_GXX_ABI) $(MUTATEES_G77) $(MUTATEES_GXX_ONLY)
 	$(RM) *.o $(MUTATEES_NATIVE_CC) $(MUTATEES_NATIVE_CXX) $(MUTATEES_NATIVE_FC) $(MUTATEES_NATIVE_CXX_ONLY)
 	$(RM) test11
+	$(RM) imagefile
+	$(RM) core core.*
 
 distclean: clean
 	@if [ -d $(DEPENDDIR) ]; then \
