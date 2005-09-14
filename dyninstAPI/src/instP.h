@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instP.h,v 1.48 2005/07/29 19:18:45 bernat Exp $
+// $Id: instP.h,v 1.49 2005/09/14 21:21:50 bernat Exp $
 
 #if !defined(instP_h)
 #define instP_h
@@ -106,7 +106,7 @@ extern void generateReturn(process *proc, Address currAddr, instPoint *location)
 extern void initTramps(bool is_multithreaded);
 extern void generateBranch(unsigned char *buffer, unsigned &offset,
                            Address fromAddr, Address toAddr);
-extern unsigned generateAndWriteBranch(process *proc, Address fromAddr, Address toAddr, unsigned fillSize = 0);
+extern unsigned generateAndWriteBranch(process *proc, Address fromAddr, Address toAddr, unsigned fillSize);
 extern void removeTramp(process *proc, instPoint *location);
 extern int flushPtrace();
 
