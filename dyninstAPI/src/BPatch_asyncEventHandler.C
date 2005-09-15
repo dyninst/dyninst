@@ -625,7 +625,7 @@ bool BPatch_asyncEventHandler::detachFromProcess(BPatch_process *p)
 {
   //  find the fd for this process 
   //  (reformat process vector while we're at it)
-#if defined(os_osf) || defined(os_windows) || defined(os_irix) || defined(arch_ia64)
+#if ! defined( cap_async_events )
    return true;
 #endif
   int targetfd = -2;
