@@ -278,8 +278,9 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
 
     /* Determine if this is a trampoline frame. */
 	codeRange * range = dynLWP->proc()->findCodeRangeByAddress( ip );
-	if( range == NULL ) {
-		/* FIXME */ // This is most likely because inferior RPCs aren't added to the code range tree.
+	if( range == NULL && dynLWP->proc()->reachedBootstrapState( bootstrapped_bs ) ) {
+		/* We assume here, and below, that the two stackwalkingg errors before
+		   bootstrapping are from loading the run-time library. */
 		/* DEBUG */ fprintf( stderr, "%s[%d]: warning: no code range found for ip 0x%lx\n", __FILE__, __LINE__, ip );
 		}
 	else {
@@ -287,6 +288,9 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
 			isTrampoline = true;
 			}	
 		if( range->is_function() != NULL && range->is_function()->symTabName() == "__libc_start_main" ) {
+			isUppermost = true;
+			}
+		if( range->is_inferior_rpc() != NULL ) {
 			isUppermost = true;
 			}
 		}
@@ -297,6 +301,23 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
 	/* Determine if this is the upper-most frame, and set the frame pointer
 	   if it is not. */
 	status = unw_step( unwindCursor );
+	
+	if( status < 0 ) {
+		if( range->is_inferior_rpc() != NULL ) {
+			// /* DEBUG */ fprintf( stderr, "%s[%d]: ignoring stackwalk failure in inferior RPC at 0x%lx.\n", __FILE__, __LINE__, ip );
+			}
+		else if( isUppermost ) {
+			/* DEBUG */ fprintf( stderr, "%s[%d]: ignoring stackwalk failure because frame at 0x%lx is a priori uppermost.\n", __FILE__, __LINE__, ip );
+			}
+		else if( ! dynLWP->proc()->reachedBootstrapState( bootstrapped_bs ) ) {
+			// /* DEBUG */ fprintf( stderr, "%s[%d]: ignoring stackwalk failure at 0x%lx because bootstrap is incomplete.\n", __FILE__, __LINE__, ip );
+			}
+		else {
+			/* Should we supress this warning? */
+			fprintf( stderr, "%s[%d]: warning: failed to walk stack from address 0x%lx.\n", __FILE__, __LINE__, ip );
+			}
+		}
+	
 	if( status <= 0 ) {
 		isUppermost = true;
 		}
