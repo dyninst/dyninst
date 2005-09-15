@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.147 2005/09/14 21:21:49 bernat Exp $
+// $Id: inst.C,v 1.148 2005/09/15 19:20:41 tlmiller Exp $
 // Code to install and remove instrumentation from a running process.
 // Misc constructs.
 
@@ -135,7 +135,8 @@ void relocatedInstruction::overrideTarget(Address newTarget) {
 }
 
 bool trampEnd::generateCode(codeGen &gen,
-                            Address baseInMutatee) {
+                            Address baseInMutatee,
+                            UNW_INFO_TYPE ** unwindRegion ) {
     generateSetup(gen, baseInMutatee);
     
     if (target_) {
@@ -148,7 +149,39 @@ bool trampEnd::generateCode(codeGen &gen,
     
     size_ = gen.currAddr(baseInMutatee) - addrInMutatee_;
     generated_ = true;
+
+#if defined( cap_unwind )
+    /* The jump back is an zero-length ALIAS to the original location, followed
+       by a no-op region covering the jump bundle. */
+    dyn_unw_printf( "%s[%d]: aliasing tramp end to 0x%lx\n", __FILE__, __LINE__, multi_->instAddr() );
+    unw_dyn_region_info_t * aliasRegion = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 2 ) );
+    assert( aliasRegion != NULL );
+    aliasRegion->insn_count = 0;
+    aliasRegion->op_count = 2;
     
+    _U_dyn_op_alias( & aliasRegion->op[0], _U_QP_TRUE, -1, multi_->instAddr() );
+    _U_dyn_op_stop( & aliasRegion->op[1] );
+    
+    unw_dyn_region_info_t * jumpRegion = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 1 ) );
+    assert( jumpRegion != NULL );
+#if defined( arch_ia64 )    
+    jumpRegion->insn_count = (size_ / 16) * 3;
+#else
+#error How do I know how many instructions are in the jump region?
+#endif /* defined( arch_ia64 ) */
+    jumpRegion->op_count = 1;
+    
+    _U_dyn_op_stop( & jumpRegion->op[0] );
+    
+    /* The care and feeding of pointers. */
+    assert( unwindRegion != NULL );
+    unw_dyn_region_info_t * prevRegion = * unwindRegion;
+    prevRegion->next = aliasRegion;
+    aliasRegion->next = jumpRegion;
+    jumpRegion->next = NULL;
+    * unwindRegion = jumpRegion;
+#endif /* defined( cap_unwind ) */
+        
     return true;
 }
 

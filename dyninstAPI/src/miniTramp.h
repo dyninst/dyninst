@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.h,v 1.6 2005/09/14 21:21:53 bernat Exp $
+// $Id: miniTramp.h,v 1.7 2005/09/15 19:20:44 tlmiller Exp $
 
 #ifndef MINI_TRAMP_H
 #define MINI_TRAMP_H
@@ -103,7 +103,8 @@ class miniTrampInstance : public generatedCodeObject {
   unsigned maxSizeRequired();
 
   bool generateCode(codeGen &gen,
-                    Address baseInMutatee);
+                    Address baseInMutatee,
+                    UNW_INFO_TYPE * * unwindInformation);
   bool installCode();
   
   void invalidateCode();

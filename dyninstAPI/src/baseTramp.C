@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.11 2005/09/14 21:21:41 bernat Exp $
+// $Id: baseTramp.C,v 1.12 2005/09/15 19:20:36 tlmiller Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -136,12 +136,14 @@ baseTramp::baseTramp() :
     clobberedFPR(NULL),
     totalClobbered(0),
 #if defined( arch_ia64 )
-    trampGuardFlagAddr(0),
-    trampGuardFlagValue(0),
-	baseTrampRegion( NULL ),
-	addressRegister( 0 ),
-	valueRegister( 0 ),
-#endif /* defined( arch_ia64 ) */    
+    trampGuardFlagAddr( 0 ),
+    trampGuardFlagValue( 0 ),
+    addressRegister( 0 ),
+    valueRegister( 0 ),
+#endif /* defined( arch_ia64 ) */
+#if defined( cap_unwind )
+    baseTrampRegion( NULL ),
+#endif /* defined( cap_unwind ) */
     preInstP(NULL),
     postInstP(NULL),
     rpcMgr_(NULL),
@@ -156,6 +158,52 @@ baseTramp::baseTramp() :
     instVersion_()
 {
 }
+
+#if defined( cap_unwind )
+/* Duplicates the list headed by tail and appends it to head, returning the new end of the list.
+   If head is NULL, returns NULL.  If tail is NULL, returns head. */
+unw_dyn_region_info_t * appendRegionList( unw_dyn_region_info_t * head,  unw_dyn_region_info_t * tail ) {
+	if( head == NULL ) { return NULL; }
+	if( tail == NULL ) { return head; }
+    
+    unw_dyn_region_info_t * currentRegion = head;
+    unw_dyn_region_info_t * nextRegion = tail;
+    unw_dyn_region_info_t * newRegion = NULL;
+    
+	do {
+		/* Allocate. */
+		unsigned int nextRegionSize = _U_dyn_region_info_size( nextRegion->op_count );
+		newRegion = (unw_dyn_region_info_t *)malloc( nextRegionSize );
+		assert( newRegion != NULL );
+		
+		/* Copy. */
+		memcpy( newRegion, nextRegion, nextRegionSize );
+		
+		/* Link. */
+		currentRegion->next = newRegion;
+		
+		/* Iterate. */
+		currentRegion = newRegion;
+		nextRegion = currentRegion->next;
+		} while( nextRegion != NULL );
+
+    return currentRegion;        
+	} /* end duplicateRegionList() */
+	
+/* Returns the head of the duplicate list. */
+unw_dyn_region_info_t * duplicateRegionList( unw_dyn_region_info_t * head ) {
+	if( head == NULL ) { return NULL; }	
+
+	/* Duplicate the head and append the remainder to it. */
+	unsigned int headSize = _U_dyn_region_info_size( head->op_count );
+	unw_dyn_region_info_t * duplicateHead = (unw_dyn_region_info_t *)malloc( headSize );
+	assert( duplicateHead != NULL );
+	memcpy( duplicateHead, head, headSize );
+	
+	appendRegionList( duplicateHead, head->next ); 
+	return duplicateHead;
+	} /* end duplicateRegionList() */
+#endif /* defined( cap_unwind ) */
 
 baseTramp::baseTramp(const baseTramp *pt, process *proc) :
     preSize(pt->preSize),
@@ -180,9 +228,8 @@ baseTramp::baseTramp(const baseTramp *pt, process *proc) :
     clobberedFPR(NULL),
     totalClobbered(pt->totalClobbered),
 #if defined( arch_ia64 )
-    trampGuardFlagAddr(pt->trampGuardFlagAddr),
-    trampGuardFlagValue(pt->trampGuardFlagValue),
-	baseTrampRegion( NULL ),
+    trampGuardFlagAddr( pt->trampGuardFlagAddr ),
+    trampGuardFlagValue( pt->trampGuardFlagValue ),
 	addressRegister( pt->addressRegister ),
 	valueRegister( pt->valueRegister ),
 #endif /* defined( arch_ia64 ) */    
@@ -197,15 +244,14 @@ baseTramp::baseTramp(const baseTramp *pt, process *proc) :
     suppress_threads_(pt->suppress_threads_),
     instVersion_(pt->instVersion_)
 {
-
-#if 0
-    if (pt->saveRegion)
-        assert(0); // Need to copy these
-#endif
     if (pt->clobberedGPR)
         assert(0); // Don't know how to copy these
     if (pt->clobberedFPR)
         assert(0);
+        
+#if defined( cap_unwind )
+    baseTrampRegion = duplicateRegionList( pt->baseTrampRegion );
+#endif /* defined( cap_unwind ) */
 
     // And copy minis
     miniTramp *parMini = NULL;
@@ -242,13 +288,13 @@ unsigned baseTrampInstance::get_size_cr() const {
     return endAddr - get_address_cr();
 }
 
-
 // recursive into miniTramps
 // If we generated once, we skip most of this as useless.
 // However, we still go into the miniTramps.
 
 bool baseTrampInstance::generateCode(codeGen &gen,
-                                     Address baseInMutatee) {
+                                     Address baseInMutatee,
+                                     UNW_INFO_TYPE ** unwindRegion) {
     inst_printf("baseTrampInstance %p ::generateCode(%p, 0x%x, %d)\n",
                 this, gen.start_ptr(), baseInMutatee, gen.used());
 
@@ -275,7 +321,7 @@ bool baseTrampInstance::generateCode(codeGen &gen,
         // We better be where we were...
         assert(trampAddr_ == gen.currAddr(baseInMutatee));
     }
-
+    
     codeBufIndex_t preIndex = gen.getIndex();
     unsigned preStart = gen.used();
 
@@ -290,6 +336,13 @@ bool baseTrampInstance::generateCode(codeGen &gen,
     inst_printf("offset now %d\n", gen.used());
     //unsigned preEnd = offset;
     
+#if defined( cap_unwind )
+	// This should become preTrampRegion, if the basetramp stops using only one region.
+	/* appendRegionList() returns the last valid region it duplicated.
+	   This leaves unwindRegion pointing to the end of the list. */
+	* unwindRegion = appendRegionList( * unwindRegion, baseT->baseTrampRegion );
+#endif /* defined( cap_unwind ) */
+
     // miniTramps
     // If we go backwards, life gets much easier because each miniTramp
     // needs to know where to jump to (if we're doing out-of-line). 
@@ -298,7 +351,7 @@ bool baseTrampInstance::generateCode(codeGen &gen,
     // So we'll get to it later.
 
     for (unsigned miter = 0; miter < mtis.size(); miter++) {
-        mtis[miter]->generateCode(gen, baseInMutatee);
+        mtis[miter]->generateCode(gen, baseInMutatee, unwindRegion);
         // Will increment offset if it writes to baseInMutator;
         // if in-lined each mini will increment offset.
         inst_printf("mti %d, offset %d\n", miter, gen.used());
@@ -322,6 +375,13 @@ bool baseTrampInstance::generateCode(codeGen &gen,
     else {
         assert(trampPostOffset == (postStart - preStart));
     }
+
+#if defined( cap_unwind )
+	// Since the basetramp (currently) uses only one region, don't add it into the list again.
+	/* appendRegionList() returns the last valid region it duplicated.
+	   This leaves unwindRegion pointing to the end of the list. */
+	// * unwindRegion = appendRegionList( * unwindRegion, baseT->postUnwindRegion );
+#endif /* defined( cap_unwind ) */
 
     // trampAddr_ was set above. 
 
@@ -823,7 +883,6 @@ bool baseTramp::generateBT() {
     theRegSpace->resetLiveDeadInfo(location->liveRegisters,
 				location->liveFPRegisters,
 				location->liveSPRegisters);
-
 #endif
     
     saveStartOffset = preTrampCode_.used();
@@ -834,7 +893,7 @@ bool baseTramp::generateBT() {
     saveEndOffset = preTrampCode_.used();
     inst_printf("Starting MT: offset %d\n", saveEndOffset);
     // Multithread
-    generateMTCode(preTrampCode_);
+    generateMTCode(preTrampCode_, regSpace);
     // Guard code
     guardLoadOffset = preTrampCode_.used();
     inst_printf("Starting guard: offset %d\n", guardLoadOffset);
@@ -911,6 +970,17 @@ bool baseTramp::generateBT() {
                 guardTargetIndex,
                 restoreEndOffset,
                 trampEnd);
+
+#if defined( cap_unwind )
+	/* FIXME: the guard and multitramp code don't yet update the baseTrampRegion
+	   insn_count themselves, so do that here. */
+#if defined( arch_ia64 )
+	baseTrampRegion->insn_count += ( (instStartOffset - saveEndOffset)/ 16 ) * 3;
+	baseTrampRegion->insn_count += ( (restoreStartOffset - 0)/ 16 ) * 3;
+#else
+#error How do I know how many instructions are in the jump region?
+#endif /* defined( arch_ia64 ) */
+#endif /* defined( cap_unwind ) */
 
     return true;
 }

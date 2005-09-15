@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.335 2005/09/09 18:06:59 legendre Exp $
+/* $Id: process.h,v 1.336 2005/09/15 19:20:47 tlmiller Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -90,10 +90,10 @@
 #endif
 
 
-#if defined( ia64_unknown_linux2_4 )
+#if defined( cap_unwind )
 #include <libunwind.h>
 #include <libunwind-ptrace.h>
-#endif
+#endif /* defined( cap_unwind ) */
 
 #if defined(SHM_SAMPLING)
 extern unsigned SHARED_SEGMENT_SIZE;
@@ -1162,9 +1162,11 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   // Platform-specific
   ///////////////////////////////
 
-#if defined(arch_ia64)
+#if defined( arch_ia64 )
   unw_addr_space * unwindAddressSpace;
   void * unwindProcessArg;
+  
+  bool insertAndRegisterDynamicUnwindInformation( unw_dyn_info_t * unwindInformation );
 #endif
 
 #if defined(os_linux)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.10 2005/09/14 21:21:52 bernat Exp $
+// $Id: miniTramp.C,v 1.11 2005/09/15 19:20:43 tlmiller Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -230,8 +230,12 @@ unsigned miniTrampInstance::maxSizeRequired() {
 // reserves space for a jump (filled with noops for now),
 // and the rest just return.
 
+/* Note that out-of-line minitramps imply that they only
+   add their /inline/ regions (jumps) to the unwindInformation
+   chain, and register their /out-of-line/ regions on their own. */
 bool miniTrampInstance::generateCode(codeGen &gen,
-                                     Address baseInMutatee) {
+                                     Address baseInMutatee,
+                                     UNW_INFO_TYPE ** unwindInformation ) {
     inst_printf("miniTrampInstance::generateCode(%p, 0x%x, %d)\n",
                 gen.start_ptr(), baseInMutatee, gen.used());
     
@@ -247,7 +251,16 @@ bool miniTrampInstance::generateCode(codeGen &gen,
         else {
             gen.moveIndex(instruction::maxJumpSize());
         }
+#if defined( cap_unwind )
+	/* maxJumpSize() returns bytes */
+#if defined( arch_ia64 )
+    (*unwindInformation)->insn_count += (instruction::maxJumpSize() / 16) * 3;
+#else
+#error How do I know how many instructions are in the jump region?
+#endif /* defined( arch_ia64 ) */
+#endif /* defined( cap_unwind ) */       
     }
+    
     // And make-y the code
     inst_printf("Generating MT code\n");
     if (!mini->generateMT())
@@ -332,6 +345,62 @@ bool miniTrampInstance::installCode() {
                                 mini->miniTrampCode_.used(),
                                 (void *)mini->miniTrampCode_.start_ptr()))
         return false;
+
+#if defined( cap_unwind )
+	/* TODO: Minitramps don't change the unwind state of the program (except
+	   via calls), so they all ALIAS to the corresponding jump in the
+	   base tramp.  We could notionally cache the regions, but since
+	   we have to change the unw_dyn_info_t anyway, this is just simpler. */
+	
+	unw_dyn_info_t * miniTrampDynamicInfo = (unw_dyn_info_t *)calloc( 1, sizeof( unw_dyn_info_t ) );
+	assert( miniTrampDynamicInfo != NULL );
+
+    miniTrampDynamicInfo->start_ip = trampBase;
+    miniTrampDynamicInfo->end_ip = trampBase + mini->miniTrampCode_.used();
+    miniTrampDynamicInfo->gp = mini->proc()->getTOCoffsetInfo( baseTI->multiT->instAddr()  );
+    miniTrampDynamicInfo->format = UNW_INFO_FORMAT_DYNAMIC;
+
+    miniTrampDynamicInfo->u.pi.name_ptr = (unw_word_t) "dynamic instrumentation: mini tramp";
+	
+	miniTrampDynamicInfo->next = NULL;
+	miniTrampDynamicInfo->prev = NULL;
+	
+	unw_dyn_region_info_t * aliasRegion = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 2 ) );
+	assert( aliasRegion != NULL );
+
+	aliasRegion->insn_count = 0;
+	aliasRegion->op_count = 2;
+	
+	Address jumpToMiniTrampAddress = baseTI->trampAddr_ + baseTI->baseT->instStartOffset;
+	dyn_unw_printf( "%s[%d]: ALIASING minitramp (0x%lx - 0x%lx) to 0x%lx\n", __FILE__, __LINE__, miniTrampDynamicInfo->start_ip, miniTrampDynamicInfo->end_ip, jumpToMiniTrampAddress );
+	_U_dyn_op_alias( & aliasRegion->op[0], _U_QP_TRUE, -1, jumpToMiniTrampAddress );
+	_U_dyn_op_stop( & aliasRegion->op[1] );
+	
+	unw_dyn_region_info_t * trampRegion = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 1 ) );
+	assert( trampRegion != NULL );
+	
+	// mini->miniTrampCode_.used() returns bytes.
+#if defined( arch_ia64 )
+	trampRegion->insn_count = (mini->miniTrampCode_.used() / 16) * 3;
+#else
+#error How do I know how many instructions are in the jump region?
+#endif /* defined( arch_ia64 ) */
+	trampRegion->op_count = 1;
+
+	aliasRegion->next = trampRegion;
+	trampRegion->next = NULL;
+	
+	_U_dyn_op_stop( & trampRegion->op[0] );
+
+    miniTrampDynamicInfo->u.pi.regions = aliasRegion;
+    bool status = mini->proc()->insertAndRegisterDynamicUnwindInformation( miniTrampDynamicInfo );
+	if( ! status ) { return false; }
+
+	free( trampRegion );
+    free( aliasRegion );
+    free( miniTrampDynamicInfo );
+	
+#endif
 
     // TODO in-line
     proc()->addCodeRange(this);

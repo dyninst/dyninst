@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.9 2005/09/01 22:18:35 bernat Exp $
+// $Id: multiTramp.h,v 1.10 2005/09/15 19:20:46 tlmiller Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -62,6 +62,12 @@ class codeRange;
 class process;
 class int_function;
 
+#if defined( cap_unwind )
+#include <libunwind.h>
+#define UNW_INFO_TYPE unw_dyn_region_info_t
+#else
+#define UNW_INFO_TYPE void
+#endif
 
 class generatedCodeObject : public codeRange {
  public:
@@ -77,7 +83,8 @@ class generatedCodeObject : public codeRange {
     // changed. In that case, we bump offset and keep going.
 
     virtual bool generateCode(codeGen &gen,
-                              Address baseInMutatee) = 0;
+                              Address baseInMutatee,
+                              UNW_INFO_TYPE * * unwindInformation) = 0;
 
     // And some global setting up state
     bool generateSetup(codeGen &gen, Address baseInMutatee);
@@ -214,7 +221,8 @@ class trampEnd : public generatedCodeObject {
     trampEnd(const trampEnd *parEnd, multiTramp *cMT, process *child);
 
     bool generateCode(codeGen &gen,
-                      Address baseInMutatee);
+                      Address baseInMutatee,
+                      UNW_INFO_TYPE * * unwindInformation);
 
     unsigned maxSizeRequired();
 
@@ -281,7 +289,8 @@ class relocatedInstruction : public generatedCodeObject {
     unsigned maxSizeRequired();
 
     bool generateCode(codeGen &gen,
-                      Address baseInMutatee);
+                      Address baseInMutatee,
+                      UNW_INFO_TYPE * * unwindInformation);
 
     // Change the target of a jump 
     void overrideTarget(Address newTarget);
@@ -367,6 +376,10 @@ class generatedCFG_t {
 
 // Note: there can also be multiple multiTramps to a single instPoint
 // if a function has been relocated.
+
+#if defined( cap_unwind )
+#include <libunwind.h>
+#endif /* defined( cap_unwind ) */
 
 class multiTramp : public generatedCodeObject {
   static unsigned id_ctr; // All hail the unique ID
@@ -483,7 +496,8 @@ class multiTramp : public generatedCodeObject {
 
   ///////////////// Generation
   bool generateCode(codeGen &gen,
-                    Address baseInMutatee);
+                    Address baseInMutatee,
+                    UNW_INFO_TYPE * * unwindInformation);
 
   // The most that we can need to get to a multitramp...
   unsigned maxSizeRequired();
@@ -539,9 +553,13 @@ class multiTramp : public generatedCodeObject {
   bool generateBranchToTramp(codeGen &gen);
   bool generateTrapToTramp(codeGen &gen);
   bool fillJumpBuf(codeGen &gen);
+  
+#if defined( cap_unwind )
+  unw_dyn_info_t * unwindInformation;
+#endif /* defined( cap_unwind ) */
 
   bool changedSinceLastGeneration_;
-
+  
   void setFirstInsn(generatedCodeObject *obj) { generatedCFG_.setStart(obj); }
 };
 

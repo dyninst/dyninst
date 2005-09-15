@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.h,v 1.9 2005/09/14 21:21:42 bernat Exp $
+// $Id: baseTramp.h,v 1.10 2005/09/15 19:20:37 tlmiller Exp $
 
 // baseTramp class definition
 
@@ -109,7 +109,8 @@ class baseTrampInstance : public generatedCodeObject {
     bool shouldGenerate();
 
     bool generateCode(codeGen &gen,
-                      Address baseInMutatee);
+                      Address baseInMutatee,
+                      UNW_INFO_TYPE * * unwindInformation);
 
     bool installCode();
 
@@ -223,11 +224,15 @@ class baseTramp {
     Register trampGuardFlagValue;
 #endif
 
-    // And if we do unwind info
 #if defined( arch_ia64 )
-    unw_dyn_region_info_t * baseTrampRegion;
+    /* For cost updating, since the register space varies
+       from basetramp to basetramp. */
     Register addressRegister;
     Register valueRegister;
+#endif
+
+#if defined( cap_unwind )
+   unw_dyn_region_info_t * baseTrampRegion;
 #endif
 
     Address origInstAddr(); // For faking an in-function address

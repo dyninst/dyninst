@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.13 2005/09/14 21:21:54 bernat Exp $
+// $Id: multiTramp.C,v 1.14 2005/09/15 19:20:45 tlmiller Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -551,6 +551,9 @@ multiTramp::multiTramp(Address addr,
     insns_(addrHash4),
     generatedMultiT_(),
     savedCodeBuf_(NULL),
+#if defined( cap_unwind )
+    unwindInformation(NULL),	
+#endif /* defined( cap_unwind ) */    
     changedSinceLastGeneration_(false)
 {
     // .. filled in by createMultiTramp
@@ -575,6 +578,9 @@ multiTramp::multiTramp(multiTramp *oM) :
     generatedMultiT_(), // Not copied
     jumpBuf_(), // Not copied
     savedCodeBuf_(NULL),
+#if defined( cap_unwind )
+    unwindInformation(NULL),	
+#endif /* defined( cap_unwind ) */    
     changedSinceLastGeneration_(true) 
 {
     // This is superficial and insufficient to recreate the multiTramp; please
@@ -597,6 +603,9 @@ multiTramp::multiTramp(const multiTramp *parMulti, process *child) :
     generatedMultiT_(parMulti->generatedMultiT_),
     jumpBuf_(parMulti->jumpBuf_),
     savedCodeBuf_(NULL),
+#if defined( cap_unwind )
+    unwindInformation(NULL),	
+#endif /* defined( cap_unwind ) */    
     changedSinceLastGeneration_(parMulti->changedSinceLastGeneration_) 
 {
     // TODO:
@@ -740,7 +749,8 @@ void debugBreakpoint() {
 // Since we out-line multiTramps (effectively), we write
 // a jump into the inputs.
 bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
-                              Address /*baseInMutatee*/) {
+                              Address /*baseInMutatee*/,
+                              UNW_INFO_TYPE * * /* ignored */) {
     unsigned size_required = 0;
 
     generatedCFG_t::iterator cfgIter;
@@ -841,6 +851,39 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
     
     generatedMultiT_.setIndex(0);
     
+#if defined( cap_unwind )
+	/* Initialize the unwind information structure. */
+	if( unwindInformation != NULL ) { free( unwindInformation ); }
+    unwindInformation = (unw_dyn_info_t *)calloc( 1, sizeof( unw_dyn_info_t ) );
+    assert( unwindInformation != NULL );
+    
+    unwindInformation->format = UNW_INFO_FORMAT_DYNAMIC;
+    unwindInformation->prev = NULL;
+    unwindInformation->next = NULL;
+    
+    unwindInformation->u.pi.name_ptr = (unw_word_t) "dynamic instrumentation";
+    unwindInformation->u.pi.handler = (Address) NULL;
+    
+    /* Generate the initial region, and then link it in.  This way,
+       we can pass around a region pointer reference. */
+    unw_dyn_region_info_t * initialRegion = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 2 ) );
+    assert( initialRegion != NULL );
+    
+    /* Special format for point ALIAS: a zero-length region. */
+    initialRegion->insn_count = 0;
+    initialRegion->op_count = 2;
+    initialRegion->next = NULL;
+    
+    dyn_unw_printf( "%s[%d]: aliasing multitramp to 0x%lx\n", __FILE__, __LINE__, instAddr_ );
+    _U_dyn_op_alias( & initialRegion->op[0], _U_QP_TRUE, -1, instAddr_ );
+    _U_dyn_op_stop( & initialRegion->op[1] );
+    
+    unwindInformation->u.pi.regions = initialRegion;
+    
+    /* For the iterator, below. */
+    unw_dyn_region_info_t * unwindRegion = initialRegion;
+#endif /* defined( cap_unwind ) */
+        
     inst_printf("multiTramp generation: local %p, remote 0x%x, size %d\n",
                 generatedMultiT_.start_ptr(), trampAddr_, size_required);
 
@@ -863,12 +906,16 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
             assert(relocInsn);
             relocInsn->overrideTarget(trampAddr_ + obj->target_->pinnedOffset);
         }
-        
-        if (!obj->generateCode(generatedMultiT_,
-                               trampAddr_)) {
-            // Whoa...
+
+#if ! defined( cap_unwind )
+        if( !obj->generateCode( generatedMultiT_, trampAddr_, NULL ) ) {
             return false;
         }
+#else
+        if( ! obj->generateCode( generatedMultiT_, trampAddr_, & unwindRegion ) ) {
+            return false;
+        }
+#endif /* ! defined( cap_unwind ) */
 
         inst_printf("After node: mutatee 0x%x, offset %d, size req %d\n",
                     generatedMultiT_.currAddr(trampAddr_),
@@ -930,8 +977,24 @@ bool multiTramp::installCode() {
         bool success = proc()->writeTextSpace((void *)trampAddr_,
                                               trampSize_,
                                               generatedMultiT_.start_ptr());
-        if (success) proc()->addCodeRange(this);
-        else return false;
+        if( success ) {
+            proc()->addCodeRange(this);
+#if defined( cap_unwind )
+            if( unwindInformation != NULL ) {
+                unwindInformation->start_ip = trampAddr_;
+                unwindInformation->end_ip = trampAddr_ + trampSize_;
+                unwindInformation->gp = proc()->getTOCoffsetInfo( instAddr_ );
+            
+                dyn_unw_printf( "%s[%d]: registering multitramp unwind information for 0x%lx, at 0x%lx-0x%lx, GP 0x%lx\n",
+                                __FILE__, __LINE__, instAddr_, unwindInformation->start_ip, unwindInformation->end_ip,
+                                unwindInformation->gp );
+	            if( ! proc()->insertAndRegisterDynamicUnwindInformation( unwindInformation ) ) {
+    	    	    return false;
+                }
+            }
+#endif /* defined( cap_unwind ) */
+        }
+        else { return false; }
     }
 
 
@@ -940,7 +1003,6 @@ bool multiTramp::installCode() {
     
     while ((obj = cfgIter++)) {
         obj->installCode();
-
     }
     
     installed_ = true;
@@ -1108,7 +1170,7 @@ Address multiTramp::instToUninstAddr(Address addr) {
             // Ah hell. 
             // Umm... see if we're in the size_ area
             if ((end->addrInMutatee_ <= addr) &&
-                (addr < (end->addrInMutatee_ + size_))) {
+                (addr < (end->addrInMutatee_ + end->size_))) {
                 return end->target();
             }
         }
@@ -1223,7 +1285,7 @@ multiTramp::mtErrorCode_t multiTramp::generateMultiTramp() {
     }
     // TODO: generatedCodeObjects return booleans. We need a broader
     // error return type, probably #defines
-    if (generateCode(jumpBuf_, instAddr_))
+    if (generateCode(jumpBuf_, instAddr_, NULL))
         return mtSuccess;
     else {
         fprintf(stderr, "mt::generateCode failed!!!\n");
@@ -1321,7 +1383,8 @@ bool multiTramp::replaceMultiTramp(multiTramp *oldMulti,
         // what called us.
         assert(newMulti->jumpBuf_ == NULL);
         res = newMulti->generateCode(newMulti->jumpBuf_,
-                                     newMulti->instAddr_);
+                                     newMulti->instAddr_,
+                                     NULL);
         if (!res) return false;
     }
     if (oldMulti->installed()) {
@@ -1881,7 +1944,8 @@ bool multiTramp::catchupRequired(Address pc, miniTramp *newMT,
 }
 
 bool relocatedInstruction::generateCode(codeGen &gen,
-                                        Address baseInMutatee) {
+                                        Address baseInMutatee,
+                                        UNW_INFO_TYPE ** unwindInformation ) {
     if (alreadyGenerated(gen, baseInMutatee))
         return true;
     generateSetup(gen, baseInMutatee);
@@ -1914,6 +1978,40 @@ bool relocatedInstruction::generateCode(codeGen &gen,
 
     size_ = gen.currAddr(baseInMutatee) - addrInMutatee_;
     generated_ = true;
+    
+#if defined( cap_unwind )
+	/* FIXME: a relocated instruction could easily change the unwind state.
+	   IA64-specific: can we ALIAS into the middle of bundles?
+	   Generally, can a relocated instruction tell how far into a basic block (bundle) it is? */
+	dyn_unw_printf( "%s[%d]: aliasing relocated instruction to 0x%lx\n", __FILE__, __LINE__, multiT->instAddr() );
+	unw_dyn_region_info_t * aliasRegion = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 2 ) );
+	assert( aliasRegion != NULL );
+	aliasRegion->insn_count = 0;
+	aliasRegion->op_count = 2;
+	
+	_U_dyn_op_alias( & aliasRegion->op[0], _U_QP_TRUE, -1, multiT->instAddr() );
+	_U_dyn_op_stop( & aliasRegion->op[1] );
+     
+	unw_dyn_region_info_t * relocatedRegion = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 1 ) );
+    assert( relocatedRegion != NULL );
+    
+    relocatedRegion->op_count = 1;
+	_U_dyn_op_stop( & relocatedRegion->op[0] );
+		
+	/* size_ is in bytes. */
+#if defined( arch_ia64 )
+	relocatedRegion->insn_count = (size_ / 16) * 3;
+#else 	
+#error How do I know how many instructions are in the jump region?
+#endif /* defined( arch_ia64 ) */
+
+	/* The care and feeding of pointers. */
+	unw_dyn_region_info_t * prevRegion = * unwindInformation;
+	prevRegion->next = aliasRegion;
+	aliasRegion->next = relocatedRegion;
+	relocatedRegion->next = NULL;
+	* unwindInformation = relocatedRegion;
+#endif /* defined( cap_unwind ) */
     return true;
 }
 
