@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.36 2005/09/14 21:21:33 bernat Exp $
+// $Id: arch-ia64.h,v 1.37 2005/09/15 19:20:35 tlmiller Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -306,6 +306,8 @@ instruction generateFixedPointMultiply( Register destination, Register lhs, Regi
 
 instruction generateShortImmediateBranch( int64_t target25 );
 
+instruction generateShiftLeftAndAdd( Register destination, Register shifted, uint64_t count, Register added );
+
 #include "ast.h"
 instruction generateComparison( opCode op, Register destination, Register lhs, Register rhs );
 instruction generateArithmetic( opCode op, Register destination, Register lhs, Register rhs );
@@ -320,8 +322,8 @@ class registerSpace;
 /* There are twenty-five unstacked integer registers, four application registers,
    and three branch registers which are or must be treated as if they were 
    scratch registers.  We also use a general register to preserve the predicates
-   and the stack pointer. */
-#define NUM_PRESERVED 34
+   and the stack pointer.  Reserve another register for the thread index. */
+#define NUM_PRESERVED 35
 #define NUM_LOCALS 8
 #define NUM_OUTPUT 8
 bool defineBaseTrampRegisterSpaceFor( const instPoint * location, registerSpace * regSpace, Register * deadRegisterList);
