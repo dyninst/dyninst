@@ -284,6 +284,9 @@ irpcLaunchState_t rpcLWP::runPendingIRPC() {
         cerr << "launchRPC failed, couldn't create image" << endl;
         return irpcError;
     }
+    
+    /* Why we don't just pass runningRPC_ into createRPCImage()... */
+	mgr_->proc()->addCodeRange( runningRPC_ );
 
 #if !defined(i386_unknown_nt4_0) \
  && !defined(mips_unknown_ce2_11)
@@ -390,6 +393,7 @@ bool rpcLWP::handleCompletedIRPC() {
     
     // step 2) delete temp tramp
     process *proc = lwp_->proc();
+    proc->deleteCodeRange(runningRPC_->rpcStartAddr);
     proc->inferiorFree(runningRPC_->rpcStartAddr);
 
     // save enough information to call the callback function, if needed

@@ -89,7 +89,13 @@ struct inferiorRPCtoDo {
     dyn_lwp *lwp;
 };
 
-struct inferiorRPCinProgress {
+#include "codeRange.h"
+class inferiorRPCinProgress : public codeRange {
+	public:
+		virtual Address get_address_cr() const { return rpcStartAddr; }
+		virtual unsigned get_size_cr() const { return (rpcCompletionAddr - rpcStartAddr) + 1; }
+		virtual	void * getPtrToInstruction( Address addr ) const { assert( 0 ); return NULL; }
+		        
     struct inferiorRPCtoDo *rpc;
     // Saved state about the RPC
     struct dyn_saved_regs *savedRegs;
