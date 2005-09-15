@@ -382,7 +382,7 @@ RemoteNode::connect_to_backend( int listening_sock_fd, Rank* rank )
     // receive the back-end's idea of its rank
     uint32_t netrank = UnknownRank;
     int rret = ::recv( sock_fd, (char*)&netrank, sizeof(netrank), 0 );
-    if( rret != sizeof(rank) )
+    if( rret != sizeof(Rank) )
     {
         mrn_dbg(1, mrn_printf(FLF, stderr, "failed to receive rank from back-end\n" ));
         XPlat::SocketUtils::Close( sock_fd );
