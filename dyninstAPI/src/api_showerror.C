@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: api_showerror.C,v 1.19 2005/08/25 22:45:08 bernat Exp $
+// $Id: api_showerror.C,v 1.20 2005/09/15 19:20:33 tlmiller Exp $
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -190,6 +190,7 @@ int dyn_debug_proccontrol = 0;
 int dyn_debug_stackwalk = 0;
 int dyn_debug_inst = 0;
 int dyn_debug_reloc = 0;
+int dyn_debug_dyn_unw = 0;
 
 bool init_debug() {
   char *p;
@@ -229,6 +230,10 @@ bool init_debug() {
     fprintf(stderr, "Enabling DyninstAPI relocation debug\n");
     dyn_debug_reloc = 1;
   }
+  if ( (p=getenv("DYNINST_DEBUG_DYN_UNW"))) {
+    fprintf(stderr, "Enabling DyninstAPI dynamic unwind debug\n");
+    dyn_debug_dyn_unw = 1;
+    }
   return true;
 }
 
@@ -346,8 +351,6 @@ int inst_printf(const char *format, ...)
   return ret;
 }
 
-
-
 int reloc_printf(const char *format, ...)
 {
   if (!dyn_debug_reloc) return 0;
@@ -361,4 +364,16 @@ int reloc_printf(const char *format, ...)
   return ret;
 }
 
+int dyn_unw_printf(const char *format, ...)
+{
+  if (!dyn_debug_dyn_unw ) return 0;
+  if (NULL == format) return -1;
+  
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  return ret;
+}
 
