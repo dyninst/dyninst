@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.148 2005/09/15 19:20:41 tlmiller Exp $
+// $Id: inst.C,v 1.149 2005/09/15 22:08:58 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 // Misc constructs.
 
@@ -92,7 +92,6 @@ unsigned findTags(const pdstring ) {
 #endif
 }
 
-#if !defined(arch_ia64)
 // IA64 has its own version; dunno if this would work there, so skipping for now
 unsigned generateAndWriteBranch(process *proc, 
                                 Address fromAddr, 
@@ -109,7 +108,6 @@ unsigned generateAndWriteBranch(process *proc,
     proc->writeTextSpace((caddr_t)fromAddr, gen.used(), gen.start_ptr());
     return gen.used();
 }
-#endif
 
 unsigned trampEnd::maxSizeRequired() {
 #if defined(arch_x86) || defined(arch_x86_64)

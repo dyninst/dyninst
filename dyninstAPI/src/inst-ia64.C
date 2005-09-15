@@ -770,22 +770,6 @@ void emitLoadPreviousStackFrameRegister( Address register_num, Register dest,
 	bundle.generate(gen);
 }
 
-/* Required by inst.C */
-unsigned generateAndWriteBranch( process * proc, 
-								 Address fromAddr, 
-								 Address newAddr,
-								 unsigned fillSize) {
-	// Don't have provisions to fill extra space
-	assert(fillSize == 16);
-	/* Write a branch from fromAddr to newAddr in process proc. */
-	instruction memoryNOP( NOP_M );
-	instruction_x longBranch = generateLongBranchTo( newAddr - fromAddr );
-	IA64_bundle branchBundle( MLXstop, memoryNOP, longBranch );
-	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( fromAddr, proc );
-	iAddr.replaceBundleWith( branchBundle );
-	return 16;
-} /* end generateBranch */
-
 /* in arch-ia64.C */
 extern instruction::unitType INSTRUCTION_TYPE_ARRAY[(0x20 + 1) * 3];
 
@@ -3305,18 +3289,6 @@ bool process::getDynamicCallSiteArgs( instPoint * callSite, pdvector<AstNode *> 
 						
 	return true;
 	} /* end MonitorCallSite() */
-
- 
-bool multiTramp::generateBranchToTramp(codeGen &gen) {
-	// We need to branch from instAddr_ to trampAddr_. We 
-	// do it with a single jump
-	unsigned origUsed = gen.used();
-	instruction_x jumpToBaseInstruction = generateLongBranchTo(trampAddr_ - instAddr_); 
-	IA64_bundle jumpToBaseBundle(MLXstop, instruction(NOP_M), jumpToBaseInstruction);
-	jumpToBaseBundle.generate(gen);
-	branchSize_ = gen.used() - origUsed;
-	return true;
-}
 
 unsigned relocatedInstruction::maxSizeRequired() {
 	// This can be pruned to be a better estimate.

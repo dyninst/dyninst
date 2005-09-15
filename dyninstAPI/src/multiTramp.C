@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.14 2005/09/15 19:20:45 tlmiller Exp $
+// $Id: multiTramp.C,v 1.15 2005/09/15 22:08:59 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -2043,7 +2043,6 @@ bool multiTramp::fillJumpBuf(codeGen &gen) {
 
 // insn: buffer to generate code
 
-#if !defined(arch_ia64)
 // Again, IA64 has its own version. TODO: can it use the same mechanism we use here?
 bool multiTramp::generateBranchToTramp(codeGen &gen)
 {
@@ -2071,7 +2070,6 @@ bool multiTramp::generateBranchToTramp(codeGen &gen)
 
     return true;
 }
-#endif
 
 bool multiTramp::generateTrapToTramp(codeGen &gen) {
     // We're doing a trap. Now, we know that trap addrs are reported
