@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.C,v 1.11 2005/08/25 22:45:23 bernat Exp $
+// $Id: codeRange.C,v 1.12 2005/09/15 19:20:38 tlmiller Exp $
 
 #include <stdio.h>
 #include "codeRange.h"
@@ -50,6 +50,7 @@
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/instPoint.h"
+#include "dyninstAPI/src/rpcMgr.h"
 
 multiTramp *codeRange::is_multitramp() {
     if (dynamic_cast<multiTramp *>(this))
@@ -58,6 +59,10 @@ multiTramp *codeRange::is_multitramp() {
         return (dynamic_cast<instArea *>(this))->multi;
     return NULL;
 }
+
+inferiorRPCinProgress * codeRange::is_inferior_rpc() {
+	return dynamic_cast< inferiorRPCinProgress * >( this );
+	}
 
 // This is a special case... the multitramp is the thing in the
 // codeRange tree, but people think of baseTramps.

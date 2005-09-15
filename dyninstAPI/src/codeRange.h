@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.h,v 1.11 2005/09/01 22:18:10 bernat Exp $
+// $Id: codeRange.h,v 1.12 2005/09/15 19:20:39 tlmiller Exp $
 
 
 #ifndef _codeRangeTree_h_
@@ -77,6 +77,7 @@ class image_func;
 class signal_handler_location;
 class functionReplacement;
 class replacedFunctionCall;
+class inferiorRPCinProgress;
 class image_basicBlock;
 
 class codeRange {
@@ -92,10 +93,12 @@ class codeRange {
     // returns NULL if not of type
     // so some people who don't like dynamic_cast don't have to be troubled
     // by it's use
+    
     // Don't use this; baseTramps aren't top-level members in the
     //process codeRangeByAddr tree. Instead, use multiTramp and
     //getBaseTrampInstance.
     baseTrampInstance *is_basetramp_multi();
+    
     miniTrampInstance *is_minitramp();
 
     // This is actually a fake; we don't have int_functions as
@@ -109,14 +112,12 @@ class codeRange {
     image *is_image();
     mapped_object *is_mapped_object();
     multiTramp *is_multitramp();
-
     image_func *is_image_func();
     image_basicBlock *is_image_basicBlock();
-
     replacedFunctionCall *is_replaced_call();
     functionReplacement *is_function_replacement();
-
     signal_handler_location *is_signal_handler_location();
+    inferiorRPCinProgress *is_inferior_rpc();
 };
 
 class codeRangeTree {
