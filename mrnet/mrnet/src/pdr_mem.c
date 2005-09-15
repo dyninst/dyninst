@@ -315,21 +315,31 @@ bool_t pdrmem_putbytes(PDR *pdrs, char * addr,  uint32_t len)
     return (TRUE);
 }
 
-uint32_t pdrmem_getpos( PDR *pdrs)
+#if defined( os_solaris )
+#include <sys/int_limits.h>
+#endif
+
+/* TODO: is the return size right, given 64-bit pointers? */
+uint32_t pdrmem_getpos( PDR *pdrs )
 {
-    return ((uint32_t)pdrs->cur - (uint32_t)pdrs->base);
+	unsigned long difference = ((unsigned long)pdrs->cur) - ((unsigned long)pdrs->base);
+	assert( difference < UINT32_MAX );
+	return (uint32_t) difference;
 }
 
-bool_t pdrmem_setpos( PDR *pdrs, uint32_t pos)
+/* TODO: is the parameter size right, given 64-bit pointers? */
+bool_t pdrmem_setpos( PDR *pdrs, uint32_t pos )
 {
     char * newaddr = pdrs->base + pos;
     char * lastaddr = pdrs->cur + pdrs->space;
 
-    if ((int32_t)newaddr > (int32_t)lastaddr)
-        return (FALSE);
+	if( newaddr > lastaddr )
+	    return (FALSE);
 
     pdrs->cur = newaddr;
-    pdrs->space = (int32_t)lastaddr - (int32_t)newaddr;
+	unsigned long difference = ((unsigned long)lastaddr) - ((unsigned long)newaddr);
+	assert( difference < UINT32_MAX );   	
+    pdrs->space = difference;
     return (TRUE);
 }
 
