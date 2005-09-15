@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.91 2005/09/09 18:07:34 legendre Exp $
+// $Id: init.C,v 1.92 2005/09/15 19:20:52 tlmiller Exp $
 
 
 #include "paradynd/src/internalMetrics.h"
@@ -110,11 +110,13 @@ void initBPatch() {
   bpatch->setAutoRelocation_NP(true);
   bpatch->setDelayedParsing(false);
 
+#if defined( cap_async_events )
   bpatch->registerThreadEventCallback(BPatch_threadCreateEvent, 
                                         pd_process::pdNewThread);
   bpatch->registerThreadEventCallback(BPatch_threadDestroyEvent, 
                                         pd_process::pdDeadThread);
   bpatch->registerUserEventCallback(recvUserEvent);
+#endif /* defined( cap_async_events ) */  
 }
 
 pdSample computeSamplingRate(const machineMetFocusNode *) {
