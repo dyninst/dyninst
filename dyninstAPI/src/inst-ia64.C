@@ -714,7 +714,7 @@ int getInsnCost( opCode op ) {
 
 /* private refactoring function */
 IA64_bundle generateUnknownRegisterTypeMoveBundle( Address src, Register dest ) {
-	if( (BP_GR0 <= src) && (src <= BP_GR127) ) {
+	if( /* (BP_GR0 <= src) && */ (src <= BP_GR127) ) {
 		instruction moveInsn = generateRegisterToRegisterMove( src, dest );
 		return IA64_bundle( MIIstop, NOP_M, NOP_I, moveInsn );
 	}
@@ -1888,14 +1888,14 @@ bool generatePreservationTrailer( codeGen &gen, bool * whichToPreserve, unw_dyn_
 		fifthMoveBundle.generate(gen);
 		unwindRegion->insn_count += 3;
 		
-		_U_dyn_op_stop( & unwindRegion->op[ unwindRegion->op_count ] );
+		_U_dyn_op_stop( & unwindRegion->op[ unwindRegion->op_count++ ] );
 
 		instruction allocInsn = generateOriginalAllocFor( regSpace );
 		IA64_bundle allocBundle( MIIstop, allocInsn, NOP_I, NOP_I );
 		allocBundle.generate(gen);
 		unwindRegion->insn_count += 3;
 	} else {
-		_U_dyn_op_stop( & unwindRegion->op[ unwindRegion->op_count ] );
+		_U_dyn_op_stop( & unwindRegion->op[ unwindRegion->op_count++ ] );
 	}
 	/* FIXME: It's only after the above alloc executes that anything changes from the
 	   POV of the unwinder, because the preserved values stay where they were
@@ -2594,7 +2594,12 @@ bool baseTramp::generateGuardPreCode(codeGen &gen,
 	IA64_bundle guardOnBundle0( MLXstop,
 								instruction( NOP_M ),
 								generateLongConstantInRegister( trampGuardFlagAddr, trampGuardBase ));
-	
+
+	IA64_bundle guardOnBundle05(	MstopMIstop,
+									generateShiftLeftAndAdd( trampGuardFlagAddr, rs->getRegSlot( 0 )->number - 1, 3, trampGuardFlagAddr ),
+									instruction( NOP_M ),
+									instruction( NOP_I ) );
+			
 	IA64_bundle guardOnBundle1( MstopMIstop,
 								generateRegisterLoad( trampGuardFlagValue, trampGuardFlagAddr, 4 ),
 								generateComparison( eqOp, GUARD_PREDICATE_TRUE, trampGuardFlagValue, REGISTER_ZERO ),
@@ -2611,6 +2616,7 @@ bool baseTramp::generateGuardPreCode(codeGen &gen,
 								generateLongBranchTo( 0 << 4, GUARD_PREDICATE_TRUE ));
 
 	guardOnBundle0.generate(gen);
+	guardOnBundle05.generate(gen);
 	guardOnBundle1.generate(gen);
 	guardOnBundle2.generate(gen);
 	guardJumpIndex = gen.getIndex();
@@ -2632,6 +2638,11 @@ bool baseTramp::generateGuardPostCode(codeGen &gen, codeBufIndex_t &postIndex,
     IA64_bundle guardOffBundle0( MLXstop,
 								 generateShortConstantInRegister( trampGuardFlagValue, 1 ),
 								 generateLongConstantInRegister( trampGuardFlagAddr, proc()->trampGuardBase() ));
+								 
+	IA64_bundle guardOnBundle05(	MstopMIstop,
+									generateShiftLeftAndAdd( trampGuardFlagAddr, rs->getRegSlot( 0 )->number - 1, 3, trampGuardFlagAddr ),
+									instruction( NOP_M ),
+									instruction( NOP_I ) );
 
     IA64_bundle guardOffBundle1( MMIstop,
 								 generateRegisterStore( trampGuardFlagAddr, trampGuardFlagValue, 4 ),
@@ -2674,11 +2685,28 @@ bool baseTramp::generateCostCode( codeGen & gen, unsigned & costUpdateOffset, re
 	} /* end generateCostCode() */
 
 
-bool baseTramp::generateMTCode(codeGen &gen,
-                               registerSpace *) {
+bool baseTramp::generateMTCode( codeGen & gen, registerSpace * rs ) {
+	pdvector< AstNode * > dummy;
 
-	return false;
-}
+	if( this->threaded() ) {
+		AstNode * threadPos = new AstNode( "DYNINSTthreadIndex", dummy );
+		assert( threadPos != NULL );
+		
+		Register src = threadPos->generateCode(	this->proc(), rs, gen,
+												false /* no cost */, true /* root node */ );
+										
+		/* Ray: I'm asserting that we don't use the 35th preserved register for anything. */
+		emitRegisterToRegisterCopy( src, rs->getRegSlot( 0 )->number - 1, gen, rs );
+		
+		removeAst( threadPos );
+		}
+	else {
+		/* Stick a zero in the Known Thread Index register. */
+		emitRegisterToRegisterCopy( BP_GR0, rs->getRegSlot( 0 )->number - 1, gen, rs );		
+		}
+		
+	return true;
+	} /* end generateMTCode() */
 
 void registerRemoteUnwindInformation( unw_word_t di, unw_word_t udil, pid_t pid ) {
 	unw_dyn_info_list_t dummy_dil;
@@ -2726,19 +2754,67 @@ void registerRemoteUnwindInformation( unw_word_t di, unw_word_t udil, pid_t pid 
 	assert( errno == 0 );  
 	} /* end registerRemoteUnwindInformation() */
 
-/* FIXME: copy bTDI and its pointed-to regions into the remote process, adjusting the pointers as we go.
-   Assume that the region's op_count fields are accurate, and only copy over the correct amount. */
-bool insertAndRegisterDynamicUnwindInformation( unw_dyn_info_t * baseTrampDynamicInfo, process * proc ) {
+char * unwindOpTagToString( int8_t op ) {
+	switch( op ) {
+		case UNW_DYN_STOP: return "UNW_DYN_STOP";
+		case UNW_DYN_SAVE_REG: return "UNW_DYN_SAVE_REG";
+		case UNW_DYN_SPILL_FP_REL: return "UNW_DYN_SPILL_FP_REL";
+		case UNW_DYN_SPILL_SP_REL: return "UNW_DYN_SPILL_SP_REL";
+		case UNW_DYN_ADD: return "UNW_DYN_ADD";
+		case UNW_DYN_POP_FRAMES: return "UNW_DYN_POP_FRAMES";
+		case UNW_DYN_LABEL_STATE: return "UNW_DYN_LABEL_STATE";
+		case UNW_DYN_COPY_STATE: return "UNW_DYN_COPY_STATE";
+		case UNW_DYN_ALIAS: return "UNW_DYN_ALIAS";
+		
+		default:
+			return "INVALID";
+		}
+	} /* end unwindOpTagToString() */
+
+void dumpDynamicUnwindInformation( unw_dyn_info_t * unwindInformation, process * proc ) {
+	assert( unwindInformation != NULL );
+
+	Address currentIP = unwindInformation->start_ip;
+	unw_dyn_region_info_t * currentRegion = unwindInformation->u.pi.regions;
+	
+	dyn_unw_printf( "unwind covers: [0x%lx - 0x%lx)\n", unwindInformation->start_ip, unwindInformation->end_ip );
+	for( uint32_t i = 0; currentRegion != NULL; currentRegion = currentRegion->next, ++i ) {
+		Address nextIP = currentIP + ((currentRegion->insn_count / 3) * 16);
+		assert( currentRegion->insn_count % 3 == 0 ); // 0, 1, or 2 is legal, but we only generate bundles.
+		dyn_unw_printf( "region %d: [0x%lx - 0x%lx), %d ops", i, currentIP, nextIP, currentRegion->op_count );
+		for( unsigned int j = 0; j < currentRegion->op_count; ++j ) {
+			dyn_unw_printf( " %s", unwindOpTagToString( currentRegion->op[j].tag ) );
+			}
+		dyn_unw_printf( "\n" );
+		if( currentRegion->op[currentRegion->op_count - 1].tag != UNW_DYN_STOP ) {
+			fprintf( stderr, "*** format error!  last operation in region not UNW_DYN_STOP!\n" );
+			}
+		currentIP = nextIP;
+		}
+
+			
+	if( currentIP != unwindInformation->end_ip ) {
+		fprintf( stderr, "*** consistency failure!  last instruction not last IP! (0x%lx != 0x%lx)\n", currentIP, unwindInformation->end_ip );
+		}
+	} /* end dumpDynamicUnwindInformation() */
+
+/* Copies bTDI and its pointed-to regions into the remote process, adjusting the pointers as it goes.
+   Assumes that the region's op_count fields are accurate, and only copies over the correct amount. */
+bool process::insertAndRegisterDynamicUnwindInformation( unw_dyn_info_t * baseTrampDynamicInfo ) {
+	/* This also does a simple consistency check. */
+	dumpDynamicUnwindInformation( baseTrampDynamicInfo, this );
+	process * proc = this;
+
 	/* Note: assumes no 'handler' routine(s) in baseTrampDynamicInfo->u.pi. */
 	Address addressOfbTDI = proc->inferiorMalloc( sizeof( unw_dyn_info_t ) );
 	assert( addressOfbTDI != (Address)NULL );
-	// /* DEBUG */ fprintf( stderr, "address of baseTrampDynamicInfo = 0x%lx\n", addressOfbTDI );
+	// dyn_unw_printf( "%s[%d]: address of baseTrampDynamicInfo = 0x%lx\n", __FILE__, __LINE__, addressOfbTDI );
 	
 	/* Copying the string over every time is wasteful, but simple. */
 	Address lengthOfName = strlen( (char *) baseTrampDynamicInfo->u.pi.name_ptr );
 	Address addressOfName = proc->inferiorMalloc( lengthOfName + 1 );
 	assert( addressOfName != (Address)NULL );
-	// /* DEBUG */ fprintf( stderr, "address of name = 0x%lx\n", addressOfName );
+	// dyn_unw_printf( "%s[%d]: address of name = 0x%lx\n", __FILE__, __LINE__, addressOfName );
 	
 	assert( proc->writeDataSpace( (void *)addressOfName, lengthOfName + 1, (void *)baseTrampDynamicInfo->u.pi.name_ptr ) );
 	baseTrampDynamicInfo->u.pi.name_ptr = addressOfName;
@@ -2748,18 +2824,18 @@ bool insertAndRegisterDynamicUnwindInformation( unw_dyn_info_t * baseTrampDynami
 	Address sizeOfNextRegion = _U_dyn_region_info_size( nextRegion->op_count );
 	Address addressOfNextRegion = proc->inferiorMalloc( sizeOfNextRegion );
 	baseTrampDynamicInfo->u.pi.regions = (unw_dyn_region_info_t *)addressOfNextRegion;
-	// /* DEBUG */ fprintf( stderr, "nextRegion = %p, sizeOfNextRegion = 0x%lx, addressOfNextRegion = 0x%lx\n", nextRegion, sizeOfNextRegion, addressOfNextRegion );
+	dyn_unw_printf( "%s[%d]: nextRegion = %p, sizeOfNextRegion = 0x%lx, addressOfNextRegion = 0x%lx\n", __FILE__, __LINE__, nextRegion, sizeOfNextRegion, addressOfNextRegion );
 
 	unw_dyn_region_info_t * currentRegion = nextRegion;	
 	Address sizeOfCurrentRegion = sizeOfNextRegion;
 	Address addressOfCurrentRegion = addressOfNextRegion;
-	// /* DEBUG */ fprintf( stderr, "currentRegion = %p, sizeOfCurrentRegion = 0x%lx, addressOfCurrentRegion = 0x%lx\n", currentRegion, sizeOfCurrentRegion, addressOfCurrentRegion );	
+	dyn_unw_printf( "%s[%d]: currentRegion = %p, sizeOfCurrentRegion = 0x%lx, addressOfCurrentRegion = 0x%lx\n", __FILE__, __LINE__, currentRegion, sizeOfCurrentRegion, addressOfCurrentRegion );	
 	
 	/* Copy baseTrampDynamicInfo itself over, now that we've updated all of its pointers. */
 	assert( proc->writeDataSpace( (void *)addressOfbTDI, sizeof( unw_dyn_info_t ), baseTrampDynamicInfo ) );
 	
 	/* Iteratively allocate region (n + 1), update region n, and then copy it over. */
-	// /* DEBUG */ fprintf( stderr, "Beginning iterations over region list.\n" );
+	dyn_unw_printf( "%s[%d]: beginning iterations over region list.\n", __FILE__, __LINE__ );
 	while( currentRegion->next != NULL ) {
 		nextRegion = currentRegion->next;
 		sizeOfNextRegion = _U_dyn_region_info_size( nextRegion->op_count );
@@ -2772,8 +2848,8 @@ bool insertAndRegisterDynamicUnwindInformation( unw_dyn_info_t * baseTrampDynami
 		currentRegion->next = (unw_dyn_region_info_t *)addressOfNextRegion;
 		
 		/* Copy. */
-		// /* DEBUG */ fprintf( stderr, "(at copy) nextRegion = %p, sizeOfNextRegion = 0x%lx, addressOfNextRegion = 0x%lx\n", nextRegion, sizeOfNextRegion, addressOfNextRegion );
-		// /* DEBUG */ fprintf( stderr, "(at copy) currentRegion = %p, sizeOfCurrentRegion = 0x%lx, addressOfCurrentRegion = 0x%lx\n", currentRegion, sizeOfCurrentRegion, addressOfCurrentRegion );	
+		dyn_unw_printf( "%s[%d]: (at copy) nextRegion = %p, sizeOfNextRegion = 0x%lx, addressOfNextRegion = 0x%lx\n", __FILE__, __LINE__, nextRegion, sizeOfNextRegion, addressOfNextRegion );
+		dyn_unw_printf( "%s[%d]: (at copy) currentRegion = %p, sizeOfCurrentRegion = 0x%lx, addressOfCurrentRegion = 0x%lx\n", __FILE__, __LINE__, currentRegion, sizeOfCurrentRegion, addressOfCurrentRegion );	
 		assert( proc->writeDataSpace( (void *)addressOfCurrentRegion, sizeOfCurrentRegion, currentRegion ) );
 
 		/* Iterate. */
@@ -2783,7 +2859,7 @@ bool insertAndRegisterDynamicUnwindInformation( unw_dyn_info_t * baseTrampDynami
 		} /* end region iteration */
 	
 	/* Copy the n + 1 region. */
-	// /* DEBUG */ fprintf( stderr, "(at last copy) currentRegion = %p, sizeOfCurrentRegion = 0x%lx, addressOfCurrentRegion = 0x%lx\n", currentRegion, sizeOfCurrentRegion, addressOfCurrentRegion );	
+	dyn_unw_printf( "%s[%d]: (at last copy) currentRegion = %p, sizeOfCurrentRegion = 0x%lx, addressOfCurrentRegion = 0x%lx\n", __FILE__, __LINE__, currentRegion, sizeOfCurrentRegion, addressOfCurrentRegion );	
 	assert( proc->writeDataSpace( (void *)addressOfCurrentRegion, sizeOfCurrentRegion, currentRegion ) );
 	
 	/* We need the address of the _U_dyn_info_list in the remote process in order
@@ -2794,471 +2870,10 @@ bool insertAndRegisterDynamicUnwindInformation( unw_dyn_info_t * baseTrampDynami
 	Address addressOfuDIL = dyn_info_list.addr();
 	
 	/* Register baseTrampDynamicInfo in remote process. */
-	// /* DEBUG */ fprintf( stderr, "%s[%d]: registering remote address range [0x%lx - 0x%lx) with gp = 0x%lx with uDIL at 0x%lx\n", __FILE__, __LINE__, baseTrampDynamicInfo->start_ip, baseTrampDynamicInfo->end_ip, baseTrampDynamicInfo->gp, addressOfuDIL );
+	dyn_unw_printf( "%s[%d]: registering remote address range [0x%lx - 0x%lx) with gp = 0x%lx with uDIL at 0x%lx\n", __FILE__, __LINE__, baseTrampDynamicInfo->start_ip, baseTrampDynamicInfo->end_ip, baseTrampDynamicInfo->gp, addressOfuDIL );
 	registerRemoteUnwindInformation( addressOfbTDI, addressOfuDIL, proc->getPid() );
 	return true;
 	} /* end insertAndRegisterDynamicUnwindInformation() */
-
-/**
- * We use the same assembler for the basetramp and the header
- * and trailer of an inferior RPC; a basetramp is two header/trailer
- * pairs, with inside each pair and the emulated instructions between
- * them.  The same registerSpace must be used throughout the code
- * generation (including the minitramps) for the results to be sensible.
- */
-
-#if 0
-
-/* private refactoring function */
-#define MAX_BASE_TRAMP_SIZE (16 * 512)	// FIXME: it would be a lot cleaner to determine this dynamically.
-baseTramp * installBaseTramp( Address installationPoint, instPoint * & location, process * proc, bool trampRecursiveDesired = false ) {
-	// /* DEBUG */ fprintf( stderr, "* Installing base tramp.\n" );
-	/* Allocate memory and align as needed. */
-	baseTramp * baseTramp = new baseTramp( location, proc );
-	
-	bool allocErr; Address allocatedAddress = proc->inferiorMalloc( MAX_BASE_TRAMP_SIZE, anyHeap, NEAR_ADDRESS, & allocErr );
-	if( allocErr ) { fprintf( stderr, "Unable to allocate base tramp, aborting.\n" ); abort(); }
-	if( allocatedAddress % 16 != 0 ) { allocatedAddress = allocatedAddress - (allocatedAddress % 16); }
-
-	/* Initialize the tramp template. */
-	baseTramp->baseAddr = allocatedAddress;
-	baseTramp->size = 0;
-
-	/* Based on tramp header/trailer cost. */
-	baseTramp->prevBaseCost = STATE_SAVE_COST + STATE_RESTORE_COST;
-	baseTramp->postBaseCost = STATE_SAVE_COST + STATE_RESTORE_COST;
-	baseTramp->cost = baseTramp->prevBaseCost + baseTramp->postBaseCost;
-
-	/* Acquire the base address of the object we're instrumenting. */
-	Address baseAddress; assert( proc->getBaseAddress( location->getOwner(), baseAddress ) );
-	assert( baseAddress % 16 == 0 );
-
-	Address origBundleAddr = location->pointAddr() & ~0xF;
-	int slotNo = location->pointAddr() % 16;
-
-	// /* DEBUG */ fprintf( stderr, "* Installing base tramp at 0x%lx, emulating instruction at 0x%lx slotNo %d.\n", installationPoint, origBundleAddr + baseAddress, slotNo );
-
-	/* Begin constructing the dynamic unwind information for libunwind. */
-	unw_dyn_info_t * baseTrampDynamicInfo = (unw_dyn_info_t *)calloc( 1, sizeof( unw_dyn_info_t ) );
-	assert( baseTrampDynamicInfo != NULL );
-	
-	baseTrampDynamicInfo->next = NULL;
-	baseTrampDynamicInfo->prev = NULL;
-	
-	/* The first region will simply ALIAS to the instrumentation point. */
-	unw_dyn_region_info_t * regionZero = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 2 ) );
-	assert( regionZero != NULL );
-	
-	regionZero->insn_count = 0;
-	regionZero->op_count = 2;
-	// /* DEBUG */ fprintf( stderr, "aliasing basetramp (beginning) to 0x%lx\n", origBundleAddr + baseAddress );
-	_U_dyn_op_alias( & regionZero->op[0], _U_QP_TRUE, -1, origBundleAddr + baseAddress );
-	_U_dyn_op_stop( & regionZero->op[1] );
-	
-	/* Operations for the base tramp proper; this (probably) grossly overestimates the number of operations. */
-	unw_dyn_region_info_t * regionOne = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( PRESERVATION_UNWIND_OPERATION_COUNT ) );
-	assert( regionOne != NULL );
-	regionZero->next = regionOne;
-	regionOne->next = NULL;
-
-	regionOne->insn_count = 0;
-	regionOne->op_count = 0;
-
-	/* Determine this instrumentation point's regSpace and deadRegisterList (global variables)
-	   for use by the rest of the code generator.  The generatePreservation*() functions need
-	   this information as well. */
-	bool staticallyAnalyzed = defineBaseTrampRegisterSpaceFor( location, regSpace, deadRegisterList );
-	if( ! staticallyAnalyzed ) {
-		fprintf( stderr, "FIXME: Dynamic determination of register frame required but not yet implemented, aborting.\n" );
-		fprintf( stderr, "FIXME: mutatee instrumentation point 0x%lx\n", location->pointAddr() + baseAddress );
-		return NULL;
-		} 
-
-	/* Generate the base tramp in insnPtr, and copy to allocatedAddress. */
-	unsigned int bundleCount = 0;
-	ia64_bundle_t instructions[ MAX_BASE_TRAMP_SIZE ];
-	ia64_bundle_t * insnPtr = instructions;
-
-	/* CODEGEN: Insert the skipPreInsn nop bundle. */
-	IA64_bundle nopBundle( MIIstop, NOP_M, NOP_I, NOP_I );
-	baseTramp->skipPreInsOffset = baseTramp->size;
-	nopBundle.generate(gen);
-	baseTramp->size += 16;
-	regionOne->insn_count += 3;	
-
-	int_function * pdf = location->func();
-
-	/* Insert the preservation header. */
-	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
-	generatePreservationHeader( insnPtr, (Address &) baseTramp->size, pdf->usedFPregs, regionOne );
-
-	/* Update insnPtr to reflect the size of the preservation header. */
-	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
-	bundleCount = 0;
-
-	/* Insert tramp guard (3 bundles) */
-	unsigned int guardCount;
-	if (!trampRecursiveDesired) {
-		guardCount = installTrampGuardOn(regSpace, proc, insnPtr + bundleCount);
-		baseTramp->size += guardCount * 16;
-		bundleCount += guardCount;
-		regionOne->insn_count += guardCount * 3;	
-		}
-
-	/* CODEGEN: Insert the localPre nop bundle.  (Jump to first minitramp.) */
-	baseTramp->localPreOffset = baseTramp->size;
-	insnPtr[bundleCount++] = nopBundle.generate(gen); baseTramp->size += 16; regionOne->insn_count += 3;
-	baseTramp->localPreReturnOffset = baseTramp->size;
-
-	if (!trampRecursiveDesired) {
-		guardCount = installTrampGuardOff(regSpace, proc, insnPtr + bundleCount);
-		baseTramp->size += guardCount * 16;
-		bundleCount += guardCount;
-		regionOne->insn_count += guardCount * 3;	
-	}
-
-	/* Insert the preservation trailer. */
-	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
-	generatePreservationTrailer( insnPtr, (Address &) baseTramp->size, pdf->usedFPregs, regionOne );
-
-	/* generatePreservationTrailer closed off regionOne for me.  Open a new region. */
-	unw_dyn_region_info_t * regionTwoA = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 2 ) );
-	assert( regionTwoA != NULL );
-	regionOne->next = regionTwoA;
-	regionTwoA->next = NULL;
-	
-	/* This third region is the same as the first, in that its state is the same as the instrumented function's. */
-	regionTwoA->insn_count = 0;
-	regionTwoA->op_count = 2;
-	// /* DEBUG */ fprintf( stderr, "aliasing basetramp (middle) to 0x%lx\n", origBundleAddr + baseAddress );
-	_U_dyn_op_alias( & regionTwoA->op[0], _U_QP_TRUE, -1, origBundleAddr + baseAddress );
-	_U_dyn_op_stop( & regionTwoA->op[1] );
-
-	/* Update insnPtr to reflect the size of the preservation trailer. */
-	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
-	bundleCount = 0;
-
-	/* Prepare bundle for emulation */
-	const ia64_bundle_t *origBundlePtr =
-		(const ia64_bundle_t *)location->getOwner()->getPtrToInstruction( origBundleAddr );
-	assert( (Address)origBundlePtr % 16 == 0 );
-	IA64_bundle bundleToEmulate( *origBundlePtr );
-
-	unw_dyn_region_info_t * regionTwoB = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 1 ) );
-	assert( regionTwoB != NULL );
-	regionTwoA->next = regionTwoB;
-	regionTwoB->next = NULL;
-	
-	regionTwoB->insn_count = 0;
-	regionTwoB->op_count = 1;
-	_U_dyn_op_stop( & regionTwoB->op[0] );
-	
-	/* Emulate the instrumented instruction. */
-	baseTramp->emulateInsOffset = baseTramp->size;	
-	unsigned int preEmulationSize = baseTramp->size;
-	emulateBundle( bundleToEmulate, origBundleAddr + baseAddress, insnPtr, bundleCount, (unsigned int &)(baseTramp->size), allocatedAddress, slotNo );	
-	regionTwoB->insn_count = ( (baseTramp->size - preEmulationSize) / 16 ) * 3;
-	
-	/* CODEGEN: Replace the skipPre nop bundle with a jump from it to baseTramp->emulateInsOffset. */
-	unsigned int skipPreJumpBundleOffset = baseTramp->skipPreInsOffset / 16;
-	instruction memoryNOP( NOP_M );
-	instruction_x skipPreJump = generateLongBranchTo( baseTramp->emulateInsOffset - baseTramp->skipPreInsOffset ); 
-	IA64_bundle skipPreJumpBundle( MLXstop, memoryNOP, skipPreJump );
-	instructions[skipPreJumpBundleOffset] = skipPreJumpBundle.generate(gen);
-
-	/* CODEGEN: Insert the skipPost nop bundle. */
-	baseTramp->skipPostInsOffset = baseTramp->size;
-	insnPtr[bundleCount++] = nopBundle.generate(gen); baseTramp->size += 16;
-	regionTwoB->insn_count += 3;	
-	
-	/* Open region three. */
-	unw_dyn_region_info_t * regionThree = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( PRESERVATION_UNWIND_OPERATION_COUNT ) );
-	assert( regionThree != NULL );
-	regionTwoB->next = regionThree;
-	regionThree->next = NULL;
-	
-	regionThree->insn_count = 0;
-	regionThree->op_count = 0;
-
-	/* Insert the preservation header. */
-	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
-	generatePreservationHeader( insnPtr, (Address &) baseTramp->size, pdf->usedFPregs, regionThree );
-
-	/* Update insnPtr to reflect the size of the preservation header. */
-	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
-	bundleCount = 0;
-
-	/* Insert the recursion guard. */
-	if (!trampRecursiveDesired) {
-		guardCount = installTrampGuardOn(regSpace, proc, insnPtr + bundleCount);
-		baseTramp->size += guardCount * 16;
-		bundleCount += guardCount;
-		regionThree->insn_count += guardCount * 3;	
-		}
-
-	/* CODEGEN: Insert the localPost nop bundle. */
-	baseTramp->localPostOffset = baseTramp->size;
-	insnPtr[bundleCount++] = nopBundle.generate(gen); baseTramp->size += 16; regionThree->insn_count += 3;	
-	baseTramp->localPostReturnOffset = baseTramp->size;
-
-	if (!trampRecursiveDesired) {
-		guardCount = installTrampGuardOff(regSpace, proc, insnPtr + bundleCount);
-		baseTramp->size += guardCount * 16;
-		bundleCount += guardCount;
-		regionThree->insn_count += guardCount * 3;
-		}
-
-	/* Insert the preservation trailer. */
-	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
-	generatePreservationTrailer( insnPtr, (Address &) baseTramp->size, pdf->usedFPregs, regionThree );
-
-	/* generatePreservationTrailer closed off regionThree for me.  Open a new region. */
-	unw_dyn_region_info_t * regionFourA = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 2 ) );
-	assert( regionFourA != NULL );
-	regionThree->next = regionFourA;
-	regionFourA->next = NULL;
-	
-	/* This fifth region is the same as the first and third, in that its state is the same as the instrumented function's. */
-	regionFourA->insn_count = 0;
-	regionFourA->op_count = 2;
-	// /* DEBUG */ fprintf( stderr, "aliasing basetramp (end) to 0x%lx\n", origBundleAddr + baseAddress );
-	_U_dyn_op_alias( & regionFourA->op[0], _U_QP_TRUE, -1, origBundleAddr + baseAddress );
-	_U_dyn_op_stop( & regionFourA->op[1] );	
-
-	/* Update insnPtr to reflect the size of the preservation trailer. */
-	insnPtr = (ia64_bundle_t *)( ((Address)instructions) + baseTramp->size );
-	bundleCount = 0;
-
-	/* The jump to skip post-instrumentation should land here. */
-	baseTramp->returnInsOffset = baseTramp->size;
-
-	unw_dyn_region_info_t * regionFourB = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 1 ) );
-	assert( regionFourB != NULL );
-	regionFourA->next = regionFourB;
-	regionFourB->next = NULL;
-
-	regionFourB->insn_count = 0;
-	regionFourB->op_count = 1;
-	_U_dyn_op_stop( & regionFourB->op[0] );	
-
-	/* Insert the jump back to the multi-tramp. */
-	Address returnAddress = installationPoint + 16;
-	instruction_x returnFromTrampoline = generateLongBranchTo( returnAddress - (baseTramp->baseAddr + baseTramp->size) );
-	IA64_bundle returnBundle( MLXstop, memoryNOP, returnFromTrampoline );
-	insnPtr[bundleCount++] = returnBundle.generate(gen); baseTramp->size += 16;
-	regionFourB->insn_count += 3;
-
-	/* Replace the skipPost nop bundle with a jump from it to baseTramp->returnInsOffset. */
-	unsigned int skipPostJumpBundleOffset = baseTramp->skipPostInsOffset / 16;
-	instruction_x skipPostJump = generateLongBranchTo( baseTramp->returnInsOffset - baseTramp->skipPostInsOffset );
-	IA64_bundle skipPostJumpBundle( MLXstop, memoryNOP, skipPostJump );
-	instructions[skipPostJumpBundleOffset] = skipPostJumpBundle.generate(gen);
-
-	/* Copy the instructions from hither to thither. */
-	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( allocatedAddress, proc );
-	iAddr.writeBundlesFrom( (unsigned char *)instructions, baseTramp->size / 16  );
-
-	/* Insert the jump from the multi-tramp.  Do NOT execute at instPoint's instrumentation
-	   if the corresponding instruction will not execute because of predication. */
-	// /* DEBUG */ if( location->iPgetInstruction()->getPredicate() != 0 ) { fprintf( stderr, "%s[%d]: Predicating jump at 0x%lx (for 0x%lx) with PR %d, machine code 0x%lx\n", __FILE__, __LINE__, installationPoint, location->pointAddr() + baseAddress, location->iPgetInstruction()->getPredicate(), location->iPgetInstruction()->generate(gen) ); }
-	instruction_x jumpToBaseInstruction = generateLongBranchTo( allocatedAddress - installationPoint, location->iPgetInstruction()->getPredicate() );
-	IA64_bundle jumpToBaseBundle( MLXstop, memoryNOP, jumpToBaseInstruction );
-	InsnAddr jAddr = InsnAddr::generateFromAlignedDataAddress( installationPoint, proc );
-	jAddr.replaceBundleWith( jumpToBaseBundle );
-
-	/* Fill out the dynamic unwind accounting information. */	
-	baseTrampDynamicInfo->start_ip = baseTramp->baseAddr;
-	baseTrampDynamicInfo->end_ip = baseTramp->baseAddr + baseTramp->size + 0x10;
-	baseTrampDynamicInfo->gp = proc->getTOCoffsetInfo( origBundleAddr + baseAddress );
-	baseTrampDynamicInfo->format = UNW_INFO_FORMAT_DYNAMIC;
-
-	baseTrampDynamicInfo->u.pi.name_ptr = (unw_word_t) "dynamic instrumentation: base tramp";
-	baseTrampDynamicInfo->u.pi.handler = (Address)NULL;
-	baseTrampDynamicInfo->u.pi.regions = regionZero;
-
-	/* DEBUG: Walk through the region list and dump insn/op counts. */
-	// unw_dyn_region_info_t * region = regionZero;
-	// for( int i = 0; region != NULL; i++, region = region->next ) {
-		// fprintf( stderr, "%s[%d]: region[%d]: ops: %u, instructions: %d\n", __FILE__, __LINE__, i, region->op_count, region->insn_count );
-		// } /* end DEBUG loop */
-		
-	/* Insert the dynamic unwind information in the remote process and register it. */
-	assert( insertAndRegisterDynamicUnwindInformation( baseTrampDynamicInfo, proc ) );
-	
-	free( regionFourB );
-	free( regionFourA );
-	free( regionThree );
-	free( regionTwoB );
-	free( regionTwoA );
-	free( regionOne );
-	free( regionZero );
-	free( baseTrampDynamicInfo );
-
-	// /* DEBUG */ fprintf( stderr, "* Installed base tramp at 0x%lx, from 0x%lx (local 0x%lx)\n", baseTramp->baseAddr, installationPoint, (Address)instructions );
-	// /* DEBUG */ fprintf( stderr, "Installed base tramp of size 0x%x (of 0x%x) at 0x%lx.\n", baseTramp->size, MAX_BASE_TRAMP_SIZE, allocatedAddress );
-	assert( baseTramp->size < MAX_BASE_TRAMP_SIZE );
-	proc->addCodeRange( allocatedAddress, baseTramp );
-	return baseTramp;
-	} /* end installBaseTramp() */
-
-/* Expands a single bundle to 10 bundles.  Three for each instruction,
- * (the maximum possible emulated size) and one for the long jump back
- * to continue normal execution.  Aids per-instruction (as opposed to
- * per-bundle) instrumentation.
- */
-Address installMultiTramp(instPoint * & location, process *proc)
-{
-	bool allocErr;
-	Address origBundleAddr = location->pointAddr() & ~0xF;
-	Address allocatedAddress = proc->inferiorMalloc( sizeof(struct ia64_bundle_t) * 10,
-													 anyHeap,
-													 NEAR_ADDRESS,
-													 &allocErr );
-	if( allocErr ) { fprintf( stderr, "Unable to allocate multi tramp, aborting.\n" ); abort(); }
-	allocatedAddress -= allocatedAddress % 16;
-
-    // Acquire the base address of the object we're instrumenting.
-    Address baseAddress; assert( proc->getBaseAddress( location->getOwner(), baseAddress ) );
-    assert( baseAddress % 16 == 0 );
-
-	const ia64_bundle_t *origBundlePtr =
-		(const ia64_bundle_t *)location->getOwner()->getPtrToInstruction( origBundleAddr );
-	assert( (Address)origBundlePtr % 16 == 0 );
-	IA64_bundle bundleToEmulate( *origBundlePtr );
-	origBundleAddr += baseAddress;
-
-	unsigned int bundleCount = 0;
-	unsigned int size = 0;
-	ia64_bundle_t insnBuffer[10];
-	IA64_bundle nopBundle( MMI, NOP_M, NOP_M, NOP_I );
-
-	// Prepare multi-tramp slot 0
-	emulateBundle( bundleToEmulate, origBundleAddr, insnBuffer,
-				   bundleCount, size, allocatedAddress, 0 );
-	while( bundleCount < 3 ) {
-		insnBuffer[ bundleCount++ ] = nopBundle.generate(gen); size += 16;
-		}
-
-	// Prepare multi-tramp slot 1
-	emulateBundle( bundleToEmulate, origBundleAddr, insnBuffer,
-				   bundleCount, size, allocatedAddress, 1 );
-	while( bundleCount < 6 ) {
-		insnBuffer[ bundleCount++ ] = nopBundle.generate(gen); size += 16;
-		}
-
-	// Prepare multi-tramp slot 2 (if needed)
-	if (!bundleToEmulate.hasLongInstruction())
-		emulateBundle( bundleToEmulate, origBundleAddr, insnBuffer,
-					   bundleCount, size, allocatedAddress, 2 );
-	while( bundleCount < 9 ) {
-		insnBuffer[ bundleCount++ ] = nopBundle.generate(gen); size += 16;
-		}
-
-    instruction_x returnToOrig = generateLongBranchTo( (origBundleAddr + 0x10) -
-															(allocatedAddress + 0x90) );
-    IA64_bundle returnBundle( MLXstop, instruction(NOP_M), returnToOrig );
-    insnBuffer[ bundleCount++ ] = returnBundle.generate(gen); size += 16;
-
-	// Copy the instructions into mutatee.
-    InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( allocatedAddress, proc );
-    iAddr.writeBundlesFrom( (unsigned char *)insnBuffer, 10 );
-
-	// Replace original bundle
-	instruction_x jumpToBaseInstruction = generateLongBranchTo( allocatedAddress - origBundleAddr );
-	IA64_bundle jumpToBaseBundle( MLXstop, instruction(NOP_M), jumpToBaseInstruction );
-	InsnAddr jAddr = InsnAddr::generateFromAlignedDataAddress( origBundleAddr, proc );
-	jAddr.replaceBundleWith( jumpToBaseBundle );
-	
-	/* Take care of unwind information book-keeping. */
-	unw_dyn_info_t * multiTrampDynamicInfo = (unw_dyn_info_t *)calloc( 1, sizeof( unw_dyn_info_t ) );
-	assert( multiTrampDynamicInfo != NULL );
-	
-	multiTrampDynamicInfo->next = NULL;
-	multiTrampDynamicInfo->prev = NULL;
-
-	/* This region will simply ALIAS to the instrumentation point. */
-	unw_dyn_region_info_t * regionZero = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 2 ) );
-	assert( regionZero != NULL );
-	
-	regionZero->op_count = 2;
-	regionZero->insn_count = 30;
-	_U_dyn_op_alias( & regionZero->op[0], _U_QP_TRUE, -1, origBundleAddr );
-	_U_dyn_op_stop( & regionZero->op[1] );
-
-	regionZero->next = NULL;
-	
-	multiTrampDynamicInfo->start_ip = allocatedAddress;
-	multiTrampDynamicInfo->end_ip = allocatedAddress + (10 * 0x10) + 0x10;
-	multiTrampDynamicInfo->gp = proc->getTOCoffsetInfo( origBundleAddr );
-	multiTrampDynamicInfo->format = UNW_INFO_FORMAT_DYNAMIC;	
-			
-    multiTrampDynamicInfo->u.pi.name_ptr = (unw_word_t) "dynamic instrumentation: multi tramp";
-    multiTrampDynamicInfo->u.pi.regions = regionZero;
-	
-	insertAndRegisterDynamicUnwindInformation( multiTrampDynamicInfo, proc );
-
-	/* It's apparently normal to duplicate the value of ->get_addr() in the call to addCodeRange(). */
-	multibaseTramp * mttemplate = new multibaseTramp( allocatedAddress, 10 * 0x10, location );
-	assert( mttemplate != NULL );
-	proc->addCodeRange( allocatedAddress, mttemplate );
-	
-	return allocatedAddress;
-}
-
-/* Required by inst.C */
-baseTramp * findOrInstallBaseTramp( process * proc, instPoint * & location,
-										returnInstance * & retInstance,
-										bool trampRecursiveDesired,
-										bool / *noCost */, bool & /* deferred */, bool /* allowTrap */ ) {
-	/* FIXME: handle the latter three booleans. */
- 
-	/* proc->baseMap is in the relevant variable here; check to see if the given
-	   instPoint already has a base tramp ("find"), and if not, "install" one. */
-	
-	/* "find" */
-	if( proc->baseMap.defines( location ) ) { return proc->baseMap[location]; }
-
-	/* Pre-"install" */
-	Address multiTrampAddress;
-	/* FIXME: should this be pointAddr() + baseAddr? */
-	if( proc->multiTrampMap.defines( location->pointAddr() & ~0xF )) {
-		multiTrampAddress = proc->multiTrampMap[ location->pointAddr() & ~0xF ];
-	} else {
-		multiTrampAddress = installMultiTramp(location, proc);
-		if (!multiTrampAddress) return NULL;
-		proc->multiTrampMap[ location->pointAddr() & ~0xF ] = multiTrampAddress;
-	}
-
-	/* Clear the multi-tramp slot (3 bundles) to prepare for basetramp install */
-	ia64_bundle_t emptySlot[3];
-	IA64_bundle nopBundle( MMI, NOP_M, NOP_M, NOP_I);
-	emptySlot[0] = nopBundle.generate(gen);
-	emptySlot[1] = nopBundle.generate(gen);
-	emptySlot[2] = nopBundle.generate(gen);
-
-	int slotNo = (location->pointAddr() % 16);
-	Address installAddr = multiTrampAddress + (slotNo * 0x30);
-	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( installAddr, proc );
-	iAddr.writeBundlesFrom( (unsigned char *)emptySlot, 3 );
-
-	/* "install" */
-	baseTramp * installedBaseTramp = installBaseTramp( installAddr, location,
-														   proc, trampRecursiveDesired );
-	/* FIXME */ if( installedBaseTramp == NULL ) { return NULL; }
-	proc->baseMap[location] = installedBaseTramp;
-
-	/* We've already written the return instruction.  No need for
-	   addInstFunc() to write it again. */
-	retInstance = NULL;
-
-	return installedBaseTramp;
-	} /* end findOrInstallBaseTramp() */
-
-void generateMTpreamble(char *, Address &, process *) {
-	assert( 0 );	// We don't yet handle multiple threads.
-	} /* end generateMTpreamble() */
-
-#endif
 
 /* Required by ast.C */
 void emitFuncJump(opCode op, codeGen &gen, const int_function *callee,
@@ -3500,92 +3115,6 @@ bool doNotOverflow( int /*value*/ ) {
 	return false;
 } /* end doNotOverflow() */
 
-#if 0
-/* Required by inst.C; install a single mini-tramp */
-void installTramp( miniTramp *mtHandle,
-				   process *proc,
-				   char *code, int codeSize) {
-	/* Book-keeping. */
-	totalMiniTramps++; insnGenerated += codeSize / 16;
-	
-	/* Write the minitramp. */
-	// /* DEBUG */ fprintf( stderr, "* Installing minitramp at 0x%lx\n", mtHandle->miniTrampBase );
-	proc->writeDataSpace( (caddr_t)mtHandle->miniTrampBase, codeSize, code );
-	
-	/* Update the dynamic unwind information. */
-	unw_dyn_info_t * miniTrampDynamicInfo = (unw_dyn_info_t *)calloc( 1, sizeof( unw_dyn_info_t ) );
-	assert( miniTrampDynamicInfo != NULL );
-	
-	miniTrampDynamicInfo->next = NULL;
-	miniTrampDynamicInfo->prev = NULL;
-	
-	/* The first and only region will simply ALIAS to the jump to it. */
-	unw_dyn_region_info_t * regionZero = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 2 ) );
-	assert( regionZero != NULL );
-	
-	regionZero->insn_count = 0;
-	regionZero->op_count = 2;
-	
-	unw_dyn_region_info_t * regionOne = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 2 ) );
-	assert( regionOne != NULL );
-
-	regionZero->next = regionOne;
-	regionOne->next = NULL;
-	
-	regionOne->insn_count = ( codeSize / 16 ) * 3;
-	regionOne->op_count = 1;
-	_U_dyn_op_stop( & regionOne->op[ 0 ] );
-
-	/* The pre- and post- jumps to the minitramps have the same frame state. */
-	Address jumpToMiniTrampAddress = mtHandle->baseTramp->baseAddr + mtHandle->baseTramp->localPreOffset;
-	// /* DEBUG */ fprintf( stderr, "aliasing minitramp to 0x%lx\n", jumpToMiniTrampAddress );
-	_U_dyn_op_alias( & regionZero->op[0], _U_QP_TRUE, -1, jumpToMiniTrampAddress );
-	_U_dyn_op_stop( & regionZero->op[1] );
-	
-	/* Acquire the remote address from which one jumps to this minitramp's basetramp. */
-	Address installationPoint = mtHandle->baseTramp->location->pointAddr();
-	int slotNo = installationPoint % 16;
-	installationPoint = installationPoint - slotNo;
-	
-	Address baseAddress; assert( proc->getBaseAddress( mtHandle->baseTramp->location->getOwner(), baseAddress ) );
-	assert( baseAddress % 16 == 0 );
-	installationPoint += baseAddress;
-
-	/* Fill out the rest of the book-keeping. */
-	miniTrampDynamicInfo->start_ip = mtHandle->miniTrampBase;
-	miniTrampDynamicInfo->end_ip = mtHandle->miniTrampBase + codeSize + 0x10;
-	miniTrampDynamicInfo->gp = proc->getTOCoffsetInfo( installationPoint );
-	miniTrampDynamicInfo->format = UNW_INFO_FORMAT_DYNAMIC;	
-			
-    miniTrampDynamicInfo->u.pi.name_ptr = (unw_word_t) "dynamic instrumentation: mini tramp";
-    miniTrampDynamicInfo->u.pi.regions = regionZero;
-
-	assert( insertAndRegisterDynamicUnwindInformation( miniTrampDynamicInfo, proc ) );
-
-	free( regionZero );
-	free( miniTrampDynamicInfo );
-    
-	/* Make sure that it's not skipped. */
-	Address insertNOPAt = 0;
-	if( mtHandle->when == callPreInsn && mtHandle->baseTramp->prevInstru == false ) {
-		mtHandle->baseTramp->cost += mtHandle->baseTramp->prevBaseCost;
-		insertNOPAt = mtHandle->baseTramp->baseAddr + mtHandle->baseTramp->skipPreInsOffset;
-		mtHandle->baseTramp->prevInstru = true;
-		} 
-	else if( mtHandle->when == callPostInsn && mtHandle->baseTramp->postInstru == false ) {
-		mtHandle->baseTramp->cost += mtHandle->baseTramp->postBaseCost;
-		insertNOPAt = mtHandle->baseTramp->baseAddr + mtHandle->baseTramp->skipPostInsOffset;
-		mtHandle->baseTramp->postInstru = true;
-		}
-	
-	/* Only write the NOP if appropriate. */
-	if( insertNOPAt != 0 ) {
-		InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( insertNOPAt, proc );
-		iAddr.replaceBundleWith( IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ) );
-	}
-} /* end installTramp() */
-#endif
-
 /* Required by ast.C */
 void emitVstore( opCode op, Register src1, Register src2, Address dest,
 				 codeGen &gen,  bool /*noCost*/, registerSpace * rs, int size,
@@ -3729,52 +3258,6 @@ uint64_t InsnAddr::operator * () {
 	return bundle.getInstruction( offset )->getMachineCode();
 } /* end operator * () */
 
-/* Implementation of IA64_iterator. */
-
-#if 0
-IA64_iterator::IA64_iterator( Address addr ) : encodedAddress( addr ) {
-	currentBundle = IA64_bundle( *(ia64_bundle_t*)addr );
-	} /* end constructor */
-
-bool operator < ( IA64_iterator lhs, IA64_iterator rhs ) {
-	return ( lhs.encodedAddress < rhs.encodedAddress );
-	} /* end operator < () */
-
-instruction * IA64_iterator::operator * () {
-	/* Compute the instruction slot. */
-	unsigned short offset = encodedAddress % 16;
-
-	/* Return the appropriate instruction. */
-	return currentBundle.getInstruction( offset );
-	} /* end operator * */
-
-/* FIXME: rewrite in terms of prefix increment. */
-const IA64_iterator IA64_iterator::operator++ ( int ) {
-	/* Preserve the return value. */
-	IA64_iterator rv = * this;
-
-	/* Align the instruction address and compute in the offset. */
-	unsigned short offset = encodedAddress % 16;
-	Address alignedOffset = encodedAddress - offset;
-
-	/* Advance an instruction. */
-	if( currentBundle.hasLongInstruction() && offset == 0 ) { offset += 2; }
-	else { offset++; }
-	
-	/* Maintain the invariant. */
-	if( offset > 2 ) {
-		encodedAddress = alignedOffset + 16;
-		// currentBundle = IA64_bundle( *(ia64_bundle_t*)encodedAddress );
-		new( & currentBundle ) IA64_bundle( *(ia64_bundle_t*)encodedAddress );
-		} else {
-		encodedAddress++;
-		}
-
-	/* Return the proper value. */
-	return rv;
-	} /* end operator ++ */
-#endif
-
 /* For AIX "on the fly" register allocation. */
 bool registerSpace::clobberRegister( Register ) {
 	return false;
@@ -3850,39 +3333,17 @@ bool baseTrampInstance::finalizeGuardBranch( codeGen & gen, int displacement ) {
 	return true;
 }
 
-bool baseTramp::generateSaves(codeGen &gen, registerSpace *rs) {
-	 // Unwind information starts
-	 
-#if 0
-	 baseTrampDynamicInfo = (unw_dyn_info_t *)calloc(1, sizeof(unw_dyn_info_t));
-	 assert(baseTrampDynamicInfo != NULL);
+bool baseTramp::generateSaves( codeGen & gen, registerSpace * rs ) {
+	assert( baseTrampRegion == NULL );
+	assert( rs != NULL );
 
-	 baseTrampDynamicInfo->next = NULL;
-	 baseTrampDynamicInfo->prev = NULL;
-#endif
-
-#if 0
-	 // This needs to hit the multi tramp, I think.
-
-	 /* The first region will simply ALIAS to the instrumentation point. */
-	 unw_dyn_region_info_t * regionZero = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 2 ) );
-	 assert( regionZero != NULL );
-	 
-	 regionZero->insn_count = 0;
-	 regionZero->op_count = 2;
-	 // /* DEBUG */ fprintf( stderr, "aliasing basetramp (beginning) to 0x%lx\n", origBundleAddr + baseAddress );
-	 _U_dyn_op_alias( & regionZero->op[0], _U_QP_TRUE, -1, point->addr );
-	 _U_dyn_op_stop( & regionZero->op[1] );
-#endif
-	 
-	 /* Operations for the base tramp proper; this (probably) grossly overestimates the number of operations. */
-	 baseTrampRegion = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( PRESERVATION_UNWIND_OPERATION_COUNT ) );
-	 assert( baseTrampRegion != NULL );
-
-	 //regionOne->next = NULL;
-	 
-	 baseTrampRegion->insn_count = 0;
-	 baseTrampRegion->op_count = 0;
+	/* Operations for the base tramp proper; this (probably) grossly overestimates the number of operations. */
+	baseTrampRegion = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( PRESERVATION_UNWIND_OPERATION_COUNT ) );
+	assert( baseTrampRegion != NULL );
+	
+	baseTrampRegion->insn_count = 0;
+	baseTrampRegion->op_count = 0;
+	baseTrampRegion->next = NULL;
 
 	/* Determine this instrumentation point's regSpace and deadRegisterList (global variables)
 	   for use by the rest of the code generator.  The generatePreservation*() functions need
@@ -3892,45 +3353,15 @@ bool baseTramp::generateSaves(codeGen &gen, registerSpace *rs) {
 		fprintf( stderr, "FIXME: Dynamic determination of register frame required but not yet implemented, aborting.\n" );
 		fprintf( stderr, "FIXME: mutatee instrumentation point 0x%lx\n", point()->addr() );
 		return false;
-	} 
+		} 
 
-	return generatePreservationHeader(gen, point()->func()->usedFPregs, baseTrampRegion);
- }
+	return generatePreservationHeader( gen, point()->func()->usedFPregs, baseTrampRegion );
+	} /* end generateSaves() */
 
- bool baseTramp::generateRestores(codeGen &gen, registerSpace *rs) {
-	 // Unwind information starts
-	 
-#if 0
-	 baseTrampDynamicInfo = (unw_dyn_info_t *)calloc(1, sizeof(unw_dyn_info_t));
-	 assert(baseTrampDynamicInfo != NULL);
-
-	 baseTrampDynamicInfo->next = NULL;
-	 baseTrampDynamicInfo->prev = NULL;
-#endif
-
-#if 0
-	 // This needs to hit the multi tramp, I think.
-
-	 /* The first region will simply ALIAS to the instrumentation point. */
-	 unw_dyn_region_info_t * regionZero = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 2 ) );
-	 assert( regionZero != NULL );
-	 
-	 regionZero->insn_count = 0;
-	 regionZero->op_count = 2;
-	 // /* DEBUG */ fprintf( stderr, "aliasing basetramp (beginning) to 0x%lx\n", origBundleAddr + baseAddress );
-	 _U_dyn_op_alias( & regionZero->op[0], _U_QP_TRUE, -1, point->addr );
-	 _U_dyn_op_stop( & regionZero->op[1] );
-#endif
-	 
-	 /* Operations for the base tramp proper; this (probably) grossly overestimates the number of operations. */
-#if 0
-	 baseTrampRegion = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( PRESERVATION_UNWIND_OPERATION_COUNT ) );
-	 assert( baseTrampRegion != NULL );
-	 regionOne->next = NULL;
-	 
-	 baseTrampRegion->insn_count = 0;
-	 baseTrampRegion->op_count = 0;
-#endif	 
+bool baseTramp::generateRestores( codeGen & gen, registerSpace * rs ) {
+	assert( baseTrampRegion != NULL );
+	assert( rs != NULL );
+	
 	/* Determine this instrumentation point's regSpace and deadRegisterList (global variables)
 	   for use by the rest of the code generator.  The generatePreservation*() functions need
 	   this information as well. */
@@ -3941,9 +3372,8 @@ bool baseTramp::generateSaves(codeGen &gen, registerSpace *rs) {
 		return false;
 		} 
 	
-	return generatePreservationTrailer(gen, point()->func()->usedFPregs, baseTrampRegion);
-	}
-
+	return generatePreservationTrailer( gen, point()->func()->usedFPregs, baseTrampRegion );
+	}  /* end generateRestores() */
 
 unsigned baseTramp::getBTCost() {
 	/* This seems to be defined to return a random constant.  Lovely. */
