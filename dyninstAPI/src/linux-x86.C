@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.79 2005/09/09 19:19:49 gquinn Exp $
+// $Id: linux-x86.C,v 1.80 2005/09/15 19:01:20 gquinn Exp $
 
 #include <fstream>
 
@@ -499,6 +499,7 @@ void calcVSyscallFrame(process *p)
   // FIXME: HACK to disable vsyscall page for AMD64, for now
   p->setVsyscallRange(0x1000, 0x0);
   p->setVsyscallData(NULL);
+  return;
 #endif
 
   /**

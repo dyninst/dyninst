@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.19 2005/08/25 22:45:40 bernat Exp $
+// $Id: inst-x86.h,v 1.20 2005/09/15 19:01:20 gquinn Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
@@ -173,14 +173,6 @@
 #define REGNUM_R13 (13)
 #define REGNUM_R14 (14)
 #define REGNUM_R15 (15)
-
-// on AMD64, we sometimes can't reach our minitramp from the basetramp with
-// a direct jump. we always can on x86
-#if defined(arch_x86_64)
-#define BASE_TO_MINI_JMP_SIZE 12
-#else
-#define BASE_TO_MINI_JMP_SIZE JUMP_REL32_SZ
-#endif
 
 // 32 and 64-bit register spaces
 extern registerSpace* regSpace32;

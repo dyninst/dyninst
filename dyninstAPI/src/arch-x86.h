@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.33 2005/09/14 21:21:39 bernat Exp $
+// $Id: arch-x86.h,v 1.34 2005/09/15 19:01:20 gquinn Exp $
 // x86 instruction declarations
 
 #if !defined(i386_unknown_solaris2_5) \
@@ -397,9 +397,11 @@ Address get_target(const unsigned char *instr, unsigned type, unsigned size,
 // Size of a call rel32 instruction
 #define CALL_REL32_SZ (5)
 
-// Xplat: how much will it take to do a full-range branch.
-// TODO: update for AMD64
-#define FULL_RANGE_BRANCH_SIZE JUMP_REL32_SZ
+#if defined(arch_x86_64)
+// size of instruction seqeunce to get anywhere in address space
+// without touching any registers
+#define JUMP_ABS64_SZ (17)
+#endif
 
 #define PUSH_RM_OPC1 (0xFF)
 #define PUSH_RM_OPC2 (6)
@@ -532,6 +534,14 @@ int displacement(const unsigned char *instr, unsigned type);
 
 int sizeOfMachineInsn(instruction *insn);
 long addressOfMachineInsn(instruction *insn);
+#if defined(arch_x86_64)
+inline bool is_disp32(long disp) {
+  return (disp <= I32_MAX && disp >= I32_MIN);
+}
+inline bool is_disp32(Address a1, Address a2) {
+  return is_disp32(a2 - (a1 + JUMP_REL32_SZ));
+}
+#endif
 
 int get_instruction_operand(const unsigned char *i_ptr, Register& base_reg,
 			    Register& index_reg, int& displacement, 

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.8 2005/09/02 22:07:52 bernat Exp $
+ * $Id: image-x86.C,v 1.9 2005/09/15 19:01:20 gquinn Exp $
  */
 
 #include "common/h/Vector.h"
@@ -109,7 +109,7 @@ bool isRealCall(instruction insn, Address adr, image *img,
    //    These two instructions are specified by the bytes 0xc3241c8b
    //
 
-   int targetOffset = insn.getTarget(adr);
+   Address targetOffset = insn.getTarget(adr);
  
    if ( !img->isValidAddress(targetOffset) ) {
        //parsing_printf("... Call to 0x%x is invalid (outside code or data)\n",

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.36 2005/09/14 21:21:38 bernat Exp $
+// $Id: arch-x86.C,v 1.37 2005/09/15 19:01:20 gquinn Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -3357,8 +3357,28 @@ void instruction::generateTrap(codeGen &gen) {
 
 void instruction::generateBranch(codeGen &gen,
                                  Address fromAddr, Address toAddr) {
-    int disp32 = (int)(toAddr - (fromAddr + JUMP_REL32_SZ));
-    generateBranch(gen, disp32);
+
+  long disp = toAddr - (fromAddr + JUMP_REL32_SZ);
+
+#if defined(arch_x86_64)
+  if (!is_disp32(disp)) {
+
+    // need to use an indirect jmp
+    GET_PTR(insn, gen);
+    for (int i = 3; i >= 0; i--) {
+      short word = (toAddr >> (16 * i)) & 0xffff;
+      *insn++ = 0x66; // operand size override
+      *insn++ = 0x68; // push immediate (16-bits w/ prefix)
+      *(short *)insn = word;
+      insn += 2;
+    }
+    *insn++ = 0xC3; // RET
+    SET_PTR(insn, gen);
+    return;
+  }
+#endif
+  
+  generateBranch(gen, disp);
 }
 
 void instruction::generateBranch(codeGen &gen,
@@ -3711,10 +3731,22 @@ bool instruction::generate(codeGen &gen,
 }
 
 unsigned instruction::jumpSize(Address from, Address to) {
-    // Overkill!
+
+#if defined(arch_x86)
     return JUMP_REL32_SZ;
+#else
+    long disp = to - (from + JUMP_REL32_SZ);
+    if (is_disp32(disp))
+      return JUMP_REL32_SZ;
+    else
+      return JUMP_ABS64_SZ;
+#endif
 }
 
 unsigned instruction::maxJumpSize() {
+#if defined(arch_x86)
     return JUMP_REL32_SZ;
+#else
+    return JUMP_ABS64_SZ;
+#endif
 }
