@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.46 2005/08/25 22:45:11 bernat Exp $
+// $Id: arch-ia64.C,v 1.47 2005/09/15 19:20:34 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -1342,3 +1342,21 @@ instruction *instruction::copy() const {
 instruction_x *instruction_x::copy() const {
 	return new instruction_x(insn_, insn_x_, templateID);
 }
+
+instruction generateShiftLeftAndAdd( Register destination, Register shifted, uint64_t count, Register added ) {
+	insn_tmpl shladd = { 0x0 };
+
+	shladd.A2.opcode = 8;
+	shladd.A2.x2a = 0;
+	shladd.A2.ve = 0;
+	shladd.A2.x4 = 4;
+	
+	shladd.A2.r1 = destination;
+	shladd.A2.r2 = shifted;
+	shladd.A2.r3 = added;
+	
+	assert( 1 <= count && count <= 4 );
+	shladd.A2.ct2d = count - 1;
+
+	return instruction( shladd.raw );
+	} /* end generateShiftLeftAndAdd() */
