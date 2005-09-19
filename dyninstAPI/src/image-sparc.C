@@ -40,7 +40,7 @@
  */
 
 
-// $Id: image-sparc.C,v 1.3 2005/09/01 22:18:20 bernat Exp $
+// $Id: image-sparc.C,v 1.4 2005/09/19 23:05:16 bernat Exp $
 
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
@@ -353,8 +353,13 @@ bool image_func::findInstPoints(pdvector<Address> &callTargets)
                                       leadersToBlock,
                                       jmpTargets);
                     }                        
-                    
+                    // Delay slots..
+                    if (ah.getInstruction().isDCTI()) {
+                        // Skip delay slot
+                        ah++;
+                    }
                     Address t2 = ah.peekNext();
+
                     if (t2 < getEndOffset()) {
                         addBasicBlock(t2,
                                       currBlk,
