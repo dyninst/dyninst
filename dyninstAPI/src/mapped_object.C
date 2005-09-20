@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.8 2005/09/09 18:06:51 legendre Exp $
+// $Id: mapped_object.C,v 1.9 2005/09/20 19:07:36 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -82,6 +82,21 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
     codeBase_ = fileDesc.code();
     dataBase_ = fileDesc.data();
 
+#if 0
+    fprintf(stderr, "Creating new mapped_object %s/%s\n",
+            fullName_.c_str(), getFileDesc().member().c_str());
+    fprintf(stderr, "codeBase 0x%x, codeOffset 0x%x, size %d\n",
+            codeBase_, image_->codeOffset(), image_->codeLength());
+    fprintf(stderr, "dataBase 0x%x, dataOffset 0x%x, size %d\n",
+            dataBase_, image_->dataOffset(), image_->dataLength());
+    fprintf(stderr, "fileDescriptor: code at 0x%x, data 0x%x\n",
+            fileDesc.code(), fileDesc.data());
+    fprintf(stderr, "text reloc: 0x%lx, data reloc: 0x%lx\n",
+            image_->getObject().text_reloc(), 
+            image_->getObject().data_reloc());
+#endif
+            
+
 #if defined(arch_power)
     // AIX defines "virtual" addresses for an a.out inside the file as
     // well as when the system loads the object. As far as I can tell,
@@ -96,11 +111,25 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
     if (image_->codeOffset() >= codeBase_) {
         codeBase_ = 0;
     }
+    else if (image_->codeOffset() <= 0x1fffffff) {
+        // GCC-ism. This is a shared library with a a.out-like codeOffset.
+        // We need to make our base the difference between the two...
+        codeBase_ -= image_->codeOffset();
+        codeBase_ += image_->getObject().text_reloc();
+    }
     else {
+        // codeBase_ is the address that the chunk was loaded at; the actual interesting
+        // bits start within the chunk. So add in text_reloc (actually, "offset from start
+        // of file to interesting bits"). 
+        // Non-GCC shared libraries.
         codeBase_ += image_->getObject().text_reloc();
     }
     if (image_->dataOffset() >= dataBase_) {
         dataBase_ = 0;
+    }
+    else if (image_->dataOffset() <= 0x2fffffff) {
+        // More GCC-isms. 
+        dataBase_ -= image_->dataOffset();
     }
     else {
         // *laughs* You'd think this was the same way, right?
@@ -108,17 +137,6 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
         // For some reason we don't need to add in the data_reloc_...
         //dataBase_ += image_->getObject().data_reloc();
     }
-#endif
-
-#if 0
-    fprintf(stderr, "Creating new mapped_object %s/%s\n",
-            fullName_.c_str(), getFileDesc().member().c_str());
-    fprintf(stderr, "codeBase 0x%x, codeOffset 0x%x, size %d\n",
-            codeBase_, image_->codeOffset(), image_->codeLength());
-    fprintf(stderr, "dataBase 0x%x, dataOffset 0x%x, size %d\n",
-            dataBase_, image_->dataOffset(), image_->dataLength());
-    fprintf(stderr, "fileDescriptor: code at 0x%x, data 0x%x\n",
-            fileDesc.code(), fileDesc.data());
 #endif
 
     // Sets "fileName_"
@@ -601,7 +619,6 @@ void mapped_object::addFunction(int_function *func) {
             funcsByPrettyEntry = new pdvector<int_function *>;
             allFunctionsByPrettyName[pretty_name] = funcsByPrettyEntry;
         }
-        
         (*funcsByPrettyEntry).push_back(func);
     }
     
@@ -622,9 +639,7 @@ void mapped_object::addFunction(int_function *func) {
         
         (*funcsBySymTabEntry).push_back(func);
     }  
-    
     everyUniqueFunction[func->ifunc()] = func;
-    
     func->mod()->addFunction(func);
 }  
 
@@ -712,8 +727,6 @@ const pdstring mapped_object::debugString() const {
 void mapped_object::getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const {
     pdvector<Symbol> foundHeapSyms;
 
-    
-
     parse_img()->findSymByPrefix("DYNINSTstaticHeap", foundHeapSyms);
     parse_img()->findSymByPrefix("_DYNINSTstaticHeap", foundHeapSyms);
 
@@ -773,7 +786,17 @@ void mapped_object::getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const 
         // We also have the loader; there is no information on where
         // it goes (ARGH) so we pad the end of the code segment to
         // try and avoid it.
-        start = codeAbs() + codeSize() + image_->getObject().loader_len();
+
+        Address loader_end = codeAbs() + 
+            image_->getObject().loader_off() +
+            image_->getObject().loader_len();
+        // If we loaded it up in the data segment, don't use...
+        if (loader_end > 0x20000000)
+            loader_end = 0;
+        Address code_end = codeAbs() + codeSize();
+
+        start = (loader_end > code_end) ? loader_end : code_end;
+
         start += instruction::size() - (start % (Address)instruction::size());
         size = (0x20000000 - start);
     }
