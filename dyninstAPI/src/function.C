@@ -403,9 +403,6 @@ const pdvector<int_basicBlock *> &int_function::blocks() {
             }
         }
     }
-    if (blockList.size() == 0) {
-        fprintf(stderr, "WARNING: no blocks in function %s!\n", symTabName().c_str());
-    }
     // And a quick consistency check...
     return blockList;
 }
