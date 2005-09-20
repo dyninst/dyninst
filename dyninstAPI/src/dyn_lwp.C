@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.29 2005/09/09 18:06:36 legendre Exp $
+ * $Id: dyn_lwp.C,v 1.30 2005/09/20 19:07:51 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -128,6 +128,7 @@ bool dyn_lwp::continueLWP(int signalToContinueWith) {
    bool ret = continueLWP_(signalToContinueWith);
    if(ret == false) {
       perror("continueLWP()");
+      return false;
    }
 
 #if !defined(mips_unknown_ce2_11) && !defined(i386_unknown_nt4_0)
