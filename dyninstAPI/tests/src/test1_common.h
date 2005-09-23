@@ -93,8 +93,8 @@
      & globalVariable36_7, globalVariable36_8, globalVariable36_9,
      & globalVariable36_10
 
-	LOGICAL passedTest (37)
-	LOGICAL runTest (37)
+	LOGICAL passedTest (40)
+	LOGICAL runTest (40)
 
 	DOUBLE PRECISION globalVariable20_2
 

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.12 2005/07/06 18:27:51 rchen Exp $
+# $Id: Makefile,v 1.13 2005/09/23 23:49:44 jodom Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -15,7 +15,7 @@ include $(TO_CORE)/make.config
 # Now make any necessary architecture specific changes to variables:
 
 # Uncomment M_G77 (at yr own risk) to do g77 build
-#M_G77 = g77
+M_G77 = g77
 
 NATIVE_FC = xlf90
 NATIVE_FORTRAN_CC = gcc
@@ -27,8 +27,11 @@ COMMA=,
 CXXFLAGS += -DUSES_DYNAMIC_INF_HEAP -g -DAIX5 -Wa,-many
 CFLAGS += -DUSES_DYNAMIC_INF_HEAP -g -DAIX5 -Wa,-many
 
-MUTATEE_NATIVE_FFLAGS += -U -WF,-Drs6000_ibm_aix4_1 -qnolm -qfixed -w -g -WF,-DAIX5
+MUTATEE_NATIVE_FFLAGS += -U -WF,-Drs6000_ibm_aix4_1 -qnolm -qfixed -w -g -WF,-DAIX5,-DXLF
 MUTATEE_NATIVE_FC_LDFLAGS += -g -bgcbypass:3 -ldl `$(GCC) -print-libgcc-file-name`
+MUTATEE_G77_FFLAGS += -Drs6000_ibm_aix4_1 -DAIX5 -DF77 -fno-second-underscore -g
+MUTATEE_G77_CFLAGS += $(filter-out -Wl$(COMMA)-export-dynamic, $(MUTATEE_CFLAGS_GNU))
+MUTATEE_G77_CFLAGS += -DF77 -DFortran -g $(MUTATEE_FFLAGS) -c
 TEST1_FORTRAN_CSOURCE = test1.mutateeFortC.c
 
 TEST6_AS_GNU = as
@@ -50,7 +53,7 @@ MUTATEE_CFLAGS_NATIVE = $(UNIFIED_DEF)
 MUTATEE_CFLAGS_NATIVE += -D__XLC__ -qnoinline -qnooptimize 
 MUTATEE_CXXFLAGS_NATIVE = $(MUTATEE_CFLAGS_NATIVE) -+
 MUTATEE_CFLAGS_NATIVE += -qcpluscmt
-MUTATEE_NATIVE_FC_CFLAGS = $(MUTATEE_CFLAGS_NATIVE)
+MUTATEE_NATIVE_FC_CFLAGS = $(MUTATEE_CFLAGS_NATIVE) -DXLF
 
 MUTATOR_CXXFLAGS = $(UNIFIED_DEF) 
 

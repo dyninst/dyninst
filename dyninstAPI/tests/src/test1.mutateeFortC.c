@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutateeFortC.c,v 1.14 2005/03/19 19:08:13 jodom Exp $ */
+/* $Id: test1.mutateeFortC.c,v 1.15 2005/09/23 23:49:46 jodom Exp $ */
 
 #include <stdlib.h>
 #include "test1.mutateeCommon.h"
@@ -139,7 +139,7 @@ struct block_ {
    int passedTest_ [40];
 };
 
-#if defined (sparc_sun_solaris2_4) || defined(alpha_dec_osf4_0) || defined(i386_unknown_linux2_0)
+#if !defined(XLF)
 #define func1_1 func1_1_
 #define func2_1 func2_1_
 #define func3_1 func3_1_

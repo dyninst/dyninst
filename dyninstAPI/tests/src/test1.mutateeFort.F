@@ -47,12 +47,16 @@
 
 ! AIX xlf90 does not insert underscores at end
 
-#if defined(sparc_sun_solaris2_4) \
- || defined(alpha_dec_osf4_0) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(ia64_unknown_linux2_4)
+#if !defined(XLF)
 #define stop_process_ stop_process
+#endif
+
+#ifdef __GNUC__
+#define AND iand
+#define OR ior
+#else
+#define AND and
+#define OR or
 #endif
 
 !------------------------------------------------------------------------------
@@ -863,7 +867,11 @@
 
 	SUBROUTINE func13_1 (p1, p2, p3, p4, p5)
 #include "test1_common.h"
+#ifdef __GNUC__
+	INTRINSIC iand
+#else
 	INTRINSIC and
+#endif
 	INTEGER p1, p2, p3, p4, p5, temp, func13_2
 
 	temp = func13_2 ()
@@ -890,22 +898,22 @@
 		if (p5 .ne. 135) then
 			print *, '  parameter 5 is ', p5, ', not 135'
 		endif
-		if (and (globalVariable13_1, 1) .eq. 0) then
+		if (AND (globalVariable13_1, 1) .eq. 0) then
 			print *, '    passed param a1 wrong'
 		endif
-		if (and (globalVariable13_1, 2) .eq. 0) then
+		if (AND (globalVariable13_1, 2) .eq. 0) then
 			print *, '    passed param a2 wrong'
 		endif
-		if (and (globalVariable13_1, 4) .eq. 0) then
+		if (AND (globalVariable13_1, 4) .eq. 0) then
 			print *, '    passed param a3 wrong'
 		endif
-		if (and (globalVariable13_1, 8) .eq. 0) then
+		if (AND (globalVariable13_1, 8) .eq. 0) then
 			print *, '    passed param a4 wrong'
 		endif
-		if (and (globalVariable13_1, 16) .eq. 0) then
+		if (AND (globalVariable13_1, 16) .eq. 0) then
 			print *, '    passed param a5 wrong'
 		endif
-		if (and (globalVariable13_1, 32) .eq. 0) then
+		if (AND (globalVariable13_1, 32) .eq. 0) then
 			print *, '    return value wrong'
 		endif
 	endif
@@ -922,23 +930,27 @@
 
 	SUBROUTINE call13_1 (a1, a2, a3, a4, a5)
 #include "test1_common.h"
+#ifdef __GNUC__
+	INTRINSIC ior
+#else
 	INTRINSIC or
+#endif
 	INTEGER a1, a2, a3, a4, a5
 
 	if (a1 .eq. 131) then
-		globalVariable13_1 = or (globalVariable13_1, 1)
+		globalVariable13_1 = OR (globalVariable13_1, 1)
 	endif
 	if (a2 .eq. 132) then
-		globalVariable13_1 = or (globalVariable13_1, 2)
+		globalVariable13_1 = OR (globalVariable13_1, 2)
 	endif
 	if (a3 .eq. 133) then
-		globalVariable13_1 = or (globalVariable13_1, 4)
+		globalVariable13_1 = OR (globalVariable13_1, 4)
 	endif
 	if (a4 .eq. 134) then
-		globalVariable13_1 = or (globalVariable13_1, 8)
+		globalVariable13_1 = OR (globalVariable13_1, 8)
 	endif
 	if (a5 .eq. 135) then
-		globalVariable13_1 = or (globalVariable13_1, 16)
+		globalVariable13_1 = OR (globalVariable13_1, 16)
 	endif
 	END
 
@@ -946,11 +958,15 @@
 
 	SUBROUTINE call13_2 (ret)
 #include "test1_common.h"
+#ifdef __GNUC__
+	INTRINSIC ior
+#else
 	INTRINSIC or
+#endif
 	INTEGER ret
 
 	if (ret .eq. 1300100) then
-		globalVariable13_1 = or (globalVariable13_1, 32)
+		globalVariable13_1 = OR (globalVariable13_1, 32)
 	endif
 	END
 
