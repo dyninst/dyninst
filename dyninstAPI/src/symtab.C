@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.255 2005/09/09 18:07:06 legendre Exp $
+ // $Id: symtab.C,v 1.256 2005/09/23 23:50:38 jodom Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1545,9 +1545,8 @@ void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> 
                   (*mod_langs)[working_module] = lang_CPlusPlus;
                   break;
                case DW_LANG_Fortran77:
-                  (*mod_langs)[working_module] = lang_Fortran;
-                  break;
                case DW_LANG_Fortran90:
+               case DW_LANG_Fortran95:
                   (*mod_langs)[working_module] = lang_Fortran;
                   break;
                default:

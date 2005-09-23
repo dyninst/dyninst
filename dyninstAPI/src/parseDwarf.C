@@ -155,6 +155,7 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE, char ** loBound
 	switch( module->getLanguage() ) {
 		case BPatch_fortran:
 		case BPatch_fortran90:
+	    case BPatch_fortran95:
 			* loBound = "1";
 			break;
 		case BPatch_c:
@@ -1076,7 +1077,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				/* If we're fortran, get rid of the trailing _ */
 				BPatch_language language = module->getLanguage();
 				if ( ( language == BPatch_fortran ||
-					 language == BPatch_fortran90 ) &&
+					 language == BPatch_fortran90 ||
+					 language == BPatch_fortran95 ) &&
 					 variableName[strlen(variableName)-1]=='_') 
 				   variableName[strlen(variableName)-1]='\0';
 
@@ -1800,6 +1802,9 @@ void BPatch_module::parseDwarfTypes() {
 					break;
 				case DW_LANG_Fortran90:
 					setLanguage( BPatch_fortran90 );
+					break;
+			    case DW_LANG_Fortran95:
+				    setLanguage( BPatch_fortran95 );
 					break;
 				default:
 					/* We know what the language is but don't care. */

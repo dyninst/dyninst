@@ -58,8 +58,9 @@ typedef enum BPatch_language {
     BPatch_cPlusPlus, 
     BPatch_fortran, 
     BPatch_fortran77, 
-    BPatch_fortran90, 
+    BPatch_fortran90,
     BPatch_f90_demangled_stabstr, 
+    BPatch_fortran95,
     BPatch_assembly, 
     BPatch_mixed, 
     BPatch_hpf, 
@@ -125,6 +126,7 @@ class BPATCH_DLL_EXPORT BPatch_sourceObj {
 	case BPatch_fortran77: return "BPatch_fortran77";
 	case BPatch_fortran90: return "BPatch_fortran90";
 	case BPatch_f90_demangled_stabstr: return "BPatch_fortran90_demangled_stabstr";
+        case BPatch_fortran95: return "BPatch_fortran95";
 	case BPatch_assembly: return "BPatch_assembly";
 	case BPatch_mixed: return "BPatch_mixed";
 	case BPatch_hpf: return "BPatch_hpf";
