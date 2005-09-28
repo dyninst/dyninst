@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.219 2005/09/14 21:21:48 bernat Exp $
+ * $Id: inst-x86.C,v 1.220 2005/09/28 17:03:07 bernat Exp $
  */
 #include <iomanip>
 
@@ -129,6 +129,7 @@ int deadList64Size = sizeof(deadList64);
 
 void initTramps(bool is_multithreaded)
 {
+
     static bool inited = false;
 
     if (inited) return;
@@ -227,7 +228,6 @@ bool baseTrampInstance::finalizeGuardBranch(codeGen &gen,
 bool baseTramp::generateCostCode(codeGen &gen, unsigned &costUpdateOffset,
                                  registerSpace *) {
     Address costAddr = proc()->getObservedCostAddr();
-    inst_printf("costAddr is 0x%x\n", costAddr);
     if (!costAddr) return false;
 
     return x86_emitter->emitBTCostCode(this, gen, costUpdateOffset);
