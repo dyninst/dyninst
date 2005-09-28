@@ -41,7 +41,7 @@
 
 /************************************************************************
  * RTaix.c: clock access functions for AIX.
- * $Id: RTetc-aix.c,v 1.43 2004/07/28 07:24:48 jaw Exp $
+ * $Id: RTetc-aix.c,v 1.44 2005/09/28 17:03:23 bernat Exp $
  ************************************************************************/
 
 #include <malloc.h>
@@ -293,7 +293,7 @@ DYNINSTgetCPUtime_hw(void) {
                 cpuPrevious-now, now, cpuPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
-      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
+      PARADYNgenerateTraceRecord(TR_ERROR, sizeof(traceData), &traceData,
 				 1, 1);
     }
     cpuRollbackOccurred++;
@@ -341,7 +341,7 @@ DYNINSTgetCPUtime_sw(void) {
                 tmp_cpuPrevious - now, now, tmp_cpuPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
-      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
+      PARADYNgenerateTraceRecord(TR_ERROR, sizeof(traceData), &traceData,
 				 1, 1);
     }
     cpuRollbackOccurred++;
@@ -376,7 +376,7 @@ DYNINSTgetWalltime_hw(void) {
                 tmp_wallPrevious - now, now, tmp_wallPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
-      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
+      PARADYNgenerateTraceRecord(TR_ERROR, sizeof(traceData), &traceData,
 				 1, 1);
     }
     wallRollbackOccurred++;
@@ -432,7 +432,7 @@ DYNINSTgetWalltime_sw(void) {
                 tmp_wallPrevious - now, now, tmp_wallPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
-      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
+      PARADYNgenerateTraceRecord(TR_ERROR, sizeof(traceData), &traceData,
 				 1, 1);
     }
     wallRollbackOccurred++;
@@ -501,8 +501,8 @@ void DYNINSTsystem() {
            "release will remedy this limitation.");
    traceData.errorNum = 127;
    traceData.msgType = rtError;
-   DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 
-                              1, 1, 1);
+   PARADYNgenerateTraceRecord(TR_ERROR, sizeof(traceData), &traceData, 
+                              1, 1);
    sleep(2);
    assert(0);
 }
@@ -512,8 +512,6 @@ unsigned PARADYNgetFD(unsigned lwp)
 {
   return 0;
 }
-
-#ifdef MT_THREAD
 
 rawTime64
 DYNINSTgetCPUtime_LWP(unsigned lwp_id, unsigned fd) {
@@ -540,4 +538,3 @@ DYNINSTgetCPUtime_LWP(unsigned lwp_id, unsigned fd) {
   return 0;
 #endif
 }
-#endif

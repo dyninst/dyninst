@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-aix.C,v 1.36 2005/09/09 18:07:30 legendre Exp $
+// $Id: init-aix.C,v 1.37 2005/09/28 17:03:21 bernat Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/pd_process.h"
@@ -137,8 +137,8 @@ bool initOS()
     // Official gotten-from-tracing name. While pthread_create() is the
     // call made from user space, _pthread_body is the parent of any created
     // thread, and so is a good place to instrument.
-    mapping = new pdinstMapping("_pthread_body", "DYNINST_dummy_create",
-                              FUNC_ENTRY, BPatch_callBefore, BPatch_firstSnippet);
+    pdinstMapping *mapping = new pdinstMapping("_pthread_body", "DYNINST_dummy_create",
+                                               FUNC_ENTRY, BPatch_callBefore, BPatch_firstSnippet);
     mapping->markAs_MTonly();
     initialRequestsPARADYN.push_back(mapping);
 

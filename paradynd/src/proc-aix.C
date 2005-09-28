@@ -120,36 +120,36 @@ rawTime64 pd_thread::getRawCpuTime_hw()
    if (get_lwp() > 0) 
       lwp_to_use = get_lwp();
    else {
-      /* If we need to get the data for the entire process (ie. lwp_id_ == 0)
-         then we need to the pm_get_data_group function requires any lwp in
-         the group, so we'll grab the lwp of any active thread in the
-         process */
-      if(getthrds(pd_proc->, &thrd_buf, sizeof(struct thrdsinfo), 
-                  &indexPtr, 1) == 0) {
-         // perhaps the process ended
-         return -1;
-      }
-      lwp_to_use = thrd_buf.ti_tid;
+       /* If we need to get the data for the entire process (ie. get_lwp() == 0)
+          then we need to the pm_get_data_group function requires any lwp in
+          the group, so we'll grab the lwp of any active thread in the
+          process */
+       if(getthrds(pd_proc->getPid(), &thrd_buf, sizeof(struct thrdsinfo), 
+                   &indexPtr, 1) == 0) {
+           // perhaps the process ended
+           return -1;
+       }
+       lwp_to_use = thrd_buf.ti_tid;
    }
 
    // PM counters are only valid when the process is paused. 
-   bool needToCont = (proc_->status() == running);
+   bool needToCont = !(pd_proc->isStopped());
    if(needToCont) { // process running
-      if(! proc_->pause()) {
+      if(!pd_proc->pause()) {
          return -1;  // pause failed, so returning failure
       }
    }
 
    pm_data_t data;
-   if(lwp_id_ > 0) 
-      ret = pm_get_data_thread(proc_->getPid(), lwp_to_use, &data);
+   if(get_lwp() > 0) 
+      ret = pm_get_data_thread(pd_proc->getPid(), lwp_to_use, &data);
    else {  // lwp == 0, means get data for the entire process (ie. all lwps)
-      ret = pm_get_data_group(proc_->getPid(), lwp_to_use, &data);
+      ret = pm_get_data_group(pd_proc->getPid(), lwp_to_use, &data);
       while(ret) {
          // if failed, could have been because the lwp (retrieved via
          // getthrds) was in process of being deleted.
          //cerr << "  prev lwp_to_use " << lwp_to_use << " failed\n";
-         if(getthrds(proc_->getPid(), &thrd_buf, sizeof(struct thrdsinfo), 
+         if(getthrds(pd_proc->getPid(), &thrd_buf, sizeof(struct thrdsinfo), 
                      &indexPtr, 1) == 0) {
             // couldn't get a valid lwp, go to standard error handling
             ret = 1;
@@ -157,15 +157,15 @@ rawTime64 pd_thread::getRawCpuTime_hw()
          }
          lwp_to_use = thrd_buf.ti_tid;
          //cerr << "  next lwp_to_use is " << lwp_to_use << "\n";
-         ret = pm_get_data_group(proc_->getPid(), lwp_to_use, &data);
+         ret = pm_get_data_group(pd_proc->getPid(), lwp_to_use, &data);
       }
    }
 
    if (ret) {
-      if(!proc_->hasExited()) {
+      if(!pd_proc->hasExited()) {
          pm_error("dyn_lwp::getRawCpuTime_hw: pm_get_data_thread", ret);
          bperr( "Attempted pm_get_data(%d, %d, %d)\n",
-		 proc_->getPid(), lwp_id_, lwp_to_use);
+		 pd_proc->getPid(), get_lwp(), lwp_to_use);
       }
       return -1;
    }
@@ -173,15 +173,15 @@ rawTime64 pd_thread::getRawCpuTime_hw()
 
    // Continue the process
    if(needToCont) {
-      proc_->continueProc();
+      pd_proc->continueProc();
    }
 
    //if(pos_junk != 101)
-   //  ct_record(pos_junk, result, hw_previous_, lwp_id_, lwp_to_use);
+   //  ct_record(pos_junk, result, hw_previous_, get_lwp(), lwp_to_use);
 
    if(result < hw_previous_) {
       cerr << "rollback in dyn_lwp::getRawCpuTime_hw, lwp_to_use: " 
-           << lwp_to_use << ", lwp: " << lwp_id_ << ", result: " << result 
+           << lwp_to_use << ", lwp: " << get_lwp() << ", result: " << result 
            << ", previous result: " << hw_previous_ << "\n";
       result = hw_previous_;
    }
@@ -223,17 +223,12 @@ rawTime64 pd_thread::getRawCpuTime_sw()
   struct fdsinfo fdsInfoBuf[numProcsWanted];
   int numProcsReturned;
   // The pid sent to getProcs() is modified, so make a copy
-  pid_t wantedPid = proc_->getPid();
+  pid_t wantedPid = pd_proc->getPid();
   // We really don't need to recalculate the size of the structures
   // every call through here. The compiler should optimize these
   // to constants.
   const int sizeProcInfo = sizeof(struct procsinfo);
   const int sizeFdsInfo = sizeof(struct fdsinfo);
-  
-  if (lwp_id_ > 0) {
-    // Whoops, we _really_ don't want to do this. 
-    cerr << "Error: calling software timer routine with a valid kernel thread ID" << endl;
-  }
   
   numProcsReturned = getprocs(procInfoBuf,
 			      sizeProcInfo,
