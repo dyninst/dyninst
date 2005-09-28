@@ -901,6 +901,49 @@ BPatchSnippetHandle *BPatch_process::insertSnippetWhen(const BPatch_snippet &exp
 }
 
 
+// HACK
+// Group-wise insertion of snippets
+void BPatch_process::insertSnippetBatch(const BPatch_Vector<BPatch_snippet *> &exprs,
+                                        const BPatch_Vector<BPatch_point *> &points) {
+    // Make all sorts of assumptions for simplicity.
+    pdvector<instPoint *> ips;
+
+    for (unsigned i = 0; i < points.size(); i++) {
+        BPatch_point *point = points[i];
+        BPatch_callWhen when;
+        
+        if (point->getPointType() == BPatch_exit) {
+            when = BPatch_callAfter;
+        } else {
+            when = BPatch_callBefore;
+        }
+        BPatch_snippetOrder order = BPatch_firstSnippet;
+
+        // Build the internal arguments based on inputs and BPatch_point 
+        // overrides
+        
+        callWhen ipWhen;
+        callOrder ipOrder;
+        
+        if (!BPatchToInternalArgs(*point, when, order, ipWhen, ipOrder))
+            continue;
+       
+        AstNode *ast = exprs[i]->ast;
+        instPoint *&ip = (instPoint*&) point->point;
+        bool use_recursive_tramps = BPatch::bpatch->isTrampRecursive();
+
+        ip->addInst(ast, ipWhen, ipOrder, 
+                    use_recursive_tramps, false);
+        ips.push_back(ip);
+    }
+    for (unsigned i = 0; i < ips.size(); i++) {
+        ips[i]->generateInst();
+        ips[i]->installInst();
+        ips[i]->linkInst();
+    }
+}
+               
+
 /*
  * BPatch_process::insertSnippet
  *
@@ -959,9 +1002,9 @@ BPatchSnippetHandle *BPatch_process::insertSnippetAtPoints(
       BPatch_callWhen when;
 
       if (point->getPointType() == BPatch_exit) {
-         when = BPatch_callAfter;
+          when = BPatch_callAfter;
       } else {
-         when = BPatch_callBefore;
+          when = BPatch_callBefore;
       }
       
       BPatchSnippetHandle *ret = insertSnippet(expr, *point, when, order);

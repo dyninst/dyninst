@@ -451,6 +451,11 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
                                          const BPatch_Vector<BPatch_point *> &points,
                                          BPatch_callWhen when,
                                          BPatch_snippetOrder order = BPatch_firstSnippet));
+
+    API_EXPORT_V(Batch, (exprs, points), 
+                 void, insertSnippet, (const BPatch_Vector<BPatch_snippet *> &exprs,
+                                       const BPatch_Vector<BPatch_point *> &points));
+                                       
     
     //  BPatch_process::deleteSnippet
     //  
