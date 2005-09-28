@@ -131,28 +131,15 @@ int_function::int_function(const int_function *parFunc,
 #endif
     version_(parFunc->version_)
  {
+     unsigned i; // Windows hates "multiple definitions"
+
      // Construct the raw blocklist;
-     for (unsigned i = 0; i < parFunc->blockList.size(); i++) {
+     for (i = 0; i < parFunc->blockList.size(); i++) {
          int_basicBlock *block = new int_basicBlock(parFunc->blockList[i], this);
          blockList.push_back(block);
-         // And push into object codeRange...
-         obj()->codeRangesByAddr_.insert(blockList.back()->origInstance());
      }
      
-     // And hook up sources/targets
-     for (unsigned i = 0; i < blockList.size(); i++) {
-         int_basicBlock *child = blockList[i];
-         int_basicBlock *parent = parFunc->blockList[i];
-         for (unsigned t = 0; t < parent->targets_.size(); t++) {
-             child->targets_.push_back(blockList[parent->targets_[t]->id()]);
-         }
-         for (unsigned s = 0; s < parent->sources_.size(); s++) {
-             child->sources_.push_back(blockList[parent->sources_[s]->id()]);
-         }
-     }         
-
-
-     for (unsigned i = 0; i < parFunc->entryPoints_.size(); i++) {
+     for (i = 0; i < parFunc->entryPoints_.size(); i++) {
          instPoint *parP = parFunc->entryPoints_[i];
          int_basicBlock *block = findBlockByAddr(parP->addr());
          assert(block);
@@ -160,24 +147,24 @@ int_function::int_function(const int_function *parFunc,
          entryPoints_.push_back(childP);
      }
 
-     for (unsigned ii = 0; ii < parFunc->exitPoints_.size(); ii++) {
-         instPoint *parP = parFunc->exitPoints_[ii];
+     for (i = 0; i < parFunc->exitPoints_.size(); i++) {
+         instPoint *parP = parFunc->exitPoints_[i];
          int_basicBlock *block = findBlockByAddr(parP->addr());
          assert(block);
          instPoint *childP = instPoint::createForkedPoint(parP, block);
          exitPoints_.push_back(childP);
      }
 
-     for (unsigned iii = 0; iii < parFunc->callPoints_.size(); iii++) {
-         instPoint *parP = parFunc->callPoints_[iii];
+     for (i = 0; i < parFunc->callPoints_.size(); i++) {
+         instPoint *parP = parFunc->callPoints_[i];
          int_basicBlock *block = findBlockByAddr(parP->addr());
          assert(block);
          instPoint *childP = instPoint::createForkedPoint(parP, block);
          callPoints_.push_back(childP);
      }
 
-     for (unsigned iiii = 0; iiii < parFunc->arbitraryPoints_.size(); iiii++) {
-         instPoint *parP = parFunc->arbitraryPoints_[iiii];
+     for (i = 0; i < parFunc->arbitraryPoints_.size(); i++) {
+         instPoint *parP = parFunc->arbitraryPoints_[i];
          int_basicBlock *block = findBlockByAddr(parP->addr());
          assert(block);
          instPoint *childP = instPoint::createForkedPoint(parP, block);
@@ -367,40 +354,6 @@ const pdvector<int_basicBlock *> &int_function::blocks() {
             blockList.push_back(new int_basicBlock(img_blocks[i],
                                                    base,
                                                    this));
-            // And add to the mapped_object code range
-            obj()->codeRangesByAddr_.insert(blockList.back()->origInstance());
-        }
-        // Now that we have the correct list, patch up sources/targets
-        for (unsigned j = 0; j < img_blocks.size(); j++) {
-            pdvector<image_basicBlock *> targets;
-            img_blocks[j]->getTargets(targets);
-            for (unsigned t = 0; t < targets.size(); t++) {
-                if ((targets[t]->id() >= blockList.size()) ||
-                    (targets[t]->id() < 0)) {
-                    fprintf(stderr, "WARNING: omitting illegal target %d block %d for block %d, function %s\n",
-                            t, targets[t]->id(), blockList[j]->id(), symTabName().c_str());
-                    continue;
-                }
-                parsing_printf("Adding target to block %d, block %d (of %d)\n",
-                            j, targets[t]->id(),
-                            blockList.size());
-                blockList[j]->addTarget(blockList[targets[t]->id()]);
-            }
-
-            pdvector<image_basicBlock *> sources;
-            img_blocks[j]->getSources(sources);
-            for (unsigned s = 0; s < sources.size(); s++) {
-                if ((sources[s]->id() >= blockList.size()) ||
-                    (sources[s]->id() < 0)) {
-                    fprintf(stderr, "WARNING: omitting illegal target %d block %d for block %d, function %s\n",
-                            s, sources[s]->id(), blockList[j]->id(), symTabName().c_str());
-                    continue;
-                }
-                parsing_printf("Adding source to block %d, block %d (of %d)\n",
-                            j, sources[s]->id(),
-                            blockList.size());
-                blockList[j]->addSource(blockList[sources[s]->id()]);
-            }
         }
     }
     // And a quick consistency check...
@@ -411,33 +364,31 @@ process *int_basicBlock::proc() const {
     return func()->proc();
 }
 
-void int_basicBlock::addSource(int_basicBlock *source) {
-    for (unsigned i = 0; i < sources_.size(); i++)
-        if (sources_[i] == source)
-            return;
-    sources_.push_back(source);
-}
-
-void int_basicBlock::addTarget(int_basicBlock *target) {
-    for (unsigned i = 0; i < targets_.size(); i++)
-        if (targets_[i] == target)
-            return;
-    targets_.push_back(target);
-}
-
 void int_basicBlock::getSources(pdvector<int_basicBlock *> &ins) const {
-    ins = sources_;
+    pdvector<image_basicBlock *> ib_ins;
+    ib_->getSources(ib_ins);
+    for (unsigned i = 0; i < ib_ins.size(); i++) {
+        unsigned id = ib_ins[i]->id();
+        ins.push_back(func()->blockList[id]);
+    }
 }
 
 void int_basicBlock::getTargets(pdvector<int_basicBlock *> &outs) const {
-    outs = targets_;
+    pdvector<image_basicBlock *> ib_outs;
+    ib_->getTargets(ib_outs);
+    for (unsigned i = 0; i < ib_outs.size(); i++) {
+        unsigned id = ib_outs[i]->id();
+        outs.push_back(func()->blockList[id]);
+    }
 }
 
 int_basicBlock *int_basicBlock::getFallthrough() const {
     // We could keep it special...
-    for (unsigned i = 0; i < targets_.size(); i++) {
-        if (targets_[i]->origInstance()->firstInsnAddr() == origInstance()->endAddr())
-            return targets_[i];
+    pdvector<int_basicBlock *> outs;
+    getTargets(outs);
+    for (unsigned i = 0; i < outs.size(); i++) {
+        if (outs[i]->origInstance()->firstInsnAddr() == origInstance()->endAddr())
+            return outs[i];
     }
     return NULL;
 }
@@ -529,6 +480,7 @@ const image_func *int_function::ifunc() const {
     return ifunc_;
 }
 
+#if defined(arch_ia64)
 BPatch_Set<int_basicBlock *> *int_basicBlock::getDataFlowOut() {
     return dataFlowOut;
 }
@@ -560,16 +512,15 @@ void int_basicBlock::setDataFlowGen(int_basicBlock *gen) {
 void int_basicBlock::setDataFlowKill(int_basicBlock *kill) {
     dataFlowKill = kill;
 }
-
+#endif
 
 int_basicBlock::int_basicBlock(const image_basicBlock *ib, Address baseAddr, int_function *func) :
-    isEntryBlock_(ib->isEntryBlock()),
-    isExitBlock_(ib->isExitBlock()),
-    blockNumber_(ib->id()),
+#if defined(arch_ia64)
     dataFlowIn(NULL),
     dataFlowOut(NULL),
     dataFlowGen(NULL),
     dataFlowKill(NULL),
+#endif
     func_(func),
     ib_(ib)
 {
@@ -584,11 +535,10 @@ int_basicBlock::int_basicBlock(const image_basicBlock *ib, Address baseAddr, int
 }
 
 int_basicBlock::int_basicBlock(const int_basicBlock *parent, int_function *func) :
-    isEntryBlock_(parent->isEntryBlock_),
-    isExitBlock_(parent->isExitBlock_),
-    blockNumber_(parent->blockNumber_),
+#if defined(arch_ia64)
     dataFlowGen(NULL),
     dataFlowKill(NULL),
+#endif
     func_(func),
     ib_(parent->ib_) {
     for (unsigned i = 0; i < parent->instances_.size(); i++) {
@@ -599,8 +549,10 @@ int_basicBlock::int_basicBlock(const int_basicBlock *parent, int_function *func)
 }
 
 int_basicBlock::~int_basicBlock() {
+#if defined(arch_ia64)
     if (dataFlowIn) delete dataFlowIn;
     if (dataFlowOut) delete dataFlowOut;
+#endif
     // Do not delete dataFlowGen and dataFlowKill; they're legal pointers
     // don't kill func_;
     // don't kill ib_;
@@ -656,7 +608,10 @@ bblInstance::bblInstance(Address start, Address last, Address end, int_basicBloc
     blockEndAddr_(end),
     block_(parent),
     version_(version)
-{};
+{
+    // And add to the mapped_object code range
+    block_->func()->obj()->codeRangesByAddr_.insert(this);
+};
 
 bblInstance::bblInstance(int_basicBlock *parent, int version) : 
 #if defined(cap_relocation)
@@ -670,7 +625,10 @@ bblInstance::bblInstance(int_basicBlock *parent, int version) :
     blockEndAddr_(0),
     block_(parent),
     version_(version)
-{};
+{
+    // And add to the mapped_object code range
+    //block_->func()->obj()->codeRangesByAddr_.insert(this);
+};
 
 bblInstance::bblInstance(const bblInstance *parent, int_basicBlock *block) :
 #if defined(cap_relocation)
@@ -696,6 +654,10 @@ bblInstance::bblInstance(const bblInstance *parent, int_basicBlock *block) :
     }
 #endif
     // TODO relocation
+
+    // And add to the mapped_object code range
+    block_->func()->obj()->codeRangesByAddr_.insert(this);
+
 }
 
 bblInstance::~bblInstance() {

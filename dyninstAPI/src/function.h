@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.14 2005/09/01 22:18:14 bernat Exp $
+// $Id: function.h,v 1.15 2005/09/28 17:03:03 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -164,8 +164,8 @@ class int_basicBlock {
     int_basicBlock(const int_basicBlock *parent, int_function *func);
     ~int_basicBlock();
 
-    bool isEntryBlock() const { return isEntryBlock_; }
-    bool isExitBlock() const { return isExitBlock_; }
+    bool isEntryBlock() const { return ib_->isEntryBlock(); }
+    bool isExitBlock() const { return ib_->isExitBlock(); }
     
     static int compare(int_basicBlock *&b1,
                        int_basicBlock *&b2) {
@@ -190,17 +190,12 @@ class int_basicBlock {
 
     int_basicBlock *getFallthrough() const;
 
-    void addTarget(int_basicBlock *target);
-    void addSource(int_basicBlock *source);
-
-    void removeTarget(int_basicBlock * target);
-    void removeSource(int_basicBlock * source);
-
-    int id() const { return blockNumber_; }
+    int id() const { return ib_->id(); }
 
     int_function *func() const { return func_; }
     process *proc() const;
 
+#if defined(arch_ia64)
     // Data flow... for register analysis. Right now just used for 
     // IA64 alloc calculations
     // We need a set...
@@ -213,20 +208,15 @@ class int_basicBlock {
     BPatch_Set<int_basicBlock *> *getDataFlowIn();
     int_basicBlock *getDataFlowGen();
     int_basicBlock *getDataFlowKill();    
+#endif
 
  private:
-    bool isEntryBlock_;
-    bool isExitBlock_;
-
-    int blockNumber_;
-
-    pdvector<int_basicBlock *> targets_;
-    pdvector<int_basicBlock *> sources_;
-
+#if defined(arch_ia64)
     BPatch_Set<int_basicBlock *> *dataFlowIn;
     BPatch_Set<int_basicBlock *> *dataFlowOut;
     int_basicBlock *dataFlowGen;
     int_basicBlock *dataFlowKill;
+#endif
 
 
     int_function *func_;
