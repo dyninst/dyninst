@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.34 2005/09/15 19:01:20 gquinn Exp $
+// $Id: arch-x86.h,v 1.35 2005/09/28 17:02:56 bernat Exp $
 // x86 instruction declarations
 
 #if !defined(i386_unknown_solaris2_5) \
@@ -465,10 +465,14 @@ class instruction {
   static void generateBranch(codeGen &gen, Address from, Address to); 
   static void generateBranch(codeGen &gen, int disp); 
   static void generateCall(codeGen &gen, Address from, Address to);
+  
+  // Function relocation...
+  static void generateInterFunctionBranch(codeGen &gen, Address from, Address to) { generateBranch(gen, from, to); }
+  static unsigned maxInterFunctionJumpSize() { return maxJumpSize(); }
 
   // And tell us how much space we'll need...
-  static unsigned jumpSize(Address from, Address to);
-  static unsigned jumpSize(int disp);
+  static int jumpSize(Address from, Address to);
+  static int jumpSize(int disp);
   static unsigned maxJumpSize();
 
 

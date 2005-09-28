@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.37 2005/09/15 19:20:35 tlmiller Exp $
+// $Id: arch-ia64.h,v 1.38 2005/09/28 17:02:50 bernat Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -107,10 +107,12 @@ class instruction {
 						  Address fallthroughOverride = 0,
 						  Address targetOverride = 0);
 	// And tell us how much space we'll need...
-	static unsigned jumpSize(Address from, Address to) { return 16; }
-	static unsigned jumpSize(int disp) { return 16; }
+	static int jumpSize(Address from, Address to) { return 16; }
+	static int jumpSize(int disp) { return 16; }
 	static unsigned maxJumpSize() { return 16; }
-	
+   
+	static unsigned maxInterFunctionJumpSize() { return 16; }
+
 
 	// For branches
 	Address getTarget(Address origAddr) const;
@@ -118,6 +120,11 @@ class instruction {
 	// Generation methods; these actually make bundles, but the higher-level
 	// code doesn't have to care about it.
 	static void generateBranch(codeGen &gen, Address from, Address to);
+    static void generateInterFunctionBranch(codeGen &gen,
+                                            Address from,
+											Address to) 
+		{ return generateBranch(gen, from, to); }
+
 	static void generateIllegal(codeGen &gen);
 	static void generateNOOP(codeGen &gen, unsigned fillsize = 16);
 	static void generateTrap(codeGen &gen);

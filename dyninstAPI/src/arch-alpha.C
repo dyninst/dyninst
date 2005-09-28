@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-alpha.C,v 1.5 2005/09/14 21:21:31 bernat Exp $
+// $Id: arch-alpha.C,v 1.6 2005/09/28 17:02:48 bernat Exp $
 
 #include "common/h/headers.h"
 #include "alpha.h"
@@ -187,14 +187,15 @@ void instruction::generateBranch(codeGen &gen, Address from, Address to) {
     generateBranch(gen, displacement);
 }
 
-unsigned instruction::jumpSize(Address from, Address to) {
+int instruction::jumpSize(Address from, Address to) {
     int disp = (to - from);
     return jumpSize(disp);
 }
 
-unsigned instruction::jumpSize(int disp) {
+int instruction::jumpSize(int disp) {
     if (ABS(disp >> 2) > MAX_BRANCH) {
         fprintf(stderr, "Warning: Alpha doesn't handle multi-word jumps!\n");
+        return -1;
     }
     return instruction::size();
 }
@@ -202,6 +203,19 @@ unsigned instruction::jumpSize(int disp) {
 unsigned instruction::maxJumpSize() {
     // TODO: full-range branch
     return instruction::size();
+}
+
+unsigned instruction::maxInterFunctionJumpSize() {
+    // Relocation-capable branch; can stomp on any
+    // registers dead at a function boundary
+    return instruction::maxJumpSize();
+}
+
+void instruction::generateInterFunctionBranch(codeGen &,
+                                              Address,
+                                              Address) {
+    // Relocation: can't happen
+    assert(0);
 }
 
 // 

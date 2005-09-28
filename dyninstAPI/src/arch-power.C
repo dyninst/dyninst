@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.4 2005/09/14 21:21:34 bernat Exp $
+ * $Id: arch-power.C,v 1.5 2005/09/28 17:02:51 bernat Exp $
  */
 
 #include "common/h/Types.h"
@@ -98,7 +98,56 @@ void instruction::generateCall(codeGen &gen, Address from, Address to) {
     generateBranch(gen, from, to, true);
 }
 
+void instruction::generateInterFunctionBranch(codeGen &gen,
+                                              Address from,
+                                              Address to) {
+    int disp = from - to;
+    if (ABS(disp) <= MAX_BRANCH) {
+        // We got lucky...
+        return generateBranch(gen, from, to);
+    }
 
+    // Code sequence:
+    // push hi -> R0
+    // or lo -> R0
+    // move R0 -> CTR
+    // branch -> CTR
+
+    unsigned int top_half = ((to & 0xffff0000) >> 16);
+    unsigned int bottom_half = (to & 0x0000ffff);
+    assert (to == ((top_half << 16) + bottom_half));
+    // AIX sign-extends. So if top_half is 0, and the top bit of
+    // bottom_half is 0, then we can use a single instruction. Otherwise
+    // do it the hard way.
+    if (!top_half && !(bottom_half & 0x8000)) {
+        // single instruction (CALop)
+        instruction::generateImm(gen, 
+                                 CALop, 0, 0, bottom_half);
+    }
+    else {
+        instruction::generateImm(gen, CAUop, 
+                                 0, 0, top_half);
+        // ori dest,dest,LOW(src1)
+        instruction::generateImm(gen, ORILop, 
+                                 0, 0, bottom_half);
+    }
+
+    instruction insn;
+
+    (*insn).raw = 0;                    //mtspr:  mtlr scratchReg
+    (*insn).xform.op = 31;
+    (*insn).xform.rt = 0;
+    (*insn).xform.ra = SPR_CTR & 0x1f;
+    (*insn).xform.rb = (SPR_CTR >> 5) & 0x1f;
+    (*insn).xform.xo = 467;
+    insn.generate(gen);
+
+    // And branch to CTR
+    instruction btctr(BCTRraw);
+    btctr.generate(gen);
+}
+
+    
 void instruction::generateImm(codeGen &gen, int op, Register rt, Register ra, int immd)
  {
   // something should be here to make sure immd is within bounds
@@ -340,14 +389,15 @@ bool instruction::isCondBranch() const {
     return isInsnType(Bmask, BCmatch);
 }
 
-unsigned instruction::jumpSize(Address from, Address to) {
+int instruction::jumpSize(Address from, Address to) {
     int disp = (to - from);
     return jumpSize(disp);
 }
 
-unsigned instruction::jumpSize(int disp) {
+// -2: can't do it, don't bother...
+int instruction::jumpSize(int disp) {
     if (ABS(disp) >= MAX_BRANCH) {
-        fprintf(stderr, "Warning: AIX doesn't handle multi-word jumps!\n");
+        return -2;
     }
     return instruction::size();
 }
@@ -358,6 +408,34 @@ unsigned instruction::maxJumpSize() {
     return 4*instruction::size();
 }
 
+unsigned instruction::maxInterFunctionJumpSize() {
+    // 4...
+    return 4*instruction::size();
+}
+
+unsigned instruction::spaceToRelocate() const {
+
+    // We currently assert instead of fixing out-of-range
+    // branches. In the spirit of "one thing at a time",
+    // we'll handle that _later_.
+
+    // Actually, since conditional branches have such an abysmally
+    // short range, we _do_ handle moving them through a complicated
+    // "jump past an unconditional branch" combo.
+    
+    if (isCondBranch()) {
+        // Maybe... so worst-case
+        if ((insn_.bform.bo & BALWAYSmask) != BALWAYScond) {
+            return 3*instruction::size();
+        }
+    }
+    if (isUncondBranch()) {
+        // Worst case... branch to LR
+        return 4*instruction::size();
+    }
+    return instruction::size();
+}
+
 bool instruction::generate(codeGen &gen,
                            process *proc,
                            Address origAddr,
@@ -366,21 +444,56 @@ bool instruction::generate(codeGen &gen,
                            Address targetOverride) {
 
     int newOffset = 0;
+    Address to;
 
     if (isUncondBranch()) {
         // unconditional pc relative branch.
         
-        if (!targetOverride) 
+        if (!targetOverride) {
             newOffset = origAddr - relocAddr + (int)getBranchOffset(); 
+            to = origAddr + getBranchOffset();
+        }
         else {
             // We need to pin the jump
             newOffset = targetOverride - relocAddr;
+            to = targetOverride;
         }
+
         if (ABS(newOffset) >= MAX_BRANCH) {
-            fprintf(stderr, "At address 0x%x, original 0x%x, offset 0x%x, abs 0x%x, max 0x%x\n",
-                    relocAddr, origAddr, newOffset, ABS(newOffset), MAX_BRANCH);
-            logLine("a branch too far\n");
-            assert(0);
+            // If we're doing a branch-n-link we can pull this off by making
+            // several assumptions...
+            if (insn_.bform.lk == 1) {
+                // Whee. Stomp that link register.
+                unsigned int top_half = ((to & 0xffff0000) >> 16);
+                unsigned int bottom_half = (to & 0x0000ffff);
+                assert (to == ((top_half << 16) + bottom_half));
+                // AIX sign-extends. So if top_half is 0, and the top bit of
+                // bottom_half is 0, then we can use a single instruction. Otherwise
+                // do it the hard way.
+                if (!top_half && !(bottom_half & 0x8000)) {
+                    // single instruction (CALop)
+                    instruction::generateImm(gen, 
+                                             CALop, 0, 0, bottom_half);
+                }
+                else {
+                    instruction::generateImm(gen, CAUop, 
+                                             0, 0, top_half);
+                    // ori dest,dest,LOW(src1)
+                    instruction::generateImm(gen, ORILop, 
+                                             0, 0, bottom_half);
+                }
+                
+                instruction mtlr(MTLR0raw);
+                mtlr.generate(gen);
+                
+                // And branch to CTR
+                instruction btlr(BRLraw);
+                btlr.generate(gen);
+            }
+            else {
+                // Crud.
+                assert(0);
+            }
         } else {
             instruction newInsn(insn_);
             newInsn.setBranchOffset(newOffset);

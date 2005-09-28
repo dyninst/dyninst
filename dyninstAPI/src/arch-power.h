@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.29 2005/09/14 21:21:35 bernat Exp $
+// $Id: arch-power.h,v 1.30 2005/09/28 17:02:52 bernat Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
@@ -190,6 +190,11 @@ typedef union {
 // Mmmm alignment
 typedef instructUnion codeBuf_t;
 typedef unsigned codeBufIndex_t;
+
+#define SPR_XER	1
+#define SPR_LR	8
+#define SPR_CTR	9
+#define SPR_SPR0 0 
 
 
 /*
@@ -599,6 +604,14 @@ class instruction {
     static void generateCall(codeGen &gen,
                              Address from,
                              Address to);
+    
+    // This is a register-stomping, full-range branch. Only use if you're sure that
+    // R0 and CTR are dead.
+    // We put "from" in so that we can decide what kind of branch to use; cheap is
+    // better if the range is short.
+    static void generateInterFunctionBranch(codeGen &gen,
+                                            Address from,
+                                            Address to);
 
     static void generateImm(codeGen &gen, int op,
                             Register rt, Register ra, int immd);
@@ -627,9 +640,12 @@ class instruction {
     void generate(codeGen &gen);
 
     // And tell us how much space we'll need...
-    static unsigned jumpSize(Address from, Address to);
-    static unsigned jumpSize(int disp);
+    // Returns -1 if we can't do a branch due to architecture limitations
+    static int jumpSize(Address from, Address to);
+    static int jumpSize(int disp);
     static unsigned maxJumpSize();
+
+    static unsigned maxInterFunctionJumpSize();
 
     // return the type of the instruction
     unsigned type() const;

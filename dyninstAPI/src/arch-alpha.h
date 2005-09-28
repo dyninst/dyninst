@@ -481,6 +481,11 @@ class instruction {
     // From-to combo
     static void generateBranch(codeGen &gen, Address from, Address to);
 
+    static void generateInterFunctionBranch(codeGen &gen,
+                                            Address from,
+                                            Address to);
+
+
     static void generateBSR(codeGen &gen, int disp);
     static void generateRel(codeGen &gen, unsigned opcode, unsigned fcode,
 			    Register src1, Register src2, Register dest,
@@ -572,9 +577,12 @@ class instruction {
                   Address targetOverride = 0);
     
     // And tell us how much space we'll need...
-    static unsigned jumpSize(Address from, Address to);
-    static unsigned jumpSize(int disp);
+    static int jumpSize(Address from, Address to);
+    static int jumpSize(int disp);
     static unsigned maxJumpSize();
+
+    static unsigned maxInterFunctionJumpSize();
+
 
   
   bool valid() const;

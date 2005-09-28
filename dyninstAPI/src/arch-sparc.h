@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.38 2005/09/14 21:21:37 bernat Exp $
+// $Id: arch-sparc.h,v 1.39 2005/09/28 17:02:54 bernat Exp $
 
 #if !defined(arch_sparc)
 #error "invalid architecture-os inclusion"
@@ -314,6 +314,13 @@ class instruction {
     static void generateBranch(codeGen &gen,
                                Address from,
                                Address to);
+    static void generateInterFunctionBranch(codeGen &gen,
+                                            Address from,
+                                            Address to) {
+        return generateBranch(gen, from, to);
+    }
+
+
     static void generateCall(codeGen &gen,
                              Address fromAddr,
                              Address toAddr);
@@ -422,9 +429,11 @@ class instruction {
   Address getOffset() const;
 
   // And tell us how much space we'll need...
-  static unsigned jumpSize(Address from, Address to);
-  static unsigned jumpSize(int disp);
+  static int jumpSize(Address from, Address to);
+  static int jumpSize(int disp);
   static unsigned maxJumpSize();
+
+  static unsigned maxInterFunctionJumpSize();
 
 
   bool isInsnType(const unsigned mask,
