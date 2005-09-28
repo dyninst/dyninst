@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.256 2005/09/23 23:50:38 jodom Exp $
+ // $Id: symtab.C,v 1.257 2005/09/28 17:03:19 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -132,27 +132,27 @@ bool buildDemangledName( const pdstring & mangled, pdstring & use, bool nativeCo
 
   if( mangled.prefixed_by( "MPI__" ) ) { 
     return false;
-    }	  
+  }	  
 
   /* If it's Fortran, eliminate the trailing underscores, if any. */
   if(    lang == lang_Fortran 
-      || lang == lang_CMFortran 
-      || lang == lang_Fortran_with_pretty_debug ) {
-
-    if( mangled[ mangled.length() - 1 ] == '_' ) {
-      char * demangled = strdup( mangled.c_str() );
-      demangled[ mangled.length() - 1 ] = '\0';
-      use = pdstring( demangled );
-
-      free( demangled );
-      return true;
-    }
-    else {
-      /* No trailing underscores, do nothing */
-      return false;
+         || lang == lang_CMFortran 
+         || lang == lang_Fortran_with_pretty_debug ) {
+      
+      if( mangled[ mangled.length() - 1 ] == '_' ) {
+          char * demangled = strdup( mangled.c_str() );
+          demangled[ mangled.length() - 1 ] = '\0';
+          use = pdstring( demangled );
+          
+          free( demangled );
+          return true;
       }
-    } /* end if it's Fortran. */
-
+      else {
+          /* No trailing underscores, do nothing */
+          return false;
+      }
+  } /* end if it's Fortran. */
+  
   //  Check to see if we have a gnu versioned symbol on our hands.
   //  These are of the form <symbol>@<version> or <symbol>@@<version>
   //
@@ -163,32 +163,34 @@ bool buildDemangledName( const pdstring & mangled, pdstring & use, bool nativeCo
   //  NOTE:  this is just a 0th order approach to dealing with versioned
   //         symbols.  We may need to do something more sophisticated
   //         in the future.  JAW 10/03
-
+  
 #if !defined(i386_unknown_nt4_0)
   char *atat;
   if (NULL != (atat = strstr(mangled.c_str(), "@@"))) {
-    use = mangled.substr(0 /*start pos*/, 
-			 (int)(atat - mangled.c_str())/*len*/);
-    //char msg[256];
-    //sprintf(msg, "%s[%d]: 'demangling' versioned symbol: %s, to %s",
-    //	    __FILE__, __LINE__, mangled.c_str(), use.c_str());
-    //cerr << msg << endl;
-    //logLine(msg);
+      use = mangled.substr(0 /*start pos*/, 
+                           (int)(atat - mangled.c_str())/*len*/);
+      //char msg[256];
+      //sprintf(msg, "%s[%d]: 'demangling' versioned symbol: %s, to %s",
+      //	    __FILE__, __LINE__, mangled.c_str(), use.c_str());
+      //cerr << msg << endl;
+      //logLine(msg);
       
-    return true;
+      return true;
   }
 #endif
-
-
+  
+  
   /* Try demangling it. */
   char * demangled = P_cplus_demangle( mangled.c_str(), nativeCompiler );
-  if( demangled == NULL ) { return false; }    
+  if( demangled == NULL ) { 
+      return false; 
+  }    
   
   use = pdstring( demangled );
-
+  
   free( demangled );  
   return true;
-  } /* end buildDemangledName() */
+} /* end buildDemangledName() */
 
 #ifdef DEBUG_TIME
 static timer loadTimer;
@@ -503,16 +505,22 @@ bool image::addSymtabVariables()
    for(SymbolIter symIter(linkedFile); symIter; symIter++) {
       const pdstring &mangledName = symIter.currkey();
       const Symbol &symInfo = symIter.currval();
-      if (strlen(symInfo.module().c_str()) == 0) {
-          continue;
-      }
 #if 0
-      fprintf(stderr, "Symbol %s, mod %s, addr 0x%x, type %d, linkage %d\n",
+      fprintf(stderr, "Symbol %s, mod %s, addr 0x%x, type %d, linkage %d (obj %d, func %d)\n",
               symInfo.name().c_str(),
               symInfo.module().c_str(),
               symInfo.addr(),
               symInfo.type(),
-              symInfo.linkage());
+              symInfo.linkage(),
+              Symbol::PDST_OBJECT,
+              Symbol::PDST_FUNCTION);
+#endif
+#if !defined(os_windows)
+      // Windows: variables are created with an empty module
+      if (strlen(symInfo.module().c_str()) == 0) {
+          //fprintf(stderr, "SKIPPING EMPTY MODULE\n");
+          continue;
+      }
 #endif
       if (symInfo.type() == Symbol::PDST_OBJECT) {
           image_variable *var;
@@ -1141,13 +1149,14 @@ image *image::parseImage(fileDescriptor &desc)
 #endif
       if (desc == allImages[u]->desc()) {
           // We reference count...
+          //fprintf(stderr, "Reusing old %s (%s)\n", desc.file().c_str(), desc.member().c_str());
           return allImages[u]->clone();
       }
   }
   /*
    * load the symbol table. (This is the a.out format specific routine).
    */
-
+  //fprintf(stderr, "Making new object %s (%s)...\n", desc.file().c_str(), desc.member().c_str());
   if(desc.isSharedObject()) 
     statusLine("Processing a shared object file");
   else  
@@ -1799,7 +1808,11 @@ bool image::buildFunctionLists(pdvector <image_func *> &raw_funcs)
                             nativeCompiler, rawmod->language())) {
         pretty_name = working_name;
     }
-    
+
+    parsing_printf("%s: demangled %s\n",
+                   mangled_name.c_str(),
+                   pretty_name.c_str());
+
     // Now, we see if there's already a function object for this
     // address. If so, add a new name; 
     image_func *possiblyExistingFunction = NULL;
@@ -2179,12 +2192,11 @@ image::image(fileDescriptor &desc, bool &err)
    }
   
 
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_solaris2_5) \
- || defined(rs6000_ibm_aix4_1)
+#if defined(os_solaris) || defined(os_aix)
    // make sure we're using the right demangler
 
    nativeCompiler = parseCompilerType(&linkedFile);
+   parsing_printf("isNativeCompiler: %d\n", nativeCompiler);
 #endif
 
    // define all of the functions
@@ -2311,20 +2323,23 @@ void image::checkAllCallPoints() {
 #endif
 pdmodule *image::getOrCreateModule(const pdstring &modName, 
 				   const Address modAddr) {
-    pdmodule *fm = findModule(modName);
+    pdstring nameToUse;
+    if (modName.length())
+        nameToUse = modName;
+    else
+        nameToUse = "DEFAULT_MODULE";
+
+    pdmodule *fm = findModule(nameToUse);
     if (fm) return fm;
 
-    const char *str = modName.c_str();
-    int len = modName.length();
-    //    assert(len>0);
-    if (!len) {
-        cerr << "WARNING: module with no name!" << endl;
-        return findModule("DEFAULT_MODULE");
-    }
+    const char *str = nameToUse.c_str();
+    int len = nameToUse.length();
+    assert(len>0);
+
     // TODO ignore directory definitions for now
     if (str[len-1] == '/') 
         return NULL;
-    return (newModule(modName, modAddr, lang_Unknown));
+    return (newModule(nameToUse, modAddr, lang_Unknown));
 }
 
 
