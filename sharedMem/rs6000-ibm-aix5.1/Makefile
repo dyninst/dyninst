@@ -1,13 +1,11 @@
 #
-# $Id: Makefile,v 1.1 2004/05/11 19:02:25 bernat Exp $
+# $Id: Makefile,v 1.2 2005/09/28 17:02:38 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
 #DEBUG_FLAG = -g
 
-# We change the permissions on the installed library to 0640
-UNCOMMON_INSTALL = true
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
 
@@ -35,6 +33,3 @@ include ../make.module.tmpl
 
 include ../../make.library.tmpl
 
-install: $(TARGET3_SO)
-	-$(CP) $(TARGET3_SO) $(DEST)
-	-chmod 640 $(DEST)/$(TARGET3_SO)

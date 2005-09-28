@@ -9,9 +9,11 @@ DO_INLINE_ALL           = true
 #NO_OPT_FLAG = true
 #NO_IMPLICIT_TEMPLATES    = true
 #AUTO_TEMPLATES 		 = true
+OVERRIDE_INSTALL	= true
 
 DEBUG_FLAG = -g
 
+EXTRA_LIBS = libdemangle.so.1
 
 ifdef COVERAGE
 NO_OPT_FLAG		= true
@@ -19,6 +21,9 @@ endif
 
 # Use /proc support
 AIX_PROC	= true
+
+# AIX uses .a for library names...
+TARGET	= libdyninstAPI.a
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -80,18 +85,13 @@ endif
 
 include ../../make.library.tmpl
 
-# On AIX libraries end in .a for both static and dynamic
-ifndef STATIC_DYNINST_LIB
-  TARGET3_SO	= libdyninstAPI.a
-  TARGET_INSTALL  = $(TARGET3_SO)
-endif
+libdemangle.so.1:
+	-xlC -bnoobjreorder -bexpall -bnoentry -o libdemangle.so.1 -ldemangle -u functionName -u demangle -u kind -u varName -u text -lc 
 
 
 #
 # Install rule: install withOUT world-readable permissions
 # 
-install: $(TARGET_INSTALL)
-	-xlC -bnoobjreorder -bexpall -bnoentry -o libdemangle.so.1 -ldemangle -u functionName -u demangle -u kind -u varName -u text -lc 
+install: install_generic libdemangle.so.1
 	-$(CP) libdemangle.so.1 $(DEST)
-	-$(CP) $(TARGET_INSTALL) $(DEST)
-	-chmod 750 $(DEST)/$(TARGET_INSTALL)
+	-chmod 750 $(DEST)/$(TARGET)

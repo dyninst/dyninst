@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.8 2005/09/09 18:05:10 legendre Exp $
+# $Id: Makefile,v 1.9 2005/09/28 17:02:30 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -7,8 +7,12 @@
 USES_SHM_SAMPLING = true
 
 # We set the permissions of the runtime library as 640
-UNCOMMON_INSTALL = true
+OVERRIDE_INSTALL = true
 DEBUG_FLAG = -g
+
+# AIX: libraries end in .a
+TARGET = libdyninstAPI_RT.a
+TARGET_SYMLINK = libdyninstAPI_RT.so.1
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
@@ -30,30 +34,11 @@ SRCS  += ../src/RTposix.c \
 	../src/RTthread-index.c \
 	../src/RTthread.c
 
-LD		= $(LINKER)
-
 # Build and link the library text heap
 ifdef USES_LIB_TEXT_HEAP
-USES_LIB_TEXT_HEAP_INTERNAL = true # Second level define
-# Change this path to your library install location
-LIB_TEXT_HEAP_OBJ = libDyninstText.a
+EXTRA_LIBS = libDyninstText.a
 CFLAGS	+= -DUSES_LIB_TEXT_HEAP
-LDFLAGS += -L$(DEST) -lDyninstText
-endif
-
-
-LDFLAGS		+= -bnoobjreorder -bexpall -bnoentry  -lc
-# Initialization method
-LDFLAGS		+= -binitfini:libdyninstAPI_RT_init
-
-# Do we want to use cc (xlc) or gcc? If cc, then life is a little
-# more complicated
-# Check at the bottom of the file as well for one more ifdef
-ifdef USES_NATIVE_CC
-CC = $(NATIVE_CC)
-else
-# Include libgcc in the ldflags -- -L<path to libgcc> -lgcc
-LDFLAGS += `$(GCC) -print-libgcc-file-name`
+LDFLAGS += -L. -lDyninstText
 endif
 
 # Include the module-specific Makefile, which defines everything about
@@ -66,28 +51,45 @@ include ../make.module.tmpl
 
 include ../../make.library.tmpl
 
-libDyninstAPI_RT.so.1: libDyninstText.a
+# If we're not using the native compiler, use gcc as a linker
+ifdef USES_NATIVE_CC
+LD		= $(LINKER) 
+LDFLAGS		+= -bnoobjreorder -bexpall -bnoentry  -lc
+# Initialization method
+LDFLAGS		+= -binitfini:libdyninstAPI_RT_init
+
 libDyninstText.a: space.o
-	rm -f libSpace.o 
-	rm -f libDyninstText.a 
-	ar crv libDyninstText.a space.o 
-	-$(CP) libDyninstText.a $(DEST)
-	-chmod 755 $(DEST)/libDyninstText.a
-	rm -f space.o
-libSpace.o:
-	$(CC) -c -o libSpace.o ../src/libSpace.s
-space.o: libSpace.o
-	ld -o space.o -bexpall -bnoentry -bM:SRE libSpace.o 
+#	rm -f libSpace.o 
+#	rm -f libDyninstText.a 
+	ld -o space_lib.o -bexpall -bnoentry -bM:SRE space.o 
+	ar crv libDyninstText.a space_lib.o 
+	rm -f space_lib.o
+#	rm -f space.o
 
-libSpace.o:
-	$(CC) -c -o libSpace.o ../src/libSpace.s
 
-space.o: libSpace.o
-	ld -o space.o -bexpall -bnoentry -bM:SRE libSpace.o
+else
+# GCC
+LD		= $(CC) -shared
+# Initialization method
+LDFLAGS		+= -Wl,-binitfini:libdyninstAPI_RT_init
+
+libDyninstText.a: space.o
+	gcc -shared -o libDyninstText.a space.o
+
+endif
+
+
+libDyninstAPI_RT.so.1: libDyninstText.a
+# ... and uses default AIX link line
 
 RTthread-power-asm.o:
 	$(CC) -c $(CFLAGS) ../src/RTthread-power-asm.s
 
-install: $(TARGET3_SO)
-	-$(CP) $(TARGET3_SO) $(DEST)
-	-chmod 640 $(DEST)/$(TARGET3_SO)
+space.o: 
+	$(CC) -c -o space.o ../src/libSpace.s
+
+install: install_generic libDyninstText.a
+	-chmod 640 $(DEST)/$(TARGET)
+	-$(CP) libDyninstText.a $(DEST)
+	-chmod 755 $(DEST)/libDyninstText.a
+	-ln -s $(TARGET) $(DEST)/$(TARGET_SYMLINK)

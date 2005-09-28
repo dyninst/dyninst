@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.68 2005/09/14 21:21:26 bernat Exp $
+# $Id: make.module.tmpl,v 1.69 2005/09/28 17:02:22 bernat Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -28,12 +28,12 @@ CXXFLAGS	+= -fno-squangle
 TFLAGS		+= -fno-squangle
 endif
 
-TARGET		= libdyninstAPI.a
+ifndef TARGET
+TARGET		= libdyninstAPI.so
+endif
 
 LDFLAGS += -lpthread
 
-ifdef USES_LIBDYNINST_SO
-TARGET3_SO	= libdyninstAPI.so
 LDFLAGS     += $(LIBDIR)
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
@@ -43,13 +43,9 @@ CXXFLAGS	+= -fPIC
 else
 ifeq (solaris,$(findstring solaris,$(PLATFORM)))
 LDFLAGS		+= -G
-endif
-ifeq (irix,$(findstring irix,$(PLATFORM)))
-LDFLAGS		+= -shared
-endif
-endif
+endif #sparc
+endif #USES_NATIVE
 TFLAGS		+= -fPIC
-endif
 
 VPATH	     += ../../dyninstAPI/src:../dyninstAPI/h:\
 		../../common/src:../../paradyn/h
@@ -143,11 +139,9 @@ endif
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../h
 
-ifdef USES_LIBDYNINST_SO
-all: $(TARGET3_SO)
-else
-all: $(TARGET)
-endif
+# All that, and we finally get a target...
+all: $(TARGET) $(EXTRA_LIBS)
+
 
 # I couldn't figure out how to explicitly instantiate a templated
 # function whose template arguments are protected members of

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2004/03/05 16:51:19 bernat Exp $
+# $Id: Makefile,v 1.5 2005/09/28 17:02:36 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -14,7 +14,7 @@ USES_SHM_SAMPLING = true
 DEBUG_FLAG = -g
 
 # We change the permissions on the installed library to 0640
-UNCOMMON_INSTALL = true
+OVERRIDE_INSTALL = true
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
 
@@ -25,18 +25,35 @@ include ../../make.config
 VPATH   = ../src
 #:../../dyninstAPI_RT/src
 
-SRCS	= ../src/RTfirst.c \
-	   ../src/RTetc-posix.c \
-	   ../src/RTetc-aix.c \
-	   ../src/RTrexec.c
+SRCS	=  ../src/RTetc-aix.c \
+                ../src/RTetc-posix.c \
+                ../src/RTrexec.c \
+                ../src/RTinst.c \
+                ../src/RTmpi.c \
+                ../src/RTthread.c \
+                ../src/RTthread-timer.c \
+                ../src/thread-compat.c
+
+ifdef USES_NATIVE_CC
 
 LD              = $(LINKER)
-LDFLAGS		+= -bnoentry -bnoobjreorder -bexpall -lc 
+LDFLAGS		+= -bnoentry -bnoobjreorder -bexpall -lc -bM:SRE -L$(DEST)
+
+else
+
+LD		= $(CC) -shared
+
+endif
+
 
 # Initialization method
-LDFLAGS		+= -binitfini:libparadynRT_init
+#LDFLAGS		+= -binitfini:libparadynRT_init
 
-LDFLAGS +=  `$(GCC) -print-libgcc-file-name`
+LDFLAGS += -L$(DEST) -ldyninstAPI_RT
+
+ifdef USES_LIB_TEXT_HEAP
+LDFLAGS += -lDyninstText
+endif
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
@@ -49,21 +66,10 @@ include ../make.module.tmpl
 include ../../make.library.tmpl
 
 #
-# Define the objects by hand since we need the exact ordering and 
-#   the auto rules don't provide that.
-OBJS	=  RTfirst.o \
-	   RTetc-aix.o \
-	   RTetc-posix.o \
-	   RTinst.o \
-	   RTrexec.o \
-	   RTend.o
-
-#
 # Don't optimize this module - jkh 6/21/95
 #
 RTrexec.o:
 	$(CC) -c $(UNIFIED_DEF) -g ../src/RTrexec.c 
 
-install: $(TARGET3_SO)
-	-$(CP) $(TARGET3_SO) $(DEST)
-	-chmod 640 $(DEST)/$(TARGET3_SO)
+install: install_generic
+	-chmod 640 $(DEST)/$(TARGET)

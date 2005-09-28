@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.program.tmpl,v 1.28 2005/03/07 21:19:56 legendre Exp $
+# $Id: make.program.tmpl,v 1.29 2005/09/28 17:02:21 bernat Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -80,7 +80,7 @@ echo:
 
 # Allow this to be ammended by modules
 clean::
-	$(RM) *.o *.[hC] $(TARGET) $(TARGETS)
+	$(RM) *.o *.[hC] .__afs* $(TARGET) $(TARGETS)
 
 distclean:: clean
 	$(RM) DEPENDS

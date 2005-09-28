@@ -3,10 +3,13 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.6 2004/04/15 14:57:47 pcroth Exp $
+# $Id: make.module.tmpl,v 1.7 2005/09/28 17:02:32 bernat Exp $
 #
 
+ifndef TARGET
 TARGET	      = libpdthread.so
+endif
+
 
 LDFLAGS      += -lpthread
 

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 2005/07/29 19:17:10 bernat Exp $
+# $Id: Makefile,v 1.8 2005/09/28 17:02:24 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -61,9 +61,9 @@ TFLAGS := $(TFLAGS:-O%=)
 LD = g++
 LIBS += -lmld -liberty
 
-ifdef USES_LIBDYNINST_SO
-$(TARGET3): $(OBJS)
-	@$(RM) $(TARGET3)
-	@$(MAKE) $(VOUCHER)
-	$(LD) -shared $(LDFLAGS) -o $(TARGET3) $(VOUCHER).o $(OBJS) $(LIBS)
-endif
+#ifdef USES_LIBDYNINST_SO
+#$(TARGET3): $(OBJS)
+#	@$(RM) $(TARGET3)
+#	@$(MAKE) $(VOUCHER)
+#	$(LD) -shared $(LDFLAGS) -o $(TARGET3) $(VOUCHER).o $(OBJS) $(LIBS)
+#endif

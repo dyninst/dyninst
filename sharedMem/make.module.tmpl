@@ -3,20 +3,17 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.2 2005/02/10 20:39:16 jaw Exp $
+# $Id: make.module.tmpl,v 1.3 2005/09/28 17:02:37 bernat Exp $
 #
 
 ifndef TARGET
-TARGET		= libsharedMutatee.o
+TARGET		= libsharedMutatee.so.1
 endif
-
-TARGET3_SO	= libsharedMutatee.so.1
 
 MODCC         = $(CC)
 MODCFLAGS     = $(CFLAGS)
 
-#all: $(TARGET) $(TARGET2) 
-all: $(TARGET3_SO) $(TARGET2)
+all: $(TARGET) $(EXTRA_LIBS)
 
 #OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 #		$(patsubst %.c, %.o, $(filter %.c,$(notdir $(SRCS)))) \

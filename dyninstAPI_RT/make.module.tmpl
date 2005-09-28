@@ -2,7 +2,7 @@
 # Common makefile template for rtinst library.  This file is not
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
-# $Id: make.module.tmpl,v 1.18 2005/03/14 22:17:49 legendre Exp $
+# $Id: make.module.tmpl,v 1.19 2005/09/28 17:02:29 bernat Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -10,7 +10,7 @@ RELEASE_NUM	= 4.2
 #BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
 
 ifndef TARGET
-TARGET	      = libdyninstAPI_RT.o
+TARGET	      = libdyninstAPI_RT.so.1
 endif
 
 MODCC         = $(CC)
@@ -23,8 +23,7 @@ ifdef USES_SHM_SAMPLING
 CFLAGS	+= -DSHM_SAMPLING
 endif
 
-TARGET3_SO=libdyninstAPI_RT.so.1
-all: $(TARGET3_SO)
+all: $(TARGET)
 
 #OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 #		$(patsubst %.c, %.o, $(filter %.c,$(notdir $(SRCS)))) \

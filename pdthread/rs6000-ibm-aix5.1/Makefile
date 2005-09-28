@@ -1,5 +1,9 @@
 #
 # $Log: Makefile,v $
+# Revision 1.2  2005/09/28 17:02:33  bernat
+# Makefile rework, Windows fixes.  - - - - - - - - - - - - - - - - - - - -
+# Makefile rework; fix AIX paradynd, simplify compilation
+#
 # Revision 1.1  2003/03/31 17:45:57  buck
 # Add new platform rs6000-ibm-aix5.1.
 #
@@ -28,6 +32,10 @@
 # in the paradyn tree.
 
 INSTANTIATE_TEMPLATES = true
+
+TARGET = libpdthread.a
+
+STATIC_LIBRARY = true
 
 include ../../make.config 
 

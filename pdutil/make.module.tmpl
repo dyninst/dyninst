@@ -3,12 +3,16 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.43 2004/10/19 01:23:44 pack Exp $
+# $Id: make.module.tmpl,v 1.44 2005/09/28 17:02:34 bernat Exp $
 #
 
 USES_FLEX       = true
 
+STATIC_LIBRARY = true
+
+ifndef TARGET
 TARGET	      = libpdutil.a
+endif
 
 YFLAGS          += -p mdl
 LFLAGS          += -Pmdl

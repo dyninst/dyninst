@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.library.tmpl,v 1.28 2005/03/07 21:19:55 legendre Exp $
+# $Id: make.library.tmpl,v 1.29 2005/09/28 17:02:19 bernat Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -34,46 +34,24 @@ XLC_DEPFILES =  $(filter %.u, $(patsubst %.u, %.o, $(filter %.u,$(notdir $(SRCS)
 # specify build prerequisite dependencies (for parallel make)
 ifdef PREREQUISITES
 $(OBJS): $(PREREQUISITES)
-ifdef TARGET2
-$(OBJS2): $(PREREQUISITES)
-endif
 endif
 
-ifndef UNCOMMON_LINK
-$(TARGET): $(OBJS)
+XTARGET= $(basename $(basename $(TARGET)))
+VOUCHER= V_$(XTARGET)
+
+ifndef OVERRIDE_LINK
+ifndef STATIC_LIBRARY
+$(TARGET): $(OBJS) $(EXTRA_LIBS)
 	@$(RM) $(TARGET)
 	@$(MAKE) $(VOUCHER)
-	$(AR) crv $(TARGET) $(VOUCHER).o $(OBJS)
-	$(RANLIB) $(TARGET)
-
-ifdef TARGET2
-XTARGET2= $(basename $(TARGET2))
-VOUCHER2= V_$(XTARGET2)
-
-$(TARGET2): $(OBJS2)
-	@$(RM) $(TARGET2)
-	@$(MAKE) $(VOUCHER2)
-	$(AR) crv $(TARGET2) $(VOUCHER2).o $(OBJS2)
-	$(RANLIB) $(TARGET2)
-endif  # TARGET2
-
-ifdef TARGET3_SO
-XTARGET3= $(basename $(basename $(TARGET3_SO)))
-VOUCHER3= V_$(XTARGET3)
-
-ifdef USES_LIB_TEXT_HEAP_INTERNAL
-$(TARGET3_SO): $(OBJS) $(LIB_TEXT_HEAP_OBJ)
-	@$(RM) $(TARGET3_SO)
-	@$(MAKE) $(VOUCHER3)
-	$(LD) $(LDFLAGS) -o $(TARGET3_SO) $(VOUCHER3).o $(OBJS) $(LIBS)
-else
-$(TARGET3_SO): $(OBJS)
-	@$(RM) $(TARGET3_SO)
-	@$(MAKE) $(VOUCHER3)
-	$(LD) $(LDFLAGS) -o $(TARGET3_SO) $(VOUCHER3).o $(OBJS) $(LIBS)
-endif  # USES_LIB_TEXT_HEAP
-endif  # TARGET3_SO
-endif  # UNCOMMON_LINK
+	$(LD) $(LDFLAGS) -o $(TARGET) $(VOUCHER).o $(OBJS) $(LIBS)
+else # build a static lib
+$(TARGET): $(OBJS) $(EXTRA_LIBS)
+	@$(RM) $(TARGET)
+	@$(MAKE) $(VOUCHER)
+	$(AR) rcs $(TARGET) $(VOUCHER).o $(OBJS)
+endif # STATIC_LIBRARY
+endif  # OVERRIDE_LINK
 
 ifndef DEST
 DEST		= $(TO_CORE)/$(LIBRARY_DEST)
@@ -83,51 +61,18 @@ echo:
 	echo $(OBJS)
 
 clean:
-	$(RM) *.o *.[hC] *.a *.so* $(TARGET)
+	$(RM) *.o *.[hC] *.a *.so* .__afs* $(TARGET) 
 
 distclean: clean
 	$(RM) DEPENDS
 
-ifndef UNCOMMON_INSTALL
-
-ifndef TARGET3_SO
-install: $(DEST)/$(TARGET)
-
-$(DEST)/$(TARGET):  $(TARGET)
+install_generic: $(TARGET)
 	-$(CP) $(TARGET) $(DEST)
-	$(RANLIB) $(DEST)/$(TARGET)
 
-else
 
-install: $(DEST)/$(TARGET3_SO)
-
-$(DEST)/$(TARGET3_SO): $(TARGET3_SO)
-	-$(CP) $(TARGET3_SO) $(DEST)
-
+ifndef OVERRIDE_INSTALL
+install: install_generic
 endif
-
-#
-# definition for secondary library
-#
-ifdef TARGET2
-install: $(DEST)/$(TARGET2)
-
-$(DEST)/$(TARGET2):  $(TARGET2)
-	-$(CP) $(TARGET2) $(DEST)
-	$(RANLIB) $(DEST)/$(TARGET2)
-endif
-
-#
-#  definition for dlopen()able runtime library
-#
-ifdef TARGET3
-install: $(DEST)/$(TARGET3)
-
-$(DEST)/$(TARGET3):  $(TARGET3)
-	-$(CP) $(TARGET3) $(DEST)
-endif
-
-endif      # ifndef UNCOMMON_INSTALL
 
 #
 # dependency generation definitions

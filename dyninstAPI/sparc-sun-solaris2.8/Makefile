@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.21 2005/09/09 18:06:02 legendre Exp $
+# $Id: Makefile,v 1.22 2005/09/28 17:02:26 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -62,10 +62,10 @@ include ../make.module.tmpl
 
 include ../../make.library.tmpl
 
-ifdef USES_LIBDYNINST_SO
-$(TARGET3): $(OBJS)
-	@$(RM) $(TARGET3)
-	@$(MAKE) $(VOUCHER)
-	$(CC) -shared -dy -G -z text $(LDFLAGS) -o $(TARGET3) $(VOUCHER).o $(OBJS) $(LIBS)
-endif
+#ifdef USES_LIBDYNINST_SO
+#$(TARGET3): $(OBJS)
+#	@$(RM) $(TARGET3)
+#	@$(MAKE) $(VOUCHER)
+#	$(CC) -shared -dy -G -z text $(LDFLAGS) -o $(TARGET3) $(VOUCHER).o $(OBJS) $(LIBS)
+#endif
 

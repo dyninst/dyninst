@@ -3,14 +3,12 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.23 2005/09/09 18:05:33 legendre Exp $
+# $Id: make.module.tmpl,v 1.24 2005/09/28 17:02:35 bernat Exp $
 #
 
 ifndef TARGET
-TARGET		= libparadynRT.o
+TARGET		= libparadynRT.so.1
 endif
-
-TARGET3_SO	= libparadynRT.so.1
 
 MODCC         = $(CC)
 MODCFLAGS     = $(CFLAGS)
@@ -19,8 +17,7 @@ ifdef USES_SHM_SAMPLING
 CFLAGS	+= -DSHM_SAMPLING
 endif
 
-#all: $(TARGET) $(TARGET2) 
-all: $(TARGET3_SO) $(TARGET2)
+all: $(TARGET)
 
 #OBJS =		$(patsubst %.C, %.o, $(filter %.C,$(notdir $(SRCS)))) \
 #		$(patsubst %.c, %.o, $(filter %.c,$(notdir $(SRCS)))) \
