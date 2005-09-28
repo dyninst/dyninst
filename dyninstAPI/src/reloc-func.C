@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.3 2005/09/09 15:57:04 bernat Exp $
+// $Id: reloc-func.C,v 1.4 2005/09/28 17:03:17 bernat Exp $
 
 // We'll also try to limit this to relocation-capable platforms
 // in the Makefile. Just in case, though....
@@ -72,6 +72,8 @@ class instruction;
 
 bool int_function::relocationGenerate(pdvector<funcMod *> &mods, 
                                       int sourceVersion /* = 0 */) {
+    unsigned i;
+
     assert(sourceVersion <= version_);
     if (generatedVersion_ > version_) {
         // Odd case... we generated, but never installed or
@@ -89,7 +91,7 @@ bool int_function::relocationGenerate(pdvector<funcMod *> &mods,
 
     // Make the basic block instances; they're placeholders for now.
     pdvector<bblInstance *> newInstances;
-    for (unsigned i = 0; i < blockList.size(); i++) {
+    for (i = 0; i < blockList.size(); i++) {
         reloc_printf("Block %d, creating instance...", i);
         bblInstance *newInstance = new bblInstance(blockList[i], generatedVersion_);
         assert(newInstance);
@@ -103,7 +105,7 @@ bool int_function::relocationGenerate(pdvector<funcMod *> &mods,
     // We can also keep a tally of how much space we'll need while
     // we're at it...
     unsigned size_required = 0;
-    for (unsigned i = 0; i < newInstances.size(); i++) {
+    for (i = 0; i < newInstances.size(); i++) {
         reloc_printf("Calling relocationSetup on block %d...\n",
                      i);
         reloc_printf("Calling newInst:relocationSetup(%d)\n",
@@ -115,14 +117,24 @@ bool int_function::relocationGenerate(pdvector<funcMod *> &mods,
                      i, size_required);
     }
 
+    // AIX: we try to target the data heap, since it's near instrumentation; we can
+    // do big branches at the start of a function, but not within. So amusingly, function
+    // relocation probably won't _enlarge_ the function, just pick it up and move it nearer
+    // instrumentation. Bring the mountain to Mohammed, I guess.
+#if defined(os_aix)
+    Address baseInMutatee = proc()->inferiorMalloc(size_required, dataHeap);
+#else
+    // We're expandin'
     Address baseInMutatee = proc()->inferiorMalloc(size_required);
+#endif
+
     if (!baseInMutatee) return false;
     reloc_printf("... new version at 0x%lx in mutatee\n", baseInMutatee);
 
     Address currAddr = baseInMutatee;
     // Inefficiency, part 1: we pin each block at a particular address
     // so that we can one-pass generate and get jumps done correctly.
-    for (unsigned i = 0; i < newInstances.size(); i++) {
+    for (i = 0; i < newInstances.size(); i++) {
         reloc_printf("Pinning block %d to 0x%lx\n", i, currAddr);
         newInstances[i]->setStartAddr(currAddr);
         currAddr += newInstances[i]->sizeRequired();
@@ -133,7 +145,7 @@ bool int_function::relocationGenerate(pdvector<funcMod *> &mods,
     // we know where the targets will be.
     // This builds the codeGen member of the bblInstance
     bool success = true;
-    for (unsigned i = 0; i < newInstances.size(); i++) {
+    for (i = 0; i < newInstances.size(); i++) {
         reloc_printf("... relocating block %d\n", blockList[i]->id());
         success &= newInstances[i]->generate();
         if (!success) break;
@@ -145,7 +157,7 @@ bool int_function::relocationGenerate(pdvector<funcMod *> &mods,
     }
 
     // We use basicBlocks as labels.
-    for (unsigned i = 0; i < blockList.size(); i++) {
+    for (i = 0; i < blockList.size(); i++) {
         if (!blockList[i]->isEntryBlock()) continue;
         functionReplacement *funcRep = new functionReplacement(blockList[i], 
                                                                blockList[i],
@@ -165,12 +177,13 @@ bool int_function::relocationInstall() {
     // the version to be replaced, and replace each basic block
     // with a "jump to new basic block" combo.
     // If we overlap a bbl (which we probably will), oops.
-    
+    unsigned i;
+
     if (installedVersion_ == generatedVersion_)
         return true; // Nothing to do here...
 
     bool success = true;
-    for (unsigned i = 0; i < blockList.size(); i++) {
+    for (i = 0; i < blockList.size(); i++) {
         success &= blockList[i]->instVer(generatedVersion_)->install();
         if (!success) break;
         
@@ -189,23 +202,25 @@ bool int_function::relocationInstall() {
     // Fix up all of our instPoints....
     // This will cause multiTramps, etc. to be built in the new
     // version of the function.  
-    for (unsigned i = 0; i < entryPoints_.size(); i++)
+    for (i = 0; i < entryPoints_.size(); i++)
         entryPoints_[i]->updateInstances();
-    for (unsigned i = 0; i < exitPoints_.size(); i++)
+    for (i = 0; i < exitPoints_.size(); i++)
         exitPoints_[i]->updateInstances();
-    for (unsigned i = 0; i < callPoints_.size(); i++)
+    for (i = 0; i < callPoints_.size(); i++)
         callPoints_[i]->updateInstances();
-    for (unsigned i = 0; i < arbitraryPoints_.size(); i++)
+    for (i = 0; i < arbitraryPoints_.size(); i++)
         arbitraryPoints_[i]->updateInstances();
 
     return success;
 }
 
 bool int_function::relocationCheck(pdvector<Address> &checkPCs) {
+    unsigned i;
+
     assert(generatedVersion_ == installedVersion_);
     if (installedVersion_ == installedVersion_)
         return true;
-    for (unsigned i = 0; i < blockList.size(); i++) {
+    for (i = 0; i < blockList.size(); i++) {
         if (!blockList[i]->instVer(installedVersion_)->check(checkPCs))
             return false;
     }
@@ -214,6 +229,7 @@ bool int_function::relocationCheck(pdvector<Address> &checkPCs) {
         
 
 bool int_function::relocationLink(pdvector<codeRange *> &overwritten_objs) {
+    unsigned i;
 
     if (linkedVersion_ == installedVersion_) {
         assert(linkedVersion_ == version_);
@@ -224,7 +240,7 @@ bool int_function::relocationLink(pdvector<codeRange *> &overwritten_objs) {
     // update the global function version. That's _BAD_.
 
     bool success = true;
-    for (unsigned i = 0; i < blockList.size(); i++) {
+    for (i = 0; i < blockList.size(); i++) {
         success &= blockList[i]->instVer(installedVersion_)->link(overwritten_objs);
         if (!success)
             break;
@@ -242,6 +258,7 @@ bool int_function::relocationLink(pdvector<codeRange *> &overwritten_objs) {
 }
 
 bool int_function::relocationInvalidate() {
+    unsigned i;
     // The increase pattern goes like so:
     // generatedVersion_++;
     // installedVersion_++;
@@ -252,7 +269,7 @@ bool int_function::relocationInvalidate() {
     while (installedVersion_ > linkedVersion_) {
         reloc_printf("******* Removing installed version %d\n",
                      installedVersion_);
-        for (unsigned i = 0; i < blockList.size(); i++) {
+        for (i = 0; i < blockList.size(); i++) {
             bblInstance *instance = blockList[i]->instVer(installedVersion_);
             assert(instance);
             proc()->deleteCodeRange(instance->firstInsnAddr());
@@ -269,26 +286,27 @@ bool int_function::relocationInvalidate() {
         reloc_printf("******* Removing generated version %d\n",
                      generatedVersion_);
         proc()->inferiorFree(blockList[0]->instVer(generatedVersion_)->firstInsnAddr());
-        for (unsigned i = 0; i < blockList.size(); i++) {
+        for (i = 0; i < blockList.size(); i++) {
             blockList[i]->removeVersion(generatedVersion_);
         }
         generatedVersion_--;
     }
     version_ = linkedVersion_;
 
-    for (unsigned i = 0; i < entryPoints_.size(); i++)
+    for (i = 0; i < entryPoints_.size(); i++)
         entryPoints_[i]->updateInstances();
-    for (unsigned i = 0; i < exitPoints_.size(); i++)
+    for (i = 0; i < exitPoints_.size(); i++)
         exitPoints_[i]->updateInstances();
-    for (unsigned i = 0; i < callPoints_.size(); i++)
+    for (i = 0; i < callPoints_.size(); i++)
         callPoints_[i]->updateInstances();
-    for (unsigned i = 0; i < arbitraryPoints_.size(); i++)
+    for (i = 0; i < arbitraryPoints_.size(); i++)
         arbitraryPoints_[i]->updateInstances();
 
     return true;
 }
 
 bool int_function::expandForInstrumentation() {
+    unsigned i;
     // Take the most recent version of the function, check the instPoints
     // registered. If one needs more room, create an expansion record.
     // When we're done, relocate the function (most recent version only).
@@ -306,7 +324,7 @@ bool int_function::expandForInstrumentation() {
         return false;
     }
 
-    for (unsigned i = 0; i < blockList.size(); i++) {
+    for (i = 0; i < blockList.size(); i++) {
         bblInstance *bblI = blockList[i]->origInstance();
         assert(bblI->block() == blockList[i]);
         // Simplification: check if there's a multiTramp at the block.
@@ -377,6 +395,8 @@ unsigned bblInstance::sizeRequired() {
 // objects.
 
 bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) {
+    unsigned i;
+
     origInstance_ = orig;
     assert(origInstance_);
     // First, build the insns vector
@@ -393,7 +413,7 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
     }
 
     // Apply any hanging-around relocations from our previous instance
-    for (unsigned i = 0; i < orig->appliedMods_.size(); i++) {
+    for (i = 0; i < orig->appliedMods_.size(); i++) {
         if (orig->appliedMods_[i]->modifyBBL(block_, insns_, maxSize_)) {
             appliedMods_.push_back(orig->appliedMods_[i]);
         }
@@ -401,7 +421,7 @@ bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) 
 
     // So now we have a rough size and a list of insns. See if any of
     // those mods want to play.
-    for (unsigned i = 0; i < mods.size(); i++) {
+    for (i = 0; i < mods.size(); i++) {
         if (mods[i]->modifyBBL(block_, insns_, maxSize_)) {
             // Store for possible further relocations.
             appliedMods_.push_back(mods[i]);
@@ -427,11 +447,12 @@ bool bblInstance::generate() {
     assert(maxSize_);
     assert(block_);
     assert(origInstance_);
+    unsigned i;
 
     generatedBlock_.allocate(maxSize_);
-
+    fprintf(stderr, "Block ptr at %p\n", generatedBlock_.start_ptr()); 
     Address origAddr = origInstance_->firstInsnAddr();
-    for (unsigned i = 0; i < insns_.size(); i++) {
+    for (i = 0; i < insns_.size(); i++) {
         Address currAddr = generatedBlock_.currAddr(firstInsnAddr_);
         Address fallthroughOverride = 0;
         Address targetOverride = 0;
@@ -463,8 +484,8 @@ bool bblInstance::generate() {
                 }
             }
         }
-        //reloc_printf("... generating insn %d, orig addr 0x%lx, new addr 0x%lx, fallthrough 0x%lx, target 0x%lx\n",
-        //i, origAddr, currAddr, fallthroughOverride, targetOverride);
+        reloc_printf("... generating insn %d, orig addr 0x%lx, new addr 0x%lx, fallthrough 0x%lx, target 0x%lx\n",
+                     i, origAddr, currAddr, fallthroughOverride, targetOverride);
         insns_[i]->generate(generatedBlock_,
                             proc(),
                             origAddr,
@@ -568,11 +589,11 @@ bool functionReplacement::generateFuncRep() {
     Address sourceAddr = sourceInst->firstInsnAddr();
     Address targetAddr = targetInst->firstInsnAddr();
 
-    jumpToRelocated.allocate(instruction::jumpSize(sourceAddr, targetAddr));
-
-    instruction::generateBranch(jumpToRelocated,
-                                sourceInst->firstInsnAddr(),
-                                targetInst->firstInsnAddr());
+    jumpToRelocated.allocate(instruction::maxInterFunctionJumpSize());
+    fprintf(stderr, "******* generating interFunctionJump...\n");
+    instruction::generateInterFunctionBranch(jumpToRelocated,
+                                             sourceInst->firstInsnAddr(),
+                                             targetInst->firstInsnAddr());
 
     if (jumpToRelocated.used() > sourceInst->getSize()) {
         // Okay, things are going to get ugly. There are two things we
@@ -633,10 +654,11 @@ return true;
 
 // TODO: jumps that overwrite multiple basic blocks...
 bool functionReplacement::checkFuncRep(pdvector<Address> &checkPCs) {
+    unsigned i;
 
     Address start = get_address_cr();
     Address end = get_address_cr() + get_size_cr();
-    for (unsigned i = 0; i < checkPCs.size(); i++) {
+    for (i = 0; i < checkPCs.size(); i++) {
         if ((checkPCs[i] > start) &&
             (checkPCs[i] < end))
             return false;
@@ -645,6 +667,7 @@ bool functionReplacement::checkFuncRep(pdvector<Address> &checkPCs) {
 }
 
 bool functionReplacement::linkFuncRep(pdvector<codeRange *> &overwrittenObjs) {
+    fprintf(stderr, "Linking function replacement......\n");
     if (sourceBlock_->proc()->writeTextSpace((void *)get_address_cr(),
                                              jumpToRelocated.used(),
                                              jumpToRelocated.start_ptr())) {
