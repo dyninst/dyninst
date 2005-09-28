@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.52 2005/09/09 18:07:13 legendre Exp $
+// $Id: templates-nt.C,v 1.53 2005/09/28 17:03:20 bernat Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -61,6 +61,7 @@ class image_func;
 template class pdvector<image_func *>;
 template class dictionary_hash<pdstring, pdvector<image_func *> *>;
 template class dictionary_hash<Address, image_func *>;
+template class dictionary_hash<const image_func *, int_function *>;
 
 class int_variable;
 template class pdvector<int_variable *>;
@@ -73,6 +74,7 @@ template class pdvector<image_variable *>;
 template class dictionary_hash<pdstring, image_variable *>;
 template class dictionary_hash<pdstring, pdvector<image_variable *> *>;
 template class dictionary_hash<Address, image_variable *>;
+template class dictionary_hash<const image_variable *, int_variable *>;
 
 class instPoint;
 template class dictionary_hash<Address, instPoint *>;
@@ -104,6 +106,9 @@ template class dictionary_hash<pdstring, int_function *>;
 
 template class dictionary_hash<pdstring, pdvector<pdstring> *>;
 template class dictionary_hash<pdstring, pdvector<int_function *> *>;
+
+class BPatch_typeCollection;
+template class dictionary_hash<pdstring, BPatch_typeCollection *>;
 
 #include "dyninstAPI/src/rpcMgr.h"
 template class  dictionary_hash<unsigned, rpcLWP *>;
@@ -165,3 +170,4 @@ template class pdvector<dictionary_hash <const int_function *, BPatch_function *
 
 class replacedFunctionCall;
 template class pdvector<replacedFunctionCall *>;
+
