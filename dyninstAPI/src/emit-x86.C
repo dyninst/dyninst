@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.7 2005/09/09 19:19:48 gquinn Exp $
+ * $Id: emit-x86.C,v 1.8 2005/09/28 17:03:00 bernat Exp $
  */
 
 #include <assert.h>
@@ -333,6 +333,8 @@ bool Emitter32::emitBTMTCode(baseTramp* bt, codeGen &gen)
     pdvector<AstNode *> dummy;
     Register src = Null_Register;
     // registers cleanup
+
+    assert(regSpace != NULL);
     regSpace->resetSpace();
     
     /* Get the hashed value of the thread */
@@ -374,10 +376,8 @@ bool Emitter32::emitBTGuardPreCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& 
     */
 
    /*            CMP_                       (memory address)__  0 */
-    inst_printf("guard_flag_addr 0x%x\n", guard_flag_address);
     if (bt->threaded()) 
     {
-       inst_printf("Generating MT code\n");
        // Load the index into REGNUM_EAX
        LOAD_VIRTUAL(REG_MT_POS, gen);
        // Shift by sizeof(int) and add guard_flag_address
@@ -386,7 +386,6 @@ bool Emitter32::emitBTGuardPreCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& 
        emitOpRMImm8(0x83, 0x07, REGNUM_EAX, 0, 0, gen);
     }
     else {
-        inst_printf("Emitting normal code\n");
         emitOpRMImm8(0x83, 0x07, Null_Register, guard_flag_address, 0, gen);
     }
     guardJumpIndex = gen.getIndex();
@@ -423,7 +422,6 @@ bool Emitter32::emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t&
     */
    if (bt->threaded())
    {
-       inst_printf("Generating MT guard post code\n");
        // Load the index into REGNUM_EAX
        LOAD_VIRTUAL(REG_MT_POS, gen);
        // Shift by sizeof(int) and add guard_flag_address
@@ -431,7 +429,6 @@ bool Emitter32::emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t&
        emitMovImmToRM(REGNUM_EAX, 0, 1, gen);
    }
    else {
-       inst_printf("Generating non-MT guard post code\n");
        emitMovImmToMem( guard_flag_address, 1, gen );
    }
    guardTargetIndex = gen.getIndex();
@@ -442,7 +439,6 @@ bool Emitter32::emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t&
 bool Emitter32::emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costUpdateOffset)
 {
     Address costAddr = bt->proc()->getObservedCostAddr();
-    inst_printf("costAddr is 0x%x\n", costAddr);
     if (!costAddr) return false;
 
     costUpdateOffset = gen.used();
@@ -1213,13 +1209,11 @@ bool Emitter64::emitBTGuardPreCode(baseTramp* bt, codeGen &gen, unsigned& guardJ
         return false;
     }
     
-    inst_printf("guard_flag_addr 0x%p\n", (void*)guard_flag_address);
     if (bt->threaded()) 
     {
        assert(0);
     }
     else {
-        inst_printf("Emitting normal code\n");
         emitMovImmToReg64(REGNUM_RAX, guard_flag_address, true, gen);
         emitOpMemImm64(0x81, 0x7, REGNUM_RAX, 0, false, gen);
     }
@@ -1257,7 +1251,6 @@ bool Emitter64::emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t 
        assert(0);
    }
    else {
-       inst_printf("Generating non-MT guard post code\n");
        emitMovImmToReg64(REGNUM_RAX, guard_flag_address, true, gen);
        emitMovImmToRM(REGNUM_EAX, 0, 1, gen);
    }
@@ -1269,7 +1262,6 @@ bool Emitter64::emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t 
 bool Emitter64::emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costUpdateOffset)
 {
     Address costAddr = bt->proc()->getObservedCostAddr();
-    inst_printf("costAddr is 0x%x\n", costAddr);
     if (!costAddr) return false;
     costUpdateOffset = gen.used();    
 

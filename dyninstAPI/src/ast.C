@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.154 2005/09/09 18:06:32 legendre Exp $
+// $Id: ast.C,v 1.155 2005/09/28 17:02:58 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -105,7 +105,8 @@ registerSpace::registerSpace(const unsigned int deadCount, Register *dead,
 #if defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(ia64_unknown_linux2_4)
+ || defined(ia64_unknown_linux2_4) \
+ || defined(os_windows)
    initTramps(is_multithreaded);
 #endif
   
@@ -1731,7 +1732,6 @@ Address AstNode::generateCode_phase2(process *proc,
             break;
         case DataAddr:
            addr = (Address) oValue;
-
 	   rs->clobberRegister(dest);
 	   
            emitVload(loadOp, addr, dest, dest, gen, noCost, NULL, size);
