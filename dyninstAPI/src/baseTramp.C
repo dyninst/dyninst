@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.12 2005/09/15 19:20:36 tlmiller Exp $
+// $Id: baseTramp.C,v 1.13 2005/09/28 17:02:59 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -295,9 +295,10 @@ unsigned baseTrampInstance::get_size_cr() const {
 bool baseTrampInstance::generateCode(codeGen &gen,
                                      Address baseInMutatee,
                                      UNW_INFO_TYPE ** unwindRegion) {
-    inst_printf("baseTrampInstance %p ::generateCode(%p, 0x%x, %d)\n",
+    /*
+      inst_printf("baseTrampInstance %p ::generateCode(%p, 0x%x, %d)\n",
                 this, gen.start_ptr(), baseInMutatee, gen.used());
-
+    */
     updateMTInstances();
 
     if (!generated_) {
@@ -333,7 +334,7 @@ bool baseTrampInstance::generateCode(codeGen &gen,
     else {
         gen.moveIndex(baseT->preSize);
     }
-    inst_printf("offset now %d\n", gen.used());
+    //inst_printf("offset now %d\n", gen.used());
     //unsigned preEnd = offset;
     
 #if defined( cap_unwind )
@@ -354,7 +355,7 @@ bool baseTrampInstance::generateCode(codeGen &gen,
         mtis[miter]->generateCode(gen, baseInMutatee, unwindRegion);
         // Will increment offset if it writes to baseInMutator;
         // if in-lined each mini will increment offset.
-        inst_printf("mti %d, offset %d\n", miter, gen.used());
+        //inst_printf("mti %d, offset %d\n", miter, gen.used());
     }
     
     codeBufIndex_t postIndex = gen.getIndex();
@@ -367,7 +368,7 @@ bool baseTrampInstance::generateCode(codeGen &gen,
         gen.moveIndex(baseT->postSize);
     }
 
-    inst_printf("post, offset %d\n", gen.used());
+    //inst_printf("post, offset %d\n", gen.used());
     
     if (!generated_) {
         trampPostOffset = postStart - preStart;
@@ -716,6 +717,8 @@ bool baseTrampInstance::shouldGenerate() {
 }
 
 unsigned baseTrampInstance::maxSizeRequired() {
+    assert(this);
+
     updateMTInstances();
 
     if (isEmpty())
@@ -733,10 +736,12 @@ unsigned baseTrampInstance::maxSizeRequired() {
 
     size += baseT->preSize + baseT->postSize;
 
-    inst_printf("Pre-size %d, post-size %d, total size %d\n",
+    /*
+      inst_printf("Pre-size %d, post-size %d, total size %d\n",
                 baseT->preSize,
                 baseT->postSize,
                 size);
+    */
     return size;
 }
 
@@ -810,7 +815,7 @@ bool baseTramp::generateBT() {
     if (valid)
         return true; // May be called multiple times
 
-    inst_printf("Generating a baseTramp, guarded %d\n", guardState_);
+    //inst_printf("Generating a baseTramp, guarded %d\n", guardState_);
     // Make a base tramp. That is, a save/restore pair that includes the base
     // tramp guard. 
     // Also populate member vrbles:
@@ -886,17 +891,17 @@ bool baseTramp::generateBT() {
 #endif
     
     saveStartOffset = preTrampCode_.used();
-    inst_printf("Starting saves: offset %d\n", saveStartOffset);
+    //inst_printf("Starting saves: offset %d\n", saveStartOffset);
     generateSaves(preTrampCode_, regSpace);
 
     // Done with save
     saveEndOffset = preTrampCode_.used();
-    inst_printf("Starting MT: offset %d\n", saveEndOffset);
+    //inst_printf("Starting MT: offset %d\n", saveEndOffset);
     // Multithread
     generateMTCode(preTrampCode_, regSpace);
     // Guard code
     guardLoadOffset = preTrampCode_.used();
-    inst_printf("Starting guard: offset %d\n", guardLoadOffset);
+    //inst_printf("Starting guard: offset %d\n", guardLoadOffset);
     if (guarded() &&
         generateGuardPreCode(preTrampCode_,
                              guardBranchIndex,
@@ -911,7 +916,7 @@ bool baseTramp::generateBT() {
     
     costUpdateOffset = preTrampCode_.used();
 
-    inst_printf("Starting cost: offset %d\n", costUpdateOffset);
+    //inst_printf("Starting cost: offset %d\n", costUpdateOffset);
 
     // We may not want cost code... for now if we're an iRPC tramp
     // In the future, this may change
@@ -930,8 +935,8 @@ bool baseTramp::generateBT() {
 
     instStartOffset = preTrampCode_.used();
     preSize = preTrampCode_.used();
-    inst_printf("Starting inst: offset %d\n", instStartOffset);
-    inst_printf("preSize is: %d\n", preSize);    
+    //inst_printf("Starting inst: offset %d\n", instStartOffset);
+    //inst_printf("preSize is: %d\n", preSize);    
 
     // Post...
     // Guard redux
@@ -946,7 +951,7 @@ bool baseTramp::generateBT() {
     restoreStartOffset = postTrampCode_.used();
     generateRestores(postTrampCode_, regSpace);
     restoreEndOffset = postTrampCode_.used();
-    inst_printf("Ending restores: %d\n", restoreEndOffset);
+    //inst_printf("Ending restores: %d\n", restoreEndOffset);
 
     trampEnd = postTrampCode_.used();
     postSize = postTrampCode_.used();
@@ -955,22 +960,23 @@ bool baseTramp::generateBT() {
     preTrampCode_.finalize();
     postTrampCode_.finalize();
 
-    inst_printf("pre size: %d, post size: %d\n",
-                preSize, postSize);
-    inst_printf("saveStart: %d, saveEnd: %d, guardLoad: %d, guardBranch %d, cost %d, inst %d\n",
-                saveStartOffset,
-                saveEndOffset,
-                guardLoadOffset,
-                guardBranchIndex,
-                costUpdateOffset,
-                instStartOffset);
-
-    inst_printf("restoreStart %d, guardTarget %d, restoreEnd %d, trampEnd %d\n",
-                restoreStartOffset,
-                guardTargetIndex,
-                restoreEndOffset,
-                trampEnd);
-
+    /*
+      inst_printf("pre size: %d, post size: %d\n",
+      preSize, postSize);
+      inst_printf("saveStart: %d, saveEnd: %d, guardLoad: %d, guardBranch %d, cost %d, inst %d\n",
+      saveStartOffset,
+      saveEndOffset,
+      guardLoadOffset,
+      guardBranchIndex,
+      costUpdateOffset,
+      instStartOffset);
+      
+      inst_printf("restoreStart %d, guardTarget %d, restoreEnd %d, trampEnd %d\n",
+      restoreStartOffset,
+      guardTargetIndex,
+      restoreEndOffset,
+      trampEnd);
+    */
 #if defined( cap_unwind )
 	/* FIXME: the guard and multitramp code don't yet update the baseTrampRegion
 	   insn_count themselves, so do that here. */
@@ -1100,9 +1106,10 @@ bool baseTrampInstance::linkCode() {
     
     Address arrive = baseT->firstMini->getMTInstanceByBTI(this)->trampBase;
 
-    inst_printf("writing branch from 0x%x to 0x%x, baseT->miniT\n",
+    /*
+      inst_printf("writing branch from 0x%x to 0x%x, baseT->miniT\n",
                 leave, arrive);
-
+    */
 #if defined(os_aix)
     resetBRL(baseT->proc(), leave, arrive);
 #else
@@ -1128,9 +1135,10 @@ generatedCodeObject *baseTrampInstance::replaceCode(generatedCodeObject *newPare
     // instead of ourselves.
 
     // Though if we haven't been generated yet, don't bother
-    inst_printf("replaceCode for baseTramp %p, new par %p, previous %p\n", this,
+    /*
+      inst_printf("replaceCode for baseTramp %p, new par %p, previous %p\n", this,
             newParent, multiT);
-
+    */
     multiTramp *newMulti = dynamic_cast<multiTramp *>(newParent);
     assert(newMulti);
 
