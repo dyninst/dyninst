@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.232 2005/09/14 21:21:46 bernat Exp $
+ * $Id: inst-power.C,v 1.233 2005/09/28 17:03:06 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -77,10 +77,6 @@
 
 extern bool isPowerOf2(int value, int &result);
 
-#define SPR_XER	1
-#define SPR_LR	8
-#define SPR_CTR	9
-#define SPR_SPR0 0 
 #define DISTANCE(x,y)   ((x<y) ? (y-x) : (x-y))
 
 Address getMaxBranch() {
@@ -201,22 +197,7 @@ unsigned baseTramp::getBTCost() {
  */
 
 unsigned relocatedInstruction::maxSizeRequired() {
-
-    // We currently assert instead of fixing out-of-range
-    // branches. In the spirit of "one thing at a time",
-    // we'll handle that _later_.
-
-    // Actually, since conditional branches have such an abysmally
-    // short range, we _do_ handle moving them through a complicated
-    // "jump past an unconditional branch" combo.
-
-    if (insn->isCondBranch()) {
-        // Maybe... so worst-case
-        if (((**insn).bform.bo & BALWAYSmask) != BALWAYScond) {
-            return 3*instruction::size();
-        }
-    }
-    return instruction::size();
+    return insn->spaceToRelocate();
 }
 
 Register deadRegs[] = {10, REG_GUARD_ADDR, REG_GUARD_VALUE, REG_GUARD_OFFSET};
@@ -888,6 +869,7 @@ unsigned saveSPRegisters(codeGen &gen,
                          int save_off)
 {
     saveCR(gen, 10, save_off + STK_CR);           
+    saveSPR(gen, 10, SPR_CTR, save_off + STK_CTR);
     saveSPR(gen, 10, SPR_XER, save_off + STK_XER);
     if (theRegSpace->getSPFlag())
       saveSPR(gen, 10, SPR_SPR0, save_off + STK_SPR0);
@@ -905,6 +887,7 @@ unsigned restoreSPRegisters(codeGen &gen,
                             int save_off)
 {
     restoreCR(gen, 10, save_off + STK_CR);
+    restoreSPR(gen, 10, SPR_CTR, save_off + STK_CTR);
     restoreSPR(gen, 10, SPR_XER, save_off + STK_XER);
     if (theRegSpace->getSPFlag())
       restoreSPR(gen, 10, SPR_SPR0, save_off + STK_SPR0);
@@ -1149,23 +1132,6 @@ void baseTrampInstance::updateTrampCost(unsigned cost) {
     proc()->writeDataSpace((void *)trampCostAddr,
                            gen.used(),
                            gen.start_ptr());
-}
-
-unsigned generateAndWriteBranch(process *proc,
-                                Address fromAddr,
-                                Address newAddr,
-                                unsigned fillSize) {
-    if (fillSize == 0) fillSize = instruction::maxJumpSize();
-
-    codeGen gen(fillSize);
-    instruction::generateBranch(gen,
-                                fromAddr,
-                                newAddr);
-
-    //gen.fillRemaining(codeGen::cgNOP);
-
-    proc->writeTextSpace((void *)fromAddr, gen.used(), gen.start_ptr());
-    return gen.used();
 }
 
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
@@ -1596,7 +1562,6 @@ Register emitFuncCall(opCode /* ocode */,
 
    // brl - branch and link through the link reg.
 
-   // Move to link register
    instruction brl(BRLraw);
    brl.generate(gen);
 
