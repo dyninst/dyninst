@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.36 2005/09/09 18:06:28 legendre Exp $
+// $Id: Object-nt.C,v 1.37 2005/09/28 17:02:45 bernat Exp $
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -110,10 +110,10 @@ CompareSymAddresses( const void *x, const void *y )
 
 Object::Module::Module( pdstring _name, DWORD64 _baseAddr, DWORD64 _extent )
   : name(_name),
-	baseAddr(_baseAddr),
-	extent(_extent),
+    baseAddr(_baseAddr),
+    extent(_extent),
     isDll( false ),
-	defFile( new Object::File )
+    defFile( new Object::File )
 {
 	files.push_back( defFile );
 }
@@ -143,13 +143,14 @@ void
 Object::File::DefineSymbols( dictionary_hash<pdstring, pdvector< ::Symbol > >& allSyms,
                                 const pdstring& modName ) const
 {
+    //fprintf(stderr, "ObjFile %s: defining symbols\n", modName.c_str());
     for( pdvector<Object::Symbol*>::const_iterator iter = syms.begin();
         iter != syms.end();
         iter++ )
     {
         const Object::Symbol* curSym = * iter;
         assert( curSym != NULL );
-        
+
         curSym->DefineSymbol( allSyms, modName );
     }
 }
@@ -159,13 +160,15 @@ void
 Object::Symbol::DefineSymbol( dictionary_hash<pdstring, pdvector< ::Symbol > >& allSyms,
                                 const pdstring& modName ) const
 {
+    //fprintf(stderr, "%s/%s/0x%lx\n",
+    //GetName().c_str(), modName.c_str(), GetAddr());
     allSyms[GetName()].push_back( ::Symbol( GetName(),
-        modName,
-        (::Symbol::SymbolType)GetType(),
-		(::Symbol::SymbolLinkage)GetLinkage(),
-        (Address)GetAddr(),
-        false,
-		GetSize()) );
+                                            modName,
+                                            (::Symbol::SymbolType)GetType(),
+                                            (::Symbol::SymbolLinkage)GetLinkage(),
+                                            (Address)GetAddr(),
+                                            false,
+                                            GetSize()) );
 }
 
 
@@ -185,6 +188,7 @@ Object::Module::DefineSymbols( const Object* obj,
             const File* curFile = *iter;
             assert( curFile != NULL );
 
+            //fprintf(stderr, "ObjMod::DefineSymbols for %s\n", curFile->GetName().c_str());
             // add a Symbol for the file
             syms[curFile->GetName()].push_back( ::Symbol( curFile->GetName(),
                 "",
@@ -393,162 +397,147 @@ Object::~Object( void )
 BOOL
 CALLBACK
 SymEnumSymbolsCallback( PSYMBOL_INFO pSymInfo,
-                    ULONG symSize,
-                    PVOID userContext )
+                        ULONG symSize,
+                        PVOID userContext )
 {
-	assert( pSymInfo != NULL );
-
-	//
-	// Our recognition of interesting symbols (functions and global data)
-	// is complicated due to lack of consistency in how they are
-	// presented to us in the pSymInfo struct.  For example,
-	// Microsoft's own system DLLs like kernel32.dll only seem to provide
-	// us their exports - these have the SYMFLAG_EXPORT bit set in
-	// pSymInfo->Flags.  In contrast, EXEs with full debug information
-	// may have pSymInfo->Flags == 0, with pSymInfo->Tag indicating the
-	// type of symbol.
-	//
-	// The values for pSymInfo->Tag are not currently documented in the PSDK.
-	// They are defined in the 'cvconst.h' header from the DIA SDK.
-	//
-   printf("[%s:%u] - Got symbol %s\n", __FILE__, __LINE__, pSymInfo->Name);
-	if( (pSymInfo->Flags & SYMFLAG_EXPORT) ||
-		(pSymInfo->Flags & SYMFLAG_FUNCTION) ||
-		(pSymInfo->Flags & SYMFLAG_PARAMETER) ||
-		(pSymInfo->Flags & SYMFLAG_LOCAL) ||
-		((pSymInfo->Flags == 0) && 
-			((pSymInfo->Tag == 0x05) ||			// SymTagFunction
-			 (pSymInfo->Tag == 0x07) ||			// SymTagData
-			 (pSymInfo->Tag == 0x0a) ||			// SymTagPublicSymbol
-			 (pSymInfo->Tag == 0x3808))) )		// Seen with NB11, VC++6-produced executables
+    assert( pSymInfo != NULL );
+    
+    //
+    // Our recognition of interesting symbols (functions and global data)
+    // is complicated due to lack of consistency in how they are
+    // presented to us in the pSymInfo struct.  For example,
+    // Microsoft's own system DLLs like kernel32.dll only seem to provide
+    // us their exports - these have the SYMFLAG_EXPORT bit set in
+    // pSymInfo->Flags.  In contrast, EXEs with full debug information
+    // may have pSymInfo->Flags == 0, with pSymInfo->Tag indicating the
+    // type of symbol.
+    //
+    // The values for pSymInfo->Tag are not currently documented in the PSDK.
+    // They are defined in the 'cvconst.h' header from the DIA SDK.
+    //
+    /*
+    fprintf(stderr, "symEnumSymsCallback, %s, 0x%x, 0x%x...",
+            pSymInfo->Name,
+            pSymInfo->Flags,
+            pSymInfo->Tag);
+    */
+    if( (pSymInfo->Flags & SYMFLAG_EXPORT) ||
+        (pSymInfo->Flags & SYMFLAG_FUNCTION) ||
+        (pSymInfo->Flags & SYMFLAG_PARAMETER) ||
+        (pSymInfo->Flags & SYMFLAG_LOCAL) ||
+        ((pSymInfo->Flags == 0) && 
+         ((pSymInfo->Tag == 0x05) ||			// SymTagFunction
+          (pSymInfo->Tag == 0x07) ||			// SymTagData
+          (pSymInfo->Tag == 0x0a) ||			// SymTagPublicSymbol
+          (pSymInfo->Tag == 0x3808))) )		// Seen with NB11, VC++6-produced executables
 	{
-        Object* obj = (Object*)userContext;
-        assert( obj != NULL );
-        
-        Object::Module* curMod = obj->GetCurrentModule();
-        assert( curMod != NULL );
-        
-        // get this symbol's file and line information
-        const fileDescriptor &desc = obj->GetDescriptor();
-        HANDLE hProc = desc.procHandle();
-        
-        IMAGEHLP_LINE64 lineInfo;
-        DWORD dwDisplacement = 0;
-        ZeroMemory( &lineInfo, sizeof(lineInfo) );
-        lineInfo.SizeOfStruct = sizeof(lineInfo);
-        Object::File* pFile = NULL;
-        if( SymGetLineFromAddr64( hProc,
-                                  pSymInfo->Address,
-                                  &dwDisplacement,
-                                  &lineInfo ) )
-            {
-                // ensure we have a file for this object
-                pFile = curMod->FindFile( lineInfo.FileName );
-                if( pFile == NULL )
-                    {
-                        pFile = new Object::File( lineInfo.FileName );
-                        curMod->AddFile( pFile );
+            Object* obj = (Object*)userContext;
+            assert( obj != NULL );
+            
+            Object::Module* curMod = obj->GetCurrentModule();
+            assert( curMod != NULL );
+            
+            // get this symbol's file and line information
+            const fileDescriptor &desc = obj->GetDescriptor();
+            HANDLE hProc = desc.procHandle();
+            
+            IMAGEHLP_LINE64 lineInfo;
+            DWORD dwDisplacement = 0;
+            ZeroMemory( &lineInfo, sizeof(lineInfo) );
+            lineInfo.SizeOfStruct = sizeof(lineInfo);
+            Object::File* pFile = NULL;
+            if( SymGetLineFromAddr64( hProc,
+                                      pSymInfo->Address,
+                                      &dwDisplacement,
+                                      &lineInfo ) ) {
+                    // ensure we have a file for this object
+                    pFile = curMod->FindFile( lineInfo.FileName );
+                    if( pFile == NULL ) {
+                            pFile = new Object::File( lineInfo.FileName );
+                            curMod->AddFile( pFile );
                     }
             }
-        else
-            {
-                pFile = curMod->GetDefaultFile();
+            else {
+                    pFile = curMod->GetDefaultFile();
             }
-        assert( pFile != NULL );
-        
-        // is it a function or not?
-        // TODO why is there a discrepancy between code base addr for
-        // EXEs and DLLs?
-        DWORD symType = ::Symbol::PDST_UNKNOWN;
-        DWORD symLinkage = ::Symbol::SL_UNKNOWN;
-        DWORD64 codeLen = obj->code_len();
-        DWORD64 codeBase = obj->code_off();
-        if( obj->GetDescriptor().isSharedObject() )
-        {
+            assert( pFile != NULL );
+            
+            // is it a function or not?
+            // TODO why is there a discrepancy between code base addr for
+            // EXEs and DLLs?
+            DWORD symType = ::Symbol::PDST_UNKNOWN;
+            DWORD symLinkage = ::Symbol::SL_UNKNOWN;
+            DWORD64 codeLen = obj->code_len();
+            DWORD64 codeBase = obj->code_off();
+
             codeBase += obj->get_base_addr();
-        }
-
-		if( (pSymInfo->Address >= codeBase) &&
-			(pSymInfo->Address < (codeBase + codeLen)) &&
-			!(pSymInfo->Flags & SYMFLAG_LOCAL) &&
-			!(pSymInfo->Flags & SYMFLAG_PARAMETER) )
+            
+            if( (pSymInfo->Address >= codeBase) &&
+                (pSymInfo->Address < (codeBase + codeLen)) &&
+                !(pSymInfo->Flags & SYMFLAG_LOCAL) &&
+                !(pSymInfo->Flags & SYMFLAG_PARAMETER) )
 		{
-			symType = ::Symbol::PDST_FUNCTION;
-			symLinkage = ::Symbol::SL_UNKNOWN;
+                    symType = ::Symbol::PDST_FUNCTION;
+                    symLinkage = ::Symbol::SL_UNKNOWN;
+                    //fprintf(stderr, " func\n");
 		}
-		else
+            else
 		{
-			symType = ::Symbol::PDST_OBJECT;
-			if( (pSymInfo->Flags & SYMFLAG_LOCAL) ||
-				(pSymInfo->Flags & SYMFLAG_PARAMETER) )
+                    symType = ::Symbol::PDST_OBJECT;
+                    if( (pSymInfo->Flags & SYMFLAG_LOCAL) ||
+                        (pSymInfo->Flags & SYMFLAG_PARAMETER) )
 			{
-				symLinkage = ::Symbol::SL_LOCAL;
+                            symLinkage = ::Symbol::SL_LOCAL;
 			}
-			else
+                    else
 			{
-				symLinkage = ::Symbol::SL_GLOBAL;
+                            symLinkage = ::Symbol::SL_GLOBAL;
 			}
+                    //fprintf(stderr, " variable\n");
 		}
-
-		// register the symbol
-        Address baseAddr = 0;
-        if (obj->GetDescriptor().isSharedObject()) {
+            
+            // register the symbol
+            Address baseAddr = 0;
             baseAddr = obj->get_base_addr();
-        }
 
-		if( !obj->isForwarded( pSymInfo->Address - baseAddr ) )
+            if( !obj->isForwarded( pSymInfo->Address - baseAddr ) )
 		{
-			pFile->AddSymbol( new Object::Symbol( pSymInfo->Name,
-												  pSymInfo->Address - baseAddr,
-												  symType,
-												  symLinkage,
-												  pSymInfo->Size,
-												  lineInfo.LineNumber ) );
+                    pFile->AddSymbol( new Object::Symbol( pSymInfo->Name,
+                                                          pSymInfo->Address - baseAddr,
+                                                          symType,
+                                                          symLinkage,
+                                                          pSymInfo->Size,
+                                                          lineInfo.LineNumber ) );
 		}
+        }
+    else {
+        //fprintf(stderr, " skipping\n");
     }
-
+    
     // keep enumerating symbols
     return TRUE;
 }
 
-
-
-
-
-
+bool symInitializeCalled = 0;
 
 void
 Object::ParseDebugInfo( void )
 {
-    if( baseAddr == 0 )
-    {
-        if( desc.code() == 0 )
+    if (!symInitializeCalled) {
+        symInitializeCalled = true;
+
+        // Initialize our symbol handler
+        if( !SymInitialize( desc.procHandle(), NULL, FALSE ) )
             {
-                // we're being called before we are attached to a process
-                // trick image class into thinking we've done something
-                deferredParse = true;
-                return;
+                fprintf( stderr, "SymInitialize failed: %x\n", GetLastError() );
             }
-        else
-            {
-                // now we have a module base address
-                baseAddr = desc.code();
-                
-                // Initialize our symbol handler
-                //cout << "calling SymInitialize with proc=" << desc.GetProcessHandle() << endl;
-                if( !SymInitialize( desc.procHandle(), NULL, FALSE ) )
-                    {
-                        fprintf( stderr, "SymInitialize failed: %x\n", GetLastError() );
-                    }
-                
-                // ensure we load line number information when we load
-                // modules
-                DWORD dwOpts = SymGetOptions();
-                dwOpts &= ~(SYMOPT_UNDNAME); //want mangled names
-                SymSetOptions(dwOpts | SYMOPT_LOAD_LINES);
-            }
+        
+        // ensure we load line number information when we load
+        // modules
+        DWORD dwOpts = SymGetOptions();
+        dwOpts &= ~(SYMOPT_UNDNAME); //want mangled names
+        SymSetOptions(dwOpts | SYMOPT_LOAD_LINES);
     }
-    assert( baseAddr != 0 );
     
     // build a Module object for the current module (EXE or DLL)
     // Note that the CurrentModuleScoper object ensures that the
@@ -566,8 +555,7 @@ Object::ParseDebugInfo( void )
     assert( hFile != INVALID_HANDLE_VALUE );
 
     // find the sections we need to know about (.text and .data)
-	cerr << file_.c_str();	
-	FindInterestingSections( hProc, hFile );
+    FindInterestingSections( hProc, hFile );
 
     // load symbols for this module
     DWORD64 dw64BaseAddr = (DWORD64)baseAddr;
@@ -592,22 +580,23 @@ Object::ParseDebugInfo( void )
 
     // obtain info about the module - how can we without a module handle?
     // parse symbols for the module
-    printf(stderr, "[%s:%u] - Asking for it\n", __FILE__, __LINE__);
+    //fprintf(stderr, "SymEnumSymbols, %p, 0x%lx\n",
+    //hProc, baseAddr);
     if( !SymEnumSymbols( hProc,                     // process handle
-                            baseAddr,               // load address
-                            "",                     // symbol mask (we use none)
-                            SymEnumSymbolsCallback, // called for each symbol
-                            this ) )                // client data
-    {
-        fprintf( stderr, "Failed to enumerate symbols: %x\n", GetLastError() );
-    }
+                         baseAddr,               // load address
+                         "",                     // symbol mask (we use none)
+                         SymEnumSymbolsCallback, // called for each symbol
+                         this ) )                // client data
+        {
+            fprintf( stderr, "Failed to enumerate symbols: %x\n", GetLastError() );
+        }
 
 
     // We have a module object, with one or more files,
     // each with one or more symbols.  However, the symbols
     // are not necessarily in order, nor do they necessarily have valid sizes.
     assert( curModule != NULL );
-	curModule->BuildSymbolMap( this );
+    curModule->BuildSymbolMap( this );
     curModule->DefineSymbols( this, symbols_ );
 
     //find main if the binary is stripped
