@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.204 2005/09/09 18:06:30 legendre Exp $
+// $Id: aix.C,v 1.205 2005/09/28 17:02:47 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -997,13 +997,7 @@ void loadNativeDemangler()
       if (!P_text) 
          BPatch_reportError(BPatchSerious,122,
                        "unable to locate function text in libdemangle.so.1\n");
-   } else {
-#if defined(BPATCH_LIBRARY)
-      BPatch_reportError(BPatchSerious,122,"unable to load xlC external demangler libdemangle.so.1\n");
-#else
-      cerr << "unable to load external demangler libdemangle.so.1\n";
-#endif
-   }
+   } 
 }
 
 
