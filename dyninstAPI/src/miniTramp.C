@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.11 2005/09/15 19:20:43 tlmiller Exp $
+// $Id: miniTramp.C,v 1.12 2005/09/28 17:03:11 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -142,7 +142,7 @@ void miniTramp::deleteMTI(miniTrampInstance *mti) {
 extern void debugBreakpoint();
 
 bool miniTramp::generateMT() {
-    inst_printf("AST pointer is %p\n", ast_);
+    //inst_printf("AST pointer is %p\n", ast_);
 
     // This can be called multiple times
     if (miniTrampCode_ != NULL) return true;
@@ -214,7 +214,7 @@ unsigned miniTrampInstance::maxSizeRequired() {
     // If in-line...
 
     if (mini->baseT->firstMini == mini) {
-        inst_printf("Size request for first mini\n");
+        //inst_printf("Size request for first mini\n");
         return instruction::maxJumpSize();
     }
     return 0;
@@ -236,9 +236,10 @@ unsigned miniTrampInstance::maxSizeRequired() {
 bool miniTrampInstance::generateCode(codeGen &gen,
                                      Address baseInMutatee,
                                      UNW_INFO_TYPE ** unwindInformation ) {
-    inst_printf("miniTrampInstance::generateCode(%p, 0x%x, %d)\n",
+    /*
+      inst_printf("miniTrampInstance::generateCode(%p, 0x%x, %d)\n",
                 gen.start_ptr(), baseInMutatee, gen.used());
-    
+    */
     assert(mini);
     // if (in-line...)
     // Are we first?
@@ -262,11 +263,11 @@ bool miniTrampInstance::generateCode(codeGen &gen,
     }
     
     // And make-y the code
-    inst_printf("Generating MT code\n");
+    //inst_printf("Generating MT code\n");
     if (!mini->generateMT())
         return false;
     generated_ = true;
-    inst_printf("Done with MT code generation\n");
+    //inst_printf("Done with MT code generation\n");
     return true;
 }
 
