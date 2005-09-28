@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.142 2005/09/09 18:06:55 legendre Exp $
+// $Id: pdwinnt.C,v 1.143 2005/09/28 17:03:14 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -55,6 +55,7 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/signalhandler.h"
 #include <psapi.h>
+#include "mapped_object.h"
 
 #ifndef BPATCH_LIBRARY
 #include "paradynd/src/main.h"
@@ -158,16 +159,8 @@ static bool kludge_isKernel32Dll(HANDLE fileHandle, pdstring &kernel32Name) {
 void dumpMem(process *p, void * addr, unsigned nbytes) {
     unsigned char *buf = new unsigned char[nbytes];
     memset(buf, 0, nbytes);
-    int_function *f;
     assert(buf);
 
-    if (f = p->findFuncByAddr((Address)addr))
-    {
-        printf("Function %s, addr=0x%lx, sz=%d\n", 
-                f->prettyName().c_str(),
-                f->getAddress(),
-                f->getSize());
-    }
     p->readDataSpace((void *)((unsigned)addr-32), nbytes, buf, true);
     printf("## 0x%lx:\n", (unsigned)addr-32);
     for (unsigned u = 0; u < nbytes; u++)
@@ -484,11 +477,14 @@ DWORD continueType = DBG_CONTINUE; //ccw 25 oct 2000 : 28 mar 2001
 DWORD handleBreakpoint(process *proc, const procevent &event) {
     Address addr =
        (Address) event.info.u.Exception.ExceptionRecord.ExceptionAddress;
-/*    
+
+    /*
       printf("Debug breakpoint exception, %d, addr = %x\n", 
       event.info.u.Exception.ExceptionRecord.ExceptionFlags,
       event.info.u.Exception.ExceptionRecord.ExceptionAddress);
-*/
+    */
+
+      int_function *func = proc->findFuncByAddr((Address) event.info.u.Exception.ExceptionRecord.ExceptionAddress);
               
     if (!proc->reachedBootstrapState(bootstrapped_bs)) {
         // If we're attaching, the OS sends a stream of debug events
@@ -515,7 +511,7 @@ DWORD handleBreakpoint(process *proc, const procevent &event) {
             proc->handleTrapAtEntryPointOfMain(NULL); // cleanup
             proc->setBootstrapState(initialized_bs);
             return DBG_CONTINUE;
-    }
+        }
     
         
         // When dyninst lib load finishes, cleanup
@@ -528,80 +524,6 @@ DWORD handleBreakpoint(process *proc, const procevent &event) {
         }
     }
 
-    // Hitting a base tramp?
-    
-#if defined(arch_x86) || defined(arch_x86_64)
-    Address trampAddr = 0;
-    if (proc->trampTrapMapping.defines(addr))
-        trampAddr = proc->trampTrapMapping[addr];
-
-    if (trampAddr) {
-        // this is a trap from an instrumentation point
-        
-        // find the current thread
-        dyn_thread* currThread = NULL;
-        for(unsigned int i = 0; i < proc->threads.size(); i++)
-        {
-            if ((unsigned)proc->threads[i]->get_tid() == event.info.dwThreadId)
-            {
-                currThread = proc->threads[i];
-                break;
-            }
-        }
-        assert( currThread != NULL );
-        
-        // Due to a race between the processing of trap debug events
-        // and the desire to run an inferior RPC, it is possible that
-        // we hit the trap, set ourselves up to run an inferior RPC,
-        // and then processed the trap notification.  If this happens,
-        // we don't end up running *any* of the inferior RPC code.
-        //
-        // We can tell that this is what's happened based on the
-        // thread's Eip - if it doesn't match the ExceptionAddress, we
-        // know that we had tried to reset the Eip to execute an inferior
-        // RPC.  In that case, we leave the Eip alone here, which means
-        // the inferior RPC code will execute when we continue the 
-        // thread.
-        // We have to remember that we need to execute this 
-        // instrumentation once the inferior RPC is done, however.
-        
-        CONTEXT cont;
-        cont.ContextFlags = CONTEXT_FULL;
-        if( !GetThreadContext( (HANDLE)currThread->get_lwp()->get_fd(), &cont ) )
-            assert(0 && "Failed to get thread context");
-        if( addr == Address(cont.Eip - 1) )
-        {
-            // The Eip indicates we've just executed a trap instruction
-            // reset the Eip to the address of the base tramp
-            cont.Eip = trampAddr;
-            if( !SetThreadContext( (HANDLE)currThread->get_lwp()->get_fd(), &cont ) )
-                assert(0 && "Failed to set thread context");
-        }
-        else {
-            // We leave the Eip alone, since we've set it to execute 
-            // at inferior RPC code.  However, we need to remember that
-            // we should execute the base tramp once the inferiorRPC is
-            // completed.
-            currThread->set_pending_tramp_addr( trampAddr );
-        }
-        // We're actually in instrumentation, so rerun the 
-        // process
-        proc->continueProc();
-        return DBG_CONTINUE;
-    } // if trampAddr         
-#endif // mips_unknown_ce2_11
-    
-    // If it is not from an instrumentation point,
-    // it could be from a call to DYNINSTbreakPoint,
-    // and so we leave paused
-    return DBG_EXCEPTION_NOT_HANDLED;
-}
-
-DWORD handleIllegal(process *proc, const procevent &event) {
-
-    Address addr =
-       (Address) event.info.u.Exception.ExceptionRecord.ExceptionAddress;
-    
     if( proc->getRpcMgr()->handleSignalIfDueToIRPC(event.lwp) )
     {
         // handleTrapIfDueToRPC calls continueproc()
@@ -612,6 +534,7 @@ DWORD handleIllegal(process *proc, const procevent &event) {
         // pending instrumentation is executed.  (I.e., instrumentation
         // put off so we could be sure to execute inferior RPC code is
         // now executed.)
+#if 0
         if( !proc->getRpcMgr()->existsRunningIRPC() )	{
             // we finished the inferior RPC, so we can now execute
             // any pending instrumentation
@@ -640,9 +563,89 @@ DWORD handleIllegal(process *proc, const procevent &event) {
                 currThread->set_pending_tramp_addr(0);
             }
         }
+#endif
         // Inferior RPC states whether to leave running or paused
         return DBG_CONTINUE;
     }
+
+    // Hitting a base tramp?
+    
+    Address trampAddr = 0;
+    Frame af = event.lwp->getActiveFrame();
+    if (proc->trampTrapMapping.defines(af.getPC()))
+        trampAddr = proc->trampTrapMapping[af.getPC()];
+    if (trampAddr) {
+        // this is a trap from an instrumentation point
+        
+        // find the current thread
+        dyn_thread* currThread = NULL;
+        dyn_lwp *lwpToUse = NULL;
+        for(unsigned int i = 0; i < proc->threads.size(); i++)
+            {
+                if ((unsigned)proc->threads[i]->get_tid() == event.info.dwThreadId)
+                    {
+                        currThread = proc->threads[i];
+                        lwpToUse = currThread->get_lwp();
+                        break;
+                    }
+            }
+        if (lwpToUse == NULL)
+            lwpToUse = proc->getRepresentativeLWP();
+        lwpToUse->changePC(trampAddr, NULL);
+
+#if 0
+        // Due to a race between the processing of trap debug events
+        // and the desire to run an inferior RPC, it is possible that
+        // we hit the trap, set ourselves up to run an inferior RPC,
+        // and then processed the trap notification.  If this happens,
+        // we don't end up running *any* of the inferior RPC code.
+        //
+        // We can tell that this is what's happened based on the
+        // thread's Eip - if it doesn't match the ExceptionAddress, we
+        // know that we had tried to reset the Eip to execute an inferior
+        // RPC.  In that case, we leave the Eip alone here, which means
+        // the inferior RPC code will execute when we continue the 
+        // thread.
+        // We have to remember that we need to execute this 
+        // instrumentation once the inferior RPC is done, however.
+        
+        CONTEXT cont;
+        cont.ContextFlags = CONTEXT_FULL;
+        if( !GetThreadContext( (HANDLE)currThread->get_lwp()->get_fd(), &cont ) )
+            assert(0 && "Failed to get thread context");
+        if( addr == Address(cont.Eip - 1) )
+            {
+                // The Eip indicates we've just executed a trap instruction
+                // reset the Eip to the address of the base tramp
+                cont.Eip = trampAddr;
+                if( !SetThreadContext( (HANDLE)currThread->get_lwp()->get_fd(), &cont ) )
+                    assert(0 && "Failed to set thread context");
+            }
+        else {
+            // We leave the Eip alone, since we've set it to execute 
+            // at inferior RPC code.  However, we need to remember that
+            // we should execute the base tramp once the inferiorRPC is
+            // completed.
+            currThread->set_pending_tramp_addr( trampAddr );
+        }
+#endif // disabled RPC/trap conflict
+        // We're actually in instrumentation, so rerun the 
+        // process
+        proc->continueProc();
+        return DBG_CONTINUE;
+    } // if trampAddr         
+    
+    // If it is not from an instrumentation point,
+    // it could be from a call to DYNINSTbreakPoint,
+    // and so we leave paused
+    return DBG_EXCEPTION_NOT_HANDLED;
+}
+
+DWORD handleIllegal(process *proc, const procevent &event) {
+
+    Address addr =
+       (Address) event.info.u.Exception.ExceptionRecord.ExceptionAddress;
+    
     proc->continueProc();
     return DBG_EXCEPTION_NOT_HANDLED;
 }
@@ -682,12 +685,15 @@ DWORD handleException(const procevent &event) {
 
    switch (event.what) {
      case EXCEPTION_BREAKPOINT: 
+         signal_printf("BREAKPOINT\n");
         ret = handleBreakpoint(event.proc, event);
         break;
      case EXCEPTION_ILLEGAL_INSTRUCTION:
+         signal_printf("ILLEGAL INSN\n");
         ret = handleIllegal(event.proc, event);
         break;
      case EXCEPTION_ACCESS_VIOLATION:
+         signal_printf("ACCESS VIOLATION\n");
         ret = handleViolation(event.proc, event);
         break;
      default:
@@ -722,32 +728,40 @@ DWORD handleThreadCreate(const procevent &event) {
 
 // Process creation
 DWORD handleProcessCreate(const procevent &event) {
-   process *proc = event.proc;
-   const procSignalInfo_t &info = event.info;
-
-   if(! proc)
-      return DBG_CONTINUE;
-
-   dyn_lwp *rep_lwp = proc->getRepresentativeLWP();
-   assert(rep_lwp);  // the process based lwp should already be set
-
-   if(! rep_lwp->isFileHandleSet()) {
-      rep_lwp->setFileHandle(info.u.CreateProcessInfo.hThread);
-      // the real lwp id is at info.dwThreadId if want to save around
-   }
-
-   if (proc->threads.size() == 0) {
-      dyn_thread *t = new dyn_thread(proc, 
-                                     0, // POS (main thread is always 0)
-                                     rep_lwp);
-      // define the main thread
-      proc->threads.push_back(t);
-   }
-   else {
-      proc->threads[0]->update_tid(info.dwThreadId);
-      proc->threads[0]->update_lwp(rep_lwp);
-   }
-
+    process *proc = event.proc;
+    const procSignalInfo_t &info = event.info;
+    
+    if(! proc)
+        return DBG_CONTINUE;
+    
+    
+    dyn_lwp *rep_lwp = proc->getRepresentativeLWP();
+    assert(rep_lwp);  // the process based lwp should already be set
+    
+    if(! rep_lwp->isFileHandleSet()) {
+        rep_lwp->setFileHandle(info.u.CreateProcessInfo.hThread);
+        // the real lwp id is at info.dwThreadId if want to save around
+    }
+    if (!rep_lwp->isProcessHandleSet()) {
+        rep_lwp->setProcessHandle(info.u.CreateProcessInfo.hProcess);
+    }
+        
+    if (proc->threads.size() == 0) {
+        dyn_thread *t = new dyn_thread(proc, 
+                                       0, // POS (main thread is always 0)
+                                       rep_lwp);
+        // define the main thread
+        proc->threads.push_back(t);
+    }
+    else {
+        proc->threads[0]->update_tid(info.dwThreadId);
+        proc->threads[0]->update_lwp(rep_lwp);
+    }
+    
+    // TODO: "set" flag
+    proc->processHandle_ = info.u.CreateProcessInfo.hProcess;
+    proc->mainFileHandle_ = info.u.CreateProcessInfo.hFile;
+    proc->mainFileBase_ = (Address) info.u.CreateProcessInfo.lpBaseOfImage;
 #if 0
    // TODO FIXME - this should be stored and rolled into setAOut
 
@@ -837,7 +851,7 @@ DWORD handleDllLoad(const procevent &event) {
    process *proc = event.proc;
    const procSignalInfo_t &info = event.info;
    /*
-     printf("load dll: hFile=%x, base=%x, debugOff=%x, debugSz=%d lpname=%x, %d\n",
+   printf("load dll: hFile=%x, base=%x, debugOff=%x, debugSz=%d lpname=%x, %d\n",
      info.u.LoadDll.hFile, info.u.LoadDll.lpBaseOfDll,
      info.u.LoadDll.dwDebugInfoFileOffset,
      info.u.LoadDll.nDebugInfoSize,
@@ -852,7 +866,6 @@ DWORD handleDllLoad(const procevent &event) {
    
    // obtain the name of the DLL
    pdstring imageName = GetLoadedDllImageName( proc, info );
-   
    handleT procHandle = proc->getRepresentativeLWP()->getProcessHandle();
    
    fileDescriptor desc(imageName, 
@@ -939,13 +952,11 @@ int signalHandler::handleProcessEvent(const procevent &event) {
    // Process is paused
    // Make sure pause does something...
    process *proc = event.proc;
-
    /*
    cerr << "handleProcessEvent, pid: " << proc->getPid() << ", why: "
         << event.why << ", what: " << event.what << ", lwp-id: "
         << event.lwp->get_lwp_id() << endl;
    */
-   
    const procSignalInfo_t &info = event.info;
 
    // Due to NT's odd method, we have to call pause_
@@ -953,31 +964,38 @@ int signalHandler::handleProcessEvent(const procevent &event) {
    // pre-initialization)
    proc->getRepresentativeLWP()->stop_();
    proc->set_status(stopped);
-   
    switch(event.why) {
      case procException:
+         signal_printf("Exception...\n");
         ret = handleException(event);
         break;
      case procThreadCreate:
+         signal_printf("Thread creation\n");
         ret = handleThreadCreate(event);
         break;
      case procProcessCreate:
+         signal_printf("Process creation\n");
         ret = handleProcessCreate(event);
         break;
      case procThreadExit:
+         signal_printf("Thread exit\n");
         ret = handleThreadExit(event);
         break;
      case procProcessExit:
+         signal_printf("Process exit\n");
         ret = handleProcessExitWin(event);
         break;
      case procProcessSelfTermination:
+         signal_printf("Process killed itself\n");
         ret = handleProcessExitWin(event);
         break;
      case procDllLoad:
-        
+         signal_printf("DLL load\n");
         ret = handleDllLoad(event);
         break;
      default:
+         cerr << "Default hit in handleProcessEvent" << endl;
+         assert(0);
         break;
    }
    // Continue the process after the debug event
@@ -1006,7 +1024,6 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
    // happens on the select in controllerMainLoop. But on NT, because
    // we have to handle traps, we set the timeout on the select as 0,
    // so that we can check for traps quickly
-
    DWORD milliseconds;
    if (-1 == timeout) milliseconds = INFINITE;
    else milliseconds = timeout ? timeout : 1;
@@ -1014,7 +1031,6 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
    procSignalInfo_t info;
    procSignalWhy_t  why;
    procSignalWhat_t what;
-
 #if defined(mips_unknown_ce2_11) //ccw 28 july 2000 : 29 mar 2001
    if (!BPatch::bpatch->rDevice->RemoteWaitForDebugEvent(&info, milliseconds))
 #else
@@ -1032,7 +1048,6 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
       }
       return false;
    }
-   
    process *proc = process::findProcess(info.dwProcessId);
    if (proc == NULL) {
       /* this case can happen when we create a process, but then are unable
@@ -1140,11 +1155,8 @@ terminateProcStatus_t process::terminateProc_()
 */
 bool dyn_lwp::stop_() {
    unsigned count = 0;
-#ifdef mips_unknown_ce2_11 //ccw 10 feb 2001 : 29 mar 2001
-   count = BPatch::bpatch->rDevice->RemoteSuspendThread((HANDLE)get_fd());
-#else            
+
    count = SuspendThread((HANDLE)get_fd());
-#endif
    if (count == 0xFFFFFFFF) {
       // printf("pause_: %d\n", threads[u]->get_tid());
       // printSysError(GetLastError());
@@ -1179,7 +1191,6 @@ bool dyn_lwp::readTextSpace(void *inTraced, u_int amount, const void *inSelf) {
 bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
 {
     DWORD nbytes;
-
     handleT procHandle = getProcessHandle();
 #ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
     bool res = BPatch::bpatch->rDevice->RemoteWriteProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 
@@ -1857,14 +1868,27 @@ rawTime64 dyn_lwp::getRawCpuTime_sw()
 #endif
 
 bool process::getExecFileDescriptor(pdstring filename,
-                                    int,
+                                    int pid,
                                     bool,
                                     int &status,
                                     fileDescriptor &desc)
 {
-    // TODO: store the process and file handles in the process class
-    // and reuse them here
-    desc = fileDescriptor(filename, 0, (HANDLE)status, 0);
+    process *proc = process::findProcess(pid);
+    assert(proc);
+
+    // Wait for the process creation. 
+    while (proc->processHandle_ == INVALID_HANDLE_VALUE)
+        getSH()->checkForAndHandleProcessEvents(true);
+
+    assert(proc->mainFileBase_);
+    assert(proc->processHandle_ != INVALID_HANDLE_VALUE);
+    assert(proc->mainFileHandle_ != INVALID_HANDLE_VALUE);
+
+    desc = fileDescriptor(filename, 
+                          (Address) proc->mainFileBase_,
+                          (HANDLE) proc->processHandle_,
+                          (HANDLE) proc->mainFileHandle_);
+
     return true;
 }
 
@@ -2118,35 +2142,15 @@ bool dyn_lwp::realLWP_attach_() {
 
 bool dyn_lwp::representativeLWP_attach_() {
     if(proc_->wasCreatedViaAttach()) {
-#ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-        if (!BPatch::bpatch->rDevice->RemoteDebugActiveProcess(getPid()))
-            {
-                return false;
-            }
-        procHandle_ = 
-            BPatch::bpatch->rDevice->RemoteOpenProcess(PROCESS_ALL_ACCESS,
-                                                       false, getPid());
-        assert( procHandle_ != NULL );
-        return true;
-#else
-        if (!DebugActiveProcess(getPid()))
-            {
-                //printf("Error: DebugActiveProcess failed\n");
-                return false;
-            }
-#endif
+        if (!DebugActiveProcess(getPid())) {
+            //printf("Error: DebugActiveProcess failed\n");
+            return false;
+        }
     }
-
-#if 0
-    // Obsolete    
+    
     // We either created this process, or we have just attached it.
     // In either case, our descriptor already has a valid process handle.
-
-    assert( fdw != NULL );
-    
-    if(fdw->GetProcessHandle() != INVALID_HANDLE_VALUE)
-        setProcessHandle(fdw->GetProcessHandle());
-#endif
+    setProcessHandle(proc()->processHandle_);
 
     return true;
 }
@@ -2264,111 +2268,91 @@ bool process::getDyninstRTLibName() {
 // Load the dyninst library
 bool process::loadDYNINSTlib()
 {
-    Address codeBase = getAOut()->codeBase();
+    Address codeBase = getAOut()->codeAbs();
     Address LoadLibAddr;
     Symbol sym;
 
-#ifdef mips_unknown_ce2_11 //ccw 14 aug 2000 : 29 mar 2001
+    if (!getSymbolInfo("_LoadLibraryA@4", sym) &&
+        !getSymbolInfo("_LoadLibraryA", sym) &&
+        !getSymbolInfo("LoadLibraryA", sym))
+        {
+            printf("unable to find function LoadLibrary\n");
+            assert(0);
+        }
+    LoadLibAddr = sym.addr();
+    assert(LoadLibAddr);
 
-	Address hackLoadLibAddr = 0x01f9ac30; //ccw 2 feb 2001 : HACK
+    char ibuf[BYTES_TO_SAVE];
+    char *iptr = ibuf;
+    memset(ibuf, '\0', BYTES_TO_SAVE);//ccw 25 aug 2000
     
-	//ccw 2 feb 2001
-	//this is a terrible hack.  i know that LoadLibrary is 0xac30 bytes from
-	//the base address of coredll.dll from emprical evidence.  i have no
-	//debug symbols for coredll.dll to prove this dynamically though....
-	
-	for(int i=0; i< (p->sharedObjects())->size();i++){
-		
-		if((*p->sharedObjects())[i]->getName() == "coredll.dll" ){
-			hackLoadLibAddr = (*p->sharedObjects())[i]->getBaseAddress() + 0x0000bf1c;
-			//0x0000ac30; //HACK 24 apr 2001
-		}
-	}
-#else
-	if (!getSymbolInfo("_LoadLibraryA@4", sym) &&
-            !getSymbolInfo("_LoadLibraryA", sym) &&
-            !getSymbolInfo("LoadLibraryA", sym))
-            {
-                printf("unable to find function LoadLibrary\n");
-                assert(0);
-            }
-        LoadLibAddr = sym.addr();
-        assert(LoadLibAddr);
-#endif
-        char ibuf[BYTES_TO_SAVE];
-        char *iptr = ibuf;
-	memset(ibuf, '\0', BYTES_TO_SAVE);//ccw 25 aug 2000
-        
-        // Code overview:
-        // Dynininst library name
-        //    Executable code begins here:
-        // Push (address of dyninst lib name)
-        // Call LoadLibrary
-        // Pop (cancel push)
-        // Trap
-        
-        process::dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
-        
-        if (!process::dyninstRT_name.length())
-            // if environment variable unset, use the default name/strategy
-            process::dyninstRT_name = "libdyninstAPI_RT.dll";
-	
-        // make sure that directory separators are what LoadLibrary expects
-        strcpy(iptr, process::dyninstRT_name.c_str());
-        for (unsigned int i=0; i<strlen(iptr); i++)
-            if (iptr[i]=='/') iptr[i]='\\';
-        
-        // 4: give us plenty of room after the string to start instructions
-        int instructionOffset = strlen(iptr) + 4;
-        // Regenerate the pointer
-        iptr = &(ibuf[instructionOffset]);
-        
-        // At this point, the buffer contains the name of the dyninst
-        // RT lib. We now generate code to load this string into memory
-        // via a call to LoadLibrary
-        
-        // push nameAddr ; 5 bytes
-        *iptr++ = (char)0x68; 
-        // Argument for push
-        *(int *)iptr = codeBase; // string at codeBase
-        iptr += sizeof(int);
-        
-        int offsetFromBufferStart = (int)iptr - (int)ibuf;
-        offsetFromBufferStart += 5; // Skip next instruction as well.
-        // call LoadLibrary ; 5 bytes
-        *iptr++ = (char)0xe8;
-        
-        // Jump offset is relative
-        *(int *)iptr = LoadLibAddr - (codeBase + 
-                                      offsetFromBufferStart); // End of next instruction
-        iptr += sizeof(int);
-        
-        
-        // add sp, 4 (Pop)
-        *iptr++ = (char)0x83; *iptr++ = (char)0xc4; *iptr++ = (char)0x04;
-        
-        // int3
-        *iptr = (char)0xcc;
-        
-        int offsetToTrap = (int) iptr - (int) ibuf;
-        readDataSpace((void *)codeBase, BYTES_TO_SAVE, savedCodeBuffer, false);
-        writeDataSpace((void *)codeBase, BYTES_TO_SAVE, ibuf);
-        
-        flushInstructionCache_((void *)codeBase, BYTES_TO_SAVE);
-        
-#ifdef mips_unknown_ce2_11 //ccw 22 aug 2000
-        assert(0 && "Need to update dyninst lib load instructions");
-#else
-        dyninstlib_brk_addr = codeBase + offsetToTrap;
-#endif
-        
-        savedRegs = new dyn_saved_regs;
-        bool status = getRepresentativeLWP()->getRegisters(savedRegs);
-        assert(status == true);
-        getRepresentativeLWP()->changePC(codeBase + instructionOffset, NULL);
-        
-        setBootstrapState(loadingRT_bs);
-        return true;
+    // Code overview:
+    // Dynininst library name
+    //    Executable code begins here:
+    // Push (address of dyninst lib name)
+    // Call LoadLibrary
+    // Pop (cancel push)
+    // Trap
+    
+    process::dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
+    
+    if (!process::dyninstRT_name.length())
+        // if environment variable unset, use the default name/strategy
+        process::dyninstRT_name = "libdyninstAPI_RT.dll";
+    
+    // make sure that directory separators are what LoadLibrary expects
+    strcpy(iptr, process::dyninstRT_name.c_str());
+    for (unsigned int i=0; i<strlen(iptr); i++)
+        if (iptr[i]=='/') iptr[i]='\\';
+    
+    // 4: give us plenty of room after the string to start instructions
+    int instructionOffset = strlen(iptr) + 4;
+    // Regenerate the pointer
+    iptr = &(ibuf[instructionOffset]);
+    
+    // At this point, the buffer contains the name of the dyninst
+    // RT lib. We now generate code to load this string into memory
+    // via a call to LoadLibrary
+    
+    // push nameAddr ; 5 bytes
+    *iptr++ = (char)0x68; 
+    // Argument for push
+    *(int *)iptr = codeBase; // string at codeBase
+    iptr += sizeof(int);
+    
+    int offsetFromBufferStart = (int)iptr - (int)ibuf;
+    offsetFromBufferStart += 5; // Skip next instruction as well.
+    // call LoadLibrary ; 5 bytes
+    *iptr++ = (char)0xe8;
+    
+    // Jump offset is relative
+    *(int *)iptr = LoadLibAddr - (codeBase + 
+                                  offsetFromBufferStart); // End of next instruction
+    iptr += sizeof(int);
+    
+    
+    // add sp, 4 (Pop)
+    *iptr++ = (char)0x83; *iptr++ = (char)0xc4; *iptr++ = (char)0x04;
+    
+    // int3
+    *iptr = (char)0xcc;
+    
+    int offsetToTrap = (int) iptr - (int) ibuf;
+
+   readDataSpace((void *)codeBase, BYTES_TO_SAVE, savedCodeBuffer, false);
+    writeDataSpace((void *)codeBase, BYTES_TO_SAVE, ibuf);
+    
+    flushInstructionCache_((void *)codeBase, BYTES_TO_SAVE);
+    
+    dyninstlib_brk_addr = codeBase + offsetToTrap;
+    
+    savedRegs = new dyn_saved_regs;
+    bool status = getRepresentativeLWP()->getRegisters(savedRegs);
+    assert(status == true);
+    getRepresentativeLWP()->changePC(codeBase + instructionOffset, NULL);
+    
+    setBootstrapState(loadingRT_bs);
+    return true;
 }
 
 
@@ -2393,11 +2377,11 @@ bool process::loadDYNINSTlibCleanup(dyn_lwp *)
     delete savedRegs;
     savedRegs = NULL;
 
-    writeDataSpace((void *)getAOut()->codeBase(),
+    writeDataSpace((void *)getAOut()->codeAbs(),
                    BYTES_TO_SAVE,
                    (void *)savedCodeBuffer);
 
-    flushInstructionCache_((void *)getAOut()->codeBase(), BYTES_TO_SAVE);
+    flushInstructionCache_((void *)getAOut()->codeAbs(), BYTES_TO_SAVE);
 
     dyninstlib_brk_addr = 0;
 

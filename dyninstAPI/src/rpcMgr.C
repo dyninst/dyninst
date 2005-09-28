@@ -316,7 +316,7 @@ bool rpcMgr::handleSignalIfDueToIRPC(dyn_lwp *lwp_of_trap) {
 
        rpcThr *rpcThr = currRPC->rpcthr;
        rpcLWP *rpcLwp = currRPC->rpclwp;
-       
+
        if(rpcThr) {
           dyn_thread *cur_dthr = rpcThr->get_thr();
 
@@ -354,6 +354,7 @@ bool rpcMgr::handleSignalIfDueToIRPC(dyn_lwp *lwp_of_trap) {
 #endif
           activeFrame = rpcLwp->get_lwp()->getActiveFrame();
        }
+
        if (activeFrame.getPC() == currRPC->rpcResultAddr) {
 
           if(rpcThr)
@@ -785,15 +786,15 @@ bool rpcMgr::emitInferiorRPCtrailer(codeGen &gen,
     
     instruction::generateIllegal(gen);
 
-#if defined(arch_x86) || defined(arch_x86_64)
+#if (defined(arch_x86) || defined(arch_x86_64))
      // X86 traps at the next insn, not the trap. So shift the
      // offsets accordingly
+
      if (shouldStopForResult) {
          stopForResultOffset += 1;
      }
      breakOffset += 1;
 #endif
-         
 
     return true;
 }

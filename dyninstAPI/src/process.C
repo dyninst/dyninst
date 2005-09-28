@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.552 2005/09/09 18:06:57 legendre Exp $
+// $Id: process.C,v 1.553 2005/09/28 17:03:15 bernat Exp $
 
 #include <ctype.h>
 
@@ -1100,7 +1100,7 @@ void process::saveWorldAddSharedLibs(void *ptr){ // ccw 14 may 2002
 
 void process::addInferiorHeap(const mapped_object *obj)
 {
-
+    //fprintf(stderr, "Adding inferior heaps in %s\n", obj->fileName().c_str());
   pdvector<heapDescriptor> infHeaps;
   /* Get a list of inferior heaps in the new image */
   if (getInfHeapList(obj, infHeaps))
@@ -1808,6 +1808,10 @@ process::process(int ipid) :
     dyninstlib_brk_addr(0),
     main_brk_addr(0),
     runProcessAfterInit(false),
+#if defined(os_windows)
+    processHandle_(INVALID_HANDLE_VALUE),
+    mainFileHandle_(INVALID_HANDLE_VALUE),
+#endif
     splitHeaps(false),
     heapInitialized_(false),
     inInferiorMallocDynamic(false),
@@ -2233,7 +2237,6 @@ unsigned process::getAddressWidth() { return mapped_objects[0]->parse_img()->get
 bool process::setAOut(fileDescriptor &desc) {
     assert(reachedBootstrapState(attached_bs));
     assert(mapped_objects.size() == 0);
-
     mapped_object *aout = mapped_object::createMappedObject(desc, this);
     if (!aout)
         return false;
@@ -2326,6 +2329,8 @@ bool process::setupGeneral() {
     if(process::IndependentLwpControl())
         independentLwpControlInit();
     
+    initTramps(multithread_capable());
+
     return true;
 }
 
@@ -2540,6 +2545,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
 
 #if defined(i386_unknown_nt4_0)
     int status = procHandle_temp;
+    // DEBUGGING
 #else
     int status = pid;
 #endif // defined(i386_unknown_nt4_0)
@@ -3318,7 +3324,6 @@ int_function *process::findOnlyOneFunction(const pdstring &name,
 bool process::findVarsByAll(const pdstring &varname,
                             pdvector<int_variable *> &res,
                             const pdstring &libname) { // = "", btw
-    
     unsigned starting_entries = res.size(); // We'll return true if we find something
     
     for (unsigned i = 0; i < mapped_objects.size(); i++) {
@@ -3619,8 +3624,9 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
    
    bool res = stopped_lwp->writeDataSpace(inTracedProcess, size, inSelf);
    if (!res) {
-       fprintf(stderr, "WDS: %d bytes from %p to %p\n",
-               size, inSelf, inTracedProcess);
+       fprintf(stderr, "WDS: %d bytes from %p to %p, lwp %p\n",
+               size, inSelf, inTracedProcess, stopped_lwp);
+       cerr << endl;
        pdstring msg = pdstring("System error: unable to write to process data "
                                "space (WDS):") + pdstring(strerror(errno));
        showErrorCallback(38, msg);
@@ -3708,11 +3714,11 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
 bool process::writeTextSpace(void *inTracedProcess, u_int amount, 
                              const void *inSelf) {
    bool needToCont = false;
-
-   //fprintf(stderr, "writeTextSpace to %p to %p, %d\n",
-   //inTracedProcess,
-   //(char *)inTracedProcess + amount, amount);
-
+   /*
+   fprintf(stderr, "writeTextSpace to %p to %p, %d\n",
+           inTracedProcess,
+           (char *)inTracedProcess + amount, amount);
+   */
    if (!isAttached()) return false;
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
    if(stopped_lwp == NULL) {
@@ -4856,24 +4862,27 @@ bool process::continueProc_(int sig)
 #endif
 
 bool process::detachProcess(const bool leaveRunning) {
+    fprintf(stderr, "Entry to process::detachProcess(%d)\n", leaveRunning);
+
     // First, remove all syscall tracing and notifications
     delete tracedSyscalls_;
     tracedSyscalls_ = NULL;
-    
+    fprintf(stderr, "Removed traced syscalls\n");
     // Next, delete the dynamic linker instrumentation
     delete dyn;
     dyn = NULL;
-
+    fprintf(stderr, "Removed dynamic linker tracing...\n");
     // Unset process flags
     unsetProcessFlags();
-    
+    fprintf(stderr, "Going into detach...\n");
     // Detach from the application
     if (!detach(leaveRunning)) {
+        fprintf(stderr, "Failed detach!\n");
         return false;
     }
     
     set_status(detached);
-
+    fprintf(stderr, "And calling deleteProc\n");
     // deleteProcess does the right thing depending on the status vrble
     deleteProcess();
     return true;
@@ -5496,9 +5505,15 @@ void process::gcInstrumentation(pdvector<pdvector<Frame> > &stackWalks)
 
 dyn_thread *process::createInitialThread() 
 {
+#if defined(os_windows)
+    // Windows has its own startup technique...
+    assert(threads.size() > 0);
+    return threads[0];
+#else
    assert(threads.size() == 0);
    dyn_thread *initialThread = new dyn_thread(this);
    return initialThread;
+#endif
 }
 
 dyn_thread *process::getThread(unsigned tid) {
