@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.15 2005/09/15 22:08:59 bernat Exp $
+// $Id: multiTramp.C,v 1.16 2005/09/28 17:03:12 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -70,19 +70,19 @@ baseTrampInstance *multiTramp::getBaseTrampInstance(instPointInstance *point,
 
     switch (when) {
     case callPreInsn: {
-        inst_printf("Matching preBTI\n");
+        //inst_printf("Matching preBTI\n");
         baseTrampInstance *preBTI = dynamic_cast<baseTrampInstance *>(insn->previous_);
         if (preBTI) return preBTI;
         break;
     }
     case callPostInsn: {
-        inst_printf("Matching postBTI\n");
+        //inst_printf("Matching postBTI\n");
         baseTrampInstance *postBTI = dynamic_cast<baseTrampInstance *>(insn->fallthrough_);
         if (postBTI) return postBTI;
         break;
     }
     case callBranchTargetInsn: {
-        inst_printf("Matching targetBTI\n");
+        //inst_printf("Matching targetBTI\n");
         baseTrampInstance *BTI = dynamic_cast<baseTrampInstance *>(insn->target_);
         if (BTI) return BTI;
         break;                
@@ -311,7 +311,6 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
         Address insnAddr = *insnIter;
 
         relocatedInstruction *reloc = new relocatedInstruction(insn, insnAddr, newMulti);
-        inst_printf("Relocating instruction at 0x%x: %p\n", insnAddr, reloc);
         newMulti->insns_[insnAddr] = reloc;
         
         if (prev) {
@@ -848,6 +847,25 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
         // a chance to say "I need to do something"
         size_required = trampSize_;
     }
+
+    if (!generated_) {
+        jumpBuf_.allocate(instSize_);
+        // We set this = true before we call generateBranchToTramp
+        generated_ = true;
+        if (!generateBranchToTramp(jumpBuf_)) {
+            // This failing is serious. For little things like "we need to
+            // use a trap", return true but set branchSize > instSize...
+            // TODO: clean me up :)
+            fprintf(stderr, "MT %p needs reloc, can't install\n", this);
+            invalidateCode();
+            if (branchSize_ == -2) {
+                // Fake it...
+                generated_ = true;
+            }
+            return false;
+        }
+    }
+    
     
     generatedMultiT_.setIndex(0);
     
@@ -883,10 +901,10 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
     /* For the iterator, below. */
     unw_dyn_region_info_t * unwindRegion = initialRegion;
 #endif /* defined( cap_unwind ) */
-        
+    /*        
     inst_printf("multiTramp generation: local %p, remote 0x%x, size %d\n",
                 generatedMultiT_.start_ptr(), trampAddr_, size_required);
-
+    */
     cfgIter.initialize(generatedCFG_);
     obj = NULL;
     while ((obj = cfgIter++)) {
@@ -916,11 +934,11 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
             return false;
         }
 #endif /* ! defined( cap_unwind ) */
-
+        /*
         inst_printf("After node: mutatee 0x%x, offset %d, size req %d\n",
                     generatedMultiT_.currAddr(trampAddr_),
                     generatedMultiT_.used(), size_required);
-
+        */
         // Safety...
         assert(generatedMultiT_.used() <= size_required);
 	/*
@@ -941,19 +959,6 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
 
     changedSinceLastGeneration_ = false;
     
-    if (!generated_) {
-        jumpBuf_.allocate(instSize_);
-        // We set this = true before we call generateBranchToTramp
-        generated_ = true;
-        if (!generateBranchToTramp(jumpBuf_)) {
-            // This failing is serious. For little things like "we need to
-            // use a trap", return true but set branchSize > instSize...
-            // TODO: clean me up :)
-            invalidateCode();
-            return false;
-        }
-    }
-    
     //debugBreakpoint();
     
     return true;
@@ -962,11 +967,17 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
 bool multiTramp::installCode() {
     // We need to add a jump back and fix any conditional jump
     // instrumentation
+    if (branchSize_ == -2) {
+        fprintf(stderr, "MT, skipping install...\n");
+        return true;
+    }
+
     assert(generatedMultiT_.used() == trampSize_); // Nobody messed with things
     assert(generated_);
 
     // Try to branch to the tramp, but if we can't use a trap
-    if (branchSize_ > instSize_) {
+    if ((branchSize_ > instSize_) ||
+        (branchSize_ == -1)) {
         // Crud. Go with traps.
         jumpBuf_.setIndex(0);
         generateTrapToTramp(jumpBuf_);
@@ -974,6 +985,8 @@ bool multiTramp::installCode() {
     fillJumpBuf(jumpBuf_);
 
     if (!installed_) {
+        inst_printf("Copying multitramp (inst 0x%lx to 0x%lx) from 0x%p to 0x%lx, %d bytes\n",
+                    instAddr_, instAddr_+instSize_, generatedMultiT_.start_ptr(), trampAddr_, trampSize_);
         bool success = proc()->writeTextSpace((void *)trampAddr_,
                                               trampSize_,
                                               generatedMultiT_.start_ptr());
@@ -1068,6 +1081,8 @@ bool multiTramp::linkCode() {
 
 // And a wrapper for the above
 multiTramp::mtErrorCode_t multiTramp::linkMultiTramp() {
+    if (branchSize_ == -2)
+        return mtSuccess;
     assert(!hasChanged()); // since we generated code...
 
     if (linkCode())
@@ -1079,6 +1094,9 @@ multiTramp::mtErrorCode_t multiTramp::linkMultiTramp() {
 }
 
 multiTramp::mtErrorCode_t multiTramp::installMultiTramp() {
+    if (branchSize_ == -2)
+        return mtSuccess;
+
     assert(!hasChanged()); // Since we generated code...
 
     // See if there is enough room to fit the jump in... then
@@ -1288,8 +1306,11 @@ multiTramp::mtErrorCode_t multiTramp::generateMultiTramp() {
     if (generateCode(jumpBuf_, instAddr_, NULL))
         return mtSuccess;
     else {
-        fprintf(stderr, "mt::generateCode failed!!!\n");
-        return mtError;
+        // Okay, we failed. Why. 
+        if (branchSize_ == -2)
+            return mtTryRelocation;
+        else
+            return mtError;
     }
 }
 
@@ -2025,7 +2046,7 @@ bool multiTramp::fillJumpBuf(codeGen &gen) {
         if (addrInMulti) {
             // addrInMulti may be 0 if our trap instruction does not
             // map onto a real instruction
-#if defined(arch_x86) || defined(arch_x86_64)
+#if (defined(arch_x86) || defined(arch_x86_64)) 
             // x86: traps read at PC + 1
             proc()->trampTrapMapping[origAddr+1] = addrInMulti;
 #else
@@ -2051,16 +2072,27 @@ bool multiTramp::generateBranchToTramp(codeGen &gen)
     unsigned origUsed = gen.used();
 
     // TODO: we can use shorter branches, ya know.
-    if (instSize_ < instruction::jumpSize(instAddr_, trampAddr_)) {
-        branchSize_ = instruction::jumpSize(instAddr_, trampAddr_);
+    int jumpSizeNeeded = instruction::jumpSize(instAddr_, trampAddr_);
+    if (jumpSizeNeeded < 0) {
+        // Try relocation...
+        branchSize_ = jumpSizeNeeded;
+        if (branchSize_ == -2) {
+            // TODO: #defines. This is "don't bother". -1 is "need trap"
+            return false;
+        }
+        else 
+            return true;
+    }
+    else if (instSize_ < (unsigned) jumpSizeNeeded) { // jumpSizeNeeded > 0...
+        branchSize_ = jumpSizeNeeded;
         return true;
     }
 #if defined(arch_sparc)
     int dist = (trampAddr_ - instAddr_);
     if (!instruction::offsetWithinRangeOfBranchInsn(dist) &&
         func()->is_o7_live()) {
-        // We can't use our multi-insn jump, so we must trap
-        return false;
+        branchSize_ = -1;
+        return true;
     }
 #endif
 
@@ -2074,7 +2106,7 @@ bool multiTramp::generateBranchToTramp(codeGen &gen)
 bool multiTramp::generateTrapToTramp(codeGen &gen) {
     // We're doing a trap. Now, we know that trap addrs are reported
     // as "finished" address... so use that one (not instAddr_)
-#if defined(arch_x86) || defined(arch_x86_64)
+#if (defined(arch_x86) || defined(arch_x86_64)) 
     proc()->trampTrapMapping[gen.currAddr(instAddr_)+1] = trampAddr_;
 #else
     proc()->trampTrapMapping[gen.currAddr(instAddr_)] = trampAddr_;

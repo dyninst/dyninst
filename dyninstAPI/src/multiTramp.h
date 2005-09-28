@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.10 2005/09/15 19:20:46 tlmiller Exp $
+// $Id: multiTramp.h,v 1.11 2005/09/28 17:03:13 bernat Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -439,8 +439,7 @@ class multiTramp : public generatedCodeObject {
   multiTramp(const multiTramp *parentMulti, process *child);
 
   // Error codes!
-  typedef enum { mtSuccess, mtAllocFailed, mtJumpTooLarge,
-                 mtWriteFailed, mtError } mtErrorCode_t;
+  typedef enum { mtSuccess, mtAllocFailed, mtTryRelocation, mtError } mtErrorCode_t;
 
   // Entry point for code generation: from an instPointInstance
   mtErrorCode_t generateMultiTramp();
@@ -502,7 +501,8 @@ class multiTramp : public generatedCodeObject {
   // The most that we can need to get to a multitramp...
   unsigned maxSizeRequired();
   // the space needed for a jump to this particular multitramp...
-  unsigned sizeDesired() const { return branchSize_; };
+  // -1: can't make it, so sorry.
+  int sizeDesired() const { return branchSize_; };
   bool usesTrap() const { return usedTrap_; };
 
   bool hasChanged();
@@ -520,8 +520,11 @@ class multiTramp : public generatedCodeObject {
   Address trampAddr_;  // Where we are
   unsigned trampSize_; // Size of the generated multiTramp
   unsigned instSize_; // Size of the original instrumented area
-  unsigned branchSize_; // Size of the branch instruction(s) used
-  // to get to the multiTramp (in a perfect world)
+  int branchSize_; // Size of the branch instruction(s) used to get to
+                   // the multiTramp (in a perfect world). Also, -1
+                   // means that due to architecture limitations we
+                   // can't put a branch in, and is a signal to either
+                   // relocate or trap (or, likely, both).
   bool usedTrap_;
 
   int_function *func_;
