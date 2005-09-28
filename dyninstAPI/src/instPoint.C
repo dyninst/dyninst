@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.5 2005/09/14 21:21:51 bernat Exp $
+// $Id: instPoint.C,v 1.6 2005/09/28 17:03:08 bernat Exp $
 // instPoint code
 
 
@@ -83,10 +83,6 @@ miniTramp *instPoint::addInst(AstNode *&ast,
                               bool noCost) {
     // This only adds a new minitramp; code generation and any actual
     // _work_ is put off until later.
-
-    inst_printf("instPoint %p, adding inst %d, %d\n",
-                this, when, order);
-
 
     baseTramp *baseT = getBaseTramp(when);
     if (!baseT) return NULL;
@@ -293,13 +289,16 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr, process *proc) {
     }
     
     func->addArbitraryPoint(newIP);
-    
+
     return newIP;
 }
  
-bool instPoint::commonIPCreation(instPoint *) {
+bool instPoint::commonIPCreation(instPoint *ip) {
     // Delay until generation....
     //newIP->updateInstances();
+
+    // But tell people we exist.
+    ip->proc()->registerInstPointAddr(ip->addr(), ip);
 
 #if 0
     // Now handled in getBaseTramp_, left here
@@ -340,6 +339,8 @@ bool instPoint::commonIPCreation(instPoint *) {
 // that everything works right.
 
 bool instPoint::updateInstances() {
+    unsigned i;
+
     if (func()->version() == funcVersion)
         return true;
     else if (func()->version() < funcVersion) {
@@ -361,7 +362,7 @@ bool instPoint::updateInstances() {
         
         const pdvector<bblInstance *> &bbls = block()->instances();
         assert(instances.size() < bbls.size());
-        for (unsigned i = instances.size(); i < bbls.size(); i++) {
+        for (i = instances.size(); i < bbls.size(); i++) {
             bblInstance *bblI = bbls[i];
             
             Address newAddr = bblI->equivAddr(block()->origInstance(), addr());
@@ -376,6 +377,8 @@ bool instPoint::updateInstances() {
                 
                 instances.push_back(ipInst);
                 // Register with the process before asking for a multitramp
+                inst_printf("Registering IP %p at 0x%lx (%d)\n",
+                            this, newAddr, i);
                 proc()->registerInstPointAddr(newAddr, this);
             }
         }
@@ -394,7 +397,7 @@ bool instPoint::updateInstances() {
         }
         
         // Check whether there's something at my address...
-        for (unsigned i = 0; i < instances.size(); i++) {
+        for (i = 0; i < instances.size(); i++) {
 
             if (!instances[i]->multi()) {
                 instances[i]->multiID_ = multiTramp::findOrCreateMultiTramp(instances[i]->addr(),
@@ -431,9 +434,6 @@ miniTramp *instPoint::instrument(AstNode *ast,
                                  bool trampRecursive,
                                  bool noCost) {
     
-    inst_printf("instrument(%p, %d, %d, %d, %d)\n",
-                ast, when, order, trampRecursive, noCost);
-
     miniTramp *mini = addInst(ast, when, order, trampRecursive, noCost);
     if (!mini) {
         cerr << "instPoint::instrument: failed addInst, ret NULL" << endl;
@@ -648,13 +648,11 @@ instPoint *instPoint::createParsePoint(int_function *func,
                           absAddr,
                           block);
     
-    inst_printf("Entering common IP creation...\n");
     if (!commonIPCreation(newIP)) {
         delete newIP;
         return NULL;
     }
 
-    inst_printf("Returning new instPoint\n");
     return newIP;
 }
 
@@ -888,9 +886,8 @@ bool instPointInstance::generateInst() {
         fprintf(stderr, "No multiTramp for instInstance %p, ret false\n", this);
         return false;
     }
-
-    if (multi()->generateMultiTramp() != multiTramp::mtSuccess) {
-        fprintf(stderr, "Instance failed to generate multiTramp, ret false\n");
+    multiTramp::mtErrorCode_t errCode = multi()->generateMultiTramp();
+    if (errCode == multiTramp::mtError) {
         return false;
     }
     // Can and will set our multiTramp ID if there isn't one already;
@@ -902,7 +899,16 @@ bool instPointInstance::generateInst() {
     // Can also try to relocate; we'll still trap _here_, but another
     // ipInstance will be created that can jump.
 #if defined(cap_relocation)
-    if (block_->getSize() < multi()->sizeDesired()) {
+    if (errCode == multiTramp::mtTryRelocation) {
+        // We can try to simply shift the entire function nearer
+        // instrumentation. TODO: a funcMod that says "hey, move me to
+        // this address.
+        // For now, this is handled with an AIX ifdef :/
+        pdvector<funcMod *> funcMods; // Empty since we're not trying to make changes.
+        func()->relocationGenerate(funcMods, 0);
+    }
+    else if ((errCode = multiTramp::mtSuccess) &&
+             (block_->getSize() < multi()->sizeDesired())) {
         // Can make new ipInstances, but they're brought up to 
         // date in updateInstances
         if (func()->expandForInstrumentation()) {
@@ -911,8 +917,8 @@ bool instPointInstance::generateInst() {
         }
     }
 #endif
-
     return true;
+    //return (errCode == multiTramp::mtSuccess);
 }
 
 bool instPointInstance::installInst() {
