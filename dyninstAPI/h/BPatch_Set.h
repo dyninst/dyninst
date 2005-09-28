@@ -53,7 +53,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include "BPatch_dll.h"
-
+#include "BPatch_Vector.h"
 
 #if !defined(DO_INLINE_P)
 #define DO_INLINE_P
@@ -177,6 +177,9 @@ class BPATCH_DLL_EXPORT BPatch_Set {
 
 	// infix traverse of the RB tree. It traverses the tree in ascending order
 	DO_INLINE_P void traverse(T*,entry*,int&) const;
+
+        // And vectorized
+        DO_INLINE_P void traverse(BPatch_Vector<T> &, entry *) const;
 
 	// deletes the tree structure for deconstructor.
 	DO_INLINE_P void destroy(entry*);
@@ -368,6 +371,10 @@ public:
 	  */
 	DO_INLINE_F T* elements(T*) const;
 
+        /** Like the above, but put things in a vector.
+         */
+        DO_INLINE_F void elements(BPatch_Vector<T> &) const;
+
 	/** returns the minimum valued member in the BPatch_Set according to the 
 	  * comparison function supplied. If the BPatch_Set is empty it retuns 
 	  * any number. Not safe to use for empty sets 
@@ -483,6 +490,19 @@ void BPatch_Set<T,Compare>::traverse(T* all,entry* node,int& n) const{
 	if(node->right != nil)
 		traverse(all,node->right,n);
 }
+
+template <class T,class Compare>
+DO_INLINE_P
+void BPatch_Set<T,Compare>::traverse(BPatch_Vector<T> &all,entry* node) const{
+    if(node == nil)
+        return;
+    if(node->left != nil)
+        traverse(all,node->left);
+    all.push_back(node->data);
+    if(node->right != nil)
+        traverse(all,node->right);
+}
+
 template <class T,class Compare>
 DO_INLINE_F T BPatch_Set<T,Compare>::minimum() const{
 	if(setData == nil)
@@ -510,6 +530,14 @@ DO_INLINE_F T* BPatch_Set<T,Compare>::elements(T* buffer) const{
 	traverse(buffer,setData,tmp);	
 	return buffer;
 }
+
+template <class T,class Compare>
+DO_INLINE_F void BPatch_Set<T,Compare>::elements(BPatch_Vector<T> &buffer) const{
+	if(setData == nil) return;
+	traverse(buffer,setData);	
+        return;
+}
+
 template <class T,class Compare>
 DO_INLINE_F BPatch_Set<T,Compare>& BPatch_Set<T,Compare>::operator= (const BPatch_Set<T,Compare>& newBPatch_Set){
 	if(this == &newBPatch_Set)
