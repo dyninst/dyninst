@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.9 2005/09/20 19:07:36 bernat Exp $
+// $Id: mapped_object.C,v 1.10 2005/09/28 17:03:09 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -91,9 +91,6 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
             dataBase_, image_->dataOffset(), image_->dataLength());
     fprintf(stderr, "fileDescriptor: code at 0x%x, data 0x%x\n",
             fileDesc.code(), fileDesc.data());
-    fprintf(stderr, "text reloc: 0x%lx, data reloc: 0x%lx\n",
-            image_->getObject().text_reloc(), 
-            image_->getObject().data_reloc());
 #endif
             
 
@@ -165,7 +162,10 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor desc,
     if (!p) return NULL;
     
     image *img = image::parseImage(desc);
-    if (!img) return NULL;
+    if (!img)  {
+        cerr << "Failed to parse image, createMappedObject returning NULL" << endl;
+        return NULL;
+    }
     // Adds exported functions and variables..
     mapped_object *obj = new mapped_object(desc, img, p);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.h,v 1.5 2005/09/09 18:06:52 legendre Exp $
+// $Id: mapped_object.h,v 1.6 2005/09/28 17:03:10 bernat Exp $
 
 #if !defined(_mapped_object_h)
 #define _mapped_object_h
@@ -108,6 +108,7 @@ class int_variable {
 class mapped_object : public codeRange {
     friend class mapped_module; // for findFunction
     friend class int_function;
+    friend class bblInstance; // Adds to codeRangesByAddr_
  private:
     mapped_object();
     mapped_object(fileDescriptor fileDesc, 
