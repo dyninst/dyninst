@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.42 2005/09/01 22:18:07 bernat Exp $
+// $Id: Object-xcoff.C,v 1.43 2005/09/28 17:02:46 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -770,8 +770,8 @@ void Object::parse_aout(int offset, bool is_aout)
        if( name == "_start" )
            foundStart = true;
 
-       //       fprintf(stderr, "Symbol %s, mod %s, size %d\n",
-       //name.c_str(), modName.c_str(), size);
+       parsing_printf("Symbol %s, addr 0x%lx, mod %s, size %d\n",
+                      name.c_str(), value, modName.c_str(), size);
        Symbol sym(name, modName, type, linkage, value, false, size);
        
        // If we don't want the function size for some reason, comment out
