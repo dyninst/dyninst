@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.336 2005/09/15 19:20:47 tlmiller Exp $
+/* $Id: process.h,v 1.337 2005/09/28 17:03:16 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1123,6 +1123,18 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   Address main_brk_addr;
 
   bool runProcessAfterInit;  
+
+#if defined(os_windows)
+  // On windows we need to temporarily keep details of process creation in
+  // order to handle their debug mechanism. We create the process, then get a message
+  // about it (instead of our "pull" mechanism on other platforms). This gives us
+  // space to stash the info.
+  // Instead of tracking what we need to peel out, we keep the whole thing for later.
+
+  handleT processHandle_;
+  handleT mainFileHandle_;
+  Address mainFileBase_;
+#endif
 
   ////////////////////
   // Inferior heap
