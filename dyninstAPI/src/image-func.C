@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.8 2005/09/02 22:07:52 bernat Exp $
+// $Id: image-func.C,v 1.9 2005/09/28 17:03:04 bernat Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -274,7 +274,8 @@ void image_basicBlock::debugPrint() {
 // basic stuff.
 
 bool image_func::cleanBlockList() {
-    
+    unsigned i;
+
     // For all entry, exit, call points...
     //points_[u].point->checkInstructions();
     // Should also make multipoint decisions
@@ -387,9 +388,9 @@ bool image_func::cleanBlockList() {
             b2->addSource( b1 );	            
         }        
     }    
-    for (unsigned r = 0; r < blockList.size(); r++) {
+    for (i = 0; i < blockList.size(); i++) {
         // Check sources and targets for legality
-        image_basicBlock *b1 = blockList[r];
+        image_basicBlock *b1 = blockList[i];
         for (unsigned s = 0; s < b1->sources_.size(); s++) {
             if ((b1->sources_[s]->id() >= blockList.size()) ||
                 (b1->sources_[s]->id() < 0)) {
