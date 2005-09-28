@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.9 2005/09/15 19:01:20 gquinn Exp $
+ * $Id: image-x86.C,v 1.10 2005/09/28 17:03:05 bernat Exp $
  */
 
 #include "common/h/Vector.h"
@@ -219,7 +219,10 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
     
     if( !isInstrumentableByFunctionName() || getSymTabSize() == 0 )
     {
-        parsing_printf("... uninstrumentable by func name or size equals zero\n");
+        if (!isInstrumentableByFunctionName())
+            parsing_printf("... uninstrumentable by func name\n");
+        if (getSymTabSize() == 0)
+            parsing_printf("... uninstrumentable, size equals zero\n");
         endOffset_ = startOffset_;
         isInstrumentable_ = false;
         return false;
