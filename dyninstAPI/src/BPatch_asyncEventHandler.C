@@ -806,9 +806,9 @@ bool BPatch_asyncEventHandler::removeThreadEventCallback(BPatch_asyncEventType t
   return found;
 }
 
-bool BPatch_asyncEventHandler::removeThreadEventCallback(BPatch_process */*proc*/,
+bool BPatch_asyncEventHandler::removeThreadEventCallback(BPatch_process * /*proc*/,
                                                          BPatch_asyncEventType /*type*/,
-                                                         BPatch_function */*cb*/)
+                                                         BPatch_function * /*cb*/)
 {
    return true;
 }

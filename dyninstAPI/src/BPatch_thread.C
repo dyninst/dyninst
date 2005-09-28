@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.131 2005/09/09 18:06:25 legendre Exp $
+// $Id: BPatch_thread.C,v 1.132 2005/09/28 17:02:44 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -277,5 +277,6 @@ void BPatch_thread::BPatch_thread_dtor()
 
 int BPatch_thread::proc_fdInt()
 {
-   return llthread->get_lwp()->usage_fd();
+    // This is an unsafe cast on Windows. Anyone know why it's here?
+    return (int) llthread->get_lwp()->usage_fd();
 }
