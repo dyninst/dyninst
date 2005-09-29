@@ -1,0 +1,2 @@
+DEPENDS V_*.c test? test?? test*.mutatee_* libtest*.so so_locations cxx_repository *.da *.bbg *.bb *.d
+

@@ -1,0 +1,128 @@
+# 
+# Common makefile template for dyninst Tests.  This file is not intended to
+# be a useful Makefile in isolation; instead, it should be included
+# from within an architecture-specific Makefile.
+#
+# $Id: nmake.module.tmpl,v 1.1 2005/09/29 20:37:29 bpellin Exp $
+#
+
+SUITE_NAME	= Dyninst
+RELEASE_NUM	= 4.2
+#BUILD_MARK should be (re-)defined in core/make.config.local rather than here!
+
+DEST		= $(TO_CORE)\$(PROGRAM_DEST)\testprogs
+
+!ifdef TARGET
+SRCS	      = ../src/$(TARGET:.exe=.C) ../src/test_util.C
+OBJS          = $(TARGET:.exe=.obj) test_util.obj
+!else
+TARGETS       = test1.exe test2.exe test3.exe test4.exe test5.exe test6.exe
+!ifdef NATIVE_CC
+TARGETS       = $(TARGETS) \
+                test1.mutatee_$(NATIVE_CC).exe \
+                test2.mutatee_$(NATIVE_CC).exe \
+                test3.mutatee_$(NATIVE_CC).exe \
+                test4a.mutatee_$(NATIVE_CC).exe \
+                test4b.mutatee_$(NATIVE_CC).exe \
+		test6.mutatee_$(NATIVE_CC).exe \
+                test8.mutatee_$(NATIVE_CC).exe
+!endif
+!ifdef NATIVE_CXX
+TARGETS       = $(TARGETS) \
+                test1.mutatee_$(NATIVE_CXX).exe \
+                test2.mutatee_$(NATIVE_CXX).exe \
+                test3.mutatee_$(NATIVE_CXX).exe \
+                test4a.mutatee_$(NATIVE_CXX).exe \
+                test4b.mutatee_$(NATIVE_CXX).exe \
+                test5.mutatee_$(NATIVE_CXX).exe \
+                test8.mutatee_$(NATIVE_CXX).exe
+!endif
+!ifdef M_GCC
+TARGETS       = $(TARGETS) \
+                test1.mutatee_$(M_GCC).exe \
+                test2.mutatee_$(M_GCC).exe \
+                test3.mutatee_$(M_GCC).exe \
+                test4a.mutatee_$(M_GCC).exe \
+                test4b.mutatee_$(M_GCC).exe \
+                test8.mutatee_$(M_GCC).exe
+!endif
+!ifdef M_GXX
+TARGETS       = $(TARGETS) \
+                test1.mutatee_$(M_GXX).exe \
+                test2.mutatee_$(M_GXX).exe \
+                test3.mutatee_$(M_GXX).exe \
+                test4a.mutatee_$(M_GXX).exe \
+                test4b.mutatee_$(M_GXX).exe \
+                test5.mutatee_$(M_GXX).exe \
+                test8.mutatee_$(M_GXX).exe
+!endif
+SRCS	      = ../src/test1.C ../src/test1.mutatee.c ../src/test_util.C \
+		../src/test2.C ../src/test2.mutatee.c \
+		../src/test3.C ../src/test3.mutatee.c \
+		../src/test4.C ../src/test4a.mutatee.c \
+		../src/test4b.mutatee.c \
+		../src/test5.C ../src/test5.mutatee.C \
+		../src/test6.C \
+		../src/test8.C ../src/test8.mutatee.c
+OBJS          = test1.obj test2.obj test3.obj test4.obj test5.obj test6.obj test_util.obj
+!endif
+
+CXXFLAGS     = $(CXXFLAGS) -I../../h
+CFLAGS       = $(CFLAGS) -I../../h
+
+LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\libdyninstAPI.lib
+
+SYSLIBS		= 
+
+all:
+	$(MAKE) aTest TARGET=test1.exe MUTATEE_SRC="../src/test1.mutateeCommon.c ../src/mutatee_util.c"
+	$(MAKE) aTest TARGET=test2.exe 
+	$(MAKE) aTest TARGET=test3.exe
+	$(MAKE) aTest TARGET=test4.exe
+	$(MAKE) aTest TARGET=test5.exe
+	$(MAKE) aTest TARGET=test6.exe
+	$(MAKE) aTest TARGET=test8.exe MUTATEE_SRC=../src/mutatee_util.c
+!ifdef NATIVE_CC
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test1.mutatee_$(NATIVE_CC).exe MUTATEE_SRC="../src/test1.mutateeCommon.c ../src/mutatee_util.c"
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test2.mutatee_$(NATIVE_CC).exe
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test3.mutatee_$(NATIVE_CC).exe
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test4a.mutatee_$(NATIVE_CC).exe
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test4b.mutatee_$(NATIVE_CC).exe
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test6.mutatee_$(NATIVE_CC).exe MUTATEE_ASM=test6LS-x86.asm
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test8.mutatee_$(NATIVE_CC).exe MUTATEE_SRC=../src/mutatee_util.c
+!endif
+!ifdef NATIVE_CXX
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test1.mutatee_$(NATIVE_CXX).exe MUTATEE_SRC="../src/test1.mutateeCommon.c ../src/mutatee_util.c"
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test2.mutatee_$(NATIVE_CXX).exe
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test3.mutatee_$(NATIVE_CXX).exe
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test4a.mutatee_$(NATIVE_CXX).exe
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test4b.mutatee_$(NATIVE_CXX).exe
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test5.mutatee_$(NATIVE_CXX).exe MUTATEE_SUFFIX=.C
+	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CXX) TARGET2=test8.mutatee_$(NATIVE_CXX).exe MUTATEE_SRC=../src/mutatee_util.c
+!endif
+!ifdef M_GCC
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test1.mutatee_$(M_GCC).exe MUTATEE_SRC="../src/test1.mutateeCommon.c ../src/mutatee_util.c"
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test2.mutatee_$(M_GCC).exe 
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test3.mutatee_$(M_GCC).exe
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test4a.mutatee_$(M_GCC).exe
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test4b.mutatee_$(M_GCC).exe
+	$(MAKE) aTest MUTATEE_CC=$(M_GCC) TARGET2=test8.mutatee_$(M_GCC).exe MUTATEE_SRC=../src/mutatee_util.c
+!endif
+!ifdef M_GXX
+	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test1.mutatee_$(M_GXX).exe MUTATEE_SRC="../src/test1.mutateeCommon.c ../src/mutatee_util.c"
+	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test2.mutatee_$(M_GXX).exe
+	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test3.mutatee_$(M_GXX).exe
+	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test4a.mutatee_$(M_GXX).exe
+	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test4b.mutatee_$(M_GXX).exe
+	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test5.mutatee_$(M_GXX).exe MUTATEE_SUFFIX=.C
+	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test8.mutatee_$(M_GXX).exe MUTATEE_SRC=../src/mutatee_util.c
+!endif
+
+aTest: $(TARGET) $(TARGET2)
+
+UNCOMMON_INSTALL=true
+
+install: all
+	-$(MKDIR) $(DEST)
+	cp $(TARGETS) $(DEST)
+
