@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.9 2005/09/28 17:02:30 bernat Exp $
+# $Id: Makefile,v 1.10 2005/09/29 15:04:10 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -92,4 +92,4 @@ install: install_generic libDyninstText.a
 	-chmod 640 $(DEST)/$(TARGET)
 	-$(CP) libDyninstText.a $(DEST)
 	-chmod 755 $(DEST)/libDyninstText.a
-	-ln -s $(TARGET) $(DEST)/$(TARGET_SYMLINK)
+	-ln -sf $(TARGET) $(DEST)/$(TARGET_SYMLINK)
