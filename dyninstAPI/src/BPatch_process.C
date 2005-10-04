@@ -905,10 +905,11 @@ BPatchSnippetHandle *BPatch_process::insertSnippetWhen(const BPatch_snippet &exp
 // Group-wise insertion of snippets
 void BPatch_process::insertSnippetBatch(const BPatch_Vector<BPatch_snippet *> &exprs,
                                         const BPatch_Vector<BPatch_point *> &points) {
+    unsigned i;
     // Make all sorts of assumptions for simplicity.
     pdvector<instPoint *> ips;
 
-    for (unsigned i = 0; i < points.size(); i++) {
+    for (i = 0; i < points.size(); i++) {
         BPatch_point *point = points[i];
         BPatch_callWhen when;
         
@@ -936,7 +937,7 @@ void BPatch_process::insertSnippetBatch(const BPatch_Vector<BPatch_snippet *> &e
                     use_recursive_tramps, false);
         ips.push_back(ip);
     }
-    for (unsigned i = 0; i < ips.size(); i++) {
+    for (i = 0; i < ips.size(); i++) {
         ips[i]->generateInst();
         ips[i]->installInst();
         ips[i]->linkInst();
