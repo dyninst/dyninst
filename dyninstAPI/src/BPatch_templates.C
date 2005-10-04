@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_templates.C,v 1.34 2005/07/29 19:17:44 bernat Exp $
+// $Id: BPatch_templates.C,v 1.35 2005/10/04 18:09:39 legendre Exp $
 
 #include <sys/types.h>
 
@@ -127,6 +127,7 @@ template class BPatch_Vector<unsigned short>;
 template struct comparison<int>;
 template class BPatch_Set<int>;
 template class BPatch_Set<BPatch_opCode>;
+template class BPatch_Vector<BPatch_opCode>;
 template class BPatch_Set< int_function* , int_function::cmpAddr >;
 
 

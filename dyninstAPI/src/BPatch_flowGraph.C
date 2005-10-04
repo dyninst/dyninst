@@ -65,11 +65,8 @@
 
 #include "BPatch_flowGraph.h"
 #include "mapped_object.h"
-
-const int BPatch_flowGraph::WHITE = 0;
-const int BPatch_flowGraph::GRAY  = 1;
-const int BPatch_flowGraph::BLACK = 2;
-
+#include "dominator.h"
+#include "function.h"
 
 // constructor of the class. It creates the CFG and
 // deletes the unreachable code.
@@ -85,44 +82,15 @@ BPatch_flowGraph::BPatch_flowGraph(BPatch_function *func,
 
    unsigned tmpSize = func->getSize();
    if(!tmpSize){
-     fprintf(stderr, "Func has no size!\n");
-	valid = false;
-	return;
-   }
-
-   if (!createBasicBlocks()) {
-     fprintf(stderr, "Failed to make basic blocks!\n");
+      fprintf(stderr, "Func has no size!\n");
       valid = false;
       return;
    }
-   
-#if ! defined( arch_x86 ) && !defined( arch_x86_64 )
-   findAndDeleteUnreachable();
-#endif /* !defined( arch_x86 ) && !defined( arch_x86_64 ) */
 
-   // this may be a leaf function - if so, we won't have figure out what
-   // the exit blocks are.  But we can assume that all blocks that don't
-   // have any targets are exits of a sort
-
-   if (exitBlock.empty()) {
-     BPatch_basicBlock **blocks = new BPatch_basicBlock *[allBlocks.size()];
-     allBlocks.elements(blocks);
-     for (unsigned int i=0; i < allBlocks.size(); i++) {
-       if (blocks[i]->targets.empty()) {
-        exitBlock.insert(blocks[i]);
-        blocks[i]->isExitBasicBlock = true;
-       }
-     }
-     delete[] blocks;
-   }
-
-   // if are not still bale to find an exit block yet
-   // then we do special handling and assign an exit basic block
-   // to the CFG. This is common for functions composed of infinite
-   // loops which no loop-breakers or returns frm the function.
-
-   if (exitBlock.empty()) {
-	 assignAnExitBlockIfNoneExists();
+   if (!createBasicBlocks()) {
+      fprintf(stderr, "Failed to make basic blocks!\n");
+      valid = false;
+      return;
    }
 
 #if defined(rs6000_ibm_aix4_1)
@@ -339,85 +307,6 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
     return points;
 }
 
-
-// This function tries to assign an exit block to a CFG
-// that originally does not have eny exit blocks.
-// Common for functions with infinite loops and no returns.
-// this function should be used as the last resort
-// for asssigning an exit block to CFG for later post dominator
-// calculations to proceed.
-// The implementation of this function can be changed.
-// Currently we chose the basic block which has the lowest
-// id and the target of a backedge. Sort of approximating the
-// outermost loop.
-
-void BPatch_flowGraph::assignAnExitBlockIfNoneExists(){
-   if (!loops)
-     fillDominatorInfo();
-
-	/** processedBlocks entries show ; 
-	  -1 ==> not processed
-	  n >= 0 ==> depth in dominator tree
-	  */
-
-	int* processedBlocks = new int[allBlocks.size()];
-	BPatch_basicBlock** depthMinimums = new BPatch_basicBlock*[allBlocks.size()];
-	for(unsigned i=0;i<allBlocks.size();i++){
-		processedBlocks[i] = -1;
-		depthMinimums[i] = NULL;
-	}
-
-	int depth = 0;
-
-	BPatch_Set<BPatch_basicBlock*> currentDepth;
-
-	currentDepth |= entryBlock;
-
-	while(!currentDepth.empty()){
-		BPatch_Set<BPatch_basicBlock*> nextDepth;
-		BPatch_Set<BPatch_basicBlock*> tmpSet;
-		while(!currentDepth.empty()){
-			BPatch_basicBlock* bb = NULL;
-			currentDepth.extract(bb);
-			if(processedBlocks[bb->blockNumber] > -1)
-				continue;
-			processedBlocks[bb->blockNumber] =  depth;
-			if(bb->immediateDominates)
-				nextDepth |= *(bb->immediateDominates);
-			tmpSet += bb;
-		}
-
-		int minDepth = allBlocks.size();
-		while(!tmpSet.empty()){
-			BPatch_basicBlock* bb = NULL;
-			tmpSet.extract(bb);
-			BPatch_Set<BPatch_basicBlock*> bbtargets = bb->targets;
-			while(!bbtargets.empty()){
-				BPatch_basicBlock* tobb = NULL;
-				bbtargets.extract(tobb);
-				if(processedBlocks[tobb->blockNumber] == -1)
-					continue;
-				if(minDepth > processedBlocks[tobb->blockNumber]){
-					minDepth = processedBlocks[tobb->blockNumber];
-					depthMinimums[depth] = tobb;
-				}
-			}
-		}
-		depth++;
-		currentDepth |= nextDepth;
-	}
-
-	for(int j=(int)(allBlocks.size())-1;j>=0;j--)
-		if(depthMinimums[j]){
-			exitBlock += depthMinimums[j];
-			depthMinimums[j]->isExitBasicBlock = true;
-			break;
-		}
-
-	delete[] processedBlocks;
-	delete[] depthMinimums;
-}
-
 void BPatch_flowGraph::BPatch_flowGraph_dtor()
 {
     unsigned int i;
@@ -444,6 +333,7 @@ void BPatch_flowGraph::BPatch_flowGraph_dtor()
    delete[] belements;
 
    delete loopRoot;
+   func_->cfg = NULL;
 }
 
 bool
@@ -468,14 +358,16 @@ BPatch_flowGraph::getAllBasicBlocksInt(BPatch_Set<BPatch_basicBlock*>& abb)
 bool
 BPatch_flowGraph::getEntryBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& ebb) 
 {
-   BPatch_basicBlock** belements = new BPatch_basicBlock* [entryBlock.size()];
-   
-   entryBlock.elements(belements);
-   
-   for (unsigned int i=0;i<entryBlock.size(); i++)
-      ebb.push_back(belements[i]);
-   
-   delete[] belements;
+   BPatch_basicBlock *bb;
+   int_function *func = ll_func();
+   for (unsigned i=0; i<func->blocks().size(); i++)
+   {
+      if (func->blocks()[i]->isEntryBlock())
+      {
+         bb = (BPatch_basicBlock *) func->blocks()[i]->getHighLevelBlock();
+         ebb.push_back(bb);
+      }
+   }
    return true;
 }
 
@@ -486,14 +378,16 @@ BPatch_flowGraph::getEntryBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& ebb)
 bool 
 BPatch_flowGraph::getExitBasicBlockInt(BPatch_Vector<BPatch_basicBlock*>& nbb)
 {
-   BPatch_basicBlock** belements = new BPatch_basicBlock* [exitBlock.size()];
-   
-   exitBlock.elements(belements);
-   
-   for (unsigned int i=0;i<exitBlock.size(); i++)
-      nbb.push_back(belements[i]);
-   
-   delete[] belements;
+   BPatch_basicBlock *bb;
+   int_function *func = ll_func();
+   for (unsigned i=0; i<func->blocks().size(); i++)
+   {
+      if (func->blocks()[i]->isExitBlock())
+      {
+         bb = (BPatch_basicBlock *) func->blocks()[i]->getHighLevelBlock();
+         nbb.push_back(bb);
+      }
+   }
    return true;
 }
 
@@ -559,35 +453,34 @@ BPatch_flowGraph::createLoops()
 // this methods returns the loop objects that exist in the control flow
 // grap. It returns a set. And if there are no loops, then it returns the empty
 // set. not NULL. 
-void 
-BPatch_flowGraph::getLoopsByNestingLevel(BPatch_Vector<BPatch_loop*>& lbb,
-                                         bool outerMostOnly)
+void BPatch_flowGraph::getLoopsByNestingLevel(BPatch_Vector<BPatch_loop*>& lbb,
+                                              bool outerMostOnly)
 {
-    if (!loops) {
-        fillDominatorInfo();
-        fillPostDominatorInfo();
-        createEdges();
-        createLoops();
-    }
+   if (!loops) {
+      fillDominatorInfo();
+      createEdges();
+      createLoops();
+   }
     
-    BPatch_loop **lelements = new BPatch_loop* [loops->size()];
+   BPatch_loop **lelements = new BPatch_loop* [loops->size()];
    
-    loops->elements(lelements);
+   loops->elements(lelements);
    
-    for (unsigned i=0; i < loops->size(); i++)
-	// if we are only getting the outermost loops
-	if (outerMostOnly) {
-	    // if this loop has no parent then it is outermost
-	    if (NULL == lelements[i]->parent) {
-		lbb.push_back(lelements[i]);
-	    }
-	}
-        else {
-	    lbb.push_back(lelements[i]);
-	}
-
-    delete[] lelements;
-    return;
+   for (unsigned i=0; i < loops->size(); i++)
+   {
+      // if we are only getting the outermost loops
+      if (outerMostOnly) {
+         // if this loop has no parent then it is outermost
+         if (NULL == lelements[i]->parent) {
+            lbb.push_back(lelements[i]);
+         }
+      }
+      else {
+         lbb.push_back(lelements[i]);
+      }
+   }
+   delete[] lelements;
+   return;
 }
 
 
@@ -627,361 +520,12 @@ bool BPatch_flowGraph::createBasicBlocks()
 { 
     assert(ll_func());
     const pdvector< int_basicBlock* > &iblocks	= ll_func()->blocks();
-    for( unsigned int ii = 0; ii < iblocks.size(); ii++ )
-        {
-            BPatch_basicBlock *newblock = new BPatch_basicBlock(iblocks[ii]);
-            newblock->flowGraph = this;
-            if( newblock->isEntryBasicBlock )
-                entryBlock += newblock;
-            if( newblock->isExitBasicBlock )
-                exitBlock += newblock;
-            
-            allBlocks += newblock;
-        }
-    // Okay, we have blocks... now fix up the edges appropriately.
-    // This is incredibly aggravating... there is _NO_ way to find a
-    // block by its number, so we have to do this the !@*@#! slow way...
-
-    BPatch_basicBlock** elements = 
-        new BPatch_basicBlock* [allBlocks.size()];
-    
-    allBlocks.elements(elements);
-
-    for (unsigned b_iter = 0; b_iter < allBlocks.size(); b_iter++) {
-        BPatch_basicBlock *bpB = elements[b_iter];
-
-        int_basicBlock *intB = iblocks[bpB->getBlockNumber()];
-
-        pdvector<int_basicBlock *> int_ins;
-        pdvector<int_basicBlock *> int_outs;
-
-        intB->getSources(int_ins);
-        intB->getTargets(int_outs);
-
-        for (unsigned in_iter = 0; in_iter < int_ins.size(); in_iter++) {
-            BPatch_basicBlock *bp_inB = elements[int_ins[in_iter]->id()];
-            assert(bp_inB->getBlockNumber() == int_ins[in_iter]->id());
-            assert(bp_inB);
-            bpB->addSource(bp_inB);
-        }
-
-        for (unsigned out_iter = 0; out_iter < int_outs.size(); out_iter++) {
-            BPatch_basicBlock *bp_outB = elements[int_outs[out_iter]->id()];
-            assert(bp_outB->getBlockNumber() == int_outs[out_iter]->id());
-            assert(bp_outB);
-            bpB->addTarget(bp_outB);
-        }
+    for( unsigned int i = 0; i < iblocks.size(); i++ )
+    {
+       BPatch_basicBlock *newblock = new BPatch_basicBlock(iblocks[i], this);
+       allBlocks += newblock;
     }
-
     return true;
-#if 0
-    // Old version
-   Address maddr = relativeAddress + func->get_size();
-
-   Address taddr;
-
-   BPatch_Set<Address> leaders;
-   dictionary_hash<Address,BPatch_basicBlock*> leaderToBlock(addrHash);
-   
-   //start inserting the leader information. The initial address of the
-   //function is inserted as a leader and a basic block is created for it
-   //and inserted into the map.
-   
-   leaders += relativeAddress;
-   leaderToBlock[relativeAddress] = new BPatch_basicBlock(this, bno++);
-   allBlocks += leaderToBlock[relativeAddress];
-   
-   //while there are still instructions to check for in the
-   //address space of the function
-
-   while (ah.hasMore()) {
-      //get the inctruction and the address
-      //inst = ah.getInstruction();
-      InstrucIter inst(ah);
-      Address pos = ah++;
-
-      //if it is a conditional branch 
-      if (inst.isACondBranchInstruction()) {
-         //if also it is inside the function space
-         //then insert the target address as a leader
-         //and create the basic block for the leader
-         taddr = inst.getBranchTargetAddress(pos);
-
-         if ((baddr <= taddr) && (taddr < maddr) && 
-             !leaders.contains(taddr)) {
-             leaders += taddr;
-
-             leaderToBlock[taddr] =
-                 new BPatch_basicBlock(this, bno++);
-
-            allBlocks += leaderToBlock[taddr];
-         }
-
-         //if the dleay instruction is supported by the
-         //architecture then skip one more instruction         
-         if (InstrucIter::delayInstructionSupported() && !inst.isAnneal())
-            ++ah;
-         
-         //if the next address is still in the address
-         //space of the function then it is also a leader
-         //since the condition may not be met
-         taddr = *ah;
-         if ((taddr < maddr) && !leaders.contains(taddr)) {
-            leaders += taddr;
-            leaderToBlock[taddr] = new BPatch_basicBlock(this, bno++);
-            allBlocks += leaderToBlock[taddr];
-         }
-      }
-      else if (inst.isAJumpInstruction()) {
-         //if it is unconditional jump then find the
-         //target address and insert it as a leader and create
-         //a basic block for it.
-         taddr = inst.getBranchTargetAddress(pos);
-
-         if ((baddr <= taddr) && (taddr < maddr) && !leaders.contains(taddr)) {
-            leaders += taddr;
-            leaderToBlock[taddr] = new BPatch_basicBlock(this, bno++);
-            allBlocks += leaderToBlock[taddr];
-         }
-
-         //if the dleay instruction is supported by the
-         //architecture then skip one more instruction
-         if (InstrucIter::delayInstructionSupported() && !inst.isAnneal())
-            ++ah;
-
-#if defined(alpha_dec_osf4_0)
-         taddr = *ah;
-         if ((taddr < maddr) && !leaders.contains(taddr)) {
-            leaders += taddr;
-            leaderToBlock[taddr] = new BPatch_basicBlock(this, bno++);
-            allBlocks += leaderToBlock[taddr];
-         }
-#endif
-      }
-#if defined(rs6000_ibm_aix4_1)
-      else if (inst.isAIndirectJumpInstruction(InstrucIter(ah)))
-#else
-      else if (inst.isAIndirectJumpInstruction())
-#endif
-      {
-         InstrucIter ah2(ah);
-         BPatch_Set<Address> possTargets; 
-         ah2.getMultipleJumpTargets(possTargets);
-         Address* telements = new Address[possTargets.size()];
-
-         possTargets.elements(telements);
-
-         for (unsigned int i=0; i < possTargets.size(); i++) {
-            taddr = telements[i];
-            if (proc->getImage()->isAllocedAddress(taddr) &&
-		(baddr <= taddr) && (taddr < maddr) && 
-                !leaders.contains(taddr)) {
-               leaders += taddr;
-               leaderToBlock[taddr] = new BPatch_basicBlock(this, bno++);
-               allBlocks += leaderToBlock[taddr];
-            }
-         }
-         delete[] telements;
-
-         //if the dleay instruction is supported by the
-         //architecture then skip one more instruction
-         if (InstrucIter::delayInstructionSupported())
-            ++ah;
-      }
-
-      else if (inst.isAReturnInstruction()) {
-         if (InstrucIter::delayInstructionSupported())
-            ++ah;
-
-         taddr = *ah;
-
-		 // /* DEBUG */ fprintf( stderr, "%s[%d]: potential leader at 0x%lx\n", __FILE__, __LINE__, taddr );
-         if ((baddr <= taddr) && (taddr < maddr) && !leaders.contains(taddr)) {
-        	// /* DEBUG */ fprintf( stderr, "%s[%d]: 0x%lx is a new leader (after return at 0x%lx).\n", __FILE__, __LINE__, taddr, * inst );
-            leaders += taddr;
-            leaderToBlock[taddr] = new BPatch_basicBlock(this, bno++);
-            allBlocks += leaderToBlock[taddr];
-         }
-      }
-      
-#if defined(ia64_unknown_linux2_4) 
-      else if( inst.getInstruction()->getType() == IA64_instruction::ALLOC ) {
-        if( ! leaders.contains( pos ) ) { 
-        	// /* DEBUG */ fprintf( stderr, "%s[%d]: alloc at 0x%lx is a (new) leader.\n", __FILE__, __LINE__, pos );
-        	leaders += pos;
-        	leaderToBlock[pos] = new BPatch_basicBlock( this, bno++ );
-        	allBlocks += leaderToBlock[pos];
-        	}
-      	} /* end if an alloc instruction */
-#endif
-      }
-      
-      //to process the leaders easily sort the leaders according to their
-      //values, that is according to the address value they have
-      Address* elements = new Address[leaders.size()];
-      leaders.elements(elements);
-      
-      //insert the first leaders corresponding basic block as a entry
-      //block to the control flow graph.
-      
-      leaderToBlock[elements[0]]->isEntryBasicBlock = true;
-      entryBlock += leaderToBlock[elements[0]];
-      
-      //for each leader take the address value and continue procesing
-      //the instruction till the next leader or the end of the
-      //function space is seen
-      for (unsigned int i=0; i < leaders.size(); i++) {
-         //set the value of address handle to be the value of the leader
-         ah.setCurrentAddress(elements[i]);
-
-         BPatch_basicBlock * bb = leaderToBlock[elements[i]];
-         bb->startAddress = (Address)(elements[i]+diffAddress);
-         
-	 // was the previous instruction an unconditional jump?
-	 bool prevInsIsUncondJump = false;
-
-         //while the address handle has instructions to process
-         while (ah.hasMore()) {
-            InstrucIter inst(ah);
-            Address pos = *ah;
-            
-            // if the next leaders instruction is seen and it is not
-            // the end of the function yet
-            if ((i < (leaders.size()-1)) && (pos == elements[i+1])) {
-		// end of current block
-		bb->lastInsnAddress = (Address)(ah.prevAddress()+diffAddress);
-                bb->setRelEnd((Address)((*ah)+diffAddress));
-
-		// if the previous block has no targets inside the current 
-		// function and is not an exit block and the previous 
-		// instruction was not an unconditional jump then we infer
-		// that there is a fall-through edge from bb to the next block
-		// (which pos is the leader of). if the target of return
-		// instructions and jumps outside the function were added to
-		// the basic blocks vector of targets then checking that 
-		// the vector of targets is empty would be enough
-		if (bb->targets.size() == 0 && !bb->isExitBasicBlock
-		    && !prevInsIsUncondJump) {
-		    bb->targets += leaderToBlock[pos];
-		    leaderToBlock[pos]->sources += bb;    
-
-		    prevInsIsUncondJump = false; 
-		}
-
-		// continue to next leader
-		break;
-            }
-            
-            ah++;
-            
-	    prevInsIsUncondJump = false; 
-
-            //if the instruction is conditional branch then
-            //find the target address and find the corresponding 
-            //leader and basic block for it. Then insert the found
-            //basic block to the successor list of current leader's
-            //basic block, and insert current basic block to the
-            //predecessor field of the other one. Do the
-            //same thing for the following ( or the other one
-            //if delay instruction is supported) as a leader.
-            if (inst.isACondBranchInstruction()) {
-               taddr = inst.getBranchTargetAddress(pos);
-
-               if ((baddr <= taddr) && (taddr < maddr)) {
-                  bb->targets += leaderToBlock[taddr];
-                  leaderToBlock[taddr]->sources += bb;
-               } 
-               else {
-                  exitBlock += bb;
-               }
-
-               if (InstrucIter::delayInstructionSupported() && 
-                   !inst.isAnneal())
-                  ++ah;
-               
-               taddr = *ah;
-               if (taddr < maddr) {
-                  bb->targets += leaderToBlock[taddr];
-                  leaderToBlock[taddr]->sources += bb;
-               }
-            }
-            else if (inst.isAJumpInstruction()) {
-               //if the branch is unconditional then only
-               //find the target and leader and basic block 
-               //coressponding to the leader. And update 
-               //predecessor and successor fields of the 
-               //basic blocks.
-               taddr = inst.getBranchTargetAddress(pos);
-
-               if ((baddr <= taddr) && (taddr < maddr)) {
-                  bb->targets += leaderToBlock[taddr];
-                  leaderToBlock[taddr]->sources += bb;
-               }
-               else {
-		   exitBlock += bb;
-               }
-
-	       // flag this unconditional jump so that when we examine the
-	       // next instruction and find that it is a leader we will know
-	       // there is not a fall-through edge between these two blocks
-	       prevInsIsUncondJump = true; 
-
-               if (InstrucIter::delayInstructionSupported() && 
-                   !inst.isAnneal())
-                  ++ah;
-            }
-#if defined(rs6000_ibm_aix4_1)
-            else if (inst.isAIndirectJumpInstruction(InstrucIter(ah)))
-#else
-            else if (inst.isAIndirectJumpInstruction())
-#endif
-            {
-               InstrucIter ah2(ah);
-               BPatch_Set<Address> possTargets; 
-
-               ah2.getMultipleJumpTargets(possTargets);
-               Address* telements = new Address[possTargets.size()];
-               possTargets.elements(telements);
-
-               for (unsigned int j=0; j < possTargets.size(); j++) {
-                  taddr = telements[j];
-		  if (proc->getImage()->isAllocedAddress(taddr)) {
-		    if ((baddr <= taddr) && (taddr < maddr)) {
-		      bb->targets += leaderToBlock[taddr];
-		      leaderToBlock[taddr]->sources += bb;
-		    }
-		    else {
-		      exitBlock += bb;
-		    }
-		  }
-               }
-               delete[] telements;
-
-               //if the dleay instruction is supported by the
-               //architecture then skip one more instruction
-               if (InstrucIter::delayInstructionSupported())
-                  ++ah;
-            }
-            else if (inst.isAReturnInstruction()) {
-               exitBlock += bb;
-               bb->isExitBasicBlock = true;
-            }
-         }
-         //if the while loop terminated due to recahing the
-         //end of the address space of the function then set the
-         //end addresss of the basic block to the last instruction's
-         //address in the address space.
-         if (i == (leaders.size()-1))
-         {
-            bb->lastInsnAddress = (Address)(ah.prevAddress()+diffAddress);
-            bb->setRelEnd((Address)((*ah)+diffAddress));
-         }         
-   
-   }
-   delete[] elements;
-         
-   return true;
-#endif // if 0
 }
 
 
@@ -1053,246 +597,6 @@ bool BPatch_flowGraph::createSourceBlocksInt() {
     return true;
 } /* end createSourceBlocks() */
 
-/* class that calculates the dominators of a flow graph using
-   tarjan's algorithms with results an almost linear complexity
-   for graphs with less than 8 basic blocks */
-
-class TarjanDominator {
-private:
-	int n,r;
-	BPatch_basicBlock** numberToBlock;
-	int *dom,*parent, *ancestor, *child, *vertex, *label, *semi,*size;
-	BPatch_Set<int>** bucket;
-
-	inline int bbToint(BPatch_basicBlock* bb){
-		return bb->blockNumber + 1;
-	}
-	void dfs(int v,int* dfsNo){
-		semi[v] = ++(*dfsNo);
-		vertex[*dfsNo] = v;
-		label[v] = v;
-		ancestor[v] = 0;
-		child[v] = 0;
-		size[v] = 1;
-		BPatch_basicBlock* bb = numberToBlock[v];
-		BPatch_basicBlock** elements = new BPatch_basicBlock*[bb->targets.size()];
-        	bb->targets.elements(elements);
-        	for(unsigned int i=0;i<bb->targets.size();i++){
-			int w = bbToint(elements[i]);
-			if(semi[w] == 0){
-				parent[w] = v;
-				dfs(w,dfsNo);
-			}
-		}
-		delete[] elements;
-	}
-	void dfsP(int v,int* dfsNo){
-		semi[v] = ++(*dfsNo);
-		vertex[*dfsNo] = v;
-		label[v] = v;
-		ancestor[v] = 0;
-		child[v] = 0;
-		size[v] = 1;
-		BPatch_basicBlock* bb = numberToBlock[v];
-		BPatch_basicBlock** elements = new BPatch_basicBlock*[bb->sources.size()];
-        	bb->sources.elements(elements);
-        	for(unsigned int i=0;i<bb->sources.size();i++){
-			int w = bbToint(elements[i]);
-			if(semi[w] == 0){
-				parent[w] = v;
-				dfsP(w,dfsNo);
-			}
-		}
-		delete[] elements;
-	}
-
-
-	void COMPRESS(int v){
-		if(ancestor[ancestor[v]] != 0){
-			COMPRESS(ancestor[v]);
-			if(semi[label[ancestor[v]]] < semi[label[v]])
-				label[v] = label[ancestor[v]];
-			ancestor[v] = ancestor[ancestor[v]];
-		}
-	}
-	int EVAL(int v){
-		if(ancestor[v] == 0)
-			return label[v];
-		COMPRESS(v);
-		if(semi[label[ancestor[v]]] >= semi[label[v]])
-			return label[v];
-		return label[ancestor[v]];
-	}
-	void LINK(int v,int w){
-		int s = w;
-		while(semi[label[w]] < semi[label[child[s]]]){
-			if((size[s]+size[child[child[s]]]) >= (2*size[child[s]])){
-				ancestor[child[s]] = s;
-				child[s] = child[child[s]];
-			}
-			else{
-				size[child[s]] = size[s];
-				ancestor[s] = child[s];
-				s = child[s];
-			}
-		}
-		label[s] = label[w];
-		size[v] += size[w];
-		if(size[v] < (2*size[w])){
-			int tmp = child[v];
-			child[v] = s;
-			s = tmp;
-		}
-		while(s != 0){
-			ancestor[s] = v;
-			s = child[s];
-		}
-	}
-public:
-	TarjanDominator(int arg_size, BPatch_basicBlock* root,
-                        BPatch_basicBlock** blocks) 
-           : n(arg_size),r(bbToint(root)) 
-	{
-		int i;
-
-		arg_size++;
-		numberToBlock = new BPatch_basicBlock*[arg_size];
-		numberToBlock[0] = NULL;
-		for(i=0;i<n;i++)
-			numberToBlock[bbToint(blocks[i])] = blocks[i];	
-
-		dom = new int[arg_size];
-
-		parent = new int[arg_size];
-		ancestor = new int[arg_size];
-		child = new int[arg_size];
-		vertex = new int[arg_size];
-		label = new int[arg_size];
-		semi = new int[arg_size];
-		this->size = new int[arg_size];
-		bucket = new BPatch_Set<int>*[arg_size];
-
-		for(i=0;i<arg_size;i++){
-			bucket[i] = new BPatch_Set<int>;
-			semi[i] = 0;	
-		}
-	}
-	~TarjanDominator(){
-		int i;
-		delete[] numberToBlock;
-		delete[] parent;
-		delete[] ancestor;
-		delete[] child;
-		delete[] vertex;
-		delete[] label;
-		delete[] semi;
-		delete[] size;
-		delete[] dom;
-		for(i=0;i<(n+1);i++)
-			delete bucket[i];
-		delete[] bucket;
-	}
-	void findDominators(){
-		int i;
-		int dfsNo = 0;
-		dfs(r,&dfsNo);
-
-		size[0] = 0;
-		label[0] = 0;
-		semi[0] = 0;
-
-		for(i=n;i>1;i--){
-			int w =  vertex[i];
-
-			BPatch_basicBlock* bb = numberToBlock[w];
-			BPatch_basicBlock** elements = new BPatch_basicBlock*[bb->sources.size()];
-        		bb->sources.elements(elements);
-        		for(unsigned int j=0;j<bb->sources.size();j++){
-				int v = bbToint(elements[j]);
-				int u = EVAL(v);
-				if(semi[u] < semi[w])
-					semi[w] = semi[u];
-			}
-			bucket[vertex[semi[w]]]->insert(w);
-			LINK(parent[w],w);
-			int v = 0;
-			BPatch_Set<int>* bs = bucket[parent[w]];
-			while(bs->extract(v)){
-				int u = EVAL(v);
-				dom[v] = ( semi[u] < semi[v] ) ? u : parent[w];
-			}
-		}
-		for(i=2;i<=n;i++){
-			int w = vertex[i];
-			if(dom[w] != vertex[semi[w]])
-				dom[w] = dom[dom[w]];
-		}
-		dom[r] = 0;
-
-		for(i=1;i<=n;i++){
-			int w = vertex[i];
-			BPatch_basicBlock* bb = numberToBlock[w];
-			bb->immediateDominator = numberToBlock[dom[w]];
-			if(bb->immediateDominator){
-				if(!bb->immediateDominator->immediateDominates)
-					bb->immediateDominator->immediateDominates =
-                                        	new BPatch_Set<BPatch_basicBlock*>;
-                        	bb->immediateDominator->immediateDominates->insert(bb);
-                	}
-		}
-	}
-
-	void findPostDominators(){
-		int i;
-		int dfsNo = 0;
-		dfsP(r,&dfsNo);
-
-		size[0] = 0;
-		label[0] = 0;
-		semi[0] = 0;
-
-		for(i=n;i>1;i--){
-			int w =  vertex[i];
-
-			BPatch_basicBlock* bb = numberToBlock[w];
-			BPatch_basicBlock** elements = new BPatch_basicBlock*[bb->targets.size()];
-        		bb->targets.elements(elements);
-        		for(unsigned int j=0;j<bb->targets.size();j++){
-				int v = bbToint(elements[j]);
-				int u = EVAL(v);
-				if(semi[u] < semi[w])
-					semi[w] = semi[u];
-			}
-			bucket[vertex[semi[w]]]->insert(w);
-			LINK(parent[w],w);
-			int v = 0;
-			BPatch_Set<int>* bs = bucket[parent[w]];
-			while(bs->extract(v)){
-				int u = EVAL(v);
-				dom[v] = ( semi[u] < semi[v] ) ? u : parent[w];
-			}
-		}
-		for(i=2;i<=n;i++){
-			int w = vertex[i];
-			if(dom[w] != vertex[semi[w]])
-				dom[w] = dom[dom[w]];
-		}
-		dom[r] = 0;
-
-		for(i=1;i<=n;i++){
-			int w = vertex[i];
-			BPatch_basicBlock* bb = numberToBlock[w];
-			bb->immediatePostDominator = numberToBlock[dom[w]];
-			if(bb->immediatePostDominator){
-				if(!bb->immediatePostDominator->immediatePostDominates)
-					bb->immediatePostDominator->immediatePostDominates =
-                                        	new BPatch_Set<BPatch_basicBlock*>;
-                        	bb->immediatePostDominator->immediatePostDominates->insert(bb);
-                	}
-		}
-	}
-};
-	
 //this method fill the dominator information of each basic block
 //looking at the control flow edges. It uses a fixed point calculation
 //to find the immediate dominator of the basic blocks and the set of
@@ -1300,160 +604,24 @@ public:
 //Before calling this method all the dominator information
 //is going to give incorrect results. So first this function must
 //be called to process dominator related fields and methods.
-void BPatch_flowGraph::fillDominatorInfoInt(){
-
-  unsigned int i;
-  BPatch_basicBlock* bb, *tempb;
-  BPatch_basicBlock** elements = NULL;
-  
+void BPatch_flowGraph::fillDominatorInfoInt()
+{
   if(isDominatorInfoReady)
     return;
   isDominatorInfoReady = true;
   
-  /* Always use Tarjan algorithm, since performance gain is
-     probably minimal for small (<8 block) graphs anyways */
-  
-  elements = new BPatch_basicBlock*[allBlocks.size()+1];
-  allBlocks.elements(elements);
-
-  int maxBlk = -1;
-  for (i = 0; i < allBlocks.size(); i++)
-    if (maxBlk < elements[i]->blockNumber)
-      maxBlk = elements[i]->blockNumber;
-
-  tempb = new BPatch_basicBlock(this, maxBlk+1);
-  elements[allBlocks.size()] = tempb;
-  BPatch_Set<BPatch_basicBlock*> entries = entryBlock;
-  while (!entries.empty()) {
-    bb = entries.minimum();
-    tempb->targets.insert(bb);
-    bb->sources.insert(tempb);
-    entries.remove(bb);
-  } 
-
-  TarjanDominator tarjanDominator(allBlocks.size()+1,
-                                  tempb,
-                                  elements);
-  tarjanDominator.findDominators();
-  /* clean up references to our temp block */
-  if (tempb->immediateDominates)
-      while (!tempb->immediateDominates->empty()) {
-          bb = tempb->immediateDominates->minimum();
-          bb->immediateDominator = NULL;
-          tempb->immediateDominates->remove(bb);
-      }
-  while (!tempb->targets.empty()) {
-    bb = tempb->targets.minimum();
-    bb->sources.remove(tempb);
-    tempb->targets.remove(bb);
-  }
-
-  if (tempb->immediateDominates) 
-      while (!tempb->immediateDominates->empty()) {
-	  bb = tempb->immediateDominates->minimum();
-	  bb->immediateDominator = NULL;
-	  tempb->immediateDominates->remove(bb);
-      }
-   while (!tempb->targets.empty()) {
-	bb = tempb->targets.minimum();
-        bb->sources.remove(tempb);
-	tempb->targets.remove(bb);
-   }
-  
-  
-  delete tempb;
-  delete[] elements;
+  dominatorCFG domcfg(this);
+  domcfg.calcDominators();
 }
  
-void BPatch_flowGraph::fillPostDominatorInfoInt(){
-   
-  unsigned int i;
-  BPatch_basicBlock* bb, *tempb;
-  BPatch_basicBlock** elements = NULL;
-  
+void BPatch_flowGraph::fillPostDominatorInfoInt()
+{
   if(isPostDominatorInfoReady)
     return;
   isPostDominatorInfoReady = true;
   
-  /* Always use Tarjan algorithm, since performance gain is
-     probably minimal for small (<8 block) graphs anyways */
-  
-  /* First find basic blocks that are not reachable from 
-     one of the exit block. their color are white after
-     the following DFS with sources
-   */
-
-  int* bbToColor = new int[allBlocks.size()];
-  for(i=0;i<allBlocks.size();i++)
-    bbToColor[i] = WHITE;
-
-  elements = new BPatch_basicBlock*[exitBlock.size()];
-  exitBlock.elements(elements);
-  for(i=0;i<exitBlock.size();i++)
-    if(bbToColor[elements[i]->blockNumber] == WHITE)
-       dfsVisitWithSources(elements[i],bbToColor);
-
-  delete[] elements;
-
-  elements = new BPatch_basicBlock*[allBlocks.size()+1];
-  allBlocks.elements(elements);
-
-  BPatch_Set<BPatch_basicBlock*> extraBlockSet;	
-  for (i = 0; i < allBlocks.size(); i++){
-	if(exitBlock.contains(elements[i]))
-		continue;
-	if(bbToColor[elements[i]->blockNumber] == WHITE){
-		/** a block that does not reach the exit block
-          * root of the forest so include this 
-          * for processing for post dom calculation
-          */
-		dfsVisitWithSources(elements[i],bbToColor);
-		extraBlockSet += elements[i];
-	}
-  }
-
-  delete[] bbToColor;
-
-  int maxBlk = -1;
-  for (i = 0; i < allBlocks.size(); i++)
-    if (maxBlk < elements[i]->blockNumber)
-      maxBlk = elements[i]->blockNumber;
-
-  tempb = new BPatch_basicBlock(this, maxBlk+1);
-  elements[allBlocks.size()] = tempb;
-  BPatch_Set<BPatch_basicBlock*> exits = exitBlock;
-
-  /** add the basic blocks that do not reach exit blocks 
-	to the exit list */
-
-  exits |= extraBlockSet;
-
-  while (!exits.empty()) {
-    bb = exits.minimum();
-    tempb->sources.insert(bb);
-    bb->targets.insert(tempb);
-    exits.remove(bb);
-  }
-
-  TarjanDominator tarjanDominator(allBlocks.size()+1,
-                                  tempb,
-                                  elements);
-  tarjanDominator.findPostDominators();
-  /* clean up references to our temp block */
-  if (tempb->immediatePostDominates)
-      while (!tempb->immediatePostDominates->empty()) {
-          bb = tempb->immediatePostDominates->minimum();
-          bb->immediatePostDominator = NULL;
-          tempb->immediatePostDominates->remove(bb);
-      }
-  while (!tempb->sources.empty()) {
-     bb = tempb->sources.minimum();
-     bb->targets.remove(tempb);
-     tempb->sources.remove(bb);
-  }
-
-  delete tempb;
-  delete[] elements;
+  dominatorCFG domcfg(this);
+  domcfg.calcPostDominators();
 }
 
 
@@ -1461,258 +629,87 @@ void BPatch_flowGraph::fillPostDominatorInfoInt(){
 // in a flow graph is an edge whose head dominates its tail. 
 void BPatch_flowGraph::createEdges()
 {
-    /*
-     * Indirect jumps are NOT currently handled correctly
-     */
+   BPatch_Vector<BPatch_basicBlock *> targs;
+   /*
+    * Indirect jumps are NOT currently handled correctly
+    */
+   
+   backEdges = new BPatch_Set<BPatch_edge*>;
+   
+   BPatch_basicBlock **blks = new BPatch_basicBlock*[allBlocks.size()];
+   allBlocks.elements(blks);
+   
+   // for each block in the graph
+   for (unsigned i = 0; i < allBlocks.size(); i++) {
+      BPatch_basicBlock *source = blks[i];
 
-    backEdges = new BPatch_Set<BPatch_edge*>;
+      targs.clear();
+      source->getTargets(targs);
+      unsigned numTargs = targs.size();
 
-    BPatch_basicBlock **blks = new BPatch_basicBlock*[allBlocks.size()];
-    allBlocks.elements(blks);
+      // create edges
 
-    // for each block in the graph
-    for (unsigned i = 0; i < allBlocks.size(); i++) {
-        BPatch_basicBlock *source = blks[i];
+      Address lastinsnaddr = source->getLastInsnAddress();
+      if (lastinsnaddr == 0) {
+         fprintf(stderr, "ERROR: 0 addr for block end!\n");
+         continue;
+      }
 
-        // source's targets
-	BPatch_basicBlock **targs = 
-	    new BPatch_basicBlock*[source->targets.size()];
+      if (numTargs == 1) {
+         BPatch_edge *edge;
+         edge = new BPatch_edge(source, targs[0], this);
 
-	source->targets.elements(targs);
+         targs[0]->incomingEdges += edge;
+         source->outgoingEdges += edge;
 
-        unsigned numTargs = source->targets.size();
+         //             fprintf(stderr, "t1 %2d %2d\n",source->blockNo(),
+         //                     targs[0]->blockNo());
+         if (targs[0]->dominates(source))
+            (*backEdges) += edge;
+      }
+      else if (numTargs == 2) {
+         //XXX could be an indirect jump with two targets
 
-        // create edges
+         // conditional jumps create two edges from a block
+         BPatch_edge *edge0 = 
+            new BPatch_edge(source, targs[0], this); 
 
-        Address lastinsnaddr = source->getLastInsnAddress();
-	if (lastinsnaddr == 0) {
-	  fprintf(stderr, "ERROR: 0 addr for block end!\n");
-	  continue;
-	}
+         BPatch_edge *edge1 = 
+            new BPatch_edge(source, targs[1], this); 
 
-        if (numTargs == 1) {
-            BPatch_edge *edge;
-            edge = new BPatch_edge(source, targs[0], this);
+         //             fprintf(stderr, "t2 %2d %2d\n",source->blockNo(),
+         //                     targs[0]->blockNo());
+         // 	    fprintf(stderr, "t2 %2d %2d\n",source->blockNo(),
+         //                     targs[1]->blockNo());
 
-            targs[0]->incomingEdges += edge;
-            source->outgoingEdges += edge;
+         source->outgoingEdges += edge0;
+         source->outgoingEdges += edge1;
 
-//             fprintf(stderr, "t1 %2d %2d\n",source->blockNo(),
-//                     targs[0]->blockNo());
-            if (targs[0]->dominates(source))
-                (*backEdges) += edge;
-        }
-        else if (numTargs == 2) {
-            //XXX could be an indirect jump with two targets
+         targs[0]->incomingEdges += edge0;
+         targs[1]->incomingEdges += edge1;
 
-            // conditional jumps create two edges from a block
-            BPatch_edge *edge0 = 
-                new BPatch_edge(source, targs[0], this); 
+         if (targs[0]->dominates(source))
+            (*backEdges) += edge0;
 
-            BPatch_edge *edge1 = 
-                new BPatch_edge(source, targs[1], this); 
+         if (targs[1]->dominates(source))
+            (*backEdges) += edge1;
 
-//             fprintf(stderr, "t2 %2d %2d\n",source->blockNo(),
-//                     targs[0]->blockNo());
-// 	    fprintf(stderr, "t2 %2d %2d\n",source->blockNo(),
-//                     targs[1]->blockNo());
+         // taken and fall-through edge should not both be back edges
+         // 	    if (targs[0]->dominates(source) && targs[1]->dominates(source)) {
+         //                 bperr("Both edge targets can not dominate the source.\n");
+         //  		edge0->dump();
+         //  		edge1->dump();
+         //  	    }
 
-            source->outgoingEdges += edge0;
-            source->outgoingEdges += edge1;
-
-            targs[0]->incomingEdges += edge0;
-            targs[1]->incomingEdges += edge1;
-
-            if (targs[0]->dominates(source))
-                (*backEdges) += edge0;
-
-            if (targs[1]->dominates(source))
-                (*backEdges) += edge1;
-
-            // taken and fall-through edge should not both be back edges
-// 	    if (targs[0]->dominates(source) && targs[1]->dominates(source)) {
-//                 bperr("Both edge targets can not dominate the source.\n");
-//  		edge0->dump();
-//  		edge1->dump();
-//  	    }
-
-            //assert(!(targs[0]->dominates(source) && 
-	    //targs[1]->dominates(source)));
-        }
-        else {
-            //XXX indirect jumps, set conditional buddy?
-        }
-
-	delete[] targs;
-    }
-
-
-    delete[] blks;
+         //assert(!(targs[0]->dominates(source) && 
+         //targs[1]->dominates(source)));
+      }
+      else {
+         //XXX indirect jumps, set conditional buddy?
+      }
+   }
+   delete[] blks;
 }
-
-
-// Perform a dfs of the graph of blocks bb starting at bbToColor. A 
-// condition of this function is that the blocks are marked as not yet visited
-// (WHITE). This function marks blocks as pre- (GRAY) and post-visited (BLACK).
-void BPatch_flowGraph::dfsVisitWithTargets(BPatch_basicBlock* bb, int* bbToColor)
-{
-    // pre-visit this block
-    bbToColor[bb->blockNumber] = GRAY;
-
-    BPatch_basicBlock** elements =  
-	new BPatch_basicBlock*[bb->targets.size()];
-
-    bb->targets.elements(elements);
-
-    // for each of the block's sucessors 
-    for (unsigned int i=0; i < bb->targets.size(); i++) {
-	// if sucessor not yet visited then pre-visit it
-	if (bbToColor[elements[i]->blockNumber] == WHITE) {
-	    dfsVisitWithTargets(elements[i], bbToColor);
-	}
-    }
-
-    // post-visit this block
-    bbToColor[bb->blockNumber] = BLACK;
-
-    delete[] elements;
-}
-
-void BPatch_flowGraph::dfsVisitWithSources(BPatch_basicBlock* bb, int* bbToColor)
-{
-    // pre-visit this block
-    bbToColor[bb->blockNumber] = GRAY;
-
-    BPatch_basicBlock** elements =  
-	new BPatch_basicBlock*[bb->sources.size()];
-
-    bb->sources.elements(elements);
-
-    // for each of the block's sucessors 
-    for (unsigned int i=0; i < bb->sources.size(); i++) {
-	// if sucessor not yet visited then pre-visit it
-	if (bbToColor[elements[i]->blockNumber] == WHITE) {
-	    dfsVisitWithSources(elements[i], bbToColor);
-	}
-    }
-
-    // post-visit this block
-    bbToColor[bb->blockNumber] = BLACK;
-
-    delete[] elements;
-}
-
-
-typedef struct SortTuple{
-	Address address;
-	BPatch_basicBlock* bb;
-}SortTuple;
-
-
-extern "C" int tupleSort(const void* arg1,const void* arg2){
-   if(((const SortTuple*)arg1)->address > ((const SortTuple*)arg2)->address)
-      return 1;
-
-   if(((const SortTuple*)arg1)->address < ((const SortTuple*)arg2)->address)
-      return -1;
-
-   return 0;
-}
-
-
-// Finds all blocks in the graph not reachable from the entry blocks and
-// deletes them from the sets of blocks. The blocks are then renumbered 
-// increasing with respect to their starting addresses.
-void BPatch_flowGraph::findAndDeleteUnreachable()
-{
-	unsigned int i,j;
-
-	int* bbToColor = new int[allBlocks.size()];
-	for(i=0;i<allBlocks.size();i++)
-		bbToColor[i] = WHITE;
-
-	// perform a dfs on the graph of blocks starting from each enttry 
-	// block, blocks not reached from the dfs remain colored WHITE and
-	// are unreachable
-	BPatch_basicBlock** elements = 
-			new BPatch_basicBlock*[entryBlock.size()];
-	entryBlock.elements(elements);
-	for(i=0;i<entryBlock.size();i++)
-		if(bbToColor[elements[i]->blockNumber] == WHITE)
-			dfsVisitWithTargets(elements[i],bbToColor);
-
-	delete[] elements;
-
-	BPatch_Set<BPatch_basicBlock*> toDelete;
-	elements =  new BPatch_basicBlock*[allBlocks.size()];
-	allBlocks.elements(elements);
-	unsigned int oldCount = allBlocks.size();
-
-	// for each basic block B
-	for (i=0;i<oldCount;i++) {
-		BPatch_basicBlock* bb = elements[i];
-
-		// if the block B was NOT visited during a dfs
-		if (bbToColor[bb->blockNumber] == WHITE) {
-
-		    // for each of B's source blocks, remove B as a target
-		    BPatch_basicBlock** selements = 
-			new BPatch_basicBlock*[bb->sources.size()];
-		    bb->sources.elements(selements);
-		    unsigned int count = bb->sources.size();
-		    for(j=0;j<count;j++)
-			selements[j]->targets.remove(bb);
-		    delete[] selements;
-		    
-		    // for each of B's target blocks, remove B as a source
-		    selements = new BPatch_basicBlock*[bb->targets.size()];
-		    bb->targets.elements(selements);
-		    count = bb->targets.size();
-		    for(j=0;j<count;j++)
-			selements[j]->sources.remove(bb);
-		    delete[] selements;
-		    
-		    // remove B from vec of all blocks
-//                     fprintf(stderr, "bb %u [0x%x 0x%x]\n",
-//                             bb->blockNo(),
-//                             bb->getStartAddress(),
-//                             bb->getRelEnd() );
-
-		    allBlocks.remove(bb);
-		    exitBlock.remove(bb);
-		    toDelete += bb;
-		}
-	}
-
-	// delete all blocks add to toDelete
-	delete[] elements;
-	elements = new BPatch_basicBlock*[toDelete.size()];
-	toDelete.elements(elements);	
-	for(i=0;i<toDelete.size();i++)
-		delete elements[i];
-	delete[] elements;
-	delete[] bbToColor;
-
-	// renumber basic blocks to increase with starting addresses
-	unsigned int orderArraySize = allBlocks.size();
-	SortTuple* orderArray = new SortTuple[orderArraySize];
-	elements = new BPatch_basicBlock*[allBlocks.size()];
-	allBlocks.elements(elements);
-
-	for(i=0;i<orderArraySize;i++){
-		orderArray[i].bb = elements[i];
-		orderArray[i].address = elements[i]->startAddress;
-        }
-
-        qsort((void*)orderArray, orderArraySize, sizeof(SortTuple), tupleSort);
-
-        for(i=0;i<orderArraySize;i++)
-                orderArray[i].bb->setBlockNumber(i);
-
-        delete[] orderArray;
-        delete[] elements;
-}
-
 
 // this method is used to find the basic blocks contained by the loop
 // defined by a backedge. The tail of the backedge is the starting point and
@@ -1723,53 +720,54 @@ void BPatch_flowGraph::findAndDeleteUnreachable()
 void BPatch_flowGraph::findBBForBackEdge(BPatch_edge* backEdge,
                                          BPatch_Set<BPatch_basicBlock*>& bbSet)
 {
-    typedef struct STACK {
-	unsigned size;
-	int top;
-	BPatch_basicBlock** data;
+   typedef struct STACK {
+      unsigned size;
+      int top;
+      BPatch_basicBlock** data;
 	
-	STACK() : size(0),top(-1),data(NULL) {}
-	~STACK() { free(data); }
-	bool empty() { return (top < 0); }
-	void push(BPatch_basicBlock* b) {
-	    if (!size) 
-		data = (BPatch_basicBlock**) malloc( sizeof(BPatch_basicBlock*)*(++size));
-	    else if(top == ((int)size-1))
-		data = (BPatch_basicBlock**)realloc( data,sizeof(BPatch_basicBlock*)*(++size));
-		top++;
-		data[top] = b;
-	}
-	BPatch_basicBlock* pop() {
-	    if(empty()) return NULL;
-	    return data[top--];
-	}
-    } STACK;
+      STACK() : size(0),top(-1),data(NULL) {}
+      ~STACK() { free(data); }
+      bool empty() { return (top < 0); }
+      void push(BPatch_basicBlock* b) {
+         if (!size) 
+            data = (BPatch_basicBlock**) malloc( sizeof(BPatch_basicBlock*)*(++size));
+         else if(top == ((int)size-1))
+            data = (BPatch_basicBlock**)realloc( data,sizeof(BPatch_basicBlock*)*(++size));
+         top++;
+         data[top] = b;
+      }
+      BPatch_basicBlock* pop() {
+         if(empty()) return NULL;
+         return data[top--];
+      }
+   } STACK;
     
-    STACK* stack = new STACK;
+   STACK* stack = new STACK;
+   pdvector<int_basicBlock *> blocks;
+   BPatch_basicBlock *pred;
 
-    bbSet += backEdge->target;
+   bbSet += backEdge->target;
 
-    if (!bbSet.contains(backEdge->source)) {
-	bbSet += backEdge->source;
-	stack->push(backEdge->source);
-    }
+   if (!bbSet.contains(backEdge->source)) {
+      bbSet += backEdge->source;
+      stack->push(backEdge->source);
+   }
 
-    while (!stack->empty()) {
-	BPatch_basicBlock* bb = stack->pop();
-
-	BPatch_basicBlock** elements = 
-	    new BPatch_basicBlock*[bb->sources.size()];
-	bb->sources.elements(elements);
-
-	for(unsigned int i=0; i < bb->sources.size(); i++)
-	    if (!bbSet.contains(elements[i])) {
-		bbSet += elements[i];
-		stack->push(elements[i]);
-	    }
-
-	delete[] elements;
-    }
-    delete stack;
+   while (!stack->empty()) {
+      BPatch_basicBlock* bb = stack->pop();
+      
+      blocks.clear();
+      bb->iblock->getSources(blocks);
+      for (unsigned i=0; i<blocks.size(); i++)
+      {
+         pred = (BPatch_basicBlock*) blocks[i]->getHighLevelBlock();
+         if (!bbSet.contains(pred)) {
+            bbSet += pred;
+            stack->push(pred);
+         }
+      }
+   }
+   delete stack;
 }
 
 
