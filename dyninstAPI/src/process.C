@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.553 2005/09/28 17:03:15 bernat Exp $
+// $Id: process.C,v 1.554 2005/10/04 18:09:55 legendre Exp $
 
 #include <ctype.h>
 
@@ -2571,7 +2571,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
     // This is because we still read out of memory; bad idea, but...
     fileDescriptor desc;
     if (!process::getExecFileDescriptor(file, pid, true, status, desc)) {
-        cerr << "Failed to find exec descriptor" << endl;
+        startup_cerr << "Failed to find exec descriptor" << endl;
         cleanupBPatchHandle(pid);
         processVec.pop_back();
         delete theProc;
@@ -2580,7 +2580,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
     HACKSTATUS = status;
 
     if (!theProc->setAOut(desc)) {
-       fprintf(stderr, "[%s:%u] - Couldn't setAOut\n", __FILE__, __LINE__);
+        startup_printf("[%s:%u] - Couldn't setAOut\n", __FILE__, __LINE__);
         cleanupBPatchHandle(pid);
         processVec.pop_back();
         delete theProc;
@@ -2588,7 +2588,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
     }
 
     if (!theProc->setupGeneral()) {
-       fprintf(stderr, "[%s:%u] - Couldn't setupGeneral\n", __FILE__, __LINE__);
+        startup_printf("[%s:%u] - Couldn't setupGeneral\n", __FILE__, __LINE__);
         cleanupBPatchHandle(pid);
         processVec.pop_back();
         delete theProc;
@@ -4831,7 +4831,8 @@ void process::findSignalHandler(mapped_object *obj){
 }
 
 bool process::continueProc(int signalToContinueWith) {
-
+   
+   signal_cerr << "continuing process " << getPid() << endl;
   if (!isAttached()) {
     bpwarn( "Warning: continue attempted on non-attached process\n");
     return false;
@@ -4862,19 +4863,14 @@ bool process::continueProc_(int sig)
 #endif
 
 bool process::detachProcess(const bool leaveRunning) {
-    fprintf(stderr, "Entry to process::detachProcess(%d)\n", leaveRunning);
-
     // First, remove all syscall tracing and notifications
     delete tracedSyscalls_;
     tracedSyscalls_ = NULL;
-    fprintf(stderr, "Removed traced syscalls\n");
     // Next, delete the dynamic linker instrumentation
     delete dyn;
     dyn = NULL;
-    fprintf(stderr, "Removed dynamic linker tracing...\n");
     // Unset process flags
     unsetProcessFlags();
-    fprintf(stderr, "Going into detach...\n");
     // Detach from the application
     if (!detach(leaveRunning)) {
         fprintf(stderr, "Failed detach!\n");
@@ -4882,7 +4878,6 @@ bool process::detachProcess(const bool leaveRunning) {
     }
     
     set_status(detached);
-    fprintf(stderr, "And calling deleteProc\n");
     // deleteProcess does the right thing depending on the status vrble
     deleteProcess();
     return true;
@@ -4987,10 +4982,6 @@ void process::triggerNormalExitCallback(int exitCode) {
       return;
    }
    BPatch::bpatch->registerNormalExit(this, exitCode);
-
-   // And continue the process so that it exits normally
-   continueProc();
-   set_status(exited);
 }
 
 void process::triggerSignalExitCallback(int signalnum) {
