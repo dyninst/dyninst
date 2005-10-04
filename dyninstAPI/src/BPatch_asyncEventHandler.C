@@ -667,7 +667,7 @@ bool BPatch_asyncEventHandler::detachFromProcess(BPatch_process *p)
   }
 
   //  close our own file desc for this process.
-  close(targetfd);
+  P_close(targetfd);
 
   return true; // true
 }

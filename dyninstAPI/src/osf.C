@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.81 2005/09/09 18:06:53 legendre Exp $
+// $Id: osf.C,v 1.82 2005/10/04 18:10:11 legendre Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -585,7 +585,7 @@ pdstring process::tryToFindExecutable(const pdstring &progpath, int pid)
    struct prpsinfo the_psinfo;
 
    if (ioctl(procfd, PIOCPSINFO, &the_psinfo) == -1) {
-       close(procfd);
+       P_close(procfd);
        return "";
    }
 
@@ -595,14 +595,14 @@ pdstring process::tryToFindExecutable(const pdstring &progpath, int pid)
 
    if (!access(commandName, X_OK)) {
        // found the file, return the results
-       (void)close(procfd);
+       (void) P_close(procfd);
        return commandName;
    }
 
    bperr("access to  %s failed \n", commandName);
    startup_cerr << "tryToFindExecutable: giving up" << endl;
 
-   (void)close(procfd);
+   (void) P_close(procfd);
 
    return ""; // failure
 }
@@ -738,8 +738,8 @@ bool process::dumpImage()
        write(ofd, buffer, length);
     }
 
-    close(ofd);
-    close(ifd);
+    P_close(ofd);
+    P_close(ifd);
 
     return true;
 }
@@ -864,7 +864,7 @@ void dyn_lwp::realLWP_detach_()
 void dyn_lwp::representativeLWP_detach_()
 {
    assert(is_attached());  // dyn_lwp::detach() shouldn't call us otherwise
-   if (fd_) close(fd_);
+   if (fd_) P_close(fd_);
 }
 
 

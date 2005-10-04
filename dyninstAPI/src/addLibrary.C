@@ -43,7 +43,7 @@
 // Since the author of this file chose to use tabs instead of spaces
 // for the indentation mode, the above line switches users into tabs
 // mode with emacs when editing this file.
-/* $Id: addLibrary.C,v 1.17 2005/03/20 19:24:36 chadd Exp $ */
+/* $Id: addLibrary.C,v 1.18 2005/10/04 18:10:02 legendre Exp $ */
 
 
 #if defined(sparc_sun_solaris2_4)
@@ -731,7 +731,7 @@ addLibrary::~addLibrary(){
 		delete [] newElfFileSec;
 	}
 	elf_end(newElf);
-	close(newFd);
+	P_close(newFd);
 
 }
 

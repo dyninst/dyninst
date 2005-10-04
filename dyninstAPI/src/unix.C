@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.143 2005/09/09 18:07:14 legendre Exp $
+// $Id: unix.C,v 1.144 2005/10/04 18:10:18 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -153,7 +153,7 @@ bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> *argv,
          }
 
 #ifndef BPATCH_LIBRARY
-      close(tracePipe[1]);
+      P_close(tracePipe[1]);
 	   // parent never writes trace records; it only receives them.
 
       /* removed for output redirection
@@ -223,7 +223,7 @@ bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> *argv,
       }
 
       /* close if higher */
-      if (tracePipe[1] > 3) close(tracePipe[1]);
+      if (tracePipe[1] > 3) P_close(tracePipe[1]);
 
 
       if ((dir.length() > 0) && (P_chdir(dir.c_str()) < 0)) {

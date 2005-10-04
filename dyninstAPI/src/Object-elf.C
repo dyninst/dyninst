@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.94 2005/09/19 23:05:14 bernat Exp $
+ * $Id: Object-elf.C,v 1.95 2005/10/04 18:10:01 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -684,7 +684,7 @@ void Object::load_object()
 	   used for function parsing (see dyninstAPI/src/symtab.C) */
 
 	if (elf.isValid()) elf.end();
-	if (did_open) close(file_fd_);
+	if (did_open) P_close(file_fd_);
     }
 }
 
@@ -791,7 +791,7 @@ void Object::load_shared_object()
 	/* NOTE: The file should NOT be munmap()ed.  The mapped file is
 	   used for function parsing (see dyninstAPI/src/symtab.C) */
 	if (elf.isValid()) elf.end();
-	if (did_open) close(file_fd_);
+	if (did_open) P_close(file_fd_);
     }
 }
 
@@ -2141,8 +2141,6 @@ bool Object::getCatchBlock(ExceptionBlock &b, Address addr,
    int min = 0;
    int max = catch_addrs_.size();
    int cur = -1, last_cur;
-
-   return false;
 
    if (max == 0)
       return false;

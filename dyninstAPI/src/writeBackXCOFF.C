@@ -74,7 +74,7 @@ int writeBackXCOFF::loadFile(XCOFF* file){
 	
 	if( statRet == -1) {
 		bperr(" no stats found for %s \n", file->name);
-		close(file->fd);
+		P_close(file->fd);
 		return -1;
 	}
 	
@@ -153,8 +153,8 @@ writeBackXCOFF::~writeBackXCOFF(){
 	}	
 	munmap(oldFile.buffer, oldFile.filesize);
 	delete [] newFile.buffer;	
-	close(oldFile.fd);
-	close(newFile.fd);
+	P_close(oldFile.fd);
+	P_close(newFile.fd);
 }
 
 int writeBackXCOFF::addSection(char *name, unsigned int paddr, 
@@ -680,8 +680,5 @@ bool writeBackXCOFF::outputXCOFF(){
 	}
 	write(newFile.fd, (void*) newFile.buffer, newFile.filesize);
 
-	close(newFile.fd);
-
-
-
+	P_close(newFile.fd);
 }

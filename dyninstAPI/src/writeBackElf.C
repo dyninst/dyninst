@@ -40,7 +40,7 @@
  */
 
 /* -*- Mode: C; indent-tabs-mode: true -*- */
-/* $Id: writeBackElf.C,v 1.25 2005/03/20 19:24:36 chadd Exp $ */
+/* $Id: writeBackElf.C,v 1.26 2005/10/04 18:10:19 legendre Exp $ */
 
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
@@ -133,9 +133,9 @@ writeBackElf::~writeBackElf(){
 		}
 	}
 	//elf_end(newElf); //closed in addLibrary::driver()
-	close(newfd);
+	P_close(newfd);
 
-	close(oldfd);
+	P_close(oldfd);
 	elf_end(oldElf);
 }
 

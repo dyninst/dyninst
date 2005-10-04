@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.37 2005/09/09 18:06:37 legendre Exp $
+ * $Id: dyn_lwp.h,v 1.38 2005/10/04 18:10:06 legendre Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -75,9 +75,9 @@ class papiMgr;
 #endif
 #endif
 
-#if !defined(i386_unknown_nt4_0)  // so Windows code will compile on unix
+#if !defined(os_windows)
 #ifndef INVALID_HANDLE_VALUE
-#define INVALID_HANDLE_VALUE 0
+#define INVALID_HANDLE_VALUE -1
 #endif
 #endif
 

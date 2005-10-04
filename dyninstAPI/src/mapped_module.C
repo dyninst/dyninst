@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.C,v 1.1 2005/09/01 22:18:29 bernat Exp $
+// $Id: mapped_module.C,v 1.2 2005/10/04 18:10:10 legendre Exp $
 
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
@@ -679,7 +679,7 @@ void mapped_module::parseFileLineInfo() {
 								moduleObject.getErrFunc(),
 								& dbg, NULL );
 	assert( status != DW_DLV_ERROR );
-	if( status == DW_DLV_NO_ENTRY ) { close( fd ); return; }
+	if( status == DW_DLV_NO_ENTRY ) { P_close( fd ); return; }
 	
 	/* Itereate over the CU headers. */
 	Dwarf_Unsigned header;
@@ -797,7 +797,7 @@ void mapped_module::parseFileLineInfo() {
 	                                              
 	status = dwarf_finish( dbg, NULL );
 	assert( status == DW_DLV_OK );
-	close( fd );
+	P_close( fd );
 	
 	/* Note that we've parsed this file. */
 	haveParsedFileMap[ fileName ] = true;

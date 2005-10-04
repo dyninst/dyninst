@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: editSharedLibrary.C,v 1.3 2005/03/22 02:52:09 legendre Exp $ */
+/* $Id: editSharedLibrary.C,v 1.4 2005/10/04 18:10:07 legendre Exp $ */
 #include "dyninstAPI/src/editSharedLibrary.h"
 #include "dyninstAPI/src/util.h"
 
@@ -66,7 +66,7 @@ bool editSharedLibrary::removeBSSfromSharedLibrary(char *libName){
 
 	elf_update(oldElf, ELF_C_WRITE);
 	elf_end(oldElf);
-	close(fd);
+	P_close(fd);
 
 	return res;
 }

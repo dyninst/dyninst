@@ -84,7 +84,7 @@ typedef SOCKET PDSOCKET;
 #include <pthread.h>
 typedef int PDSOCKET;
 
-#define CLOSEPDSOCKET(s) close(s)
+#define CLOSEPDSOCKET(s) P_close(s)
 #define PDSOCKET_ERRNO errno
 #define INVALID_PDSOCKET (-1)
 #define PDSOCKET_ERROR (-1)

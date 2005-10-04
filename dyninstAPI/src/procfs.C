@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.37 2004/04/02 06:34:15 jaw Exp $
+// $Id: procfs.C,v 1.38 2005/10/04 18:10:13 legendre Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -95,7 +95,7 @@ void OS::osTraceMe(void) {
   if (ioctl(fd, PIOCSTRACE, &signalSet) == -1) {
       sprintf(errorLine, "Cannot trace singals\n");
       logLine(errorLine);
-      close(fd);
+      P_close(fd);
       return;
   }
 
@@ -103,7 +103,7 @@ void OS::osTraceMe(void) {
   if (ioctl(fd, PIOCSET, &pr_flags) == -1) {
       sprintf(errorLine, "Cannot set status\n");
       logLine(errorLine);
-      close(fd);
+      P_close(fd);
       return;
   }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.257 2005/09/28 17:03:19 bernat Exp $
+ // $Id: symtab.C,v 1.258 2005/10/04 18:10:17 legendre Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1572,7 +1572,7 @@ void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> 
 
       status = dwarf_finish( dbg, NULL );
       assert( status == DW_DLV_OK );
-      close( fd );
+      P_close( fd );
    }
 #endif
 

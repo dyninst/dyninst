@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: irix.C,v 1.90 2005/07/29 19:18:48 bernat Exp $
+// $Id: irix.C,v 1.91 2005/10/04 18:10:08 legendre Exp $
 
 #include <sys/types.h>    // procfs
 #include <sys/signal.h>   // procfs
@@ -344,7 +344,7 @@ void OS::osTraceMe(void)
   }
 
   errno = 0;
-  close(fd);
+  P_close(fd);
 }
 
 procSyscall_t decodeSyscall(process *p, procSignalWhat_t syscall)
@@ -498,7 +498,7 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
         int status;
         int ret;
         if (fds[curr].fd == masterMPIfd) {
-            close(fds[curr].fd);
+            P_close(fds[curr].fd);
             masterMPIfd = -1;
         }
         else {
@@ -958,7 +958,7 @@ bool process::dumpImage() {
     }
     lseek(fd, txtOff, SEEK_SET);
     write(fd, buf2, txtLen);
-    close(fd);
+    P_close(fd);
     delete [] buf2;
   }
   
@@ -1443,8 +1443,8 @@ bool execIrixMPIProcess(pdvector<pdstring> &argv)
     if ( write(pipeFlag[1], &flag, 1) != 1)
       perror("startIrixMPIProcess:parent pipe flag");
 		
-    close(pipeFlag[0]);
-    close(pipeFlag[1]);
+    P_close(pipeFlag[0]);
+    P_close(pipeFlag[1]);
   }
   else
   {
@@ -1469,8 +1469,8 @@ bool execIrixMPIProcess(pdvector<pdstring> &argv)
     // make sure parent has attached before proceeding
 
     int size = read(pipeFlag[0], &flag, 1);
-    close(pipeFlag[0]);
-    close(pipeFlag[1]);
+    P_close(pipeFlag[0]);
+    P_close(pipeFlag[1]);
 
     if ( size < 0 )
       perror("addIrixMPIprocesses read parent flag");
@@ -1484,7 +1484,7 @@ bool execIrixMPIProcess(pdvector<pdstring> &argv)
     if ( retval == -1 )
       perror("PIOCSEXIT");
 
-    close(proc_fh);
+    P_close(proc_fh);
 
     char **args;
     args = new char*[argv.size()+1];
@@ -1562,7 +1562,7 @@ void dyn_lwp::realLWP_detach_()
 void dyn_lwp::representativeLWP_detach_()
 {
    assert(is_attached());  // dyn_lwp::detach() shouldn't call us otherwise
-   if (fd_) close(fd_);
+   if (fd_) P_close(fd_);
 }
 
 void loadNativeDemangler() {}

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: addLibraryLinux.C,v 1.17 2005/03/21 16:59:21 chadd Exp $ */
+/* $Id: addLibraryLinux.C,v 1.18 2005/10/04 18:10:03 legendre Exp $ */
 
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
@@ -709,7 +709,7 @@ int addLibrary::driver(Elf *elf,  char* newfilename, char *libname){
 	
 		gapFlag = writeNewElf(newfilename, libname);
 		elf_end(newElf);
-	close(newFd); //ccw 6 jul 2003
+	P_close(newFd); //ccw 6 jul 2003
 	return gapFlag;
 }
 

@@ -166,7 +166,7 @@ bool saveSharedLibrary::readNewLib(){
 
 	elf_update(newElf, ELF_C_WRITE);
   	elf_end(newElf);
-	close(newfd);
+	P_close(newfd);
 
 	if((newfd = (open(newpathname, O_RDWR)))==-1){
 		fprintf(stderr,"cannot open new SO : %s\n",newpathname);
@@ -230,12 +230,12 @@ void saveSharedLibrary::closeElf(){
 	elf_update(newElf, ELF_C_NULL);
 	elf_update(newElf, ELF_C_WRITE);
   	elf_end(newElf);
-	close(newfd);
+	P_close(newfd);
 }
 
 void saveSharedLibrary::closeOriginalLibrary(){
 	elf_end(oldElf);
-	close(oldfd);
+	P_close(oldfd);
 }
 
 

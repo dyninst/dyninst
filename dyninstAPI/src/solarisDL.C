@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.42 2005/08/03 05:28:14 bernat Exp $
+// $Id: solarisDL.C,v 1.43 2005/10/04 18:10:16 legendre Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -101,7 +101,7 @@ bool dynamic_linking::initialize() {
         bperr( "WARNING: we didn't find dlopen in ld.so.1\n");
     }
 
-    close(ld_fd);
+    P_close(ld_fd);
 
    dynlinked = true;
 

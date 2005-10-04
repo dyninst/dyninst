@@ -1833,7 +1833,7 @@ void BPatch_module::parseDwarfTypes() {
 
 	status = dwarf_finish( dbg, NULL );
 	assert( status == DW_DLV_OK );
-	close( fd );
+	P_close( fd );
 
 	/* Run a sanity check. */
 	assert (moduleTypes);

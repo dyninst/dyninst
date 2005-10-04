@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.205 2005/09/28 17:02:47 bernat Exp $
+// $Id: aix.C,v 1.206 2005/10/04 18:10:04 legendre Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -363,7 +363,7 @@ void decodeInstr(unsigned instr_raw) {
 void OS::osDisconnect(void) {
   int ttyfd = open ("/dev/tty", O_RDONLY);
   ioctl (ttyfd, TIOCNOTTY, NULL); 
-  close (ttyfd);
+  P_close (ttyfd);
 }
 
 
@@ -1437,7 +1437,7 @@ int SYSSET_MAP(int syscall, int pid)
            syscall_mapping[SYS_lwp_exit] = syscalls[j].pr_number;
         }
     }
-    close(fd);
+    P_close(fd);
     free(syscalls);
     mapping_valid = true;
     return syscall_mapping[syscall];
@@ -1466,7 +1466,7 @@ sysset_t *SYSSET_ALLOC(int pid)
             perror("AIX syscall_alloc: read");
         num_calls = sysent.pr_nsyscalls;
         init = true;
-        close(fd);
+        P_close(fd);
     }
     int size = 0; // Number of 64-bit ints we use for the bitmap
     // array size (*8 because we're bitmapping)
@@ -1642,8 +1642,8 @@ bool process::dumpImage(const pdstring outFile)
         continueProc();
     }
     
-    close(ofd);
-    close(ifd);
+    P_close(ofd);
+    P_close(ifd);
     
     return true;
 
