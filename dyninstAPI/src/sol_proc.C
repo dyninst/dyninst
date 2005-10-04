@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.65 2005/09/09 18:07:04 legendre Exp $
+// $Id: sol_proc.C,v 1.66 2005/10/04 18:09:57 legendre Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -104,7 +104,7 @@ void OS::osTraceMe(void) {
 #else
     memcpy(exitSet, &(status.pr_sysexit), SYSSET_SIZE(exitSet));
 #endif
-    close(stat_fd);
+    P_close(stat_fd);
 
     sprintf(procName,"/proc/%d/ctl", (int) getpid());
     int fd = P_open(procName, O_WRONLY, 0);
@@ -679,7 +679,7 @@ bool dyn_lwp::realLWP_attach_() {
    sprintf(temp, "/proc/%d/lwp/%d/lwpusage", (int)proc_->getPid(), lwp_id_);
    usage_fd_ = P_open(temp, O_RDONLY, 0);
 #else
-   usage_fd_ = 0;
+   usage_fd_ = INVALID_HANDLE_VALUE;
 #endif
    return true;
 }
@@ -689,7 +689,6 @@ bool dyn_lwp::representativeLWP_attach_() {
     // Wait a sec; we often outrun process creation.
     sleep(2);
 #endif
-
    /*
      Open the /proc file corresponding to process pid
    */
@@ -697,9 +696,9 @@ bool dyn_lwp::representativeLWP_attach_() {
    char temp[128];
    // Open the process-wise handles
    sprintf(temp, "/proc/%d/ctl", getPid());
-   ctl_fd_ = P_open(temp, O_WRONLY | O_EXCL, 0);
+   ctl_fd_ = P_open(temp, O_WRONLY | O_EXCL, 0);    
    if (ctl_fd_ < 0) perror("Opening (LWP) ctl");
-
+   
    sprintf(temp, "/proc/%d/status", getPid());
    status_fd_ = P_open(temp, O_RDONLY, 0);    
    if (status_fd_ < 0) perror("Opening (LWP) status");
@@ -709,10 +708,10 @@ bool dyn_lwp::representativeLWP_attach_() {
    usage_fd_ = P_open(temp, O_RDONLY, 0);    
    if (usage_fd_ < 0) perror("Opening (LWP) usage");
 #else
-   usage_fd_ = 0;
+   usage_fd_ = INVALID_HANDLE_VALUE;
 #endif
 
-   as_fd_ = -1;
+   as_fd_ = INVALID_HANDLE_VALUE;
    sprintf(temp, "/proc/%d/as", getPid());
    as_fd_ = P_open(temp, O_RDWR, 0);
    if (as_fd_ < 0) perror("Opening as fd");
@@ -723,7 +722,7 @@ bool dyn_lwp::representativeLWP_attach_() {
    if (auxv_fd_ < 0) perror("Opening auxv fd");
 #else
    // AIX doesn't have the auxv file
-   auxv_fd_ = 0;
+   auxv_fd_ = INVALID_HANDLE_VALUE;
 #endif
 
    sprintf(temp, "/proc/%d/map", getPid());
@@ -766,10 +765,13 @@ void dyn_lwp::realLWP_detach_()
    // for the process. Otherwise, when we detach the process has
    // a signal sent that it may have no clue about
    // But we can't do that here -- all FDs associated with the process
-   // are closed.
-   close(ctl_fd_);
-   close(status_fd_);
-   close(usage_fd_);
+   // are closed. 
+   if (ctl_fd_ != INVALID_HANDLE_VALUE)
+      P_close(ctl_fd_);
+   if (status_fd_ != INVALID_HANDLE_VALUE)
+      P_close(status_fd_);
+   if (usage_fd_ != INVALID_HANDLE_VALUE)
+      P_close(usage_fd_);
    is_attached_ = false;
 }
 
@@ -783,12 +785,16 @@ void dyn_lwp::representativeLWP_detach_()
    // a signal sent that it may have no clue about
    // But we can't do that here -- all FDs associated with the process
    // are closed.
-   close(ctl_fd_);
-   close(status_fd_);
-   close(usage_fd_);
-   close(as_fd_);
-   close(ps_fd_);
-   close(status_fd_);
+   if (ctl_fd_ != INVALID_HANDLE_VALUE)
+      P_close(ctl_fd_);
+   if (status_fd_ != INVALID_HANDLE_VALUE)
+      P_close(status_fd_);
+   if (usage_fd_ != INVALID_HANDLE_VALUE)
+      P_close(usage_fd_);
+   if (as_fd_ != INVALID_HANDLE_VALUE)
+      P_close(as_fd_);
+   if (ps_fd_ != INVALID_HANDLE_VALUE)
+      P_close(ps_fd_);
    is_attached_ = false;
 }
 
@@ -893,31 +899,31 @@ void dyn_lwp::reopen_fds() {
         // Reopen the process-wide handles
     char temp[128];
 
-    close(as_fd_);
+    P_close(as_fd_);
     sprintf(temp, "/proc/%d/as", getPid());
     as_fd_ = P_open(temp, O_RDWR, 0);
     if (as_fd_ <= 0) perror("Opening as fd");
 #if !defined(AIX_PROC)
-    close(auxv_fd_);
+    P_close(auxv_fd_);
     sprintf(temp, "/proc/%d/auxv", getPid());
     auxv_fd_ = P_open(temp, O_RDONLY, 0);
     if (auxv_fd_ <= 0) perror("Opening auxv fd");
 #else
     // AIX doesn't have the auxv file
-    auxv_fd_ = 0;
+    auxv_fd_ = INVALID_HANDLE_VALUE;
 #endif
 
-    close(map_fd_);
+    P_close(map_fd_);
     sprintf(temp, "/proc/%d/map", getPid());
     map_fd_ = P_open(temp, O_RDONLY, 0);
     if (map_fd_ <= 0) perror("map fd");
 
-    close(ps_fd_);
+    P_close(ps_fd_);
     sprintf(temp, "/proc/%d/psinfo", getPid());
     ps_fd_ = P_open(temp, O_RDONLY, 0);
     if (ps_fd_ <= 0) perror("Opening ps fd");
 
-    close(status_fd_);
+    P_close(status_fd_);
     sprintf(temp, "/proc/%d/status", getPid());
     status_fd_ = P_open(temp, O_RDONLY, 0);
     if (status_fd_ <= 0) perror("Opening status fd");
@@ -1322,19 +1328,19 @@ procSyscall_t decodeSyscall(process *p, procSignalWhat_t syscall)
 {
    int pid = p->getPid();
 
-    if (syscall == SYSSET_MAP(SYS_fork, pid) ||
-        syscall == SYSSET_MAP(SYS_fork1, pid) ||
-        syscall == SYSSET_MAP(SYS_vfork, pid))
+    if (syscall == (unsigned) SYSSET_MAP(SYS_fork, pid) ||
+        syscall == (unsigned) SYSSET_MAP(SYS_fork1, pid) ||
+        syscall == (unsigned) SYSSET_MAP(SYS_vfork, pid))
         return procSysFork;
-    if (syscall == SYSSET_MAP(SYS_exec, pid) || 
-        syscall == SYSSET_MAP(SYS_execve, pid))
+    if (syscall == (unsigned) SYSSET_MAP(SYS_exec, pid) || 
+        syscall == (unsigned) SYSSET_MAP(SYS_execve, pid))
         return procSysExec;
-    if (syscall == SYSSET_MAP(SYS_exit, pid))
+    if (syscall == (unsigned) SYSSET_MAP(SYS_exit, pid))
         return procSysExit;
-    if (syscall == SYSSET_MAP(SYS_lwp_exit, pid))
+    if (syscall == (unsigned) SYSSET_MAP(SYS_lwp_exit, pid))
         return procLwpExit;
     // Don't map -- we make this up
-    if (syscall == SYS_load)
+    if (syscall == (unsigned) SYS_load)
       return procSysLoad;
     return procSysOther;
 }
@@ -1571,7 +1577,6 @@ int decodeRTSignal(process *proc,
    int status;
    Address arg;
 
-   bool err = false;
    pdvector<int_variable *> vars;
    if (!proc->findVarsByAll(status_str,
                       vars))
@@ -1752,7 +1757,7 @@ pdstring process::tryToFindExecutable(const pdstring &iprogpath, int pid) {
    if (iprogpath.c_str()) {
        int filedes = open(iprogpath.c_str(), O_RDONLY);
        if (filedes != -1) {
-          close(filedes);
+          P_close(filedes);
           return iprogpath;
        }
    }
