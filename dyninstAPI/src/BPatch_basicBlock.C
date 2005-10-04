@@ -50,6 +50,7 @@
 #include "BPatch_collections.h"
 #include "BPatch_basicBlock.h"
 #include "process.h"
+#include "function.h"
 #include "InstrucIter.h"
 #include "BPatch_instruction.h"
 #include "BPatch_libInfo.h"
@@ -277,60 +278,18 @@ void BPatch_basicBlock::setDataFlowKillInt(BPatch_basicBlock *dfk)
 }
 #endif
 
-//constructor that creates the empty sets for 
-//class fields.
-
-BPatch_basicBlock::BPatch_basicBlock() : 
-        isEntryBasicBlock(false),
-        isExitBasicBlock(false),
-        startAddress(0),
-        lastInsnAddress(0),
-        endAddress(0), 						       
-        immediateDominates(NULL),
-        immediateDominator(NULL),
-        immediatePostDominates(NULL),
-        immediatePostDominator(NULL),
-        sourceBlocks(NULL),
-        instructions(NULL) {}
-
-// Specialization constructor
-BPatch_basicBlock::BPatch_basicBlock(const int_basicBlock *ib) :
-    flowGraph(NULL),
-    blockNumber(ib->id()),
-    isEntryBasicBlock(ib->isEntryBlock()),
-    isExitBasicBlock(ib->isExitBlock()),
-    startAddress(ib->origInstance()->firstInsnAddr()),
-    lastInsnAddress(ib->origInstance()->lastInsnAddr()),
-    endAddress(ib->origInstance()->endAddr()), 						       
-    immediateDominates(NULL),
-    immediateDominator(NULL),
-    immediatePostDominates(NULL),
-    immediatePostDominator(NULL),
-    sourceBlocks(NULL),
-    instructions(NULL)
-{}
-
-//The argument is a block number.
-//there is no limitation that two blocks can have 
-//the same number but since only way the basic blocks 
-//can be created is through flowGraph class there will never exist
-//two  basic blocks with the same number
-
-BPatch_basicBlock::BPatch_basicBlock(BPatch_flowGraph* fg, int bno) :
-		flowGraph(fg),
-		blockNumber(bno),
-		isEntryBasicBlock(false),
-		isExitBasicBlock(false),
-                startAddress(0),
-                lastInsnAddress(0),
-                endAddress(0),    
-		immediateDominates(NULL),
-		immediateDominator(NULL),
-		immediatePostDominates(NULL),
-		immediatePostDominator(NULL),
-                sourceBlocks(NULL),
-                instructions(NULL) {}
-
+BPatch_basicBlock::BPatch_basicBlock(int_basicBlock *ib, BPatch_flowGraph *fg):
+   iblock(ib),
+   flowGraph(fg),
+   immediateDominates(NULL),
+   immediateDominator(NULL),
+   immediatePostDominates(NULL),
+   immediatePostDominator(NULL),
+   sourceBlocks(NULL),
+   instructions(NULL)
+{
+   ib->setHighLevelBlock(this);
+}
 
 //destructor of the class BPatch_basicBlock
 void BPatch_basicBlock::BPatch_basicBlock_dtor(){
@@ -349,242 +308,242 @@ void BPatch_basicBlock::BPatch_basicBlock_dtor(){
    that don't have corresponding functions in all the
    InstrucIter-*  yest. 
 */
-#if defined (rs6000_ibm_aix4_1)
+#if defined(arch_power)
 
 /* Iterates over instructions in the basic block to 
    create the initial gen kill sets for that block */
 bool BPatch_basicBlock::initRegisterGenKillInt() 
 {  
-  in=(BITARRAY*)malloc(sizeof(BITARRAY));
-  bitarray_init(BITARRAY_SIZE,in);  
+   in=(BITARRAY*)malloc(sizeof(BITARRAY));
+   bitarray_init(BITARRAY_SIZE,in);  
 
-  out=(BITARRAY*)malloc(sizeof(BITARRAY));
-  bitarray_init(BITARRAY_SIZE,out);  
+   out=(BITARRAY*)malloc(sizeof(BITARRAY));
+   bitarray_init(BITARRAY_SIZE,out);  
 
-  gen=(BITARRAY*)malloc(sizeof(BITARRAY));
-  bitarray_init(BITARRAY_SIZE,gen);  
+   gen=(BITARRAY*)malloc(sizeof(BITARRAY));
+   bitarray_init(BITARRAY_SIZE,gen);  
   
-  kill=(BITARRAY*)malloc(sizeof(BITARRAY));
-  bitarray_init(BITARRAY_SIZE,kill);  
+   kill=(BITARRAY*)malloc(sizeof(BITARRAY));
+   bitarray_init(BITARRAY_SIZE,kill);  
 
-  inFP=(BITARRAY*)malloc(sizeof(BITARRAY));
-  bitarray_init(BITARRAY_SIZE,inFP);  
+   inFP=(BITARRAY*)malloc(sizeof(BITARRAY));
+   bitarray_init(BITARRAY_SIZE,inFP);  
 
-  outFP=(BITARRAY*)malloc(sizeof(BITARRAY));
-  bitarray_init(BITARRAY_SIZE,outFP);  
+   outFP=(BITARRAY*)malloc(sizeof(BITARRAY));
+   bitarray_init(BITARRAY_SIZE,outFP);  
 
-  genFP=(BITARRAY*)malloc(sizeof(BITARRAY));
-  bitarray_init(BITARRAY_SIZE,genFP);  
+   genFP=(BITARRAY*)malloc(sizeof(BITARRAY));
+   bitarray_init(BITARRAY_SIZE,genFP);  
   
-  killFP=(BITARRAY*)malloc(sizeof(BITARRAY));
-  bitarray_init(BITARRAY_SIZE,killFP);  
+   killFP=(BITARRAY*)malloc(sizeof(BITARRAY));
+   bitarray_init(BITARRAY_SIZE,killFP);  
 
   
-  InstrucIter ii(this);
+   InstrucIter ii(this);
   
   
-  while(ii.hasMore()) {
-    /* GPR Gens */
-    if (ii.isA_RT_ReadInstruction()){
-      if (!bitarray_check(ii.getRTValue(),kill))
-	bitarray_set(ii.getRTValue(),gen);
-    }
-    if (ii.isA_RA_ReadInstruction()){
-      if (!bitarray_check(ii.getRAValue(),kill))
-	bitarray_set(ii.getRAValue(),gen);
-    }
-    if (ii.isA_RB_ReadInstruction()){
-      if (!bitarray_check(ii.getRBValue(),kill))
-	bitarray_set(ii.getRBValue(),gen);
-    }
+   while(ii.hasMore()) {
+      /* GPR Gens */
+      if (ii.isA_RT_ReadInstruction()){
+         if (!bitarray_check(ii.getRTValue(),kill))
+            bitarray_set(ii.getRTValue(),gen);
+      }
+      if (ii.isA_RA_ReadInstruction()){
+         if (!bitarray_check(ii.getRAValue(),kill))
+            bitarray_set(ii.getRAValue(),gen);
+      }
+      if (ii.isA_RB_ReadInstruction()){
+         if (!bitarray_check(ii.getRBValue(),kill))
+            bitarray_set(ii.getRBValue(),gen);
+      }
 
-    /* FPR Gens */
-    if (ii.isA_FRT_ReadInstruction()){
-      if (!bitarray_check(ii.getFRTValue(),killFP))
-	bitarray_set(ii.getFRTValue(),genFP);
-    }
-    if (ii.isA_FRA_ReadInstruction()){
-      if (!bitarray_check(ii.getFRAValue(),killFP))
-	bitarray_set(ii.getFRAValue(),genFP);
-    }
-    if (ii.isA_FRB_ReadInstruction()){
-      if (!bitarray_check(ii.getFRBValue(),killFP))
-	bitarray_set(ii.getFRBValue(),genFP);
-    }
-    if (ii.isA_FRC_ReadInstruction()){
-      if (!bitarray_check(ii.getFRCValue(),killFP))
-	bitarray_set(ii.getFRCValue(),genFP);
-    }
+      /* FPR Gens */
+      if (ii.isA_FRT_ReadInstruction()){
+         if (!bitarray_check(ii.getFRTValue(),killFP))
+            bitarray_set(ii.getFRTValue(),genFP);
+      }
+      if (ii.isA_FRA_ReadInstruction()){
+         if (!bitarray_check(ii.getFRAValue(),killFP))
+            bitarray_set(ii.getFRAValue(),genFP);
+      }
+      if (ii.isA_FRB_ReadInstruction()){
+         if (!bitarray_check(ii.getFRBValue(),killFP))
+            bitarray_set(ii.getFRBValue(),genFP);
+      }
+      if (ii.isA_FRC_ReadInstruction()){
+         if (!bitarray_check(ii.getFRCValue(),killFP))
+            bitarray_set(ii.getFRCValue(),genFP);
+      }
 
-    /* GPR Kills */
-    if (ii.isA_RT_WriteInstruction()){
-      bitarray_set(ii.getRTValue(),kill);
-    }    
-    if (ii.isA_RA_WriteInstruction()){
-      bitarray_set(ii.getRAValue(),kill);
-    }
+      /* GPR Kills */
+      if (ii.isA_RT_WriteInstruction()){
+         bitarray_set(ii.getRTValue(),kill);
+      }    
+      if (ii.isA_RA_WriteInstruction()){
+         bitarray_set(ii.getRAValue(),kill);
+      }
 
-    /* FPR Kills */
-    if (ii.isA_FRT_WriteInstruction()){
-      bitarray_set(ii.getFRTValue(),killFP);
-    }    
-    if (ii.isA_FRA_WriteInstruction()){
-      bitarray_set(ii.getFRAValue(),killFP);
-    }
+      /* FPR Kills */
+      if (ii.isA_FRT_WriteInstruction()){
+         bitarray_set(ii.getFRTValue(),killFP);
+      }    
+      if (ii.isA_FRA_WriteInstruction()){
+         bitarray_set(ii.getFRAValue(),killFP);
+      }
 
-    if (ii.isAReturnInstruction()){
-      /* Need to gen the possible regurn arguments */
-      bitarray_set(3,gen);
-      bitarray_set(4,gen);
-      bitarray_set(1,genFP);
-      bitarray_set(2,genFP);
-    }
+      if (ii.isAReturnInstruction()){
+         /* Need to gen the possible regurn arguments */
+         bitarray_set(3,gen);
+         bitarray_set(4,gen);
+         bitarray_set(1,genFP);
+         bitarray_set(2,genFP);
+      }
 
     
-    /* If it is a call instruction we look at which registers are used
-       at the beginning of the called function, If we can't do that, we just
-       gen registers 3-10 (the parameter holding volative 
-       registers for power) & (1-13 for FPR)*/
-    if (ii.isACallInstruction())
+      /* If it is a call instruction we look at which registers are used
+         at the beginning of the called function, If we can't do that, we just
+         gen registers 3-10 (the parameter holding volative 
+         registers for power) & (1-13 for FPR)*/
+      if (ii.isACallInstruction())
       {
-          Address callAddress = ii.getBranchTargetAddress();
-	//printf("Call Address is 0x%x \n",callAddress);
+         Address callAddress = ii.getBranchTargetAddress();
+         //printf("Call Address is 0x%x \n",callAddress);
 
-          process *proc = flowGraph->getBProcess()->lowlevel_process();
-          int_function * funcc;
+         process *proc = flowGraph->getBProcess()->lowlevel_process();
+         int_function * funcc;
           
-          codeRange * range = proc->findCodeRangeByAddress(callAddress);
+         codeRange * range = proc->findCodeRangeByAddress(callAddress);
           
-          if (range)
-              {
-                  funcc = range->is_function();
-                  if (funcc)
-                      {
-                          InstrucIter ah(funcc);
-                          while (ah.hasMore())
-                              {
-				// GPR
-				if (ah.isA_RT_ReadInstruction()){
-				  bitarray_set(ah.getRTValue(),gen);
-				}
-				if (ah.isA_RA_ReadInstruction()){
-				  bitarray_set(ah.getRAValue(),gen);
-				}
-				if (ah.isA_RB_ReadInstruction()){
-				  bitarray_set(ah.getRBValue(),gen);
-				}
+         if (range)
+         {
+            funcc = range->is_function();
+            if (funcc)
+            {
+               InstrucIter ah(funcc);
+               while (ah.hasMore())
+               {
+                  // GPR
+                  if (ah.isA_RT_ReadInstruction()){
+                     bitarray_set(ah.getRTValue(),gen);
+                  }
+                  if (ah.isA_RA_ReadInstruction()){
+                     bitarray_set(ah.getRAValue(),gen);
+                  }
+                  if (ah.isA_RB_ReadInstruction()){
+                     bitarray_set(ah.getRBValue(),gen);
+                  }
 
-				// FPR
-				if (ah.isA_FRT_ReadInstruction()){
-				  bitarray_set(ah.getFRTValue(),genFP);
-				}
-				if (ah.isA_FRA_ReadInstruction()){
-				  bitarray_set(ah.getFRAValue(),genFP);
-				}
-				if (ah.isA_FRB_ReadInstruction()){
-				  bitarray_set(ah.getFRBValue(),genFP);
-				}
-				if (ah.isA_FRC_ReadInstruction()){
-				  bitarray_set(ah.getFRCValue(),genFP);
-				}
-				if (ah.isACallInstruction())
-				  break;
+                  // FPR
+                  if (ah.isA_FRT_ReadInstruction()){
+                     bitarray_set(ah.getFRTValue(),genFP);
+                  }
+                  if (ah.isA_FRA_ReadInstruction()){
+                     bitarray_set(ah.getFRAValue(),genFP);
+                  }
+                  if (ah.isA_FRB_ReadInstruction()){
+                     bitarray_set(ah.getFRBValue(),genFP);
+                  }
+                  if (ah.isA_FRC_ReadInstruction()){
+                     bitarray_set(ah.getFRCValue(),genFP);
+                  }
+                  if (ah.isACallInstruction())
+                     break;
                                   
-                                  Address pos = ah++;
-                              }
-                      }
-                  else
-                      {
-                          for (int a = 3; a <= 10; a++)
-			    bitarray_set(a,gen);
-			  for (int a = 1; a <= 13; a++)
-			    bitarray_set(a,genFP);
-                      }
-              }
-          else
-              {
-                  for (int a = 3; a <= 10; a++)
-                      bitarray_set(a,gen);
-		  for (int a = 1; a <= 13; a++)
-		    bitarray_set(a,genFP);
-              }
+                  ah++;
+               }
+            }
+            else
+            {
+               for (int a = 3; a <= 10; a++)
+                  bitarray_set(a,gen);
+               for (int a = 1; a <= 13; a++)
+                  bitarray_set(a,genFP);
+            }
+         }
+         else
+         {
+            for (int a = 3; a <= 10; a++)
+               bitarray_set(a,gen);
+            for (int a = 1; a <= 13; a++)
+               bitarray_set(a,genFP);
+         }
       } 
-    ii++;
-  } 
-  return true;
+      ii++;
+   } 
+   return true;
 }
 
 /* This is used to do fixed point iteration until 
    the in and out don't change anymore */
 bool BPatch_basicBlock::updateRegisterInOutInt(bool isFP) 
 {
-  bool change = false;
-  // old_IN = IN(X)
+   bool change = false;
+   // old_IN = IN(X)
   
-  BITARRAY oldIn;
+   BITARRAY oldIn;
 
-  BITARRAY tmp; 
+   BITARRAY tmp; 
   
-  bitarray_init(BITARRAY_SIZE, &oldIn);
-  bitarray_init(BITARRAY_SIZE, &tmp);
+   bitarray_init(BITARRAY_SIZE, &oldIn);
+   bitarray_init(BITARRAY_SIZE, &tmp);
 
-  if (!isFP)
-    {
+   if (!isFP)
+   {
       bitarray_copy(&oldIn, in);
       bitarray_and(in, &tmp, in);
-    }
-  else
-    {
+   }
+   else
+   {
       bitarray_copy(&oldIn, inFP);
       bitarray_and(inFP, &tmp, inFP);
-    }
+   }
 
-  // OUT(X) = UNION(IN(Y)) for all successors Y of X
-  BPatch_basicBlock** elements = new BPatch_basicBlock*[targets.size()];
-  targets.elements(elements);
-  for(unsigned  i=0;i<targets.size();i++)
-    {
+   // OUT(X) = UNION(IN(Y)) for all successors Y of X
+   pdvector<int_basicBlock *> elements;
+   iblock->getTargets(elements);
+   for(unsigned  i=0;i<elements.size();i++)
+   {
+      BPatch_basicBlock *bb = (BPatch_basicBlock*) elements[i]->getHighLevelBlock();
       if (!isFP)
-	bitarray_or(&tmp,elements[i]->getInSet(),&tmp);
+         bitarray_or(&tmp,bb->getInSet(),&tmp);
       else
-	bitarray_or(&tmp,elements[i]->getInFPSet(),&tmp);
-    }
-  delete[] elements;
+         bitarray_or(&tmp,bb->getInFPSet(),&tmp);
+   }
   
-  if (!isFP)
-    bitarray_copy(out, &tmp);
-  else
-    bitarray_copy(outFP, &tmp);
+   if (!isFP)
+      bitarray_copy(out, &tmp);
+   else
+      bitarray_copy(outFP, &tmp);
 
 
-  // IN(X) = USE(X) + (OUT(X) - DEF(X))
-  if (!isFP)
-    {
+   // IN(X) = USE(X) + (OUT(X) - DEF(X))
+   if (!isFP)
+   {
       bitarray_diff(out, kill, &tmp);
       bitarray_or(&tmp, gen, in);
-    }
-  else
-    {
+   }
+   else
+   {
       bitarray_diff(outFP, killFP, &tmp);
       bitarray_or(&tmp, genFP, inFP);
-    }
+   }
   
-  // if (old_IN != IN(X)) then change = true
-  if (!isFP)
-    {
+   // if (old_IN != IN(X)) then change = true
+   if (!isFP)
+   {
       if (bitarray_same(&oldIn, in))
-	change = false;
+         change = false;
       else
-	change = true;
-    }
-  else
-    {
+         change = true;
+   }
+   else
+   {
       if (bitarray_same(&oldIn, inFP))
-	change = false;
+         change = false;
       else
-	change = true;
-    }
-  return change;
+         change = true;
+   }
+   return change;
 }
 
 
@@ -601,89 +560,7 @@ BITARRAY * BPatch_basicBlock::getInFPSetInt()
 /* Debugging tool for checking basic block/liveness info */
 bool BPatch_basicBlock::printAllInt()
 {
-	cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
-	cout << "Basic Block : " << blockNumber <<" : [ ";
-
-	printf("0x%x , ",startAddress);
-	printf("0x%x | ",lastInsnAddress);
-	printf("0x%x ]\n ",lastInsnAddress - startAddress);
-
-
-	if(isEntryBasicBlock)
-		cout <<"Type : ENTRY TO CFG\n"; 
-	else if(isExitBasicBlock)
-		cout <<"Type : EXIT FROM CFG\n"; 
-
-	cout << "Pred :\n";
-
-	BPatch_basicBlock** belements = new BPatch_basicBlock*[sources.size()];
-	sources.elements(belements);
-	for(unsigned i=0; i<sources.size(); i++)
-		cout << "\t<- " << belements[i]->blockNumber << "\n";
-	delete[] belements;
-
-	cout << "Succ:\n";
-	belements =  new BPatch_basicBlock*[targets.size()];
-	targets.elements(belements);
-	for(unsigned j=0; j<targets.size(); j++)
-		cout << "\t-> " << belements[j]->blockNumber << "\n";
-	delete[] belements;
-
-	cout << "Immediate Dominates: ";
-	if(immediateDominates){
-		belements = new BPatch_basicBlock*[immediateDominates->size()];
-		immediateDominates->elements(belements);
-		for(unsigned k=0; k<immediateDominates->size(); k++)
-			cout << belements[k]->blockNumber << " ";
-		delete[] belements;
-	}
-	cout << "\n";
-
-	cout << "Immediate Dominator: ";
-	if(!immediateDominator)
-		cout << "None\n";
-	else
-	  cout << immediateDominator->blockNumber << "\n";
-	
-	cout<<"Liveness Sets"<<endl;
-
-	cout <<"Gen..."<<endl;
-	for (int a = 0; a < BITARRAY_SIZE; a++)
-	  {
-	    if ( bitarray_check(a,gen))
-	      cout<<"1 ";
-	    else
-	      cout<<"0 ";
-	  }
-	cout <<endl<<"Kill..."<<endl;
-	for (int a = 0; a < BITARRAY_SIZE; a++)
-	  {
-	    if ( bitarray_check(a,kill))
-	      cout<<"1 ";
-	    else
-	      cout<<"0 ";
-	  }
-	cout <<endl<<"In..."<<endl;
-	for (int a = 0; a < BITARRAY_SIZE; a++)
-	  {
-	    if ( bitarray_check(a,in))
-	      cout<<"1 ";
-	    else
-	      cout<<"0 ";
-	  }
-	cout <<endl<<"Out..."<<endl;
-	for (int a = 0; a < BITARRAY_SIZE; a++)
-	  {
-	    if ( bitarray_check(a,out))
-	      cout<<"1 ";
-	    else
-	      cout<<"0 ";
-	  }
-	
-
-
-	cout << "\n";
-	cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
+   cout << this;
 	return true;
 }
 
@@ -802,22 +679,30 @@ int BPatch_basicBlock::liveRegistersIntoSetInt(int *& liveReg,
 
 //returns the predecessors of the basic block in aset 
 void BPatch_basicBlock::getSourcesInt(BPatch_Vector<BPatch_basicBlock*>& srcs){
-	BPatch_basicBlock** elements = new BPatch_basicBlock*[sources.size()];
-	sources.elements(elements);
-	for(unsigned i=0;i<sources.size();i++)
-		srcs.push_back(elements[i]);
-	delete[] elements;
-	return;
+   BPatch_basicBlock *b;
+   pdvector<int_basicBlock *> in_blocks;
+   unsigned i;
+
+   iblock->getSources(in_blocks);
+   for (i=0; i<in_blocks.size(); i++)
+   {
+      b = (BPatch_basicBlock *) in_blocks[i]->getHighLevelBlock();
+      if (b) srcs.push_back(b);
+   }
 }
 
 //returns the successors of the basic block in a set 
 void BPatch_basicBlock::getTargetsInt(BPatch_Vector<BPatch_basicBlock*>& tgrts){
-	BPatch_basicBlock** elements = new BPatch_basicBlock*[targets.size()];
-	targets.elements(elements);
-	for(unsigned  i=0;i<targets.size();i++)
-		tgrts.push_back(elements[i]);
-	delete[] elements;
-	return;
+   BPatch_basicBlock *b;
+   pdvector<int_basicBlock *> out_blocks;
+   unsigned i;
+
+   iblock->getTargets(out_blocks);
+   for (i=0; i<out_blocks.size(); i++)
+   {
+      b = (BPatch_basicBlock *) out_blocks[i]->getHighLevelBlock();
+      if (b) tgrts.push_back(b);
+   }
 }
 
 //returns the dominates of the basic block in a set 
@@ -959,42 +844,17 @@ BPatch_basicBlock::getSourceBlocksInt(BPatch_Vector<BPatch_sourceBlock*>& sBlock
 }
 
 //returns the block number of the basic block
-int BPatch_basicBlock::getBlockNumberInt(){
-	return blockNumber;
-}
-
-//set whether this is an entry block
-bool BPatch_basicBlock::setEntryBlockInt(bool b){
-  return isEntryBasicBlock = b;
-}
-
-//set whether this is an exit block
-bool BPatch_basicBlock::setExitBlockInt(bool b){
-  return isExitBasicBlock = b;
-}
-//get whether this is an entry block
-bool BPatch_basicBlock::isEntryBlockInt() CONST_EXPORT {
-  return isEntryBasicBlock;
-}
-//get whether this is an exit block
-bool BPatch_basicBlock::isExitBlockInt() CONST_EXPORT {
-  return isExitBasicBlock;
-}
-
-
-
-//sets the block number of the basic block
-void BPatch_basicBlock::setBlockNumber(int bno){
-  blockNumber = bno;
+int BPatch_basicBlock::getBlockNumberInt() {
+	return iblock->id();
 }
 
 // returns the range of addresses of the code for the basic block
 bool BPatch_basicBlock::getAddressRangeInt(void*& _startAddress,
                                            void*& _lastInsnAddress)
 {
-	_startAddress = (void *)startAddress;
-	_lastInsnAddress =(void *)endAddress;
-        return true;
+	_startAddress = (void *) getStartAddress();
+	_lastInsnAddress = (void *) getLastInsnAddress();
+   return true;
 }
 
 #ifdef IBM_BPATCH_COMPAT
@@ -1020,42 +880,39 @@ bool BPatch_basicBlock::getLineNumbersInt(unsigned int &_startLine,
 }
 #endif
 
-#ifdef DEBUG
-//print method
 ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
 {
+   unsigned i;
 	os << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
-	os << "Basic Block : " << bb.blockNumber <<" : [ ";
-	os << ostream::hex << bb.startAddress << " , ";
-	os << ostream::hex << bb.lastInsnAddress << " | ";
-	os << ostream::dec << bb.lastInsnAddress-bb.startAddress<< " ]\n";
+	os << "Basic Block : " << bb.blockNo() <<" : [ ";
+	os << ostream::hex << bb.getStartAddress() << " , ";
+	os << ostream::hex << bb.getLastInsnAddress() << " | ";
+	os << ostream::dec << bb.getEndAddress() - bb.getStartAddress() << " ]\n";
 
-	if(bb.isEntryBasicBlock)
+	if(bb.isEntryBlock())
 		os <<"Type : ENTRY TO CFG\n"; 
-	else if(bb.isExitBasicBlock)
+	else if(bb.isExitBlock())
 		os <<"Type : EXIT FROM CFG\n"; 
 
-	os << "Pred :\n";
+	cout << "Pred :\n";
+   BPatch_Vector<BPatch_basicBlock *> elements;
+   bb.getSources(elements);
+   for (i=0; i<elements.size(); i++)
+		os << "\t<- " << elements[i]->blockNo() << "\n";
 
-	BPatch_basicBlock** belements = new BPatch_basicBlock*[bb.sources.size()];
-	bb.sources.elements(belements);
-	for(int i=0; i<bb.sources.size(); i++)
-		os << "\t<- " << belements[i]->blockNumber << "\n";
-	delete[] belements;
+	cout << "Succ:\n";
+   elements.clear();
+   bb.getTargets(elements);
+   for (i=0; i<elements.size(); i++)
+		os << "\t-> " << elements[i]->blockNo() << "\n";
 
-	os << "Succ:\n";
-	belements =  new BPatch_basicBlock*[bb.targets.size()];
-	bb.targets.elements(belements);
-	for(int j=0; j<bb.targets.size(); j++)
-		os << "\t-> " << belements[j]->blockNumber << "\n";
-	delete[] belements;
-
+   BPatch_basicBlock **belements;
 	os << "Immediate Dominates: ";
 	if(bb.immediateDominates){
 		belements = new BPatch_basicBlock*[bb.immediateDominates->size()];
 		bb.immediateDominates->elements(belements);
-		for(int k=0; k<bb.immediateDominates->size(); k++)
-			os << belements[k]->blockNumber << " ";
+		for(i=0; i<bb.immediateDominates->size(); i++)
+			os << belements[i]->blockNo() << " ";
 		delete[] belements;
 	}
 	os << "\n";
@@ -1064,19 +921,12 @@ ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
 	if(!bb.immediateDominator)
 		os << "None\n";
 	else
-		os << bb.immediateDominator->blockNumber << "\n";
-
-	os << "Source Block:\n";
-	if(bb.sourceBlocks){
-		for(unsigned l=0; l<bb.sourceBlocks->size(); l++)
-			os << *((*(bb.sourceBlocks))[l]);
-	}
+		os << bb.immediateDominator->blockNo() << "\n";
 
 	os << "\n";
 	os << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
 	return os;
 }
-#endif
 
 /*
  * BPatch_basicBlock::findPoint (based on VG 09/05/01)
@@ -1127,47 +977,22 @@ BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructionsInt(void) 
 
 unsigned long BPatch_basicBlock::getStartAddressInt() CONST_EXPORT 
 {
-  return startAddress;
+   return iblock->origInstance()->firstInsnAddr();
 }
 
 unsigned long BPatch_basicBlock::getLastInsnAddressInt() CONST_EXPORT 
 {
-     return lastInsnAddress;
+   return iblock->origInstance()->lastInsnAddr();
 }
 
 unsigned long BPatch_basicBlock::getEndAddressInt() CONST_EXPORT
 {
-    return endAddress;
+   return iblock->origInstance()->endAddr();
 }
 
 unsigned BPatch_basicBlock::sizeInt() CONST_EXPORT
 {
-    return endAddress - startAddress;
-}
-
-bool BPatch_basicBlock::addSourceInt(BPatch_basicBlock *b) 
-{
-  sources += b; return true;
-}
-
-bool BPatch_basicBlock::addTargetInt(BPatch_basicBlock *b)
-{
-  targets += b; return true;
-}
-
-bool BPatch_basicBlock::removeSourceInt(BPatch_basicBlock *b)
-{
-  sources.remove(b); return true;
-}
-
-bool BPatch_basicBlock::removeTargetInt(BPatch_basicBlock *b)
-{
-  targets.remove(b); return true;
-}
-
-void BPatch_basicBlock::dump() 
-{
-    fprintf(stderr,"(b %u 0x%x 0x%x)\n",blockNumber,startAddress,endAddress);
+   return getEndAddress() - getStartAddress();
 }
 
 void BPatch_basicBlock::getIncomingEdgesInt(BPatch_Vector<BPatch_edge*>& inc)
@@ -1186,4 +1011,17 @@ void BPatch_basicBlock::getOutgoingEdgesInt(BPatch_Vector<BPatch_edge*>& out)
     for(unsigned i = 0; i < outgoingEdges.size(); i++)
         out.push_back(elements[i]);
     delete[] elements;
+}
+
+int BPatch_basicBlock::blockNo() const
+{ 
+   return iblock->id();
+}
+
+bool BPatch_basicBlock::isEntryBlockInt() CONST_EXPORT {
+   return iblock->isEntryBlock();
+}
+
+bool BPatch_basicBlock::isExitBlockInt() CONST_EXPORT {
+   return iblock->isExitBlock();
 }

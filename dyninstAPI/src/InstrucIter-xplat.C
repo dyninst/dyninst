@@ -139,7 +139,7 @@ InstrucIter::InstrucIter(image_basicBlock *b) :
 InstrucIter::InstrucIter( CONST_EXPORT BPatch_basicBlock* bpBasicBlock) :
     proc_(bpBasicBlock->flowGraph->getBProcess()->lowlevel_process()),
     img_(NULL),
-    base(bpBasicBlock->startAddress),
+    base(bpBasicBlock->getStartAddress()),
     range(bpBasicBlock->size()),
     current(base) {
     assert(current >= base);

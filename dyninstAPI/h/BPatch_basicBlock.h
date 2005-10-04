@@ -83,61 +83,33 @@ class BPatch_flowGraph;
 class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
 	friend class BPatch_flowGraph;
 	friend class TarjanDominator;
+   friend class dominatorCFG;
 	friend class InstrucIter;
 	friend class int_function;
 	friend std::ostream& operator<<(std::ostream&,BPatch_basicBlock&);
 
-private:
+ private:
+   /** the internal basic block structure **/
+   int_basicBlock *iblock;
+
 	/** the flow graph that contains this basic block */
 	BPatch_flowGraph *flowGraph;
-
-	/** the ID of the block.It is unique in the CFG.
-          * starts at 0 and goes up to (number of basic blocks - 1)
-	  */
-	int blockNumber;
-
-	/** a flag to keep whether a basic block is the entry to CFG or not */
-	bool isEntryBasicBlock;
-
-	/** a flag to keep whether a basic block is the exit from CFG or not */
-	bool isExitBasicBlock;
-
-	/** the start address of the basic blocks. */
-	unsigned long startAddress;
-
-	/** the end address of the basic blocks
-	  * address of the last instruction in the block 
-	  */
-	unsigned long lastInsnAddress;
-
-        /** this is the absolute end of the basic block
-         * i.e. the first Address that is outside the block  
-         * needed on x86 because of variable length instructions
-         */
-        unsigned long endAddress;
 
 	/** set of basic blocks that this basicblock dominates immediately*/
 	BPatch_Set<BPatch_basicBlock*>* immediateDominates;
 
 	/** basic block which is the immediate dominator of the basic block */
-	BPatch_basicBlock* immediateDominator;
+	BPatch_basicBlock *immediateDominator;
 
 	/** same as previous two fields, but for postdominator tree */
-
-	BPatch_Set<BPatch_basicBlock*>* immediatePostDominates;
-	BPatch_basicBlock* immediatePostDominator;
-
-	/** the set of basic blocks that are predecessors in the CFG */
-	BPatch_Set<BPatch_basicBlock*> sources;
-
-	/** the set of basic blocks that are successors in the CFG */
-	BPatch_Set<BPatch_basicBlock*> targets;
+	BPatch_Set<BPatch_basicBlock*> *immediatePostDominates;
+	BPatch_basicBlock *immediatePostDominator;
 
 	/** the source block(source lines) that basic block corresponds*/
-	BPatch_Vector<BPatch_sourceBlock*>* sourceBlocks;
+	BPatch_Vector<BPatch_sourceBlock*> *sourceBlocks;
 
 	/** the instructions within this block */
-	BPatch_Vector<BPatch_instruction*>* instructions;
+	BPatch_Vector<BPatch_instruction*> *instructions;
 
  	/** the incoming edges */
  	BPatch_Set<BPatch_edge*> incomingEdges;
@@ -145,6 +117,7 @@ private:
  	/** the outgoing edges */
  	BPatch_Set<BPatch_edge*> outgoingEdges;
 
+#if defined(arch_power)
 	/* Liveness analysis variables */
 	/** gen registers */
 	BITARRAY * gen;
@@ -161,12 +134,14 @@ private:
 	/** out registers */
 	BITARRAY * out;
 	BITARRAY * outFP;
+#endif
 
+ protected:
+
+   /** constructor of class */
+   BPatch_basicBlock(int_basicBlock *ib, BPatch_flowGraph *fg);
 
 #if defined( arch_ia64 )
-
-protected:
-
 	/* These may be fairly general, */
 	BPatch_Set< BPatch_basicBlock * > * dataFlowIn;
 	BPatch_Set< BPatch_basicBlock * > * dataFlowOut;
@@ -177,341 +152,244 @@ protected:
 	   to data flow data, but for now, I won't do that. */
 	BPatch_basicBlock * dataFlowGen;
 	BPatch_basicBlock * dataFlowKill;
-	
-public:
+#endif	
+   
+ public:
+   
+#if defined( arch_ia64 )
+   // const accessor functions
 
-        // const accessor functions
-
-
-        //  BPatch_basicBlock::getDataFlowIn
-        //
-        API_EXPORT(Int, (),
-
-        BPatch_Set< BPatch_basicBlock * > *,getDataFlowIn,() CONST_EXPORT);
+   //  BPatch_basicBlock::getDataFlowIn
+   //
+   API_EXPORT(Int, (),
+              BPatch_Set< BPatch_basicBlock * > *,getDataFlowIn,() CONST_EXPORT);
         
-        //  BPatch_basicBlock::getDataFlowOut
-        //
-        API_EXPORT(Int, (),
+   //  BPatch_basicBlock::getDataFlowOut
+   //
+   API_EXPORT(Int, (),
+              BPatch_Set< BPatch_basicBlock * > *,getDataFlowOut,() CONST_EXPORT);
 
-        BPatch_Set< BPatch_basicBlock * > *,getDataFlowOut,() CONST_EXPORT);
+   //  BPatch_basicBlock::getDataFlowGen
+   //
+   API_EXPORT(Int, (),
+              BPatch_basicBlock *,getDataFlowGen,() CONST_EXPORT);
 
-        //  BPatch_basicBlock::getDataFlowGen
-        //
-        API_EXPORT(Int, (),
+   //  BPatch_basicBlock::getDataFlowKill
+   //
+   API_EXPORT(Int, (),
+              BPatch_basicBlock *,getDataFlowKill,() CONST_EXPORT);
 
-        BPatch_basicBlock *,getDataFlowGen,() CONST_EXPORT);
+   //  BPatch_basicBlock::setDataFlowIn
+   //
+   API_EXPORT_V(Int, (dfi),
+                void,setDataFlowIn,(BPatch_Set< BPatch_basicBlock * > *dfi));
+   
+   //  BPatch_basicBlock::setDataFlowOut
+   //
+   API_EXPORT_V(Int, (dfo),
+                void,setDataFlowOut,(BPatch_Set< BPatch_basicBlock * > *dfo));
 
-        //  BPatch_basicBlock::getDataFlowKill
-        //
-        API_EXPORT(Int, (),
+   //  BPatch_basicBlock::setDataFlowGen
+   //
+   API_EXPORT_V(Int, (dfg),
+                void,setDataFlowGen,(BPatch_basicBlock *dfg));
 
-        BPatch_basicBlock *,getDataFlowKill,() CONST_EXPORT)
-
-        //  BPatch_basicBlock::setDataFlowIn
-        //
-        API_EXPORT_V(Int, (dfi),
-
-        void,setDataFlowIn,(BPatch_Set< BPatch_basicBlock * > *dfi));
-
-        //  BPatch_basicBlock::setDataFlowOut
-        //
-        API_EXPORT_V(Int, (dfo),
-
-        void,setDataFlowOut,(BPatch_Set< BPatch_basicBlock * > *dfo));
-
-        //  BPatch_basicBlock::setDataFlowGen
-        //
-        API_EXPORT_V(Int, (dfg),
-
-        void,setDataFlowGen,(BPatch_basicBlock *dfg));
-
-        //  BPatch_basicBlock::setDataFlowKill
-        //
-        API_EXPORT_V(Int, (dfk),
-
-        void,setDataFlowKill,(BPatch_basicBlock *dfk));
+   //  BPatch_basicBlock::setDataFlowKill
+   //
+   API_EXPORT_V(Int, (dfk),
+                void,setDataFlowKill,(BPatch_basicBlock *dfk));
 	
 #endif /* defined( arch_ia64 ) */
 
-public:
+#if defined (arch_power)
+	/** BPatch_basicBlock::initRegisterGenKill */
+	/** Initializes the gen/kill sets for register liveness analysis */
+	API_EXPORT(Int, (),
+              bool,initRegisterGenKill,());
+
+	/** BPatch_basicBlock::updateRegisternOut */
+	/** Initializes the gen/kill sets for register liveness analysis */
+	API_EXPORT(Int, (isFP),
+              bool,updateRegisterInOut,(bool isFP));
+
+	API_EXPORT(Int, (),
+              BITARRAY *, getInSet, ());
+
+	API_EXPORT(Int, (),
+              BITARRAY *, getInFPSet, ());
+   
+	API_EXPORT(Int, (),
+              bool,printAll,());
+   
+	API_EXPORT(Int, (liveReg, liveFPReg, address),
+              int, liveRegistersIntoSet, (int *& liveReg, int *& liveFPReg,
+                                          unsigned long address));
+
+	API_EXPORT(Int, (liveSPReg, address),
+              int, liveSPRegistersIntoSet, (int *& liveSPReg,
+                                            unsigned long address));
+#endif
+
 	/** BPatch_basicBlock::getSources   */
 	/** method that returns the predecessors of the basic block */
 
-        API_EXPORT_V(Int, (srcs),
+   API_EXPORT_V(Int, (srcs),
+                void,getSources,(BPatch_Vector<BPatch_basicBlock*> &srcs));
 
-        void,getSources,(BPatch_Vector<BPatch_basicBlock*> &srcs));
-
-	/** BPatch_basicBlock::addTargets   */
+	/** BPatch_basicBlock::getTargets   */
 	/** method that returns the successors  of the basic block */
 
-        API_EXPORT_V(Int, (targets),
-
-        void,getTargets,(BPatch_Vector<BPatch_basicBlock*> &targets));
+   API_EXPORT_V(Int, (targets),
+                void,getTargets,(BPatch_Vector<BPatch_basicBlock*> &targets));
 
 	/** BPatch_basicBlock::dominates   */
 	/** returns true if argument is dominated by this basic block */
 
-        API_EXPORT(Int, (block),
+   API_EXPORT(Int, (block),
+              bool,dominates,(BPatch_basicBlock *block));
 
-        bool,dominates,(BPatch_basicBlock *block));
+   /** BPatch_basicBlock::getImmediateDominiator   */
+   /** return the immediate dominator of a basic block */
 
-        /** BPatch_basicBlock::getImmediateDominiator   */
-        /** return the immediate dominator of a basic block */
-
-        API_EXPORT(Int, (),
-
-        BPatch_basicBlock*,getImmediateDominator,());
+   API_EXPORT(Int, (),
+              BPatch_basicBlock*,getImmediateDominator,());
 
 	/** BPatch_basicBlock::getImmediateDominates   */
 	/** method that returns the basic blocks immediately dominated by   */
 	/** the basic block */
 
-        API_EXPORT_V(Int, (blocks),
-        
-        void,getImmediateDominates,(BPatch_Vector<BPatch_basicBlock*> &blocks));
+   API_EXPORT_V(Int, (blocks),
+                void,getImmediateDominates,(BPatch_Vector<BPatch_basicBlock*> &blocks));
 
 	/** BPatch_basicBlock::getAllDominates   */
 	/** method that returns all basic blocks dominated by the basic block */
 
-        API_EXPORT_V(Int, (blocks),
-
-        void,getAllDominates,(BPatch_Set<BPatch_basicBlock*> &blocks));
+   API_EXPORT_V(Int, (blocks),
+                void,getAllDominates,(BPatch_Set<BPatch_basicBlock*> &blocks));
 
 	/** the previous four methods, but for postdominators */
 
 	/** BPatch_basicBlock::postdominates   */
 
-        API_EXPORT(Int, (block),
-
-        bool,postdominates,(BPatch_basicBlock *block));
+   API_EXPORT(Int, (block),
+              bool,postdominates,(BPatch_basicBlock *block));
 
 	/** BPatch_basicBlock::getImmediatePostDominator   */
 
-        API_EXPORT(Int, (),
-
-        BPatch_basicBlock*,getImmediatePostDominator,());
+   API_EXPORT(Int, (),
+              BPatch_basicBlock*,getImmediatePostDominator,());
 
 	/** BPatch_basicBlock::getImmediatePostDominates   */
 
-        API_EXPORT_V(Int, (blocks),
-
-        void,getImmediatePostDominates,(BPatch_Vector<BPatch_basicBlock*> &blocks));
+   API_EXPORT_V(Int, (blocks),
+                void,getImmediatePostDominates,(BPatch_Vector<BPatch_basicBlock*> &blocks));
 
 	/** BPatch_basicBlock::getAllPostDominates   */
 
-        API_EXPORT_V(Int, (blocks),
-
-        void,getAllPostDominates,(BPatch_Set<BPatch_basicBlock*> &blocks));
+   API_EXPORT_V(Int, (blocks),
+                void,getAllPostDominates,(BPatch_Set<BPatch_basicBlock*> &blocks));
 	
 	/** BPatch_basicBlock::getSourceBlocks   */
 	/** returns the source block corresponding to the basic block */
 
-        API_EXPORT(Int, (blocks),
-
-        bool,getSourceBlocks,(BPatch_Vector<BPatch_sourceBlock*> &blocks));
+   API_EXPORT(Int, (blocks),
+              bool,getSourceBlocks,(BPatch_Vector<BPatch_sourceBlock*> &blocks));
 
 	/** BPatch_basicBlock::getBlockNumber   */
 	/** returns the block id */
 
-        API_EXPORT(Int, (),
+   API_EXPORT(Int, (),
+              int,getBlockNumber,());
 
-        int,getBlockNumber,());
+   /** BPatch_basicBlock::setEmtryBlock   */
+   /** sets whether this block is an entry block (or not) */
 
-	public:  int blockNo() { return getBlockNumber(); }
- 
-	/** BPatch_basicBlock::setEmtryBlock   */
-        /** sets whether this block is an entry block (or not) */
+   /** BPatch_basicBlock::isEntryBlock   */
 
-        API_EXPORT(Int, (b),
-
-        bool,setEntryBlock,(bool b));
-
-	/** BPatch_basicBlock::setExitBlock   */
-        /** sets whether this block is an exit block (or not) */
-
-        API_EXPORT(Int, (b),
-
-        bool,setExitBlock,(bool b));
-
-        /** BPatch_basicBlock::isEntryBlock   */
-
-        API_EXPORT(Int, (),
-
-        bool,isEntryBlock,() CONST_EXPORT);
+   API_EXPORT(Int, (),
+              bool,isEntryBlock,() CONST_EXPORT);
 
 	/** BPatch_basicBlock::isExitBlock   */
 
-        API_EXPORT(Int, (),
-
-        bool,isExitBlock,() CONST_EXPORT);
+   API_EXPORT(Int, (),
+              bool,isExitBlock,() CONST_EXPORT);
 
 	/** BPatch_basicBlock::size   */
 
-        API_EXPORT(Int, (),
-
-        unsigned,size,() CONST_EXPORT);
+   API_EXPORT(Int, (),
+              unsigned,size,() CONST_EXPORT);
 
 	/** BPatch_basicBlock::getStartAddress   */
-        //these always return absolute address
+   //these always return absolute address
 
-        API_EXPORT(Int, (),
-
-        unsigned long,getStartAddress,() CONST_EXPORT);
+   API_EXPORT(Int, (),
+              unsigned long,getStartAddress,() CONST_EXPORT);
 
 	/** BPatch_basicBlock::getLastInsnAddress   */
 
-        API_EXPORT(Int, (),
-
-        unsigned long,getLastInsnAddress,() CONST_EXPORT);
+   API_EXPORT(Int, (),
+              unsigned long,getLastInsnAddress,() CONST_EXPORT);
        
-        /** BPatch_basicBlock::getEndAddress    */
+   /** BPatch_basicBlock::getEndAddress    */
         
-        API_EXPORT(Int, (),
-        unsigned long, getEndAddress, () CONST_EXPORT);
-
-	/** BPatch_basicBlock::addSource   */
-
-        API_EXPORT(Int, (b),
-
-        bool,addSource,(BPatch_basicBlock *b));
-
-	/** BPatch_basicBlock::addTarget   */
-
-        API_EXPORT(Int, (b),
-
-        bool,addTarget,(BPatch_basicBlock *b));
-
-	/** BPatch_basicBlock::removeSource   */
-
-        API_EXPORT(Int, (b),
-
-        bool,removeSource,(BPatch_basicBlock *b));
-
-	/** BPatch_basicBlock::removeTarget   */
-
-        API_EXPORT(Int, (b),
-
-        bool,removeTarget,(BPatch_basicBlock *b));
+   API_EXPORT(Int, (),
+              unsigned long, getEndAddress, () CONST_EXPORT);
 
 	/** BPatch_basicBlock::~BPatch_basicBlock   */
 	/** destructor of class */
 
-        API_EXPORT_DTOR(_dtor, (),
-
-        ~,BPatch_basicBlock,());
+   API_EXPORT_DTOR(_dtor, (),
+                   ~,BPatch_basicBlock,());
         
 	/** BPatch_basicBlock::getAddressRange   */
 	/** return the start and end addresses of the basic block */
 
-        API_EXPORT(Int, (_startAddress, _endAddress),
-
-        bool,getAddressRange,(void*& _startAddress, void*& _endAddress));
+   API_EXPORT(Int, (_startAddress, _endAddress),
+              bool,getAddressRange,(void*& _startAddress, void*& _endAddress));
 
 #ifdef IBM_BPATCH_COMPAT
-        //  dummy placeholder.  I think this is only used by dpcl in a debug routine
-        API_EXPORT(Int, (_startLine, _endLine),
-
-        bool,getLineNumbers,(unsigned int &_startLine, unsigned int  &_endLine));       
+   //  dummy placeholder.  I think this is only used by dpcl in a debug routine
+   API_EXPORT(Int, (_startLine, _endLine),
+              bool,getLineNumbers,(unsigned int &_startLine, unsigned int  &_endLine));       
 #endif
 
 	/** BPatch_basicBlock::findPoint   */
 	/** return a set of points within the basic block */
 
-        API_EXPORT(Int, (ops),
-
-        BPatch_Vector<BPatch_point*> *,findPoint,(const BPatch_Set<BPatch_opCode>& ops));
+   API_EXPORT(Int, (ops),
+              BPatch_Vector<BPatch_point*> *,findPoint,(const BPatch_Set<BPatch_opCode>& ops));
 
 	/** BPatch_basicBlock::getInstructions   */
 	/** return the instructions that belong to the block */
 
-        API_EXPORT(Int, (),
-
-        BPatch_Vector<BPatch_instruction*> *,getInstructions,());
+   API_EXPORT(Int, (),
+              BPatch_Vector<BPatch_instruction*> *,getInstructions,());
 
 	/** BPatch_basicBlock::getIncomingEdges   */
  	/** returns the incoming edges */
 
-        API_EXPORT_V(Int, (inc),
-
-        void,getIncomingEdges,(BPatch_Vector<BPatch_edge*> &inc));
+   API_EXPORT_V(Int, (inc),
+                void,getIncomingEdges,(BPatch_Vector<BPatch_edge*> &inc));
         
 	/** BPatch_basicBlock::getOutgoingEdges   */
  	/** returns the outgoming edges */
 
-        API_EXPORT_V(Int, (out),
+   API_EXPORT_V(Int, (out),
+                void,getOutgoingEdges,(BPatch_Vector<BPatch_edge*> &out));
 
-	void,getOutgoingEdges,(BPatch_Vector<BPatch_edge*> &out));
-
-
-#if defined (rs6000_ibm_aix4_1)
-	/** BPatch_basicBlock::initRegisterGenKill */
-	/** Initializes the gen/kill sets for register liveness analysis */
-	API_EXPORT(Int, (),
-
-	bool,initRegisterGenKill,());
-
-	/** BPatch_basicBlock::updateRegisternOut */
-	/** Initializes the gen/kill sets for register liveness analysis */
-	API_EXPORT(Int, (isFP),
-
-	bool,updateRegisterInOut,(bool isFP));
-
-	API_EXPORT(Int, (),
-
-	BITARRAY *, getInSet, ());
-
-	API_EXPORT(Int, (),
-
-	BITARRAY *, getInFPSet, ());
-
-	API_EXPORT(Int, (),
-
-	bool,printAll,());
-
-	API_EXPORT(Int, (liveReg, liveFPReg, address),
-		   
-	int, liveRegistersIntoSet, (int *& liveReg, int *& liveFPReg,
-				    unsigned long address));
-
-	API_EXPORT(Int, (liveSPReg, address),
-		   
-	int, liveSPRegistersIntoSet, (int *& liveSPReg,
-				    unsigned long address));
-
-#endif
-
-public:
-
-        // internal use only
-        void dump();
-
-	/** constructor of class */
-	BPatch_basicBlock(const int_basicBlock *ib);
-
-	/** constructor of class */
-	BPatch_basicBlock(BPatch_flowGraph *fg, int bno);
-
-	/** constructor of class */
-	BPatch_basicBlock();
-
-	/** method to set the block id */
-	void setBlockNumber(int);
-
-        // The compare object needs blockNumber. On Windows, though, the compiler
-        // complains that blockNumber is private. So... 
-        int getBlockNumberCompare() const { return blockNumber; }
-
-        /** And a sensible comparison operator for bpatch set */
-        struct compare {
-            int operator()(const BPatch_basicBlock *b1, const BPatch_basicBlock *b2) const {
-                if (b1->getBlockNumberCompare() < b2->getBlockNumberCompare())
-                    return -1;
-                if (b1->getBlockNumberCompare() > b2->getBlockNumberCompare())
-                    return 1;
-                return 0;
-            }
-        };
-
+   int blockNo() const;
+    
+   struct compare {
+      int operator()(const BPatch_basicBlock *b1, 
+                     const BPatch_basicBlock *b2) const 
+      {
+         if (b1->blockNo() < b2->blockNo())
+            return -1;
+         if (b1->blockNo() > b2->blockNo())
+            return 1;
+         return 0;
+      }
+   };
 };
 
 #endif /* _BPatch_basicBlock_h_ */

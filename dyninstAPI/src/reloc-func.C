@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.4 2005/09/28 17:03:17 bernat Exp $
+// $Id: reloc-func.C,v 1.5 2005/10/04 18:09:53 legendre Exp $
 
 // We'll also try to limit this to relocation-capable platforms
 // in the Makefile. Just in case, though....
@@ -164,7 +164,7 @@ bool int_function::relocationGenerate(pdvector<funcMod *> &mods,
                                                                sourceVersion,
                                                                generatedVersion_);
         if (funcRep->generateFuncRep())
-            blockList[i]->instVer(generatedVersion_)->jumpToBlock = funcRep;
+            blockList[i]->instVer(generatedVersion_)->jumpToBlock() = funcRep;
         else
             success = false;
     }
@@ -384,9 +384,9 @@ bool foo() {
 // This is a bit inefficient, since we rapidly use and delete
 // relocatedInstructions... ah, well :)
 unsigned bblInstance::sizeRequired() {
-    assert(maxSize_);
-    assert(insns_.size());
-    return maxSize_;
+    assert(getMaxSize());
+    assert(getInsns().size());
+    return getMaxSize();
 }
 
 
@@ -395,36 +395,35 @@ unsigned bblInstance::sizeRequired() {
 // objects.
 
 bool bblInstance::relocationSetup(bblInstance *orig, pdvector<funcMod *> &mods) {
-    unsigned i;
+   unsigned i;
+   origInstance() = orig;
+   assert(origInstance());
+   // First, build the insns vector
+   insns().clear();
+   // Keep a running count of how big things are...
+   maxSize() = 0;
+   InstrucIter insnIter(orig);
+   while (insnIter.hasMore()) {
+      instruction *insnPtr = insnIter.getInsnPtr();
+      assert(insnPtr);
+      insns().push_back(insnPtr);
+      maxSize() += insnPtr->spaceToRelocate();
+      insnIter++;
+   }
 
-    origInstance_ = orig;
-    assert(origInstance_);
-    // First, build the insns vector
-    insns_.clear();
-    // Keep a running count of how big things are...
-    maxSize_ = 0;
-    InstrucIter insnIter(orig);
-    while (insnIter.hasMore()) {
-        instruction *insnPtr = insnIter.getInsnPtr();
-        assert(insnPtr);
-        insns_.push_back(insnPtr);
-        maxSize_ += insnPtr->spaceToRelocate();
-        insnIter++;
-    }
-
-    // Apply any hanging-around relocations from our previous instance
-    for (i = 0; i < orig->appliedMods_.size(); i++) {
-        if (orig->appliedMods_[i]->modifyBBL(block_, insns_, maxSize_)) {
-            appliedMods_.push_back(orig->appliedMods_[i]);
+   // Apply any hanging-around relocations from our previous instance
+    for (i = 0; i < orig->appliedMods().size(); i++) {
+        if (orig->appliedMods()[i]->modifyBBL(block_, insns(), maxSize())) {
+            appliedMods().push_back(orig->appliedMods()[i]);
         }
     }
 
     // So now we have a rough size and a list of insns. See if any of
     // those mods want to play.
     for (i = 0; i < mods.size(); i++) {
-        if (mods[i]->modifyBBL(block_, insns_, maxSize_)) {
+        if (mods[i]->modifyBBL(block_, insns(), maxSize())) {
             // Store for possible further relocations.
-            appliedMods_.push_back(mods[i]);
+            appliedMods().push_back(mods[i]);
         }
     }
     return true;
@@ -443,20 +442,20 @@ void bblInstance::setStartAddr(Address addr) {
 
 bool bblInstance::generate() {
     assert(firstInsnAddr_);
-    assert(insns_.size());
-    assert(maxSize_);
+    assert(insns().size());
+    assert(maxSize());
     assert(block_);
-    assert(origInstance_);
+    assert(origInstance());
     unsigned i;
 
-    generatedBlock_.allocate(maxSize_);
-    fprintf(stderr, "Block ptr at %p\n", generatedBlock_.start_ptr()); 
-    Address origAddr = origInstance_->firstInsnAddr();
-    for (i = 0; i < insns_.size(); i++) {
-        Address currAddr = generatedBlock_.currAddr(firstInsnAddr_);
+    generatedBlock().allocate(maxSize());
+
+    Address origAddr = origInstance()->firstInsnAddr();
+    for (i = 0; i < insns().size(); i++) {
+        Address currAddr = generatedBlock().currAddr(firstInsnAddr_);
         Address fallthroughOverride = 0;
         Address targetOverride = 0;
-        if (i == (insns_.size()-1)) {
+        if (i == (insns().size()-1)) {
             // Check to see if we need to fix up the target....
             pdvector<int_basicBlock *> targets;
             block_->getTargets(targets);
@@ -474,9 +473,9 @@ bool bblInstance::generate() {
             // contiguous with us... would be much easier to label
             // edges
             for (unsigned j = 0; j < targets.size(); j++) {
-                bblInstance *targetInst = targets[j]->instVer(origInstance_->version_);
+                bblInstance *targetInst = targets[j]->instVer(origInstance()->version_);
                 assert(targetInst);
-                if (targetInst->firstInsnAddr() != origInstance_->endAddr()) {
+                if (targetInst->firstInsnAddr() != origInstance()->endAddr()) {
                     // This is a jump target; get the start addr for the
                     // new block.
                     assert(targetOverride == 0);
@@ -484,26 +483,27 @@ bool bblInstance::generate() {
                 }
             }
         }
-        reloc_printf("... generating insn %d, orig addr 0x%lx, new addr 0x%lx, fallthrough 0x%lx, target 0x%lx\n",
+        reloc_printf("... generating insn %d, orig addr 0x%lx, new addr 0x%lx, " 
+                     "fallthrough 0x%lx, target 0x%lx\n",
                      i, origAddr, currAddr, fallthroughOverride, targetOverride);
-        insns_[i]->generate(generatedBlock_,
-                            proc(),
-                            origAddr,
-                            currAddr,
-                            fallthroughOverride,
-                            targetOverride); // targetOverride
+        insns()[i]->generate(generatedBlock(),
+                             proc(),
+                             origAddr,
+                             currAddr,
+                             fallthroughOverride,
+                             targetOverride); // targetOverride
 
         // And set the remaining bbl variables correctly
         // This may be overwritten multiple times, but will end
         // correct.
         lastInsnAddr_ = currAddr;
 
-        changedAddrs_[origAddr] = currAddr;
-        origAddr += insns_[i]->size();
+        changedAddrs()[origAddr] = currAddr;
+        origAddr += insns()[i]->size();
     }
-    generatedBlock_.fillRemaining(codeGen::cgNOP);
+    generatedBlock().fillRemaining(codeGen::cgNOP);
 
-    blockEndAddr_ = firstInsnAddr_ + maxSize_;
+    blockEndAddr_ = firstInsnAddr_ + maxSize();
     
     // Post conditions
     assert(firstInsnAddr_);
@@ -515,17 +515,17 @@ bool bblInstance::generate() {
 
 bool bblInstance::install() {
     assert(firstInsnAddr_);
-    assert(generatedBlock_ != NULL);
-    assert(maxSize_);
-    if (maxSize_ != generatedBlock_.used()) {
+    assert(generatedBlock() != NULL);
+    assert(maxSize());
+    if (maxSize() != generatedBlock().used()) {
         fprintf(stderr, "ERROR: max size of block is %d, but %d used!\n",
-                maxSize_, generatedBlock_.used());
+                maxSize(), generatedBlock().used());
     }
-    assert(generatedBlock_.used() == maxSize_);
+    assert(generatedBlock().used() == maxSize());
     
     bool success = proc()->writeTextSpace((void *)firstInsnAddr_,
-                                          generatedBlock_.used(),
-                                          generatedBlock_.start_ptr());
+                                          generatedBlock().used(),
+                                          generatedBlock().start_ptr());
     if (success) {
         return true;
     }
@@ -534,13 +534,13 @@ bool bblInstance::install() {
 }
 
 bool bblInstance::check(pdvector<Address> &checkPCs) {
-    if (!jumpToBlock) return true;
-    return jumpToBlock->checkFuncRep(checkPCs);
+    if (!getJumpToBlock()) return true;
+    return jumpToBlock()->checkFuncRep(checkPCs);
 }
 
 bool bblInstance::link(pdvector<codeRange *> &overwrittenObjs) {
-    if (!jumpToBlock) return true;
-    return jumpToBlock->linkFuncRep(overwrittenObjs);
+    if (!getJumpToBlock()) return true;
+    return jumpToBlock()->linkFuncRep(overwrittenObjs);
 }
 
 

@@ -72,6 +72,7 @@ typedef BPatch_basicBlockLoop BPatch_loop;
 class BPATCH_DLL_EXPORT BPatch_flowGraph : public BPatch_eventLock {
   friend class BPatch_basicBlock;
   friend class BPatch_function;
+  friend class dominatorCFG;
   friend class int_function; // This is illegal here... keeps us from having to
                             // have a public constructor...  PDSEP
   friend std::ostream& operator<<(std::ostream&,BPatch_flowGraph&);
@@ -79,8 +80,7 @@ class BPATCH_DLL_EXPORT BPatch_flowGraph : public BPatch_eventLock {
                                      BPatch_Vector<BPatch_basicBlockLoop *> &loops,
                                      pdstring level);
  
-  BPatch_flowGraph (BPatch_function *func, 
-		    bool &valid); 
+  BPatch_flowGraph (BPatch_function *func, bool &valid); 
 
   process *ll_proc() const; // Not implemented here to cut down on header files
   int_function *ll_func() const;
@@ -166,12 +166,6 @@ public:
   BPatch_process *bproc;
   BPatch_module *mod;
 
-  /** set of basic blocks that are entry to the control flow graph*/
-  BPatch_Set<BPatch_basicBlock*> entryBlock;
-
-  /** set of basic blocks that are exit from the control flow graph */
-  BPatch_Set<BPatch_basicBlock*> exitBlock;
-  
   /** set of loops contained in control flow graph */
   BPatch_Set<BPatch_basicBlockLoop*> *loops;
   
@@ -183,11 +177,6 @@ public:
 
   /** set of back edges */
   BPatch_Set<BPatch_edge*> *backEdges;
-  
-  /** three colors used in depth first search algorithm */
-  static const int WHITE;
-  static const int GRAY;
-  static const int BLACK;
   
   /** flag that keeps whether dominator info is initialized*/
   bool isDominatorInfoReady;
@@ -223,8 +212,6 @@ public:
   void insertCalleeIntoLoopHierarchy(int_function * func, unsigned long addr);
 
   void dfsPrintLoops(BPatch_loopTreeNode *n);
-
-  void assignAnExitBlockIfNoneExists();
 
   void createEdges();
   void createLoops();

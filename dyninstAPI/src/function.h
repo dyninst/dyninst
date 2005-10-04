@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.15 2005/09/28 17:03:03 bernat Exp $
+// $Id: function.h,v 1.16 2005/10/04 18:09:52 legendre Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -50,6 +50,7 @@
 #include "common/h/Pair.h"
 #include "codeRange.h"
 #include "arch.h" // instruction
+#include "util.h"
 
 #if !defined(BPATCH_LIBRARY)
 #include "paradynd/src/resource.h"
@@ -115,6 +116,7 @@ class bblInstance : public codeRange {
     process *proc() const;
     int_function *func() const;
     int_basicBlock *block() const;
+    int version() const;
 
 #if defined(cap_relocation)
     // Get the most space necessary to relocate this basic block,
@@ -134,20 +136,45 @@ class bblInstance : public codeRange {
     bool check(pdvector<Address> &checkPCs);
     // Link things up
     bool link(pdvector<codeRange *> &overwrittenObjs);
-
-
 #endif
 
  private:
 #if defined(cap_relocation)
-    dictionary_hash<Address, Address> changedAddrs_;
-    pdvector<instruction *> insns_;
-    unsigned maxSize_;
-    bblInstance *origInstance_;
-    pdvector<funcMod *> appliedMods_;
-    codeGen generatedBlock_; // Kept so we can quickly iterate over the block
-    // in the future.
-    functionReplacement *jumpToBlock; // Kept here between generate->link
+    class reloc_info_t {
+    public:
+       dictionary_hash<Address, Address> changedAddrs_;
+       pdvector<instruction *> insns_;
+       unsigned maxSize_;
+       bblInstance *origInstance_;
+       pdvector<funcMod *> appliedMods_;
+       codeGen generatedBlock_; // Kept so we can quickly iterate over the block
+       // in the future.
+       functionReplacement *jumpToBlock_; // Kept here between generate->link
+
+       reloc_info_t();
+       reloc_info_t(reloc_info_t *parent, int_basicBlock *block);
+       ~reloc_info_t();
+    };
+
+    //Setter functions for relocation information
+    dictionary_hash<Address, Address> &changedAddrs();
+    pdvector<instruction *> &insns();
+    unsigned &maxSize();
+    bblInstance *&origInstance();
+    pdvector<funcMod *> &appliedMods();
+    codeGen &generatedBlock();
+    functionReplacement *&jumpToBlock();
+
+    //Getter functions for relocation information
+    dictionary_hash<Address, Address> &getChangedAddrs() const;
+    pdvector<instruction *> &getInsns() const;
+    unsigned getMaxSize() const;
+    bblInstance *getOrigInstance() const;
+    pdvector<funcMod *> &getAppliedMods() const;
+    codeGen &getGeneratedBlock() const;
+    functionReplacement *getJumpToBlock() const;
+
+    reloc_info_t *reloc_info;
 #endif
 
     Address firstInsnAddr_;
@@ -210,7 +237,21 @@ class int_basicBlock {
     int_basicBlock *getDataFlowKill();    
 #endif
 
+    void setHighLevelBlock(void *newb);
+    void *getHighLevelBlock() const;
+
  private:
+    void *highlevel_block; //Should point to a BPatch_basicBlock, if they've
+                           //been created.
+
+    bool isEntryBlock_;
+    bool isExitBlock_;
+
+    int blockNumber_;
+
+    pdvector<int_basicBlock *> targets_;
+    pdvector<int_basicBlock *> sources_;
+
 #if defined(arch_ia64)
     BPatch_Set<int_basicBlock *> *dataFlowIn;
     BPatch_Set<int_basicBlock *> *dataFlowOut;
