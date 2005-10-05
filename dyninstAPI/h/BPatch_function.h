@@ -110,6 +110,13 @@ public:
                   long _frameOffset, int _reg = -1,
                   BPatch_storageClass _sc = BPatch_storageFrameOffset);
     void fixupUnknown(BPatch_module *);
+    
+    // Calculate liveness at a particular address
+    void calc_liveness(void *address,
+                       int *liveRegisters,
+                       int *liveFPRegisters,
+                       int *liveSPRegisters);
+
     // End of functions for internal use only
     
 
