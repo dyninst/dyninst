@@ -85,7 +85,7 @@ instReqNode::instReqNode(const instReqNode &par, pd_process *childProc) :
 }
 
 // This handles conversion without requiring inst.h in a header file...
-extern bool BPatchToInternalArgs(BPatch_point point,
+extern bool BPatchToInternalArgs(BPatch_point *point,
                                  BPatch_callWhen when,
                                  BPatch_snippetOrder order,
                                  callWhen &ipWhen,
@@ -135,7 +135,7 @@ bool instReqNode::addInstr(pd_process *theProc) {
         when = BPatch_callAfter;
 
 
-    if (!BPatchToInternalArgs(*point, when, order, cw, co)) {
+    if (!BPatchToInternalArgs(point, when, order, cw, co)) {
         fprintf(stderr, "ERROR: unable to convert Dyninst inst args to internals\n");
         return false;
     }    
