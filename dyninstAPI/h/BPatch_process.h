@@ -64,6 +64,7 @@ class BPatch_process;
 class BPatch_funcMap;
 class BPatch_instpMap;
 class int_function;
+class batchInsertionRecord;
 
 typedef enum {
   BPatch_nullEvent,
@@ -97,19 +98,17 @@ class BPATCH_DLL_EXPORT BPatchSnippetHandle : public BPatch_eventLock {
     friend class BPatch_point;
     friend class BPatch_image;
     friend class BPatch_process;
-protected:
-    process *proc;
+    friend class BPatch_thread;
 private:
-    BPatch_Vector<miniTramp *> mtHandles;
-      
-    BPatchSnippetHandle(process *_proc) : proc(_proc) {};
+    // Process this snippet maps to
+    BPatch_process *proc_;
+    // low-level mappings for removal
+    BPatch_Vector<miniTramp *> mtHandles_;
+                             
+    BPatchSnippetHandle(BPatch_process *proc);
 
-    void add(miniTramp *pointInstance);
-    void getMiniTrampHandles(BPatch_Vector<miniTramp*> *save_mtHandles) {
-      for(unsigned i=0; i<mtHandles.size(); i++)
-	(*save_mtHandles).push_back(mtHandles[i]);
-    }
-
+    void addMiniTramp(miniTramp *m) { mtHandles_.push_back(m); }
+    
 public:
     API_EXPORT_DTOR(_dtor, (),
     ~,BPatchSnippetHandle,());
@@ -223,6 +222,8 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
                                          instPoint *ip, int type);
     void updateThreadInfo();
 
+    BPatch_Vector<batchInsertionRecord *> *pendingInsertions;
+        
     public:
 
     // DO NOT USE
@@ -452,9 +453,26 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
                                          BPatch_callWhen when,
                                          BPatch_snippetOrder order = BPatch_firstSnippet));
 
-    API_EXPORT_V(Batch, (exprs, points), 
-                 void, insertSnippet, (const BPatch_Vector<BPatch_snippet *> &exprs,
-                                       const BPatch_Vector<BPatch_point *> &points));
+    //  BPatch_process::beginInsertionSet()
+    //
+    //  Start the batch insertion of multiple points; all calls to insertSnippet*
+    //  after this call will not actually instrument until finalizeInsertionSet is
+    //  called
+
+    API_EXPORT_V(Int, (),
+                 void, beginInsertionSet, ());
+
+    //  BPatch_process::finalizeInsertionSet()
+    //
+    //  Finalizes all instrumentation logically added since a call to beginInsertionSet.
+    //  Returns true if all instrumentation was successfully inserted; otherwise, none
+    //  was. Individual instrumentation can be manipulated via the BPatchSnippetHandles
+    //  returned from individual calls to insertSnippet.
+    //
+    //  atomic: if true, all instrumentation will be removed if any fails to go in.
+
+    API_EXPORT(Int, (atomic),
+               bool, finalizeInsertionSet, (bool atomic));
                                        
     
     //  BPatch_process::deleteSnippet
