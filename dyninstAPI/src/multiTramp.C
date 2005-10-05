@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.16 2005/09/28 17:03:12 bernat Exp $
+// $Id: multiTramp.C,v 1.17 2005/10/05 21:46:37 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -1083,6 +1083,10 @@ bool multiTramp::linkCode() {
 multiTramp::mtErrorCode_t multiTramp::linkMultiTramp() {
     if (branchSize_ == -2)
         return mtSuccess;
+
+    // We can call generate, return an error, then call install anyway.
+    if (!installed_) return mtError;
+
     assert(!hasChanged()); // since we generated code...
 
     if (linkCode())
@@ -1096,6 +1100,9 @@ multiTramp::mtErrorCode_t multiTramp::linkMultiTramp() {
 multiTramp::mtErrorCode_t multiTramp::installMultiTramp() {
     if (branchSize_ == -2)
         return mtSuccess;
+
+    // We can call generate, return an error, then call install anyway.
+    if (!generated_) return mtError;
 
     assert(!hasChanged()); // Since we generated code...
 
