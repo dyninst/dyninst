@@ -2128,15 +2128,15 @@ void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
 //
 void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 {
-  if (mergeTramp == 1)
-    bpatch->setMergeTramp(true);
-  BPatch_Vector<BPatch_function *> bpfv;
-  char *fn = "call20_1";
-  if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
-      || NULL == bpfv[0]){
-    fprintf(stderr, "    Unable to find function %s\n", fn);
-    exit(1);
-  }
+    if (mergeTramp == 1)
+        bpatch->setMergeTramp(true);
+    BPatch_Vector<BPatch_function *> bpfv;
+    char *fn = "call20_1";
+    if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
+        || NULL == bpfv[0]){
+        fprintf(stderr, "    Unable to find function %s\n", fn);
+        exit(1);
+    }
 
 
 
@@ -2181,6 +2181,7 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 	exit(1);
     }
     
+    appThread->getProcess()->beginInsertionSet();
 
     BPatch_Set<BPatch_basicBlock *>::iterator blockIter = blocks.begin();
     for (; blockIter != blocks.end(); blockIter++) {
@@ -2208,6 +2209,8 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
             }
         }
     }
+
+    appThread->getProcess()->finalizeInsertionSet(false);
 
     bpatch->registerErrorCallback(oldError);
 
