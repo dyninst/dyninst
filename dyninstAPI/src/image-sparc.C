@@ -40,7 +40,7 @@
  */
 
 
-// $Id: image-sparc.C,v 1.4 2005/09/19 23:05:16 bernat Exp $
+// $Id: image-sparc.C,v 1.5 2005/10/05 21:46:33 bernat Exp $
 
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
@@ -230,9 +230,9 @@ bool image_func::findInstPoints(pdvector<Address> &callTargets)
     int insnSize = instruction::size();
 
     if (getSymTabSize() <= 3*insnSize)
-        return false;
+        isInstrumentable_ = false;
 
-   BPatch_Set< Address > leaders;
+    BPatch_Set< Address > leaders;
     dictionary_hash< Address, image_basicBlock* > leadersToBlock( addrHash );
        
     Address funcBegin = getOffset();
@@ -298,16 +298,19 @@ bool image_func::findInstPoints(pdvector<Address> &callTargets)
         while( true ) {
             currAddr = *ah;
 
-            if (currAddr >= getEndOffset())
+            parsing_printf("checking insn at 0x%x, %s + %d\n", *ah,
+                    symTabName().c_str(), (*ah) - funcBegin);
+
+            if (currAddr > getEndOffset()) {
+                parsing_printf("... past end of function\n");
                 break;
+            }
 
             if( visited.contains( currAddr ) )
                 break;
             else
                 visited += currAddr;
 
-            parsing_printf("checking insn at 0x%x, %s + %d\n", *ah,
-                    symTabName().c_str(), (*ah) - funcBegin);
 
             // Check for tail calls; we auto-relocate the function (why?)
             // but flag it here.
