@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.60 2005/09/06 18:58:44 bernat Exp $
+// $Id: BPatch_function.C,v 1.61 2005/10/05 21:46:25 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -56,6 +56,7 @@
 #include "BPatch_flowGraph.h"
 #include "BPatch_libInfo.h"
 #include "BPatch_memoryAccess_NP.h"
+#include "BPatch_basicBlock.h"
 
 #include "LineInformation.h"
 #include "common/h/Types.h"
@@ -430,6 +431,7 @@ BPatch_flowGraph* BPatch_function::getCFGInt()
     if (!valid) {
         delete cfg;
         cfg = NULL;
+        fprintf(stderr, "CFG is NULL in %s\n", lowlevel_func()->symTabName().c_str());
         return NULL;
     }
     return cfg;
@@ -575,4 +577,49 @@ void BPatch_function::fixupUnknown(BPatch_module *module) {
       for (unsigned int i = 0; i < vars->size(); i++)
          (*vars)[i]->fixupUnknown(module);
    }
+}
+
+void BPatch_function::calc_liveness(void *address,
+                                    int *liveRegisters,
+                                    int *liveFPRegisters,
+                                    int *liveSPRegisters) {
+#if defined(os_aix)
+    // BEGIN LIVENESS ANALYSIS STUFF
+    // Need to narrow it down to specific basic block at this point so we can 
+    // recover liveness information
+    
+    Address pA = (Address) address;
+
+    // Need the CFG to do liveness analysis 
+    BPatch_flowGraph * cfg = getCFG();
+    // No CFG, no liveness.
+    if (!cfg) return;
+    BPatch_Set<BPatch_basicBlock*> allBlocks;
+    cfg->getAllBasicBlocks(allBlocks);
+    BPatch_basicBlock** elements = new BPatch_basicBlock*[allBlocks.size()];
+    allBlocks.elements(elements);
+    
+    for (int i = 0; i < allBlocks.size(); i++) {
+        BPatch_basicBlock *bb = elements[i];
+        void * startAddr, *endAddr;
+        bb->getAddressRange(startAddr, endAddr);
+        
+        if ( pA >= (Address)startAddr && pA <= (Address)endAddr){
+            
+            /* When we have the actual basic block belonging to the 
+               inst address, we put the live Registers in for that inst point*/
+            
+            bb->liveRegistersIntoSet(liveRegisters, liveFPRegisters, pA );
+            
+            /* Function for handling special purpose registers on platforms,
+               for Power it figures out MX register usage (big performance hit) ... 
+               may be extended later for other special purpose registers */
+            bb->liveSPRegistersIntoSet(liveSPRegisters, pA);
+            
+            //bb->printAll();
+        }
+    }
+    delete [] elements;
+    // END LIVENESS ANALYSIS STUFF
+#endif
 }
