@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.6 2005/09/28 17:03:08 bernat Exp $
+// $Id: instPoint.C,v 1.7 2005/10/05 21:46:35 bernat Exp $
 // instPoint code
 
 
@@ -894,11 +894,15 @@ bool instPointInstance::generateInst() {
     // if there is, will reuse that slot in the multiTramp dictionary.
     // This allows us to regenerate multiTramps without having to 
     // worry about changing pointers.
+
+#if defined(cap_relocation)
+
+    // Moved from ::generate; we call ::generate multiple times, then ::install.
+    // This allows us to relocate once per function.... 
     
     // See if we're big enough to put the branch jump in. If not, trap.
     // Can also try to relocate; we'll still trap _here_, but another
     // ipInstance will be created that can jump.
-#if defined(cap_relocation)
     if (errCode == multiTramp::mtTryRelocation) {
         // We can try to simply shift the entire function nearer
         // instrumentation. TODO: a funcMod that says "hey, move me to
@@ -911,17 +915,22 @@ bool instPointInstance::generateInst() {
              (block_->getSize() < multi()->sizeDesired())) {
         // Can make new ipInstances, but they're brought up to 
         // date in updateInstances
+
+        // expandForInstrumentation will append to the expand list, so can 
+        // be called multiple times without blowing up
         if (func()->expandForInstrumentation()) {
-            // Always work off the first version of the function
+            // and relocationGenerate invalidates old, "in-flight" versions.
             func()->relocationGenerate(func()->enlargeMods(), 0);
         }
     }
 #endif
+    
     return true;
     //return (errCode == multiTramp::mtSuccess);
 }
 
 bool instPointInstance::installInst() {
+
 #if defined(cap_relocation)
     // This is harmless to call if there isn't a relocation in-flight
     func()->relocationInstall();
