@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_templates.C,v 1.35 2005/10/04 18:09:39 legendre Exp $
+// $Id: BPatch_templates.C,v 1.36 2005/10/05 21:46:28 bernat Exp $
 
 #include <sys/types.h>
 
@@ -163,4 +163,7 @@ class BPatch_edge;
 template class BPatch_Vector<BPatch_edge*>;
 template struct comparison<BPatch_edge*>;
 template class BPatch_Set<BPatch_edge*>;
+
+class batchInsertionRecord;
+template class BPatch_Vector<batchInsertionRecord *>;
 
