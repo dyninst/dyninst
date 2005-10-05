@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates0.C,v 1.56 2005/09/09 15:57:08 bernat Exp $
+// $Id: templates0.C,v 1.57 2005/10/05 21:46:40 bernat Exp $
 // Generate all the templates in one file.
 
 /*
@@ -74,18 +74,9 @@
 
 #include "common/h/String.h"
 
-#if 0
-
-#include "dyninstAPI/src/symtab.h"
-#include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
-#include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/dyninstP.h"
-#include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/Object.h"
-#endif // if 0
+
+template class pdvector<callWhen>;
 
 #if defined(rs6000_ibm_aix4_1)
 #include "LineInformation.h"
@@ -236,3 +227,4 @@ template class pdvector<fileOpener *>;
 
 class funcMod;
 template class pdvector<funcMod *>;
+
