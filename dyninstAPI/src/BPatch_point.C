@@ -93,7 +93,7 @@ BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func, instPo
     // TODO: this will grab _everything_, including internal instrumentation.
     // We need a "type" flag on the miniTramp that specifies whether instru is
     // internal, BPatch-internal (dynamic monitoring), or user-added.
-    
+
     baseTramp *bt = point->getBaseTramp(callPreInsn);
     assert(bt);
     miniTramp *mt = bt->firstMini;
@@ -103,8 +103,8 @@ BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func, instPo
         mt = mt->next;
     }
     for(unsigned i=0; i<mts.size(); i++) {
-        BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc->llproc);
-        handle->add(mts[i]);
+        BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc);
+        handle->addMiniTramp(mts[i]);
         preSnippets.push_back(handle);
     }
     // And now post.
@@ -118,10 +118,11 @@ BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func, instPo
         mt = mt->next;
     }
     for(unsigned ii=0; ii<mts.size(); ii++) {
-        BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc->llproc);
-        handle->add(mts[ii]);
+        BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc);
+        handle->addMiniTramp(mts[ii]);
         preSnippets.push_back(handle);
     }
+
 }
 
 /*
@@ -156,11 +157,10 @@ BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func,
   }
   
   for(unsigned i=0; i<mts.size(); i++) {
-      BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc->llproc);
-      handle->add(mts[i]);
+      BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc);
+      handle->addMiniTramp(mts[i]);
       preSnippets.push_back(handle);
   }
-
   // No post-insn
 
 }
@@ -498,19 +498,19 @@ int BPatch_point::getDisplacedInstructionsInt(int maxSize, void* insns)
 // This isn't a point member because it relies on instPoint.h, which
 // we don't want to include in BPatch_point.h. If we had a public "enumerated types"
 // header file this could move.
-bool BPatchToInternalArgs(BPatch_point point,
+bool BPatchToInternalArgs(BPatch_point *point,
                           BPatch_callWhen when,
                           BPatch_snippetOrder order,
                           callWhen &ipWhen,
                           callOrder &ipOrder) {
     // Edge instrumentation: overrides inputs
-    if (point.edge()) {
+    if (point->edge()) {
         if (when == BPatch_callAfter) {
             // Can't do this... there is no "before" or 
             // "after" for an edge
             return false;
         }
-        switch(point.edge()->type) {
+        switch(point->edge()->type) {
         case CondJumpTaken:
         case UncondJump:
             ipWhen = callBranchTargetInsn;
@@ -520,7 +520,7 @@ bool BPatchToInternalArgs(BPatch_point point,
             ipWhen = callPostInsn;
             break;
         default:
-            fprintf(stderr, "Unknown edge type %d\n", point.edge()->type);
+            fprintf(stderr, "Unknown edge type %d\n", point->edge()->type);
             assert(0);
         }
     }
@@ -530,8 +530,8 @@ bool BPatchToInternalArgs(BPatch_point point,
             ipWhen = callPreInsn;
         else if (when == BPatch_callAfter)
             ipWhen = callPostInsn;
-        else
-            return false;
+        else if (when == BPatch_callUnset)
+            ipWhen = callPreInsn;
     }
     
     if (order == BPatch_firstSnippet)
@@ -553,18 +553,18 @@ bool BPatchToInternalArgs(BPatch_point point,
     //      a subroutine which is what the other combinations of BPatch_entry
     //	    and BPatch_exit refer to.
     //
-    if (when == BPatch_callBefore && point.getPointType() == BPatch_exit) {
+    if (when == BPatch_callBefore && point->getPointType() == BPatch_exit) {
         BPatch_reportError(BPatchSerious, 113,
                            "BPatch_callBefore at BPatch_exit not supported yet");
         return false;
     }
-    if (when == BPatch_callAfter && point.getPointType() == BPatch_entry) {
+    if (when == BPatch_callAfter && point->getPointType() == BPatch_entry) {
         BPatch_reportError(BPatchSerious, 113,
                            "BPatch_callAfter at BPatch_entry not supported yet");
         return false;
     }
     
-    if ((point.getPointType() == BPatch_exit)) {
+    if ((point->getPointType() == BPatch_exit)) {
         //  XXX - Hack! 
         //  The semantics of pre/post insn at exit are setup for the new
         //  defintion of using this to control before/after stack creation,
@@ -578,6 +578,13 @@ bool BPatchToInternalArgs(BPatch_point point,
 void BPatch_point::recordSnippet(BPatch_callWhen when,
                                  BPatch_snippetOrder order,
                                  BPatchSnippetHandle *handle) {
+    if (when == BPatch_callUnset) {
+        if (getPointType() == BPatch_exit)
+            when = BPatch_callAfter;
+        else
+            when = BPatch_callBefore;
+    }
+
     if (when == BPatch_callBefore)
         if (order == BPatch_firstSnippet) {
             preSnippets.push_front(handle);
