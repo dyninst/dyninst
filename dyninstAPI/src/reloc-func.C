@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.5 2005/10/04 18:09:53 legendre Exp $
+// $Id: reloc-func.C,v 1.6 2005/10/05 21:46:38 bernat Exp $
 
 // We'll also try to limit this to relocation-capable platforms
 // in the Makefile. Just in case, though....
@@ -73,6 +73,9 @@ class instruction;
 bool int_function::relocationGenerate(pdvector<funcMod *> &mods, 
                                       int sourceVersion /* = 0 */) {
     unsigned i;
+    
+    if (mods.size() == 0)
+        return true;
 
     assert(sourceVersion <= version_);
     if (generatedVersion_ > version_) {
@@ -168,7 +171,7 @@ bool int_function::relocationGenerate(pdvector<funcMod *> &mods,
         else
             success = false;
     }
-        
+
     return success;
 }
 
@@ -318,9 +321,9 @@ bool int_function::expandForInstrumentation() {
     // relocate multiple times, we will have discarded versions instead
     // of a long chain. 
 
-    if (!canBeRelocated_) {
-        //fprintf(stderr, "Skipping relocation of function %s: has non-reloc constructs\n",
-        //symTabName().c_str());
+    if (!canBeRelocated()) {
+        fprintf(stderr, "Skipping relocation of function %s: has non-reloc constructs\n",
+                symTabName().c_str());
         return false;
     }
 
@@ -334,8 +337,22 @@ bool int_function::expandForInstrumentation() {
         if (bblI->getSize() < multi->sizeDesired()) {
             reloc_printf("Enlarging basic block %d\n",
                          i);
-            enlargeBlock *mod = new enlargeBlock(bblI->block(), multi->maxSizeRequired());
-            enlargeMods_.push_back(mod);
+            pdvector<instruction *> whocares;
+            bool found = false;
+            // Check to see if there's already a request for it...
+            for (unsigned j = 0; j < enlargeMods_.size(); j++) {
+                if (enlargeMods_[j]->update(bblI->block(), 
+                                            whocares,
+                                            multi->sizeDesired())) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                // Didn't find it...
+                enlargeBlock *mod = new enlargeBlock(bblI->block(), multi->maxSizeRequired());
+                enlargeMods_.push_back(mod);
+            }
         }
     }
     return true;
@@ -586,9 +603,6 @@ bool functionReplacement::generateFuncRep() {
     bblInstance *targetInst = targetBlock_->instVer(targetVersion_);
     assert(targetInst);
 
-    Address sourceAddr = sourceInst->firstInsnAddr();
-    Address targetAddr = targetInst->firstInsnAddr();
-
     jumpToRelocated.allocate(instruction::maxInterFunctionJumpSize());
     fprintf(stderr, "******* generating interFunctionJump...\n");
     instruction::generateInterFunctionBranch(jumpToRelocated,
@@ -687,6 +701,16 @@ bool enlargeBlock::modifyBBL(int_basicBlock *block,
         if (size < targetSize_) {
             size = targetSize_;
         }
+        return true;
+    }
+    return false;
+}
+
+bool enlargeBlock::update(int_basicBlock *block,
+                          pdvector<instruction *> &,
+                          unsigned size) {
+    if (block == targetBlock_) {
+        targetSize_ = (targetSize_ > size) ? targetSize_ : size;
         return true;
     }
     return false;
