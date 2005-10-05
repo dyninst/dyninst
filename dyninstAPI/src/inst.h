@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.90 2005/09/09 18:06:47 legendre Exp $
+// $Id: inst.h,v 1.91 2005/10/05 21:46:34 bernat Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -64,7 +64,7 @@ class metricFocusNode;
 class codeGen;
 
 typedef enum { callNoArgs, callRecordType, callFullArgs } callOptions;
-typedef enum { callPreInsn, callPostInsn, callBranchTargetInsn } callWhen;
+typedef enum { callPreInsn, callPostInsn, callBranchTargetInsn, callUnset } callWhen;
 typedef enum { orderFirstAtPoint, orderLastAtPoint } callOrder;
 
 extern pdvector<Address> getTrampAddressesAtPoint(process *proc, 
