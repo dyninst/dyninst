@@ -134,7 +134,7 @@ BPatch_process::BPatch_process(const char *path, char *argv[], char *envp[],
    : llproc(NULL), image(NULL), lastSignal(-1), exitCode(-1), 
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(false), detached(false), unreportedStop(false), 
-     unreportedTermination(false)
+     unreportedTermination(false), pendingInsertions(NULL)
 {
    func_map = new BPatch_funcMap();
    instp_map = new BPatch_instpMap();
@@ -216,7 +216,7 @@ BPatch_process::BPatch_process(const char *path, int pid)
    : llproc(NULL), image(NULL), lastSignal(-1), exitCode(-1), 
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(true), detached(false), unreportedStop(false), 
-     unreportedTermination(false)
+     unreportedTermination(false), pendingInsertions(NULL)
 {
    func_map = new BPatch_funcMap();
    instp_map = new BPatch_instpMap();
@@ -266,7 +266,8 @@ BPatch_process::BPatch_process(int /*pid*/, process *nProc)
    : llproc(nProc), image(NULL), lastSignal(-1), exitCode(-1),
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(true), detached(false),
-     unreportedStop(false), unreportedTermination(false)
+     unreportedStop(false), unreportedTermination(false), 
+     pendingInsertions(NULL)
 {
    // Add this object to the list of threads
    assert(BPatch::bpatch != NULL);
@@ -314,6 +315,14 @@ void BPatch_process::BPatch_process_dtor()
       delete func_map;
    if (instp_map)
       delete instp_map;
+
+   if (pendingInsertions) {
+       for (unsigned f = 0; f < pendingInsertions->size(); f++) {
+           delete (*pendingInsertions)[f];
+       }
+       delete pendingInsertions;
+       pendingInsertions = NULL;
+   }
 
    if (!llproc) { return; }
 
@@ -722,24 +731,23 @@ BPatch_variableExpr *BPatch_process::getInheritedVariableInt(
  * Returns:       The corresponding BPatchSnippetHandle from the child thread.
  *
  */
-BPatchSnippetHandle *BPatch_process::getInheritedSnippetInt(
-                                                            BPatchSnippetHandle &parentSnippet)
+BPatchSnippetHandle *BPatch_process::getInheritedSnippetInt(BPatchSnippetHandle &parentSnippet)
 {
-   // a BPatchSnippetHandle has an miniTramp for each point that
-   // the instrumentation is inserted at
-   BPatch_Vector<miniTramp *> parent_mtHandles;
-   parentSnippet.getMiniTrampHandles(&parent_mtHandles);
+    // a BPatchSnippetHandle has an miniTramp for each point that
+    // the instrumentation is inserted at
+    const BPatch_Vector<miniTramp *> &parent_mtHandles = parentSnippet.mtHandles_;
 
-   BPatchSnippetHandle *childSnippet = new BPatchSnippetHandle(llproc);
-   for(unsigned i=0; i<parent_mtHandles.size(); i++) {
-      miniTramp *childMT = NULL;
-      if(!getInheritedMiniTramp(parent_mtHandles[i], childMT, llproc))
-         return NULL;
-      childSnippet->add(childMT);
-   }
-   return childSnippet;
+    BPatchSnippetHandle *childSnippet = new BPatchSnippetHandle(this);
+    for(unsigned i=0; i<parent_mtHandles.size(); i++) {
+        miniTramp *childMT = NULL;
+        if(!getInheritedMiniTramp(parent_mtHandles[i], childMT, llproc)) {
+            fprintf(stderr, "Failed to get inherited mini tramp\n");
+            return NULL;
+        }
+        childSnippet->addMiniTramp(childMT);
+    }
+    return childSnippet;
 }
-
 
 /*
  * BPatch_process::insertSnippet
@@ -775,7 +783,7 @@ BPatchSnippetHandle *BPatch_process::insertSnippetInt(const BPatch_snippet &expr
  * point	The point at which to insert it.
  */
 // This handles conversion without requiring inst.h in a header file...
-extern bool BPatchToInternalArgs(BPatch_point point,
+extern bool BPatchToInternalArgs(BPatch_point *point,
                                  BPatch_callWhen when,
                                  BPatch_snippetOrder order,
                                  callWhen &ipWhen,
@@ -787,163 +795,13 @@ BPatchSnippetHandle *BPatch_process::insertSnippetWhen(const BPatch_snippet &exp
 						       BPatch_callWhen when,
 						       BPatch_snippetOrder order)
 {
-  assert(BPatch::bpatch != NULL);
-
-   // Can't insert code when mutations are not active.
-   if (!mutationsActive)
-      return NULL;
-   
-   // code is null (possibly an empy sequence or earlier error)
-   if (!expr.ast) return NULL;
-
-   // Build the internal arguments based on inputs and BPatch_point 
-   // overrides
-   
-   callWhen ipWhen;
-   callOrder ipOrder;
-   
-   if (!BPatchToInternalArgs(point, when, order, ipWhen, ipOrder))
-       return NULL;
-
-   if (BPatch::bpatch->isTypeChecked()) {
-      assert(expr.ast);
-      if (expr.ast->checkType() == BPatch::bpatch->type_Error) {
-         return NULL;
-      }
-   }
-   
-   BPatchSnippetHandle *handle = new BPatchSnippetHandle(llproc);
-   AstNode *ast = expr.ast;
-   instPoint *&ip = (instPoint*&) point.point;
-   
-   if (point.proc != this) {
-      BPatch_reportError(BPatchSerious, 113, "The given instPoint isn't from the same process as the invoked BPatch_process");
-      return NULL;
-   }
-
-   bool use_recursive_tramps = BPatch::bpatch->isTrampRecursive();
-#if defined(os_aix)
-   BPatch_function *tmpFunc = (BPatch_function *) point.getFunction();
-   char tmpFuncName[1024];
-   
-   if(llproc->collectSaveWorldData){
-     tmpFunc->getName(tmpFuncName, 1024);
-     
-     if( !strncmp(tmpFuncName,"main",4)){
-       use_recursive_tramps = true;
-     }
-   }
-
-   // BEGIN LIVENESS ANALYSIS STUFF
-   // Need to narrow it down to specific basic block at this point so we can 
-   // recover liveness information
-  
-   tmpFunc->getName(tmpFuncName, 1024);
-   //printf("Func name is %s\n",tmpFuncName);
-
-   // Need the CFG to do liveness analysis 
-   BPatch_flowGraph * cfg = tmpFunc->getCFG();
-   BPatch_Set<BPatch_basicBlock*> allBlocks;
-   cfg->getAllBasicBlocks(allBlocks);
-   BPatch_basicBlock** elements = new BPatch_basicBlock*[allBlocks.size()];
-   allBlocks.elements(elements);
-
-   for (int i = 0; i < allBlocks.size(); i++)
-     {
-       BPatch_basicBlock *bb = elements[i];
-       void * startAddr, *endAddr;
-       bb->getAddressRange(startAddr, endAddr);
-
-       instPoint * iPo = point.getPoint();
-       Address pA = iPo->addr();
-
-       char fName[1023];
-       tmpFunc->getMangledName(fName, 1023); fName[1023] = '\0';
-
-       if ( pA >= (unsigned long)startAddr && pA <= (unsigned long)endAddr){
-	 
-	 //printf("Basic Block number %d for %s and Address is 0x%x\n", i, fName, pA);
-	 
-	 /* When we have the actual basic block belonging to the 
-	    inst address, we put the live Registers in for that inst point*/
-	 
-	 bb->liveRegistersIntoSet(iPo->liveRegisters, iPo->liveFPRegisters, pA );
-
-	 /* Function for handling special purpose registers on platforms,
-	    for Power it figures out MX register usage (big performance hit) ... 
-	    may be extended later for other special purpose registers */
-	 bb->liveSPRegistersIntoSet(iPo->liveSPRegisters, pA);
-
-	 //bb->printAll();
-       }
-     }
-   // END LIVENESS ANALYSIS STUFF
-   
-   
-#endif
-#if defined(os_irix)
-   if (point.getPointType() == BPatch_arbitrary) 
-      use_recursive_tramps = true;
-#endif
-
-   // Arguably this should be moved to a BPatch_point method...
-   miniTramp *result  = ip->instrument(ast, ipWhen, ipOrder,
-				       use_recursive_tramps, false);
-   if(!result)
-     {
-       return NULL;
-     }
-   handle->add(result);
-
-   point.recordSnippet(when, order, handle);
-
-   return handle;
+    BPatch_Vector<BPatch_point *> points;
+    points.push_back(&point);
+    return insertSnippetAtPointsWhen(expr,
+                                     points,
+                                     when,
+                                     order);
 }
-
-
-// HACK
-// Group-wise insertion of snippets
-void BPatch_process::insertSnippetBatch(const BPatch_Vector<BPatch_snippet *> &exprs,
-                                        const BPatch_Vector<BPatch_point *> &points) {
-    unsigned i;
-    // Make all sorts of assumptions for simplicity.
-    pdvector<instPoint *> ips;
-
-    for (i = 0; i < points.size(); i++) {
-        BPatch_point *point = points[i];
-        BPatch_callWhen when;
-        
-        if (point->getPointType() == BPatch_exit) {
-            when = BPatch_callAfter;
-        } else {
-            when = BPatch_callBefore;
-        }
-        BPatch_snippetOrder order = BPatch_firstSnippet;
-
-        // Build the internal arguments based on inputs and BPatch_point 
-        // overrides
-        
-        callWhen ipWhen;
-        callOrder ipOrder;
-        
-        if (!BPatchToInternalArgs(*point, when, order, ipWhen, ipOrder))
-            continue;
-       
-        AstNode *ast = exprs[i]->ast;
-        instPoint *&ip = (instPoint*&) point->point;
-        bool use_recursive_tramps = BPatch::bpatch->isTrampRecursive();
-
-        ip->addInst(ast, ipWhen, ipOrder, 
-                    use_recursive_tramps, false);
-        ips.push_back(ip);
-    }
-    for (i = 0; i < ips.size(); i++) {
-        ips[i]->generateInst();
-        ips[i]->installInst();
-        ips[i]->linkInst();
-    }
-}
-               
 
 /*
  * BPatch_process::insertSnippet
@@ -955,32 +813,72 @@ void BPatch_process::insertSnippetBatch(const BPatch_Vector<BPatch_snippet *> &e
  * expr		The snippet to insert.
  * points	The list of points at which to insert it.
  */
-BPatchSnippetHandle *BPatch_process::insertSnippetAtPointsWhen(
-                const BPatch_snippet &expr,
-                const BPatch_Vector<BPatch_point *> &points,
-                BPatch_callWhen when,
-                BPatch_snippetOrder order)
-{
-   BPatchSnippetHandle *handle = new BPatchSnippetHandle(llproc);
-   
-   for (unsigned int i = 0; i < points.size(); i++) {
-      BPatch_point *point = points[i];
-      
-      BPatchSnippetHandle *ret = insertSnippet(expr, *point, when, order);
-      if (ret) {
-         for (unsigned int j=0; j < ret->mtHandles.size(); j++) {
-            handle->add(ret->mtHandles[j]);
-         }
-         delete ret;
-      } else {
-         delete handle;
-         return NULL;
-      }
-   }
-   
-   return handle;
-}
+// A lot duplicated from the single-point version. This is unfortunate.
 
+BPatchSnippetHandle *BPatch_process::insertSnippetAtPointsWhen(const BPatch_snippet &expr,
+                                                               const BPatch_Vector<BPatch_point *> &points,
+                                                               BPatch_callWhen when,
+                                                               BPatch_snippetOrder order)
+{
+    if (BPatch::bpatch->isTypeChecked()) {
+        assert(expr.ast);
+        if (expr.ast->checkType() == BPatch::bpatch->type_Error) {
+            return false;
+        }
+    }
+    
+    
+    batchInsertionRecord *rec = new batchInsertionRecord;
+    rec->thread_ = NULL;
+    rec->ast_ = expr.ast;
+    rec->trampRecursive_ = BPatch::bpatch->isTrampRecursive();
+
+    BPatchSnippetHandle *ret = new BPatchSnippetHandle(this);
+    rec->handle_ = ret;
+    
+    for (unsigned i = 0; i < points.size(); i++) {
+        BPatch_point *point = points[i];
+        
+#if defined(os_aix)
+        BPatch_function *tmpFunc = (BPatch_function *) point->getFunction();
+        char tmpFuncName[1024];
+        
+        if(llproc->collectSaveWorldData){
+            tmpFunc->getName(tmpFuncName, 1024);
+            
+            if( !strncmp(tmpFuncName,"main",4)){
+                use_recursive_tramps = true;
+            }
+        }
+        
+        tmpFunc->calc_liveness();
+#endif
+        
+        callWhen ipWhen;
+        callOrder ipOrder;
+        
+        if (!BPatchToInternalArgs(point, when, order, ipWhen, ipOrder))
+            return NULL;
+        
+        rec->points_.push_back(point->point);
+        rec->when_.push_back(ipWhen);
+        rec->order_ = ipOrder;
+
+        point->recordSnippet(when, order, ret);
+    }
+
+    // Okey dokey... now see if we just tack it on, or insert now.
+    if (pendingInsertions) {
+        pendingInsertions->push_back(rec);
+    }
+    else {
+        beginInsertionSet();
+        pendingInsertions->push_back(rec);
+        // All the insertion work was moved here...
+        finalizeInsertionSet(false);
+    }
+    return ret;
+}
 
 /*
  * BPatch_process::insertSnippet
@@ -997,30 +895,124 @@ BPatchSnippetHandle *BPatch_process::insertSnippetAtPoints(
                  const BPatch_Vector<BPatch_point *> &points,
                  BPatch_snippetOrder order)
 {
-   BPatchSnippetHandle *handle = new BPatchSnippetHandle(llproc);
-   for (unsigned int i = 0; i < points.size(); i++) {
-      BPatch_point *point = points[i];
-      BPatch_callWhen when;
+    return insertSnippetAtPointsWhen(expr,
+                                     points,
+                                     BPatch_callUnset,
+                                     order);
+}
 
-      if (point->getPointType() == BPatch_exit) {
-          when = BPatch_callAfter;
-      } else {
-          when = BPatch_callBefore;
-      }
-      
-      BPatchSnippetHandle *ret = insertSnippet(expr, *point, when, order);
-      if (ret) {
-         for (unsigned int j=0; j < ret->mtHandles.size(); j++) {
-            handle->add(ret->mtHandles[j]);
-         }
-         delete ret;
-      } else {
-         delete handle;
-         return NULL;
-      }
-   }
-   
-   return handle;
+
+/*
+ * BPatch_process::beginInsertionSet
+ * 
+ * Starts a batch insertion set; that is, all calls to insertSnippet until
+ * finalizeInsertionSet are delayed.
+ *
+ */
+
+void BPatch_process::beginInsertionSetInt() {
+    if (pendingInsertions == NULL)
+        pendingInsertions = new BPatch_Vector<batchInsertionRecord *>;
+    // Nothing else to do...
+}
+
+/*
+ * BPatch_process::finalizeInsertionSet
+ * 
+ * Installs all instrumentation specified since the last beginInsertionSet call.
+ *
+ */
+
+bool BPatch_process::finalizeInsertionSetInt(bool atomic) {
+    // Can't insert code when mutations are not active.
+    if (!mutationsActive)
+        return false;
+    
+    unsigned i, j;
+
+    pdvector<miniTramp *> workDone;
+    bool err = false;
+
+    if (pendingInsertions == NULL)
+        return false;
+
+    // Two loops: first addInst, then generate/install/link
+
+    for (i = 0; i < pendingInsertions->size(); i++) {
+        batchInsertionRecord *&bir = (*pendingInsertions)[i];
+        assert(bir);
+
+        // Don't handle thread inst yet...
+        assert(!bir->thread_);
+
+        for (j = 0; j < bir->points_.size(); j++) {
+            instPoint *point = bir->points_[j];
+            callWhen when = bir->when_[j];
+            
+            miniTramp *mini = point->addInst(bir->ast_,
+                                             when,
+                                             bir->order_,
+                                             bir->trampRecursive_,
+                                             false);
+            if (mini) {
+                workDone.push_back(mini);
+                // Add to snippet handle
+                bir->handle_->addMiniTramp(mini);
+            }
+            else {
+                err = true;
+                if (atomic) break;
+            }
+        }
+        if (atomic && err)
+            break;
+    }
+    
+    if (!atomic || !err) {
+        // All generation first. Actually, all generation per function...
+        // but this is close enough.
+        for (i = 0; i < pendingInsertions->size(); i++) {
+            batchInsertionRecord *&bir = (*pendingInsertions)[i];
+            assert(bir);
+            for (unsigned j = 0; j < bir->points_.size(); j++) {
+                instPoint *point = bir->points_[j];
+                
+                if (!point->generateInst()) {
+                    err = true;
+                    if (atomic && err) break;
+                }
+            }
+            if (atomic && err) break;
+        }
+        for (i = 0; i < pendingInsertions->size(); i++) {
+            batchInsertionRecord *&bir = (*pendingInsertions)[i];
+            assert(bir);
+            for (unsigned j = 0; j < bir->points_.size(); j++) {
+                instPoint *point = bir->points_[j];
+                
+                if (!point->installInst()) {
+                    err = true;
+                }
+                if (!point->linkInst()) {
+                    err = true;
+                }
+                if (atomic && err) break;
+                else delete bir;
+            }
+            if (atomic && err) break;
+        }
+    }
+    if (atomic && err) {
+        // Cleanup...
+        for (unsigned k = 0; k < workDone.size(); k++) {
+            workDone[k]->uninstrument();
+        }
+        return false;
+    }
+
+    delete pendingInsertions;
+    pendingInsertions = NULL;
+    return true;
 }
 
 /*
@@ -1033,15 +1025,15 @@ BPatchSnippetHandle *BPatch_process::insertSnippetAtPoints(
  */
 bool BPatch_process::deleteSnippetInt(BPatchSnippetHandle *handle)
 {   
-   if (handle->proc == llproc) {
-      for (unsigned int i=0; i < handle->mtHandles.size(); i++)
-	handle->mtHandles[i]->uninstrument();
-      delete handle;
-      return true;
-   } 
-   // Handle isn't to a snippet instance in this process
-   cerr << "Error: wrong process in deleteSnippet" << endl;     
-   return false;
+    if (handle->proc_ == this) {
+        for (unsigned int i=0; i < handle->mtHandles_.size(); i++)
+            handle->mtHandles_[i]->uninstrument();
+        delete handle;
+        return true;
+    } 
+    // Handle isn't to a snippet instance in this process
+    cerr << "Error: wrong process in deleteSnippet" << endl;     
+    return false;
 }
 
 
@@ -1583,18 +1575,15 @@ bool BPatch_process::addSharedObjectInt(const char *name,
  ***************************************************************************/
 
 /*
- * BPatchSnippetHandle::add
+ * BPatchSnippetHandle::BPatchSnippetHandle
  *
- * Add an instance of a snippet to the list of instances held by the
- * BPatchSnippetHandle.
- *
- * instance	The instance to add.
+ * Constructor for BPatchSnippetHandle.  Delete the snippet instance(s)
+ * associated with the BPatchSnippetHandle.
  */
-void BPatchSnippetHandle::add(miniTramp *pointInstance)
+BPatchSnippetHandle::BPatchSnippetHandle(BPatch_process *proc) :
+    proc_(proc)
 {
-   mtHandles.push_back(pointInstance);
 }
-
 
 /*
  * BPatchSnippetHandle::~BPatchSnippetHandle
