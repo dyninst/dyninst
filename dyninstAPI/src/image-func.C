@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.9 2005/09/28 17:03:04 bernat Exp $
+// $Id: image-func.C,v 1.10 2005/10/05 21:46:31 bernat Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -78,7 +78,7 @@ image_func::image_func(const pdstring &symbol,
   framePointerCalculator(NULL),
   usedFPregs(NULL),
 #endif
-  canBeRelocated_(false),
+  canBeRelocated_(true),
   needsRelocation_(false),
   originalCode(NULL),
   o7_live(false)

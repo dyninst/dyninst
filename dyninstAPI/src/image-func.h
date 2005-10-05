@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.4 2005/09/01 22:18:17 bernat Exp $
+// $Id: image-func.h,v 1.5 2005/10/05 21:46:32 bernat Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -270,12 +270,10 @@ class image_func : public codeRange {
    bool * usedFPregs;
 #endif
 
-#if defined(cap_relocation)
    // Ifdef relocation... but set at parse time.
    bool canBeRelocated() const { return canBeRelocated_; }
    bool needsRelocation() const { return needsRelocation_; }
    void markAsNeedingRelocation(bool foo) { needsRelocation_ = foo; }
-#endif
 
 
  private:

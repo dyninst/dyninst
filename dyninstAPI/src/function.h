@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.16 2005/10/04 18:09:52 legendre Exp $
+// $Id: function.h,v 1.17 2005/10/05 21:46:30 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -378,7 +378,7 @@ class int_function {
    // Relocation
    ////////////////////////////////////////////////
 
-   bool canBeRelocated() const { return canBeRelocated_; }
+   bool canBeRelocated() const { return ifunc_->canBeRelocated(); }
    int version() const { return version_; }
 
    ////////////////////////////////////////////////
@@ -487,9 +487,6 @@ class int_function {
    pdvector<instPoint*> exitPoints_;	/* return point(s). */
    pdvector<instPoint*> callPoints_;	/* pointer to the calls */
    pdvector<instPoint*> arbitraryPoints_;	       /* pointer to the calls */
-
-   bool canBeRelocated_;           // True if nothing prevents us from
-                                   // relocating the function
 
 #if defined(cap_relocation)
    // Status tracking variables
