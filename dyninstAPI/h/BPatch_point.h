@@ -68,7 +68,8 @@ class BPatch_frame;
  */
 typedef enum {
     BPatch_callBefore,
-    BPatch_callAfter
+    BPatch_callAfter,
+    BPatch_callUnset
 } BPatch_callWhen;
 
 /*
