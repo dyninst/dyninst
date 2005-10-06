@@ -156,6 +156,11 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
    
  public:
    
+   // Internal functions. Don't use these unless you know what you're
+   // doing.
+   const int_basicBlock *lowlevel_block() const { return iblock; }
+
+
 #if defined( arch_ia64 )
    // const accessor functions
 
