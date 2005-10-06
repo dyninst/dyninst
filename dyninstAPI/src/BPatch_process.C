@@ -840,18 +840,16 @@ BPatchSnippetHandle *BPatch_process::insertSnippetAtPointsWhen(const BPatch_snip
         BPatch_point *point = points[i];
         
 #if defined(os_aix)
-        BPatch_function *tmpFunc = (BPatch_function *) point->getFunction();
-        char tmpFuncName[1024];
-        
         if(llproc->collectSaveWorldData){
-            tmpFunc->getName(tmpFuncName, 1024);
-            
-            if( !strncmp(tmpFuncName,"main",4)){
-                use_recursive_tramps = true;
+            // Apparently we have problems with main....
+            // The things I do to not grab the name as a strcopy operation...
+            if (point->getFunction()->lowlevel_func()->symTabName().c_str() == "main") {
+                rec->trampRecursive_ = true;
             }
         }
-        
-        tmpFunc->calc_liveness();
+        // Toss the const; the function _pointer_ doesn't though.
+        BPatch_function *func = (BPatch_function *) point->getFunction();
+        func->calc_liveness(point);
 #endif
         
         callWhen ipWhen;
