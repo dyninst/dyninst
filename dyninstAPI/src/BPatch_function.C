@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.61 2005/10/05 21:46:25 bernat Exp $
+// $Id: BPatch_function.C,v 1.62 2005/10/06 17:42:24 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -579,17 +579,20 @@ void BPatch_function::fixupUnknown(BPatch_module *module) {
    }
 }
 
-void BPatch_function::calc_liveness(void *address,
-                                    int *liveRegisters,
-                                    int *liveFPRegisters,
-                                    int *liveSPRegisters) {
+void BPatch_function::calc_liveness(BPatch_point *point) {
 #if defined(os_aix)
+    assert(point);
+    instPoint *iP = point->getPoint();
+    assert(iP);
+    Address pA = iP->addr();
+    int *liveRegisters = iP->liveRegisters;
+    int *liveFPRegisters = iP->liveFPRegisters;
+    int *liveSPRegisters = iP->liveSPRegisters;
+    
     // BEGIN LIVENESS ANALYSIS STUFF
     // Need to narrow it down to specific basic block at this point so we can 
     // recover liveness information
     
-    Address pA = (Address) address;
-
     // Need the CFG to do liveness analysis 
     BPatch_flowGraph * cfg = getCFG();
     // No CFG, no liveness.
@@ -601,11 +604,7 @@ void BPatch_function::calc_liveness(void *address,
     
     for (int i = 0; i < allBlocks.size(); i++) {
         BPatch_basicBlock *bb = elements[i];
-        void * startAddr, *endAddr;
-        bb->getAddressRange(startAddr, endAddr);
-        
-        if ( pA >= (Address)startAddr && pA <= (Address)endAddr){
-            
+        if (iP->block() == bb->lowlevel_block()) {
             /* When we have the actual basic block belonging to the 
                inst address, we put the live Registers in for that inst point*/
             

@@ -112,10 +112,7 @@ public:
     void fixupUnknown(BPatch_module *);
     
     // Calculate liveness at a particular address
-    void calc_liveness(void *address,
-                       int *liveRegisters,
-                       int *liveFPRegisters,
-                       int *liveSPRegisters);
+    void calc_liveness(BPatch_point *point);
 
     // End of functions for internal use only
     
