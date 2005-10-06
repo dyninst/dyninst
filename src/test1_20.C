@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_20.C,v 1.1 2005/09/29 20:38:20 bpellin Exp $
+// $Id: test1_20.C,v 1.2 2005/10/06 22:32:52 bpellin Exp $
 /*
  * #Name: test1_20
  * #Desc: Mutator Side - Instrumentation at arbitrary points
@@ -116,6 +116,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
         return -1;
     }
     
+    appThread->getProcess()->beginInsertionSet();
+
     BPatch_Set<BPatch_basicBlock *>::iterator blockIter = blocks.begin();
     for (; blockIter != blocks.end(); blockIter++) {
         BPatch_basicBlock *block = *blockIter;
@@ -143,6 +145,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
         }
     }
 
+    appThread->getProcess()->finalizeInsertionSet(false);
 
     bpatch->registerErrorCallback(oldError);
 
