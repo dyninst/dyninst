@@ -47,9 +47,6 @@
  ************************************************************************/
 
 #include <stdlib.h>
-#include <sys/types.h>
-#include <sys/ipc.h>
-#include <sys/shm.h>
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -65,43 +62,7 @@
 #include "pdutil/h/resource.h"
 #include "dyninstAPI_RT/h/dyninstRTExport.h"
 
-static unsigned PARADYN_initialize_done;
-static DECLARE_DYNINST_LOCK(PARADYN_initLock);
-
 /**************************** INITIALIZATION ********************************/
-
-/*
- * Run from the PARADYNinit
- */
-void PARADYN_initialize_once() 
-{
-   int result;
-   unsigned i;
-   unsigned max_threads = dyninst_maxNumOfThreads();
-
-   result = dyninst_lock(&PARADYN_initLock);
-   if (result == DYNINST_DEAD_LOCK || DYNINST_LIVE_LOCK)
-      return;
-
-   if (PARADYN_initialize_done) 
-      goto done;
-
-   for (i = 0; i < max_threads; i++) {
-      virtualTimers[i].total = 0;
-      virtualTimers[i].start = 0;
-      virtualTimers[i].counter = 0;
-      virtualTimers[i].lwp = 0;
-      virtualTimers[i].rt_fd = 0;
-      virtualTimers[i].protector1 = 0;
-      virtualTimers[i].protector2 = 0;
-      virtualTimers[i].rt_previous = 0;
-   }    
-   PARADYN_initialize_done=1;
-
- done:   
-   dyninst_unlock(&PARADYN_initLock);
-}
-
 
 /*======================================
  *

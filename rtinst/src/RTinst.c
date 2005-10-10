@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.89 2005/09/09 18:05:44 legendre Exp $
+ * $Id: RTinst.c,v 1.90 2005/10/10 18:46:02 legendre Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -110,6 +110,9 @@ timeQueryFuncPtr_t hwWallTimeFPtrInfo = &DYNINSTgetWalltime_hw;
    will reset these to a "better" time querying function if available. */
 timeQueryFuncPtr_t PARADYNgetCPUtime  = &DYNINSTgetCPUtime_sw;
 timeQueryFuncPtr_t PARADYNgetWalltime = &DYNINSTgetWalltime_sw;
+
+void PARADYN_initialize_once();
+
 
 /************************************************************************
  * void DYNINSTstartProcessTimer(tTimer* timer)
@@ -188,8 +191,6 @@ void DYNINSTstartWallTimer(tTimer* timer)
 ************************************************************************/
 void DYNINSTstopWallTimer(tTimer* timer) 
 {
-   int i;
-  
    //unsigned index = DYNINSTthreadIndexSLOW(P_thread_self());
    //virtualTimer *vt = &(virtualTimers[index]);
    //fprintf(stderr, "stop wall-timer, lwp is %d\n", vt->lwp);
@@ -234,14 +235,19 @@ void PARADYNinit(int paradyndPid, int creationMethod,
    assert(sizeof(int32_t) == 4);
  
    /* initialize the tag and group info */
+#if !defined(os_windows)
    PARADYNtagGroupInfo_Init();
    PARADYNWinInfo_Init();
+#endif
 
    virtualTimers = virtualTimersAddr;
    RTobserved_cost = obsCostAddr;
 
+#if defined(cap_threads)
    newthr_cb = newPDThread;
    newPDThread(0);
+#endif
+
    /*
      In accordance with usual stdio rules, stdout is line-buffered and stderr
      is non-buffered.  Unfortunately, stdio is a little clever and when it
@@ -411,18 +417,6 @@ struct call_site_info{
 
 struct call_site_info *callSiteList = NULL;
 
-void DYNINSTRegisterCallee(unsigned int calleeAddress,
-                           unsigned callSiteAddress){
-  if(PARADYNCalleeSearch(callSiteAddress, calleeAddress) == 0){
-    struct callercalleeStruct c;
-    c.caller = callSiteAddress;
-    c.callee = calleeAddress;
-    PARADYNgenerateTraceRecord(TR_DYNAMIC_CALLEE_FOUND,
-                               sizeof(struct callercalleeStruct), &c, 
-                               DYNINSTgetWalltime(), DYNINSTgetCPUtime());
-  }
-}
-
 /*Needs to return 1 if the call site has been seen, 0 otherwise*/
 int PARADYNCalleeSearch(unsigned int callSiteAddr, unsigned int calleeAddr)
 {
@@ -481,6 +475,17 @@ int PARADYNCalleeSearch(unsigned int callSiteAddr, unsigned int calleeAddr)
    }
 }
 
+void DYNINSTRegisterCallee(unsigned int calleeAddress,
+                           unsigned callSiteAddress){
+  if(PARADYNCalleeSearch(callSiteAddress, calleeAddress) == 0){
+    struct callercalleeStruct c;
+    c.caller = callSiteAddress;
+    c.callee = calleeAddress;
+    PARADYNgenerateTraceRecord(TR_DYNAMIC_CALLEE_FOUND,
+                               sizeof(struct callercalleeStruct), &c, 
+                               DYNINSTgetWalltime(), DYNINSTgetCPUtime());
+  }
+}
 
 void PARADYNgenerateTraceRecord(short type, short length, void *eventData,
                                 rawTime64 wall_time, rawTime64 process_time)
@@ -491,7 +496,6 @@ void PARADYNgenerateTraceRecord(short type, short length, void *eventData,
    static unsigned trace_buffer_size = 0;
 
    int result;
-   int msg_len;
    traceHeader header;
    
    header.wall = wall_time;
@@ -499,7 +503,7 @@ void PARADYNgenerateTraceRecord(short type, short length, void *eventData,
    header.type = type;
    header.length = length;
 
-   dyninst_lock(&trace_lock);
+   result = dyninst_lock(&trace_lock);
    if (result == DYNINST_LIVE_LOCK || result == DYNINST_DEAD_LOCK)
       return;
 
@@ -518,4 +522,40 @@ void PARADYNgenerateTraceRecord(short type, short length, void *eventData,
    memcpy(trace_buffer + sizeof(traceHeader), eventData, length);
    DYNINSTuserMessage(trace_buffer, length+sizeof(traceHeader));
    dyninst_unlock(&trace_lock);                      
+}
+
+
+static DECLARE_DYNINST_LOCK(PARADYN_initLock);
+
+/*
+ * Run from the PARADYNinit
+ */
+void PARADYN_initialize_once() 
+{
+   static unsigned PARADYN_initialize_done;
+   int result;
+   unsigned i;
+   unsigned max_threads = dyninst_maxNumOfThreads();
+
+   if (PARADYN_initialize_done) 
+      return;
+
+   result = dyninst_lock(&PARADYN_initLock);
+   if (result == DYNINST_DEAD_LOCK || DYNINST_LIVE_LOCK)
+      return;
+
+   for (i = 0; i < max_threads; i++) {
+      virtualTimers[i].total = 0;
+      virtualTimers[i].start = 0;
+      virtualTimers[i].counter = 0;
+      virtualTimers[i].lwp = 0;
+      virtualTimers[i].rt_fd = 0;
+      virtualTimers[i].protector1 = 0;
+      virtualTimers[i].protector2 = 0;
+      virtualTimers[i].rt_previous = 0;
+   }    
+   PARADYN_initialize_done=1;
+
+ done:  
+   dyninst_unlock(&PARADYN_initLock);
 }

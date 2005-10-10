@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.15 2003/02/04 14:59:48 bernat Exp $
+# $Id: Makefile,v 1.16 2005/10/10 18:46:00 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -23,7 +23,7 @@ OPT_FLAG	= $(OPT_FLAG) -Oy-
 !endif
 
 LD		= link
-LDFLAGS		= -DLL -debug -debugtype:coff -PDB:NONE -base:0x70000000 #-debugtype:cv
+LDFLAGS		= -DLL -debug -debugtype:coff -PDB:NONE -base:0x70000000 #-debugtype:cv 
 
 #TARGET2		= libdyninstCP.a
 
@@ -60,6 +60,7 @@ include ../../nmake.library.tmpl
 $(TARGET): $(OBJS)
 	@$(MAKE) $(VOUCHER)
 	$(LD) $(LDFLAGS) -EXPORT:PARADYNinit -ENTRY:_DllMainCRTStartup@12 \
+	    -LIBPATH:$(TO_CORE)/../$(PLATFORM)/lib -LIBPATH:$(TO_CORE)/dyninstAPI_RT/$(PLATFORM) libdyninstAPI_RT.lib \
 	    -out:$(TARGET) $(VOUCHER).obj $(OBJS) $(LIBS) ws2_32.lib winmm.lib
 
 #$(TARGET2): $(OBJS) RTpvmPiggy.o RTcriticalPath.o

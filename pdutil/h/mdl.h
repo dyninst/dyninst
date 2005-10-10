@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.h,v 1.9 2005/01/11 22:47:27 legendre Exp $
+// $Id: mdl.h,v 1.10 2005/10/10 18:45:56 legendre Exp $
 
 #ifndef MDL_EXTRA_H
 #define MDL_EXTRA_H
@@ -49,7 +49,7 @@
 #include "pdutil/h/ByteArray.h"
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
-#include <iostream>
+#include "common/h/std_namesp.h"
 #include <fstream>
 #include "pdutil/h/aggregationDefines.h"
 

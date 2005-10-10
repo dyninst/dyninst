@@ -42,7 +42,7 @@
 /************************************************************************
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  *
- * $Id: RTetc-winnt.c,v 1.17 2005/09/09 18:05:42 legendre Exp $
+ * $Id: RTetc-winnt.c,v 1.18 2005/10/10 18:46:01 legendre Exp $
  *
  ************************************************************************/
 
@@ -68,15 +68,8 @@ DYNINSTbreakPoint(void) {
 }
 
 
-void DYNINSTos_init(int calledByFork, int calledByAttach)
-{
-#ifndef mips_unknown_ce2_11 //ccw 23 july 2001
-  RTprintf("DYNINSTos_init(%d,%d)\n", calledByFork, calledByAttach);
-#endif
-}
 /* end  ccw 4 jun 2002*/
 void PARADYNos_init(int calledByFork, int calledByAttach) {
-  RTprintf("PARADYNos_init(%d,%d)\n", calledByFork, calledByAttach);
   DYNINSTprocHandle = GetCurrentProcess();
   hintBestCpuTimerLevel  = SOFTWARE_TIMER_LEVEL;
     hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
@@ -186,8 +179,8 @@ DYNINSTgetCPUtime_sw(void) {
 	      tmp_cpuPrevious-now, now, tmp_cpuPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
-      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
-				 1, 1);
+      PARADYNgenerateTraceRecord(TR_ERROR, sizeof(traceData), &traceData, 1, 1);
+
     }
     cpuRollbackOccurred++;
     now = cpuPrevious;
@@ -219,8 +212,8 @@ DYNINSTgetWalltime_hw(void) {
 	      tmp_wallPrevious-now, now, tmp_wallPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
-      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 
-				 1, 1, 1);
+      PARADYNgenerateTraceRecord(TR_ERROR, sizeof(traceData), &traceData, 0,0);
+
     }
     wallRollbackOccurred++;
     wallPrevious = now;
@@ -260,8 +253,7 @@ DYNINSTgetWalltime_sw(void) {
 	      tmp_wallPrevious-now, now, tmp_wallPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
-      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
-				 1, 1);
+      PARADYNgenerateTraceRecord(TR_ERROR, sizeof(traceData), &traceData, 1, 1);
     }
     wallRollbackOccurred++;
     now = wallPrevious;

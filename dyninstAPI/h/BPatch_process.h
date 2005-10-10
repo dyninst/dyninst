@@ -64,7 +64,7 @@ class BPatch_process;
 class BPatch_funcMap;
 class BPatch_instpMap;
 class int_function;
-class batchInsertionRecord;
+struct batchInsertionRecord;
 
 typedef enum {
   BPatch_nullEvent,

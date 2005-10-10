@@ -42,7 +42,7 @@
 #ifndef _BPatch_sourceBlock_h_
 #define _BPatch_sourceBlock_h_
 
-#include <iostream>
+#include "common/h/std_namesp.h"
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_Set.h"

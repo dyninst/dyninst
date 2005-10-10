@@ -6,6 +6,12 @@
       libraries.
   */
 
+#if defined (_MSC_VER)
+//If we're on Windows, we need to explicetely export these functions:
+#define DLLEXPORT __declspec(dllexport) 
+#else
+#define DLLEXPORT
+#endif
   /*
     DYNINSTuserMessage(void *msg, unsigned int msg_size) may be used 
     in conjunction with the dyninstAPI method 
@@ -19,7 +25,7 @@
 
     Returns zero on success, nonzero on failure.
   */
-extern int DYNINSTuserMessage(void *msg, unsigned int msg_size);
+DLLEXPORT int DYNINSTuserMessage(void *msg, unsigned int msg_size);
 
 
 /**
@@ -45,16 +51,16 @@ typedef struct {
 //Declare a lock already initialized
 #define DECLARE_DYNINST_LOCK(lck) dyninst_lock_t lck = {0, 0}
 
-extern void dyninst_init_lock(dyninst_lock_t *lock);
-extern void dyninst_free_lock(dyninst_lock_t *lock);
-extern int dyninst_lock(dyninst_lock_t *lock);
-extern void dyninst_unlock(dyninst_lock_t *lock);
+DLLEXPORT void dyninst_init_lock(dyninst_lock_t *lock);
+DLLEXPORT void dyninst_free_lock(dyninst_lock_t *lock);
+DLLEXPORT int dyninst_lock(dyninst_lock_t *lock);
+DLLEXPORT void dyninst_unlock(dyninst_lock_t *lock);
 
 /**
  * Functions for retrieving information about threads
  **/
-extern unsigned dyninst_maxNumOfThreads();
-extern unsigned dyninst_threadIndex();
+DLLEXPORT unsigned dyninst_maxNumOfThreads();
+DLLEXPORT unsigned dyninst_threadIndex();
 
 #endif
 #endif

@@ -188,7 +188,7 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     ~,BPatch_thread,());
 
     API_EXPORT(Int, (),
-    int, proc_fd, ());
+    unsigned long, os_handle, ());
 
     // DO NOT USE
     // this function should go away as soon as Paradyn links against Dyninst

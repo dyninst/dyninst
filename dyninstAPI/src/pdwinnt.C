@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.143 2005/09/28 17:03:14 bernat Exp $
+// $Id: pdwinnt.C,v 1.144 2005/10/10 18:45:41 legendre Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -1031,11 +1031,8 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
    procSignalInfo_t info;
    procSignalWhy_t  why;
    procSignalWhat_t what;
-#if defined(mips_unknown_ce2_11) //ccw 28 july 2000 : 29 mar 2001
-   if (!BPatch::bpatch->rDevice->RemoteWaitForDebugEvent(&info, milliseconds))
-#else
+
    if (!WaitForDebugEvent(&info, milliseconds))
-#endif    
    {
       DWORD err = GetLastError();
       if ((WAIT_TIMEOUT == err) || (ERROR_SEM_TIMEOUT == err))
@@ -1054,15 +1051,8 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
          to parse the symbol table, and so don't complete the creation of the
          process. We just ignore the event here.  */
         
-#if defined(mips_unknown_ce2_11) //ccw 28 july 2000 : 29 mar 2001
-      BPatch::bpatch->rDevice->RemoteContinueDebugEvent(info.dwProcessId,
-                                                        info.dwThreadId, 
-                                                        DBG_CONTINUE);
-#else
 		ContinueDebugEvent(info.dwProcessId, info.dwThreadId, 
                          DBG_CONTINUE);
-        
-#endif
       return false;
    }
     
@@ -1824,48 +1814,6 @@ bool OS::osKill(int pid) {
 #endif
     return res;
 }
-
-#if !defined(BPATCH_LIBRARY)
-rawTime64 dyn_lwp::getRawCpuTime_hw() {
-  fprintf(stderr, "dyn_lwp::getRawCpuTime_hw: not implemented\n");
-  return 0;
-}
-
-rawTime64
-FILETIME2rawTime64( FILETIME& ft )
-{
-    return (((rawTime64)(ft).dwHighDateTime<<32) | 
-	    ((rawTime64)(ft).dwLowDateTime));
-}
-
-/* return unit: nsecs */
-rawTime64 dyn_lwp::getRawCpuTime_sw() 
-{
-  FILETIME kernelT, userT, creatT, exitT;
-  rawTime64 now;
-  if(GetThreadTimes( (HANDLE)fd_,
-      &creatT, &exitT, &kernelT,&userT)==0) {
-    return 0;
-  }
-
-  // GetProcessTimes returns values in 100-ns units
-  now = (FILETIME2rawTime64(userT)+FILETIME2rawTime64(kernelT));
-
-  // time shouldn't go backwards, but we'd better handle it if it does
-//  printf(" %I64d %I64d \n", now, previous);
-  if (now < sw_previous_) {
-	  //DebugBreak();
-     logLine("********* time going backwards in paradynd **********\n");
-     now = sw_previous_;
-  }
-  else {
-     sw_previous_ = now;
-  }
-
-  return now;
-}
-
-#endif
 
 bool process::getExecFileDescriptor(pdstring filename,
                                     int pid,

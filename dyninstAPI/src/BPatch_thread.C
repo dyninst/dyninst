@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.132 2005/09/28 17:02:44 bernat Exp $
+// $Id: BPatch_thread.C,v 1.133 2005/10/10 18:45:39 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -275,8 +275,15 @@ void BPatch_thread::BPatch_thread_dtor()
    }
 }
 
-int BPatch_thread::proc_fdInt()
+/**
+ * Paradynd sometimes wants handles to the OS threads for reading timing information.
+ * Not sure if this should become a part of the public, supported interface.
+ **/
+unsigned long BPatch_thread::os_handleInt()
 {
-    // This is an unsafe cast on Windows. Anyone know why it's here?
-    return (int) llthread->get_lwp()->usage_fd();
+#if !defined(os_windows)
+    return (unsigned long) llthread->get_lwp()->usage_fd();
+#else
+    return (unsigned long) llthread->get_lwp()->get_fd();
+#endif
 }

@@ -43,7 +43,7 @@
 #define DEBUG_HDR
 
 #include <stdio.h>
-#include <iostream>
+#include "common/h/std_namesp.h"
 
 extern int pd_debug_metric;
 extern int pd_debug_catchup;

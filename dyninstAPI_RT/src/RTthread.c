@@ -217,34 +217,6 @@ void DYNINST_dummy_create()
 /**
  * Some exported wrapper function for other runtime libraries to use tc_lock
  **/
-void dyninst_init_lock(dyninst_lock_t *lock)
-{
-   lock->mutex = 0;
-   lock->tid = -1;
-}
-
-void dyninst_free_lock(dyninst_lock_t *lock)
-{
-}
-
-int dyninst_lock(dyninst_lock_t *lock)
-{
-   return tc_lock_lock(lock);
-}
-
-void dyninst_unlock(dyninst_lock_t *lock)
-{
-   tc_lock_unlock(lock);
-}
-
-unsigned dyninst_maxNumOfThreads()
-{
-   if (!DYNINSThasInitialized)
-      return 0;
-   if (!DYNINST_multithread_capable)
-      return 1;
-   return DYNINST_max_num_threads;
-}
 
 unsigned dyninst_threadIndex()
 {

@@ -84,7 +84,7 @@ rawTime64 pd_thread::getRawCpuTime_sw()
 #endif
 
   // compute the CPU timer for the whole process
-  if(pread(dyninst_thread->proc_fd(), &theUsage, sizeof(prusage_t), 0) 
+  if(pread(dyninst_thread->os_handle(), &theUsage, sizeof(prusage_t), 0) 
      != sizeof(prusage_t))
   {
      perror("getInfCPU: read");

@@ -40,6 +40,7 @@
  */
 
 #include "paradynd/src/instReqNode.h"
+#include "paradynd/src/debug.h"
 #include "dyninstAPI/h/BPatch_snippet.h"
 #include "common/h/timing.h"
 #include "paradynd/src/pd_process.h"
@@ -262,7 +263,6 @@ typedef enum {nowhere_l,
               notMissed_l, 
               missed_l, 
               afterPoint_l} logicalPCLocation_t;
-extern bool pd_debug_catchup;
 
 bool instReqNode::triggeredInStackFrame(Frame &frame, 
                                         pd_process *p)

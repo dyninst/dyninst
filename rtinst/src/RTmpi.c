@@ -169,8 +169,6 @@ struct ParadynWin_st;
 void PARADYNWinInfo_Init( void );
 static void PARADYNreportNewWindow(const struct ParadynWin_st *);
 static unsigned int PARADYNWindow_CreateUniqueId(unsigned int, int);
-static int PARADYNCalleeSearch(unsigned int callSiteAddr, 
-                               unsigned int calleeAddr);
 
 /*****************************************************************************
  * Support for discovering new communication groups and message tags.

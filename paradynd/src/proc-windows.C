@@ -46,6 +46,7 @@
 #include "common/h/timing.h"
 #include "common/h/Types.h"
 #include "paradynd/src/pd_process.h"
+#include "paradynd/src/pd_thread.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/h/BPatch_process.h"
 
@@ -57,14 +58,48 @@ void pd_process::initCpuTimeMgrPlt() {
 }
 
 rawTime64 pd_process::getAllLwpRawCpuTime_hw() {
-   process *pr = get_dyn_process()->lowlevel_process();
-   dyn_lwp *lwp = pr->getRepresentativeLWP();
-   return lwp->getRawCpuTime_hw();
+   return STthread()->getRawCpuTime_hw();
 }
 
 rawTime64 pd_process::getAllLwpRawCpuTime_sw() {
-   process *pr = get_dyn_process()->lowlevel_process();
-   dyn_lwp *lwp = pr->getRepresentativeLWP();
-   return lwp->getRawCpuTime_sw();
+   return STthread()->getRawCpuTime_sw();
+} 
+
+rawTime64 pd_thread::getRawCpuTime_hw() {
+  fprintf(stderr, "dyn_lwp::getRawCpuTime_hw: not implemented\n");
+  return 0;
 }
 
+rawTime64
+FILETIME2rawTime64( FILETIME& ft )
+{
+    return (((rawTime64)(ft).dwHighDateTime<<32) | 
+	    ((rawTime64)(ft).dwLowDateTime));
+}
+
+/* return unit: nsecs */
+rawTime64 pd_thread::getRawCpuTime_sw() 
+{
+  FILETIME kernelT, userT, creatT, exitT;
+  rawTime64 now;
+  if(GetThreadTimes( (HANDLE) dyninst_thread->os_handle(),
+      &creatT, &exitT, &kernelT,&userT)==0) {
+    return 0;
+  }
+
+  // GetProcessTimes returns values in 100-ns units
+  now = (FILETIME2rawTime64(userT)+FILETIME2rawTime64(kernelT));
+
+  // time shouldn't go backwards, but we'd better handle it if it does
+//  printf(" %I64d %I64d \n", now, previous);
+  if (now < sw_previous_) {
+	  //DebugBreak();
+     logLine("********* time going backwards in paradynd **********\n");
+     now = sw_previous_;
+  }
+  else {
+     sw_previous_ = now;
+  }
+
+  return now;
+}

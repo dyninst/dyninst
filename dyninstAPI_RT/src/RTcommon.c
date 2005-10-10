@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.46 2005/09/09 18:05:16 legendre Exp $ */
+/* $Id: RTcommon.c,v 1.47 2005/10/10 18:45:43 legendre Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -356,3 +356,35 @@ int tc_lock_destroy(tc_lock_t *t)
   return 0;
 }
 
+void dyninst_init_lock(dyninst_lock_t *lock)
+{
+   lock->mutex = 0;
+   lock->tid = -1;
+}
+
+void dyninst_free_lock(dyninst_lock_t *lock)
+{
+}
+
+int dyninst_lock(dyninst_lock_t *lock)
+{
+   return tc_lock_lock(lock);
+}
+
+void dyninst_unlock(dyninst_lock_t *lock)
+{
+   tc_lock_unlock(lock);
+}
+
+unsigned dyninst_maxNumOfThreads()
+{
+#if !defined(cap_threads)
+   return 1;
+#else
+   if (!DYNINSThasInitialized)
+      return 0;
+   if (!DYNINST_multithread_capable)
+      return 1;
+   return DYNINST_max_num_threads;
+#endif
+}

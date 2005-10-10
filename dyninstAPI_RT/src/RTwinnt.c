@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTwinnt.c,v 1.13 2005/09/09 18:05:32 legendre Exp $
+ * $Id: RTwinnt.c,v 1.14 2005/10/10 18:45:45 legendre Exp $
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  ************************************************************************/
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
@@ -139,7 +139,7 @@ int DYNINSTasyncConnect()
   WSADATA wsadata;
   rtBPatch_asyncEventRecord ev;
 
-  fprintf(stderr, "%s[%d]:  inside DYNINSTasyncConnect\n", __FILE__, __LINE__);
+  //fprintf(stderr, "%s[%d]:  inside DYNINSTasyncConnect\n", __FILE__, __LINE__);
   if (0 == connect_port) {
     fprintf(stderr, "%s[%d]:  DYNINSTasyncConnect, no port no\n",
             __FILE__, __LINE__);

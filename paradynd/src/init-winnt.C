@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-winnt.C,v 1.16 2005/09/09 18:07:33 legendre Exp $
+// $Id: init-winnt.C,v 1.17 2005/10/10 18:45:49 legendre Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/init.h"
@@ -123,11 +123,6 @@ void initWallTimeMgrPlt() {
 
 void pd_process::initOSPreLib()
 {
-}
-
-pdstring formatLibParadynName(pdstring orig)
-{
-   return orig;
 }
 
 /**

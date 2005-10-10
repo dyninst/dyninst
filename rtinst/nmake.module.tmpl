@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.6 2003/02/04 14:59:46 bernat Exp $
+# $Id: nmake.module.tmpl,v 1.7 2005/10/10 18:45:58 legendre Exp $
 #
 
 !ifndef TARGET
@@ -13,9 +13,9 @@ TARGET	      = libparadynRT.dll
 MODCC         = $(CC)
 MODCFLAGS     = $(CFLAGS)
 
-SRCS		= ../src/RTfirst.c $(SRCS) ../src/RTinst.c ../src/RTend.c
+SRCS		= $(SRCS) ../src/RTinst.c
 
-OBJS		= RTfirst.obj $(OBJS) RTinst.obj RTend.obj
+OBJS		= $(OBJS) RTinst.obj
 
 !ifdef USES_SHM_SAMPLING
 CFLAGS	= $(CFLAGS) -DSHM_SAMPLING

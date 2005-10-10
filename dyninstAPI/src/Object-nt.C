@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.37 2005/09/28 17:02:45 bernat Exp $
+// $Id: Object-nt.C,v 1.38 2005/10/10 18:45:40 legendre Exp $
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -650,12 +650,12 @@ Object::ParseDebugInfo( void )
 
         //make up a func name for the start of the text section
         ::Symbol sSym( "winStart", "DEFAULT_MODULE",::Symbol::PDST_FUNCTION,
-                       ::Symbol::SL_GLOBAL, code_off_, 0, UINT_MAX );
+                       ::Symbol::SL_GLOBAL, code_off(), 0, UINT_MAX );
         symbols_[ "winStart" ].push_back( sSym );
         
         //make up one for the end of the text section
         ::Symbol fSym( "winFini", "DEFAULT_MODULE",::Symbol::PDST_FUNCTION,
-                       ::Symbol::SL_GLOBAL, code_off_ + code_len_, 
+                       ::Symbol::SL_GLOBAL, code_off() + code_len_ - 1, 
                        0, UINT_MAX );
         symbols_[ "winFini" ].push_back( fSym );
     }

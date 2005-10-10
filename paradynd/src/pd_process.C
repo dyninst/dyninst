@@ -501,11 +501,6 @@ pd_process::pd_process(const pd_process &parent, BPatch_process *childDynProc) :
    {
       pd_thread *pd_thr = new pd_thread(threads[i], this);
       addThread(pd_thr);
-      if (dyninst_process->isMultithreaded())
-      {
-         // This is mostly duplicated from context.C::createThread.
-         // Problem is, in this case we _have_ threads already...     
-      }
    }
 }
 

@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.52 2005/10/04 18:09:43 legendre Exp $
+# $Id: nmake.module.tmpl,v 1.53 2005/10/10 18:45:46 legendre Exp $
 #
 
 TARGET	      = paradynd.exe
@@ -78,7 +78,6 @@ OBJS      = $(OBJS) ast.obj \
 		CodeView.obj \
 		comm.obj \
 		context.obj \
-		debugger.obj \
 		dynrpc.obj \
 		init.obj \
                 arch.obj \
@@ -97,7 +96,6 @@ OBJS      = $(OBJS) ast.obj \
 		costmetrics.obj \
 		metricDefs-critPath.obj \
       api_showerror.obj \
-      BPatch_init.obj \
       BPatch.obj \
       BPatch_type.obj \
       BPatch_thread.obj \
@@ -117,8 +115,6 @@ OBJS      = $(OBJS) ast.obj \
 		BPatch_flowGraph.obj \
 		BPatch_eventLock.obj \
 		BPatch_asyncEventHandler.obj \
-		BPatch_edge.obj \
-		BPatch_loopTreeNode.obj \
 		Object.obj \
 		MemoryAccess.obj \
 		BPatch_instruction.obj \
@@ -128,14 +124,14 @@ OBJS      = $(OBJS) ast.obj \
 		stats.obj \
 		symtab.obj \
 		function.obj \
-                image-func.obj \
-                variable.obj \
-                mapped_object.obj \ 
-                mapped_module.obj \
-                InstrucIter-xplat.obj \
-                multiTramp.obj \
-                baseTramp.obj \
-                miniTramp.obj \
+		image-func.obj \
+		variable.obj \
+		InstrucIter-xplat.obj \
+		multiTramp.obj \
+		baseTramp.obj \
+		miniTramp.obj \
+		mapped_object.obj \
+		mapped_module.obj \
 		util.obj \
  		mdl.obj \
  		mdld_data.obj \
@@ -149,6 +145,7 @@ OBJS      = $(OBJS) ast.obj \
 		rpcMgr.obj \
 		rpcMgr-thr.obj \
 		rpcMgr-lwp.obj \
+		reloc-func.obj \
 		LineInformation.obj \
 		processMgr.obj \
                 pd_process.obj \
