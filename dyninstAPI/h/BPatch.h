@@ -49,10 +49,6 @@
 #include "BPatch_type.h"
 #include "BPatch_eventLock.h"
 
-#ifdef mips_unknown_ce2_11 //ccw 28 july 2000
-#include "remoteDevice.h"
-#endif
-
 class BPatch_typeCollection;
 class BPatch_libInfo;
 class BPatch_module;
@@ -190,11 +186,6 @@ public:
     BPatch_type			 *type_Error;
     BPatch_type			 *type_Untyped;
     BPatch_asyncEventHandler     *eventHandler;
-
-#ifdef mips_unknown_ce2_11 //ccw 28 july 2000
-    remoteDevice *rDevice;	//the ctor sets up the connection here and
-				//gets the tramptemplate from the CE device.
-#endif
 
     // The following are only to be called by the library:
     //  These functions are not locked.
@@ -549,7 +540,7 @@ public:
 };
 
 
-#if defined(IBM_BPATCH_COMPAT) && (defined(rs6000_ibm_aix4_1) || defined(rs6000_ibm_aix5_1)) 
+#if defined(IBM_BPATCH_COMPAT)
 #include <sys/ldr.h>
 
 typedef struct LD_INFO {

@@ -49,14 +49,6 @@
 #include <assert.h>
 #include <BPatch_dll.h>
 
-#if !defined(os_windows)
-#include <pthread.h> // Trying native windows threads for now
-#else
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <winsock2.h>
-#endif
-
 #if defined(os_irix) || defined (os_windows)
 #define CONST_EXPORT
 #else
@@ -79,27 +71,7 @@
  * api's to dyninst
  */
 
-#if defined(os_windows)
-#define MUTEX_TYPE CRITICAL_SECTION
-extern MUTEX_TYPE global_mutex;
-#else
-#define MUTEX_TYPE pthread_mutex_t
-extern MUTEX_TYPE global_mutex;
-#endif
-
 extern bool mutex_created;
-#if defined(os_linux) && defined (arch_x86)
-#define PTHREAD_MUTEX_TYPE PTHREAD_MUTEX_RECURSIVE_NP
-#define STRERROR_BUFSIZE 512
-#define ERROR_BUFFER char buf[STRERROR_BUFSIZE]
-#define STRERROR(x,y) strerror_r(x,y,STRERROR_BUFSIZE)
-#else
-#define ERROR_BUFFER
-#define PTHREAD_MUTEX_TYPE PTHREAD_MUTEX_RECURSIVE
-#define STRERROR_BUFSIZE 0
-#define STRERROR(x,y) strerror(x)
-#endif
-
 
 //  BPatch_eventLock
 //  

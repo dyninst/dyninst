@@ -47,15 +47,9 @@
 // SHM_SAMPLING because it is defined for paradynd and not for the dyninst
 // dll or dyninst clients, read '#if PARADYND'. 
 #ifdef SHM_SAMPLING
-
 #define	BPATCH_DLL_EXPORT
-
-// otherwise we are not building paradynd
 #else
-
-#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 6 apr 2001
-// we are building for a Windows target 
-
+#if defined(_MSC_VER)
 // we get numerous spurious warnings about having some template classes
 // needing to have a dll-interface if instances of these classes are
 // to be used by classes whose public interfaces are exported from a DLL.
@@ -63,7 +57,6 @@
 // satisfy the compiler.  Until the compiler handles instantiated
 // templates exported from DLLs better, we disable the warning when building
 // or using the dyninstAPI DLL.
-//
 #pragma warning(disable:4251)
 
 #ifdef BPATCH_DLL_BUILD

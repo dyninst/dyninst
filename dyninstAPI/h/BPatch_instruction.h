@@ -50,17 +50,7 @@ class BPATCH_DLL_EXPORT BPatch_instruction {
 
  public:
   // maximum number of memory accesses per instruction; platform dependent
-#if defined(i386_unknown_nt4_0)
-  // Translation from C++ to VC++ 6.0
-#define nmaxacc_NP 2
-#elif defined(i386_unknown_linux2_0) \
-   || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
-  static const unsigned int nmaxacc_NP = 2;
-#elif defined (__XLC__) || defined(__xlC__)
-#define nmaxacc_NP 1
-#else
-  static const unsigned int nmaxacc_NP = 1;
-#endif
+   static unsigned int nmaxacc_NP;
 
  protected:
 
@@ -68,19 +58,18 @@ class BPATCH_DLL_EXPORT BPatch_instruction {
   void *instr; // Can't mention instruction here
   unsigned char *buffer;
   int length;
-  bool isLoad[nmaxacc_NP];
-  bool isStore[nmaxacc_NP];
-  int preFcn[nmaxacc_NP];       // prefetch function (-1 = none)
-  int condition[nmaxacc_NP];    // -1 means no condition, all other values are machine specific
+  bool *isLoad;
+  bool *isStore;
+  int *preFcn;       // prefetch function (-1 = none)
+  int *condition;    // -1 means no condition, all other values are machine specific
                                 // conditions, currently (8/13/02) the tttn field on x86
-  bool nonTemporal[nmaxacc_NP]; // non-temporal (cache non-polluting) write on x86
+  bool *nonTemporal; // non-temporal (cache non-polluting) write on x86
 
  public:
 
   BPatch_instruction(const void *_buffer,
 		     unsigned char _length);
-
-  virtual ~BPatch_instruction() { if (buffer != NULL) delete[] buffer; }
+  virtual ~BPatch_instruction();
 
   void getInstruction(unsigned char *&_buffer, unsigned char &_length) {
     _buffer = buffer;

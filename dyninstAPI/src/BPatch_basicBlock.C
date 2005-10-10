@@ -242,42 +242,6 @@ void bitarray_diff(BITARRAY* s1,BITARRAY* s2,BITARRAY* r)
 		*((r->data)+i) = *((s1->data)+i) & (~(*((s2->data)+i)));
 }
 
-
-#if defined (arch_ia64)
-BPatch_Set< BPatch_basicBlock * > *BPatch_basicBlock::getDataFlowInInt() CONST_EXPORT
-{
-  return dataFlowIn;
-}
-BPatch_Set< BPatch_basicBlock * > * BPatch_basicBlock::getDataFlowOutInt() CONST_EXPORT
-{
-  return dataFlowOut;
-}
-void BPatch_basicBlock::setDataFlowInInt(BPatch_Set< BPatch_basicBlock * > *dfi)
-{
-  dataFlowIn = dfi;
-}
-void BPatch_basicBlock::setDataFlowOutInt(BPatch_Set< BPatch_basicBlock * > *dfo)
-{
-  dataFlowOut = dfo;
-}
-BPatch_basicBlock * BPatch_basicBlock::getDataFlowGenInt() CONST_EXPORT
-{
-   return dataFlowGen;
-}
-void BPatch_basicBlock::setDataFlowGenInt(BPatch_basicBlock *dfg)
-{
-  dataFlowGen = dfg;
-}
-BPatch_basicBlock *BPatch_basicBlock::getDataFlowKillInt() CONST_EXPORT
-{
-  return dataFlowKill;
-}
-void BPatch_basicBlock::setDataFlowKillInt(BPatch_basicBlock *dfk)
-{
-  dataFlowKill = dfk;
-}
-#endif
-
 BPatch_basicBlock::BPatch_basicBlock(int_basicBlock *ib, BPatch_flowGraph *fg):
    iblock(ib),
    flowGraph(fg),

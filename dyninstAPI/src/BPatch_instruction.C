@@ -50,10 +50,22 @@
  * BPatch_instruction
  *************************************************************************/
 
+#if defined(arch_x86) || defined(arch_x86_64)
+unsigned int BPatch_instruction::nmaxacc_NP = 2;
+#else
+unsigned int BPatch_instruction::nmaxacc_NP = 1;
+#endif
+
 BPatch_instruction::BPatch_instruction(const void *_buffer,
 				       unsigned char _length) : nacc(0), length(_length)
 {
   assert(_buffer);
+
+  isLoad = new bool[nmaxacc_NP];
+  isStore = new bool[nmaxacc_NP];
+  preFcn = new int[nmaxacc_NP];
+  condition = new int[nmaxacc_NP];
+  nonTemporal = new bool[nmaxacc_NP];
 
   for (unsigned int i=0; i < nmaxacc_NP; i++) {
     isLoad[i] = false;
@@ -67,6 +79,16 @@ BPatch_instruction::BPatch_instruction(const void *_buffer,
   memcpy(buffer, _buffer, length * sizeof(unsigned char));
 }
 
+BPatch_instruction::~BPatch_instruction() {
+   if (buffer)
+      delete[] buffer;
+
+   delete isLoad;
+   delete isStore;
+   delete preFcn;
+   delete condition;
+   delete nonTemporal;
+}
 
 
 

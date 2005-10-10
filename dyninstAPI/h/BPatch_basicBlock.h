@@ -141,70 +141,11 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
    /** constructor of class */
    BPatch_basicBlock(int_basicBlock *ib, BPatch_flowGraph *fg);
 
-#if defined( arch_ia64 )
-	/* These may be fairly general, */
-	BPatch_Set< BPatch_basicBlock * > * dataFlowIn;
-	BPatch_Set< BPatch_basicBlock * > * dataFlowOut;
-	
-	/* but these are certainly not.   Notionally,
-	   all four of these could be factored out into an
-	   associative array (or four), from basicBlock pointers
-	   to data flow data, but for now, I won't do that. */
-	BPatch_basicBlock * dataFlowGen;
-	BPatch_basicBlock * dataFlowKill;
-#endif	
-   
  public:
    
    // Internal functions. Don't use these unless you know what you're
    // doing.
    const int_basicBlock *lowlevel_block() const { return iblock; }
-
-
-#if defined( arch_ia64 )
-   // const accessor functions
-
-   //  BPatch_basicBlock::getDataFlowIn
-   //
-   API_EXPORT(Int, (),
-              BPatch_Set< BPatch_basicBlock * > *,getDataFlowIn,() CONST_EXPORT);
-        
-   //  BPatch_basicBlock::getDataFlowOut
-   //
-   API_EXPORT(Int, (),
-              BPatch_Set< BPatch_basicBlock * > *,getDataFlowOut,() CONST_EXPORT);
-
-   //  BPatch_basicBlock::getDataFlowGen
-   //
-   API_EXPORT(Int, (),
-              BPatch_basicBlock *,getDataFlowGen,() CONST_EXPORT);
-
-   //  BPatch_basicBlock::getDataFlowKill
-   //
-   API_EXPORT(Int, (),
-              BPatch_basicBlock *,getDataFlowKill,() CONST_EXPORT);
-
-   //  BPatch_basicBlock::setDataFlowIn
-   //
-   API_EXPORT_V(Int, (dfi),
-                void,setDataFlowIn,(BPatch_Set< BPatch_basicBlock * > *dfi));
-   
-   //  BPatch_basicBlock::setDataFlowOut
-   //
-   API_EXPORT_V(Int, (dfo),
-                void,setDataFlowOut,(BPatch_Set< BPatch_basicBlock * > *dfo));
-
-   //  BPatch_basicBlock::setDataFlowGen
-   //
-   API_EXPORT_V(Int, (dfg),
-                void,setDataFlowGen,(BPatch_basicBlock *dfg));
-
-   //  BPatch_basicBlock::setDataFlowKill
-   //
-   API_EXPORT_V(Int, (dfk),
-                void,setDataFlowKill,(BPatch_basicBlock *dfk));
-	
-#endif /* defined( arch_ia64 ) */
 
 #if defined (arch_power)
 	/** BPatch_basicBlock::initRegisterGenKill */

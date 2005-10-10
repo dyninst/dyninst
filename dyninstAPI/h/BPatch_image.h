@@ -42,11 +42,6 @@
 #ifndef _BPatch_image_h_
 #define _BPatch_image_h_
 
-
-#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
-#include <regex.h>
-#endif 
-
 #include "BPatch_dll.h"
 #include "BPatch_sourceObj.h"
 #include "BPatch_Vector.h"
@@ -300,12 +295,6 @@ private:
     void findFunctionInImage(const char *name, image *img,
 			     BPatch_Vector<BPatch_function*> *funcs,
 			     bool incUninstrumentable = false);
-    
-#if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11) // no regex for M$
-    void findFunctionPatternInImage(regex_t *comp_pat, image *img, 
-				    BPatch_Vector<BPatch_function*> *funcs,
-				    bool incUninstrumentable = false);
-#endif
     void sieveFunctionsInImage(image *img, 
 			       BPatch_Vector<BPatch_function *> *funcs,
 			       BPatchFunctionNameSieve bpsieve, 
