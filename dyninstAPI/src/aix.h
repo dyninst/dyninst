@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.h,v 1.19 2005/07/29 19:18:07 bernat Exp $
+// $Id: aix.h,v 1.20 2005/10/11 07:32:07 jodom Exp $
 
 #if !defined(rs6000_ibm_aix3_2) && !defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
 #error "invalid architecture-os inclusion"
@@ -87,6 +87,6 @@ struct dyn_saved_regs
 };
 #endif
 
-#define NUM_SYSCALLS 512
+#define NUM_SYSCALLS 1024
 
 #endif
