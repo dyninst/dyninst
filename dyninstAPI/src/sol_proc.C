@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.66 2005/10/04 18:09:57 legendre Exp $
+// $Id: sol_proc.C,v 1.67 2005/10/11 07:15:15 jodom Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -93,6 +93,7 @@ void OS::osTraceMe(void) {
     if (pread(stat_fd, (void *)&status, sizeof(pstatus_t), 0) !=
         sizeof(pstatus_t)) {
         perror("osTraceMe::pread");
+        SYSSET_FREE(exitSet);
         delete [] buf;
         return;
     }
@@ -110,6 +111,7 @@ void OS::osTraceMe(void) {
     int fd = P_open(procName, O_WRONLY, 0);
     if (fd < 0) {
         perror("open");
+        SYSSET_FREE(exitSet);
         delete [] buf;
         return;
     }
@@ -135,6 +137,7 @@ void OS::osTraceMe(void) {
     // close bits. For now, leaving the FD open works.
     //close(fd);    
 
+    SYSSET_FREE(exitSet);
     delete [] buf;
 }
 /*
