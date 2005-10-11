@@ -197,8 +197,8 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     static void newThreadCB(process *p, int id, int lwp);
     protected:
     // for creating a process
-    BPatch_process(const char *path, char *argv[], char *envp[] = NULL, 
-                  int stdin_fd = 0, int stdout_fd = 1, int stderr_fd = 2);
+    BPatch_process(const char *path, const char *argv[], const char *envp[] = NULL, 
+                   int stdin_fd = 0, int stdout_fd = 1, int stderr_fd = 2);
     // for attaching
     BPatch_process(const char *path, int pid);	
 
