@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.43 2005/09/28 17:02:46 bernat Exp $
+// $Id: Object-xcoff.C,v 1.44 2005/10/11 07:14:25 jodom Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -124,7 +124,7 @@ int Archive_32::read_arhdr()
 
 int Archive_64::read_arhdr()
 {
-  char tmpstring[21];
+  char tmpstring[22];
 
   if (!fo_->set(0))
       return -1;
@@ -1074,6 +1074,7 @@ void Object::load_archive(bool is_aout) {
     else
         bperr( "Member name %s not found in archive %s!\n",
                member_.c_str(), file_.c_str());
+    delete archive;
     return;
 }
 
