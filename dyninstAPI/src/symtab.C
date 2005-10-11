@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.258 2005/10/04 18:10:17 legendre Exp $
+ // $Id: symtab.C,v 1.259 2005/10/11 07:16:04 jodom Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -517,7 +517,7 @@ bool image::addSymtabVariables()
 #endif
 #if !defined(os_windows)
       // Windows: variables are created with an empty module
-      if (strlen(symInfo.module().c_str()) == 0) {
+      if (symInfo.module().length() == 0) {
           //fprintf(stderr, "SKIPPING EMPTY MODULE\n");
           continue;
       }
