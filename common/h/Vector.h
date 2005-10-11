@@ -441,7 +441,8 @@ pdvector<T, A>::push_back(const T& t) {
 template<class T, class A>
 DO_INLINE_F
 void pdvector<T, A>::sort(qsort_cmpfunc_t cmpfunc) {
-   qsort((void *) data_, sz_, sizeof(T), cmpfunc);
+   if (sz_)
+      qsort((void *) data_, sz_, sizeof(T), cmpfunc);
 }
 
 template<class T, class A>
