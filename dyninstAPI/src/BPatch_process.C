@@ -129,7 +129,7 @@ int BPatch_process::getPidInt()
  *              environment variables for the new process, terminated by a
  *              NULL pointer.  If NULL, the default environment will be used.
  */
-BPatch_process::BPatch_process(const char *path, char *argv[], char *envp[],
+BPatch_process::BPatch_process(const char *path, const char *argv[], const char **envp,
                                int stdin_fd, int stdout_fd, int stderr_fd)
    : llproc(NULL), image(NULL), lastSignal(-1), exitCode(-1), 
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 

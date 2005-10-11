@@ -623,6 +623,12 @@ void BPatch_module::parseTypes()
 		    funcName = NULL;
 		}
 		funcName = strdup(nmPtr);
+		/* The call to parseLineInformation(), below, used to modify the symbols passed to it. */
+		char * colonPtr = strchr( funcName, ':' );
+		if( colonPtr != NULL ) {
+			* colonPtr = '\0';
+		}
+
 //		I'm not sure why we bother with this here, since we fetch line numbers in symtab.C anyway.
 //		mod->parseLineInformation(proc->llproc, currentSourceFile, 
 //					  funcName, sym,

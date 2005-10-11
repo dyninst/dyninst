@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.102 2005/09/09 18:06:15 legendre Exp $
+// $Id: BPatch.C,v 1.103 2005/10/11 07:11:36 jodom Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -974,7 +974,7 @@ void BPatch::unRegisterProcess(int pid)
 
  */
 BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[], 
-                                         const char *envp[], int stdin_fd, 
+                                         const char **envp, int stdin_fd, 
                                          int stdout_fd, int stderr_fd)
 {
     clearError();
@@ -982,8 +982,8 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
     if( path == NULL ) { return NULL; }
 
     BPatch_process *ret = 
-       new BPatch_process(path, const_cast<char **>(argv), 
-                          const_cast<char **>(envp), 
+       new BPatch_process(path, argv, 
+                          envp, 
                           stdin_fd, stdout_fd, stderr_fd);
     
     if (!ret->llproc ||
@@ -1017,7 +1017,7 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
  * This function is deprecated, see processCreate
  */
 BPatch_thread *BPatch::createProcessInt(const char *path, const char *argv[], 
-                                         const char *envp[], int stdin_fd, 
+                                         const char **envp, int stdin_fd, 
                                          int stdout_fd, int stderr_fd)
 {
    BPatch_process *ret = processCreate(path, argv, envp, stdin_fd, 
