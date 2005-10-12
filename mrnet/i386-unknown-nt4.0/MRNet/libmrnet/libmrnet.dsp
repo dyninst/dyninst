@@ -189,15 +189,16 @@ SOURCE=..\..\..\mrnet\src\scanner.l
 InputPath=..\..\..\mrnet\src\scanner.l
 
 BuildCmds= \
-	bison -p mrn -d -y ..\..\..\mrnet\src\parser.y \
+	bison.exe -p mrn -d -y ..\..\..\mrnet\src\parser.y \
 	perl ..\..\..\..\..\scripts\vcStripStd.pl < y.tab.c > parser.C \
 	del y.tab.c \
 	move y.tab.h parser.tab.h \
-	cl /nologo /D "WIN32" /D "os_windows" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D "_WIN32_WINNT=0x0500" /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /I "..\..\.." /I "..\..\..\mrnet\h" /I "..\..\..\mrnet\xplat\include" /GX /TP /c parser.C \
+	cl /nologo /D "WIN32" /D "os_windows" /D "NDEBUG" /D "_MBCS" /D "MSDOS" /D "_LIB" /D "NOMINMAX" /D "_WIN32_WINNT=0x0500" /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /I "..\..\.." /I "..\..\..\mrnet\h" /I "..\..\..\mrnet\xplat\include" /GX /TP /c parser.C \
 	flex  -Pmrn ..\..\..\mrnet\src\scanner.l \
-	perl ..\..\..\..\..\scripts\vcStripStd.pl < lex.mrn.c > scanner.C \
-	del lex.mrn.c \
-	cl /nologo /D "WIN32" /D "os_windows" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D "_WIN32_WINNT=0x0500" /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /I "..\..\.." /I "..\..\..\mrnet\h" /I "..\..\..\mrnet\xplat\include" /GX /TP /c scanner.C \
+	perl ..\..\..\..\..\scripts\vcStripStd.pl < lex.mrn.c > scanner.temp.C \
+	perl ..\..\..\..\..\scripts\vcStripUnistd.pl < scanner.temp.C > scanner.C \
+	del lex.mrn.c scanner.temp.C \
+	cl /nologo /D "MSDOS" /D "WIN32" /D "os_windows" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D "_WIN32_WINNT=0x0500" /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /I "..\..\.." /I "..\..\..\mrnet\h" /I "..\..\..\mrnet\xplat\include" /GX /TP /c scanner.C \
 	
 
 "scanner.obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
@@ -222,15 +223,16 @@ BuildCmds= \
 InputPath=..\..\..\mrnet\src\scanner.l
 
 BuildCmds= \
-	bison -p mrn -d -y ..\..\..\mrnet\src\parser.y \
+	bison.exe -p mrn -d -y ..\..\..\mrnet\src\parser.y \
 	perl ..\..\..\..\..\scripts\vcStripStd.pl < y.tab.c > parser.C \
 	del y.tab.c \
 	move y.tab.h parser.tab.h \
-	cl /nologo /D "WIN32" /D "os_windows" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D "_WIN32_WINNT=0x0500" /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /I "..\..\.." /I "..\..\..\mrnet\h" /I "..\..\..\mrnet\xplat\include" /GX /TP /c parser.C \
+	cl /nologo /D "WIN32" /D "os_windows" /D "NDEBUG" /D "_MBCS" /D "MSDOS" /D "_LIB" /D "NOMINMAX" /D "_WIN32_WINNT=0x0500" /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /I "..\..\.." /I "..\..\..\mrnet\h" /I "..\..\..\mrnet\xplat\include" /GX /TP /c parser.C \
 	flex  -Pmrn ..\..\..\mrnet\src\scanner.l \
-	perl ..\..\..\..\..\scripts\vcStripStd.pl < lex.mrn.c > scanner.C \
-	del lex.mrn.c \
-	cl /nologo /D "WIN32" /D "os_windows" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D "_WIN32_WINNT=0x0500" /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /I "..\..\.." /I "..\..\..\mrnet\h" /I "..\..\..\mrnet\xplat\include" /GX /TP /c scanner.C \
+	perl ..\..\..\..\..\scripts\vcStripStd.pl < lex.mrn.c > scanner.temp.C \
+	perl ..\..\..\..\..\scripts\vcStripUnistd.pl < scanner.temp.C > scanner.C \
+	del lex.mrn.c scanner.temp.C \
+	cl /nologo /D "MSDOS" /D "WIN32" /D "os_windows" /D "NDEBUG" /D "_MBCS" /D "_LIB" /D "NOMINMAX" /D "_WIN32_WINNT=0x0500" /I "C:\Program Files\Microsoft SDK\Include" /I "C:\Program Files\Microsoft Visual Studio\VC98\Include" /I "..\..\.." /I "..\..\..\mrnet\h" /I "..\..\..\mrnet\xplat\include" /GX /TP /c scanner.C \
 	
 
 "scanner.obj" : $(SOURCE) "$(INTDIR)" "$(OUTDIR)"
