@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.95 2005/10/04 18:10:01 legendre Exp $
+ * $Id: Object-elf.C,v 1.96 2005/10/12 18:26:51 tlmiller Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -369,6 +369,7 @@ bool Object::loaded_elf(Elf_X &elf, Address& txtaddr, Address& bssaddr,
 		switch(dyns.d_tag(i)) {
 		case DT_PLTGOT:
 		    this->gp = dyns.d_ptr(i);
+		    // /* DEBUG */ fprintf( stderr, "%s[%d]: GP = 0x%lx\n", __FILE__, __LINE__, this->gp );
 		    break;
 
 		default:
@@ -1407,6 +1408,8 @@ void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEn
 
 				if( inlineTag == DW_INL_inlined || inlineTag == DW_INL_declared_inlined ) { break; }
 				if( inlineTag == DW_INL_declared_not_inlined ) { isDeclaredNotInlined = true; }
+				
+				dwarf_dealloc( dbg, inlineAttribute, DW_DLA_ATTR );
 				}
 
 			/* If a DIE has a specification, the specification has its name
@@ -1423,6 +1426,8 @@ void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEn
 
 				status = dwarf_offdie( dbg, specificationOffset, & nameEntry, NULL );
 				assert( status == DW_DLV_OK );
+				
+				dwarf_dealloc( dbg, specificationAttribute, DW_DLA_ATTR );
 				} /* end if the DIE has a specification. */
 
 			/* Ignore artificial entries. */
@@ -1456,10 +1461,14 @@ void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEn
 			pdstring globalSymbol = find_symbol( dieName, symbols );
 			if( globalSymbol == "" && ! hasLinkageName && isDeclaredNotInlined ) {
 				/* Then scan forward for its concrete instance. */
+				bool first = true;
 				Dwarf_Die siblingDie = dieEntry;
 				while( true ) {
+					Dwarf_Die priorSibling = siblingDie;
 					status = dwarf_siblingof( dbg, siblingDie, & siblingDie, NULL );
 					assert( status != DW_DLV_ERROR );
+					
+					if( ! first ) { dwarf_dealloc( dbg, priorSibling, DW_DLA_DIE ); }
 					if( status == DW_DLV_NO_ENTRY ) { break; }
 
 					Dwarf_Attribute abstractOriginAttr;
@@ -1471,6 +1480,8 @@ void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEn
 						Dwarf_Off abstractOriginOffset;
 						status = dwarf_formref( abstractOriginAttr, & abstractOriginOffset, NULL );
 						assert( status == DW_DLV_OK );
+						
+						dwarf_dealloc( dbg, abstractOriginAttr, DW_DLA_ATTR );
 
 						if( abstractOriginOffset == dieOffset ) {
 							Dwarf_Addr lowPC;
@@ -1484,9 +1495,12 @@ void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEn
 									globalSymbol = symName;
 									}
 								}
+								
+							dwarf_dealloc( dbg, siblingDie, DW_DLA_DIE );
 							break;
 							} /* end if we've found _the_ concrete instance */
 						} /* end if we've found a concrete instance */
+					first = false;
 					} /* end iteration. */
 				} /* end if we're trying to do a by-address look up. */
 
@@ -1509,6 +1523,8 @@ void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEn
 						Dwarf_Unsigned fileNo;
 						status = dwarf_formudata( fileNoAttribute, & fileNo, NULL );
 						assert( status == DW_DLV_OK );
+						
+						dwarf_dealloc( dbg, fileNoAttribute, DW_DLA_ATTR );
 
 						useModuleName = declFileNoToName[ fileNo - 1 ];
 						// bperr( "Assuming declared-not-inlined function '%s' to be in module '%s'.\n", dieName, useModuleName.c_str() );
@@ -1567,6 +1583,7 @@ void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEn
 			assert( status != DW_DLV_ERROR );
 
 			if( status != DW_DLV_OK ) { break; }
+			dwarf_dealloc( dbg, declAttr, DW_DLA_ATTR );
 
 			/* If a DIE has a specification, the specification has its name
 			   and (optional) linkage name.  */
@@ -1579,6 +1596,8 @@ void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEn
 				Dwarf_Off specificationOffset;
 				status = dwarf_global_formref( specificationAttribute, & specificationOffset, NULL );
 				assert( status == DW_DLV_OK );
+				
+				dwarf_dealloc( dbg, specificationAttribute, DW_DLA_ATTR );
 
 				status = dwarf_offdie( dbg, specificationOffset, & nameEntry, NULL );
 				assert( status == DW_DLV_OK );
@@ -1605,7 +1624,7 @@ void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEn
 			
 			/* Update the module information. */
 			pdstring symName = find_symbol( dieName, symbols );
-			if (symName != "" ) {
+			if( symName != "" ) {
 				assert(symbols.defines(symName));
 
 				/* We're assuming global variables. */
@@ -1625,7 +1644,9 @@ void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEn
 						// /* DEBUG */ fprintf( stderr, "%s[%d]: DWARF-derived module information not applied to all symbols of name '%s'\n", __FILE__, __LINE__, symName.c_str() );
 						}									
 					}
-				}				
+				}
+				
+			dwarf_dealloc( dbg, dieName, DW_DLA_STRING );
 			} break;
 
 		default:
@@ -1646,10 +1667,11 @@ void fixSymbolsInModule( Dwarf_Debug dbg, pdstring & moduleName, Dwarf_Die dieEn
 	status = dwarf_siblingof( dbg, dieEntry, & siblingDwarf, NULL );
 	assert( status != DW_DLV_ERROR );
 	if( status == DW_DLV_OK ) {
+		dwarf_dealloc( dbg, dieEntry, DW_DLA_DIE );
+	
 		/* Force tail-recursion to avoid stack overflows. */
 		dieEntry = siblingDwarf;
 		goto start;
-		// fixSymbolsInModule( dbg, moduleName, siblingDwarf, symbols, symbolNamesByAddr );		
 		}
 	} /* end fixSymbolsInModule */
 
