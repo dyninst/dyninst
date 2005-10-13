@@ -39,16 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-linux.C,v 1.28 2005/09/09 18:07:31 legendre Exp $
+// $Id: init-linux.C,v 1.29 2005/10/13 21:12:34 tlmiller Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/init.h"
-#include "common/h/Time.h"
-#include "common/h/timing.h"
-#include "paradynd/src/timeMgr.h"
-#include "rtinst/h/RThwtimer-linux.h"
 
 bool initOS() {
    BPatch_snippet *cmdArg;
@@ -108,31 +104,71 @@ bool initOS() {
    return true;
 };
 
-bool dm_isTSCAvail() {
-  return isTSCAvail() != 0;
-}
+#include "common/h/Time.h"
+#include "common/h/timing.h"
+#include "paradynd/src/timeMgr.h"
 
-rawTime64 dm_getTSC() {
-  rawTime64 v;
-  getTSC(v);
-  return v;
-}
+/* These four functions are wrappers for type-conversion. */
+#include "rtinst/h/RThwtimer-linux.h"
+rawTime64 getRawTimeTSC() {
+	rawTime64 v;
+	getTSC( v );
+	return v;
+	} /* end getRawTimeTSC() */
 
+bool boolIsTSCAvail() {
+	return isTSCAvail != 0;
+	} /* end boolIsTSCAvail() */
+
+#if defined( cap_mmtimer )
+#include "common/src/mmtimer.c"
+rawTime64 getRawTimeMMT() {
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: daemon calling getRawTimeMMT()\n", __FILE__, __LINE__ );
+	rawTime64 v( mmdev_clicks_per_tick * (*mmdev_timer_addr) );
+	return v;
+	} /* end getRawTimeMMT() */
+
+bool boolIsMMTimerAvail() {
+	return isMMTimerAvail() != 0;
+	} /* end boolIsMMTimerAvail() */
+#endif /* defined( cap_mmtimer ) */
+
+/* Set up the daemon's wall timers. */
 void initWallTimeMgrPlt() {
-  if(dm_isTSCAvail()) {
-    timeStamp curTime = getCurrentTime();  // general util one
-    timeLength hrtimeLength(dm_getTSC(), getCyclesPerSecond());
-    timeStamp beghrtime = curTime - hrtimeLength;
-    timeBase hrtimeBase(beghrtime);
-    getWallTimeMgr().installLevel(wallTimeMgr_t::LEVEL_ONE, &dm_isTSCAvail,
-				  getCyclesPerSecond(), hrtimeBase,
-				  &dm_getTSC, "hwWallTimeFPtrInfo");
-  }
+	/* Install the default software wall timer. */
+	getWallTimeMgr().installLevel(	wallTimeMgr_t::LEVEL_TWO, yesFunc,
+									timeUnit::us(), timeBase::b1970(),
+									& getRawTime1970, "swWallTimeFPtrInfo" );
 
-  getWallTimeMgr().installLevel(wallTimeMgr_t::LEVEL_TWO, yesFunc,
-				timeUnit::us(), timeBase::b1970(), 
-				&getRawTime1970, "swWallTimeFPtrInfo");
-}
+	/* Try to install the optional hardware timers. */
+#if defined( cap_mmtimer )
+	if( isMMTimerAvail() ) {
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: using MMTIMER in daemon.\n", __FILE__, __LINE__ );
+		timeStamp currentTime = getCurrentTime();
+		timeLength mmtElapsedRealTime( getRawTimeMMT(), getCyclesPerSecond() );
+		timeStamp mmtZeroTime = currentTime - mmtElapsedRealTime;
+		timeBase mmtTimeBase( mmtZeroTime );
+		
+		/* I'd prefer to install the TSC first, if it's available, and
+		   then override, but I don't know if getWallTimeMgr() allows that. */
+		getWallTimeMgr().installLevel(	wallTimeMgr_t::LEVEL_ONE, & boolIsMMTimerAvail,
+										getCyclesPerSecond(), mmtTimeBase,
+										& getRawTimeMMT, "hwWallTimeFPtrInfo" );
+		return;
+		} /* end if mmtimer is available */
+#endif /* defined( cap_mmtimer ) */
+
+	if( isTSCAvail() ) {
+		timeStamp currentTime = getCurrentTime();
+		timeLength tscElapsedRealTime( getRawTimeTSC(), getCyclesPerSecond() );
+		timeStamp tscZeroTime = currentTime - tscElapsedRealTime;
+		timeBase tscTimeBase( tscZeroTime );
+		
+		getWallTimeMgr().installLevel(	wallTimeMgr_t::LEVEL_ONE, & boolIsTSCAvail,
+										getCyclesPerSecond(), tscTimeBase,
+										& getRawTimeTSC, "hwWallTimeFPtrInfo" );
+		} /* end if the timestamp counter [-equivalent] is available */
+	} /* end initWallTimeMgrPlt() */
 
 void pd_process::initOSPreLib()
 {
