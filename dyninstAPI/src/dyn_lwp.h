@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.38 2005/10/04 18:10:06 legendre Exp $
+ * $Id: dyn_lwp.h,v 1.39 2005/10/13 21:12:28 tlmiller Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -100,13 +100,6 @@ class dyn_lwp
   dyn_lwp(const dyn_lwp &l);
 
   ~dyn_lwp();       // we only want process::deleteLWP to do this
-
-  void clearCachedRegister() {
-     if(cached_regs) {
-        delete cached_regs;
-        cached_regs = NULL;
-     }
-  }
 
   // Returns a struct used by changePC/restoreRegisters
   bool getRegisters(struct dyn_saved_regs *regs);
@@ -342,8 +335,6 @@ class dyn_lwp
   syscallTrapCallbackLWP_t trappedSyscallCallback_;
   void *trappedSyscallData_;
 
-  struct dyn_saved_regs *cached_regs;  
-  
   // When we run an inferior RPC we cache the stackwalk of the
   // process and return that if anyone asks for a stack walk
   pdvector<Frame> cachedStackWalk;

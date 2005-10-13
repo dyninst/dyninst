@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.31 2005/10/04 18:10:05 legendre Exp $
+ * $Id: dyn_lwp.C,v 1.32 2005/10/13 21:12:27 tlmiller Exp $
  */
 
 #include "common/h/headers.h"
@@ -67,7 +67,6 @@ dyn_lwp::dyn_lwp() :
   postsyscallpc_(0),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
-  cached_regs(NULL),
   isRunningIRPC(false), is_attached_(false)  
 {
 };
@@ -90,7 +89,6 @@ dyn_lwp::dyn_lwp(unsigned lwp, process *proc) :
   postsyscallpc_(0),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
-  cached_regs(NULL),
   isRunningIRPC(false), is_attached_(false)
 {
 }
@@ -113,7 +111,6 @@ dyn_lwp::dyn_lwp(const dyn_lwp &l) :
   postsyscallpc_(0),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
-  cached_regs(NULL),
   isRunningIRPC(false), is_attached_(false)
 {
 }
@@ -133,17 +130,6 @@ bool dyn_lwp::continueLWP(int signalToContinueWith) {
    if (proc()->suppressEventConts())
    {
      return false;
-   }
-
-   // the saved cached register can be cleared since continuing
-   if(this == proc()->getRepresentativeLWP())
-      proc()->clearCachedRegister();
-   else
-      clearCachedRegister();
-
-   if(cached_regs != NULL) {
-      delete cached_regs;
-      cached_regs = NULL;
    }
 
    bool ret = continueLWP_(signalToContinueWith);
@@ -252,45 +238,14 @@ int dyn_lwp::getPid() const {
 }
 
 bool dyn_lwp::getRegisters(struct dyn_saved_regs *regs) {
-#if defined(cap_proc_fd)
-    // There is a bug somewhere in our register caching that leads to segfaults
-    // and SIGBUS errors.
+	/* Don't cache registers.  It's broken on most platforms. */
     return getRegisters_(regs);
-#else
-   if(cached_regs == NULL) {
-      bool result = getRegisters_(regs);
-      if(cached_regs == NULL) {
-         cached_regs = new dyn_saved_regs;
-         memcpy(cached_regs, regs, sizeof(struct dyn_saved_regs));
-      }
-      return result;
-   } else {
-      memcpy(regs, cached_regs, sizeof(struct dyn_saved_regs));
-      return true;
-   }
-#endif
-}
+	}
 
 bool dyn_lwp::restoreRegisters(const struct dyn_saved_regs &regs) {
-#if defined(cap_proc_fd)
-    // There is a bug somewhere in our register caching that leads to segfaults
-    // and SIGBUS errors.
+	/* Don't cache registers.  It's broken on most platforms. */
     return restoreRegisters_(regs);
-#else
-   if(cached_regs != NULL) {
-      delete cached_regs;
-      cached_regs = NULL;
-   }
-   cached_regs = new dyn_saved_regs();
-   memcpy(cached_regs, &regs, sizeof(struct dyn_saved_regs));
-
-   bool res = restoreRegisters_(regs);
-   if(! res) {
-      delete cached_regs;
-   }
-   return res;
-#endif
-}
+	}
 
 // Find out some info about the system call we're waiting on,
 // and ask the process class to set a breakpoint there. 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.554 2005/10/04 18:09:55 legendre Exp $
+// $Id: process.C,v 1.555 2005/10/13 21:12:29 tlmiller Exp $
 
 #include <ctype.h>
 
@@ -3855,21 +3855,6 @@ void process::set_lwp_status(dyn_lwp *whichLWP, processState lwp_st) {
       assert(whichLWP == getRepresentativeLWP());
       set_status(lwp_st);  // sets process status and all lwp statuses
    }
-}
-
-void process::clearCachedRegister() {
-   pdvector<dyn_thread *>::iterator iter = threads.begin();
-
-   dyn_lwp *proclwp = getRepresentativeLWP();
-   if(proclwp) proclwp->clearCachedRegister();
-   
-   while(iter != threads.end()) {
-      dyn_thread *thr = *(iter);
-      dyn_lwp *lwp = thr->get_lwp();
-      assert(lwp);
-      lwp->clearCachedRegister();
-      iter++;
-   }   
 }
 
 bool process::pause() {
