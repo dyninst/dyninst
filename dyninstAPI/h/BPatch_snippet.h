@@ -216,9 +216,21 @@ class BPATCH_DLL_EXPORT BPatch_boolExpr : public BPatch_snippet {
 class BPATCH_DLL_EXPORT BPatch_constExpr : public BPatch_snippet {
 
     //  BPatch_constExpr::BPatch_constExpr
-    //  Creates a representation of an (int) value
-    API_EXPORT_CTOR(Int, (value),
-    BPatch_constExpr,(int value));
+    //  Creates a representation of a (signed int) value
+    API_EXPORT_CTOR(SignedInt, (value),
+    BPatch_constExpr,(signed int value));
+
+    //  Creates a representation of an (unsigned int) value
+    API_EXPORT_CTOR(UnsignedInt, (value),
+    BPatch_constExpr,(unsigned int value));
+    
+    //  Creates a representation of a (signed long) value
+    API_EXPORT_CTOR(SignedLong, (value),
+    BPatch_constExpr,(signed long value));
+    
+    //  Creates a representation of an (unsigned long) value
+    API_EXPORT_CTOR(UnsignedLong, (value),
+    BPatch_constExpr,(unsigned long value));
 
     //  BPatch_constExpr::BPatch_constExpr
     //  Creates a representation of a (char *) value
@@ -231,15 +243,11 @@ class BPATCH_DLL_EXPORT BPatch_constExpr : public BPatch_snippet {
     BPatch_constExpr,(const void *value));
 
 #ifdef IBM_BPATCH_COMPAT
-    API_EXPORT_CTOR(Long, (value),
-    BPatch_constExpr,(long value));
-
     API_EXPORT_CTOR(LongLong, (value),
     BPatch_constExpr,(long long value));
 
     API_EXPORT_CTOR(Float, (value),
     BPatch_constExpr,(float value));
-
 #endif
 
 };

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.73 2005/10/11 07:13:29 jodom Exp $
+// $Id: BPatch_snippet.C,v 1.74 2005/10/13 21:12:22 tlmiller Exp $
 
 #define BPATCH_FILE
 
@@ -480,20 +480,50 @@ void BPatch_boolExpr::BPatch_boolExprInt(BPatch_relOp op,
  *
  * value        The desired value.
  */
-void BPatch_constExpr::BPatch_constExprInt(int value)
-{
-    ast = new AstNode(AstNode::Constant, (void *)(long int)value);
+ 
+void BPatch_constExpr::BPatch_constExprSignedInt( signed int value ) {
+	assert( BPatch::bpatch != NULL );
+	
+	ast = new AstNode( AstNode::Constant, (void *)(unsigned long) value );	
+	ast->setTypeChecking( BPatch::bpatch->isTypeChecked() );
+	
+	BPatch_type * type = BPatch::bpatch->stdTypes->findType( "int" );
+	assert( type != NULL );
+	ast->setType( type );
+	}
 
-    assert(BPatch::bpatch != NULL);
-    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+void BPatch_constExpr::BPatch_constExprUnsignedInt( unsigned int value ) {
+	assert( BPatch::bpatch != NULL );
+	
+	ast = new AstNode( AstNode::Constant, (void *)(unsigned long) value );	
+	ast->setTypeChecking( BPatch::bpatch->isTypeChecked() );
+	
+	BPatch_type * type = BPatch::bpatch->stdTypes->findType( "unsigned int" );
+	assert( type != NULL );
+	ast->setType( type );
+	}
 
-    BPatch_type *type = BPatch::bpatch->stdTypes->findType("int");
+void BPatch_constExpr::BPatch_constExprSignedLong( signed long value ) {
+	assert( BPatch::bpatch != NULL );
+	
+	ast = new AstNode( AstNode::Constant, (void *)(unsigned long) value );	
+	ast->setTypeChecking( BPatch::bpatch->isTypeChecked() );
+	
+	BPatch_type * type = BPatch::bpatch->stdTypes->findType( "long" );
+	assert( type != NULL );
+	ast->setType( type );
+	}
 
-    assert(type != NULL);
-
-    ast->setType(type);
-}
-
+void BPatch_constExpr::BPatch_constExprUnsignedLong( unsigned long value ) {
+	assert( BPatch::bpatch != NULL );
+	
+	ast = new AstNode( AstNode::Constant, (void *)(unsigned long) value );	
+	ast->setTypeChecking( BPatch::bpatch->isTypeChecked() );
+	
+	BPatch_type * type = BPatch::bpatch->stdTypes->findType( "unsigned long" );
+	assert( type != NULL );
+	ast->setType( type );
+	}
 
 /*
  * BPatch_constExpr::BPatch_constExpr
