@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTetc-linux.c,v 1.32 2005/09/09 18:05:40 legendre Exp $ */
+/* $Id: RTetc-linux.c,v 1.33 2005/10/13 21:12:36 tlmiller Exp $ */
 
 /************************************************************************
  * RTetc-linux.c: clock access functions, etc.
@@ -68,6 +68,10 @@
 #include "rtinst/h/RThwtimer-linux.h"
 #include "thread-compat.h"
 
+#if defined( cap_mmtimer )
+#include "common/src/mmtimer.c"
+#endif /* defined( cap_mmtimer ) */
+
 /************************************************************************
  * symbolic constants.
 ************************************************************************/
@@ -77,26 +81,31 @@ rawTime64 cpuPrevious_sw  = 0;
 rawTime64 wallPrevious_hw = 0;
 rawTime64 wallPrevious_sw = 0;
 
-void PARADYNos_init(int calledByFork, int calledByAttach) 
-{
-   hintBestCpuTimerLevel  = SOFTWARE_TIMER_LEVEL;
-   if(isTSCAvail()) {
-      hintBestWallTimerLevel = HARDWARE_TIMER_LEVEL;   
-   }
-   else {
-      hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
-   }
+void PARADYNos_init( int calledByFork, int calledByAttach ) {
+	/* We default to SOFTWARE, and if we find something better, use that. */
+	hintBestCpuTimerLevel = SOFTWARE_TIMER_LEVEL;
+	hintBestWallTimerLevel = SOFTWARE_TIMER_LEVEL;
 
-   /* needs to be reinitialized when fork occurs */
-   cpuPrevious_hw = 0;
-   cpuPrevious_sw = 0;
-   wallPrevious_hw = 0;
-   wallPrevious_sw = 0;
-}
+	if( isTSCAvail() ) {
+		hintBestWallTimerLevel = HARDWARE_TIMER_LEVEL;
+		}
 
-void PARADYN_forkEarlyInit() 
-{
-}
+#if defined( cap_mmtimer )
+	if( isMMTimerAvail() ) {   
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: runtime library using MMTIMER.\n", __FILE__, __LINE__ );
+		hintBestWallTimerLevel = HARDWARE_TIMER_LEVEL;
+		}
+#endif
+
+	/* needs to be reinitialized when fork occurs */
+	cpuPrevious_hw = 0;
+	cpuPrevious_sw = 0;
+	wallPrevious_hw = 0;
+	wallPrevious_sw = 0;
+	} /* end PARADYNos_init() */
+
+void PARADYN_forkEarlyInit() {
+	} /* end PARADYN_forkEarlyInit() */
 
 static unsigned long long mulMillion(unsigned long long in) {
    unsigned long long result = in;
@@ -203,7 +212,16 @@ rawTime64 DYNINSTgetWalltime_hw(void)
   rawTime64 now, tmp_wallPrevious = wallPrevious_hw;
   struct timeval tv;
 
-  getTSC(now);
+#if defined( cap_mmtimer )
+	if( mmdev_clicks_per_tick != 0 ) {
+		now = mmdev_clicks_per_tick * (*mmdev_timer_addr);
+		}
+	else {
+		getTSC( now );
+		}
+#else
+	getTSC( now );
+#endif
 
   if (now < tmp_wallPrevious) {
     if (wallRollbackOccurred < MaxRollbackReport) {
