@@ -652,11 +652,16 @@ void pd_process::paradynPreForkDispatch(BPatch_thread* p,
 
 void pd_process::paradynPostForkDispatch(BPatch_thread *p, BPatch_thread *c) 
 {
-   BPatch_process *parent = p->getProcess();
-   BPatch_process *child = c->getProcess();
-   pd_process *matching_pd_process = getProcMgr().find_pd_process(parent);
-   if(matching_pd_process)
-      matching_pd_process->postForkHandler(child);
+   if( pdFlavor == "mpi" ) {
+     c->detach( true );
+   	 }
+   else {
+     BPatch_process *parent = p->getProcess();
+     BPatch_process *child = c->getProcess();
+     pd_process *matching_pd_process = getProcMgr().find_pd_process(parent);
+     if(matching_pd_process)
+        matching_pd_process->postForkHandler(child);
+     }
 }
 
 void pd_process::paradynExecDispatch(BPatch_thread *dyn_thread) 
