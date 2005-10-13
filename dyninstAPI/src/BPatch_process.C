@@ -1425,7 +1425,8 @@ BPatch_thread *BPatch_process::getThreadByIndexInt(unsigned index)
 BPatch_function *BPatch_process::findOrCreateBPFunc(int_function* ifunc,
                                                     BPatch_module *bpmod)
 {
-  if (func_map->defines(ifunc)) {
+  if( func_map->defines(ifunc) ) {
+    assert( func_map->get(ifunc) != NULL );
     return func_map->get(ifunc);
   }
   
@@ -1437,10 +1438,12 @@ BPatch_function *BPatch_process::findOrCreateBPFunc(int_function* ifunc,
   // findModule has a tendency to make new function objects... so
   // check the map again
   if (func_map->defines(ifunc)) {
+    assert( func_map->get(ifunc) != NULL );
     return func_map->get(ifunc);
   }
 
   BPatch_function *ret = new BPatch_function(this, ifunc, bpmod);
+  assert( ret != NULL );
   return ret;
 }
 
