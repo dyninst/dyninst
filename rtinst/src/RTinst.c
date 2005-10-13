@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.90 2005/10/10 18:46:02 legendre Exp $
+ * $Id: RTinst.c,v 1.91 2005/10/13 21:12:37 tlmiller Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -295,44 +295,19 @@ void forkexec_printf(const char *fmt, ...) {
 
 #if !defined(os_windows)
 int PARADYN_init_child_after_fork() {
-   int pid;
-   int ppid;
-   int ptr_size;
-   int cookie = 0;
-   /* we are the child process */
-
-   /* don't want to call alloc_pos with fork, but want to reuse existing
-      positions.  This is setup through DYNINSTregister_running_thread() */
-
-   /* Used to unset DYNINST_initialize_done; this is now taken care of
-      by only using ST-style RPCs */
-   
-   pid = getpid();
-   ppid = getppid();
-   ptr_size = sizeof(PARADYN_shmSegAttachedPtr);
-
-   setvbuf(stdout, NULL, _IOLBF, 0);
    /* make stdout line-buffered.  "setlinebuf(stdout)" is cleaner but HP
       doesn't seem to have it */
-   setvbuf(stderr, NULL, _IONBF, 0);
+   setvbuf(stdout, NULL, _IOLBF, 0);
+   
    /* make stderr non-buffered */
+   setvbuf(stderr, NULL, _IONBF, 0);
    
    /* Some aspects of initialization need to occur right away (such
       as resetting the PMAPI counters on AIX) because the daemon
       may use aspects of the process before pDYNINSTinit is called */
    PARADYN_forkEarlyInit();
    PARADYNos_init(1, 0);
-
-   DYNINSTinitTrace(0);
-
-   DYNINSTwriteTrace(&cookie, sizeof(cookie));
-   DYNINSTwriteTrace(&pid, sizeof(pid));
-   DYNINSTwriteTrace(&ppid, sizeof(ppid));
-   ptr_size = sizeof(PARADYN_shmSegAttachedPtr);
-   DYNINSTwriteTrace(&ptr_size, sizeof(int32_t));
-   DYNINSTwriteTrace(&PARADYN_shmSegAttachedPtr, ptr_size);
-   DYNINSTflushTrace();
-
+   
    return 123;
 }
 
