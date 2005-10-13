@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.C,v 1.47 2005/09/15 19:20:34 tlmiller Exp $
+// $Id: arch-ia64.C,v 1.48 2005/10/13 21:12:25 tlmiller Exp $
 // ia64 instruction decoder
 
 #include <assert.h>
@@ -463,16 +463,17 @@ bool extractAllocatedRegisters( uint64_t allocInsn, uint64_t * allocatedLocal, u
 instruction generateAllocInstructionFor( registerSpace * rs, int locals, int outputs, int rotates ) {
 	insn_tmpl alloc = { 0x0 };
 	uint64_t sizeOfLocals = rs->getRegSlot( 0 )->number - 32 + locals;
+	assert( 0 <= outputs && outputs <= 8 );
 
 	if( sizeOfLocals + outputs > 96 ) {
 		// Never allocate a frame larger than 96 registers.
 		sizeOfLocals = 96 - outputs;
-	}
+		}
 
 	alloc.M34.opcode	= 0x1;
 	alloc.M34.x3		= 0x6;
 	alloc.M34.r1		= rs->originalLocals + rs->originalOutputs + 32;
-	SET_M34_FIELDS(&alloc, sizeOfLocals, outputs, rotates);
+	SET_M34_FIELDS( & alloc, sizeOfLocals, outputs, rotates );
 
 	return instruction( alloc.raw );
 	} /* end generateAllocInstructionFor() */
@@ -482,11 +483,14 @@ instruction generateOriginalAllocFor( registerSpace * rs ) {
 
 	alloc.M34.opcode	= 0x1;
 	alloc.M34.x3		= 0x6;
-	alloc.M34.r1		= rs->originalLocals + rs->originalOutputs + 32;
+	alloc.M34.r1		= 1;
 
-	/* Allocate a spurious output register so the ar.pfs doesn't overwrite
-	   one of the registers we're trying to save. */
-	SET_M34_FIELDS(&alloc, rs->originalLocals, rs->originalOutputs + 1, rs->originalRotates);
+	/* Allocating a spurious output register to avoid preserving the target
+	   register breaks things for kernels which check the number of 
+	   output registers during a syscall entry, so instead,
+	   save ar.pfs to a known register (r1) and save & restore it
+	   around the alloc instruction. */
+	SET_M34_FIELDS( & alloc, rs->originalLocals, rs->originalOutputs, rs->originalRotates );
 
 	return instruction( alloc.raw );
 	} /* end generateOriginalAllocFor() */
@@ -730,6 +734,7 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location,
 	const pdvector<int_basicBlock *> &blocks = pdf->blocks();
 
 	/* Initialize the dataflow sets and construct the initial worklist. */
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: listing basic blocks for function beginning at 0x%lx... \n", __FILE__, __LINE__, pdf->getAddress() );
 	std::list< int_basicBlock * > workList;
 	for (unsigned bIter = 0; bIter < blocks.size(); bIter++) {
 		int_basicBlock * basicBlock = blocks[bIter];
@@ -738,8 +743,11 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location,
 		basicBlock->setDataFlowGen( NULL );
 		basicBlock->setDataFlowKill( NULL );
 
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: block #%d: from 0x%lx - 0x%lx\n", __FILE__, __LINE__, bIter, basicBlock->origInstance()->firstInsnAddr(), basicBlock->origInstance()->endAddr() );
+
 		workList.push_back( basicBlock );
-	} /* end initialization iteration over all basic blocks */
+		} /* end initialization iteration over all basic blocks */
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: ... listing complete.\n", __FILE__, __LINE__ );
 
 	/* Initialize the alloc blocks. */
 	for( unsigned int i = 0; i < pdf->allocs.size(); i++ ) {
@@ -806,7 +814,7 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location,
 		} /* end if the output set changed. */
 	} /* end iteration over worklist. */
 
-	// /* DEBUG */ fprintf( stderr, "%s[%d]: absolute address of location: 0x%lx\n", __FILE__, __LINE__, location->addr());
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: absolute address of location: 0x%lx\n", __FILE__, __LINE__, location->addr() );
 	int numAllocs = 0;
 	bool success = true;
 	BPatch_Set< int_basicBlock * > * reachingAllocs = NULL;
@@ -843,7 +851,7 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location,
 		case 1: {			
 			/* Where is our alloc instruction?  We need to have a look at it... */
 			int_basicBlock * allocBlock = * reachingAllocs->begin();
-			// /* DEBUG */ fprintf( stderr, "%s[%d]: reaching alloc at 0x%lx\n", __FILE__, __LINE__, allocBlock->firstInsnAddr() );
+			// /* DEBUG */ fprintf( stderr, "%s[%d]: reaching alloc at 0x%lx\n", __FILE__, __LINE__, allocBlock->origInstance()->firstInsnAddr() );
 			
 			Address encodedAddress = allocBlock->origInstance()->firstInsnAddr();
 			unsigned short slotNumber = encodedAddress % 16;
@@ -894,7 +902,7 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location,
 		} /* end #-of-dominating-allocs switch */
 
 	/* Regardless, clean up. */
-	for(unsigned bIter = 0; bIter < blocks.size(); bIter++) {
+	for( unsigned bIter = 0; bIter < blocks.size(); bIter++ ) {
 		int_basicBlock *block = blocks[bIter];
 		delete (block->getDataFlowOut());
 		delete (block->getDataFlowIn());
@@ -902,11 +910,10 @@ bool defineBaseTrampRegisterSpaceFor( const instPoint * location,
 		block->setDataFlowOut(NULL);
 		block->setDataFlowGen(NULL);
 		block->setDataFlowKill(NULL);
-
-	} /* end iteration over all blocks. */	
+		} /* end iteration over all blocks. */	
 
 	return success;
-} /* end defineBaseTrampRegisterSpace() */
+	} /* end defineBaseTrampRegisterSpace() */
 
 /* For inst-ia64.h */
 instruction generateRegisterToRegisterMove( Register source, Register destination ) {

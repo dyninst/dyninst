@@ -293,7 +293,7 @@ void emitVload( opCode op, Address src1, Register src2, Register dest,
 	} /* end emitVload() */
 
 /* private function, used by emitFuncCall() */
-void emitRegisterToRegisterCopy( Register source, Register destination, codeGen & gen, registerSpace * rs ) {
+void emitRegisterToRegisterCopy( Register source, Register destination, codeGen & gen, registerSpace * ) {
 	instruction moveInsn( generateRegisterToRegisterMove( source, destination ) );
 	instruction memoryNOP( NOP_M );
 	IA64_bundle r2rBundle( MMIstop, memoryNOP, memoryNOP, moveInsn );
@@ -1784,13 +1784,11 @@ bool generatePreservationHeader(codeGen &gen, bool * whichToPreserve, unw_dyn_re
 							  integerNOP,
 							  integerNOP );
 		bundle.generate(gen);
-
-		// ar.pfs is initially stashed in the only register known dead register.
-
+		
 		_U_dyn_op_save_reg( & unwindRegion->op[ unwindRegion->op_count++ ], _U_QP_TRUE,
 							unwindRegion->insn_count, UNW_IA64_AR_PFS, 32 + originalFrameSize );
 		unwindRegion->insn_count += 3;
-	}
+		}
 
 	// generateMemoryStackSave() *MUST* be called before generateRegisterStackSave()
 	generateMemoryStackSave( gen, whichToPreserve, unwindRegion );
@@ -1872,12 +1870,26 @@ bool generatePreservationTrailer( codeGen &gen, bool * whichToPreserve, unw_dyn_
 		fifthMoveBundle.generate(gen);
 		unwindRegion->insn_count += 3;
 		
+		/* FIXME: Update for save-and-restore around alloc. */
 		_U_dyn_op_stop( & unwindRegion->op[ unwindRegion->op_count++ ] );
 
+		IA64_bundle saveBundle = IA64_bundle( MstopMIstop, 
+			generateShortImmediateAdd( REGISTER_SP, -16, REGISTER_SP ),
+			generateRegisterStoreImmediate( REGISTER_SP, REGISTER_GP, 0 ),
+			integerNOP );
+		saveBundle.generate(gen);
+	
 		instruction allocInsn = generateOriginalAllocFor( regSpace );
 		IA64_bundle allocBundle( MIIstop, allocInsn, NOP_I, NOP_I );
 		allocBundle.generate(gen);
-		unwindRegion->insn_count += 3;
+		
+		IA64_bundle restoreBundle = IA64_bundle( MIIstop,
+			generateRegisterLoadImmediate( REGISTER_GP, REGISTER_SP, +16 ),
+			integerNOP,
+			integerNOP );
+		restoreBundle.generate(gen);
+
+		unwindRegion->insn_count += 9;
 	} else {
 		_U_dyn_op_stop( & unwindRegion->op[ unwindRegion->op_count++ ] );
 	}
@@ -2755,7 +2767,7 @@ char * unwindOpTagToString( int8_t op ) {
 		}
 	} /* end unwindOpTagToString() */
 
-void dumpDynamicUnwindInformation( unw_dyn_info_t * unwindInformation, process * proc ) {
+void dumpDynamicUnwindInformation( unw_dyn_info_t * unwindInformation, process * ) {
 	assert( unwindInformation != NULL );
 
 	Address currentIP = unwindInformation->start_ip;
@@ -3377,7 +3389,7 @@ int instPoint::getPointCost() {
 /**
  * Fills in an indirect function pointer at 'addr' to point to 'f'.
  **/
-bool writeFunctionPtr(process *p, Address addr, int_function *f)
-{
-   return true;
-}
+bool writeFunctionPtr( process *, Address, int_function * ) {
+	/* FIXME */ fprintf( stderr, "%s[%d]: FIXME writeFunctionPtr() unimplemented.\n", __FILE__, __LINE__ );
+	return true;
+	} /* end writeFunctionPtr() */
