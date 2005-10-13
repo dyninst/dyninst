@@ -56,8 +56,8 @@ public:
 
 class BPatch_funcMap {
    dictionary_hash<const int_function*, BPatch_function*> chart;
-   static unsigned hash_bp(const int_function * const &bp ) { 
-      return(addrHash4((Address) bp)); 
+   static unsigned hash_bp(const int_function * const &bp ) {
+      return(addrHash4((Address) bp));
    }
  public:
    BPatch_funcMap() : chart(hash_bp) {}
@@ -66,14 +66,22 @@ class BPatch_funcMap {
    bool defines(const int_function *func) 
       { return chart.defines(func); }
    void add(const int_function *func, BPatch_function *bfunc) 
-      { chart[func] = bfunc; }
+      {
+       if( func == NULL ) { return; }
+       if( bfunc == NULL ) { return; }
+       chart[func] = bfunc;
+      }
    void undefine(const int_function *func) {
-       if (func == NULL) return;
-       if (chart.defines(func))
+       if (func == NULL) { return; }
+       if (chart.defines(func)) {
            chart.undef(func);
+       }
    }
    BPatch_function *get(const int_function *func) 
-      { return chart[func]; }
+      { 
+      if( chart.defines( func ) ) { return chart.get( func ); }
+      else { return NULL; }
+      }
    void map(bool (*f)(BPatch_function *, void *), void *data ) {
       dictionary_hash<const int_function *, BPatch_function *>::iterator iter = 
          chart.begin();
