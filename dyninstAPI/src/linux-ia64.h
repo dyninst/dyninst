@@ -55,6 +55,9 @@ struct dyn_saved_regs {
 	Address		pc;
 	bool		pcMayHaveRewound;
 	uint64_t	pr;
+	/* Waste some space to avoid a full recompile. */
+	uint64_t	debug_register_one;
+	uint64_t	debug_register_two;
 	};
 	
 #endif

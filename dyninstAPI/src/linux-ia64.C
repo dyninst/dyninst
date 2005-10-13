@@ -110,7 +110,7 @@ bool dyn_lwp::getRegisters_( struct dyn_saved_regs *regs ) {
 	   restart the system call.) */
 	regs->pr = P_ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_PR, 0 );
 	assert( ! errno );
-	
+
 	return true;
 	} /* end getRegisters_() */
 
@@ -151,7 +151,7 @@ bool dyn_lwp::restoreRegisters_( const struct dyn_saved_regs &regs ) {
 	/* Restore the predicate registers. */
 	int status = P_ptrace( PTRACE_POKEUSER, proc_->getPid(), PT_PR, regs.pr );
 	assert( status == 0 );
-
+		
     return true;
 	} /* end restoreRegisters_() */
 
@@ -535,7 +535,10 @@ bool process::loadDYNINSTlib() {
 
 	/* Save the function we're going to hijack. */
 	InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( codeBase, this );
-	iAddr.saveBundlesTo( savedCodeBuffer, gen.used() / 16 );
+	/* We need to save the whole buffer, because we don't know how big gen is
+	   when we do the restore.  This could be made more efficient by storing
+	   gen.used() somewhere. */
+	iAddr.saveBundlesTo( savedCodeBuffer, sizeof( savedCodeBuffer ) / 16 );
 
 	/* Write the call into the mutatee. */
 	InsnAddr jAddr = InsnAddr::generateFromAlignedDataAddress( codeBase, this );
