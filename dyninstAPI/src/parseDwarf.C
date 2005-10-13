@@ -858,7 +858,9 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				}
 			else {
 				int_function * newIntFunction = functions[0];
+				assert( newIntFunction != NULL );
 				newFunction = proc->newFunctionCB( newIntFunction );
+				assert( newFunction != NULL );
 			} /* end findFunction() cases */
 
 			/* Once we've found the BPatch_function pointer corresponding to this
@@ -948,7 +950,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 			BPatch_type * commonBlockType = NULL;
 			if( commonBlockVar != NULL ) {
-				commonBlockType = (BPatch_type *)commonBlockVar->getType();
+				commonBlockType = const_cast< BPatch_type * >( commonBlockVar->getType() );
 				} /* end if there might be a pre-existing type */
 
 			if( commonBlockType == NULL || commonBlockType->getDataClass() == BPatch_dataCommon ) {
