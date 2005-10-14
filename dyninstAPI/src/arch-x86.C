@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.38 2005/09/28 17:02:55 bernat Exp $
+// $Id: arch-x86.C,v 1.39 2005/10/14 16:37:42 legendre Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -3683,9 +3683,13 @@ bool instruction::generate(codeGen &gen,
                 nPrefixes++;
             if (insnType & PREFIX_SEG)
                 nPrefixes++;
-	    if (insnType & PREFIX_OPCODE)
-		nPrefixes++;
+            if (insnType & PREFIX_OPCODE)
+               nPrefixes++;
             if (insnType & PREFIX_REX)
+                nPrefixes++;
+            if (insnType & PREFIX_INST)
+                nPrefixes++;
+            if (insnType & PREFIX_ADDR)
                 nPrefixes++;
 
             for (unsigned u = 0; u < nPrefixes; u++)
