@@ -43,14 +43,60 @@
 
 int atomic_set(int *val)
 {
-   //TODO: Fill in with atomic get and set
-   *val = 1;
-   return 1;
+   static long result;
+#if defined(MUTATEE_32)
+   __asm("movl $1,%%eax\n"
+         "movl %1,%%ebx\n"
+         "lock\n"
+         "xchgl %%eax, (%%ebx)\n"
+         "movl %%eax, %0\n"
+         : "=r" (result)
+         : "r" (val)
+         : "%eax");
+#else
+   __asm("mov $1,%%rax\n"
+         "mov %1,%%rbx\n"
+         "lock\n"
+         "xchg %%rax, (%%rbx)\n"
+         "mov %%rax, %0\n"
+         : "=r" (result)
+         : "r" (val)
+         : "%rax");
+#endif
+   return !result;
 }
+/*
+#if 1
+   __asm(
+         "movl $0,%%eax\n"
+         "movl $1,%%ebx\n"
+         "movl %1,%%ecx\n"
+         "lock\n"
+         "cmpxchgl %%ebx,(%%ecx)\n"
+         "setz %%al\n"
+         "movl %%eax,%0\n"
+         : "=r" (result)
+         : "r" (val)
+         : "%eax", "%ebx", "%ecx");
+#else
+      __asm(
+            "mov $0,%%rax\n"
+            "mov $1,%%rbx\n"
+            "mov %1,%%rcx\n"
+            "lock\n"
+            "cmpxchg %%rbx,(%%rcx)\n"
+            "setz %%al\n"
+            "mov %%rax,%0\n"
+            : "=r" (result)
+            : "r" (val)
+            : "%rax", "%rbx", "%rcx");
+#endif
+      return result;
+*/
 
 int tc_lock_lock(tc_lock_t *tc)
 {
-   int me;
+   tid_t me;
    int lock_val;
 
    me = dyn_pthread_self();
@@ -70,8 +116,4 @@ int tc_lock_lock(tc_lock_t *tc)
 
 unsigned DYNINSTthreadIndexFAST() {
    return 0;
-}
-
-void DYNINST_initialize_index_list()
-{
 }

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.33 2005/09/09 18:05:18 legendre Exp $
+ * $Id: RTlinux.c,v 1.34 2005/10/14 16:37:56 legendre Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -51,6 +51,8 @@
 #include <unistd.h>
 #include <dlfcn.h>
 #include <sys/types.h>
+#include <sys/syscall.h>
+#include <string.h>
 
 #if defined(arch_ia64) || defined(arch_x86_64)
 
@@ -76,12 +78,12 @@ void _start( void )
 	/* Align the heap pointer. */
 	unsigned long int alignedHeapPointer = 
       (unsigned long int) DYNINSTstaticHeap_4M_anyHeap_1;
-	unsigned long long adjustedSize = alignedHeapPointer + (4 * 1024 * 1024);
+	unsigned long long int adjustedSize = alignedHeapPointer + (4 * 1024 * 1024);
 	alignedHeapPointer = (alignedHeapPointer) & ~(pageSize - 1);
 	adjustedSize -= alignedHeapPointer;
 
 	/* Make the heap's page executable. */
-   result = mprotect((void *) alignedHeapPointer, adjustedSize, 
+   result = mprotect((void *) alignedHeapPointer, (size_t) adjustedSize, 
                      PROT_READ | PROT_WRITE | PROT_EXEC);
    if (result != 0)
    {
@@ -91,7 +93,8 @@ void _start( void )
 		perror( "_start" );
    }
 	RTprintf("*** Marked memory from 0x%lx to 0x%lx executable.\n", 
-            alignedHeapPointer, alignedHeapPointer + adjustedSize );
+            alignedHeapPointer, 
+            alignedHeapPointer + adjustedSize );
 
 	/* Mark _both_ heaps executable. */
 	alignedHeapPointer = (unsigned long int) DYNINSTstaticHeap_32K_lowmemHeap_1;
@@ -100,7 +103,7 @@ void _start( void )
 	adjustedSize -= alignedHeapPointer;
 
 	/* Make the heap's page executable. */
-   result = mprotect((void *) alignedHeapPointer, adjustedSize, 
+   result = mprotect((void *) alignedHeapPointer, (size_t) adjustedSize, 
                      PROT_READ | PROT_WRITE | PROT_EXEC );
    if (result != 0 ) 
    {
@@ -150,7 +153,7 @@ static int get_dlopen_error() {
    char *err_str;
    err_str = dlerror();
    if (err_str) {
-      strncpy(gLoadLibraryErrorString, err_str, ERROR_STRING_LENGTH);
+      strncpy(gLoadLibraryErrorString, err_str, (size_t) ERROR_STRING_LENGTH);
       return 1;
    }
    else {
@@ -163,7 +166,6 @@ static int get_dlopen_error() {
 int DYNINSTloadLibrary(char *libname)
 {
    void *res;
-   char *err_str;
    gLoadLibraryErrorString[0]='\0';
    res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL);
    if (res)
@@ -205,8 +207,16 @@ int DYNINSTloadLibrary(char *libname)
 
 //Define this value so that we can compile on a system that doesn't have
 // gettid and still run on one that does.
-#ifndef SYS_gettid
+#if !defined(SYS_gettid)
+
+#if defined(arch_x86)
 #define SYS_gettid 224
+#elif defined(arch_x86_64)
+#define SYS_gettid 186
+#elif defined(arch_ia64)
+#define SYS_gettid 1105
+#endif
+
 #endif
 
 int dyn_lwp_self()
@@ -217,7 +227,7 @@ int dyn_lwp_self()
    if (gettid_not_valid)
       return getpid();
 
-   result = syscall(SYS_gettid);
+   result = syscall((long int) SYS_gettid);
    if (result == -1 && errno == ENOSYS)
    {
       gettid_not_valid = 1;
@@ -231,13 +241,15 @@ int dyn_pid_self()
    return getpid();
 }
 
-int (*DYNINST_pthread_self)(void);
-int dyn_pthread_self()
+tid_t (*DYNINST_pthread_self)(void);
+tid_t dyn_pthread_self()
 {
+   tid_t me;
    if (!DYNINST_pthread_self) {
-      return -1;
+      return (tid_t) -1;
    }
-   return (*DYNINST_pthread_self)();
+   me = (*DYNINST_pthread_self)();
+   return (tid_t) me;
 }
 
 
@@ -250,7 +262,6 @@ int dyn_pthread_self()
  * and the top of this thread's stack.  We have multiple entries in positions, 
  * one for each different version of libc we've seen.
  **/
-#define POS_ENTRIES 3
 #define READ_FROM_BUF(pos, type) *((type *)(buffer+pos))
 
 typedef struct pthread_offset_t
@@ -261,9 +272,16 @@ typedef struct pthread_offset_t
    unsigned stck_start_pos;
 } pthread_offset_t;
 
+#if defined(arch_x86)
+#define POS_ENTRIES 3
 static pthread_offset_t positions[POS_ENTRIES] = { { 72, 476, 516, 576 },
                                                    { 72, 76, 516, 84 },
                                                    { 72, 476, 516, 80 } };
+#else
+//x86_64 and ia64 share structrues
+#define POS_ENTRIES 1
+static pthread_offset_t positions[POS_ENTRIES] = { { 144, 952, 1008, 160 } };
+#endif
 
 int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
 {
@@ -274,7 +292,7 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
   ev->stack_addr = 0x0;
   ev->start_pc = 0x0;
   buffer = (char *) ev->tid;
-
+  
   for (i = 0; i < POS_ENTRIES; i++)
   {
      if ((READ_FROM_BUF(positions[i].pid_pos, pid_t) != ev->ppid) ||
