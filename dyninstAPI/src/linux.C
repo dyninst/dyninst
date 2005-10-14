@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.177 2005/10/04 18:10:09 legendre Exp $
+// $Id: linux.C,v 1.178 2005/10/14 16:37:49 legendre Exp $
 
 #include <fstream>
 
@@ -1641,54 +1641,54 @@ bool isPLT(int_function *f)
 
 int_function *instPoint::findCallee() {
 
-  // Already been bound
-  if (callee_) {
+   // Already been bound
+   if (callee_) {
       return callee_;
-  }  
-  if (ipType_ != callSite) {
+   }  
+   if (ipType_ != callSite) {
       // Assert?
       return NULL; 
-  }
-  if (isDynamicCall()) {
+   }
+   if (isDynamicCall()) {
       return NULL;
-  }
+   }
 
-  assert(img_p_);
-  image_func *icallee = img_p_->getCallee(); 
-  if (icallee) {
+   assert(img_p_);
+   image_func *icallee = img_p_->getCallee(); 
+   if (icallee) {
       // Now we have to look up our specialized version
       // Can't do module lookup because of DEFAULT_MODULE...
       const pdvector<int_function *> *possibles = func()->obj()->findFuncVectorByMangled(icallee->symTabName());
       if (!possibles) {
-          return NULL;
+         return NULL;
       }
       for (unsigned i = 0; i < possibles->size(); i++) {
-          if ((*possibles)[i]->ifunc() == icallee) {
-              callee_ = (*possibles)[i];
-              return callee_;
-          }
+         if ((*possibles)[i]->ifunc() == icallee) {
+            callee_ = (*possibles)[i];
+            return callee_;
+         }
       }
       // No match... very odd
       assert(0);
       return NULL;
-  }
-  // Do this the hard way - an inter-module jump
-  // get the target address of this function
-  Address target_addr = img_p_->callTarget();
-  if(!target_addr) {
+   }
+   // Do this the hard way - an inter-module jump
+   // get the target address of this function
+   Address target_addr = img_p_->callTarget();
+   if(!target_addr) {
       // this is either not a call instruction or an indirect call instr
       // that we can't get the target address
       return NULL;
-  }
+   }
 
-  // get the relocation information for this image
-  const Object &obj = func()->obj()->parse_img()->getObject();
-  const pdvector<relocationEntry> *fbt;
-  if(!obj.get_func_binding_table_ptr(fbt)) {
-      return false; // target cannot be found...it is an indirect call.
-  }
+   // get the relocation information for this image
+   const Object &obj = func()->obj()->parse_img()->getObject();
+   const pdvector<relocationEntry> *fbt;
+   if(!obj.get_func_binding_table_ptr(fbt)) {
+      return NULL; // target cannot be found...it is an indirect call.
+   }
   
-  Address base_addr = func()->obj()->codeBase();
+   Address base_addr = func()->obj()->codeBase();
    // find the target address in the list of relocationEntries
    for(u_int i=0; i < fbt->size(); i++) {
       if((*fbt)[i].target_addr() == target_addr) {
@@ -1697,29 +1697,22 @@ int_function *instPoint::findCallee() {
          // linker
          int_function *target_pdf = 0;
          if(proc()->hasBeenBound((*fbt)[i], target_pdf, base_addr)) {
-	   callee_ = target_pdf;
-	   return callee_;  // target has been bound
+            callee_ = target_pdf;
+            return callee_;  // target has been bound
          } 
          else {
-	   pdvector<int_function *> pdfv;
-	   bool found = proc()->findFuncsByMangled((*fbt)[i].name(), pdfv);
-	   if(found) {
-	     assert(pdfv.size());
-#ifdef BPATCH_LIBRARY
-	     if(pdfv.size() > 1)
-	       cerr << __FILE__ << ":" << __LINE__ 
-		    << ": WARNING:  findAllFuncsByName found " 
-		    << pdfv.size() << " references to function " 
-		    << (*fbt)[i].name() << ".  Using the first.\n";
-#endif
-	     callee_ = pdfv[0];
-	     return callee_;
-	   }
+            pdvector<int_function *> pdfv;
+            bool found = proc()->findFuncsByMangled((*fbt)[i].name(), pdfv);
+            if(found) {
+               assert(pdfv.size());
+               callee_ = pdfv[0];
+               return callee_;
+            }
          }
-         return NULL;
+         break;
       }
    }
-   return NULL;  
+   return NULL;
 }
 
 bool process::getExecFileDescriptor(pdstring filename,
@@ -1772,7 +1765,8 @@ bool dyn_lwp::realLWP_attach_() {
    if (fd_ < 0) 
      fd_ = INVALID_HANDLE_VALUE;
 
-   startup_cerr << "process::attach() doing PTRACE_ATTACH" << endl;
+   startup_cerr << "process::attach() doing PTRACE_ATTACH to " << get_lwp_id() 
+                << endl;
 
    if( 0 != P_ptrace(PTRACE_ATTACH, get_lwp_id(), 0, 0) )
    {
@@ -1815,7 +1809,8 @@ bool dyn_lwp::representativeLWP_attach_() {
       proc_->wasCreatedViaFork() || 
       proc_->wasCreatedViaAttachToCreated())
    {
-      startup_cerr << "process::attach() doing PTRACE_ATTACH" << endl;
+      startup_cerr << "process::attach() doing PTRACE_ATTACH to " 
+                   << get_lwp_id() << endl;
       if( 0 != P_ptrace(PTRACE_ATTACH, getPid(), 0, 0) )
       {
          perror( "process::attach - PTRACE_ATTACH" );
