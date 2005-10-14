@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.67 2005/10/11 07:15:15 jodom Exp $
+// $Id: sol_proc.C,v 1.68 2005/10/14 20:53:22 tlmiller Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -378,12 +378,9 @@ bool dyn_lwp::abortSyscall()
 
 
     // Get a copy of the registers and save for when we restart the syscall
-    // We ran the process, so clear the register cache
-    clearCachedRegister();
     syscallreg_ = new dyn_saved_regs;
     getRegisters(syscallreg_);
-    // And clear the cache again just to be safe
-    clearCachedRegister();
+
     // Remember the current PC.  When we continue the process at this PC
     // we will restart the system call.
     postsyscallpc_ = (Address) GETREG_PC(syscallreg_->theIntRegs);
