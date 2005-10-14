@@ -3,6 +3,8 @@
 #include <pthread.h>
 #include <signal.h>
 #include <sys/types.h>
+#include <sys/syscall.h>
+#include <assert.h>
 #include <unistd.h>
 
 #define NTHRD 8
@@ -60,8 +62,9 @@ void level2()
 
 /**
  * Instrumentation to call this function is inserted into the following funcs:
- *  init_func
- *  level2 (called twice)
+ *  level0
+ *  level1
+ *  level2
  *  level3 
  * Tramp guards should prevent all of these calls except at init_func and the
  * second call to level2
@@ -70,6 +73,7 @@ void level1()
 {
    unsigned i;
    static int bar, bar2;
+
    pthread_t me = pthread_self();
    for (i=0; i<NTHRD; i++)
       if (thrds[i].tid == me)
@@ -115,11 +119,12 @@ void level0(int count)
 
 void *init_func(void *arg)
 {
+   assert(arg == NULL);
    level0(N_INSTR-1);
    return NULL;
 }
 
-int main(int argc, char *argv[])
+int main()
 {
    unsigned i;
    void *ret_val;

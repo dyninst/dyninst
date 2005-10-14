@@ -59,7 +59,7 @@ MUTATORS = 	test1 \
 		test3 \
 		test4 \
 		test5 \
-		test6 \
+      test6 \
 		test7 \
 		test8 \
 		test9 \
@@ -76,7 +76,7 @@ MUTATEES_C = 	test1.mutatee \
 		test3.mutatee \
 		test4a.mutatee \
 		test4b.mutatee \
-		test6.mutatee \
+      test6.mutatee \
 		test7.mutatee \
 		test8.mutatee \
 		test9.mutatee \
@@ -94,7 +94,9 @@ MUTATEES_CXX =	test1.mutatee \
 		test7.mutatee \
 		test8.mutatee \
 		test9.mutatee \
-		test12.mutatee
+		test12.mutatee \
+      test13.mutatee \
+      test14.mutatee
 
 #  Most C mutatees are also compiled as C++ mutatees, there are some (well, one)
 #  that are c++ only, which cannot also be compiled as C mutatees
@@ -357,6 +359,8 @@ MUTATEE_SPECIFIC_LIBS_NATIVE 	+= 14.-lpthread
 ifdef M_ABI
 MUTATEE_SPECIFIC_LIBS_GNU_ABI 	+= $(MUTATEE_TEST9_EXTRA_LIB_ABI)
 MUTATEE_SPECIFIC_LIBS_GNU_ABI	+= 12.-lpthread
+MUTATEE_SPECIFIC_LIBS_GNU_ABI += 13.-lpthread
+MUTATEE_SPECIFIC_LIBS_GNU_ABI += 14.-lpthread
 endif
 
 #######################################################################
@@ -405,7 +409,7 @@ endif
 ifdef NATIVE_CC
 $(MUTATEES_NATIVE_CC): test%.mutatee_$(NATIVE_CC) : test%.mutatee.c mutatee_util_$(NATIVE_CC).o
 	$(NATIVE_CC) $(MUTATEE_CFLAGS_NATIVE) $(MUTATEE_LDFLAGS_NATIVE) -o $@ $(MUTATEE_LIBS) $(filter %.c  %.s %.S %.o, $^) \
-            $(subst $*.,,$(filter $*.%, $(MUTATEE_SPECIFIC_LIBS_NATIVE))) 
+            $(subst $*.,,$(filter $*.%, $(MUTATEE_SPECIFIC_LIBS_NATIVE)))
 
 endif
 
@@ -498,11 +502,11 @@ depend_dir:
 
 $(DEPS_MUTATORS): $(DEPENDDIR)/test%.dep : test%.C 
 	@mkdir -p $(DEPENDDIR)
-	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) test$*.o > $@
+	$(DEPCC) $(CXXFLAGS) $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) test$*.o > $@ 
 
 $(DEPS_MUTATEES_GCC): $(DEPENDDIR)/test%.mutatee_gcc.dep : test%.mutatee.c $(SRCS_FORALL_MUTATEES)
 	@mkdir -p $(DEPENDDIR)
-	$(M_GCC) $(CFLAGS) $< $(MUTATEE_CFLAGS) $(DEPENDFLAGS) test$*.mutatee_gcc.o > $@
+	$(M_GCC) $(CFLAGS) $< $(MUTATEE_CFLAGS) $(DEPENDFLAGS) test$*.mutatee_gcc.o > $@ 
 
 $(DEPS_MUTATEES_GXX): $(DEPENDDIR)/test%.mutatee_g++.dep : $(wildcard test%.mutatee.*) $(SRCS_FORALL_MUTATEES)
 	@mkdir -p $(DEPENDDIR)

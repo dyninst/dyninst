@@ -57,9 +57,9 @@ void instr_func(BPatch_function *func, BPatch_function *lvl1func)
    {
       BPatch_point *point = (*points)[j];
       BPatch_Vector<BPatch_snippet *> args;
-      BPatch_funcCallExpr callToLevel0(*lvl1func, args);
+      BPatch_funcCallExpr callToLevel1(*lvl1func, args);
       BPatchSnippetHandle *hndl;
-      hndl = proc->insertSnippet(callToLevel0, *point, BPatch_firstSnippet);
+      hndl = proc->insertSnippet(callToLevel1, *point, BPatch_firstSnippet);
       assert(hndl);
    }
 }

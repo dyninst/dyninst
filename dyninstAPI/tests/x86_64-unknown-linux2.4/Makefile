@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2005/07/06 18:28:32 rchen Exp $
+# $Id: Makefile,v 1.5 2005/10/14 16:37:54 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -18,7 +18,7 @@ include $(TO_CORE)/make.config
 
 #if M_ABI is defined, secondary ABI specific mutatees will be built
 M_ABI = m32
-M_ABI_FLAG = -m32
+M_ABI_FLAG = -m32 -Di386_unknown_linux2_4
 
 #if M_G77 is defined, g77 mutatees will be built
 #M_G77 = g77
