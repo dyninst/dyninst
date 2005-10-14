@@ -88,7 +88,7 @@ int atomic_set(int *val)
 
 int tc_lock_lock(tc_lock_t *tc)
 {
-   int me;
+   tid_t me;
    int lock_val;
 
    me = dyn_pthread_self();

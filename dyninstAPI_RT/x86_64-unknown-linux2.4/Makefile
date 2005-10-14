@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2005/09/09 18:05:12 legendre Exp $
+# $Id: Makefile,v 1.5 2005/10/14 16:37:40 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -19,7 +19,7 @@ LDFLAGS         += -shared -nostdlib
 
 # Automatic init routine
 LDFLAGS		+= -Wl,-init,_start 
-CFLAGS		+= -O2
+CFLAGS		+= -Wall
 
 # if we want to produce a shared object...
 CC              = $(GCC)
@@ -41,7 +41,9 @@ SRCS		+= ../src/RTposix.c \
 		   ../src/RTheap-linux.c \
 		   ../src/RTmutatedBinary.c \
 		   ../src/RTmutatedBinary_ELF.c \
-			../src/RTthread-x86-64.c 
+			../src/RTthread-x86-64.c \
+			../src/RTthread.c \
+			../src/RTthread-index.c
 
 #CFLAGS += -DDEBUG_PRINT_RT    # enable debug/trace messages from library
 
@@ -64,7 +66,7 @@ VOUCHER_32   = V_$(XTARGET_32)
 OBJS_32      = $(patsubst %.c, %_m32.o, $(filter %.c,$(notdir $(SRCS))))
 ASM_OBJS_32  = $(patsubst %.S, %_m32.o, $(filter %.S,$(notdir $(ASM_SRCS_32))))
 
-CFLAGS_32    = -m32 $(CFLAGS)
+CFLAGS_32    = -m32 -DMUTATEE_32 $(CFLAGS)
 LDFLAGS_32   = -m32 $(LDFLAGS)
 LIBS_32      = -L/usr/lib $(LIBS)
 

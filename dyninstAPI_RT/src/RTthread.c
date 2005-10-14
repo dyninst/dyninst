@@ -41,6 +41,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "RTthread.h"
 #include "RTcommon.h"
@@ -50,7 +51,7 @@ unsigned DYNINST_max_num_threads;
 int DYNINST_multithread_capable;
 extern unsigned int DYNINSThasInitialized;
 
-static unsigned threadCreate(int tid);
+static unsigned threadCreate(tid_t tid);
 
 void (*newthr_cb)(int);
 
@@ -58,9 +59,12 @@ void (*newthr_cb)(int);
  * Translate a tid given by pthread_self into an index.  Called by 
  * basetramps everywhere.
  **/
+
+volatile int foobar = 0;
 int DYNINSTthreadIndex()
 {
-   int tid, curr_index;
+   tid_t tid;
+   int curr_index;
 
    if (!DYNINSThasInitialized) 
    {
@@ -68,7 +72,7 @@ int DYNINSTthreadIndex()
    }
 
    tid = dyn_pthread_self();
-   if (tid == -1)
+   if (tid == (tid_t) -1)
    {
       return 0;
    }
@@ -92,7 +96,7 @@ int DYNINSTthreadIndex()
 static tc_lock_t DYNINST_trace_lock;
 
 static int asyncSendThreadEvent(int pid, rtBPatch_asyncEventType type, 
-                                void *ev, int ev_size)
+                                void *ev, unsigned ev_size)
 {
    int result;
    rtBPatch_asyncEventRecord aev;
@@ -135,7 +139,7 @@ static int asyncSendThreadEvent(int pid, rtBPatch_asyncEventType type,
 /**
  * Creates a new index for a given tid.
  **/
-static unsigned threadCreate(int tid)
+static unsigned threadCreate(tid_t tid)
 {
    int res;
    BPatch_newThreadEventRecord ev;
@@ -183,10 +187,9 @@ static unsigned threadCreate(int tid)
  **/
 void DYNINSTthreadDestroy()
 {
-   int tid = dyn_pthread_self();
+   tid_t tid = dyn_pthread_self();
    int index = DYNINSTthreadIndex();
    int pid = dyn_pid_self();
-   int lwp = dyn_lwp_self();
    int err;
 
    err = DYNINST_free_index(tid);

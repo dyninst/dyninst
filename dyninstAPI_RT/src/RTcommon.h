@@ -50,7 +50,8 @@ void DYNINSTos_init(int calledByFork, int calledByAttach);
 void DYNINSTinit(int cause, int pid, int maxthreads);
 void RTmutatedBinary_init();
 int DYNINSTreturnZero();
-int DYNINSTwriteEvent(void *ev, int sz);
+int DYNINSTwriteEvent(void *ev, size_t sz);
+int DYNINSTasyncConnect(int pid);
 
 extern int DYNINSTdebuPrintRT;
 extern int DYNINST_mutatorPid;

@@ -54,9 +54,8 @@
 
 static DECLARE_TC_LOCK(DYNINST_index_lock);
 
-
 typedef struct thread_t {
-   unsigned tid;
+   tid_t tid;
    int next;
 } thread_t;
 
@@ -67,9 +66,9 @@ static unsigned threads_hash_size;
 static int first_free;
 static int first_deleted;
 
-unsigned DYNINST_getThreadFromIndex(int index)
+tid_t DYNINST_getThreadFromIndex(int index)
 {
-   return threads[index].tid;
+   return (tid_t) threads[index].tid;
 }
 
 void DYNINST_initialize_index_list()
@@ -101,11 +100,12 @@ void DYNINST_initialize_index_list()
 /**
  * A guaranteed-if-there index lookup 
  **/
-unsigned DYNINSTthreadIndexSLOW(unsigned tid)
+unsigned DYNINSTthreadIndexSLOW(tid_t tid)
 {
    unsigned hash_id, orig;
    unsigned retval;
    int index, t, result;
+   unsigned long tid_val = (unsigned long) tid;
 
    result = tc_lock_lock(&DYNINST_index_lock);
    if (result == DYNINST_DEAD_LOCK)
@@ -113,7 +113,7 @@ unsigned DYNINSTthreadIndexSLOW(unsigned tid)
    /**
     * Search the hash table
     **/
-   hash_id = tid % threads_hash_size;
+   hash_id = tid_val % threads_hash_size;
    orig = hash_id;
    for (;;) 
    {
@@ -150,11 +150,12 @@ unsigned DYNINSTthreadIndexSLOW(unsigned tid)
    return retval;
 }
     
-unsigned DYNINST_alloc_index(unsigned tid)
+unsigned DYNINST_alloc_index(tid_t tid)
 {
    int result;
    unsigned hash_id, orig;
    unsigned t, retval;
+   unsigned long tid_val = (unsigned long) tid;
 
    //Return an error if this tid already exists.
    if (DYNINSTthreadIndexSLOW(tid) != DYNINST_max_num_threads)
@@ -185,7 +186,7 @@ unsigned DYNINST_alloc_index(unsigned tid)
    threads[t].next = NONE;
 
    //Put it in the hash table
-   hash_id = tid % threads_hash_size;
+   hash_id = tid_val % threads_hash_size;
    orig = hash_id;
    while (threads_hash[hash_id] != NONE)
    {
@@ -206,20 +207,21 @@ unsigned DYNINST_alloc_index(unsigned tid)
    return retval;
 }
 
-int DYNINST_free_index(unsigned tid)
+int DYNINST_free_index(tid_t tid)
 {
    unsigned deleted_end = 0;
    unsigned hash_id, orig;
    int t, index, result, retval;
+   unsigned long tid_val = (unsigned long) tid;
 
    result = tc_lock_lock(&DYNINST_index_lock);
    if (result == DYNINST_DEAD_LOCK)
-      return;
+      return -1;
    
    /**
     * Find this thread in the hash table
     **/
-   hash_id = tid % threads_hash_size;
+   hash_id = tid_val % threads_hash_size;
    orig = hash_id;
    for (;;)
    {

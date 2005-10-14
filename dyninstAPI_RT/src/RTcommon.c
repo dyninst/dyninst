@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.47 2005/10/10 18:45:43 legendre Exp $ */
+/* $Id: RTcommon.c,v 1.48 2005/10/14 16:37:27 legendre Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -338,28 +338,28 @@ int DYNINSTuserMessage(void *msg, unsigned int msg_size)
 int tc_lock_init(tc_lock_t *t)
 {
   t->mutex = 0;
-  t->tid = -1;
+  t->tid = (tid_t) -1;
   return 0;
 }
 
 int tc_lock_unlock(tc_lock_t *t)
 {
-  t->tid = -1;
   t->mutex = 0;
+  t->tid = (tid_t) -1;
   return 0;
 }
     
 int tc_lock_destroy(tc_lock_t *t)
 {
-  t->tid = -1;
   t->mutex = 0;
+  t->tid = (tid_t) -1;
   return 0;
 }
 
 void dyninst_init_lock(dyninst_lock_t *lock)
 {
    lock->mutex = 0;
-   lock->tid = -1;
+   lock->tid = (tid_t) -1;
 }
 
 void dyninst_free_lock(dyninst_lock_t *lock)

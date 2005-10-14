@@ -45,7 +45,7 @@
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "dyninstAPI_RT/h/dyninstRTExport.h"
 
-int dyn_pthread_self();    //Thread library identifier
+tid_t dyn_pthread_self();    //Thread library identifier
 int dyn_lwp_self();        //LWP used by the kernel identifier
 int dyn_pid_self();        //PID identifier representing the containing process
 
@@ -53,9 +53,9 @@ unsigned DYNINSTthreadIndexFAST();
 unsigned DYNINSTthreadIndexSLOW();
 int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev);
 
-unsigned DYNINST_getThreadFromIndex(int index);
-unsigned DYNINST_alloc_index(unsigned tid);
-int DYNINST_free_index(unsigned tid);
+tid_t DYNINST_getThreadFromIndex(int index);
+unsigned DYNINST_alloc_index(tid_t tid);
+int DYNINST_free_index(tid_t tid);
 void DYNINST_initialize_index_list();
 
 
@@ -64,7 +64,7 @@ extern unsigned DYNINST_max_num_threads;
 
 typedef dyninst_lock_t tc_lock_t;
 
-#define DECLARE_TC_LOCK(l)         tc_lock_t l={0 ,-1}
+#define DECLARE_TC_LOCK(l)         tc_lock_t l={0 ,(tid_t)-1}
 
 int tc_lock_init(tc_lock_t*);
 int tc_lock_lock(tc_lock_t*);

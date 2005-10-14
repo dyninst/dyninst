@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.h,v 1.7 2005/02/24 10:14:57 rchen Exp $ */
+/* $Id: RTheap.h,v 1.8 2005/10/14 16:37:31 legendre Exp $ */
 
 #ifndef _RT_HEAP_H
 #define _RT_HEAP_H
@@ -95,5 +95,7 @@ RT_Boolean DYNINSTheap_useMalloc(void *lo, void *hi);
 int        DYNINSTheap_mmapFdOpen();
 void       DYNINSTheap_mmapFdClose(int fd);
 int        DYNINSTheap_getMemoryMap(unsigned *, dyninstmm_t **mmap);
+
+int DYNINSTgetMemoryMap(unsigned *nump, dyninstmm_t **mapp);
 
 #endif /* _RT_HEAP_H */

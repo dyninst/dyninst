@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap-linux.c,v 1.4 2004/03/23 01:12:16 eli Exp $ */
+/* $Id: RTheap-linux.c,v 1.5 2005/10/14 16:37:29 legendre Exp $ */
 /* RTheap-linux.c: Linux-specific heap components */
 
 #include <stdlib.h>
@@ -161,7 +161,6 @@ DYNINSTgetMemoryMap(unsigned *nump, dyninstmm_t **mapp)
      for (i = 0; i < num; i++) {
 	  char *next = p + strlen(p) + 1; /* start of next line */
 	  Address saddr, eaddr;
-	  unsigned long size;
 
 	  /* parse start address */
 	  p = strtok(p, "-");

@@ -223,7 +223,7 @@ typedef struct thread_sol29_pinky_s {
 int which(void *tls) {
   static int w = 0;
   int i;
-  int tid = P_thread_self();
+  tid_t tid = P_thread_self();
   if (w) return w;
 
   if ( ((thread_sol29_pinky*)tls)->thread_id == tid) {
@@ -248,7 +248,7 @@ int which(void *tls) {
 }
 
 extern void* DYNINST_allthreads_p ;
-void idtot(int tid) {
+void idtot(tid_t tid) {
 /*
   if ( DYNINST_allthreads_p ) {
     sparc_thread_t *ct = (sparc_thread_t*) DYNINST_idtot(tid, DYNINST_allthreads_p);
@@ -258,7 +258,7 @@ void idtot(int tid) {
 */
 }
 
-void DYNINST_ThreadPInfo(void* tls, void** stkbase, int* tid, long *pc, int* lwp, void** rs)
+void DYNINST_ThreadPInfo(void* tls, void** stkbase, tid_t* tid, long *pc, int* lwp, void** rs)
 {
     switch (which(tls)) {
   case LIBTHR_SOL29: {
@@ -322,7 +322,7 @@ void DYNINST_ThreadPInfo(void* tls, void** stkbase, int* tid, long *pc, int* lwp
     }
 }
 
-int DYNINST_ThreadInfo(void** stkbase, int* tidp, long *startpc, int* lwpidp, void** rs_p) {
+int DYNINST_ThreadInfo(void** stkbase, tid_t* tidp, long *startpc, int* lwpidp, void** rs_p) {
   extern void *DYNINST_curthread(void) ;
   void *curthread ;
   if ( (curthread = DYNINST_curthread()) ) {

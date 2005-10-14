@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.25 2005/09/09 18:05:13 legendre Exp $
+ * $Id: dyninstAPI_RT.h,v 1.26 2005/10/14 16:37:24 legendre Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -59,7 +59,7 @@
 #define SYN_INST_BUF_SIZE (1024*1024*4)
 
 #include <stdio.h>
-
+#include "dyninstRTExport.h"
 #include "common/h/Types.h"
 #if defined(os_linux)
 #include "dyninstAPI/src/linux-signals.h"
@@ -117,7 +117,7 @@ typedef struct {
 
 typedef struct {
    int ppid;         //Parent process's pid
-   int tid;          //Thread library ID for thread
+   tid_t tid;        //Thread library ID for thread
    int lwp;          //OS id for thread
    int index;        //The dyninst index for this thread
    void *stack_addr; //The top of this thread's stack

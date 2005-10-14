@@ -93,7 +93,7 @@ int DYNINSTloadLibrary(char *libname)
       return 1;
 }
 
-void DYNINST_ThreadPInfo(void* tls, void** stkbase, int* tid, 
+void DYNINST_ThreadPInfo(void* tls, void** stkbase, tid_t* tid, 
                          long *pc, int* lwp, void** rs) 
 {
    unsigned pthread_context;
@@ -120,7 +120,8 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
    int registers[1024];
    int regsize = 1024*sizeof(int);
 
-   int tidp, lwpid;
+   tid_t tidp;
+   int lwpid;
    long startpc;
    void *stkbase, *rs_p;
 
@@ -171,14 +172,14 @@ typedef struct {
    unsigned toc;
    void *dummy;
 } call_record_t;
-typedef int (*DYNINST_pself_t)(void);
+typedef tid_t (*DYNINST_pself_t)(void);
 typedef int (*DYNINST_pgetthrds_np_t)(pthread_t *, int, struct __pthrdsinfo *, 
                                       int, void *, int *);
 
 call_record_t DYNINST_pthread_self_record;
 DYNINST_pself_t DYNINST_pthread_self = 
     (DYNINST_pself_t) &DYNINST_pthread_self_record;
-int dyn_pthread_self()
+tid_t dyn_pthread_self()
 {
    if (!DYNINST_pthread_self_record.func)
    {

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.15 2005/09/09 18:05:20 legendre Exp $
+ * $Id: RTposix.c,v 1.16 2005/10/14 16:37:33 legendre Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -109,13 +109,6 @@ void libdyninstAPI_RT_init()
 static int async_socket = -1;
 static int needToDisconnect = 0;
 
-int DYNINSTwriteEvent(void *ev, int sz);
-
-static void exit_func(void)
-{
-  if (needToDisconnect) close (async_socket);
-}
-
 int DYNINSTasyncConnect(int pid)
 {
   
@@ -137,7 +130,7 @@ int DYNINSTasyncConnect(int pid)
   passwd_info = getpwuid(euid);
   assert(passwd_info);
 
-  snprintf(path, 255, "%s/dyninstAsync.%s.%d", P_tmpdir, passwd_info->pw_name, pid);
+  snprintf(path, (size_t) 255, "%s/dyninstAsync.%s.%d", P_tmpdir, passwd_info->pw_name, pid);
   sock_fd = socket(PF_UNIX, SOCK_STREAM, 0);
   if (sock_fd < 0) {
     perror("DYNINSTasyncConnect() socket()");
@@ -147,7 +140,7 @@ int DYNINSTasyncConnect(int pid)
   sadr.sun_family = PF_UNIX;
   strcpy(sadr.sun_path, path);
 
-  if (connect(sock_fd, (struct sockaddr *) &sadr, sizeof(sadr)) < 0) {
+  if (connect(sock_fd, (struct sockaddr *) &sadr, (socklen_t) sizeof(sadr)) < 0) {
     perror("DYNINSTasyncConnect() connect()");
   }
 
@@ -182,10 +175,9 @@ int DYNINSTasyncDisconnect()
   return 0;
 }
 
-int DYNINSTwriteEvent(void *ev, int sz)
+int DYNINSTwriteEvent(void *ev, size_t sz)
 {
   int res;
-  int i;
 try_again:
   res = write(async_socket, ev, sz); 
   if (-1 == res) {

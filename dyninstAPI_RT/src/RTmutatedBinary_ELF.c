@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary_ELF.c,v 1.16 2005/09/01 22:18:50 bernat Exp $ */
+/* $Id: RTmutatedBinary_ELF.c,v 1.17 2005/10/14 16:37:32 legendre Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -178,7 +178,7 @@ int DYNINSTsaveRtSharedLibrary(char *rtSharedLibName, char *newName){
 */
 
 void fixInstrumentation(char* soName, unsigned long currAddr, unsigned long oldAddr){
-	printf(" %s loaded at wrong address: 0x%x (expected at 0x%x) \n", soName, currAddr, oldAddr);
+	printf(" %s loaded at wrong address: 0x%lx (expected at 0x%lx) \n", soName, currAddr, oldAddr);
 	printf(" This is an unrecoverable error, the instrumentation will not");
 	printf("\n run correctly if shared libraries are loaded at a different address\n");
 	printf("\n Exiting.....\n");

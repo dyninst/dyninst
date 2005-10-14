@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.c,v 1.21 2004/03/23 01:12:16 eli Exp $ */
+/* $Id: RTheap.c,v 1.22 2005/10/14 16:37:30 legendre Exp $ */
 /* RTheap.c: platform-generic heap management */
 
 #include <stdlib.h>
@@ -91,7 +91,7 @@ static void heap_printMappings(int nmaps, dyninstmm_t *maps)
   for(i = 0; i < nmaps; i++) {
     dyninstmm_t *map = &maps[i];
     Address addr = (Address)map->pr_vaddr;
-    fprintf(stderr, "  heap %2i: 0x%016lx-0x%016lx (%3i pages, %.2fkB)\n", 
+    fprintf(stderr, "  heap %2i: 0x%016lx-0x%016lx (%3lu pages, %.2fkB)\n", 
 	    i, addr, addr + map->pr_size - 1, 
 	    map->pr_size / psize, map->pr_size / 1024.0);
   }
