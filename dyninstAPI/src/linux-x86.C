@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.80 2005/09/15 19:01:20 gquinn Exp $
+// $Id: linux-x86.C,v 1.81 2005/10/14 16:37:48 legendre Exp $
 
 #include <fstream>
 
@@ -851,6 +851,8 @@ Frame Frame::getCallerFrame()
       }
       else
       {
+         if (!fp_)
+            return Frame();
          if (!getProc()->readDataSpace((caddr_t) fp_, 2*sizeof(Address), 
                                        (caddr_t) &addrs, true))
             return Frame();

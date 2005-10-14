@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.C,v 1.13 2005/08/08 22:39:22 bernat Exp $
+// $Id: frame.C,v 1.14 2005/10/14 16:37:47 legendre Exp $
 
 #include <stdio.h>
 #include <iostream>
@@ -115,7 +115,9 @@ void Frame::setRange(codeRange *range) {
 
 bool Frame::isLastFrame() const
 {
+#if !defined(arch_x86) && !defined(arch_x86_64)
    if (fp_ == 0) return true;
+#endif
    if (pc_ == 0) return true;
    return false;
 }
