@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.555 2005/10/13 21:12:29 tlmiller Exp $
+// $Id: process.C,v 1.556 2005/10/14 16:37:21 legendre Exp $
 
 #include <ctype.h>
 
@@ -110,11 +110,6 @@
 #ifdef PAPI
 #include "paradynd/src/papiMgr.h"
 #endif
-#endif
-
-#ifndef BPATCH_LIBRARY
-extern void generateRPCpreamble(char *insn, Address &base, process *proc, 
-                                unsigned offset, int tid, unsigned index);
 #endif
 
 #include "common/h/debugOstream.h"
@@ -3295,10 +3290,11 @@ bool process::findFuncsByMangled(const pdstring &funcname,
         if (libname == "" ||
             mapped_objects[i]->fileName() == libname ||
             mapped_objects[i]->fullName() == libname) {
-            const pdvector<int_function *> *mangled = mapped_objects[i]->findFuncVectorByMangled(funcname);
+            const pdvector<int_function *> *mangled = 
+               mapped_objects[i]->findFuncVectorByMangled(funcname);
             if (mangled) {
                 for (unsigned mm = 0; mm < mangled->size(); mm++) {
-		  res.push_back((*mangled)[mm]);
+                   res.push_back((*mangled)[mm]);
                 }
             }
         }
@@ -5492,7 +5488,7 @@ dyn_thread *process::createInitialThread()
 #endif
 }
 
-dyn_thread *process::getThread(unsigned tid) {
+dyn_thread *process::getThread(dynthread_t tid) {
    dyn_thread *thr;
    for(unsigned i=0; i<threads.size(); i++) {
       thr = threads[i];
@@ -5571,7 +5567,7 @@ void process::deleteLWP(dyn_lwp *lwp_to_delete) {
 
 
 // Called for new threads
-void process::deleteThread(int tid)
+void process::deleteThread(dynthread_t tid)
 {
   processState newst = running;
   pdvector<dyn_thread *>::iterator iter = threads.end();
@@ -5579,7 +5575,7 @@ void process::deleteThread(int tid)
     dyn_thread *thr = *(--iter);
     dyn_lwp *lwp = thr->get_lwp();
     //Find the deleted thread
-    if(thr->get_tid() != (unsigned) tid) 
+    if(thr->get_tid() != tid) 
     {
       //Update the process state, since deleting a thread may change it.
       if (lwp->status() == stopped)
@@ -5795,14 +5791,14 @@ bool process::isBootstrappedYet() const {
 
 static void mapIndexToTid_cb(process *, unsigned, void *data, void *result)
 {
-   int *tid = (int *) data;
-   *tid = (int) result;
+   dynthread_t *tid = (dynthread_t *) data;
+   *tid = (dynthread_t) result;
 }
 
 //Turn a thread index into a tid via an iRPC
-int process::mapIndexToTid(int index)
+dynthread_t process::mapIndexToTid(int index)
 {
-   int tid = -1;
+   dynthread_t tid = (dynthread_t) -1;
    pdvector<AstNode *> ast_args;
    AstNode arg1(AstNode::Constant, (void *) index);
    ast_args.push_back(&arg1);
@@ -5814,7 +5810,7 @@ int process::mapIndexToTid(int index)
    while (tid == -1)
    {
       getRpcMgr()->launchRPCs(false);
-      if(hasExited()) return -1;
+      if(hasExited()) return (dynthread_t) -1;
       getSH()->checkForAndHandleProcessEvents(false);
    }
 

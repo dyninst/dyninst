@@ -122,7 +122,7 @@ bool BPatch_eventMailbox::executeUserCallbacks()
         case BPatch_threadCreateEvent:
         {
           BPatch_process *p = (BPatch_process *) cbs[i].arg1;
-          unsigned tid = (unsigned) cbs[i].arg2;
+          dynthread_t tid = (dynthread_t) cbs[i].arg2;
           int lwp = (int) cbs[i].arg3;
           unsigned index = (unsigned) cbs[i].arg4;
           unsigned long stack_addr = (unsigned long) cbs[i].arg5;
@@ -351,7 +351,7 @@ bool BPatch_eventMailbox::executeOrRegisterCallback(BPatch_asyncEventType type,
 
 
 bool BPatch_eventMailbox::registerCallback(BPatch_asyncEventType type,
-                                           BPatch_process *p, unsigned tid,
+                                           BPatch_process *p, dynthread_t tid,
                                            int lwp, unsigned index, 
                                            unsigned long stack_addr,
                                            unsigned long start_pc)
@@ -1554,7 +1554,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(BPatch_asyncEventRecord &ev)
         }
 
         event_mailbox->registerCallback(BPatch_threadCreateEvent, appProc,
-                                        call_rec.tid, call_rec.lwp,
+                                        (dynthread_t) call_rec.tid, call_rec.lwp,
                                         call_rec.index, 
                                         (unsigned long) call_rec.stack_addr,
                                         (unsigned long) call_rec.start_pc);

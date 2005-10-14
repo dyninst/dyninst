@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixMT.C,v 1.22 2005/03/01 23:07:50 bernat Exp $
+// $Id: aixMT.C,v 1.23 2005/10/14 16:37:19 legendre Exp $
 
 //#include <sys/pthdebug.h> // Pthread debug library, disabled
 #include "dyninstAPI/src/dyn_thread.h"
@@ -85,7 +85,7 @@ Frame dyn_thread::getActiveFrameMT() {
     ret = pthdb_pthread_ptid(*session_ptr, pthreadp, &pthread);
     if (ret) bperr( "pthread translation failed: %d\n", ret); 
     
-    while (pthread != (unsigned) get_tid()) {
+    while (pthread != (dynthread_t) get_tid()) {
       ret = pthdb_pthread(*session_ptr, &pthreadp, PTHDB_LIST_NEXT);
       if (ret) bperr( "next pthread: returned %d\n", ret);
       ret = pthdb_pthread_ptid(*session_ptr, pthreadp, &pthread);

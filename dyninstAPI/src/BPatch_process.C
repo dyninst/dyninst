@@ -1406,7 +1406,7 @@ bool BPatch_process::isMultithreadedInt()
    return (threads.size() > 1);
 }
 
-BPatch_thread *BPatch_process::getThreadInt(unsigned tid)
+BPatch_thread *BPatch_process::getThreadInt(dynthread_t tid)
 {
    for (unsigned i=0; i<threads.size(); i++)
       if (threads[i]->getTid() == tid)
@@ -1483,7 +1483,7 @@ BPatch_point *BPatch_process::createBPPointCB(process *p, int_function *f,
    return proc->findOrCreateBPPoint(func, ip, (BPatch_procedureLocation) type);
 }
 
-BPatch_thread *BPatch_process::createOrUpdateBPThread(int lwp, int tid, 
+BPatch_thread *BPatch_process::createOrUpdateBPThread(int lwp, dynthread_t tid, 
                                                       unsigned index, 
                                                       unsigned long stack_start, 
                                                       unsigned long start_addr)
@@ -1536,7 +1536,7 @@ void BPatch_process::newThreadCB(process *p, int index, int lwp)
    if (bpthrd && bpthrd->updated)
       //Already 
       return;
-   bproc->createOrUpdateBPThread(lwp, -1, index, 0, 0);
+   bproc->createOrUpdateBPThread(lwp, (dynthread_t) -1, index, 0, 0);
 }
 
 /**

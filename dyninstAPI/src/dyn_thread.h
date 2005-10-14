@@ -39,12 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyn_thread.h,v 1.20 2005/09/09 18:06:39 legendre Exp $
+// $Id: dyn_thread.h,v 1.21 2005/10/14 16:37:20 legendre Exp $
 
 #ifndef _DYNTHREAD_H_
 #define _DYNTHREAD_H_
 
 #include "dyninstAPI/src/process.h"
+
+typedef long dynthread_t;
 
 class Frame;
 class dyn_lwp;
@@ -71,7 +73,7 @@ class dyn_thread {
 
   bool updateLWP();
   
-  unsigned       get_tid()           const { return(tid); }
+  dynthread_t       get_tid()           const { return(tid); }
   unsigned       get_index()           const { return(index); }
   dyn_lwp *      get_lwp();
   unsigned       get_stack_addr()    const { return(stack_addr); }
@@ -81,7 +83,7 @@ class dyn_thread {
   unsigned       get_start_pc()      const { return(start_pc); }
   void*          get_resumestate_p()       { return resumestate_p; }
 
-  void update_tid          (unsigned tid_)        { tid = tid_; }
+  void update_tid          (dynthread_t tid_)        { tid = tid_; }
   void update_index          (unsigned index_)        { index = index_; }
   void update_lwp          (dyn_lwp *lwp_)        { lwp = lwp_; }
   void update_stack_addr   (unsigned stack_addr_) { stack_addr=stack_addr_; }
@@ -101,7 +103,7 @@ class dyn_thread {
  private:
   int ppid;
 
-  unsigned tid;
+  dynthread_t tid;
   unsigned index;
   dyn_lwp *lwp;
   unsigned stack_addr;

@@ -58,6 +58,8 @@ class BPatch_thread;
 class BPatch_process;
 class dyn_thread;
 
+typedef long dynthread_t;
+
 /*
  * Represents a thread of execution.
  */
@@ -82,7 +84,7 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     BPatch_thread(BPatch_process *parent, int ind, int lwp_id);
     BPatch_thread(BPatch_process *parent, dyn_thread *dthr);
 
-    void updateValues(int tid, unsigned long stack_start, 
+    void updateValues(dynthread_t tid, unsigned long stack_start, 
                       BPatch_function *initial_func, int lwp_id);
  public:
 
@@ -170,7 +172,7 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     BPatch_process *, getProcess, ());
 
     API_EXPORT(Int, (),
-    unsigned, getTid, ());
+    dynthread_t, getTid, ());
 
     API_EXPORT(Int, (),
     int, getLWP, ());

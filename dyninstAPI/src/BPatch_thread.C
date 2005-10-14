@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.133 2005/10/10 18:45:39 legendre Exp $
+// $Id: BPatch_thread.C,v 1.134 2005/10/14 16:37:18 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -167,7 +167,7 @@ BPatch_thread::BPatch_thread(BPatch_process *parent, dyn_thread *dthr)
    updated = false;
 }
 
-void BPatch_thread::updateValues(int tid, unsigned long stack_start,
+void BPatch_thread::updateValues(dynthread_t tid, unsigned long stack_start,
                                  BPatch_function *initial_func, int lwp_id)
 {
    BPatch_Vector<BPatch_frame> stack;
@@ -223,7 +223,7 @@ BPatch_process *BPatch_thread::getProcessInt()
    return proc;
 }
 
-unsigned BPatch_thread::getTidInt()
+dynthread_t BPatch_thread::getTidInt()
 {
    return llthread->get_tid();
 }

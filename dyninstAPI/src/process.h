@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.337 2005/09/28 17:03:16 bernat Exp $
+/* $Id: process.h,v 1.338 2005/10/14 16:37:22 legendre Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -222,7 +222,7 @@ class process {
 
   bool isInSignalHandler(Address addr);
 
-  void deleteThread(int tid);
+  void deleteThread(dynthread_t tid);
 
   // Thread index functions
   unsigned getIndexToThread(unsigned index);
@@ -798,7 +798,7 @@ char * systemPrelinkCommand;
   
   public:
 
-  dyn_thread *getThread(unsigned tid);
+  dyn_thread *getThread(dynthread_t tid);
   dyn_lwp *getLWP(unsigned lwp_id);
 
   // return NULL if not found
@@ -1032,7 +1032,7 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   int max_number_of_threads;
   pdvector<dyn_thread *> threads;
 
-  int mapIndexToTid(int index);
+  dynthread_t mapIndexToTid(int index);
   bool deferredContinueProc;
   Address previousSignalAddr_;
   bool continueAfterNextStop_;

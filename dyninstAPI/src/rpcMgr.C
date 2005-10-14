@@ -81,7 +81,7 @@ rpcMgr::rpcMgr(rpcMgr *pRM, process *child) :
     // Make all necessary thread and LWP managelets.
     
     for (unsigned i = 0; i < pRM->thrs_.size(); i++) {
-        unsigned tid = pRM->thrs_[i]->thr_->get_tid();
+        dynthread_t tid = pRM->thrs_[i]->thr_->get_tid();
         dyn_thread *cthr = child->getThread(tid);
         if (!cthr) continue; // Whee, not there any more. 
         rpcThr *newT = new rpcThr(pRM->thrs_[i],
@@ -140,7 +140,7 @@ rpcMgr::rpcMgr(rpcMgr *pRM, process *child) :
         inferiorRPCtoDo *oldRPC = pRM->postedProcessRPCs_[iii];
         bool found = false;
         if (oldRPC->thr) {
-            unsigned tid = oldRPC->thr->get_tid();
+            dynthread_t tid = oldRPC->thr->get_tid();
             for (unsigned j = 0; j < thrs_.size(); j++) {
                 if (thrs_[j]->thr_->get_tid() == tid) {
                     rpcThr *thr = thrs_[j];

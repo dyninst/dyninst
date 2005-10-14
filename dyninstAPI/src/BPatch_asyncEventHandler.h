@@ -126,7 +126,7 @@ class BPatch_eventMailbox {
 
   bool executeUserCallbacks();
   bool registerCallback(BPatch_asyncEventType type,
-                        BPatch_process *p, unsigned tid,
+                        BPatch_process *p, dynthread_t tid,
                         int lwp, unsigned index, 
                         unsigned long stack_addr,
                         unsigned long start_pc);

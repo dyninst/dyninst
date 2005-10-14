@@ -84,7 +84,7 @@ typedef enum {
   BPatch_oneTimeCodeEvent
 } BPatch_asyncEventType;
 
-
+typedef long dynthread_t;
 /*
  * Contains information about the code that was inserted by an earlier call to
  * Bpatch_thread::insertSnippet.
@@ -206,7 +206,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     BPatch_process(int childPid, process *proc);
 
     // Create a new thread in this proc
-    BPatch_thread *createOrUpdateBPThread(int lwp, int tid, unsigned index, 
+    BPatch_thread *createOrUpdateBPThread(int lwp, dynthread_t tid, unsigned index, 
                                           unsigned long stack_start, 
                                           unsigned long start_addr);
     void deleteBPThread(BPatch_thread *thrd);
@@ -353,7 +353,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     //
     //  Returns one of this process's threads, given a tid
     API_EXPORT(Int, (tid),
-    BPatch_thread *, getThread, (unsigned tid));
+    BPatch_thread *, getThread, (dynthread_t tid));
 
     //  BPatch_process::getThread
     //
