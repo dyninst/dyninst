@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.92 2005/10/14 16:37:41 legendre Exp $
+ * $Id: RTinst.c,v 1.93 2005/10/14 20:53:33 tlmiller Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -241,7 +241,7 @@ void PARADYNinit(int paradyndPid, int creationMethod,
 #endif
 
    virtualTimers = virtualTimersAddr;
-   fprintf(stderr, "[%s:%u] - virtualTimers = %p\n", __FILE__, __LINE__, virtualTimers);
+   // /* DEBUG */ fprintf(stderr, "[%s:%u] - virtualTimers = %p\n", __FILE__, __LINE__, virtualTimers);
    RTobserved_cost = obsCostAddr;
 
 #if defined(cap_threads)
