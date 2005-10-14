@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.8 2005/09/28 17:03:00 bernat Exp $
+ * $Id: emit-x86.C,v 1.9 2005/10/14 16:37:43 legendre Exp $
  */
 
 #include <assert.h>
@@ -191,14 +191,14 @@ void Emitter32::emitDivImm(Register dest, Register src1, RegValue src2imm, codeG
 
 void Emitter32::emitLoad(Register dest, Address addr, int size, codeGen &gen)
 {
-    if (size == 1) {
-	emitMovMBToReg(REGNUM_EAX, addr, gen);               // movsbl eax, addr
-    } else if (size == 2) {
-	emitMovMWToReg(REGNUM_EAX, addr, gen);               // movswl eax, addr
-    } else {
-	emitMovMToReg(REGNUM_EAX, addr, gen);               // mov eax, addr
-    }
-    emitMovRegToRM(REGNUM_EBP, -(dest*4), REGNUM_EAX, gen);    // mov -(dest*4)[ebp], eax
+   if (size == 1) {
+      emitMovMBToReg(REGNUM_EAX, addr, gen);               // movsbl eax, addr
+   } else if (size == 2) {
+      emitMovMWToReg(REGNUM_EAX, addr, gen);               // movswl eax, addr
+   } else {
+      emitMovMToReg(REGNUM_EAX, addr, gen);               // mov eax, addr
+   }
+   emitMovRegToRM(REGNUM_EBP, -(dest*4), REGNUM_EAX, gen);    // mov -(dest*4)[ebp], eax
 }
 
 void Emitter32::emitLoadConst(Register dest, Address imm, codeGen &gen)
@@ -345,13 +345,12 @@ bool Emitter32::emitBTMTCode(baseTramp* bt, codeGen &gen)
     
     src = threadPOS->generateCode(bt->proc(), regSpace, gen,
                                   false, // noCost 
-                                  true); // root node
-    
+                                  true); // root
     
     // AST generation uses a base pointer and a current address; the lower-level
     // code uses a current pointer. Convert between the two.
-    LOAD_VIRTUAL(src, gen);
-    SAVE_VIRTUAL(REG_MT_POS, gen);
+    LOAD_VIRTUAL32(src, gen);
+    SAVE_VIRTUAL32(REG_MT_POS, gen);
     
     return true;
 }
@@ -379,7 +378,7 @@ bool Emitter32::emitBTGuardPreCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& 
     if (bt->threaded()) 
     {
        // Load the index into REGNUM_EAX
-       LOAD_VIRTUAL(REG_MT_POS, gen);
+       LOAD_VIRTUAL32(REG_MT_POS, gen);
        // Shift by sizeof(int) and add guard_flag_address
        emitLEA(Null_Register, REGNUM_EAX, 2, guard_flag_address, REGNUM_EAX, gen);
        // Compare to 0
@@ -400,7 +399,7 @@ bool Emitter32::emitBTGuardPreCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& 
        emitMovImmToRM(REGNUM_EAX, 0, 0, gen);
     }
     else {
-        emitMovImmToMem( guard_flag_address, 0, gen );
+       emitMovImmToMem( guard_flag_address, 0, gen );
     }
     
     return true;
@@ -423,7 +422,7 @@ bool Emitter32::emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t&
    if (bt->threaded())
    {
        // Load the index into REGNUM_EAX
-       LOAD_VIRTUAL(REG_MT_POS, gen);
+       LOAD_VIRTUAL32(REG_MT_POS, gen);
        // Shift by sizeof(int) and add guard_flag_address
        emitLEA(Null_Register, REGNUM_EAX, 2, guard_flag_address, REGNUM_EAX, gen);
        emitMovImmToRM(REGNUM_EAX, 0, 1, gen);
@@ -612,41 +611,19 @@ static void emitPopReg64(Register dest, codeGen &gen)
     emitSimpleInsn(0x58 + dest, gen);
 }
 
-class Emitter64 : public Emitter {
+void emitLEA64(Register base, Register index, unsigned int scale, int disp,
+               Register dest, bool is_64, codeGen &gen)
+{
+    Register tmp_base = base;
+    Register tmp_index = index;
+    Register tmp_dest = dest;
 
-public:
-    codeBufIndex_t emitIf(Register expr_reg, Register target, codeGen &gen);
-    void emitOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen);
-    void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen);
-    void emitDiv(Register dest, Register src1, Register src2, codeGen &gen);
-    void emitOpImm(unsigned opcode1, unsigned opcode2, Register dest, Register src1, RegValue src2imm,
-			   codeGen &gen);
-    void emitRelOpImm(unsigned op, Register dest, Register src1, RegValue src2imm, codeGen &gen);
-    void emitTimesImm(Register dest, Register src1, RegValue src1imm, codeGen &gen);
-    void emitDivImm(Register dest, Register src1, RegValue src1imm, codeGen &gen);
-    void emitLoad(Register dest, Address addr, int size, codeGen &gen);
-    void emitLoadConst(Register dest, Address imm, codeGen &gen);
-    void emitLoadIndir(Register dest, Register addr_reg, codeGen &gen);
-    void emitLoadFrameRelative(Register dest, Address offset, codeGen &gen);
-    void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
-    void emitLoadPreviousStackFrameRegister(Address register_num, Register dest, codeGen &gen);
-    void emitStore(Address addr, Register src, codeGen &gen);
-    void emitStoreIndir(Register addr_reg, Register src, codeGen &gen);
-    void emitStoreFrameRelative(Address offset, Register src, Register scratch, codeGen &gen);
-    Register emitCall(opCode op, registerSpace *rs, codeGen &gen,
-			      const pdvector<AstNode *> &operands,
-			      process *proc, bool noCost, Address callee_addr, const pdvector<AstNode *> &ifForks,
-			      const instPoint *location);
-    void emitGetRetVal(Register dest, codeGen &gen);
-    void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen);
-    void emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen);
-    bool emitBTSaves(baseTramp* bt, codeGen &gen);
-    bool emitBTRestores(baseTramp* bt, codeGen &gen);
-    bool emitBTMTCode(baseTramp* bt, codeGen &gen);
-    bool emitBTGuardPreCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardJumpOffset);
-    bool emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardTargetIndex);
-    bool emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costValue);
-};
+    emitRex(is_64, &tmp_dest,
+            tmp_base == Null_Register ? NULL : &tmp_base,
+            tmp_index == Null_Register ? NULL : &tmp_index,
+            gen);
+    emitLEA(tmp_base, tmp_index, scale, disp, tmp_dest, gen);
+}
 
 codeBufIndex_t Emitter64::emitIf(Register expr_reg, Register target, codeGen &gen)
 {
@@ -1076,8 +1053,8 @@ void Emitter64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
 
 bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
 {
-    // skip past the red zone
-    // (we use LEA to avoid overwriting the flags)
+   // skip past the red zone
+   // (we use LEA to avoid overwriting the flags)
     GET_PTR(buffer, gen);
     *buffer++ = 0x48; // REX.W
     *buffer++ = 0x8D; // LEA opcode
@@ -1113,6 +1090,12 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
     // movl  %rsp, %rbp  (0x48 0x89 0xe5)
     emitSimpleInsn(0x55, gen);
     emitMovRegToReg64(REGNUM_RBP, REGNUM_RSP, true, gen);
+
+    //Save space on the stack for the thread index
+    if (bt->threaded())
+    {
+       emitOpRegImm64(0x81, 5, REGNUM_RSP, 8, true, gen);
+    }
 
     if (bt->isConservative()) {
 	
@@ -1193,8 +1176,27 @@ bool Emitter64::emitBTRestores(baseTramp* bt, codeGen &gen)
     return true;
 }
 
-bool Emitter64::emitBTMTCode(baseTramp* /*bt*/, codeGen& /*gen*/)
+bool Emitter64::emitBTMTCode(baseTramp* bt, codeGen& gen)
 {
+    AstNode *threadPOS;
+    pdvector<AstNode *> dummy;
+    Register src = Null_Register;
+    // registers cleanup
+    regSpace->resetSpace();
+    
+    /* Get the hashed value of the thread */
+    if (bt->threaded())
+       threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
+    else
+       threadPOS = new AstNode("DYNINSTreturnZero", dummy);
+    
+    src = threadPOS->generateCode(bt->proc(), regSpace, gen,
+                                  false, // noCost 
+                                  true); // root node
+
+    // AST generation uses a base pointer and a current address; the lower-level
+    // code uses a current pointer. Convert between the two.
+    emitMovRegToRM64(REGNUM_RBP, mt_offset, REGNUM_RAX, true, gen);
     return true;
 }
 
@@ -1211,12 +1213,27 @@ bool Emitter64::emitBTGuardPreCode(baseTramp* bt, codeGen &gen, unsigned& guardJ
     
     if (bt->threaded()) 
     {
-       assert(0);
+       inst_printf("Generating MT code\n");
+       // Load the index into REGNUM_EAX
+       emitMovRMToReg64(REGNUM_RAX, REGNUM_RBP, mt_offset, true, gen);
+       if (!is_disp32(guard_flag_address))
+       {
+          // We can't use a 64 bit value in the lea, so first store it in rbx
+          emitMovImmToReg64(REGNUM_RBX, guard_flag_address, true, gen);
+          // Shift by sizeof(int) and add guard_flag_address
+          emitLEA64(REGNUM_RBX, REGNUM_RAX, 2, 0x0, REGNUM_RAX, true, gen);
+       }
+       else
+       {
+          //Store tramp guard address in RAX
+          emitLEA64(Null_Register, REGNUM_RAX, 2, guard_flag_address, REGNUM_RAX, true, gen);
+       }
     }
     else {
         emitMovImmToReg64(REGNUM_RAX, guard_flag_address, true, gen);
-        emitOpMemImm64(0x81, 0x7, REGNUM_RAX, 0, false, gen);
     }
+    // Compare to 0
+    emitOpMemImm64(0x81, 0x7, REGNUM_RAX, 0, false, gen);
     
     guardJumpIndex = gen.getIndex();
     
@@ -1225,13 +1242,7 @@ bool Emitter64::emitBTGuardPreCode(baseTramp* bt, codeGen &gen, unsigned& guardJ
     bt->guardBranchSize = JUMP_REL32_SZ;
     instruction::generateNOOP(gen, JUMP_REL32_SZ);
     
-    if (bt->threaded()) 
-    {
-	    assert(0);
-    }
-    else {
-	emitMovImmToRM(REGNUM_RAX, 0, 0, gen);
-    }
+    emitMovImmToRM(REGNUM_RAX, 0, 0, gen);
     
     return true;
 }
@@ -1248,12 +1259,28 @@ bool Emitter64::emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t 
 
    if (bt->threaded())
    {
-       assert(0);
+       inst_printf("Generating MT guard post code\n");
+       // Load the index into REGNUM_RAX
+       emitMovRMToReg64(REGNUM_RAX, REGNUM_RBP, mt_offset, true, gen);
+       //       LOAD_VIRTUAL64(REG_MT_POS, gen);
+       // Shift by sizeof(int) and add guard_flag_address
+       if (!is_disp32(guard_flag_address))
+       {
+          // We can't use a 64 bit value in the lea, so first store it in ebx
+          emitMovImmToReg64(REGNUM_RBX, guard_flag_address, true, gen);
+          // Shift by sizeof(int) and add guard_flag_address
+          emitLEA64(REGNUM_RBX, REGNUM_RAX, 2, 0x0, REGNUM_RAX, true, gen);
+       }
+       else
+       {
+          //Store tramp guard address in RAX
+          emitLEA64(Null_Register, REGNUM_RAX, 2, guard_flag_address, REGNUM_RAX, true, gen);
+       }
    }
    else {
        emitMovImmToReg64(REGNUM_RAX, guard_flag_address, true, gen);
-       emitMovImmToRM(REGNUM_EAX, 0, 1, gen);
    }
+   emitMovImmToRM(REGNUM_EAX, 0, 1, gen);
    guardTargetIndex = gen.getIndex();
 
    return true;

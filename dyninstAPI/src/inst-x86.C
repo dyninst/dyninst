@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.220 2005/09/28 17:03:07 bernat Exp $
+ * $Id: inst-x86.C,v 1.221 2005/10/14 16:37:45 legendre Exp $
  */
 #include <iomanip>
 
@@ -149,7 +149,6 @@ void initTramps(bool is_multithreaded)
 				   0, NULL, is_multithreaded);
 
 #if defined(arch_x86_64)
-    assert(!is_multithreaded);
     regSpace64 = new registerSpace(deadList64Size/sizeof(Register), deadList64,
 				   0, NULL, is_multithreaded);
 #endif
