@@ -50,7 +50,7 @@ unsigned DYNINSTthreadIndexFAST()
 int tc_lock_lock(tc_lock_t *lock)
 {
    /* If we've already got the lock, fail. */
-   tid_t myid = dyn_pthread_self();
+   dyntid_t myid = dyn_pthread_self();
    if( myid == lock->tid ) {
       return DYNINST_DEAD_LOCK;
    }

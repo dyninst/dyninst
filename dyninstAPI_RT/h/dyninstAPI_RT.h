@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.26 2005/10/14 16:37:24 legendre Exp $
+ * $Id: dyninstAPI_RT.h,v 1.27 2005/10/17 15:49:23 legendre Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -117,7 +117,7 @@ typedef struct {
 
 typedef struct {
    int ppid;         //Parent process's pid
-   tid_t tid;        //Thread library ID for thread
+   dyntid_t tid;        //Thread library ID for thread
    int lwp;          //OS id for thread
    int index;        //The dyninst index for this thread
    void *stack_addr; //The top of this thread's stack

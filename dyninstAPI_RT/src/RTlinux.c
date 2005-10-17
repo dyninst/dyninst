@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.34 2005/10/14 16:37:56 legendre Exp $
+ * $Id: RTlinux.c,v 1.35 2005/10/17 15:49:27 legendre Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -241,15 +241,15 @@ int dyn_pid_self()
    return getpid();
 }
 
-tid_t (*DYNINST_pthread_self)(void);
-tid_t dyn_pthread_self()
+dyntid_t (*DYNINST_pthread_self)(void);
+dyntid_t dyn_pthread_self()
 {
-   tid_t me;
+   dyntid_t me;
    if (!DYNINST_pthread_self) {
-      return (tid_t) -1;
+      return (dyntid_t) -1;
    }
    me = (*DYNINST_pthread_self)();
-   return (tid_t) me;
+   return (dyntid_t) me;
 }
 
 

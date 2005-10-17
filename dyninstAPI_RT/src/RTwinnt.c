@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTwinnt.c,v 1.14 2005/10/10 18:45:45 legendre Exp $
+ * $Id: RTwinnt.c,v 1.15 2005/10/17 15:49:35 legendre Exp $
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  ************************************************************************/
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
@@ -215,7 +215,7 @@ int dyn_pid_self()
    return _getpid();
 }
 
-int dyn_pthread_self()
+dyntid_t dyn_pthread_self()
 {
    return 0;
 }

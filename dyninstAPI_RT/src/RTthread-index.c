@@ -55,7 +55,7 @@
 static DECLARE_TC_LOCK(DYNINST_index_lock);
 
 typedef struct thread_t {
-   tid_t tid;
+   dyntid_t tid;
    int next;
 } thread_t;
 
@@ -66,9 +66,9 @@ static unsigned threads_hash_size;
 static int first_free;
 static int first_deleted;
 
-tid_t DYNINST_getThreadFromIndex(int index)
+dyntid_t DYNINST_getThreadFromIndex(int index)
 {
-   return (tid_t) threads[index].tid;
+   return (dyntid_t) threads[index].tid;
 }
 
 void DYNINST_initialize_index_list()
@@ -100,7 +100,7 @@ void DYNINST_initialize_index_list()
 /**
  * A guaranteed-if-there index lookup 
  **/
-unsigned DYNINSTthreadIndexSLOW(tid_t tid)
+unsigned DYNINSTthreadIndexSLOW(dyntid_t tid)
 {
    unsigned hash_id, orig;
    unsigned retval;
@@ -150,7 +150,7 @@ unsigned DYNINSTthreadIndexSLOW(tid_t tid)
    return retval;
 }
     
-unsigned DYNINST_alloc_index(tid_t tid)
+unsigned DYNINST_alloc_index(dyntid_t tid)
 {
    int result;
    unsigned hash_id, orig;
@@ -207,7 +207,7 @@ unsigned DYNINST_alloc_index(tid_t tid)
    return retval;
 }
 
-int DYNINST_free_index(tid_t tid)
+int DYNINST_free_index(dyntid_t tid)
 {
    unsigned deleted_end = 0;
    unsigned hash_id, orig;

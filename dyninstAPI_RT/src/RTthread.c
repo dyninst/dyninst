@@ -51,7 +51,7 @@ unsigned DYNINST_max_num_threads;
 int DYNINST_multithread_capable;
 extern unsigned int DYNINSThasInitialized;
 
-static unsigned threadCreate(tid_t tid);
+static unsigned threadCreate(dyntid_t tid);
 
 void (*newthr_cb)(int);
 
@@ -63,7 +63,7 @@ void (*newthr_cb)(int);
 volatile int foobar = 0;
 int DYNINSTthreadIndex()
 {
-   tid_t tid;
+   dyntid_t tid;
    int curr_index;
 
    if (!DYNINSThasInitialized) 
@@ -72,7 +72,7 @@ int DYNINSTthreadIndex()
    }
 
    tid = dyn_pthread_self();
-   if (tid == (tid_t) -1)
+   if (tid == (dyntid_t) -1)
    {
       return 0;
    }
@@ -139,7 +139,7 @@ static int asyncSendThreadEvent(int pid, rtBPatch_asyncEventType type,
 /**
  * Creates a new index for a given tid.
  **/
-static unsigned threadCreate(tid_t tid)
+static unsigned threadCreate(dyntid_t tid)
 {
    int res;
    BPatch_newThreadEventRecord ev;
@@ -187,7 +187,7 @@ static unsigned threadCreate(tid_t tid)
  **/
 void DYNINSTthreadDestroy()
 {
-   tid_t tid = dyn_pthread_self();
+   dyntid_t tid = dyn_pthread_self();
    int index = DYNINSTthreadIndex();
    int pid = dyn_pid_self();
    int err;
