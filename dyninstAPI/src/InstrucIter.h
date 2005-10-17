@@ -291,6 +291,8 @@ class InstrucIter {
   unsigned getFRCValue();
   void printOpCode();
 
+  void readWriteRegisters(int * readRegs, int * writeRegs);
+
   bool isAIndirectJumpInstruction();
 
 #if defined(arch_sparc)

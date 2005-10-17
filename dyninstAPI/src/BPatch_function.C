@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.62 2005/10/06 17:42:24 bernat Exp $
+// $Id: BPatch_function.C,v 1.63 2005/10/17 18:19:42 rutar Exp $
 
 #define BPATCH_FILE
 
@@ -580,7 +580,7 @@ void BPatch_function::fixupUnknown(BPatch_module *module) {
 }
 
 void BPatch_function::calc_liveness(BPatch_point *point) {
-#if defined(os_aix)
+#if defined(os_aix) || defined(arch_x86_64)
     assert(point);
     instPoint *iP = point->getPoint();
     assert(iP);
@@ -588,6 +588,8 @@ void BPatch_function::calc_liveness(BPatch_point *point) {
     int *liveRegisters = iP->liveRegisters;
     int *liveFPRegisters = iP->liveFPRegisters;
     int *liveSPRegisters = iP->liveSPRegisters;
+    
+    iP->testThis = 4;
     
     // BEGIN LIVENESS ANALYSIS STUFF
     // Need to narrow it down to specific basic block at this point so we can 
@@ -608,14 +610,14 @@ void BPatch_function::calc_liveness(BPatch_point *point) {
             /* When we have the actual basic block belonging to the 
                inst address, we put the live Registers in for that inst point*/
             
-            bb->liveRegistersIntoSet(liveRegisters, liveFPRegisters, pA );
-            
+	  bb->liveRegistersIntoSet(iP->liveRegisters, iP->liveFPRegisters, pA );
+	  
             /* Function for handling special purpose registers on platforms,
                for Power it figures out MX register usage (big performance hit) ... 
                may be extended later for other special purpose registers */
-            bb->liveSPRegistersIntoSet(liveSPRegisters, pA);
-            
-            //bb->printAll();
+	  bb->liveSPRegistersIntoSet(iP->liveSPRegisters, pA);
+	  
+	  //bb->printAll();
         }
     }
     delete [] elements;

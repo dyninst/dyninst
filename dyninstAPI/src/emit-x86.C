@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.10 2005/10/17 15:49:19 legendre Exp $
+ * $Id: emit-x86.C,v 1.11 2005/10/17 18:19:43 rutar Exp $
  */
 
 #include <assert.h>
@@ -879,7 +879,37 @@ void Emitter64::emitLoadFrameAddr(Register dest, Address offset, codeGen &gen)
 
 void Emitter64::emitLoadPreviousStackFrameRegister(Address register_num, Register dest, codeGen &gen)
 {
-    emitMovRMToReg64(dest, REGNUM_RBP, (SAVED_RAX_OFFSET - register_num) * 8, true, gen);
+  int stackPlace, totalLive;
+  totalLive = stackPlace = 0;
+  u_int i;
+  for(i = 0; i < regSpace->getRegisterCount(); i++)
+    {
+      registerSlot * reg = regSpace->getRegSlot(i);
+      if (reg->startsLive)
+	{
+	  totalLive++;
+	  if (reg->number == register_num)
+	      {
+		stackPlace = totalLive;
+	      }
+	  // We save these regardless of their liveness so don't count towards tally
+	  else if (reg->number == REGNUM_RAX || reg->number == REGNUM_RBP || reg->number == REGNUM_RSP)
+	    {
+	      totalLive--;
+	    }
+	}
+    }
+  totalLive += 1;  // For rax at top of stack
+  
+  if (register_num == REGNUM_RAX)
+    emitMovRMToReg64(dest, REGNUM_RBP, (totalLive+3) * 8, true, gen);
+  else if (register_num == REGNUM_RSP)
+    emitMovRMToReg64(dest, REGNUM_RBP, (totalLive+2) * 8, true, gen);
+  else if (register_num == REGNUM_RBP)
+    emitMovRMToReg64(dest, REGNUM_RBP, (totalLive+1) * 8, true, gen);
+  else
+    emitMovRMToReg64(dest, REGNUM_RBP, (totalLive - stackPlace) * 8, true, gen);
+  
 }
 
 void Emitter64::emitStore(Address addr, Register src, codeGen &gen)
@@ -941,11 +971,20 @@ Register Emitter64::emitCall(opCode op, registerSpace *rs, codeGen &gen, const p
     const unsigned num_args = srcs.size();
     assert(num_args <= AMD64_ARG_REGS);
     for (unsigned u = 0; u < num_args; u++)
+      {
 	emitPushReg64(amd64_arg_regs[u], gen);
+
+      }
     for (unsigned u = 0; u < num_args; u++)
+      {
 	emitPushReg64(srcs[u], gen);
+
+      }
     for (int i = num_args - 1; i >= 0; i--)
+      {
 	emitPopReg64(amd64_arg_regs[i], gen);
+
+      }
 
     // make the call (using an indirect call)
     emitMovImmToReg64(REGNUM_EAX, callee_addr, true, gen);
@@ -966,13 +1005,53 @@ Register Emitter64::emitCall(opCode op, registerSpace *rs, codeGen &gen, const p
 // FIXME: comment here on the stack layout
 void Emitter64::emitGetRetVal(Register dest, codeGen &gen)
 {
-    emitMovRMToReg64(dest, REGNUM_RBP, SAVED_RAX_OFFSET * 8, true, gen);
+  int totalOnStack = 0;
+  for(u_int i = 0; i < regSpace->getRegisterCount(); i++)
+    {
+      registerSlot * reg = regSpace->getRegSlot(i);
+      if (reg->startsLive)
+	{
+	  totalOnStack++;
+	  // We save these regardless of their liveness so don't count towards tally
+	  if (reg->number == REGNUM_RAX || reg->number == REGNUM_RBP || reg->number == REGNUM_RSP)
+	    {
+	      totalOnStack--;
+	    }
+	}
+    }
+  totalOnStack += 4; // REGNUM_RAX, REGNUM_RBP, REGNUM_RSP, and other REGNUM_RAX
+  emitMovRMToReg64(dest, REGNUM_RBP, totalOnStack * 8, true, gen);
 }
 
 void Emitter64::emitGetParam(Register dest, Register param_num, instPointType_t /*pt_type*/, codeGen &gen)
 {
     assert(param_num <= 6);
-    emitMovRMToReg64(dest, REGNUM_RBP, (SAVED_RAX_OFFSET - amd64_arg_regs[param_num]) * 8, true, gen);
+    int stackPlace, totalLive;
+    totalLive = stackPlace = 0;
+    u_int i;
+    for(i = 0; i < regSpace->getRegisterCount(); i++)
+      {
+	registerSlot * reg = regSpace->getRegSlot(i);
+	if (reg->startsLive)
+	  {
+	    totalLive++;
+	    if (reg->number == amd64_arg_regs[param_num])
+	      {
+		stackPlace = totalLive;
+	      }
+	    // We save these regardless of their liveness so don't count towards tally
+	    else if (reg->number == REGNUM_RAX || reg->number == REGNUM_RBP || reg->number == REGNUM_RSP)
+	      {
+		totalLive--;
+	      }
+	  }
+      }
+    totalLive += 2;  // For rax and rbp at top of stack
+    
+    if (stackPlace == 0)
+      emitMovRMToReg64(dest, REGNUM_RBP, 0, true, gen);
+    else
+      emitMovRMToReg64(dest, REGNUM_RBP, (totalLive - stackPlace) * 8, true, gen);   
 }
 
 static void emitPushImm16_64(unsigned short imm, codeGen &gen)
@@ -1018,12 +1097,32 @@ void Emitter64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
     // pop "fake" return address
     emitPopReg64(REGNUM_RAX, gen);
 
-    // restore saved registers (POP R15, POP R14, ...)
-    for (int reg = 15; reg >= 0; reg--) {
-	//if (reg == REGNUM_RSP) continue;
-	emitPopReg64(reg, gen);
-    }
-
+    if (regSpace->getDisregardLiveness())
+      {
+	// restore saved registers (POP R15, POP R14, ...)
+	for (int reg = 15; reg >= 0; reg--) {
+	  emitPopReg64(reg, gen);
+	}
+      }
+    else
+      {
+	// Save the live ones
+	for(int i = regSpace->getRegisterCount()-1; i >= 0; i--)
+	  {
+	    registerSlot * reg = regSpace->getRegSlot(i);
+	    if (reg->startsLive)
+	      {
+		emitPopReg64(reg->number,gen);
+	      }
+	  }
+	
+	// Always restore these 3
+	emitPopReg64(REGNUM_RBP,gen);
+	emitPopReg64(REGNUM_RSP,gen);
+	emitPopReg64(REGNUM_RAX,gen);
+      }
+    
+    
     // restore flags (POPFQ)
     emitSimpleInsn(0x9D, gen);
 
@@ -1069,12 +1168,30 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
     // save flags (PUSHFQ)
     emitSimpleInsn(0x9C, gen);
     
-    // save all registers (PUSH RAX, PUSH RCX, ...)
-    for (int reg = 0; reg < 16; reg++) {
-	//if (reg == REGNUM_RSP) continue;
-	emitPushReg64(reg, gen);
-    }
-
+    if (regSpace->getDisregardLiveness())
+      {
+	for (int reg = 0; reg < 16; reg++) {
+	  emitPushReg64(reg, gen);
+	}
+      }
+    else
+      {
+	// Always save these 3
+	emitPushReg64(REGNUM_RAX,gen);
+	emitPushReg64(REGNUM_RSP,gen);
+	emitPushReg64(REGNUM_RBP,gen);
+	
+	// Save the live ones
+	for(u_int i = 0; i < regSpace->getRegisterCount(); i++)
+	  {
+	    registerSlot * reg = regSpace->getRegSlot(i);
+	    if (reg->startsLive)
+	      {
+		emitPushReg64(reg->number,gen);
+	      }
+	  }
+      }
+    
     // push a return address for stack walking
     if (bt->preInstP) {
 	emitMovImmToReg64(REGNUM_RAX, bt->preInstP->addr(), true, gen);
@@ -1101,7 +1218,7 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
     }
 
     if (bt->isConservative()) {
-	
+           
 	// need to save the floating point state (x87, MMX, SSE)
 	// we do this on the stack, but the problem is that the save
 	// area must be 16-byte aligned. the following sequence does
@@ -1156,12 +1273,32 @@ bool Emitter64::emitBTRestores(baseTramp* bt, codeGen &gen)
     // pop "fake" return address
     if (!bt->rpcMgr_)
 	emitPopReg64(REGNUM_RAX, gen);
+    
+    if (regSpace->getDisregardLiveness())
+      {
+	// restore saved registers (POP R15, POP R14, ...)
+	for (int reg = 15; reg >= 0; reg--) {
+	  emitPopReg64(reg, gen);
+	}
+      }
+    else
+      {
+	// Save the live ones
+	for(int i = regSpace->getRegisterCount()-1; i >= 0; i--)
+	  {
+	    registerSlot * reg = regSpace->getRegSlot(i);
+	    if (reg->startsLive)
+	      {
+		emitPopReg64(reg->number,gen);
+	      }
+	  }
 
-    // restore saved registers (POP R15, POP R14, ...)
-    for (int reg = 15; reg >= 0; reg--) {
-	//if (reg == REGNUM_RSP) continue;
-	emitPopReg64(reg, gen);
-    }
+	// Always restore these 3
+	
+	emitPopReg64(REGNUM_RBP,gen);
+	emitPopReg64(REGNUM_RSP,gen);
+	emitPopReg64(REGNUM_RAX,gen);
+      }
 
     // restore flags (POPFQ)
     emitSimpleInsn(0x9D, gen);

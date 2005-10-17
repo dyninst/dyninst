@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 1996-2004 Barton P. Miller
  * 
@@ -50,6 +49,7 @@
 #include "common/h/Dictionary.h"
 
 #include "arch.h"
+#include "arch-x86.h"
 #include "util.h"
 #include "process.h"
 #include "symtab.h"
@@ -600,4 +600,264 @@ Address InstrucIter::operator--(int)
 Address InstrucIter::operator*()
 {
     return current;
+}
+
+void parseRegisters(int * readArr, int * writeArr,
+		    instruction * i,ia32_instruction *ii,int whichOp, int readOrWrite)
+{
+  ia32_entry * entry = ii->getEntry();
+  ia32_prefixes * pref = ii->getPrefix();
+
+  const unsigned char * addr = i->ptr();
+
+  char * addrPtr = (char *)addr;
+  int hasSIB = 0;
+  int hasModRM = 0;
+  int opCodeSize = 1;
+  
+  unsigned mod = 0;
+  unsigned reg = 0;
+  unsigned rm = 0;
+
+  addrPtr += ii->getPrefixCount();
+
+  if (*addrPtr == 0x0f)
+    opCodeSize = 2;
+
+  if (entry->operands[whichOp].admet == am_G || 
+      entry->operands[whichOp].admet == am_R ||
+      entry->operands[whichOp].admet == am_E)
+    {
+      hasModRM = 1;
+      addrPtr += opCodeSize;
+      char modByte = *addrPtr;
+      mod = (modByte >> 6) & 0x03;
+      reg = (modByte >> 3) & 0x07;
+      rm =  modByte & 0x07;
+      if ((mod != 3) && (rm == 4))
+	hasSIB = 1;
+      //printf("mod - %d, reg - %d, rm - %d\n", mod, reg, rm);
+      addrPtr++;
+    }
+
+  int rIndex =0; 
+  int wIndex =0;
+  for (rIndex = 0; rIndex < 3 && readArr[rIndex] != -1; rIndex++)
+    {}
+
+  for (wIndex = 0; wIndex < 3 && writeArr[wIndex] != -1; wIndex++)
+    {}
+
+  if (entry->operands[whichOp].admet == am_G)
+    {
+      if (pref->rexR())
+	reg = reg+8;
+      if (readOrWrite == READ_OP)
+	readArr[rIndex] = reg;
+      else if (readOrWrite == WRITE_OP)
+	writeArr[wIndex] = reg;
+    }
+  else if (entry->operands[whichOp].admet == am_R)
+    {
+      if (pref->rexB())
+	rm = rm+8;
+      if (readOrWrite == READ_OP)
+	readArr[rIndex] = rm;
+      else if (readOrWrite == WRITE_OP)
+	writeArr[wIndex] = rm;
+
+    }
+  else if (entry->operands[whichOp].admet == am_E)
+    {
+      int regi = -1; /* modRM reg 1 */
+      int regi2 = -1; /* SIB reg 1 */
+      int regi3 = -1; /* SIB reg 2 */
+      if (rm == 0)
+	regi = REGNUM_RAX;
+      else if (rm == 1)
+	regi = REGNUM_RCX;
+      else if (rm == 2)
+	regi = REGNUM_RDX;
+      else if (rm == 3)
+	regi = REGNUM_RBX;
+      else if (rm == 5 && mod != 0)
+	regi = REGNUM_RBP;
+      else if (rm == 5 && mod == 0)
+	regi = -1; /* RIP + disp32 */
+      else if (rm == 6)
+	regi = REGNUM_RSI;
+      else if (rm == 7)
+	regi = REGNUM_RDI;      
+      else if (mod == 3 && rm == 4)
+	regi = REGNUM_RBP;
+      else if (mod != 3 && rm == 4)
+	{
+	  char sibByte = *addrPtr;
+	  unsigned scale = (sibByte >> 6) & 0x03;
+	  unsigned ind = (sibByte >> 3) & 0x07;
+	  unsigned base =  sibByte & 0x07;
+	  
+	  if (ind == 0)
+	    regi2 = 0;
+	  else if (ind == 1)
+	    regi2 = 1;
+	  else if (ind == 2)
+	    regi2 = 2;
+	  else if (ind == 3)
+	    regi2 = 3;
+	  else if (ind == 4 && pref->rexX()) 
+	    regi2 = 4;
+	  else if (ind == 5)
+	    regi2 = 5;
+	  else if (ind == 6)
+	    regi2 = 6;
+	  else if (ind == 7)
+	    regi2 = 7;
+
+	  if (base == 0)
+	    regi3 = 0;
+	  else if (base == 1)
+	    regi3 = 1;
+	  else if (base == 2)
+	    regi3 = 2;
+	  else if (base == 3)
+	    regi3 = 3;
+	  else if (base == 4)
+	    regi = 4;
+	  else if (base == 5 && mod !=0 )
+	    regi3 = 5;
+	  else if (base == 6)
+	    regi3 = 6;
+	  else if (base == 7)
+	    regi3 = 7;
+
+	  if (pref->rexX() && regi2 !=- 1)
+	    regi2 = regi2+8;
+	  readArr[rIndex] = regi2;
+	  rIndex++;
+
+	  if (pref->rexB() && regi3 != -1)
+	    regi3 = regi3+8;
+	  readArr[rIndex] = regi3;
+
+	  //printf("SIB scale - %d, ind - %d, base - %d\n",scale,ind,base);
+	}
+      
+      if (!hasSIB)
+	{
+	  if (pref->rexB())
+	    regi = regi+8;
+	  readArr[rIndex] = regi;
+	}
+    }
+  else if (entry->operands[whichOp].admet == am_reg)
+    {
+      int ot = entry->operands[whichOp].optype;
+      int regi = -1;
+      if (ot == r_eAX || ot == r_EAX)
+	regi = 0;
+      else if (ot == r_eBX || ot == r_EBX)
+	regi = 1;
+      else if(ot == r_eCX || ot == r_ECX)
+	  regi = 2;
+      else if(ot == r_eDX || ot == r_EDX)
+	regi = 3;
+      else if(ot == r_eSP || ot == r_ESP)
+	regi = 4;
+      else if (ot == r_eBP || ot == r_EBP)
+	regi = 5;
+      else if (ot == r_eSI || ot == r_ESI)
+	regi = 6;
+      else if(ot == r_eDI || ot == r_EDI)
+	  regi = 7;
+
+      if (pref->rexB())
+	regi = regi+8;
+      if (readOrWrite == READ_OP)
+	readArr[rIndex] = regi;
+      else if (readOrWrite == WRITE_OP)
+	writeArr[wIndex] = regi;
+
+    }  
+}
+
+
+void InstrucIter::readWriteRegisters(int * readRegs, int * writeRegs)
+{
+  instruction i = getInstruction();
+ 
+  ia32_instruction ii;
+  
+  const unsigned char * addr = i.ptr();
+  ia32_decode<0>(addr,ii);
+
+  ia32_entry * entry = ii.getEntry();
+
+  for (int a = 0; a < 3; a++)
+    {
+      if (entry->operands[a].admet == am_G || /* GPR, selected by reg field (6) */
+	  entry->operands[a].admet == am_R || /* GPR, selected by mod field (13)*/
+	  entry->operands[a].admet == am_reg || /* implicit register (20)*/
+	  entry->operands[a].admet == am_E) /*register or memory location (4) */
+	{
+	  if (a == 0)
+	    {
+	      if (entry->opsema == s1R || entry->opsema == s1RW || entry->opsema == s1R2R ||
+		  entry->opsema == s1RW2R || entry->opsema == s1RW2RW || entry->opsema == s1RW2R3R ||
+		  entry->opsema == s1RW2RW3R)
+		{
+		  parseRegisters(readRegs,writeRegs,&i,&ii,a,READ_OP);
+		}
+	      if(entry->opsema == s1W || entry->opsema == s1RW || entry->opsema == s1W2R ||
+		      entry->opsema == s1RW2R || entry->opsema == s1RW2RW || entry->opsema == s1W2R3R || 
+		      entry->opsema == s1W2W3R || entry->opsema == s1RW2R3R || entry->opsema == s1RW2RW3R ||
+		      entry->opsema == s1W2RW3R || entry->opsema == s1W2R3R)
+		{
+		  parseRegisters(readRegs,writeRegs,&i,&ii,a,WRITE_OP);
+		}
+	    }
+	  else if (a == 1)
+	    {
+	      if (entry->opsema == s1R2R || entry->opsema == s1W2R || entry->opsema == s1RW2R ||
+		  entry->opsema == s1RW2RW || entry->opsema == s1W2R3R || entry->opsema == s1RW2R3R ||
+		  entry->opsema == s1RW2RW3R || entry->opsema == s1W2RW3R || entry->opsema == s1W2R3RW)
+		{
+		  parseRegisters(readRegs,writeRegs,&i,&ii,a,READ_OP);
+		}
+	      if(entry->opsema == s1RW2RW || entry->opsema == s1W2W3R || entry->opsema == s1W2RW3R ||
+		      entry->opsema == s1RW2RW3R )
+		{
+		  parseRegisters(readRegs,writeRegs,&i,&ii,a,WRITE_OP);
+		}
+	    }
+	  else if (a == 2)
+	    {
+	      if (entry->opsema == s1W2R3R || entry->opsema == s1W2W3R || entry->opsema == s1W2RW3R ||
+		  entry->opsema == s1W2R3RW || entry->opsema == s1RW2R3R || entry->opsema == s1RW2RW3R)
+		{
+		  parseRegisters(readRegs,writeRegs,&i,&ii,a,READ_OP);
+		}
+	      if( entry->opsema == s1W2R3RW )
+		{
+		  parseRegisters(readRegs,writeRegs,&i,&ii,a,WRITE_OP);
+		}
+	    }
+	}
+    }
+  /*
+  printf("\n");
+
+  printf("Read Regs ...");
+  for (int a = 0; a < 3; a++)
+    {
+      printf("%d ", readRegs[a]);
+    }
+  printf("\nWrite Regs ...");
+  
+  for (int a = 0; a < 3; a++)
+    {
+      printf("%d ",writeRegs[a]);
+    }
+  printf("\n");
+  */
 }

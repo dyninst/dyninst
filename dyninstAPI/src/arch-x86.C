@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.39 2005/10/14 16:37:42 legendre Exp $
+// $Id: arch-x86.C,v 1.40 2005/10/17 18:19:43 rutar Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -92,37 +92,6 @@ enum {
   G13SSE010B, G13SSE100B, G13SSE110B,
   G14SSE010B, G14SSE011B, G14SSE110B, G14SSE111B,
 };
-
-// addressing methods (see appendix A-2)
-// I've added am_reg (for registers implicitely encoded in instruciton), 
-// and am_stackX for stack operands [this kinda' messy since there are actually two operands:
-// the stack byte/word/dword and the (E)SP register itself - but is better than naught]
-// added: am_reg, am_stack, am_allgprs
-enum { am_A=1, am_C, am_D, am_E, am_F, am_G, am_I, am_J, am_M, am_O, // 10
-       am_P, am_Q, am_R, am_S, am_T, am_V, am_W, am_X, am_Y, am_reg, // 20
-       am_stackH, am_stackP, am_allgprs }; // pusH and poP produce different addresses
-
-// operand types - idem, but I invented quite a few to make implicit operands explicit.
-enum { op_a=1, op_b, op_c, op_d, op_dq, op_p, op_pd, op_pi, op_ps, 
-       op_q, op_s, op_sd, op_ss, op_si, op_v, op_w, op_z, op_lea, op_allgprs, op_512 };
-
-// registers [only fancy names, not used right now]
-enum { r_AH=100, r_BH, r_CH, r_DH, r_AL, r_BL, r_CL, r_DL,
-       r_AX, r_DX,
-       r_eAX, r_eBX, r_eCX, r_eDX,
-       r_EAX, r_EBX, r_ECX, r_EDX,
-       r_CS, r_DS, r_ES, r_FS, r_GS, r_SS,
-       r_eSP, r_eBP, r_eSI, r_eDI,
-       r_ESP, r_EBP, r_ESI, r_EDI,
-       r_EDXEAX, r_ECXEBX };
-// last two are hacks for cmpxch8b which would have 5 operands otherwise!!!
-
-// registers used for memory access
-enum { mEAX=0, mECX, mEDX, mEBX,
-       mESP, mEBP, mESI, mEDI };
-
-enum { mAX=0, mCX, mDX, mBX,
-       mSP, mBP, mSI, mDI };
 
 
 #define Zz   { 0, 0 }
@@ -240,28 +209,6 @@ enum { mAX=0, mCX, mDX, mBX,
 #define EDXEAX { am_reg, r_EDXEAX }
 
 
-// operand semantic - these make explicit all the implicit stuff in the Intel tables
-// they are needed for memory access, but may be useful for other things: dataflow etc.
-// Instructions that do not deal with memory are not tested, so caveat emptor...
-// Also note that the stack is never specified as an operand in Intel tables, so it
-// has to be dealt with here.
-
-enum { sNONE=0, // the instruction does something that cannot be classified as read/write (by me)
-       s1R,     // reads one operand, e.g. jumps
-       s1W,     // e.g. lea
-       s1RW,    // one operand read and written, e.g. inc
-       s1R2R,   // reads two operands, e.g. cmp
-       s1W2R,   // second operand read, first operand written (e.g. mov)
-       s1RW2R,  // two operands read, first written (e.g. add)
-       s1RW2RW, // e.g. xchg
-       s1W2R3R, // e.g. imul
-       s1W2W3R, // e.g. les
-       s1W2RW3R, // some mul
-       s1W2R3RW, // (stack) push & pop
-       s1RW2R3R, // shld/shrd
-       s1RW2RW3R, // [i]div, cmpxch8b
-}; // should be no more than 2^16 otherwise adjust FPOS below
-
 #define FPOS 16
 
 enum {
@@ -292,26 +239,6 @@ enum {
   fREP,   // only rep prefix allowed: ins, movs, outs, lods, stos
   fSCAS,
   fCMPS
-};
-
-struct ia32_operand {  // operand as given in Intel book tables
-  unsigned int admet;  // addressing method
-  unsigned int optype; // operand type;
-};
-
-
-// An instruction table entry
-struct ia32_entry {
-  char *name;                // name of the instruction (for debbuging only)
-  unsigned int otable;       // which opcode table is next; if t_done it is the current one
-  unsigned char tabidx;      // at what index to look, 0 if it easy to deduce from opcode
-  bool hasModRM;             // true if the instruction has a MOD/RM byte
-  ia32_operand operands[3];  // operand descriptors
-  unsigned int legacyType;   // legacy type of the instruction (e.g. (IS_CALL | REL_W))
-  // code to decode memory access - this field should be seen as two 16 bit fields
-  // the lower half gives operand semantics, e.g. s1RW2R, the upper half is a fXXX hack if needed
-  // before hating me for this: it takes a LOT less time to add ONE field to ~2000 table lines!
-  unsigned int opsema;  
 };
 
 // Modded table entry for push/pop, daa, das, aaa, aas, insb/w/d, outsb/w/d, xchg, cbw
@@ -1951,8 +1878,8 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
 
   // ensure mac/cond processing not done until we implement it for 64-bit mode
   if (mode_64) {
-      assert(instruct.mac == NULL);
-      assert(instruct.cond == NULL);
+    assert(instruct.mac == NULL);
+    assert(instruct.cond == NULL);
   }
 
   while(nxtab != t_done) {
@@ -2186,6 +2113,7 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
       instruct.cond->set(condbits);
   }
 
+  instruct.entry = gotit;
   return instruct;
 }
 
@@ -2367,6 +2295,7 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
                                       const unsigned char* addr,
                                       ia32_memacc* macadr)
 {
+ 
   unsigned char modrm = addr[0];
   unsigned char mod = modrm >> 6;
   unsigned char rm  = modrm & 7;
@@ -2671,7 +2600,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& 
                                    ia32_memacc *mac)
 {
   unsigned int nib = 0 /* # of bytes in instruction */;
-
+  
   unsigned int addrSzAttr = (pref.getPrefix(3) == PREFIX_SZADDR ? 1 : 2);
   if (mode_64)
     addrSzAttr *= 2;

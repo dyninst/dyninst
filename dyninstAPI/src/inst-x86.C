@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.221 2005/10/14 16:37:45 legendre Exp $
+ * $Id: inst-x86.C,v 1.222 2005/10/17 18:19:43 rutar Exp $
  */
 #include <iomanip>
 
@@ -975,6 +975,7 @@ static inline void restoreGPRtoGPR(Register reg, Register dest,
     // the value to a virtual (stack based) register, which is not what I want!
     
     // mov dest, offset[ebp]
+  printf("restoreGPRtoGPR\n");
     emitMovRMToReg(dest, REGNUM_EBP, SAVED_EAX_OFFSET-(reg<<2), gen);
 }
 
@@ -1862,5 +1863,241 @@ bool writeFunctionPtr(process *p, Address addr, int_function *f)
 {
    Address val_to_write = f->getAddress();
    return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);   
+}
+
+bool BPatch_basicBlock::initRegisterGenKillInt() 
+{
+  int * writeRegs = (int *) malloc(sizeof(int)*3);
+  int * readRegs = (int *) malloc(sizeof(int)*3);
+
+  for (int a = 0; a < 3; a++)
+    {
+      writeRegs[a] = readRegs[a] = -1;
+    }
+
+  in = new bitArray;
+  in->bitarray_init(maxGPR,in);  
+  
+  out = new bitArray;
+  out->bitarray_init(maxGPR,out);  
+  
+  gen = new bitArray;
+  gen->bitarray_init(maxGPR,gen);  
+  
+  kill = new bitArray;
+  kill->bitarray_init(maxGPR,kill);  
+
+  InstrucIter ii(this);
+  while(ii.hasMore())
+    {
+      ii.readWriteRegisters(readRegs, writeRegs);
+      for (int a = 0; a < 3; a++)
+	{
+	  if (readRegs[a] != -1)
+	    {
+	      if (!kill->bitarray_check(readRegs[a],kill))
+		gen->bitarray_set(readRegs[a],gen);
+	      readRegs[a] = -1;
+	    }
+	}
+      for (int a = 0; a < 3; a++)
+	{
+	  if (writeRegs[a] != -1)
+	    {
+	      kill->bitarray_set(writeRegs[a],kill);
+	      writeRegs[a] = -1;
+	    }
+	}
+      ii++;
+    }
+  
+  free(readRegs);
+  free(writeRegs);
+  
+  return true;
+}
+
+
+
+/* This is used to do fixed point iteration until 
+   the in and out don't change anymore */
+bool BPatch_basicBlock::updateRegisterInOutInt(bool isFP) 
+{
+  bool change = false;
+  // old_IN = IN(X)
+  
+  if (isFP)
+    return false;
+
+  bitArray oldIn;
+  bitArray tmp; 
+  
+  oldIn.bitarray_init(maxGPR, &oldIn);
+  tmp.bitarray_init(maxGPR, &tmp);
+
+  if (!isFP)
+    {
+      in->bitarray_copy(&oldIn, in);
+      in->bitarray_and(in, &tmp, in);
+    }
+ 
+  // OUT(X) = UNION(IN(Y)) for all successors Y of X
+  pdvector<int_basicBlock *> elements;
+  iblock->getTargets(elements);
+
+  for(unsigned  i=0;i<elements.size();i++)
+    {
+      BPatch_basicBlock *bb = (BPatch_basicBlock*) elements[i]->getHighLevelBlock();
+      if (!isFP)
+	tmp.bitarray_or(&tmp,bb->getInSet(),&tmp);
+    }
+    
+  if (!isFP)
+    tmp.bitarray_copy(out, &tmp);
+  
+
+  // IN(X) = USE(X) + (OUT(X) - DEF(X))
+  if (!isFP)
+    {
+      tmp.bitarray_diff(out, kill, &tmp);
+      tmp.bitarray_or(&tmp, gen, in);
+    }
+ 
+  
+  // if (old_IN != IN(X)) then change = true
+  if (!isFP)
+    {
+      if (in->bitarray_same(&oldIn, in))
+	change = false;
+      else
+	change = true;
+    }
+  
+  
+
+  return change;
+}
+
+
+bitArray * BPatch_basicBlock::getInSetInt()
+{
+  return in;
+}
+
+bitArray * BPatch_basicBlock::getInFPSetInt()
+{
+  return inFP;
+}
+
+
+/*
+  Nothing for x86 yet
+*/
+int BPatch_basicBlock::liveSPRegistersIntoSetInt(int *& liveSPReg, 
+					       unsigned long address)
+{}
+
+
+
+
+/* The liveReg int * is a instance variable in the instPoint classes.
+   This puts the liveness information into that variable so 
+   we can access it from every instPoint without recalculation */
+int BPatch_basicBlock::liveRegistersIntoSetInt(int *& liveReg, 
+					       int *& liveFPReg,
+					       unsigned long address)
+{
+  int numLive = 0;
+  if (liveReg == NULL)
+    {
+      liveReg = new int[maxGPR];
+
+      bitArray newIn;
+  
+      newIn.bitarray_init(maxGPR, &newIn);
+      newIn.bitarray_copy(&newIn,in);
+
+      InstrucIter ii(this);
+
+      /* The liveness information from the bitarrays are for the
+	 basic block, we need to do some more gen/kills until
+	 we get to the individual instruction within the 
+	 basic block that we want the liveness info for. */
+      
+      int * writeRegs = (int *) malloc(sizeof(int)*3);
+      int * readRegs = (int *) malloc(sizeof(int)*3);
+
+      for (int a = 0; a < 3; a++)
+	{
+	  writeRegs[a] = readRegs[a] = -1;
+	}
+      
+      while(ii.hasMore() &&
+            *ii <= address)
+	{
+	  ii.readWriteRegisters(readRegs, writeRegs);
+	  for (int a = 0; a < 3; a++)
+	    {
+	      if (writeRegs[a] != -1)
+		{
+		  newIn.bitarray_set(writeRegs[a],&newIn);
+		  writeRegs[a] = -1;
+		  readRegs[a] = -1;
+		}
+	    }
+	  
+	  ii++;
+	}    
+      numLive = 0;
+
+      free(readRegs);
+      free(writeRegs);
+      for (int a = 0; a < maxGPR; a++)
+	{
+	  if (newIn.bitarray_check(a,&newIn))
+	    {
+	      liveReg[a] = 1;
+	      //  printf("1 ");
+	      numLive++;
+	    }
+	  else
+	    {
+	      liveReg[a] = 0;
+	      // printf("0 ");
+	    }
+	} 
+      //  printf("\n");
+    }
+
+  return numLive;
+}
+
+// Takes information from instPoint and resets
+// regSpace liveness information accordingly
+// Right now, all the registers are assumed to be live by default
+void registerSpace::resetLiveDeadInfo(const int * liveRegs, 
+				      const int * liveFPRegs,
+				      const int * liveSPRegs)
+{
+  registerSlot *regSlot = NULL;
+
+  if (liveRegs != NULL)
+    {
+ 
+      for (u_int i = 0; i < regSpace->getRegisterCount(); i++)
+	{
+	  regSlot = regSpace->getRegSlot(i);
+	  if (  liveRegs[ (int) registers[i].number ] == 1 )
+	    {
+	      registers[i].needsSaving = true;
+	      registers[i].startsLive = true;
+	    }
+	  else
+	    {
+	      registers[i].needsSaving = false;
+	      registers[i].startsLive = false;
+	    }
+	}
+    }
 }
 

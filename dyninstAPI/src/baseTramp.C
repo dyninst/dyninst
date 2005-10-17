@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.13 2005/09/28 17:02:59 bernat Exp $
+// $Id: baseTramp.C,v 1.14 2005/10/17 18:19:43 rutar Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -885,9 +885,29 @@ bool baseTramp::generateBT() {
 
     
     instPoint * location = point();
-    theRegSpace->resetLiveDeadInfo(location->liveRegisters,
-				location->liveFPRegisters,
-				location->liveSPRegisters);
+
+    if (location != NULL)
+      {
+	theRegSpace->resetLiveDeadInfo(location->liveRegisters,
+				       location->liveFPRegisters,
+				       location->liveSPRegisters);
+      }
+#endif
+
+#if defined(arch_x86_64)
+    instPoint * location = point();
+    if (location != NULL)
+      {
+	regSpace->setDisregardLiveness(false);
+	regSpace->resetLiveDeadInfo(location->liveRegisters,
+				    location->liveFPRegisters,
+				    location->liveSPRegisters);
+	
+      }
+    else
+      {
+	regSpace->setDisregardLiveness(true); // For tramps that just do RPC we don't want to do liveness
+      }
 #endif
     
     saveStartOffset = preTrampCode_.used();
@@ -1168,10 +1188,9 @@ void baseTrampInstance::deleteMTI(miniTrampInstance *mti) {
 }
 
 instPoint *baseTramp::point() const {
-    if (preInstP) return preInstP;
-    else if (postInstP) return postInstP;
-    //else 
-    //assert(0);
+  if (preInstP) return preInstP;
+  else if (postInstP) return postInstP;
+  else
     return NULL;
 }
 

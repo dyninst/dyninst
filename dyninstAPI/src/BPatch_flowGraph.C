@@ -93,7 +93,7 @@ BPatch_flowGraph::BPatch_flowGraph(BPatch_function *func,
       return;
    }
 
-#if defined(rs6000_ibm_aix4_1)
+#if defined(rs6000_ibm_aix4_1) || defined(arch_x86_64)
    
    // LIVENESS ANALYSIS CODE STARTS
    

@@ -39,8 +39,10 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.35 2005/09/28 17:02:56 bernat Exp $
+// $Id: arch-x86.h,v 1.36 2005/10/17 18:19:43 rutar Exp $
 // x86 instruction declarations
+
+#include <stdio.h>
 
 #if !defined(i386_unknown_solaris2_5) \
  && !defined(i386_unknown_nt4_0) \
@@ -70,6 +72,15 @@ class process; // relocation may need to look up a target
 typedef char byte_t;   /* a byte operand */
 typedef short word_t;  /* a word (16-bit) operand */
 typedef int dword_t;   /* a double word (32-bit) operand */
+
+#if defined(arch_x86_64)
+#define maxGPR 16
+#else
+#define maxGPR 8
+#endif 
+
+#define READ_OP 0
+#define WRITE_OP 1
 
 /* operand sizes */
 #define byteSzB (1)    /* size of a byte operand */
@@ -109,22 +120,148 @@ typedef int dword_t;   /* a double word (32-bit) operand */
 /* end of instruction type descriptor values */
 
  
-/* opcodes of some instructions */
-#define PUSHAD   (0x60)
-#define PUSHFD   (0x9C)
+/* opcodes of some one byte opcode instructions */
+/* ADD */
+#define ADD_EB_GB (0x00)
+#define ADD_EV_GV (0x01)
+#define ADD_GB_EB (0x02)
+#define ADD_GV_EV (0x03)
+#define ADD_AL_LB (0x04)
+#define ADD_RAX_LZ (0x05)
+
+#define PUSHES    (0x06) /* Invalid in 64 bit mode */
+#define POPES     (0x07) /* Invalid in 64 bit mode */
+
+/* OR */
+#define OR_EB_GB (0x08)
+#define OR_EV_GV (0x09)
+#define OR_GB_EB (0x0A)
+#define OR_GV_EV (0x0B)
+#define OR_AL_LB (0x0C)
+#define OR_RAX_LZ (0x0D)
+
+#define PUSHCS    (0x0E) /* Invalid in 64 bit mode */
+#define TWO_BYTE_OPCODE (0x0F)
+
+/* ADC */
+#define ADC_EB_GB (0x10)
+#define ADC_EV_GV (0x11)
+#define ADC_GB_EB (0x12)
+#define ADC_GV_EV (0x13)
+#define ADC_AL_LB (0x14)
+#define ADC_RAX_LZ (0x15)
+
+#define PUSHSS    (0x16) /* Invalid in 64 bit mode */
+#define POPSS     (0x17) /* Invalid in 64 bit mode */
+
+/* SBB */
+#define SBB_EB_GB (0x18)
+#define SBB_EV_GV (0x19)
+#define SBB_GB_EB (0x1A)
+#define SBB_GV_EV (0x1B)
+#define SBB_AL_LB (0x1C)
+#define SBB_RAX_LZ (0x1D)
+
+#define PUSH_DS  (0x1E) /* Invalid in 64 bit mode */
+#define POP_DS   (0X1F) /* Invalid in 64 bit mode */
+
+/* AND */
+#define AND_EB_GB (0x20)
+#define AND_EV_GV (0x21)
+#define AND_GB_EB (0x22)
+#define AND_GV_EV (0x23)
+#define AND_AL_LB (0x24)
+#define AND_RAX_LZ (0x25)
+
+#define SEG_ES (0x26) /* Null prefix in 64-bit mode */
+#define DAA    (0x27) /* Invalid in 64-bit mode */
+
+/* SUB */
+#define SUB_EB_GB (0x28)
+#define SUB_EV_GV (0x29)
+#define SUB_GB_EB (0x2A)
+#define SUB_GV_EV (0x2B)
+#define SUB_AL_LB (0x2C)
+#define SUB_RAX_LZ (0x2D)
+
+//(0x2E)
+//   (0x2F)
+
+/* XOR */
+#define XOR_EB_GB (0x30)
+#define XOR_EV_GV (0x31)
+#define XOR_GB_EB (0x32)
+#define XOR_GV_EV (0x33)
+#define XOR_AL_LB (0x34)
+#define XOR_RAX_LZ (0x35)
+
+#define XOR_RM16_R16 (0x31)
+#define XOR_RM32_R32 (0x31)
+#define XOR_R8_RM8 (0x32)
+#define XOR_R16_RM16 (0x33)
+#define XOR_R32_RM32 (0x33)
+
+#define SEG_SS (0x36) /* Null prefix in 64 bit mode */
+#define AAA (0x37)    /* Invalid in 64-bit mode */
+
+
+/* CMP */
+#define CMP_EB_GB (0x38)
+#define CMP_EV_GV (0x39)
+#define CMP_GB_EB (0x3A)
+#define CMP_GV_EV (0x3B)
+#define CMP_AL_LB (0x3C)
+#define CMP_RAX_LZ (0x3D)
+
+//   (0x3E)
+//   (0x3F)
+
+/* INC - REX Prefixes in 64 bit mode*/
+#define INC_EAX  (0x40)
+#define INC_ECX  (0x41)
+#define INC_EDX  (0x42)
+#define INC_EBX  (0x43)
+#define INC_ESP  (0x44)
+#define INC_EBP  (0x45)
+#define INC_ESI  (0x46)
+#define INC_EDI  (0x47)
+
+/* DEC - REX Prefixes in 64 bit mode */
+#define DEC_EAX  (0x48)
+#define DEC_ECX  (0x49)
+#define DEC_EDX  (0x50)
+#define DEC_EBX  (0x51)
+#define DEC_ESP  (0x52)
+#define DEC_EBP  (0x53)
+#define DEC_ESI  (0x54)
+#define DEC_EDI  (0x55)
+
+/* PUSH */
+#define PUSHEAX  (0x50)
+#define PUSHECX  (0x51)
+#define PUSHEDX  (0x52)
+#define PUSHEBX  (0x53)
+#define PUSHESP  (0x54)
 #define PUSHEBP  (0x55)
 #define PUSHESI  (0x56)
-#define PUSHESP  (0x54)
-#define POPAD    (0x61)
-#define POPFD    (0x9D)
-#define PUSH_DS  (0x1E)
-#define POP_DS   (0X1F)
-#define POP_EAX  (0x58)
-#define POP_EBX  (0x5b)
-#define POP_EBP  (0x5d)
-#define NOP      (0x90)
+#define PUSHEDI  (0x57)
 
-#define JCXZ     (0xE3)
+/* POP */
+#define POP_EAX  (0x58)
+#define POP_ECX  (0x59)
+#define POP_EDX  (0x5A)
+#define POP_EBX  (0x5b)
+#define POP_ESP  (0x5c)
+#define POP_EBP  (0x5d)
+#define POP_EBI  (0x5e)
+#define POP_EDI  (0x5f)
+
+
+#define PUSHAD   (0x60)
+#define POPAD    (0x61)
+
+
+
 
 #define JE_R8    (0x74)
 #define JNE_R8   (0x75)
@@ -133,11 +270,6 @@ typedef int dword_t;   /* a double word (32-bit) operand */
 #define JG_R8    (0x7F)
 #define JGE_R8   (0x7D)
 
-#define FSAVE    (0x9BDD)
-#define FSAVE_OP (6)
-
-#define FRSTOR   (0xDD)
-#define FRSTOR_OP (4)
 
 #define MOVREGMEM_REG (0x8b) 
 #define MOV_R8_TO_RM8 (0x88)     //move r8 to r/m8
@@ -147,11 +279,25 @@ typedef int dword_t;   /* a double word (32-bit) operand */
 #define MOV_RM16_TO_R16 (0x8b)
 #define MOV_RM32_TO_R32 (0x8b)
 
-#define XOR_RM16_R16 (0x31)
-#define XOR_RM32_R32 (0x31)
-#define XOR_R8_RM8 (0x32)
-#define XOR_R16_RM16 (0x33)
-#define XOR_R32_RM32 (0x33)
+
+
+#define NOP      (0x90)
+#define PUSHFD   (0x9C)
+#define POPFD    (0x9D)
+
+
+#define JCXZ     (0xE3)
+
+
+
+
+
+
+#define FSAVE    (0x9BDD)
+#define FSAVE_OP (6)
+
+#define FRSTOR   (0xDD)
+#define FRSTOR_OP (4)
 
 /* limits */
 #define MIN_IMM8 (-128)
@@ -182,6 +328,81 @@ typedef int dword_t;   /* a double word (32-bit) operand */
 
 void ia32_set_mode_64(bool mode);
 bool ia32_is_mode_64();
+
+// addressing methods (see appendix A-2)
+// I've added am_reg (for registers implicitely encoded in instruciton), 
+// and am_stackX for stack operands [this kinda' messy since there are actually two operands:
+// the stack byte/word/dword and the (E)SP register itself - but is better than naught]
+// added: am_reg, am_stack, am_allgprs
+enum { am_A=1, am_C, am_D, am_E, am_F, am_G, am_I, am_J, am_M, am_O, // 10
+       am_P, am_Q, am_R, am_S, am_T, am_V, am_W, am_X, am_Y, am_reg, // 20
+       am_stackH, am_stackP, am_allgprs }; // pusH and poP produce different addresses
+
+// operand types - idem, but I invented quite a few to make implicit operands explicit.
+enum { op_a=1, op_b, op_c, op_d, op_dq, op_p, op_pd, op_pi, op_ps, // 9 
+       op_q, op_s, op_sd, op_ss, op_si, op_v, op_w, op_z, op_lea, op_allgprs, op_512 };
+
+// registers [only fancy names, not used right now]
+enum { r_AH=100, r_BH, r_CH, r_DH, r_AL, r_BL, r_CL, r_DL, //107
+       r_AX, r_DX, //109
+       r_eAX, r_eBX, r_eCX, r_eDX, //113
+       r_EAX, r_EBX, r_ECX, r_EDX, //117
+       r_CS, r_DS, r_ES, r_FS, r_GS, r_SS, //123
+       r_eSP, r_eBP, r_eSI, r_eDI, //127
+       r_ESP, r_EBP, r_ESI, r_EDI, //131
+       r_EDXEAX, r_ECXEBX }; //133
+// last two are hacks for cmpxch8b which would have 5 operands otherwise!!!
+
+
+
+// registers used for memory access
+enum { mRAX=0, mRCX, mRDX, mRBX,
+       mRSP, mRBP, mRSI, mRDI,
+       mR8, mR9, mR10, mR11, 
+       mR12,mR13, MR14, mR15 };
+
+enum { mEAX=0, mECX, mEDX, mEBX,
+       mESP, mEBP, mESI, mEDI };
+
+enum { mAX=0, mCX, mDX, mBX,
+       mSP, mBP, mSI, mDI };
+
+
+// operand semantic - these make explicit all the implicit stuff in the Intel tables
+// they are needed for memory access, but may be useful for other things: dataflow etc.
+// Instructions that do not deal with memory are not tested, so caveat emptor...
+// Also note that the stack is never specified as an operand in Intel tables, so it
+// has to be dealt with here.
+
+enum { sNONE=0, // the instruction does something that cannot be classified as read/write (by me)
+       s1R,     // reads one operand, e.g. jumps
+       s1W,     // e.g. lea
+       s1RW,    // one operand read and written, e.g. inc
+       s1R2R,   // reads two operands, e.g. cmp
+       s1W2R,   // second operand read, first operand written (e.g. mov)
+       s1RW2R,  // two operands read, first written (e.g. add)
+       s1RW2RW, // e.g. xchg
+       s1W2R3R, // e.g. imul
+       s1W2W3R, // e.g. les
+       s1W2RW3R, // some mul
+       s1W2R3RW, // (stack) push & pop
+       s1RW2R3R, // shld/shrd
+       s1RW2RW3R, // [i]div, cmpxch8b
+}; // should be no more than 2^16 otherwise adjust FPOS below
+
+
+struct modRMByte {
+  unsigned mod : 2;
+  unsigned reg : 3;
+  unsigned rm  : 3;
+};
+
+struct sIBByte {
+  unsigned scale : 2;
+  unsigned index : 3;
+  unsigned base  : 3;
+};
+
 
 class ia32_prefixes
 {
@@ -238,6 +459,7 @@ struct ia32_memacc
   {
     regs[0] = -1;
     regs[1] = -1;
+    printf("Initialize Mac\n");
   }
 
   void set16(int reg0, int reg1, int disp)
@@ -297,7 +519,27 @@ struct ia32_condition
 bool ia32_decode_prefixes(const unsigned char* addr, ia32_prefixes&);
 
 
-struct ia32_entry;
+struct ia32_operand {  // operand as given in Intel book tables
+  unsigned int admet;  // addressing method
+  unsigned int optype; // operand type;
+};
+
+
+// An instruction table entry
+struct ia32_entry {
+  char *name;                // name of the instruction (for debbuging only)
+  unsigned int otable;       // which opcode table is next; if t_done it is the current one
+  unsigned char tabidx;      // at what index to look, 0 if it easy to deduce from opcode
+  bool hasModRM;             // true if the instruction has a MOD/RM byte
+  ia32_operand operands[3];  // operand descriptors
+  unsigned int legacyType;   // legacy type of the instruction (e.g. (IS_CALL | REL_W))
+  // code to decode memory access - this field should be seen as two 16 bit fields
+  // the lower half gives operand semantics, e.g. s1RW2R, the upper half is a fXXX hack if needed
+  // before hating me for this: it takes a LOT less time to add ONE field to ~2000 table lines!
+  unsigned int opsema;  
+};
+
+
 
 class ia32_instruction
 {
@@ -326,6 +568,7 @@ class ia32_instruction
   ia32_prefixes  prf;
   ia32_memacc    *mac;
   ia32_condition *cond;
+  ia32_entry     *entry;
   unsigned int   legacy_type;
   bool           rip_relative_data;
 
@@ -334,8 +577,10 @@ class ia32_instruction
   ia32_instruction(ia32_memacc* _mac = NULL, ia32_condition* _cnd = NULL)
     : mac(_mac), cond(_cnd), rip_relative_data(false) {}
 
+  ia32_entry * getEntry() { return entry; }
   unsigned int getSize() const { return size; }
   unsigned int getPrefixCount() const { return prf.getCount(); }
+  ia32_prefixes * getPrefix() { return &prf; }
   unsigned int getLegacyType() const { return legacy_type; }
   bool hasRipRelativeData() const { return rip_relative_data; }
   const ia32_memacc& getMac(int which) const { return mac[which]; }

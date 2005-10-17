@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.155 2005/09/28 17:02:58 bernat Exp $
+// $Id: ast.C,v 1.156 2005/10/17 18:19:43 rutar Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -115,6 +115,7 @@ registerSpace::registerSpace(const unsigned int deadCount, Register *dead,
   registers = new registerSlot[numRegisters];
   spFlag = 1;   // Save SPR (right now for Power) unless we hear different
   numFPRegisters = 0;
+  disregardLiveness = false;
  
    // load dead ones
    for (i=0; i < deadCount; i++) {

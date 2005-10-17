@@ -795,12 +795,13 @@ BPatchSnippetHandle *BPatch_process::insertSnippetWhen(const BPatch_snippet &exp
 						       BPatch_callWhen when,
 						       BPatch_snippetOrder order)
 {
-    BPatch_Vector<BPatch_point *> points;
-    points.push_back(&point);
-    return insertSnippetAtPointsWhen(expr,
-                                     points,
-                                     when,
-                                     order);
+  BPatch_Vector<BPatch_point *> points;
+  points.push_back(&point);
+  return insertSnippetAtPointsWhen(expr,
+				   points,
+				   when,
+				   order);
+ 
 }
 
 /*
@@ -843,14 +844,18 @@ BPatchSnippetHandle *BPatch_process::insertSnippetAtPointsWhen(const BPatch_snip
         if(llproc->collectSaveWorldData){
             // Apparently we have problems with main....
             // The things I do to not grab the name as a strcopy operation...
-            if (point->getFunction()->lowlevel_func()->symTabName().c_str() == "main") {
+	  if (point->getFunction()->lowlevel_func()->symTabName().c_str() == "main") {
                 rec->trampRecursive_ = true;
             }
         }
+
+#endif
+
+#if defined(os_aix) || defined(arch_x86_64)
         // Toss the const; the function _pointer_ doesn't though.
         BPatch_function *func = (BPatch_function *) point->getFunction();
         func->calc_liveness(point);
-#endif
+#endif 
         
         callWhen ipWhen;
         callOrder ipOrder;

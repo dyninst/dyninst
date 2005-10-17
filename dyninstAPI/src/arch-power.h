@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.30 2005/09/28 17:02:52 bernat Exp $
+// $Id: arch-power.h,v 1.31 2005/10/17 18:19:43 rutar Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
@@ -200,7 +200,7 @@ typedef unsigned codeBufIndex_t;
 /*
  * Register saving constants
  */
-#define maxFPR 13           /* Save FPRs 0-13 */
+#define maxFPR 32           /* Save FPRs 0-13 */
 #define maxGPR 32           /* More space than is needed */
 #define FPRspaceUsed (8*16) /* Aligned space for FPRs */
 #define GPRoffset(reg) (-1* (FPRspaceUsed + 4*(maxGPR-reg)))

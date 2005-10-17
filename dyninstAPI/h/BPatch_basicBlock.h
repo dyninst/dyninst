@@ -54,16 +54,11 @@
 class image;
 class int_function;
 class int_basicBlock;
+class bitArray;
 
 /* Currently all this bitarray stuff is just for power, 
    but could be extended as we do liveness stuff for other platforms */
 
-typedef struct {
-  int size;
-  char * data;
-} BITARRAY;
-
-#define BITARRAY_SIZE 32
 
 /** class for machine code basic blocks. We assume the user can not 
   * create basic blocks using its constructor. It is not safe. 
@@ -83,7 +78,7 @@ class BPatch_flowGraph;
 class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
 	friend class BPatch_flowGraph;
 	friend class TarjanDominator;
-   friend class dominatorCFG;
+	friend class dominatorCFG;
 	friend class InstrucIter;
 	friend class int_function;
 	friend std::ostream& operator<<(std::ostream&,BPatch_basicBlock&);
@@ -117,24 +112,23 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
  	/** the outgoing edges */
  	BPatch_Set<BPatch_edge*> outgoingEdges;
 
-#if defined(arch_power)
+
 	/* Liveness analysis variables */
 	/** gen registers */
-	BITARRAY * gen;
-	BITARRAY * genFP;
+	bitArray * gen;
+	bitArray * genFP;
 
 	/** kill registers */
-	BITARRAY * kill;
-	BITARRAY * killFP;
+	bitArray * kill;
+	bitArray * killFP;
 	
 	/** in registers */
-	BITARRAY * in;
-	BITARRAY * inFP;
+	bitArray * in;
+	bitArray * inFP;
 
 	/** out registers */
-	BITARRAY * out;
-	BITARRAY * outFP;
-#endif
+	bitArray * out;
+	bitArray * outFP;
 
  protected:
 
@@ -147,34 +141,6 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
    // doing.
    const int_basicBlock *lowlevel_block() const { return iblock; }
 
-#if defined (arch_power)
-	/** BPatch_basicBlock::initRegisterGenKill */
-	/** Initializes the gen/kill sets for register liveness analysis */
-	API_EXPORT(Int, (),
-              bool,initRegisterGenKill,());
-
-	/** BPatch_basicBlock::updateRegisternOut */
-	/** Initializes the gen/kill sets for register liveness analysis */
-	API_EXPORT(Int, (isFP),
-              bool,updateRegisterInOut,(bool isFP));
-
-	API_EXPORT(Int, (),
-              BITARRAY *, getInSet, ());
-
-	API_EXPORT(Int, (),
-              BITARRAY *, getInFPSet, ());
-   
-	API_EXPORT(Int, (),
-              bool,printAll,());
-   
-	API_EXPORT(Int, (liveReg, liveFPReg, address),
-              int, liveRegistersIntoSet, (int *& liveReg, int *& liveFPReg,
-                                          unsigned long address));
-
-	API_EXPORT(Int, (liveSPReg, address),
-              int, liveSPRegistersIntoSet, (int *& liveSPReg,
-                                            unsigned long address));
-#endif
 
 	/** BPatch_basicBlock::getSources   */
 	/** method that returns the predecessors of the basic block */
@@ -320,8 +286,49 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
 	/** BPatch_basicBlock::getOutgoingEdges   */
  	/** returns the outgoming edges */
 
+
    API_EXPORT_V(Int, (out),
                 void,getOutgoingEdges,(BPatch_Vector<BPatch_edge*> &out));
+
+   /** BPatch_basicBlock::initRegisterGenKill */
+   /** Initializes the gen/kill sets for register liveness analysis */
+   API_EXPORT(Int, (),
+	      
+	      bool,initRegisterGenKill,());
+   
+   /** BPatch_basicBlock::updateRegisternOut */
+   /** Initializes the gen/kill sets for register liveness analysis */
+   API_EXPORT(Int, (isFP),
+	      
+	      bool,updateRegisterInOut,(bool isFP));
+   
+   /** BPatch_basicBlock::getInSet*/
+
+   API_EXPORT(Int, (),
+	      
+	      bitArray *, getInSet, ());
+   
+   
+   /** BPatch_basicBlock::getInFPSet **/
+   API_EXPORT(Int, (),
+	      
+	      bitArray *, getInFPSet, ());
+   
+   /** BPatch_basicBlock::printAll **/
+   API_EXPORT(Int, (),
+	      
+	      bool,printAll,());
+   
+   API_EXPORT(Int, (liveReg, liveFPReg, address),
+	      
+	      int, liveRegistersIntoSet, (int *& liveReg, int *& liveFPReg,
+				    unsigned long address));
+
+   API_EXPORT(Int, (liveSPReg, address),
+	      
+	      int, liveSPRegistersIntoSet, (int *& liveSPReg,
+					    unsigned long address));
+   
 
    int blockNo() const;
     

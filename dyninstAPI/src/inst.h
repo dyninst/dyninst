@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.91 2005/10/05 21:46:34 bernat Exp $
+// $Id: inst.h,v 1.92 2005/10/17 18:19:43 rutar Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -173,6 +173,26 @@ public:
   pdvector<miniTramp *> miniTramps;
   // AstNode *arg;            /* what to pass as arg0 */
 };
+
+class bitArray {
+ public:
+  int size;
+  char * data;
+  bitArray();
+  ~bitArray(){free(data);}
+  void dispose();
+  void bitarray_init(int size,bitArray* bitarray);
+  void bitarray_set(int location,bitArray* bitarray);
+  void bitarray_unset(int location,bitArray* bitarray);
+  int bitarray_check(int location,bitArray* bitarray);
+  void bitarray_and(bitArray* s1,bitArray* s2,bitArray* r);
+  void bitarray_or(bitArray* s1,bitArray* s2,bitArray* r);
+  void bitarray_copy(bitArray* s1,bitArray* s2);
+  void bitarray_comp(bitArray* s1,bitArray* s2);
+  void bitarray_diff(bitArray* s1,bitArray* s2,bitArray* r);
+  int bitarray_same(bitArray* s1,bitArray* s2);
+};
+
 
 /*
  * get information about the cost of primitives.

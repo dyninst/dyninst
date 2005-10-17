@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.233 2005/09/28 17:03:06 bernat Exp $
+ * $Id: inst-power.C,v 1.234 2005/10/17 18:19:43 rutar Exp $
  */
 
 #include "common/h/headers.h"
@@ -2317,7 +2317,7 @@ void registerSpace::resetLiveDeadInfo(const int * liveRegs,
   registerSlot *regSlot = NULL;
   registerSlot *regFPSlot = NULL;
 
-  if (liveRegs != NULL & liveFPRegs != NULL)
+  if (liveRegs != NULL && liveFPRegs != NULL)
     {
       /*
       printf("GPR  ");
@@ -2349,6 +2349,7 @@ void registerSpace::resetLiveDeadInfo(const int * liveRegs,
        for (u_int i = 0; i < regSpace->getFPRegisterCount(); i++)
 	{
 	  regFPSlot = regSpace->getFPRegSlot(i);
+	  
 	  if (  liveFPRegs[ (int) fpRegisters[i].number ] == 1 )
 	    {
 	      fpRegisters[i].needsSaving = true;
@@ -2362,7 +2363,9 @@ void registerSpace::resetLiveDeadInfo(const int * liveRegs,
 	}
     }
   if (liveSPRegs != NULL)
-    spFlag = liveSPRegs[0];
+    {
+      //spFlag = liveSPRegs[0];
+    }
 }
 
 
@@ -2736,4 +2739,453 @@ bool writeFunctionPtr(process *p, Address addr, int_function *f)
 
    p->writeDataSpace((void *) addr, sizeof(buffer), buffer);
    return true;
+}
+
+
+
+/* Iterates over instructions in the basic block to 
+   create the initial gen kill sets for that block */
+bool BPatch_basicBlock::initRegisterGenKillInt() 
+{  
+  in = new bitArray;
+  in->bitarray_init(maxGPR,in);  
+
+  out = new bitArray;
+  out->bitarray_init(maxGPR,out);  
+
+  gen = new bitArray;
+  gen->bitarray_init(maxGPR,gen);  
+  
+  kill = new bitArray;
+  kill->bitarray_init(maxGPR,kill);  
+
+  inFP = new bitArray;
+  inFP->bitarray_init(maxFPR,inFP);  
+
+  outFP = new bitArray;
+  outFP->bitarray_init(maxFPR,outFP);  
+
+  genFP = new bitArray;
+  genFP->bitarray_init(maxFPR,genFP);  
+  
+  killFP = new bitArray;
+  killFP->bitarray_init(maxFPR,killFP);  
+
+  
+  InstrucIter ii(this);
+  
+  
+  while(ii.hasMore()) {
+    /* GPR Gens */
+    if (ii.isA_RT_ReadInstruction()){
+      if (!kill->bitarray_check(ii.getRTValue(),kill))
+	gen->bitarray_set(ii.getRTValue(),gen);
+    }
+    if (ii.isA_RA_ReadInstruction()){
+      if (!kill->bitarray_check(ii.getRAValue(),kill))
+	gen->bitarray_set(ii.getRAValue(),gen);
+    }
+    if (ii.isA_RB_ReadInstruction()){
+      if (!kill->bitarray_check(ii.getRBValue(),kill))
+	gen->bitarray_set(ii.getRBValue(),gen);
+    }
+    
+    /* FPR Gens */
+    if (ii.isA_FRT_ReadInstruction()){
+      if (!killFP->bitarray_check(ii.getFRTValue(),killFP))
+	genFP->bitarray_set(ii.getFRTValue(),genFP);
+    }
+    if (ii.isA_FRA_ReadInstruction()){
+      if (!killFP->bitarray_check(ii.getFRAValue(),killFP))
+	genFP->bitarray_set(ii.getFRAValue(),genFP);
+    }
+    if (ii.isA_FRB_ReadInstruction()){
+      if (!killFP->bitarray_check(ii.getFRBValue(),killFP))
+	killFP->bitarray_set(ii.getFRBValue(),genFP);
+    }
+    if (ii.isA_FRC_ReadInstruction()){
+      if (!killFP->bitarray_check(ii.getFRCValue(),killFP))
+	genFP->bitarray_set(ii.getFRCValue(),genFP);
+    }
+
+    /* GPR Kills */
+    if (ii.isA_RT_WriteInstruction()){
+      kill->bitarray_set(ii.getRTValue(),kill);
+    }    
+    if (ii.isA_RA_WriteInstruction()){
+      kill->bitarray_set(ii.getRAValue(),kill);
+    }
+
+    /* FPR Kills */
+    if (ii.isA_FRT_WriteInstruction()){
+      killFP->bitarray_set(ii.getFRTValue(),killFP);
+    }    
+    if (ii.isA_FRA_WriteInstruction()){
+      killFP->bitarray_set(ii.getFRAValue(),killFP);
+    }
+
+    if (ii.isAReturnInstruction()){
+      /* Need to gen the possible regurn arguments */
+      gen->bitarray_set(3,gen);
+      gen->bitarray_set(4,gen);
+      gen->bitarray_set(1,genFP);
+      genFP->bitarray_set(2,genFP);
+    }
+
+    
+    /* If it is a call instruction we look at which registers are used
+       at the beginning of the called function, If we can't do that, we just
+       gen registers 3-10 (the parameter holding volative 
+       registers for power) & (1-13 for FPR)*/
+    if (ii.isACallInstruction())
+      {
+          Address callAddress = ii.getBranchTargetAddress();
+	//printf("Call Address is 0x%x \n",callAddress);
+
+          process *proc = flowGraph->getBProcess()->lowlevel_process();
+          int_function * funcc;
+          
+          codeRange * range = proc->findCodeRangeByAddress(callAddress);
+          
+          if (range)
+              {
+                  funcc = range->is_function();
+                  if (funcc)
+                      {
+                          InstrucIter ah(funcc);
+                          while (ah.hasMore())
+                              {
+				// GPR
+				if (ah.isA_RT_ReadInstruction()){
+				  gen->bitarray_set(ah.getRTValue(),gen);
+				}
+				if (ah.isA_RA_ReadInstruction()){
+				  gen->bitarray_set(ah.getRAValue(),gen);
+				}
+				if (ah.isA_RB_ReadInstruction()){
+				  gen->bitarray_set(ah.getRBValue(),gen);
+				}
+
+				// FPR
+				if (ah.isA_FRT_ReadInstruction()){
+				  genFP->bitarray_set(ah.getFRTValue(),genFP);
+				}
+				if (ah.isA_FRA_ReadInstruction()){
+				  genFP->bitarray_set(ah.getFRAValue(),genFP);
+				}
+				if (ah.isA_FRB_ReadInstruction()){
+				  genFP->bitarray_set(ah.getFRBValue(),genFP);
+				}
+				if (ah.isA_FRC_ReadInstruction()){
+				  genFP->bitarray_set(ah.getFRCValue(),genFP);
+				}
+				if (ah.isACallInstruction())
+				  break;
+                                  
+                                  Address pos = ah++;
+                              }
+                      }
+                  else
+                      {
+                          for (int a = 3; a <= 10; a++)
+			    gen->bitarray_set(a,gen);
+			  for (int a = 1; a <= 13; a++)
+			    genFP->bitarray_set(a,genFP);
+                      }
+              }
+          else
+              {
+                  for (int a = 3; a <= 10; a++)
+		    gen->bitarray_set(a,gen);
+		  for (int a = 1; a <= 13; a++)
+		    genFP->bitarray_set(a,genFP);
+              }
+      } 
+    ii++;
+  } 
+  return true;
+}
+
+/* This is used to do fixed point iteration until 
+   the in and out don't change anymore */
+bool BPatch_basicBlock::updateRegisterInOutInt(bool isFP) 
+{
+  bool change = false;
+  // old_IN = IN(X)
+  
+  bitArray oldIn;
+
+  bitArray tmp; 
+  
+  oldIn.bitarray_init(maxGPR, &oldIn);
+  tmp.bitarray_init(maxGPR, &tmp);
+
+  if (!isFP)
+    {
+      in->bitarray_copy(&oldIn, in);
+      in->bitarray_and(in, &tmp, in);
+    }
+  else
+    {
+      inFP->bitarray_copy(&oldIn, inFP);
+      inFP->bitarray_and(inFP, &tmp, inFP);
+    }
+
+  // OUT(X) = UNION(IN(Y)) for all successors Y of X
+  pdvector<int_basicBlock *> elements;
+  iblock->getTargets(elements);
+  for(unsigned  i=0;i<elements.size();i++)
+    {
+      BPatch_basicBlock *bb = (BPatch_basicBlock*) elements[i]->getHighLevelBlock();
+      if (!isFP)
+	tmp.bitarray_or(&tmp,bb->getInSet(),&tmp);
+      else
+	tmp.bitarray_or(&tmp,bb->getInFPSet(),&tmp);
+    }
+  
+  if (!isFP)
+    tmp.bitarray_copy(out, &tmp);
+  else
+    tmp.bitarray_copy(outFP, &tmp);
+
+
+  // IN(X) = USE(X) + (OUT(X) - DEF(X))
+  if (!isFP)
+    {
+      tmp.bitarray_diff(out, kill, &tmp);
+      tmp.bitarray_or(&tmp, gen, in);
+    }
+  else
+    {
+      tmp.bitarray_diff(outFP, killFP, &tmp);
+      inFP->bitarray_or(&tmp, genFP, inFP);
+    }
+  
+  // if (old_IN != IN(X)) then change = true
+  if (!isFP)
+    {
+      if (in->bitarray_same(&oldIn, in))
+	change = false;
+      else
+	change = true;
+    }
+  else
+    {
+      if (inFP->bitarray_same(&oldIn, inFP))
+	change = false;
+      else
+	change = true;
+    }
+  return change;
+}
+
+
+bitArray * BPatch_basicBlock::getInSetInt()
+{
+  return in;
+}
+
+bitArray * BPatch_basicBlock::getInFPSetInt()
+{
+  return inFP;
+}
+
+
+/* Debugging tool for checking basic block/liveness info 
+bool BPatch_basicBlock::printAllInt()
+{
+	cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
+	cout << "Basic Block : " << blockNumber <<" : [ ";
+
+	printf("0x%x , ",startAddress);
+	printf("0x%x | ",lastInsnAddress);
+	printf("0x%x ]\n ",lastInsnAddress - startAddress);
+
+
+	if(isEntryBasicBlock)
+		cout <<"Type : ENTRY TO CFG\n"; 
+	else if(isExitBasicBlock)
+		cout <<"Type : EXIT FROM CFG\n"; 
+
+	cout << "Pred :\n";
+
+	BPatch_basicBlock** belements = new BPatch_basicBlock*[sources.size()];
+	sources.elements(belements);
+	for(unsigned i=0; i<sources.size(); i++)
+		cout << "\t<- " << belements[i]->blockNumber << "\n";
+	delete[] belements;
+
+	cout << "Succ:\n";
+	belements =  new BPatch_basicBlock*[targets.size()];
+	targets.elements(belements);
+	for(unsigned j=0; j<targets.size(); j++)
+		cout << "\t-> " << belements[j]->blockNumber << "\n";
+	delete[] belements;
+
+	cout << "Immediate Dominates: ";
+	if(immediateDominates){
+		belements = new BPatch_basicBlock*[immediateDominates->size()];
+		immediateDominates->elements(belements);
+		for(unsigned k=0; k<immediateDominates->size(); k++)
+			cout << belements[k]->blockNumber << " ";
+		delete[] belements;
+	}
+	cout << "\n";
+
+	cout << "Immediate Dominator: ";
+	if(!immediateDominator)
+		cout << "None\n";
+	else
+	  cout << immediateDominator->blockNumber << "\n";
+	
+	cout<<"Liveness Sets"<<endl;
+
+	cout <<"Gen..."<<endl;
+	for (int a = 0; a < maxGPR; a++)
+	  {
+	    if ( gen->bitarray_check(a,gen))
+	      cout<<"1 ";
+	    else
+	      cout<<"0 ";
+	  }
+	cout <<endl<<"Kill..."<<endl;
+	for (int a = 0; a < maxGPR; a++)
+	  {
+	    if ( kill->bitarray_check(a,kill))
+	      cout<<"1 ";
+	    else
+	      cout<<"0 ";
+	  }
+	cout <<endl<<"In..."<<endl;
+	for (int a = 0; a < maxGPR; a++)
+	  {
+	    if ( in->bitarray_check(a,in))
+	      cout<<"1 ";
+	    else
+	      cout<<"0 ";
+	  }
+	cout <<endl<<"Out..."<<endl;
+	for (int a = 0; a < maxGPR; a++)
+	  {
+	    if ( out->bitarray_check(a,out))
+	      cout<<"1 ";
+	    else
+	      cout<<"0 ";
+	  }
+	
+
+
+	cout << "\n";
+	cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
+	return true;
+}
+*/
+
+/* For Power it checks the basic block for any usage of the MQ
+   SPR, when other platforms are done we'll probably need to move
+   this into inst-* files
+   Right now it isn't really doing liveness, but just checks
+   to see if any instruction uses MQ ... it should be fairly
+   rare.  If there are alot of hits we can do full liveness
+   analysis on it and other SPR
+*/
+int BPatch_basicBlock::liveSPRegistersIntoSetInt(int *& liveSPReg, 
+					       unsigned long address)
+{
+  if (liveSPReg == NULL)
+    {
+      liveSPReg = new int[10]; // only care about MQ for Power for now
+      liveSPReg[0] = 0;
+      InstrucIter ii(this);
+      
+      while (ii.hasMore() &&
+	     *ii <= address)
+	{
+	  if (ii.isA_MX_Instruction())
+	    {
+	      liveSPReg[0] = 1;
+	      break;
+	    }
+	  ii++;
+	}
+        return liveSPReg[0];
+    }
+  return -1;
+}
+
+
+
+
+/* The liveReg int * is a instance variable in the instPoint classes.
+   This puts the liveness information into that variable so 
+   we can access it from every instPoint without recalculation */
+int BPatch_basicBlock::liveRegistersIntoSetInt(int *& liveReg, 
+					       int *& liveFPReg,
+					       unsigned long address)
+{
+  int numLive = 0;
+  if (liveReg == NULL)
+    {
+      liveReg = new int[maxGPR];
+      liveFPReg = new int[maxFPR];
+
+      bitArray newIn;
+      bitArray newInFP;
+  
+      newIn.bitarray_init(maxGPR, &newIn);
+      newIn.bitarray_copy(&newIn,in);
+
+      newInFP.bitarray_init(maxFPR, &newInFP);
+      inFP->bitarray_copy(&newInFP,inFP);
+      
+      InstrucIter ii(this);
+
+      /* The liveness information from the bitarrays are for the
+	 basic block, we need to do some more gen/kills until
+	 we get to the individual instruction within the 
+	 basic block that we want the liveness info for. */
+      
+      while(ii.hasMore() &&
+            *ii <= address)
+	{
+	  if (ii.isA_RT_WriteInstruction())
+	    newIn.bitarray_set(ii.getRTValue(),&newIn);
+	  if (ii.isA_RA_WriteInstruction())
+	    newIn.bitarray_set(ii.getRAValue(),&newIn);
+
+	  if (ii.isA_FRT_WriteInstruction())
+	    newInFP.bitarray_set(ii.getFRTValue(),&newInFP);
+	  if (ii.isA_FRA_WriteInstruction())
+	    newInFP.bitarray_set(ii.getFRAValue(),&newInFP);
+	  ii++;
+	}    
+      numLive = 0;
+      for (int a = 0; a < maxGPR; a++)
+	{
+	  if (newIn.bitarray_check(a,&newIn))
+	    {
+	      //printf("1 ");
+	      liveReg[a] = 1;
+	      numLive++;
+	    }
+	  else
+	    {
+	      //printf("0 ");
+	      liveReg[a] = 0;
+	    }
+	  if (newInFP.bitarray_check(a,&newInFP))
+	    {
+	      //printf("1 ");
+	      liveFPReg[a] = 1;
+	    }
+	  else
+	    {
+	      //printf("0 ");
+	      liveFPReg[a] = 0;
+	    }
+	} 
+      //printf("\n");
+    }
+
+  return numLive;
 }
