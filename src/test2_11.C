@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_11.C,v 1.1 2005/09/29 20:39:01 bpellin Exp $
+// $Id: test2_11.C,v 1.2 2005/10/17 20:27:21 bpellin Exp $
 /*
  * #Name: test2_11
  * #Desc: getDisplacedInstructions
@@ -101,7 +101,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
         return -1;
     }
     printf("Passed test #11 (getDisplacedInstructions)\n");
-    return 1;
+    return 0;
 }
 
 extern "C" int mutatorMAIN(ParameterDict &param)
