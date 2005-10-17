@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTsolaris.c,v 1.21 2005/09/09 18:05:21 legendre Exp $
+ * $Id: RTsolaris.c,v 1.22 2005/10/17 19:24:26 bernat Exp $
  * RTsolaris.c: mutatee-side library function specific to Solaris
  ************************************************************************/
 
@@ -183,3 +183,4 @@ int dyn_pid_self()
 {
    return getpid();
 }
+
