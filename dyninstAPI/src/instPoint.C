@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.7 2005/10/05 21:46:35 bernat Exp $
+// $Id: instPoint.C,v 1.8 2005/10/17 19:24:23 bernat Exp $
 // instPoint code
 
 
@@ -547,6 +547,8 @@ instPointInstance *instPoint::getInstInstance(Address addr) {
     return NULL;
 }
 
+int instPoint_count = 0;
+
 instPoint::instPoint(process *proc,
                      instruction insn,
                      Address addr,
@@ -567,6 +569,12 @@ instPoint::instPoint(process *proc,
     liveSPRegisters(NULL)
 
 {
+#if defined(ROUGH_MEMORY_PROFILE)
+    instPoint_count++;
+    if ((instPoint_count % 10) == 0)
+        fprintf(stderr, "instPoint_count: %d (%d)\n",
+                instPoint_count, instPoint_count*sizeof(instPoint));
+#endif
 }
 
 // Process specialization of a parse-time instPoint
@@ -591,7 +599,12 @@ instPoint::instPoint(process *proc,
     liveFPRegisters(NULL),
     liveSPRegisters(NULL)
 {
-
+#if defined(ROUGH_MEMORY_PROFILE)
+    instPoint_count++;
+    if ((instPoint_count % 10) == 0)
+        fprintf(stderr, "instPoint_count: %d (%d)\n",
+                instPoint_count, instPoint_count*sizeof(instPoint));
+#endif
 }
 
 // Copying over from fork
