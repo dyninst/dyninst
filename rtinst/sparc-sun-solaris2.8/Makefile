@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.8 2005/09/09 18:05:38 legendre Exp $
+# $Id: Makefile,v 1.9 2005/10/17 19:24:28 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -33,12 +33,12 @@ LD		= $(NATIVE_CC)
 # OVERRIDE CFLAGS
 CFLAGS		= $(IFLAGS) $(UNIFIED_DEF) $(COMMON_WARNINGS)
 CFLAGS		+= -Kpic -O
-LDFLAGS		= -dy -G -z text -z initarray=libparadynRT_init
+LDFLAGS		= -dy -G -z text
 else
 CC		= $(GCC)
 LD		= $(GCC)
 CFLAGS		+= -fpic -O2
-LDFLAGS		= -shared -Wl,-z -Wl,initarray=libparadynRT_init
+LDFLAGS		= -shared -Wl,-z
 endif
 
 VPATH        = ../src
@@ -46,8 +46,11 @@ VPATH        = ../src
 
 SRCS	     += ../src/RTetc-posix.c \
 		../src/RTetc-solaris.c \
-		../src/RTrexec.c
-
+		../src/RTrexec.c \
+		../src/RTinst.c \
+		../src/RTmpi.c 
+#		../src/thread-compat.c \
+#		../src/RTthread.c 
 #		../../dyninstAPI_RT/src/RTheap.c \ # ccw 18 apr 2002 : SPLIT
 #		../../dyninstAPI_RT/src/RTheap-svr4.c \
 #		../../dyninstAPI_RT/src/RTheap-solaris.c \
