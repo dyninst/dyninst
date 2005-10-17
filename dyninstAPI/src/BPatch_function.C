@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.63 2005/10/17 18:19:42 rutar Exp $
+// $Id: BPatch_function.C,v 1.64 2005/10/17 22:25:35 rutar Exp $
 
 #define BPATCH_FILE
 
@@ -588,8 +588,6 @@ void BPatch_function::calc_liveness(BPatch_point *point) {
     int *liveRegisters = iP->liveRegisters;
     int *liveFPRegisters = iP->liveFPRegisters;
     int *liveSPRegisters = iP->liveSPRegisters;
-    
-    iP->testThis = 4;
     
     // BEGIN LIVENESS ANALYSIS STUFF
     // Need to narrow it down to specific basic block at this point so we can 
