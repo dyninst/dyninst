@@ -49,6 +49,7 @@ COMPILER_NATIVE_CXX = $(subst $(RPAREN),_,$(COMPILER2_NATIVE_CXX))
 MUTATEE_CXXFLAGS_NATIVE += -DCOMPILER='"$(COMPILER_NATIVE_CXX)"'
 
 TEST_DEST = $(TO_CORE)/$(PROGRAM_DEST)/testprogs_new
+LIB_DEST = $(TO_CORE)/$(LIBRARY_DEST)
 
 #######################################################################
 ###  Basic definitions (filename prefixes)
@@ -189,7 +190,9 @@ MUTATEES_CXX =	test1.mutatee \
 		test7.mutatee \
 		test8.mutatee \
 		test9.mutatee \
-		test12.mutatee
+		test12.mutatee \
+                test13.mutatee \
+                test14.mutatee
 
 #  Most C mutatees are also compiled as C++ mutatees, there are some (well, one)
 #  that are c++ only, which cannot also be compiled as C mutatees
@@ -288,6 +291,8 @@ OBJS_ALL_MUTATORS               = $(OBJS_MUTATORS) \
 ALL_TARGETS			= $(MUTATORS_SO) $(MUTATEES_GCC) $(MUTATEES_GXX)
 ALL_TARGETS			+= $(TESTLIBS)
 ALL_TARGETS			+= test11
+ALL_TARGETS                     += runTests
+ALL_TARGETS                     += test_driver
 ifdef M_ABI
 ALL_TARGETS			+= $(MUTATEES_GCC_ABI) $(MUTATEES_GXX_ABI)
 ALL_TARGETS			+= $(TESTLIBS_ABI)
@@ -307,6 +312,7 @@ ALL_TARGETS			+= $(MUTATEES_NATIVE_FC)
 endif
 
 ALL_TARGETS_DEST		= $(addprefix $(TEST_DEST)/,$(ALL_TARGETS))
+LIBTESTSUITE_DEST               = $(addprefix $(LIB_DEST)/,$(LIBTESTSUITE))
 
 #######################################################################
 ###  Some pattern rules
@@ -350,6 +356,10 @@ endif
 $(TEST_DEST)/%: %
 	$(CP) $< $(TEST_DEST)
 
+$(LIB_DEST)/%: %
+	$(CP) $< $(LIB_DEST)
+
+
 #######################################################################
 ###  High level targets
 #######################################################################
@@ -365,7 +375,7 @@ echo:
 	echo "MUTATEES_NATIVE_CC = $(MUTATEES_NATIVE_CC)"; \
         echo "MUTATORS = $(MUTATORS)" 
 
-install: $(TEST_DEST) $(ALL_TARGETS_DEST)
+install: $(TEST_DEST) $(ALL_TARGETS_DEST) $(LIBTESTSUITE_DEST)
 	@echo "install completed"
 
 clean:
@@ -389,8 +399,8 @@ distclean: clean
 
 mutators: $(MUTATORS_SO) test11
 mutatees: gnu_mutatees native_mutatees
-gnu_mutatees: $(MUTATEES_GCC) $(MUTATEES_GXX) $(MUTATEES_G77)
-native_mutatees: $(MUTATEES_NATIVE_CC) $(MUTATEES_NATIVE_CXX) $(MUTATEES_NATIVE_FC)
+gnu_mutatees: $(MUTATEES_GCC) $(MUTATEES_GXX) $(MUTATEES_G77) $(MUTATEES_GCC_ABI) $(MUTATEES_GXX_ABI)
+native_mutatees: $(MUTATEES_NATIVE_CC) $(MUTATEES_NATIVE_CXX) $(MUTATEES_NATIVE_FC) $(MUTATEES_NATIVE_CXX_ONLY)
 testlibs: $(TESTLIBS) $(TESTLIBS_ABI) $(LIBTESTSUITE)
 
 drivers: test_driver runTests
@@ -580,6 +590,31 @@ $(TEST_DEST):
 $(OBJS_ALL_MUTATORS): %.o : %.C $(DEPENDDIR)/%.dep
 	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
 
+MUTATEE_DEFS := -Dgnu_cc=_gcc -Dgnu_cxx=_g++
+
+ifdef M_ABI
+MUTATEE_DEFS += -Dgnu_abi_cc=_gcc_$(M_ABI) -Dgnu_abi_cxx=_g++_$(M_ABI)
+endif
+
+ifdef M_G77
+MUTATEE_DEFS += -Dgnu_fc=_g77
+endif
+
+ifdef NATIVE_CC
+MUTATEE_DEFS += -Dnative_cc=_$(NATIVE_CC)
+endif
+
+ifdef NATIVE_CXX
+MUTATEE_DEFS += -Dnative_cxx=_$(NATIVE_CXX)
+endif
+
+ifdef NATIVE_FC
+MUTATEE_DEFS += -Dnative_fc=_$(NATIVE_fc)
+endif
+
+test_driver.o: ../src/test_driver.C $(DEPENDDIR)/test_driver.dep
+	$(M_GXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
+
 test_driver: test_driver.o $(DEPENDDIR)/test_driver.dep
 	$(M_GXX) -o $@ $(filter test_driver.o,$^) $(LIBDIR) $(LIBS) $(LDFLAGS) $(MUTATOR_LDFLAGS)
 
@@ -587,10 +622,10 @@ $(MUTATORS_SO): test%.so : test%.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test%.de
 	$(M_GXX) -o $@ -shared $(filter %.o,$^) $(LIBDIR) $(LIBS) $(LDFLAGS) $(MUTATOR_SO_LDFLAGS)
 
 test11: ../src/test11.sh
-	cp ../src/test11.sh test11
+	$(CP) ../src/test11.sh test11
 
 runTests: ../src/runTests.pl
-	cp ../src/runTests.pl runTests
+	$(CP) ../src/runTests.pl runTests
 #######################################################################
 ###  Depends
 #######################################################################
