@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.17 2005/10/05 21:46:30 bernat Exp $
+// $Id: function.h,v 1.18 2005/10/17 19:24:19 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -243,15 +243,6 @@ class int_basicBlock {
  private:
     void *highlevel_block; //Should point to a BPatch_basicBlock, if they've
                            //been created.
-
-    bool isEntryBlock_;
-    bool isExitBlock_;
-
-    int blockNumber_;
-
-    pdvector<int_basicBlock *> targets_;
-    pdvector<int_basicBlock *> sources_;
-
 #if defined(arch_ia64)
     BPatch_Set<int_basicBlock *> *dataFlowIn;
     BPatch_Set<int_basicBlock *> *dataFlowOut;
@@ -479,7 +470,7 @@ class int_function {
 
    ///////////////////// CFG and function body
    pdvector< int_basicBlock* > blockList;
-   BPatch_flowGraph *flowGraph;
+   //BPatch_flowGraph *flowGraph;
 
    ///////////////////// Instpoints 
 
