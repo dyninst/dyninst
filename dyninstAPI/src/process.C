@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.556 2005/10/14 16:37:21 legendre Exp $
+// $Id: process.C,v 1.557 2005/10/17 19:24:24 bernat Exp $
 
 #include <ctype.h>
 
@@ -2227,7 +2227,12 @@ bool process::setupFork() {
 }
 
 
-unsigned process::getAddressWidth() { return mapped_objects[0]->parse_img()->getObject().getAddressWidth(); }
+unsigned process::getAddressWidth() { 
+    if (mapped_objects.size() > 0) 
+        return mapped_objects[0]->parse_img()->getObject().getAddressWidth(); 
+    // We can call this before we've attached.. 
+    return 4;
+}
 
 bool process::setAOut(fileDescriptor &desc) {
     assert(reachedBootstrapState(attached_bs));
@@ -3940,6 +3945,7 @@ bool process::handleIfDueToSharedObjectMapping(){
        }
        return true;
    } else if (change_type == SHAREDOBJECT_REMOVED) {
+       fprintf(stderr, "... removed object...\n");
        // TODO: handle this case
        // if something was removed then call process::removeASharedObject
        // with each element in the vector of changed_objects
@@ -3948,8 +3954,6 @@ bool process::handleIfDueToSharedObjectMapping(){
            // Remove from mapped_objects list
            for (unsigned j = 0; j < mapped_objects.size(); j++) {
                if (changed_objs[i] == mapped_objects[j]) {
-                   if (j == 0)
-                       while(1);
                    assert(j != 0); // Better not delete the a.out. That makes things unhappy.
                    mapped_objects[j] = mapped_objects.back();
                    mapped_objects.pop_back();
