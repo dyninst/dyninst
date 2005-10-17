@@ -613,8 +613,12 @@ void pdvector<T, A>::reserve_exact(unsigned nelems) {
 
    assert(nelems >= sz_); // don't use to shrink the pdvector!
 
-   if (tsz_ >= nelems)
-      return; // nothing needed
+   // Don't do a 0-size allocation, weirdness results
+   if (nelems == 0) 
+       return; 
+
+   //if (tsz_ >= nelems)
+   //return; // nothing needed
 
    // Alloc new pdvector
    T *newdata = A::alloc(nelems);
