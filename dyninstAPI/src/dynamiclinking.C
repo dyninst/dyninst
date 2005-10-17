@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.C,v 1.11 2005/09/01 22:18:11 bernat Exp $
+// $Id: dynamiclinking.C,v 1.12 2005/10/17 19:24:17 bernat Exp $
 
 // Cross-platform dynamic linking functions
 
@@ -182,8 +182,15 @@ bool dynamic_linking::findChangeToLinkMaps(u_int &change_type,
       else
           change_type = SHAREDOBJECT_NOCHANGE;
   }
-  
-  
+
+#if 0
+  fprintf(stderr, "CURR_LIST:\n");
+  for (unsigned foo = 0; foo < curr_list.size(); foo++) {
+      fprintf(stderr, "%d: %s\0x%x\n",
+              foo, curr_list[foo]->fileName().c_str(), curr_list[foo]->codeBase());
+  }
+#endif
+
   // if change_type is add then figure out what has been added
   if(change_type == SHAREDOBJECT_ADDED) {
       // Look for the one that doesn't match
@@ -239,9 +246,10 @@ bool dynamic_linking::findChangeToLinkMaps(u_int &change_type,
       bool stillThere[curr_list.size()];
       for (unsigned k = 0; k < curr_list.size(); k++) 
           stillThere[k] = false;
-#if defined(os_linux)
+#if defined(os_linux) || defined(os_solaris)
       // Linux never includes the a.out in its list of libraries. This makes a
       // certain amount of sense, but is still annoying.
+      // Solaris throws it away; so hey.
       stillThere[0] = true;
 #endif
       
