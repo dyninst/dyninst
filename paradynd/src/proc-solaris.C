@@ -43,6 +43,8 @@
 
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_thread.h"
+#include "dyninstAPI/src/dyn_thread.h"
+#include "dyninstAPI/src/dyn_lwp.h"
 
 
 void pd_process::initCpuTimeMgrPlt() {
@@ -84,7 +86,8 @@ rawTime64 pd_thread::getRawCpuTime_sw()
 #endif
 
   // compute the CPU timer for the whole process
-  if(pread(dyninst_thread->os_handle(), &theUsage, sizeof(prusage_t), 0) 
+  if(pread(dyninst_thread->lowlevel_thread()->get_lwp()->usage_fd(), 
+           &theUsage, sizeof(prusage_t), 0) 
      != sizeof(prusage_t))
   {
      perror("getInfCPU: read");
