@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.10 2005/10/05 21:46:31 bernat Exp $
+// $Id: image-func.C,v 1.11 2005/10/17 19:24:20 bernat Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -49,6 +49,7 @@
 
 pdstring image_func::emptyString("");
 
+int image_func_count = 0;
 
 // Verify that this is code
 // Find the call points
@@ -83,6 +84,12 @@ image_func::image_func(const pdstring &symbol,
   originalCode(NULL),
   o7_live(false)
 {
+#if defined(ROUGH_MEMORY_PROFILE)
+    image_func_count++;
+    if ((image_func_count % 10) == 0)
+        fprintf(stderr, "image_func_count: %d (%d)\n",
+                image_func_count, image_func_count*sizeof(image_func));
+#endif
 #if defined(cap_stripped_binaries)
     endOffset_ = startOffset_;
 #else
@@ -147,6 +154,24 @@ const pdvector<image_instPoint*> &image_func::funcCalls() {
   return calls;
 }
 
+int image_basicBlock_count = 0;
+
+image_basicBlock::image_basicBlock(image_func *func, Address firstOffset) :
+    firstInsnOffset_(firstOffset),
+    lastInsnOffset_(0),
+    blockEndOffset_(0),
+    isEntryBlock_(false),
+    isExitBlock_(false),
+    blockNumber_(-1),
+    func_(func) {
+#if defined(ROUGH_MEMORY_PROFILE)
+    image_basicBlock_count++;
+    if ((image_basicBlock_count % 10) == 0)
+        fprintf(stderr, "image_basicBlock_count: %d (%d)\n",
+                image_basicBlock_count, image_basicBlock_count*sizeof(image_basicBlock));
+#endif
+}
+
 
 void image_basicBlock::addSource(image_basicBlock *source) {
     for (unsigned i = 0; i < sources_.size(); i++)
@@ -190,6 +215,8 @@ void image_basicBlock::getTargets(pdvector<image_basicBlock *> &outs) const {
         outs.push_back(targets_[i]);
 }
 
+int image_instPoint_count = 0;
+
 image_instPoint::image_instPoint(Address offset,
                                  instruction insn,
                                  image_func *func,
@@ -200,7 +227,15 @@ image_instPoint::image_instPoint(Address offset,
     callee_(NULL),
     callTarget_(0),
     isDynamicCall_(0)
-{}
+{
+#if defined(ROUGH_MEMORY_PROFILE)
+    image_instPoint_count++;
+    if ((image_instPoint_count % 10) == 0)
+        fprintf(stderr, "image_instPoint_count: %d (%d)\n",
+                image_instPoint_count,
+                image_instPoint_count*sizeof(image_instPoint));
+#endif
+}
 
 image_instPoint::image_instPoint(Address offset,
                                  instruction insn,
@@ -214,6 +249,12 @@ image_instPoint::image_instPoint(Address offset,
     callTarget_(callTarget),
     isDynamicCall_(isDynamicCall)
 {
+#if defined(ROUGH_MEMORY_PROFILE)
+    image_instPoint_count++;
+    if ((image_instPoint_count % 10) == 0)
+        fprintf(stderr, "image_instPoint_count: %d (%d)\n",
+                image_instPoint_count, image_instPoint_count * sizeof(image_instPoint));
+#endif
     if (isDynamicCall_)
         assert(callTarget_ == 0);
     else
@@ -315,7 +356,7 @@ bool image_func::cleanBlockList() {
     for( unsigned int iii = 0; iii < blockList.size(); iii++ )
     {
         blockList[iii]->blockNumber_ = iii;
-        blockList[iii]->debugPrint();
+        blockList[iii]->debugPrint();        
     }
   
     for( unsigned int r = 0; r + 1 < blockList.size(); r++ )
@@ -418,8 +459,29 @@ bool image_func::cleanBlockList() {
 
     parsing_printf("CLEANED BLOCK LIST\n");
     for (unsigned foo = 0; foo < blockList.size(); foo++) {
+        // Safety check; we need the blocks to be sorted by addr
         blockList[foo]->debugPrint();
+
+        // Safety checks.
+        assert(blockList[foo]->firstInsnOffset() != 0);
+        assert(blockList[foo]->lastInsnOffset() != 0);
+        assert(blockList[foo]->endOffset() != 0);
+
+        /* Serious safety checks. These can tag things that are
+           legal. Enable if you're trying to track down a parsing
+           problem. */
+#if !defined(arch_x86) && !defined(arch_x86_64)
+        if (foo > 0) {
+            assert(blockList[foo]->firstInsnOffset() >= blockList[foo-1]->endOffset());
+        }
+        assert(blockList[foo]->endOffset() >= blockList[foo]->firstInsnOffset());
+#endif
+
+        blockList[foo]->finalize();
     }
+    funcEntries_.reserve_exact(funcEntries_.size());
+    funcReturns.reserve_exact(funcReturns.size());
+    calls.reserve_exact(calls.size());
     return true;
 }
 
@@ -485,6 +547,7 @@ void image_func::updateFunctionEnd(Address newEnd)
             else
                 break;
         }
+
     //remove out of bounds basicBlocks
     //assumes blockList was sorted by start address in findInstPoints
     for( int k = (int) blockList.size() - 1; k >= 0; k-- )
@@ -547,6 +610,13 @@ void image_func::updateFunctionEnd(Address newEnd)
             parsing_printf("After fixup:\n");
             blk->debugPrint();
         }
+
+    funcReturns.reserve_exact(funcReturns.size());
+    calls.reserve_exact(calls.size());
+    
+    // And rerun memory trimming
+    for (unsigned foo = 0; foo < blockList.size(); foo++)
+        blockList[foo]->finalize();
     
 }    
 
@@ -568,4 +638,9 @@ void *image_func::getPtrToInstruction(Address addr) const {
         if (ptr) return ptr;
     }
     return NULL;
+}
+
+void image_basicBlock::finalize() {
+    targets_.reserve_exact(targets_.size());
+    sources_.reserve_exact(sources_.size());
 }

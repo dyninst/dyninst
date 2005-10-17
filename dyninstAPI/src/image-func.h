@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.5 2005/10/05 21:46:32 bernat Exp $
+// $Id: image-func.h,v 1.6 2005/10/17 19:24:21 bernat Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -67,14 +67,7 @@ class image_instPoint;
 class image_basicBlock : public codeRange {
     friend class image_func;
  public:
-    image_basicBlock(image_func *func, Address firstOffset) :
-        firstInsnOffset_(firstOffset),
-        lastInsnOffset_(0),
-        blockEndOffset_(0),
-        isEntryBlock_(false),
-        isExitBlock_(false),
-        blockNumber_(-1),
-        func_(func) {}
+    image_basicBlock(image_func *func, Address firstOffset);
 
     Address firstInsnOffset() const { return firstInsnOffset_; }
     Address lastInsnOffset() const { return lastInsnOffset_; }
@@ -114,6 +107,10 @@ class image_basicBlock : public codeRange {
 
     image_func *func() const { return func_; }
 
+    // Try to shrink memory usage down.
+    void finalize();
+
+ private:
     Address firstInsnOffset_;
     Address lastInsnOffset_;
     Address blockEndOffset_;

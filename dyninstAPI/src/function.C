@@ -42,11 +42,10 @@
 // $Id: function.C,v 1.10 2005/03/02 19:44:45 bernat Exp 
 
 #include "function.h"
-#include "BPatch_flowGraph.h"
 #include "process.h"
 #include "instPoint.h"
-#include "BPatch_basicBlockLoop.h"
-#include "BPatch_basicBlock.h"
+//#include "BPatch_basicBlockLoop.h"
+//#include "BPatch_basicBlock.h"
 #include "InstrucIter.h"
 #include "multiTramp.h"
 
@@ -60,6 +59,8 @@
 pdstring int_function::emptyString("");
 
 
+int int_function_count = 0;
+
 // 
 int_function::int_function(image_func *f,
 			   Address baseAddr,
@@ -71,7 +72,6 @@ int_function::int_function(image_func *f,
 #endif
     ifunc_(f),
     mod_(mod),
-    flowGraph(NULL),
 #if defined(cap_relocation)
     generatedVersion_(0),
     installedVersion_(0),
@@ -79,6 +79,13 @@ int_function::int_function(image_func *f,
 #endif
     version_(0)
 {
+#if defined(ROUGH_MEMORY_PROFILE)
+    int_function_count++;
+    if ((int_function_count % 10) == 0)
+        fprintf(stderr, "int_function_count: %d (%d)\n",
+                int_function_count, int_function_count*sizeof(int_function));
+#endif
+
     //parsing_printf("Function offset: 0x%x; base: 0x%x\n",
     //f->getOffset(), baseAddr);
     addr_ = f->getOffset() + baseAddr;
@@ -121,7 +128,6 @@ int_function::int_function(const int_function *parFunc,
     addr_(parFunc->addr_),
     ifunc_(parFunc->ifunc_),
     mod_(childMod),
-    flowGraph(NULL),
 #if defined(cap_relocation)
     generatedVersion_(parFunc->generatedVersion_),
     installedVersion_(parFunc->installedVersion_),
@@ -195,13 +201,12 @@ int_function::~int_function() {
     // ifunc_ doesn't keep tabs on us, so don't need to let it know.
     // mod_ is cleared by the mapped_object
     // blockList isn't allocated
-    // flowGraph is taken care of by BPatch...
     // instPoints are process level (should be deleted here and refcounted)
 
 #if defined(cap_relocation)
     for (unsigned i = 0; i < enlargeMods_.size(); i++)
         delete enlargeMods_[i];
-    enlargeMods_.clear();
+    enlargeMods_.zap();
 #endif
 }
 
@@ -210,6 +215,7 @@ int_function::~int_function() {
 unsigned int_function::getSize_NP()  {
     blocks();
     if (blockList.size() == 0) return 0;
+            
     return (blockList.back()->origInstance()->endAddr() - 
             blockList.front()->origInstance()->firstInsnAddr());
 }
@@ -221,6 +227,7 @@ void int_function::addArbitraryPoint(instPoint *insp) {
 const pdvector<instPoint *> &int_function::funcEntries() {
     if (entryPoints_.size() == 0) {
         const pdvector<image_instPoint *> &img_entries = ifunc_->funcEntries();        
+        entryPoints_.reserve_exact(img_entries.size());
         for (unsigned i = 0; i < img_entries.size(); i++) {
 
             // TEMPORARY FIX: we're seeing points identified by low-level
@@ -248,6 +255,7 @@ const pdvector<instPoint *> &int_function::funcEntries() {
 const pdvector<instPoint*> &int_function::funcExits() {
     if (exitPoints_.size() == 0) {
         const pdvector<image_instPoint *> &img_exits = ifunc_->funcExits();
+        exitPoints_.reserve_exact(img_exits.size());
         
         for (unsigned i = 0; i < img_exits.size(); i++) {
             // TEMPORARY FIX: we're seeing points identified by low-level
@@ -275,17 +283,20 @@ const pdvector<instPoint*> &int_function::funcExits() {
 const pdvector<instPoint*> &int_function::funcCalls() {
     if (callPoints_.size() == 0) {
         const pdvector<image_instPoint *> &img_calls = ifunc_->funcCalls();
+        callPoints_.reserve_exact(img_calls.size());
         
         for (unsigned i = 0; i < img_calls.size(); i++) {
             // TEMPORARY FIX: we're seeing points identified by low-level
             // code that aren't actually in the function.            
             Address offsetInFunc = img_calls[i]->offset() - img_calls[i]->func()->getOffset();
             if (!findBlockByOffset(offsetInFunc)) {
-                fprintf(stderr, "Warning: unable to find block for call point at 0x%lx (0x%lx) (func 0x%lx to 0x%lx\n",
+                fprintf(stderr, "Warning: unable to find block for call point at 0x%lx (0x%lx) (func 0x%lx to 0x%lx, %s/%s)\n",
                         offsetInFunc,
                         offsetInFunc+getAddress(),
                         getAddress(),
-                        getAddress() + getSize_NP());
+                        getAddress() + getSize_NP(),
+                        symTabName().c_str(),
+                        obj()->fileName().c_str());
                 
                 continue;
             }
@@ -512,6 +523,8 @@ void int_basicBlock::setDataFlowKill(int_basicBlock *kill) {
 }
 #endif
 
+int int_basicBlock_count = 0;
+
 int_basicBlock::int_basicBlock(const image_basicBlock *ib, Address baseAddr, int_function *func) :
 #if defined(arch_ia64)
     dataFlowIn(NULL),
@@ -522,6 +535,13 @@ int_basicBlock::int_basicBlock(const image_basicBlock *ib, Address baseAddr, int
     func_(func),
     ib_(ib)
 {
+#if defined(ROUGH_MEMORY_PROFILE)
+    int_basicBlock_count++;
+    if ((int_basicBlock_count % 10) == 0)
+        fprintf(stderr, "int_basicBlock_count: %d (%d)\n",
+                int_basicBlock_count, int_basicBlock_count*sizeof(int_basicBlock));
+#endif
+
     bblInstance *inst = new bblInstance(ib->firstInsnOffset() + baseAddr,
                                         ib->lastInsnOffset() + baseAddr,
                                         ib->endOffset() + baseAddr,
@@ -557,7 +577,7 @@ int_basicBlock::~int_basicBlock() {
     for (unsigned i = 0; i < instances_.size(); i++) {
         delete instances_[i];
     }
-    instances_.clear();
+    instances_.zap();
 }
 
 bblInstance *int_basicBlock::origInstance() const {
@@ -594,6 +614,8 @@ const pdvector<bblInstance *> &int_basicBlock::instances() const {
     return instances_;
 }
 
+int bblInstance_count = 0;
+
 bblInstance::bblInstance(Address start, Address last, Address end, int_basicBlock *parent, int version) : 
 #if defined(cap_relocation)
     reloc_info(NULL),
@@ -604,6 +626,14 @@ bblInstance::bblInstance(Address start, Address last, Address end, int_basicBloc
     block_(parent),
     version_(version)
 {
+#if defined(ROUGH_MEMORY_PROFILE)
+    bblInstance_count++;
+    if ((bblInstance_count % 10) == 0)
+        fprintf(stderr, "bblInstance_count: %d (%d)\n",
+                bblInstance_count, bblInstance_count*sizeof(bblInstance));
+#endif
+
+
     // And add to the mapped_object code range
     block_->func()->obj()->codeRangesByAddr_.insert(this);
 };
@@ -815,7 +845,7 @@ bblInstance::reloc_info_t::reloc_info_t(reloc_info_t *parent,
 bblInstance::reloc_info_t::~reloc_info_t() {
    for (unsigned i = 0; i < insns_.size(); i++)
       delete insns_[i];
-   insns_.clear();
+   insns_.zap();
    // appliedMods is deleted by the function....
    // jumpToBlock is deleted by the process....
 };
