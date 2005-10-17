@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.2 2005/10/17 19:14:35 bpellin Exp $
+// $Id: test_driver.C,v 1.3 2005/10/17 20:27:22 bpellin Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -161,30 +161,30 @@ int cleanup(BPatch *bpatch, BPatch_thread *appThread, test_data_t &test, Process
       // above will be in place before the mutatee begins its tests.
       if ( test.state != NOMUTATEE )
       {
-      dprintf("starting program execution.\n");
-      appThread->continueExecution();
+         dprintf("starting program execution.\n");
+         appThread->continueExecution();
 
-      // Reset Error callback
-      //bpatch->registerErrorCallback(errorFunc);
+         // Reset Error callback
+         //bpatch->registerErrorCallback(errorFunc);
 
-      // Test poll for status change
-      while (!appThread->isTerminated())
-          bpatch->waitForStatusChange();
+         // Test poll for status change
+         while (!appThread->isTerminated())
+             bpatch->waitForStatusChange();
 
-      int retVal;
-      if(appThread->terminationStatus() == ExitedNormally) {
-         int exitCode = appThread->getExitCode();
-         if (exitCode || debugPrint)
-            printf("Mutatee exit code 0x%x\n", exitCode);
-         retVal = exitCode;
-      } else if(appThread->terminationStatus() == ExitedViaSignal) {
-         int signalNum = appThread->getExitSignal();
-         if (signalNum || debugPrint)
-            printf("Mutatee exited from signal 0x%x\n", signalNum);
+         int retVal;
+         if(appThread->terminationStatus() == ExitedNormally) {
+            int exitCode = appThread->getExitCode();
+            if (exitCode || debugPrint)
+               printf("Mutatee exit code 0x%x\n", exitCode);
+            retVal = exitCode;
+         } else if(appThread->terminationStatus() == ExitedViaSignal) {
+            int signalNum = appThread->getExitSignal();
+            if (signalNum || debugPrint)
+               printf("Mutatee exited from signal 0x%x\n", signalNum);
 
-         retVal = signalNum;
+            retVal = signalNum;
+         }
          return retVal;
-      }
       }
     }
    }
