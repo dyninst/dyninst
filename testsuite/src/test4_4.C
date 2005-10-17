@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4_4.C,v 1.1 2005/09/29 20:39:23 bpellin Exp $
+// $Id: test4_4.C,v 1.2 2005/10/17 19:14:34 bpellin Exp $
 /*
  * #Name: test4_4
  * #Desc: Fork and Exec Callback
@@ -234,8 +234,9 @@ int mutatorTest(char *pathname, BPatch *bpatch)
     {
         printf("**Failed** test #4 (fork and exec callback)\n");
         printf("    fork a exec callback not executed\n");
+        return -1;
     }
-    return passedTest;
+    return 0;
 #endif
 }
 

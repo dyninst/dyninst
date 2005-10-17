@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test12_4.C,v 1.1 2005/09/29 20:38:28 bpellin Exp $
+// $Id: test12_4.C,v 1.2 2005/10/17 19:14:30 bpellin Exp $
 /*
  * #Name: test12_4
  * #Desc: thread exit callback
@@ -73,7 +73,7 @@ void threadDestroyCB(BPatch_process * /*proc*/, BPatch_thread *thr)
   //        test4_threadDestroyCounter);
 }
 
-bool mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
   unsigned int timeout = 0; // in ms
   int err = 0;
@@ -84,7 +84,7 @@ bool mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     FAIL_MES(TESTNO, TESTNAME);
     fprintf(stderr, "%s[%d]:  failed to register thread callback\n",
            __FILE__, __LINE__);
-    return false;
+    return -1;
   }
 
   //  unset mutateeIdle to trigger thread (10) spawn.
@@ -114,14 +114,14 @@ bool mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     FAIL_MES(TESTNO, TESTNAME);
     fprintf(stderr, "%s[%d]:  failed to remove thread callback\n",
            __FILE__, __LINE__);
-    return false;
+    return -1;
   }
 
   if (!err) {
     PASS_MES(TESTNO, TESTNAME);
-    return true;
+    return 0;
   }
-  return false;
+  return -1;
 }
 
 extern "C" int mutatorMAIN(ParameterDict &param)
