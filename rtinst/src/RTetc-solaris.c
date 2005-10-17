@@ -41,7 +41,7 @@
 
 /************************************************************************
  * clock access functions for solaris-2.
- * $Id: RTetc-solaris.c,v 1.47 2004/03/23 01:12:43 eli Exp $
+ * $Id: RTetc-solaris.c,v 1.48 2005/10/17 19:24:29 bernat Exp $
  ************************************************************************/
 
 #include <signal.h>
@@ -208,8 +208,8 @@ DYNINSTgetCPUtime_sw(void) {
 	      tmp_cpuPrevious - now, now, tmp_cpuPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
-      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
-				 1, 1);
+      PARADYNgenerateTraceRecord(TR_ERROR, sizeof(traceData), &traceData, 1,
+				 1);
     }
     cpuRollbackOccurred++;
     now = cpuPrevious_sw;
@@ -246,8 +246,8 @@ DYNINSTgetWalltime_sw(void) {
 	      tmp_wallPrevious - now, now, tmp_wallPrevious);
       traceData.errorNum = 112;
       traceData.msgType = rtWarning;
-      DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 1,
-				 1, 1);
+      PARADYNgenerateTraceRecord(TR_ERROR, sizeof(traceData), &traceData, 1,
+				 1);
     }
     wallRollbackOccurred++;
     now = wallPrevious_sw;
@@ -266,8 +266,8 @@ void DYNINSTsystem() {
            "release will remedy this limitation.");
    traceData.errorNum = 127;
    traceData.msgType = rtError;
-   DYNINSTgenerateTraceRecord(0, TR_ERROR, sizeof(traceData), &traceData, 
-                              1, 1, 1);
+   PARADYNgenerateTraceRecord(TR_ERROR, sizeof(traceData), &traceData, 
+                              1, 1);
    sleep(2);
    assert(0);
 }

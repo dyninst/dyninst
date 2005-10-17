@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.93 2005/10/14 20:53:33 tlmiller Exp $
+ * $Id: RTinst.c,v 1.94 2005/10/17 19:24:30 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -274,7 +274,9 @@ void PARADYNinit(int paradyndPid, int creationMethod,
    PARADYNos_init(calledFromFork, calledFromAttach);
 
    /* Note: until this point we are not multithread-safe. */
+#if defined(cap_threads)
    PARADYN_initialize_once();
+#endif
 }
 
 /* debug code should call forkexec_printf as a way of avoiding
