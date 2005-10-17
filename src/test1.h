@@ -63,6 +63,9 @@
 #define	TEST_PTR_SIZE	8
 #define	TEST_PTR		TEST_PTR_64BIT
 
+#elif defined(i386_unknown_linux2_4)
+#define TEST_PTR_SIZE	4
+#define TEST_PTR	TEST_PTR_32BIT
 #elif defined(x86_64_unknown_linux2_4)
 #define	TEST_PTR_SIZE	8
 #define	TEST_PTR		TEST_PTR_64BIT
