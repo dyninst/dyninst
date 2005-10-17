@@ -88,6 +88,9 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
                       BPatch_function *initial_func, int lwp_id);
  public:
 
+    // For those that still need it (like Solaris Paradyn)
+    dyn_thread *lowlevel_thread() { return llthread; }
+
     /**
      * The following function are all deprecated.  They've been replaced
      * by equivently named functions in BPatch_process.  See BPatch_process.h
