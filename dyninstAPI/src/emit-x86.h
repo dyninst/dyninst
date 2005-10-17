@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.4 2005/10/14 16:37:44 legendre Exp $
+ * $Id: emit-x86.h,v 1.5 2005/10/17 15:49:21 legendre Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -105,7 +105,7 @@ void emit64();
 class Emitter32 : public Emitter {
 
 public:
-    static const int mt_offset = -4;
+    static const int mt_offset;
     codeBufIndex_t emitIf(Register expr_reg, Register target, codeGen &gen);
     void emitOp(unsigned opcode, Register dest, Register src1, Register src2, codeGen &gen);
     void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen);
@@ -146,7 +146,7 @@ void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen);
 class Emitter64 : public Emitter {
 
 public:
-    static const int mt_offset = -8;
+    static const int mt_offset;
     codeBufIndex_t emitIf(Register expr_reg, Register target, codeGen &gen);
     void emitOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen);
     void emitRelOp(unsigned op, Register dest, Register src1, Register src2, codeGen &gen);

@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.9 2005/10/14 16:37:43 legendre Exp $
+ * $Id: emit-x86.C,v 1.10 2005/10/17 15:49:19 legendre Exp $
  */
 
 #include <assert.h>
@@ -55,6 +55,9 @@
 #include "dyninstAPI/src/process.h"
 
 extern registerSpace* regSpace;
+
+const int Emitter32::mt_offset = -4;
+const int Emitter64::mt_offset = -8;
 
 codeBufIndex_t Emitter32::emitIf(Register expr_reg, Register target, codeGen &gen)
 {
