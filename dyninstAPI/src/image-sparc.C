@@ -40,7 +40,7 @@
  */
 
 
-// $Id: image-sparc.C,v 1.5 2005/10/05 21:46:33 bernat Exp $
+// $Id: image-sparc.C,v 1.6 2005/10/17 19:24:22 bernat Exp $
 
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
@@ -303,6 +303,9 @@ bool image_func::findInstPoints(pdvector<Address> &callTargets)
 
             if (currAddr > getEndOffset()) {
                 parsing_printf("... past end of function\n");
+                currBlk->lastInsnOffset_ = currAddr - instruction::size(); 
+                currBlk->blockEndOffset_ = currAddr;
+
                 break;
             }
 
