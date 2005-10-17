@@ -1,4 +1,5 @@
 #!/usr/bin/perl -w
+# $Id: runTests.pl,v 1.2 2005/10/17 19:14:26 bpellin Exp $
 
 use strict;
 use POSIX;
@@ -10,7 +11,7 @@ use POSIX;
 my $useLog = 0;
 my $test_driver = "$ENV{'PWD'}/test_driver";
 my $testLimit = 10;
-my $timeout = 60;
+my $timeout = 120;
 
 ########################################
 # Sub Declarations
@@ -38,6 +39,8 @@ sub RunTest($) {
       $testString .= " -log";
    }
 
+   $testString .= " " . (join " ", @ARGV);
+
    # Set Environment Variables
    if ( not defined($ENV{'PDSCRDIR'}) )
    {
@@ -51,10 +54,9 @@ sub RunTest($) {
    $ENV{'LD_LIBRARY_PATH'} .= ":.";
 
    # Prepend timer script
-   my $totalTimeout = $testLimit * $timeout;
+   my $totalTimeout = $timeout;
    my $timerString = "$ENV{'PDSCRDIR'}/timer.pl -t $totalTimeout ";
    $testString = $timerString . $testString;
-
 
    # Run Test Program
    system($testString);
@@ -99,10 +101,11 @@ sub ParseParameters()
 ########################################
 # Main Code
 #
-ParseParameters();
+#ParseParameters();
 
 my $result = 0;
 my $invocation = 0;
+
 
 # Return value of 2 indicates that we have run out of tests to run
 while ( $result != 2 )
