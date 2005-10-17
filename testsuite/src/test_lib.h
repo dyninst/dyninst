@@ -49,6 +49,7 @@
 #include "Process_data.h"
 #include "ParameterDict.h"
 #include <unistd.h>
+#include <vector>
 
 
 #if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 10 apr 2001 
@@ -246,10 +247,7 @@ enum enabled_t {
    ENABLED = 1,
 };
 
-typedef struct {
-   unsigned int length;
-   char *list[5];
-} mutatee_list_t;
+typedef std::vector<char*> mutatee_list_t;
 
 typedef struct {
    bool alpha_dec_osf5_1;
@@ -265,7 +263,7 @@ typedef struct {
 typedef struct {
    char *name;
    char *soname;
-   mutatee_list_t mutatee;
+   mutatee_list_t &mutatee;
    platforms_t platforms;
    start_state_t state;
    int oldtest;

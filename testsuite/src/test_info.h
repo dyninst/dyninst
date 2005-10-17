@@ -39,37 +39,111 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_info.h,v 1.1 2005/09/29 20:40:15 bpellin Exp $
+// $Id: test_info.h,v 1.2 2005/10/17 19:14:36 bpellin Exp $
 #ifndef TEST_INFO_H
 #define TEST_INFO_H
 
 const unsigned int num_tests = 105;
 //const unsigned int num_tests = 80;
 //const unsigned int num_tests = 20;
-mutatee_list_t test1_mutatee = 
-   {2, {"test1.mutatee_gcc","test1.mutatee_g++"} };
-mutatee_list_t test2_mutatee = 
-   {2, {"test2.mutatee_gcc","test2.mutatee_g++"} };
-mutatee_list_t test3_mutatee = 
-   {1, {"test3.mutatee_gcc"} };
-mutatee_list_t test4_mutatee = 
-   {1, {"test4a.mutatee_gcc"} };
-mutatee_list_t test5_mutatee = 
-   {1, {"test5.mutatee_g++"} };
-mutatee_list_t test6_mutatee = 
-   {1, {"test6.mutatee_gcc"} };
-mutatee_list_t test7_mutatee = 
-   {1, {"test7.mutatee_gcc"} };
-mutatee_list_t test8_mutatee =
-   {1, {"test8.mutatee_gcc"} };
-mutatee_list_t test9_mutatee =
-   {1, {"test9.mutatee_gcc"} };
-mutatee_list_t test10_mutatee =
-   {1, {"test10.mutatee_gcc"} };
-mutatee_list_t test12_mutatee =
-   {1, {"test12.mutatee_gcc"} };
-mutatee_list_t none =
-   {1, {"none"}};
+mutatee_list_t test1_mutatee;
+mutatee_list_t test2_mutatee;
+mutatee_list_t test3_mutatee;
+mutatee_list_t test4_mutatee;
+mutatee_list_t test5_mutatee;
+mutatee_list_t test6_mutatee;
+mutatee_list_t test7_mutatee;
+mutatee_list_t test8_mutatee;
+mutatee_list_t test9_mutatee;
+mutatee_list_t test10_mutatee;
+mutatee_list_t test12_mutatee;
+mutatee_list_t none;
+
+/* A little bit of macro magic to get the text of the extensions out */
+#define xstr(x) str(x)
+#define str(x) #x
+void initialize_mutatees()
+{
+   dprintf("Initializing mutatees\n");
+#ifdef gnu_cc
+   dprintf("Initializing gnu_cc mutatees\n");
+   test1_mutatee.push_back("test1.mutatee" xstr(gnu_cc));
+   test2_mutatee.push_back("test2.mutatee" xstr(gnu_cc));
+   test3_mutatee.push_back("test3.mutatee" xstr(gnu_cc));
+   test4_mutatee.push_back("test4a.mutatee" xstr(gnu_cc));
+   test6_mutatee.push_back("test6.mutatee" xstr(gnu_cc));
+   test7_mutatee.push_back("test7.mutatee" xstr(gnu_cc));
+   test8_mutatee.push_back("test8.mutatee" xstr(gnu_cc));
+   test9_mutatee.push_back("test9.mutatee" xstr(gnu_cc));
+   test10_mutatee.push_back("test10.mutatee" xstr(gnu_cc));
+   test12_mutatee.push_back("test12.mutatee" xstr(gnu_cc));
+#endif
+
+#ifdef gnu_cxx
+   test1_mutatee.push_back("test1.mutatee" xstr(gnu_cxx));
+   test2_mutatee.push_back("test2.mutatee" xstr(gnu_cxx));
+   test3_mutatee.push_back("test3.mutatee" xstr(gnu_cxx));
+   test4_mutatee.push_back("test4a.mutatee" xstr(gnu_cxx));
+   test5_mutatee.push_back("test5.mutatee" xstr(gnu_cxx));
+   test7_mutatee.push_back("test7.mutatee" xstr(gnu_cxx));
+   test8_mutatee.push_back("test8.mutatee" xstr(gnu_cxx));
+   test9_mutatee.push_back("test9.mutatee" xstr(gnu_cxx));
+   test12_mutatee.push_back("test12.mutatee" xstr(gnu_cxx));
+#endif
+   
+#ifdef gnu_fc
+   test1_mutatee.push_back("test1.mutatee" xstr(gnu_fc));
+#endif
+   
+#ifdef native_cc
+   test1_mutatee.push_back("test1.mutatee" xstr(native_cc));
+   test2_mutatee.push_back("test2.mutatee" xstr(native_cc));
+   test3_mutatee.push_back("test3.mutatee" xstr(native_cc));
+   test4_mutatee.push_back("test4a.mutatee" xstr(native_cc));
+   test6_mutatee.push_back("test6.mutatee" xstr(native_cc));
+   test7_mutatee.push_back("test7.mutatee" xstr(native_cc));
+   test8_mutatee.push_back("test8.mutatee" xstr(native_cc));
+   test9_mutatee.push_back("test9.mutatee" xstr(native_cc));
+   test12_mutatee.push_back("test12.mutatee" xstr(native_cc));
+#endif
+
+#ifdef native_cxx
+   test1_mutatee.push_back("test1.mutatee" xstr(native_cxx));
+   test2_mutatee.push_back("test2.mutatee" xstr(native_cxx));
+   test3_mutatee.push_back("test3.mutatee" xstr(native_cxx));
+   test4_mutatee.push_back("test4a.mutatee" xstr(native_cxx));
+   test7_mutatee.push_back("test7.mutatee" xstr(native_cxx));
+   test8_mutatee.push_back("test8.mutatee" xstr(native_cxx));
+   test9_mutatee.push_back("test9.mutatee" xstr(native_cxx));
+   test12_mutatee.push_back("test12.mutatee" xstr(native_cxx));
+#endif
+
+#ifdef gnu_abi_cc
+   test1_mutatee.push_back("test1.mutatee" xstr(gnu_abi_cc));
+   test2_mutatee.push_back("test2.mutatee" xstr(gnu_abi_cc));
+   test3_mutatee.push_back("test3.mutatee" xstr(gnu_abi_cc));
+   test4_mutatee.push_back("test4a.mutatee" xstr(gnu_abi_cc));
+   test6_mutatee.push_back("test6.mutatee" xstr(gnu_abi_cc));
+   test7_mutatee.push_back("test7.mutatee" xstr(gnu_abi_cc));
+   test8_mutatee.push_back("test8.mutatee" xstr(gnu_abi_cc));
+   test9_mutatee.push_back("test9.mutatee" xstr(gnu_abi_cc));
+   test10_mutatee.push_back("test10.mutatee" xstr(gnu_abi_cc));
+   test12_mutatee.push_back("test12.mutatee" xstr(gnu_abi_cc));
+#endif
+
+#ifdef gnu_abi_cxx
+   test1_mutatee.push_back("test1.mutatee" xstr(gnu_abi_cxx));
+   test2_mutatee.push_back("test2.mutatee" xstr(gnu_abi_cxx));
+   test3_mutatee.push_back("test3.mutatee" xstr(gnu_abi_cxx));
+   test4_mutatee.push_back("test4a.mutatee" xstr(gnu_abi_cxx));
+   test7_mutatee.push_back("test7.mutatee" xstr(gnu_abi_cxx));
+   test8_mutatee.push_back("test8.mutatee" xstr(gnu_abi_cxx));
+   test9_mutatee.push_back("test9.mutatee" xstr(gnu_abi_cxx));
+   test12_mutatee.push_back("test12.mutatee" xstr(gnu_abi_cxx));
+#endif
+
+   none.push_back("");
+}
 
 platforms_t all_platforms =
    { true, true, true, true, true, true, true, true};
@@ -222,10 +296,10 @@ test_data_t tests[] = {
    {"test10_2", "./test10_2.so", test10_mutatee, test10_11_platforms, STOPPED, 10, 2, CREATE, ENABLED},
    {"test10_3", "./test10_3.so", test10_mutatee, test10_11_platforms, STOPPED, 10, 3, CREATE, ENABLED},
    {"test10_4", "./test10_4.so", test10_mutatee, test10_11_platforms, STOPPED, 10, 4, CREATE, ENABLED},
-   {"test12_1", "./test12_1.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 1, CREATE, ENABLED},
-   {"test12_2", "./test12_2.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 2, CREATE, ENABLED},
+   {"test12_1", "./test12_1.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 1, CREATE, DISABLED},
+   {"test12_2", "./test12_2.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 2, CREATE, DISABLED},
    /* Segfaulting on x86-linux */
-   {"test12_3", "./test12_3.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 3, CREATE, ENABLED},
-   {"test12_4", "./test12_4.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 4, CREATE, ENABLED}
+   {"test12_3", "./test12_3.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 3, CREATE, DISABLED},
+   {"test12_4", "./test12_4.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 4, CREATE, DISABLED}
 };
 #endif /* TEST_INFO_H */
