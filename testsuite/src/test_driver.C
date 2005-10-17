@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.1 2005/09/29 20:40:14 bpellin Exp $
+// $Id: test_driver.C,v 1.2 2005/10/17 19:14:35 bpellin Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -93,15 +93,24 @@ int mutateeXLC = 0;
 
 int runScript(const char *name, ...)
 {
-   char test[500];
+   char test[1024];
+   int result;
    va_list ap;
    va_start(ap, name);
-   vsnprintf(test, 500, name, ap);
+   vsnprintf(test, 1024, name, ap);
    va_end(ap);
 
-   return system(test);
+   // Flush before/after script run
+   fflush(stdout);
+   fflush(stderr);
+   result = system(test);
+   fflush(stdout);
+   fflush(stderr);
+
+   return result;
 }
 
+// TODO: Structure this better
 bool runOnThisPlatform(test_data_t &test)
 {
 #if defined(alpha_dec_osf4_0)
@@ -238,10 +247,6 @@ void executeSaveTheWorld(BPatch_thread *appThread, int saveTheWorld, char *pathn
 
 void printLogTestHeader(char *name)
 {
-   if ( useResume && skipToTest != 0 && skipToMutatee != 0 && skipToOption != 0 )
-   {
-      return;
-   }
    fflush(stdout);
    fflush(stderr);
    // Test Header
@@ -252,20 +257,21 @@ void printLogTestHeader(char *name)
 
 void printLogMutateeHeader(char *mutatee)
 {
-   if ( useResume && skipToMutatee != 0 )
-   {
-      return;
-   }
    fflush(stdout);
    fflush(stderr);
    // Mutatee Description
-   printf("[Tests with %s]\n", mutatee);
    // Mutatee Info
    if ( mutatee != "" )
    {
+      printf("[Tests with %s]\n", mutatee);
       runScript("ls -lLF %s", mutatee);
       runScript("%s/ldd_PD %s", pdscrdir, mutatee);
    }
+   else
+   {
+      printf("[Tests with none]\n");
+   }
+
 
    printf("\n");
    fflush(stdout);
@@ -279,7 +285,14 @@ void printLogOptionHeader(test_data_t &test, char *mutatee, bool useAttach)
    // Full test description
    printf("\"%s", test.name);
    // TODO: Add use relocation option here
-   printf(" -mutatee %s", mutatee);
+   if ( mutatee != "" )
+   {
+      printf(" -mutatee %s", mutatee);
+   }
+   else
+   {
+      printf(" -mutatee none");
+   }
    if ( useAttach == USEATTACH )
    {
       printf(" -attach");
@@ -408,6 +421,7 @@ int executeTest(BPatch *bpatch, test_data_t &test, char *mutatee, create_mode_t 
    // Run the test
    // result will hold the value of mutator success
    int result = loadLibRunTest(test, param);
+   dprintf("Mutator result = %d\n", result);
    
    // Execute save the world
    executeSaveTheWorld(appThread, saveTheWorld, mutatee);
@@ -425,10 +439,15 @@ int executeTest(BPatch *bpatch, test_data_t &test, char *mutatee, create_mode_t 
    // Test Exit Status Log
    if ( enableLogging && result != 0 )
    {
+       int pos_result = result;
+       if ( result < 0 )
+       {
+          pos_result = -result;
+       }
        fflush(stdout);
        fflush(stderr);
        printf("=========================================================\n");
-       printf("=== Exit code 0x%x: %s\n", result, test.name);
+       printf("=== Exit code 0x%02x: %s\n", pos_result, test.name);
        printf("=========================================================\n");
        fflush(stdout);
        fflush(stderr);
@@ -496,7 +515,7 @@ int getResumeLog(int *testnum, int *mutateenum, int *optionnum)
       *optionnum = 0;
       (*mutateenum)++;
    }
-   if ( (unsigned int) *mutateenum >= tests[*testnum].mutatee.length )
+   if ( (unsigned int) *mutateenum >= tests[*testnum].mutatee.size() )
    {
       *mutateenum = 0;
       (*testnum)++;
@@ -530,7 +549,7 @@ int startTest(test_data_t tests[], unsigned int n_tests, std::vector<char *> &te
     param["mergeTramp"] = &merget;
 
    // Print Test Log Header
-   if ( enableLogging ) {
+   if ( enableLogging && skipToTest == 0 && skipToMutatee == 0 && skipToOption == 0 ) {
       printf("Commencing DyninstAPI test(s) ...\n");
       runScript("date");
       runScript("uname -a");
@@ -554,16 +573,17 @@ int startTest(test_data_t tests[], unsigned int n_tests, std::vector<char *> &te
       if ( !runAll && !inTestList(tests[i], test_list) )
          continue;
 
-      if ( enableLogging )
+      if ( enableLogging && j_init == 0 )
       {
          printLogTestHeader(tests[i].name);
       }
       // Run test over list of mutatees
-      for (unsigned int j = j_init; j < tests[i].mutatee.length; j++ )
+      dprintf("%s has %d mutatees.\n", tests[i].name, tests[i].mutatee.size());
+      for (unsigned int j = j_init; j < tests[i].mutatee.size(); j++ )
       {
-         if ( enableLogging )
+         if ( enableLogging && k_init == 0 )
          {
-            printLogMutateeHeader(tests[i].mutatee.list[j]);
+            printLogMutateeHeader(tests[i].mutatee[j]);
          }
 
          // Iterate through useAttach options
@@ -590,7 +610,7 @@ int startTest(test_data_t tests[], unsigned int n_tests, std::vector<char *> &te
                cm = USEATTACH;
             }
             
-            result = executeTest(bpatch, tests[i], tests[i].mutatee.list[j], cm, param);
+            result = executeTest(bpatch, tests[i], tests[i].mutatee[j], cm, param);
             // End execution if we've set a limit and reached it
             testsRun++;
             if ( testLimit != 0 && testsRun >= testLimit )
@@ -716,6 +736,9 @@ int main(unsigned int argc, char *argv[]) {
           exit(1);
        }
     }
+
+    // Set up mutatees
+    initialize_mutatees();
 
     // Set the script dir if we require scripts
     if ( enableLogging )
