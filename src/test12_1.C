@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test12_1.C,v 1.1 2005/09/29 20:38:22 bpellin Exp $
+// $Id: test12_1.C,v 1.2 2005/10/17 19:14:27 bpellin Exp $
 /*
  * #Name: test12_1
  * #Desc: dynamic call site callback
@@ -121,7 +121,7 @@ void dynSiteCB(BPatch_point *dyn_site, BPatch_function *called_function)
   }
 }
 
-bool mutatorTest(BPatch_thread *appT, BPatch_image *appImage)
+int mutatorTest(BPatch_thread *appT, BPatch_image *appImage)
 {
   int timeout = 0;
   appThread = appT;
@@ -131,11 +131,11 @@ bool mutatorTest(BPatch_thread *appT, BPatch_image *appImage)
      SKIP(TESTNO, TESTNAME);
      fprintf(stderr, "\txlc optimizes out dynamic call sites for this test\n");
      sleep_ms(100);
-     return true;
+     return 0;
   }
 
   BPatch_function *func1_1 = findFunction("call1_dispatch", appImage, TESTNO, TESTNAME);
-  if ( func1_1 == NULL ) return false;
+  if ( func1_1 == NULL ) return -1;
   BPatch_function *targetFunc = func1_1;
 
   BPatch_Vector<BPatch_point *> *calls = targetFunc->findPoint(BPatch_subroutine);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4_1.C,v 1.1 2005/09/29 20:39:20 bpellin Exp $
+// $Id: test4_1.C,v 1.2 2005/10/17 19:14:31 bpellin Exp $
 /*
  * #Name: test4_1
  * #Desc: Exit Callback
@@ -157,8 +157,10 @@ int mutatorTest(char *pathname, BPatch *bpatch)
     {
         printf("**Failed** test #1 (exit callback)\n");
         printf("    exit callback not executed\n");
+        return -1;
     }
-    return passedTest;
+
+    return 0;
 #endif
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test12_2.C,v 1.1 2005/09/29 20:38:24 bpellin Exp $
+// $Id: test12_2.C,v 1.2 2005/10/17 19:14:28 bpellin Exp $
 /*
  * #Name: test12_2
  * #Desc: rtlib spinlocks
@@ -60,7 +60,7 @@
 #define TESTNAME "rtlib spinlocks"
 #define THREADS 10
 
-bool mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
+int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
 #if !defined (os_windows) && !defined(os_irix)
 
@@ -94,7 +94,7 @@ bool mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
   if (test2err) {
     FAIL_MES(TESTNO, TESTNAME);
     fprintf(stderr, "%s[%d]:  mutatee side error\n", __FILE__, __LINE__);
-    return false;
+    return -1;
   }
   else {
     PASS_MES(TESTNO, TESTNAME);
@@ -104,7 +104,7 @@ bool mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     fprintf(stderr, "%s[%d]:  This test is not supported on this platform\n",
                     __FILE__, __LINE__);
 #endif
-  return true;
+  return 0;
 }
 
 extern "C" int mutatorMAIN(ParameterDict &param)
