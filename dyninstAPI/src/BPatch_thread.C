@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.134 2005/10/14 16:37:18 legendre Exp $
+// $Id: BPatch_thread.C,v 1.135 2005/10/18 21:35:28 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -282,7 +282,10 @@ void BPatch_thread::BPatch_thread_dtor()
 unsigned long BPatch_thread::os_handleInt()
 {
 #if !defined(os_windows)
-    return (unsigned long) llthread->get_lwp()->usage_fd();
+    // Don't need this any more; we only needed the /proc/<pid>/usage
+    // fd on Solaris, and that's opened by the daemon. Windows... I don't
+    // understand enough about the system to say.
+    assert(0);
 #else
     return (unsigned long) llthread->get_lwp()->get_fd();
 #endif
