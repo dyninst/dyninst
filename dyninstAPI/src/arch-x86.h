@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.36 2005/10/17 18:19:43 rutar Exp $
+// $Id: arch-x86.h,v 1.37 2005/10/18 01:02:23 rutar Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -459,7 +459,6 @@ struct ia32_memacc
   {
     regs[0] = -1;
     regs[1] = -1;
-    printf("Initialize Mac\n");
   }
 
   void set16(int reg0, int reg1, int disp)

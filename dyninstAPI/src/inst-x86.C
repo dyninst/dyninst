@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.222 2005/10/17 18:19:43 rutar Exp $
+ * $Id: inst-x86.C,v 1.223 2005/10/18 01:02:23 rutar Exp $
  */
 #include <iomanip>
 
@@ -975,8 +975,7 @@ static inline void restoreGPRtoGPR(Register reg, Register dest,
     // the value to a virtual (stack based) register, which is not what I want!
     
     // mov dest, offset[ebp]
-  printf("restoreGPRtoGPR\n");
-    emitMovRMToReg(dest, REGNUM_EBP, SAVED_EAX_OFFSET-(reg<<2), gen);
+  emitMovRMToReg(dest, REGNUM_EBP, SAVED_EAX_OFFSET-(reg<<2), gen);
 }
 
 // VG(11/07/01): Load in destination the effective address given
