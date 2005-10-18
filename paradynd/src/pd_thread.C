@@ -119,15 +119,35 @@ unsigned pos_junk = 101;
 
 #define NAME_LEN 1024
 pd_thread::pd_thread(BPatch_thread *t, pd_process *p) :
-   dyninst_thread(t), pd_proc(p), rid(NULL), hw_previous_(0), sw_previous_(0)
+    dyninst_thread(t), pd_proc(p), rid(NULL), 
+    hw_previous_(0), sw_previous_(0), 
+    time_handle_(INVALID_HANDLE_VALUE),
+    currentLWP_(t->getLWP())
 {  
-   char name[NAME_LEN];
-   BPatch_function *f = t->getInitialFunc();
-   if (f)
-   {
-      f->getName(name, NAME_LEN);
-      initial_func_name = name; //overloaded '=' does a copy
-   }
+    char name[NAME_LEN];
+    BPatch_function *f = t->getInitialFunc();
+    if (f)
+        {
+            f->getName(name, NAME_LEN);
+            initial_func_name = name; //overloaded '=' does a copy
+        }
+
+#if defined(os_solaris)
+    // We use /proc/<pid>/usage or /proc/<pid>/lwp/<lwp>/lwpusage...
+    // CHECK IF THIS LOGIC IS RIGHT.... I don't know what LWP
+    // gets reported on a ST process
+    char fd_name[512];
+    if (currentLWP_ == 0) {
+        sprintf(fd_name, "/proc/%d/usage", p->getPid());
+        time_handle_ = P_open(fd_name, O_RDONLY, 0);
+        if (time_handle_ < 0) perror("Opening (PROC) usage");
+    }
+    else {
+        sprintf(fd_name, "/proc/%d/lwp/%d/lwpusage", p->getPid(), currentLWP_);
+        time_handle_ = P_open(fd_name, O_RDONLY, 0);
+        if (time_handle_ < 0) perror("Opening (LWP) usage");
+    }
+#endif
 }
 
 rawTime64 pd_thread::getInferiorVtime(virtualTimer *vTimer, bool& success) {

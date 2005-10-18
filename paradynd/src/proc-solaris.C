@@ -71,29 +71,39 @@ rawTime64 pd_thread::getRawCpuTime_hw()
 /* return unit: nsecs */
 rawTime64 pd_thread::getRawCpuTime_sw() 
 {
-  // returns user time from the u or proc area of the inferior process,
-  // which in turn is presumably obtained by using a /proc ioctl to obtain
-  // it (solaris).  It must not stop the inferior process in order to obtain
-  // the result, nor can it assure that the inferior has been stopped.  The
-  // result MUST be "in sync" with rtinst's DYNINSTgetCPUtime().
+    // returns user time from the u or proc area of the inferior
+    // process, which in turn is presumably obtained by using a /proc
+    // ioctl to obtain it (solaris).  It must not stop the inferior
+    // process in order to obtain the result, nor can it assure that
+    // the inferior has been stopped.  The result MUST be "in sync"
+    // with rtinst's DYNINSTgetCPUtime().
   
+    // We read out of /proc/<pid>/usage. Now that we're separated from
+    // dyninst, we open the /proc FD ourselves; Dyninst really doesn't
+    // care about the usage values.
+
   rawTime64 result;
   prusage_t theUsage;
+
+  if (time_handle_ == INVALID_HANDLE_VALUE) {
+      fprintf(stderr, "ERROR: attempt to get time from illegal handle\n");
+      return 0;
+  }
 
 #ifdef PURE_BUILD
   // explicitly initialize "theUsage" struct (to pacify Purify)
   memset(&theUsage, '\0', sizeof(prusage_t));
 #endif
 
-  // compute the CPU timer for the whole process
-  if(pread(dyninst_thread->lowlevel_thread()->get_lwp()->usage_fd(), 
-           &theUsage, sizeof(prusage_t), 0) 
-     != sizeof(prusage_t))
-  {
-     perror("getInfCPU: read");
-     return -1;  // perhaps the process ended
-  }
+  // If this fires, the thread migrated; all sorts of BAD. 
+  assert(dyninst_thread->getLWP() == currentLWP_); 
 
+  // compute the CPU timer for the whole process
+  if(pread(time_handle_, &theUsage, sizeof(prusage_t), 0) 
+     != sizeof(prusage_t)) {
+      perror("getInfCPU: read");
+      return -1;  // perhaps the process ended
+  }
   result =  (theUsage.pr_utime.tv_sec + theUsage.pr_stime.tv_sec) * 1000000000LL;
   result += (theUsage.pr_utime.tv_nsec+ theUsage.pr_stime.tv_nsec);
 

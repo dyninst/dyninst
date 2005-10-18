@@ -85,6 +85,16 @@ class pd_thread {
    rawTime64  getInferiorVtime(virtualTimer*, bool&);
    bool       resetInferiorVtime(virtualTimer*);
    pdstring get_initial_func_name() { return initial_func_name; }
+
+ private:
+
+   // Cross-platform... if there's an OS fd/handle that you ping to get
+   // thread time, this is the one to use.
+   handleT time_handle_;
+
+   // And the "current" LWP. If we ever go migration, check this before
+   // using the handle above to make sure it's the same.
+   int currentLWP_;
 };
 
 
