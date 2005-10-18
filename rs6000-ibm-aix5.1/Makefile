@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2005/09/29 20:37:20 bpellin Exp $
+# $Id: Makefile,v 1.2 2005/10/18 23:30:26 bpellin Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -70,6 +70,7 @@ MAKE_SHARED_LIB = ld
 
 LIBS_LIBTESTSUITE = -ldl
 USE_LIBTESTSUITE_EXT_A = true
+STRIP_SO = strip
 
 include ../make.module.tmpl
 

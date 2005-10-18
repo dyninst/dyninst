@@ -620,6 +620,9 @@ test_driver: test_driver.o $(DEPENDDIR)/test_driver.dep
 
 $(MUTATORS_SO): test%.so : test%.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test%.dep
 	$(M_GXX) -o $@ -shared $(filter %.o,$^) $(LIBDIR) $(LIBS) $(LDFLAGS) $(MUTATOR_SO_LDFLAGS)
+ifdef STRIP_SO
+	$(STRIP_SO) $@
+endif
 
 test11: ../src/test11.sh
 	$(CP) ../src/test11.sh test11
