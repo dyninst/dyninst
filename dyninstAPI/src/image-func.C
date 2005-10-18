@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.11 2005/10/17 19:24:20 bernat Exp $
+// $Id: image-func.C,v 1.12 2005/10/18 16:27:08 bernat Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -463,7 +463,11 @@ bool image_func::cleanBlockList() {
         blockList[foo]->debugPrint();
 
         // Safety checks.
-        assert(blockList[foo]->firstInsnOffset() != 0);
+
+        // I've disabled this one but left it in so that we don't add
+        // it in the future.. Since we're doing offsets, zero is
+        // _fine_.
+        //assert(blockList[foo]->firstInsnOffset() != 0);
         assert(blockList[foo]->lastInsnOffset() != 0);
         assert(blockList[foo]->endOffset() != 0);
 
