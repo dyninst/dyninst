@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.223 2005/10/18 01:02:23 rutar Exp $
+ * $Id: inst-x86.C,v 1.224 2005/10/18 15:37:44 legendre Exp $
  */
 #include <iomanip>
 
@@ -1866,10 +1866,11 @@ bool writeFunctionPtr(process *p, Address addr, int_function *f)
 
 bool BPatch_basicBlock::initRegisterGenKillInt() 
 {
+   int a;
   int * writeRegs = (int *) malloc(sizeof(int)*3);
   int * readRegs = (int *) malloc(sizeof(int)*3);
 
-  for (int a = 0; a < 3; a++)
+  for (a = 0; a < 3; a++)
     {
       writeRegs[a] = readRegs[a] = -1;
     }
@@ -1890,7 +1891,7 @@ bool BPatch_basicBlock::initRegisterGenKillInt()
   while(ii.hasMore())
     {
       ii.readWriteRegisters(readRegs, writeRegs);
-      for (int a = 0; a < 3; a++)
+      for (a = 0; a < 3; a++)
 	{
 	  if (readRegs[a] != -1)
 	    {
@@ -1899,7 +1900,7 @@ bool BPatch_basicBlock::initRegisterGenKillInt()
 	      readRegs[a] = -1;
 	    }
 	}
-      for (int a = 0; a < 3; a++)
+      for (a = 0; a < 3; a++)
 	{
 	  if (writeRegs[a] != -1)
 	    {
@@ -2007,6 +2008,7 @@ int BPatch_basicBlock::liveRegistersIntoSetInt(int *& liveReg,
 					       unsigned long address)
 {
   int numLive = 0;
+  int a;
   if (liveReg == NULL)
     {
       liveReg = new int[maxGPR];
@@ -2026,7 +2028,7 @@ int BPatch_basicBlock::liveRegistersIntoSetInt(int *& liveReg,
       int * writeRegs = (int *) malloc(sizeof(int)*3);
       int * readRegs = (int *) malloc(sizeof(int)*3);
 
-      for (int a = 0; a < 3; a++)
+      for (a = 0; a < 3; a++)
 	{
 	  writeRegs[a] = readRegs[a] = -1;
 	}
@@ -2035,7 +2037,7 @@ int BPatch_basicBlock::liveRegistersIntoSetInt(int *& liveReg,
             *ii <= address)
 	{
 	  ii.readWriteRegisters(readRegs, writeRegs);
-	  for (int a = 0; a < 3; a++)
+	  for (a = 0; a < 3; a++)
 	    {
 	      if (writeRegs[a] != -1)
 		{
@@ -2051,7 +2053,7 @@ int BPatch_basicBlock::liveRegistersIntoSetInt(int *& liveReg,
 
       free(readRegs);
       free(writeRegs);
-      for (int a = 0; a < maxGPR; a++)
+      for (a = 0; a < maxGPR; a++)
 	{
 	  if (newIn.bitarray_check(a,&newIn))
 	    {
