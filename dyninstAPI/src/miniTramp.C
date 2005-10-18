@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.12 2005/09/28 17:03:11 bernat Exp $
+// $Id: miniTramp.C,v 1.13 2005/10/18 17:35:36 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -480,11 +480,13 @@ bool miniTrampInstance::linkCode() {
         assert(baseTI);
         miniTrampInstance *nextI = mini->next->getMTInstanceByBTI(baseTI);
         assert(nextI);
+        /*
         inst_printf("Writing branch from 0x%x (0x%x,0x%x) to 0x%x, miniT -> miniT\n",
                     trampBase + mini->returnOffset,
                     trampBase,
                     mini->returnOffset,
                     nextI->trampBase);
+        */
         generateAndWriteBranch(mini->proc(), 
                                trampBase + mini->returnOffset,
                                nextI->trampBase,
@@ -492,9 +494,11 @@ bool miniTrampInstance::linkCode() {
     }
     else {
         // Last one; go to the base tramp
+        /*
         inst_printf("Writing branch from 0x%x to 0x%x, miniT -> baseT\n",
                     trampBase + mini->returnOffset,
                     baseTI->miniTrampReturnAddr());
+        */
 #if defined(os_aix)
         // TODO: miniTramp methods to wrap this.
         resetBR(mini->proc(),

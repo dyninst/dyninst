@@ -860,15 +860,18 @@ BPatchSnippetHandle *BPatch_process::insertSnippetAtPointsWhen(const BPatch_snip
         callWhen ipWhen;
         callOrder ipOrder;
         
-        if (!BPatchToInternalArgs(point, when, order, ipWhen, ipOrder))
+        if (!BPatchToInternalArgs(point, when, order, ipWhen, ipOrder)) {
             return NULL;
-        
+        }
+
         rec->points_.push_back(point->point);
         rec->when_.push_back(ipWhen);
         rec->order_ = ipOrder;
 
         point->recordSnippet(when, order, ret);
     }
+
+    assert(rec->points_.size() == rec->when_.size());
 
     // Okey dokey... now see if we just tack it on, or insert now.
     if (pendingInsertions) {
@@ -963,6 +966,7 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic) {
                 bir->handle_->addMiniTramp(mini);
             }
             else {
+                fprintf(stderr, "ERROR: failed to insert instrumentation: no minitramp\n");
                 err = true;
                 if (atomic) break;
             }
@@ -981,6 +985,7 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic) {
                 instPoint *point = bir->points_[j];
                 
                 if (!point->generateInst()) {
+                    fprintf(stderr, "ERROR: failed to insert instrumentation: generate\n");
                     err = true;
                     if (atomic && err) break;
                 }
@@ -994,15 +999,16 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic) {
                 instPoint *point = bir->points_[j];
                 
                 if (!point->installInst()) {
+                    fprintf(stderr, "ERROR: failed to insert instrumentation: install\n");
                     err = true;
                 }
                 if (!point->linkInst()) {
                     err = true;
                 }
                 if (atomic && err) break;
-                else delete bir;
             }
             if (atomic && err) break;
+            else delete bir;
         }
     }
     if (atomic && err) {
