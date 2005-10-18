@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.39 2005/10/13 21:12:28 tlmiller Exp $
+ * $Id: dyn_lwp.h,v 1.40 2005/10/18 21:35:30 bernat Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -227,10 +227,7 @@ class dyn_lwp
      assert(is_attached());
      return status_fd_;
   };
-  handleT usage_fd() const {
-     assert(is_attached());
-     return usage_fd_;
-  };  
+
   handleT as_fd() const {
      assert(is_attached());
      return as_fd_;
@@ -302,7 +299,6 @@ class dyn_lwp
   // "new" /proc model: multiple files instead of ioctls.
   handleT ctl_fd_;
   handleT status_fd_;
-  handleT usage_fd_;
   handleT as_fd_; // Process memory image (/proc)
   handleT auxv_fd_;
   handleT map_fd_;

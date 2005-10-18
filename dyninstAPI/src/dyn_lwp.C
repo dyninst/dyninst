@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.32 2005/10/13 21:12:27 tlmiller Exp $
+ * $Id: dyn_lwp.C,v 1.33 2005/10/18 21:35:29 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -57,7 +57,6 @@ dyn_lwp::dyn_lwp() :
   fd_(0),
   ctl_fd_(INVALID_HANDLE_VALUE),
   status_fd_(INVALID_HANDLE_VALUE),
-  usage_fd_(INVALID_HANDLE_VALUE),
   as_fd_(INVALID_HANDLE_VALUE),
   auxv_fd_(INVALID_HANDLE_VALUE),
   map_fd_(INVALID_HANDLE_VALUE),
@@ -79,7 +78,6 @@ dyn_lwp::dyn_lwp(unsigned lwp, process *proc) :
   fd_(INVALID_HANDLE_VALUE),
   ctl_fd_(INVALID_HANDLE_VALUE),
   status_fd_(INVALID_HANDLE_VALUE),
-  usage_fd_(INVALID_HANDLE_VALUE),
   as_fd_(INVALID_HANDLE_VALUE),
   auxv_fd_(INVALID_HANDLE_VALUE),
   map_fd_(INVALID_HANDLE_VALUE),
@@ -101,7 +99,6 @@ dyn_lwp::dyn_lwp(const dyn_lwp &l) :
   fd_(INVALID_HANDLE_VALUE),
   ctl_fd_(INVALID_HANDLE_VALUE),
   status_fd_(INVALID_HANDLE_VALUE),
-  usage_fd_(INVALID_HANDLE_VALUE),
   as_fd_(INVALID_HANDLE_VALUE),
   auxv_fd_(INVALID_HANDLE_VALUE),
   map_fd_(INVALID_HANDLE_VALUE),

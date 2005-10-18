@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.68 2005/10/14 20:53:22 tlmiller Exp $
+// $Id: sol_proc.C,v 1.69 2005/10/18 21:35:32 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -675,12 +675,7 @@ bool dyn_lwp::realLWP_attach_() {
    sprintf(temp, "/proc/%d/lwp/%d/lwpstatus", (int)proc_->getPid(),lwp_id_);
    status_fd_ = P_open(temp, O_RDONLY, 0);    
    if (status_fd_ < 0) perror("Opening lwpstatus");
-#if !defined(AIX_PROC)
-   sprintf(temp, "/proc/%d/lwp/%d/lwpusage", (int)proc_->getPid(), lwp_id_);
-   usage_fd_ = P_open(temp, O_RDONLY, 0);
-#else
-   usage_fd_ = INVALID_HANDLE_VALUE;
-#endif
+
    return true;
 }
 
@@ -702,14 +697,6 @@ bool dyn_lwp::representativeLWP_attach_() {
    sprintf(temp, "/proc/%d/status", getPid());
    status_fd_ = P_open(temp, O_RDONLY, 0);    
    if (status_fd_ < 0) perror("Opening (LWP) status");
-
-#if !defined(AIX_PROC)
-   sprintf(temp, "/proc/%d/usage", getPid());
-   usage_fd_ = P_open(temp, O_RDONLY, 0);    
-   if (usage_fd_ < 0) perror("Opening (LWP) usage");
-#else
-   usage_fd_ = INVALID_HANDLE_VALUE;
-#endif
 
    as_fd_ = INVALID_HANDLE_VALUE;
    sprintf(temp, "/proc/%d/as", getPid());
@@ -770,8 +757,6 @@ void dyn_lwp::realLWP_detach_()
       P_close(ctl_fd_);
    if (status_fd_ != INVALID_HANDLE_VALUE)
       P_close(status_fd_);
-   if (usage_fd_ != INVALID_HANDLE_VALUE)
-      P_close(usage_fd_);
    is_attached_ = false;
 }
 
@@ -789,8 +774,6 @@ void dyn_lwp::representativeLWP_detach_()
       P_close(ctl_fd_);
    if (status_fd_ != INVALID_HANDLE_VALUE)
       P_close(status_fd_);
-   if (usage_fd_ != INVALID_HANDLE_VALUE)
-      P_close(usage_fd_);
    if (as_fd_ != INVALID_HANDLE_VALUE)
       P_close(as_fd_);
    if (ps_fd_ != INVALID_HANDLE_VALUE)
