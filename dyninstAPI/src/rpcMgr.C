@@ -416,7 +416,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
     // First, idiot check. If there aren't any RPCs to run, then
     // don't do anything. Reason: launchRPCs is called several times
     // a second in the daemon main loop
-    inferiorrpc_printf("Call to launchRPCs, recursionGuard %d\n", recursionGuard);
+    //inferiorrpc_printf("Call to launchRPCs, recursionGuard %d\n", recursionGuard);
     if (recursionGuard) {
         // Error case: somehow launchRPCs was entered recursively
         cerr <<  "Error: inferior RPC mechanism was used in an unsafe way!" << endl;
@@ -438,7 +438,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
     
     // We have a central list of all posted or pending RPCs... if those are empty
     // then don't bother doing work
-    inferiorrpc_printf("%d posted RPCss...\n", allPostedRPCs_.size());
+    //inferiorrpc_printf("%d posted RPCss...\n", allPostedRPCs_.size());
     if (allPostedRPCs_.size() == 0) {
       // Here's an interesting design question. "wasRunning" means "what do I do
       // after the RPCs are done". Now, if there weren't any RPCs, do we 
