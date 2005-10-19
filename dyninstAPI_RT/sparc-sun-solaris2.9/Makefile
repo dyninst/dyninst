@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.5 2005/10/18 16:21:57 bernat Exp $
+# $Id: Makefile,v 1.6 2005/10/19 22:08:48 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -31,6 +31,7 @@ LD		= $(NATIVE_CC)
 CFLAGS		= $(IFLAGS) $(UNIFIED_DEF) $(COMMON_WARNINGS)
 CFLAGS          += -Kpic -D_NATIVESO_  -xarch=v8plus 
 LDFLAGS         += -ldl -lelf -lsocket -dy -G -z text -z initarray=libdyninstAPI_RT_init
+ASFLAGS		+= -K PIC
 else
 CC              = $(GCC)
 LD              = $(GCC)
