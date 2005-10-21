@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-unix.h,v 1.14 2005/09/09 18:07:03 legendre Exp $
+/* $Id: signalhandler-unix.h,v 1.15 2005/10/21 21:48:26 legendre Exp $
  */
 
 /*
@@ -89,6 +89,7 @@ typedef enum {
     procRequested,
     procSuspended,
     procInstPointTrap,
+    procDebugStep,
     procForkSigChild,
     procUndefined,
 } procSignalWhy_t;

@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.33 2005/10/18 21:35:29 bernat Exp $
+ * $Id: dyn_lwp.C,v 1.34 2005/10/21 21:48:22 legendre Exp $
  */
 
 #include "common/h/headers.h"
@@ -62,6 +62,7 @@ dyn_lwp::dyn_lwp() :
   map_fd_(INVALID_HANDLE_VALUE),
   ps_fd_(INVALID_HANDLE_VALUE),
   procHandle_(INVALID_HANDLE_VALUE),
+  singleStepping(false),
   stoppedInSyscall_(false),
   postsyscallpc_(0),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
@@ -83,6 +84,7 @@ dyn_lwp::dyn_lwp(unsigned lwp, process *proc) :
   map_fd_(INVALID_HANDLE_VALUE),
   ps_fd_(INVALID_HANDLE_VALUE),
   procHandle_(INVALID_HANDLE_VALUE),
+  singleStepping(false),
   stoppedInSyscall_(false),
   postsyscallpc_(0),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
@@ -104,6 +106,7 @@ dyn_lwp::dyn_lwp(const dyn_lwp &l) :
   map_fd_(INVALID_HANDLE_VALUE),
   ps_fd_(INVALID_HANDLE_VALUE),
   procHandle_(INVALID_HANDLE_VALUE),
+  singleStepping(false),
   stoppedInSyscall_(false),
   postsyscallpc_(0),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
@@ -296,3 +299,9 @@ bool dyn_lwp::isWaitingForSyscall() const {
     else return false;
 }
 
+#if !defined(os_linux) && !defined(os_windows)
+Address dyn_lwp::step_next_insn() {
+   fprintf(stderr, "Single stepping not implemented on this platform\n");
+   return 0x0;
+}
+#endif

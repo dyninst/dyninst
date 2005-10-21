@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.144 2005/10/10 18:45:41 legendre Exp $
+// $Id: pdwinnt.C,v 1.145 2005/10/21 21:48:25 legendre Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -55,6 +55,7 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/signalhandler.h"
 #include <psapi.h>
+#include <windows.h>
 #include "mapped_object.h"
 
 #ifndef BPATCH_LIBRARY
@@ -77,33 +78,6 @@ static pdstring GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev );
 
 void InitSymbolHandler( HANDLE hProcess );
 void ReleaseSymbolHandler( HANDLE hProcess );
-
-//ccw  27 july 2000 : dummy methods to get the thing to compile before i add
-//the remoteDevice : 29 mar 2001
-#ifdef mips_unknown_ce2_11
-#include <stdio.h> //for wprintf
-
-void kludgeWCHAR(const char *str8, WCHAR *str16){
-	int k;
-
-	k=0;
-	while(str8[k]!='\0'){
-		str16[k] = str8[k];
-		k++;
-	}
-	str16[k] = '\0';
-	str16[k+1]='\0';
-
-}
-
-//int GetThreadContext(HANDLE hThread, w32CONTEXT *lpContext){
-//	return 0;
-//}
-
-//int SetThreadContext(HANDLE hThread, const w32CONTEXT *lpContext){
-//	return 0;
-//}
-#endif
 
 extern bool isValidAddress(process *proc, Address where);
 
@@ -641,6 +615,15 @@ DWORD handleBreakpoint(process *proc, const procevent &event) {
     return DBG_EXCEPTION_NOT_HANDLED;
 }
 
+DWORD handleSingleStep(const procevent &event) {
+   if (!event.lwp->isSingleStepping())
+      fprintf(stderr, "[%s:%u] - Unexpected single step event\n");
+   else
+      event.lwp->setSingleStepping(false);
+   return DBG_CONTINUE;
+   
+}
+
 DWORD handleIllegal(process *proc, const procevent &event) {
 
     Address addr =
@@ -696,6 +679,10 @@ DWORD handleException(const procevent &event) {
          signal_printf("ACCESS VIOLATION\n");
         ret = handleViolation(event.proc, event);
         break;
+      case EXCEPTION_SINGLE_STEP:
+         signal_printf("SINGLE STEP\n");
+         ret = handleSingleStep(event);
+         break;
      default:
         break;
    }
@@ -1634,43 +1621,11 @@ bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> *argv,
     stinfo.dwFlags |= STARTF_USESTDHANDLES;
     */
     PROCESS_INFORMATION procInfo;
-#ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-	kludgeWCHAR(file.c_str(),appName);
-	kludgeWCHAR(args.c_str(),commLine);
-	if(dir == ""){
-		dirName[0] = (unsigned short) 0;
-	}else{
-		kludgeWCHAR(dir.c_str(),dirName);
-	}
-
-	/* ccw 8 aug 2000  : 29 mar 2001
-	 WARNING:  
-		If compiler optimization are turned on (-Ox) for remoteDevice.C the following
-		line of code bugs. An extra parameter is passed to the function before 
-		appName and consequently each argument is shifted one to the right, 
-		completely destroying the code.
-		
-		DO NOT TURN ON -Ox for remoteDevice.C!
-
-		if need be, pdwinnt.C can be compiled with -Ox
-		less optimization may be safe, it has not yet been tried. if someone is bored
-		they should try different optimization flags to see if any work correctly here.
-		Until then the mips/ce version of dyninst will be compiled w/o ANY optimizations!
-	*/
-	//DebugBreak();
-    if (BPatch::bpatch->rDevice->RemoteCreateProcess(appName , commLine,
-		      NULL, NULL, false,
-		      (DWORD) DEBUG_PROCESS  /* | CREATE_NEW_CONSOLE /* | CREATE_SUSPENDED */,
-		      NULL, dirName, 
-		      &stinfo, &procInfo)) {
-
-#else
     if (CreateProcess(file.c_str(), (char *)args.c_str(), 
 		      NULL, NULL, TRUE,
 		      DEBUG_PROCESS /* | CREATE_NEW_CONSOLE /* | CREATE_SUSPENDED */,
 		      NULL, dir == "" ? NULL : dir.c_str(), 
 		      &stinfo, &procInfo)) {
-#endif
 
 	procHandle = (Word)procInfo.hProcess;
 	thrHandle = (Word)procInfo.hThread;
@@ -2471,4 +2426,70 @@ bool process::initMT()
 
 void dyninst_yield()
 {
+}
+
+void OS::make_tempfile(char *name) {
+}
+
+bool OS::execute_file(char *file) {
+   STARTUPINFO s;
+   PROCESS_INFORMATION proc;
+   BOOL result;
+
+   ZeroMemory(&s, sizeof(s));
+   ZeroMemory(&proc, sizeof(proc));
+   s.cb = sizeof(s);
+
+   result = CreateProcess(NULL, file, NULL, NULL, FALSE, 0, NULL, NULL, 
+                          &s, &proc);
+   if (!result) {
+      fprintf(stderr, "Couldn't create %s - Error %d\n", file, GetLastError());
+      return false;
+   }
+
+   WaitForSingleObject(proc.hProcess, INFINITE);
+   CloseHandle(proc.hProcess);
+   CloseHandle(proc.hThread);
+   return true;
+}
+
+void OS::unlink(char *file) {
+   DeleteFile(file);
+}
+
+#if !defined(TF_BIT)
+#define TF_BIT 0x100
+#endif
+
+Address dyn_lwp::step_next_insn() {
+   CONTEXT context;
+   BOOL result;
+
+   singleStepping = true;
+   context.ContextFlags = CONTEXT_FULL;
+   result = GetThreadContext(getFileHandle(), &context);
+   if(!result) {
+      fprintf(stderr, "[%s:%u - step_next_insn] - Couldn't get thread context ", 
+              __FILE__, __LINE__);
+      return (Address) -1;
+   }
+
+   context.ContextFlags = CONTEXT_FULL;
+   context.EFlags |= TF_BIT ;
+   if(!SetThreadContext(getFileHandle(), &context))
+   if(!result) {
+      fprintf(stderr, "[%s:%u - step_next_insn] - Couldn't set thread context ", 
+              __FILE__, __LINE__);
+      return (Address) -1;
+   }
+   
+   proc()->continueProc();
+
+   do {
+      if(proc()->hasExited()) 
+         return (Address) -1;
+      getSH()->checkForAndHandleProcessEvents(false);
+   } while (singleStepping);
+
+   return getActiveFrame().getPC();
 }

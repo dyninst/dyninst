@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.178 2005/10/14 16:37:49 legendre Exp $
+// $Id: linux.C,v 1.179 2005/10/21 21:48:24 legendre Exp $
 
 #include <fstream>
 
@@ -534,22 +534,16 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
            if (pertinentProc->trampTrapMapping.defines(sigframe.getPC())) {
               why = procInstPointTrap;
               info = pertinentProc->trampTrapMapping[sigframe.getPC()];
-              /*
-              fprintf(stderr, "Trapping, address 0x%lx to 0x%lx\n",
-                      sigframe.getPC(), info);
-              */
+              signal_printf("Trapping, address 0x%lx to 0x%lx\n",
+                            sigframe.getPC(), info);
+           }
+           else if (pertinentLWP->isSingleStepping())
+           {
+              why = procDebugStep;
+              info = sigframe.getPC();
+              signal_printf("Single step trap at %lx\n", info);
            }
 
-           // Trap on x86 gets reported as PC+sizeof(trap) == pc+1...
-           // However, we handle that when we insert a trap (we add the expected PC)
-           // So we never check -1
-#if 0
-           if (pertinentProc->trampTrapMapping.defines(sigframe.getPC()-1)) 
-           {
-              why = procInstPointTrap;
-              info = pertinentProc->trampTrapMapping[sigframe.getPC()-1];
-           }
-#endif
            break;
         }
         case SIGCHLD:
@@ -2141,4 +2135,29 @@ bool process::initMT()
 void dyninst_yield()
 {
    pthread_yield();
+}
+
+Address dyn_lwp::step_next_insn() {
+   int result;
+   if (status() != stopped) {
+      fprintf(stderr, "[%s:%u] - Internal Error.  lwp wasn't stopped\n",
+              __FILE__, __LINE__);
+      return (Address) -1;
+   }
+   
+   singleStepping = true;
+   proc()->set_lwp_status(this, running);
+   result = P_ptrace(PTRACE_SINGLESTEP, get_lwp_id(), 0x0, 0x0);
+   if (result == -1) {
+      perror("Couldn't PTRACE_SINGLESTEP");
+      return (Address) -1;
+   }
+
+   do {
+      if(proc()->hasExited()) 
+         return (Address) -1;
+      getSH()->checkForAndHandleProcessEvents(false);
+   } while (singleStepping);
+
+   return getActiveFrame().getPC();
 }

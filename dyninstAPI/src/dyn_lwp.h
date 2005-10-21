@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.40 2005/10/18 21:35:30 bernat Exp $
+ * $Id: dyn_lwp.h,v 1.41 2005/10/21 21:48:23 legendre Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -177,13 +177,15 @@ class dyn_lwp
   bool writeTextSpace(void *inTracedProcess, u_int amount, const void *inSelf);
   bool readTextSpace(void *inTracedProcess, u_int amount, const void *inSelf);
 
+  Address step_next_insn();
+
 #if defined( os_linux )
   bool deliverPtrace(int req, Address addr, Address data);
   long deliverPtraceReturn(int req, Address addr, Address data);
 
   bool removeSigStop();  
   bool isRunning() const;
-  
+
 #elif defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
   bool deliverPtrace(int request, void *addr, int data, void *addr2);
 #endif
@@ -282,7 +284,9 @@ class dyn_lwp
   papiMgr* papi();
 #endif
 #endif
-  
+
+  bool isSingleStepping() { return singleStepping; }
+  void setSingleStepping(bool nval) { singleStepping = nval; }
  private:
   processState status_;
 
@@ -307,6 +311,7 @@ class dyn_lwp
   handleT procHandle_; // Process-specific, as opposed to thread-specific,
                        // handle. Currently used by NT
 
+  bool singleStepping;
   // System call interruption, currently for Solaris, only.  If the
   // process is sleeping in a system call during an inferior RPC
   // attempt, we interrupt the system call, perform the RPC, and
