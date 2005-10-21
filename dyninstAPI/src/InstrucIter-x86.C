@@ -698,38 +698,38 @@ void parseRegisters(int * readArr, int * writeArr,
 	  unsigned base =  sibByte & 0x07;
 	  
 	  if (ind == 0)
-	    regi2 = 0;
+	    regi2 = REGNUM_RAX;
 	  else if (ind == 1)
-	    regi2 = 1;
+	    regi2 = REGNUM_RCX;
 	  else if (ind == 2)
-	    regi2 = 2;
+	    regi2 = REGNUM_RDX;
 	  else if (ind == 3)
-	    regi2 = 3;
+	    regi2 = REGNUM_RBX;
 	  else if (ind == 4 && pref->rexX()) 
-	    regi2 = 4;
+	    regi2 = REGNUM_RSP;
 	  else if (ind == 5)
-	    regi2 = 5;
+	    regi2 = REGNUM_RBP;
 	  else if (ind == 6)
-	    regi2 = 6;
+	    regi2 = REGNUM_RSI;
 	  else if (ind == 7)
-	    regi2 = 7;
+	    regi2 = REGNUM_RDI;
 
 	  if (base == 0)
-	    regi3 = 0;
+	    regi3 = REGNUM_RAX;
 	  else if (base == 1)
-	    regi3 = 1;
+	    regi3 = REGNUM_RCX;
 	  else if (base == 2)
-	    regi3 = 2;
+	    regi3 = REGNUM_RDX;
 	  else if (base == 3)
-	    regi3 = 3;
+	    regi3 = REGNUM_RBX;
 	  else if (base == 4)
-	    regi = 4;
+	    regi = REGNUM_RSP;
 	  else if (base == 5 && mod !=0 )
-	    regi3 = 5;
+	    regi3 = REGNUM_RBP;
 	  else if (base == 6)
-	    regi3 = 6;
+	    regi3 = REGNUM_RSI;
 	  else if (base == 7)
-	    regi3 = 7;
+	    regi3 = REGNUM_RDI;
 
 	  if (pref->rexX() && regi2 !=- 1)
 	    regi2 = regi2+8;
@@ -757,11 +757,11 @@ void parseRegisters(int * readArr, int * writeArr,
       if (ot == r_eAX || ot == r_EAX)
 	regi = 0;
       else if (ot == r_eBX || ot == r_EBX)
-	regi = 1;
-      else if(ot == r_eCX || ot == r_ECX)
-	  regi = 2;
-      else if(ot == r_eDX || ot == r_EDX)
 	regi = 3;
+      else if(ot == r_eCX || ot == r_ECX)
+	regi = 1;
+      else if(ot == r_eDX || ot == r_EDX)
+	regi = 2;
       else if(ot == r_eSP || ot == r_ESP)
 	regi = 4;
       else if (ot == r_eBP || ot == r_EBP)
