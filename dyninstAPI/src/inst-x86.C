@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.224 2005/10/18 15:37:44 legendre Exp $
+ * $Id: inst-x86.C,v 1.225 2005/10/21 21:48:27 legendre Exp $
  */
 #include <iomanip>
 
@@ -1995,7 +1995,9 @@ bitArray * BPatch_basicBlock::getInFPSetInt()
 */
 int BPatch_basicBlock::liveSPRegistersIntoSetInt(int *& liveSPReg, 
 					       unsigned long address)
-{}
+{
+   return 0;
+}
 
 
 
@@ -2101,4 +2103,6 @@ void registerSpace::resetLiveDeadInfo(const int * liveRegs,
 	}
     }
 }
+
+
 

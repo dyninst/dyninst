@@ -55,6 +55,7 @@
 #include "symtab.h"
 #include "instPoint.h"
 #include "InstrucIter.h"
+#include "inst-x86.h"
 
 #include "BPatch_Set.h"
 
@@ -789,7 +790,11 @@ void InstrucIter::readWriteRegisters(int * readRegs, int * writeRegs)
   ia32_instruction ii;
   
   const unsigned char * addr = i.ptr();
+#if defined(os_windows)
+  ia32_decode(0, addr,ii);
+#else
   ia32_decode<0>(addr,ii);
+#endif
 
   ia32_entry * entry = ii.getEntry();
 
