@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.18 2005/10/17 19:24:19 bernat Exp $
+// $Id: function.h,v 1.19 2005/10/21 21:48:17 legendre Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -522,6 +522,11 @@ class functionReplacement : public codeRange {
     void removeFuncRep();
     
     bool overwritesMultipleBlocks();
+
+    int_basicBlock *source();
+    int_basicBlock *target();
+    unsigned sourceVersion();
+    unsigned targetVersion();
 
     Address get_address_cr() const;
     unsigned get_size_cr() const;

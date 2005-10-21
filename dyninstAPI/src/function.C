@@ -851,3 +851,19 @@ bblInstance::reloc_info_t::~reloc_info_t() {
 };
 
 #endif
+
+int_basicBlock *functionReplacement::source() { 
+   return sourceBlock_; 
+}
+
+int_basicBlock *functionReplacement::target() { 
+   return targetBlock_; 
+}
+
+unsigned functionReplacement::sourceVersion() { 
+   return sourceVersion_; 
+}
+
+unsigned functionReplacement::targetVersion() { 
+   return targetVersion_; 
+}

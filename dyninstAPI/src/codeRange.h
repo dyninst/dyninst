@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.h,v 1.12 2005/09/15 19:20:39 tlmiller Exp $
+// $Id: codeRange.h,v 1.13 2005/10/21 21:48:15 legendre Exp $
 
 
 #ifndef _codeRangeTree_h_
@@ -53,6 +53,7 @@
 #include <stdlib.h>
 #include "common/h/Types.h"
 #include "common/h/Vector.h"
+#include "common/h/std_namesp.h"
 
 /** template class for codeRangeTree. The implementation is based on red black
   * tree implementation for efficiency concerns and for getting sorted
@@ -118,6 +119,11 @@ class codeRange {
     functionReplacement *is_function_replacement();
     signal_handler_location *is_signal_handler_location();
     inferiorRPCinProgress *is_inferior_rpc();
+
+    //Prints codeRange info to stderr.  
+    void print_range(Address addr = 0);
+
+    friend ostream &operator<<(ostream &s, const codeRange &c);
 };
 
 class codeRangeTree {

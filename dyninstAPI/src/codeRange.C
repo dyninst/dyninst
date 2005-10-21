@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.C,v 1.12 2005/09/15 19:20:38 tlmiller Exp $
+// $Id: codeRange.C,v 1.13 2005/10/21 21:48:14 legendre Exp $
 
 #include <stdio.h>
 #include "codeRange.h"
@@ -505,3 +505,81 @@ void codeRangeTree::clear() {
     setData = nil;
     setSize = 0;
 }
+
+#define PRINT_COMMA if (print_comma) fprintf(stderr, ", "); print_comma = true
+void codeRange::print_range(Address addr) {
+   bool print_comma = false;
+   image *img_ptr = is_image();
+   mapped_object *mapped_ptr = is_mapped_object();
+	int_function *func_ptr = is_function();
+   functionReplacement *reloc_ptr = is_function_replacement();
+   multiTramp *multi_ptr = is_multitramp();
+   baseTrampInstance *base_ptr = NULL;
+	miniTrampInstance *mini_ptr = is_minitramp();
+   inferiorRPCinProgress *rpc_ptr = is_inferior_rpc();
+
+   /**
+    * The is_* functions above won't give us mulitple layers of objects
+    * (i.e the fact we have a function pointer, doesn't mean we have a 
+    * mapped_object pointer).  Build up more information from what we have
+    **/
+   if (mini_ptr && !base_ptr) 
+      base_ptr = mini_ptr->baseTI;
+   if (base_ptr && !multi_ptr)
+      multi_ptr = base_ptr->multiT;
+   if (multi_ptr && !func_ptr) 
+      func_ptr = multi_ptr->func();
+   if (multi_ptr && !base_ptr && addr) 
+      base_ptr = multi_ptr->getBaseTrampInstanceByAddr(addr);
+   if (reloc_ptr && !func_ptr)
+      func_ptr = reloc_ptr->source()->func();
+   if (func_ptr && !mapped_ptr)
+      mapped_ptr = func_ptr->obj();
+   if (mapped_ptr && !img_ptr)
+      img_ptr = mapped_ptr->parse_img();
+
+   fprintf(stderr, "[");
+
+   if (img_ptr) {
+      PRINT_COMMA;
+      fprintf(stderr, "img:%s", img_ptr->name().c_str());
+   }
+   if (mapped_ptr) {
+      PRINT_COMMA;
+      fprintf(stderr, "map_obj:%s", mapped_ptr->fullName().c_str());
+   }
+   if (func_ptr) {
+      PRINT_COMMA;
+      fprintf(stderr, "func:%s", func_ptr->prettyName().c_str());
+   }
+   if (reloc_ptr) {
+      PRINT_COMMA;
+      fprintf(stderr, "reloc:%lx", 
+              reloc_ptr->targetVersion());
+   }
+   if (multi_ptr) {
+      PRINT_COMMA;
+      fprintf(stderr, "multi:%lx->%lx+%u", multi_ptr->instAddr(), 
+              multi_ptr->get_address_cr(), multi_ptr->get_size_cr());
+   }
+   if (base_ptr) {
+      PRINT_COMMA;
+      fprintf(stderr, "base:%lx+%lx", multi_ptr->get_address_cr(),
+              multi_ptr->get_size_cr());
+   }
+   if (mini_ptr) {
+      PRINT_COMMA;
+      fprintf(stderr, "mini:%lx+%lx", multi_ptr->get_address_cr(),
+              multi_ptr->get_size_cr());
+   }
+   if (rpc_ptr) {
+      PRINT_COMMA;
+      fprintf(stderr, "rpc:%lx", rpc_ptr->get_address_cr());
+   }
+   if (!print_comma)
+   {
+      fprintf(stderr, "Nothing");
+   }
+   fprintf(stderr, "]\n");
+}
+
