@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.338 2005/10/14 16:37:22 legendre Exp $
+/* $Id: process.h,v 1.339 2005/10/21 21:48:19 legendre Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -439,15 +439,6 @@ char * systemPrelinkCommand;
   bool getDynamicCallSiteArgs(instPoint *callSite, 
                               pdvector<AstNode *> &args);
                               
-#ifdef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001
-	 //void* GetRegisters() { return getRegisters(); }
-	 //ccw 10 aug 2000
-	 void* GetRegisters(unsigned int thrHandle) { return getRegisters(thrHandle); }
-	 // Defined lower down
-	 //void* getRegisters(unsigned int thrHandle);
-	 //bool FlushInstructionCache(); //ccw 29 sep 2000 implemented in pdwinnt.C
-#endif
-
   // Trampoline guard get/set functions
   Address trampGuardBase(void) { return trampGuardBase_; }
   //  
@@ -481,11 +472,21 @@ char * systemPrelinkCommand;
   // Address to <X> mappings
   ////////////////////////////////////////////////
 
-  
+ public:
+  //interface call to Dyninst pass-through debugging
+  Address stepi(bool verbose, int lwp);  
+  void stepi(int lwp);  
+  void stepi();  
 
+ private:
+  void print_instrucs(unsigned char *buffer, unsigned size, 
+                 bool leave_files);
+ public:
+  void disass(Address start, Address end);
+  void disass(Address start, Address end, bool leave_files);
 
 #if defined( os_linux )
-  public:
+ public:
   Address getVsyscallStart() { return vsyscall_start_; }
   Address getVsyscallEnd() { return vsyscall_end_; }
   Address getVsyscallText() { return vsyscall_text_; } 
@@ -497,8 +498,6 @@ char * systemPrelinkCommand;
   
  
 #endif
-  
-  private:
 
   public:
   // True if we've reached or past a certain state

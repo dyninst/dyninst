@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: os.h,v 1.30 2005/08/05 22:23:08 bernat Exp $
+// $Id: os.h,v 1.31 2005/10/21 21:48:20 legendre Exp $
 
 #ifndef _OS_HDR
 #define _OS_HDR
@@ -92,7 +92,9 @@ public:
   static void osTraceMe(void);
   static void osDisconnect(void);
   static bool osKill(int);
-
+  static void make_tempfile(char *);
+  static bool execute_file(char *);
+  static void unlink(char *);
 };
 
 #endif

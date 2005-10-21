@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.144 2005/10/04 18:10:18 legendre Exp $
+// $Id: unix.C,v 1.145 2005/10/21 21:48:21 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -885,6 +885,10 @@ int handleSyscallExit(const procevent &event) {
         return 0;
 }
 
+void handleSingleStep(const procevent &event) {
+   event.lwp->setSingleStepping(false);
+}
+
 int signalHandler::handleProcessEvent(const procevent &event) {
    process *proc = event.proc;
    assert(proc);
@@ -949,10 +953,14 @@ int signalHandler::handleProcessEvent(const procevent &event) {
      case procInstPointTrap:
          // Linux inst via traps
          event.lwp->changePC(event.info, NULL);
-	 proc->continueProc();
+         proc->continueProc();
          ret = 1;
          break;
-     case procUndefined:
+      case procDebugStep:
+         handleSingleStep(event);
+         ret = 1;
+         break;
+      case procUndefined:
         // Do nothing
          cerr << "Undefined event!" << endl;
         break;
@@ -963,10 +971,28 @@ int signalHandler::handleProcessEvent(const procevent &event) {
    return ret;
 }
 
-
-
-
-
 bool  OS::osKill(int pid) {
   return (P_kill(pid,9)==0);
+}
+
+void OS::make_tempfile(char *s)
+{
+   int result;
+   result = mkstemp(s);
+   if (result != -1)
+      close(result);
+}
+
+bool OS::execute_file(char *path) {
+   int result;
+   result = system(path);
+   if (result == -1) {
+      fprintf(stderr, "%s ");
+      perror("couldn't be executed");
+   }
+   return (result != -1);
+}
+
+void OS::unlink(char *file) {
+   unlink(file);
 }

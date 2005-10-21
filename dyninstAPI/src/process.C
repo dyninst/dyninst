@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.557 2005/10/17 19:24:24 bernat Exp $
+// $Id: process.C,v 1.558 2005/10/21 21:48:18 legendre Exp $
 
 #include <ctype.h>
 
@@ -49,6 +49,7 @@
 
 #include <set>
 
+#include <stdio.h>
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/function.h"
@@ -5820,3 +5821,181 @@ dynthread_t process::mapIndexToTid(int index)
 
    return tid;
 }
+
+void process::stepi() {
+   //Not using default parameters due to problems with gdb, which these
+   //functions were meant to be called from.
+   stepi(true, -1);
+}
+
+void process::stepi(int lwp) {
+   //Not using default parameters due to problems with gdb, which these
+   //functions were meant to be called from.
+   stepi(true, lwp);
+}
+
+Address process::stepi(bool verbose, int lwp) {
+   /**
+    * Safety checking and warning messages
+    **/
+   if (status() == detached || status() == exited)
+   {
+      if (verbose) {
+         fprintf(stderr, "[stepi @ %s:%u] - Error. Process %d no longer " 
+                 "exists.\n",  __FILE__, __LINE__, getPid());
+      }
+      return (Address) -1;
+   }
+   if (status() == running)
+   {
+      if (verbose) {
+         fprintf(stderr, "[stepi @ %s:%u] - Warning. Process %d was running.\n",
+                 __FILE__, __LINE__, getPid());
+      }
+      bool result = pause();
+      if (!result)
+      {
+         if (verbose) {
+            fprintf(stderr, "[stepi @ %s:%u] - Error. Couldn't stop %d.\n" 
+                    __FILE__, __LINE__, getPid());
+         }
+         return (Address) -1;
+      }
+   }
+   
+   /**
+    * Step the process forward one instruction.  If we're being verbose
+    * then get a code range for the next instruction and print some information.
+    **/
+   dyn_lwp *lwp_to_step;
+   if (lwp == -1)
+      lwp_to_step = getRepresentativeLWP();
+   else {
+      lwp_to_step = lookupLWP(lwp);
+      if (!lwp_to_step) {
+         if (verbose)
+            fprintf(stderr, "[step @ %s:%u] - Couldn't find lwp %d\n",
+                    __FILE__, __LINE__, lwp);
+         return (Address) -1;
+      }
+   }
+      
+   Address nexti = lwp_to_step->step_next_insn();
+   
+   if ((nexti == (Address) -1) || lwp_to_step->status() != stopped)
+   {
+      if (verbose) {
+         fprintf(stderr, "[stepi @ %s:%u] - Warning. Couldn't step.\n",
+                 __FILE__, __LINE__, getPid());
+      }
+   }
+
+   /**
+    * Print the results if they're wanted.
+    **/
+   if (!verbose)
+      return nexti;
+   
+   codeRange *range = findCodeRangeByAddress(nexti);
+
+   fprintf(stderr, "0x%lx ", nexti);
+   if (range)
+      range->print_range();
+   else
+      fprintf(stderr, "\n");
+   return nexti;
+}
+
+void process::disass(Address start, Address end) {
+   disass(start, end, false);
+}
+
+void process::disass(Address start, Address end, bool leave_files) {
+   int size = end - start;
+   if (size < 0)
+      return;
+
+   unsigned char *buffer = (unsigned char *) malloc(size);
+   readDataSpace((const void *)start, size, buffer, true);
+   print_instrucs(buffer, size, leave_files);
+}
+
+#define MAXLINE 128
+void process::print_instrucs(unsigned char *buffer, unsigned size, 
+                                    bool leave_files) 
+{
+   FILE *f;
+   char *result;
+   bool success;
+   char line[MAXLINE];
+   char cname[32] = "dyndisXXXXXX";
+   char oname[32] = "dynobjXXXXXX"; 
+   char tname[32] = "dyntmpXXXXXX";
+   OS::make_tempfile(cname);
+   OS::make_tempfile(oname);
+   OS::make_tempfile(tname);
+   strcat(cname, ".c");
+   strcat(oname, ".o");
+   strcat(tname, ".tmp");
+
+   f = fopen(cname, "w");
+   if (!f) { 
+      fprintf(stderr, "%s ", cname);
+      perror("couldn't be opened");
+      return;
+   }
+
+   fprintf(f, "unsigned char DyninstDisass[] = { ");
+   for (unsigned i=0; i<size-1; i++)
+      fprintf(f, "%u, ", (unsigned) buffer[i]);
+   fprintf(f, "%u };\n", (unsigned) buffer[size-1]);
+   fclose(f);
+
+   sprintf(line, "gcc -c -o %s %s", oname, cname);
+   success = OS::execute_file(line);
+   if (!success) {
+      return;
+   }
+
+#if !defined(os_windows)
+   sprintf(line, "objdump -D %s > %s", oname, tname);
+#else
+   sprintf(line, "objdump -D %s", oname);
+#endif
+   success = OS::execute_file(line);
+   if (!success) {
+      return;
+   }
+   
+   f = fopen(tname, "r");
+   if (f)
+   {
+      while (true) {
+         result = fgets(line, MAXLINE, f);
+         if (!result)
+            break;
+         if (strstr(line, "DyninstDisass"))
+            break;
+      }
+      while (true) {
+         result = fgets(line, MAXLINE, f);
+         if (!result)
+            break;
+         if (strstr(line, "Disassembly of section"))
+            break;
+         fprintf(stderr, "%s", line);
+      }
+   }
+   if (!leave_files) {
+      OS::unlink(oname);
+      OS::unlink(cname);
+      OS::unlink(tname);   
+   }
+   else
+   {
+      fprintf(stderr, "Leaving disassembly in %s, built from %s\n",
+              oname, cname);
+   }
+}
+
+
