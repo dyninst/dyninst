@@ -177,9 +177,9 @@ MUTATEES_C = 	test1.mutatee \
 		test8.mutatee \
 		test9.mutatee \
 		test10.mutatee \
-		test12.mutatee \
-		test13.mutatee \
-		test14.mutatee 
+		test12.mutatee 
+#		test13.mutatee \
+#		test14.mutatee 
 
 # MUTATEES_CXX specifies a subset of MUTATEES_C that are also compiled with a C++ compiler
 MUTATEES_CXX =	test1.mutatee \
@@ -190,9 +190,9 @@ MUTATEES_CXX =	test1.mutatee \
 		test7.mutatee \
 		test8.mutatee \
 		test9.mutatee \
-		test12.mutatee \
-                test13.mutatee \
-                test14.mutatee
+		test12.mutatee 
+#               test13.mutatee \
+#               test14.mutatee
 
 #  Most C mutatees are also compiled as C++ mutatees, there are some (well, one)
 #  that are c++ only, which cannot also be compiled as C mutatees
@@ -218,7 +218,10 @@ SRCS_LIBTESTSUITE = test_lib.C \
                     ParameterDict.C \
                     Callbacks.C 
 
+SRCS_TEMPLATES = test_driver_templates.C 
+
 OBJS_LIBTESTSUITE = $(SRCS_LIBTESTSUITE:%.C=%.o)
+OBJS_TEMPLATES = $(SRCS_TEMPLATES:%.C=%.o)
 
 ifdef USE_LIBTESTSUITE_EXT_A
 LIBTESTSUITE = libtestSuite.a
@@ -319,9 +322,9 @@ LIBTESTSUITE_DEST               = $(addprefix $(LIB_DEST)/,$(LIBTESTSUITE))
 #######################################################################
 
 DYNINST_INCDIR = -I$(TO_CORE)/dyninstAPI/h 
-CXXFLAGS := $(filter-out -fno-implicit-templates, $(CXXFLAGS))
-CXXFLAGS += -fimplicit-templates
 CXXFLAGS += $(DYNINST_INCDIR)
+CXXTFLAGS := $(filter-out -fno-implicit-templates, $(CXXFLAGS))
+#CXXTFLAGS += -fimplicit-templates
 
 %_$(NATIVE_CC).o : %.c
 	$(NATIVE_CC) -c $< $(CFLAGS_NATIVE) $(MUTATEE_CFLAGS_NATIVE) -o $@
@@ -364,7 +367,7 @@ $(LIB_DEST)/%: %
 ###  High level targets
 #######################################################################
 
-MUTATOR_LDFLAGS += -ldyninstAPI -L. -ltestSuite $(MUTATOR_LIBS) 
+MUTATOR_LDFLAGS += -L. -ltestSuite $(LIBDIR) -ldyninstAPI $(MUTATOR_LIBS) 
 MUTATOR_SO_LDFLAGS = $(filter-out -liberty, $(MUTATOR_LDFLAGS))
 
 
@@ -437,11 +440,17 @@ else
 endif
 endif
 
-$(OBJS_LIBTESTSUITE): %.o : %.C $(DEPENDDIR)/%.dep
+$(OBJS_TEMPLATES): %.o : ../src/%.C 
+	$(M_GXX) -c -o $@ $(CXXTFLAGS) -I../src/ ../src/$*.C
+
+test_lib_templates.o : ../src/test_lib_templates.C 
+	$(M_GXX) -c -o $@ -fPIC $(CXXTFLAGS) -I../src/ ../src/$*.C
+
+$(OBJS_LIBTESTSUITE): %.o : ../src/%.C $(DEPENDDIR)/%.dep
 	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
 
-$(LIBTESTSUITE) : $(OBJS_LIBTESTSUITE) test_lib.h
-	$(CXX) -shared $(LIBDIR) -ldyninstAPI $(LIBS_LIBTESTSUITE) $(OBJS_LIBTESTSUITE) -o $@
+$(LIBTESTSUITE) : $(OBJS_LIBTESTSUITE) test_lib_templates.o test_lib.h
+	$(CXX) -shared $(LIBDIR) -ldyninstAPI $(LIBS_LIBTESTSUITE) $(OBJS_LIBTESTSUITE) test_lib_templates.o -o $@
 
 #######################################################################
 ###  Special Prerequisites for specific Mutatees:
@@ -615,8 +624,9 @@ endif
 test_driver.o: ../src/test_driver.C $(DEPENDDIR)/test_driver.dep
 	$(M_GXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
-test_driver: test_driver.o $(DEPENDDIR)/test_driver.dep
-	$(M_GXX) -o $@ $(filter test_driver.o,$^) $(LIBDIR) $(LIBS) $(LDFLAGS) $(MUTATOR_LDFLAGS)
+
+test_driver: test_driver.o test_driver_templates.o $(DEPENDDIR)/test_driver.dep
+	$(M_GXX) -o $@ test_driver.o test_driver_templates.o $(MUTATOR_LDFLAGS) $(LIBS) 
 
 $(MUTATORS_SO): test%.so : test%.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test%.dep
 	$(M_GXX) -o $@ -shared $(filter %.o,$^) $(LIBDIR) $(LIBS) $(LDFLAGS) $(MUTATOR_SO_LDFLAGS)
