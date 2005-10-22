@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.1 2005/09/29 20:37:22 bpellin Exp $
+# $Id: Makefile,v 1.2 2005/10/22 22:11:49 bpellin Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -94,6 +94,8 @@ MUTATOR_CXXFLAGS += -W -Wall
 TESTLIB_FLAGS = -shared -fpic
 
 LIBS_LIBTESTSUITE = -ldl
+
+STRIP_SO = strip -g
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
