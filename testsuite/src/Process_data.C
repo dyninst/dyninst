@@ -39,12 +39,18 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Process_data.C,v 1.1 2005/09/29 20:40:06 bpellin Exp $
+// $Id: Process_data.C,v 1.2 2005/10/22 22:11:43 bpellin Exp $
 #include "Process_data.h"
+
 
 Process_data::Process_data(BPatch_thread *thread)
 {
    bp_process = thread;
+}
+
+Process_data::Process_data()
+{
+   bp_process = NULL;
 }
 
 BPatch_thread *Process_data::getThread()
