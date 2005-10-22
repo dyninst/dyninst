@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_lib_soExecution.C,v 1.1 2005/09/29 20:40:11 bpellin Exp $
+// $Id: test_lib_soExecution.C,v 1.2 2005/10/22 22:11:46 bpellin Exp $
 #include "test_lib.h"
 #include "ParameterDict.h"
 #include "dlfcn.h"
@@ -52,7 +52,7 @@ int loadLibRunTest(test_data_t &testLib, ParameterDict &param)
 
    if (!handle)
    {
-      printf("Error opening lib: %s\n", testLib);
+      printf("Error opening lib: %s\n", testLib.soname);
       printf("%s\n", dlerror());
       return -1;
    }
@@ -61,7 +61,7 @@ int loadLibRunTest(test_data_t &testLib, ParameterDict &param)
    mutatorM_t mutTest = (mutatorM_t) dlsym(handle, "mutatorMAIN");
    if ( !mutTest )
    {
-      printf("Error finding function: mutatorMAIN, in %s\n", testLib);
+      printf("Error finding function: mutatorMAIN, in %s\n", testLib.soname);
       printf("%s\n", dlerror());
       dlclose(handle);
       return -1;
