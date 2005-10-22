@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Process_data.h,v 1.1 2005/09/29 20:40:07 bpellin Exp $
+// $Id: Process_data.h,v 1.2 2005/10/22 22:11:44 bpellin Exp $
 #ifndef PROCESS_DATA_H
 #define PROCESS_DATA_H
 
@@ -54,6 +54,7 @@ class Process_data
 
    public:
       Process_data(BPatch_thread *thread);
+      Process_data();
       BPatch_thread *getThread();
       bool terminate();
 };
