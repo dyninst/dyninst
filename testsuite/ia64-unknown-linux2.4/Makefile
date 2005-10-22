@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2005/09/29 20:37:14 bpellin Exp $
+# $Id: Makefile,v 1.2 2005/10/22 22:11:48 bpellin Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -64,6 +64,8 @@ TEST6_AS_OBJ_BASE = $(basename $(TEST6_AS_SRC))
 TESTLIB_FLAGS = -fpic -shared -g -Wl,-export-dynamic -Wl,-ldl
 
 LIBS_LIBTESTSUITE = -ldl
+
+STRIP_SO = strip -g
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

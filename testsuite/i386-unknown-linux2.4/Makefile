@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2005/09/29 20:37:08 bpellin Exp $
+# $Id: Makefile,v 1.2 2005/10/22 22:11:47 bpellin Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -64,6 +64,8 @@ TESTLIB_FLAGS = -fpic -shared -g -Wl,-export-dynamic -Wl,-ldl
 MUTATEE_TEST9_EXTRA_LIB = 9.-L./ 9.-lInstMe
 
 LIBS_LIBTESTSUITE = -ldl
+
+STRIP_SO = strip -g
 
 include ../make.module.tmpl
 
