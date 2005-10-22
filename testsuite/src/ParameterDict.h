@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParameterDict.h,v 1.1 2005/09/29 20:40:05 bpellin Exp $
+// $Id: ParameterDict.h,v 1.2 2005/10/22 22:11:42 bpellin Exp $
 #ifndef PARAMETERDICT_H
 #define PARAMETERDICT_H
 
@@ -97,21 +97,6 @@ class ParamPtr : public Parameter {
       void setPtr(void *ptr);
 };
 
-struct ltstr
-{
-  bool operator()(const char* s1, const char* s2) const
-  {
-    return strcmp(s1, s2) < 0;
-  }
-};
-
-
 typedef std::map<std::string, Parameter*> ParameterDict;
-/*
-class ParameterDict : public map<const char*, Parameter, ltstr>
-{
-
-};
-*/
 
 #endif /* PARAMETERDICT_H */
