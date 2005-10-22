@@ -1,1 +1,1 @@
-DEPENDS V_*.c test? test?? tests.done test*.mutatee* .deps *.d
+depends test_driver runTests V_*.c test? test?? tests.done test*.mutatee* .deps *.d
