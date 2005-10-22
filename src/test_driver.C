@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.3 2005/10/17 20:27:22 bpellin Exp $
+// $Id: test_driver.C,v 1.4 2005/10/22 22:11:45 bpellin Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -47,7 +47,6 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <errno.h>
-#include <map>
 #include <vector>
 
 //#include "BPatch.h"
