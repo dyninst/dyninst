@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.12 2005/10/18 16:27:08 bernat Exp $
+// $Id: image-func.C,v 1.13 2005/10/24 19:37:42 bernat Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -442,7 +442,7 @@ bool image_func::cleanBlockList() {
         }
 #if defined(cap_relocation)
         // Don't do multiple-exit-edge blocks; 1 or 2 is cool, > is bad
-        if (b1->targets_.size() > 1) {
+        if (b1->targets_.size() > 2) {
             canBeRelocated_ = false;
         }
 #endif

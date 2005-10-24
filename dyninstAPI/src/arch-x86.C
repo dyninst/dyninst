@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.40 2005/10/17 18:19:43 rutar Exp $
+// $Id: arch-x86.C,v 1.41 2005/10/24 19:37:42 bernat Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -3365,6 +3365,31 @@ unsigned instruction::spaceToRelocate() const {
    const unsigned char *origInsn = ptr();
 
    unsigned maxSize = 0;
+   unsigned nPrefixes = 0;
+
+
+   if ((type() && REL_B) ||
+       (type() && REL_W) ||
+       (type() && REL_D)) {
+       if (type() & PREFIX_OPR)
+           nPrefixes++;
+       if (type() & PREFIX_SEG)
+           nPrefixes++;
+       if (type() & PREFIX_OPCODE)
+           nPrefixes++;
+       if (type() & PREFIX_REX)
+           nPrefixes++;
+       if (type() & PREFIX_INST)
+           nPrefixes++;
+       if (type() & PREFIX_ADDR)
+           nPrefixes++;
+   }
+
+   // Skip prefixes or none of the later matches will work.
+   for (unsigned u = 0; u < nPrefixes; u++)
+       *origInsn++;
+
+   inst_printf("%d bytes in prefixes\n", nPrefixes);
 
    if (type() & REL_B) {
        /* replace with rel32 instruction, opcode is one byte. */
@@ -3374,27 +3399,25 @@ unsigned instruction::spaceToRelocate() const {
            //  jmp 5    2 bytes
            // jmp rel32 5 bytes
            
-           return 9;
+           return 9 + nPrefixes;
       }
       else {
           if (type() & IS_JCC) {
               /* Change a Jcc rel8 to Jcc rel32.  Must generate a new opcode: a
                  0x0F followed by (old opcode + 16) */
-              return 6;
+              inst_printf("... JCC, returning %d\n", 6+nPrefixes);
+              return 6 + nPrefixes;
           }
           else if (type() & IS_JUMP) {
               /* change opcode to 0xE9 */
-              return 5;
+              inst_printf(".... JUMP, returning %d\n", 5+nPrefixes);
+              return 5 + nPrefixes;
           }
           assert(0);
       }
    }
    else if (type() & REL_W) {
-      /* Skip prefixes */
-      if (type() & PREFIX_OPR)
-          maxSize++;
-      if (type() & PREFIX_SEG)
-          maxSize++;
+       inst_printf("... REL_W\n");
       /* opcode is unchanged, just relocate the displacement */
       if (*origInsn == (unsigned char)0x0F)
           maxSize++;
@@ -3402,19 +3425,15 @@ unsigned instruction::spaceToRelocate() const {
       // opcode, 32-bit displacement
       maxSize += 5;
 
-      return maxSize;
+      return maxSize + nPrefixes;
    } else if (type() & REL_D) {
-       if (type() & PREFIX_OPR)
-           maxSize++;
-       if (type() & PREFIX_SEG)
-           maxSize++;
-       
+       inst_printf("... REL_D\n");
        /* opcode is unchanged, just relocate the displacement */
        if (*origInsn == 0x0F)
            maxSize++;
        
        maxSize += 5;
-       return maxSize;
+       return maxSize + nPrefixes;
    }
    else {
        return size();
@@ -3538,11 +3557,31 @@ bool instruction::generate(codeGen &gen,
     if (!done) {
         // If call-specialization didn't take care of us
         if (insnType & REL_B) {
+            // Skip prefixes
+            unsigned nPrefixes = 0;
+            if (insnType & PREFIX_OPR)
+                nPrefixes++;
+            if (insnType & PREFIX_SEG)
+                nPrefixes++;
+            if (insnType & PREFIX_OPCODE)
+               nPrefixes++;
+            if (insnType & PREFIX_REX)
+                nPrefixes++;
+            if (insnType & PREFIX_INST)
+                nPrefixes++;
+            if (insnType & PREFIX_ADDR)
+                nPrefixes++;
+            inst_printf(".... %d bytes in prefixes\n", nPrefixes);
+            for (unsigned u = 0; u < nPrefixes; u++)
+                *newInsn++ = *origInsn++;
+
+
             /* replace with rel32 instruction, opcode is one byte. */
             if (*origInsn == JCXZ) {
                 if (targetOverride == 0) {
                     oldDisp = (int)*(const char *)(origInsn+1);
-                    newDisp = (origAddr + 2) + oldDisp - (newAddr + 9);
+                    newDisp = (origAddr + size()) // end of instruction...
+                        + oldDisp - (newAddr + 9);
                 }
                 else {
                     // Override the target to go somewhere else
@@ -3563,18 +3602,18 @@ bool instruction::generate(codeGen &gen,
                     unsigned char opcode = *origInsn++;
                     *newInsn++ = 0x0F;
                     *newInsn++ = opcode + 0x10;
-                    newSz = 6;
+                    newSz = 6 + nPrefixes;
                 }
                 else if (insnType & IS_JUMP) {
                     /* change opcode to 0xE9 */
                     origInsn++;
                     *newInsn++ = 0xE9;
-                    newSz = 5;
+                    newSz = 5 + nPrefixes;
                 }
                 assert(newSz!=UINT_MAX);
                 if (targetOverride == 0) {
                     oldDisp = (int)*(const char *)origInsn;
-                    newDisp = (origAddr + 2) + oldDisp - (newAddr + newSz);
+                    newDisp = (origAddr + size()) + oldDisp - (newAddr + newSz);
                 }
                 else {
                     oldDisp = 0;
@@ -3585,11 +3624,24 @@ bool instruction::generate(codeGen &gen,
             }
         }
         else if (insnType & REL_W) {
-            /* Skip prefixes */
+            // Skip prefixes
+            unsigned nPrefixes = 0;
             if (insnType & PREFIX_OPR)
-                origInsn++;
+                nPrefixes++;
             if (insnType & PREFIX_SEG)
-                origInsn++;
+                nPrefixes++;
+            if (insnType & PREFIX_OPCODE)
+               nPrefixes++;
+            if (insnType & PREFIX_REX)
+                nPrefixes++;
+            if (insnType & PREFIX_INST)
+                nPrefixes++;
+            if (insnType & PREFIX_ADDR)
+                nPrefixes++;
+
+            for (unsigned u = 0; u < nPrefixes; u++)
+                *newInsn++ = *origInsn++;
+
             /* opcode is unchanged, just relocate the displacement */
             if (*origInsn == (unsigned char)0x0F)
                 *newInsn++ = *origInsn++;
