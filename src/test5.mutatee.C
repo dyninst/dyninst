@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test5.mutatee.C,v 1.1 2005/09/29 20:37:57 bpellin Exp $ */
+/* $Id: test5.mutatee.C,v 1.2 2005/10/25 04:18:04 bpellin Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -648,7 +648,7 @@ int main(int iargc, char *argv[])
     }
 
     if (!testsFailed) {
-        printf("All tests passed\n");
+        /*printf("All tests passed\n");*/
     } else {
 	printf("**Failed** %d test%c\n",testsFailed,(testsFailed>1)?'s':' ');
 	    for (i=1; i <= MAX_TEST; i++) {
