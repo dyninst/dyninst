@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: test6.mutatee.c,v 1.1 2005/09/29 20:38:05 bpellin Exp $ */
+/* $Id: test6.mutatee.c,v 1.2 2005/10/25 04:18:05 bpellin Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -779,7 +779,7 @@ int main(int iargc, char *argv[])
   }
 
   if (!testsFailed) {
-    printf("All tests passed\n");
+    /*printf("All tests passed\n");*/
   } else {
     printf("**Failed** %d test%c\n",testsFailed,(testsFailed>1)?'s':' ');
   }

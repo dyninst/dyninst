@@ -313,7 +313,7 @@ int main(int iargc, char *argv[])
     }
 
     if (!testsFailed) {
-	printf("All tests passed\n");
+	/*printf("All tests passed\n");*/
     } else {
 	printf("**Failed** %d test%c\n",testsFailed,(testsFailed>1)?'s':' ');
     }
