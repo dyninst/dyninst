@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.6 2005/10/05 21:46:38 bernat Exp $
+// $Id: reloc-func.C,v 1.7 2005/10/25 17:27:49 bernat Exp $
 
 // We'll also try to limit this to relocation-capable platforms
 // in the Makefile. Just in case, though....
@@ -604,7 +604,7 @@ bool functionReplacement::generateFuncRep() {
     assert(targetInst);
 
     jumpToRelocated.allocate(instruction::maxInterFunctionJumpSize());
-    fprintf(stderr, "******* generating interFunctionJump...\n");
+    reloc_printf("******* generating interFunctionJump...\n");
     instruction::generateInterFunctionBranch(jumpToRelocated,
                                              sourceInst->firstInsnAddr(),
                                              targetInst->firstInsnAddr());
@@ -681,7 +681,6 @@ bool functionReplacement::checkFuncRep(pdvector<Address> &checkPCs) {
 }
 
 bool functionReplacement::linkFuncRep(pdvector<codeRange *> &overwrittenObjs) {
-    fprintf(stderr, "Linking function replacement......\n");
     if (sourceBlock_->proc()->writeTextSpace((void *)get_address_cr(),
                                              jumpToRelocated.used(),
                                              jumpToRelocated.start_ptr())) {

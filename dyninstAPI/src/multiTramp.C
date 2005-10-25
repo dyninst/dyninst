@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.17 2005/10/05 21:46:37 bernat Exp $
+// $Id: multiTramp.C,v 1.18 2005/10/25 17:27:46 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -809,6 +809,8 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
             
             // Then update the size
             size_required += obj->maxSizeRequired();
+            inst_printf("... %d bytes, total %d\n",
+                        obj->maxSizeRequired(), size_required);
         }
         
         // We never re-use multiTramps
@@ -853,15 +855,7 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
         // We set this = true before we call generateBranchToTramp
         generated_ = true;
         if (!generateBranchToTramp(jumpBuf_)) {
-            // This failing is serious. For little things like "we need to
-            // use a trap", return true but set branchSize > instSize...
-            // TODO: clean me up :)
-            fprintf(stderr, "MT %p needs reloc, can't install\n", this);
-            invalidateCode();
-            if (branchSize_ == -2) {
-                // Fake it...
-                generated_ = true;
-            }
+            // We need a better way of handling this. Argh. 
             return false;
         }
     }
@@ -901,10 +895,10 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
     /* For the iterator, below. */
     unw_dyn_region_info_t * unwindRegion = initialRegion;
 #endif /* defined( cap_unwind ) */
-    /*        
+            
     inst_printf("multiTramp generation: local %p, remote 0x%x, size %d\n",
                 generatedMultiT_.start_ptr(), trampAddr_, size_required);
-    */
+    
     cfgIter.initialize(generatedCFG_);
     obj = NULL;
     while ((obj = cfgIter++)) {
@@ -913,6 +907,10 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
             // We need to advance the pointer, backfilling
             // with noops (or illegals, actually)
             // This won't do anything if we're in the right place
+            assert(generatedMultiT_.used() <= obj->pinnedOffset);
+
+            inst_printf("... NOOP-filling to %d, currently %d\n",
+                        obj->pinnedOffset, generatedMultiT_.used());
             generatedMultiT_.fill(obj->pinnedOffset - generatedMultiT_.used(),
                                   codeGen::cgNOP);
             assert(generatedMultiT_.used() == obj->pinnedOffset);
@@ -934,11 +932,15 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
             return false;
         }
 #endif /* ! defined( cap_unwind ) */
-        /*
-        inst_printf("After node: mutatee 0x%x, offset %d, size req %d\n",
+        Address tempAddr = 0;
+        if (dynamic_cast<relocatedInstruction *>(obj)) {
+            tempAddr = (dynamic_cast<relocatedInstruction *>(obj))->uninstrumentedAddr();
+        }
+        inst_printf("After node: mutatee 0x%lx (0x%lx), offset %d, size req %d\n",
                     generatedMultiT_.currAddr(trampAddr_),
+                    tempAddr,
                     generatedMultiT_.used(), size_required);
-        */
+        
         // Safety...
         assert(generatedMultiT_.used() <= size_required);
 	/*
@@ -1035,7 +1037,8 @@ bool multiTramp::linkCode() {
     assert(installed_);
 
     assert(jumpBuf_.used() == instSize_);
-
+    inst_printf("Linking multiTramp 0x%lx to 0x%lx\n",
+                instAddr_, instAddr_ + instSize_);
     if (!linked_) {
         codeRange *prevRange = proc()->findModifiedPointByAddr(instAddr_);
         if (prevRange != NULL) {
@@ -1310,15 +1313,13 @@ multiTramp::mtErrorCode_t multiTramp::generateMultiTramp() {
     }
     // TODO: generatedCodeObjects return booleans. We need a broader
     // error return type, probably #defines
-    if (generateCode(jumpBuf_, instAddr_, NULL))
-        return mtSuccess;
-    else {
-        // Okay, we failed. Why. 
-        if (branchSize_ == -2)
-            return mtTryRelocation;
-        else
-            return mtError;
-    }
+    if (!generateCode(jumpBuf_, instAddr_, NULL))
+        return mtError;
+
+    // Relocation...
+    if (branchSize_ > instSize_)
+        return mtTryRelocation;
+    return mtSuccess;
 }
 
 void generatedCodeObject::invalidateCode() {
@@ -2083,15 +2084,11 @@ bool multiTramp::generateBranchToTramp(codeGen &gen)
     if (jumpSizeNeeded < 0) {
         // Try relocation...
         branchSize_ = jumpSizeNeeded;
-        if (branchSize_ == -2) {
-            // TODO: #defines. This is "don't bother". -1 is "need trap"
-            return false;
-        }
-        else 
-            return true;
+        return false;
     }
     else if (instSize_ < (unsigned) jumpSizeNeeded) { // jumpSizeNeeded > 0...
         branchSize_ = jumpSizeNeeded;
+        // Return value: do we continue making the tramp?
         return true;
     }
 #if defined(arch_sparc)
@@ -2123,6 +2120,8 @@ bool multiTramp::generateTrapToTramp(codeGen &gen) {
     branchSize_ = gen.used() - start;
 
     usedTrap_ = true;
+
+    inst_printf("TRAPPING TO TRAMP AT 0x%lx (%d bytes)\n", instAddr_, instSize_);
 
     return true;
 }

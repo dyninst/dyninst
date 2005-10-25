@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.8 2005/10/17 19:24:23 bernat Exp $
+// $Id: instPoint.C,v 1.9 2005/10/25 17:27:38 bernat Exp $
 // instPoint code
 
 
@@ -920,20 +920,20 @@ bool instPointInstance::generateInst() {
         // We can try to simply shift the entire function nearer
         // instrumentation. TODO: a funcMod that says "hey, move me to
         // this address.
-        // For now, this is handled with an AIX ifdef :/
-        pdvector<funcMod *> funcMods; // Empty since we're not trying to make changes.
-        func()->relocationGenerate(funcMods, 0);
-    }
-    else if ((errCode = multiTramp::mtSuccess) &&
-             (block_->getSize() < multi()->sizeDesired())) {
-        // Can make new ipInstances, but they're brought up to 
-        // date in updateInstances
-
-        // expandForInstrumentation will append to the expand list, so can 
-        // be called multiple times without blowing up
-        if (func()->expandForInstrumentation()) {
-            // and relocationGenerate invalidates old, "in-flight" versions.
-            func()->relocationGenerate(func()->enlargeMods(), 0);
+        inst_printf("Trying relocation, %d, %d\n", 
+                    block_->getSize(),
+                    multi()->sizeDesired());
+        if (block_->getSize() < multi()->sizeDesired()) {
+            // expandForInstrumentation will append to the expand list, so can 
+            // be called multiple times without blowing up
+            if (func()->expandForInstrumentation()) {
+                // and relocationGenerate invalidates old, "in-flight" versions.
+                func()->relocationGenerate(func()->enlargeMods(), 0);
+            }
+        }
+        else {
+            pdvector<funcMod *> funcMods; // Empty since we're not trying to make changes.
+            func()->relocationGenerate(funcMods, 0);
         }
     }
 #endif
