@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: runTests.pl,v 1.3 2005/10/24 03:55:38 bpellin Exp $
+# $Id: runTests.pl,v 1.4 2005/10/25 04:18:00 bpellin Exp $
 
 use strict;
 use POSIX;
@@ -13,6 +13,7 @@ my $logfile = '';
 my $test_driver = "$ENV{'PWD'}/test_driver";
 my $testLimit = 10;
 my $timeout = 120;
+my @child_ARGV;
 
 my $BASE_DIR;
 my $TLOG_DIR;
@@ -112,7 +113,7 @@ sub RunTest($) {
       $testString .= " -log";
    }
 
-   #$testString .= " " . (join " ", @ARGV);
+   $testString .= " " . (join " ", @child_ARGV);
 
    # Set Environment Variables
    $ENV{'PDSCRDIR'} = $PDSCRDIR;
@@ -130,7 +131,7 @@ sub RunTest($) {
 
    if ( $useLog != 0 )
    {
-      $testString .= " 2>&1 | tee -a $logfile";
+      $testString .= " >> $logfile 2>&1";
    }
 
    # Run Test Program
@@ -173,6 +174,8 @@ sub ParseParameters()
          {
             $logfile = shift @ARGV;
          }
+      } else {
+         push @child_ARGV, $_;
       }
    }
 }
@@ -198,4 +201,9 @@ if ( $useLog != 0 )
 {
    system("gzip $logfile");
    print "Test log $logfile.gz written.\n";
+}
+
+if ( $ENV{'RESUMELOG'} ne '' and -f $ENV{'RESUMELOG'} )
+{
+   unlink($ENV{'RESUMELOG'});
 }
