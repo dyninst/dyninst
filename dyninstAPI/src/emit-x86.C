@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.11 2005/10/17 18:19:43 rutar Exp $
+ * $Id: emit-x86.C,v 1.12 2005/10/27 20:17:16 rutar Exp $
  */
 
 #include <assert.h>
@@ -879,37 +879,46 @@ void Emitter64::emitLoadFrameAddr(Register dest, Address offset, codeGen &gen)
 
 void Emitter64::emitLoadPreviousStackFrameRegister(Address register_num, Register dest, codeGen &gen)
 {
-  int stackPlace, totalLive;
-  totalLive = stackPlace = 0;
-  u_int i;
-  for(i = 0; i < regSpace->getRegisterCount(); i++)
+  
+  if (regSpace->getDisregardLiveness())
     {
-      registerSlot * reg = regSpace->getRegSlot(i);
-      if (reg->startsLive)
+      emitMovRMToReg64(dest, REGNUM_RBP, (SAVED_RAX_OFFSET - register_num) * 8, true, gen);
+    }
+  else
+    {
+      
+      int stackPlace, totalLive;
+      totalLive = stackPlace = 0;
+      u_int i;
+      for(i = 0; i < regSpace->getRegisterCount(); i++)
 	{
-	  totalLive++;
-	  if (reg->number == register_num)
+	  registerSlot * reg = regSpace->getRegSlot(i);
+	  if (reg->startsLive)
+	    {
+	      totalLive++;
+	      if (reg->number == register_num)
 	      {
 		stackPlace = totalLive;
 	      }
-	  // We save these regardless of their liveness so don't count towards tally
-	  else if (reg->number == REGNUM_RAX || reg->number == REGNUM_RBP || reg->number == REGNUM_RSP)
-	    {
-	      totalLive--;
+	      // We save these regardless of their liveness so don't count towards tally
+	      else if (reg->number == REGNUM_RAX || reg->number == REGNUM_RBP || reg->number == REGNUM_RSP)
+		{
+		  totalLive--;
+		}
 	    }
 	}
+      totalLive += 1;  // For rax at top of stack
+      
+      
+      if (register_num == REGNUM_RAX)
+	emitMovRMToReg64(dest, REGNUM_RBP, (totalLive+3) * 8, true, gen);
+      else if (register_num == REGNUM_RSP)
+	emitMovRMToReg64(dest, REGNUM_RBP, (totalLive+2) * 8, true, gen);
+      else if (register_num == REGNUM_RBP)
+	emitMovRMToReg64(dest, REGNUM_RBP, (totalLive+1) * 8, true, gen);
+      else
+	emitMovRMToReg64(dest, REGNUM_RBP, (totalLive - stackPlace) * 8, true, gen);
     }
-  totalLive += 1;  // For rax at top of stack
-  
-  if (register_num == REGNUM_RAX)
-    emitMovRMToReg64(dest, REGNUM_RBP, (totalLive+3) * 8, true, gen);
-  else if (register_num == REGNUM_RSP)
-    emitMovRMToReg64(dest, REGNUM_RBP, (totalLive+2) * 8, true, gen);
-  else if (register_num == REGNUM_RBP)
-    emitMovRMToReg64(dest, REGNUM_RBP, (totalLive+1) * 8, true, gen);
-  else
-    emitMovRMToReg64(dest, REGNUM_RBP, (totalLive - stackPlace) * 8, true, gen);
-  
 }
 
 void Emitter64::emitStore(Address addr, Register src, codeGen &gen)
@@ -1005,53 +1014,68 @@ Register Emitter64::emitCall(opCode op, registerSpace *rs, codeGen &gen, const p
 // FIXME: comment here on the stack layout
 void Emitter64::emitGetRetVal(Register dest, codeGen &gen)
 {
-  int totalOnStack = 0;
-  for(u_int i = 0; i < regSpace->getRegisterCount(); i++)
+  if (regSpace->getDisregardLiveness())
     {
-      registerSlot * reg = regSpace->getRegSlot(i);
-      if (reg->startsLive)
+      emitMovRMToReg64(dest, REGNUM_RBP, SAVED_RAX_OFFSET * 8, true, gen);
+    }
+  else
+    {
+      int totalOnStack = 0;
+      for(u_int i = 0; i < regSpace->getRegisterCount(); i++)
 	{
-	  totalOnStack++;
-	  // We save these regardless of their liveness so don't count towards tally
-	  if (reg->number == REGNUM_RAX || reg->number == REGNUM_RBP || reg->number == REGNUM_RSP)
+	  registerSlot * reg = regSpace->getRegSlot(i);
+	  if (reg->startsLive)
 	    {
-	      totalOnStack--;
+	      totalOnStack++;
+	      // We save these regardless of their liveness so don't count towards tally
+	      if (reg->number == REGNUM_RAX || reg->number == REGNUM_RBP || reg->number == REGNUM_RSP)
+		{
+		  totalOnStack--;
+		}
 	    }
 	}
+      totalOnStack += 4; // REGNUM_RAX, REGNUM_RBP, REGNUM_RSP, and other REGNUM_RAX
+      emitMovRMToReg64(dest, REGNUM_RBP, totalOnStack * 8, true, gen);
     }
-  totalOnStack += 4; // REGNUM_RAX, REGNUM_RBP, REGNUM_RSP, and other REGNUM_RAX
-  emitMovRMToReg64(dest, REGNUM_RBP, totalOnStack * 8, true, gen);
 }
 
 void Emitter64::emitGetParam(Register dest, Register param_num, instPointType_t /*pt_type*/, codeGen &gen)
 {
     assert(param_num <= 6);
-    int stackPlace, totalLive;
-    totalLive = stackPlace = 0;
-    u_int i;
-    for(i = 0; i < regSpace->getRegisterCount(); i++)
+
+    if (regSpace->getDisregardLiveness())
       {
-	registerSlot * reg = regSpace->getRegSlot(i);
-	if (reg->startsLive)
+	emitMovRMToReg64(dest, REGNUM_RBP, (SAVED_RAX_OFFSET - amd64_arg_regs[param_num]) * 8, true, gen);
+      }
+    else
+      {
+	int stackPlace, totalLive;
+	totalLive = stackPlace = 0;
+	u_int i;
+	for(i = 0; i < regSpace->getRegisterCount(); i++)
 	  {
-	    totalLive++;
-	    if (reg->number == amd64_arg_regs[param_num])
+	    registerSlot * reg = regSpace->getRegSlot(i);
+	    if (reg->startsLive)
+	      {
+		totalLive++;
+		if (reg->number == amd64_arg_regs[param_num])
 	      {
 		stackPlace = totalLive;
 	      }
-	    // We save these regardless of their liveness so don't count towards tally
-	    else if (reg->number == REGNUM_RAX || reg->number == REGNUM_RBP || reg->number == REGNUM_RSP)
-	      {
-		totalLive--;
+		// We save these regardless of their liveness so don't count towards tally
+		else if (reg->number == REGNUM_RAX || reg->number == REGNUM_RBP || reg->number == REGNUM_RSP)
+		  {
+		    totalLive--;
+		  }
 	      }
 	  }
+	totalLive += 2;  // For rax and rbp at top of stack
+	
+	if (stackPlace == 0)
+	  emitMovRMToReg64(dest, REGNUM_RBP, 0, true, gen);
+	else
+	  emitMovRMToReg64(dest, REGNUM_RBP, (totalLive - stackPlace) * 8, true, gen);   
       }
-    totalLive += 2;  // For rax and rbp at top of stack
-    
-    if (stackPlace == 0)
-      emitMovRMToReg64(dest, REGNUM_RBP, 0, true, gen);
-    else
-      emitMovRMToReg64(dest, REGNUM_RBP, (totalLive - stackPlace) * 8, true, gen);   
 }
 
 static void emitPushImm16_64(unsigned short imm, codeGen &gen)

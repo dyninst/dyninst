@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.14 2005/10/17 18:19:43 rutar Exp $
+// $Id: baseTramp.C,v 1.15 2005/10/27 20:17:16 rutar Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -883,26 +883,25 @@ bool baseTramp::generateBT() {
     else
         theRegSpace = regSpace;
 
-    
     instPoint * location = point();
 
-    if (location != NULL)
+    if (location != NULL  && !threaded())
       {
 	theRegSpace->resetLiveDeadInfo(location->liveRegisters,
 				       location->liveFPRegisters,
 				       location->liveSPRegisters);
+	
       }
 #endif
 
 #if defined(arch_x86_64)
     instPoint * location = point();
-    if (location != NULL)
+    if (location != NULL && !threaded())
       {
 	regSpace->setDisregardLiveness(false);
 	regSpace->resetLiveDeadInfo(location->liveRegisters,
 				    location->liveFPRegisters,
 				    location->liveSPRegisters);
-	
       }
     else
       {
