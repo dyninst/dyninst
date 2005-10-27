@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.16 2005/10/14 16:37:33 legendre Exp $
+ * $Id: RTposix.c,v 1.17 2005/10/27 22:41:58 legendre Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -140,7 +140,7 @@ int DYNINSTasyncConnect(int pid)
   sadr.sun_family = PF_UNIX;
   strcpy(sadr.sun_path, path);
 
-  if (connect(sock_fd, (struct sockaddr *) &sadr, (socklen_t) sizeof(sadr)) < 0) {
+  if (connect(sock_fd, (struct sockaddr *) &sadr, sizeof(sadr)) < 0) {
     perror("DYNINSTasyncConnect() connect()");
   }
 
