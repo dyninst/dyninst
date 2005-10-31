@@ -64,8 +64,7 @@ BPatch_basicBlock::BPatch_basicBlock(int_basicBlock *ib, BPatch_flowGraph *fg):
    immediatePostDominates(NULL),
    immediatePostDominator(NULL),
    sourceBlocks(NULL),
-   instructions(NULL),in(NULL),out(NULL),gen(NULL),kill(NULL),inFP(NULL),
-   outFP(NULL),genFP(NULL),killFP(NULL)
+   instructions(NULL)
 {
    ib->setHighLevelBlock(this);
 }
@@ -77,23 +76,7 @@ void BPatch_basicBlock::BPatch_basicBlock_dtor(){
 	if (immediateDominates)
 		delete immediateDominates;
 	if (sourceBlocks)
-		delete sourceBlocks;	
-	if (in)
-	  delete in;
-	if (out)
-	  delete out;
-	if (gen)
-	  delete gen;
-	if (kill)
-	  delete kill;
-	if (inFP)
-	  delete inFP;
-	if (outFP)
-	  delete outFP;
-	if (genFP)
-	  delete genFP;
-	if (killFP)
-	  delete killFP;
+		delete sourceBlocks;
 	return;
 }
 
@@ -347,15 +330,6 @@ ostream& operator<<(ostream& os,BPatch_basicBlock& bb)
 	os << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
 	return os;
 }
-
-
-/* Debugging tool for checking basic block/liveness info */
-bool BPatch_basicBlock::printAllInt()
-{
-   cout << this;
-   return true;
-}
-
 
 /*
  * BPatch_basicBlock::findPoint (based on VG 09/05/01)

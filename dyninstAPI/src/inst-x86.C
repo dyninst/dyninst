@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.225 2005/10/21 21:48:27 legendre Exp $
+ * $Id: inst-x86.C,v 1.226 2005/10/31 22:42:54 rutar Exp $
  */
 #include <iomanip>
 
@@ -1864,9 +1864,11 @@ bool writeFunctionPtr(process *p, Address addr, int_function *f)
    return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);   
 }
 
-bool BPatch_basicBlock::initRegisterGenKillInt() 
+#if defined(arch_x86_64)
+
+bool int_basicBlock::initRegisterGenKill() 
 {
-   int a;
+  int a;
   int * writeRegs = (int *) malloc(sizeof(int)*3);
   int * readRegs = (int *) malloc(sizeof(int)*3);
 
@@ -1921,7 +1923,7 @@ bool BPatch_basicBlock::initRegisterGenKillInt()
 
 /* This is used to do fixed point iteration until 
    the in and out don't change anymore */
-bool BPatch_basicBlock::updateRegisterInOutInt(bool isFP) 
+bool int_basicBlock::updateRegisterInOut(bool isFP) 
 {
   bool change = false;
   // old_IN = IN(X)
@@ -1943,13 +1945,13 @@ bool BPatch_basicBlock::updateRegisterInOutInt(bool isFP)
  
   // OUT(X) = UNION(IN(Y)) for all successors Y of X
   pdvector<int_basicBlock *> elements;
-  iblock->getTargets(elements);
+  getTargets(elements);
 
   for(unsigned  i=0;i<elements.size();i++)
     {
-      BPatch_basicBlock *bb = (BPatch_basicBlock*) elements[i]->getHighLevelBlock();
+      //BPatch_basicBlock *bb = (BPatch_basicBlock*) elements[i]->getHighLevelBlock();
       if (!isFP)
-	tmp.bitarray_or(&tmp,bb->getInSet(),&tmp);
+	tmp.bitarray_or(&tmp,elements[i]->getInSet(),&tmp);
     }
     
   if (!isFP)
@@ -1972,19 +1974,16 @@ bool BPatch_basicBlock::updateRegisterInOutInt(bool isFP)
       else
 	change = true;
     }
-  
-  
-
   return change;
 }
 
 
-bitArray * BPatch_basicBlock::getInSetInt()
+bitArray * int_basicBlock::getInSet()
 {
   return in;
 }
 
-bitArray * BPatch_basicBlock::getInFPSetInt()
+bitArray * int_basicBlock::getInFPSet()
 {
   return inFP;
 }
@@ -1993,7 +1992,7 @@ bitArray * BPatch_basicBlock::getInFPSetInt()
 /*
   Nothing for x86 yet
 */
-int BPatch_basicBlock::liveSPRegistersIntoSetInt(int *& liveSPReg, 
+int int_basicBlock::liveSPRegistersIntoSet(int *& liveSPReg, 
 					       unsigned long address)
 {
    return 0;
@@ -2005,7 +2004,7 @@ int BPatch_basicBlock::liveSPRegistersIntoSetInt(int *& liveSPReg,
 /* The liveReg int * is a instance variable in the instPoint classes.
    This puts the liveness information into that variable so 
    we can access it from every instPoint without recalculation */
-int BPatch_basicBlock::liveRegistersIntoSetInt(int *& liveReg, 
+int int_basicBlock::liveRegistersIntoSet(int *& liveReg, 
 					       int *& liveFPReg,
 					       unsigned long address)
 {
@@ -2060,20 +2059,22 @@ int BPatch_basicBlock::liveRegistersIntoSetInt(int *& liveReg,
 	  if (newIn.bitarray_check(a,&newIn))
 	    {
 	      liveReg[a] = 1;
-	      //  printf("1 ");
+	      //printf("1 ");
 	      numLive++;
 	    }
 	  else
 	    {
 	      liveReg[a] = 0;
-	      // printf("0 ");
+	      //printf("0 ");
 	    }
 	} 
-      //  printf("\n");
+      //printf("\n");
     }
 
   return numLive;
 }
+
+#endif 
 
 // Takes information from instPoint and resets
 // regSpace liveness information accordingly
@@ -2083,10 +2084,9 @@ void registerSpace::resetLiveDeadInfo(const int * liveRegs,
 				      const int * liveSPRegs)
 {
   registerSlot *regSlot = NULL;
-
+  
   if (liveRegs != NULL)
     {
- 
       for (u_int i = 0; i < regSpace->getRegisterCount(); i++)
 	{
 	  regSlot = regSpace->getRegSlot(i);

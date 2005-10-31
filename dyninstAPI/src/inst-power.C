@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.234 2005/10/17 18:19:43 rutar Exp $
+ * $Id: inst-power.C,v 1.235 2005/10/31 22:42:53 rutar Exp $
  */
 
 #include "common/h/headers.h"
@@ -2745,7 +2745,7 @@ bool writeFunctionPtr(process *p, Address addr, int_function *f)
 
 /* Iterates over instructions in the basic block to 
    create the initial gen kill sets for that block */
-bool BPatch_basicBlock::initRegisterGenKillInt() 
+bool int_basicBlock::initRegisterGenKill() 
 {  
   in = new bitArray;
   in->bitarray_init(maxGPR,in);  
@@ -2842,10 +2842,12 @@ bool BPatch_basicBlock::initRegisterGenKillInt()
           Address callAddress = ii.getBranchTargetAddress();
 	//printf("Call Address is 0x%x \n",callAddress);
 
-          process *proc = flowGraph->getBProcess()->lowlevel_process();
-          int_function * funcc;
+          //process *proc = flowGraph->getBProcess()->lowlevel_process();
           
-          codeRange * range = proc->findCodeRangeByAddress(callAddress);
+	  // process * procc = proc();
+	  int_function * funcc;
+          
+          codeRange * range = proc()->findCodeRangeByAddress(callAddress);
           
           if (range)
               {
@@ -2908,7 +2910,7 @@ bool BPatch_basicBlock::initRegisterGenKillInt()
 
 /* This is used to do fixed point iteration until 
    the in and out don't change anymore */
-bool BPatch_basicBlock::updateRegisterInOutInt(bool isFP) 
+bool int_basicBlock::updateRegisterInOut(bool isFP) 
 {
   bool change = false;
   // old_IN = IN(X)
@@ -2933,14 +2935,14 @@ bool BPatch_basicBlock::updateRegisterInOutInt(bool isFP)
 
   // OUT(X) = UNION(IN(Y)) for all successors Y of X
   pdvector<int_basicBlock *> elements;
-  iblock->getTargets(elements);
+  getTargets(elements);
   for(unsigned  i=0;i<elements.size();i++)
     {
-      BPatch_basicBlock *bb = (BPatch_basicBlock*) elements[i]->getHighLevelBlock();
+      //BPatch_basicBlock *bb = (BPatch_basicBlock*) elements[i]->getHighLevelBlock();
       if (!isFP)
-	tmp.bitarray_or(&tmp,bb->getInSet(),&tmp);
+	tmp.bitarray_or(&tmp,elements[i]->getInSet(),&tmp);
       else
-	tmp.bitarray_or(&tmp,bb->getInFPSet(),&tmp);
+	tmp.bitarray_or(&tmp,elements[i]->getInFPSet(),&tmp);
     }
   
   if (!isFP)
@@ -2980,106 +2982,15 @@ bool BPatch_basicBlock::updateRegisterInOutInt(bool isFP)
 }
 
 
-bitArray * BPatch_basicBlock::getInSetInt()
+bitArray * int_basicBlock::getInSet()
 {
   return in;
 }
 
-bitArray * BPatch_basicBlock::getInFPSetInt()
+bitArray * int_basicBlock::getInFPSet()
 {
   return inFP;
 }
-
-
-/* Debugging tool for checking basic block/liveness info 
-bool BPatch_basicBlock::printAllInt()
-{
-	cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
-	cout << "Basic Block : " << blockNumber <<" : [ ";
-
-	printf("0x%x , ",startAddress);
-	printf("0x%x | ",lastInsnAddress);
-	printf("0x%x ]\n ",lastInsnAddress - startAddress);
-
-
-	if(isEntryBasicBlock)
-		cout <<"Type : ENTRY TO CFG\n"; 
-	else if(isExitBasicBlock)
-		cout <<"Type : EXIT FROM CFG\n"; 
-
-	cout << "Pred :\n";
-
-	BPatch_basicBlock** belements = new BPatch_basicBlock*[sources.size()];
-	sources.elements(belements);
-	for(unsigned i=0; i<sources.size(); i++)
-		cout << "\t<- " << belements[i]->blockNumber << "\n";
-	delete[] belements;
-
-	cout << "Succ:\n";
-	belements =  new BPatch_basicBlock*[targets.size()];
-	targets.elements(belements);
-	for(unsigned j=0; j<targets.size(); j++)
-		cout << "\t-> " << belements[j]->blockNumber << "\n";
-	delete[] belements;
-
-	cout << "Immediate Dominates: ";
-	if(immediateDominates){
-		belements = new BPatch_basicBlock*[immediateDominates->size()];
-		immediateDominates->elements(belements);
-		for(unsigned k=0; k<immediateDominates->size(); k++)
-			cout << belements[k]->blockNumber << " ";
-		delete[] belements;
-	}
-	cout << "\n";
-
-	cout << "Immediate Dominator: ";
-	if(!immediateDominator)
-		cout << "None\n";
-	else
-	  cout << immediateDominator->blockNumber << "\n";
-	
-	cout<<"Liveness Sets"<<endl;
-
-	cout <<"Gen..."<<endl;
-	for (int a = 0; a < maxGPR; a++)
-	  {
-	    if ( gen->bitarray_check(a,gen))
-	      cout<<"1 ";
-	    else
-	      cout<<"0 ";
-	  }
-	cout <<endl<<"Kill..."<<endl;
-	for (int a = 0; a < maxGPR; a++)
-	  {
-	    if ( kill->bitarray_check(a,kill))
-	      cout<<"1 ";
-	    else
-	      cout<<"0 ";
-	  }
-	cout <<endl<<"In..."<<endl;
-	for (int a = 0; a < maxGPR; a++)
-	  {
-	    if ( in->bitarray_check(a,in))
-	      cout<<"1 ";
-	    else
-	      cout<<"0 ";
-	  }
-	cout <<endl<<"Out..."<<endl;
-	for (int a = 0; a < maxGPR; a++)
-	  {
-	    if ( out->bitarray_check(a,out))
-	      cout<<"1 ";
-	    else
-	      cout<<"0 ";
-	  }
-	
-
-
-	cout << "\n";
-	cout << "^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n";
-	return true;
-}
-*/
 
 /* For Power it checks the basic block for any usage of the MQ
    SPR, when other platforms are done we'll probably need to move
@@ -3089,7 +3000,7 @@ bool BPatch_basicBlock::printAllInt()
    rare.  If there are alot of hits we can do full liveness
    analysis on it and other SPR
 */
-int BPatch_basicBlock::liveSPRegistersIntoSetInt(int *& liveSPReg, 
+int int_basicBlock::liveSPRegistersIntoSet(int *& liveSPReg, 
 					       unsigned long address)
 {
   if (liveSPReg == NULL)
@@ -3119,7 +3030,7 @@ int BPatch_basicBlock::liveSPRegistersIntoSetInt(int *& liveSPReg,
 /* The liveReg int * is a instance variable in the instPoint classes.
    This puts the liveness information into that variable so 
    we can access it from every instPoint without recalculation */
-int BPatch_basicBlock::liveRegistersIntoSetInt(int *& liveReg, 
+int int_basicBlock::liveRegistersIntoSet(int *& liveReg, 
 					       int *& liveFPReg,
 					       unsigned long address)
 {

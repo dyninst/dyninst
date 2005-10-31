@@ -104,7 +104,7 @@ BPatch_flowGraph::BPatch_flowGraph(BPatch_function *func,
    // Initializes the gen kill set for all blocks in the CFG
    for (unsigned int i = 0; i < allBlocks.size(); i++)
      {
-       blocks[i]->initRegisterGenKill();
+       (blocks[i]->lowlevel_block())->initRegisterGenKill();
      }
    
    bool change = true;
@@ -113,7 +113,7 @@ BPatch_flowGraph::BPatch_flowGraph(BPatch_function *func,
    do {
      change = false;
      for (unsigned int i = 0; i < allBlocks.size(); i++) {
-       if (blocks[i]->updateRegisterInOut(false)) 
+       if ((blocks[i]->lowlevel_block())->updateRegisterInOut(false)) 
 	 change = true;
      }
    } while (change);
@@ -124,7 +124,7 @@ BPatch_flowGraph::BPatch_flowGraph(BPatch_function *func,
    do {
      change = false;
      for (unsigned int i = 0; i < allBlocks.size(); i++) {
-       if (blocks[i]->updateRegisterInOut(true)) 
+       if ((blocks[i]->lowlevel_block())->updateRegisterInOut(true)) 
 	 change = true;
      }
    } while (change);

@@ -163,6 +163,8 @@ class InstrucIter {
         
     InstrucIter( CONST_EXPORT BPatch_basicBlock* bpBasicBlock);
 
+    InstrucIter (int_basicBlock *ibb);
+
     /** copy constructor
      * @param ii InstrucIter to copy
      */

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.19 2005/10/21 21:48:17 legendre Exp $
+// $Id: function.h,v 1.20 2005/10/31 22:42:53 rutar Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -79,6 +79,7 @@ class functionReplacement;
 
 class int_function;
 class int_basicBlock;
+class bitArray;
 
 class funcMod;
 
@@ -237,6 +238,30 @@ class int_basicBlock {
     int_basicBlock *getDataFlowKill();    
 #endif
 
+    // Liveness functions for AIX && AMD64
+#if defined(os_aix) || defined(arch_x86_64)
+    
+    /** Initializes the gen/kill sets for register liveness analysis */
+    bool initRegisterGenKill();
+   
+    /** Used in the fixed point iteration part of liveness */
+    bool updateRegisterInOut(bool isFP);
+   
+    /** Returns in set for GPR */
+    bitArray * getInSet();
+   
+    /** Returns in set for FPR */
+    bitArray * getInFPSet();
+   
+    /** Puts the live registers from bitArrays to integers stored by inst point */
+    int liveRegistersIntoSet(int *& liveReg, int *& liveFPReg,
+			     unsigned long address);
+
+    /** Puts the live SP registers from bitArrays to integers stored by inst point */
+    int liveSPRegistersIntoSet(int *& liveSPReg,
+			       unsigned long address);
+#endif     
+
     void setHighLevelBlock(void *newb);
     void *getHighLevelBlock() const;
 
@@ -248,6 +273,25 @@ class int_basicBlock {
     BPatch_Set<int_basicBlock *> *dataFlowOut;
     int_basicBlock *dataFlowGen;
     int_basicBlock *dataFlowKill;
+#endif
+
+#if defined(os_aix) || defined(arch_x86_64)
+   /* Liveness analysis variables */
+   /** gen registers */
+   bitArray * gen;
+   bitArray * genFP;
+   
+   /** kill registers */
+   bitArray * kill;
+   bitArray * killFP;
+   
+   /** in registers */
+   bitArray * in;
+   bitArray * inFP;
+   
+   /** out registers */
+   bitArray * out;
+   bitArray * outFP;
 #endif
 
 

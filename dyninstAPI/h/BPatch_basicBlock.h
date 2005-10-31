@@ -54,7 +54,6 @@
 class image;
 class int_function;
 class int_basicBlock;
-class bitArray;
 
 /* Currently all this bitarray stuff is just for power, 
    but could be extended as we do liveness stuff for other platforms */
@@ -87,48 +86,30 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
    /** the internal basic block structure **/
    int_basicBlock *iblock;
 
-	/** the flow graph that contains this basic block */
-	BPatch_flowGraph *flowGraph;
-
-	/** set of basic blocks that this basicblock dominates immediately*/
-	BPatch_Set<BPatch_basicBlock*>* immediateDominates;
-
-	/** basic block which is the immediate dominator of the basic block */
-	BPatch_basicBlock *immediateDominator;
-
-	/** same as previous two fields, but for postdominator tree */
-	BPatch_Set<BPatch_basicBlock*> *immediatePostDominates;
-	BPatch_basicBlock *immediatePostDominator;
-
-	/** the source block(source lines) that basic block corresponds*/
-	BPatch_Vector<BPatch_sourceBlock*> *sourceBlocks;
-
-	/** the instructions within this block */
-	BPatch_Vector<BPatch_instruction*> *instructions;
-
- 	/** the incoming edges */
- 	BPatch_Set<BPatch_edge*> incomingEdges;
+   /** the flow graph that contains this basic block */
+   BPatch_flowGraph *flowGraph;
+   
+   /** set of basic blocks that this basicblock dominates immediately*/
+   BPatch_Set<BPatch_basicBlock*>* immediateDominates;
+   
+   /** basic block which is the immediate dominator of the basic block */
+   BPatch_basicBlock *immediateDominator;
+   
+   /** same as previous two fields, but for postdominator tree */
+   BPatch_Set<BPatch_basicBlock*> *immediatePostDominates;
+   BPatch_basicBlock *immediatePostDominator;
+   
+   /** the source block(source lines) that basic block corresponds*/
+   BPatch_Vector<BPatch_sourceBlock*> *sourceBlocks;
+   
+   /** the instructions within this block */
+   BPatch_Vector<BPatch_instruction*> *instructions;
+   
+   /** the incoming edges */
+   BPatch_Set<BPatch_edge*> incomingEdges;
  
- 	/** the outgoing edges */
- 	BPatch_Set<BPatch_edge*> outgoingEdges;
-
-
-	/* Liveness analysis variables */
-	/** gen registers */
-	bitArray * gen;
-	bitArray * genFP;
-
-	/** kill registers */
-	bitArray * kill;
-	bitArray * killFP;
-	
-	/** in registers */
-	bitArray * in;
-	bitArray * inFP;
-
-	/** out registers */
-	bitArray * out;
-	bitArray * outFP;
+   /** the outgoing edges */
+   BPatch_Set<BPatch_edge*> outgoingEdges;
 
  protected:
 
@@ -139,7 +120,7 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
    
    // Internal functions. Don't use these unless you know what you're
    // doing.
-   const int_basicBlock *lowlevel_block() const { return iblock; }
+   int_basicBlock *lowlevel_block()  { return iblock; }
 
 
 	/** BPatch_basicBlock::getSources   */
@@ -290,45 +271,7 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
    API_EXPORT_V(Int, (out),
                 void,getOutgoingEdges,(BPatch_Vector<BPatch_edge*> &out));
 
-   /** BPatch_basicBlock::initRegisterGenKill */
-   /** Initializes the gen/kill sets for register liveness analysis */
-   API_EXPORT(Int, (),
-	      
-	      bool,initRegisterGenKill,());
-   
-   /** BPatch_basicBlock::updateRegisternOut */
-   /** Initializes the gen/kill sets for register liveness analysis */
-   API_EXPORT(Int, (isFP),
-	      
-	      bool,updateRegisterInOut,(bool isFP));
-   
-   /** BPatch_basicBlock::getInSet*/
 
-   API_EXPORT(Int, (),
-	      
-	      bitArray *, getInSet, ());
-   
-   
-   /** BPatch_basicBlock::getInFPSet **/
-   API_EXPORT(Int, (),
-	      
-	      bitArray *, getInFPSet, ());
-   
-   /** BPatch_basicBlock::printAll **/
-   API_EXPORT(Int, (),
-	      
-	      bool,printAll,());
-   
-   API_EXPORT(Int, (liveReg, liveFPReg, address),
-	      
-	      int, liveRegistersIntoSet, (int *& liveReg, int *& liveFPReg,
-				    unsigned long address));
-
-   API_EXPORT(Int, (liveSPReg, address),
-	      
-	      int, liveSPRegistersIntoSet, (int *& liveSPReg,
-					    unsigned long address));
-   
 
    int blockNo() const;
     

@@ -147,6 +147,18 @@ InstrucIter::InstrucIter( CONST_EXPORT BPatch_basicBlock* bpBasicBlock) :
     initializeInsn();
 }
 
+InstrucIter::InstrucIter( int_basicBlock *ibb) :
+    proc_(ibb->proc()),
+    img_(NULL),
+    base( ((BPatch_basicBlock *)ibb->getHighLevelBlock())->getStartAddress()),
+    range( ((BPatch_basicBlock *)ibb->getHighLevelBlock())->size()),
+    current(base) {
+    assert(current >= base);
+    assert(current < base+range);
+    initializeInsn();
+}
+
+
 //instPtr =addressImage->getPtrToInstruction(bpBasicBlock->currentAddress);
 //insn.getNextInstruction( instPtr ); 
 

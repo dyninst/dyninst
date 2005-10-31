@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.64 2005/10/17 22:25:35 rutar Exp $
+// $Id: BPatch_function.C,v 1.65 2005/10/31 22:42:53 rutar Exp $
 
 #define BPATCH_FILE
 
@@ -603,20 +603,23 @@ void BPatch_function::calc_liveness(BPatch_point *point) {
     allBlocks.elements(elements);
     
     for (int i = 0; i < allBlocks.size(); i++) {
-        BPatch_basicBlock *bb = elements[i];
-        if (iP->block() == bb->lowlevel_block()) {
-            /* When we have the actual basic block belonging to the 
-               inst address, we put the live Registers in for that inst point*/
+        
+      BPatch_basicBlock *bb = elements[i];
+      int_basicBlock *ibb = bb->lowlevel_block();
+
+      if (iP->block() == ibb) {
+	/* When we have the actual basic block belonging to the 
+	   inst address, we put the live Registers in for that inst point*/
             
-	  bb->liveRegistersIntoSet(iP->liveRegisters, iP->liveFPRegisters, pA );
-	  
-            /* Function for handling special purpose registers on platforms,
-               for Power it figures out MX register usage (big performance hit) ... 
-               may be extended later for other special purpose registers */
-	  bb->liveSPRegistersIntoSet(iP->liveSPRegisters, pA);
+	ibb->liveRegistersIntoSet(iP->liveRegisters, iP->liveFPRegisters, pA );
+	
+	/* Function for handling special purpose registers on platforms,
+	   for Power it figures out MX register usage (big performance hit) ... 
+	   may be extended later for other special purpose registers */
+	ibb->liveSPRegistersIntoSet(iP->liveSPRegisters, pA);
 	  
 	  //bb->printAll();
-        }
+      }
     }
     delete [] elements;
     // END LIVENESS ANALYSIS STUFF
