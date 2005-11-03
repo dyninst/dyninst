@@ -510,10 +510,10 @@ void BPatch_module::parseTypes()
     union auxent *aux;
     image * imgPtr=NULL;
     char* funcName = NULL;
-    Address staticBlockBaseAddr;
+    Address staticBlockBaseAddr = 0;
     unsigned long linesfdptr;
     BPatch_typeCommon *commonBlock = NULL;
-    BPatch_variableExpr *commonBlockVar;
+    BPatch_variableExpr *commonBlockVar = NULL;
     pdstring* currentSourceFile = NULL;
     bool inCommonBlock = false;
 

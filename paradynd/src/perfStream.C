@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.182 2005/09/09 18:07:50 legendre Exp $
+// $Id: perfStream.C,v 1.183 2005/11/03 05:21:08 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/timing.h"
@@ -507,6 +507,8 @@ void controllerMainLoop(bool check_buffer_first)
    struct timeval pollTimeStruct;
    
    while (1) {
+#ifdef NOTDEF // PDSEP
+
       // we have moved this code at the beginning of the loop, so we will
       // process signals before igen requests: this is to avoid problems when
       // an inferiorRPC is waiting for a system call to complete and an igen
@@ -515,6 +517,7 @@ void controllerMainLoop(bool check_buffer_first)
       {
          getBPatch().pollForStatusChange();
       } 
+#endif
      
       FD_ZERO(&readSet);
       FD_ZERO(&errorSet);

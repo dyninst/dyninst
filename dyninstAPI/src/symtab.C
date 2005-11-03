@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.259 2005/10/11 07:16:04 jodom Exp $
+ // $Id: symtab.C,v 1.260 2005/11/03 05:21:07 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -400,18 +400,6 @@ bool image::symbolsToFunctions(pdvector<Symbol> &mods,
 	(lookUp.name() == mainFuncSymbol.name()))
       // We already added main(), so skip it now
       continue;
-#ifdef NOTDEF
-    //  This is now done later while building the "real" maps.
-    //  We will have some duplication/aliasing while building up the raw (unclassed) map
-    // but these will be weeded out later according to the same criteria.
-    image_func *placeholder;
-    if (funcsByEntryAddr.find(lookUp.addr(), placeholder)) {
-        // We have already seen a function at this addr. add a second name
-        // for this function.
-        addMultipleFunctionNames(lookUp);
-        continue;
-    }
-#endif
 
     if (lookUp.module() == "DYNINSTheap") {
         // Do nothing for now; we really don't want to report it as
@@ -460,16 +448,6 @@ bool image::symbolsToFunctions(pdvector<Symbol> &mods,
         }
     }
   }
-
-#ifdef NOTDEF
-  // go through vector of kludge functions found and add ones that are not already def'd. 
-  for (unsigned int i = 0; i < kludge_symbols.size(); ++i) {
-    if (funcsByEntryAddr.defines(kludge_symbols[i].addr()))
-      // Already defined a symbol at this addr
-      continue;
-    addOneFunction(mods, lookUp);
-  }
-#endif
 
 #if defined(TIMED_PARSE)
   struct timeval endtime;
@@ -823,7 +801,7 @@ extern bool should_report_loops;
 //  Can't directly register call graph relationships here as resources
 //   are being defined, because need all resources defined to 
 //   do that....
-void pdmodule::define(process *proc) {
+void pdmodule::define(process * /*proc*/) {
 #ifdef DEBUG_MODS
    std::ostringstream osb(std::ios::out);
    osb << "MODS_" << exec()->name() << "__" << getpid() << std::ends;
@@ -1442,26 +1420,6 @@ void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> 
 	
          } 
       } // end N_SO section
-#ifdef NOTDEF
-      else {
-         //  This is here only to trace the parse, for my edification and knowledge, should be removed
-         //  Throw away most known symbols here
-         if ( (N_FUN != stabptr->type(i)) &&
-              (N_GSYM != stabptr->type(i)) &&
-              (N_STSYM != stabptr->type(i)) &&
-              (N_LCSYM != stabptr->type(i)) &&
-              (N_ROSYM != stabptr->type(i)) &&
-              (N_SLINE != stabptr->type(i)) &&
-              (N_SOL != stabptr->type(i)) &&
-              (N_ENTRY != stabptr->type(i)) &&
-              (N_BCOMM != stabptr->type(i)) &&
-              (N_ECOMM != stabptr->type(i))) {
-            char hexbuf[10];
-            sprintf(hexbuf, "%p",stabptr->type(i) );
-            cerr << __FILE__ << __LINE__ << ":  got " << hexbuf << endl;
-         }
-      }
-#endif
    } // for loop
 
    //  Need to make sure we finish up with the module we were last collecting information 
@@ -1652,18 +1610,6 @@ void image::setModuleLanguages(dictionary_hash<pdstring, supportedLanguages> *mo
       //  here we should probably try to guess, based on filename conventions
     }
   }
-#ifdef NOTDEF
-  // REMOVE!!  this is for debuggering
-  if (dump) {
-    dictionary_hash_iter<pdstring, supportedLanguages> iter(*mod_langs);
-    pdstring aname;
-    supportedLanguages alang;
-    cerr << __FILE__ << __LINE__ << ": contents of module<->language map:" << endl;
-    while (iter.next(aname, alang)) {
-      cerr << aname << " : " << alang << endl;
-    }
-  }
-#endif
 }
 
 int addrfunccmp( image_func*& pdf1, image_func*& pdf2 )
@@ -2104,6 +2050,7 @@ image::image(fileDescriptor &desc, bool &err)
       msg += "\n";
       logLine(msg.c_str());
       err = true;
+      fprintf(stderr, "%s[%d]:  %s\n", __FILE__, __LINE__, msg.c_str());
 #ifndef mips_unknown_ce2_11 //ccw 29 mar 2001
       
 #if defined(BPATCH_LIBRARY)

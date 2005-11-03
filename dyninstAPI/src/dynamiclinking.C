@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.C,v 1.12 2005/10/17 19:24:17 bernat Exp $
+// $Id: dynamiclinking.C,v 1.13 2005/11/03 05:21:05 jaw Exp $
 
 // Cross-platform dynamic linking functions
 
@@ -197,7 +197,7 @@ bool dynamic_linking::findChangeToLinkMaps(u_int &change_type,
       for (unsigned int i=0; i < new_descs.size(); i++) {
 	  bool found = false;
 	  for (unsigned int j = 0; j < curr_list.size(); j++) {
-#if 0
+#if 0 
               fprintf(stderr, "Comparing %s/0x%x/0x%x/%s/%d to %s/0x%x/0x%x/%s/%d\n",
                       new_descs[i].file().c_str(),
                       new_descs[i].code(),

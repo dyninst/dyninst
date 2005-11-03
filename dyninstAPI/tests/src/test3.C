@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3.C,v 1.37 2005/07/06 18:28:14 rchen Exp $
+// $Id: test3.C,v 1.38 2005/11/03 05:21:08 jaw Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -383,6 +383,7 @@ void mutatorTest2(char *pathname, BPatch *bpatch)
     // monitor the mutatee termination reports
     while (numTerminated < Mutatees) {
         bpatch->waitForStatusChange();
+        fprintf(stderr, "%s[%d]:  got status change\n", __FILE__, __LINE__);
         for (n=0; n<Mutatees; n++)
             if (!terminated[n] && (appThread[n]->isTerminated())) {
                 if(appThread[n]->terminationStatus() == ExitedNormally) {
@@ -400,6 +401,10 @@ void mutatorTest2(char *pathname, BPatch *bpatch)
                 terminated[n]=true;
 		delete appThread[n];
                 numTerminated++;
+            }
+            else if (!terminated[n] && (appThread[n]->isStopped())) {
+                fprintf(stderr, "%s[%d]:  continuing stopped process\n", __FILE__, __LINE__);
+                appThread[n]->continueExecution();
             }
     }
 
@@ -569,6 +574,10 @@ void mutatorTest3(char *pathname, BPatch *bpatch)
 		terminated[n]=true;
                 numTerminated++;
             }
+            else if (!terminated[n] && (appThread[n]->isStopped())) {
+               fprintf(stderr, "%s[%d]:  continuing stopped thread\n", __FILE__, __LINE__); 
+               appThread[n]->continueExecution();
+            }
     }
 
     // now read the files to see if the value is what is expected
@@ -623,8 +632,11 @@ void mutatorTest4(char *pathname, BPatch *bpatch)
 
         appThread->continueExecution();
 
-        while (!appThread->isTerminated())
+        while (!appThread->isTerminated()) {
+            if (appThread->isStopped())
+               appThread->continueExecution();
             bpatch->waitForStatusChange();
+        }
 
         if(appThread->terminationStatus() == ExitedNormally) {
            int exitCode = appThread->getExitCode();
@@ -671,11 +683,15 @@ void mutatorTest5(char *pathname, BPatch *bpatch)
             return;
         }
         dprintf("Mutatee %d started, pid=%d\n", n, appThread->getPid());
-
+        fprintf(stderr, "[%s]%d: Mutatee %d started, pid=%d\n", __FILE__, __LINE__,n, appThread->getPid());
+       
         appThread->continueExecution();
 
-        while (!appThread->isTerminated())
+        while (!appThread->isTerminated()) {
+            if (appThread->isStopped())
+              appThread->continueExecution();
             bpatch->waitForStatusChange();
+        }
 
         if(appThread->terminationStatus() == ExitedNormally) {
            int exitCode = appThread->getExitCode();

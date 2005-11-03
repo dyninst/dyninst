@@ -953,6 +953,7 @@ bool pd_process::getParadynRTname() {
 bool pd_process::loadAuxiliaryLibrary(pdstring libname) {
     auxLibState = libUnloaded;
 
+#ifdef NOTDEF // PDSEP
     pdvector<AstNode*> loadLibAstArgs(1);
     loadLibAstArgs[0] = new AstNode(AstNode::ConstantString, 
                 reinterpret_cast<void *>(const_cast<char *>(libname.c_str())));
@@ -977,6 +978,14 @@ bool pd_process::loadAuxiliaryLibrary(pdstring libname) {
         getSH()->checkForAndHandleProcessEvents(true);
     }
     removeAst(loadLib);
+#endif
+
+    setLibState(auxLibState, libLoading);
+    if (!dyninst_process->loadLibrary(libname.c_str())) {
+      fprintf(stderr, "%s[%d]:  failed to load library %s\n", __FILE__, __LINE__, libname.c_str());
+      assert(0);
+    }
+    setLibState(auxLibState, libLoaded);
     return true;
 }
 

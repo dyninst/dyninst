@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: api_showerror.C,v 1.20 2005/09/15 19:20:33 tlmiller Exp $
+// $Id: api_showerror.C,v 1.21 2005/11/03 05:21:05 jaw Exp $
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -49,6 +49,7 @@
 #include "util.h"
 #include "BPatch.h"
 #include "dyninstAPI/src/showerror.h"
+#include "EventHandler.h"
 
 
 void showInfoCallback(pdstring msg)
@@ -84,7 +85,7 @@ int bpfatal(const char *format, ...)
 {
   if (NULL == format) return -1;
 
-  static char errbuf[ERR_BUF_SIZE];
+  char errbuf[ERR_BUF_SIZE];
 
   va_list va;
   va_start(va, format);
@@ -100,11 +101,35 @@ int bpfatal(const char *format, ...)
   return 0;
 }
 
+
+int bpfatal_lf(const char *__file__, unsigned int __line__, const char *format, ...)
+{
+  fprintf(stderr, "%s[%d]\n", __FILE__, __LINE__);
+  if (NULL == format) return -1;
+
+  char errbuf[ERR_BUF_SIZE];
+
+  fprintf(stderr, "%s[%d]\n", __FILE__, __LINE__);
+  int header_len = sprintf(errbuf, "[%s]%s[%d]: ", getThreadStr(getExecThreadID()), __file__, __line__);
+
+  fprintf(stderr, "%s[%d]\n", __FILE__, __LINE__);
+  va_list va;
+  va_start(va, format);
+  VSNPRINTF(errbuf + header_len, ERR_BUF_SIZE,format, va);
+  va_end(va);
+
+  fprintf(stderr, "%s[%d]\n", __FILE__, __LINE__);
+  BPatch::reportError(BPatchFatal, 0, errbuf);
+
+  fprintf(stderr, "%s[%d]\n", __FILE__, __LINE__);
+  return 0;
+}
+
 int bperr(const char *format, ...)
 {
   if (NULL == format) return -1;
 
-  static char errbuf[ERR_BUF_SIZE];
+  char errbuf[ERR_BUF_SIZE];
 
   va_list va;
   va_start(va, format);
@@ -142,7 +167,7 @@ int bpwarn(const char *format, ...)
 {
   if (NULL == format) return -1;
 
-  static char errbuf[ERR_BUF_SIZE];
+  char errbuf[ERR_BUF_SIZE];
 
   va_list va;
   va_start(va, format);
@@ -162,7 +187,7 @@ int bpinfo(const char *format, ...)
 {
   if (NULL == format) return -1;
 
-  static char errbuf[ERR_BUF_SIZE];
+  char errbuf[ERR_BUF_SIZE];
 
   va_list va;
   va_start(va, format);
@@ -188,9 +213,14 @@ int dyn_debug_parsing = 0;
 int dyn_debug_forkexec = 0;
 int dyn_debug_proccontrol = 0;
 int dyn_debug_stackwalk = 0;
+int dyn_debug_dbi = 0;
 int dyn_debug_inst = 0;
 int dyn_debug_reloc = 0;
 int dyn_debug_dyn_unw = 0;
+int dyn_debug_dyn_dbi = 0;
+int dyn_debug_mutex = 0;
+int dyn_debug_mailbox = 0;
+int dyn_debug_async = 0;
 
 bool init_debug() {
   char *p;
@@ -234,6 +264,18 @@ bool init_debug() {
     fprintf(stderr, "Enabling DyninstAPI dynamic unwind debug\n");
     dyn_debug_dyn_unw = 1;
     }
+  if ( (p=getenv("DYNINST_DEBUG_DBI"))) {
+    fprintf(stderr, "Enabling DyninstAPI debugger interface debug\n");
+    dyn_debug_dyn_dbi = 1;
+    }
+  if ( (p=getenv("DYNINST_DEBUG_MUTEX"))) {
+    fprintf(stderr, "Enabling DyninstAPI mutex debug\n");
+    dyn_debug_mutex = 1;
+    }
+  if ( (p=getenv("DYNINST_DEBUG_MAILBOX"))) {
+    fprintf(stderr, "Enabling DyninstAPI callbacks debug\n");
+    dyn_debug_mailbox= 1;
+    }
   return true;
 }
 
@@ -242,6 +284,7 @@ int signal_printf(const char *format, ...)
   if (!dyn_debug_signal) return 0;
   if (NULL == format) return -1;
 
+  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
@@ -255,6 +298,7 @@ int inferiorrpc_printf(const char *format, ...)
   if (!dyn_debug_infrpc) return 0;
   if (NULL == format) return -1;
 
+  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
   va_list va;
   va_start(va, format);
 
@@ -270,6 +314,7 @@ int startup_printf(const char *format, ...)
   if (!dyn_debug_startup) return 0;
   if (NULL == format) return -1;
 
+  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
   va_list va;
   va_start(va, format);
 
@@ -285,6 +330,7 @@ int parsing_printf(const char *format, ...)
   if (!dyn_debug_parsing) return 0;
   if (NULL == format) return -1;
 
+  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
   va_list va;
   va_start(va, format);
 
@@ -300,6 +346,7 @@ int forkexec_printf(const char *format, ...)
   if (!dyn_debug_forkexec) return 0;
   if (NULL == format) return -1;
 
+  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
   va_list va;
   va_start(va, format);
 
@@ -315,6 +362,7 @@ int proccontrol_printf(const char *format, ...)
   if (!dyn_debug_proccontrol) return 0;
   if (NULL == format) return -1;
 
+  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
@@ -328,6 +376,7 @@ int stackwalk_printf(const char *format, ...)
   if (!dyn_debug_stackwalk) return 0;
   if (NULL == format) return -1;
 
+  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
@@ -343,6 +392,7 @@ int inst_printf(const char *format, ...)
   if (!dyn_debug_inst) return 0;
   if (NULL == format) return -1;
 
+  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
@@ -356,6 +406,7 @@ int reloc_printf(const char *format, ...)
   if (!dyn_debug_reloc) return 0;
   if (NULL == format) return -1;
   
+  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
@@ -369,6 +420,7 @@ int dyn_unw_printf(const char *format, ...)
   if (!dyn_debug_dyn_unw ) return 0;
   if (NULL == format) return -1;
   
+  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
   va_list va;
   va_start(va, format);
   int ret = vfprintf(stderr, format, va);
@@ -377,3 +429,58 @@ int dyn_unw_printf(const char *format, ...)
   return ret;
 }
 
+int dbi_printf(const char *format, ...)
+{
+  if (!dyn_debug_dyn_dbi ) return 0;
+  if (NULL == format) return -1;
+  
+  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  return ret;
+}
+
+int mutex_printf(const char *format, ...)
+{
+  if (!dyn_debug_mutex ) return 0;
+  if (NULL == format) return -1;
+  
+  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  return ret;
+}
+
+int mailbox_printf(const char *format, ...)
+{
+  if (!dyn_debug_mailbox ) return 0;
+  if (NULL == format) return -1;
+  
+  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  return ret;
+}
+
+int async_printf(const char *format, ...)
+{
+  if (!dyn_debug_async ) return 0;
+  if (NULL == format) return -1;
+  
+  fprintf(stderr, "[%s]", getThreadStr(getExecThreadID()));
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  return ret;
+}

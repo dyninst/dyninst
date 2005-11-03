@@ -115,6 +115,7 @@ bool dyn_thread::walkStack(pdvector<Frame> &stackWalk)
     stackWalk.clear();
     
     if (useRPCStack_) {
+        fprintf(stderr, "%s[%d]:  useRPCStack == true\n", FILE__, __LINE__);
         stackWalk = RPCstack_;
         return true;
     }

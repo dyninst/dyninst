@@ -120,6 +120,9 @@ typedef enum {
    ExitedViaSignal
 } BPatch_exitType;
 
+class EventRecord;
+class SignalHandler;
+int handleSignal(EventRecord &ev);
 /*
  * Represents a process
  */
@@ -127,7 +130,6 @@ typedef enum {
 #undef DYNINST_CLASS_NAME
 #endif
 #define DYNINST_CLASS_NAME BPatch_process
-
 class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     friend class BPatch;
     friend class BPatch_image;
@@ -144,6 +146,9 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     friend class BPatch_funcCallExpr;
     friend class BPatch_eventMailbox;
     friend class process;
+    friend class SignalHandler;
+    friend int handleSignal(EventRecord &ev);
+    friend void threadDeleteWrapper(BPatch_process *, BPatch_thread *); 
     friend bool pollForStatusChange();
     friend class AstNode; // AST needs to translate instPoint to
 		      // BPatch_point via instp_map
@@ -193,8 +198,10 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
                               void *userData,
                               bool synchronous);
 
+#ifdef NOTDEF // PDSEP
     static void deleteThreadCB(process *p, dyn_thread *thr);
     static void newThreadCB(process *p, int id, int lwp);
+#endif
     protected:
     // for creating a process
     BPatch_process(const char *path, const char *argv[], const char **envp = NULL, 

@@ -120,9 +120,10 @@ public:
 	for (unsigned int i = 0; i < sizeof(link_name); ++i) {
 	    if (!proc->readDataSpace((caddr_t)((Address)link_elm.l_name + i),
 				     sizeof(char), (caddr_t)(link_name + i), true)) {
-                fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
+                fprintf(stderr, "%s[%d]:  readDataSpace\n", FILE__, __LINE__);
 		valid = false;
 		link_name[0] = '\0';
+                assert(0);
 		return link_name;
 	    }
 	    if (link_name[i] == '\0') break;
@@ -136,8 +137,9 @@ public:
 
     bool is_last() { return (link_elm.l_next == 0); }
     bool load_next() {
-	if (is_last()) return false;
-
+	if (is_last()) {
+            return false;
+        }
 	if (load_link(reinterpret_cast<void *>(link_elm.l_next))) {
 	    loaded_name = false;
 	    return true;
@@ -147,8 +149,11 @@ public:
 
 private:
     bool load_link(void *addr) {
-	return proc->readDataSpace((caddr_t)addr, sizeof(link_elm),
+	bool ret =  proc->readDataSpace((caddr_t)addr, sizeof(link_elm),
 				   (caddr_t)&link_elm, true);
+        if (!ret)
+             assert(0);
+        return ret;
     }
     link_map_dyn32 link_elm;
 };
@@ -687,8 +692,9 @@ bool dynamic_linking::initialize() {
     
     // Set r_debug_addr
     r_debug_addr = rDebugSym.addr();
-    if (!ldsoOne.getLoadAddress())
+    if (!ldsoOne.getLoadAddress()) {
         r_debug_addr += ld_base;
+    }
     assert( r_debug_addr );
     
     /* Set dlopen_addr ("_dl_map_object"/STT_FUNC); apparently it's OK if this fails. */

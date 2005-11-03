@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: util.h,v 1.32 2005/09/01 22:18:47 bernat Exp $
+// $Id: util.h,v 1.33 2005/11/03 05:21:08 jaw Exp $
 
 #ifndef UTIL_H
 #define UTIL_H
 
+#define FILE__ strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__
 #include "common/h/headers.h"
 #include "common/h/Time.h"
 #include "common/h/Types.h"
@@ -60,6 +61,14 @@ bool isInitFirstRecordTime();
 const timeStamp &getFirstRecordTime();
 #endif
 
+#if defined (os_windows)
+#define VSNPRINTF _vsnprintf
+#define SNPRINTF _snprinf
+#else
+#define VSNPRINTF vsnprintf
+#define SNPRINTF snprinf
+#endif
+#define BPFATAL(x) bpfatal_lf(__FILE__, __LINE__, x)
 extern void logLine(const char *line);
 extern void statusLine(const char *line, bool force = false);
 extern char errorLine[];
@@ -68,6 +77,7 @@ extern int bperr(const char *format, ...);
 extern int bpwarn(const char *format, ...);
 extern int bpinfo(const char *format, ...);
 
+extern int bpfatal_lf(const char *__file__, unsigned int __line__, const char *format, ...);
 inline unsigned uiHash(const unsigned &val) {
   return val;
 }
@@ -92,28 +102,5 @@ inline unsigned intHash(const int &val) {
 
 void
 pd_log_perror(const char* msg);
-
-typedef enum { counter, procTimer, wallTimer } CTelementType;
-
-// TIMING code
-
-#if defined(sparc_sun_solaris2_4)
-
-#define MAX_N_TIMERS 10
-
-extern hrtime_t TIMINGtime1[MAX_N_TIMERS];
-extern hrtime_t TIMINGtime2[MAX_N_TIMERS]; 
-extern hrtime_t TIMINGcur[MAX_N_TIMERS];
-extern hrtime_t TIMINGtot[MAX_N_TIMERS];
-extern hrtime_t TIMINGmax[MAX_N_TIMERS];
-extern hrtime_t TIMINGmin[MAX_N_TIMERS];
-extern int TIMINGcounter[MAX_N_TIMERS];
-
-extern void begin_timing(int id);
-extern void end_timing(int id, char *func);
-
-#endif
-
-// TIMING code
 
 #endif /* UTIL_H */

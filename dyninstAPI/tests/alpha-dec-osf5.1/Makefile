@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.10 2005/07/06 18:27:40 rchen Exp $
+# $Id: Makefile,v 1.11 2005/11/03 05:21:08 jaw Exp $
 #
 # Makefile for dyninstAPI test programs on Tru64 Alpha
 #
@@ -16,8 +16,8 @@ include $(TO_CORE)/make.config
 # Now make any necessary architecture specific changes to variables:
 
 CFLAGS += -g
-CFLAGS += -pthread
-CXXFLAGS += -pthread
+CFLAGS += -pthread -mieee
+CXXFLAGS += -pthread -mieee
 MUTATEE_CFLAGS += -pthread
 MUTATEE_FFLAGS_G77 += -Dalpha_dec_osf4_0 -g
 MUTATEE_NATIVE_FFLAGS += -Dalpha_dec_osf4_0 -g

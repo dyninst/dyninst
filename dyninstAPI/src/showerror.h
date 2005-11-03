@@ -62,6 +62,10 @@ extern int dyn_debug_stackwalk;
 extern int dyn_debug_inst;
 extern int dyn_debug_relocation;
 extern int dyn_debug_dyn_unw;
+extern int dyn_debug_dyn_dbi;
+extern int dyn_debug_mutex;
+extern int dyn_debug_mailbox;
+extern int dyn_debug_async;
 
 // C++ prototypes
 #define signal_cerr       if (dyn_debug_signal) cerr
@@ -85,6 +89,10 @@ extern int stackwalk_printf(const char *format, ...);
 extern int inst_printf(const char *format, ...);
 extern int reloc_printf(const char *format, ...);
 extern int dyn_unw_printf(const char *format, ...);
+extern int dbi_printf(const char *format, ...);
+extern int mutex_printf(const char *format, ...);
+extern int mailbox_printf(const char *format, ...);
+extern int async_printf(const char *format, ...);
 
 // And initialization
 extern bool init_debug();

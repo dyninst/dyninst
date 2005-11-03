@@ -42,6 +42,8 @@
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/rpcMgr.h"
+#include "dyninstAPI/src/mailbox.h"
+#include "dyninstAPI/src/callbacks.h"
 
 rpcLWP::rpcLWP(rpcLWP *parL, rpcMgr *cM, dyn_lwp *cL) :
     mgr_(cM),
@@ -374,8 +376,8 @@ bool rpcLWP::cancelLWPIRPC(unsigned id) {
 }
 
 
-bool rpcLWP::handleCompletedIRPC() {
-
+bool rpcLWP::handleCompletedIRPC() 
+{
   inferiorrpc_cerr << "Completed lwp RPC " << runningRPC_->rpc->id << " on lwp " << lwp_->get_lwp_id() << endl;
 
     // step 1) restore registers:
@@ -414,7 +416,12 @@ bool rpcLWP::handleCompletedIRPC() {
     // step 3) invoke user callback, if any
     // call the callback function if needed
     if( cb != NULL ) {
-        (*cb)(proc, id, userData, resultValue);
+        RPCDoneCallback *rpc_cb_ptr = new RPCDoneCallback(cb);
+        RPCDoneCallback &rpc_cb = *rpc_cb_ptr;
+        rpc_cb(proc, id, userData, resultValue);
+        inferiorrpc_printf("%s[%d][%s]:  registered/exec'd callback %p\n", 
+                           FILE__, __LINE__, getThreadStr(getExecThreadID()), 
+                           (void *) (*cb));
     }
 
     // Before we continue the process: if there is another RPC,

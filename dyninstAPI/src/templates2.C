@@ -40,7 +40,7 @@
  */
 
 
-// $Id: templates2.C,v 1.56 2005/09/09 15:57:10 bernat Exp $
+// $Id: templates2.C,v 1.57 2005/11/03 05:21:08 jaw Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -149,8 +149,9 @@ template class pdvector<dictionary_hash <int, BPatch_thread *>::entry>;
 class BPatch_field;
 template class pdvector<BPatch_field *>;
 
-class procevent;
-template class pdvector<procevent *>;
+#include "EventHandler.h"
+template class pdvector<EventRecord *>;
+template class pdvector<EventRecord>;
 
 template class pdvector<pdpair<pdstring, pdvector<pdstring> *> >;
 template class dictionary_hash <pdstring, pdvector<pdstring> *>;
@@ -180,19 +181,34 @@ template class pdvector< pdpair< pdstring, pdvector< int_function * > * > >;
 
 
 
+#include "signalhandler.h"
 #include "BPatch_asyncEventHandler.h"
+#include "mailbox.h"
+#include "callbacks.h"
+#include "debuggerinterface.h"
 /* From class BPatch_asyncEventHandler */
 template class pdvector<process_record>;
 template class pdvector<BPatchSnippetHandle *>;
 template class pdvector<BPatch_function *>;
-template class pdvector<BPatchAsyncThreadEventCallback>;
-template class pdvector<BPatch_asyncEventRecord>;
+template class pdvector<eventLock::lock_stack_elem>;
+template class pdvector<EventGate *>;
+template class dictionary_hash< eventType, pdvector< CallbackBase * > >;
+template class pdvector<dictionary_hash < eventType, pdvector <CallbackBase *> >::entry>;
+
+template class pdvector<CallbackBase *>;
+template class pdvector<BPatchAsyncThreadEventCallback *>;
+template class pdvector<AsyncThreadEventCallback *>;
 template class pdvector<dyncall_cb_record>;
 template class pdvector<thread_event_cb_record>;
 template class pdvector<dyncall_cb_record *>;
-template class pdvector<user_event_cb_record>;
-template class pdvector<BPatch_eventMailbox::mb_callback_t>;
-
+template class pdvector<void (*)()>;
+template class pdvector<void *>;
+template class pdvector<eventType>;
+template class pdvector< pdpair<unsigned long, const char *> >;
+#if defined (os_linux)
+template class pdvector<SignalHandler::stopping_proc_rec>;
+template class pdvector<dyn_lwp *>;
+#endif
 #if defined( arch_ia64 )
 class int_basicBlock;
 #include <list>

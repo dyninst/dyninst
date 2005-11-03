@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.81 2005/10/14 16:37:48 legendre Exp $
+// $Id: linux-x86.C,v 1.82 2005/11/03 05:21:06 jaw Exp $
 
 #include <fstream>
 
@@ -87,6 +87,7 @@
 
 #include "dyninstAPI/src/addLibraryLinux.h"
 #include "dyninstAPI/src/writeBackElf.h"
+#include "dyninstAPI/src/debuggerinterface.h"
 //#include "saveSharedLibrary.h" 
 
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
@@ -127,12 +128,13 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs) {
    int error;
    bool errorFlag = false;
    assert(get_lwp_id() != 0);
-   error = P_ptrace(PTRACE_GETREGS, get_lwp_id(), 0, (long)&(regs->gprs) );
+   int ptrace_errno = 0;
+   error = DBI_ptrace(PTRACE_GETREGS, get_lwp_id(), 0, (long)&(regs->gprs), &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__ );
    if( error ) {
       perror("dyn_lwp::getRegisters PTRACE_GETREGS" );
       errorFlag = true;
    } else {
-      error = P_ptrace(PTRACE_GETFPREGS, get_lwp_id(), 0, (long)&(regs->fprs));
+      error = DBI_ptrace(PTRACE_GETFPREGS, get_lwp_id(), 0, (long)&(regs->fprs), &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__);
       if( error ) {
          perror("dyn_lwp::getRegisters PTRACE_GETFPREGS" );
          errorFlag = true;
@@ -150,7 +152,8 @@ bool dyn_lwp::changePC(Address loc,
 {
    Address regaddr = offsetof(struct user_regs_struct, PTRACE_REG_IP);
    assert(get_lwp_id() != 0);
-   if (0 != P_ptrace(PTRACE_POKEUSER, get_lwp_id(), regaddr, loc )) {
+   int ptrace_errno = 0;
+   if (0 != DBI_ptrace(PTRACE_POKEUSER, get_lwp_id(), regaddr, loc, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__ )) {
       perror( "dyn_lwp::changePC - PTRACE_POKEUSER" );
       return false;
    }
@@ -161,7 +164,8 @@ bool dyn_lwp::changePC(Address loc,
 bool dyn_lwp::clearOPC() {
    Address regaddr = offsetof(struct user_regs_struct, PTRACE_REG_ORIG_AX);
    assert(get_lwp_id() != 0);
-   if (0 != P_ptrace(PTRACE_POKEUSER, get_lwp_id(), regaddr, -1UL)) {
+   int ptrace_errno = 0;
+   if (0 != DBI_ptrace(PTRACE_POKEUSER, get_lwp_id(), regaddr, -1UL, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__)) {
       perror( "dyn_lwp::changePC - PTRACE_POKEUSER" );
       return false;
    }
@@ -169,8 +173,12 @@ bool dyn_lwp::clearOPC() {
 }
 
 static bool changeBP(int pid, Address loc) {
+   process *p = process::findProcess(pid);
+   assert (p);
+   int width = p->getAddressWidth();
    Address regaddr = offsetof(struct user_regs_struct, PTRACE_REG_BP);
-   if (0 != P_ptrace(PTRACE_POKEUSER, pid, regaddr, loc )) {
+   int ptrace_errno = 0;
+   if (0 != DBI_ptrace(PTRACE_POKEUSER, pid, regaddr, loc, &ptrace_errno, width,  __FILE__, __LINE__ )) {
       perror( "process::changeBP - PTRACE_POKEUSER" );
       return false;
    }
@@ -212,16 +220,17 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs) {
    // buffer with ptrace(PTRACE_POKEUSER ...
 
    bool retVal = true;
+   int ptrace_errno = 0;
    
 
    assert(get_lwp_id() != 0);
-   if( P_ptrace( PTRACE_SETREGS, get_lwp_id(), 0, (long)&(regs.gprs)))
+   if( DBI_ptrace( PTRACE_SETREGS, get_lwp_id(), 0,(long)&(regs.gprs), &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__ ) )
    {
       perror("dyn_lwp::restoreRegisters PTRACE_SETREGS" );
       retVal = false;
    }
    
-   if( P_ptrace( PTRACE_SETFPREGS, get_lwp_id(), 0, (long)&(regs.fprs)))
+   if( DBI_ptrace( PTRACE_SETFPREGS, get_lwp_id(), 0, (long)&(regs.fprs), &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__))
    {
       perror("dyn_lwp::restoreRegisters PTRACE_SETFPREGS" );
       retVal = false;
@@ -234,21 +243,25 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs) {
 Frame dyn_lwp::getActiveFrame()
 {
    if(status() == running) {
+   fprintf(stderr, "%s[%d][%s]:  FIXME\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
       cerr << "    performance problem in call to dyn_lwp::getActiveFrame\n"
            << "       successive pauses and continues with ptrace calls\n";
    }
 
    Address pc, fp, sp;
 
-   errno = 0;
-   fp = deliverPtraceReturn(PTRACE_PEEKUSER, offsetof(struct user_regs_struct, PTRACE_REG_BP), 0);
-   if (errno) return Frame();
+   int ptrace_errno = 0;
+   fp = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(), offsetof(struct user_regs_struct, PTRACE_REG_BP), 0, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__);
+   if (ptrace_errno) return Frame();
 
-   pc = deliverPtraceReturn(PTRACE_PEEKUSER, offsetof(struct user_regs_struct, PTRACE_REG_IP), 0);
-   if (errno) return Frame();
+   pc = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(), offsetof(struct user_regs_struct, PTRACE_REG_IP), 0, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__);
+   if (ptrace_errno) return Frame();
 
-   sp = deliverPtraceReturn(PTRACE_PEEKUSER, offsetof(struct user_regs_struct, PTRACE_REG_SP), 0);
-   if (errno) return Frame();
+   sp = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(), offsetof(struct user_regs_struct, PTRACE_REG_SP), 0, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__);
+   if (ptrace_errno) return Frame();
+
+   dbi_printf("%s[%d]:  GET ACTIVE FRAME (pc = %p, sp = %p, fp = %p\n", 
+              FILE__, __LINE__, pc, sp, fp);
 
    return Frame(pc, fp, sp, proc_->getPid(), proc_, NULL, this, true);
 }
@@ -256,16 +269,20 @@ Frame dyn_lwp::getActiveFrame()
 // MT problem FIXME
 
 Address getPC(int pid) {
+   process *p = process::findProcess(pid);
+   assert(p);
+   int width = p->getAddressWidth();
    Address regaddr = offsetof(struct user_regs_struct, PTRACE_REG_IP);
-   long res;
-   res = P_ptrace (PTRACE_PEEKUSER, pid, regaddr, 0);
-   if(errno == ESRCH) { //ccw 6 sep 2002
+   int res;
+   int ptrace_errno = 0;
+   res = DBI_ptrace (PTRACE_PEEKUSER, pid, regaddr, 0, &ptrace_errno, width,  FILE__, __LINE__);
+   if(ptrace_errno == ESRCH) { //ccw 6 sep 2002
       //pause and try again, let the mutatee have time
       //to ptrace(TRACEME)
       sleep(2);
-      res = P_ptrace (PTRACE_PEEKUSER, pid, regaddr, 0);
+      res = DBI_ptrace (PTRACE_PEEKUSER, pid, regaddr, 0, &ptrace_errno, width,  FILE__, __LINE__);
    }
-   if( errno ) {
+   if( ptrace_errno ) {
       perror( "getPC" );
       return 0; // Shut up the compiler
    } else {
@@ -368,6 +385,8 @@ bool process::insertTrapAtEntryPointOfMain()
     // save original instruction first
     if (!readDataSpace((void *)addr, sizeof(savedCodeBuffer), savedCodeBuffer, true)) {
         fprintf(stderr, "%s[%d]:  readDataSpace\n", __FILE__, __LINE__);
+        fprintf(stderr, "%s[%d][%s]:  failing insertTrapAtEntryPointOfMain\n",
+            __FILE__, __LINE__, getThreadStr(getExecThreadID()));
         fprintf(stderr, "Failed to read at address 0x%lx\n", addr);
         return false;
     }
@@ -375,9 +394,11 @@ bool process::insertTrapAtEntryPointOfMain()
     codeGen gen(1);
     instruction::generateTrap(gen);
     
-    if (!writeDataSpace((void *)addr, gen.used(), gen.start_ptr()))
+    if (!writeDataSpace((void *)addr, gen.used(), gen.start_ptr())) {
+        fprintf(stderr, "%s[%d][%s]:  failing insertTrapAtEntryPointOfMain\n",
+            __FILE__, __LINE__, getThreadStr(getExecThreadID()));
         return false;
-
+    }
     
     main_brk_addr = addr;
 
@@ -1289,7 +1310,9 @@ Address dyn_lwp::readRegister(Register /*reg*/) {
            << "       successive pauses and continues with ptrace calls\n";
    }
 
-   long ret = deliverPtraceReturn(PTRACE_PEEKUSER, offsetof(struct user_regs_struct, PTRACE_REG_AX), 0);
+   int ptrace_errno = 0;
+   int ret = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(), offsetof(struct user_regs_struct, PTRACE_REG_AX), 0,
+                        &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__);
    return (Address)ret;
 }
 

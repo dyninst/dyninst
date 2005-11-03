@@ -39,13 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.186 2005/09/09 18:07:07 legendre Exp $
+// $Id: symtab.h,v 1.187 2005/11/03 05:21:07 jaw Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
-//#define REGEX_CHARSET "^*[]|?"
 #define REGEX_CHARSET "^*|?"
-extern "C" {
+
 #include <sys/types.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -53,7 +52,6 @@ extern "C" {
 #if !defined(i386_unknown_nt4_0) && !defined(mips_unknown_ce2_11)
 #include <regex.h>
 #endif
-}
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"

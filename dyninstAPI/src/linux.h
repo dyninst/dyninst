@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.19 2005/08/08 20:23:34 gquinn Exp $
+// $Id: linux.h,v 1.20 2005/11/03 05:21:06 jaw Exp $
 
 #if !defined(i386_unknown_linux2_0) \
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
@@ -88,16 +88,6 @@ Address getPC( int );
 bool changePC( int pid, Address loc );
 void printRegs( void *save );
 Address findFunctionToHijack(process *p);
-
-class ptraceKludge {
-private:
-  static bool haltProcess(process *p);
-  static void continueProcess(process *p, const bool halted);
-
-public:
-  static bool deliverPtrace(process *p, int req, Address addr, Address data);
-  static int deliverPtraceReturn(process *p, int req, Address addr, Address data);
-};
 
 #include "linux-signals.h"
 

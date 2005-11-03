@@ -64,6 +64,7 @@
 #else
 #include <assert.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <sys/types.h>
 #endif
 
@@ -106,6 +107,8 @@ class vec_stdalloc {
       // no need to assert(result) for the kernel due to KM_SLEEP flag
 #else
       T* result = (T*)malloc(nbytes);
+      if (!result)
+        fprintf(stderr, "%s[%d]:  attempt to alloc %d bytes failed\n", __FILE__, __LINE__, nbytes);
       assert(result);
 #endif
 
@@ -448,6 +451,9 @@ void pdvector<T, A>::sort(qsort_cmpfunc_t cmpfunc) {
 template<class T, class A>
 DO_INLINE_F
 void pdvector<T, A>::shrink(unsigned newsize) {
+   if (newsize >= sz_) {
+     fprintf(stderr, "%s[%d]:  FAILING:  cannot shrink %d to %d\n", __FILE__, __LINE__, sz_, newsize);
+   }
    assert(newsize < sz_);
    deconstruct_items(begin() + newsize, end());
    sz_ = newsize;
@@ -490,7 +496,8 @@ void pdvector<T, A>::erase(unsigned start, unsigned end) {
     while(copyIndex<origSz) {
         data_[emptyIndex++] = data_[copyIndex++];
     }
-    resize(origSz - (end - start + 1));
+    /*resize(origSz - (end - start + 1)); */
+    shrink(origSz - (end - start + 1));
 }
 
 template<class T, class A>

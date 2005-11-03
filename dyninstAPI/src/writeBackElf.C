@@ -40,7 +40,7 @@
  */
 
 /* -*- Mode: C; indent-tabs-mode: true -*- */
-/* $Id: writeBackElf.C,v 1.26 2005/10/04 18:10:19 legendre Exp $ */
+/* $Id: writeBackElf.C,v 1.27 2005/11/03 05:21:08 jaw Exp $ */
 
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
@@ -211,7 +211,7 @@ void writeBackElf::driver(){
 	Elf32_Shdr *newsh, *shdr;
 	Elf_Scn *scn, *newScn; 
         Elf32_Ehdr *ehdr ;//= elf32_getehdr(oldElf);
-	Elf_Data *data, *newdata, *olddata;
+	Elf_Data *data = NULL, *newdata = NULL, *olddata = NULL;
 
 	ehdr = elf32_getehdr(oldElf);
 	if(!(newEhdr = elf32_newehdr(newElf))){

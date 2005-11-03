@@ -616,7 +616,7 @@ void BPatch_typeCommon::endCommonBlock(BPatch_function *func, void *baseAddr) {
     // create local variables in func's scope for each field of common block
     for (j=0; j < fieldList.size(); j++) {
 	BPatch_localVar *locVar;
-	locVar = new BPatch_localVar((char *) fieldList[j]->getName(), 
+	locVar = new BPatch_localVar(const_cast<char *>( fieldList[j]->getName()), 
 				     fieldList[j]->getType(), 0, 
 				     fieldList[j]->getOffset()+(Address) baseAddr,
 				     -1, BPatch_storageAddr);

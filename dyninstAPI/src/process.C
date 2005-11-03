@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.558 2005/10/21 21:48:18 legendre Exp $
+// $Id: process.C,v 1.559 2005/11/03 05:21:06 jaw Exp $
 
 #include <ctype.h>
 
@@ -60,6 +60,8 @@
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/signalhandler.h"
+#include "dyninstAPI/src/mailbox.h"
+#include "dyninstAPI/src/EventHandler.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/inst.h"
@@ -68,8 +70,10 @@
 #include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/callbacks.h"
 #include "dyninstAPI/src/dynamiclinking.h"
 #include "dyninstAPI/src/BPatch_asyncEventHandler.h"
+#include "dyninstAPI/src/debuggerinterface.h"
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 // #include "paradynd/src/mdld.h"
 #include "common/h/Timer.h"
@@ -126,7 +130,6 @@ unsigned activeProcesses; // number of active processes
 pdvector<process*> processVec;
 
 
-extern BPatch_eventMailbox *event_mailbox;
 #ifndef BPATCH_LIBRARY
 extern pdstring osName;
 #endif
@@ -213,9 +216,10 @@ bool process::walkStackFromFrame(Frame startFrame,
 
   Frame currentFrame = startFrame;
   
-  if (!isStopped())
+  if (!isStopped()) {
+      fprintf(stderr, "%s[%d]:  walkStackFromFrame failing\n", FILE__, __LINE__);
       return false;
-
+  }
 #ifndef BPATCH_LIBRARY
   startTimingStackwalk();
 #endif
@@ -269,20 +273,21 @@ bool process::walkStackFromFrame(Frame startFrame,
         break;
 #else
         // We should check to see if this early exit is warranted.
+        fprintf(stderr, "%s[%d]:  failing stackWalk here\n", FILE__, __LINE__);
         return false;
 #endif
     }
 #endif
     fpOld = fpNew;
-    
     stackWalk.push_back(currentFrame);    
     currentFrame = currentFrame.getCallerFrame(); 
   }
   // Clean up after while loop (push end frame)
   // FIXME: get LastFrame on AMD64 des not work the same as on other platforms
   //        since the FP is not always zero
-  if (currentFrame.getProc() != NULL)
+  if (currentFrame.getProc() != NULL) {
       stackWalk.push_back(currentFrame);
+  }
 
 #ifndef BPATCH_LIBRARY
   stopTimingStackwalk();
@@ -896,8 +901,10 @@ void process::saveWorldCreateHighMemSections(
    	readDataSpace((void*) guardFlagAddr, sizeof(unsigned int),
                  (void*) &trampGuardValue, true);
    
-   	writeDataSpace((void*)guardFlagAddr, sizeof(unsigned int),
+   	bool err = writeDataSpace((void*)guardFlagAddr, sizeof(unsigned int),
                   (void*) &numberUpdates);
+        if (!err) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
+        assert(err);
 
 	saveWorldData((Address) guardFlagAddr,sizeof(unsigned int), &numberUpdates); //ccw 6 jul 2003
 
@@ -985,8 +992,10 @@ void process::saveWorldCreateHighMemSections(
       //lastCompactedUpdateAddress = compactedHighmemUpdates[j]->address+1;
       delete [] (char*) data;
    }
-   writeDataSpace((void*)guardFlagAddr, sizeof(unsigned int), 
+   err = writeDataSpace((void*)guardFlagAddr, sizeof(unsigned int), 
                   (void*)&trampGuardValue);
+   if (!err) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
+        assert(err);
 }
 
 void process::saveWorldCreateDataSections(void* ptr){
@@ -1243,12 +1252,17 @@ typedef struct {
   void *result;
 } imd_rpc_ret;
 
-void process::inferiorMallocCallback(process * /*proc*/, unsigned /* rpc_id */,
+bool inferiorMallocCallbackFlag = false;
+void process::inferiorMallocCallback(process * /*p proc*/, unsigned /* rpc_id */,
                                      void *data, void *result)
 {
+  global_mutex->_Lock(__FILE__, __LINE__);
+  inferiorrpc_printf("%s[%d]:  inside inferior malloc callback\n", __FILE__, __LINE__);
   imd_rpc_ret *ret = (imd_rpc_ret *)data;
   ret->result = result;
   ret->ready = true;
+  inferiorMallocCallbackFlag = true;
+  global_mutex->_Unlock(__FILE__, __LINE__);
 }
 
 void alignUp(int &val, int align)
@@ -1270,11 +1284,13 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
     * #if !defined(mips..., but should be properly fixed in the future, just
     * no time now
     */
+   inferiorrpc_printf("%s[%d]:  welcome to inferiorMallocDynamic\n", __FILE__, __LINE__);
 #if !defined(mips_sgi_irix6_4)
   // Fun (not) case: there's no space for the RPC to execute.
   // It'll call inferiorMalloc, which will call inferiorMallocDynamic...
   // Avoid this with a static bool.
   if (inInferiorMallocDynamic) {
+      fprintf(stderr, "%s[%d]:  recursion guard\n", __FILE__, __LINE__);
       return;
   }
   inInferiorMallocDynamic = true;
@@ -1297,6 +1313,7 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
   // issue RPC and wait for result
   imd_rpc_ret ret = { false, NULL };
 
+ 
   /* set lowmem to ensure there is space for inferior malloc */
   getRpcMgr()->postRPCtoDo(code, true, // noCost
                            &inferiorMallocCallback, &ret, 
@@ -1304,11 +1321,31 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
                            NULL, NULL); // process-wide
   bool wasRunning = (status() == running);
 
+  // Specify that we want to wait for a RPCDone event
+  eventType res = evtUndefined;
+
+  inferiorMallocCallbackFlag = false;
   do {
-      getRpcMgr()->launchRPCs(wasRunning);
-      if(hasExited()) return;
-      getSH()->checkForAndHandleProcessEvents(false);
-   } while (!ret.ready); // Loop until callback has fired.
+     getRpcMgr()->launchRPCs(wasRunning);
+     getMailbox()->executeCallbacks(FILE__, __LINE__);
+
+     if(hasExited()) {
+        fprintf(stderr, "%s[%d]:  BAD NEWS, process has exited\n", __FILE__, __LINE__);
+        return;
+     }
+    if (inferiorMallocCallbackFlag) {
+       break;
+     }
+
+     inferiorrpc_printf("%s[%d][%s]:  before wait for RPCDone, status == running is %s\n", 
+                        FILE__, __LINE__, getThreadStr(getExecThreadID()), 
+                        status() == running ? "true" : "false");
+
+     res = getSH()->waitForEvent(evtRPCDone);
+     getMailbox()->executeCallbacks(FILE__, __LINE__);
+   } while (res != evtRPCDone); // Loop until callback has fired.
+
+  inferiorMallocCallbackFlag = false;
 
    switch ((int)(Address)ret.result) {
      case 0:
@@ -1407,6 +1444,7 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 	   lo = ADDRESS_LO;
 	   hi = ADDRESS_HI;
 	   if (err) {
+              fprintf(stderr, "%s[%d]: ERROR!\n", __FILE__, __LINE__);
 	      *err = true;
 	   }
 	   break;
@@ -1430,6 +1468,7 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 		   "freed, %d bytes requested \n", hp->freed, size);
 	   logLine(errorLine);
 	   showErrorCallback(66, (const char *) errorLine);    
+              fprintf(stderr,"%s[%d]: ERROR!\n", __FILE__, __LINE__);
 #if defined(BPATCH_LIBRARY)
 	   return(0);
 #else
@@ -1441,6 +1480,7 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
    }
 
    // adjust active and free lists
+   assert(freeIndex != -1);
    heapItem *h = hp->heapFree[freeIndex];
    assert(h);
 
@@ -1745,8 +1785,8 @@ process::~process()
         assert(!isAttached());
 
 #if defined( ia64_unknown_linux2_4 )
-	if( unwindProcessArg != NULL ) { _UPT_destroy( unwindProcessArg ); }
-	if( unwindAddressSpace != NULL ) { unw_destroy_addr_space( unwindAddressSpace ); }
+	if( unwindProcessArg != NULL ) { getDBI()->UPTdestroy( unwindProcessArg ); }
+	if( unwindAddressSpace != NULL ) { getDBI()->destroyUnwindAddressSpace( unwindAddressSpace ); }
 #endif
     
     // Most of the deletion is encapsulated in deleteProcess
@@ -1871,6 +1911,7 @@ bool process::setupCreated(int iTraceLink) {
     
 #if !defined(BPATCH_LIBRARY)
     if (iTraceLink == -1 ) {
+        fprintf(stderr, "%s[%d]:  setting attachedToCreated\n", FILE__, __LINE__);
         creationMechanism_ = attachedToCreated_cm;
     }
 #endif
@@ -2026,13 +2067,18 @@ bool process::finishExec() {
     if (!res)
         return false;
     
+    getMailbox()->executeCallbacks(FILE__, __LINE__);
     while(!reachedBootstrapState(bootstrapped_bs)) {
         // We're waiting for something... so wait
         // true: block until a signal is received (efficiency)
         if(hasExited()) {
             return false;
         }
-        getSH()->checkForAndHandleProcessEvents(true);
+        fprintf(stderr, "%s[%d][%s]:  before waitForEvent(evtProcessInitDone)\n", 
+                FILE__, __LINE__, getThreadStr(getExecThreadID()));
+
+        getSH()->waitForEvent(evtProcessInitDone);
+        getMailbox()->executeCallbacks(FILE__, __LINE__);
     }
     
     if(process::IndependentLwpControl())
@@ -2300,12 +2346,12 @@ bool process::setupGeneral() {
     initInferiorHeap();
 
 #if defined(os_aix)
-    procevent ev;
+    EventRecord ev;
     ev.proc = this;
-    ev.why = procSignalled;
+    ev.type = evtSignalled;
     ev.what = HACKSTATUS;
     ev.info = 0;
-    getSH()->handleProcessEvent(ev);
+    getSH()->handleSignal(ev);
 #endif
         
 
@@ -2324,7 +2370,8 @@ bool process::setupGeneral() {
            return false;
        }
        startup_printf("Checking for process event...\n");
-       getSH()->checkForAndHandleProcessEvents(true);
+       getSH()->waitForEvent(evtProcessInitDone);
+       getMailbox()->executeCallbacks(FILE__, __LINE__);
     }
 
     if(process::IndependentLwpControl())
@@ -2402,12 +2449,6 @@ static void cleanupBPatchHandle(int pid)
    BPatch::bpatch->unRegisterProcess(pid);
 }
 
-extern bool forkNewProcess(pdstring &file, pdstring dir,
-                           pdvector<pdstring> *argv, pdvector<pdstring> *envp,
-			   pdstring inputFile,
-                           pdstring outputFile, int &traceLink, int &pid,
-                           int &tid, int &procHandle, int &thrHandle,
-                           int stdin_fd, int stdout_fd, int stderr_fd);
 
 /*
  * Create a new instance of the named process.  Read the symbols and start
@@ -2417,6 +2458,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
 			  pdvector<pdstring> *envp, const pdstring dir = "",
 			  int stdin_fd=0, int stdout_fd=1, int stderr_fd=2)
 {
+
 	// prepend the directory (if any) to the filename,
 	// unless the filename is an absolute pathname
 	// 
@@ -2520,13 +2562,13 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
     stat_result = stat(file.c_str(), &file_stat);
     
     if(stat_result == -1) {
+        startup_printf("%s[%d]:  failed to read file %s\n", __FILE__, __LINE__, file.c_str());
         pdstring msg = pdstring("Can't read executable file ") + file + (": ") + strerror(errno);
         showErrorCallback(68, msg.c_str());
         return(NULL);
     }
 
-
-    if (!forkNewProcess(file, dir, argv, envp, inputFile, outputFile,
+    if (!getDBI()->forkNewProcess(file, dir, argv, envp, inputFile, outputFile,
                         traceLink, pid, tid, procHandle_temp, thrHandle_temp,
                         stdin_fd, stdout_fd, stderr_fd)) {
         // forkNewProcess is responsible for displaying error messages
@@ -2535,6 +2577,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
        fprintf(stderr, "[%s:%u] - Couldn't fork\n", __FILE__, __LINE__);
        return NULL;
     }
+
     startup_cerr << "Fork new process... succeeded" << endl;
 
 #ifdef BPATCH_LIBRARY
@@ -2595,7 +2638,6 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
         delete theProc;
         return NULL;
     }
-
 
     // Let's try to profile memory usage
 #if defined(PROFILE_MEM_USAGE)
@@ -2753,9 +2795,9 @@ process *ll_attachToCreatedProcess(int pid, const pdstring &progpath)
 
 #if !defined(os_windows)    
     // Now, fake a trap signal and off to setupGeneral
-    procevent event;
-    event.proc = theProc;
-    bool res = handleSigTrap(event);
+    EventRecord ev;
+    ev.proc = theProc;
+    bool res = getSH()->handleSigTrap(ev);
     assert(res);
 #endif
 
@@ -2813,16 +2855,26 @@ process *ll_attachToCreatedProcess(int pid, const pdstring &progpath)
 // is both loaded and initialized.
 // Return val: false=error condition
 
+bool finalizeDyninstLibWrapper(process *proc)
+{
+  bool ret = proc->finalizeDyninstLib();
+  if (!ret) 
+    startup_printf("%s[%d]:  failed to finalize dyninst lib\n", __FILE__, __LINE__);
+  return ret;
+}
+
 bool process::loadDyninstLib() {
   startup_printf("Entry to loadDyninstLib\n");
-  // Wait for the process to get to an initialized (dlopen exists)
-  // state
-  while (!reachedBootstrapState(initialized_bs)) {
+    // Wait for the process to get to an initialized (dlopen exists)
+    // state
+    while (!reachedBootstrapState(initialized_bs)) {
       startup_printf("Waiting for process to reach initialized state...\n");
-      if(hasExited()) {
-          return false;
-      }
-      getSH()->checkForAndHandleProcessEvents(true);
+       if(hasExited()) {
+           return false;
+       }
+       getMailbox()->executeCallbacks(FILE__, __LINE__);
+       getSH()->waitForEvent(evtProcessInit);
+       getMailbox()->executeCallbacks(FILE__, __LINE__);
     }
     assert (isStopped());
     startup_printf("Stopped at entry of main\n");
@@ -2903,8 +2955,9 @@ bool process::loadDyninstLib() {
             startup_printf("Odd, process exited while waiting for Dyninst RT lib load\n");
             return false;
         }
-        getSH()->checkForAndHandleProcessEvents(true);
+        getSH()->waitForEvent(evtProcessLoadedRT);
     }
+    getMailbox()->executeCallbacks(FILE__, __LINE__);
     // We haven't inserted a trap at dlopen yet (as we require the runtime lib for that)
     // So re-check all loaded libraries (and add to the list gotten earlier)
     // We force a compare even though the PC is not at the correct address.
@@ -2914,7 +2967,7 @@ bool process::loadDyninstLib() {
 
     // Make sure the library was actually loaded
     if (!runtime_lib) {
-        cerr << "Don't have runtime library handle" << endl;
+        fprintf(stderr, "%s[%d]:  Don't have runtime library handle\n", __FILE__, __LINE__);
         return false;
     }
     
@@ -2930,11 +2983,13 @@ bool process::loadDyninstLib() {
     buffer = pdstring("PID=") + pdstring(pid);
     buffer += pdstring(", finalizing RT library");
     statusLine(buffer.c_str());    
+    startup_printf("(%d) finalizing dyninst RT library\n", getPid());
 
-    startup_printf("finalizing dyninst RT library\n");
-    int result = finalizeDyninstLib();
+    BootstrapCallback *newcb = new BootstrapCallback(finalizeDyninstLibWrapper);
+    BootstrapCallback &cb = *newcb;
+    cb(this);
 
-    if (!result) {
+    if (!reachedBootstrapState(bootstrapped_bs)) {
         // For some reason we haven't run dyninstInit successfully.
         // Probably because we didn't set parameters before 
         // dyninstInit was automatically run. Catchup with
@@ -3028,7 +3083,9 @@ bool process::setDyninstLibInitParams() {
 
 // Callback for the above
 void process::dyninstLibLoadCallback(process *p, pdstring /*ignored*/, 
-                                     mapped_object *libobj, void * /*ignored*/) {
+                                     mapped_object *libobj, void * /*ignored*/) 
+{
+    startup_printf("%s[%d]:  welcome to dyninstLibLoadCallback\n", __FILE__, __LINE__);
     p->setDyninstLibPtr(libobj);
     p->setDyninstLibInitParams();
 }
@@ -3073,10 +3130,15 @@ bool process::iRPCDyninstInit() {
     // We loop until dyninst init has run (check via the callback)
     while (!reachedBootstrapState(bootstrapped_bs)) {
         getRpcMgr()->launchRPCs(false); // false: not running
-        if(hasExited())
+        if(hasExited()) {
+            fprintf(stderr, "%s[%d][%s]:  unexpected exit\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
            return false;
-        getSH()->checkForAndHandleProcessEvents(true);
+        }
+        getMailbox()->executeCallbacks(FILE__, __LINE__);
+        getSH()->waitForEvent(evtRPCDone);
+        getMailbox()->executeCallbacks(FILE__, __LINE__);
     }
+    startup_printf("%s[%d][%s]:  bootstrapped\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
     startup_printf("[%s:%u] - Ran DYNINSTinit via irpc\n", __FILE__, __LINE__);
     return true;
 }
@@ -3106,6 +3168,7 @@ bool process::attach() {
    // Fork calls attach() but is probably past this; silencing warning
    if (!reachedBootstrapState(attached_bs))
        setBootstrapState(attached_bs);
+   getSH()->signalActiveProcess();
    startup_printf("[%d]: setting process flags\n", getPid());
    return setProcessFlags();
 }
@@ -3115,12 +3178,16 @@ void process::DYNINSTinitCompletionCallback(process* theProc,
                                             void* /*userData*/, // user data
                                             void* /*ret*/) // return value from DYNINSTinit
 {
+    startup_printf("%s[%d][%s]:  about to finalize Dyninst Lib\n", __FILE__, __LINE__,getThreadStr(getExecThreadID()));
     theProc->finalizeDyninstLib();
 }
 
 // Callback: finish mutator-side processing for dyninst lib
 
 bool process::finalizeDyninstLib() {
+   startup_printf("%s[%d]:  isAttached() = %s\n", __FILE__, __LINE__, isAttached() ? "true" : "false");
+   startup_printf("%s[%d]: %s\n", __FILE__, __LINE__, getStatusAsString().c_str());
+   
     assert (isStopped());
     if (reachedBootstrapState(bootstrapped_bs)) {
         return true;
@@ -3224,8 +3291,10 @@ bool process::finalizeDyninstLib() {
        statusLine(str.c_str());
    }
 
+   startup_printf("%s[%d]:  bootstrap done\n", __FILE__, __LINE__);
    // Ready to rock
    setBootstrapState(bootstrapped_bs);
+   getSH()->signalEvent(evtProcessInitDone);
 
    return true;
 }
@@ -3517,12 +3586,40 @@ dyn_lwp *process::query_for_stopped_lwp() {
             break;
          }
       }
-      if(foundLWP == NULL  &&  getRepresentativeLWP() != NULL)
+      if(foundLWP == NULL  &&  getRepresentativeLWP() != NULL) {
          if(getRepresentativeLWP()->status() == stopped ||
             getRepresentativeLWP()->status() == neonatal)
             foundLWP = getRepresentativeLWP();
+      }
    } else {
       if(this->status() == stopped || this->status() == neonatal) {
+         foundLWP = getRepresentativeLWP();
+      }
+   }
+
+   return foundLWP;
+}
+
+dyn_lwp *process::query_for_running_lwp() {
+   dyn_lwp *foundLWP = NULL;
+   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
+   dyn_lwp *lwp;
+   unsigned index;
+
+   if(IndependentLwpControl()) {
+      while (lwp_iter.next(index, lwp)) {
+         if(lwp->status() == running || lwp->status() == neonatal) {
+            foundLWP = lwp;
+            break;
+         }
+      }
+      if(foundLWP == NULL  &&  getRepresentativeLWP() != NULL) {
+         if(getRepresentativeLWP()->status() == running ||
+            getRepresentativeLWP()->status() == neonatal)
+            foundLWP = getRepresentativeLWP();
+      }
+   } else {
+      if(this->status() == running || this->status() == neonatal) {
          foundLWP = getRepresentativeLWP();
       }
    }
@@ -3581,13 +3678,18 @@ bool process::terminateProc() {
 
    switch (retVal) {
    case terminateSucceeded:
+     {
      // handle the kill signal on the process, which will dispatch exit callback
-     getSH()->checkForAndHandleProcessEvents(true);
+      fprintf(stderr, "%s[%d][%s]:  before waitForEvent(evtProcessExit)\n", 
+              FILE__, __LINE__, getThreadStr(getExecThreadID()));
+      getSH()->waitForEvent(evtProcessExit);
      return true;
+     }
      break;
    case alreadyTerminated:
      // don't try to consume a signal (since we can't), 
      // just set process status to exited
+     fprintf(stderr, "%s[%d]:  setting status to exited\n", __FILE__, __LINE__);
      set_status(exited);
      return true;
      break;
@@ -3619,6 +3721,7 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
          pdstring msg =
             pdstring("System error: unable to write to process data "
                      "space (WDS): couldn't stop an lwp\n");
+         fprintf(stderr, "%s[%d]:  stop_an_lwp failed\n", __FILE__, __LINE__);
          showErrorCallback(38, msg);
          return false;
       }
@@ -3631,6 +3734,7 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
        cerr << endl;
        pdstring msg = pdstring("System error: unable to write to process data "
                                "space (WDS):") + pdstring(strerror(errno));
+         fprintf(stderr, "%s[%d]:  wds failed\n", __FILE__, __LINE__);
        showErrorCallback(38, msg);
        return false;
    }
@@ -3646,10 +3750,10 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
    bool needToCont = false;
 
    if (!isAttached()) {
-       fprintf(stderr, "not attached\n");
-       return false;
+      fprintf(stderr, "%s[%d][%s]:  readDataSpace() failing, not attached\n",
+             __FILE__, __LINE__, getThreadStr(getExecThreadID()));
+      return false;
    }
-
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
    if(stopped_lwp == NULL) {
       stopped_lwp = stop_an_lwp(&needToCont);
@@ -3657,6 +3761,7 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
          pdstring msg =
             pdstring("System error: unable to read to process data "
                      "space: couldn't stop an lwp\n");
+         fprintf(stderr, "%s[%d]:  stop_an_lwp failed\n", FILE__, __LINE__);
          showErrorCallback(38, msg);
          return false;
       }
@@ -3670,6 +3775,7 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
                  size, Address_str((Address)inTracedProcess), 
                  strerror(errno), getPid());
          pdstring msg(errorLine);
+         fprintf(stderr, "%s[%d]:  readDataSpace failed\n", FILE__, __LINE__);
          showErrorCallback(38, msg);
       }
       return false;
@@ -3694,6 +3800,7 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
          pdstring msg =
             pdstring("System error: unable to write word to process text "
                      "space: couldn't stop an lwp\n");
+         fprintf(stderr, "%s[%d]:  stop_an_lwp failed\n", FILE__, __LINE__);
          showErrorCallback(38, msg);
          return false;
       }
@@ -3703,6 +3810,7 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
   if (!res) {
      pdstring msg = pdstring("System error: unable to write word to process "
                              "text space:") + pdstring(strerror(errno));
+         fprintf(stderr, "%s[%d]:  writeDataSpace failed\n", FILE__, __LINE__);
      showErrorCallback(38, msg);
      return false;
   }
@@ -3729,6 +3837,7 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
          pdstring msg =
             pdstring("System error: unable to write to process text "
                      "space (WTS): couldn't stop an lwp\n");
+         fprintf(stderr, "%s[%d]:  stop_an_lwp failed\n", FILE__, __LINE__);
          showErrorCallback(38, msg);
          return false;
       }
@@ -3739,6 +3848,7 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
   if (!res) {
      pdstring msg = pdstring("System error: unable to write to process text "
                              "space (WTS):") + pdstring(strerror(errno));
+         fprintf(stderr, "%s[%d]:  writeTextSpace failed\n", FILE__, __LINE__);
      showErrorCallback(38, msg);
      return false;
   }
@@ -3779,6 +3889,7 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
               strerror(errno), getPid());
       pdstring msg(errorLine);
       showErrorCallback(38, msg);
+         fprintf(stderr, "%s[%d]:  readTextSpace failed\n", FILE__, __LINE__);
       return false;
    }
 
@@ -3787,22 +3898,6 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
    }
 
    return true;
-}
-
-void process::clearProcessEvents() {
-   // first coded for Solaris, trying it out on other platforms
-
-   // Make sure process isn't already stopped from an event. If it is,
-   // handle the event.  An example where this happens is if the process is
-   // stopped at a trap that signals the end of an rpc.  The loop is because
-   // there are actually 2 successive traps at the end of an rpc.
-   bool gotEvent = false;
-   do {
-      pdvector<procevent *> foundEvents;
-      int timeout = 0;
-      gotEvent = getSH()->checkForProcessEvents(&foundEvents, getPid(), timeout);
-      getSH()->handleProcessEvents(foundEvents);
-   } while(gotEvent == true);  // keep checking if we handled an event
 }
 
 void process::set_status(processState st) {
@@ -3877,7 +3972,13 @@ bool process::pause() {
 
 
 #if defined(sparc_sun_solaris2_4)
-   clearProcessEvents();
+   fprintf(stderr, "%s[%d]:  removed call to clearProcessEvents()\n", __FILE__, __LINE__);
+   while (getRpcMgr()->existsRunningIRPC()) {
+     fprintf(stderr, "%s[%d]:  waiting for rpc to finish before completing pause request\n", __FILE__, __LINE__);
+      fprintf(stderr, "%s[%d][%s]:  before waitForEvent(evtRPCDone)\n", 
+              FILE__, __LINE__, getThreadStr(getExecThreadID()));
+     getSH()->waitForEvent(evtRPCDone);
+   }
 #endif
 
    // Let's try having stopped mean all lwps stopped and running mean
@@ -3933,6 +4034,7 @@ bool process::handleIfDueToSharedObjectMapping(){
    // if something was added then call process::addASharedObject with
    // each element in the vector of changed_objects
    if (change_type == SHAREDOBJECT_ADDED) {
+       signal_printf("%s[%d]:  SHAREDOBJECT_ADDED\n", FILE__, __LINE__);
        assert(changed_objs.size());
 
        for(u_int i=0; i < changed_objs.size(); i++) {
@@ -3946,7 +4048,7 @@ bool process::handleIfDueToSharedObjectMapping(){
        }
        return true;
    } else if (change_type == SHAREDOBJECT_REMOVED) {
-       fprintf(stderr, "... removed object...\n");
+       signal_printf("%s[%d]: ... removed object...\n", FILE__, __LINE__);
        // TODO: handle this case
        // if something was removed then call process::removeASharedObject
        // with each element in the vector of changed_objects
@@ -3966,6 +4068,7 @@ bool process::handleIfDueToSharedObjectMapping(){
        return true;
    }
    else {
+       signal_printf("%s[%d]:  UNKNOWN\n", __FILE__, __LINE__);
        // ... okay, we handled something...
        return true;
    }
@@ -4133,14 +4236,13 @@ bool process::addASharedObject(mapped_object *new_obj) {
 	 }
     }
 #endif
-
-    if (BPatch::bpatch->dynLibraryCallback) {
         BPatch_process *bProc = BPatch::bpatch->getProcessByPid(pid);
         if (!bProc) return true; // Done
         BPatch_image *bImage = bProc->getImage();
         assert(bImage); // This we can assert to be true
     
         const pdvector<mapped_module *> &modlist = new_obj->getModules();
+
         // This should all be moved to the bpatch layer
         if (modlist.size()) {
             for (unsigned i = 0; i < modlist.size(); i++) {
@@ -4148,12 +4250,18 @@ bool process::addASharedObject(mapped_object *new_obj) {
                 
                 BPatch_module *bpmod = bImage->findOrCreateModule(curr);
                 
-                event_mailbox->executeOrRegisterCallback(BPatch::bpatch->dynLibraryCallback,
-                                                         bProc, bpmod, true);
-                //BPatch::bpatch->dynLibraryCallback(thr, bpmod, true);
+                pdvector<CallbackBase *> cbs;
+
+                if (! getCBManager()->dispenseCallbacksMatching(evtLoadLibrary, cbs)) {
+                   return true;
+                 }
+
+                for (unsigned int i = 0; i < cbs.size(); ++i) {
+                  DynLibraryCallback &cb = *((DynLibraryCallback *) cbs[i]);
+                  cb(bProc->threads[0], bpmod, true);
+                 }
             }
         }
-    }
     
     return true;
 }
@@ -4161,8 +4269,8 @@ bool process::addASharedObject(mapped_object *new_obj) {
 // processSharedObjects: This routine is called before main() or on attach
 // to an already running process.  It gets and process all shared objects
 // that have been mapped into the process's address space
-bool process::processSharedObjects() {
-    
+bool process::processSharedObjects() 
+{
     if (mapped_objects.size() > 1) {
         // Already called... probably don't want to call again
         return true;
@@ -4194,7 +4302,6 @@ bool process::processSharedObjects() {
 #ifndef BPATCH_LIBRARY
     tp->resourceBatchMode(false);
 #endif
-
     return true;
 }
 
@@ -4824,17 +4931,27 @@ bool process::continueProc(int signalToContinueWith) {
     return false;
   }
 
-  if (suppressEventConts())
+  if (suppressEventConts()) {
+    fprintf(stderr, "%s[%d][%s]:  suppressing continue\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
     return false;
+  }
 
   bool res = continueProc_(signalToContinueWith);
   if (!res) 
   {
+         fprintf(stderr, "%s[%d]:  continueProc_ failed\n", FILE__, __LINE__);
     showErrorCallback(38, "System error: can't continue process");
     return false;
   }
+
   if (status_ != exited)
      status_ = running;
+
+  if (getExecThreadID() != getSH()->getThreadID()) {
+    signal_printf("%s[%d][%s]:  signalling active process\n", 
+                  FILE__, __LINE__, getThreadStr(getExecThreadID()));
+    getSH()->signalActiveProcess();
+  }
   return true;
 }
 
@@ -4844,7 +4961,9 @@ bool process::continueProc_(int sig)
 {
   if (status_ == running)
     return true;
-  return getRepresentativeLWP()->continueLWP(sig);
+  bool ret =  getRepresentativeLWP()->continueLWP(sig);
+  getSH()->signalActiveProcess();
+  return ret;
 }
 #endif
 
@@ -4919,10 +5038,10 @@ bool process::detach(const bool leaveRunning ) {
  */
 
 #if defined(alpha_dec_osf4_0)
-bool process::handleSyscallExit(procSignalWhat_t syscall,
+bool process::handleSyscallExit(eventWhat_t syscall,
                                 dyn_lwp *lwp_with_event)
 #else
-bool process::handleSyscallExit(procSignalWhat_t, dyn_lwp *lwp_with_event)
+bool process::handleSyscallExit(eventWhat_t, dyn_lwp *lwp_with_event)
 #endif
 {
    // For each thread:
@@ -4965,6 +5084,7 @@ bool process::handleSyscallExit(procSignalWhat_t, dyn_lwp *lwp_with_event)
 void process::triggerNormalExitCallback(int exitCode) {
    // special case where can't wait to continue process
    if (status() == exited) {
+      fprintf(stderr, "%s[%d]:  cannot trigger exit callback, process is gone...\n", __FILE__, __LINE__);
       return;
    }
    BPatch::bpatch->registerNormalExit(this, exitCode);
@@ -4978,31 +5098,21 @@ void process::triggerSignalExitCallback(int signalnum) {
    BPatch::bpatch->registerSignalExit(this, signalnum);
 }
 
-void process::handleProcessExit() {
+bool process::handleProcessExit() {
 
    // special case where can't wait to continue process
    if (status() == exited) {
-      return;
+      return true;
    }
 
    --activeProcesses;
 
    // Set exited first, so detach doesn't try impossible things
+   signal_printf("%s[%d]:  setting status to exited\n", FILE__, __LINE__);
    set_status(exited);
-   detach(false);
+   if (!detach(false)) return false;
 
-   // 7JAN05: used to call delete here. Moved to process destructor.
-   //deleteProcess();
-
-  // Perhaps these lines can be un-commented out in the future, but since
-  // cleanUpAndExit() does the same thing, and it always gets called
-  // (when paradynd detects that paradyn died), it's not really necessary
-  // here.  -ari
-//  for (unsigned lcv=0; lcv < processVec.size(); lcv++)
-//     if (processVec[lcv] == proc) {
-//        delete proc; // destructor removes shm segments...
-//      processVec[lcv] = NULL;
-//     }
+   return true;
 }
         
 
@@ -5010,25 +5120,31 @@ void process::handleProcessExit() {
  * handleForkEntry: do anything necessary when a fork is entered
  */
 
-void process::handleForkEntry() {
+bool process::handleForkEntry() {
+
     // Make bpatch callbacks as well
     BPatch::bpatch->registerForkingProcess(getPid(), NULL);
+    return true;
 }
 
-void process::handleForkExit(process *child) {
+bool process::handleForkExit(process *child) {
     BPatch::bpatch->registerForkedProcess(getPid(), child->getPid(), child);
+    return true;
 }
 
-void process::handleExecEntry(char *arg0) {
+bool process::handleExecEntry(char *arg0) {
     nextTrapIsExec = true;
     execPathArg = "";
     // The arg0 is an address in the mutatee's space
     char temp[512];
-    if (!readDataSpace(arg0, 512, temp, false))
+    if (!readDataSpace(arg0, 512, temp, false)) {
         cerr << "Failed to read exec argument!" << endl;
+        return false;
+    }
     else
         execPathArg = temp;
     // /* DEBUG */ cerr << "Exec path arg is " << execPathArg << endl;
+   return true;
 
     // We now wait for exec to finish. We often see very many exec
     // entries (with attempted paths), but only one exit.
@@ -5040,7 +5156,8 @@ void process::handleExecEntry(char *arg0) {
    mustn't try to enable anything...
    We finish by bootstrapping here (actually, we call setupExec)
 */
-void process::handleExecExit() {
+bool process::handleExecExit() 
+{
     inExec_ = true;
     // NOTE: for shm sampling, the shm segment has been removed, so we
     //       mustn't try to disable any dataReqNodes in the standard way...
@@ -5056,6 +5173,8 @@ void process::handleExecExit() {
    // Do not call this here; instead we call it at the end of finalizeDyninstLib
    // so that dyninsts are available
    //BPatch::bpatch->registerExec(this);
+
+   return true;
 }
 
 bool process::checkTrappedSyscallsInternal(Address syscall)
@@ -5613,9 +5732,11 @@ unsigned process::getIndexToThread(unsigned index) {
 }
 
 void process::setIndexToThread(unsigned index, unsigned value) {
-    writeDataSpace((void *)(threadIndexAddr + (index * sizeof(unsigned))),
+   bool err =  writeDataSpace((void *)(threadIndexAddr + (index * sizeof(unsigned))),
                    sizeof(unsigned),
                    (void *)&value);
+   if (!err) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
+        assert(err);
 }
 
 void process::updateThreadIndexAddr(Address addr) {
@@ -5704,23 +5825,38 @@ void process::recognize_threads(const process *parent)
         getRpcMgr()->postRPCtoDo(ast, true, doneRegistering, bundle, false, 
                                  NULL, lwp);
      }
+
      while(num_completed != lwp_ids.size())
      {
         getRpcMgr()->launchRPCs(false);
-        if(hasExited()) return;
-        getSH()->checkForAndHandleProcessEvents(false);
+        getMailbox()->executeCallbacks(FILE__, __LINE__);
+        if(hasExited()) {
+           fprintf(stderr, "%s[%d]:  unexpected process exit\n", FILE__, __LINE__);
+           return;
+        }
+        getSH()->waitForEvent(evtRPCDone);
+        getMailbox()->executeCallbacks(FILE__, __LINE__);
      }
 
+     assert(ret_lwps.size() == lwp_ids.size());
      assert(ret_lwps.size() == ret_indexes.size());
 
      assert(status() == stopped);
-     for (i=0; i<ret_lwps.size(); i++)
-     {
-        newThreadCB(ret_indexes[i], ret_lwps[i]);
+ 
+   for (i = 0; i < ret_lwps.size(); ++i) {
+     BPatch_process *bproc = BPatch::bpatch->getProcessByPid(getPid());
+     BPatch_thread *bpthrd = bproc->getThreadByIndex(ret_indexes[i]);
+     if (bpthrd && bpthrd->updated) {
+        //Already 
      }
+     else {
+       //fprintf(stderr, "%s[%d]:  before createOrUpdateBPThread: index %d\n", FILE__, __LINE__,ret_indexes[i]); 
+       bproc->createOrUpdateBPThread(ret_lwps[i], (dynthread_t) -1, ret_indexes[i], 0, 0);
+     }
+   }
 
-     assert(status() == stopped);
-     return;
+    assert(status() == stopped);
+    return;
   }
   
   // We have LWPs with objects. The parent has a vector of threads.
@@ -5815,8 +5951,11 @@ dynthread_t process::mapIndexToTid(int index)
    while (tid == -1)
    {
       getRpcMgr()->launchRPCs(false);
+      getMailbox()->executeCallbacks(FILE__, __LINE__);
       if(hasExited()) return (dynthread_t) -1;
-      getSH()->checkForAndHandleProcessEvents(false);
+      getSH()->waitForEvent(evtRPCDone);
+      getMailbox()->executeCallbacks(FILE__, __LINE__);
+      //getSH()->checkForAndHandleProcessEvents(false);
    }
 
    return tid;

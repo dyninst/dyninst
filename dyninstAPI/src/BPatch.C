@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.103 2005/10/11 07:11:36 jodom Exp $
+// $Id: BPatch.C,v 1.104 2005/11/03 05:21:04 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -57,6 +57,7 @@
 #include "BPatch_collections.h"
 #include "BPatch_thread.h"
 #include "BPatch_asyncEventHandler.h"
+#include "callbacks.h"
 #include "common/h/timing.h"
 #include "showerror.h"
 
@@ -65,7 +66,6 @@
 #endif
 
 extern void loadNativeDemangler();
-extern BPatch_eventMailbox *event_mailbox;
 
 BPatch *BPatch::bpatch = NULL;
 
@@ -78,6 +78,7 @@ extern unsigned int ptraceOtherOps;
 extern unsigned int ptraceOps;
 extern unsigned int ptraceBytes;
 
+extern BPatch_asyncEventHandler *global_async_event_handler;
 void defaultErrorFunc(BPatchErrorLevel level, int num, const char **params);
 
 extern void dyninst_yield();
@@ -90,8 +91,6 @@ extern void dyninst_yield();
  */
 BPatch::BPatch()
   : info(NULL),
-    errorHandler(NULL),
-    dynLibraryCallback(NULL),
     typeCheckOn(true),
     lastError(0),
     debugParseOn(true),
@@ -103,6 +102,7 @@ BPatch::BPatch()
     asyncActive(false),
     delayedParsing_(false),
     systemPrelinkCommand(NULL),
+    mutateeStatusChange(false),
     builtInTypes(NULL),
     stdTypes(NULL),
     type_Error(NULL),
@@ -299,26 +299,13 @@ BPatch::BPatch()
     builtInTypes->addBuiltInType(newType = new BPatch_typeScalar(-34, 8, "integer*8"));
     newType->decrRefCount();
 
-    // default callbacks are null
-    postForkCallback = NULL;
-    preForkCallback = NULL;
-    errorHandler = NULL;
-    dynLibraryCallback = NULL;
-    execCallback = NULL;
-    exitCallback = NULL;
-    oneTimeCodeCallback = NULL;
-
-#ifdef IBM_BPATCH_COMPAT
-    RPCdoneCallback = NULL;
-#endif
-
     loadNativeDemangler();
 
-    eventHandler = new BPatch_asyncEventHandler();
+    global_async_event_handler = new BPatch_asyncEventHandler();
 #if defined(cap_async_events)
-    if (!eventHandler->initialize()) {
+    if (!global_async_event_handler->initialize()) {
       //  not much else we can do in the ctor, except complain (should we abort?)
-      bperr("%s[%d]:  failed to initialize eventHandler, possibly fatal\n",
+      bperr("%s[%d]:  failed to initialize asyncEventHandler, possibly fatal\n",
             __FILE__, __LINE__);
     }
 #endif
@@ -439,12 +426,21 @@ void BPatch::setMergeTrampInt(bool x)
  *
  * function	The function to be called.
  */
+
+
 BPatchErrorCallback BPatch::registerErrorCallbackInt(BPatchErrorCallback function)
 {
-    BPatchErrorCallback ret;
+    BPatchErrorCallback ret = NULL;
+    ErrorCallback *cb = new ErrorCallback(function);
 
-    ret = errorHandler;
-    errorHandler = function;
+    pdvector<CallbackBase *> cbs;
+    getCBManager()->removeCallbacks(evtError, cbs);
+    getCBManager()->registerCallback(evtError, cb);
+    if (cbs.size()) {
+      mailbox_printf("%s[%d]:  removed %d error cbs\n", FILE__, __LINE__, cbs.size());
+      ErrorCallback *ercb = (ErrorCallback *) cbs[0];
+      ret = ercb->getFunc();
+    }
 
     return ret;
 }
@@ -465,10 +461,17 @@ BPatchForkCallback BPatch::registerPostForkCallbackInt(BPatchForkCallback func)
 	      "postfork callbacks not implemented on this platform\n");
   return NULL;
 #else
-    BPatchForkCallback ret;
+    BPatchForkCallback ret = NULL;
+    ForkCallback *cb = new ForkCallback(func);
 
-    ret = postForkCallback;
-    postForkCallback = func;
+    pdvector<CallbackBase *> cbs;
+    getCBManager()->removeCallbacks(evtPostFork, cbs);
+    getCBManager()->registerCallback(evtPostFork, cb);
+
+    if (cbs.size()) {
+      ForkCallback *fcb = (ForkCallback *) cbs[0];
+      ret =  fcb->getFunc();
+    }
 
     return ret;
 #endif
@@ -489,10 +492,16 @@ BPatchForkCallback BPatch::registerPreForkCallbackInt(BPatchForkCallback func)
 	"prefork callbacks not implemented on this platform\n");
     return NULL;
 #else
-    BPatchForkCallback ret;
+    BPatchForkCallback ret = NULL;
+    ForkCallback *cb = new ForkCallback(func);
 
-    ret = preForkCallback;
-    preForkCallback = func;
+    pdvector<CallbackBase *> cbs;
+    getCBManager()->removeCallbacks(evtPreFork, cbs);
+    getCBManager()->registerCallback(evtPreFork, cb);
+    if (cbs.size()) {
+      ForkCallback *fcb = (ForkCallback *) cbs[0];
+      ret =  fcb->getFunc();
+    }
 
     return ret;
 #endif
@@ -514,17 +523,24 @@ BPatchExecCallback BPatch::registerExecCallbackInt(BPatchExecCallback func)
 	"exec callbacks not implemented on this platform\n");
     return NULL;
 #else
-    BPatchExecCallback ret;
+    BPatchExecCallback ret = NULL;
 
-    ret = execCallback;
-    execCallback = func;
+    pdvector<CallbackBase *> cbs;
+    ExecCallback *cb = new ExecCallback(func);
+    getCBManager()->removeCallbacks(evtExec, cbs);
+    getCBManager()->registerCallback(evtExec, cb);
+    if (cbs.size()) {
+      ExecCallback *fcb = (ExecCallback *) cbs[0];
+      ret =  fcb->getFunc();
+    }
 
     return ret;
+
 #endif
 }
 
 /*
- * BPatch::registerExecCallback
+ * BPatch::registerExitCallback
  *
  * Registers a function that is to be called by the library when a 
  * process has just called the exit system call
@@ -533,11 +549,17 @@ BPatchExecCallback BPatch::registerExecCallbackInt(BPatchExecCallback func)
  */
 BPatchExitCallback BPatch::registerExitCallbackInt(BPatchExitCallback func)
 {
-    BPatchExitCallback ret;
+    BPatchExitCallback ret = NULL;
+    ExitCallback *cb = new ExitCallback(func);
 
-    ret = exitCallback;
-    exitCallback = func;
-    
+    pdvector<CallbackBase *> cbs;
+    getCBManager()->removeCallbacks(evtProcessExit, cbs);
+    getCBManager()->registerCallback(evtProcessExit, cb);
+    if (cbs.size()) {
+      ExitCallback *fcb = (ExitCallback *) cbs[0];
+      ret =  fcb->getFunc();
+    }
+
     return ret;
 }
 
@@ -551,10 +573,16 @@ BPatchExitCallback BPatch::registerExitCallbackInt(BPatchExitCallback func)
  */
 BPatchOneTimeCodeCallback BPatch::registerOneTimeCodeCallbackInt(BPatchOneTimeCodeCallback func)
 {
-    BPatchOneTimeCodeCallback ret;
+    BPatchOneTimeCodeCallback ret = NULL;
+    OneTimeCodeCallback *cb = new OneTimeCodeCallback(func);
 
-    ret = oneTimeCodeCallback;
-    oneTimeCodeCallback = func;
+    pdvector<CallbackBase *> cbs;
+    getCBManager()->removeCallbacks(evtOneTimeCode, cbs);
+    getCBManager()->registerCallback(evtOneTimeCode, cb);
+    if (cbs.size()) {
+      OneTimeCodeCallback *fcb = (OneTimeCodeCallback *) cbs[0];
+      ret =  fcb->getFunc();
+    }
 
     return ret;
 }
@@ -563,13 +591,18 @@ BPatchOneTimeCodeCallback BPatch::registerOneTimeCodeCallbackInt(BPatchOneTimeCo
 BPatchExitCallback BPatch::registerExitCallbackDPCL(BPatchThreadEventCallback func)
 {
 
-    BPatchExitCallback ret;
+    BPatchExitCallback ret = NULL;
 
-    ret = exitCallback;
-    exitCallback = (BPatchExitCallback) func;
+    ExitCallback *cb = new ExitCallback(func);
+    pdvector<CallbackBase *> cbs;
+    getCBManager()->removeCallbacks(evtProcessExit, cbs);
+    getCBManager()->registerCallback(evtProcessExit, cb);
+    if (cbs.size()) {
+      ExitCallback *fcb = (ExitCallback *) cbs[0];
+      ret =  fcb->getFunc();
+    }
 
     return ret;
-
 }
 #endif
 
@@ -585,10 +618,17 @@ BPatchExitCallback BPatch::registerExitCallbackDPCL(BPatchThreadEventCallback fu
 BPatchDynLibraryCallback
 BPatch::registerDynLibraryCallbackInt(BPatchDynLibraryCallback function)
 {
-    BPatchDynLibraryCallback ret;
 
-    ret = dynLibraryCallback;
-    dynLibraryCallback = function;
+    BPatchDynLibraryCallback ret = NULL;
+    DynLibraryCallback *cb = new DynLibraryCallback(function);
+
+    pdvector<CallbackBase *> cbs;
+    getCBManager()->removeCallbacks(evtLoadLibrary, cbs);
+    getCBManager()->registerCallback(evtLoadLibrary, cb);
+    if (cbs.size()) {
+      DynLibraryCallback *fcb = (DynLibraryCallback *) cbs[0];
+      ret =  fcb->getFunc();
+    }
 
     return ret;
 }
@@ -620,18 +660,26 @@ const char *BPatch::getEnglishErrorString(int /* number */)
 void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
 {
     assert(bpatch != NULL);
-  
+    SignalHandler *sh = getSH();
+    bpatch->__LOCK; 
     // don't log BPatchWarning or BPatchInfo messages as "errors"
     if ((severity == BPatchFatal) || (severity == BPatchSerious))
 	bpatch->lastError = number;
 
-    if (bpatch->errorHandler != NULL) {
-        event_mailbox->executeOrRegisterCallback(bpatch->errorHandler, severity, number, str);
-	//bpatch->errorHandler(severity, number, &str);
-    } else if ((severity == BPatchFatal) || (severity == BPatchSerious)){
-	fprintf(stdout, "DYNINST ERROR: %s\n", str);
-	fflush(stdout);
+    pdvector<CallbackBase *> cbs;
+    if (! getCBManager()->dispenseCallbacksMatching(evtError, cbs)) {
+      fprintf(stdout, "%s[%d]:  DYNINST ERROR:\n %s\n", str);
+      fflush(stdout);
+      bpatch->__UNLOCK;
+      return; 
     }
+
+    for (unsigned int i = 0; i < cbs.size(); ++i) {
+      ErrorCallback &cb = *((ErrorCallback *) cbs[i]);
+      cb(severity, number, str); 
+    }
+    sh->signalEvent(evtError);
+    bpatch->__UNLOCK;
 }
 
 
@@ -689,10 +737,10 @@ void BPatch::formatErrorString(char *dst, int size,
 static char *lvl_str(BPatchErrorLevel lvl)
 {
   switch(lvl) {
-    case BPatchFatal: return "FATAL";
-    case BPatchSerious: return "SERIOUS";
-    case BPatchWarning: return "WARN";
-    case BPatchInfo: return "INFO";
+    case BPatchFatal: return "--FATAL--";
+    case BPatchSerious: return "--SERIOUS--";
+    case BPatchWarning: return "--WARN--";
+    case BPatchInfo: return "--INFO--";
   };
   return "BAD ERR CODE";
 }
@@ -817,17 +865,20 @@ void BPatch::registerForkedProcess(int parentPid, int childPid, process *proc)
    new BPatch_process(childPid, proc);
 
 #if defined(cap_async_events)
-    if (!eventHandler->connectToProcess(info->procsByPid[childPid])) {
-       bperr("%s[%d]:  eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
+    if (!getAsync()->connectToProcess(info->procsByPid[childPid])) {
+       bperr("%s[%d]:  asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
     }
     else 
        asyncActive = true;
 #endif
     forkexec_printf("Successfully connected socket to child\n");
-    if (postForkCallback) {
-       //postForkCallback(parent, info->procsByPid[childPid]);
-       event_mailbox->executeOrRegisterCallback(postForkCallback, 
-               BPatch_postForkEvent, parent, info->procsByPid[childPid]);
+
+
+    pdvector<CallbackBase *> cbs;
+    getCBManager()->dispenseCallbacksMatching(evtPostFork,cbs);
+    for (unsigned int i = 0; i < cbs.size(); ++i) {
+      ForkCallback &cb = *((ForkCallback *) cbs[i]);
+      cb(parent->threads[0], info->procsByPid[childPid]->threads[0]);
     }
     // We don't want to touch the bpatch threads here, as they may have been
     // deleted in the callback
@@ -849,11 +900,13 @@ void BPatch::registerForkingProcess(int forkingPid, process * /*proc*/)
     // Wouldn't this be the same as proc->thread?
     assert(forking);
 
-    if (preForkCallback) {
-       // preForkCallback(forking, NULL);
-       event_mailbox->executeOrRegisterCallback(preForkCallback, 
-            BPatch_preForkEvent, forking, NULL);
+    pdvector<CallbackBase *> cbs;
+    getCBManager()->dispenseCallbacksMatching(evtPreFork,cbs);
+    for (unsigned int i = 0; i < cbs.size(); ++i) {
+      ForkCallback &cb = *((ForkCallback *) cbs[i]);
+      cb(forking->threads[0], NULL);
     }
+
 }
 
 
@@ -874,49 +927,77 @@ void BPatch::registerExec(process *proc)
        delete process->image;
    process->image = new BPatch_image(process);
    
-   if (execCallback) {
-      //execCallback(thread);
-      event_mailbox->executeOrRegisterCallback(execCallback, process);
-   }
+    pdvector<CallbackBase *> cbs;
+    getCBManager()->dispenseCallbacksMatching(evtExec,cbs);
+    for (unsigned int i = 0; i < cbs.size(); ++i) {
+      ExecCallback &cb = *((ExecCallback *) cbs[i]);
+      cb(process->threads[0]);
+    }
+
+
 }
 
 void BPatch::registerNormalExit(process *proc, int exitcode)
 {
    if (!proc)
       return;
+
    BPatch_process *process = info->procsByPid[proc->getPid()];
-   assert(process);
+   BPatch_thread *thrd = process->getThreadByIndex(0);
+
+   if (!process)
+     return;
 
    process->setExitCode(exitcode);
    process->setExitedNormally();
    process->setUnreportedTermination(true);
-   event_mailbox->executeOrRegisterCallback(BPatch_threadDestroyEvent, process, 0);
-   if (exitCallback) {
-      //exitCallback(thread, ExitedNormally);
-      event_mailbox->executeOrRegisterCallback(exitCallback, process,
-                                               ExitedNormally);
+
+   pdvector<CallbackBase *> cbs;
+
+   getCBManager()->dispenseCallbacksMatching(evtThreadExit,cbs);
+   for (unsigned int i = 0; i < cbs.size(); ++i) {
+     AsyncThreadEventCallback &cb = *((AsyncThreadEventCallback *) cbs[i]);
+     cb(process, thrd);
    }
+
+   cbs.clear();
+   getCBManager()->dispenseCallbacksMatching(evtProcessExit,cbs);
+   for (unsigned int i = 0; i < cbs.size(); ++i) {
+     ExitCallback &cb = *((ExitCallback *) cbs[i]);
+     cb(process->threads[0], ExitedNormally);
+   }
+
+    
+
 }
 
 void BPatch::registerSignalExit(process *proc, int signalnum)
 {
    if (!proc)
       return;
-   BPatch_process *process = info->procsByPid[proc->getPid()];
-   if (!process) {
+   BPatch_process *bpprocess = info->procsByPid[proc->getPid()];
+   if (!bpprocess) {
        // Error during startup can cause this -- we have a partially
        // constructed process object, but it was never registered with
        // bpatch
        return;
    }
-   assert(process);
-   process->setExitedViaSignal(signalnum);
-   process->setUnreportedTermination(true);
-   event_mailbox->executeOrRegisterCallback(BPatch_threadDestroyEvent, process, 0);
-   if (exitCallback) {
-      //exitCallback(thread, ExitedViaSignal);
-          event_mailbox->executeOrRegisterCallback(exitCallback, process, 
-                                                   ExitedViaSignal);
+   assert(bpprocess);
+   bpprocess->setExitedViaSignal(signalnum);
+   bpprocess->setUnreportedTermination(true);
+
+   pdvector<CallbackBase *> cbs;
+   getCBManager()->dispenseCallbacksMatching(evtThreadExit,cbs);
+   for (unsigned int i = 0; i < cbs.size(); ++i) {
+     AsyncThreadEventCallback &cb = * ((AsyncThreadEventCallback *) cbs[i]);
+     cb(bpprocess, NULL);
+   }
+
+   cbs.clear();
+   getCBManager()->dispenseCallbacksMatching(evtProcessExit,cbs);
+   for (unsigned int i = 0; i < cbs.size(); ++i) {
+     ExitCallback &cb = * ((ExitCallback *) cbs[i]);
+     cb(bpprocess->threads[0], ExitedViaSignal);
    }
 }
 
@@ -990,24 +1071,28 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
         (ret->llproc->status() != stopped) ||
         !ret->llproc->isBootstrappedYet()) 
     { 
+       ret->BPatch_process_dtor();
        delete ret;
        reportError(BPatchFatal, 68, "create process failed bootstrap");
        return NULL;
     }
-#if defined(cap_async_events)
-    if (!eventHandler->connectToProcess(ret)) {
-       bpfatal("%s[%d]: eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
-       fprintf(stderr,"%s[%d]: eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
-       return NULL;
-    }
-    asyncActive = true;
-#endif
-    
+
     //ccw 23 jan 2002 : this forces the user to call
     //BPatch_thread::enableDumpPatchedImage() if they want to use the save the world
     //functionality.
     ret->llproc->collectSaveWorldData = false;
     ret->updateThreadInfo();
+
+#if defined(cap_async_events)
+    async_printf("%s[%d]:  about to connect to process\n", FILE__, __LINE__);
+    if (!getAsync()->connectToProcess(ret)) {
+       bpfatal("%s[%d]: asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
+       fprintf(stderr,"%s[%d]: asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
+       return NULL;
+    }
+    asyncActive = true;
+#endif
+    
 
     return ret;
 }
@@ -1020,8 +1105,8 @@ BPatch_thread *BPatch::createProcessInt(const char *path, const char *argv[],
                                          const char **envp, int stdin_fd, 
                                          int stdout_fd, int stderr_fd)
 {
-   BPatch_process *ret = processCreate(path, argv, envp, stdin_fd, 
-                                       stdout_fd, stderr_fd);
+   BPatch_process *ret = processCreateInt(path, argv, envp, stdin_fd, 
+                                          stdout_fd, stderr_fd);
    if (!ret)
       return NULL;
 
@@ -1056,9 +1141,10 @@ BPatch_process *BPatch::processAttachInt(const char *path, int pid)
       delete ret;
       return NULL;
    }
-#if defined(cap_async_events)
-   if (!eventHandler->connectToProcess(ret)) {
-      bperr("%s[%d]:  eventHandler->connectToProcess failed\n", __FILE__, __LINE__);
+#if !defined (os_osf) && !defined (os_windows) && !defined(os_irix)  && !defined(arch_ia64)
+   fprintf(stderr, "%s[%d]:  about to connect to process\n", FILE__, __LINE__);
+   if (!getAsync()->connectToProcess(ret)) {
+      bperr("%s[%d]:  asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
       return NULL;
    } 
    asyncActive = true;
@@ -1078,185 +1164,13 @@ BPatch_process *BPatch::processAttachInt(const char *path, int pid)
  */
 BPatch_thread *BPatch::attachProcessInt(const char *path, int pid)
 {
-   BPatch_process *proc = processAttach(path, pid);
+   BPatch_process *proc = processAttachInt(path, pid);
    if (!proc)
       return NULL;
    
    assert(proc->threads.size() > 0);
    return proc->threads[0];
 }
-
-/*
- * BPatch::getThreadEvent
- *
- * Checks for changes in any child process, and optionally blocks until such a
- * change has occurred.  Also performs housekeeping on behalf of Dyninst:
- * - Launches pending oneTimeCode calls (aka inferior RPCs)
- * - Updates the process object representing each process for which a
- *   change is detected.
- *
- * The return value is true if a change was detected, otherwise it is false.
- *
- * block	Set this parameter to true to block waiting for a change,
- * 		set to false to poll and return immediately, whether or not a
- * 		change occurred.
- */
-bool BPatch::getThreadEvent(bool block)
-{
-    __LOCK;
-    launchDeferredOneTimeCode();
-    __UNLOCK;
-
-    return getThreadEventOnly(block);
-}
-
-/*
- * BPatch::getThreadEventOnly
- *
- * Like getThreadEvent (which actually calls this function), this function
- * checks for changes in any child process, optionally blocking until such a
- * change occurs.  It also updates the process objects with information about
- * such changes.  Unlike getThreadEvent, it does not perform any additional
- * housekeeping like launching deferred RPCs.
- *
- * Returns true if a change was detected, otherwise returns false.
- *
- * block	Set this parameter to true to block waiting for a change,
- * 		set to false to poll and return immediately, whether or not a
- * 		change occurred.
- */
-extern unsigned long primary_thread_id;
-extern int lock_depth;
-
-bool BPatch::getThreadEventOnly(bool block)
-{
-   bool	result = false;
-   pdvector<procevent *> events;
-
-   __LOCK;
-   int localAsyncActive = asyncActive;
-   __UNLOCK;
-
-   // Handles all process (object)-level events.
-   
-   if (!localAsyncActive) {
-     //  If we are not currently registered to handle any async events
-     //  we can block as usual.
-     __LOCK;
-     int timeout = block ? -1 : 0;
-     result = getSH()->checkForProcessEvents(&events, -1, timeout);
-     __UNLOCK;
-   }
-   else {
-     //  If async event callbacks have been specified, need to poll here
-     //  instead of doing indefinite block, so that we periodically
-     //  relinquish the lock to allow for event handling. 
-     int timeout;
-     do {
-       __LOCK;
-       if (threadID() == primary_thread_id)
-          result = event_mailbox->executeUserCallbacks();
-       if (!result)
-       {
-          timeout = block ? 1 : 0;
-          result = getSH()->checkForProcessEvents(&events, -1, timeout);
-       }
-       //  checkForProcessEvents sets timeout to zero if poll times out.
-       lock_depth--;
-       __UNLOCK;
-       dyninst_yield();
-     } while(!result && !timeout && block);
-   }
-
-   //  The rest of this function can be simply locked, since it does not block
-   __LOCK;
-
-   pdvector<procevent *> unhandledEvents = getSH()->handleProcessEvents(events);
-
-   for(unsigned i=0; i < unhandledEvents.size(); i++)
-   {
-       // The only thing we expect to see in here is a SIGSTOP from DYNINSTbreakPoint...
-       procevent *cur_event = unhandledEvents[i];
-       process *proc = cur_event->proc;
-       procSignalWhy_t why   = cur_event->why;
-       procSignalWhat_t what = cur_event->what;
-       
-       bool exists;
-       BPatch_process *bproc = getProcessByPid(proc->getPid(), &exists);
-       if (bproc == NULL) {
-           if (exists) {
-               bperr("Warning: event on an existing thread, but can't find thread handle\n");
-           } else {
-               bperr( "Warning - wait returned status of an unknown process (%d)\n",
-                       proc->getPid());
-           }
-       }
-       else { // found a thread
-#if !defined(os_windows)
-           if (didProcReceiveSignal(why)) {
-               bproc->lastSignal = what;
-#if defined(os_irix)
-               unsigned int stop_sig = SIGEMT;
-#else
-               unsigned int stop_sig = SIGSTOP;
-#endif
-               if (what != stop_sig) {
-                   forwardSigToProcess(*cur_event);
-               }
-               else {
-                   bproc->setUnreportedStop(true);
-               }
-           }
-           else {
-              // bperr( "Unhandled event (why %d, what %d) on process %d\n",
-              // why, what, proc->getPid());
-               bproc->setUnreportedStop(true);
-           }
-           
-#else // os_windows
-           bproc->setUnreportedStop(true);
-#endif
-       }
-       delete unhandledEvents[i];
-   }
-
-   __UNLOCK;
-   return result;
-}
-
-
-/*
- * havePendingEvent
- *
- * Returns true if any thread has stopped or terminated and that fact hasn't
- * been reported to the user of the library.  Otherwise, returns false.
- */
-bool BPatch::havePendingEvent()
-{
-#if defined(os_windows)
-    // On NT, we need to poll for events as often as possible, so that we can
-    // handle traps.
-    if (getThreadEvent(false))
-        return true;
-#endif
-    
-    // For now, we'll do it by iterating over the threads and checking them,
-    // and we'll change it to something more efficient later on.
-    dictionary_hash_iter<int, BPatch_process *> pi(info->procsByPid);
-    
-    int pid;
-    BPatch_process *process;
-    
-    while (pi.next(pid, process)) {
-        if (process != NULL &&
-            (process->pendingUnreportedStop() ||
-             process->pendingUnreportedTermination())) {
-            return true;
-        }
-    }
-    return false;
-}
-
 
 /*
  * pollForStatusChange
@@ -1269,11 +1183,11 @@ bool BPatch::havePendingEvent()
  */
 bool BPatch::pollForStatusChangeInt()
 {
-   if (havePendingEvent())
-      return true;
-  
-   // No changes were previously detected, so check for new changes
-   return getThreadEvent(false);
+  if (mutateeStatusChange) {
+    mutateeStatusChange = false;
+    return true;
+  }
+  return false;
 }
 
 
@@ -1286,17 +1200,40 @@ bool BPatch::pollForStatusChangeInt()
  * This function is declared as a friend of BPatch_thread so that it can use
  * the BPatch_thread::getThreadEvent call to check for status changes.
  */
-bool BPatch::waitForStatusChange()
+bool BPatch::waitForStatusChangeInt()
 {
-    __LOCK;
-    if (havePendingEvent()) {
-        __UNLOCK;
-        return true;
-    }
-    __UNLOCK;
-    
-    // No changes were previously detected, so wait for a new change
-    return getThreadEvent(true);
+  getMailbox()->executeCallbacks(FILE__, __LINE__);
+
+  if (mutateeStatusChange) {
+    mutateeStatusChange = false;
+    return true;
+  }
+
+  eventType evt;
+  do {
+   pdvector<eventType> evts;
+   evts.push_back(evtProcessStop);
+   evts.push_back(evtProcessExit);
+   evts.push_back(evtThreadCreate);
+   evts.push_back(evtThreadExit);
+   waitingForStatusChange = true;
+   evt = getSH()->waitForOneOf(evts);
+  } while ((    evt != evtProcessStop ) 
+            && (evt != evtProcessExit)
+            && (evt != evtThreadExit)
+            && (evt != evtThreadCreate));
+
+  getMailbox()->executeCallbacks(FILE__, __LINE__);
+  //__WAIT_FOR_SIGNAL;
+  waitingForStatusChange = false;
+
+  if (mutateeStatusChange) {
+    mutateeStatusChange = false;
+    return true;
+  }
+  //  we waited for a change, but didn't get it
+  fprintf(stderr, "%s[%d]:  Error in status change reporting\n", __FILE__, __LINE__);
+  return false;
 }
 
 /*
@@ -1537,7 +1474,7 @@ BPatch_type * BPatch::createTypedefInt( const char * name, BPatch_type * ptr)
     return newType;
 }
 
-bool BPatch::waitUntilStopped(BPatch_thread *appThread){
+bool BPatch::waitUntilStoppedInt(BPatch_thread *appThread){
 
    bool ret = false;
 
@@ -1634,27 +1571,6 @@ BPatchThreadEventCallback BPatch::registerSignalCallbackInt(BPatchThreadEventCal
 
 #endif
 
-/*
- * BPatch::launchDeferredOneTimeCode
- *
- * Launch any deferred oneTimeCode calls (aka inferior RPCs) that might exist,
- * if it is now okay to do so.
- */
-void BPatch::launchDeferredOneTimeCode()
-{
-    for (unsigned int p = 0; p < processVec.size(); p++) {
-        process *proc = processVec[p];
-
-        if (proc == NULL)
-            continue;
-        
-        if (!proc->isAttached() ||
-            proc->status() == neonatal)
-            continue;
-
-        proc->getRpcMgr()->launchRPCs(proc->status() == running);        
-    }
-}
 
 BPatch_stats &BPatch::getBPatchStatisticsInt()
 {
@@ -1677,28 +1593,102 @@ void BPatch::updateStats()
 }
 
 bool BPatch::registerThreadEventCallbackInt(BPatch_asyncEventType type,
-                                            BPatchAsyncThreadEventCallback cb)
+                                            BPatchAsyncThreadEventCallback func)
 {
-   bool ret = eventHandler->registerThreadEventCallback(type, cb);
-   if (ret) asyncActive = true;
-   return ret;
+    
+    eventType evt;
+    switch (type) {
+      case BPatch_threadCreateEvent: evt = evtThreadCreate; break;
+      case BPatch_threadDestroyEvent: evt = evtThreadExit; break;
+      default:
+        fprintf(stderr, "%s[%d]:  Cannot register callback for type %s\n",
+               FILE__, __LINE__, asyncEventType2Str(type));
+        return false; 
+    };
+
+    pdvector<CallbackBase *> cbs;
+    AsyncThreadEventCallback *cb = new AsyncThreadEventCallback(func);
+    getCBManager()->removeCallbacks(evt, cbs);
+    bool ret = getCBManager()->registerCallback(evt, cb);
+
+    return ret;
 }
 
 bool BPatch::removeThreadEventCallbackInt(BPatch_asyncEventType type,
                                           BPatchAsyncThreadEventCallback cb)
 {
-   return eventHandler->removeThreadEventCallback(type, cb);
+    eventType evt;
+    switch (type) {
+      case BPatch_threadCreateEvent: evt = evtThreadCreate; break;
+      case BPatch_threadDestroyEvent: evt = evtThreadExit; break;
+      default:
+        fprintf(stderr, "%s[%d]:  Cannot remove callback for type %s\n",
+               FILE__, __LINE__, asyncEventType2Str(type));
+        return false; 
+    };
+
+    pdvector<CallbackBase *> cbs;
+    if (!getCBManager()->removeCallbacks(evt, cbs)) {
+        fprintf(stderr, "%s[%d]:  Cannot remove callback for type %s, not found\n",
+               FILE__, __LINE__, asyncEventType2Str(type));
+        return false;
+    }
+
+    //  See if supplied function was in the set of removed functions
+    bool ret = false;
+    for (int i = cbs.size() -1; i >= 0; i--) {
+      AsyncThreadEventCallback *test = (AsyncThreadEventCallback *)cbs[i];
+      if (test->getFunc() == cb) {
+        //  found it, destroy it
+        cbs.erase(i,i);
+        ret = true;
+        delete test;
+      } 
+    }
+
+    //  we deleted any found target functions, put the others back.
+    for (unsigned int i = 0; i < cbs.size(); ++i) 
+       if (!getCBManager()->registerCallback(evt, cbs[i]))
+          ret = false;
+
+    return ret;
 }
 
-bool BPatch::registerUserEventCallbackInt(BPatchUserEventCallback cb)
+bool BPatch::registerUserEventCallbackInt(BPatchUserEventCallback func)
 {
-   bool ret = eventHandler->registerUserEventCallback(cb);
-   if (ret) asyncActive = true;
-   return ret;
+  pdvector<CallbackBase *> cbs;
+  UserEventCallback *cb = new UserEventCallback(func);
+  bool ret = getCBManager()->registerCallback(evtUserEvent, cb);
+
+  return ret;
 }
 
 bool BPatch::removeUserEventCallbackInt(BPatchUserEventCallback cb)
 {
-   return eventHandler->removeUserEventCallback(cb);
+    bool ret = false;
+    pdvector<CallbackBase *> cbs;
+    if (!getCBManager()->removeCallbacks(evtUserEvent, cbs)) {
+        fprintf(stderr, "%s[%d]:  Cannot remove callback evtUserEvent, not found\n",
+               FILE__, __LINE__);
+        return false;
+    }
+
+    //  See if supplied function was in the set of removed functions
+    for (int i = cbs.size() -1; i >= 0; i--) {
+      UserEventCallback *test = (UserEventCallback *)cbs[i];
+      if (test->getFunc() == cb) {
+        //  found it, destroy it
+        cbs.erase(i,i);
+        ret = true;
+        delete test;
+      } 
+    }
+
+    //  we deleted any found target functions, put the others back.
+    for (unsigned int i = 0; i < cbs.size(); ++i) 
+       if (!getCBManager()->registerCallback(evtUserEvent, cbs[i]))
+          ret = false;
+
+    return ret;
 }
 

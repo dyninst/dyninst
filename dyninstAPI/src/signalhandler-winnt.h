@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-winnt.h,v 1.4 2004/03/23 01:12:09 eli Exp $
+/* $Id: signalhandler-winnt.h,v 1.5 2005/11/03 05:21:07 jaw Exp $
  */
 
 /*
@@ -110,43 +110,43 @@ typedef DEBUG_EVENT procSignalInfo_t;
 
 #include "dyninstAPI/src/signalhandler-event.h"
 
-DWORD handleBreakpoint(process *proc, const procevent &event);
-DWORD handleIllegal(process *proc, const procevent &event);
-DWORD handleViolation(process *proc, const procevent &event);
+DWORD handleBreakpoint(process *proc, const EventRecord &ev);
+DWORD handleIllegal(process *proc, const EventRecord &ev);
+DWORD handleViolation(process *proc, const EventRecord &ev);
 
 // And the dispatcher
-DWORD handleException(process *proc, procSignalWhat_t what,
-                    procSignalInfo_t info);
+DWORD handleException(process *proc, eventWhat_t what,
+                    eventInfo_t info);
 
 // Thread creation handler
-DWORD handleThreadCreate(process *proc, procSignalInfo_t info);
+DWORD handleThreadCreate(process *proc, eventInfo_t info);
 
 // Process creation handler
-DWORD handleProcessCreate(process *proc, procSignalInfo_t info);
+DWORD handleProcessCreate(process *proc, eventInfo_t info);
 
 // Thread deletion
-DWORD handleThreadDelete(process *proc, procSignalInfo_t info);
+DWORD handleThreadDelete(process *proc, eventInfo_t info);
 
 // Process deletion
-DWORD handleThreadDelete(process *proc, procSignalInfo_t info);
+DWORD handleThreadDelete(process *proc, eventInfo_t info);
 
 // DLL mapping
-DWORD handleDllLoad(process *proc, procSignalInfo_t info);
+DWORD handleDllLoad(process *proc, eventInfo_t info);
 
 /////////////////////
 // Translation mechanisms
 /////////////////////
 
-inline bool didProcReceiveSignal(procSignalWhy_t why) {
-    return why == procException; 
+inline bool didProcReceiveSignal(eventType type) {
+    return type == evtException; 
 }
 
-inline bool didProcExit(procSignalWhy_t why) {
-    return why == procProcessExit;
+inline bool didProcExit(eventType type) {
+    return type == evtProcessExit;
 }
 
 // Is there an equivalent for this?
-inline bool didProcExitOnSignal(procSignalWhy_t why) {
+inline bool didProcExitOnSignal(eventType type) {
     return false;
 }
 

@@ -50,16 +50,16 @@ int main(int argc, char *argv[])
    }
    if (attached_fd)
       write(attached_fd, &c, sizeof(char));
-   fprintf(stderr, "stage 1\n");
+   fprintf(stderr, "%s[%d]: stage 1\n", __FILE__, __LINE__);
    while (proc_current_state == 0);
-   fprintf(stderr, "stage 2\n");
+   fprintf(stderr, "%s[%d]: stage 2\n", __FILE__, __LINE__);
    done = 1;
    for (i=0; i<NTHRD; i++)
    {
       pthread_join(threads[i], &ret_val);
    }
-   fprintf(stderr, "stage 3\n");
+   fprintf(stderr, "%s[%d]: stage 3\n", __FILE__, __LINE__);
    while (proc_current_state == 1);
-   fprintf(stderr, "stage 4\n");
+   fprintf(stderr, "%s[%d]: stage 4\n", __FILE__, __LINE__);
    return 0;
 }

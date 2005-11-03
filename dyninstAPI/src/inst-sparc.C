@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.176 2005/09/14 21:21:47 bernat Exp $
+// $Id: inst-sparc.C,v 1.177 2005/11/03 05:21:06 jaw Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -965,6 +965,7 @@ bool baseTramp::generateGuardPreCode(codeGen &gen,
     return true;
 
 }
+  
 
 bool baseTramp::generateGuardPostCode(codeGen &gen,
                                       codeBufIndex_t &post,

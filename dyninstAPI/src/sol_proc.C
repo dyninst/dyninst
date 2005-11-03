@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.69 2005/10/18 21:35:32 bernat Exp $
+// $Id: sol_proc.C,v 1.70 2005/11/03 05:21:07 jaw Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -150,7 +150,7 @@ void OS::osTraceMe(void) {
 // has run, but can't assume anything else.
 
 bool dyn_lwp::isRunning() const {
-   lwpstatus_t theStatus;
+   procProcStatus_t theStatus;
    
    if (!get_status(&theStatus)) return false;
 
@@ -185,7 +185,7 @@ bool dyn_lwp::clearSignal() {
 // 1) Continue twice to clear a signal
 // 2) Restart an aborted system call
 bool dyn_lwp::continueLWP_(int signalToContinueWith) {
-  lwpstatus_t status;
+  procProcStatus_t status;
   long command[2];
   Address pc;  // PC at which we are trying to continue
   // Check the current status
@@ -980,14 +980,22 @@ bool process::waitUntilStopped() {
 
 bool dyn_lwp::writeTextWord(caddr_t inTraced, int data) {
    //  cerr << "writeTextWord @ " << (void *)inTraced << endl; cerr.flush();
-   return writeDataSpace(inTraced, sizeof(int), (caddr_t) &data);
+   bool ret =  writeDataSpace(inTraced, sizeof(int), (caddr_t) &data);
+   if (!ret) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n",
+                     __FILE__, __LINE__, getThreadStr(getExecThreadID()));
+        assert(ret);
+   return ret;
 }
 
 bool dyn_lwp::writeTextSpace(void *inTraced, u_int amount, const void *inSelf)
 {
    //  cerr << "writeTextSpace pid=" << getPid() << ", @ " << (void *)inTraced
    //       << " len=" << amount << endl; cerr.flush();
-   return writeDataSpace(inTraced, amount, inSelf);
+   bool ret =  writeDataSpace(inTraced, amount, inSelf);
+   if (!ret) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n",
+                     __FILE__, __LINE__, getThreadStr(getExecThreadID()));
+        assert(ret);
+   return ret;
 }
 
 bool dyn_lwp::readTextSpace(void *inTraced, u_int amount, const void *inSelf) {
@@ -996,6 +1004,7 @@ bool dyn_lwp::readTextSpace(void *inTraced, u_int amount, const void *inSelf) {
 
 bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
 {
+   //fprintf(stderr, "%s[%d][%s]:  writeDataSpace: %p\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()), inTraced);
    ptraceOps++; ptraceBytes += amount;
 
    //  cerr << "process::writeDataSpace_ pid " << getPid() << " writing "
@@ -1029,7 +1038,9 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
 
    int written = pwrite64(as_fd(), inSelf, amount, loc);
    if(written != (int)amount) {
+      fprintf(stderr, "%s[%d][%s]:  writeDataSpace: %s\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()), strerror(errno));
       perror("writeDataSpace");
+      assert(0);
       return false;
    }
     
@@ -1060,7 +1071,8 @@ bool process::get_status(pstatus_t *status) const
    
     if(pread(getRepresentativeLWP()->status_fd(), (void *)status,
              sizeof(pstatus_t), 0) != sizeof(pstatus_t)) {
-        perror("process::get_status");
+        perror("pread");
+        fprintf(stderr, "[%s][%d]: process::get_status: %s\n", __FILE__, __LINE__, strerror(errno));
         return false;
     }
     
@@ -1164,12 +1176,17 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
         codeGen gen(1);
         instruction::generateTrap(gen);
 
-        writeDataSpace((void *)trapAddr, 
+        bool ret = writeDataSpace((void *)trapAddr, 
                        gen.used(),
                        gen.start_ptr());
+        if (!ret) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n",
+                          __FILE__, __LINE__, getThreadStr(getExecThreadID()));
         writeDataSpace((void *)(callerFrame.getFP() + 8), 
                        sizeof(Address),
                        (void *)&trapAddr);
+        if (!ret) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n",
+                          __FILE__, __LINE__, getThreadStr(getExecThreadID()));
+        assert(ret);
 #else
         sysset_t *cur_syscalls = SYSSET_ALLOC(getPid());
 
@@ -1307,61 +1324,38 @@ int dyn_lwp::hasReachedSyscallTrap() {
     return 0;
 }
 
-procSyscall_t decodeSyscall(process *p, procSignalWhat_t syscall)
-{
-   int pid = p->getPid();
-
-    if (syscall == (unsigned) SYSSET_MAP(SYS_fork, pid) ||
-        syscall == (unsigned) SYSSET_MAP(SYS_fork1, pid) ||
-        syscall == (unsigned) SYSSET_MAP(SYS_vfork, pid))
-        return procSysFork;
-    if (syscall == (unsigned) SYSSET_MAP(SYS_exec, pid) || 
-        syscall == (unsigned) SYSSET_MAP(SYS_execve, pid))
-        return procSysExec;
-    if (syscall == (unsigned) SYSSET_MAP(SYS_exit, pid))
-        return procSysExit;
-    if (syscall == (unsigned) SYSSET_MAP(SYS_lwp_exit, pid))
-        return procLwpExit;
-    // Don't map -- we make this up
-    if (syscall == (unsigned) SYS_load)
-      return procSysLoad;
-    return procSysOther;
-}
-
-
 
 int decodeProcStatus(process *,
                      lwpstatus_t status,
-                     procSignalWhy_t &why,
-                     procSignalWhat_t &what,
-                     procSignalInfo_t &info) {
-   info = GETREG_INFO(status.pr_reg);
+		     EventRecord &ev) {
+
+   ev.info = GETREG_INFO(status.pr_reg);
 
    switch (status.pr_why) {
      case PR_SIGNALLED:
-        why = procSignalled;
-        what = status.pr_what;
+        ev.type = evtSignalled;
+        ev.what = status.pr_what;
         break;
      case PR_SYSENTRY:
-        why = procSyscallEntry;
-        what = status.pr_what;
+        ev.type = evtSyscallEntry;
+        ev.what = status.pr_what;
         
 #if defined(AIX_PROC)
         // We actually pull from the syscall argument vector
         if (status.pr_nsysarg > 0)
-           info = status.pr_sysarg[0];
+           ev.info = status.pr_sysarg[0];
         else
-           info = 0;
+           ev.info = 0;
 #endif
         break;
      case PR_SYSEXIT:
-        why = procSyscallExit;
-        what = status.pr_what;
+        ev.type = evtSyscallExit;
+        ev.what = status.pr_what;
         
 #if defined(AIX_PROC)
         // This from the proc header file: system returns are
         // left in pr_sysarg[0]. NOT IN MAN PAGE.
-        info = status.pr_sysarg[0];
+        ev.info = status.pr_sysarg[0];
 #endif
         break;
      case PR_REQUESTED:
@@ -1371,7 +1365,7 @@ int decodeProcStatus(process *,
      case PR_SUSPENDED:
         // I'm seeing this state at times with a forking multi-threaded
         // child process, currently handling by just continuing the process
-        why = procSuspended;
+        ev.type = evtSuspended;
         break;
 #endif
      case PR_JOBCONTROL:
@@ -1416,321 +1410,160 @@ int showProcStatus(lwpstatus_t status)
    return 1;
 }
 
-procevent *find_matching_event(const pdvector<procevent *> &events,
-                               process *proc, procSignalWhy_t  why,
-                               procSignalWhat_t what) {
-   procevent *matching_ev = NULL;
+bool find_matching_event(pdvector<EventRecord> &events,
+                         process *proc, EventRecord &ev,
+                         EventRecord &matching_ev) {
+   bool found = false;
    for(unsigned i=0; i<events.size(); i++) {
-      procevent *cur_event = events[i];
-      if(cur_event->proc == proc && cur_event->why == why &&
-         cur_event->what == what) {
+      EventRecord *cur_event = &(events[i]);
+      if(cur_event->proc == proc && cur_event->type == ev.type &&
+         cur_event->what == ev.what) {
          // assume that there's at most one matching event
-         assert(matching_ev == NULL);
-         matching_ev = cur_event;
+         assert(!found);
+         matching_ev = *cur_event;
+         found = true;
       }
    }
 
-   return matching_ev;
-}
-                               
-// returns true if updated events structure for this lwp 
-bool updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
-                               pdvector<procevent *> *events)
-{
-
-   lwpstatus_t lwpstatus;
-   bool res = lwp->get_status(&lwpstatus);
-
-   if(res == false) {
-      return false;
-   }
-
-   // This is the "why" for the lwps that were stopped because some other
-   // lwp stopped for an interesting reason.  We don't care about lwps
-   // that stopped for this reason.
-   if(lwpstatus.pr_why == PR_REQUESTED) {
-      return false;
-   }
-   
-   procSignalWhy_t  why  = procUndefined;
-   procSignalWhat_t what = 0;
-   procSignalInfo_t info = 0;
-
-   if(!decodeProcStatus(curProc, lwpstatus, why, what, info))
-      return false;
-   
-   procevent *matching_event =
-      find_matching_event(*events, curProc, why, what);
-
-   if(matching_event == NULL) {
-      procevent *new_event = new procevent;
-      new_event->proc = curProc;
-      new_event->lwp  = lwp;
-      new_event->why  = why;
-      new_event->what = what;
-      new_event->info = info;
-      (*events).push_back(new_event);
-   } else {
-      matching_event->lwp = lwp;
-   }
-   
-   return true;
+   return found;
 }
 
-void fillInPollEvents(struct pollfd fds, process *curProc,
-                      pdvector<procevent *> *events)
-{
-   if (fds.revents & POLLHUP) {
-      procevent *new_event = new procevent;
-      new_event->proc = curProc;
-      new_event->lwp = curProc->getRepresentativeLWP();
-      
-      // True if the process exited out from under us
-      int status;
-      int ret;
-      do {
-          ret = waitpid(curProc->getPid(), &status, 0);
-      } while ((ret < 0) && (errno == EINTR));
-      if (ret < 0) {
-          // This means that the application exited, but was not our child
-          // so it didn't wait around for us to get it's return code.  In
-          // this case, we can't know why it exited or what it's return
-          // code was.
-          ret = curProc->getPid();
-          status = 0;
-          // is this the bug??
-          // processVec[curr]->continueProc_();
-      }
-      
-      decodeWaitPidStatus(curProc, status, &new_event->why, &new_event->what);
-      (*events).push_back(new_event);
-      return;
-   }
+//  translateEvent() is here in lieu of a preexisting
+//  function specialHandlingOfEvents(), which fixes up events in special
+//  cases.  Not pretty
 
-   lwpstatus_t procstatus;
-   if(! curProc->getRepresentativeLWP()->get_status(&procstatus))
-      return;
-   unsigned lwp_to_use = (unsigned) procstatus.pr_lwpid;
-
-   // copied from old code, must not care about events that don't stop proc
-   if(! (procstatus.pr_flags & PR_STOPPED || procstatus.pr_flags & PR_ISTOP) )
-      return;
-
-   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(curProc->real_lwps);
-   dyn_lwp *cur_lwp;
-   unsigned index;
-   dyn_lwp *replwp = curProc->getRepresentativeLWP();
-   int numreal_lwps = curProc->real_lwps.size();
-
-   bool added_an_event = false;
-   if(numreal_lwps == 0)
-      added_an_event = updateEventsWithLwpStatus(curProc, replwp, events);
-   else {
-      while (lwp_iter.next(index, cur_lwp)) {
-	if(cur_lwp->get_lwp_id() != lwp_to_use)
-	  continue;
-	if(updateEventsWithLwpStatus(curProc, cur_lwp, events))
-	  added_an_event = true;
-      }
-   }
-
-   /*
-   if(added_an_event == false) {
-      assert(false);
-   }
-   */
-}
-
-#if defined(bug_aix_proc_broken_fork)
-
-int decodeRTSignal(process *proc,
-                   procSignalWhy_t &why,
-                   procSignalWhat_t &what,
-                   procSignalInfo_t &info)
-{
-   // We've received a signal we believe was sent
-   // from the runtime library. Check the RT lib's
-   // status variable and return it.
-   // These should be made constants
-   if (!proc) return 0;
-
-   pdstring status_str = pdstring("DYNINST_synch_event_id");
-   pdstring arg_str = pdstring("DYNINST_synch_event_arg1");
-
-   int status;
-   Address arg;
-
-   pdvector<int_variable *> vars;
-   if (!proc->findVarsByAll(status_str,
-                      vars))
-       return 0;
-   
-   Address status_addr = vars[0]->getAddress();
-
-   if (!proc->readDataSpace((void *)status_addr, sizeof(int), 
-                            &status, true)) {
-      return 0;
-   }
-
-   if (status == DSE_undefined) {
-      return 0; // Nothing to see here
-   }
-
-   vars.clear();
-   if (!proc->findVarsByAll(arg_str,
-                      vars))
-       return 0;
-
-   Address arg_addr = vars[0]->getAddress();
-    
-   if (!proc->readDataSpace((void *)arg_addr, sizeof(Address),
-                            &arg, true))
-      assert(0);
-   info = (procSignalInfo_t)arg;
-   switch(status) {
-     case DSE_forkEntry:
-        /* Entry to fork */
-        why = procSyscallEntry;
-        what = SYS_fork;
-        break;
-     case DSE_forkExit:
-        why = procSyscallExit;
-        what = SYSSET_MAP(SYS_fork, proc->getPid());
-        break;
-     case DSE_execEntry:
-        /* Entry to exec */
-        why = procSyscallEntry;
-        what = SYS_exec;
-        break;
-     case DSE_execExit:
-        /* Exit of exec, unused */
-        break;
-     case DSE_exitEntry:
-        /* Entry of exit, used for the callback. We need to trap before
-           the process has actually exited as the callback may want to
-           read from the process */
-        why = procSyscallEntry;
-        what = SYS_exit;
-        break;
-   case DSE_loadLibrary:
-     /* We need to hook this into the shared library handling code... */
-     why = procSyscallExit;
-     what = SYS_load;
-     break;
-
-     default:
-        assert(0);
-        break;
-   }
-
-   return 1;
-
-}
-#endif
-
-void specialHandlingOfEvents(const pdvector<procevent *> &events) {
-   for(unsigned i=0; i<events.size(); i++) {
-      procevent *cur_event = events[i];
-      process *cur_proc = cur_event->proc;
+bool SignalHandler::translateEvent(EventRecord &cur_event) {
 
 #if defined(os_aix)
-      if (cur_event->why == procSignalled && cur_event->what == SIGSTOP) {
-         // On AIX we can't manipulate a process stopped on a
-         // SIGSTOP... in any case, we clear it.
-         // No other signal exhibits this behavior.
-         cur_proc->getRepresentativeLWP()->clearSignal();
-      }
+  if (cur_event.type == evtSignalled && cur_event.what == SIGSTOP) {
+    // On AIX we can't manipulate a process stopped on a
+    // SIGSTOP... in any case, we clear it.
+    // No other signal exhibits this behavior.
+    cur_event.proc->getRepresentativeLWP()->clearSignal();
+   }
 #endif
 
 #if defined(bug_aix_proc_broken_fork)
-      if (cur_event->why == procSignalled && cur_event->what == SIGSTOP) {
-          // Possibly a fork stop in the RT library
-          decodeRTSignal(cur_proc, cur_event->why, cur_event->what, cur_event->info);
-      }
+  if (cur_event.type == evtSignalled && cur_event.what == SIGSTOP) {
+    // Possibly a fork stop in the RT library
+    getSH()->decodeRTSignal(cur_event);
+  }
 #endif
 
-      if(cur_event->lwp != NULL) {
-          // not necessary now that have lwp info in the event info
-#if 0
-          // Doesn't seem to be used
-          if(cur_event->why == procSyscallExit && cur_event->what == 2) {
-              cur_proc->setLWPStoppedFromForkExit(cur_event->lwp->get_lwp_id());
-          }
-#endif
-      }
-   }
-}      
+  return true;
+}
 
-// Get and decode a signal for a process
-// We poll /proc for process events, and so it's possible that
-// we'll get multiple hits. In this case we return one and queue
-// the rest. Further calls of decodeProcessEvent will burn through
-// the queue until there are none left, then re-poll.
-// Return value: 0 if nothing happened, or process pointer
-
-// the pertinantLWP and wait_options are ignored on Solaris, AIX
-
-bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
-                                          int wait_arg, int &timeout)
+// returns true if updated events structure for this lwp 
+bool SignalHandler::updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
+                               pdvector<EventRecord> &events)
 {
-   extern pdvector<process*> processVec;
-   bool any_active_procs = false;
-   struct pollfd fds[OPEN_MAX];  // argument for poll
-   int num_fds_to_watch = processVec.size();
-   for(unsigned u = 0; u < processVec.size(); u++) {
-       process *lproc = processVec[u];
-       if(lproc && (lproc->status() == running || lproc->status() == neonatal))
-       {
-           if (wait_arg == -1 || lproc->getPid() == wait_arg) {
-               fds[u].fd = lproc->getRepresentativeLWP()->status_fd();
-               any_active_procs = true;
-           } else {
-               fds[u].fd = -1;
-           }                
-       } else {
-           fds[u].fd = -1;
-       }	
-       fds[u].events = POLLPRI;
-       fds[u].revents = 0;
-   }
-   if(any_active_procs == false) {
+
+  lwpstatus_t lwpstatus;
+  bool res = lwp->get_status(&lwpstatus);
+
+  if(res == false) {
+    return false;
+  }
+
+  // This is the "why" for the lwps that were stopped because some other
+  // lwp stopped for an interesting reason.  We don't care about lwps
+  // that stopped for this reason.
+  if(lwpstatus.pr_why == PR_REQUESTED) {
      return false;
-   }
+  }
    
-   int num_selected_fds = poll(fds, num_fds_to_watch, timeout);
-   if (num_selected_fds <= 0) {
-       if (num_selected_fds < 0) {
-           perror("checkForProcessEvents: poll failed");
-       }
-       else {
-         // return of 0 indicates timeout
-         timeout = 0;
-       }
-       return false;
-   }
+  EventRecord ev;
+  ev.type = evtUndefined;
+  ev.what = 0;
+  ev.info = 0;
+  ev.proc = curProc;
+  ev.lwp = lwp;
 
-   //handled_fds = 0; handled_fds < num_selected_fds; ) {
-   int handled_fds = 0;
-   for(int i=0; i<num_fds_to_watch; i++) {
-       if(fds[i].revents == 0)
-           continue;
-       
-       handled_fds++;  // going to handle this now
-       process *curProc = processVec[i];
-       curProc->set_status(stopped);
-       fillInPollEvents(fds[i], curProc, events);
-   }
-
-   assert(num_selected_fds == handled_fds);
+  if(!decodeProcStatus(curProc, lwpstatus, ev))
+     return false;
    
-   specialHandlingOfEvents(*events);
+  EventRecord matching_event;
+  bool found_match = find_matching_event(events, curProc, ev, matching_event);
 
+  if(!found_match) {
+     translateEvent(ev);
+     events.push_back(ev);
+  } else {
+     matching_event.lwp = lwp;
+     translateEvent(matching_event);
+  }
+   
+  return true;
+}
 
-   if((*events).size()) {
-       return true;
-   } else {
-       return false;
-   }
+bool SignalHandler::updateEvents(pdvector<EventRecord> &events, process *p, int lwp_to_use)
+{
+  //  returns true if events are updated
+  dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(p->real_lwps);
+  dyn_lwp *cur_lwp;
+  unsigned index;
+  dyn_lwp *replwp = p->getRepresentativeLWP();
+  int numreal_lwps = p->real_lwps.size();
+  bool updated_events = false;
+
+  if (numreal_lwps == 0)
+     updated_events = updateEventsWithLwpStatus(p, replwp, events);
+  else {
+     while (lwp_iter.next(index, cur_lwp)) {
+       if (cur_lwp->get_lwp_id() != (unsigned)lwp_to_use)
+         continue;
+       if (updateEventsWithLwpStatus(p, cur_lwp, events)) {
+         updated_events = true;
+         break;
+       }
+     }
+  }
+  return updated_events;
+}
+
+bool SignalHandler::getFDsForPoll(pdvector<unsigned int> &fds)
+{
+  extern pdvector<process*> processVec;
+  for(unsigned u = 0; u < processVec.size(); u++) {
+     process *lproc = processVec[u];
+     if(lproc && (lproc->status() == running || lproc->status() == neonatal))
+       fds.push_back(lproc->getRepresentativeLWP()->status_fd());
+  }
+#ifdef DEBUG
+  if (!fds.size()) {
+    fprintf(stderr, "%s[%d]:  No valid proc fds available\n", __FILE__, __LINE__);
+    for (unsigned int i = 0; i < processVec.size(); ++i) {
+       process *p = processVec[i];
+      fprintf(stderr, "\tprocess %d in state %s\n", processVec[i]->getPid(), 
+              processVec[i]->getStatusAsString().c_str());
+    }
+  }
+#endif
+  return (fds.size() > 0);
+}
+
+process *SignalHandler::findProcessByFD(unsigned int fd)
+{
+  for(unsigned u = 0; u < processVec.size(); u++) {
+    process *lproc = processVec[u];
+    if (!lproc) {
+      fprintf(stderr, "%s[%d]:  missing pointer to process for fd %d\n", __FILE__, __LINE__,fd);
+      continue;
+    }
+    dyn_lwp *lwp = lproc->getRepresentativeLWP();
+    if (!lwp) {
+      fprintf(stderr, "%s[%d]:  missing pointer to lwp for fd %d\n", __FILE__, __LINE__,fd);
+      continue;
+
+    }
+    if (!lproc->getRepresentativeLWP()->is_attached()) {
+      fprintf(stderr, "%s[%d]:  cannot get fd for unattached process\n", __FILE__, __LINE__);
+      continue;
+    }
+    if (fd == (unsigned) lproc->getRepresentativeLWP()->status_fd())
+      return lproc;
+  }
+  return NULL;
 }
 
 pdstring process::tryToFindExecutable(const pdstring &iprogpath, int pid) {

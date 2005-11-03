@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-unix.h,v 1.15 2005/10/21 21:48:26 legendre Exp $
+/* $Id: signalhandler-unix.h,v 1.16 2005/11/03 05:21:07 jaw Exp $
  */
 
 /*
@@ -53,61 +53,23 @@
 #ifndef _SIGNAL_HANDLER_UNIX_H
 #define _SIGNAL_HANDLER_UNIX_H
 
+#include "common/h/Types.h"
+
 // Need procfs for /proc platforms
-#if defined(mips_sgi_irix6_4)
-#include <sys/procfs.h>
-#elif defined(alpha_dec_osf4_0)
+#if defined(alpha_dec_osf4_0)
 #include <sys/procfs.h>
 #elif defined(sparc_sun_solaris2_4)
 #include <procfs.h>
+#elif defined(os_aix)
+#include <sys/procfs.h>
 #endif
-// AIX will include sys/procfs.h
-
-#include "common/h/Types.h"
 
 class process;
 
-/*
- * Enumerated types of "why" -- why we received a process event
- */
 
-// Global list: from /proc and waitpid both
-// Process exited normally (WIFEXITED)
-// Process exited on a signal (WIFSIGNALED)
-// Process was signalled (WIFSTOPPED/PR_SIGNALLED)
-// Process entering traced syscall (PR_SYSENTRY)
-// Process exiting traced syscall (PR_SYSEXIT)
-// Process stopped via request (PR_REQUESTED)
-// PR_FAULTED, PR_JOBCONTROL, and PR_SUSPENDED are not caught
+//  On /proc platforms we have predefined system call mappings (SYS_fork, etc).
+//  Define them here for platforms which don't have them 
 
-typedef enum {
-    procExitedNormally,
-    procExitedViaSignal,
-    procSignalled,
-    procSyscallEntry,
-    procSyscallExit,
-    procRequested,
-    procSuspended,
-    procInstPointTrap,
-    procDebugStep,
-    procForkSigChild,
-    procUndefined,
-} procSignalWhy_t;
-
-/*
- * What:
- *  procExited: exit code
- *  procExitedViaSignal: uncaught signal
- *  procSignalled: signal
- *  procSyscallEntry: system call
- *  procSyscallExit: system call
- *  procRequested: not defined
- */
-
-typedef unsigned int procSignalWhat_t;
-
-/* On /proc platforms we have predefined system call mappings (SYS_fork, etc).
-   Define them here for platforms which don't have them */
 #if !defined(SYS_fork)
 #define SYS_fork 1001
 #endif
@@ -129,8 +91,11 @@ typedef unsigned int procSignalWhat_t;
 #if !defined(SYS_vfork)
 #define SYS_vfork 1007
 #endif
+#if !defined(SYS_execv)
+#define SYS_execv 1008
+#endif
 #if !defined(SYS_lwp_exit)
-#define SYS_lwp_exit 1008
+#define SYS_lwp_exit 1009
 #endif
 
 /*
@@ -139,7 +104,6 @@ typedef unsigned int procSignalWhat_t;
  *   more efficient signal handling, or library information.
  */
 
-typedef Address procSignalInfo_t;
 
 ///////////////////////////////////////////////////////////////////
 ////////// Decoder section
@@ -160,20 +124,16 @@ typedef enum {
     procSysOther
 } procSyscall_t;
 
-#include "dyninstAPI/src/signalhandler-event.h"
 
-procSyscall_t decodeSyscall(process *p, procSignalWhat_t syscall);
+procSyscall_t decodeSyscall(process *p, eventWhat_t info);
 
 // waitPid status -> what/why format
 typedef int procWaitpidStatus_t;
-int decodeWaitPidStatus(process *proc,
-                        procWaitpidStatus_t status,
-                        procSignalWhy_t *why,
-                        procSignalWhat_t *what);
+bool decodeWaitPidStatus(procWaitpidStatus_t status, EventRecord &ev);
 
 // proc decode
 // There are two possible types of data structures:
-#if defined(sparc_sun_solaris2_4)
+#if defined(sparc_sun_solaris2_4) || defined (os_aix)
 typedef lwpstatus_t procProcStatus_t;
 #elif defined(mips_sgi_irix6_4) || defined(alpha_dec_osf4_0)
 typedef prstatus_t procProcStatus_t;
@@ -181,12 +141,6 @@ typedef prstatus_t procProcStatus_t;
 // No /proc, dummy function
 typedef int procProcStatus_t;
 #endif
-
-int decodeProcStatus(process *proc,
-                     procProcStatus_t status,
-                     procSignalWhy_t &why,
-                     procSignalWhat_t &what,
-                     procSignalInfo_t &retval);
 
 ///////////////////////////////////////////////////////////////////
 ////////// Handler section
@@ -199,73 +153,45 @@ int decodeProcStatus(process *proc,
 // needs to be handled (0 return)
 
 // forwardSigToProcess: continue the process with the (unhandled) signal
-int forwardSigToProcess(const procevent &event);
-
+int forwardSigToProcess(EventRecord &event);
 
 /////////////////////
 // Handle individual signal types
 /////////////////////
 
-int handleSigTrap(const procevent &event);
-
-int handleSigStopNInt(const procevent &event);
+bool handleSigStopNInt(EventRecord &event);
 
 // A signal where we may want to dump proc core/debug it
-int handleSigCritical(const procevent &event);
-
-// And the dispatcher
-int handleSignal(const procevent &event);
-
-
-/////////////////////
-// Handle syscall entries
-/////////////////////
-
-int handleForkEntry(const procevent &event);
-int handleExecEntry(const procevent &event);
-
-// And the dispatcher
-int handleSyscallEntry(const procevent &event);
-
-
-/////////////////////
-// Handle syscall exits
-/////////////////////
-
-int handleForkExit(const procevent &event);
-int handleExecExit(const procevent &event);
-int handleLoadExit(const procevent &event);
-
-// And the dispatcher
-int handleSyscallExit(const procevent &event);
+bool handleSigCritical(EventRecord &event);
 
 /////////////////////
 // Translation mechanisms
 /////////////////////
 
-inline bool didProcReceiveSignal(procSignalWhy_t why) {
-    return (why == procSignalled); 
+inline bool didProcReceiveSignal(eventType t) {
+    return (t == evtSignalled); 
 }
 
-inline bool didProcEnterSyscall(procSignalWhy_t why) {
-   return (why == procSyscallEntry);
+inline bool didProcEnterSyscall(eventType t) {
+   return (t == evtSyscallEntry);
 }
 
-inline bool didProcExitSyscall(procSignalWhy_t why) {
-   return (why == procSyscallExit);
+inline bool didProcExitSyscall(eventType t) {
+   return (t == evtSyscallExit);
 }
 
-inline bool didProcReceiveInstTrap(procSignalWhy_t why) {
-    return (why == procInstPointTrap);
+inline bool didProcReceiveInstTrap(eventType t) {
+    return (t == evtInstPointTrap);
 }
 
-inline bool didProcExit(procSignalWhy_t why) {
-    return (why == procExitedNormally);
+inline bool didProcExit(EventRecord &ev) {
+    return ((ev.type == evtProcessExit) && (ev.status == statusNormal));
 }
 
-inline bool didProcExitOnSignal(procSignalWhy_t why) {
-    return (why == procExitedViaSignal);
+inline bool didProcExitOnSignal(EventRecord &ev) {
+    return ((ev.type == evtProcessExit) && (ev.status == statusSignalled));
 }
+
 
 #endif
 

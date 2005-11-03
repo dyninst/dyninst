@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.187 2005/10/04 18:10:15 legendre Exp $
+// $Id: solaris.C,v 1.188 2005/11/03 05:21:07 jaw Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -177,6 +177,7 @@ bool process::dldumpSharedLibrary(pdstring originalLibNameFullPath, char* dirNam
 	
 	/*fprintf(stderr,"CALLING dldump\n"); */
 	if (!bproc->oneTimeCodeInternal(call_dldump, NULL, true)) {
+                fprintf(stderr, "%s[%d]:  oneTimeCodeInternal failed\n", FILE__, __LINE__);
 		// dldump FAILED
 		// find the (global var) error string in the RT Lib and send it to the
 		// error reporting mechanism

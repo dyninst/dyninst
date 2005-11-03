@@ -453,11 +453,14 @@ bool BPatch_point::stopMonitoringInt(void * handle)
 
 void *BPatch_point::registerDynamicCallCallbackInt(BPatchDynamicCallSiteCallback cb)
 {
+#ifdef NOTDEF // PDSEP
   void *ret = NULL;
-  BPatch_asyncEventHandler *eventHandler = BPatch::bpatch->eventHandler;
-  ret = eventHandler->registerDynamicCallCallback(cb, this);
+  ret = getAsync()->registerDynamicCallCallback(cb, this);
   if (ret) BPatch::bpatch->asyncActive = true;
   return ret;
+#endif
+  fprintf(stderr, "%s[%d]:  re-implement me!\n", FILE__, __LINE__);
+  return NULL;
 }
 
 //  BPatch_point::removeDynamicCallCallback
@@ -469,8 +472,12 @@ void *BPatch_point::registerDynamicCallCallbackInt(BPatchDynamicCallSiteCallback
 
 bool BPatch_point::removeDynamicCallCallbackInt(void *handle)
 {
-  BPatch_asyncEventHandler *eventHandler = BPatch::bpatch->eventHandler;
-  return eventHandler->removeDynamicCallCallback(handle);
+#ifdef NOTDEF // PDSEP
+  return getAsync()->removeDynamicCallCallback(handle);
+#endif
+  
+  fprintf(stderr, "%s[%d]:  re-implement me!\n", FILE__, __LINE__);
+  return false;
 }
 
 /*

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-linux.C,v 1.11 2004/03/23 01:12:03 eli Exp $
+// $Id: inst-linux.C,v 1.12 2005/11/03 05:21:06 jaw Exp $
 
 #ifndef NULL
 #define NULL 0
@@ -52,7 +52,6 @@
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/ast.h"
-#include "dyninstAPI/src/ptrace_emul.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/stats.h"
 

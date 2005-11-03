@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.13 2005/10/24 19:37:42 bernat Exp $
+// $Id: image-func.C,v 1.14 2005/11/03 05:21:05 jaw Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -433,7 +433,7 @@ bool image_func::cleanBlockList() {
         // Check sources and targets for legality
         image_basicBlock *b1 = blockList[i];
         for (unsigned s = 0; s < b1->sources_.size(); s++) {
-            if ((b1->sources_[s]->id() >= blockList.size()) ||
+            if (((unsigned)b1->sources_[s]->id() >= blockList.size()) ||
                 (b1->sources_[s]->id() < 0)) {
                 fprintf(stderr, "WARNING: block %d in function %s has illegal source block %d\n",
                         b1->id(), symTabName().c_str(), b1->sources_[s]->id());
@@ -447,7 +447,7 @@ bool image_func::cleanBlockList() {
         }
 #endif
         for (unsigned t = 0; t < b1->targets_.size(); t++) {
-            if ((b1->targets_[t]->id() >= blockList.size()) ||
+            if (((unsigned)b1->targets_[t]->id() >= blockList.size()) ||
                 (b1->targets_[t]->id() < 0)) {
                 fprintf(stderr, "WARNING: block %d in function %s has illegal target block %d\n",
                         b1->id(), symTabName().c_str(), b1->targets_[t]->id());

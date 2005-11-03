@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.7 2005/10/25 17:27:49 bernat Exp $
+// $Id: reloc-func.C,v 1.8 2005/11/03 05:21:07 jaw Exp $
 
 // We'll also try to limit this to relocation-capable platforms
 // in the Makefile. Just in case, though....
@@ -334,7 +334,7 @@ bool int_function::expandForInstrumentation() {
         // If there isn't, then we don't care.
         multiTramp *multi = proc()->findMultiTramp(bblI->firstInsnAddr());
         if (!multi) continue;
-        if (bblI->getSize() < multi->sizeDesired()) {
+        if (bblI->getSize() < (unsigned) multi->sizeDesired()) {
             reloc_printf("Enlarging basic block %d\n",
                          i);
             pdvector<instruction *> whocares;

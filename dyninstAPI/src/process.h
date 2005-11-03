@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.339 2005/10/21 21:48:19 legendre Exp $
+/* $Id: process.h,v 1.340 2005/11/03 05:21:07 jaw Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -319,8 +319,6 @@ char * systemPrelinkCommand;
 
   bool dyninstLibAlreadyLoaded() { return runtime_lib != 0; }
 
-  void updateActiveCT(bool flag, CTelementType type);
-
   rpcMgr *getRpcMgr() const { return theRpcMgr; }
 
   bool getCurrPCVector(pdvector <Address> &currPCs);
@@ -530,18 +528,12 @@ char * systemPrelinkCommand;
   BPatch_function *(*new_func_cb)(process *p, int_function *f);
   BPatch_point *(*new_instp_cb)(process *p, int_function *f, instPoint *ip, 
                                 int type);
-  void (*thrd_del_cb)(process *p, dyn_thread *thr);
-  void (*thrd_new_cb)(process *p, int id, int lwp);
  public:
   //Trigger the callbacks from a lower level
   BPatch_function *newFunctionCB(int_function *f) 
      { assert(new_func_cb); return new_func_cb(this, f); }
   BPatch_point *newInstPointCB(int_function *f, instPoint *pt, int type)
      { assert(new_instp_cb); return new_instp_cb(this, f, pt, type); }
-  void deleteThreadCB(dyn_thread *thr)
-     { assert(thrd_del_cb); thrd_del_cb(this, thr); }
-  void newThreadCB(int id, int lwp)
-     { assert(thrd_new_cb); thrd_new_cb(this, id, lwp); }
 
   //Register callbacks from the higher level
   void registerFunctionCallback(BPatch_function *(*f)(process *p, 
@@ -550,10 +542,6 @@ char * systemPrelinkCommand;
   void registerInstPointCallback(BPatch_point *(*f)(process *p, int_function *f,
                                                     instPoint *ip, int type))
      { new_instp_cb = f; }
-  void registerDeleteThrdCallback(void (*f)(process *, dyn_thread *))
-     { thrd_del_cb = f; }
-  void registerNewThrdCallback(void (*f)(process *, int, int))
-     { thrd_new_cb = f; }
   
   void warnOfThreadDelete(dyn_thread *thr);
  // inferior heap management
@@ -771,7 +759,7 @@ char * systemPrelinkCommand;
   // also be called at the same time.
 
   // this function makes no callback to dyninst but only does cleanup work
-  void handleProcessExit();
+  bool handleProcessExit();
 
 #ifndef BPATCH_LIBRARY
   bool SearchRelocationEntries(const image *owner, instPoint &instr,
@@ -782,18 +770,18 @@ char * systemPrelinkCommand;
   // Checks the mapped object for signal handlers
   void findSignalHandler(mapped_object *obj);
 
-  void handleForkEntry();
 #if defined(os_aix)
   // Manually copy inferior heaps past the end of text segments
   void copyDanglingMemory(process *parent);
 #endif
-  void handleForkExit(process *child);
-  void handleExecEntry(char *arg0);
-  void handleExecExit();
+  bool handleForkEntry();
+  bool handleForkExit(process *child);
+  bool handleExecEntry(char *arg0);
+  bool handleExecExit();
 
   // Generic handler for anything else waiting on a system call
   // Returns true if handling was done
-  bool handleSyscallExit(procSignalWhat_t syscall, dyn_lwp *lwp_with_event);
+  bool handleSyscallExit(eventWhat_t syscall, dyn_lwp *lwp_with_event);
   
   public:
 
@@ -868,7 +856,6 @@ public:
 private:
 
   bool flushInstructionCache_(void *baseAddr, size_t size); //ccw 25 june 2001
-  void clearProcessEvents();
 
   bool continueProc_(int sig);
   
@@ -884,10 +871,13 @@ private:
   bool stop_();
   // wait until the process stops
   bool waitUntilStopped();
-  // wait until any lwp in a process stops
-  dyn_lwp *waitUntilLWPStops();
+#if defined (os_linux)
+  bool waitUntilLWPStops();
+#endif
   
  public:
+
+  dyn_lwp *query_for_running_lwp();
 
   // returns true iff ok to operate on the process (attached)
   bool isAttached() const;

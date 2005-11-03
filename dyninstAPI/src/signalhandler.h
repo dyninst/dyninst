@@ -39,19 +39,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.15 2005/09/01 22:18:40 bernat Exp $
- */
-
-/*
- * This file describes the entry points to the signal handling
- * routines. This is meant to provide a single interface to bother
- * the varied UNIX-style handlers and the NT debug event system.
- * Further platform-specific details can be found in the
- * signalhandler-unix.h and signalhandler-winnt.h files.
+/* $Id: signalhandler.h,v 1.16 2005/11/03 05:21:07 jaw Exp $
  */
 
 #ifndef _SIGNAL_HANDLER_H
 #define _SIGNAL_HANDLER_H
+
+#include "common/h/Vector.h"
+#include "common/h/String.h"
+#include "dyninstAPI/src/EventHandler.h"
 
 #if defined(i386_unknown_nt4_0)
 #include "dyninstAPI/src/signalhandler-winnt.h"
@@ -60,7 +56,17 @@
 #endif
 
 #include "codeRange.h"
+#if defined (AIX_PROC)
+extern int SYSSET_MAP(int, int);
+#else
+#define SYSSET_MAP(x, pid)  (x)
+#endif
 
+#if defined (os_osf)
+#define GETREG_INFO(x) 0
+#define V0_REGNUM 0
+#define A0_REGNUM 16
+#endif
 class process;
 class dyn_lwp;
 
@@ -74,31 +80,8 @@ class dyn_lwp;
 // what: what caused the stop (return parameter)
 // block: block waiting for a signal?
 // waitProcs replacement
-
-class signalHandler {
-   int handleProcessEventInternal(const procevent &event);
-
- public:
-   signalHandler() { }
-
-   // checks for process events and handles any events that were found
-   // Returns whatever it doesn't know how to handle
-   pdvector <procevent *> checkForAndHandleProcessEvents(bool block);
-
-   // checkForProcessEvents: check whether there is an event on any process
-   // we're debugging. If one is found decode it and return.  Returns true if
-   // found events, otherwise false.
-   // If timeout is -1, this function will block.
-   // Otherwise, it will return after waiting for specified timeout (in ms)
-   // timeout will be set to 0 if the function timed out.
-   bool checkForProcessEvents(pdvector<procevent *> *events,
-                              int wait_arg, int &timeout);
-
-   // handles process events, unlocks locked processes, deletes proc events
-   // Returns events it doesn't know what to do with
-   pdvector <procevent *> handleProcessEvents(pdvector<procevent *> &foundEvents);
-   int handleProcessEvent(const procevent &event);
-};
+class SignalHandler;
+SignalHandler *getSH();
 
 class signal_handler_location : public codeRange {
  public:
@@ -111,24 +94,130 @@ class signal_handler_location : public codeRange {
     unsigned size_;
 };
 
-extern signalHandler *global_sh;
-signalHandler *getSH();
+class process;
 
-/////////////////////
-// Callbacks.
-/////////////////////
+class EventGate {
+  public:
+    EventGate(eventLock *l, eventType type, process *p = NULL, dyn_lwp *lwp = NULL);
+    EventGate(eventLock *l, eventType type, unsigned long id);
+    bool addEvent(eventType type, process *p = NULL);
+    ~EventGate();
 
-// Note: Replace with BPatch callbacks when Paradyn can use them
-// Fork entry
-typedef void (*forkEntryCallback_t)(process *p, void *data);
-// Fork exit: include new pid
-typedef void (*forkExitCallback_t)(process *p, void *data, process *child);
-// Exec entry: include program argument
-typedef void (*execEntryCallback_t)(process *p, void *data, char *arg0);
-// Exec exit
-typedef void (*execExitCallback_t)(process *p, void *data);
-// Exit entry: include exit code
-typedef void (*exitEntryCallback_t)(process *p, void *data, int code);
+    EventRecord &wait();
+    bool signalIfMatch(EventRecord &ev);
+
+  private:
+    pdvector<EventRecord> evts;
+    eventLock *lock;
+    eventCond *cond;
+    EventRecord trigger;
+    bool waiting;
+};
+
+class SignalHandler : public EventHandler<EventRecord> {
+ friend SignalHandler *getSH();
+ friend process *ll_attachToCreatedProcess(int, const pdstring &);
+ friend class process;
+
+ public:
+   virtual ~SignalHandler() {}
+   
+   eventType waitForOneOf(pdvector<eventType> &evts);
+   eventType waitForEvent(eventType evt, process *p = NULL, dyn_lwp *lwp = NULL);
+   bool signalEvent(EventRecord &ev);
+   bool signalEvent(eventType t);
+
+   bool signalActiveProcess();
+
+#if defined (os_linux)
+   bool waitingForStop(process *p); 
+   bool notWaitingForStop(process *p); 
+#endif
+
+   //  This is here due to a legacy kluge for aix, where a 
+   //  Signal event is faked at startup.
+   //void fakeEvent(EventRecord &);
+
+   private:
+   //  SignalHandler should only be constructed via getSH(), 
+   //  which is a friend.
+   SignalHandler() : EventHandler<EventRecord>(BPatch_eventLock::getLock(), 
+                                  "SYNC",/*start thread?*/ false) { }
+
+#if !defined (os_windows)
+     //  functions specific to the unix polling mechanism.
+     bool createPollEvent(pdvector<EventRecord> &events, struct pollfd fds, process *curProc);
+     bool getFDsForPoll(pdvector<unsigned int> &fds);
+     process *findProcessByFD(unsigned int fd);
+   bool translateEvent(EventRecord &ev);
+#endif
+
+#if !defined (os_linux) && !defined (os_windows)
+   bool updateEvents(pdvector<EventRecord> &events, process *p, int lwp_to_use);
+   bool decodeProcStatus(process *p, procProcStatus_t status, EventRecord &ev);
+   bool updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
+                                  pdvector<EventRecord> &events);
+#endif
+     bool handleEvent(EventRecord &ev)
+      { LOCK_FUNCTION(bool, handleEventLocked, (ev));}
+     bool handleEventLocked(EventRecord &ev);
+     bool waitNextEvent(EventRecord &ev);
+
+     //  event handling helpers
+#if defined (os_windows)
+    DWORD handleBreakpoint(EventRecord &ev);
+    DWORD handleException(EventRecord &ev);
+    DWORD handleIllegal(EventRecord &ev);
+    DWORD handleViolation(EventRecord &ev);
+    DWORD handleThreadCreate(EventRecord &ev);
+    DWORD handleThreadExit(EventRecord &ev);
+    DWORD handleProcessCreate(EventRecord &ev);
+    DWORD handleProcessExitWin(EventRecord &ev);
+    DWORD handleProcessSelfTermination(EventRecord &ev);
+    DWORD handleDllLoad(EventRecord &ev);
+#else
+     procSyscall_t decodeSyscall(process *p, eventWhat_t what);
+     bool handleSignal(EventRecord &ev);
+     bool handleSIGILL(EventRecord &ev);
+     bool handleSIGCHLD(EventRecord &ev);
+     bool handleSIGTRAP(EventRecord &ev);
+     bool handleSigTrap(EventRecord &ev);
+   
+     bool handleSIGSTOP(EventRecord &ev);
+     bool decodeRTSignal(EventRecord &ev);
+     bool handleForkEntry(EventRecord &ev);
+     bool handleExecEntry(EventRecord &ev);
+     bool handleLwpExit(EventRecord &ev);
+     bool handleSyscallEntry(EventRecord &ev);
+     bool handleSyscallExit(EventRecord &ev);
+     bool handleForkExit(EventRecord &ev);
+     bool handleExecExit(EventRecord &ev);
+     bool handleLoadExit(EventRecord &ev);
+     bool handleSingleStep(const EventRecord &ev);
+#endif
+
+     pdvector<EventGate *> wait_list;
+    // eventType last_event;
+     bool waiting_for_active_process;
+
+    
+#if defined (os_linux)
+    typedef struct {
+      process *proc;
+      pdvector<int> suppressed_sigs;
+      pdvector<dyn_lwp *> suppressed_lwps;
+    } stopping_proc_rec;
+    pdvector<stopping_proc_rec> stoppingProcs;
+    //  SignalHandler::suppressSignalWhenStopping
+    //  needed on linux platforms.  Allows the signal handler function
+    //  to ignore most non SIGSTOP signals when waiting for a process to stop
+    //  Returns true if signal is to be suppressed.
+    bool suppressSignalWhenStopping(EventRecord &ev);
+    //  SignalHandler::resendSuppressedSignals
+    //  called upon receipt of a SIGSTOP.  Sends all deferred signals to the stopped process.
+    bool resendSuppressedSignals(EventRecord &ev);
+#endif
+};
 
 
 #endif

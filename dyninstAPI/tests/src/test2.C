@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2.C,v 1.62 2005/07/29 19:20:02 bernat Exp $
+// $Id: test2.C,v 1.63 2005/11/03 05:21:08 jaw Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -900,104 +900,115 @@ main(unsigned int argc, char *argv[])
     if (runTest[3]) test3();
     if (runTest[4]) test4();
 
-    // Finished trying failure cases
-    expectErrors = false;
+    if (runTest[5] 
+       || runTest[6]
+       || runTest[7]
+       || runTest[8]
+       || runTest[9]
+       || runTest[10]
+       || runTest[11]
+       || runTest[12]
+       || runTest[13]
+       || runTest[14] ) {
 
-    // now start a real program
-    gotError = false;
-    ret = mutatorMAIN(mutateeName);
-    if (!ret || gotError) {
-	printf("*ERROR*: unable to create handle for executable\n");
-        fprintf(stderr, "%s[%d]: ret = %p, gotError = %d\n", 
-                __FILE__, __LINE__, ret, gotError);
-        exit(-1);
-    }
+      // Finished trying failure cases
+      expectErrors = false;
 
-    BPatch_image *img = ret->getImage();
+      // now start a real program
+      gotError = false;
+      ret = mutatorMAIN(mutateeName);
+      if (!ret || gotError) {
+    	  printf("*ERROR*: unable to create handle for executable\n");
+          fprintf(stderr, "%s[%d]: ret = %p, gotError = %d\n", 
+                  __FILE__, __LINE__, ret, gotError);
+          exit(-1);
+      }
 
-    // Signal the child that we've attached
-    if ( useAttach )
+      BPatch_image *img = ret->getImage();
+
+      // Signal the child that we've attached
+      if ( useAttach )
 		signalAttached( ret, img );
 
-    // determine whether mutatee is C or C++
-    BPatch_variableExpr *isCxx = img->findVariable("mutateeCplusplus");
-    if (isCxx == NULL) {
-	fprintf(stderr, "  Unable to locate variable \"mutateeCplusplus\""
-                 " -- assuming 0!\n");
-    } else {
-        isCxx->readValue(&mutateeCplusplus);
-        dprintf("Mutatee is %s.\n", mutateeCplusplus ? "C++" : "C");
-    }
+      // determine whether mutatee is C or C++
+      BPatch_variableExpr *isCxx = img->findVariable("mutateeCplusplus");
+      if (isCxx == NULL) {
+  	  fprintf(stderr, "  Unable to locate variable \"mutateeCplusplus\""
+                   " -- assuming 0!\n");
+      } else {
+          isCxx->readValue(&mutateeCplusplus);
+          dprintf("Mutatee is %s.\n", mutateeCplusplus ? "C++" : "C");
+      }
 
-    if (runTest[5]) test5(img);
+      if (runTest[5]) test5(img);
 
-    if (runTest[8]) test8a(ret, img);
+      if (runTest[8]) test8a(ret, img);
 
-    ret->continueExecution();
+      ret->continueExecution();
 
-    // Tests 6 and 7 need to be run with the thread stopped
-    if (runTest[6] || runTest[7]) {
-	waitUntilStopped(bpatch, ret, 6, "load a dynamically linked library");
+      // Tests 6 and 7 need to be run with the thread stopped
+      if (runTest[6] || runTest[7]) {
+    	  waitUntilStopped(bpatch, ret, 6, "load a dynamically linked library");
 
-	if (runTest[6]) test6(ret, img);
-	if (runTest[7]) test7(ret, img);
+	  if (runTest[6]) test6(ret, img);
+	  if (runTest[7]) test7(ret, img);
 
-	ret->continueExecution();
-    }
+	  ret->continueExecution();
+      }
 
-    if (runTest[8]) test8b(ret);
-    if (runTest[9]) test9(ret);
-    if (runTest[10]) test10(ret);
-    if (runTest[11]) test11(ret, img);
-    if (runTest[12]) test12(ret, img);
-    if (runTest[13]) test13(ret, img);     
+      if (runTest[8]) test8b(ret);
+      if (runTest[9]) test9(ret);
+      if (runTest[10]) test10(ret);
+      if (runTest[11]) test11(ret, img);
+      if (runTest[12]) test12(ret, img);
+      if (runTest[13]) test13(ret, img);     
 
     /**********************************************************************
      * Kill process and make sure it goes away
      **********************************************************************/
     
-    int pid = ret->getPid();
+      int pid = ret->getPid();
 
 #ifndef i386_unknown_nt4_0 /* Not yet implemented on NT. */
-    dprintf("Detaching from process %d (leaving it running).\n", pid);
-    ret->detach(true);
+      dprintf("Detaching from process %d (leaving it running).\n", pid);
+      ret->detach(true);
 #else
-    printf("[Process detach not yet implemented.]\n");
+      printf("[Process detach not yet implemented.]\n");
 #endif
 
-    // now kill the process.
+      // now kill the process.
 #ifdef i386_unknown_nt4_0
-    HANDLE h = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
-    if (h != NULL) {
-        dprintf("Killing mutatee process %d.\n", pid);
-	TerminateProcess(h, 0);
-	CloseHandle(h);
-    }
+      HANDLE h = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+      if (h != NULL) {
+          dprintf("Killing mutatee process %d.\n", pid);
+  	  TerminateProcess(h, 0);
+	  CloseHandle(h);
+      }
 #else
-    int kret;
+      int kret;
 
-    // Alpha seems to take two kills to work - jkh 3/13/00
-    while (1) {
-        dprintf("Killing mutatee process %d.\n", pid);
-	kret = kill(pid, SIGKILL);
-	if (kret) {
-	    if (errno == ESRCH) {
-	       break;
-	    } else {
-	       perror("kill");
-	       break;
-	    }
-	}
-	kret = waitpid(pid, NULL, WNOHANG);
-	if (kret == pid) break;
-    }
+      // Alpha seems to take two kills to work - jkh 3/13/00
+      while (1) {
+          dprintf("Killing mutatee process %d.\n", pid);
+	  kret = kill(pid, SIGKILL);
+	  if (kret) {
+	      if (errno == ESRCH) {
+	         break;
+	      } else {
+	         perror("kill");
+	         break;
+	      }
+	  }
+	  kret = waitpid(pid, NULL, WNOHANG);
+	  if (kret == pid) break;
+      }
 #endif
-    dprintf("Mutatee process %d killed.\n", pid);
+      dprintf("Mutatee process %d killed.\n", pid);
 
-    delete (ret);
+      delete (ret);
 
-    if (runTest[14]) test14(ret);
-
+      if (runTest[14]) test14(ret);
+    } /*if run tests (5-13) */
     delete (bpatch);
 
     unsigned int testsFailed = 0;

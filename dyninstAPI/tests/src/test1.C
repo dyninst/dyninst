@@ -2056,6 +2056,19 @@ void mutatorTest18(BPatch_thread *appThread, BPatch_image *appImage)
     expr18_1->writeValue(&n,true); //ccw 31 jul 2002
 }
 
+#ifdef NOTDEF // PDSEP
+void test19_oneTimeCodeCallback(BPatch_thread *thread,
+				void *userData,
+				void *returnValue)
+{
+    bool dummy = (userData == NULL) || (returnValue == NULL) || (thread == NULL);
+    assert(userData);
+
+    if (dummy)
+      *(int *)userData = 1;
+    else
+      *(int *)userData = 1;
+#endif
 void test19_oneTimeCodeCallback(BPatch_thread */*thread*/,
                                 void *userData,
                                 void */*returnValue*/)

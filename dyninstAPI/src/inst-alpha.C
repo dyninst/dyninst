@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.95 2005/09/14 21:21:44 bernat Exp $
+// $Id: inst-alpha.C,v 1.96 2005/11/03 05:21:05 jaw Exp $
 
 #include "common/h/headers.h"
 
@@ -1042,12 +1042,6 @@ bool process::getDynamicCallSiteArgs(instPoint * /*callSite*/,
 {
   return false;
 }
-
-#ifdef NOTDEF // PDSEP
-bool process::MonitorCallSite(instPoint *callSite){
-  return false;
-}
-#endif
 
 bool registerSpace::clobberRegister(Register /*reg*/) 
 {

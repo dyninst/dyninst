@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.145 2005/10/21 21:48:25 legendre Exp $
+// $Id: pdwinnt.C,v 1.146 2005/11/03 05:21:06 jaw Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -54,6 +54,7 @@
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/signalhandler.h"
+#include "dyninstAPI/src/debuggerinterface.h"
 #include <psapi.h>
 #include <windows.h>
 #include "mapped_object.h"
@@ -78,7 +79,6 @@ static pdstring GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev );
 
 void InitSymbolHandler( HANDLE hProcess );
 void ReleaseSymbolHandler( HANDLE hProcess );
-
 extern bool isValidAddress(process *proc, Address where);
 
 //HANDLE kludgeProcHandle;
@@ -448,7 +448,9 @@ void OS::osTraceMe(void) {}
 DWORD continueType = DBG_CONTINUE; //ccw 25 oct 2000 : 28 mar 2001
 
 // Breakpoint handler
-DWORD handleBreakpoint(process *proc, const procevent &event) {
+DWORD SignalHandler::handleBreakpoint(EventRecord &ev) {
+    process *proc = ev.proc;
+    assert (proc);
     Address addr =
        (Address) event.info.u.Exception.ExceptionRecord.ExceptionAddress;
 
@@ -615,7 +617,8 @@ DWORD handleBreakpoint(process *proc, const procevent &event) {
     return DBG_EXCEPTION_NOT_HANDLED;
 }
 
-DWORD handleSingleStep(const procevent &event) {
+DWORD handleSingleStep(const procevent &event) 
+{
    if (!event.lwp->isSingleStepping())
       fprintf(stderr, "[%s:%u] - Unexpected single step event\n");
    else
@@ -624,22 +627,26 @@ DWORD handleSingleStep(const procevent &event) {
    
 }
 
-DWORD handleIllegal(process *proc, const procevent &event) {
-
+DWORD SignalHandler::handleIllegal(EventRecord &ev) 
+{
+    process *proc = ev.proc;
+    assert(proc);
     Address addr =
-       (Address) event.info.u.Exception.ExceptionRecord.ExceptionAddress;
+       (Address) ev.info.u.Exception.ExceptionRecord.ExceptionAddress;
     
     proc->continueProc();
     return DBG_EXCEPTION_NOT_HANDLED;
 }
 
-DWORD handleViolation(process *proc, const procevent &event) {
+DWORD SignalHandler::handleViolation(EventRecord &ev) {
+   process *proc = ev.proc;
+   assert(proc);
     /*
 	  printf("Access violation exception, %d, addr = %08x\n", 
       info.u.Exception.ExceptionRecord.ExceptionFlags,
       info.u.Exception.ExceptionRecord.ExceptionAddress);
     */
-    dumpMem(proc, event.info.u.Exception.ExceptionRecord.ExceptionAddress, 32);
+    dumpMem(proc, ev.info.u.Exception.ExceptionRecord.ExceptionAddress, 32);
     
     {
         
@@ -663,10 +670,10 @@ DWORD handleViolation(process *proc, const procevent &event) {
 
 
 // Exception dispatcher
-DWORD handleException(const procevent &event) {
+DWORD SignalHandler::handleException(EventRecord &ev) {
    DWORD ret = DBG_EXCEPTION_NOT_HANDLED;
 
-   switch (event.what) {
+   switch (ev.what) {
      case EXCEPTION_BREAKPOINT: 
          signal_printf("BREAKPOINT\n");
         ret = handleBreakpoint(event.proc, event);
@@ -701,10 +708,10 @@ dyn_lwp *process::createRepresentativeLWP() {
 }
 
 // Thread creation
-DWORD handleThreadCreate(const procevent &event) {
-   process *proc = event.proc;
-   dyn_lwp *l = proc->createFictionalLWP(event.info.dwThreadId);
-   l->setFileHandle(event.info.u.CreateThread.hThread);
+DWORD SignalHandler::handleThreadCreate(EventRecord &ev) {
+   process *proc = ev.proc;
+   dyn_lwp *l = proc->createFictionalLWP(ev.info.dwThreadId);
+   l->setFileHandle(ev.info.u.CreateThread.hThread);
    l->attach();
    dyn_thread *t = new dyn_thread(proc, proc->threads.size(), // POS in threads array (and rpcMgr thrs_ array?)
                                   l); // dyn_lwp object for thread handle
@@ -786,13 +793,13 @@ DWORD handleProcessCreate(const procevent &event) {
    return DBG_CONTINUE;
 }
 
-DWORD handleThreadExit(const procevent &event) {
-   process *proc = event.proc;
-   printf("exit thread, tid = %d\n", event.info.dwThreadId);
+DWORD SignalHandler::handleThreadExit(EventRecord &ev) {
+   process *proc = ev.proc;
+   printf("exit thread, tid = %d\n", ev.info.dwThreadId);
    unsigned nThreads = proc->threads.size();
    // start from one to skip main thread
    for (unsigned u = 1; u < nThreads; u++) {
-      if ((unsigned)proc->threads[u]->get_tid() == event.info.dwThreadId) {
+      if ((unsigned)proc->threads[u]->get_tid() == ev.info.dwThreadId) {
          delete proc->threads[u];
          proc->threads[u] = proc->threads[nThreads-1];
          proc->threads.resize(nThreads-1);
@@ -803,9 +810,9 @@ DWORD handleThreadExit(const procevent &event) {
    return DBG_CONTINUE;
 }
 
-DWORD handleProcessExitWin(const procevent &event) {
-   process *proc = event.proc;
-   const procSignalInfo_t &info = event.info;
+DWORD SignalHandler::handleProcessExitWin(EventRecord &ev) {
+   process *proc = ev.proc;
+   const procSignalInfo_t &info = ev.info;
    if (proc) {
       char errorLine[1024];
       sprintf(errorLine, "Process %d has terminated with code 0x%x\n", 
@@ -819,24 +826,24 @@ DWORD handleProcessExitWin(const procevent &event) {
    return DBG_CONTINUE;
 }
 
-DWORD handleProcessSelfTermination(const procevent &event) {
-   process *proc = event.proc;
+DWORD SignalHandler::handleProcessSelfTermination(EventRecord &ev) {
+   process *proc = ev.proc;
 
    if (proc) {
       char errorLine[1024];
       sprintf(errorLine, "Process %d was terminated by itself\n");
       statusLine(errorLine);
       logLine(errorLine);
-      proc->triggerSignalExitCallback(event.what);
+      proc->triggerSignalExitCallback(ev.status);
       proc->handleProcessExit();
    }
    proc->continueProc();
    return DBG_CONTINUE;
 }
 
-DWORD handleDllLoad(const procevent &event) {
-   process *proc = event.proc;
-   const procSignalInfo_t &info = event.info;
+DWORD SignalHandler::handleDllLoad(EventRecord &ev) {
+   process *proc = ev.proc;
+   const procSignalInfo_t &info = ev.info;
    /*
    printf("load dll: hFile=%x, base=%x, debugOff=%x, debugSz=%d lpname=%x, %d\n",
      info.u.LoadDll.hFile, info.u.LoadDll.lpBaseOfDll,
@@ -934,6 +941,71 @@ DWORD handleDllLoad(const procevent &event) {
 int secondDLL = 0; //ccw 24 oct 2000 : 28 mar 2001
 #endif
 
+bool SignalHandler::handleEventLocked(EventRecord &ev)
+{
+   DWORD ret = DBG_EXCEPTION_NOT_HANDLED;
+   // Process is paused
+   // Make sure pause does something...
+   process *proc = ev.proc;
+
+   /*
+   cerr << "handleProcessEvent, pid: " << proc->getPid() << ", why: "
+        << event.why << ", what: " << event.what << ", lwp-id: "
+        << event.lwp->get_lwp_id() << endl;
+   */
+
+   const procSignalInfo_t &info = ev.info;
+
+   // Due to NT's odd method, we have to call pause_
+   // directly (a call to pause returns without doing anything
+   // pre-initialization)
+   proc->getRepresentativeLWP()->stop_();
+   proc->set_status(stopped);
+
+   switch(ev.type) {
+     case evtException:
+        ret = handleException(ev);
+        break;
+     case evtThreadCreate:
+        ret = handleThreadCreate(ev);
+        break;
+     case evtProcessCreate:
+        ret = handleProcessCreate(ev);
+        break;
+     case evtThreadExit:
+        ret = handleThreadExit(ev);
+        break;
+     case evtProcessExit:
+        ret = handleProcessExitWin(ev);
+        break;
+     case evtProcessSelfTermination:
+        ret = handleProcessSelfTermination(ev);
+        break;
+     case evtLoadLibrary:
+        ret = handleDllLoad(ev);
+        break;
+     default:
+        break;
+   }
+   // Continue the process after the debug event
+
+#if defined( mips_unknown_ce2_11 )//ccw 28 july 2000 : 29 mar 2001
+   if (!BPatch::bpatch->rDevice->RemoteContinueDebugEvent(info.dwProcessId,
+                                                          info.dwThreadId,
+                                                          ret))
+#else
+      if (!ContinueDebugEvent(info.dwProcessId, info.dwThreadId, DBG_CONTINUE))
+#endif
+      {
+         DebugBreak();
+         printf("ContinueDebugEvent failed\n");
+         printSysError(GetLastError());
+      }
+   return (ret == DBG_CONTINUE);
+
+}
+
+#ifdef NOTDEF // PDSEP
 int signalHandler::handleProcessEvent(const procevent &event) {
    DWORD ret = DBG_EXCEPTION_NOT_HANDLED;
    // Process is paused
@@ -1002,6 +1074,73 @@ int signalHandler::handleProcessEvent(const procevent &event) {
    return (ret == DBG_CONTINUE);
 }
 
+#endif
+
+bool SignalHandler::waitNextEvent(EventRecord &ev) 
+{
+  DWORD milliseconds = 10;
+
+  if (!WaitForDebugEvent(&ev.info, milliseconds))
+  {
+    DWORD err = GetLastError();
+    if ((WAIT_TIMEOUT == err) || (ERROR_SEM_TIMEOUT == err)) {
+      //  apparently INFINITE milliseconds returns with SEM_TIMEOUT
+      //  This may be a problem, but it doesn't seem to break anything.
+      ev.type = evtTimeout;
+      return true;
+    }else {
+      fprintf(stderr, "%s[%d]:  Unexpected error from WaitForDebugEvent: %d\n",
+              __FILE__, __LINE__, err);
+    }
+    return false;
+  }
+
+  process *proc = process::findProcess(ev.info.dwProcessId);
+  if (proc == NULL) {
+     /* this case can happen when we create a process, but then are unable
+        to parse the symbol table, and so don't complete the creation of the
+        process. We just ignore the event here.  */
+     ContinueDebugEvent(ev.info.dwProcessId, ev.info.dwThreadId, DBG_CONTINUE);
+     ev.type = evtNullEvent;
+     return true;
+   }
+
+   switch (ev.info.dwDebugEventCode) {
+     case EXCEPTION_DEBUG_EVENT:
+        ev.type = evtException;
+        ev.status = ev.info.u.Exception.ExceptionRecord.ExceptionCode;
+        break;
+     case CREATE_THREAD_DEBUG_EVENT:
+        ev.type = evtThreadCreate;
+        break;
+     case CREATE_PROCESS_DEBUG_EVENT:
+        ev.type = evtProcessCreate;
+        break;
+     case EXIT_THREAD_DEBUG_EVENT:
+        ev.type = evtThreadExit;
+        break;
+     case EXIT_PROCESS_DEBUG_EVENT:
+        if(proc->get_windows_termination_requested()) {
+           ev.type = evtProcessSelfTermination;
+           ev.status = 0;
+           proc->set_windows_termination_requested(false);
+        } else {
+           ev.type = evtProcessExit;
+           ev.status = ev.info.u.ExitProcess.dwExitCode;
+        }
+        break;
+     case LOAD_DLL_DEBUG_EVENT:
+        ev.type = evtLoadLibrary;
+        break;
+     default:
+        ev.type = evtNullEvent;
+        break;
+   }
+
+  return true;
+}
+
+#ifdef NOTDEF // PDSEP
 // the pertinantLWP and wait_options are ignored on Solaris, AIX
 
 bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
@@ -1078,6 +1217,8 @@ bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
    (*events).push_back(new_event);
    return true;    
 }    
+
+#endif
 
 // already setup on this FD.
 // disconnect from controlling terminal 
@@ -1545,7 +1686,7 @@ ReleaseSymbolHandler( HANDLE hProcess )
  *   procHandle: handle for new process (needed by WindowsNT)
  *   thrHandle: handle for main thread (needed by WindowsNT)
  ****************************************************************************/
-bool forkNewProcess(pdstring &file, pdstring dir, pdvector<pdstring> *argv, 
+bool DebuggerInterface::forkNewProcess(pdstring file, pdstring dir, pdvector<pdstring> *argv, 
 		    pdvector<pdstring> * /* envp */,
                     pdstring inputFile, pdstring outputFile,
                     int &traceLink, int &pid, int &tid, 

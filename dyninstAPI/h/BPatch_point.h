@@ -137,10 +137,12 @@ class BPatch_point;
 
 typedef void (*BPatchDynamicCallSiteCallback)(BPatch_point *at_point, 
                                               BPatch_function *called_function);
+#ifdef NOTDEF // PDSEP
 typedef struct {
   BPatchDynamicCallSiteCallback cb;
   int handle;
 } callback_record;
+#endif
 
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME

@@ -230,7 +230,7 @@ inline int P_recv(int s, void *buf, size_t len, int flags) {
 
 /* Ugly */
 
-inline int P_ptrace(int req, pid_t pid, int addr, int data) {
+inline int P_ptrace(int req, pid_t pid, int addr, int data, int /*word_len*/) {
   return (ptrace(req, pid, addr, data));}
 
 inline int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex,

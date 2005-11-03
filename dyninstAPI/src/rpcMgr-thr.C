@@ -44,6 +44,8 @@
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/rpcMgr.h"
+#include "dyninstAPI/src/mailbox.h"
+#include "dyninstAPI/src/callbacks.h"
 
 rpcThr::rpcThr(rpcThr *parT, rpcMgr *cM, dyn_thread *cT) :
     mgr_(cM),
@@ -475,7 +477,11 @@ bool rpcThr::handleCompletedIRPC() {
     // step 3) invoke user callback, if any
     // call the callback function if needed
     if( cb != NULL ) {
-        (*cb)(proc, id, userData, resultValue);
+        RPCDoneCallback *rpc_cb_ptr = new RPCDoneCallback(cb);
+        RPCDoneCallback &rpc_cb = *rpc_cb_ptr;
+        inferiorrpc_printf("%s[%d][%s]:  about to exec/register rpc done callback\n", 
+                            FILE__, __LINE__, getThreadStr(getExecThreadID()));
+        rpc_cb(proc, id, userData, resultValue);
     }
 
     // Before we continue the process: if there is another RPC,

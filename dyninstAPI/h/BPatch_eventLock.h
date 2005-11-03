@@ -61,6 +61,7 @@
 #define CONST_ARG const
 #endif
 
+extern unsigned long primary_thread_id;
 /*
  * Class BPatch_eventLock
  *
@@ -71,7 +72,6 @@
  * api's to dyninst
  */
 
-extern bool mutex_created;
 
 //  BPatch_eventLock
 //  
@@ -86,20 +86,29 @@ extern bool mutex_created;
 
 #define __LOCK _Lock(__FILE__, __LINE__)
 #define __UNLOCK _Unlock(__FILE__, __LINE__)
+#define __BROADCAST _Broadcast(__FILE__, __LINE__)
+#define __WAIT_FOR_SIGNAL _WaitForSignal(__FILE__, __LINE__)
+
+class eventLock;
+extern eventLock *global_mutex;
 
 class BPATCH_DLL_EXPORT BPatch_eventLock {
-
 protected:
 
   BPatch_eventLock(); 
   virtual ~BPatch_eventLock();
+  eventLock *lock;
 
 public:
+  static eventLock *getLock() {assert(global_mutex); return global_mutex;}
   unsigned long threadID() const;
 
   int _Lock(const char *__file__, unsigned int __line__) const; 
   int _Trylock(const char *__file__, unsigned int __line__) const; 
   int _Unlock(const char *__file__, unsigned int __line__) const; 
+
+  int _Broadcast(const char *__file__, unsigned int __line__) const;
+  int _WaitForSignal(const char *__file__, unsigned int __line__) const;
 
 };
 
@@ -162,7 +171,6 @@ public:
 #define API_EXPORT_OPER(z, w, t, x, y) private:  t operator##z y; \
                                        public:   t x y \
                                        { LOCK_FUNCTION(t,operator##z,w);}
-
 
 
 #endif

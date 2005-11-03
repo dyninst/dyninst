@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.179 2005/10/21 21:48:24 legendre Exp $
+// $Id: linux.C,v 1.180 2005/11/03 05:21:06 jaw Exp $
 
 #include <fstream>
 
@@ -68,6 +68,8 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/signalhandler.h"
+#include "dyninstAPI/src/mailbox.h"
+#include "dyninstAPI/src/debuggerinterface.h"
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/stats.h"
@@ -113,49 +115,7 @@
 static bool debug_ptrace = false;
 #endif
 
-bool dyn_lwp::deliverPtrace(int request, Address addr, Address data) {
-   bool needToCont = false;
-   int len = proc_->getAddressWidth();
 
-   if(request != PT_DETACH  &&  status() == running) {
-      cerr << "  potential performance problem with use of dyn_lwp::deliverPtrace\n";
-      if(pauseLWP() == true)
-         needToCont = true;
-   }
-
-   bool ret = (P_ptrace(request, get_lwp_id(), addr, data, len) != -1);
-   if (!ret) 
-   {
-      fprintf(stderr, "%d - ", get_lwp_id());
-      perror("Internal ptrace");
-   }
-   
-   if(request != PTRACE_DETACH  &&  needToCont == true)
-      continueLWP();
-   return ret;
-}
-
-
-// Some ptrace requests in Linux return the value rather than storing at the address in data
-// (especially PEEK requests)
-// - nash
-long dyn_lwp::deliverPtraceReturn(int request, Address addr, Address data) {
-   bool needToCont = false;
-   int len = proc_->getAddressWidth();
-
-   if(request != PT_DETACH  &&  status() == running) {
-      cerr << "  potential performance problem with use of "
-           << "dyn_lwp::deliverPtraceReturn\n";
-      if(pauseLWP() == true)
-         needToCont = true;
-   }
-
-   long ret = P_ptrace(request, get_lwp_id(), addr, data, len);
-
-   if(request != PTRACE_DETACH  &&  needToCont == true)
-      continueLWP();
-   return ret;
-}
 
 /* ********************************************************************** */
 
@@ -189,110 +149,80 @@ void OS::osDisconnect(void) {
   P_close (ttyfd);
 }
 
-// may be needed in the future
-#if defined(DECODEANDHANDLE_EVENT_ON_LWP)
-// returns true if it handled an event
-bool checkForAndHandleProcessEventOnLwp(bool block, dyn_lwp *lwp) {
-   pdvector<procevent *> foundEvents;
-   getSH()->checkForProcessEvents(&foundEvents, lwp->get_lwp_id(), block);
-   getSH()->handleProcessEvents(foundEvents);
-   //assert(selectedLWP == lwp);
-   
-   return true;
-}
-#endif
 
 void OS::osTraceMe(void) { P_ptrace(PTRACE_TRACEME, 0, 0, 0); }
 
 // Wait for a process event to occur, then map it into
 // the why/what space (a la /proc status variables)
 
-int decodeRTSignal(process *proc,
-                   procSignalWhy_t &why,
-                   procSignalWhat_t &what,
-                   procSignalInfo_t &info)
+bool checkActiveProcesses()
 {
-   // We've received a signal we believe was sent
-   // from the runtime library. Check the RT lib's
-   // status variable and return it.
-   // These should be made constants
-   if (!proc) return 0;
+  extern pdvector<process*> processVec;
+  for(unsigned u = 0; u < processVec.size(); u++) {
+     process *lproc = processVec[u];
+     if(lproc && (lproc->status() == running || lproc->status() == neonatal))
+        return true;
+     else 
+       if (lproc && lproc->query_for_running_lwp()) {
+         return true;
+       }
+  }
 
-   pdstring status_str = pdstring("DYNINST_synch_event_id");
-   pdstring arg_str = pdstring("DYNINST_synch_event_arg1");
+  return false;
+}
 
-   int status;
-   Address arg;
+bool SignalHandler::translateEvent(EventRecord &ev)
+{
+   errno = 0;
+   if (ev.type == evtSignalled) {
+      switch(ev.what)  {
+        case SIGSTOP :
+          if (!decodeRTSignal(ev)) {
+            if (ESRCH == errno) {
+              fprintf(stderr,"%s[%d]:  decodeRTSignal setting exit event\n", 
+                      FILE__, __LINE__);
+              ev.type = evtProcessExit;
+              ev.status = statusNormal;
+            }
+          }
+        case SIGTRAP:
+        {
+           Frame sigframe = ev.lwp->getActiveFrame();
 
-   pdvector<int_variable *> vars;
-   if (!proc->findVarsByAll(status_str, 
-                            vars)) {
-       // Can restrict to a particular library... might be worth it to streamline.
-       // Hell... why not make this a process member and keep the addresses around?
-       // We might not have the RT lib yet...
-       return 0;
-   }
-   assert(vars.size() == 1); // findVarsByAll should return false if we didn't find anything
+           if (ev.proc->trampTrapMapping.defines(sigframe.getPC())) {
+              ev.type = evtInstPointTrap;
+              ev.address = ev.proc->trampTrapMapping[sigframe.getPC()];
+           }
+           else if (ev.lwp->isSingleStepping())
+           {
+              ev.type = evtDebugStep;
+              ev.address = sigframe.getPC();
+              signal_printf("Single step trap at %lx\n", ev.address);
+           }
 
-   Address status_addr = vars[0]->getAddress();
+        }
+        case SIGILL:
+        {
+#if defined (arch_ia64)
+           Address pc = getPC(ev.proc->getPid());
 
-   if (!proc->readDataSpace((void *)status_addr, sizeof(int), 
-                            &status, true)) {
-       bperr("%s[%d]:  readDataSpace, status = %d\n", __FILE__, __LINE__,  status);
-      return 0;
-   }
+           if(pc == ev.proc->dyninstlib_brk_addr ||
+              pc == ev.proc->main_brk_addr ||
+              ev.proc->getDyn()->reachedLibHook(pc)) {
+              ev.what = SIGTRAP;
+           }
+           signal_printf("%s[%d]:  SIGILL:  main brk = %p, dyn brk = %p, pc = %p/%p\n",
+                  FILE__, __LINE__, ev.proc->main_brk_addr, ev.proc->dyninstlib_brk_addr, 
+                  pc, getPC(ev.proc->getPid()));
+#endif
+           break;
+        }
+        default:
+            signal_printf("%s[%d]:  got signal %d\n", FILE__, __LINE__, ev.what);
+       }
+    }
 
-   if (status == DSE_undefined) {
-      return 0; // Nothing to see here
-   }
-
-   vars.clear();
-   if (!proc->findVarsByAll(arg_str,
-                            vars)) {
-       assert(0);
-       return 0;
-   }
-   assert(vars.size() == 1);
-
-   Address arg_addr = vars[0]->getAddress();
-    
-   if (!proc->readDataSpace((void *)arg_addr, sizeof(Address),
-                            &arg, true))
-      assert(0);
-   info = (procSignalInfo_t)arg;
-   switch(status) {
-     case DSE_forkEntry:
-        /* Entry to fork */
-        why = procSyscallEntry;
-        what = SYS_fork;
-        break;
-     case DSE_forkExit:
-        why = procSyscallExit;
-        what = SYS_fork;
-        break;
-     case DSE_execEntry:
-        /* Entry to exec */
-        why = procSyscallEntry;
-        what = SYS_exec;
-        break;
-     case DSE_execExit:
-        /* Exit of exec, unused */
-        break;
-     case DSE_exitEntry:
-        /* Entry of exit, used for the callback. We need to trap before
-           the process has actually exited as the callback may want to
-           read from the process */
-        why = procSyscallEntry;
-        what = SYS_exit;
-        break;
-   case DSE_loadLibrary:
-     /* Unused */
-     break;
-     default:
-        assert(0);
-        break;
-   }
-   return 1;
+   return true;
 }
 
 static void get_linux_version(int &major, int &minor)
@@ -306,7 +236,6 @@ static void get_linux_version(int &major, int &minor)
       minor = min;
       return;
    }
-
    f = fopen("/proc/version", "r");
    if (!f)
    {
@@ -397,47 +326,82 @@ static int find_dead_lwps()
    return 0;
 }
 
-/**
- * This is a bad hack.  On Linux 2.4 waitpid doesn't return for dead threads,
- * so we poll for any dead threads before calling waitpid, and if they exist
- * we simulate the result as if waitpid had returned the desired value.
- **/
-static pid_t linux_waitpid(pid_t pid, int *status, int options, bool *lwp_died)
+static pid_t waitpid_kludge(pid_t /*pid*/, int *status, int options, int *dead_lwp)
 {
-   if (pid == -1)
-   {
-      int dead_lwp = find_dead_lwps();
-      if (dead_lwp)
-      {
-         *status = 0;
-         *lwp_died = true;
-         return dead_lwp;
-      }
-   }
-   *lwp_died = false;
-   return waitpid(pid, status, options);
+  pid_t ret = 0;
+  int wait_options = options | WNOHANG;
+
+  do {
+   *dead_lwp = find_dead_lwps();
+   if (*dead_lwp) {
+       // This is a bad hack.  On Linux 2.4 waitpid doesn't return for dead threads,
+       // so we poll for any dead threads before calling waitpid, and if they exist
+       // we simulate the result as if waitpid had returned the desired value.
+       status = 0;
+       ret = *dead_lwp;
+       break;
+    }
+
+    ret = waitpid(-1, status, wait_options); 
+    struct timeval slp;
+    slp.tv_sec = 0;
+    slp.tv_usec = 10 /*ms*/ *1000;
+    select(0, NULL, NULL, NULL, &slp);
+  } while (ret == 0);
+
+  return ret; 
 }
 
-// returns true if got event, false otherwise
-bool checkForEventLinux(procevent *new_event, int wait_arg, 
-                        bool block, int wait_options)
+bool SignalHandler::waitNextEvent(EventRecord &ev) 
 {
-   int result = 0, status = 0;
-   bool dead_lwp = 0;
-   //  wait (check) for process events
-   if (!block) {
-      wait_options |= WNOHANG;
-   }
+  signal_printf("%s[%d]:  welcome to waitNextEvent\n", FILE__, __LINE__);
 
-   //   result = waitpid( wait_arg, &status, wait_options );
-   result = linux_waitpid( wait_arg, &status, wait_options, &dead_lwp );
-   if (result < 0 && errno == ECHILD) {
-      return false;
-   } else if (result < 0) {
-      perror("checkForEventLinux: waitpid failure");
-   } else if(result == 0) {
-      return false;
-   }
+  __LOCK;
+  bool ret = true;
+
+  static pdvector<EventRecord> events;
+  if (events.size()) {
+    //  If we have events left over from the last call of this fn,
+    //  just return one.
+    ev = events[events.size() - 1];
+    events.pop_back();
+    __UNLOCK;
+    return ret;
+  }
+
+  while (!checkActiveProcesses()) {
+    signal_printf("%s[%d]:  syncthread waiting for process to monitor\n", FILE__, __LINE__);
+    waiting_for_active_process = true;
+    __WAIT_FOR_SIGNAL;
+  }
+  waiting_for_active_process = false;
+
+  int result = 0, status = 0;
+  int dead_lwp = 0;
+
+
+    
+       //  wait for process events, on linux __WALL signifies that both normal children
+       //  and cloned children (lwps) should be listened for.
+       //  Right now, we are blocking.  To make this nonblocking, or this val with WNOHANG.
+       int wait_options = __WALL;
+
+        __UNLOCK;
+        result = waitpid_kludge( -1 /*any child*/, &status, wait_options, &dead_lwp );
+        __LOCK;
+    
+
+     if (result < 0 && errno == ECHILD) {
+        __UNLOCK;
+        fprintf(stderr, "%s[%d]:  waitpid failed with ECHILD\n", __FILE__, __LINE__);
+        return false; /* nothing to wait for */
+     } else if (result < 0) {
+        perror("checkForEventLinux: waitpid failure");
+     } else if(result == 0) {
+        fprintf(stderr, "%s[%d]:  waitpid \n", __FILE__, __LINE__);
+        __UNLOCK;
+        return false;
+     }
 
    int pertinentPid = result;
 
@@ -446,13 +410,16 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
    // to a (SYSEXIT,fork) pair. Don't do that yet.
    process *pertinentProc = process::findProcess(pertinentPid);
    dyn_lwp *pertinentLWP  = NULL;
-   dyn_thread *pertinentThread = NULL;
+
    if(pertinentProc) {
       // Got a signal, process is stopped.
       if(process::IndependentLwpControl() &&
          pertinentProc->getRepresentativeLWP() == NULL) {
-         if (!pertinentProc->getInitialThread())
-            return false; //We must be shutting down
+         if (!pertinentProc->getInitialThread()) {
+           fprintf(stderr, "%s[%d]:  no initial thread \n", FILE__, __LINE__);
+           __UNLOCK;
+	   return false; //We must be shutting down
+         }
          pertinentLWP = pertinentProc->getInitialThread()->get_lwp();
       } else {
          pertinentLWP = pertinentProc->getRepresentativeLWP();
@@ -466,6 +433,15 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
             continue;
          dyn_lwp *curlwp = NULL;
          if( (curlwp = curproc->lookupLWP(pertinentPid)) ) {
+            if (!curlwp->is_attached()) {
+              ev.type = evtThreadDetect;
+              ev.lwp = curlwp;
+              ev.proc = curproc;
+              char buf[1024];
+              //curproc->set_lwp_status(curlwp, stopped);
+              __UNLOCK;
+              return true;
+            }
             pertinentProc = curproc;
             pertinentLWP  = curlwp;
             pertinentProc->set_lwp_status(curlwp, stopped);
@@ -474,227 +450,73 @@ bool checkForEventLinux(procevent *new_event, int wait_arg,
       }
    }
    
-   procSignalWhy_t  why  = procUndefined;
-   procSignalWhat_t what = 0;
-   procSignalInfo_t info = 0;
-   bool process_exited = WIFEXITED(status) || dead_lwp;
-
-   if(! pertinentProc)
-      return false;
-
-   if (process_exited && pertinentPid == pertinentProc->getPid())
-   {
-      // Main process exited via signal
-      signal_printf("[%s:%u] - Main process exited\n", __FILE__, __LINE__);
-      why = procExitedNormally;
-      what = WEXITSTATUS(status);
+   if (!pertinentProc) {
+       fprintf(stderr, "%s[%d][%s]: no proc!  procs.size() = %d\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()), processVec.size());
+      __UNLOCK;
+       return false;
    }
-   else if (process_exited)
-   {
-      proccontrol_cerr << "[checkForEventLinux] - Recieved a thread deletion event for "
-                       << pertinentLWP->get_lwp_id() << endl;
-      signal_cerr << "[checkForEventLinux] - Recieved a thread deletion event for "
-                  << pertinentLWP->get_lwp_id() << endl;
+
+   ev.type = evtUndefined;
+   
+  bool process_exited = WIFEXITED(status) || dead_lwp;
+  if (process_exited && pertinentPid == pertinentProc->getPid()) { 
+      // Main process exited via signal     
+      signal_printf("[%s:%u] - Main process exited\n", __FILE__, __LINE__);     
+      ev.type = evtProcessExit;      
+      ev.what = WEXITSTATUS(status);   
+      ev.status = statusNormal;
+  }
+  else if (process_exited) {
+      proccontrol_printf("%s[%d]: Received a thread deletion event for %d\n", 
+                        FILE__, __LINE__< pertinentLWP->get_lwp_id());
+      signal_printf("%s[%d]: Received a thread deletion event for %d\n", 
+                        FILE__, __LINE__< pertinentLWP->get_lwp_id());
       // Thread exited via signal
-      why = procSyscallEntry;
-      what = SYS_lwp_exit;
+      ev.type = evtSyscallEntry;      
+      ev.what = SYS_lwp_exit;
    }
-   else if (WIFSIGNALED(status)) {
-      why = procExitedViaSignal;
-      what = WTERMSIG(status);
-      signal_printf("[%s:%u] - %d exited with signal %d\n", __FILE__, __LINE__, 
-                    pertinentPid, what);
-   }
-   else if (WIFSTOPPED(status)) {
-      // More interesting (and common) case.  This is where return value
-      // faking would occur as well. procSignalled is a generic return.  For
-      // example, we translate SIGILL to SIGTRAP in a few cases
-
-      why = procSignalled;
-      what = WSTOPSIG(status);
-
-      signal_printf("[%s:%u] - %d was signaled with %d\n", __FILE__, __LINE__, 
-                    pertinentPid, what);
-
-      switch(what) {
-        case SIGSTOP:
-           errno = 0;
-           if (!decodeRTSignal(pertinentProc, why, what, info)) {
-              if (ESRCH == errno) {
-                fprintf(stderr,"%s[%d]:  decodeRTSignal, errno = %d: %s\n", __FILE__, __LINE__,errno, strerror(errno));
-                //why = procExitedViaSignal;
-                why = procExitedNormally;
-              }
-           }
-           break;
-        case SIGTRAP:
-        {
-           Frame sigframe = pertinentLWP->getActiveFrame();
-
-           if (pertinentProc->trampTrapMapping.defines(sigframe.getPC())) {
-              why = procInstPointTrap;
-              info = pertinentProc->trampTrapMapping[sigframe.getPC()];
-              signal_printf("Trapping, address 0x%lx to 0x%lx\n",
-                            sigframe.getPC(), info);
-           }
-           else if (pertinentLWP->isSingleStepping())
-           {
-              why = procDebugStep;
-              info = sigframe.getPC();
-              signal_printf("Single step trap at %lx\n", info);
-           }
-
-           break;
-        }
-        case SIGCHLD:
-           // Linux fork() sends a SIGCHLD once the fork has been created
-           why = procForkSigChild;
-           break;
-           // Since we're not using detach-on-the-fly or any special trap handling,
-           // we can nuke this and go back to using traps everywhere
-        case SIGILL:
-#if defined(arch_ia64)
-            // IA64 still uses illegals; we want to "fake" a trap occasionally
-            Address pc = getPC(pertinentPid);
-            if ((pc == pertinentProc->dyninstlib_brk_addr) ||
-                (pc == pertinentProc->main_brk_addr) ||
-                pertinentProc->getDyn()->reachedLibHook(pc)) 
-                what = SIGTRAP;
-#endif
-            break;
-
-      }
+   else if (!decodeWaitPidStatus(status, ev)) {
+    fprintf(stderr, "%s[%d][%s]:  failed to decode status for event\n", 
+            FILE__, __LINE__, getThreadStr(getExecThreadID()));
    }
 
-   (*new_event).proc = pertinentProc;
-   (*new_event).lwp  = pertinentLWP;
-   (*new_event).thr  = pertinentThread;
-   (*new_event).why  = why;
-   (*new_event).what = what;
-   (*new_event).info = info;
+   ev.proc = pertinentProc;
+   ev.lwp  = pertinentLWP;
 
-   //   fprintf(stderr, "EVENT: Proc = %d, LWP = %d, Why = %d, What = %d, Wait_arg = %d\n",
-   //           new_event->proc->getPid(), new_event->lwp->get_lwp_id(), 
-	//   new_event->why, new_event->what, wait_arg);
+   if (!translateEvent(ev)) {
+     fprintf(stderr, "%s[%d]:  FIXME\n", __FILE__, __LINE__);
+     assert(0);
+   }
+
+
+   //  find out if we are waiting for this process to stop.
+   //  if we are, suppress continues.
+
+   bool process_stopping = false;
+   for (unsigned int i = 0; i < stoppingProcs.size(); ++i) {
+     stopping_proc_rec &spr = stoppingProcs[i];
+     if (spr.proc->getPid() == ev.proc->getPid()) {
+       process_stopping = true;
+       break;
+     }
+   }
+
+   if (process_stopping) {
+     if ( ! ( didProcEnterSyscall(ev.type)) 
+             || didProcExitSyscall(ev.type)
+             || (ev.type == evtSignalled && ev.what == SIGTRAP)) {
+       //ev.proc->setSuppressEventConts(true);    
+       fprintf(stderr, "%s[%d]:  COMMENTED OUT setting suppression for event conts\n", __FILE__, __LINE__);
+     }
+     else {
+       fprintf(stderr, "%s[%d]:  NOT setting suppression for event conts\n", __FILE__, __LINE__);
+
+     }
+   }
+
+   __UNLOCK;
    return true;
-}
 
-/**
- * We sometimes receive an event from checkForEventLinux that we 
- * don't want to deal with yet.  This function will insert the 
- * event into a vector that 
- **/
-
-bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
-                                          int wait_arg, int &timeout)
-{
-   bool wait_on_initial_lwp = false;
-   bool wait_on_spawned_lwp = false;
-
-   if(wait_arg != -1) {
-      if(process::findProcess(wait_arg))
-         wait_on_initial_lwp = true;
-      else wait_on_spawned_lwp = true;
-   } else {
-      wait_on_initial_lwp = true;
-      wait_on_spawned_lwp = true;
-   }
-
-   /* If we're blocking, check to make sure we don't do so forever. */
-   if( -1 == timeout ) {
-      /* If we're waiting on just one process, only check it. */
-      if( wait_arg > 0 ) { 
-         process * proc = process::findProcess( wait_arg );
-         assert( proc != NULL );
-         
-         /* Having to enumerate everything is broken. */
-         if( proc->status() == exited 
-             || proc->status() == stopped 
-             || proc->status() == detached ) { return false; }
-      }
-      else {
-         /* Iterate over all the processes.  Prove progress because the processVec
-            may be empty. */
-         bool noneLeft = true;
-
-         for( unsigned i = 0; i < processVec.size(); i++ ) {
-            if( processVec[i] != NULL ) {
-               process * proc = processVec[i];
-               
-               /* Enumeration is broken, but I'm also wondering why we keep 
-                  processes around that are 'exited.' */
-               if( proc->status() != exited 
-                   && proc->status() != stopped 
-                   && proc->status() != detached ) { noneLeft = false;   }
-             }
-         }
-         if( noneLeft ) { return false; }
-      } /* end multiple-process wait */
-   } /* end if we're blocking */
-   	
-   procevent *new_event = new procevent;
-   bool gotevent = false;
-   while(1) {
-      if(wait_on_initial_lwp) {
-         gotevent = checkForEventLinux(new_event, wait_arg, false, 0);
-         if(gotevent)
-            break;
-      }
-      if(wait_on_spawned_lwp) {
-         gotevent = checkForEventLinux(new_event, wait_arg, false, 
-                                             __WCLONE);
-         if(gotevent)
-            break;
-      }
-      if(! timeout) {
-         // no event found
-         delete new_event;
-         break;
-      } else {
-         // a slight delay to lesson impact of spinning.  this is
-         // particularly noticable when traps are hit at instrumentation
-         // points (seems to occur frequently in test1).
-         // *** important for performance ***
-
-         int wait_time = timeout;
-         if (timeout == -1) wait_time = 1; /*ms*/
-
-#ifdef NOTDEF
-         struct timeval slp;
-         if (wait_time > 1000) {
-           slp.tv_sec = wait_time / 1000;
-           slp.tv_usec = (wait_time % 1000) /*ms*/ * 1000 /*us*/ ;
-         }
-         else {
-           slp.tv_sec = 0;
-           slp.tv_usec = wait_time /*ms*/ * 1000 /*us*/ ;
-         }
-         select(0,NULL,NULL,NULL, &slp);
-#endif
-         struct timespec slp, rem;
-         if (wait_time > 1000) {
-           slp.tv_sec = wait_time / 1000;
-           slp.tv_nsec = (wait_time % 1000) /*ms*/ * 1000 /*us*/ * 1000 /*ns*/;
-         }
-         else {
-           slp.tv_sec = 0;
-           slp.tv_nsec = wait_time /*ms*/ * 1000 /*us*/ * 1000 /*ns*/;
-         }
-          //fprintf(stderr, "%s[%d]:  before nanosleep\n", __FILE__, __LINE__);
-         nanosleep(&slp, &rem);
-         //  can check remaining time to see if we have _really_ timed out
-         //  (but do we really care?)
-
-         if (timeout != -1) // if we're not blocking indefinitely
-           timeout = 0; // we have timed out
-      }
-   }
-
-   if(gotevent) {
-      (*events).push_back(new_event);
-      return true;
-   } else
-      return false;
 }
 
 void process::independentLwpControlInit() {
@@ -729,6 +551,10 @@ bool process::trapAtEntryPointOfMain(dyn_lwp *trappingLWP, Address)
     if (active.getPC() == main_brk_addr ||
         (active.getPC()-1) == main_brk_addr)
         return true;
+    else {
+      fprintf(stderr, "%s[%d]:  pc =  %p\n",
+            FILE__, __LINE__, active.getPC());
+    }
     return false;
 }
 
@@ -763,10 +589,10 @@ static int lwp_kill(int pid, int sig)
   if (result == -1 && errno == ENOSYS)
   {
      result = P_kill(pid, sig);
-     proccontrol_cerr << "Sent " << sig << " to " << pid << " via kill\n";
+     proccontrol_printf("%s[%d]: Sent %d to %d via kill\n", FILE__, __LINE__, sig, pid);
   }
   else
-    proccontrol_cerr << "Sent " << sig << " to " << pid << " via tkill\n";
+     proccontrol_printf("%s[%d]: Sent %d to %d via tkill\n", FILE__, __LINE__, sig, pid);
 
   return result;
 }
@@ -816,134 +642,100 @@ bool dyn_lwp::isRunning() const {
   return (result != 'T');
 }
 
-/**
- * Reads events through a waitpid until a SIGSTOP blocks a LWP.
- *  p - The process to work with
- *  pid - If -1, then take a SIGSTOP from any lwp.  If non-zero then 
- *        only take SIGSTOPs from that pid.
- *  shouldBlock - Should we block until we get a SIGSTOP?
- **/
-static dyn_lwp *doWaitUntilStopped(process *p, int pid, bool shouldBlock)
+bool SignalHandler::suppressSignalWhenStopping(EventRecord &ev)
 {
-  procevent new_event;
-  bool gotevent, suppress_conts;
-  int result;
-  dyn_lwp *stopped_lwp = NULL;
-  pdvector<int> other_sigs;
-  pdvector<int> other_lwps;
-  unsigned i;
+ 
+  bool suppressed_something = false;
+  assert(didProcReceiveSignal(ev.type));
 
- /*
-  fprintf(stderr, "%s[%d]:  doWaitUntilStopped, pid = %d, block = %s\n",
-           __FILE__, __LINE__, pid, shouldBlock ? "true" : "false");
-  proccontrol_cerr << "doWaitUntilStopped called on " << pid 
-        << " (shouldBlock = " << shouldBlock << ")\n"; 
-  */
+  //  signals that we do not suppress
+  //  SIGTRAP here should rewind the pc by one...  check this
+  if (   ev.what == SIGILL
+      || ev.what == SIGTRAP
+      || ev.what == SIGSTOP
+      || ev.what == SIGFPE
+      || ev.what == SIGSEGV
+      || ev.what == SIGBUS )
+    return suppressed_something;
 
-  while (true)
-  {
-    gotevent = checkForEventLinux(&new_event, pid, shouldBlock, __WALL);
-    if (!gotevent)
-    {
-       proccontrol_cerr << "\tDidn't get an event\n";
-       break;
-    }
-
-    proccontrol_cerr << "\twhy = " << new_event.why 
-          << ", what = " << new_event.what 
-          << ", lwp = " << new_event.lwp->get_lwp_id() << endl;
-   
-    if (didProcReceiveSignal(new_event.why) && (new_event.what != SIGSTOP) || 
-        didProcReceiveInstTrap(new_event.why))
-    {
-      /**
-       * We caught a non-SIGTOP signal, let's throw it back.
-       **/
-       if (didProcReceiveSignal(new_event.why) && 
-           new_event.what != SIGILL && new_event.what != SIGTRAP &&
-           new_event.what != SIGFPE && new_event.what != SIGSEGV &&
-           new_event.what != SIGBUS)
-       {
-          //We don't actually throw back signals that are caused by 
-          // executing an instruction.  We can just drop these and
-          // let the continueLWP_ re-execute the instruction and cause
-          // it to be rethrown.
-          other_sigs.push_back(new_event.what);
-          other_lwps.push_back(new_event.lwp->get_lwp_id());
-          proccontrol_cerr << "\tpostponing " << new_event.what << endl;
-       }
-       else if (didProcReceiveInstTrap(new_event.why) ||
-                (didProcReceiveSignal(new_event.why) && 
-                 new_event.what == SIGTRAP)) 
-       {
-          proccontrol_cerr << "\tReceived trap\n";
-          new_event.lwp->changePC(new_event.lwp->getActiveFrame().getPC() - 1, 
-                                  NULL);
-       }
-       else
-       {
-          proccontrol_cerr << "\tDropped " << new_event.what << endl;
-       }
-
-       new_event.lwp->continueLWP_(0);
-       new_event.proc->set_lwp_status(new_event.lwp, running);
-       continue;
-    }
-
-    suppress_conts =  (new_event.proc->getPid() != p->getPid() ||
-                       didProcEnterSyscall(new_event.why) ||
-                       didProcExitSyscall(new_event.why));
-    if (suppress_conts)
-    { 
-      proccontrol_cerr << "\tHandled, no suppression\n";
-      result = getSH()->handleProcessEvent(new_event);
-      continue;
-    }
-    else
-    {
-      p->setSuppressEventConts(true);    
-      result = getSH()->handleProcessEvent(new_event);
-      p->setSuppressEventConts(false);
-      proccontrol_cerr << "\tHandled, with suppression\n";
-    }
-
-    if (p->status() == exited)
-    {
-      proccontrol_cerr << "\tApp exited\n";
-      return NULL;
-    }
-
-    if (didProcReceiveSignal(new_event.why) && (new_event.what == SIGSTOP))
-    {
-      proccontrol_cerr << "\tGot my SIGSTOP\n";
-      stopped_lwp = new_event.lwp;
+  for (unsigned int i = 0; i < stoppingProcs.size(); ++i) {
+    stopping_proc_rec spr = stoppingProcs[i];
+    if (spr.proc == ev.proc) {
+      spr.suppressed_sigs.push_back(ev.what);
+      spr.suppressed_lwps.push_back(ev.lwp);
+      suppressed_something = true;
       break;
     }
   }
 
-  assert(other_sigs.size() == other_lwps.size());
-  for (i = 0; i < other_sigs.size(); i++)
-  {
-    //Throw back the extra signals we caught.
-     proccontrol_cerr << "\tResending " << other_sigs[i] 
-                      << "to " << other_lwps[i] << endl;
-     lwp_kill(other_lwps[i], other_sigs[i]);
-  }
+  return suppressed_something;
+}
 
-  if (stopped_lwp)
-    return stopped_lwp->status() == stopped ? stopped_lwp : NULL;
-  else 
-    return NULL;
+bool SignalHandler::resendSuppressedSignals(EventRecord &ev)
+{
+  stopping_proc_rec spr;
+  bool found_proc = false;
+  for (unsigned int i = 0; i < stoppingProcs.size(); ++i) {
+   spr = stoppingProcs[i];
+   if (ev.proc->getPid() == spr.proc->getPid()) {
+     found_proc = true;
+     break; 
+   }
+  }
+  if (!found_proc) {
+    //fprintf(stderr, "%s[%d]:  cannot resend signals for nonexistant process: %d stopping\n", 
+    //        __FILE__, __LINE__, stoppingProcs.size());
+    return false;
+   }
+
+  assert(spr.suppressed_sigs.size() == spr.suppressed_lwps.size());
+  for (unsigned int i = 0; i < spr.suppressed_sigs.size(); ++i)
+  {
+    fprintf(stderr, "%s[%d]:  resending %d to %d via lwp_kill\n", FILE__, __LINE__,
+            spr.suppressed_sigs[i], spr.suppressed_lwps[i]);
+    //Throw back the extra signals we caught.
+    lwp_kill(spr.suppressed_lwps[i]->get_lwp_id(), spr.suppressed_sigs[i]);
+  }
+  spr.suppressed_lwps.clear();
+  spr.suppressed_sigs.clear();
+  return true;
+}
+
+bool SignalHandler::waitingForStop(process *p)
+{
+  for(unsigned int i = 0; i < stoppingProcs.size(); ++i) {
+       if (stoppingProcs[i].proc == p) return false;
+     } 
+   stopping_proc_rec spr;
+   spr.proc = p; 
+   stoppingProcs.push_back(spr);
+   return true;
+
+}
+bool SignalHandler::notWaitingForStop(process *p)
+{
+  for(unsigned int i = 0; i < stoppingProcs.size(); ++i) {
+     if (stoppingProcs[i].proc == p) { 
+         assert(stoppingProcs[i].suppressed_lwps.size() == 0);
+         assert(stoppingProcs[i].suppressed_sigs.size() == 0);
+         stoppingProcs.erase(i,i);
+         return true;
+       }
+     } 
+  return false;
 }
 
 bool dyn_lwp::removeSigStop()
 {
+  //fprintf(stderr, "%s[%d][%s]:  welcome to removeSigStop, about to lwp_kill(%d, %d)\n",
+   //       FILE__, __LINE__, getThreadStr(getExecThreadID()), get_lwp_id(), SIGCONT);
   return (lwp_kill(get_lwp_id(), SIGCONT) == 0);
 }
 
 bool dyn_lwp::continueLWP_(int signalToContinueWith) {
-   proccontrol_cerr << "Continuing LWP " << get_lwp_id() << " with " 
-         << signalToContinueWith << endl;
+   proccontrol_printf("%s[%d]:  ContinuingLWP_ %d with %d\n", FILE__, __LINE__,
+          get_lwp_id(), signalToContinueWith);
+
    // we don't want to operate on the process in this state
    int arg3 = 0;
    int arg4 = 0;
@@ -964,7 +756,8 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
    ptraceOps++; 
    ptraceOtherOps++;
 
-   int ret = P_ptrace(PTRACE_CONT, get_lwp_id(), arg3, arg4);
+   int ptrace_errno = 0;
+   int ret = DBI_ptrace(PTRACE_CONT, get_lwp_id(), arg3, arg4, &ptrace_errno, proc_->getAddressWidth(),  FILE__, __LINE__);
    if (ret == 0)
      return true;
 
@@ -991,11 +784,21 @@ bool dyn_lwp::waitUntilStopped()
     return true;
   }
 
-  return (doWaitUntilStopped(proc(), get_lwp_id(), true) != NULL);
+  //return (doWaitUntilStopped(proc(), get_lwp_id(), true) != NULL);
+  getSH()->waitingForStop(proc());
+  while ( status() != stopped) {
+    signal_printf("%s[%d]:  before waitForEvent(evtProcessStop)\n",
+            FILE__, __LINE__);
+    getSH()->waitForEvent(evtProcessStop);
+  }
+  getSH()->notWaitingForStop(proc());
+  return true;
 }
 
 bool dyn_lwp::stop_() 
 {
+  proccontrol_printf("%s[%d][%s]:  welcome to stop_, about to lwp_kill(%d, %d)\n",
+          FILE__, __LINE__, getThreadStr(getExecThreadID()), get_lwp_id(), SIGCONT);
   return (lwp_kill(get_lwp_id(), SIGSTOP) == 0);
 } 
 
@@ -1043,17 +846,15 @@ bool process::stop_()
     return false;
   }
 
-  dyn_lwp *lwp = waitUntilLWPStops();
-  if (!lwp)
-  {
+  if (!waitUntilLWPStops()) 
     return false;
-  }
-  if (status() == exited) {
-      return false;
-  }
+  if (status() == exited)
+    return false;
+
   //Stop all other LWPs
   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
   unsigned index = 0;
+  dyn_lwp *lwp;
   
   while(lwp_iter.next(index, lwp))
   {
@@ -1078,9 +879,24 @@ bool process::waitUntilStopped()
   return result;
 }
 
-dyn_lwp *process::waitUntilLWPStops()
+bool process::waitUntilLWPStops()
 {
-  return doWaitUntilStopped(this, -1, true);
+
+  getSH()->waitingForStop(this);
+  while ( status() != stopped) {
+    if (status() == exited) {
+      fprintf(stderr, "%s[%d]:  process exited\n", __FILE__, __LINE__);
+      return false;
+    }
+    signal_printf("%s[%d][%s]:  before waitForEvent(evtProcessStop)\n", 
+            FILE__, __LINE__, getThreadStr(getExecThreadID()));
+    getSH()->waitForEvent(evtProcessStop);
+  }
+
+  getSH()->notWaitingForStop(this);
+
+  return true;
+
 }
 
 terminateProcStatus_t process::terminateProc_()
@@ -1098,22 +914,22 @@ terminateProcStatus_t process::terminateProc_()
 
 void dyn_lwp::realLWP_detach_() 
 {
-   int result;
    if(! proc_->isAttached()) {
       if (! proc_->hasExited())
          cerr << "Detaching, but not attached" << endl;
       return;
    }
     
-   if (status() != exited)
-   {
-      //An exited lwp has already auto-detached
-      ptraceOps++;
-      ptraceOtherOps++;
-      result = deliverPtrace(PTRACE_DETACH, 1, SIGCONT);
-   }
-   remove_lwp_from_poll_list(get_lwp_id());
-   return;
+    cerr <<"Detaching..." << endl;
+    ptraceOps++;
+    ptraceOtherOps++;
+    int ptrace_errno = 0;
+    int ptrace_ret = DBI_ptrace(PTRACE_DETACH, get_lwp_id(),1, SIGCONT, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__); 
+    if (ptrace_ret < 0) {
+      fprintf(stderr, "%s[%d]:  ptrace failed: %s\n", __FILE__, __LINE__, strerror(ptrace_errno));
+    }
+    remove_lwp_from_poll_list(get_lwp_id());
+    return;
 }
 
 void dyn_lwp::representativeLWP_detach_() {
@@ -1125,8 +941,8 @@ void dyn_lwp::representativeLWP_detach_() {
     
     ptraceOps++;
     ptraceOtherOps++;
-    deliverPtrace(PTRACE_DETACH, 1, SIGCONT);
-
+   int ptrace_errno = 0;
+    DBI_ptrace(PTRACE_DETACH, get_lwp_id(),1, SIGCONT, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__); 
     remove_lwp_from_poll_list(get_lwp_id());
     return;
 }
@@ -1149,7 +965,7 @@ bool dyn_lwp::readTextSpace(void *inTraced, u_int amount, const void *inSelf) {
    return readDataSpace(inTraced, amount, const_cast<void*>( inSelf ));
 }
 
-bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
+bool DebuggerInterface::bulkPtraceWrite(void *inTraced, u_int nbytes, void *inSelf, int pid, int /*address_width*/)
 {
    unsigned char *ap = (unsigned char*) inTraced;
    const unsigned char *dp = (const unsigned char*) inSelf;
@@ -1160,27 +976,6 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
    //cerr << "writeDataSpace pid=" << getPid() << ", @ " << (void *)inTraced
    //    << " len=" << nbytes << endl; cerr.flush();
 
-#if defined(BPATCH_LIBRARY)
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
-   if (proc_->collectSaveWorldData) {
-       codeRange *range = NULL;
-       proc_->codeRangesByAddr_.precessor((Address)inTraced, range); //findCodeRangeByAddress((Address)inTraced);
-       if(range){
-	 mapped_object *mappedobj_ptr = range->is_mapped_object();
-	 if (mappedobj_ptr) {
-	   // If we're writing into a shared object, mark it as dirty.
-	   // _Unless_ we're writing "__libc_sigaction"
-	   int_function *func = range->is_function();
-	   if ((! func) || (func->prettyName() != "__libc_sigaction")){
-	     mappedobj_ptr->setDirty();
-	   }
-	 }
-       }
-   }
-#endif
-#endif
-
    ptraceOps++; ptraceBytes += nbytes;
 
    if (0 == nbytes)
@@ -1188,37 +983,43 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
 
    if ((cnt = ((Address)ap) % len)) {
       /* Start of request is not aligned. */
-      unsigned char *p = (unsigned char*) &w;	  
+      unsigned char *p = (unsigned char*) &w;
 
       /* Read the segment containing the unaligned portion, edit
          in the data from DP, and write the segment back. */
       errno = 0;
-      w = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) (ap-cnt), 0);
+      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) (ap-cnt), 0);
 
-      if (errno)
+      if (errno) {
+         fprintf(stderr, "%s[%d]:  write data space failing\n", __FILE__, __LINE__);
          return false;
+      }
 
       for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
          p[cnt+i] = dp[i];
 
-      if (0 > P_ptrace(PTRACE_POKETEXT, get_lwp_id(), (Address) (ap-cnt), w))
+      if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address) (ap-cnt), w)) {
+         fprintf(stderr, "%s[%d]:  write data space failing\n", __FILE__, __LINE__);
          return false;
+      }
 
-      if (len-cnt >= nbytes) 
+      if (len-cnt >= nbytes)
          return true; /* done */
-	  
+
       dp += len-cnt;
       ap += len-cnt;
       nbytes -= len-cnt;
-   }	  
-	  
+   }
+
    /* Copy aligned portion */
    while (nbytes >= (u_int)len) {
       assert(0 == ((Address)ap) % len);
       memcpy(&w, dp, len);
-      int retval =  P_ptrace(PTRACE_POKETEXT, get_lwp_id(), (Address) ap, w);
-      if (retval < 0)
+      int retval =  P_ptrace(PTRACE_POKETEXT, pid, (Address) ap, w);
+      if (retval < 0) {
+         fprintf(stderr, "%s[%d]:  write data space failing\n", __FILE__, __LINE__);
          return false;
+      }
 
       // Check...
       /*
@@ -1226,7 +1027,7 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
       fprintf(stderr, "Writing %x... ", w);
       test = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) ap, 0);
       fprintf(stderr, "... got %x, lwp %d\n", test, get_lwp_id());
-      */      
+      */
       dp += len;
       ap += len;
       nbytes -= len;
@@ -1239,31 +1040,34 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
       /* Read the segment containing the unaligned portion, edit
          in the data from DP, and write it back. */
       errno = 0;
-      w = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) ap, 0);
+      w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0);
 
-      if (errno)
+      if (errno) {
+         fprintf(stderr, "%s[%d]:  write data space failing\n", __FILE__, __LINE__);
          return false;
+      }
+
 
       for (unsigned i = 0; i < nbytes; i++)
          p[i] = dp[i];
 
-      if (0 > P_ptrace(PTRACE_POKETEXT, get_lwp_id(), (Address) ap, w))
+      if (0 > P_ptrace(PTRACE_POKETEXT, pid, (Address) ap, w)) {
+         fprintf(stderr, "%s[%d]:  write data space failing\n", __FILE__, __LINE__);
          return false;
+      }
 
    }
 
    return true;
+
 }
 
-#if 0
 bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
 {
    unsigned char *ap = (unsigned char*) inTraced;
    const unsigned char *dp = (const unsigned char*) inSelf;
-   Address w;               /* ptrace I/O buffer */
-   int len = proc_->getAddressWidth(); /* address alignment of ptrace I/O requests */
-   unsigned cnt;
 
+   //fprintf(stderr, "%s[%d]:  welcome to dyn_lwp::writeDataSpace(%d bytes)\n", __FILE__, __LINE__, nbytes);
    //cerr << "writeDataSpace pid=" << getPid() << ", @ " << (void *)inTraced
    //    << " len=" << nbytes << endl; cerr.flush();
 
@@ -1272,15 +1076,15 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
    if (proc_->collectSaveWorldData) {
        codeRange *range = NULL;
-	proc_->codeRangesByAddr_->precessor((Address)inTraced, range); //findCodeRangeByAddress((Address)inTraced);
+	proc_->codeRangesByAddr_.precessor((Address)inTraced, range); //findCodeRangeByAddress((Address)inTraced);
 	if(range){
-	        shared_object *sharedobj_ptr = range->is_shared_object();
-	       if (sharedobj_ptr) {
+	        mapped_object *mappedobj_ptr = range->is_mapped_object();
+	       if (mappedobj_ptr) {
         	   // If we're writing into a shared object, mark it as dirty.
 	           // _Unless_ we're writing "__libc_sigaction"
         	   int_function *func = range->is_function();
 	           if ((! func) || (func->prettyName() != "__libc_sigaction")){
-        	      sharedobj_ptr->setDirty();
+        	      mappedobj_ptr->setDirty();
 		   }
 	       }
 	}
@@ -1290,136 +1094,97 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int nbytes, const void *inSelf)
 
    ptraceOps++; ptraceBytes += nbytes;
 
-   if (0 == nbytes)
-      return true;
-
-   if ((cnt = ((Address)ap) % len)) {
-      /* Start of request is not aligned. */
-      unsigned char *p = (unsigned char*) &w;	  
-
-      /* Read the segment containing the unaligned portion, edit
-         in the data from DP, and write the segment back. */
-      errno = 0;
-      w = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) (ap-cnt), 0, len);
-
-      if (errno)
-         return false;
-
-      for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
-         p[cnt+i] = dp[i];
-
-      if (0 > P_ptrace(PTRACE_POKETEXT, get_lwp_id(), (Address) (ap-cnt), w, len))
-         return false;
-
-      if (len-cnt >= nbytes) 
-         return true; /* done */
-	  
-      dp += len-cnt;
-      ap += len-cnt;
-      nbytes -= len-cnt;
-   }	  
-	  
-   /* Copy aligned portion */
-   while (nbytes >= (u_int)len) {
-      assert(0 == ((Address)ap) % len);
-      memcpy(&w, dp, len);
-      int retval =  P_ptrace(PTRACE_POKETEXT, get_lwp_id(), (Address) ap, w, len);
-      if (retval < 0)
-         return false;
-
-      // Check...
-      /*
-      Address test;
-      fprintf(stderr, "Writing %x... ", w);
-      test = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) ap, 0, len);
-      fprintf(stderr, "... got %x, lwp %d\n", test, get_lwp_id());
-      */      
-      dp += len;
-      ap += len;
-      nbytes -= len;
+   if (!DBI_writeDataSpace(get_lwp_id(), (Address) ap, nbytes, (Address) dp, sizeof(Address), __FILE__, __LINE__)) {
+     fprintf(stderr, "%s[%d]:  bulk ptrace failed\n", __FILE__, __LINE__);
+     return false;
    }
-
-   if (nbytes > 0) {
-      /* Some unaligned data remains */
-      unsigned char *p = (unsigned char *) &w;
-
-      /* Read the segment containing the unaligned portion, edit
-         in the data from DP, and write it back. */
-      errno = 0;
-      w = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) ap, 0, len);
-
-      if (errno)
-         return false;
-
-      for (unsigned i = 0; i < nbytes; i++)
-         p[i] = dp[i];
-
-      if (0 > P_ptrace(PTRACE_POKETEXT, get_lwp_id(), (Address) ap, w, len))
-         return false;
-
-   }
-
    return true;
 }
-#endif
+
+
+bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf, int pid, int address_width) 
+{
+
+     u_int nbytes = nelem;
+     const unsigned char *ap = (const unsigned char*) inTraced; 
+     unsigned char *dp = (unsigned char*) inSelf;
+     Address w = 0x0;               /* ptrace I/O buffer */
+     int len = address_width; /* address alignment of ptrace I/O requests */
+     unsigned cnt;
+         
+     ptraceOps++; ptraceBytes += nbytes;
+      
+     if (0 == nbytes)
+          return true;
+      
+     if ((cnt = ((Address)ap) % len)) {
+          /* Start of request is not aligned. */
+          unsigned char *p = (unsigned char*) &w;
+   
+          /* Read the segment containing the unaligned portion, and
+             copy what was requested to DP. */
+          errno = 0;
+          w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) (ap-cnt), w, len);
+          if (errno) {
+               fprintf(stderr, "%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, strerror(errno));
+               return false;
+          }
+          for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
+               dp[i] = p[cnt+i];
+
+          if (len-cnt >= nbytes)
+               return true; /* done */
+
+          dp += len-cnt;
+          ap += len-cnt;
+          nbytes -= len-cnt;
+     }
+   /* Copy aligned portion */
+     while (nbytes >= (u_int)len) {
+          errno = 0;
+          w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0, len);
+          if (errno) {
+               fprintf(stderr, "%s[%d]:  ptrace(PEEK, pid %d, %p, 0, len %d) failed: %s\n", FILE__, __LINE__, pid, (void *) ( (Address) ap), len,strerror(errno));
+              return false;
+          }
+          memcpy(dp, &w, len);
+          dp += len;
+          ap += len;
+          nbytes -= len;
+     }
+
+     if (nbytes > 0) {
+          /* Some unaligned data remains */
+          unsigned char *p = (unsigned char *) &w;
+
+          /* Read the segment containing the unaligned portion, and
+             copy what was requested to DP. */
+          errno = 0;
+          w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0, len);
+          if (errno) {
+               fprintf(stderr, "%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, strerror(errno));
+               return false;
+          }
+          for (unsigned i = 0; i < nbytes; i++)
+               dp[i] = p[i];
+     }
+     return true;
+
+
+
+}
 
 bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf) {
      const unsigned char *ap = (const unsigned char*) inTraced;
      unsigned char *dp = (unsigned char*) inSelf;
-     Address w = 0x0;               /* ptrace I/O buffer */
      int len = proc_->getAddressWidth(); /* address alignment of ptrace I/O requests */
-     unsigned cnt;
 
      ptraceOps++; ptraceBytes += nbytes;
 
-     if (0 == nbytes)
-	  return true;
-
-     if ((cnt = ((Address)ap) % len)) {
-	  /* Start of request is not aligned. */
-	  unsigned char *p = (unsigned char*) &w;
-
-	  /* Read the segment containing the unaligned portion, and
-             copy what was requested to DP. */
-	  errno = 0;
-	  w = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) (ap-cnt), w, len);
-	  if (errno)
-	       return false;
-	  for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
-	       dp[i] = p[cnt+i];
-
-	  if (len-cnt >= nbytes)
-	       return true; /* done */
-
-	  dp += len-cnt;
-	  ap += len-cnt;
-	  nbytes -= len-cnt;
-     }
-
-     /* Copy aligned portion */
-     while (nbytes >= (u_int)len) {
-	  errno = 0;
-	  w = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) ap, 0, len);
-	  if (errno)
-	      return false;
-	  memcpy(dp, &w, len);
-	  dp += len;
-	  ap += len;
-	  nbytes -= len;
-     }
-
-     if (nbytes > 0) {
-	  /* Some unaligned data remains */
-	  unsigned char *p = (unsigned char *) &w;
-	  
-	  /* Read the segment containing the unaligned portion, and
-             copy what was requested to DP. */
-	  errno = 0;
-	  w = P_ptrace(PTRACE_PEEKTEXT, get_lwp_id(), (Address) ap, 0, len);
-	  if (errno)
-	       return false;
-	  for (unsigned i = 0; i < nbytes; i++)
-	       dp[i] = p[i];
+     bool ret = false;
+     if (! (ret = DBI_readDataSpace(get_lwp_id(), (Address) ap, nbytes,(Address) dp, /*sizeof(Address)*/ len,__FILE__, __LINE__))) {
+       fprintf(stderr, "%s[%d]:  bulk ptrace read failed \n", __FILE__, __LINE__);
+       return false;
      }
      return true;
 }
@@ -1438,7 +1203,7 @@ pdstring process::tryToFindExecutable(const pdstring & /* iprogpath */, int pid)
   int chars_read = readlink(procpath.c_str(), buf, 1024);
   if (chars_read == -1) {
     // Note: the name could be too long. Not handling yet.
-    perror("Reading file name from /proc entry");
+    fprintf(stderr, "%s[%d]:  error reading file name from /proc entry\n", FILE__, __LINE__);
     return procpath;
   }
   buf[chars_read] = 0;
@@ -1515,28 +1280,87 @@ papiMgr* dyn_lwp::papi() {
 #endif
 
 
-procSyscall_t decodeSyscall(process * /*p*/, procSignalWhat_t what)
+#ifdef NOTDEF // PDSEP
+#if !defined(BPATCH_LIBRARY)
+
+rawTime64 dyn_lwp::getRawCpuTime_hw()
 {
-   switch (what) {
-      case SYS_fork:
-         return procSysFork;
-         break;
-      case SYS_exec:
-         return procSysExec;
-         break;
-      case SYS_exit:
-         return procSysExit;
-         break;
-      case SYS_lwp_exit:
-         return procLwpExit;
-         break;
-      default:
-         return procSysOther;
-         break;
-   }
-   assert(0);
-   return procSysOther;
+  rawTime64 result = 0;
+  
+#ifdef PAPI
+  result = papi()->getCurrentVirtCycles();
+#endif
+  
+  if (result < hw_previous_) {
+    logLine("********* time going backwards in paradynd **********\n");
+    result = hw_previous_;
+  }
+  else 
+    hw_previous_ = result;
+  
+  return result;
 }
+
+rawTime64 dyn_lwp::getRawCpuTime_sw()
+{
+  rawTime64 result = 0;
+  int bufsize = 150;
+  unsigned long utime, stime;
+  char procfn[bufsize], *buf;
+
+  sprintf( procfn, "/proc/%d/stat", get_lwp_id());
+
+  int fd;
+
+  // The reason for this complicated method of reading and sseekf-ing is
+  // to ensure that we read enough of the buffer 'atomically' to make sure
+  // the data is consistent.  Is this necessary?  I *think* so. - nash
+  do {
+    fd = P_open(procfn, O_RDONLY, 0);
+    if (fd < 0) {
+      perror("getInferiorProcessCPUtime (open)");
+      return false;
+    }
+
+    buf = new char[ bufsize ];
+
+    if ((int)P_read( fd, buf, bufsize-1 ) < 0) {
+      perror("getInferiorProcessCPUtime");
+      return false;
+    }
+
+	/* While I'd bet that any of the numbers preceding utime and stime could overflow 
+	   a signed int on IA-64, the compiler whines if you add length specifiers to
+	   elements whose conversion has been surpressed. */
+    if(2==sscanf(buf,"%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %lu %lu "
+		 , &utime, &stime ) ) {
+      // These numbers are in 'jiffies' or timeslices.
+      // Oh, and I'm also assuming that process time includes system time
+      result = static_cast<rawTime64>(utime) + static_cast<rawTime64>(stime);
+      break;
+    }
+
+    delete [] buf;
+    bufsize = bufsize * 2;
+
+    P_close( fd );
+  } while ( true );
+
+  delete [] buf;
+  P_close(fd);
+
+  if (result < sw_previous_) {
+    logLine("********* time going backwards in paradynd **********\n");
+    result = sw_previous_;
+  }
+  else 
+    sw_previous_ = result;
+
+  return result;
+}
+#endif
+
+#endif // NOTDEF // PDSEP
 
 bool process::dumpImage( pdstring imageFileName ) {
 	/* What we do is duplicate the original file,
@@ -1759,19 +1583,21 @@ bool dyn_lwp::realLWP_attach_() {
    if (fd_ < 0) 
      fd_ = INVALID_HANDLE_VALUE;
 
-   startup_cerr << "process::attach() doing PTRACE_ATTACH to " << get_lwp_id() 
-                << endl;
-
-   if( 0 != P_ptrace(PTRACE_ATTACH, get_lwp_id(), 0, 0) )
+   startup_printf("%s[%d]:  realLWP_attach doing PTRACE_ATTACH to %lu\n", 
+                  FILE__, __LINE__, get_lwp_id());
+   int ptrace_errno = 0;
+   if( 0 != DBI_ptrace(PTRACE_ATTACH, get_lwp_id(), 0, 0, &ptrace_errno, 
+                       proc_->getAddressWidth(),  __FILE__, __LINE__) )
    {
       perror( "process::attach - PTRACE_ATTACH" );
       return false;
    }
    
    add_lwp_to_poll_list(this);
-   if (0 > waitpid(get_lwp_id(), NULL, __WCLONE)) {
-      perror("process::attach - waitpid");
-      exit(1);
+   eventType evt;
+   if (evtThreadDetect != (evt = getSH()->waitForEvent(evtThreadDetect, proc_, this))) {
+     fprintf(stderr, "%s[%d]:  received unexpected event %s\n", FILE__, __LINE__, eventType2str(evt));
+     abort();
    }
 
    if (proc_->status() == running)
@@ -1803,9 +1629,11 @@ bool dyn_lwp::representativeLWP_attach_() {
       proc_->wasCreatedViaFork() || 
       proc_->wasCreatedViaAttachToCreated())
    {
-      startup_cerr << "process::attach() doing PTRACE_ATTACH to " 
-                   << get_lwp_id() << endl;
-      if( 0 != P_ptrace(PTRACE_ATTACH, getPid(), 0, 0) )
+      startup_cerr << "process::attach() doing PTRACE_ATTACH to " <<get_lwp_id() << endl;
+      int ptrace_errno = 0;
+      int address_width = sizeof(Address);
+      assert(address_width);
+      if( 0 != DBI_ptrace(PTRACE_ATTACH, getPid(), 0, 0, &ptrace_errno, address_width, __FILE__, __LINE__) )
       {
          perror( "process::attach - PTRACE_ATTACH" );
          return false;
@@ -1825,7 +1653,9 @@ bool dyn_lwp::representativeLWP_attach_() {
       // Actually, the attach process contructor assumes that the process is
       // running.  While this is foolish, let's play along for now.
       if( proc_->status() != running || !proc_->isRunning_() ) {
-         if( 0 != P_ptrace(PTRACE_CONT, getPid(), 0, 0) )
+         int ptrace_errno = 0;
+         int address_width = sizeof(Address); //proc_->getAddressWidth();
+         if( 0 != DBI_ptrace(PTRACE_CONT, getPid(), 0, 0, &ptrace_errno, address_width,  __FILE__, __LINE__) )
          {
             perror( "process::attach - continue 1" );
          }
@@ -1840,9 +1670,9 @@ bool dyn_lwp::representativeLWP_attach_() {
       
       /* lose race */
       sleep(1);
-      
+      int ptrace_errno = 0; 
       /* continue, clearing pending stop */
-      if (0 > P_ptrace(PTRACE_CONT, getPid(), 0, SIGCONT)) {
+      if (0 > DBI_ptrace(PTRACE_CONT, getPid(), 0, SIGCONT, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__)) {
          perror("process::attach: PTRACE_CONT 1");
          return false;
       }
@@ -1858,7 +1688,7 @@ bool dyn_lwp::representativeLWP_attach_() {
          return false;
       }
       
-      if (0 > P_ptrace(PTRACE_CONT, getPid(), 0, SIGCONT)) {
+      if (0 > DBI_ptrace(PTRACE_CONT, getPid(), 0, SIGCONT, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__)) {
          perror("process::attach: PTRACE_CONT 2");
          return false;
       }
@@ -2147,7 +1977,7 @@ Address dyn_lwp::step_next_insn() {
    
    singleStepping = true;
    proc()->set_lwp_status(this, running);
-   result = P_ptrace(PTRACE_SINGLESTEP, get_lwp_id(), 0x0, 0x0);
+   result = DBI_ptrace(PTRACE_SINGLESTEP, get_lwp_id(), 0x0, 0x0);
    if (result == -1) {
       perror("Couldn't PTRACE_SINGLESTEP");
       return (Address) -1;
@@ -2156,7 +1986,7 @@ Address dyn_lwp::step_next_insn() {
    do {
       if(proc()->hasExited()) 
          return (Address) -1;
-      getSH()->checkForAndHandleProcessEvents(false);
+      getSH()->waitForEvent(evtDebugStep);
    } while (singleStepping);
 
    return getActiveFrame().getPC();

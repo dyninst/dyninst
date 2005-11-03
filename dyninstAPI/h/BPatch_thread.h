@@ -73,6 +73,7 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     friend class BPatch_process;
     friend bool pollForStatusChange();
     friend class BPatch_asyncEventHandler;
+    friend class process;
 
     bool legacy_destructor;
     BPatch_process *proc;
@@ -166,7 +167,6 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     API_EXPORT(Int, (stack),
     bool,getCallStack,(BPatch_Vector<BPatch_frame>& stack));
     //  BPatch_thread::getProcess
-    //
     //  Returns a pointer to the process that owns this thread
     API_EXPORT(Int, (),
     BPatch_process *, getProcess, ());

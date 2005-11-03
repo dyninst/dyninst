@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.43 2005/10/04 18:10:16 legendre Exp $
+// $Id: solarisDL.C,v 1.44 2005/11/03 05:21:07 jaw Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -428,7 +428,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<mapped_object*> 
       
          // kludge: the state of the first add can get screwed up
          // so if both change_type and r_state are 0 set change_type to 1
-         if(change_type == 0) change_type = 1;
+         if(change_type == 0) change_type = SHAREDOBJECT_ADDED;
          findChangeToLinkMaps(change_type, changed_objects);
       } 
       

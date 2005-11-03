@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.62 2005/09/09 18:06:31 legendre Exp $
+// $Id: aixDL.C,v 1.63 2005/11/03 05:21:05 jaw Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -147,7 +147,6 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &result)
 {
     // First things first, get a list of all loader info structures.
     int pid;
-    int ret;
 
     pid = proc->getPid();
     

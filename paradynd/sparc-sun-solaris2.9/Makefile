@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.5 2005/09/12 16:12:05 legendre Exp $
+# $Id: Makefile,v 1.6 2005/11/03 05:21:08 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -23,16 +23,12 @@ SRCS =		../../dyninstAPI/src/solaris.C \
 		../../dyninstAPI/src/solarisMT.C \
 		../src/proc-solaris.C \
 		../../dyninstAPI/src/inst-sparc.C \
-		../../dyninstAPI/src/inst-sparc-solaris.C \
 		../../dyninstAPI/src/inst-sunos.C \
+		../../dyninstAPI/src/arch-sparc.C \
+		../../dyninstAPI/src/image-sparc.C \
 		../../dyninstAPI/src/parseStab.C \
 		../../dyninstAPI/src/Object-elf.C \
-		../../dyninstAPI/src/tramp-sparc.s \
 		../../dyninstAPI/src/unix.C \
-		../../dyninstAPI/src/FunctionExpansionRecord.C \
-		../../dyninstAPI/src/LocalAlteration.C \
-		../../dyninstAPI/src/func-reloc.C \
-		../../dyninstAPI/src/LocalAlteration-Sparc.C \
 		../../dyninstAPI/src/InstrucIter-sparc.C \
       ../../dyninstAPI/src/writeBackElf.C \
       ../../dyninstAPI/src/addLibrary.C \

@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.50 2005/10/21 21:48:28 legendre Exp $
+# $Id: nmake.module.tmpl,v 1.51 2005/11/03 05:21:04 jaw Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -65,6 +65,9 @@ SRCS	     = $(SRCS) BPatch.C \
 		dyn_thread.C \
 		dyn_lwp.C \
 	      	signalhandler.C \
+	      	eventHandler.C \
+	      	callbacks.C \
+	      	mailbox.C \
 		rpcMgr.C \
 		rpcMgr-thr.C \
 		rpcMgr-lwp.C \
@@ -136,6 +139,8 @@ OBJS         = $(OBJS) BPatch.obj \
 		frame.obj \
 		dyn_thread.obj \
 		dyn_lwp.obj \
+	      	EventHandler.obj \
+	      	eventMailbox.obj \
       		signalhandler.obj \
       		rpcMgr.obj \
 		rpcMgr-thr.obj \

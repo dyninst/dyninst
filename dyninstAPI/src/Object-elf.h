@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.67 2005/09/09 18:06:27 legendre Exp $
+ * $Id: Object-elf.h,v 1.68 2005/11/03 05:21:05 jaw Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -58,7 +58,6 @@
 
 #include "Elf_X.h"
 
-extern "C" {
 #include <libelf.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -67,7 +66,6 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
-}
 
 /*
  * The standard symbol table in an elf file is the .symtab section. This section does

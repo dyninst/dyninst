@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutateeCommon.c,v 1.8 2005/02/24 10:17:37 rchen Exp $ */
+/* $Id: test1.mutateeCommon.c,v 1.9 2005/11/03 05:21:08 jaw Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -161,6 +161,7 @@ int main(int iargc, char *argv[])
     int useAttach = FALSE;
 #ifndef i386_unknown_nt4_0
     int pfd;
+    unsigned int e;
 #endif
 
     for (j=0; j <= MAX_TEST; j++) {
@@ -175,6 +176,11 @@ int main(int iargc, char *argv[])
 #ifndef i386_unknown_nt4_0
 	    if (++i >= argc) {
 		fprintf(stderr, "%s\n", USAGE);
+                fprintf(stderr, "Offending invocation:\n\t");
+                for (e = 0; e < argc; e++) {
+                  fprintf(stderr, "%s ", argv[e]);
+                }
+                fprintf(stderr, "\n");
 		exit(-1);
 	    }
 	    pfd = atoi(argv[i]);
@@ -201,6 +207,11 @@ int main(int iargc, char *argv[])
             i=j-1;
 		} else {
             fprintf(stderr, "%s\n", USAGE);
+             fprintf(stderr, "Offending invocation:\n\t");
+             for (e = 0; e < argc; e++) {
+               fprintf(stderr, "%s ", argv[e]);
+             }
+             fprintf(stderr, "\n");
             exit(-1);
         }
     }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dyninstP.h,v 1.23 2004/10/07 00:45:56 jaw Exp $
+/* $Id: dyninstP.h,v 1.24 2005/11/03 05:21:05 jaw Exp $
  *
  * private structures used by the implementation of the instrumentation 
  *   interface.  modules that use the instrumentation interface should not
@@ -51,6 +51,7 @@
 #ifndef _DYNINSTP_H
 #define _DYNINSTP_H
 
+#ifdef NOTDEF // PDSEP -- I think none of this stuff is used
 #include "common/h/Vector.h"
 #include "common/h/String.h"
 
@@ -92,5 +93,5 @@ bool startApplication();
 bool detachProcess(int pid, bool pause);
 
 
-
+#endif
 #endif

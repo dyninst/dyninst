@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.82 2005/10/04 18:10:11 legendre Exp $
+// $Id: osf.C,v 1.83 2005/11/03 05:21:06 jaw Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -75,7 +75,6 @@
 #define PC_REGNUM 31
 #define SP_REGNUM 30
 #define FP_REGNUM 15
-#define A0_REGNUM 16	/* first param to funcs and syscalls */
 #define RA_REGNUM 26
 extern bool exists_executable(const pdstring &fullpathname);
 
@@ -234,258 +233,64 @@ static inline bool execResult(prstatus_t stat)
   return (stat.pr_reg.regs[V0_REGNUM] == 0);
 }
 
-#ifndef OPEN_MAX
-#define OPEN_MAX 1024
-#endif
 
-
-#if 0
-#ifdef BPATCH_LIBRARY
-int process::waitforRPC(int *status, bool /* block */)
+//  checkForExit returns true when an exit has been detected
+bool checkForExit(EventRecord &ev)
 {
-  static struct pollfd fds[OPEN_MAX];  // argument for poll
-  static int selected_fds;             // number of selected
-  static int curr;                     // the current element of fds
-
-  if (selected_fds == 0) {
-      for (unsigned u = 0; u < processVec.size(); u++) {
-          if (processVec[u] &&
-              (processVec[u]->status() == running || 
-               processVec[u]->status() == neonatal)) {
-              fds[u].fd = processVec[u]->getRepresentativeLWP()->get_fd();
-              selected_fds++;
-          } else {
-              fds[u].fd = -1;
-          }
-          fds[u].events = 0xffff;
-          fds[u].revents = 0;
-      }
-      curr = 0;
+  extern pdvector<process*> processVec;
+  for (unsigned u = 0; u < processVec.size(); u++) {
+    if (processVec[u] 
+        && (processVec[u]->status() == running 
+            || processVec[u]->status() == neonatal)) { 
+       int status;
+       int retWait = waitpid(processVec[u]->getPid(), &status, WNOHANG|WNOWAIT);
+       if (retWait == -1) {
+          fprintf(stderr, "%s[%d]:  waitpid failed\n", __FILE__, __LINE__);
+          return false;
+       }
+       else if (retWait > 1) {
+         decodeWaitPidStatus(status, ev);
+         ev.proc = processVec[u];
+         ev.lwp = processVec[u]->getRepresentativeLWP();
+         ev.info = 0;
+         return true;
+       }
+    }
   }
-  if (selected_fds > 0)
-    {
-      while(fds[curr].fd == -1) ++curr;
-      prstatus_t stat;
-      int ret = 0;
-      int flag = 0;
-      // Busy wait till the process actually stops on a fault
-      while(!flag)
-	{
-	  if (ioctl(fds[curr].fd,PIOCSTATUS,&stat) != -1 && (stat.pr_flags & PR_STOPPED || stat.pr_flags & PR_ISTOP)) {
-	    switch(stat.pr_why) {
-	    case PR_FAULTED:
-	    case PR_SIGNALLED:
-	  *status = SIGTRAP << 8 | 0177;
-	  ret = processVec[curr]->getPid();
-	  flag = 1;
-	  break;
-	    }
-	  }
-	}
-      --selected_fds;
-      ++curr;
-      if (ret > 0) return ret;
-    }
-  return 0;
+  return false;
 }
-#endif
-#endif
 
-procSyscall_t decodeSyscall(process * /*p*/, procSignalWhat_t syscall)
+bool SignalHandler::translateEvent(EventRecord &)
 {
-    if (syscall == SYS_fork ||
-        syscall == SYS_vfork)
-        return procSysFork;
-    if (syscall == SYS_execv ||
-        syscall == SYS_execve)
-        return procSysExec;
-    if (syscall == SYS_exit)
-        return procSysExit;
-    return procSysOther;
+  return true;
 }
-
-int decodeProcStatus(process * /*proc*/,
-                     procProcStatus_t status,
-                     procSignalWhy_t &why,
-                     procSignalWhat_t &what,
-                     procSignalInfo_t &info) {
-    
-    switch (status.pr_why) {
-  case PR_SIGNALLED:
-      why = procSignalled;
-      what = status.pr_what;
-      break;
-  case PR_SYSENTRY:
-      why = procSyscallEntry;
-      what = status.pr_what;
-      info = status.pr_reg.regs[A0_REGNUM];
-      break;
-  case PR_SYSEXIT:
-      why = procSyscallExit;
-      what = status.pr_what;
-      info = status.pr_reg.regs[V0_REGNUM];
-      break;
-  case PR_REQUESTED:
-      // We don't expect PR_REQUESTED in the signal handler
-      assert(0 && "PR_REQUESTED not handled");
-      break;
-  case PR_JOBCONTROL:
-  case PR_FAULTED:
-  default:
-      assert(0);
-      break;
-    }
-    return 1;
-}
-
-
-// Get and decode a signal for a process
-// We poll /proc for process events, and so it's possible that
-// we'll get multiple hits. In this case we return one and queue
-// the rest. Further calls of decodeProcessEvent will burn through
-// the queue until there are none left, then re-poll.
-// Return value: 0 if nothing happened, or process pointer
-
-// the pertinantLWP and wait_options are ignored on Solaris, AIX
-
-bool signalHandler::checkForProcessEvents(pdvector<procevent *> *events,
-                                          int wait_arg, int &timeout)
+bool SignalHandler::updateEventsWithLwpStatus(process *, dyn_lwp *,
+                                  pdvector<EventRecord> &)
 {
-    procSignalWhy_t  why  = procUndefined;
-    procSignalWhat_t what = 0;
-    procSignalInfo_t info = 0;
+  return true;
+}
 
-    extern pdvector<process*> processVec;
-    static struct pollfd fds[OPEN_MAX];  // argument for poll
-    // Number of file descriptors with events pending
-    static int selected_fds = 0; 
-    // The current FD we're processing.
-    static int curr = 0;
-    //prstatus_t stat;
-
-    if (selected_fds == 0) {
-        for (unsigned u = 0; u < processVec.size(); u++) {
-            //bperr("checking %d\n", processVec[u]->getPid());
-            if (processVec[u] && 
-                (processVec[u]->status() == running || 
-                 processVec[u]->status() == neonatal)) {
-                if (wait_arg == -1 ||
-                    processVec[u]->getPid() == wait_arg) {
-                    fds[u].fd =processVec[u]->getRepresentativeLWP()->get_fd();
-                    // Apparently, exit doesn't cause a poll event. Odd...
-                    int status;
-                    int retWait = waitpid(processVec[u]->getPid(), &status, WNOHANG|WNOWAIT);
-                    if (retWait == -1) {
-                        perror("Initial waitpid");
-                    }
-                    else if (retWait > 1) {
-                        decodeWaitPidStatus(processVec[u], status, &why,&what);
-                        // In this case we return directly
-                        procevent *new_event = new procevent;
-                        new_event->proc = processVec[u];
-                        new_event->lwp  =processVec[u]->getRepresentativeLWP();
-                        new_event->why  = why;
-                        new_event->what = what;
-                        new_event->info = info;
-                        (*events).push_back(new_event);
-                        return true;
-                    }
-                }
-            } else {
-                fds[u].fd = -1;
-            }	
-            fds[u].events = POLLPRI;
-            fds[u].revents = 0;
-        }
-        if (selected_fds == 0) {
-            int wait_time = timeout;
-            // Exit doesn't provide an event, so we need a timeout eventually
-            if (timeout == -1) wait_time = 5;
-            selected_fds = poll(fds, processVec.size(), wait_time);
-        }
-        if (selected_fds <= 0) {
-            if (selected_fds < 0) {
-                bperr( "decodeProcessEvent: poll failed: %s\n",
-                        sys_errlist[errno]);
-                selected_fds = 0;
-            }
-            else {
-               //  poll timed out, indicate this by setting timeout to 0
-               timeout = 0;
-            }
-            return false;
-        }
-        
-        // Reset the current pointer to the beginning of the poll list
-        curr = 0;
-    } // if selected_fds == 0
-    // We have one or more events to work with.
-    while (fds[curr].revents == 0) {
-        // skip
-        ++curr;
+bool SignalHandler::getFDsForPoll(pdvector<unsigned int> &fds)
+{
+  extern pdvector<process*> processVec;
+  for (unsigned int u = 0; u < processVec.size(); ++u) {
+    if (processVec[u] 
+        && (processVec[u]->status() == running 
+            || processVec[u]->status() == neonatal)) {
+      fds.push_back(processVec[u]->getRepresentativeLWP()->get_fd());
     }
-    // fds[curr] has an event of interest
-    prstatus_t procstatus;
-    process *currProcess = processVec[curr];
-    
-    if (fds[curr].revents & POLLHUP) {
-        // True if the process exited out from under us
-        int status;
-        int ret;
-        // Process exited, get its return status
-        do {
-            ret = waitpid(currProcess->getPid(), &status, 0);
-        } while ((ret < 0) && (errno == EINTR));
-        if (ret < 0) {
-            // This means that the application exited, but was not our child
-            // so it didn't wait around for us to get it's return code.  In
-            // this case, we can't know why it exited or what it's return
-            // code was.
-            ret = currProcess->getPid();
-            status = 0;
-            // is this the bug??
-            // processVec[curr]->continueProc_();
-        }
-        if (!decodeWaitPidStatus(currProcess, status, &why, &what)) {
-            cerr << "decodeProcessEvent: failed to decode waitpid return" << endl;
-            return false;
-        }
-    } else {
-        // Real return from poll
-        if (ioctl(currProcess->getRepresentativeLWP()->get_fd(), 
-                  PIOCSTATUS, &procstatus) != -1) {
-            // Check if the process is stopped waiting for us
-            if (procstatus.pr_flags & PR_STOPPED ||
-                procstatus.pr_flags & PR_ISTOP) {
-                if (!decodeProcStatus(currProcess, procstatus, why, what, info))
-                   return false;
-            }
-        }
-        else {
-            // Process exited on us
-        }
-    }
-    // Skip this FD the next time through
+  }
+  return (fds.size() > 0);
+}
 
-    bool foundEvent = false;
-    if (currProcess) {
-        foundEvent = true;
-        procevent *new_event = new procevent;
-        new_event->proc = currProcess;
-        new_event->lwp  = currProcess->getRepresentativeLWP();
-        new_event->why  = why;
-        new_event->what = what;
-        new_event->info = info;
-        (*events).push_back(new_event);
-
-        currProcess->set_status(stopped);
-    }
-    
-
-    --selected_fds;
-    ++curr;    
-    return foundEvent;
-} 
+process *SignalHandler::findProcessByFD(unsigned int fd)
+{
+  extern pdvector<process*> processVec;
+  for (unsigned int u = 0; u < processVec.size(); ++u) 
+    if (fd == (unsigned int)processVec[u]->getRepresentativeLWP()->get_fd())
+      return processVec[u];
+  return NULL;
+}
 
 Frame dyn_thread::getActiveFrameMT() {
 	return Frame();
@@ -671,7 +476,7 @@ bool process::dumpImage()
     /* read header and section headers */
     /* Uses ldopen to parse the section headers */
     /* try */ 
-    if (!(ldptr = ldopen((char *)origFile.c_str(), ldptr))) {
+    if (!(ldptr = ldopen(const_cast<char *>( origFile.c_str()), ldptr))) {
        perror("Error in Open");
        exit(-1);
      }
@@ -831,6 +636,16 @@ bool process::getExecFileDescriptor(pdstring filename,
 {
     desc = fileDescriptor(filename, 0, 0, false);
     return true;
+}
+
+bool dyn_lwp::get_status(procProcStatus_t *status) const
+{
+  if (ioctl(get_fd(), 
+            PIOCSTATUS, status) == -1) {
+     fprintf(stderr, "%s[%d]:  FIXME\n", __FILE__, __LINE__);
+     return false;
+  }
+  return true;
 }
 
 bool dyn_lwp::realLWP_attach_() {

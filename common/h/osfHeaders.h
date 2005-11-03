@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfHeaders.h,v 1.13 2005/02/09 03:27:42 jaw Exp $
+// $Id: osfHeaders.h,v 1.14 2005/11/03 05:21:04 jaw Exp $
 
 #if !defined(_osf_headers_h)
 #define _osf_headers_h
@@ -176,8 +176,8 @@ extern int P_strcasecmp(const char *s1, const char *s2);
 extern int P_strncasecmp (const char *S1, const char *S2, size_t N);
 extern void P_endservent(void);
 
-inline int P_ptrace(int req, int pid, void *addr, int data)
-  { return(ptrace(req, pid, (ulong_t *)addr, data));}
+inline int P_ptrace(int req, int pid, Address addr, Address data, int /*word_len*/)
+  { return(ptrace(req, pid, (ulong_t *)addr, (ulong_t)data));}
 
 extern int P_rexec(char **ahost, u_short inport, char *user, char *passwd, char *cmd, int *fd2p);
 

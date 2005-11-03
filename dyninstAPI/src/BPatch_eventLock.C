@@ -40,6 +40,7 @@
  */
 
 #include "BPatch_eventLock.h"
+#include "mailbox.h"
 #include "BPatch_asyncEventHandler.h"
 #include "BPatch_thread.h"
 #include "BPatch_function.h"
@@ -58,7 +59,7 @@
 #define MUTEX_TYPE CRITICAL_SECTION
 extern MUTEX_TYPE global_mutex;
 #else
-#define MUTEX_TYPE pthread_mutex_t
+#define MUTEX_TYPE eventLock *
 extern MUTEX_TYPE global_mutex;
 #endif
 
@@ -74,118 +75,62 @@ extern MUTEX_TYPE global_mutex;
 #define STRERROR(x,y) strerror(x)
 #endif
 
-MUTEX_TYPE global_mutex;
+eventLock *global_mutex = NULL;
 bool mutex_created = false;
 
-BPatch_eventMailbox *event_mailbox;
 unsigned long primary_thread_id = (unsigned long) -1;
-
 int lock_depth = 0;
 
 BPatch_eventLock::BPatch_eventLock() 
 {
   if (mutex_created) return;
-#if defined(os_windows)
-  InitializeCriticalSection(&global_mutex);
+    global_mutex = new eventLock();
+#if defined (os_windows)
   primary_thread_id = _threadid;
 #else
-  pthread_mutexattr_t mutex_type;
-  pthread_mutexattr_init(&mutex_type);
-  primary_thread_id = (unsigned long) pthread_self();
-#if defined(arch_ia64)
-  try {
-    pthread_mutexattr_settype(&mutex_type, PTHREAD_MUTEX_RECURSIVE_NP);
-  }catch (...) {
-    fprintf(stderr, "%s[%d]: exception %d\n", __FILE__, __LINE__);
-  }
-  try {
-  pthread_mutex_init(&global_mutex, &mutex_type);
-  }catch (...) {
-    fprintf(stderr, "%s[%d]: exception%d\n", __FILE__, __LINE__);
-  }
-#else
-  pthread_mutexattr_settype(&mutex_type, PTHREAD_MUTEX_TYPE);
-  pthread_mutex_init(&global_mutex, &mutex_type);
+  primary_thread_id = (unsigned long)pthread_self();
 #endif
-#endif // !Windows
-  event_mailbox = new BPatch_eventMailbox();
-   
   mutex_created = true;
 }
 
 BPatch_eventLock::~BPatch_eventLock() {};
 
-#if defined(os_windows)
-
 int BPatch_eventLock::_Lock(const char *__file__, unsigned int __line__) const
 {
-  EnterCriticalSection(&global_mutex);
-  lock_depth++;
-  return 0;
+  return global_mutex->_Lock(__file__, __line__);
 }
-
-unsigned long BPatch_eventLock::threadID() const
-{
-  return (unsigned long) _threadid;
-}
-
 int BPatch_eventLock::_Trylock(const char *__file__, unsigned int __line__) const
 {
-  TryEnterCriticalSection(&global_mutex);
-  return 0;
+  return global_mutex->_Trylock(__file__, __line__);
 }
 
 int BPatch_eventLock::_Unlock(const char *__file__, unsigned int __line__) const
 {
-  lock_depth--;
-  LeaveCriticalSection(&global_mutex);
-  return 0;
+  return global_mutex->_Unlock(__file__, __line__);
 }
 
+
+int BPatch_eventLock::_Broadcast(const char *__file__, unsigned int __line__) const
+{
+  return global_mutex->_Broadcast(__file__, __line__);
+}
+
+int BPatch_eventLock::_WaitForSignal(const char *__file__, unsigned int __line__) const
+{
+  return global_mutex->_WaitForSignal(__file__, __line__);
+}
+
+
+#if defined (os_windows)
+unsigned long BPatch_eventLock::threadID() const
+{
+  return (unsigned long) _threadid;
+}
 #else
 unsigned long BPatch_eventLock::threadID() const
 {
   return (unsigned long) pthread_self();
 }
-
-int BPatch_eventLock::_Lock(const char *__file__, unsigned int __line__) const
-{
-  int err = 0;
-  if(0 != (err = pthread_mutex_lock(&global_mutex))){
-    ERROR_BUFFER;
-    fprintf(stderr, "%s[%d]:  failed to lock mutex: %s[%d]\n",
-            __file__, __line__, STRERROR(err, buf), err);
-  }
-  lock_depth++;
-  return err;
-}
-
-int BPatch_eventLock::_Trylock(const char *__file__, unsigned int __line__) const
-{
-  int err = 0;
-  if(0 != (err = pthread_mutex_trylock(&global_mutex))){
-    if (EBUSY != err) {
-      ERROR_BUFFER;
-      //  trylock returns EBUSY immediately when lock cannot be obtained
-      fprintf(stderr, "%s[%d]:  failed to trylock mutex: %s[%d]\n",
-              __file__, __line__, STRERROR(err, buf), err);
-    }
-  }
-  return err;
-}
-
-int BPatch_eventLock::_Unlock(const char *__file__, unsigned int __line__) const
-{
-  int err = 0;
-  lock_depth--;
-  if(0 != (err = pthread_mutex_unlock(&global_mutex))){
-    ERROR_BUFFER;
-    fprintf(stderr, "%s[%d]:  failed to unlock mutex: %s[%d]\n",
-            __file__, __line__, STRERROR(err, buf), err);
-  }
-  return err;
-}
-
 #endif
 
 

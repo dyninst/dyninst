@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.135 2005/10/18 21:35:28 bernat Exp $
+// $Id: BPatch_thread.C,v 1.136 2005/11/03 05:21:05 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -48,6 +48,8 @@
 #include "BPatch_libInfo.h"
 #include "BPatch_function.h"
 #include "process.h"
+#include "signalhandler.h"
+#include "mailbox.h"
 #include "dyn_thread.h"
 #include "dyn_lwp.h"
 #include "BPatch_libInfo.h"
@@ -66,9 +68,11 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
 
    was_stopped = proc->isStopped();
    if (!was_stopped)
-      proc->stopExecution();
+      proc->stopExecutionInt();
 
-   llthread->walkStack(stackWalk);
+   if (!llthread->walkStack(stackWalk) ) {
+     fprintf(stderr, "%s[%d]: ERROR doing stackwalk\n", FILE__, __LINE__);
+   }
 
    // The internal representation of a stack walk treats instrumentation
    // as part of the original instrumented function. That is to say, if A() 
@@ -151,8 +155,9 @@ BPatch_thread::BPatch_thread(BPatch_process *parent, int ind, int lwp_id)
    proc = parent;
    index = ind;
    dyn_lwp *lwp = proc->llproc->getLWP(lwp_id);
-   if (!lwp)
+   if (!lwp) {
       lwp = new dyn_lwp(lwp_id, proc->llproc);
+   }
    llthread = new dyn_thread(proc->llproc, index, lwp);   
    legacy_destructor = true;
    updated = false;
@@ -170,6 +175,10 @@ BPatch_thread::BPatch_thread(BPatch_process *parent, dyn_thread *dthr)
 void BPatch_thread::updateValues(dynthread_t tid, unsigned long stack_start,
                                  BPatch_function *initial_func, int lwp_id)
 {
+   if (updated) {
+     //fprintf(stderr, "%s[%d]:  thread already updated\n", FILE__, __LINE__);
+     return;
+   }
    BPatch_Vector<BPatch_frame> stack;
 
    dyn_lwp *lwp = proc->llproc->getLWP(lwp_id);
@@ -189,7 +198,7 @@ void BPatch_thread::updateValues(dynthread_t tid, unsigned long stack_start,
    // we can update them with a stack walk
    if (!initial_func || !stack_start)
    {
-      getCallStack(stack);
+      getCallStackInt(stack);
 
       int pos = stack.size() - 1;
       //Consider stack_start as starting at the first
@@ -201,6 +210,11 @@ void BPatch_thread::updateValues(dynthread_t tid, unsigned long stack_start,
          if (!initial_func)
          {
             initial_func = stack[pos].findFunction();
+            if (initial_func) {
+              char fname[2048];
+              initial_func->getName(fname, 2048);
+              //fprintf(stderr, "%s[%d]:  setting initial func to %s\n", FILE__, __LINE__, fname);
+            }
          }
          pos--;
       }

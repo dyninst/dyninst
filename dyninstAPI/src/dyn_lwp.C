@@ -41,12 +41,13 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.34 2005/10/21 21:48:22 legendre Exp $
+ * $Id: dyn_lwp.C,v 1.35 2005/11/03 05:21:05 jaw Exp $
  */
 
 #include "common/h/headers.h"
 #include "dyn_lwp.h"
 #include "process.h"
+#include "debuggerinterface.h"
 #include <assert.h>
 
 dyn_lwp::dyn_lwp() :
@@ -124,11 +125,13 @@ dyn_lwp::~dyn_lwp()
 // TODO is this safe here ?
 bool dyn_lwp::continueLWP(int signalToContinueWith) {
    if(status_ == running) {
+     fprintf(stderr, "%s[%d]:  already running\n", FILE__, __LINE__);
       return true;
    }
 
    if (proc()->suppressEventConts())
    {
+     fprintf(stderr, "%s[%d]:  LWP continue has been suppresssed\n", FILE__, __LINE__);
      return false;
    }
 
@@ -147,6 +150,23 @@ bool dyn_lwp::continueLWP(int signalToContinueWith) {
    return true;
 }
 
+
+pdstring dyn_lwp::getStatusAsString() const 
+{
+   // useful for debugging
+   if (status_ == neonatal)
+      return "neonatal";
+   if (status_ == stopped)
+      return "stopped";
+   if (status_ == running)
+      return "running";
+   if (status_ == exited)
+      return "exited";
+   if (status_ == detached)
+       return "detached";
+   assert(false);
+   return "???";
+}
 
 bool dyn_lwp::pauseLWP(bool shouldWaitUntilStopped) {
    // Not checking lwp status_ for neonatal because it breaks attach with the
@@ -210,10 +230,11 @@ bool dyn_lwp::walkStack(pdvector<Frame> &stackWalk)
 bool dyn_lwp::attach() {
    assert(!is_attached());
    bool res;
-   if(this == proc()->getRepresentativeLWP())
+   if(this == proc()->getRepresentativeLWP()) {
       res = representativeLWP_attach_();
-   else
+   }else {
       res = realLWP_attach_();
+   }
 
    if(res == true)
       is_attached_ = true;

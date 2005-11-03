@@ -57,11 +57,19 @@ static char dyn_tids[NUM_THREADS];
 static char deleted_tids[NUM_THREADS];
 static int deleted_threads;
 
+bool debug_flag;
+#define dprintf if (debug_flag) fprintf
 #define NUM_FUNCS 4
 char initial_funcs[NUM_FUNCS][25] = {"init_func", "main", "_start", "__start"};
 
 void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
 {
+   dprintf(stderr, "%s[%d]:  welcome to deadthr\n", __FILE__, __LINE__);
+   if (!thr) {
+     dprintf(stderr, "%s[%d]:  deadthr called without valid ptr to thr\n",
+            __FILE__, __LINE__);
+     return;
+   }
    unsigned my_dyn_id = thr->getBPatchID();
    if (my_proc != proc)
    {
@@ -70,10 +78,12 @@ void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
    }
    deleted_tids[my_dyn_id] = 1;
    deleted_threads++;
+   dprintf(stderr, "%s[%d]:  leaving to deadthr\n", __FILE__, __LINE__);
 }
 
 void newthr(BPatch_process *my_proc, BPatch_thread *thr)
 {
+   dprintf(stderr, "%s[%d]:  welcome to newthr, error = %d\n", __FILE__, __LINE__, error);
    unsigned my_dyn_id = thr->getBPatchID();
 
    if (my_proc != proc)
@@ -82,6 +92,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
       error = 1;
    }
 
+   dprintf(stderr, "%s[%d]:  newthr: BPatchID = %d\n", __FILE__, __LINE__, my_dyn_id);
    //Check initial function
    static char name[1024];
    BPatch_function *f = thr->getInitialFunc();   
@@ -95,6 +106,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
          found_name = 1;
          break;
       }
+   dprintf(stderr, "%s[%d]:  newthr: %s\n", __FILE__, __LINE__, name);
    if (!found_name)
    {
       fprintf(stderr, "[%s:%d] - Thread %d has '%s' as initial function\n",
@@ -145,6 +157,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
       fprintf(stderr, "[%s:%d] - Thread %d has a tid of -1\n", 
               __FILE__, __LINE__, my_dyn_id);
    }
+   dprintf(stderr, "%s[%d]:  newthr: tid = %lu\n", __FILE__, __LINE__,  mytid);
    for (unsigned i=0; i<NUM_THREADS; i++)
       if (i != my_dyn_id && dyn_tids[i] && mytid == pthread_ids[i])
       {
@@ -155,10 +168,12 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    pthread_ids[my_dyn_id] = mytid;
 
    thread_count++;
+   dprintf(stderr, "%s[%d]:  leaving newthr: error = %d\n", __FILE__, __LINE__, error);
 }
 
 void upgrade_mutatee_state()
 {
+   dprintf(stderr, "%s[%d]:  welcome to upgrade_mutatee_state\n", __FILE__, __LINE__);
    BPatch_variableExpr *var;
    BPatch_constExpr *one;
    BPatch_arithExpr *inc_var;
@@ -171,6 +186,7 @@ void upgrade_mutatee_state()
    inc_var_assign = new BPatch_arithExpr(BPatch_assign, *var, *inc_var);
 
    proc->oneTimeCode(*inc_var_assign);
+   dprintf(stderr, "%s[%d]:  upgrade_mutatee_state: after oneTimeCode\n", __FILE__, __LINE__);
 }
 
 #define MAX_ARGS 32
@@ -236,16 +252,18 @@ int main(int argc, char *argv[])
       return -1;
    }
 
-   proc->continueExecution();
 
    BPatch_Vector<BPatch_thread *> orig_thrds;
    proc->getThreads(orig_thrds);
-   for (unsigned i=0; i<orig_thrds.size(); i++)
+   if (!orig_thrds.size()) abort();
+   for (unsigned i=0; i<orig_thrds.size(); i++) {
       newthr(proc, orig_thrds[i]);
+   }
 
+   proc->continueExecution();
 
    do {
-      bpatch.pollForStatusChange();
+      bpatch.waitForStatusChange();
       if (proc->isTerminated())
       {
          fprintf(stderr, "[%s:%d] - App exited early\n", __FILE__, __LINE__);
@@ -256,6 +274,8 @@ int main(int argc, char *argv[])
       {
          fprintf(stderr, "[%s:%d] - Timed out waiting for threads\n", 
                  __FILE__, __LINE__);
+         fprintf(stderr, "[%s:%d] - Only have %u threads, expected %u!\n",
+              __FILE__, __LINE__, thread_count, NUM_THREADS);
          return -1;
       }
       sleep(1);
@@ -280,11 +300,13 @@ int main(int argc, char *argv[])
       }
    }
 
+   dprintf(stderr, "%s[%d]:  done waiting for thread creations, error = %d\n", __FILE__, __LINE__, error);
    upgrade_mutatee_state();
+   dprintf(stderr, "%s[%d]:  Now waiting for threads to die.\n", __FILE__, __LINE__);
 
    //Wait for n-1 threads to die
    do {
-      bpatch.pollForStatusChange();
+      bpatch.waitForStatusChange();
       if (proc->isTerminated())
       {
          fprintf(stderr, "[%s:%d] - App exited early\n", __FILE__, __LINE__);

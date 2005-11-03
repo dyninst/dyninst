@@ -52,7 +52,6 @@
 class BPatch_typeCollection;
 class BPatch_libInfo;
 class BPatch_module;
-class BPatch_asyncEventHandler;
 class int_function;
 class process;
 
@@ -120,6 +119,11 @@ typedef struct {
   unsigned int insnGenerated;
 } BPatch_stats;
 
+class SignalHandler;
+class EventRecord;
+class BPatch_asyncEventHandler;
+bool handleSigStopNInt(EventRecord &ev);
+
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
 #endif
@@ -130,9 +134,13 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
     friend class BPatch_point;
     friend class process;
     friend class int_function;
+    friend class SignalHandler;
+    friend class BPatch_asyncEventHandler;
+    friend bool handleSigStopNInt(EventRecord &ev);
 
     BPatch_libInfo *info; 
 
+#ifdef NOTDEF // PDSEP
     BPatchErrorCallback      	errorHandler;
     BPatchDynLibraryCallback 	dynLibraryCallback;
     BPatchForkCallback   	postForkCallback;
@@ -140,14 +148,17 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
     BPatchExecCallback		execCallback;
     BPatchExitCallback		exitCallback;
     BPatchOneTimeCodeCallback   oneTimeCodeCallback;
+#endif
     bool	typeCheckOn;
     int		lastError;
     bool	debugParseOn;
     bool	baseTrampDeletionOn;
 
+#ifdef NOTDEF // PDSEP
     bool	getThreadEvent(bool block);
     bool	getThreadEventOnly(bool block);
     bool	havePendingEvent();
+#endif
 
     /* If true, trampolines can recurse to their heart's content.
        Defaults to false */
@@ -177,6 +188,10 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
 	/* this is used to denote the fully qualified name of the prelink command on linux */
 	char *systemPrelinkCommand;
 
+    /* flag that is set when a mutatee's runnning status changes,
+       for use with pollForStatusChange */
+   bool mutateeStatusChange;
+   bool waitingForStatusChange;
 public:
     static BPatch		 *bpatch;
 
@@ -185,7 +200,9 @@ public:
     BPatch_typeCollection        *APITypes; //API/User defined types
     BPatch_type			 *type_Error;
     BPatch_type			 *type_Untyped;
-    BPatch_asyncEventHandler     *eventHandler;
+#ifdef NOTDEF // PDSEP
+    SignalHandler	    	 *signalHandler;
+#endif
 
     // The following are only to be called by the library:
     //  These functions are not locked.
@@ -503,10 +520,17 @@ public:
     bool,pollForStatusChange,());
 
     public:
-    //  Since these two functions block, they do not obtain locks
-    //  on this layer (see C file) 
-    bool 	waitForStatusChange();
-    bool        waitUntilStopped(BPatch_thread *appThread);
+    //  BPatch:: waitForStatusChange:
+    //  Block until any process control event is received from a mutatee
+    API_EXPORT(Int, (),
+
+    bool,waitForStatusChange,());
+
+    //  BPatch:: waitUntilStopped:
+    //  Block until specified process has stopped.
+    API_EXPORT(Int, (appThread),
+
+    bool,waitUntilStopped,(BPatch_thread *appThread));
 
     //  BPatch::getBPatchStatistics:
     //  Get Instrumentation statistics
@@ -515,7 +539,9 @@ public:
     BPatch_stats &,getBPatchStatistics,());
 
 #ifdef IBM_BPATCH_COMPAT
+#ifdef NOTDEF // PDSEP
     BPatchThreadEventCallback           RPCdoneCallback;
+#endif
 
     API_EXPORT(Int, (),
     int,getLastErrorCode,());

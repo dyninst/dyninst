@@ -293,11 +293,12 @@ bool rpcMgr::existsRunningIRPC() const {
         return false;
 }
 
+
 bool rpcMgr::handleSignalIfDueToIRPC(dyn_lwp *lwp_of_trap) {
     // For each IRPC we're running, check whether the thread
     // (or lwp) is at the PC equal to the trap address. 
     bool handledTrap = false;
-    
+
    // The signal handler default is to leave the process paused.
    // If we want it running, we do so explicitly via a call to 
    // continueProc(). 
@@ -306,7 +307,7 @@ bool rpcMgr::handleSignalIfDueToIRPC(dyn_lwp *lwp_of_trap) {
    // Two main possibilities: a thread is stopped at an interesting address,
    // or a thread was waiting for a system call to complete (and it has).
    // We check the first case first.
-   
+
    dyn_lwp *lwp_to_cont = NULL;
 
    pdvector<inferiorRPCinProgress *>::iterator iter = allRunningRPCs_.end();
@@ -366,12 +367,13 @@ bool rpcMgr::handleSignalIfDueToIRPC(dyn_lwp *lwp_of_trap) {
           runProcess = true;
        }
        else if (activeFrame.getPC() == currRPC->rpcCompletionAddr) {
-          if(rpcThr)
+          if(rpcThr) {
              runProcess = rpcThr->handleCompletedIRPC();
-          else
-          {
+          }else {
              runProcess = rpcLwp->handleCompletedIRPC();
           }
+
+          getSH()->signalEvent(evtRPCDone);
           handledTrap = true;
        }
 
@@ -388,7 +390,7 @@ bool rpcMgr::handleSignalIfDueToIRPC(dyn_lwp *lwp_of_trap) {
    }
    if (handledTrap) {
      inferiorrpc_printf("Completed RPC: pending %d, requestedRun %d\n",
-			allRunningRPCs_.size(), runProcess);
+                        allRunningRPCs_.size(), runProcess);
       if (runProcess || allRunningRPCs_.size() > 0) {
          if(process::IndependentLwpControl()) {
             lwp_to_cont->continueLWP();
@@ -397,7 +399,7 @@ bool rpcMgr::handleSignalIfDueToIRPC(dyn_lwp *lwp_of_trap) {
          }
       }
    }
-   
+
    return handledTrap;
 }
 
@@ -444,7 +446,8 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
       // after the RPCs are done". Now, if there weren't any RPCs, do we 
       // run the process? 
       if (wasRunning && proc_->isStopped()) {
-         proc_->continueProc();
+        fprintf(stderr, "%s[%d]:  WARNING:  calling continueProc\n", __FILE__, __LINE__);
+	proc_->continueProc();
       }
       recursionGuard = false;
       return false;
@@ -517,6 +520,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
         if (wasRunning || processingLWPRPC || processingThrRPC) {
             // the caller expects the process to be running after
             // iRPCs finish, so continue the process here
+            fprintf(stderr, "%s[%d]:  WARNING:  calling continueProc\n", __FILE__, __LINE__);
             proc_->continueProc();
         }
         recursionGuard = false;
@@ -609,6 +613,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
       return true;
     }
     if (wasRunning) {
+            fprintf(stderr, "%s[%d]:  WARNING:  calling continueProc\n", __FILE__, __LINE__);
         proc_->continueProc();
     }
     

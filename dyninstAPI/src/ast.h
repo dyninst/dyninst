@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.81 2005/10/17 18:19:43 rutar Exp $
+// $Id: ast.h,v 1.82 2005/11/03 05:21:05 jaw Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -63,7 +63,9 @@ class codeGen;
 // a register number, e.g. [0,31]
 // typedef int reg; // see new Register type in "common/h/Types.h"
 
-typedef enum { plusOp,
+typedef enum { 
+               invalidOp,
+               plusOp,
                minusOp,
                timesOp,
                divOp,

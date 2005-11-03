@@ -4600,40 +4600,6 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
   return true;
 }
 
-#ifdef NOTDEF // PDSEP
-bool process::MonitorCallSite(instPoint *callSite){
-  TRACE_B( "process::MonitorCallSite" );
-
-  instruction i = callSite->origInsn_;
-  pdvector<AstNode *> the_args(2);
-  //IS the instruction of type "jalr ra,RR"?
-  if(isCall1(i)){
-    the_args[0] = 
-      new AstNode(AstNode::PreviousStackFrameDataReg,
-		  (void *) i.rtype.rs);
-    the_args[1] = new AstNode(AstNode::Constant,
-                              (void *) callSite->pointAddr());
-    AstNode *func = new AstNode("DYNINSTRegisterCallee", 
-				the_args);
-    miniTrampHandle mtHandle;
-    addInstFunc(&mtHandle, this, callSite, func, callPreInsn,
-		orderFirstAtPoint,
-		true,                          /* noCost flag                */
-		false,                         /* trampRecursiveDesired flag */
-      true,                          /* allowTrap */
-  }
-  else
-    {
-      TRACE_E( "process::MonitorCallSite" );
-
-      return false;
-    }
- 
-  TRACE_E( "process::MonitorCallSite" );
-
-  return true;
-}
-#endif
 
 /****************************************************************************/
 /****************************************************************************/

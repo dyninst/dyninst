@@ -47,6 +47,8 @@
 
 
 #include "process.h"
+#include "EventHandler.h"
+#include "mailbox.h"
 #include "signalhandler.h"
 #include "inst.h"
 #include "instP.h"
@@ -64,8 +66,7 @@
 #include "BPatch_thread.h"
 #include "LineInformation.h"
 #include "BPatch_function.h"
-
-extern BPatch_eventMailbox *event_mailbox;
+#include "callbacks.h"
 
 
 /*
@@ -170,6 +171,7 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
    llproc = ll_createProcess(path, &argv_vec, (envp ? &envp_vec : NULL), 
                            directoryName, stdin_fd, stdout_fd, stderr_fd);
    if (llproc == NULL) { 
+      fprintf(stderr, "%s[%d][%s]: ll_createProcess failed\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
       BPatch::bpatch->reportError(BPatchFatal, 68, 
            "Dyninst was unable to create the specified process");
       return;
@@ -177,8 +179,6 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
    
    llproc->registerFunctionCallback(createBPFuncCB);
    llproc->registerInstPointCallback(createBPPointCB);
-   llproc->registerDeleteThrdCallback(deleteThreadCB);
-   llproc->registerNewThrdCallback(newThreadCB);
 
    // Add this object to the list of processes
    assert(BPatch::bpatch != NULL);
@@ -191,11 +191,11 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
 
    image = new BPatch_image(this);
 
-   while (!llproc->isBootstrappedYet() && !statusIsTerminated())
-   {
-      BPatch::bpatch->getThreadEvent(false);
+   while (!llproc->isBootstrappedYet() && !statusIsTerminated()) {
+      //fprintf(stderr, "%s[%d][%s]:  before waitForEvent(processInit)\n", 
+      //        FILE__, __LINE__, getThreadStr(getExecThreadID()));
+     getSH()->waitForEvent(evtProcessInit, llproc);
    }
-
    // Let's try to profile memory usage
 #if defined(PROFILE_MEM_USAGE)
    void *mem_usage = sbrk(0);
@@ -242,16 +242,15 @@ BPatch_process::BPatch_process(const char *path, int pid)
 
    llproc->registerFunctionCallback(createBPFuncCB);
    llproc->registerInstPointCallback(createBPPointCB);
-   llproc->registerDeleteThrdCallback(deleteThreadCB);
-   llproc->registerNewThrdCallback(newThreadCB);
 
-   // Just to be sure, pause the process....
+   // Just to be sure, pause the process.... 
    llproc->pause();
 
    while (!llproc->isBootstrappedYet() && !statusIsTerminated()) {
-      BPatch::bpatch->getThreadEventOnly(false);
-      llproc->getRpcMgr()->launchRPCs(false);
-   } 
+      fprintf(stderr, "%s[%d][%s]:  before waitForEvent(evtProcessInitDone)\n", 
+              FILE__, __LINE__, getThreadStr(getExecThreadID()));
+     getSH()->waitForEvent(evtProcessInitDone, llproc);
+   }
 }
 
 /*
@@ -283,8 +282,6 @@ BPatch_process::BPatch_process(int /*pid*/, process *nProc)
 
    llproc->registerFunctionCallback(createBPFuncCB);
    llproc->registerInstPointCallback(createBPPointCB);
-   llproc->registerDeleteThrdCallback(deleteThreadCB);
-   llproc->registerNewThrdCallback(newThreadCB);
 
    image = new BPatch_image(this);
 }
@@ -297,7 +294,7 @@ BPatch_process::BPatch_process(int /*pid*/, process *nProc)
 void BPatch_process::BPatch_process_dtor()
 {
    if (!detached &&
-       !BPatch::bpatch->eventHandler->detachFromProcess(this)) {
+       !getAsync()->detachFromProcess(this)) {
       bperr("%s[%d]:  trouble decoupling async event handler for process %d\n",
             __FILE__, __LINE__, getPid());
    }
@@ -307,14 +304,17 @@ void BPatch_process::BPatch_process_dtor()
       deleteBPThread(threads[i]);
    }
 
-   if (image)
+   if (image) 
       delete image;
+   
    image = NULL;
 
    if (func_map)
       delete func_map;
+   func_map = NULL;
    if (instp_map)
       delete instp_map;
+   instp_map = NULL;
 
    if (pendingInsertions) {
        for (unsigned f = 0; f < pendingInsertions->size(); f++) {
@@ -332,11 +332,14 @@ void BPatch_process::BPatch_process_dtor()
     **/
    if (createdViaAttach)
       llproc->detachProcess(true);
-   else 
-      terminateExecution();
+   else  {
+      proccontrol_printf("%s[%d]:  about to terminate execution\n", __FILE__, __LINE__);
+      terminateExecutionInt();
+   }
 
    BPatch::bpatch->unRegisterProcess(getPid());   
    delete llproc;
+   llproc = NULL;
    assert(BPatch::bpatch != NULL);
 }
 
@@ -373,6 +376,7 @@ bool BPatch_process::continueExecutionInt()
  */
 bool BPatch_process::terminateExecutionInt()
 {
+   proccontrol_printf("%s[%d]:  about to terminate proc\n", FILE__, __LINE__);
    if (!llproc || !llproc->terminateProc())
       return false;
    while (!isTerminated());
@@ -407,12 +411,8 @@ bool BPatch_process::isStoppedInt()
       return true;
    }
    
-   BPatch::bpatch->getThreadEvent(false);
-   if (statusIsStopped()) {
-      setUnreportedStop(false);
-      return true;
-   } else
-      return false;
+
+   return false;
 }
 
 /*
@@ -435,7 +435,11 @@ int BPatch_process::stopSignalInt()
  */
 bool BPatch_process::statusIsTerminated()
 {
-   if (llproc == NULL) return true;
+   if (llproc == NULL) {
+     fprintf(stderr, "%s[%d]:  status is terminated becuase llproc is NULL\n", 
+             FILE__, __LINE__);
+     return true;
+   }
    return llproc->status() == exited;
 }
 
@@ -450,9 +454,11 @@ bool BPatch_process::statusIsTerminated()
  */
 bool BPatch_process::isTerminatedInt()
 {
+   getMailbox()->executeCallbacks(FILE__, __LINE__);
    // First see if we've already terminated to avoid 
    // checking process status too often.
    if (statusIsTerminated()) {
+      proccontrol_printf("%s[%d]:  about to terminate proc\n", FILE__, __LINE__); 
       llproc->terminateProc();
       setUnreportedTermination(false);
       return true;
@@ -460,10 +466,10 @@ bool BPatch_process::isTerminatedInt()
 
    // Check for status changes.
    assert(BPatch::bpatch);
-   BPatch::bpatch->getThreadEvent(false);
    
    // Check again
    if (statusIsTerminated()) {
+      proccontrol_printf("%s[%d]:  about to terminate proc\n", FILE__, __LINE__);
       llproc->terminateProc();
       setUnreportedTermination(false);
       return true;
@@ -519,11 +525,12 @@ int BPatch_process::getExitSignalInt()
  */
 bool BPatch_process::detachInt(bool cont)
 {
-   if (!BPatch::bpatch->eventHandler->detachFromProcess(this)) {
+   __UNLOCK;
+   if (!getAsync()->detachFromProcess(this)) {
       bperr("%s[%d]:  trouble decoupling async event handler for process %d\n",
             __FILE__, __LINE__, getPid());
    }
-   
+   __LOCK;
    detached = llproc->detachProcess(cont);
    return detached;
 }
@@ -559,11 +566,12 @@ bool BPatch_process::dumpCoreInt(const char *file, bool terminate)
 
    bool ret = llproc->dumpCore(file);
    if (ret && terminate) {
-      terminateExecution();
+      fprintf(stderr, "%s[%d]:  about to terminate execution\n", __FILE__, __LINE__);
+      terminateExecutionInt();
    } else if (was_stopped) {
     	unreportedStop = had_unreportedStop;
    } else {
-      continueExecution();
+      continueExecutionInt();
    }
     
    return ret;
@@ -616,13 +624,13 @@ bool BPatch_process::dumpImageInt(const char *file)
    if (isStopped()) was_stopped = true;
    else was_stopped = false;
 
-   stopExecution();
+   stopExecutionInt();
 
    bool ret = llproc->dumpImage(file);
    if (was_stopped) 
       unreportedStop = had_unreportedStop;
    else 
-      continueExecution();
+      continueExecutionInt();
 
    return ret;
 #endif
@@ -769,7 +777,7 @@ BPatchSnippetHandle *BPatch_process::insertSnippetInt(const BPatch_snippet &expr
    else
       when = BPatch_callBefore;
 
-   return insertSnippet(expr, point, when, order);
+   return insertSnippetWhen(expr, point, when, order);
 }
 
 /*
@@ -878,10 +886,10 @@ BPatchSnippetHandle *BPatch_process::insertSnippetAtPointsWhen(const BPatch_snip
         pendingInsertions->push_back(rec);
     }
     else {
-        beginInsertionSet();
+        beginInsertionSetInt();
         pendingInsertions->push_back(rec);
         // All the insertion work was moved here...
-        finalizeInsertionSet(false);
+        finalizeInsertionSetInt(false);
     }
     return ret;
 }
@@ -1147,12 +1155,18 @@ bool BPatch_process::replaceFunctionInt(BPatch_function &oldFunc,
    if (! pts || ! pts->size())
       return false;
    BPatch_funcJumpExpr fje(newFunc);
-   BPatchSnippetHandle * result = insertSnippet(fje, *pts, BPatch_callBefore);
+   BPatchSnippetHandle * result = insertSnippetAtPointsWhen(fje, *pts, BPatch_callBefore);
    
    BPatch::bpatch->setTrampRecursive( old_recursion_flag );
    
    return (NULL != result);
 #else
+   char msg[2048];
+   char buf1[512], buf2[512];
+   sprintf(msg, "cannot replace func %s with func %s, not implemented",
+           oldFunc.getName(buf1, 512), newFunc.getName(buf2, 512));
+    
+   BPatch_reportError(BPatchSerious, 109, msg);
    BPatch_reportError(BPatchSerious, 109,
                       "replaceFunction is not implemented on this platform");
    return false;
@@ -1188,6 +1202,7 @@ void BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
                                                  void *returnValue)
 {
    assert(BPatch::bpatch != NULL);
+   assert(global_mutex->depth());
    
    OneTimeCodeInfo *info = (OneTimeCodeInfo *)userData;
    
@@ -1201,17 +1216,32 @@ void BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
    info->setCompleted(true);
    
    if (!info->isSynchronous()) {
-      if (BPatch::bpatch->oneTimeCodeCallback)
-         event_mailbox->executeOrRegisterCallback(
-             BPatch::bpatch->oneTimeCodeCallback, 
-             bproc, info->getUserData(), returnValue);     
+      pdvector<CallbackBase *> cbs;
+      getCBManager()->dispenseCallbacksMatching(evtOneTimeCode, cbs);
+      for (unsigned int i = 0; i < cbs.size(); ++i) {
+        OneTimeCodeCallback &cb = * ((OneTimeCodeCallback *) cbs[i]);
+        cb(bproc->threads[0], info->getUserData(), returnValue);
+      }
+
       delete info;
    }
 
 #ifdef IBM_BPATCH_COMPAT
-   if (BPatch::bpatch->RPCdoneCallback) {
-      BPatch::bpatch->RPCdoneCallback(bproc, userData, returnValue);
+   pdvector<void *> *args2 = new pdvector<void *>;
+   args2->push_back((void *)bproc);
+   args2->push_back((void *)userData);
+   args2->push_back((void *)returnValue);
+
+   pdvector<CallbackRecord *> cbs;
+   if ( getCBManager()->dispenseCallbacksMatching(evtRPCDone, cbs)) {
+     for (unsigned int i = 0; i < cbs.size(); ++i) {
+       if (!getMailbox()->executeOrRegisterCallback(cbs[i]->cb, args, NULL, cbs[i]->target_thread_id, __FILE__, __LINE__)) {
+         fprintf(stderr, "%s[%d]: error registering callback\n", __FILE__, __LINE__);
+       }
+         fprintf(stderr, "%s[%d]:  registered/exec'd cb %p\n", __FILE__, __LINE__, (void*) cbs[i]->cb);
+     }
    }
+
 #endif
 }
 
@@ -1236,10 +1266,10 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
 {
    bool needToResume = false;
    if (synchronous && !statusIsStopped()) {
-      stopExecution();
+      stopExecutionInt();
       
       if (!statusIsStopped()) {
-         cerr << "Failed to run oneTimeCodeInternal" << endl;
+         fprintf(stderr, "%s[%d]:  failed to run oneTimeCodeInternal .. status is not stopped\n", FILE__, __LINE__);
          return NULL;
       }
       needToResume = true;
@@ -1256,8 +1286,11 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
     
    if (synchronous) {
       do {
-         llproc->getRpcMgr()->launchRPCs(false);
-         BPatch::bpatch->getThreadEvent(false);
+        llproc->getRpcMgr()->launchRPCs(false);
+        getMailbox()->executeCallbacks(FILE__, __LINE__);
+        if (info->isCompleted()) break;
+        getSH()->waitForEvent(evtRPCDone);
+        getMailbox()->executeCallbacks(FILE__, __LINE__);
       } while (!info->isCompleted() && !statusIsTerminated());
       
       void *ret = info->getReturnValue();
@@ -1281,8 +1314,11 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
 bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr, 
                                          void *userData)
 {
-   oneTimeCodeInternal(expr, userData, false);
-   return true;
+   bool ret;
+   if (!(ret = oneTimeCodeInternal(expr, userData, false))) {
+     //fprintf(stderr, "%s[%d]:  oneTimeCodeInternal failed\n", FILE__, __LINE__);
+   }
+   return ret;
 }
 
 /*
@@ -1298,7 +1334,7 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool reload)
 bool BPatch_process::loadLibraryInt(const char *libname, bool)
 #endif
 {
-   stopExecution();
+   stopExecutionInt();
    if (!statusIsStopped()) {
       cerr << "Process not stopped in loadLibrary" << endl;
       return false;
@@ -1394,7 +1430,6 @@ BPatch_function *BPatch_process::findFunctionByAddrInt(void *addr)
 void BPatch_process::enableDumpPatchedImageInt(){
 	llproc->collectSaveWorldData=true;
 }
-
 
 void BPatch_process::setExitedViaSignal(int signalnumber) {
    exitedViaSignal = true;
@@ -1499,6 +1534,8 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(int lwp, dynthread_t tid,
                                                       unsigned long stack_start, 
                                                       unsigned long start_addr)
 {
+   //fprintf(stderr, "%s[%d][%s]:  welcome to createOrUpdateBPThread(tid = %lu)\n",
+   //        FILE__, __LINE__, getThreadStr(getExecThreadID()), tid);
    BPatch_thread *thr = NULL;
 
    //Find this thread if it already exists.
@@ -1518,36 +1555,12 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(int lwp, dynthread_t tid,
 
    //Update the non-esential values for the thread
    BPatch_function *initial_func = getImage()->findFunction(start_addr);
+   if (!initial_func) {
+     //fprintf(stderr, "%s[%d][%s]:  WARNING:  no function at %p found for thread\n",
+     //        FILE__, __LINE__, getThreadStr(getExecThreadID()), start_addr);
+   }
    thr->updateValues(tid, stack_start, initial_func, lwp);   
    return thr;
-}
-
-/**
- * Called by a Dyninst callback - Add the delete thread event to 
- * our event queue.
- **/
-void BPatch_process::deleteThreadCB(process *p, dyn_thread *thr)
-{
-   BPatch_process *bproc = BPatch::bpatch->getProcessByPid(p->getPid());
-   BPatch_thread *bthrd = bproc->getThread(thr->get_tid());
-
-   event_mailbox->executeOrRegisterCallback(BPatch_threadDestroyEvent, bproc, 
-				   bthrd->getBPatchID());
-}
-
-/**
- * Not used for all thread creation.  In this case all we have is a new
- * index (that may already exist) and a lwp.  
- * 
- **/
-void BPatch_process::newThreadCB(process *p, int index, int lwp)
-{
-   BPatch_process *bproc = BPatch::bpatch->getProcessByPid(p->getPid());
-   BPatch_thread *bpthrd = bproc->getThreadByIndex(index);
-   if (bpthrd && bpthrd->updated)
-      //Already 
-      return;
-   bproc->createOrUpdateBPThread(lwp, (dynthread_t) -1, index, 0, 0);
 }
 
 /**
@@ -1625,6 +1638,6 @@ void BPatch_process::updateThreadInfo()
    
    //We want to startup the event handler thread even if there's
    // no registered handlers so we can start getting MT events.
-   if (!BPatch::bpatch->eventHandler->startupThread())
+   if (!getAsync()->startupThread())
        return;
 }

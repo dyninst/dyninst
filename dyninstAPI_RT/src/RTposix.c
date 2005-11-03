@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.17 2005/10/27 22:41:58 legendre Exp $
+ * $Id: RTposix.c,v 1.18 2005/11/03 05:21:08 jaw Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -60,6 +60,11 @@
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "RTcommon.h"
 
+#if defined (os_osf)
+#define SOCKLEN_T size_t
+#else
+#define SOCKLEN_T socklen_t
+#endif
 /************************************************************************
  * void DYNINSTbreakPoint(void)
  *

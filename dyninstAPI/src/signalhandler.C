@@ -41,43 +41,217 @@
 
 // $Id: signalhandler.C,v 
 
-#include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/signalhandler.h"
+#include "process.h"
+#include "signalhandler.h"
 
-signalHandler *global_sh = NULL;
+SignalHandler *global_sh = NULL;
 
-signalHandler *getSH() {
-   if(global_sh == NULL)
-      global_sh = new signalHandler();
+SignalHandler *getSH() {
+   if(global_sh == NULL) {
+      signal_printf("%s[%d]:  about to create new SignalHandler\n", FILE__, __LINE__);
+      global_sh = new SignalHandler();
+      global_sh->createThread();
+   }
 
    return global_sh;
 }
 
-pdvector <procevent *> signalHandler::checkForAndHandleProcessEvents(bool block) {
-   pdvector<procevent *> foundEvents;
-   int timeout = block ? -1 : 0;
-   bool res = checkForProcessEvents(&foundEvents, -1, timeout);
-   if(res) {
-       return handleProcessEvents(foundEvents);
-   }
-   return foundEvents;
+EventGate::EventGate(eventLock *l, eventType t, process *p, dyn_lwp *lwp) :
+     lock(l), waiting(false)
+{
+  cond = new eventCond(lock);
+  EventRecord target_event;
+  target_event.type = t;
+  target_event.proc = p;
+  target_event.lwp = lwp;
+  evts.push_back(target_event);
+
+  if (t != evtProcessExit) {
+    EventRecord process_exit_event;
+    process_exit_event.type = evtProcessExit;
+    process_exit_event.proc = p;
+    process_exit_event.lwp = lwp;
+    evts.push_back(process_exit_event);
+  }
 }
 
-pdvector <procevent *> signalHandler::handleProcessEvents(pdvector<procevent *> &foundEvents) {
-    for(unsigned i=0; i<foundEvents.size(); i++) {
-        procevent *ev = foundEvents[i];
-        if (handleProcessEvent(*ev)) {
-            // Remove this element from the vector
-            delete ev;
-            foundEvents[i] = foundEvents[foundEvents.size() - 1];
-            foundEvents.resize(foundEvents.size()-1);
-            // And back up the iterator
-            i--;
-        }
+bool EventGate::addEvent(eventType type, process *p)
+{
+  EventRecord target_event;
+  target_event.type = type;
+  target_event.proc = p;
+  if (type == evtProcessExit) {
+    for (unsigned int i = 0; i < evts.size(); ++i) {
+      if (evts[i].isTemplateOf(target_event)) {
+        //fprintf(stderr, "%s[%d]:  dropping duplicate request to wait for proces exit\n",
+         //       FILE__, __LINE__);
+        return true;
+      }
     }
-    return foundEvents;
+  }
+  evts.push_back(target_event);
+  return true;
 }
 
+EventGate::~EventGate()
+{
+  delete cond;
+}
+
+EventRecord &EventGate::wait()
+{
+  trigger.type = evtUndefined;
+  assert(lock->depth());
+ 
+  still_waiting:
+  getMailbox()->executeCallbacks(FILE__, __LINE__);
+  waiting = true;
+  extern int dyn_debug_signal;
+  if (dyn_debug_signal) {
+    signal_printf("%s[%d][%s]: waiting for event matching:\n", FILE__, __LINE__,
+            getThreadStr(getExecThreadID()));
+    for (unsigned int i = 0; i < evts.size(); ++i) {
+      char buf[1024];
+      signal_printf("\t\%s\n", evts[i].sprint_event(buf));
+    }
+  }
+
+  lock->_WaitForSignal(FILE__, __LINE__);
+  waiting = false;
+
+  
+  bool triggered = false;
+  for (unsigned int i = 0; i < evts.size(); ++i) {
+    if (evts[i].isTemplateOf(trigger)) {
+      triggered = true;
+      break;
+    }
+  }
+  if (!triggered) goto still_waiting;
+
+  return trigger;
+}
+
+bool EventGate::signalIfMatch(EventRecord &ev)
+{
+  lock->_Lock(FILE__, __LINE__);
+  if (!waiting) {
+    lock->_Unlock(FILE__, __LINE__);
+    return false;
+  }
+  bool ret = false;
+  for (unsigned int i = 0; i < evts.size(); ++i) {
+    if (evts[i].isTemplateOf(ev)) {
+      ret = true;
+      trigger = ev;
+      lock->_Broadcast(FILE__, __LINE__);
+      break;
+    }
+  }
+  lock->_Unlock(FILE__, __LINE__);
+  return ret;
+}
+
+bool SignalHandler::signalActiveProcess()
+{         
+  bool ret = true;
+  if (waiting_for_active_process)
+    ret = __BROADCAST;
+  return ret;
+}   
+
+bool SignalHandler::signalEvent(EventRecord &ev)
+{
+  signal_printf("%s[%d][%s]:  signalEvent(%s)\n", FILE__, __LINE__, 
+                getThreadStr(getExecThreadID()), eventType2str(ev.type));
+  assert(global_mutex->depth());
+
+  getMailbox()->executeCallbacks(FILE__, __LINE__);
+
+  if (ev.type == evtProcessStop || ev.type == evtProcessExit)
+      BPatch::bpatch->mutateeStatusChange = true;
+
+  bool ret = false;
+  for (unsigned int i = 0; i <wait_list.size(); ++i) {
+    if (wait_list[i]->signalIfMatch(ev)) {
+      ret = true;
+    }
+  }
+
+  
+  if (!ret) 
+    signal_printf("%s[%d][%s]:  signalEvent(%s): nobody waiting\n", FILE__, __LINE__, 
+                  getThreadStr(getExecThreadID()), eventType2str(ev.type));
+  return ret;
+}
+
+bool SignalHandler::signalEvent(eventType t)
+{
+  EventRecord ev;
+  ev.type = t;
+  return signalEvent(ev);
+}
+
+eventType SignalHandler::waitForOneOf(pdvector<eventType> &evts)
+{
+  assert(global_mutex->depth());
+
+  if (getExecThreadID() == getThreadID()) {
+    fprintf(stderr, "%s[%d][%s]:   ILLEGAL:  SYNC THREAD waiting on for a signal\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
+    abort();
+  }
+
+  EventGate *eg = new EventGate(global_mutex,evts[0]);
+  for (unsigned int i = 1; i < evts.size(); ++i) {
+    eg->addEvent(evts[i]);
+  }
+  wait_list.push_back(eg);
+  EventRecord result = eg->wait();
+  
+  bool found = false;
+  for (int i = wait_list.size() -1; i >= 0; i--) {
+    if (wait_list[i] == eg) {
+       found = true;
+       wait_list.erase(i,i);
+       delete eg;
+       break;
+    } 
+  }
+
+  if (!found) {
+     fprintf(stderr, "%s[%d]:  BAD NEWS, somehow lost a pointer to eg\n", FILE__, __LINE__);
+  }
+
+  return result.type;
+}
+
+eventType SignalHandler::waitForEvent(eventType evt, process *p, dyn_lwp *lwp)
+{
+  if (getExecThreadID() == getThreadID()) {
+    fprintf(stderr, "%s[%d][%s]:   ILLEGAL:  SYNC THREAD waiting on for a signal\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
+    abort();
+  }
+
+  EventGate *eg = new EventGate(global_mutex,evt,p, lwp);
+  wait_list.push_back(eg);
+  EventRecord result = eg->wait();
+  
+  bool found = false;
+  for (int i = wait_list.size() -1; i >= 0; i--) {
+    if (wait_list[i] == eg) {
+       found = true;
+       wait_list.erase(i,i);
+       delete eg;
+       break;
+    } 
+  }
+
+  if (!found) {
+     fprintf(stderr, "%s[%d]:  BAD NEWS, somehow lost a pointer to eg\n", FILE__, __LINE__);
+  }
+
+  return result.type;
+}
 
 signal_handler_location::signal_handler_location(Address addr, unsigned size) :
     addr_(addr),

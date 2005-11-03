@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.h,v 1.13 2004/10/07 00:45:56 jaw Exp $
+// $Id: pdwinnt.h,v 1.14 2005/11/03 05:21:06 jaw Exp $
 
 #if !defined(PDWINNT_H)
 #define PDWINNT_H
@@ -53,9 +53,6 @@
 #include "common/h/headers.h"
 #include "dyninstAPI/src/w32CONTEXT.h" //ccw 30 mar 2001
 
-#ifdef NOTDEF // PDSEP
-typedef void* HANDLE;
-#endif
 typedef HANDLE handleT;
 
 struct dyn_saved_regs {

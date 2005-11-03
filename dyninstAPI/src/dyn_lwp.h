@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.41 2005/10/21 21:48:23 legendre Exp $
+ * $Id: dyn_lwp.h,v 1.42 2005/11/03 05:21:05 jaw Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -51,6 +51,7 @@
 #include "frame.h"
 #include "common/h/vectorSet.h"
 #include "syscalltrap.h"
+#include "signalhandler.h"
 
 #if !defined(BPATCH_LIBRARY)
 //rawtime64
@@ -88,8 +89,11 @@ class papiMgr;
  * thread-specific data and functions.
  */
 
+class DebuggerInterface;
+
 class dyn_lwp
 {
+  friend class DebuggerInterface;
   bool getRegisters_(struct dyn_saved_regs *regs);
   bool restoreRegisters_(const struct dyn_saved_regs &regs);
 
@@ -159,6 +163,7 @@ class dyn_lwp
   bool waitUntilStopped();
 
   processState status() const { return status_;}
+  pdstring getStatusAsString() const; // useful for debug printing etc.
   // to set dyn_lwp status, use process::set_lwp_status()
   void internal_lwp_set_status___(processState st) {
      status_ = st;
@@ -180,14 +185,8 @@ class dyn_lwp
   Address step_next_insn();
 
 #if defined( os_linux )
-  bool deliverPtrace(int req, Address addr, Address data);
-  long deliverPtraceReturn(int req, Address addr, Address data);
-
   bool removeSigStop();  
   bool isRunning() const;
-
-#elif defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
-  bool deliverPtrace(int request, void *addr, int data, void *addr2);
 #endif
 
 #if defined(AIX_PROC)
@@ -207,11 +206,14 @@ class dyn_lwp
   // Clear signals, leaved paused
   bool clearSignal();
   // Continue, forwarding signals
-  bool get_status(lwpstatus_t *status) const;
+  bool get_status(procProcStatus_t *status) const;
   //should only be called from process::set_status() or process::set_lwp_status
 
   bool isRunning() const;
 #endif  
+#if defined (os_osf)
+  bool get_status(procProcStatus_t *status) const;
+#endif
   
   // Access methods
   unsigned get_lwp_id() const { return lwp_id_; };
