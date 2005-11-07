@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.12 2005/10/27 20:17:16 rutar Exp $
+ * $Id: emit-x86.C,v 1.13 2005/11/07 18:40:34 rutar Exp $
  */
 
 #include <assert.h>
@@ -901,23 +901,16 @@ void Emitter64::emitLoadPreviousStackFrameRegister(Address register_num, Registe
 		stackPlace = totalLive;
 	      }
 	      // We save these regardless of their liveness so don't count towards tally
-	      else if (reg->number == REGNUM_RAX || reg->number == REGNUM_RBP || reg->number == REGNUM_RSP)
+	      else if (reg->number == REGNUM_RAX || reg->number == REGNUM_RBP || 
+		       reg->number == REGNUM_RSP || reg->number == REGNUM_RBX)
 		{
 		  totalLive--;
 		}
 	    }
 	}
-      totalLive += 1;  // For rax at top of stack
+      totalLive += 5;  // For rax, rbx, rsp, rbp, other rax at top of stack
       
-      
-      if (register_num == REGNUM_RAX)
-	emitMovRMToReg64(dest, REGNUM_RBP, (totalLive+3) * 8, true, gen);
-      else if (register_num == REGNUM_RSP)
-	emitMovRMToReg64(dest, REGNUM_RBP, (totalLive+2) * 8, true, gen);
-      else if (register_num == REGNUM_RBP)
-	emitMovRMToReg64(dest, REGNUM_RBP, (totalLive+1) * 8, true, gen);
-      else
-	emitMovRMToReg64(dest, REGNUM_RBP, (totalLive - stackPlace) * 8, true, gen);
+      emitMovRMToReg64(dest, REGNUM_RBP, (totalLive - stackPlace) * 8, true, gen);
     }
 }
 
@@ -957,7 +950,7 @@ Register Emitter64::emitCall(opCode op, registerSpace *rs, codeGen &gen, const p
 {
     assert(op == callOp);
     pdvector <Register> srcs;
-    
+   
     //  Sanity check for NULL address arg
     if (!callee_addr) {
 	char msg[256];
@@ -1028,13 +1021,14 @@ void Emitter64::emitGetRetVal(Register dest, codeGen &gen)
 	    {
 	      totalOnStack++;
 	      // We save these regardless of their liveness so don't count towards tally
-	      if (reg->number == REGNUM_RAX || reg->number == REGNUM_RBP || reg->number == REGNUM_RSP)
+	      if (reg->number == REGNUM_RAX || reg->number == REGNUM_RBP 
+		  || reg->number == REGNUM_RSP || reg->number == REGNUM_RBX)
 		{
 		  totalOnStack--;
 		}
 	    }
 	}
-      totalOnStack += 4; // REGNUM_RAX, REGNUM_RBP, REGNUM_RSP, and other REGNUM_RAX
+      totalOnStack += 5; // REGNUM_RAX, REGNUM_RBX, REGNUM_RBP, REGNUM_RSP, and other REGNUM_RAX
       emitMovRMToReg64(dest, REGNUM_RBP, totalOnStack * 8, true, gen);
     }
 }
@@ -1063,7 +1057,8 @@ void Emitter64::emitGetParam(Register dest, Register param_num, instPointType_t 
 		stackPlace = totalLive;
 	      }
 		// We save these regardless of their liveness so don't count towards tally
-		else if (reg->number == REGNUM_RAX || reg->number == REGNUM_RBP || reg->number == REGNUM_RSP)
+		else if (reg->number == REGNUM_RAX || reg->number == REGNUM_RBP 
+			 || reg->number == REGNUM_RSP || reg->number == REGNUM_RBX)
 		  {
 		    totalLive--;
 		  }
@@ -1140,9 +1135,10 @@ void Emitter64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
 	      }
 	  }
 	
-	// Always restore these 3
+	// Always restore these 4
 	emitPopReg64(REGNUM_RBP,gen);
 	emitPopReg64(REGNUM_RSP,gen);
+	emitPopReg64(REGNUM_RBX,gen); // have to save cause it's callee save
 	emitPopReg64(REGNUM_RAX,gen);
       }
     
@@ -1200,8 +1196,9 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
       }
     else
       {
-	// Always save these 3
+	// Always save these 4
 	emitPushReg64(REGNUM_RAX,gen);
+	emitPushReg64(REGNUM_RBX,gen); // have to save cause it's callee save
 	emitPushReg64(REGNUM_RSP,gen);
 	emitPushReg64(REGNUM_RBP,gen);
 	
@@ -1321,6 +1318,7 @@ bool Emitter64::emitBTRestores(baseTramp* bt, codeGen &gen)
 	
 	emitPopReg64(REGNUM_RBP,gen);
 	emitPopReg64(REGNUM_RSP,gen);
+	emitPopReg64(REGNUM_RBX,gen); // have to save cause it's callee save
 	emitPopReg64(REGNUM_RAX,gen);
       }
 

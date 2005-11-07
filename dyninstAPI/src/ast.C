@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.156 2005/10/17 18:19:43 rutar Exp $
+// $Id: ast.C,v 1.157 2005/11/07 18:40:34 rutar Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -109,6 +109,7 @@ registerSpace::registerSpace(const unsigned int deadCount, Register *dead,
  || defined(os_windows)
    initTramps(is_multithreaded);
 #endif
+   
   
   unsigned i;
   numRegisters = deadCount + liveCount;
@@ -183,30 +184,33 @@ Register registerSpace::allocateRegister(codeGen &gen, bool noCost)
 
     // now consider ones that need saving
     for (i=0; i < numRegisters; i++) {
-	if (registers[i].refCount == 0) {
+      if (registers[i].refCount == 0) {
 #if !defined(rs6000_ibm_aix4_1) \
- && !defined(ia64_unknown_linux2_4)
-            // MT_AIX: we are not saving registers on demand on the power
-            // architecture. Instead, we save/restore registers in the base
-            // trampoline - naim
-	    // 
-	    // Same goes for ia64 - rchen
- 	    emitV(saveRegOp, registers[i].number, 0, 0, gen, noCost);
+ && !defined(ia64_unknown_linux2_4) \
+&& !defined(arch_x86_64)
+	// MT_AIX: we are not saving registers on demand on the power
+	// architecture. Instead, we save/restore registers in the base
+	// trampoline - naim
+	// 
+	// Same goes for ia64 - rchen
+	// And x86_64 - rutar
+	emitV(saveRegOp, registers[i].number, 0, 0, gen, noCost);
 #endif
-	    registers[i].refCount = 1;
+	registers[i].refCount = 1;
 #if !defined(rs6000_ibm_aix4_1) \
- && !defined(ia64_unknown_linux2_4)
-            // MT_AIX
-	    registers[i].mustRestore = true;
+ && !defined(ia64_unknown_linux2_4) \
+ && !defined(arch_x86_64)
+	// MT_AIX
+	registers[i].mustRestore = true;
 #endif
-	    // prevent general spill (func call) from saving this register.
-	    registers[i].needsSaving = false;
-	    highWaterRegister = (highWaterRegister > i) ? 
-		 highWaterRegister : i;
-	    return(registers[i].number);
-	}
+	// prevent general spill (func call) from saving this register.
+	registers[i].needsSaving = false;
+	highWaterRegister = (highWaterRegister > i) ? 
+	  highWaterRegister : i;
+	return(registers[i].number);
+      }
     }
-
+    
     logLine("==> WARNING! run out of registers...\n");
     abort();
     return(Null_Register);

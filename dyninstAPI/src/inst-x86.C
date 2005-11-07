@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.226 2005/10/31 22:42:54 rutar Exp $
+ * $Id: inst-x86.C,v 1.227 2005/11/07 18:40:34 rutar Exp $
  */
 #include <iomanip>
 
@@ -121,9 +121,11 @@ int deadList32Size = sizeof(deadList32);
 
 #if defined(arch_x86_64)
 // we do non-arg registers here first - followed by arg registers in reverse order
-Register deadList64[] = {REGNUM_RBX, REGNUM_R10, REGNUM_R11, REGNUM_R12,
-			 REGNUM_R13, REGNUM_R14, REGNUM_R15, REGNUM_R9,
-			 REGNUM_R8, REGNUM_RCX, REGNUM_RDX, REGNUM_RSI, REGNUM_RDI};
+Register deadList64[] = {/* callee saved */REGNUM_RBX, 
+			 /* caller saved */REGNUM_R10, REGNUM_R11, 
+			 /* callee saved REGNUM_R12, REGNUM_R13, REGNUM_R14, REGNUM_R15, */ 
+			 /* params, caller saved*/REGNUM_R9, REGNUM_R8, REGNUM_RCX, 
+			 /* params, caller saved*/REGNUM_RDX, REGNUM_RSI, REGNUM_RDI};
 int deadList64Size = sizeof(deadList64);
 #endif
 
@@ -2097,10 +2099,18 @@ void registerSpace::resetLiveDeadInfo(const int * liveRegs,
 	    }
 	  else
 	    {
-	      registers[i].needsSaving = false;
-	      registers[i].startsLive = false;
+	      if (registers[i].number != REGNUM_RBX)
+		{
+		  registers[i].needsSaving = false;
+		  registers[i].startsLive = false;
+		}
 	    }
 	}
+      setDisregardLiveness(false);
+    }
+  else
+    {
+      setDisregardLiveness(true);
     }
 }
 
