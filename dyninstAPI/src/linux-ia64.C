@@ -1110,3 +1110,36 @@ bool IsSignalFrameCallback::execute()
   return true;
 }
 
+int DebuggerInterface::waitpid(pid_t pid, int *status, int options)
+{
+  getBusy();
+  int ret;
+  WaitpidCallback *cbp = new WaitpidCallback();
+  WaitpidCallback &cb = *cbp;
+
+  cb.enableDelete(false);
+  cb(pid, status, options);
+  ret = cb.getReturnValue();
+  cb.enableDelete();
+
+  releaseBusy();
+  return ret;
+}
+bool WaitpidCallback::operator()(pid_t pid, int *status, int options)
+{
+  pid_ = pid;
+  status_ = status;
+  options_ = options;
+  getMailbox()->executeOrRegisterCallback(this);
+  getDBI()->waitForCompletion((DBICallbackBase *)this);
+  return true;
+}
+
+bool WaitpidCallback::execute()
+{
+  DBILock();
+  ret = waitpid(pid_, status_, options_);
+  DBIUnlock();
+  return true;
+}
+

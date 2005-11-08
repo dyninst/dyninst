@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.180 2005/11/03 05:21:06 jaw Exp $
+// $Id: linux.C,v 1.181 2005/11/08 19:46:18 jaw Exp $
 
 #include <fstream>
 
@@ -342,7 +342,11 @@ static pid_t waitpid_kludge(pid_t /*pid*/, int *status, int options, int *dead_l
        break;
     }
 
+#if defined(arch_ia64)
+    ret = getDBI()->waitpid(-1, status, wait_options); 
+#else
     ret = waitpid(-1, status, wait_options); 
+#endif
     struct timeval slp;
     slp.tv_sec = 0;
     slp.tv_usec = 10 /*ms*/ *1000;
@@ -787,8 +791,8 @@ bool dyn_lwp::waitUntilStopped()
   //return (doWaitUntilStopped(proc(), get_lwp_id(), true) != NULL);
   getSH()->waitingForStop(proc());
   while ( status() != stopped) {
-    signal_printf("%s[%d]:  before waitForEvent(evtProcessStop)\n",
-            FILE__, __LINE__);
+    signal_printf("%s[%d]:  before waitForEvent(evtProcessStop): status is %s\n",
+            FILE__, __LINE__, getStatusAsString().c_str());
     getSH()->waitForEvent(evtProcessStop);
   }
   getSH()->notWaitingForStop(proc());
@@ -1640,10 +1644,17 @@ bool dyn_lwp::representativeLWP_attach_() {
       }
       add_lwp_to_poll_list(this);
 
+#if defined (arch_ia64)
+      if (0 > getDBI()->waitpid(getPid(), NULL, 0)) {
+         perror("process::attach - waitpid");
+         exit(1);
+      }
+#else
       if (0 > waitpid(getPid(), NULL, 0)) {
          perror("process::attach - waitpid");
          exit(1);
       }
+#endif
    }
 
    if(proc_->wasCreatedViaAttach() )

@@ -57,10 +57,11 @@ typedef enum {
   dbiInitFrame,
   dbiStepFrame,
   dbiIsSignalFrame,
+  dbiWaitpid,
   dbiLastEvent /* placeholder for the end of the list */
 } DBIEventType;
 
-char *dbiEvent2Str(DBIEventType);
+//char *dbiEvent2Str(DBIEventType);
 
 class DBIEvent {
   public:
@@ -139,16 +140,7 @@ class DebuggerInterface : public EventHandler<DBIEvent> {
   int initFrame(unw_cursor_t *cp, unw_addr_space_t as, void *arg);
   int stepFrameUp(unw_cursor_t *cp);
   bool isSignalFrame(unw_cursor_t *cp);
-  private:
-  unw_cursor_t *cp_;
-  unw_regnum_t reg_;
-  unw_word_t *valp_;
-  unw_word_t val_;
-  unw_accessors_t *ap_;
-  int byteorder_;
-  unw_addr_space_t as_;
-  void *frame_init_arg_;
-  void *unw_handle_;
+  int waitpid(pid_t pid, int *status, int options);
   public:
 #endif
   void waitForCompletion(DBICallbackBase *cb, unsigned long target_thread_id =-1UL) {
@@ -523,6 +515,26 @@ class IsSignalFrameCallback : public DBICallbackBase
   private:
    bool ret;
    unw_cursor_t *cp_;
+};
+
+class WaitpidCallback : public DBICallbackBase
+{
+  public:
+   WaitpidCallback() : DBICallbackBase(dbiWaitpid) {}
+   WaitpidCallback(IsSignalFrameCallback &) :
+      DBICallbackBase(dbiWaitpid) {}
+   ~WaitpidCallback() {}
+
+   CallbackBase *copy() { return new WaitpidCallback(*this);}
+   bool execute(void);
+   bool operator()(pid_t pid, int *status, int options);
+
+   int getReturnValue() {return ret;}
+  private:
+   int ret;
+   pid_t pid_;
+   int *status_;
+   int options_;
 };
 #endif // arch_ia64
 #endif
