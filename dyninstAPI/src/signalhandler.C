@@ -179,9 +179,11 @@ bool SignalHandler::signalEvent(EventRecord &ev)
   }
 
   
+#if 0
   if (!ret) 
     signal_printf("%s[%d][%s]:  signalEvent(%s): nobody waiting\n", FILE__, __LINE__, 
                   getThreadStr(getExecThreadID()), eventType2str(ev.type));
+#endif
   return ret;
 }
 

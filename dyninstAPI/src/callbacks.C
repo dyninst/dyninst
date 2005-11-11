@@ -85,7 +85,7 @@ bool SyncCallback::waitForCompletion()
 ErrorCallback::~ErrorCallback()
 {
   //  need to free memory allocated for the arguments 
-  if (str) delete [] str;
+  if (str) free(str);
 }
 
 bool ErrorCallback::execute(void) 
@@ -97,8 +97,9 @@ bool ErrorCallback::execute(void)
 bool ErrorCallback::operator()(BPatchErrorLevel severity, int number,
                           const char *error_string)
 {
-  str = new char[strlen(error_string)];
-  strncpy(str, error_string, strlen(str));
+  //str = new char[strlen(error_string)];
+  //strncpy(str, error_string, strlen(str));
+  str = strdup(error_string);
   num = number;
   sev = severity;    
   getMailbox()->executeOrRegisterCallback(this);
