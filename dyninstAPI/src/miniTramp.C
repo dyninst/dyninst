@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.13 2005/10/18 17:35:36 bernat Exp $
+// $Id: miniTramp.C,v 1.14 2005/11/21 17:16:13 jaw Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -233,9 +233,16 @@ unsigned miniTrampInstance::maxSizeRequired() {
 /* Note that out-of-line minitramps imply that they only
    add their /inline/ regions (jumps) to the unwindInformation
    chain, and register their /out-of-line/ regions on their own. */
+#if defined (arch_ia64)
 bool miniTrampInstance::generateCode(codeGen &gen,
-                                     Address baseInMutatee,
-                                     UNW_INFO_TYPE ** unwindInformation ) {
+                                     Address /*baseInMutatee*/,
+                                     UNW_INFO_TYPE ** unwindInformation ) 
+#else
+bool miniTrampInstance::generateCode(codeGen &gen,
+                                     Address /*baseInMutatee*/,
+                                     UNW_INFO_TYPE ** /*unwindInformation*/ ) 
+#endif
+{
     /*
       inst_printf("miniTrampInstance::generateCode(%p, 0x%x, %d)\n",
                 gen.start_ptr(), baseInMutatee, gen.used());

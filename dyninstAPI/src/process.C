@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.559 2005/11/03 05:21:06 jaw Exp $
+// $Id: process.C,v 1.560 2005/11/21 17:16:13 jaw Exp $
 
 #include <ctype.h>
 
@@ -1325,6 +1325,7 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
   eventType res = evtUndefined;
 
   inferiorMallocCallbackFlag = false;
+     inferiorrpc_printf("%s[%d]:  waiting for rpc completion\n", FILE__, __LINE__);
   do {
      getRpcMgr()->launchRPCs(wasRunning);
      getMailbox()->executeCallbacks(FILE__, __LINE__);
@@ -1341,9 +1342,9 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
                         FILE__, __LINE__, getThreadStr(getExecThreadID()), 
                         status() == running ? "true" : "false");
 
-     res = getSH()->waitForEvent(evtRPCDone);
+     res = getSH()->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
      getMailbox()->executeCallbacks(FILE__, __LINE__);
-   } while (res != evtRPCDone); // Loop until callback has fired.
+   } while (res != evtRPCSignal); // Loop until callback has fired.
 
   inferiorMallocCallbackFlag = false;
 
@@ -1618,14 +1619,6 @@ void process::deleteProcess() {
   // stateWhenAttached_ remains untouched
   main_function = NULL;
 
-  pdstring libCallbackName;
-  libraryCallback *libCallbackPtr;
-
-  dictionary_hash_iter<pdstring, libraryCallback *> libCallbackIter(loadLibraryCallbacks_);
-  while (libCallbackIter.next(libCallbackName, libCallbackPtr)) 
-      delete libCallbackPtr;
-  loadLibraryCallbacks_.clear();
-  
   if (dyn) {
       delete dyn;
       dyn = NULL;
@@ -1819,7 +1812,6 @@ process::process(int ipid) :
     creationMechanism_(unknown_cm),
     stateWhenAttached_(unknown_ps),
     main_function(NULL),
-    loadLibraryCallbacks_(pdstring::hash),
     dyn(NULL),
     representativeLWP(NULL),
     real_lwps(CThash),
@@ -2063,6 +2055,7 @@ bool process::prepareExec() {
 }
 
 bool process::finishExec() {
+    startup_printf("%s[%d]:  about toloadDyninstLib\n", FILE__, __LINE__);
     bool res = loadDyninstLib();
     if (!res)
         return false;
@@ -2346,16 +2339,19 @@ bool process::setupGeneral() {
     initInferiorHeap();
 
 #if defined(os_aix)
-    EventRecord ev;
-    ev.proc = this;
-    ev.type = evtSignalled;
-    ev.what = HACKSTATUS;
-    ev.info = 0;
-    getSH()->handleSignal(ev);
+    if (HACKSTATUS == SIGTRAP) {
+      EventRecord ev;
+      ev.proc = this;
+      ev.type = evtSignalled;
+      ev.what = HACKSTATUS;
+      ev.info = 0;
+      //getSH()->handleSigTrap(ev);
+      SignalHandlerUnix::handleSigTrap(ev);
+    }
 #endif
         
 
-    startup_printf("Loading DYNINST lib...\n");
+    startup_printf("%s[%d]: Loading DYNINST lib...\n", FILE__, __LINE__);
     // TODO: loadDyninstLib actually embeds a lot of startup material;
     // should move it up to this function to make things more obvious.
     bool res = loadDyninstLib();
@@ -2397,7 +2393,6 @@ process::process(const process *parentProc, int childPid, int childTrace_fd) :
     creationMechanism_(parentProc->creationMechanism_),
     stateWhenAttached_(parentProc->stateWhenAttached_),
     main_function(NULL), // Set later
-    loadLibraryCallbacks_(pdstring::hash),
     dyn(NULL),  // Set later
     representativeLWP(NULL), // Set later
     real_lwps(CThash),
@@ -2598,6 +2593,8 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
 
     process *theProc = new process(pid);
     assert(theProc);
+    //fprintf(stderr, "%s[%d]:  setting initial process state to running\n", FILE__, __LINE__);
+    theProc->set_status(running);
 
     // We need to add this as soon as possible, since a _lot_ of things
     // do lookups.
@@ -2797,7 +2794,7 @@ process *ll_attachToCreatedProcess(int pid, const pdstring &progpath)
     // Now, fake a trap signal and off to setupGeneral
     EventRecord ev;
     ev.proc = theProc;
-    bool res = getSH()->handleSigTrap(ev);
+    bool res = SignalHandlerUnix::handleSigTrap(ev);
     assert(res);
 #endif
 
@@ -2854,14 +2851,6 @@ process *ll_attachToCreatedProcess(int pid, const pdstring &progpath)
 // Load and initialize the runtime library: returns when the RT lib
 // is both loaded and initialized.
 // Return val: false=error condition
-
-bool finalizeDyninstLibWrapper(process *proc)
-{
-  bool ret = proc->finalizeDyninstLib();
-  if (!ret) 
-    startup_printf("%s[%d]:  failed to finalize dyninst lib\n", __FILE__, __LINE__);
-  return ret;
-}
 
 bool process::loadDyninstLib() {
   startup_printf("Entry to loadDyninstLib\n");
@@ -2921,26 +2910,15 @@ bool process::loadDyninstLib() {
         startup_printf("Failed to get Dyninst RT lib name\n");
         return false;
     }
-    startup_printf("Got Dyninst RT libname\n");
+    startup_printf("%s[%d]: Got Dyninst RT libname: %s\n", FILE__, __LINE__,
+                   dyninstRT_name.c_str());
 
-    // Set up a callback to be run when dyninst lib is loaded
-    // Windows has some odd naming problems, so we only use the root
-#if defined(os_windows)
-    char dllFilename[_MAX_FNAME];
-    _splitpath( dyninstRT_name.c_str(),
-                NULL, NULL, dllFilename, NULL);
-    
-    registerLoadLibraryCallback(pdstring(dllFilename), dyninstLibLoadCallback, NULL);
-#else
-    registerLoadLibraryCallback(dyninstRT_name, dyninstLibLoadCallback, NULL);
-#endif // defined(i386_unknown_nt4_0)
-    
     // Force a call to dlopen(dyninst_lib)
     buffer = pdstring("PID=") + pdstring(pid);
     buffer += pdstring(", loading dyninst library");       
     statusLine(buffer.c_str());
 
-    startup_printf("Starting load of Dyninst library...\n");
+    startup_printf("%s[%d]: Starting load of Dyninst library...\n", FILE__, __LINE__);
     loadDYNINSTlib();
     startup_printf("Think we have Dyninst RT lib set up...\n");
     
@@ -2971,10 +2949,6 @@ bool process::loadDyninstLib() {
         return false;
     }
     
-
-    // Get rid of the callback
-    unregisterLoadLibraryCallback(dyninstRT_name);
-
     buffer = pdstring("PID=") + pdstring(pid);
     buffer += pdstring(", initializing mutator-side structures");
     statusLine(buffer.c_str());    
@@ -2985,9 +2959,8 @@ bool process::loadDyninstLib() {
     statusLine(buffer.c_str());    
     startup_printf("(%d) finalizing dyninst RT library\n", getPid());
 
-    BootstrapCallback *newcb = new BootstrapCallback(finalizeDyninstLibWrapper);
-    BootstrapCallback &cb = *newcb;
-    cb(this);
+    if (!finalizeDyninstLib())
+      startup_printf("%s[%d]:  failed to finalize dyninst lib\n", __FILE__, __LINE__);
 
     if (!reachedBootstrapState(bootstrapped_bs)) {
         // For some reason we haven't run dyninstInit successfully.
@@ -3081,15 +3054,6 @@ bool process::setDyninstLibInitParams() {
    return true;
 }
 
-// Callback for the above
-void process::dyninstLibLoadCallback(process *p, pdstring /*ignored*/, 
-                                     mapped_object *libobj, void * /*ignored*/) 
-{
-    startup_printf("%s[%d]:  welcome to dyninstLibLoadCallback\n", __FILE__, __LINE__);
-    p->setDyninstLibPtr(libobj);
-    p->setDyninstLibInitParams();
-}
-
 // Call DYNINSTinit via an inferiorRPC
 bool process::iRPCDyninstInit() {
     startup_printf("[%s:%u] - Running DYNINSTinit via irpc\n", __FILE__, __LINE__);
@@ -3128,6 +3092,7 @@ bool process::iRPCDyninstInit() {
                              NULL, NULL);// No particular thread or LWP
 
     // We loop until dyninst init has run (check via the callback)
+     inferiorrpc_printf("%s[%d]:  waiting for rpc completion\n", FILE__, __LINE__);
     while (!reachedBootstrapState(bootstrapped_bs)) {
         getRpcMgr()->launchRPCs(false); // false: not running
         if(hasExited()) {
@@ -3135,7 +3100,7 @@ bool process::iRPCDyninstInit() {
            return false;
         }
         getMailbox()->executeCallbacks(FILE__, __LINE__);
-        getSH()->waitForEvent(evtRPCDone);
+        getSH()->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
         getMailbox()->executeCallbacks(FILE__, __LINE__);
     }
     startup_printf("%s[%d][%s]:  bootstrapped\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
@@ -3173,18 +3138,11 @@ bool process::attach() {
    return setProcessFlags();
 }
 
-void process::DYNINSTinitCompletionCallback(process* theProc,
-                                            unsigned /* rpc_id */,
-                                            void* /*userData*/, // user data
-                                            void* /*ret*/) // return value from DYNINSTinit
-{
-    startup_printf("%s[%d][%s]:  about to finalize Dyninst Lib\n", __FILE__, __LINE__,getThreadStr(getExecThreadID()));
-    theProc->finalizeDyninstLib();
-}
 
 // Callback: finish mutator-side processing for dyninst lib
 
-bool process::finalizeDyninstLib() {
+bool process::finalizeDyninstLib() 
+{
    startup_printf("%s[%d]:  isAttached() = %s\n", __FILE__, __LINE__, isAttached() ? "true" : "false");
    startup_printf("%s[%d]: %s\n", __FILE__, __LINE__, getStatusAsString().c_str());
    
@@ -3299,6 +3257,26 @@ bool process::finalizeDyninstLib() {
    return true;
 }
 
+void finalizeDyninstLibWrapper(process *p) 
+{
+  global_mutex->_Lock(FILE__, __LINE__);
+  p->finalizeDyninstLib();
+  global_mutex->_Unlock(FILE__, __LINE__);
+}
+void process::DYNINSTinitCompletionCallback(process* theProc,
+                                            unsigned /* rpc_id */,
+                                            void* /*userData*/, // user data
+                                            void* /*ret*/) // return value from DYNINSTinit
+{
+    //global_mutex->_Lock(FILE__, __LINE__);
+    startup_printf("%s[%d]:  about to finalize Dyninst Lib\n", __FILE__, __LINE__);
+    theProc->finalizeDyninstLib();
+    //FinalizeRTLibCallback *cbp = new FinalizeRTLibCallback(finalizeDyninstLibWrapper);
+    //FinalizeRTLibCallback &cb = *cbp;
+    //cb.setSynchronous(false);
+    //cb(theProc);
+    //global_mutex->_Unlock(FILE__, __LINE__);
+}
 /////////////////////////////////////////
 // Function lookup...
 /////////////////////////////////////////
@@ -3633,6 +3611,10 @@ dyn_lwp *process::stop_an_lwp(bool *wasRunning) {
    dyn_lwp *lwp;
    dyn_lwp *stopped_lwp = NULL;
    unsigned index;
+   if (!isAttached()) {
+     fprintf(stderr, "%s[%d]:  cannot stop_an_lwp, process not attached\n", FILE__, __LINE__);
+     return false;
+   }
 
    if(IndependentLwpControl()) {
       while(lwp_iter.next(index, lwp)) {
@@ -3666,6 +3648,9 @@ dyn_lwp *process::stop_an_lwp(bool *wasRunning) {
       stopped_lwp = getRepresentativeLWP();
    }
 
+   if (!stopped_lwp) {
+     fprintf(stderr, "%s[%d][%s]:  stop_an_lwp failing\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
+   }
    return stopped_lwp;
 }
 
@@ -3680,7 +3665,7 @@ bool process::terminateProc() {
    case terminateSucceeded:
      {
      // handle the kill signal on the process, which will dispatch exit callback
-      fprintf(stderr, "%s[%d][%s]:  before waitForEvent(evtProcessExit)\n", 
+      signal_printf("%s[%d][%s]:  before waitForEvent(evtProcessExit)\n", 
               FILE__, __LINE__, getThreadStr(getExecThreadID()));
       getSH()->waitForEvent(evtProcessExit);
      return true;
@@ -3689,7 +3674,6 @@ bool process::terminateProc() {
    case alreadyTerminated:
      // don't try to consume a signal (since we can't), 
      // just set process status to exited
-     fprintf(stderr, "%s[%d]:  setting status to exited\n", __FILE__, __LINE__);
      set_status(exited);
      return true;
      break;
@@ -3972,12 +3956,11 @@ bool process::pause() {
 
 
 #if defined(sparc_sun_solaris2_4)
-   fprintf(stderr, "%s[%d]:  removed call to clearProcessEvents()\n", __FILE__, __LINE__);
+     inferiorrpc_printf("%s[%d]:  waiting for rpc completion\n", FILE__, __LINE__);
    while (getRpcMgr()->existsRunningIRPC()) {
-     fprintf(stderr, "%s[%d]:  waiting for rpc to finish before completing pause request\n", __FILE__, __LINE__);
-      fprintf(stderr, "%s[%d][%s]:  before waitForEvent(evtRPCDone)\n", 
+      fprintf(stderr, "%s[%d][%s]:  before waitForEvent(evtRPCSignal,...,statusRPCDone)\n", 
               FILE__, __LINE__, getThreadStr(getExecThreadID()));
-     getSH()->waitForEvent(evtRPCDone);
+     getSH()->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
    }
 #endif
 
@@ -4015,7 +3998,8 @@ bool process::stop_()
 
 // handleIfDueToSharedObjectMapping: if a trap instruction was caused by
 // a dlopen or dlclose event then return true
-bool process::handleIfDueToSharedObjectMapping(){
+bool process::handleIfDueToSharedObjectMapping()
+{
    if(!dyn) { 
        bperr( "No dyn object, returning false\n");
        return false;
@@ -4074,50 +4058,6 @@ bool process::handleIfDueToSharedObjectMapping(){
    }
    
    return false;
-}
-
-// Register a callback to be made when a library is detected
-// in handleSharedObjectMapping (above). In many cases this allows
-// a user to modify the library before any associated _init function
-// is run. Note: ordering is NOT guaranteed. This is best-effort.
-
-bool process::registerLoadLibraryCallback(pdstring libname, 
-                                          loadLibraryCallbackFunc callback,
-                                          void *data) {
-   startup_printf("[%s:%u] - At top of registerLoadLibraryCallback", 
-                  __FILE__, __LINE__);
-    if (loadLibraryCallbacks_.defines(libname)) {
-        cerr << "Possible error: predefined callback for "
-             << libname << " being overwritten!" << endl;
-        // Return false here? For now, continue
-    }
-    libraryCallback *lib = new libraryCallback();
-    lib->callback = callback;
-    lib->data = data;
-    loadLibraryCallbacks_[libname] = lib;
-    return true;    
-}
-
-// Unregister the above callback. Arbitrary decision:
-// callbacks are persistent until unregistered.
-bool process::unregisterLoadLibraryCallback(pdstring libname) {
-    if (loadLibraryCallbacks_.defines(libname)) {
-        libraryCallback *lib = loadLibraryCallbacks_[libname];
-        loadLibraryCallbacks_.undef(libname);
-        delete lib;
-        return true;
-    }
-    return false;
-}
-
-//
-bool process::runLibraryCallback(pdstring libname, mapped_object *libobj) {
-    if (loadLibraryCallbacks_.defines(libname)) {
-        libraryCallback *lib = loadLibraryCallbacks_[libname];
-        (lib->callback)(this, libname, libobj, lib->data);
-        return true;
-    }
-    return false;
 }
 
 /* Checks whether the shared object SO is the runtime instrumentation
@@ -4189,6 +4129,8 @@ bool process::addASharedObject(mapped_object *new_obj) {
     //return false;
     //}
 
+    const char *dn = dyninstRT_name.c_str();
+    const char *fn = new_obj->fileName().c_str();
     parsing_printf("Adding shared object %s, addr range 0x%x to 0x%x\n",
            new_obj->fileName().c_str(), 
            new_obj->getBaseAddress(),
@@ -4202,11 +4144,28 @@ bool process::addASharedObject(mapped_object *new_obj) {
         addInferiorHeap(new_obj);
     }
 
+#if defined(os_windows)
+    char dllFilename[_MAX_FNAME];
+    _splitpath( dyninstRT_name.c_str(),
+                NULL, NULL, dllFilename, NULL);
+    pdstring shortname = pdstring(dllFilename);    
+#else
     pdstring shortname = new_obj->fileName();
-    if (!runLibraryCallback(shortname, new_obj)) {
-        // Short name/long name confusion?
-        pdstring longname = new_obj->fullName();
-        runLibraryCallback(longname, new_obj);
+#endif
+    pdstring longname = new_obj->fullName();
+
+    //fprintf(stderr, "%s[%d]:  shortname = %s, longname = %s, RTlib = %s\n ", FILE__, __LINE__, shortname.c_str(), longname.c_str(), dyninstRT_name.c_str());
+    if ((shortname == dyninstRT_name) 
+        || (longname == dyninstRT_name)) {
+      startup_printf("%s[%d]:  handling init of dyninst RT library\n", FILE__, __LINE__);
+      if (!setDyninstLibPtr(new_obj)) {
+        fprintf(stderr, "%s[%d]:  FATAL, failing to set dyninst lib\n", FILE__, __LINE__);
+        assert(0);
+      }
+      if (!setDyninstLibInitParams()) {
+        fprintf(stderr, "%s[%d]:  FATAL, failing to init dyninst lib\n", FILE__, __LINE__);
+        assert(0);
+      }
     }
 
 #if !defined(i386_unknown_nt4_0) \
@@ -4923,11 +4882,15 @@ void process::findSignalHandler(mapped_object *obj){
 
 }
 
-bool process::continueProc(int signalToContinueWith) {
+bool process::continueProc(int signalToContinueWith) 
+{
    
-   signal_cerr << "continuing process " << getPid() << endl;
+   signal_printf("%s[%d]: continuing process %d\n", FILE__, __LINE__, getPid());
   if (!isAttached()) {
+    signal_printf("%s[%d]: warning continue on non-attached %d\n", 
+                  FILE__, __LINE__, getPid());
     bpwarn( "Warning: continue attempted on non-attached process\n");
+    fprintf(stderr, "%s[%d]:  continue attempted on non-attached process\n", FILE__, __LINE__);
     return false;
   }
 
@@ -5081,7 +5044,8 @@ bool process::handleSyscallExit(eventWhat_t, dyn_lwp *lwp_with_event)
    return lwp_with_trap_event;
 }
 
-void process::triggerNormalExitCallback(int exitCode) {
+void process::triggerNormalExitCallback(int exitCode) 
+{
    // special case where can't wait to continue process
    if (status() == exited) {
       fprintf(stderr, "%s[%d]:  cannot trigger exit callback, process is gone...\n", __FILE__, __LINE__);
@@ -5090,26 +5054,31 @@ void process::triggerNormalExitCallback(int exitCode) {
    BPatch::bpatch->registerNormalExit(this, exitCode);
 }
 
-void process::triggerSignalExitCallback(int signalnum) {
+void process::triggerSignalExitCallback(int signalnum) 
+{
    // special case where can't wait to continue process
    if (status() == exited) {
+      fprintf(stderr, "%s[%d]:  cannot trigger exit callback, process already exited\n", 
+              FILE__, __LINE__);
       return;
    }
    BPatch::bpatch->registerSignalExit(this, signalnum);
 }
 
-bool process::handleProcessExit() {
+bool process::handleProcessExit() 
+{
 
    // special case where can't wait to continue process
    if (status() == exited) {
+      fprintf(stderr, "%s[%d]:  cannot detach from process, process already exited\n", 
+              FILE__, __LINE__);
       return true;
    }
-
    --activeProcesses;
 
-   // Set exited first, so detach doesn't try impossible things
-   signal_printf("%s[%d]:  setting status to exited\n", FILE__, __LINE__);
+   // make exited is set, so detach doesn't try impossible things
    set_status(exited);
+
    if (!detach(false)) return false;
 
    return true;
@@ -5158,6 +5127,7 @@ bool process::handleExecEntry(char *arg0) {
 */
 bool process::handleExecExit() 
 {
+    fprintf(stderr, "%s[%d]:  welcome to handleExecExit\n", FILE__, __LINE__);
     inExec_ = true;
     // NOTE: for shm sampling, the shm segment has been removed, so we
     //       mustn't try to disable any dataReqNodes in the standard way...
@@ -5826,6 +5796,7 @@ void process::recognize_threads(const process *parent)
                                  NULL, lwp);
      }
 
+     inferiorrpc_printf("%s[%d]:  waiting for rpc completion\n", FILE__, __LINE__);
      while(num_completed != lwp_ids.size())
      {
         getRpcMgr()->launchRPCs(false);
@@ -5834,7 +5805,7 @@ void process::recognize_threads(const process *parent)
            fprintf(stderr, "%s[%d]:  unexpected process exit\n", FILE__, __LINE__);
            return;
         }
-        getSH()->waitForEvent(evtRPCDone);
+        getSH()->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
         getMailbox()->executeCallbacks(FILE__, __LINE__);
      }
 
@@ -5948,12 +5919,13 @@ dynthread_t process::mapIndexToTid(int index)
    getRpcMgr()->postRPCtoDo(&call_get_tid, true, mapIndexToTid_cb, &tid,
                             false, NULL, NULL);
 
+     inferiorrpc_printf("%s[%d]:  waiting for rpc completion\n", FILE__, __LINE__);
    while (tid == -1)
    {
       getRpcMgr()->launchRPCs(false);
       getMailbox()->executeCallbacks(FILE__, __LINE__);
       if(hasExited()) return (dynthread_t) -1;
-      getSH()->waitForEvent(evtRPCDone);
+      getSH()->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
       getMailbox()->executeCallbacks(FILE__, __LINE__);
       //getSH()->checkForAndHandleProcessEvents(false);
    }

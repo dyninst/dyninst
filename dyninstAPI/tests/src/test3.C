@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3.C,v 1.38 2005/11/03 05:21:08 jaw Exp $
+// $Id: test3.C,v 1.39 2005/11/21 17:16:14 jaw Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -312,10 +312,10 @@ void mutatorTest1(char *pathname, BPatch *bpatch)
         dprintf("Mutatee %d started, pid=%d\n", n, appThread[n]->getPid());
     }
 
-    dprintf("Letting mutatee processes run a short while (10s).\n");
+    dprintf("Letting mutatee processes run a short while (5s).\n");
     for (n=0; n<Mutatees; n++) appThread[n]->continueExecution();
 
-    P_sleep(10);
+    P_sleep(5);
     dprintf("Terminating mutatee processes.\n");
 
     unsigned int numTerminated=0;

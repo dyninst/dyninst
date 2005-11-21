@@ -44,19 +44,8 @@
 #include "process.h"
 #include "signalhandler.h"
 
-SignalHandler *global_sh = NULL;
-
-SignalHandler *getSH() {
-   if(global_sh == NULL) {
-      signal_printf("%s[%d]:  about to create new SignalHandler\n", FILE__, __LINE__);
-      global_sh = new SignalHandler();
-      global_sh->createThread();
-   }
-
-   return global_sh;
-}
-
-EventGate::EventGate(eventLock *l, eventType t, process *p, dyn_lwp *lwp) :
+EventGate::EventGate(eventLock *l, eventType t, process *p, dyn_lwp *lwp,
+                     eventStatusCode_t status) :
      lock(l), waiting(false)
 {
   cond = new eventCond(lock);
@@ -64,13 +53,13 @@ EventGate::EventGate(eventLock *l, eventType t, process *p, dyn_lwp *lwp) :
   target_event.type = t;
   target_event.proc = p;
   target_event.lwp = lwp;
+  target_event.status = status;
   evts.push_back(target_event);
 
   if (t != evtProcessExit) {
     EventRecord process_exit_event;
     process_exit_event.type = evtProcessExit;
     process_exit_event.proc = p;
-    process_exit_event.lwp = lwp;
     evts.push_back(process_exit_event);
   }
 }
@@ -104,8 +93,14 @@ EventRecord &EventGate::wait()
   assert(lock->depth());
  
   still_waiting:
-  getMailbox()->executeCallbacks(FILE__, __LINE__);
   waiting = true;
+  //lock->_Unlock(FILE__, __LINE__);
+  getMailbox()->executeCallbacks(FILE__, __LINE__);
+  //lock->_Lock(FILE__, __LINE__);
+
+  if (trigger.type != evtUndefined) {
+    return trigger;
+  }
   extern int dyn_debug_signal;
   if (dyn_debug_signal) {
     signal_printf("%s[%d][%s]: waiting for event matching:\n", FILE__, __LINE__,
@@ -118,8 +113,8 @@ EventRecord &EventGate::wait()
 
   lock->_WaitForSignal(FILE__, __LINE__);
   waiting = false;
-
   
+
   bool triggered = false;
   for (unsigned int i = 0; i < evts.size(); ++i) {
     if (evts[i].isTemplateOf(trigger)) {
@@ -129,6 +124,7 @@ EventRecord &EventGate::wait()
   }
   if (!triggered) goto still_waiting;
 
+  //getMailbox()->executeCallbacks(FILE__, __LINE__);
   return trigger;
 }
 
@@ -152,7 +148,72 @@ bool EventGate::signalIfMatch(EventRecord &ev)
   return ret;
 }
 
-bool SignalHandler::signalActiveProcess()
+SignalGenerator::SignalGenerator() :
+                 EventHandler<EventRecord>(BPatch_eventLock::getLock(),
+                 "SYNC",/*start thread?*/ false)
+{
+  signal_printf("%s[%d]:  new SignalGenerator\n", FILE__, __LINE__);
+}
+
+bool SignalGenerator::handleEventLocked(EventRecord &ev)
+{
+  char buf[128];
+  signal_printf("%s[%d]:  dispatching event %s\n", FILE__, __LINE__,
+                ev.sprint_event(buf));
+
+  if (ev.type == evtUndefined) {
+    fprintf(stderr, "%s[%d]:  CHECK THIS, undefined event\n", FILE__, __LINE__); 
+    return true;
+  }
+
+  SignalHandler *sh = NULL;
+  for (unsigned int i = 0; i < handlers.size(); ++i) {
+    if (handlers[i]->assignEvent(ev)) {
+      sh = handlers[i];
+      break;
+    }
+  }
+
+  if ((sh) && (handlers.size() > HANDLER_TRIM_THRESH)) {
+    for (int i = handlers.size() - 1; i >= 0; i--) {
+      if (!handlers[i]->idle()) break;
+      if (handlers[i] != sh) {
+        signal_printf("%s[%d]:  trimming idle signal handler %s\n", FILE__, __LINE__,
+                      handlers[i]->getName());
+        delete handlers[i];
+        handlers.erase(i,i);
+      }
+    }
+  }
+
+  if (handlers.size() > MAX_HANDLERS) {
+     fprintf(stderr, "%s[%d]:  FATAL:  Something is horribly wrong.\n", FILE__, __LINE__);
+     fprintf(stderr, "\thave %d signal handlers, max is %d\n", handlers.size(), MAX_HANDLERS);
+     abort();
+  }
+
+  bool ret = true;
+  if (!sh) {
+    int shid = handlers.size();
+    char shname[16];
+    sprintf(shname, "SH-%d", shid);
+    signal_printf("%s[%d]:  about to create event handler %s\n", FILE__, __LINE__, shname);
+    sh = newSignalHandler(shname, shid);
+    sh->createThread();
+    handlers.push_back(sh);
+    ret = sh->assignEvent(ev);
+    if (!ret)  {
+       char buf[128];
+       fprintf(stderr, "%s[%d]:  failed to assign event %s to handler\n", FILE__, __LINE__,
+               ev.sprint_event(buf));
+    }
+  }
+
+
+  return ret;
+}
+
+bool SignalGenerator::signalActiveProcess()
 {         
   bool ret = true;
   if (waiting_for_active_process)
@@ -160,16 +221,21 @@ bool SignalHandler::signalActiveProcess()
   return ret;
 }   
 
-bool SignalHandler::signalEvent(EventRecord &ev)
+bool SignalGenerator::signalEvent(EventRecord &ev)
 {
-  signal_printf("%s[%d][%s]:  signalEvent(%s)\n", FILE__, __LINE__, 
-                getThreadStr(getExecThreadID()), eventType2str(ev.type));
+  if (ev.type != evtError) {
+    char buf[128];
+    signal_printf("%s[%d][%s]:  signalEvent(%s)\n", FILE__, __LINE__, 
+                  getThreadStr(getExecThreadID()), ev.sprint_event(buf));
+  }
   assert(global_mutex->depth());
 
   getMailbox()->executeCallbacks(FILE__, __LINE__);
 
-  if (ev.type == evtProcessStop || ev.type == evtProcessExit)
-      BPatch::bpatch->mutateeStatusChange = true;
+  if (ev.type == evtProcessStop || ev.type == evtProcessExit) {
+     //fprintf(stderr, "%s[%d]:  flagging BPatch status change\n", FILE__, __LINE__);
+     SignalHandler::flagBPatchStatusChange();
+  }
 
   bool ret = false;
   for (unsigned int i = 0; i <wait_list.size(); ++i) {
@@ -187,20 +253,36 @@ bool SignalHandler::signalEvent(EventRecord &ev)
   return ret;
 }
 
-bool SignalHandler::signalEvent(eventType t)
+bool SignalGenerator::signalEvent(eventType t)
 {
   EventRecord ev;
   ev.type = t;
   return signalEvent(ev);
 }
 
-eventType SignalHandler::waitForOneOf(pdvector<eventType> &evts)
+eventType SignalGenerator::waitForOneOf(pdvector<eventType> &evts)
 {
   assert(global_mutex->depth());
 
   if (getExecThreadID() == getThreadID()) {
     fprintf(stderr, "%s[%d][%s]:   ILLEGAL:  SYNC THREAD waiting on for a signal\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
     abort();
+  }
+
+  //  When to set wait_flag ??
+  //    (1)  If we are running on an event handler thread
+  //    (2)  If we are currently running inside a callback AND an 
+  //         event handler is waiting for the completion of this callback
+  SignalHandler *sh = findSHWithThreadID(getExecThreadID());
+  if (sh)
+    sh->wait_flag = true;
+  else {
+    CallbackBase *cb = NULL;
+    if (NULL != (cb = getMailbox()->runningInsideCallback())) {
+      sh = findSHWaitingForCallback(cb);
+      if (sh)
+        sh->wait_flag = true;
+    }
   }
 
   EventGate *eg = new EventGate(global_mutex,evts[0]);
@@ -224,17 +306,37 @@ eventType SignalHandler::waitForOneOf(pdvector<eventType> &evts)
      fprintf(stderr, "%s[%d]:  BAD NEWS, somehow lost a pointer to eg\n", FILE__, __LINE__);
   }
 
+  if (sh)
+    sh->wait_flag = false;
   return result.type;
 }
 
-eventType SignalHandler::waitForEvent(eventType evt, process *p, dyn_lwp *lwp)
+eventType SignalGenerator::waitForEvent(eventType evt, process *p, dyn_lwp *lwp,
+                                        eventStatusCode_t status)
 {
   if (getExecThreadID() == getThreadID()) {
-    fprintf(stderr, "%s[%d][%s]:   ILLEGAL:  SYNC THREAD waiting on for a signal\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
+    fprintf(stderr, "%s[%d][%s]:   ILLEGAL:  SYNC THREAD waiting on for a signal: %s\n", 
+            FILE__, __LINE__, getThreadStr(getExecThreadID()), eventType2str(evt));
     abort();
   }
 
-  EventGate *eg = new EventGate(global_mutex,evt,p, lwp);
+  //  When to set wait_flag ??
+  //    (1)  If we are running on an event handler thread
+  //    (2)  If we are currently running inside a callback AND a 
+  //         signal handler is waiting for the completion of this callback
+  SignalHandler *sh = findSHWithThreadID(getExecThreadID());
+  if (sh)
+    sh->wait_flag = true;
+  else {
+    CallbackBase *cb = NULL;
+    if (NULL != (cb = getMailbox()->runningInsideCallback())) {
+      sh = findSHWaitingForCallback(cb);
+      if (sh)
+        sh->wait_flag = true;
+    }
+  }
+
+  EventGate *eg = new EventGate(global_mutex,evt,p, lwp, status);
   wait_list.push_back(eg);
   EventRecord result = eg->wait();
   
@@ -252,7 +354,138 @@ eventType SignalHandler::waitForEvent(eventType evt, process *p, dyn_lwp *lwp)
      fprintf(stderr, "%s[%d]:  BAD NEWS, somehow lost a pointer to eg\n", FILE__, __LINE__);
   }
 
+  if (sh)
+    sh->wait_flag = false;
   return result.type;
+}
+
+SignalHandler *SignalGenerator::findSHWithThreadID(unsigned long tid)
+{
+  for (unsigned int i = 0; i < handlers.size(); ++i) {
+    if (handlers[i]->getThreadID() == tid)
+      return handlers[i];
+  }
+  return NULL;
+}
+
+SignalHandler *SignalGenerator::findSHWaitingForCallback(CallbackBase *cb)
+{
+  for (unsigned int i = 0; i < handlers.size(); ++i) {
+    if (handlers[i]->wait_cb == cb)
+      return handlers[i];
+  }
+  return NULL;
+}
+
+bool SignalGenerator::activeHandlerForProcess(process *p)
+{
+  for (unsigned int i = 0; i < handlers.size(); ++i) {
+    if (handlers[i]->activeProcess() == p)
+      return true;
+  }
+  return false;
+}
+
+bool SignalGenerator::anyActiveHandlers()
+{
+  for (unsigned int i = 0; i < handlers.size(); ++i) {
+    if (!handlers[i]->idle())
+      return true;
+  }
+  return false;
+}
+
+bool SignalHandler::idle()
+{
+  bool ret;
+  _Lock(FILE__, __LINE__);
+  ret = idle_flag;
+  _Unlock(FILE__, __LINE__);
+  return ret;
+}
+
+bool SignalHandler::waiting()
+{
+  bool ret;
+  _Lock(FILE__, __LINE__);
+  ret = wait_flag;
+  _Unlock(FILE__, __LINE__);
+  return ret;
+}
+
+bool SignalHandler::assignEvent(EventRecord &ev) 
+{
+  char buf[128];
+  bool ret = false;
+  assert(global_mutex->depth());
+
+  //  after we get the lock, the handler thread should be either idle, or waiting
+  //  for some event.  
+
+  while (!idle_flag) {
+    if (wait_flag) {
+      signal_printf("%s[%d]:  cannot assign event %s to %s, while it is waiting\n", 
+                    FILE__, __LINE__, ev.sprint_event(buf), getName());
+      return false;
+    }
+    signal_printf("%s[%d]:  shoving event %s into the queue for %s\n",
+         FILE__, __LINE__, ev.sprint_event(buf), getName());
+    events_to_handle.push_back(ev);
+    if (ev.type == evtProcessExit) 
+      getSH()->signalEvent(ev);
+    else 
+      _Broadcast(FILE__, __LINE__);
+    return true;
+  }
+
+  if (idle_flag) {
+    // handler thread is not doing anything, assign away...
+    signal_printf("%s[%d]:  assigning event %s to %s\n", FILE__, __LINE__,
+                  ev.sprint_event(buf), getName());
+    events_to_handle.push_back(ev);
+    ret = true;
+    idle_flag = false;
+    _Broadcast(FILE__, __LINE__);
+  } 
+ // else {
+ //   char buf[128];
+ //   fprintf(stderr, "%s[%d]:  WEIRD, tried to assign %s to busy handler\n",
+ //          FILE__, __LINE__, ev.sprint_event(buf));
+ // } 
+
+  return ret;
+}
+
+bool SignalHandler::waitNextEvent(EventRecord &ev)
+{
+  bool ret;
+  _Lock(FILE__, __LINE__);
+  while (idle_flag) {
+    signal_printf("%s[%d]:  handler %s waiting for something to do\n", 
+                  FILE__, __LINE__, getName());
+    if (!getSH()->anyActiveHandlers() && getSH()->waitingForActiveProcess()) {
+      //flagBPatchStatusChange();
+      getSH()->signalEvent(evtProcessStop);
+      //_Broadcast(FILE__, __LINE__);
+    }
+    _WaitForSignal(FILE__, __LINE__);
+    signal_printf("%s[%d]:  handler %s has been signalled: got event = %s\n", 
+                  FILE__, __LINE__, getName(), idle_flag ? "false" : "true");
+  }
+
+  ret = true;
+  ev = events_to_handle[0];
+  events_to_handle.erase(0,0);
+  active_proc = ev.proc;
+
+  if (ev.type == evtUndefined) {
+    fprintf(stderr, "%s[%d]:  got evtUndefined for next event!\n", FILE__, __LINE__);
+    ret = false;
+  }
+
+  _Unlock(FILE__, __LINE__);
+  if (!ret) abort();
+  return ret;
 }
 
 signal_handler_location::signal_handler_location(Address addr, unsigned size) :

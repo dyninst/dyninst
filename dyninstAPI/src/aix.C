@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.207 2005/11/03 05:21:05 jaw Exp $
+// $Id: aix.C,v 1.208 2005/11/21 17:16:12 jaw Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1758,7 +1758,6 @@ bool process::getExecFileDescriptor(pdstring /*filename*/,
     desc.setMember("");
     //desc.setPid(pid);
     
-    fprintf(stderr, "%s[%d]:  NEW EXEC FILE: %s\n", FILE__, __LINE__, desc.file().c_str());
     return true;
 }
 

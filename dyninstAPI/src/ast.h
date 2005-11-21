@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.82 2005/11/03 05:21:05 jaw Exp $
+// $Id: ast.h,v 1.83 2005/11/21 17:16:12 jaw Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -358,7 +358,7 @@ class AstNode {
 	operandType oType;	    // for operand nodes
 	void *oValue;	            // operand value for operand nodes
         unsigned int whichMA;       // only for memory access nodes
-	const BPatch_type *bptype;  // type of corresponding BPatch_snippet
+	BPatch_type *bptype;  // type of corresponding BPatch_snippet
 	bool doTypeCheck;	    // should operands be type checked
 	int size;		    // size of the operations (in bytes)
 
@@ -375,8 +375,8 @@ class AstNode {
 	// Functions for getting and setting type decoration used by the
 	// dyninst API library
 	AstNode(operandType ot, int which); // for memory access
-	const BPatch_type *getType() { return bptype; };
-	void		  setType(const BPatch_type *t) { 
+	BPatch_type *getType() { return bptype; };
+	void		  setType(BPatch_type *t) { 
 				bptype = t; 
 				if( t != NULL ) { size = t->getSize(); } }
 	void		  setTypeChecking(bool x) { doTypeCheck = x; }

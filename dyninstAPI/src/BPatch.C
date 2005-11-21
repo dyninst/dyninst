@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.104 2005/11/03 05:21:04 jaw Exp $
+// $Id: BPatch.C,v 1.105 2005/11/21 17:16:11 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -108,6 +108,10 @@ BPatch::BPatch()
     type_Error(NULL),
     type_Untyped(NULL)
 {
+    if (!global_mutex)
+      global_mutex = new eventLock();
+
+    global_mutex->_Lock(FILE__, __LINE__);
     memset(&stats, 0, sizeof(BPatch_stats));
     extern bool init();
 
@@ -309,6 +313,7 @@ BPatch::BPatch()
             __FILE__, __LINE__);
     }
 #endif
+    global_mutex->_Unlock(FILE__, __LINE__);
 }
 
 
@@ -660,8 +665,8 @@ const char *BPatch::getEnglishErrorString(int /* number */)
 void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
 {
     assert(bpatch != NULL);
-    SignalHandler *sh = getSH();
-    bpatch->__LOCK; 
+    assert(global_mutex);
+    assert(global_mutex->depth());
     // don't log BPatchWarning or BPatchInfo messages as "errors"
     if ((severity == BPatchFatal) || (severity == BPatchSerious))
 	bpatch->lastError = number;
@@ -670,7 +675,6 @@ void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
     if (! getCBManager()->dispenseCallbacksMatching(evtError, cbs)) {
       fprintf(stdout, "%s[%d]:  DYNINST ERROR:\n %s\n", str);
       fflush(stdout);
-      bpatch->__UNLOCK;
       return; 
     }
 
@@ -678,8 +682,6 @@ void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
       ErrorCallback &cb = *((ErrorCallback *) cbs[i]);
       cb(severity, number, str); 
     }
-    sh->signalEvent(evtError);
-    bpatch->__UNLOCK;
 }
 
 
@@ -964,10 +966,10 @@ void BPatch::registerNormalExit(process *proc, int exitcode)
    getCBManager()->dispenseCallbacksMatching(evtProcessExit,cbs);
    for (unsigned int i = 0; i < cbs.size(); ++i) {
      ExitCallback &cb = *((ExitCallback *) cbs[i]);
+     signal_printf("%s[%d]:  about to register/wait for exit callback\n", FILE__, __LINE__);
      cb(process->threads[0], ExitedNormally);
+     signal_printf("%s[%d]:  exit callback done\n", FILE__, __LINE__);
    }
-
-    
 
 }
 
@@ -1217,14 +1219,14 @@ bool BPatch::waitForStatusChangeInt()
    evts.push_back(evtThreadCreate);
    evts.push_back(evtThreadExit);
    waitingForStatusChange = true;
+   getMailbox()->executeCallbacks(FILE__, __LINE__);
+   if (mutateeStatusChange) break;
    evt = getSH()->waitForOneOf(evts);
   } while ((    evt != evtProcessStop ) 
             && (evt != evtProcessExit)
             && (evt != evtThreadExit)
             && (evt != evtThreadCreate));
 
-  getMailbox()->executeCallbacks(FILE__, __LINE__);
-  //__WAIT_FOR_SIGNAL;
   waitingForStatusChange = false;
 
   if (mutateeStatusChange) {

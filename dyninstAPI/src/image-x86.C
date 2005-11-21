@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.10 2005/09/28 17:03:05 bernat Exp $
+ * $Id: image-x86.C,v 1.11 2005/11/21 17:16:12 jaw Exp $
  */
 
 #include "common/h/Vector.h"
@@ -455,7 +455,7 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                     //get the maximum switch value
                     //we are looking for the cmp instruction before the 
                     //conditional jump
-                    Address saddr = in[0]->firstInsnOffset();
+                    //Address saddr = in[0]->firstInsnOffset();
                     InstrucIter iter( in[0] );
                     instruction ins = iter.getInstruction();
                     iter++;

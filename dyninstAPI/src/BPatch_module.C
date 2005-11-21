@@ -142,7 +142,6 @@ BPatch_module::BPatch_module( BPatch_process *_proc, mapped_module *_mod,
    proc( _proc ), mod( _mod ), img( _img ), 
    moduleTypes(NULL)
 {
-   unsigned i;
 #if defined(TIMED_PARSE)
     struct timeval starttime;
     gettimeofday(&starttime, NULL);
@@ -180,6 +179,7 @@ BPatch_module::BPatch_module( BPatch_process *_proc, mapped_module *_mod,
         break;
     } /* end language switch */
 #if 0    
+    unsigned i;
     if (!BPatch::bpatch->delayedParsingOn()) {
         
         const pdvector< int_function * >  &functions = mod->getAllFunctions();

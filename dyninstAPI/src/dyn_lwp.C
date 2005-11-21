@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.35 2005/11/03 05:21:05 jaw Exp $
+ * $Id: dyn_lwp.C,v 1.36 2005/11/21 17:16:12 jaw Exp $
  */
 
 #include "common/h/headers.h"
@@ -141,11 +141,19 @@ bool dyn_lwp::continueLWP(int signalToContinueWith) {
       return false;
    }
 
-#if !defined(mips_unknown_ce2_11) && !defined(i386_unknown_nt4_0)
+#if defined (os_windows)
+   proc()->set_lwp_status(this, running);
    // no SIGSTOP on Windows, and also no such thing as continuing with signal
-   if (signalToContinueWith != SIGSTOP)
-#endif
+#else
+   if (signalToContinueWith != SIGSTOP)  {
       proc()->set_lwp_status(this, running);
+      if (getExecThreadID() != getSH()->getThreadID()) {
+        signal_printf("%s[%d][%s]:  signalling active process\n", 
+                      FILE__, __LINE__, getThreadStr(getExecThreadID()));
+        getSH()->signalActiveProcess();
+      }
+  }
+#endif
 
    return true;
 }

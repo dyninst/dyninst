@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.181 2005/11/08 19:46:18 jaw Exp $
+// $Id: linux.C,v 1.182 2005/11/21 17:16:13 jaw Exp $
 
 #include <fstream>
 
@@ -171,12 +171,13 @@ bool checkActiveProcesses()
   return false;
 }
 
-bool SignalHandler::translateEvent(EventRecord &ev)
+bool SignalGeneratorUnix::decodeEvent(EventRecord &ev)
 {
    errno = 0;
    if (ev.type == evtSignalled) {
       switch(ev.what)  {
         case SIGSTOP :
+        case SIGINT :
           if (!decodeRTSignal(ev)) {
             if (ESRCH == errno) {
               fprintf(stderr,"%s[%d]:  decodeRTSignal setting exit event\n", 
@@ -184,22 +185,12 @@ bool SignalHandler::translateEvent(EventRecord &ev)
               ev.type = evtProcessExit;
               ev.status = statusNormal;
             }
+            else 
+              decodeSigStopNInt(ev);
           }
         case SIGTRAP:
         {
-           Frame sigframe = ev.lwp->getActiveFrame();
-
-           if (ev.proc->trampTrapMapping.defines(sigframe.getPC())) {
-              ev.type = evtInstPointTrap;
-              ev.address = ev.proc->trampTrapMapping[sigframe.getPC()];
-           }
-           else if (ev.lwp->isSingleStepping())
-           {
-              ev.type = evtDebugStep;
-              ev.address = sigframe.getPC();
-              signal_printf("Single step trap at %lx\n", ev.address);
-           }
-
+           decodeSigTrap(ev);
         }
         case SIGILL:
         {
@@ -210,7 +201,11 @@ bool SignalHandler::translateEvent(EventRecord &ev)
               pc == ev.proc->main_brk_addr ||
               ev.proc->getDyn()->reachedLibHook(pc)) {
               ev.what = SIGTRAP;
+              decodeSigTrap(ev);
            }
+           else 
+             decodeSigIll(ev);
+
            signal_printf("%s[%d]:  SIGILL:  main brk = %p, dyn brk = %p, pc = %p/%p\n",
                   FILE__, __LINE__, ev.proc->main_brk_addr, ev.proc->dyninstlib_brk_addr, 
                   pc, getPC(ev.proc->getPid()));
@@ -356,7 +351,7 @@ static pid_t waitpid_kludge(pid_t /*pid*/, int *status, int options, int *dead_l
   return ret; 
 }
 
-bool SignalHandler::waitNextEvent(EventRecord &ev) 
+bool SignalGeneratorUnix::waitNextEvent(EventRecord &ev) 
 {
   signal_printf("%s[%d]:  welcome to waitNextEvent\n", FILE__, __LINE__);
 
@@ -441,7 +436,6 @@ bool SignalHandler::waitNextEvent(EventRecord &ev)
               ev.type = evtThreadDetect;
               ev.lwp = curlwp;
               ev.proc = curproc;
-              char buf[1024];
               //curproc->set_lwp_status(curlwp, stopped);
               __UNLOCK;
               return true;
@@ -487,7 +481,7 @@ bool SignalHandler::waitNextEvent(EventRecord &ev)
    ev.proc = pertinentProc;
    ev.lwp  = pertinentLWP;
 
-   if (!translateEvent(ev)) {
+   if (!decodeEvent(ev)) {
      fprintf(stderr, "%s[%d]:  FIXME\n", __FILE__, __LINE__);
      assert(0);
    }
@@ -646,7 +640,7 @@ bool dyn_lwp::isRunning() const {
   return (result != 'T');
 }
 
-bool SignalHandler::suppressSignalWhenStopping(EventRecord &ev)
+bool SignalGeneratorUnix::suppressSignalWhenStopping(EventRecord &ev)
 {
  
   bool suppressed_something = false;
@@ -675,7 +669,7 @@ bool SignalHandler::suppressSignalWhenStopping(EventRecord &ev)
   return suppressed_something;
 }
 
-bool SignalHandler::resendSuppressedSignals(EventRecord &ev)
+bool SignalGeneratorUnix::resendSuppressedSignals(EventRecord &ev)
 {
   stopping_proc_rec spr;
   bool found_proc = false;
@@ -705,7 +699,7 @@ bool SignalHandler::resendSuppressedSignals(EventRecord &ev)
   return true;
 }
 
-bool SignalHandler::waitingForStop(process *p)
+bool SignalGeneratorUnix::waitingForStop(process *p)
 {
   for(unsigned int i = 0; i < stoppingProcs.size(); ++i) {
        if (stoppingProcs[i].proc == p) return false;
@@ -716,7 +710,7 @@ bool SignalHandler::waitingForStop(process *p)
    return true;
 
 }
-bool SignalHandler::notWaitingForStop(process *p)
+bool SignalGeneratorUnix::notWaitingForStop(process *p)
 {
   for(unsigned int i = 0; i < stoppingProcs.size(); ++i) {
      if (stoppingProcs[i].proc == p) { 
@@ -1207,7 +1201,6 @@ pdstring process::tryToFindExecutable(const pdstring & /* iprogpath */, int pid)
   int chars_read = readlink(procpath.c_str(), buf, 1024);
   if (chars_read == -1) {
     // Note: the name could be too long. Not handling yet.
-    fprintf(stderr, "%s[%d]:  error reading file name from /proc entry\n", FILE__, __LINE__);
     return procpath;
   }
   buf[chars_read] = 0;

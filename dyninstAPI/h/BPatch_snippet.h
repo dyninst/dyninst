@@ -374,7 +374,8 @@ class BPATCH_DLL_EXPORT BPatch_sequence : public BPatch_snippet {
 #endif
 #define DYNINST_CLASS_NAME BPatch_variableExpr
 
-class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet {
+class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet 
+{
     friend class BPatch_process;
     friend class BPatch_image;
     friend class BPatch_function;
@@ -389,14 +390,15 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet {
     BPatch_variableExpr(BPatch_process *in_process, void *in_address,
                         int in_size);
     BPatch_variableExpr(char *in_name, BPatch_process *in_process, AstNode *_ast,
-                        const BPatch_type *type);
+                        BPatch_type *type);
     BPatch_variableExpr(char *in_name, BPatch_process *in_process, AstNode *_ast,
-                        const BPatch_type *type, void* in_address);
+                        BPatch_type *type, void* in_address);
     BPatch_variableExpr(BPatch_process *in_process, void *in_address, 
-                        int in_register, const BPatch_type *type, 
+                        int in_register, BPatch_type *type, 
                         BPatch_storageClass storage = BPatch_storageAddr,
                         BPatch_point *scp = NULL);
 
+  public:
     //  BPatch_variableExpr::BPatch_variableExpr
     //  Represents a variable in the target application
     //
@@ -407,7 +409,7 @@ class BPATCH_DLL_EXPORT BPatch_variableExpr : public BPatch_snippet {
     //  avoid using this constructor, it may not be here in the future).
     API_EXPORT_CTOR(Int, (name, in_process, in_address, type),
     BPatch_variableExpr,(char *name, BPatch_process *in_process,
-                         void *in_address, const BPatch_type *type));
+                         void *in_address, BPatch_type *type));
     // Public functions for use by users of the library:
 
     //  BPatch_variableExpr::getSize

@@ -215,8 +215,9 @@ int eventLock::_Broadcast(const char *__file__, unsigned int __line__)
   int err = 0;
   if(0 != (err = pthread_cond_broadcast(&cond))){
     ERROR_BUFFER;
-    fprintf(stderr, "%s[%d]:  failed to broadcast cond: %s[%d]\n",
+    fprintf(stderr, "From: %s[%d]:  failed to broadcast cond: %s[%d]\n",
             __file__, __line__, STRERROR(err, buf), err);
+    return 1;
   }
 
 #endif
@@ -259,6 +260,7 @@ int eventLock::_WaitForSignal(const char *__file__, unsigned int __line__)
     ERROR_BUFFER;
     fprintf(stderr, "%s[%d]:  failed to broadcast cond: %s[%d]\n",
             __file__, __line__, STRERROR(err, buf), err);
+    return 1;
   }
   lock_depth++;
   lock_stack.push_back(el);
@@ -412,8 +414,20 @@ CallbackBase *ThreadMailbox::executeCallback(CallbackBase *cb)
            cb->targetThread(), getThreadStr(cb->targetThread()), getExecThreadID());
   }
 
-  cb->setExecuting(true);
+  cb->setExecuting(true, getExecThreadID());
+  running.push_back(cb);
   cb->execute(); 
+
+  //  remove callback from the running pile
+  bool erased_from_running_pile = false;
+  for (unsigned int i = 0; i < running.size(); ++i) {
+    if (running[i] == cb) {
+       running.erase(i,i);
+       erased_from_running_pile = true;
+       break;
+    }
+  }
+  assert(erased_from_running_pile);
   cb->setExecuting(false);
 
  mailbox_printf("%s[%d]:  after executing callback for thread %lu(%s)\n",FILE__, __LINE__,
@@ -429,6 +443,18 @@ CallbackBase *ThreadMailbox::executeCallback(CallbackBase *cb)
  mailbox_printf("%s[%d]:  after executing cleanup for thread %lu(%s)\n",FILE__, __LINE__,
         getExecThreadID(), getThreadStr(getExecThreadID()));
   return cb;
+}
+
+CallbackBase *ThreadMailbox::runningInsideCallback()
+{
+  //  if there is a callback executing on the current thread, then caller 
+  //  must be, by extension, running as a result being inside that callback.
+  for (unsigned int i = 0; i < running.size(); ++i) {
+    assert(running[i]->isExecuting());
+    if (running[i]->execThread() == getExecThreadID())
+      return running[i];
+  }
+  return NULL;
 }
 
 void ThreadMailbox::cleanUpCalled()

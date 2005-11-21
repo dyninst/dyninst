@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.96 2005/10/12 18:26:51 tlmiller Exp $
+ * $Id: Object-elf.C,v 1.97 2005/11/21 17:16:12 jaw Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -2580,7 +2580,7 @@ static bool read_except_table_gcc2(Elf_X_Shdr *except_table,
     const char *datap = data.get_string();
     unsigned except_size = data.d_size();
 
-    unsigned i;
+    unsigned i = 0;
     while (i < except_size) {
 	i += get_ptr_of_type(DW_EH_PE_udata4, &try_start, datap + i);
 	i += get_ptr_of_type(DW_EH_PE_udata4, &try_end, datap + i);

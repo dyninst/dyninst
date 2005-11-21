@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-unix.h,v 1.16 2005/11/03 05:21:07 jaw Exp $
+/* $Id: signalhandler-unix.h,v 1.17 2005/11/21 17:16:14 jaw Exp $
  */
 
 /*
@@ -152,18 +152,117 @@ typedef int procProcStatus_t;
 // used to indicate whether the signal was consumed (>0 return) or still
 // needs to be handled (0 return)
 
-// forwardSigToProcess: continue the process with the (unhandled) signal
-int forwardSigToProcess(EventRecord &event);
-
 /////////////////////
 // Handle individual signal types
 /////////////////////
 
-bool handleSigStopNInt(EventRecord &event);
+#if defined (AIX_PROC)
+extern int SYSSET_MAP(int, int);
+#else
+#define SYSSET_MAP(x, pid)  (x)
+#endif
 
-// A signal where we may want to dump proc core/debug it
-bool handleSigCritical(EventRecord &event);
+#if defined (os_osf)
+#define GETREG_INFO(x) 0
+#define V0_REGNUM 0
+#define A0_REGNUM 16
+#endif
 
+class SignalGeneratorUnix : public SignalGenerator
+{
+  friend SignalGeneratorUnix *getSH();
+  friend class SignalHandlerUnix;
+  friend class process;
+  friend process *ll_attachToCreatedProcess(int, const pdstring &);
+
+  public:
+   virtual ~SignalGeneratorUnix() {}
+
+  private:
+  //  SignalGenerator should only be constructed via getSH()
+  SignalGeneratorUnix() : SignalGenerator() {}
+  SignalHandler *newSignalHandler(char *name, int id);
+
+  bool waitNextEvent(EventRecord &ev);
+
+  bool decodeEvent(EventRecord &ev);
+  bool decodeRTSignal(EventRecord &ev);
+  bool decodeSigTrap(EventRecord &ev);
+  bool decodeSigStopNInt(EventRecord &ev);
+  bool decodeSigIll(EventRecord &ev);
+
+  //  functions specific to the unix polling mechanism.
+  bool createPollEvent(pdvector<EventRecord> &events, struct pollfd fds, process *curProc);
+  bool getFDsForPoll(pdvector<unsigned int> &fds);
+  process *findProcessByFD(unsigned int fd);
+
+#if !defined (os_linux) 
+   bool updateEvents(pdvector<EventRecord> &events, process *p, int lwp_to_use);
+   bool decodeProcStatus(process *p, procProcStatus_t status, EventRecord &ev);
+   bool updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
+                                  pdvector<EventRecord> &events);
+#endif
+
+#if defined (os_linux)
+   public:
+   bool waitingForStop(process *p);
+   bool notWaitingForStop(process *p);
+   private:
+   typedef struct {
+      process *proc;
+      pdvector<int> suppressed_sigs;
+      pdvector<dyn_lwp *> suppressed_lwps;
+   } stopping_proc_rec;
+   pdvector<stopping_proc_rec> stoppingProcs;
+   //  SignalHandler::suppressSignalWhenStopping
+   //  needed on linux platforms.  Allows the signal handler function
+   //  to ignore most non SIGSTOP signals when waiting for a process to stop
+   //  Returns true if signal is to be suppressed.
+   bool suppressSignalWhenStopping(EventRecord &ev);
+   //  SignalHandler::resendSuppressedSignals
+   //  called upon receipt of a SIGSTOP.  Sends all deferred signals to the stopped process.
+   bool resendSuppressedSignals(EventRecord &ev);
+#endif
+
+};
+
+class SignalHandlerUnix : public SignalHandler
+{
+  friend class SignalGeneratorUnix;
+  friend class process;
+  friend process *ll_attachToCreatedProcess(int, const pdstring &);
+  public:
+
+  private:
+  //  SignalHandler should only be constructed by SignalGenerator
+  SignalHandlerUnix(char *shname, int shid) : SignalHandler(shname, shid) {}
+  virtual ~SignalHandlerUnix() {}
+
+  bool handleEvent(EventRecord &);
+  bool handleEventLocked(EventRecord &);
+  bool handleSigStopNInt(EventRecord &event);
+  bool handleSigCritical(EventRecord &event);
+  procSyscall_t decodeSyscall(process *p, eventWhat_t what);
+  bool handleSignal(EventRecord &ev);
+  bool handleSIGCHLD(EventRecord &ev);
+  static bool handleSigTrap(EventRecord &ev);
+
+  bool handleSIGSTOP(EventRecord &ev);
+  bool handleForkEntry(EventRecord &ev);
+  bool handleExecEntry(EventRecord &ev);
+  bool handleLwpExit(EventRecord &ev);
+  bool handleSyscallEntry(EventRecord &ev);
+  bool handleSyscallExit(EventRecord &ev);
+  bool handleForkExit(EventRecord &ev);
+  static bool handleExecExit(EventRecord &ev);
+  bool handleLoadExit(EventRecord &ev);
+  bool handleSingleStep(const EventRecord &ev);
+  static bool handleProcessCreate(EventRecord &ev);
+
+
+  // forwardSigToProcess: continue the process with the (unhandled) signal
+  static int forwardSigToProcess(EventRecord &ev);
+};
 /////////////////////
 // Translation mechanisms
 /////////////////////
@@ -187,11 +286,6 @@ inline bool didProcReceiveInstTrap(eventType t) {
 inline bool didProcExit(EventRecord &ev) {
     return ((ev.type == evtProcessExit) && (ev.status == statusNormal));
 }
-
-inline bool didProcExitOnSignal(EventRecord &ev) {
-    return ((ev.type == evtProcessExit) && (ev.status == statusSignalled));
-}
-
 
 #endif
 

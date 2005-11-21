@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.149 2005/09/15 22:08:58 bernat Exp $
+// $Id: inst.C,v 1.150 2005/11/21 17:16:12 jaw Exp $
 // Code to install and remove instrumentation from a running process.
 // Misc constructs.
 
@@ -132,9 +132,16 @@ void relocatedInstruction::overrideTarget(Address newTarget) {
     targetOverride_ = newTarget;
 }
 
+#if defined (cap_unwind)
 bool trampEnd::generateCode(codeGen &gen,
                             Address baseInMutatee,
-                            UNW_INFO_TYPE ** unwindRegion ) {
+                            UNW_INFO_TYPE ** unwindRegion ) 
+#else
+bool trampEnd::generateCode(codeGen &gen,
+                            Address baseInMutatee,
+                            UNW_INFO_TYPE ** /*unwindRegion*/ )
+#endif
+{
     generateSetup(gen, baseInMutatee);
     
     if (target_) {

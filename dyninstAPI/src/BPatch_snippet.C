@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.74 2005/10/13 21:12:22 tlmiller Exp $
+// $Id: BPatch_snippet.C,v 1.75 2005/11/21 17:16:11 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -160,7 +160,7 @@ AstNode *generateArrayRef(const BPatch_snippet &lOperand,
 	return NULL;
     }
 
-    const BPatch_type *elementType = arrayType->getConstituentType();
+    BPatch_type *elementType = arrayType->getConstituentType();
 
     assert(elementType);
     long int elementSize = elementType->getSize();
@@ -880,7 +880,7 @@ void BPatch_sequence::BPatch_sequenceInt(const BPatch_Vector<BPatch_snippet *> &
 void BPatch_variableExpr::BPatch_variableExprInt(char *in_name,
 					    BPatch_process *in_process,
 					    void *in_address,
-					    const BPatch_type *type) 
+					    BPatch_type *type) 
 {
     name = in_name;
     appProcess = in_process;
@@ -912,7 +912,7 @@ void BPatch_variableExpr::BPatch_variableExprInt(char *in_name,
 BPatch_variableExpr::BPatch_variableExpr(char *in_name,
                                          BPatch_process *in_process,
                                          AstNode *_ast,
-                                         const BPatch_type *type,
+                                         BPatch_type *type,
                                          void* in_address) :
     name(in_name), appProcess(in_process), address(in_address), scope(NULL), isLocal(false)
 {
@@ -929,7 +929,7 @@ BPatch_variableExpr::BPatch_variableExpr(char *in_name,
 BPatch_variableExpr::BPatch_variableExpr(char *in_name,
                                          BPatch_process *in_process,
                                          AstNode *_ast,
-                                         const BPatch_type *type) :
+                                         BPatch_type *type) :
     name(in_name), appProcess(in_process), address(NULL), scope(NULL), isLocal(false)
 {
     ast = _ast;
@@ -1006,7 +1006,7 @@ bool BPatch_variableExpr::setSizeInt(int sz)
 BPatch_variableExpr::BPatch_variableExpr(BPatch_process *in_process,
                                          void *in_address,
 					 int in_register,
-                                         const BPatch_type *type,
+                                         BPatch_type *type,
                                          BPatch_storageClass in_storage,
 					 BPatch_point *scp) :
     appProcess(in_process), address(in_address)

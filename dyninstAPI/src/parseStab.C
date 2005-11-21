@@ -184,7 +184,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
     int ID = 0;
     int symdescID = 0;
     int funcReturnID = 0;
-    BPatch_function  *fp;
+    BPatch_function  *fp = NULL;
     BPatch_type * ptrType = NULL;
     BPatch_type * newType = NULL; // For new types to add to the collection
     BPatch_localVar *locVar = NULL;
@@ -858,11 +858,11 @@ static int parseTypeUse(BPatch_module *mod,char *&stabstr, int &cnt,
 //
 //	<crossRef>	= [s|u|e]<ident>
 //
-static char *parseCrossRef(BPatch_typeCollection *moduleTypes,const char *name,
+static char *parseCrossRef(BPatch_typeCollection *moduleTypes,const char * /*name*/,
                            int ID, char *stabstr, int &cnt)
 {
     char *temp;
-    BPatch_type *newType, *newType2;
+    BPatch_type *newType = NULL, *newType2 = NULL;
     char xreftype;
     cnt++; /* skip 'x'*/
 
@@ -1077,8 +1077,6 @@ static char *parseRangeType(BPatch_module *mod, const char *name, int ID,
 
    assert(stabstr[0] == 'r');
    cnt++;
-
-   BPatch_dataClass typdescr = BPatchSymTypeRange;
 
    // range index type - not used
    symdescID = parseSymDesc(stabstr, cnt);
@@ -1427,7 +1425,8 @@ static char *parseRefType(BPatch_module *mod, const char *name,
 //
 // Given a base class and a new type, add all visible fields to the new class
 //
-void addBaseClassToClass(BPatch_module *mod, int baseID, BPatch_fieldListType *newType, int offset)
+void addBaseClassToClass(BPatch_module *mod, int baseID, 
+                         BPatch_fieldListType *newType, int /*offset*/)
 {
 
     //Find base class
@@ -2088,7 +2087,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 		i++;
 
 		cnt += i;
-		int nbits = parseSymDesc(stabstr, cnt);
+		parseSymDesc(stabstr, cnt);
 		
 		if (stabstr[cnt]) cnt++;	// skip the final ';'
 

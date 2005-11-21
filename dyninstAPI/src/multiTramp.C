@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.19 2005/11/03 05:21:06 jaw Exp $
+// $Id: multiTramp.C,v 1.20 2005/11/21 17:16:13 jaw Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -979,7 +979,7 @@ bool multiTramp::installCode() {
     assert(generated_);
 
     // Try to branch to the tramp, but if we can't use a trap
-    if ((branchSize_ > instSize_) ||
+    if ((branchSize_ > (int)instSize_) ||
         (branchSize_ == -1)) {
         // Crud. Go with traps.
         jumpBuf_.setIndex(0);
@@ -1318,7 +1318,7 @@ multiTramp::mtErrorCode_t multiTramp::generateMultiTramp() {
         return mtError;
 
     // Relocation...
-    if (branchSize_ > instSize_)
+    if (branchSize_ > (int) instSize_)
         return mtTryRelocation;
     return mtSuccess;
 }
@@ -1973,9 +1973,16 @@ bool multiTramp::catchupRequired(Address pc, miniTramp *newMT,
     return false;
 }
 
+#if defined (arch_ia64)
 bool relocatedInstruction::generateCode(codeGen &gen,
                                         Address baseInMutatee,
-                                        UNW_INFO_TYPE ** unwindInformation ) {
+                                        UNW_INFO_TYPE ** unwindInformation ) 
+#else
+bool relocatedInstruction::generateCode(codeGen &gen,
+                                        Address baseInMutatee,
+                                        UNW_INFO_TYPE ** /* unwindInformation*/ ) 
+#endif
+{
     if (alreadyGenerated(gen, baseInMutatee))
         return true;
     generateSetup(gen, baseInMutatee);

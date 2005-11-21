@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.136 2005/11/03 05:21:05 jaw Exp $
+// $Id: BPatch_thread.C,v 1.137 2005/11/21 17:16:11 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -300,6 +300,7 @@ unsigned long BPatch_thread::os_handleInt()
     // fd on Solaris, and that's opened by the daemon. Windows... I don't
     // understand enough about the system to say.
     assert(0);
+    return -1UL; // keep compiler happy
 #else
     return (unsigned long) llthread->get_lwp()->get_fd();
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.146 2005/11/03 05:21:06 jaw Exp $
+// $Id: pdwinnt.C,v 1.147 2005/11/21 17:16:13 jaw Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -80,6 +80,25 @@ static pdstring GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev );
 void InitSymbolHandler( HANDLE hProcess );
 void ReleaseSymbolHandler( HANDLE hProcess );
 extern bool isValidAddress(process *proc, Address where);
+
+SignalGeneratorWindows *global_sh = NULL;
+
+SignalGeneratorWindows *getSH() {
+   if(global_sh == NULL) {
+      signal_printf("%s[%d]:  about to create new SignalHandler\n", FILE__, __LINE__);
+      global_sh = new SignalGeneratorWindows();
+      global_sh->createThread();
+   }
+
+   return global_sh;
+}
+
+SignalHandler *SignalGeneratorWindows::newSignalHandler(char *name, int id)
+{
+  SignalHandlerWindows *sh;
+  sh  = new SignalHandlerWindows(name, id);
+  return (SignalHandler *)sh;
+}
 
 //HANDLE kludgeProcHandle;
 

@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.70 2005/11/03 05:21:07 jaw Exp $
+// $Id: sol_proc.C,v 1.71 2005/11/21 17:16:14 jaw Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -229,7 +229,17 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
   }
 
   // Continue the process the easy way
+ busy_retry:
+  errno = 0;
   if (write(ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
+      if (errno == EBUSY) {
+        struct timeval slp;
+        slp.tv_sec = 0;
+        slp.tv_usec = 1 /*ms*/ *1000;
+        select(0, NULL, NULL, NULL, &slp);
+        fprintf(stderr, "continueLWP_, ctl_fd is busy, trying again\n", FILE__, __LINE__);
+        goto busy_retry;
+      }
       perror("continueLWP: PCRUN2");
       return false;
   }
@@ -440,6 +450,7 @@ bool dyn_lwp::stop_() {
   command[0] = PCSTOP;
 
   if (write(ctl_fd(), command, sizeof(long)) != sizeof(long)) {
+      fprintf(stderr, "%s[%d][%s]: ", FILE__, __LINE__, getThreadStr(getExecThreadID()));
       perror("pauseLWP: PCSTOP");
       return false;
   }
@@ -509,9 +520,19 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs)
     *regbufptr = PCSREG; regbufptr++;
     memcpy(regbufptr, &(regs.theIntRegs), sizeof(prgregset_t));
     int writesize;
+try_again:
+    errno = 0;
     writesize = write(ctl_fd(), regbuf, regbufsize);
     
     if (writesize != regbufsize) {
+        if (errno == EBUSY) {
+          fprintf(stderr, "%s[%d]:  busy fd\n", FILE__, __LINE__);
+          struct timeval slp;
+          slp.tv_sec = 0;
+          slp.tv_usec = 1 /*ms*/ *1000;
+          select(0, NULL, NULL, NULL, &slp);
+          goto try_again;
+        }
         perror("restoreRegisters: GPR write");
         return false;
     }
@@ -1069,10 +1090,12 @@ bool process::get_status(pstatus_t *status) const
     if (!isAttached()) return false;
     if (!getRepresentativeLWP()->is_attached()) return false;
    
-    if(pread(getRepresentativeLWP()->status_fd(), (void *)status,
-             sizeof(pstatus_t), 0) != sizeof(pstatus_t)) {
+    int readfd = getRepresentativeLWP()->status_fd();
+    size_t sz_read = pread(readfd, (void *)status, sizeof(pstatus_t), 0);
+    if (sz_read != sizeof(pstatus_t)) {
+        fprintf(stderr, "[%s][%d]: process::get_status: %s\n", FILE__, __LINE__, strerror(errno));
+        fprintf(stderr, "[%s][%d]: pread returned %d instead of %d, fd = %d\n", FILE__, __LINE__, sz_read, sizeof(pstatus_t), readfd);
         perror("pread");
-        fprintf(stderr, "[%s][%d]: process::get_status: %s\n", __FILE__, __LINE__, strerror(errno));
         return false;
     }
     
@@ -1428,11 +1451,11 @@ bool find_matching_event(pdvector<EventRecord> &events,
    return found;
 }
 
-//  translateEvent() is here in lieu of a preexisting
+//  decodeEvent() is here in lieu of a preexisting
 //  function specialHandlingOfEvents(), which fixes up events in special
 //  cases.  Not pretty
 
-bool SignalHandler::translateEvent(EventRecord &cur_event) {
+bool SignalGeneratorUnix::decodeEvent(EventRecord &cur_event) {
 
 #if defined(os_aix)
   if (cur_event.type == evtSignalled && cur_event.what == SIGSTOP) {
@@ -1450,11 +1473,17 @@ bool SignalHandler::translateEvent(EventRecord &cur_event) {
   }
 #endif
 
+  if (cur_event.type == evtSignalled && cur_event.what == SIGTRAP) 
+    decodeSigTrap(cur_event);
+
+  if ((cur_event.type == evtSignalled && cur_event.what == SIGSTOP) 
+    || (cur_event.type == evtSignalled && cur_event.what == SIGINT)) 
+    decodeSigStopNInt(cur_event);
   return true;
 }
 
 // returns true if updated events structure for this lwp 
-bool SignalHandler::updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
+bool SignalGeneratorUnix::updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
                                pdvector<EventRecord> &events)
 {
 
@@ -1486,17 +1515,17 @@ bool SignalHandler::updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
   bool found_match = find_matching_event(events, curProc, ev, matching_event);
 
   if(!found_match) {
-     translateEvent(ev);
+     decodeEvent(ev);
      events.push_back(ev);
   } else {
      matching_event.lwp = lwp;
-     translateEvent(matching_event);
+     decodeEvent(matching_event);
   }
    
   return true;
 }
 
-bool SignalHandler::updateEvents(pdvector<EventRecord> &events, process *p, int lwp_to_use)
+bool SignalGeneratorUnix::updateEvents(pdvector<EventRecord> &events, process *p, int lwp_to_use)
 {
   //  returns true if events are updated
   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(p->real_lwps);
@@ -1521,12 +1550,12 @@ bool SignalHandler::updateEvents(pdvector<EventRecord> &events, process *p, int 
   return updated_events;
 }
 
-bool SignalHandler::getFDsForPoll(pdvector<unsigned int> &fds)
+bool SignalGeneratorUnix::getFDsForPoll(pdvector<unsigned int> &fds)
 {
   extern pdvector<process*> processVec;
   for(unsigned u = 0; u < processVec.size(); u++) {
      process *lproc = processVec[u];
-     if(lproc && (lproc->status() == running || lproc->status() == neonatal))
+     if(lproc && (lproc->status() == running))
        fds.push_back(lproc->getRepresentativeLWP()->status_fd());
   }
 #ifdef DEBUG
@@ -1542,12 +1571,12 @@ bool SignalHandler::getFDsForPoll(pdvector<unsigned int> &fds)
   return (fds.size() > 0);
 }
 
-process *SignalHandler::findProcessByFD(unsigned int fd)
+process *SignalGeneratorUnix::findProcessByFD(unsigned int fd)
 {
   for(unsigned u = 0; u < processVec.size(); u++) {
     process *lproc = processVec[u];
     if (!lproc) {
-      fprintf(stderr, "%s[%d]:  missing pointer to process for fd %d\n", __FILE__, __LINE__,fd);
+      fprintf(stderr, "%s[%d]:  missing pointer to process for fd %d\n", FILE__, __LINE__,fd);
       continue;
     }
     dyn_lwp *lwp = lproc->getRepresentativeLWP();

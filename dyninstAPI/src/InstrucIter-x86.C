@@ -609,9 +609,9 @@ void parseRegisters(int * readArr, int * writeArr,
   ia32_entry * entry = ii->getEntry();
   ia32_prefixes * pref = ii->getPrefix();
 
-  const unsigned char * addr = i->ptr();
+  char * addr = (char *) i->ptr();
 
-  char * addrPtr = (char *)addr;
+  char * addrPtr = addr;
   int hasSIB = 0;
   int hasModRM = 0;
   int opCodeSize = 1;
@@ -694,7 +694,7 @@ void parseRegisters(int * readArr, int * writeArr,
       else if (mod != 3 && rm == 4)
 	{
 	  char sibByte = *addrPtr;
-	  unsigned scale = (sibByte >> 6) & 0x03;
+	  //unsigned scale = (sibByte >> 6) & 0x03;
 	  unsigned ind = (sibByte >> 3) & 0x07;
 	  unsigned base =  sibByte & 0x07;
 	  

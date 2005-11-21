@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4.C,v 1.30 2005/08/08 20:23:36 gquinn Exp $
+// $Id: test4.C,v 1.31 2005/11/21 17:16:14 jaw Exp $
 //
 
 #include <stdio.h>
@@ -180,6 +180,7 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
        
        parent->insertSnippet(callExpr2, *point2);
 
+       dprintf("MUTATEE:  after insert in fork of %d to %d\n", parent->getPid(), child->getPid());
        // insert different code into child
        appImage = child->getImage();
        assert(appImage);
@@ -209,6 +210,7 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
 
        child->insertSnippet(callExpr1, *point1);
 
+       dprintf("MUTATEE:  after insert2 in fork of %d to %d\n", parent->getPid(), child->getPid());
        test2Child = child;
        test2Parent = parent;
     } else if (inTest == 4) {
@@ -400,6 +402,7 @@ void execFunc(BPatch_thread *thread)
 
         assert(point);
         thread->insertSnippet(callExpr, *point);
+	dprintf("%s[%d]:  MUTATEE: exec callback for %d, done with insert snippet\n", __FILE__, __LINE__, thread->getPid());
     } else if (inTest == 4) {
 	dprintf("in exec callback for %d\n", thread->getPid());
 

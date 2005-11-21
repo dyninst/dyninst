@@ -133,4 +133,7 @@ unsigned long BPatch_eventLock::threadID() const
 }
 #endif
 
-
+unsigned int BPatch_eventLock::lockDepth() const
+{
+  return global_mutex->depth();
+}

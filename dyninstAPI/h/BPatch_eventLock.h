@@ -110,6 +110,7 @@ public:
   int _Broadcast(const char *__file__, unsigned int __line__) const;
   int _WaitForSignal(const char *__file__, unsigned int __line__) const;
 
+  unsigned int lockDepth() const;
 };
 
 

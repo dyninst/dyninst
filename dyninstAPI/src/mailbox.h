@@ -145,9 +145,13 @@ class CallbackBase
     virtual bool execute()=0;
     virtual CallbackBase *copy()=0;
     unsigned long targetThread() {return target_thread;}
+    unsigned long execThread() {return execution_thread;}
     void setTargetThread(unsigned long t) {target_thread;}
     bool isExecuting() {return exec_flag;}
-    void setExecuting(bool flag) {exec_flag = flag;}
+    void setExecuting(bool flag = true, unsigned long exec_thread_id = -1UL) {
+      execution_thread = exec_thread_id;
+      exec_flag = flag;
+    }
     
     void enableDelete(bool flag = true) {ok_to_delete = flag;}
     bool deleteEnabled() {return ok_to_delete;}
@@ -155,6 +159,7 @@ class CallbackBase
     CallbackCompletionCallback getCleanupCallback() {return cleanup_callback;}
   private:
     unsigned long target_thread;
+    unsigned long execution_thread;
     bool exec_flag;
     bool ok_to_delete;
     CallbackCompletionCallback cleanup_callback;
@@ -168,10 +173,12 @@ class ThreadMailbox
 
      void executeOrRegisterCallback(CallbackBase *cb); 
      void executeCallbacks(const char *file, unsigned int line); 
+     CallbackBase *runningInsideCallback();
   private:
     CallbackBase *executeCallback(CallbackBase *cb);
     void cleanUpCalled();
     pdvector<CallbackBase *> cbs;
+    pdvector<CallbackBase *> running;
     pdvector<CallbackBase *> called;
     eventLock mb_lock;
 };

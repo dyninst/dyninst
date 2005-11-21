@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.146 2005/11/03 05:21:08 jaw Exp $
+// $Id: unix.C,v 1.147 2005/11/21 17:16:14 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -73,6 +73,25 @@
 
 #include <sys/poll.h>
 
+SignalGeneratorUnix *global_sh = NULL;
+
+SignalGeneratorUnix *getSH() {
+   if(global_sh == NULL) {
+      signal_printf("%s[%d]:  about to create new SignalHandler\n", FILE__, __LINE__);
+      global_sh = new SignalGeneratorUnix();
+      global_sh->createThread();
+   }
+
+   return global_sh;
+}
+
+SignalHandler *SignalGeneratorUnix::newSignalHandler(char *name, int id)
+{
+  SignalHandlerUnix *sh;
+  sh  = new SignalHandlerUnix(name, id);
+  return (SignalHandler *)sh;
+}
+
 /////////////////////////////////////////////////////////////////////////////
 /// Massive amounts of signal handling code
 /////////////////////////////////////////////////////////////////////////////
@@ -86,12 +105,14 @@ bool decodeWaitPidStatus(procWaitpidStatus_t status,
         ev.type = evtProcessExit;
         ev.status = statusNormal;
         ev.what = (eventWhat_t) (unsigned int) WEXITSTATUS(status);
+        //ev.proc->set_status(exited);
         return true;
     } 
     else if (WIFSIGNALED(status)) {
         ev.type = evtProcessExit;
         ev.status = statusSignalled;
         ev.what = (eventWhat_t) (unsigned int) WTERMSIG(status);
+        //ev.proc->set_status(exited);
         return true;
     }
     else if (WIFSTOPPED(status)) {
@@ -108,7 +129,7 @@ bool decodeWaitPidStatus(procWaitpidStatus_t status,
     return false;
 }
 
-int forwardSigToProcess(EventRecord &ev) {
+int SignalHandlerUnix::forwardSigToProcess(EventRecord &ev) {
     process *proc = ev.proc;
 
     // Pass the signal along to the child
@@ -129,103 +150,19 @@ int forwardSigToProcess(EventRecord &ev) {
     return 1;
 }
 
-bool SignalHandler::handleSigTrap(EventRecord &ev) {
+bool SignalHandlerUnix::handleSigTrap(EventRecord &ev) 
+{
     process *proc = ev.proc;
     
     // SIGTRAP is our workhorse. It's used to stop the process at a specific
     // address, notify the mutator/daemon of an event, and a few other things
     // as well.
-    signal_cerr << "welcome to SIGTRAP for pid " << proc->getPid()
-                << " status =" << proc->getStatusAsString() << endl;
+    signal_printf("%s[%d]: SIGTRAP for pid %d, status = %s\n", FILE__, __LINE__,
+                  proc->getPid(), proc->getStatusAsString().c_str());
 
     /////////////////////////////////////////
-    // Init section
+    // dlopen/close section
     /////////////////////////////////////////
-
-    if (!proc->reachedBootstrapState(bootstrapped_bs)) {
-        if (!proc->reachedBootstrapState(begun_bs)) {
-            // We've created the process, but haven't reached main. 
-            // This would be a perfect place to load the dyninst library,
-            // but all the other shared libs aren't initialized yet. 
-            // So we wait for main to be entered before working on the process.
-            proc->setBootstrapState(begun_bs);
-            if (proc->insertTrapAtEntryPointOfMain()) {
-                pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
-                buffer += pdstring(", attached to process, stepping to main");       
-                statusLine(buffer.c_str());		
-                proc->continueProc();
-            } else {
-                // We couldn't insert the trap... so detach from the process
-                // and let it run. 
-                fprintf(stderr, "%s[%d][%s]:  ERROR:  couldn't insert at entry of main,\n",
-                        __FILE__, __LINE__, getThreadStr(getExecThreadID()));
-                fprintf(stderr, "\tinstrumenting process impossible\n");
-                // We should actually delete any mention of this
-                // process... including (for Paradyn) removing it from the
-                // frontend.
-                proc->triggerNormalExitCallback(0);
-                proc->handleProcessExit();
-                proc->continueProc();
-            }
-            // Now we wait for the entry point trap to be reached
-            return true;
-        }
-        else if (proc->trapAtEntryPointOfMain(ev.lwp)) {
-            proc->handleTrapAtEntryPointOfMain(ev.lwp);
-            proc->setBootstrapState(initialized_bs);
-            if (!getSH()->signalEvent(evtProcessInit)) {
-              fprintf(stderr, "%s[%d]:  SYNC PROBLEM?  nobody waiting for init\n", FILE__, __LINE__);
-            }
-            // If we were execing, we now know we finished
-            if (proc->execing()) {
-                proc->finishExec();
-            }
-            return true;
-        }
-        else if (proc->trapDueToDyninstLib(ev.lwp)) {
-            pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
-            buffer += pdstring(", loaded dyninst library");
-            statusLine(buffer.c_str());
-            startup_cerr << "trapDueToDyninstLib returned true, trying to handle\n";
-            proc->loadDYNINSTlibCleanup(ev.lwp);
-            proc->setBootstrapState(loadedRT_bs);
-            getSH()->signalEvent(evtProcessLoadedRT);
-            return true;
-        }
-    }
-
-    //////////////////////////////
-    // Trap safety section
-    //////////////////////////////
-    Frame af = ev.lwp->getActiveFrame();
-    if (proc->trampTrapMapping.defines(af.getPC())) {
-        ev.lwp->changePC(proc->trampTrapMapping[af.getPC()], NULL);
-        fprintf(stderr, "Trapping from 0x%lx to 0x%lx\n",
-                af.getPC(), proc->trampTrapMapping[af.getPC()]);
-        proc->continueProc();
-        return 1;
-    }
-
-    
-///////////////////////////////////
-// Inferior RPC section
-///////////////////////////////////
-
-    // New and improved RPC handling, takes care of both
-    // an RPC which has reached a breakpoint and whether
-    // we're waiting for a syscall to complete
-    assert(ev.lwp);
-    if (proc->getRpcMgr()->handleSignalIfDueToIRPC(ev.lwp)) {
-        signal_cerr << "processed RPC response in SIGTRAP" << endl;
-        if (proc->status() == stopped) {
-          getSH()->signalEvent(evtProcessStop);
-        }
-        return true;
-    }
-    
-/////////////////////////////////////////
-// dlopen/close section
-/////////////////////////////////////////
     
     // check to see if trap is due to dlopen or dlcose event
     if(proc->isDynamicallyLinked()){
@@ -247,31 +184,33 @@ bool SignalHandler::handleSigTrap(EventRecord &ev) {
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(ia64_unknown_linux2_4)
     if (proc->nextTrapIsExec) {
+        signal_printf("%s[%d]: handling trap as exec exit\n", FILE__, __LINE__);
         return handleExecExit(ev);
     }
 #endif
 
     // Check to see if this is a syscall exit
     if (proc->handleSyscallExit(0, ev.lwp)) {
+      signal_printf("%s[%d]: handling trap as syscall exit\n", FILE__, __LINE__);
       proc->continueProc();
       return true;
     }
 
+#if defined(os_linux)
+   return forwardSigToProcess(ev);
+#endif
+
+    signal_printf("%s[%d]:  SigTrap failing\n", FILE__, __LINE__);
     return false;
 }
 
 // Needs to be fleshed out
-bool handleSigStopNInt(EventRecord &ev) {
+bool SignalHandlerUnix::handleSigStopNInt(EventRecord &ev) 
+{
    process *proc = ev.proc;
    bool retval = false;
-
    assert(ev.lwp);
-   if (proc->getRpcMgr()->handleSignalIfDueToIRPC(ev.lwp)) {
-       inferiorrpc_cerr << "processed RPC response in SIGSTOP\n";
-       // don't want to execute ->Stopped() which changes status line
-       retval = true;
-   }
-   else {
+
 #if defined(os_linux)
       // Linux uses SIGSTOPs for process control.  If the SIGSTOP
       // came during a process::pause (which we would know because
@@ -279,16 +218,13 @@ bool handleSigStopNInt(EventRecord &ev) {
       // If it comes at another time we'll assume it came from something
       // like a Dyninst Breakpoint and not handle it.      
       proc->set_lwp_status(ev.lwp, stopped);
-      getSH()->signalEvent(evtProcessStop);
-      retval = true;
 #else
       signal_cerr << "unhandled SIGSTOP for pid " << proc->getPid() 
 		  << " so just leaving process in paused state.\n" 
 		  << std::flush;
+#endif
       getSH()->signalEvent(evtProcessStop);
       retval = true;
-#endif
-   }
 
    // Unlike other signals, don't forward this to the process. It's stopped
    // already, and forwarding a "stop" does odd things on platforms
@@ -296,7 +232,8 @@ bool handleSigStopNInt(EventRecord &ev) {
    return retval;
 }
 
-bool handleSigCritical(EventRecord &ev) {
+bool SignalHandlerUnix::handleSigCritical(EventRecord &ev) 
+{
    process *proc = ev.proc;
    fprintf(stderr, "%s[%d]:  SIG CRITICAL (sig = %d)  received, dying...\n", 
            FILE__, __LINE__, (int) ev.info);
@@ -337,7 +274,7 @@ bool handleSigCritical(EventRecord &ev) {
    return true;
 }
 
-bool SignalHandler::decodeRTSignal(EventRecord &ev)
+bool SignalGeneratorUnix::decodeRTSignal(EventRecord &ev)
 {
    // We've received a signal we believe was sent
    // from the runtime library. Check the RT lib's
@@ -437,24 +374,15 @@ bool SignalHandler::decodeRTSignal(EventRecord &ev)
    return true;
 }
 
-bool SignalHandler::handleSIGILL(EventRecord &ev) 
+bool SignalGeneratorUnix::decodeSigIll(EventRecord &ev) 
 {
-  bool ret = false;
-  // x86 uses SIGILL for various purposes
-  assert(ev.lwp);
-  assert(ev.proc);
-
-  if (ev.proc->getRpcMgr()->handleSignalIfDueToIRPC(ev.lwp)) {
-      signal_printf("%s[%d]:  SIGILL due to IRPC\n", FILE__, __LINE__);
-      ret = true;
-  }
-  else 
-    ret = handleSigCritical(ev);
-
-  return ret;
+#if defined (arch_ia64) 
+  return ev.proc->getRpcMgr()->decodeEventIfDueToIRPC(ev);
+#endif
+  return false;
 }
 
-bool SignalHandler::handleSIGCHLD(EventRecord &ev) 
+bool SignalHandlerUnix::handleSIGCHLD(EventRecord &ev) 
 {
 #if defined (os_linux)
   // Linux fork() sends a SIGCHLD once the fork has been created
@@ -466,27 +394,13 @@ bool SignalHandler::handleSIGCHLD(EventRecord &ev)
   return true;
 }
 
-bool SignalHandler::handleSIGTRAP(EventRecord &ev)
-{
-
-   bool ret =  handleSigTrap(ev);
-
-    // We may use traps to instrument points
-    // and so we forward the signal to the process
-#if defined(os_linux)
-   if (!ret)
-      return forwardSigToProcess(ev);
-#endif
-  return ret;
-}
-
-bool SignalHandler::handleSIGSTOP(EventRecord &ev)
+bool SignalHandlerUnix::handleSIGSTOP(EventRecord &ev)
 {
   assert(ev.proc);
    bool ret = handleSigStopNInt(ev);
    
 #if defined (os_linux)
-  if (! resendSuppressedSignals(ev)) {
+  if (! getSH()->resendSuppressedSignals(ev)) {
     //fprintf(stderr, "%s[%d]:  failed to resend suppressed signals\n", __FILE__, __LINE__);
   }
   //return true;
@@ -494,13 +408,13 @@ bool SignalHandler::handleSIGSTOP(EventRecord &ev)
   return ret;
 }
 
-bool SignalHandler::handleSignal(EventRecord &ev) 
+bool SignalHandlerUnix::handleSignal(EventRecord &ev) 
 {
     process *proc = ev.proc;
     bool ret = false;
 
 #if defined (os_linux)
-    if (suppressSignalWhenStopping(ev)) {
+    if (getSH()->suppressSignalWhenStopping(ev)) {
       ev.lwp->continueLWP_(0);
       ev.proc->set_lwp_status(ev.lwp, running);
       return true;
@@ -509,14 +423,14 @@ bool SignalHandler::handleSignal(EventRecord &ev)
     switch(ev.what) {
       case SIGTRAP: 
          signal_printf("%s[%d]:  SIGTRAP\n", FILE__, __LINE__);
-         ret = handleSIGTRAP(ev); break;
+         ret = handleSigTrap(ev); break;
       case SIGSTOP:
       case SIGINT: 
          signal_printf("%s[%d]:  SIGSTOP\n", FILE__, __LINE__);
          ret = handleSIGSTOP(ev); break;
       case SIGILL: 
          signal_printf("%s[%d]:  SIGILL\n", FILE__, __LINE__);
-         ret = handleSIGILL(ev); break;
+         ret = handleSigCritical(ev); break;
       case SIGCHLD: 
          signal_printf("%s[%d]:  SIGCHLD\n", FILE__, __LINE__);
          ret = handleSIGCHLD(ev); break;
@@ -530,8 +444,8 @@ bool SignalHandler::handleSignal(EventRecord &ev)
         statusLine(errorLine);
         ev.proc->triggerSignalExitCallback(ev.info);
         ev.proc->handleProcessExit();
-        BPatch::bpatch->mutateeStatusChange = true; 
-        signalEvent(evtProcessExit);
+        flagBPatchStatusChange();
+        getSH()->signalEvent(evtProcessExit);
         ret = true;
         break;
       case SIGBUS:
@@ -540,7 +454,7 @@ bool SignalHandler::handleSignal(EventRecord &ev)
          signal_printf("%s[%d]: SIGSEGV\n", FILE__, __LINE__);
          ret = handleSigCritical(ev); break;
       case SIGCONT:
-#if defined(os_linux)
+#if defined(os_linux) || defined (os_aix)
          ret = true;
          break;
 #endif
@@ -559,7 +473,7 @@ bool SignalHandler::handleSignal(EventRecord &ev)
      bool exists = false;   
      BPatch_process *bproc = BPatch::bpatch->getProcessByPid(proc->getPid(), &exists);
      if (bproc) 
-       bproc->lastSignal = ev.what;
+       setBPatchProcessSignal(bproc, ev.what);
     return ret;
  }
 
@@ -570,7 +484,7 @@ bool SignalHandler::handleSignal(EventRecord &ev)
  // Most of our syscall handling code is shared on all platforms.
  // Unfortunately, there's that 5% difference...
 
-bool SignalHandler::handleForkEntry(EventRecord &ev) 
+bool SignalHandlerUnix::handleForkEntry(EventRecord &ev) 
 {
      signal_printf("Welcome to FORK ENTRY for process %d\n",
                    ev.proc->getPid());
@@ -581,12 +495,12 @@ bool SignalHandler::handleForkEntry(EventRecord &ev)
  // doing a (for i in $path; do exec $i/<progname>
  // This means that the entry will be called multiple times
  // until the exec call gets the path right.
-bool SignalHandler::handleExecEntry(EventRecord &ev) 
+bool SignalHandlerUnix::handleExecEntry(EventRecord &ev) 
 {
      return ev.proc->handleExecEntry((char *)ev.info);
 }
 
-bool SignalHandler::handleLwpExit(EventRecord &ev) 
+bool SignalHandlerUnix::handleLwpExit(EventRecord &ev) 
 {
    signal_printf("%s[%d]:  welcome to handleLwpExit\n", FILE__, __LINE__);
    process *proc = ev.proc;
@@ -619,16 +533,14 @@ bool SignalHandler::handleLwpExit(EventRecord &ev)
      mailbox_printf("%s[%d]:  executing thread exit callback\n", FILE__, __LINE__);
      BPatch_thread *bpthread = bproc->getThreadByIndex(bthrd->getBPatchID());
      assert(bpthread);
-     cb.setSynchronous();
      cb(bproc, bpthread);
    }
 
-   BPatch::bpatch->mutateeStatusChange = true;
-
+   flagBPatchStatusChange();
    return true;
 }
 
-bool SignalHandler::handleSyscallEntry(EventRecord &ev) 
+bool SignalHandlerUnix::handleSyscallEntry(EventRecord &ev) 
 {
     signal_printf("%s[%d]:  welcome to handleSyscallEntry\n", FILE__, __LINE__);
     process *proc = ev.proc;
@@ -642,9 +554,12 @@ bool SignalHandler::handleSyscallEntry(EventRecord &ev)
          ret = handleExecEntry(ev);
          break;
       case procSysExit:
+          signal_printf("%s[%d]:  handleSyscallEntry exit(%d)\n", FILE__, __LINE__, ev.info);
+          proc->triggerNormalExitCallback(ev.info);
           ret = true;
           break;
       case procLwpExit:
+         signal_printf("%s[%d]:  handleSyscallEntry: lwp_exit\n", FILE__, __LINE__);
          ret = handleLwpExit(ev);
          break;
       default:
@@ -659,7 +574,7 @@ bool SignalHandler::handleSyscallEntry(EventRecord &ev)
 }
 
  /* Only dyninst for now... paradyn should use this soon */
-bool SignalHandler::handleForkExit(EventRecord &ev) 
+bool SignalHandlerUnix::handleForkExit(EventRecord &ev) 
 {
      signal_printf("Welcome to FORK EXIT for process %d\n",
                    ev.proc->getPid());
@@ -710,7 +625,7 @@ bool SignalHandler::handleForkExit(EventRecord &ev)
 }
 
 // the alwaysdosomething argument is to maintain some strange old code
-bool SignalHandler::handleExecExit(EventRecord &ev)
+bool SignalHandlerUnix::handleExecExit(EventRecord &ev)
 {
     process *proc = ev.proc;
     proc->nextTrapIsExec = false;
@@ -729,7 +644,8 @@ bool SignalHandler::handleExecExit(EventRecord &ev)
     // We also see an exec as the first signal in a process we create. 
     // That's because it... wait for it... execed!
     if (!proc->reachedBootstrapState(begun_bs)) {
-        return handleSigTrap(ev);
+        getSH()->decodeSigTrap(ev);
+        return handleProcessCreate(ev);
     }
 
     // Unlike fork, handleExecExit doesn't do all processing required.
@@ -739,16 +655,15 @@ bool SignalHandler::handleExecExit(EventRecord &ev)
     return true;
 }
 
-bool SignalHandler::handleLoadExit(EventRecord &ev) {
+bool SignalHandlerUnix::handleLoadExit(EventRecord &ev) {
     // AIX: for 4.3.2 and later, load no longer causes the 
     // reinitialization of the process text space, and as
     // such we don't need to fix base tramps.
-        fprintf(stderr, "%s[%d]:  before handleIfDueToSharedObjectMapping\n", __FILE__, __LINE__);
     return ev.proc->handleIfDueToSharedObjectMapping();
 }
 
 
-bool SignalHandler::handleSyscallExit(EventRecord &ev) {
+bool SignalHandlerUnix::handleSyscallExit(EventRecord &ev) {
     process *proc = ev.proc;
     procSyscall_t syscall = decodeSyscall(proc, ev.what);
     bool ret = false;
@@ -789,7 +704,7 @@ bool SignalHandler::handleSyscallExit(EventRecord &ev) {
     return ret || wasHandled;
 }
 #if !defined (os_linux)
-bool SignalHandler::decodeProcStatus(process *,
+bool SignalGeneratorUnix::decodeProcStatus(process *,
                      procProcStatus_t status,
                      EventRecord &ev) 
 {
@@ -850,9 +765,9 @@ bool SignalHandler::decodeProcStatus(process *,
 }
 #endif
 #if defined (os_aix)
-procSyscall_t SignalHandler::decodeSyscall(process *p, eventWhat_t what)
+procSyscall_t SignalHandlerUnix::decodeSyscall(process *p, eventWhat_t what)
 #else
-procSyscall_t SignalHandler::decodeSyscall(process *, eventWhat_t what)
+procSyscall_t SignalHandlerUnix::decodeSyscall(process *, eventWhat_t what)
 #endif
 {
 #if defined (os_aix)
@@ -879,7 +794,45 @@ procSyscall_t SignalHandler::decodeSyscall(process *, eventWhat_t what)
     return procSysOther;
 }
 
-bool SignalHandler::handleEventLocked(EventRecord &ev)
+bool SignalHandlerUnix::handleEvent(EventRecord &ev)
+{
+  global_mutex->_Lock(FILE__, __LINE__);
+  bool ret = handleEventLocked(ev);
+  if (!events_to_handle.size())
+    idle_flag = true;
+  active_proc = NULL;
+  global_mutex->_Unlock(FILE__, __LINE__);
+
+  return ret;
+}
+
+bool SignalHandlerUnix::handleProcessCreate(EventRecord &ev)
+{
+  process * proc = ev.proc;
+  proc->setBootstrapState(begun_bs);
+  if (proc->insertTrapAtEntryPointOfMain()) {
+      pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
+      buffer += pdstring(", attached to process, stepping to main");
+      statusLine(buffer.c_str());
+      proc->continueProc();
+      return true;
+   } else {
+      // We couldn't insert the trap... so detach from the process
+      // and let it run. 
+      fprintf(stderr, "%s[%d][%s]:  ERROR:  couldn't insert at entry of main,\n",
+              FILE__, __LINE__, getThreadStr(getExecThreadID()));
+      fprintf(stderr, "\tinstrumenting process impossible\n");
+      // We should actually delete any mention of this
+      // process... including (for Paradyn) removing it from the
+      // frontend.
+      proc->triggerNormalExitCallback(0);
+      proc->handleProcessExit();
+      proc->continueProc();
+    }
+   return false;
+}
+
+bool SignalHandlerUnix::handleEventLocked(EventRecord &ev)
 {
   signal_printf("%s[%d]:  got event: %s\n", FILE__, __LINE__, eventType2str(ev.type));
 
@@ -887,10 +840,7 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
   bool ret = false;
   Frame activeFrame;
   assert(proc);
-  if (proc->hasExited()) {
-    fprintf(stderr, "%s[%d]:  weird, process has already exited\n", FILE__, __LINE__);
-    return true;
-  }
+
   // One big switch statement
   switch(ev.type) {
      // First the platform-independent stuff
@@ -900,7 +850,7 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
           sprintf(errorLine, "Process %d has terminated with code 0x%x\n",
                   proc->getPid(), (int) ev.info);
           statusLine(errorLine);
-          proc->triggerNormalExitCallback(ev.info);
+          //proc->triggerNormalExitCallback(ev.info);
           proc->handleProcessExit();
           ret = true;
         } else if (ev.status == statusSignalled) {
@@ -919,20 +869,60 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
           proc->handleProcessExit();
           ret = true; //  maybe this should be false?  (this case is an error)
         }
-        BPatch::bpatch->mutateeStatusChange = true; 
+        flagBPatchStatusChange();
         //if (BPatch::bpatch->waitingForStatusChange)
         //  __BROADCAST;
-        signalEvent(evtProcessExit);
+        getSH()->signalEvent(evtProcessExit);
         break;
+     case evtProcessCreate:
+        ret = handleProcessCreate(ev);
+        break;
+     case evtProcessInit:
+        proc->handleTrapAtEntryPointOfMain(ev.lwp);
+        proc->setBootstrapState(initialized_bs);
+        // If we were execing, we now know we finished
+        if (proc->execing()) {
+           proc->finishExec();
+        }
+        ret = true;
+        break;
+     case evtProcessLoadedRT:
+     {
+        pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
+        buffer += pdstring(", loaded dyninst library");
+        statusLine(buffer.c_str());
+        startup_cerr << "trapDueToDyninstLib returned true, trying to handle\n";
+        proc->loadDYNINSTlibCleanup(ev.lwp);
+        proc->setBootstrapState(loadedRT_bs);
+        //getSH()->signalEvent(evtProcessLoadedRT);
+        ret = true;
+        break;
+     }
+     case evtInstPointTrap:
+         // Linux inst via traps
+         ev.lwp->changePC(ev.address, NULL);
+         proc->continueProc();
+         ret = true;
+         break;
+
      case evtSignalled:
      case evtPreFork:
+     {
+        char buf[128];
         ret = handleSignal(ev);
-        if (!ret)
-          fprintf(stderr, "%s[%d]:  handleSignal() failed\n", __FILE__, __LINE__);
+        if (!ret) {
+          fprintf(stderr, "%s[%d]:  handleSignal(%s) failed\n", __FILE__, __LINE__,
+                  ev.sprint_event(buf));
+        }
+        signal_printf("%s[%d]:  after handleSignal, event is %s\n", FILE__, __LINE__,
+                     ev.sprint_event(buf));
         break;
-
+     }
         // Now the /proc only
         // AIX clones some of these (because of fork/exec/load notification)
+     case evtRPCSignal:
+       ret = proc->getRpcMgr()->handleRPCEvent(ev);
+       break;
      case evtSyscallEntry:
         ret = handleSyscallEntry(ev);
         if (!ret)
@@ -946,16 +936,8 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
      case evtSuspended:
        proc->continueProc();   // ignoring this signal
        ret = true;
-       BPatch::bpatch->mutateeStatusChange = true; 
-       if (BPatch::bpatch->waitingForStatusChange)
-         __BROADCAST;
+       flagBPatchStatusChange();
        break;
-     case evtInstPointTrap:
-         // Linux inst via traps
-         ev.lwp->changePC(ev.address, NULL);
-         proc->continueProc();
-         ret = true;
-         break;
      case evtDebugStep:
          handleSingleStep(ev);
          ret = 1;
@@ -965,20 +947,16 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
          cerr << "Undefined event!" << endl;
         break;
      case evtTimeout:
-        fprintf(stderr, "%s[%d]:   timeout event\n", __FILE__, __LINE__);
-        ret =  true;
-        break;
      case evtNullEvent:
-        ret = true;
-        break;
      case evtThreadDetect:
         ret = true;
         break;
      default:
+        fprintf(stderr, "%s[%d]:  cannot handle signal %s\n", FILE__, __LINE__, eventType2str(ev.type));
         assert(0 && "Undefined");
    }
 
-   signalEvent(ev);
+   getSH()->signalEvent(ev);
 
    proc->setSuppressEventConts(false);
 
@@ -986,7 +964,7 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
 }
 
 #if !defined (os_linux)
-bool SignalHandler::createPollEvent(pdvector<EventRecord> &events, struct pollfd fds, process *curProc)
+bool SignalGeneratorUnix::createPollEvent(pdvector<EventRecord> &events, struct pollfd fds, process *curProc)
 {
   EventRecord ev;
   ev.proc = curProc;
@@ -1013,7 +991,7 @@ bool SignalHandler::createPollEvent(pdvector<EventRecord> &events, struct pollfd
      }
      
      decodeWaitPidStatus(status, ev);
-     translateEvent(ev);      
+     decodeEvent(ev);      
      signal_printf("%s[%d]:  new event: %s\n", FILE__, __LINE__, eventType2str(ev.type)); 
      events.push_back(ev);
      return true;
@@ -1039,7 +1017,7 @@ bool SignalHandler::createPollEvent(pdvector<EventRecord> &events, struct pollfd
    if ( !(procstatus.pr_flags & PR_STOPPED || procstatus.pr_flags & PR_ISTOP) ) {
      ev.type = evtNullEvent;
      ev.proc = curProc;
-     translateEvent(ev);
+     decodeEvent(ev);
      signal_printf("%s[%d]:  new event: %s\n", 
                    FILE__, __LINE__, eventType2str(ev.type));
      events.push_back(ev);
@@ -1052,6 +1030,9 @@ bool SignalHandler::createPollEvent(pdvector<EventRecord> &events, struct pollfd
          fprintf(stderr, "%s[%d]:  decodeProcStatus failed\n", FILE__, __LINE__);
          return false;
       }
+      decodeEvent(ev);
+     signal_printf("%s[%d]:  new event: %s\n", 
+                   FILE__, __LINE__, eventType2str(ev.type));
       events.push_back(ev);
       return true;
    }
@@ -1069,11 +1050,23 @@ bool SignalHandler::createPollEvent(pdvector<EventRecord> &events, struct pollfd
 #endif // !defined (os_linux)
 
 #if !defined (os_linux)
-bool SignalHandler::waitNextEvent(EventRecord &ev)
+int fake_poll(struct pollfd *ufds, unsigned int nfds, int timeout)
+{
+   int pollret = 0;
+   pollret  = poll(ufds, nfds, 0);
+   if (pollret == 0) {
+     sleep(1);
+     pollret  = poll(ufds, nfds, 0);
+   }
+   return pollret;
+}
+
+bool SignalGeneratorUnix::waitNextEvent(EventRecord &ev)
 {
   __LOCK;
   assert(getExecThreadID() == getThreadID());
   assert(getExecThreadID() != primary_thread_id);
+
   signal_printf("%s[%d][%s]:  waitNextEvent\n", FILE__, __LINE__, 
                 getThreadStr(getExecThreadID()));
   bool ret = true;
@@ -1084,6 +1077,9 @@ bool SignalHandler::waitNextEvent(EventRecord &ev)
     //  just return one.
     ev = events[events.size() - 1];
     events.pop_back();
+    char buf[128];
+    signal_printf("%s[%d][%s]:  waitNextEvent: had existing event %s\n", FILE__, __LINE__, 
+                getThreadStr(getExecThreadID()), ev.sprint_event(buf));
     __UNLOCK;
     return true;
   }
@@ -1093,6 +1089,9 @@ bool SignalHandler::waitNextEvent(EventRecord &ev)
   //  so we have to check for exits before calling poll().
   extern bool checkForExit(EventRecord &);
   if (checkForExit(ev)) {
+    char buf[128];
+    signal_printf("%s[%d][%s]:  process exited %s\n", FILE__, __LINE__, 
+                getThreadStr(getExecThreadID()), ev.sprint_event(buf));
     __UNLOCK;
     return true; 
   }
@@ -1102,6 +1101,14 @@ bool SignalHandler::waitNextEvent(EventRecord &ev)
   while (!getFDsForPoll(fds)) {
     signal_printf("%s[%d]:  syncthread waiting for process to monitor\n", __FILE__, __LINE__);
     waiting_for_active_process = true;
+    bool any_active_handlers = false;
+    for (unsigned int i = 0; i < handlers.size(); ++i) {
+      if (!handlers[i]->idle() && !handlers[i]->waiting())
+        any_active_handlers = true;
+    } 
+    if (!any_active_handlers) {
+      signalEvent(evtProcessStop);
+    }
     __WAIT_FOR_SIGNAL;
   }
   waiting_for_active_process = false;
@@ -1116,7 +1123,7 @@ bool SignalHandler::waitNextEvent(EventRecord &ev)
 
 #if defined(os_osf)
    //  since process exit does not cause a poll event on alpha, we need a timeout
-   timeout = 100 /*ms*/;
+   timeout = 1000 /*ms*/;
 #endif
   __UNLOCK;
   int num_selected_fds = poll(pfds, fds.size(), timeout);
@@ -1171,9 +1178,90 @@ cleanup:
 
 #endif
 
+bool SignalGeneratorUnix::decodeSigTrap(EventRecord &ev)
+{
+  char buf[128];
+  process *proc = ev.proc;
+  bootstrapState_t bootstrapState = proc->getBootstrapState();
+
+  signal_printf("%s[%d]:  welcome to decodeSigTrap for %d, state is %s\n",
+                FILE__, __LINE__, ev.proc->getPid(), 
+                proc->getBootstrapStateAsString().c_str());
+
+  switch(bootstrapState) {
+    case bootstrapped_bs:  
+        break;
+    case unstarted_bs:     
+    case attached_bs:
+        ev.type = evtProcessCreate; 
+        signal_printf("%s[%d]:  decodeSigTrap for %s, produced: %s\n",
+              FILE__, __LINE__, ev.sprint_event(buf), 
+              proc->getBootstrapStateAsString().c_str());
+        return true;
+        break;
+    case begun_bs:         
+       if (proc->trapAtEntryPointOfMain(ev.lwp)) {
+         ev.type = evtProcessInit; 
+          signal_printf("%s[%d]:  decodeSigTrap for %s, produced: %s\n",
+                FILE__, __LINE__, ev.sprint_event(buf), 
+                proc->getBootstrapStateAsString().c_str());
+          return true;
+       }
+       break;
+    case loadingRT_bs:
+        if (proc->trapDueToDyninstLib(ev.lwp)) {
+          ev.type = evtProcessLoadedRT;
+          signal_printf("%s[%d]:  decodeSigTrap for %s, produced: %s\n",
+                FILE__, __LINE__, ev.sprint_event(buf), 
+                proc->getBootstrapStateAsString().c_str());
+          return true;
+        }
+        break;
+    case initialized_bs:
+    case loadedRT_bs:
+    default:
+      break;
+  };
+
+  Frame af = ev.lwp->getActiveFrame();
+
+  if (proc->trampTrapMapping.defines(af.getPC())) {
+     ev.type = evtInstPointTrap;
+     ev.address = af.getPC();
+     goto finish;
+  }
+
+  if (proc->getRpcMgr()->decodeEventIfDueToIRPC(ev)) {
+      signal_printf("%s[%d]:  SIGTRAP due to RPC\n", FILE__, __LINE__);
+      goto finish;
+  }
+
+  if (ev.lwp->isSingleStepping()) {
+     ev.type = evtDebugStep;
+     ev.address = af.getPC();
+     signal_printf("Single step trap at %lx\n", ev.address);
+   }
+
+  finish:
+  signal_printf("%s[%d]:  decodeSigTrap for %s, state: %s\n",
+                FILE__, __LINE__, ev.sprint_event(buf), 
+                proc->getBootstrapStateAsString().c_str());
+  return true;
+}
 
 
+bool SignalGeneratorUnix::decodeSigStopNInt(EventRecord &ev)
+{
+  char buf[128];
+  process *proc = ev.proc;
 
+  signal_printf("%s[%d]:  welcome to decodeSigStopNInt for %d, state is %s\n",
+                FILE__, __LINE__, ev.proc->getPid(), 
+                proc->getBootstrapStateAsString().c_str());
+
+
+  return proc->getRpcMgr()->decodeEventIfDueToIRPC(ev);
+}
 
 ///////////////////////////////////////////
 /////      DebuggerInterface
@@ -1830,7 +1918,7 @@ bool ReadDataSpaceCallback::execute()
   return true;
 }
 
-bool SignalHandler::handleSingleStep(const EventRecord &ev) {
+bool SignalHandlerUnix::handleSingleStep(const EventRecord &ev) {
    ev.lwp->setSingleStepping(false);
    getSH()->signalEvent(evtDebugStep);
    return true;

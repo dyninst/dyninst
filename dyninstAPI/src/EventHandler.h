@@ -57,6 +57,7 @@ class dyn_lwp;
 typedef enum {
   evtUndefined,   /* undefined event -- usually indicates error */
   evtNullEvent,   /* null event, nothing (important) happened, but no error */
+  evtAnyEvent,
   evtNewConnection,
   evtTimeout,
   evtSignalled,
@@ -76,7 +77,7 @@ typedef enum {
   evtInstPointTrap,
   evtDebugStep,
   evtDynamicCall,
-  evtRPCDone,
+  evtRPCSignal,
   evtError,
   evtPreFork,
   evtPostFork,
@@ -112,6 +113,8 @@ typedef enum {
   statusUnknown,
   statusNormal,
   statusSignalled,
+  statusRPCDone,
+  statusRPCAtReturn,
   statusError
 } eventStatusCode_t;
 typedef unsigned long eventInfo_t;
@@ -136,11 +139,7 @@ class EventRecord {
    eventAddress_t address;
    eventFileDesc_t fd; /* only used in async events -- wasteful for clarity*/
 
-   char *sprint_event(char *buf) {
-    sprintf(buf, "[%s:proc=%p:lwp=%p:%d:%d:%d:%p:%d]", eventType2str(type),
-            proc, lwp, what, (int) status, (int)info, (void *) address, fd);
-    return buf;
-   }
+   char *sprint_event(char *buf); 
    bool isTemplateOf(EventRecord &src);
 }; 
 
@@ -157,7 +156,7 @@ class InternalThread {
   //  returns tid (unsigned) -1 if thread not created yet
   unsigned long getThreadID() { return tid;}
   bool isRunning() {return _isRunning;}
-
+  const char *getName() {return idstr;}
   protected:
   InternalThread(const char *id);
   virtual ~InternalThread();
@@ -168,7 +167,7 @@ class InternalThread {
 
   bool _isRunning;
   unsigned long tid;
-  const char *idstr;
+  char *idstr;
   eventLock *startupLock;
   
   private:

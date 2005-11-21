@@ -477,11 +477,9 @@ bool rpcThr::handleCompletedIRPC() {
     // step 3) invoke user callback, if any
     // call the callback function if needed
     if( cb != NULL ) {
-        RPCDoneCallback *rpc_cb_ptr = new RPCDoneCallback(cb);
-        RPCDoneCallback &rpc_cb = *rpc_cb_ptr;
         inferiorrpc_printf("%s[%d][%s]:  about to exec/register rpc done callback\n", 
                             FILE__, __LINE__, getThreadStr(getExecThreadID()));
-        rpc_cb(proc, id, userData, resultValue);
+        cb(proc, id, userData, resultValue);
     }
 
     // Before we continue the process: if there is another RPC,

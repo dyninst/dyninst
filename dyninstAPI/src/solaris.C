@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.188 2005/11/03 05:21:07 jaw Exp $
+// $Id: solaris.C,v 1.189 2005/11/21 17:16:14 jaw Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -582,9 +582,13 @@ bool process::dumpImage(pdstring imageFileName)
 bool checkAllThreadsForBreakpoint(process *proc, Address break_addr)
 {
    pdvector<Frame> activeFrames;
-   if (!proc->getAllActiveFrames(activeFrames)) return false;
+   if (!proc->getAllActiveFrames(activeFrames)) {
+      fprintf(stderr, "%s[%d]:  getAllActiveFrames failed\n", FILE__, __LINE__);
+      return false;
+   }
    for(unsigned frame_iter = 0; frame_iter < activeFrames.size(); frame_iter++)
    {
+      unsigned int i = 0;
       if (activeFrames[frame_iter].getPC() == break_addr) {
          return true;
       }

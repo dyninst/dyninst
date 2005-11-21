@@ -51,6 +51,7 @@
 #include "util.h"
 #include "common/h/Vector.h"
 #include "debuggerinterface.h"
+#include "process.h"
 
 
 pdvector< pdpair <unsigned long, const char *> > threadmap;
@@ -73,7 +74,7 @@ const char *getThreadStr(unsigned long tid)
   }
   if (tid == -1UL) 
     return "any_thread";
-  fprintf(stderr, "%s[%d]:  FIXME, no entry found for thread id %l\n", __FILE__, __LINE__, tid);
+  fprintf(stderr, "%s[%d]:  FIXME, no entry found for thread id %lu\n", __FILE__, __LINE__, tid);
   return "invalid";
 }
 
@@ -86,10 +87,18 @@ unsigned long getExecThreadID()
 #endif
 }
 
+char *EventRecord::sprint_event(char *buf)
+ {
+    sprintf(buf, "[%s:proc=%d:lwp=%d:%d:%d:%d:%p:%d]", eventType2str(type),
+            proc ? proc->getPid() : 0, lwp ? lwp->get_lwp_id() : 0, what,
+            (int) status, (int)info, (void *) address, fd);
+    return buf;
+}
+
 bool EventRecord::isTemplateOf(EventRecord &src) 
 {
      //  returns true if key non-default member values match src
-     if ((type != src.type) && (type != evtUndefined)) {
+     if ((type != src.type) && (type != evtAnyEvent) && (type != evtUndefined)) {
        return false; 
      }
      //  maybe we should compare pid instead of proc ptr??
@@ -125,10 +134,9 @@ inline THREAD_RETURN eventHandlerWrapper(void *h)
 template <class S>
 InternalThread<S>::InternalThread(const char *id) :
   _isRunning(false),
-  tid ((unsigned long ) -1),
-  idstr(id)
+  tid ((unsigned long ) -1)
 {
-
+  idstr = strdup(id);
 }
 
 template <class S>
@@ -140,6 +148,7 @@ InternalThread<S>::~InternalThread()
     }
   }
   tid = (unsigned long) -1L;
+  free (idstr);
 }
 
 template <class S>
@@ -339,6 +348,7 @@ char *eventType2str(eventType x)
   switch(x) {
   CASE_RETURN_STR(evtUndefined);
   CASE_RETURN_STR(evtNullEvent);
+  CASE_RETURN_STR(evtAnyEvent);
   CASE_RETURN_STR(evtNewConnection);
   CASE_RETURN_STR(evtTimeout);
   CASE_RETURN_STR(evtSignalled);
@@ -358,7 +368,7 @@ char *eventType2str(eventType x)
   CASE_RETURN_STR(evtInstPointTrap);
   CASE_RETURN_STR(evtDebugStep);
   CASE_RETURN_STR(evtDynamicCall);
-  CASE_RETURN_STR(evtRPCDone);
+  CASE_RETURN_STR(evtRPCSignal);
   CASE_RETURN_STR(evtError);
   CASE_RETURN_STR(evtPreFork);
   CASE_RETURN_STR(evtPostFork);

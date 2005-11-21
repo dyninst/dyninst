@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: libState.h,v 1.5 2005/07/29 19:18:51 bernat Exp $
+/* $Id: libState.h,v 1.6 2005/11/21 17:16:12 jaw Exp $
  */
 
 #ifndef _LIBSTATE_H_
@@ -57,6 +57,7 @@ typedef enum { libUnloaded, libLoading, libInitializing, libLoaded, libReady } l
 bool reachedLibState(libraryState_t lib, libraryState_t state);
 void setLibState(libraryState_t &lib, libraryState_t state);
 
+#ifdef NOTDEF // PDSEP
 // Callback type for loading a library (callback made when library is detected as
 // loaded in sharedObjectMapping
 typedef void(*loadLibraryCallbackFunc)(process *p, pdstring libname, mapped_object *libobj, void *data);
@@ -66,5 +67,5 @@ struct libraryCallback {
     loadLibraryCallbackFunc  callback;
     void                    *data;
 };
-
+#endif
 #endif

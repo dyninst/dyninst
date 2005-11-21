@@ -656,7 +656,11 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
        //  add this fd to the pair.
        //  this fd will then be watched by select for new events.
 
-       assert(event_fd == -1);
+//       assert(event_fd == -1);
+       if (event_fd != -1)
+         fprintf(stderr, "%s[%d]:  WARNING:  event fd for process %d is %d (not -1)\n",
+                 FILE__, __LINE__, process_fds[j].process->getPid(), event_fd);
+
        process_fds[j].fd = ev.what;
 
        async_printf("%s[%d]:  after handling new connection, we have\n", __FILE__, __LINE__);
@@ -810,7 +814,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
          pdvector<CallbackBase *> cbs;
          getCBManager()->dispenseCallbacksMatching(evtDynamicCall, cbs);
          for (unsigned int i = 0; i < cbs.size(); ++i) {
-           DynamicCallCallback &cb = * ((DynamicCallCallback *) cbs[i]);
+           DynamicCallsiteCallback &cb = * ((DynamicCallsiteCallback *) cbs[i]);
            cb(pt, bpf);
          }
 
@@ -874,7 +878,7 @@ bool BPatch_asyncEventHandler::mutateeDetach(BPatch_process *p)
   BPatch_funcCallExpr disconnectcall(*funcs[0], args);
 
   //  Run the connect call as oneTimeCode
-  if (!p->oneTimeCode(disconnectcall)) {
+  if (!p->oneTimeCodeInt(disconnectcall)) {
     bpfatal("%s[%d]:  failed to disconnect mutatee to async handler\n", 
             __FILE__, __LINE__);
     return false;

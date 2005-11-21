@@ -33,17 +33,17 @@ class CallbackManager {
 };
 
 CallbackManager *getCBManager();
-
+class SignalHandler;
 class SyncCallback : public CallbackBase
 {
   public:
 
-  SyncCallback(eventLock *l = global_mutex) :
-    CallbackBase(TARGET_UI_THREAD, signalCompletion), synchronous(false),
-    lock(l), completion_signalled(false) {}
+  SyncCallback(bool is_synchronous = true, eventLock *l = global_mutex) :
+    CallbackBase(TARGET_UI_THREAD, signalCompletion), synchronous(is_synchronous),
+    lock(l), completion_signalled(false), sh(NULL) {}
   SyncCallback(SyncCallback &src) :
     CallbackBase(TARGET_UI_THREAD, signalCompletion),  
-    synchronous(src.synchronous), lock(src.lock), completion_signalled(false) {}
+    synchronous(src.synchronous), lock(src.lock), completion_signalled(false), sh(NULL) {}
   ~SyncCallback() {}
 
    void setSynchronous(bool flag = true) {synchronous = flag;}
@@ -52,9 +52,10 @@ class SyncCallback : public CallbackBase
 
    bool waitForCompletion(); 
    bool synchronous;
-  private:
    eventLock *lock;
+  private:
    bool completion_signalled;
+   SignalHandler *sh;
 };
 
 ///////////////////////////////////////////////////////////
@@ -64,9 +65,9 @@ class SyncCallback : public CallbackBase
 class ErrorCallback : public SyncCallback 
 {  
   public:
-   ErrorCallback(BPatchErrorCallback callback): SyncCallback(),
+   ErrorCallback(BPatchErrorCallback callback): SyncCallback(false /*synchronous*/),
                                                 cb(callback), str(NULL) {}
-   ErrorCallback(ErrorCallback &src) : SyncCallback(),
+   ErrorCallback(ErrorCallback &src) : SyncCallback(false),
                                        cb(src.cb), num(-1), str(NULL) {}
    ~ErrorCallback();
 
@@ -258,28 +259,12 @@ class AsyncThreadEventCallback : public SyncCallback
    BPatch_thread *thr;
 };
 
-class BootstrapCallback : public SyncCallback 
-{  
-  public:
-   BootstrapCallback(bool (*callback)(process *)) : SyncCallback(),
-      cb(callback), proc(NULL) {}
-   BootstrapCallback(BootstrapCallback &src) : SyncCallback(),
-      cb(src.cb), proc(NULL) {}
-   ~BootstrapCallback() {}
-
-   CallbackBase *copy() { return new BootstrapCallback(*this);}
-   bool execute(void); 
-   bool operator()(process *p);
-  private:    
-   bool (*cb)(process *);    
-   process *proc;
-};
-
+#ifdef NOTDEF // PDSEP
 class RPCDoneCallback : public SyncCallback 
 {  
   public:
    RPCDoneCallback(inferiorRPCcallbackFunc callback) : SyncCallback(),
-      cb(callback), proc(NULL) {}
+      cb(callback), proc(NULL) {setTargetThread(-1UL);}
    RPCDoneCallback(RPCDoneCallback &src) : SyncCallback(),
       cb(src.cb), proc(NULL), id(0), data_(NULL), result_(NULL) {}
    ~RPCDoneCallback() {}
@@ -295,6 +280,23 @@ class RPCDoneCallback : public SyncCallback
    void *result_;
 };
 
+class FinalizeRTLibCallback : public SyncCallback 
+{  
+  public:
+   FinalizeRTLibCallback(void (*callback)(process *)) : SyncCallback(),
+      cb(callback), proc(NULL) {setTargetThread(-1UL);}
+   FinalizeRTLibCallback(FinalizeRTLibCallback &src) : SyncCallback(),
+      cb(src.cb), proc(NULL) {}
+   ~FinalizeRTLibCallback() {}
+
+   CallbackBase *copy() { return new FinalizeRTLibCallback(*this);}
+   bool execute(void); 
+   bool operator()(process *p);
+  private:    
+   void (*cb)(process *);
+   process *proc;
+};
+#endif
 typedef void (*internalThreadExitCallback)(BPatch_process *, BPatch_thread *,
                                            pdvector<AsyncThreadEventCallback *> *);
 
@@ -318,25 +320,6 @@ class InternalThreadExitCallback : public SyncCallback
    BPatch_process *proc;
    BPatch_thread *thr;
    pdvector<AsyncThreadEventCallback *> *cbs;
-};
-
-class DynamicCallCallback : public SyncCallback 
-{  
-  public:
-   DynamicCallCallback(BPatchDynamicCallSiteCallback callback) : 
-      SyncCallback(), 
-      cb(callback), pt(NULL), func(NULL) {}
-   DynamicCallCallback(DynamicCallCallback &src) : SyncCallback(),
-      cb(src.cb), pt(NULL), func(NULL) {}
-   ~DynamicCallCallback() {}
-
-   CallbackBase *copy() { return new DynamicCallCallback(*this);}
-   bool execute(void); 
-   bool operator()(BPatch_point *p, BPatch_function *f );
-  private:    
-   BPatchDynamicCallSiteCallback cb;
-   BPatch_point *pt;
-   BPatch_function *func;
 };
 
 #ifdef IBM_BPATCH_COMPAT

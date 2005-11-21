@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.340 2005/11/03 05:21:07 jaw Exp $
+/* $Id: process.h,v 1.341 2005/11/21 17:16:13 jaw Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -340,7 +340,6 @@ char * systemPrelinkCommand;
   bool loadDyninstLib();
   bool setDyninstLibPtr(mapped_object *libobj);
   bool setDyninstLibInitParams();
-  static void dyninstLibLoadCallback(process *, pdstring libname, mapped_object *libobj, void *data);
   bool finalizeDyninstLib();
   
   bool iRPCDyninstInit();
@@ -504,6 +503,7 @@ char * systemPrelinkCommand;
   void setSuppressEventConts(bool s) { suppressCont_ = s; }
 
   pdstring getBootstrapStateAsString() const;
+  bootstrapState_t getBootstrapState() {return bootstrapState;}
 
   // Strictly increments (we never drop back down)
   void setBootstrapState(bootstrapState_t state) {
@@ -617,17 +617,6 @@ char * systemPrelinkCommand;
   // a dlopen or dlclose event then return true
   bool handleIfDueToSharedObjectMapping();
 
-  // Register a callback to be made when a library is detected as loading
-  // (but possibly before it is initialized)
-  bool registerLoadLibraryCallback(pdstring libname,
-                                   loadLibraryCallbackFunc callback,
-                                   void *data);
-  // And delete the above
-  bool unregisterLoadLibraryCallback(pdstring libname);  
-
-  // Run a callback (if appropriate)
-  bool runLibraryCallback(pdstring libname, mapped_object *libobj);
-    
   private:
 
   public:
@@ -1007,7 +996,6 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   ///////////////////////////////
   // Shared library handling
   ///////////////////////////////
-  dictionary_hash<pdstring, libraryCallback *> loadLibraryCallbacks_;
   dynamic_linking *dyn;
 
   

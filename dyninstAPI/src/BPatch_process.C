@@ -194,8 +194,14 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
    while (!llproc->isBootstrappedYet() && !statusIsTerminated()) {
       //fprintf(stderr, "%s[%d][%s]:  before waitForEvent(processInit)\n", 
       //        FILE__, __LINE__, getThreadStr(getExecThreadID()));
-     getSH()->waitForEvent(evtProcessInit, llproc);
+     getSH()->waitForEvent(evtProcessInitDone, llproc);
    }
+
+   while (getSH()->activeHandlerForProcess(llproc)) {
+     getSH()->waitForEvent(evtAnyEvent);
+     getMailbox()->executeCallbacks(FILE__, __LINE__);
+   }
+
    // Let's try to profile memory usage
 #if defined(PROFILE_MEM_USAGE)
    void *mem_usage = sbrk(0);
@@ -251,6 +257,8 @@ BPatch_process::BPatch_process(const char *path, int pid)
               FILE__, __LINE__, getThreadStr(getExecThreadID()));
      getSH()->waitForEvent(evtProcessInitDone, llproc);
    }
+
+   getMailbox()->executeCallbacks(FILE__, __LINE__);
 }
 
 /*
@@ -361,10 +369,38 @@ bool BPatch_process::stopExecutionInt()
  */
 bool BPatch_process::continueExecutionInt()
 {
+   getMailbox()->executeCallbacks(FILE__, __LINE__);
+
+   //  maybe executeCallbacks led to the process execution status changing
+   if (!statusIsStopped()) {
+     fprintf(stderr, "%s[%d]:  status change during continue execution, status is now %s\n",
+             FILE__, __LINE__, llproc->getStatusAsString().c_str());
+     return true;
+   }
+
+   //  DON'T let the user continue the process if we have potentially active 
+   //  signal handling going on:
+   while (getSH()->activeHandlerForProcess(llproc)) {
+     signal_printf("%s[%d]:  waiting before doing user continue for process %d\n", FILE__, __LINE__, llproc->getPid());
+     getSH()->waitForEvent(evtAnyEvent);
+    //return true; 
+   }
+
+   getMailbox()->executeCallbacks(FILE__, __LINE__);
+
+   if (!statusIsStopped()) {
+     fprintf(stderr, "%s[%d]:  status change during continue execution, status is now %s\n",
+             FILE__, __LINE__, llproc->getStatusAsString().c_str());
+     return true;
+   }
+
    if (llproc->continueProc()) {
       setUnreportedStop(false);
       return true;
    }
+
+   fprintf(stderr, "%s[%d]:  failed to continueProc, status is %s\n", 
+           FILE__, __LINE__, llproc->getStatusAsString().c_str());
    return false;
 }
 
@@ -407,6 +443,14 @@ bool BPatch_process::isStoppedInt()
 {
    assert(BPatch::bpatch);
    if (statusIsStopped()) {
+      //  if there are signal handler threads that are acting on this process
+      //  that are not idle, we may not really be stopped from the end-user
+      //  perspective (ie a continue might be imminent).
+      if (getSH()->activeHandlerForProcess(llproc)) {
+        signal_printf("%s[%d]:  pending events for proc %d, assuming still running\n",
+                      FILE__, __LINE__, llproc->getPid());
+        return false;
+      }
       setUnreportedStop(false);
       return true;
    }
@@ -525,12 +569,12 @@ int BPatch_process::getExitSignalInt()
  */
 bool BPatch_process::detachInt(bool cont)
 {
-   __UNLOCK;
+   //__UNLOCK;
    if (!getAsync()->detachFromProcess(this)) {
       bperr("%s[%d]:  trouble decoupling async event handler for process %d\n",
             __FILE__, __LINE__, getPid());
    }
-   __LOCK;
+  // __LOCK;
    detached = llproc->detachProcess(cont);
    return detached;
 }
@@ -594,7 +638,7 @@ char* BPatch_process::dumpPatchedImageInt(const char* file)
    if (was_stopped) 
       unreportedStop = had_unreportedStop;
    else 
-      continueExecution();
+      continueExecutionInt();
 
    return ret;
    return NULL;
@@ -675,9 +719,10 @@ BPatch_variableExpr *BPatch_process::mallocInt(int n)
 BPatch_variableExpr *BPatch_process::mallocByType(const BPatch_type &type)
 {
    assert(BPatch::bpatch != NULL);
-   void *mem = (void *)llproc->inferiorMalloc(type.getSize(), dataHeap);
+   BPatch_type &t = const_cast<BPatch_type &>(type);
+   void *mem = (void *)llproc->inferiorMalloc(t.getSize(), dataHeap);
    if (!mem) return NULL;
-   return new BPatch_variableExpr(this, mem, Null_Register, &type);
+   return new BPatch_variableExpr(this, mem, Null_Register, &t);
 }
 
 
@@ -717,7 +762,7 @@ BPatch_variableExpr *BPatch_process::getInheritedVariableInt(
       return NULL;
    }
    return new BPatch_variableExpr(this, parentVar.getBaseAddr(), Null_Register,
-                                  parentVar.getType());
+                                  const_cast<BPatch_type *>(parentVar.getType()));
 }
 
 
@@ -1202,6 +1247,13 @@ void BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
                                                  void *returnValue)
 {
    assert(BPatch::bpatch != NULL);
+   bool need_to_unlock = true;
+   global_mutex->_Lock(FILE__, __LINE__);
+   if (global_mutex->depth() > 1) {
+     global_mutex->_Unlock(FILE__, __LINE__);
+     need_to_unlock = false;
+   }
+
    assert(global_mutex->depth());
    
    OneTimeCodeInfo *info = (OneTimeCodeInfo *)userData;
@@ -1220,6 +1272,8 @@ void BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
       getCBManager()->dispenseCallbacksMatching(evtOneTimeCode, cbs);
       for (unsigned int i = 0; i < cbs.size(); ++i) {
         OneTimeCodeCallback &cb = * ((OneTimeCodeCallback *) cbs[i]);
+        cb.setTargetThread(TARGET_UI_THREAD);
+        cb.setSynchronous(false);
         cb(bproc->threads[0], info->getUserData(), returnValue);
       }
 
@@ -1233,7 +1287,7 @@ void BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
    args2->push_back((void *)returnValue);
 
    pdvector<CallbackRecord *> cbs;
-   if ( getCBManager()->dispenseCallbacksMatching(evtRPCDone, cbs)) {
+   if ( getCBManager()->dispenseCallbacksMatching(evtRPCSignal, cbs)) {
      for (unsigned int i = 0; i < cbs.size(); ++i) {
        if (!getMailbox()->executeOrRegisterCallback(cbs[i]->cb, args, NULL, cbs[i]->target_thread_id, __FILE__, __LINE__)) {
          fprintf(stderr, "%s[%d]: error registering callback\n", __FILE__, __LINE__);
@@ -1243,6 +1297,8 @@ void BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
    }
 
 #endif
+  if (need_to_unlock)
+     global_mutex->_Unlock(FILE__, __LINE__);
 }
 
 /*
@@ -1269,7 +1325,9 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
       stopExecutionInt();
       
       if (!statusIsStopped()) {
-         fprintf(stderr, "%s[%d]:  failed to run oneTimeCodeInternal .. status is not stopped\n", FILE__, __LINE__);
+         fprintf(stderr, "%s[%d]:  failed to run oneTimeCodeInternal .. status is %s\n", 
+                 FILE__, __LINE__, 
+                 llproc ? llproc->getStatusAsString().c_str() : "unavailable");
          return NULL;
       }
       needToResume = true;
@@ -1289,15 +1347,26 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
         llproc->getRpcMgr()->launchRPCs(false);
         getMailbox()->executeCallbacks(FILE__, __LINE__);
         if (info->isCompleted()) break;
-        getSH()->waitForEvent(evtRPCDone);
+        getSH()->waitForEvent(evtRPCSignal, llproc, NULL /*lwp*/, statusRPCDone);
         getMailbox()->executeCallbacks(FILE__, __LINE__);
+#ifdef NOTDEF // PDSEP
+        __UNLOCK;
+        getMailbox()->executeCallbacks(FILE__, __LINE__);
+        __LOCK;
+        if (info->isCompleted()) break;
+        fprintf(stderr, "%s[%d]:  waiting for RPC completion\n", FILE__, __LINE__);
+        getSH()->waitForEvent(evtRPCSignal, llproc, NULL /*lwp*/, statusRPCDone);
+        __UNLOCK;
+        getMailbox()->executeCallbacks(FILE__, __LINE__);
+        __LOCK;
+#endif
       } while (!info->isCompleted() && !statusIsTerminated());
       
       void *ret = info->getReturnValue();
       delete info;
 
       if (needToResume) {
-         continueExecution();
+         continueExecutionInt();
       }
         
       return ret;

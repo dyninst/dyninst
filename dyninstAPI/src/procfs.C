@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.38 2005/10/04 18:10:13 legendre Exp $
+// $Id: procfs.C,v 1.39 2005/11/21 17:16:13 jaw Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -495,7 +495,13 @@ bool dyn_lwp::readDataSpace(const void *inTracedProcess, u_int amount,
 #endif
       return false;
    }
-   return (read(get_fd(), inSelf, amount) == (int)amount);
+
+  errno = 0;
+   bool retn =  (read(get_fd(), inSelf, amount) == (int)amount);
+  if (errno) {
+    perror("read");
+  }
+  return retn;
 }
 
 bool dyn_lwp::waitUntilStopped() {

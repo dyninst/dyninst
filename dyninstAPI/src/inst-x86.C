@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.227 2005/11/07 18:40:34 rutar Exp $
+ * $Id: inst-x86.C,v 1.228 2005/11/21 17:16:12 jaw Exp $
  */
 #include <iomanip>
 
@@ -2082,8 +2082,8 @@ int int_basicBlock::liveRegistersIntoSet(int *& liveReg,
 // regSpace liveness information accordingly
 // Right now, all the registers are assumed to be live by default
 void registerSpace::resetLiveDeadInfo(const int * liveRegs, 
-				      const int * liveFPRegs,
-				      const int * liveSPRegs)
+				      const int * /*liveFPRegs*/,
+				      const int * /*liveSPRegs*/)
 {
   registerSlot *regSlot = NULL;
   

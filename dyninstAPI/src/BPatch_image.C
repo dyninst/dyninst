@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.78 2005/09/09 18:06:20 legendre Exp $
+// $Id: BPatch_image.C,v 1.79 2005/11/21 17:16:11 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -202,7 +202,7 @@ BPatch_variableExpr *BPatch_image::createVarExprByName(BPatch_module *mod, const
     BPatch_variableExpr *var = AddrToVarExpr->hash[syminfo.addr()];
     if (!var) {
        var = new BPatch_variableExpr( const_cast<char *>(name), proc,
-                 (void *)syminfo.addr(), (const BPatch_type *) type);
+                 (void *)syminfo.addr(), type);
        AddrToVarExpr->hash[syminfo.addr()] = var;
     }
     return var;
@@ -771,7 +771,8 @@ BPatch_variableExpr *BPatch_image::findVariableInt(const char *name, bool showEr
     char *nameCopy = strdup(name);
     assert(nameCopy);
     BPatch_variableExpr *ret = new BPatch_variableExpr((char *) nameCopy, 
-                                                       proc, (void *)var->getAddress(), (const BPatch_type *) type);
+                                                       proc, (void *)var->getAddress(), 
+                                                       type);
     AddrToVarExpr->hash[var->getAddress()] = ret;
     return ret;
 }

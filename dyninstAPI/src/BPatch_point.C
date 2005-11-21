@@ -497,7 +497,7 @@ int BPatch_point::getDisplacedInstructionsInt(int maxSize, void* insns)
 
     // So, we return the instruction "overwritten". Wrong, but what the heck...
     const instruction &insn = point->insn();
-    unsigned size = (maxSize < insn.size()) ? maxSize : insn.size();
+    unsigned size = (maxSize < (int)insn.size()) ? maxSize : insn.size();
     memcpy(insns, (const void *)insn.ptr(), size);
     return insn.size();
 }

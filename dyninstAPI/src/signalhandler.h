@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.16 2005/11/03 05:21:07 jaw Exp $
+/* $Id: signalhandler.h,v 1.17 2005/11/21 17:16:14 jaw Exp $
  */
 
 #ifndef _SIGNAL_HANDLER_H
@@ -48,40 +48,11 @@
 #include "common/h/Vector.h"
 #include "common/h/String.h"
 #include "dyninstAPI/src/EventHandler.h"
-
-#if defined(i386_unknown_nt4_0)
-#include "dyninstAPI/src/signalhandler-winnt.h"
-#else
-#include "dyninstAPI/src/signalhandler-unix.h"
-#endif
-
 #include "codeRange.h"
-#if defined (AIX_PROC)
-extern int SYSSET_MAP(int, int);
-#else
-#define SYSSET_MAP(x, pid)  (x)
-#endif
 
-#if defined (os_osf)
-#define GETREG_INFO(x) 0
-#define V0_REGNUM 0
-#define A0_REGNUM 16
-#endif
 class process;
 class dyn_lwp;
-
-
-// Return code:
-// 0: no event
-// 1: event fount
-
-// pid: -1 for all processes
-// why: Why the process stopped (return parameter)
-// what: what caused the stop (return parameter)
-// block: block waiting for a signal?
-// waitProcs replacement
 class SignalHandler;
-SignalHandler *getSH();
 
 class signal_handler_location : public codeRange {
  public:
@@ -98,7 +69,8 @@ class process;
 
 class EventGate {
   public:
-    EventGate(eventLock *l, eventType type, process *p = NULL, dyn_lwp *lwp = NULL);
+    EventGate(eventLock *l, eventType type, process *p = NULL, dyn_lwp *lwp = NULL,
+              eventStatusCode_t status = NULL_STATUS_INITIALIZER);
     EventGate(eventLock *l, eventType type, unsigned long id);
     bool addEvent(eventType type, process *p = NULL);
     ~EventGate();
@@ -114,112 +86,86 @@ class EventGate {
     bool waiting;
 };
 
-class SignalHandler : public EventHandler<EventRecord> {
- friend SignalHandler *getSH();
+class SignalHandler;
+#define MAX_HANDLERS 64  /*This is just arbitrarily large-ish */
+#define HANDLER_TRIM_THRESH 2 /*try to delete handlers if we have more than this */
+
+class SignalGenerator : public EventHandler<EventRecord> {
  friend process *ll_attachToCreatedProcess(int, const pdstring &);
  friend class process;
 
  public:
-   virtual ~SignalHandler() {}
+   virtual ~SignalGenerator() {}
    
    eventType waitForOneOf(pdvector<eventType> &evts);
-   eventType waitForEvent(eventType evt, process *p = NULL, dyn_lwp *lwp = NULL);
+   eventType waitForEvent(eventType evt, process *p = NULL, dyn_lwp *lwp = NULL, 
+                          eventStatusCode_t status = NULL_STATUS_INITIALIZER);
    bool signalEvent(EventRecord &ev);
    bool signalEvent(eventType t);
 
    bool signalActiveProcess();
 
-#if defined (os_linux)
-   bool waitingForStop(process *p); 
-   bool notWaitingForStop(process *p); 
-#endif
+   SignalHandler *findSHWithThreadID(unsigned long tid);
+   SignalHandler *findSHWaitingForCallback(CallbackBase *cb);
+   bool activeHandlerForProcess(process *p);
+   bool anyActiveHandlers();
+   bool waitingForActiveProcess() {return waiting_for_active_process;}
+   protected:
+   //  SignalGenerator should only be constructed via derived classes
+   SignalGenerator();
 
-   //  This is here due to a legacy kluge for aix, where a 
-   //  Signal event is faked at startup.
-   //void fakeEvent(EventRecord &);
-
-   private:
-   //  SignalHandler should only be constructed via getSH(), 
-   //  which is a friend.
-   SignalHandler() : EventHandler<EventRecord>(BPatch_eventLock::getLock(), 
-                                  "SYNC",/*start thread?*/ false) { }
-
-#if !defined (os_windows)
-     //  functions specific to the unix polling mechanism.
-     bool createPollEvent(pdvector<EventRecord> &events, struct pollfd fds, process *curProc);
-     bool getFDsForPoll(pdvector<unsigned int> &fds);
-     process *findProcessByFD(unsigned int fd);
-   bool translateEvent(EventRecord &ev);
-#endif
-
-#if !defined (os_linux) && !defined (os_windows)
-   bool updateEvents(pdvector<EventRecord> &events, process *p, int lwp_to_use);
-   bool decodeProcStatus(process *p, procProcStatus_t status, EventRecord &ev);
-   bool updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
-                                  pdvector<EventRecord> &events);
-#endif
-     bool handleEvent(EventRecord &ev)
+    bool handleEvent(EventRecord &ev)
       { LOCK_FUNCTION(bool, handleEventLocked, (ev));}
-     bool handleEventLocked(EventRecord &ev);
-     bool waitNextEvent(EventRecord &ev);
+    bool handleEventLocked(EventRecord &ev);
+    virtual bool waitNextEvent(EventRecord &ev) = 0;
+    virtual SignalHandler *newSignalHandler(char *name, int shid)  = 0;
 
-     //  event handling helpers
-#if defined (os_windows)
-    DWORD handleBreakpoint(EventRecord &ev);
-    DWORD handleException(EventRecord &ev);
-    DWORD handleIllegal(EventRecord &ev);
-    DWORD handleViolation(EventRecord &ev);
-    DWORD handleThreadCreate(EventRecord &ev);
-    DWORD handleThreadExit(EventRecord &ev);
-    DWORD handleProcessCreate(EventRecord &ev);
-    DWORD handleProcessExitWin(EventRecord &ev);
-    DWORD handleProcessSelfTermination(EventRecord &ev);
-    DWORD handleDllLoad(EventRecord &ev);
-#else
-     procSyscall_t decodeSyscall(process *p, eventWhat_t what);
-     bool handleSignal(EventRecord &ev);
-     bool handleSIGILL(EventRecord &ev);
-     bool handleSIGCHLD(EventRecord &ev);
-     bool handleSIGTRAP(EventRecord &ev);
-     bool handleSigTrap(EventRecord &ev);
-   
-     bool handleSIGSTOP(EventRecord &ev);
-     bool decodeRTSignal(EventRecord &ev);
-     bool handleForkEntry(EventRecord &ev);
-     bool handleExecEntry(EventRecord &ev);
-     bool handleLwpExit(EventRecord &ev);
-     bool handleSyscallEntry(EventRecord &ev);
-     bool handleSyscallExit(EventRecord &ev);
-     bool handleForkExit(EventRecord &ev);
-     bool handleExecExit(EventRecord &ev);
-     bool handleLoadExit(EventRecord &ev);
-     bool handleSingleStep(const EventRecord &ev);
-#endif
+    pdvector<EventGate *> wait_list;
+    bool waiting_for_active_process;
 
-     pdvector<EventGate *> wait_list;
-    // eventType last_event;
-     bool waiting_for_active_process;
-
-    
-#if defined (os_linux)
-    typedef struct {
-      process *proc;
-      pdvector<int> suppressed_sigs;
-      pdvector<dyn_lwp *> suppressed_lwps;
-    } stopping_proc_rec;
-    pdvector<stopping_proc_rec> stoppingProcs;
-    //  SignalHandler::suppressSignalWhenStopping
-    //  needed on linux platforms.  Allows the signal handler function
-    //  to ignore most non SIGSTOP signals when waiting for a process to stop
-    //  Returns true if signal is to be suppressed.
-    bool suppressSignalWhenStopping(EventRecord &ev);
-    //  SignalHandler::resendSuppressedSignals
-    //  called upon receipt of a SIGSTOP.  Sends all deferred signals to the stopped process.
-    bool resendSuppressedSignals(EventRecord &ev);
-#endif
+    pdvector<SignalHandler *> handlers;
 };
 
 
+class SignalHandler : public EventHandler<EventRecord>
+{
+  friend class SignalGenerator;
+  friend class SyncCallback;
+  int id;
+
+  public:
+    virtual ~SignalHandler() {}
+
+  bool idle();
+  bool waiting();
+  process *activeProcess() {return idle_flag ? NULL : active_proc;}
+  CallbackBase *waitingForCallback() {return wait_cb;}
+  protected:
+    //  SignalHandler is only constructed by derived classes
+    SignalHandler(char *name, int shid) : 
+                  EventHandler<EventRecord>(global_mutex, 
+                  name, false /*start thread?*/), id(shid), idle_flag(true),
+                  wait_flag(false), wait_cb(NULL), active_proc(NULL) { }
+    
+  virtual bool handleEvent(EventRecord &ev) = 0;
+  bool waitNextEvent(EventRecord &ev);
+
+  bool assignEvent(EventRecord &ev);
+  pdvector<EventRecord> events_to_handle;
+
+  bool idle_flag;
+  bool wait_flag;
+  CallbackBase *wait_cb;
+  process *active_proc;
+
+  static void flagBPatchStatusChange() {BPatch::bpatch->mutateeStatusChange = true;}
+  static void setBPatchProcessSignal(BPatch_process *p, int t) {p->lastSignal = t;}
+};
+
+#if defined(os_windows)
+#include "dyninstAPI/src/signalhandler-winnt.h"
+#else
+#include "dyninstAPI/src/signalhandler-unix.h"
 #endif
 
-
+#endif

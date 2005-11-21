@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-solproc.C,v 1.9 2005/11/03 05:21:08 jaw Exp $
+// $Id: syscall-solproc.C,v 1.10 2005/11/21 17:16:14 jaw Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -109,7 +109,6 @@ bool syscallNotification::installPreFork() {
 bool syscallNotification::installPostFork() {
 #if defined(bug_aix_proc_broken_fork)
 
-    fprintf(stderr, "%s[%d][%s]:  welcome to installPostFork\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
     AstNode *returnVal = new AstNode(AstNode::ReturnVal, (void *)0);
     postForkInst = new instMapping(FORK_FUNC, "DYNINST_instForkExit",
                                    FUNC_EXIT|FUNC_ARG,
@@ -120,9 +119,7 @@ bool syscallNotification::installPostFork() {
     pdvector<instMapping *> instReqs;
     instReqs.push_back(postForkInst);
     
-    fprintf(stderr, "%s[%d]:  before installInstrRequests\n", __FILE__, __LINE__);
     proc->installInstrRequests(instReqs);
-    fprintf(stderr, "%s[%d]:  after installInstrRequests\n", __FILE__, __LINE__);
 
     // Check to see if we put anything in the proggie
     if (postForkInst->miniTramps.size() == 0)

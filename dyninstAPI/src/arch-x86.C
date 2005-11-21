@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.41 2005/10/24 19:37:42 bernat Exp $
+// $Id: arch-x86.C,v 1.42 2005/11/21 17:16:12 jaw Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -3446,7 +3446,7 @@ bool instruction::generate(codeGen &gen,
                            process *proc,
                            Address origAddr, // Could be kept in the instruction class..
                            Address newAddr,
-                           Address fallthroughOverride,
+                           Address /*fallthroughOverride*/,
                            Address targetOverride) {
     // We grab the maximum space we might need
     GET_PTR(insnBuf, gen);
@@ -3715,7 +3715,7 @@ bool instruction::generate(codeGen &gen,
     return true;
 }
 
-int instruction::jumpSize(Address from, Address to) {
+int instruction::jumpSize(Address /*from*/, Address /*to*/) {
 
 #if defined(arch_x86)
     return JUMP_REL32_SZ;

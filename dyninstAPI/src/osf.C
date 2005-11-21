@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.83 2005/11/03 05:21:06 jaw Exp $
+// $Id: osf.C,v 1.84 2005/11/21 17:16:13 jaw Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -260,17 +260,25 @@ bool checkForExit(EventRecord &ev)
   return false;
 }
 
-bool SignalHandler::translateEvent(EventRecord &)
+bool SignalGeneratorUnix::decodeEvent(EventRecord &ev)
 {
+  if ((ev.type == evtSignalled) && (ev.what == SIGTRAP))
+    return decodeSigTrap(ev);
+
+  if ((ev.type == evtSignalled) && (ev.what == SIGSTOP))
+    return decodeSigStopNInt(ev);
+
+  if ((ev.type == evtSignalled) && (ev.what == SIGINT))
+    return decodeSigStopNInt(ev);
   return true;
 }
-bool SignalHandler::updateEventsWithLwpStatus(process *, dyn_lwp *,
+bool SignalGeneratorUnix::updateEventsWithLwpStatus(process *, dyn_lwp *,
                                   pdvector<EventRecord> &)
 {
   return true;
 }
 
-bool SignalHandler::getFDsForPoll(pdvector<unsigned int> &fds)
+bool SignalGeneratorUnix::getFDsForPoll(pdvector<unsigned int> &fds)
 {
   extern pdvector<process*> processVec;
   for (unsigned int u = 0; u < processVec.size(); ++u) {
@@ -283,7 +291,7 @@ bool SignalHandler::getFDsForPoll(pdvector<unsigned int> &fds)
   return (fds.size() > 0);
 }
 
-process *SignalHandler::findProcessByFD(unsigned int fd)
+process *SignalGeneratorUnix::findProcessByFD(unsigned int fd)
 {
   extern pdvector<process*> processVec;
   for (unsigned int u = 0; u < processVec.size(); ++u) 

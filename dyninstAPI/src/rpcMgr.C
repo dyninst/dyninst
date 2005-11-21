@@ -293,8 +293,9 @@ bool rpcMgr::existsRunningIRPC() const {
         return false;
 }
 
-
-bool rpcMgr::handleSignalIfDueToIRPC(dyn_lwp *lwp_of_trap) {
+bool rpcMgr::decodeEventIfDueToIRPC(EventRecord &ev)
+{
+    dyn_lwp *lwp_of_trap  = ev.lwp;
     // For each IRPC we're running, check whether the thread
     // (or lwp) is at the PC equal to the trap address. 
     bool handledTrap = false;
@@ -310,9 +311,12 @@ bool rpcMgr::handleSignalIfDueToIRPC(dyn_lwp *lwp_of_trap) {
 
    dyn_lwp *lwp_to_cont = NULL;
 
+   int curr_rpc_index = allRunningRPCs_.size();
    pdvector<inferiorRPCinProgress *>::iterator iter = allRunningRPCs_.end();
    while(iter != allRunningRPCs_.begin()) {
        inferiorRPCinProgress *currRPC = *(--iter);
+       curr_rpc_index--;
+
        Frame activeFrame;
 
        rpcThr *rpcThr = currRPC->rpcthr;
@@ -357,53 +361,70 @@ bool rpcMgr::handleSignalIfDueToIRPC(dyn_lwp *lwp_of_trap) {
        }
 
        if (activeFrame.getPC() == currRPC->rpcResultAddr) {
-
-          if(rpcThr)
-             rpcThr->getReturnValueIRPC();
-          else {
-             rpcLwp->getReturnValueIRPC();
-          }
-          handledTrap = true;
-          runProcess = true;
+          ev.type = evtRPCSignal;
+          ev.status = statusRPCAtReturn;
+          ev.info = (eventInfo_t) curr_rpc_index;
+          ev.address = activeFrame.getPC();
+          return true;
        }
        else if (activeFrame.getPC() == currRPC->rpcCompletionAddr) {
-          if(rpcThr) {
-             runProcess = rpcThr->handleCompletedIRPC();
-          }else {
-             runProcess = rpcLwp->handleCompletedIRPC();
-          }
-
-          getSH()->signalEvent(evtRPCDone);
-          handledTrap = true;
+          ev.type = evtRPCSignal;
+          ev.status = statusRPCDone;
+          ev.info = (eventInfo_t) curr_rpc_index;
+          ev.address = activeFrame.getPC();
+          return true;
        }
-
-       if(process::IndependentLwpControl()) {
-          if(rpcThr) {
-             dyn_thread *dthr = rpcThr->get_thr();
-             lwp_to_cont = dthr->get_lwp();
-          }  else {
-             lwp_to_cont = rpcLwp->get_lwp();
-          }
-       }
-
-       if (handledTrap) break;
    }
-   if (handledTrap) {
-     inferiorrpc_printf("Completed RPC: pending %d, requestedRun %d\n",
-                        allRunningRPCs_.size(), runProcess);
-      if (runProcess || allRunningRPCs_.size() > 0) {
-         if(process::IndependentLwpControl()) {
-            lwp_to_cont->continueLWP();
-         } else {
-            proc_->continueProc();
-         }
-      }
-   }
-
-   return handledTrap;
+   return false;
 }
 
+bool rpcMgr::handleRPCEvent(EventRecord &ev) 
+{
+  if (ev.type != evtRPCSignal) return false;
 
+  bool runProcess = false;
+  int rpc_index = (int) ev.info;
+  inferiorRPCinProgress *currRPC = allRunningRPCs_[rpc_index];
+  rpcThr *rpcThr = currRPC->rpcthr;
+  rpcLWP *rpcLwp = currRPC->rpclwp;
+
+  if (ev.status == statusRPCAtReturn) {
+    assert(ev.address == currRPC->rpcResultAddr); 
+    runProcess = true;
+    if (rpcThr) 
+       rpcThr->getReturnValueIRPC();
+    else 
+       rpcLwp->getReturnValueIRPC();
+  }
+  else if (ev.status == statusRPCDone) {
+    assert(ev.address == currRPC->rpcCompletionAddr); 
+    if(rpcThr) 
+       runProcess = rpcThr->handleCompletedIRPC();
+    else 
+       runProcess = rpcLwp->handleCompletedIRPC();
+  }
+  else 
+    assert(0);
+  
+  inferiorrpc_printf("Completed RPC: pending %d, requestedRun %d\n",
+                     allRunningRPCs_.size(), runProcess);
+
+  if (runProcess || allRunningRPCs_.size() > 0) {
+    if(process::IndependentLwpControl()) {
+       if(rpcThr) {
+          dyn_thread *dthr = rpcThr->get_thr();
+          dthr->get_lwp()->continueLWP();
+        }  else {
+          rpcLwp->get_lwp()->continueLWP();
+        }
+     }
+     else {
+       ev.proc->continueProc();
+     }
+  }
+
+  return true;
+}
 
 // Run da suckers
 // Take all RPCs posted and run them (if possible)

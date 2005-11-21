@@ -40,7 +40,7 @@
  */
 
 /* -*- Mode: C; indent-tabs-mode: true -*- */
-/* $Id: writeBackElf.C,v 1.27 2005/11/03 05:21:08 jaw Exp $ */
+/* $Id: writeBackElf.C,v 1.28 2005/11/21 17:16:14 jaw Exp $ */
 
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
@@ -498,7 +498,7 @@ void writeBackElf::addSectionNames(Elf_Data *newdata, Elf_Data*olddata){
 }
 
 
-void writeBackElf::fixPhdrs(Elf32_Phdr *phdr){ 
+void writeBackElf::fixPhdrs(Elf32_Phdr * /*phdr*/){ 
 
 	elf_update(newElf, ELF_C_NULL);
 	unsigned int i=0;

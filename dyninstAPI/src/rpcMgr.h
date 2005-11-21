@@ -63,7 +63,7 @@ class rpcLWP;
 class rpcThr;
 class rpcMgr;
 class baseTramp;
-
+class EventRecord;
 class codeGen;
 
 // RPC state enumerated type
@@ -94,7 +94,7 @@ class inferiorRPCinProgress : public codeRange {
 	public:
 		virtual Address get_address_cr() const { return rpcStartAddr; }
 		virtual unsigned get_size_cr() const { return (rpcCompletionAddr - rpcStartAddr) + 1; }
-		virtual	void * getPtrToInstruction( Address addr ) const { assert( 0 ); return NULL; }
+		virtual	void * getPtrToInstruction( Address /*addr*/ ) const { assert( 0 ); return NULL; }
 		        
     struct inferiorRPCtoDo *rpc;
     // Saved state about the RPC
@@ -327,8 +327,8 @@ class rpcMgr {
    // The big function: launch RPCs everywhere possible
    bool launchRPCs(bool wasRunning);
 
-   // Handle a signal from (possibly) a completed IRPC
-   bool handleSignalIfDueToIRPC(dyn_lwp *lwp_of_trap);
+   bool decodeEventIfDueToIRPC(EventRecord &ev);
+   bool handleRPCEvent(EventRecord &ev);
 
    // State query functions
    // Note: since we're multithreaded, there might be multiple

@@ -44,7 +44,13 @@
 
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
+#include "BPatch_eventLock.h"
 #include <string.h>	
+
+#if defined (USES_DWARF_DEBUG)
+#include <dwarf.h>
+#include <libdwarf.h>
+#endif
 
 typedef enum {BPatchSymLocalVar,  BPatchSymGlobalVar, BPatchSymRegisterVar,
 	      BPatchSymStaticLocalVar, BPatchSymStaticGlobal,
@@ -163,9 +169,18 @@ class BPatch_module;
  * A field can be an atomic type, i.e, int, char, or more complex like a
  * union or struct.
  */
-class BPATCH_DLL_EXPORT BPatch_field {
-  friend class BPatch_variableExpr;
 
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_field
+
+class BPATCH_DLL_EXPORT BPatch_field : public BPatch_eventLock{
+  friend class BPatch_variableExpr;
+  friend class BPatch_typeFunction;
+  friend class BPatch_typeStruct;
+  friend class BPatch_typeUnion;
+  friend class BPatch_cblock;
   char *fieldname;
   BPatch_dataClass   typeDes;
   BPatch_visibility  vis;
@@ -179,44 +194,71 @@ class BPATCH_DLL_EXPORT BPatch_field {
 
   /* Method vars */
   
-private:
+  protected:
   void copy(BPatch_field &);
-public:
-  
-  // Enum constructor
-  BPatch_field(const char * fName,  BPatch_dataClass _typeDes, int eValue);
-  // C++ version for Enum constructor
-  BPatch_field(const char * fName,  BPatch_dataClass _typeDes, int eValue,
-	       BPatch_visibility _vis);	    
-  // Struct or Union construct
-  BPatch_field(const char * fName,  BPatch_dataClass _typeDes, 
-	       BPatch_type *suType, int suOffset, int suSize);
-  // C++ version for Struct or Union construct
-  BPatch_field(const char * fName,  BPatch_dataClass _typeDes, 
-	       BPatch_type *suType, int suOffset, int suSize,
-	       BPatch_visibility _vis);
-  BPatch_field(BPatch_field &);
-  ~BPatch_field();
-  
-  BPatch_field &operator=(BPatch_field &);
-  bool operator==(const BPatch_field &ofield) const;
-			      
-  const char *getName() { return fieldname; } 
-  BPatch_type *getType() { return _type; }
-
-  int getValue() { return value;}
-  BPatch_visibility getVisibility() { return vis; }
-  BPatch_dataClass getTypeDesc() { return typeDes; }
-  int getSize() { return size; }
-  int getOffset() { return offset; }
   void fixupUnknown(BPatch_module *);
+
+  public:
+  // Enum constructor
+  API_EXPORT_CTOR(Enum, (fName, _typeDes, eValue),
+  BPatch_field,(const char * fName,  BPatch_dataClass _typeDes, int eValue));
+  // C++ version for Enum constructor
+  API_EXPORT_CTOR(EnumCpp, (fName, _typeDes, eValue, _vis),
+  BPatch_field, (const char * fName,  BPatch_dataClass _typeDes, int eValue,
+	       BPatch_visibility _vis));	    
+  // Struct or Union construct
+  API_EXPORT_CTOR(SU, (fName, _typeDes, suType, suOffset, suSize),
+  BPatch_field,(const char * fName,  BPatch_dataClass _typeDes, 
+	       BPatch_type *suType, int suOffset, int suSize));
+  // C++ version for Struct or Union construct
+  API_EXPORT_CTOR(SUCpp, (fName, _typeDes, suType, suOffset, suSize, _vis),
+  BPatch_field,(const char * fName,  BPatch_dataClass _typeDes, 
+	       BPatch_type *suType, int suOffset, int suSize,
+	       BPatch_visibility _vis));
+
+  // Copy constructor
+  BPatch_field(BPatch_field &f);
+
+  API_EXPORT_DTOR(_dtor,(),
+  ~,BPatch_field,());
+  
+  API_EXPORT_OPER(_equals, (src),
+  BPatch_field &,operator=,(BPatch_field &src));
+
+  API_EXPORT_OPER(_equals_equals, (ofield),
+  bool ,operator==,(const BPatch_field &ofield));
+			      
+  API_EXPORT(Int, (),
+  const char *,getName,()); 
+
+  API_EXPORT(Int, (),
+  BPatch_type *,getType,());
+
+  API_EXPORT(Int, (),
+  int,getValue,());
+
+  API_EXPORT(Int, (),
+  BPatch_visibility,getVisibility,());
+
+  API_EXPORT(Int, (),
+  BPatch_dataClass,getTypeDesc,());
+
+  API_EXPORT(Int, (),
+  int,getSize,());
+
+  API_EXPORT(Int, (),
+  int,getOffset,());
 }; 
 
 //
 // Define an instance of a Common block.  Each subroutine can have its own
 //   version of the common block.
 //
-class BPATCH_DLL_EXPORT BPatch_cblock {
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_cblock
+class BPATCH_DLL_EXPORT BPatch_cblock : public BPatch_eventLock{
    friend class BPatch_typeCommon;
 
 private:
@@ -226,13 +268,23 @@ private:
   // which functions use this list
   BPatch_Vector<BPatch_function *> functions;
 
-public:
-  BPatch_Vector<BPatch_field *> *getComponents() { return &fieldList; }
-  BPatch_Vector<BPatch_function *> *getFunctions() { return &functions; }
   void fixupUnknowns(BPatch_module *);
+public:
+  API_EXPORT(Int, (),
+  BPatch_Vector<BPatch_field *> *,getComponents,());
+  API_EXPORT(Int, (),
+  BPatch_Vector<BPatch_function *> *,getFunctions,());
 };
 
-class BPATCH_DLL_EXPORT BPatch_type {
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_type
+class BPATCH_DLL_EXPORT BPatch_type : public BPatch_eventLock{
+    friend class BPatch;
+    friend class BPatch_typeCollection;
+    friend char *parseStabString(BPatch_module *, int, char *,
+                                 int, BPatch_typeCommon *);
 protected:
   char		*name;
   int           ID;                /* unique ID of type */
@@ -252,33 +304,37 @@ protected:
   virtual void updateSize() {}
   // Simple Destructor
   virtual ~BPatch_type();
-public:
   BPatch_type(const char *name = NULL, int _ID = 0, BPatch_dataClass = BPatch_dataNullType);
 
   virtual void merge( BPatch_type * /* other */ ) { assert(0); }
-
-  virtual bool operator==(const BPatch_type &) const;
 
   // A few convenience functions
 
   static BPatch_type *createFake(const char *_name);
   /* Placeholder for real type, to be filled in later */
-  static BPatch_type *createPlaceholder(int _ID, const char *_name = NULL) { return new BPatch_type(_name, _ID, BPatch_dataUnknownType); }
+  static BPatch_type *createPlaceholder(int _ID, const char *_name = NULL) 
+         { return new BPatch_type(_name, _ID, BPatch_dataUnknownType); }
+
+public:
+  virtual bool operator==(const BPatch_type &) const;
 
   int  getID() const { return ID;}
 
-  unsigned int getSize() const { if (!size) const_cast<BPatch_type *>(this)->updateSize(); return size; }
+  API_EXPORT(Int, (),
+  unsigned int,getSize,());
+
   const char *getName() const { return name; }
 
 #ifdef IBM_BPATCH_COMPAT
   char *getName(char *buffer, int max) const; 
   BPatch_dataClass type() const { return type_; }
 #endif
+  BPatch_dataClass getDataClass() const { return type_; }
   virtual const char *getLow() const { return NULL; }
   virtual const char *getHigh() const { return NULL; }
   virtual BPatch_Vector<BPatch_field *> * getComponents() const { return NULL; }
-  BPatch_dataClass getDataClass() const { return type_; }
-  virtual bool isCompatible(const BPatch_type * /* otype */) const { return true; }
+  virtual bool isCompatible(BPatch_type * /* otype */) { return true; }
+  virtual bool isCompatibleInt(BPatch_type * /* otype */) { return true; }
   virtual BPatch_type *getConstituentType() const { return NULL; }
   virtual BPatch_Vector<BPatch_cblock *> *getCblocks() const { return NULL; }
 
@@ -294,7 +350,32 @@ public:
 // It is desgined store information about a variable in a function.
 // Scope needs to be addressed in this class.
 
-class BPATCH_DLL_EXPORT BPatch_localVar {
+#if defined (os_osf)
+class eCoffSymbol;
+#endif
+
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_localVar
+class process;
+class BPatch_fieldListType;
+class BPATCH_DLL_EXPORT BPatch_localVar : public BPatch_eventLock{
+    friend class BPatch;
+    friend class BPatch_function;
+    friend class BPatch_typeCommon;
+    friend class BPatch_localVarCollection;
+    friend char *parseStabString(BPatch_module *, int, char *,
+                                 int, BPatch_typeCommon *);
+#if defined(USES_DWARF_DEBUG)
+    friend bool walkDwarvenTree(Dwarf_Debug &, char *, Dwarf_Die,
+                        BPatch_module *, process *, BPatch_function *,
+                        BPatch_typeCommon *, BPatch_fieldListType *);
+#endif
+#if defined (os_osf)
+   friend void eCoffParseProc(BPatch_module *, eCoffSymbol &, bool);
+#endif
+
     char *name;
     BPatch_type *type;
     int lineNum;
@@ -303,13 +384,14 @@ class BPATCH_DLL_EXPORT BPatch_localVar {
     BPatch_storageClass storageClass;
     // scope_t scope;
 
-public:
-
     BPatch_localVar(const char *_name,  BPatch_type *_type,
 		    int _lineNum, long _frameOffset, int _reg=-1,
 		    BPatch_storageClass _storageClass=BPatch_storageFrameOffset);
     ~BPatch_localVar();
 
+    void fixupUnknown(BPatch_module *);
+
+public:
     const char *	getName() { return name; }
     BPatch_type *	getType() { return type; }
     int			getLineNum() { return lineNum; }
@@ -317,7 +399,6 @@ public:
     int			getRegister() { return reg; }
     BPatch_storageClass	getStorageClass() { return storageClass; }
 
-    void fixupUnknown(BPatch_module *);
 };
 
 #endif /* _BPatch_type_h_ */

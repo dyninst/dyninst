@@ -78,6 +78,7 @@ class BPATCH_DLL_EXPORT BPatch_fieldListType : public BPatch_type, public BPatch
    /* Each subclass may need to update its size after adding a field */
    virtual void postFieldInsert(int offset, int nsize) = 0;
  public:
+   //void fixupUnknown(BPatch_module *m);
    ~BPatch_fieldListType();
    bool operator==(const BPatch_type &) const;
    BPatch_Vector<BPatch_field *> * getComponents() const;
@@ -112,15 +113,25 @@ class BPATCH_DLL_EXPORT BPatch_rangedType : public BPatch_type, public BPatch_ra
 
 // Derived classes from BPatch_type
 
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_typeEnum
+
 class BPATCH_DLL_EXPORT BPatch_typeEnum : public BPatch_fieldListType {
  protected:
    void postFieldInsert(int,int) {}
  public:
    BPatch_typeEnum(int _ID, const char *_name = NULL);
    BPatch_typeEnum(const char *_name);
-   bool isCompatible(const BPatch_type *otype) const;
+   API_EXPORT(Int, (otype),
+   bool,isCompatible,(BPatch_type *otype));
 };
 
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_typePointer
 class BPATCH_DLL_EXPORT BPatch_typePointer : public BPatch_type {
  private:
    BPatch_type *ptr; /* Type that we point to */
@@ -129,10 +140,15 @@ class BPATCH_DLL_EXPORT BPatch_typePointer : public BPatch_type {
    BPatch_typePointer(BPatch_type *_ptr, const char *_name);
    ~BPatch_typePointer() { ptr->decrRefCount(); }
    BPatch_type *getConstituentType() const { return ptr; }
-   bool isCompatible(const BPatch_type *otype) const;
+   API_EXPORT(Int, (otype),
+   bool,isCompatible,(BPatch_type *otype));
    void fixupUnknowns(BPatch_module *);
 };
 
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_typeFunction
 class BPATCH_DLL_EXPORT BPatch_typeFunction : public BPatch_fieldListType {
  protected:
    void postFieldInsert(int, int) {}
@@ -142,16 +158,26 @@ class BPATCH_DLL_EXPORT BPatch_typeFunction : public BPatch_fieldListType {
    BPatch_typeFunction(int _ID, BPatch_type *_retType, const char *_name = NULL);
    ~BPatch_typeFunction() { retType->decrRefCount(); }
    BPatch_type *getConstituentType() const { return retType; }
-   bool isCompatible(const BPatch_type *otype) const;
+   API_EXPORT(Int, (otype),
+   bool,isCompatible,(BPatch_type *otype));
    void fixupUnknowns(BPatch_module *);
 };
 
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_typeRange
 class BPATCH_DLL_EXPORT BPatch_typeRange : public BPatch_rangedType {
  public:
    BPatch_typeRange(int _ID, int _size, const char *_low, const char *_hi, const char *_name);
-   bool isCompatible(const BPatch_type *otype) const;
+   API_EXPORT(Int, (otype),
+   bool,isCompatible,(BPatch_type *otype));
 };
 
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_typeArray
 class BPATCH_DLL_EXPORT BPatch_typeArray : public BPatch_rangedType {
  private:
    BPatch_type *arrayElem;
@@ -165,10 +191,15 @@ class BPATCH_DLL_EXPORT BPatch_typeArray : public BPatch_rangedType {
    BPatch_typeArray(BPatch_type *_base, int _low, int _hi, const char *_name);
    ~BPatch_typeArray() { arrayElem->decrRefCount(); }
    BPatch_type *getConstituentType() const { return arrayElem; }
-   bool isCompatible(const BPatch_type *otype) const;
+   API_EXPORT(Int, (otype),
+   bool,isCompatible,(BPatch_type *otype));
    void fixupUnknowns(BPatch_module *);
 };
 
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_typeStruct
 class BPATCH_DLL_EXPORT BPatch_typeStruct : public BPatch_fieldListType {
  protected:
    void updateSize();
@@ -177,10 +208,15 @@ class BPATCH_DLL_EXPORT BPatch_typeStruct : public BPatch_fieldListType {
    void merge(BPatch_type *other);
    BPatch_typeStruct(int _ID, const char *_name = NULL);
    BPatch_typeStruct(const char *_name);
-   bool isCompatible(const BPatch_type *otype) const;
+   API_EXPORT(Int, (otype),
+   bool,isCompatible,(BPatch_type *otype));
    void fixupUnknowns(BPatch_module *);
 };
 
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_typeUnion
 class BPATCH_DLL_EXPORT BPatch_typeUnion : public BPatch_fieldListType {
  private:
    BPatch_Vector<BPatch_field *> fieldList;
@@ -191,17 +227,27 @@ class BPATCH_DLL_EXPORT BPatch_typeUnion : public BPatch_fieldListType {
    void merge(BPatch_type *other);
    BPatch_typeUnion(int _ID, const char *_name = NULL);
    BPatch_typeUnion(const char *name);
-   bool isCompatible(const BPatch_type *otype) const;
+   API_EXPORT(Int, (otype),
+   bool,isCompatible,(BPatch_type *otype));
    void fixupUnknowns(BPatch_module *);
 };
 
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_typeScalar
 class BPATCH_DLL_EXPORT BPatch_typeScalar : public BPatch_type {
  public:
    BPatch_typeScalar(int _ID, unsigned int _size, const char *_name = NULL);
    BPatch_typeScalar(unsigned int _size, const char *_name);
-   bool isCompatible(const BPatch_type *otype) const;
+   API_EXPORT(Int, (otype),
+   bool,isCompatible,(BPatch_type *otype));
 };
 
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_typeCommon
 class BPATCH_DLL_EXPORT BPatch_typeCommon : public BPatch_fieldListType {
  private:
    BPatch_Vector<BPatch_cblock *> cblocks;
@@ -219,6 +265,10 @@ class BPATCH_DLL_EXPORT BPatch_typeCommon : public BPatch_fieldListType {
 // Typedefs and eferences are special, because we have to treat 
 // them as a union of BPatch_type, BPatch_fieldListType, and BPatch_rangedType
 
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_typeTypedef
 class BPATCH_DLL_EXPORT BPatch_typeTypedef : public BPatch_type, public BPatch_fieldListInterface, public BPatch_rangedInterface {
  private:
    BPatch_type *base; /* The type that we refer to */
@@ -230,7 +280,7 @@ class BPATCH_DLL_EXPORT BPatch_typeTypedef : public BPatch_type, public BPatch_f
    BPatch_typeTypedef(BPatch_type *_base, const char *_name);
    ~BPatch_typeTypedef() { base->decrRefCount(); }
    bool operator==(const BPatch_type &otype) const;
-   bool isCompatible(const BPatch_type *otype) const { return base->isCompatible(otype); }
+   bool isCompatible(BPatch_type *otype) { return base->isCompatible(otype); }
    BPatch_type *getConstituentType() const { return base; }
    // Overriding the interfaces to use the underlying object
    BPatch_Vector<BPatch_field *> * getComponents() const;
@@ -239,6 +289,10 @@ class BPATCH_DLL_EXPORT BPatch_typeTypedef : public BPatch_type, public BPatch_f
    void fixupUnknowns(BPatch_module *);
 };
 
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_typeRef
 class BPATCH_DLL_EXPORT BPatch_typeRef : public BPatch_type, public BPatch_fieldListInterface, public BPatch_rangedInterface {
  private:
    BPatch_type *refType; /* Type that we refer to */
@@ -246,7 +300,8 @@ class BPATCH_DLL_EXPORT BPatch_typeRef : public BPatch_type, public BPatch_field
    BPatch_typeRef(int _ID, BPatch_type *_refType, const char *_name = NULL);
    ~BPatch_typeRef() { refType->decrRefCount(); }
    bool operator==(const BPatch_type &otype) const;
-   bool isCompatible(const BPatch_type *otype) const;
+   API_EXPORT(Int, (otype),
+   bool,isCompatible,(BPatch_type *otype));
    BPatch_type *getConstituentType() const { return refType; }
    // Overriding the interfaces to use the underlying object
    BPatch_Vector<BPatch_field *> * getComponents() const;

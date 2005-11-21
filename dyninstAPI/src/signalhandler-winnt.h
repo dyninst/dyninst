@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-winnt.h,v 1.5 2005/11/03 05:21:07 jaw Exp $
+/* $Id: signalhandler-winnt.h,v 1.6 2005/11/21 17:16:14 jaw Exp $
  */
 
 /*
@@ -108,30 +108,40 @@ typedef DEBUG_EVENT procSignalInfo_t;
 // should stay stopped the handlers must pause it explicitly.
 
 
-#include "dyninstAPI/src/signalhandler-event.h"
+class SignalGeneratorWindows : public SignalGenerator
+{
+  friend SignalGeneratorWindows *getSH();
+  public:
+   virtual ~SignalGeneratorWindows() {}
 
-DWORD handleBreakpoint(process *proc, const EventRecord &ev);
-DWORD handleIllegal(process *proc, const EventRecord &ev);
-DWORD handleViolation(process *proc, const EventRecord &ev);
+  private:
+  SignalGeneratorWindows() : SignalGenerator() {}
+  bool waitNextEvent(EventRecord &);
+};
 
-// And the dispatcher
-DWORD handleException(process *proc, eventWhat_t what,
-                    eventInfo_t info);
+class SignalHandlerWindows : public SignalHandler
+{
+  friend class SignalGeneratorWindows;
+  public:
 
-// Thread creation handler
-DWORD handleThreadCreate(process *proc, eventInfo_t info);
+  private:
+  //  SignalHandler should only be constructed by SignalGenerator
+  SignalHandlerWindows() : SignalHandler() {}
+  virtual ~SignalHandlerWindows();
 
-// Process creation handler
-DWORD handleProcessCreate(process *proc, eventInfo_t info);
+  bool handleEvent(EventRecord &ev);
 
-// Thread deletion
-DWORD handleThreadDelete(process *proc, eventInfo_t info);
-
-// Process deletion
-DWORD handleThreadDelete(process *proc, eventInfo_t info);
-
-// DLL mapping
-DWORD handleDllLoad(process *proc, eventInfo_t info);
+  DWORD handleBreakpoint(EventRecord &ev);
+  DWORD handleException(EventRecord &ev);
+  DWORD handleIllegal(EventRecord &ev);
+  DWORD handleViolation(EventRecord &ev);
+  DWORD handleThreadCreate(EventRecord &ev);
+  DWORD handleThreadExit(EventRecord &ev);
+  DWORD handleProcessCreate(EventRecord &ev);
+  DWORD handleProcessExitWin(EventRecord &ev);
+  DWORD handleProcessSelfTermination(EventRecord &ev);
+  DWORD handleDllLoad(EventRecord &ev);
+};
 
 /////////////////////
 // Translation mechanisms
