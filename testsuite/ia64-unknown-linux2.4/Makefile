@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2005/10/22 22:11:48 bpellin Exp $
+# $Id: Makefile,v 1.3 2005/11/21 21:13:37 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -23,7 +23,8 @@ CFLAGS += -Wno-deprecated
 
 M_GXX = $(GXX)
 M_GCC = $(GCC)
-M_G77 = g77
+# Fortran on the IA-64 never was supposed to work.
+# M_G77 = g77
 
 GNU_WARNING_FLAGS = -W -Wall
 MUTATOR_CXXFLAGS += $(GNU_WARNING_FLAGS)
