@@ -1,7 +1,7 @@
 #
 # Makefile for dyninst test programs on Windows NT.
 #
-# $Id: Makefile,v 1.1 2005/09/29 20:37:10 bpellin Exp $
+# $Id: Makefile,v 1.2 2005/11/22 19:41:15 bpellin Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in nmake.config
@@ -82,6 +82,14 @@ $(TARGET2): ../src/$(TARGET2:_g++.exe=.c)
 
 !endif TARGET2
 
+# Target 3 is for mutator .dlls
+!ifdef TARGET3
+$(TARGET3): ../src/$(TARGET3:.dll=.C) ../src/test_lib.h
+	$(CXX) $(CXXFLAGS_NORM) -c ../src/$(TARGET3:.dll=.C) 
+	$(LINK) $(LDFLAGS) -out:$@ $(TARGET3:.dll=.obj) libdyninstAPI.lib libtestSuite.lib
+
+
+!endif TARGET3
 # Include the "standard program template".  This defines all the
 # common targets like "clean", "install", etc.
 

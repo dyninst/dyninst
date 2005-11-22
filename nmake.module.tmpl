@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.1 2005/09/29 20:37:29 bpellin Exp $
+# $Id: nmake.module.tmpl,v 1.2 2005/11/22 19:41:13 bpellin Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -16,7 +16,7 @@ DEST		= $(TO_CORE)\$(PROGRAM_DEST)\testprogs
 SRCS	      = ../src/$(TARGET:.exe=.C) ../src/test_util.C
 OBJS          = $(TARGET:.exe=.obj) test_util.obj
 !else
-TARGETS       = test1.exe test2.exe test3.exe test4.exe test5.exe test6.exe
+#TARGETS       = test1.exe test2.exe test3.exe test4.exe test5.exe test6.exe
 !ifdef NATIVE_CC
 TARGETS       = $(TARGETS) \
                 test1.mutatee_$(NATIVE_CC).exe \
@@ -67,21 +67,40 @@ SRCS	      = ../src/test1.C ../src/test1.mutatee.c ../src/test_util.C \
 OBJS          = test1.obj test2.obj test3.obj test4.obj test5.obj test6.obj test_util.obj
 !endif
 
-CXXFLAGS     = $(CXXFLAGS) -I../../h
-CFLAGS       = $(CFLAGS) -I../../h
+CXXFLAGS     = $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI/h
+CXXFLAGS_NORM = $(CXXFLAGS)
+CXXFLAGS     = $(CXXFLAGS) -DTESTLIB_DLL_BUILD
+CFLAGS       = $(CFLAGS) -I$(TO_CORE)/h
 
 LIBS		= $(TO_CORE)\$(LIBRARY_DEST)\libdyninstAPI.lib
 
 SYSLIBS		= 
 
-all:
-	$(MAKE) aTest TARGET=test1.exe MUTATEE_SRC="../src/test1.mutateeCommon.c ../src/mutatee_util.c"
-	$(MAKE) aTest TARGET=test2.exe 
-	$(MAKE) aTest TARGET=test3.exe
-	$(MAKE) aTest TARGET=test4.exe
-	$(MAKE) aTest TARGET=test5.exe
-	$(MAKE) aTest TARGET=test6.exe
-	$(MAKE) aTest TARGET=test8.exe MUTATEE_SRC=../src/mutatee_util.c
+LIBTESTSUITE = libtestSuite.dll
+SRCS_LIBTESTSUITE = ../src/test_lib.C \
+                    ../src/test_lib_dllExecution.C \
+                    ../src/test_lib_mutateeStart.C \
+                    ../src/Process_data.C \
+                    ../src/ParameterDict.C \
+                    ../src/TestData.C \
+                    ../src/Callbacks.C \
+                    ../src/test_lib_templates-nt.C
+
+MUTATOR_DLLS = test1_1
+
+
+OBJS_LIBTESTSUITE = $(SRCS_LIBTESTSUITE:.C=.obj)
+OBJS_LIBTESTSUITE = $(OBJS_LIBTESTSUITE:../src/=)
+
+
+all: $(LIBTESTSUITE) test_driver.exe runTests
+#	$(MAKE) aTest TARGET=test1.exe MUTATEE_SRC="../src/test1.mutateeCommon.c ../src/mutatee_util.c"
+#	$(MAKE) aTest TARGET=test2.exe 
+#	$(MAKE) aTest TARGET=test3.exe
+#	$(MAKE) aTest TARGET=test4.exe
+#	$(MAKE) aTest TARGET=test5.exe
+#	$(MAKE) aTest TARGET=test6.exe
+#	$(MAKE) aTest TARGET=test8.exe MUTATEE_SRC=../src/mutatee_util.c
 !ifdef NATIVE_CC
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test1.mutatee_$(NATIVE_CC).exe MUTATEE_SRC="../src/test1.mutateeCommon.c ../src/mutatee_util.c"
 	$(MAKE) aTest MUTATEE_CC=$(NATIVE_CC) TARGET2=test2.mutatee_$(NATIVE_CC).exe
@@ -117,12 +136,120 @@ all:
 	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test5.mutatee_$(M_GXX).exe MUTATEE_SUFFIX=.C
 	$(MAKE) aTest MUTATEE_CC=$(M_GXX) TARGET2=test8.mutatee_$(M_GXX).exe MUTATEE_SRC=../src/mutatee_util.c
 !endif
+	$(MAKE) aTest TARGET3=test1_1.dll
+	$(MAKE) aTest TARGET3=test1_2.dll
+	$(MAKE) aTest TARGET3=test1_3.dll
+	$(MAKE) aTest TARGET3=test1_4.dll
+	$(MAKE) aTest TARGET3=test1_5.dll
+	$(MAKE) aTest TARGET3=test1_6.dll
+	$(MAKE) aTest TARGET3=test1_7.dll
+	$(MAKE) aTest TARGET3=test1_8.dll
+	$(MAKE) aTest TARGET3=test1_9.dll
+	$(MAKE) aTest TARGET3=test1_10.dll
+	$(MAKE) aTest TARGET3=test1_11.dll
+	$(MAKE) aTest TARGET3=test1_12.dll
+	$(MAKE) aTest TARGET3=test1_13.dll
+	$(MAKE) aTest TARGET3=test1_14.dll
+	$(MAKE) aTest TARGET3=test1_15.dll
+	$(MAKE) aTest TARGET3=test1_16.dll
+	$(MAKE) aTest TARGET3=test1_17.dll
+	$(MAKE) aTest TARGET3=test1_18.dll
+	$(MAKE) aTest TARGET3=test1_19.dll
+	$(MAKE) aTest TARGET3=test1_20.dll
+	$(MAKE) aTest TARGET3=test1_21.dll
+	$(MAKE) aTest TARGET3=test1_22.dll
+	$(MAKE) aTest TARGET3=test1_23.dll
+	$(MAKE) aTest TARGET3=test1_24.dll
+	$(MAKE) aTest TARGET3=test1_25.dll
+	$(MAKE) aTest TARGET3=test1_26.dll
+	$(MAKE) aTest TARGET3=test1_27.dll
+	$(MAKE) aTest TARGET3=test1_28.dll
+	$(MAKE) aTest TARGET3=test1_29.dll
+	$(MAKE) aTest TARGET3=test1_30.dll
+	$(MAKE) aTest TARGET3=test1_31.dll
+	$(MAKE) aTest TARGET3=test1_32.dll
+	$(MAKE) aTest TARGET3=test1_33.dll
+	$(MAKE) aTest TARGET3=test1_34.dll
+	$(MAKE) aTest TARGET3=test1_35.dll
+	$(MAKE) aTest TARGET3=test1_36.dll
+	$(MAKE) aTest TARGET3=test1_37.dll
+	$(MAKE) aTest TARGET3=test1_38.dll
+	$(MAKE) aTest TARGET3=test1_39.dll
+	$(MAKE) aTest TARGET3=test1_40.dll
+	$(MAKE) aTest TARGET3=test2_1.dll
+	$(MAKE) aTest TARGET3=test2_2.dll
+	$(MAKE) aTest TARGET3=test2_3.dll
+	$(MAKE) aTest TARGET3=test2_4.dll
+	$(MAKE) aTest TARGET3=test2_5.dll
+	$(MAKE) aTest TARGET3=test2_6.dll
+	$(MAKE) aTest TARGET3=test2_7.dll
+	$(MAKE) aTest TARGET3=test2_8.dll
+	$(MAKE) aTest TARGET3=test2_9.dll
+	$(MAKE) aTest TARGET3=test2_10.dll
+	$(MAKE) aTest TARGET3=test2_11.dll
+	$(MAKE) aTest TARGET3=test2_12.dll
+	$(MAKE) aTest TARGET3=test2_13.dll
+	$(MAKE) aTest TARGET3=test2_14.dll 
+	$(MAKE) aTest TARGET3=test3_1.dll 
+	$(MAKE) aTest TARGET3=test3_2.dll 
+	$(MAKE) aTest TARGET3=test3_3.dll 
+	$(MAKE) aTest TARGET3=test3_4.dll 
+	$(MAKE) aTest TARGET3=test3_5.dll 
+	$(MAKE) aTest TARGET3=test4_1.dll 
+	$(MAKE) aTest TARGET3=test4_2.dll 
+	$(MAKE) aTest TARGET3=test4_3.dll 
+	$(MAKE) aTest TARGET3=test4_4.dll 
+	$(MAKE) aTest TARGET3=test5_1.dll 
+	$(MAKE) aTest TARGET3=test5_2.dll 
+	$(MAKE) aTest TARGET3=test5_3.dll 
+	$(MAKE) aTest TARGET3=test5_4.dll 
+	$(MAKE) aTest TARGET3=test5_5.dll 
+	$(MAKE) aTest TARGET3=test5_6.dll 
+	$(MAKE) aTest TARGET3=test5_7.dll 
+	$(MAKE) aTest TARGET3=test5_8.dll 
+	$(MAKE) aTest TARGET3=test5_9.dll 
+	$(MAKE) aTest TARGET3=test6_1.dll 
+	$(MAKE) aTest TARGET3=test6_2.dll 
+	$(MAKE) aTest TARGET3=test6_3.dll 
+	$(MAKE) aTest TARGET3=test6_4.dll 
+	$(MAKE) aTest TARGET3=test6_5.dll 
+	$(MAKE) aTest TARGET3=test6_6.dll 
+	$(MAKE) aTest TARGET3=test6_7.dll 
+	$(MAKE) aTest TARGET3=test6_8.dll 
+	$(MAKE) aTest TARGET3=test8_1.dll 
+	$(MAKE) aTest TARGET3=test8_2.dll 
+	$(MAKE) aTest TARGET3=test8_3.dll 
 
-aTest: $(TARGET) $(TARGET2)
+aTest: $(TARGET) $(TARGET2) $(TARGET3)
+
 
 UNCOMMON_INSTALL=true
 
 install: all
 	-$(MKDIR) $(DEST)
 	cp $(TARGETS) $(DEST)
+LDFLAGS = -DLL -debug -pdb:none
+LIBS    = libdyninstAPI.lib
 
+test_callee.dll: test_callee.obj
+	$(LINK) $(LDFLAGS) -out:$@ test_callee.obj libtestSuite.lib
+
+test_caller.exe: test_caller.obj
+	$(LINK) test_caller.obj libtestSuite.lib test_callee.lib
+
+test_caller.obj: ../src/test_caller.C
+	$(CXX) $(CXXFLAGS_NORM) -c $**
+
+$(LIBTESTSUITE): $(OBJS_LIBTESTSUITE)
+	$(LINK) $(LDFLAGS) -out:$@ $(OBJS_LIBTESTSUITE) $(LIBS)
+
+$(OBJS_LIBTESTSUITE): $(SRCS_LIBTESTSUITE)
+
+test_driver.exe:  test_driver.obj test_lib_templates-nt.obj
+	$(LINK) test_driver.obj test_lib_templates-nt.obj libdyninstAPI.lib libtestSuite.lib
+
+test_driver.obj: ../src/test_driver.C 
+	$(CXX) $(CXXFLAGS_NORM) -Dnative_cc=_VC.exe -c $**
+
+runTests: ../src/runTests.pl
+	copy ..\src\runTests.pl runTests
