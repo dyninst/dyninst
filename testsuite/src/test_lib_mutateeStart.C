@@ -39,11 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_lib_mutateeStart.C,v 1.1 2005/09/29 20:40:10 bpellin Exp $
+// $Id: test_lib_mutateeStart.C,v 1.2 2005/11/22 19:41:23 bpellin Exp $
 // Functions Dealing with mutatee Startup
 
 #include "test_lib.h"
-#include "stdlib.h"
+#include <stdlib.h>
 
 
 BPatch_thread *startMutateeTestGeneric(BPatch *bpatch, char *pathname, const char **child_argv, bool useAttach)
