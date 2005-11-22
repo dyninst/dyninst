@@ -39,21 +39,22 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Callbacks.h,v 1.1 2005/09/29 20:40:02 bpellin Exp $
+// $Id: Callbacks.h,v 1.2 2005/11/22 19:41:16 bpellin Exp $
 #ifndef CALLBACKS_H
 #define CALLBACKS_H
 
 #include "BPatch.h"
+#include "test_lib_dll.h"
 
-void setExpectErrors(bool er);
-void clearError();
-bool getError();
-void setErrorPrint(int error);
-void setExpectError(int error);
-void setBPatch(BPatch *bpatch);
+TESTLIB_DLL_EXPORT void setExpectErrors(bool er);
+TESTLIB_DLL_EXPORT void clearError();
+TESTLIB_DLL_EXPORT bool getError();
+TESTLIB_DLL_EXPORT void setErrorPrint(int error);
+TESTLIB_DLL_EXPORT void setExpectError(int error);
+TESTLIB_DLL_EXPORT void setBPatch(BPatch *bpatch);
 
-void errorFunc(BPatchErrorLevel level, int num, const char **params);
+TESTLIB_DLL_EXPORT void errorFunc(BPatchErrorLevel level, int num, const char **params);
 
-void createInstPointError(BPatchErrorLevel level, int num, const char **params);
+TESTLIB_DLL_EXPORT void createInstPointError(BPatchErrorLevel level, int num, const char **params);
 
 #endif /* CALLBACKS_H */

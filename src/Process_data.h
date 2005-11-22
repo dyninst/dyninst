@@ -39,15 +39,16 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Process_data.h,v 1.2 2005/10/22 22:11:44 bpellin Exp $
+// $Id: Process_data.h,v 1.3 2005/11/22 19:41:17 bpellin Exp $
 #ifndef PROCESS_DATA_H
 #define PROCESS_DATA_H
 
 #include "BPatch.h"
 #include "BPatch_thread.h"
+#include "test_lib_dll.h"
 #include <vector>
 
-class Process_data
+class TESTLIB_DLL_EXPORT Process_data
 {
    private:
       BPatch_thread *bp_process;
@@ -59,7 +60,7 @@ class Process_data
       bool terminate();
 };
 
-class ProcessList : public std::vector<Process_data>
+class TESTLIB_DLL_EXPORT ProcessList : public std::vector<Process_data>
 {
    public:
       void insertThread(BPatch_thread *appThread);
