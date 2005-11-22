@@ -1,5 +1,8 @@
 #ifndef __TEST12_H__
 #define __TEST12_H__
+
+#include "test_lib_test9.h"
+
 #define TEST2_THREADS 10
 #define TEST3_THREADS 10
 #define TEST4_THREADS 10

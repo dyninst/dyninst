@@ -20,6 +20,7 @@ VPATH 	= ../src $(DEPENDDIR)
 ###
 #######################################################################
 
+CFLAGS += -g
 EMPTY:=
 BLANK:=$(EMPTY) $(EMPTY)
 LPAREN:=(
@@ -214,9 +215,12 @@ SRCS_LIBTESTSUITE = test_lib.C \
                     test_lib_soExecution.C \
                     test_lib_mutateeStart.C \
                     test_lib_test7.C \
+                    test_lib_test9.C \
                     Process_data.C \
                     ParameterDict.C \
-                    Callbacks.C 
+                    Callbacks.C \
+                    TestData.C 
+
 
 SRCS_TEMPLATES = test_driver_templates.C 
 
@@ -623,7 +627,6 @@ endif
 
 test_driver.o: ../src/test_driver.C $(DEPENDDIR)/test_driver.dep
 	$(M_GXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
-
 
 test_driver: test_driver.o test_driver_templates.o $(DEPENDDIR)/test_driver.dep
 	$(M_GXX) -o $@ test_driver.o test_driver_templates.o $(MUTATOR_LDFLAGS) $(LIBS) 
