@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: inst-aix.C,v 1.21 2004/03/23 01:12:03 eli Exp $
+/* $Id: inst-aix.C,v 1.22 2005/11/22 13:57:09 jaw Exp $
  * inst-aix.C - AIX-specific code for paradynd.
  *
  * XXX - The following functions seem to be less than OS dependent, but I
@@ -66,7 +66,6 @@
 #include "paradynd/src/main.h"
 #include "paradynd/src/perfStream.h"
 #include "paradynd/src/context.h"
-#include "dyninstAPI/src/dyninstP.h" // isApplicationPaused
 
 
 pdstring process::getProcessStatus() const {

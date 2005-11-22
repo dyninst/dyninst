@@ -40,7 +40,7 @@
  */
 
 
-// $Id: templates2.C,v 1.58 2005/11/21 17:16:14 jaw Exp $
+// $Id: templates2.C,v 1.59 2005/11/22 13:57:10 jaw Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -57,7 +57,6 @@
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/Object.h"

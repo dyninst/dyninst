@@ -39,9 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-winnt.C,v 1.22 2005/09/01 22:18:24 bernat Exp $
+// $Id: inst-winnt.C,v 1.23 2005/11/22 13:57:09 jaw Exp $
 
-#include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/dyninst.h"
 #include "dyninstAPI/src/symtab.h"

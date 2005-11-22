@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-osf.C,v 1.11 2004/03/23 01:12:03 eli Exp $
+// $Id: inst-osf.C,v 1.12 2005/11/22 13:57:09 jaw Exp $
 
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/dyninst.h"
@@ -48,7 +48,6 @@
 #include "dyninstAPI/src/inst.h"
 
 #ifndef BPATCH_LIBRARY
-#include "dyninstAPI/src/dyninstP.h"    // isApplicationPaused()
 #include "paradynd/src/perfStream.h"
 
 pdstring process::getProcessStatus() const {

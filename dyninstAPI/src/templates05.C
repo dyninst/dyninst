@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates05.C,v 1.15 2004/03/23 01:12:10 eli Exp $
+// $Id: templates05.C,v 1.16 2005/11/22 13:57:10 jaw Exp $
 
 //  #pragma implementation "Dictionary.h"
 //  #include "common/src/Dictionary.C"
@@ -53,7 +53,6 @@
 //  #include "dyninstAPI/src/process.h"
 //  #include "dyninstAPI/src/inst.h"
 //  #include "dyninstAPI/src/instP.h"
-//  #include "dyninstAPI/src/dyninstP.h"
 //  #include "dyninstAPI/src/ast.h"
 //  #include "dyninstAPI/src/util.h"
 //  #include "dyninstAPI/src/Object.h"

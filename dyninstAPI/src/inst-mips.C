@@ -59,11 +59,7 @@
 #include "BPatch_basicBlock.h"
 #include "BPatch_flowGraph.h"
 #else
-//#include "rtinst/h/trace.h"
-//#include "paradynd/src/main.h"
 #include "paradynd/src/perfStream.h" // firstRecordTime
-//#include "dyninstAPI/src/showerror.h"
-#include "dyninstAPI/src/dyninstP.h"  // isApplicationPaused()
 #endif
 
 #include "dyninstAPI/src/rpcMgr.h"

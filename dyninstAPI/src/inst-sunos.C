@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sunos.C,v 1.55 2004/03/23 01:12:04 eli Exp $
+// $Id: inst-sunos.C,v 1.56 2005/11/22 13:57:09 jaw Exp $
 
 #ifndef NULL
 #define NULL 0
@@ -61,7 +61,6 @@
 #include "paradynd/src/main.h"
 #include "paradynd/src/perfStream.h"
 #include "dyninstAPI/src/showerror.h"
-#include "dyninstAPI/src/dyninstP.h" // isApplicationPaused()
 
 pdstring process::getProcessStatus() const {
    char ret[80];
