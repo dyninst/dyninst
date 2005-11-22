@@ -1,4 +1,4 @@
-# $Id: Makefile,v 1.1 2005/09/29 20:37:06 bpellin Exp $
+# $Id: Makefile,v 1.2 2005/11/22 01:14:51 bpellin Exp $
 #
 # Makefile for dyninstAPI test programs on Tru64 Alpha
 #
@@ -51,6 +51,8 @@ TEST6_AS_GNU = as
 TEST6_ASFLAGS = -cpp
 TEST6_AS_SRC = test6LS-alpha.s
 TEST6_AS_OBJ_BASE = $(basename $(TEST6_AS_SRC))
+
+LIBS_LIBTESTSUITE = -lrt
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
