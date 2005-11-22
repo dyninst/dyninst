@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9.C,v 1.16 2005/11/22 13:50:33 jaw Exp $
+// $Id: test9.C,v 1.17 2005/11/22 13:52:40 jaw Exp $
 //
 // libdyninst validation suite test #9
 //    Author: Chadd Williams (30 jun 2003) 
@@ -889,7 +889,6 @@ void mutatorTest6(char *pathname)
 
 	createNewProcess(appThread, appImage, pathname, child_argv);
 
-        fprintf(stderr, "%s[%d]:  test6 after createNewProcess\n", __FILE__, __LINE__);
 
 	/*instrument func6_2()  to call call6_2() 
 	  each of this functions are in libInstMe.so
@@ -897,7 +896,6 @@ void mutatorTest6(char *pathname)
 
 	instrumentToCallZeroArg(appThread, appImage, "func6_2", "call6_2", testNo, testName);
 
-        fprintf(stderr, "%s[%d]:  test6 after instrumentToCallZero...\n", __FILE__, __LINE__);
 	char * dirname = saveWorld(appThread);
 	savedDirectories[testNo]=dirname;
 
