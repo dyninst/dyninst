@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_6.C,v 1.1 2005/09/29 20:39:10 bpellin Exp $
+// $Id: test2_6.C,v 1.2 2005/11/22 19:42:14 bpellin Exp $
 /*
  * #Name: test2_6
  * #Desc: Load a dynamically linked library from the mutatee
@@ -112,7 +112,7 @@ int mutatorTest(BPatch_thread *thread, BPatch_image *img)
 #endif
 }
 
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 {
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());

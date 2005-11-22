@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4_4.C,v 1.2 2005/10/17 19:14:34 bpellin Exp $
+// $Id: test4_4.C,v 1.3 2005/11/22 19:42:26 bpellin Exp $
 /*
  * #Name: test4_4
  * #Desc: Fork and Exec Callback
@@ -240,7 +240,7 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 #endif
 }
 
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 {
     char *pathname = param["pathname"]->getString();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());

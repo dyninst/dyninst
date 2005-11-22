@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_5.C,v 1.1 2005/09/29 20:38:54 bpellin Exp $
+// $Id: test1_5.C,v 1.2 2005/11/22 19:41:59 bpellin Exp $
 /*
  * #Name: test1_5
  * #Desc: Mutator Side - If without else
@@ -134,7 +134,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bpatch = (BPatch *)(param["bpatch"]->getPtr());

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_5.C,v 1.1 2005/09/29 20:39:19 bpellin Exp $
+// $Id: test3_5.C,v 1.2 2005/11/22 19:42:22 bpellin Exp $
 /*
  * #Name: test3_5
  * #Desc: sequential multiple-process management - abort
@@ -56,7 +56,7 @@
 #include "test_lib.h"
 //#include "test3.h"
 
-unsigned int MAX_MUTATEES = 32;
+const unsigned int MAX_MUTATEES = 32;
 unsigned int Mutatees=3;
 int debugPrint;
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_12.C,v 1.1 2005/09/29 20:38:12 bpellin Exp $
+// $Id: test1_12.C,v 1.2 2005/11/22 19:41:27 bpellin Exp $
 /*
  * #Name: test1_12
  * #Desc: Mutator Side - Insert/Remove and Malloc/Free
@@ -172,7 +172,7 @@ int mutatorTestb(BPatch_thread *appThread, BPatch_image * /*appImage*/)
 }
 
 // External Interface
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 {
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());

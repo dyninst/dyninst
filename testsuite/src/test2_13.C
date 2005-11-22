@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_13.C,v 1.1 2005/09/29 20:39:03 bpellin Exp $
+// $Id: test2_13.C,v 1.2 2005/11/22 19:42:08 bpellin Exp $
 /*
  * #Name: test2_13
  * #Desc: loadLibrary failure test
@@ -112,7 +112,7 @@ int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
 
 }
 
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 {
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
