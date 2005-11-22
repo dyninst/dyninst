@@ -89,13 +89,7 @@ bool SyncCallback::waitForCompletion()
     return true;
 }
 
-ErrorCallback::~ErrorCallback()
-{
-  //  need to free memory allocated for the arguments 
-  if (str) free(str);
-}
-
-bool ErrorCallback::execute(void) 
+bool SyncCallback::execute() 
 {
   unsigned int need_to_relock = 0;
   lock->_Lock(FILE__, __LINE__);
@@ -105,10 +99,22 @@ bool ErrorCallback::execute(void)
   }
   lock->_Unlock(FILE__, __LINE__);
 
-  cb(sev, num, (const char **)&str);
+  execute_real();
 
   while (need_to_relock--) 
     lock->_Lock(FILE__, __LINE__);
+  return true;
+}
+
+ErrorCallback::~ErrorCallback()
+{
+  //  need to free memory allocated for the arguments 
+  if (str) free(str);
+}
+
+bool ErrorCallback::execute_real(void) 
+{
+  cb(sev, num, (const char **)&str);
   return true;
 }
 
@@ -130,18 +136,9 @@ bool ErrorCallback::operator()(BPatchErrorLevel severity, int number,
   return true;
 }
 
-bool ForkCallback::execute(void) 
+bool ForkCallback::execute_real(void) 
 {
-  unsigned int need_to_relock = 0;
-  lock->_Lock(FILE__, __LINE__);
-  while (lock->depth()-1) {
-    lock->_Unlock(FILE__, __LINE__);
-    need_to_relock++;
-  }
-  lock->_Unlock(FILE__, __LINE__);
   cb(par, chld);
-  while (need_to_relock--) 
-    lock->_Lock(FILE__, __LINE__);
   return true;
 }
 
@@ -158,18 +155,9 @@ bool ForkCallback::operator()(BPatch_thread *parent, BPatch_thread *child)
   return true;
 }
 
-bool ExecCallback::execute(void) 
+bool ExecCallback::execute_real(void) 
 {
-  unsigned int need_to_relock = 0;
-  lock->_Lock(FILE__, __LINE__);
-  while (lock->depth()-1) {
-    lock->_Unlock(FILE__, __LINE__);
-    need_to_relock++;
-  }
-  lock->_Unlock(FILE__, __LINE__);
   cb(proc);
-  while (need_to_relock--) 
-    lock->_Lock(FILE__, __LINE__);
   return true;
 }
 
@@ -185,18 +173,9 @@ bool ExecCallback::operator()(BPatch_thread *process)
   return true;
 }
 
-bool ExitCallback::execute(void) 
+bool ExitCallback::execute_real(void) 
 {
-  unsigned int need_to_relock = 0;
-  lock->_Lock(FILE__, __LINE__);
-  while (lock->depth()-1) {
-    lock->_Unlock(FILE__, __LINE__);
-    need_to_relock++;
-  }
-  lock->_Unlock(FILE__, __LINE__);
   cb(proc, type);
-  while (need_to_relock--) 
-    lock->_Lock(FILE__, __LINE__);
   return true;
 }
 
@@ -213,18 +192,9 @@ bool ExitCallback::operator()(BPatch_thread *process, BPatch_exitType exit_type)
   return true;
 }
 
-bool SignalCallback::execute(void) 
+bool SignalCallback::execute_real(void) 
 {
-  unsigned int need_to_relock = 0;
-  lock->_Lock(FILE__, __LINE__);
-  while (lock->depth()-1) {
-    lock->_Unlock(FILE__, __LINE__);
-    need_to_relock++;
-  }
-  lock->_Unlock(FILE__, __LINE__);
   cb(proc, num);
-  while (need_to_relock--) 
-    lock->_Lock(FILE__, __LINE__);
   return true;
 }
 
@@ -241,18 +211,9 @@ bool SignalCallback::operator()(BPatch_thread *process, int sigNum)
   return true;
 }
 
-bool OneTimeCodeCallback::execute(void) 
+bool OneTimeCodeCallback::execute_real(void) 
 {
-  unsigned int need_to_relock = 0;
-  lock->_Lock(FILE__, __LINE__);
-  while (lock->depth()-1) {
-    lock->_Unlock(FILE__, __LINE__);
-    need_to_relock++;
-  }
-  lock->_Unlock(FILE__, __LINE__);
   cb(proc, user_data, return_value);
-  while (need_to_relock--) 
-    lock->_Lock(FILE__, __LINE__);
   return true;
 }
 
@@ -270,18 +231,9 @@ bool OneTimeCodeCallback::operator()(BPatch_thread *process, void *userData, voi
   return true;
 }
 
-bool DynLibraryCallback::execute(void) 
+bool DynLibraryCallback::execute_real(void) 
 {
-  unsigned int need_to_relock = 0;
-  lock->_Lock(FILE__, __LINE__);
-  while (lock->depth()-1) {
-    lock->_Unlock(FILE__, __LINE__);
-    need_to_relock++;
-  }
-  lock->_Unlock(FILE__, __LINE__);
   cb(proc, mod, load_param);
-  while (need_to_relock--) 
-    lock->_Lock(FILE__, __LINE__);
   return true;
 }
 
@@ -299,18 +251,9 @@ bool DynLibraryCallback::operator()(BPatch_thread *process, BPatch_module *modul
   return true;
 }
 
-bool DynamicCallsiteCallback::execute(void) 
+bool DynamicCallsiteCallback::execute_real(void) 
 {
-  unsigned int need_to_relock = 0;
-  lock->_Lock(FILE__, __LINE__);
-  while (lock->depth()-1) {
-    lock->_Unlock(FILE__, __LINE__);
-    need_to_relock++;
-  }
-  lock->_Unlock(FILE__, __LINE__);
   cb(pt, func);
-  while (need_to_relock--) 
-    lock->_Lock(FILE__, __LINE__);
   return true;
 }
 
@@ -333,18 +276,9 @@ UserEventCallback::~UserEventCallback()
   if (buf) delete [] (int *)buf;
 }
 
-bool UserEventCallback::execute(void) 
+bool UserEventCallback::execute_real(void) 
 {
-  unsigned int need_to_relock = 0;
-  lock->_Lock(FILE__, __LINE__);
-  while (lock->depth()-1) {
-    lock->_Unlock(FILE__, __LINE__);
-    need_to_relock++;
-  }
-  lock->_Unlock(FILE__, __LINE__);
   cb(proc, buf, bufsize);
-  while (need_to_relock--) 
-    lock->_Lock(FILE__, __LINE__);
   return true;
 }
 
@@ -363,20 +297,11 @@ bool UserEventCallback::operator()(BPatch_process *process, void *buffer, int bu
   return true;
 }
 
-bool AsyncThreadEventCallback::execute(void) 
+bool AsyncThreadEventCallback::execute_real(void) 
 {
   async_printf("%s[%d][%s]:  welcome to AsyncThreadEventCallback: execute\n", 
           FILE__, __LINE__, getThreadStr(getExecThreadID()));
-  unsigned int need_to_relock = 0;
-  lock->_Lock(FILE__, __LINE__);
-  while (lock->depth()-1) {
-    lock->_Unlock(FILE__, __LINE__);
-    need_to_relock++;
-  }
-  lock->_Unlock(FILE__, __LINE__);
   cb(proc, thr);
-  while (need_to_relock--) 
-    lock->_Lock(FILE__, __LINE__);
   return true;
 }
 
@@ -393,81 +318,14 @@ bool AsyncThreadEventCallback::operator()(BPatch_process *process, BPatch_thread
   return true;
 }
 
-#ifdef NOTDEF // PDSEP
-bool RPCDoneCallback::execute(void) 
-{
-  unsigned int need_to_relock = 0;
-  lock->_Lock(FILE__, __LINE__);
-  while (lock->depth()-1) {
-    lock->_Unlock(FILE__, __LINE__);
-    need_to_relock++;
-  }
-  lock->_Unlock(FILE__, __LINE__);
-  cb(proc, id, data_, result_);
-  while (need_to_relock--) 
-    lock->_Lock(FILE__, __LINE__);
-  return true;
-}
-
-bool RPCDoneCallback::operator()(process *p, unsigned rpcid, void *data, void *result)
-{
-  assert(lock->depth());
-  proc = p;
-  id = rpcid;
-  data_ = data;
-  result_ = result;
-  getMailbox()->executeOrRegisterCallback(this);
-  if (synchronous) {
-    signal_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
-    waitForCompletion();
-  }
-  return true;
-}
-
-bool FinalizeRTLibCallback::execute(void) 
-{
-  unsigned int need_to_relock = 0;
-  lock->_Lock(FILE__, __LINE__);
-  while (lock->depth()-1) {
-    lock->_Unlock(FILE__, __LINE__);
-    need_to_relock++;
-  }
-  lock->_Unlock(FILE__, __LINE__);
-  cb(proc);
-  while (need_to_relock--) 
-    lock->_Lock(FILE__, __LINE__);
-  return true;
-}
-
-bool FinalizeRTLibCallback::operator()(process *p)
-{
-  assert(lock->depth());
-  proc = p;
-  getMailbox()->executeOrRegisterCallback(this);
-  if (synchronous) {
-    signal_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
-    waitForCompletion();
-  }
-  return true;
-}
-#endif
 InternalThreadExitCallback::~InternalThreadExitCallback()
 {
   if (cbs) delete cbs;
 }
 
-bool InternalThreadExitCallback::execute(void) 
+bool InternalThreadExitCallback::execute_real(void) 
 {
-  unsigned int need_to_relock = 0;
-  lock->_Lock(FILE__, __LINE__);
-  while (lock->depth()-1) {
-    lock->_Unlock(FILE__, __LINE__);
-    need_to_relock++;
-  }
-  lock->_Unlock(FILE__, __LINE__);
   cb(proc, thr, cbs);
-  while (need_to_relock--) 
-    lock->_Lock(FILE__, __LINE__);
   return true;
 }
 
@@ -487,18 +345,9 @@ bool InternalThreadExitCallback::operator()(BPatch_process *p, BPatch_thread *t,
 }
 
 #ifdef IBM_BPATCH_COMPAT
-bool ThreadEventCallback::execute(void) 
+bool ThreadEventCallback::execute_real(void) 
 {
-  unsigned int need_to_relock = 0;
-  lock->_Lock(FILE__, __LINE__);
-  while (lock->depth()-1) {
-    lock->_Unlock(FILE__, __LINE__);
-    need_to_relock++;
-  }
-  lock->_Unlock(FILE__, __LINE__);
   cb(thr, a1, a2);
-  while (need_to_relock--) 
-    lock->_Lock(FILE__, __LINE__);
   return true;
 }
 

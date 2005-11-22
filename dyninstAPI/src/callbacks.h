@@ -38,23 +38,26 @@ class SyncCallback : public CallbackBase
 {
   public:
 
-  SyncCallback(bool is_synchronous = true, eventLock *l = global_mutex) :
-    CallbackBase(TARGET_UI_THREAD, signalCompletion), synchronous(is_synchronous),
+  SyncCallback(bool is_synchronous = true, eventLock *l = global_mutex,
+               unsigned long target_thread_id_ = TARGET_UI_THREAD,
+               CallbackCompletionCallback completion_cb = signalCompletion) :
+    CallbackBase(target_thread_id_, completion_cb), synchronous(is_synchronous),
     lock(l), completion_signalled(false), sh(NULL) {}
   SyncCallback(SyncCallback &src) :
-    CallbackBase(TARGET_UI_THREAD, signalCompletion),  
+    CallbackBase(src.targetThread(), src.getCleanupCallback()),  
     synchronous(src.synchronous), lock(src.lock), completion_signalled(false), sh(NULL) {}
-  ~SyncCallback() {}
+  virtual ~SyncCallback() {}
 
    void setSynchronous(bool flag = true) {synchronous = flag;}
    static void signalCompletion(CallbackBase *cb); 
+   virtual bool execute(void); 
   protected:
-
-   bool waitForCompletion(); 
+   virtual bool execute_real(void) = 0;
+   virtual bool waitForCompletion(); 
    bool synchronous;
    eventLock *lock;
-  private:
    bool completion_signalled;
+  private:
    SignalHandler *sh;
 };
 
@@ -72,7 +75,7 @@ class ErrorCallback : public SyncCallback
    ~ErrorCallback();
 
    CallbackBase *copy() { return new ErrorCallback(*this);}
-   bool execute(void); 
+   bool execute_real(void); 
    bool operator()(BPatchErrorLevel severity,
                    int number,
                    const char *error_str);  
@@ -94,7 +97,7 @@ class ForkCallback : public SyncCallback
    ~ForkCallback() {}
 
    CallbackBase *copy() { return new ForkCallback(*this);}
-   bool execute(void); 
+   bool execute_real(void); 
    bool operator()(BPatch_thread *parent,
                    BPatch_thread *child);
    BPatchForkCallback getFunc() {return cb;}
@@ -114,7 +117,7 @@ class ExecCallback : public SyncCallback
    ~ExecCallback() {}
 
    CallbackBase *copy() { return new ExecCallback(*this);}
-   bool execute(void); 
+   bool execute_real(void); 
    bool operator()(BPatch_thread *process);
    BPatchExecCallback getFunc() {return cb;}
   private:    
@@ -132,7 +135,7 @@ class ExitCallback : public SyncCallback
    ~ExitCallback() {}
 
    CallbackBase *copy() { return new ExitCallback(*this);}
-   bool execute(void); 
+   bool execute_real(void); 
    bool operator()(BPatch_thread *process, BPatch_exitType exit_type);
    BPatchExitCallback getFunc() {return cb;}
   private:    
@@ -151,7 +154,7 @@ class SignalCallback : public SyncCallback
    ~SignalCallback() {}
 
    CallbackBase *copy() { return new SignalCallback(*this);}
-   bool execute(void); 
+   bool execute_real(void); 
    bool operator()(BPatch_thread *process, int sigNum);
    BPatchSignalCallback getFunc() {return cb;}
   private:    
@@ -170,7 +173,7 @@ class OneTimeCodeCallback : public SyncCallback
    ~OneTimeCodeCallback() {}
 
    CallbackBase *copy() { return new OneTimeCodeCallback(*this);}
-   bool execute(void); 
+   bool execute_real(void); 
    bool operator()(BPatch_thread *process, void *userData, void *returnValue);
    BPatchOneTimeCodeCallback getFunc() {return cb;}
   private:    
@@ -190,7 +193,7 @@ class DynLibraryCallback : public SyncCallback
    ~DynLibraryCallback() {}
 
    CallbackBase *copy() { return new DynLibraryCallback(*this);}
-   bool execute(void); 
+   bool execute_real(void); 
    bool operator()(BPatch_thread *process, BPatch_module *module, bool load);
    BPatchDynLibraryCallback getFunc() {return cb;}
   private:    
@@ -210,7 +213,7 @@ class DynamicCallsiteCallback : public SyncCallback
    ~DynamicCallsiteCallback() {}
 
    CallbackBase *copy() { return new DynamicCallsiteCallback(*this);}
-   bool execute(void); 
+   bool execute_real(void); 
    bool operator()(BPatch_point *at_point, BPatch_function *called_function);
    BPatchDynamicCallSiteCallback getFunc() {return cb;}
   private:    
@@ -229,7 +232,7 @@ class UserEventCallback : public SyncCallback
    ~UserEventCallback();
 
    CallbackBase *copy() { return new UserEventCallback(*this);}
-   bool execute(void); 
+   bool execute_real(void); 
    bool operator()(BPatch_process *process, void *buffer, int buffersize);
    BPatchUserEventCallback getFunc() {return cb;}
   private:    
@@ -250,7 +253,7 @@ class AsyncThreadEventCallback : public SyncCallback
    ~AsyncThreadEventCallback() {}
 
    CallbackBase *copy() { return new AsyncThreadEventCallback(*this);}
-   bool execute(void); 
+   bool execute_real(void); 
    bool operator()(BPatch_process *process, BPatch_thread *thread);
    BPatchAsyncThreadEventCallback getFunc() {return cb;}
   private:    
@@ -259,44 +262,6 @@ class AsyncThreadEventCallback : public SyncCallback
    BPatch_thread *thr;
 };
 
-#ifdef NOTDEF // PDSEP
-class RPCDoneCallback : public SyncCallback 
-{  
-  public:
-   RPCDoneCallback(inferiorRPCcallbackFunc callback) : SyncCallback(),
-      cb(callback), proc(NULL) {setTargetThread(-1UL);}
-   RPCDoneCallback(RPCDoneCallback &src) : SyncCallback(),
-      cb(src.cb), proc(NULL), id(0), data_(NULL), result_(NULL) {}
-   ~RPCDoneCallback() {}
-
-   CallbackBase *copy() { return new RPCDoneCallback(*this);}
-   bool execute(void); 
-   bool operator()(process *p, unsigned rpcid, void *data, void *result);
-  private:    
-   inferiorRPCcallbackFunc cb;
-   process *proc;
-   unsigned id;
-   void *data_;
-   void *result_;
-};
-
-class FinalizeRTLibCallback : public SyncCallback 
-{  
-  public:
-   FinalizeRTLibCallback(void (*callback)(process *)) : SyncCallback(),
-      cb(callback), proc(NULL) {setTargetThread(-1UL);}
-   FinalizeRTLibCallback(FinalizeRTLibCallback &src) : SyncCallback(),
-      cb(src.cb), proc(NULL) {}
-   ~FinalizeRTLibCallback() {}
-
-   CallbackBase *copy() { return new FinalizeRTLibCallback(*this);}
-   bool execute(void); 
-   bool operator()(process *p);
-  private:    
-   void (*cb)(process *);
-   process *proc;
-};
-#endif
 typedef void (*internalThreadExitCallback)(BPatch_process *, BPatch_thread *,
                                            pdvector<AsyncThreadEventCallback *> *);
 
@@ -312,7 +277,7 @@ class InternalThreadExitCallback : public SyncCallback
    ~InternalThreadExitCallback();
 
    CallbackBase *copy() { return new InternalThreadExitCallback(*this);}
-   bool execute(void); 
+   bool execute_real(void); 
    bool operator()(BPatch_process *p, BPatch_thread *t, 
                    pdvector<AsyncThreadEventCallback *> *callbacks);
   private:    
@@ -333,7 +298,7 @@ class ThreadEventCallback : public SyncCallback
    ~ThreadEventCallback();
 
    CallbackBase *copy() { return new ThreadEventCallback(*this);}
-   bool execute(void); 
+   bool execute_real(void); 
    bool operator()(BPatch_thread *thread, void *arg1, void *arg2);
    BPatchThreadEventCallback getFunc() {return cb;}
   private:    

@@ -94,9 +94,7 @@ EventRecord &EventGate::wait()
  
   still_waiting:
   waiting = true;
-  //lock->_Unlock(FILE__, __LINE__);
   getMailbox()->executeCallbacks(FILE__, __LINE__);
-  //lock->_Lock(FILE__, __LINE__);
 
   if (trigger.type != evtUndefined) {
     return trigger;
@@ -188,7 +186,8 @@ bool SignalGenerator::handleEventLocked(EventRecord &ev)
 
   if (handlers.size() > MAX_HANDLERS) {
      fprintf(stderr, "%s[%d]:  FATAL:  Something is horribly wrong.\n", FILE__, __LINE__);
-     fprintf(stderr, "\thave %d signal handlers, max is %d\n", handlers.size(), MAX_HANDLERS);
+     fprintf(stderr, "\thave %d signal handlers, max is %d\n", 
+             handlers.size(), MAX_HANDLERS);
      abort();
   }
 
@@ -197,15 +196,16 @@ bool SignalGenerator::handleEventLocked(EventRecord &ev)
     int shid = handlers.size();
     char shname[16];
     sprintf(shname, "SH-%d", shid);
-    signal_printf("%s[%d]:  about to create event handler %s\n", FILE__, __LINE__, shname);
+    signal_printf("%s[%d]:  about to create event handler %s\n", 
+                   FILE__, __LINE__, shname);
     sh = newSignalHandler(shname, shid);
     sh->createThread();
     handlers.push_back(sh);
     ret = sh->assignEvent(ev);
     if (!ret)  {
        char buf[128];
-       fprintf(stderr, "%s[%d]:  failed to assign event %s to handler\n", FILE__, __LINE__,
-               ev.sprint_event(buf));
+       fprintf(stderr, "%s[%d]:  failed to assign event %s to handler\n", 
+               FILE__, __LINE__, ev.sprint_event(buf));
     }
   }
 
@@ -265,7 +265,8 @@ eventType SignalGenerator::waitForOneOf(pdvector<eventType> &evts)
   assert(global_mutex->depth());
 
   if (getExecThreadID() == getThreadID()) {
-    fprintf(stderr, "%s[%d][%s]:   ILLEGAL:  SYNC THREAD waiting on for a signal\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
+    fprintf(stderr, "%s[%d][%s]:   ILLEGAL:  SYNC THREAD waiting on for a signal\n", 
+            FILE__, __LINE__, getThreadStr(getExecThreadID()));
     abort();
   }
 
@@ -303,7 +304,8 @@ eventType SignalGenerator::waitForOneOf(pdvector<eventType> &evts)
   }
 
   if (!found) {
-     fprintf(stderr, "%s[%d]:  BAD NEWS, somehow lost a pointer to eg\n", FILE__, __LINE__);
+     fprintf(stderr, "%s[%d]:  BAD NEWS, somehow lost a pointer to eg\n", 
+             FILE__, __LINE__);
   }
 
   if (sh)
@@ -351,7 +353,8 @@ eventType SignalGenerator::waitForEvent(eventType evt, process *p, dyn_lwp *lwp,
   }
 
   if (!found) {
-     fprintf(stderr, "%s[%d]:  BAD NEWS, somehow lost a pointer to eg\n", FILE__, __LINE__);
+     fprintf(stderr, "%s[%d]:  BAD NEWS, somehow lost a pointer to eg\n", 
+             FILE__, __LINE__);
   }
 
   if (sh)

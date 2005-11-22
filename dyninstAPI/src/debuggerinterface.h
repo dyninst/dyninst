@@ -19,6 +19,7 @@
 
 #include "EventHandler.h"
 #include "mailbox.h"
+#include "callbacks.h"
 #include "util.h"
 #include "showerror.h"
 #include <stdlib.h>
@@ -59,9 +60,11 @@ typedef enum {
   dbiIsSignalFrame,
   dbiWaitpid,
   dbiLastEvent /* placeholder for the end of the list */
+               /* make sure to reflect additions to this list in */
+               /* dbiEventType2Str */
 } DBIEventType;
 
-//char *dbiEvent2Str(DBIEventType);
+const char *dbiEventType2str(DBIEventType);
 
 class DBIEvent {
   public:
@@ -78,21 +81,22 @@ class DebuggerInterface;
 #endif
 extern CallbackCompletionCallback dbi_signal_done;
 
-class DBICallbackBase : public CallbackBase
+class DBICallbackBase : public SyncCallback
 {
   friend class DebuggerInterface;
-  friend void dbi_signal_done_(CallbackBase *cb);
+  //friend void dbi_signal_done_(CallbackBase *cb);
 
   public:
-  DBICallbackBase(DBIEventType t) : CallbackBase(DBI_PLATFORM_TARGET_THREAD, dbi_signal_done),
-                                done_flag(false), type(t) {}
-  ~DBICallbackBase() {}
-
+  DBICallbackBase(DBIEventType t, eventLock *l) : SyncCallback(true /*synchronous*/, l,
+                                                  DBI_PLATFORM_TARGET_THREAD, 
+                                                  dbi_signalCompletion), type(t) {}
+  virtual ~DBICallbackBase() {}
+  static void dbi_signalCompletion(CallbackBase *cb);
+  virtual bool waitForCompletion();
+  virtual bool execute() {return execute_real();}
+  virtual bool execute_real() = 0;
   protected:
-  bool done_flag;
   DBIEventType type;
-  bool DBILock();
-  bool DBIUnlock();
 };
 
 class DebuggerInterface : public EventHandler<DBIEvent> {
@@ -143,26 +147,6 @@ class DebuggerInterface : public EventHandler<DBIEvent> {
   int waitpid(pid_t pid, int *status, int options);
   public:
 #endif
-  void waitForCompletion(DBICallbackBase *cb, unsigned long target_thread_id =-1UL) {
-    //fprintf(stderr, "%s[%d][%s]:  DBI callback sleeping until completion\n", 
-     //       __FILE__, __LINE__, getThreadStr(getExecThreadID()));
-    dbilock._Lock(__FILE__, __LINE__);
-    evt = cb->type;
-    if (isRunning()) {
-      dbilock._Broadcast(__FILE__, __LINE__);
-      dbilock._WaitForSignal(__FILE__, __LINE__);
-      while (!cb->done_flag) {
-        fprintf(stderr, "%s[%d][%s]:  weird!\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
-        dbilock._WaitForSignal(__FILE__, __LINE__);
-      }
-      dbilock._Unlock(__FILE__, __LINE__);
-    }else {
-      assert (cb->done_flag);
-      dbilock._Unlock(__FILE__, __LINE__);
-    }
-    //fprintf(stderr, "%s[%d][%s]:  DBI callback complete, waking\n", __FILE__, __LINE__, 
-    //        getThreadStr(getExecThreadID()));
-  }
   bool bulkPtraceWrite(void *inTraced, u_int nbytes, void *inSelf, int pid, int address_width);
   bool bulkPtraceRead(void *inTraced, u_int nbytes, void *inSelf, int pid, int address_width);
   private:
@@ -173,30 +157,14 @@ class DebuggerInterface : public EventHandler<DBIEvent> {
     { LOCK_FUNCTION(bool, handleEventLocked, (ev));}
   bool handleEventLocked(DBIEvent &ev);
 
-  void signalDone(DBICallbackBase *cb) {
-    dbi_printf("%s[%d][%s]:  signalling DBI callback done\n", FILE__, __LINE__, 
-           getThreadStr(getExecThreadID()));
-    dbilock._Lock(FILE__, __LINE__);
-    cb->done_flag = true;
-    dbilock._Broadcast(FILE__, __LINE__);
-    dbilock._Unlock(FILE__, __LINE__);
-    dbi_printf("%s[%d][%s]:  signalled DBI callback done\n", FILE__, __LINE__, 
-           getThreadStr(getExecThreadID()));
-  }
   void getBusy() {
-    do {
-      dbilock._Lock(FILE__, __LINE__);
-      if (isBusy) {
-        fprintf(stderr, "%s[%d][%s]:  dbi is busy, waiting for signal\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
-        dbilock._WaitForSignal(FILE__, __LINE__);
-        dbilock._Unlock(FILE__, __LINE__);
-      }
-      else {
-        isBusy = true;
-        dbilock._Unlock(FILE__, __LINE__);
-        break;
-      }
-    } while (1);
+    dbilock._Lock(FILE__, __LINE__);
+    while (isBusy) {
+      dbi_printf("%s[%d]:  dbi is busy, waiting for signal\n", FILE__, __LINE__);
+      dbilock._WaitForSignal(FILE__, __LINE__);
+    }
+    isBusy = true;
+    dbilock._Unlock(FILE__, __LINE__);
   }
   void releaseBusy() {
     dbilock._Lock(FILE__, __LINE__);
@@ -226,12 +194,13 @@ bool DBI_readDataSpace(pid_t pid, Address addr, int nelem, Address data, int wor
 class ForkNewProcessCallback : public DBICallbackBase
 {
   public:
-   ForkNewProcessCallback() : DBICallbackBase(dbiForkNewProcess) {}
-   ForkNewProcessCallback(ForkNewProcessCallback &) : DBICallbackBase(dbiForkNewProcess) {}
-   ~ForkNewProcessCallback() {}
+   ForkNewProcessCallback(eventLock *l) : DBICallbackBase(dbiForkNewProcess,l) {}
+   ForkNewProcessCallback(ForkNewProcessCallback &src) : DBICallbackBase(dbiForkNewProcess,
+                                                                         src.lock) {}
+   virtual ~ForkNewProcessCallback() {}
 
    CallbackBase *copy() { return new ForkNewProcessCallback(*this);}
-   bool execute(void);
+   bool execute_real(void);
    bool operator()(pdstring file, pdstring dir, pdvector<pdstring> *argv, 
                    pdvector<pdstring> *envp,
                    pdstring inputFile, pdstring outputFile, int &traceLink,
@@ -261,12 +230,12 @@ class ForkNewProcessCallback : public DBICallbackBase
 class PtraceCallback : public DBICallbackBase
 {
   public:
-   PtraceCallback() : DBICallbackBase(dbiPtrace) {}
-   PtraceCallback(PtraceCallback &) : DBICallbackBase(dbiPtrace) {}
-   ~PtraceCallback() {}
+   PtraceCallback(eventLock *l) : DBICallbackBase(dbiPtrace, l) {}
+   PtraceCallback(PtraceCallback &src) : DBICallbackBase(dbiPtrace,src.lock) {}
+   virtual ~PtraceCallback() {}
 
    CallbackBase *copy() { return new PtraceCallback(*this);}
-   bool execute(void);
+   bool execute_real(void);
    bool operator()(int req, pid_t pid, Address addr, Address data, 
                    int word_len = -1);
 
@@ -286,12 +255,13 @@ class PtraceCallback : public DBICallbackBase
 class WriteDataSpaceCallback : public DBICallbackBase
 {
   public:
-   WriteDataSpaceCallback() : DBICallbackBase(dbiWriteDataSpace) {}
-   WriteDataSpaceCallback(WriteDataSpaceCallback &) : DBICallbackBase(dbiWriteDataSpace) {}
-   ~WriteDataSpaceCallback() {}
+   WriteDataSpaceCallback(eventLock *l) : DBICallbackBase(dbiWriteDataSpace, l) {}
+   WriteDataSpaceCallback(WriteDataSpaceCallback &src) : DBICallbackBase(dbiWriteDataSpace, 
+                                                                         src.lock) {}
+   virtual ~WriteDataSpaceCallback() {}
 
    CallbackBase *copy() { return new WriteDataSpaceCallback(*this);}
-   bool execute(void);
+   bool execute_real(void);
    bool operator()(pid_t pid, Address addr, int nelem, 
                    Address data, int word_len);
 
@@ -309,12 +279,13 @@ class WriteDataSpaceCallback : public DBICallbackBase
 class ReadDataSpaceCallback : public DBICallbackBase
 {
   public:
-   ReadDataSpaceCallback() : DBICallbackBase(dbiReadDataSpace) {}
-   ReadDataSpaceCallback(ReadDataSpaceCallback &) : DBICallbackBase(dbiReadDataSpace) {}
-   ~ReadDataSpaceCallback() {}
+   ReadDataSpaceCallback(eventLock *l) : DBICallbackBase(dbiReadDataSpace, l) {}
+   ReadDataSpaceCallback(ReadDataSpaceCallback &src) : DBICallbackBase(dbiReadDataSpace,
+                                                                       src.lock) {}
+   virtual ~ReadDataSpaceCallback() {}
 
    CallbackBase *copy() { return new ReadDataSpaceCallback(*this);}
-   bool execute(void);
+   bool execute_real(void);
    bool operator()(pid_t pid, Address addr, int nelem, 
                    Address data, int word_len);
 
@@ -332,12 +303,13 @@ class ReadDataSpaceCallback : public DBICallbackBase
 class WaitPidNoBlockCallback : public DBICallbackBase
 {
   public:
-   WaitPidNoBlockCallback() : DBICallbackBase(dbiWaitPid) {}
-   WaitPidNoBlockCallback(WaitPidNoBlockCallback &) : DBICallbackBase(dbiWaitPid) {}
-   ~WaitPidNoBlockCallback() {}
+   WaitPidNoBlockCallback(eventLock *l) : DBICallbackBase(dbiWaitPid, l) {}
+   WaitPidNoBlockCallback(WaitPidNoBlockCallback &src) : DBICallbackBase(dbiWaitPid,
+                                                                         src.lock) {}
+   virtual ~WaitPidNoBlockCallback() {}
 
    CallbackBase *copy() { return new WaitPidNoBlockCallback(*this);}
-   bool execute(void);
+   bool execute_real(void);
    bool operator()(int *status);
 
    int getReturnValue() {return ret;}
@@ -351,12 +323,13 @@ class WaitPidNoBlockCallback : public DBICallbackBase
 class GetFrameRegisterCallback : public DBICallbackBase
 {
   public:
-   GetFrameRegisterCallback() : DBICallbackBase(dbiGetFrameRegister) {}
-   GetFrameRegisterCallback(GetFrameRegisterCallback &) : DBICallbackBase(dbiGetFrameRegister) {}
-   ~GetFrameRegisterCallback() {}
+   GetFrameRegisterCallback(eventLock *l) : DBICallbackBase(dbiGetFrameRegister, l) {}
+   GetFrameRegisterCallback(GetFrameRegisterCallback &src) : 
+       DBICallbackBase(dbiGetFrameRegister, src.lock) {}
+   virtual ~GetFrameRegisterCallback() {}
 
    CallbackBase *copy() { return new GetFrameRegisterCallback(*this);}
-   bool execute(void);
+   bool execute_real(void);
    bool operator()(unw_cursor_t *cp, unw_regnum_t reg, unw_word_t *valp);
 
    int getReturnValue() {return ret;}
@@ -371,12 +344,13 @@ class GetFrameRegisterCallback : public DBICallbackBase
 class SetFrameRegisterCallback : public DBICallbackBase
 {
   public:
-   SetFrameRegisterCallback() : DBICallbackBase(dbiSetFrameRegister) {}
-   SetFrameRegisterCallback(SetFrameRegisterCallback &) : DBICallbackBase(dbiSetFrameRegister) {}
-   ~SetFrameRegisterCallback() {}
+   SetFrameRegisterCallback(eventLock *l) : DBICallbackBase(dbiSetFrameRegister,l) {}
+   SetFrameRegisterCallback(SetFrameRegisterCallback &src) : 
+      DBICallbackBase(dbiSetFrameRegister, src.lock) {}
+   virtual ~SetFrameRegisterCallback() {}
 
    CallbackBase *copy() { return new SetFrameRegisterCallback(*this);}
-   bool execute(void);
+   bool execute_real(void);
    bool operator()(unw_cursor_t *cp, unw_regnum_t reg, unw_word_t val);
 
    int getReturnValue() {return ret;}
@@ -391,13 +365,14 @@ class SetFrameRegisterCallback : public DBICallbackBase
 class CreateUnwindAddressSpaceCallback : public DBICallbackBase
 {
   public:
-   CreateUnwindAddressSpaceCallback() : DBICallbackBase(dbiCreateUnwindAddressSpace) {}
-   CreateUnwindAddressSpaceCallback(CreateUnwindAddressSpaceCallback &) :
-      DBICallbackBase(dbiCreateUnwindAddressSpace) {}
-   ~CreateUnwindAddressSpaceCallback() {}
+   CreateUnwindAddressSpaceCallback(eventLock *l) : 
+      DBICallbackBase(dbiCreateUnwindAddressSpace, l) {}
+   CreateUnwindAddressSpaceCallback(CreateUnwindAddressSpaceCallback &src) :
+      DBICallbackBase(dbiCreateUnwindAddressSpace, src.lock) {}
+   virtual ~CreateUnwindAddressSpaceCallback() {}
 
    CallbackBase *copy() { return new CreateUnwindAddressSpaceCallback(*this);}
-   bool execute(void);
+   bool execute_real(void);
    bool operator()(unw_accessors_t *ap, int byteorder);
 
    void * getReturnValue() {return ret;}
@@ -411,13 +386,14 @@ class CreateUnwindAddressSpaceCallback : public DBICallbackBase
 class DestroyUnwindAddressSpaceCallback : public DBICallbackBase
 {
   public:
-   DestroyUnwindAddressSpaceCallback() : DBICallbackBase(dbiDestroyUnwindAddressSpace) {}
-   DestroyUnwindAddressSpaceCallback(DestroyUnwindAddressSpaceCallback &) :
-      DBICallbackBase(dbiDestroyUnwindAddressSpace) {}
-   ~DestroyUnwindAddressSpaceCallback() {}
+   DestroyUnwindAddressSpaceCallback(eventLock *l) : 
+        DBICallbackBase(dbiDestroyUnwindAddressSpace, l) {}
+   DestroyUnwindAddressSpaceCallback(DestroyUnwindAddressSpaceCallback &src) :
+      DBICallbackBase(dbiDestroyUnwindAddressSpace, src.lock) {}
+   virtual ~DestroyUnwindAddressSpaceCallback() {}
 
    CallbackBase *copy() { return new DestroyUnwindAddressSpaceCallback(*this);}
-   bool execute(void);
+   bool execute_real(void);
    bool operator()(unw_addr_space *ap);
 
    int getReturnValue() {return ret;}
@@ -430,12 +406,12 @@ class DestroyUnwindAddressSpaceCallback : public DBICallbackBase
 class UPTCreateCallback : public DBICallbackBase
 {
   public:
-   UPTCreateCallback() : DBICallbackBase(dbiUPTCreate) {}
-   UPTCreateCallback(UPTCreateCallback &) : DBICallbackBase(dbiUPTCreate) {}
-   ~UPTCreateCallback() {}
+   UPTCreateCallback(eventLock *l) : DBICallbackBase(dbiUPTCreate, l) {}
+   UPTCreateCallback(UPTCreateCallback &src) : DBICallbackBase(dbiUPTCreate, src.lock) {}
+   virtual ~UPTCreateCallback() {}
 
    CallbackBase *copy() { return new UPTCreateCallback(*this);}
-   bool execute(void);
+   bool execute_real(void);
    bool operator()(pid_t pid);
 
    void *getReturnValue() {return ret;}
@@ -448,12 +424,12 @@ class UPTCreateCallback : public DBICallbackBase
 class UPTDestroyCallback : public DBICallbackBase
 {
   public:
-   UPTDestroyCallback() : DBICallbackBase(dbiUPTDestroy) {}
-   UPTDestroyCallback(UPTDestroyCallback &) : DBICallbackBase(dbiUPTDestroy) {}
-   ~UPTDestroyCallback() {}
+   UPTDestroyCallback(eventLock *l) : DBICallbackBase(dbiUPTDestroy, l) {}
+   UPTDestroyCallback(UPTDestroyCallback &src) : DBICallbackBase(dbiUPTDestroy, src.lock) {}
+   virtual ~UPTDestroyCallback() {}
 
    CallbackBase *copy() { return new UPTDestroyCallback(*this);}
-   bool execute(void);
+   bool execute_real(void);
    bool operator()(void *handle);
 
 
@@ -464,13 +440,13 @@ class UPTDestroyCallback : public DBICallbackBase
 class InitFrameCallback : public DBICallbackBase
 {
   public:
-   InitFrameCallback() : DBICallbackBase(dbiInitFrame) {}
-   InitFrameCallback(InitFrameCallback &) :
-      DBICallbackBase(dbiInitFrame) {}
-   ~InitFrameCallback() {}
+   InitFrameCallback(eventLock *l) : DBICallbackBase(dbiInitFrame,l) {}
+   InitFrameCallback(InitFrameCallback &src) :
+      DBICallbackBase(dbiInitFrame, src.lock) {}
+   virtual ~InitFrameCallback() {}
 
    CallbackBase *copy() { return new InitFrameCallback(*this);}
-   bool execute(void);
+   bool execute_real(void);
    bool operator()(unw_cursor_t *cp, unw_addr_space_t as, void *arg);
 
    int getReturnValue() {return ret;}
@@ -484,13 +460,13 @@ class InitFrameCallback : public DBICallbackBase
 class StepFrameUpCallback : public DBICallbackBase
 {
   public:
-   StepFrameUpCallback() : DBICallbackBase(dbiStepFrame) {}
-   StepFrameUpCallback(StepFrameUpCallback &) :
-      DBICallbackBase(dbiStepFrame) {}
-   ~StepFrameUpCallback() {}
+   StepFrameUpCallback(eventLock *l) : DBICallbackBase(dbiStepFrame, l) {}
+   StepFrameUpCallback(StepFrameUpCallback &src) :
+      DBICallbackBase(dbiStepFrame,src.lock) {}
+   virtual ~StepFrameUpCallback() {}
 
    CallbackBase *copy() { return new StepFrameUpCallback(*this);}
-   bool execute(void);
+   bool execute_real(void);
    bool operator()(unw_cursor_t *cp);
 
    int getReturnValue() {return ret;}
@@ -502,13 +478,13 @@ class StepFrameUpCallback : public DBICallbackBase
 class IsSignalFrameCallback : public DBICallbackBase
 {
   public:
-   IsSignalFrameCallback() : DBICallbackBase(dbiIsSignalFrame) {}
-   IsSignalFrameCallback(IsSignalFrameCallback &) :
-      DBICallbackBase(dbiIsSignalFrame) {}
-   ~IsSignalFrameCallback() {}
+   IsSignalFrameCallback(eventLock *l) : DBICallbackBase(dbiIsSignalFrame, l) {}
+   IsSignalFrameCallback(IsSignalFrameCallback &src) :
+      DBICallbackBase(dbiIsSignalFrame, src.lock) {}
+   virtual ~IsSignalFrameCallback() {}
 
    CallbackBase *copy() { return new IsSignalFrameCallback(*this);}
-   bool execute(void);
+   bool execute_real(void);
    bool operator()(unw_cursor_t *cp);
 
    bool getReturnValue() {return ret;}
@@ -520,13 +496,13 @@ class IsSignalFrameCallback : public DBICallbackBase
 class WaitpidCallback : public DBICallbackBase
 {
   public:
-   WaitpidCallback() : DBICallbackBase(dbiWaitpid) {}
-   WaitpidCallback(IsSignalFrameCallback &) :
-      DBICallbackBase(dbiWaitpid) {}
-   ~WaitpidCallback() {}
+   WaitpidCallback(eventLock *l) : DBICallbackBase(dbiWaitpid, l) {}
+   WaitpidCallback(WaitpidCallback &src) :
+      DBICallbackBase(dbiWaitpid, src.lock) {}
+   virtual ~WaitpidCallback() {}
 
    CallbackBase *copy() { return new WaitpidCallback(*this);}
-   bool execute(void);
+   bool execute_real(void);
    bool operator()(pid_t pid, int *status, int options);
 
    int getReturnValue() {return ret;}

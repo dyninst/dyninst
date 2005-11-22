@@ -39,8 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-signals.h,v 1.3 2005/02/24 10:16:30 rchen Exp $
+// $Id: linux-signals.h,v 1.4 2005/11/22 10:39:08 jaw Exp $
 
+#ifdef NOTDEF // PDSEP
 #if !defined(i386_unknown_linux2_0) \
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  && !defined(ia64_unknown_linux2_4)
@@ -57,4 +58,5 @@
    meaning of life. */
 #define SIG_REATTACH 42
 
+#endif
 #endif

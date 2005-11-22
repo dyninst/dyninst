@@ -1349,17 +1349,6 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
         if (info->isCompleted()) break;
         getSH()->waitForEvent(evtRPCSignal, llproc, NULL /*lwp*/, statusRPCDone);
         getMailbox()->executeCallbacks(FILE__, __LINE__);
-#ifdef NOTDEF // PDSEP
-        __UNLOCK;
-        getMailbox()->executeCallbacks(FILE__, __LINE__);
-        __LOCK;
-        if (info->isCompleted()) break;
-        fprintf(stderr, "%s[%d]:  waiting for RPC completion\n", FILE__, __LINE__);
-        getSH()->waitForEvent(evtRPCSignal, llproc, NULL /*lwp*/, statusRPCDone);
-        __UNLOCK;
-        getMailbox()->executeCallbacks(FILE__, __LINE__);
-        __LOCK;
-#endif
       } while (!info->isCompleted() && !statusIsTerminated());
       
       void *ret = info->getReturnValue();

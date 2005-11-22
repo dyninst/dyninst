@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.147 2005/11/21 17:16:14 jaw Exp $
+// $Id: unix.C,v 1.148 2005/11/22 10:39:08 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -1252,7 +1252,6 @@ bool SignalGeneratorUnix::decodeSigTrap(EventRecord &ev)
 
 bool SignalGeneratorUnix::decodeSigStopNInt(EventRecord &ev)
 {
-  char buf[128];
   process *proc = ev.proc;
 
   signal_printf("%s[%d]:  welcome to decodeSigStopNInt for %d, state is %s\n",
@@ -1276,35 +1275,46 @@ DebuggerInterface *getDBI()
   return global_dbi; 
 }
 
-void dbi_signal_done_(CallbackBase *cb)
+void DBICallbackBase::dbi_signalCompletion(CallbackBase *cbb) 
 {
-  dbi_printf("%s[%d][%s]:  welcome to dbi_signal_done\n", FILE__, __LINE__, 
-         getThreadStr(getExecThreadID()));
-
-  DBICallbackBase *dbi_cb = (DBICallbackBase *) cb;
-  getDBI()->signalDone(dbi_cb);  
-
-  dbi_printf("%s[%d][%s]:  leaving dbi_signal_done\n", FILE__, __LINE__, 
-         getThreadStr(getExecThreadID()));
+  DBICallbackBase *cb = (DBICallbackBase *) cbb;
+  cb->lock->_Lock(FILE__, __LINE__); 
+  cb->completion_signalled = true;
+  dbi_printf("%s[%d]:  DBICallback, signalling completion\n", FILE__, __LINE__);
+  cb->lock->_Broadcast(FILE__, __LINE__); 
+  cb->lock->_Unlock(FILE__, __LINE__); 
 }
 
-CallbackCompletionCallback dbi_signal_done = dbi_signal_done_;
+bool DBICallbackBase::waitForCompletion()
+{
+  assert(lock->depth() == 1);
+
+  getDBI()->evt = type;
+
+  while (!completion_signalled) {
+    dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
+    if (0 != lock->_Broadcast(FILE__, __LINE__)) assert(0);
+    if (0 != lock->_WaitForSignal(FILE__, __LINE__)) assert(0);
+  }
+  dbi_printf("%s[%d]:  callback completion signalled\n", FILE__, __LINE__);
+  return true;
+}
 
 bool DebuggerInterface::waitNextEvent(DBIEvent &ev)
 {
   isReady = true;
-  //fprintf(stderr, "%s[%d]: DBI:waitNextEvent is about to get lock\n", __FILE__, __LINE__);
-  //fprintf(stderr, "%s[%d]:  welcome to waitNextEvent for DebugInterface\n", __FILE__, __LINE__);
-  dbilock._Lock(__FILE__, __LINE__);
+  dbi_printf("%s[%d]:  welcome to waitNextEvent for DebugInterface\n", FILE__, __LINE__);
+  dbilock._Lock(FILE__, __LINE__);
   if (evt == dbiUndefined) {
-    //fprintf(stderr, "%s[%d]:  DebugInterface waiting for something to do\n", __FILE__, __LINE__);
-    dbilock._WaitForSignal(__FILE__, __LINE__);
+    dbi_printf("%s[%d]:  DebugInterface waiting for something to do\n", FILE__, __LINE__);
+    dbilock._WaitForSignal(FILE__, __LINE__);
   }
   //  got something
   ev.type = evt;
-  //fprintf(stderr, "%s[%d]:  DebuggerInterface got event %s\n", __FILE__, __LINE__,
+  dbi_printf("%s[%d]:  DebuggerInterface got event %s\n", FILE__, __LINE__, 
+             dbiEventType2str(evt));
    //       eventType2str(ev.type));
-  dbilock._Unlock(__FILE__, __LINE__);
+  dbilock._Unlock(FILE__, __LINE__);
   return true;
 }
 
@@ -1322,20 +1332,12 @@ bool DebuggerInterface::handleEventLocked(DBIEvent &ev)
   return true;
 }
 
-bool DBICallbackBase::DBILock()
-{
-  return getDBI()->dbilock._Lock(__FILE__, __LINE__);
-}
-bool DBICallbackBase::DBIUnlock()
-{
-  return getDBI()->dbilock._Unlock(__FILE__, __LINE__);
-}
-
 bool PtraceCallback::operator()(int req, pid_t pid, Address addr,
                                 Address data, int word_len)
 {
   //  No need to copy buffers since dbi callbacks will only be used in
   //  the immediate context of the call;
+  lock->_Lock(FILE__, __LINE__);
   req_ = req;
   pid_ = pid;
   addr_ = addr;
@@ -1343,15 +1345,16 @@ bool PtraceCallback::operator()(int req, pid_t pid, Address addr,
   word_len_  = word_len;
   ret = (PTRACE_RETURN)0;
   getMailbox()->executeOrRegisterCallback(this);
-  getDBI()->waitForCompletion((DBICallbackBase *)this);
-  assert(done_flag);
+  if (synchronous) {
+    dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
+    waitForCompletion();
+  }
+  lock->_Unlock(FILE__, __LINE__);
   return true;
 }
 
-bool PtraceCallback::execute()
+bool PtraceCallback::execute_real()
 {
-  //  just do a simple call to ptrace:
-  DBILock();
   errno = 0;
 
   ret = P_ptrace(req_, pid_, addr_, data_, word_len_);
@@ -1362,7 +1365,6 @@ bool PtraceCallback::execute()
     perror("ptrace error");
   }
   ptrace_errno = errno;
-  DBIUnlock();
   return true;
 }
 
@@ -1374,7 +1376,7 @@ PTRACE_RETURN DebuggerInterface::ptrace(int req, pid_t pid, Address addr,
   getBusy();
 
   PTRACE_RETURN ret;
-  PtraceCallback *ptp = new PtraceCallback();
+  PtraceCallback *ptp = new PtraceCallback(&dbilock);
   PtraceCallback &pt = *ptp;
 
   pt.enableDelete(false);
@@ -1399,24 +1401,26 @@ PTRACE_RETURN DBI_ptrace(int req, pid_t pid, Address addr, Address data, int *pt
 
 bool WaitPidNoBlockCallback::operator()(int *status)
 {
+  lock->_Lock(FILE__, __LINE__);
   status_ = status;
   getMailbox()->executeOrRegisterCallback(this);
-  DBIEvent ev(dbiWaitPid);
-  getDBI()->waitForCompletion((DBICallbackBase *)this);
-  assert(done_flag);
+  //DBIEvent ev(dbiWaitPid);
+  if (synchronous) {
+    dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
+    waitForCompletion();
+  }
+  lock->_Unlock(FILE__, __LINE__);
   return true;
 }
 
-bool WaitPidNoBlockCallback::execute() 
+bool WaitPidNoBlockCallback::execute_real() 
 {
-  DBILock();
 #if defined (os_linux)
   int wait_options = __WALL | WNOHANG;
   ret = waitpid(-1, status_, wait_options);
 #else
   assert(0);
 #endif
-  DBIUnlock();
   return true;
 }
 
@@ -1427,7 +1431,7 @@ int DebuggerInterface::waitpidNoBlock(int *status)
   getBusy();
 
   bool ret;
-  WaitPidNoBlockCallback *cbp = new WaitPidNoBlockCallback();
+  WaitPidNoBlockCallback *cbp = new WaitPidNoBlockCallback(&dbilock);
   WaitPidNoBlockCallback &cb = *cbp;
 
   cb.enableDelete(false);
@@ -1473,7 +1477,7 @@ bool DebuggerInterface::forkNewProcess(pdstring file, pdstring dir,
   getBusy();
 
   bool ret;
-  ForkNewProcessCallback *fnpp = new ForkNewProcessCallback();
+  ForkNewProcessCallback *fnpp = new ForkNewProcessCallback(&dbilock);
   ForkNewProcessCallback &fnp = *fnpp;
 
   fnp.enableDelete(false);
@@ -1488,6 +1492,7 @@ bool DebuggerInterface::forkNewProcess(pdstring file, pdstring dir,
   fnp.enableDelete();
 
   releaseBusy();
+  dbi_printf("%s[%d]:  released busy\n", FILE__, __LINE__);
   return ret;
 }
 
@@ -1500,6 +1505,7 @@ bool ForkNewProcessCallback::operator()(pdstring file, pdstring dir,
                                         int &procHandle, int &thrHandle,
                                         int stdin_fd, int stdout_fd, int stderr_fd)
 {
+  lock->_Lock(FILE__, __LINE__);
   file_ = &file;
   dir_ = &dir;
   argv_ = argv;
@@ -1516,16 +1522,18 @@ bool ForkNewProcessCallback::operator()(pdstring file, pdstring dir,
   stderr_fd_ = stderr_fd;
 
   startup_printf("%s[%d]:  ForkNewProcessCallback, target thread is %lu(%s)\n", __FILE__, __LINE__, targetThread(), getThreadStr(targetThread()));
-  DBIEvent ev(dbiForkNewProcess);
+  //DBIEvent ev(dbiForkNewProcess);
   getMailbox()->executeOrRegisterCallback(this);
-  getDBI()->waitForCompletion((DBICallbackBase *)this);
-  assert(done_flag);
+  if (synchronous) {
+    dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
+    waitForCompletion();
+  }
+  lock->_Unlock(FILE__, __LINE__);
   return true;
 }
 
-bool ForkNewProcessCallback::execute()
+bool ForkNewProcessCallback::execute_real()
 {
-  DBILock();
   dbi_printf("%s[%d][%s]:  welcome to ForkNewProcessCallback::execute(%s)\n",
           __FILE__, __LINE__, getThreadStr(getExecThreadID()), file_->c_str());
    int &pid = *pid_;
@@ -1565,7 +1573,6 @@ bool ForkNewProcessCallback::execute()
          pdstring("': ") + pdstring(strerror(errno));
       showErrorCallback(68, msg);
       ret = false;
-      DBIUnlock();
       return ret;
    }
 
@@ -1622,7 +1629,6 @@ bool ForkNewProcessCallback::execute()
             logLine(errorLine);
             showErrorCallback(68, (const char *) errorLine);
             ret = false;
-            DBIUnlock();
             return ret;
          }
 
@@ -1644,7 +1650,6 @@ bool ForkNewProcessCallback::execute()
       *traceLink_ = tracePipe[0];
 #endif
       ret = true;
-      DBIUnlock();
       return ret;
 
    } else if (pid == 0) {
@@ -1847,7 +1852,7 @@ bool DebuggerInterface::writeDataSpace(pid_t pid, Address addr, int nbytes, Addr
   getBusy();
 
   bool ret;
-  WriteDataSpaceCallback *cbp = new WriteDataSpaceCallback();
+  WriteDataSpaceCallback *cbp = new WriteDataSpaceCallback(&dbilock);
   WriteDataSpaceCallback &cb = *cbp;
 
   cb.enableDelete(false);
@@ -1861,27 +1866,29 @@ bool DebuggerInterface::writeDataSpace(pid_t pid, Address addr, int nbytes, Addr
 
 bool WriteDataSpaceCallback::operator()(pid_t pid, Address addr, int nelem, Address data, int word_len)
 {
+  lock->_Lock(FILE__, __LINE__);
   pid_ = pid;
   addr_ = addr;
   nelem_ = nelem;
   data_ = data;
   word_len_ = word_len;
   getMailbox()->executeOrRegisterCallback(this);
-  DBIEvent ev(dbiWriteDataSpace);
-  getDBI()->waitForCompletion((DBICallbackBase *)this);
-  assert(done_flag);
+  //DBIEvent ev(dbiWriteDataSpace);
+  if (synchronous) {
+    dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
+    waitForCompletion();
+  }
+  lock->_Unlock(FILE__, __LINE__);
   return true;
 }
 
-bool WriteDataSpaceCallback::execute()
+bool WriteDataSpaceCallback::execute_real()
 {
-  DBILock();
 #if defined (os_linux)
   ret =  getDBI()->bulkPtraceWrite((void *)addr_, nelem_, (void *)data_, pid_, word_len_);
 #else
   assert(0);
 #endif
-  DBIUnlock();
   return true;
 }
 
@@ -1894,27 +1901,29 @@ bool DBI_writeDataSpace(pid_t pid, Address addr, int nelem, Address data, int wo
 
 bool ReadDataSpaceCallback::operator()(pid_t pid, Address addr, int nelem, Address data, int word_len)
 {
+  lock->_Lock(FILE__, __LINE__);
   pid_ = pid;
   addr_ = addr;
   nelem_ = nelem;
   data_ = data;
   word_len_ = word_len;
   getMailbox()->executeOrRegisterCallback(this);
-  DBIEvent ev(dbiReadDataSpace);
-  getDBI()->waitForCompletion((DBICallbackBase *)this);
-  assert(done_flag);
+  if (synchronous) {
+    dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
+    waitForCompletion();
+  }
+  //DBIEvent ev(dbiReadDataSpace);
+  lock->_Unlock(FILE__, __LINE__);
   return true;
 }
 
-bool ReadDataSpaceCallback::execute()
+bool ReadDataSpaceCallback::execute_real()
 {
-  DBILock();
 #if defined (os_linux)
   ret =  getDBI()->bulkPtraceRead((void *)addr_, nelem_, (void *)data_, pid_, word_len_);
 #else
   assert(0);
 #endif
-  DBIUnlock();
   return true;
 }
 
@@ -1929,9 +1938,10 @@ bool DebuggerInterface::readDataSpace(pid_t pid, Address addr, int nbytes, Addre
   dbi_printf("%s[%d][%s]:  welcome to DebuggerInterface::readDataSpace()\n",
           FILE__, __LINE__, getThreadStr(getExecThreadID()));
   getBusy();
+  dbi_printf("%s[%d]:  got busy\n", FILE__, __LINE__);
 
   bool ret;
-  ReadDataSpaceCallback *cbp = new ReadDataSpaceCallback();
+  ReadDataSpaceCallback *cbp = new ReadDataSpaceCallback(&dbilock);
   ReadDataSpaceCallback &cb = *cbp;
 
   cb.enableDelete(false);
@@ -1978,3 +1988,29 @@ bool OS::execute_file(char *path) {
    return (result != -1);
 }
 
+#ifndef CASE_RETURN_STR
+#define CASE_RETURN_STR(x) case x: return #x
+#endif
+const char *dbiEventType2str(DBIEventType t)
+{
+  switch(t) {
+  CASE_RETURN_STR(dbiUndefined);
+  CASE_RETURN_STR(dbiForkNewProcess);
+  CASE_RETURN_STR(dbiPtrace);
+  CASE_RETURN_STR(dbiWriteDataSpace);
+  CASE_RETURN_STR(dbiReadDataSpace);
+  CASE_RETURN_STR(dbiWaitPid);
+  CASE_RETURN_STR(dbiGetFrameRegister);
+  CASE_RETURN_STR(dbiSetFrameRegister);
+  CASE_RETURN_STR(dbiCreateUnwindAddressSpace);
+  CASE_RETURN_STR(dbiDestroyUnwindAddressSpace);
+  CASE_RETURN_STR(dbiUPTCreate);
+  CASE_RETURN_STR(dbiUPTDestroy);
+  CASE_RETURN_STR(dbiInitFrame);
+  CASE_RETURN_STR(dbiStepFrame);
+  CASE_RETURN_STR(dbiIsSignalFrame);
+  CASE_RETURN_STR(dbiWaitpid);
+  CASE_RETURN_STR(dbiLastEvent);/* placeholder for the end of the list */
+  };
+  return "invalid";
+}

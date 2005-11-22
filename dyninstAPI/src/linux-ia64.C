@@ -818,19 +818,22 @@ bool GetFrameRegisterCallback::operator()(unw_cursor_t *cp,
                                           unw_regnum_t reg, 
                                           unw_word_t *valp)
 {
+  lock->_Lock(FILE__, __LINE__);
   cp_ = cp;
   reg_ = reg;
   valp_ = valp;
   getMailbox()->executeOrRegisterCallback(this);
-  getDBI()->waitForCompletion((DBICallbackBase *)this);
+  if (synchronous) {
+    dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
+    waitForCompletion();
+  }
+  lock->_Unlock(FILE__, __LINE__);
   return true;
 }
 
-bool GetFrameRegisterCallback::execute()
+bool GetFrameRegisterCallback::execute_real()
 {
-  DBILock();
   ret = unw_get_reg(cp_, reg_, valp_);
-  DBIUnlock();
   return true;
 }
 
@@ -838,7 +841,7 @@ int DebuggerInterface::getFrameRegister(unw_cursor_t *cp, unw_regnum_t reg, unw_
 {
   getBusy();
   int ret;
-  GetFrameRegisterCallback *cbp = new GetFrameRegisterCallback();
+  GetFrameRegisterCallback *cbp = new GetFrameRegisterCallback(&dbilock);
   GetFrameRegisterCallback &cb = *cbp;
 
   cb.enableDelete(false);
@@ -854,7 +857,7 @@ int DebuggerInterface::setFrameRegister(unw_cursor_t *cp, unw_regnum_t reg, unw_
 {
   getBusy();
   int ret;
-  SetFrameRegisterCallback *cbp = new SetFrameRegisterCallback();
+  SetFrameRegisterCallback *cbp = new SetFrameRegisterCallback(&dbilock);
   SetFrameRegisterCallback &cb = *cbp;
 
   cb.enableDelete(false);
@@ -869,19 +872,22 @@ bool SetFrameRegisterCallback::operator()(unw_cursor_t *cp,
                                           unw_regnum_t reg, 
                                           unw_word_t val)
 {
+  lock->_Lock(FILE__, __LINE__);
   cp_ = cp;
   reg_ = reg;
   val_ = val;
   getMailbox()->executeOrRegisterCallback(this);
-  getDBI()->waitForCompletion((DBICallbackBase *)this);
+  if (synchronous) {
+    dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
+    waitForCompletion();
+  }
+  lock->_Unlock(FILE__, __LINE__);
   return true;
 }
 
-bool SetFrameRegisterCallback::execute()
+bool SetFrameRegisterCallback::execute_real()
 {
-  DBILock();
   ret = unw_set_reg(cp_, reg_, val_);
-  DBIUnlock();
   return true;
 }
 
@@ -889,7 +895,7 @@ void * DebuggerInterface::createUnwindAddressSpace(unw_accessors_t *ap, int byte
 {
   getBusy();
   void * ret;
-  CreateUnwindAddressSpaceCallback *cbp = new CreateUnwindAddressSpaceCallback();
+  CreateUnwindAddressSpaceCallback *cbp = new CreateUnwindAddressSpaceCallback(&dbilock);
   CreateUnwindAddressSpaceCallback &cb = *cbp;
 
   cb.enableDelete(false);
@@ -904,19 +910,22 @@ void * DebuggerInterface::createUnwindAddressSpace(unw_accessors_t *ap, int byte
 bool CreateUnwindAddressSpaceCallback::operator()(unw_accessors_t *ap, 
                                                   int byteorder) 
 {
+  lock->_Lock(FILE__, __LINE__);
   ap_ = ap;
   byteorder_ = byteorder;
   getMailbox()->executeOrRegisterCallback(this);
-  getDBI()->waitForCompletion((DBICallbackBase *)this);
+  if (synchronous) {
+    dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
+    waitForCompletion();
+  }
+  lock->_Unlock(FILE__, __LINE__);
   return true;
 }
 
-bool CreateUnwindAddressSpaceCallback::execute()
+bool CreateUnwindAddressSpaceCallback::execute_real()
 {
-  DBILock();
   unw_addr_space *s = unw_create_addr_space(ap_, byteorder_);
   ret = (void *) s;
-  DBIUnlock();
   return true;
 }
 
@@ -924,7 +933,7 @@ int DebuggerInterface::destroyUnwindAddressSpace(unw_addr_space *as)
 {
   getBusy();
   int ret;
-  DestroyUnwindAddressSpaceCallback *cbp = new DestroyUnwindAddressSpaceCallback();
+  DestroyUnwindAddressSpaceCallback *cbp = new DestroyUnwindAddressSpaceCallback(&dbilock);
   DestroyUnwindAddressSpaceCallback &cb = *cbp;
 
   cb.enableDelete(false);
@@ -938,24 +947,27 @@ int DebuggerInterface::destroyUnwindAddressSpace(unw_addr_space *as)
 
 bool DestroyUnwindAddressSpaceCallback::operator()(unw_addr_space *as)
 {
+  lock->_Lock(FILE__, __LINE__);
   as_ = as;
   getMailbox()->executeOrRegisterCallback(this);
-  getDBI()->waitForCompletion((DBICallbackBase *)this);
+  if (synchronous) {
+    dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
+    waitForCompletion();
+  }
+  lock->_Unlock(FILE__, __LINE__);
   return true;
 }
 
-bool DestroyUnwindAddressSpaceCallback::execute()
+bool DestroyUnwindAddressSpaceCallback::execute_real()
 {
-  DBILock();
   unw_destroy_addr_space(as_);
-  DBIUnlock();
   return true;
 }
 void *DebuggerInterface::UPTcreate(pid_t pid)
 {
   getBusy();
   void * ret;
-  UPTCreateCallback *cbp = new UPTCreateCallback();
+  UPTCreateCallback *cbp = new UPTCreateCallback(&dbilock);
   UPTCreateCallback &cb = *cbp;
 
   cb.enableDelete(false);
@@ -969,24 +981,27 @@ void *DebuggerInterface::UPTcreate(pid_t pid)
 
 bool UPTCreateCallback::operator()(pid_t pid)
 {
+  lock->_Lock(FILE__, __LINE__);
   pid_ = pid;
   getMailbox()->executeOrRegisterCallback(this);
-  getDBI()->waitForCompletion((DBICallbackBase *)this);
+  if (synchronous) {
+    dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
+    waitForCompletion();
+  }
+  lock->_Unlock(FILE__, __LINE__);
   return true;
 }
 
-bool UPTCreateCallback::execute()
+bool UPTCreateCallback::execute_real()
 {
-  DBILock();
   ret = _UPT_create(pid_);
-  DBIUnlock();
   return true;
 }
 
 void DebuggerInterface::UPTdestroy(void *handle)
 {
   getBusy();
-  UPTDestroyCallback *cbp = new UPTDestroyCallback();
+  UPTDestroyCallback *cbp = new UPTDestroyCallback(&dbilock);
   UPTDestroyCallback &cb = *cbp;
 
   cb.enableDelete(false);
@@ -998,17 +1013,20 @@ void DebuggerInterface::UPTdestroy(void *handle)
 
 bool UPTDestroyCallback::operator()(void *handle)
 {
+  lock->_Lock(FILE__, __LINE__);
   handle_ = handle;
   getMailbox()->executeOrRegisterCallback(this);
-  getDBI()->waitForCompletion((DBICallbackBase *)this);
+  if (synchronous) {
+    dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
+    waitForCompletion();
+  }
+  lock->_Unlock(FILE__, __LINE__);
   return true;
 }
 
-bool UPTDestroyCallback::execute()
+bool UPTDestroyCallback::execute_real()
 {
-  DBILock();
   _UPT_destroy(handle_);
-  DBIUnlock();
   return true;
 }
 
@@ -1016,7 +1034,7 @@ int DebuggerInterface::initFrame(unw_cursor_t *cp, unw_addr_space_t as, void *ar
 {
   getBusy();
   int ret;
-  InitFrameCallback *cbp = new InitFrameCallback();
+  InitFrameCallback *cbp = new InitFrameCallback(&dbilock);
   InitFrameCallback &cb = *cbp;
 
   cb.enableDelete(false);
@@ -1030,19 +1048,22 @@ int DebuggerInterface::initFrame(unw_cursor_t *cp, unw_addr_space_t as, void *ar
 
 bool InitFrameCallback::operator()(unw_cursor_t *cp, unw_addr_space_t as, void *arg)
 {
+  lock->_Lock(FILE__, __LINE__);
   cp_ = cp;
   as_ = as;
   arg_ = arg;
   getMailbox()->executeOrRegisterCallback(this);
-  getDBI()->waitForCompletion((DBICallbackBase *)this);
+  if (synchronous) {
+    dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
+    waitForCompletion();
+  }
+  lock->_Unlock(FILE__, __LINE__);
   return true;
 }
 
-bool InitFrameCallback::execute()
+bool InitFrameCallback::execute_real()
 {
-  DBILock();
   ret = unw_init_remote(cp_, as_, arg_);
-  DBIUnlock();
   return true;
 }
 
@@ -1050,7 +1071,7 @@ int DebuggerInterface::stepFrameUp(unw_cursor_t *cp)
 {
   getBusy();
   int ret;
-  StepFrameUpCallback *cbp = new StepFrameUpCallback();
+  StepFrameUpCallback *cbp = new StepFrameUpCallback(&dbilock);
   StepFrameUpCallback &cb = *cbp;
 
   cb.enableDelete(false);
@@ -1064,17 +1085,20 @@ int DebuggerInterface::stepFrameUp(unw_cursor_t *cp)
 
 bool StepFrameUpCallback::operator()(unw_cursor_t *cp)
 {
+  lock->_Lock(FILE__, __LINE__);
   cp_ = cp;
   getMailbox()->executeOrRegisterCallback(this);
-  getDBI()->waitForCompletion((DBICallbackBase *)this);
+  if (synchronous) {
+    dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
+    waitForCompletion();
+  }
+  lock->_Unlock(FILE__, __LINE__);
   return true;
 }
 
-bool StepFrameUpCallback::execute()
+bool StepFrameUpCallback::execute_real()
 {
-  DBILock();
   ret = unw_step(cp_);
-  DBIUnlock();
   return true;
 }
 
@@ -1082,7 +1106,7 @@ bool DebuggerInterface::isSignalFrame(unw_cursor_t *cp)
 {
   getBusy();
   bool ret;
-  IsSignalFrameCallback *cbp = new IsSignalFrameCallback();
+  IsSignalFrameCallback *cbp = new IsSignalFrameCallback(&dbilock);
   IsSignalFrameCallback &cb = *cbp;
 
   cb.enableDelete(false);
@@ -1096,17 +1120,20 @@ bool DebuggerInterface::isSignalFrame(unw_cursor_t *cp)
 
 bool IsSignalFrameCallback::operator()(unw_cursor_t *cp)
 {
+  lock->_Lock(FILE__, __LINE__);
   cp_ = cp;
   getMailbox()->executeOrRegisterCallback(this);
-  getDBI()->waitForCompletion((DBICallbackBase *)this);
+  if (synchronous) {
+    dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
+    waitForCompletion();
+  }
+  lock->_Unlock(FILE__, __LINE__);
   return true;
 }
 
-bool IsSignalFrameCallback::execute()
+bool IsSignalFrameCallback::execute_real()
 {
-  DBILock();
   ret = unw_is_signal_frame(cp_);
-  DBIUnlock();
   return true;
 }
 
@@ -1114,7 +1141,7 @@ int DebuggerInterface::waitpid(pid_t pid, int *status, int options)
 {
   getBusy();
   int ret;
-  WaitpidCallback *cbp = new WaitpidCallback();
+  WaitpidCallback *cbp = new WaitpidCallback(&dbilock);
   WaitpidCallback &cb = *cbp;
 
   cb.enableDelete(false);
@@ -1127,19 +1154,22 @@ int DebuggerInterface::waitpid(pid_t pid, int *status, int options)
 }
 bool WaitpidCallback::operator()(pid_t pid, int *status, int options)
 {
+  lock->_Lock(FILE__, __LINE__);
   pid_ = pid;
   status_ = status;
   options_ = options;
   getMailbox()->executeOrRegisterCallback(this);
-  getDBI()->waitForCompletion((DBICallbackBase *)this);
+  if (synchronous) {
+    dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
+    waitForCompletion();
+  }
+  lock->_Unlock(FILE__, __LINE__);
   return true;
 }
 
-bool WaitpidCallback::execute()
+bool WaitpidCallback::execute_real()
 {
-  DBILock();
   ret = waitpid(pid_, status_, options_);
-  DBIUnlock();
   return true;
 }
 
