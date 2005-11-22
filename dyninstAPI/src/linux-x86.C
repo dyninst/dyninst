@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.82 2005/11/03 05:21:06 jaw Exp $
+// $Id: linux-x86.C,v 1.83 2005/11/22 13:50:32 jaw Exp $
 
 #include <fstream>
 
@@ -1069,7 +1069,7 @@ bool process::prelinkSharedLibrary(pdstring originalLibNameFullPath,
 
 	sprintf(command, "/bin/cp %s %s", originalLibNameFullPath.c_str(), newLibName);
 
-	//fprintf(stderr, "RUNNING COMMAND: %s\n", command);
+	//fprintf(stderr, "%s[%d]: RUNNING COMMAND: %s\n", FILE__, __LINE__, command);
 
 	//cp originalLibNameFullPath newLibName
 	system(command);
@@ -1082,8 +1082,8 @@ bool process::prelinkSharedLibrary(pdstring originalLibNameFullPath,
 		// /usr/sbin/prelink -r baseAddr newLibName
 		sprintf(prelinkCommand,"%s 0x%x %s", systemPrelinkCommand, 
               (unsigned) baseAddr, newLibName);
-		//fprintf(stderr, "RUNNING COMMAND %s\n", prelinkCommand);
 
+	        //fprintf(stderr, "%s[%d]: RUNNING COMMAND: %s\n", FILE__, __LINE__, prelinkCommand);
 		system(prelinkCommand);
 		delete [] prelinkCommand;
 	}
@@ -1134,7 +1134,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 				NULL==strstr(mapped_obj->fileName().c_str(),"libc")){ 
 			/*fprintf(stderr,"\nWRITE BACK SHARED OBJ %s\n", mapped_obj->getName().c_str());*/
 
-			if(!prelinkSharedLibrary(mapped_obj->fileName(),directoryName, mapped_obj->codeBase())){
+			if(!prelinkSharedLibrary(mapped_obj->fullName(),directoryName, mapped_obj->codeBase())){
 				char *msg;
 				msg = new char[mapped_obj->fileName().length() + strlen(directoryName)+128];
 				sprintf(msg,"dumpPatchedImage: %s not saved to %s.\n.\nTry to use the original shared library with the mutated binary.\n",mapped_obj->fileName().c_str(),directoryName);

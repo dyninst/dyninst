@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.260 2005/11/03 05:21:07 jaw Exp $
+ // $Id: symtab.C,v 1.261 2005/11/22 13:50:33 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,7 +52,6 @@
 #include "dyninstAPI/src/Object.h"
 #include <fstream>
 #include "dyninstAPI/src/util.h"
-#include "dyninstAPI/src/dyninstP.h"
 #include "common/h/String.h"
 #include "dyninstAPI/src/inst.h"
 #include "common/h/Timer.h"

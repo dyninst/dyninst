@@ -296,20 +296,6 @@ bool rpcMgr::existsRunningIRPC() const {
 bool rpcMgr::decodeEventIfDueToIRPC(EventRecord &ev)
 {
     dyn_lwp *lwp_of_trap  = ev.lwp;
-    // For each IRPC we're running, check whether the thread
-    // (or lwp) is at the PC equal to the trap address. 
-    bool handledTrap = false;
-
-   // The signal handler default is to leave the process paused.
-   // If we want it running, we do so explicitly via a call to 
-   // continueProc(). 
-   bool runProcess = false;
-
-   // Two main possibilities: a thread is stopped at an interesting address,
-   // or a thread was waiting for a system call to complete (and it has).
-   // We check the first case first.
-
-   dyn_lwp *lwp_to_cont = NULL;
 
    int curr_rpc_index = allRunningRPCs_.size();
    pdvector<inferiorRPCinProgress *>::iterator iter = allRunningRPCs_.end();

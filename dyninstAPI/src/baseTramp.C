@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.16 2005/11/07 18:40:34 rutar Exp $
+// $Id: baseTramp.C,v 1.17 2005/11/22 13:50:32 jaw Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -630,6 +630,7 @@ instPoint *baseTrampInstance::findInstPointByAddr(Address addr) {
     else {
         return NULL;
     }
+    return NULL;
 }
 
 bool baseTrampInstance::isEmpty() {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.75 2005/11/21 17:16:11 jaw Exp $
+// $Id: BPatch_snippet.C,v 1.76 2005/11/22 13:50:32 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -436,7 +436,7 @@ void BPatch_boolExpr::BPatch_boolExprInt(BPatch_relOp op,
                                          const BPatch_snippet &lOperand,
                                          const BPatch_snippet &rOperand)
 {
-    opCode astOp;
+    opCode astOp = undefOp;
     switch(op) {
       case BPatch_lt:
         astOp = lessOp;

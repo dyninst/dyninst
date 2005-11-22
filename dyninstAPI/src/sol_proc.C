@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.71 2005/11/21 17:16:14 jaw Exp $
+// $Id: sol_proc.C,v 1.72 2005/11/22 13:50:32 jaw Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -1576,7 +1576,7 @@ process *SignalGeneratorUnix::findProcessByFD(unsigned int fd)
   for(unsigned u = 0; u < processVec.size(); u++) {
     process *lproc = processVec[u];
     if (!lproc) {
-      fprintf(stderr, "%s[%d]:  missing pointer to process for fd %d\n", FILE__, __LINE__,fd);
+      //fprintf(stderr, "%s[%d]:  missing pointer to process for fd %d\n", FILE__, __LINE__,fd);
       continue;
     }
     dyn_lwp *lwp = lproc->getRepresentativeLWP();
@@ -1586,7 +1586,7 @@ process *SignalGeneratorUnix::findProcessByFD(unsigned int fd)
 
     }
     if (!lproc->getRepresentativeLWP()->is_attached()) {
-      fprintf(stderr, "%s[%d]:  cannot get fd for unattached process\n", __FILE__, __LINE__);
+      //fprintf(stderr, "%s[%d]:  cannot get fd for unattached process\n", __FILE__, __LINE__);
       continue;
     }
     if (fd == (unsigned) lproc->getRepresentativeLWP()->status_fd())

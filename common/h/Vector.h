@@ -451,7 +451,8 @@ void pdvector<T, A>::sort(qsort_cmpfunc_t cmpfunc) {
 template<class T, class A>
 DO_INLINE_F
 void pdvector<T, A>::shrink(unsigned newsize) {
-   if (newsize >= sz_) {
+   if (newsize == sz_) return;
+   if (newsize > sz_) {
      fprintf(stderr, "%s[%d]:  FAILING:  cannot shrink %d to %d\n", __FILE__, __LINE__, sz_, newsize);
    }
    assert(newsize < sz_);

@@ -41,7 +41,7 @@
 
 /*
  * Report statistics about dyninst and data collection.
- * $Id: stats.C,v 1.32 2004/10/07 00:45:57 jaw Exp $
+ * $Id: stats.C,v 1.33 2005/11/22 13:50:32 jaw Exp $
  */
 
 #include <sstream>
@@ -49,7 +49,6 @@
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/util.h"
 

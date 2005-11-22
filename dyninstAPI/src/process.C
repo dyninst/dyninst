@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.560 2005/11/21 17:16:13 jaw Exp $
+// $Id: process.C,v 1.561 2005/11/22 13:50:32 jaw Exp $
 
 #include <ctype.h>
 
@@ -67,7 +67,6 @@
 #include "dyninstAPI/src/inst.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/dyninstP.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/callbacks.h"
@@ -4129,8 +4128,10 @@ bool process::addASharedObject(mapped_object *new_obj) {
     //return false;
     //}
 
+#ifdef NOTDEF// PDSEP
     const char *dn = dyninstRT_name.c_str();
     const char *fn = new_obj->fileName().c_str();
+#endif
     parsing_printf("Adding shared object %s, addr range 0x%x to 0x%x\n",
            new_obj->fileName().c_str(), 
            new_obj->getBaseAddress(),

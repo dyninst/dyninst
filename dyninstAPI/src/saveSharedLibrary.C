@@ -59,7 +59,7 @@ bool saveSharedLibrary::openElf(){
 	   }
 
 	   if((newfd = (open(newpathname, O_RDWR)))==-1){
-			 fprintf(stderr,"cannot open new SO : %s\n",newpathname);
+			 fprintf(stderr,"%s[%d]: cannot open new SO : %s\n",FILE__, __LINE__,newpathname);
 			 perror(" FAIL ");
 			 return false;;
 	   }
@@ -104,7 +104,6 @@ bool saveSharedLibrary::readNewLib(){
 
 		 shdr = elf32_getshdr(scn);
 		 olddata = elf_getdata(scn,NULL);
-
 
 
 		 if(!strcmp( (char *)strdata->d_buf + shdr->sh_name, ".text")){
@@ -169,7 +168,7 @@ bool saveSharedLibrary::readNewLib(){
 	P_close(newfd);
 
 	if((newfd = (open(newpathname, O_RDWR)))==-1){
-		fprintf(stderr,"cannot open new SO : %s\n",newpathname);
+		fprintf(stderr,"%s[%d]: cannot open new SO : %s\n",FILE__, __LINE__, newpathname);
 		perror(" FAIL ");
 		return false;;
 	}

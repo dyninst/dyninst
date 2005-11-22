@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test2.mutatee.c,v 1.35 2005/02/24 10:17:48 rchen Exp $ */
+/* $Id: test2.mutatee.c,v 1.36 2005/11/22 13:50:33 jaw Exp $ */
 
 #include <stdio.h>
 #include <sys/types.h>
@@ -213,7 +213,7 @@ void func6_1()
 #endif
 
     if (!ref) {
-	fprintf(stderr, "%s\n", dlerror());
+	fprintf(stderr, "%s[%d]: %s\n", dlerror(), FILE__, __LINE__);
 	fflush(stderr);
     }
 #endif
