@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test7_7.C,v 1.1 2005/09/29 20:39:48 bpellin Exp $
+// $Id: test7_7.C,v 1.2 2005/11/22 19:41:06 bpellin Exp $
 /*
  * #Name: test7_7
  * #Desc: Memory allocation in parent & child
@@ -53,6 +53,7 @@
 #include "BPatch_snippet.h"
 
 #include "test_lib.h"
+#include "test_lib_test7.h"
 
 bool parentDone = false;
 bool childDone = false;

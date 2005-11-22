@@ -39,7 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_lib_test7.C,v 1.1 2005/09/29 20:40:12 bpellin Exp $
+// $Id: test_lib_test7.C,v 1.2 2005/11/22 19:40:53 bpellin Exp $
+#include "test_lib_test7.h"
 #include "test_lib.h"
 #include <sys/msg.h>
 

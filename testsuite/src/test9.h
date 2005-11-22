@@ -39,10 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9.h,v 1.1 2005/09/29 20:40:00 bpellin Exp $
+// $Id: test9.h,v 1.2 2005/11/22 19:40:57 bpellin Exp $
 #ifndef TEST9_H
 #define TEST9_H
 
+#include "test_lib_test9.h"
 
 const unsigned int MAX_TEST = 6;
 
