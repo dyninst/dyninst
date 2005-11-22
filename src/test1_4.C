@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_4.C,v 1.1 2005/09/29 20:38:53 bpellin Exp $
+// $Id: test1_4.C,v 1.2 2005/11/22 19:41:57 bpellin Exp $
 /*
  * #Name: test1_4
  * #Desc: Mutator Side (Sequence) Use the BPatch sequence operation to glue expressions together.  The test is constructed to verify the correct execution order.
@@ -104,7 +104,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bpatch = (BPatch *)(param["bpatch"]->getPtr());

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_5.C,v 1.1 2005/09/29 20:39:09 bpellin Exp $
+// $Id: test2_5.C,v 1.2 2005/11/22 19:42:13 bpellin Exp $
 /*
  * #Name: test2_5
  * #Desc: Look up nonexistent function
@@ -91,7 +91,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *img)
     return result;
 }
 
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 {
     bool useAttach = param["useAttach"]->getInt();
     BPatch *bpatch = (BPatch *)(param["bpatch"]->getPtr());

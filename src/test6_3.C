@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test6_3.C,v 1.1 2005/09/29 20:39:35 bpellin Exp $
+// $Id: test6_3.C,v 1.2 2005/11/22 19:42:38 bpellin Exp $
 /*
  * #Name: test6_3
  * #Desc: Prefetch Instrumentation
@@ -201,7 +201,7 @@ int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
 }
 
 // External Interface
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bpatch = (BPatch *)(param["bpatch"]->getPtr());

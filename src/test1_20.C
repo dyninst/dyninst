@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_20.C,v 1.2 2005/10/06 22:32:52 bpellin Exp $
+// $Id: test1_20.C,v 1.3 2005/11/22 19:41:36 bpellin Exp $
 /*
  * #Name: test1_20
  * #Desc: Mutator Side - Instrumentation at arbitrary points
@@ -160,7 +160,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 {
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_27.C,v 1.1 2005/09/29 20:38:31 bpellin Exp $
+// $Id: test1_27.C,v 1.2 2005/11/22 19:41:43 bpellin Exp $
 /*
  * #Name: test1_27
  * #Desc: Type compatibility
@@ -189,7 +189,7 @@ int mutatorTest(BPatch_thread *, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bpatch = (BPatch *)(param["bpatch"]->getPtr());

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_3.C,v 1.1 2005/09/29 20:39:07 bpellin Exp $
+// $Id: test2_3.C,v 1.2 2005/11/22 19:42:11 bpellin Exp $
 /*
  * #Name: test2_3
  * #Desc: Attatch to an invalid pid
@@ -92,7 +92,7 @@ int mutatorTest(BPatch *bpatch, bool useAttach)
 #endif
 }
 
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 {
   bool useAttach = param["useAttach"]->getInt();
   BPatch *bpatch = (BPatch *)(param["bpatch"]->getPtr());

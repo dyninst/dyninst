@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_3.C,v 1.1 2005/09/29 20:39:26 bpellin Exp $
+// $Id: test5_3.C,v 1.2 2005/11/22 19:42:29 bpellin Exp $
 /*
  * #Name: test5_3
  * #Desc: Overload Operatior
@@ -114,7 +114,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bpatch = (BPatch *)(param["bpatch"]->getPtr());

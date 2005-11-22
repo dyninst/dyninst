@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_2.C,v 1.1 2005/09/29 20:39:06 bpellin Exp $
+// $Id: test2_2.C,v 1.2 2005/11/22 19:42:10 bpellin Exp $
 /*
  * #Name: test2_2
  * #Desc: Try to run a createProcess on a file that is not an executable file
@@ -95,7 +95,7 @@ int mutatorTest(BPatch *bpatch, bool useAttach)
     }
 }
 
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 {
   bool useAttach = param["useAttach"]->getInt();
   BPatch *bpatch = (BPatch *)(param["bpatch"]->getPtr());
