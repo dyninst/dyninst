@@ -48,14 +48,16 @@
 #include "BPatch_function.h"
 #include "Process_data.h"
 #include "ParameterDict.h"
-#include <unistd.h>
-#include <vector>
+#include "TestData.h"
+#include "test_lib_dll.h"
 
 
 #if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 10 apr 2001 
 #define P_sleep(sec) Sleep(1000*(sec))
+#include <windows.h>
 #else
 #define P_sleep(sec) sleep(sec)
+#include <unistd.h>
 #endif
 
 #define DYNINST_NO_ERROR -1
@@ -77,23 +79,23 @@ typedef enum {
 
 // Functions in test_lib.C
 
-int waitUntilStopped(BPatch *, BPatch_thread *appThread, 
+TESTLIB_DLL_EXPORT int waitUntilStopped(BPatch *, BPatch_thread *appThread, 
                       int testnum, const char *testname);
-void signalAttached(BPatch_thread *appThread, BPatch_image *appImage);
+TESTLIB_DLL_EXPORT void signalAttached(BPatch_thread *appThread, BPatch_image *appImage);
 int startNewProcessForAttach(const char *pathname, const char *argv[]);
 
 
-void dprintf(const char *fmt, ...);
+TESTLIB_DLL_EXPORT void dprintf(const char *fmt, ...);
 
-void checkCost(BPatch_snippet snippet);
+TESTLIB_DLL_EXPORT void checkCost(BPatch_snippet snippet);
 
 // Wrapper function to find variables
 // For Fortran, will look for lowercase variable, if mixed case not found
-BPatch_variableExpr *findVariable(BPatch_image *appImage, const char* var,
+TESTLIB_DLL_EXPORT BPatch_variableExpr *findVariable(BPatch_image *appImage, const char* var,
                                   BPatch_Vector <BPatch_point *> *point);
 
 void setMutateeFortran(int mutFor);
-void setDebugPrint(int debug);
+TESTLIB_DLL_EXPORT void setDebugPrint(int debug);
 
 //
 //
@@ -102,7 +104,7 @@ void setDebugPrint(int debug);
 // replaceFunctionCall.
 // Returns the number of replacements that were performed.
 //
-int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
+TESTLIB_DLL_EXPORT int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
                          const char *inFunction, const char *callTo, 
                          const char *replacement, int testNo, 
                          const char *testName, int callsExpected);
@@ -111,7 +113,7 @@ int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
 // Insert "snippet" at the location "loc" in the function "inFunction."
 // Returns the value returned by BPatch_thread::insertSnippet.
 //
-BPatchSnippetHandle *insertSnippetAt(BPatch_thread *appThread,
+TESTLIB_DLL_EXPORT BPatchSnippetHandle *insertSnippetAt(BPatch_thread *appThread,
                                BPatch_image *appImage, const char *inFunction, 
                                BPatch_procedureLocation loc, 
                                BPatch_snippet &snippet,
@@ -121,29 +123,29 @@ BPatchSnippetHandle *insertSnippetAt(BPatch_thread *appThread,
 // Insert a snippet to call function "funcName" with no arguments into the
 // procedure "inFunction" at the points given by "loc."
 //
-int insertCallSnippetAt(BPatch_thread *appThread,
+TESTLIB_DLL_EXPORT int insertCallSnippetAt(BPatch_thread *appThread,
                             BPatch_image *appImage, const char *inFunction,
                             BPatch_procedureLocation loc, const char *funcName,
                             int testNo, const char *testName);
 
 
-BPatch_Vector<BPatch_snippet *> genLongExpr(BPatch_arithExpr *tail);
+TESTLIB_DLL_EXPORT BPatch_Vector<BPatch_snippet *> genLongExpr(BPatch_arithExpr *tail);
 
 
 
-void addLibArchExt(char *dest, unsigned int dest_max_len);
+TESTLIB_DLL_EXPORT void addLibArchExt(char *dest, unsigned int dest_max_len);
 
 // Function to preload some libraries for test1_21 and test1_22
-int readyTest21or22(BPatch_thread *appThread, char *libNameA, char *libNameB);
+TESTLIB_DLL_EXPORT int readyTest21or22(BPatch_thread *appThread, char *libNameA, char *libNameB);
 
 
-void instrument_entry_points( BPatch_thread * app_thread,
+TESTLIB_DLL_EXPORT void instrument_entry_points( BPatch_thread * app_thread,
 			      BPatch_image * ,
 			      BPatch_function * func,
 			      BPatch_snippet * code );
 
 
-void instrument_exit_points( BPatch_thread * app_thread,
+TESTLIB_DLL_EXPORT void instrument_exit_points( BPatch_thread * app_thread,
 			     BPatch_image * ,
 			     BPatch_function * func,
 			     BPatch_snippet * code );
@@ -151,11 +153,11 @@ void instrument_exit_points( BPatch_thread * app_thread,
 // Tests to see if the mutatee has defined the mutateeCplusplus flag
 int isMutateeCxx(BPatch_image *appImage);
 // Tests to see if the mutatee has defined the mutateeFortran flag
-int isMutateeFortran(BPatch_image *appImage);
+TESTLIB_DLL_EXPORT int isMutateeFortran(BPatch_image *appImage);
 // Tests to see if the mutatee has defined the mutateeF77 flag
 int isMutateeF77(BPatch_image *appImage);
 
-void MopUpMutatees(const unsigned int mutatees, BPatch_thread *appThread[]);
+TESTLIB_DLL_EXPORT void MopUpMutatees(const unsigned int mutatees, BPatch_thread *appThread[]);
 
 void contAndWaitForAllThreads(BPatch *bpatch, BPatch_thread *appThread, 
       BPatch_thread **mythreads, int *threadCount);
@@ -165,26 +167,26 @@ void contAndWaitForAllThreads(BPatch *bpatch, BPatch_thread *appThread,
  *    in the child process, and verify that the value matches.
  *
  */
-bool verifyChildMemory(BPatch_thread *appThread, 
+TESTLIB_DLL_EXPORT bool verifyChildMemory(BPatch_thread *appThread, 
                        const char *name, int expectedVal);
 
 
-void dumpvect(BPatch_Vector<BPatch_point*>* res, const char* msg);
+TESTLIB_DLL_EXPORT void dumpvect(BPatch_Vector<BPatch_point*>* res, const char* msg);
 
-bool validate(BPatch_Vector<BPatch_point*>* res,
+TESTLIB_DLL_EXPORT bool validate(BPatch_Vector<BPatch_point*>* res,
                             BPatch_memoryAccess* acc[], const char* msg);
 
 BPatch_callWhen instrumentWhere(  const BPatch_memoryAccess* memAccess);
 
-int instCall(BPatch_thread* bpthr, const char* fname,
+TESTLIB_DLL_EXPORT int instCall(BPatch_thread* bpthr, const char* fname,
               const BPatch_Vector<BPatch_point*>* res);
 
 
-int instEffAddr(BPatch_thread* bpthr, const char* fname,
+TESTLIB_DLL_EXPORT int instEffAddr(BPatch_thread* bpthr, const char* fname,
 		 const BPatch_Vector<BPatch_point*>* res,
                  bool conditional);
 
-int instByteCnt(BPatch_thread* bpthr, const char* fname,
+TESTLIB_DLL_EXPORT int instByteCnt(BPatch_thread* bpthr, const char* fname,
 		 const BPatch_Vector<BPatch_point*>* res,
                  bool conditional);
 
@@ -195,7 +197,7 @@ typedef struct {
     const char      *function_name;
 } frameInfo_t;
 
-bool checkStack(BPatch_thread *appThread,
+TESTLIB_DLL_EXPORT bool checkStack(BPatch_thread *appThread,
 		const frameInfo_t correct_frame_info[],
 		unsigned num_correct_names,
 		int test_num, const char *test_name);
@@ -214,14 +216,6 @@ char* saveWorld(BPatch_thread *appThread);
 
 int letOriginalMutateeFinish(BPatch_thread *appThread);
 
-void changePath(char *path);
-
-int runMutatedBinary(char *path, char* fileName, char* testID);
-
-int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID);
-
-void sleep_ms(int ms);
-
 BPatch_function *findFunction(const char *fname, BPatch_image *appImage, int testno, const char *testname);
 BPatch_function *findFunction(const char *fname, BPatch_module *inmod, int testno, const char *testname);
 
@@ -229,86 +223,27 @@ void setVar(BPatch_image *appImage, const char *vname, void *addr, int testno, c
 void getVar(BPatch_image *appImage, const char *vname, void *addr, int testno, const char *testname);
 
 
-// Functions in test_lib_so_execution.C below
-enum start_state_t {
-   STOPPED,
-   RUNNING,
-   NOMUTATEE,
-};
-
-enum create_mode_t {
-   CREATE = 0,
-   USEATTACH = 1,
-   BOTH,
-};
-
-enum enabled_t {
-   DISABLED = 0,
-   ENABLED = 1,
-};
-
-typedef std::vector<char*> mutatee_list_t;
-
-typedef struct {
-   bool alpha_dec_osf5_1;
-   bool i386_unknown_linux2_4; 
-   bool i386_unknown_nt4_0; 
-   bool _ia64_unknown_linux2_4;
-   bool _x86_64_unknown_linux2_4;
-   bool mips_sgi_irix6_5;
-   bool _rs6000_ibm_aix5_1;
-   bool sparc_sun_solaris2_8;
-} platforms_t;
-
-typedef struct {
-   char *name;
-   char *soname;
-   mutatee_list_t &mutatee;
-   platforms_t platforms;
-   start_state_t state;
-   int oldtest;
-   int subtest;
-   create_mode_t useAttach;
-   enabled_t enabled;
-} test_data_t;
+// Functions in test_lib_soExecution.C below
+//           or test_lib_dllExecution.C
 
    
-int loadLibRunTest(test_data_t &testLib, ParameterDict &param);
+TESTLIB_DLL_EXPORT int loadLibRunTest(test_data_t &testLib, ParameterDict &param);
 
 // Function in MutateeStart.C
 BPatch_thread *startMutateeTestGeneric(BPatch *bpatch, char *pathname, const char **child_argv, bool useAttach);
 
 BPatch_thread *startMutateeTestAll(BPatch *bpatch, char *pathname, bool useAttach, ProcessList &procList);
 
-BPatch_thread *startMutateeTest(BPatch *bpatch, char *pathname, int subtestno, 
+TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, char *pathname, int subtestno, 
       bool useAttach);
 
-BPatch_thread *startMutateeTest(BPatch *bpatch, char *pathname, int subtestno, 
+TESTLIB_DLL_EXPORT BPatch_thread *startMutateeTest(BPatch *bpatch, char *pathname, int subtestno, 
       bool useAttach, ProcessList &procList);
 
 BPatch_thread *startMutateeEnabledTests(BPatch *bpatch, char *pathname, bool useAttach, test_data_t tests[], unsigned int num_tests, int oldtest);
 
-void killMutatee(BPatch_thread *appThread);
+TESTLIB_DLL_EXPORT void killMutatee(BPatch_thread *appThread);
 
-/* Test7 Definitions */
-typedef enum { Parent_p, Child_p } procType;
-typedef enum { PreFork, PostFork } forkWhen;
-
-struct  msgSt {
-  long  mtype;     /* message type */
-  char  mtext[1];  /* message text */
-};
-typedef struct msgSt ipcMsg;
-typedef struct msgSt ipcMsg;
-
-/* Test7 Functions */
-int setupMessaging(int *msgid);
-bool doError(bool *passedTest, bool cond, const char *str);
-bool verifyProcMemory(BPatch_thread *appThread, const char *name,
-                      int expectedVal, procType proc_type);
-bool verifyProcMemory(const char *name, BPatch_variableExpr *var,
-                      int expectedVal, procType proc_type);
-void showFinalResults(bool passedTest, int i);
 
 #endif
 
