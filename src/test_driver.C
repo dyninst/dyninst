@@ -39,22 +39,26 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.4 2005/10/22 22:11:45 bpellin Exp $
+// $Id: test_driver.C,v 1.5 2005/11/22 19:41:24 bpellin Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
-#include <unistd.h>
-#include <dirent.h>
 #include <errno.h>
 #include <vector>
 
-//#include "BPatch.h"
-//#include "BPatch_thread.h"
+#if defined(i386_unknown_nt4_0)
+#define vsnprintf _vsnprintf
+#pragma waring(disable:4786)
+#else
+#include <dirent.h>
+#endif
+
 #include "ParameterDict.h"
 #include "test_lib.h"
 #include "Callbacks.h"
 #include "error.h"
+#include "common/h/String.h"
 
 
 // Globals, should be eventually set by commandline options
@@ -71,9 +75,6 @@ int testLimit = 0;
 
 char *resumelog_name = "resumelog";
 
-// TODO: Change me to real value
-// TODO: This is only used when logging is set, so check to see if scripts
-//       are available at startup
 char *pdscrdir = NULL;
 char *uw_pdscrdir = "/p/paradyn/builds/scripts";
 char *umd_pdscrdir = "/fs/dyninst/dyninst/current/scripts";
@@ -109,7 +110,6 @@ int runScript(const char *name, ...)
    return result;
 }
 
-// TODO: Structure this better
 bool runOnThisPlatform(test_data_t &test)
 {
 #if defined(alpha_dec_osf4_0)
@@ -117,7 +117,7 @@ bool runOnThisPlatform(test_data_t &test)
 #elif defined(i386_unknown_linux2_0)
    return test.platforms.i386_unknown_linux2_4;
 #elif defined(i386_unknown_nt4_0)
-   return test.platforms.i386_unknown_nt4_0;
+   return test.platforms._i386_unknown_nt4_0;
 #elif defined(ia64_unknown_linux2_4) 
    return test.platforms._ia64_unknown_linux2_4;
 #elif defined(x86_64_unknown_linux2_4)
@@ -134,8 +134,6 @@ bool runOnThisPlatform(test_data_t &test)
 }
 
 // Test Functions
-// TODO: Cleanup conditions should be changed to depend on some test type
-//       parameter, not the oldtest number.
 int cleanup(BPatch *bpatch, BPatch_thread *appThread, test_data_t &test, ProcessList &proc_list, int result)
 {
    if ( test.oldtest == 1 || test.oldtest == 5 || test.oldtest == 6 || test.oldtest == 8 ) 
@@ -373,10 +371,13 @@ int executeTest(BPatch *bpatch, test_data_t &test, char *mutatee, create_mode_t 
 
    // Add bpatch pointer to test parameter's
    ParamPtr bp_ptr(bpatch);
+   param.undef("bpatch");
    param["bpatch"] = &bp_ptr;
    ParamInt subtest(0);
+   param.undef("subtestno");
    param["subtestno"] = &subtest;
    ParamPtr bp_appThread;
+   param.undef("appThread");
    param["appThread"] = &bp_appThread;
 
 
@@ -530,7 +531,7 @@ int startTest(test_data_t tests[], unsigned int n_tests, std::vector<char *> &te
     bpatch = new BPatch;
    
     // Begin setting up test parameters
-    ParameterDict param;
+    ParameterDict param(pdstring::hash);
     // Setup parameters
     ParamInt attach(0);
     ParamInt errorp(errorPrint);
@@ -645,6 +646,8 @@ void setPDScriptDir()
    pdscrdir = getenv("PDSCRDIR");
    if ( pdscrdir == NULL )
    {
+#if defined(i386_unknown_nt4_0)
+#else
       // Environment variable not set, try default wisc/umd directories
       DIR *dir;
       dir = opendir(uw_pdscrdir);
@@ -661,9 +664,10 @@ void setPDScriptDir()
          pdscrdir = umd_pdscrdir;
          return;
       }
+#endif
 
       fprintf(stderr, "Unabled to find paradyn script dir, please set PDSCRDIR\n");
-      exit(-1);
+      exit(1);
    }
 
 }
