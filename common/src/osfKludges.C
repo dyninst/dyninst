@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfKludges.C,v 1.10 2004/12/09 05:00:48 rchen Exp $
+// $Id: osfKludges.C,v 1.11 2005/11/23 00:09:13 jaw Exp $
 
 #include "common/h/headers.h"
 #include <sys/procfs.h>
@@ -214,10 +214,10 @@ int P_socketpair(int NAMESPACE, int style, int protocol, int filedes[2]) {
 int P_pipe(int fd[2]) { return (pipe(fd)); }
 
 int P_strcasecmp(const char *s1, const char *s2) {
-  return (strcasecmp((char*)s1, (char*)s2));}
+  return (strcasecmp(const_cast<char*>(s1), const_cast<char*>(s2)));}
 
 int P_strncasecmp (const char *S1, const char *S2, size_t N) {
-  return (strncasecmp((char*)S1, (char*)S2, N));}
+  return (strncasecmp(const_cast<char*>(S1), const_cast<char*>(S2), N));}
 
 int P_rexec(char **ahost, u_short inport, char *user,
 	    char *passwd, char *cmd, int *fd2p){

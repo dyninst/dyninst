@@ -376,7 +376,8 @@ void parseCoff(BPatch_module *mod, char *exeName, const pdstring &modName,
 		    value = stabsGetOffset(symbol, current_func_name, varType);
 		}
 
-		char *temp = parseStabString(mod, 0, (char *)symbol.name.c_str(), value);
+		char *temp = parseStabString(mod, 0, const_cast<char *>(symbol.name.c_str()),
+                                             value);
 		if (*temp) {
 		    // Error parsing the stabstr, return should be \0
 		    bperr("Stab string parsing ERROR!! More to parse: %s\n", temp);
@@ -722,7 +723,7 @@ BPatch_type *eCoffParseType(BPatch_module *mod, eCoffSymbol &symbol, bool typeDe
     return newType;
 }
 
-BPatch_type *eCoffHandleTIR(BPatch_module *mod, eCoffSymbol &symbol, bool typeDef)
+BPatch_type *eCoffHandleTIR(BPatch_module *mod, eCoffSymbol &symbol, bool /*typeDef*/)
 {
     pdstring low, high, name;
     long int width = -1;
@@ -1221,7 +1222,7 @@ BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip
       // Terrible capitalization hack (Fortran only).
       if (dataType == BPatch_dataCommon) {
          fieldName = "";
-         for (int i = 0; i < symbol.name.length(); ++i)
+         for (unsigned int i = 0; i < symbol.name.length(); ++i)
             fieldName += pdstring((char)tolower(symbol.name[i]));
          symbol.name = fieldName;
       }

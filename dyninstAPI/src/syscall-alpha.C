@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-alpha.C,v 1.3 2005/09/09 18:07:08 legendre Exp $
+// $Id: syscall-alpha.C,v 1.4 2005/11/23 00:09:14 jaw Exp $
 
 #include <sys/procfs.h>
 #include <sys/syscall.h>
@@ -102,7 +102,7 @@ bool syscallNotification::installPreExec() {
     sysset_t entryset;
     if (!proc->get_entry_syscalls(&entryset)) return false;
     
-    praddset(&entryset, SYS_exec);
+    //praddset(&entryset, SYS_exec);
     praddset(&entryset, SYS_execve);
     
     if (!proc->set_entry_syscalls(&entryset)) return false;
@@ -119,7 +119,7 @@ bool syscallNotification::installPostExec() {
     sysset_t exitset;
     if (!proc->get_exit_syscalls(&exitset)) return false;
     
-    praddset(&exitset, SYS_exec);
+    //praddset(&exitset, SYS_exec);
     praddset(&exitset, SYS_execve);
     
     if (!proc->set_exit_syscalls(&exitset)) return false;
@@ -204,7 +204,7 @@ bool syscallNotification::removePreExec() {
     sysset_t entryset;
     if (!proc->get_entry_syscalls(&entryset)) return false;
     
-    praddset(&entryset, SYS_exec);
+    //praddset(&entryset, SYS_exec);
     praddset(&entryset, SYS_execve);
     
     if (!proc->set_entry_syscalls(&entryset)) return false;
@@ -225,7 +225,7 @@ bool syscallNotification::removePostExec() {
     sysset_t exitset;
     if (!proc->get_exit_syscalls(&exitset)) return false;
     
-    prdelset(&exitset, SYS_exec);
+    //prdelset(&exitset, SYS_exec);
     prdelset(&exitset, SYS_execve);
     
     if (!proc->set_exit_syscalls(&exitset)) return false;

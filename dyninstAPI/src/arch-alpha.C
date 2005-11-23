@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-alpha.C,v 1.6 2005/09/28 17:02:48 bernat Exp $
+// $Id: arch-alpha.C,v 1.7 2005/11/23 00:09:13 jaw Exp $
 
 #include "common/h/headers.h"
 #include "alpha.h"
@@ -550,7 +550,6 @@ bool instruction::valid() const {
   return (insn_.raw != 0);
 #if 0
 
-
   return (opcode == 0x00 ||
 	  opcode == 0x01 ||
 	  opcode == 0x02 ||
@@ -628,7 +627,7 @@ bool instruction::generate(codeGen &gen,
 			   process *,
 			   Address origAddr,
 			   Address relocAddr,
-			   Address fallthroughOverride,
+			   Address /*fallthroughOverride*/,
 			   Address targetOverride) {
     int newOffset = 0;
     

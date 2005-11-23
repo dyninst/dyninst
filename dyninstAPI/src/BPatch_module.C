@@ -1112,7 +1112,7 @@ void BPatch_module::parseTypes()
   imgPtr = mod->pmod()->exec();
 
   //Get the path name of the process
-  char *file = (char *)(imgPtr->file()).c_str();
+  char *file = const_cast<char *>((imgPtr->file()).c_str());
 
   parseCoff(this, file, mod->fileName(),mod->getLineInformation());
 }

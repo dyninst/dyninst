@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfHeaders.h,v 1.14 2005/11/03 05:21:04 jaw Exp $
+// $Id: osfHeaders.h,v 1.15 2005/11/23 00:09:12 jaw Exp $
 
 #if !defined(_osf_headers_h)
 #define _osf_headers_h
@@ -185,7 +185,7 @@ extern int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex, struct timeval 
 
 extern "C" char *cplus_demangle(char *, int);
 
-inline char * P_cplus_demangle( const char * symbol, bool /* nativeCompiler */, bool includeTypes = false ) {
+inline char * P_cplus_demangle( const char * symbol, bool /* nativeCompiler */, bool /*includeTypes*/ = false ) {
    return cplus_demangle( const_cast<char *>( symbol ), 0);
    } /* end P_cplus_demangle() */
 

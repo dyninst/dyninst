@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.39 2005/11/21 17:16:13 jaw Exp $
+// $Id: procfs.C,v 1.40 2005/11/23 00:09:14 jaw Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -197,7 +197,7 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
    }
 
    void *arg3 = NULL;
-   prrun_t run;
+   //prrun_t run;
    if(signalToContinueWith == dyn_lwp::NoSignal &&
       (stat.pr_flags & PR_STOPPED) && (stat.pr_why == PR_SIGNALLED)) {
          flags.pr_flags |= PRCSIG; // clear current signal
@@ -228,7 +228,7 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
 bool dyn_lwp::stop_() {
   ptraceOps++; ptraceOtherOps++;
 
-  sysset_t scexit, scsavedexit;
+  //sysset_t scexit, scsavedexit;
   prstatus_t prstatus;
   int ioctl_ret;
 
@@ -308,7 +308,7 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall) {
     // and return
     
     for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
-        if (syscallTraps_[iter]->syscall_id == (int) syscall) {
+        if (syscallTraps_[iter]->syscall_id == (unsigned int) syscall) {
             trappedSyscall = syscallTraps_[iter];
             break;
         }
@@ -423,7 +423,7 @@ bool dyn_lwp::writeTextSpace(void  *inTracedProcess, u_int amount,
 
 #ifdef BPATCH_SET_MUTATIONS_ACTIVE
 bool dyn_lwp::readTextSpace(void *inTraced, u_int amount, const void *inSelf) {
-   return readDataSpace(inTraced, amount, (void*)inSelf);
+   return readDataSpace(inTraced, amount, const_cast<void*>(inSelf));
 }
 #endif
 
@@ -497,11 +497,14 @@ bool dyn_lwp::readDataSpace(const void *inTracedProcess, u_int amount,
    }
 
   errno = 0;
-   bool retn =  (read(get_fd(), inSelf, amount) == (int)amount);
+   unsigned int retn =  read(get_fd(), inSelf, amount);
+    fprintf(stderr, "%s[%d][%s]:  %d = readDataSpace(%p, amt=%d, %p), fd = %d\n",
+           FILE__, __LINE__, getThreadStr(getExecThreadID()), retn,
+           inTracedProcess, amount, inSelf, get_fd());
   if (errno) {
     perror("read");
   }
-  return retn;
+  return retn == amount;
 }
 
 bool dyn_lwp::waitUntilStopped() {

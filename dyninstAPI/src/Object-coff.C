@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-coff.C,v 1.28 2005/08/15 22:40:30 bernat Exp $
+// $Id: Object-coff.C,v 1.29 2005/11/23 00:09:13 jaw Exp $
 
 #include "common/h/Dictionary.h"
 #include "dyninstAPI/src/Object.h"
@@ -549,7 +549,7 @@ void Object::load_object(bool sharedLibrary) {
 		// within the text section and has a valid name, process it as
 		// a function.
 		if (symbol.sc == scText &&
-		    code_vldS_ <= symbol.value && symbol.value < code_vldE_ &&
+		    code_vldS_ <= (unsigned) symbol.value && (unsigned) symbol.value < code_vldE_ &&
 		    name && *name && !fcnNames.defines(name)) {
 			// Native C++ name demangling.
 		        // Keep this in sync with stProc case above.

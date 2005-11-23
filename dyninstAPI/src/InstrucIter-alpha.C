@@ -380,7 +380,6 @@ bool InstrucIter::isStackFramePreamble(int &frameSize) {
   // We check the entire block. Don't know when it ends,
   // so go until we hit a jump.
   frameSize = 0;
-  bool foundStackPreamble = false;
   while (!isAReturnInstruction() &&
 	 !isACondBranchInstruction() &&
 	 !isACallInstruction() &&

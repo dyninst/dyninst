@@ -146,7 +146,7 @@ class CallbackBase
     virtual CallbackBase *copy()=0;
     unsigned long targetThread() {return target_thread;}
     unsigned long execThread() {return execution_thread;}
-    void setTargetThread(unsigned long t) {target_thread;}
+    void setTargetThread(unsigned long t) {target_thread = t;}
     bool isExecuting() {return exec_flag;}
     void setExecuting(bool flag = true, unsigned long exec_thread_id = -1UL) {
       execution_thread = exec_thread_id;

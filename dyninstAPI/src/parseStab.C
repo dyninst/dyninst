@@ -1167,8 +1167,6 @@ static char *parseRangeType(BPatch_module *mod, const char *name, int ID,
     assert(stabstr[0] == 'r');
     cnt++;
 
-    BPatch_dataClass typdescr = BPatchSymTypeRange;
-
     // range index type
     symdescID = parseSymDesc(stabstr, cnt);
 

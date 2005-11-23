@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.148 2005/11/22 10:39:08 jaw Exp $
+// $Id: unix.C,v 1.149 2005/11/23 00:09:14 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -136,9 +136,9 @@ int SignalHandlerUnix::forwardSigToProcess(EventRecord &ev) {
     bool res;
     if(process::IndependentLwpControl()) {
        fprintf(stderr, "%s[%d]:  before continueLWP(%d)\n", __FILE__, __LINE__, ev.info);
-       res = ev.lwp->continueLWP(ev.info);
+       res = ev.lwp->continueLWP(ev.what);
     } else {
-       res = proc->continueProc(ev.info);
+       res = proc->continueProc(ev.what);
     } 
     if (res == false) {
         cerr << "Couldn't forward signal " << ev.info << endl;
@@ -464,6 +464,8 @@ bool SignalHandlerUnix::handleSignal(EventRecord &ev)
       case SIGVTALRM:
          signal_printf("%s[%d]:  sigalrm or sigusr\n", FILE__, __LINE__);
          proc->set_lwp_status(ev.lwp, stopped);
+         ret = forwardSigToProcess(ev);
+         break; 
       default:
          fprintf(stderr, "%s[%d]:  bad signal id!: %d\n", FILE__, __LINE__, ev.what);
          ret = false;

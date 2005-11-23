@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.44 2005/08/03 05:28:16 bernat Exp $
+// $Id: osfDL.C,v 1.45 2005/11/23 00:09:13 jaw Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -251,7 +251,7 @@ bool dynamic_linking::installTracing()
     if (dlopen_funcs.size() > 1) {
       fprintf(stderr, "Warning, found multiple copies of dlopen, using the first\n");
     }
-    Address openAddr = dlopen_funcs[0]->getAddress();
+    //Address openAddr = dlopen_funcs[0]->getAddress();
 
     InstrucIter dlopen_iter(dlopen_funcs[0]);
     while (dlopen_iter.hasMore()) {
