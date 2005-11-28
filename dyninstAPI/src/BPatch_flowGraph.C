@@ -593,6 +593,7 @@ bool BPatch_flowGraph::createSourceBlocksInt() {
         } /* end if we found anything */
     } /* end iteration over all basic blocks */
     
+    isSourceBlockInfoReady = true;    
     delete [] elements;
     return true;
 } /* end createSourceBlocks() */
