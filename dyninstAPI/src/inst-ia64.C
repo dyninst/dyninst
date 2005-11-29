@@ -2888,7 +2888,7 @@ void emitFuncJump(opCode op, codeGen &gen, const int_function *callee,
   int extraOuts = outputRegisters % 3;
   /* FIXME: the knowledge about NUM_PRESERVED is spread all over creation, and should
 	 probably be localized to generatePreservation*(). */
-  int offset = 32 + outputRegisters + 5 + NUM_PRESERVED;
+  int offset = regSpace->getRegSlot( 0 )->number + 5;
 
   // Generate a new register frame with an output size equal to the
   // original local size.
