@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_20.C,v 1.3 2005/11/22 19:41:36 bpellin Exp $
+// $Id: test1_20.C,v 1.4 2005/12/01 22:15:14 jaw Exp $
 /*
  * #Name: test1_20
  * #Desc: Mutator Side - Instrumentation at arbitrary points
@@ -123,26 +123,32 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
         BPatch_basicBlock *block = *blockIter;
         assert(block);
 
-        for (unsigned long i = block->getStartAddress();
-             i < block->getEndAddress();
-             i++) {
-            // This is the second stupidest way to do this. The stupidest 
-            // is the old way: from start to (start+size) by 1. This at least
-            // uses basic blocks. We _should_ be using an instruction iterator
-            // of some sort...
-            p = appImage->createInstPointAtAddr((char *)block->getStartAddress());
-            
-            if (p) {
-                if (p->getPointType() == BPatch_arbitrary) {
-                    found_one = true;
-                    if (appThread->insertSnippet(call20_1Expr, *p) == NULL) {
-                        fprintf(stderr,
-                                "Unable to insert snippet into function \"func20_2.\"\n");
-                        return -1;
-                    }
+        dprintf("%s[%d]:  inserting arbitrary instrumentation in basic block starting at addr %p\n", __FILE__, __LINE__, (void *) block->getStartAddress());
+        BPatch_Vector<BPatch_instruction *> *insns = block->getInstructions();
+        assert(insns);
+        for (unsigned int i = 0; i < insns->size(); ++i) {
+          BPatch_instruction *insn = (*insns)[i];
+          BPatch_point *pt = insn->getInstPoint();
+          if (pt) {
+            if (pt->getPointType() == BPatch_arbitrary) {
+                found_one = true;
+                if (appThread->insertSnippet(call20_1Expr, *pt) == NULL) {
+                    fprintf(stderr,
+                            "%s[%d]: Unable to insert snippet into function \"func20_2.\"\n",
+                             __FILE__, __LINE__);
+                    exit(1);
                 }
+                dprintf("%s[%d]:  SUCCESS installing inst at address %p/%p\n", __FILE__, __LINE__, insn->getAddress(), pt->getAddress());
             }
+            else
+              fprintf(stderr, "%s[%d]:  non-arbitrary point (%d) being ignored\n", __FILE__, __LINE__);
+
+          }
+          else {
+             fprintf(stderr, "%s[%d]:  no instruction for point\n", __FILE__, __LINE__);
+          }
         }
+
     }
 
     appThread->getProcess()->finalizeInsertionSet(false);
