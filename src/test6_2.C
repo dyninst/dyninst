@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test6_2.C,v 1.2 2005/11/22 19:42:37 bpellin Exp $
+// $Id: test6_2.C,v 1.3 2005/12/01 23:31:10 jaw Exp $
 /*
  * #Name: test6_2
  * #Desc: Store Instrumentation
@@ -116,7 +116,7 @@ void init_test_data()
   storeList[++k] = MK_ST(-76, 1, -1, 76);
   storeList[++k] = MK_ST(0, 4, -1, 20);
 
-  storeList[++k] = new BPatch_memoryAccess("", 0, 
+  storeList[++k] = new BPatch_memoryAccess("", 0, 0,
 				    false, true,
 				    0, 1, 9,
 				    0, POWER_XER2531, -1);
@@ -189,7 +189,7 @@ void init_test_data()
 
   storeList[++k] = MK_STnt((long)divarwp,-1,-1,8); // s12
   //storeList[++k] = MK_ST(0,7,-1,4);
-  storeList[++k] = new BPatch_memoryAccess("", 0, 
+  storeList[++k] = new BPatch_memoryAccess("", 0, 0,
 					   false, true,
                                            0, 7, -1, 0,
                                            0, -1, 1, 2,

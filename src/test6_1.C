@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test6_1.C,v 1.2 2005/11/22 19:42:36 bpellin Exp $
+// $Id: test6_1.C,v 1.3 2005/12/01 23:31:10 jaw Exp $
 /*
  * #Name: test6_1
  * #Desc: Load Instrumentation
@@ -129,7 +129,7 @@ void init_test_data()
 
   loadList[++k] = MK_LD(-76, 1, -1, 76);  // l27
   loadList[++k] = MK_LD(0, 4, -1, 24);
-  loadList[++k] = new BPatch_memoryAccess("", 0, 
+  loadList[++k] = new BPatch_memoryAccess("", 0, 0,
 				   true, false,
 				   0, 1, 9,
 				   0, POWER_XER2531, -1);
@@ -252,12 +252,12 @@ void init_test_data()
 
   //loadList[++k] = MK_SL2(0,7,-1,4,0,6,-1,4); // l50
   loadList[++k] = MK_SL2vECX(0,7,-1,0,6,-1,2);
-  loadList[++k] = new BPatch_memoryAccess("", 0, 
+  loadList[++k] = new BPatch_memoryAccess("", 0, 0,
 					  true, false,
                                           0, 7, -1, 0,
                                           0, -1, IA32_NESCAS, 0, 
                                           -1, false);
-  loadList[++k] = new BPatch_memoryAccess("", 0, 
+  loadList[++k] = new BPatch_memoryAccess("", 0, 0,
 					  true, false,
                                           0, 6, -1, 0,
                                           0, -1, IA32_ECMPS, 0,
