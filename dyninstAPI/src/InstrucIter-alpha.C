@@ -165,7 +165,7 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
     return ma;
 
   const instruction i = getInstruction();
-  in = new BPatch_instruction(&(*i).raw, instruction::size());
+  in = new BPatch_instruction(&(*i).raw, instruction::size(), current);
 
   return in;
 }

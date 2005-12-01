@@ -131,7 +131,7 @@ class BPatch_asyncEventHandler;
 class SignalHandler;
 
 class CallbackBase;
-typedef void (*CallbackCompletionCallback)(CallbackBase * = NULL);
+typedef void (*CallbackCompletionCallback)(CallbackBase *);
 
 class CallbackBase
 {

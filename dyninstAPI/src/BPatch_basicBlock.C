@@ -370,6 +370,7 @@ BPatch_Vector<BPatch_instruction*> *BPatch_basicBlock::getInstructionsInt(void) 
     
     while(ii.hasMore()) {
       BPatch_instruction *instr = ii.getBPInstruction();
+      instr->parent = this;
       instructions->push_back(instr);
       ii++;
     }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.84 2005/11/21 17:16:13 jaw Exp $
+// $Id: osf.C,v 1.85 2005/12/01 00:56:24 jaw Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -240,8 +240,8 @@ bool checkForExit(EventRecord &ev)
   extern pdvector<process*> processVec;
   for (unsigned u = 0; u < processVec.size(); u++) {
     if (processVec[u] 
-        && (processVec[u]->status() == running 
-            || processVec[u]->status() == neonatal)) { 
+        && (processVec[u]->status() == running )) {
+            //|| processVec[u]->status() == neonatal)) { 
        int status;
        int retWait = waitpid(processVec[u]->getPid(), &status, WNOHANG|WNOWAIT);
        if (retWait == -1) {
@@ -249,10 +249,12 @@ bool checkForExit(EventRecord &ev)
           return false;
        }
        else if (retWait > 1) {
+         //fprintf(stderr, "%s[%d]:  checkForExit is returning true: pid %d exited, status was %s\n", FILE__, __LINE__, ev.proc->getPid(), ev.proc->getStatusAsString().c_str());
          decodeWaitPidStatus(status, ev);
          ev.proc = processVec[u];
          ev.lwp = processVec[u]->getRepresentativeLWP();
          ev.info = 0;
+         //ev.proc->set_status(exited);
          return true;
        }
     }
@@ -283,21 +285,12 @@ bool SignalGeneratorUnix::getFDsForPoll(pdvector<unsigned int> &fds)
   extern pdvector<process*> processVec;
   for (unsigned int u = 0; u < processVec.size(); ++u) {
     if (processVec[u] 
-        && (processVec[u]->status() == running 
-            || processVec[u]->status() == neonatal)) {
+        && (processVec[u]->status() == running )) {
+           // || processVec[u]->status() == neonatal)) {
       fds.push_back(processVec[u]->getRepresentativeLWP()->get_fd());
     }
   }
   return (fds.size() > 0);
-}
-
-process *SignalGeneratorUnix::findProcessByFD(unsigned int fd)
-{
-  extern pdvector<process*> processVec;
-  for (unsigned int u = 0; u < processVec.size(); ++u) 
-    if (fd == (unsigned int)processVec[u]->getRepresentativeLWP()->get_fd())
-      return processVec[u];
-  return NULL;
 }
 
 Frame dyn_thread::getActiveFrameMT() {

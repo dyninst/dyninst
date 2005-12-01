@@ -624,7 +624,7 @@ void FindLineInfo(LDFILE *ldptr, eCoffParseInfo &info,
 
 //				currentFileInfo->insertLineAddress(currentFuncInfo,
 //							   currLine, currAddr);
-				/* DEBUG */ fprintf( stderr, "%s[%d]: %s:%d @ 0x%lx\n", __FILE__, __LINE__, fileName.c_str(), currLine, currAddr );
+				/* DEBUG  fprintf( stderr, "%s[%d]: %s:%d @ 0x%lx\n", __FILE__, __LINE__, fileName.c_str(), currLine, currAddr ); */
 
 				/* See comments in the gcc case, above. */
 				if( isPreviousValid ) {

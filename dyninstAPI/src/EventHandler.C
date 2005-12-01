@@ -131,16 +131,18 @@ inline THREAD_RETURN eventHandlerWrapper(void *h)
   DO_THREAD_RETURN;
 }
 
-template <class S>
-InternalThread<S>::InternalThread(const char *id) :
+InternalThread::InternalThread(const char *id) :
+//template <class S>
+//InternalThread<S>::InternalThread(const char *id) :
   _isRunning(false),
   tid ((unsigned long ) -1)
 {
   idstr = strdup(id);
 }
 
-template <class S>
-InternalThread<S>::~InternalThread() 
+InternalThread::~InternalThread() 
+//template <class S>
+//InternalThread<S>::~InternalThread() 
 {
   if (isRunning()) {
     if (!killThread()) {
@@ -151,8 +153,9 @@ InternalThread<S>::~InternalThread()
   free (idstr);
 }
 
-template <class S>
-bool InternalThread<S>::createThread()
+bool InternalThread::createThread()
+//template <class S>
+//bool InternalThread<S>::createThread()
 {
   mailbox_printf("%s[%d]  welcome to createThread(%s)\n", __FILE__, __LINE__, idstr);
   if (isRunning()) {
@@ -225,8 +228,9 @@ bool InternalThread<S>::createThread()
 
 }
 
-template <class S>
-bool InternalThread<S>::killThread()
+bool InternalThread::killThread()
+//template <class S>
+//bool InternalThread<S>::killThread()
 {
   if (!isRunning()) {
     fprintf(stderr, "%s[%d]:  request to kill already-stopped thread\n", __FILE__, __LINE__);
@@ -250,9 +254,13 @@ bool InternalThread<S>::killThread()
   return true; 
 }
 
+//template class InternalThread<EventRecord>;
+//template class InternalThread<DBIEvent>;
+
 template <class T>
 EventHandler<T>::EventHandler(eventLock *_lock, const char *id, bool create) :
-  InternalThread<T>(id),
+  //InternalThread<T>(id),
+  InternalThread(id),
   eventlock(_lock),
   stop_request(false)
 {
@@ -392,7 +400,5 @@ char *eventType2str(eventType x)
 //  in templates2.C, however, including them here gets around
 //  multiple definition problems introduced by having both template
 //  and non-template functions in this file.
-template class InternalThread<EventRecord>;
 template class EventHandler<EventRecord>;
-template class InternalThread<DBIEvent>;
 template class EventHandler<DBIEvent>;

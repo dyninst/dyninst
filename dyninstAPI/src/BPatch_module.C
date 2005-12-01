@@ -358,7 +358,7 @@ BPatch_module::findFunctionInt(const char *name,
        BPatch_reportError(BPatchSerious, 100, msg.c_str());
      }
      // remove this line
-     cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
+     //cerr << __FILE__ << ":" << __LINE__ << ":  REGEXEC ERROR: "<< errbuf << endl;
      return NULL;
    }
    

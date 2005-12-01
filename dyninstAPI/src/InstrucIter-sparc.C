@@ -150,13 +150,13 @@ const unsigned int fishyBytes[] = { 0, 1, 8, 4 };
 
 #define btst(x, bit) ((x) & (1<<(bit)))
 
-#define MK_LDi0(bytes, in, rs1, rs2) (new BPatch_memoryAccess(&(*in).raw, instruction::size(), true, false, (bytes), 0, (rs1), (rs2)))
-#define MK_STi0(bytes, in, rs1, rs2) (new BPatch_memoryAccess(&(*in).raw, instruction::size(), false, true, (bytes), 0, (rs1), (rs2)))
-#define MK_LDi1(bytes, in, rs1, simm13) (new BPatch_memoryAccess(&(*in).raw, instruction::size(), true, false, (bytes), (simm13), (rs1), -1))
-#define MK_STi1(bytes, in, rs1, simm13) (new BPatch_memoryAccess(&(*in).raw, instruction::size(), false, true, (bytes), (simm13), (rs1), -1))
-#define MK_PFi0(in, rs1, rs2, f) (new BPatch_memoryAccess(&(*in).raw, instruction::size(), false, false, true, 0, (rs1), (rs2), \
+#define MK_LDi0(bytes, in, rs1, rs2) (new BPatch_memoryAccess(&(*in).raw, instruction::size(),current, true, false, (bytes), 0, (rs1), (rs2)))
+#define MK_STi0(bytes, in, rs1, rs2) (new BPatch_memoryAccess(&(*in).raw, instruction::size(),current, false, true, (bytes), 0, (rs1), (rs2)))
+#define MK_LDi1(bytes, in, rs1, simm13) (new BPatch_memoryAccess(&(*in).raw, instruction::size(),current, true, false, (bytes), (simm13), (rs1), -1))
+#define MK_STi1(bytes, in, rs1, simm13) (new BPatch_memoryAccess(&(*in).raw, instruction::size(),current, false, true, (bytes), (simm13), (rs1), -1))
+#define MK_PFi0(in, rs1, rs2, f) (new BPatch_memoryAccess(&(*in).raw, instruction::size(),current, false, false, true, 0, (rs1), (rs2), \
                                            0, -1, -1, (f)))
-#define MK_PFi1(in, rs1, simm13, f) (new BPatch_memoryAccess(&(*in).raw, instruction::size(), false, false, true, (simm13), (rs1), -1, \
+#define MK_PFi1(in, rs1, simm13, f) (new BPatch_memoryAccess(&(*in).raw, instruction::size(),current, false, false, true, (simm13), (rs1), -1, \
                                               0, -1, -1, (f)))
 
 #define MK_LD(bytes, in) ((*in).rest.i ? MK_LDi1(bytes, in, (*in).resti.rs1, (*in).resti.simm13) : \
@@ -165,9 +165,9 @@ const unsigned int fishyBytes[] = { 0, 1, 8, 4 };
                                       MK_STi0(bytes, in, (*in).rest.rs1, (*in).rest.rs2))
 #define MK_MA(bytes, in, load, store) \
           ((*in).rest.i ? \
-              new BPatch_memoryAccess(&(*in).raw, instruction::size(), (load), (store), (bytes), (*in).resti.simm13, (*in).resti.rs1, -1) \
+              new BPatch_memoryAccess(&(*in).raw, instruction::size(), current,(load), (store), (bytes), (*in).resti.simm13, (*in).resti.rs1, -1) \
               : \
-              new BPatch_memoryAccess(&(*in).raw, instruction::size(), (load), (store), (bytes), 0, (*in).rest.rs1, (*in).rest.rs2))
+              new BPatch_memoryAccess(&(*in).raw, instruction::size(), current,(load), (store), (bytes), 0, (*in).rest.rs1, (*in).rest.rs2))
 #define MK_PF(in) ((*in).rest.i ? MK_PFi1(in, (*in).resti.rs1, (*in).resti.simm13, (*in).resti.rd) : \
                                MK_PFi0(in, (*in).rest.rs1, (*in).rest.rs2, (*in).rest.rd))
 
@@ -209,7 +209,7 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
         // the address should always be a doubleword on V9...
         unsigned int b = btst(op3, 1) ? 8 : 4;
         // VG(12/08/01): CAS(X)A uses rs2 as value not address...
-        return new BPatch_memoryAccess(&(*i).raw, instruction::size(), true, 
+        return new BPatch_memoryAccess(&(*i).raw, instruction::size(), current,true, 
                                        true, b, 0, (*i).resti.rs1, -1);
       }
     }
@@ -251,7 +251,7 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
     return ma;
 
   const instruction i = getInstruction();
-  in = new BPatch_instruction(&(*i).raw, instruction::size());
+  in = new BPatch_instruction(&(*i).raw, instruction::size(),  current);
 
   return in;
 }

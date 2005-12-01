@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.40 2005/11/23 00:09:14 jaw Exp $
+// $Id: procfs.C,v 1.41 2005/12/01 00:56:25 jaw Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -430,24 +430,16 @@ bool dyn_lwp::readTextSpace(void *inTraced, u_int amount, const void *inSelf) {
 bool dyn_lwp::writeDataSpace(void *inTracedProcess, u_int amount,
                              const void *inSelf)
 {
-   off_t ret;
    ptraceOps++; ptraceBytes += amount;
 
-#ifdef __alpha
-   errno = 0;
-   prmap_t tmp;
-   tmp.pr_vaddr = (char*)inTracedProcess;
-   ret = lseek(get_fd(), (off_t) tmp.pr_vaddr, SEEK_SET);
-#else
-   ret = lseek(get_fd(), (off_t)inTracedProcess, SEEK_SET);
-#endif  
-
-   if (ret != (off_t)inTracedProcess) {
-      perror("lseek");
-      bperr( "   target address %lx\n", inTracedProcess);
+   off_t loc = (off_t) inTracedProcess;
+   unsigned int written = pwrite(get_fd(), inSelf, amount, loc);
+   if (written != amount) {
+      fprintf(stderr, "%s[%d]:  writeDataSpace: %s\n", FILE__, __LINE__, strerror(errno));
+      assert(0);
       return false;
    }
-   return (write(get_fd(), inSelf, amount) == (int)amount);
+   return true;
 }
 
 bool dyn_lwp::readDataSpace(const void *inTracedProcess, u_int amount,
@@ -456,55 +448,16 @@ bool dyn_lwp::readDataSpace(const void *inTracedProcess, u_int amount,
    off_t ret;
    ptraceOps++; ptraceBytes += amount;
 
-#ifdef __alpha   
-   prstatus info;
-   ioctl(get_fd(), PIOCSTATUS,  &info);
-   while (!prismember(&info.pr_flags, PR_STOPPED))
-   {
-      sleep(1);
-      ret = ioctl(get_fd(), PIOCSTATUS,  &info);
-      if (ret == -1) return false;
-   } 
-   errno = 0;
-#endif  
-   ret = lseek(get_fd(), reinterpret_cast<off_t>(inTracedProcess), SEEK_SET);
 
-   if (ret != (off_t)inTracedProcess) {
-      perror("lseek");
-      bperr( "   target address %lx\n", inTracedProcess);
-      bperr( "lseek(%d,%lx,%d)\n", get_fd(), inTracedProcess,
-              SEEK_SET); 
-      bperr( "The return address: %lx\n",ret); 
-#ifdef DEBUG
-      if (errno == EBADF)
-      {
-         perror("The fildes argument is not an open file descriptor.\n");
-      }
-      else if (errno == EINVAL)
-      {
-         perror("The whence argument is not SEEK_SET, SEEK_CUR...\n");
-      }
-      else if (errno == ESPIPE)
-      {
-         perror("ESPIPE error\n");
-      }
-      else
-      {
-         perror("Unknown error\n");
-      }
-#endif
+  off_t loc = (off_t) inTracedProcess;
+  int res = pread(get_fd(), inSelf, amount, loc);
+  if (res != (int) amount) {
+      perror("readDataSpace");
+      bperr( "From %p (mutator) to %p (mutatee), %d bytes, got %d\n",
+              inSelf, inTracedProcess, amount, res);
       return false;
-   }
-
-  errno = 0;
-   unsigned int retn =  read(get_fd(), inSelf, amount);
-    fprintf(stderr, "%s[%d][%s]:  %d = readDataSpace(%p, amt=%d, %p), fd = %d\n",
-           FILE__, __LINE__, getThreadStr(getExecThreadID()), retn,
-           inTracedProcess, amount, inSelf, get_fd());
-  if (errno) {
-    perror("read");
   }
-  return retn == amount;
+  return true;
 }
 
 bool dyn_lwp::waitUntilStopped() {

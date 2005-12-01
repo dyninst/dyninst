@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: MemoryAccess.C,v 1.7 2005/10/10 18:45:34 legendre Exp $ */
+/* $Id: MemoryAccess.C,v 1.8 2005/12/01 00:56:24 jaw Exp $ */
 
 #include "BPatch_memoryAccess_NP.h"
 #include "BPatch_point.h"
@@ -148,11 +148,11 @@ BPatch_memoryAccess* BPatch_memoryAccess::init_tables()
 }
 
 // initializes only the first access; #bytes is a constant
-BPatch_memoryAccess::BPatch_memoryAccess(const void *buf, int _sz,
+BPatch_memoryAccess::BPatch_memoryAccess(const void *buf, int _sz, Address _addr,
                     bool _isLoad, bool _isStore, unsigned int _bytes,
                     int _imm, int _ra, int _rb, unsigned int _scale,
                     int _cond, bool _nt) : 
-   BPatch_instruction(buf, _sz)
+   BPatch_instruction(buf, _sz, _addr)
 {
    start = new BPatch_addrSpec_NP[nmaxacc_NP];
    count = new BPatch_countSpec_NP[nmaxacc_NP];
@@ -161,11 +161,11 @@ BPatch_memoryAccess::BPatch_memoryAccess(const void *buf, int _sz,
 }
 
 // initializes only the first access; #bytes is an expression w/scale
-BPatch_memoryAccess::BPatch_memoryAccess(const void *buf, int _sz,
+BPatch_memoryAccess::BPatch_memoryAccess(const void *buf, int _sz, Address _addr,
 		      bool _isLoad, bool _isStore, int _imm_s, int _ra_s, int _rb_s,
             unsigned int _scale_s, int _imm_c, int _ra_c, int _rb_c, 
             unsigned int _scale_c, int _cond, bool _nt, int _preFcn) : 
-   BPatch_instruction(buf, _sz)
+   BPatch_instruction(buf, _sz, _addr)
 {
    start = new BPatch_addrSpec_NP[nmaxacc_NP];
    count = new BPatch_countSpec_NP[nmaxacc_NP];
@@ -174,11 +174,11 @@ BPatch_memoryAccess::BPatch_memoryAccess(const void *buf, int _sz,
 }
 
 // initializes only the first access; #bytes is an expression
-BPatch_memoryAccess::BPatch_memoryAccess(const void *buf, int _sz,
+BPatch_memoryAccess::BPatch_memoryAccess(const void *buf, int _sz, Address _addr,
 		      bool _isLoad, bool _isStore, bool _isPrefetch, int _imm_s, 
             int _ra_s, int _rb_s, int _imm_c, int _ra_c, int _rb_c,
             unsigned short _preFcn) : 
-   BPatch_instruction(buf, _sz)
+   BPatch_instruction(buf, _sz, _addr)
 {
    start = new BPatch_addrSpec_NP[nmaxacc_NP];
    count = new BPatch_countSpec_NP[nmaxacc_NP];
@@ -188,10 +188,10 @@ BPatch_memoryAccess::BPatch_memoryAccess(const void *buf, int _sz,
 }
 
   // initializes only the first access; #bytes is an expression & not a prefetch
-BPatch_memoryAccess::BPatch_memoryAccess(const void *buf, int _sz,
+BPatch_memoryAccess::BPatch_memoryAccess(const void *buf, int _sz, Address _addr,
 	       bool _isLoad, bool _isStore, int _imm_s, int _ra_s, int _rb_s,
 	       int _imm_c, int _ra_c, int _rb_c) : 
-   BPatch_instruction(buf, _sz)
+   BPatch_instruction(buf, _sz, _addr)
 {
    start = new BPatch_addrSpec_NP[nmaxacc_NP];
    count = new BPatch_countSpec_NP[nmaxacc_NP];
@@ -234,12 +234,12 @@ void BPatch_memoryAccess::set2nd(bool _isLoad, bool _isStore,
 }
 
 // initializes both accesses; #bytes is a constant
-BPatch_memoryAccess::BPatch_memoryAccess(const void *buf, int _sz,
+BPatch_memoryAccess::BPatch_memoryAccess(const void *buf, int _sz, Address _addr,
 		      bool _isLoad, bool _isStore, unsigned int _bytes,
             int _imm, int _ra, int _rb, unsigned int _scale,
             bool _isLoad2, bool _isStore2, unsigned int _bytes2,
             int _imm2, int _ra2, int _rb2, unsigned int _scale2) : 
-   BPatch_instruction(buf, _sz)
+   BPatch_instruction(buf, _sz, _addr)
 {
    start = new BPatch_addrSpec_NP[nmaxacc_NP];
    count = new BPatch_countSpec_NP[nmaxacc_NP];
@@ -248,13 +248,13 @@ BPatch_memoryAccess::BPatch_memoryAccess(const void *buf, int _sz,
 }
 
   // initializes both accesses; #bytes is an expression & not a prefetch
-BPatch_memoryAccess::BPatch_memoryAccess(const void *buf, int _sz,
+BPatch_memoryAccess::BPatch_memoryAccess(const void *buf, int _sz, Address _addr,
          bool _isLoad, bool _isStore, int _imm_s, int _ra_s, int _rb_s, 
          unsigned int _scale_s, int _imm_c, int _ra_c, int _rb_c, 
          unsigned int _scale_c, bool _isLoad2, bool _isStore2, int _imm2_s, 
          int _ra2_s, int _rb2_s, unsigned int _scale2_s, int _imm2_c, 
          int _ra2_c, int _rb2_c, unsigned int _scale2_c) : 
-   BPatch_instruction(buf, _sz)
+   BPatch_instruction(buf, _sz, _addr)
 {
    start = new BPatch_addrSpec_NP[nmaxacc_NP];
    count = new BPatch_countSpec_NP[nmaxacc_NP];

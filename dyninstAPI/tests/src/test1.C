@@ -141,7 +141,7 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
     if (num == 0) {
         // conditional reporting of warnings and informational messages
         if (errorPrint) {
-            if (level == BPatchInfo)
+            if ((level == BPatchInfo) || (level == BPatchWarning))
               { if (errorPrint > 1) printf("%s\n", params[0]); }
             else {
                 printf("%s", params[0]);
@@ -2196,34 +2196,41 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
     
     appThread->getProcess()->beginInsertionSet();
 
+    dprintf("%s[%d]:  about to instrument %d basic blocks\n", __FILE__, __LINE__, blocks.size());
     BPatch_Set<BPatch_basicBlock *>::iterator blockIter = blocks.begin();
     for (; blockIter != blocks.end(); blockIter++) {
         BPatch_basicBlock *block = *blockIter;
         assert(block);
 
-        for (unsigned long i = block->getStartAddress();
-             i < block->getEndAddress();
-             i++) {
-            // This is the second stupidest way to do this. The stupidest 
-            // is the old way: from start to (start+size) by 1. This at least
-            // uses basic blocks. We _should_ be using an instruction iterator
-            // of some sort...
-            p = appImage->createInstPointAtAddr((char *)block->getStartAddress());
-            
-            if (p) {
-                if (p->getPointType() == BPatch_arbitrary) {
-                    found_one = true;
-                    if (appThread->insertSnippet(call20_1Expr, *p) == NULL) {
-                        fprintf(stderr,
-                                "Unable to insert snippet into function \"func20_2.\"\n");
-                        exit(1);
-                    }
+        dprintf("%s[%d]:  inserting arbitrary instrumentation in basic block starting at addr %p\n", __FILE__, __LINE__, (void *) block->getStartAddress());
+        BPatch_Vector<BPatch_instruction *> *insns = block->getInstructions();
+        assert(insns);
+        for (unsigned int i = 0; i < insns->size(); ++i) {
+          BPatch_instruction *insn = (*insns)[i];
+          BPatch_point *pt = insn->getInstPoint();
+          if (pt) {
+            if (pt->getPointType() == BPatch_arbitrary) {
+                found_one = true;
+                if (appThread->insertSnippet(call20_1Expr, *pt) == NULL) {
+                    fprintf(stderr,
+                            "%s[%d]: Unable to insert snippet into function \"func20_2.\"\n",
+                             __FILE__, __LINE__);
+                    exit(1);
                 }
+                dprintf("%s[%d]:  SUCCESS installing inst at address %p/%p\n", __FILE__, __LINE__, insn->getAddress(), pt->getAddress());
             }
+            else 
+              fprintf(stderr, "%s[%d]:  non-arbitrary point (%d) being ignored\n", __FILE__, __LINE__);
+
+          }
+          else {
+             fprintf(stderr, "%s[%d]:  no instruction for point\n", __FILE__, __LINE__);
+          }
         }
     }
-
     appThread->getProcess()->finalizeInsertionSet(false);
+
+    dprintf("%s[%d]: instrumented  %d basic blocks\n", __FILE__, __LINE__, blocks.size());
 
     bpatch->registerErrorCallback(oldError);
 
@@ -2680,18 +2687,21 @@ void mutatorTest24(BPatch_thread *appThread, BPatch_image *appImage)
         BPatch_arithExpr assignment1(BPatch_assign,
             BPatch_arithExpr(BPatch_ref, *gvar[1], BPatch_constExpr(1)),
         BPatch_constExpr(2400001));
-        appThread->insertSnippet(assignment1, *point24_1);
+        if (!appThread->insertSnippet(assignment1, *point24_1))
+           abort();
 
         //     globalVariable24_1[globalVariable24_2] = 2400002
         BPatch_arithExpr assignment2(BPatch_assign,
             BPatch_arithExpr(BPatch_ref, *gvar[1], *gvar[2]),
         BPatch_constExpr(2400002));
-        appThread->insertSnippet(assignment2, *point24_1);
+        if (!appThread->insertSnippet(assignment2, *point24_1))
+          abort();
 
         //     globalVariable24_3 = globalVariable24_1[79]
         BPatch_arithExpr assignment3(BPatch_assign, *gvar[3],
             BPatch_arithExpr(BPatch_ref, *gvar[1], BPatch_constExpr(79)));
-        appThread->insertSnippet(assignment3, *point24_1);
+        if (!appThread->insertSnippet(assignment3, *point24_1))
+          abort();
 
         //     globalVariable24_5 = globalVariable24_1[globalVariable24_4]
         BPatch_arithExpr assignment4(BPatch_assign, *gvar[5],
@@ -2705,37 +2715,43 @@ void mutatorTest24(BPatch_thread *appThread, BPatch_image *appImage)
                                                       BPatch_constExpr(1));
         BPatch_constExpr *bpce = new BPatch_constExpr(2400005);
         BPatch_arithExpr assignment5(BPatch_assign, *bpae, *bpce);
-        appThread->insertSnippet(assignment5, *point24_1);
+        if (!appThread->insertSnippet(assignment5, *point24_1))
+          abort();
 
         //     localVariable24_1[globalVariable24_2] = 2400006
         BPatch_arithExpr assignment6(BPatch_assign,
             BPatch_arithExpr(BPatch_ref, *lvar, *gvar[2]),
             BPatch_constExpr(2400006));
-        appThread->insertSnippet(assignment6, *point24_1);
+        if (!appThread->insertSnippet(assignment6, *point24_1))
+          abort();
 
         //     globalVariable24_6 = localVariable24_1[79]
         BPatch_arithExpr *ae = 
            new BPatch_arithExpr(BPatch_ref, *lvar, BPatch_constExpr(79));
         BPatch_arithExpr assignment7(BPatch_assign, *gvar[6],*ae);
-        appThread->insertSnippet(assignment7, *point24_1);
+        if (!appThread->insertSnippet(assignment7, *point24_1))
+          abort();
 
         //     globalVariable24_7 = localVariable24_1[globalVariable24_4]
         BPatch_arithExpr assignment8(BPatch_assign, *gvar[7],
             BPatch_arithExpr(BPatch_ref, *lvar, *gvar[4]));
-        appThread->insertSnippet(assignment8, *point24_1);
+        if (!appThread->insertSnippet(assignment8, *point24_1))
+          abort();
 
         // now test multi-dimensional arrays
         //	   globalVariable24_8[2][3] = 2400011
         BPatch_arithExpr assignment9(BPatch_assign,
             BPatch_arithExpr(BPatch_ref, BPatch_arithExpr(BPatch_ref, *gvar[8],
 	    BPatch_constExpr(2)), BPatch_constExpr(3)), BPatch_constExpr(2400011));
-        appThread->insertSnippet(assignment9, *point24_1);
+        if (!appThread->insertSnippet(assignment9, *point24_1))
+          abort();
 
         // globalVariable24_9 = globalVariable24_8[7][9]
         BPatch_arithExpr assignment10(BPatch_assign, *gvar[9],
             BPatch_arithExpr(BPatch_ref, BPatch_arithExpr(BPatch_ref, *gvar[8],
             BPatch_constExpr(7)), BPatch_constExpr(9)));
-      appThread->insertSnippet(assignment10, *point24_1);
+        if (!appThread->insertSnippet(assignment10, *point24_1))
+          abort();
     }
 #endif
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.h,v 1.13 2005/10/21 21:48:15 legendre Exp $
+// $Id: codeRange.h,v 1.14 2005/12/01 00:56:24 jaw Exp $
 
 
 #ifndef _codeRangeTree_h_
@@ -210,7 +210,7 @@ class codeRangeTree {
     void destroy(entry*);
 
     /** copy constructor */
-    codeRangeTree(const codeRangeTree &y) {};
+    codeRangeTree(const codeRangeTree &/* y */) {};
 
   public:
 

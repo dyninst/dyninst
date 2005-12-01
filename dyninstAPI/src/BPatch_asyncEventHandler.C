@@ -328,6 +328,7 @@ bool BPatch_asyncEventHandler::initialize()
 
 BPatch_asyncEventHandler::~BPatch_asyncEventHandler()
 {
+  fprintf(stderr, "%s[%d]:  welcome to ~BPatch_asyncEventHandler()\n", FILE__, __LINE__);
   if (isRunning()) 
     if (!shutDown()) {
       bperr("%s[%d]:  shut down async event handler failed\n", __FILE__, __LINE__);

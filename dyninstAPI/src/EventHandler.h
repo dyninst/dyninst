@@ -149,7 +149,7 @@ typedef void (*thread_main_t)(void *);
 typedef void *(*thread_main_t)(void *);
 #endif
 
-template <class S>
+//template <class S>
 class InternalThread {
   public:
   //  InternalThread::getThreadID(), return thread id
@@ -185,7 +185,8 @@ class InternalThread {
 #define DYNINST_CLASS_NAME EventHandler
 
 template <class T>
-class EventHandler : public InternalThread<T> {
+//class EventHandler : public InternalThread<T> {
+class EventHandler : public InternalThread {
   friend THREAD_RETURN eventHandlerWrapper(void *);
   friend THREAD_RETURN asyncHandlerWrapper(void *);
 

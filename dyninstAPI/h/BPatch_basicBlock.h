@@ -80,6 +80,7 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
 	friend class dominatorCFG;
 	friend class InstrucIter;
 	friend class int_function;
+        friend class BPatch_instruction;
 	friend std::ostream& operator<<(std::ostream&,BPatch_basicBlock&);
 
  private:
@@ -256,7 +257,7 @@ class BPATCH_DLL_EXPORT BPatch_basicBlock : public BPatch_eventLock {
 	/** return the instructions that belong to the block */
 
    API_EXPORT(Int, (),
-              BPatch_Vector<BPatch_instruction*> *,getInstructions,());
+             BPatch_Vector<BPatch_instruction *> *,getInstructions,());
 
 	/** BPatch_basicBlock::getIncomingEdges   */
  	/** returns the incoming edges */

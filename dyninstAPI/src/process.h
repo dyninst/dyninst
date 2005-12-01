@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.341 2005/11/21 17:16:13 jaw Exp $
+/* $Id: process.h,v 1.342 2005/12/01 00:56:25 jaw Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -288,7 +288,7 @@ char * systemPrelinkCommand;
 #endif
 
 #else
-  char* dumpPatchedImage(pdstring outFile) { return NULL; } 
+  char* dumpPatchedImage(pdstring /*outFile*/) { return NULL; } 
 #endif
 	bool applyMutationsToTextSection(char *textSection, unsigned textAddr, unsigned textSize);
 	
@@ -300,7 +300,7 @@ char * systemPrelinkCommand;
   bool getSymbolInfo( const pdstring &name, Symbol &ret );
 
   // Not at all sure we want to use this anymore...
-  void overwriteImage( image* img ) {
+  void overwriteImage( image* /*img */) {
     assert(0);
   }
 

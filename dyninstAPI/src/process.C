@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.561 2005/11/22 13:50:32 jaw Exp $
+// $Id: process.C,v 1.562 2005/12/01 00:56:24 jaw Exp $
 
 #include <ctype.h>
 
@@ -5059,8 +5059,8 @@ void process::triggerSignalExitCallback(int signalnum)
 {
    // special case where can't wait to continue process
    if (status() == exited) {
-      fprintf(stderr, "%s[%d]:  cannot trigger exit callback, process already exited\n", 
-              FILE__, __LINE__);
+      //fprintf(stderr, "%s[%d]:  cannot trigger exit callback, process already exited\n", 
+      //        FILE__, __LINE__);
       return;
    }
    BPatch::bpatch->registerSignalExit(this, signalnum);
@@ -5071,9 +5071,10 @@ bool process::handleProcessExit()
 
    // special case where can't wait to continue process
    if (status() == exited) {
-      fprintf(stderr, "%s[%d]:  cannot detach from process, process already exited\n", 
+      signal_printf("%s[%d]:  cannot detach from process, process already exited\n", 
               FILE__, __LINE__);
       return true;
+     //return false;
    }
    --activeProcesses;
 

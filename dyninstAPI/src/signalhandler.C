@@ -153,6 +153,18 @@ SignalGenerator::SignalGenerator() :
   signal_printf("%s[%d]:  new SignalGenerator\n", FILE__, __LINE__);
 }
 
+SignalGenerator::~SignalGenerator() 
+{
+  fprintf(stderr, "%s[%d]:  welcome to ~SignalGenerator\n", FILE__, __LINE__);
+  killThread();
+
+  for (unsigned int i = 0; i < handlers.size(); ++i) {
+    signal_printf("%s[%d]:  destroying handler %s\n", FILE__, __LINE__, 
+                  handlers[i]->getName());
+    delete handlers[i];
+  }
+}
+
 bool SignalGenerator::handleEventLocked(EventRecord &ev)
 {
   char buf[128];
@@ -396,6 +408,33 @@ bool SignalGenerator::anyActiveHandlers()
       return true;
   }
   return false;
+}
+
+SignalHandler::~SignalHandler()
+{
+   fprintf(stderr, "%s[%d]:  welcome to ~SignalHandler\n", FILE__, __LINE__);
+   if (idle_flag || wait_flag) {
+     // maybe a bit heavy handed here....
+     killThread();
+   }else {
+     fprintf(stderr, "%s[%d]:  waiting for idle before killing thread %s\n", 
+             FILE__, __LINE__);
+     int timeout = 2000 /*ms*/, time_elapsed = 0;
+     while (!idle_flag && !wait_flag) {
+       struct timeval slp;
+       slp.tv_sec = 0;
+       slp.tv_usec = 10 /*ms*/ *1000;
+       select(0, NULL, NULL, NULL, &slp);
+       time_elapsed +=10;
+       if (time_elapsed >= timeout) {
+         fprintf(stderr, "%s[%d]:  cannot kill thread %s, did not become idle\n", FILE__, __LINE__);
+         break;
+       }
+     }
+     if (idle_flag || wait_flag) {
+       killThread();
+     }
+   }
 }
 
 bool SignalHandler::idle()

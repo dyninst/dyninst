@@ -145,6 +145,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     friend class BPatch_point;
     friend class BPatch_funcCallExpr;
     friend class BPatch_eventMailbox;
+    friend class BPatch_instruction;
     friend class process;
     friend class SignalHandler;
     friend int handleSignal(EventRecord &ev);

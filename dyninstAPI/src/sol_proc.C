@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.73 2005/11/23 00:09:14 jaw Exp $
+// $Id: sol_proc.C,v 1.74 2005/12/01 00:56:25 jaw Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -1572,30 +1572,6 @@ bool SignalGeneratorUnix::getFDsForPoll(pdvector<unsigned int> &fds)
   }
 #endif
   return (fds.size() > 0);
-}
-
-process *SignalGeneratorUnix::findProcessByFD(unsigned int fd)
-{
-  for(unsigned u = 0; u < processVec.size(); u++) {
-    process *lproc = processVec[u];
-    if (!lproc) {
-      //fprintf(stderr, "%s[%d]:  missing pointer to process for fd %d\n", FILE__, __LINE__,fd);
-      continue;
-    }
-    dyn_lwp *lwp = lproc->getRepresentativeLWP();
-    if (!lwp) {
-      fprintf(stderr, "%s[%d]:  missing pointer to lwp for fd %d\n", __FILE__, __LINE__,fd);
-      continue;
-
-    }
-    if (!lproc->getRepresentativeLWP()->is_attached()) {
-      //fprintf(stderr, "%s[%d]:  cannot get fd for unattached process\n", __FILE__, __LINE__);
-      continue;
-    }
-    if (fd == (unsigned) lproc->getRepresentativeLWP()->status_fd())
-      return lproc;
-  }
-  return NULL;
 }
 
 pdstring process::tryToFindExecutable(const pdstring &iprogpath, int pid) {

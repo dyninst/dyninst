@@ -726,11 +726,11 @@ bool InstrucIter::isAnneal(){
   return true;
 }
 
-#define MK_LD1(bytes, i, imm, ra) (new BPatch_memoryAccess(&(*i).raw, instruction::size(), true, false, (bytes), (imm), (ra), -1))
-#define MK_SD1(bytes, i, imm, ra) (new BPatch_memoryAccess(&(*i).raw, instruction::size(), false, true, (bytes), (imm), (ra), -1))
+#define MK_LD1(bytes, i, imm, ra) (new BPatch_memoryAccess(&(*i).raw, instruction::size(), current,true, false, (bytes), (imm), (ra), -1))
+#define MK_SD1(bytes, i, imm, ra) (new BPatch_memoryAccess(&(*i).raw, instruction::size(), current, false, true, (bytes), (imm), (ra), -1))
 
-#define MK_LX1(bytes, i, ra, rb) (new BPatch_memoryAccess(&(*i).raw, instruction::size(), true, false, (bytes), 0, (ra), (rb)))
-#define MK_SX1(bytes, i, ra, rb) (new BPatch_memoryAccess(&(*i).raw, instruction::size(), false, true, (bytes), 0, (ra), (rb)))
+#define MK_LX1(bytes, i, ra, rb) (new BPatch_memoryAccess(&(*i).raw, instruction::size(), current,true, false, (bytes), 0, (ra), (rb)))
+#define MK_SX1(bytes, i, ra, rb) (new BPatch_memoryAccess(&(*i).raw, instruction::size(), current,false, true, (bytes), 0, (ra), (rb)))
 
 #define MK_LD(bytes, i) (MK_LD1((bytes), i, (*i).dform.d_or_si, (signed)(*i).dform.ra))
 #define MK_SD(bytes, i) (MK_SD1((bytes), i, (*i).dform.d_or_si, (signed)(*i).dform.ra))
@@ -905,7 +905,7 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
       return oci->direc ? MK_SI(b, i) : MK_LI(b, i);
     }
     else if(xop == LSXxop || xop == STSXxop) {
-      return new BPatch_memoryAccess(&(*i).raw, instruction::size(), 
+      return new BPatch_memoryAccess(&(*i).raw, instruction::size(), current,
 				     oci->direc == 0, oci->direc == 1,
                                      0, (*i).xform.ra, (*i).xform.rb,
                                      0, POWER_XER2531, -1); // 9999 == XER_25:31
@@ -923,7 +923,7 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
     return ma;
 
   const instruction i = getInstruction();
-  in = new BPatch_instruction(&(*i).raw, instruction::size());
+  in = new BPatch_instruction(&(*i).raw, instruction::size(), current);
 
   return in;
 }

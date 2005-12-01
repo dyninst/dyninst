@@ -466,9 +466,11 @@ bool BPatch_process::isStoppedInt()
  */
 int BPatch_process::stopSignalInt()
 {
-   if (llproc->status() != neonatal && llproc->status() != stopped)
+   if (llproc->status() != neonatal && llproc->status() != stopped) {
+      fprintf(stderr, "%s[%d]:  request for stopSignal when process is %s\n",
+              FILE__, __LINE__, llproc->getStatusAsString().c_str());
       return -1;
-   else
+   } else
       return lastSignal;
 }
 

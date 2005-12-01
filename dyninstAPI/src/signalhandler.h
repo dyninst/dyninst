@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.17 2005/11/21 17:16:14 jaw Exp $
+/* $Id: signalhandler.h,v 1.18 2005/12/01 00:56:25 jaw Exp $
  */
 
 #ifndef _SIGNAL_HANDLER_H
@@ -95,7 +95,7 @@ class SignalGenerator : public EventHandler<EventRecord> {
  friend class process;
 
  public:
-   virtual ~SignalGenerator() {}
+   virtual ~SignalGenerator(); 
    
    eventType waitForOneOf(pdvector<eventType> &evts);
    eventType waitForEvent(eventType evt, process *p = NULL, dyn_lwp *lwp = NULL, 
@@ -134,7 +134,7 @@ class SignalHandler : public EventHandler<EventRecord>
   int id;
 
   public:
-    virtual ~SignalHandler() {}
+    virtual ~SignalHandler();
 
   bool idle();
   bool waiting();

@@ -43,10 +43,20 @@
 #define _BPatch_instruction_h_
 
 #include "BPatch_dll.h"
+#include "BPatch_eventLock.h"
+#include "common/h/Types.h"
 
 class InstrucIter;
+class BPatch_basicBlock;
+class BPatch_point;
 
-class BPATCH_DLL_EXPORT BPatch_instruction {
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_instruction
+
+class BPATCH_DLL_EXPORT BPatch_instruction : public BPatch_eventLock{
+  friend class BPatch_basicBlock;
 
  public:
   // maximum number of memory accesses per instruction; platform dependent
@@ -65,10 +75,13 @@ class BPATCH_DLL_EXPORT BPatch_instruction {
                                 // conditions, currently (8/13/02) the tttn field on x86
   bool *nonTemporal; // non-temporal (cache non-polluting) write on x86
 
+  BPatch_basicBlock *parent;
+  Address addr;
  public:
 
   BPatch_instruction(const void *_buffer,
-		     unsigned char _length);
+		     unsigned char _length,
+                     Address _addr);
   virtual ~BPatch_instruction();
 
   void getInstruction(unsigned char *&_buffer, unsigned char &_length) {
@@ -79,6 +92,13 @@ class BPATCH_DLL_EXPORT BPatch_instruction {
   // Not yet implemented
   char *getMnemonic() const { return NULL; }
 
+  API_EXPORT(Int, (),
+  BPatch_point *,getInstPoint,());
+
+  API_EXPORT(Int, (),
+  BPatch_basicBlock *,getParent,());
+  API_EXPORT(Int, (),
+  void *,getAddress,());
  public:
 
   bool equals(const BPatch_instruction* mp) const { return mp ? equals(*mp) : false; }

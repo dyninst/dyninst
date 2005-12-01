@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.10 2005/11/21 17:16:12 jaw Exp $
+// $Id: instPoint.C,v 1.11 2005/12/01 00:56:24 jaw Exp $
 // instPoint code
 
 
@@ -245,20 +245,23 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr, process *proc) {
     codeRange *range = proc->findCodeRangeByAddress(addr);
     if (!range) {
         inst_printf("Failed to find address, ret null\n");
+        fprintf(stderr, "%s[%d]: Failed to find address, ret null\n", FILE__, __LINE__);
         return NULL;
     }
     bblInstance *bbl = range->is_basicBlockInstance();
     if (!bbl) {
         inst_printf("Address not in known code, ret null\n");
+        fprintf(stderr, "Address not in known code, ret null\n", FILE__, __LINE__);
         return NULL;
     }
     int_basicBlock *block = bbl->block();
     assert(block);
     // For now: we constrain the address to be in the original instance
     // of the basic block.
-    if (block->origInstance() != bbl)
+    if (block->origInstance() != bbl) {
+        fprintf(stderr, "Address not in original basic block instance\n", FILE__, __LINE__);
         return NULL;
-
+    }
     int_function *func = bbl->func();
     assert(func); // If we're in a basic block, we have to be able to follow it back.
 
@@ -266,12 +269,15 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr, process *proc) {
     while ((*newIter) < addr) newIter++;
     if (*newIter != addr) {
         inst_printf("Unaligned try for instruction iterator, ret null\n");
+        fprintf(stderr, "Unaligned try for instruction iterator, ret null\n", FILE__, __LINE__);
         return NULL; // Not aligned
     }
 #if defined(arch_sparc)
     // Can't instrument delay slots
     if (newIter.hasPrev()) {
         if (newIter.getPrevInstruction().isDCTI()) {
+            inst_printf("%s[%d]:  can't instrument delay slot\n", FILE__, __LINE__);
+            fprintf(stderr, "%s[%d]:  can't instrument delay slot\n", FILE__, __LINE__);
             return NULL;
         }
     }

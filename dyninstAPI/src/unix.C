@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.149 2005/11/23 00:09:14 jaw Exp $
+// $Id: unix.C,v 1.150 2005/12/01 00:56:25 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -122,6 +122,7 @@ bool decodeWaitPidStatus(procWaitpidStatus_t status,
         return true;
     }
     else {
+        fprintf(stderr, "%s[%d]:  unable to decode waitpid results\n", FILE__, __LINE__);
         ev.type = evtUndefined;
         ev.what = 0;
         return false;
@@ -439,10 +440,10 @@ bool SignalHandlerUnix::handleSignal(EventRecord &ev)
         ev.status = statusSignalled;
         ev.info = ev.what;
         sprintf(errorLine, "process %d has terminated on signal %d\n",
-                proc->getPid(), (int) ev.info);
+                proc->getPid(), (int) ev.what);
         logLine(errorLine);
         statusLine(errorLine);
-        ev.proc->triggerSignalExitCallback(ev.info);
+        ev.proc->triggerSignalExitCallback(ev.what);
         ev.proc->handleProcessExit();
         flagBPatchStatusChange();
         getSH()->signalEvent(evtProcessExit);
@@ -474,7 +475,7 @@ bool SignalHandlerUnix::handleSignal(EventRecord &ev)
     
      bool exists = false;   
      BPatch_process *bproc = BPatch::bpatch->getProcessByPid(proc->getPid(), &exists);
-     if (bproc) 
+     if ((bproc)  && (ev.what != SIGTRAP))
        setBPatchProcessSignal(bproc, ev.what);
     return ret;
  }
@@ -848,28 +849,29 @@ bool SignalHandlerUnix::handleEventLocked(EventRecord &ev)
      // First the platform-independent stuff
      // (/proc and waitpid)
      case evtProcessExit:
+        //fprintf(stderr, "%s[%d]:  welcome to evtProcessExit\n", FILE__, __LINE__);
         if (ev.status == statusNormal) {
           sprintf(errorLine, "Process %d has terminated with code 0x%x\n",
                   proc->getPid(), (int) ev.info);
           statusLine(errorLine);
           //proc->triggerNormalExitCallback(ev.info);
-          proc->handleProcessExit();
-          ret = true;
+          ret = proc->handleProcessExit();
+          //ret = true;
         } else if (ev.status == statusSignalled) {
           sprintf(errorLine, "process %d has terminated on signal %d\n",
-                  proc->getPid(), (int) ev.info);
+                  proc->getPid(), (int) ev.what);
           logLine(errorLine);
           statusLine(errorLine);
           printDyninstStats();
-          proc->triggerSignalExitCallback(ev.info);
-          proc->handleProcessExit();
-          ret = true;
+          proc->triggerSignalExitCallback(ev.what);
+          ret = proc->handleProcessExit();
+          //ret = true;
         } else {
           sprintf(errorLine, "process %d has terminated for unknown reason\n",
                   proc->getPid());
           logLine(errorLine);
-          proc->handleProcessExit();
-          ret = true; //  maybe this should be false?  (this case is an error)
+          ret = proc->handleProcessExit();
+          //ret = true; //  maybe this should be false?  (this case is an error)
         }
         flagBPatchStatusChange();
         //if (BPatch::bpatch->waitingForStatusChange)
@@ -971,7 +973,7 @@ bool SignalGeneratorUnix::createPollEvent(pdvector<EventRecord> &events, struct 
   EventRecord ev;
   ev.proc = curProc;
 
-  if (fds.revents & POLLHUP) {
+  if ((fds.revents & POLLHUP) || (fds.revents & POLLNVAL)) {
      ev.proc = curProc;
      ev.lwp = curProc->getRepresentativeLWP();
 
@@ -1063,6 +1065,35 @@ int fake_poll(struct pollfd *ufds, unsigned int nfds, int timeout)
    return pollret;
 }
 
+process *SignalGeneratorUnix::findProcessByFD(unsigned int fd)
+{
+  for(unsigned u = 0; u < processVec.size(); u++) {
+    process *lproc = processVec[u];
+    if (!lproc) {
+      //fprintf(stderr, "%s[%d]:  missing pointer to process for fd %d\n", FILE__, __LINE__,fd);
+      continue;
+    }
+    dyn_lwp *lwp = lproc->getRepresentativeLWP();
+    if (!lwp) {
+      //fprintf(stderr, "%s[%d]:  missing pointer to lwp for fd %d\n", __FILE__, __LINE__,fd);
+      continue;
+
+    }
+    if (!lproc->getRepresentativeLWP()->is_attached()) {
+      //fprintf(stderr, "%s[%d]:  cannot get fd for unattached process\n", __FILE__, __LINE__);
+      continue;
+    }
+#if defined (os_osf)
+    if (fd == (unsigned) lproc->getRepresentativeLWP()->get_fd())
+      return lproc;
+#else
+    if (fd == (unsigned) lproc->getRepresentativeLWP()->status_fd())
+      return lproc;
+#endif
+  }
+  return NULL;
+}
+
 bool SignalGeneratorUnix::waitNextEvent(EventRecord &ev)
 {
   __LOCK;
@@ -1085,19 +1116,6 @@ bool SignalGeneratorUnix::waitNextEvent(EventRecord &ev)
     __UNLOCK;
     return true;
   }
-
-#if defined(os_osf)
-  //  alpha-osf apparently does not detect process exits from poll events,
-  //  so we have to check for exits before calling poll().
-  extern bool checkForExit(EventRecord &);
-  if (checkForExit(ev)) {
-    char buf[128];
-    signal_printf("%s[%d][%s]:  process exited %s\n", FILE__, __LINE__, 
-                getThreadStr(getExecThreadID()), ev.sprint_event(buf));
-    __UNLOCK;
-    return true; 
-  }
-#endif
 
   pdvector<unsigned int> fds;
   while (!getFDsForPoll(fds)) {
@@ -1124,23 +1142,47 @@ bool SignalGeneratorUnix::waitNextEvent(EventRecord &ev)
   }
 
 #if defined(os_osf)
+  extern bool checkForExit(EventRecord &);
    //  since process exit does not cause a poll event on alpha, we need a timeout
    timeout = 1000 /*ms*/;
 #endif
+   errno = 0;
   __UNLOCK;
   int num_selected_fds = poll(pfds, fds.size(), timeout);
   __LOCK;
   int handled_fds = 0;
 
   if (num_selected_fds < 0) {
-    fprintf(stderr, "%s[%d]:  checkForProcessEvents: poll failed\n", FILE__, __LINE__);
     ret = false;
+#if defined(os_osf)
+  //  alpha-osf apparently does not detect process exits from poll events,
+  //  so we have to check for exits before calling poll().
+  if (checkForExit(ev)) {
+    char buf[128];
+    signal_printf("%s[%d][%s]:  process exited %s\n", FILE__, __LINE__, 
+                getThreadStr(getExecThreadID()), ev.sprint_event(buf));
+    ret = true;
+    decodeEvent(ev);
+  }
+#else
+    fprintf(stderr, "%s[%d]:  checkForProcessEvents: poll failed: %s\n", FILE__, __LINE__, strerror(errno));
+#endif
     goto cleanup;
   } else if (num_selected_fds == 0) {
     //  poll timed out with nothing to report
-    fprintf(stderr, "%s[%d]:  poll timed out\n", FILE__, __LINE__);
+    signal_printf("%s[%d]:  poll timed out\n", FILE__, __LINE__);
     ev.type = evtTimeout;
     ret = true;
+#if defined(os_osf)
+  //  alpha-osf apparently does not detect process exits from poll events,
+  //  so we have to check for exits before calling poll().
+  if (checkForExit(ev)) {
+    char buf[128];
+    signal_printf("%s[%d][%s]:  process exited %s\n", FILE__, __LINE__, 
+                getThreadStr(getExecThreadID()), ev.sprint_event(buf));
+    decodeEvent(ev);
+  }
+#endif
     goto cleanup;
   }
 

@@ -44,7 +44,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include "BPatch.h"
 #include "BPatch_instruction.h"
+#include "BPatch_basicBlock.h"
+#include "BPatch_libInfo.h"
+#include "BPatch_process.h"
+#include "arch.h"
+#include "util.h"
+#include "function.h"
+#include "process.h"
+#include "instPoint.h"
 
 /**************************************************************************
  * BPatch_instruction
@@ -57,7 +66,8 @@ unsigned int BPatch_instruction::nmaxacc_NP = 1;
 #endif
 
 BPatch_instruction::BPatch_instruction(const void *_buffer,
-				       unsigned char _length) : nacc(0), length(_length)
+				       unsigned char _length,
+                                       Address addr_) : nacc(0), length(_length), addr(addr_)
 {
   assert(_buffer);
 
@@ -90,6 +100,54 @@ BPatch_instruction::~BPatch_instruction() {
    delete nonTemporal;
 }
 
+BPatch_basicBlock *BPatch_instruction::getParentInt()
+{
+  return parent;
+}
 
+void *BPatch_instruction::getAddressInt()
+{
+  return (void *)addr;
+}
+BPatch_point *BPatch_instruction::getInstPointInt()
+{
+  //const unsigned char *insn_ptr = ((instruction *)instr)->ptr();
+  int_basicBlock *iblock = parent->iblock;
+  process *proc = iblock->proc();
+  int_function *func = iblock->func();
+
+  assert(proc);
+  assert(func);
+
+  BPatch_process *bpproc = BPatch::bpatch->getProcessByPid(proc->getPid());
+  assert(bpproc); 
+
+  // If it's in an uninstrumentable function, just return an error.
+  if ( !func || !((int_function*)func)->isInstrumentable()){
+    fprintf(stderr, "%s[%d]:  function is not instrumentable\n", FILE__, __LINE__);
+    return NULL;
+  }
+
+ /* See if there is an instPoint at this address */
+  instPoint *p = NULL;
+
+  if ((p = proc->findInstPByAddr((Address)addr))) {
+    fprintf(stderr, "%s[%d]:  point exists at requested address\n", FILE__, __LINE__);
+    return bpproc->findOrCreateBPPoint(NULL, p, BPatch_locInstruction);
+  }
+
+  /* We don't have an instPoint for this address, so make one. */
+  instPoint *newInstP = instPoint::createArbitraryInstPoint((Address)addr, proc);
+  
+  if (!newInstP) {
+     fprintf(stderr, "%s[%d]:  createArbitraryInstPoint for %p failed\n", FILE__, __LINE__, (void *) addr);
+     return NULL;
+  }
+  BPatch_point *ret = bpproc->findOrCreateBPPoint(NULL, newInstP, BPatch_locInstruction);
+
+  if (!ret)
+    fprintf(stderr, "%s[%d]:  getInstPoint failing!\n", FILE__, __LINE__);
+  return ret;
+}
 
 

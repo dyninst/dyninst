@@ -222,13 +222,15 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
       if(first) {
         if(mac.prefetch) {
           if(mac.prefetchlvl > 0) // Intel
-            bmap = new BPatch_memoryAccess(getInstruction().ptr(), getInstruction().size(), 
+            bmap = new BPatch_memoryAccess(getInstruction().ptr(), 
+                                           getInstruction().size(), current,
 					   false, false,
                                            mac.imm, mac.regs[0], mac.regs[1], mac.scale,
                                            0, -1, -1, 0,
                                            bmapcond, false, mac.prefetchlvl);
           else // AMD
-            bmap = new BPatch_memoryAccess(getInstruction().ptr(), getInstruction().size(),
+            bmap = new BPatch_memoryAccess(getInstruction().ptr(), 
+                                           getInstruction().size(), current,
 					   false, false,
                                            mac.imm, mac.regs[0], mac.regs[1], mac.scale,
                                            0, -1, -1, 0,
@@ -236,40 +238,47 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
         }
         else switch(mac.sizehack) { // translation to pseudoregisters
         case 0:
-          bmap = new BPatch_memoryAccess(getInstruction().ptr(), getInstruction().size(),
+          bmap = new BPatch_memoryAccess(getInstruction().ptr(), 
+                                         getInstruction().size(), current,
 					 mac.read, mac.write,
                                          mac.size, mac.imm, mac.regs[0], mac.regs[1], mac.scale, 
                                          bmapcond, mac.nt);
           break;
         case shREP: // use ECX register to compute final size as mac.size * ECX
-          bmap = new BPatch_memoryAccess(getInstruction().ptr(), getInstruction().size(),mac.read, mac.write,
+          bmap = new BPatch_memoryAccess(getInstruction().ptr(), 
+                                         getInstruction().size(), current, 
+                                         mac.read, mac.write,
                                          mac.imm, mac.regs[0], mac.regs[1], mac.scale,
                                          0, -1, 1 , log2[mac.size],
                                          bmapcond, false);
           break;
         case shREPESCAS:
-          bmap = new BPatch_memoryAccess(getInstruction().ptr(), getInstruction().size(),
+          bmap = new BPatch_memoryAccess(getInstruction().ptr(), 
+                                         getInstruction().size(), current,
 					 mac.read, mac.write,
                                          mac.imm, mac.regs[0], mac.regs[1], mac.scale,
                                          0, -1, IA32_ESCAS, log2[mac.size],
                                          bmapcond, false);
           break;
         case shREPNESCAS:
-          bmap = new BPatch_memoryAccess(getInstruction().ptr(), getInstruction().size(),
+          bmap = new BPatch_memoryAccess(getInstruction().ptr(), 
+                                         getInstruction().size(), current,
 					 mac.read, mac.write,
                                          mac.imm, mac.regs[0], mac.regs[1], mac.scale,
                                          0, -1, IA32_NESCAS, log2[mac.size],
                                          bmapcond, false);
           break;
         case shREPECMPS:
-          bmap = new BPatch_memoryAccess(getInstruction().ptr(), getInstruction().size(),
+          bmap = new BPatch_memoryAccess(getInstruction().ptr(), 
+                                         getInstruction().size(), current,
 					 mac.read, mac.write,
                                          mac.imm, mac.regs[0], mac.regs[1], mac.scale,
                                          0, -1, IA32_ECMPS, log2[mac.size],
                                          bmapcond, false);
           break;
         case shREPNECMPS:
-          bmap = new BPatch_memoryAccess(getInstruction().ptr(), getInstruction().size(),
+          bmap = new BPatch_memoryAccess(getInstruction().ptr(), 
+                                         getInstruction().size(), current,
 					 mac.read, mac.write,
                                          mac.imm, mac.regs[0], mac.regs[1], mac.scale,
                                          0, -1, IA32_NECMPS, log2[mac.size],
@@ -329,7 +338,7 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
     return ma;
 
   const instruction i = getInstruction();
-  in = new BPatch_instruction(i.ptr(), i.size());
+  in = new BPatch_instruction(i.ptr(), i.size(), current);
 
   return in;
 }
