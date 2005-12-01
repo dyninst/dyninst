@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2005/10/18 23:30:26 bpellin Exp $
+# $Id: Makefile,v 1.3 2005/12/01 23:31:10 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -68,7 +68,7 @@ TESTLIB_FLAGS = -bM:SRC -bexpall -bnoentry -berok
 MAKE_SHARED_LIB = ld
 
 
-LIBS_LIBTESTSUITE = -ldl
+LIBS_LIBTESTSUITE = -ldl 
 USE_LIBTESTSUITE_EXT_A = true
 STRIP_SO = strip
 
