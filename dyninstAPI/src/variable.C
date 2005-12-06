@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: variable.C,v 1.2 2005/09/01 22:18:48 bernat Exp $
+// $Id: variable.C,v 1.3 2005/12/06 20:01:25 bernat Exp $
 
 // Variable.C
 
@@ -50,27 +50,71 @@ image_variable::image_variable(Address offset,
                                pdmodule *mod) :
     offset_(offset),
     pdmod_(mod) {
-    symTabNames_.push_back(name);
+    addSymTabName(name);
 }
 
 Address image_variable::getOffset() const {
     return offset_;
 }
 
-bool image_variable::addSymTabName(const pdstring &name) {
-    for (unsigned i = 0; i < symTabNames_.size(); i++)
-        if (name == symTabNames_[i])
-            return false;
-    symTabNames_.push_back(name);
-    return true;
+bool image_variable::addSymTabName(const pdstring &name, bool isPrimary) {
+    pdvector<pdstring> newSymTabName;
+
+    // isPrimary defaults to false
+    if (isPrimary)
+        newSymTabName.push_back(name);
+
+    bool found = false;
+    for (unsigned i = 0; i < symTabNames_.size(); i++) {
+        if (symTabNames_[i] == name) {
+            found = true;
+        }
+        else {
+            newSymTabName.push_back(symTabNames_[i]);
+        }
+    }
+    if (!isPrimary)
+        newSymTabName.push_back(name);
+
+    symTabNames_ = newSymTabName;
+
+    if (!found) {
+        // Add to image class...
+        pdmod_->exec()->addVariableName(this, name, true);
+    }
+
+    // Bool: true if the name is new; AKA !found
+    return (!found);
 }
 
-bool image_variable::addPrettyName(const pdstring &name) {
-    for (unsigned i = 0; i < prettyNames_.size(); i++)
-        if (name == prettyNames_[i])
-            return false;
-    prettyNames_.push_back(name);
-    return true;
+bool image_variable::addPrettyName(const pdstring &name, bool isPrimary) {
+    pdvector<pdstring> newPrettyName;
+
+    // isPrimary defaults to false
+    if (isPrimary)
+        newPrettyName.push_back(name);
+
+    bool found = false;
+    for (unsigned i = 0; i < prettyNames_.size(); i++) {
+        if (prettyNames_[i] == name) {
+            found = true;
+        }
+        else {
+            newPrettyName.push_back(prettyNames_[i]);
+        }
+    }
+    if (!isPrimary)
+        newPrettyName.push_back(name);
+
+    prettyNames_ = newPrettyName;
+
+    if (!found) {
+        // Add to image class...
+        pdmod_->exec()->addVariableName(this, name, false);
+    }
+
+    // Bool: true if the name is new; AKA !found
+    return (!found);
 }
 
 
