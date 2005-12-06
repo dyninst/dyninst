@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.20 2005/10/31 22:42:53 rutar Exp $
+// $Id: function.h,v 1.21 2005/12/06 20:01:17 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -328,8 +328,15 @@ class int_function {
 
    const pdstring &symTabName() const;
    const pdstring &prettyName() const { return ifunc_->prettyName(); };
+   const pdstring &typedName() const { return ifunc_->typedName(); };
    const pdvector<pdstring> &symTabNameVector() const { return ifunc_->symTabNameVector(); }
    const pdvector<pdstring> &prettyNameVector() const { return ifunc_->prettyNameVector(); }
+   const pdvector<pdstring> &typedNameVector() const { return ifunc_->typedNameVector(); }
+
+   // And add...
+   // Don't make the pdstring a reference; we want a copy.
+   void addSymTabName(const pdstring name, bool isPrimary = false);
+   void addPrettyName(const pdstring name, bool isPrimary = false);
 
    // May change when we relocate...
    Address getAddress() const {return addr_;}
@@ -338,7 +345,8 @@ class int_function {
 
 
    // Not defined here so we don't have to play header file magic
-   const image_func *ifunc() const;
+   // Not const; we can add names via the Dyninst layer
+   image_func *ifunc();
    mapped_module *mod() const;
    mapped_object *obj() const;
    process *proc() const;
