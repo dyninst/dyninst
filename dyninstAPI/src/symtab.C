@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.261 2005/11/22 13:50:33 jaw Exp $
+ // $Id: symtab.C,v 1.262 2005/12/06 20:01:23 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -120,8 +120,11 @@ pdmodule *image::newModule(const pdstring &name, const Address addr, supportedLa
 
 
 // TODO -- is this g++ specific
-bool buildDemangledName( const pdstring & mangled, pdstring & use, bool nativeCompiler, 
-			supportedLanguages lang )
+bool buildDemangledName( const pdstring &mangled, 
+                         pdstring &pretty,
+                         pdstring &typed,
+                         bool nativeCompiler, 
+                         supportedLanguages lang )
 {
  /* The C++ demangling function demangles MPI__Allgather (and other MPI__
   * functions with start with A) into the MPI constructor.  In order to
@@ -141,7 +144,7 @@ bool buildDemangledName( const pdstring & mangled, pdstring & use, bool nativeCo
       if( mangled[ mangled.length() - 1 ] == '_' ) {
           char * demangled = strdup( mangled.c_str() );
           demangled[ mangled.length() - 1 ] = '\0';
-          use = pdstring( demangled );
+          pretty = pdstring( demangled );
           
           free( demangled );
           return true;
@@ -166,7 +169,7 @@ bool buildDemangledName( const pdstring & mangled, pdstring & use, bool nativeCo
 #if !defined(i386_unknown_nt4_0)
   char *atat;
   if (NULL != (atat = strstr(mangled.c_str(), "@@"))) {
-      use = mangled.substr(0 /*start pos*/, 
+      pretty = mangled.substr(0 /*start pos*/, 
                            (int)(atat - mangled.c_str())/*len*/);
       //char msg[256];
       //sprintf(msg, "%s[%d]: 'demangling' versioned symbol: %s, to %s",
@@ -177,18 +180,25 @@ bool buildDemangledName( const pdstring & mangled, pdstring & use, bool nativeCo
       return true;
   }
 #endif
-  
+
+  bool retval = false;
   
   /* Try demangling it. */
-  char * demangled = P_cplus_demangle( mangled.c_str(), nativeCompiler );
-  if( demangled == NULL ) { 
-      return false; 
-  }    
+  char * demangled = P_cplus_demangle( mangled.c_str(), nativeCompiler, false);
+  if (demangled) {
+      pretty = pdstring( demangled );
+      free( demangled );
+      retval = true;
+  }
   
-  use = pdstring( demangled );
-  
-  free( demangled );  
-  return true;
+  char *t_demangled = P_cplus_demangle(mangled.c_str(), nativeCompiler, true);
+  if (t_demangled) {
+      typed = pdstring(t_demangled);
+      free(t_demangled);
+      retval = true;
+  }
+
+  return retval;
 } /* end buildDemangledName() */
 
 #ifdef DEBUG_TIME
@@ -261,50 +271,6 @@ void image::addTypedPrettyName( image_func *func, const char *typedName) {
 }
 
 #endif
-
-/*
- * Add another name for the current function to the names vector in
- * the function object.  We also need to add the extra names to the
- * lookup hash tables
- */
-void image::addMultipleFunctionNames(image_func *dup)
-					
-{
-  // Obtain the original function at the same address:
-  image_func *orig;
-  assert(funcsByEntryAddr.find(dup->getOffset(), orig));
-
-  pdstring mangled_name = dup->symTabName();
-  pdstring pretty_name = dup->prettyName();
-
-  /* add the new names to the existing function */
-  orig->addSymTabName(mangled_name);
-  orig->addPrettyName(pretty_name);
-
-  /* now we add the names and the function object to the hash tables */
-  //  Mangled Hash:
-  pdvector<image_func*> *funcsByMangledEntry = NULL;
-  if (!funcsByMangled.find(mangled_name, funcsByMangledEntry)) {
-    funcsByMangledEntry = new pdvector<image_func*>;
-    funcsByMangled[mangled_name] = funcsByMangledEntry;
-  }
-
-  assert(funcsByMangledEntry);
-  (*funcsByMangledEntry).push_back(orig); // might need to check/eliminate duplicates here??
-
-  // Pretty Hash:
-  //XXX
-  //   fprintf(stderr,"addMultipleFunctionNames %s\n",pretty_name.c_str());
-
-  pdvector<image_func*> *funcsByPrettyEntry = NULL;
-  if(!funcsByPretty.find(pretty_name, funcsByPrettyEntry)) {
-    funcsByPrettyEntry = new pdvector<image_func*>;
-    funcsByPretty[pretty_name] = funcsByPrettyEntry;
-  }
-    
-  assert(funcsByPrettyEntry);
-  (*funcsByPrettyEntry).push_back(orig); // might need to check/eliminate duplicates here??
-}
 
 /*
  * Add all the functions (*) in the list of symbols to our data
@@ -501,11 +467,10 @@ bool image::addSymtabVariables()
 #endif
       if (symInfo.type() == Symbol::PDST_OBJECT) {
           image_variable *var;
-          bool addToMangled = false;
           bool addToPretty = false;
           if (varsByAddr.defines(symInfo.addr())) {
               var = varsByAddr[symInfo.addr()];
-              addToMangled = var->addSymTabName(mangledName);
+              var->addSymTabName(mangledName);
           }
           else {
               parsing_printf("New variable, mangled %s, module %s...\n",
@@ -517,43 +482,18 @@ bool image::addSymtabVariables()
               var = new image_variable(symInfo.addr(),
                                                        mangledName,
                                                        use);
-              addToMangled = true;
               exportedVariables.push_back(var);
           }
 
           char * unmangledName =
-              P_cplus_demangle( mangledName.c_str(), nativeCompiler );
+              P_cplus_demangle( mangledName.c_str(), nativeCompiler, false);
 
           if (unmangledName) {
               pdstring prettyName(unmangledName);
-              addToPretty = var->addPrettyName(prettyName);
+              // Adds to image lists
+              var->addPrettyName(prettyName);
+              free( unmangledName );
           }
-
-          pdvector<image_variable *> *varEntries;
-          if (addToPretty) {
-              if (varsByPretty.defines(unmangledName)) {
-                  varEntries = varsByPretty[unmangledName];
-              }
-              else {
-                  varEntries = new pdvector<image_variable *>;
-                  varsByPretty[unmangledName] = varEntries;
-              }
-              (*varEntries).push_back(var);
-          }
-
-          if (addToMangled) {
-              if (varsByMangled.defines(mangledName)) {
-                  varEntries = varsByMangled[mangledName];
-              }
-              else {
-                  varEntries = new pdvector<image_variable *>;
-                  varsByMangled[mangledName] = varEntries;
-              }
-              (*varEntries).push_back(var);
-          }
-          
-          if (unmangledName)
-             free( unmangledName );
       }
    }
 
@@ -742,25 +682,6 @@ void image::postProcess(const pdstring pifname)
 #endif
 #endif
 
-void image::defineModules(process *proc) {
-    //    fprintf(stderr,"%s defineModules\n",name_.c_str());
-
-  pdstring pds; pdmodule *mod;
-  dictionary_hash_iter<pdstring, pdmodule*> mi(modsByFileName);
-
-  while (mi.next(pds, mod)){
-    mod->define(proc);
-  }
-
-#ifndef BPATCH_LIBRARY
-#ifdef DEBUG_MDL
-  std::ostringstream osb(std::ios::out);
-  osb << "IMAGE_" << name() << "__" << getpid() << std::ends;
-  ofstream of(osb, std::ios::app);
-#endif
-#endif
-}
-
 #ifndef BPATCH_LIBRARY
 void dfsCreateLoopResources(BPatch_loopTreeNode *n, resource *res,
                             image_func *pdf)
@@ -791,64 +712,6 @@ void dfsCreateLoopResources(BPatch_loopTreeNode *n, resource *res,
 #ifndef BPATCH_LIBRARY
 extern bool should_report_loops;
 #endif
-
-//  Comments on what this does would be nice....
-//  Appears to run over a pdmodule, after all code in it has been processed
-//   and parsed into functions, and define a resource for the module + a 
-//   resource for every function found in the module (apparently includes 
-//   excluded functions, but not uninstrumentable ones)....
-//  Can't directly register call graph relationships here as resources
-//   are being defined, because need all resources defined to 
-//   do that....
-void pdmodule::define(process * /*proc*/) {
-#ifdef DEBUG_MODS
-   std::ostringstream osb(std::ios::out);
-   osb << "MODS_" << exec()->name() << "__" << getpid() << std::ends;
-   ofstream of(osb, std::ios::app);
-#endif
-
-#ifndef BPATCH_LIBRARY
-   for(unsigned i = 0; i < allUniqueFunctions.size(); i++) 
-   {
-      image_func * pdf = allUniqueFunctions[i]; 
-
-      if (!pdf->isInstrumentable() ||
-          (pdf->getEndOffset() == pdf->getOffset()))
-          continue;
-      // ignore line numbers for now 
-      
-      //check if the function is overloaded, and store types with the name
-      //in the case that it is.  This way, we can differentiate
-      //between overloaded functions in the paradyn front-end.
-      bool useTyped = false;
-
-      pdvector<image_func *> *pdfv =
-         allFunctionsByPrettyName[pdf->prettyName()];
-      char * prettyWithTypes = NULL;
-      
-      if(pdfv != NULL && pdfv->size() > 1) {
-         prettyWithTypes = P_cplus_demangle(pdf->symTabName().c_str(), 
-                                            exec()->isNativeCompiler(), true);
-         if( prettyWithTypes != NULL ) {
-            
-            useTyped = true;
-            // Add to image...
-            exec()->addTypedPrettyName(pdf, prettyWithTypes);
-            // And module...
-            addTypedPrettyName(pdf, prettyWithTypes);
-            // And function
-            pdf->addPrettyName(pdstring(prettyWithTypes));
-         } else {
-            prettyWithTypes = strdup( pdf->prettyName().c_str() );
-            assert( prettyWithTypes != NULL );
-         }
-      }
-
-      if( prettyWithTypes != NULL ) { free(prettyWithTypes); }
-   }
-   
-#endif
-}
 
 // Tests if a symbol starts at a given point
 bool image::hasSymbolAtPoint(Address point) const
@@ -1158,10 +1021,6 @@ image *image::parseImage(fileDescriptor &desc)
 #ifndef BPATCH_LIBRARY
   tp->resourceBatchMode(true);
 #endif
-
-  // XXX callers of parseImage now defineModules
-  //statusLine("defining modules");
-  //ret->defineModules();
 
   statusLine("ready"); // this shouldn't be here, right? (cuz we're not done, right?)
 
@@ -1651,69 +1510,85 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
         //and the unparsed ones that we make up we use UINT_MAX for the sizes 
         //of the unparsed functions
         pdf = new image_func( name, callTargets[ j ], UINT_MAX, mod, this);
-        pdf->addPrettyName( name );
+        // Don't add a typed name...
         
         //we no longer keep separate lists for instrumentable and 
         //uninstrumentable
         if (parseFunction( pdf, callTargets )) {
-            everyUniqueFunction.push_back(pdf);
-            createdFunctions.push_back(pdf);
-            enterFunctionInTables( pdf, mod );
+            enterFunctionInTables( pdf, false);
             raw_funcs.push_back( pdf );
+
+            addFunctionName(pdf, name, true); // mangled name
+            pdf->addPrettyName( name ); // Auto-adds to our list
+            
         }
     }
 }
 
 
 // Enter a function in all the appropriate tables
-void image::enterFunctionInTables(image_func *func, pdmodule *mod) {
-  if (!func) return;
-
-  funcsByEntryAddr[func->getOffset()] = func;
-
-  // TODO: out-of-line insertion here
-  funcsByRange.insert(func);
-  
-  // Possibly multiple demangled (pretty) names...
-  // And multiple functions (different addr) with the same pretty
-  // name. So we have a many::many mapping...
-  for (unsigned pretty_iter = 0; 
-       pretty_iter < func->prettyNameVector().size();
-       pretty_iter++) {
-    pdstring pretty_name = func->prettyNameVector()[pretty_iter];
-    pdvector<image_func *> *funcsByPrettyEntry = NULL;
+void image::enterFunctionInTables(image_func *func, bool wasSymtab) {
+    if (!func) return;
     
-    // Ensure a vector exists
-    if (!funcsByPretty.find(pretty_name,			      
-			    funcsByPrettyEntry)) {
-      funcsByPrettyEntry = new pdvector<image_func*>;
-      funcsByPretty[pretty_name] = funcsByPrettyEntry;
-    }
-
-    (*funcsByPrettyEntry).push_back(func);
-  }
-  
-  // And multiple symtab names...
-  for (unsigned symtab_iter = 0; 
-       symtab_iter < func->symTabNameVector().size();
-       symtab_iter++) {
-    pdstring symtab_name = func->symTabNameVector()[symtab_iter];
-    pdvector<image_func *> *funcsBySymTabEntry = NULL;
+    funcsByEntryAddr[func->getOffset()] = func;
     
-    // Ensure a vector exists
-    if (!funcsByMangled.find(symtab_name,			      
-			    funcsBySymTabEntry)) {
-      funcsBySymTabEntry = new pdvector<image_func*>;
-      funcsByMangled[symtab_name] = funcsBySymTabEntry;
-    }
-
-    (*funcsBySymTabEntry).push_back(func);
-  }
-
-  // And modules....
-  mod->addFunction(func);
-  
+    // TODO: out-of-line insertion here
+    funcsByRange.insert(func);
+    
+    everyUniqueFunction.push_back(func);
+    if (wasSymtab)
+        exportedFunctions.push_back(func);
+    else
+        createdFunctions.push_back(func);
 }  
+
+void image::addFunctionName(image_func *func,
+                            const pdstring newName,
+                            bool isMangled) { /* = false */    
+    pdvector<image_func *> *funcsByName = NULL;
+    
+    // Ensure a vector exists
+    if (isMangled == false) {
+        if (!funcsByPretty.find(newName,
+                                funcsByName)) {
+            funcsByName = new pdvector<image_func *>;
+            funcsByPretty[newName] = funcsByName;
+        }
+    }
+    else {
+        if (!funcsByMangled.find(newName,
+                                 funcsByName)) {
+            funcsByName = new pdvector<image_func *>;
+            funcsByMangled[newName] = funcsByName;
+        }
+    }
+    assert(funcsByName != NULL);
+    funcsByName->push_back(func);
+}
+
+void image::addVariableName(image_variable *var,
+                            const pdstring newName,
+                            bool isMangled) { /* = false */    
+    pdvector<image_variable *> *varsByName = NULL;
+    
+    // Ensure a vector exists
+    if (isMangled == false) {
+        if (!varsByPretty.find(newName,
+                               varsByName)) {
+            varsByName = new pdvector<image_variable *>;
+            varsByPretty[newName] = varsByName;
+        }
+    }
+    else {
+        if (!varsByMangled.find(newName,
+                                varsByName)) {
+            varsByName = new pdvector<image_variable *>;
+            varsByMangled[newName] = varsByName;
+        }
+    }
+    assert(varsByName != NULL);
+    varsByName->push_back(var);
+}
 
 //buildFunctionLists() iterates through image_funcs and constructs demangled 
 //names. Demangling was moved here (names used to be demangled as image_funcs 
@@ -1723,87 +1598,93 @@ void image::enterFunctionInTables(image_func *func, pdmodule *mod) {
 
 bool image::buildFunctionLists(pdvector <image_func *> &raw_funcs) 
 {
-  for (unsigned int i = 0; i < raw_funcs.size(); i++) {
-    image_func *raw = raw_funcs[i];
-    pdmodule *rawmod = raw->pdmod();
-
-    assert(raw);
-    assert(rawmod);
-    
-    // At this point we need to generate the following information:
-    // A symtab name.
-    // A pretty (demangled) name.
-    // The symtab name goes in the global list as well as the module list.
-    // Same for the pretty name.
-    // Finally, check addresses to find aliases.
-
-    pdstring mangled_name = raw->symTabName();
-    pdstring working_name = mangled_name;
-    pdstring pretty_name;
-
-    //strip scoping information from mangled name before demangling:
-    const char *p = P_strchr(working_name.c_str(), ':');
-    if( p ) 
-    {
-        unsigned nchars = p - mangled_name.c_str();
-        working_name = pdstring(mangled_name.c_str(), nchars);
-    }
-    
-    if (!buildDemangledName(working_name, pretty_name, 
-                            nativeCompiler, rawmod->language())) {
-        pretty_name = working_name;
-    }
-
-    parsing_printf("%s: demangled %s\n",
-                   mangled_name.c_str(),
-                   pretty_name.c_str());
-
-    // Now, we see if there's already a function object for this
-    // address. If so, add a new name; 
-    image_func *possiblyExistingFunction = NULL;
-    funcsByEntryAddr.find(raw->getOffset(), possiblyExistingFunction);
-    if (possiblyExistingFunction) {
-        // On some platforms we see two symbols, one in a real module
-        // and one in DEFAULT_MODULE. Replace DEFAULT_MODULE with
-        // the real one
-        if (rawmod != possiblyExistingFunction->pdmod()) {
-            if (rawmod->fileName() == "DEFAULT_MODULE")
-                rawmod = possiblyExistingFunction->pdmod();
-            if (possiblyExistingFunction->pdmod()->fileName() == "DEFAULT_MODULE") {
-                possiblyExistingFunction->changeModule(rawmod);
-            }
+    for (unsigned int i = 0; i < raw_funcs.size(); i++) {
+        image_func *raw = raw_funcs[i];
+        pdmodule *rawmod = raw->pdmod();
+        
+        assert(raw);
+        assert(rawmod);
+        
+        // At this point we need to generate the following information:
+        // A symtab name.
+        // A pretty (demangled) name.
+        // The symtab name goes in the global list as well as the module list.
+        // Same for the pretty name.
+        // Finally, check addresses to find aliases.
+        
+        pdstring mangled_name = raw->symTabName();
+        pdstring working_name = mangled_name;
+            
+        pdstring pretty_name = "<UNSET>";
+        pdstring typed_name = "<UNSET>";
+        
+        //strip scoping information from mangled name before demangling:
+        const char *p = P_strchr(working_name.c_str(), ':');
+        if( p ) {
+            unsigned nchars = p - mangled_name.c_str();
+            working_name = pdstring(mangled_name.c_str(), nchars);
         }
         
-        assert(rawmod == possiblyExistingFunction->pdmod());
-      // Keep the new mangled name
-      possiblyExistingFunction->addSymTabName(mangled_name);
-      possiblyExistingFunction->addPrettyName(pretty_name);
-      raw_funcs[i] = NULL;
-      delete raw; // Don't leak
+        if (!buildDemangledName(working_name, pretty_name, typed_name,
+                                nativeCompiler, rawmod->language())) {
+            pretty_name = working_name;
+        }
+        
+        parsing_printf("%s: demangled %s, typed %s\n",
+                       mangled_name.c_str(),
+                       pretty_name.c_str(),
+                       typed_name.c_str());
+        
+        // Now, we see if there's already a function object for this
+        // address. If so, add a new name; 
+        image_func *possiblyExistingFunction = NULL;
+        funcsByEntryAddr.find(raw->getOffset(), possiblyExistingFunction);
+        if (possiblyExistingFunction) {
+            // On some platforms we see two symbols, one in a real module
+            // and one in DEFAULT_MODULE. Replace DEFAULT_MODULE with
+            // the real one
+            if (rawmod != possiblyExistingFunction->pdmod()) {
+                if (rawmod->fileName() == "DEFAULT_MODULE")
+                    rawmod = possiblyExistingFunction->pdmod();
+                if (possiblyExistingFunction->pdmod()->fileName() == "DEFAULT_MODULE") {
+                    possiblyExistingFunction->changeModule(rawmod);
+                }
+            }
+            
+            assert(rawmod == possiblyExistingFunction->pdmod());
+            // Keep the new mangled name
+            possiblyExistingFunction->addSymTabName(mangled_name);
+            if (pretty_name != "<UNSET>")
+                possiblyExistingFunction->addPrettyName(pretty_name);
+            if (typed_name != "<UNSET>")
+                possiblyExistingFunction->addTypedName(typed_name);
+            raw_funcs[i] = NULL;
+            delete raw; // Don't leak
+        }
+        else {
+            funcsByEntryAddr[raw->getOffset()] = raw;
+            addFunctionName(raw, mangled_name, true);
+            if (pretty_name != "<UNSET>")
+                raw->addPrettyName(pretty_name);
+            if (typed_name != "<UNSET>")
+                raw->addTypedName(typed_name);
+            
+        }
     }
-    else {
-      funcsByEntryAddr[raw->getOffset()] = raw;
-      // Already have symtab name
-      raw->addPrettyName(pretty_name);
+    
+    // Now that we have a 1) unique and 2) demangled list of function
+    // names, loop through once more and build the address range tree
+    // and name lookup tables. 
+    for (unsigned j = 0; j < raw_funcs.size(); j++) {
+        image_func *func = raw_funcs[j];
+        if (!func) continue;
+        
+        // May be NULL if it was an alias.
+        enterFunctionInTables(func, true);
     }
-  }
-
-  // Now that we have a 1) unique and 2) demangled list of function
-  // names, loop through once more and build the address range tree
-  // and name lookup tables. 
-  for (unsigned j = 0; j < raw_funcs.size(); j++) {
-    image_func *func = raw_funcs[j];
-    if (!func) continue;
-
-    pdmodule *mod = func->pdmod();
-    // May be NULL if it was an alias.
-    everyUniqueFunction.push_back(func);
-    exportedFunctions.push_back(func);
-    enterFunctionInTables(func, mod);
-  }
-
-  // Conspicuous lack: inst points. We're delaying.
-  return true;
+    
+    // Conspicuous lack: inst points. We're delaying.
+    return true;
 }
 
 void image::analyzeIfNeeded() {
@@ -1910,15 +1791,16 @@ bool image::analyzeImage()
               {
                   char name[20];
                   numIndir++;
-                  sprintf( name, "f%lx", pos );
+                  sprintf( name, "gap_f%lx", pos );
                   pdf = new image_func( name, pos, UINT_MAX, mod, this);
-                  pdf->addPrettyName( name );
-                  
-                  everyUniqueFunction.push_back(pdf);
-		  createdFunctions.push_back(pdf);
-                  enterFunctionInTables(pdf, pdf->pdmod());
-                  parseFunction( pdf, callTargets);
-                  
+                  if (parseFunction( pdf, callTargets)) {
+                      addFunctionName(pdf, name, true);
+                      pdf->addPrettyName( name );
+                      // No typed name...
+                      
+                      enterFunctionInTables(pdf, false);
+                  }
+
                   if( callTargets.size() > 0 )
                   {
                       for( unsigned r = 0; r < callTargets.size(); r++ )
@@ -2204,51 +2086,73 @@ image::~image()
   // Only called if we fail to create a process.
 }
 
-pdvector<image_func *> *
-pdmodule::findFunction( const pdstring &name, pdvector<image_func *> * found ) {
-  assert( found != NULL );
-  
-  if( allFunctionsByPrettyName.defines( name ) ) {
-    pdvector< image_func * > * prettilyNamedFunctions =
-      allFunctionsByPrettyName.get( name );
-    for( unsigned int i = 0; i < prettilyNamedFunctions->size(); i++ ) {
-      found->push_back( (*prettilyNamedFunctions)[i] );
-    }
-    exec()->analyzeIfNeeded();
-    return found;
-  }
-  
-  if( allFunctionsByMangledName.defines( name ) ) {
-    pdvector< image_func *> * mangledNameFunctions = 
-      allFunctionsByMangledName.get(name);
-    for (unsigned int j = 0; j < mangledNameFunctions->size(); j++) {
-      found->push_back( (*mangledNameFunctions)[j]); 
-    }
-    exec()->analyzeIfNeeded();
-    return found;
-  }
-  return NULL;
-} /* end findFunction() */
+bool pdmodule::findFunction( const pdstring &name, pdvector<image_func *> &found ) {
+    if (findFunctionByMangled(name, found))
+        return true;
+    return findFunctionByPretty(name, found);
+}
 
-pdvector<image_func *> *pdmodule::findFunctionByMangled( const pdstring &name )
+bool pdmodule::findFunctionByMangled( const pdstring &name,
+                                      pdvector<image_func *> &found)
 {
-  /* By inference from the previous version, we're not interested
-     in the uninstrumentable functions. */
-  if( allFunctionsByMangledName.defines( name ) ) {
-    exec()->analyzeIfNeeded();
-    return allFunctionsByMangledName[name];
-  }
-  else {
-    return NULL;
-  }
+    // For efficiency sake, we grab the image vector and strip out the
+    // functions we want.
+    // We could also keep them all in modules and ditch the image-wide search; 
+    // the problem is that BPatch goes by module and internal goes by image. 
+    unsigned orig_size = found.size();
+    
+    const pdvector<image_func *> *obj_funcs = exec()->findFuncVectorByMangled(name);
+    if (!obj_funcs) {
+        return false;
+    }
+    for (unsigned i = 0; i < obj_funcs->size(); i++) {
+        if ((*obj_funcs)[i]->pdmod() == this)
+            found.push_back((*obj_funcs)[i]);
+    }
+    if (found.size() > orig_size) {
+        exec()->analyzeIfNeeded();
+        return true;
+    }
+    
+    return false;
+}
+
+
+bool pdmodule::findFunctionByPretty( const pdstring &name,
+                                     pdvector<image_func *> &found)
+{
+    // For efficiency sake, we grab the image vector and strip out the
+    // functions we want.
+    // We could also keep them all in modules and ditch the image-wide search; 
+    // the problem is that BPatch goes by module and internal goes by image. 
+    unsigned orig_size = found.size();
+    
+    const pdvector<image_func *> *obj_funcs = exec()->findFuncVectorByPretty(name);
+    if (!obj_funcs) {
+        return false;
+    }
+    for (unsigned i = 0; i < obj_funcs->size(); i++) {
+        if ((*obj_funcs)[i]->pdmod() == this)
+            found.push_back((*obj_funcs)[i]);
+    }
+    if (found.size() > orig_size) {
+        exec()->analyzeIfNeeded();
+        return true;
+    }
+    
+    return false;
 }
 
 void pdmodule::dumpMangled(pdstring &prefix) const
 {
   cerr << fileName() << "::dumpMangled("<< prefix << "): " << endl;
-  
-  for (unsigned i = 0; i < allUniqueFunctions.size(); i++) {
-      image_func * pdf = allUniqueFunctions[i];
+
+  const pdvector<image_func *> allFuncs = exec()->getAllFunctions();
+
+  for (unsigned i = 0; i < allFuncs.size(); i++) {
+      image_func * pdf = allFuncs[i];
+      if (pdf->pdmod() != this) continue;
+
       if( ! strncmp( pdf->symTabName().c_str(), prefix.c_str(), strlen( prefix.c_str() ) ) ) {
           cerr << pdf->symTabName() << " ";
       }
@@ -2328,19 +2232,13 @@ image_func *image::findFuncByEntry(const Address &entry) {
 // Return the vector of functions associated with a pretty (demangled) name
 // Very well might be more than one!
 
-const pdvector <image_func *> *image::findFuncVectorByPretty(const pdstring &name)
-{
-
-    //    fprintf(stderr,"findFuncVectorByPretty %s\n",name.c_str());
-#ifdef IBM_BPATCH_COMPAT_STAB_DEBUG
-  bperr( "%s[%d]:  inside findFuncVectorByPretty\n", __FILE__, __LINE__);
-#endif
-  if (funcsByPretty.defines(name)) {
-    analyzeIfNeeded();
-    return funcsByPretty[name];
-  }
-
-  return NULL;
+const pdvector<image_func *> *image::findFuncVectorByPretty(const pdstring &name) {
+    if (funcsByPretty.defines(name)) {
+        analyzeIfNeeded();
+        return funcsByPretty[name];
+    }
+    
+    return NULL;
 }
 
 // Return the vector of functions associated with a mangled name
@@ -2620,66 +2518,20 @@ bool pdmodule::isShared() const {
 }
 
 /* Instrumentable-only, by the last version's source. */
-const pdvector< image_func * >  &pdmodule::getFunctions()  {
-  exec()->analyzeIfNeeded();
-  return allUniqueFunctions;
+bool pdmodule::getFunctions(pdvector<image_func *> &funcs)  {
+    pdvector<image_func *> allFuncs = exec()->getAllFunctions();
+    unsigned curFuncSize = funcs.size();
+
+    for (unsigned i = 0; i < allFuncs.size(); i++) {
+        if (allFuncs[i]->pdmod() == this)
+            funcs.push_back(allFuncs[i]);
+    }
+  
+    return (funcs.size() > curFuncSize);
 } /* end getFunctions() */
 
-void pdmodule::addFunction( image_func * func ) {
-	allUniqueFunctions.push_back( func );
 
-	for(	unsigned pretty_iter = 0; 
-			pretty_iter < func->prettyNameVector().size();
-			pretty_iter++) {
-		pdstring pretty_name = func->prettyNameVector()[pretty_iter];
-		pdvector<image_func *> * funcsByPrettyEntry = NULL;
-		
-		// Ensure a vector exists
-		if( ! allFunctionsByPrettyName.find( pretty_name, 
-                                                     funcsByPrettyEntry ) ) {
-			funcsByPrettyEntry = new pdvector< image_func * >;
-			allFunctionsByPrettyName[pretty_name] = funcsByPrettyEntry;
-			}
-		(*funcsByPrettyEntry).push_back( func );
-		}
-  
-	// And multiple symtab names...
-	for(	unsigned symtab_iter = 0; 
-			symtab_iter < func->symTabNameVector().size();
-			symtab_iter++) {
-		pdstring symtab_name = func->symTabNameVector()[symtab_iter];
-		pdvector< image_func * > * scratchvec;
-
-		if ( allFunctionsByMangledName.find( symtab_name, scratchvec ) ) {
-			bool newAddress = true;
-			pdvector<image_func *> * mangleds = allFunctionsByMangledName[ symtab_name ];
-			for( unsigned i = 0; i < mangleds->size(); i++ ) {
-				if( func->getOffset() == (*mangleds)[i]->getOffset() ) { newAddress = false; }
-				} /* end iteration over existing vector */
-			if( newAddress ) { mangleds->push_back( func ); }
-			} /* end if mangled name already existed */
-		else {
-			pdvector<image_func *> * newvec = new pdvector<image_func *>;
-			(* newvec).push_back( func );
-			allFunctionsByMangledName[symtab_name] = newvec;
-			}
-	  	} /* end iteration over symtab names */
-	} /* end addFunction() */
-
-void pdmodule::addTypedPrettyName(image_func *func, const char *prettyName) {
-  // Add a new pretty name to our lists
-  
-  pdvector<image_func *> *funcsByPrettyEntry = NULL;
-  // Ensure a vector exists
-  if (!allFunctionsByPrettyName.find(pdstring(prettyName),
-				     funcsByPrettyEntry)) {
-    funcsByPrettyEntry = new pdvector<image_func*>;
-    allFunctionsByPrettyName[pdstring(prettyName)] = funcsByPrettyEntry;
-  }
-  (*funcsByPrettyEntry).push_back(func);
-}
-
-  
+#if 0  
 void pdmodule::removeFunction(image_func *func) {
   pdvector <image_func *> newUniqueFuncs;
   for (unsigned i = 0; i < allUniqueFunctions.size(); i++) {
@@ -2716,6 +2568,7 @@ void pdmodule::removeFunction(image_func *func) {
     }
   }
 }
+#endif
 
 void *image::getPtrToData(Address offset) const {
     if (!isData(offset)) return NULL;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.187 2005/11/03 05:21:07 jaw Exp $
+// $Id: symtab.h,v 1.188 2005/12/06 20:01:24 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -131,8 +131,8 @@ class image_variable {
     const pdvector<pdstring> &symTabNameVector() const;
     const pdvector<pdstring> &prettyNameVector() const;
 
-    bool addSymTabName(const pdstring &);
-    bool addPrettyName(const pdstring &);
+    bool addSymTabName(const pdstring &, bool isPrimary = false);
+    bool addPrettyName(const pdstring &, bool isPrimary = false);
 
     pdmodule *pdmod() const { return pdmod_; }
 
@@ -189,10 +189,7 @@ class pdmodule: public module {
       hasParsedLineInformation( false ),
       lineInformation(),
 #endif
-      exec_(e), 
-
-     allFunctionsByMangledName( pdstring::hash ),
-     allFunctionsByPrettyName( pdstring::hash )
+      exec_(e)
       {
       }
 
@@ -204,12 +201,10 @@ class pdmodule: public module {
    //    --  if we can do this on-the-fly
    void checkAllCallPoints();
 #endif
-   void define(process *proc);    // defines module to paradyn
+   bool getFunctions(pdvector<image_func *> &funcs);
 
-   const pdvector<image_func *>  &getFunctions();
-
-   pdvector<image_func *> *findFunction (const pdstring &name, 
-                                         pdvector<image_func *> *found);
+   bool findFunction (const pdstring &name, 
+                      pdvector<image_func *> &found);
  
    /* We can see more than one function with the same mangled
       name in the same object, because it's OK for different
@@ -218,7 +213,10 @@ class pdmodule: public module {
       libc.a on AIX lacks debug information), which means one of our
       module classes may contain information about an entire object,
       and therefore, multiple functons with the same mangled name. */
-   pdvector<image_func *> *findFunctionByMangled(const pdstring &name);
+   bool findFunctionByMangled (const pdstring &name, 
+                               pdvector<image_func *> &found);
+   bool findFunctionByPretty (const pdstring &name, 
+                              pdvector<image_func *> &found);
 
    bool isShared() const;
 
@@ -251,21 +249,6 @@ class pdmodule: public module {
    // pdvector<image_func*> funcs;
 
    //bool shared_;                      // if image it belongs to is shared lib
-
- public:
-
-   void addFunction( image_func * func );
-   void addTypedPrettyName(image_func *func, const char *prettyName);
-   void removeFunction(image_func *func);
-
- private:
-
-   typedef dictionary_hash< pdstring, image_func * >::iterator FunctionsByMangledNameIterator;
-   typedef dictionary_hash< pdstring, pdvector< image_func * > * >::iterator FunctionsByPrettyNameIterator;
-   dictionary_hash< pdstring, pdvector<image_func *> * > allFunctionsByMangledName;
-   dictionary_hash< pdstring, pdvector<image_func *> * > allFunctionsByPrettyName;
-
-   pdvector <image_func *> allUniqueFunctions;
 };
 
 
@@ -307,7 +290,8 @@ typedef enum {unparsed, symtab, analyzing, analyzed} imageParseState_t;
 //  belonging to a process....
 class image : public codeRange {
    friend class process;
-   friend class image_func;
+   friend class image_func; // Access to "add<foo>Name"
+   friend class image_variable;
 
    //
    // ****  PUBLIC MEMBER FUNCTIONS  ****
@@ -391,9 +375,6 @@ class image : public codeRange {
 
    // And raw version
    codeRange *findCodeRangeByOffset(const Address &offset);
-  
-   // report modules to paradyn
-   void defineModules(process *proc);
   
    //Add an extra pretty name to a known function (needed for handling
    //overloaded functions in paradyn)
@@ -509,13 +490,6 @@ class image : public codeRange {
    image_func *makeOneFunction(pdvector<Symbol> &mods,
                                 const Symbol &lookUp);
 
-   // addMultipleFunctionNames is called after the argument image_func
-   // has been found to have a conflicting address a function that has already
-   // been found and inserted into the funcsByAddr map.  We assume that this
-   // is a case of function name aliasing, so we merely take the names from the duplicate
-   // function and add them as additional names for the one that was already found.
-   void addMultipleFunctionNames(image_func *dup);
-				
 
    //
    //  ****  PRIVATE MEMBERS FUNCTIONS  ****
@@ -550,7 +524,10 @@ class image : public codeRange {
    void setModuleLanguages(dictionary_hash<pdstring, supportedLanguages> *mod_langs);
 
    // We have a _lot_ of lookup types; this handles proper entry
-   void enterFunctionInTables(image_func *func, pdmodule *mod);
+   // wasSymtab: name was found in symbol table. False if invented name
+   void enterFunctionInTables(image_func *func, bool wasSymtab);
+   void addFunctionName(image_func *func, const pdstring newName, bool isMangled = false);
+   void addVariableName(image_variable *var, const pdstring newName, bool isMangled = false);
 
    bool buildFunctionLists(pdvector<image_func *> &raw_funcs);
    bool analyzeImage();
