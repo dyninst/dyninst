@@ -2205,9 +2205,12 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
         dprintf("%s[%d]:  inserting arbitrary instrumentation in basic block starting at addr %p\n", __FILE__, __LINE__, (void *) block->getStartAddress());
         BPatch_Vector<BPatch_instruction *> *insns = block->getInstructions();
         assert(insns);
+        BPatch_point *oldPt = NULL;
         for (unsigned int i = 0; i < insns->size(); ++i) {
           BPatch_instruction *insn = (*insns)[i];
           BPatch_point *pt = insn->getInstPoint();
+          if (pt == oldPt) continue; 
+
           if (pt) {
             if (pt->getPointType() == BPatch_arbitrary) {
                 found_one = true;
@@ -2218,6 +2221,7 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
                     exit(1);
                 }
                 dprintf("%s[%d]:  SUCCESS installing inst at address %p/%p\n", __FILE__, __LINE__, insn->getAddress(), pt->getAddress());
+                oldPt = pt;
             }
             else 
               fprintf(stderr, "%s[%d]:  non-arbitrary point (%d) being ignored\n", __FILE__, __LINE__);
