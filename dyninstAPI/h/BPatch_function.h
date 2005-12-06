@@ -132,6 +132,12 @@ public:
 
     char *,getMangledName,(char *s, int len));
 
+    //  BPatch_function::getTypedName
+    //  Returns demanged name of function (with type string), may be empty
+    API_EXPORT(Int, (s, len),
+
+    char *,getTypedName,(char *s, int len));
+
     //  BPatch_function::getBaseAddr
     //  Returns base address of function
     API_EXPORT(Int, (),
@@ -248,6 +254,9 @@ public:
 
     BPatch_flowGraph*,getCFG,());
 
+    API_EXPORT(Int, (name, isPrimary, isMangled),
+    const char *, addName, (const char *name, bool isPrimary = true, bool isMangled = false));           
+
 #ifdef IBM_BPATCH_COMPAT
     API_EXPORT(Int, (start, end),
 
@@ -284,6 +293,7 @@ public:
     API_EXPORT(DPCL, (),
 
     const char *,getName,());
+
 
 #endif
 };
