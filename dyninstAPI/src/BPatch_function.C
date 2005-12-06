@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.65 2005/10/31 22:42:53 rutar Exp $
+// $Id: BPatch_function.C,v 1.66 2005/12/06 20:01:15 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -72,10 +72,20 @@
  * Constructor that creates a BPatch_function.
  *
  */
+
+int bpatch_function_count = 0;
+
 BPatch_function::BPatch_function(BPatch_process *_proc, int_function *_func,
 	BPatch_module *_mod) :
 	proc(_proc), mod(_mod), cfg(NULL), cfgCreated(false), func(_func)
 {
+#if defined(ROUGH_MEMORY_PROFILE)
+    bpatch_function_count++;
+    if ((bpatch_function_count % 10) == 0)
+        fprintf(stderr, "bpatch_function_count: %d (%d)\n",
+                bpatch_function_count, bpatch_function_count*sizeof(BPatch_function));
+#endif
+
   // there should be at most one BPatch_func for each int_function per process
   assert( proc && !proc->func_map->defines(func) );
   
@@ -208,6 +218,26 @@ char *BPatch_function::getMangledNameInt(char *s, int len)
   strncpy(s, mangledname.c_str(), len);
   return s;
 }
+
+/*
+ * BPatch_function::getMangledName
+ *
+ * Copies the mangled name of the function into a buffer, up to a given maximum
+ * length.  Returns a pointer to the beginning of the buffer that was
+ * passed in.
+ *
+ * s            The buffer into which the name will be copied.
+ * len          The size of the buffer.
+ */
+char *BPatch_function::getTypedNameInt(char *s, int len)
+{
+  assert(func);
+  pdstring typedname = func->typedName();
+  strncpy(s, typedname.c_str(), len);
+  return s;
+}
+
+
 
 /*
  * BPatch_function::getBaseAddr
@@ -625,3 +655,25 @@ void BPatch_function::calc_liveness(BPatch_point *point) {
     // END LIVENESS ANALYSIS STUFF
 #endif
 }
+
+// isPrimary: function will now use this name as a primary output name
+// isMangled: this is the "mangled" name rather than demangled (pretty)
+const char *BPatch_function::addNameInt(const char *name,
+                                        bool isPrimary, /* = true */
+                                        bool isMangled) { /* = false */
+    // Add to the internal function object
+    //    Add to the container mapped_object name mappings
+    //    Add to the proc-independent function object
+    //       Add to the container image class
+
+    if (isMangled) {
+        func->addSymTabName(pdstring(name),
+                            isPrimary);
+    }
+    else {
+        func->addPrettyName(pdstring(name),
+                              isPrimary);
+    }
+    return name;
+}
+                                        
