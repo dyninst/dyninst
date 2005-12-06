@@ -419,6 +419,19 @@ const pdstring &int_function::symTabName() const {
     return ifunc_->symTabName(); 
 }
 
+// Add to internal
+// Add to mapped_object if a "new" name (true return from internal)
+void int_function::addSymTabName(const pdstring name, bool isPrimary) {
+    if (ifunc()->addSymTabName(name, isPrimary))
+        obj()->addFunctionName(this, name, true);
+}
+
+void int_function::addPrettyName(const pdstring name, bool isPrimary) {
+    if (ifunc()->addSymTabName(name, isPrimary))
+        obj()->addFunctionName(this, name, false);
+}
+
+
 #ifndef BPATCH_LIBRARY
 static unsigned int_function_ptr_hash(int_function *const &f) {
   int_function *ptr = f;
@@ -485,7 +498,7 @@ void int_function::deleteBBLInstance(bblInstance *instance) {
     blocksByAddr_.remove(instance->firstInsnAddr());
 }
 
-const image_func *int_function::ifunc() const {
+image_func *int_function::ifunc() {
     return ifunc_;
 }
 
