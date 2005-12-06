@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.h,v 1.6 2005/09/28 17:03:10 bernat Exp $
+// $Id: mapped_object.h,v 1.7 2005/12/06 20:01:22 bernat Exp $
 
 #if !defined(_mapped_object_h)
 #define _mapped_object_h
@@ -269,6 +269,9 @@ private:
     // And those call...
     void addFunction(int_function *func);
     void addVariable(int_variable *var);
+
+    // Add a name after-the-fact
+    void addFunctionName(int_function *func, const pdstring newName, bool isMangled = false);
 
     bool dirty_; // marks the shared object as dirty 
     bool dirtyCalled_;//see comment for setDirtyCalled
