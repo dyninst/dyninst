@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.C,v 1.2 2005/10/04 18:10:10 legendre Exp $
+// $Id: mapped_module.C,v 1.3 2005/12/06 20:01:20 bernat Exp $
 
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
@@ -50,7 +50,8 @@
 
 
 const pdvector<int_function *> &mapped_module::getAllFunctions() {
-    const pdvector<image_func *> &pdfuncs = internal_mod_->getFunctions();
+    pdvector<image_func *> pdfuncs;
+    internal_mod_->getFunctions(pdfuncs);
     if (everyUniqueFunction.size() == pdfuncs.size())
         return everyUniqueFunction;
 

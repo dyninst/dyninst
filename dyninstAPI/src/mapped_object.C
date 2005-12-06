@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.10 2005/09/28 17:03:09 bernat Exp $
+// $Id: mapped_object.C,v 1.11 2005/12/06 20:01:21 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -57,8 +57,6 @@ unsigned imgFuncHash(const image_func * const &func) {
 unsigned imgVarHash(const image_variable * const &func) {
     return addrHash4((Address) func);
 }
-
-
 
 mapped_object::mapped_object(fileDescriptor fileDesc,
                              image *img,
@@ -603,6 +601,31 @@ int_function *mapped_object::findFunction(image_func *img_func) {
     return func;
 }
 
+void mapped_object::addFunctionName(int_function *func,
+                                    const pdstring newName,
+                                    bool isMangled) { /* = false */    
+    pdvector<int_function *> *funcsByName = NULL;
+    
+    // Ensure a vector exists
+    if (isMangled == false) {
+        if (!allFunctionsByPrettyName.find(newName,
+                                           funcsByName)) {
+            funcsByName = new pdvector<int_function *>;
+            allFunctionsByPrettyName[newName] = funcsByName;
+        }
+    }
+    else {
+        if (!allFunctionsByMangledName.find(newName,
+                                            funcsByName)) {
+            funcsByName = new pdvector<int_function *>;
+            allFunctionsByMangledName[newName] = funcsByName;
+        }
+    }
+    assert(funcsByName != NULL);
+    funcsByName->push_back(func);
+}
+    
+
 void mapped_object::addFunction(int_function *func) {
     // Possibly multiple demangled (pretty) names...
     // And multiple functions (different addr) with the same pretty
@@ -611,15 +634,14 @@ void mapped_object::addFunction(int_function *func) {
          pretty_iter < func->prettyNameVector().size();
          pretty_iter++) {
         pdstring pretty_name = func->prettyNameVector()[pretty_iter];
-        pdvector<int_function *> *funcsByPrettyEntry = NULL;
-        
-        // Ensure a vector exists
-        if (!allFunctionsByPrettyName.find(pretty_name,			      
-                                           funcsByPrettyEntry)) {
-            funcsByPrettyEntry = new pdvector<int_function *>;
-            allFunctionsByPrettyName[pretty_name] = funcsByPrettyEntry;
-        }
-        (*funcsByPrettyEntry).push_back(func);
+        addFunctionName(func, pretty_name, false);
+    }
+
+    for (unsigned typed_iter = 0; 
+         typed_iter < func->typedNameVector().size();
+         typed_iter++) {
+        pdstring typed_name = func->typedNameVector()[typed_iter];
+        addFunctionName(func, typed_name, false);
     }
     
     // And multiple symtab names...
@@ -627,17 +649,7 @@ void mapped_object::addFunction(int_function *func) {
          symtab_iter < func->symTabNameVector().size();
          symtab_iter++) {
         pdstring symtab_name = func->symTabNameVector()[symtab_iter];
-        pdvector<int_function *> *funcsBySymTabEntry = NULL;
-        
-        // Ensure a vector exists
-        if (!allFunctionsByMangledName.find(symtab_name,			      
-                                            funcsBySymTabEntry)) {
-            funcsBySymTabEntry = new pdvector<int_function *>;
-            allFunctionsByMangledName[symtab_name] = funcsBySymTabEntry;
-        }
-        
-        
-        (*funcsBySymTabEntry).push_back(func);
+        addFunctionName(func, symtab_name, true);
     }  
     everyUniqueFunction[func->ifunc()] = func;
     func->mod()->addFunction(func);
