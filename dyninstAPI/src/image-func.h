@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.6 2005/10/17 19:24:21 bernat Exp $
+// $Id: image-func.h,v 1.7 2005/12/06 20:01:19 bernat Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -151,17 +151,27 @@ class image_func : public codeRange {
    ////////////////////////////////////////////////
 
    const pdstring &symTabName() const { 
-      if (symTabName_.size() > 0) return symTabName_[0];
-      else return emptyString;
+       if (symTabNames_.size() > 0) return symTabNames_[0];
+       else return emptyString;
    }
    const pdstring &prettyName() const {
-      if (prettyName_.size() > 0) return prettyName_[0];
-      else return emptyString;
+       if (prettyNames_.size() > 0) return prettyNames_[0];
+       else return emptyString;
    }
-   const pdvector<pdstring> &symTabNameVector() const { return symTabName_; }
-   const pdvector<pdstring> &prettyNameVector() const { return prettyName_; }
-   void addSymTabName(pdstring name) { symTabName_.push_back(name); }
-   void addPrettyName(pdstring name) { prettyName_.push_back(name); }
+   const pdstring &typedName() const {
+       if (typedNames_.size() > 0) return typedNames_[0];
+       else return emptyString;
+   }
+
+   const pdvector<pdstring> &symTabNameVector() const { return symTabNames_; }
+   const pdvector<pdstring> &prettyNameVector() const { return prettyNames_; }
+   const pdvector<pdstring> &typedNameVector() const { return typedNames_; }
+   void copyNames(image_func *duplicate);
+
+   // Bool: returns true if the name is new (and therefore added)
+   bool addSymTabName(pdstring name, bool isPrimary = false);
+   bool addPrettyName(pdstring name, bool isPrimary = false);
+   bool addTypedName(pdstring name, bool isPrimary = false);
 
    Address getOffset() const {return startOffset_;}
    Address getEndOffset(); // May trigger parsing
@@ -276,8 +286,9 @@ class image_func : public codeRange {
  private:
 
    ///////////////////// Basic func info
-   pdvector<pdstring> symTabName_;	/* name as it appears in the symbol table */
-   pdvector<pdstring> prettyName_;	/* user's view of name (i.e. de-mangled) */
+   pdvector<pdstring> symTabNames_;	/* name as it appears in the symbol table */
+   pdvector<pdstring> prettyNames_;	/* user's view of name (i.e. de-mangled) */
+   pdvector<pdstring> typedNames_;      /* de-mangled with types */
    Address startOffset_;		/* address of the start of the func */
    Address endOffset_;          /* Address of the (next instruction after) the end of the func */
    unsigned symTabSize_;        /* What we get from the symbol table (if any) */

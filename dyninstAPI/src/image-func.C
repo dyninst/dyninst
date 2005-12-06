@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.14 2005/11/03 05:21:05 jaw Exp $
+// $Id: image-func.C,v 1.15 2005/12/06 20:01:18 bernat Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -95,12 +95,106 @@ image_func::image_func(const pdstring &symbol,
 #else
     endOffset_ = startOffset_ + symTabSize_;
 #endif
-    symTabName_.push_back(symbol);
+    symTabNames_.push_back(symbol);
 }
 
 
 image_func::~image_func() { 
   /* TODO */ 
+}
+
+// Two-copy version... can't really do better.
+bool image_func::addSymTabName(pdstring name, bool isPrimary) {
+    pdvector<pdstring> newSymTabName;
+
+    // isPrimary defaults to false
+    if (isPrimary)
+        newSymTabName.push_back(name);
+
+    bool found = false;
+    for (unsigned i = 0; i < symTabNames_.size(); i++) {
+        if (symTabNames_[i] == name) {
+            found = true;
+        }
+        else {
+            newSymTabName.push_back(symTabNames_[i]);
+        }
+    }
+    if (!isPrimary)
+        newSymTabName.push_back(name);
+
+    symTabNames_ = newSymTabName;
+
+    if (!found) {
+        // Add to image class...
+        image_->addFunctionName(this, name, true);
+    }
+
+    // Bool: true if the name is new; AKA !found
+    return (!found);
+}
+
+// Two-copy version... can't really do better.
+bool image_func::addPrettyName(pdstring name, bool isPrimary) {
+    pdvector<pdstring> newPrettyName;
+
+    // isPrimary defaults to false
+    if (isPrimary)
+        newPrettyName.push_back(name);
+
+    bool found = false;
+    for (unsigned i = 0; i < prettyNames_.size(); i++) {
+        if (prettyNames_[i] == name) {
+            found = true;
+        }
+        else {
+            newPrettyName.push_back(prettyNames_[i]);
+        }
+    }
+    if (!isPrimary)
+        newPrettyName.push_back(name);
+
+    prettyNames_ = newPrettyName;
+
+    if (!found) {
+        // Add to image class...
+        image_->addFunctionName(this, name, false);
+    }
+
+    // Bool: true if the name is new; AKA !found
+    return (!found);
+}
+
+// Two-copy version... can't really do better.
+bool image_func::addTypedName(pdstring name, bool isPrimary) {
+    pdvector<pdstring> newTypedName;
+
+    // isPrimary defaults to false
+    if (isPrimary)
+        newTypedName.push_back(name);
+
+    bool found = false;
+    for (unsigned i = 0; i < typedNames_.size(); i++) {
+        if (typedNames_[i] == name) {
+            found = true;
+        }
+        else {
+            newTypedName.push_back(typedNames_[i]);
+        }
+    }
+    if (!isPrimary)
+        newTypedName.push_back(name);
+
+    typedNames_ = newTypedName;
+
+    // Count this as a pretty name in function lookup...
+    if (!found) {
+        // Add to image class...
+        image_->addFunctionName(this, name, false);
+    }
+
+    // Bool: true if the name is new; AKA !found
+    return (!found);
 }
 
 void image_func::changeModule(pdmodule *mod) {
@@ -299,6 +393,10 @@ void image_basicBlock::debugPrint() {
                    blockEndOffset_ - func_->getOffset());
     parsing_printf("  Flags: entry %d, exit %d\n",
                    isEntryBlock_, isExitBlock_);
+    if (isEntryBlock_ && sources_.size()) {
+        fprintf(stderr, "========== multiple entry block!\n");
+    }
+    
     parsing_printf("  Sources:\n");
     for (unsigned s = 0; s < sources_.size(); s++) {
         parsing_printf("    %d: block %d\n",
@@ -492,17 +590,21 @@ bool image_func::cleanBlockList() {
 // Bind static call points
 
 void image_func::checkCallPoints() {
+    parsing_printf("%s: checking call points\n", symTabName().c_str());
     // Check if there are any dangling calls
     for (unsigned c = 0; c < calls.size(); c++) {
         image_instPoint *p = calls[c];
         assert(p);
-        
-        if (p->getCallee() != NULL)
+        parsing_printf("... 0x%lx...", p->offset());
+        if (p->getCallee() != NULL) {
+            parsing_printf(" already bound\n");
             continue;
-        
+        }
+
         Address destOffset = p->callTarget();
         if (!destOffset) {
             // Couldn't determine contact; skip
+            parsing_printf(" no destination\n");
             continue;
         }
         
@@ -510,6 +612,11 @@ void image_func::checkCallPoints() {
         
         if (pdf) {
             p->setCallee(pdf);
+            parsing_printf(" set to %s\n", pdf->symTabName().c_str());
+        }
+        else {
+            parsing_printf(" failed lookup for 0x%lx\n",
+                           destOffset);
         }
     }
 }
