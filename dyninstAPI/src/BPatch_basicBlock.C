@@ -55,6 +55,7 @@
 #include "BPatch_instruction.h"
 #include "BPatch_libInfo.h"
 
+int bpatch_basicBlock_count = 0;
 
 BPatch_basicBlock::BPatch_basicBlock(int_basicBlock *ib, BPatch_flowGraph *fg):
    iblock(ib),
@@ -66,6 +67,14 @@ BPatch_basicBlock::BPatch_basicBlock(int_basicBlock *ib, BPatch_flowGraph *fg):
    sourceBlocks(NULL),
    instructions(NULL)
 {
+
+#if defined(ROUGH_MEMORY_PROFILE)
+    bpatch_basicBlock_count++;
+    if ((bpatch_basicBlock_count % 10) == 0)
+        fprintf(stderr, "bpatch_basicBlock_count: %d (%d)\n",
+                bpatch_basicBlock_count, bpatch_basicBlock_count*sizeof(BPatch_basicBlock));
+#endif
+
    ib->setHighLevelBlock(this);
 }
 
