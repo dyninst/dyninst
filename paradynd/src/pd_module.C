@@ -94,7 +94,11 @@ pd_module::pd_module(BPatch_module *dmod) : dyn_module(dmod)
     BPatch_function *f = (*all_funcs)[i];
     if (!function_is_excluded(f, _name))
       some_funcs.push_back(f);
+
   }
+
+  // Paradyn uses names with type strings as primary
+
 
   createResources();
   //fprintf(stderr, "%s[%d]:  new pd_module %s: %s, contains %d/%d funcs\n", 
@@ -224,6 +228,7 @@ void pd_module::FillInCallGraphStatic(pd_process *proc)
 void pd_module::createResources()
 {
    char name[NAME_LEN];
+   char typedName[NAME_LEN];
    mod_resource = resource::newResource(moduleRoot, this,
                                         nullString,
                                         _name,
@@ -248,6 +253,16 @@ void pd_module::createResources()
          continue;
       
       func->getName(name, NAME_LEN);
+
+      // If there are multiple matches for this name, grab the typed name...
+      BPatch_Vector<BPatch_function *> name_check_vec;
+      dyn_module->findFunction(name, name_check_vec, false, false, false, true);
+      if (name_check_vec.size() > 1) {
+          func->getTypedName(typedName, NAME_LEN);
+          if (strlen(typedName))
+              strncpy(name, typedName, NAME_LEN);
+      }
+
       resource *res = resource::newResource(mod_resource, func,
                                             nullString,
                                             name,
