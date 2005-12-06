@@ -115,12 +115,19 @@ rawTime64 pd_thread::getRawCpuTime_hw()
    return result;
 }
 
+unsigned cputime_access = 0;
+
 rawTime64 pd_thread::getRawCpuTime_sw()
 {
    rawTime64 result = 0;
    int bufsize = 255;
    unsigned long utime, stime;
    char procfn[bufsize], *buf;
+
+   cputime_access++;
+   //if ((cputime_access % 10) == 0)
+       //fprintf(stderr, "CPU time access: %d\n", cputime_access);
+
    
    sprintf( procfn, "/proc/%d/stat", dyninst_thread->getLWP());
    
