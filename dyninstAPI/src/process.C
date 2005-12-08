@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.562 2005/12/01 00:56:24 jaw Exp $
+// $Id: process.C,v 1.563 2005/12/08 19:27:56 bernat Exp $
 
 #include <ctype.h>
 
@@ -219,9 +219,6 @@ bool process::walkStackFromFrame(Frame startFrame,
       fprintf(stderr, "%s[%d]:  walkStackFromFrame failing\n", FILE__, __LINE__);
       return false;
   }
-#ifndef BPATCH_LIBRARY
-  startTimingStackwalk();
-#endif
 
 #if defined( os_linux ) 
 	/* Do a special check for the vsyscall page.  Silently drop
@@ -287,10 +284,6 @@ bool process::walkStackFromFrame(Frame startFrame,
   if (currentFrame.getProc() != NULL) {
       stackWalk.push_back(currentFrame);
   }
-
-#ifndef BPATCH_LIBRARY
-  stopTimingStackwalk();
-#endif
 
   return true;
 }
@@ -4242,9 +4235,7 @@ bool process::processSharedObjects()
         return false;
     }
     statusLine("parsing shared object files");
-#ifndef BPATCH_LIBRARY
-    tp->resourceBatchMode(true);
-#endif
+
     // for each element in shared_objects list process the 
     // image file to find new instrumentaiton points
     for(u_int j=0; j < shared_objs.size(); j++){
@@ -4259,9 +4250,7 @@ bool process::processSharedObjects()
         if (!addASharedObject(shared_objs[j]))
            logLine("Error after call to addASharedObject\n");
     }
-#ifndef BPATCH_LIBRARY
-    tp->resourceBatchMode(false);
-#endif
+
     return true;
 }
 

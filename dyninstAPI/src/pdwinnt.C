@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.147 2005/11/21 17:16:13 jaw Exp $
+// $Id: pdwinnt.C,v 1.148 2005/12/08 19:27:56 bernat Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -217,10 +217,6 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
 {
     if (!isStopped()) return false;
 
-#ifndef BPATCH_LIBRARY
-    startTimingStackwalk();
-#endif
-    
 #ifdef DEBUG_STACKWALK
     cout << "\n<stack>" << endl;
 #endif // DEBUG_STACKWALK
@@ -235,9 +231,6 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
         cerr << "walkStack: GetThreadContext failed:" << GetLastError()
              << endl;
 
-#ifndef BPATCH_LIBRARY
-	stopTimingStackwalk();
-#endif
         return false;
     }
 
@@ -401,9 +394,6 @@ bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
 
     // Terminate stack walk with an empty frame
     stackWalk.push_back(Frame());
-#ifndef BPATCH_LIBRARY
-    stopTimingStackwalk();
-#endif
 
     return true;
 }
@@ -891,13 +881,7 @@ DWORD SignalHandler::handleDllLoad(EventRecord &ev) {
    if (imageName.length() > 0) {
        mapped_object *newobj = mapped_object::createMappedObject(desc, proc);
 
-#ifndef BPATCH_LIBRARY
-       tp->resourceBatchMode(true);
-#endif 
        proc->addASharedObject(newobj);
-#ifndef BPATCH_LIBRARY
-       tp->resourceBatchMode(false);
-#endif 
         
       char dllFilename[_MAX_FNAME];
       _splitpath(imageName.c_str(),

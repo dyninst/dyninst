@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.262 2005/12/06 20:01:23 bernat Exp $
+ // $Id: symtab.C,v 1.263 2005/12/08 19:27:57 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1018,15 +1018,9 @@ image *image::parseImage(fileDescriptor &desc)
   image::allImages.push_back(ret);
 
   // define all modules.
-#ifndef BPATCH_LIBRARY
-  tp->resourceBatchMode(true);
-#endif
 
   statusLine("ready"); // this shouldn't be here, right? (cuz we're not done, right?)
 
-#ifndef BPATCH_LIBRARY
-  tp->resourceBatchMode(false);
-#endif
   return ret;
 }
 
