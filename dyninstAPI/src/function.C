@@ -709,10 +709,13 @@ bblInstance::bblInstance(const bblInstance *parent, int_basicBlock *block) :
       reloc_info = new reloc_info_t(parent->reloc_info, block);
    }
 #endif
-    // TODO relocation
-
-    // And add to the mapped_object code range
-    block_->func()->obj()->codeRangesByAddr_.insert(this);
+    // If the bblInstance is the original version, add to the mapped_object
+    // code range; if it is the product of relocation, add it to the
+    // process.
+    if(version_ == 0)
+        block_->func()->obj()->codeRangesByAddr_.insert(this);
+    else
+        block_->func()->obj()->proc()->addCodeRange(this);
 }
 
 bblInstance::~bblInstance() {
