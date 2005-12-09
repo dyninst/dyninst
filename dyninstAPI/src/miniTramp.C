@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.14 2005/11/21 17:16:13 jaw Exp $
+// $Id: miniTramp.C,v 1.15 2005/12/09 04:01:34 rutar Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -148,29 +148,11 @@ bool miniTramp::generateMT() {
     if (miniTrampCode_ != NULL) return true;
 
     miniTrampCode_.allocate(MAX_MINITRAMP_SIZE);
-    
-    registerSpace * regS = NULL;
-#if defined( arch_ia64 )
-	/* FIXME: We should be able to cache this in the baseTramp or its location. */
-	extern unsigned int deadRegisterListLength;
-	extern Register deadRegisterList[];
-	
-	regS = new registerSpace( deadRegisterListLength, deadRegisterList, 0, NULL );
-
-	regS->resetSpace();
-	regS->resetClobbers();
-	
-	defineBaseTrampRegisterSpaceFor( instP, regS, deadRegisterList );
-#else
-	Register blank[] = {1};
-	regS = new registerSpace(0, blank, 0, blank, false);
-#endif /* defined( arch_ia64 ) */
-    
+ 
     /* VG(11/06/01): Added location, needed by effective address AST node */
     returnOffset = ast_->generateTramp(proc(), instP,
                                        miniTrampCode_, &cost, 
-                                       false, // noCost -- we can always ignore it later
-                                       regS);
+                                       false); // noCost -- we can always ignore it later
 
     size_ = miniTrampCode_.used();
     miniTrampCode_.finalize();

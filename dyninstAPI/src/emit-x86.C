@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.13 2005/11/07 18:40:34 rutar Exp $
+ * $Id: emit-x86.C,v 1.14 2005/12/09 04:01:33 rutar Exp $
  */
 
 #include <assert.h>
@@ -53,6 +53,8 @@
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/process.h"
+
+#include "InstrucIter.h"
 
 extern registerSpace* regSpace;
 
@@ -942,6 +944,51 @@ void Emitter64::emitStoreFrameRelative(Address offset, Register src, Register /*
     emitMovRegToRM64(REGNUM_RAX, offset, src, false, gen);
 }
 
+
+/* Recursive function that goes to where our instrumentation is calling
+to figure out what registers are clobbered there, and in any function
+that it calls, to a certain depth ... at which point we clobber everything*/
+bool Emitter64::clobberAllFuncCall( registerSpace *rs,
+		   process *proc, 
+		   Address callee_addr,
+		    int level)
+		   
+{
+   int_function *funcc;  
+   codeRange *range = proc->findCodeRangeByAddress(callee_addr);
+   if (range)
+     {
+       funcc = range->is_function();
+
+       if (funcc) 
+	 {           
+	   InstrucIter ah(funcc);
+	 
+	   //while there are still instructions to check for in the
+	   //address space of the function
+	 
+	 while (ah.hasMore()) 
+	   {
+	     if (ah.isFPWrite())
+	       return true;
+	     if (ah.isACallInstruction()){
+	       if (level >= 1)
+		 return true;
+	       else
+		 {
+		   Address callAddr = ah.getCallTarget();
+		   if (clobberAllFuncCall(rs, proc, callAddr,level+1))
+		     return true;
+		 }
+	     }
+	     ah++;
+	   }
+	 }
+     }
+   return false;
+}
+
+
 static Register amd64_arg_regs[] = {REGNUM_RDI, REGNUM_RSI, REGNUM_RDX, REGNUM_RCX, REGNUM_R8, REGNUM_R9};
 #define AMD64_ARG_REGS (sizeof(amd64_arg_regs) / sizeof(Register))
 Register Emitter64::emitCall(opCode op, registerSpace *rs, codeGen &gen, const pdvector<AstNode *> &operands,
@@ -1000,7 +1047,10 @@ Register Emitter64::emitCall(opCode op, registerSpace *rs, codeGen &gen, const p
     // allocate a (virtual) register to store the return value
     Register ret = rs->allocateRegister(gen, noCost);
     emitMovRegToReg64(ret, REGNUM_EAX, true, gen);
-    
+
+    // Figure out if we need to save FPR in base tramp
+    bool useFPR = clobberAllFuncCall(rs, proc, callee_addr,0);
+
     return ret;
 }
 
@@ -1197,20 +1247,23 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
     else
       {
 	// Always save these 4
-	emitPushReg64(REGNUM_RAX,gen);
+	emitPushReg64(REGNUM_RAX,gen); // scratch register
 	emitPushReg64(REGNUM_RBX,gen); // have to save cause it's callee save
 	emitPushReg64(REGNUM_RSP,gen);
 	emitPushReg64(REGNUM_RBP,gen);
 	
+	//	printf("Saving registers ...\n");
 	// Save the live ones
 	for(u_int i = 0; i < regSpace->getRegisterCount(); i++)
 	  {
 	    registerSlot * reg = regSpace->getRegSlot(i);
 	    if (reg->startsLive)
 	      {
+		//printf(" %d ",reg->number);
 		emitPushReg64(reg->number,gen);
 	      }
 	  }
+	//printf("\n");
       }
     
     // push a return address for stack walking
@@ -1238,8 +1291,10 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
        emitOpRegImm64(0x81, 5, REGNUM_RSP, 8, true, gen);
     }
 
+    //printf("Saving GPR\n");
     if (bt->isConservative()) {
            
+      //printf("Conservative ... saving FPR\n");
 	// need to save the floating point state (x87, MMX, SSE)
 	// we do this on the stack, but the problem is that the save
 	// area must be 16-byte aligned. the following sequence does

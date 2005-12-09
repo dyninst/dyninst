@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.228 2005/11/21 17:16:12 jaw Exp $
+ * $Id: inst-x86.C,v 1.229 2005/12/09 04:01:34 rutar Exp $
  */
 #include <iomanip>
 
@@ -798,6 +798,52 @@ Register emitFuncCall(opCode op,
     return x86_emitter->emitCall(op, rs, gen, operands, proc, noCost, callee_addr, ifForks, location);
 }
 
+
+
+/* Recursive function that goes to where our instrumentation is calling
+to figure out what registers are clobbered there, and in any function
+that it calls, to a certain depth ... at which point we clobber everything*/
+bool Emitter32::clobberAllFuncCall( registerSpace *rs,
+		   process *proc, 
+		   Address callee_addr,
+		    int level)
+		   
+{
+   int_function *funcc;  
+   codeRange *range = proc->findCodeRangeByAddress(callee_addr);
+   if (range)
+     {
+       funcc = range->is_function();
+
+       if (funcc) 
+	 {           
+	   InstrucIter ah(funcc);
+	 
+	   //while there are still instructions to check for in the
+	   //address space of the function
+	 
+	 while (ah.hasMore()) 
+	   {
+	     if (ah.isFPWrite())
+	       return true;
+	     if (ah.isACallInstruction()){
+	       if (level >= 1)
+		 return true;
+	       else
+		 {
+		   Address callAddr = ah.getCallTarget();
+		   if (clobberAllFuncCall(rs, proc, callAddr,level+1))
+		     return true;
+		 }
+	     }
+	     ah++;
+	   }
+	 }
+     }
+   return false;
+}
+
+
 Register Emitter32::emitCall(opCode op, 
                              registerSpace *rs,
                              codeGen &gen,
@@ -846,6 +892,9 @@ Register Emitter32::emitCall(opCode op,
    // allocate a (virtual) register to store the return value
    Register ret = rs->allocateRegister(gen, noCost);
    emitMovRegToRM(REGNUM_EBP, -(ret*4), REGNUM_EAX, gen);
+
+   // Figure out if we need to save FPR in base tramp
+   bool useFPR = clobberAllFuncCall(rs, proc, callee_addr,0);
 
    return ret;
 }
@@ -1840,12 +1889,20 @@ bool int_function::setReturnValue(int val)
 }
 
 
-bool registerSpace::clobberRegister(Register /*reg*/) 
+bool registerSpace::clobberRegister(Register reg) 
 {
+  for (u_int i=0; i < numRegisters; i++)
+    {
+      if(registers[i].number == reg)
+	{
+	  registers[i].beenClobbered = true;
+	  return true;
+	}
+    }
   return false;
 }
 
-bool registerSpace::clobberFPRegister(Register /*reg*/)
+bool registerSpace::clobberFPRegister(Register reg)
 {
   return false;
 }

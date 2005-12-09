@@ -261,6 +261,7 @@ class InstrucIter {
   bool isFrameSetup();
   bool isANopInstruction();
   
+  /* Power only */
   bool isA_RT_WriteInstruction();
   bool isA_RA_WriteInstruction(); 
  
@@ -278,12 +279,6 @@ class InstrucIter {
 
   bool isA_MX_Instruction();
 
-  Address getBranchTargetOffset();
-  Address getBranchTargetAddress();
-
-  BPatch_memoryAccess* isLoadOrStore();
-  BPatch_instruction* getBPInstruction();
-
   unsigned getRTValue();
   unsigned getRAValue();
   unsigned getRBValue();
@@ -291,9 +286,22 @@ class InstrucIter {
   unsigned getFRAValue();
   unsigned getFRBValue();
   unsigned getFRCValue();
+  /* END Power only */
+
+  Address getBranchTargetOffset();
+  Address getBranchTargetAddress();
+  Address getCallTarget();
+
+
+  BPatch_memoryAccess* isLoadOrStore();
+  BPatch_instruction* getBPInstruction();
+
   void printOpCode();
 
+  /* x86 Only */
   void readWriteRegisters(int * readRegs, int * writeRegs);
+  bool isFPWrite();
+  /* END x86 Only */
 
   bool isAIndirectJumpInstruction();
 

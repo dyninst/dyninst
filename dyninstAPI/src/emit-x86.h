@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.5 2005/10/17 15:49:21 legendre Exp $
+ * $Id: emit-x86.h,v 1.6 2005/12/09 04:01:33 rutar Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -124,6 +124,7 @@ public:
     void emitStore(Address addr, Register src, codeGen &gen);
     void emitStoreIndir(Register addr_reg, Register src, codeGen &gen);
     void emitStoreFrameRelative(Address offset, Register src, Register scratch, codeGen &gen);
+    bool clobberAllFuncCall(registerSpace *rs, process *proc, Address callee_addr, int level);
     Register emitCall(opCode op, registerSpace *rs, codeGen &gen,
 			      const pdvector<AstNode *> &operands,
 			      process *proc, bool noCost, Address callee_addr, const pdvector<AstNode *> &ifForks,
@@ -165,6 +166,7 @@ public:
     void emitStore(Address addr, Register src, codeGen &gen);
     void emitStoreIndir(Register addr_reg, Register src, codeGen &gen);
     void emitStoreFrameRelative(Address offset, Register src, Register scratch, codeGen &gen);
+    bool clobberAllFuncCall(registerSpace *rs, process *proc, Address callee_addr, int level);
     Register emitCall(opCode op, registerSpace *rs, codeGen &gen,
 			      const pdvector<AstNode *> &operands,
 			      process *proc, bool noCost, Address callee_addr, const pdvector<AstNode *> &ifForks,

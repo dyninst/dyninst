@@ -792,6 +792,44 @@ void parseRegisters(int * readArr, int * writeArr,
 }
 
 
+Address InstrucIter::getCallTarget()
+{
+  instruction i = getInstruction();
+  return i.getTarget(current);
+}
+
+
+bool InstrucIter::isFPWrite()
+{
+  instruction i = getInstruction();
+  ia32_instruction ii;
+
+  const unsigned char * addr = i.ptr();
+
+  #if defined(os_windows)
+  ia32_decode(0, addr,ii);
+#else
+  ia32_decode<0>(addr,ii);
+#endif
+
+  ia32_entry * entry = ii.getEntry();
+
+  for ( int a = 0; a <  3; a++)
+    {
+      if (entry->operands[a].admet == am_P || /*64-bit MMX selected by ModRM reg field */
+	  entry->operands[a].admet == am_Q || /*64-bit MMX selected by ModRM byte */
+	  entry->operands[a].admet == am_V || /*128-bit XMM selected by ModRM reg field*/
+	  entry->operands[a].admet == am_W )  /*128-bit XMM selected by ModRM byte */
+	{
+	  return true;
+	}
+    }
+  return false;
+}
+
+
+
+
 void InstrucIter::readWriteRegisters(int * readRegs, int * writeRegs)
 {
   instruction i = getInstruction();

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.235 2005/10/31 22:42:53 rutar Exp $
+ * $Id: inst-power.C,v 1.236 2005/12/09 04:01:33 rutar Exp $
  */
 
 #include "common/h/headers.h"
@@ -863,7 +863,6 @@ unsigned restoreFPRegisters(codeGen &gen,
  * Save the special purpose registers (for Dyninst conservative tramp)
  * CTR, CR, XER, SPR0, FPSCR
  */
-
 unsigned saveSPRegisters(codeGen &gen,
 			 registerSpace * theRegSpace,
                          int save_off)
@@ -1225,6 +1224,62 @@ void emitImm(opCode op, Register src1, RegValue src2imm, Register dest,
 
 void cleanUpAndExit(int status);
 
+
+
+/* Recursive function that goes to where our instrumentation is calling
+to figure out what registers are clobbered there, and in any function
+that it calls, to a certain depth ... at which point we clobber everything*/
+bool clobberAllFuncCall( registerSpace *rs,
+		   process *proc, 
+		   Address callee_addr,
+		    int level)
+		   
+{
+   int_function *funcc;  
+   codeRange *range = proc->findCodeRangeByAddress(callee_addr);
+   if (range)
+     {
+       funcc = range->is_function();
+       //cout << "Function Name is " << funcc->prettyName() << endl;
+       
+       if (funcc) 
+	 {           
+	   InstrucIter ah(funcc);
+	 
+	   //while there are still instructions to check for in the
+	   //address space of the function
+	 
+	 while (ah.hasMore()) 
+	   {
+
+	     if (ah.isA_RT_WriteInstruction())
+	       rs->clobberRegister(ah.getRTValue());
+	     if (ah.isA_RA_WriteInstruction())
+	       rs->clobberRegister(ah.getRAValue());
+	     if (ah.isA_FRT_WriteInstruction())
+	       rs->clobberFPRegister(ah.getRTValue());
+	     if (ah.isA_FRA_WriteInstruction())
+	       rs->clobberFPRegister(ah.getRAValue());
+	     if (ah.isACallInstruction()){
+	       if (level >= 0)
+		 return true;
+	       else
+		 {
+		   //TODO:  Implement getCallTarget for Power
+		   //Address callAddr = ah.getCallTarget();
+		   //if (clobberAllFuncCall(rs,proc,callAddr, level+1))
+		   // return true;
+		 }
+	     }
+	     
+	     ah++;
+	   }
+	 }
+     }
+   return false;
+}
+
+
 //
 // Author: Jeff Hollingsworth (3/26/96)
 //
@@ -1282,8 +1337,7 @@ Register emitFuncCall(opCode /* ocode */,
          // What does this do?
          bperr( "in weird code\n");
          Register dummyReg = rs->allocateRegister(gen, noCost);
-	 rs->clobberRegister(dummyReg);
-         srcs.push_back(dummyReg);
+	 srcs.push_back(dummyReg);
          
          instruction::generateImm(gen, CALop, dummyReg, 0, 0);
       }
@@ -1426,40 +1480,37 @@ Register emitFuncCall(opCode /* ocode */,
 
      if (scratchReg[u] != -1)
        {
-           instruction::generateImm(gen, ORILop, scratchReg[u], u+3, 0);
-           rs->freeRegister(scratchReg[u]);
+	 instruction::generateImm(gen, ORILop, scratchReg[u], u+3, 0);
+	 rs->freeRegister(scratchReg[u]);
        }
      else
-         {
-             for (unsigned v=u; v < srcs.size(); v++)
-                 {
-                     if (srcs[v] == u+3)
-                         {
-                             hasSourceBeenCopied = false;
-                             whichSource = v;
-                         }
-                 }
-             if (!hasSourceBeenCopied)
-                 {
-                     scratch = rs->allocateRegister(gen, noCost);
-                     rs->clobberRegister(scratch);
-                     instruction::generateImm(gen, ORILop, u+3, scratch, 0);
-                     rs->freeRegister(u+3);
-                     scratchReg[whichSource] = scratch;
-                     hasSourceBeenCopied = true;
-                     
-                     instruction::generateImm(gen, ORILop, srcs[u], u+3, 0);
-                     rs->freeRegister(srcs[u]);
-                 }
-             else
-                 {
-                     instruction::generateImm(gen, ORILop, srcs[u], u+3, 0);
-                     rs->freeRegister(srcs[u]);
-                     rs->clobberRegister(u+3);
-                 }
-         }
-     
-     
+       {
+	 for (unsigned v=u; v < srcs.size(); v++)
+	   {
+	     if (srcs[v] == u+3)
+	       {
+		 hasSourceBeenCopied = false;
+		 whichSource = v;
+	       }
+	   }
+	 if (!hasSourceBeenCopied)
+	   {
+	     scratch = rs->allocateRegister(gen, noCost);
+	     instruction::generateImm(gen, ORILop, u+3, scratch, 0);
+	     rs->freeRegister(u+3);
+	     scratchReg[whichSource] = scratch;
+	     hasSourceBeenCopied = true;
+	     
+	     instruction::generateImm(gen, ORILop, srcs[u], u+3, 0);
+	     rs->freeRegister(srcs[u]);
+	   }
+	 else
+	   {
+	     instruction::generateImm(gen, ORILop, srcs[u], u+3, 0);
+	     rs->freeRegister(srcs[u]);
+	     rs->clobberRegister(u+3);
+	   }
+       } 
    }
 
    // Set up the new TOC value
@@ -1481,69 +1532,8 @@ Register emitFuncCall(opCode /* ocode */,
 
    // Linear Scan on the functions to see which registers get clobbered
      
-   //clobberAll = true;
-
-   
-   int_function *funcc;
-   
-   codeRange *range = proc->findCodeRangeByAddress(callee_addr);
-   
-   if (range)
-     {
-       funcc = range->is_function();
-       //cout << "Function Name is " << funcc->prettyName() << endl;
-       
-       if (funcc) {           
-	 InstrucIter ah(funcc);
-	 
-	 //while there are still instructions to check for in the
-	 //address space of the function
-	 
-	 while (ah.hasMore()) {
-
-	   if (ah.isA_RT_WriteInstruction())
-	     {
-	       
-	       rs->clobberRegister(ah.getRTValue());
-	     }
-	   if (ah.isA_RA_WriteInstruction())
-	     {
-	       rs->clobberRegister(ah.getRAValue());
-	     }
-	   if (ah.isA_FRT_WriteInstruction())
-	     {
-	       rs->clobberFPRegister(ah.getRTValue());
-	     }
-	   if (ah.isA_FRA_WriteInstruction())
-	     {
-	       
-	       //cout<<"Writes to FRA for ";
-	       //ah.printOpCode();
-	       //cout<<" and register ";
-	       //cout<<ah.getRAValue()<<endl;
-	       
-	       rs->clobberFPRegister(ah.getRAValue());
-	     }
-	   if (ah.isAReturnInstruction()){
-	   }
-	   else if (ah.isACondBranchInstruction()){
-	   }
-	   else if (ah.isAJumpInstruction()){
-	   }
-	   else if (ah.isACallInstruction()){
-	     clobberAll = true;
-	   }
-	   else if (ah.isAnneal()){
-	   }
-	   else{
-	   }
-	   ah++;
-	 }
-       }
-     }
-   
-   
-   
+   clobberAll = clobberAllFuncCall(rs, proc, callee_addr, 0);
+      
    /////////////// Clobber the registers if needed
 
    if (clobberAll)
@@ -1567,25 +1557,10 @@ Register emitFuncCall(opCode /* ocode */,
 
    // get a register to keep the return value in.
    Register retReg = rs->allocateRegister(gen, noCost);
-   rs->clobberRegister(retReg);
-
+  
    // put the return value from register 3 to the newly allocated register.
    instruction::generateImm(gen, ORILop, 3, retReg, 0);
 
-   // Restore floating point registers
-   //restoreFPRegisters(gen, TRAMP_FPR_OFFSET);
-   
-   //Restore the registers used to save  parameters
-   /*
-   for(u_int i = 0; i < rs->getRegisterCount(); i++) {
-   registerSlot *reg = rs->getRegSlot(i);
-   if (reg->beenClobbered) {
-   restoreRegister(gen, reg->number, TRAMP_GPR_OFFSET);
-   regSpace->unClobberRegister(reg->number);
-   }
-   }
-   */
-   
    // restore saved registers.
    for (u_int ui = 0; ui < savedRegs.size(); ui++) {
        restoreRegister(gen,
@@ -1961,7 +1936,6 @@ void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
 
 	// temp register to hold base address for store (added 6/26/96 jkh)
 	Register temp = regSpace->allocateRegister(gen, noCost);
-	rs->clobberRegister(temp);
 
 	// set upper 16 bits of  temp to be the top high.
 	instruction::generateImm(gen, CAUop, 
@@ -2267,23 +2241,16 @@ int getInsnCost(opCode op)
 //If return false, it's been clobbered and we do nothing
 bool registerSpace::clobberRegister(Register reg) 
 {
-    if (reg == 0 || reg == 2 || reg == deadRegs[0] || reg == deadRegs[1] || 
-        reg == deadRegs[2] || reg == 11 || reg == 12 )
-        return false;
-    for (u_int i=0; i < numRegisters; i++) {
-        if (registers[i].number == reg) {
-            if(registers[i].beenClobbered == true)
-                return false;
-            else if (registers[i].startsLive == false)
-                return false;
-            else{
-                registers[i].beenClobbered = true;
-                return true;
-            }	
-        }
+  for (u_int i=0; i < numRegisters; i++)
+    {
+      if(registers[i].number == reg)
+	{
+	  registers[i].beenClobbered = true;
+	  return true;
+	}
     }
-    //assert(0 && "Unreachable");
-    return false;
+  return false;
+
 }
 
 //Checks to see if register has been clobbered
@@ -2291,20 +2258,15 @@ bool registerSpace::clobberRegister(Register reg)
 //If return false, it's been clobbered and we do nothing
 bool registerSpace::clobberFPRegister(Register reg) 
 {
-  if (reg == 10)
-    return false;
-  for (u_int i=0; i < numFPRegisters; i++) {
-    if (fpRegisters[i].number == reg) {
-      if(fpRegisters[i].beenClobbered == true)
-	return false;
-      else{
-	fpRegisters[i].beenClobbered = true;
-	return true;
-      }	
+  for (u_int i=0; i < numFPRegisters; i++) 
+    {
+      if (fpRegisters[i].number == reg)
+	{
+	  fpRegisters[i].beenClobbered = true;
+	  return true;
+	}
     }
-  }
-  //assert(0 && "Unreachable");
-  return false;
+  return false;  
 }
 
 // Takes information from instPoint and resets

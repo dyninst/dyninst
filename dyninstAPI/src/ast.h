@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.83 2005/11/21 17:16:12 jaw Exp $
+// $Id: ast.h,v 1.84 2005/12/09 04:01:33 rutar Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -252,8 +252,7 @@ class AstNode {
        ~AstNode();
 
         Address generateTramp(process *proc, const instPoint *location, codeGen &gen, 
-                              int *trampCost, bool noCost,
-			      registerSpace *rs);
+                              int *trampCost, bool noCost);
 	Address generateCode(process *proc, registerSpace *rs, codeGen &gen, 
                              bool noCost, bool root,
 			     const instPoint *location = NULL);
