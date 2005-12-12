@@ -288,7 +288,7 @@ class pd_process {
   typedef timeMgr<pd_process, int> cpuTimeMgr_t;
   cpuTimeMgr_t *cpuTimeMgr;
 
-#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
+#if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) || defined(x86_64_unknown_linux2_4)
   bool isPapiAvail();           
 #endif
 #ifdef rs6000_ibm_aix4_1

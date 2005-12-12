@@ -193,7 +193,7 @@ void initOpCodeInfo()
 
 BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 {
-    static unsigned int log2[] = { 0, 0, 1, 1, 2 };
+    static unsigned int log2[] = { 0, 0, 1, 1, 2, 2, 2, 2, 3 };
     
     // TODO 16-bit registers
     
@@ -215,10 +215,16 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
   bool first = true;
 
   for(int j=0; j<3; ++j) {
-    const ia32_memacc& mac = i.getMac(j);
+    ia32_memacc& mac = const_cast<ia32_memacc&>(i.getMac(j));
     const ia32_condition& cond = i.getCond();
     int bmapcond = cond.is ? cond.tttn : -1;
     if(mac.is) {
+
+	// here, we can set the correct address for RIP-relative addressing
+	if (mac.regs[0] == mRIP) {
+	    mac.imm = peekNext() + mac.imm;
+	}
+
       if(first) {
         if(mac.prefetch) {
           if(mac.prefetchlvl > 0) // Intel

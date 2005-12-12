@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: rtinst.h,v 1.63 2005/09/09 18:05:34 legendre Exp $
+ * $Id: rtinst.h,v 1.64 2005/12/12 16:37:38 gquinn Exp $
  * This file contains the extended instrumentation functions that are provided
  *   by the Paradyn run-time instrumentation layer.
  */
@@ -154,8 +154,8 @@ typedef struct tTimerRec {
 #define HARDWARE_TIMER_LEVEL 1
 #define SOFTWARE_TIMER_LEVEL 2
 
-extern int hintBestCpuTimerLevel;
-extern int hintBestWallTimerLevel;
+extern long hintBestCpuTimerLevel;
+extern long hintBestWallTimerLevel;
 
 typedef rawTime64 (*timeQueryFuncPtr_t)(void);
 extern timeQueryFuncPtr_t PARADYNgetCPUtime;

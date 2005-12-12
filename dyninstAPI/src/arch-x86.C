@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.42 2005/11/21 17:16:12 jaw Exp $
+// $Id: arch-x86.C,v 1.43 2005/12/12 16:37:08 gquinn Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -55,6 +55,7 @@
 #include "util.h"
 #include "showerror.h"
 #include "InstrucIter.h"
+#include "dyninstAPI/src/emit-x86.h"
 
 // tables and pseudotables
 enum {
@@ -92,7 +93,6 @@ enum {
   G13SSE010B, G13SSE100B, G13SSE110B,
   G14SSE010B, G14SSE011B, G14SSE110B, G14SSE111B,
 };
-
 
 #define Zz   { 0, 0 }
 #define Ap   { am_A, op_p }
@@ -769,7 +769,7 @@ static ia32_entry twoByteMap[256] = {
   { "xadd", t_done, 0, true, { Eb, Gb, Zz }, 0, s1RW2RW },
   { "xadd", t_done, 0, true, { Ev, Gv, Zz }, 0, s1RW2RW },
   { 0, t_sse, SSEC2, true, { Zz, Zz, Zz }, 0, 0 },
-  { "movnti" , t_done, 0, 0, { Ed, Gd, Zz }, 0, s1W2R | (fNT << FPOS) },
+  { "movnti" , t_done, 0, 0, { Ev, Gv, Zz }, 0, s1W2R | (fNT << FPOS) },
   { 0, t_sse, SSEC4, true, { Zz, Zz, Zz }, 0, 0 },
   { 0, t_sse, SSEC5, true, { Zz, Zz, Zz }, 0, 0 },
   { 0, t_sse, SSEC6, true, { Zz, Zz, Zz }, 0, 0 },
@@ -1204,9 +1204,9 @@ static ia32_entry sseMap[][4] = {
   },
   { /* SSE2A */
     { "cvtpi2ps", t_done, 0, true, { Vps, Qq, Zz }, 0, s1W2R },
-    { "cvtsi2ss", t_done, 0, true, { Vss, Ed, Zz }, 0, s1W2R },
+    { "cvtsi2ss", t_done, 0, true, { Vss, Ev, Zz }, 0, s1W2R },
     { "cvtpi2pd", t_done, 0, true, { Vpd, Qdq, Zz }, 0, s1W2R },
-    { "cvtsi2sd", t_done, 0, true, { Vsd, Ed, Zz }, 0, s1W2R },
+    { "cvtsi2sd", t_done, 0, true, { Vsd, Ev, Zz }, 0, s1W2R },
   },
   { /* SSE2B */
     { "movntps", t_done, 0, true, { Wps, Vps, Zz }, 0, s1W2R | (fNT << FPOS) },
@@ -1216,15 +1216,15 @@ static ia32_entry sseMap[][4] = {
   },
   { /* SSE2C */
     { "cvttps2pi", t_done, 0, true, { Qq, Wps, Zz }, 0, s1W2R },
-    { "cvttss2si", t_done, 0, true, { Gd, Wss, Zz }, 0, s1W2R },
+    { "cvttss2si", t_done, 0, true, { Gv, Wss, Zz }, 0, s1W2R },
     { "cvttpd2pi", t_done, 0, true, { Qdq, Wpd, Zz }, 0, s1W2R },
-    { "cvttsd2si", t_done, 0, true, { Gd, Wsd, Zz }, 0, s1W2R },
+    { "cvttsd2si", t_done, 0, true, { Gv, Wsd, Zz }, 0, s1W2R },
   },
   { /* SSE2D */
     { "cvtps2pi", t_done, 0, true, { Qq, Wps, Zz }, 0, s1W2R },
-    { "cvtss2si", t_done, 0, true, { Gd, Wss, Zz }, 0, s1W2R },
+    { "cvtss2si", t_done, 0, true, { Gv, Wss, Zz }, 0, s1W2R },
     { "cvtpd2pi", t_done, 0, true, { Qdq, Wpd, Zz }, 0, s1W2R },
-    { "cvtsd2si", t_done, 0, true, { Gd, Wsd, Zz }, 0, s1W2R },
+    { "cvtsd2si", t_done, 0, true, { Gv, Wsd, Zz }, 0, s1W2R },
   },
   { /* SSE2E */
     { "ucomiss", t_done, 0, true, { Vss, Wss, Zz }, 0, s1R2R },
@@ -1419,9 +1419,9 @@ static ia32_entry sseMap[][4] = {
     { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE6E */
-    { "movd", t_done, 0, true, { Pd, Ed, Zz }, 0, s1W2R },
+    { "movd", t_done, 0, true, { Pd, Ev, Zz }, 0, s1W2R },
     { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
-    { "movd", t_done, 0, true, { Vdq, Ed, Zz }, 0, s1W2R },
+    { "movd", t_done, 0, true, { Vdq, Ev, Zz }, 0, s1W2R },
     { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE6F */
@@ -1455,9 +1455,9 @@ static ia32_entry sseMap[][4] = {
     { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE7E */
-    { "movd", t_done, 0, true, { Ed, Pd, Zz }, 0, s1W2R },
+    { "movd", t_done, 0, true, { Ev, Pd, Zz }, 0, s1W2R },
     { "movq", t_done, 0, true, { Vq, Wq, Zz }, 0, s1W2R }, // book has this and next swapped!!!
-    { "movd", t_done, 0, true, { Ed, Vdq, Zz }, 0, s1W2R },
+    { "movd", t_done, 0, true, { Ev, Vdq, Zz }, 0, s1W2R },
     { 0, t_ill, 0, false, { Zz, Zz, Zz }, 0, 0 },
   },
   { /* SSE7F */
@@ -1834,9 +1834,24 @@ static void ia32_translate_for_64(ia32_entry** gotit_ptr)
 	*gotit_ptr = &movsxd;
 }
 
+/* full decoding version: supports memory access information */
 static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
                                       const unsigned char* addr,
-                                      ia32_memacc* macadr = NULL);
+                                      ia32_memacc* macadr,
+				      const ia32_prefixes* pref);
+
+/* shortcut version: just decodes instruction size info */
+static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
+				      const unsigned char* addr)
+{
+    return ia32_decode_modrm(addrSzAttr, addr, NULL, NULL);
+}
+
+void ia32_memacc::print()
+{
+    fprintf(stderr, "base: %d, index: %d, scale:%d, disp: %ld (%lx), size: %d, addr_size: %d\n",
+	    regs[0], regs[1], scale, imm, imm, size, addr_size);
+}
 
 
 #if defined(i386_unknown_nt4_0) && _MSC_VER < 1300
@@ -1874,12 +1889,6 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
   if(capa & IA32_DECODE_CONDITION) {
     assert(instruct.cond != NULL);
     condbits = idx & 0x0F;
-  }
-
-  // ensure mac/cond processing not done until we implement it for 64-bit mode
-  if (mode_64) {
-    assert(instruct.mac == NULL);
-    assert(instruct.cond == NULL);
   }
 
   while(nxtab != t_done) {
@@ -2105,7 +2114,28 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
       bperr( "IA32 WARNING: unknown type 0 prefix!\n");
       break;
     }
+
+#if 0
+    // debug output for memory access decoding
+    for (int i = 0; i < 3; i++) {
+	if (instruct.mac[i].is) {
+	    fprintf(stderr, "%d)", i);
+	    if (instruct.mac[i].read)
+		fprintf(stderr, " read");
+	    if (instruct.mac[i].write)
+		fprintf(stderr, " write");
+	    if (instruct.mac[i].nt)
+		fprintf(stderr, " nt");
+	    if (instruct.mac[i].sizehack)
+		fprintf(stderr, " sizehack");
+	    fprintf(stderr, "\n");
+	    instruct.mac[i].print();
+	}
+    }
+#endif
+
   }
+
 
   if(capa & IA32_DECODE_CONDITION) {
     int hack = gotit->opsema >> FPOS;
@@ -2136,7 +2166,7 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
   unsigned int operSzAttr = (pref.getPrefix(2) == PREFIX_SZOPER ? 1 : 2); // 32-bit mode implicit
 
   if (addr[0] <= 0xBF) { // modrm
-    nib += ia32_decode_modrm(addrSzAttr, addr, mac);
+    nib += ia32_decode_modrm(addrSzAttr, addr, mac, &pref);
     // operand size has to be determined from opcode
     if(mac)
       switch(opcode) {
@@ -2293,7 +2323,8 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
 
 static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
                                       const unsigned char* addr,
-                                      ia32_memacc* macadr)
+                                      ia32_memacc* macadr,
+				      const ia32_prefixes* pref)
 {
  
   unsigned char modrm = addr[0];
@@ -2329,7 +2360,6 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
           break;
         case 6: { // disp16
           const short int *pdisp16 = (const short int*)addr;
-          //disp16 = (short)addr[0] + ((short)addr[1]) << 8;
           //bperr( "16bit addr - case6!\n");
           macadr->set16(-1, -1, *pdisp16);
           break; }
@@ -2424,46 +2454,51 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
       if(macadr) {
         scale = sib >> 6;
         index = (sib >> 3) & 7;
-        if(index == 4)
+
+	// stack pointer can't be used as an index - supports base-only addressing w/ SIB
+        if(index == 4 && !pref->rexX())
           index = -1;
       }
     }
     switch(mod) {
     case 0: {
-      /* this is tricky: there is a disp32 iff (1) rm == 5  or  (2) rm == 4 && base == 5 */
-      /* note: this doesn't change for 64-bit mode, only diff is disp32 is added to RIP */
+      /* this is tricky: there is a disp32 iff (1) rm == 5  or  (2) hassib && base == 5 */
       unsigned char check5 = hassib ? base : rm;
       if(macadr)
         switch (rm) {
         case 0:
-          macadr->set32(mEAX, 0);
+          macadr->set(apply_rex_bit(mEAX, pref->rexB()), 0, addrSzAttr);
           break;
         case 1:
-          macadr->set32(mECX, 0);
+          macadr->set(apply_rex_bit(mECX, pref->rexB()), 0, addrSzAttr);
           break;
         case 2:
-          macadr->set32(mEDX, 0);
+          macadr->set(apply_rex_bit(mEDX, pref->rexB()), 0, addrSzAttr);
           break;
         case 3:
-          macadr->set32(mEBX, 0);
+          macadr->set(apply_rex_bit(mEBX, pref->rexB()), 0, addrSzAttr);
           break;
-        case 4:
+        case 4: // SIB
           if(base == 5) { // disp32[index<<scale]
-            const int *pdisp32 = (const int*)addr;
-            macadr->set32sib(-1, scale, index, *pdisp32);
+            const int *pdisp32 = (const int*)addr;	    
+            macadr->set_sib(-1, scale, apply_rex_bit(index, pref->rexX()), *pdisp32, addrSzAttr);
           }
           else
-            macadr->set32sib(base, scale, index, 0);
+            macadr->set_sib(apply_rex_bit(base, pref->rexB()), scale, apply_rex_bit(index, pref->rexX()),
+			    0, addrSzAttr);
           break;
-        case 5: { // disp32
+        case 5: { // disp32 (or [RIP + disp32] for 64-bit mode)
           const int *pdisp32 = (const int*)addr;
-          macadr->set32(-1, *pdisp32);
+	  if (mode_64)
+	      macadr->set(mRIP, *pdisp32, addrSzAttr);
+	  else
+	      macadr->set(-1, *pdisp32, addrSzAttr);
           break; }
         case 6:
-          macadr->set32(mESI, 0);
+          macadr->set(apply_rex_bit(mESI, pref->rexB()), 0, addrSzAttr);
           break;
         case 7:
-          macadr->set32(mEDI, 0);
+          macadr->set(apply_rex_bit(mEDI, pref->rexB()), 0, addrSzAttr);
           break;
         }
       return nsib + ((check5 == 5) ? dwordSzB : 0);
@@ -2473,29 +2508,30 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
         const char *pdisp8 = (const char*)addr;
         switch (rm) {
         case 0:
-          macadr->set32(mEAX, *pdisp8);
+	  macadr->set(apply_rex_bit(mEAX, pref->rexB()), *pdisp8, addrSzAttr);
           break;
         case 1:
-          macadr->set32(mECX, *pdisp8);
+          macadr->set(apply_rex_bit(mECX, pref->rexB()), *pdisp8, addrSzAttr);
           break;
         case 2:
-          macadr->set32(mEDX, *pdisp8);
+          macadr->set(apply_rex_bit(mEDX, pref->rexB()), *pdisp8, addrSzAttr);
           break;
         case 3:
-          macadr->set32(mEBX, *pdisp8);
+          macadr->set(apply_rex_bit(mEBX, pref->rexB()), *pdisp8, addrSzAttr);
           break;
         case 4:
           // disp8[EBP + index<<scale] happens naturally here when base=5
-          macadr->set32sib(base, scale, index, *pdisp8);
+          macadr->set_sib(apply_rex_bit(base, pref->rexB()), scale, apply_rex_bit(index, pref->rexX()),
+			  *pdisp8, addrSzAttr);
           break;
         case 5:
-          macadr->set32(mEBP, *pdisp8);
+          macadr->set(apply_rex_bit(mEBP, pref->rexB()), *pdisp8, addrSzAttr);
           break;
         case 6:
-          macadr->set32(mESI, *pdisp8);
+          macadr->set(apply_rex_bit(mESI, pref->rexB()), *pdisp8, addrSzAttr);
           break;
         case 7:
-          macadr->set32(mEDI, *pdisp8);
+          macadr->set(apply_rex_bit(mEDI, pref->rexB()), *pdisp8, addrSzAttr);
           break;
         }
       }
@@ -2505,29 +2541,30 @@ static unsigned int ia32_decode_modrm(const unsigned int addrSzAttr,
         const int *pdisp32 = (const int*)addr;
         switch (rm) {
         case 0:
-          macadr->set32(mEAX, *pdisp32);
+          macadr->set(apply_rex_bit(mEAX, pref->rexB()), *pdisp32, addrSzAttr);
           break;
         case 1:
-          macadr->set32(mECX, *pdisp32);
+          macadr->set(apply_rex_bit(mECX, pref->rexB()), *pdisp32, addrSzAttr);
           break;
         case 2:
-          macadr->set32(mEDX, *pdisp32);
+          macadr->set(apply_rex_bit(mEDX, pref->rexB()), *pdisp32, addrSzAttr);
           break;
         case 3:
-          macadr->set32(mEBX, *pdisp32);
+          macadr->set(apply_rex_bit(mEBX, pref->rexB()), *pdisp32, addrSzAttr);
           break;
         case 4:
           // disp32[EBP + index<<scale] happens naturally here when base=5
-          macadr->set32sib(base, scale, index, *pdisp32);
+          macadr->set_sib(apply_rex_bit(base, pref->rexB()), scale, apply_rex_bit(index, pref->rexX()),
+			  *pdisp32, addrSzAttr);
           break;
         case 5:
-          macadr->set32(mEBP, *pdisp32);
+          macadr->set(apply_rex_bit(mEBP, pref->rexB()), *pdisp32, addrSzAttr);
           break;
         case 6:
-          macadr->set32(mESI, *pdisp32);
+          macadr->set(apply_rex_bit(mESI, pref->rexB()), *pdisp32, addrSzAttr);
           break;
         case 7:
-          macadr->set32(mEDI, *pdisp32);
+          macadr->set(apply_rex_bit(mEDI, pref->rexB()), *pdisp32, addrSzAttr);
           break;
         }
       }
@@ -2600,12 +2637,13 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& 
                                    ia32_memacc *mac)
 {
   unsigned int nib = 0 /* # of bytes in instruction */;
-  
-  unsigned int addrSzAttr = (pref.getPrefix(3) == PREFIX_SZADDR ? 1 : 2);
+
+  int addrSzAttr = (pref.getPrefix(3) == PREFIX_SZADDR ? 1 : 2);
+
   if (mode_64)
     addrSzAttr *= 2;
 
-  unsigned int operSzAttr;
+  int operSzAttr;
   if (pref.rexW()) operSzAttr = 4;
   else if (pref.getPrefix(2) == PREFIX_SZOPER) operSzAttr = 1;
   else operSzAttr = 2;
@@ -2619,10 +2657,10 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& 
       // At most two operands can be memory, the third is register or immediate
       //assert(i<2 || op.admet == am_reg || op.admet == am_I);
       switch(op.admet) {
-      case am_A: /* address = segment + offset (word or dword) */
+      case am_A: /* address = segment + offset (word or dword or qword) */
         nib += wordSzB;
         if(mac)
-          bperr( "IA32: segment selector ignored [am_A].\n");
+          bperr( "x86: segment selector ignored [am_A].\n");
       case am_O: /* operand offset */
         nib += wordSzB * addrSzAttr;
         if(mac) {
@@ -2630,9 +2668,11 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& 
           assert(addrSzAttr < 3);
           if(addrSzAttr == 1) // 16-bit offset
             offset = *((const short int*)addr);
-          else // 32-bit offset
+          else if (addrSzAttr == 2) // 32-bit offset
             offset = *((const int*)addr);
-          mac[i].set32(-1, offset);
+	  else
+	      offset = *((const long*)addr);
+          mac[i].set(-1, offset, addrSzAttr);
           mac[i].size = type2size(op.optype, operSzAttr);
         }
         break;
@@ -2641,7 +2681,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& 
       case am_F:   /* flags register */
       case am_G:   /* general purpose register, selecteb by reg field */
       case am_P:   /* MMX register */
-      case am_R:   /* general purpose register, selected by mod field */
+      case am_R:   /* general purpose register, selected by r/m field */
       case am_S:   /* segment register */
       case am_T:   /* test register */
       case am_V:   /* XMM register */
@@ -2653,7 +2693,7 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& 
       case am_Q: /* MMX register or memory location */
       case am_W: /* XMM register or memory location */
         if(mac) {
-          nib += ia32_decode_modrm(addrSzAttr, addr, &mac[i]);
+          nib += ia32_decode_modrm(addrSzAttr, addr, &mac[i], &pref);
           mac[i].size = type2size(op.optype, operSzAttr);
         }
         else
@@ -2673,23 +2713,29 @@ unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& 
       /* TODO: rep prefixes, deal with them here? */
       case am_X: /* memory at DS:(E)SI*/
         if(mac)
-          mac[i].setXY(mESI, type2size(op.optype, operSzAttr), addrSzAttr == 1);
+          mac[i].setXY(mESI, type2size(op.optype, operSzAttr), addrSzAttr);
         break;
       case am_Y: /* memory at ES:(E)DI*/
         if(mac)
-          mac[i].setXY(mEDI, type2size(op.optype, operSzAttr), addrSzAttr == 1);
+          mac[i].setXY(mEDI, type2size(op.optype, operSzAttr), addrSzAttr);
         break;
       case am_stackH: /* stack push */
         if(mac) {
-          // assuming 32-bit stack segment
-          mac[i].set32(mESP, -2 * operSzAttr);
+          // assuming 32-bit (64-bit for AMD64) stack segment
+	  // AMD64: push defaults to 64-bit operand size
+	  if (mode_64 && operSzAttr == 2)
+	      operSzAttr = 4;
+          mac[i].set(mESP, -2 * operSzAttr, addrSzAttr);
           mac[i].size = type2size(op.optype, operSzAttr);
         }
         break;
       case am_stackP: /* stack pop */
         if(mac) {
-          // assuming 32-bit stack segment
-          mac[i].set32(mESP, 0);
+          // assuming 32-bit (64-bit for AMD64) stack segment
+	  // AMD64: pop defaults to 64-bit operand size
+	  if (mode_64 && operSzAttr == 2)
+	      operSzAttr = 4;
+          mac[i].set(mESP, 0, addrSzAttr);
           mac[i].size = type2size(op.optype, operSzAttr);
         }
         break;
@@ -3290,21 +3336,8 @@ void instruction::generateBranch(codeGen &gen,
   long disp = toAddr - (fromAddr + JUMP_REL32_SZ);
 
 #if defined(arch_x86_64)
-  if (!is_disp32(disp)) {
-
-    // need to use an indirect jmp
-    GET_PTR(insn, gen);
-    for (int i = 3; i >= 0; i--) {
-      short word = (toAddr >> (16 * i)) & 0xffff;
-      *insn++ = 0x66; // operand size override
-      *insn++ = 0x68; // push immediate (16-bits w/ prefix)
-      *(short *)insn = word;
-      insn += 2;
-    }
-    *insn++ = 0xC3; // RET
-    SET_PTR(insn, gen);
-    return;
-  }
+  if (!is_disp32(disp))
+      return generateBranch64(gen, toAddr);
 #endif
   
   generateBranch(gen, disp);
@@ -3323,6 +3356,23 @@ void instruction::generateBranch(codeGen &gen,
     insn += sizeof(int);
     SET_PTR(insn, gen);
     return;
+}
+
+void instruction::generateBranch64(codeGen &gen, Address to)
+{
+    // "long jump" - generates sequence to jump to any 64-bit address
+    // pushes the value on the stack (using 4 16-bit pushes) the uses a 'RET'
+
+    GET_PTR(insn, gen);
+    for (int i = 3; i >= 0; i--) {
+      short word = (to >> (16 * i)) & 0xffff;
+      *insn++ = 0x66; // operand size override
+      *insn++ = 0x68; // push immediate (16-bits b/c of prefix)
+      *(short *)insn = word;
+      insn += 2;
+    }
+    *insn++ = 0xC3; // RET
+    SET_PTR(insn, gen);
 }
 
 void instruction::generateCall(codeGen &gen,
@@ -3657,65 +3707,169 @@ bool instruction::generate(codeGen &gen,
             *((int *)newInsn) = newDisp;
             newInsn += sizeof(int);
         } else if (insnType & REL_D || insnType & REL_D_DATA) {
+	    
+	    // count prefixes
+	    int nPrefixes = 0;
+	    if (insnType & PREFIX_OPR)
+		nPrefixes++;
+	    if (insnType & PREFIX_SEG)
+		nPrefixes++;
+	    if (insnType & PREFIX_OPCODE)
+		nPrefixes++;
+	    if (insnType & PREFIX_REX)
+		nPrefixes++;
+	    if (insnType & PREFIX_INST)
+		nPrefixes++;
+	    if (insnType & PREFIX_ADDR)
+		nPrefixes++;
 
-            // Skip prefixes
-            unsigned nPrefixes = 0;
-            if (insnType & PREFIX_OPR)
-                nPrefixes++;
-            if (insnType & PREFIX_SEG)
-                nPrefixes++;
-            if (insnType & PREFIX_OPCODE)
-               nPrefixes++;
-            if (insnType & PREFIX_REX)
-                nPrefixes++;
-            if (insnType & PREFIX_INST)
-                nPrefixes++;
-            if (insnType & PREFIX_ADDR)
-                nPrefixes++;
+	    // count opcode bytes (1 or 2)
+	    int nOpcodeBytes = 1;
+	    if (*(origInsn + nPrefixes) == 0x0F)
+		nOpcodeBytes = 2;
 
-            for (unsigned u = 0; u < nPrefixes; u++)
-                *newInsn++ = *origInsn++;
-            
-            /* opcode is unchanged, just relocate the displacement */
-            if (*origInsn == 0x0F)
-                *newInsn++ = *origInsn++;
-            *newInsn++ = *origInsn++;
+	    // is there a ModRM byte?
+	    int nModRMBytes = (insnType & REL_D_DATA) ? 1 : 0;
 
-	    // skip over ModRM byte for RIP-relative data
-	    if (insnType & REL_D_DATA)
-		*newInsn++ = *origInsn++;
-
+	    // figure out the new displacement
+	    // note: newDispLong is only valid if the size of the relocated instruction
+	    // is the sae as that of the original
+	    long newDispLong;
             if (targetOverride == 0) {
-                oldDisp = *((const int *)origInsn);
-                newDisp = (origAddr + insnSz) + oldDisp - (newAddr + insnSz);
+                oldDisp = *((const int *)(origInsn + nPrefixes + nOpcodeBytes + nModRMBytes));
+                newDispLong = (origAddr + insnSz) + oldDisp - (newAddr + insnSz);
             }
             else {
-                oldDisp = 0;
-                newDisp = targetOverride - (newAddr + insnSz);
+                oldDisp = targetOverride - (origAddr + insnSz);
+                newDispLong = targetOverride - (newAddr + insnSz);
             }
-            *((int *)newInsn) = newDisp;
-            newInsn += sizeof(int);
 
-	    // copy the rest of the instruction for RIP-relative data (there may be an immediate)
-	    // we can do this since the insn size will always be the same
-	    if (insnType & REL_D_DATA) {
-		origInsn += sizeof(int);
-		while (newInsn - insnBuf < (int)insnSz)
-		    *newInsn++ = *origInsn++;
+	    if ((insnType & REL_D) && !is_disp32(newDispLong)) {
+
+		// case where we need to generate a sequence for a
+		// 64-bit absolute jump
+		// FIXME: restructuring this function would avoid the
+		// need to do a SET/GET here
+		assert(0 && "need ABS_64!!!");
+		SET_PTR(newInsn, gen);
+		generateBranch(gen, origAddr + insnSz + oldDisp);
+		return true;
 	    }
-        }
-        else {
-            /* instruction is unchanged */
-            for (unsigned u = 0; u < insnSz; u++)
-                *newInsn++ = *origInsn++;
-        }
-    }
+	    else {
 
+		// in all other cases, we output a modified version of the original instruction
+		// these cases are:
+		//   * 5-byte jump with new displacement
+		//   * rip-relative addressing mode with new displacement
+		//   * rip-relative addressing mode changed to 32-bit absolute addressing mode
+		//   * rip-relative addressing mode changed to 64-bit absolute addressing using
+		//     an instruction sequence
+
+		// variables for weird rip-relative data case
+		bool is_data_abs64 = false;
+		Register pointer_reg = (Register)-1;
+
+		if ((insnType & REL_D_DATA) && !is_disp32(newDispLong) && !is_addr32(origAddr + oldDisp)) {
+
+		    // ugly case for rip-relative addressing
+		    // need to:
+		    //   1) save a register (use RAX unless it is also being used in the instruction - then use RBX)
+		    //   2) load it with the full 64-bit address
+		    //   3) use it as a pointer in an emulated version of the original instruction
+		    //   4) then restore the register
+		    // here, we do steps 1 and 2
+		    assert(0 && "need ABS_DATA_64!!!");
+		    is_data_abs64 = true;
+		    unsigned char mod_rm = *(origInsn + nPrefixes + nOpcodeBytes);
+		    pointer_reg = (mod_rm & 0x38) != 0 ? 0 : 3;
+		    SET_PTR(newInsn, gen);
+		    emitPushReg64(pointer_reg, gen);
+		    emitMovImmToReg64(pointer_reg, origAddr + oldDisp, true, gen);
+		    REGET_PTR(newInsn, gen);
+		}
+
+		const unsigned char* origInsnStart = origInsn;
+
+		// copy any prefixes and the opcode byte(s) to new instruction
+		for (int i = 0; i < nPrefixes + nOpcodeBytes; i++)
+		    *newInsn++ = *origInsn++;		
+		
+		// handle the instruction modifications
+		if (insnType & REL_D_DATA) {
+		    
+		    if (is_data_abs64) {
+			// change ModRM byte to use [pointer_reg]: requires
+			// us to change last three bits (the r/m field)
+			// to the value of pointer_reg
+			assert(0);
+			unsigned char mod_rm = *origInsn++;
+			assert(pointer_reg != (Register)-1);
+			mod_rm = (mod_rm & 0xf8) + pointer_reg;
+			*newInsn++ = mod_rm;
+		    }
+		    else if (!is_disp32(newDispLong)) {
+
+			assert(0 && "need ABS_DATA_32!!!");
+
+			// we can use the [disp32] addresing mode
+			assert(is_addr32(origAddr + oldDisp));
+			unsigned char mod_rm = *origInsn++;
+
+			// change ModRM byte to use SIB addressing (r/m == 4)
+			mod_rm = (mod_rm & 0xf8) + 4;
+			*newInsn++ = mod_rm;
+			
+			// SIB == 0x25 specifies [disp32] addressing when mod == 0
+			*newInsn++ = 0x25;
+
+			// now throw in the displacement (the absolute 32-bit address)
+			*((int *)newInsn) = (int)(origAddr + oldDisp);
+			newInsn += 4;
+		    }
+		    else {
+			// "normal" rip-relative case
+			// just copy the ModRM as is and put in the modified displacement
+			*newInsn++ = *origInsn++;
+			*((int *)newInsn) = (int)newDispLong;
+			newInsn += 4;
+		    }
+
+		    // there may be an immediate after the displacement for RIP-relative
+		    // so we copy over the rest of the instruction here
+		    origInsn += 4;
+		    while (origInsn - origInsnStart < (int)insnSz)
+			*newInsn++ = *origInsn++;
+
+		    // restore pointer_reg if is was used
+		    if (is_data_abs64) {
+			assert(0);
+			assert(pointer_reg != (Register)-1);
+			SET_PTR(newInsn, gen);
+			emitPopReg64(pointer_reg, gen);
+			return true;
+		    }
+		}
+		else {
+		    // REL_D (relative jump) case
+		    // just throw in newDispLong
+		    assert(is_disp32(newDispLong));
+		    *((int *)newInsn) = (int)newDispLong;
+		    newInsn += sizeof(int);
+		}
+	    }
+	}
+	else {
+	    /* instruction is unchanged */
+	    for (unsigned u = 0; u < insnSz; u++)
+		*newInsn++ = *origInsn++;
+	}
+    }
+	    
     SET_PTR(newInsn, gen);
     return true;
 }
 
-int instruction::jumpSize(Address /*from*/, Address /*to*/) {
+int instruction::jumpSize(Address from, Address to) {
 
 #if defined(arch_x86)
     return JUMP_REL32_SZ;

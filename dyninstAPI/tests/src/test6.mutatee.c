@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: test6.mutatee.c,v 1.28 2005/02/24 10:18:05 rchen Exp $ */
+/* $Id: test6.mutatee.c,v 1.29 2005/12/12 16:37:12 gquinn Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #define dprintf	if (debugPrint) printf
 int debugPrint = 0;
@@ -248,7 +249,6 @@ extern void* getsp();
 #endif
 
 #if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(i386_unknown_nt4_0)
 unsigned int loadExp=65;
 unsigned int storeExp=23;
@@ -418,6 +418,159 @@ void init_test_data()
 }
 #endif
 
+#ifdef x86_64_unknown_linux2_4
+
+unsigned int loadExp = 73;
+unsigned int storeExp = 25;
+unsigned int prefeExp = 2;
+unsigned int accessExp = 98;
+unsigned int accessExpCC = 97;
+
+int eaExpOffset[] =    { 0,0,0,0,0,0,0,                             /* 7 initial stack pushes (EA not checked) */
+			 0,0,0,0,0,0,0,0,0,0,0,0,0,                 /* 13 mod=0 loads */
+			 4,8,-4,-8,4,8,-4,-8,4,8,-4,-8,127,-128,    /* 14 mod=1 loads */
+			 12,0,8,8,8,0,4,8,4,                        /* 9 SIB tests (same as x86) */
+			 4,4,4,0,4,0,4,8,0,4,0,0,                   /* 11 semantic tests (one has two accesses) */
+			 0,8,0,                                     /* 3 MMX tests */
+			 0,0,0,                                     /* 3 SSE tests */
+			 0,0,                                       /* 2 SSE2 tests */
+			 0,8,0,                                     /* 3 3DNow! tests */
+			 0,12,0,0,0,44,25,                          /* 5 REP tests (two have two accesses each) */
+			 0,0,0,0,4,8,                               /* x87 */
+			 0,0,0,2,4,8,
+			 0,0,
+			 0,0,
+			 0,4,8,                                     /* conditional moves */
+			 0,0,0,0,0,0                                /* 6 final stack pops */			 
+};
+
+unsigned int bcExp[] = { 8,8,8,8,8,8,8,                  /* 7 initial stack pushes */
+			 4,8,4,8,4,8,4,8,4,8,4,8,4,      /* 13 mod=0 loads */
+			 4,8,4,8,4,8,4,8,4,8,4,8,4,8,    /* 14 mod=1 loads */
+			 4,8,4,8,4,8,4,8,4,              /* 9 SIB tests */
+			 4,4,1,1,4,4,4,4,4,4,4,4,        /* 11 semantic tests (one has two accesses) */
+			 8,8,8,                          /* 3 MMX tests */                      
+			 16,4,0,                         /* 3 SSE tests */
+			 16,8,                           /* 2 SSE2 tests */
+			 8,8,0,                          /* 3 3DNow! tests */
+			 12,16,16,16,49,4,4,             /* 5 REP tests (two have two accesses each) */
+			 4,8,10,2,4,8,                   /* x87 */
+			 4,8,10,2,4,8,
+			 2,2,
+                         28,28,
+			 4,4,4,                          /* conditional moves */
+                         8,8,8,8,8,8                     /* 6 final stack pops */
+};
+
+int divarw;
+float dfvars;
+double dfvard;
+long double dfvart;
+char dlarge[512] = "keep the interface small and easy to understand.";
+
+extern void* rip_relative_load_address;
+
+void init_test_data()
+{
+  int i;
+
+  dprintf("&divarw = %p\n", &divarw);
+  dprintf("&dfvars = %p\n", &dfvars);
+  dprintf("&dfvard = %p\n", &dfvard);
+  dprintf("&dfvart = %p\n", &dfvart);
+  dprintf("&dlarge = %p\n", &dlarge);
+
+  // we do not check the effective address for stack accesses,
+  // since it depends on the stack pointer,
+  // so we skip the initial 6 pushes
+  i = 7;
+
+  // ModRM and SIB loads and semantic tests (there are 54, but one has two accesses)
+  for (; i < 55; i++)
+      eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]);
+  
+  // the 12th is a load from [RIP + 1]
+  eaExp[11] = rip_relative_load_address;
+
+  // the 36th access uses RSP
+  eaExp[35] = 0;
+
+  // MMX
+  assert(i == 55);
+  for (; i < 58; i++)
+      eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]);
+
+  // SSE
+  assert(i == 58);
+  for (; i < 60; i++)
+      eaExp[i] = (void *)((unsigned long)&dfvart + eaExpOffset[i]);
+  assert(i == 60);
+  eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]); i++; // the prefetch
+
+  // SSE2
+  assert(i == 61);
+  for (; i < 63; i++)
+      eaExp[i] = (void *)((unsigned long)&dfvart + eaExpOffset[i]);
+
+  // 3DNow!
+  assert(i == 63);
+  for (; i < 65; i++)
+      eaExp[i] = (void *)((unsigned long)&dfvard + eaExpOffset[i]);
+  assert(i == 65);
+  eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]); i++;
+
+  // REP prefixes
+  assert(i == 66);
+  for (; i < 69; i++)
+      eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]);
+  assert(i == 69);
+  eaExp[i] = (void *)((unsigned long)&dfvars + eaExpOffset[i]); i++;
+  for (; i < 73; i++)
+      eaExp[i] = (void *)((unsigned long)&dlarge + eaExpOffset[i]);
+
+  // x87
+  assert(i == 73);
+  eaExp[i] = (void *)((unsigned long)&dfvars + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)&dfvard + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)&dfvart + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]); i++;
+
+  eaExp[i] = (void *)((unsigned long)&dfvars + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)&dfvard + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)&dfvart + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]); i++;
+
+  eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]); i++;
+  eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]); i++;
+
+  eaExp[i] = (void *)((unsigned long)&dlarge + eaExpOffset[i]); i++;
+   eaExp[i] = (void *)((unsigned long)&dlarge + eaExpOffset[i]); i++;
+
+  // conditional moves
+  assert(i == 89);
+  for (; i < 92; i++)
+      eaExp[i] = (void *)((unsigned long)&divarw + eaExpOffset[i]);
+
+  // duplicate stream for CC (except the second-to-last item)
+  for(i = 0; i < 90 ; i++) {
+    eaExpCC[i] = eaExp[i];
+    bcExpCC[i] = bcExp[i];
+  }
+  assert(i == 90);
+  eaExpCC[i] = eaExp[i+1];
+  bcExpCC[i] = bcExp[i+1];
+  for(i = 91; i < 97; i++)
+      bcExpCC[i] = bcExp[i+1];
+  
+
+  
+  
+}
+#endif
 
 #ifdef ia64_unknown_linux2_4
 
@@ -527,7 +680,7 @@ int validateEA(void* ea1[], void* ea2[], unsigned int n)
   for(; i<n; ++i) {
     ok = (ok && ((ea1[i] == ea2[i]) || ea1[i] == NULL));
     if(!ok) {
-      printf("EA Validation failed at access #%d. Expecting: %x. Got: %x.\n", i+1, ea1[i], ea2[i]);
+      printf("EA Validation failed at access #%d. Expecting: %lx. Got: %lx.\n", i+1, ea1[i], ea2[i]);
       return 0;
     }
   }

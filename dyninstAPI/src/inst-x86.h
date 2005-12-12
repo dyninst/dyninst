@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.21 2005/10/14 16:37:46 legendre Exp $
+// $Id: inst-x86.h,v 1.22 2005/12/12 16:37:09 gquinn Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
@@ -176,9 +176,7 @@
 
 // 32 and 64-bit register spaces
 extern registerSpace* regSpace32;
-#if defined(arch_x86_64)
 extern registerSpace* regSpace64;
-#endif
 
 class codeGen;
 
@@ -188,10 +186,8 @@ class codeGen;
 // Define access method for virtual registers (stack-based)
 #define LOAD_VIRTUAL32(x, insn) emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, -(x*4), insn)
 #define SAVE_VIRTUAL32(x, insn) emitMovRegToRM(REGNUM_EBP, -(x*4), REGNUM_EAX, insn)
-#if defined(arch_x86_64)
 #define LOAD_VIRTUAL64(x, insn) emitMovRMToReg(REGNUM_RAX, REGNUM_RBP, -(x*8), insn)
 #define SAVE_VIRTUAL64(x, insn) emitMovRegToRM(REGNUM_RBP, -(x*8), REGNUM_RAX, insn)
-#endif
 
 // low-level code generation functions
 void emitOpRegReg(unsigned opcode, Register dest, Register src, codeGen &gen);

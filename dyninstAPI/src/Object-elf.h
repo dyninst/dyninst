@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.68 2005/11/03 05:21:05 jaw Exp $
+ * $Id: Object-elf.h,v 1.69 2005/12/12 16:37:08 gquinn Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -210,6 +210,8 @@ class Object : public AObject {
   //getLoadAddress may return 0 on shared objects
   Address getLoadAddress() const { return loadAddress_; }
 
+  Address getEntryAddress() const { return entryAddress_; }
+
 #if defined(ia64_unknown_linux2_4)
   Address getTOCoffset() const { return gp; }
 #endif
@@ -282,6 +284,7 @@ class Object : public AObject {
   pdvector<ExceptionBlock> catch_addrs_; //Addresses of C++ try/catch blocks
   Address   loadAddress_;      // The object may specify a load address
                                //   Set to 0 if it may load anywhere
+  Address entryAddress_;
           
 #if defined(ia64_unknown_linux2_4)
   Address   gp;			 // The gp for this object.
@@ -361,7 +364,7 @@ class Object : public AObject {
   Address     gp_value;
   Address     rbrk_addr;
   Address     base_addr;
-
+  
   int         got_zero_index_;
   int         dynsym_zero_index_;
 

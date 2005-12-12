@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test6.C,v 1.32 2005/12/01 00:56:25 jaw Exp $
+// $Id: test6.C,v 1.33 2005/12/12 16:37:12 gquinn Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -555,7 +555,6 @@ void init_test_data()
 #endif
 
 #if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(i386_unknown_nt4_0)
 const unsigned int nloads = 65;
 const unsigned int nstores = 23;
@@ -764,6 +763,204 @@ void init_test_data() {
 	} /* end init_test_data() */
 #endif
 
+#ifdef x86_64_unknown_linux2_4
+
+const unsigned int nloads = 73;
+const unsigned int nstores = 25;
+const unsigned int nprefes = 2;
+const unsigned int naxses = 95;
+
+BPatch_memoryAccess* loadList[nloads];
+BPatch_memoryAccess* storeList[nstores];
+BPatch_memoryAccess* prefeList[nprefes + 1]; // for NT
+
+void *divarwp, *dfvarsp, *dfvardp, *dfvartp, *dlargep;
+
+void get_vars_addrs(BPatch_image* bip) // from mutatee
+{
+
+  BPatch_variableExpr* bpvep_diwarw = bip->findVariable("divarw");
+  BPatch_variableExpr* bpvep_diwars = bip->findVariable("dfvars");
+  BPatch_variableExpr* bpvep_diward = bip->findVariable("dfvard");
+  BPatch_variableExpr* bpvep_diwart = bip->findVariable("dfvart");
+  BPatch_variableExpr* bpvep_dlarge = bip->findVariable("dlarge");
+  divarwp = bpvep_diwarw->getBaseAddr();
+  dfvarsp = bpvep_diwars->getBaseAddr();
+  dfvardp = bpvep_diward->getBaseAddr();
+  dfvartp = bpvep_diwart->getBaseAddr();
+  dlargep = bpvep_dlarge->getBaseAddr();
+}
+
+void init_test_data()
+{
+  int k=-1;
+
+  // ModRM loads
+
+  // mod = 00
+  loadList[++k] = MK_LD(0,0,-1,4);
+  loadList[++k] = MK_LD(0,1,-1,8);
+  loadList[++k] = MK_LD(0,2,-1,4);
+  loadList[++k] = MK_LD(0,3,-1,8);
+  loadList[++k] = NULL; // rip-relative data access (disable the check)
+  loadList[++k] = MK_LD(0,6,-1,8);
+  loadList[++k] = MK_LD(0,7,-1,4);
+  loadList[++k] = MK_LD(0,8,-1,8);
+  loadList[++k] = MK_LD(0,9,-1,4);
+  loadList[++k] = MK_LD(0,10,-1,8);
+  loadList[++k] = MK_LD(0,11,-1,4);
+  loadList[++k] = MK_LD(0,14,-1,8);
+  loadList[++k] = MK_LD(0,15,-1,4);
+
+  // mod = 01
+  loadList[++k] = MK_LD(4,0,-1,4);
+  loadList[++k] = MK_LD(8,1,-1,8);
+  loadList[++k] = MK_LD(-4,2,-1,4);
+  loadList[++k] = MK_LD(-8,3,-1,8);
+  loadList[++k] = MK_LD(4,5,-1,4);
+  loadList[++k] = MK_LD(8,6,-1,8);
+  loadList[++k] = MK_LD(-4,7,-1,4);
+  loadList[++k] = MK_LD(-8,8,-1,8);
+  loadList[++k] = MK_LD(4,9,-1,4);
+  loadList[++k] = MK_LD(8,10,-1,8);
+  loadList[++k] = MK_LD(-4,11,-1,4);
+  loadList[++k] = MK_LD(-8,13,-1,8);
+  loadList[++k] = MK_LD(127,14,-1,4);
+  loadList[++k] = MK_LD(-128,15,-1,8);
+
+  // SIB loads
+  loadList[++k] = MK_LD(0,3,6,4);
+  loadList[++k] = MK_LD(0,4,-1,8);
+  loadList[++k] = MK_LDsc(0,3,1,1,4);
+  loadList[++k] = MK_LDsc((long)divarwp,-1,1,1,8);
+  loadList[++k] = MK_LD(4,3,1,4);
+  loadList[++k] = MK_LDsc((long)divarwp,2,2,3,8);
+  loadList[++k] = MK_LDsc(2,5,1,1,4);
+  loadList[++k] = MK_LDsc(4,3,1,2,8);
+  loadList[++k] = MK_LDsc((long)divarwp,5,1,2,4);
+
+  // loads from semantic test cases
+  loadList[++k] = MK_LS((long)divarwp+4,-1,-1,4); // inc
+  loadList[++k] = MK_LD((long)divarwp+4,-1,-1,4); // cmp
+  loadList[++k] = MK_LD2(0,6,-1,1,0,7,-1,1);      // cmpsb
+  loadList[++k] = MK_LS((long)divarwp,-1,-1,4);   // add
+  loadList[++k] = MK_LS((long)divarwp+4,-1,-1,4); // xchg
+  loadList[++k] = MK_LD((long)divarwp+8,-1,-1,4); // imul
+  loadList[++k] = MK_LD((long)divarwp,-1,-1,4);   // imul
+  loadList[++k] = MK_LS((long)divarwp+4,-1,-1,4); // shld
+  loadList[++k] = MK_LD((long)divarwp,-1,-1,4);   // idiv
+
+  // MMX
+  loadList[++k] = MK_LD((long)divarwp,-1,-1,8);
+  loadList[++k] = MK_LD((long)divarwp+8,-1,-1,8);
+
+  // SSE
+  loadList[++k] = MK_LD((long)dfvartp,-1,-1,16);
+  loadList[++k] = MK_LD((long)dfvartp,-1,-1,4);
+
+  // SSE2
+  loadList[++k] = MK_LD((long)dfvartp,-1,-1,16);
+  loadList[++k] = MK_LD((long)dfvartp,-1,-1,8);
+
+  // 3DNow!
+  loadList[++k] = MK_LD((long)dfvardp,-1,-1,8);
+  loadList[++k] = MK_LD((long)dfvardp+8,-1,-1,8);
+
+  // REP prefixes
+  loadList[++k] = MK_SL2vECX(0,7,-1,0,6,-1,2);
+  loadList[++k] = new BPatch_memoryAccess("", 0, 0,
+					  true, false,
+                                          0, 7, -1, 0,
+                                          0, -1, IA32_NESCAS, 0, 
+                                          -1, false);
+  loadList[++k] = new BPatch_memoryAccess("", 0, 0,
+					  true, false,
+                                          0, 6, -1, 0,
+                                          0, -1, IA32_ECMPS, 0,
+                                          true, false,
+                                          0, 7, -1, 0,
+                                          0, -1, IA32_ECMPS, 0);
+
+  // x87
+  loadList[++k] = MK_LD((long)dfvarsp,-1,-1,4);
+  loadList[++k] = MK_LD((long)dfvardp,-1,-1,8);
+  loadList[++k] = MK_LD((long)dfvartp,-1,-1,10);
+  loadList[++k] = MK_LD((long)divarwp,-1,-1,2);
+  loadList[++k] = MK_LD((long)divarwp+4,-1,-1,4);
+  loadList[++k] = MK_LD((long)divarwp+8,-1,-1,8);
+
+  loadList[++k] = MK_LD((long)divarwp,-1,-1,2);
+  loadList[++k] = MK_LD((long)dlargep,-1,-1,28);
+
+  // conditional moves
+  loadList[++k] = MK_LDsccnd((long)divarwp,-1,-1,0,4,7); // cmova
+  loadList[++k] = MK_LDsccnd((long)divarwp+4,-1,-1,0,4,4); // cmove
+  loadList[++k] = MK_LD((long)divarwp+8,-1,-1,4);
+
+  // final 6 stack pops
+  loadList[++k] = MK_LD(0,4,-1,8);
+  loadList[++k] = MK_LD(0,4,-1,8);
+  loadList[++k] = MK_LD(0,4,-1,8);
+  loadList[++k] = MK_LD(0,4,-1,8);
+  loadList[++k] = MK_LD(0,4,-1,8);
+  loadList[++k] = MK_LD(0,4,-1,8);
+
+  k=-1;
+
+  // initial 7 pushes
+  storeList[++k] = MK_ST(-8,4,-1,8);
+  storeList[++k] = MK_ST(-8,4,-1,8);
+  storeList[++k] = MK_ST(-8,4,-1,8);
+  storeList[++k] = MK_ST(-8,4,-1,8);
+  storeList[++k] = MK_ST(-8,4,-1,8);
+  storeList[++k] = MK_ST(-8,4,-1,8);
+  storeList[++k] = MK_ST(-8,4,-1,8);
+
+  // stores from semantic test cases
+  storeList[++k] = MK_LS((long)divarwp+4,-1,-1,4); // inc
+  storeList[++k] = MK_ST((long)divarwp+4,-1,-1,4); // mov
+  storeList[++k] = MK_LS((long)divarwp,-1,-1,4);   // add
+  storeList[++k] = MK_LS((long)divarwp+4,-1,-1,4); // xchg
+  storeList[++k] = MK_LS((long)divarwp+4,-1,-1,4); // shld
+  storeList[++k] = MK_ST((long)divarwp,-1,-1,4); // mov
+
+  // MMX store
+  storeList[++k] = MK_STnt((long)divarwp,-1,-1,8); // mov
+
+  // REP stores
+  storeList[++k] = new BPatch_memoryAccess("", 0, 0,
+					   false, true,
+                                           0, 7, -1, 0,
+                                           0, -1, 1, 2,
+                                           -1, false);  // rep stosl
+  storeList[++k] = new BPatch_memoryAccess("", 0, 0,
+					   false, true,
+                                           0, 7, -1, 0,
+					   0, -1, 1, 2,
+					   -1, false);  // rep stosl
+  storeList[++k] = MK_SL2vECX(0,7,-1,0,6,-1,2);
+
+
+  // x87
+  storeList[++k] = MK_ST((long)dfvarsp,-1,-1,4);
+  storeList[++k] = MK_ST((long)dfvardp,-1,-1,8);
+  storeList[++k] = MK_ST((long)dfvartp,-1,-1,10);
+  storeList[++k] = MK_ST((long)divarwp+2,-1,-1,2);
+  storeList[++k] = MK_ST((long)divarwp+4,-1,-1,4);
+  storeList[++k] = MK_ST((long)divarwp+8,-1,-1,8);
+
+  storeList[++k] = MK_ST((long)divarwp,-1,-1,2);
+  storeList[++k] = MK_ST((long)dlargep,-1,-1,28);
+
+  k=-1;
+
+  // prefetches
+  prefeList[++k] = MK_PF((long)divarwp,-1,-1,IA32prefetchT0);
+  prefeList[++k] = MK_PF((long)divarwp,-1,-1,IA32AMDprefetch);
+}
+#endif
+
+
 #ifdef mips_sgi_irix6_4
 void init_test_data()
 {
@@ -855,12 +1052,14 @@ static inline bool validate(BPatch_Vector<BPatch_point*>* res,
   bool ok = true;
 
   for(unsigned int i=0; i<res->size(); ++i) {
-    BPatch_point* bpoint = (*res)[i];
-    ok = (ok && bpoint->getMemoryAccess()->equals(acc[i]));
-    if(!ok) {
-      printf("Validation failed at %s #%d.\n", msg, i+1);
-      dumpxpct(acc, res->size(), "Expected");
-      return ok;
+    if (acc[i] != NULL) {
+      BPatch_point* bpoint = (*res)[i];
+      ok = (ok && bpoint->getMemoryAccess()->equals(acc[i]));
+      if(!ok) {
+	printf("Validation failed at %s #%d.\n", msg, i+1);
+        dumpxpct(acc, res->size(), "Expected");
+        return ok;
+      }
     }
   }
   return ok;

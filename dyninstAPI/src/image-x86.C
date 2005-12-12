@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.11 2005/11/21 17:16:12 jaw Exp $
+ * $Id: image-x86.C,v 1.12 2005/12/12 16:37:09 gquinn Exp $
  */
 
 #include "common/h/Vector.h"
@@ -412,6 +412,7 @@ bool image_func::findInstPoints( pdvector< Address >& callTargets)
                     isInstrumentable_ = false;
                     canBeRelocated_ = false;
                     understood = false;
+		    break;
                 }
                 else {
                     instruction tableInsn = ah.getInstruction();

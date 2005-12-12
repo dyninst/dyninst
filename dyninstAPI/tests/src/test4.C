@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4.C,v 1.31 2005/11/21 17:16:14 jaw Exp $
+// $Id: test4.C,v 1.32 2005/12/12 16:37:12 gquinn Exp $
 //
 
 #include <stdio.h>
@@ -288,7 +288,7 @@ void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
             exited = 0;            
         } else if (thread->getPid() != exitCode) {
             printf("Failed test #2 (fork callback)\n");
-            printf("    exit code was not equal to pid\n");            
+            printf("    exit code was not equal to pid (%d != %d)\n", thread->getPid(), exitCode);            
             exited = 0;
         } else {
             dprintf("test #2, pid %d exited\n", exitCode);

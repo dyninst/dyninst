@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.1 2005/02/24 10:13:59 rchen Exp $
+# $Id: Makefile,v 1.2 2005/12/12 16:37:44 gquinn Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -28,7 +28,7 @@ LDFLAGS         += -shared -ldl
 # CFLAGS		+= -D_SVID_SOURCE
 
 # if we want to produce a shared object...
-CFLAGS          = -Di386_unknown_linux2_0 -g -O2
+CFLAGS          += -Di386_unknown_linux2_0 -g -O2
 # CFLAGS		+= -D_SVID_SOURCE
 CFLAGS		+= -fPIC
 CFLAGS          += -I. -I../..
@@ -36,34 +36,15 @@ CFLAGS          += -I. -I../..
 VPATH        = ../src
 #:../../dyninstAPI_RT/src
 
-SRCS	     += ../src/RTfirst.c \
+SRCS	     += ../src/RTetc-linux.c \
 		../src/RTetc-posix.c \
-		../src/RTetc-linux.c \
 		../src/RThwtimer-linux.c \
 		../src/RTrexec.c \
-		../src/RTpapi.c 
-              
-
-#                ../../dyninstAPI_RT/src/RTheap.c \
-#		../../dyninstAPI_RT/src/RTheap-linux.c \
-#		../../dyninstAPI_RT/src/RTsig.c \
-#		../../dyninstAPI_RT/src/RTposix.c \
-#		../../dyninstAPI_RT/src/RTlinux.c \
-
-ifdef DETACH_ON_THE_FLY
-CFLAGS += -DDETACH_ON_THE_FLY
-SRCS 	+= ../src/RTsigill-x86.S
-endif
-
-ifdef USES_LIBHRTIME
-CFLAGS  += -I$(HRTIME_INCDIR) -DHRTIME
-LIBS	+= -L$(HRTIME_LIBDIR) $(HRTIME_LIB)
-endif
-
-ifdef USES_PAPI
-CFLAGS += -I$(PAPI_INCDIR) -DPAPI
-LIBS += -L$(PAPI_LIBDIR) $(PAPI_LIB)
-endif
+		../src/RTinst.c \
+		../src/RTmpi.c \
+		../src/RTthread.c \
+		../src/RTthread-timer.c \
+		../src/thread-compat.c
 
 ifdef USES_LIBPERFCTR
 CFLAGS  += -I$(PERFCTR_INCDIR) -DPERFCTR

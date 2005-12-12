@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.150 2005/12/01 00:56:25 jaw Exp $
+// $Id: unix.C,v 1.151 2005/12/12 16:37:09 gquinn Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -904,7 +904,7 @@ bool SignalHandlerUnix::handleEventLocked(EventRecord &ev)
      }
      case evtInstPointTrap:
          // Linux inst via traps
-         ev.lwp->changePC(ev.address, NULL);
+         ev.lwp->changePC(proc->trampTrapMapping[ev.address], NULL);
          proc->continueProc();
          ret = true;
          break;

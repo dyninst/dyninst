@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.94 2005/10/17 19:24:30 bernat Exp $
+ * $Id: RTinst.c,v 1.95 2005/12/12 16:37:41 gquinn Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -89,8 +89,8 @@ static void *PARADYN_shmSegAttachedPtr;
    daemon has the responsibility for making the final decision.  The purpose
    for this is that sometimes the rtinst library only has access to needed to
    make decision and sometimes the decision is best handled by the daemon. */
-int hintBestCpuTimerLevel  = UNASSIGNED_TIMER_LEVEL;
-int hintBestWallTimerLevel = UNASSIGNED_TIMER_LEVEL;
+long hintBestCpuTimerLevel  = UNASSIGNED_TIMER_LEVEL;
+long hintBestWallTimerLevel = UNASSIGNED_TIMER_LEVEL;
 
 /* These are used to assign to PARADYNgetCPUtime.  On some systems like AIX,
    a function pointer is actually a pointer to a structure which then points

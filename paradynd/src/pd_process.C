@@ -1118,7 +1118,7 @@ timeLength pd_process::units2timeLength(int64_t rawunits) {
 }
 
 void pd_process::verifyTimerLevels() {
-   int hintBestCpuTimerLevel, hintBestWallTimerLevel;
+   long hintBestCpuTimerLevel, hintBestWallTimerLevel;
    int appAddrWidth = getImage()->getAddressWidth();
 
    BPatch_image *appImage = dyninst_process->getImage();

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.229 2005/12/09 04:01:34 rutar Exp $
+ * $Id: inst-x86.C,v 1.230 2005/12/12 16:37:09 gquinn Exp $
  */
 #include <iomanip>
 
@@ -107,9 +107,7 @@ unsigned relocatedInstruction::maxSizeRequired() {
 }
 
 registerSpace *regSpace32;
-#if defined(arch_x86_64)
 registerSpace *regSpace64;
-#endif
 registerSpace *regSpace;
 
 bool registerSpace::readOnlyRegister(Register) {
@@ -119,7 +117,6 @@ bool registerSpace::readOnlyRegister(Register) {
 Register deadList32[NUM_VIRTUAL_REGISTERS];
 int deadList32Size = sizeof(deadList32);
 
-#if defined(arch_x86_64)
 // we do non-arg registers here first - followed by arg registers in reverse order
 Register deadList64[] = {/* callee saved */REGNUM_RBX, 
 			 /* caller saved */REGNUM_R10, REGNUM_R11, 
@@ -127,7 +124,6 @@ Register deadList64[] = {/* callee saved */REGNUM_RBX,
 			 /* params, caller saved*/REGNUM_R9, REGNUM_R8, REGNUM_RCX, 
 			 /* params, caller saved*/REGNUM_RDX, REGNUM_RSI, REGNUM_RDI};
 int deadList64Size = sizeof(deadList64);
-#endif
 
 void initTramps(bool is_multithreaded)
 {
@@ -150,10 +146,8 @@ void initTramps(bool is_multithreaded)
     regSpace32 = new registerSpace(deadList32Size/sizeof(Register), deadList32,
 				   0, NULL, is_multithreaded);
 
-#if defined(arch_x86_64)
     regSpace64 = new registerSpace(deadList64Size/sizeof(Register), deadList64,
 				   0, NULL, is_multithreaded);
-#endif
 
     // default to 32-bit
     regSpace = regSpace32;
@@ -250,12 +244,8 @@ void baseTrampInstance::updateTrampCost(unsigned cost) {
 	emitAddMemImm32(costAddr, cost, gen);    
     }
     else {
-#if defined(arch_x86_64)
 	emitMovImmToReg64(REGNUM_RAX, costAddr, true, gen);
 	emitOpRMImm(0x81, 0, REGNUM_RAX, 0, cost, gen);
-#else
-	assert(0);
-#endif
     }
 
     // We can assert this here as we regenerate the entire
@@ -998,6 +988,13 @@ static inline void emitSHL(Register dest, unsigned char pos,
     SET_PTR(insn, gen);
 }
 
+void Emitter32::emitRestoreFlags(codeGen &gen)
+{
+    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, SAVED_EFLAGS_OFFSET, gen); // mov eax, offset[ebp]
+    emitSimpleInsn(0x50, gen);  // push eax
+    emitSimpleInsn(POPFD, gen); // popfd
+}
+
 // VG(8/15/02): Emit the jcc over a conditional snippet
 void emitJmpMC(int condition, int offset, codeGen &gen)
 {
@@ -1012,9 +1009,7 @@ void emitJmpMC(int condition, int offset, codeGen &gen)
     //bperr("OC: %x, NC: %x\n", condition, condition ^ 0x01);
     condition ^= 0x01; // flip last bit to negate the tttn condition
     
-    emitMovRMToReg(REGNUM_EAX, REGNUM_EBP, SAVED_EFLAGS_OFFSET, gen); // mov eax, offset[ebp]
-    emitSimpleInsn(0x50, gen);  // push eax
-    emitSimpleInsn(POPFD, gen); // popfd
+    x86_emitter->emitRestoreFlags(gen);
     emitJcc(condition, offset, gen);
 }
 
@@ -1031,13 +1026,19 @@ static inline void restoreGPRtoGPR(Register reg, Register dest,
 
 // VG(11/07/01): Load in destination the effective address given
 // by the address descriptor. Used for memory access stuff.
-void emitASload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen, bool /* noCost */) {
-   // TODO 16-bit registers, rep hacks
-   int imm = as->getImm();
-   int ra  = as->getReg(0);
-   int rb  = as->getReg(1);
-   int sc  = as->getScale();
+void emitASload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen, bool /* noCost */)
+{
+    // TODO 16-bit registers, rep hacks
+    long imm = as->getImm();
+    int ra  = as->getReg(0);
+    int rb  = as->getReg(1);
+    int sc  = as->getScale();
 
+    x86_emitter->emitASload(ra, rb, sc, imm, dest, gen);
+}
+
+void Emitter32::emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
+{
    bool havera = ra > -1, haverb = rb > -1;
 
    // VG(7/30/02): given that we use virtual (stack allocated) registers for
@@ -1061,7 +1062,7 @@ void emitASload(const BPatch_addrSpec_NP *as, Register dest, codeGen &gen, bool 
    // e.g. lea eax, [eax + edx * sc + imm] if both ra and rb had to be
    // restored
    emitLEA((havera ? REGNUM_EAX : Null_Register), (haverb ? REGNUM_EDX : Null_Register),
-           sc, imm, REGNUM_EAX, gen);
+           sc, (long)imm, REGNUM_EAX, gen);
 
    emitMovRegToRM(REGNUM_EBP, -(dest<<2), REGNUM_EAX, gen); // mov (virtual reg) dest, eax
 }
@@ -1071,11 +1072,16 @@ void emitCSload(const BPatch_countSpec_NP *as, Register dest,
 {
    // VG(7/30/02): different from ASload on this platform, no LEA business
 
-   int imm = as->getImm();
+   long imm = as->getImm();
    int ra  = as->getReg(0);
    int rb  = as->getReg(1);
    int sc  = as->getScale();
 
+   x86_emitter->emitCSload(ra, rb, sc, imm, dest, gen);
+}
+
+void Emitter32::emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
+{
    // count is at most 1 register or constant or hack (aka pseudoregister)
    assert((ra == -1) &&
           ((rb == -1) ||
@@ -1174,7 +1180,7 @@ void emitCSload(const BPatch_countSpec_NP *as, Register dest,
       emitMovRegToRM(REGNUM_EBP, -(dest<<2), REGNUM_EAX, gen);
    }
    else
-      emitMovImmToRM(REGNUM_EBP, -(dest<<2), imm, gen);
+      emitMovImmToRM(REGNUM_EBP, -(dest<<2), (int)imm, gen);
 }
 #endif
 
@@ -2148,7 +2154,6 @@ void registerSpace::resetLiveDeadInfo(const int * liveRegs,
     {
       for (u_int i = 0; i < regSpace->getRegisterCount(); i++)
 	{
-	  regSlot = regSpace->getRegSlot(i);
 	  if (  liveRegs[ (int) registers[i].number ] == 1 )
 	    {
 	      registers[i].needsSaving = true;

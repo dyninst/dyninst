@@ -709,6 +709,7 @@ bblInstance::bblInstance(const bblInstance *parent, int_basicBlock *block) :
       reloc_info = new reloc_info_t(parent->reloc_info, block);
    }
 #endif
+
     // If the bblInstance is the original version, add to the mapped_object
     // code range; if it is the product of relocation, add it to the
     // process.
@@ -878,14 +879,16 @@ bblInstance::reloc_info_t::reloc_info_t(reloc_info_t *parent,
    maxSize_(0)
 {
    changedAddrs_ = parent->changedAddrs_;
-   if (parent->origInstance_) {
+
+   if (parent->origInstance_)
       origInstance_ = block->instVer(parent->origInstance_->version());
-      jumpToBlock_ = new functionReplacement(*(parent->jumpToBlock_));
-   }
-   else {
+   else
       origInstance_ = NULL;
-      jumpToBlock_ = NULL;
-   }
+
+   if (parent->jumpToBlock_)
+       jumpToBlock_ = new functionReplacement(*(parent->jumpToBlock_));
+   else
+       jumpToBlock_ = NULL;
 }
 
 bblInstance::reloc_info_t::~reloc_info_t() {

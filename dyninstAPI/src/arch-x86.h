@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.37 2005/10/18 01:02:23 rutar Exp $
+// $Id: arch-x86.h,v 1.38 2005/12/12 16:37:08 gquinn Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -359,7 +359,7 @@ enum { r_AH=100, r_BH, r_CH, r_DH, r_AL, r_BL, r_CL, r_DL, //107
 enum { mRAX=0, mRCX, mRDX, mRBX,
        mRSP, mRBP, mRSI, mRDI,
        mR8, mR9, mR10, mR11, 
-       mR12,mR13, MR14, mR15 };
+       mR12,mR13, MR14, mR15, mRIP };
 
 enum { mEAX=0, mECX, mEDX, mEBX,
        mESP, mEBP, mESI, mEDI };
@@ -430,6 +430,15 @@ class ia32_prefixes
   unsigned char getOperSzPrefix() const { return prfx[2]; }
 };
 
+// helper routine to tack-on rex bit when needed
+inline int apply_rex_bit(int reg, bool rex_bit)
+{
+    if (rex_bit)
+	return reg + 8;
+    else
+	return reg;
+}
+
 //VG(6/20/02): To support Paradyn without forcing it to include BPatch_memoryAccess, we
 //             define this IA-32 "specific" class to encapsulate the same info - yuck
 
@@ -441,8 +450,8 @@ struct ia32_memacc
   bool nt;     // non-temporal, e.g. movntq...
   bool prefetch;
 
-  bool addr32; // true if 32-bit addressing, false otherwise
-  int imm;
+  int addr_size; // size of address in 16-bit words
+  long imm;
   int scale;
   int regs[2]; // register encodings (in ISA order): 0-7
                // (E)AX, (E)CX, (E)DX, (E)BX
@@ -454,47 +463,50 @@ struct ia32_memacc
   int prefetchstt; // prefetch state (AMD)
 
   ia32_memacc() : is(false), read(false), write(false), nt(false), 
-       prefetch(false), addr32(true), imm(0), scale(0), size(0), sizehack(0),
+       prefetch(false), addr_size(2), imm(0), scale(0), size(0), sizehack(0),
        prefetchlvl(-1), prefetchstt(-1)
   {
     regs[0] = -1;
     regs[1] = -1;
   }
 
-  void set16(int reg0, int reg1, int disp)
+  void set16(int reg0, int reg1, long disp)
   { 
     is = true;
-    addr32  = false; 
+    addr_size  = 1; 
     regs[0] = reg0; 
     regs[1] = reg1; 
     imm     = disp;
   }
 
-  void set32(int reg, int disp)
+  void set(int reg, long disp, int addr_sz)
   { 
     is = true;
+    addr_size = addr_sz;
     regs[0] = reg; 
     imm     = disp;
   }
 
-  void set32sib(int base, int scal, int indx, int disp)
+  void set_sib(int base, int scal, int indx, long disp, int addr_sz)
   {
     is = true;
+    addr_size = addr_sz;
     regs[0] = base;
     regs[1] = indx;
     scale   = scal;
     imm     = disp;
   }
 
-  void setXY(int reg, int _size, int _addr32)
+  void setXY(int reg, int _size, int _addr_size)
   {
     is = true;
     regs[0] = reg;
     size = _size;
-    addr32 = _addr32;
+    addr_size = _addr_size;
   }
-};
 
+  void print();
+};
 
 enum sizehacks {
   shREP=1,
@@ -708,6 +720,7 @@ class instruction {
   // Code generation
   static void generateBranch(codeGen &gen, Address from, Address to); 
   static void generateBranch(codeGen &gen, int disp); 
+  static void generateBranch64(codeGen &gen, Address to);
   static void generateCall(codeGen &gen, Address from, Address to);
   
   // Function relocation...
@@ -768,6 +781,14 @@ class instruction {
 
   static bool isAligned(const Address ) { return true; }
 
+  void print()
+  {
+      for (unsigned i = 0; i < size_; i++)
+	  fprintf(stderr, " %x", *(ptr_ + i));
+      fprintf(stderr, "\n");
+  }
+		  
+
  private:
   unsigned type_;   // type of the instruction (e.g. IS_CALL | INDIR)
   unsigned size_;   // size in bytes
@@ -782,14 +803,16 @@ int displacement(const unsigned char *instr, unsigned type);
 
 int sizeOfMachineInsn(instruction *insn);
 long addressOfMachineInsn(instruction *insn);
-#if defined(arch_x86_64)
+
 inline bool is_disp32(long disp) {
   return (disp <= I32_MAX && disp >= I32_MIN);
 }
 inline bool is_disp32(Address a1, Address a2) {
   return is_disp32(a2 - (a1 + JUMP_REL32_SZ));
 }
-#endif
+inline bool is_addr32(Address addr) {
+    return (addr < UI32_MAX);
+}
 
 int get_instruction_operand(const unsigned char *i_ptr, Register& base_reg,
 			    Register& index_reg, int& displacement, 

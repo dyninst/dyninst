@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.97 2005/11/21 17:16:12 jaw Exp $
+ * $Id: Object-elf.C,v 1.98 2005/12/12 16:37:08 gquinn Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -144,6 +144,8 @@ bool Object::loaded_elf(Elf_X &elf, Address& txtaddr, Address& bssaddr,
 	log_elferror(err_func_, "ELF header");
 	return false;
     }
+
+    entryAddress_ = elf.e_entry();
 
     // ".shstrtab" section: string table for section header names
     const char *shnames = pdelf_get_shnames(elf);
@@ -622,6 +624,7 @@ void Object::load_object()
 	pdstring module = "DEFAULT_MODULE";
 	pdstring name   = "DEFAULT_NAME";
 
+	//fprintf(stderr, "[%s:%u] - Exe Name\n", __FILE__, __LINE__);
 #if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
 	if (eh_frame_scnp != 0 && gcc_except != 0) {
 	    find_catch_blocks(elf, eh_frame_scnp, gcc_except, catch_addrs_);
@@ -753,6 +756,7 @@ void Object::load_shared_object()
 	pdstring name   = "DEFAULT_NAME";
 
 #if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
+	//fprintf(stderr, "[%s:%u] - Mod Name is %s\n", __FILE__, __LINE__, name.c_str());
 	if (eh_frame_scnp != 0 && gcc_except != 0) {
 	    find_catch_blocks(elf, eh_frame_scnp, gcc_except, catch_addrs_);
 	}
@@ -2467,6 +2471,7 @@ static int read_except_table_gcc3(Elf_X_Shdr *except_table,
 	    pd_dwarf_handler(err, NULL);
 	    return false;
 	}
+	//fprintf(stderr, "[%s:%u] - Augmentor string %s\n", __FILE__, __LINE__, augmentor);
 	augmentor_len = (augmentor == NULL) ? 0 : strlen(augmentor);
 	for (j = 0; j < augmentor_len; j++) {
 	    if (augmentor[j] == 'z')
@@ -2518,8 +2523,10 @@ static int read_except_table_gcc3(Elf_X_Shdr *except_table,
 	int except_size = data.d_size();
 
 	j = except_ptr;
-	if (j < 0 || j >= except_size)
+	if (j < 0 || j >= except_size) {
+	    //fprintf(stderr, "[%s:%u] - Bad j %d.  except_size = %d\n", __FILE__, __LINE__, j, except_size);
 	    continue;
+	}
 
 	// Read some variable length header info that we don't really
 	// care about.
@@ -2651,9 +2658,12 @@ static bool find_catch_blocks(Elf_X &elf, Elf_X_Shdr *eh_frame, Elf_X_Shdr *exce
     status = dwarf_get_fde_list_eh(dbg, &cie_data, &cie_count,
 				   &fde_data, &fde_count, &err);
     if (status != DW_DLV_OK) {
+	//fprintf(stderr, "[%s:%u] - No fde data\n", __FILE__, __LINE__);
 	//No actual stackwalk info in this object
 	goto err_noalloc;
     }
+    //fprintf(stderr, "[%s:%u] - Found %d fdes\n", __FILE__, __LINE__, fde_count);
+
 
     //GCC 2.x has "eh" as its augmentor string in the CIEs
     for (i = 0; i < cie_count; i++) {
@@ -2695,3 +2705,4 @@ static bool find_catch_blocks(Elf_X &elf, Elf_X_Shdr *eh_frame, Elf_X_Shdr *exce
 }
 
 #endif
+

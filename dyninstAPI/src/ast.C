@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.159 2005/12/09 04:01:33 rutar Exp $
+// $Id: ast.C,v 1.160 2005/12/12 16:37:08 gquinn Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -189,7 +189,7 @@ Register registerSpace::allocateRegister(codeGen &gen, bool noCost)
       if (registers[i].refCount == 0) {
 #if !defined(rs6000_ibm_aix4_1) \
  && !defined(ia64_unknown_linux2_4) \
-&& !defined(arch_x86_64)
+ && !defined(arch_x86_64)
 	// MT_AIX: we are not saving registers on demand on the power
 	// architecture. Instead, we save/restore registers in the base
 	// trampoline - naim

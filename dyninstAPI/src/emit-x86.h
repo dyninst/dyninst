@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.6 2005/12/09 04:01:33 rutar Exp $
+ * $Id: emit-x86.h,v 1.7 2005/12/12 16:37:09 gquinn Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -84,6 +84,11 @@ class Emitter {
     virtual void emitGetRetVal(Register dest, codeGen &gen) = 0;
     virtual void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen) = 0;
     virtual void emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen) = 0;
+#ifdef BPATCH_LIBRARY
+    virtual void emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen) = 0;
+    virtual void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen) = 0;
+    virtual void emitRestoreFlags(codeGen &gen) = 0;
+#endif
     virtual bool emitBTSaves(baseTramp* bt, codeGen &gen) = 0;
     virtual bool emitBTRestores(baseTramp* bt, codeGen &gen) = 0;
     virtual bool emitBTMTCode(baseTramp* bt, codeGen &gen) = 0;
@@ -132,18 +137,28 @@ public:
     void emitGetRetVal(Register dest, codeGen &gen);
     void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen);
     void emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen);
+    void emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
+    void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
+    void emitRestoreFlags(codeGen &gen);
     bool emitBTSaves(baseTramp* bt, codeGen &gen);
     bool emitBTRestores(baseTramp* bt, codeGen &gen);
     bool emitBTMTCode(baseTramp* bt, codeGen &gen);
     bool emitBTGuardPreCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardJumpIndex);
     bool emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardTargetIndex);
     bool emitBTCostCode(baseTramp* bt, codeGen& gen, unsigned& costValue);
+    void emitLoadEffectiveAddress(Register base, Register index, unsigned int scale, int disp,
+				  Register dest, codeGen &gen);
+
 };
 
 // some useful 64-bit codegen functions
 void emitMovRegToReg64(Register dest, Register src, bool is_64, codeGen &gen);
 void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen);
+void emitLEA64(Register base, Register index, unsigned int scale, int disp, Register dest, bool is_64, codeGen &gen);
+void emitPushReg64(Register src, codeGen &gen);
+void emitPopReg64(Register dest, codeGen &gen);
 
+#if defined(arch_x86_64)
 class Emitter64 : public Emitter {
 
 public:
@@ -174,6 +189,9 @@ public:
     void emitGetRetVal(Register dest, codeGen &gen);
     void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen);
     void emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen);
+    void emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
+    void emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen);
+    void emitRestoreFlags(codeGen &gen);
     bool emitBTSaves(baseTramp* bt, codeGen &gen);
     bool emitBTRestores(baseTramp* bt, codeGen &gen);
     bool emitBTMTCode(baseTramp* bt, codeGen &gen);
@@ -181,5 +199,6 @@ public:
     bool emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardTargetIndex);
     bool emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costValue);
 };
+#endif
 
 #endif

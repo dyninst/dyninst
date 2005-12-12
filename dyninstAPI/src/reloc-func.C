@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.8 2005/11/03 05:21:07 jaw Exp $
+// $Id: reloc-func.C,v 1.9 2005/12/12 16:37:09 gquinn Exp $
 
 // We'll also try to limit this to relocation-capable platforms
 // in the Makefile. Just in case, though....
@@ -86,7 +86,7 @@ bool int_function::relocationGenerate(pdvector<funcMod *> &mods,
 
     generatedVersion_++;
 
-    reloc_printf("Relocating function %s, version %d, 0x%lx to 0x%lx\n",
+    reloc_printf("Relocating function %s, version %d, 0x%lx, size: 0x%lx\n",
                  symTabName().c_str(), sourceVersion,
                  getAddress(), getSize_NP());
     // Make sure the blocklist is created.
@@ -126,6 +126,8 @@ bool int_function::relocationGenerate(pdvector<funcMod *> &mods,
     // instrumentation. Bring the mountain to Mohammed, I guess.
 #if defined(os_aix)
     Address baseInMutatee = proc()->inferiorMalloc(size_required, dataHeap);
+#elif defined(arch_x86_64)
+    Address baseInMutatee = proc()->inferiorMalloc(size_required, anyHeap, getAddress());
 #else
     // We're expandin'
     Address baseInMutatee = proc()->inferiorMalloc(size_required);

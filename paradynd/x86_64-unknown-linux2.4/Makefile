@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2005/06/09 18:43:10 gquinn Exp $
+# $Id: Makefile,v 1.3 2005/12/12 16:37:27 gquinn Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -9,7 +9,7 @@ USES_SHM_SAMPLING = true
 NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
 USES_LIBELF = true
-# DEBUG_FLAG = -g
+DEBUG_FLAG = -g
 
 #If libhrtime is not installed on your computer and you have no interest
 #  in using it, then comment out the following line (with a #), remove
@@ -38,23 +38,19 @@ SRCS =		../../dyninstAPI/src/linux.C \
 		../../dyninstAPI/src/inst-linux.C \
 		../../paradynd/src/proc-linux.C \
 		../../dyninstAPI/src/inst-x86.C \
-                ../../dyninstAPI/src/emit-x86.C \
+		../../dyninstAPI/src/emit-x86.C \
 		../../dyninstAPI/src/arch-x86.C \
-		../../dyninstAPI/src/arch-ia32.C \
 		../../dyninstAPI/src/parseDwarf.C \
 		../../dyninstAPI/src/parseStab.C \
 		../../dyninstAPI/src/Object-elf.C \
-		../../dyninstAPI/src/func-reloc.C \
-	        ../../dyninstAPI/src/LocalAlteration.C \
-	        ../../dyninstAPI/src/LocalAlteration-x86.C \
-	        ../../dyninstAPI/src/FunctionExpansionRecord.C \
+		../../dyninstAPI/src/image-x86.C \
 		../../dyninstAPI/src/unix.C  \
 		../../rtinst/src/RThwtimer-linux.c \
 		../../dyninstAPI/src/InstrucIter-x86.C \
 		../../dyninstAPI/src/addLibraryLinux.C \
 		../../dyninstAPI/src/writeBackElf.C \
 		../../dyninstAPI/src/saveSharedLibrary.C \
-		../../dyninstAPI/src/syscall-linux.C
+		../../dyninstAPI/src/syscall-linux.C 
 
 MYFLAGS		+= -DNO_MDL_PRINT
 MYFLAGS		+= -DUSES_DWARF_DEBUG -I$(LIBDWARF_INC)
@@ -85,6 +81,7 @@ AS		= /usr/bin/as
 #MYFLAGS		+= -DLD_DEBUG
 #MYFLAGS		+= -DSAMPLEVALUE_DEBUG
 #MYFLAGS		+= -DAGGREGATE_DEBUG
+MYFLAGS			+= -g
 
 CFLAGS		+= $(MYFLAGS)
 CXXFLAGS	+= $(MYFLAGS)

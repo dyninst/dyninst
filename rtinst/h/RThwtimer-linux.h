@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 /*
- * $Id: RThwtimer-linux.h,v 1.4 2005/08/03 22:06:51 tlmiller Exp $
+ * $Id: RThwtimer-linux.h,v 1.5 2005/12/12 16:37:38 gquinn Exp $
  */
 #ifndef __RTHWTIMER_LINUX
 #define __RTHWTIMER_LINUX
@@ -66,10 +66,10 @@ extern "C" {
 
 typedef union {
   rawTime64 t;
-  unsigned long p[2];
+  unsigned int p[2];
 } hrtime_union;
 
-#if defined( i386_unknown_linux2_0 )
+#if defined( i386_unknown_linux2_0 ) || defined( x86_64_unknown_linux2_4 )
 #define rdtsc(low,high) \
      asm ("rdtsc" : "=a" (low), "=d" (high))
 

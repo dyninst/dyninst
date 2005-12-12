@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.14 2005/12/09 04:01:33 rutar Exp $
+ * $Id: emit-x86.C,v 1.15 2005/12/12 16:37:08 gquinn Exp $
  */
 
 #include <assert.h>
@@ -59,7 +59,9 @@
 extern registerSpace* regSpace;
 
 const int Emitter32::mt_offset = -4;
+#if defined(arch_x86_64)
 const int Emitter64::mt_offset = -8;
+#endif
 
 codeBufIndex_t Emitter32::emitIf(Register expr_reg, Register target, codeGen &gen)
 {
@@ -453,8 +455,6 @@ bool Emitter32::emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costUpdate
 
 Emitter32 emitter32;
 
-#if defined(arch_x86_64)
-
 //
 // 64-bit code generation helper functions
 //
@@ -518,6 +518,20 @@ void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen)
     }
     else
 	emitMovImmToReg(tmp_dest, imm, gen);
+}
+
+void emitLEA64(Register base, Register index, unsigned int scale, int disp,
+	       Register dest, bool is_64, codeGen &gen)
+{
+    Register tmp_base = base;
+    Register tmp_index = index;
+    Register tmp_dest = dest;
+
+    emitRex(is_64, &tmp_dest,
+	    tmp_base == Null_Register ? NULL : &tmp_base,
+	    tmp_index == Null_Register ? NULL : &tmp_index,
+	    gen);
+    emitLEA(tmp_base, tmp_index, scale, disp, tmp_dest, gen);
 }
 
 static void emitMovRMToReg64(Register dest, Register base, int disp, bool is_64, codeGen &gen)
@@ -604,31 +618,19 @@ static void emitOpRegImm8_64(unsigned opcode, unsigned opcode_ext, Register dest
     SET_PTR(insn, gen);
 }
 
-static void emitPushReg64(Register src, codeGen &gen)
+void emitPushReg64(Register src, codeGen &gen)
 {
     emitRex(false, NULL, NULL, &src, gen);
     emitSimpleInsn(0x50 + src, gen);
 }
 
-static void emitPopReg64(Register dest, codeGen &gen)
+void emitPopReg64(Register dest, codeGen &gen)
 {
     emitRex(false, NULL, NULL, &dest, gen);    
     emitSimpleInsn(0x58 + dest, gen);
 }
 
-void emitLEA64(Register base, Register index, unsigned int scale, int disp,
-               Register dest, bool is_64, codeGen &gen)
-{
-    Register tmp_base = base;
-    Register tmp_index = index;
-    Register tmp_dest = dest;
-
-    emitRex(is_64, &tmp_dest,
-            tmp_base == Null_Register ? NULL : &tmp_base,
-            tmp_index == Null_Register ? NULL : &tmp_index,
-            gen);
-    emitLEA(tmp_base, tmp_index, scale, disp, tmp_dest, gen);
-}
+#if defined(arch_x86_64)
 
 codeBufIndex_t Emitter64::emitIf(Register expr_reg, Register target, codeGen &gen)
 {
@@ -877,43 +879,48 @@ void Emitter64::emitLoadFrameAddr(Register dest, Address offset, codeGen &gen)
     emitOpRegImm64(0x81, 0x0, dest, offset, true, gen);
 }
 
-#define SAVED_RAX_OFFSET 17
+// this is the distance on the basetramp stack frame from the
+// start of the GPR save region to where the base pointer is,
+// in 8-byte quadwords
+#define GPR_SAVE_REGION_OFFSET 17
 
 void Emitter64::emitLoadPreviousStackFrameRegister(Address register_num, Register dest, codeGen &gen)
 {
-  
-  if (regSpace->getDisregardLiveness())
-    {
-      emitMovRMToReg64(dest, REGNUM_RBP, (SAVED_RAX_OFFSET - register_num) * 8, true, gen);
-    }
-  else
-    {
-      
-      int stackPlace, totalLive;
-      totalLive = stackPlace = 0;
-      u_int i;
-      for(i = 0; i < regSpace->getRegisterCount(); i++)
-	{
-	  registerSlot * reg = regSpace->getRegSlot(i);
-	  if (reg->startsLive)
-	    {
-	      totalLive++;
-	      if (reg->number == register_num)
-	      {
-		stackPlace = totalLive;
+  if (regSpace->getDisregardLiveness()) {
+      emitMovRMToReg64(dest, REGNUM_RBP, (GPR_SAVE_REGION_OFFSET - register_num) * 8, true, gen);
+  }
+  else {
+      int stackPlace = -1;
+
+      if (register_num == REGNUM_RAX)
+	  stackPlace = 0;
+      else if (register_num == REGNUM_RBX)
+	  stackPlace = 1;
+      else if (register_num == REGNUM_RSP)
+	  stackPlace = 2;
+      else if (register_num == REGNUM_RBP)
+	  stackPlace = 3;
+      else {
+	  u_int i;
+	  int numLive = 4;
+	  for(i = 0; i < regSpace->getRegisterCount(); i++) {
+	      registerSlot * reg = regSpace->getRegSlot(i);
+	      if (reg->startsLive) {
+		  if (reg->number == register_num) {
+		      stackPlace = numLive;
+		      break;
+		  }
+		  ++numLive;
 	      }
-	      // We save these regardless of their liveness so don't count towards tally
-	      else if (reg->number == REGNUM_RAX || reg->number == REGNUM_RBP || 
-		       reg->number == REGNUM_RSP || reg->number == REGNUM_RBX)
-		{
-		  totalLive--;
-		}
-	    }
-	}
-      totalLive += 5;  // For rax, rbx, rsp, rbp, other rax at top of stack
-      
-      emitMovRMToReg64(dest, REGNUM_RBP, (totalLive - stackPlace) * 8, true, gen);
-    }
+	  }
+      }
+  
+      if (stackPlace != -1)
+	  emitMovRMToReg64(dest, REGNUM_RBP, (GPR_SAVE_REGION_OFFSET - stackPlace) * 8, true, gen);
+      else
+	  // we didn't save the register - we assume its live and just grab it
+	  emitMovRegToReg64(dest, register_num, true, gen);
+  }
 }
 
 void Emitter64::emitStore(Address addr, Register src, codeGen &gen)
@@ -1057,70 +1064,13 @@ Register Emitter64::emitCall(opCode op, registerSpace *rs, codeGen &gen, const p
 // FIXME: comment here on the stack layout
 void Emitter64::emitGetRetVal(Register dest, codeGen &gen)
 {
-  if (regSpace->getDisregardLiveness())
-    {
-      emitMovRMToReg64(dest, REGNUM_RBP, SAVED_RAX_OFFSET * 8, true, gen);
-    }
-  else
-    {
-      int totalOnStack = 0;
-      for(u_int i = 0; i < regSpace->getRegisterCount(); i++)
-	{
-	  registerSlot * reg = regSpace->getRegSlot(i);
-	  if (reg->startsLive)
-	    {
-	      totalOnStack++;
-	      // We save these regardless of their liveness so don't count towards tally
-	      if (reg->number == REGNUM_RAX || reg->number == REGNUM_RBP 
-		  || reg->number == REGNUM_RSP || reg->number == REGNUM_RBX)
-		{
-		  totalOnStack--;
-		}
-	    }
-	}
-      totalOnStack += 5; // REGNUM_RAX, REGNUM_RBX, REGNUM_RBP, REGNUM_RSP, and other REGNUM_RAX
-      emitMovRMToReg64(dest, REGNUM_RBP, totalOnStack * 8, true, gen);
-    }
+    emitLoadPreviousStackFrameRegister(REGNUM_RAX, dest, gen);
 }
 
 void Emitter64::emitGetParam(Register dest, Register param_num, instPointType_t /*pt_type*/, codeGen &gen)
 {
     assert(param_num <= 6);
-
-    if (regSpace->getDisregardLiveness())
-      {
-	emitMovRMToReg64(dest, REGNUM_RBP, (SAVED_RAX_OFFSET - amd64_arg_regs[param_num]) * 8, true, gen);
-      }
-    else
-      {
-	int stackPlace, totalLive;
-	totalLive = stackPlace = 0;
-	u_int i;
-	for(i = 0; i < regSpace->getRegisterCount(); i++)
-	  {
-	    registerSlot * reg = regSpace->getRegSlot(i);
-	    if (reg->startsLive)
-	      {
-		totalLive++;
-		if (reg->number == amd64_arg_regs[param_num])
-	      {
-		stackPlace = totalLive;
-	      }
-		// We save these regardless of their liveness so don't count towards tally
-		else if (reg->number == REGNUM_RAX || reg->number == REGNUM_RBP 
-			 || reg->number == REGNUM_RSP || reg->number == REGNUM_RBX)
-		  {
-		    totalLive--;
-		  }
-	      }
-	  }
-	totalLive += 2;  // For rax and rbp at top of stack
-	
-	if (stackPlace == 0)
-	  emitMovRMToReg64(dest, REGNUM_RBP, 0, true, gen);
-	else
-	  emitMovRMToReg64(dest, REGNUM_RBP, (totalLive - stackPlace) * 8, true, gen);   
-      }
+    emitLoadPreviousStackFrameRegister(amd64_arg_regs[param_num], dest, gen);
 }
 
 static void emitPushImm16_64(unsigned short imm, codeGen &gen)
@@ -1175,6 +1125,21 @@ void Emitter64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
       }
     else
       {
+
+	  // Count the saved registers
+	  int num_saved = 4; // RAX, RSP, RBP always saved
+	  for(int i = regSpace->getRegisterCount()-1; i >= 0; i--) {
+	      registerSlot * reg = regSpace->getRegSlot(i);
+	      if (reg->startsLive) {
+		  num_saved++;
+	      }
+	  }
+	  
+	  // move SP up to end of GPR save area
+	  if (num_saved < 16) {
+	      emitOpRegImm8_64(0x83, 0x0, REGNUM_RSP, 8 * (16 - num_saved), true, gen);
+	  }
+
 	// Save the live ones
 	for(int i = regSpace->getRegisterCount()-1; i >= 0; i--)
 	  {
@@ -1223,6 +1188,146 @@ void Emitter64::emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen)
     SET_PTR(insn, gen);
 }
 
+#ifdef BPATCH_LIBRARY
+
+void Emitter64::emitASload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
+{
+   bool havera = ra > -1, haverb = rb > -1;
+
+   // if ra is specified, move its inst-point value into our
+   // destination register
+   if(havera) {
+       if (ra == mRIP) {
+	   // special case: rip-relative data addressing
+	   // the correct address has been stuffed in imm
+	   emitMovImmToReg64(dest, imm, true, gen);
+	   return;
+       }
+       emitLoadPreviousStackFrameRegister(ra, dest, gen);
+   }
+
+   // if rb is specified, move its inst-point value into RAX
+   if(haverb)
+       emitLoadPreviousStackFrameRegister(rb, REGNUM_RAX, gen);
+
+   // emitLEA64 will not handle the [disp32] case properly, so
+   // we special case that
+   if (!havera && !haverb)
+       emitMovImmToReg64(dest, imm, false, gen);
+   else
+       emitLEA64((havera ? dest : Null_Register), (haverb ? REGNUM_RAX : Null_Register),
+		 sc, (int)imm, dest, true, gen);
+}
+
+void Emitter64::emitCSload(int ra, int rb, int sc, long imm, Register dest, codeGen &gen)
+{
+   // count is at most 1 register or constant or hack (aka pseudoregister)
+   assert((ra == -1) &&
+          ((rb == -1) ||
+            ((imm == 0) && (rb == 1 /*REGNUM_ECX */ || rb >= IA32_EMULATE))));
+
+   if(rb >= IA32_EMULATE) {
+       
+       // need to emulate repeated SCAS or CMPS to figure out byte count
+
+       // TODO: firewall code to ensure that direction is up
+
+       bool neg = false;
+       unsigned char opcode_small, opcode_large;
+       bool restore_rax = false;
+       bool restore_rsi = false;
+      
+       switch(rb) {
+       case IA32_NESCAS:
+           neg = true;
+       case IA32_ESCAS:
+	   opcode_small = 0xAE;
+	   opcode_large = 0xAF;
+	   restore_rax = true;
+	   break;
+       case IA32_NECMPS:
+           neg = true;
+       case IA32_ECMPS:
+	   opcode_small = 0xA6;
+	   opcode_large = 0xA7;
+	   restore_rsi = true;
+	   break;
+       default:
+           assert(!"Wrong emulation!");
+       }
+      
+       // restore flags (needed for direction flag)
+       x86_emitter->emitRestoreFlags(gen);
+
+       // restore needed registers to values at the inst point
+       // (push current values on the stack in case they're in use)
+       if (restore_rax) {
+	   // we can always stomp on RAX in instrumentation - no need to push
+	   emitLoadPreviousStackFrameRegister(REGNUM_RAX, REGNUM_RAX, gen);
+       }
+       if (restore_rsi) {
+	  emitPushReg64(REGNUM_RSI, gen);
+	  emitLoadPreviousStackFrameRegister(REGNUM_RSI, REGNUM_RSI, gen);
+       }
+       emitPushReg64(REGNUM_RDI, gen);
+       emitLoadPreviousStackFrameRegister(REGNUM_RDI, REGNUM_RDI, gen);
+       emitPushReg64(REGNUM_RCX, gen);
+       emitLoadPreviousStackFrameRegister(REGNUM_RCX, REGNUM_RCX, gen);
+
+       // emulate the string instruction
+       emitSimpleInsn(neg ? 0xF2 : 0xF3, gen); // rep(n)e
+       if (sc == 0)
+	  emitSimpleInsn(opcode_small, gen);
+       else {
+	   if (sc == 1)
+	       emitSimpleInsn(0x66, gen); // operand size prefix
+	   else if (sc == 3)
+	       emitSimpleInsn(0x48, gen); // REX.W
+	   emitSimpleInsn(opcode_large, gen);
+       }
+
+       // RCX has now been decremented by the number of repititions
+       // load old RCX into RAX and compute difference
+       emitLoadPreviousStackFrameRegister(REGNUM_RCX, dest, gen);
+       emitOp(0x2B, dest, dest, REGNUM_RCX, gen);
+
+       // restore registers we stomped on
+       emitPopReg64(REGNUM_RCX, gen);
+       emitPopReg64(REGNUM_RDI, gen);
+       if (restore_rsi)
+	   emitPopReg64(REGNUM_RSI, gen);       
+   }
+   else if(rb > -1) {
+
+       // count spec is simple register with scale
+       // TODO: 16-bit pseudoregisters
+       assert(rb < 16);
+
+       // store the register into RAX
+       emitLoadPreviousStackFrameRegister(rb, REGNUM_RAX, gen);
+
+       // shift left by the given scale
+       // emitTimesImm will do the right thing
+       if(sc > 0)
+	   emitTimesImm(dest, REGNUM_RAX, 1 << sc, gen);
+   }
+   else
+       emitMovImmToReg64(dest, (int)imm, true, gen);       
+}
+
+// this is the distance in 8-byte quadwords from the frame pointer
+// in our basetramp's stack frame to the saved value of RFLAGS
+// (1 qword for our false return address, 16 for the saved registers, 1 more for the flags)
+#define SAVED_RFLAGS_OFFSET 18
+void Emitter64::emitRestoreFlags(codeGen &gen)
+{
+    emitMovRMToReg(REGNUM_RAX, REGNUM_RBP, 8 * SAVED_RFLAGS_OFFSET, gen);
+    emitPushReg64(REGNUM_RAX, gen);
+    emitSimpleInsn(POPFD, gen);
+}
+
+#endif
+
 bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
 {
    // skip past the red zone
@@ -1254,6 +1359,7 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
 	
 	//	printf("Saving registers ...\n");
 	// Save the live ones
+	int num_saved = 4; // RAX, RBX, RSP, RBP always saved
 	for(u_int i = 0; i < regSpace->getRegisterCount(); i++)
 	  {
 	    registerSlot * reg = regSpace->getRegSlot(i);
@@ -1261,8 +1367,14 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
 	      {
 		//printf(" %d ",reg->number);
 		emitPushReg64(reg->number,gen);
+		num_saved++;
 	      }
 	  }
+
+	// we always allocate space on the stack for all the GPRs (helps stack walk)
+	if (num_saved < 16) {
+	    emitOpRegImm8_64(0x83, 0x0, REGNUM_RSP, -8 * (16 - num_saved), true, gen);
+	}
 	//printf("\n");
       }
     
@@ -1359,7 +1471,21 @@ bool Emitter64::emitBTRestores(baseTramp* bt, codeGen &gen)
       }
     else
       {
-	// Save the live ones
+	  // Count the saved registers
+	  int num_saved = 4; // RAX, RBX, RSP, RBP always saved
+	  for(int i = regSpace->getRegisterCount()-1; i >= 0; i--) {
+	      registerSlot * reg = regSpace->getRegSlot(i);
+	      if (reg->startsLive) {
+		  num_saved++;
+	      }
+	  }
+	  
+	  // move SP up to end of GPR save area
+	  if (num_saved < 16) {
+	      emitOpRegImm8_64(0x83, 0x0, REGNUM_RSP, 8 * (16 - num_saved), true, gen);
+	  }
+
+	// restore saved registers
 	for(int i = regSpace->getRegisterCount()-1; i >= 0; i--)
 	  {
 	    registerSlot * reg = regSpace->getRegSlot(i);
@@ -1535,4 +1661,5 @@ void emit64()
 
 #endif
 
+// emitter defaults to 32-bit
 Emitter* x86_emitter = &emitter32;

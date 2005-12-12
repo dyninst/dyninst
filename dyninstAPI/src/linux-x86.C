@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.83 2005/11/22 13:50:32 jaw Exp $
+// $Id: linux-x86.C,v 1.84 2005/12/12 16:37:09 gquinn Exp $
 
 #include <fstream>
 
@@ -737,6 +737,13 @@ extern int tramp_pre_frame_size_64;
 
 Frame Frame::getCallerFrame()
 {
+    // assume _start is never called, so just return if we're there
+    int_function *cur_func = getProc()->findFuncByAddr(pc_);
+    if (cur_func &&
+	cur_func->getAddress() == getProc()->getAOut()->parse_img()->getObject().getEntryAddress()) {
+	return Frame();
+    }
+	
    /**
     * These two variables are only valid when this function is
     * called recursively.
@@ -905,13 +912,14 @@ Frame Frame::getCallerFrame()
       Address stack_top;
       int_function *callee;
       bool result;
+      int addr_size = getProc()->getAddressWidth();
 
       /**
        * Calculate the top of the stack.
        **/
       Address max_stack_frame_addr =
 #if defined(arch_x86_64)
-	  getProc()->getAddressWidth() == 8 ? MAX_STACK_FRAME_ADDR_64 : MAX_STACK_FRAME_ADDR_32;
+	  addr_size == 8 ? MAX_STACK_FRAME_ADDR_64 : MAX_STACK_FRAME_ADDR_32;
 #else
           MAX_STACK_FRAME_ADDR_32;
 #endif
@@ -921,8 +929,7 @@ Frame Frame::getCallerFrame()
       {
 	  //If we're within two megs of the linux x86 default stack, we'll
 	  // assume that's the one in use.
-	  stack_top = max_stack_frame_addr - 3; // Points to first possible integer
-						// ** SIZE ISSUE **
+	  stack_top = max_stack_frame_addr - (addr_size - 1); // Points to first possible integer
       }
       else if (getProc()->multithread_capable() && thread_ != NULL)
       {
@@ -938,9 +945,9 @@ Frame Frame::getCallerFrame()
        * Search for the correct return value.
        **/
       estimated_sp = sp_;
-      for (; estimated_sp < stack_top; estimated_sp++)
+      for (; estimated_sp <= stack_top; estimated_sp++)
       {
-	  result = getProc()->readDataSpace((caddr_t) estimated_sp, sizeof(Address), 
+	  result = getProc()->readDataSpace((caddr_t) estimated_sp, addr_size, 
 					    (caddr_t) &estimated_ip, false);
          
          if (!result) break;
@@ -954,7 +961,7 @@ Frame Frame::getCallerFrame()
          // frame pointer         
          if (status == SAVES_FP_NOFRAME)
          {
-            result = getProc()->readDataSpace((caddr_t) estimated_sp-4, sizeof(int),
+            result = getProc()->readDataSpace((caddr_t) estimated_sp - addr_size, sizeof(int),
                                       (caddr_t) &estimated_fp, false);
             if (!result) break;
          }
@@ -966,13 +973,12 @@ Frame Frame::getCallerFrame()
          //If the call instruction calls into the current function, then we'll
          // just skip everything else and assume we've got the correct return
          // value (fingers crossed).
-         int_function *cur_func = getProc()->findFuncByAddr(pc_);
          if (cur_func != NULL &&
              cur_func == callee)
 	   {
 	     newPC = estimated_ip;
 	     newFP = estimated_fp;
-	     newSP = estimated_sp+4;
+	     newSP = estimated_sp + addr_size;
 	     goto done;
          }
          
