@@ -907,8 +907,8 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
     else if(xop == LSXxop || xop == STSXxop) {
       return new BPatch_memoryAccess(&(*i).raw, instruction::size(), current,
 				     oci->direc == 0, oci->direc == 1,
-                                     0, (*i).xform.ra, (*i).xform.rb,
-                                     0, POWER_XER2531, -1); // 9999 == XER_25:31
+                                     (long)0, (*i).xform.ra, (*i).xform.rb,
+                                     (long)0, POWER_XER2531, -1); // 9999 == XER_25:31
     }
   }
   return BPatch_memoryAccess::none;
