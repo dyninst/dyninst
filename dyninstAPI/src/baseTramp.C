@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.17 2005/11/22 13:50:32 jaw Exp $
+// $Id: baseTramp.C,v 1.18 2005/12/14 22:44:07 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -58,8 +58,7 @@ baseTrampInstance::baseTrampInstance(baseTramp *tramp,
     trampAddr_(0), // Unallocated
     baseT(tramp),
     multiT(multi),
-    genVersion(0),
-    hadMini(false)
+    genVersion(0)
 {
 }
 
@@ -73,8 +72,7 @@ baseTrampInstance::baseTrampInstance(const baseTrampInstance *parBTI,
     trampPostOffset(parBTI->trampPostOffset),
     baseT(cBT),
     multiT(cMT),
-    genVersion(parBTI->genVersion),
-    hadMini(parBTI->hadMini)
+    genVersion(parBTI->genVersion)
 {
     // Register with parent
     cBT->instances.push_back(this);
@@ -149,6 +147,7 @@ baseTramp::baseTramp() :
     rpcMgr_(NULL),
     isMerged(false),
     firstMini(NULL),
+    firstPreMini(NULL),
     lastMini(NULL),
     preTrampCode_(),
     postTrampCode_(),
@@ -236,6 +235,7 @@ baseTramp::baseTramp(const baseTramp *pt, process *proc) :
     preInstP(NULL),
     postInstP(NULL),
     firstMini(NULL),
+    firstPreMini(NULL),
     lastMini(NULL),
     preTrampCode_(pt->preTrampCode_),
     postTrampCode_(pt->postTrampCode_),
@@ -267,6 +267,12 @@ baseTramp::baseTramp(const baseTramp *pt, process *proc) :
         else {
             firstMini = childMini;
         }
+
+        if (!firstPreMini &&
+            (childMini->instP = preInstP))
+            firstPreMini = childMini;
+            
+
         childMini->prev = childPrev;
         childPrev = childMini;
         parMini = parMini->next;
@@ -295,19 +301,18 @@ unsigned baseTrampInstance::get_size_cr() const {
 bool baseTrampInstance::generateCode(codeGen &gen,
                                      Address baseInMutatee,
                                      UNW_INFO_TYPE ** unwindRegion) {
-    /*
       inst_printf("baseTrampInstance %p ::generateCode(%p, 0x%x, %d)\n",
                 this, gen.start_ptr(), baseInMutatee, gen.used());
-    */
+
     updateMTInstances();
 
+    
+    if (isEmpty()) {
+        hasChanged_ = false;
+        return true;
+    }
+    
     if (!generated_) {
-
-        if (isEmpty()) {
-            hadMini = false;
-            return true;
-        }
-
         baseT->generateBT();
 
         // if in-line...
@@ -355,7 +360,7 @@ bool baseTrampInstance::generateCode(codeGen &gen,
         mtis[miter]->generateCode(gen, baseInMutatee, unwindRegion);
         // Will increment offset if it writes to baseInMutator;
         // if in-lined each mini will increment offset.
-        //inst_printf("mti %d, offset %d\n", miter, gen.used());
+        inst_printf("mti %d, offset %d\n", miter, gen.used());
     }
     
     codeBufIndex_t postIndex = gen.getIndex();
@@ -412,7 +417,7 @@ bool baseTrampInstance::generateCode(codeGen &gen,
     // We just generated all the miniTramps,
     // so bump versions on the generated instPointInstances
     generated_ = true;
-    hadMini = true;
+    hasChanged_ = false;
     return true;
 }
 
@@ -420,10 +425,6 @@ bool baseTrampInstance::installCode() {
     // All BTIs are in-lined, so this has no direct work to do;
     // call into minitramps and then ensure that all jumps
     // are correct.
-
-    if (isEmpty()) return true;
-
-    // If in-line...
 
     for (unsigned i = 0; i < mtis.size(); i++) {
         mtis[i]->installCode();
@@ -519,74 +520,95 @@ bool baseTramp::addMiniTramp(miniTramp *newMT, callOrder order) {
     if (firstMini == NULL) {
         // Life is easy...
         assert(lastMini == NULL);
+        assert(firstPreMini == NULL);
         firstMini = lastMini = newMT;
+        
+        if (newMT->instP == preInstP) {
+            firstPreMini = newMT;
+        }
     }
     else {
-        if (order == orderFirstAtPoint) {
-            // Iterate forwards, until we either see our instPoint or
-            // one with a higher address (which we want to be before)
-            miniTramp *iter = firstMini;
-            while (iter != NULL) {
-                if (iter->instP == newMT->instP)
-                    break;
-                else if (iter->instP->addr() >
-                         newMT->instP->addr())
-                    break;
-                iter = iter->next;
-            }
-            if (iter != NULL) {
-                miniTramp *previousPrev = iter->prev;
+        if (newMT->instP == preInstP) {
+            // pre-instrumentation.
+            if (order == orderFirstAtPoint) {
+                miniTramp *oldFirstPre = firstPreMini;
+                firstPreMini = newMT;
+                if (oldFirstPre) {
+                    // We're inserting into the chain...
+                    if (oldFirstPre->prev) {
+                        oldFirstPre->prev->next = newMT;
+                        newMT->prev = oldFirstPre->prev;
+                    }
+                    else {
+                        newMT->prev = NULL;
+                        firstMini = newMT;
+                    }
 
-                newMT->next = iter;
-                iter->prev = newMT;
-
-                if (previousPrev)
-                    previousPrev->next = newMT;
-                newMT->prev = previousPrev;
-                
-                if (iter == firstMini)
-                    firstMini = newMT;
+                    oldFirstPre->prev = newMT;
+                    newMT->next = oldFirstPre;
+                }
+                else {
+                    // No pre-instrumentation; if there is post,
+                    // hook this guy on
+                    assert(lastMini);
+                    
+                    lastMini->next = newMT;
+                    newMT->prev = lastMini;
+                    lastMini = newMT;
+                }
             }
             else {
-                // We ran off the end
+                // orderLastAtPoint, pre-instrumentation
+                if (firstPreMini == NULL)
+                    firstPreMini = newMT;
+                assert(lastMini);
                 lastMini->next = newMT;
                 newMT->prev = lastMini;
                 lastMini = newMT;
             }
         }
-        else {
-            // Just like above, but go backwards.
-
-            miniTramp *iter = lastMini;
-            while (iter != NULL) {
-                if (iter->instP == newMT->instP)
-                    break;
-                else if (iter->instP->addr() <
-                         newMT->instP->addr())
-                    break;
-                iter = iter->prev;
-            }
-            if (iter != NULL) {
-                miniTramp *previousNext = iter->next;
-
-                newMT->prev = iter;
-                iter->next = newMT;
-
-                if (previousNext)
-                    previousNext->prev = newMT;
-                newMT->next = previousNext;
-                
-                if (iter == lastMini)
-                    lastMini = newMT;
-            }
-            else {
-                // We ran off the end
+        else { // newMT->instP == postInstP
+            if (order == orderFirstAtPoint) {
+                // orderFirstAtPoint, post-instrumentation
+                assert(firstMini);
                 firstMini->prev = newMT;
                 newMT->next = firstMini;
                 firstMini = newMT;
             }
+            else {
+                // orderLastAtPoint, post-instrumentation
+                if (firstPreMini) {
+                    miniTramp *lastPost = firstPreMini->prev;
+                    if (lastPost) {
+                        newMT->next = lastPost->next;
+                        newMT->prev = lastPost;
+                        lastPost->next = newMT;
+                        newMT->next->prev = newMT;
+                    }
+                    else {
+                        // First one...
+                        assert(firstMini == firstPreMini);
+                        newMT->next = firstMini;
+                        firstMini->prev = newMT;
+                        firstMini = newMT;
+                    }
+                }
+                else {
+                    // No pre-instrumentation
+                    assert(lastMini);
+                    lastMini->next = newMT;
+                    newMT->prev = lastMini;
+                    lastMini = newMT;
+                }
+            }
         }
     }
+
+    // Push to baseTrampInstances
+    for (unsigned i = 0; i < instances.size(); i++) {
+        instances[i]->updateMTInstances();
+    }
+
     assert(firstMini != NULL);
     assert(lastMini != NULL);
 
@@ -665,6 +687,7 @@ void baseTramp::deleteIfEmpty() {
     delete this;
 }
 
+#if 0
 // Global fixing of all BT jumps
 bool baseTramp::correctBTJumps() {
     for (unsigned i = 0; i < instances.size(); i++) {
@@ -676,6 +699,7 @@ bool baseTramp::correctBTJumps() {
     }
     return true;
 }
+#endif
 
 // Where should the minitramps jump back to?
 Address baseTrampInstance::miniTrampReturnAddr() {
@@ -737,12 +761,12 @@ unsigned baseTrampInstance::maxSizeRequired() {
 
     size += baseT->preSize + baseT->postSize;
 
-    /*
+    
       inst_printf("Pre-size %d, post-size %d, total size %d\n",
                 baseT->preSize,
                 baseT->postSize,
                 size);
-    */
+
     return size;
 }
 
@@ -750,14 +774,25 @@ unsigned baseTrampInstance::maxSizeRequired() {
 // to clear this out and start over... this is a lot
 // of wasted work.
 void baseTrampInstance::updateMTInstances() {
+    unsigned oldNum = mtis.size();
     mtis.clear();
 
     miniTramp *mini = baseT->firstMini;
     while (mini) {
         miniTrampInstance *mti = mini->getMTInstanceByBTI(this);
         mtis.push_back(mti);
+        if (mti->hasChanged())
+            hasChanged_ = true;
         mini = mini->next;
     }
+
+    // If we now have an MTI, we've changed (as previously
+    // we wouldn't bother generating code)
+    if ((oldNum == 0) &&
+        (mtis.size() != 0))
+        hasChanged_ = true;
+    inst_printf("BTI %p update: %d originally, %d now\n",
+                this, oldNum, mtis.size());
 }
 
 baseTrampInstance *baseTramp::findOrCreateInstance(multiTramp *multi) {
@@ -910,17 +945,17 @@ bool baseTramp::generateBT() {
 #endif
     
     saveStartOffset = preTrampCode_.used();
-    //inst_printf("Starting saves: offset %d\n", saveStartOffset);
+    inst_printf("Starting saves: offset %d\n", saveStartOffset);
     generateSaves(preTrampCode_, regSpace);
 
     // Done with save
     saveEndOffset = preTrampCode_.used();
-    //inst_printf("Starting MT: offset %d\n", saveEndOffset);
+    inst_printf("Starting MT: offset %d\n", saveEndOffset);
     // Multithread
     generateMTCode(preTrampCode_, regSpace);
     // Guard code
     guardLoadOffset = preTrampCode_.used();
-    //inst_printf("Starting guard: offset %d\n", guardLoadOffset);
+    inst_printf("Starting guard: offset %d\n", guardLoadOffset);
     if (guarded() &&
         generateGuardPreCode(preTrampCode_,
                              guardBranchIndex,
@@ -935,7 +970,7 @@ bool baseTramp::generateBT() {
     
     costUpdateOffset = preTrampCode_.used();
 
-    //inst_printf("Starting cost: offset %d\n", costUpdateOffset);
+    inst_printf("Starting cost: offset %d\n", costUpdateOffset);
 
     // We may not want cost code... for now if we're an iRPC tramp
     // In the future, this may change
@@ -954,8 +989,8 @@ bool baseTramp::generateBT() {
 
     instStartOffset = preTrampCode_.used();
     preSize = preTrampCode_.used();
-    //inst_printf("Starting inst: offset %d\n", instStartOffset);
-    //inst_printf("preSize is: %d\n", preSize);    
+    inst_printf("Starting inst: offset %d\n", instStartOffset);
+    inst_printf("preSize is: %d\n", preSize);    
 
     // Post...
     // Guard redux
@@ -1011,8 +1046,6 @@ bool baseTramp::generateBT() {
 }
     
 void baseTrampInstance::removeCode(generatedCodeObject *subObject) {
-    // TODO: out-of-line baseTramps?
-
     miniTrampInstance *delMTI = dynamic_cast<miniTrampInstance *>(subObject);
     multiTramp *delMulti = dynamic_cast<multiTramp *>(subObject);
     assert(delMTI || delMulti);
@@ -1023,7 +1056,8 @@ void baseTrampInstance::removeCode(generatedCodeObject *subObject) {
         // Move the MTI from the current list to the deleted list.
         for (unsigned i = 0; i < mtis.size(); i++) {
             if (mtis[i] == subObject) {
-                deletedMTIs.push_back(mtis[i]);
+                if (BPatch::bpatch->isMergeTramp()) 
+                    deletedMTIs.push_back(mtis[i]);
                 mtis[i] = mtis.back();
                 mtis.pop_back();
                 break;
@@ -1042,11 +1076,15 @@ void baseTrampInstance::removeCode(generatedCodeObject *subObject) {
         else {
             // When we in-line, this will need to change. For now,
             // we can always fix jumps by hand
-            codeGen gen(instruction::maxJumpSize());
-            generateBranchToMT(gen);
-            proc()->writeDataSpace((void *)(trampPreAddr() + baseT->instStartOffset),
-                                   gen.used(),
-                                   gen.start_ptr());
+            if (BPatch::bpatch->isMergeTramp())
+                hasChanged_ = true;
+            else {
+                codeGen gen(instruction::maxJumpSize());
+                generateBranchToMT(gen);
+                proc()->writeDataSpace((void *)(trampPreAddr() + baseT->instStartOffset),
+                                       gen.used(),
+                                       gen.start_ptr());
+            }
         }
     }
     else {
@@ -1060,7 +1098,11 @@ void baseTrampInstance::removeCode(generatedCodeObject *subObject) {
         // this will remove them.
         for (unsigned j = 0; j < mtis.size(); j++) {
             mtis[j]->removeCode(this);
+            if (!BPatch::bpatch->isMergeTramp())
+                deletedMTIs.push_back(mtis[j]);
         }
+        mtis.clear();
+
         baseT->unregisterInstance(this);
     }
            
@@ -1100,20 +1142,12 @@ void baseTrampInstance::invalidateCode() {
         mtis[i]->invalidateCode();
 }
 
-bool baseTrampInstance::hasChanged() {
-    // TODO: in-line...
-    // In general, baseTramps are okay with adding
-    // or removing instrumentation, since miniTramps
-    // are out-of-line. However, if there are no miniTramps,
-    // we're considered to have changed.
-
-    return ((baseT->firstMini != NULL) != hadMini);
-}
-
 bool baseTrampInstance::linkCode() {
-    // TODO inline
+    if (isEmpty()) {
 
-    if (isEmpty()) return true;
+        linked_ = true;
+        return true;
+    }
 
     unsigned cost = 0;
     for (unsigned i = 0; i < mtis.size(); i++) {
@@ -1121,22 +1155,24 @@ bool baseTrampInstance::linkCode() {
         cost += mtis[i]->cost();
     }
 
-    Address leave = trampPreAddr() + baseT->instStartOffset;
-    
-    Address arrive = baseT->firstMini->getMTInstanceByBTI(this)->trampBase;
-
-    /*
-      inst_printf("writing branch from 0x%x to 0x%x, baseT->miniT\n",
-                leave, arrive);
-    */
+    if (!BPatch::bpatch->isMergeTramp()) {
+        Address leave = trampPreAddr() + baseT->instStartOffset;
+        
+        Address arrive = baseT->firstMini->getMTInstanceByBTI(this)->trampBase;
+        
+        inst_printf("writing branch from 0x%x to 0x%x, baseT (%p)->miniT (%p)\n",
+                    leave, arrive,
+                    this,
+                    baseT->firstMini->getMTInstanceByBTI(this));
 #if defined(os_aix)
-    resetBRL(baseT->proc(), leave, arrive);
+        resetBRL(baseT->proc(), leave, arrive);
 #else
-    generateAndWriteBranch(baseT->proc(), 
-                           leave, 
-                           arrive, 
-                           instruction::maxJumpSize());
+        generateAndWriteBranch(baseT->proc(), 
+                               leave, 
+                               arrive, 
+                               instruction::maxJumpSize());
 #endif
+    }
 
     // Cost calculation
     if (cost) {
@@ -1154,23 +1190,25 @@ generatedCodeObject *baseTrampInstance::replaceCode(generatedCodeObject *newPare
     // instead of ourselves.
 
     // Though if we haven't been generated yet, don't bother
-    /*
-      inst_printf("replaceCode for baseTramp %p, new par %p, previous %p\n", this,
-            newParent, multiT);
-    */
+    inst_printf("replaceCode for baseTramp %p, new par %p, previous %p\n", this,
+                newParent, multiT);
     multiTramp *newMulti = dynamic_cast<multiTramp *>(newParent);
     assert(newMulti);
-
-    if (trampAddr_ == 0) {
+    
+    if (!generated_) {
         multiT = newMulti;
         return this;
     }
-
+    
     baseTrampInstance *newBTI = baseT->findOrCreateInstance(newMulti);
     assert(newBTI);
     for (unsigned i = 0; i < mtis.size(); i++) {
-        mtis[i]->replaceCode(newBTI);
+        
+        generatedCodeObject *gen = mtis[i]->replaceCode(newBTI);
+        miniTrampInstance *newMTI = dynamic_cast<miniTrampInstance *>(gen);
+        assert(newMTI);
     }
+    newBTI->updateMTInstances();
     return newBTI;
 }
 
