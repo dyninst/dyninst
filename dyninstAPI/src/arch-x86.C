@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.43 2005/12/12 16:37:08 gquinn Exp $
+// $Id: arch-x86.C,v 1.44 2005/12/14 22:44:04 bernat Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -3439,7 +3439,7 @@ unsigned instruction::spaceToRelocate() const {
    for (unsigned u = 0; u < nPrefixes; u++)
        *origInsn++;
 
-   inst_printf("%d bytes in prefixes\n", nPrefixes);
+   //inst_printf("%d bytes in prefixes\n", nPrefixes);
 
    if (type() & REL_B) {
        /* replace with rel32 instruction, opcode is one byte. */
@@ -3455,19 +3455,19 @@ unsigned instruction::spaceToRelocate() const {
           if (type() & IS_JCC) {
               /* Change a Jcc rel8 to Jcc rel32.  Must generate a new opcode: a
                  0x0F followed by (old opcode + 16) */
-              inst_printf("... JCC, returning %d\n", 6+nPrefixes);
+              //inst_printf("... JCC, returning %d\n", 6+nPrefixes);
               return 6 + nPrefixes;
           }
           else if (type() & IS_JUMP) {
               /* change opcode to 0xE9 */
-              inst_printf(".... JUMP, returning %d\n", 5+nPrefixes);
+              //inst_printf(".... JUMP, returning %d\n", 5+nPrefixes);
               return 5 + nPrefixes;
           }
           assert(0);
       }
    }
    else if (type() & REL_W) {
-       inst_printf("... REL_W\n");
+       //inst_printf("... REL_W\n");
       /* opcode is unchanged, just relocate the displacement */
       if (*origInsn == (unsigned char)0x0F)
           maxSize++;
@@ -3477,7 +3477,7 @@ unsigned instruction::spaceToRelocate() const {
 
       return maxSize + nPrefixes;
    } else if (type() & REL_D) {
-       inst_printf("... REL_D\n");
+       //inst_printf("... REL_D\n");
        /* opcode is unchanged, just relocate the displacement */
        if (*origInsn == 0x0F)
            maxSize++;
@@ -3621,7 +3621,7 @@ bool instruction::generate(codeGen &gen,
                 nPrefixes++;
             if (insnType & PREFIX_ADDR)
                 nPrefixes++;
-            inst_printf(".... %d bytes in prefixes\n", nPrefixes);
+            //inst_printf(".... %d bytes in prefixes\n", nPrefixes);
             for (unsigned u = 0; u < nPrefixes; u++)
                 *newInsn++ = *origInsn++;
 
