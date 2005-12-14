@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.151 2005/12/12 16:37:09 gquinn Exp $
+// $Id: unix.C,v 1.152 2005/12/14 22:44:17 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -241,7 +241,6 @@ bool SignalHandlerUnix::handleSigCritical(EventRecord &ev)
 
    signal_printf("Process %d dying on signal %d\n", proc->getPid(), ev.info);
    
-   exit(-1);
    for (unsigned thr_iter = 0; thr_iter <  proc->threads.size(); thr_iter++) {
        dyn_lwp *lwp = proc->threads[thr_iter]->get_lwp();
        if (lwp) {
