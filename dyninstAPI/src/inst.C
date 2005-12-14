@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.150 2005/11/21 17:16:12 jaw Exp $
+// $Id: inst.C,v 1.151 2005/12/14 22:44:12 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 // Misc constructs.
 
@@ -154,6 +154,7 @@ bool trampEnd::generateCode(codeGen &gen,
     
     size_ = gen.currAddr(baseInMutatee) - addrInMutatee_;
     generated_ = true;
+    hasChanged_ = false;
 
 #if defined( cap_unwind )
     /* The jump back is an zero-length ALIAS to the original location, followed

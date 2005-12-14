@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.11 2005/09/28 17:03:13 bernat Exp $
+// $Id: multiTramp.h,v 1.12 2005/12/14 22:44:16 bernat Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -73,7 +73,7 @@ class generatedCodeObject : public codeRange {
  public:
     // Do we need to regenerate this code? Used to determine
     // whether a level of hierarchy needs to be replaced
-    virtual bool hasChanged() { return false; }
+    virtual bool hasChanged() { return hasChanged_; }
 
     // And how much space do you need? (worst case scenario)
     virtual unsigned maxSizeRequired() = 0;
@@ -147,6 +147,7 @@ class generatedCodeObject : public codeRange {
     bool generated_;
     bool installed_;
     bool linked_;
+    bool hasChanged_;
 
     bool generated() const { return generated_; }
     bool installed() const { return installed_; }
@@ -172,6 +173,7 @@ class generatedCodeObject : public codeRange {
         generated_(false),
         installed_(false),
         linked_(false),
+        hasChanged_(true),
         pinnedOffset(0),
         size_(0),
         addrInMutatee_(0),
@@ -184,6 +186,7 @@ class generatedCodeObject : public codeRange {
         generated_(old->generated_),
         installed_(old->installed_),
         linked_(old->linked_),
+        hasChanged_(old->hasChanged_),
         pinnedOffset(old->pinnedOffset),
         size_(old->size_),
         addrInMutatee_(old->addrInMutatee_),

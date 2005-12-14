@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.20 2005/11/21 17:16:13 jaw Exp $
+// $Id: multiTramp.C,v 1.21 2005/12/14 22:44:15 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -755,6 +755,9 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
     generatedCFG_t::iterator cfgIter;
     generatedCodeObject *obj = NULL;
 
+    inst_printf("Generating multiTramp from addr 0x%lx\n",
+                instAddr_);
+
     // We might be getting called but nothing changed...
     if (!generated_) {
         assert(!trampAddr_);
@@ -809,8 +812,8 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
             
             // Then update the size
             size_required += obj->maxSizeRequired();
-            inst_printf("... %d bytes, total %d\n",
-                        obj->maxSizeRequired(), size_required);
+            //inst_printf("... %d bytes, total %d\n",
+            //obj->maxSizeRequired(), size_required);
         }
         
         // We never re-use multiTramps
@@ -937,10 +940,10 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
         if (dynamic_cast<relocatedInstruction *>(obj)) {
             tempAddr = (dynamic_cast<relocatedInstruction *>(obj))->uninstrumentedAddr();
         }
-        inst_printf("After node: mutatee 0x%lx (0x%lx), offset %d, size req %d\n",
-                    generatedMultiT_.currAddr(trampAddr_),
-                    tempAddr,
-                    generatedMultiT_.used(), size_required);
+        //inst_printf("After node: mutatee 0x%lx (0x%lx), offset %d, size req %d\n",
+        //generatedMultiT_.currAddr(trampAddr_),
+        //tempAddr,
+        //generatedMultiT_.used(), size_required);
         
         // Safety...
         assert(generatedMultiT_.used() <= size_required);
@@ -971,7 +974,6 @@ bool multiTramp::installCode() {
     // We need to add a jump back and fix any conditional jump
     // instrumentation
     if (branchSize_ == -2) {
-        fprintf(stderr, "MT, skipping install...\n");
         return true;
     }
 
@@ -1038,8 +1040,9 @@ bool multiTramp::linkCode() {
     assert(installed_);
 
     assert(jumpBuf_.used() == instSize_);
-    inst_printf("Linking multiTramp 0x%lx to 0x%lx\n",
-                instAddr_, instAddr_ + instSize_);
+    inst_printf("Linking multiTramp 0x%lx to 0x%lx, to 0x%lx to 0x%lx\n",
+                instAddr_, instAddr_ + instSize_,
+                trampAddr_, trampAddr_ + trampSize_);
     if (!linked_) {
         codeRange *prevRange = proc()->findModifiedPointByAddr(instAddr_);
         if (prevRange != NULL) {
@@ -2015,6 +2018,7 @@ bool relocatedInstruction::generateCode(codeGen &gen,
 
     size_ = gen.currAddr(baseInMutatee) - addrInMutatee_;
     generated_ = true;
+    hasChanged_ = false;
     
 #if defined( cap_unwind )
 	/* FIXME: a relocated instruction could easily change the unwind state.
