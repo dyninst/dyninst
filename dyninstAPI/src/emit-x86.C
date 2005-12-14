@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.15 2005/12/12 16:37:08 gquinn Exp $
+ * $Id: emit-x86.C,v 1.16 2005/12/14 22:44:09 bernat Exp $
  */
 
 #include <assert.h>
@@ -396,11 +396,10 @@ bool Emitter32::emitBTGuardPreCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& 
     }
     guardJumpIndex = gen.getIndex();
 
-    // We might have to 5-byte around if there's a lot of inlined minitramps
-    // When we fix this, we might use a smaller jump (and leave the rest as noops)
-    bt->guardBranchSize = JUMP_REL32_SZ;
-    instruction::generateNOOP(gen, JUMP_REL32_SZ);
-    
+    emitJcc(0x04, 0, gen);
+
+    bt->guardBranchSize = gen.getDisplacement(guardJumpIndex, gen.getIndex());
+
     if (bt->threaded())
     {
        emitMovImmToRM(REGNUM_EAX, 0, 0, gen);
@@ -1582,8 +1581,8 @@ bool Emitter64::emitBTGuardPreCode(baseTramp* bt, codeGen &gen, unsigned& guardJ
     
     // We might have to 5-byte around if there's a lot of inlined minitramps
     // When we fix this, we might use a smaller jump (and leave the rest as noops)
-    bt->guardBranchSize = JUMP_REL32_SZ;
-    instruction::generateNOOP(gen, JUMP_REL32_SZ);
+    emitJcc(0x4, 0, gen, true);
+    bt->guardBranchSize = gen.getIndex() - guardJumpIndex;
     
     emitMovImmToRM(REGNUM_RAX, 0, 0, gen);
     
