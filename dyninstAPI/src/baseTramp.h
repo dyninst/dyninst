@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.h,v 1.10 2005/09/15 19:20:37 tlmiller Exp $
+// $Id: baseTramp.h,v 1.11 2005/12/14 22:44:08 bernat Exp $
 
 // baseTramp class definition
 
@@ -119,9 +119,6 @@ class baseTrampInstance : public generatedCodeObject {
     bool finalizeGuardBranch(codeGen &gen,
                              int displacement);
 
-    // Have we changed (and do we need regeneration/
-    // a new baseTrampInstance?)
-    bool hasChanged();
     
     void invalidateCode();
     
@@ -164,8 +161,6 @@ class baseTrampInstance : public generatedCodeObject {
     // We need to keep these around to tell whether it's
     // safe to delete yet.
     pdvector<miniTrampInstance *> deletedMTIs;
-
-    bool hadMini;
 };
 
 class baseTramp {
@@ -279,7 +274,13 @@ class baseTramp {
     bool inBasetramp( Address addr );
     bool inSavedRegion( Address addr );
 
+    // We can combine minitramps from multiple instPoints
+    // (pre and post tramps). firstMini and lastMini are the
+    // ends of the chain; firstPreMini is the first mini for
+    // pre instrumentation. If NULL, there is none. 
+    // Order is: all post, then all pre.
     miniTramp *firstMini;
+    miniTramp *firstPreMini;
     miniTramp *lastMini;
 
     // Normal constructor
@@ -302,7 +303,8 @@ class baseTramp {
     bool clearBaseBranch();
     
     // Logic to correct all basetramp jumps.
-    bool correctBTJumps();
+    // Unused?
+    //bool correctBTJumps();
 
     // If all our minitramps are gone, clean up
     void deleteIfEmpty();
