@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.160 2005/12/12 16:37:08 gquinn Exp $
+// $Id: ast.C,v 1.161 2005/12/14 22:44:06 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1047,7 +1047,9 @@ Address AstNode::generateTramp(process *proc, const instPoint *location,
         removeAst(preamble);
 	tmp = (Register)generateCode(proc, regSpace, gen, noCost, true, location);
         regSpace->freeRegister(tmp);
-        ret = trailer->generateCode(proc, regSpace, gen, noCost, true);
+        if (!BPatch::bpatch->isMergeTramp()) {
+            ret = trailer->generateCode(proc, regSpace, gen, noCost, true);
+        }
     } else {
         removeAst(preamble);
         emitV(op, 1, 0, 0, gen, noCost);   // op==noOp
