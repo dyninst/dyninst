@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test6.C,v 1.33 2005/12/12 16:37:12 gquinn Exp $
+// $Id: test6.C,v 1.34 2005/12/14 19:50:34 gquinn Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -485,8 +485,8 @@ void init_test_data()
   loadList[++k] = MK_LD(0, 4, -1, 24);
   loadList[++k] = new BPatch_memoryAccess("", 0, 0,
 				   true, false,
-				   0, 1, 9,
-				   0, POWER_XER2531, -1);
+				   (long)0, 1, 9,
+				   (long)0, POWER_XER2531, -1);
 
   loadList[++k] = MK_LD(0, -1, 3, 4);  // l30, 0 is -1 in ra...
   loadList[++k] = MK_LD(0, -1, 7, 8);  // l31, idem
@@ -535,8 +535,8 @@ void init_test_data()
 
   storeList[++k] = new BPatch_memoryAccess("", 0, 0,
 				    false, true,
-				    0, 1, 9,
-				    0, POWER_XER2531, -1);
+				    (long)0, 1, 9,
+				    (long)0, POWER_XER2531, -1);
 
   storeList[++k] = MK_ST(0, -1, 3, 4); // 0 means -1 (no register) in ra
   storeList[++k] = MK_ST(0, -1, 7, 8);
