@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test6_1.C,v 1.3 2005/12/01 23:31:10 jaw Exp $
+// $Id: test6_1.C,v 1.4 2005/12/14 19:50:37 gquinn Exp $
 /*
  * #Name: test6_1
  * #Desc: Load Instrumentation
@@ -131,8 +131,8 @@ void init_test_data()
   loadList[++k] = MK_LD(0, 4, -1, 24);
   loadList[++k] = new BPatch_memoryAccess("", 0, 0,
 				   true, false,
-				   0, 1, 9,
-				   0, POWER_XER2531, -1);
+				   (long)0, 1, 9,
+				   (long)0, POWER_XER2531, -1);
 
   loadList[++k] = MK_LD(0, -1, 3, 4);  // l30, 0 is -1 in ra...
   loadList[++k] = MK_LD(0, -1, 7, 8);  // l31, idem
