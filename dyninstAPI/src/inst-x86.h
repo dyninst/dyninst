@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.22 2005/12/12 16:37:09 gquinn Exp $
+// $Id: inst-x86.h,v 1.23 2005/12/14 22:44:11 bernat Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
@@ -222,6 +222,7 @@ void emitLEA(Register base, Register index, unsigned int scale,
 void emitJump(unsigned disp32, codeGen &gen);
 void emitJccR8(int condition_code, char jump_offset,
                codeGen &gen);
+void emitJcc(int condition, int offset, codeGen &gen, bool willRegen=true);
 void emitPushImm(unsigned int imm, codeGen &gen);
 void emitAddMemImm32(Address dest, int imm, codeGen &gen);
 void emitCallRel32(unsigned disp32, codeGen &gen);

@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.230 2005/12/12 16:37:09 gquinn Exp $
+ * $Id: inst-x86.C,v 1.231 2005/12/14 22:44:10 bernat Exp $
  */
 #include <iomanip>
 
@@ -201,17 +201,9 @@ bool baseTrampInstance::finalizeGuardBranch(codeGen &gen,
     unsigned start = gen.used();
     int jumpSize = 0;
 
-    // 2 for the jump size; TODO fixme
-    // Should handle longer branches
-    if (disp < 256) {
-        emitJccR8(JE_R8, (disp- 2), gen);
-        // Moves gen...
-        jumpSize = gen.used() - start;
-    }
-    else {
-        // We need a bigger jump buffer.
-        assert(0); // TODO
-    }
+    emitJcc(0x04, disp-2, gen, false);
+
+    jumpSize = gen.used() - start;
 
     gen.fill(baseT->guardBranchSize - jumpSize,
              codeGen::cgNOP);
@@ -277,8 +269,8 @@ void emitJccR8(int condition_code, char jump_offset,
 // (the longer form)
 
 // TODO: generate JEXCZ as well
-static inline void emitJcc(int condition, int offset,
-                           codeGen &gen, bool willRegen=true)
+void emitJcc(int condition, int offset,
+             codeGen &gen, bool willRegen) /* = true */
 {
    unsigned char opcode;
    GET_PTR(insn, gen);
