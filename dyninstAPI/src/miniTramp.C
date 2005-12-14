@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.15 2005/12/09 04:01:34 rutar Exp $
+// $Id: miniTramp.C,v 1.16 2005/12/14 22:44:13 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -177,7 +177,7 @@ miniTrampInstance *miniTramp::getMTInstanceByBTI(baseTrampInstance *bti) {
     // Didn't find it... add it if the miniTramp->baseTramp mapping
     // is correct
     assert(baseT == bti->baseT);
-    
+
     miniTrampInstance *mtInst = new miniTrampInstance(this, bti);
 
     instances.push_back(mtInst);
@@ -186,14 +186,19 @@ miniTrampInstance *miniTramp::getMTInstanceByBTI(baseTrampInstance *bti) {
 
 miniTrampInstance::~miniTrampInstance() {
     mini->deleteMTI(this);
-
-    proc()->deleteCodeRange(get_address_cr());
-    proc()->inferiorFree(trampBase);
+    if (!BPatch::bpatch->isMergeTramp()) {
+        proc()->deleteCodeRange(get_address_cr());
+        proc()->inferiorFree(trampBase);
+    }
 }
 
 
 unsigned miniTrampInstance::maxSizeRequired() {
-    // If in-line...
+    if (BPatch::bpatch->isMergeTramp()) {
+        if (!mini->generateMT())
+            return 0;
+        return mini->miniTrampCode_.used();
+    }
 
     if (mini->baseT->firstMini == mini) {
         //inst_printf("Size request for first mini\n");
@@ -215,53 +220,56 @@ unsigned miniTrampInstance::maxSizeRequired() {
 /* Note that out-of-line minitramps imply that they only
    add their /inline/ regions (jumps) to the unwindInformation
    chain, and register their /out-of-line/ regions on their own. */
-#if defined (arch_ia64)
 bool miniTrampInstance::generateCode(codeGen &gen,
-                                     Address /*baseInMutatee*/,
-                                     UNW_INFO_TYPE ** unwindInformation ) 
-#else
-bool miniTrampInstance::generateCode(codeGen &gen,
-                                     Address /*baseInMutatee*/,
-                                     UNW_INFO_TYPE ** /*unwindInformation*/ ) 
-#endif
-{
-    /*
-      inst_printf("miniTrampInstance::generateCode(%p, 0x%x, %d)\n",
-                gen.start_ptr(), baseInMutatee, gen.used());
-    */
+                                     Address baseInMutatee,
+                                     UNW_INFO_TYPE ** unwindInformation ) {
+    inst_printf("miniTrampInstance(%p)::generateCode(%p, 0x%x, %d)\n",
+                this, gen.start_ptr(), baseInMutatee, gen.used());
     assert(mini);
-    // if (in-line...)
-    // Are we first?
-    if (mini->baseT->firstMini == mini) {
-        if (!generated_) { 
-            gen.fill(instruction::maxJumpSize(),
-                     codeGen::cgNOP);
-            mini->baseT->instSize = instruction::maxJumpSize();
-        }
-        else {
-            gen.moveIndex(instruction::maxJumpSize());
-        }
+    
+    if (!mini->generateMT())
+        return false;
+      
+    if (!BPatch::bpatch->isMergeTramp()) {
+        // Out of line code generation
+        // Are we first?
+        if (mini->baseT->firstMini == mini) {
+            if (!generated_) { 
+                gen.fill(instruction::maxJumpSize(),
+                         codeGen::cgNOP);
+                mini->baseT->instSize = instruction::maxJumpSize();
+            }
+            else {
+                gen.moveIndex(instruction::maxJumpSize());
+            }
 #if defined( cap_unwind )
-	/* maxJumpSize() returns bytes */
+            /* maxJumpSize() returns bytes */
 #if defined( arch_ia64 )
-    (*unwindInformation)->insn_count += (instruction::maxJumpSize() / 16) * 3;
+            (*unwindInformation)->insn_count += (instruction::maxJumpSize() / 16) * 3;
 #else
 #error How do I know how many instructions are in the jump region?
 #endif /* defined( arch_ia64 ) */
 #endif /* defined( cap_unwind ) */       
+        }
+    }
+    else {
+        // Copy code into the buffer
+        gen.copy(mini->miniTrampCode_);
+        // TODO unwind information
+
     }
     
-    // And make-y the code
-    //inst_printf("Generating MT code\n");
-    if (!mini->generateMT())
-        return false;
     generated_ = true;
+    hasChanged_ = false;
     //inst_printf("Done with MT code generation\n");
     return true;
 }
 
 bool miniTrampInstance::installCode() {
-    // If in-line...
+    if (BPatch::bpatch->isMergeTramp()) {
+        installed_ = true;
+        return true;
+    }
 
     // Write, I say _write_ into the addr space
     if (installed_) {
@@ -413,25 +421,30 @@ bool miniTrampInstance::safeToFree(codeRange *range) {
 }
 
 void miniTrampInstance::removeCode(generatedCodeObject *subObject) {
-    // TODO: in-line
+    bool merged = BPatch::bpatch->isMergeTramp();
 
     baseTrampInstance *delBTI = dynamic_cast<baseTrampInstance *>(subObject);
 
     assert((subObject == NULL) || delBTI);
 
     // removeCode can be called in one of two directions: from a child
-    // (with themselves as the object) or a parent. We differ in 
+    // (with NULL as the argument) or a parent. We differ in 
     // behavior depending on the type.
 
     if (subObject == NULL) {
         baseTI->removeCode(this);
-        proc()->deleteGeneratedCode(this);
+        
         // Make sure our previous guy jumps to the next guy
         if (mini->prev) {
             miniTrampInstance *prevI = mini->prev->getMTInstanceByBTI(baseTI);
             assert(prevI);
             prevI->linkCode();
         }
+        if (!merged) 
+            proc()->deleteGeneratedCode(this);
+        else
+            delete this;
+
     }
     else {
         assert(delBTI);
@@ -439,8 +452,10 @@ void miniTrampInstance::removeCode(generatedCodeObject *subObject) {
         // a different instance. If so, we're cool. If not, clean 
         // up and go away.
         if (delBTI == baseTI) {
-            proc()->deleteGeneratedCode(this);
-            // Don't call baseTI->removeCode...
+            if (!merged) 
+                proc()->deleteGeneratedCode(this);
+            else
+                delete this;
         }
     }
 }
@@ -456,7 +471,7 @@ void miniTrampInstance::freeCode() {
     delete this;
 }
 
-process *miniTrampInstance::proc() {
+process *miniTrampInstance::proc() const {
     return mini->proc();
 }
 
@@ -464,18 +479,22 @@ bool miniTrampInstance::linkCode() {
     assert(baseTI);
     assert(baseTI->trampPreAddr());
 
-    // if in-line...
+    if (BPatch::bpatch->isMergeTramp()) {
+        linked_ = true;
+        return true;
+    }
+
     if (mini->next) {
         assert(baseTI);
         miniTrampInstance *nextI = mini->next->getMTInstanceByBTI(baseTI);
         assert(nextI);
-        /*
+
         inst_printf("Writing branch from 0x%x (0x%x,0x%x) to 0x%x, miniT -> miniT\n",
                     trampBase + mini->returnOffset,
                     trampBase,
                     mini->returnOffset,
                     nextI->trampBase);
-        */
+
         generateAndWriteBranch(mini->proc(), 
                                trampBase + mini->returnOffset,
                                nextI->trampBase,
@@ -483,11 +502,13 @@ bool miniTrampInstance::linkCode() {
     }
     else {
         // Last one; go to the base tramp
-        /*
-        inst_printf("Writing branch from 0x%x to 0x%x, miniT -> baseT\n",
+
+        inst_printf("Writing branch from 0x%x to 0x%x, miniT (%p) -> baseT (%p)\n",
                     trampBase + mini->returnOffset,
-                    baseTI->miniTrampReturnAddr());
-        */
+                    baseTI->miniTrampReturnAddr(),
+                    this,
+                    baseTI);
+
 #if defined(os_aix)
         // TODO: miniTramp methods to wrap this.
         resetBR(mini->proc(),
@@ -522,16 +543,37 @@ unsigned miniTrampInstance::cost() {
 }
 
 generatedCodeObject *miniTrampInstance::replaceCode(generatedCodeObject *newParent) {
-    // We out-of-line, and so this just shifts allegiance.
     baseTrampInstance *newBTI = dynamic_cast<baseTrampInstance *>(newParent);
     assert(newBTI);
+    assert(this);
 
     baseTI->deleteMTI(this);
-    baseTI = newBTI;
 
-    // Not linked yet...
-    linked_ = false;
-    return this;
+    if (!BPatch::bpatch->isMergeTramp()) {
+        // We out-of-line, and so this just shifts allegiance.        
+        baseTI = newBTI;
+        
+        // Not linked yet...
+        linked_ = false;
+        return this;
+    }
+    else {
+        if (!generated_) {
+            baseTI = newBTI;
+            return this;
+        }
+        // We replace ourselves...
+        miniTrampInstance *newMTI = new miniTrampInstance(this, newBTI);
+        assert(newMTI);
+        return dynamic_cast<generatedCodeObject *>(newMTI);
+    }
+}
+
+bool miniTrampInstance::hasChanged() {
+    if (BPatch::bpatch->isMergeTramp()) 
+        return hasChanged_;
+    else
+        return false;
 }
  
 unsigned miniTrampInstance::get_size_cr() const { 
@@ -550,9 +592,19 @@ miniTrampInstance::miniTrampInstance(const miniTrampInstance *parMTI,
 {
     mini->instances.push_back(this);
 }
-   
-                      
 
+miniTrampInstance::miniTrampInstance(const miniTrampInstance *origMTI,
+                                     baseTrampInstance *parBTI) :
+    generatedCodeObject(origMTI, origMTI->proc()),
+    baseTI(parBTI),
+    mini(origMTI->mini),
+    trampBase(0),
+    deleted(false)
+{
+    mini->instances.push_back(this);
+}
+
+   
 miniTramp::miniTramp(callWhen when_,
                      AstNode *ast,
                      baseTramp *base,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.h,v 1.7 2005/09/15 19:20:44 tlmiller Exp $
+// $Id: miniTramp.h,v 1.8 2005/12/14 22:44:14 bernat Exp $
 
 #ifndef MINI_TRAMP_H
 #define MINI_TRAMP_H
@@ -84,6 +84,10 @@ class miniTrampInstance : public generatedCodeObject {
                     baseTrampInstance *cBTI,
                     miniTramp *cMT,
                     process *child);
+
+  // Inline replacing of code
+  miniTrampInstance(const miniTrampInstance *origMTI,
+                    baseTrampInstance *newParent);
   
   // Need to have a destructor, so we can track when each instance goes away. 
   ~miniTrampInstance();
@@ -101,6 +105,8 @@ class miniTrampInstance : public generatedCodeObject {
   Address uninstrumentedAddr() const;
   
   unsigned maxSizeRequired();
+
+  bool hasChanged();
 
   bool generateCode(codeGen &gen,
                     Address baseInMutatee,
@@ -121,7 +127,7 @@ class miniTrampInstance : public generatedCodeObject {
 
   unsigned cost();
 
-  process *proc();
+  process *proc() const;
 
 };
 
