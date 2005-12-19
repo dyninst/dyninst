@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.96 2005/11/03 05:21:05 jaw Exp $
+// $Id: inst-alpha.C,v 1.97 2005/12/19 23:47:34 rutar Exp $
 
 #include "common/h/headers.h"
 
@@ -1057,4 +1057,9 @@ unsigned saveRestoreRegistersInBaseTramp(process * /*proc*/, baseTramp * /*bt*/,
 					 registerSpace * /*rs*/)
 {
   return 0;
+}
+
+void registerSpace::saveClobberInfo(const instPoint *)
+{
+  /*Stub function*/
 }

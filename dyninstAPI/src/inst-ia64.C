@@ -3270,6 +3270,13 @@ unsigned saveRestoreRegistersInBaseTramp( process *, baseTramp *, registerSpace 
   return 0;
 } /* end saveRestoreRegistersInBaseTramp() */
 
+/* For AIX "on the fly" register allocation. */
+void registerSpace::saveClobberInfo(const instPoint *)
+{
+  /*Stub function*/
+}
+
+
 
 #if defined( OLD_DYNAMIC_CALLSITE_MONITORING )
 bool process::MonitorCallSite( instPoint * callSite ) {

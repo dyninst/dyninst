@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.177 2005/11/03 05:21:06 jaw Exp $
+// $Id: inst-sparc.C,v 1.178 2005/12/19 23:47:35 rutar Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -1734,3 +1734,7 @@ void emitV(opCode op, Register src1, Register src2, Register dest,
 /****************************************************************************/
 /****************************************************************************/
 
+void registerSpace::saveClobberInfo(const instPoint *)
+{
+  /*Stub function*/
+}
