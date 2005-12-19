@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.236 2005/12/09 04:01:33 rutar Exp $
+ * $Id: inst-power.C,v 1.237 2005/12/19 23:45:38 rutar Exp $
  */
 
 #include "common/h/headers.h"
@@ -641,7 +641,7 @@ void saveFPRegister(codeGen &gen,
                     Register reg,
                     int save_off)
 {
-    instruction::generateImm(gen, 
+  instruction::generateImm(gen, 
                              STFDop, 
                              reg, 
                              1, 
@@ -873,7 +873,10 @@ unsigned saveSPRegisters(codeGen &gen,
     if (theRegSpace->getSPFlag())
       saveSPR(gen, 10, SPR_SPR0, save_off + STK_SPR0);
     saveFPSCR(gen, 10, save_off + STK_FP_CR);
-    return 4; // register saved
+    if (theRegSpace->getSPFlag())
+      return 5; // register saved
+    else
+      return 4;
 }
 
 /*
@@ -890,9 +893,11 @@ unsigned restoreSPRegisters(codeGen &gen,
     restoreSPR(gen, 10, SPR_XER, save_off + STK_XER);
     if (theRegSpace->getSPFlag())
       restoreSPR(gen, 10, SPR_SPR0, save_off + STK_SPR0);
-    
     restoreFPSCR(gen, 10, save_off + STK_FP_CR);
-    return 4; // restored
+    if (theRegSpace->getSPFlag())
+      return 5; // restored
+    else
+      return 4;
 }
 
 
@@ -1002,10 +1007,14 @@ bool baseTramp::generateMTCode(codeGen &gen,
     regSpace->resetSpace();
     
     /* Get the hashed value of the thread */
-    if (threaded()) 
+    if (!threaded()) 
+      {
        threadPOS = new AstNode("DYNINSTreturnZero", dummy);
+      }
     else
+      {
        threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
+      }
     src = threadPOS->generateCode(proc(), regSpace, gen,
                                   false, // noCost 
                                   true); // root node
@@ -1313,6 +1322,7 @@ Register emitFuncCall(opCode /* ocode */,
     bool clobberAll = false;
     pdvector <Register> srcs;
 
+   
     //  Sanity check for NULL address argument
     if (!callee_addr) {
         char msg[256];
@@ -1443,7 +1453,7 @@ Register emitFuncCall(opCode /* ocode */,
    // Now load the parameters into registers.
    for (unsigned u=0; u<srcs.size(); u++){
       // check that is is not already in the register
-   
+     //rs->clobberRegister(u+3);
      /*
 
      if (srcs[u] == (unsigned int) u+3) {
@@ -2269,12 +2279,88 @@ bool registerSpace::clobberFPRegister(Register reg)
   return false;  
 }
 
+
+void registerSpace::saveClobberInfo(const instPoint *location)
+{
+  registerSlot *regSlot = NULL;
+  registerSlot *regFPSlot = NULL;
+  if (location == NULL)
+    return;
+  if (location->liveRegisters != NULL && location->liveFPRegisters != NULL)
+    {
+      
+      // REG guard registers, if live, must be saved
+      if (location->liveRegisters[ REG_GUARD_ADDR ] == LIVE_REG)
+	location->liveRegisters[ REG_GUARD_ADDR ] = LIVE_CLOBBERED_REG;
+      
+      if (location->liveRegisters[ REG_GUARD_OFFSET ] == LIVE_REG)
+	location->liveRegisters[ REG_GUARD_OFFSET ] = LIVE_CLOBBERED_REG;
+
+      // GPR and FPR scratch registers, if live, must be saved
+      if (location->liveRegisters[ REG_SCRATCH ] == LIVE_REG)
+	location->liveRegisters[ REG_SCRATCH ] = LIVE_CLOBBERED_REG;
+
+      if (location->liveFPRegisters[ REG_SCRATCH ] == LIVE_REG)
+	location->liveFPRegisters[ REG_SCRATCH ] = LIVE_CLOBBERED_REG;
+
+      // Return func call register, since we make a call because
+      // of multithreading (regardless if it's threaded) from BT
+      // we must save return register
+      if (location->liveRegisters[ 3 ] == LIVE_REG)
+	location->liveRegisters[ 3 ] = LIVE_CLOBBERED_REG;
+
+    
+      for (u_int i = 0; i < regSpace->getRegisterCount(); i++)
+	{
+	  regSlot = regSpace->getRegSlot(i);
+
+	  if (  location->liveRegisters[ (int) registers[i].number ] == LIVE_REG )
+	    {
+	      if (!registers[i].beenClobbered)
+		location->liveRegisters[ (int) registers[i].number ] = LIVE_UNCLOBBERED_REG;
+	      else
+		location->liveRegisters[ (int) registers[i].number ] = LIVE_CLOBBERED_REG;
+	    }
+
+
+	  if (  location->liveRegisters[ (int) registers[i].number ] == LIVE_UNCLOBBERED_REG ) 
+	    {
+	      if (registers[i].beenClobbered)
+		location->liveRegisters[ (int) registers[i].number ] = LIVE_CLOBBERED_REG;
+	    }
+	}
+	  
+      for (u_int i = 0; i < regSpace->getFPRegisterCount(); i++)
+	{
+	  regFPSlot = regSpace->getFPRegSlot(i);
+	  
+	  if (  location->liveFPRegisters[ (int) fpRegisters[i].number ] == LIVE_REG )
+	    {
+	      if (!fpRegisters[i].beenClobbered)
+		location->liveFPRegisters[ (int) fpRegisters[i].number ] = LIVE_UNCLOBBERED_REG;
+	      else
+		location->liveFPRegisters[ (int) fpRegisters[i].number ] = LIVE_CLOBBERED_REG;
+	    }
+	  
+	  if (  location->liveFPRegisters[ (int) fpRegisters[i].number ] == LIVE_UNCLOBBERED_REG )
+	    {
+	      if (fpRegisters[i].beenClobbered)
+		location->liveFPRegisters[ (int) fpRegisters[i].number ] = LIVE_CLOBBERED_REG;
+	    }
+	}
+    }
+}
+
+
+
+
 // Takes information from instPoint and resets
 // regSpace liveness information accordingly
 // Right now, all the registers are assumed to be live by default
 void registerSpace::resetLiveDeadInfo(const int * liveRegs, 
 				      const int * liveFPRegs,
-				      const int * liveSPRegs)
+				      const int * liveSPRegs,
+				      bool isThreaded)
 {
   registerSlot *regSlot = NULL;
   registerSlot *regFPSlot = NULL;
@@ -2296,7 +2382,14 @@ void registerSpace::resetLiveDeadInfo(const int * liveRegs,
       for (u_int i = 0; i < regSpace->getRegisterCount(); i++)
 	{
 	  regSlot = regSpace->getRegSlot(i);
-	  if (  liveRegs[ (int) registers[i].number ] == 1 )
+	  if (  liveRegs[ (int) registers[i].number ] == LIVE_REG ||
+		liveRegs[ (int) registers[i].number ] == LIVE_CLOBBERED_REG )
+	    {
+	      registers[i].needsSaving = true;
+	      registers[i].startsLive = true;
+	    }
+	  else if (liveRegs[ (int) registers[i].number ] == LIVE_UNCLOBBERED_REG  &&
+		   isThreaded)
 	    {
 	      registers[i].needsSaving = true;
 	      registers[i].startsLive = true;
@@ -2312,7 +2405,14 @@ void registerSpace::resetLiveDeadInfo(const int * liveRegs,
 	{
 	  regFPSlot = regSpace->getFPRegSlot(i);
 	  
-	  if (  liveFPRegs[ (int) fpRegisters[i].number ] == 1 )
+	  if (  liveFPRegs[ (int) fpRegisters[i].number ] == LIVE_REG ||
+		liveFPRegs[ (int) fpRegisters[i].number ] == LIVE_CLOBBERED_REG)
+	    {
+	      fpRegisters[i].needsSaving = true;
+	      fpRegisters[i].startsLive = true;
+	    }
+	  else if (liveFPRegs[ (int) fpRegisters[i].number ] == LIVE_UNCLOBBERED_REG  &&
+		   isThreaded)
 	    {
 	      fpRegisters[i].needsSaving = true;
 	      fpRegisters[i].startsLive = true;
@@ -2326,7 +2426,7 @@ void registerSpace::resetLiveDeadInfo(const int * liveRegs,
     }
   if (liveSPRegs != NULL)
     {
-      //spFlag = liveSPRegs[0];
+      spFlag = liveSPRegs[0];
     }
 }
 
@@ -2967,7 +3067,7 @@ int int_basicBlock::liveSPRegistersIntoSet(int *& liveSPReg,
 {
   if (liveSPReg == NULL)
     {
-      liveSPReg = new int[10]; // only care about MQ for Power for now
+      liveSPReg = new int[1]; // only care about MQ for Power for now
       liveSPReg[0] = 0;
       InstrucIter ii(this);
       

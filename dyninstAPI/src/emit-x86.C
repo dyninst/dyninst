@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.16 2005/12/14 22:44:09 bernat Exp $
+ * $Id: emit-x86.C,v 1.17 2005/12/19 23:45:38 rutar Exp $
  */
 
 #include <assert.h>
@@ -310,7 +310,7 @@ bool Emitter32::emitBTSaves(baseTramp* bt, codeGen &gen)
     emitSimpleInsn(PUSH_EBP, gen);
     emitMovRegToReg(REGNUM_EBP, REGNUM_ESP, gen);
     
-    if (bt->isConservative()) {
+    if (bt->isConservative() && regSpace->getSPFlag()) {
         // Allocate space for temporaries and floating points
         emitOpRegImm(5, REGNUM_ESP, TRAMP_FRAME_SIZE+FSAVE_STATE_SIZE, gen);
         emitOpRegRM(FSAVE, FSAVE_OP, REGNUM_EBP, -(TRAMP_FRAME_SIZE) - FSAVE_STATE_SIZE, gen);
@@ -323,7 +323,7 @@ bool Emitter32::emitBTSaves(baseTramp* bt, codeGen &gen)
 
 bool Emitter32::emitBTRestores(baseTramp* bt, codeGen &gen)
 {
-    if (bt->isConservative()) {
+    if (bt->isConservative() && regSpace->getSPFlag()) {
         emitOpRegRM(FRSTOR, FRSTOR_OP, REGNUM_EBP, -TRAMP_FRAME_SIZE - FSAVE_STATE_SIZE, gen);
     }
     emitSimpleInsn(LEAVE, gen);
@@ -951,6 +951,20 @@ void Emitter64::emitStoreFrameRelative(Address offset, Register src, Register /*
 }
 
 
+void Emitter64::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
+{
+  if (liveFPReg != NULL)
+    {
+      if (liveFPReg[0] == 0 && saveOrNot)
+	{
+	  int * temp = (int *) liveFPReg;
+	  temp[0] = 1;
+	}
+    }
+}
+
+
+
 /* Recursive function that goes to where our instrumentation is calling
 to figure out what registers are clobbered there, and in any function
 that it calls, to a certain depth ... at which point we clobber everything*/
@@ -1056,6 +1070,9 @@ Register Emitter64::emitCall(opCode op, registerSpace *rs, codeGen &gen, const p
 
     // Figure out if we need to save FPR in base tramp
     bool useFPR = clobberAllFuncCall(rs, proc, callee_addr,0);
+
+    if (location != NULL)
+      setFPSaveOrNot(location->liveFPRegisters, useFPR);
 
     return ret;
 }
@@ -1402,33 +1419,33 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
        emitOpRegImm64(0x81, 5, REGNUM_RSP, 8, true, gen);
     }
 
-    //printf("Saving GPR\n");
     if (bt->isConservative()) {
-           
-      //printf("Conservative ... saving FPR\n");
-	// need to save the floating point state (x87, MMX, SSE)
-	// we do this on the stack, but the problem is that the save
-	// area must be 16-byte aligned. the following sequence does
-	// the job:
-	//   mov %rsp, %rax          ; copy the current stack pointer
-	//   sub $512, %rsp          ; allocate space
-	//   and $0xfffffff0, %rsp   ; make sure we're aligned (allocates some more space)
-	//   fxsave (%rsp)           ; save the state
-	//   push %rax               ; save the old stack pointer
-
-	emitMovRegToReg64(REGNUM_RAX, REGNUM_RSP, true, gen);
-	emitOpRegImm64(0x81, 5, REGNUM_RSP, 512, true, gen);
-	emitOpRegImm64(0x81, 4, REGNUM_RSP, -16, true, gen);
-
-	// fxsave (%rsp) ; 0x0f 0xae 0x04 0x24
-	REGET_PTR(buffer, gen);
-	*buffer++ = 0x0f;
-	*buffer++ = 0xae;
-	*buffer++ = 0x04;
-	*buffer++ = 0x24;
-	SET_PTR(buffer, gen);
-
-	emitPushReg64(REGNUM_RAX, gen);
+      if (regSpace->getSPFlag())
+	{
+	  // need to save the floating point state (x87, MMX, SSE)
+	  // we do this on the stack, but the problem is that the save
+	  // area must be 16-byte aligned. the following sequence does
+	  // the job:
+	  //   mov %rsp, %rax          ; copy the current stack pointer
+	  //   sub $512, %rsp          ; allocate space
+	  //   and $0xfffffff0, %rsp   ; make sure we're aligned (allocates some more space)
+	  //   fxsave (%rsp)           ; save the state
+	  //   push %rax               ; save the old stack pointer
+	  
+	  emitMovRegToReg64(REGNUM_RAX, REGNUM_RSP, true, gen);
+	  emitOpRegImm64(0x81, 5, REGNUM_RSP, 512, true, gen);
+	  emitOpRegImm64(0x81, 4, REGNUM_RSP, -16, true, gen);
+	  
+	  // fxsave (%rsp) ; 0x0f 0xae 0x04 0x24
+	  REGET_PTR(buffer, gen);
+	  *buffer++ = 0x0f;
+	  *buffer++ = 0xae;
+	  *buffer++ = 0x04;
+	  *buffer++ = 0x24;
+	  SET_PTR(buffer, gen);
+	  
+	  emitPushReg64(REGNUM_RAX, gen);
+	}
     }
 
     return true;
@@ -1437,21 +1454,23 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
 bool Emitter64::emitBTRestores(baseTramp* bt, codeGen &gen)
 {
     if (bt->isConservative()) {
+      if (regSpace->getSPFlag())
+	{
+	  // pop the old RSP value into RAX
+	  emitPopReg64(REGNUM_RAX, gen);
 
-	// pop the old RSP value into RAX
-	emitPopReg64(REGNUM_RAX, gen);
-
-	// restore saved FP state
-	// fxrstor (%rsp) ; 0x0f 0xae 0x04 0x24
-	GET_PTR(buffer, gen);
-	*buffer++ = 0x0f;
-	*buffer++ = 0xae;
-	*buffer++ = 0x0c;
-	*buffer++ = 0x24;
-	SET_PTR(buffer, gen);
-
-	// restore stack pointer (deallocates FP save area)
-	emitMovRegToReg64(REGNUM_RSP, REGNUM_RAX, true, gen);
+	  // restore saved FP state
+	  // fxrstor (%rsp) ; 0x0f 0xae 0x04 0x24
+	  GET_PTR(buffer, gen);
+	  *buffer++ = 0x0f;
+	  *buffer++ = 0xae;
+	  *buffer++ = 0x0c;
+	  *buffer++ = 0x24;
+	  SET_PTR(buffer, gen);
+	  
+	  // restore stack pointer (deallocates FP save area)
+	  emitMovRegToReg64(REGNUM_RSP, REGNUM_RAX, true, gen);
+	}
     }
 
     // tear down the stack frame (LEAVE)

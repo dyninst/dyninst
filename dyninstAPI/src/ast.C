@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.161 2005/12/14 22:44:06 bernat Exp $
+// $Id: ast.C,v 1.162 2005/12/19 23:45:38 rutar Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1000,6 +1000,7 @@ void terminateAst(AstNode *&ast) {
 Address AstNode::generateTramp(process *proc, const instPoint *location,
                                codeGen &gen,
 			       int *trampCost, bool noCost) {
+
     static AstNode *trailer=NULL;
     if (!trailer) trailer = new AstNode(trampTrailer); // private constructor
                                                        // used to estimate cost
@@ -1032,13 +1033,12 @@ Address AstNode::generateTramp(process *proc, const instPoint *location,
     initTramps(proc->multithread_capable()); 
 
     regSpace->resetSpace();
-    regSpace->resetClobbers();
-    
     
 #if defined( ia64_unknown_linux2_4 )
 	extern Register deadRegisterList[];
 	defineBaseTrampRegisterSpaceFor( location, regSpace, deadRegisterList);
 #endif
+
 
     Address ret=0;
     if (type != opCodeNode || op != noOp) {
@@ -1056,7 +1056,15 @@ Address AstNode::generateTramp(process *proc, const instPoint *location,
     }
     
     regSpace->resetSpace();
-    regSpace->resetClobbers();
+    
+    if  (BPatch::bpatch->isMergeTramp())
+      {
+	/* We save the information at the inst-point, since
+	   the next mini-tramp will reset the clobber information */
+	regSpace->saveClobberInfo(location);
+	regSpace->resetClobbers();
+      }
+
        
     return(ret);
 }

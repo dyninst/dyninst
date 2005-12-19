@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.231 2005/12/14 22:44:10 bernat Exp $
+ * $Id: inst-x86.C,v 1.232 2005/12/19 23:45:38 rutar Exp $
  */
 #include <iomanip>
 
@@ -826,6 +826,19 @@ bool Emitter32::clobberAllFuncCall( registerSpace *rs,
 }
 
 
+void Emitter32::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
+{
+  if (liveFPReg != NULL)
+    {
+      if (liveFPReg[0] == 0 && saveOrNot)
+	{
+	  int * temp = (int * )liveFPReg;
+	  temp[0] = 1;
+	}
+    }
+}
+
+
 Register Emitter32::emitCall(opCode op, 
                              registerSpace *rs,
                              codeGen &gen,
@@ -877,6 +890,9 @@ Register Emitter32::emitCall(opCode op,
 
    // Figure out if we need to save FPR in base tramp
    bool useFPR = clobberAllFuncCall(rs, proc, callee_addr,0);
+      
+   if (location != NULL)
+      setFPSaveOrNot(location->liveFPRegisters, useFPR);
 
    return ret;
 }
@@ -2052,10 +2068,8 @@ bitArray * int_basicBlock::getInFPSet()
 int int_basicBlock::liveSPRegistersIntoSet(int *& liveSPReg, 
 					       unsigned long address)
 {
-   return 0;
+  return 0;
 }
-
-
 
 
 /* The liveReg int * is a instance variable in the instPoint classes.
@@ -2127,18 +2141,31 @@ int int_basicBlock::liveRegistersIntoSet(int *& liveReg,
 	} 
       //printf("\n");
     }
+    if (liveFPReg == NULL)
+      {
+	liveFPReg = new int[1];
+	liveFPReg = 0;
+      }
 
   return numLive;
 }
 
 #endif 
 
+
+void registerSpace::saveClobberInfo(const instPoint *)
+{
+  /*Stub function*/
+}
+
+
 // Takes information from instPoint and resets
 // regSpace liveness information accordingly
 // Right now, all the registers are assumed to be live by default
 void registerSpace::resetLiveDeadInfo(const int * liveRegs, 
-				      const int * /*liveFPRegs*/,
-				      const int * /*liveSPRegs*/)
+				      const int * liveFPRegs,
+				      const int * /*liveSPRegs*/,
+				      bool isThreaded)
 {
   registerSlot *regSlot = NULL;
   
@@ -2165,6 +2192,10 @@ void registerSpace::resetLiveDeadInfo(const int * liveRegs,
   else
     {
       setDisregardLiveness(true);
+    }
+  if (liveFPRegs != NULL)
+    {
+      spFlag = liveFPRegs[0];
     }
 }
 

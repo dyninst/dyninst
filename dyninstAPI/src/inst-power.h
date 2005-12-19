@@ -41,7 +41,7 @@
 
 /*
  * inst-power.h - Common definitions to the POWER specific instrumentation code.
- * $Id: inst-power.h,v 1.25 2005/07/29 19:18:37 bernat Exp $
+ * $Id: inst-power.h,v 1.26 2005/12/19 23:45:38 rutar Exp $
  */
 
 #ifndef INST_POWER_H
@@ -61,6 +61,10 @@
 class registerSpace;
 extern registerSpace *regSpace;
 
+#define DEAD_REG              0
+#define LIVE_REG              1
+#define LIVE_UNCLOBBERED_REG  2
+#define LIVE_CLOBBERED_REG    3
 
 #define GPRSIZE               4
 #define FPRSIZE               8
