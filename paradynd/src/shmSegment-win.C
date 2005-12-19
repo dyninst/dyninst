@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment-win.C,v 1.2 2005/09/09 18:08:02 legendre Exp $
+// $Id: shmSegment-win.C,v 1.3 2005/12/19 19:43:24 pack Exp $
 //----------------------------------------------------------------------------
 //
 // Definition of the ShmSegment class.

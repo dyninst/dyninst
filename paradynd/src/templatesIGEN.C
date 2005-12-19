@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: templatesIGEN.C,v 1.13 2004/03/23 01:12:37 eli Exp $
+ * $Id: templatesIGEN.C,v 1.14 2005/12/19 19:43:27 pack Exp $
  * Generate all the templates in one file.
  */
 
@@ -50,19 +50,19 @@
 
 #if defined(i386_unknown_nt4_0)
 #include "pdutil/h/xdr_send_recv.h"
-#include "dyninstRPC.xdr.h"
+#include "dyninstRPC.mrnet.h"
 template bool writerfn_noMethod<int>(struct XDR *, const int);
 template bool writerfn_noMethod<unsigned>(struct XDR *, const unsigned);
 template bool writerfn_noMethod<pdstring>(struct XDR *, const pdstring);
-template bool writerfn_noMethod<T_dyninstRPC::mdl_expr *>(struct XDR *, T_dyninstRPC::mdl_expr * const);
-template bool writerfn_noMethod<T_dyninstRPC::mdl_stmt *>(struct XDR *, T_dyninstRPC::mdl_stmt * const);
-template bool writerfn_noMethod<T_dyninstRPC::mdl_icode *>(struct XDR *, T_dyninstRPC::mdl_icode * const);
-template bool writerfn_noMethod<T_dyninstRPC::mdl_constraint *>(struct XDR *, T_dyninstRPC::mdl_constraint * const);
-template bool writerfn_noMethod<T_dyninstRPC::mdl_metric *>(struct XDR *, T_dyninstRPC::mdl_metric * const);
-template bool writerfn_noMethod<T_dyninstRPC::batch_buffer_entry>(struct XDR *, const T_dyninstRPC::batch_buffer_entry);
-template bool writerfn_noMethod<T_dyninstRPC::trace_batch_buffer_entry>(struct XDR *, const T_dyninstRPC::trace_batch_buffer_entry);
-template bool writerfn_noMethod<T_dyninstRPC::resourceInfoCallbackStruct>(struct XDR *, const T_dyninstRPC::resourceInfoCallbackStruct);
-template bool writerfn_noMethod<T_dyninstRPC::focusStruct>(struct XDR *, const T_dyninstRPC::focusStruct);
-template bool writerfn_noMethod<T_dyninstRPC::metricInfo>(struct XDR *, const T_dyninstRPC::metricInfo);
-template bool writerfn_noMethod<T_dyninstRPC::indivInstResponse>(struct XDR *, const T_dyninstRPC::indivInstResponse);
+template bool writerfn_noMethod<T_dyninstRPC::mdl_expr *>(struct MRNET *, T_dyninstRPC::mdl_expr * const);
+template bool writerfn_noMethod<T_dyninstRPC::mdl_stmt *>(struct MRNET *, T_dyninstRPC::mdl_stmt * const);
+template bool writerfn_noMethod<T_dyninstRPC::mdl_icode *>(struct MRNET *, T_dyninstRPC::mdl_icode * const);
+template bool writerfn_noMethod<T_dyninstRPC::mdl_constraint *>(struct MRNET *, T_dyninstRPC::mdl_constraint * const);
+template bool writerfn_noMethod<T_dyninstRPC::mdl_metric *>(struct MRNET *, T_dyninstRPC::mdl_metric * const);
+template bool writerfn_noMethod<T_dyninstRPC::batch_buffer_entry>(struct MRNET *, const T_dyninstRPC::batch_buffer_entry);
+template bool writerfn_noMethod<T_dyninstRPC::trace_batch_buffer_entry>(struct MRNET *, const T_dyninstRPC::trace_batch_buffer_entry);
+template bool writerfn_noMethod<T_dyninstRPC::resourceInfoCallbackStruct>(struct MRNET *, const T_dyninstRPC::resourceInfoCallbackStruct);
+template bool writerfn_noMethod<T_dyninstRPC::focusStruct>(struct MRNET *, const T_dyninstRPC::focusStruct);
+template bool writerfn_noMethod<T_dyninstRPC::metricInfo>(struct MRNET *, const T_dyninstRPC::metricInfo);
+template bool writerfn_noMethod<T_dyninstRPC::indivInstResponse>(struct MRNET *, const T_dyninstRPC::indivInstResponse);
 #endif

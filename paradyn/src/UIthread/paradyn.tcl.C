@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.tcl.C,v 1.106 2005/02/15 17:43:58 legendre Exp $
+/* $Id: paradyn.tcl.C,v 1.107 2005/12/19 19:42:30 pack Exp $
    This code implements the tcl "paradyn" command.  
    See the README file for command descriptions.
 */
@@ -508,9 +508,11 @@ ParadynTkGUI::ParadynProcessCmd( int argc, TCLCONST char *argv[])
   char *u = user ? strdup(user) : NULL;
   char *p = paradynd ? strdup(paradynd) : NULL;
   char *d = dir.length() ? strdup(dir.c_str()) : NULL;
+  char *t = "MRNET";
   char *mpi = mpitype ? strdup(mpitype) : NULL;
-  dataMgr->addExecutable(m, u, p, d, mpi, av);
+  dataMgr->addExecutable(m, u, p, d, t, mpi, av);
   return TCL_OK;
+
 }
 
 //

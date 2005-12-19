@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: costmetrics.C,v 1.33 2004/10/07 00:45:57 jaw Exp $
+// $Id: costmetrics.C,v 1.34 2005/12/19 19:42:49 pack Exp $
 
 #include "common/h/Types.h"
 #include "common/h/int64iostream.h"
@@ -228,8 +228,9 @@ bool costMetric::aggregateAndBatch() {
   if(node==NULL || !valid) return false;
 
   if(! node->sentInitialActualValue())
-    node->sendInitialActualValue(aggregator.getInitialActualValue());
-
+    {
+      node->sendInitialActualValue(aggregator.getInitialActualValue());
+    }
   timeLength timeSpan = aggSample.end - aggSample.start;
   int64_t span_ns = timeSpan.getI(timeUnit::ns());
   int64_t rval = aggSample.value.getValue();

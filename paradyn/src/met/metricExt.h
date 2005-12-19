@@ -39,13 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricExt.h,v 1.16 2004/06/21 19:37:55 pcroth Exp $
+// $Id: metricExt.h,v 1.17 2005/12/19 19:42:38 pack Exp $
 #ifndef _METRIC_EXT_H
 #define _METRIC_EXT_H
 
 #include "common/h/String.h"
 #include "paradyn/src/DMthread/DMinclude.h"
-#include "dyninstRPC.xdr.CLNT.h"
+#include "dyninstRPC.mrnet.CLNT.h"
 
 bool metMain(pdstring userFile);
 void mdl_destroy();

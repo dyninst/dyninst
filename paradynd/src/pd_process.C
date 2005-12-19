@@ -40,7 +40,6 @@
  */
 
 // $Id: pd_process.C,v
-
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_thread.h"
 #include "paradynd/src/init.h"
@@ -49,9 +48,14 @@
 #include "paradynd/src/costmetrics.h"
 #include "paradynd/src/perfStream.h"
 #include "paradynd/src/pd_image.h"
-#include "paradynd/src/pd_module.h"
+//#include "paradynd/src/CallGraph.h"
+#include "paradynd/src/pd_module.h" 
+
+
+//#include "dyninstAPI/src/process.h"
 
 #include "dyninstAPI/src/dyn_thread.h"
+
 #include "dyninstAPI/src/function.h"
 
 #include "dyninstAPI/h/BPatch.h"
@@ -75,6 +79,7 @@ extern int termWin_port;
 extern pdstring pd_machine;
 extern PDSOCKET connect_Svr(pdstring machine,int port);
 extern pdRPC *tp;
+extern MRN::Stream * defaultStream;
 extern pdvector<pdinstMapping*> initialRequestsPARADYN; 
 
 // Exec callback
@@ -92,8 +97,8 @@ extern pdstring formatLibParadynName(pdstring orig);
 void addLibraryCallback(BPatch_process *thr, BPatch_module *mod, bool load)
 {
   if (!mod) {
-    fprintf(stderr, "%s[%d]:  addModuleCallback called w/out module!\n",
-            __FILE__, __LINE__);
+    //fprintf(stderr, "%s[%d]:  addModuleCallback called w/out module!\n",
+    //        __FILE__, __LINE__);
     return;
   }
 
@@ -144,97 +149,88 @@ void addLibraryCallback(BPatch_process *thr, BPatch_module *mod, bool load)
 
 pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir)
 {
-#if !defined(os_windows)
-    if (termWin_port == -1)
-        return NULL;
-    
-    PDSOCKET stdout_fd = INVALID_PDSOCKET;
-    if ((stdout_fd = connect_Svr(pd_machine,termWin_port)) == INVALID_PDSOCKET)
-        return NULL;
-    if (write(stdout_fd,"from_app\n",strlen("from_app\n")) <= 0)
-    {
-        CLOSEPDSOCKET(stdout_fd);
-        return NULL;
-    }
+
+#if !defined(i386_unknown_nt4_0)
+	if (termWin_port == -1)
+		return NULL;
+	
+	PDSOCKET stdout_fd = INVALID_PDSOCKET;	
+	if ((stdout_fd = connect_Svr(pd_machine,termWin_port)) == INVALID_PDSOCKET)
+		{
+			return NULL;
+		}
+	if (write(stdout_fd,"from_app\n",strlen("from_app\n")) <= 0)
+		{
+			CLOSEPDSOCKET(stdout_fd);
+			return NULL;
+		}
 #endif
-	// NEW: We bump up batch mode here; the matching bump-down occurs after
-	// shared objects are processed (after receiving the SIGSTOP indicating
-	// the end of running DYNINSTinit; more specifically,
-	// procStopFromDYNINSTinit().  Prevents a diabolical w/w deadlock on
-	// solaris --ari
-	tp->resourceBatchMode(true);
+
+	pd_process *proc;
 #if defined(os_windows)
-    pd_process *proc = new pd_process(argv[0], argv, dir, 0, 1, 2);
-#else 
-    pd_process *proc = new pd_process(argv[0], argv, dir, 0, stdout_fd, 2);
+	proc = new pd_process(argv[0], argv, dir, 0, 1, 2);
+#else
+	proc = new pd_process(argv[0], argv, dir, 0, stdout_fd, 2);
 #endif
-    if ( (proc == NULL) || (proc->get_dyn_process() == NULL) ) {
+	if ( (proc == NULL) || (proc->get_dyn_process() == NULL) ) {
 #if !defined(os_windows)
-       CLOSEPDSOCKET(stdout_fd);
+		CLOSEPDSOCKET(stdout_fd);
 #endif
-        return NULL;
-    }
-    
-    //Add to process manager
-    getProcMgr().addProcess(proc);
+		return NULL;
+	}
 
-    // Load the paradyn runtime lib
-    if (!proc->getSharedMemMgr()->initialize()) {
-      fprintf(stderr, "%s[%d]:  failed to init shared mem mgr, fatal...\n", __FILE__, __LINE__);
-	tp->resourceBatchMode(false);
-      return NULL;
-    }
-    proc->loadParadynLib(pd_process::create_load);
-    
-    // Run necessary initialization
-    proc->init();
-    // Lower batch mode
-    tp->resourceBatchMode(false); 
-    
-    process *llproc = proc->get_dyn_process()->lowlevel_process();
-    if(!costMetric::addProcessToAll(llproc))
-        assert(false);
+	//Add to process manager
+	getProcMgr().addProcess(proc);
 
-    pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
-    buffer += pdstring(", ready");
-    statusLine(buffer.c_str());
+	// Load the paradyn runtime lib
+	if (!proc->getSharedMemMgr()->initialize()) {
+		fprintf(stderr, "%s[%d]:  failed to init shared mem mgr, fatal...\n", __FILE__, __LINE__);
+		return NULL;
+	}
 
-    return proc;
+	proc->loadParadynLib(pd_process::create_load);
+    
+	// Run necessary initialization
+	proc->init();
+
+	process *llproc = proc->get_dyn_process()->lowlevel_process();
+	if(!costMetric::addProcessToAll(llproc))
+		assert(false);
+
+	return proc;
 }
 
 pd_process *pd_attachProcess(const pdstring &progpath, int pid)
 { 
-    // Avoid deadlock
-	tp->resourceBatchMode(true);
 
-   pd_process *proc = new pd_process(progpath, pid);
-
-    if (!proc || !proc->get_dyn_process()) return NULL;
-
-    if (!proc->getSharedMemMgr()->initialize()) {
-      fprintf(stderr, "%s[%d]:  failed to init shared mem mgr, fatal...\n", __FILE__, __LINE__);
-	tp->resourceBatchMode(false);
-      return NULL;
-    }
-
-    proc->loadParadynLib(pd_process::attach_load);
-    proc->init();
-
-    // Lower batch mode
-    tp->resourceBatchMode(false);
-
-    process *llproc = proc->get_dyn_process()->lowlevel_process();
-    if (!costMetric::addProcessToAll(llproc))
-       assert(false);
-
-    getProcMgr().addProcess(proc);
-
-    pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
-    buffer += pdstring(", ready");
-    statusLine(buffer.c_str());
+	pd_process *proc = new pd_process(progpath, pid);
 	
-    return proc;
+	if (!proc || !proc->get_dyn_process())
+		return NULL;
+
+	if (!proc->getSharedMemMgr()->initialize()) 
+		{
+			fprintf(stderr, "%s[%d]:  failed to init shared mem mgr, fatal...\n", __FILE__, __LINE__);
+			return NULL;
+		}
+	
+	proc->loadParadynLib(pd_process::attach_load);
+	proc->init();
+	
+	process *llproc = proc->get_dyn_process()->lowlevel_process();
+	if (!costMetric::addProcessToAll(llproc))
+		assert(false);
+	
+	getProcMgr().addProcess(proc);
+	
+	pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
+	buffer += pdstring(", ready");
+	statusLine(buffer.c_str());
+	
+	return proc;
 }
+
+extern BPatch_process *MPI_proc;
 
 pd_process *pd_attachToCreatedProcess(const pdstring &/*progpath*/, 
                                       int /*pid*/) {
@@ -247,40 +243,42 @@ pd_process *pd_attachToCreatedProcess(const pdstring &/*progpath*/,
     return NULL;
 }
 
-void pd_process::init() {
-    static bool has_mt_resource_heirarchies_been_defined = false;
-    pdstring buffer = pdstring("PID=") + pdstring(getPid());
-    buffer += pdstring(", initializing daemon-side data");
-    statusLine(buffer.c_str());
+void pd_process::init()
+{
+	static bool has_mt_resource_heirarchies_been_defined = false;
+	pdstring buffer = pdstring("PID=") + pdstring(getPid());
+	buffer += pdstring(", initializing daemon-side data");
+	statusLine(buffer.c_str());
+	
+	theVariableMgr = new variableMgr(this, getSharedMemMgr(),
+																	 maxNumberOfThreads());
+	buffer = pdstring("PID=") + pdstring(getPid());
+	buffer += pdstring(", posting call graph information");
+	statusLine(buffer.c_str());
+	
 
-
-    theVariableMgr = new variableMgr(this, getSharedMemMgr(),
-                                     maxNumberOfThreads());
-    buffer = pdstring("PID=") + pdstring(getPid());
-    buffer += pdstring(", posting call graph information");
-    statusLine(buffer.c_str());
-
-    if(multithread_capable() && !has_mt_resource_heirarchies_been_defined) {
-       resource::newResource(syncRoot, NULL, nullString, "Mutex", 
-                             timeStamp::ts1970(), "", 
-                             CategoryResourceType,
-                             MDL_T_STRING,
-                             false);
-       resource::newResource(syncRoot, NULL, nullString, "RwLock", 
-                             timeStamp::ts1970(), "",
-                             CategoryResourceType,
-                             MDL_T_STRING,
-                             false);
-       resource::newResource(syncRoot, NULL, nullString, "CondVar", 
-                             timeStamp::ts1970(), "",
-                             CategoryResourceType,
-                             MDL_T_STRING,
-                             false);
-       has_mt_resource_heirarchies_been_defined = true;
-    }
-    FillInCallGraphStatic();
-    findThreads();
+	if(multithread_capable() && !has_mt_resource_heirarchies_been_defined) {
+			resource::newResource(syncRoot, NULL, nullString, "Mutex", 
+														timeStamp::ts1970(), "", 
+														CategoryResourceType,
+														MDL_T_STRING,
+														false);
+			resource::newResource(syncRoot, NULL, nullString, "RwLock", 
+														timeStamp::ts1970(), "",
+														CategoryResourceType,
+														MDL_T_STRING,
+														false);
+			resource::newResource(syncRoot, NULL, nullString, "CondVar", 
+														timeStamp::ts1970(), "",
+														CategoryResourceType,
+														MDL_T_STRING,
+														false);
+			has_mt_resource_heirarchies_been_defined = true;
+		}
+	//FillInCallGraphStatic(true,&temp);
+	findThreads();
 }
+
 
 // Creation constructor
 pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
@@ -294,76 +292,96 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
           papi(NULL),
 #endif
           paradynRTState(libUnloaded),
-          inExec(false)
+          inExec(false),
+					canReportResources_(false)
 {
-    if ((dir.length() > 0) && (P_chdir(dir.c_str()) < 0)) {
-       sprintf(errorLine, "cannot chdir to '%s': %s\n", dir.c_str(), 
-               strerror(errno));
-       logLine(errorLine);
-       P__exit(-1);
-    }
 
-    char **argv_array = new char*[argv.size()+1];
-    for(unsigned i=0; i<argv.size(); i++)
-       argv_array[i] = const_cast<char *>(argv[i].c_str());
-    argv_array[argv.size()] = NULL;
+	if (!MPI_proc)
+		{
+			if ((dir.length() > 0) && (P_chdir(dir.c_str()) < 0)) {
+				sprintf(errorLine, "cannot chdir to '%s': %s\n", dir.c_str(), 
+								strerror(errno));
+				logLine(errorLine);
+				P__exit(-1);
+			}
+			
+			char **argv_array = new char*[argv.size()+1];
+			for(unsigned i=0; i<argv.size(); i++)
+				argv_array[i] = const_cast<char *>(argv[i].c_str());
+			argv_array[argv.size()] = NULL;
+			
+			char *path = new char[  argv0.length() + 5];
+			strcpy(path, argv0.c_str());
+			getBPatch().setTypeChecking(false);
+			dyninst_process = getBPatch().processCreate(path, 
+																									(const char **) argv_array, NULL, 
+																									stdin_fd, stdout_fd, stderr_fd);
+			if (!dyninst_process) {
+				// createProcess will print proper error message in the paradyn msg box
+				P__exit(-1);
+			}
+			
+			delete []argv_array;
+			delete []path;
+		}
+	else
+		{
+			dyninst_process = MPI_proc;
+			getBPatch().registerExecCallback(paradynExecDispatch);
+			getBPatch().registerPostForkCallback(paradynPostForkDispatch);
+			getBPatch().registerExitCallback(paradynExitDispatch);
+		}
+	if (!dyninst_process) 
+		{
+		// createProcess will print proper error message in the paradyn msg box
+			P__exit(-1);
+		}
+	
 
-    char *path = new char[  argv0.length() + 5];
-    strcpy(path, argv0.c_str());
-    getBPatch().setTypeChecking(false);
-    dyninst_process = getBPatch().processCreate(path, 
-        (const char **) argv_array, NULL, 
-        stdin_fd, stdout_fd, stderr_fd);
-    if (!dyninst_process) {
-       // createProcess will print proper error message in the paradyn msg box
-       P__exit(-1);
-    }
+	created_via_attach = false;
+	img = new pd_image(dyninst_process->getImage(), this);
 
-    delete []argv_array;
-    delete []path;
+	pdstring img_name = img->get_file();
+	if (img_name == (char *) NULL)
+	{
+		//  this will cause an assertion failure in newResource()
+		fprintf(stderr, "%s[%d]:  unnamed image!\n", __FILE__, __LINE__);
+	}
+	pdstring buff = pdstring(getPid()); // + pdstring("_") + getHostName();
 
-    created_via_attach = false;
+	rid = resource::newResource(machineResource, // parent
+															(void*)this, // handle
+															nullString, // abstraction
+															img->get_file(), // process name
+															timeStamp::ts1970(), // creation time
+															buff, // unique name (?)
+															ProcessResourceType,
+															MDL_T_STRING, // mdl type (?)
+															true
+															);
+	
+	if (!dyninst_process) {
+		// Ummm.... 
+		return;
+	}
 
-    img = new pd_image(dyninst_process->getImage(), this);
+	initCpuTimeMgr();
 
-    pdstring img_name = img->get_file();
-    if (img_name == (char *) NULL) {
-      //  this will cause an assertion failure in newResource()
-      fprintf(stderr, "%s[%d]:  unnamed image!\n", __FILE__, __LINE__);
-    }
+	// Initialize the shared memory segment
+	sharedMemManager = new shmMgr(dyninst_process,
+																7000, // Arbitrary constant for shared key
+																SHARED_SEGMENT_SIZE,
+																false // Don't leave around -- if we're attached, then the
+																// inferior process will have the segment as long is it 
+																// exists
+																);
 
-    pdstring buff = pdstring(getPid()); // + pdstring("_") + getHostName();
-    rid = resource::newResource(machineResource, // parent
-				(void*)this, // handle
-				nullString, // abstraction
-				img->get_file(), // process name
-				timeStamp::ts1970(), // creation time
-				buff, // unique name (?)
-                ProcessResourceType,
-				MDL_T_STRING, // mdl type (?)
-				true
-				);
+	shmMetaData = new sharedMetaData(sharedMemManager, MAX_NUMBER_OF_THREADS);
     
-    if (!dyninst_process) {
-        // Ummm.... 
-        return;
-    }
-
-    initCpuTimeMgr();
-
-    // Initialize the shared memory segment
-    sharedMemManager = new shmMgr(dyninst_process,
-                                  7000, // Arbitrary constant for shared key
-                                  SHARED_SEGMENT_SIZE,
-                                  false // Don't leave around -- if we're attached, then the
-                                  // inferior process will have the segment as long is it 
-                                  // exists
-                                  );
-    shmMetaData = new sharedMetaData(sharedMemManager, MAX_NUMBER_OF_THREADS);
-    
-    // Set the paradyn RT lib name
-    if (!getParadynRTname())
-        assert(0 && "Need to do cleanup");
+	// Set the paradyn RT lib name
+	if (!getParadynRTname()) {
+			assert(0 && "Need to do cleanup");
+	}
 }
 
 // Attach constructor
@@ -376,7 +394,8 @@ pd_process::pd_process(const pdstring &progpath, int pid)
           papi(NULL),
 #endif
           paradynRTState(libUnloaded),
-          inExec(false)
+          inExec(false),
+					canReportResources_(false)
 {
     getBPatch().setTypeChecking(false);
     dyninst_process = getBPatch().processAttach(progpath.c_str(), pid);
@@ -435,7 +454,8 @@ pd_process::pd_process(const pd_process &parent, BPatch_process *childDynProc) :
         papi(NULL),
 #endif
         paradynRTState(libLoaded), inExec(false),
-        paradynRTname(parent.paradynRTname)
+        paradynRTname(parent.paradynRTname),
+				canReportResources_(true)
 {
    img = new pd_image(dyninst_process->getImage(), this);
 
@@ -490,7 +510,7 @@ pd_process::pd_process(const pd_process &parent, BPatch_process *childDynProc) :
 
    // And the time manager...
    initCpuTimeMgr();
-   tp->newProgramCallbackFunc(getPid(), arg_list, 
+   tp->newProgramCallbackFunc(defaultStream, getPid(), arg_list, 
                               machineResource->part_name(),
                               false, wasRunningWhenAttached());
    
@@ -616,13 +636,13 @@ void pd_process::handleExit(int exitStatus) {
          pd_thread *thr = *itr;
          itr++;
          assert(thr->get_rid() != NULL);
-         tp->retiredResource(thr->get_rid()->full_name());
+         tp->retiredResource(defaultStream, thr->get_rid()->full_name());
       }
    }
 
    assert(get_rid() != NULL);
-   tp->retiredResource(get_rid()->full_name());
-   tp->processStatus(getPid(), procExited);
+   tp->retiredResource(defaultStream, get_rid()->full_name());
+   tp->processStatus(defaultStream, getPid(), procExited);
 
    if (activeProcesses == 0)
       disableAllInternalMetrics();
@@ -632,7 +652,7 @@ void pd_process::handleExit(int exitStatus) {
 void pd_process::initAfterFork(pd_process * /*parentProc*/) {
    initCpuTimeMgr();
 
-   tp->newProgramCallbackFunc(getPid(), arg_list, 
+   tp->newProgramCallbackFunc(defaultStream, getPid(), arg_list, 
                               machineResource->part_name(),
                               false, wasRunningWhenAttached());
 }
@@ -650,14 +670,14 @@ void pd_process::paradynPreForkDispatch(BPatch_thread* p,
       matching_pd_process->preForkHandler();
 }
 
-void pd_process::paradynPostForkDispatch(BPatch_thread *p, BPatch_thread *c) 
+void pd_process::paradynPostForkDispatch(BPatch_thread *parent_thread, BPatch_thread *child_thread) 
 {
    if( pdFlavor == "mpi" ) {
-     c->detach( true );
+     child_thread->detach( true );
    	 }
    else {
-     BPatch_process *parent = p->getProcess();
-     BPatch_process *child = c->getProcess();
+     BPatch_process *parent = parent_thread->getProcess();
+     BPatch_process *child = child_thread->getProcess();
      pd_process *matching_pd_process = getProcMgr().find_pd_process(parent);
      if(matching_pd_process)
         matching_pd_process->postForkHandler(child);
@@ -748,7 +768,6 @@ void pd_process::execHandler() {
 
     loadParadynLib(exec_load);
 }
-
 /********************************************************************
  **** Paradyn runtime library code                               ****    
  ********************************************************************/
@@ -883,16 +902,16 @@ bool pd_process::finalizeParadynLib(load_cause_t ldcause)
       setFirstRecordTime(currWallTime);
    assert(isStopped());
    
-   tp->newProgramCallbackFunc(dyninst_process->getPid(), arg_list, 
-                              machineResource->part_name(),
-                              (ldcause==exec_load),
-                              wasRunningWhenAttached());
+	 //   tp->newProgramCallbackFunc(dyninst_process->getPid(), arg_list, 
+   //                           machineResource->part_name(),
+   //                           (ldcause==exec_load),
+   //                           wasRunningWhenAttached());
    // in paradyn, this will call paradynDaemon::addRunningProgram().
    // If the state of the application as a whole is 'running' paradyn will
    // soon issue an igen call to us that'll continue this process.
    if (ldcause != exec_load)
-      tp->setDaemonStartTime(getPid(), currWallTime.getD(timeUnit::sec(), 
-                                                         timeBase::bStd()));
+		 tp->setDaemonStartTime(defaultStream,getPid(), currWallTime.getD(timeUnit::sec(), 
+																																			timeBase::bStd()));
    
    // verify that the wall and cpu timer levels chosen by the daemon
    // are available in the rt library
@@ -901,17 +920,9 @@ bool pd_process::finalizeParadynLib(load_cause_t ldcause)
    
    // Set library state to "ready"
    setLibState(paradynRTState, libReady);
-    
-   // Add callbacks for events we care about
-   getBPatch().registerExecCallback(paradynExecDispatch);
-   getBPatch().registerPostForkCallback(paradynPostForkDispatch);
-   getBPatch().registerExitCallback(paradynExitDispatch);
-   
-   return true;
+	 return true;
 }
 
-// There is no reason why we need to use the same library for all
-// inferior processes (MT vs ST)
 bool pd_process::getParadynRTname() {
     
     // Replace with better test for MT-ness
@@ -1316,8 +1327,10 @@ extern void CallGraphFillDone(pdstring exe_name);
 extern void AddCallGraphStaticChildrenCallback(pdstring exe_name, pdstring r,
 					       const pdvector<pdstring> children);
 
-void pd_process::FillInCallGraphStatic()
+void pd_process::FillInCallGraphStatic(bool init_graph, unsigned *checksum )
 {
+	//	volatile int zoo = 0;
+	//while(zoo == 0){;}
   // specify entry point (location in code hierarchy to begin call 
   //  graph searches) for call graph.  Currently, begin searches at
   //  "main" - note that main is usually NOT the actual entry point
@@ -1328,76 +1341,96 @@ void pd_process::FillInCallGraphStatic()
   //  that call graph PC searches will NOT catch time spent in the
   //  environment specific setup of _start.
 
+
   BPatch_Vector<BPatch_function *> entry_bpfs;
   BPatch_function *entry_bpf;
-  if ((!img->get_dyn_image()->findFunction("main", entry_bpfs))
-      || !entry_bpfs.size()) abort();
-  if (entry_bpfs.size() > 1) {
-    //  maybe we should warn here?
-  }
+
+  if ((!img->get_dyn_image()->findFunction("main", entry_bpfs)) || !entry_bpfs.size()) 
+		abort();
+
+  if (entry_bpfs.size() > 1) 
+    {
+      //  maybe we should warn here?
+    }
+
   entry_bpf = entry_bpfs[0];
+  int_function *entry_pdf = entry_bpf->PDSEP_pdf();
 
-  
-  CallGraphAddProgramCallback(img->get_file());
-
+  if(!init_graph)
+		{
+			CallGraphAddProgramCallback(img->get_file());
+		}
   int thr = 0;
   // MT: forward the ID of the first thread.
-  if(thr_mgr.size()) {
-     threadMgr::thrIter begThrIter = beginThr();
-     pd_thread *begThr = *(begThrIter);
-     thr = begThr->get_tid();
-  }
-
+  if(thr_mgr.size())
+    {
+      threadMgr::thrIter begThrIter = beginThr();
+      pd_thread *begThr = *(begThrIter);
+      thr = begThr->get_tid();
+    }
   if(multithread_capable()) {
-     // Temporary hack -- ordering problem
-     thr = 1;
-  }
-
-  
+		// Temporary hack -- ordering problem
+		thr = 1;
+  }  
   resource *entry_res = pd_module::getFunctionResource(entry_bpf);
   if (entry_res)
-     CallGraphSetEntryFuncCallback(img->get_file(), entry_res->full_name(), thr);
-    
+		{
+			if(!init_graph)
+				{
+					CallGraphSetEntryFuncCallback(img->get_file(), entry_res->full_name(), thr);
+				}
+			else
+				{
+					*checksum += pd_process::calculate_Checksum(img->get_file());
+					*checksum += pd_process::calculate_Checksum(entry_res->full_name());
+					*checksum += pd_process::calculate_Checksum(pdstring(thr));
+				}
+
+		}
   // build call graph for executable
-  img->FillInCallGraphStatic(this);
+  img->FillInCallGraphStatic(this,init_graph,checksum);
   // build call graph for module containing entry point
   // ("main" is not always defined in the executable)
-
+  
   pd_image *pd_main_img = pd_image::get_pd_image(entry_bpf->getModule());
+
   if (pd_main_img != img)
-     pd_main_img->FillInCallGraphStatic(this);
-
+		{
+			pd_main_img->FillInCallGraphStatic(this,init_graph,checksum);
+		}
   // TODO: build call graph for all shared objects?
-
-
-  CallGraphFillDone(img->get_file());
+  
+  if(!init_graph)
+    {  
+      CallGraphFillDone(img->get_file());
+    }
 }
 
 void pd_process::MonitorDynamicCallSites(pdstring function_name) {
-   if (!monitorFunc) {
-     BPatch_Vector<BPatch_function *> monFuncs;
-     if ((!img->get_dyn_image()->findFunction("DYNINSTRegisterCallee",monFuncs))
+	if (!monitorFunc) {
+		BPatch_Vector<BPatch_function *> monFuncs;
+		if ((!img->get_dyn_image()->findFunction("DYNINSTRegisterCallee",monFuncs))
         || !monFuncs.size()) {
-       fprintf(stderr, "%s[%d]:  cannot find function DYNINSTRegisterCallee\n",
+			fprintf(stderr, "%s[%d]:  cannot find function DYNINSTRegisterCallee\n",
               __FILE__, __LINE__);
-       return;
-     }
-      if (monFuncs.size() > 1) {
-        //  maybe we should warn here?
-      }
+			return;
+		}
+		if (monFuncs.size() > 1) {
+			//  maybe we should warn here?
+		}
       monitorFunc = monFuncs[0];
-   }
-   assert(monitorFunc);
-   resource *r, *p;
-   BPatch_module *mod;
-   r = resource::findResource(function_name);
-   assert(r);
-   p = r->parent();
-   assert(p);
-
-   mod = findModule(p->name(), true);
-   if(!mod) {
-      //Must be the weird case where main() isn't in the executable
+	}
+	assert(monitorFunc);
+	resource *r, *p;
+	BPatch_module *mod;
+	r = resource::findResource(function_name);
+	assert(r);
+	p = r->parent();
+	assert(p);
+	
+	mod = findModule(p->name(), true);
+	if(!mod) {
+		//Must be the weird case where main() isn't in the executable
 
       BPatch_Vector<BPatch_function *> entry_bpfs;
       BPatch_function *entry_bpf;
@@ -2045,34 +2078,54 @@ void pd_process::pdNewThread(BPatch_process *proc, BPatch_thread *thr)
    pd_thread *pd_thr = new pd_thread(thr, pd_proc);
    pd_proc->addThread(pd_thr);
 
-   //Make one thread object if we're working on a single threaded app, and
-   // don't report it to the FE.
-   if (!pd_proc->multithread_capable())
+	 //We don't report resources yet if these are the initial threads, but we do
+	 // if we find them during runtime
+	 if (pd_proc->canReportResources())
+		 pd_proc->reportOneThread(pd_thr);
+}
+
+void pd_process::reportOneThread(pd_thread *pd_thr)
+{
+	metricFocusNode::handleNewThread(this, pd_thr);
+		 
+	//Create new resource for this thread
+	pdstring buffer = pdstring("thr_") + pdstring(pd_thr->get_tid()) + 
+		pdstring("{") + pd_thr->get_initial_func_name() + pdstring("}");
+	resource *rid = resource::newResource(get_rid(),
+																				(void *) pd_thr,
+																				nullString, 
+																				buffer,
+																				timeStamp::ts1970(),
+																				"",
+																				ThreadResourceType,
+																				MDL_T_STRING,
+																				true);
+
+
+
+
+	pd_thr->update_rid(rid);
+	unsigned index = pd_thr->get_index();
+	pd_thr->resetInferiorVtime(this->getVirtualTimer(index));  
+	
+	// tell front-end about thread start function for newly created threads
+	BPatch_function *initial_func = pd_thr->get_dyn_thread()->getInitialFunc();
+	resource *funcRes = pd_module::getFunctionResource(initial_func);
+	pdstring full_res_name(funcRes->full_name());
+	CallGraphSetEntryFuncCallback(this->getImage()->get_file(), full_res_name,
+																pd_thr->get_tid());   
+}
+
+void pd_process::reportInitialThreads()
+{
+   if (!this->multithread_capable())
       return;
-   metricFocusNode::handleNewThread(pd_proc, pd_thr);
 
-   //Create new resource for this thread
-   pdstring buffer = pdstring("thr_") + pdstring(pd_thr->get_tid()) + 
-      pdstring("{") + pd_thr->get_initial_func_name() + pdstring("}");
-   resource *rid = resource::newResource(pd_proc->get_rid(),
-                                         (void *) pd_thr,
-                                         nullString, 
-                                         buffer,
-                                         timeStamp::ts1970(),
-                                         "",
-                                         ThreadResourceType,
-                                         MDL_T_STRING,
-                                         true);
-   pd_thr->update_rid(rid);
-   unsigned index = pd_thr->get_index();
-   pd_thr->resetInferiorVtime(pd_proc->getVirtualTimer(index));  
-
-   // tell front-end about thread start function for newly created threads
-   BPatch_function *initial_func = pd_thr->get_dyn_thread()->getInitialFunc();
-   resource *funcRes = pd_module::getFunctionResource(initial_func);
-   pdstring full_res_name(funcRes->full_name());
-   CallGraphSetEntryFuncCallback(pd_proc->getImage()->get_file(), full_res_name,
-                                 pd_thr->get_tid());   
+	 threadMgr::thrIter itr = beginThr();
+	 for (; itr != endThrMark(); itr++) {
+		 pd_thread *pd_thr = *itr;
+		 reportOneThread(pd_thr);
+	 }
 }
 
 /**
@@ -2081,6 +2134,7 @@ void pd_process::pdNewThread(BPatch_process *proc, BPatch_thread *thr)
 void pd_process::pdDeadThread(BPatch_process *proc, BPatch_thread *thr)
 {
    pd_process *pdproc = NULL;
+	 assert(theProcMgr);
    processMgr::procIter itr = getProcMgr().begin();
    for (; itr != getProcMgr().end(); itr++)
    {
@@ -2111,3 +2165,76 @@ void pd_process::findThreads()
       pdNewThread(dyninst_process, thrds[i]);
    }
 }
+
+void pd_process::report_CallGraphChecksumToFE( void )
+{
+
+	//fprintf(stderr, "[%s:%u] - At top of pd_process::report_CallGraphChecksumToFE\n", __FILE__, __LINE__);
+	 // TODO: make checksumtype global
+    extern unsigned sdm_id;
+    extern MRN::Stream * equivClassReportStream;
+
+    resource::ChecksumType checksum = calculateCallGraphChecksum();
+
+    //checksum calculated, send to FE
+    pdvector<T_dyninstRPC::equiv_class_entry> entries;
+    T_dyninstRPC::equiv_class_entry entry;
+
+    entry.val = checksum;
+    entry.class_rep = sdm_id;
+    entries.push_back( entry );
+
+    tp->callGraphEquivClassReportCallback( equivClassReportStream,entries );
+}
+
+resource::ChecksumType pd_process::calculateCallGraphChecksum()
+{
+	//fprintf(stderr, "[%s:%u] - At top of pd_process::calculateCallGraphChecksum\n", __FILE__, __LINE__);
+    processMgr::procIter itr = getProcMgr().begin();
+
+    pdstring graph = " ";
+    assert(getProcMgr().size()==1);
+
+    unsigned checksum = 0;
+
+    while(itr != getProcMgr().end()) 
+      {
+        pd_process *p = *itr++;
+        if (!p)
+					continue;
+        p->FillInCallGraphStatic(true,&checksum);
+      }
+		
+    return(checksum);
+}
+
+unsigned pd_process::calculate_Checksum( pdstring graph)
+{
+    resource::ChecksumType ret = 0;
+
+
+    const pdstring& fname = graph;
+ 
+    const unsigned* curr = (const unsigned*)(fname.c_str());
+    unsigned int nFullElements = fname.length() / sizeof(unsigned);
+    unsigned int nLeftoverBytes = fname.length() - 
+                                    nFullElements * sizeof(unsigned); 
+    for( unsigned int i = 0; i < nFullElements; i++ )
+    {
+        ret += *curr;
+        curr++;
+    }
+    // Add in the leftover bytes.
+    // We have to be careful here, because we have no guarantee that we
+    // can access the addresses following the pdstring.  Instead, we copy
+    // bytes into a separate location and add it into the sum.
+    unsigned leftovers = 0;
+    for( unsigned int j = 0; j < nLeftoverBytes; j++ )
+    {
+        memcpy( &leftovers, curr, nLeftoverBytes );
+    }
+    ret += leftovers;
+
+    return ret;
+}
+

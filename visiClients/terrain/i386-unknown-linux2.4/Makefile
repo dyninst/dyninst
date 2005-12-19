@@ -1,5 +1,15 @@
 #
 # $Log: Makefile,v $
+# Revision 1.2  2005/12/19 19:44:15  pack
+# MRNet replaces xdr for frontend to daemon communication.  New igen  - - -
+# MRNet changes
+#
+# Revision 1.1.1.1  2004/11/05 22:17:52  darnold
+# start
+#
+# Revision 1.1.1.1  2004/10/18 20:35:55  darnold
+# Manual Branch for MRNet Integration based on Release_4.1
+#
 # Revision 1.1  2000/03/31 02:00:43  wylie
 # Platform migration
 #

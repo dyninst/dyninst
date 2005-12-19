@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.C,v 1.92 2005/09/15 19:20:52 tlmiller Exp $
+// $Id: init.C,v 1.93 2005/12/19 19:42:54 pack Exp $
 
 
 #include "paradynd/src/internalMetrics.h"
@@ -59,6 +59,7 @@
 #include "paradynd/src/pd_process.h"
 #include "dyninstAPI/h/BPatch.h"
 #include "paradynd/src/debug.h"
+#include "paradynd/src/main.h"
 
 #ifdef PAPI
 #include "papi.h"
@@ -89,6 +90,7 @@ internalMetric *numOfCurrentThreads = NULL;
 internalMetric *active_threads = NULL;
 
 int numberOfCPUs;
+extern bool runme_passed;
 
 pdvector<pdinstMapping*> initialRequestsPARADYN;//ccw 19 apr 2002 : SPLIT  ALSO CHANGED BELOW 
 //pdvector<sym_data> syms_to_findPARADYN; //ccw 19 apr 2002 : SPLIT
@@ -258,65 +260,68 @@ bool paradyn_init() {
   initCyclesPerSecond();
   initWallTimeMgr();
 
-  initPapi();
-  initProcMgr();
-  initBPatch();
-  //bpatch->registerDynLibraryCallback((BPatchDynLibraryCallback) (addLibraryCallback));
+	initPapi();
+	initProcMgr();
+	initBPatch();
+  //__bpatch->registerDynLibraryCallback((BPatchDynLibraryCallback) (addLibraryCallback));
 
   machineRoot = resource::newResource(rootResource, NULL, nullString,
-				      pdstring("Machine"), timeStamp::ts1970(), 
-				      "", 
-                      CategoryResourceType,
-                      MDL_T_STRING, 
-                      false);
+																			pdstring("Machine"), timeStamp::ts1970(), 
+																			"", 
+																			CategoryResourceType,
+																			MDL_T_STRING, 
+																			false);
+
   machineResource = resource::newResource(machineRoot, NULL, nullString,
-					  hostName, timeStamp::ts1970(), "", 
-                      MachineResourceType,
-					  MDL_T_STRING, 
-                      false);
+																					hostName, timeStamp::ts1970(), "", 
+																					MachineResourceType,
+																					MDL_T_STRING, 
+																					false);
 
   moduleRoot = resource::newResource(rootResource, NULL, nullString,
-				     pdstring("Code"), timeStamp::ts1970(), "", 
-                     CategoryResourceType,
-				     MDL_T_STRING, 
-                     false);
-  syncRoot = resource::newResource(rootResource, NULL, nullString, 
-				   pdstring("SyncObject"), timeStamp::ts1970(), "",
-                   CategoryResourceType,
-				   MDL_T_STRING, 
-                   false);
-  // TODO -- should these be detected and built ?
-  resource::newResource(syncRoot, NULL, nullString, "Message",
-			timeStamp::ts1970(), "",
-            CategoryResourceType,
-            MDL_T_STRING, 
-            false);
-  resource::newResource(syncRoot, NULL, nullString, "SpinLock",
-			timeStamp::ts1970(), "",
-            CategoryResourceType,
-            MDL_T_STRING,
-            false);
-  resource::newResource(syncRoot, NULL, nullString, "Barrier",
-			timeStamp::ts1970(), "",
-            CategoryResourceType,
-            MDL_T_STRING,
-            false);
-  resource::newResource(syncRoot, NULL, nullString, "Semaphore", 
-			timeStamp::ts1970(), "",
-            CategoryResourceType,
-            MDL_T_STRING,
-            false);
-  resource::newResource(syncRoot, NULL, nullString, "Window",
-                      timeStamp::ts1970(), "",
-                      CategoryResourceType,
-                      MDL_T_STRING, false);
+																		 pdstring("Code"), timeStamp::ts1970(), "", 
+																		 CategoryResourceType,
+																		 MDL_T_STRING, 
+																		 false);
 
+  syncRoot = resource::newResource(rootResource, NULL, nullString, 
+																	 pdstring("SyncObject"), timeStamp::ts1970(), "",
+																	 CategoryResourceType,
+																	 MDL_T_STRING, 
+																	 false);
+
+  // TODO -- should these be detected and built ?
+  resource::newResource(syncRoot, NULL, nullString, pdstring("Message"),
+			timeStamp::ts1970(), "",
+			CategoryResourceType,
+			MDL_T_STRING, 
+			false);
+  resource::newResource(syncRoot, NULL, nullString, pdstring("SpinLock"),
+			timeStamp::ts1970(), "",
+			CategoryResourceType,
+			MDL_T_STRING,
+			false);
+  resource::newResource(syncRoot, NULL, nullString, pdstring("Barrier"),
+			timeStamp::ts1970(), "",
+			CategoryResourceType,
+			MDL_T_STRING,
+			false);
+  resource::newResource(syncRoot, NULL, nullString, pdstring("Semaphore"), 
+			timeStamp::ts1970(), "",
+			CategoryResourceType,
+			MDL_T_STRING,
+			false);
+  resource::newResource(syncRoot, NULL, nullString, pdstring("Window"),
+			timeStamp::ts1970(), "",
+			CategoryResourceType,
+			MDL_T_STRING, false);
+  
   /*
   memoryRoot = resource::newResource(rootResource, NULL, nullString, 
-				     "Memory", 0.0, "",
-                     CategoryResourceType,
-                     MDL_T_STRING,
-				     true);
+  "Memory", 0.0, "",
+  CategoryResourceType,
+  MDL_T_STRING,
+  true);
   */
 
   im_pred_struct default_im_preds, obs_cost_preds;

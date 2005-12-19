@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.h,v 1.108 2004/10/07 00:45:59 jaw Exp $ 
+// $Id: metricFocusNode.h,v 1.109 2005/12/19 19:43:09 pack Exp $ 
 
 #ifndef METRIC_H
 #define METRIC_H
@@ -49,7 +49,10 @@
 #include "common/h/Vector.h"
 #include "pdutil/h/sampleAggregator.h"
 #include "rtinst/h/trace.h"
-#include "dyninstRPC.xdr.SRVR.h" // for flag_cons
+
+//#include "dyninstAPI/src/inst.h" // for "enum callWhen"
+#include "dyninstRPC.mrnet.SRVR.h" // for flag_cons
+
 #include "common/h/Time.h"
 #include "pdutil/h/metricStyle.h"
 #include "pdutil/h/ByteArray.h"
@@ -116,11 +119,11 @@ class metFocInstResponse : public T_dyninstRPC::instResponse
 
    void addResponse( unsigned int mi_id,
                         inst_insert_result_t res,
-                        pdstring emsg = "" );
+                        pdstring emsg = "add" );
 
    void updateResponse( unsigned int mi_id,
                         inst_insert_result_t res,
-                        pdstring emsg = "" );
+                        pdstring emsg = "update" );
 
    void makeCallback( void );
 };
@@ -156,7 +159,7 @@ extern void reportInternalMetrics(bool force);
  * procsToContinue      - a list of processes that had to be stopped to insert
  *                        instrumentation. The caller must continue these processes.
  */
-void startCollecting(pdstring& metricName, pdvector<u_int>& focus,
+bool startCollecting(pdstring& metricName, pdvector<u_int>& focus,
                                         int mid, 
                                         metFocInstResponse* cbi );
 

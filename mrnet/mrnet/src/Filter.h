@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright © 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ * Copyright Â© 2003-2005 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ****************************************************************************/
 
@@ -13,6 +13,8 @@
 #include "mrnet/src/Message.h"
 #include "mrnet/src/FilterDefinitions.h"
 #include "xplat/Mutex.h"
+
+#include "mrnet/src/ParadynFilterDefinitions.h"
 
 namespace MRN
 {
@@ -98,6 +100,21 @@ inline void Filter::initialize_static_stuff( )
 
     TFILTER_INT_EQ_CLASS = register_Filter( (void*)tfilter_IntEqClass,
                                             TFILTER_INT_EQ_CLASS_FORMATSTR);
+
+    TFILTER_SAVE_LOCAL_CLOCK_SKEW_UPSTREAM =
+        register_Filter( (void*)save_LocalClockSkewUpstream,
+                         TFILTER_SAVE_LOCAL_CLOCK_SKEW_UPSTREAM_FORMATSTR );
+
+    TFILTER_SAVE_LOCAL_CLOCK_SKEW_DOWNSTREAM =
+        register_Filter( (void*)save_LocalClockSkewDownstream,
+                         TFILTER_SAVE_LOCAL_CLOCK_SKEW_DOWNSTREAM_FORMATSTR );
+
+    TFILTER_GET_CLOCK_SKEW =
+        register_Filter( (void*)get_ClockSkew,
+                         TFILTER_GET_CLOCK_SKEW_FORMATSTR );
+
+    TFILTER_PD_UINT_EQ_CLASS = register_Filter( (void*)tfilter_PDUIntEqClass,
+                                                TFILTER_PD_UINT_EQ_CLASS_FORMATSTR);
 
     SFILTER_DONTWAIT = register_Filter( (void*)NULL, "");
 

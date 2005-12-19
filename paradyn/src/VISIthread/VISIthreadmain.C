@@ -48,7 +48,7 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.111 2005/03/13 23:44:17 legendre Exp $
+// $Id: VISIthreadmain.C,v 1.112 2005/12/19 19:42:31 pack Exp $
 
 #include <signal.h>
 #include <math.h>
@@ -59,7 +59,7 @@
 #include "VISIthread.thread.SRVR.h"
 #include "VISIthreadTypes.h"
 #include "paradyn/src/pdMain/paradyn.h"
-#include "dyninstRPC.xdr.CLNT.h"
+#include "dyninstRPC.mrnet.CLNT.h"
 #include "paradyn/src/DMthread/DMinclude.h"
 #include "paradyn/src/DMthread/DVbufferpool.h"
 #include "paradyn/src/TCthread/tunableConst.h"

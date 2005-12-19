@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.54 2005/10/21 21:48:29 legendre Exp $
+# $Id: nmake.module.tmpl,v 1.55 2005/12/19 19:42:42 pack Exp $
 #
 
 TARGET	      = paradynd.exe
@@ -29,6 +29,7 @@ TARGET	      = paradynd.exe
 #		../src/perfStream-def.C \
 #		../src/perfStream.C \
 #		../src/process.C \
+#      ../../dyninstAPI/src/bitArray.C \
 #               ../src/installed_miniTramps_list.C \
 #		../src/resource.C \
 #		../src/stats.C \
@@ -67,12 +68,11 @@ CXXFLAGS	= $(CXXFLAGS) -DNEW_TIME_TYPES
 TFLAGS		= $(TFLAGS) -DNEW_TIME_TYPES
 CFLAGS		= $(CFLAGS) -DNEW_TIME_TYPES
 
-IGEN_GEN_SRCS = dyninstRPC.xdr.SRVR.C \
-		dyninstRPC.xdr.C
+IGEN_GEN_SRCS = dyninstRPC.mrnet.SRVR.C 
 
 IGEN_ISRCS    = dyninstRPC.I
 
-IFLAGS          = $(IFLAGS) -I..\..\dyninstAPI\h
+IFLAGS          = $(IFLAGS) -I..\..\dyninstAPI\h  -I../../mrnet/mrnet/h/ -I../../mrnet -I../../mrnet/mrnet/src/
 
 OBJS      = $(OBJS) ast.obj \
 		CodeView.obj \
@@ -88,7 +88,7 @@ OBJS      = $(OBJS) ast.obj \
 		metricFocusNode.obj \
                 machineMetFocusNode.obj \
                 processMetFocusNode.obj \
-                threadMetFocusNode.obj \
+               threadMetFocusNode.obj \
                 instrCodeNode.obj \
                 instrDataNode.obj \
                 instReqNode.obj \
@@ -139,7 +139,8 @@ OBJS      = $(OBJS) ast.obj \
 		showerror.obj \
 		perfStream.obj \
 		process.obj \
-		frame.obj \
+    bitArray.obj \
+ 		frame.obj \
 		dyn_lwp.obj \
 		signalhandler.obj \
 		rpcMgr.obj \
@@ -154,8 +155,7 @@ OBJS      = $(OBJS) ast.obj \
 		pd_thread.obj \
 		pd_image.obj \
 		pd_module.obj \
-		dyninstRPC.xdr.SRVR.obj \
-		dyninstRPC.xdr.obj \
+		dyninstRPC.mrnet.SRVR.obj \
 		BPatch_templates.obj \
 		templatesIGEN.obj \
                 templatesPD-nt.obj \
@@ -174,23 +174,22 @@ OBJS	= $(OBJS) \
 		sharedMetaData.obj
 !endif
 
+LIBS		= $(LIBS) libpdutil.lib libmrnet.lib libxplat.lib
 
-LIBS		= $(LIBS) libpdutil.lib
-
-SYSLIBS		= $(SYSLIBS) oncrpc.lib ws2_32.lib dbghelp.lib
+SYSLIBS		= $(SYSLIBS) oncrpc.lib ws2_32.lib dbghelp.lib shlwapi.lib
 
 all:    $(IGEN_GEN_SRCS) $(TARGET)
 
 $(TARGET):	$(IGEN_GEN_SRCS)
 
-dyninstRPC.xdr.SRVR.C: ..\..\paradyn\h\dyninstRPC.I
-	igen -xdr ..\..\paradyn\h\dyninstRPC.I
+dyninstRPC.mrnet.SRVR.C: ..\..\paradyn\h\dyninstRPC.I
+	igen -mrnet ..\..\paradyn\h\dyninstRPC.I
 
 {..\..\paradyn\h\}.I.C:
-	igen -xdr ..\..\paradyn\h\dyninstRPC.I
+	igen -mrnet ..\..\paradyn\h\dyninstRPC.I
 
 {..\..\paradyn\h\}.I.h:
-	igen -xdr ..\..\paradyn\h\dyninstRPC.I
+	igen -mrnet ..\..\paradyn\h\dyninstRPC.I
 
 {..\..\dyninstAPI\src\}.C.obj:
 	$(CXX) $(CXXFLAGS) -c $<

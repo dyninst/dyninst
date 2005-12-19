@@ -199,6 +199,8 @@ class pd_process {
    unsigned numThr() const { return thr_mgr.size(); }
 
    void findThreads();
+	 void reportInitialThreads();
+	 void reportOneThread(pd_thread *thr);
    bool doMajorShmSample();
    bool doMinorShmSample();
 
@@ -214,7 +216,8 @@ class pd_process {
 
    void handleExit(int exitStatus);
 
-   void FillInCallGraphStatic();
+   void FillInCallGraphStatic( bool init_graph = false, unsigned *checksum = 0 );
+
    void MonitorDynamicCallSites(pdstring function_name);
 
   // ==== Cpu time related functions and members =======================
@@ -297,6 +300,7 @@ class pd_process {
   public:
   
    // ========  PASS THROUGH FUNCTIONS ===============================
+	static unsigned pd_process::calculate_Checksum( pdstring graph);
 
    BPatch_process *get_dyn_process() {
       return dyninst_process;
@@ -557,6 +561,9 @@ class pd_process {
   // Returns once paradyn lib is loaded and initialized
    typedef enum { create_load, attach_load, exec_load } load_cause_t;
    bool loadParadynLib(load_cause_t ldcause);
+   void report_CallGraphChecksumToFE( void );
+   resource::ChecksumType calculateCallGraphChecksum( void );
+	 void setCanReportResources(bool b) { canReportResources_ = b; }
 
   private:
    libraryState_t paradynRTState;
@@ -578,16 +585,17 @@ class pd_process {
    
    // Handles final initialization
    bool finalizeParadynLib(load_cause_t ldcause);
-   
    bool getParadynRTname();
    
+	 bool canReportResources() { return canReportResources_; }
    /*************************************************************
     **** Process state variables                             ****
     *************************************************************/
  private:
    
    bool inExec;
-
+	 bool canReportResources_;
+	 
    pdstring paradynRTname;
 
    /*************************************************************

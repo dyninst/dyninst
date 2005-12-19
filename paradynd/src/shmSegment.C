@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment.C,v 1.3 2005/09/09 18:08:03 legendre Exp $
+// $Id: shmSegment.C,v 1.4 2005/12/19 19:43:25 pack Exp $
 //----------------------------------------------------------------------------
 
 #include "common/h/headers.h"

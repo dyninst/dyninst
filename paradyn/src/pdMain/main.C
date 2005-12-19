@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.70 2004/06/21 19:37:58 pcroth Exp $
+// $Id: main.C,v 1.71 2005/12/19 19:42:39 pack Exp $
 
 /*
  * main.C - main routine for paradyn.  
@@ -140,10 +140,16 @@ main(int argc, char* argv[])
     thread_t mtid;
     tag_t mtag;
 
+    //Get MRNet output level
+    char* temp = (char *) getenv("MRNET_OUTPUT_LEVEL");
+    if (temp != NULL) {
+        MRN::set_OutputLevel( atoi(temp) );
+    }
+  
     // Check whether we're to output debug messages
     // If the value of PARADYNDEBUG environment variable is > 0,
     // PARADYN_DEBUG messages will be printed to stdout
-    char* temp = (char *) getenv("PARADYNDEBUG");
+    temp = (char *) getenv("PARADYNDEBUG");
     if (temp != NULL) {
         paradyn_debug = atoi(temp);
     }
@@ -287,10 +293,10 @@ main(int argc, char* argv[])
 
     // execute the commands in the configuration files
     metDoTunable();
-    metDoDaemon();
-    metDoProcess();
+    if(!metDoDaemon())
+			metDoProcess();
 
-    // keep this here to prevent UI from starting up till everything's 
+  // keep this here to prevent UI from starting up till everything's 
     // been initialized properly!!
     //  -OR-
     // move this elsewhere to create a race condition
@@ -305,6 +311,10 @@ main(int argc, char* argv[])
         assert( dataMgr != NULL );
         dataMgr->printDaemonStartInfo( daemonStartupInfoFileName.c_str() );
     }
+
+    //At this point, mrnet should be running as well as the application daemon
+    //We can re-enable the pause/run button
+    //TODO: handle case where application is not yet running at this point (darnold)
 
     // Block until the UI thread exits, indicating we should shut down
     thr_join(UIMtid, NULL, NULL);

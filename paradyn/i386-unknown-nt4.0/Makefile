@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2004/09/21 05:33:45 jaw Exp $
+# $Id: Makefile,v 1.7 2005/12/19 19:42:14 pack Exp $
 #
 # Define any symbols needed to invoke configuration changes in make.config
 
@@ -24,7 +24,7 @@ CXXFLAGS	= $(CXXFLAGS) -DSHG_ADD_ON_EVAL -D_WINDOWS -MT
 #CXXFLAGS        = $(CXXFLAGS) -DSAMPLEVALUE_DEBUG
 TFLAGS		= $(TFLAGS) -DSHG_ADD_ON_EVAL 
 LDFLAGS		= $(LDFLAGS) -SUBSYSTEM:WINDOWS -NODEFAULTLIB:LIBC.LIB
-SYSLIBS		= $(SYSLIBS) ws2_32.lib user32.lib advapi32.lib iphlpapi.lib
+SYSLIBS		= $(SYSLIBS) ws2_32.lib user32.lib advapi32.lib iphlpapi.lib shlwapi.lib
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

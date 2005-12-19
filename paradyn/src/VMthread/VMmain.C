@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: VMmain.C,v 1.62 2004/07/26 02:37:25 pcroth Exp $ */
+/* $Id: VMmain.C,v 1.63 2005/12/19 19:42:33 pack Exp $ */
 
 #include "paradyn/src/pdMain/paradyn.h"
 #include "pdthread/h/thread.h"
@@ -129,7 +129,6 @@ int VM_AddNewVisualization(const char *name,
       ERROR_MSG(20,"parameters in VM::VMAddNewVisualization");
       return(VMERROR);
    }
-
    // walk the list to determine if a visi with  this name is on the list
    pdstring temp_name = name;
    VMvisis *temp = NULL;

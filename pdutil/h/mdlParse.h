@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdlParse.h,v 1.5 2005/01/28 18:12:05 legendre Exp $
+// $Id: mdlParse.h,v 1.6 2005/12/19 19:43:41 pack Exp $
 
 #ifndef _MDL_PARSE_H
 #define _MDL_PARSE_H
@@ -48,7 +48,7 @@
 #include "common/h/machineType.h"
 #include "common/h/String.h"
 #include "common/h/Vector.h"
-#include "dyninstRPC.xdr.h"
+#include "dyninstRPC.mrnet.h"
 #include "pdutil/h/mdl_data.h"
 
 
@@ -65,6 +65,8 @@
 #define SET_REMSH 11
 #define SET_AUTO_START 12
 #define SET_MPITYPE 13
+#define SET_MRNET_TOPOLOGY 14
+
 class T_dyninstRPC;
 class T_dyninstRPC::mdl_constraint;
 class T_dyninstRPC::mdl_stmt;
@@ -369,9 +371,15 @@ private:
 
 class daemonMet {
  public:
+
+
   daemonMet() {MPItype_ = pdstring("MPICH");}
+
   daemonMet(pdstring& nm, pdstring& cmd, pdstring& remsh, pdstring& exec, pdstring& u, pdstring& h, pdstring& flav);
-  daemonMet(pdstring& nm, pdstring& cmd, pdstring& remsh, pdstring& exec, pdstring& u, pdstring& h, pdstring& flav, pdstring & MPItype);
+
+  daemonMet(pdstring& nm, pdstring& cmd, pdstring& remsh, pdstring& exec, pdstring& u, pdstring& h, pdstring& flav,
+	    pdstring& topology, pdstring& MPIt);
+
   ~daemonMet() { }
 
   bool set_field (field &f);
@@ -388,7 +396,11 @@ class daemonMet {
   pdstring user() const { return user_; }
   pdstring host() const { return host_; }
   pdstring flavor() const { return flavor_; }
+
+  pdstring mrnet_topology() const { return mrnet_topology_; }
+
   pdstring MPItype() const { return MPItype_; }
+
 
   static pdvector<daemonMet*> allDaemons;
   
@@ -400,6 +412,7 @@ private:
   pdstring user_;
   pdstring host_;
   pdstring flavor_;
+  pdstring mrnet_topology_;
   pdstring MPItype_;
 };
 
@@ -427,6 +440,7 @@ public:
   // These two methods are implemented in metMain.C rather than metClass.C
   static bool doInitProcess();
   static void checkDaemonProcess( const pdstring &host );
+  static pdvector<processMet*> allProcs;
 
 private:
   pdstring name_;
@@ -437,7 +451,7 @@ private:
   pdstring execDir_;
   bool autoStart_;
 
-  static pdvector<processMet*> allProcs;
+	//  static pdvector<processMet*> allProcs;
 };
 
 class visiMet {

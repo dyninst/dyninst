@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: TermWin.h,v 1.2 2004/06/21 22:06:55 pcroth Exp $
+// $Id: TermWin.h,v 1.3 2005/12/19 19:44:08 pack Exp $
 #ifndef TERMWIN_H
 #define TERMWIN_H
 

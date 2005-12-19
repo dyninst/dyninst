@@ -5,13 +5,13 @@ DMpublic.obj: ../src/DMthread/DMpublic.C dataManager.thread.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h ../../common/h/list.h  \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h dataManager.thread.SRVR.h \
- dataManager.thread.CLNT.h dyninstRPC.xdr.CLNT.h \
+ dataManager.thread.CLNT.h dyninstRPC.mrnet.CLNT.h \
  ../../pdutil/h/makenan.h ../src/DMthread/DMmetric.h ../../pdutil/h/hist.h \
  ../../paradyn/src/UIthread/Status.h \
  ../../pdutil/h/sampleAggregator.h ../src/DMthread/DMinclude.h \
@@ -31,7 +31,7 @@ DMdaemon.obj: ../src/DMthread/DMdaemon.C ../../pdthread/h/thread.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h ../../common/h/list.h  \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -40,7 +40,7 @@ DMdaemon.obj: ../src/DMthread/DMdaemon.C ../../pdthread/h/thread.h \
  performanceConsultant.thread.CLNT.h performanceConsultant.thread.h \
  UI.thread.CLNT.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
  ../../paradyn/src/VMthread/VMinclude.h VM.thread.CLNT.h VM.thread.h \
- dyninstRPC.xdr.CLNT.h ../src/DMthread/DMdaemon.h \
+ dyninstRPC.mrnet.CLNT.h ../src/DMthread/DMdaemon.h \
  ../../common/h/machineType.h dataManager.thread.SRVR.h \
  ../src/DMthread/../UIthread/Status.h ../src/DMthread/DMinclude.h \
  ../src/DMthread/DMresource.h ../src/DMthread/DMabstractions.h \
@@ -55,7 +55,7 @@ DMmetric.obj: ../src/DMthread/DMmetric.C ../src/DMthread/DMmetric.h \
  ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
- ../../common/h/vectorSet.h ../../common/h/list.h dyninstRPC.xdr.h \
+ ../../common/h/vectorSet.h ../../common/h/list.h dyninstRPC.mrnet.h \
  ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
@@ -65,7 +65,7 @@ DMmetric.obj: ../src/DMthread/DMmetric.C ../src/DMthread/DMmetric.h \
  ../../paradyn/src/UIthread/Status.h \
  ../../pdutil/h/sampleAggregator.h ../src/DMthread/DMinclude.h \
  ../src/DMthread/DMdaemon.h ../../common/h/machineType.h \
- dyninstRPC.xdr.CLNT.h ../src/DMthread/../UIthread/Status.h \
+ dyninstRPC.mrnet.CLNT.h ../src/DMthread/../UIthread/Status.h \
  ../src/DMthread/DMresource.h ../src/DMthread/DMabstractions.h \
  ../src/DMthread/DMperfstream.h ../src/DMthread/DMphase.h \
  ../../paradyn/src/TCthread/tunableConst.h
@@ -77,12 +77,12 @@ DMmain.obj: ../src/DMthread/DMmain.C ../../pdthread/h/thread.h \
  ../../common/h/Dictionary.h ../../common/h/Vector.h \
  dataManager.thread.SRVR.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
  ../../pdutil/h/ByteArray.h ../../common/h/vectorSet.h ../../common/h/list.h \
-  dyninstRPC.xdr.h ../../common/h/Types.h \
+  dyninstRPC.mrnet.h ../../common/h/Types.h \
  ../../pdutil/h/aggregation.h ../../pdutil/h/mdl.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
- ../../paradyn/src/DMthread/BufferPool.h dyninstRPC.xdr.CLNT.h \
+ ../../paradyn/src/DMthread/BufferPool.h dyninstRPC.mrnet.CLNT.h \
  ../src/DMthread/DMdaemon.h ../../common/h/machineType.h \
  ../src/DMthread/../UIthread/Status.h \
  ../src/DMthread/DMinclude.h ../src/DMthread/DMresource.h \
@@ -101,7 +101,7 @@ DMperfstream.obj: ../src/DMthread/DMperfstream.C \
  ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
- ../../common/h/vectorSet.h ../../common/h/list.h dyninstRPC.xdr.h \
+ ../../common/h/vectorSet.h ../../common/h/list.h dyninstRPC.mrnet.h \
  ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
@@ -112,7 +112,7 @@ DMperfstream.obj: ../src/DMthread/DMperfstream.C \
  ../../pdutil/h/makenan.h ../../paradyn/src/UIthread/Status.h \
  ../src/DMthread/DMphase.h ../src/DMthread/DMinclude.h \
  ../src/DMthread/DMmetric.h ../src/DMthread/DMdaemon.h \
- ../../common/h/machineType.h dyninstRPC.xdr.CLNT.h \
+ ../../common/h/machineType.h dyninstRPC.mrnet.CLNT.h \
  ../src/DMthread/../UIthread/Status.h ../src/DMthread/DMresource.h \
  ../src/DMthread/DMabstractions.h \
  ../../paradyn/src/TCthread/tunableConst.h
@@ -123,7 +123,7 @@ DMresource.obj: ../src/DMthread/DMresource.C dataManager.thread.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h ../../common/h/list.h  \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -131,7 +131,7 @@ DMresource.obj: ../src/DMthread/DMresource.C dataManager.thread.h \
  ../../paradyn/src/DMthread/BufferPool.h ../src/DMthread/DMresource.h \
  dataManager.thread.SRVR.h ../src/DMthread/DMabstractions.h \
  ../src/DMthread/DMinclude.h ../../paradyn/src/met/metricExt.h \
- dyninstRPC.xdr.CLNT.h
+ dyninstRPC.mrnet.CLNT.h
 DMabstractions.obj: ../src/DMthread/DMabstractions.C \
  dataManager.thread.h ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
@@ -139,7 +139,7 @@ DMabstractions.obj: ../src/DMthread/DMabstractions.C \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h ../../common/h/list.h  \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -154,12 +154,12 @@ DMcritPath.obj: ../src/DMthread/DMcritPath.C ../../pdthread/h/thread.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
-  dyninstRPC.xdr.h ../../common/h/Types.h \
+  dyninstRPC.mrnet.h ../../common/h/Types.h \
  ../../pdutil/h/aggregation.h ../../pdutil/h/mdl.h visi.xdr.h \
  ../../common/h/Dictionary.h ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
- ../../paradyn/src/DMthread/BufferPool.h dyninstRPC.xdr.CLNT.h \
+ ../../paradyn/src/DMthread/BufferPool.h dyninstRPC.mrnet.CLNT.h \
  ../src/DMthread/DMmetric.h ../../pdutil/h/hist.h ../../pdutil/h/makenan.h \
  ../../paradyn/src/UIthread/Status.h \
  ../../pdutil/h/sampleAggregator.h ../src/DMthread/DMinclude.h \
@@ -179,7 +179,7 @@ DMphase.obj: ../src/DMthread/DMphase.C ../src/DMthread/DMphase.h \
  ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../pdutil/h/ByteArray.h ../../common/h/vectorSet.h \
  ../src/DMthread/DMinclude.h ../src/DMthread/DMperfstream.h \
- dataManager.thread.h ../../common/h/list.h dyninstRPC.xdr.h \
+ dataManager.thread.h ../../common/h/list.h dyninstRPC.mrnet.h \
  ../../common/h/Types.h ../../pdutil/h/aggregation.h ../../pdutil/h/stringPool.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h \
  ../../common/h/stringDecl.h ../../paradyn/src/DMthread/DMinclude.h \
@@ -188,7 +188,7 @@ DMphase.obj: ../src/DMthread/DMphase.C ../src/DMthread/DMphase.h \
  ../../pdutil/h/sampleAggregator.h ../../pdutil/h/hist.h \
  ../../pdutil/h/makenan.h ../../paradyn/src/UIthread/Status.h \
  ../src/DMthread/DMmetric.h ../src/DMthread/DMdaemon.h \
- ../../common/h/machineType.h dyninstRPC.xdr.CLNT.h \
+ ../../common/h/machineType.h dyninstRPC.mrnet.CLNT.h \
  ../src/DMthread/../UIthread/Status.h ../src/DMthread/DMresource.h \
  ../src/DMthread/DMabstractions.h \
  ../../paradyn/src/TCthread/tunableConst.h
@@ -206,7 +206,7 @@ main.obj: ../src/pdMain/main.C ../src/pdMain/../TCthread/tunableConst.h \
  ../../pdutil/h/pdsocket.h ../../pdutil/h/pddesc.h \
  dataManager.thread.CLNT.h dataManager.thread.h ../../pdutil/h/rpcUtil.h \
  ../../pdutil/h/ByteArray.h ../../common/h/vectorSet.h ../../common/h/list.h \
-  dyninstRPC.xdr.h ../../common/h/Types.h \
+  dyninstRPC.mrnet.h ../../common/h/Types.h \
  ../../pdutil/h/aggregation.h ../../pdutil/h/mdl.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -228,13 +228,13 @@ VMmain.obj: ../src/VMthread/VMmain.C ../../pdthread/h/thread.h \
   ../../paradyn/src/VMthread/VMinclude.h \
  UI.thread.CLNT.h UI.thread.h ../../paradyn/src/UIthread/Status.h \
  performanceConsultant.thread.h dataManager.thread.h \
- ../../common/h/list.h dyninstRPC.xdr.h ../../common/h/Types.h \
+ ../../common/h/list.h dyninstRPC.mrnet.h ../../common/h/Types.h \
  ../../pdutil/h/aggregation.h ../../pdutil/h/mdl.h visi.xdr.h \
  ../../common/h/Dictionary.h ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h \
  performanceConsultant.thread.CLNT.h VISIthread.thread.CLNT.h \
- VISIthread.thread.h ../src/VMthread/VMtypes.h dyninstRPC.xdr.CLNT.h \
+ VISIthread.thread.h ../src/VMthread/VMtypes.h dyninstRPC.mrnet.CLNT.h \
  ../../paradyn/src/pdMain/paradyn.h dataManager.thread.CLNT.h \
  VM.thread.CLNT.h ../../pdutil/h/mdlParse.h \
  ../../common/h/machineType.h ../../paradyn/src/met/globals.h
@@ -246,7 +246,7 @@ VISIthreadmain.obj: ../src/VISIthread/VISIthreadmain.C \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h  \
  ../../paradyn/src/VMthread/VMtypes.h VISIthread.thread.CLNT.h \
- VISIthread.thread.h dyninstRPC.xdr.CLNT.h dyninstRPC.xdr.h \
+ VISIthread.thread.h dyninstRPC.mrnet.CLNT.h dyninstRPC.mrnet.h \
  ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h \
  ../../paradyn/src/DMthread/DMinclude.h VISIthread.thread.SRVR.h \
@@ -272,7 +272,7 @@ VISIthreadpublic.obj: ../src/VISIthread/VISIthreadpublic.C \
  ../../paradyn/src/DMthread/DMinclude.h  \
  ../../paradyn/src/VMthread/VMinclude.h UI.thread.CLNT.h UI.thread.h \
  ../../paradyn/src/UIthread/Status.h \
- performanceConsultant.thread.h dataManager.thread.h dyninstRPC.xdr.h \
+ performanceConsultant.thread.h dataManager.thread.h dyninstRPC.mrnet.h \
  ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
@@ -280,7 +280,7 @@ VISIthreadpublic.obj: ../src/VISIthread/VISIthreadpublic.C \
  ../../paradyn/src/DMthread/BufferPool.h dataManager.thread.CLNT.h \
  visi.xdr.CLNT.h VISIthread.thread.SRVR.h VISIthread.thread.h \
  ../src/VISIthread/../VMthread/VMtypes.h VISIthread.thread.CLNT.h \
- dyninstRPC.xdr.CLNT.h ../src/VISIthread/VISIthreadTypes.h \
+ dyninstRPC.mrnet.CLNT.h ../src/VISIthread/VISIthreadTypes.h \
  ../src/VISIthread/../pdMain/paradyn.h \
  performanceConsultant.thread.CLNT.h ../../pdutil/h/makenan.h \
  ../src/VISIthread/../DMthread/DMinclude.h
@@ -292,7 +292,7 @@ PCdata.obj: ../src/PCthread/PCdata.C ../src/PCthread/PCintern.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -312,7 +312,7 @@ PCfocus.obj: ../src/PCthread/PCfocus.C ../src/PCthread/PCintern.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -332,7 +332,7 @@ PCsearch.obj: ../src/PCthread/PCsearch.C ../src/PCthread/PCintern.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -356,7 +356,7 @@ PCpublic.obj: ../src/PCthread/PCpublic.C ../src/PCthread/PCintern.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -380,7 +380,7 @@ PCmain.obj: ../src/PCthread/PCmain.C ../src/PCthread/PCintern.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -405,7 +405,7 @@ PCconstants.obj: ../src/PCthread/PCconstants.C \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -426,7 +426,7 @@ PCfilter.obj: ../src/PCthread/PCfilter.C ../src/PCthread/PCfilter.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -448,7 +448,7 @@ PCmetric.obj: ../src/PCthread/PCmetric.C ../src/PCthread/PCintern.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -470,7 +470,7 @@ PCwhy.obj: ../src/PCthread/PCwhy.C ../src/PCthread/PCwhy.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -492,7 +492,7 @@ PCexperiment.obj: ../src/PCthread/PCexperiment.C \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -516,7 +516,7 @@ PCrules.obj: ../src/PCthread/PCrules.C ../src/PCthread/PCintern.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -538,7 +538,7 @@ PCshg.obj: ../src/PCthread/PCshg.C ../src/PCthread/PCintern.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -563,7 +563,7 @@ PCmetricInst.obj: ../src/PCthread/PCmetricInst.C \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -588,7 +588,7 @@ PCcostServer.obj: ../src/PCthread/PCcostServer.C \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -618,7 +618,7 @@ uimpd.tcl.obj: ../src/UIthread/uimpd.tcl.C ../../pdutil/h/odometer.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/vectorSet.h ../../common/h/list.h  \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -642,7 +642,7 @@ UImain.obj: ../src/UIthread/UImain.C ../../common/h/headers.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
-  dyninstRPC.xdr.h ../../common/h/Types.h \
+  dyninstRPC.mrnet.h ../../common/h/Types.h \
  ../../pdutil/h/aggregation.h ../../pdutil/h/mdl.h visi.xdr.h \
  ../../common/h/Dictionary.h ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -673,7 +673,7 @@ UIpublic.obj: ../src/UIthread/UIpublic.C UI.thread.CLNT.h UI.thread.h \
  ../../common/h/vectorSet.h ../../paradyn/src/DMthread/DMinclude.h \
   ../../paradyn/src/UIthread/Status.h \
  performanceConsultant.thread.h dataManager.thread.h \
- ../../common/h/list.h dyninstRPC.xdr.h ../../common/h/Types.h \
+ ../../common/h/list.h dyninstRPC.mrnet.h ../../common/h/Types.h \
  ../../pdutil/h/aggregation.h ../../pdutil/h/mdl.h visi.xdr.h \
  ../../common/h/Dictionary.h ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -695,7 +695,7 @@ UIwhere.obj: ../src/UIthread/UIwhere.C ../src/UIthread/UIglobals.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
-  dyninstRPC.xdr.h ../../common/h/Types.h \
+  dyninstRPC.mrnet.h ../../common/h/Types.h \
  ../../pdutil/h/aggregation.h ../../pdutil/h/mdl.h visi.xdr.h \
  ../../common/h/Dictionary.h ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -717,7 +717,7 @@ paradyn.tcl.obj: ../src/UIthread/paradyn.tcl.C ../../common/h/headers.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
-  dyninstRPC.xdr.h ../../common/h/Types.h \
+  dyninstRPC.mrnet.h ../../common/h/Types.h \
  ../../pdutil/h/aggregation.h ../../pdutil/h/mdl.h visi.xdr.h \
  ../../common/h/Dictionary.h ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -793,7 +793,7 @@ shg.obj: ../src/UIthread/shg.C ../src/UIthread/shg.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/vectorSet.h dataManager.thread.h ../../common/h/list.h \
-  dyninstRPC.xdr.h ../../common/h/Types.h \
+  dyninstRPC.mrnet.h ../../common/h/Types.h \
  ../../pdutil/h/aggregation.h ../../pdutil/h/mdl.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -811,7 +811,7 @@ shgRootNode.obj: ../src/UIthread/shgRootNode.C ../src/UIthread/shg.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/vectorSet.h dataManager.thread.h ../../common/h/list.h \
-  dyninstRPC.xdr.h ../../common/h/Types.h \
+  dyninstRPC.mrnet.h ../../common/h/Types.h \
  ../../pdutil/h/aggregation.h ../../pdutil/h/mdl.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -830,7 +830,7 @@ shgPhases.obj: ../src/UIthread/shgPhases.C ../../common/h/headers.h \
  ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../pdutil/h/ByteArray.h ../../common/h/vectorSet.h visi.xdr.h \
  dataManager.thread.h ../../common/h/list.h  \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h  ../../pdutil/h/mdl.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -852,7 +852,7 @@ shgTcl.obj: ../src/UIthread/shgTcl.C ../../common/h/headers.h \
  ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
  ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../common/h/vectorSet.h dataManager.thread.h ../../common/h/list.h \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -880,7 +880,7 @@ TCmain.obj: ../src/TCthread/TCmain.C ../../pdthread/h/thread.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h ../../common/h/list.h  \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -896,7 +896,7 @@ tunableConst.obj: ../src/TCthread/tunableConst.C \
  ../../common/h/ntHeaders.h ../../common/h/refCounter.h \
  ../../common/h/Dictionary.h ../../common/h/Vector.h
 metMain.obj: ../src/met/metMain.C ../../pdutil/h/mdlParse.h \
- ../../common/h/machineType.h ../../common/h/Vector.h dyninstRPC.xdr.h \
+ ../../common/h/machineType.h ../../common/h/Vector.h dyninstRPC.mrnet.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
  ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
@@ -907,7 +907,7 @@ metMain.obj: ../src/met/metMain.C ../../pdutil/h/mdlParse.h \
  ../../paradyn/src/met/globals.h ../src/met/../TCthread/tunableConst.h \
  ../../paradyn/src/met/metricExt.h \
  ../../paradyn/src/DMthread/DMinclude.h  \
- dyninstRPC.xdr.CLNT.h ../../paradyn/src/pdMain/paradyn.h \
+ dyninstRPC.mrnet.CLNT.h ../../paradyn/src/pdMain/paradyn.h \
  dataManager.thread.CLNT.h dataManager.thread.h ../../common/h/list.h \
  visi.xdr.h ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -927,7 +927,7 @@ templatesIGENMDL.obj: ../src/templatesIGENMDL.C ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../common/h/refCounter.h \
  ../../common/h/Vector.h ../../common/src/Dictionary.C \
- ../../common/h/Dictionary.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../common/h/Dictionary.h dyninstRPC.mrnet.h ../../pdutil/h/rpcUtil.h \
  ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../pdutil/h/ByteArray.h ../../common/h/vectorSet.h \
  ../../common/h/Types.h ../../pdutil/h/aggregation.h \
@@ -938,14 +938,14 @@ templatesDM.obj: ../src/templatesDM.C ../../common/h/list.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/refCounter.h ../../common/h/Vector.h \
  ../../paradyn/src/DMthread/BufferPool.h ../../common/src/Dictionary.C \
- ../../common/h/Dictionary.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../common/h/Dictionary.h dyninstRPC.mrnet.h ../../pdutil/h/rpcUtil.h \
  ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../pdutil/h/ByteArray.h ../../common/h/vectorSet.h \
  ../../common/h/Types.h ../../pdutil/h/aggregation.h  \
  ../../pdutil/h/mdl.h visi.xdr.h dataManager.thread.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
- ../../paradyn/src/DMthread/DVbufferpool.h dyninstRPC.xdr.CLNT.h \
+ ../../paradyn/src/DMthread/DVbufferpool.h dyninstRPC.mrnet.CLNT.h \
  ../../paradyn/src/DMthread/DMdaemon.h ../../common/h/machineType.h \
  dataManager.thread.SRVR.h \
  ../../paradyn/src/DMthread/../UIthread/Status.h \
@@ -962,7 +962,7 @@ templatesPCV.obj: ../src/templatesPCV.C ../../common/h/list.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
  ../../common/h/refCounter.h ../../common/h/Vector.h \
  ../../paradyn/src/DMthread/BufferPool.h ../../common/src/Dictionary.C \
- ../../common/h/Dictionary.h dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h \
+ ../../common/h/Dictionary.h dyninstRPC.mrnet.h ../../pdutil/h/rpcUtil.h \
  ../../pdutil/h/pdsocket.h ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h \
  ../../pdutil/h/ByteArray.h ../../common/h/vectorSet.h \
  ../../common/h/Types.h ../../pdutil/h/aggregation.h  \
@@ -988,7 +988,7 @@ templatesPCV.obj: ../src/templatesPCV.C ../../common/h/list.h \
  ../../paradyn/src/PCthread/PCcostServer.h \
  ../../pdutil/src/PriorityQueue.C ../../pdutil/src/CircularBuffer.C \
  ../../paradyn/src/VMthread/VMtypes.h VISIthread.thread.CLNT.h \
- VISIthread.thread.h dyninstRPC.xdr.CLNT.h
+ VISIthread.thread.h dyninstRPC.mrnet.CLNT.h
 templatesUI.obj: ../src/templatesUI.C ../../common/h/list.h \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/headers.h ../../common/h/ntHeaders.h \
@@ -1001,7 +1001,7 @@ templatesUI.obj: ../src/templatesUI.C ../../common/h/list.h \
  ../../paradyn/src/DMthread/DMinclude.h  \
  ../../paradyn/src/VMthread/VMinclude.h \
  ../src/../src/UIthread/UIglobals.h dataManager.thread.CLNT.h \
- dataManager.thread.h dyninstRPC.xdr.h ../../common/h/Types.h \
+ dataManager.thread.h dyninstRPC.mrnet.h ../../common/h/Types.h \
  ../../pdutil/h/aggregation.h ../../pdutil/h/mdl.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -1036,12 +1036,12 @@ templatesUIWASHG.obj: ../src/templatesUIWASHG.C ../../common/h/Vector.h \
  ../../pdutil/h/rpcUtil.h ../../pdutil/h/pdsocket.h \
  ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/stringDecl.h \
  ../../common/h/vectorSet.h dataManager.thread.h ../../common/h/list.h \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h visi.xdr.h ../../pdutil/h/stringPool.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h \
  ../../paradyn/src/UIthread/shgConsts.h
-mdl.obj: ../src/met/mdl.C dyninstRPC.xdr.CLNT.h dyninstRPC.xdr.h \
+mdl.obj: ../src/met/mdl.C dyninstRPC.mrnet.CLNT.h dyninstRPC.mrnet.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
  ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
@@ -1059,7 +1059,7 @@ dataManager.thread.obj: dataManager.thread.C dataManager.thread.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h ../../common/h/list.h  \
- dyninstRPC.xdr.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
+ dyninstRPC.mrnet.h ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -1072,7 +1072,7 @@ dataManager.thread.CLNT.obj: dataManager.thread.CLNT.C \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
-  dyninstRPC.xdr.h ../../common/h/Types.h \
+  dyninstRPC.mrnet.h ../../common/h/Types.h \
  ../../pdutil/h/aggregation.h ../../pdutil/h/mdl.h \
  ../../common/h/Dictionary.h \
  visi.xdr.h ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
@@ -1086,7 +1086,7 @@ dataManager.thread.SRVR.obj: dataManager.thread.SRVR.C \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h ../../common/h/list.h \
-  dyninstRPC.xdr.h ../../common/h/Types.h \
+  dyninstRPC.mrnet.h ../../common/h/Types.h \
  ../../pdutil/h/aggregation.h ../../pdutil/h/mdl.h visi.xdr.h \
  ../../common/h/Dictionary.h ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -1099,7 +1099,7 @@ performanceConsultant.thread.obj: performanceConsultant.thread.C \
  ../../common/h/String.h ../../common/h/debugOstream.h \
  ../../common/h/refCounter.h ../../pdutil/h/ByteArray.h \
  ../../common/h/Vector.h ../../common/h/vectorSet.h dataManager.thread.h \
- ../../common/h/list.h  dyninstRPC.xdr.h \
+ ../../common/h/list.h  dyninstRPC.mrnet.h \
  ../../common/h/Types.h ../../pdutil/h/aggregation.h \
  ../../pdutil/h/mdl.h ../../common/h/Dictionary.h visi.xdr.h \
  ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
@@ -1115,7 +1115,7 @@ performanceConsultant.thread.CLNT.obj: \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h dataManager.thread.h ../../common/h/list.h \
-  dyninstRPC.xdr.h ../../common/h/Types.h \
+  dyninstRPC.mrnet.h ../../common/h/Types.h \
  ../../pdutil/h/aggregation.h ../../pdutil/h/mdl.h visi.xdr.h \
  ../../common/h/Dictionary.h ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
@@ -1130,13 +1130,13 @@ performanceConsultant.thread.SRVR.obj: \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h dataManager.thread.h ../../common/h/list.h \
-  dyninstRPC.xdr.h ../../common/h/Types.h \
+  dyninstRPC.mrnet.h ../../common/h/Types.h \
  ../../pdutil/h/aggregation.h ../../pdutil/h/mdl.h visi.xdr.h \
  ../../common/h/Dictionary.h ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DMinclude.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
  ../../paradyn/src/DMthread/BufferPool.h
-dyninstRPC.xdr.obj: dyninstRPC.xdr.C dyninstRPC.xdr.h \
+dyninstRPC.mrnet.obj: dyninstRPC.mrnet.C dyninstRPC.mrnet.h \
  ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
  ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
@@ -1144,8 +1144,8 @@ dyninstRPC.xdr.obj: dyninstRPC.xdr.C dyninstRPC.xdr.h \
  ../../pdutil/h/ByteArray.h ../../common/h/Vector.h \
  ../../common/h/vectorSet.h ../../common/h/Types.h ../../common/h/Dictionary.h \
  ../../pdutil/h/aggregation.h ../../pdutil/h/mdl.h
-dyninstRPC.xdr.CLNT.obj: dyninstRPC.xdr.CLNT.C dyninstRPC.xdr.CLNT.h \
- dyninstRPC.xdr.h ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
+dyninstRPC.mrnet.CLNT.obj: dyninstRPC.mrnet.CLNT.C dyninstRPC.mrnet.CLNT.h \
+ dyninstRPC.mrnet.h ../../pdutil/h/rpcUtil.h ../../common/h/headers.h \
  ../../common/h/ntHeaders.h ../../pdutil/h/pdsocket.h \
  ../../pdthread/h/thread.h ../../pdutil/h/pddesc.h ../../common/h/String.h \
  ../../common/h/debugOstream.h ../../common/h/refCounter.h \
@@ -1195,7 +1195,7 @@ UI.thread.obj: UI.thread.C UI.thread.h ../../pdutil/h/rpcUtil.h \
  ../../paradyn/src/DMthread/DMinclude.h  \
  ../../paradyn/src/UIthread/Status.h \
  performanceConsultant.thread.h dataManager.thread.h \
- ../../common/h/list.h dyninstRPC.xdr.h ../../common/h/Types.h \
+ ../../common/h/list.h dyninstRPC.mrnet.h ../../common/h/Types.h \
  ../../pdutil/h/aggregation.h ../../pdutil/h/mdl.h visi.xdr.h \
  ../../common/h/Dictionary.h ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -1210,7 +1210,7 @@ UI.thread.CLNT.obj: UI.thread.CLNT.C UI.thread.CLNT.h UI.thread.h \
  ../../common/h/vectorSet.h ../../paradyn/src/DMthread/DMinclude.h \
   ../../paradyn/src/UIthread/Status.h \
  performanceConsultant.thread.h dataManager.thread.h \
- ../../common/h/list.h dyninstRPC.xdr.h ../../common/h/Types.h \
+ ../../common/h/list.h dyninstRPC.mrnet.h ../../common/h/Types.h \
  ../../pdutil/h/aggregation.h ../../pdutil/h/mdl.h visi.xdr.h \
  ../../common/h/Dictionary.h ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \
@@ -1225,7 +1225,7 @@ UI.thread.SRVR.obj: UI.thread.SRVR.C UI.thread.SRVR.h UI.thread.h \
  ../../common/h/vectorSet.h ../../paradyn/src/DMthread/DMinclude.h \
   ../../paradyn/src/UIthread/Status.h \
  performanceConsultant.thread.h dataManager.thread.h \
- ../../common/h/list.h dyninstRPC.xdr.h ../../common/h/Types.h \
+ ../../common/h/list.h dyninstRPC.mrnet.h ../../common/h/Types.h \
  ../../pdutil/h/aggregation.h ../../pdutil/h/mdl.h visi.xdr.h \
  ../../common/h/Dictionary.h ../../pdutil/h/stringPool.h ../../common/h/stringDecl.h \
  ../../paradyn/src/DMthread/DVbufferpool.h \

@@ -39,8 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: TermWinTkGUI.C,v 1.3 2004/12/07 20:48:06 tlmiller Exp $
-// $Id: TermWinTkGUI.C,v 1.3 2004/12/07 20:48:06 tlmiller Exp $
+// $Id: TermWinTkGUI.C,v 1.4 2005/12/19 19:44:11 pack Exp $
+// $Id: TermWinTkGUI.C,v 1.4 2005/12/19 19:44:11 pack Exp $
 
 #include <stdio.h>
 

@@ -44,7 +44,7 @@
  *              of Paradyn
  */
  
-/* $Id: UIpublic.C,v 1.86 2005/01/11 22:45:06 legendre Exp $
+/* $Id: UIpublic.C,v 1.87 2005/12/19 19:42:29 pack Exp $
  */
 
 #include <stdio.h>
@@ -72,7 +72,7 @@ UIMUser::chosenMetricsandResources
 {
   (cb) (pairList);
 }
-	
+     
 // 
 // Startup File
 void 
@@ -405,4 +405,3 @@ UIM::DMready( void )
     // should be pure virtual
     assert( false );
 }
-

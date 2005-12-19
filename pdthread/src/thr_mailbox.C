@@ -929,47 +929,27 @@ void thr_mailbox::dump_state() {
     FileBoundItemDumper filedumper;
 
     if(messages && messages->get_size()) {
-        fprintf(stderr, "   number of pending messages: %d\n", messages->get_size());
-        fprintf(stderr, "      contents of pending messages:\n");
         messages->visit(&md);
     }
     
     if(sock_messages && sock_messages->get_size()) {
-        fprintf(stderr, "   number of pending sock_messages: %d\n", sock_messages->get_size());
-        fprintf(stderr, "      contents of pending sock_messages:\n");
         sock_messages->visit(&md);
     }
     
     if(bound_socks && bound_socks->get_size()) {
-        fprintf(stderr, "   number of bound sockets: %d\n",
-                    bound_socks->get_size());
-        fprintf(stderr, "      bound socks are: ");
         bound_socks->visit(&sockdumper);
-        fprintf(stderr, "\n");
     }
     
     if(ready_socks && ready_socks->get_size()) {
-        fprintf(stderr, "   number of ready sockets: %d\n",
-                    ready_socks->get_size());
-        fprintf(stderr, "      ready socks are: ");
         ready_socks->visit(&sockdumper);
-        fprintf(stderr, "\n");
     }
     
     if(bound_files && bound_files->get_size()) {
-        fprintf(stderr, "   number of bound files: %d\n",
-                    bound_files->get_size());
-        fprintf(stderr, "      bound files are: ");
         bound_files->visit(&filedumper);
-        fprintf(stderr, "\n");
     }
     
     if(ready_files && ready_files->get_size()) {
-        fprintf(stderr, "   number of ready files: %d\n",
-                    ready_files->get_size());
-        fprintf(stderr, "      ready files are: ");
         ready_files->visit(&filedumper);
-        fprintf(stderr, "\n");
     }
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: PCmain.C,v 1.83 2005/03/11 00:38:11 legendre Exp $ */
+/* $Id: PCmain.C,v 1.84 2005/12/19 19:42:21 pack Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -141,7 +141,7 @@ void PCpredData(u_int tok, float f){
   costServer::newPredictedCostData(tok, f);			 
 }
 void PCenableDataCallback(pdvector<metricInstInfo> *bunchostuff, u_int phaseID,
-                          u_int last_cb_for_request)
+                          u_int /* last_cb_for_request */)
 {
 #ifdef PCDEBUG  
   cout << "PCenableDataCallback: phase" << phaseID << " ";

@@ -48,7 +48,7 @@
  *     metDoVisi(..) - declare a visi
  */
 
-// $Id: metMain.C,v 1.58 2005/01/28 18:12:04 legendre Exp $
+// $Id: metMain.C,v 1.59 2005/12/19 19:42:37 pack Exp $
 
 #define GLOBAL_CONFIG_FILE "/paradyn.rc"
 #define LOCAL_CONFIG_FILE "/.paradynrc"
@@ -174,27 +174,41 @@ bool metMain(pdstring userFile)
 
 bool metDoDaemon()
 {
-  static bool been_done=0;
-  // the default daemons
-  if (!been_done) {
-    dataMgr->defineDaemon("paradynd",NULL,NULL,"defd",NULL,NULL,NULL,"unix");
-    dataMgr->defineDaemon("paradynd",NULL,NULL,"winntd",NULL,NULL,NULL,"winnt");
-    been_done = true;
-  }
+
+	bool ret_value = false;
+  static bool been_done = false;
+	
+  daemonMet::dumpAll();
+	processMet::dumpAll();  
   unsigned size=daemonMet::allDaemons.size();
-  for (unsigned u=0; u<size; u++) {
-    dataMgr->defineDaemon(daemonMet::allDaemons[u]->command().c_str(),
-			 daemonMet::allDaemons[u]->execDir().c_str(),
-			 daemonMet::allDaemons[u]->user().c_str(),
-			 daemonMet::allDaemons[u]->name().c_str(),
-			 daemonMet::allDaemons[u]->host().c_str(),
-			 daemonMet::allDaemons[u]->remoteShell().c_str(),
-                         daemonMet::allDaemons[u]->MPItype().c_str(),
-			 daemonMet::allDaemons[u]->flavor().c_str());
-    delete daemonMet::allDaemons[u];
-  }
+  for (unsigned u=0; u<size; u++) 
+    {
+      dataMgr->defineDaemon(daemonMet::allDaemons[u]->command().c_str(),
+														daemonMet::allDaemons[u]->execDir().c_str(),
+														daemonMet::allDaemons[u]->user().c_str(),
+														daemonMet::allDaemons[u]->name().c_str(),
+														daemonMet::allDaemons[u]->host().c_str(),
+														daemonMet::allDaemons[u]->remoteShell().c_str(),
+														daemonMet::allDaemons[u]->flavor().c_str(),
+														daemonMet::allDaemons[u]->mrnet_topology().c_str(),
+														daemonMet::allDaemons[u]->MPItype().c_str(),
+														false);
+			if(daemonMet::allDaemons[u]->flavor() == "mpi")
+				ret_value = true;
+			else
+				ret_value = false;
+      delete daemonMet::allDaemons[u];
+    }
   daemonMet::allDaemons.resize(0);
-  return true;
+
+  // the default daemons
+	if (!been_done){
+		fprintf(stderr,"Doing Default daemons\n");
+		dataMgr->defineDaemon("paradynd", NULL, NULL, "defd", NULL, NULL, "unix","","",true);
+		dataMgr->defineDaemon("paradynd", NULL, NULL, "winntd", NULL,NULL,"winnt","","",true);
+		been_done = true;
+	} 
+  return ret_value;
 }
 
 static void add_visi(visiMet *the_vm)
@@ -255,6 +269,7 @@ static void start_process(processMet *the_ps)
 
   pdstring *arguments;
   arguments = new pdstring;
+  fprintf(stderr, "================== arguments %p\n", arguments);
   if (the_ps->user().length()) {
     *arguments += pdstring("-user ");
     *arguments += the_ps->user();
@@ -275,7 +290,9 @@ static void start_process(processMet *the_ps)
     *arguments += pdstring(" ");
     *arguments += argv[i];
   }
-  uiMgr->ProcessCmd(arguments);
+
+	cout << "metMain.C in start_process() "<< *arguments << endl;
+	uiMgr->ProcessCmd(arguments);
 
 //
 // The code bellow is no longer necessary because we are starting this process
@@ -293,17 +310,18 @@ static void start_process(processMet *the_ps)
 
 bool metDoProcess()
 {
-    return processMet::doInitProcess();
+	return processMet::doInitProcess();
 }
 
 bool processMet::doInitProcess() {
+    //TODO:: Can we change this to a broadcast? Probably (darnold)
     unsigned size = allProcs.size();
     for (unsigned u=0; u<size; u++) {
-	if( allProcs[u]->autoStart() ) {
-	    start_process( allProcs[u] );
-	    delete allProcs[u];
-	    allProcs[u] = NULL;
-	}
+        if( allProcs[u] && allProcs[u]->autoStart() ) {
+            start_process( allProcs[u] );
+	    //            delete allProcs[u];
+            allProcs[u] = NULL;
+        }
     }
     return true;
 }

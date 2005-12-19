@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdlParser.y,v 1.6 2005/01/28 18:12:05 legendre Exp $
+// $Id: mdlParser.y,v 1.7 2005/12/19 19:43:47 pack Exp $
 
 #include "pdutil/h/mdlParse.h"
 #include "pdutil/h/metricStyle.h"
@@ -58,7 +58,7 @@ extern void handle_error();
 %token tDAEMON tPROCESS tTUNABLE_CONSTANT tIDENT 
 %token tCOMMAND tHOST tLITERAL tFLOAT tCOMMA
 %token tREMOTE_SHELL tAUTO_START
-%token tSEMI tFLAVOR tNAME tMPI_TYPE
+%token tSEMI tFLAVOR tNAME tMRNET_TOPOLOGY tMPI_TYPE
 %token tRES_LIST tVISI tUSER tDIR tFALSE tTRUE tFORCE tLIMIT tMETFOCUS
 %token tEXLIB tNOCASE tREGEX
 %token tT_PROCEDURE tT_MODULE tT_STRING tT_INT tT_FLOAT tTRUE tFALSE tDEFAULT
@@ -334,7 +334,7 @@ daemonDef: tDAEMON tIDENT daemonStruct
 	| tDAEMON error
 	;
 
-daemonStruct: tLBLOCK dStructItems tRBLOCK {$$.dm = $2.dm;}
+daemonStruct: tLBLOCK dStructItems tRBLOCK {$$.dm = $2.dm; }
 	;
 
 dStructItems:    { $$.dm = new daemonMet();}
@@ -354,6 +354,7 @@ daemonItem:  tCOMMAND tLITERAL tSEMI
              { $$.fld.val = $2.sp; $$.fld.spec = SET_MPITYPE;}
 	| tHOST tLITERAL tSEMI { $$.fld.val = $2.sp; $$.fld.spec = SET_HOST;}
 	| tDIR tIDENT tSEMI { $$.fld.val = $2.sp; $$.fld.spec = SET_DIR;}
+	| tMRNET_TOPOLOGY tLITERAL tSEMI { $$.fld.val = $2.sp; $$.fld.spec = SET_MRNET_TOPOLOGY;}
 	;
 
 met_name: tNAME tLITERAL tSEMI { $$.sp = $2.sp; }

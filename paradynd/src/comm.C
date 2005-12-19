@@ -74,6 +74,8 @@ void dump_profile(pdRPC *pdr) {
 //
 void pdRPC::handle_error()
 {
+  extern MRN::Stream * defaultStream;
+
 	pdstring resPartName;
 	if (machineResource != NULL)
 	{
@@ -87,35 +89,35 @@ void pdRPC::handle_error()
       sprintf(errorLine, "Could not (un)marshall parameters, dumping core, pid=%ld\n",
 	      (long) P_getpid());
       logLine(errorLine);
-      showErrorCallback(73,(const char *) errorLine, resPartName);
+      showErrorCallback(defaultStream, 73,(const char *) errorLine, resPartName);
       P_abort();
       break;
 
     case igen_proto_err:
       sprintf(errorLine, "Internal error: protocol verification failed, pid=%ld\n", (long) P_getpid());
       logLine(errorLine);
-      showErrorCallback(74, (const char *) errorLine, resPartName);
+      showErrorCallback(defaultStream, 74, (const char *) errorLine, resPartName);
       P_abort();
       break;
 
     case igen_call_err:
       sprintf(errorLine, "Internal error: cannot do sync call here, pid=%ld\n", (long) P_getpid());
       logLine(errorLine);
-      showErrorCallback(75, (const char *) errorLine, resPartName);
+      showErrorCallback(defaultStream, 75, (const char *) errorLine, resPartName);
       P_abort();
       break;
 
     case igen_request_err:
       sprintf(errorLine, "Internal error: unknown message tag pid=%ld\n", (long) P_getpid());
       logLine(errorLine);
-      showErrorCallback(76, (const char *) errorLine, resPartName);
+      showErrorCallback(defaultStream, 76, (const char *) errorLine, resPartName);
       P_abort();
       break;
 
     case igen_no_err:
       sprintf(errorLine, "Internal error: handle error called for err_state = igen_no_err\n");
       logLine(errorLine);
-      showErrorCallback(77, (const char *) errorLine, resPartName);
+      showErrorCallback(defaultStream, 77, (const char *) errorLine, resPartName);
       // fall thru
     case igen_send_err:
     case igen_read_err:

@@ -39,7 +39,7 @@
 # incur to third parties resulting from your use of Paradyn.
 #
 
-# $Id: applic.tcl,v 1.25 2005/01/28 18:12:04 legendre Exp $
+# $Id: applic.tcl,v 1.26 2005/12/19 19:42:40 pack Exp $
 # window to get application choices from user
 
 #
@@ -173,7 +173,6 @@ proc AttachProcess {} {
 
   label $D.pid.label -text "Pid: " -anchor e -width 14
   pack  $D.pid.label -side left -expand false
-
 
   set daemons [paradyn daemons]
   frame $D.daemon -border 2
@@ -309,7 +308,7 @@ proc DefineProcess {} {
   frame $D.directory -border 2
   label $D.directory.lbl -text "Directory: " -anchor e -width 12
   entry $D.directory.ent -width 50 -textvariable applicDir -relief sunken
- bind $D.directory.ent <Return> "$B.1 invoke"
+  bind $D.directory.ent <Return> "$B.1 invoke"
   pack $D.directory -side top -expand yes -fill x
   pack $D.directory.lbl $D.directory.ent -side left -expand yes -fill x
   
@@ -318,9 +317,8 @@ proc DefineProcess {} {
   label $D.daemon.lbl -text "Daemon: " -anchor e -width 12
   pack $D.daemon -side top -expand yes -fill x
   pack $D.daemon.lbl -side left -expand no -fill x
-  foreach d $daemons {
-    radiobutton $D.daemon.$d -text $d -variable applicDaemon -value $d \
-	-relief flat
+	foreach d $daemons {
+    radiobutton $D.daemon.$d -text $d -variable applicDaemon -value $d -relief flat
     pack $D.daemon.$d -side left -expand yes -fill x
   }
   $D.daemon.$applicDaemon invoke
@@ -329,12 +327,23 @@ proc DefineProcess {} {
   label $D.mpitype.lbl -text "MPI type: " -anchor e -width 12
   pack $D.mpitype -side top -expand yes -fill x
   pack $D.mpitype.lbl -side left -expand no -fill x
+
+  radiobutton $D.mpitype.nompi -text "Not MPI" -variable applicMPItype \
+              -value  NOMPI -relief flat
+  pack $D.mpitype.nompi -side left -expand yes -fill x
+
   radiobutton $D.mpitype.mpich -text "MPICH" -variable applicMPItype \
               -value  MPICH -relief flat
   pack $D.mpitype.mpich -side left -expand yes -fill x
+
+
   radiobutton $D.mpitype.lam -text "LAM" -variable applicMPItype \
               -value  LAM -relief flat
   pack $D.mpitype.lam -side left -expand yes -fill x
+
+  radiobutton $D.mpitype.slurm -text "SLURM" -variable applicMPItype \
+              -value  SLURM -relief flat
+  pack $D.mpitype.slurm -side left -expand yes -fill x
 
   frame $D.cmd -border 2
   label $D.cmd.lbl -text "Command: " -anchor e -width 12

@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Process.h,v 1.4 2004/06/01 18:23:49 pcroth Exp $
+// $Id: Process.h,v 1.5 2005/12/19 19:42:06 pack Exp $
 #ifndef XPLAT_PROCESS_H
 #define XPLAT_PROCESS_H
 
@@ -33,6 +33,7 @@ public:
                                 const std::string& cmd,
                                 const std::vector<std::string>& args )
     {
+
         int ret = -1;
         if( NetUtils::IsLocalHost( host ) )
         {

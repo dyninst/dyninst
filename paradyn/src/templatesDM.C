@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.38 2005/02/15 17:44:08 legendre Exp $
+// $Id: templatesDM.C,v 1.39 2005/12/19 19:42:17 pack Exp $
 // templates for DMthread, excluding igen templates
 //
 
@@ -57,8 +57,8 @@
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
 
-#pragma implementation "dyninstRPC.xdr.h"
-#include "dyninstRPC.xdr.h"
+#pragma implementation "dyninstRPC.mrnet.h"
+#include "dyninstRPC.mrnet.h"
 #pragma implementation "visi.xdr.h"
 #include "visi.xdr.h"
 
@@ -92,13 +92,16 @@ template class pdvector<PriorityQueue<>::pdpair>;
 
 template class pdvector<bool>;
 template class pdvector< pdvector<pdstring> >;
+class paradynDaemon;
+template class dictionary_hash<unsigned, paradynDaemon*>;
+template class pdvector < dictionary_hash<unsigned, paradynDaemon*> ::entry>;
 
 /* *********************************   
  * DMthread stuff
  */
 
 #include "dataManager.thread.h"
-#include "dyninstRPC.xdr.CLNT.h"
+#include "dyninstRPC.mrnet.CLNT.h"
 class cpContext;
 #include "paradyn/src/DMthread/DMdaemon.h"
 #include "paradyn/src/DMthread/DMmetric.h"

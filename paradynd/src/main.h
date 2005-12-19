@@ -55,4 +55,6 @@ void cleanUpAndExit(int status);
 
 extern bool frontendExited;
 
+int StartOrAttach( void );
+
 #endif

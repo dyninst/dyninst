@@ -1,4 +1,4 @@
-/*
+ /*
  * Copyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
@@ -39,13 +39,17 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.122 2005/09/09 18:07:25 legendre Exp $ */
+/* $Id: dynrpc.C,v 1.123 2005/12/19 19:42:50 pack Exp $ */
 
 #include "paradynd/src/metricFocusNode.h"
 #include "paradynd/src/machineMetFocusNode.h"
 #include "paradynd/src/processMetFocusNode.h"
 #include "paradynd/src/internalMetrics.h"
-#include "dyninstRPC.xdr.SRVR.h"
+#include "dyninstRPC.mrnet.SRVR.h"
+
+#include "dyninstAPI/src/dyninst.h"
+#include "dyninstAPI/src/stats.h"
+
 #include "paradynd/src/resource.h"
 #include "paradynd/src/mdld.h"
 #include "paradynd/src/init.h"
@@ -57,6 +61,7 @@
 #include "paradynd/src/processMgr.h"
 #include "pdutil/h/mdlParse.h"
 #include "paradynd/src/mdld_data.h"
+#include "mrnet/MRNet.h"
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/stats.h"
 
@@ -91,19 +96,20 @@ const timeLength &getCurrSamplingRate() {
   return *currSamplingRate;
 }
 
-void dynRPC::printStats(void)
+void dynRPC::printStats(MRN::Stream * /* stream */)
 {
   printDyninstStats();
 }
 
-void dynRPC::coreProcess(int id)
+
+void dynRPC::coreProcess(MRN::Stream * /* stream */ ,int id)
 {
    pd_process *proc = getProcMgr().find_pd_process(id);
    if (proc)
       proc->dumpCore("core.out");
 }
 
-pdstring dynRPC::getStatus(int id)
+pdstring dynRPC::getStatus(MRN::Stream * /* stream */,int id)
 {
    pd_process *proc = getProcMgr().find_pd_process(id);
    if (!proc) {
@@ -118,7 +124,7 @@ pdstring dynRPC::getStatus(int id)
    return pdstring("running");
 }
 
-pdvector<T_dyninstRPC::metricInfo> dynRPC::getAvailableMetrics(void) {
+pdvector<T_dyninstRPC::metricInfo> dynRPC::getAvailableMetrics(MRN::Stream * /* stream */) {
   pdvector<T_dyninstRPC::metricInfo> metInfo;
   unsigned size = internalMetric::allInternalMetrics.size();
   for (unsigned u=0; u<size; u++)
@@ -129,28 +135,33 @@ pdvector<T_dyninstRPC::metricInfo> dynRPC::getAvailableMetrics(void) {
   return(metInfo);
 }
 
-void dynRPC::getPredictedDataCost(u_int id, u_int req_id, pdvector<u_int> focus, 
+extern MRN::Stream * defaultStream;
+void dynRPC::getPredictedDataCost(MRN::Stream * /* stream */,u_int id, u_int req_id, pdvector<u_int> focus, 
 				  pdstring metName, u_int clientID)
 {
-   if (!metName.length()) 
-      getPredictedDataCostCallback(id, req_id, 0.0,clientID);
-   else {
-      timeLength cost = guessCost(metName, focus);
-      // note: returns 0.0 in a variety of situations (if metric cannot be
-      //       enabled, etc.)  Would we rather have a more explicit error
-      //       return value?
-      getPredictedDataCostCallback(id, req_id, 
-                     static_cast<float>(cost.getD(timeUnit::sec())), clientID);
-   }
+
+   if (!metName.length())
+     {
+       getPredictedDataCostCallback(defaultStream, id, req_id, 0.0,clientID);
+     }
+   else
+     {
+       timeLength cost = guessCost(metName, focus);
+       // note: returns 0.0 in a variety of situations (if metric cannot be
+       //       enabled, etc.)  Would we rather have a more explicit error
+       //       return value?
+       getPredictedDataCostCallback(defaultStream, id, req_id, 
+				    static_cast<float>(cost.getD(timeUnit::sec())), clientID);
+     }
 }
 
 extern pdvector<int> deferredMetricIDs;
 
 pdvector<int> metricFocusesRequestedForDelete;
 
-void dynRPC::disableDataCollection(int mid)
+void dynRPC::disableDataCollection(MRN::Stream * /* stream */,int mid)
 {
-   metricFocusesRequestedForDelete.push_back(mid);
+  metricFocusesRequestedForDelete.push_back(mid);
 }
 
 
@@ -207,6 +218,7 @@ void processInstrDeletionRequests() {
    for(unsigned i=0; i<metricFocusesRequestedForDelete.size(); i++) {
       int curmid = metricFocusesRequestedForDelete[i];
       machineMetFocusNode *mi = machineMetFocusNode::lookupMachNode(curmid);
+
       if (!mi) {
 	// Case: the backend has already deleted the node, and now the
 	// frontend is duplicating our work.
@@ -230,7 +242,7 @@ void processInstrDeletionRequests() {
    }
 }
 
-bool dynRPC::setTracking(unsigned target, bool /* mode */)
+bool dynRPC::setTracking(MRN::Stream * /* stream */,unsigned target, bool /* mode */)
 {
     resource *res = resource::findResource(target);
     if (res) {
@@ -247,51 +259,79 @@ bool dynRPC::setTracking(unsigned target, bool /* mode */)
     }
 }
 
-void dynRPC::resourceInfoResponse(pdvector<u_int> temporaryIds, 
-			 	  pdvector<u_int> resourceIds) {
-    assert(temporaryIds.size() == resourceIds.size());
-
-    for (unsigned u = 0; u < temporaryIds.size(); u++) {
-      resource *res = resource::findResource(temporaryIds[u]);
-      assert(res);
-      res->set_id(resourceIds[u]);
-    }
+void dynRPC::resourceInfoResponse(MRN::Stream * /* stream */,pdvector<u_int> temporaryIds, 
+																	pdvector<u_int> resourceIds)
+{
+	assert(temporaryIds.size() == resourceIds.size());
+	
+	for (unsigned u = 0; u < temporaryIds.size(); u++)
+		{
+			resource *res = resource::findResource(temporaryIds[u]);
+			assert(res);
+			res->set_id(resourceIds[u]);
+		}
 }
 
-void dynRPC::enableDataCollection(pdvector<T_dyninstRPC::focusStruct> focus, 
-				  pdvector<pdstring> metric, pdvector<u_int> mi_ids, 
-				  u_int daemon_id, u_int request_id) {
-   processInstrDeletionRequests();
+void dynRPC::enableDataCollection(MRN::Stream * /* stream */,pdvector<T_dyninstRPC::focusStruct> focusVector, 
+																	pdvector<pdstring> metric, pdvector<u_int> mi_ids, 
+																	u_int daemon_id, u_int request_id) {
+  extern u_int sdm_id;
 
-   assert(focus.size() == metric.size());
-   totalInstTime.start();
+	if(sdm_id != daemon_id)
+		return;
 
-   metFocInstResponse* cbi = new metFocInstResponse( request_id, daemon_id );
-
-   for (u_int i=0; i<metric.size(); i++) {
-        startCollecting( metric[i], focus[i].focus, mi_ids[i], cbi );
-   }
-   
-   totalInstTime.stop();
-   cbi->makeCallback();
+  for (unsigned i=0; i < metric.size(); i++) 
+    {
+      for(unsigned j = 0 ; j < focusVector[i].focus.size() ; j++)
+				{
+					resource *res = resource::findResource(focusVector[i].focus[j]);
+					//if(res == NULL)
+					//  return;
+				}
+    }
+	
+  //daemon_id = sdm_id;
+	
+  processInstrDeletionRequests();
+	
+  assert(focusVector.size() == metric.size());
+  totalInstTime.start();
+	
+	metFocInstResponse* cbi = new metFocInstResponse( request_id, daemon_id );
+  
+  bool responce = false;
+  
+  for (unsigned j=0; j < metric.size(); j++) 
+    {
+			responce = startCollecting( metric[j], focusVector[j].focus, mi_ids[j], cbi );
+    }
+	
+	totalInstTime.stop();
+	
+	cbi->makeCallback();
 }
 
 // synchronous, for propogating metrics
 T_dyninstRPC::instResponse
-dynRPC::enableDataCollection2(pdvector<u_int> focus,
+dynRPC::enableDataCollection2(MRN::Stream * /* stream */,pdvector<u_int> focus,
                                 pdstring met,
                                 int mid,
                                 u_int daemon_id )
 {
-   processInstrDeletionRequests();
 
-   totalInstTime.start();
+  extern u_int sdm_id;
+  daemon_id = sdm_id;
 
-   metFocInstResponse *cbi = new metFocInstResponse( mid, daemon_id );
-   startCollecting( met, focus, mid, cbi );
-   totalInstTime.stop();
+  processInstrDeletionRequests();
 
-   return *cbi;
+  totalInstTime.start();
+
+  metFocInstResponse *cbi = new metFocInstResponse( mid, daemon_id );
+
+  startCollecting( met, focus, mid, cbi );
+  totalInstTime.stop();
+  
+  return *cbi;
 }
 
 //
@@ -299,7 +339,7 @@ dynRPC::enableDataCollection2(pdvector<u_int> focus,
 // symbol _DYNINSTsampleMultiple which will affect the frequency with
 // which performance data is sent to the paradyn process 
 //
-void dynRPC::setSampleRate(double sampleInterval)
+void dynRPC::setSampleRate(MRN::Stream * /* stream */,double sampleInterval)
 {
     // TODO: implement this:
     // want to change value of DYNINSTsampleMultiple to corr. to new
@@ -317,7 +357,7 @@ void dynRPC::setSampleRate(double sampleInterval)
    return;
 }
 
-bool dynRPC::detachProgram(int program, bool pause)
+bool dynRPC::detachProgram(MRN::Stream * /* stream */,int program, bool pause)
 {
    pd_process *proc = getProcMgr().find_pd_process(program);
    if (proc)
@@ -329,16 +369,76 @@ bool dynRPC::detachProgram(int program, bool pause)
 //
 // Continue all processes
 //
-void dynRPC::continueApplication(void)
+void dynRPC::continueApplication(MRN::Stream * /* stream */)
 {
+  cerr << "in continueApplication"<<endl;
     continueAllProcesses();
     statusLine("application running");
+}
+//
+// set the stream used by defaut to do upcalls
+// and get and send daemon information
+//
+int 
+dynRPC::setDaemonDefaultStream(MRN::Stream * stream)
+{
+  extern MRN::Stream * defaultStream;
+  defaultStream = stream;
+
+  return 0;
+}
+
+void dynRPC::setEquivClassReportStream( MRN::Stream *stream )
+{
+  extern MRN::Stream * equivClassReportStream;
+  equivClassReportStream = stream;
+}
+
+void dynRPC::reportInitialResources( MRN::Stream * /* stream */ )
+{
+    resource::report_ResourcesToFE( );
+}
+
+//
+// set the stream used by defaut to do upcalls
+// and get and send daemon information
+//
+T_dyninstRPC::daemonInfo
+dynRPC::getDaemonInfo(MRN::Stream * stream, pdvector<T_dyninstRPC::daemonSetupStruc> dss )
+{
+  extern pdstring machine_name_out;
+  extern pdstring program_name;
+  extern pdstring flavor_name;
+  extern unsigned sdm_id;
+	extern bool sdm_id_set;
+
+	for(unsigned i = 0 ; i < dss.size() ; i++)
+		{
+			if(machine_name_out == dss[i].daemonName)
+				{
+					if(!sdm_id_set)
+						{
+							sdm_id = dss[i].daemonId;
+							sdm_id_set = true;
+						}
+					break;
+				}
+		}
+	
+  T_dyninstRPC::daemonInfo * di = new T_dyninstRPC::daemonInfo;
+	
+  di->machine = machine_name_out;
+  di->program = program_name;
+  di->pid = getpid();
+  di->flavor = flavor_name;
+	di->d_id = sdm_id;	
+  return *di;
 }
 
 //
 // Continue a process
 //
-void dynRPC::continueProgram(int pid)
+void dynRPC::continueProgram(MRN::Stream * stream,int pid)
 {
 
    pd_process *proc = getProcMgr().find_pd_process(pid);
@@ -354,7 +454,7 @@ void dynRPC::continueProgram(int pid)
          sprintf(errorLine,
                  "Internal error: cannot continue PID %d\n", pid);
          logLine(errorLine);
-         showErrorCallback(62,(const char *) errorLine,
+         showErrorCallback(stream, 62,(const char *) errorLine,
                            machineResource->part_name());
          return;
       }
@@ -365,7 +465,7 @@ void dynRPC::continueProgram(int pid)
                  "%s[%d]: Internal error: PID %d terminated\n", 
                  __FILE__, __LINE__, pid);
          logLine(errorLine);
-         showErrorCallback(62,(const char *) errorLine,
+         showErrorCallback(stream,62,(const char *) errorLine,
                            machineResource->part_name());
 
      }
@@ -382,7 +482,7 @@ void dynRPC::continueProgram(int pid)
 //
 //  Stop all processes 
 //
-bool dynRPC::pauseApplication(void)
+bool dynRPC::pauseApplication(MRN::Stream * /* stream */ )
 {
     pauseAllProcesses();
     return true;
@@ -391,20 +491,20 @@ bool dynRPC::pauseApplication(void)
 //
 //  Stop a single process
 //
-bool dynRPC::pauseProgram(int program)
+bool dynRPC::pauseProgram(MRN::Stream * stream,int program)
 {
    pd_process *proc = getProcMgr().find_pd_process(program);
    if (!proc) {
       sprintf(errorLine, "Internal error: cannot pause PID %d\n", program);
       logLine(errorLine);
-      showErrorCallback(63,(const char *) errorLine,
+      showErrorCallback(stream,63,(const char *) errorLine,
 		        machineResource->part_name());
       return false;
    }
    return proc->pause();
 }
 
-bool dynRPC::startProgram(int )
+bool dynRPC::startProgram(MRN::Stream * /* stream */,int /* dummy */ )
 {
     statusLine("starting application");
     continueAllProcesses();
@@ -414,7 +514,7 @@ bool dynRPC::startProgram(int )
 //
 // Monitor the dynamic call sites contained in function <function_name>
 //
-void dynRPC::MonitorDynamicCallSites(pdstring function_name){
+void dynRPC::MonitorDynamicCallSites(MRN::Stream * /* stream */,pdstring function_name){
   processMgr::procIter itr = getProcMgr().begin();
   while(itr != getProcMgr().end()) {
      pd_process *p = *itr++;
@@ -427,11 +527,13 @@ void dynRPC::MonitorDynamicCallSites(pdstring function_name){
 //
 // start a new program for the tool.
 //
-int dynRPC::addExecutable(pdvector<pdstring> argv, pdstring dir)
+
+int dynRPC::addExecutable(MRN::Stream * /* stream */,pdvector<pdstring> argv, pdstring dir)
 {
   pd_process *p = pd_createProcess(argv, dir);
   metricFocusNode::handleNewProcess(p);
   if (p) {
+		resource::report_ChecksumToFE( );
     return 1;
   }
   else
@@ -444,32 +546,33 @@ int dynRPC::addExecutable(pdvector<pdstring> argv, pdstring dir)
 // the symbol table off disk.
 // values for 'afterAttach': 1 --> pause, 2 --> run, 0 --> leave as is
 //
-bool dynRPC::attach(pdstring progpath, int pid, int afterAttach)
+
+bool dynRPC::attach(MRN::Stream * /* stream */,pdstring progpath, int pid, int afterAttach)
 {
   startup_cerr << "WELCOME to dynRPC::attach" << endl;
   startup_cerr << "progpath=" << progpath << endl;
   startup_cerr << "pid=" << pid << endl;
   startup_cerr << "afterAttach=" << afterAttach << endl;
-
-    pd_process *p = pd_attachProcess(progpath, pid);
-    if (!p) return false;
-    
-    metricFocusNode::handleNewProcess(p);
-
-    return true;
+	pd_process *p = pd_attachProcess(progpath, pid);
+	
+	if (!p) return false;
+	
+	metricFocusNode::handleNewProcess(p);
+	
+	return true;
 }
 
 
 //
 // report the current time 
 //
-double dynRPC::getTime() {
+double dynRPC::getTime(MRN::Stream * /* stream */) {
   return getWallTime().getD(timeUnit::sec(), timeBase::bStd());
 }
 
 
 void
-dynRPC::reportSelfDone( void )
+dynRPC::reportSelfDone(MRN::Stream * /* stream */ )
 {
     if( startOnReportSelfDone )
     {
@@ -481,60 +584,60 @@ dynRPC::reportSelfDone( void )
 
 
 void 
-dynRPC::send_mdl( pdvector<T_dyninstRPC::rawMDL> /*mdlBufs*/ )
+dynRPC::send_mdl(MRN::Stream * /* stream */, pdvector<T_dyninstRPC::rawMDL> /*mdlBufs*/ )
 {
     // should never be called; pdRPC::send_mdl should be called instead.
     assert( false );
 }
 
 void
-pdRPC::send_mdl( pdvector<T_dyninstRPC::rawMDL> mdlBufs )
+pdRPC::send_mdl(MRN::Stream * stream, pdvector<T_dyninstRPC::rawMDL> mdlBufs )
 {
     assert( !saw_mdl );
-
     // parse the MDL data we've been given
     for( pdvector<T_dyninstRPC::rawMDL>::const_iterator iter = mdlBufs.begin();
-        iter != mdlBufs.end();
-        iter++ )
-    {
+				 iter != mdlBufs.end();
+				 iter++ )
+			{
         mdlBufPtr = (const char*)iter->buf.c_str();
-        mdlBufRemaining = iter->buf.length();
 
+        mdlBufRemaining = iter->buf.length();
+				
         int pret = mdlparse();
         if( pret != 0 )
-        {
+					{
             // indicate the error
 #if READY
             // how to indicate error?
 #else
             cerr << "failed to parse MDL"
-                << endl;
+								 << endl;
 #endif // READY
-
+						
             break;
-        }
-    }
-
+					}
+			}
+		
     // we've now parsed all MDL data -
     // process it as the front-end processed it
     if( !mdl_apply() )
-    {
+			{
         // indicate the error
 #if READY
         // how to indicate the error?
 #else
         cerr << "failed to apply MDL" << endl;
 #endif // READY
-    }
+			}
     else if( !mdl_check_node_constraints() )
-    {
+			{
         // indicate the error
 #if READY
         // how to indicate the error?
 #else
         cerr << "MDL node constraint check failed" << endl;
 #endif // READY
-    }
+			}
 
     // now we've done just what the front-end had done before sending us
     // the raw MDL.
@@ -543,20 +646,140 @@ pdRPC::send_mdl( pdvector<T_dyninstRPC::rawMDL> mdlBufs )
     mdl_data* fe_context = mdl_data::cur_mdl_data;
     mdl_data::cur_mdl_data = new mdld_data();
     mdl_init_be( pd_flavor );
-
-    send_stmts( &(fe_context->stmts) );
-    send_constraints( &(fe_context->all_constraints) );
-    send_metrics( &(fe_context->all_metrics) );
+		
+    send_stmts(stream, &(fe_context->stmts) );
+    send_constraints( stream, &(fe_context->all_constraints) );
+    send_metrics(stream, &(fe_context->all_metrics) );
     if( fe_context->lib_constraints.size() > 0 )
-    {
-        send_libs( &(fe_context->lib_constraints) );
-    }
+			{
+        send_libs(stream, &(fe_context->lib_constraints) );
+			}
     else
-    {
-        send_no_libs();
-    }
-
+			{
+        send_no_libs(stream);
+			}
+		
     saw_mdl = true;
 }
 
+//#define TimeVal2Double(tv) ((tv).tv_sec + (tv).tv_usec / 1000000.0)
+
+pdvector<double> dynRPC::save_LocalClockSkew( MRN::Stream *, double parent_send_time )
+{
+    pdvector<double> timestamps;
+
+    struct timeval recvTimeVal, sendTimeVal;
+    double recvTime, sendTime;
+
+    // sample "receive" time
+    gettimeofday(&recvTimeVal, NULL);
+		recvTime = ((double)recvTimeVal.tv_sec) + (((double)recvTimeVal.tv_usec)/1000000U);
+    //recvTime = TimeVal2Double( recvTimeVal );
+
+    // we send to our parent the time we received its message and the
+    // time we sent this message.
+
+    // indicate where our send timestamp should go
+    timestamps.push_back( parent_send_time );
+    timestamps.push_back( recvTime );
+     
+    // sample "send" time as late as possible for outgoing message(s)
+    gettimeofday( &sendTimeVal, NULL );
+		sendTime = ((double)sendTimeVal.tv_sec) + (((double)sendTimeVal.tv_usec)/1000000U);
+    //sendTime = TimeVal2Double( sendTimeVal );
+    timestamps.push_back( sendTime );
+
+		//fprintf( stderr, "BE: psend=%lf, recv=%lf, send=%lf\n",
+    //            parent_send_time, recvTime, sendTime );
+
+    return timestamps;
+}
+
+pdvector<double> dynRPC::get_ClockSkew( MRN::Stream * )
+{
+    pdvector<double> clock_skew_vector;
+		double local_result = 0.0;
+		clock_skew_vector.push_back(local_result);
+    return clock_skew_vector;
+}
+
+
+void dynRPC::reportCallGraphEquivClass( MRN::Stream *)
+{
+    processMgr::procIter itr = getProcMgr().begin();
+
+    assert(getProcMgr().size()==1);
+
+    while(itr != getProcMgr().end()) {
+        pd_process *p = *itr++;
+        assert(p);
+        p->report_CallGraphChecksumToFE( );
+    }
+}
+
+void dynRPC::reportStaticCallgraph( MRN::Stream * )
+{
+    processMgr::procIter itr = getProcMgr().begin();
+
+    PARADYN_bootstrapStruct bs_record;
+
+    extern resource *machineResource;
+    const bool calledFromExec   = (bs_record.event == 4);
+    extern pdRPC *tp;
+
+    assert(getProcMgr().size()==1);
+
+    while(itr != getProcMgr().end()) {
+        pd_process *p = *itr++;
+        if (!p)
+            continue;
+        p->FillInCallGraphStatic();
+				//        if (!p->extractBootstrapStruct(&bs_record)){
+				//            assert(false);
+        //}
+	/*
+        tp->newProgramCallbackFunc(defaultStream, bs_record.pid, p->arg_list, 
+                                   machineResource->part_name(),
+                                   calledFromExec,
+                                   p->wasRunningWhenAttached());
+
+        pdstring buffer = pdstring("PID=") + pdstring(p->getPid());
+        buffer += pdstring(", ready");
+        statusLine(buffer.c_str());
+	*/
+    }
+}
+
+void dynRPC::staticCallgraphReportsComplete( MRN::Stream * )
+{
+    processMgr::procIter itr = getProcMgr().begin();
+
+    PARADYN_bootstrapStruct bs_record;
+
+    extern resource *machineResource;
+    const bool calledFromExec   = (bs_record.event == 4);
+    extern pdRPC *tp;
+
+    assert(getProcMgr().size()==1);
+
+    while(itr != getProcMgr().end()) {
+        pd_process *p = *itr++;
+        if (!p)
+            continue;
+
+        tp->newProgramCallbackFunc(defaultStream, p->getPid(), p->arg_list, 
+                                   machineResource->part_name(),
+                                   calledFromExec,
+                                   p->wasRunningWhenAttached());
+				p->setCanReportResources(true);
+				p->reportInitialThreads();
+        pdstring buffer = pdstring("PID=") + pdstring(p->getPid());
+        buffer += pdstring(", ready");
+        statusLine(buffer.c_str());
+    }
+		extern bool readyToRun;
+		readyToRun = false;
+		extern void doDelayedReport();
+		doDelayedReport();
+}
 

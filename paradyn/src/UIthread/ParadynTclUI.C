@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynTclUI.C,v 1.5 2004/06/24 22:27:51 legendre Exp $
+// $Id: ParadynTclUI.C,v 1.6 2005/12/19 19:42:24 pack Exp $
 #include "tcl.h"
 #include "tkTools.h"
 #include "paradyn/src/pdMain/paradyn.h"
@@ -426,10 +426,10 @@ ParadynTclUI::ParadynCmd(ClientData cd,
     for(i = 0; pd_Cmds[i].name; i++)
     {
         if(strcmp(pd_Cmds[i].name,argv[1]) == 0)
-        {
-            ParadynTclUI* ui = static_cast<ParadynTclUI*>( cd );
-            return (ui->*(pd_Cmds[i].func))( argc-1, argv+1 );
-        }
+					{
+						ParadynTclUI* ui = static_cast<ParadynTclUI*>( cd );
+						return (ui->*(pd_Cmds[i].func))( argc-1, argv+1 );
+					}
     }
 
     resstr << "unknown paradyn cmd '" << argv[1] << "'" << std::ends;
@@ -489,6 +489,7 @@ ParadynTclUI::createStatusLine(const char* sl_name)
 void
 ParadynTclUI::createProcessStatusLine(const char* sl_name)
 {
+  //fprintf(stderr, "%s: %d; createProcessStatusLine %s\n", __FILE__, __LINE__, sl_name);
     new status_line(sl_name, status_line::PROCESS);
 }
 

@@ -130,6 +130,7 @@ LIBMRNET_SRCS = \
 	         $(SRCDIR)/src/StreamManager.C \
 	         $(SRCDIR)/src/Filter.C \
 	         $(SRCDIR)/src/FilterDefinitions.C \
+	         $(SRCDIR)/src/ParadynFilterDefinitions.C \
 	         $(SRCDIR)/src/InternalNode.C 
 
 LIBMRNET_OBJS = $(addprefix $(OBJDIR)/, $(patsubst %.C,%.o,$(patsubst %.c,%.o,$(notdir $(LIBMRNET_SRCS)))))

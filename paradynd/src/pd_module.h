@@ -50,6 +50,10 @@
 #include "dyninstAPI/h/BPatch_module.h"
 #include "dyninstAPI/h/BPatch_basicBlockLoop.h"
 #include "dyninstAPI/h/BPatch_loopTreeNode.h"
+ 
+//class pdmodule;  // pdmodule is actually a dynisnt module, despite the name
+//class process;
+//class pd_process;
 
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/resource.h"
@@ -77,6 +81,8 @@ class pd_module {
 
  public:
 
+   //void FillInCallGraphStatic(pd_process *proc, bool init_graph , unsigned *checksum);
+
    pd_module(BPatch_module *dmod);
    ~pd_module();
 
@@ -84,7 +90,9 @@ class pd_module {
    resource *getResource();
    
    pdstring fileName() const {return _name;}
-   void FillInCallGraphStatic(pd_process *proc);
+
+   void FillInCallGraphStatic(pd_process *proc, bool init_graph = false,unsigned *checksum = 0 );
+
    BPatch_Vector<BPatch_function *> *getIncludedFunctions() { return &some_funcs;}
    bool isExcluded() {return is_excluded;}
 

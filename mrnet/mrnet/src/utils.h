@@ -6,12 +6,12 @@
 #ifndef utils_h
 #define utils_h 1
 
-#if defined(os_windows)
-#include <winsock2.h>
-#else
+#ifndef os_windows
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#endif // defined(os_windows)
+#else
+#include <winsock2.h>
+#endif
 
 #include <vector>
 #include <string>

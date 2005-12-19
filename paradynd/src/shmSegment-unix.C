@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment-unix.C,v 1.14 2005/09/09 18:08:01 legendre Exp $
+// $Id: shmSegment-unix.C,v 1.15 2005/12/19 19:43:23 pack Exp $
 //----------------------------------------------------------------------------
 //
 // Definition of the ShmSegment class.
@@ -76,7 +76,6 @@ static gcResult TryToReleaseShmSegment( key_t, unsigned int size );
 //
 ShmSegment::~ShmSegment( void )
 {
-    sleep(5);
     assert(baseAddrInDaemon != (Address) -1);
     // unmap the segment from our address space
     if( shmdt( (void *)baseAddrInDaemon ) == -1 )

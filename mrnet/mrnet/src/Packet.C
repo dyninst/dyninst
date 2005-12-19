@@ -187,16 +187,21 @@ bool PacketData::operator!=(const PacketData& p) const
 
 int PacketData::ExtractVaList( const char * /*fmt*/, va_list arg_list ) const
 {
+
     mrn_dbg( 3, mrn_printf(FLF, stderr, "In ExtractVaList(%p)\n", this ));
 
     //TODO: proper fmt string comparison
 
     //TODO: add exception block here to catch user errors
     data_sync.Lock();
+
     DataElementArray2ArgList( arg_list );
+
     data_sync.Unlock();
 
+
     mrn_dbg( 3, mrn_printf(FLF, stderr, "ExtractVaList(%p) succeeded\n", this ));
+
     return 0;
 }
 
@@ -205,6 +210,7 @@ bool_t PacketData::pdr_packet( PDR * pdrs, PacketData * pkt )
     unsigned int i;
     bool_t retval = 0;
     DataElement * cur_elem=NULL;
+
 
     mrn_dbg( 3, mrn_printf(FLF, stderr, "In pdr_packet. op: %d\n", pdrs->p_op ));
 
@@ -215,10 +221,12 @@ bool_t PacketData::pdr_packet( PDR * pdrs, PacketData * pkt )
     | streamid | tag | srcstr |  fmtstr | packed_data |
     ---------------------------------------------------
     *********************************************************************/
+
     if( pdr_uint16( pdrs, &( pkt->stream_id ) ) == FALSE ) {
         mrn_dbg( 1, mrn_printf(FLF, stderr, "pdr_uint16() failed\n" ));
         return FALSE;
     }
+
     if( pdr_int32( pdrs, &( pkt->tag ) ) == FALSE ) {
         mrn_dbg( 1, mrn_printf(FLF, stderr, "pdr_uint32() failed\n" ));
         return FALSE;

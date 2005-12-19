@@ -57,7 +57,7 @@
 #include "VISIthread.thread.SRVR.h"
 #include "../VMthread/VMtypes.h"
 #include "VISIthreadTypes.h"
-#include "dyninstRPC.xdr.CLNT.h"
+#include "dyninstRPC.mrnet.CLNT.h"
 #include "../DMthread/DMinclude.h"
 #define  ERROR_MSG(s1, s2) \
 	 uiMgr->showError(s1,s2); 

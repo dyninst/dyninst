@@ -260,6 +260,12 @@ msg_bind_socket(PDSOCKET s,
     return ret;
 }
 
+void msg_dump_state()
+{
+    thr_mailbox* my_mail = (thr_mailbox*)lwp::get_mailbox();
+    my_mail->dump_state();
+}
+
 #if defined(i386_unknown_nt4_0)
 int
 msg_bind_wmsg(thread_t* ptid)

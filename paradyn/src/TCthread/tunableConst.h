@@ -43,6 +43,16 @@
  * tunableConstant - a constant that might be changed during execution.
  *
  * $Log: tunableConst.h,v $
+ * Revision 1.16  2005/12/19 19:42:23  pack
+ * MRNet replaces xdr for frontend to daemon communication.  New igen  - - -
+ * MRNet changes
+ *
+ * Revision 1.1.1.1  2004/11/05 22:17:45  darnold
+ * start
+ *
+ * Revision 1.1.1.1  2004/10/18 20:35:56  darnold
+ * Manual Branch for MRNet Integration based on Release_4.1
+ *
  * Revision 1.15  2004/03/23 01:12:29  eli
  * Updated copyright string
  *

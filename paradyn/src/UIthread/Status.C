@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Status.C,v 1.9 2004/03/23 01:12:29 eli Exp $
+// $Id: Status.C,v 1.10 2005/12/19 19:42:28 pack Exp $
 
 #include "Status.h"
 #include <string.h>
@@ -159,9 +159,15 @@ status_line::reg_init() {
 }
 
 status_line*
-status_line::find(const char* name) {
-    for(int i = 0; i <= (n_lines_ + n_procs_); i++)
-        if(strcmp(name, (registry[i]).name) == 0) return (registry[i]).sl;
-    return NULL;
+status_line::find(const char* name)
+{
+	for(unsigned i = 0; i < (n_lines_ + n_procs_); i++)
+		{
+			//fprintf(stderr, "%s: %d; find name = %s  (registry[%d]).name = %s)\n", __FILE__, __LINE__, name,i,(registry[i]).name);
+
+			if(strcmp(name, (registry[i]).name) == 0)
+				return (registry[i]).sl;
+		}
+	return NULL;
 }
 

@@ -19,6 +19,10 @@
 #include <string.h>
 #include <assert.h>
 
+#include <sys/types.h>
+//#include <unistd.h>
+
+
 #define LASTUNSIGNED    ((uint32_t) 0-1)
 
 
@@ -198,7 +202,9 @@ bool_t pdr_opaque(PDR *pdrs, char * cp, uint32_t cnt)
      * if no data we are done
      */
     if (cnt == 0)
+			{
         return TRUE;
+			}
 
     switch (pdrs->p_op) {
     case PDR_DECODE:
@@ -275,47 +281,57 @@ bool_t pdr_string(PDR *pdrs, char **cpp, uint32_t maxsize)
     /*
      * first deal with the length since pdr strings are counted-std::strings
      */
-    switch (pdrs->p_op) {
-    case PDR_FREE:
-        if (sp != NULL) {
-            free(sp);
-            *cpp = NULL;
-        }
+    switch (pdrs->p_op) 
+			{
+			case PDR_FREE:
+        if (sp != NULL)
+					{
+						free(sp);
+						*cpp = NULL;
+					}
         return TRUE;
-    case PDR_ENCODE:
+			case PDR_ENCODE:
         if (sp == NULL)
-            return FALSE;
+					{
+						return FALSE;
+					}
         nodesize = strlen(sp) + 1; /* add 1-byte null terminator */
         break;
-    case PDR_DECODE:
+			case PDR_DECODE:
         break;
-    }
-
-    if (! pdr_uint32(pdrs, &nodesize)) {
+			}
+		
+    if (! pdr_uint32(pdrs, &nodesize))
+			{
+				return FALSE;
+			}
+    if (nodesize > maxsize)
+			{
         return FALSE;
-    }
-    if (nodesize > maxsize) {
-        return FALSE;
-    }
-
+			}
+		
     /*
      * now deal with the actual bytes
      */
-    switch (pdrs->p_op) {
-    case PDR_FREE:  /* Already handled above, but silences compiler warning */
+    switch (pdrs->p_op)
+			{
+			case PDR_FREE:  /* Already handled above, but silences compiler warning */
         return TRUE;
-    case PDR_DECODE:
+			case PDR_DECODE:
         if (sp == NULL)
-            *cpp = sp = (char *)malloc(nodesize);
-        if (sp == NULL) {
-            return FALSE;
-        }
+					{
+						*cpp = sp = (char *)malloc(nodesize);
+					}
+        if (sp == NULL)
+					{
+						return FALSE;
+					}
         sp[nodesize-1] = 0;
         /* fall into ... */
-
-    case PDR_ENCODE:
+				
+			case PDR_ENCODE:
         return pdr_opaque(pdrs, sp, nodesize);
-    }
+			}
     return FALSE;
 }
 

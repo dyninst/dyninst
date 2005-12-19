@@ -45,7 +45,7 @@
 // The daemon needs to include this file at times.
 
 
-#include "dyninstRPC.xdr.h"
+#include "dyninstRPC.mrnet.h"
 #include "pdutil/h/mdl.h"
 
 inline unsigned int ui_hash( const unsigned int &u) { return u; }

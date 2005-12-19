@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.16 2004/10/19 01:23:43 pack Exp $
+# $Id: nmake.module.tmpl,v 1.17 2005/12/19 19:42:10 pack Exp $
 #
 
 CFLAGS		= $(CFLAGS) $(TCLFRIENDLYWARNINGS)
@@ -116,8 +116,7 @@ IGEN_GEN_SRCS =	dataManager.thread.C \
 		performanceConsultant.thread.C \
 		performanceConsultant.thread.clnt.C \
 		performanceConsultant.thread.srvr.C \
-		dyninstRPC.xdr.C \
-		dyninstRPC.xdr.clnt.C \
+		dyninstRPC.mrnet.clnt.C \
 		visi.xdr.clnt.C \
 		visi.xdr.C \
 		VISIthread.thread.C \
@@ -183,9 +182,9 @@ PD_OBJS		= $(TMP_PD_OBJS:.C=.obj)
 
 OBJS		= $(OBJS) $(PD_OBJS) $(IGEN_GEN_OBJS) $(TCL2C_GEN_OBJS)
 
-IFLAGS       = $(IFLAGS) -DPARADYN
+IFLAGS       = $(IFLAGS) -DPARADYN -I../../mrnet/mrnet/h/ -I../../mrnet -I../../mrnet/mrnet/src/
 
-LIBS 	     = $(LIBS) libpdthread.lib libxplat.lib libpdutil.lib
+LIBS 	     = $(LIBS) libpdutil.lib libpdthread.lib libmrnet.lib libxplat.lib 
 SYSLIBS	     = $(SYSLIBS) $(TCLTK_LIBS) $(X11_LIB) $(FLEX_LIB) $(RPC_LIB)
 
 CFLAGS       = $(CFLAGS) -DNO_MDL_PRINT
@@ -240,13 +239,11 @@ performanceConsultant.thread.C \
 	performanceConsultant.thread.SRVR.h:	..\h\performanceConsultant.I
 	igen -thread ..\h\performanceConsultant.I
 
-dyninstRPC.xdr.C \
-	dyninstRPC.xdr.h \
-	dyninstRPC.xdr.CLNT.C \
-	dyninstRPC.xdr.CLNT.h \
-	dyninstRPC.xdr.SRVR.C \
-	dyninstRPC.xdr.SRVR.h:	..\h\dyninstRPC.I
-	igen -xdr ..\h\dyninstRPC.I
+dyninstRPC.mrnet.C \
+	dyninstRPC.mrnet.h \
+	dyninstRPC.mrnet.CLNT.C \
+	dyninstRPC.mrnet.CLNT.h :	..\h\dyninstRPC.I
+	igen -mrnet ..\h\dyninstRPC.I
 
 visi.xdr.C \
 	visi.xdr.h \

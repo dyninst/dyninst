@@ -17,6 +17,7 @@
 #include "src/config.h"
 
 #include "xplat/NetUtils.h"
+#include <signal.h>
 
 extern FILE *mrnin;
 
@@ -113,7 +114,6 @@ void NetworkImpl::InitFE( Network * _network, const char **argv,
         //not really a cycle, but graph is at least not tree.
         return;
     }
-
     //TLS: setup thread local storage for frontend
     //I am "FE(hostname:port)"
     char port_str[128];
@@ -135,12 +135,14 @@ void NetworkImpl::InitFE( Network * _network, const char **argv,
         return;
     }
 
+
     endpoints = graph->get_EndPoints( );
     comm_Broadcast = _network->new_Communicator( endpoints );
 
     //Frontend is root of the tree
     front_end = new FrontEndNode( _network, graph->get_Root( )->get_HostName( ),
                                   graph->get_Root( )->get_Port( ) );
+
     SerialGraph sg = graph->get_SerialGraph(  );
     sg.print(  );
 
@@ -148,21 +150,34 @@ void NetworkImpl::InitFE( Network * _network, const char **argv,
     // so that we don't build a packet with a pointer into a temporary
     std::string sg_str = sg.get_ByteArray(  );
     const char* mrn_commnode_path = getenv( "MRN_COMM_PATH" );
+
+
     if( mrn_commnode_path == NULL ) {
         mrn_commnode_path = COMMNODE_EXE;
     }
     unsigned int argc=0;
-    for(unsigned int i=0; argv[i] != NULL; i++){
-        argc++;
-    }
 
-    Packet packet( 0, PROT_NEW_SUBTREE, "%s%s%s%as", sg_str.c_str( ),
-                   mrn_commnode_path, application.c_str( ), argv, argc );
-    if( front_end->proc_newSubTree( packet ) == -1 ) {
-        error( MRN_EINTERNAL, "");
-        return;
-    }
 
+
+		if(argv !=NULL)
+			{
+				for(unsigned int i=0; argv[i] != NULL; i++)
+					{
+						
+						argc++;
+					}
+				
+			}
+		Packet packet( 0, PROT_NEW_SUBTREE, "%s%s%s%as", sg_str.c_str( ),
+									 mrn_commnode_path, application.c_str( ), argv, argc );
+		
+		if( front_end->proc_newSubTree( packet ) == -1 )
+			{
+			
+				error( MRN_EINTERNAL, "");
+				return;
+			}
+		
     is_frontend = true;
 }
 
@@ -287,108 +302,122 @@ leafInfoCompare( const Network::LeafInfo * a,
 int NetworkImpl::get_LeafInfo( Network::LeafInfo *** linfo,
                                unsigned int *nLeaves )
 {
-    int ret = -1;
+	int ret = -1;
 
-    // allocate space for the output
-    assert( linfo != NULL );
-    assert( nLeaves != NULL );
+	// allocate space for the output
+	assert( linfo != NULL );
+	assert( nLeaves != NULL );
 
-    // request that our leaves give us their leaf info
-    Packet pkt( 0, PROT_GET_LEAF_INFO, "" );
-    if( front_end->proc_getLeafInfo( pkt ) != -1 ) {
-        // Gather the response from the tree
-        //
-        // This is a little problematic because we must force the
-        // front end node to handle packets, and we are in the 
-        // same process as the front end node.
-        //
-        // The saving grace here is that we haven't returned yet to
-        // our caller, so the tool hasn't yet had the opportunity to start
-        // using the network.  The only packets flowing should be our own.
-        // 
-        Packet resp = front_end->get_leafInfoPacket(  );
-        while( resp == *Packet::NullPacket ) {
-            if( front_end->recv(  ) == -1 ) {
-                mrn_dbg( 1, mrn_printf(FLF, stderr,
-                            "failed to receive leaf info from front end node\n" ));
-            }
+	// request that our leaves give us their leaf info
+	Packet pkt( 0, PROT_GET_LEAF_INFO, "" );
 
-            // now - sleep?  how do we block while still processing
-            // packets?  calling receive on frontend node?
-            resp = front_end->get_leafInfoPacket(  );
-        }
+	if( front_end->proc_getLeafInfo( pkt ) != -1 ) 
+		{
 
-        if( resp != *Packet::NullPacket ) {
-            // we got the response successfully -
-            // build the return value from the response packet
-            char **hosts = NULL;
-            unsigned int nHosts = 0;
-            int *ports = NULL;
-            unsigned int nPorts = 0;
-            int *ranks = NULL;
-            unsigned int nRanks = 0;
-            char **phosts = NULL;
-            unsigned int nPHosts = 0;
-            int *pports = NULL;
-            unsigned int nPPorts = 0;
+		// Gather the response from the tree
+		//
+		// This is a little problematic because we must force the
+		// front end node to handle packets, and we are in the 
+		// same process as the front end node.
+		//
+		// The saving grace here is that we haven't returned yet to
+		// our caller, so the tool hasn't yet had the opportunity to start
+		// using the network.  The only packets flowing should be our own.
+		// 
+		Packet resp = front_end->get_leafInfoPacket(  );
+		while( resp == *Packet::NullPacket )
+			{
 
-            int nret = resp.ExtractArgList( "%as %ad %ad %as %ad",
-                                            &hosts, &nHosts,
-                                            &ports, &nPorts,
-                                            &ranks, &nRanks,
-                                            &phosts, &nPHosts,
-                                            &pports, &nPPorts );
-            if( nret == 0 ) {
-                if( ( nHosts == nRanks ) &&
-                    ( nHosts == nPHosts ) &&
-                    ( nHosts == nPPorts ) ) {
+				if( front_end->recv(  ) == -1 )
+					{
+						mrn_dbg( 1, mrn_printf(FLF, stderr,
+																	 "failed to receive leaf info from front end node\n" ));
+					}
 
-                    // build un-ordered leaf info vector
-                    std::vector < Network::LeafInfo * >linfov;
-                    for( unsigned int i = 0; i < nHosts; i++ ) {
+				// now - sleep?  how do we block while still processing
+				// packets?  calling receive on frontend node?
+				resp = front_end->get_leafInfoPacket(  );
+			}
+		if( resp != *Packet::NullPacket ) 
+			{
+				// we got the response successfully -
+				// build the return value from the response packet
+				char **hosts = NULL;
+				unsigned int nHosts = 0;
+				int *ports = NULL;
+				unsigned int nPorts = 0;
+				int *ranks = NULL;
+				unsigned int nRanks = 0;
+				char **phosts = NULL;
+				unsigned int nPHosts = 0;
+				int *pports = NULL;
+				unsigned int nPPorts = 0;
 
-                        assert( hosts[i] != NULL );
-                        assert( phosts[i] != NULL );
+				int nret = resp.ExtractArgList( "%as %ad %ad %as %ad",
+																				&hosts, &nHosts,
+																				&ports, &nPorts,
+																				&ranks, &nRanks,
+																				&phosts, &nPHosts,
+																				&pports, &nPPorts );
+				if( nret == 0 ) 
+					{
 
-                        Network::LeafInfo * li =
-                            new NetworkImpl::LeafInfoImpl( hosts[i],
-                                                           ports[i],
-                                                           ranks[i],
-                                                           phosts[i],
-                                                           pports[i] );
-                        linfov.push_back( li );
-                    }
+						if( ( nHosts == nRanks ) &&
+								( nHosts == nPHosts ) &&
+								( nHosts == nPPorts ) ) 
+							{
 
-                    // sort the leaf info array by backend id
-                    std::sort( linfov.begin(  ), linfov.end(  ),
-                               leafInfoCompare );
+								// build un-ordered leaf info vector
+								std::vector < Network::LeafInfo * >linfov;
+								for( unsigned int i = 0; i < nHosts; i++ ) 
+									{
+							
+										assert( hosts[i] != NULL );
+										assert( phosts[i] != NULL );
 
-                    // copy sorted vector to output array
-                    *linfo = new Network::LeafInfo *[nHosts];
-                    for( unsigned int h = 0; h < nHosts; h++ ) {
-                        ( *linfo )[h] = linfov[h];
-                    }
-                    *nLeaves = linfov.size(  );
+										Network::LeafInfo * li =
+											new NetworkImpl::LeafInfoImpl( hosts[i],
+																										 ports[i],
+																										 ranks[i],
+																										 phosts[i],
+																										 pports[i] );
+										linfov.push_back( li );
+									}
 
-                    ret = 0;
-                }
-                else {
-                    mrn_dbg( 1, mrn_printf(FLF, stderr,
-                                "leaf info packet corrupt: array size mismatch\n" ));
-                }
-            }
-            else {
-                mrn_dbg( 1, mrn_printf(FLF, stderr,
-                            "failed to extract arrays from leaf info packet\n" ));
-            }
-        }
-    }
-    else {
-        // we failed to deliver the request 
-        mrn_dbg( 1, mrn_printf(FLF, stderr, "failed to deliver request\n" ));
-    }
+								// sort the leaf info array by backend id
+								std::sort( linfov.begin(  ), linfov.end(  ),
+													 leafInfoCompare );
 
-    return ret;
+								// copy sorted vector to output array
+								*linfo = new Network::LeafInfo *[nHosts];
+								for( unsigned int h = 0; h < nHosts; h++ ) 
+									{
+										( *linfo )[h] = linfov[h];
+									}
+								*nLeaves = linfov.size(  );
+								ret = 0;
+								return ret;
+							}
+						else 
+							{
+								mrn_dbg( 1, mrn_printf(FLF, stderr,
+																			 "leaf info packet corrupt: array size mismatch\n" ));
+							}
+
+					}
+				else 
+					{
+						mrn_dbg( 1, mrn_printf(FLF, stderr,
+																	 "failed to extract arrays from leaf info packet\n" ));
+					}
+			}
+		}
+	else 
+		{
+			// we failed to deliver the request 
+			mrn_dbg( 1, mrn_printf(FLF, stderr, "failed to deliver request\n" ));
+		}
+	return ret;
 }
 
 
@@ -451,6 +480,7 @@ int NetworkImpl::connect_Backends( void )
 int NetworkImpl::recv(int *otag, Packet **opacket, Stream **ostream,
                       bool iblocking)
 {
+
     bool checked_network = false;   // have we checked sockets for input?
     Packet cur_packet=*Packet::NullPacket;
 
@@ -460,12 +490,14 @@ int NetworkImpl::recv(int *otag, Packet **opacket, Stream **ostream,
       //No streams exist -- bad for FE
       mrn_dbg(1, mrn_printf(FLF, stderr, "%s recv in FE when no streams "
          "exist\n", (iblocking? "Blocking" : "Non-blocking") ));
+
       return -1;
     }
 
     // check streams for input
 get_packet_from_stream_label:
     if( !is_StreamsEmpty() ) {
+
         bool packet_found=false;
         std::map <unsigned int, Stream *>::iterator start_iter;
 
@@ -494,6 +526,8 @@ get_packet_from_stream_label:
         *opacket = new Packet(cur_packet);
         mrn_dbg(4, mrn_printf(FLF, stderr, "cur_packet tag: %d, fmt: %s\n",
                    cur_packet.get_Tag(), cur_packet.get_FormatString() ));
+
+				//cur_packet.print();
         return 1;
     }
     else if( iblocking || !checked_network ) {
@@ -513,7 +547,6 @@ get_packet_from_stream_label:
             goto get_packet_from_stream_label;
         }
     }
-
     mrn_dbg( 3, mrn_printf(FLF, stderr, "Network::recv() No packets found.\n" ));
     return 0;
 }

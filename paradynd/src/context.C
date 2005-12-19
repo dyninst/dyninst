@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.126 2005/09/09 18:07:28 legendre Exp $ */
+/* $Id: context.C,v 1.127 2005/12/19 19:42:47 pack Exp $ */
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
@@ -66,6 +66,18 @@ extern pdstring pd_machine;
 extern pdRPC *tp;
 
 extern void CallGraphSetEntryFuncCallback(pdstring exe_name, pdstring r, int tid);
+
+void doDelayedReport()
+{
+	/*
+	for(unsigned i = 0 ; i < delayedReport.size() ; i++)
+		{
+			g_node * gn = delayedReport[i];
+			CallGraphSetEntryFuncCallback(gn->file, gn->full_name, gn->tid);
+		}
+	delayedReport.resize(0);
+	*/
+}
 
 #if 0
 void deleteThread(traceThread *fr)
@@ -230,6 +242,9 @@ bool continueAllProcesses()
 {
    processMgr::procIter itr = getProcMgr().begin();
    while(itr != getProcMgr().end()) {
+
+     cerr << "in continueAllProcess while loop"<<endl;
+
       pd_process *p = *itr++;
       if(p != NULL && p->isStopped()) {
           if(p->isTerminated() || ! p->continueProc())
@@ -241,10 +256,12 @@ bool continueAllProcesses()
       }
    }
 
+	 cerr << "in continueAllProcess past while loop"<<endl;
    statusLine("application running");
    if (!markApplicationRunning()) {
       return false;
    }
+     cerr << "in continueAllProcess past !markApplicationRunning"<<endl;
 
    // sprintf(errorLine, "continued at %f\n", getCurrentTime(false));
    // logLine(errorLine);
@@ -343,6 +360,3 @@ void processNewTSConnection(int tracesocket_fd) {
    curr->traceLink = fd;
    statusLine("ready");
 }
-
-
-

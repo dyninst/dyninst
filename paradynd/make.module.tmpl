@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.86 2005/11/03 05:21:08 jaw Exp $
+# $Id: make.module.tmpl,v 1.87 2005/12/19 19:42:41 pack Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
@@ -14,6 +14,10 @@ TFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
 #CXXFLAGS	+= -DDEBUG_CALL_POINTS
 
 TARGET	      = paradynd
+
+
+IFILE	+=-I../mrnet/mrnet/h/mrnet -I../mrnet/mrnet
+IFILE	+=-I../../mrnet/mrnet/h/mrnet -I../../mrnet/mrnet
 
 VPATH	     += ../../paradynd/src:../../paradyn/h:../../dyninstAPI/src:\
 		../../dyninstAPI/h
@@ -103,6 +107,7 @@ SRCS	     += ../../dyninstAPI/src/ast.C \
 		../src/papiMgr.C \
 		../src/processMgr.C \
 		../src/pd_process.C \
+		../src/CallGraph.C \
 		../src/pd_image.C \
 		../src/pd_module.C \
 		../src/threadMgr.C \
@@ -123,14 +128,22 @@ TFLAGS		+= -DSHM_SAMPLING
 CFLAGS		+= -DSHM_SAMPLING
 endif
 
-IGEN_GEN_SRCS = dyninstRPC.xdr.SRVR.C \
-		dyninstRPC.xdr.C \
-		dyninstRPC.xdr.temp.C
+IGEN_GEN_SRCS = dyninstRPC.mrnet.SRVR.C \
+		dyninstRPC.mrnet.temp.C
+
+
+
+#		dyninstRPC.xdr.SRVR.C \
+#		dyninstRPC.xdr.CLNT.C \
+#		dyninstRPC.xdr.C \
+
 
 IGEN_ISRCS    = dyninstRPC.I
 PREREQUISITES = $(IGEN_GEN_SRCS)
 
-LIBS		+= -lpdutil -lpthread
+
+LIBS		+= -lpdutil
+LIBS 		+= -lmrnet -lxplat -lpthread
 
 ifdef CROSSCOMPILER
 SYSLIBS		+= -liberty -lg++ -lstdc++ -lm

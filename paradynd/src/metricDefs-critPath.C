@@ -44,6 +44,10 @@
  * metricDefs-critPath.C - Compute the Critical Path.
  *
  * $Log: metricDefs-critPath.C,v $
+ * Revision 1.12  2005/12/19 19:43:02  pack
+ * MRNet replaces xdr for frontend to daemon communication.  New igen  - - -
+ * MRNet changes
+ *
  * Revision 1.11  2005/01/11 22:47:25  legendre
  * Loops in paradynd and FE (PC and MDL)
  *
@@ -142,7 +146,8 @@ void processCP(pd_process *, traceHeader *hdr, cpSample *sample)
     if (sample->length > item->length) {
       timeStamp trWall(getWallTimeMgr().units2timeStamp(hdr->wall));
       double wall_secs = trWall.getD(timeUnit::sec(), timeBase::bStd());
-      tp->cpDataCallbackFunc(0, wall_secs, sample->id,
+      extern MRN::Stream * defaultStream;
+      tp->cpDataCallbackFunc(defaultStream,0, wall_secs, sample->id,
 	    sample->length/MILLION, sample->share/MILLION);
 
 	*item = *sample;

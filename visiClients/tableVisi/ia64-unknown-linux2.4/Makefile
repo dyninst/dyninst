@@ -1,5 +1,15 @@
 #
 # $Log: Makefile,v $
+# Revision 1.2  2005/12/19 19:44:02  pack
+# MRNet replaces xdr for frontend to daemon communication.  New igen  - - -
+# MRNet changes
+#
+# Revision 1.1.1.1  2004/11/05 22:17:51  darnold
+# start
+#
+# Revision 1.1.1.1  2004/10/18 20:35:55  darnold
+# Manual Branch for MRNet Integration based on Release_4.1
+#
 # Revision 1.1  2002/02/11 22:01:42  tlmiller
 # introduce IA-64 port  - - - - - - - - - - - - - - - - - - - - - - - - - -
 # the IA-64 Makefile(s)

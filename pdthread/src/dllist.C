@@ -290,6 +290,7 @@ dllist<Element,Sync>::dllist(list_types::type type)
 template<class Element, class Sync>
 dllist<Element,Sync>::~dllist() {
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): locking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
+
     s->Lock();
     pool_entry* p = free_pool;
 
@@ -301,6 +302,7 @@ dllist<Element,Sync>::~dllist() {
         p = temp;
     }
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): unlocking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
+
     s->Unlock();
 }
 
@@ -308,9 +310,11 @@ template<class Element, class Sync>
 bool dllist<Element,Sync>::empty() {
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): locking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
     s->Lock();
+
     bool retval = size == 0;
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: %s(): unlocking %p (%d)\n", __FILE__, __LINE__, __FUNCTION__, s, pthread_self() );
     s->Unlock();
+
     return retval;
 }   
 

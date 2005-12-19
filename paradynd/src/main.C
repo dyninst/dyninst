@@ -39,11 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.138 2005/09/09 18:07:39 legendre Exp $
+// $Id: main.C,v 1.139 2005/12/19 19:42:59 pack Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
 #include "common/h/Ident.h"
+
+#define  DEBUG 1
 
 extern "C" const char V_paradynd[];
 extern "C" const char V_libpdutil[];
@@ -64,13 +66,35 @@ Ident V_Uid(V_libpdutil,"Paradyn");
 #include "paradynd/src/debug.h"
 
 int StartOrAttach( void );
+
+
+int StartRunPastMPIinit( pdvector<pdstring> &argv, pdstring dir  );
+
+bool ok_toSendNewResources = false;
+
+
 bool isInfProcAttached = false;
 pdstring* newProcDir = NULL;
 pdvector<pdstring> newProcCmdLine;
 static bool reportedSelf = false;
        bool startOnReportSelfDone = false;
 
+bool runme_passed = false;
+bool readyToRun = false;
 pdRPC *tp = NULL;
+pd_process * initial_process = NULL;
+
+MRN::Stream * equivClassReportStream = NULL;
+MRN::Stream * defaultStream = NULL;
+unsigned assignedDaemonId = 0;
+MRN::Network * ntwrk;
+bool sdm_id_set = false;
+unsigned sdm_id = 0;
+pdstring machine_name_out;
+pdstring program_name;
+pdstring flavor_name;
+pdstring MPIscript_name;
+
 
 static pdstring machine_name;
 pdstring osName;
@@ -101,7 +125,7 @@ void configStdIO(bool closeStdIn)
 
     /* now make stdin, out and error things that we can't hurt us */
     if ((nullfd = open("/dev/null", O_RDWR, 0)) < 0) {
-	abort();
+			abort();
     }
 
     if (closeStdIn) (void) dup2(nullfd, 0);
@@ -182,7 +206,7 @@ RPC_undo_arg_list (pdstring &flavor, unsigned argc, char **argv,
   int c;
   extern char *optarg;
   bool err = false;
-  const char optstring[] = "p:P:vVL:m:l:z:a:r:t:s:M:o";
+  const char optstring[] = "p:P:vVL:m:l:z:a:r:t:s:M:o:N:";
 
   // Defaults (for ones that make sense)
   machine = "localhost";
@@ -232,6 +256,7 @@ RPC_undo_arg_list (pdstring &flavor, unsigned argc, char **argv,
     case 'r':
       // We've hit the "runme" parameter. Stop processing
       stop = true;
+      runme_passed = true;
       break;
     case 't':
       // MAX_NUMBER_OF_THREADS is found in pd_process.h
@@ -244,7 +269,9 @@ RPC_undo_arg_list (pdstring &flavor, unsigned argc, char **argv,
       //the MPI implementation - MPICH or LAM
       MPI_impl = optarg;
       break;
-         
+    case 'N':
+       MPIscript_name = optarg;
+       break;
     default:
       err = true;
       break;
@@ -258,8 +285,8 @@ RPC_undo_arg_list (pdstring &flavor, unsigned argc, char **argv,
   if (!well_known_socket && !termWin_port)
     return false;
 #else
-  if (!well_known_socket)
-    return false;
+	// if (!well_known_socket)
+  //  return false;
 #endif
   return true;
 }
@@ -340,56 +367,98 @@ InitWinsock( void )
 }
 #endif // defined(i386_unknown_nt4_0)
 
-
-
-
-static
-void
-InitForMPI( char* argv[], const pdstring& pd_machine )
+static void parseScript(pdstring &host, int &port, int my_mpi_rank)
 {
+   char line[512];
+   char hostname[256];
+   int port_num;
+   int mrn_rank;
+   FILE *f = fopen(MPIscript_name.c_str(), "r");
+   if (!f)
+   {
+      fprintf(stderr, "Could not read %s:", MPIscript_name.c_str());
+      perror("");
+      exit(-1);
+   }
+   
+   while (fgets(line, 512, f))
+   {
+      if (strstr(line, "# MRN") != line)
+         continue;
+      sscanf(line, "# MRN %256s %d %d\n", hostname, &port_num, &mrn_rank);
+      if (my_mpi_rank == mrn_rank)
+				{
+					sdm_id = mrn_rank;
+					sdm_id_set = true;
+					host = hostname;
+					port = port_num;
+					fclose(f);
+					return;
+				}
+   }
+   fprintf(stderr, "[%s:%u] - Internal error, could not get MRNet topology info\n");
+   exit(-1);
+}
+
+static void InitForMPI( pdstring& pd_machine, int &pd_port, int &pd_rank ) {
 	// Both IRIX and AIX MPI job-launchers will start paradynd,
 	// which must report to paradyn
 	// the pdRPC is allocated and reportSelf is called
-	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, 
-	     pd_machine, NULL, NULL, 2);
-	assert(tp != NULL);
+
+	pd_rank = StartRunPastMPIinit(newProcCmdLine, *newProcDir);
+	parseScript(pd_machine, pd_port, pd_rank);
+	tp = new pdRPC(AF_INET, pd_port, SOCK_STREAM, pd_machine, NULL, NULL, 2);
+	assert( tp != NULL );
+	sdm_id = pd_rank;
+	sdm_id_set = true;
+
+
+
+	/*
 	if (!tp->net_obj())
 	{
 		cerr << "Failed to establish connection to Paradyn on "
 			 << pd_machine << " port " << pd_known_socket_portnum << endl;
 		cleanUpAndExit(-1);
 	}
-	tp->reportSelf(machine_name, argv[0], getpid(), "mpi");
-    reportedSelf = true;
+	*/
+
+	//	tp->reportSelf(defaultStream, machine_name, argv[0], getpid(), "mpi");
+	   reportedSelf = true;
+
 }
 
 static
 void
 InitManuallyStarted( char* argv[],  const pdstring& pd_machine )
 {
-	// report back to our front end
-	tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, 
-					pd_machine, NULL, NULL, 2);
-	assert(tp);
-	if (!tp->net_obj())
-	{
-		cerr << "Failed to establish connection to Paradyn on "
-			 << pd_machine << " port " << pd_known_socket_portnum << endl;
-		cleanUpAndExit(-1);
-	}
-	tp->reportSelf(machine_name, argv[0], getpid(), pd_flavor);
-	reportedSelf = true;
+  // report back to our front end
+  tp = new pdRPC(AF_INET, pd_known_socket_portnum, SOCK_STREAM, 
+		 pd_machine, NULL, NULL, 2);
+  assert(tp);
+  
+  
+  /*
+    if (!tp->net_obj())
+    {
+    cerr << "Failed to establish connection to Paradyn on "
+    << pd_machine << " port " << pd_known_socket_portnum << endl;
+    cleanUpAndExit(-1);
+    }
+     */
+  tp->reportSelf(defaultStream,machine_name, argv[0], getpid(), pd_flavor);
+  reportedSelf = true;
 }
 
 
 
 static
 void
-InitRemotelyStarted( char* argv[], const pdstring& pd_machine, bool report )
+InitRemotelyStarted( char* /* argv */[], const pdstring& pd_machine, bool /* report */ )
 { 
   // we are a remote daemon started by rsh/rexec or some other
   // use socket to connect back to our front end
-    
+  
   // setup socket
   
   // We must get a connection with paradyn before starting any 
@@ -399,33 +468,16 @@ InitRemotelyStarted( char* argv[], const pdstring& pd_machine, bool report )
 		 pd_machine, NULL, NULL, 2);
   assert( tp != NULL );
   
+#if defined (JUNK) 
   // ??? is this the right thing to do? it was in the
   // non-PVM version of the code, but not in the PVM version
   // we decide whether to report if the command line was empty or not
   if( report )
     {
-      tp->reportSelf( machine_name, argv[0], getpid(), pd_flavor );
+      tp->reportSelf(defaultStream, machine_name, argv[0], getpid(), pd_flavor );
       reportedSelf = true;
     }
-}
-
-
-
-static
-void
-InitLocallyStarted( char* [] , const pdstring& )
-{
-	// connect to our front end using our stdout
-	OS::osDisconnect();
-
-#if !defined(i386_unknown_nt4_0)
-	PDSOCKET sock = 0;
-#else
-	PDSOCKET sock = _get_osfhandle(0);
-#endif // defined(i386_unknown_nt4_0)
-	tp = new pdRPC(sock, NULL, NULL, 2);
-
-	// note that we do not need to report to our front end in this case
+#endif
 }
 
 #if !defined(os_windows)
@@ -435,6 +487,7 @@ void sighup_handler( int ) {
 }
 
 void sighupInit() {
+
    // ensure that we don't die from SIGHUP when our connection
    // to Paradyn closes
    struct sigaction act;
@@ -456,7 +509,10 @@ void sighupInit() {
 // line switch.  It has the following meaning:
 //
 // pd_flag == 0 => remote daemon started by Paradyn using rsh/rexec
+//-----------------------------------------------------------------
+// pd_flag == 1 not used now mrnet handles it differently
 // pd_flag == 1 => local daemon started by Paradyn using fork/exec
+//-----------------------------------------------------------------
 // pd_flag == 2 => daemon started manually
 //
 
@@ -464,11 +520,12 @@ void sighupInit() {
 int
 main( int argc, char* argv[] )
 {
-   PauseIfDesired();
 
-   init_daemon_debug();
+	PauseIfDesired();
+	init_daemon_debug();
+	
 #if !defined(i386_unknown_nt4_0)
-   InitSigTermHandler();
+    InitSigTermHandler();
 #endif // defined(i386_unknown_nt4_0)
    
    
@@ -485,9 +542,11 @@ main( int argc, char* argv[] )
 #ifdef DEBUG
    // Print command line args
    for (int j = 0; j < argc; j++)
-      cerr << argv[j] << " ";
+      cerr << argv[j] << " : ";
    cerr << endl;
 #endif
+
+
    aflag = RPC_undo_arg_list (pd_flavor, argc, argv, pd_machine,
                               pd_known_socket_portnum, termWin_port, 
                               pd_flag, pd_attpid, MPI_impl);
@@ -540,11 +599,13 @@ main( int argc, char* argv[] )
       }
    }
 
+
 #if !defined(i386_unknown_nt4_0)
    extern PDSOCKET connect_Svr(pdstring machine,int port);
    PDSOCKET stdout_fd=INVALID_PDSOCKET;
    if ((stdout_fd = connect_Svr(pd_machine,termWin_port)) == INVALID_PDSOCKET)
       cleanUpAndExit(-1);
+
    if (write(stdout_fd,"from_paradynd\n",strlen("from_paradynd\n")) <= 0)
       cleanUpAndExit(-1);
 
@@ -553,9 +614,10 @@ main( int argc, char* argv[] )
    //mpd begins a shutdown sequence if it detects EOF on the fd.
    //paradynd/dyninstAPI error messages through stdout should still be seen by
    //the user, because MPICH2 mpd passes the stdout to the console
-   if(MPI_impl != "MPICH")
-      dup2(stdout_fd,1);
-   dup2(stdout_fd,2);
+
+	 if(MPI_impl != "MPICH")
+		 dup2(stdout_fd,1);
+	 dup2(stdout_fd,2);
 #endif
 
 #if !defined(i386_unknown_nt4_0)
@@ -567,19 +629,16 @@ main( int argc, char* argv[] )
                              pd_known_socket_portnum, pd_flag, 0,
                              pd_machine, true);
 #endif 
-
    RPC_do_environment_work(pd_flavor, MPI_impl);
-
-   assert(aflag);
+	 assert(aflag);
    pdstring flav_arg(pdstring("-z")+ pd_flavor);
    pd_process::arg_list.push_back(flav_arg);
 
    machine_name = getNetworkName();
-   
+
    //
    // See if we should fork an app process now.
    //
-
    // We want to find two things
    // First, get the current working dir (PWD)
    newProcDir = new pdstring(getenv("PWD"));
@@ -594,12 +653,18 @@ main( int argc, char* argv[] )
    }
    // Okay, argNum is the command line argument which is "-runme" - skip it
    argNum++;
-
-   // Copy everything from argNum to < argc
+   // Copy everything from argNum to < numberOfArgs
    // this is the command that is to be issued
-   for (unsigned int i = argNum; i < (unsigned int)argc; i++)
+
+	int numberOfArgs = argc;
+   if (!MPIscript_name.length())
    {
-      newProcCmdLine += argv[i];
+      numberOfArgs -= 3;
+   }
+
+   for (unsigned int i = argNum; i < (unsigned int)numberOfArgs; i++)
+   {
+     newProcCmdLine += argv[i];
    }
    // note - newProcCmdLine could be empty here, if the -runme flag is not given
    // There are several ways that we might have been started.
@@ -616,29 +681,32 @@ main( int argc, char* argv[] )
    //   started as PVM daemon by another Paradyn daemon using pvm_spawn() 
    //
     
-   
-   pd_process::pdFlavor = pd_flavor;
-#ifdef PDYN_DEBUG
-   cerr << "pd_flavor: " << pd_flavor.c_str() << endl;
-#endif
 
+   pd_process::pdFlavor = pd_flavor;
+   machine_name_out = machine_name;
+   program_name = argv[0];
+   flavor_name = pd_flavor;
+
+   pdstring parHostname;
+   MRN::Port parPort = 0;
+   MRN::Rank myRank = 0;
+
+   //********************************************
    if( tp == NULL )
    {
-      // we haven't yet reported to our front end
-      
+      // we haven't yet reported to our front end     
       if( pd_flavor == "mpi" )
       {
-         InitForMPI( argv, pd_machine );
-      }
-      else if( pd_flag == 0 )
-      {
-         // we are a remote daemon started by rsh/rexec or some other
-         InitRemotelyStarted( argv, pd_machine, (newProcCmdLine.size() > 0) );
+         int port;
+         int rank;
+         InitForMPI( parHostname, port, rank );
+         parPort = port;
+         myRank = rank;
       }
       else if( pd_flag == 1 )
       {
-         // we were started by a local front end using fork+exec
-         InitLocallyStarted( argv, pd_machine );
+         // we are a remote daemon started by rsh/rexec or some other
+         InitRemotelyStarted( argv, pd_machine, (newProcCmdLine.size() > 0) );
       }
       else if( (pd_flag == 2)|| (pd_flag == 3))
       {
@@ -646,7 +714,6 @@ main( int argc, char* argv[] )
          // we were started manually by a daemon - 3
          InitManuallyStarted( argv, pd_machine );
       }
-      
    }
    
    // by now, we should have a connection to our front end
@@ -664,9 +731,59 @@ main( int argc, char* argv[] )
       cleanUpAndExit(-1);
    }
    assert( tp != NULL );
-   
-   statusLine(V_paradynd);
-   
+
+   //----------------------------------------------------------------
+
+
+	 if( argc < 3 )
+    {
+       fprintf(stderr, "usage: %s parent_hosntame parent_port my_rank\n",
+               argv[0]);
+       exit( -1 );
+    }
+	 
+	 //Get MRNet output level
+	 char* temp = (char *) getenv("MRNET_OUTPUT_LEVEL");
+
+	 if (temp != NULL) 
+    {
+       MRN::set_OutputLevel( atoi(temp) );
+    }
+
+    if( pd_flavor != "mpi" )
+    {
+       parHostname = argv[argc-3];
+       parPort = (MRN::Port)strtoul( argv[argc-2], NULL, 10 );
+       myRank = (MRN::Rank)strtoul( argv[argc-1], NULL, 10 );
+    }
+
+		//fprintf(stderr,"-------- %d %s\n",getpid(),getNetworkName().c_str());
+		//fprintf(stderr,"-------- %d %s %u %u\n",getpid(),parHostname.c_str(),parPort, myRank);
+
+	
+    ntwrk = new MRN::Network( parHostname.c_str(), parPort, myRank );
+		if( ntwrk->fail() )
+			{
+				fprintf(stderr, "backend_init() failed\n");
+				exit(-1);
+			}
+
+    //----------------------------------------------------------------
+		
+		//
+		// Wait here for a stream
+		//
+		//*********************************************
+		//T_dyninstRPC::getDaemonInfo_REQ
+
+	 tp->wait_for(ntwrk, T_dyninstRPC::setDaemonDefaultStream_REQ);
+
+	 tp->wait_for(ntwrk, T_dyninstRPC::getDaemonInfo_REQ);
+
+	 tp->wait_for(ntwrk, T_dyninstRPC::setEquivClassReportStream_REQ);
+
+	 statusLine(V_paradynd);
+
    // Note -- it is important that this daemon receives all mdl info
    // before starting a process
    aflag = mdl_get_initial(pd_flavor, tp);
@@ -675,76 +792,247 @@ main( int argc, char* argv[] )
    
    initLibraryFunctions();
 #if defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4)
-   sighupInit();
+	 sighupInit();
 #endif
+	 
+	 // Set up the trace socket. This is needed before we try
+	 // to attach to a process
+	 //extern void setupTraceSocket();
 
-   if (!paradyn_init()) 
-   {
-      abort();
-   }
+	 //setupTraceSocket();
+	 
+	 if (!paradyn_init()) 
+		 {
+			 cerr << "Paradyn init failed\n"<<endl;
+			 abort();
+		 }
 
-
-    // check whether we are supposed to start or attach to the process now
-    // otherwise, we wait till we get the reportSelfDone call from the
-    // front-end
+	 // check whether we are supposed to start or attach to the process now
+	 // otherwise, we wait till we get the reportSelfDone call from the
+	 // front-end
 #if !defined(NO_SYNC_REPORT_SELF)
-    if( reportedSelf )
-    {
-        // we want to use the synchronous reportSelfDone call
-        startOnReportSelfDone = true;
-    }
+	 if( reportedSelf )
+		 {
+			 // we want to use the synchronous reportSelfDone call
+			 startOnReportSelfDone = true;
+		 }
 #endif // defined(NO_SYNC_REPORT_SELF)
+	 
+			 // start or attach to the process now if desired
 
-    // start or attach to the process now if desired
-    if( !startOnReportSelfDone )
-    {
-        int soaRet = StartOrAttach();
-        if( soaRet != 0 )
-        {
-            return soaRet;
-        }
-    }
+	 if( pd_flavor == "mpi" && runme_passed)
+		 startOnReportSelfDone = false;
 
-    // start handling requests
-    controllerMainLoop( true );
 
-    RPC_undo_environment_work();
-    return 0;
+
+	 if( !startOnReportSelfDone )
+		 {
+			 int soaRet = StartOrAttach();
+			 if( soaRet != 0 )
+				 {
+					 return soaRet;
+				 }
+		 }
+
+
+
+	 // start handling requests
+	 controllerMainLoop( true );
+	 
+	 RPC_undo_environment_work();
+	 return 0;
 }
 
+BPatch_process *MPI_proc = NULL;
+
+#define MPI_COMM_WORLD_LAM 134947264
+#define MPI_COMM_WORLD_MPICH 91
+
+static int break_at_mpi_init(BPatch_process *bproc)
+{
+	extern pdstring MPI_impl;
+	int mpi_comm_world;
+
+	if(MPI_impl == "LAM")
+	{
+		mpi_comm_world = MPI_COMM_WORLD_LAM;
+	}
+	else if(MPI_impl == "MPICH")
+	{
+		mpi_comm_world = MPI_COMM_WORLD_MPICH;
+	}
+	else
+	{
+		assert(0);
+	}
+
+  int my_rank = -1;
+
+  BPatch_image *img = bproc->getImage();
+
+  BPatch_Vector<BPatch_function *> mpi_inits;
+
+  img->findFunction("MPI_Init", mpi_inits);
+
+  assert(mpi_inits.size() == 1); //TODO: Make me a real error
+
+  BPatch_function *mpi_init = mpi_inits[0];
+
+  BPatch_Vector<BPatch_point *> *exit_points;
+  exit_points = mpi_init->findPoint(BPatch_exit);
+  
+  BPatch_Vector<BPatch_function *> mpi_comm_ranks;
+	img->findFunction("MPI_Comm_rank", mpi_comm_ranks);
+  assert(mpi_comm_ranks.size() == 1); //TODO: Fix me too
+  BPatch_function *mpi_comm_rank = mpi_comm_ranks[0];
+
+  BPatch_Vector<BPatch_function *> dyninst_breakpoints;
+  img->findFunction("DYNINSTbreakPoint", dyninst_breakpoints);
+  assert(dyninst_breakpoints.size() == 1); //TODO: me too
+
+  BPatch_function *dyninst_breakpoint = dyninst_breakpoints[0];
+  BPatch_variableExpr *var = bproc->malloc(sizeof(int));
+
+  int negone = -1;
+  var->writeValue(&negone, sizeof(int), false);
+
+
+  for (unsigned i=0; i<exit_points->size(); i++)
+  {
+    //Call MPI_COMM_WORLD
+    BPatch_Vector<BPatch_snippet *> args;
+    BPatch_constExpr arg1(mpi_comm_world); //MPI_COMM_WORLD value
+    BPatch_constExpr arg2((int) var->getBaseAddr());
+    args.push_back(&arg1);
+    args.push_back(&arg2);
+    BPatch_funcCallExpr call_to_rank(*mpi_comm_rank, args);
+
+    BPatch_Vector<BPatch_snippet *> dbp_args;
+    BPatch_funcCallExpr call_to_break(*dyninst_breakpoint, dbp_args);
+
+    bproc->insertSnippet(call_to_rank, exit_points[i], BPatch_callAfter, BPatch_firstSnippet);
+
+    bproc->insertSnippet(call_to_break, exit_points[i], BPatch_callAfter, BPatch_lastSnippet);
+
+  }
+	/*
+  bproc->continueExecution();
+  do {
+    BPatch::bpatch->waitForStatusChange();
+    if (bproc->isTerminated())
+      break;
+		if (my_rank == -1)
+			var->readValue(&my_rank, sizeof(int));
+	} while (my_rank == -1);
+		//} while (!((my_rank != -1) && !bproc->isStopped()));
+		*/
+
+	bproc->continueExecution();
+
+
+  for (;;)
+		{
+			BPatch::bpatch->waitForStatusChange();
+			if (bproc->isTerminated())
+				break;
+			if (!bproc->isStopped())
+				continue;
+			var->readValue(&my_rank, sizeof(int));
+			if (my_rank != -1)
+				break;
+			bproc->continueExecution();
+		}
+
+	fprintf(stderr, "%u, [%s:%u] - Got a rank of %d\n",getpid(), __FILE__, __LINE__, my_rank);
+  return my_rank;
+}
+
+//extern BPatch_thread *createBPProc(const pdstring &argv0, 
+//																		const pdvector<pdstring> &argv,
+//																		const pdstring &dir,
+//																		int stdin_fd, int stdout_fd, int stderr_fd);
+//
+
+int StartRunPastMPIinit( pdvector<pdstring> &argv, pdstring dir)
+{
+  initBPatch();
+	initProcMgr();
+
+	char **argv_array = new char*[argv.size()+1];
+	for(unsigned i=0; i<argv.size(); i++)
+		argv_array[i] = const_cast<char *>(argv[i].c_str());
+	argv_array[argv.size()] = NULL;
+	char *path = new char[  argv[0].length() + 5];
+
+	strcpy(path, argv[0].c_str());
+
+	//TODO: Change stdout to go to termwin
+	
+	MPI_proc = getBPatch().processCreate(path, 
+																			 (const char **) argv_array, NULL, 
+																			 0, 1,2);
+	
+
+	//TODO: Change stdout to go to termwin
+	//MPI_proc = createBPProc(argv[0], argv, dir, 0, 1, 2);
+	
+	//TODO: Check for error
+    
+	getBPatch().registerExecCallback(pd_process::paradynExecDispatch);
+	getBPatch().registerPostForkCallback(pd_process::paradynPostForkDispatch);
+	getBPatch().registerExitCallback(pd_process::paradynExitDispatch);
+
+	/*
+	if(getNetworkName() == "brie.cs.wisc.edu")
+		{
+			volatile int zoo = 0;
+			while(zoo == 0){;}
+		}	
+	*/
+	int rank = break_at_mpi_init(MPI_proc);
+		
+	return rank;
+}
 
 int
 StartOrAttach( void )
 {
-   bool startByAttach = false;
-   bool startByCreateAttach = false;
-      
-   // spawn the given process, if necessary
-   if (newProcCmdLine.size() && (pd_attpid==0))
-   {
-      // ignore return val (is this right?)
-      pd_createProcess(newProcCmdLine, *newProcDir); 
-   } 
-   else if (pd_attpid && (pd_flag==2))
-   {
-      // We attach after doing a last bit of initialization, below
-      startByAttach = true;
-   }
-   else if (pd_attpid && (pd_flag==3))
-   {
-      // We attach to a just created application after doing a
-      // last bit of initialization, below
-      startByCreateAttach = true;
-   }
-   
-   if (startByAttach) {
-      pd_process *p = pd_attachProcess("", pd_attpid);
-      
-      if (!p) return -1;
-      // Leave process paused in this case
-      p->pause();
-      
-   } else if (startByCreateAttach) {
+	bool startByAttach = false;
+	bool startByCreateAttach = false;
+
+	// spawn the given process, if necessary
+	if (newProcCmdLine.size() && (pd_attpid==0))
+	{
+		// ignore return val (is this right?)
+		pd_process *p =  pd_createProcess(newProcCmdLine, *newProcDir);		
+		if( pd_flavor == "mpi" && runme_passed)
+		{
+			metricFocusNode::handleNewProcess(p);
+			resource::report_ChecksumToFE( );
+		}
+	} 
+	else if (pd_attpid && (pd_flag==2))
+	{
+		// We attach after doing a last bit of initialization, below
+		startByAttach = true;
+	}
+	else if (pd_attpid && (pd_flag==3))
+		{
+			// We attach to a just created application after doing a
+			// last bit of initialization, below
+			startByCreateAttach = true;
+		}
+   if (startByAttach) 
+		 {
+			 pd_process *p = pd_attachProcess("", pd_attpid);
+			 
+			 if (!p) 
+				 return -1;
+       p->pause();
+			 
+		 }
+	 else if (startByCreateAttach) 
+		 {
        pd_process *p;
        if (newProcCmdLine.size()){
            p = pd_attachToCreatedProcess(newProcCmdLine[0], 
@@ -753,8 +1041,9 @@ StartOrAttach( void )
            p = pd_attachToCreatedProcess("", 
                                          pd_attpid);
        }
+
        if (!p) return -1;
-   }
+		 }
    
    isInfProcAttached = true;
    return 0;

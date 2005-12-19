@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynTkGUI.C,v 1.11 2005/03/11 00:38:08 legendre Exp $
+// $Id: ParadynTkGUI.C,v 1.12 2005/12/19 19:42:25 pack Exp $
 #include "pdutil/h/TclTools.h"
 #include "ParadynTkGUI.h"
 #include "paradyn/src/pdMain/paradyn.h"
@@ -379,11 +379,17 @@ ParadynTkGUI::HandleEvent( thread_t mtid, tag_t mtag )
 void
 ParadynTkGUI::setDeveloperMode( bool newVal )
 {
+  cout << "IN ParadynTkGUI::setDeveloperMode" <<endl;
+
     ParadynUI::setDeveloperMode( newVal );
+  cout << "Returned from ParadynUI::setDeveloperMode" <<endl;
 
 	// the SHG needs to hear of changes in developer mode to resize
 	// its status line appropriately
+  cout << " calling  shgDevelModeChange "<<endl;
+
 	shgDevelModeChange( interp, newVal );
+  cout << " returned from  shgDevelModeChange "<<endl;
 }
 
 
@@ -1145,11 +1151,18 @@ ParadynTkGUI::requestNodeInfoCallback(unsigned phaseID, int nodeID,
 void
 ParadynTkGUI::ProcessCmd(pdstring *args)
 {
+
+  cout << "In ProcessCmd" <<endl;
   pdstring command;
   command = pdstring("paradyn process ") + (*args);
+  cout << command << endl;
+
+
   if (Tcl_VarEval(interp,command.c_str(),0)==TCL_ERROR) {
     pdstring msg = pdstring("Tcl interpreter failed in routine ProcessCmd: ");
     msg += pdstring(Tcl_GetStringResult(interp));
+    msg += pdstring("Was processing: ");
+    msg += command;
     uiMgr->showError(83, P_strdup(msg.c_str()));
   }  
   delete args;
@@ -1257,13 +1270,17 @@ ParadynTkGUI::showWhereAxisTips(bool newValue)
 void
 ParadynTkGUI::showSHGKey(bool newValue)
 {
+
+  fprintf(stderr,"%s %d\n",__FILE__, __LINE__);
 	if(newValue)
 	{
 		myTclEval(interp, "redrawKeyAndTipsAreas on nc");
+  fprintf(stderr,"%s %d\n",__FILE__, __LINE__);
 	}
 	else
 	{
 		myTclEval(interp, "redrawKeyAndTipsAreas off nc");
+  fprintf(stderr,"%s %d\n",__FILE__, __LINE__);
 	}
 }
 

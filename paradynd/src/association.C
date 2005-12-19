@@ -42,7 +42,7 @@
 /*
  * association.C - Manage mapping information (associations)
  *
- * $Id: association.C,v 1.15 2004/10/07 00:45:57 jaw Exp $
+ * $Id: association.C,v 1.16 2005/12/19 19:42:43 pack Exp $
  */
 
 #include "common/h/headers.h"
@@ -62,8 +62,8 @@ void newAssoc(pd_process *, char *abstraction, char *type, char *key,
    *  translate memory addresses to names using the symbol 
    *  table.
    */
-
-  tp->mappingInfoCallback(0, abstraction, type, key, value);
+  extern MRN::Stream * defaultStream;
+  tp->mappingInfoCallback(defaultStream, 0, abstraction, type, key, value);
 }
 
 

@@ -51,8 +51,8 @@
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
 
-#pragma implementation "dyninstRPC.xdr.h"
-#include "dyninstRPC.xdr.h"
+#pragma implementation "dyninstRPC.mrnet.h"
+#include "dyninstRPC.mrnet.h"
 #pragma implementation "visi.xdr.h"
 #include "visi.xdr.h"
 
@@ -109,16 +109,16 @@ template class pdvector<dictionary_hash<unsigned, pdvector<mdl_type_desc> >::ent
 template bool writerfn_noMethod<int>(struct XDR *, const int);
 template bool writerfn_noMethod<unsigned>(struct XDR *, const unsigned);
 template bool writerfn_noMethod<pdstring>(struct XDR *, const pdstring);
-template bool writerfn_noMethod<T_dyninstRPC::mdl_expr *>(struct XDR *, T_dyninstRPC::mdl_expr * const);
-template bool writerfn_noMethod<T_dyninstRPC::mdl_stmt *>(struct XDR *, T_dyninstRPC::mdl_stmt * const);
-template bool writerfn_noMethod<T_dyninstRPC::mdl_icode *>(struct XDR *, T_dyninstRPC::mdl_icode * const);
-template bool writerfn_noMethod<T_dyninstRPC::mdl_constraint *>(struct XDR *, T_dyninstRPC::mdl_constraint * const);
-template bool writerfn_noMethod<T_dyninstRPC::mdl_metric *>(struct XDR *, T_dyninstRPC::mdl_metric * const);
-template bool writerfn_noMethod<T_dyninstRPC::batch_buffer_entry>(struct XDR *, const T_dyninstRPC::batch_buffer_entry);
-template bool writerfn_noMethod<T_dyninstRPC::trace_batch_buffer_entry>(struct XDR *, const T_dyninstRPC::trace_batch_buffer_entry);
-template bool writerfn_noMethod<T_dyninstRPC::focusStruct>(struct XDR *, const T_dyninstRPC::focusStruct);
-template bool writerfn_noMethod<T_dyninstRPC::indivInstResponse>(struct XDR *, const T_dyninstRPC::indivInstResponse);
-template bool writerfn_noMethod<T_dyninstRPC::rawMDL>(struct XDR *, const T_dyninstRPC::rawMDL);
+template bool writerfn_noMethod<T_dyninstRPC::mdl_expr *>(struct MRNET *, T_dyninstRPC::mdl_expr * const);
+template bool writerfn_noMethod<T_dyninstRPC::mdl_stmt *>(struct MRNET *, T_dyninstRPC::mdl_stmt * const);
+template bool writerfn_noMethod<T_dyninstRPC::mdl_icode *>(struct MRNET *, T_dyninstRPC::mdl_icode * const);
+template bool writerfn_noMethod<T_dyninstRPC::mdl_constraint *>(struct MRNET *, T_dyninstRPC::mdl_constraint * const);
+template bool writerfn_noMethod<T_dyninstRPC::mdl_metric *>(struct MRNET *, T_dyninstRPC::mdl_metric * const);
+template bool writerfn_noMethod<T_dyninstRPC::batch_buffer_entry>(struct MRNET *, const T_dyninstRPC::batch_buffer_entry);
+template bool writerfn_noMethod<T_dyninstRPC::trace_batch_buffer_entry>(struct MRNET *, const T_dyninstRPC::trace_batch_buffer_entry);
+template bool writerfn_noMethod<T_dyninstRPC::focusStruct>(struct MRNET *, const T_dyninstRPC::focusStruct);
+template bool writerfn_noMethod<T_dyninstRPC::indivInstResponse>(struct MRNET *, const T_dyninstRPC::indivInstResponse);
+template bool writerfn_noMethod<T_dyninstRPC::rawMDL>(struct MRNET *, const T_dyninstRPC::rawMDL);
 #endif
 
 // Igen - visi stuff

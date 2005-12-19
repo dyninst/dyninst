@@ -44,6 +44,16 @@
 
 /*
  * $Log: tvMetric.C,v $
+ * Revision 1.9  2005/12/19 19:44:06  pack
+ * MRNet replaces xdr for frontend to daemon communication.  New igen  - - -
+ * MRNet changes
+ *
+ * Revision 1.1.1.1  2004/11/05 22:17:51  darnold
+ * start
+ *
+ * Revision 1.1.1.1  2004/10/18 20:35:55  darnold
+ * Manual Branch for MRNet Integration based on Release_4.1
+ *
  * Revision 1.8  2004/03/23 01:12:49  eli
  * Updated copyright string
  *

@@ -69,7 +69,7 @@ class pd_image {
 
    
    // report statically determinable caller-callee relationship to paradyn....
-   void FillInCallGraphStatic(pd_process *p);
+   void FillInCallGraphStatic(pd_process *proc, bool init_graph = false,unsigned *checksum = 0 );
 
    pdstring get_file() const;
    int getAddressWidth();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: TermWinUnixTkGUI.h,v 1.2 2004/06/21 22:06:55 pcroth Exp $
+// $Id: TermWinUnixTkGUI.h,v 1.3 2005/12/19 19:44:14 pack Exp $
 #ifndef TERMWINUNIXTKGUI_H
 #define TERMWINUNIXTKGUI_H
 

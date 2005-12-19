@@ -38,7 +38,7 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
-#include "dyninstRPC.xdr.h"
+#include "dyninstRPC.mrnet.h"
 #include "pdutil/h/mdl.h"
 #include "pdutil/h/mdl_data.h"
 

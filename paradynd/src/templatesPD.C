@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesPD.C,v 1.45 2005/09/02 00:45:33 bernat Exp $
+// $Id: templatesPD.C,v 1.46 2005/12/19 19:43:28 pack Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -124,11 +124,16 @@ template class pdvector<dictionary_hash<unsigned, resource *>::entry>;
 template class dictionary_hash<pdstring, resource*>;
 template class pdvector<dictionary_hash <pdstring, resource*>::entry>;
 
+template class pdvector<const resource*>;
+template class dictionary_hash<const resource*,pdvector<const resource*> >;
+
 template class pdvector<BPatch_module *>;
 template class pdvector<BPatch_point *>;
 
 template class pdvector<timeStamp>;
 template class pdvector<pdSample>;
+
+template class pdvector<pdstring>;
 
 template class timeMgrBase<NoClass, NoArgs>;
 template class timeMgrBase<process, int>;

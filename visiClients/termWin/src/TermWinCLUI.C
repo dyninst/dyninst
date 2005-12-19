@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: TermWinCLUI.C,v 1.2 2004/06/21 22:06:55 pcroth Exp $
+// $Id: TermWinCLUI.C,v 1.3 2005/12/19 19:44:09 pack Exp $
 #include "visiClients/termWin/src/TermWinCLUI.h"
 
 TermWinCLUI::TermWinCLUI( PDSOCKET lsock, PDSOCKET stdin_sock )

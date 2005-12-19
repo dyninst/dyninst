@@ -44,7 +44,7 @@
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_image.h"
 #include "paradynd/src/pd_module.h"
-
+#include "paradynd/src/CallGraph.h"
 
 pdvector<pd_image *> pd_image::all_pd_images;
 extern bool mdl_get_lib_constraints(pdvector<pdstring> &);
@@ -79,18 +79,24 @@ pd_image::pd_image(BPatch_image *d_image, pd_process *p_proc) :
    appImage(d_image), parent_proc(p_proc)
 {
    all_pd_images.push_back(this);
+
    BPatch_Vector<BPatch_module *> *mods = parent_proc->getAllModules();
 
-   for (unsigned int m = 0; m < mods->size(); m++) {
-      BPatch_module *curr = (BPatch_module *) (*mods)[m];
-      addModule(curr);
-   }
+   for (unsigned int m = 0; m < mods->size(); m++) 
+		 {
+
+			 BPatch_module *curr = (BPatch_module *) (*mods)[m];
+
+			 addModule(curr);
+		 }
 
    char namebuf[NAME_LEN];
    d_image->getProgramName(namebuf, NAME_LEN);
    _name = pdstring(namebuf);
    d_image->getProgramFileName(namebuf, NAME_LEN);
+
    _fname = pdstring(namebuf);
+
    //fprintf(stderr, "%s[%d]:  new pd_image: '%s'/'%s'\n", 
    //        __FILE__, __LINE__, _name.c_str(), _fname.c_str());
 }
@@ -104,11 +110,16 @@ pd_image::~pd_image() {
 
 bool pd_image::addModule(BPatch_module *mod)
 {
-   pd_module *pd_mod = new pd_module(mod);
-   all_mods.push_back(pd_mod);
-     if (!pd_mod->isExcluded())
-       some_mods.push_back(pd_mod);
 
+	pd_module *pd_mod = new pd_module(mod);
+
+	all_mods.push_back(pd_mod);
+
+	if (!pd_mod->isExcluded())
+		{
+			some_mods.push_back(pd_mod);
+
+		}
   return true;
 }
 
@@ -120,18 +131,20 @@ bool pd_image::hasModule(BPatch_module *mod)
   return false;
 }
 
-void pd_image::FillInCallGraphStatic(pd_process *p) 
-{
+void pd_image::FillInCallGraphStatic(pd_process *proc, bool init_graph, unsigned *checksum) {
    pdstring pds;
    pdstring buffer;
 
-   for(unsigned i=0; i<all_mods.size(); i++) {
-      pd_module *curmod = all_mods[i];
-      buffer = "building call graph module: " + curmod->fileName();
-      statusLine(buffer.c_str());
-
-      curmod->FillInCallGraphStatic(p);
-   }
+   for(unsigned i=0; i<all_mods.size(); i++)
+		 {
+			 pd_module *curmod = all_mods[i];
+			 if(!init_graph)
+				 {
+					 buffer = "building call graph module: " + curmod->fileName();
+					 statusLine(buffer.c_str());
+				 }
+			 curmod->FillInCallGraphStatic(proc,init_graph,checksum);
+		 }
 }
 
 int pd_image::getAddressWidth() {
@@ -206,16 +219,17 @@ bool module_is_excluded(BPatch_module *m)
 {
   char mnamebuf[512];
   m->getName(mnamebuf, 512);
-
-  if (!func_constraint_hash_loaded) {
-      if (!cache_func_constraint_hash()) {
+  if (!func_constraint_hash_loaded)
+		{
+      if (!cache_func_constraint_hash()) 
+				{
           return FALSE;
-      }
-  }
-
-  if (func_constraint_hash.defines(mnamebuf)) {
+				}
+		}
+  if (func_constraint_hash.defines(mnamebuf)) 
+		{
       return TRUE;
-  }
+		}
   return FALSE;
 }
 

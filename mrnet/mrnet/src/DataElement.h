@@ -86,12 +86,12 @@ class DataElement{
     const char * get_string( void ) const { return (const char *)val.p; }
     void set_string( const char *p ) { val.p = p; type = STRING_T; };
 
-    const void * get_array( DataType *t, uint32_t *len )
-        { *t=type; *len=array_len; return val.p; }
     const void * get_array( DataType *t, uint32_t *len ) const
         { *t=type; *len=array_len; return val.p; }
     void set_array( const void *p, DataType t, uint32_t len )
         { val.p = p; type = t; array_len = len; }
+
+		void print()const;
 };
 
 DataType Fmt2Type(const char * cur_fmt);

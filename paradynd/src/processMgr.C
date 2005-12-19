@@ -46,8 +46,9 @@
 processMgr *theProcMgr = NULL;
 
 void initProcMgr() {
-   assert(theProcMgr == NULL);
-   theProcMgr = new processMgr();
+	if (theProcMgr != NULL)
+		return;
+	theProcMgr = new processMgr();
 }
 
 bool isProcMgrInitialized()

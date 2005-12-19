@@ -39,8 +39,8 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: TermWinUnixTkGUI.C,v 1.2 2004/06/21 22:06:55 pcroth Exp $
-// $Id: TermWinUnixTkGUI.C,v 1.2 2004/06/21 22:06:55 pcroth Exp $
+// $Id: TermWinUnixTkGUI.C,v 1.3 2005/12/19 19:44:13 pack Exp $
+// $Id: TermWinUnixTkGUI.C,v 1.3 2005/12/19 19:44:13 pack Exp $
 
 #include <assert.h>
 #include "tcl.h"

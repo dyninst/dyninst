@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: make.program.tmpl,v 1.29 2005/09/28 17:02:21 bernat Exp $
+# $Id: make.program.tmpl,v 1.30 2005/12/19 19:41:37 pack Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -43,14 +43,14 @@ $(TARGET): $(OBJS)
 endif
 endif
 
-ifndef UNCOMMON_LINK
+#ifndef UNCOMMON_LINK
 # The user may set APP_PURE_OPTIONS for application-specific purify options
 pure: $(OBJS)
 	@$(MAKE) $(VOUCHER)
 	purify $(APP_PURE_OPTIONS) -cache-dir=/tmp \
 		-$(MODCC) -collector=$(COLLECTOR) $(MODCC) -o $(TARGET) \
                 $(LDFLAGS) $(VOUCHER).o $(OBJS) $(LIBDIR) $(LIBS) $(SYSLIBS)
-endif
+#endif
 
 ifndef UNCOMMON_LINK
 quantify: $(OBJS)
@@ -153,6 +153,9 @@ endif
 
 %.C: %.l
 	$(LEX) -t $(LFLAGS) $< > $@
+
+%.mrnet.CLNT.C %.mrnet.CLNT.h %.mrnet.SRVR.C %.mrnet.SRVR.h %.mrnet.h %.mrnet.temp.C: %.I
+	$(IGEN) -mrnet $(ICFLAGS) $<
 
 %.xdr.C %.xdr.CLNT.C %.xdr.CLNT.h %.xdr.SRVR.C %.xdr.SRVR.h %.xdr.h %.xdr.temp.C: %.I
 	$(IGEN) -xdr $(ICFLAGS) $<

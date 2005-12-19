@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: TermWinTkGUI.h,v 1.3 2004/12/07 20:48:07 tlmiller Exp $
+// $Id: TermWinTkGUI.h,v 1.4 2005/12/19 19:44:12 pack Exp $
 #ifndef TERMWINTKGUI_H
 #define TERMWINTKGUI_H
 

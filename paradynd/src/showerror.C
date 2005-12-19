@@ -39,15 +39,15 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: showerror.C,v 1.6 2004/10/07 00:45:59 jaw Exp $
+// $Id: showerror.C,v 1.7 2005/12/19 19:43:26 pack Exp $
 
 #include "paradynd/src/comm.h"
 #include "paradynd/src/resource.h"
 
 extern resource *machineResource;
 extern pdRPC *tp;
-
+extern MRN::Stream * defaultStream;
 void showErrorCallback(int num, pdstring msg)
 {
-    tp->showErrorCallback(num,msg,machineResource->part_name());
+    tp->showErrorCallback(defaultStream, num,msg,machineResource->part_name());
 }

@@ -39,12 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: globals.h,v 1.17 2004/03/23 01:12:33 eli Exp $
+// $Id: globals.h,v 1.18 2005/12/19 19:42:35 pack Exp $
 
 #ifndef _MDL_GLOBALS_H
 #define _MDL_GLOBALS_H
 
-#include "dyninstRPC.xdr.h"
+#include "dyninstRPC.mrnet.h"
 #include "../DMthread/DMinclude.h"
 #include "pdutil/h/mdl_data.h"
 

@@ -1,5 +1,5 @@
 /****************************************************************************
- * Copyright © 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
+ * Copyright Â© 2003-2004 Dorian C. Arnold, Philip C. Roth, Barton P. Miller *
  *                  Detailed MRNet usage rights in "LICENSE" file.          *
  ***************************************************************************/
 
@@ -14,6 +14,8 @@
 #include <vector>
 #include "mrnet/FilterIds.h"
 
+//TODO: dynamically load paradyn filters
+#include "mrnet/ParadynFilterIds.h"
 #define FIRST_CTL_TAG  100
 #define FIRST_APPL_TAG 200
 

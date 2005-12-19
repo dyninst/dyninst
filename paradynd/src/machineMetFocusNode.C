@@ -162,7 +162,10 @@ void machineMetFocusNode::endOfDataCollection() {
      }
   }
   // we're not done until this metric doesn't have any metrics
-  tp->endOfDataCollection(id_);
+
+  extern MRN::Stream * defaultStream;
+
+  tp->endOfDataCollection(defaultStream, id_);
 }
 
 void machineMetFocusNode::initializeForSampling(timeStamp startTime, 
@@ -262,8 +265,17 @@ void machineMetFocusNode::print() {
 }
 
 void machineMetFocusNode::sendInitialActualValue(pdSample s) {
+  extern MRN::Stream * defaultStream;
+  extern unsigned sdm_id;
   double valToSend = static_cast<double>(s.getValue());
-  tp->setInitialActualValueFE(getMetricID(), valToSend);
+
+
+  //fprintf(stderr,"%u  Backend  sending init act value, id: %u, val %d, daemon id = %u\n",
+  //	  getpid(),getMetricID(),valToSend,sdm_id);
+
+  //fprintf(stderr," Backend in  sendInitialActualValue\n calling setInitialActualValueFE  pid = %u, sdm_id = %u metric id = %u\n",
+  //	  getpid(),sdm_id,getMetricID());
+  tp->setInitialActualValueFE(defaultStream, getMetricID(), valToSend);
   //cerr << "  sending init act value, id: " << getMetricID() << ", val: "
   //   << valToSend << "\n";
   _sentInitialActualValue = true;
@@ -300,6 +312,7 @@ void machineMetFocusNode::tryAggregation() {
 
   while(aggregator.aggregate(&aggSample) == true) {
     if(!sentInitialActualValue()) {
+
       sendInitialActualValue(aggregator.getInitialActualValue());
     }
     updateWithDeltaValue(aggSample.start, aggSample.end, aggSample.value);

@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.24 2004/07/28 07:24:47 jaw Exp $
+# $Id: nmake.module.tmpl,v 1.25 2005/12/19 19:43:36 pack Exp $
 #
 
 TARGET	      = libpdutil.lib
@@ -91,7 +91,7 @@ OBJS         = $(OBJS) \
                 templates.obj 
 
 IGEN_ISRCS  = dyninstRPC.I
-IGEN_GEN_SRCS   = dyninstRPC.xdr.h
+IGEN_GEN_SRCS   = dyninstRPC.mrnet.h
 IGEN_GEN_OBJS   = $(IGEN_GEN_SRCS:.C=.obj)
 
 all: $(TARGET)
@@ -119,15 +119,15 @@ mdlScanner.C:   ../src/mdlScanner.l
     -$(RM) lex.mdl.c
 
 
-dyninstRPC.xdr.C \
-        dyninstRPC.xdr.h \
-        dyninstRPC.xdr.CLNT.C \
-        dyninstRPC.xdr.CLNT.h \
-        dyninstRPC.xdr.SRVR.C \
-        dyninstRPC.xdr.SRVR.h:  ..\..\paradyn\h\dyninstRPC.I
-    igen -xdr ..\..\paradyn\h\dyninstRPC.I
+dyninstRPC.mrnet.C \
+        dyninstRPC.mrnet.h \
+        dyninstRPC.mrnet.CLNT.C \
+        dyninstRPC.mrnet.CLNT.h \
+        dyninstRPC.mrnet.SRVR.C \
+        dyninstRPC.mrnet.SRVR.h:  ..\..\paradyn\h\dyninstRPC.I
+    igen -mrnet ..\..\paradyn\h\dyninstRPC.I
 
 # we need to force this dependency because we need the headers
 # but not the C files from teh dyninstRPC igen-generated files
-mdlScanner.C:   dyninstRPC.xdr.h
+mdlScanner.C:   dyninstRPC.mrnet.h
 

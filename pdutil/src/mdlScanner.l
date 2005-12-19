@@ -40,7 +40,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 /*
- * $Id: mdlScanner.l,v 1.6 2005/01/28 18:12:05 legendre Exp $
+ * $Id: mdlScanner.l,v 1.7 2005/12/19 19:43:48 pack Exp $
  */
 
 #include <stdio.h>
@@ -235,6 +235,7 @@ COMMENT	{SLASH}{SLASH}
 "void"		{ return(tVOID); }
 "items"         { return(tITEMS); }
 "library"       { return(tLIBRARY); }
+"mrnet_topology"      { return (tMRNET_TOPOLOGY); }
 "setCounter"    { mdlerror("\'setCounter\' is obsolete. Please make sure "
                     "that you are using a up-to-date paradyn.rc.");
                   exit(1); 

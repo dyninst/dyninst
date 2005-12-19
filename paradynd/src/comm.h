@@ -43,20 +43,23 @@
  * Igen derived class.  Used to provide virtual functions to replace the
  * defaults.
  * 
- * $Id: comm.h,v 1.13 2004/03/23 01:12:33 eli Exp $
+ * $Id: comm.h,v 1.14 2005/12/19 19:42:46 pack Exp $
  */
 
 #ifndef _COMM_H_IGEN_
 #define _COMM_H_IGEN_
 
-#include "dyninstRPC.xdr.SRVR.h"
+#include "dyninstRPC.mrnet.SRVR.h"
 
 class pdRPC : public dynRPC
 {
 public:
+
+  ~pdRPC(){};
+
   pdRPC(int family, int port, int type, const pdstring host, xdr_rd_func rf,
 	xdr_wr_func wf, int nblock=0)
-    : dynRPC(family, port, type, host, rf, wf, nblock) {
+    : dynRPC() {
 
      alterSendSocketBufferSize();
 
@@ -64,7 +67,11 @@ public:
 
 
   pdRPC(PDSOCKET sock, xdr_rd_func r, xdr_wr_func w, int nblock=0)
-    : dynRPC(sock, r, w, nblock) {
+    : dynRPC() {
+
+     alterSendSocketBufferSize();
+  }
+  pdRPC() {
 
      alterSendSocketBufferSize();
   }
@@ -73,7 +80,7 @@ public:
      char **args=0, int nblock=0) :
      dynRPC(m, l, p, r, w, wellKnownPort, args, nblock) {;} */
 
-  void handle_error();
+  virtual void handle_error();
 
    void alterSendSocketBufferSize() {
      // Now let's alter the socket buffer size to avoid write-write deadlock
@@ -89,12 +96,12 @@ public:
 #endif     
   }
 
-  virtual void send_mdl( pdvector<T_dyninstRPC::rawMDL> mdlBufs );
-  void send_metrics( pdvector<T_dyninstRPC::mdl_metric*>* mv );
-  void send_constraints( pdvector<T_dyninstRPC::mdl_constraint*>* cv );
-  void send_stmts( pdvector<T_dyninstRPC::mdl_stmt*>* sv );
-  void send_libs( pdvector<pdstring>* libs );
-  void send_no_libs( void );
+  virtual void send_mdl(MRN::Stream * stream, pdvector<T_dyninstRPC::rawMDL> mdlBufs );
+  void send_metrics(MRN::Stream * stream,  pdvector<T_dyninstRPC::mdl_metric*>* mv );
+  void send_constraints(MRN::Stream * stream,  pdvector<T_dyninstRPC::mdl_constraint*>* cv );
+  void send_stmts(MRN::Stream * stream,  pdvector<T_dyninstRPC::mdl_stmt*>* sv );
+  void send_libs(MRN::Stream * stream,  pdvector<pdstring>* libs );
+  void send_no_libs(MRN::Stream * stream);
 };
 
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary_ELF.c,v 1.17 2005/10/14 16:37:32 legendre Exp $ */
+/* $Id: RTmutatedBinary_ELF.c,v 1.18 2005/12/19 19:41:41 pack Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -101,7 +101,8 @@ extern ElfW(Dyn) _DYNAMIC[];
 
 /* Borrowed from Linux's link.h: Allows us to use functions from
    libelf regardless of word size. */
-#define ELF_FUNC(type)      _ELF_FUNC (elf, __ELF_NATIVE_CLASS, type)
+//#define ELF_FUNC(type)      _ELF_FUNC (elf, __ELF_NATIVE_CLASS, type)
+#define ELF_FUNC(type)      _ELF_FUNC (Elf, __ELF_NATIVE_CLASS, type)
 #define _ELF_FUNC(e,w,t)    _ELF_FUNC_1 (e, w, _##t)
 #define _ELF_FUNC_1(e,w,t)  e##w##t
 
@@ -455,6 +456,17 @@ void hack_ld_linux_plt(unsigned long pltEntryAddr){
 }
 #endif
 
+unsigned (*Elf_version)(unsigned) = NULL;
+Elf *(*Elf_begin)(int fildes, Elf_Cmd cmd, Elf *ref) = NULL;
+Elf32_Ehdr *(*Elf32_getehdr)(Elf *elf) = NULL;
+Elf_Scn *(*Elf_getscn)(Elf *elf, size_t index) = NULL;
+Elf_Data *(*Elf_getdata)(Elf_Scn *scn, Elf_Data *data) = NULL;
+Elf_Scn *(*Elf_nextscn)(Elf *elf, Elf_Scn *scn) = NULL;
+Elf32_Shdr *(*Elf32_getshdr)(Elf_Scn *scn) = NULL;
+const char *(*Elf_errmsg)(int err) = NULL;
+int (*Elf_errno)(void) = NULL;
+int (*Elf_end)(Elf *elf) = NULL;
+
 
 int checkSO(char* soName){
 	ElfW(Shdr) *shdr;
@@ -470,24 +482,24 @@ int checkSO(char* soName){
     		fflush(stdout); 
 		return result;
 	}
-	if((elf = elf_begin(fd, ELF_C_READ, NULL)) ==NULL){
-		RTprintf("%s %s \n",soName, elf_errmsg(elf_errno()));
-		RTprintf("cannot elf_begin\n");
+	if((elf = Elf_begin(fd, ELF_C_READ, NULL)) ==NULL){
+		RTprintf("%s %s \n",soName, Elf_errmsg(Elf_errno()));
+		RTprintf("cannot Elf_begin\n");
 		fflush(stdout);
 		close(fd);
 		return result;
 	}
 
 	ehdr = ELF_FUNC( getehdr(elf) );
-	scn = elf_getscn(elf, ehdr->e_shstrndx);
-	strData = elf_getdata(scn,NULL);
-   	for( scn = NULL; !result && (scn = elf_nextscn(elf, scn)); ){
+	scn = Elf_getscn(elf, ehdr->e_shstrndx);
+	strData = Elf_getdata(scn,NULL);
+   	for( scn = NULL; !result && (scn = Elf_nextscn(elf, scn)); ){
 		shdr = ELF_FUNC( getshdr(scn) );
 		if(!strcmp((char *)strData->d_buf + shdr->sh_name, ".dyninst_mutated")) {
 			result = 1;
 		}
 	}
-	elf_end(elf);
+	Elf_end(elf);
 	close(fd);
 
 	return result;
@@ -516,7 +528,35 @@ int checkMutatedFile(){
 	Dl_info dlip;
 	int soError = 0; 
 
-	elf_version(EV_CURRENT);
+     char * error_msg = NULL;
+     void * elfHandle = NULL;
+
+
+
+     //elfHandle = dlopen("/usr/lib/libelf.so.1", RTLD_NOW);
+     elfHandle = dlopen("libelf.so", RTLD_NOW);
+     if(! elfHandle){
+        error_msg = dlerror();
+        if (error_msg) {
+          fprintf(stderr,"Could not open lib: %s- %s\n","libelf",error_msg);
+        }
+        else{
+          fprintf(stderr, "failure\n");
+        }
+        exit(1);
+     }
+     Elf_version = dlsym(elfHandle, "elf_version");
+     Elf_begin = dlsym(elfHandle, "elf_begin");
+     Elf32_getehdr = dlsym(elfHandle, "elf32_getehdr");
+     Elf_getscn = dlsym(elfHandle, "elf_getscn");
+     Elf_nextscn = dlsym(elfHandle, "elf_nextscn");
+     Elf_getdata = dlsym(elfHandle, "elf_getdata");
+     Elf32_getshdr = dlsym(elfHandle, "elf32_getshdr");
+     Elf_errmsg = dlsym(elfHandle, "elf_errmsg");
+     Elf_errno = dlsym(elfHandle, "elf_errno");
+     Elf_end = dlsym(elfHandle, "elf_end");
+
+	Elf_version(EV_CURRENT);
 
 	execStr = (char*) malloc(1024);
 	memset(execStr,'\0',1024);
@@ -533,25 +573,25 @@ int checkMutatedFile(){
     		fflush(stdout); 
 		return retVal;
 	}
-	if((elf = elf_begin(fd, ELF_C_READ, NULL)) ==NULL){
-		printf("%s %s \n",execStr, elf_errmsg(elf_errno()));
-		printf("cannot elf_begin\n");
+	if((elf = Elf_begin(fd, ELF_C_READ, NULL)) ==NULL){
+		printf("%s %s \n",execStr, Elf_errmsg(Elf_errno()));
+		printf("cannot Elf_begin\n");
 		fflush(stdout);
 		close(fd);
 		return retVal;
 	}
 
 	ehdr = ELF_FUNC( getehdr(elf) );
-	scn = elf_getscn(elf, ehdr->e_shstrndx);
-	strData = elf_getdata(scn,NULL);
+	scn = Elf_getscn(elf, ehdr->e_shstrndx);
+	strData = Elf_getdata(scn,NULL);
 	pageSize =  getpagesize();
 
 	/*fprintf(stderr,"IN MUTATED FILE\n");*/
-   	for(cnt = 0, scn = NULL; !soError &&  (scn = elf_nextscn(elf, scn));cnt++){
+   	for(cnt = 0, scn = NULL; !soError &&  (scn = Elf_nextscn(elf, scn));cnt++){
 		shdr = ELF_FUNC( getshdr(scn) );
 	
 		if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_data", 15)) {
-			elfData = elf_getdata(scn, NULL);
+			elfData = Elf_getdata(scn, NULL);
 			tmpPtr = elfData->d_buf;
 			dataAddress = -1;
 			while( dataAddress != 0 ) { 
@@ -611,7 +651,7 @@ int checkMutatedFile(){
 						dyninstAPI_### section, so we can ALWAYS memcpy the data into place
 						see the value of newHeapAddr in writeBackElf.C
 					*/
-					elfData = elf_getdata(scn, NULL);
+					elfData = Elf_getdata(scn, NULL);
 					memcpy((void*)shdr->sh_addr, elfData->d_buf, shdr->sh_size);
 				}
 			}
@@ -630,7 +670,7 @@ int checkMutatedFile(){
 #endif
 			char *loadedname, *dyninstname;
 
-			elfData = elf_getdata(scn, NULL);
+			elfData = Elf_getdata(scn, NULL);
 
 			sharedLibraryInfo = (char*) malloc(elfData->d_size);
 			memcpy(sharedLibraryInfo, elfData->d_buf, elfData->d_size);
@@ -672,7 +712,7 @@ int checkMutatedFile(){
 			int done = 0;
 
 
-			elfData = elf_getdata(scn, NULL);
+			elfData = Elf_getdata(scn, NULL);
 
 			/*ptr = elfData->d_buf;*/
 			/* use memcpy because of alignment issues on sparc */	
@@ -750,7 +790,7 @@ int checkMutatedFile(){
 			int done = 0;
 
 
-			elfData = elf_getdata(scn, NULL);
+			elfData = Elf_getdata(scn, NULL);
 
 			ptr = elfData->d_buf;
 		
@@ -934,7 +974,7 @@ int checkMutatedFile(){
 			int count =0;
 
 			retVal = 1; /* just to be sure */
-			elfData = elf_getdata(scn, NULL);
+			elfData = Elf_getdata(scn, NULL);
 			numberUpdates = 0;
 			
 			/*this section may be padded out with zeros to align the next section
@@ -1028,14 +1068,14 @@ int checkMutatedFile(){
 			Dl_info p;
 			unsigned long loadAddr;
 
-			elfData = elf_getdata(scn, NULL);
+			elfData = Elf_getdata(scn, NULL);
 			tmpPtr = elfData->d_buf;
 			while(*tmpPtr) { 
 
 				handle = dlopen(tmpPtr, RTLD_LAZY);
 				if(handle){
-#if defined(sparc_sun_solaris2_4)
 					dlinfo(handle, RTLD_DI_CONFIGADDR,(void*) &p);
+#if defined(sparc_sun_solaris2_4)
 					loadAddr = checkSOLoadAddr(tmpPtr,(unsigned long)p.dli_fbase);
 					if(loadAddr){
 						fixInstrumentation(tmpPtr,(unsigned long)p.dli_fbase, loadAddr);
@@ -1069,7 +1109,7 @@ int checkMutatedFile(){
 	}
 #endif
 
-        elf_end(elf);
+        Elf_end(elf);
         close(fd);
 
 	free(execStr);

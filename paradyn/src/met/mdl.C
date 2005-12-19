@@ -39,9 +39,9 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.62 2004/03/23 01:12:33 eli Exp $
+// $Id: mdl.C,v 1.63 2005/12/19 19:42:36 pack Exp $
 
-#include "dyninstRPC.xdr.CLNT.h"
+#include "dyninstRPC.mrnet.CLNT.h"
 #include "paradyn/src/met/globals.h"
 #include "paradyn/src/met/metricExt.h"
 #include "pdutil/h/mdl.h"

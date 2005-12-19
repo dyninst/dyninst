@@ -42,10 +42,10 @@
 #ifndef INTERNAL_MET_HDR
 #define INTERNAL_MET_HDR
 
-// $Id: internalMetrics.h,v 1.25 2004/03/23 01:12:34 eli Exp $
+// $Id: internalMetrics.h,v 1.26 2005/12/19 19:42:57 pack Exp $
 
 #include "im_preds.h"
-#include "dyninstRPC.xdr.h" // T_dyninstRPC
+#include "dyninstRPC.mrnet.h" // T_dyninstRPC
 #include "pdutil/h/pdSample.h"
 #include "pdutil/h/metricStyle.h"
 

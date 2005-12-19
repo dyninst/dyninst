@@ -55,8 +55,8 @@
 #pragma implementation "Dictionary.C"
 #include "common/src/Dictionary.C"
 
-#pragma implementation "dyninstRPC.xdr.h"
-#include "dyninstRPC.xdr.h"
+#pragma implementation "dyninstRPC.mrnet.h"
+#include "dyninstRPC.mrnet.h"
 #pragma implementation "visi.xdr.h"
 #include "visi.xdr.h"
 

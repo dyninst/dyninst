@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: context.h,v 1.20 2005/09/09 18:07:29 legendre Exp $
+// $Id: context.h,v 1.21 2005/12/19 19:42:48 pack Exp $
 
 #ifndef CONTEXT_HDR
 #define CONTEXT_HDR
@@ -58,4 +58,25 @@ void processNewTSConnection(int tracestream_fd);
 bool continueAllProcesses();
 bool pauseAllProcesses();
 bool isApplicationPaused();
+
+
+class g_node {
+public:
+	g_node(pdstring fl,pdstring f_name,int td)
+		{
+			file = fl;
+			full_name = f_name;
+			tid = td;
+		}
+
+	~g_node(){}
+
+	pdstring file;
+	pdstring full_name;
+	int tid;
+
+};
+
+template class pdvector< g_node* >;
+
 #endif

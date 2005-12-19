@@ -42,7 +42,7 @@
 #ifndef RPC_UTIL
 #define RPC_UTIL
 
-// $Id: rpcUtil.h,v 1.58 2005/12/12 16:37:30 gquinn Exp $
+// $Id: rpcUtil.h,v 1.59 2005/12/19 19:43:43 pack Exp $
 
 #include "common/h/headers.h"
 #include "pdsocket.h"
@@ -60,6 +60,36 @@
 
 extern bool RPC_readReady (PDSOCKET sock, int timeout=0);
 
+//-------------------------------------------------------------------------
+//
+// Functions common to server and client side.
+//
+class MRNETrpc {
+public:
+  MRNETrpc(const pdstring &machine, const pdstring &user, const pdstring &program,
+	   const pdstring &remote_shell);
+
+  MRNETrpc();
+
+  MRNETrpc(int family, int port, int type, const pdstring machine);
+
+  virtual ~MRNETrpc();
+
+  void closeConnect() { }
+
+  //int readReady(const int timeout=0) { return RPC_readReady (sock, timeout); }
+
+  //Stream *stream_obj() { return stream;}
+
+  private:
+  // Since we haven't defined these, private makes sure they're not used. -ari
+  //MRNETrpc(const MRNETrpc &);
+  //MRNETrpc &operator=(const MRNETrpc &);
+
+};
+
+
+//-------------------------------------------------------------------------
 //
 // Functions common to server and client side.
 //
@@ -101,7 +131,7 @@ public:
 class RPCBase {
 public:
   RPCBase(const int st=0, bool v=0) { err_state = st; versionVerifyDone = v;}
-  // ~RPCBase() { }
+  virtual ~RPCBase() { }
   int get_err_state() const { return err_state;}
   void clear_err_state() {err_state = 0;}
   int did_error_occur() const {return (err_state != 0);}

@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.7 2005/09/28 17:02:32 bernat Exp $
+# $Id: make.module.tmpl,v 1.8 2005/12/19 19:43:29 pack Exp $
 #
 
 ifndef TARGET
@@ -12,6 +12,7 @@ endif
 
 
 LDFLAGS      += -lpthread
+CXXFLAGS += -DTHREADLIB_DEBUG
 
 SRCS	     += ../src/file_q.C \
 		../src/hash.C \

@@ -124,6 +124,7 @@ class PacketData: public Error{
         data_sync.Unlock();
         return ret;
     }
+		void print() const;
 };
 
 class Packet:public Error
@@ -237,6 +238,10 @@ class Packet:public Error
     void set_DestroyData( bool b ) {
         data.getData().set_DestroyData( b );
     }
+
+		void print() const {
+			data.getData().print();
+		}
 };
 
 class Packet_counter {

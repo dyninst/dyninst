@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.258 2005/03/16 20:56:02 legendre Exp $
+// $Id: metricFocusNode.C,v 1.259 2005/12/19 19:43:03 pack Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -131,7 +131,8 @@ metFocInstResponse::updateResponse( u_int mi_id,
 void
 metFocInstResponse::makeCallback( void )
 {
-    tp->enableDataCallback( *this );
+  extern MRN::Stream * defaultStream;
+  tp->enableDataCallback(defaultStream,  *this );
 }  
 
 
@@ -213,90 +214,101 @@ machineMetFocusNode *createMetricInstance(int mid, pdstring& metric_name,
 {
    // we make third parameter false to avoid printing warning messages in
    // focus2CanonicalFocus ("enable" was here previously) - naim
-   
+
    bool errFlag = false;
    Focus &focus = *(new Focus(focusData, &errFlag));
    if(errFlag) {
+		 fprintf(stderr,"%d [%s:%u] Failed to create new Focus metric_name = %s\n",getpid(),__FILE__,__LINE__,metric_name.c_str());
       return NULL;
    }
 
-   if (mdl_can_do(metric_name)) {
-      /* select the processes that should be instrumented. We skip process
-         that have exited, and processes that have been created but are not
-         completely initialized yet.  If we try to insert instrumentation in
-         a process that is not ready yet, we get a core dump.  A process is
-         ready when it is not in neonatal state and the isBootstrappedYet
-         returns true.
-      */
-      pdvector<pd_process*> procs;
-      
-      processMgr::procIter itr = getProcMgr().begin();
-      while(itr != getProcMgr().end()) {
-         pd_process *curProc = *itr++;
-         if(!curProc) continue;
+   if (mdl_can_do(metric_name)) 
+		 {
+			 /* select the processes that should be instrumented. We skip process
+					that have exited, and processes that have been created but are not
+					completely initialized yet.  If we try to insert instrumentation in
+					a process that is not ready yet, we get a core dump.  A process is
+					ready when it is not in neonatal state and the isBootstrappedYet
+					returns true.
+			 */
+			 pdvector<pd_process*> procs;
+			 
+			 processMgr::procIter itr = getProcMgr().begin();
+			 while(itr != getProcMgr().end()) 
+				 {
+					 pd_process *curProc = *itr++;
+					 if(!curProc) continue;
 #ifdef NOTDEF // PDSEP
-   //  I think there must be an error in this predicate?
-   //  Doesn't match the comment above
-         if(curProc->status()==exited || curProc->status()==neonatal || 
-            curProc->isBootstrappedYet())
+					 //  I think there must be an error in this predicate?
+					 //  Doesn't match the comment above
+					 if(curProc->status()==exited || curProc->status()==neonatal || 
+							curProc->isBootstrappedYet())
 #endif
-         if (!curProc->isTerminated() 
-             && !curProc->isDetached()
-             && curProc->isBootstrappedYet())
-         {
-            procs += curProc;
-         }
-      }
-      
-      if (procs.size() == 0)
+						 if (!curProc->isTerminated() 
+								 && !curProc->isDetached()
+								 && curProc->isBootstrappedYet())
+							 {
+								 procs += curProc;
+							 }
+				 }
+			 
+			 if (procs.size() == 0)
          // there are no processes to instrument
-      {	    
-         //printf("createMetricInstance failed, no processes to instrument\n");
-         return NULL;
-      }
+				 {	    
+					 fprintf(stderr,"createMetricInstance failed, no processes to instrument\n");
+					 return NULL;
+				 }
 
       //cerr << "makeMachineMetFocusNode START" << endl;
       machineMetFocusNode *machNode = 
          makeMachineMetFocusNode(mid, focus, metric_name, procs, false,enable);
       //cerr << "makeMachineMetFocusNode END" << endl;
 
-      if (machNode == NULL) {
-//          cerr << "createMetricInstance failed since mdl_do failed\n";
-//          cerr << "metric name was " << metric_name << "; focus was ";
-//          cerr << "createMetricInstance failed since mdl_do failed\n";
-      }
+      if (machNode == NULL) 
+				{
+					cerr << "createMetricInstance failed since mdl_do failed\n";
+          cerr << "metric name was " << metric_name << "; focus was ";
+          cerr << "createMetricInstance failed since mdl_do failed\n";
+				}
       return machNode;
-   } else {
+		 } 
+	 else
+		 {
       bool matched;
 
       machineMetFocusNode *machNode = 
-         doInternalMetric(mid, focus, metric_name, enable, matched);
+				doInternalMetric(mid, focus, metric_name, enable, matched);
 
       // NULL on serious error; -1 if enable was false; -2 if illegal to
       // instr with given focus [many internal metrics work only for whole
       // program]
 
-      if (machNode == (machineMetFocusNode*)-2) {
-//          cerr << "createMetricInstance: internal metric " 
-//                      << metric_name << " isn't defined for focus: " 
-//                      << focus.getName() << "\n";
-         machNode = NULL; // straighten up the return value
-      }
-      else if (machNode == (machineMetFocusNode*)-1) {
-//          cerr << " createMetricInstance: internal metric not enable: " 
-//                      << metric_name << endl;
-         assert(!enable); // no error msg needed
-         machNode = NULL; // straighten up the return value
-      }
-      else if (machNode == NULL) {
-         // more serious error...do a printout
-//          cerr << "createMetricInstance failed since doInternalMetric failed\n";
-//          cerr << "metric name was " << metric_name << "; focus was "
-//                      << focus.getName() << "\n";
-      }
-      if(machNode)  machNode->markAsInternalMetric();
+      if (machNode == (machineMetFocusNode*)-2) 
+				{
+					//          cerr << "createMetricInstance: internal metric " 
+					//                      << metric_name << " isn't defined for focus: " 
+					//                      << focus.getName() << "\n";
+					machNode = NULL; // straighten up the return value
+				}
+      else if (machNode == (machineMetFocusNode*)-1) 
+				{
+					//          cerr << " createMetricInstance: internal metric not enable: " 
+					//                      << metric_name << endl;
+					assert(!enable); // no error msg needed
+					machNode = NULL; // straighten up the return value
+				}
+      else if (machNode == NULL)
+				{
+					//more serious error...do a printout
+					cerr << "createMetricInstance failed since doInternalMetric failed\n";
+					cerr << "metric name was " << metric_name << "; focus was "
+							 << focus.getName() << "\n";
+				}
+      if(machNode)
+				machNode->markAsInternalMetric();
+
       return machNode;
-   }
+		 }
 }
 
 
@@ -394,72 +406,89 @@ void metricFocusNode::handleExec(pd_process *pd_proc) {
 // whether we indicate deferred instrumentation as a failure in 
 // the response object or not.
 //
-void startCollecting(pdstring& metric_name, pdvector<u_int>& focus,
+bool startCollecting(pdstring& metric_name, pdvector<u_int>& focus,
                                         int mid,
                                         metFocInstResponse *cbi)
 {
+
+
     pdstring temp = metric_name;
-    for (unsigned i = 0; i < focus.size(); i++) {
+    for (unsigned i = 0; i < focus.size(); i++) 
+			{
         temp += (pdstring(" ") + pdstring(focus[i]));
-    }
+			}
+		//fprintf(stderr,"A. in startCollecting failed to insert temp = %s\n",temp.c_str());
+		
+		assert( cbi != NULL );
+		
+		// Make the unique ID for this metric/focus visible in MDL.
+		//   pdstring vname = "$globalId";
+		//   mdl_data::cur_mdl_data->env->add(vname, false, MDL_T_INT);
+		//   mdl_data::cur_mdl_data->env->set(mid, vname);
+		
+		machineMetFocusNode *machNode = 
+			createMetricInstance(mid, metric_name, focus, true);
+		
+		if (!machNode) {
+			cbi->addResponse( mid,
+                        inst_insert_failure,"Failed to create metric instance resource not found" );
+      return false;
+		}
 
-   assert( cbi != NULL );
-
-   // Make the unique ID for this metric/focus visible in MDL.
-   pdstring vname = "$globalId";
-   mdl_data::cur_mdl_data->env->add(vname, false, MDL_T_INT);
-   mdl_data::cur_mdl_data->env->set(mid, vname);
-
-   machineMetFocusNode *machNode = 
-     createMetricInstance(mid, metric_name, focus, true);
-
-   if (!machNode) {
-//       cerr << "startCollecting for " << metric_name 
-// 		  << " failed because createMetricInstance failed" << endl;
-      cbi->addResponse( mid,
-                        inst_insert_failure,
-                        mdl_data::cur_mdl_data->env->getSavedErrorString() );
-      return;
-   }
-
-
-   //cerr << "created metric-focus " << machNode->getFullName() << "\n";   
-   addCurrentPredictedCost(machNode->cost());
-   metResPairsEnabled++;
-   
-   if (machNode->isInternalMetric()) {
-      cbi->addResponse( mid, inst_insert_success );
-      return;
-   }
-
-   inst_insert_result_t insert_status =  machNode->insertInstrumentation();
-
-   if(insert_status == inst_insert_deferred) {
-      machNode->setMetricFocusResponse(cbi);
-      cbi->addResponse( mid, inst_insert_deferred );
-      return;
-   } else if(insert_status == inst_insert_failure) {
-      // error message already displayed in processMetFocusNode::insertInstrum.
-      delete machNode;
-      cbi->addResponse( mid,
-                        inst_insert_failure,
-                        mdl_data::cur_mdl_data->env->getSavedErrorString() );
-      return;
-   }
-
-   // This has zero for an initial value.  This is because for cpu_time and
-   // wall_time, we just want to total the cpu_time and wall_time for this
-   // process and no others (but if we want someone to get an actual cpu time
-   // for this program even if they start the cpu_time metric after the start
-   // of the process, the initial actual value could be the actual cpu time
-   // at the start of this metric).  For the counter metrics (eg. proc_calls,
-   // io_bytes), we also want zero (we have no way of getting the total
-   // proc_calls & io_bytes of the process before the metric was enabled, so
-   // we have to use zero).  However, it is possible that in the future we'll
-   // create a metric where it makes sense to send an initial actual value.
-   machNode->initializeForSampling(getWallTime(), pdSample::Zero());
-
-   cbi->addResponse( mid, inst_insert_success );
+		// Make the unique ID for this metric/focus visible in MDL.
+		pdstring vname = "$globalId";
+		mdl_data::cur_mdl_data->env->add(vname, false, MDL_T_INT);
+		mdl_data::cur_mdl_data->env->set(mid, vname);
+				
+		addCurrentPredictedCost(machNode->cost());
+		metResPairsEnabled++;
+		
+		if (machNode->isInternalMetric()) {
+      cbi->addResponse( mid, inst_insert_success ,"Success");
+      return true;
+		}
+		
+		inst_insert_result_t insert_status =  machNode->insertInstrumentation();
+		
+		if(insert_status == inst_insert_deferred) 
+			{
+				machNode->setMetricFocusResponse(cbi);
+				cbi->addResponse( mid, inst_insert_deferred ,"Deferred");
+				return true;
+			} 
+		else if(insert_status == inst_insert_failure) 
+			{
+				// error message already displayed in processMetFocusNode::insertInstrum.
+				delete machNode;
+				if(  mdl_data::cur_mdl_data->env->getSavedErrorString() != NULL)
+					{
+						cbi->addResponse( mid,
+															inst_insert_failure,
+															mdl_data::cur_mdl_data->env->getSavedErrorString() );
+					}
+				else
+					{
+						cbi->addResponse( mid,
+															inst_insert_failure,
+															"Un-specified error" );
+					}
+				return true;
+			}
+		
+		// This has zero for an initial value.  This is because for cpu_time and
+		// wall_time, we just want to total the cpu_time and wall_time for this
+		// process and no others (but if we want someone to get an actual cpu time
+		// for this program even if they start the cpu_time metric after the start
+		// of the process, the initial actual value could be the actual cpu time
+		// at the start of this metric).  For the counter metrics (eg. proc_calls,
+		// io_bytes), we also want zero (we have no way of getting the total
+		// proc_calls & io_bytes of the process before the metric was enabled, so
+		// we have to use zero).  However, it is possible that in the future we'll
+		// create a metric where it makes sense to send an initial actual value.
+		machNode->initializeForSampling(getWallTime(), pdSample::Zero());
+		
+		cbi->addResponse( mid, inst_insert_success ,"Success");
+		return true;
 }
 
 
@@ -502,44 +531,48 @@ unsigned int batch_buffer_next=0;
 
 // The following routines (flush_batch_buffer() and batchSampleData() are
 // in an inappropriate src file...move somewhere more appropriate)
-void flush_batch_buffer() {
-   // don't need to flush if the batch had no data (this does happen; see
-   // perfStream.C)
-
-  if (batch_buffer_next == 0) {
-    return;
-  }
-
-
-   // alloc buffer of the exact size to make communication
-   // more efficient.  Why don't we send theBatchBuffer with a count?
-   // This would work but would always (in the igen call) copy the entire
-   // vector.  This solution has the downside of calling new but is not too bad
-   // and is clean.
-   pdvector<T_dyninstRPC::batch_buffer_entry> copyBatchBuffer(batch_buffer_next);
-   assert(copyBatchBuffer.size() <= theBatchBuffer.size());
-   for (unsigned i=0; i< batch_buffer_next; i++) {
+void flush_batch_buffer() 
+{
+  // don't need to flush if the batch had no data (this does happen; see
+  // perfStream.C)
+  
+  if (batch_buffer_next == 0)
+    {
+      return;
+    }
+  
+  
+  // alloc buffer of the exact size to make communication
+  // more efficient.  Why don't we send theBatchBuffer with a count?
+  // This would work but would always (in the igen call) copy the entire
+  // vector.  This solution has the downside of calling new but is not too bad
+  // and is clean.
+  pdvector<T_dyninstRPC::batch_buffer_entry> copyBatchBuffer(batch_buffer_next);
+  assert(copyBatchBuffer.size() <= theBatchBuffer.size());
+  for (unsigned i=0; i< batch_buffer_next; i++) 
+    {
       copyBatchBuffer[i] = theBatchBuffer[i];
-   }
+    }
 
 #ifdef FREEDEBUG
-   timeStamp t1 = getWallTime();
+  timeStamp t1 = getWallTime();
 #endif
-
-   // Now let's do the actual igen call!
-   tp->batchSampleDataCallbackFunc(0, copyBatchBuffer);
-
+  
+  // Now let's do the actual igen call!
+  extern MRN::Stream * defaultStream;
+  tp->batchSampleDataCallbackFunc(defaultStream, 0, copyBatchBuffer);
+  
 #ifdef FREEDEBUG
-   timeStamp t2 = getWallTime();
-   if (t2-t1 > 15*timeLength::sec()) {
-     std::ostringstream errorLine;
-     errorLine << "++--++ TEST ++--++ batchSampleDataCallbackFunc took "
-               << t2-t1 << ", size= << "
-               << sizeof(T_dyninstRPC::batch_buffer_entry) << ", Kbytes="
-               << (sizeof(T_dyninstRPC::batch_buffer_entry) * 
-                   copyBatchBuffer.size()/1024.0F);
+  timeStamp t2 = getWallTime();
+  if (t2-t1 > 15*timeLength::sec()) {
+    std::ostringstream errorLine;
+    errorLine << "++--++ TEST ++--++ batchSampleDataCallbackFunc took "
+	      << t2-t1 << ", size= << "
+	      << sizeof(T_dyninstRPC::batch_buffer_entry) << ", Kbytes="
+	      << (sizeof(T_dyninstRPC::batch_buffer_entry) * 
+		  copyBatchBuffer.size()/1024.0F);
      logLine(errorLine.str().c_str());
-   }
+  }
 #endif
 
    BURST_HAS_COMPLETED = false;
@@ -547,37 +580,41 @@ void flush_batch_buffer() {
 }
 
 // temporary until front-end's pipeline gets converted
-u_int isMetricTimeType(const pdstring& met_name) {
+u_int isMetricTimeType(const pdstring& met_name)
+{
   unsigned size = mdl_data::cur_mdl_data->all_metrics.size();
   T_dyninstRPC::metricInfo element;
   unsigned u;
-  for (u=0; u<size; u++) {
-    //cerr << "checking " << met_name << " against " 
-    //    << mdl_data::cur_mdl_data->all_metrics[u]->name_ << "\n";
-    if (mdl_data::cur_mdl_data->all_metrics[u]->name_ == met_name) {
-      u_int mtype = mdl_data::cur_mdl_data->all_metrics[u]->type_;
-      return (mtype == MDL_T_PROC_TIMER || mtype == MDL_T_WALL_TIMER);
-    }
-  }
-
+  for (u=0; u<size; u++)
+		{
+			//cerr << "checking " << met_name << " against " 
+			//    << mdl_data::cur_mdl_data->all_metrics[u]->name_ << "\n";
+			if (mdl_data::cur_mdl_data->all_metrics[u]->name_ == met_name) {
+				u_int mtype = mdl_data::cur_mdl_data->all_metrics[u]->type_;
+				return (mtype == MDL_T_PROC_TIMER || mtype == MDL_T_WALL_TIMER);
+			}
+		}
+	
   unsigned isize = internalMetric::allInternalMetrics.size();
-  for (u=0; u<isize; u++) {
-    T_dyninstRPC::metricInfo metInfo;
-    metInfo = internalMetric::allInternalMetrics[u]->getInfo();
-    //cerr << "checking " << met_name << " against " << metInfo.name << "\n";
-    if(met_name == metInfo.name) {
-      return (metInfo.unitstype == Normalized);
-    }
-  }
-  for (unsigned u2=0; u2< costMetric::allCostMetrics.size(); u2++) {
-    T_dyninstRPC::metricInfo metInfo;
-    metInfo = costMetric::allCostMetrics[u2]->getInfo();
-    //cerr << "checking " << met_name << " against " << metInfo.name << "\n";
-    if(met_name == metInfo.name) {
-      return (metInfo.unitstype == Normalized);
-    }
-  }
-
+  for (u=0; u<isize; u++)
+		{
+			T_dyninstRPC::metricInfo metInfo;
+			metInfo = internalMetric::allInternalMetrics[u]->getInfo();
+			//cerr << "checking " << met_name << " against " << metInfo.name << "\n";
+			if(met_name == metInfo.name) {
+				return (metInfo.unitstype == Normalized);
+			}
+		}
+  for (unsigned u2=0; u2< costMetric::allCostMetrics.size(); u2++)
+		{
+			T_dyninstRPC::metricInfo metInfo;
+			metInfo = costMetric::allCostMetrics[u2]->getInfo();
+			//cerr << "checking " << met_name << " against " << metInfo.name << "\n";
+			if(met_name == metInfo.name) {
+				return (metInfo.unitstype == Normalized);
+			}
+		}
+	
   //  cerr << "mdl_get_type: mid " << met_name << " not found\n";
   assert(0);
   return 0;
@@ -589,6 +626,12 @@ void batchSampleData(pdstring metname, int mid, timeStamp startTimeStamp,
 {
    // This routine is called where we used to call tp->sampleDataCallbackFunc.
    // We buffer things up and eventually call tp->batchSampleDataCallbackFunc
+
+  //resource *r = resource::findResource(mid);
+  //if(r == NULL) 
+  //{
+  // fprintf(stderr,"%u metname = %s , mid = %u \n",getpid(),metname.c_str(),mid);
+  //}
 
 #ifdef notdef
    char myLogBuffer[120] ;
@@ -654,7 +697,8 @@ void flush_trace_batch_buffer(int program) {
 
    // Now let's do the actual igen call!
 
-   tp->batchTraceDataCallbackFunc(program, copyTraceBatchBuffer);
+   extern MRN::Stream * defaultStream;
+   tp->batchTraceDataCallbackFunc(defaultStream, program, copyTraceBatchBuffer);
 
    TRACE_BURST_HAS_COMPLETED = false;
    trace_batch_buffer_next = 0;
@@ -736,7 +780,8 @@ void disableAllInternalMetrics() {
       // Now loop thru all the enabled instances of this internal metric...
       while (theIMetric->num_enabled_instances() > 0) {
  	internalMetric::eachInstance &theInstance = theIMetric->getEnabledInstance(0);
-	tp->endOfDataCollection(theInstance.getMetricID());
+	extern MRN::Stream * defaultStream;
+	tp->endOfDataCollection(defaultStream, theInstance.getMetricID());
 	theIMetric->disableInstance(0);
       }
     }  

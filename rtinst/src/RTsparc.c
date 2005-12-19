@@ -39,48 +39,6 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/*
- * This file contains the implementation of runtime dynamic instrumentation
- *   functions for a normal Sparc with SUNOS.
- *
- * $Log: RTsparc.c,v $
- * Revision 1.13  2005/09/09 18:05:47  legendre
- * Reorganized both the Paradyn and Dyninst runtime libraries.  Some big chunks
- * of the Paradyn library that deal with threads were moved down into the
- * dyninst library.  We no longer have seperate runtime libraries for
- * threads and non-thread versions.
- *
- * Revision 1.12  2004/03/23 01:12:43  eli
- * Updated copyright string
- *
- * Revision 1.11  1999/08/27 21:04:02  zhichen
- * tidy up
- *
- * Revision 1.10  1996/08/16 21:27:44  tamches
- * updated copyright for release 1.1
- *
- * Revision 1.9  1996/02/01 17:48:37  naim
- * Fixing some problems related to timers and race conditions. I also tried to
- * make a more standard definition of certain procedures (e.g. reportTimer)
- * across all platforms - naim
- *
- * Revision 1.8  1994/11/12  17:32:12  rbi
- * removed /dev/kmem warning messages
- *
- * Revision 1.7  1994/11/11  10:39:10  markc
- * Commented out non-emergency printfs
- *
- * Revision 1.6  1994/09/20  18:25:00  hollings
- * removed call to getcmd since it was causing a SS-5 slow down.
- *
- * Revision 1.5  1994/07/14  23:34:08  hollings
- * added include of kludges.h
- *
- * Revision 1.4  1994/07/05  03:25:10  hollings
- * obsereved cost model.
- *
- */
-
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>

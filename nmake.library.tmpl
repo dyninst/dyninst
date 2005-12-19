@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: nmake.library.tmpl,v 1.8 2003/03/13 17:20:57 pcroth Exp $
+# $Id: nmake.library.tmpl,v 1.9 2005/12/19 19:41:38 pack Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -114,8 +114,8 @@ pure:
 # A few pattern rules for simplicity in handling igen-generated files.
 #
 
-%.xdr.C %.xdr.CLNT.C %.xdr.CLNT.h %.xdr.SRVR.C %.xdr.SRVR.h %.xdr.h: %.I
-	$(IGEN) -xdr $(ICFLAGS) $<
+%.mrnet.CLNT.C %.mrnet.CLNT.h %.mrnet.SRVR.C %.mrnet.SRVR.h %.mrnet.h: %.I
+	$(IGEN) -mrnet $(ICFLAGS) $<
 
 %.thread.C %.thread.CLNT.h %.thread.SRVR.h %.thread.h: %.I
 	$(IGEN) -thread $(ICFLAGS) $<

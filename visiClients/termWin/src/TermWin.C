@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: TermWin.C,v 1.4 2005/01/11 22:45:12 legendre Exp $
+// $Id: TermWin.C,v 1.5 2005/12/19 19:44:07 pack Exp $
 #include <signal.h>
 #include "common/h/headers.h"
 #include "visiClients/termWin/src/TermWin.h"

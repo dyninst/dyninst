@@ -87,6 +87,7 @@ extern resource *memoryResource;
 class resource {
 public:
   enum index { machine, procedure, sync_object, memory };
+  typedef unsigned int ChecksumType;
 
   inline resource();
   inline resource(const pdstring& abstraction, const pdstring& self_name,
@@ -120,11 +121,16 @@ public:
   bool is_top() const { return (parent() == NULL); }
 
   const pdstring full_name() const { 
+
     if (!parent())
       return name();
+
     pdstring full_name_ = slashStr + name();
-    for (resource *p = parent(); p && p->parent(); p = p->parent())
-      full_name_ = slashStr + p->part_name() + full_name_;
+
+    for (resource *p = parent(); p && p->parent(); p = p->parent()) {
+        full_name_ = slashStr + p->part_name() + full_name_;
+    }
+
     return full_name_;
   }
   const pdstring &part_name() const { return name_; }
@@ -177,7 +183,12 @@ public:
 
   inline void set_id(unsigned id);
   inline void set_displayname(const pdstring& dn);
+  ChecksumType get_Checksum( void );
+  static void report_ChecksumToFE( void  );
+  static void report_ResourcesToFE( void  );
 
+ public:
+  static dictionary_hash<pdstring, resource*> allResources;
 
 private:
   pdstring name_;                 // name of resource
@@ -192,9 +203,24 @@ private:
   ResourceType type_;         // the type of this resource (func, module, ...)
   unsigned mdlType_;            // the mdl type of this resource
 
-  static dictionary_hash<pdstring, resource*> allResources;
+  // static dictionary_hash<pdstring, resource*> allResources;
   static dictionary_hash<unsigned, resource*> res_dict;
+  ChecksumType checksum;
+  bool checksum_calculated;
+
+  ChecksumType calculate_Checksum( void );
+  bool is_CodeResource();
 };
+
+inline resource::ChecksumType resource::get_Checksum( )
+{
+    if( !checksum_calculated ){
+        checksum = calculate_Checksum();
+        checksum_calculated = true;
+    }
+
+    return checksum;
+}
 
 inline bool resource::isResourceDescendent(resource *is_a_parent) {
   resource *current = this;
@@ -211,7 +237,8 @@ inline resource::resource()
 : creation_(timeStamp::ts1970()),
   handle_(NULL),
   suppressed_(true),
-  parent_(NULL)
+     parent_(NULL),
+     checksum_calculated(false)
 { }
 
 inline resource::resource(const pdstring& abstraction,
@@ -226,7 +253,8 @@ inline resource::resource(const pdstring& abstraction,
   abstraction_(abstraction),
   creation_(creat), handle_(hand), suppressed_(supp), parent_(par),
   type_(type),
-  mdlType_(mdlType)
+  mdlType_(mdlType),
+     checksum_calculated(false),id_(0)
 { }
 
 inline resource *resource::findResource(unsigned name) {
@@ -275,5 +303,15 @@ inline void resource::set_displayname(const pdstring& dn){
   displayname_ = dn;
 }
 
+inline bool resource::is_CodeResource()
+{
+    if ( ( type_ == ModuleResourceType ) ||
+         ( type_ == FunctionResourceType ) ||
+         ( type_ == LoopResourceType ) ){
+        return true;
+    }
+
+    return false;
+}
 
 #endif

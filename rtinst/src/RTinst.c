@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.95 2005/12/12 16:37:41 gquinn Exp $
+ * $Id: RTinst.c,v 1.96 2005/12/19 19:43:52 pack Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -501,8 +501,6 @@ void PARADYNgenerateTraceRecord(short type, short length, void *eventData,
    DYNINSTuserMessage(trace_buffer, length+sizeof(traceHeader));
    dyninst_unlock(&trace_lock);                      
 }
-
-
 static DECLARE_DYNINST_LOCK(PARADYN_initLock);
 
 /*
@@ -537,3 +535,4 @@ void PARADYN_initialize_once()
  done:  
    dyninst_unlock(&PARADYN_initLock);
 }
+

@@ -42,6 +42,16 @@
 /*
  * 
  * $Log: stringPool.C,v $
+ * Revision 1.14  2005/12/19 19:43:50  pack
+ * MRNet replaces xdr for frontend to daemon communication.  New igen  - - -
+ * MRNet changes
+ *
+ * Revision 1.1.1.1  2004/11/05 22:17:47  darnold
+ * start
+ *
+ * Revision 1.1.1.1  2004/10/18 20:35:56  darnold
+ * Manual Branch for MRNet Integration based on Release_4.1
+ *
  * Revision 1.13  2004/03/23 01:12:42  eli
  * Updated copyright string
  *

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.h,v 1.41 2005/09/09 18:07:35 legendre Exp $
+// $Id: init.h,v 1.42 2005/12/19 19:42:55 pack Exp $
 
 #ifndef INIT_HDR
 #define INIT_HDR
@@ -118,21 +118,6 @@ extern void instMPI();
 extern pdvector<pdinstMapping*> initialRequestsPARADYN;//ccw 19 apr 2002 : SPLIT
 
 extern int numberOfCPUs;
-
-extern timeStamp  startStackwalk;
-extern timeLength elapsedStackwalkTime;
-extern bool       stackwalking;
-
-inline void startTimingStackwalk() {
-  startStackwalk = getWallTime();
-  stackwalking = true;
-}
-
-inline void stopTimingStackwalk() {
-  stackwalking = false;
-  if (startStackwalk.isInitialized())
-    elapsedStackwalkTime += (getWallTime() - startStackwalk);
-}
 
 void recvUserEvent(BPatch_process *p, void *buffer, unsigned size);
 

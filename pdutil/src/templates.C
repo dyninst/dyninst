@@ -41,7 +41,7 @@
 
 /*
  * Generate code for template classes used by libpdutil
- * $Id: templates.C,v 1.23 2004/03/23 01:12:42 eli Exp $
+ * $Id: templates.C,v 1.24 2005/12/19 19:43:51 pack Exp $
  */
 
 #include "common/src/Dictionary.C"
@@ -50,6 +50,7 @@
 #include "common/h/Time.h"
 #include "pdutil/h/pdSample.h"
 #include "pdutil/h/rpcUtil.h"
+#include "pdutil/h/hist.h"
 
 #if defined( i386_unknown_linux2_0 )
 #if ( __GNUC__ == 3 ) && ( __GNUC_MINOR__ == 1 )
@@ -62,7 +63,7 @@ template class pdvector<RPCSockCallbackFunc>;
 // MDL template support
 #include "common/h/Vector.h"
 #include "pdutil/h/mdlParse.h"
-#include "dyninstRPC.xdr.h"
+#include "dyninstRPC.mrnet.h"
 
 class daemonMet;
 class processMet;
@@ -77,6 +78,10 @@ template class pdvector<visiMet*>;
 template class pdvector<tunableMet*>;
 template class pdvector<string_list*>;
 template class pdvector<T_dyninstRPC::mdl_metric*>;
+template class pdvector<rpcBuffer*>;
+template class pdvector<Histogram*>;
+template class pdvector<int>;
+template class pdvector<pdstring>;
 
 
 #if defined(rs6000_ibm_aix4_1)

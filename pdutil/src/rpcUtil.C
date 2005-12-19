@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.96 2005/09/09 18:08:10 legendre Exp $
+// $Id: rpcUtil.C,v 1.97 2005/12/19 19:43:49 pack Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -59,7 +59,9 @@
 #include "pdutil/h/pdsocket.h"
 #include "pdutil/h/rpcUtil.h"
 #include "common/h/Types.h"  //Address
+#include "mrnet/MRNet.h"
 
+//using namespace MRN;
 const char *DEF_RSH_COMMAND="rsh";
 const char *RSH_COMMAND_ENV="PARADYN_RSH";
 
@@ -1115,7 +1117,7 @@ bool RPCgetArg(pdvector<pdstring> &arg, const char *input)
     strncpy(temp, word_start, word_len);
     temp[word_len] = '\0';
     arg += temp;
-    delete temp;
+    delete [] temp;
 
     /* skip past consecutive blanks */
     while ((index < length) && (input[index] == BLANK))
@@ -1550,3 +1552,33 @@ const pdstring getNetworkAddr (const pdstring hostname)
     return pdstring(inet_ntoa(in));
 }
 
+//---------------------------------------------------------------------
+MRNETrpc::~MRNETrpc()
+{
+}
+
+//
+// prepare for RPC's to be done/received on the passed fd.
+//
+MRNETrpc::MRNETrpc()
+{
+}
+
+//
+// prepare for RPC's to be done/received on the passed fd.
+//
+MRNETrpc::MRNETrpc(const pdstring &machine,
+		   const pdstring &user,
+		   const pdstring &program,
+		   const pdstring &remote_shell
+		   )
+{
+}
+
+MRNETrpc::MRNETrpc(int family,            
+		   int req_port,             
+		   int type,
+		   const pdstring machine)
+
+{
+}

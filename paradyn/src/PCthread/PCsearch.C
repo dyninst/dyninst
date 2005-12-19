@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: PCsearch.C,v 1.37 2005/01/11 22:45:03 legendre Exp $
+ * $Id: PCsearch.C,v 1.38 2005/12/19 19:42:22 pack Exp $
  * class PCsearch
  */
 
@@ -154,27 +154,27 @@ PCsearch::expandSearch (float estimatedCost)
       // print status to display but just once per blockage
       if ( !PCsearch::SearchThrottledBack && 
 	  (curr != PCsearch::SearchThrottleNode)) {
-	int dispToken = curr->getGuiToken();
-	pdstring *ds = new pdstring ("Search slowed:  Cost limit reached.");
-	uiMgr->updateStatusDisplay(dispToken, ds);
-	PCsearch::SearchThrottleNode = curr;
-	PCsearch::SearchThrottledBack = true;
+				int dispToken = curr->getGuiToken();
+				pdstring *ds = new pdstring ("Search slowed:  Cost limit reached.");
+				uiMgr->updateStatusDisplay(dispToken, ds);
+				PCsearch::SearchThrottleNode = curr;
+				PCsearch::SearchThrottledBack = true;
       }
     } else {
       curr->startExperiment();
       if (PCsearch::SearchThrottledBack) {
-	int dispToken = curr->getGuiToken();
-	pdstring *ds = new pdstring ("Search resumed.");
-	uiMgr->updateStatusDisplay(dispToken, ds);
-	PCsearch::SearchThrottledBack = false;
-	PCsearch::SearchThrottleNode = NULL;
+				int dispToken = curr->getGuiToken();
+				pdstring *ds = new pdstring ("Search resumed.");
+				uiMgr->updateStatusDisplay(dispToken, ds);
+				PCsearch::SearchThrottledBack = false;
+				PCsearch::SearchThrottleNode = NULL;
       }
       if (q == &GlobalSearchQueue) {
-	PCsearch::PendingGlobalSearches += 1;
-	PCsearch::PendingGlobalCost += candidateCost;
+				PCsearch::PendingGlobalSearches += 1;
+				PCsearch::PendingGlobalCost += candidateCost;
       } else {
-	PCsearch::PendingCurrentSearches += 1;
-	PCsearch::PendingCurrentCost += candidateCost;
+				PCsearch::PendingCurrentSearches += 1;
+				PCsearch::PendingCurrentCost += candidateCost;
       }
       q->delete_first();
     }

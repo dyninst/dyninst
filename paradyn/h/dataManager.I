@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.118 2005/02/15 17:43:57 legendre Exp $
+ * $Id: dataManager.I,v 1.119 2005/12/19 19:42:11 pack Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -9,7 +9,7 @@
 #include "common/h/List.h"
 #include "common/h/Time.h"
 #include "pdutil/h/pdSample.h"
-#include "dyninstRPC.xdr.h"
+#include "dyninstRPC.mrnet.h"
 #include "visi.xdr.h"
 #include "pdutil/h/stringPool.h"
 #include "paradyn/src/DMthread/DMinclude.h"
@@ -195,13 +195,15 @@ $remote dataManager {
     //            as null, anything else will be assumed to be a
     //            valid string.
      bool defineDaemon (const char *command,
-     	                const char *dir,
-     	                const char *login,
-                        const char *name,
-     	                const char *machine,
-                        const char *remote_shell,
-                        const char *MPI_type,
-                        const char *flavor);
+			const char *dir,
+			const char *login,
+			const char *name,
+			const char *machine,
+			const char *remote_shell,
+			const char *flavor,
+			const char *mrnet_topology,
+			const char *MPI_type,
+	    bool just_define);
 
     //
     // Define a program to run. 
@@ -214,11 +216,12 @@ $remote dataManager {
     //            as null, anything else will be assumed to be a
     //            valid string.
     $async void addExecutable(const char *machine, 
-		       const char *login, 
-		       const char *name, 
-	          const char *dir,
-             const char *MPItype,
-		       const pdvector<pdstring> *argv);
+		       	const char *login, 
+		       	const char *name, 
+	          	const char *dir,
+             		const char *mrnet_topology,
+             		const char *MPItype,
+		       	const pdvector<pdstring> *argv);
 
     // Attach is the other way to start a process...newly implemented with v1.2
     bool attach(const char *machine,

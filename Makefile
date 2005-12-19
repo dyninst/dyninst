@@ -1,7 +1,7 @@
 #
 # TopLevel Makefile for the Paradyn (and DyninstAPI) system.
 #
-# $Id: Makefile,v 1.72 2005/10/17 19:14:24 bpellin Exp $
+# $Id: Makefile,v 1.73 2005/12/19 19:41:34 pack Exp $
 #
 
 TO_CORE = .
@@ -28,7 +28,8 @@ ParadynVC	= visi \
 		visiClients/tableVisi visiClients/phaseTable \
 		visiClients/histVisi visiClients/terrain \
 		visiClients/termWin
-subSystems	= $(ParadynD) $(ParadynFE) $(ParadynVC)
+
+subSystems	= $(basicComps) $(ParadynD) $(ParadynFE) $(ParadynVC)
 DyninstAPI	= ready dyninstAPI_RT dyninstAPI dyninstAPI/tests testsuite dyner codeCoverage
 
 allSubdirs	= $(basicComps) $(subSystems) dyninstAPI dyninstAPI_RT dyninstAPI/tests testsuite dyner codeCoverage
