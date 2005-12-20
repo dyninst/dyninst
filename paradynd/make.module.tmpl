@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.87 2005/12/19 19:42:41 pack Exp $
+# $Id: make.module.tmpl,v 1.88 2005/12/20 02:33:54 pack Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
@@ -107,7 +107,6 @@ SRCS	     += ../../dyninstAPI/src/ast.C \
 		../src/papiMgr.C \
 		../src/processMgr.C \
 		../src/pd_process.C \
-		../src/CallGraph.C \
 		../src/pd_image.C \
 		../src/pd_module.C \
 		../src/threadMgr.C \
