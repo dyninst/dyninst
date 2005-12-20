@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMtime-unix.C,v 1.3 2004/03/23 01:12:26 eli Exp $
+ * $Id: DMtime-unix.C,v 1.4 2005/12/20 00:19:39 pack Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "DMinclude.h"

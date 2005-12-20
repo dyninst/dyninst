@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.77 2005/03/14 17:33:08 mjbrim Exp $
+// $Id: DMresource.C,v 1.78 2005/12/20 00:19:36 pack Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -271,10 +271,17 @@ resource::create( pdstring resName,
     pdstring resFlatName = ((parent != rootResource) ?
                             parent->getFullName() : pdstring("")) +
                          "/" + resName;
+
+
+
+    //fprintf(stderr,"Resource name = %s\n",resFlatName.c_str());
+
+
     if( resource::allResources.find( resFlatName, ret ) )
     {
         return ret;
     }
+    //fprintf(stderr,"Resource name = %s\n",resFlatName.c_str());
 
     // the resource does not already exist, so create it
     ret = new resource( resName, type, mdlType, parent, resId );
@@ -632,29 +639,34 @@ resource *resource::string_to_resource(const pdstring &res) {
 // created, this routine creates the list from the mdl_data list
 bool resource::get_lib_constraints(pdvector<pdstring> &list, pdvector<unsigned> &flags){
  
-    if(!lib_constraints_built) {
+    if(!lib_constraints_built)
+      {
         pdvector<pdstring> temp;
-		pdvector<unsigned> tmp_flags;
+	pdvector<unsigned> tmp_flags;
 	// create list
-        if(mdl_get_lib_constraints(temp, tmp_flags)){
-
-	    for(u_int i=0; i < temp.size(); i++) {
+        if(mdl_get_lib_constraints(temp, tmp_flags))
+	  {
+	    
+	    for(u_int i=0; i < temp.size(); i++) 
+	      {
                 // if the pdstring is of the form "blah/blah" then this
 	        // is a function constraint so don't add it to the
 	        // list of lib constraints
 		char *next = P_strdup((temp[i].c_str()));
-		if(next && (!P_strrchr(next, '/'))){
+		if(next && (!P_strrchr(next, '/')))
+		  {
 		    lib_constraints += pdstring(next);
 		    lib_constraint_flags += tmp_flags[i];
-		}
+		  }
 	        delete next;
-	    }
-        }
-    }
-    for(u_int i=0; i < lib_constraints.size(); i++){
-            list += lib_constraints[i];
-			flags += lib_constraint_flags[i];
-    }
+	      }
+	  }
+      }
+    for(u_int i=0; i < lib_constraints.size(); i++)
+      {
+	list += lib_constraints[i];
+	flags += lib_constraint_flags[i];
+      }
     lib_constraints_built = true;
     return lib_constraints.size();
 }
@@ -663,57 +675,65 @@ bool resource::get_lib_constraints(pdvector<pdstring> &list, pdvector<unsigned> 
 // get_func_constraints: returns true if there is a list of func constraints
 // specified by the mdl exclude_func option.  If the list has not yet been 
 // created, this routine creates the list from the mdl_data list
-bool resource::get_func_constraints(pdvector< pdvector<pdstring> > &list, pdvector<unsigned> &flags){
+bool resource::get_func_constraints(pdvector< pdvector<pdstring> > &list, pdvector<unsigned> &flags)
+{
  
-    if(!func_constraints_built) {
+    if(!func_constraints_built)
+      {
         pdvector< pdstring > temp;
-		pdvector<unsigned> tmp_flags;
+	pdvector<unsigned> tmp_flags;
 	// create list
-        if(mdl_get_lib_constraints(temp, tmp_flags)){
-	    for(u_int i=0; i < temp.size(); i++){
+        if(mdl_get_lib_constraints(temp, tmp_flags))
+	  {
+	    for(u_int i=0; i < temp.size(); i++)
+	      {
                 // if the pdstring is of the form "blah/blah" then this
 	        // is a function constraint so add it to the list 
 		char *next = P_strdup((temp[i].c_str()));
-		if(next && (P_strrchr(next, '/'))) {
-		  u_int where = 0;
-		  u_int prev_where = where;
-		  for(u_int j=0; j< temp[i].length();j++){
-                    if(next[j] == '/'){
-		       prev_where = where;
-		       where = j+1; 
-		    }
-		  }
-		  assert(where < temp[i].length());
-		  assert(where > prev_where);
-		  pdvector<pdstring> func_consts;
-		  // module name
-		  u_int size = where-prev_where;
-		  char *temp_str = new char[size]; 
-	          if(P_strncpy(temp_str,&(next[prev_where]),size-1)){
-		    temp_str[size-1] = '\0';
-		    pdstring blah(temp_str);
-		    func_consts += blah; 
+		if(next && (P_strrchr(next, '/')))
+		  {
+		    u_int where = 0;
+		    u_int prev_where = where;
+		    for(u_int j=0; j< temp[i].length();j++)
+		      {
+			if(next[j] == '/'){
+			  prev_where = where;
+			  where = j+1; 
+			}
+		      }
+		    assert(where < temp[i].length());
+		    assert(where > prev_where);
+		    pdvector<pdstring> func_consts;
+		    // module name
+		    u_int size = where-prev_where;
+		    char *temp_str = new char[size]; 
+		    if(P_strncpy(temp_str,&(next[prev_where]),size-1))
+		      {
+			temp_str[size-1] = '\0';
+			pdstring blah(temp_str);
+			func_consts += blah; 
 
-		    // function name
-		    func_consts += pdstring(&(next[where])); 
-		    assert(func_consts.size() == 2);
-		    func_constraints += func_consts; 
+			// function name
+			func_consts += pdstring(&(next[where])); 
+			assert(func_consts.size() == 2);
+			func_constraints += func_consts; 
 
 			// constraint flags
 			func_constraint_flags += tmp_flags[i];
+		      }
+		    delete [] temp_str;
 		  }
-		  delete [] temp_str;
-		}
-	        if(next) delete next;
-	    }
-        }
-    }
+	        if(next) 
+		  delete next;
+	      }
+	  }
+      }
     for(u_int i=0; i < func_constraints.size(); i++){
-            list += func_constraints[i];
-			flags += func_constraint_flags[i];
+      list += func_constraints[i];
+      flags += func_constraint_flags[i];
     }
     func_constraints_built = true;
-
+    
     return func_constraints.size();
 }
 
@@ -774,10 +794,17 @@ pdstring resource::DMcreateRLname(const pdvector<resourceHandle> &res) {
 resourceList::resourceList(const pdvector<resourceHandle> &res){
     // create a unique name
     pdstring temp = resource::DMcreateRLname(res);
+    /*
+    cerr << "resourceList::resourceList(const pdvector<resourceHandle> &res)"
+     << " called" << endl;
+    cerr << " temp (name string) = " << temp << endl;
 
-    //cerr << "resourceList::resourceList(const pdvector<resourceHandle> &res)"
-    // << " called" << endl;
-    //cerr << " temp (name string) = " << temp << endl;
+    for(unsigned i = 0 ; i < res.size(); i++)
+      {
+	fprintf(stderr,"resourceList::resourceList handle[%u] = %u\n",i,res[i]);
+      }
+
+    */
 
     if(!allFoci.defines(temp)){
         id = foci.size();
@@ -789,6 +816,11 @@ resourceList::resourceList(const pdvector<resourceHandle> &res){
         // create elements pdvector 
         for(unsigned i=0; i < res.size(); i++){
 	    resource *r = resource::handle_to_resource(res[i]);
+
+
+	    // fprintf(stderr,"IN DMresource.C resourceList::resourceList  r->getHandle() = %u\n",getHandle());
+	    // fprintf(stderr,"IN DMresource.C resourceList::resourceList  r->getName() = %u\n",getName());
+
 	    if(r){
 	        elements += r;
 		if(r->getSuppress()){
@@ -857,6 +889,10 @@ bool resourceList::convertToStringList(pdvector< pdvector<pdstring> > &fs) {
 
 bool resourceList::convertToIDList(pdvector<resourceHandle> &fs) {
     for (unsigned i=0; i < elements.size(); i++){
+
+      //fprintf(stderr,"In resourceList::convertToIDList elements[%u]->getHandle() = %u\n",i,elements[i]->getHandle());
+      //fprintf(stderr,"In resourceList::convertToIDList elements[%u]->getName() = %s\n",i,(elements[i]->getName()));
+      //fprintf(stderr,"^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n");
         fs += elements[i]->getHandle();
     }
     return true;

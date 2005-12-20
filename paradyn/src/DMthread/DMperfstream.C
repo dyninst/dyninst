@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMperfstream.C,v 1.37 2005/01/28 18:12:03 legendre Exp $
+// $Id: DMperfstream.C,v 1.38 2005/12/20 00:19:32 pack Exp $
 
 #include <assert.h>
 #include <limits.h>     // UINT_MAX

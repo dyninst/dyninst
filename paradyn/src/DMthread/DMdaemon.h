@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.71 2005/01/28 18:12:03 legendre Exp $
+// $Id: DMdaemon.h,v 1.72 2005/12/20 00:19:23 pack Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -55,11 +55,13 @@
 #include "common/h/Time.h"
 #include "dataManager.thread.h"
 #include "dataManager.thread.SRVR.h"
-#include "dyninstRPC.xdr.CLNT.h"
+#include "dyninstRPC.mrnet.CLNT.h"
 #include "../UIthread/Status.h"
 #include "DMinclude.h"
 #include "DMresource.h"
 #include "DMperfstream.h"
+
+#include "mrnet/MRNet.h"
 
 class metricInstance;
 class metric;
@@ -67,24 +69,32 @@ class metric;
 
 // hash functions for dictionary members
 inline unsigned uiHash(const unsigned &ptr) {
-  return (ptr >> 4);
+    return (ptr >> 4);
 }
 
 // an entry in the daemon dictionary
 // initial entries are obtained from Paradyn config files
+    //	       machine(m),
 class daemonEntry {
 
 public:
   daemonEntry (){ }
+
   daemonEntry (const pdstring &m, const pdstring &c, const pdstring &n,
 	       const pdstring &l, const pdstring &, const pdstring &r,
-		   const pdstring & MPIt, const pdstring &f) : 
-	       machine(m), command(c), name(n), login(l),
-	       dir(0), remote_shell(r), MPItype(MPIt), flavor(f) { }
+	       const pdstring &f, const pdstring &t,
+	       const pdstring &MPIt) : 
+    command(c), name(n), login(l),
+    dir(0), remote_shell(r), flavor(f), mrnet_topology(t),
+    MPItype(MPIt) { }
+
   ~daemonEntry() { }
+
   bool setAll(const pdstring &m, const pdstring &c, const pdstring &n,
 	      const pdstring &l, const pdstring &d, const pdstring &r,
-		  const pdstring & MPIt, const pdstring &f);
+	      const pdstring &f, const pdstring &t,
+	      const pdstring & MPIt);
+
   void print();
   const char *getCommand() const { return command.c_str();}
   const char *getName() const { return name.c_str();}
@@ -92,13 +102,20 @@ public:
   const char *getDir() const { return dir.c_str();}
   const char *getMachine() const { return machine.c_str();}
   const char *getFlavor() const { return flavor.c_str();}
+
+  const char *getMRNetTopology() const { return mrnet_topology.c_str();}
+
   const char * getMPItype() const {return MPItype.c_str();}
+
   const pdstring &getNameString() const { return name;}
   const pdstring &getMachineString() const { return machine;}
   const pdstring &getCommandString() const { return command;}
   const pdstring getRemoteShellString() const;
-  const pdstring getMPItypeString() const {return MPItype;}
+  const pdstring getMPItypeString() const {
+		return MPItype;
+	}
   const pdstring &getFlavorString() const { return flavor;}
+  const pdstring &getMRNetTopologyString() const { return mrnet_topology;}
 
   void setMPItype(pdstring type){ MPItype = type;}
 
@@ -109,8 +126,9 @@ private:
   pdstring login;
   pdstring dir;
   pdstring remote_shell;
-  pdstring MPItype;
   pdstring flavor;
+  pdstring mrnet_topology;
+  pdstring MPItype;
 };
 
 //
@@ -119,10 +137,10 @@ private:
 class executable {
     public:
 	executable(unsigned id, const pdvector<pdstring> &av, paradynDaemon *p)
-		 : pid(id), argv(av), controlPath(p) { exited = false; }
+        : pid(id), argv(av), controlPath(p) { exited = false; }
 	unsigned pid;
-        pdvector<pdstring> argv;
-        paradynDaemon *controlPath;
+    pdvector<pdstring> argv;
+    paradynDaemon *controlPath;
 	bool exited; // true if this process has exited
 };
 
@@ -157,7 +175,30 @@ class paradynDaemon: public dynRPCUser {
 			      phaseHandle,u_int,u_int,u_int);
    friend class metricFocusReq_Val; // access to disabledMids
    
-  public:
+ public:
+   static pdvector<paradynDaemon*>  allDaemons;
+   static dictionary_hash<pdstring, pdvector<paradynDaemon*> > daemonsByHost;
+   static dictionary_hash<unsigned, paradynDaemon* > daemonsById;
+
+   MRN::Network * getNetwork() const { return network; }
+   MRN::EndPoint * getEndPoint() const { return endpoint; }
+   MRN::Communicator * getCommunicator() const { return communicator; }
+   void setCommunicator(MRN::Communicator * com)
+		 {
+			 communicator = com;
+		 }
+   u_int get_id() { return id; }
+   void setDaemonId(unsigned id);
+   unsigned getDaemonId(unsigned id);
+
+   const pdstring &getMachineName() const {return machine;}
+
+   static paradynDaemon *getDaemonById(unsigned id) {
+      assert(id < allDaemons.size());
+      return allDaemons[id];
+   }
+
+   
    struct MPICHWrapperInfo
    {
       pdstring	filename;
@@ -193,35 +234,46 @@ class paradynDaemon: public dynRPCUser {
    paradynDaemon(const pdstring &m, const pdstring &u, const pdstring &c,
 		 const pdstring &r, const pdstring &n, const pdstring &flav);
    paradynDaemon(PDSOCKET use_sock); // remaining values are set via a callback
+   paradynDaemon(MRN::Network *, MRN::EndPoint *, pdstring &m, pdstring &l,
+                 pdstring &n, pdstring &f);
    ~paradynDaemon();
    
    // replace the igen provided error handler
    virtual void handle_error();
-   virtual void setDaemonStartTime(int, double startTime);
-   virtual void setInitialActualValueFE(int mid, double initActualVal);
-   virtual void reportStatus(pdstring);
-   virtual void processStatus(int pid, u_int stat);
-   virtual void reportSelf (pdstring m, pdstring p, int pd, pdstring flav);
-   virtual void batchSampleDataCallbackFunc(int program,
+   virtual void setDaemonStartTime(MRN::Stream *, int, double startTime);
+   virtual void setInitialActualValueFE(MRN::Stream *, int mid, double initActualVal);
+   virtual void reportStatus(MRN::Stream *, pdstring);
+   virtual void processStatus(MRN::Stream *, int pid, u_int stat);
+   virtual void reportSelf (MRN::Stream *, pdstring m, pdstring p, int pd, pdstring flav);
+   virtual void batchSampleDataCallbackFunc(MRN::Stream *, int program,
 				    pdvector<T_dyninstRPC::batch_buffer_entry>);
    // trace data streams
-   virtual void batchTraceDataCallbackFunc(int program,
+   virtual void batchTraceDataCallbackFunc(MRN::Stream *, int program,
 			      pdvector<T_dyninstRPC::trace_batch_buffer_entry>);
    
-   virtual void cpDataCallbackFunc(int, double, int, double, double);
+   virtual void cpDataCallbackFunc(MRN::Stream *, int, double, int, double, double);
    
-   virtual void endOfDataCollection(int);
-   virtual void retiredResource(pdstring res);
-   virtual void resourceInfoCallback(unsigned int,
+   virtual void endOfDataCollection(MRN::Stream *, int);
+
+   virtual void resourceReportsDone( MRN::Stream *, int );
+
+   virtual void retiredResource(MRN::Stream *, pdstring res);
+
+   virtual void resourceEquivClassReportCallback(MRN::Stream *s, 
+						 pdvector<T_dyninstRPC::equiv_class_entry> );
+   virtual void callGraphEquivClassReportCallback(MRN::Stream *s, 
+						 pdvector<T_dyninstRPC::equiv_class_entry> );
+
+
+   virtual void resourceInfoCallback(MRN::Stream *, unsigned int,
                                      pdvector<pdstring> resource_name,
                                      pdstring abstr,
                                      u_int type,
                                      u_int mdlType);
-   virtual void severalResourceInfoCallback(pdvector<T_dyninstRPC::resourceInfoCallbackStruct>);
-   virtual void resourceUpdateCallback( pdvector<pdstring> resource_name,
-                                      pdvector<pdstring> display_name,
-                                      pdstring abstr);
-   virtual void resourceBatchMode(bool onNow);  
+   virtual void severalResourceInfoCallback(MRN::Stream *,pdvector<T_dyninstRPC::resourceInfoCallbackStruct>);
+   virtual void resourceUpdateCallback(MRN::Stream *      , pdvector<pdstring> resource_name, pdvector<pdstring> display_name, pdstring abstraction);
+   virtual void resourceBatchMode(MRN::Stream *,bool onNow);  
+
    void reportResources();
    
    void getProcStats(int *numProcsForDmn, int *numProcsExited);
@@ -239,9 +291,18 @@ class paradynDaemon: public dynRPCUser {
    }
    void setTimeFactor(timeLength timef) {
       time_factor = timef;
+      //assert(time_factor>relTimeStamp::Zero());
    }
    timeLength getTimeFactor() { return time_factor; }
+
    timeStamp getAdjustedTime(timeStamp time) { 
+		 /*
+     cerr << "IN getAdjustedTime time " << time << endl;
+     cerr << "IN getAdjustedTime time_factor " << time_factor << endl;
+     cerr << "IN getAdjustedTime time+time_factor " << (time+time_factor) << endl;
+     cerr << "IN getAdjustedTime relTimeStamp::Zero() " << relTimeStamp::Zero() << endl;
+		 */
+     //assert((time + time_factor) > relTimeStamp::Zero());
       return time + time_factor; 
    }
    timeLength getMaxNetworkDelay() {
@@ -249,9 +310,6 @@ class paradynDaemon: public dynRPCUser {
    }
    void setMaxNetworkDelay(timeLength maxNetDelay) {
       maxNetworkDelay = maxNetDelay;
-   }
-   u_int get_id() {
-      return id;
    }
    // calls attemptUpdateAggDelay(timeLength) after querying the
    // network delay
@@ -263,7 +321,8 @@ class paradynDaemon: public dynRPCUser {
    void calc_FE_DMN_Times(timeLength *networkDelay,
 			  timeLength *timeAdjustment);
    // the value 5 for samplesToTake is rather arbitrary
-   timeLength updateTimeAdjustment(const int samplesToTake = 5);
+   timeLength updateTimeAdjustment2(const int samplesToTake = 5);
+   static bool updateTimeAdjustment( );
    
    thread_t	getSocketTid( void ) const	{ return stid; }
 
@@ -278,7 +337,10 @@ class paradynDaemon: public dynRPCUser {
    static bool defineDaemon(const char *command, const char *dir,
 			    const char *login, const char *name,
 			    const char *machine, const char *remote_shell,
-			    const char * MPItype, const char *flavor);
+			    const char *flavor, const char *mrnet_config,
+			    const char * MPItype,
+				  const bool just_define);
+
 
    // start a new program; propagate all enabled metrics to it   
    static bool addRunningProgram(int pid, const pdvector<pdstring> &paradynd_argv, 
@@ -288,7 +350,8 @@ class paradynDaemon: public dynRPCUser {
    // launch new process   
    static bool newExecutable(const pdstring &machineArg, 
 			     const pdstring &login, const pdstring &name, 
-			     const pdstring &dir, 
+			     const pdstring &dir,
+			     const pdstring &mrnet_topology,
 			     const pdstring &MPItype, 
 			     const pdvector<pdstring> &argv);
 
@@ -301,7 +364,6 @@ class paradynDaemon: public dynRPCUser {
 			  int afterAttach // 0 --> as is, 1 --> pause, 2 -->run
 			  );
    
-   static bool addDaemon(PDSOCKET sock);
    static bool detachApplication(bool);
    static void removeDaemon(paradynDaemon *d, bool informUser);
    
@@ -318,8 +380,10 @@ class paradynDaemon: public dynRPCUser {
    static bool setInstSuppress(resource *, bool);
 
    static void findMatchingDaemons(metricInstance *mi, 
-				   pdvector<paradynDaemon *> &matchingDaemons);
+				   pdvector<paradynDaemon *> *matchingDaemons);
 
+   static void getMatchingDaemons(pdvector<metricInstance *> *miVec,
+                                  pdvector<paradynDaemon *> *matching_daemons);
    // sets the name of the daemon to use
    static bool setDefaultArgs(char *&name);
    
@@ -343,18 +407,14 @@ class paradynDaemon: public dynRPCUser {
 					resourceListHandle, resourceList*,
 					metric*, u_int);
    static float currentSmoothObsCost();
-   const pdstring &getMachineName() const {return machine;}
-   
-   static paradynDaemon *getDaemonById(unsigned id) {
-      assert(id < allDaemons.size());
-      return allDaemons[id];
-   }
 
-   // list of all active daemons: one for each unique name/machine pair 
-   static pdvector<paradynDaemon*>  allDaemons;
-    static dictionary_hash<pdstring, pdvector<paradynDaemon*> > daemonsByHost;
+   static unsigned int num_dmns_to_report_resources;
    
  private:
+    MRN::Network *network; //mrnet network to which daemon belongs
+    MRN::EndPoint *endpoint; //endpoint for daemon in mrnet network
+    MRN::Communicator *communicator; //endpoint for daemon in mrnet network
+
    bool   dead;	// has there been an error on the link.
    pdstring machine;
    pdstring login;
@@ -362,6 +422,8 @@ class paradynDaemon: public dynRPCUser {
    pdstring name;
    pdstring flavor;
    u_int id;
+
+   unsigned daemonId;
 
    // What to do with the process after an attach
    // 0: leave as is
@@ -388,7 +450,7 @@ class paradynDaemon: public dynRPCUser {
    pdvector<u_int> newResourceTempIds;
    pdvector<resourceHandle> newResourceHandles;
    pdvector<int> pidsThatAreMonitored;
-   static u_int count;
+   static u_int countSync;
    
    static timeStamp earliestStartTime;
    
@@ -413,6 +475,6 @@ class paradynDaemon: public dynRPCUser {
    
    void propagateMetrics();
    void addProcessInfo(const pdvector<pdstring> &resource_name);
-   void SendMDLFiles( void );
+   void SendMDLFiles( MRN::Stream * stream );
 };
 #endif

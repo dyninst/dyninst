@@ -42,6 +42,16 @@
 /*
  * Classes and prototypes for Abstraction specific code
  * $Log: DMabstractions.h,v $
+ * Revision 1.10  2005/12/20 00:19:20  pack
+ * RNet new igen  - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+ * front end files
+ *
+ * Revision 1.1.1.1  2004/11/05 22:17:44  darnold
+ * start
+ *
+ * Revision 1.1.1.1  2004/10/18 20:35:56  darnold
+ * Manual Branch for MRNet Integration based on Release_4.1
+ *
  * Revision 1.9  2004/03/23 01:12:25  eli
  * Updated copyright string
  *

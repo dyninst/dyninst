@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMinclude.h,v 1.26 2004/06/21 19:37:11 pcroth Exp $
+// $Id: DMinclude.h,v 1.27 2005/12/20 00:19:24 pack Exp $
 
 #ifndef dminclude_H
 #define dminclude_H

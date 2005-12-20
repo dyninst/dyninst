@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.h,v 1.57 2005/02/14 23:19:46 mjbrim Exp $
+// $Id: DMresource.h,v 1.58 2005/12/20 00:19:37 pack Exp $
 
 #ifndef DMresource_H 
 #define DMresource_H

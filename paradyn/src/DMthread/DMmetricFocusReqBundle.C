@@ -423,10 +423,11 @@ void metricFocusReqBundle::updateWithEnableCallback(
 
 static unsigned hashfunc(const unsigned &k) { return (k % 101); }
 
-void metricFocusReqBundle::enableWithDaemons() {
+void metricFocusReqBundle::enableWithDaemons() 
+{
   dictionary_hash<unsigned, metricFocusReq *>::iterator mfiter =
     mfRequests.begin();
-
+	
   //These are stored per-daemon, by the daemon ID
   // So metric_ids[5] would be the metric ids for daemon 5
   dictionary_hash<unsigned, pdvector<unsigned> > metric_ids(hashfunc);
@@ -434,38 +435,53 @@ void metricFocusReqBundle::enableWithDaemons() {
   dictionary_hash<unsigned, pdvector<pdstring> > metric_names(hashfunc);
 
   for (; mfiter != mfRequests.end(); mfiter++)
-  {
-    metricFocusReq *cur_mfReq = (*mfiter);
-    if(cur_mfReq->requestSentToDaemon())
-      continue;
-
-    metricInstance *cur_mi = cur_mfReq->getMetricInst();
-    pdvector<paradynDaemon *> &daemons = cur_mfReq->requestedDaemons();
-    for (unsigned i=0; i<daemons.size(); i++)
-    {
-      unsigned daemon_id = daemons[i]->get_id();
-
-      metric_ids[daemon_id].push_back(cur_mi->getHandle());
-
-      T_dyninstRPC::focusStruct focus;
-      bool result = cur_mi->convertToIDList(focus.focus);
-      assert(result);
-      foci[daemon_id].push_back(focus);
-      
-      metric_names[daemon_id].push_back(cur_mi->getMetricName());
-      
-      cur_mi->setCurrentlyEnabling();
-      cur_mfReq->setRequestSentToDaemon();
-    }
-  }
+		{
+			metricFocusReq *cur_mfReq = (*mfiter);
+			if(cur_mfReq->requestSentToDaemon())
+				continue;
+			
+			metricInstance *cur_mi = cur_mfReq->getMetricInst();
+			pdvector<paradynDaemon *> &daemons = cur_mfReq->requestedDaemons();
+			for (unsigned i=0; i<daemons.size(); i++)
+				{
+					unsigned daemon_id = daemons[i]->get_id();
+					
+					//fprintf(stderr,"daemons[%u]->get_id = %u\n",i,daemon_id);
+					
+					metric_ids[daemon_id].push_back(cur_mi->getHandle());
+					
+					T_dyninstRPC::focusStruct focus;
+					
+					bool result = cur_mi->convertToIDList(focus.focus);
+					assert(result);
+					for(unsigned u = 0 ; u < focus.focus.size(); u++)
+						{
+							resource* r = resource::handle_to_resource(focus.focus[u]);
+						}
+					foci[daemon_id].push_back(focus);
+					
+					metric_names[daemon_id].push_back(cur_mi->getMetricName());
+					
+					cur_mi->setCurrentlyEnabling();
+					cur_mfReq->setRequestSentToDaemon();
+				}
+		}
 
   dictionary_hash<unsigned, pdvector<unsigned> >::iterator diter = 
     metric_ids.begin();
   for(; diter != metric_ids.end(); diter++)
-  {
-    unsigned pd_id = diter.currkey();
-    paradynDaemon *pd = paradynDaemon::getDaemonById(pd_id);
-    pd->enableDataCollection(foci[pd_id], metric_names[pd_id], metric_ids[pd_id],
-			     pd_id, request_id);
-  }
+		{
+			unsigned pd_id = diter.currkey();
+			paradynDaemon *pd = paradynDaemon::getDaemonById(pd_id);
+
+			//paradynDaemon *pd = paradynDaemon::allDaemons[pd_id];
+
+			MRN::Stream * stream =  pd->getNetwork()->new_Stream( pd->getCommunicator() );
+
+			pd->enableDataCollection(stream,foci[pd_id], metric_names[pd_id], metric_ids[pd_id],
+															 pd_id, request_id);
+			stream->flush();
+			delete stream;
+
+		}
 }

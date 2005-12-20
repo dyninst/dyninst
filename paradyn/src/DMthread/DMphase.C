@@ -96,7 +96,12 @@ void phaseInfo::startPhase(const pdstring &name, bool with_new_pc,
         paradynDaemon* pd = paradynDaemon::allDaemons[0];
         assert( pd != NULL );
 
-        timeStamp curTime( pd->getTime(), timeUnit::sec(), timeBase::bStd() );
+	MRN::Stream * local_stream = paradynDaemon::allDaemons[0]->network->new_Stream(paradynDaemon::allDaemons[0]->network->get_BroadcastCommunicator(),MRN::TFILTER_NULL);
+	// Stream * stream = pd->network->new_Stream( pd->communicator );
+        pdvector< double > ret = pd->getTime( local_stream );
+        delete local_stream;
+
+        timeStamp curTime( ret[0], timeUnit::sec(), timeBase::bStd() );
         timeLength adjTime( pd->getAdjustedTime( curTime ) - 
                             pd->getAdjustedTime( pd->getStartTime()) );
         start_time = relTimeStamp( adjTime );

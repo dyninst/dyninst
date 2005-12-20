@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.149 2005/02/15 17:43:59 legendre Exp $
+// $Id: DMpublic.C,v 1.150 2005/12/20 00:19:35 pack Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -49,10 +49,10 @@ extern "C" {
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
+#include "dyninstRPC.mrnet.CLNT.h"
 #include "dataManager.thread.h"
 #include "dataManager.thread.SRVR.h"
 #include "dataManager.thread.CLNT.h"
-#include "dyninstRPC.xdr.CLNT.h"
 #include "visi.xdr.h"
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -201,19 +201,22 @@ bool dataManager::defineDaemon(const char *command,
 			       const char *login,
 			       const char *name,
 			       const char *machine,
-				   const char *remote_shell,
-                               const char *MPI_type,
-			       const char *flavor)
+			       const char *remote_shell,
+			       const char *flavor,
+			       const char *mrnet_topology,
+						 const char *MPI_type,
+						 bool just_define)
 {
   if(!name || !command)
       return false;
-  return (paradynDaemon::defineDaemon(command, dir, login, name, machine, remote_shell, MPI_type, flavor));
+  return (paradynDaemon::defineDaemon(command, dir, login, name, machine, remote_shell, flavor, mrnet_topology, MPI_type, just_define));
 }
 
 void dataManager::addExecutable(const char *machine,
 				const char *login,
 				const char *name,
 				const char *dir,
+				const char *mrnet_topology,
 				const char *MPItype,
 				const pdvector<pdstring> *argv)
 {
@@ -226,16 +229,18 @@ void dataManager::addExecutable(const char *machine,
   pdstring l = login;
   pdstring n = name;
   pdstring d = dir;
+  pdstring t = mrnet_topology;
   pdstring mpi = MPItype;
 
 #if !defined(i386_unknown_nt4_0)
   if( twUser != NULL ) {
     // we have a termWin, so try to start the executable
-    added = paradynDaemon::newExecutable(m, l, n, d, mpi, *argv);
+    added = paradynDaemon::newExecutable(m, l, n, d, t, mpi, *argv);
   }
 #else
   // Windows does not yet support the termWin
-  added = paradynDaemon::newExecutable(m, l, n, d, mpi, *argv);
+  added = paradynDaemon::newExecutable(m, l, n, d, t, mpi, *argv);
+
 #endif
 }
 
@@ -298,6 +303,10 @@ bool dataManager::detachApplication(bool pause)
 // 
 void dataManager::saveAllData (const char *dirname, SaveRequestType optionFlag) 
 {
+
+
+  cout << " in dataManager::saveAllData dirname = "<< *dirname<<endl;
+
   int findex = 0;
   bool success = true;
   metricInstance *activeMI;
@@ -327,7 +336,10 @@ void dataManager::saveAllData (const char *dirname, SaveRequestType optionFlag)
     }
     indexFile.close();
   }
+
+  cout << "calling  uiMgr->allDataSaved "<<endl;
   uiMgr->allDataSaved(success);
+  cout << "returned from  uiMgr->allDataSaved "<<endl;
 }
 
 void
@@ -437,6 +449,7 @@ void DMdoEnableData(perfStreamHandle ps_handle,
       // does this metric/focus pair already exist?
       metricInstance *mi = metricInstance::find((*request)[i].met,
                                                 (*request)[i].res);
+
       if(!mi){ // create new metricInstance 
          mi = new metricInstance((*request)[i].res,(*request)[i].met,phaseId);
       }

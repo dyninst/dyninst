@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.C,v 1.22 2005/02/11 19:33:14 mjbrim Exp $
+// $Id: CallGraph.C,v 1.23 2005/12/20 00:19:17 pack Exp $
 
 #include "CallGraph.h"
 #include "DMdaemon.h"
@@ -313,14 +313,19 @@ bool CallGraph::isStartFunction(resourceHandle rh) {
 }
 
 CallGraph *CallGraph::FindCallGraph(pdstring exe_name) {
-  int pid = name2id(exe_name);
+
+	//fprintf(stdout,"In FindCallGraph exe_name = %s\n",exe_name.c_str());
+
+	int pid = name2id(exe_name);
+	//fprintf(stdout,"In FindCallGraph pid = %d\n",pid);
 
   if(pid == -1) 
     return NULL;
   
-  if (directory.defines(pid)) {
-    return directory[pid];
-  }
+  if (directory.defines(pid)) 
+		{
+			return directory[pid];
+		}
   //If name2id returns a valid pd, we should always be able to find a CG
   assert(false);
   return NULL;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.h,v 1.47 2004/06/14 22:25:54 legendre Exp $ 
+// $Id: DMmetric.h,v 1.48 2005/12/20 00:19:27 pack Exp $ 
 
 #ifndef dmmetric_H
 #define dmmetric_H
@@ -86,10 +86,16 @@ class component {
 	~component() {
 	    // don't delete aggComponent, since sampleAggregator will
 	    // keep around to aggregate it's data
-	    daemon->disableDataCollection(id);
-            assert(id>=0);
-            daemon->disabledMids += (unsigned) id;
-            daemon->activeMids.undef((unsigned)id);
+        MRN::Network * network = daemon->getNetwork() ;
+        MRN::Communicator * comm = network->new_Communicator( );
+        comm->add_EndPoint( daemon->getEndPoint() );
+
+        MRN::Stream *stream = network->new_Stream(comm);
+
+	    daemon->disableDataCollection(stream, id);
+        assert(id>=0);
+        daemon->disabledMids += (unsigned) id;
+        daemon->activeMids.undef((unsigned)id);
 	}
 	int getId(){return(id);}
         paradynDaemon *getDaemon() { return(daemon); }
@@ -292,7 +298,6 @@ class metricInstance {
 	static void incrNumCurrHists(){ num_curr_hists++; }
 	static void decrNumCurrHists(){ if(num_curr_hists) num_curr_hists--; }
 	static void decrNumGlobalHists(){ if(num_global_hists) num_global_hists--; }
-
    bool hasData( phaseType phase ) const;
 
     private:

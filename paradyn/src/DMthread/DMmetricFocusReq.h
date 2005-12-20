@@ -47,7 +47,7 @@
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
-#include "dyninstRPC.xdr.CLNT.h"
+#include "dyninstRPC.mrnet.CLNT.h"
 #include "DMinclude.h"
 
 

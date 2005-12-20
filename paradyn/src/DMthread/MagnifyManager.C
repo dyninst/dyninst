@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: MagnifyManager.C,v 1.10 2004/06/21 19:37:11 pcroth Exp $
+// $Id: MagnifyManager.C,v 1.11 2005/12/20 00:19:41 pack Exp $
 
 #include "DMinclude.h"
 #include "MagnifyManager.h"

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.C,v 1.48 2004/06/14 22:25:53 legendre Exp $
+// $Id: DMmetric.C,v 1.49 2005/12/20 00:19:26 pack Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -691,8 +691,12 @@ bool metricInstance::addComponent(component *new_comp) {
     paradynDaemon *new_daemon =  new_comp->getDaemon();
     sampleVal_cerr << "for metricInstance (" << this << " adding aggComponent "
 		   << new_comp << "\n";
+
     for (unsigned i=0; i < components.size(); i++){
-         if((components[i])->getDaemon() == new_daemon) return false;
+         if((components[i])->getDaemon() == new_daemon){
+	   cerr << "in addComponent:component already here don't add component"<<endl;
+	   return false;
+	 }
     }
     components.push_back(new_comp);
     new_comp->sample = aggregator.newComponent();
@@ -733,7 +737,9 @@ void metricInstance::removeComponent(component *comp) {
 					       getEarliestFirstTime());
       relTimeStamp relEndTime = relTimeStamp(aggSample.end - 
 					     getEarliestFirstTime());
+
       assert(relStartTime >= relTimeStamp::Zero());
+
       assert(relEndTime   >= relStartTime);
       enabledTime += relStartTime - relEndTime;
 
@@ -750,16 +756,21 @@ void metricInstance::removeComponent(component *comp) {
 
 void metricInstance::updateComponent(paradynDaemon *dmn,timeStamp newStartTime,
 				    timeStamp newEndTime, pdSample value) {
-  if(components.size() == 0) return;
+  if(components.size() == 0)
+    {
+      return;
+    }
 
   // find the right component.
   component *part = NULL;
-  for(unsigned i=0; i < components.size(); i++) {
-    if(components[i]->daemon == dmn) {
-      part = components[i];
-      break;
-      }
-  }
+  for(unsigned i=0; i < components.size(); i++)
+    {
+      if(components[i]->daemon == dmn)
+	{
+	  part = components[i];
+	  break;
+	}
+    }
   assert(part != NULL);
 
   // update the aggComponent value associated with the daemon that sent the
@@ -767,41 +778,52 @@ void metricInstance::updateComponent(paradynDaemon *dmn,timeStamp newStartTime,
   // aggregation, converting to a relTimeStamp when values get bucketed
   aggComponent *aggComp = part->sample;  
   assert(aggComp);
-  if(! aggComp->isInitialStartTimeSet()) {
-    aggComp->setInitialStartTime(newStartTime);
-  }
+  if(! aggComp->isInitialStartTimeSet())
+    {
+      aggComp->setInitialStartTime(newStartTime);
+    }
   aggComp->addSamplePt(newEndTime, value);
 }
 
 void metricInstance::doAggregation() {
   // don't aggregate if this metric is still being enabled (we may 
   // not have received replies for the enable requests from all the daemons)
-  if (isCurrentlyEnabling())  return;
-  
+   if (isCurrentlyEnabling())  return;
+
   // if we haven't received all of the component start times yet, return
   if(! allComponentStartTimesReceived()) return;
 
-  // update the metric instance sample value if there is a new interval with
+
+   // update the metric instance sample value if there is a new interval with
   // data for all parts, otherwise this routine returns false
   // and the data cannot be bucketed by the histograms yet (not all
   // components have sent data for this interval)
 
   struct sampleInterval aggSample;
   while(aggregator.aggregate(&aggSample)) {
+
     if(getInitialActualValue().isNaN()) {
       setInitialActualValue(aggregator.getInitialActualValue());
     }
+
     relTimeStamp relStartTime = 
       relTimeStamp(aggSample.start - paradynDaemon::getEarliestStartTime());
+
+ 
     relTimeStamp relEndTime = 
       relTimeStamp(aggSample.end - paradynDaemon::getEarliestStartTime());
+
     assert(relStartTime >= relTimeStamp::Zero());
-    assert(relEndTime   >= relTimeStamp::Zero());
+    
+    assert(relEndTime >= relTimeStamp::Zero());
+    
     enabledTime += relEndTime - relStartTime;
+
 
     sampleVal_cerr << "calling addInterval- st:" << aggSample.start 
 		   << "  end: " << aggSample.end << "  val: " 
 		   << aggSample.value << "\n";
+
     addInterval(relStartTime, relEndTime, aggSample.value);
   }
 }
@@ -1008,9 +1030,9 @@ void metricInstance::newCurrDataCollection(dataCallBack dcb,
 }
 
 bool metricInstance::hasData( phaseType phase ) const
-{
-   if (phase == CurrentPhase)
-      return data != NULL;
-   else
+{ 
+   if(phase == CurrentPhase)
+      return data != NULL; 
+   else 
       return global_data != NULL;
 }

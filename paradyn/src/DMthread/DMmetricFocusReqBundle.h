@@ -48,7 +48,7 @@
 #include "common/h/Dictionary.h"
 #include "common/h/String.h"
 #include "DMinclude.h"
-#include "dyninstRPC.xdr.CLNT.h"
+#include "dyninstRPC.mrnet.CLNT.h"
 
 class paradynDaemon;
 class metricInstance;

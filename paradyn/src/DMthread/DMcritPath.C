@@ -42,7 +42,7 @@
 //
 // Process Critical Path data from the various paradyn daemons.
 //
-/* $Id: DMcritPath.C,v 1.14 2004/03/23 01:12:25 eli Exp $ */
+/* $Id: DMcritPath.C,v 1.15 2005/12/20 00:19:21 pack Exp $ */
 
 #include <assert.h>
 #include "../pdMain/paradyn.h"
@@ -53,7 +53,7 @@ extern "C" {
 }
 
 #include "dataManager.thread.SRVR.h"
-#include "dyninstRPC.xdr.CLNT.h"
+#include "dyninstRPC.mrnet.CLNT.h"
 #include "DMmetric.h"
 #include "DMdaemon.h"
 #include "../UIthread/Status.h"
@@ -73,7 +73,7 @@ public:
 
 dictionary_hash<metricInstanceHandle,cpContext *> allCPContexts(uiHash);
 
-void paradynDaemon::cpDataCallbackFunc(int,
+void paradynDaemon::cpDataCallbackFunc(MRN::Stream *, int,
                                        double tStamp,
                                        int context,
                                        double total,

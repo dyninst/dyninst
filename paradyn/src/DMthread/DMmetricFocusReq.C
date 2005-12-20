@@ -304,15 +304,18 @@ bool metricFocusReq_Val::request_already_sent_on_daemon(paradynDaemon *dmn)
 }
 
 void metricFocusReq_Val::propagateToDaemon(paradynDaemon *dmn) {
+
    inst_insert_result_t cur_state = getOverallState();
-   if(cur_state == inst_insert_failure || cur_state == inst_insert_success) {
-      return;
-   }
-
-   if(request_already_sent_on_daemon(dmn)) {
+   if(cur_state == inst_insert_failure || cur_state == inst_insert_success) 
+     {
        return;
-   }
+     }
 
+   if(request_already_sent_on_daemon(dmn))
+     {
+       return;
+     }
+   fprintf(stderr,"in metricFocusReq_Val::propagateToDaemon(DMmetricFocusReq.C) dm_id = %u\n",dmn->get_id());
    num_daemons++;
 
    assert(cur_state == inst_insert_deferred ||
@@ -344,11 +347,16 @@ void metricFocusReq_Val::propagateToDaemon(paradynDaemon *dmn) {
    // anyways.
    unsigned chosen_req_id = bundleClients[0]->getRequestID();
 
-   //cerr << " request for metfocus in " << state_str(cur_state) 
-   //     << " state, on machine: " << dmn->getMachineName() << endl;
+   //cout<<"in metricFocusReq_Val::propagateToDaemon 7"<<endl;
+   
+   MRN::Stream * local_stream = dmn->getNetwork()-> new_Stream( dmn->getCommunicator() );
 
-   dmn->enableDataCollection(foci, metric_names, mi_ids, dmn->get_id(),
+   dmn->enableDataCollection(local_stream, foci, metric_names, mi_ids,dmn->get_id(),
                              chosen_req_id);
+   delete local_stream;
+
+   //cout<<"in metricFocusReq_Val::propagateToDaemon 8"<<endl;
+   
 }
 
 void metricFocusReq_Val::cancelOutstandingMetricFocusesInCurrentPhase() {
@@ -396,9 +404,17 @@ void metricFocusReq_Val::cancelOutstandingMetricFocusesInCurrentPhase() {
                // 2) add the MID (mfReqVal->getMetricInst()->getHandle()) to the disabledMids list
                // 3) remove the MID from active -- note: this can be skipped, since it's not
                //    there yet (since the instru never went in)
-               pd->disableDataCollection(
+
+	       MRN::Stream * stream = pd->getNetwork()->new_Stream( pd->getCommunicator() );
+
+	       fprintf(stderr,"ready to send to disableDataCollection i = %u daemon Id = %u, metric id = %u\n" ,i,pd->get_id(),
+		       mfReqVal->getMetricInst()->getHandle());
+
+	      
+               pd->disableDataCollection(stream,
                                        mfReqVal->getMetricInst()->getHandle());
                pd->disabledMids += mfReqVal->getMetricInst()->getHandle();
+	       delete stream;
             }
             deletedMFRVs.push_back(mfReqVal);
          }
@@ -432,13 +448,18 @@ metricFocusReq *metricFocusReq::createMetricFocusReq(metricInstance *mi,
 					   metricFocusReqBundle *parent_) {
 
    pdvector<paradynDaemon *> requested_daemons;
-   paradynDaemon::findMatchingDaemons(mi, requested_daemons);
+   paradynDaemon::findMatchingDaemons(mi, &requested_daemons);
+
+   for(unsigned i = 0 ; i < requested_daemons.size(); i++)
+   fprintf(stderr,"IN FE createMetricFocusReq (DMmetricFocusReq.C) mi = %u requested_daemons[%u] = %u\n",mi,i,requested_daemons[i]);
+
 
    metricFocusReq_Val *new_mfVal;
    new_mfVal = metricFocusReq_Val::lookup_mfReqVal(mi->getHandle());   
-   if(new_mfVal == NULL) {  // couldn't find an existing one
-      new_mfVal = new metricFocusReq_Val(mi, requested_daemons.size());
-   }
+   if(new_mfVal == NULL) 
+     {  // couldn't find an existing one
+       new_mfVal = new metricFocusReq_Val(mi, requested_daemons.size());
+     }
    
    metricFocusReq *mfReq = new metricFocusReq(new_mfVal, parent_);
    mfReq->daemons_requested_on = requested_daemons;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: BufferPool.h,v 1.6 2004/03/23 01:12:25 eli Exp $ */
+/* $Id: BufferPool.h,v 1.7 2005/12/20 00:19:16 pack Exp $ */
 
 #ifndef _BUFFER_POOL_H_
 #define _BUFFER_POOL_H_

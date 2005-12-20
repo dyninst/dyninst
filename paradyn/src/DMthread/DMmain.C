@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.165 2005/09/09 18:07:26 legendre Exp $
+// $Id: DMmain.C,v 1.166 2005/12/20 00:19:25 pack Exp $
 
 #include <assert.h>
 extern "C" {
@@ -51,7 +51,7 @@ extern "C" {
 #include "pdthread/h/thread.h"
 #include "paradyn/src/TCthread/tunableConst.h"
 #include "dataManager.thread.SRVR.h"
-#include "dyninstRPC.xdr.CLNT.h"
+#include "dyninstRPC.mrnet.CLNT.h"
 #include "DMdaemon.h"
 #include "DMmetric.h"
 #include "DMperfstream.h"
@@ -96,11 +96,11 @@ int dataManager::termWin_port = -1;
 PDSOCKET dataManager::termWin_sock= INVALID_PDSOCKET;
 dataManager *dataManager::dm = NULL;  
 
-dictionary_hash<pdstring,metric*> metric::allMetrics(pdstring::hash);
+dictionary_hash<pdstring,metric*>  metric::allMetrics(pdstring::hash);
 dictionary_hash<metricInstanceHandle,metricInstance *> 
-metricInstance::allMetricInstances(metricInstance::mhash);
+		metricInstance::allMetricInstances(metricInstance::mhash);
 dictionary_hash<perfStreamHandle,performanceStream*>  
-performanceStream::allStreams(performanceStream::pshash);
+		performanceStream::allStreams(performanceStream::pshash);
 dictionary_hash<pdstring, resource*> resource::allResources(pdstring::hash, 8192);
 dictionary_hash<pdstring,resourceList *> resourceList::allFoci(pdstring::hash);
 
@@ -121,7 +121,7 @@ pdvector<resourceList *> resourceList::foci;
 pdvector<phaseInfo *> phaseInfo::dm_phases;
 u_int metricInstance::next_id = 1;
 // u_int performanceStream::next_id = 0;
-u_int paradynDaemon::count = 0;
+u_int paradynDaemon::countSync = 0;
 
 // to distinguish the enableDataRequest calls only for samples 
 // from those for both samples and traces 
@@ -149,13 +149,25 @@ void mpichUnlinkWrappers( void );
 
 //upcall from paradynd to notify the datamanager that the static
 //portion of the call graph is completely filled in.
-void dynRPCUser::CallGraphFillDone(pdstring exe_name){
+void dynRPCUser::CallGraphFillDone(MRN::Stream *, pdstring exe_name){
   CallGraph *cg;
   cg = CallGraph::FindCallGraph(exe_name);
   cg->CallGraphFillDone();
+
+  extern unsigned num_dmns_to_report_callgraph;
+  num_dmns_to_report_callgraph--;
+  if( num_dmns_to_report_callgraph == 0 ){
+    paradynDaemon *pd;
+    pd = paradynDaemon::allDaemons[0];
+    MRN::Stream * stream  = pd->getNetwork()->new_Stream(pd->getNetwork()->get_BroadcastCommunicator());
+    staticCallgraphReportsComplete(stream);
+   delete stream;
+  }
+
+
 }
 
-void dynRPCUser::CallGraphAddDynamicCallSiteCallback(pdstring exe_name, pdstring parent){
+void dynRPCUser::CallGraphAddDynamicCallSiteCallback(MRN::Stream * , pdstring exe_name, pdstring parent){
   CallGraph *cg;
   cg = CallGraph::FindCallGraph(exe_name);
   resource *r = resource::string_to_resource(parent);
@@ -164,7 +176,7 @@ void dynRPCUser::CallGraphAddDynamicCallSiteCallback(pdstring exe_name, pdstring
 }
 
 
-void dynRPCUser::CallGraphAddProgramCallback(pdstring exe_name){
+void dynRPCUser::CallGraphAddProgramCallback(MRN::Stream *, pdstring exe_name){
   CallGraph::AddProgram(exe_name);
 }
 
@@ -172,76 +184,78 @@ void dynRPCUser::CallGraphAddProgramCallback(pdstring exe_name){
 //  call graph.... 
 //This function is called with a previously unseen program ID to create a new
 // call graph.
-void dynRPCUser::CallGraphSetEntryFuncCallback(pdstring exe_name, 
+void dynRPCUser::CallGraphSetEntryFuncCallback(MRN::Stream *, pdstring exe_name, 
                                                pdstring entry_func, int tid) {
-  CallGraph *cg;
+    CallGraph *cg;
 
-  // get/create call graph corresponding to program....
-  cg = CallGraph::FindCallGraph(exe_name);
-  assert(cg);
+		//fprintf(stdout,"in dynRPCUser::CallGraphSetEntryFuncCallback DMmain.C exe_name = %s  entry_func = %s\n",exe_name.c_str(),entry_func.c_str());
+    // get/create call graph corresponding to program....
+    cg = CallGraph::FindCallGraph(exe_name);
+    assert(cg);
 
-  // resource whose name is passed in <resource> should have been previously
-  //  registered w/ data manager....
-  resource* r = resource::string_to_resource(entry_func);
-  assert(r != NULL);
+    // resource whose name is passed in <resource> should have been previously
+    //  registered w/ data manager....
+    resource* r = resource::string_to_resource(entry_func);
+    assert(r != NULL);
 
-  cg->SetEntryFunc(r, tid);
+    cg->SetEntryFunc(r, tid);
 }
 
 // upcall from paradynd to register new function resource with call graph....
 // parameters are an integer corresponding to the program to which a node
 // is being added, and a pdstring that is the name of the function being added
-void dynRPCUser::AddCallGraphNodeCallback(pdstring exe_name, pdstring r_name) {
-  CallGraph *cg;
 
-  // get (or create) call graph corresponding to program....
-  cg = CallGraph::FindCallGraph(exe_name);
-  if (!cg)
-  {
-     fprintf(stderr, "[%s:%u] - Fatal Error.  Tried to add resource %s to "
-             "non-existant exec %s\n", __FILE__, __LINE__, r_name.c_str(),
-             exe_name.c_str());
-     assert(cg);
-  }
+void dynRPCUser::AddCallGraphNodeCallback(MRN::Stream *, pdstring exe_name,
+                                          pdstring r_name) {
+    CallGraph *cg;
 
-  // resource whose name is passed in <resource> should have been previously
-  //  registered w/ data manager....
-  resource* r = resource::string_to_resource(r_name);
-  assert( r != NULL );
-
-  cg->AddResource(r);
+    // get (or create) call graph corresponding to program....
+    cg = CallGraph::FindCallGraph(exe_name);
+		if (!cg)
+			{
+				fprintf(stderr, "[%s:%u] - Fatal Error.  Tried to add resource %s to "
+								"non-existant exec %s\n", __FILE__, __LINE__, r_name.c_str(),
+								exe_name.c_str());
+				assert(cg);
+			}
+		
+		// resource whose name is passed in <resource> should have been previously
+		//  registered w/ data manager....
+		resource* r = resource::string_to_resource(r_name);
+		assert( r != NULL );
+    cg->AddResource(r);
 }
 
 //Same as AddCallGraphNodeCallback, only adds multiple children at once,
 //and associates these children with a give parent (r_name)
-void dynRPCUser::AddCallGraphStaticChildrenCallback(pdstring exe_name, 
+void dynRPCUser::AddCallGraphStaticChildrenCallback(MRN::Stream *, pdstring exe_name, 
                                                     pdstring r_name, 
                                                     pdvector<pdstring>children)
 {
-  unsigned u;
-  CallGraph *cg;
-  resource *r, *child;
-  pdvector <resource *> children_as_resources;
+    unsigned u;
+    CallGraph *cg;
+    resource *r, *child;
+    pdvector <resource *> children_as_resources;
 
-  // call graph for program <program> should have been previously defined....
-  cg = CallGraph::FindCallGraph(exe_name);
-  assert(cg);
-  // resource whose name is passed in <resource> should have been previously
-  //  registered w/ data manager....
-  r = resource::string_to_resource(r_name);
-  assert(r);
+    // call graph for program <program> should have been previously defined....
+    cg = CallGraph::FindCallGraph(exe_name);
+    assert(cg);
+    // resource whose name is passed in <resource> should have been previously
+    //  registered w/ data manager....
+    r = resource::string_to_resource(r_name);
+    assert(r);
 
-  // convert pdvector of resource names to pdvector of resource *'s....
-  for(u=0;u<children.size();u++) {
-    child = resource::string_to_resource(children[u]);
-    assert(child);
-    children_as_resources += child;
-  }
+    // convert pdvector of resource names to pdvector of resource *'s....
+    for(u=0;u<children.size();u++) {
+      child = resource::string_to_resource(children[u]);
+      assert(child);
+      children_as_resources += child;
+    }
 
-  cg->SetChildren(r, children_as_resources);
+    cg->SetChildren(r, children_as_resources);
 }
 
-void dynRPCUser::AddCallGraphDynamicChildCallback(pdstring exe_name,
+void dynRPCUser::AddCallGraphDynamicChildCallback(MRN::Stream *, pdstring exe_name,
                                                   pdstring parent,
                                                   pdstring child) {
   resource *p, *c;
@@ -262,101 +276,109 @@ void dynRPCUser::AddCallGraphDynamicChildCallback(pdstring exe_name,
 
 
 /*should be removed for output redirection
-  left untouched for paradynd log mesg use
+left untouched for paradynd log mesg use
 */
 //
 // IO from application processes.
 //
-void dynRPCUser::applicationIO(int,int, pdstring data)
+void dynRPCUser::applicationIO(MRN::Stream *, int,int, pdstring data)
 {
 
-  // NOTE: this fixes a purify error with the commented out code (a memory
-  // segment error occurs occasionally with the line "cout << rest << endl") 
-  // this is problably not the best fix,  but I can't figure out why 
-  // the error is occuring (rest is always '\0' terminated when this
-  // error occurs)---tn 
-  if( data.length() > 0 )
+    // NOTE: this fixes a purify error with the commented out code (a memory
+    // segment error occurs occasionally with the line "cout << rest << endl") 
+    // this is problably not the best fix,  but I can't figure out why 
+    // the error is occuring (rest is always '\0' terminated when this
+    // error occurs)---tn 
+	if( data.length() > 0 )
     {
-      fprintf(stdout,data.c_str());
-      fflush(stdout);
-    }
-  else
-    {
-      fprintf( stderr, "paradyn: warning: empty IO string sent from daemon...ignoring..." );
-    }
+			//fprintf(stdout,data.c_str());
+			fflush(stdout);
+		}
+	else
+		{
+			fprintf( stderr, "paradyn: warning: empty IO string sent from daemon...ignoring..." );
+		}
 
 #ifdef n_def
-  char *ptr;
-  char *rest;
-  // extra should really be per process.
-  static pdstring extra;
+    char *ptr;
+    char *rest;
+    // extra should really be per process.
+    static pdstring extra;
 
-  rest = P_strdup(data.c_str());
+    rest = P_strdup(data.c_str());
 
-  char *tp = rest;
-  ptr = P_strchr(rest, '\n');
-  while (ptr) {
-    *ptr = '\0';
-    if (pid) {
-      printf("pid %d:", pid);
-    } else {
-      printf("paradynd: ");
+    char *tp = rest;
+    ptr = P_strchr(rest, '\n');
+    while (ptr) {
+	*ptr = '\0';
+	if (pid) {
+	    fprintf(stderr, "pid %d:", pid);
+	} else {
+	    fprintf(stderr, "paradynd: ");
+	}
+	if (extra.length()) {
+	    cout << extra;
+	    extra = (char*) NULL;
+	}
+	cout << rest << endl;
+	rest = ptr+1;
+	if(rest)
+	    ptr = P_strchr(rest, '\n');
+        else
+	    ptr = 0;
     }
-    if (extra.length()) {
-      cout << extra;
-      extra = (char*) NULL;
-    }
-    cout << rest << endl;
-    rest = ptr+1;
-    if(rest)
-      ptr = P_strchr(rest, '\n');
-    else
-      ptr = 0;
-  }
-  extra += rest;
-  delete tp;
-  rest = 0;
+    extra += rest;
+    delete tp;
+    rest = 0;
 #endif
 }
 
 extern status_line *DMstatus;
 
-void dynRPCUser::resourceBatchMode(bool) // bool onNow
+void dynRPCUser::resourceBatchMode(MRN::Stream*, bool) // bool onNow
 {
-  printf("error calling virtual func: dynRPCUser::resourceBatchMode\n");
+   fprintf(stderr, "error calling virtual func: dynRPCUser::resourceBatchMode\n");
 }
 
 //
 // upcalls from remote process.
 //
-void dynRPCUser::resourceInfoCallback(u_int , pdvector<pdstring> ,
+void dynRPCUser::resourceInfoCallback(MRN::Stream*, u_int , pdvector<pdstring> ,
                                       pdstring , u_int, u_int)
 {
 
-  printf("error calling virtual func: dynRPCUser::resourceInfoCallback\n");
+printf("error calling virtual func: dynRPCUser::resourceInfoCallback\n");
 
 }
-
-//- update resource
-void dynRPCUser::resourceUpdateCallback(pdvector<pdstring> ,
-					pdvector<pdstring>, pdstring ) {
-
-  fprintf(stderr,"error calling virtual func: dynRPCUser::resourceUpdateCallback\n");
-
+void dynRPCUser::resourceUpdateCallback(MRN::Stream *stream, pdvector<pdstring> resource_name, pdvector<pdstring> display_name, pdstring abstraction)
+{
+   fprintf(stderr, "error calling virtual func: dynRPCUser::resourceUpdateCallback\n");
 }
-
 
 //
 // upcalls from remote process.
 //
-void dynRPCUser::retiredResource(pdstring) {
-  printf("error calling virtual func: dynRPCUser::retiredResource\n");
+void dynRPCUser::retiredResource(MRN::Stream*, pdstring) {
+   fprintf(stderr, "error calling virtual func: dynRPCUser::retiredResource\n");
+}
+void dynRPCUser::resourceEquivClassReportCallback(MRN::Stream*, pdvector<T_dyninstRPC::equiv_class_entry> )
+{
+  printf("error calling virtual func: dynRPCUser::resourceEquivClassReportCallback\n");
 }
 
-void dynRPCUser::severalResourceInfoCallback(pdvector<T_dyninstRPC::resourceInfoCallbackStruct>) {
-  printf("error calling virtual func: dynRPCUser::severalResourceInfoCallback\n");
+void dynRPCUser::callGraphEquivClassReportCallback(MRN::Stream*, pdvector<T_dyninstRPC::equiv_class_entry> )
+{
+  printf("error calling virtual func: dynRPCUser::resourceEquivClassReportCallback\n");
 }
 
+void dynRPCUser::severalResourceInfoCallback(MRN::Stream*, pdvector<T_dyninstRPC::resourceInfoCallbackStruct>) {
+printf("error calling virtual func: dynRPCUser::severalResourceInfoCallback\n");
+}
+
+void dynRPCUser::resourceReportsDone( MRN::Stream *, int )
+{
+    printf("error calling virtual func: dynRPCUser::severalResourceInfoCallback\n");
+}
 
 //
 // handle an enable response from a daemon. If all daemons have responded
@@ -365,17 +387,21 @@ void dynRPCUser::severalResourceInfoCallback(pdvector<T_dyninstRPC::resourceInfo
 // and enable for an MI is successful if its done entry is true and if its
 // MI* is not 0
 //
-void dynRPCUser::enableDataCallback(T_dyninstRPC::instResponse resp) {
-  metricFocusReqBundle *matching_bundle = 
-     metricFocusReqBundle::findActiveBundle(resp.request_id);
+void dynRPCUser::enableDataCallback(MRN::Stream*, T_dyninstRPC::instResponse resp) {
 
-  if(matching_bundle == NULL) {
-    // a request entry can be removed if a new phase event occurs
-    // between the enable request and response, so ignore the response
-    return;
-  }
+    if(resp.rinfo.size() == 0)
+      return;
 
-  matching_bundle->updateWithEnableCallback(resp);
+    metricFocusReqBundle *matching_bundle = 
+       metricFocusReqBundle::findActiveBundle(resp.request_id);
+
+
+    if(matching_bundle == NULL) {
+       // a request entry can be removed if a new phase event occurs
+       // between the enable request and response, so ignore the response
+       return;
+    }
+    matching_bundle->updateWithEnableCallback(resp);
 }
 
 //
@@ -384,21 +410,21 @@ void dynRPCUser::enableDataCallback(T_dyninstRPC::instResponse resp) {
 // req_id - an identifier assoc. with the request 
 // val - the cost of enabling the metric/focus pair
 //
-void dynRPCUser::getPredictedDataCostCallback(u_int id,
+void dynRPCUser::getPredictedDataCostCallback(MRN::Stream*, u_int id,
 					      u_int req_id,
 					      float val,
 					      u_int clientID)
 {
-  // find the assoc. perfStream and update it's pred data cost value
-  performanceStream::psIter_t allS = performanceStream::getAllStreamsIter();
-  perfStreamHandle h; performanceStream *ps;
-  while(allS.next(h,ps)){
-    if(h == (perfStreamHandle)id){
-      ps->predictedDataCostCallback(req_id,val,clientID);
-      return;
+    // find the assoc. perfStream and update it's pred data cost value
+    performanceStream::psIter_t allS = performanceStream::getAllStreamsIter();
+    perfStreamHandle h; performanceStream *ps;
+    while(allS.next(h,ps)){
+	if(h == (perfStreamHandle)id){
+            ps->predictedDataCostCallback(req_id,val,clientID);
+	    return;
     } }
-  // TODO: call correct routine
-  assert(0);
+    // TODO: call correct routine
+    assert(0);
 }
 
 //
@@ -413,34 +439,34 @@ void dynRPCUser::getPredictedDataCostCallback(u_int id,
 //       showErrorCallback(99, "Erro message test"). This macro will
 //       automatically insert the additional host info required.
 //
-void dynRPCUser::showErrorCallback(int errCode, 
+void dynRPCUser::showErrorCallback(MRN::Stream*, int errCode, 
 				   pdstring errString,
 				   pdstring hostName)
 {
-  pdstring msg;
+    pdstring msg;
 
-  if (errString.length() > 0) {
-    if (hostName.length() > 0) {
-      msg = pdstring("<Msg from daemon on host ") + hostName + 
-	pdstring("> ") + errString;
+    if (errString.length() > 0) {
+       if (hostName.length() > 0) {
+    	    msg = pdstring("<Msg from daemon on host ") + hostName + 
+	          pdstring("> ") + errString;
+       }
+       else { 
+          msg = pdstring("<Msg from daemon on host ?> ") + errString; 
+       }
+       uiMgr->showError(errCode, P_strdup(msg.c_str()));
     }
-    else { 
-      msg = pdstring("<Msg from daemon on host ?> ") + errString; 
+    else {
+       uiMgr->showError(errCode, ""); 
     }
-    uiMgr->showError(errCode, P_strdup(msg.c_str()));
-  }
-  else {
-    uiMgr->showError(errCode, ""); 
-  }
 
-  //
-  // hostName.length() should always be > 0, otherwise
-  // hostName is not defined (i.e. "?" will be used instead).
-  // if errString.length()==0, (i.e. errString.c_str()==""),
-  // then we will use the default error message in errorList.tcl
-  // This message, however, will not include any info about the current
-  // host name.
-  //
+    //
+    // hostName.length() should always be > 0, otherwise
+    // hostName is not defined (i.e. "?" will be used instead).
+    // if errString.length()==0, (i.e. errString.c_str()==""),
+    // then we will use the default error message in errorList.tcl
+    // This message, however, will not include any info about the current
+    // host name.
+    //
 }
 
 //
@@ -448,70 +474,102 @@ void dynRPCUser::showErrorCallback(int errCode,
 // specifically, after it starts the new process and the new process
 // has completed running DYNINSTinit).
 //
-void dynRPCUser::newProgramCallbackFunc(int pid,
+void dynRPCUser::newProgramCallbackFunc(MRN::Stream*, int pid,
                                         pdvector<pdstring> argvString,
                                         pdstring machine_name,
                                         bool calledFromExec,
                                         bool runMe)
 {
+    static bool first_time=true;
+    static unsigned int num_process_left;
 
-  // there better be a paradynd running on this machine!
-  paradynDaemon *last_match = 0;
-
-  for (unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++) {
-    paradynDaemon *pd = paradynDaemon::allDaemons[i];
-    if (pd->machine.length() && (pd->machine == machine_name)) {
-      last_match = pd;
-    }
-  }
-  if (last_match != 0) {
-    if (!paradynDaemon::addRunningProgram(pid, argvString, last_match,
-					  calledFromExec, runMe)) {
-      assert(false);
-    }
-    uiMgr->enablePauseOrRun();
-  }
-  else {
-    // for now, abort if there is no paradynd, this should not happen
-    fprintf(stderr, "process started on %s, can't find paradynd "
-	    "there\n", machine_name.c_str());
-    fprintf(stderr,"paradyn error #1 encountered\n");
-    //exit(-1);
-  }
+    //TODO: major hack. we will wait for this many procs to report before
+    //      we enable pause/run buttons
+    if( first_time ) 
+			{
+        first_time = false;
+				
+        num_process_left = paradynDaemon::allDaemons.size();
+			}
+		
+    // there better be a paradynd running on this machine!
+    paradynDaemon *last_match = 0;
+		
+    for (unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++)
+			{
+				paradynDaemon *pd = paradynDaemon::allDaemons[i];
+				
+        //fprintf(stderr, "comparing local daemon name \"%s\" with recvd daemon name \"%s\"\n",
+				//getNetworkName(pd->machine).c_str(), getNetworkName(machine_name).c_str() );
+				
+        if ( pd->machine.length()  && (getNetworkName(pd->machine) == getNetworkName(machine_name) )) {
+					last_match = pd;
+        }
+			}
+    if (last_match != 0)
+			{
+				
+				//cout <<"newProgramCallbackFunc last_match->get_id = "<<last_match->get_id()<<endl;
+				//cout <<"newProgramCallbackFunc pid = "<<pid<<endl;
+				//cout <<"newProgramCallbackFunc argvString = "<<argvString<<endl;
+				//cout <<"newProgramCallbackFunc last_match= "<<last_match<<endl;
+				// cout <<"newProgramCallbackFunc last_match= "<<last_match<<endl;
+				// cout <<"newProgramCallbackFunc calledFromExec = "<<calledFromExec<<endl;
+				//cout <<"newProgramCallbackFunc runMe = "<<runMe<<endl;
+        
+        if (!paradynDaemon::addRunningProgram(pid, argvString, last_match,
+                                              calledFromExec, runMe)) 
+					{
+            assert(false);
+					}
+        num_process_left--;
+        if ( num_process_left == 0 )
+					{
+						uiMgr->enablePauseOrRun();
+					}
+			}
+    else
+			{
+        // for now, abort if there is no paradynd, this should not happen
+        fprintf(stderr, "process started on %s, can't find paradynd "
+                "there\n", machine_name.c_str());
+        fprintf(stderr,"paradyn error #1 encountered\n");
+        //exit(-1);
+			}
 }
 
-void dynRPCUser::newMetricCallback(T_dyninstRPC::metricInfo info)
+void dynRPCUser::newMetricCallback(MRN::Stream*, T_dyninstRPC::metricInfo info)
 {
-  addMetric(info);
+    addMetric(info);
 }
 
-void dynRPCUser::setDaemonStartTime(int, double) 
+void dynRPCUser::setDaemonStartTime(MRN::Stream*, int, double) 
 {
   assert(0 && "Invalid virtual function");
 }
 
-void dynRPCUser::setInitialActualValueFE(int, double) 
+void dynRPCUser::setInitialActualValueFE(MRN::Stream*, int, double) 
 {
   assert(0 && "Invalid virtual function");
 }
 
-void dynRPCUser::cpDataCallbackFunc(int,double,int,double,double)
+void dynRPCUser::cpDataCallbackFunc(MRN::Stream*, int,double,int,double,double)
 {
-  assert(0 && "Invalid virtual function");
+    assert(0 && "Invalid virtual function");
 }
 
 // batch the sample delivery
-void dynRPCUser::batchSampleDataCallbackFunc(int,
-					     pdvector<T_dyninstRPC::batch_buffer_entry>)
+void dynRPCUser::batchSampleDataCallbackFunc(MRN::Stream*, int,
+		    pdvector<T_dyninstRPC::batch_buffer_entry>)
 {
-  assert(0 && "Invalid virtual function");
+    assert(0 && "Invalid virtual function");
 }
 
 // batch the trace delivery
-void dynRPCUser::batchTraceDataCallbackFunc(int,
-					    pdvector<T_dyninstRPC::trace_batch_buffer_entry>)
+void dynRPCUser::batchTraceDataCallbackFunc(MRN::Stream*, int,
+                    pdvector<T_dyninstRPC::trace_batch_buffer_entry>)
 {
-  assert(0 && "Invalid virtual function");
+    assert(0 && "Invalid virtual function");
 }
 
 //
@@ -519,47 +577,29 @@ void dynRPCUser::batchTraceDataCallbackFunc(int,
 // reports the information for that paradynd to paradyn
 //
 void 
-dynRPCUser::reportSelf(pdstring , pdstring , int , pdstring)
+dynRPCUser::reportSelf(MRN::Stream*, pdstring , pdstring , int , pdstring)
 {
   assert(0);
   return;
 }
 
 void 
-dynRPCUser::reportStatus(pdstring)
+dynRPCUser::reportStatus(MRN::Stream*, pdstring)
 {
-  assert(0 && "Invalid virtual function");
+    assert(0 && "Invalid virtual function");
 }
 
 void
-dynRPCUser::processStatus(int, u_int)
+dynRPCUser::processStatus(MRN::Stream*, int, u_int)
 {
-  assert(0 && "Invalid virtual function");
+    assert(0 && "Invalid virtual function");
 }
 
 void
-dynRPCUser::endOfDataCollection(int)
+dynRPCUser::endOfDataCollection(MRN::Stream*, int)
 {
   assert(0 && "Invalid virtual function");
 }
-
-
-// 
-// establish socket that will be advertised to paradynd's
-// this socket will allow paradynd's to connect to paradyn for pvm
-//
-static void
-DMsetupSocket (PDSOCKET &sock)
-{
-  // setup "well known" socket for pvm paradynd's to connect to
-  dataManager::dm->sock_port = RPC_setup_socket (sock, AF_INET, SOCK_STREAM);
-  assert(dataManager::dm->sock_port != (-1));
-
-  // bind fd for this thread
-  thread_t stid;
-  msg_bind_socket (sock, true, NULL, NULL, &stid);
-}
-
 
 void dataManager::displayParadynGeneralInfo()
 {
@@ -579,8 +619,8 @@ void dataManager::displayParadynReleaseInfo()
 void dataManager::displayParadynVersionInfo()
 {
   pdstring msg = pdstring("Paradyn Version Identifier:\n")
-    + pdstring(V_paradyn) + pdstring("\n")
-    + pdstring("\n");
+                 + pdstring(V_paradyn) + pdstring("\n")
+                 + pdstring("\n");
   static char buf[1000];
   sprintf(buf, "%s", msg.c_str());
   uiMgr->showError(107, buf);
@@ -591,25 +631,25 @@ void dataManager::displayParadynVersionInfo()
 
 void dataManager::displayDaemonStartInfo() 
 {
-  const pdstring machine = getNetworkName();
-  const pdstring port    = pdstring(dataManager::dm->sock_port);
-  pdstring command = pdstring("paradynd -z<flavor> -l2")
-    + pdstring(" -m") + machine + pdstring(" -p") + port;
+    const pdstring machine = getNetworkName();
+    const pdstring port    = pdstring(dataManager::dm->sock_port);
+    pdstring command = pdstring("paradynd -z<flavor> -l2")
+                       + pdstring(" -m") + machine + pdstring(" -p") + port;
 #if !defined(i386_unknown_nt4_0)
-  pdstring term_port = pdstring(dataManager::termWin_port);
-  command += pdstring(" -P");
-  command += term_port;
+    pdstring term_port = pdstring(dataManager::termWin_port);
+    command += pdstring(" -P");
+    command += term_port;
 #endif
-  static char buf[1000];
+    static char buf[1000];
 
-  pdstring msg = pdstring("To start a paradyn daemon on a remote machine,")
-    + pdstring(" login to that machine and run paradynd")
-    + pdstring(" with the following arguments:\n\n    ") + command
-    + pdstring("\n\n(where flavor is one of: unix, mpi, winnt).\n");
+    pdstring msg = pdstring("To start a paradyn daemon on a remote machine,")
+      + pdstring(" login to that machine and run paradynd")
+      + pdstring(" with the following arguments:\n\n    ") + command
+      + pdstring("\n\n(where flavor is one of: unix, mpi, winnt).\n");
     
-  sprintf(buf, "%s", msg.c_str());
-  uiMgr->showError(99, buf);
-  //fprintf(stderr, msg.c_str());
+    sprintf(buf, "%s", msg.c_str());
+    uiMgr->showError(99, buf);
+    //fprintf(stderr, msg.c_str());
 }
 
 // printDaemonStartInfo() provides the information necessary to manually
@@ -620,126 +660,123 @@ void dataManager::displayDaemonStartInfo()
 
 void dataManager::printDaemonStartInfo(const char *filename)
 {
-  const pdstring machine = getNetworkName();
-  const pdstring port  = pdstring(dataManager::dm->sock_port);
-  pdstring command = pdstring("paradynd -z<flavor> -l2")
-    + pdstring(" -m") + machine + pdstring(" -p") + port;
+    const pdstring machine = getNetworkName();
+    const pdstring port  = pdstring(dataManager::dm->sock_port);
+    pdstring command = pdstring("paradynd -z<flavor> -l2")
+                     + pdstring(" -m") + machine + pdstring(" -p") + port;
 #if !defined(i386_unknown_nt4_0)
-  pdstring term_port = pdstring(dataManager::termWin_port);
-  command += pdstring(" -P");
-  command += term_port;
+    pdstring term_port = pdstring(dataManager::termWin_port);
+    command += pdstring(" -P");
+    command += term_port;
 #endif
-  static char buf[1000];
+    static char buf[1000];
 
-  assert (filename && (filename[0]!='\0'));
-  //cerr << "dataManager::printDaemonStartInfo(" << filename << ")" << endl;
+    assert (filename && (filename[0]!='\0'));
+    //cerr << "dataManager::printDaemonStartInfo(" << filename << ")" << endl;
 
-  struct stat statBuf;
-  int rd = stat(filename, &statBuf);
-  if (rd == 0) {                                      // file already exists
-    if (S_ISDIR(statBuf.st_mode)) { // got a directory!
-      pdstring msg = pdstring("Paradyn connect file \"") +
-	pdstring(filename) +
-	pdstring("\" is a directory! - skipped.\n");
-      sprintf(buf, "%s", msg.c_str());
-      uiMgr->showError(103, buf);
-      return;             
-    } else if (S_ISREG(statBuf.st_mode) && (statBuf.st_size > 0)) {
-      FILE *fp = fopen(filename, "r");        // check whether file exists
-      if (fp) {
-	int n=fscanf(fp, "paradynd");       // look for daemon info
-	if (n<0) {
-	  pdstring msg = pdstring("Aborted overwrite of unrecognized \"") 
-	    + pdstring(filename)
-	    + pdstring("\" contents with daemon start-up information.");
-	  sprintf(buf, "%s", msg.c_str());
-	  uiMgr->showError(103, buf);
-	  fclose(fp);
-	  return;
-	} else {
-	  //fprintf(stderr,"Overwriting daemon start-up information!\n");
-	}
-	fclose(fp);
-      }
+    struct stat statBuf;
+    int rd = stat(filename, &statBuf);
+    if (rd == 0) {                                      // file already exists
+        if (S_ISDIR(statBuf.st_mode)) { // got a directory!
+            pdstring msg = pdstring("Paradyn connect file \"") +
+                           pdstring(filename) +
+                           pdstring("\" is a directory! - skipped.\n");
+            sprintf(buf, "%s", msg.c_str());
+            uiMgr->showError(103, buf);
+            return;             
+        } else if (S_ISREG(statBuf.st_mode) && (statBuf.st_size > 0)) {
+            FILE *fp = fopen(filename, "r");        // check whether file exists
+            if (fp) {
+                int n=fscanf(fp, "paradynd");       // look for daemon info
+                if (n<0) {
+                    pdstring msg = pdstring("Aborted overwrite of unrecognized \"") 
+                      + pdstring(filename)
+                      + pdstring("\" contents with daemon start-up information.");
+                    sprintf(buf, "%s", msg.c_str());
+                    uiMgr->showError(103, buf);
+                    fclose(fp);
+                    return;
+                } else {
+                    //fprintf(stderr,"Overwriting daemon start-up information!\n");
+                }
+                fclose(fp);
+            }
+        }
     }
-  }
-  FILE *fp = fopen(filename, "w");
-  if (fp) {
-    // go ahead and actually (re-)write the connect file
-    fprintf(fp, "%s\n", command.c_str());;
-    fclose(fp);
-  } else {
-    pdstring msg = pdstring("Unable to open file \"") +
-      pdstring(filename) +
-      pdstring("\" to write daemon start information.");
-    sprintf(buf, "%s", msg.c_str());
-    uiMgr->showError(103, buf);
-  }
-}
-
-static void
-DMnewParadynd ()
-{
-  // accept the connection
-  PDSOCKET new_sock = RPC_getConnect(dataManager::dm->sock_desc);
-  if (new_sock != PDSOCKET_ERROR)
-    {
-      // add new daemon to dictionary of all deamons
-      paradynDaemon::addDaemon(new_sock);
-    }
-  else
-    {
-      uiMgr->showError(4, "");
+    FILE *fp = fopen(filename, "w");
+    if (fp) {
+        // go ahead and actually (re-)write the connect file
+        fprintf(fp, "%s\n", command.c_str());;
+        fclose(fp);
+    } else {
+        pdstring msg = pdstring("Unable to open file \"") +
+                       pdstring(filename) +
+                       pdstring("\" to write daemon start information.");
+        sprintf(buf, "%s", msg.c_str());
+        uiMgr->showError(103, buf);
     }
 }
 
 bool dataManager::DM_sequential_init(const char* met_file){
-  pdstring mfile = met_file;
-  return(metMain(mfile)); 
+   pdstring mfile = met_file;
+   return(metMain(mfile)); 
 }
 
+static void
+DMsetupSocket (PDSOCKET &sock)
+{
+  // setup "well known" socket for pvm paradynd's to connect to
+  dataManager::dm->sock_port = RPC_setup_socket (sock, AF_INET, SOCK_STREAM);
+  assert(dataManager::dm->sock_port != (-1));
+  
+  // bind fd for this thread
+  thread_t stid;
+  msg_bind_socket (sock, true, NULL, NULL, &stid);
+}
 int
 dataManager::DM_post_thread_create_init( DMthreadArgs* dmArgs )
 {
-  thr_name("Data Manager");
-  dataManager::dm = new dataManager( dmArgs->mainTid );
+    thr_name("Data Manager");
+    dataManager::dm = new dataManager( dmArgs->mainTid );
 
-  // supports argv passed to paradynDaemon
-  // new paradynd's may try to connect to well known port
-  DMsetupSocket (dataManager::dm->sock_desc);
+    // supports argv passed to paradynDaemon
+    // new paradynd's may try to connect to well known port
+    // DMsetupSocket(dataManager::dm->sock_desc);
 
 #if !defined(os_windows)
-  StartTermWin( dmArgs->useTermWinGUI );
+    StartTermWin( dmArgs->useTermWinGUI );
 #endif // (os_windows)
 
-  bool aflag;
+    bool aflag;
 #if !defined(i386_unknown_nt4_0)
-  aflag=(RPC_make_arg_list(paradynDaemon::args,
-			   dataManager::dm->sock_port,dataManager::termWin_port, 1, 1, "", false));
+    aflag=(RPC_make_arg_list(paradynDaemon::args,
+  	 	             dataManager::dm->sock_port,dataManager::termWin_port, 1, 1, "", false));
 #else
-  aflag=(RPC_make_arg_list(paradynDaemon::args,
-			   dataManager::dm->sock_port, 1, 1, "", false));
+    aflag=(RPC_make_arg_list(paradynDaemon::args,
+  	 	             dataManager::dm->sock_port, 1, 1, "", false));
 #endif
-  assert(aflag);
+    assert(aflag);
+     // start initial phase
+    pdstring dm_phase0 = "phase_0";
+    phaseInfo::startPhase(dm_phase0, false, false);
 
-  // start initial phase
-  pdstring dm_phase0 = "phase_0";
-  phaseInfo::startPhase(dm_phase0, false, false);
+    char DMbuff[64];
+    unsigned int msgSize = 64;
 
-  char DMbuff[64];
-  unsigned int msgSize = 64;
-  msg_send( dmArgs->mainTid, MSG_TAG_DM_READY, (char *) NULL, 0);
-  tag_t tag = MSG_TAG_ALL_CHILDREN_READY;
-  thread_t from = dmArgs->mainTid;
-  msg_recv (&from, &tag, DMbuff, &msgSize);
-  assert( from == dmArgs->mainTid );
+    msg_send( dmArgs->mainTid, MSG_TAG_DM_READY, (char *) NULL, 0);
+    tag_t tag = MSG_TAG_ALL_CHILDREN_READY;
+		thread_t from = dmArgs->mainTid;
 
-  return 1;
+    msg_recv (&from, &tag, DMbuff, &msgSize);
+		assert( from == dmArgs->mainTid );
+    return 1;
 }
 
+#if defined (JUNK)
 static bool poll_callback(PDSOCKET sock)
 {
-  for(unsigned i=0; i<paradynDaemon::allDaemons.size(); i++)
+    //if socket belongs to mrnet, check mrnet buffers for data
+    for(unsigned i=0; i<paradynDaemon::allDaemons.size(); i++)
   {
     paradynDaemon *pd = paradynDaemon::allDaemons[i]; 
     if (pd->get_sock() == sock)
@@ -747,139 +784,213 @@ static bool poll_callback(PDSOCKET sock)
   }
   return false;
 }
+#endif /* JUNK */
 
+// returns -1 on error, number of requests processed otherwise
+static int check_MRNetForData()
+{
+    int num_requests=0;
+    bool processed_request;
+    int ret=0;
+
+    if( paradynDaemon::allDaemons.size() != 0 )
+      {
+        paradynDaemon * pd = paradynDaemon::allDaemons[0];
+
+	//fprintf(stderr,"IN check_MRNetForData() pd = %p\n",pd);
+	//fprintf(stderr,"IN check_MRNetForData() pd->getNetwork() = %p\n",pd->getNetwork());
+	//fflush(stderr);
+	//sleep(10);
+        //checking mrnet, waitLoop doesn't block if no requests are there.
+        do{
+	  processed_request=false;
+	  //TODO: handle multiple networks
+
+	  assert( pd->getNetwork());
+
+	  ret = pd-> waitLoop( pd->getNetwork(),
+			       &processed_request );
+	  if( processed_request ){
+	    num_requests++;
+	  }
+	  
+	  //TODO: handle errors
+        } while( ret != T_dyninstRPC::error && processed_request );
+      }
+    
+    if ( ret == T_dyninstRPC::error ){
+      return -1;
+    }
+
+    return num_requests;
+}
+
+// returns -1 on error, number of requests processed otherwise
+static int check_AsyncBuffersForData()
+{
+    int num_requests=0;
+    int ret=0;
+
+    if( paradynDaemon::allDaemons.size() != 0 ){
+        paradynDaemon * pd = paradynDaemon::allDaemons[0];
+
+        // handle async requests buffered while blocking on a sync request
+        while (pd->buffered_requests()){
+            ret = pd->process_buffered();
+
+            if( ret == T_dyninstRPC::error) {
+                cout << "error on paradyn daemon\n";
+                paradynDaemon::removeDaemon(pd, true);
+                break;
+            }
+            else{
+                num_requests++;
+            }
+        }
+    }
+
+    if ( ret == T_dyninstRPC::error ){
+        return -1;
+    }
+
+    return num_requests;
+}
 //
 // Main loop for the dataManager thread.
 //
 void* 
 DMmain( void* varg )
 {
-  DMthreadArgs* dmArgs = (DMthreadArgs*)varg;
-  assert( dmArgs != NULL );
+    DMthreadArgs* dmArgs = (DMthreadArgs*)varg;
+    assert( dmArgs != NULL );
 
-  unsigned fd_first = 0;
-  // We declare the "printChangeCollection" tunable constant here; it will
-  // last for the lifetime of this function, which is pretty much forever.
-  // (used to be declared as global in DMappContext.C.  Globally declared
-  //  tunables are now a no-no).  Note that the variable name (printCC) is
-  // unimportant.   -AT
-  tunableBooleanConstantDeclarator printCC("printChangeCollection", 
-					   "Print the name of metric/focus when enabled or disabled",
-					   false, // initial value
-					   NULL, // callback
-					   developerConstant);
 
-  // Now the same for "printSampleArrival"
-  extern bool our_print_sample_arrival;
-  our_print_sample_arrival = false;
-  extern void printSampleArrivalCallback(bool);
-  tunableBooleanConstantDeclarator printSA("printSampleArrival", 
-					   "Print out status lines to show the arrival of samples",
-					   our_print_sample_arrival, // init val
-					   printSampleArrivalCallback,
-					   developerConstant);
+    unsigned fd_first = 0;
+    // We declare the "printChangeCollection" tunable constant here; it will
+    // last for the lifetime of this function, which is pretty much forever.
+    // (used to be declared as global in DMappContext.C.  Globally declared
+    //  tunables are now a no-no).  Note that the variable name (printCC) is
+    // unimportant.   -AT
+    tunableBooleanConstantDeclarator printCC("printChangeCollection", 
+	      "Print the name of metric/focus when enabled or disabled",
+	      false, // initial value
+	      NULL, // callback
+	      developerConstant);
 
-  // Now the same for "PersistentData"
-  tunableBooleanConstantDeclarator persData("persistentData",
-					    "Don't delete internal paradyn data when instrumentation disabled",
-					    false, // init val
-					    NULL,
-					    userConstant);
+    // Now the same for "printSampleArrival"
+    extern bool our_print_sample_arrival;
+    our_print_sample_arrival = false;
+    extern void printSampleArrivalCallback(bool);
+    tunableBooleanConstantDeclarator printSA("printSampleArrival", 
+              "Print out status lines to show the arrival of samples",
+	      our_print_sample_arrival, // init val
+	      printSampleArrivalCallback,
+	      developerConstant);
 
-  dataManager::DM_post_thread_create_init( dmArgs );
+    // Now the same for "PersistentData"
+    tunableBooleanConstantDeclarator persData("persistentData",
+	      "Don't delete internal paradyn data when instrumentation disabled",
+	      false, // init val
+	      NULL,
+	      userConstant);
 
-  thread_t tid;
-  unsigned int tag;
-  paradynDaemon *pd = NULL;
-  int err;
+    //fprintf(stderr, "DM: calling DM_post_thread_create_init() started\n");
+    dataManager::DM_post_thread_create_init( dmArgs );
+    //fprintf(stderr, "DM: DM_post_thread_create_init() done\n");
 
-  while (1) {
-    for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
-      pd = paradynDaemon::allDaemons[i]; 
-      // handle up to max async requests that may have been buffered
-      // while blocking on a sync request
-      while (pd->buffered_requests()){
-	if(pd->process_buffered() == T_dyninstRPC::error) {
-	  cout << "error on paradyn daemon\n";
-	  paradynDaemon::removeDaemon(pd, true);
-	}
-      }
+    thread_t tid;
+    unsigned int tag;
+    int err;
+
+    //check mrnet and async bufs for any new/backlogged requests
+    int ret = check_MRNetForData();
+    if (ret == -1 ){
+        //TODO: handle error
     }
-
-    // wait for next message from anyone, blocking till available
-    tid = THR_TID_UNSPEC;
-    tag = MSG_TAG_ANY;
-    err = msg_poll_preference(&tid, &tag, true,fd_first);
-    assert(err != THR_ERR);
-    fd_first = !fd_first; 
-
-    if (tag == MSG_TAG_DO_EXIT_CLEANLY) {
-      // we're done handling events
-      break;
+       
+    ret = check_AsyncBuffersForData();
+    if (ret == -1 ){
+        //TODO: handle error
     }
+    while (1)
+      {
+
+	//cout << "Ready to sleep" << endl;
+	//sleep(2);
+	//cout << "awake"<< endl;
+	// wait for next message from anyone, blocking till available
+        tid = THR_TID_UNSPEC;
+        tag = MSG_TAG_ANY;
+        //msg_dump_state();
+        err = msg_poll_preference(&tid, &tag, true,fd_first);
+        assert(err != THR_ERR);
+        fd_first = !fd_first;
 	
-    if (tag == MSG_TAG_SOCKET) {
-      // must be an upcall on something speaking the dynRPC protocol.
-      PDSOCKET fromSock = thr_socket( tid );
-      assert(fromSock != INVALID_PDSOCKET);
-	  
-      if (fromSock == dataManager::dm->sock_desc){
-	DMnewParadynd(); // set up a new daemon
-      }
-      else {
-	    
-	for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
-	  pd = paradynDaemon::allDaemons[i]; 
-	  if(pd->get_sock() == fromSock){
-#if defined(i386_unknown_nt4_0)
-            {
-	      unsigned long nAvailableBytes = 0;
-	      if( (ioctlsocket( fromSock, FIONREAD, &nAvailableBytes ) == SOCKET_ERROR) ||
-		  (nAvailableBytes == 0) )
-                {
-		  // spurious wakeup -
-		  // WHY are we still getting these?
-		  continue;
-                }
-            }
-#endif // defined(i386_unknown_nt4_0)
-	    //loop until we receive all (possibly buffered) records
-	    do {
-	      if(pd->waitLoop() == T_dyninstRPC::error) {
-		cout << "error on paradyn daemon\n";
-		paradynDaemon::removeDaemon(pd, true);
-	      }
-	    } while(!xdrrec_eof(pd->net_obj()));
-	  } 
-	      
-	  // handle async requests that may have been buffered
-	  // while blocking on a sync request
-	  while(pd->buffered_requests()){
-	    if(pd->process_buffered() == T_dyninstRPC::error) {
-	      cout << "error on paradyn daemon\n";
-	      paradynDaemon::removeDaemon(pd, true);
-	    }
+        if (tag == MSG_TAG_DO_EXIT_CLEANLY) 
+	  {
+            // we're done handling events
+            break;
 	  }
-	}
-      }
-    } else if (dataManager::dm->isValidTag
-	       ((T_dataManager::message_tags)tag)) {
-      if (dataManager::dm->waitLoop(true, (T_dataManager::message_tags)tag) 
-	  == T_dataManager::error) {
-	// handle error
-	assert(0);
-      }
-    } else {
-      cerr << "Unrecognized message in DMmain.C: tag = "
-	   << tag << ", tid = "
-	   << tid << '\n';
-      assert(0);
-    }
-  }
+        
+        if (tag == MSG_TAG_SOCKET) 
+	  {
+	    // must be something on an mrnet network
+	    PDSOCKET fromSock = thr_socket( tid );
+            assert(fromSock != INVALID_PDSOCKET);
+            
+            //if there are any daemons, check mrnet and async bufs for requests
+            ret = check_MRNetForData();
+            if (ret == -1 )
+	      {
+                //TODO: handle error
+	      }
+	    
+            //check async bufs for requests
+            ret = check_AsyncBuffersForData();
+            if (ret == -1 )
+	      {
+                //TODO: handle error
+	      }
+	  } else  if (dataManager::dm->isValidTag((T_dataManager::message_tags)tag)) 
+	      {
 
-  //
-  // cleanup
-  //
+		if (dataManager::dm->waitLoop(true,
+					      (T_dataManager::message_tags)tag) 
+		    == T_dataManager::error) 
+		  {
+		    // handle error
+		    assert(0);
+		  }
+
+		//We must process mrnet and async buffers here for the case where
+		//this thread request resulted in a synchronous mrnet request
+		//during which the buffers could have been filled with async events
+		//if there are any daemons, check mrnet and async bufs for requests
+		ret = check_MRNetForData();
+		if (ret == -1 )
+		  {
+		    //TODO: handle error
+		  }
+		
+		//check async bufs for requests
+		ret = check_AsyncBuffersForData();
+		if (ret == -1 )
+		  {
+		    //TODO: handle error
+		  }
+	      } 
+	    else 
+	      {
+		cerr << "Unrecognized message in DMmain.C: tag = "
+		     << tag << ", tid = "
+		     << tid << '\n';
+		assert(0);
+	      }
+      }
+
+    //
+    // cleanup
+    //
 #if !defined(i386_unknown_nt4_0)
   mpichUnlinkWrappers();
 
@@ -887,67 +998,78 @@ DMmain( void* varg )
   {
     twUser->shutdown();
   }
+
 #endif // !defined(i386_unknown_nt4_0)
 
-  return NULL;
+    return NULL;
 }
 
 
 void addMetric(T_dyninstRPC::metricInfo &info)
 {
-  // if metric already exists return
-  if(metric::allMetrics.defines(info.name)){
-    return;
-  }
-  metric *met = new metric(info);
 
-  // now tell all perfStreams
-  performanceStream::psIter_t allS = performanceStream::getAllStreamsIter();
-  perfStreamHandle h;
-  performanceStream *ps;
-  while(allS.next(h,ps)){
-    controlCallback controlData = ps->getControlCallbackData();
-    if(controlData.mFunc) {
-      // set the correct destination thread.
-      dataManager::dm->setTid(ps->getThreadID());
-      dataManager::dm->newMetricDefined(controlData.mFunc, 
-					ps->Handle(),
-					met->getName(),
-					met->getStyle(),
-					met->getAggregate(),
-					met->getUnits(),
-					met->getHandle(),
-					met->getUnitsType());
+    // if metric already exists return
+    if(metric::allMetrics.defines(info.name)){
+        return;
     }
-  }
+    metric *met = new metric(info);
+
+    // now tell all perfStreams
+    performanceStream::psIter_t allS = performanceStream::getAllStreamsIter();
+    perfStreamHandle h;
+    performanceStream *ps;
+    while(allS.next(h,ps)){
+       controlCallback controlData = ps->getControlCallbackData();
+	if(controlData.mFunc) 
+	  {
+	    // set the correct destination thread.
+	    dataManager::dm->setTid(ps->getThreadID());
+	    dataManager::dm->newMetricDefined(controlData.mFunc, 
+					      ps->Handle(),
+					      met->getName(),
+					      met->getStyle(),
+					      met->getAggregate(),
+					      met->getUnits(),
+					      met->getHandle(),
+					      met->getUnitsType());
+	  }
+    }
 }
 
 void ps_retiredResource(pdstring resource_name) {
-  resource *res = resource::string_to_resource(resource_name);
-  if(! res) {
-    cerr << "Couldn't find resource " << resource_name << "\n";
-    return;
-  }
-  res->markAsRetired();
+   resource *res = resource::string_to_resource(resource_name);
+   if(! res) {
+      cerr << "Couldn't find resource " << resource_name << "\n";
+      return;
+   }
+   res->markAsRetired();
 
-  /* inform others about it if they need to know */
-  performanceStream::psIter_t allS = performanceStream::getAllStreamsIter();
-  perfStreamHandle h;
-  performanceStream *ps;
-  resourceHandle r_handle = res->getHandle();
+   /* inform others about it if they need to know */
+   performanceStream::psIter_t allS = performanceStream::getAllStreamsIter();
+   perfStreamHandle h;
+   performanceStream *ps;
+   resourceHandle r_handle = res->getHandle();
 
-  while(allS.next(h,ps)) {
-    ps->callResourceRetireFunc(r_handle, res->getFullName().c_str());
-  }
+   while(allS.next(h,ps)) {
+       ps->callResourceRetireFunc(r_handle, res->getFullName().c_str());
+   }
 }
 
 void newSampleRate(timeLength rate)
 {
-  paradynDaemon *pd = NULL;
-  for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
-    pd = paradynDaemon::allDaemons[i]; 
-    pd->setSampleRate(rate.getD(timeUnit::sec()));
-  }
+    paradynDaemon * pd = paradynDaemon::allDaemons[0];
+
+    MRN::Communicator * comm = pd->network->new_Communicator();
+
+    for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
+        comm->add_EndPoint( paradynDaemon::allDaemons[i]->endpoint );
+    }
+
+    MRN::Stream * local_stream = pd->network->new_Stream( comm );
+	pd->setSampleRate(local_stream, rate.getD(timeUnit::sec()));
+
+    delete local_stream;
+    delete comm;
 }
 
 
@@ -955,64 +1077,66 @@ void newSampleRate(timeLength rate)
 void
 StartTermWin( bool useTermWinGUI )
 {
-  bool sawStartupError = false;
+    bool sawStartupError = false;
 
-  assert( dataManager::termWin_sock == INVALID_PDSOCKET );
-  assert( twUser == NULL );
+    assert( dataManager::termWin_sock == INVALID_PDSOCKET );
+    assert( twUser == NULL );
 
-  dataManager::termWin_port = RPC_setup_socket(dataManager::termWin_sock,
-					       AF_INET, 
-					       SOCK_STREAM);
+    dataManager::termWin_port = RPC_setup_socket(dataManager::termWin_sock,
+                                                    AF_INET, 
+                                                    SOCK_STREAM);
+    char buffer[256];
+    sprintf(buffer,"%d",dataManager::termWin_sock);
+    pdvector<pdstring>* av = new pdvector<pdstring>;
+    av->push_back( buffer );
 
-  char buffer[256];
-  sprintf(buffer,"%d",dataManager::termWin_sock);
-  pdvector<pdstring>* av = new pdvector<pdstring>;
-  av->push_back( buffer );
-
-  // if desired, ask GUI to use command-line interface
-  if( !useTermWinGUI )
+    // if desired, ask GUI to use command-line interface
+    if( !useTermWinGUI )
     {
-      av->push_back( "-cl" );
+        av->push_back( "-cl" );
     }
 
-  PDSOCKET tw_sock = RPCprocessCreate("localhost","","termWin","",*av);
-  if( tw_sock != PDSOCKET_ERROR )
+    PDSOCKET tw_sock = RPCprocessCreate("localhost","","termWin","",*av);
+    if( tw_sock != PDSOCKET_ERROR )
     {
-      // bind the termWin connection so that we're given notice of
-      // available data on the termWin connection (like its response
-      // to our initial version number handshake)
-      thread_t tw_sock_tid;
-      msg_bind_socket( tw_sock,   // socket
-		       true,   // we will read data off connection
-		       NULL,   // no special will_block function
-		       NULL,
-		       &tw_sock_tid ); // tid assigned to bound socket
-      twUser = new termWinUser( tw_sock, NULL, NULL, 0 );
-      if( twUser->errorConditionFound )
+
+        // bind the termWin connection so that we're given notice of
+        // available data on the termWin connection (like its response
+        // to our initial version number handshake)
+        thread_t tw_sock_tid;
+        msg_bind_socket( tw_sock,   // socket
+                            true,   // we will read data off connection
+                            NULL,   // no special will_block function
+                            NULL,
+                            &tw_sock_tid ); // tid assigned to bound socket
+
+        twUser = new termWinUser( tw_sock, NULL, NULL, 0 );
+
+        if( twUser->errorConditionFound )
         {
-	  // the termWin igen interface handshake failed
-	  sawStartupError = true;
+            // the termWin igen interface handshake failed
+            sawStartupError = true;
         }
     }
-  else
+    else
     {
-      // the creation of the termWin process failed
-      sawStartupError = true; 
+        // the creation of the termWin process failed
+        sawStartupError = true; 
     }
 
-  if( sawStartupError )
+    if( sawStartupError )
     {
-      // report the error to the user
-      uiMgr->showError( 121, "Paradyn failed to start the terminal window." );
+        // report the error to the user
+        uiMgr->showError( 121, "Paradyn failed to start the terminal window." );
     
-      // ensure that we know we don't have a termWin connection
-      delete twUser;
-      twUser = NULL;
+        // ensure that we know we don't have a termWin connection
+        delete twUser;
+        twUser = NULL;
     }
 
-  delete av;
-  P_close(dataManager::termWin_sock);
-  dataManager::termWin_sock = INVALID_PDSOCKET;
+    delete av;
+    P_close(dataManager::termWin_sock);
+    dataManager::termWin_sock = INVALID_PDSOCKET;
 }
 #endif // !defined(i386_unknown_nt4_0)
 
