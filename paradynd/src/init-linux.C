@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-linux.C,v 1.29 2005/10/13 21:12:34 tlmiller Exp $
+// $Id: init-linux.C,v 1.30 2006/01/05 19:16:15 legendre Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/init.h"
@@ -54,7 +54,6 @@ bool initOS() {
    } 
    cmdArg = new BPatch_paramExpr(4);
    static bool no_warn = false;
-   static bool warn = true;
    initialRequestsPARADYN += new pdinstMapping("rexec", "DYNINSTrexec",
                                              FUNC_ENTRY|FUNC_ARG, BPatch_callBefore,
                                              BPatch_lastSnippet, cmdArg,no_warn);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: internalMetrics.C,v 1.17 2005/12/19 19:42:56 pack Exp $
+// $Id: internalMetrics.C,v 1.18 2006/01/05 19:16:16 legendre Exp $
 
 #include "paradynd/src/processMgr.h"
 #include "internalMetrics.h"
@@ -85,9 +85,6 @@ void internalMetric::eachInstance::updateValue(timeStamp timeOfSample,
     else assert(0);  // only two initActualValuePolicies so far
 
     node->initializeForSampling(getWallTime(), initActVal);
-
-    extern int sdm_id;
-
     node->sendInitialActualValue(initActVal);
   } else {
     value -= cumulativeValue;

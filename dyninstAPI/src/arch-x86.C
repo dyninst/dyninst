@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.44 2005/12/14 22:44:04 bernat Exp $
+// $Id: arch-x86.C,v 1.45 2006/01/05 19:16:10 legendre Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -3869,18 +3869,19 @@ bool instruction::generate(codeGen &gen,
     return true;
 }
 
-int instruction::jumpSize(Address from, Address to) {
-
 #if defined(arch_x86)
+int instruction::jumpSize(Address /*from*/, Address /*to*/) {
     return JUMP_REL32_SZ;
+}
 #else
+int instruction::jumpSize(Address from, Address to) {
     long disp = to - (from + JUMP_REL32_SZ);
     if (is_disp32(disp))
       return JUMP_REL32_SZ;
     else
       return JUMP_ABS64_SZ;
-#endif
 }
+#endif
 
 unsigned instruction::maxJumpSize() {
 #if defined(arch_x86)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynUI.C,v 1.7 2005/12/19 19:42:26 pack Exp $
+// $Id: ParadynUI.C,v 1.8 2006/01/05 19:16:13 legendre Exp $
 #include "UIglobals.h"
 #include "common/h/Ident.h"
 #include "../pdMain/paradyn.h"
@@ -168,8 +168,6 @@ ParadynUI::HandleEvent( thread_t /* mtid */, tag_t mtag )
 void
 ParadynUI::setDeveloperMode( bool newVal )
 {
-
-  cout << " In ParadynUI::setDeveloperMode " << endl;
 	inDeveloperMode = newVal;
 }
 

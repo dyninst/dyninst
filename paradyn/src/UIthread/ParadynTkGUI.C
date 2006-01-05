@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynTkGUI.C,v 1.12 2005/12/19 19:42:25 pack Exp $
+// $Id: ParadynTkGUI.C,v 1.13 2006/01/05 19:16:12 legendre Exp $
 #include "pdutil/h/TclTools.h"
 #include "ParadynTkGUI.h"
 #include "paradyn/src/pdMain/paradyn.h"
@@ -379,17 +379,10 @@ ParadynTkGUI::HandleEvent( thread_t mtid, tag_t mtag )
 void
 ParadynTkGUI::setDeveloperMode( bool newVal )
 {
-  cout << "IN ParadynTkGUI::setDeveloperMode" <<endl;
-
     ParadynUI::setDeveloperMode( newVal );
-  cout << "Returned from ParadynUI::setDeveloperMode" <<endl;
-
 	// the SHG needs to hear of changes in developer mode to resize
 	// its status line appropriately
-  cout << " calling  shgDevelModeChange "<<endl;
-
 	shgDevelModeChange( interp, newVal );
-  cout << " returned from  shgDevelModeChange "<<endl;
 }
 
 
@@ -808,10 +801,6 @@ ParadynTkGUI::newPhaseNotification(unsigned ph,
                                     const char *name,
                                     bool with_new_pc)
 {
-//   cout << "UI welcome to new_phase_detected" << endl;
-//   cout << "id=" << ph << endl;
-//   cout << "name=" << name << endl;
-
    // For the benefit of the shg, in the event that the shg window
    // has not yet been opened, with the result that "theShgPhases"
    // hasn't yet been constructed:
@@ -820,12 +809,10 @@ ParadynTkGUI::newPhaseNotification(unsigned ph,
       latest_detected_new_phase_id = ph;
       //** memory leak
       latest_detected_new_phase_name = name;
-      //cout << "ui_newPhaseDetected: deferring phase id " << ph << " (" << name << ") since shg window not yet opened" << endl;
       if (with_new_pc)
          cout << "can't begin searching the new phase since Perf Consultant window not yet opened" << endl;
    }
    else {
-      //cout << "ui_newPhaseDetected: adding the phase now" << endl;
       bool redraw = theShgPhases->defineNewSearch(ph, name);
 
       if (with_new_pc) {
@@ -839,8 +826,6 @@ ParadynTkGUI::newPhaseNotification(unsigned ph,
 	 myTclEval(interp, "shgClickOnSearch");
 	    // calls shgSearchCommand (shgTcl.C), which calls activateCurrSearch()
             // in shgPhases.C
-
-         //cout << "ui_newPhaseDetected: started the new search!" << endl;
 
 	 redraw = true;
       }
@@ -1152,11 +1137,8 @@ void
 ParadynTkGUI::ProcessCmd(pdstring *args)
 {
 
-  cout << "In ProcessCmd" <<endl;
   pdstring command;
   command = pdstring("paradyn process ") + (*args);
-  cout << command << endl;
-
 
   if (Tcl_VarEval(interp,command.c_str(),0)==TCL_ERROR) {
     pdstring msg = pdstring("Tcl interpreter failed in routine ProcessCmd: ");
@@ -1271,16 +1253,13 @@ void
 ParadynTkGUI::showSHGKey(bool newValue)
 {
 
-  fprintf(stderr,"%s %d\n",__FILE__, __LINE__);
 	if(newValue)
 	{
 		myTclEval(interp, "redrawKeyAndTipsAreas on nc");
-  fprintf(stderr,"%s %d\n",__FILE__, __LINE__);
 	}
 	else
 	{
 		myTclEval(interp, "redrawKeyAndTipsAreas off nc");
-  fprintf(stderr,"%s %d\n",__FILE__, __LINE__);
 	}
 }
 

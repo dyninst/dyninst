@@ -44,7 +44,6 @@
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/pd_image.h"
 #include "paradynd/src/pd_module.h"
-#include "paradynd/src/CallGraph.h"
 
 pdvector<pd_image *> pd_image::all_pd_images;
 extern bool mdl_get_lib_constraints(pdvector<pdstring> &);

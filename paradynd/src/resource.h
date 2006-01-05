@@ -252,9 +252,10 @@ inline resource::resource(const pdstring& abstraction,
 : name_(self_name),
   abstraction_(abstraction),
   creation_(creat), handle_(hand), suppressed_(supp), parent_(par),
+  id_(0),
   type_(type),
   mdlType_(mdlType),
-     checksum_calculated(false),id_(0)
+  checksum_calculated(false)
 { }
 
 inline resource *resource::findResource(unsigned name) {

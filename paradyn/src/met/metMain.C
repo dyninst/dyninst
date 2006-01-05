@@ -48,7 +48,7 @@
  *     metDoVisi(..) - declare a visi
  */
 
-// $Id: metMain.C,v 1.59 2005/12/19 19:42:37 pack Exp $
+// $Id: metMain.C,v 1.60 2006/01/05 19:16:14 legendre Exp $
 
 #define GLOBAL_CONFIG_FILE "/paradyn.rc"
 #define LOCAL_CONFIG_FILE "/.paradynrc"
@@ -89,149 +89,146 @@ bool metDoTunable();
 
 static int open_N_parse (pdstring& file)
 {
-  FILE *f;
-  static int been_here = 0;
-  int ret = -1;
+   FILE *f;
+   static int been_here = 0;
+   int ret = -1;
 
-  f = fopen (file.c_str(), "r");
-  if (f) {
-    mdl_files.push_back( file );
-    if (!been_here) { 
-      been_here = 1;
-      mdlin = f;
-      ret = mdlparse();
-      fclose( f );
-    } else {
-      mdlrestart(f);
-      ret = mdlparse();
-      fclose( f );
-    }
-  }
-  return ret;
+   f = fopen (file.c_str(), "r");
+   if (f) {
+      mdl_files.push_back( file );
+      if (!been_here) { 
+         been_here = 1;
+         mdlin = f;
+         ret = mdlparse();
+         fclose( f );
+      } else {
+         mdlrestart(f);
+         ret = mdlparse();
+         fclose( f );
+      }
+   }
+   return ret;
 }
 
 // parse the 3 files (system, user, application)
 bool metMain(pdstring userFile)
 {
-  int yy1=0, yy2, yy3;
-  char *home, *proot, *cwd;
-  pdstring fname;
+   int yy1=0, yy2, yy3;
+   char *home, *proot, *cwd;
+   pdstring fname;
 
-  // we (the FE) do all our work in the context of a single mdl_data
-  mdl_data::cur_mdl_data = new mdl_data();
-  mdl_init();
+   // we (the FE) do all our work in the context of a single mdl_data
+   mdl_data::cur_mdl_data = new mdl_data();
+   mdl_init();
  
-//  const pdstring rcFileExtensionName="paradyn.rc";
-     // formerly Paradynrc_NEW --ari
+   //  const pdstring rcFileExtensionName="paradyn.rc";
+   // formerly Paradynrc_NEW --ari
 
-  proot = getenv(PARADYN_ROOT);
-  if (proot) {
-    fname = pdstring(proot) + GLOBAL_CONFIG_FILE;
-    yy1 = open_N_parse(fname);
-  } else {
-    // note: we should use getwd() instead --ari
-    // (although it's not standard C in the sense that it's not
-    //  in the K & R book's appendix)
-    cwd = getenv("PWD");
-    if (cwd) {
-      fname = pdstring(cwd) + GLOBAL_CONFIG_FILE;
+   proot = getenv(PARADYN_ROOT);
+   if (proot) {
+      fname = pdstring(proot) + GLOBAL_CONFIG_FILE;
       yy1 = open_N_parse(fname);
-    } else yy1 = -1;
-  }
+   } else {
+      // note: we should use getwd() instead --ari
+      // (although it's not standard C in the sense that it's not
+      //  in the K & R book's appendix)
+      cwd = getenv("PWD");
+      if (cwd) {
+         fname = pdstring(cwd) + GLOBAL_CONFIG_FILE;
+         yy1 = open_N_parse(fname);
+      } else yy1 = -1;
+   }
 
-  home = getenv("HOME");
-  if (home) {
-    fname = pdstring(home) + LOCAL_CONFIG_FILE;
-    yy2 = open_N_parse(fname);
-  } else yy2 = -1;
+   home = getenv("HOME");
+   if (home) {
+      fname = pdstring(home) + LOCAL_CONFIG_FILE;
+      yy2 = open_N_parse(fname);
+   } else yy2 = -1;
 
-  if (userFile.length()) {
-    yy3 = open_N_parse(userFile);
-    if (yy3 == -1) {
-      fprintf(stderr,"Error: can't open file '%s'.\n", userFile.c_str());
+   if (userFile.length()) {
+      yy3 = open_N_parse(userFile);
+      if (yy3 == -1) {
+         fprintf(stderr,"Error: can't open file '%s'.\n", userFile.c_str());
+         exit(-1);
+      }
+   }
+   else yy3 = -1;
+
+   if (yy1 < 0 && yy2 < 0 && yy3 < 0) {
+      fprintf(stderr,"Error: can't find any configuration files.\nParadyn looks for configuration files in the following places:\n\t$PARADYN_ROOT/paradyn.rc or $PWD/paradyn.rc\n\t$HOME/.paradynrc\n");
       exit(-1);
-    }
-  }
-  else yy3 = -1;
+   }
 
-  if (yy1 < 0 && yy2 < 0 && yy3 < 0) {
-    fprintf(stderr,"Error: can't find any configuration files.\nParadyn looks for configuration files in the following places:\n\t$PARADYN_ROOT/paradyn.rc or $PWD/paradyn.rc\n\t$HOME/.paradynrc\n");
-    exit(-1);
-  }
+   // take actions based on the parsed configuration files
 
-  // take actions based on the parsed configuration files
-
-  // metDoDaemon();
-  // metDoTunable();
-  // metDoProcess();
-  // metDoVisi();
-  bool mdl_res = mdl_apply();
-  if(mdl_res) {
+   // metDoDaemon();
+   // metDoTunable();
+   // metDoProcess();
+   // metDoVisi();
+   bool mdl_res = mdl_apply();
+   if(mdl_res) {
       mdl_res = mdl_check_node_constraints();
-  }
-  return(mdl_res);
+   }
+   return(mdl_res);
 }
 
 bool metDoDaemon()
 {
-
 	bool ret_value = false;
-  static bool been_done = false;
+   static bool been_done = false;
 	
-  daemonMet::dumpAll();
-	processMet::dumpAll();  
-  unsigned size=daemonMet::allDaemons.size();
-  for (unsigned u=0; u<size; u++) 
-    {
+   unsigned size=daemonMet::allDaemons.size();
+   for (unsigned u=0; u<size; u++) 
+   {
       dataMgr->defineDaemon(daemonMet::allDaemons[u]->command().c_str(),
-														daemonMet::allDaemons[u]->execDir().c_str(),
-														daemonMet::allDaemons[u]->user().c_str(),
-														daemonMet::allDaemons[u]->name().c_str(),
-														daemonMet::allDaemons[u]->host().c_str(),
-														daemonMet::allDaemons[u]->remoteShell().c_str(),
-														daemonMet::allDaemons[u]->flavor().c_str(),
-														daemonMet::allDaemons[u]->mrnet_topology().c_str(),
-														daemonMet::allDaemons[u]->MPItype().c_str(),
-														false);
-			if(daemonMet::allDaemons[u]->flavor() == "mpi")
-				ret_value = true;
-			else
-				ret_value = false;
+                            daemonMet::allDaemons[u]->execDir().c_str(),
+                            daemonMet::allDaemons[u]->user().c_str(),
+                            daemonMet::allDaemons[u]->name().c_str(),
+                            daemonMet::allDaemons[u]->host().c_str(),
+                            daemonMet::allDaemons[u]->remoteShell().c_str(),
+                            daemonMet::allDaemons[u]->flavor().c_str(),
+                            daemonMet::allDaemons[u]->mrnet_topology().c_str(),
+                            daemonMet::allDaemons[u]->MPItype().c_str(),
+                            false);
+      if(daemonMet::allDaemons[u]->flavor() == "mpi")
+         ret_value = true;
+      else
+         ret_value = false;
       delete daemonMet::allDaemons[u];
-    }
-  daemonMet::allDaemons.resize(0);
+   }
+   daemonMet::allDaemons.resize(0);
 
-  // the default daemons
+   // the default daemons
 	if (!been_done){
 		fprintf(stderr,"Doing Default daemons\n");
 		dataMgr->defineDaemon("paradynd", NULL, NULL, "defd", NULL, NULL, "unix","","",true);
 		dataMgr->defineDaemon("paradynd", NULL, NULL, "winntd", NULL,NULL,"winnt","","",true);
 		been_done = true;
 	} 
-  return ret_value;
+   return ret_value;
 }
 
 static void add_visi(visiMet *the_vm)
 {
-  pdvector<pdstring> argv;
-  bool aflag;
-  aflag=(RPCgetArg(argv, the_vm->command().c_str()));
-  assert(aflag);
+   pdvector<pdstring> argv;
+   bool aflag;
+   aflag=(RPCgetArg(argv, the_vm->command().c_str()));
+   assert(aflag);
 
-  // the strings created here are used, not copied in the VM
-  vmMgr->VMAddNewVisualization(the_vm->name().c_str(), &argv, 
-			the_vm->force(),the_vm->limit(),the_vm->metfocus());
+   // the strings created here are used, not copied in the VM
+   vmMgr->VMAddNewVisualization(the_vm->name().c_str(), &argv, 
+                                the_vm->force(),the_vm->limit(),the_vm->metfocus());
 }
 
 
 unsigned metVisiSize(){
-  return(visiMet::allVisis.size());
+   return(visiMet::allVisis.size());
 }
 
 visiMet *metgetVisi(unsigned i){
    
    if(i < visiMet::allVisis.size()){
-       return(visiMet::allVisis[i]);
+      return(visiMet::allVisis[i]);
    }
    return 0;
 }
@@ -239,73 +236,73 @@ visiMet *metgetVisi(unsigned i){
 
 bool metDoVisi()
 {
-  unsigned size = visiMet::allVisis.size();
+   unsigned size = visiMet::allVisis.size();
 
-  for (unsigned u=0; u<size; u++) {
-    add_visi(visiMet::allVisis[u]);
-    delete visiMet::allVisis[u];
-  }
-  return true;
+   for (unsigned u=0; u<size; u++) {
+      add_visi(visiMet::allVisis[u]);
+      delete visiMet::allVisis[u];
+   }
+   return true;
 }
 
 static void start_process(processMet *the_ps)
 {
-  pdvector<pdstring> argv;
+   pdvector<pdstring> argv;
 
-  pdstring directory;
-  if (the_ps->command().length()) {
-    bool aflag;
-    aflag=(RPCgetArg(argv, the_ps->command().c_str()));
-    assert(aflag);
-    directory = expand_tilde_pathname(the_ps->execDir()); // see util lib
-  }
-  else {
-    pdstring msg;
-    msg = pdstring("Process \"") + the_ps->name() + 
-	  pdstring("\": command line is missing in PCL file.");
-    uiMgr->showError(89,P_strdup(msg.c_str()));
-    return;
-  }
+   pdstring directory;
+   if (the_ps->command().length()) {
+      bool aflag;
+      aflag=(RPCgetArg(argv, the_ps->command().c_str()));
+      assert(aflag);
+      directory = expand_tilde_pathname(the_ps->execDir()); // see util lib
+   }
+   else {
+      pdstring msg;
+      msg = pdstring("Process \"") + the_ps->name() + 
+         pdstring("\": command line is missing in PCL file.");
+      uiMgr->showError(89,P_strdup(msg.c_str()));
+      return;
+   }
 
-  pdstring *arguments;
-  arguments = new pdstring;
-  fprintf(stderr, "================== arguments %p\n", arguments);
-  if (the_ps->user().length()) {
-    *arguments += pdstring("-user ");
-    *arguments += the_ps->user();
-  }
-  if (the_ps->host().length()) { 
-    *arguments += pdstring(" -machine ");
-    *arguments += the_ps->host();
-  }
-  if (directory.length()) {
-    *arguments += pdstring(" -dir ");
-    *arguments += directory;
-  }
-  if (the_ps->daemon().length()) {
-    *arguments += pdstring(" -daemon ");
-    *arguments += the_ps->daemon();
-  }
-  for (unsigned i=0;i<argv.size();i++) { 
-    *arguments += pdstring(" ");
-    *arguments += argv[i];
-  }
+   pdstring *arguments;
+   arguments = new pdstring;
+   fprintf(stderr, "================== arguments %p\n", arguments);
+   if (the_ps->user().length()) {
+      *arguments += pdstring("-user ");
+      *arguments += the_ps->user();
+   }
+   if (the_ps->host().length()) { 
+      *arguments += pdstring(" -machine ");
+      *arguments += the_ps->host();
+   }
+   if (directory.length()) {
+      *arguments += pdstring(" -dir ");
+      *arguments += directory;
+   }
+   if (the_ps->daemon().length()) {
+      *arguments += pdstring(" -daemon ");
+      *arguments += the_ps->daemon();
+   }
+   for (unsigned i=0;i<argv.size();i++) { 
+      *arguments += pdstring(" ");
+      *arguments += argv[i];
+   }
 
 	cout << "metMain.C in start_process() "<< *arguments << endl;
 	uiMgr->ProcessCmd(arguments);
 
-//
-// The code bellow is no longer necessary because we are starting this process
-// in the same way as in the "Define A Process" window - naim
-//
-//  if(dataMgr->addExecutable(the_ps->host().c_str(), 
-//			    the_ps->user().c_str(),
-//			    the_ps->daemon().c_str(), 
-//			    directory.c_str(),
-//			    &argv)) {
-//    PDapplicState=appRunning;
-//    dataMgr->pauseApplication();
-//  }
+   //
+   // The code bellow is no longer necessary because we are starting this process
+   // in the same way as in the "Define A Process" window - naim
+   //
+   //  if(dataMgr->addExecutable(the_ps->host().c_str(), 
+   //			    the_ps->user().c_str(),
+   //			    the_ps->daemon().c_str(), 
+   //			    directory.c_str(),
+   //			    &argv)) {
+   //    PDapplicState=appRunning;
+   //    dataMgr->pauseApplication();
+   //  }
 }
 
 bool metDoProcess()
@@ -314,65 +311,65 @@ bool metDoProcess()
 }
 
 bool processMet::doInitProcess() {
-    //TODO:: Can we change this to a broadcast? Probably (darnold)
-    unsigned size = allProcs.size();
-    for (unsigned u=0; u<size; u++) {
-        if( allProcs[u] && allProcs[u]->autoStart() ) {
-            start_process( allProcs[u] );
-	    //            delete allProcs[u];
-            allProcs[u] = NULL;
-        }
-    }
-    return true;
+   //TODO:: Can we change this to a broadcast? Probably (darnold)
+   unsigned size = allProcs.size();
+   for (unsigned u=0; u<size; u++) {
+      if( allProcs[u] && allProcs[u]->autoStart() ) {
+         start_process( allProcs[u] );
+         //            delete allProcs[u];
+         allProcs[u] = NULL;
+      }
+   }
+   return true;
 }
 
 void metCheckDaemonProcess( const pdstring &host ) {
-    processMet::checkDaemonProcess( host );
+   processMet::checkDaemonProcess( host );
 }
 
 void processMet::checkDaemonProcess( const pdstring &host ) {
-    unsigned size = allProcs.size();
-    //cerr << "Checking for non-started processes for host " << host << endl;
-    for (unsigned u=0; u<size; u++) {
-	if( allProcs[u] && allProcs[u]->host() == host ) {
-	    //cerr << " - Starting process " << allProcs[u]->name() << endl;
-	    start_process( allProcs[u] );
-	    delete allProcs[u];
-	    allProcs[u] = NULL;
-	}
-    }	
+   unsigned size = allProcs.size();
+   //cerr << "Checking for non-started processes for host " << host << endl;
+   for (unsigned u=0; u<size; u++) {
+      if( allProcs[u] && allProcs[u]->host() == host ) {
+         //cerr << " - Starting process " << allProcs[u]->name() << endl;
+         start_process( allProcs[u] );
+         delete allProcs[u];
+         allProcs[u] = NULL;
+      }
+   }	
 }
 
 static void set_tunable (tunableMet *the_ts)
 {
-  if (!tunableConstantRegistry::existsTunableConstant(the_ts->name().c_str()))
-     return;
+   if (!tunableConstantRegistry::existsTunableConstant(the_ts->name().c_str()))
+      return;
 
-  if (tunableConstantRegistry::getTunableConstantType(the_ts->name().c_str()) ==
-      tunableBoolean) {
-     if (!the_ts->useBvalue()) {
-        // type mismatch?
-        return;
-     }
+   if (tunableConstantRegistry::getTunableConstantType(the_ts->name().c_str()) ==
+       tunableBoolean) {
+      if (!the_ts->useBvalue()) {
+         // type mismatch?
+         return;
+      }
 
-     tunableConstantRegistry::setBoolTunableConstant(the_ts->name().c_str(),
-						     the_ts->Bvalue());
-  }
-  else {
-     if (the_ts->useBvalue()) {
-        // type mismatch?
-        return;
-     }
+      tunableConstantRegistry::setBoolTunableConstant(the_ts->name().c_str(),
+                                                      the_ts->Bvalue());
+   }
+   else {
+      if (the_ts->useBvalue()) {
+         // type mismatch?
+         return;
+      }
 
-     tunableConstantRegistry::setFloatTunableConstant(the_ts->name().c_str(),
-						      the_ts->Fvalue());
-  }
+      tunableConstantRegistry::setFloatTunableConstant(the_ts->name().c_str(),
+                                                       the_ts->Fvalue());
+   }
 }
   
 bool metDoTunable()
 {
-  unsigned size = tunableMet::allTunables.size();
-  for (unsigned u=0; u<size; u++)
-    set_tunable(tunableMet::allTunables[u]);
-  return 1;
+   unsigned size = tunableMet::allTunables.size();
+   for (unsigned u=0; u<size; u++)
+      set_tunable(tunableMet::allTunables[u]);
+   return 1;
 }

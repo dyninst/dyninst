@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.232 2005/12/19 23:45:38 rutar Exp $
+ * $Id: inst-x86.C,v 1.233 2006/01/05 19:16:11 legendre Exp $
  */
 #include <iomanip>
 
@@ -828,14 +828,14 @@ bool Emitter32::clobberAllFuncCall( registerSpace *rs,
 
 void Emitter32::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
 {
-  if (liveFPReg != NULL)
-    {
+   if (liveFPReg != NULL)
+   {
       if (liveFPReg[0] == 0 && saveOrNot)
-	{
-	  int * temp = (int * )liveFPReg;
-	  temp[0] = 1;
-	}
-    }
+      {
+         int * temp = (int * )liveFPReg;
+         temp[0] = 1;
+      }
+   }
 }
 
 
@@ -1916,7 +1916,7 @@ bool registerSpace::clobberRegister(Register reg)
   return false;
 }
 
-bool registerSpace::clobberFPRegister(Register reg)
+bool registerSpace::clobberFPRegister(Register /*reg*/)
 {
   return false;
 }
@@ -2165,38 +2165,36 @@ void registerSpace::saveClobberInfo(const instPoint *)
 void registerSpace::resetLiveDeadInfo(const int * liveRegs, 
 				      const int * liveFPRegs,
 				      const int * /*liveSPRegs*/,
-				      bool isThreaded)
+                  bool /*isThreaded*/)
 {
-  registerSlot *regSlot = NULL;
-  
-  if (liveRegs != NULL)
-    {
+   if (liveRegs != NULL)
+   {
       for (u_int i = 0; i < regSpace->getRegisterCount(); i++)
-	{
-	  if (  liveRegs[ (int) registers[i].number ] == 1 )
-	    {
-	      registers[i].needsSaving = true;
-	      registers[i].startsLive = true;
-	    }
-	  else
-	    {
-	      if (registers[i].number != REGNUM_RBX)
-		{
-		  registers[i].needsSaving = false;
-		  registers[i].startsLive = false;
-		}
-	    }
-	}
+      {
+         if (  liveRegs[ (int) registers[i].number ] == 1 )
+         {
+            registers[i].needsSaving = true;
+            registers[i].startsLive = true;
+         }
+         else
+         {
+            if (registers[i].number != REGNUM_RBX)
+            {
+               registers[i].needsSaving = false;
+               registers[i].startsLive = false;
+            }
+         }
+      }
       setDisregardLiveness(false);
-    }
-  else
-    {
+   }
+   else
+   {
       setDisregardLiveness(true);
-    }
-  if (liveFPRegs != NULL)
-    {
+   }
+   if (liveFPRegs != NULL)
+   {
       spFlag = liveFPRegs[0];
-    }
+   }
 }
 
 

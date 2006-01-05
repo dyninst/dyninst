@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.178 2005/12/19 19:43:01 pack Exp $
+// $Id: mdl.C,v 1.179 2006/01/05 19:16:17 legendre Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -3259,78 +3259,84 @@ bool mdl_init_be(pdstring& flavor) {
   return true;
 }
 
-void pdRPC::send_metrics(MRN::Stream * stream, pdvector<T_dyninstRPC::mdl_metric*>* var_0) {
-  mdl_met = true;
+void pdRPC::send_metrics(MRN::Stream * /*stream*/, 
+                         pdvector<T_dyninstRPC::mdl_metric*>* var_0) 
+{
+   mdl_met = true;
 
-  if (var_0) 
-		{
-			unsigned var_size = var_0->size();
-			for (unsigned v=0; v<var_size; v++)
-				{
+   if (var_0) 
+   {
+      unsigned var_size = var_0->size();
+      for (unsigned v=0; v<var_size; v++)
+      {
 
-					bool found = false;
-					unsigned f_size = (*var_0)[v]->flavors_->size();
+         bool found = false;
+         unsigned f_size = (*var_0)[v]->flavors_->size();
 					
-					bool flavor_found = false;
-					for (unsigned f=0; f<f_size; f++) 
-						{
-							if ((*(*var_0)[v]->flavors_)[f] == daemon_flavor)
-								{
-									flavor_found = true;
-									break;
-								}
-						}
-					if (flavor_found) 
-						{
-							unsigned size=mdl_data::cur_mdl_data->all_metrics.size();
-							for (unsigned u=0; u<size; u++)
-								{
-									if (mdl_data::cur_mdl_data->all_metrics[u]->id_ == (*var_0)[v]->id_)
-										{
-											delete mdl_data::cur_mdl_data->all_metrics[u];
-											mdl_data::cur_mdl_data->all_metrics[u] = (*var_0)[v];
-											found = true;
-										}
-								}
-							if (!found) 
-								{
-									T_dyninstRPC::mdl_metric *m = (*var_0)[v];
-									mdl_data::cur_mdl_data->all_metrics += m;
-								}
-						}
-				}
-		}
+         bool flavor_found = false;
+         for (unsigned f=0; f<f_size; f++) 
+         {
+            if ((*(*var_0)[v]->flavors_)[f] == daemon_flavor)
+            {
+               flavor_found = true;
+               break;
+            }
+         }
+         if (flavor_found) 
+         {
+            unsigned size=mdl_data::cur_mdl_data->all_metrics.size();
+            for (unsigned u=0; u<size; u++)
+            {
+               if (mdl_data::cur_mdl_data->all_metrics[u]->id_ == (*var_0)[v]->id_)
+               {
+                  delete mdl_data::cur_mdl_data->all_metrics[u];
+                  mdl_data::cur_mdl_data->all_metrics[u] = (*var_0)[v];
+                  found = true;
+               }
+            }
+            if (!found) 
+            {
+               T_dyninstRPC::mdl_metric *m = (*var_0)[v];
+               mdl_data::cur_mdl_data->all_metrics += m;
+            }
+         }
+      }
+   }
 	else 
-		{
-			fprintf(stderr, "no metric defined\n");
-			fflush(stderr);
-		}
+   {
+      fprintf(stderr, "no metric defined\n");
+      fflush(stderr);
+   }
 }
 
-void pdRPC::send_constraints(MRN::Stream * stream, pdvector<T_dyninstRPC::mdl_constraint*> *cv) {
-
-  mdl_cons = true;
-  if (cv) {
-      unsigned var_size = cv->size();
-      for (unsigned v=0; v<var_size; v++) {
-          bool found = false;
-          for (unsigned u=0; u<mdl_data::cur_mdl_data->all_constraints.size(); u++) 
-              if (mdl_data::cur_mdl_data->all_constraints[u]->id_ == (*cv)[v]->id_) {
-                  delete mdl_data::cur_mdl_data->all_constraints[u];
-                  mdl_data::cur_mdl_data->all_constraints[u] = (*cv)[v];
-                  found = true;
-              }
-          if (!found) {
-              mdl_data::cur_mdl_data->all_constraints += (*cv)[v];
-              // cout << *(*cv)[v] << endl;
-          }
+void pdRPC::send_constraints(MRN::Stream * /*stream*/, 
+                             pdvector<T_dyninstRPC::mdl_constraint*> *cv)
+{
+   mdl_cons = true;
+   if (!cv) 
+      return;
+   unsigned var_size = cv->size();
+   for (unsigned v=0; v<var_size; v++) {
+      bool found = false;
+      for (unsigned u=0; u<mdl_data::cur_mdl_data->all_constraints.size(); u++) 
+         if (mdl_data::cur_mdl_data->all_constraints[u]->id_ == (*cv)[v]->id_) 
+         {
+            delete mdl_data::cur_mdl_data->all_constraints[u];
+            mdl_data::cur_mdl_data->all_constraints[u] = (*cv)[v];
+            found = true;
+         }
+      if (!found) {
+         mdl_data::cur_mdl_data->all_constraints += (*cv)[v];
+         // cout << *(*cv)[v] << endl;
       }
-  }
+   }
 }
 
 
 // TODO -- are these executed immediately ?
-void pdRPC::send_stmts(MRN::Stream * stream, pdvector<T_dyninstRPC::mdl_stmt*> *vs) {
+void pdRPC::send_stmts(MRN::Stream * /*stream*/, 
+                       pdvector<T_dyninstRPC::mdl_stmt*> *vs) 
+{
   mdl_stmt = true;
   if (vs) {
     // ofstream of("other_out", (been_here ? ios::app : std::ios::out));
@@ -3363,7 +3369,7 @@ void pdRPC::send_stmts(MRN::Stream * stream, pdvector<T_dyninstRPC::mdl_stmt*> *
 }
 
 // recieves the list of shared libraries to exclude 
-void pdRPC::send_libs(MRN::Stream * stream, pdvector<pdstring> *libs) {
+void pdRPC::send_libs(MRN::Stream * /*stream*/, pdvector<pdstring> *libs) {
 
 	mdl_libs = true;
 	metric_cerr << "void pdRPC::send_libs(pdvector<pdstring> *libs) called" << endl;
@@ -3375,7 +3381,7 @@ void pdRPC::send_libs(MRN::Stream * stream, pdvector<pdstring> *libs) {
 }
 
 // recieves notification that there are no excluded libraries 
-void pdRPC::send_no_libs(MRN::Stream * stream ) {
+void pdRPC::send_no_libs(MRN::Stream * /*stream*/ ) {
     mdl_libs = true;
 }
 
