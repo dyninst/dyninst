@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.88 2005/12/20 02:33:54 pack Exp $
+# $Id: make.module.tmpl,v 1.89 2006/01/05 19:16:08 legendre Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
@@ -150,7 +150,7 @@ else
 SYSLIBS         += -liberty
 endif
 
-IFLAGS       += -I../$(PLATFORM) -I../src -I../../dyninstAPI/h
+IFLAGS       += -I../$(PLATFORM) -I../src -I../../dyninstAPI/h -I../../mrnet/mrnet/h
 
 all:    $(TARGET)
 
