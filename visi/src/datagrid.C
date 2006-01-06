@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: datagrid.C,v 1.33 2004/03/23 01:12:46 eli Exp $
+// $Id: datagrid.C,v 1.34 2006/01/06 23:11:24 legendre Exp $
 
 ///////////////////////////////////////////////
 // Member functions for the following classes:
@@ -100,14 +100,17 @@ Metric::~Metric(){
 //  Resource constructor
 //
 Resource::Resource(pdstring resourceName,
-                   u_int id){
+                   u_int id,
+                   pdstring fName){
 
   if(resourceName.c_str() != 0){
     name = resourceName; 
+    focusName  = fName;
     Id = id;
   }
   else {
     name = "";
+    focusName  = "";
     Id = 0;
   }
 }
@@ -479,7 +482,8 @@ int i;
 			metricList[i].Aggregate(),metricList[i].UnitsType());
   }
   for(i = 0; i < noResources; i++){
-    resources[i] = Resource(resourceList[i].Name(),resourceList[i].Identifier());
+    resources[i] = Resource(resourceList[i].Name(),resourceList[i].Identifier(),
+                            resourceList[i].FocusName());
   }
 
   data_values = new visi_GridHistoArray[noMetrics];
@@ -521,7 +525,8 @@ int i;
 			metricList[i].aggregate,metricList[i].unitstype);
   }
   for(i = 0; i < noResources; i++){
-    resources[i] = Resource(resourceList[i].name,resourceList[i].Id);
+    resources[i] = Resource(resourceList[i].name,resourceList[i].Id,
+                            resourceList[i].focusName);
   }
   data_values = new visi_GridHistoArray[noMetrics];
   for (i = 0; i < noMetrics; i++){
@@ -625,6 +630,15 @@ const char     *visi_DataGrid::ResourceName(int j){
   return(0);
 }
 
+//
+// returns the full focus name for resource number j
+//
+const char * visi_DataGrid::FocusName(int j){
+  if((j < numResources) && (j>=0))
+    return(resources[j].FocusName());
+  return(0);
+}
+
 
 // 
 //  returns fold method for metric i 
@@ -705,11 +719,13 @@ int i,ok;
   resources = new Resource[numResources + howmany];
 
   for(i = 0; i < numResources; i++){
-      resources[i] = Resource(temp[i].Name(),temp[i].Identifier());
+      resources[i] = Resource(temp[i].Name(),temp[i].Identifier(),
+                              temp[i].FocusName());
   }
   for(i = numResources; i < (numResources + howmany); i++){
       resources[i] = Resource(rlist[i-numResources].name,
-			  rlist[i-numResources].Id);
+			  rlist[i-numResources].Id,
+                          rlist[i-numResources].focusName);
   }
 
   numResources += howmany;

@@ -44,7 +44,7 @@
  *              of Paradyn
  */
  
-/* $Id: UIpublic.C,v 1.87 2005/12/19 19:42:29 pack Exp $
+/* $Id: UIpublic.C,v 1.88 2006/01/06 23:11:17 legendre Exp $
  */
 
 #include <stdio.h>
@@ -271,6 +271,13 @@ UIM::allDataSaved(bool /* succeeded */)
 
 void 
 UIM::resourcesSaved(bool /* succeeded */)
+{
+    // should be pure virtual
+    assert( false );
+}
+
+void
+UIM::callGraphsSaved(bool /* succeeded */)
 {
     // should be pure virtual
     assert( false );

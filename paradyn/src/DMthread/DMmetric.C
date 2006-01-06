@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.C,v 1.49 2005/12/20 00:19:26 pack Exp $
+// $Id: DMmetric.C,v 1.50 2006/01/06 23:11:12 legendre Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -98,6 +98,26 @@ const char *metric::getName(metricHandle handle){
      }
      else{
         return 0 ;
+     }
+}
+
+const char *metric::getUnits(metricHandle handle){
+     if(handle < metrics.size()){
+        metric *met = metrics[handle];
+        return(met->info.units.c_str());
+     }
+     else{
+        return 0 ;
+     }
+}
+
+dm_MetUnitsType metric::getUnitsType(metricHandle handle){
+     if(handle < metrics.size()){
+        metric *met = metrics[handle];
+        return met->getUnitsType();
+     }
+     else{
+        return (dm_MetUnitsType)0 ;
      }
 }
 
@@ -240,27 +260,55 @@ int metricInstance::getSampleValues(pdSample *buckets,int numOfBuckets,
 void metricInstance::saveOneMI_Histo(std::ofstream& fptr, Histogram *hdata,
                                      int phaseid)
 {
-   fptr << "histogram " << getMetricName() << endl
-        << getFocusName() << endl;
+   char unitsType[20];
+   int type = getMetricUnitsType();
+   if (type == 0)
+      strcpy(unitsType, "UnNormalized");
+   else if(type == 1)
+      strcpy(unitsType, "Normalized");
+   else
+      strcpy(unitsType, "Sampled");
 
    metric *met = metric::getMetric(getMetricHandle());
    double divisor = 0.0;
    timeLength bucketWidth = hdata->getBucketWidth();
-   
+
    if(met->getStyle() == SampledFunction) {
       divisor = 1.0;   // sampledFunction metrics aren't normalized
    } else {
       double bwidth_ns = bucketWidth.getD(timeUnit::ns());
       divisor = bwidth_ns;
    }
-	
+
    int numBins = hdata->getNumBins();
    pdSample *buckets = new pdSample[numBins];
    unsigned count = hdata->getBuckets(buckets, numBins, 0);
    relTimeStamp startTime = hdata->getStartTime();
-   // header info:  numBuckets, bucketWidth, startTime, count, id 
-   fptr << count << " " << bucketWidth << " " << startTime << " "
-        << " " << phaseid << endl;
+   // header info:  numBuckets, bucketWidth, startTime, count, id
+
+
+   fptr <<"##############################################################"
+        << endl
+        <<"#\tParadyn Resource Histogram Table " <<endl
+        <<"#\t==========================================================="
+        << endl
+        <<"#" <<endl
+        <<"#\tMetric: "<< getMetricName()
+        <<"(\""        << getMetricUnits()<< "\", "<< unitsType <<")" << endl
+        <<"#\tNumEntries: "  << count << endl
+        <<"#\tGranularity: " << bucketWidth.getD(timeUnit::sec()) << " sec"
+        <<endl
+        <<"#\tStartTime: "   << startTime.getD(timeUnit::sec()) << " sec" <<endl
+        <<"#\tPhase: ";
+             if( phaseid == -1)
+                fptr << "Global" << endl;
+             else
+                fptr << "phase_" << phaseid << endl;
+   fptr <<"#\tFocus: "       << getFocusName() << endl
+        <<"##############################################################"
+        << endl;
+
+
    // data
    for (unsigned k = 0; k < count; k++) {
       // We need to normalize the sample value.  For example, if the sample
@@ -276,7 +324,7 @@ void metricInstance::saveOneMI_Histo(std::ofstream& fptr, Histogram *hdata,
          double sample = static_cast<double>(value.getValue());
          fval = static_cast<float>(sample / divisor);
       }
-      
+
       fptr << fval << endl;
    }
    delete buckets;

@@ -48,7 +48,7 @@
 //   		VISIthreadnewResourceCallback VISIthreadPhaseCallback
 /////////////////////////////////////////////////////////////////////
 
-// $Id: VISIthreadmain.C,v 1.112 2005/12/19 19:42:31 pack Exp $
+// $Id: VISIthreadmain.C,v 1.113 2006/01/06 23:11:19 legendre Exp $
 
 #include <signal.h>
 #include <math.h>
@@ -867,6 +867,7 @@ bool VISISendResultsToVisi(VISIthreadGlobals *ptr,u_int numEnabled){
       }
       matrix.met.aggregate = AVE;
       matrix.res.Id = ptr->mrlist[i].r_id;
+      matrix.res.focusName = ptr->mrlist[i].focus_name;
       if((matrix.res.name = 
           AbbreviatedFocus(ptr->mrlist[i].focus_name.c_str()))
 	      ==0){

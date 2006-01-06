@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmetric.h,v 1.48 2005/12/20 00:19:27 pack Exp $ 
+// $Id: DMmetric.h,v 1.49 2006/01/06 23:11:13 legendre Exp $ 
 
 #ifndef dmmetric_H
 #define dmmetric_H
@@ -131,6 +131,8 @@ class metric {
 	static unsigned  size(){return(metrics.size());}
 	static const T_dyninstRPC::metricInfo  *getInfo(metricHandle handle);
 	static const char *getName(metricHandle handle);
+        static const char *getUnits(metricHandle handle);
+        static dm_MetUnitsType getUnitsType(metricHandle handle);
         static const metricHandle  *find(const pdstring name); 
 	static pdvector<pdstring> *allMetricNames(bool all);
 	static pdvector<met_name_id> *allMetricNamesIds(bool all);
@@ -205,6 +207,8 @@ class metricInstance {
 	metricHandle getMetricHandle(){ return(met); }
 	resourceListHandle getFocusHandle(){ return(focus); }
 	const char *getMetricName(){ return(metric::getName(met));}
+        const char *getMetricUnits(){ return(metric::getUnits(met));}
+        dm_MetUnitsType getMetricUnitsType(){return(metric::getUnitsType(met));}
 	const char *getFocusName(){return(resourceList::getName(focus));}
 	bool convertToIDList(pdvector<u_int> &rl){
 	    return resourceList::convertToIDList(focus,rl);

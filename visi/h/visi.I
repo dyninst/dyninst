@@ -14,7 +14,7 @@
  *
  */
 
-/* $Id: visi.I,v 1.23 2003/07/15 22:47:43 schendel Exp $ */ 
+/* $Id: visi.I,v 1.24 2006/01/06 23:11:21 legendre Exp $ */ 
 
 
 $remote struct metricType {
@@ -29,6 +29,7 @@ $remote struct metricType {
 
 $remote struct resourceType {
      pdstring name;     // obj. name for graph labeling
+     pdstring focusName;  //full focus name
      u_int  Id;       // unique resource id
 };
 

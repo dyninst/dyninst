@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynTkGUI.C,v 1.13 2006/01/05 19:16:12 legendre Exp $
+// $Id: ParadynTkGUI.C,v 1.14 2006/01/06 23:11:15 legendre Exp $
 #include "pdutil/h/TclTools.h"
 #include "ParadynTkGUI.h"
 #include "paradyn/src/pdMain/paradyn.h"
@@ -1206,6 +1206,15 @@ ParadynTkGUI::resourcesSaved(bool succeeded)
     ui_status->message("Resource Hierarchies Saved");
   else
     ui_status->message("Resource Hierarchy Save Request Failed");
+}
+
+void
+ParadynTkGUI::callGraphsSaved(bool succeeded)
+{
+  if (succeeded)
+    ui_status->message("Call Graph Saved");
+  else
+    ui_status->message("Call Graph Save Request Failed");
 }
 
 void 

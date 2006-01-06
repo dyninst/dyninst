@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.C,v 1.23 2005/12/20 00:19:17 pack Exp $
+// $Id: CallGraph.C,v 1.24 2006/01/06 23:11:09 legendre Exp $
 
 #include "CallGraph.h"
 #include "DMdaemon.h"
@@ -373,6 +373,85 @@ void CallGraph::displayAllCallGraphs(){
   for(u = 0; u < directory.size(); u++)
     cgs[u]->displayCallGraph();
 }
+
+//Write CallGraphs known to the DM to a file
+void CallGraph::saveAllCallGraphsToFile(std::ofstream& file){
+  unsigned u;
+  pdvector<CallGraph*> cgs = directory.values();
+  for(u = 0; u < directory.size(); u++)
+    cgs[u]->saveCallGraphToFile(file);
+}
+
+void CallGraph::saveCallGraphToFile(std::ofstream& file){
+  dictionary_hash <const resource *, int> callPath(hash_dummy);
+  //reference is for shadow and recursive nodes. Gives the
+  //line number of the node to refer back to in the file
+  dictionary_hash <const resource *, int> reference(hash_dummy);
+  //saveVisited indicates shadow nodes
+  dictionary_hash <const resource *, int > saveVisited(hash_dummy);
+  //callPath is used to avoid cycles in CG
+  callPath.clear();
+  saveVisited.clear();
+
+  callPath[rootResource] = 1;
+  saveChildrenToFile(rootResource,callPath,reference,saveVisited,file,0);
+
+}
+
+void CallGraph::saveChildrenToFile(const resource *parent,
+                           dictionary_hash <const resource *, int> callPath,
+                           dictionary_hash <const resource *, int>& reference,
+                           dictionary_hash <const resource *, int>& saveVisited,
+                           std::ofstream& file,
+                           int indent_cnt){
+
+  static int lineno = 0;
+  unsigned i;
+  const pdvector<const resource *> &these_children = children[parent];
+
+  saveVisited[parent] = 1;
+  for(i =0; i < these_children.size(); i++){
+    if(!callPath[these_children[i]] && !saveVisited[these_children[i]]){
+      //For this call path, this is the first time that we have seen this
+      //function.
+      callPath[these_children[i]] = 1;
+      reference[these_children[i]] = lineno;
+      file.width(10);
+      file<<lineno++<<" ";
+      file.width(5);
+      file<<indent_cnt<<" ";
+      for (int cnt = 0; cnt <indent_cnt; file<<" ",cnt++);
+      file<<stripCodeFromName(these_children[i]->getFullName())<<endl;
+      saveChildrenToFile(these_children[i], callPath, reference, saveVisited, file,indent_cnt+1);
+      callPath.undef(these_children[i]);
+    }
+    else if(callPath[these_children[i]] == 1){//function is recursive
+      //For this call path, this is the second time that we have seen this
+      //function, meaning that this function is recursive.
+      file.width(10);
+      file<<lineno++<<" ";
+      file.width(5);
+      file<<indent_cnt<<" ";
+      for (int cnt = 0; cnt <indent_cnt; file<<" ",cnt++);
+      file<<"+++"<<stripCodeFromName(these_children[i]->getFullName())
+          <<"  <"<<reference[these_children[i]]<<">"<<endl;
+    }
+    else if(saveVisited[these_children[i]]){
+      file.width(10);
+      file<<lineno++<<" ";
+      file.width(5);
+      file<<indent_cnt<<" ";
+      for (int cnt = 0; cnt <indent_cnt; file<<" ",cnt++);
+      file<<"***"<<stripCodeFromName(these_children[i]->getFullName())
+          <<"  <"<<reference[these_children[i]]<<">"<<endl;
+    }
+    else {
+      //we should never get here
+      assert(false);
+    }
+  }
+}
+
 
 //This function adds all of the children of resource specified by parent
 //to the callGraphDisplay. It then recursively adds all of the children

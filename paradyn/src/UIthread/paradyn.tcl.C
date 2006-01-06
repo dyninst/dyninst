@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: paradyn.tcl.C,v 1.107 2005/12/19 19:42:30 pack Exp $
+/* $Id: paradyn.tcl.C,v 1.108 2006/01/06 23:11:18 legendre Exp $
    This code implements the tcl "paradyn" command.  
    See the README file for command descriptions.
 */
@@ -989,8 +989,13 @@ ParadynTkGUI::ParadynSaveCmd( int argc, TCLCONST char* argv[] )
         perfConsult->saveSHG(argv[3], 1);   // save global shg
       return TCL_OK;
     }
+    else if (!strcmp(argv[1], "callGraph")){
+      // "save callGraph all <filename>"
+      dataMgr->saveAllCallGraphs(argv[3]);
+      return TCL_OK;
+    }
   }
-  resstr << "USAGE: save data [global|phase|all] <dirname>\n save resources all <file>\n save shg [global|phase|all] <dirname>\n" << std::ends;
+  resstr << "USAGE: save data [global|phase|all] <dirname>\n save resources all <file>\n save shg [global|phase|all] <dirname>\n save callGraph all <file>\n" << std::ends;
   SetInterpResult(interp, resstr);
   return TCL_ERROR;
 }

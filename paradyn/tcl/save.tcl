@@ -39,12 +39,13 @@
 # incur to third parties resulting from your use of Paradyn.
 #
 
-# $Id: save.tcl,v 1.7 2004/03/23 19:12:13 eli Exp $
+# $Id: save.tcl,v 1.8 2006/01/06 23:11:20 legendre Exp $
 # this file contains the routines for the "EXPORT" button 
 
 proc pdSave {} {
     global saveGlobalData savePhaseData saveResources saveDirectory \
-	    saveMessage saveWindow saveGlobalSearch savePhaseSearch
+	    saveMessage saveWindow saveGlobalSearch savePhaseSearch \
+            saveCallGraph
 
     # clear previous invalid entry message, if any
     set saveMessage "Enter name of Directory for Data/Resource Files"
@@ -80,13 +81,17 @@ proc pdSave {} {
     if {$savePhaseSearch == 1} {
 	paradyn save shg phase $saveDirectory
     }
+    if {$saveCallGraph == 1} {
+        paradyn save callGraph all $saveDirectory
+    }
 
     destroy $saveWindow
 }
 
 proc drawSaveMenu {} {
     global saveGlobalData savePhaseData saveResources saveDirectory \
-	    saveMessage saveWindow saveGlobalSearch savePhaseSearch
+	    saveMessage saveWindow saveGlobalSearch savePhaseSearch \
+            saveCallGraph
     set saveWindow .pdsw
     toplevel $saveWindow -class Paradyn
     wm title $saveWindow "Paradyn Export"
@@ -117,8 +122,9 @@ proc drawSaveMenu {} {
     frame $wh.other
     checkbutton $wh.other.re -text "Where Axis" -variable saveResources
     $wh.other.re select
-    pack $wh.other.re -side left
-    pack $wh.other -side top 
+    checkbutton $wh.other.cg -text "Call Graph" -variable saveCallGraph
+    pack $wh.other.re $wh.other.cg -side left -padx 25 -pady 5 -anchor w
+    pack $wh.other -side top
 
     frame $wh.perf
     label $wh.perf.la -text "Performance Consultant: "

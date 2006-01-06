@@ -1,6 +1,6 @@
 /*
  * input file for igen for User Interface Manager (UIM) interface to Paradyn
- * $Id: UI.I,v 1.46 2005/01/11 22:47:15 legendre Exp $
+ * $Id: UI.I,v 1.47 2006/01/06 23:11:07 legendre Exp $
  */
 
 #include "paradyn/src/DMthread/DMinclude.h"
@@ -92,6 +92,7 @@ $remote UIM {
 
 	$virtual $async void allDataSaved(bool succeeded);
 	$virtual $async void resourcesSaved(bool succeeded);
+        $virtual $async void callGraphsSaved(bool succeeded);
     $virtual $async void shgSaved (bool succeeded);
 
 	// 

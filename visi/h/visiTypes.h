@@ -80,6 +80,7 @@ typedef struct metricStruct visi_metricType;
 
 struct resourceStruct{
      const char *name;                  /* resource name for graph labeling */
+     const char * focusName;            /* full focus name */
      unsigned  Id;                      /* unique resource identifier */
 };
 typedef struct resourceStruct visi_resourceType;

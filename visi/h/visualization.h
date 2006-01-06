@@ -133,6 +133,10 @@ extern const char *visi_MetricName(int metric_num);
  */
 extern const char *visi_MetricUnits(int metric_num);
 
+/* returns the ith metric units type
+*/
+extern const visi_unitsType visi_MetricUnitsType(int metric_num);
+
 /* returns the ith metric units label for data values or 0 on error   
  */
 extern const char *visi_MetricLabel(int metric_num);
@@ -150,6 +154,10 @@ extern const char *visi_MetricSumLabel(int metric_num);
 /* returns the ith resource's name,  or 0 on error   
  */
 extern const char *visi_ResourceName(int resource_num);
+
+/* returns the ith focus,  or 0 on error
+ */
+extern const char *visi_FocusName(int resource_num);
 
 /* returns the number of metrics in the data grid
  */

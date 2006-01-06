@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParadynTkGUI.h,v 1.8 2005/03/11 00:38:09 legendre Exp $
+// $Id: ParadynTkGUI.h,v 1.9 2006/01/06 23:11:16 legendre Exp $
 #ifndef PARADYNTKGUI_H
 #define PARADYNTKGUI_H
 
@@ -117,6 +117,7 @@ protected:
 	virtual void ProcessCmd(pdstring *arguments);
 	virtual void allDataSaved(bool succeeded);
 	virtual void resourcesSaved(bool succeeded);
+        virtual void callGraphsSaved(bool succeeded);
     virtual void shgSaved (bool succeeded);
 	virtual void updateStatusDisplay (int token, pdstring *item);
 	virtual void newPhaseNotification(unsigned phaseID,

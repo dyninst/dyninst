@@ -222,32 +222,34 @@ int visi_ExportMetricTable(std::ofstream& fptr, int metric_id,
   int num_resources = i;
   int * r_strlen = new int [num_resources];
 
-  int firstbucket = visi_FirstValidBucket(metric_id, resource_ids[0]);
+  int firstbucket  = 0;
   int lastbucket = visi_LastBucketFilled(metric_id, resource_ids[0]);
   int numbuckets = lastbucket-firstbucket+1;
   visi_sampleType ** data = new visi_sampleType *[num_resources];
 
 #ifdef DEBUG
-  cout << "Writing Header ..." ;
+  cout << "Writing Header ... metric id is : " <<metric_id;
 #endif
 
-  fptr <<"##############################################################" << endl
-       <<"#\tResource Histogram Table for Metric: "   << visi_MetricName(metric_id)
-       <<"(\""        << visi_MetricLabel(metric_id) << "\")" << endl
-       <<"#\t===========================================================" <<endl
-       <<"#" <<endl
-       <<"#\tNumEntries: "  << numbuckets << endl
-       <<"#\tGranularity: " << visi_BucketWidth() << endl
-       <<"#\tStartTime: "   << visi_GetStartTime() << endl
-       <<"##############################################################" << endl;
+  //Get unit type information
+  char unitsType[20];
 
-  fptr <<endl << "Resources: ";
+  visi_unitsType uT = visi_MetricUnitsType(metric_id);
+  if (uT == 0)
+     strcpy(unitsType, "unNormalized");
+  else if (uT == 1)
+     strcpy(unitsType, "Normalized");
+  else
+     strcpy(unitsType, "Sampled");
+
   for(i=0; i<num_resources; i++){
-    fptr << visi_ResourceName(resource_ids[i]) << " ";
-    r_strlen[i] = strlen(visi_ResourceName(resource_ids[i]));
+    data[i] = new visi_sampleType[visi_NumBuckets()];
+    if(!data[i]){
+      cerr << "new() failed" << endl;
+      visi_showErrorVisiCallback("new() failed: Save Aborted");
+      return -1;
+    }
   }
-  fptr << endl;
- 
 #ifdef DEBUG
   cout << "Done"  <<endl ;
 #endif
@@ -259,18 +261,9 @@ int visi_ExportMetricTable(std::ofstream& fptr, int metric_id,
 #endif
 
   for(i=0; i<num_resources; i++){
-    data[i] = new visi_sampleType[visi_NumBuckets()];
-    if(!data[i]){
-      cerr << "new() failed" << endl;
-      visi_showErrorVisiCallback("new() failed: Save Aborted");
-      return -1;
-    }
-  }
-
-  for(i=0; i<num_resources; i++){
     if( visi_DataValues(metric_id, resource_ids[i], data[i], firstbucket, lastbucket)
       <= 0){
-      cerr << "visi_DataValues failed:" <<metric_id <<resource_ids[i] <<endl;
+      cerr << "visi_DataValues failed:" <<metric_id<<":"<<resource_ids[i]<<":"<<endl;
       visi_showErrorVisiCallback("visi_DataValues() failed: Save Aborted");
       return -1;
     }
@@ -284,25 +277,35 @@ int visi_ExportMetricTable(std::ofstream& fptr, int metric_id,
   cout << "Writing data[" << firstbucket <<"] -- data["
        << lastbucket << "]"  <<endl ;
 #endif
-  for (i=firstbucket; i<= lastbucket ; i++){
-#ifdef DEBUG
-    cout << "Writing bucket[" <<i <<"]: " <<endl;
-#endif
-    fptr << "           ";
-    for(j=0; j<num_resources; j++){
-      fptr.width(r_strlen[j]);
 
-      if(!isnan(data[j][i]))
-        fptr << data[j][i] ;
-      else
-        fptr << "nan" ;
-    }
-    fptr <<endl;
-  }
+  for(j=0; j<num_resources; j++){
+     fptr <<"##############################################################" << endl
+          <<"#\tParadyn Resource Histogram Table " <<endl
+          <<"#\t===========================================================" <<endl
+          <<"#" <<endl
+          <<"#\tMetric: "   << visi_MetricName(metric_id)
+          <<"(\""        << visi_MetricLabel(metric_id) << "\", "
+          << unitsType << ")" << endl
+          <<"#\tNumEntries: "  << numbuckets << endl
+          <<"#\tGranularity: " << visi_BucketWidth() << " sec" << endl
+          <<"#\tStartTime: "   << visi_GetStartTime() << " sec" << endl
+          <<"#\tPhase: "       << visi_GetMyPhaseName() <<endl
+          <<"#\tFocus: " << visi_FocusName(resource_ids[j]) << endl
+          <<"##############################################################" << endl;
+
+     for (i=firstbucket; i<= lastbucket ; i++){
+   #ifdef DEBUG
+       cout << "Writing bucket[" <<i <<"]: " <<endl;
+   #endif
+
+         if(!isnan(data[j][i]))
+           fptr << data[j][i] ;
+         else
+           fptr << "nan" ;
+       fptr <<endl;
+     }
   fptr <<endl;
-#ifdef DEBUG
-  cout << "Done" << endl;
-#endif
+  }
 
   for(i=0; i<num_resources; i++)
     delete[] data[i];

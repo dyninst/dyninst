@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.154 2005/12/20 00:19:22 pack Exp $
+ * $Id: DMdaemon.C,v 1.155 2006/01/06 23:11:11 legendre Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -612,14 +612,11 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const pdstring &machine,
 	if (!m.length()) {
 		if (default_host.length()) {
 			m = getNetworkName(default_host);
-			cerr << "Using default host <" << m << ">" << endl;
 		} else {
 			m = getNetworkName();
-			cerr << "Using local host <" << m << ">" << endl;
 		}
 	} else {
 		m = getNetworkName(m);
-		cerr << "Using given host <" << m << ">" << endl;
 	}
 
 	// find out if we have a paradynd on this machine+login+paradynd
@@ -637,7 +634,6 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const pdstring &machine,
 
 				if((name.c_str() && (pd->name == name))) 
 					{
-						cerr << "Returning an existing daemon match!" << endl;
 						return (pd);     
 					}
 				else 
@@ -798,19 +794,19 @@ bool paradynDaemon::defineDaemon (const char *c, const char *d,
 					argv.push_back( pdstring("false"));
 				
 				if(mrnet_topology.length() == 0)
-					{
-						int n_nodes = getNumberOfNodes(argv);
-						std::ofstream fout;
-						fout.open("TempTopologyFile.123");
-						fout << getNetworkName() << ":0 => ";
-						for(int i = 0 ; i < n_nodes ; i++)
-							{
-								fout << "mpidummy" << i << ":"<< i<< " ";
-							}
-						fout << ";" << endl;
-						fout.close();
-						mrnet_topology = "TempTopologyFile.123";
-					}
+            {
+               int n_nodes = getNumberOfNodes(argv);
+               std::ofstream fout;
+               fout.open("TempTopologyFile.123");
+               fout << getNetworkName() << ":0 => ";
+               for(int i = 0 ; i < n_nodes ; i++)
+               {
+                  fout << "mpidummy" << i << ":"<< i<< " ";
+               }
+               fout << ";" << endl;
+               fout.close();
+               mrnet_topology = "TempTopologyFile.123";
+            }
 				pdstring os;
 
  				//Make sure we have the correct MPI implementation in MPItype
@@ -2519,7 +2515,7 @@ pdstring mpiGetStartCmd(const pdvector<pdstring> & argv){
    
    bool found_mpirun = false;
    bool found_srun = false;
-   int i = 0;
+   unsigned i = 0;
    while (i < argv.size() ) {
       found_mpirun = (strstr(argv[i].c_str(), "mpirun") != 0);
       if (found_mpirun)
@@ -2540,32 +2536,32 @@ static int getNumberOfNodes( const pdvector<pdstring> &argv)
 	char** ars;
 	ars = ar;
 
- 	line = strdup((char*)argv[1].c_str() );
+ 	line = strdup(argv[1].c_str());
 								 
 	while (*line != '\0') 
-		{       /* if not the end of line ....... */ 
+   {       /* if not the end of line ....... */ 
       while (*line == ' ' || *line == '\t' || *line == '\n')
-				{
-					*line++ = '\0';     /* replace white spaces with 0    */
-				}
+      {
+         *line++ = '\0';     /* replace white spaces with 0    */
+      }
       *ars++ = line; /* save the argument position     */
       while (*line != '\0' && *line != ' ' && 
              *line != '\t' && *line != '\n')
-				{ 
-					line++;             /* skip the argument until ...    */
-				}
-		}
+      { 
+         line++;             /* skip the argument until ...    */
+      }
+   }
 	*ars = '\0';
 	ars = ar;
 	while(*ars !='\0')
-		{
+   {
       Argv.push_back(*ars);
       *ars++;
-		}
+   }
 	//-------------------------------------------------------
-
+   
 	pdstring startUp = mpiGetStartCmd(Argv);
-	int i = 0;
+	unsigned i = 0;
 	pdstring target;
 	if (startUp == "srun")
 		target = "-n";
@@ -2573,14 +2569,15 @@ static int getNumberOfNodes( const pdvector<pdstring> &argv)
 		target = "-np";
 	bool found = false;
 	while (i < Argv.size() ) 
-		{
+   {
       found = (strstr(Argv[i].c_str(), target.c_str()) != 0);
       if (found)
-				{
-					return atoi(Argv[i+1].c_str());
-				}
-			++i;
-		}
+      {
+         return atoi(Argv[i+1].c_str());
+      }
+      ++i;
+   }
+   return 1;
 }
 
 
@@ -2604,11 +2601,11 @@ static bool startMPI(const pdstring &machine, const pdstring &login,
 
 	pdvector<pdstring> Argv;
 	//----------------------------------------------
-	char *line;
 	char* ar[64];
 	char** ars;
 	ars = ar;
-	line = (char*)argv[1].c_str();
+	char *line = strdup(argv[1].c_str());
+   char *orig_line = line;
 
 	while (*line != '\0') 
    {       /* if not the end of line ....... */ 
@@ -2630,6 +2627,7 @@ static bool startMPI(const pdstring &machine, const pdstring &login,
       Argv.push_back(*ars);
       *ars++;
    }
+   free(orig_line);
 	 //-------------------------------------------------------
 
    uiMgr->updateStatusLine(DMstatus.c_str(),   "ready");
@@ -2740,11 +2738,10 @@ bool paradynDaemon::newExecutable(const pdstring &machineArg,
                                   const pdstring &login,
                                   const pdstring &name, 
                                   const pdstring &dir,
-                                  const pdstring &mrnet_topology,
+                                  const pdstring & /*mrnet_topology*/,
                                   const pdstring &MPItype, 
                                   const pdvector<pdstring> &argv) {
 
-  //  cerr << "in paradynDaemon::newExecutable"<<endl;
 
     pdstring machine = machineArg;
 
@@ -3140,7 +3137,6 @@ void paradynDaemon::dumpCore(int pid)
         if ((programs[i]->pid == (unsigned)pid) || (pid == -1)) {
             MRN::Stream * stream = programs[i]->controlPath->network->
                 new_Stream( programs[i]->controlPath->communicator );
-            fprintf(stderr, "found process and coreing it\n");
             programs[i]->controlPath->coreProcess(stream, programs[i]->pid);
             delete stream;
         }
@@ -3231,8 +3227,6 @@ void  paradynDaemon::reportResources()
 
 bool paradynDaemon::isMonitoringProcess(int pid) {
    for(unsigned i=0; i<pidsThatAreMonitored.size(); i++) {
-     fprintf(stderr, "[isMonitoringProcess] - Comparing %d to %d\n", pid, 
-	     pidsThatAreMonitored[i]);
       if(pidsThatAreMonitored[i] == pid)
          return true;
    }
@@ -3240,10 +3234,6 @@ bool paradynDaemon::isMonitoringProcess(int pid) {
 }
 
 void paradynDaemon::addProcessInfo(const pdvector<pdstring> &resource_name) {
-  fprintf(stderr, "[addProcessInfo] - Run with ");
-  for (unsigned i=0; i < resource_name.size(); i++)
-    fprintf(stderr, "%s, ", resource_name[i].c_str());
-  fprintf(stderr, "\n");
    // need at least /Machine, <machine>, process
    if(resource_name.size() < 3)
       return;
@@ -3263,7 +3253,7 @@ void paradynDaemon::addProcessInfo(const pdvector<pdstring> &resource_name) {
 // upcall from paradynd reporting new resource
 //
 
-void paradynDaemon::resourceEquivClassReportCallback(MRN::Stream *s, 
+void paradynDaemon::resourceEquivClassReportCallback(MRN::Stream * /*s*/, 
 						     pdvector<T_dyninstRPC::equiv_class_entry> eqclasses )
 {
   if(eqclasses.size() == 0)
@@ -3286,8 +3276,8 @@ void paradynDaemon::resourceEquivClassReportCallback(MRN::Stream *s,
 //
 // upcall from paradynd reporting new resource
 //
-void paradynDaemon::resourceInfoCallback(MRN::Stream *s,
-																				 u_int temporaryId,
+void paradynDaemon::resourceInfoCallback(MRN::Stream * /*s*/,
+                                         u_int temporaryId,
                                          pdvector<pdstring> resource_name,
                                          pdstring /* abstr */,
                                          u_int type,
@@ -3572,7 +3562,6 @@ void paradynDaemon::propagateMetrics() {
       
       if (!mi->isEnabled()) {
 	metricFocusReq_Val::attachToOutstandingRequest(mi, this);
-	//	cerr << "in propagateMetrics : continuing !mi->isEnabled() = true" <<endl;
 	continue;
       }
       
@@ -3583,14 +3572,12 @@ void paradynDaemon::propagateMetrics() {
       for (unsigned j = 0; j < mi->components.size(); j++) {
 	if (mi->components[j]->getDaemon() == this) {
 	  found = true;
-	  cerr << "in propagateMetrics : breaking found = true"<<endl;
 	  break;
 	}
       }
       
       if (found) {
-	//	cerr << "in propagateMetrics : continuing found = true"<<endl;
-	continue; // we don't enable this mi; let paradynd do it
+         continue; // we don't enable this mi; let paradynd do it
       }
       
       resourceListHandle r_handle = mi->getFocusHandle();
@@ -3602,12 +3589,8 @@ void paradynDaemon::propagateMetrics() {
       bool aflag = rl->convertToIDList(vs);
       assert(aflag);
       
-      cerr << "sending enableDataCollection2"<<endl;       
-      
       //MRN::Stream * stream = network->new_Stream( network->get_BroadcastCommunicator(),TFILTER_NULL);
       MRN::Stream * stream = network->new_Stream( communicator );
-      
-      cerr << "doing enableDataCollection2 in propagateMetrics"<<endl;       
       
       pdvector< T_dyninstRPC::instResponse > resp =
 				enableDataCollection2(stream, vs, (const char *) m->getName(), mi->id,
@@ -3623,8 +3606,7 @@ void paradynDaemon::propagateMetrics() {
       status = inst_insert_result_t(resp[0].rinfo[0].status);
       //	}
       if(did_error_occur()){
-	//	cerr << "in propagateMetrics : continuing did_error_occur = true"<<endl;
-	continue;
+         continue;
       }    
       if(status == inst_insert_deferred) {
 	// This shouldn't happen since when we propagate metricInstances to
@@ -3749,7 +3731,6 @@ void paradynDaemon::setDaemonStartTime(MRN::Stream *, int, double startTime)
 {
   timeStamp temp = 
     timeStamp(startTime, timeUnit::sec(), timeBase::bStd());
-  cerr <<"paradynDaemon::setEarliestStartTime startTime in absolute "<<  temp << endl;
   cerr << std::flush;
 
   timeStamp firstT(startTime, timeUnit::sec(), timeBase::bStd());
@@ -3768,7 +3749,6 @@ void paradynDaemon::setEarliestStartTime(timeStamp f)
     earliestStartTime = f;
   else if(f < earliestStartTime) 
     earliestStartTime = f;
-  cerr <<"paradynDaemon::setEarliestStartTime earliestStartTime "<<  earliestStartTime << endl;
   cerr << std::flush;
 }
 
@@ -4200,8 +4180,6 @@ void paradynDaemon::getProcStats(int *numProcsForDmn, int *numProcsExited) {
 // instance (because the processes have exited).
 void
 paradynDaemon::endOfDataCollection(MRN::Stream *, int mid) {
-   sampleVal_cerr << "endOfDataCollection-  mid: " << mid << "\n";
-   
    if(activeMids.defines(mid)){
       metricInstance *mi = activeMids[mid];
       assert(mi);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: CallGraph.h,v 1.13 2005/12/20 00:19:18 pack Exp $
+// $Id: CallGraph.h,v 1.14 2006/01/06 23:11:10 legendre Exp $
 
 /**********************************************************
  *
@@ -210,6 +210,16 @@ class CallGraph {
     
     //Calls displayCallGraph() for each of the known call graphs.
     static void displayAllCallGraphs();
+
+    //Saves call graph to a file
+    static void saveAllCallGraphsToFile(std::ofstream&);
+    void saveCallGraphToFile(std::ofstream&);
+    void saveChildrenToFile(const resource *parent,
+                              dictionary_hash <const resource *, int>,
+                              dictionary_hash <const resource *, int>&,
+                              dictionary_hash <const resource *, int>&,
+                              std::ofstream&,
+                              int);
 
     //requires an exe_name WITH the full path name of the executable
     //attached.

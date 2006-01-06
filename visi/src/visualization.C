@@ -520,10 +520,14 @@ void visualization::AddMetricsResources(pdvector<T_visi::visi_matrix> newElement
 	     ok = 1;
 	}
 	if(!ok){
-	    if(!newElements[i].res.name.length())
+	    if(!newElements[i].res.name.length()){
 	        res[numRes].name = NULL;
-            else
+                res[numRes].focusName = NULL;
+            }
+            else{
                 res[numRes].name = newElements[i].res.name.c_str();
+                res[numRes].focusName = newElements[i].res.focusName.c_str();
+            }
             res[numRes++].Id = newElements[i].res.Id;
 	}
     }
@@ -554,10 +558,14 @@ void visualization::AddMetricsResources(pdvector<T_visi::visi_matrix> newElement
 	       ok = 1;
 	  }
 	  if(!ok){
-	      if(!newElements[i].res.name.length())
+	      if(!newElements[i].res.name.length()){
 	        res[numRes].name = NULL;
-              else
+                res[numRes].focusName = NULL;
+              }
+              else{
                 res[numRes].name = newElements[i].res.name.c_str();
+                res[numRes].focusName = newElements[i].res.focusName.c_str();
+              }
               res[numRes++].Id = newElements[i].res.Id;
           }
     }}
@@ -786,6 +794,13 @@ const char *visi_MetricUnits(int metric_num){
 }
 
 //
+// returns the ith metric units type
+//
+const visi_unitsType visi_MetricUnitsType(int metric_num){
+    return visi_dataGrid.MetricUnitsType(metric_num);
+}
+
+//
 // returns the ith metric units label for data values or 0 on error
 //
 const char *visi_MetricLabel(int metric_num){
@@ -813,6 +828,13 @@ const char *visi_MetricSumLabel(int metric_num){
 //
 const char *visi_ResourceName(int resource_num){
     return visi_dataGrid.ResourceName(resource_num);
+}
+
+//
+// returns the ith focus name,  or 0 on error
+//
+const char *visi_FocusName(int resource_num){
+    return visi_dataGrid.FocusName(resource_num);
 }
 
 //

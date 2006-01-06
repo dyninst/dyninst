@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.150 2005/12/20 00:19:35 pack Exp $
+// $Id: DMpublic.C,v 1.151 2006/01/06 23:11:14 legendre Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -281,6 +281,20 @@ bool dataManager::pauseApplication()
 
 void dataManager::createCallGraph(){
   CallGraph::displayAllCallGraphs();
+}
+
+void dataManager::saveAllCallGraphs(const char * dirname){
+  bool success = true;
+  pdstring dir = pdstring (dirname) + pdstring("/callGraph");
+
+  std::ofstream saveFile (dir.c_str(), std::ios::out);
+  if (!saveFile) {
+    success = false;
+  } else {
+    CallGraph::saveAllCallGraphsToFile(saveFile);
+    saveFile.close();
+  }
+  uiMgr->callGraphsSaved(success);
 }
 
 bool dataManager::pauseProcess(int pid)

@@ -42,7 +42,7 @@
 #ifndef _datagrid_h
 #define _datagrid_h
 
-// $Id: datagridP.h,v 1.19 2004/03/23 01:12:46 eli Exp $
+// $Id: datagridP.h,v 1.20 2006/01/06 23:11:25 legendre Exp $
 
 /////////////////////////////////
 //  Data Grid Class definitions
@@ -89,12 +89,14 @@ class Metric{
 
 class Resource{
      pdstring   name;     // obj. name for graph labeling
+     pdstring   focusName;     //  full focus name
      u_int    Id;       // unique resource id
    public:
-     Resource(){name = ""; Id = 0;}
-     Resource(pdstring, u_int);
+     Resource(){name = ""; Id = 0; focusName = "";}
+     Resource(pdstring, u_int, pdstring);
      ~Resource();
      const char *Name(){return(name.c_str());}
+     const char *FocusName(){return(focusName.c_str());}
      u_int    Identifier(){return(Id);}
 };
 
@@ -400,6 +402,7 @@ class visi_DataGrid {
      const char *MetricAveLabel(int i);
      const char *MetricSumLabel(int i);
      const char *ResourceName(int j);
+     const char *FocusName(int j);
      int        NumMetrics(){return(numMetrics);}
      int        FoldMethod(int);
      int        NumResources(){return(numResources);}
