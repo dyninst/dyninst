@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.342 2005/12/01 00:56:25 jaw Exp $
+/* $Id: process.h,v 1.343 2006/01/06 16:53:18 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -950,6 +950,7 @@ private:
    Address inferiorMalloc(unsigned size, inferiorHeapType type=anyHeap,
 			  Address near_=0, bool *err=NULL);
    void inferiorFree(Address item);
+   bool inferiorRealloc(Address item, unsigned newSize);
 
 
 /*Address inferiorMalloc(process *p, unsigned size, inferiorHeapType type=anyHeap,

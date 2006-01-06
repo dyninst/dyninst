@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.563 2005/12/08 19:27:56 bernat Exp $
+// $Id: process.C,v 1.564 2006/01/06 16:53:17 bernat Exp $
 
 #include <ctype.h>
 
@@ -1576,6 +1576,50 @@ void process::inferiorFree(Address block)
   hp->freed += h->length;
 }
  
+bool process::inferiorRealloc(Address block, unsigned newSize)
+{
+  inferiorHeap *hp = &heap;
+
+  // This is why it's not a reference...
+  inferiorMallocAlign(newSize);
+
+  // find block on active list
+  heapItem *h = NULL;  
+  if (!hp->heapActive.find(block, h)) {
+      // We can do this if we're at process teardown.
+    return false;
+  }
+  assert(h);
+
+  if (h->length < newSize)
+      return false; // Cannot make bigger...
+  if (h->length == newSize)
+      return true;
+
+  // We make a new "free" block that is the end of this one.
+  Address freeStart = block + newSize;
+  int shrink = h->length - newSize;
+  
+  assert(shrink > 0);
+
+  h->length = newSize;
+
+  heapItem *freeEnd = new heapItem(freeStart,
+                                   shrink,
+                                   h->type,
+                                   h->dynamic,
+                                   HEAPfree);
+  hp->heapFree.push_back(freeEnd);
+
+  hp->totalFreeMemAvailable += shrink;
+  hp->freed += shrink;
+
+  // And run a compact; otherwise we'll end up with hugely fragmented memory.
+  inferiorFreeCompact(hp);
+
+  return true;
+}
+
 
 // Cleanup the process object. Delete all sub-objects to ensure we aren't 
 // leaking memory and prepare for new versions. Useful when the process exits
