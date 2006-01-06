@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.21 2005/12/14 22:44:15 bernat Exp $
+// $Id: multiTramp.C,v 1.22 2006/01/06 16:53:16 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -957,6 +957,8 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
     }
 
     trampSize_ = generatedMultiT_.used();
+    // Free up some of that memory...
+    proc()->inferiorRealloc(trampAddr_, trampSize_);
 
     // Now that we know where we're heading, see if we can put in 
     // a jump
