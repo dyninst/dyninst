@@ -395,29 +395,31 @@ instruction InstrucIter::getPrevInstruction(){
 }
 
 Address InstrucIter::operator++(){
-  current += instruction::size();
-  initializeInsn();
-  return current;
+    current += instruction::size();
+    initializeInsn();
+    return current;
 }
 Address InstrucIter::operator--(){
-  current -= instruction::size();
-  initializeInsn();
-  return current;
+    current -= instruction::size();
+    initializeInsn();
+    return current;
 }
 Address InstrucIter::operator++(int){
-  Address ret = current;
-  current += instruction::size();
-  initializeInsn();
-  return ret;
+    Address ret = current;
+
+    current += instruction::size();
+    initializeInsn();
+    return ret;
 }
 Address InstrucIter::operator--(int){
-  Address ret = current;
-  current -= instruction::size();
-  initializeInsn();
-  return ret;
+    Address ret = current;
+    current -= instruction::size();
+    initializeInsn();
+    return ret;
 }
+
 Address InstrucIter::operator*(){
-  return current;
+    return current;
 }
 
 // Check to see if we make a stack frame; in Sparc terms,
@@ -442,7 +444,7 @@ bool InstrucIter::isADynamicCallInstruction() {
 }
 
 void InstrucIter::getAndSkipDSandAgg(instruction* &ds,
-                                     instruction* &agg) {
+                              instruction* &agg) {
     instruction insn = getInstruction();
     if (!insn.isDCTI())
         return;
@@ -470,13 +472,20 @@ void InstrucIter::getAndSkipDSandAgg(instruction* &ds,
             aggPtr = img_->getPtrToInstruction(current+2*instruction::size());
         }            
     }
+
+    // Skip delay slot...
+    (*this)++;
+
     assert(dsPtr);
     ds = new instruction(*(unsigned int *)dsPtr);
     assert(aggPtr);
     agg = new instruction(*(unsigned int *)aggPtr);
     if (!agg->valid()) {
-        if ((**agg).raw != 0x0)
+        if ((**agg).raw != 0x0) {
+            // Skip aggregate...
+            (*this)++;
             return;
+        }
     }
     // Otherwise, not what we want.
     delete agg;
