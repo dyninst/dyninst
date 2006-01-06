@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.18 2005/09/09 18:05:07 legendre Exp $
+# $Id: Makefile,v 1.19 2006/01/06 23:11:03 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -8,8 +8,6 @@
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
-
-USES_LIBELF = true
 
 include ../../make.config 
 
@@ -25,14 +23,9 @@ CFLAGS		+= -O2
 # if we want to produce a shared object...
 CC              = $(GCC)
 LD              = $(GCC)
-CFLAGS          += -I. -I../.. -I$(LIBELF_INC) -I/usr/include/libelf -fpic 
+CFLAGS          += -I. -I../.. -fpic
 
-LIBS 		+= -ldl -L$(LIBELF_LIB)
-ifdef LIBELFSTATIC
-LIBS    += -Wl,-static -lelf -Wl,-call_shared
-else
-LIBS    += -lelf
-endif
+LIBS 		+= -ldl
 
 AS = gcc
 ASFLAGS         += -c

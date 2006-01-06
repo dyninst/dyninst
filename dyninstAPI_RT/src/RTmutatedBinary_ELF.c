@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary_ELF.c,v 1.18 2005/12/19 19:41:41 pack Exp $ */
+/* $Id: RTmutatedBinary_ELF.c,v 1.19 2006/01/06 23:11:04 legendre Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -458,11 +458,13 @@ void hack_ld_linux_plt(unsigned long pltEntryAddr){
 
 unsigned (*Elf_version)(unsigned) = NULL;
 Elf *(*Elf_begin)(int fildes, Elf_Cmd cmd, Elf *ref) = NULL;
-Elf32_Ehdr *(*Elf32_getehdr)(Elf *elf) = NULL;
 Elf_Scn *(*Elf_getscn)(Elf *elf, size_t index) = NULL;
 Elf_Data *(*Elf_getdata)(Elf_Scn *scn, Elf_Data *data) = NULL;
 Elf_Scn *(*Elf_nextscn)(Elf *elf, Elf_Scn *scn) = NULL;
 Elf32_Shdr *(*Elf32_getshdr)(Elf_Scn *scn) = NULL;
+Elf32_Ehdr *(*Elf32_getehdr)(Elf *elf) = NULL;
+Elf64_Shdr *(*Elf64_getshdr)(Elf_Scn *scn) = NULL;
+Elf64_Ehdr *(*Elf64_getehdr)(Elf *elf) = NULL;
 const char *(*Elf_errmsg)(int err) = NULL;
 int (*Elf_errno)(void) = NULL;
 int (*Elf_end)(Elf *elf) = NULL;
@@ -547,11 +549,13 @@ int checkMutatedFile(){
      }
      Elf_version = dlsym(elfHandle, "elf_version");
      Elf_begin = dlsym(elfHandle, "elf_begin");
-     Elf32_getehdr = dlsym(elfHandle, "elf32_getehdr");
      Elf_getscn = dlsym(elfHandle, "elf_getscn");
      Elf_nextscn = dlsym(elfHandle, "elf_nextscn");
      Elf_getdata = dlsym(elfHandle, "elf_getdata");
+     Elf32_getehdr = dlsym(elfHandle, "elf32_getehdr");
      Elf32_getshdr = dlsym(elfHandle, "elf32_getshdr");
+     Elf64_getehdr = dlsym(elfHandle, "elf64_getehdr");
+     Elf64_getshdr = dlsym(elfHandle, "elf64_getshdr");
      Elf_errmsg = dlsym(elfHandle, "elf_errmsg");
      Elf_errno = dlsym(elfHandle, "elf_errno");
      Elf_end = dlsym(elfHandle, "elf_end");
