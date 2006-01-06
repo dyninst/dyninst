@@ -1220,6 +1220,27 @@ bool BPatch_module::isSharedLibInt() {
   return mod->obj()->isSharedLib();
 }
 
+/*
+ * BPatch_module::getBaseAddr
+ *
+ * Returns the starting address of the module.
+ */
+void *BPatch_module::getBaseAddrInt()
+{
+    return (void *)mod->obj()->codeAbs();
+}
+
+/*
+ * BPatch_module::getSize
+ *
+ * Returns the size of the module in bytes.
+ */
+unsigned long BPatch_module::getSizeInt() 
+{
+    return (unsigned long) mod->obj()->codeSize();
+}
+
+
 bool BPatch_module::isNativeCompilerInt()
 {
   return nativeCompiler;
@@ -1248,7 +1269,7 @@ bool BPatch_module::getAddressRangeInt(void * &start, void * &end)
 {
     // Code? Data? We'll do code for now...
     start = (void *)(mod->obj()->codeAbs());
-    end = (void *)(mod->obj()->codeAbs() + mod->obj->codeSize());
+    end = (void *)(mod->obj()->codeAbs() + mod->obj()->codeSize());
     return true;
 }
 char *BPatch_module::getUniqueStringInt(char *buffer, int length)

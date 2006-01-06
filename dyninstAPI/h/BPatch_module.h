@@ -197,6 +197,18 @@ public:
     API_EXPORT(Int, (),
 
     LineInformation &,getLineInformation,());
+    
+    // BPatch_module::getBaseAddr
+    // Returns a base address of the module; defined as the start
+    // of the first function.
+    API_EXPORT(Int, (),
+    void *,getBaseAddr,(void));
+
+    // BPatch_module::getSize
+    // Returns the size of the module; defined as the end of the last
+    // function minus the start of the first function.
+    API_EXPORT(Int, (),
+    unsigned long, getSize, (void));
 
 #ifdef IBM_BPATCH_COMPAT
     API_EXPORT(Int, (start, end),
