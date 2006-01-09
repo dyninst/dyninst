@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test6_2.C,v 1.4 2005/12/14 19:50:37 gquinn Exp $
+// $Id: test6_2.C,v 1.5 2006/01/09 19:48:17 bpellin Exp $
 /*
  * #Name: test6_2
  * #Desc: Store Instrumentation
@@ -138,7 +138,6 @@ void init_test_data()
 #endif
 
 #if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(i386_unknown_nt4_0)
 const unsigned int nstores = 23;
 BPatch_memoryAccess* storeList[nstores];
@@ -220,6 +219,80 @@ void init_test_data() {
 }
 #endif
 
+
+#ifdef x86_64_unknown_linux2_4
+const unsigned int nstores = 25;
+
+void *divarwp, *dfvarsp, *dfvardp, *dfvartp, *dlargep;
+
+void get_vars_addrs(BPatch_image* bip) // from mutatee
+{
+
+  BPatch_variableExpr* bpvep_diwarw = bip->findVariable("divarw");
+  BPatch_variableExpr* bpvep_diwars = bip->findVariable("dfvars");
+  BPatch_variableExpr* bpvep_diward = bip->findVariable("dfvard");
+  BPatch_variableExpr* bpvep_diwart = bip->findVariable("dfvart");
+  BPatch_variableExpr* bpvep_dlarge = bip->findVariable("dlarge");
+  divarwp = bpvep_diwarw->getBaseAddr();
+  dfvarsp = bpvep_diwars->getBaseAddr();
+  dfvardp = bpvep_diward->getBaseAddr();
+  dfvartp = bpvep_diwart->getBaseAddr();
+  dlargep = bpvep_dlarge->getBaseAddr();
+}
+BPatch_memoryAccess* storeList[nstores];
+
+void init_test_data()
+{
+  int k=-1;
+
+  // initial 7 pushes
+  storeList[++k] = MK_ST(-8,4,-1,8);
+  storeList[++k] = MK_ST(-8,4,-1,8);
+  storeList[++k] = MK_ST(-8,4,-1,8);
+  storeList[++k] = MK_ST(-8,4,-1,8);
+  storeList[++k] = MK_ST(-8,4,-1,8);
+  storeList[++k] = MK_ST(-8,4,-1,8);
+  storeList[++k] = MK_ST(-8,4,-1,8);
+
+  // stores from semantic test cases
+  storeList[++k] = MK_LS((long)divarwp+4,-1,-1,4); // inc
+  storeList[++k] = MK_ST((long)divarwp+4,-1,-1,4); // mov
+  storeList[++k] = MK_LS((long)divarwp,-1,-1,4);   // add
+  storeList[++k] = MK_LS((long)divarwp+4,-1,-1,4); // xchg
+  storeList[++k] = MK_LS((long)divarwp+4,-1,-1,4); // shld
+  storeList[++k] = MK_ST((long)divarwp,-1,-1,4); // mov
+
+  // MMX store
+  storeList[++k] = MK_STnt((long)divarwp,-1,-1,8); // mov
+
+  // REP stores
+  storeList[++k] = new BPatch_memoryAccess("", 0, 0,
+					   false, true,
+                                           0, 7, -1, 0,
+                                           0, -1, 1, 2,
+                                           -1, false);  // rep stosl
+  storeList[++k] = new BPatch_memoryAccess("", 0, 0,
+					   false, true,
+                                           0, 7, -1, 0,
+					   0, -1, 1, 2,
+					   -1, false);  // rep stosl
+  storeList[++k] = MK_SL2vECX(0,7,-1,0,6,-1,2);
+
+
+  // x87
+  storeList[++k] = MK_ST((long)dfvarsp,-1,-1,4);
+  storeList[++k] = MK_ST((long)dfvardp,-1,-1,8);
+  storeList[++k] = MK_ST((long)dfvartp,-1,-1,10);
+  storeList[++k] = MK_ST((long)divarwp+2,-1,-1,2);
+  storeList[++k] = MK_ST((long)divarwp+4,-1,-1,4);
+  storeList[++k] = MK_ST((long)divarwp+8,-1,-1,8);
+
+  storeList[++k] = MK_ST((long)divarwp,-1,-1,2);
+  storeList[++k] = MK_ST((long)dlargep,-1,-1,28);
+}
+#endif
+
+
 #ifdef mips_sgi_irix6_4
 void init_test_data()
 {
@@ -246,6 +319,12 @@ int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
  && !defined(ia64_unknown_linux2_4)
   skiptest(testnum, testdesc);
 #else
+
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
+  get_vars_addrs(bpimg);
+#endif
+
   init_test_data();
 
   BPatch_Set<BPatch_opCode> stores;

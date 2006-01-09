@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.2 2005/11/22 19:40:59 bpellin Exp $
+// $Id: test_lib.C,v 1.3 2006/01/09 19:48:19 bpellin Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -942,12 +942,14 @@ bool validate(BPatch_Vector<BPatch_point*>* res,
   bool ok = true;
 
   for(unsigned int i=0; i<res->size(); ++i) {
-    BPatch_point* bpoint = (*res)[i];
-    ok = (ok && bpoint->getMemoryAccess()->equals(acc[i]));
-    if(!ok) {
-      printf("Validation failed at %s #%d.\n", msg, i+1);
-      dumpxpct(acc, res->size(), "Expected");
-      return ok;
+    if (acc[i] != NULL) {
+      BPatch_point* bpoint = (*res)[i];
+      ok = (ok && bpoint->getMemoryAccess()->equals(acc[i]));
+      if(!ok) {
+	printf("Validation failed at %s #%d.\n", msg, i+1);
+        dumpxpct(acc, res->size(), "Expected");
+        return ok;
+      }
     }
   }
   return ok;
