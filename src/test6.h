@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test6.h,v 1.2 2005/12/01 22:15:14 jaw Exp $
+// $Id: test6.h,v 1.3 2006/01/09 19:48:15 bpellin Exp $
 #ifndef TEST6_H
 #define TEST6_H
 
@@ -95,7 +95,6 @@ const unsigned int naxses = 73;
 #endif
 
 #if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(i386_unknown_nt4_0)
 const unsigned int naxses = 85;
 #endif
@@ -104,6 +103,9 @@ const unsigned int naxses = 85;
 const unsigned int naxses = 12;
 #endif
 
+#ifdef x86_64_unknown_linux2_4
+const unsigned int naxses = 95;
+#endif
 
 #endif /* TEST6_H */
 

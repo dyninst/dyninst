@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test6_1.C,v 1.4 2005/12/14 19:50:37 gquinn Exp $
+// $Id: test6_1.C,v 1.5 2006/01/09 19:48:16 bpellin Exp $
 /*
  * #Name: test6_1
  * #Desc: Load Instrumentation
@@ -154,7 +154,6 @@ void init_test_data()
 #endif
 
 #if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(i386_unknown_nt4_0)
 const unsigned int nloads = 65;
 BPatch_memoryAccess* loadList[nloads];
@@ -296,6 +295,144 @@ void init_test_data() {
 	loadList[3] = MK_LD( 0, 14, -1, 8 );
 	loadList[4] = MK_LD( 0, 14, -1, 16 );
 	loadList[5] = MK_LD( 0, 14, -1, 16 );
+}
+#endif
+
+#ifdef x86_64_unknown_linux2_4
+const unsigned int nloads = 73;
+
+BPatch_memoryAccess* loadList[nloads];
+
+void *divarwp, *dfvarsp, *dfvardp, *dfvartp, *dlargep;
+
+void get_vars_addrs(BPatch_image* bip) // from mutatee
+{
+
+  BPatch_variableExpr* bpvep_diwarw = bip->findVariable("divarw");
+  BPatch_variableExpr* bpvep_diwars = bip->findVariable("dfvars");
+  BPatch_variableExpr* bpvep_diward = bip->findVariable("dfvard");
+  BPatch_variableExpr* bpvep_diwart = bip->findVariable("dfvart");
+  BPatch_variableExpr* bpvep_dlarge = bip->findVariable("dlarge");
+  divarwp = bpvep_diwarw->getBaseAddr();
+  dfvarsp = bpvep_diwars->getBaseAddr();
+  dfvardp = bpvep_diward->getBaseAddr();
+  dfvartp = bpvep_diwart->getBaseAddr();
+  dlargep = bpvep_dlarge->getBaseAddr();
+}
+
+void init_test_data()
+{
+  int k=-1;
+
+  // ModRM loads
+
+  // mod = 00
+  loadList[++k] = MK_LD(0,0,-1,4);
+  loadList[++k] = MK_LD(0,1,-1,8);
+  loadList[++k] = MK_LD(0,2,-1,4);
+  loadList[++k] = MK_LD(0,3,-1,8);
+  loadList[++k] = NULL; // rip-relative data access (disable the check)
+  loadList[++k] = MK_LD(0,6,-1,8);
+  loadList[++k] = MK_LD(0,7,-1,4);
+  loadList[++k] = MK_LD(0,8,-1,8);
+  loadList[++k] = MK_LD(0,9,-1,4);
+  loadList[++k] = MK_LD(0,10,-1,8);
+  loadList[++k] = MK_LD(0,11,-1,4);
+  loadList[++k] = MK_LD(0,14,-1,8);
+  loadList[++k] = MK_LD(0,15,-1,4);
+
+  // mod = 01
+  loadList[++k] = MK_LD(4,0,-1,4);
+  loadList[++k] = MK_LD(8,1,-1,8);
+  loadList[++k] = MK_LD(-4,2,-1,4);
+  loadList[++k] = MK_LD(-8,3,-1,8);
+  loadList[++k] = MK_LD(4,5,-1,4);
+  loadList[++k] = MK_LD(8,6,-1,8);
+  loadList[++k] = MK_LD(-4,7,-1,4);
+  loadList[++k] = MK_LD(-8,8,-1,8);
+  loadList[++k] = MK_LD(4,9,-1,4);
+  loadList[++k] = MK_LD(8,10,-1,8);
+  loadList[++k] = MK_LD(-4,11,-1,4);
+  loadList[++k] = MK_LD(-8,13,-1,8);
+  loadList[++k] = MK_LD(127,14,-1,4);
+  loadList[++k] = MK_LD(-128,15,-1,8);
+
+  // SIB loads
+  loadList[++k] = MK_LD(0,3,6,4);
+  loadList[++k] = MK_LD(0,4,-1,8);
+  loadList[++k] = MK_LDsc(0,3,1,1,4);
+  loadList[++k] = MK_LDsc((long)divarwp,-1,1,1,8);
+  loadList[++k] = MK_LD(4,3,1,4);
+  loadList[++k] = MK_LDsc((long)divarwp,2,2,3,8);
+  loadList[++k] = MK_LDsc(2,5,1,1,4);
+  loadList[++k] = MK_LDsc(4,3,1,2,8);
+  loadList[++k] = MK_LDsc((long)divarwp,5,1,2,4);
+
+  // loads from semantic test cases
+  loadList[++k] = MK_LS((long)divarwp+4,-1,-1,4); // inc
+  loadList[++k] = MK_LD((long)divarwp+4,-1,-1,4); // cmp
+  loadList[++k] = MK_LD2(0,6,-1,1,0,7,-1,1);      // cmpsb
+  loadList[++k] = MK_LS((long)divarwp,-1,-1,4);   // add
+  loadList[++k] = MK_LS((long)divarwp+4,-1,-1,4); // xchg
+  loadList[++k] = MK_LD((long)divarwp+8,-1,-1,4); // imul
+  loadList[++k] = MK_LD((long)divarwp,-1,-1,4);   // imul
+  loadList[++k] = MK_LS((long)divarwp+4,-1,-1,4); // shld
+  loadList[++k] = MK_LD((long)divarwp,-1,-1,4);   // idiv
+
+  // MMX
+  loadList[++k] = MK_LD((long)divarwp,-1,-1,8);
+  loadList[++k] = MK_LD((long)divarwp+8,-1,-1,8);
+
+  // SSE
+  loadList[++k] = MK_LD((long)dfvartp,-1,-1,16);
+  loadList[++k] = MK_LD((long)dfvartp,-1,-1,4);
+
+  // SSE2
+  loadList[++k] = MK_LD((long)dfvartp,-1,-1,16);
+  loadList[++k] = MK_LD((long)dfvartp,-1,-1,8);
+
+  // 3DNow!
+  loadList[++k] = MK_LD((long)dfvardp,-1,-1,8);
+  loadList[++k] = MK_LD((long)dfvardp+8,-1,-1,8);
+
+  // REP prefixes
+  loadList[++k] = MK_SL2vECX(0,7,-1,0,6,-1,2);
+  loadList[++k] = new BPatch_memoryAccess("", 0, 0,
+					  true, false,
+                                          0, 7, -1, 0,
+                                          0, -1, IA32_NESCAS, 0, 
+                                          -1, false);
+  loadList[++k] = new BPatch_memoryAccess("", 0, 0,
+					  true, false,
+                                          0, 6, -1, 0,
+                                          0, -1, IA32_ECMPS, 0,
+                                          true, false,
+                                          0, 7, -1, 0,
+                                          0, -1, IA32_ECMPS, 0);
+
+  // x87
+  loadList[++k] = MK_LD((long)dfvarsp,-1,-1,4);
+  loadList[++k] = MK_LD((long)dfvardp,-1,-1,8);
+  loadList[++k] = MK_LD((long)dfvartp,-1,-1,10);
+  loadList[++k] = MK_LD((long)divarwp,-1,-1,2);
+  loadList[++k] = MK_LD((long)divarwp+4,-1,-1,4);
+  loadList[++k] = MK_LD((long)divarwp+8,-1,-1,8);
+
+  loadList[++k] = MK_LD((long)divarwp,-1,-1,2);
+  loadList[++k] = MK_LD((long)dlargep,-1,-1,28);
+
+  // conditional moves
+  loadList[++k] = MK_LDsccnd((long)divarwp,-1,-1,0,4,7); // cmova
+  loadList[++k] = MK_LDsccnd((long)divarwp+4,-1,-1,0,4,4); // cmove
+  loadList[++k] = MK_LD((long)divarwp+8,-1,-1,4);
+
+  // final 6 stack pops
+  loadList[++k] = MK_LD(0,4,-1,8);
+  loadList[++k] = MK_LD(0,4,-1,8);
+  loadList[++k] = MK_LD(0,4,-1,8);
+  loadList[++k] = MK_LD(0,4,-1,8);
+  loadList[++k] = MK_LD(0,4,-1,8);
+  loadList[++k] = MK_LD(0,4,-1,8);
 }
 #endif
 

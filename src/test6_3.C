@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test6_3.C,v 1.2 2005/11/22 19:42:38 bpellin Exp $
+// $Id: test6_3.C,v 1.3 2006/01/09 19:48:18 bpellin Exp $
 /*
  * #Name: test6_3
  * #Desc: Prefetch Instrumentation
@@ -84,7 +84,6 @@ void init_test_data()
 #endif
 
 #if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(i386_unknown_nt4_0)
 const unsigned int nprefes = 2;
 BPatch_memoryAccess* prefeList[nprefes + 1]; // for NT
@@ -136,6 +135,38 @@ void init_test_data() {
 
 #endif
 
+#ifdef x86_64_unknown_linux2_4
+const unsigned int nprefes = 2;
+
+BPatch_memoryAccess* prefeList[nprefes + 1]; // for NT
+
+void *divarwp, *dfvarsp, *dfvardp, *dfvartp, *dlargep;
+
+void get_vars_addrs(BPatch_image* bip) // from mutatee
+{
+
+  BPatch_variableExpr* bpvep_diwarw = bip->findVariable("divarw");
+  BPatch_variableExpr* bpvep_diwars = bip->findVariable("dfvars");
+  BPatch_variableExpr* bpvep_diward = bip->findVariable("dfvard");
+  BPatch_variableExpr* bpvep_diwart = bip->findVariable("dfvart");
+  BPatch_variableExpr* bpvep_dlarge = bip->findVariable("dlarge");
+  divarwp = bpvep_diwarw->getBaseAddr();
+  dfvarsp = bpvep_diwars->getBaseAddr();
+  dfvardp = bpvep_diward->getBaseAddr();
+  dfvartp = bpvep_diwart->getBaseAddr();
+  dlargep = bpvep_dlarge->getBaseAddr();
+}
+
+void init_test_data()
+{
+  int k=-1;
+
+  // prefetches
+  prefeList[++k] = MK_PF((long)divarwp,-1,-1,IA32prefetchT0);
+  prefeList[++k] = MK_PF((long)divarwp,-1,-1,IA32AMDprefetch);
+}
+#endif
+
 #ifdef mips_sgi_irix6_4
 void init_test_data()
 {
@@ -162,6 +193,12 @@ int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
  && !defined(ia64_unknown_linux2_4)
   skiptest(testnum, testdesc);
 #else
+
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
+  get_vars_addrs(bpimg);
+#endif
+
   init_test_data();
   
   BPatch_Set<BPatch_opCode> prefes;
