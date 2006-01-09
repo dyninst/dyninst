@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_5.C,v 1.2 2005/11/22 19:42:22 bpellin Exp $
+// $Id: test3_5.C,v 1.3 2006/01/09 19:48:12 bpellin Exp $
 /*
  * #Name: test3_5
  * #Desc: sequential multiple-process management - abort
@@ -88,11 +88,15 @@ int mutatorTest(char *pathname, BPatch *bpatch)
             return -1;
         }
         dprintf("Mutatee %d started, pid=%d\n", n, appThread->getPid());
+        fprintf(stderr, "[%s]%d: Mutatee %d started, pid=%d\n", __FILE__, __LINE__,n, appThread->getPid());
 
         appThread->continueExecution();
 
-        while (!appThread->isTerminated())
+        while (!appThread->isTerminated()) {
+            if (appThread->isStopped())
+               appThread->continueExecution();
             bpatch->waitForStatusChange();
+        }
 
         if(appThread->terminationStatus() == ExitedNormally) {
            int exitCode = appThread->getExitCode();

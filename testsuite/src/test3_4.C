@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_4.C,v 1.2 2005/11/22 19:42:21 bpellin Exp $
+// $Id: test3_4.C,v 1.3 2006/01/09 19:48:11 bpellin Exp $
 /*
  * #Name: test3_4
  * #Desc: sequential multiple-process management - exit
@@ -89,8 +89,11 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 
         appThread->continueExecution();
 
-        while (!appThread->isTerminated())
-            bpatch->waitForStatusChange();
+        while (!appThread->isTerminated()) {
+           if (appThread->isStopped())
+              appThread->continueExecution();
+           bpatch->waitForStatusChange();
+        }
 
         if(appThread->terminationStatus() == ExitedNormally) {
            int exitCode = appThread->getExitCode();

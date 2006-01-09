@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Callbacks.C,v 1.1 2005/09/29 20:40:01 bpellin Exp $
+// $Id: Callbacks.C,v 1.2 2006/01/09 19:48:06 bpellin Exp $
 #include "Callbacks.h"
 #include "test_lib.h"
 
@@ -78,7 +78,7 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
     if (num == 0) {
         // conditional reporting of warnings and informational messages
         if (errorPrint) {
-            if (level == BPatchInfo)
+            if ((level == BPatchInfo) || (level == BPatchWarning) )
               { if (errorPrint > 1) printf("%s\n", params[0]); }
             else
                 printf("%s", params[0]);
