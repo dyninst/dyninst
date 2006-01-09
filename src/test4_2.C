@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4_2.C,v 1.3 2005/11/22 19:42:24 bpellin Exp $
+// $Id: test4_2.C,v 1.4 2006/01/09 19:48:13 bpellin Exp $
 /*
  * #Name: test4_2
  * #Desc: Fork Callback
@@ -109,6 +109,7 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
     
     parent->insertSnippet(callExpr2, *point2);
 
+    dprintf("MUTATEE:  after insert in fork of %d to %d\n", parent->getPid(), child->getPid());
     // insert different code into child
     appImage = child->getImage();
     assert(appImage);
@@ -138,6 +139,7 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
 
     child->insertSnippet(callExpr1, *point1);
 
+    dprintf("MUTATEE:  after insert2 in fork of %d to %d\n", parent->getPid(), child->getPid());
     test2Child = child;
     test2Parent = parent;
 }
@@ -160,7 +162,7 @@ void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type)
         exited = 0;            
     } else if (thread->getPid() != exitCode) {
         printf("Failed test #2 (fork callback)\n");
-        printf("    exit code was not equal to pid\n");            
+        printf("    exit code was not equal to pid (%d != %d)\n", thread->getPid(), exitCode);            
         exited = 0;
     } else {
         dprintf("test #2, pid %d exited\n", exitCode);

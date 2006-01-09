@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_24.C,v 1.2 2005/11/22 19:41:40 bpellin Exp $
+// $Id: test1_24.C,v 1.3 2006/01/09 19:48:08 bpellin Exp $
 /*
  * #Name: test1_24
  * #Desc: Mutator Side - Array Variables
@@ -121,18 +121,21 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
         BPatch_arithExpr assignment1(BPatch_assign,
             BPatch_arithExpr(BPatch_ref, *gvar[1], BPatch_constExpr(1)),
         BPatch_constExpr(2400001));
-        appThread->insertSnippet(assignment1, *point24_1);
+        if (!appThread->insertSnippet(assignment1, *point24_1))
+           return -1;
 
         //     globalVariable24_1[globalVariable24_2] = 2400002
         BPatch_arithExpr assignment2(BPatch_assign,
             BPatch_arithExpr(BPatch_ref, *gvar[1], *gvar[2]),
         BPatch_constExpr(2400002));
-        appThread->insertSnippet(assignment2, *point24_1);
+        if (!appThread->insertSnippet(assignment2, *point24_1))
+           return -1;
 
         //     globalVariable24_3 = globalVariable24_1[79]
         BPatch_arithExpr assignment3(BPatch_assign, *gvar[3],
             BPatch_arithExpr(BPatch_ref, *gvar[1], BPatch_constExpr(79)));
-        appThread->insertSnippet(assignment3, *point24_1);
+        if (!appThread->insertSnippet(assignment3, *point24_1))
+           return -1;
 
         //     globalVariable24_5 = globalVariable24_1[globalVariable24_4]
         BPatch_arithExpr assignment4(BPatch_assign, *gvar[5],
@@ -146,37 +149,43 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
                                                       BPatch_constExpr(1));
         BPatch_constExpr *bpce = new BPatch_constExpr(2400005);
         BPatch_arithExpr assignment5(BPatch_assign, *bpae, *bpce);
-        appThread->insertSnippet(assignment5, *point24_1);
+        if (!appThread->insertSnippet(assignment5, *point24_1))
+           return -1;
 
         //     localVariable24_1[globalVariable24_2] = 2400006
         BPatch_arithExpr assignment6(BPatch_assign,
             BPatch_arithExpr(BPatch_ref, *lvar, *gvar[2]),
             BPatch_constExpr(2400006));
-        appThread->insertSnippet(assignment6, *point24_1);
+        if (!appThread->insertSnippet(assignment6, *point24_1))
+           return -1;
 
         //     globalVariable24_6 = localVariable24_1[79]
         BPatch_arithExpr *ae = 
            new BPatch_arithExpr(BPatch_ref, *lvar, BPatch_constExpr(79));
         BPatch_arithExpr assignment7(BPatch_assign, *gvar[6],*ae);
-        appThread->insertSnippet(assignment7, *point24_1);
+        if (!appThread->insertSnippet(assignment7, *point24_1))
+           return -1;
 
         //     globalVariable24_7 = localVariable24_1[globalVariable24_4]
         BPatch_arithExpr assignment8(BPatch_assign, *gvar[7],
             BPatch_arithExpr(BPatch_ref, *lvar, *gvar[4]));
-        appThread->insertSnippet(assignment8, *point24_1);
+        if (!appThread->insertSnippet(assignment8, *point24_1))
+           return -1;
 
         // now test multi-dimensional arrays
         //	   globalVariable24_8[2][3] = 2400011
         BPatch_arithExpr assignment9(BPatch_assign,
             BPatch_arithExpr(BPatch_ref, BPatch_arithExpr(BPatch_ref, *gvar[8],
 	    BPatch_constExpr(2)), BPatch_constExpr(3)), BPatch_constExpr(2400011));
-        appThread->insertSnippet(assignment9, *point24_1);
+        if (!appThread->insertSnippet(assignment9, *point24_1))
+           return -1;
 
         // globalVariable24_9 = globalVariable24_8[7][9]
         BPatch_arithExpr assignment10(BPatch_assign, *gvar[9],
             BPatch_arithExpr(BPatch_ref, BPatch_arithExpr(BPatch_ref, *gvar[8],
             BPatch_constExpr(7)), BPatch_constExpr(9)));
-      appThread->insertSnippet(assignment10, *point24_1);
+      if (!appThread->insertSnippet(assignment10, *point24_1))
+         return -1;
     }
 #endif
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_20.C,v 1.4 2005/12/01 22:15:14 jaw Exp $
+// $Id: test1_20.C,v 1.5 2006/01/09 19:48:07 bpellin Exp $
 /*
  * #Name: test1_20
  * #Desc: Mutator Side - Instrumentation at arbitrary points
@@ -63,14 +63,14 @@ int mergeTramp;
 //
 int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
-  if (mergeTramp == 1)
-    bpatch->setMergeTramp(true);
-  BPatch_Vector<BPatch_function *> bpfv;
-  char *fn = "call20_1";
-  if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
-      || NULL == bpfv[0]){
-    fprintf(stderr, "    Unable to find function %s\n", fn);
-    return -1;
+    if (mergeTramp == 1)
+        bpatch->setMergeTramp(true);
+    BPatch_Vector<BPatch_function *> bpfv;
+    char *fn = "call20_1";
+    if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
+         || NULL == bpfv[0]){
+         fprintf(stderr, "    Unable to find function %s\n", fn);
+         return -1;
   }
 
 
@@ -117,6 +117,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     }
     
     appThread->getProcess()->beginInsertionSet();
+    dprintf("%s[%d]:  about to instrument %d basic blocks\n", __FILE__, __LINE__, blocks.size());
 
     BPatch_Set<BPatch_basicBlock *>::iterator blockIter = blocks.begin();
     for (; blockIter != blocks.end(); blockIter++) {

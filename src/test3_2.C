@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_2.C,v 1.2 2005/11/22 19:42:19 bpellin Exp $
+// $Id: test3_2.C,v 1.3 2006/01/09 19:48:10 bpellin Exp $
 /*
  * #Name: test3_2
  * #Desc: simultaneous multiple-process management - exit
@@ -100,6 +100,7 @@ int mutatorTest(char *pathname, BPatch *bpatch)
     // monitor the mutatee termination reports
     while (numTerminated < Mutatees) {
         bpatch->waitForStatusChange();
+        fprintf(stderr, "%s[%d]:  got status change\n", __FILE__, __LINE__);
         for (n=0; n<Mutatees; n++)
             if (!terminated[n] && (appThread[n]->isTerminated())) {
                 if(appThread[n]->terminationStatus() == ExitedNormally) {
@@ -117,6 +118,10 @@ int mutatorTest(char *pathname, BPatch *bpatch)
                 terminated[n]=true;
 		delete appThread[n];
                 numTerminated++;
+            }
+            else if (!terminated[n] && (appThread[n]->isStopped())) {
+                fprintf(stderr, "%s[%d]:  continuing stopped process\n", __FILE__, __LINE__);
+                appThread[n]->continueExecution();
             }
     }
 

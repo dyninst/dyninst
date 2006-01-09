@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4_3.C,v 1.3 2005/11/22 19:42:25 bpellin Exp $
+// $Id: test4_3.C,v 1.4 2006/01/09 19:48:14 bpellin Exp $
 /*
  * #Name: test4_3
  * #Desc: Exec Callback
@@ -131,6 +131,7 @@ void execFunc(BPatch_thread *thread)
 
         assert(point);
         thread->insertSnippet(callExpr, *point);
+	dprintf("%s[%d]:  MUTATEE: exec callback for %d, done with insert snippet\n", __FILE__, __LINE__, thread->getPid());
 }
 
 int mutatorTest(char *pathname, BPatch *bpatch)
