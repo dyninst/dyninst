@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.189 2005/11/21 17:16:14 jaw Exp $
+// $Id: solaris.C,v 1.190 2006/01/11 16:23:49 chadd Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -266,7 +266,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 	//	ehdr needs start of section headers updated
 	// Always save the API_RT lib
         // Libraries: start at index 1
-	for(unsigned i=i; i < mapped_objects.size() ; i++) {
+	for(unsigned i=1; i < mapped_objects.size() ; i++) {
             sh_obj = mapped_objects[i];
             if( sh_obj->isDirty() || sh_obj->isDirtyCalled() || strstr(sh_obj->fileName().c_str(),"libdyninstAPI_RT")){
                 /*fprintf(stderr,"\nWRITE BACK SHARED OBJ %s\n", sh_obj->getName().c_str());*/
