@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9.C,v 1.17 2005/11/22 13:52:40 jaw Exp $
+// $Id: test9.C,v 1.18 2006/01/11 15:41:31 chadd Exp $
 //
 // libdyninst validation suite test #9
 //    Author: Chadd Williams (30 jun 2003) 
@@ -365,7 +365,7 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 			if(retVal != -1 ){
 				execl("/usr/bin/setarch","setarch","i386",mutatedBinary, "-run", testID,0); 
 			}else{
-
+				fprintf(stderr," Running without /usr/bin/setarch\n");
 				execl(mutatedBinary, realFileName,"-run", testID,0); 
 			}
 #else
@@ -896,7 +896,7 @@ void mutatorTest6(char *pathname)
 
 	instrumentToCallZeroArg(appThread, appImage, "func6_2", "call6_2", testNo, testName);
 
-	char * dirname = saveWorld(appThread);
+	char * dirname= saveWorld(appThread);
 	savedDirectories[testNo]=dirname;
 
 	/* finish original mutatee to see if it runs */

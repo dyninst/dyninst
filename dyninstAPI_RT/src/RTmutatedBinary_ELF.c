@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary_ELF.c,v 1.19 2006/01/06 23:11:04 legendre Exp $ */
+/* $Id: RTmutatedBinary_ELF.c,v 1.20 2006/01/11 15:41:31 chadd Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -92,6 +92,7 @@ extern void* _DYNAMIC;
 #define ElfW(type)      _ElfW (Elf, __ELF_NATIVE_CLASS, type)
 #define _ElfW(e,w,t)    _ElfW_1 (e, w, _##t)
 #define _ElfW_1(e,w,t)  e##w##t
+
 
 #elif defined(i386_unknown_linux2_0) \
    || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
@@ -249,6 +250,7 @@ void pseudoSigHandler(int sig){
 		}while(map->l_next);
 
 	}
+
 }
 
 void dyninst_jump_template(){
@@ -322,8 +324,9 @@ void dyninst_jump_template(){
 
 	asm("nop"); 	/*sethi hi(register_o7), %g1 GENERATED BELOW*/
 	asm("nop");	/*st %o7 GENERATED BELOW*/
-	asm("nop");	/*call plt GENERATED BELOW*/
-	asm("nop");     /*sethi r1, b4 GENERATED BELOW*/
+
+	asm("nop");	/*call/jmp plt GENERATED BELOW*/
+	asm("nop");    /*sethi r1, b4 GENERATED BELOW*/
 
 	asm("nop");
 	asm("save %sp, -104, %sp");
@@ -486,7 +489,7 @@ int checkSO(char* soName){
 	}
 	if((elf = Elf_begin(fd, ELF_C_READ, NULL)) ==NULL){
 		RTprintf("%s %s \n",soName, Elf_errmsg(Elf_errno()));
-		RTprintf("cannot Elf_begin\n");
+		RTprintf("cannot elf_begin\n");
 		fflush(stdout);
 		close(fd);
 		return result;
@@ -535,7 +538,8 @@ int checkMutatedFile(){
 
 
 
-     //elfHandle = dlopen("/usr/lib/libelf.so.1", RTLD_NOW);
+//     elfHandle = dlopen("/usr/lib/libelf.so.1", RTLD_NOW);
+
      elfHandle = dlopen("libelf.so", RTLD_NOW);
      if(! elfHandle){
         error_msg = dlerror();
@@ -547,6 +551,7 @@ int checkMutatedFile(){
         }
         exit(1);
      }
+
      Elf_version = dlsym(elfHandle, "elf_version");
      Elf_begin = dlsym(elfHandle, "elf_begin");
      Elf_getscn = dlsym(elfHandle, "elf_getscn");
@@ -578,7 +583,7 @@ int checkMutatedFile(){
 		return retVal;
 	}
 	if((elf = Elf_begin(fd, ELF_C_READ, NULL)) ==NULL){
-		printf("%s %s \n",execStr, Elf_errmsg(Elf_errno()));
+		printf("%s %s \n",execStr, Elf_errmsg( Elf_errno()));
 		printf("cannot Elf_begin\n");
 		fflush(stdout);
 		close(fd);
@@ -593,8 +598,72 @@ int checkMutatedFile(){
 	/*fprintf(stderr,"IN MUTATED FILE\n");*/
    	for(cnt = 0, scn = NULL; !soError &&  (scn = Elf_nextscn(elf, scn));cnt++){
 		shdr = ELF_FUNC( getshdr(scn) );
+		if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPItrampgu", 17)) {
+			dataAddress = shdr->sh_addr;
+			elfData = Elf_getdata(scn, NULL);
+			tmpPtr = elfData->d_buf;
+			/*fprintf(stderr,"tramp guard addr %x %d\n", dataAddress,*(int*)tmpPtr);*/
+
+
+#if defined(sparc_sun_solaris2_4)
+			findMap();
+			checkAddr = checkMap((unsigned long)shdr->sh_addr);
+#else
+			checkAddr = dladdr((void*)shdr->sh_addr, &dlip);
+#endif
+			if( !checkAddr ){
+				/* we do not own it. mmap it */
+			
+				/* this is the usual case on Linux */	
+
+                   	mmapAddr = shdr->sh_addr;
+				mmapAddr = mmapAddr % pageSize;
+				mmapAddr = shdr->sh_addr - mmapAddr;
+
+#if defined(sparc_sun_solaris2_4)
+				checkAddr = checkMap((unsigned long)mmapAddr);
+#else
+				checkAddr = dladdr((void*) mmapAddr, &dlip);
+#endif
+
+                   	mmapAddr =(unsigned long) mmap((void*)mmapAddr ,((*(int*)tmpPtr)+1)*sizeof(unsigned),
+                             	PROT_READ|PROT_WRITE,MAP_FIXED|MAP_PRIVATE,fd,0);
+
+				if( mmapAddr == ( shdr->sh_addr - (shdr->sh_addr % pageSize  ) )){ 
+					/* set tramp guard to 1 */
+					for(i=0;i<*(int*)tmpPtr;i++){
+						((unsigned*) dataAddress)[i]=1;
+					}
+				}
+
+			}else{
+				/* 	we already own it. 
+					this probably means something else is using this memory.
+					
+					bail out
+				*/
+
 	
-		if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_data", 15)) {
+#if defined(sparc_sun_solaris2_4)
+
+				/* this is the usual case on Solaris */
+				
+				/* set tramp guard to 1 */
+				for(i=0;i<*(int*)tmpPtr;i++){
+					((unsigned*) dataAddress)[i]=1;
+				}
+
+#else
+				fprintf(stderr,"ERROR: Could not reload DYNINST_tramp_guards\n\n");
+				fprintf(stderr,"terminating .... \n");
+				exit(1);
+
+#endif 
+				
+			
+			}
+
+		}else if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_data", 15)) {
 			elfData = Elf_getdata(scn, NULL);
 			tmpPtr = elfData->d_buf;
 			dataAddress = -1;
@@ -606,8 +675,6 @@ int checkMutatedFile(){
 
 				tmpPtr+=sizeof(int);
 				memcpy( (char*) & dataAddress, tmpPtr, sizeof(Address));
-
-				/*fprintf(stderr,"DataAddress %x\n", dataAddress);*/
 
 				tmpPtr += sizeof(Address);
 				if(dataAddress){
@@ -784,8 +851,11 @@ int checkMutatedFile(){
 			unsigned long ld_linuxBaseAddr, baseAddr, size;
 #if defined(sparc_sun_solaris2_4)
 			unsigned int *overWriteInsn;
-			unsigned int *pltEntry, *PLTEntry, *dyninst_jump_templatePtr, pltInsn;
-			unsigned int BA_MASK = 0x003fffff;
+			unsigned int *pltEntry, *PLTEntry, *dyninst_jump_templatePtr, pltInsn, tmpAddr;
+			unsigned int BA_MASK=0x30800000;
+			unsigned int BA_IMM=0x003fffff;
+			unsigned int SETHI_IMM=0x003fffff;
+			unsigned int JMP_IMM =0x00001fff;
 			unsigned int offset, callInsn;
 			struct sigaction  mysigact, oldsigact;
 #endif
@@ -874,17 +944,44 @@ int checkMutatedFile(){
 				to in that comment as "GENERATED BELOW".
 
 			*/
+
 			pltEntry = (unsigned int*) shdr->sh_addr;
 			pltInsn = *pltEntry; /* save insn for later */
 			pltEntry += 1;
-			offset = (*pltEntry) & BA_MASK;
-			if(offset & 0x00200000){
-				/* negative so sign extend */
-				offset = 0xffc00000 | offset;
-			}
-			PLTEntry = pltEntry;
+
+			/* The PLT entry may look like:
+				sethi
+				ba,a
+				nop
+
+			   or
 			
-			PLTEntry += (offset*4)/sizeof(PLTEntry); /* move PLTEntry offset*4 bytes!*/
+				sethi
+				sethi
+				jmp
+
+			*/
+			if( (*pltEntry & (BA_MASK)) == (BA_MASK) ){
+				/* we have the sethi/ba,a/nop type */
+
+				offset = (*pltEntry) & BA_IMM;
+				if(offset & 0x00200000){
+					/* negative so sign extend */
+					offset = 0xffc00000 | offset;
+				}
+				PLTEntry = pltEntry;
+			
+				PLTEntry += (offset*4)/sizeof(PLTEntry); /* move PLTEntry offset*4 bytes!*/
+
+			}else{
+				/* we have the sethi/sethi/jmp type */
+				tmpAddr = ((*pltEntry) & SETHI_IMM)<<10;
+				pltEntry ++;
+				tmpAddr += ((*pltEntry) & JMP_IMM);
+				PLTEntry = tmpAddr;
+				pltEntry --;
+			}
+
 			dyninst_jump_templatePtr = (unsigned int*) & __dyninst_jump_template__;
 
 			baseAddr = ((unsigned int) dyninst_jump_templatePtr)  -
@@ -908,7 +1005,6 @@ int checkMutatedFile(){
 			/* build call PLTEntry */
 			*dyninst_jump_templatePtr = 0x40000000;
 			*dyninst_jump_templatePtr |= ( ((unsigned int) (PLTEntry)-  ((unsigned int) dyninst_jump_templatePtr)) >>2);
-			
 			dyninst_jump_templatePtr ++;
 
 			/* copy from plt */
@@ -940,7 +1036,6 @@ int checkMutatedFile(){
 
 			/* build sethi hi(&__dyninst_jump_template__), %g1 */
 			pltEntry --;
-
 			*pltEntry = 0x03000000;
 			*pltEntry |= ( (((unsigned int ) &__dyninst_jump_template__) )>> 10);
 			pltEntry ++;
@@ -949,6 +1044,8 @@ int checkMutatedFile(){
 			*pltEntry = 0x81c06000;
 			*pltEntry |=  ( ((unsigned int ) &__dyninst_jump_template__ ) & 0x00003ff );
 
+			pltEntry ++;
+			*pltEntry = 0x01000000;
 #elif defined(i386_unknown_linux2_0) \
    || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
 			/* install jump to catch call to _dl_debug_state */
@@ -1071,11 +1168,10 @@ int checkMutatedFile(){
 			void * handle =NULL;
 			Dl_info p;
 			unsigned long loadAddr;
-
 			elfData = Elf_getdata(scn, NULL);
 			tmpPtr = elfData->d_buf;
-			while(*tmpPtr) { 
 
+			while(*tmpPtr) { 
 				handle = dlopen(tmpPtr, RTLD_LAZY);
 				if(handle){
 					dlinfo(handle, RTLD_DI_CONFIGADDR,(void*) &p);
@@ -1101,8 +1197,6 @@ int checkMutatedFile(){
 				tmpPtr += (strlen(tmpPtr) +1);	
 
 			}
-
-
 
 		}
 	}

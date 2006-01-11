@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.564 2006/01/06 16:53:17 bernat Exp $
+// $Id: process.C,v 1.565 2006/01/11 15:41:30 chadd Exp $
 
 #include <ctype.h>
 
@@ -704,6 +704,7 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
         
 
          if( sh_obj->isDirty()){ 
+			//fprintf(stderr," SAVING SHARED LIB: %s\n", sh_obj->fileName().c_str());
             //if the lib is only DirtyCalled dont save it! //ccw 24 jul 2003
             Address textAddr, textSize;
             char *newName = saveWorldFindNewSharedLibraryName(sh_obj->fileName(),directoryName);
@@ -729,12 +730,14 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
             	sharedObj->openBothLibraries();
             
 			sharedObj->getTextInfo(textAddr, textSize);
-			char* textSection = sharedObj->getTextSection(); /* get the text section from the ORIGINAL library */
+			char* textSection ;//= sharedObj->getTextSection(); /* get the text section from the ORIGINAL library */
+			textSection = new char[textSize]; //ccw 14 dec 2005
 
 			if(textSection){
 
-				applyMutationsToTextSection(textSection, textAddr, textSize);
-            
+				//applyMutationsToTextSection(textSection, textAddr, textSize);
+
+				readDataSpace((void*)textAddr, textSize, (void*)textSection, true); //ccw 14 dec 2005
 	          	sharedObj->saveMutations(textSection);
      	       	sharedObj->closeNewLibrary();
 	            /*			
@@ -889,6 +892,7 @@ void process::saveWorldCreateHighMemSections(
 
 #endif
 
+#if 0
 	/*fprintf(stderr,"guardFlagAddr %x\n",guardFlagAddr);*/
    	readDataSpace((void*) guardFlagAddr, sizeof(unsigned int),
                  (void*) &trampGuardValue, true);
@@ -899,6 +903,25 @@ void process::saveWorldCreateHighMemSections(
         assert(err);
 
 	saveWorldData((Address) guardFlagAddr,sizeof(unsigned int), &numberUpdates); //ccw 6 jul 2003
+#endif
+
+	bool err;
+      sprintf(name,"dyninstAPItrampguard");
+
+	data = new char[sizeof(max_number_of_threads)];
+	memcpy(data, &max_number_of_threads,sizeof(max_number_of_threads));
+	//fprintf(stderr,"WRITING: max_number_of_threads %d\n",max_number_of_threads);
+	//ccw 14 dec 2005
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
+      newFile->addSection(guardFlagAddr,data,sizeof(max_number_of_threads),name,false);
+#elif defined(rs6000_ibm_aix4_1)
+	newFile->addSection(name,guardFlagAddr,guardFlagAddr,sizeof(max_number_of_threads),data);
+#endif
+	delete []data;
+
+
 
    for(unsigned int j=0; j<compactedHighmemUpdates.size(); j++) {
       //the layout of dyninstAPIhighmem_%08x is:
@@ -1872,6 +1895,7 @@ process::process(int ipid) :
     dyninstlib_brk_addr(0),
     main_brk_addr(0),
     runProcessAfterInit(false),
+    systemPrelinkCommand(NULL),
 #if defined(os_windows)
     processHandle_(INVALID_HANDLE_VALUE),
     mainFileHandle_(INVALID_HANDLE_VALUE),
@@ -2461,7 +2485,8 @@ process::process(const process *parentProc, int childPid, int childTrace_fd) :
     lastObsCostLow(parentProc->lastObsCostLow),
     costAddr_(parentProc->costAddr_),
     threadIndexAddr(parentProc->threadIndexAddr),
-    trampGuardBase_(parentProc->trampGuardBase_)
+    trampGuardBase_(parentProc->trampGuardBase_),
+    systemPrelinkCommand(NULL)
 #if defined(arch_ia64)
     , unwindAddressSpace(NULL) // Recreated automatically in getActiveFrame
     , unwindProcessArg(NULL) // And this
@@ -6144,4 +6169,4 @@ void process::print_instrucs(unsigned char *buffer, unsigned size,
    }
 }
 
-
+/* vim: set ts=5: */

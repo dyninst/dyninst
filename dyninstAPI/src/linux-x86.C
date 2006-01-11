@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.84 2005/12/12 16:37:09 gquinn Exp $
+// $Id: linux-x86.C,v 1.85 2006/01/11 15:41:30 chadd Exp $
 
 #include <fstream>
 
@@ -1059,7 +1059,7 @@ bool process::prelinkSharedLibrary(pdstring originalLibNameFullPath,
 	char *newLibName = saveWorldFindNewSharedLibraryName(originalLibNameFullPath,
                                                         dirName);
 	bool res = false;
-	char *command = new char[originalLibNameFullPath.length() + strlen(newLibName) + 10];
+	char *command = new char[originalLibNameFullPath.length() + strlen(newLibName) + 11];
 	
 	if(!systemPrelinkCommand){
 
@@ -1082,7 +1082,7 @@ bool process::prelinkSharedLibrary(pdstring originalLibNameFullPath,
 	delete [] command;
 
 	if(systemPrelinkCommand){
-		char *prelinkCommand = new char[strlen(systemPrelinkCommand) + 64+strlen(newLibName) ];
+		char *prelinkCommand = new char[strlen(systemPrelinkCommand) + 65+strlen(newLibName) ];
 		memset(prelinkCommand, '\0', strlen(systemPrelinkCommand) + 64+strlen(newLibName) );
 
 		// /usr/sbin/prelink -r baseAddr newLibName
@@ -1201,7 +1201,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 				Symbol info;
 				pdstring dynamicSection = "_DYNAMIC";
 				mapped_obj->getSymbolInfo(dynamicSection,info);
-				baseAddr = mapped_obj->codeBase() + info.addr();
+				baseAddr = /*mapped_obj->codeBase() + */ info.addr(); //ccw 14 dec 2005 : again, the ret value of mapped_obj->codeBase seems to have changed
 				//fprintf(stderr," %s DYNAMIC ADDR: %x\n",mapped_obj->fileName().c_str(), baseAddr);
 
 				//baseAddr = mapped_obj->getBaseAddress();
@@ -1245,7 +1245,8 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 7 feb 2002
 			Symbol info;
 			pdstring dynamicSection = "_DYNAMIC";
 			mapped_obj->getSymbolInfo(dynamicSection,info);
-			rtlibAddr = mapped_obj->codeBase() + info.addr();
+			rtlibAddr = /*mapped_obj->codeBase() + */ info.addr();
+			// i guess codeBase used to return 0 and now returns the correct value ccw 14 Dec 2005
 			//fprintf(stderr," %s DYNAMIC ADDR: %x\n",mapped_obj->fileName().c_str(), rtlibAddr);
 		}
 	}
