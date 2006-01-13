@@ -1,7 +1,7 @@
 #
 # Makefile for test programs on Sparc Solaris 2.4
 #
-# $Id: Makefile,v 1.7 2005/07/06 18:27:57 rchen Exp $
+# $Id: Makefile,v 1.8 2006/01/13 08:32:39 jodom Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -11,12 +11,12 @@ NO_IMPLICIT_TEMPLATES = true
 
 MUTATEE_LIBS = -ldl -lrt
 
+DEBUG_FLAG = -g
+NATIVE_DEBUG_FLAG = -g -xs
+
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
 include $(TO_CORE)/make.config 
-
-DEBUG_FLAG = -g
-NATIVE_DEBUG_FLAG = -g -xs
 
 # Now make any necessary architecture specific changes to variables:
 
