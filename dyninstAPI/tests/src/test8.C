@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test8.C,v 1.17 2005/07/06 18:28:29 rchen Exp $
+// $Id: test8.C,v 1.18 2006/01/13 08:21:34 jodom Exp $
 //
 
 #include <stdio.h>
@@ -364,8 +364,7 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 #endif
 void mutatorTest3( BPatch_thread * appThread, BPatch_image * appImage ) {
 
-#if (defined( arch_alpha ) && defined( os_osf )) \
- || (defined( arch_sparc ) && defined( os_solaris ))
+#if (defined( arch_alpha ) && defined( os_osf )) 
 	printf("Skipping test #3 (getCallStack through instrumentation)\n");
 	printf("    unwinding through base & minitramps not implemented on this platform\n");
 	passedTest[3] = true;

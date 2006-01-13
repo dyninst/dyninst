@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.190 2006/01/11 16:23:49 chadd Exp $
+// $Id: solaris.C,v 1.191 2006/01/13 08:21:32 jodom Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -69,6 +69,7 @@
 
 #include "instPoint.h"
 #include "baseTramp.h"
+#include "miniTramp.h"
 
 #include <procfs.h>
 #include <stropts.h>
@@ -902,7 +903,6 @@ Frame Frame::getCallerFrame()
     codeRange *range = getRange();
     int_function *func = range->is_function();
     if (func) {
-      if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
 	struct dyn_saved_regs regs;
 	bool status;
 	if (lwp_)
@@ -911,10 +911,15 @@ Frame Frame::getCallerFrame()
 	  status = getProc()->getRepresentativeLWP()->getRegisters(&regs);
 
 	assert(status == true);
+      if (func->hasNoStackFrame()) { // formerly "isLeafFunc()"
 	newPC = regs.theIntRegs[R_O7] + 8;
 	newFP = fp_; // frame pointer unchanged
-	return Frame(newPC, newFP, newSP, 0, this);
+      } else {
+	newPC = regs.theIntRegs[R_O7] + 8;
+        if (!getProc()->readDataSpace((caddr_t)(fp_ + 56), sizeof(int), (caddr_t)&newFP, true))
+           return Frame();
       }
+	return Frame(newPC, newFP, newSP, 0, this);
     }
   }
   //
@@ -971,9 +976,22 @@ Frame Frame::getCallerFrame()
       }
       Frame ret = Frame(newPC, newFP, 0, 0, this);
 
+      codeRange *range = getRange();
+      // Find our way out of the minitramp, and up to the calling function
+      if (range->is_minitramp()) {
+         instPoint *p = getPoint();
+         if (p->getPointType() != functionEntry &&
+             !p->func()->hasNoStackFrame()) {
+            if (!getProc()->readDataSpace((caddr_t)(newFP + 60), sizeof(int), (caddr_t)&newPC, true))
+               return Frame();
+            if (!getProc()->readDataSpace((caddr_t)(newFP + 56), sizeof(int), (caddr_t)&newFP, true))
+               return Frame();
+            ret = Frame(newPC, newFP, 0, 0, this);
+         }
+      }
+
       // If we're in a base tramp, skip this frame (return getCallerFrame)
       // as we only return minitramps
-      codeRange *range = getRange();
       if (range->is_multitramp()) {
           // If we're inside instrumentation only....
           multiTramp *multi = range->is_multitramp();
