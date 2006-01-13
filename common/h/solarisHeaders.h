@@ -270,6 +270,10 @@ inline char * nativeDemanglerBrokenness( int (*P_native_demangle)(const char *, 
 
 		switch( result ) {
 			case 0:
+                                if (!strcmp(demangled,symbol)) {
+                                   free(demangled);
+                                   demangled = NULL;
+                                }
 				return demangled;
 			case DEMANGLE_ENAME:
 				return NULL;
