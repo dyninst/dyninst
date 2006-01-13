@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.566 2006/01/13 00:00:47 jodom Exp $
+// $Id: process.C,v 1.567 2006/01/13 14:37:48 chadd Exp $
 
 #include <ctype.h>
 
@@ -921,7 +921,23 @@ void process::saveWorldCreateHighMemSections(
 #endif
 	delete []data;
 
+		
+#if  defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) \
+ || defined(sparc_sun_solaris2_4)
 
+#if defined(sparc_sun_solaris2_4)
+	if( imageUpdates.size() == 0 ){
+#endif
+	//fprintf(stderr,"LOADING trampgu 0x%x\n",guardFlagAddr);
+	data = new char[sizeof(unsigned int) * max_number_of_threads];
+	memset(data,1,sizeof(unsigned int) * max_number_of_threads);		
+	newFile->addSection(guardFlagAddr,data,sizeof(unsigned int) * max_number_of_threads,"dyninstAPI_1",true);
+	delete []data;
+#if defined(sparc_sun_solaris2_4)
+	}
+#endif
+#endif
 
    for(unsigned int j=0; j<compactedHighmemUpdates.size(); j++) {
       //the layout of dyninstAPIhighmem_%08x is:

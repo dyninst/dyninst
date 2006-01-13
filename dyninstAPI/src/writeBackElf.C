@@ -40,7 +40,7 @@
  */
 
 /* -*- Mode: C; indent-tabs-mode: true -*- */
-/* $Id: writeBackElf.C,v 1.28 2005/11/21 17:16:14 jaw Exp $ */
+/* $Id: writeBackElf.C,v 1.29 2006/01/13 14:37:48 chadd Exp $ */
 
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
@@ -112,6 +112,7 @@ writeBackElf::writeBackElf(const char *oldElfName, const char* newElfName,
 	mutateeTextAddr = 0;
 	elf_fill(0);
 	newHeapAddr = 0;
+	newHeapAddrIncr = 0;
 	parseOldElf();
 }
 
@@ -193,10 +194,12 @@ void writeBackElf::updateSymbols(Elf_Data* symtabData,Elf_Data* strData){
 		for(unsigned int i=0;i< symtabData->d_size/(sizeof(Elf32_Sym));i++,symPtr++){
 						
 			if( newHeapAddr && !(strcmp("_end", (char*) strData->d_buf + symPtr->st_name))){
+				newHeapAddrIncr = newHeapAddr - symPtr->st_value ;
 				symPtr->st_value = newHeapAddr;
 			}
 
 			if( newHeapAddr &&  !(strcmp("_END_", (char*) strData->d_buf + symPtr->st_name))){
+				newHeapAddrIncr = newHeapAddr - symPtr->st_value ;
 				symPtr->st_value = newHeapAddr; 
 			}
 			
@@ -498,12 +501,25 @@ void writeBackElf::addSectionNames(Elf_Data *newdata, Elf_Data*olddata){
 }
 
 
-void writeBackElf::fixPhdrs(Elf32_Phdr * /*phdr*/){ 
+void writeBackElf::fixPhdrs(Elf32_Phdr * phdr){ 
 
 	elf_update(newElf, ELF_C_NULL);
 	unsigned int i=0;
 	if(oldLastPage == newSections[0].vaddr/pageSize){
 		i=1;
+	}
+
+	/* find the second loadable section and extend it */
+	while(phdr->p_type != PT_NULL && phdr->p_type != PT_LOAD ){
+		phdr++;
+	}	
+	phdr++;
+
+	while(phdr->p_type != PT_NULL && phdr->p_type != PT_LOAD ){
+		phdr++;
+	}	
+	if( phdr->p_type == PT_LOAD ){
+		phdr->p_memsz += newHeapAddrIncr;
 	}
 
 #if  0  

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary_ELF.c,v 1.21 2006/01/13 00:00:48 jodom Exp $ */
+/* $Id: RTmutatedBinary_ELF.c,v 1.22 2006/01/13 14:37:48 chadd Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -536,7 +536,7 @@ int checkMutatedFile(){
      char * error_msg = NULL;
      void * elfHandle = NULL;
 
-
+	//fprintf(stderr,"SBRK 0x%x\n",sbrk(1));;
 
 //     elfHandle = dlopen("/usr/lib/libelf.so.1", RTLD_NOW);
 
@@ -602,65 +602,17 @@ int checkMutatedFile(){
 			dataAddress = shdr->sh_addr;
 			elfData = Elf_getdata(scn, NULL);
 			tmpPtr = elfData->d_buf;
-			/*fprintf(stderr,"tramp guard addr %x %d\n", dataAddress,*(int*)tmpPtr);*/
+			//fprintf(stderr,"tramp guard addr %x \n", dataAddress);
 
 
-#if defined(sparc_sun_solaris2_4)
-			findMap();
-			checkAddr = checkMap((unsigned long)shdr->sh_addr);
-#else
-			checkAddr = dladdr((void*)shdr->sh_addr, &dlip);
-#endif
-			if( !checkAddr ){
-				/* we do not own it. mmap it */
-			
-				/* this is the usual case on Linux */	
-
-                   	mmapAddr = shdr->sh_addr;
-				mmapAddr = mmapAddr % pageSize;
-				mmapAddr = shdr->sh_addr - mmapAddr;
-
-#if defined(sparc_sun_solaris2_4)
-				checkAddr = checkMap((unsigned long)mmapAddr);
-#else
-				checkAddr = dladdr((void*) mmapAddr, &dlip);
-#endif
-
-                   	mmapAddr =(unsigned long) mmap((void*)mmapAddr ,((*(int*)tmpPtr)+1)*sizeof(unsigned),
-                             	PROT_READ|PROT_WRITE,MAP_FIXED|MAP_PRIVATE,fd,0);
-
-				if( mmapAddr == ( shdr->sh_addr - (shdr->sh_addr % pageSize  ) )){ 
-					/* set tramp guard to 1 */
-					for(i=0;i<*(int*)tmpPtr;i++){
-						((unsigned*) dataAddress)[i]=1;
-					}
-				}
-
-			}else{
-				/* 	we already own it. 
-					this probably means something else is using this memory.
-					
-					bail out
-				*/
-
+			/* 	we already own it. 
 	
-#if defined(sparc_sun_solaris2_4)
+				because we have moved the start of the heap beyond this address
+			*/
 
-				/* this is the usual case on Solaris */
-				
-				/* set tramp guard to 1 */
-				for(i=0;i<*(int*)tmpPtr;i++){
-					((unsigned*) dataAddress)[i]=1;
-				}
-
-#else
-				fprintf(stderr,"ERROR: Could not reload DYNINST_tramp_guards\n\n");
-				fprintf(stderr,"terminating .... \n");
-				exit(1);
-
-#endif 
-				
-			
+			/* set tramp guard to 1 */
+			for(i=0;i<*(int*)tmpPtr;i++){
+				((unsigned*) dataAddress)[i]=1;
 			}
 
 		}else if(!strncmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_data", 15)) {
@@ -871,7 +823,7 @@ int checkMutatedFile(){
 			map = _r_debug.r_map;
 
 			while(map && !done){
-				if( * map->l_name ){
+				if( map->l_name && * map->l_name ){
 					unsigned int loadaddr = map->l_addr;
 
 					/* 	LINUX PROBLEM. in the link_map structure the map->l_addr field is NOT
@@ -1092,7 +1044,8 @@ int checkMutatedFile(){
 
 
 			oldPageData = (char*) malloc(oldPageDataSize+sizeof(unsigned long));
-			/*fprintf(stderr,"oldpagedatasize %d datasize %d\n",oldPageDataSize,elfData->d_size);*/
+			/*fprintf(stderr,"oldpagedatasize %d datasize %d \n",oldPageDataSize,elfData->d_size);
+			perror("malloc");*/
 			/*copy old page data */
 
 
