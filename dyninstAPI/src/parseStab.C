@@ -2033,9 +2033,14 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 		    if (stabstr[cnt] == 'T') {
 		      /* Fortran stack-based array bounds */
 		      size = 0;
-		      cnt++; // skip ';'
+		      cnt++; // skip 'T'
 		      (void) parseSymDesc(stabstr, cnt);
-		    } else
+		    } else if (stabstr[cnt] == 'J') {
+                      /* Unbounded range */
+                      size = 0;
+                      cnt++; // skip 'J';
+		      (void) parseSymDesc(stabstr, cnt);
+                    } else
 		      size = parseSymDesc(stabstr, cnt);
 
 		    ptrType = mod->getModuleTypes()->findOrCreateType(baseType);

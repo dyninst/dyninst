@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.208 2005/11/21 17:16:12 jaw Exp $
+// $Id: aix.C,v 1.209 2006/01/13 22:10:27 jodom Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1010,7 +1010,7 @@ extern void dedemangle( const char * demangled, char * dedemangled );
 char * P_cplus_demangle( const char * symbol, bool nativeCompiler, bool includeTypes ) {
 	/* If the symbol isn't from the native compiler, or the native demangler
 	   isn't available, use the built-in. */
-	bool nativeDemanglerAvailable =	P_cplus_demangle != NULL &&
+	bool nativeDemanglerAvailable =	P_native_demangle != NULL &&
 									P_text != NULL &&
 									P_varName != NULL &&
 									P_functionName != NULL;
@@ -1047,6 +1047,9 @@ char * P_cplus_demangle( const char * symbol, bool nativeCompiler, bool includeT
 		char * demangled = NULL;
 		switch( P_kind( name ) ) {
 			case Function:
+                           if (includeTypes)
+                                demangled = (P_text)( name );
+                           else
 				demangled = (P_functionName)( name );			
 				break;
 			
