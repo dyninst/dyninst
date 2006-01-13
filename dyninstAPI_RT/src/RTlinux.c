@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.35 2005/10/17 15:49:27 legendre Exp $
+ * $Id: RTlinux.c,v 1.36 2006/01/13 00:00:48 jodom Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -147,8 +147,6 @@ typedef struct dlopen_args {
 
 void *(*DYNINST_do_dlopen)(dlopen_args_t *) = NULL;
 
-char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
-
 static int get_dlopen_error() {
    char *err_str;
    err_str = dlerror();
@@ -167,6 +165,7 @@ int DYNINSTloadLibrary(char *libname)
 {
    void *res;
    gLoadLibraryErrorString[0]='\0';
+   gBRKptr = sbrk(0);
    res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL);
    if (res)
    {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary_ELF.c,v 1.20 2006/01/11 15:41:31 chadd Exp $ */
+/* $Id: RTmutatedBinary_ELF.c,v 1.21 2006/01/13 00:00:48 jodom Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -1194,7 +1194,8 @@ int checkMutatedFile(){
 					exit(9);
 
 				}
-				tmpPtr += (strlen(tmpPtr) +1);	
+                                /* brk ptr not used for ELF */
+				tmpPtr += (strlen(tmpPtr) +1 + sizeof(void *));	
 
 			}
 

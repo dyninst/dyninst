@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary.c,v 1.8 2005/04/05 16:45:22 jodom Exp $ */
+/* $Id: RTmutatedBinary.c,v 1.9 2006/01/13 00:00:48 jodom Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -75,7 +75,9 @@ void RTmutatedBinary_init(){
     if (!init) {
         buffer = (char*) malloc(getpagesize());
         isMutatedExec =checkMutatedFile();
-        free(buffer);
+        /* Can't free this buffer, because we need the same memory footprint
+           for when we load in shared libraries */
+        /*        free(buffer); */
         init++;
     }
     

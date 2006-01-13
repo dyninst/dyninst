@@ -48,6 +48,7 @@
 #include <dlfcn.h> /* dlopen constants */
 #include <stdio.h>
 #include <pthread.h>
+#include <unistd.h>
 
 /************************************************************************
  * void DYNINSTos_init(void)
@@ -70,13 +71,14 @@ void DYNINSTos_init(int calledByFork, int calledByAttach)
 
 #define NOT_SETUP_ERR 0x2468ace0
 
-char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
 int DYNINSTloadLibrary(char *libname)
 {
    void *res;
    char *err_str;
    gLoadLibraryErrorString[0]='\0';
    
+   gBRKptr = sbrk(0);
+
    if (NULL == (res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL))) {
       /* An error has occurred */
       perror( "DYNINSTloadLibrary -- dlopen" );

@@ -2,7 +2,7 @@
 # Common makefile template for rtinst library.  This file is not
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
-# $Id: make.module.tmpl,v 1.19 2005/09/28 17:02:29 bernat Exp $
+# $Id: make.module.tmpl,v 1.20 2006/01/13 00:00:48 jodom Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -21,6 +21,10 @@ SRCS         += ../src/RTcommon.c
 
 ifdef USES_SHM_SAMPLING
 CFLAGS	+= -DSHM_SAMPLING
+endif
+
+ifdef LIBELF_INC
+CFLAGS  += -I$(LIBELF_INC)
 endif
 
 all: $(TARGET)

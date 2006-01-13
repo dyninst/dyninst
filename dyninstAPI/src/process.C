@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.565 2006/01/11 15:41:30 chadd Exp $
+// $Id: process.C,v 1.566 2006/01/13 00:00:47 jodom Exp $
 
 #include <ctype.h>
 
@@ -881,7 +881,7 @@ void process::saveWorldCreateHighMemSections(
    unsigned int startPage, stopPage;
    unsigned int numberUpdates=1;
    int startIndex, stopIndex;
-   void *data;
+   char *data;
    char name[50];
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
@@ -1082,7 +1082,7 @@ void process::saveWorldAddSharedLibs(void *ptr){ // ccw 14 may 2002
 #endif
 
 	for(unsigned i=0;i<loadLibraryUpdates.size();i++){
-		dataSize += loadLibraryUpdates[i].length() + 1;
+		dataSize += loadLibraryUpdates[i].length() + 1 + sizeof(void *);
 	}
 	dataSize++;
 	data = new char[dataSize];
@@ -1095,7 +1095,10 @@ void process::saveWorldAddSharedLibs(void *ptr){ // ccw 14 may 2002
 		/*bperr("SAVING: %s %d\n", dataptr,dataSize);*/
 		dataptr += loadLibraryUpdates[j].length();
 		*dataptr = '\0';
-		dataptr++; 
+		dataptr++;
+                void *tmp_brk = loadLibraryBRKs[j];
+                memcpy( dataptr, &tmp_brk, sizeof(void *));
+                dataptr += sizeof(void *);
 	}
 	*dataptr = '\0'; //mark the end
 	if(dataSize > 1){

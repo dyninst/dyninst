@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary_XCOFF.c,v 1.9 2005/04/05 16:45:22 jodom Exp $ */
+/* $Id: RTmutatedBinary_XCOFF.c,v 1.10 2006/01/13 00:00:48 jodom Exp $ */
 
 
 /* this file contains the code to restore the necessary
@@ -189,11 +189,22 @@ int checkMutatedFile(){
 			/* use dlopen to load a list of shared libraries */
 
 			int len;
+                        void *old_brk, *new_brk;
 
 			data = (char*) XCOFFfile + currScnhdr->s_scnptr;
+                        memcpy( &new_brk, data + strlen(data) + 1, sizeof(void *));
 			while(*data != '\0'){
+                           if ((old_brk = sbrk(0)) > new_brk) {
+                              printf("current BRK 0x%p > desired BRK 0x%p for %s!\n",
+                                     old_brk,
+                                     new_brk,
+                                     data);
+                              fflush(stdout);
+                           } else {
+                              brk(new_brk);
+                           }
 				DYNINSTloadLibrary(data);
-				data += (strlen(data) +1);
+				data += (strlen(data) +1 + sizeof(void *));
 			}
 		}else if(!strcmp( currScnhdr->s_name, "dyn_dat")){
 			/* reload data */
@@ -376,6 +387,7 @@ int checkMutatedFile(){
 				memcpy((void*)currScnhdr->s_vaddr, oldPageData,oldPageDataSize );
 				}
 			}
+                        free(oldPageData);
 		}
 	}
 

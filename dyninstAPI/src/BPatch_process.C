@@ -1435,10 +1435,15 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
       BPatch_reportError(BPatchSerious, 124, dlerror_str);
       return false;
    }
+   BPatch_variableExpr *brk_ptr_var = 
+      image->findVariable("gBRKptr");
+   assert(NULL != brk_ptr_var);
+   void *brk_ptr;
+   brk_ptr_var->readValue(&brk_ptr, sizeof(void *));
 
 #if defined(cap_save_the_world) && defined(BPATCH_LIBRARY)
 	if(llproc->collectSaveWorldData && reload){
-		llproc->saveWorldloadLibrary(libname);	
+		llproc->saveWorldloadLibrary(libname, brk_ptr);	
 	}
 #endif
    return true;

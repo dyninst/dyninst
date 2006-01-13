@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.27 2005/10/17 15:49:23 legendre Exp $
+ * $Id: dyninstAPI_RT.h,v 1.28 2006/01/13 00:00:48 jodom Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -69,6 +69,9 @@
 typedef unsigned char RT_Boolean;
 static const RT_Boolean RT_TRUE=1;
 static const RT_Boolean RT_FALSE=0;
+
+extern char gLoadLibraryErrorString[];
+extern void *gBRKptr;
 
 struct DYNINST_bootstrapStruct {
    int event; /* "event" values:

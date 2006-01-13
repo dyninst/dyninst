@@ -50,6 +50,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <dlfcn.h>                    /* dlopen() */
+#include <unistd.h>
 #include "dyninstAPI_RT/src/RTthread.h"
 /* The alpha does not have a divide instruction */
 /* Division is emulated in software */
@@ -58,12 +59,12 @@ int divide(int a,int b)
   return (a/b);
 }
 
-char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
 int DYNINSTloadLibrary(char *libname)
 {
   void *res;
   char *err_str;
   gLoadLibraryErrorString[0]='\0';
+  gBRKptr = sbrk(0);
   
   if (NULL == (res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL))) {
     // An error has occurred

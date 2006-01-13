@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTsolaris.c,v 1.22 2005/10/17 19:24:26 bernat Exp $
+ * $Id: RTsolaris.c,v 1.23 2006/01/13 00:00:48 jodom Exp $
  * RTsolaris.c: mutatee-side library function specific to Solaris
  ************************************************************************/
 
@@ -81,12 +81,12 @@ DYNINSTos_init(int calledByFork, int calledByAttach)
     /* setmemwrite(); */
 }
 
-char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
 int DYNINSTloadLibrary(char *libname)
 {
   void *res;
   char *err_str;
   gLoadLibraryErrorString[0]='\0';
+  gBRKptr = sbrk(0);
   
   if (NULL == (res = dlopen(libname, RTLD_NOW | RTLD_GLOBAL))) {
     /* An error has occurred */
