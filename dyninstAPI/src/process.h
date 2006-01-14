@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.344 2006/01/13 00:00:47 jodom Exp $
+/* $Id: process.h,v 1.345 2006/01/14 23:47:57 nater Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -706,6 +706,7 @@ char * systemPrelinkCommand;
   // Note: fix the name....
   codeRange *findCodeRangeByAddress(Address addr);
   int_function *findFuncByAddr(Address addr);
+  int_basicBlock *findBasicBlockByAddr(Address addr);
   
   instPoint *findInstPByAddr(Address addr);
   // Should be called once per address an instPoint points to

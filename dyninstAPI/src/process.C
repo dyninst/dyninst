@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.567 2006/01/13 14:37:48 chadd Exp $
+// $Id: process.C,v 1.568 2006/01/14 23:47:56 nater Exp $
 
 #include <ctype.h>
 
@@ -917,7 +917,7 @@ void process::saveWorldCreateHighMemSections(
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
       newFile->addSection(guardFlagAddr,data,sizeof(max_number_of_threads),name,false);
 #elif defined(rs6000_ibm_aix4_1)
-	newFile->addSection(name,guardFlagAddr,guardFlagAddr,sizeof(max_number_of_threads),data);
+	newFile->addSection(name,guardFlagAddr,guardFlagAddr,sizeof(max_number_of_threads),(char*)data);
 #endif
 	delete []data;
 
@@ -3476,6 +3476,7 @@ bool process::findVarsByAll(const pdstring &varname,
             }
         }
     }
+
     return res.size() != starting_entries;
 }
 
@@ -4713,6 +4714,31 @@ int_function *process::findFuncByAddr(Address addr) {
     else {
         return NULL;
     }
+}
+
+int_basicBlock *process::findBasicBlockByAddr(Address addr) {
+    codeRange *range = findCodeRangeByAddress(addr);
+    if (!range) return NULL;
+
+    int_basicBlock *b = range->is_basicBlock();
+    int_function *f = range->is_function();
+    multiTramp *mt = range->is_multitramp();
+    miniTrampInstance *mti = range->is_minitramp();
+
+    if(b) {
+        return b;
+    }
+    else if(f) {
+        return f->findBlockByAddr(addr);
+    }
+    else if(mt) {
+        return mt->func()->findBlockByAddr(addr);
+    }
+    else if(mti) {
+        return mti->baseTI->multiT->func()->findBlockByAddr(addr);
+    }
+    else
+        return NULL;
 }
 
 bool process::addCodeRange(codeRange *codeobj) {
