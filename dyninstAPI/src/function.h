@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.21 2005/12/06 20:01:17 bernat Exp $
+// $Id: function.h,v 1.22 2006/01/14 23:47:44 nater Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -188,12 +188,20 @@ class bblInstance : public codeRange {
 class int_basicBlock {
     friend class int_function;
  public:
-    int_basicBlock(const image_basicBlock *ib, Address baseAddr, int_function *func);
-    int_basicBlock(const int_basicBlock *parent, int_function *func);
+    int_basicBlock(const image_basicBlock *ib, Address baseAddr, int_function *func, int id);
+    int_basicBlock(const int_basicBlock *parent, int_function *func, int id);
     ~int_basicBlock();
 
-    bool isEntryBlock() const { return ib_->isEntryBlock(); }
+        // just because a block is an entry block doesn't mean it is
+        // an entry block that this block's function cares about
+    bool isEntryBlock() const;
     bool isExitBlock() const { return ib_->isExitBlock(); }
+
+        // int_basicBlocks are not shared, but their underlying blocks
+        // may be
+    bool hasSharedBase() const { return ib_->isShared(); }
+
+    const image_basicBlock * llb() const { return ib_; }
     
     static int compare(int_basicBlock *&b1,
                        int_basicBlock *&b2) {
@@ -218,7 +226,12 @@ class int_basicBlock {
 
     int_basicBlock *getFallthrough() const;
 
-    int id() const { return ib_->id(); }
+    int id() const { return id_; }
+
+    // A block will need relocation (when instrumenting) if
+    // its underlying image_basicBlock is shared (this is independant
+    // of relocation requirements dependant on size available)
+    bool needsRelocation() const;
 
     int_function *func() const { return func_; }
     process *proc() const;
@@ -297,6 +310,8 @@ class int_basicBlock {
 
     int_function *func_;
     const image_basicBlock *ib_;
+
+    int id_;
 
     // A single "logical" basic block may correspond to multiple
     // physical areas of code. In particular, we may relocate the
@@ -422,11 +437,14 @@ class int_function {
    ////////////////////////////////////////////////
 
    bool canBeRelocated() const { return ifunc_->canBeRelocated(); }
+   bool needsRelocation() const { return ifunc_->needsRelocation(); }
    int version() const { return version_; }
 
    ////////////////////////////////////////////////
    // Misc
    ////////////////////////////////////////////////
+
+   bool containsSharedBlocks() const { return ifunc_->containsSharedBlocks(); }
 
    unsigned getNumDynamicCalls();
 
@@ -491,7 +509,9 @@ class int_function {
    // Deceptively simple... take a list of requested changes,
    // and make a copy of the function somewhere out in space.
    // Defaults to the first version of the function = 0
-   bool relocationGenerate(pdvector<funcMod *> &mods, int version = 0);
+   bool relocationGenerate(pdvector<funcMod *> &mods, 
+                           int version,
+                           pdvector<int_function *> &needReloc);
    // The above gives us a set of basic blocks that have little
    // code segments. Install them in the address space....
    bool relocationInstall();
@@ -522,6 +542,11 @@ class int_function {
 
    ///////////////////// CFG and function body
    pdvector< int_basicBlock* > blockList;
+
+   // Added to support translation between function-specific int_basicBlocks
+   // and potentially shared image_basicBlocks
+   dictionary_hash<int, int> blockIDmap;
+
    //BPatch_flowGraph *flowGraph;
 
    ///////////////////// Instpoints 
@@ -539,11 +564,15 @@ class int_function {
 
    // We want to keep around expansions for instrumentation
    pdvector<funcMod *> enlargeMods_;
+
+   // The actual relocation workhorse (the public method is just a facade)
+   bool relocationGenerateInt(pdvector<funcMod *> &mods, 
+                              int version,
+                              pdvector<int_function *> &needReloc);
 #endif
 
    // Used to sync with instPoints
    int version_;
-
 
    codeRangeTree blocksByAddr_;
    void addBBLInstance(bblInstance *instance);
@@ -567,7 +596,7 @@ class functionReplacement : public codeRange {
 
     unsigned maxSizeRequired();
 
-    bool generateFuncRep();
+    bool generateFuncRep(pdvector<int_function *> &needReloc);
     bool installFuncRep();
     bool checkFuncRep(pdvector<Address> &checkPCs);
     bool linkFuncRep(pdvector<codeRange *> &overwrittenObjs);

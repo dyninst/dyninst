@@ -72,6 +72,7 @@ int_function::int_function(image_func *f,
 #endif
     ifunc_(f),
     mod_(mod),
+    blockIDmap(intHash),
 #if defined(cap_relocation)
     generatedVersion_(0),
     installedVersion_(0),
@@ -115,6 +116,18 @@ int_function::int_function(image_func *f,
 		}        
 #endif
 
+    // Allow the image_function to store an up-reference to us
+    pdvector< int_function * > *funcs;
+    if((funcs = (pdvector< int_function * >*)ifunc_->getHighLevelFuncs()))
+    {
+        funcs->push_back(this);
+    }
+    else
+    {
+        funcs = new pdvector< int_function * >;
+        funcs->push_back(this);
+        ifunc_->setHighLevelFuncs(funcs);
+    }
 }
 
 
@@ -128,6 +141,7 @@ int_function::int_function(const int_function *parFunc,
     addr_(parFunc->addr_),
     ifunc_(parFunc->ifunc_),
     mod_(childMod),
+    blockIDmap(intHash),
 #if defined(cap_relocation)
     generatedVersion_(parFunc->generatedVersion_),
     installedVersion_(parFunc->installedVersion_),
@@ -139,9 +153,13 @@ int_function::int_function(const int_function *parFunc,
 
      // Construct the raw blocklist;
      for (i = 0; i < parFunc->blockList.size(); i++) {
-         int_basicBlock *block = new int_basicBlock(parFunc->blockList[i], this);
+         int_basicBlock *block = new int_basicBlock(parFunc->blockList[i], this,i);
          blockList.push_back(block);
+        //FIXME remove this after debuggin:
+         assert(parFunc->blockList[i]->id() == i);
      }
+     // got the same blocks in the same order as the parent, so this is safe:
+     blockIDmap = parFunc->blockIDmap;
      
      for (i = 0; i < parFunc->entryPoints_.size(); i++) {
          instPoint *parP = parFunc->entryPoints_[i];
@@ -193,6 +211,19 @@ int_function::int_function(const int_function *parFunc,
 		framePointerCalculator = assignAst( parFunc->framePointerCalculator );
 		}
 #endif
+
+    // Allow the image_function to store an up-reference to us
+    pdvector< int_function * > *f;
+    if((f = (pdvector< int_function * >*)ifunc_->getHighLevelFuncs()))
+    {
+        f->push_back(this);
+    }
+    else
+    {
+        f = new pdvector< int_function * >;
+        f->push_back(this);
+        ifunc_->setHighLevelFuncs(f);
+    }
 
      // TODO: relocated functions
 }
@@ -362,7 +393,8 @@ const pdvector<int_basicBlock *> &int_function::blocks() {
         for (unsigned i = 0; i < img_blocks.size(); i++) {
             blockList.push_back(new int_basicBlock(img_blocks[i],
                                                    base,
-                                                   this));
+                                                   this,i));
+            blockIDmap[img_blocks[i]->id()] = i;
         }
     }
     // And a quick consistency check...
@@ -373,21 +405,34 @@ process *int_basicBlock::proc() const {
     return func()->proc();
 }
 
+// TODO: Are we sure we want to ignore call edges at this level? Pretty sure...
 void int_basicBlock::getSources(pdvector<int_basicBlock *> &ins) const {
-    pdvector<image_basicBlock *> ib_ins;
+    pdvector<image_edge *> ib_ins;
     ib_->getSources(ib_ins);
     for (unsigned i = 0; i < ib_ins.size(); i++) {
-        unsigned id = ib_ins[i]->id();
-        ins.push_back(func()->blockList[id]);
+        if(ib_ins[i]->getType() != ET_CALL)
+        {
+            // Note the mapping between int_basicBlock::id() and
+            // image_basicBlock::id()
+            unsigned img_id = ib_ins[i]->getSource()->id();
+            unsigned int_id = func()->blockIDmap[img_id];
+            ins.push_back(func()->blockList[int_id]);
+        }
     }
 }
 
 void int_basicBlock::getTargets(pdvector<int_basicBlock *> &outs) const {
-    pdvector<image_basicBlock *> ib_outs;
+    pdvector<image_edge *> ib_outs;
     ib_->getTargets(ib_outs);
     for (unsigned i = 0; i < ib_outs.size(); i++) {
-        unsigned id = ib_outs[i]->id();
-        outs.push_back(func()->blockList[id]);
+        if(ib_outs[i]->getType() != ET_CALL)
+        {
+            // Note the mapping between int_basicBlock::id() and
+            // image_basicBlock::id()
+            unsigned img_id = ib_outs[i]->getTarget()->id();
+            unsigned int_id = func()->blockIDmap[img_id];
+            outs.push_back(func()->blockList[int_id]);
+        }
     }
 }
 
@@ -400,6 +445,19 @@ int_basicBlock *int_basicBlock::getFallthrough() const {
             return outs[i];
     }
     return NULL;
+}
+
+bool int_basicBlock::needsRelocation() const {
+    if(ib_->isShared())
+        return true;
+    //else if(isEntryBlock() && func()->containsSharedBlocks())
+    //    return true;
+    else
+        return false;
+}
+
+bool int_basicBlock::isEntryBlock() const { 
+    return ib_->isEntryBlock(func_->ifunc());
 }
 
 unsigned int_function::getNumDynamicCalls()
@@ -538,7 +596,7 @@ void int_basicBlock::setDataFlowKill(int_basicBlock *kill) {
 
 int int_basicBlock_count = 0;
 
-int_basicBlock::int_basicBlock(const image_basicBlock *ib, Address baseAddr, int_function *func) :
+int_basicBlock::int_basicBlock(const image_basicBlock *ib, Address baseAddr, int_function *func, int id) :
 #if defined(arch_ia64)
     dataFlowIn(NULL),
     dataFlowOut(NULL),
@@ -556,7 +614,8 @@ int_basicBlock::int_basicBlock(const image_basicBlock *ib, Address baseAddr, int
     outFP(NULL),
 #endif
     func_(func),
-    ib_(ib)
+    ib_(ib),
+    id_(id)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     int_basicBlock_count++;
@@ -575,7 +634,7 @@ int_basicBlock::int_basicBlock(const image_basicBlock *ib, Address baseAddr, int
     func_->addBBLInstance(inst);
 }
 
-int_basicBlock::int_basicBlock(const int_basicBlock *parent, int_function *func) :
+int_basicBlock::int_basicBlock(const int_basicBlock *parent, int_function *func,int id) :
 #if defined(arch_ia64)
     dataFlowGen(NULL),
     dataFlowKill(NULL),
@@ -591,7 +650,9 @@ int_basicBlock::int_basicBlock(const int_basicBlock *parent, int_function *func)
     outFP(NULL),
 #endif
     func_(func),
-    ib_(parent->ib_) {
+    ib_(parent->ib_),
+    id_(id)
+{
     for (unsigned i = 0; i < parent->instances_.size(); i++) {
         bblInstance *bbl = new bblInstance(parent->instances_[i], this);
         instances_.push_back(bbl);
@@ -916,3 +977,4 @@ unsigned functionReplacement::sourceVersion() {
 unsigned functionReplacement::targetVersion() { 
    return targetVersion_; 
 }
+
