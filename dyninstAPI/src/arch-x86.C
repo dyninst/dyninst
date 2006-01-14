@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.45 2006/01/05 19:16:10 legendre Exp $
+// $Id: arch-x86.C,v 1.46 2006/01/14 23:47:41 nater Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -525,7 +525,7 @@ static ia32_entry oneByteMap[256] = {
   { "int1", t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE }, // undocumented
   { 0, t_prefixedSSE, 3, false, { Zz, Zz, Zz }, 0, 0 },
   { 0, t_prefixedSSE, 1, false, { Zz, Zz, Zz }, 0, 0 },
-  { "hlt",  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
+  { "hlt",  t_done, 0, false, { Zz, Zz, Zz }, PRVLGD, sNONE },
   { "cmc",  t_done, 0, false, { Zz, Zz, Zz }, 0, sNONE },
   { 0, t_grp, Grp3a, true, { Zz, Zz, Zz }, 0, sNONE },
   { 0, t_grp, Grp3b, true, { Zz, Zz, Zz }, 0, sNONE },

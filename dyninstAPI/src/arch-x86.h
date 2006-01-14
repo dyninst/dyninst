@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.38 2005/12/12 16:37:08 gquinn Exp $
+// $Id: arch-x86.h,v 1.39 2006/01/14 23:47:42 nater Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -97,6 +97,7 @@ typedef int dword_t;   /* a double word (32-bit) operand */
 #define IS_JUMP (1<<4)   /* jump instruction */
 #define IS_JCC  (1<<5)   /* conditional jump instruction */
 #define ILLEGAL (1<<6)   /* illegal instruction */
+#define PRVLGD  (1<<7)   /* privileged */
 
 /* addressing modes for calls and jumps */
 #define REL_B   (1<<10)  /* relative address, byte offset */
@@ -765,6 +766,7 @@ class instruction {
   bool isIndir() const { return type_ & INDIR; }
   bool isIllegal() const { return type_ & ILLEGAL; }
   bool isLeave() const { return *ptr_ == 0xC9; }  
+  bool isPrivileged() const { return (type_ & PRVLGD); }
   bool isMoveRegMemToRegMem() const 
     { const unsigned char* p = op_ptr_ ? op_ptr_ : ptr_;
       return *p == MOV_R8_TO_RM8   || *p == MOV_R16_TO_RM16 ||
