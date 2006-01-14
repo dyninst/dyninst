@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.15 2005/12/06 20:01:18 bernat Exp $
+// $Id: image-func.C,v 1.16 2006/01/14 23:47:46 nater Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -50,6 +50,57 @@
 pdstring image_func::emptyString("");
 
 int image_func_count = 0;
+
+// Creates a typed edge between two basic blocks.
+// Updates the source/target vectors of the basic blocks.
+void addEdge(image_basicBlock *source, image_basicBlock *target,
+            EdgeTypeEnum type)
+{
+    image_edge *e = new image_edge(source,target,type);
+
+    // since source and target blocks share edge objects, it is
+    // guaranteed that either both of these operations will
+    // succeed or both will fail. (failure is when an existing
+    // edge of the same type is found between the blocks; this
+    // shows up a lot in multi-way branches)
+    if(!(source->addTarget(e) && target->addSource(e)))
+    {
+        delete e;
+    }
+}
+
+void image_edge::breakEdge()
+{
+    source_->removeTarget(this);
+    target_->removeSource(this);
+}
+
+char * image_edge::getTypeString()
+{
+    switch(type_) {
+        case ET_CALL:
+            return "CALL";
+            break;
+        case ET_COND:
+            return "COND BRANCH";
+            break;
+        case ET_DIRECT:
+            return "UNCOND BRANCH";
+            break;
+        case ET_FALLTHROUGH:
+            return "FALLTHROUGH";
+            break;
+        case ET_CATCH:
+            return "CATCH";
+            break;
+        case ET_FUNLINK:
+            return "POST-CALL FALLTHROUGH";
+            break;
+        default:
+            return "ERROR UNKNOWN";
+            break;
+    }
+}
 
 // Verify that this is code
 // Find the call points
@@ -73,6 +124,8 @@ image_func::image_func(const pdstring &symbol,
   makesNoCalls_(false),
   savesFP_(false),
   call_points_have_been_checked(false),
+  containsSharedBlocks_(false),
+  retStatus_(RS_UNSET),
   isTrap(false),
   isInstrumentable_(true),
 #if defined(arch_ia64)
@@ -82,7 +135,8 @@ image_func::image_func(const pdstring &symbol,
   canBeRelocated_(true),
   needsRelocation_(false),
   originalCode(NULL),
-  o7_live(false)
+  o7_live(false),
+  highlevel_funcs(NULL)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     image_func_count++;
@@ -253,11 +307,20 @@ int image_basicBlock_count = 0;
 image_basicBlock::image_basicBlock(image_func *func, Address firstOffset) :
     firstInsnOffset_(firstOffset),
     lastInsnOffset_(0),
-    blockEndOffset_(0),
+    // this fake value is to ensure the object is always a valid code range.
+    blockEndOffset_(firstOffset+1),
     isEntryBlock_(false),
     isExitBlock_(false),
-    blockNumber_(-1),
-    func_(func) {
+    isShared_(false),
+    isStub_(false),
+    containsRet_(false),
+    containsCall_(false),
+    callIsOpaque_(false),
+    isSpeculative_(false)
+{ 
+    funcs_.push_back(func);
+    // basic block IDs are unique within images.
+    blockNumber_ = func->img()->getNextBlockID();
 #if defined(ROUGH_MEMORY_PROFILE)
     image_basicBlock_count++;
     if ((image_basicBlock_count % 10) == 0)
@@ -266,47 +329,151 @@ image_basicBlock::image_basicBlock(image_func *func, Address firstOffset) :
 #endif
 }
 
-
-void image_basicBlock::addSource(image_basicBlock *source) {
+bool image_basicBlock::addSource(image_edge *edge) {
     for (unsigned i = 0; i < sources_.size(); i++)
-        if (sources_[i] == source)
-            return;
-    sources_.push_back(source);
+        if (sources_[i]->source_ == edge->source_ &&
+            sources_[i]->target_ == edge->target_ &&
+            sources_[i]->type_ == edge->type_)
+            return false;
+
+    sources_.push_back(edge);
+    return true;
 }
 
-void image_basicBlock::addTarget(image_basicBlock *target) {
+bool image_basicBlock::addTarget(image_edge *edge) {
     for (unsigned i = 0; i < targets_.size(); i++)
-        if (targets_[i] == target)
-            return;
-    targets_.push_back(target);
+        if (targets_[i]->source_ == edge->source_ &&
+            targets_[i]->target_ == edge->target_ &&
+            targets_[i]->type_ == edge->type_)
+            return false;
+
+    targets_.push_back(edge);
+    return true;
 }
 
-void image_basicBlock::removeSource(image_basicBlock *source) {
+void image_basicBlock::removeSource(image_edge *edge) {
     for (unsigned i = 0; i < sources_.size(); i++)
-        if (sources_[i] == source) {
+        if (sources_[i] == edge) {
             sources_[i] = sources_.back();
             sources_.resize(sources_.size()-1);
             return;
         }
 }
 
-void image_basicBlock::removeTarget(image_basicBlock *target) {
+void image_basicBlock::removeTarget(image_edge *edge) {
     for (unsigned i = 0; i < targets_.size(); i++)
-        if (targets_[i] == target) {
+        if (targets_[i] == edge)
+        {
             targets_[i] = targets_.back();
             targets_.resize(targets_.size()-1);
             return;
         }
 }
 
-void image_basicBlock::getSources(pdvector<image_basicBlock *> &ins) const {
+void image_basicBlock::getSources(pdvector<image_edge *> &ins) const {
     for (unsigned i = 0; i < sources_.size(); i++)
         ins.push_back(sources_[i]);
 }
 // Need to be able to get a copy
-void image_basicBlock::getTargets(pdvector<image_basicBlock *> &outs) const {
+void image_basicBlock::getTargets(pdvector<image_edge *> &outs) const {
     for (unsigned i = 0; i < targets_.size(); i++)
         outs.push_back(targets_[i]);
+}
+
+// Split a basic block at loc by control transfer (call, branch) and return
+// a pointer to the new (succeeding) block. The new block should--in the
+// case that succ_func is a new function--be shared by both the old
+// block's original function(s) and succ_func.
+image_basicBlock * image_basicBlock::split(Address loc, image_func *succ_func)
+{
+    image_basicBlock * newBlk;
+
+    newBlk = new image_basicBlock(succ_func,loc);
+
+    split(newBlk);
+
+    return newBlk;
+}
+
+// Split this basic block at the start address of newBlk.
+// This method must never be called with a basic block
+// argument which contains more than one function object
+// in its funcs_ vector.
+void image_basicBlock::split(image_basicBlock * &newBlk)
+{
+    Address loc;
+    image_func * existing;
+
+    image_instPoint * tmpInstPt;
+    image_instPoint * cpyInstPt;
+
+    loc = newBlk->firstInsnOffset_;
+
+    // update new block's properties
+    newBlk->lastInsnOffset_ = lastInsnOffset_;
+    newBlk->blockEndOffset_ = blockEndOffset_;
+
+    for(unsigned int i=0;i<targets_.size();i++)
+    {
+        targets_[i]->source_ = newBlk;  // update source of edge
+        newBlk->addTarget(targets_[i]);
+    }
+    targets_.clear();
+    
+    addEdge(this,newBlk,ET_FALLTHROUGH);
+
+    newBlk->containsCall_ = containsCall_;
+    newBlk->containsRet_ = containsRet_;
+
+    // Note: if this block contains a call or return, then the block
+    // that is splitting it will take those instructions (since they
+    // must have ended the block currently). This has an effect if
+    // the new block's container function (it must only have one) does
+    // not contain this block; if so, the new block's container function will
+    // need a copy of the instPoints for calls and returns.
+    existing = newBlk->getFirstFunc();
+    if(existing && !containedIn(newBlk->getFirstFunc()))
+    {
+        if(containsCall_ && (tmpInstPt = getCallInstPoint()) != NULL)
+        {      
+            cpyInstPt = new image_instPoint(tmpInstPt->offset(),
+                                    tmpInstPt->insn(),
+                                    existing,
+                                    tmpInstPt->callTarget(),
+                                    tmpInstPt->isDynamicCall());
+            existing->addCallInstPoint(cpyInstPt);
+        }
+        if(containsRet_ && (tmpInstPt = getRetInstPoint()) != NULL)
+        {
+            cpyInstPt = new image_instPoint(tmpInstPt->offset(),
+                                    tmpInstPt->insn(),
+                                    existing,
+                                    tmpInstPt->getPointType());
+            existing->addExitInstPoint(cpyInstPt);
+        }
+    }
+
+        // newBlk has all the same functions
+    for(unsigned int i=0;i<funcs_.size();i++)
+    {
+        if(funcs_[i] != existing)
+            newBlk->addFunc(funcs_[i]);
+    }
+
+    // update this block
+   
+    InstrucIter ah( this );
+    while( *ah + ah.getInstruction().size() < newBlk->firstInsnOffset() )
+                ah++;
+    
+    lastInsnOffset_ = *ah;
+    blockEndOffset_ = loc;      // ah.getInstruction().size()
+
+        // this block can no longer have a CALL or a RET, since these
+        // by definition end the block FIXME revisit this assumption
+        // for delay slots!
+    containsCall_ = false;
+    containsRet_ = false;
 }
 
 int image_instPoint_count = 0;
@@ -355,34 +522,200 @@ image_instPoint::image_instPoint(Address offset,
         assert(!isDynamicCall_);
 }
 
+// Leaving some sensible const modifiers in place elsewhere, but
+// we actually *do* need to append to this vector from outside the
+// function object
+void image_func::addCallInstPoint(image_instPoint *p)
+{
+    calls.push_back(p);
+}
+
+void image_func::addExitInstPoint(image_instPoint *p) 
+{
+    funcReturns.push_back(p);
+}
+
+/* modified 20.oct.05 to test whether the new block will split an existing
+   block and, if so, to behave correctly. Also tests for attempts to
+   create a basic block at a location where one has already been created.
+   If one is found, that existing block is used instead. 
+
+   Blocks created by this method have their isStub_ property set to true.
+   --nater */
 bool image_func::addBasicBlock(Address newAddr,
-                               image_basicBlock *oldBlock,
-                               BPatch_Set<Address> &leaders,
-                               dictionary_hash<Address, image_basicBlock *> &leadersToBlock,
-                               pdvector<Address> &jmpTargets) {
+                   image_basicBlock *oldBlock,
+                   BPatch_Set<Address> &leaders,
+                   dictionary_hash<Address, image_basicBlock *> &leadersToBlock,
+                   EdgeTypeEnum edgeType,
+                   pdvector<Address> &worklist,
+                   BPatch_Set< image_basicBlock * > &parserVisited)
+{
+    image_basicBlock *newBlk;
+    codeRange *tmpRange;
+    bool speculative = false;
+
     // Doublecheck 
     if (!image_->isCode(newAddr))
+    {
+        parsing_printf("! prospective block at 0x%lx rejected by isCode()\n",
+            newAddr);
         return false;
-
-    // Add to jump targets = local parse points
-    jmpTargets.push_back(newAddr);
-
-    // Make a new basic block for this target
-    if (!leaders.contains(newAddr)) {
-        leadersToBlock[newAddr] = new image_basicBlock(this, newAddr);
-        leaders += newAddr;
-        blockList.push_back(leadersToBlock[newAddr]);
     }
-    // In any case, add source<->target mapping
+
+    // test for split of existing block
+    image_basicBlock *splitBlk = NULL;
+    if(image_->basicBlocksByRange.find(newAddr, tmpRange))
+    {
+        splitBlk = dynamic_cast<image_basicBlock *>(tmpRange);
+
+        parsing_printf(" - addBB: found split block at 0x%lx (newAddr: 0x%lx)\n",
+            splitBlk->firstInsnOffset_,newAddr);
+        if(splitBlk->firstInsnOffset_ == newAddr)
+        {
+            // not a split, but a re-use
+            newBlk = splitBlk;
+            // add worklist, but only if we haven't already
+            if(!leaders.contains(newAddr))
+            {
+                newBlk->addFunc(this);
+                worklist.push_back(newAddr);
+                parsing_printf("1 adding block %d (0x%lx) to worklist\n",newBlk->id(),newBlk->firstInsnOffset_);
+            }
+        }
+        else
+        {
+            // split
+            newBlk = splitBlk->split(newAddr,this);
+            // newBlk only goes on the worklist if the block that was split
+            // has not already been parsed in /this/ function
+            if(!leaders.contains(splitBlk->firstInsnOffset_))
+            {
+                worklist.push_back(newAddr);
+                parsing_printf("2 adding block %d (0x%lx) to worklist\n",newBlk->id(),newBlk->firstInsnOffset_);
+            }
+            else if(!leaders.contains(newBlk->firstInsnOffset_))
+            {
+                // This is a new (to this function) block that will not be
+                // parsed, and so much be added to the blocklist here.
+                parsing_printf("xxx adding block %d (0x%lx) to blocklist (in addBB\n",newBlk->id(),newBlk->firstInsnOffset_);
+                blockList.push_back(newBlk);
+                parserVisited.insert(newBlk);
+            }
+            else
+                assert(0);  //FIXME debug--remove
+
+            image_->basicBlocksByRange.insert(newBlk);
+
+        }
+    }
+    else
+    {
+        newBlk = new image_basicBlock(this,newAddr);
+        newBlk->isStub_ = true;
+        image_->basicBlocksByRange.insert(newBlk);
+        assert(image_->basicBlocksByRange.find(newAddr, tmpRange));
+        worklist.push_back(newAddr);
+                parsing_printf("3 adding block %d (0x%lx) to worklist\n",newBlk->id(),newBlk->firstInsnOffset_);
+    }
+
+    // Determine whether we are confident about this new block. A
+    // call-following basic block should be marked speculative under
+    // the following conditions:
+    //
+    // A) It is not reachable by any other non-spec control flow AND
+    // ( The preceeding block's call target has not been parsed OR
+    //   The preceeding block's call target has unknown return status )
+    //
+    // B) A non-call-following block is speculative if all of its
+    //    predecessors (including oldBlock) are speculative
+    if(edgeType == ET_FUNLINK)
+    {
+        // oldBlock may have zero or one targets, depending on whether
+        // the callTarget was indirect or direct.
+        if(oldBlock->targets_.size() > 0)
+        {
+            image_func *callTarget = 
+                            oldBlock->targets_[0]->getTarget()->funcs_[0];
+
+            if(callTarget->returnStatus() == RS_UNSET ||
+            callTarget->returnStatus() == RS_UNKNOWN)
+            {
+                speculative = true;
+            }
+        }
+        else
+        {
+            speculative = true;
+        }
+    }
+    else
+    {
+        speculative = oldBlock->isSpeculative_;
+    }
+    
+    // (What the above boils down to is that if this is a new block
+    //  without existing incomming edges, we want to base our speculative
+    //  decision on oldBlock, and otherwise we want it based on the
+    //  existing status of the block.)    
+    if(newBlk->sources_.size() == 0)
+        newBlk->isSpeculative_ = speculative;
+    else
+    {
+        if(newBlk->isSpeculative_ && !speculative)
+        {
+            // TODO initiate despeculation for this block
+            newBlk->isSpeculative_ = false;
+            //ConfirmBlocks(newBlk);
+        }
+        else
+            newBlk->isSpeculative_ = newBlk->isSpeculative_ && speculative;
+    }
+
+    // special case: a conditional branch in block A splits A
+    if(splitBlk == oldBlock)
+        addEdge(newBlk,newBlk,edgeType);
+    else
+        addEdge(oldBlock,newBlk,edgeType);
+
+    leadersToBlock[newAddr] = newBlk;
+    leaders += newAddr;
+
     assert(leadersToBlock[newAddr]);
-    leadersToBlock[newAddr]->addSource(oldBlock);
-    oldBlock->addTarget(leadersToBlock[newAddr]);
 
     return true;
 }
 
+
+#if 0 // TODO
+/* This method follows the speculative control flow path from a basic 
+ * block and marks all reachable blocks as non-speculatively-parsed. 
+ * This update pass will not cross boundaries presented by opaque
+ * call sites.
+ */
+void ConfirmBlocks(image_basicBlock *b)
+{
+    parsing_printf("Confirming blocks reachable from %d (0x%lx)\n",
+                   b->getBlockID(), b->getFirstInsnOffset());
+
+    // for all blocks reachable from this that are speculative:
+        // push on workset
+    
+    // while workset not empty
+        // pop block from workset
+        // mark not speculative
+        // for each reachable block not across an opaque call:
+            // push on workset
+}
+#endif
+
 void image_basicBlock::debugPrint() {
+    // no looping if we're not printing anything
+    if(!dyn_debug_parsing)
+        return;
+
     // 64-bit
+    /* Function offsets are not meaningful if blocks can be
+     * shared between functions.
     parsing_printf("Block %d: starts 0x%lx (%d), last 0x%lx (%d), end 0x%lx (%d)\n",
                    blockNumber_,
                    firstInsnOffset_,
@@ -391,6 +724,14 @@ void image_basicBlock::debugPrint() {
                    lastInsnOffset_ - func_->getOffset(),
                    blockEndOffset_,
                    blockEndOffset_ - func_->getOffset());
+    */
+
+    parsing_printf("Block %d: starts 0x%lx, last 0x%lx, end 0x%lx\n",
+                   blockNumber_,
+                   firstInsnOffset_,
+                   lastInsnOffset_,
+                   blockEndOffset_);
+
     parsing_printf("  Flags: entry %d, exit %d\n",
                    isEntryBlock_, isExitBlock_);
     if (isEntryBlock_ && sources_.size()) {
@@ -399,13 +740,15 @@ void image_basicBlock::debugPrint() {
     
     parsing_printf("  Sources:\n");
     for (unsigned s = 0; s < sources_.size(); s++) {
-        parsing_printf("    %d: block %d\n",
-                       s, sources_[s]->blockNumber_);
+        parsing_printf("    %d: block %d (%s)\n",
+                       s, sources_[s]->getSource()->blockNumber_,
+                       sources_[s]->getTypeString());
     }
     parsing_printf("  Targets:\n");
     for (unsigned t = 0; t < targets_.size(); t++) {
-        parsing_printf("    %d: block %d\n",
-                       t, targets_[t]->blockNumber_);
+        parsing_printf("    %d: block %d (%s)\n",
+                       t, targets_[t]->getTarget()->blockNumber_,
+                       targets_[t]->getTypeString());
     }
 }
 
@@ -413,8 +756,8 @@ void image_basicBlock::debugPrint() {
 // basic stuff.
 
 bool image_func::cleanBlockList() {
-    unsigned i;
-
+    //unsigned i;
+#if 0
     // For all entry, exit, call points...
     //points_[u].point->checkInstructions();
     // Should also make multipoint decisions
@@ -554,6 +897,8 @@ bool image_func::cleanBlockList() {
         }
 
     }
+#endif
+    VECTOR_SORT( blockList, image_basicBlock::compare );
 
     parsing_printf("CLEANED BLOCK LIST\n");
     for (unsigned foo = 0; foo < blockList.size(); foo++) {
@@ -581,6 +926,7 @@ bool image_func::cleanBlockList() {
 
         blockList[foo]->finalize();
     }
+
     funcEntries_.reserve_exact(funcEntries_.size());
     funcReturns.reserve_exact(funcReturns.size());
     calls.reserve_exact(calls.size());
@@ -595,6 +941,7 @@ void image_func::checkCallPoints() {
     for (unsigned c = 0; c < calls.size(); c++) {
         image_instPoint *p = calls[c];
         assert(p);
+
         parsing_printf("... 0x%lx...", p->offset());
         if (p->getCallee() != NULL) {
             parsing_printf(" already bound\n");
@@ -621,7 +968,8 @@ void image_func::checkCallPoints() {
     }
 }
 
-
+// No longer needed but kept around for reference
+#if 0
 #if defined(cap_stripped_binaries)
 
 //correct parsing errors that overestimate the function's size by
@@ -694,7 +1042,7 @@ void image_func::updateFunctionEnd(Address newEnd)
     int n = blockList.size() - 1;
     if( n >= 0 && blockList[n]->endOffset() >= newEnd )
         {
-            parsing_printf("Updating block end: new end of function 0x%x\n",
+            parsing_printf("Updating block end: new end of function 0x%lx\n",
                            newEnd);
             blockList[n]->debugPrint();
             
@@ -732,12 +1080,34 @@ void image_func::updateFunctionEnd(Address newEnd)
 }    
 
 #endif
+#endif
 
+void image_basicBlock::addFunc(image_func * func)
+{
+    //if(funcs_.contains(func))
+    //    return;
+
+    funcs_.push_back(func);
+
+    if(funcs_.size() > 0)
+        isShared_ = true;
+}
+
+bool image_basicBlock::containedIn(image_func * f)
+{
+    for(unsigned i=0;i<funcs_.size();i++)
+    {
+        if(funcs_[i] == f)
+            return true;
+    }
+    return false;
+}
 
 void *image_basicBlock::getPtrToInstruction(Address addr) const {
     if (addr < firstInsnOffset_) return NULL;
     if (addr >= blockEndOffset_) return NULL;
-    return func()->img()->getPtrToInstruction(addr);
+    // XXX all potential parent functions have the same image
+    return getFirstFunc()->img()->getPtrToInstruction(addr);
 }
 
 void *image_func::getPtrToInstruction(Address addr) const {
@@ -751,7 +1121,77 @@ void *image_func::getPtrToInstruction(Address addr) const {
     return NULL;
 }
 
+image_instPoint * image_basicBlock::getCallInstPoint()
+{
+    pdvector< image_instPoint * > calls;
+
+    if(!containsCall_ || funcs_.size() == 0)
+        return NULL;
+
+    // every function that this block belongs to should have exactly
+    // one call instPoint within this block's range. Select an arbitrary
+    // function.
+
+    calls = funcs_[0]->funcCalls();
+
+    for(unsigned int i=0;i<calls.size();i++)
+    {
+        if(calls[i]->offset_ >= firstInsnOffset_ &&
+           calls[i]->offset_ <= lastInsnOffset_)
+            return calls[i]; 
+    } 
+    return NULL;
+}
+
+image_instPoint * image_basicBlock::getRetInstPoint()
+{
+    pdvector< image_instPoint * > rets;
+
+    if(!containsRet_ || funcs_.size() == 0)
+        return NULL;
+
+    rets = funcs_[0]->funcExits();
+
+    for(unsigned int i=0;i<rets.size();i++)
+    {
+        if(rets[i]->offset_ >= firstInsnOffset_ &&
+           rets[i]->offset_ <= lastInsnOffset_)
+            return rets[i];
+    }
+    return NULL;
+}
+
 void image_basicBlock::finalize() {
     targets_.reserve_exact(targets_.size());
     sources_.reserve_exact(sources_.size());
+}
+
+void * image_func::getHighLevelFuncs() const {
+    return highlevel_funcs;
+}
+
+void image_func::setHighLevelFuncs(void * fs) {
+    highlevel_funcs = fs;
+}
+
+bool image_basicBlock::isEntryBlock(image_func * f) const
+{
+    if(!isEntryBlock_)
+        return false;
+
+    for(unsigned i=0;i<funcs_.size();i++)
+    {
+        if(funcs_[i] == f && f->entryBlock() == this)
+            return true;
+    }
+
+    return false;
+} 
+
+void image_basicBlock::getFuncs(pdvector<image_func *> &funcs) const
+{
+    for(unsigned i=0; i < funcs_.size(); i++)
+    {
+        funcs.push_back(funcs_[i]);
+    }
 }
