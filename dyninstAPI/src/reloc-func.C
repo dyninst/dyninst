@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.9 2005/12/12 16:37:09 gquinn Exp $
+// $Id: reloc-func.C,v 1.10 2006/01/14 23:47:55 nater Exp $
 
 // We'll also try to limit this to relocation-capable platforms
 // in the Makefile. Just in case, though....
@@ -69,13 +69,64 @@ class instruction;
 
 // TODO: which version do we relocate? ;)
 
+// 29.Nov.05 Okay, so things just got a little trickier. When relocating
+// a function, co-owner functions (those that share blocks with this function)
+// must also be relocated if we will overwrite any of the shared blocks.
 
-bool int_function::relocationGenerate(pdvector<funcMod *> &mods, 
-                                      int sourceVersion /* = 0 */) {
+bool int_function::relocationGenerate(pdvector<funcMod *> &mods,
+                                      int sourceVersion /* = 0 */,
+                                      pdvector< int_function *> &needReloc)
+{
+    bool ret;
+
+    // process this function (with mods)
+    ret = relocationGenerateInt(mods,sourceVersion,needReloc);
+
+    // process all functions in needReloc list -- functions that have
+    // been previously processed or actually relocated (installed and
+    // linked) must be skipped!
+
+    for(unsigned i = 0; i < needReloc.size(); i++)
+    {
+        // if the function has previously been relocated (any stage,
+        // not just installed and linked), skip.
+        if(needReloc[i]->generatedVersion_ > 0)
+        {
+            reloc_printf("Skipping dependant relocation of %s: function already relocated\n",
+                         needReloc[i]->prettyName().c_str());
+            needReloc[i] = needReloc.back();
+            needReloc.pop_back();
+            i--; // reprocess  
+        }
+        else
+        {
+            reloc_printf("Forcing dependant relocation of %s\n",
+                         needReloc[i]->prettyName().c_str());
+            // always version 0?
+            ret &= needReloc[i]->relocationGenerateInt(
+                                            needReloc[i]->enlargeMods(),
+                                            0,needReloc);
+        }
+    }
+
+    return ret;
+}
+
+bool int_function::relocationGenerateInt(pdvector<funcMod *> &mods, 
+                                      int sourceVersion,
+                                      pdvector<int_function *> &needReloc) {
     unsigned i;
-    
-    if (mods.size() == 0)
-        return true;
+
+    if(!canBeRelocated()) {
+        fprintf(stderr, "Skipping relocation of function %s: has non-reloc constructs\n",
+                symTabName().c_str());
+        return false;
+    }
+   
+    // If we call this function, we *probably* want to relocate whether
+    // or not we need to actually modify anything. 
+    //if (mods.size() == 0)
+    //    return true;
 
     assert(sourceVersion <= version_);
     if (generatedVersion_ > version_) {
@@ -120,10 +171,11 @@ bool int_function::relocationGenerate(pdvector<funcMod *> &mods,
                      i, size_required);
     }
 
-    // AIX: we try to target the data heap, since it's near instrumentation; we can
-    // do big branches at the start of a function, but not within. So amusingly, function
-    // relocation probably won't _enlarge_ the function, just pick it up and move it nearer
-    // instrumentation. Bring the mountain to Mohammed, I guess.
+    // AIX: we try to target the data heap, since it's near instrumentation; 
+    // we can do big branches at the start of a function, but not within. 
+    // So amusingly, function relocation probably won't _enlarge_ the function,
+    // just pick it up and move it nearer instrumentation. Bring the mountain 
+    // to Mohammed, I guess.
 #if defined(os_aix)
     Address baseInMutatee = proc()->inferiorMalloc(size_required, dataHeap);
 #elif defined(arch_x86_64)
@@ -162,13 +214,16 @@ bool int_function::relocationGenerate(pdvector<funcMod *> &mods,
     }
 
     // We use basicBlocks as labels.
+    // TODO Since there is only one entry block to any function and the
+    // image_function knows what it is, maybe it should be available at
+    // this level so we didn't have to do all this.
     for (i = 0; i < blockList.size(); i++) {
         if (!blockList[i]->isEntryBlock()) continue;
         functionReplacement *funcRep = new functionReplacement(blockList[i], 
-                                                               blockList[i],
-                                                               sourceVersion,
-                                                               generatedVersion_);
-        if (funcRep->generateFuncRep())
+                                                             blockList[i],
+                                                             sourceVersion,
+                                                             generatedVersion_);
+        if (funcRep->generateFuncRep(needReloc))
             blockList[i]->instVer(generatedVersion_)->jumpToBlock() = funcRep;
         else
             success = false;
@@ -495,6 +550,8 @@ bool bblInstance::generate() {
                 bblInstance *targetInst = targets[j]->instVer(origInstance()->version_);
                 assert(targetInst);
                 if (targetInst->firstInsnAddr() != origInstance()->endAddr()) {
+                    reloc_printf("... found jmp target 0x%p->0x%p\n",
+                        origInstance()->endAddr(),targetInst->firstInsnAddr());
                     // This is a jump target; get the start addr for the
                     // new block.
                     assert(targetOverride == 0);
@@ -588,7 +645,36 @@ unsigned functionReplacement::get_size_cr() const {
         return 0;
 }
 
-bool functionReplacement::generateFuncRep() {
+// Dig down to the low-level block of b, find the low-level functions
+// that share it, and map up to int-level functions and add them
+// to the funcs list.
+void recordSharingFuncs(int_function * f, pdvector< int_function *> & funcs,
+                        int_basicBlock * b)
+{
+    if(!b->hasSharedBase())
+        return;
+
+    pdvector<image_func *> lfuncs;
+
+    b->llb()->getFuncs(lfuncs);
+    for(unsigned i=0;i<lfuncs.size();i++)
+    {
+        pdvector<int_function *> *hltmp;
+        hltmp = (pdvector<int_function *> *)lfuncs[i]->getHighLevelFuncs();
+        
+        for(unsigned j=0;j<hltmp->size();j++)
+        {
+            if((*hltmp)[j] == f)
+                continue;
+            funcs.push_back((*hltmp)[j]);
+        }
+    }
+}
+
+// Will potentially append to needReloc (indicating that
+// other functions must be relocated)
+bool functionReplacement::generateFuncRep(pdvector<int_function *> &needReloc)
+{
     assert(sourceBlock_);
     assert(targetBlock_);
     assert(jumpToRelocated == NULL);
@@ -611,24 +697,46 @@ bool functionReplacement::generateFuncRep() {
                                              sourceInst->firstInsnAddr(),
                                              targetInst->firstInsnAddr());
 
+    // Determine whether relocation of this function will force relocation
+    // of any other functions:
+    // If the inter-function jump will overwrite any shared blocks,
+    // the "co-owner" functions that are associated with those blocks
+    // must be relocated before the jump can be written.
+    //
+
+    if(sourceBlock_->hasSharedBase())
+    {
+        // if this entry block is shared...
+        recordSharingFuncs(sourceBlock_->func(),
+                           needReloc,
+                           sourceBlock_);
+    }
+
     if (jumpToRelocated.used() > sourceInst->getSize()) {
         // Okay, things are going to get ugly. There are two things we
         // can't do:
         // 1) Overwrite another entry point
         // 2) Overwrite a different function
         // So start seeing where this jump is going to run into...
+        
+        // FIXME there seems to be something fundamentally unsound about
+        // going ahead and installing instrumentation over the top of
+        // other functions! 
         unsigned overflow = jumpToRelocated.used() - sourceInst->getSize();
         Address currAddr = sourceInst->endAddr();
         bool safe = true;
         while (overflow > 0) {
             bblInstance *curInst = sourceBlock_->func()->findBlockInstanceByAddr(currAddr);
             if (curInst) {
-                // Okay, we've got another block in the function. Check to see
-                // if it's an entry point.
-                if (curInst->block()->isEntryBlock()) {
-                    safe = false;
-                    break;
-                }
+                // Okay, we've got another block in this function. Check
+                // to see if it's shared.
+                if (curInst->block()->hasSharedBase())
+                {
+                    // add functions to needReloc list
+                    recordSharingFuncs(sourceBlock_->func(),
+                                       needReloc,
+                                       curInst->block());
+                } 
                 // Otherwise keep going
                 // Inefficient...
                 currAddr = curInst->endAddr();
@@ -639,11 +747,25 @@ bool functionReplacement::generateFuncRep() {
             }
             else {
                 // Ummm... see if anyone else claimed this space.
-                int_function *func = sourceBlock_->proc()->findFuncByAddr(currAddr);
-                if (func) {
+
+                // NTS: we want any basic block that matches this address range
+                // as part of any image in the proc(). hmmmm.... this means
+                // that the process needs to have knowledge of all
+                // int_basicBlocks.
+                int_basicBlock *block =
+                        sourceBlock_->proc()->findBasicBlockByAddr(currAddr);
+
+                if(block)
+                {
                     // Consistency check...
-                    assert(func != sourceBlock_->func());
+                    assert(block->func() != sourceBlock_->func());
                     safe = false;
+
+                    // TODO as far as I can tell right now, it looks like
+                    // we go ahead and let this happen, even though it is
+                    // unsafe to stomp over this block. Well, why not
+                    // relocate the owning function too? Think about that...    
+
                     break;
                 }
                 else {

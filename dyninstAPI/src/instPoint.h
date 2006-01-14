@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.23 2005/10/05 21:46:36 bernat Exp $
+// $Id: instPoint.h,v 1.24 2006/01/14 23:47:53 nater Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -193,6 +193,11 @@ class instPointInstance {
     bool linkInst();
 
     bool disabled;
+
+#if defined(cap_relocation)
+        // this instPoint may force relocation of other functions
+    pdvector< int_function * > force_reloc; 
+#endif
 
  public:
     // If we re-generate code we toss the old

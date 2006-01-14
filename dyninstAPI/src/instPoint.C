@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.11 2005/12/01 00:56:24 jaw Exp $
+// $Id: instPoint.C,v 1.12 2006/01/14 23:47:54 nater Exp $
 // instPoint code
 
 
@@ -884,10 +884,6 @@ int_function *instPoint::func() const {
     return block()->func();
 }
 
-
-
-
-
 // allowTrap shouldn't really go here; problem is, 
 // multiple instPoints might use the same multiTramp,
 // and I'm not sure how to handle it.
@@ -918,28 +914,37 @@ bool instPointInstance::generateInst() {
 
     // Moved from ::generate; we call ::generate multiple times, then ::install.
     // This allows us to relocate once per function.... 
-    
+  
+    // Relocation is necessary if the containing block is shared. 
     // See if we're big enough to put the branch jump in. If not, trap.
     // Can also try to relocate; we'll still trap _here_, but another
     // ipInstance will be created that can jump.
-    if (errCode == multiTramp::mtTryRelocation) {
+
+    force_reloc.clear();
+
+    if (block_->block()->needsRelocation() ||
+        errCode == multiTramp::mtTryRelocation) 
+    {
         // We can try to simply shift the entire function nearer
         // instrumentation. TODO: a funcMod that says "hey, move me to
         // this address.
-        inst_printf("Trying relocation, %d, %d\n", 
+        inst_printf("Trying relocation, %d, %d %s\n", 
                     block_->getSize(),
-                    multi()->sizeDesired());
+                    multi()->sizeDesired(),
+                    func()->needsRelocation() ? "(func req reloc)" : "");
+
         if (((int) block_->getSize()) < multi()->sizeDesired()) {
             // expandForInstrumentation will append to the expand list, so can 
             // be called multiple times without blowing up
             if (func()->expandForInstrumentation()) {
                 // and relocationGenerate invalidates old, "in-flight" versions.
-                func()->relocationGenerate(func()->enlargeMods(), 0);
+                func()->relocationGenerate(func()->enlargeMods(), 0, 
+                                           force_reloc);
             }
         }
         else {
             pdvector<funcMod *> funcMods; // Empty since we're not trying to make changes.
-            func()->relocationGenerate(funcMods, 0);
+            func()->relocationGenerate(funcMods, 0, force_reloc);
         }
     }
 #endif
@@ -953,6 +958,13 @@ bool instPointInstance::installInst() {
 #if defined(cap_relocation)
     // This is harmless to call if there isn't a relocation in-flight
     func()->relocationInstall();
+
+    // the original relocation may force others; install them too
+    for(unsigned i=0; i < force_reloc.size(); i++)
+    {
+        fprintf(stderr, "************* forcing relocation\n");
+        force_reloc[i]->relocationInstall();
+    }
 #endif
 
     assert(multi());
@@ -972,6 +984,11 @@ bool instPointInstance::linkInst() {
     pdvector<codeRange *> overwrittenObjs;
     // This is harmless to call if there isn't a relocation in-flight
     func()->relocationLink(overwrittenObjs);
+
+    for(unsigned i=0; i < force_reloc.size(); i++)
+    {
+        force_reloc[i]->relocationLink(overwrittenObjs);
+    }
 #endif
 
     // Funny thing is, we might very well try to link a multiTramp
