@@ -158,9 +158,9 @@ bool InstrucIter::isACallInstruction()
     return insn.isCall();
 }
 
-bool InstrucIter::isIndir() 
+bool InstrucIter::isADynamicCallInstruction()
 {
-    return insn.isIndir();
+    return insn.isCall() && insn.isIndir();
 }
 
 bool InstrucIter::isANopInstruction()
@@ -168,9 +168,28 @@ bool InstrucIter::isANopInstruction()
     return insn.isNop();
 }
 
+bool InstrucIter::isAnAbortInstruction()
+{
+    const unsigned char *ptr = insn.op_ptr();
+
+    // FIXME this all needs to be more general!
+        // hlt
+    return(*ptr == 0xf4);
+}
+
+bool InstrucIter::isAnAllocInstruction()
+{
+    return false;
+}
+
 bool InstrucIter::isAnneal()
 {
     return true;
+}
+
+bool InstrucIter::isDelaySlot()
+{
+    return false;
 }
 
 /** function which returns the offset of control transfer instructions
@@ -354,7 +373,7 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
 //             the displacement will give us the table's base address
 // maxSwitchInsn - compare instrction that does a range check on the
 //                 jump table index, gives us number of entries in immediate
-bool InstrucIter::getMultipleJumpTargets(pdvector<Address>& result,
+bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
 					 instruction& tableInsn, 
 					 instruction& maxSwitchInsn,
                                          bool isAddressInJmp )
@@ -428,9 +447,11 @@ bool InstrucIter::getMultipleJumpTargets(pdvector<Address>& result,
     
     Address jumpTable = 0;
     ptr = tableInsn.op_ptr();
+
     if(isAddressInJmp || (!isAddressInJmp && (*ptr == 0x8b)))
     {
         ptr++;
+
         if(
 	   ( ((*ptr & 0xc7) == 0x04) &&
 	     ( ((*(ptr+1) & 0xc7) == 0x85) || ((*(ptr+1) & 0xc7) == 0xc5) ) ) ||
@@ -445,6 +466,7 @@ bool InstrucIter::getMultipleJumpTargets(pdvector<Address>& result,
                 jumpTable |= *(ptr+1);
                 jumpTable <<= 8;
                 jumpTable |= *ptr;
+                fprintf(stderr,"okay... %lx\n",jumpTable);
 
 	    } else {
 		jumpTable = *(const int *)ptr;
@@ -477,7 +499,7 @@ bool InstrucIter::getMultipleJumpTargets(pdvector<Address>& result,
                 jumpAddress = *(const int *)img_->getPtrToInstruction(tableEntry);
         }
         if (jumpAddress)
-            result.push_back(jumpAddress);
+            result += jumpAddress;
     }
     return true;
 }

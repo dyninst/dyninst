@@ -194,7 +194,7 @@ class InstrucIter {
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_nt4_0)
-  bool getMultipleJumpTargets( pdvector<Address>& result, 
+  bool getMultipleJumpTargets( BPatch_Set< Address >& result, 
                                instruction& tableInsn, 
                                instruction& maxSwitchInsn, 
                                bool isAddressInJmp );
@@ -248,7 +248,6 @@ class InstrucIter {
   /* Predicates */
    
   bool isALeaveInstruction();
-  bool isIndir();
   bool isAReturnInstruction();
   bool isACondBranchInstruction();
   bool isAJumpInstruction();
@@ -260,6 +259,9 @@ class InstrucIter {
   bool isFramePush();
   bool isFrameSetup();
   bool isANopInstruction();
+  bool isAnAbortInstruction();
+  bool isAnAllocInstruction();
+  bool isDelaySlot();
   
   /* Power only */
   bool isA_RT_WriteInstruction();
