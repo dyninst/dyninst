@@ -1354,3 +1354,29 @@ bool InstrucIter::isReturnValueSave() {
     }
     return (foundR0Save && foundMFLR);
 }
+
+bool InstrucIter::isFrameSetup()
+{
+   return false;
+}
+
+bool InstrucIter::isFramePush()
+{
+   return false;
+}
+
+bool InstrucIter::isALeaveInstruction()
+{
+   return false;
+}
+
+bool InstrucIter::isAnAllocInstruction()
+{
+   return false;
+}
+
+bool InstrucIter::isDelaySlot()
+{
+   return false;
+}
+

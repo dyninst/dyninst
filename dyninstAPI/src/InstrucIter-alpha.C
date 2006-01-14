@@ -133,6 +133,22 @@ bool InstrucIter::isAnneal()
   return true;
 }
 
+bool InstrucIter::isAnAbortInstruction()
+{
+    return false;
+}
+
+bool InstrucIter::isAnAllocInstruction()
+{
+    return false;
+}
+
+bool InstrucIter::isDelaySlot()
+{
+    return false;
+}
+
+
 /** function which returns the offset of control transfer instructions
   * @param i the instruction value 
   */
@@ -404,4 +420,19 @@ bool InstrucIter::isStackFramePreamble(int &frameSize) {
 
 bool InstrucIter::isADynamicCallInstruction() {
   return insn.isJsr();
+}
+
+bool InstrucIter::isFramePush()
+{
+   return false;
+}
+
+bool InstrucIter::isFrameSetup()
+{
+   return false;
+}
+
+bool InstrucIter::isALeaveInstruction()
+{
+   return false;
 }

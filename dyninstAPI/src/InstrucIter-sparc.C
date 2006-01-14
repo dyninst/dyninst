@@ -493,3 +493,32 @@ void InstrucIter::getAndSkipDSandAgg(instruction* &ds,
     return;
 }
 
+bool InstrucIter::isDelaySlot()
+{
+    return insn.isDCTI();
+}
+
+bool InstrucIter::isFrameSetup()
+{
+    return false;
+}
+
+bool InstrucIter::isALeaveInstruction()
+{
+    return false;
+}
+
+bool InstrucIter::isFramePush()
+{
+    return false;
+}
+
+bool InstrucIter::isAnAllocInstruction()
+{
+    return false;
+}
+
+bool InstrucIter::isAnAbortInstruction()
+{
+    return false;
+}

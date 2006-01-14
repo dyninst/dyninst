@@ -119,7 +119,6 @@ InstrucIter::InstrucIter(bblInstance* b) :
 
 InstrucIter::InstrucIter(image_basicBlock *b) :
     proc_(NULL),
-    img_(b->func()->img()),
     base(b->firstInsnOffset()),
     range(b->getSize()),
     current(base) {
@@ -132,6 +131,14 @@ InstrucIter::InstrucIter(image_basicBlock *b) :
         assert(current < base+range);
         }
     }
+
+    // image will be the same for any function containing this block
+    image_func *f = b->getFirstFunc();
+    if(f)
+        img_ = f->img();
+    else
+        img_ = NULL;
+
     initializeInsn();
 }
 

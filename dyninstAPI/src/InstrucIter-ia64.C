@@ -146,6 +146,25 @@ bool InstrucIter::isAnneal()
     return false;
 }
 
+bool InstrucIter::isAnAbortInstruction()
+{
+    // FIXME this is sufficient for the common glibc illegal instruction,
+    // but should be more general
+
+    // glibc uses break 0, which is illegal
+    return (getInstruction().getType() == instruction::BREAK);
+}
+
+bool InstrucIter::isAnAllocInstruction()
+{
+    return insn.getType() == instruction::ALLOC;
+}
+
+bool InstrucIter::isDelaySlot()
+{
+    return false;
+}
+
 Address InstrucIter::getBranchTargetAddress()
 {
     instruction nsn = getInstruction();
@@ -593,4 +612,19 @@ instruction *InstrucIter::getInsnPtr() {
 bool InstrucIter::isADynamicCallInstruction()
 {
     return insn.getType() == instruction::INDIRECT_CALL;
+}
+
+bool InstrucIter::isALeaveInstruction()
+{
+    return false;
+}
+
+bool InstrucIter::isFrameSetup()
+{
+    return false;
+}
+
+bool InstrucIter::isFramePush()
+{
+    return false;
 }
