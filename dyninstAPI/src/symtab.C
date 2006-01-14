@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.263 2005/12/08 19:27:57 bernat Exp $
+ // $Id: symtab.C,v 1.264 2006/01/14 23:47:58 nater Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1464,62 +1464,6 @@ void image::setModuleLanguages(dictionary_hash<pdstring, supportedLanguages> *mo
   }
 }
 
-int addrfunccmp( image_func*& pdf1, image_func*& pdf2 )
-{
-    if( pdf1->getOffset() > pdf2->getOffset() )
-        return 1;
-    if( pdf1->getOffset() < pdf2->getOffset() )
-        return -1;
-    return 0;
-}
-
-bool image::parseFunction(image_func* pdf, pdvector< Address >& callTargets)
-{
-    // callTargets: targets of this function (to help identify new functions
-    // May be returned unmodified
-    return pdf->findInstPoints( callTargets);
-}
-
-void image::parseStaticCallTargets( pdvector< Address >& callTargets,
-                                    pdvector< image_func* > &raw_funcs,
-                                    pdmodule* mod )
-{
-
-  // TODO: I don't think "mod" is the right thing here; should
-  // do a lookup by address
-    char name[20] = "f";
-    image_func* pdf;
-
-    for( unsigned j = 0; j < callTargets.size(); j++ )
-    {
-        if( !isCode( callTargets[ j ] ) )
-            continue;    
-        if( funcsByEntryAddr.defines( callTargets[ j ] ) )
-            continue;
-               
-        sprintf(name, "f%lx", callTargets[j] );
-        //some (rare) compiler generated symbols have 0 for the size.
-        //most of these belong to screwy functions and, it seems
-        //best to avoid them. to distinguish between these screwy functions
-        //and the unparsed ones that we make up we use UINT_MAX for the sizes 
-        //of the unparsed functions
-        pdf = new image_func( name, callTargets[ j ], UINT_MAX, mod, this);
-        // Don't add a typed name...
-        
-        //we no longer keep separate lists for instrumentable and 
-        //uninstrumentable
-        if (parseFunction( pdf, callTargets )) {
-            enterFunctionInTables( pdf, false);
-            raw_funcs.push_back( pdf );
-
-            addFunctionName(pdf, name, true); // mangled name
-            pdf->addPrettyName( name ); // Auto-adds to our list
-            
-        }
-    }
-}
-
-
 // Enter a function in all the appropriate tables
 void image::enterFunctionInTables(image_func *func, bool wasSymtab) {
     if (!func) return;
@@ -1690,172 +1634,6 @@ void image::analyzeIfNeeded() {
   }
 }
 
-//analyzeImage() iterates through image_funcs and constructs demangled 
-//names. Demangling was moved here (names used to be demangled as image_funcs 
-//were built) so that language information could be obtained _after_ the 
-//functions and modules were built, but before name demangling takes place.  
-//Thus we can use language information during the demangling process.
-//After name demangling is done, each function's inst points are found and 
-//the function is classified as either instrumentable or non-instrumentable 
-//and filed accordingly 
-
-bool image::analyzeImage()
-{
-    // TODO: remove arch_x86 from here - it's just for testing
-#if defined(arch_x86_64) || defined(arch_x86)
-    ia32_set_mode_64(getObject().getAddressWidth() == 8);
-#endif
-  
- // Hold unseen call targets
-  pdvector< Address > callTargets;
-  image_func *pdf;
-  pdmodule *mod = NULL;
-
-  assert(parseState_ < analyzed);
-  // Prevent recursion: with this set we can call findFoo as often as we want
-  parseState_ = analyzing;
-
-  if (parseState_ < symtab) {
-    fprintf(stderr, "Error: attempt to analyze before function lists built\n");
-    return true;
-  }
-  
-  pdvector<image_func *> new_functions;  
-
-  for (unsigned i = 0; i < everyUniqueFunction.size(); i++) {
-    
-    pdf = everyUniqueFunction[i];
-    mod = pdf->pdmod();
-    assert(pdf); assert(mod);
-    
-    pdstring name = pdf->symTabName();
-    parseFunction( pdf, callTargets);
-  }      
- 
-  // callTargets now holds a big list of target addresses; some are already
-  // in functions that we know about, some point to new functions. 
-  
-#if defined(cap_stripped_binaries)
-  
-  int numIndir = 0;
-  unsigned p = 0;
-  // We start over until things converge; hence the goto target
- top:
-  new_functions.clear();
-  // Also adds to lists
-  parseStaticCallTargets( callTargets, new_functions, mod );
-  // Any new call destinations show up in new_functions
-  callTargets.clear(); 
-   
-  // nothing to do, exit
-  if( everyUniqueFunction.size() <= 0 )
-  {
-      return true;
-  }
-
-  VECTOR_SORT(everyUniqueFunction, addrfunccmp);
-  
-  Address lastPos;
-  lastPos = everyUniqueFunction[0]->getOffset() + 
-      everyUniqueFunction[0]->getSymTabSize();
-  
-  unsigned int rawFuncSize = everyUniqueFunction.size();
-  
-  for( ; p + 1 < rawFuncSize; p++ )
-  {
-      image_func* func1 = everyUniqueFunction[p];
-      image_func* func2 = everyUniqueFunction[p + 1];
-      
-      Address gapStart = func1->getOffset() + func1->getSymTabSize();
-      Address gapEnd = func2->getOffset();
-      Address gap = gapEnd - gapStart;
-      
-      //gap should be big enough to accomodate a function prologue
-      if( gap >= 5 )
-      {
-          Address pos = gapStart;
-          while( pos < gapEnd && isCode( pos ) )
-          {
-              const unsigned char* instPtr;
-              instPtr = (const unsigned char *)getPtrToInstruction( pos );
-              
-              instruction insn;
-              insn.setInstruction( instPtr );
-              if( isFunctionPrologue(insn) && !funcsByEntryAddr.defines(pos))
-              {
-                  char name[20];
-                  numIndir++;
-                  sprintf( name, "gap_f%lx", pos );
-                  pdf = new image_func( name, pos, UINT_MAX, mod, this);
-                  if (parseFunction( pdf, callTargets)) {
-                      addFunctionName(pdf, name, true);
-                      pdf->addPrettyName( name );
-                      // No typed name...
-                      
-                      enterFunctionInTables(pdf, false);
-                  }
-
-                  if( callTargets.size() > 0 )
-                  {
-                      for( unsigned r = 0; r < callTargets.size(); r++ )
-                      {
-                          if( callTargets[r] < func1->getOffset() )
-                              p++;
-                      }
-                      goto top; //goto is the devil's construct. repent!! 
-                  }
-              }
-              pos++;
-          }   
-      }
-  }
-#endif
-  
-#if defined(cap_stripped_binaries)
-
-  //phase 2 - error detection and recovery 
-  VECTOR_SORT( everyUniqueFunction, addrfunccmp );
-  for( unsigned int k = 0; k + 1 < everyUniqueFunction.size(); k++ )
-    {
-      image_func* func1 = everyUniqueFunction[ k ];
-      image_func* func2 = everyUniqueFunction[ k + 1 ];
-      
-      if( func1->getOffset() == 0 ) 
-          continue;
-
-      assert( func1->getOffset() != func2->getOffset() );
-      
-      //look for overlapping functions
-#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
-      if ((func2->getOffset() < func1->getEndOffset()) &&
-	  (strstr(func2->prettyName().c_str(), "nocancel") ||
-	   strstr(func2->prettyName().c_str(), "_L_mutex_lock")))
-          
-          { 
-              func1->markAsNeedingRelocation(true);
-          }
-      else
-#endif
-          if( func2->getOffset() < func1->getEndOffset() )
-              {
-                  //use the start address of the second function as the upper bound
-                  //on the end address of the first
-                  Address addr = func2->getOffset();
-                  func1->updateFunctionEnd(addr);
-              }
-    }    
-#endif
-
-  // And bind all intra-module call points
-  for (unsigned b_iter = 0; b_iter < everyUniqueFunction.size(); b_iter++) {
-      everyUniqueFunction[b_iter]->checkCallPoints();
-  }
-  
-  parseState_ = analyzed;
-  return true;
-}
-
-
 // Constructor for the image object. The fileDescriptor simply
 // wraps (in the normal case) the object name and a relocation
 // address (0 for a.out file). On the following platforms, we
@@ -1879,6 +1657,7 @@ image::image(fileDescriptor &desc, bool &err)
    funcsByEntryAddr(addrHash4),
    funcsByPretty(pdstring::hash),
    funcsByMangled(pdstring::hash),
+   nextBlockID_(0),
    modsByFileName(pdstring::hash),
    modsByFullName(pdstring::hash),
    varsByPretty(pdstring::hash),
@@ -2221,6 +2000,14 @@ image_func *image::findFuncByEntry(const Address &entry) {
     } 
     else
       return NULL;
+}
+
+image_basicBlock *image::findBlockByAddr(const Address &addr) {
+    codeRange *range;
+    if (!basicBlocksByRange.find(addr, range)) {
+        return NULL;
+    }
+    return range->is_image_basicBlock();
 }
 
 // Return the vector of functions associated with a pretty (demangled) name

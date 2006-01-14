@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.188 2005/12/06 20:01:24 bernat Exp $
+// $Id: symtab.h,v 1.189 2006/01/14 23:47:59 nater Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -297,6 +297,9 @@ class image : public codeRange {
    // ****  PUBLIC MEMBER FUNCTIONS  ****
    //
  public:
+    // remove after testing
+   void DumpAllStats();
+
    static image *parseImage(const pdstring file);
    static image *parseImage(fileDescriptor &desc); 
 
@@ -312,10 +315,13 @@ class image : public codeRange {
 
    // Fills  in raw_funcs with targets in callTargets
    void parseStaticCallTargets( pdvector< Address >& callTargets,
-                                pdvector< image_func* > &raw_funcs,
-                                pdmodule* mod );
+                pdvector< Address > &newTargets,
+                dictionary_hash< Address, image_func * > &preParseStubs,
+                pdmodule* mod );
 
-   bool parseFunction( image_func* pdf, pdvector< Address >& callTargets); 
+   bool parseFunction( image_func* pdf, pdvector< Address >& callTargets,
+                dictionary_hash< Address, image_func * >& preParseStubs); 
+
    image(fileDescriptor &desc, bool &err); 
 
    void analyzeIfNeeded();
@@ -375,6 +381,9 @@ class image : public codeRange {
 
    // And raw version
    codeRange *findCodeRangeByOffset(const Address &offset);
+
+   // Blocks by address
+   image_basicBlock *findBlockByAddr(const Address &addr);
   
    //Add an extra pretty name to a known function (needed for handling
    //overloaded functions in paradyn)
@@ -471,6 +480,8 @@ class image : public codeRange {
 
 #endif 
    const pdvector<pdmodule*> &getModules();
+
+    int getNextBlockID() { return nextBlockID_++; }
 
    //
    //  ****  PUBLIC DATA MEMBERS  ****
@@ -601,6 +612,14 @@ class image : public codeRange {
    pdvector<image_variable *> everyUniqueVariable;
    pdvector<image_variable *> createdVariables;
    pdvector<image_variable *> exportedVariables;
+
+   // The following were added to support parsing
+   // (nater) 13.Oct.05
+   // basic blocks by address.
+   codeRangeTree basicBlocksByRange;
+   // Quick lookups
+   //dictionary_hash<Address, image_basicBlock *> basicBlocksByAddr;
+    int nextBlockID_;
 
    // TODO -- get rid of one of these
    // Note : as of 971001 (mcheyney), these hash tables only 
