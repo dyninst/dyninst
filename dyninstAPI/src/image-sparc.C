@@ -40,12 +40,7 @@
  */
 
 
-// $Id: image-sparc.C,v 1.6 2005/10/17 19:24:22 bernat Exp $
-
-// Determine if the called function is a "library" function or a "user" function
-// This cannot be done until all of the functions have been seen, verified, and
-// classified
-//
+// $Id: image-sparc.C,v 1.7 2006/01/14 23:47:51 nater Exp $
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -58,7 +53,6 @@
 #include "showerror.h"
 #include "arch.h"
 #include "inst-sparc.h" // REG_? should be in arch-sparc, but isn't
-
 
 /****************************************************************************/
 /****************************************************************************/
@@ -149,70 +143,146 @@ static inline bool JmpNopTC(instruction instr, instruction nexti,
     
     return 1;
 }
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-/*
-  Is the specified call instruction one whose goal is to set the 07 register
-  (the sequence of execution is as if the call instruction did not change the
-  control flow, and the O7 register is set)?
-
-  here, we define a call whose goal is to set the 07 regsiter
-    as one where the target is the call address + 8, AND where that
-    target is INSIDE the same function (need to make sure to check for that
-    last case also, c.f. function DOW, which ends with):
-     0xef601374 <DOW+56>:    call  0xef60137c <adddays>
-     0xef601378 <DOW+60>:    restore 
-
-  instr - raw instruction....
-  functionSize - size of function (in bytes, NOT # instructions)....
-  instructionOffset - BYTE offset in function at which instr occurs....
- */        
-static inline bool is_set_O7_call(instruction instr, unsigned functionSize, 
-			      unsigned instructionOffset) {
-    // if the instruction is call %register, assume that it is NOT a 
-    //  call designed purely to set %O7....
-    if((*instr).call.op != CALLop) {
-        return false;
-    }
-    if ((((*instr).call.disp30 << 2) == 8) && 
-             (instructionOffset < (functionSize - 2 * instruction::size()))) {
-        return true; 
-    }
-    return false; 
-}  
-
-/****************************************************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-/*
-    Does the specified call instruction call to target inside function
-    or outside - may be indeterminate if insn is call %reg instead of 
-    call <address> (really call PC + offset)
-    Note: (recursive) calls back to the beginning of the function are OK
-    since we really want to consider these as instrumentable call sites!
- */
-enum fuzzyBoolean {eFalse = 0, eTrue = 1, eDontKnow = 2}; 
-
-static enum fuzzyBoolean is_call_outside_function(const instruction instr,
-                const Address functionStarts, const Address instructionAddress, 
-		const unsigned int functionSize) 
+bool image_func::archIsRealCall(InstrucIter &ah, bool &validTarget)
 {
-    // call %register - don't know if target inside function....
-    if((*instr).call.op != CALLop) {
-        return eDontKnow;
+    if(!ah.isADynamicCallInstruction())
+    {
+        Address callTarget = ah.getBranchTargetAddress();
+        if (callTarget == 0) {
+            // Call to self; skip
+            return false;
+        }
+
+        if(!img()->isValidAddress(callTarget))
+        {
+            validTarget = false;
+            return false;
+        }
+
+        // We have the annoying "call to return" combo like
+        // on x86. Those aren't calls, and we handle them
+        // in instrumentation
+
+        // Grab the insn at target
+        codeBuf_t *target = (codeBuf_t *)img()->getPtrToInstruction(callTarget);
+        instruction callTargetInsn;
+        callTargetInsn.setInstruction(target);
+
+        if (((*callTargetInsn).raw & 0xfffff000) == 0x81c3e000)
+        {
+            parsing_printf("Skipping call to retl at 0x%x, func %s\n",
+                            *ah, symTabName().c_str());
+            return false;
+        }
     }
-    const Address call_target = instructionAddress + ((*instr).call.disp30 << 2);
-    if ((call_target > functionStarts) && 
-        (call_target < (functionStarts + functionSize))) {
-        return eFalse;
-    }
-    return eTrue;
+
+    return true;
+}                                
+                                 
+bool image_func::archCheckEntry( InstrucIter &ah, image_func *func )                                    
+{                                                              
+    return ah.getInstruction().valid();
 }
 
+bool image_func::archIsUnparseable()
+{
+    // And here we have hackage. Our jumptable code is b0rken, but I don't know
+    // how to fix it. So we define anything that doesn't work as... argh.
+    // Better: a size limit on a jump table.
+    if (symTabName().c_str() == "__rtboot") {
+        return true;
+    }
+
+    return false;
+}
+
+bool image_func::archAvoidParsing()
+{
+    return false;
+}
+
+void image_func::archGetFuncEntryAddr(Address &funcEntryAddr)
+{
+    return;
+}
+
+bool image_func::archNoRelocate()
+{
+    return false;
+}
+
+void image_func::archSetFrameSize(int frameSize)
+{
+    return;
+}
+
+// As Drew has noted, this really, really should not be an InstructIter
+// operation. The extraneous arguments support architectures like x86,
+// which (rightly) treat jump table processing as a control-sensitive
+// data flow operation.
+bool image_func::archGetMultipleJumpTargets(
+                                BPatch_Set< Address >& targets,
+                                image_basicBlock * currBlk,
+                                InstrucIter &ah,
+                                pdvector< instruction >& allInstructions)
+{
+    return ah.getMultipleJumpTargets( targets );
+}
+
+// FIXME not fully implemented (lying and saying it's not a tail call)
+bool image_func::archIsATailCall(Address target,
+                                 pdvector< instruction >& allInstructions)
+{
+    InstrucIter ah( target, this);
+    /** XXX This comment makes no sense and is probably lying:
+
+        // Check for tail calls; we auto-relocate the function (why?)
+        // but flag it here.
+
+    **/
+    if( CallRestoreTC(ah.getInstruction(), ah.getNextInstruction()) ||
+        JmpNopTC(ah.getInstruction(), ah.getNextInstruction(), *ah, this) ||            MovCallMovTC(ah.getInstruction(), ah.getNextInstruction())) 
+    {
+        parsing_printf("ERROR: tail call (?) not handled in func %s at 0x%x\n",
+                       symTabName().c_str(), *ah);
+        return false;
+    }
+    else
+        return false;
+}
+
+// not implemented? FIXME
+bool image_func::archIsIndirectTailCall(InstrucIter &ah)
+{
+    return false;
+}
+
+bool image_func::archIsAbortOrInvalid(InstrucIter &ah)
+{
+    return ah.isAnAbortInstruction();
+}
+
+void image_func::archInstructionProc(InstrucIter &ah)
+{
+    // Check whether "07" is live, AKA we can't call safely.
+    // Could we just always assume this?
+    if (!o7_live) {
+        InsnRegister rd, rs1, rs2;
+        ah.getInstruction().get_register_operands(&rd, &rs1, &rs2);
+        if (rs1.is_o7() || rs2.is_o7()) {
+            o7_live = true;
+            parsing_printf("Setting o7 to live at 0x%x, func %s\n",
+                    *ah, symTabName().c_str());
+        }
+    }
+}
+
+bool image_func::archProcExceptionBlock(Address &catchStart, Address a)
+{
+    return false;
+}
+
+#if 0
 bool image_func::findInstPoints(pdvector<Address> &callTargets)
 {
     if( parsed_ ) 
@@ -298,7 +368,7 @@ bool image_func::findInstPoints(pdvector<Address> &callTargets)
         while( true ) {
             currAddr = *ah;
 
-            parsing_printf("checking insn at 0x%x, %s + %d\n", *ah,
+            parsing_printf("checking insn at 1x%x, %s + %d\n", *ah,
                     symTabName().c_str(), (*ah) - funcBegin);
 
             if (currAddr > getEndOffset()) {
@@ -561,7 +631,7 @@ bool image_func::findInstPoints(pdvector<Address> &callTargets)
     return true;
 }
 
-
+#endif
 
 /****************************************************************************/
 /****************************************************************************/
@@ -569,6 +639,69 @@ bool image_func::findInstPoints(pdvector<Address> &callTargets)
 
 #if 0
 // Old linear method; moving to basic-block-based.
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+/*
+  Is the specified call instruction one whose goal is to set the 07 register
+  (the sequence of execution is as if the call instruction did not change the
+  control flow, and the O7 register is set)?
+
+  here, we define a call whose goal is to set the 07 regsiter
+    as one where the target is the call address + 8, AND where that
+    target is INSIDE the same function (need to make sure to check for that
+    last case also, c.f. function DOW, which ends with):
+     0xef601374 <DOW+56>:    call  0xef60137c <adddays>
+     0xef601378 <DOW+60>:    restore 
+
+  instr - raw instruction....
+  functionSize - size of function (in bytes, NOT # instructions)....
+  instructionOffset - BYTE offset in function at which instr occurs....
+ */        
+static inline bool is_set_O7_call(instruction instr, unsigned functionSize, 
+			      unsigned instructionOffset) {
+    // if the instruction is call %register, assume that it is NOT a 
+    //  call designed purely to set %O7....
+    if((*instr).call.op != CALLop) {
+        return false;
+    }
+    if ((((*instr).call.disp30 << 2) == 8) && 
+             (instructionOffset < (functionSize - 2 * instruction::size()))) {
+        return true; 
+    }
+    return false; 
+}  
+
+/****************************************************************************/
+/****************************************************************************/
+/****************************************************************************/
+
+/*
+    Does the specified call instruction call to target inside function
+    or outside - may be indeterminate if insn is call %reg instead of 
+    call <address> (really call PC + offset)
+    Note: (recursive) calls back to the beginning of the function are OK
+    since we really want to consider these as instrumentable call sites!
+ */
+enum fuzzyBoolean {eFalse = 0, eTrue = 1, eDontKnow = 2}; 
+
+static enum fuzzyBoolean is_call_outside_function(const instruction instr,
+                const Address functionStarts, const Address instructionAddress, 
+		const unsigned int functionSize) 
+{
+    // call %register - don't know if target inside function....
+    if((*instr).call.op != CALLop) {
+        return eDontKnow;
+    }
+    const Address call_target = instructionAddress + ((*instr).call.disp30 << 2);
+    if ((call_target > functionStarts) && 
+        (call_target < (functionStarts + functionSize))) {
+        return eFalse;
+    }
+    return eTrue;
+}
 
 
 /*

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-power.C,v 1.4 2005/09/01 22:18:19 bernat Exp $
+// $Id: image-power.C,v 1.5 2006/01/14 23:47:50 nater Exp $
 
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
@@ -57,6 +57,104 @@
 #include "showerror.h"
 #include "arch.h"
 
+// Not used on power
+bool image_func::archIsRealCall(InstrucIter &ah,
+                bool &validTarget)
+{   
+    return true;
+}
+
+bool image_func::archCheckEntry(InstrucIter &ah, image_func *func)
+{   
+    // XXX Cheating a little -- this has nothing to do with the
+    // "check entry" as seen on x86 & sparc, but is just a convenient place
+    // to put this code.
+
+    if (ah.isReturnValueSave())
+        makesNoCalls_ = false;
+    else
+        makesNoCalls_ = true;
+
+    // end cheating
+
+    return ah.getInstruction().valid();
+}
+
+// Not used on power
+bool image_func::archIsUnparseable()
+{   
+    return false;
+}
+
+// Not used on power
+bool image_func::archAvoidParsing()
+{   
+    return false;
+}
+
+void image_func::archGetFuncEntryAddr(Address &funcEntryAddr)
+{   
+    return;
+}
+
+// Not used on power
+bool image_func::archNoRelocate()
+{   
+    return false;
+}
+
+// Not used on power
+void image_func::archSetFrameSize(int fsize)                  
+{
+    return;
+}
+
+// As Drew has noted, this really, really should not be an InstructIter
+// operation. The extraneous arguments support architectures like x86,
+// which (rightly) treat jump table processing as a control-sensitive
+// data flow operation.
+bool image_func::archGetMultipleJumpTargets(
+                                BPatch_Set< Address >& targets,
+                                image_basicBlock * currBlk,
+                                InstrucIter &ah,
+                                pdvector< instruction >& allInstructions)
+{   
+    return ah.getMultipleJumpTargets( targets );
+}
+
+// not implemented on power
+bool image_func::archProcExceptionBlock(Address &catchStart, Address a)
+{   
+    // Agnostic about exception blocks; the policy of champions
+    return false;
+}
+
+// not implemented on power
+bool image_func::archIsATailCall(Address target,
+                                 pdvector< instruction >& allInstructions)
+{   
+    return false;
+}
+
+// not implemented on power
+bool image_func::archIsIndirectTailCall(InstrucIter &ah)
+{   
+    return false;
+}
+
+bool image_func::archIsAbortOrInvalid(InstrucIter &ah)
+{
+    // FIXME todo!
+    return false;
+}
+
+// not implemented on power
+void image_func::archInstructionProc(InstrucIter & ah)
+{
+    return;
+}
+
+#if 0
 bool image_func::findInstPoints(pdvector<Address> &callTargets)
 {
     if( parsed_ ) 
@@ -304,3 +402,5 @@ bool image_func::findInstPoints(pdvector<Address> &callTargets)
     
     return true;
 }
+
+#endif
