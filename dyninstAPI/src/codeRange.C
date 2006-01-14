@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.C,v 1.13 2005/10/21 21:48:14 legendre Exp $
+// $Id: codeRange.C,v 1.14 2006/01/14 23:47:43 nater Exp $
 
 #include <stdio.h>
 #include "codeRange.h"
@@ -95,6 +95,10 @@ int_function *codeRange::is_function() {
 
 image_func *codeRange::is_image_func() {
    return dynamic_cast<image_func *>(this);
+}
+
+image_basicBlock *codeRange::is_image_basicBlock() {
+    return dynamic_cast<image_basicBlock *>(this);
 }
 
 replacedFunctionCall *codeRange::is_replaced_call() {
