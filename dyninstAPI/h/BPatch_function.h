@@ -114,6 +114,10 @@ public:
     // Calculate liveness at a particular address
     void calc_liveness(BPatch_point *point);
 
+        // This isn't so much for internal use only, but it *should*
+        // remain undocumented for now.
+    bool containsSharedBlocks();
+
     // End of functions for internal use only
     
 

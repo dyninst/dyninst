@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.66 2005/12/06 20:01:15 bernat Exp $
+// $Id: BPatch_function.C,v 1.67 2006/01/14 23:47:33 nater Exp $
 
 #define BPATCH_FILE
 
@@ -656,6 +656,10 @@ void BPatch_function::calc_liveness(BPatch_point *point) {
 #endif
 }
 
+bool BPatch_function::containsSharedBlocks() {
+    return func->containsSharedBlocks();
+}
+
 // isPrimary: function will now use this name as a primary output name
 // isMangled: this is the "mangled" name rather than demangled (pretty)
 const char *BPatch_function::addNameInt(const char *name,
@@ -676,4 +680,3 @@ const char *BPatch_function::addNameInt(const char *name,
     }
     return name;
 }
-                                        
