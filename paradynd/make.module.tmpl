@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.89 2006/01/05 19:16:08 legendre Exp $
+# $Id: make.module.tmpl,v 1.90 2006/01/16 17:50:18 legendre Exp $
 #
 
 CFLAGS		     += $(TCLFRIENDLYWARNINGS) -DNEW_TIME_TYPES
@@ -22,16 +22,16 @@ IFILE	+=-I../../mrnet/mrnet/h/mrnet -I../../mrnet/mrnet
 VPATH	     += ../../paradynd/src:../../paradyn/h:../../dyninstAPI/src:\
 		../../dyninstAPI/h
 
-SRCS	     += ../../dyninstAPI/src/ast.C \
+SRCS        += ../../dyninstAPI/src/ast.C \
 		../src/comm.C \
 		../src/context.C \
 		../src/dynrpc.C \
-		../src/init.C \
-                ../../dyninstAPI/src/arch.C \
+    	../src/init.C \
+      ../../dyninstAPI/src/arch.C \
 		../../dyninstAPI/src/inst.C \
 		../../dyninstAPI/src/instPoint.C \
 		../../dyninstAPI/src/baseTramp.C \
-                ../../dyninstAPI/src/multiTramp.C \
+      ../../dyninstAPI/src/multiTramp.C \
 		../../dyninstAPI/src/miniTramp.C \
 		../../dyninstAPI/src/codeRange.C \
 		../src/main.C \
@@ -83,13 +83,14 @@ SRCS	     += ../../dyninstAPI/src/ast.C \
 		../../dyninstAPI/src/symtab.C \
 		../../dyninstAPI/src/function.C \
 		../../dyninstAPI/src/dominator.C \
-                ../../dyninstAPI/src/reloc-func.C \
-                ../../dyninstAPI/src/image-func.C \
-                ../../dyninstAPI/src/mapped_object.C \
-                ../../dyninstAPI/src/mapped_module.C \
-                ../../dyninstAPI/src/variable.C \
+      ../../dyninstAPI/src/image-flowGraph.C \
+      ../../dyninstAPI/src/reloc-func.C \
+      ../../dyninstAPI/src/image-func.C \
+      ../../dyninstAPI/src/mapped_object.C \
+      ../../dyninstAPI/src/mapped_module.C \
+      ../../dyninstAPI/src/variable.C \
 		../../dyninstAPI/src/util.C \
-                ../../dyninstAPI/src/InstrucIter-xplat.C \
+      ../../dyninstAPI/src/InstrucIter-xplat.C \
 		../../dyninstAPI/src/LineInformation.C \
 		../../dyninstAPI/src/EventHandler.C \
 		../../dyninstAPI/src/callbacks.C \
@@ -112,7 +113,7 @@ SRCS	     += ../../dyninstAPI/src/ast.C \
 		../src/threadMgr.C \
 		../src/pd_thread.C \
 		../src/debug.C
-                 
+
 ifdef USES_SHM_SAMPLING
 SRCS 		+= ../src/varInstanceHKs.C ../src/varInstance.C \
 		   ../src/shmMgr.C  \
@@ -120,7 +121,6 @@ SRCS 		+= ../src/varInstanceHKs.C ../src/varInstance.C \
 		   ../src/shmSegment-unix.C \
 		   ../src/shmSegment.C \
 		   ../src/sharedMetaData.C
-                   #../src/varTable.C
 
 CXXFLAGS	+= -DSHM_SAMPLING
 TFLAGS		+= -DSHM_SAMPLING
