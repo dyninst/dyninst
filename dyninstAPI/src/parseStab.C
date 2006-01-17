@@ -2158,8 +2158,9 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 
 	case 's':	// struct
 	case 'u':	// union
+        case 'T':       // Fortran TYPE
 	    /* Type descriptor */
-	    if (stabstr[cnt] == 's') {
+	    if (stabstr[cnt] == 's' || stabstr[cnt] == 'T') {
 	        typdescr = BPatch_dataStructure;
 	    } else {
 	        typdescr = BPatch_dataUnion;
