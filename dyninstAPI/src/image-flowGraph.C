@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.1 2006/01/14 23:47:30 nater Exp $
+ * $Id: image-flowGraph.C,v 1.2 2006/01/17 23:13:53 nater Exp $
  */
 
 #include <stdio.h>
@@ -1034,7 +1034,6 @@ bool image_func::buildCFG(
             else if( ah.isACallInstruction() ||
                      ah.isADynamicCallInstruction() )
             {
-                // delay slots?
                 currBlk->lastInsnOffset_ = currAddr;
                 currBlk->blockEndOffset_ = ah.peekNext();
                 //currBlk->blockEndOffset_ = currAddr + insnSize;

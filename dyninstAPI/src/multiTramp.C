@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.22 2006/01/06 16:53:16 bernat Exp $
+// $Id: multiTramp.C,v 1.23 2006/01/17 23:13:54 nater Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -424,7 +424,11 @@ void multiTramp::updateInstInstances() {
                 
                 // Let's get the next insn... we can do this with an InstrucIter
                 InstrucIter iter(insn->origAddr, func());
-
+                // The delay slot came along with us; don't branch back to it
+                if(iter.isDelaySlot())
+                {
+                    iter++;
+                }
                 obj->setFallthrough(new trampEnd(this, iter.peekNext()));
                 obj->fallthrough_->setPrevious(obj);
                 changedSinceLastGeneration_ = true;
@@ -1720,7 +1724,7 @@ trampEnd::trampEnd(const trampEnd *parEnd,
 generatedCodeObject *trampEnd::replaceCode(generatedCodeObject *obj) {
     multiTramp *newMulti = dynamic_cast<multiTramp *>(obj);
     assert(newMulti);
-    
+   
     return new trampEnd(multi_, target_);
 }
 
