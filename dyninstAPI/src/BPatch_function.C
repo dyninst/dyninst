@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.67 2006/01/14 23:47:33 nater Exp $
+// $Id: BPatch_function.C,v 1.68 2006/01/19 20:01:19 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -609,8 +609,8 @@ void BPatch_function::fixupUnknown(BPatch_module *module) {
    }
 }
 
-void BPatch_function::calc_liveness(BPatch_point *point) {
 #if defined(os_aix) || defined(arch_x86_64)
+void BPatch_function::calc_liveness(BPatch_point *point) {
     assert(point);
     instPoint *iP = point->getPoint();
     assert(iP);
@@ -653,8 +653,11 @@ void BPatch_function::calc_liveness(BPatch_point *point) {
     }
     delete [] elements;
     // END LIVENESS ANALYSIS STUFF
-#endif
 }
+#else
+void BPatch_function::calc_liveness(BPatch_point *) {
+}
+#endif
 
 bool BPatch_function::containsSharedBlocks() {
     return func->containsSharedBlocks();
