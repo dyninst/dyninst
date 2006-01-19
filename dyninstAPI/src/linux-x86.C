@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.85 2006/01/11 15:41:30 chadd Exp $
+// $Id: linux-x86.C,v 1.86 2006/01/19 20:01:13 legendre Exp $
 
 #include <fstream>
 
@@ -83,6 +83,7 @@
 #endif
 
 #include "dyninstAPI/src/dyn_lwp.h"
+#include "dyninstAPI/src/linux.h"
 #include <sstream>
 
 #include "dyninstAPI/src/addLibraryLinux.h"
@@ -426,9 +427,6 @@ void *parseVsyscallPage(char *buffer, unsigned dso_size, process *p);
 extern Address getRegValueAtFrame(void *ehf, Address pc, int reg, 
 				  int *reg_map, process *p, bool *error);
 
-#define VSYS_DEFAULT_START 0xffffe000
-#define VSYS_DEFAULT_END   0xfffff000
-
 /**
  * Signal handler return points can be found in the vsyscall page.
  * this function reads the symbol information that describes these
@@ -437,69 +435,108 @@ extern Address getRegValueAtFrame(void *ehf, Address pc, int reg,
 #define VSYS_SIGRETURN_NAME "_sigreturn"
 static void getVSyscallSignalSyms(char *buffer, unsigned dso_size, process *p)
 {
-  Elf_Scn *sec;
-  Elf32_Shdr *shdr;
-  Elf32_Ehdr *ehdr;
-  Elf32_Sym *syms;
-  unsigned i;
-  size_t dynstr = 0, shstr;
-
-  Elf *elf = elf_memory(buffer, dso_size);
-  if (elf == NULL)
-    goto err_handler;
-  ehdr = elf32_getehdr(elf);
-
-  //Get string section indexes
-  shstr = ehdr->e_shstrndx;
-  for (i = 0; i < ehdr->e_shnum; i++)
-  {
-    shdr = elf32_getshdr(elf_getscn(elf, i));
-    if (shdr != NULL && shdr->sh_type == SHT_STRTAB && 	
-        strcmp(elf_strptr(elf, shstr, shdr->sh_name), ".dynstr") == 0)
-    {
-      dynstr = i;
-      break;
-    }
-  }
-
-  //For each section..
-  for (sec = elf_nextscn(elf, NULL); sec != NULL; sec = elf_nextscn(elf, sec))      
-  {
-    shdr = elf32_getshdr(sec);
-    if (shdr == NULL) goto err_handler;
-    if (shdr->sh_type == SHT_DYNSYM)
-    {
-      syms = (Elf32_Sym *) elf_getdata(sec, NULL)->d_buf;
-      //For each symbol ..
-      for (i = 0; i < (shdr->sh_size / sizeof(Elf32_Sym)); i++)
+   Elf_Scn *sec;
+   Elf32_Shdr *shdr;
+   Elf32_Ehdr *ehdr;
+   Elf32_Sym *syms;
+   unsigned i;
+   size_t dynstr = 0, shstr;
+   
+   Elf *elf = elf_memory(buffer, dso_size);
+   if (elf == NULL)
+      goto err_handler;
+   ehdr = elf32_getehdr(elf);
+   
+   //Get string section indexes
+   shstr = ehdr->e_shstrndx;
+   for (i = 0; i < ehdr->e_shnum; i++)
+   {
+      shdr = elf32_getshdr(elf_getscn(elf, i));
+      if (shdr != NULL && shdr->sh_type == SHT_STRTAB && 	
+          strcmp(elf_strptr(elf, shstr, shdr->sh_name), ".dynstr") == 0)
       {
-	if ((syms[i].st_info & 0xf) == STT_FUNC)
-	{
-	  //Check if this is a function symbol
-	  char *name = elf_strptr(elf, dynstr, syms[i].st_name);
-	  if (strstr(name, VSYS_SIGRETURN_NAME) != NULL)
-	  {	    
-	    // Aggravating... FC3 has these as offsets from the entry
-	    // of the vsyscall page. Others have these as absolutes.
-	    // We hates them, my precioussss....
-	    Address signal_addr = syms[i].st_value;
-	    if (signal_addr < p->getVsyscallStart()) {
-	      p->addSignalHandler(syms[i].st_value + p->getVsyscallStart(), 4);
-	    }
-	    else 
-	      p->addSignalHandler(syms[i].st_value, 4);
-	  } 
-	}
+         dynstr = i;
+         break;
       }
-    }
-  }
-  
-  elf_end(elf);
-  return;
+   }
+   
+   //For each section..
+   for (sec = elf_nextscn(elf, NULL); sec != NULL; sec = elf_nextscn(elf, sec))
+   {
+      shdr = elf32_getshdr(sec);
+      if (shdr == NULL) goto err_handler;
+      if (shdr->sh_type == SHT_DYNSYM)
+      {
+         syms = (Elf32_Sym *) elf_getdata(sec, NULL)->d_buf;
+         //For each symbol ..
+         for (i = 0; i < (shdr->sh_size / sizeof(Elf32_Sym)); i++)
+         {
+            if ((syms[i].st_info & 0xf) == STT_FUNC)
+            {
+               //Check if this is a function symbol
+               char *name = elf_strptr(elf, dynstr, syms[i].st_name);
+               if (strstr(name, VSYS_SIGRETURN_NAME) != NULL)
+               {	    
+                  // Aggravating... FC3 has these as offsets from the entry
+                  // of the vsyscall page. Others have these as absolutes.
+                  // We hates them, my precioussss....
+                  Address signal_addr = syms[i].st_value;
+                  if (signal_addr < p->getVsyscallStart()) {
+                     p->addSignalHandler(syms[i].st_value + 
+                                         p->getVsyscallStart(), 4);
+                  }
+                  else 
+                     p->addSignalHandler(syms[i].st_value, 4);
+               } 
+            }
+         }
+      }
+   }
+   
+   elf_end(elf);
+   return;
 
 err_handler:
-  if (elf != NULL)
-    elf_end(elf);
+   if (elf != NULL)
+      elf_end(elf);
+}
+
+static volatile int segfaulted = 0;
+static void catchSigSegV(int) {
+   segfaulted = 1;
+}
+
+static char *execVsyscallFetch(process *p, char *buffer) {
+   //We can't read the Vsyscall page out of the process addr
+   // space do to a kernel bug.  However, the versions of the
+   // kernel with this bug don't move the vsyscall page between
+   // processes, so let's read it out of the mutator's.
+   //Latter versions of the kernel do move the page between
+   // processes, which makes our read attempt seg fault.  Let's
+   // install a handler to be safe.
+   volatile char *start;
+   unsigned size;
+   sighandler_t old_segv;
+
+   segfaulted = 0;
+   start = (char *) p->getVsyscallStart();
+   size = p->getVsyscallEnd() - p->getVsyscallStart();
+
+   //Install SegSegV handler.
+   old_segv = signal(SIGSEGV, catchSigSegV);
+
+   //Copy buffer
+   for (unsigned i=1; i<size; i++) {
+      buffer[i] = start[i];
+      if (segfaulted) 
+         break;
+   }
+
+   //Restore handler.
+   signal(SIGSEGV, old_segv);
+   if (segfaulted)
+      return NULL;
+   return buffer;
 }
 
 void calcVSyscallFrame(process *p)
@@ -512,9 +549,8 @@ void calcVSyscallFrame(process *p)
    * If we've already calculated and cached the DSO information then 
    * just return.
    **/
-  if (p->getVsyscallStart() != 0x0) {
-    return; 
-  }
+  if (p->getVsyscallStatus() != vsys_unknown)
+     return;
 
 #if defined(arch_x86_64)
   // FIXME: HACK to disable vsyscall page for AMD64, for now
@@ -526,13 +562,11 @@ void calcVSyscallFrame(process *p)
   /**
    * Read the location of the vsyscall page from /proc/.
    **/
-  if (!p->readAuxvInfo())
-  {
-    //If we couldn't read from auxv, we're probably on linux 2.4.
-    // It should be safe to assume the following defaults:
-    p->setVsyscallRange(VSYS_DEFAULT_START, VSYS_DEFAULT_END);
-    p->setVsyscallData(NULL);
-    return;
+  p->readAuxvInfo();
+  if (p->getVsyscallStatus() != vsys_found) {
+     p->setVsyscallRange(0x0, 0x0);
+     p->setVsyscallData(NULL);
+     return;
   }
   
   /**
@@ -541,19 +575,23 @@ void calcVSyscallFrame(process *p)
   dso_size = p->getVsyscallEnd() - p->getVsyscallStart();
   buffer = (char *) calloc(1, dso_size);
   assert(buffer);
-  if (!p->readDataSpace((caddr_t) p->getVsyscallStart(), dso_size, buffer,
-			false))
+  if (!p->readDataSpace((caddr_t)p->getVsyscallStart(), dso_size, buffer,false))     
   {
-     //Linux 2.6.0 - Linux 2.6.2 has a  bug where ptrace 
-     // can't read from the DSO.  The process can read the memory, 
-     // it's just ptrace that's acting stubborn.  
-     //Solution: (Bad hack) Making an RPC isn't safe, it could restart the
-     // process.  Instead we'll read the DSO out of paradynd's
-     // address space.  On Linux 2.6.0-2.6.2 the DSO doesn't change
-     // within kernel versions, so one process' DSO should be as good
-     // as any others.
-     memcpy(buffer, (void *) p->getVsyscallStart(), dso_size);
+     int major, minor, sub;
+     get_linux_version(major, minor, sub);
+     if (major == 2 && minor == 6 && sub <= 2 && sub >= 0) {
+        //Linux 2.6.0 - Linux 2.6.2 has a  bug where ptrace 
+        // can't read from the DSO.  The process can read the memory, 
+        // it's just ptrace that's acting stubborn.
+        if (!execVsyscallFetch(p, buffer))
+        {
+           p->setVsyscallData(NULL);
+           p->setVsyscallStatus(vsys_notfound);
+           return;
+        }
+     }
   }
+
   getVSyscallSignalSyms(buffer, dso_size, p);
   result = parseVsyscallPage(buffer, dso_size, p);
   p->setVsyscallData(result);

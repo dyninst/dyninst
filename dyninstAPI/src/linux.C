@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.182 2005/11/21 17:16:13 jaw Exp $
+// $Id: linux.C,v 1.183 2006/01/19 20:01:14 legendre Exp $
 
 #include <fstream>
 
@@ -220,48 +220,45 @@ bool SignalGeneratorUnix::decodeEvent(EventRecord &ev)
    return true;
 }
 
-static void get_linux_version(int &major, int &minor)
+bool get_linux_version(int &major, int &minor, int &subvers)
 {
-   static int maj = 0, min = 0;
+   static int maj = 0, min = 0, sub = 0;
    int result;
    FILE *f;
    if (maj)
    {
       major = maj;
       minor = min;
-      return;
+      subvers = sub;
+      return true;
    }
    f = fopen("/proc/version", "r");
-   if (!f)
-   {
-      //Assume 2.4, which is the earliest version we support
-      major = maj = 2;
-      minor = min = 4;
-      return;
-   }
-   result = fscanf(f, "Linux version %d.%d", &major, &minor);
+   if (!f) goto error;
+   result = fscanf(f, "Linux version %d.%d.%d", &major, &minor, &subvers);
    fclose(f);
-
-   if (result != 2)
-   {
-      major = maj = 2;
-      minor = min = 4;
-      return;
-   }
+   if (result != 3) goto error;
 
    maj = major;
    min = minor;
-   return;
+   sub = subvers;
+   return true;
+
+ error:
+   //Assume 2.4, which is the earliest version we support
+   major = maj = 2;
+   minor = min = 4;
+   subvers = sub = 0;
+   return false;
 }
 
 static pdvector<pdstring> attached_lwp_ids;
 static void add_lwp_to_poll_list(dyn_lwp *lwp)
 {
    char filename[64];
-   int lwpid, major, minor;
+   int lwpid, major, minor, sub;
    struct stat buf;
 
-   get_linux_version(major, minor);   
+   get_linux_version(major, minor, sub);   
    if ((major == 2 && minor > 4) || (major >= 3))
       return;
    if (!lwp->proc()->multithread_capable(true))
@@ -1703,6 +1700,87 @@ bool dyn_lwp::representativeLWP_attach_() {
    return true;
 }
 
+#define PREMS_PRIVATE (1 << 4)
+#define PREMS_SHARED  (1 << 3)
+#define PREMS_READ    (1 << 2)
+#define PREMS_WRITE   (1 << 1)
+#define PREMS_EXEC    (1 << 0)
+
+typedef struct maps_entries {
+   Address start;
+   Address end;
+   unsigned prems;
+   Address offset;
+   int dev_major;
+   int dev_minor;
+   int inode;
+   char path[512];
+} map_entries;
+
+#define LINE_LEN 1024
+struct maps_entries *getLinuxMaps(int pid, unsigned &maps_size) {
+   char line[LINE_LEN], prems[16], *s;
+   int result;
+   FILE *f;
+   map_entries *maps;
+   unsigned i, no_lines = 0;
+   
+  
+   sprintf(line, "/proc/%d/maps", pid);
+   f = fopen(line, "r");
+   if (!f)
+      return NULL;
+   
+   //Calc num of entries needed and allocate the buffer.  Assume the 
+   //process is stopped.
+   while (!feof(f)) {
+      fgets(line, LINE_LEN, f);
+      no_lines++;
+   }
+   maps = (map_entries *) malloc(sizeof(map_entries) * (no_lines+1));
+   if (!maps)
+      return NULL;
+   result = fseek(f, 0, SEEK_SET);
+   if (result == -1)
+      return NULL;
+
+   //Read all of the maps entries
+   for (i = 0; i < no_lines; i++) {
+      if (!fgets(line, LINE_LEN, f))
+         break;
+      line[LINE_LEN - 1] = '\0';
+      sscanf(line, "%x-%x %16s %x %x:%x %u %512s\n", 
+             (unsigned *) &maps[i].start, (unsigned *) &maps[i].end, prems, 
+             (unsigned *) &maps[i].offset, &maps[i].dev_major,
+             &maps[i].dev_minor, &maps[i].inode, maps[i].path);
+      maps[i].prems = 0;
+      for (s = prems; *s != '\0'; s++) {
+         switch (*s) {
+            case 'r':
+               maps[i].prems |= PREMS_READ;
+               break;
+            case 'w':
+               maps[i].prems |= PREMS_WRITE;
+               break;
+            case 'x':
+               maps[i].prems |= PREMS_EXEC;
+               break;
+            case 'p':
+               maps[i].prems |= PREMS_PRIVATE;
+               break;
+            case 's':
+               maps[i].prems |= PREMS_EXEC;
+               break;
+         }
+      }
+   }
+   //Zero out the last entry
+   memset(&(maps[i]), 0, sizeof(maps_entries));
+   maps_size = i;
+   
+   return maps;
+}
+
 // These constants are not defined in all versions of elf.h
 #ifndef AT_NULL
 #define AT_NULL 0
@@ -1713,11 +1791,33 @@ bool dyn_lwp::representativeLWP_attach_() {
 #ifndef AT_SYSINFO_EHDR
 #define AT_SYSINFO_EHDR 33
 #endif
+#ifndef PTRACE_GET_THREAD_AREA
+#define PTRACE_GET_THREAD_AREA 25
+#endif 
+
+static bool couldBeVsyscallPage(map_entries *entry, bool strict, Address pagesize) {
+   if (strict) {
+       if (entry->prems != PREMS_PRIVATE)
+         return false;
+      if (entry->path[0] != '\0')
+         return false;
+      if (((entry->end - entry->start) / pagesize) > 0xf)
+         return false;
+   }
+   if (entry->offset != 0)
+      return false;
+   if (entry->dev_major != 0 || entry->dev_minor != 0)
+      return false;
+   if (entry->inode != 0)
+      return false;
+
+   return true;
+}
 
 bool process::readAuxvInfo()
 {
   /**
-   * The location of the vsyscall is stored in /proc/PID/auxv in Linux 2.6
+   * The location of the vsyscall is stored in /proc/PID/auxv in Linux 2.6.
    * auxv consists of a list of name/value pairs, ending with the AT_NULL
    * name.  There isn't a direct way to get the vsyscall info on Linux 2.4
    **/
@@ -1729,51 +1829,155 @@ bool process::readAuxvInfo()
     int type;
     Address value;
   } auxv_entry;
+
+  if (vsys_status_ != vsys_unknown) {
+     // If we've already found the vsyscall page, just return.
+     // True if it's used, false if it's not.
+     return !(vsys_status_ == vsys_unused);
+  }
   
+  /**
+   * Try to read from /proc/%d/auxv.  On Linux 2.4 systems auxv
+   * doesn't exist, which is okay because vsyscall isn't used.
+   * On latter 2.6 kernels the AT_SYSINFO field isn't present,
+   * so we have to resort to more "extreme" measures.
+   **/
   sprintf(buffer, "/proc/%d/auxv", pid);
-
   fd = open(buffer, O_RDONLY);
-  if (fd == -1)
-  {
-    //This is expected on linux 2.4 systems
-      return false;
+  if (fd != -1) {
+     //Try to read the location out of /proc/pid/auxv
+     do {
+        read(fd, &auxv_entry, sizeof(auxv_entry));
+        if (auxv_entry.type == AT_SYSINFO)
+           text_start = auxv_entry.value;
+        else if (auxv_entry.type == AT_SYSINFO_EHDR)
+           dso_start = auxv_entry.value;
+        else if (auxv_entry.type == AT_PAGESZ)
+           page_size = auxv_entry.value;
+     } while (auxv_entry.type != AT_NULL);
+     P_close(fd);
+     if (page_size == 0x0) 
+        page_size = getpagesize();
+     if (dso_start != 0x0)
+     {
+        vsyscall_start_ = dso_start;
+        vsyscall_end_ = dso_start + page_size;
+        vsyscall_text_ = text_start;
+        vsys_status_ = vsys_found;
+        return true;
+     }
   }
 
-  do {
-    read(fd, &auxv_entry, sizeof(auxv_entry));
-    if (auxv_entry.type == AT_SYSINFO)
-      text_start = auxv_entry.value;
-    else if (auxv_entry.type == AT_SYSINFO_EHDR)
-      dso_start = auxv_entry.value;
-    else if (auxv_entry.type == AT_PAGESZ)
-      page_size = auxv_entry.value;
-  } while (auxv_entry.type != AT_NULL);
+  /**
+   * We couldn't find any entry for the vsyscall page in /proc/pid/auxv
+   *
+   * We'll make several educated attempts at guessing an address
+   * for the vsyscall page.  After deciding on a guess, we'll try to
+   * verify that using /proc/pid/maps.
+   **/
+  pdvector<Address> guessed_addrs;
 
-  P_close(fd);
-
-  // FC3 hackage. If we didn't find the vsyscall page, guess
-  if (text_start == 0x0 && dso_start == 0x0) {
-#if defined( arch_x86 )
-    cerr << "Warning: couldn't find vsyscall page, assuming addr of 0xffffe000" << endl;
-    text_start = 0xffffe400;
-    dso_start = 0xffffe000;
-#else
-	/* Untested; text_start unknown. */
-	cerr << "Warning: couldn't find vsyscall page, assuming addr of 0xa000000000010000." << endl;
-	dso_start = 0xa000000000010000;
-	/* Garbage value to satisfy the assert; IA-64 doesn't care. */
-	text_start = 0xa000000000010000;
+#if defined(arch_x86)
+  // On x86 we can try to read the vsyscall's entry point out of
+  // %gs:0x10.  We can use that address to map into /proc/pid/maps
+  // and find the vsyscall dso.  This seems to work at the moment,
+  // but I wouldn't be surprised if it breaks some day.
+  if (!reachedBootstrapState(loadedRT_bs)) {
+     //We haven't initialized yet, leave the status set to unknown, 
+     // so we'll try again latter.
+     vsys_status_ = vsys_unknown;
+     return false;
+  }
+  pdvector<int_variable *> vars;
+  Address g_addr;
+  if (findVarsByAll("DYNINST_sysEntry", vars) && vars.size() > 0) {
+     readDataSpace((void *) vars[0]->getAddress(), sizeof(Address), 
+                   &g_addr, false);
+     if (g_addr)
+        guessed_addrs.push_back(g_addr);
+  }
 #endif
-  }
-  
-  assert(text_start != 0x0 && dso_start != 0x0);
-  if (page_size == 0x0) page_size = getpagesize();
-  
-  vsyscall_start_ = dso_start;
-  vsyscall_end_ = dso_start + page_size;
-  vsyscall_text_ = text_start;
 
-  return true;
+  /**
+   * Guess some constants that we've seen before.
+   **/
+#if defined(arch_x86) 
+  guessed_addrs.push_back(0xffffe000); //Many early 2.6 systems
+  guessed_addrs.push_back(0xffffd000); //RHEL4
+#elif defined(arch_ia64)
+  guessed_addrs.push_back(0xa000000000010000); 
+  guessed_addrs.push_back(0xa000000000020000); //Juniper & Hogan
+#endif
+
+  /**
+   * Look through every entry in /proc/maps, and compare it to every 
+   * entry in guessed_addrs.  If a guessed_addr looks like the right
+   * thing, then we'll go ahead and call it the vsyscall page.
+   **/
+  unsigned num_maps;
+  maps_entries *secondary_match = NULL;
+  maps_entries *maps = getLinuxMaps(pid, num_maps);
+  for (unsigned i=0; i<guessed_addrs.size(); i++) {
+     Address addr = guessed_addrs[i];
+     for (unsigned j=0; j<num_maps; j++) {
+        map_entries *entry = &(maps[j]);
+        if (addr < entry->start || addr >= entry->end)
+           continue;
+
+        if (couldBeVsyscallPage(entry, true, page_size)) {
+           //We found a possible page using a strict check. 
+           // This is really likely to be it.
+           vsyscall_start_ = entry->start;
+           vsyscall_end_ = entry->end;
+           vsyscall_text_ = 0x0;
+           vsys_status_ = vsys_found;
+           free(maps);
+           return true;
+        }
+
+        if (!couldBeVsyscallPage(entry, false, page_size)) {
+           //We found an entry that loosely looks like the
+           // vsyscall page.  Let's hang onto this and return 
+           // it if we find nothing else.
+           secondary_match = entry;
+        }
+     }  
+  }
+
+  /**
+   * There were no hits using our guessed_addrs scheme.  Let's
+   * try to look at every entry in the maps table (not just the 
+   * guessed addresses), and see if any of those look like a vsyscall page.
+   **/
+  for (unsigned i=0; i<num_maps; i++) {
+     if (couldBeVsyscallPage(&(maps[i]), true, page_size)) {
+        vsyscall_start_ = maps[i].start;
+        vsyscall_end_ = maps[i].end;
+        vsyscall_text_ = 0x0;
+        vsys_status_ = vsys_found;
+        free(maps);
+        return true;
+     }
+  }
+
+  /**
+   * Return any secondary possiblitiy pages we found in our earlier search.
+   **/
+  if (secondary_match) {
+     vsyscall_start_ = secondary_match->start;
+     vsyscall_end_ = secondary_match->end;
+     vsyscall_text_ = 0x0;
+     vsys_status_ = vsys_found;
+     free(maps);
+     return true;
+  }
+
+  /**
+   * Time to give up.  Sigh.
+   **/
+  vsys_status_ = vsys_notfound;
+  free(maps);
+  return false;
 }
 
 void loadNativeDemangler() {}
