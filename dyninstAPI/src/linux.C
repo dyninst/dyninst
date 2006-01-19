@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.183 2006/01/19 20:01:14 legendre Exp $
+// $Id: linux.C,v 1.184 2006/01/19 23:21:11 tlmiller Exp $
 
 #include <fstream>
 
@@ -1749,9 +1749,9 @@ struct maps_entries *getLinuxMaps(int pid, unsigned &maps_size) {
       if (!fgets(line, LINE_LEN, f))
          break;
       line[LINE_LEN - 1] = '\0';
-      sscanf(line, "%x-%x %16s %x %x:%x %u %512s\n", 
-             (unsigned *) &maps[i].start, (unsigned *) &maps[i].end, prems, 
-             (unsigned *) &maps[i].offset, &maps[i].dev_major,
+      sscanf(line, "%lx-%lx %16s %lx %x:%x %u %512s\n", 
+             (Address *) &maps[i].start, (Address *) &maps[i].end, prems, 
+             (Address *) &maps[i].offset, &maps[i].dev_major,
              &maps[i].dev_minor, &maps[i].inode, maps[i].path);
       maps[i].prems = 0;
       for (s = prems; *s != '\0'; s++) {
@@ -1814,6 +1814,7 @@ static bool couldBeVsyscallPage(map_entries *entry, bool strict, Address pagesiz
    return true;
 }
 
+
 bool process::readAuxvInfo()
 {
   /**
@@ -1856,33 +1857,30 @@ bool process::readAuxvInfo()
            page_size = auxv_entry.value;
      } while (auxv_entry.type != AT_NULL);
      P_close(fd);
-     if (page_size == 0x0) 
-        page_size = getpagesize();
-     if (dso_start != 0x0)
-     {
-        vsyscall_start_ = dso_start;
-        vsyscall_end_ = dso_start + page_size;
-        vsyscall_text_ = text_start;
-        vsys_status_ = vsys_found;
-        return true;
-     }
   }
 
-  /**
-   * We couldn't find any entry for the vsyscall page in /proc/pid/auxv
-   *
+ /**
+   * Even if we found dso_start in /proc/pid/auxv, the vsyscall 'page'
+   * can be larger than a single page.  Thus we look through /proc/pid/maps
+   * for known, default, or guessed start address(es).
+   **/
+  pdvector<Address> guessed_addrs;
+  
+  /* The first thing to check is the auxvinfo, if we have any. */
+  if( dso_start != 0x0 ) { guessed_addrs.push_back( dso_start ); }
+    
+ /**
    * We'll make several educated attempts at guessing an address
    * for the vsyscall page.  After deciding on a guess, we'll try to
    * verify that using /proc/pid/maps.
    **/
-  pdvector<Address> guessed_addrs;
 
 #if defined(arch_x86)
   // On x86 we can try to read the vsyscall's entry point out of
   // %gs:0x10.  We can use that address to map into /proc/pid/maps
   // and find the vsyscall dso.  This seems to work at the moment,
   // but I wouldn't be surprised if it breaks some day.
-  if (!reachedBootstrapState(loadedRT_bs)) {
+  if (!reachedBootstrapState(loadedRT_bs) && dso_start == 0x0) {
      //We haven't initialized yet, leave the status set to unknown, 
      // so we'll try again latter.
      vsys_status_ = vsys_unknown;
@@ -1905,6 +1903,7 @@ bool process::readAuxvInfo()
   guessed_addrs.push_back(0xffffe000); //Many early 2.6 systems
   guessed_addrs.push_back(0xffffd000); //RHEL4
 #elif defined(arch_ia64)
+  guessed_addrs.push_back(0xa000000000000000); 
   guessed_addrs.push_back(0xa000000000010000); 
   guessed_addrs.push_back(0xa000000000020000); //Juniper & Hogan
 #endif
