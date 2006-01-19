@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.568 2006/01/14 23:47:56 nater Exp $
+// $Id: process.C,v 1.569 2006/01/19 20:01:16 legendre Exp $
 
 #include <ctype.h>
 
@@ -1883,6 +1883,7 @@ process::~process()
 // function (which can return an error value) to handle specific
 // cases.
 process::process(int ipid) :
+    systemPrelinkCommand(NULL),
     cached_result(not_cached), // MOVE ME
     pid(ipid),
     parent(NULL),
@@ -1914,7 +1915,6 @@ process::process(int ipid) :
     dyninstlib_brk_addr(0),
     main_brk_addr(0),
     runProcessAfterInit(false),
-    systemPrelinkCommand(NULL),
 #if defined(os_windows)
     processHandle_(INVALID_HANDLE_VALUE),
     mainFileHandle_(INVALID_HANDLE_VALUE),
@@ -1933,6 +1933,7 @@ process::process(int ipid) :
     , unwindProcessArg(NULL) // And this one too
 #endif
 #if defined(os_linux)
+    , vsys_status_(vsys_unknown)
     , vsyscall_start_(0)
     , vsyscall_end_(0)
     , vsyscall_text_(0)
@@ -2464,6 +2465,7 @@ bool process::setupGeneral() {
 // Needs to strictly duplicate all process information; this is a _lot_ of work.
 
 process::process(const process *parentProc, int childPid, int childTrace_fd) : 
+    systemPrelinkCommand(NULL),
     cached_result(parentProc->cached_result), // MOVE ME
     pid(childPid),
     parent(parentProc),
@@ -2504,8 +2506,7 @@ process::process(const process *parentProc, int childPid, int childTrace_fd) :
     lastObsCostLow(parentProc->lastObsCostLow),
     costAddr_(parentProc->costAddr_),
     threadIndexAddr(parentProc->threadIndexAddr),
-    trampGuardBase_(parentProc->trampGuardBase_),
-    systemPrelinkCommand(NULL)
+    trampGuardBase_(parentProc->trampGuardBase_)
 #if defined(arch_ia64)
     , unwindAddressSpace(NULL) // Recreated automatically in getActiveFrame
     , unwindProcessArg(NULL) // And this

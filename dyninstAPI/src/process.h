@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.345 2006/01/14 23:47:57 nater Exp $
+/* $Id: process.h,v 1.346 2006/01/19 20:01:17 legendre Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -114,6 +114,8 @@ typedef enum { unstarted_bs,
 
 typedef enum { terminateFailed, terminateSucceeded, alreadyTerminated } terminateProcStatus_t;
 
+typedef enum { vsys_unknown, vsys_unused, vsys_notfound, vsys_found } syscallStatus_t;
+
 const int LOAD_DYNINST_BUF_SIZE = 256;
 
 class instPoint;
@@ -137,7 +139,6 @@ class mapped_module;
 class dynamic_linking;
 class int_variable;
 class int_function;
-
 
 class rpcMgr;
 class syscallNotification;
@@ -264,7 +265,7 @@ class process {
   void continueAfterNextStop() { continueAfterNextStop_ = true; }
   static process *findProcess(int pid);
 
-char * systemPrelinkCommand;
+  char * systemPrelinkCommand;
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
@@ -488,13 +489,13 @@ char * systemPrelinkCommand;
   Address getVsyscallStart() { return vsyscall_start_; }
   Address getVsyscallEnd() { return vsyscall_end_; }
   Address getVsyscallText() { return vsyscall_text_; } 
+  syscallStatus_t getVsyscallStatus() { return vsys_status_; }
+  void setVsyscallStatus(syscallStatus_t s) { vsys_status_ = s; }
   void setVsyscallRange(Address start, Address end) 
     { vsyscall_start_ = start; vsyscall_end_ = end; }
   void *getVsyscallData() { return vsyscall_data_; }
   void setVsyscallData(void *data) { vsyscall_data_ = data; }
-  bool readAuxvInfo();
-  
- 
+  bool readAuxvInfo(); 
 #endif
 
   public:
@@ -1166,6 +1167,7 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   //////////////////
   // Linux vsyscall stuff
   //////////////////
+  enum syscallStatus_t vsys_status_; 
   Address vsyscall_start_;
   Address vsyscall_end_;
   Address vsyscall_text_;
@@ -1177,7 +1179,7 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
 
 
 process *ll_createProcess(const pdstring file, pdvector<pdstring> *argv, 
-			  pdvector<pdstring> *envp,
+                          pdvector<pdstring> *envp,
                           const pdstring dir, int stdin_fd, int stdout_fd,
                           int stderr_fd);
 
