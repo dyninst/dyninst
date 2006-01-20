@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.16 2006/01/14 23:47:46 nater Exp $
+// $Id: image-func.C,v 1.17 2006/01/20 19:25:52 nater Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -911,7 +911,10 @@ bool image_func::cleanBlockList() {
         // it in the future.. Since we're doing offsets, zero is
         // _fine_.
         //assert(blockList[foo]->firstInsnOffset() != 0);
-        assert(blockList[foo]->lastInsnOffset() != 0);
+        // if the first instruction is at 0 and it is a control
+        // transfer instruction, lastInsnOffset can be zero too.
+        // -nater 1/20/06
+        //assert(blockList[foo]->lastInsnOffset() != 0);
         assert(blockList[foo]->endOffset() != 0);
 
         /* Serious safety checks. These can tag things that are
@@ -1132,14 +1135,17 @@ image_instPoint * image_basicBlock::getCallInstPoint()
     // one call instPoint within this block's range. Select an arbitrary
     // function.
 
-    calls = funcs_[0]->funcCalls();
-
-    for(unsigned int i=0;i<calls.size();i++)
+    for(unsigned int j=0;j<funcs_.size();j++)
     {
-        if(calls[i]->offset_ >= firstInsnOffset_ &&
-           calls[i]->offset_ <= lastInsnOffset_)
-            return calls[i]; 
-    } 
+        calls = funcs_[j]->funcCalls();
+        for(unsigned int i=0;i<calls.size();i++)
+        {
+            if(calls[i]->offset_ >= firstInsnOffset_ &&
+               calls[i]->offset_ <= lastInsnOffset_)
+                return calls[i]; 
+        } 
+    }
+       
     return NULL;
 }
 
@@ -1150,14 +1156,17 @@ image_instPoint * image_basicBlock::getRetInstPoint()
     if(!containsRet_ || funcs_.size() == 0)
         return NULL;
 
-    rets = funcs_[0]->funcExits();
-
-    for(unsigned int i=0;i<rets.size();i++)
+    for(unsigned int j=0;j<funcs_.size();j++)
     {
-        if(rets[i]->offset_ >= firstInsnOffset_ &&
-           rets[i]->offset_ <= lastInsnOffset_)
-            return rets[i];
+        rets = funcs_[j]->funcExits();
+        for(unsigned int i=0;i<rets.size();i++)
+        {
+            if(rets[i]->offset_ >= firstInsnOffset_ &&
+               rets[i]->offset_ <= lastInsnOffset_)
+                return rets[i];
+        } 
     }
+
     return NULL;
 }
 
