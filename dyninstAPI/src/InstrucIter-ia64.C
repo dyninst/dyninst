@@ -74,10 +74,21 @@ bool addressIsValidInsnAddr( Address addr ) {
 		}
 	} /* end addressIsValidInsnAddr() */
 
+/* Access the instruction's type through the correct virtual method */
+instruction::insnType InstrucIter::getInsnType()
+{
+    instruction::insnType ret;
+
+    instruction *insn = getInsnPtr();
+    ret = insn->getType();
+
+    delete insn;
+    return ret;
+}
+
 bool InstrucIter::isAReturnInstruction()
 {
-    instruction insn = getInstruction();
-    switch( insn.getType() ) {
+    switch( getInsnType() ) {
     case instruction::RETURN:
         return true;
         break;
@@ -90,54 +101,70 @@ bool InstrucIter::isAReturnInstruction()
 
 bool InstrucIter::isAIndirectJumpInstruction()
 {
-    instruction insn = getInstruction();
-    switch( insn.getType() ) {
+    bool ret;
+    instruction * itmp = getInsnPtr();
+    switch( itmp->getType() ) {
     case instruction::INDIRECT_BRANCH:
-        if( insn.getPredicate() == 0 ) { return true; }
+        if( itmp->getPredicate() == 0 ) 
+            ret = true;
+        else 
+            ret = false;
         break;
-        
     default:
+        ret = false;
         break;
     } /* end instruction-type switch */
-    return false;
+    delete itmp;
+    return ret;
 }
 
 bool InstrucIter::isACondBranchInstruction()
 {
-    instruction insn = getInstruction();
-    switch( insn.getType() ) {
+    bool ret;
+    instruction * itmp = getInsnPtr();
+    switch( itmp->getType() ) {
     case instruction::DIRECT_BRANCH:
         /* Not sure if this second case is intended. */
-    case instruction::INDIRECT_BRANCH: {
-        if( insn.getPredicate() != 0 ) { return true; }
-        break; } 
-        
+    case instruction::INDIRECT_BRANCH: 
+        if( itmp->getPredicate() != 0 ) 
+            ret = true; 
+        else
+            ret = false;
+        break;  
     default:
+        ret = false;
         break;
     } /* end instruction-type switch */
-    return false;
+    delete itmp;
+    return ret;
 }
 
 /* We take this to mean a dirct conditional branch which always executes. */
 bool InstrucIter::isAJumpInstruction()
 {
-    instruction insn = getInstruction();
+    bool ret;
+    instruction * itmp = getInsnPtr();
 
-    switch( insn.getType() ) {
+    switch( itmp->getType() ) {
     case instruction::DIRECT_BRANCH:
-        if( insn.getPredicate() == 0 ) { return true; }
+        if( itmp->getPredicate() == 0 ) 
+            ret = true;
+        else
+            ret = false;
         break;
         
     default:
+        ret = false;
         break;
     } /* end instruction-type switch */
-    return false;
+    delete itmp;
+    return ret;
 }
 
 bool InstrucIter::isACallInstruction()
 {
-    return (getInstruction().getType() == instruction::DIRECT_CALL ||
-            getInstruction().getType() == instruction::INDIRECT_CALL);
+    return (getInsnType() == instruction::DIRECT_CALL ||
+            getInsnType() == instruction::INDIRECT_CALL);
 }
 
 bool InstrucIter::isAnneal()
@@ -152,12 +179,13 @@ bool InstrucIter::isAnAbortInstruction()
     // but should be more general
 
     // glibc uses break 0, which is illegal
-    return (getInstruction().getType() == instruction::BREAK);
+
+    return (getInsnType() == instruction::BREAK);
 }
 
 bool InstrucIter::isAnAllocInstruction()
 {
-    return insn.getType() == instruction::ALLOC;
+    return (getInsnType() == instruction::ALLOC);
 }
 
 bool InstrucIter::isDelaySlot()
@@ -167,10 +195,11 @@ bool InstrucIter::isDelaySlot()
 
 Address InstrucIter::getBranchTargetAddress()
 {
-    instruction nsn = getInstruction();
-    Address rawTargetAddress = insn.getTargetAddress() + current;
+    instruction * itmp = getInsnPtr();
+    Address rawTargetAddress = itmp->getTargetAddress() + current;
     Address targetAddress = rawTargetAddress - (rawTargetAddress % 0x10);
     // /* DEBUG */ fprintf( stderr, "Instruction at 0x%lx targets 0x%lx\n", currentAddress, targetAddress );
+    delete itmp;
     return targetAddress;
 }
 
@@ -181,7 +210,7 @@ void initOpCodeInfo() {
 BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 {
     instruction insn = getInstruction();
-    instruction::insnType type = insn.getType();
+    instruction::insnType type = getInsnType();
     
     BPatch_memoryAccess * bpma = NULL;
     
