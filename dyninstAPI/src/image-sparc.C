@@ -40,7 +40,7 @@
  */
 
 
-// $Id: image-sparc.C,v 1.7 2006/01/14 23:47:51 nater Exp $
+// $Id: image-sparc.C,v 1.8 2006/01/20 00:12:23 nater Exp $
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -229,17 +229,18 @@ bool image_func::archGetMultipleJumpTargets(
     return ah.getMultipleJumpTargets( targets );
 }
 
-// FIXME not fully implemented (lying and saying it's not a tail call)
-bool image_func::archIsATailCall(Address target,
+
+// XXX We are currently not doing anything special on SPARC with regards
+// to tail calls. Function relocation currently does not do any unwinding
+// of tail calls, so this is not terribly important. However, the whole
+// notion of what a tail call is at the parsing level and where it should
+// be handled with regards to instrumentation needs to be revisited.
+//
+// Currently, this function returns false regardless of whether the
+// instruction matches our tail call heuristics.
+bool image_func::archIsATailCall(InstrucIter &ah,
                                  pdvector< instruction >& allInstructions)
 {
-    InstrucIter ah( target, this);
-    /** XXX This comment makes no sense and is probably lying:
-
-        // Check for tail calls; we auto-relocate the function (why?)
-        // but flag it here.
-
-    **/
     if( CallRestoreTC(ah.getInstruction(), ah.getNextInstruction()) ||
         JmpNopTC(ah.getInstruction(), ah.getNextInstruction(), *ah, this) ||            MovCallMovTC(ah.getInstruction(), ah.getNextInstruction())) 
     {
@@ -251,7 +252,7 @@ bool image_func::archIsATailCall(Address target,
         return false;
 }
 
-// not implemented? FIXME
+// not implemented?
 bool image_func::archIsIndirectTailCall(InstrucIter &ah)
 {
     return false;

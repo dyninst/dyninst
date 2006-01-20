@@ -38,7 +38,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-ia64.C,v 1.6 2006/01/14 23:47:49 nater Exp $
+// $Id: image-ia64.C,v 1.7 2006/01/20 00:12:25 nater Exp $
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -113,7 +113,7 @@ bool image_func::archProcExceptionBlock(Address &catchStart, Address a)
 }
 
 // Not used on IA64
-bool image_func::archIsATailCall(Address target,
+bool image_func::archIsATailCall(InstrucIter &ah,
                                  pdvector< instruction >& allInstructions)
 {
     // Seems like doing it like x86 would be a good idea. FIXME

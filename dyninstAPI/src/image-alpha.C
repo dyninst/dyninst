@@ -38,7 +38,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-alpha.C,v 1.4 2006/01/14 23:47:48 nater Exp $
+// $Id: image-alpha.C,v 1.5 2006/01/20 00:12:21 nater Exp $
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -148,7 +148,7 @@ bool image_func::archProcExceptionBlock(Address &catchStart, Address a)
 }
 
 // not implemented on alpha
-bool image_func::archIsATailCall(Address target,
+bool image_func::archIsATailCall(InstrucIter &ah,
                                  pdvector< instruction >& allInstructions)
 {
     // Seems like doing it like x86 would be a good idea. FIXME

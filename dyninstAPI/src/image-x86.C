@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.13 2006/01/14 23:47:52 nater Exp $
+ * $Id: image-x86.C,v 1.14 2006/01/20 00:12:24 nater Exp $
  */
 
 #include "common/h/Vector.h"
@@ -353,10 +353,12 @@ bool image_func::archProcExceptionBlock(Address &catchStart, Address a)
     }
 }
 
-bool image_func::archIsATailCall(Address target, 
+bool image_func::archIsATailCall(InstrucIter &ah, 
                                  pdvector< instruction >& allInstructions)
 {
-    unsigned numInsns = allInstructions.size() - 2;                                          
+    unsigned numInsns = allInstructions.size() - 2;
+    Address target = ah.getBranchTargetAddress();
+
     if( img()->findFuncByEntry( target ) ||
         ( *allInstructions[ numInsns ].ptr() == POP_EBP ||
         allInstructions[ numInsns ].isLeave() ))

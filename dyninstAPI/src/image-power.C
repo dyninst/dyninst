@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-power.C,v 1.5 2006/01/14 23:47:50 nater Exp $
+// $Id: image-power.C,v 1.6 2006/01/20 00:12:22 nater Exp $
 
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
@@ -130,7 +130,7 @@ bool image_func::archProcExceptionBlock(Address &catchStart, Address a)
 }
 
 // not implemented on power
-bool image_func::archIsATailCall(Address target,
+bool image_func::archIsATailCall(InstrucIter &ah,
                                  pdvector< instruction >& allInstructions)
 {   
     return false;
