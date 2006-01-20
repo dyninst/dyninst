@@ -141,6 +141,8 @@ class InstrucIter {
 #if defined(arch_ia64)
     // We need the bundle to iterate correctly
     IA64_bundle bundle;
+    // Convenient access to correct virtual instruction::getType()
+    instruction::insnType getInsnType();
 #endif
     
  public:
