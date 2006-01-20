@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.3 2006/01/20 00:12:28 nater Exp $
+ * $Id: image-flowGraph.C,v 1.4 2006/01/20 19:25:51 nater Exp $
  */
 
 #include <stdio.h>
@@ -789,6 +789,17 @@ bool image_func::buildCFG(
                     worklist.push_back(currAddr);
                     parsing_printf("- adding address 0x%lx to worklist\n",
                                     currAddr);
+
+                    // add this function to block ownership list if we're
+                    // rolling over an unparsed stub of another function
+                    // (i.e., the next block is the unparsed entry block
+                    // of some function)
+                    if(nextExistingBlock->isStub_ && 
+                       !nextExistingBlock->containedIn(this))
+                    {
+                        parsing_printf("adding to this function\n");
+                        nextExistingBlock->addFunc(this);
+                    }
                 }
                 break;
             }
