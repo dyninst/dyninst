@@ -228,17 +228,17 @@ void runTests()
 
     if (runTest[2]) {
 	func2();
-	if (!passedTest[1]) printf("\n **Failed** test #2\n");
+	if (!passedTest[2]) printf("\n **Failed** test #2\n");
     }
 
     if (runTest[3]) {
 	func3();
-	if (!passedTest[1]) printf("\n **Failed** test #3\n");
+	if (!passedTest[3]) printf("\n **Failed** test #3\n");
     }
 
     if (runTest[4]) {
 	func4();
-	if (!passedTest[1]) printf("\n **Failed** test #4\n");
+	if (!passedTest[4]) printf("\n **Failed** test #4\n");
     }
 }
 
