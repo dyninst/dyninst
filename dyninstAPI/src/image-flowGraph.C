@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.2 2006/01/17 23:13:53 nater Exp $
+ * $Id: image-flowGraph.C,v 1.3 2006/01/20 00:12:28 nater Exp $
  */
 
 #include <stdio.h>
@@ -964,7 +964,7 @@ bool image_func::buildCFG(
                 // NOTE we don't do anything with these?
                 img()->addJumpTarget( target );
 
-                if(archIsATailCall( target, allInstructions ))
+                if(archIsATailCall( ah, allInstructions ))
                 {
                     // Only on x86 & sparc currently
                     currBlk->isExitBlock_ = true;
@@ -1088,17 +1088,19 @@ bool image_func::buildCFG(
 		        }
 
                 if(targetFunc && (targetFunc->symTabName() == "exit" ||
-                                  targetFunc->symTabName() == "abort"))
+                                  targetFunc->symTabName() == "abort" ||
+                                  targetFunc->symTabName() == "__f90_stop"))
                 { 
                     parsing_printf("Call to %s (%lx) detected at 0x%lx\n",
                                         targetFunc->symTabName().c_str(),
                                         target, currAddr);
                 }
                 else if(pltFuncs[target] == "exit" || 
-                        pltFuncs[target] == "abort")
+                        pltFuncs[target] == "abort" ||
+                        pltFuncs[target] == "__f90_stop")
                 {
                     parsing_printf("Call to %s (%lx) detected at 0x%lx\n",
-                                        targetFunc->symTabName().c_str(),
+                                        pltFuncs[target].c_str(),
                                         target, currAddr);
                 }
                 else
