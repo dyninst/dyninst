@@ -67,14 +67,14 @@ void InstrucIter::initializeInsn() {
     else {
         assert(img_); 
         if (!img_->isValidAddress(current)) {
-            fprintf(stderr, "Error: addr 0x%x is not valid!\n",
-                    img_);
+            fprintf(stderr, "Error: addr 0x%lx is not valid!\n",
+                    current);
             assert(0);
         }
         else instPtr = img_->getPtrToInstruction(current);
     }            
     if (!instPtr) {
-        fprintf(stderr, "ERROR: no pointer for address 0x%x\n",
+        fprintf(stderr, "ERROR: no pointer for address 0x%lx\n",
                 current);
     }
     assert(instPtr);
