@@ -520,5 +520,5 @@ bool InstrucIter::isAnAllocInstruction()
 
 bool InstrucIter::isAnAbortInstruction()
 {
-    return false;
+    return insn.isIllegal();
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.39 2005/09/28 17:02:54 bernat Exp $
+// $Id: arch-sparc.h,v 1.40 2006/01/20 00:12:18 nater Exp $
 
 #if !defined(arch_sparc)
 #error "invalid architecture-os inclusion"
@@ -180,6 +180,10 @@ typedef union {
 #define SWAPop3 15 
 
 #define FLUSHWop3 43
+
+/* illegal instructions */
+#define ILLTRAPop 0
+#define ILLTRAPop2 = 0
 
 /* mask bits for various parts of the instruction format */
 #define OPmask		0xc0000000
@@ -551,6 +555,13 @@ class instruction {
           return true;
       }
       return false;
+  }
+
+  bool isIllegal() const {
+    if (insn_.sethi.op == 0 && insn_.sethi.op2 == 0) {
+        return true;
+    }
+    return false;
   }
   
  private:
