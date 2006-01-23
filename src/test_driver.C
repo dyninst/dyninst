@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.5 2005/11/22 19:41:24 bpellin Exp $
+// $Id: test_driver.C,v 1.6 2006/01/23 22:21:55 bpellin Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -68,12 +68,14 @@ bool enableLogging = false;
 bool runAll = true;
 bool resumeLog = false;
 bool useResume = false;
+bool useHumanLog = false;
 int skipToTest = 0;
 int skipToMutatee = 0;
 int skipToOption = 0;
 int testLimit = 0;
 
 char *resumelog_name = "resumelog";
+char *humanlog_name = NULL;
 
 char *pdscrdir = NULL;
 char *uw_pdscrdir = "/p/paradyn/builds/scripts";
@@ -241,6 +243,7 @@ void executeSaveTheWorld(BPatch_thread *appThread, int saveTheWorld, char *pathn
 	}
 #endif
 }
+
 
 void printLogTestHeader(char *name)
 {
@@ -483,6 +486,66 @@ bool inTestList(test_data_t &test, std::vector<char *> &test_list)
    return false;
 }
 
+// Human Readable Log Editing Functions
+fpos_t printCrashHumanLog(test_data_t test, char *mutatee, create_mode_t cm)
+{
+   FILE *human;
+   fpos_t init_pos;
+   
+   human = fopen(humanlog_name, "a");
+   // Set initial file pointer position
+   if ( fgetpos(human, &init_pos) != 0 )
+   {
+      fprintf(stderr, "fgetpos failed\n");
+      exit(1);
+   }
+
+   fprintf(human, "%s: mutatee: %s create_mode: ", test.name, mutatee);
+   if ( cm == CREATE )
+      fprintf(human, "create\tresult: ");
+   else
+      fprintf(human, "attach\tresult: ");
+
+   fprintf(human, "CRASHED\n");
+   
+   fclose(human);
+
+   return init_pos;
+}
+
+void printResultHumanLog(test_data_t test, char *mutatee, create_mode_t cm, int result, fpos_t init_pos)
+{
+   FILE *human;
+   human = fopen(humanlog_name, "r+");
+
+   // Backup stream to overwrite crash result
+   if ( fsetpos(human, &init_pos) )
+   {
+      fprintf(stderr, "fsetpos failed\n");
+   }
+
+   fprintf(human, "%s: mutatee: %s create_mode: ", test.name, mutatee);
+   if ( cm == CREATE )
+      fprintf(human, "create\tresult: ");
+   else
+      fprintf(human, "attach\tresult: ");
+
+   if ( result == 0 )
+   {
+      fprintf(human, "PASSED\n");
+   } 
+   else
+   {
+      fprintf(human, "FAILED\n");
+   }
+
+   off_t eof = ftell(human);
+   
+   fclose(human);
+
+   truncate(humanlog_name, eof);
+}
+
 void updateResumeLog(int testnum, int mutateenum, int optionnum)
 {
    FILE *resume;
@@ -610,7 +673,23 @@ int startTest(test_data_t tests[], unsigned int n_tests, std::vector<char *> &te
                cm = USEATTACH;
             }
             
+            fpos_t replay_position;
+            if ( useHumanLog )
+            {
+               // In case the follow test causes a program crash we 
+               // premptively print a crash error in the human log.
+               // If it does not crash, we'll use the replay position
+               // to overwrite that entry with a correct one.
+               replay_position = printCrashHumanLog(tests[i], tests[i].mutatee[j], cm);
+            }
+            
+            // Execute the test
             result = executeTest(bpatch, tests[i], tests[i].mutatee[j], cm, param);
+            
+            if ( useHumanLog )
+            {
+               printResultHumanLog(tests[i], tests[i].mutatee[j], cm, result, replay_position);
+            }
             // End execution if we've set a limit and reached it
             testsRun++;
             if ( testLimit != 0 && testsRun >= testLimit )
@@ -727,10 +806,23 @@ int main(unsigned int argc, char *argv[]) {
             exit(1);
           }
           testLimit = atoi(argv[++i]);
+       } 
+       else if ( strcmp(argv[i], "-humanlog") == 0 )
+       {
+          // Verify that the following argument exists
+          if ( i + 1 >= argc ) 
+          {
+             fprintf(stderr, "-humanlog must by followed by a filename");
+             exit(1);
+          }
+
+          useHumanLog = true;
+          humanlog_name = argv[++i];
        }
        else if ( strcmp(argv[i], "-help") == 0)
        {
-          printf("Usage: %s [-skipTo <test_num>] [-verbose] [-log] [-run <name> ...]\n", argv[0]);
+          printf("Usage: %s [-skipTo <test_num>] [-humanlog filename] [-verbose]\n", argv[0]);
+          printf("       [-log] [-run <name> ...]\n", argv[0]);
           exit(SUCCESS);
        }
        else
