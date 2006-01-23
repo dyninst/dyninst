@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_35.C,v 1.2 2005/11/22 19:41:52 bpellin Exp $
+// $Id: test1_35.C,v 1.3 2006/01/23 22:21:57 bpellin Exp $
 /*
  * #Name: test1_35
  * #Desc: Function Relocation
@@ -72,7 +72,7 @@ int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
     char *fn = "call35_1";
     if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 	|| NULL == bpfv[0]){
-      fprintf(stderr, "**Failed** test #34 (function relocation)\n");
+      fprintf(stderr, "**Failed** test #35 (function relocation)\n");
       fprintf(stderr, "    Unable to find function %s\n", fn);
       return -1;
     }
