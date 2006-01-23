@@ -170,7 +170,7 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 			if(retVal != -1 ){
 				execl("/usr/bin/setarch","setarch","i386",mutatedBinary, "-run", testID,0); 
 			}else{
-
+				fprintf(stderr," Running without /usr/bin/setarch\n");
 				execl(mutatedBinary, realFileName,"-run", testID,0); 
 			}
 #else
