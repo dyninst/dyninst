@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.23 2006/01/17 23:13:54 nater Exp $
+// $Id: multiTramp.C,v 1.24 2006/01/24 16:56:03 chadd Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -832,6 +832,14 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
             heapToUse = (inferiorHeapType) (textHeap | dataHeap); // not uncopiedHeap
         }
 #endif
+
+#if defined(os_aix) && defined(BPATCH_LIBRARY) 
+    if (proc()->requestTextMiniTramp ){ //ccw 8 oct 2005
+        heapToUse = anyHeap;
+        //nearAddr = 0x10000000;
+    }
+#endif
+
 
         trampAddr_ = proc()->inferiorMalloc(size_required,
                                             heapToUse,

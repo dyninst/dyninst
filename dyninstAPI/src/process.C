@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.569 2006/01/19 20:01:16 legendre Exp $
+// $Id: process.C,v 1.570 2006/01/24 16:56:02 chadd Exp $
 
 #include <ctype.h>
 
@@ -883,6 +883,7 @@ void process::saveWorldCreateHighMemSections(
    int startIndex, stopIndex;
    char *data;
    char name[50];
+   	bool err ;
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
@@ -893,22 +894,26 @@ void process::saveWorldCreateHighMemSections(
 #endif
 
 #if 0
-	/*fprintf(stderr,"guardFlagAddr %x\n",guardFlagAddr);*/
-   	readDataSpace((void*) guardFlagAddr, sizeof(unsigned int),
-                 (void*) &trampGuardValue, true);
-   
-   	bool err = writeDataSpace((void*)guardFlagAddr, sizeof(unsigned int),
-                  (void*) &numberUpdates);
-        if (!err) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
-        assert(err);
+//#if !defined(rs6000_ibm_aix4_1)
 
-	saveWorldData((Address) guardFlagAddr,sizeof(unsigned int), &numberUpdates); //ccw 6 jul 2003
+	/*fprintf(stderr,"guardFlagAddr %x\n",guardFlagAddr);*/
+//   	readDataSpace((void*) guardFlagAddr, sizeof(unsigned int),
+//                (void*) &trampGuardValue, true);
+   
+
+	for(int i=0;i< max_number_of_threads;i++){
+		err = writeDataSpace((void*) &( ((int *)guardFlagAddr)[i]), sizeof(unsigned int),
+                  (void*) &numberUpdates);
+        	if (!err) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
+        		assert(err);
+
+		saveWorldData( (Address) &( ((int *)guardFlagAddr)[i]),sizeof(unsigned int), &numberUpdates); //ccw 7 jul 2003
+	}
 #endif
 
-	bool err;
       sprintf(name,"dyninstAPItrampguard");
 
-	data = new char[sizeof(max_number_of_threads)];
+	data = new char[sizeof(max_number_of_threads)*max_number_of_threads];
 	memcpy(data, &max_number_of_threads,sizeof(max_number_of_threads));
 	//fprintf(stderr,"WRITING: max_number_of_threads %d\n",max_number_of_threads);
 	//ccw 14 dec 2005
@@ -917,7 +922,10 @@ void process::saveWorldCreateHighMemSections(
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
       newFile->addSection(guardFlagAddr,data,sizeof(max_number_of_threads),name,false);
 #elif defined(rs6000_ibm_aix4_1)
-	newFile->addSection(name,guardFlagAddr,guardFlagAddr,sizeof(max_number_of_threads),(char*)data);
+	sprintf(name,"trampg");
+	//fprintf(stderr," trampg 0x%x\n",guardFlagAddr);
+	newFile->addSection(name,guardFlagAddr,guardFlagAddr,sizeof(unsigned int) *max_number_of_threads,data);
+	//newFile->setDataEnd(guardFlagAddr+sizeof(unsigned int) *max_number_of_threads);
 #endif
 	delete []data;
 
@@ -932,7 +940,7 @@ void process::saveWorldCreateHighMemSections(
 	//fprintf(stderr,"LOADING trampgu 0x%x\n",guardFlagAddr);
 	data = new char[sizeof(unsigned int) * max_number_of_threads];
 	memset(data,1,sizeof(unsigned int) * max_number_of_threads);		
-	newFile->addSection(guardFlagAddr,data,sizeof(unsigned int) * max_number_of_threads,"dyninstAPI_1",true);
+	newFile->addSection(guardFlagAddr,data,sizeof(unsigned int) * max_number_of_threads,"dyninstAPI_1",false);
 	delete []data;
 #if defined(sparc_sun_solaris2_4)
 	}
@@ -1018,15 +1026,18 @@ void process::saveWorldCreateHighMemSections(
 	  sprintf(name, "dyH_%03x",j);
       newFile->addSection(&(name[0]), compactedHighmemUpdates[j]->address,compactedHighmemUpdates[j]->address,
 		dataSize, (char*) data );
+
 #endif
       
       //lastCompactedUpdateAddress = compactedHighmemUpdates[j]->address+1;
       delete [] (char*) data;
    }
+#if 0
    err = writeDataSpace((void*)guardFlagAddr, sizeof(unsigned int), 
                   (void*)&trampGuardValue);
    if (!err) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
         assert(err);
+#endif 
 }
 
 void process::saveWorldCreateDataSections(void* ptr){
@@ -1658,6 +1669,49 @@ bool process::inferiorRealloc(Address block, unsigned newSize)
 
   // And run a compact; otherwise we'll end up with hugely fragmented memory.
   inferiorFreeCompact(hp);
+
+
+   // ccw: 28 oct 2001
+   // create imageUpdate here:
+   // imageUpdate(h->addr,size)
+   
+#ifdef BPATCH_LIBRARY
+//	if( h->addr > 0xd0000000){
+//		bperr(" \n ALLOCATION: %lx %lx ntry: %d\n", h->addr, size,ntry);
+//		fflush(stdout);
+//	}
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix4_1)
+   if(collectSaveWorldData){
+      
+#if defined(sparc_sun_solaris2_4)
+      if(h->addr < 0xF0000000)
+#elif defined(i386_unknown_linux2_0) \
+   || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
+      if(h->addr == 0 ) //< 0x40000000) //ccw TEST TEST TEST
+#elif defined(rs6000_ibm_aix4_1)
+	if(h->addr < 0x20000000)
+#endif	
+      {
+
+		//fprintf(stderr,"INFERIOR REALLOC2\n");
+	 	imageUpdate *imagePatch=new imageUpdate; 
+		 imagePatch->address = h->addr;
+		 imagePatch->size = newSize;
+		 imageUpdates.push_back(imagePatch);
+      } else {
+		//fprintf(stderr,"INFERIOR REALLOC\n");
+		 imageUpdate *imagePatch=new imageUpdate;
+		 imagePatch->address = h->addr;
+		 imagePatch->size = newSize;
+		 highmemUpdates.push_back(imagePatch);
+      }
+   }
+#endif
+#endif
+
 
   return true;
 }

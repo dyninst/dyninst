@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.19 2005/12/19 23:45:38 rutar Exp $
+// $Id: baseTramp.C,v 1.20 2006/01/24 16:56:03 chadd Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -990,8 +990,15 @@ bool baseTramp::generateBT() {
     inst_printf("Starting MT: offset %d\n", saveEndOffset);
     
 
-    // Multithread
+#if defined(os_aix) && defined(BPATCH_LIBRARY) //ccw 8 oct 2005
+    if (!proc()->requestTextMiniTramp ){
+#endif
+  // Multithread
     generateMTCode(preTrampCode_, regSpace);
+#if defined(os_aix) && defined(BPATCH_LIBRARY)   //ccw 8 oct 2005
+   }
+#endif
+
 
     // Guard code
     guardLoadOffset = preTrampCode_.used();
@@ -1012,6 +1019,10 @@ bool baseTramp::generateBT() {
 
     costUpdateOffset = preTrampCode_.used();
 
+#if defined(os_aix) && defined(BPATCH_LIBRARY) //ccw 8 oct 2005
+    if (!proc()->requestTextMiniTramp ){
+#endif
+
     inst_printf("Starting cost: offset %d\n", costUpdateOffset);
 
     // We may not want cost code... for now if we're an iRPC tramp
@@ -1028,6 +1039,13 @@ bool baseTramp::generateBT() {
         costSize = 0;
         costValueOffset = 0;
     }
+#if defined(os_aix)  && defined(BPATCH_LIBRARY) //ccw 8 oct 2005
+    }else{  //ccw 8 oct 2005
+       costSize=0;
+       costValueOffset=0;
+    }
+#endif
+
 
     instStartOffset = preTrampCode_.used();
     preSize = preTrampCode_.used();

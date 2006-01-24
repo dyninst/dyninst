@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary_XCOFF.c,v 1.10 2006/01/13 00:00:48 jodom Exp $ */
+/* $Id: RTmutatedBinary_XCOFF.c,v 1.11 2006/01/24 16:56:03 chadd Exp $ */
 
 
 /* this file contains the code to restore the necessary
@@ -85,7 +85,8 @@ void fixInstrumentation(char* soName, unsigned int currAddr, unsigned int oldAdd
 	fflush(stdout);
 	exit(9);
 }
-
+void * freeaddr;
+int fileSize;
 void* loadFile(char *name, int *fd){
 
 	struct stat statInfo;
@@ -99,7 +100,6 @@ void* loadFile(char *name, int *fd){
 		return 0;
 	}
 
-
 	statRet = fstat(*fd, &statInfo);	
 	
 	if( statRet == -1) {
@@ -107,7 +107,8 @@ void* loadFile(char *name, int *fd){
 		close(*fd);
 		return 0;
 	}
-	
+	freeaddr = mmap(0x0, getpagesize(), PROT_READ|PROT_WRITE, MAP_VARIABLE|MAP_ANONYMOUS, -1,0x0);
+	fileSize=statInfo.st_size;
 	return mmap(0x0, statInfo.st_size, PROT_READ, MAP_FILE, *fd,0x0); 
 
 }
@@ -136,7 +137,9 @@ int checkMutatedFile(){
 	unsigned int *numbNewHdrs;
 	snprintf(execStr,255,"%s/dyninst_mutatedBinary",getenv("PWD"));
 
-
+	int * trampGu=0;
+	int trampGuSize;
+	/*fprintf(stderr,"1SBRK %x (0x%x)\n",sbrk(0),&checkMutatedFile);*/
 	XCOFFfile = loadFile(execStr, &fd);
 
 	if(!XCOFFfile){
@@ -184,8 +187,23 @@ int checkMutatedFile(){
 
 	pageSize =  getpagesize();
 
+	/*fprintf(stderr,"SBRK 0x%x 0x%x\n",XCOFFfile,sbrk(0));*/
+	
    	for(currScnhdr = firstScnhdr, cnt=0; cnt < *numbNewHdrs; currScnhdr++, cnt++){
-		if(!strcmp( currScnhdr->s_name, "dyn_lib")){
+		if(!strcmp( currScnhdr->s_name, "trampg")){
+
+			/*fprintf(stderr," >trampg 0x%x\n", currScnhdr->s_paddr);*/
+			/*munmap(freeaddr,pageSize);
+			if( currScnhdr->s_paddr != mmap(currScnhdr->s_paddr, currScnhdr->s_size, PROT_READ|PROT_WRITE, MAP_FIXED|MAP_ANONYMOUS, -1,0x0)){
+				perror("MMAP");
+			}
+
+
+			*(int*)currScnhdr->s_paddr=1;*/
+			trampGu = (int*)currScnhdr->s_paddr;
+			trampGuSize = currScnhdr->s_size;
+
+		}else if(!strcmp( currScnhdr->s_name, "dyn_lib")){
 			/* use dlopen to load a list of shared libraries */
 
 			int len;
@@ -218,6 +236,7 @@ int checkMutatedFile(){
 				if(dataAddress){
 					memcpy((char*) dataAddress, tmpPtr, dataSize);
 					tmpPtr += dataSize;
+					//fprintf(stderr,"dyn_dat: 0x%x (0x%x)\n",dataAddress,dataSize);
 				}
 			}
 			retVal = 1;
@@ -389,10 +408,22 @@ int checkMutatedFile(){
 			}
                         free(oldPageData);
 		}
+
 	}
 
+	/*fprintf(stderr,"SBRK %x\n",sbrk(0));*/
 	fflush(stdout);
         close(fd);
+	munmap(XCOFFfile,fileSize);
+
+	munmap(freeaddr,pageSize);
+	result = mmap(trampGu, trampGuSize, PROT_READ|PROT_WRITE, MAP_FIXED|MAP_ANONYMOUS, -1,0x0);
+	if( result != trampGu){
+		fprintf(stderr,"TrampGuards not reallocated correctly.  Mutated binary may not perform properly\n");
+	}
+	for(i=0; i< trampGuSize /sizeof(int); i++){
+		trampGu[i]=1;
+	}
 
 	return retVal;
 }
