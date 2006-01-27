@@ -748,7 +748,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			/* Our goal is three-fold: First, we want to set the return type
 			   of the function.  Second, we want to set the newFunction variable
 			   so subsequent entries are handled correctly.  Third, we want to
-			   record (the location of, or how to calculte) the frame base of 
+			   record (the location of, or how to calculate) the frame base of 
 			   this function for use by our instrumentation code later. */
 
 			char * functionName = NULL;
