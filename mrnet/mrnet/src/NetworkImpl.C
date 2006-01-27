@@ -157,17 +157,12 @@ void NetworkImpl::InitFE( Network * _network, const char **argv,
     }
     unsigned int argc=0;
 
+    if( argv != NULL ){
+        for(unsigned int i=0; argv[i] != NULL; i++){
+            argc++;
+        }
+    }
 
-
-		if(argv !=NULL)
-			{
-				for(unsigned int i=0; argv[i] != NULL; i++)
-					{
-						
-						argc++;
-					}
-				
-			}
 		Packet packet( 0, PROT_NEW_SUBTREE, "%s%s%s%as", sg_str.c_str( ),
 									 mrn_commnode_path, application.c_str( ), argv, argc );
 		

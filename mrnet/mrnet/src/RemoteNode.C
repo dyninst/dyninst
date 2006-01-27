@@ -503,7 +503,7 @@ bool RemoteNode::has_data() const
     // We only put one descriptor in the read set.  Therefore, if the return 
     // value from select() is 1, that descriptor has data available.
     if( sret == 1 ){
-        mrn_dbg(1, mrn_printf(FLF, stderr, "select() says data to be read.\n"));
+        mrn_dbg(5, mrn_printf(FLF, stderr, "select(): data to be read.\n"));
         return true;
     }
 

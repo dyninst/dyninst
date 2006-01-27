@@ -582,7 +582,6 @@ int getNetworkAddr( std::string & ipaddr, const std::string hostname )
 			{
         mrn_dbg( 1, mrn_printf(FLF, stderr, "Host information not found for \"%s\"\n",
                                hostname.c_str(  ) ) );
-
         return -1;
 			}
     struct in_addr in;

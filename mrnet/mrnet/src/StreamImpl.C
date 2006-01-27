@@ -28,7 +28,8 @@ StreamImpl::StreamImpl(Network * _network, Communicator *_comm,
     sync_id(_sync_id), stream_id( next_stream_id )
 {
     next_stream_id++;
-    fprintf(stderr, "Creating a new stream with ID: %d\n", stream_id);
+    mrn_dbg(5, mrn_printf(FLF, stderr,
+                          "Creating a new stream with ID: %d\n", stream_id));
     communicator = new Communicator(*_comm); //copy the comm.
 
     if ( network->is_FrontEnd() ){
@@ -36,13 +37,13 @@ StreamImpl::StreamImpl(Network * _network, Communicator *_comm,
         int * backends = new int[ endpoints.size() ];
         unsigned int i;
         
-        mrn_dbg(4, mrn_printf(FLF, stderr, "Adding backends to stream %d: [ ",
+        mrn_dbg(5, mrn_printf(FLF, stderr, "Adding backends to stream %d: [ ",
                    stream_id));
         for(i=0; i<endpoints.size(); i++){
-            mrn_dbg(4, mrn_printf( 0,0,0, stderr, "%d, ", endpoints[i]->get_Rank() ));
+            mrn_dbg(5, mrn_printf( 0,0,0, stderr, "%d, ", endpoints[i]->get_Rank() ));
             backends[i] = endpoints[i]->get_Rank();
         }
-        mrn_dbg(4, mrn_printf(0,0,0, stderr, "]\n"));
+        mrn_dbg(5, mrn_printf(0,0,0, stderr, "]\n"));
 
         Packet packet( 0, PROT_NEW_STREAM, "%d %ad %d %d %d",
                        stream_id, backends, endpoints.size(),
@@ -67,7 +68,9 @@ StreamImpl::StreamImpl(Network * _network, int _stream_id,
     sync_id(_sync_id),
     stream_id(_stream_id)
 {
-    fprintf(stderr, "Creating a new at the backend stream[%d] => %p\n", stream_id, this);
+    mrn_dbg(3, mrn_printf(FLF, stderr,
+                          "Creating a new backend stream[%d] => %p\n",
+                          stream_id, this));
 }
 
 StreamImpl::~StreamImpl()
