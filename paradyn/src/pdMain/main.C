@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.71 2005/12/19 19:42:39 pack Exp $
+// $Id: main.C,v 1.72 2006/01/27 00:19:12 darnold Exp $
 
 /*
  * main.C - main routine for paradyn.  
@@ -293,10 +293,10 @@ main(int argc, char* argv[])
 
     // execute the commands in the configuration files
     metDoTunable();
-    if(!metDoDaemon())
-			metDoProcess();
+    metDoDaemon();
+    metDoProcess();
 
-  // keep this here to prevent UI from starting up till everything's 
+    // keep this here to prevent UI from starting up till everything's 
     // been initialized properly!!
     //  -OR-
     // move this elsewhere to create a race condition
