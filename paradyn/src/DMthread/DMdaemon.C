@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.155 2006/01/06 23:11:11 legendre Exp $
+ * $Id: DMdaemon.C,v 1.156 2006/01/27 00:19:07 darnold Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -592,24 +592,17 @@ paradynDaemon::SendMDLFiles( MRN::Stream * stream )
 #endif // defined(i386_unknown_nt4_0)
 }
 
-
-
-// 
 // add a new daemon
 // check to see if a daemon that matches the function args exists
 // if it does exist, return a pointer to it
-// otherwise, create a new daemon
-//
-// darnold: using mrnet, this func no longer creates a daemon, it only
-//          checks the appropriate dictionaries for the daemon
-//
-paradynDaemon *paradynDaemon::getDaemonHelper(const pdstring &machine, 
-																							const pdstring &login, 
-																							const pdstring &name) {
-
+// otherwise, call instantiateDaemon() to create a new daemon
+paradynDaemon *paradynDaemon::getDaemon(const pdstring &machine, 
+                                        const pdstring &login, 
+                                        const pdstring &name )
+{
 	pdstring m = machine; 
 	// fill in machine name to default_host if empty
-	if (!m.length()) {
+	if (m.length() == 0) {
 		if (default_host.length()) {
 			m = getNetworkName(default_host);
 		} else {
@@ -619,26 +612,21 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const pdstring &machine,
 		m = getNetworkName(m);
 	}
 
-	// find out if we have a paradynd on this machine+login+paradynd
+	// look for existing machine+login+paradynd daemon
 	paradynDaemon *pd=NULL;
 	bool foundSimilarDaemon = false;
 	for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++){
 		pd = paradynDaemon::allDaemons[i];
-		//fprintf(stderr, "getDaemonHelper(): comparing %s:%s:%s with %s:%s:%s\n",
-		//     pd->machine.c_str(), pd->login.c_str(), pd->name.c_str(),
-		//     m.c_str(), login.c_str(), name.c_str());
 
 		if ((!m.c_str() || (pd->machine == m)) && 
-				(!login.c_str() || (pd->login == login)))
-			{
+				(!login.c_str() || (pd->login == login))) {
 
-				if((name.c_str() && (pd->name == name))) 
-					{
-						return (pd);     
-					}
-				else 
-					foundSimilarDaemon = true;
-			}
+      if((name.c_str() && (pd->name == name))) {
+        return (pd);     
+      }
+      else 
+        foundSimilarDaemon = true;
+    }
 	}
 
 	if(foundSimilarDaemon) {
@@ -646,42 +634,24 @@ paradynDaemon *paradynDaemon::getDaemonHelper(const pdstring &machine,
 				 << "\" and with requested login \"" << login << "\", but the"
 				 << " requested daemon name \"" << name << "\" doesn't match." 
 				 << endl;
+        return pd;
 	}
 
-	return pd;
+    return pd;
 }
 
-
-MRN::Network * gnetwork;
-//
 // define a new entry for the daemon dictionary, or change an existing entry
-// Now also launches mrnet network for the daemon(s)
-//
-// TODO: Deal with changing an existing entry when the old entry
-//       already has a mrnet network instantiated (darnold)
-
 bool paradynDaemon::defineDaemon (const char *c, const char *d,
                                   const char *l, const char *n,
                                   const char *m, const char *r,
                                   const char *f, const char *t,
-                                  const char *MPIt,
-																	bool just_define) 
+                                  const char *MPIt ) 
 {    
     if (! DMstatus_initialized) {
         uiMgr->createStatusLine(DMstatus.c_str());
         DMstatus_initialized = true;
     }
-		/*
-    fprintf(stderr, "cmd = %s\n"
-						"dir = %s\n"
-						"login = %s\n"
-						"name = %s\n"
-						"machine= %s\n"
-						"remote_shell = %s\n"
-						"flavor = %s\n"
-						"mrnet_topology = %s\n"
-						"MPItype = %s\n", c, d, l, n, m, r, f, t,MPIt);
-		*/
+
     bool redefinition=false;
 		
     if(!n || !c)
@@ -697,35 +667,7 @@ bool paradynDaemon::defineDaemon (const char *c, const char *d,
     pdstring mrnet_topology = t;
     pdstring MPItype = MPIt;
     daemonEntry *newE;
-    if(!just_define)
-			{
-				if(flavor != "mpi")
-					{
-						if(mrnet_topology.length() == 0)
-							{
-								std::ofstream fout;
-								fout.open("TempTopologyFile.123");
-								fout << getNetworkName()<<":0 => ";
-								if(processMet::allProcs[0]->host().length() != 0)
-									{
-										fout << processMet::allProcs[0]->host() <<":0 ;" <<endl;
-									}
-								else
-									{
-										pdstring m = "localhost";
-										if (default_host.length()) 
-											{
-												m = getNetworkName(default_host);
-												if(m.length() == 0)
-													m = "localhost";
-											}
-										fout << m << ":1 ;" <<endl;
-									}
-								fout.close();
-								mrnet_topology = "TempTopologyFile.123";
-							}
-					}
-			}
+
     for(unsigned i=0; i < allEntries.size(); i++)
     {
        newE = allEntries[i];
@@ -744,269 +686,267 @@ bool paradynDaemon::defineDaemon (const char *c, const char *d,
        }
     }
     
-    if( !redefinition )
-    {
-
-       newE = new daemonEntry(machine, command, name, login, dir,
-                              remote_shell, flavor, mrnet_topology,MPItype);
-       if (!newE)
-       {
-          return false;
-       }
+    if( !redefinition ) {
+      newE = new daemonEntry(machine, command, name, login, dir,
+                             remote_shell, flavor, mrnet_topology,MPItype);
+      if (!newE) {
+        return false;
+      }
     }
     allEntries += newE;
-    if(just_define)
-			return true;
-    //Launch MRNet network for the newly defined daemon type
-    //
-    
-    char statusLine[256];
 
-    sprintf(statusLine, "Starting \"%s\" daemon(s) using \"%s\" topology",
-            newE->getName(), newE->getMRNetTopology() );
-		
-    uiMgr->updateStatusLine(DMstatus.c_str(), P_strdup(statusLine));
-    
+    return true;
+}
+
+MRN::Network * paradynDaemon::instantiateMPIDaemon(daemonEntry * de)
+{
+    MRN::Network * network;
     MRN::Network::LeafInfo **leafInfo;
     unsigned  nLeaves = 0;
-    MRN::Network * _network;
-    if(flavor == "mpi")
-			{
 
 #if defined(i386_unknown_nt4_0)
-				pdstring message = "Paradyn does not yet support MPI applications started from OS WinNT";
+    pdstring message = "Paradyn does not yet support MPI applications started from OS WinNT";
 				
-				uiMgr->showError(113, strdup(message.c_str()));
-				return false;
+    uiMgr->showError(113, strdup(message.c_str()));
+    return false;
 #else
-				pdvector<pdstring> argv;
-				argv.push_back( processMet::allProcs[0]->name());
-				argv.push_back( processMet::allProcs[0]->command());
-				argv.push_back( processMet::allProcs[0]->daemon());
-				argv.push_back( processMet::allProcs[0]->host());
-				argv.push_back( processMet::allProcs[0]->user());
-				dir = processMet::allProcs[0]->execDir();
-				argv.push_back( processMet::allProcs[0]->execDir());
+    pdvector<pdstring> argv;
+    argv.push_back( processMet::allProcs[0]->name());
+    argv.push_back( processMet::allProcs[0]->command());
+    argv.push_back( processMet::allProcs[0]->daemon());
+    argv.push_back( processMet::allProcs[0]->host());
+    argv.push_back( processMet::allProcs[0]->user());
+    pdstring dir = processMet::allProcs[0]->execDir();
+    argv.push_back( processMet::allProcs[0]->execDir());
 
-				if(processMet::allProcs[0]->autoStart())
-					argv.push_back( pdstring("true"));
-				else
-					argv.push_back( pdstring("false"));
-				
-				if(mrnet_topology.length() == 0)
-            {
-               int n_nodes = getNumberOfNodes(argv);
-               std::ofstream fout;
-               fout.open("TempTopologyFile.123");
-               fout << getNetworkName() << ":0 => ";
-               for(int i = 0 ; i < n_nodes ; i++)
-               {
-                  fout << "mpidummy" << i << ":"<< i<< " ";
-               }
-               fout << ";" << endl;
-               fout.close();
-               mrnet_topology = "TempTopologyFile.123";
-            }
-				pdstring os;
-
- 				//Make sure we have the correct MPI implementation in MPItype
-				//if the user specified one in the user-interface (in MPItype) 
-				//then that value
-				//wins, otherwise, we use the value from pcl file (in def)
-				
-				struct utsname unameInfo;
-				if ( P_uname(&unameInfo) == -1 )
-					{
-						perror("uname");
-						return false;
-					}
-				os = unameInfo.sysname;
-
-				_network = new MRN::Network(mrnet_topology.c_str(), &leafInfo, &nLeaves );
-				
-				if ( os.prefixed_by ("AIX") )
-					{
-						//startPOE(machine, login, name, dir, argv, args, def, leafInfo);
-					}
-				else
-					{
-						startMPI(machine, login, name, dir, argv, args, newE, leafInfo, nLeaves);
-					}
-#endif
-				
-				//-----------------------------------------------------
-				
-        int ret =  _network->connect_Backends();
-        
-				if(ret < 0)
-          fprintf(stderr,"MRN::Network::connect_Backends() failed ret = %d\n",ret);
-				
-			}
+    if(processMet::allProcs[0]->autoStart())
+        argv.push_back( pdstring("true"));
     else
-			{
-				//first gather paradynd args into a argv vector;
-				//TODO: verify that args are already set up by DM (darnold)
-				char ** argv;
+        argv.push_back( pdstring("false"));
 				
-				argv = (char **)malloc(sizeof(char*) * (args.size()+1) );
+    if(de->getMRNetTopologyString().length() == 0) {
+        int n_nodes = getNumberOfNodes(argv);
+        pdstring mrnet_top_buf=getNetworkName()+":0 => ";
 
-				for( unsigned int jj = 0; jj<paradynDaemon::args.size(); jj++){
-          argv[jj] = strdup(paradynDaemon::args[jj].c_str() );
-          argv[jj+1] = NULL;
-				}
+        for(int i = 0 ; i < n_nodes ; i++) {
+            char buf[256];
+            snprintf(buf, 256, "mpidummy%d:%d ", i, i );
+            mrnet_top_buf += buf;
+        }
+        mrnet_top_buf += ";";
+        fprintf(stderr, "starting mrnet w/ buffer \"%s\" ...\n", mrnet_top_buf.c_str() );
+        network = new MRN::Network(mrnet_top_buf.c_str(), false,
+                                    &leafInfo, &nLeaves );
+    }
+    else{
+        fprintf(stderr, "starting mrnet w/ file \"%s\" ...\n",
+                de->getMRNetTopology() );
+        network = new MRN::Network(de->getMRNetTopology(),
+                                    &leafInfo, &nLeaves );
+    }
+
+    //Make sure we have the correct MPI implementation in MPItype
+    //if the user specified one in the user-interface (in MPItype) 
+    //then that value
+    //wins, otherwise, we use the value from pcl file (in def)
 				
-				_network = new MRN::Network (mrnet_topology.c_str(), command.c_str(),
-																		 (const char **)argv);
-				for( unsigned int k=0; k<paradynDaemon::args.size(); k++){
-          free(argv[k]);
-				}
-			}
-    gnetwork = _network;
-		
-    if( _network->fail() )
-			{
-				pdstring msg = pdstring("Failed: MRNet new network. Topology: \"")
-					+ mrnet_topology + pdstring("\". Command: \"") + command  +
-					pdstring("\".");
-				//TODO: create new error code
-				uiMgr->showError(90,P_strdup(msg.c_str()));
-				return false;
-			}
+    struct utsname unameInfo;
+    if ( P_uname(&unameInfo) == -1 ) {
+      perror("uname");
+      return false;
+    }
+    pdstring os = unameInfo.sysname;
+
+    if ( os.prefixed_by ("AIX") ) {
+      //startPOE(machine, login, name, dir, argv, args, def, leafInfo);
+    }
+    else {
+        fprintf(stderr, "Calling startMPI()\n");
+        startMPI(de->getMachineString(), de->getLoginString(), de->getNameString(),
+                 de->getDir(), argv, args, de, leafInfo, nLeaves);
+    }
+				
+    int ret = network->connect_Backends();
+				
+    if(ret < 0)
+        fprintf(stderr,"MRN::Network::connect_Backends() failed ret = %d\n",ret);
+#endif
+
+    return network;
+}
+
+MRN::Network * paradynDaemon::instantiateDefaultDaemon( daemonEntry * de,
+                                                        const pdvector <pdstring> * process_hosts )
+{
+    MRN::Network * network;
+    //first gather paradynd args into a argv vector;
+    char ** argv;
     
-    thread_t stid;
+    fprintf(stderr, "In instantiateDefaultDaemon() ...\n");
+    argv = (char **)malloc(sizeof(char*) * (args.size()+1) );
+    
+    for( unsigned int i = 0; i<paradynDaemon::args.size(); i++){
+        argv[i] = strdup(paradynDaemon::args[i].c_str() );
+        argv[i+1] = NULL;
+    }
+    
+    if( de->getMRNetTopologyString() == "" ){
+        //create network using a automated topology buffer if necessary
+        pdstring host;
+        unsigned int count=1;
+        
+        if (default_host.length() == 0) {
+            host = getNetworkName(default_host);
+            if(host.length() == 0)
+                host = getNetworkName();
+        }
+        
+        pdstring mrnet_top_buf=getNetworkName()+":0 => ";
+        
+        for( unsigned int i=0; i<process_hosts->size(); i++ ){
+            char buf[256];
+            
+            if( (*process_hosts)[i] != "" ){
+                snprintf(buf, 256, "%s:%d ", (*process_hosts)[i].c_str(), count++ );
+                mrnet_top_buf += buf;
+            }
+            else{
+                snprintf(buf, 256, "%s:%d ", host.c_str(), count++ );
+                mrnet_top_buf += buf;
+            }
+        }
+        
+        mrnet_top_buf += ";";
+
+        fprintf(stderr, "starting mrnet w/ buffer \"%s\" ...\n", mrnet_top_buf.c_str() );
+        network = new MRN::Network (mrnet_top_buf.c_str(), false,
+                                     de->getCommand(), (const char **)argv);
+    }
+    else{
+        fprintf(stderr, "starting mrnet w/ file ...\n");
+        network = new MRN::Network (de->getMRNetTopology(),
+                                     de->getCommand(), (const char **)argv);
+    }
+
+    for( unsigned int i=0; i<paradynDaemon::args.size(); i++){
+        free(argv[i]);
+    }
+
+    return network;
+}
+
+bool paradynDaemon::initializeDaemon(daemonEntry * de, MRN::Network * inetwork )
+{
     //Bind the socket that the MRNet front-end uses
     //Not an actual "network" bind, but just lets thr_mailbox::poll()
     // add the sockfd to its list of monitored activities.
     //We will read the connection for data ourself
+    thread_t stid;
     int *mrnet_sockets;
     unsigned int num_mrnet_sockets;
-    _network->get_SocketFd( &mrnet_sockets, &num_mrnet_sockets );
+    inetwork->get_SocketFd( &mrnet_sockets, &num_mrnet_sockets );
+  
+    for( unsigned int i=0; i<num_mrnet_sockets; i++) {
+        msg_bind_socket (mrnet_sockets[i], true, NULL, NULL, &stid);
+    }
 		
-    for( unsigned int il=0; il<num_mrnet_sockets; il++)
-			{
-				msg_bind_socket (mrnet_sockets[il], true, NULL, NULL, &stid);
-			}
+    std::vector<MRN::EndPoint *> endpoints =
+        inetwork->get_BroadcastCommunicator()->get_EndPoints();
 		
-    //TODO: which dictionaries need updating? (darnold)
-    //      perhaps a NetworkByDaemonName dict
-    //      perhaps a DaemonsByName dict that returns a DaemonbyHostName dict
-		
-    //paradynDaemon::NetworkByDaemonName[newE.getName()] = network;
-		
-		
-    std::vector<MRN::EndPoint *> endpoints = _network-> get_BroadcastCommunicator()->get_EndPoints();
-		
+    //for all endpoints in the network, create a paradynd object and
+    //the constructor puts the daemon in the allDaemons list
     pdvector<T_dyninstRPC::daemonSetupStruc> di;
     paradynDaemon * pd = NULL;
-    for( unsigned int j=0; j<endpoints.size(); j++) 
-			{
-				//for all endpoints in the network, create a paradynd object and
-				//the constructor puts the daemon in the allDaemons list
-				pdstring daemon_machine = endpoints[j]->get_HostName() ;
-				pd = new paradynDaemon(_network, endpoints[j],
-															 daemon_machine,
-															 login, name, flavor); 
-				T_dyninstRPC::daemonSetupStruc * dss = new T_dyninstRPC::daemonSetupStruc;
-				(*dss).daemonId = pd->get_id();
-				(*dss).daemonName = pd->getMachineName( );
-				di.push_back(*dss);
-			}
-    
+    for( unsigned int j=0; j<endpoints.size(); j++) {
+        pdstring daemon_machine = endpoints[j]->get_HostName() ;
+        pd = new paradynDaemon(inetwork, endpoints[j], (pdstring&)de->getMachineString(),
+                               (pdstring&)de->getLoginString(), (pdstring&)de->getNameString(),
+                               (pdstring&)de->getFlavorString()); 
+        T_dyninstRPC::daemonSetupStruc * dss =
+            new T_dyninstRPC::daemonSetupStruc;
+        (*dss).daemonId = pd->get_id();
+        (*dss).daemonName = pd->getMachineName( );
+        di.push_back(*dss);
+    }
 		
-    MRN::Stream * eqcStream = _network->new_Stream( _network->get_BroadcastCommunicator(),MRN::TFILTER_PD_UINT_EQ_CLASS);
-    
-    MRN::Stream * defStream = _network->new_Stream( _network->get_BroadcastCommunicator(),MRN::TFILTER_NULL,MRN::SFILTER_DONTWAIT);
-    pdvector <int> countStreams =  pd->setDaemonDefaultStream(defStream);
+  MRN::Stream * eqcStream = inetwork->new_Stream( inetwork->get_BroadcastCommunicator(),
+                                                  MRN::TFILTER_PD_UINT_EQ_CLASS);
 		
-    MRN::Stream * bcStream = _network->new_Stream( _network->get_BroadcastCommunicator(),MRN::TFILTER_NULL);
+  MRN::Stream * defStream = inetwork->new_Stream( inetwork->get_BroadcastCommunicator(),
+                                                  MRN::TFILTER_NULL,MRN::SFILTER_DONTWAIT);
+  pdvector <int> countStreams =	 pd->setDaemonDefaultStream(defStream);
 		
-    pdvector <T_dyninstRPC::daemonInfo> daemon_info = pd->getDaemonInfo( bcStream, di );
-		pdvector<pdstring> holdStatus;
+  MRN::Stream * bcStream = inetwork->new_Stream( inetwork->get_BroadcastCommunicator(),
+                                                 MRN::TFILTER_NULL);
 		
-    for( unsigned ij =0 ; ij < daemon_info.size() ; ij++) 
-			{
+  pdvector <T_dyninstRPC::daemonInfo> daemon_info = pd->getDaemonInfo( bcStream, di );
+  pdvector<pdstring> holdStatus;
+		
+  for( unsigned ij =0 ; ij < daemon_info.size() ; ij++) {
+    pd = paradynDaemon::allDaemons[ij];
+    if(de->getFlavorString() == "mpi") {
+      if(ij != (unsigned)daemon_info[ij].d_id) {
+        MRN::Communicator * temp =
+          paradynDaemon::allDaemons[daemon_info[ij].d_id]->getCommunicator();
+        MRN::Communicator * temp1 = paradynDaemon::allDaemons[ij]->getCommunicator();
 
-				pd = paradynDaemon::allDaemons[ij];
-				if(flavor == "mpi")
-					{
+        paradynDaemon::allDaemons[daemon_info[ij].d_id]->setCommunicator(temp1);
+        paradynDaemon::allDaemons[ij]->setCommunicator(temp);
+      }
 
-						if(ij != (unsigned)daemon_info[ij].d_id)
-							{
-								MRN::Communicator * temp = paradynDaemon::allDaemons[daemon_info[ij].d_id]->getCommunicator();
-								MRN::Communicator * temp1 = paradynDaemon::allDaemons[ij]->getCommunicator();
+      holdStatus.push_back(pd->status);
+      pd->machine = daemon_info[daemon_info[ij].d_id].machine;
+      if (pd->machine.suffixed_by(local_domain)) {
+        const unsigned namelength = pd->machine.length() - local_domain.length() - 1;
+        const pdstring localname = pd->machine.substr(0,namelength);
+        pd->status = localname;
+      } 
+      else {
+        pd->status = pd->machine;
+      }
+      uiMgr->createProcessStatusLine(pd->status.c_str());
+    }
+  }
 
-								paradynDaemon::allDaemons[daemon_info[ij].d_id]->setCommunicator(temp1);
+  //TODO: we shoud make this persistent for default async downcalls
+  delete bcStream;
+		
+  for( unsigned ik =0 ; ik < daemon_info.size() ; ik++) {
+    pd = paradynDaemon::allDaemons[ik];
+  }		
+  pd->setEquivClassReportStream(eqcStream);
 
-								paradynDaemon::allDaemons[ij]->setCommunicator(temp);
-							}
-
-						holdStatus.push_back(pd->status);
-						pd->machine = daemon_info[daemon_info[ij].d_id].machine;
-						if (pd->machine.suffixed_by(local_domain)) 
-							{
-								const unsigned namelength = pd->machine.length() - local_domain.length() - 1;
-								const pdstring localname = pd->machine.substr(0,namelength);
-								pd->status = localname;
-							} 
-						else
-							{
-								pd->status = pd->machine;
-							}
-						uiMgr->createProcessStatusLine(pd->status.c_str());
-					}
-			}
-    //TODO: we shoud make this persistent for default async downcalls
-    delete bcStream;
+  // Send the initial metrics, constraints, and other neato things
+  MRN::Stream * nbcStream = inetwork->
+    new_Stream( inetwork->get_BroadcastCommunicator(),MRN::TFILTER_NULL);
+  pd->SendMDLFiles(nbcStream);
+  delete nbcStream;	 
 		
-    for( unsigned ik =0 ; ik < daemon_info.size() ; ik++) 
-			{
-				pd = paradynDaemon::allDaemons[ik];
-			}		
-    pd->setEquivClassReportStream(eqcStream);
+  nbcStream = inetwork->
+    new_Stream( inetwork->get_BroadcastCommunicator(),MRN::TFILTER_NULL);
+  pdvector<pdvector<T_dyninstRPC::metricInfo> > info =
+    pd->getAvailableMetrics(nbcStream);
 		
-
-    // Send the initial metrics, constraints, and other neato things
-   
-    MRN::Stream * nbcStream = _network->
-			new_Stream( _network->get_BroadcastCommunicator(),MRN::TFILTER_NULL);
-    pd->SendMDLFiles(nbcStream);
-    delete nbcStream;  
-		
-		
-    // Send the initial metrics, constraints, and other neato things
-		
-    nbcStream = _network->
-			new_Stream( _network->get_BroadcastCommunicator(),MRN::TFILTER_NULL);
-    pdvector<pdvector<T_dyninstRPC::metricInfo> > info =
-			pd->getAvailableMetrics(nbcStream);
-		
-    for (unsigned kl = 0 ; kl < info.size() ; kl ++) {
-        unsigned size = info[kl].size();
-        for (unsigned u=0; u<size; u++) {
-            addMetric(info[kl][u]);
-        }
-    }   
-    delete nbcStream;
-    pd->updateTimeAdjustment();
-
-    uiMgr->updateStatusLine(DMstatus.c_str(),P_strdup("ready"));
-    //cleanup
-    
-    return true;
+  for (unsigned kl = 0 ; kl < info.size() ; kl ++) {
+    unsigned size = info[kl].size();
+    for (unsigned u=0; u<size; u++) {
+      addMetric(info[kl][u]);
+    }
+  }		
+  delete nbcStream;
+  pd->updateTimeAdjustment();
+  return true;
 }
 
-//TODO: why pass a machine arg to findEntry that isn't used? (darnold)
-daemonEntry *paradynDaemon::findEntry(const pdstring &, 
-                                      const pdstring &n) {
-
-    // if (!n) return ((daemonEntry*) 0);
+daemonEntry *paradynDaemon::findEntry(const pdstring &n)
+{
     for(unsigned i=0; i < allEntries.size(); i++){
         daemonEntry *newE = allEntries[i];
-        if(newE->getNameString() == n)
-	  {
+        if(newE->getNameString() == n) {
             return(newE);
-	  }
+        }
     }
+
     return ((daemonEntry*) 0);
 }
 
@@ -1904,11 +1844,15 @@ bool mpichCreateWrapper (const pdstring& machine, bool localMachine,
 
    addMRNetInfoToScript(buffer, leafInfo, nLeaves);
 
-	if(localMachine) 
-   {
+   if(localMachine) {
       // the file named by script is our wrapper - write the script to the
       // wrapper file
       int fd = open(script.c_str(), O_WRONLY | O_CREAT);
+      if( fd == -1 ){
+          fprintf(stderr, "open(\"%s\") failed.\n", script.c_str());
+          perror("open()");
+          exit(-1);
+      }
       if( !writeMPICHWrapper(fd, buffer)) 
       {
          cerr << "Perhaps the current directory isn't writeable?" << endl;
@@ -2730,41 +2674,31 @@ static bool startMPI(const pdstring &machine, const pdstring &login,
 }
 #endif // !defined(i386_unknown_nt4_0)
 
-// TODO: fix this
-//
 // add a new executable (binary) to a program.
-//
 bool paradynDaemon::newExecutable(const pdstring &machineArg,
                                   const pdstring &login,
-                                  const pdstring &name, 
+                                  const pdstring &daemon_name, 
                                   const pdstring &dir,
-                                  const pdstring & /*mrnet_topology*/,
                                   const pdstring &MPItype, 
-                                  const pdvector<pdstring> &argv) {
-
-
+                                  const pdvector <pdstring> &argv)
+{
     pdstring machine = machineArg;
 
-    if (! DMstatus_initialized) {
+    if ( !DMstatus_initialized) {
         uiMgr->createStatusLine(DMstatus.c_str());
         DMstatus_initialized = true;
     }
 
     //Do we have a daemon by this name?
-    daemonEntry *def = findEntry(machine, name) ;
+    daemonEntry *def = findEntry( daemon_name ) ;
     if (!def) {
-        if (name.length()) {
-            pdstring msg = pdstring("Paradyn daemon \"") + name +
-                pdstring("\" not defined.");
-            uiMgr->showError(90,P_strdup(msg.c_str()));
-        }
-        else {
-            uiMgr->showError(91,"");
-        }
+        pdstring msg = pdstring("Paradyn daemon \"") + daemon_name +
+            pdstring("\" not defined.");
+        uiMgr->showError(90,P_strdup(msg.c_str()));
         return false;
     }
 
-    if (!machine.length()) {
+    if (machine.length() == 0) {
         if (default_host.length()) {
             pdstring m = getNetworkName(default_host);
             if( m.length() == 0 ) {
@@ -2845,30 +2779,32 @@ bool paradynDaemon::newExecutable(const pdstring &machineArg,
 
       if ( os.prefixed_by("IRIX") )
       {
-         return(startIrixMPI(machine, login, name, dir, argv, args, def));
+         return(startIrixMPI(machine, login, daemon_name, dir, argv, args, def));
       }
       else if ( os.prefixed_by ("AIX") )
       {
-         return(startPOE(machine, login, name, dir, argv, args, def));
+         return(startPOE(machine, login, daemon_name, dir, argv, args, def));
       }
       else
       {
-				//return(startMPI(machine, login, name, dir, argv, args, def));
+          //return(startMPI(machine, login, name, dir, argv, args, def));
       }
 #endif
    }  //end mpi flavor
 
-   paradynDaemon *daemon;
-   if ((daemon=getDaemonHelper(machine, login, name)) == (paradynDaemon*) NULL)
-       return false;
+   paradynDaemon *daemon = getDaemon( machine, login, daemon_name );
 
-
+   if( daemon == (paradynDaemon*) NULL)
+     return false;
 
    performanceStream::ResourceBatchMode(batchStart);
 
-   std::vector<MRN::EndPoint *> endpoints2 = daemon->network->get_BroadcastCommunicator()->get_EndPoints();
+   std::vector<MRN::EndPoint *> endpoints2 =
+       daemon->network->get_BroadcastCommunicator()->get_EndPoints();
 
-   MRN::Stream * stream = daemon->network->new_Stream(daemon->network->get_BroadcastCommunicator(),MRN::TFILTER_NULL);
+   MRN::Stream * stream =
+       daemon->network->new_Stream(daemon->network->get_BroadcastCommunicator(),
+                                   MRN::TFILTER_NULL);
 
    pdvector<int> pid = daemon->addExecutable(stream, argv, dir);
    delete stream;
@@ -2916,7 +2852,7 @@ bool paradynDaemon::attachStub(const pdstring &machine,
        DMstatus_initialized = true;
    }
 
-  paradynDaemon *daemon = getDaemonHelper(machine, userName, daemonName);
+  paradynDaemon *daemon = getDaemon(machine, userName, daemonName);
   if (daemon == NULL)
       return false;
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.72 2005/12/20 00:19:23 pack Exp $
+// $Id: DMdaemon.h,v 1.73 2006/01/27 00:19:08 darnold Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -85,7 +85,7 @@ public:
 	       const pdstring &f, const pdstring &t,
 	       const pdstring &MPIt) : 
     command(c), name(n), login(l),
-    dir(0), remote_shell(r), flavor(f), mrnet_topology(t),
+    dir(""), remote_shell(r), flavor(f), mrnet_topology(t),
     MPItype(MPIt) { }
 
   ~daemonEntry() { }
@@ -108,6 +108,7 @@ public:
   const char * getMPItype() const {return MPItype.c_str();}
 
   const pdstring &getNameString() const { return name;}
+  const pdstring &getLoginString() const { return login;}
   const pdstring &getMachineString() const { return machine;}
   const pdstring &getCommandString() const { return command;}
   const pdstring getRemoteShellString() const;
@@ -163,6 +164,7 @@ class executable {
 //
 class paradynDaemon: public dynRPCUser {
    friend class dynRPCUser;
+   friend class processMet;
    friend class component;
    friend class phaseInfo;
    friend class dataManager;
@@ -335,11 +337,19 @@ class paradynDaemon: public dynRPCUser {
    
    // application and daemon definition functions
    static bool defineDaemon(const char *command, const char *dir,
-			    const char *login, const char *name,
-			    const char *machine, const char *remote_shell,
-			    const char *flavor, const char *mrnet_config,
-			    const char * MPItype,
-				  const bool just_define);
+                            const char *login, const char *name,
+                            const char *machine, const char *remote_shell,
+                            const char *flavor, const char *mrnet_config,
+                            const char * MPItype );
+   static paradynDaemon * instantiateDaemon(pdstring machine,
+                                     pdstring login,
+                                     pdstring name,
+                                     pdstring flavor,
+                                     pdstring mrnet_topology );
+   static MRN::Network * instantiateMPIDaemon(daemonEntry * );
+   static MRN::Network * instantiateDefaultDaemon(daemonEntry *,
+                                           const pdvector<pdstring> * host_list );
+   static bool initializeDaemon(daemonEntry *, MRN::Network * inetwork );
 
 
    // start a new program; propagate all enabled metrics to it   
@@ -351,9 +361,9 @@ class paradynDaemon: public dynRPCUser {
    static bool newExecutable(const pdstring &machineArg, 
 			     const pdstring &login, const pdstring &name, 
 			     const pdstring &dir,
-			     const pdstring &mrnet_topology,
 			     const pdstring &MPItype, 
 			     const pdvector<pdstring> &argv);
+
 
    // attach to an already-running process.  cmd gives the full path to the
    // executable, used just to parse the symbol table.  the word Stub was
@@ -421,6 +431,7 @@ class paradynDaemon: public dynRPCUser {
    pdstring command;
    pdstring name;
    pdstring flavor;
+   pdstring mrnet_topology;
    u_int id;
 
    unsigned daemonId;
@@ -468,10 +479,10 @@ class paradynDaemon: public dynRPCUser {
    static pdvector<pdstring> args;
    
    // start a daemon on a machine, if one not currently running there
-   static paradynDaemon *getDaemonHelper(const pdstring &machine,
-					 const pdstring &login,
-					 const pdstring &name);
-   static daemonEntry *findEntry(const pdstring &machine, const pdstring &name);
+   static paradynDaemon *getDaemon(const pdstring &machine,
+                                   const pdstring &login,
+                                   const pdstring &name);
+   static daemonEntry *findEntry(const pdstring &name);
    
    void propagateMetrics();
    void addProcessInfo(const pdvector<pdstring> &resource_name);
