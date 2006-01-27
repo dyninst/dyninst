@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.151 2006/01/06 23:11:14 legendre Exp $
+// $Id: DMpublic.C,v 1.152 2006/01/27 00:19:09 darnold Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -197,28 +197,26 @@ void dataManager::setResourceInstSuppress(resourceHandle res, bool newValue)
 // define a new entry for the daemon dictionary
 //
 bool dataManager::defineDaemon(const char *command,
-			       const char *dir,
-			       const char *login,
-			       const char *name,
-			       const char *machine,
-			       const char *remote_shell,
-			       const char *flavor,
-			       const char *mrnet_topology,
-						 const char *MPI_type,
-						 bool just_define)
+                               const char *dir,
+                               const char *login,
+                               const char *name,
+                               const char *machine,
+                               const char *remote_shell,
+                               const char *flavor,
+                               const char *mrnet_topology,
+                               const char *MPI_type)
 {
   if(!name || !command)
       return false;
-  return (paradynDaemon::defineDaemon(command, dir, login, name, machine, remote_shell, flavor, mrnet_topology, MPI_type, just_define));
+  return (paradynDaemon::defineDaemon(command, dir, login, name, machine, remote_shell, flavor, mrnet_topology, MPI_type));
 }
 
 void dataManager::addExecutable(const char *machine,
-				const char *login,
-				const char *name,
-				const char *dir,
-				const char *mrnet_topology,
-				const char *MPItype,
-				const pdvector<pdstring> *argv)
+                                const char *login,
+                                const char *name,
+                                const char *dir,
+                                const char *MPItype,
+                                const pdvector<pdstring> *argv)
 {
   bool added = false;
 
@@ -229,19 +227,49 @@ void dataManager::addExecutable(const char *machine,
   pdstring l = login;
   pdstring n = name;
   pdstring d = dir;
-  pdstring t = mrnet_topology;
   pdstring mpi = MPItype;
 
 #if !defined(i386_unknown_nt4_0)
   if( twUser != NULL ) {
     // we have a termWin, so try to start the executable
-    added = paradynDaemon::newExecutable(m, l, n, d, t, mpi, *argv);
+    added = paradynDaemon::newExecutable(m, l, n, d, mpi, *argv);
   }
 #else
   // Windows does not yet support the termWin
-  added = paradynDaemon::newExecutable(m, l, n, d, t, mpi, *argv);
+  added = paradynDaemon::newExecutable(m, l, n, d, mpi, *argv);
 
 #endif
+}
+
+// Create MRNet network and start the daemon as appropriate
+bool dataManager::startMRNet(const char * daemon_name,
+                             const pdvector <pdstring> * process_hosts)
+{
+    fprintf(stderr, "In dataManager::startMRNet() ...\n");
+    daemonEntry * de = paradynDaemon::findEntry( daemon_name );
+    assert(de);
+
+    //Launch MRNet network for the newly defined daemon type
+    MRN::Network * _network;
+    if(de->getFlavorString() == "mpi") {
+        _network = paradynDaemon::instantiateMPIDaemon(de);
+    }
+    else{
+        _network = paradynDaemon::instantiateDefaultDaemon(de, process_hosts);
+    }
+
+    if( _network->fail() ) {
+        pdstring msg = pdstring("Failed: MRNet new network.");
+        //TODO: create new error code
+        uiMgr->showError(90,P_strdup(msg.c_str()));
+        return false;
+    }
+    
+    fprintf(stderr, "dataManager::startMRNet(): calling initializeDaemon() ...\n");
+    paradynDaemon::initializeDaemon(de, _network);
+    //uiMgr->updateStatusLine(DMstatus.c_str(),P_strdup("ready"));
+		
+    return true;
 }
 
 
