@@ -48,7 +48,7 @@
  *     metDoVisi(..) - declare a visi
  */
 
-// $Id: metMain.C,v 1.60 2006/01/05 19:16:14 legendre Exp $
+// $Id: metMain.C,v 1.61 2006/01/27 00:19:11 darnold Exp $
 
 #define GLOBAL_CONFIG_FILE "/paradyn.rc"
 #define LOCAL_CONFIG_FILE "/.paradynrc"
@@ -175,36 +175,35 @@ bool metMain(pdstring userFile)
 bool metDoDaemon()
 {
 	bool ret_value = false;
-   static bool been_done = false;
+    static bool been_done = false;
 	
-   unsigned size=daemonMet::allDaemons.size();
-   for (unsigned u=0; u<size; u++) 
-   {
-      dataMgr->defineDaemon(daemonMet::allDaemons[u]->command().c_str(),
-                            daemonMet::allDaemons[u]->execDir().c_str(),
-                            daemonMet::allDaemons[u]->user().c_str(),
-                            daemonMet::allDaemons[u]->name().c_str(),
-                            daemonMet::allDaemons[u]->host().c_str(),
-                            daemonMet::allDaemons[u]->remoteShell().c_str(),
-                            daemonMet::allDaemons[u]->flavor().c_str(),
-                            daemonMet::allDaemons[u]->mrnet_topology().c_str(),
-                            daemonMet::allDaemons[u]->MPItype().c_str(),
-                            false);
-      if(daemonMet::allDaemons[u]->flavor() == "mpi")
-         ret_value = true;
-      else
-         ret_value = false;
-      delete daemonMet::allDaemons[u];
+    unsigned size=daemonMet::allDaemons.size();
+    for (unsigned u=0; u<size; u++) {
+        dataMgr->defineDaemon(daemonMet::allDaemons[u]->command().c_str(),
+                              daemonMet::allDaemons[u]->execDir().c_str(),
+                              daemonMet::allDaemons[u]->user().c_str(),
+                              daemonMet::allDaemons[u]->name().c_str(),
+                              daemonMet::allDaemons[u]->host().c_str(),
+                              daemonMet::allDaemons[u]->remoteShell().c_str(),
+                              daemonMet::allDaemons[u]->flavor().c_str(),
+                              daemonMet::allDaemons[u]->mrnet_topology().c_str(),
+                              daemonMet::allDaemons[u]->MPItype().c_str() );
+
+        if(daemonMet::allDaemons[u]->flavor() == "mpi")
+            ret_value = true;
+        else
+            ret_value = false;
+        delete daemonMet::allDaemons[u];
    }
    daemonMet::allDaemons.resize(0);
 
    // the default daemons
 	if (!been_done){
-		fprintf(stderr,"Doing Default daemons\n");
-		dataMgr->defineDaemon("paradynd", NULL, NULL, "defd", NULL, NULL, "unix","","",true);
-		dataMgr->defineDaemon("paradynd", NULL, NULL, "winntd", NULL,NULL,"winnt","","",true);
+		dataMgr->defineDaemon("paradynd", NULL, NULL, "defd", NULL, NULL, "unix","","");
+		dataMgr->defineDaemon("paradynd", NULL, NULL, "winntd", NULL,NULL,"winnt","","");
 		been_done = true;
 	} 
+
    return ret_value;
 }
 
@@ -290,19 +289,6 @@ static void start_process(processMet *the_ps)
 
 	cout << "metMain.C in start_process() "<< *arguments << endl;
 	uiMgr->ProcessCmd(arguments);
-
-   //
-   // The code bellow is no longer necessary because we are starting this process
-   // in the same way as in the "Define A Process" window - naim
-   //
-   //  if(dataMgr->addExecutable(the_ps->host().c_str(), 
-   //			    the_ps->user().c_str(),
-   //			    the_ps->daemon().c_str(), 
-   //			    directory.c_str(),
-   //			    &argv)) {
-   //    PDapplicState=appRunning;
-   //    dataMgr->pauseApplication();
-   //  }
 }
 
 bool metDoProcess()
@@ -311,7 +297,57 @@ bool metDoProcess()
 }
 
 bool processMet::doInitProcess() {
-   //TODO:: Can we change this to a broadcast? Probably (darnold)
+    bool first_time=true;
+    pdstring daemon_name;
+    pdvector<pdstring> process_hosts;
+
+    fprintf( stderr, "In doInitProcess() ...\n");
+    //make sure only one daemon definition is being used
+    for (unsigned u=0; u<allProcs.size(); u++) {
+        processMet * cur_proc = allProcs[u];
+        if( cur_proc && cur_proc->autoStart() ) {
+
+            if(first_time){
+                daemon_name = cur_proc->daemon();
+                first_time=false;
+            }
+            if( cur_proc->daemon() != daemon_name ){
+                fprintf(stderr, "Error: different daemons cannot be used in the same paradyn session. Process \"%s\" wants to use Daemon \"%s\" while Daemon \"%s\" was previously specified.\n", cur_proc->name().c_str(), cur_proc->daemon().c_str(), daemon_name.c_str() );
+                exit(-1);
+            }
+            if( cur_proc->host().length() != 0 ){
+                process_hosts.push_back( cur_proc->host() );
+            }
+            else{
+                process_hosts.push_back( "" );
+            }
+        }
+    }
+
+    //TODO: make sure process_hosts is a set (unique membership)
+    //     since we only want one daemon per host
+
+    daemonEntry * de = paradynDaemon::findEntry( daemon_name );
+    if( !de ) {
+        fprintf(stderr, "Error: Can't find daemon definition \"%s\"\n",
+                daemon_name.c_str() );
+        exit(-1);
+    }
+
+    if( de->getFlavorString() == "mpi" && allProcs.size() > 1 ){
+        fprintf(stderr, "Error: Can't define multiple processes when using mpi flavor daemons.\n");
+        exit(-1);
+    }
+
+    //At this point we have either a single (set of) MPI process to instantiate
+    //or one or more non-mpi processes using a single daemon definition.
+    //Let's start the MRNet Network for the daemon process(es)
+    //   - in the non-mpi case, the actual daemons are started as well
+
+    fprintf(stderr, "Starting MRNet ...\n");
+    dataMgr->startMRNet(de->getName(), &process_hosts);
+
+
    unsigned size = allProcs.size();
    for (unsigned u=0; u<size; u++) {
       if( allProcs[u] && allProcs[u]->autoStart() ) {
