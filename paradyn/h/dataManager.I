@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.120 2006/01/06 23:11:08 legendre Exp $
+ * $Id: dataManager.I,v 1.121 2006/01/27 00:19:05 darnold Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -202,8 +202,7 @@ $remote dataManager {
 			const char *remote_shell,
 			const char *flavor,
 			const char *mrnet_topology,
-			const char *MPI_type,
-	    bool just_define);
+			const char *MPI_type );
 
     //
     // Define a program to run. 
@@ -216,12 +215,19 @@ $remote dataManager {
     //            as null, anything else will be assumed to be a
     //            valid string.
     $async void addExecutable(const char *machine, 
-		       	const char *login, 
-		       	const char *name, 
-	          	const char *dir,
-             		const char *mrnet_topology,
-             		const char *MPItype,
+		           	const char *login, 
+		           	const char *name, 
+	              	const char *dir,
+                 	const char *MPItype,
 		       	const pdvector<pdstring> *argv);
+
+
+    // Start the MRNet network for the daemons
+    //     daemon_name = name of daemon definition to use
+    //     process_hosts = list of machines on which to start daemons (non-mpi)
+    //   Note: for non-mpi case, daemons are started as well
+    bool startMRNet(const char * daemon_name,
+                    const pdvector<pdstring> * process_hosts );
 
     // Attach is the other way to start a process...newly implemented with v1.2
     bool attach(const char *machine,
