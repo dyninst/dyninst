@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.346 2006/01/19 20:01:17 legendre Exp $
+/* $Id: process.h,v 1.347 2006/01/29 19:18:18 chadd Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1049,6 +1049,7 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   pdvector<pdstring> loadLibraryUpdates;//ccw 14 may 2002
   pdvector<void*> loadLibraryBRKs;
   int requestTextMiniTramp; //ccw 20 jul 2002
+	void setRequestTextMiniTramp(int flag){requestTextMiniTramp=flag;};
 
 
   // Pipe between mutator and mutatee

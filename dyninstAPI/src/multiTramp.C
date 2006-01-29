@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.24 2006/01/24 16:56:03 chadd Exp $
+// $Id: multiTramp.C,v 1.25 2006/01/29 19:18:18 chadd Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -763,10 +763,31 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
                 instAddr_);
 
     // We might be getting called but nothing changed...
-    if (!generated_) {
+    if (!generated_  
+#if defined(os_aix) && defined(BPATCH_LIBRARY) 
+	/* 	this is part of the code to ensure that when we add the call to dlopen
+		at the entry of main on AIX during save the world, any multi that was
+		already there gets regenerated
+	*/
+  	|| proc()->requestTextMiniTramp
+#endif
+	){
+
+#if defined(os_aix) && defined(BPATCH_LIBRARY) 
+	/* 	this is part of the code to ensure that when we add the call to dlopen
+		at the entry of main on AIX during save the world, any multi that was
+		already there gets regenerated
+	*/
+  	if(! proc()->requestTextMiniTramp){
+#endif
+	
         assert(!trampAddr_);
         assert(generatedMultiT_ == NULL);
         assert(jumpBuf_ == NULL);
+
+#if defined(os_aix) && defined(BPATCH_LIBRARY) 
+	}
+#endif
         // A multiTramp is the code sequence for a set of instructions in
         // a basic block and all baseTramps, etc. that are being used for
         // those instructions. We use a recursive code generation
@@ -819,10 +840,9 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
             //inst_printf("... %d bytes, total %d\n",
             //obj->maxSizeRequired(), size_required);
         }
-        
         // We never re-use multiTramps
         assert(!trampAddr_);
-        
+
         inferiorHeapType heapToUse = anyHeap;
 #if defined(bug_aix_proc_broken_fork)
         // We need the base tramp to be in allocated heap space, not scavenged
@@ -980,7 +1000,7 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
     changedSinceLastGeneration_ = false;
     
     //debugBreakpoint();
-    
+   
     return true;
 }
 
@@ -1310,7 +1330,15 @@ Address multiTramp::uninstToInstAddr(Address addr) {
 
 multiTramp::mtErrorCode_t multiTramp::generateMultiTramp() {
     updateInstInstances();
-    if (hasChanged()) {
+    if (hasChanged()
+#if defined(os_aix) && defined(BPATCH_LIBRARY) 
+	/* 	this is part of the code to ensure that when we add the call to dlopen
+		at the entry of main on AIX during save the world, any multi that was
+		already there gets regenerated
+	*/
+     || proc()->requestTextMiniTramp  //ccw 8 oct 2005
+#endif
+	) {
         if (linked_) {
             // We're in the process' address space; if we need to change the
             // multiTramp, we replace it. replaceMultiTramp takes care of
@@ -1675,7 +1703,6 @@ bool multiTramp::hasChanged() {
 #endif
         }
     }
-    
     return false;
 }
 

@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test9.mutatee.c,v 1.10 2005/04/05 16:45:22 jodom Exp $ */
+/* $Id: test9.mutatee.c,v 1.11 2006/01/29 19:18:19 chadd Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -71,7 +71,7 @@ int mutateeCplusplus = 0;
 #endif
 #define USAGE "Usage: test1.mutatee [-attach] [-verbose] -run <num> .."
 
-#define MAX_TEST 6 
+#define MAX_TEST 7 
 #define TRUE 1
 #define FALSE 0
 int debugPrint = 0;
@@ -86,6 +86,7 @@ int globalVariable2_1 = 0;
 int globalVariable4_1 = 42;
 int globalVariable5_1 = 66;
 int globalVariable6_1 = 11;
+int globalVariable_Main = 0;
 #ifdef __cplusplus
 extern "C"{
 #endif
@@ -96,7 +97,36 @@ extern void func6_2(); /*this is in libInstMe.so */
 }
 #endif
 
- 
+void funcIncrGlobalMain(){
+	globalVariable_Main++;
+}
+
+void funcIncrGlobalMainBy2(){
+	globalVariable_Main++;
+	globalVariable_Main++;
+}
+
+void func7_1(){
+
+	if( globalVariable_Main != 3){
+		if( globalVariable_Main == 1 ){
+			fprintf(stderr,"**Failed Test #7 (instrument entry point of main)\n");
+		}else if(globalVariable_Main==2){
+
+			fprintf(stderr,"**Failed Test #7 (instrument first basic block in main)\n");
+		}else{
+			fprintf(stderr,"**Failed Test #7 (instrument entry point of main and instrument first basic block in main)\n");
+		}
+	}else{
+		
+		if( ! originalMutatee){
+			fprintf(stderr,"Passed Test #7 (instrument entry point of main and instrument first basic block in main)\n");
+		}
+		passedTest[7] = TRUE;
+	}
+
+} 
+
 void func6_1(){
 
 #if !defined(i386_unknown_linux2_0) \
@@ -12335,10 +12365,22 @@ void runTests()
     if (runTest[4]) func4_1();
     if (runTest[5]) func5_1();
     if (runTest[6]) func6_1();
+    if (runTest[7]) func7_1();
 		
 }
 
+void firstBasicBlock(){
+	globalVariable_Main++;
+}
 
+void foo(){
+	/* 	this is here so that firstBasicBlock() below is not the
+		same as the entry point of main
+	*/
+	globalVariable_Main--;	
+		
+} 
+	
 int main(int iargc, char *argv[])
 {                                       /* despite different conventions */
     unsigned argc=(unsigned)iargc;      /* make argc consistently unsigned */
@@ -12348,6 +12390,16 @@ int main(int iargc, char *argv[])
 #ifndef i386_unknown_nt4_0
     int pfd;
 #endif
+	/* 	foo() is here so that firstBasicBlock() below is not the
+		same as the entry point of main
+	*/
+	foo();
+
+	/* 	firstBasicBlock() is here for us to instrument so we can be sure 
+		to instrument something in the first basic block 
+		of main() for test7
+	*/
+	firstBasicBlock();
 
     for (j=0; j <= MAX_TEST; j++) {
 	runTest [j] = FALSE;

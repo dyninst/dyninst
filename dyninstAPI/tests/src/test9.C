@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9.C,v 1.18 2006/01/11 15:41:31 chadd Exp $
+// $Id: test9.C,v 1.19 2006/01/29 19:18:19 chadd Exp $
 //
 // libdyninst validation suite test #9
 //    Author: Chadd Williams (30 jun 2003) 
@@ -92,7 +92,8 @@
 #define TEST4 "4"
 #define TEST5 "5"
 #define TEST6 "6"
-  
+#define TEST7 "7"
+
 int debugPrint = 0; // internal "mutator" tracing
 int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
 
@@ -102,7 +103,7 @@ int mutateeCplusplus = 0;
 int mutateeFortran = 0;
 int mutateeF77 = 0;
 bool runAllTests = true;
-const unsigned int MAX_TEST = 6;
+const unsigned int MAX_TEST = 7;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
 
@@ -198,7 +199,7 @@ char* saveWorld(BPatch_thread *appThread){
 	char *mutatedName = new char[strlen("test9_mutated") +1];
 	memset(mutatedName, '\0',strlen("test9_mutated") +1);
 	strcat(mutatedName, "test9_mutated");
-	   char* dirName = appThread->dumpPatchedImage(mutatedName);
+   	char* dirName = appThread->dumpPatchedImage(mutatedName);
 	if(!dirName){
 		fprintf(stderr,"Error: No directory name returned\n");
 	}
@@ -330,9 +331,9 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 	strcat(newLDPATH,":");
 	strcat(newLDPATH, currLDPATH);
 
-	mutatedBinary= new char[strlen(path) + strlen(realFileName) + 1];
+	mutatedBinary= new char[strlen(path) + strlen(realFileName) + 10];
 
-	memset(mutatedBinary, '\0', strlen(path) + strlen(realFileName) + 1);
+	memset(mutatedBinary, '\0', strlen(path) + strlen(realFileName) + 10);
 
 	strcat(mutatedBinary, path);
 	strcat(mutatedBinary, realFileName);
@@ -443,7 +444,7 @@ void instrumentToCallZeroArg(BPatch_thread *appThread, BPatch_image *appImage, c
 
   BPatch_Vector<BPatch_function *> found_funcs;
   if ((NULL == appImage->findFunction(instrumentee, found_funcs)) || !found_funcs.size()) {
-    fprintf(stderr, "    Unable to find function %s\n","instrumentee");
+    fprintf(stderr, "    Unable to find function %s\n",instrumentee);
     exit(1);
   }
   
@@ -917,6 +918,97 @@ void mutatorTest6(char *pathname)
 
 }
 
+//
+// Start Test Case #7 - (instrument entry point of main and first basic block in main)
+//
+void mutatorTest7(char *pathname)
+{
+  char* testName = "instrument entry point of main and first basic block in main";
+  int testNo = 7;
+ 
+#if defined(sparc_sun_solaris2_4) \
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix5_1)
+
+	const char* child_argv[MAX_TEST+5];
+	
+	buildArgs(child_argv, pathname, testNo);
+
+	BPatch_thread *appThread;
+	BPatch_image *appImage;
+	createNewProcess(appThread, appImage, pathname, child_argv);
+	
+	BPatch_Vector<BPatch_function *> found_funcs;
+	if ((NULL == appImage->findFunction("main", found_funcs)) || !found_funcs.size()) {
+		fprintf(stderr, "    Unable to find function main\n");
+		exit(1);
+	}
+  
+	if (1 < found_funcs.size()) {
+		fprintf(stderr, "%s[%d]:  WARNING  : found %d functions named main.  Using the first.\n", 
+			__FILE__, __LINE__, found_funcs.size());
+	}
+  
+	BPatch_point *point=NULL;
+
+	const BPatch_Vector<BPatch_point*>* points = found_funcs[0]->findPoint(BPatch_subroutine);
+	char buff[1024];
+	bool foundIt = false;
+
+	for(int i=0; !foundIt && i< points->size(); i++){
+
+		(*points)[i]->getCalledFunction()->getName(buff,1023);
+		if( !strncmp(buff,"firstBasicBlock",15)){
+			foundIt = true;
+			point = (*points)[i];
+		}
+	}
+
+	if (!point ){
+		fprintf(stderr, "**Failed** test #%d (%s)\n", testNo,testName);
+		fprintf(stderr, "    Unable to find call to firstBasicBlock() in main()\n");
+		exit(1);
+	}
+
+	BPatch_Vector<BPatch_function *> bpfv;
+	if (NULL == appImage->findFunction("funcIncrGlobalMain", bpfv) || !bpfv.size()
+     		|| NULL == bpfv[0]){
+		fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
+		fprintf(stderr, "    Unable to find function funcIncrGlobalMain\n");
+		exit(1);
+	}
+	BPatch_function *call1_func = bpfv[0];
+  
+	BPatch_Vector<BPatch_snippet *> call1_args;
+	BPatch_funcCallExpr call1Expr(*call1_func, call1_args);
+  
+	appThread->insertSnippet(call1Expr, *point);
+
+	instrumentToCallZeroArg(appThread, appImage, "main", "funcIncrGlobalMainBy2", testNo, testName);
+	char* dirname=saveWorld(appThread);	
+	savedDirectories[testNo] = dirname;
+
+	/* finish original mutatee to see if it runs */
+	int retValue = letOriginalMutateeFinish(appThread);
+	/***********/
+
+	if( retValue == 0 ){
+	
+		passedTest[testNo] = runMutatedBinaryLDLIBRARYPATH(dirname, "test9_mutated", TEST7);
+	}else{
+		fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+	}
+
+	//appThread->terminateExecution();
+#else
+	passedTest[testNo] = 1;
+	fprintf(stderr,"Skipped Test #%d: not implemented on this platform\n",testNo);
+
+#endif	
+}
+
 
 void dynFunc (BPatch_thread *thr, BPatch_module *mod, bool load){
 	char name[4096];
@@ -955,6 +1047,7 @@ int mutatorMAIN(char *pathname)
     if (runTest[4]) mutatorTest4(pathname);
     if (runTest[5]) mutatorTest5(pathname);
     if (runTest[6]) mutatorTest6(pathname);
+    if (runTest[7]) mutatorTest7(pathname);
     // Start of code to continue the process.  All mutations made
     // above will be in place before the mutatee begins its tests.
 

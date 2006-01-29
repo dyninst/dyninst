@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.20 2006/01/24 16:56:03 chadd Exp $
+// $Id: baseTramp.C,v 1.21 2006/01/29 19:18:18 chadd Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -423,6 +423,7 @@ bool baseTrampInstance::generateCode(codeGen &gen,
     // so bump versions on the generated instPointInstances
     generated_ = true;
     hasChanged_ = false;
+
     return true;
 }
 
@@ -834,7 +835,20 @@ void baseTramp::setRecursive(bool trampRecursive) {
             guardState_ = recursive_BTR;
         else {
             if (guardState_ == guarded_BTR) {
+#if defined(os_aix) && defined(BPATCH_LIBRARY) //ccw 8 oct 2005
+		/* 	this is part of the code to ensure that when we add the call to dlopen
+			at the entry of main on AIX during save the world, an UNGUARDED tramp is produced
+		*/
+		if( !proc()->requestTextMiniTramp ){
+#endif
                 cerr << "WARNING: collision between pre-existing guarded miniTramp and new miniTramp, keeping guarded!" << endl;
+#if defined(os_aix) && defined(BPATCH_LIBRARY) //ccw 8 oct 2005
+		}else{
+			//override the tramp guard state if we are doing savetheworld on AIX
+
+			guardState_ = recursive_BTR; //ccw 24 jan 2006 
+		}
+#endif
             }
         }
     }
@@ -870,9 +884,16 @@ bool baseTramp::getRecursive() const {
 
 // Generates an instruction buffer that holds the base tramp
 bool baseTramp::generateBT() {
-  
-  if (valid && !(BPatch::bpatch->isMergeTramp()))
-    {
+
+  if (valid && !(BPatch::bpatch->isMergeTramp())
+#if defined(os_aix) && defined(BPATCH_LIBRARY) //ccw 8 oct 2005
+	/* 	this is part of the code to ensure that when we add the call to dlopen
+		at the entry of main on AIX during save the world, any multi that was
+		already there gets regenerated
+	*/
+    && !proc()->requestTextMiniTramp 
+#endif
+     ){
       return true; // May be called multiple times
     }
   else
@@ -991,11 +1012,23 @@ bool baseTramp::generateBT() {
     
 
 #if defined(os_aix) && defined(BPATCH_LIBRARY) //ccw 8 oct 2005
-    if (!proc()->requestTextMiniTramp ){
+	/* 	if requestTextMiniTramp is set then we are instrumenting the
+		entry point of main for save the world on AIX.
+		
+		We only want to disable the MT code for the BaseTramp that
+		calls dlopen, which will be the FIRST BaseTramp in the MultiTramp.
+	
+		Hence, the increment of requestTextMiniTramp.  This gets called
+		TWO times (where we want to skip the MT code) before we see the second 
+		BaseTramp in the MultiTram, where we DO want MT code.
+	*/
+    if (proc()->requestTextMiniTramp==0 || proc()->requestTextMiniTramp>2 ){
 #endif
   // Multithread
     generateMTCode(preTrampCode_, regSpace);
 #if defined(os_aix) && defined(BPATCH_LIBRARY)   //ccw 8 oct 2005
+   }else{
+	proc()->setRequestTextMiniTramp(proc()->requestTextMiniTramp+1);
    }
 #endif
 
