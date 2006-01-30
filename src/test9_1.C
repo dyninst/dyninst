@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9_1.C,v 1.1 2005/09/29 20:39:54 bpellin Exp $
+// $Id: test9_1.C,v 1.2 2006/01/30 04:55:37 bpellin Exp $
 /*
  * #Name: test9_1
  * #Desc: Instrument one simple function call and save the world
@@ -96,9 +96,13 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 	if( retValue == 0){
 	
 		if ( runMutatedBinaryLDLIBRARYPATH(dirname, "test9_mutated", TEST1))
+                {
                   return 0;
-                else
+                }
+                else {
+		  fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
                   return -1;
+                }
 	}else{
 		fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
                 return -1;

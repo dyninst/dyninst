@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9_2.C,v 1.1 2005/09/29 20:39:55 bpellin Exp $
+// $Id: test9_2.C,v 1.2 2006/01/30 04:55:38 bpellin Exp $
 /*
  * #Name: test9_2
  * #Desc: Instrument many function calls and save the world
@@ -109,6 +109,7 @@ int mutatorTest(char *pathname, BPatch *bpatch)
                 }
 	}else{
 		fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+                return -1;
 
 	}
 #else
