@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9.h,v 1.2 2005/11/22 19:40:57 bpellin Exp $
+// $Id: test9.h,v 1.3 2006/01/30 04:55:36 bpellin Exp $
 #ifndef TEST9_H
 #define TEST9_H
 
@@ -53,5 +53,6 @@ const unsigned int MAX_TEST = 6;
 #define TEST4 "4"
 #define TEST5 "5"
 #define TEST6 "6"
+#define TEST7 "7"
   
 #endif /* TEST9_H */
