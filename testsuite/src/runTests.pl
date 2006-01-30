@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: runTests.pl,v 1.4 2005/10/25 04:18:00 bpellin Exp $
+# $Id: runTests.pl,v 1.5 2006/01/30 04:31:41 bpellin Exp $
 
 use strict;
 use POSIX;
@@ -27,6 +27,7 @@ sub ParseParameters();
 sub SetupVars();
 sub RunTest($);
 sub PDScriptDir();
+sub SimpleShellEscape($);
 
 
 ########################################
@@ -135,8 +136,21 @@ sub RunTest($) {
    }
 
    # Run Test Program
-   system($testString);
+   system(SimpleShellEscape($testString));
    return WEXITSTATUS($?);
+
+}
+
+########################################
+# SimpleShellEscape
+#
+sub SimpleShellEscape($) {
+   my $string = shift;
+
+   $string =~ s/\*/\\*/g;
+   $string =~ s/\?/\\?/g;
+
+   return $string;
 
 }
 
