@@ -39,12 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.6 2006/01/23 22:21:55 bpellin Exp $
+// $Id: test_driver.C,v 1.7 2006/01/30 04:31:40 bpellin Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <errno.h>
+#include <fnmatch.h>
 #include <vector>
 
 #if defined(i386_unknown_nt4_0)
@@ -65,7 +66,11 @@
 bool forceRelocation = false; // force relocation of functions
 bool delayedParse = false;
 bool enableLogging = false;
-bool runAll = true;
+bool runAllTests = true;
+bool runAllMutatees = true;
+bool runAllOptions = true;
+bool runCreate = false;
+bool runAttach = false;
 bool resumeLog = false;
 bool useResume = false;
 bool useHumanLog = false;
@@ -468,8 +473,6 @@ int executeTest(BPatch *bpatch, test_data_t &test, char *mutatee, create_mode_t 
    }
 
    //delete bpatch;
-   // TODO: Add support for the reap script here
-
    return result;
 }
 
@@ -477,7 +480,7 @@ bool inTestList(test_data_t &test, std::vector<char *> &test_list)
 {
    for (unsigned int i = 0; i < test_list.size(); i++ )
    {
-      if ( strcmp(test.name, test_list[i]) == 0 )
+      if ( fnmatch(test_list[i], test.name, 0) == 0 )
       {
          return true;
       }
@@ -485,6 +488,20 @@ bool inTestList(test_data_t &test, std::vector<char *> &test_list)
 
    return false;
 }
+
+bool inMutateeList(char *mutatee, std::vector<char *> &mutatee_list)
+{
+   for (unsigned int i = 0; i < mutatee_list.size(); i++ )
+   {
+      if ( fnmatch(mutatee_list[i], mutatee, 0) == 0 )
+      {
+         return true;
+      }
+   }
+
+   return false;
+}
+
 
 // Human Readable Log Editing Functions
 fpos_t printCrashHumanLog(test_data_t test, char *mutatee, create_mode_t cm)
@@ -587,7 +604,7 @@ int getResumeLog(int *testnum, int *mutateenum, int *optionnum)
    return 0;
 }
 
-int startTest(test_data_t tests[], unsigned int n_tests, std::vector<char *> &test_list)
+int startTest(test_data_t tests[], unsigned int n_tests, std::vector<char *> &test_list, std::vector<char *> mutatee_list)
 {
     BPatch *bpatch;
     // Create an instance of the BPatch library
@@ -633,7 +650,7 @@ int startTest(test_data_t tests[], unsigned int n_tests, std::vector<char *> &te
          continue;
       // Skip if we specified a list of tests to run and this test
       // is not in it.
-      if ( !runAll && !inTestList(tests[i], test_list) )
+      if ( !runAllTests && !inTestList(tests[i], test_list) )
          continue;
 
       if ( enableLogging && j_init == 0 )
@@ -644,6 +661,8 @@ int startTest(test_data_t tests[], unsigned int n_tests, std::vector<char *> &te
       dprintf("%s has %d mutatees.\n", tests[i].name, tests[i].mutatee.size());
       for (unsigned int j = j_init; j < tests[i].mutatee.size(); j++ )
       {
+         if ( !runAllMutatees && !inMutateeList(tests[i].mutatee[j], mutatee_list) )
+            continue;
          if ( enableLogging && k_init == 0 )
          {
             printLogMutateeHeader(tests[i].mutatee[j]);
@@ -652,12 +671,22 @@ int startTest(test_data_t tests[], unsigned int n_tests, std::vector<char *> &te
          // Iterate through useAttach options
          for (unsigned int k = k_init; k < 2; k++ )
          {
-            // Skip if this test should not be run in USEATTACH mode
-            if ( k == 0 && tests[i].useAttach == USEATTACH )
-               continue;
             // Skip if this test should not be run in CREATE mode
-            if ( k == 1 && tests[i].useAttach == CREATE )
-               continue;
+            if ( k == 0 )
+            {
+               if ( !runAllOptions && !runCreate )
+                  continue;
+               if ( tests[i].useAttach == USEATTACH )
+                  continue;
+            }
+            // Skip if this test should not be run in USEATTACH mode
+            if ( k == 1 )
+            {
+               if ( !runAllOptions && !runAttach )
+                  continue;
+               if ( tests[i].useAttach == CREATE )
+                  continue;
+            }
 
             if ( resumeLog)
             {
@@ -755,6 +784,7 @@ int main(unsigned int argc, char *argv[]) {
 
     unsigned int i;
     std::vector<char *> test_list;
+    std::vector<char *> mutatee_list;
     
     for (i=1; i < argc; i++ )
     {
@@ -774,10 +804,62 @@ int main(unsigned int argc, char *argv[]) {
        {
           enableLogging = true;
        }
+       else if ( strcmp(argv[i], "-test") == 0)
+       {
+          char *tests;
+          char *name;
+
+          runAllTests = false;
+          if ( i + 1 >= argc )
+          {
+             fprintf(stderr, "-test must be followed by a testname\n");
+             exit(1);
+          }
+
+          tests = strdup(argv[++i]);
+
+          name = strtok(tests, ",");
+          test_list.push_back(name);
+          while ( name != NULL )
+          {
+             name = strtok(NULL, ",");
+             if ( name != NULL )
+             {
+               test_list.push_back(name);
+             }
+          }
+       }
+       else if ( strcmp(argv[i], "-mutatee") == 0)
+       {
+          char *mutatees;
+          char *name;
+
+          runAllMutatees = false;
+          if ( i + 1 >= argc )
+          {
+             fprintf(stderr, "-mutatee must be followed by mutatee names\n");
+             exit(1);
+          }
+
+          mutatees = strdup(argv[++i]);
+
+          name = strtok(mutatees, ",");
+          mutatee_list.push_back(name);
+          while ( name != NULL )
+          {
+             name = strtok(NULL, ",");
+             if ( name != NULL )
+             {
+                mutatee_list.push_back(name);
+             }
+          }
+       }
+       // TODO: Remove the -run option, it is replaced by the -test option
        else if ( strcmp(argv[i], "-run") == 0)
        {
+          fprintf(stderr, "Warning: The -run option is deprecated, use -test instead\n");
           unsigned int j;
-          runAll = false;
+          runAllTests = false;
           for ( j = i+1; j < argc; j++ )
           {
              if ( argv[j][0] == '-' )
@@ -791,6 +873,16 @@ int main(unsigned int argc, char *argv[]) {
              }
           }
           i = j - 1;
+       }
+       else if ( strcmp(argv[i], "-attach") == 0 )
+       {
+          runAllOptions = false;
+          runAttach = true;
+       }
+       else if ( strcmp(argv[i], "-create") == 0 )
+       {
+          runAllOptions = false;
+          runCreate = true;
        }
        else if ( strcmp(argv[i], "-enable-resume") == 0 )
        {
@@ -853,6 +945,6 @@ int main(unsigned int argc, char *argv[]) {
        getResumeLog(&skipToTest,&skipToMutatee,&skipToOption);
     }
 
-    return -startTest(tests, num_tests, test_list);
+    return -startTest(tests, num_tests, test_list, mutatee_list);
 }
 
