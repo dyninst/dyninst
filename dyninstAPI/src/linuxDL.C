@@ -852,6 +852,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
 				      changed_objects);
       if (!res) return false;
 #if defined(BPATCH_LIBRARY)
+
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
       // SAVE THE WORLD
@@ -864,6 +865,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
 	  setlowestSObaseaddr(changed_objects[index]->getBaseAddress());
 	}	
       }
+#endif
 #endif
     }
     
@@ -896,7 +898,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
       if (! brk_lwp->changePC(ret_addr, NULL)) {
 	return false;
       }
-#else
+#else   // ia64
       dyn_lwp *lwp_to_use = NULL;
       lwp_to_use = proc->getRepresentativeLWP();
       if(lwp_to_use == NULL)
@@ -908,14 +910,14 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
       // fprintf(stderr, "Changing PC to 0x%llx\n", r_brk_target_addr);
       assert(r_brk_target_addr);
       lwp_to_use->changePC( r_brk_target_addr, NULL );
-#endif
+#endif  //x86
     } // non-forced, clean up for breakpoint
     previous_r_state = current_r_state;
     return true;
   } // Not a library load (!forced && pc != breakpoint)
   return false; 
 }
-#endif
+
 // This function performs all initialization necessary to catch shared object
 // loads and unloads (symbol lookups and trap setting)
 bool dynamic_linking::installTracing()

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.185 2006/01/30 07:16:52 jaw Exp $
+// $Id: linux.C,v 1.186 2006/01/30 19:44:59 jaw Exp $
 
 #include <fstream>
 
@@ -361,39 +361,6 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
   bool ret = true;
 
   assert(proc);
-
-#ifdef NOTDEF // PDSEP
-  if (proc->status() == deleted || proc->status() == exited) {
-    fprintf(stderr, "%s[%d]:  getting ready to shut down event handling thread\n", FILE__, __LINE__);
-    stopThreadNextIter();
-    ev.type = evtShutDown;
-    ev.proc = proc;
-    return true;
-  }
-
-  //  if process is not active, wait for it to be activated.
-  //  not active == bootstrapped + not running + no threads running
-
-  while (  proc->status() != running  
-     && proc->status() != neonatal
-     && !proc->query_for_running_lwp()) {
-    signal_printf("%s[%d]:  waiting for process %d to become active, status: %s\n", 
-                  FILE__, __LINE__, pid, proc->getStatusAsString().c_str());
-    waiting_for_active_process = true;
-    __WAIT_FOR_SIGNAL;
-  }
-
-  if (stop_request) {
-    signal_printf("%s[%d]:  getting ready to shut down event handling thread\n", FILE__, __LINE__);
-    stopThreadNextIter();
-    ev.type = evtShutDown;
-    ev.proc = proc;
-    return true;
-  }
-
-  waiting_for_active_process = false;
-
-#endif
 
   int waitpid_pid = 0;
   int status = 0;

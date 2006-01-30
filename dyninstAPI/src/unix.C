@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.153 2006/01/30 07:16:53 jaw Exp $
+// $Id: unix.C,v 1.154 2006/01/30 19:45:00 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -1067,8 +1067,7 @@ bool SignalGenerator::forkNewProcess()
       pdstring msg = pdstring("Unable to create trace pipe for program '") + file +
          pdstring("': ") + pdstring(strerror(errno));
       showErrorCallback(68, msg);
-      ret = false;
-      return ret;
+      return false;
    }
 #endif
    errno = 0;
@@ -1112,7 +1111,7 @@ bool SignalGenerator::forkNewProcess()
 #ifndef BPATCH_LIBRARY
       // parent never writes trace records; it only receives them.
       P_close(tracePipe[1]);
-      *traceLink_ = tracePipe[0];
+      traceLink = tracePipe[0];
 #endif
       return true;
 
@@ -1121,8 +1120,8 @@ bool SignalGenerator::forkNewProcess()
 
 #ifndef BPATCH_LIBRARY
       //setup output redirection to termWin
-      dup2(stdout_fd_,1);
-      dup2(stdout_fd_,2);
+      dup2(stdout_fd,1);
+      dup2(stdout_fd,2);
 
       // Now that stdout is going to a pipe, it'll (unfortunately) be block
       // buffered instead of the usual line buffered (when it goes to a tty).
@@ -1157,10 +1156,10 @@ bool SignalGenerator::forkNewProcess()
 #endif
 #if !defined(BPATCH_LIBRARY)
       /* see if I/O needs to be redirected */
-      if (inputFile_->length()) {
-         int fd = P_open(inputFile_->c_str(), O_RDONLY, 0);
+      if (inputFile.length()) {
+         int fd = P_open(inputFile.c_str(), O_RDONLY, 0);
          if (fd < 0) {
-            fprintf(childError, "stdin open of %s failed\n", inputFile_->c_str());
+            fprintf(childError, "stdin open of %s failed\n", inputFile.c_str());
             fflush(childError);
             P__exit(-1);
          } else {
@@ -1169,10 +1168,10 @@ bool SignalGenerator::forkNewProcess()
          }
       }
 
-      if (outputFile_->length()) {
-         int fd = P_open(outputFile_->c_str(), O_WRONLY|O_CREAT, 0444);
+      if (outputFile.length()) {
+         int fd = P_open(outputFile.c_str(), O_WRONLY|O_CREAT, 0444);
          if (fd < 0) {
-            fprintf(childError, "stdout open of %s failed\n", outputFile_->c_str());
+            fprintf(childError, "stdout open of %s failed\n", outputFile.c_str());
             fflush(childError);
             P__exit(-1);
          } else {

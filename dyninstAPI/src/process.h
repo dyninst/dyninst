@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.348 2006/01/30 07:16:53 jaw Exp $
+/* $Id: process.h,v 1.349 2006/01/30 19:44:59 jaw Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -613,7 +613,9 @@ class process {
 
   
 
+#ifdef NOTDEF // PDSEP
   pdstring getProcessStatus() const;
+#endif
 
   static pdstring tryToFindExecutable(const pdstring &progpath, int pid);
       // os-specific implementation.  Returns empty string on failure.

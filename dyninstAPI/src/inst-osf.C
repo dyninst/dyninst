@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-osf.C,v 1.12 2005/11/22 13:57:09 jaw Exp $
+// $Id: inst-osf.C,v 1.13 2006/01/30 19:44:59 jaw Exp $
 
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/dyninst.h"
@@ -47,6 +47,7 @@
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/inst.h"
 
+#ifdef NOTDEF // PDSEP
 #ifndef BPATCH_LIBRARY
 #include "paradynd/src/perfStream.h"
 
@@ -74,7 +75,7 @@ pdstring process::getProcessStatus() const {
 }
 
 #endif
-
+#endif
 //
 // All costs are based on Measurements on a SPARC station 10/40.
 // These probably should be adjusted for an alpha

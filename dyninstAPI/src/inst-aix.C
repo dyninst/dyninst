@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: inst-aix.C,v 1.22 2005/11/22 13:57:09 jaw Exp $
+/* $Id: inst-aix.C,v 1.23 2006/01/30 19:44:59 jaw Exp $
  * inst-aix.C - AIX-specific code for paradynd.
  *
  * XXX - The following functions seem to be less than OS dependent, but I
@@ -61,6 +61,7 @@
 #include "dyninstAPI/src/stats.h"
 #include <sys/ldr.h>
 
+#ifdef NOTDEF // PDSEP
 #ifndef BPATCH_LIBRARY
 #include "dyninstRPC.xdr.SRVR.h"
 #include "paradynd/src/main.h"
@@ -91,6 +92,7 @@ pdstring process::getProcessStatus() const {
     return(ret);
 }
 
+#endif
 #endif
 
 //

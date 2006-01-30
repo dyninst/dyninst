@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-linux.C,v 1.13 2005/11/22 13:57:09 jaw Exp $
+// $Id: inst-linux.C,v 1.14 2006/01/30 19:44:59 jaw Exp $
 
 #ifndef NULL
 #define NULL 0
@@ -55,35 +55,39 @@
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/stats.h"
 
+#ifdef NOTDEF // PDSEP
 #ifndef BPATCH_LIBRARY
 #include "rtinst/h/trace.h"
 #include "paradynd/src/main.h"
 #include "paradynd/src/perfStream.h"
 #include "dyninstAPI/src/showerror.h"
 
-pdstring process::getProcessStatus() const {
+//  This seems redunant now with getProcessStatusAsString().
+pdstring process::getProcessStatus() const 
+{
    char ret[80];
 
    switch (status()) {
 	case running:
-	    sprintf(ret, "%d running", pid);
+	    sprintf(ret, "%d running", getPid());
 	    break;
 	case neonatal:
-	    sprintf(ret, "%d neonatal", pid);
+	    sprintf(ret, "%d neonatal", getPid());
 	    break;
 	case stopped:
-	    sprintf(ret, "%d stopped", pid);
+	    sprintf(ret, "%d stopped", getPid());
 	    break;
 	case exited:
-	    sprintf(ret, "%d exited", pid);
+	    sprintf(ret, "%d exited", getPid());
 	    break;
 	default:
-	    sprintf(ret, "%d UNKNOWN State", pid);
+	    sprintf(ret, "%d UNKNOWN State", getPid());
 	    break;
     }
     return(ret);
 }
 
+#endif
 #endif
 
 //
