@@ -42,6 +42,11 @@
 #include "dyninstAPI/src/mailbox.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/showerror.h"
+#include "common/h/headers.h"
+#include "dyninstAPI/src/os.h"
+#if defined (os_windows)
+#include <windows.h>
+#endif
 ThreadMailbox *eventmb = NULL;
 ThreadMailbox *getMailbox()
 {
@@ -55,15 +60,26 @@ extern eventLock *global_mutex;
 eventLock::eventLock()
 {
 #if defined(os_windows)
+#if 0
+//HANDLE CreateMutex(
+//  LPSECURITY_ATTRIBUTES lpMutexAttributes,
+//  BOOL bInitialOwner,
+//  LPCTSTR lpName )
+  mutex = CreateMutex(NULL, false /*no initial owner*/, NULL);
+  assert(mutex);
+#endif
   InitializeCriticalSection(&mutex);
+  InitializeCriticalSection(&waiter_lock);
+  num_waiters = 0;
 //HANDLE CreateEvent(
 //  LPSECURITY_ATTRIBUTES lpEventAttributes,
 //  BOOL bManualReset,
 //  BOOL bInitialState,
-//  LPCTSTR lpName
+//  LPCTSTR lpName )
+
   cond = CreateEvent(NULL, true /*true is manual reset, false for auto*/,
-                     false /*initially not in signalled state */,
-                     NULL /*name*/);
+                    false /*initially not in signalled state */,
+                    NULL /*name*/);
   assert (cond);
 #else
   int err = 0;
@@ -75,7 +91,7 @@ eventLock::eventLock()
     abort();
   }
   if (0 != pthread_mutex_init(&mutex, &mutex_type)) {
-    ERROR_BUFFER;
+   ERROR_BUFFER;
     fprintf(stderr, "%s[%d]:  failed to init mutex: %s[%d]\n",
             FILE__, __LINE__, STRERROR(err, buf), err);
     abort();
@@ -88,9 +104,13 @@ eventLock::eventLock()
 eventLock::~eventLock()
 {
 #if defined(os_windows)
-  //  need to do something here
-  DeleteCriticalSection(&mutex);
+  DeleteCriticalSection(&mutex);  
+  DeleteCriticalSection(&waiter_lock);
+#ifdef NOTDEF 
+  CloseHandle(mutex);
+#endif
   CloseHandle(cond);
+
 #else
   pthread_mutex_destroy(&mutex);
   pthread_cond_destroy(&cond);
@@ -100,17 +120,25 @@ eventLock::~eventLock()
 int eventLock::_Lock(const char *__file__, unsigned int __line__)
 {
   int err = 0;
+  //fprintf(stderr, "%s[%d]: about to lock %p: from %s[%d]\n", FILE__, __LINE__, &mutex, __file__, __line__);
+
 #if defined(os_windows)
   EnterCriticalSection(&mutex);
-  lock_depth++;
+#if 0
+  DWORD res = WaitForSingleObject(mutex, INFINITE);
+  assert(res == WAIT_OBJECT_0);
+  //  Other possible results for res are WAIT_TIMEOUT and WAIT_ABANDONED
+#endif
+
 #else
-  //fprintf(stderr, "%s[%d]: about to lock %p: from %s[%d]\n", FILE__, __LINE__, &mutex, __file__, __line__);
   if(0 != (err = pthread_mutex_lock(&mutex))){
     ERROR_BUFFER;
     fprintf(stderr, "%s[%d]:  failed to lock mutex: %s[%d]\n",
             __file__, __line__, STRERROR(err, buf), err);
+    return err;
   }
-  else {
+#endif
+
     if (lock_depth) {
       if ((owner_id != getExecThreadID()) && (owner_id != -1UL)) {
         fprintf(stderr, "%s[%d]:  FATAL MUTEX ERROR, lock obtained by 2 threads,\n",
@@ -129,13 +157,9 @@ int eventLock::_Lock(const char *__file__, unsigned int __line__)
     el.line = __line__;
     lock_stack.push_back(el);
     
-  }
 
-#ifdef DEBUG_MUTEX
-  fprintf(stderr, "%s[%d]:  lock, depth = %d\n", __file__, __line__, lock_depth);
-#endif
+  mutex_printf("%s[%d]:  lock obtained from %s[%d], depth = %d\n", FILE__, __LINE__, __file__, __line__, lock_depth);
 
-#endif
   return err;
 }
 
@@ -144,7 +168,7 @@ int eventLock::_Trylock(const char *__file__, unsigned int __line__)
 {
   int err = 0;
 #if defined(os_windows)
-  TryEnterCriticalSection(&mutex);
+  assert(0); 
   lock_depth++;
    //  need to look at result of tryEnter to see if we should increment lock_depth
 #else
@@ -174,22 +198,23 @@ int eventLock::_Trylock(const char *__file__, unsigned int __line__)
 
 int eventLock::_Unlock(const char *__file__, unsigned int __line__)
 {
-#if defined(os_windows)
-  lock_depth--;
-  LeaveCriticalSection(&mutex);
-
-#else
   if (!lock_depth) {
     fprintf(stderr, "%s[%d]:  MUTEX ERROR, attempt to unlock nonlocked mutex, at %s[%d]\n",
             FILE__, __LINE__, __file__, __line__);
+    assert(0);
   }
   lock_depth--;
   lock_stack_elem el = lock_stack[lock_stack.size() -1];
   lock_stack.pop_back();
-  
-#ifdef DEBUG_MUTEX
-  fprintf(stderr, "%s[%d]:  unlock, lock depth will be %d \n", __file__, __line__, lock_depth);
+
+  mutex_printf("%s[%d]:  unlock issued from %s[%d], depth = %d\n", FILE__, __LINE__, __file__, __line__, lock_depth);
+
+#if defined(os_windows)
+  LeaveCriticalSection(&mutex);
+#if 0
+  assert(ReleaseMutex(mutex));
 #endif
+#else
   int err = 0;
   if(0 != (err = pthread_mutex_unlock(&mutex))){
     ERROR_BUFFER;
@@ -198,19 +223,28 @@ int eventLock::_Unlock(const char *__file__, unsigned int __line__)
     lock_depth++;
     lock_stack.push_back(el);
   }
+#endif
 
  if (!lock_depth)
    owner_id = -1UL;
-
-#endif
   return 0;
 }
 
 int eventLock::_Broadcast(const char *__file__, unsigned int __line__)
 {
 #if defined(os_windows)
-  int ret = SetEvent(cond);
-  assert (ret);
+  EnterCriticalSection(&waiter_lock);
+
+  if (num_waiters > 0) {
+    int ret = SetEvent(cond);
+    assert (ret);
+    release_num = num_waiters;
+    generation_num++;
+  }
+
+  LeaveCriticalSection(&waiter_lock);
+  //ret = SetEvent(mutex);
+  //assert (ret);
 #else
   int err = 0;
   if(0 != (err = pthread_cond_broadcast(&cond))){
@@ -226,23 +260,13 @@ int eventLock::_Broadcast(const char *__file__, unsigned int __line__)
 
 int eventLock::_WaitForSignal(const char *__file__, unsigned int __line__)
 {
-#if defined(os_windows)
-  DWORD ret;
-  do {
-    ret = WaitForSingleObject(cond, INFINITE);
-  }while (ret == WAIT_TIMEOUT); 
-  if (ret != WAIT_OBJECT_0) {
-    assert (0);
-  }
-  EnterCriticalSection(&mutex);
-  ResetEvent(cond);
-#else
   int err = 0;
   if (!lock_depth) {
     fprintf(stderr, "%s[%d][%s]: cannot call wait until lock is obtained, see %s[%d]\n", FILE__, __LINE__, getThreadStr(getExecThreadID()), __file__, __line__);
     abort();
   }
   lock_depth--;
+
   if (lock_depth) {
     const char *thread_name = getThreadStr(getExecThreadID());
     if (!thread_name) thread_name = "unnamed thread";
@@ -256,17 +280,68 @@ int eventLock::_WaitForSignal(const char *__file__, unsigned int __line__)
   lock_stack_elem el = lock_stack[lock_stack.size() -1];
   lock_stack.pop_back();
   owner_id = 0;
+
+#if defined(os_windows)
+  EnterCriticalSection(&waiter_lock);
+  num_waiters++;
+  int my_generation = generation_num;
+  LeaveCriticalSection(&waiter_lock);
+
+  LeaveCriticalSection(&mutex);
+ 
+  while (1) {
+    DWORD res = WaitForSingleObject(cond, INFINITE);
+
+    if (res != WAIT_OBJECT_0) {
+      switch(res) {
+        case WAIT_ABANDONED:  fprintf(stderr, "%s[%d]:  WAIT_ABANDONED\n", FILE__, __LINE__); break;
+        case WAIT_TIMEOUT:  fprintf(stderr, "%s[%d]:  WAIT_TIMEOUT\n", FILE__, __LINE__); break;
+        case WAIT_FAILED:  fprintf(stderr, "%s[%d]:  WAIT_FAILED\n", FILE__, __LINE__); 
+        default:
+          DWORD err = GetLastError();
+          extern void printSysError(unsigned errNo);
+          printSysError(err);
+       };
+     }
+     EnterCriticalSection(&waiter_lock);
+     bool wait_done = (release_num > 0) && (generation_num != my_generation);
+     LeaveCriticalSection(&waiter_lock);
+     if (wait_done) break;
+   }  
+
+   EnterCriticalSection(&mutex);
+   EnterCriticalSection(&waiter_lock);
+   num_waiters--;
+   release_num--;
+   if (num_waiters < 0) {
+      fprintf(stderr, "FIXME!\n", FILE__, __LINE__);
+      num_waiters = 0;
+   }
+   if (release_num < 0) {
+      fprintf(stderr, "FIXME!\n", FILE__, __LINE__);
+      num_waiters = 0;
+   }
+
+   bool do_reset  = (release_num == 0);
+   LeaveCriticalSection(&waiter_lock);
+
+   if (do_reset)
+      ResetEvent(cond);
+
+#else
+  mutex_printf("%s[%d]:  unlock/wait issued from %s[%d], depth = %d\n", FILE__, __LINE__, __file__, __line__, lock_depth);
   if(0 != (err = pthread_cond_wait(&cond, &mutex))){
     ERROR_BUFFER;
     fprintf(stderr, "%s[%d]:  failed to broadcast cond: %s[%d]\n",
             __file__, __line__, STRERROR(err, buf), err);
     return 1;
   }
+#endif
+
   lock_depth++;
   lock_stack.push_back(el);
   owner_id = getExecThreadID();
-
-#endif
+  mutex_printf("%s[%d]:  wait/re-loc issued from %s[%d], depth = %d\n", FILE__, __LINE__, __file__, __line__, lock_depth);
   return 0;
 }
 
@@ -276,61 +351,6 @@ void eventLock::printLockStack()
     for (unsigned int i = 0; i < lock_stack.size(); ++i) {
       fprintf(stderr, "\t[%s][%d]\n", lock_stack[i].file, lock_stack[i].line);
     }
-}
-
-eventCond::eventCond(eventLock *l) 
-{
-  lock = l;
-  pthread_cond_init(&cond, NULL);
-}
-eventCond::~eventCond() 
-{
-  pthread_cond_destroy(&cond);
-}
-
-int eventCond::_Broadcast(const char *__file__, unsigned int __line__)
-{
-  int err = 0;
-  if(0 != (err = pthread_cond_broadcast(&cond))){
-    ERROR_BUFFER;
-    fprintf(stderr, "%s[%d]:  failed to broadcast cond: %s[%d]\n",
-            __file__, __line__, STRERROR(err, buf), err);
-  }
-
-  return 0;
-}
-
-int eventCond::_WaitForSignal(const char *__file__, unsigned int __line__)
-{
-  int err = 0;
-  if (!lock->depth()) {
-    fprintf(stderr, "%s[%d][%s]: cannot call wait until lock is obtained, see %s[%d]\n", FILE__, __LINE__, getThreadStr(getExecThreadID()), __file__, __line__);
-    abort();
-  }
-
-  if (lock->lock_depth > 1) {
-    const char *thread_name = getThreadStr(getExecThreadID());
-    if (!thread_name) thread_name = "unnamed thread";
-    assert(__file__);
-    assert (FILE__);
-    fprintf(stderr, "%s[%d][%s]:  FATAL, cannot wait while recursively locked to depth %d, called from %s[%d]\n",
-            FILE__, __LINE__, thread_name, lock->lock_depth, __file__, __line__);
-    lock->printLockStack();
-    abort();
-  }
-
-  eventLock::lock_stack_elem el = lock->popLockStack();
-  lock->owner_id = 0;
-
-  if(0 != (err = pthread_cond_wait(&cond, &lock->mutex))){
-    ERROR_BUFFER;
-    fprintf(stderr, "%s[%d]:  failed to broadcast cond: %s[%d]\n",
-            __file__, __line__, STRERROR(err, buf), err);
-  }
-  lock->pushLockStack(el);
-  lock->owner_id = getExecThreadID();
-
-  return 0;
 }
 
 ThreadMailbox::~ThreadMailbox() 
@@ -402,7 +422,7 @@ CallbackBase *ThreadMailbox::executeCallback(CallbackBase *cb)
     return NULL;
   }
   if ((cb->targetThread() != getExecThreadID())
-      && (cb->targetThread()  != -1UL)) {
+      && (cb->targetThread()  != (unsigned long) -1L)) {
     //  not the right thread for this callback, cannot execute
     mailbox_printf("%s[%d]:  wrong thread for callback: target = %lu(%s), cur = %lu(%s)\n", 
            FILE__, __LINE__, cb->targetThread(), getThreadStr(cb->targetThread()),

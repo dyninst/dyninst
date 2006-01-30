@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.42 2005/11/03 05:21:05 jaw Exp $
+ * $Id: dyn_lwp.h,v 1.43 2006/01/30 07:16:52 jaw Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -289,6 +289,11 @@ class dyn_lwp
 
   bool isSingleStepping() { return singleStepping; }
   void setSingleStepping(bool nval) { singleStepping = nval; }
+
+
+  //  dumpRegisters:  dump a select set of registers, useful for when 
+  //  the mutatee crashes, or for debug output.
+  void dumpRegisters();
  private:
   processState status_;
 

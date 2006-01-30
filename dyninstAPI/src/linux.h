@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.21 2006/01/19 20:01:15 legendre Exp $
+// $Id: linux.h,v 1.22 2006/01/30 07:16:53 jaw Exp $
 
 #if !defined(i386_unknown_linux2_0) \
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
@@ -89,6 +89,9 @@ bool changePC( int pid, Address loc );
 void printRegs( void *save );
 Address findFunctionToHijack(process *p);
 
+#ifndef WNOWAIT
+#define WNOWAIT WNOHANG
+#endif
 bool get_linux_version(int &major, int &minor, int &subvers);
 
 #include "linux-signals.h"

@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.52 2006/01/16 17:50:17 legendre Exp $
+# $Id: nmake.module.tmpl,v 1.53 2006/01/30 07:16:51 jaw Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -141,7 +141,8 @@ OBJS         = $(OBJS) BPatch.obj \
 		dyn_thread.obj \
 		dyn_lwp.obj \
 	      	EventHandler.obj \
-	      	eventMailbox.obj \
+	      	mailbox.obj \
+	      	callbacks.obj \
       		signalhandler.obj \
       		rpcMgr.obj \
 		rpcMgr-thr.obj \
@@ -154,6 +155,7 @@ OBJS         = $(OBJS) BPatch.obj \
                 reloc-func.obj \
                 variable.obj \
                 image-func.obj \
+                image-flowGraph.obj \
 		util.obj \
                 InstrucIter-xplat.obj \
                 Dictionary.obj \

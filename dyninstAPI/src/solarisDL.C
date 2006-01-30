@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.44 2005/11/03 05:21:07 jaw Exp $
+// $Id: solarisDL.C,v 1.45 2006/01/30 07:16:53 jaw Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -263,8 +263,13 @@ sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b)
 #endif
 }
 
-sharedLibHook::~sharedLibHook() {
-    proc_->writeDataSpace((void *)breakAddr_, SLH_SAVE_BUFFER_SIZE, saved_);
+sharedLibHook::~sharedLibHook() 
+{
+    bool ok = proc_->writeDataSpace((void *)breakAddr_, SLH_SAVE_BUFFER_SIZE, saved_);
+    if (!ok) {
+      //  this fails regularly
+      //fprintf(stderr, "%s[%d]:  !!!!  failed to clean up shared lib hook\n", FILE__, __LINE__);
+    }
 }
 
 
@@ -383,8 +388,46 @@ pdvector<Address> *dynamic_linking::getLinkMapAddrs() {
 // The added or removed shared objects are returned in changed_objects
 // the change_type value is set to indicate if the objects have been added 
 // or removed
-bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<mapped_object*> &changed_objects,
-                                                       u_int &change_type) {
+bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &ev,
+                                                       u_int &change_type) 
+{
+   struct dyn_saved_regs regs;
+
+   // multi-threaded: possible one of many threads hit the breakpoint
+
+   pdvector<Frame> activeFrames;
+   if (!proc->getAllActiveFrames(activeFrames)) {
+      return false;
+   }
+
+   dyn_lwp *brk_lwp = NULL;
+   sharedLibHook *hook = NULL;
+   for (unsigned frame_iter = 0; frame_iter < activeFrames.size();frame_iter++)
+   {
+       hook = reachedLibHook(activeFrames[frame_iter].getPC());
+       if (hook) {
+           brk_lwp = activeFrames[frame_iter].getLWP();
+           break;
+       }
+   }
+
+   if (!hook) {
+      fprintf(stderr, "%s[%d]:  not at hook\n", FILE__, __LINE__);
+      return false;
+   }
+
+   pdvector<fileDescriptor> newfds;
+   if (! didLinkMapsChange((u_int &)ev.what, newfds)) {
+     fprintf(stderr, "%s[%d]:  link maps not changed\n", FILE__, __LINE__);
+     return false;
+   }
+
+  return true;
+}
+
+bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev, 
+                                                       pdvector<mapped_object*> &changed_objects)
+{
 
    struct dyn_saved_regs regs;
 
@@ -418,7 +461,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<mapped_object*> 
       
       // if the state of the link maps is consistent then we can read
       // the link maps, otherwise just set the r_state value
-      change_type = r_state;   // previous state of link maps 
+      ev.what = r_state;   // previous state of link maps 
       r_state = debug_elm.r_state;  // new state of link maps
 
       if( debug_elm.r_state == 0) {
@@ -428,8 +471,8 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<mapped_object*> 
       
          // kludge: the state of the first add can get screwed up
          // so if both change_type and r_state are 0 set change_type to 1
-         if(change_type == 0) change_type = SHAREDOBJECT_ADDED;
-         findChangeToLinkMaps(change_type, changed_objects);
+         if(ev.what == 0) ev.what = SHAREDOBJECT_ADDED;
+         findChangeToLinkMaps((u_int &)ev.what, changed_objects);
       } 
       
       // Don't need to reset PC
@@ -460,7 +503,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<mapped_object*> 
               return false;
 #endif
       }
-      if (changed_objects.size() == 0) change_type = 0;
+      if (changed_objects.size() == 0) ev.what = 0;
       return true;
 
    }

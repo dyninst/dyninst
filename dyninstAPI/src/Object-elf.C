@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.98 2005/12/12 16:37:08 gquinn Exp $
+ * $Id: Object-elf.C,v 1.99 2006/01/30 07:16:52 jaw Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -527,6 +527,7 @@ bool Object::get_relocation_entries( Elf_X_Shdr *&rel_plt_scnp,
 bool Object::mmap_file(const char *file, 
 		       bool &did_open, bool &did_mmap)
 {
+  assert(file);
   fileName = strdup( file );  assert( fileName != NULL );
   file_fd_ = open(file, O_RDONLY);
   if (file_fd_ == -1) return false;
@@ -569,6 +570,7 @@ void Object::load_object()
     { // binding contour (for "goto cleanup")
 
 	const char *file = file_.c_str();
+        assert(file);
 	if (mmap_file(file, did_open, did_mmap) == false) {
 	    char buf[500];
 	    sprintf(buf, "open/fstat/mmap failed on: %s", file);
@@ -718,6 +720,7 @@ void Object::load_shared_object()
     { // binding contour (for "goto cleanup2")
 
 	const char *file = file_.c_str();
+        assert(file);
 	if (mmap_file(file, did_open, did_mmap) == false) {
 	    char buf[500];
 	    sprintf(buf, "open/fstat/mmap failed on: %s", file);

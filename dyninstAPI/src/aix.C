@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.209 2006/01/13 22:10:27 jodom Exp $
+// $Id: aix.C,v 1.210 2006/01/30 07:16:52 jaw Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1232,7 +1232,7 @@ bool process::getDyninstRTLibName() {
            pdstring msg = pdstring("Environment variable ")
               + pdstring("DYNINSTAPI_RT_LIB")
               + pdstring(" has not been defined for process ")
-              + pdstring(pid);
+              + pdstring(getPid());
            showErrorCallback(101, msg);
            return false;
         }
@@ -1652,11 +1652,12 @@ bool process::dumpImage(const pdstring outFile)
 
 }
 
-bool process::getExecFileDescriptor(pdstring /*filename*/,
+bool SignalGeneratorCommon::getExecFileDescriptor(pdstring /*filename*/,
                                     int pid,
                                     bool waitForTrap,
                                     int &status,
-                                    fileDescriptor &desc) {
+                                    fileDescriptor &desc) 
+{
     // AIX's /proc has a map file which contains data about
     // files loaded into the address space. The first two appear
     // to be the text and data from the process. We'll take it,

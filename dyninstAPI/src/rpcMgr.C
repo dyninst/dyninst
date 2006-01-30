@@ -297,6 +297,8 @@ bool rpcMgr::decodeEventIfDueToIRPC(EventRecord &ev)
 {
     dyn_lwp *lwp_of_trap  = ev.lwp;
 
+   //fprintf(stderr, "%s[%d]:  deocdeEventIfDueToIRPC:  allRunningRPCs_.size = %d\n", FILE__, __LINE__, allRunningRPCs_.size());
+
    int curr_rpc_index = allRunningRPCs_.size();
    pdvector<inferiorRPCinProgress *>::iterator iter = allRunningRPCs_.end();
    while(iter != allRunningRPCs_.begin()) {
@@ -349,14 +351,14 @@ bool rpcMgr::decodeEventIfDueToIRPC(EventRecord &ev)
        if (activeFrame.getPC() == currRPC->rpcResultAddr) {
           ev.type = evtRPCSignal;
           ev.status = statusRPCAtReturn;
-          ev.info = (eventInfo_t) curr_rpc_index;
+          ev.what = (eventWhat_t) curr_rpc_index;
           ev.address = activeFrame.getPC();
           return true;
        }
        else if (activeFrame.getPC() == currRPC->rpcCompletionAddr) {
           ev.type = evtRPCSignal;
           ev.status = statusRPCDone;
-          ev.info = (eventInfo_t) curr_rpc_index;
+          ev.what = (eventWhat_t) curr_rpc_index;
           ev.address = activeFrame.getPC();
           return true;
        }
@@ -369,7 +371,7 @@ bool rpcMgr::handleRPCEvent(EventRecord &ev)
   if (ev.type != evtRPCSignal) return false;
 
   bool runProcess = false;
-  int rpc_index = (int) ev.info;
+  int rpc_index = (int) ev.what;
   inferiorRPCinProgress *currRPC = allRunningRPCs_[rpc_index];
   rpcThr *rpcThr = currRPC->rpcthr;
   rpcLWP *rpcLwp = currRPC->rpclwp;

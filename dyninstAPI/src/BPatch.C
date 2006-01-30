@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.105 2005/11/21 17:16:11 jaw Exp $
+// $Id: BPatch.C,v 1.106 2006/01/30 07:16:52 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -933,6 +933,7 @@ void BPatch::registerExec(process *proc)
     getCBManager()->dispenseCallbacksMatching(evtExec,cbs);
     for (unsigned int i = 0; i < cbs.size(); ++i) {
       ExecCallback &cb = *((ExecCallback *) cbs[i]);
+      fprintf(stderr, "%s[%d][%s]:  registering EXEC CALLBACK\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
       cb(process->threads[0]);
     }
 
@@ -1033,6 +1034,15 @@ void BPatch::registerProcess(BPatch_process *process, int pid)
  */
 void BPatch::unRegisterProcess(int pid)
 {
+    if (!info->procsByPid.defines(pid)) {
+       fprintf(stderr, "%s[%d]:  ERROR, no process %d defined in procsByPid\n", FILE__,  __LINE__, pid);
+       dictionary_hash_iter<int, BPatch_process *> iter(info->procsByPid);
+       BPatch_process *p;
+       int pid;
+       while (iter.next(pid, p)) {
+         fprintf(stderr, "%s[%d]:  have process %d\n", FILE__, __LINE__, pid);
+       }
+    }
     assert(info->procsByPid.defines(pid));
     info->procsByPid.undef(pid);	
     assert(!info->procsByPid.defines(pid));
@@ -1144,7 +1154,6 @@ BPatch_process *BPatch::processAttachInt(const char *path, int pid)
       return NULL;
    }
 #if !defined (os_osf) && !defined (os_windows) && !defined(os_irix)  && !defined(arch_ia64)
-   fprintf(stderr, "%s[%d]:  about to connect to process\n", FILE__, __LINE__);
    if (!getAsync()->connectToProcess(ret)) {
       bperr("%s[%d]:  asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
       return NULL;
@@ -1211,6 +1220,21 @@ bool BPatch::waitForStatusChangeInt()
     return true;
   }
 
+  SignalGenerator *sh = NULL;
+
+  //  find a signal handler (in an active process)
+  extern pdvector<process *> processVec;
+  if (!processVec.size()) return false;
+  for (unsigned int i = 0; i < processVec.size(); ++i) {
+    if (processVec[i] && processVec[i]->status() != deleted) {
+      sh = processVec[i]->sh;
+      break;
+    }
+  } 
+  if (!sh) {
+    fprintf(stderr, "%s[%d]:  cannot find an event generator to wait for!\n", FILE__, __LINE__);
+    return false;
+  }
   eventType evt;
   do {
    pdvector<eventType> evts;
@@ -1221,7 +1245,7 @@ bool BPatch::waitForStatusChangeInt()
    waitingForStatusChange = true;
    getMailbox()->executeCallbacks(FILE__, __LINE__);
    if (mutateeStatusChange) break;
-   evt = getSH()->waitForOneOf(evts);
+   evt = sh->waitForOneOf(evts);
   } while ((    evt != evtProcessStop ) 
             && (evt != evtProcessExit)
             && (evt != evtThreadExit)

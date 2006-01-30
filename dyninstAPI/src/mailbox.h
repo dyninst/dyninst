@@ -47,6 +47,7 @@
 #include "common/h/Dictionary.h"
 
 #if defined (os_windows)
+//typedef HANDLE EventLock_t; 
 typedef CRITICAL_SECTION EventLock_t; 
 typedef HANDLE EventCond_t;
 #else
@@ -70,11 +71,11 @@ typedef pthread_cond_t EventCond_t;
 class BPatch_eventLock;
 class DebuggerInterface;
 class DBIEvent;
-class eventCond;
+//class eventCond;
 
 class eventLock {
   friend class BPatch_eventLock;
-  friend class eventCond;
+  //friend class eventCond;
   friend class DebuggerInterface;
 
 public:
@@ -114,18 +115,16 @@ private:
 
   pdvector<lock_stack_elem> lock_stack;
   unsigned long owner_id;
+
+#if defined (os_windows)
+  EventLock_t waiter_lock;
+  int num_waiters;
+
+  int generation_num;
+  int release_num;
+#endif
 };
 
-class eventCond {
-  public:
-  eventCond(eventLock *l);
-  ~eventCond();
-  int _Broadcast(const char *__file__, unsigned int __line__);
-  int _WaitForSignal(const char *__file__, unsigned int __line__);
-  private:
-  EventCond_t cond;
-  eventLock *lock;
-};
 
 class BPatch_asyncEventHandler;
 class SignalHandler;
@@ -136,7 +135,7 @@ typedef void (*CallbackCompletionCallback)(CallbackBase *);
 class CallbackBase
 {
   public:
-    CallbackBase(unsigned long target = -1UL, CallbackCompletionCallback cb = NULL) 
+    CallbackBase(unsigned long target = (unsigned long) -1L, CallbackCompletionCallback cb = NULL) 
                  : target_thread (target),
                    exec_flag(false),
                    ok_to_delete(true),
@@ -148,7 +147,7 @@ class CallbackBase
     unsigned long execThread() {return execution_thread;}
     void setTargetThread(unsigned long t) {target_thread = t;}
     bool isExecuting() {return exec_flag;}
-    void setExecuting(bool flag = true, unsigned long exec_thread_id = -1UL) {
+    void setExecuting(bool flag = true, unsigned long exec_thread_id = (unsigned long) -1L) {
       execution_thread = exec_thread_id;
       exec_flag = flag;
     }
@@ -185,9 +184,9 @@ class ThreadMailbox
 
 
 #define TARGET_ANY_THREAD (unsigned long) -1L
-extern unsigned long primary_thread_id;
-extern unsigned long dbi_thread_id;
-extern unsigned long sync_thread_id;
+//extern unsigned long primary_thread_id;
+//extern unsigned long dbi_thread_id;
+//extern unsigned long sync_thread_id;
 #define TARGET_UI_THREAD  primary_thread_id
 #define TARGET_DBI_THREAD  dbi_thread_id
 #define TARGET_SYNC_THREAD  sync_thread_id

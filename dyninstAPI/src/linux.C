@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.184 2006/01/19 23:21:11 tlmiller Exp $
+// $Id: linux.C,v 1.185 2006/01/30 07:16:52 jaw Exp $
 
 #include <fstream>
 
@@ -143,79 +143,86 @@ void printStackWalk( process *p ) {
  
 // already setup on this FD.
 // disconnect from controlling terminal 
-void OS::osDisconnect(void) {
+void OS::osDisconnect(void) 
+{
   int ttyfd = open ("/dev/tty", O_RDONLY);
   ioctl (ttyfd, TIOCNOTTY, NULL);
   P_close (ttyfd);
 }
 
 
-void OS::osTraceMe(void) { P_ptrace(PTRACE_TRACEME, 0, 0, 0); }
-
-// Wait for a process event to occur, then map it into
-// the why/what space (a la /proc status variables)
-
-bool checkActiveProcesses()
-{
-  extern pdvector<process*> processVec;
-  for(unsigned u = 0; u < processVec.size(); u++) {
-     process *lproc = processVec[u];
-     if(lproc && (lproc->status() == running || lproc->status() == neonatal))
-        return true;
-     else 
-       if (lproc && lproc->query_for_running_lwp()) {
-         return true;
-       }
+void OS::osTraceMe(void) 
+{ 
+  int result = P_kill(getpid(), SIGSTOP);
+  if (0 != result) {
+    fprintf(stderr, "%s[%d]:  failed to stop child\n", FILE__, __LINE__);
+    abort();
   }
-
-  return false;
 }
 
-bool SignalGeneratorUnix::decodeEvent(EventRecord &ev)
+bool SignalGenerator::attachToChild(int pid)
 {
-   errno = 0;
-   if (ev.type == evtSignalled) {
-      switch(ev.what)  {
-        case SIGSTOP :
-        case SIGINT :
-          if (!decodeRTSignal(ev)) {
-            if (ESRCH == errno) {
-              fprintf(stderr,"%s[%d]:  decodeRTSignal setting exit event\n", 
-                      FILE__, __LINE__);
-              ev.type = evtProcessExit;
-              ev.status = statusNormal;
-            }
-            else 
-              decodeSigStopNInt(ev);
-          }
-        case SIGTRAP:
-        {
-           decodeSigTrap(ev);
-        }
-        case SIGILL:
-        {
-#if defined (arch_ia64)
-           Address pc = getPC(ev.proc->getPid());
+   //  wait for child process to stop itself, attach to it, and continue
+     int wait_options = __WALL | WUNTRACED;
+     int status = 0;
+     int ptrace_errno;
+     int res = waitpid(pid, &status, wait_options);
+     if (res <= 0) {
+        fprintf(stderr, "%s[%d]:  waitpid failed\n", FILE__, __LINE__);
+        abort();
+     }
 
-           if(pc == ev.proc->dyninstlib_brk_addr ||
-              pc == ev.proc->main_brk_addr ||
-              ev.proc->getDyn()->reachedLibHook(pc)) {
-              ev.what = SIGTRAP;
-              decodeSigTrap(ev);
-           }
-           else 
-             decodeSigIll(ev);
+     if (!WIFSTOPPED(status)) {
+       fprintf(stderr, "%s[%d]:  status is not stopped\n", FILE__, __LINE__);
+     }
+     if ( SIGSTOP != WSTOPSIG(status)) {
+       fprintf(stderr, "%s[%d]:  signal is not SIGILL: stopsig = %d\n", FILE__, __LINE__, WSTOPSIG(status));
+     }
 
-           signal_printf("%s[%d]:  SIGILL:  main brk = %p, dyn brk = %p, pc = %p/%p\n",
-                  FILE__, __LINE__, ev.proc->main_brk_addr, ev.proc->dyninstlib_brk_addr, 
-                  pc, getPC(ev.proc->getPid()));
-#endif
-           break;
-        }
-        default:
-            signal_printf("%s[%d]:  got signal %d\n", FILE__, __LINE__, ev.what);
-       }
+     if (0 != getDBI()->ptrace(PTRACE_ATTACH, pid, 0, 0, 4 )) {
+       fprintf(stderr, "%s[%d]:  ptrace (ATTACH) failed\n", FILE__, __LINE__);
+       abort();
     }
+
+    if (0 != getDBI()->ptrace(PTRACE_CONT, pid, 0, SIGCONT, 4 ) )  {
+       perror("ptrace(CONT)");
+       fprintf(stderr, "%s[%d]:  ptrace (CONT) failed\n", FILE__, __LINE__);
+       abort();
+    }
+
+    if (0 > waitpid(pid, NULL, 0)) {
+       perror("process::attach - waitpid");
+       exit(1);
+    }
+
+    if (0 != getDBI()->ptrace(PTRACE_CONT, pid, 0, SIGCONT, 4 ) )  {
+       perror("ptrace(CONT)");
+       fprintf(stderr, "%s[%d]:  ptrace (CONT) failed\n", FILE__, __LINE__);
+       abort();
+    }
+
+    return true;
+}
+
+bool SignalGenerator::decodeEvent(EventRecord &ev)
+{
+  //  ev.info has the status result from waitpid
+
+   if (ev.type == evtUndefined) {
+      if (!decodeWaitPidStatus(ev.info, ev)) 
+          fprintf(stderr, "%s[%d][%s]:  failed to decode status for event\n", 
+          FILE__, __LINE__, getThreadStr(getExecThreadID()));
+   }
+
+   errno = 0;
+   if (ev.type == evtSignalled) 
+      decodeSignal(ev);
+
+   if (ev.type == evtSignalled || ev.type == evtUndefined) {
+     char buf[512];
+     fprintf(stderr, "%s[%d]:  got event %s, should have been set by now\n", FILE__, __LINE__, ev.sprint_event(buf));
+     return false;
+   }
 
    return true;
 }
@@ -251,8 +258,7 @@ bool get_linux_version(int &major, int &minor, int &subvers)
    return false;
 }
 
-static pdvector<pdstring> attached_lwp_ids;
-static void add_lwp_to_poll_list(dyn_lwp *lwp)
+bool SignalGenerator::add_lwp_to_poll_list(dyn_lwp *lwp)
 {
    char filename[64];
    int lwpid, major, minor, sub;
@@ -260,32 +266,34 @@ static void add_lwp_to_poll_list(dyn_lwp *lwp)
 
    get_linux_version(major, minor, sub);   
    if ((major == 2 && minor > 4) || (major >= 3))
-      return;
+      return true;
    if (!lwp->proc()->multithread_capable(true))
-      return;
+      return true;
    
    lwpid = lwp->get_lwp_id();
    snprintf(filename, 64, "/proc/%d", lwpid);
    if (stat(filename, &buf) == 0)
    {
       attached_lwp_ids.push_back(pdstring(lwpid));
-      return;
+      return true;
    }
 
    snprintf(filename, 64, "/proc/.%d", lwpid);
    if (stat(filename, &buf) == 0)
    {
       attached_lwp_ids.push_back(pdstring(".") + pdstring(lwpid));
-      return;
+      return true;
    }
    
    fprintf(stderr, "[%s:%u] - Internal Error.  Could not find new process %d"
            " in /proc area.  Thread deletion callbacks may not work\n", 
            __FILE__, __LINE__, lwpid);
+   return false;
 }
 
-static void remove_lwp_from_poll_list(int lwp_id)
+bool SignalGenerator:: remove_lwp_from_poll_list(int lwp_id)
 {
+   bool found = false;
    for (unsigned i=0; i<attached_lwp_ids.size(); i++)
    {
       const char *lname = attached_lwp_ids[i].c_str();
@@ -293,11 +301,13 @@ static void remove_lwp_from_poll_list(int lwp_id)
       if (atoi(lname) == lwp_id)
       {
          attached_lwp_ids.erase(i, i);
+         found = true;
       }
    }
+   return found;
 }
 
-static int find_dead_lwps()
+int SignalGenerator::find_dead_lwp()
 {
    struct stat buf;
    char filename[64];
@@ -318,13 +328,13 @@ static int find_dead_lwps()
    return 0;
 }
 
-static pid_t waitpid_kludge(pid_t /*pid*/, int *status, int options, int *dead_lwp)
+pid_t SignalGenerator::waitpid_kludge(pid_t pid_arg, int *status, int options, int *dead_lwp)
 {
   pid_t ret = 0;
   int wait_options = options | WNOHANG;
 
   do {
-   *dead_lwp = find_dead_lwps();
+   *dead_lwp = find_dead_lwp();
    if (*dead_lwp) {
        // This is a bad hack.  On Linux 2.4 waitpid doesn't return for dead threads,
        // so we poll for any dead threads before calling waitpid, and if they exist
@@ -334,11 +344,7 @@ static pid_t waitpid_kludge(pid_t /*pid*/, int *status, int options, int *dead_l
        break;
     }
 
-#if defined(arch_ia64)
-    ret = getDBI()->waitpid(-1, status, wait_options); 
-#else
-    ret = waitpid(-1, status, wait_options); 
-#endif
+    ret = waitpid(pid_arg, status, wait_options); 
     struct timeval slp;
     slp.tv_sec = 0;
     slp.tv_usec = 10 /*ms*/ *1000;
@@ -348,141 +354,152 @@ static pid_t waitpid_kludge(pid_t /*pid*/, int *status, int options, int *dead_l
   return ret; 
 }
 
-bool SignalGeneratorUnix::waitNextEvent(EventRecord &ev) 
+bool SignalGenerator::waitNextEventLocked(EventRecord &ev) 
 {
-  signal_printf("%s[%d]:  welcome to waitNextEvent\n", FILE__, __LINE__);
+  signal_printf("%s[%d]:  welcome to waitNextEventLocked\n", FILE__, __LINE__);
 
-  __LOCK;
   bool ret = true;
 
-  static pdvector<EventRecord> events;
-  if (events.size()) {
-    //  If we have events left over from the last call of this fn,
-    //  just return one.
-    ev = events[events.size() - 1];
-    events.pop_back();
-    __UNLOCK;
-    return ret;
+  assert(proc);
+
+#ifdef NOTDEF // PDSEP
+  if (proc->status() == deleted || proc->status() == exited) {
+    fprintf(stderr, "%s[%d]:  getting ready to shut down event handling thread\n", FILE__, __LINE__);
+    stopThreadNextIter();
+    ev.type = evtShutDown;
+    ev.proc = proc;
+    return true;
   }
 
-  while (!checkActiveProcesses()) {
-    signal_printf("%s[%d]:  syncthread waiting for process to monitor\n", FILE__, __LINE__);
+  //  if process is not active, wait for it to be activated.
+  //  not active == bootstrapped + not running + no threads running
+
+  while (  proc->status() != running  
+     && proc->status() != neonatal
+     && !proc->query_for_running_lwp()) {
+    signal_printf("%s[%d]:  waiting for process %d to become active, status: %s\n", 
+                  FILE__, __LINE__, pid, proc->getStatusAsString().c_str());
     waiting_for_active_process = true;
     __WAIT_FOR_SIGNAL;
   }
+
+  if (stop_request) {
+    signal_printf("%s[%d]:  getting ready to shut down event handling thread\n", FILE__, __LINE__);
+    stopThreadNextIter();
+    ev.type = evtShutDown;
+    ev.proc = proc;
+    return true;
+  }
+
   waiting_for_active_process = false;
 
-  int result = 0, status = 0;
+#endif
+
+  int waitpid_pid = 0;
+  int status = 0;
   int dead_lwp = 0;
 
+  //  If we have a rep lwp, the process is not multithreaded, so just wait for 
+  //  the pid.  If the process is MT, wait for (-pid), which waits for all process
+  //  with thread group <pid>
 
+  int pid_to_wait_for = proc->getRepresentativeLWP() ? pid : -1 * pid;
+
+   //  wait for process events, on linux __WALL signifies that both normal children
+   //  and cloned children (lwps) should be listened for.
+   //  Right now, we are blocking.  To make this nonblocking, or this val with WNOHANG.
+
+   //  __WNOTHREAD signifies that children of other threads (other signal handlers)
+   //  should not be listened for.
+
+   int wait_options = proc->getRepresentativeLWP() ? 0 : __WNOTHREAD; 
+   //int wait_options =  __WNOTHREAD;
+
+   waiting_for_event = true;
+    __UNLOCK;
+    waitpid_pid = waitpid_kludge( pid_to_wait_for /** pid*/ /* -1 for any child*/, 
+                                  &status, wait_options, &dead_lwp );
+    __LOCK;
+   waiting_for_event = false;
     
-       //  wait for process events, on linux __WALL signifies that both normal children
-       //  and cloned children (lwps) should be listened for.
-       //  Right now, we are blocking.  To make this nonblocking, or this val with WNOHANG.
-       int wait_options = __WALL;
-
-        __UNLOCK;
-        result = waitpid_kludge( -1 /*any child*/, &status, wait_options, &dead_lwp );
-        __LOCK;
-    
-
-     if (result < 0 && errno == ECHILD) {
-        __UNLOCK;
+   if (waitpid_pid < 0 && errno == ECHILD) {
         fprintf(stderr, "%s[%d]:  waitpid failed with ECHILD\n", __FILE__, __LINE__);
+        //assert(0);
         return false; /* nothing to wait for */
-     } else if (result < 0) {
+    } else if (waitpid_pid < 0) {
         perror("checkForEventLinux: waitpid failure");
-     } else if(result == 0) {
+    } else if(waitpid_pid == 0) {
         fprintf(stderr, "%s[%d]:  waitpid \n", __FILE__, __LINE__);
-        __UNLOCK;
         return false;
-     }
+    }
 
-   int pertinentPid = result;
+   //  If the UI thread wants to initiate a shutdown, it might set a flag and 
+   //  then send a SIGTRAP to the mutatee process, so as to wake up the
+   //  event handling system.  A shutdown event trumps all others, so we handle it
+   //  first.
 
-   // Translate the signal into a why/what combo.
-   // We can fake results here as well: translate a stop in fork
-   // to a (SYSEXIT,fork) pair. Don't do that yet.
-   process *pertinentProc = process::findProcess(pertinentPid);
-   dyn_lwp *pertinentLWP  = NULL;
+   if (stop_request) {
+     ev.type = evtShutDown;
+     ev.proc = proc;
+     return true;
+   }
 
-   if(pertinentProc) {
-      // Got a signal, process is stopped.
-      if(process::IndependentLwpControl() &&
-         pertinentProc->getRepresentativeLWP() == NULL) {
-         if (!pertinentProc->getInitialThread()) {
-           fprintf(stderr, "%s[%d]:  no initial thread \n", FILE__, __LINE__);
-           __UNLOCK;
-	   return false; //We must be shutting down
-         }
-         pertinentLWP = pertinentProc->getInitialThread()->get_lwp();
-      } else {
-         pertinentLWP = pertinentProc->getRepresentativeLWP();
-      }
-      pertinentProc->set_lwp_status(pertinentLWP, stopped);
-   } else {
-      extern pdvector<process*> processVec;
-      for (unsigned u = 0; u < processVec.size(); u++) {
-         process *curproc = processVec[u];
-         if(! curproc)
-            continue;
-         dyn_lwp *curlwp = NULL;
-         if( (curlwp = curproc->lookupLWP(pertinentPid)) ) {
-            if (!curlwp->is_attached()) {
+   //   sanity check, make sure we got the right pid
+   if (pid != waitpid_pid) {
+      fprintf(stderr, "%s[%d]:  awful...  got event for wrong process: %d not %d\n", 
+              FILE__, __LINE__, waitpid_pid, pid);
+      return false;
+   }
+
+   ev.proc = proc;
+   ev.lwp = ev.proc->getRepresentativeLWP();
+   ev.type = evtUndefined;
+
+   if (!ev.lwp) {
+      fprintf(stderr, "%s[%d]:  no representative lwp\n", FILE__, __LINE__);
+      //  MT Linux apps will have a NULL representative LWP
+      if ((ev.lwp = ev.proc->lookupLWP(pid))) {
+            if (!ev.lwp->is_attached()) {
+              //  Hijack thread detection events here (very platform specific)
+              //  -- XXX ugly
               ev.type = evtThreadDetect;
-              ev.lwp = curlwp;
-              ev.proc = curproc;
-              //curproc->set_lwp_status(curlwp, stopped);
-              __UNLOCK;
               return true;
             }
-            pertinentProc = curproc;
-            pertinentLWP  = curlwp;
-            pertinentProc->set_lwp_status(curlwp, stopped);
-            break;
-         }
+      }
+      else if (!ev.proc->getInitialThread() 
+               || !(ev.lwp = ev.proc->getInitialThread()->get_lwp())) {
+           fprintf(stderr, "%s[%d]:  no initial thread \n", FILE__, __LINE__);
+           //  return true here so that we enter the waitpid loop again, which 
+           //  will catch the process exit signal
+	   return true; //We must be shutting down
+      }
+      else {
+        assert(0);
       }
    }
-   
-   if (!pertinentProc) {
-       fprintf(stderr, "%s[%d][%s]: no proc!  procs.size() = %d\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()), processVec.size());
-      __UNLOCK;
-       return false;
-   }
 
+   assert(ev.lwp);
+   ev.proc->set_lwp_status(ev.lwp, stopped);
    ev.type = evtUndefined;
+   ev.info = status;
    
-  bool process_exited = WIFEXITED(status) || dead_lwp;
-  if (process_exited && pertinentPid == pertinentProc->getPid()) { 
-      // Main process exited via signal     
-      signal_printf("[%s:%u] - Main process exited\n", __FILE__, __LINE__);     
-      ev.type = evtProcessExit;      
-      ev.what = WEXITSTATUS(status);   
-      ev.status = statusNormal;
-  }
-  else if (process_exited) {
+   bool process_exited = WIFEXITED(status) || dead_lwp;
+   if ((process_exited) && (pid != ev.proc->getPid())) {
       proccontrol_printf("%s[%d]: Received a thread deletion event for %d\n", 
-                        FILE__, __LINE__< pertinentLWP->get_lwp_id());
+                        FILE__, __LINE__, ev.lwp->get_lwp_id());
       signal_printf("%s[%d]: Received a thread deletion event for %d\n", 
-                        FILE__, __LINE__< pertinentLWP->get_lwp_id());
+                        FILE__, __LINE__, ev.lwp->get_lwp_id());
       // Thread exited via signal
       ev.type = evtSyscallEntry;      
       ev.what = SYS_lwp_exit;
+      decodeSyscall(ev);
    }
-   else if (!decodeWaitPidStatus(status, ev)) {
-    fprintf(stderr, "%s[%d][%s]:  failed to decode status for event\n", 
-            FILE__, __LINE__, getThreadStr(getExecThreadID()));
-   }
-
-   ev.proc = pertinentProc;
-   ev.lwp  = pertinentLWP;
 
    if (!decodeEvent(ev)) {
-     fprintf(stderr, "%s[%d]:  FIXME\n", __FILE__, __LINE__);
-     assert(0);
+     char buf[128];
+     fprintf(stderr, "%s[%d]:  FIXME: %s\n", __FILE__, __LINE__, ev.sprint_event(buf));
+     return false;
    }
-
 
    //  find out if we are waiting for this process to stop.
    //  if we are, suppress continues.
@@ -509,12 +526,12 @@ bool SignalGeneratorUnix::waitNextEvent(EventRecord &ev)
      }
    }
 
-   __UNLOCK;
    return true;
 
 }
 
-void process::independentLwpControlInit() {
+void process::independentLwpControlInit() 
+{
    if(multithread_capable()) {
       // On linux, if process found to be MT, there will be no
       // representativeLWP since there is no lwp which controls the entire
@@ -524,7 +541,8 @@ void process::independentLwpControlInit() {
    }
 }
 
-dyn_lwp *process::createRepresentativeLWP() {
+dyn_lwp *process::createRepresentativeLWP() 
+{
    // the initial lwp has a lwp_id with the value of the pid
 
    // if we identify this linux process as multi-threaded, then later we will
@@ -625,23 +643,28 @@ static char getState(int pid)
   return *status;
 }
 
-bool process::isRunning_() const {
-  char result = getState(getpid());
-  assert(result != '\0');
+bool process::isRunning_() const 
+{
+  char result = getState(getPid());
+//  assert(result != '\0');
+  if (result == '\0') {
+    fprintf(stderr, "%s[%d]:  WARN:  removed assert here\n", FILE__, __LINE__);
+    return false;
+  }
   return (result != 'T');
 }
 
-bool dyn_lwp::isRunning() const {
+bool dyn_lwp::isRunning() const 
+{
   char result = getState(get_lwp_id());
   assert(result != '\0');
   return (result != 'T');
 }
 
-bool SignalGeneratorUnix::suppressSignalWhenStopping(EventRecord &ev)
+bool SignalGenerator::suppressSignalWhenStopping(EventRecord &ev)
 {
  
   bool suppressed_something = false;
-  assert(didProcReceiveSignal(ev.type));
 
   //  signals that we do not suppress
   //  SIGTRAP here should rewind the pc by one...  check this
@@ -666,7 +689,7 @@ bool SignalGeneratorUnix::suppressSignalWhenStopping(EventRecord &ev)
   return suppressed_something;
 }
 
-bool SignalGeneratorUnix::resendSuppressedSignals(EventRecord &ev)
+bool SignalGenerator::resendSuppressedSignals(EventRecord &ev)
 {
   stopping_proc_rec spr;
   bool found_proc = false;
@@ -696,7 +719,7 @@ bool SignalGeneratorUnix::resendSuppressedSignals(EventRecord &ev)
   return true;
 }
 
-bool SignalGeneratorUnix::waitingForStop(process *p)
+bool SignalGenerator::waitingForStop(process *p)
 {
   for(unsigned int i = 0; i < stoppingProcs.size(); ++i) {
        if (stoppingProcs[i].proc == p) return false;
@@ -707,7 +730,7 @@ bool SignalGeneratorUnix::waitingForStop(process *p)
    return true;
 
 }
-bool SignalGeneratorUnix::notWaitingForStop(process *p)
+bool SignalGenerator::notWaitingForStop(process *p)
 {
   for(unsigned int i = 0; i < stoppingProcs.size(); ++i) {
      if (stoppingProcs[i].proc == p) { 
@@ -780,13 +803,14 @@ bool dyn_lwp::waitUntilStopped()
   }
 
   //return (doWaitUntilStopped(proc(), get_lwp_id(), true) != NULL);
-  getSH()->waitingForStop(proc());
+  SignalGenerator *sh = (SignalGenerator *) proc()->sh;
+  sh->waitingForStop(proc());
   while ( status() != stopped) {
     signal_printf("%s[%d]:  before waitForEvent(evtProcessStop): status is %s\n",
             FILE__, __LINE__, getStatusAsString().c_str());
-    getSH()->waitForEvent(evtProcessStop);
+    sh->waitForEvent(evtProcessStop);
   }
-  getSH()->notWaitingForStop(proc());
+  sh->notWaitingForStop(proc());
   return true;
 }
 
@@ -829,8 +853,24 @@ bool process::continueProc_(int sig)
   return no_err;
 }
 
-bool process::stop_()
+bool SignalGenerator::waitForStopInline()
 {
+   fprintf(stderr, "%s[%d]:  doing waitpid for initial process stop\n", FILE__, __LINE__);
+
+   while (proc->isRunning_()) {
+       if (0 > waitpid(getPid(), NULL, 0)) {
+         //  should do some better checking here....
+         perror("waitpid");
+         return false;
+       }
+   }
+   
+   return true;
+}
+
+bool process::stop_(bool waitUntilStop)
+{
+  fprintf(stderr, "%s[%d]:  welcome to stop()_\n", FILE__, __LINE__);
   int result;
   
   //Stop the main process
@@ -841,10 +881,12 @@ bool process::stop_()
     return false;
   }
 
-  if (!waitUntilLWPStops()) 
-    return false;
-  if (status() == exited)
-    return false;
+  if (waitUntilStop) {
+    if (!waitUntilLWPStops()) 
+       return false;
+    if (status() == exited)
+       return false;
+  }
 
   //Stop all other LWPs
   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
@@ -853,7 +895,7 @@ bool process::stop_()
   
   while(lwp_iter.next(index, lwp))
   {
-    lwp->pauseLWP(true);
+    lwp->pauseLWP(waitUntilStop);
   }
 
   return true;
@@ -877,7 +919,8 @@ bool process::waitUntilStopped()
 bool process::waitUntilLWPStops()
 {
 
-  getSH()->waitingForStop(this);
+  fprintf(stderr, "%s[%d]:  welcome to waitUntilLWPStops\n", FILE__, __LINE__);
+  ((SignalGenerator *)sh)->waitingForStop(this);
   while ( status() != stopped) {
     if (status() == exited) {
       fprintf(stderr, "%s[%d]:  process exited\n", __FILE__, __LINE__);
@@ -885,10 +928,10 @@ bool process::waitUntilLWPStops()
     }
     signal_printf("%s[%d][%s]:  before waitForEvent(evtProcessStop)\n", 
             FILE__, __LINE__, getThreadStr(getExecThreadID()));
-    getSH()->waitForEvent(evtProcessStop);
+    sh->waitForEvent(evtProcessStop);
   }
 
-  getSH()->notWaitingForStop(this);
+  ((SignalGenerator *)sh)->notWaitingForStop(this);
 
   return true;
 
@@ -923,7 +966,7 @@ void dyn_lwp::realLWP_detach_()
     if (ptrace_ret < 0) {
       fprintf(stderr, "%s[%d]:  ptrace failed: %s\n", __FILE__, __LINE__, strerror(ptrace_errno));
     }
-    remove_lwp_from_poll_list(get_lwp_id());
+    proc()->sh->remove_lwp_from_poll_list(get_lwp_id());
     return;
 }
 
@@ -938,7 +981,7 @@ void dyn_lwp::representativeLWP_detach_() {
     ptraceOtherOps++;
    int ptrace_errno = 0;
     DBI_ptrace(PTRACE_DETACH, get_lwp_id(),1, SIGCONT, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__); 
-    remove_lwp_from_poll_list(get_lwp_id());
+    proc()->sh->remove_lwp_from_poll_list(get_lwp_id());
     return;
 }
 
@@ -986,7 +1029,7 @@ bool DebuggerInterface::bulkPtraceWrite(void *inTraced, u_int nbytes, void *inSe
       w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) (ap-cnt), 0);
 
       if (errno) {
-         fprintf(stderr, "%s[%d]:  write data space failing\n", __FILE__, __LINE__);
+         fprintf(stderr, "%s[%d]:  write data space failing, pid %d\n", __FILE__, __LINE__, pid);
          return false;
       }
 
@@ -1012,7 +1055,9 @@ bool DebuggerInterface::bulkPtraceWrite(void *inTraced, u_int nbytes, void *inSe
       memcpy(&w, dp, len);
       int retval =  P_ptrace(PTRACE_POKETEXT, pid, (Address) ap, w);
       if (retval < 0) {
-         fprintf(stderr, "%s[%d]:  write data space failing\n", __FILE__, __LINE__);
+         fprintf(stderr, "%s[%d]:  write data space failing, pid %d\n", __FILE__, __LINE__, pid);
+         fprintf(stderr, "%s[%d][%s]:  tried to write %p in address %p\n", FILE__, __LINE__, getThreadStr(getExecThreadID()),w, ap);
+         perror("ptrace");
          return false;
       }
 
@@ -1121,7 +1166,7 @@ bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf
           errno = 0;
           w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) (ap-cnt), w, len);
           if (errno) {
-               fprintf(stderr, "%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, strerror(errno));
+               fprintf(stderr, "%s[%d]:  ptrace failed: for pid %d%s\n", FILE__, __LINE__, pid, strerror(errno));
                return false;
           }
           for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
@@ -1178,7 +1223,7 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf) {
 
      bool ret = false;
      if (! (ret = DBI_readDataSpace(get_lwp_id(), (Address) ap, nbytes,(Address) dp, /*sizeof(Address)*/ len,__FILE__, __LINE__))) {
-       fprintf(stderr, "%s[%d]:  bulk ptrace read failed \n", __FILE__, __LINE__);
+       fprintf(stderr, "%s[%d]:  bulk ptrace read failed for lwp id %d\n", __FILE__, __LINE__, get_lwp_id());
        return false;
      }
      return true;
@@ -1527,7 +1572,7 @@ int_function *instPoint::findCallee() {
    return NULL;
 }
 
-bool process::getExecFileDescriptor(pdstring filename,
+bool SignalGeneratorCommon::getExecFileDescriptor(pdstring filename,
                                     int /*pid*/,
                                     bool /*whocares*/,
                                     int &,
@@ -1587,9 +1632,9 @@ bool dyn_lwp::realLWP_attach_() {
       return false;
    }
    
-   add_lwp_to_poll_list(this);
+   proc()->sh->add_lwp_to_poll_list(this);
    eventType evt;
-   if (evtThreadDetect != (evt = getSH()->waitForEvent(evtThreadDetect, proc_, this))) {
+   if (evtThreadDetect != (evt = proc()->sh->waitForEvent(evtThreadDetect, proc_, this))) {
      fprintf(stderr, "%s[%d]:  received unexpected event %s\n", FILE__, __LINE__, eventType2str(evt));
      abort();
    }
@@ -1632,7 +1677,7 @@ bool dyn_lwp::representativeLWP_attach_() {
          perror( "process::attach - PTRACE_ATTACH" );
          return false;
       }
-      add_lwp_to_poll_list(this);
+      proc_->sh->add_lwp_to_poll_list(this);
 
 #if defined (arch_ia64)
       if (0 > getDBI()->waitpid(getPid(), NULL, 0)) {
@@ -1843,7 +1888,7 @@ bool process::readAuxvInfo()
    * On latter 2.6 kernels the AT_SYSINFO field isn't present,
    * so we have to resort to more "extreme" measures.
    **/
-  sprintf(buffer, "/proc/%d/auxv", pid);
+  sprintf(buffer, "/proc/%d/auxv", getPid());
   fd = open(buffer, O_RDONLY);
   if (fd != -1) {
      //Try to read the location out of /proc/pid/auxv
@@ -1915,7 +1960,7 @@ bool process::readAuxvInfo()
    **/
   unsigned num_maps;
   maps_entries *secondary_match = NULL;
-  maps_entries *maps = getLinuxMaps(pid, num_maps);
+  maps_entries *maps = getLinuxMaps(getPid(), num_maps);
   for (unsigned i=0; i<guessed_addrs.size(); i++) {
      Address addr = guessed_addrs[i];
      for (unsigned j=0; j<num_maps; j++) {
@@ -2193,7 +2238,7 @@ Address dyn_lwp::step_next_insn() {
    do {
       if(proc()->hasExited()) 
          return (Address) -1;
-      getSH()->waitForEvent(evtDebugStep);
+      proc()->sh->waitForEvent(evtDebugStep);
    } while (singleStepping);
 
    return getActiveFrame().getPC();

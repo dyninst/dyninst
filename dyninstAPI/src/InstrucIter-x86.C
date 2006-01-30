@@ -834,8 +834,10 @@ bool InstrucIter::isFPWrite()
 
   const unsigned char * addr = i.ptr();
 
-  #if defined(os_windows)
+#if defined(os_windows) && _MSC_VER < 1300
   ia32_decode(0, addr,ii);
+#elif defined(os_windws)
+  ia32_decode<0>(addr,ii);
 #else
   ia32_decode<0>(addr,ii);
 #endif
@@ -865,8 +867,10 @@ void InstrucIter::readWriteRegisters(int * readRegs, int * writeRegs)
   ia32_instruction ii;
   
   const unsigned char * addr = i.ptr();
-#if defined(os_windows)
-  ia32_decode(0, addr,ii);
+#if defined(os_windows) && _MSC_VER < 1300
+  ia32_decode(0,addr,ii);
+#elif defined(os_windows)
+  ia32_decode<0>(addr,ii);
 #else
   ia32_decode<0>(addr,ii);
 #endif

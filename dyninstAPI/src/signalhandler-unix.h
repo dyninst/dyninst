@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-unix.h,v 1.17 2005/11/21 17:16:14 jaw Exp $
+/* $Id: signalhandler-unix.h,v 1.18 2006/01/30 07:16:53 jaw Exp $
  */
 
 /*
@@ -62,6 +62,18 @@
 #include <procfs.h>
 #elif defined(os_aix)
 #include <sys/procfs.h>
+#endif
+
+#define CAN_DUMP_CORE true
+#define SLEEP_ON_MUTATEE_CRASH 300 /*seconds*/
+
+#define INFO_TO_EXIT_CODE(info) info
+#define INFO_TO_PID(info) info
+// process exits do not cause poll events on alpha-osf, so we have a timeout
+#if defined (os_osf)
+#define POLL_TIMEOUT 1000 /*ms*/
+#else
+#define POLL_TIMEOUT -1
 #endif
 
 class process;
@@ -111,22 +123,6 @@ class process;
 
 // These functions provide a platform-independent decoder layer.
 
-// Enumerated types of system calls we have particular
-// reponses for. Used to convert a large if-then tree
-// to a switch statement.
-typedef enum {
-    procSysFork,
-    procSysExec,
-    procSysExit,
-    // Library load "syscall". Used by AIX.
-    procSysLoad,
-    procLwpExit,
-    procSysOther
-} procSyscall_t;
-
-
-procSyscall_t decodeSyscall(process *p, eventWhat_t info);
-
 // waitPid status -> what/why format
 typedef int procWaitpidStatus_t;
 bool decodeWaitPidStatus(procWaitpidStatus_t status, EventRecord &ev);
@@ -168,45 +164,68 @@ extern int SYSSET_MAP(int, int);
 #define A0_REGNUM 16
 #endif
 
-class SignalGeneratorUnix : public SignalGenerator
+class SignalGenerator : public SignalGeneratorCommon
 {
-  friend SignalGeneratorUnix *getSH();
-  friend class SignalHandlerUnix;
+  friend class SignalHandler;
+  friend class SignalGeneratorCommon;
   friend class process;
-  friend process *ll_attachToCreatedProcess(int, const pdstring &);
 
   public:
-   virtual ~SignalGeneratorUnix() {}
+   virtual ~SignalGenerator() {}
 
+   bool checkForExit(EventRecord &ev, bool block =false);
   private:
-  //  SignalGenerator should only be constructed via getSH()
-  SignalGeneratorUnix() : SignalGenerator() {}
-  SignalHandler *newSignalHandler(char *name, int id);
+  //  SignalGenerator should only be constructed by process
+  SignalGenerator(char *idstr, pdstring file, pdstring dir,
+                      pdvector<pdstring> *argv,
+                      pdvector<pdstring> *envp,
+                      pdstring inputFile,
+                      pdstring outputFile,
+                      int stdin_fd, int stdout_fd,
+                      int stderr_fd)
+    : SignalGeneratorCommon(idstr, file, dir, argv, envp, inputFile, outputFile, 
+                      stdin_fd, stdout_fd, stderr_fd) {}
+  SignalGenerator(char *idstr, pdstring file, int pid)
+    : SignalGeneratorCommon(idstr, file, pid) {} 
 
-  bool waitNextEvent(EventRecord &ev);
+  virtual SignalHandler *newSignalHandler(char *name, int id);
 
-  bool decodeEvent(EventRecord &ev);
+  virtual bool forkNewProcess();
+  virtual bool attachProcess();
+  virtual bool waitForStopInline();
+  virtual bool waitNextEventLocked(EventRecord &ev);
+  virtual bool decodeEvent(EventRecord &ev);
+
+  bool decodeSignal(EventRecord &ev);
   bool decodeRTSignal(EventRecord &ev);
   bool decodeSigTrap(EventRecord &ev);
   bool decodeSigStopNInt(EventRecord &ev);
   bool decodeSigIll(EventRecord &ev);
 
+  //  decodeSyscall changes the field ev.what from a platform specific
+  //  syscall representation, eg, SYS_fork, to a platform indep. one,
+  //  eg. procSysFork.  returns false if there is no available mapping.
+  bool decodeSyscall(EventRecord &ev);
+
   //  functions specific to the unix polling mechanism.
-  bool createPollEvent(pdvector<EventRecord> &events, struct pollfd fds, process *curProc);
+//  bool createPollEvent(pdvector<EventRecord> &events, struct pollfd fds, process *curProc);
   bool getFDsForPoll(pdvector<unsigned int> &fds);
   process *findProcessByFD(unsigned int fd);
 
 #if !defined (os_linux) 
    bool updateEvents(pdvector<EventRecord> &events, process *p, int lwp_to_use);
-   bool decodeProcStatus(process *p, procProcStatus_t status, EventRecord &ev);
+   bool decodeProcStatus(procProcStatus_t status, EventRecord &ev);
    bool updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
                                   pdvector<EventRecord> &events);
+   bool decodeKludge(EventRecord &ev);
 #endif
 
 #if defined (os_linux)
    public:
    bool waitingForStop(process *p);
    bool notWaitingForStop(process *p);
+   bool add_lwp_to_poll_list(dyn_lwp *lwp);
+   bool remove_lwp_from_poll_list(int lwp_id);
    private:
    typedef struct {
       process *proc;
@@ -222,54 +241,17 @@ class SignalGeneratorUnix : public SignalGenerator
    //  SignalHandler::resendSuppressedSignals
    //  called upon receipt of a SIGSTOP.  Sends all deferred signals to the stopped process.
    bool resendSuppressedSignals(EventRecord &ev);
+   bool attachToChild(int pid);
+   int find_dead_lwp();
+   pid_t waitpid_kludge(pid_t, int *, int, int *);
+   pdvector<pdstring> attached_lwp_ids;
 #endif
 
 };
 
-class SignalHandlerUnix : public SignalHandler
-{
-  friend class SignalGeneratorUnix;
-  friend class process;
-  friend process *ll_attachToCreatedProcess(int, const pdstring &);
-  public:
-
-  private:
-  //  SignalHandler should only be constructed by SignalGenerator
-  SignalHandlerUnix(char *shname, int shid) : SignalHandler(shname, shid) {}
-  virtual ~SignalHandlerUnix() {}
-
-  bool handleEvent(EventRecord &);
-  bool handleEventLocked(EventRecord &);
-  bool handleSigStopNInt(EventRecord &event);
-  bool handleSigCritical(EventRecord &event);
-  procSyscall_t decodeSyscall(process *p, eventWhat_t what);
-  bool handleSignal(EventRecord &ev);
-  bool handleSIGCHLD(EventRecord &ev);
-  static bool handleSigTrap(EventRecord &ev);
-
-  bool handleSIGSTOP(EventRecord &ev);
-  bool handleForkEntry(EventRecord &ev);
-  bool handleExecEntry(EventRecord &ev);
-  bool handleLwpExit(EventRecord &ev);
-  bool handleSyscallEntry(EventRecord &ev);
-  bool handleSyscallExit(EventRecord &ev);
-  bool handleForkExit(EventRecord &ev);
-  static bool handleExecExit(EventRecord &ev);
-  bool handleLoadExit(EventRecord &ev);
-  bool handleSingleStep(const EventRecord &ev);
-  static bool handleProcessCreate(EventRecord &ev);
-
-
-  // forwardSigToProcess: continue the process with the (unhandled) signal
-  static int forwardSigToProcess(EventRecord &ev);
-};
 /////////////////////
 // Translation mechanisms
 /////////////////////
-
-inline bool didProcReceiveSignal(eventType t) {
-    return (t == evtSignalled); 
-}
 
 inline bool didProcEnterSyscall(eventType t) {
    return (t == evtSyscallEntry);
@@ -283,9 +265,6 @@ inline bool didProcReceiveInstTrap(eventType t) {
     return (t == evtInstPointTrap);
 }
 
-inline bool didProcExit(EventRecord &ev) {
-    return ((ev.type == evtProcessExit) && (ev.status == statusNormal));
-}
 
 #endif
 

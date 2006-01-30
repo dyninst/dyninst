@@ -156,6 +156,18 @@ bool dyn_lwp::restoreRegisters_( const struct dyn_saved_regs &regs ) {
   return true;
 } /* end restoreRegisters_() */
 
+void dyn_lwp::dumpRegisters()
+{
+   dyn_saved_regs regs;
+   if (!getRegisters(&regs)) {
+     fprintf(stderr, "%s[%d]:  registers unavailable\n", FILE__, __LINE__);
+     return;
+   }
+
+   fprintf(stderr, "pc:   %lx\n", regs.pc);
+   fprintf(stderr, "pr:   %lx\n", regs.pr);
+}
+
 Address getPC( int pid ) {
   errno = 0;
   Address pc = getDBI()->ptrace( PTRACE_PEEKUSER, pid, PT_CR_IIP, 0 );
@@ -415,7 +427,7 @@ bool process::getDyninstRTLibName() {
     }
     else {
       pdstring msg = pdstring( "Environment variable " + pdstring( "DYNINSTAPI_RT_LIB" )
-			       + " has not been defined for process " ) + pdstring( pid );
+			       + " has not been defined for process " ) + pdstring( getPid() );
       showErrorCallback(101, msg);
       return false;
     }
@@ -450,14 +462,14 @@ bool process::loadDYNINSTlib() {
       dyninstRT_name = getenv(DyninstEnvVar);
     } else {
       pdstring msg = pdstring( "Environment variable " + pdstring( DyninstEnvVar )
-			       + " has not been defined for process " ) + pdstring( pid );
+			       + " has not been defined for process " ) + pdstring( getPid() );
       showErrorCallback(101, msg);
       return false;
     } /* end if enviromental variable not found */
   } /* end enviromental variable extraction */
         
   /* Save the current PC. */
-  savedPC = getPC( pid );	
+  savedPC = getPC( getPid() );	
         
   /* _dl_open() takes three arguments: a pointer to the library name,
      the DLOPEN_MODE, and the return address of the current frame
@@ -549,7 +561,7 @@ bool process::loadDYNINSTlib() {
   jAddr.writeBundlesFrom( (unsigned char *)gen.start_ptr(), gen.used() / 16 );
 
   /* Now that we know where the code will start, move the PC there. */
-  changePC( pid, dlopencall_addr );
+  changePC( getPid(), dlopencall_addr );
 
   /* Let them know we're working on it. */
   setBootstrapState( loadingRT_bs );
@@ -720,8 +732,8 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall) {
     instruction newInst;
         
     // Determine exact interruption point (IIP and IPSR.ri)
-    codeBase = getPC(pid);
-    ipsr_ri = getDBI()->ptrace(PTRACE_PEEKUSER, pid, PT_CR_IPSR, 0);
+    codeBase = getPC(getPid());
+    ipsr_ri = getDBI()->ptrace(PTRACE_PEEKUSER, getPid(), PT_CR_IPSR, 0);
     if (errno && (ipsr_ri == -1)) return NULL;
     ipsr_ri = (ipsr_ri & 0x0000060000000000) >> 41;
         
@@ -755,7 +767,7 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
   }
   bperr( "Removing trapped syscall at %ld\n",
 	 trappedSyscall->syscall_id);
-  if (!writeDataSpace((void *)getPC(pid), 16, trappedSyscall->saved_insn))
+  if (!writeDataSpace((void *)getPC(getPid()), 16, trappedSyscall->saved_insn))
     return false;
         
   // Now that we've reset the original behavior, remove this

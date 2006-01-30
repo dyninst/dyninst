@@ -113,7 +113,7 @@ BPatch_image *BPatch_process::getImageInt()
  */
 int BPatch_process::getPidInt()
 {
-   return llproc->getPid();
+   return llproc ? (llproc->sh ? llproc->getPid()  : -1 ) : -1;
 }
 
 /*
@@ -191,16 +191,7 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
 
    image = new BPatch_image(this);
 
-   while (!llproc->isBootstrappedYet() && !statusIsTerminated()) {
-      //fprintf(stderr, "%s[%d][%s]:  before waitForEvent(processInit)\n", 
-      //        FILE__, __LINE__, getThreadStr(getExecThreadID()));
-     getSH()->waitForEvent(evtProcessInitDone, llproc);
-   }
-
-   while (getSH()->activeHandlerForProcess(llproc)) {
-     getSH()->waitForEvent(evtAnyEvent);
-     getMailbox()->executeCallbacks(FILE__, __LINE__);
-   }
+   assert(llproc->isBootstrappedYet());
 
    // Let's try to profile memory usage
 #if defined(PROFILE_MEM_USAGE)
@@ -249,16 +240,8 @@ BPatch_process::BPatch_process(const char *path, int pid)
    llproc->registerFunctionCallback(createBPFuncCB);
    llproc->registerInstPointCallback(createBPPointCB);
 
-   // Just to be sure, pause the process.... 
-   llproc->pause();
-
-   while (!llproc->isBootstrappedYet() && !statusIsTerminated()) {
-      fprintf(stderr, "%s[%d][%s]:  before waitForEvent(evtProcessInitDone)\n", 
-              FILE__, __LINE__, getThreadStr(getExecThreadID()));
-     getSH()->waitForEvent(evtProcessInitDone, llproc);
-   }
-
-   getMailbox()->executeCallbacks(FILE__, __LINE__);
+   assert(llproc->isBootstrappedYet());
+   assert(llproc->status() == stopped);
 }
 
 /*
@@ -334,18 +317,22 @@ void BPatch_process::BPatch_process_dtor()
 
    if (!llproc) { return; }
 
+   //  unRegister process before doing detach
+   BPatch::bpatch->unRegisterProcess(getPid());   
+
    /**
     * If we attached to the process, then we detach and leave it be,
     * otherwise we'll terminate it
     **/
-   if (createdViaAttach)
+   if (createdViaAttach) {
       llproc->detachProcess(true);
-   else  {
-      proccontrol_printf("%s[%d]:  about to terminate execution\n", __FILE__, __LINE__);
-      terminateExecutionInt();
+   }else  {
+      if (llproc->isAttached()) {
+        proccontrol_printf("%s[%d]:  about to terminate execution\n", __FILE__, __LINE__);
+        terminateExecutionInt();
+      }
    }
 
-   BPatch::bpatch->unRegisterProcess(getPid());   
    delete llproc;
    llproc = NULL;
    assert(BPatch::bpatch != NULL);
@@ -380,10 +367,9 @@ bool BPatch_process::continueExecutionInt()
 
    //  DON'T let the user continue the process if we have potentially active 
    //  signal handling going on:
-   while (getSH()->activeHandlerForProcess(llproc)) {
+   while (llproc->sh->activeHandlerForProcess(llproc)) {
      signal_printf("%s[%d]:  waiting before doing user continue for process %d\n", FILE__, __LINE__, llproc->getPid());
-     getSH()->waitForEvent(evtAnyEvent);
-    //return true; 
+     llproc->sh->waitForEvent(evtAnyEvent);
    }
 
    getMailbox()->executeCallbacks(FILE__, __LINE__);
@@ -413,6 +399,7 @@ bool BPatch_process::continueExecutionInt()
 bool BPatch_process::terminateExecutionInt()
 {
    proccontrol_printf("%s[%d]:  about to terminate proc\n", FILE__, __LINE__);
+   fprintf(stderr, "%s[%d]:  about to terminateProc\n", FILE__, __LINE__);
    if (!llproc || !llproc->terminateProc())
       return false;
    while (!isTerminated());
@@ -446,7 +433,7 @@ bool BPatch_process::isStoppedInt()
       //  if there are signal handler threads that are acting on this process
       //  that are not idle, we may not really be stopped from the end-user
       //  perspective (ie a continue might be imminent).
-      if (getSH()->activeHandlerForProcess(llproc)) {
+      if (llproc->sh->activeHandlerForProcess(llproc)) {
         signal_printf("%s[%d]:  pending events for proc %d, assuming still running\n",
                       FILE__, __LINE__, llproc->getPid());
         return false;
@@ -577,6 +564,7 @@ bool BPatch_process::detachInt(bool cont)
             __FILE__, __LINE__, getPid());
    }
   // __LOCK;
+   fprintf(stderr, "%s[%d]:  about to detach process\n", FILE__, __LINE__);
    detached = llproc->detachProcess(cont);
    return detached;
 }
@@ -1349,7 +1337,7 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
         llproc->getRpcMgr()->launchRPCs(false);
         getMailbox()->executeCallbacks(FILE__, __LINE__);
         if (info->isCompleted()) break;
-        getSH()->waitForEvent(evtRPCSignal, llproc, NULL /*lwp*/, statusRPCDone);
+        llproc->sh->waitForEvent(evtRPCSignal, llproc, NULL /*lwp*/, statusRPCDone);
         getMailbox()->executeCallbacks(FILE__, __LINE__);
       } while (!info->isCompleted() && !statusIsTerminated());
       

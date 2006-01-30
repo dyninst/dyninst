@@ -40,7 +40,7 @@
  */
 
 
-// $Id: templates2.C,v 1.59 2005/11/22 13:57:10 jaw Exp $
+// $Id: templates2.C,v 1.60 2006/01/30 07:16:53 jaw Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -205,7 +205,7 @@ template class pdvector<void *>;
 template class pdvector<eventType>;
 template class pdvector< pdpair<unsigned long, const char *> >;
 #if defined (os_linux)
-template class pdvector<SignalGeneratorUnix::stopping_proc_rec>;
+template class pdvector<SignalGenerator::stopping_proc_rec>;
 #endif
 template class pdvector<dyn_lwp *>;
 template class pdvector<SignalHandler *>;

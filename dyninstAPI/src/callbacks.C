@@ -6,6 +6,7 @@
 #include "EventHandler.h"
 #include "util.h"
 #include "showerror.h"
+#include "process.h"
 
 CallbackManager *callback_manager = NULL;
 CallbackManager *getCBManager()
@@ -64,7 +65,7 @@ void SyncCallback::signalCompletion(CallbackBase *cb)
      scb->completion_signalled = true;
      if (scb->sh)
        scb->sh->wait_cb = NULL;
-     signal_printf("%s[%d]: SyncCallback, signalling completion, sh = %p\n", FILE__, __LINE__, scb->sh);
+     signal_printf("%s[%d]: SyncCallback, signalling completion, sh = %s\n", FILE__, __LINE__, scb->sh ? scb->sh->getName() : "null");
      mailbox_printf("%s[%d][%s]:  signalling completion of callback\n",
              FILE__, __LINE__, getThreadStr(getExecThreadID()));
      scb->lock->_Broadcast(FILE__, __LINE__);
@@ -75,8 +76,20 @@ bool SyncCallback::waitForCompletion()
 {
     //  Assume that we are already locked upon entry
     assert(lock->depth());
-    sh = getSH()->findSHWithThreadID(getExecThreadID());
-    signal_printf("%s[%d]: SyncCallback, waiting for completion, sh = %p\n", FILE__, __LINE__, sh);
+
+    //  we need to find the signal
+    //  handler that has this thread id -- ie, find out if we are running on a 
+    //  signal handler thread.  Since we do not have an easy way of getting 
+    //  this object, we need to search for it:
+
+    extern pdvector<process *> processVec;
+    for (unsigned int i = 0; i < processVec.size(); ++i) {
+      if (processVec[i] && processVec[i]->status() != deleted && processVec[i]->sh)
+        if (NULL != (sh = processVec[i]->sh->findSHWithThreadID(getExecThreadID())))
+           break;
+    }
+
+    signal_printf("%s[%d]: SyncCallback, waiting for completion, sh = %p\n", FILE__, __LINE__, sh ? sh->getName() : "null");
     if (sh)
       sh->wait_cb = (CallbackBase *) this;
 
@@ -308,6 +321,9 @@ bool AsyncThreadEventCallback::execute_real(void)
 bool AsyncThreadEventCallback::operator()(BPatch_process *process, BPatch_thread *thread)
 {
   assert(lock->depth());
+  assert(process);
+  assert(thread);
+
   proc = process;
   thr = thread;
   getMailbox()->executeOrRegisterCallback(this);

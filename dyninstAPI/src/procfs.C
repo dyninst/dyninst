@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.41 2005/12/01 00:56:25 jaw Exp $
+// $Id: procfs.C,v 1.42 2006/01/30 07:16:53 jaw Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -277,6 +277,23 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs) {
 
    return true;
 }
+
+void dyn_lwp::dumpRegisters()
+{
+   dyn_saved_regs regs;
+   if (!getRegisters(&regs)) {
+     fprintf(stderr, "%s[%d]:  registers unavailable\n", FILE__, __LINE__);
+     return;
+   }
+
+   fprintf(stderr, "GP: %lx\n", regs.theIntRegs.regs[REG_GP]);
+   fprintf(stderr, "SP: %lx\n", regs.theIntRegs.regs[REG_SP]);
+   fprintf(stderr, "FP: %lx\n", regs.theIntRegs.regs[15]);
+   fprintf(stderr, "RA: %lx\n", regs.theIntRegs.regs[REG_RA]);
+ 
+   //  plenty more register if we want to print em....
+}
+
 
 // PC is changed when we continue the process
 bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs * /*savedRegs*/) 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.86 2006/01/19 20:01:13 legendre Exp $
+// $Id: linux-x86.C,v 1.87 2006/01/30 07:16:52 jaw Exp $
 
 #include <fstream>
 
@@ -148,6 +148,22 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs) {
       return true;
 }
 
+void dyn_lwp::dumpRegisters()
+{
+   dyn_saved_regs regs;
+   if (!getRegisters(&regs)) {
+     fprintf(stderr, "%s[%d]:  registers unavailable\n", FILE__, __LINE__);
+     return;
+   }
+
+   fprintf(stderr, "eip:   %lx\n", regs.gprs.eip);
+   fprintf(stderr, "eax:   %lx\n", regs.gprs.eax);
+   fprintf(stderr, "ebx:   %lx\n", regs.gprs.ebx);
+   fprintf(stderr, "ecx:   %lx\n", regs.gprs.ecx);
+   fprintf(stderr, "esp:   %lx\n", regs.gprs.esp);
+   //  plenty more register if we want to print em....
+}
+
 bool dyn_lwp::changePC(Address loc,
                        struct dyn_saved_regs */*ignored registers*/)
 {
@@ -162,7 +178,8 @@ bool dyn_lwp::changePC(Address loc,
    return true;
 }
 
-bool dyn_lwp::clearOPC() {
+bool dyn_lwp::clearOPC() 
+{
    Address regaddr = offsetof(struct user_regs_struct, PTRACE_REG_ORIG_AX);
    assert(get_lwp_id() != 0);
    int ptrace_errno = 0;
@@ -173,7 +190,8 @@ bool dyn_lwp::clearOPC() {
    return true;
 }
 
-static bool changeBP(int pid, Address loc) {
+static bool changeBP(int pid, Address loc) 
+{
    process *p = process::findProcess(pid);
    assert (p);
    int width = p->getAddressWidth();
@@ -189,7 +207,8 @@ static bool changeBP(int pid, Address loc) {
 
 #define REG_STR(x)	REG_STR_(x)
 #define REG_STR_(x)	#x
-void printRegs( void *save ) {
+void printRegs( void *save ) 
+{
     user_regs_struct *regs = (user_regs_struct*)save;
     cerr
 	<< REG_STR( PTRACE_REG_AX ) ": " << (void*)regs->PTRACE_REG_AX
@@ -380,8 +399,8 @@ bool process::insertTrapAtEntryPointOfMain()
     // It looks like the trap PC is actual PC + 1...
     // This is ugly, but we'll have the "check if this was entry of main" function
     // check main_brk_addr or main_brk_addr + 1...
-    startup_printf("Saving %d bytes from entry of main...\n", 
-                   sizeof(savedCodeBuffer));
+    startup_printf("%s[%d]: Saving %d bytes from entry of main of %d...\n", 
+                   FILE__, __LINE__, sizeof(savedCodeBuffer), getPid());
 
     // save original instruction first
     if (!readDataSpace((void *)addr, sizeof(savedCodeBuffer), savedCodeBuffer, true)) {
@@ -1489,7 +1508,7 @@ bool process::hasBeenBound(const relocationEntry &entry,
     Address bound_addr = 0;
     if(!readDataSpace((const void*)got_entry, sizeof(Address), 
 			&bound_addr, true)){
-        sprintf(errorLine, "read error in process::hasBeenBound addr 0x%x, pid=%d\n (readDataSpace returns 0)",(unsigned)got_entry,pid);
+        sprintf(errorLine, "read error in process::hasBeenBound addr 0x%x, pid=%d\n (readDataSpace returns 0)",(unsigned)got_entry,getPid());
 	logLine(errorLine);
 	print_read_error_info(entry, target_pdf, base_addr);
         return false;
@@ -1523,7 +1542,7 @@ bool process::getDyninstRTLibName() {
             pdstring msg = pdstring("Environment variable ") +
                             pdstring("DYNINSTAPI_RT_LIB") +
                             pdstring(" has not been defined for process ")
-                            + pdstring(pid);
+                            + pdstring(getPid());
             showErrorCallback(101, msg);
             return false;
         }

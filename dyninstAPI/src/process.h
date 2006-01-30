@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.347 2006/01/29 19:18:18 chadd Exp $
+/* $Id: process.h,v 1.348 2006/01/30 07:16:53 jaw Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -168,6 +168,7 @@ class process {
     friend class dyn_lwp;
     friend Address loadDyninstDll(process *, char Buffer[]);
     friend class multiTramp;
+    friend class SignalGenerator;
 
     //  
     //  PUBLIC MEMBERS FUNCTIONS
@@ -176,10 +177,10 @@ class process {
  public:
     
     // Default constructor
-    process(int pid);
+    process(SignalGenerator *sh_);
 
     // Fork constructor
-    process(const process *parentProc, int iPid, int iTrace_fd);
+    process(const process *parentProc, SignalGenerator *sg_, int iTrace_fd);
 
     // Creation work
     bool setupCreated(int iTraceLink);
@@ -187,7 +188,7 @@ class process {
     // Similar case... process execs, we need to clean everything out
     // and reload the runtime library. This is basically creation,
     // just without someone calling us to make sure it happens...
-    bool prepareExec();
+    bool prepareExec(fileDescriptor &desc);
     // Once we're sure an exec is finishing, there's all sorts of work to do.
     bool finishExec();
 
@@ -201,7 +202,6 @@ class process {
     // Doing this post-attach allows us to one-pass parse things that need it (e.g., AIX)
     bool setAOut(fileDescriptor &desc);
     bool setMainFunction();
-
 
   protected:  
   bool walkStackFromFrame(Frame currentFrame, // Where to start walking from
@@ -265,7 +265,6 @@ class process {
   void continueAfterNextStop() { continueAfterNextStop_ = true; }
   static process *findProcess(int pid);
 
-  char * systemPrelinkCommand;
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
@@ -295,6 +294,15 @@ class process {
 	
 
   bool dumpImage(pdstring outFile);
+
+  //  SignalHandler::dumpMemory()
+  //
+  //  Dumps memory +/- nbytes around target addr, to stderr
+  //  Used in place of dumpImage() on platforms that cannot dump core
+  //  (windows, notably)
+  //  Useful for debug output?  (belongs in process class?)
+  bool dumpMemory(void *addr, unsigned nbytes);
+
   
   // This will find the named symbol in the image or in a shared object
   // Necessary since some things don't show up as a function or variable.
@@ -333,7 +341,7 @@ class process {
   // Get LWP handles from /proc (or as appropriate)
   bool determineLWPs(pdvector<unsigned> &lwp_ids);
 
-  int getPid() const { return pid;}
+  int getPid() const { return sh->getPid();}
 
   /***************************************************************************
    **** Runtime library initialization code (Dyninst)                     ****
@@ -615,9 +623,8 @@ class process {
 
   bool isDynamicallyLinked() const { return mapped_objects.size() > 1; }
 
-  // handleIfDueToSharedObjectMapping: if a trap instruction was caused by
-  // a dlopen or dlclose event then return true
-  bool handleIfDueToSharedObjectMapping();
+  bool decodeIfDueToSharedObjectMapping(EventRecord &);
+  bool handleChangeInSharedObjectMapping(EventRecord &);
 
   private:
 
@@ -769,7 +776,7 @@ class process {
   bool handleForkEntry();
   bool handleForkExit(process *child);
   bool handleExecEntry(char *arg0);
-  bool handleExecExit();
+  bool handleExecExit(fileDescriptor &desc);
 
   // Generic handler for anything else waiting on a system call
   // Returns true if handling was done
@@ -860,7 +867,7 @@ private:
   dyn_lwp *stop_an_lwp(bool *wasRunning);
 
   // stops a process
-  bool stop_();
+  bool stop_(bool waitForStop = true);
   // wait until the process stops
   bool waitUntilStopped();
 #if defined (os_linux)
@@ -904,11 +911,6 @@ private:
 
 
   public:
-    static bool getExecFileDescriptor(pdstring filename,
-                                      int pid,
-                                      bool waitForTrap, // Should we wait for process init
-                                      int &status,
-                                      fileDescriptor &desc);
     mapped_object *getAOut() { assert(mapped_objects.size()); return mapped_objects[0];}
     
  public:
@@ -975,8 +977,8 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   ///////////////////////////////
   // Core process data
   ///////////////////////////////
-  int pid;
   const process *parent;
+  SignalGenerator *sh;
   pdvector<mapped_object *> mapped_objects;
   // And a shortcut pointer
   mapped_object *runtime_lib;
@@ -1105,7 +1107,7 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   Address dyninstlib_brk_addr;
   Address main_brk_addr;
 
-  bool runProcessAfterInit;  
+  char * systemPrelinkCommand;
 
 #if defined(os_windows)
   // On windows we need to temporarily keep details of process creation in
@@ -1186,7 +1188,6 @@ process *ll_createProcess(const pdstring file, pdvector<pdstring> *argv,
 
 process *ll_attachProcess(const pdstring &progpath, int pid);
 
-process *ll_attachToCreatedProcess(int pid, const pdstring &progpath);
 
 bool isInferiorAllocated(process *p, Address block);
 

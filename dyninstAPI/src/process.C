@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.570 2006/01/24 16:56:02 chadd Exp $
+// $Id: process.C,v 1.571 2006/01/30 07:16:53 jaw Exp $
 
 #include <ctype.h>
 
@@ -1150,7 +1150,6 @@ void process::saveWorldAddSharedLibs(void *ptr){ // ccw 14 may 2002
 
 void process::addInferiorHeap(const mapped_object *obj)
 {
-    //fprintf(stderr, "Adding inferior heaps in %s\n", obj->fileName().c_str());
   pdvector<heapDescriptor> infHeaps;
   /* Get a list of inferior heaps in the new image */
   if (getInfHeapList(obj, infHeaps))
@@ -1387,7 +1386,7 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
                         FILE__, __LINE__, getThreadStr(getExecThreadID()), 
                         status() == running ? "true" : "false");
 
-     res = getSH()->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
+     res = sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
      getMailbox()->executeCallbacks(FILE__, __LINE__);
    } while (res != evtRPCSignal); // Loop until callback has fired.
 
@@ -1515,6 +1514,7 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 	   logLine(errorLine);
 	   showErrorCallback(66, (const char *) errorLine);    
               fprintf(stderr,"%s[%d]: ERROR!\n", __FILE__, __LINE__);
+        fprintf(stderr, "%s\n", errorLine);
 #if defined(BPATCH_LIBRARY)
 	   return(0);
 #else
@@ -1633,8 +1633,10 @@ bool process::inferiorRealloc(Address block, unsigned newSize)
 {
   inferiorHeap *hp = &heap;
 
+#if defined (USES_DYNAMIC_INF_HEAP)
   // This is why it's not a reference...
   inferiorMallocAlign(newSize);
+#endif
 
   // find block on active list
   heapItem *h = NULL;  
@@ -1721,8 +1723,11 @@ bool process::inferiorRealloc(Address block, unsigned newSize)
 // leaking memory and prepare for new versions. Useful when the process exits
 // (and the process object is deleted) and when it execs
 
-void process::deleteProcess() {
-
+void process::deleteProcess() 
+{
+#if 0
+  fprintf(stderr, "%s[%d]:  welcome to delete process\n", FILE__, __LINE__);
+#endif
   // A lot of the behavior here is keyed off the current process status....
   // if it is exited we'll delete things without performing any operations
   // on the process. Otherwise we'll attempt to reverse behavior we've made.
@@ -1901,8 +1906,13 @@ void process::deleteProcess() {
 process::~process()
 {
     // Failed creation... nothing is here yet
-    if (!reachedBootstrapState(initialized_bs))
+    if (!reachedBootstrapState(initialized_bs)) {
+        fprintf(stderr, "%s[%d]:  stopping signal handler\n", FILE__, __LINE__);
+        if (sh) SignalGeneratorCommon::stopSignalGenerator(sh);
+        fprintf(stderr, "%s[%d]:  warn got rid of delete\n", FILE__, __LINE__);
+        sh = NULL;
         return;
+    }
 
     // We require explicit detaching if the process still exists.
     // On the other hand, if it never started...
@@ -1916,6 +1926,12 @@ process::~process()
     
     // Most of the deletion is encapsulated in deleteProcess
     deleteProcess();
+
+    if (sh) {
+      signal_printf("%s[%d]:  removing signal handler for process\n", FILE__, __LINE__);
+      SignalGeneratorCommon::stopSignalGenerator(sh);
+      fprintf(stderr, "%s[%d]:  WARN, got rid of delete for sg\n", FILE__, __LINE__);
+    }
 
     // We used to delete the particular process, but this created no end of problems
     // with people storing pointers into particular indices. We set the pointer to NULL.
@@ -1936,11 +1952,10 @@ process::~process()
 // attach, and attachToCreated cases. We then call an auxiliary
 // function (which can return an error value) to handle specific
 // cases.
-process::process(int ipid) :
-    systemPrelinkCommand(NULL),
+process::process(SignalGenerator *sh_) :
     cached_result(not_cached), // MOVE ME
-    pid(ipid),
     parent(NULL),
+    sh(sh_),
     runtime_lib(NULL),
     creationMechanism_(unknown_cm),
     stateWhenAttached_(unknown_ps),
@@ -1968,7 +1983,7 @@ process::process(int ipid) :
     savedRegs(NULL),
     dyninstlib_brk_addr(0),
     main_brk_addr(0),
-    runProcessAfterInit(false),
+    systemPrelinkCommand(NULL),
 #if defined(os_windows)
     processHandle_(INVALID_HANDLE_VALUE),
     mainFileHandle_(INVALID_HANDLE_VALUE),
@@ -2003,7 +2018,6 @@ process::process(int ipid) :
 
     theRpcMgr = new rpcMgr(this);    
     dyn = new dynamic_linking(this);
-    createRepresentativeLWP();
 
     // Not sure we need this anymore... on AIX you can run code
     // anywhere, so allocating by address _should_ be okay.
@@ -2028,7 +2042,8 @@ process::process(int ipid) :
 //
 
 
-bool process::setupCreated(int iTraceLink) {
+bool process::setupCreated(int iTraceLink) 
+{
     traceLink = iTraceLink; // notice that tracelink will be -1 in the unique
     // case called "AttachToCreated" - Ana 
     // PARADYN ONLY
@@ -2043,19 +2058,19 @@ bool process::setupCreated(int iTraceLink) {
 #endif
 
     // Post-setup state variables
-    runProcessAfterInit = false;
     stateWhenAttached_ = stopped; 
     
-    startup_printf("Creation method: attaching to process\n");
+    startup_printf("%s[%d]: Creation method: attaching to process\n", FILE__, __LINE__);
     // attach to the child process (machine-specific implementation)
     if (!attach()) { // error check?
         status_ = detached;
+         fprintf(stderr, "%s[%d] attach failing here\n", FILE__, __LINE__);
          pdstring msg = pdstring("Warning: unable to attach to specified process :")
-            + pdstring(pid);
+            + pdstring(getPid());
         showErrorCallback(26, msg.c_str());
         return false;
     }
-    startup_printf("Creation method: returning\n");
+    startup_printf("%s[%d]: Creation method: returning\n", FILE__, __LINE__);
     return true;
 }
     
@@ -2063,7 +2078,9 @@ bool process::setupCreated(int iTraceLink) {
 // Attach version of the above: no trace pipe, but we assume that
 // main() has been reached and passed. Someday we could unify the two
 // if someone has a good way of saying "has main been reached".
-bool process::setupAttached() {
+bool process::setupAttached() 
+{
+    fprintf(stderr, "%s[%d]:  welcome to setupAttached()\n", FILE__, __LINE__);
     creationMechanism_ = attached_cm;
     // We're post-main... run the bootstrapState forward
 
@@ -2087,29 +2104,30 @@ bool process::setupAttached() {
    if (!attach()) {
        status_ = detached;
        
+         fprintf(stderr, "%s[%d] attach failing here\n", FILE__, __LINE__);
       pdstring msg = pdstring("Warning: unable to attach to specified process: ")
-                   + pdstring(pid);
+                   + pdstring(getPid());
       showErrorCallback(26, msg.c_str());
       return false;
    }
 
-   startup_printf("[%d]: attached, getting current process state\n", getPid());
+   startup_printf("%s[%d]: attached, getting current process state\n", FILE__, __LINE__);
 
    // Record what the process was doing when we attached, for possible
    // use later.
    if (isRunning_()) {
-       startup_printf("[%d]: process running when attached, pausing...\n", getPid());
+       startup_printf("%s[%d]: process running when attached, pausing...\n", FILE__, __LINE__);
        stateWhenAttached_ = running; 
        set_status(running);
        if (!pause())
            return false;
    }
    else {
-       startup_printf("[%d]: attached to previously paused process\n", getPid());
+       startup_printf("%s[%d]: attached to previously paused process\n", FILE__, __LINE__);
        stateWhenAttached_ = stopped;
        set_status(stopped);
    }
-   startup_printf("[%d]: setupAttached returning true\n", getPid());
+   startup_printf("%s[%d]: setupAttached returning true\n",FILE__, __LINE__);
 
    assert(status() == stopped);
    return true;
@@ -2117,7 +2135,9 @@ bool process::setupAttached() {
 
 int HACKSTATUS = 0;
 
-bool process::prepareExec() {
+bool process::prepareExec(fileDescriptor &desc) 
+{
+    fprintf(stderr, "\n\n\n\n%s[%d]: EXEC...\n", FILE__, __LINE__);
     ///////////////////////////// CONSTRUCTION STAGE ///////////////////////////
     // For all intents and purposes: a new id.
     // However, we don't want to make a new object since all sorts
@@ -2150,17 +2170,19 @@ bool process::prepareExec() {
     dyn = new dynamic_linking(this);
     int status = 0;
 
+#ifdef NOTDEF // PDSEP
     // False: not waitin' for a signal (theoretically, we already got
     // it when we attached)
     fileDescriptor desc;
-    if (!getExecFileDescriptor(execFilePath, 
-                               pid,
+    if (!sh->getExecFileDescriptor(execFilePath, 
+                               getPid(),
                                false,
                                status, 
                                desc)) {
         cerr << "Failed to find exec descriptor" << endl;
         return false;
     }
+#endif
     if (!setAOut(desc)) {
         return false;
     }
@@ -2189,7 +2211,7 @@ bool process::prepareExec() {
 }
 
 bool process::finishExec() {
-    startup_printf("%s[%d]:  about toloadDyninstLib\n", FILE__, __LINE__);
+    startup_printf("%s[%d]:  about to load DyninstLib\n", FILE__, __LINE__);
     bool res = loadDyninstLib();
     if (!res)
         return false;
@@ -2204,7 +2226,7 @@ bool process::finishExec() {
         fprintf(stderr, "%s[%d][%s]:  before waitForEvent(evtProcessInitDone)\n", 
                 FILE__, __LINE__, getThreadStr(getExecThreadID()));
 
-        getSH()->waitForEvent(evtProcessInitDone);
+        sh->waitForEvent(evtProcessInitDone);
         getMailbox()->executeCallbacks(FILE__, __LINE__);
     }
     
@@ -2219,8 +2241,8 @@ bool process::finishExec() {
     return true;
 }
 
-bool process::setupFork() {
-    
+bool process::setupFork() 
+{
     assert(parent);
     assert(parent->status() == stopped);
 
@@ -2271,12 +2293,6 @@ bool process::setupFork() {
     /////////////////////////
     // Threads & LWPs
     /////////////////////////
-    createRepresentativeLWP();
-    if (!attach()) {
-        status_ = detached;
-        showErrorCallback(69, "Error in fork: cannot attach to child process");
-        return false;
-    }
 
     if(process::IndependentLwpControl())
         independentLwpControlInit();
@@ -2408,7 +2424,8 @@ unsigned process::getAddressWidth() {
     return 4;
 }
 
-bool process::setAOut(fileDescriptor &desc) {
+bool process::setAOut(fileDescriptor &desc) 
+{
     assert(reachedBootstrapState(attached_bs));
     assert(mapped_objects.size() == 0);
     mapped_object *aout = mapped_object::createMappedObject(desc, this);
@@ -2435,7 +2452,8 @@ char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20] = {
     "wWinMain",
     "_wWinMain"};
 
-bool process::setMainFunction() {
+bool process::setMainFunction() 
+{
     assert(!main_function);
     
     for (unsigned i = 0; i < NUMBER_OF_MAIN_POSSIBILITIES; i++) {
@@ -2447,7 +2465,8 @@ bool process::setMainFunction() {
     return true;
 }
 
-bool process::setupGeneral() {
+bool process::setupGeneral() 
+{
     // Need to have a.out at this point
     assert(mapped_objects.size() > 0);
 
@@ -2473,15 +2492,18 @@ bool process::setupGeneral() {
     initInferiorHeap();
 
 #if defined(os_aix)
+#ifdef NOTDEF // PDSEP
+    fprintf(stderr, "%s[%d]:  WARN!  removed fake sigtrap here\n", FILE__, __LINE__);
     if (HACKSTATUS == SIGTRAP) {
       EventRecord ev;
       ev.proc = this;
       ev.type = evtSignalled;
       ev.what = HACKSTATUS;
       ev.info = 0;
-      //getSH()->handleSigTrap(ev);
+      //sh->handleSigTrap(ev);
       SignalHandlerUnix::handleSigTrap(ev);
     }
+#endif
 #endif
         
 
@@ -2500,7 +2522,7 @@ bool process::setupGeneral() {
            return false;
        }
        startup_printf("Checking for process event...\n");
-       getSH()->waitForEvent(evtProcessInitDone);
+       sh->waitForEvent(evtProcessInitDone);
        getMailbox()->executeCallbacks(FILE__, __LINE__);
     }
 
@@ -2518,11 +2540,10 @@ bool process::setupGeneral() {
 //
 // Needs to strictly duplicate all process information; this is a _lot_ of work.
 
-process::process(const process *parentProc, int childPid, int childTrace_fd) : 
-    systemPrelinkCommand(NULL),
+process::process(const process *parentProc, SignalGenerator *sg_, int childTrace_fd) : 
     cached_result(parentProc->cached_result), // MOVE ME
-    pid(childPid),
     parent(parentProc),
+    sh(sg_),
     runtime_lib(NULL), // Set later
     dyninstRT_name(parentProc->dyninstRT_name),
     creationMechanism_(parentProc->creationMechanism_),
@@ -2551,7 +2572,7 @@ process::process(const process *parentProc, int childPid, int childTrace_fd) :
     savedRegs(NULL), // Later
     dyninstlib_brk_addr(parentProc->dyninstlib_brk_addr),
     main_brk_addr(parentProc->main_brk_addr),
-    runProcessAfterInit(parentProc->runProcessAfterInit),
+    systemPrelinkCommand(NULL),
     splitHeaps(parentProc->splitHeaps),
     heapInitialized_(parentProc->heapInitialized_),
     inInferiorMallocDynamic(parentProc->inInferiorMallocDynamic),
@@ -2576,6 +2597,7 @@ process::process(const process *parentProc, int childPid, int childTrace_fd) :
 
 static void cleanupBPatchHandle(int pid)
 {
+   fprintf(stderr, "%s[%d]:  about to unRegisterProcess\n", FILE__, __LINE__);
    BPatch::bpatch->unRegisterProcess(pid);
 }
 
@@ -2609,126 +2631,43 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
   }
   startup_printf("Stdin: %d, stdout: %d, stderr: %d\n", stdin_fd, stdout_fd, stderr_fd);
 
-    
-   pdstring file = File;
-	if( dir.length() > 0 )
-	{
-#if !defined(i386_unknown_nt4_0)
-		if( !file.prefixed_by("/") )
-		{
-			// file does not start  with a '/', so it is a relative pathname
-			// we modify it to prepend the given directory
-			if( dir.suffixed_by("/") )
-			{
-				// the dir already has a trailing '/', so we can
-				// just concatenate them to get an absolute path
-				file = dir + file;
-			}
-			else
-			{
-				// the dir does not have a trailing '/', so we must
-				// add a '/' to get the absolute path
-				file = dir + "/" + file;
-			}
-		}
-		else
-		{
-			// file starts with a '/', so it is an absolute pathname
-			// DO NOT prepend the directory, regardless of what the
-			// directory variable holds.
-			// nothing to do in this case
-		}
-
-#else // !defined(i386_unknown_nt4_0)
-		if( (file.length() < 2) ||	// file is too short to be a drive specifier
-			!isalpha( file[0] ) ||	// first character in file is not a letter
-			(file[1] != ':') )		// second character in file is not a colon
-		{
-			file = dir + "\\" + file;
-		}
-#endif // !defined(i386_unknown_nt4_0)
-	}
-
-#if defined(BPATCH_LIBRARY) && !defined(BPATCH_REDIRECT_IO)
-    pdstring inputFile;
-    pdstring outputFile;
-#else
-    // check for I/O redirection in arg list.
-    pdstring inputFile;
-    for (unsigned i1=0; i1<argv->size(); i1++) {
-      if ((*argv)[i1] == "<") {
-        inputFile = (*argv)[i1+1];
-        for (unsigned j=i1+2, k=i1; j<argv->size(); j++, k++)
-          (*argv)[k] = (*argv)[j];
-        argv->resize(argv->size()-2);
-      }
-    }
-    // TODO -- this assumes no more than 1 of each "<", ">"
-    pdstring outputFile;
-    for (unsigned i2=0; i2<argv->size(); i2++) {
-      if ((*argv)[i2] == ">") {
-        outputFile = (*argv)[i2+1];
-        for (unsigned j=i2+2, k=i2; j<argv->size(); j++, k++)
-          (*argv)[k] = (*argv)[j];
-        argv->resize(argv->size()-2);
-      }
-    }
-
-
-#endif /* BPATCH_LIBRARY */
-
     int traceLink = -1; // set by forkNewProcess, below.
 
-    int pid;
+    int pid = -1;
     int tid;
 
     // NT
     int procHandle_temp;
     int thrHandle_temp;
 
-    struct stat file_stat;
-    int stat_result;
+    process *theProc = SignalGeneratorCommon::newProcess(File, dir,
+                                                                    argv, envp,
+                                                                    stdin_fd, stdout_fd, 
+                                                                    stderr_fd);
+   if (!theProc || !theProc->sh) {
+     fprintf(stderr, "%s[%d]:  failed to create process %s\n", 
+             FILE__, __LINE__, File.c_str());
+     getMailbox()->executeCallbacks(FILE__, __LINE__);
+     return NULL;
+   }
 
-    stat_result = stat(file.c_str(), &file_stat);
-    
-    if(stat_result == -1) {
-        startup_printf("%s[%d]:  failed to read file %s\n", __FILE__, __LINE__, file.c_str());
-        pdstring msg = pdstring("Can't read executable file ") + file + (": ") + strerror(errno);
-        showErrorCallback(68, msg.c_str());
-        return(NULL);
-    }
-
-    if (!getDBI()->forkNewProcess(file, dir, argv, envp, inputFile, outputFile,
-                        traceLink, pid, tid, procHandle_temp, thrHandle_temp,
-                        stdin_fd, stdout_fd, stderr_fd)) {
-        // forkNewProcess is responsible for displaying error messages
-        // Note: if the fork succeeds, but exec fails, forkNew...
-        // will return true. 
-       fprintf(stderr, "[%s:%u] - Couldn't fork\n", __FILE__, __LINE__);
-       return NULL;
-    }
-
-    startup_cerr << "Fork new process... succeeded" << endl;
+    startup_printf( "%s[%d]:  Fork new process... succeeded",FILE__, __LINE__);
 
 #ifdef BPATCH_LIBRARY
     // Register the pid with the BPatch library (not yet associated with a
     // BPatch_thread object).
     assert(BPatch::bpatch != NULL);
-    BPatch::bpatch->registerProvisionalThread(pid);
+    BPatch::bpatch->registerProvisionalThread(theProc->sh->getPid());
 #endif
 
 #if defined(i386_unknown_nt4_0)
     int status = procHandle_temp;
     // DEBUGGING
 #else
-    int status = pid;
+    int status = theProc->sh->getPid();
 #endif // defined(i386_unknown_nt4_0)
     
-    statusLine("initializing process data structures");
 
-    process *theProc = new process(pid);
-    assert(theProc);
-    //fprintf(stderr, "%s[%d]:  setting initial process state to running\n", FILE__, __LINE__);
     theProc->set_status(running);
 
     // We need to add this as soon as possible, since a _lot_ of things
@@ -2736,19 +2675,26 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
     processVec.push_back(theProc);
     activeProcesses++;
 
-    if (!theProc->setupCreated(traceLink)) {
-        cleanupBPatchHandle(pid);
-        processVec.pop_back();
-        delete theProc;
-        return NULL;
+#ifdef NOTDEF // PDSEP
+#if defined (os_windows)
+    fprintf(stderr, "%s[%d]:  windows init continue -- REMOVE\n", FILE__, __LINE__);
+    unsigned res = ResumeThread(theProc->sh->getThreadHandle());
+    if (res == 0xFFFFFFFF) {
+      fprintf(stderr, "%s[%d]:  could not resume thread here\n", FILE__, __LINE__);
+      //printSysError(GetLastError());
     }
+#endif
+#endif
 
+    statusLine("initializing process data structures");
+
+#ifdef NOTDEF // PDSEP
     // AIX: wait for a trap so that we're sure the process is loaded
     // This is because we still read out of memory; bad idea, but...
     fileDescriptor desc;
-    if (!process::getExecFileDescriptor(file, pid, true, status, desc)) {
+    if (!process::getExecFileDescriptor(theProc->sh->file, theProc->sh->getPid(), true, status, desc)) {
         startup_cerr << "Failed to find exec descriptor" << endl;
-        cleanupBPatchHandle(pid);
+        cleanupBPatchHandle(theProc->sh->getPid());
         processVec.pop_back();
         delete theProc;
         return NULL;
@@ -2757,15 +2703,16 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
 
     if (!theProc->setAOut(desc)) {
         startup_printf("[%s:%u] - Couldn't setAOut\n", __FILE__, __LINE__);
-        cleanupBPatchHandle(pid);
+        cleanupBPatchHandle(theProc->sh->getPid());
         processVec.pop_back();
         delete theProc;
         return NULL;
     }
+#endif
 
     if (!theProc->setupGeneral()) {
         startup_printf("[%s:%u] - Couldn't setupGeneral\n", __FILE__, __LINE__);
-        cleanupBPatchHandle(pid);
+        cleanupBPatchHandle(theProc->sh->getPid());
         processVec.pop_back();
         delete theProc;
         return NULL;
@@ -2777,6 +2724,8 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
    fprintf(stderr, "Post process: sbrk %p\n", mem_usage);
 #endif
 
+   assert(theProc->reachedBootstrapState(bootstrapped_bs));
+   startup_printf("%s[%d]:  process state: %s\n\n\n\n", FILE__, __LINE__, theProc->getBootstrapStateAsString().c_str());
    return theProc;    
 }
 
@@ -2814,18 +2763,18 @@ process *ll_attachProcess(const pdstring &progpath, int pid)
       return NULL;
   }
 
-  process *theProc = new process(pid);
-  assert(theProc);
+  process *theProc = SignalGeneratorCommon::newProcess(fullPathToExecutable, pid);
+  if (!theProc || !theProc->sh) {
+    fprintf(stderr, "%s[%d]:  failed to create process %s\n", FILE__, __LINE__, progpath.c_str());
+    getMailbox()->executeCallbacks(FILE__, __LINE__);
+    return NULL;
+  }
 
   // Add this as we can't do _anything_ without a process to look up.
   processVec.push_back(theProc);
   activeProcesses++;
 
-  if (!theProc->setupAttached()) {
-        processVec.pop_back();
-      delete theProc;
-      return NULL;
-  }
+#ifdef NOTDEF // PDSEP
 
 #if defined(i386_unknown_nt4_0)
   int status = (int)INVALID_HANDLE_VALUE;	// indicates we need to obtain a valid handle
@@ -2853,6 +2802,7 @@ process *ll_attachProcess(const pdstring &progpath, int pid)
       delete theProc;
       return NULL;
   }
+#endif
   if (!theProc->setupGeneral()) {
         processVec.pop_back();
       delete theProc;
@@ -2861,91 +2811,6 @@ process *ll_attachProcess(const pdstring &progpath, int pid)
 
   return theProc; // successful
 }
-
-/*
- * This function is needed in the unique case where we want to 
- * attach to an application which has been previously stopped
- * in the exec() system call as in the normal case (createProcess).
- * In this particular case, the SIGTRAP due to the exec() has been 
- * previously caught by another process, therefore we should taking into
- * account this issue in the necessary platforms. 
- * Basically, is an hybrid case between addprocess() and attachProcess().
- * 
- */
-
-process *ll_attachToCreatedProcess(int pid, const pdstring &progpath)
-{
-    /* parent */
-    statusLine("initializing process data structures");
-
-    process *theProc = new process(pid);
-    assert(theProc);
-
-    // Add immediately
-    processVec.push_back(theProc);
-    activeProcesses++;
-
-    // This is the same as attaching...
-    if (!theProc->setupAttached()) {
-        processVec.pop_back();
-        delete theProc;
-        return NULL;
-    }
-    // But here we reset the bootstrap state to indicate that we're between
-    // exec and main
-    theProc->resetBootstrapState(begun_bs);
-    // Now, we missed the trap (because the creator already saw
-    // it). However, we can always create a signal. We do that as soon
-    // as we've parsed the image.
-
-    pdstring fullPathToExecutable = process::tryToFindExecutable(progpath, pid);
-    
-    if (!fullPathToExecutable.length()) {
-        return false;
-    }  
-    
-    int status = pid;
-    
-    // Get the file descriptor for the executable file
-    // "true" value is for AIX -- waiting for an initial trap
-    // it's ignored on other platforms
-    fileDescriptor desc;
-    if (!process::getExecFileDescriptor(fullPathToExecutable, 
-                               pid, 
-                               false,
-                               status, desc)) {
-        processVec.pop_back();
-        delete theProc;
-        return false;
-    } 
-
-    if (!theProc->setAOut(desc)) {
-        processVec.pop_back();
-        delete theProc;
-        return NULL;
-    }
-
-#if !defined(os_windows)    
-    // Now, fake a trap signal and off to setupGeneral
-    EventRecord ev;
-    ev.proc = theProc;
-    bool res = SignalHandlerUnix::handleSigTrap(ev);
-    assert(res);
-#endif
-
-    // Process ran for about a second....
-    // should now be stopped at main
-    if (!theProc->setupGeneral()) {
-        processVec.pop_back();
-        delete theProc;
-        return NULL;
-    }
-    
-    return theProc;
-} // end of AttachToCreatedProcess
-
-
-
 
 /***************************************************************************
  **** Runtime library initialization code (Dyninst)                     ****
@@ -2997,7 +2862,12 @@ bool process::loadDyninstLib() {
            return false;
        }
        getMailbox()->executeCallbacks(FILE__, __LINE__);
-       getSH()->waitForEvent(evtProcessInit);
+       pdvector<eventType> evts;
+       evts.push_back(evtProcessAttach); 
+       evts.push_back(evtProcessInit); 
+       evts.push_back(evtProcessExit); 
+       if (reachedBootstrapState(initialized_bs)) break;
+       sh->waitForOneOf(evts);
        getMailbox()->executeCallbacks(FILE__, __LINE__);
     }
     assert (isStopped());
@@ -3005,7 +2875,7 @@ bool process::loadDyninstLib() {
 
     // We've hit the initialization trap, so load dyninst lib and
     // force initialization
-    pdstring buffer = pdstring("PID=") + pdstring(pid);
+    pdstring buffer = pdstring("PID=") + pdstring(getPid());
     buffer += pdstring(", initializing shared objects");       
     statusLine(buffer.c_str());
 
@@ -3049,7 +2919,7 @@ bool process::loadDyninstLib() {
                    dyninstRT_name.c_str());
 
     // Force a call to dlopen(dyninst_lib)
-    buffer = pdstring("PID=") + pdstring(pid);
+    buffer = pdstring("PID=") + pdstring(getPid());
     buffer += pdstring(", loading dyninst library");       
     statusLine(buffer.c_str());
 
@@ -3068,14 +2938,21 @@ bool process::loadDyninstLib() {
             startup_printf("Odd, process exited while waiting for Dyninst RT lib load\n");
             return false;
         }
-        getSH()->waitForEvent(evtProcessLoadedRT);
+        sh->waitForEvent(evtProcessLoadedRT);
     }
     getMailbox()->executeCallbacks(FILE__, __LINE__);
     // We haven't inserted a trap at dlopen yet (as we require the runtime lib for that)
     // So re-check all loaded libraries (and add to the list gotten earlier)
     // We force a compare even though the PC is not at the correct address.
     dyn->set_force_library_check();
-    handleIfDueToSharedObjectMapping();
+    EventRecord load_rt_event;
+    load_rt_event.proc = this;
+    load_rt_event.lwp = NULL;
+    load_rt_event.type = evtLoadLibrary;
+    load_rt_event.what = SHAREDOBJECT_ADDED;
+    if (!handleChangeInSharedObjectMapping(load_rt_event)) {
+      fprintf(stderr, "%s[%d]:  handleChangeInSharedObjectMapping failed!\n", FILE__, __LINE__);
+    }
     dyn->unset_force_library_check();
 
     // Make sure the library was actually loaded
@@ -3084,12 +2961,12 @@ bool process::loadDyninstLib() {
         return false;
     }
     
-    buffer = pdstring("PID=") + pdstring(pid);
+    buffer = pdstring("PID=") + pdstring(getPid());
     buffer += pdstring(", initializing mutator-side structures");
     statusLine(buffer.c_str());    
 
     // The library is loaded, so do mutator-side initialization
-    buffer = pdstring("PID=") + pdstring(pid);
+    buffer = pdstring("PID=") + pdstring(getPid());
     buffer += pdstring(", finalizing RT library");
     statusLine(buffer.c_str());    
     startup_printf("(%d) finalizing dyninst RT library\n", getPid());
@@ -3102,13 +2979,13 @@ bool process::loadDyninstLib() {
         // Probably because we didn't set parameters before 
         // dyninstInit was automatically run. Catchup with
         // an inferiorRPC is the best bet.
-        buffer = pdstring("PID=") + pdstring(pid);
+        buffer = pdstring("PID=") + pdstring(getPid());
         buffer += pdstring(", finalizing library via inferior RPC");
         statusLine(buffer.c_str());    
         iRPCDyninstInit();        
     }
 
-    buffer = pdstring("PID=") + pdstring(pid);
+    buffer = pdstring("PID=") + pdstring(getPid());
     buffer += pdstring(", dyninst RT lib ready");
     statusLine(buffer.c_str());    
 
@@ -3235,7 +3112,7 @@ bool process::iRPCDyninstInit() {
            return false;
         }
         getMailbox()->executeCallbacks(FILE__, __LINE__);
-        getSH()->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
+        sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
         getMailbox()->executeCallbacks(FILE__, __LINE__);
     }
     startup_printf("%s[%d][%s]:  bootstrapped\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
@@ -3243,7 +3120,8 @@ bool process::iRPCDyninstInit() {
     return true;
 }
 
-bool process::attach() {
+bool process::attach() 
+{
    dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
    dyn_lwp *lwp;
    unsigned index;
@@ -3268,7 +3146,7 @@ bool process::attach() {
    // Fork calls attach() but is probably past this; silencing warning
    if (!reachedBootstrapState(attached_bs))
        setBootstrapState(attached_bs);
-   getSH()->signalActiveProcess();
+   sh->signalActiveProcess();
    startup_printf("[%d]: setting process flags\n", getPid());
    return setProcessFlags();
 }
@@ -3293,7 +3171,7 @@ bool process::finalizeDyninstLib()
    // Read the structure; if event 0 then it's undefined! (not yet written)
    if (bs_record.event == 0)
    {
-       startup_printf("[%s:%u] - bs_record.event is undefined\n");
+       startup_printf("[%s:%u] - bs_record.event is undefined\n", FILE__, __LINE__);
        return false;
    }
 
@@ -3387,7 +3265,7 @@ bool process::finalizeDyninstLib()
    startup_printf("%s[%d]:  bootstrap done\n", __FILE__, __LINE__);
    // Ready to rock
    setBootstrapState(bootstrapped_bs);
-   getSH()->signalEvent(evtProcessInitDone);
+   sh->signalEvent(evtProcessInitDone);
 
    return true;
 }
@@ -3491,7 +3369,8 @@ bool process::findFuncsByMangled(const pdstring &funcname,
 }
 
 int_function *process::findOnlyOneFunction(const pdstring &name,
-                                           const pdstring &lib) {
+                                           const pdstring &lib) 
+{
     pdvector<int_function *> allFuncs;
     if (!findFuncsByAll(name, allFuncs, lib))
         return NULL;
@@ -3714,7 +3593,8 @@ dyn_lwp *process::query_for_stopped_lwp() {
    return foundLWP;
 }
 
-dyn_lwp *process::query_for_running_lwp() {
+dyn_lwp *process::query_for_running_lwp() 
+{
    dyn_lwp *foundLWP = NULL;
    dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
    dyn_lwp *lwp;
@@ -3722,6 +3602,7 @@ dyn_lwp *process::query_for_running_lwp() {
 
    if(IndependentLwpControl()) {
       while (lwp_iter.next(index, lwp)) {
+         if (!lwp) continue;
          if(lwp->status() == running || lwp->status() == neonatal) {
             foundLWP = lwp;
             break;
@@ -3790,8 +3671,9 @@ dyn_lwp *process::stop_an_lwp(bool *wasRunning) {
    return stopped_lwp;
 }
 
-bool process::terminateProc() {
-   if(status() == exited) {
+bool process::terminateProc() 
+{
+   if(status() == exited || status() == deleted || !sh->isRunning()) {
      // "Sure, we terminated it... really!"
      return true;
    }
@@ -3803,7 +3685,8 @@ bool process::terminateProc() {
      // handle the kill signal on the process, which will dispatch exit callback
       signal_printf("%s[%d][%s]:  before waitForEvent(evtProcessExit)\n", 
               FILE__, __LINE__, getThreadStr(getExecThreadID()));
-      getSH()->waitForEvent(evtProcessExit);
+      fprintf(stderr, "%s[%d]:  waiting for evtProcessExit, lock depth is %d\n", FILE__, __LINE__, global_mutex->depth());
+      sh->waitForEvent(evtProcessExit);
      return true;
      }
      break;
@@ -3866,7 +3749,8 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
 }
 
 bool process::readDataSpace(const void *inTracedProcess, unsigned size,
-                            void *inSelf, bool displayErrMsg) {
+                            void *inSelf, bool displayErrMsg) 
+{
    bool needToCont = false;
 
    if (!isAttached()) {
@@ -3942,7 +3826,9 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
 }
 
 bool process::writeTextSpace(void *inTracedProcess, u_int amount, 
-                             const void *inSelf) {
+                             const void *inSelf) 
+{
+   assert(inTracedProcess);
    bool needToCont = false;
    /*
    fprintf(stderr, "writeTextSpace to %p to %p, %d\n",
@@ -4020,7 +3906,8 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
    return true;
 }
 
-void process::set_status(processState st) {
+void process::set_status(processState st) 
+{
    // update the process status
    status_ = st;
 
@@ -4038,7 +3925,8 @@ void process::set_status(processState st) {
    }
 }
 
-void process::set_lwp_status(dyn_lwp *whichLWP, processState lwp_st) {
+void process::set_lwp_status(dyn_lwp *whichLWP, processState lwp_st) 
+{
    // any lwp status = stopped, means proc status = stopped
 
    assert(whichLWP != NULL);
@@ -4096,7 +3984,7 @@ bool process::pause() {
    while (getRpcMgr()->existsRunningIRPC()) {
       fprintf(stderr, "%s[%d][%s]:  before waitForEvent(evtRPCSignal,...,statusRPCDone)\n", 
               FILE__, __LINE__, getThreadStr(getExecThreadID()));
-     getSH()->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
+     sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
    }
 #endif
 
@@ -4118,10 +4006,10 @@ bool process::pause() {
 
 //process::stop_ is only different on linux
 #if !defined(os_linux)
-bool process::stop_()
+bool process::stop_(bool waitUntilStop)
 {
    assert(status_ == running);      
-   bool res = getRepresentativeLWP()->pauseLWP(true);
+   bool res = getRepresentativeLWP()->pauseLWP(waitUntilStop);
    if (!res) {
       sprintf(errorLine,
               "warn : in process::pause, pause_ unable to pause process\n");
@@ -4132,28 +4020,60 @@ bool process::stop_()
 }
 #endif
 
-// handleIfDueToSharedObjectMapping: if a trap instruction was caused by
-// a dlopen or dlclose event then return true
-bool process::handleIfDueToSharedObjectMapping()
+bool process::decodeIfDueToSharedObjectMapping(EventRecord &ev)
 {
    if(!dyn) { 
-       bperr( "No dyn object, returning false\n");
+       fprintf(stderr, "%s[%d]:  no dyn objects, failing ...\n", FILE__, __LINE__);
        return false;
    }
-   pdvector<mapped_object *> changed_objs;
 
    u_int change_type = 0;
+   if (!dyn->decodeIfDueToSharedObjectMapping(ev,change_type))
+     return false;
 
-   if (!dyn->handleIfDueToSharedObjectMapping(changed_objs,
-                                              change_type)) {
-       // Not the right addr, I guess
+   ev.what = change_type;
+   switch(change_type) {
+     case SHAREDOBJECT_ADDED:
+        ev.type = evtLoadLibrary;
+        signal_printf("%s[%d]:  ADDED\n", FILE__, __LINE__);
+        return true;
+     case SHAREDOBJECT_REMOVED:
+        ev.type = evtUnloadLibrary;
+        signal_printf("%s[%d]:  REMOVED\n", FILE__, __LINE__);
+        return true;
+     case SHAREDOBJECT_NOCHANGE:
+        signal_printf("%s[%d]:  NOCHANGE\n", FILE__, __LINE__);
+        ev.type = evtLoadLibrary;
+        return true;
+     default:
+       fprintf(stderr, "%s[%d]:  WEIRD ERROR, decodeIfDueToSharedObjectMapping"
+               "must be broken\n", FILE__, __LINE__);
+   };
+   return false;
+}
+
+bool process::handleChangeInSharedObjectMapping(EventRecord &ev)
+{
+   pdvector<mapped_object *> changed_objs;
+
+   if(!dyn) { 
+       fprintf(stderr, "%s[%d]:  no dyn objects, failing ...\n", FILE__, __LINE__);
        return false;
    }
-   // if this trap was due to dlopen or dlclose, and if something changed
-   // then figure out how it changed and either add or remove shared objects
+
+   ev.what = 0;
+   //if (!dyn->getChangedObjects(ev,changed_objs)) {
+   if (!dyn->handleIfDueToSharedObjectMapping(ev,changed_objs)) {
+       fprintf(stderr, "change in mapping but no changed objs??\n", FILE__, __LINE__);
+       return false;
+   }
+
+   // figure out how the list changed and either add or remove shared objects
    // if something was added then call process::addASharedObject with
    // each element in the vector of changed_objects
-   if (change_type == SHAREDOBJECT_ADDED) {
+   switch (ev.what) {
+
+     case SHAREDOBJECT_ADDED:
        signal_printf("%s[%d]:  SHAREDOBJECT_ADDED\n", FILE__, __LINE__);
        assert(changed_objs.size());
 
@@ -4167,7 +4087,8 @@ bool process::handleIfDueToSharedObjectMapping()
                cerr << "Failed to add library " << changed_objs[i]->fullName() << endl;
        }
        return true;
-   } else if (change_type == SHAREDOBJECT_REMOVED) {
+
+     case SHAREDOBJECT_REMOVED:
        signal_printf("%s[%d]: ... removed object...\n", FILE__, __LINE__);
        // TODO: handle this case
        // if something was removed then call process::removeASharedObject
@@ -4186,14 +4107,13 @@ bool process::handleIfDueToSharedObjectMapping()
            delete changed_objs[i];
        }
        return true;
-   }
-   else {
-       signal_printf("%s[%d]:  UNKNOWN\n", __FILE__, __LINE__);
-       // ... okay, we handled something...
+     default:
+       signal_printf( "%s[%d]:  UNKNOWN\n", __FILE__, __LINE__);
        return true;
-   }
-   
-   return false;
+       //return false;
+   };
+
+  return false; 
 }
 
 /* Checks whether the shared object SO is the runtime instrumentation
@@ -4247,7 +4167,8 @@ check_rtinst(process *proc, mapped_object *so)
 // addASharedObject: This routine is called whenever a new shared object
 // has been loaded by the run-time linker
 // It processes the image, creates new resources
-bool process::addASharedObject(mapped_object *new_obj) {
+bool process::addASharedObject(mapped_object *new_obj) 
+{
     assert(new_obj);
     // Add to mapped_objects
     // Add to codeRange tree
@@ -4265,10 +4186,6 @@ bool process::addASharedObject(mapped_object *new_obj) {
     //return false;
     //}
 
-#ifdef NOTDEF// PDSEP
-    const char *dn = dyninstRT_name.c_str();
-    const char *fn = new_obj->fileName().c_str();
-#endif
     parsing_printf("Adding shared object %s, addr range 0x%x to 0x%x\n",
            new_obj->fileName().c_str(), 
            new_obj->getBaseAddress(),
@@ -4282,17 +4199,15 @@ bool process::addASharedObject(mapped_object *new_obj) {
         addInferiorHeap(new_obj);
     }
 
+    //fprintf(stderr, "%s[%d]:  newobj: %s, %s\n", FILE__, __LINE__, new_obj->fileName().c_str(), new_obj->fullName().c_str());
 #if defined(os_windows)
-    char dllFilename[_MAX_FNAME];
-    _splitpath( dyninstRT_name.c_str(),
-                NULL, NULL, dllFilename, NULL);
-    pdstring shortname = pdstring(dllFilename);    
+    char *last_slash = strrchr(new_obj->fileName().c_str(), '\\');
+    pdstring shortname = last_slash ? pdstring(last_slash +1) : new_obj->fileName();
 #else
     pdstring shortname = new_obj->fileName();
 #endif
     pdstring longname = new_obj->fullName();
 
-    //fprintf(stderr, "%s[%d]:  shortname = %s, longname = %s, RTlib = %s\n ", FILE__, __LINE__, shortname.c_str(), longname.c_str(), dyninstRT_name.c_str());
     if ((shortname == dyninstRT_name) 
         || (longname == dyninstRT_name)) {
       startup_printf("%s[%d]:  handling init of dyninst RT library\n", FILE__, __LINE__);
@@ -4333,7 +4248,7 @@ bool process::addASharedObject(mapped_object *new_obj) {
 	 }
     }
 #endif
-        BPatch_process *bProc = BPatch::bpatch->getProcessByPid(pid);
+        BPatch_process *bProc = BPatch::bpatch->getProcessByPid(getPid());
         if (!bProc) return true; // Done
         BPatch_image *bImage = bProc->getImage();
         assert(bImage); // This we can assert to be true
@@ -4689,6 +4604,39 @@ bool process::findAllFuncsByName(const pdstring &name, pdvector<int_function *> 
 }
 #endif
 
+
+bool process::dumpMemory(void * addr, unsigned nbytes)
+{
+    unsigned char *buf = new unsigned char[nbytes];
+    memset(buf, 0, nbytes);
+    assert(buf);
+
+    if (!readDataSpace((void *)((unsigned)addr-32), nbytes, buf, true)) {
+       fprintf(stderr, "%s[%d]:  dumpMemory failing, cannot read\n", FILE__, __LINE__);
+       return false;
+    }
+
+    fprintf(stderr, "## 0x%lx:\n", (unsigned)addr-32);
+    for (unsigned u = 0; u < nbytes; u++)
+    {
+            fprintf(stderr, " %x", buf[u]);
+    }
+    fprintf( stderr, "\n" );
+
+    if (!readDataSpace(addr, nbytes, buf, true)) {
+       fprintf(stderr, "%s[%d]:  dumpMemory failing, cannot read\n", FILE__, __LINE__);
+       return false;
+    }
+
+    fprintf(stderr, "## 0x%lx:\n", addr);
+    for (unsigned u1 = 0; u1 < nbytes; u1++)
+    {
+            fprintf(stderr, " %x", buf[u1]);
+    }
+    fprintf(stderr, "\n" );
+
+    return true;
+}
 
 // Returns the named symbol from the image or a shared object
 bool process::getSymbolInfo( const pdstring &name, Symbol &ret ) 
@@ -5069,10 +5017,10 @@ bool process::continueProc(int signalToContinueWith)
   if (status_ != exited)
      status_ = running;
 
-  if (getExecThreadID() != getSH()->getThreadID()) {
+  if (getExecThreadID() != sh->getThreadID()) {
     signal_printf("%s[%d][%s]:  signalling active process\n", 
                   FILE__, __LINE__, getThreadStr(getExecThreadID()));
-    getSH()->signalActiveProcess();
+    sh->signalActiveProcess();
   }
   return true;
 }
@@ -5084,12 +5032,13 @@ bool process::continueProc_(int sig)
   if (status_ == running)
     return true;
   bool ret =  getRepresentativeLWP()->continueLWP(sig);
-  getSH()->signalActiveProcess();
+  sh->signalActiveProcess();
   return ret;
 }
 #endif
 
-bool process::detachProcess(const bool leaveRunning) {
+bool process::detachProcess(const bool leaveRunning) 
+{
     // First, remove all syscall tracing and notifications
     delete tracedSyscalls_;
     tracedSyscalls_ = NULL;
@@ -5106,6 +5055,7 @@ bool process::detachProcess(const bool leaveRunning) {
     
     set_status(detached);
     // deleteProcess does the right thing depending on the status vrble
+    fprintf(stderr, "%s[%d][%s]:  about to delete process\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
     deleteProcess();
     return true;
 }
@@ -5113,7 +5063,8 @@ bool process::detachProcess(const bool leaveRunning) {
     
 
 // Note: this may happen when the process is already gone. 
-bool process::detach(const bool leaveRunning ) {
+bool process::detach(const bool leaveRunning ) 
+{
 
 #if !defined(i386_unknown_linux2_0) \
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
@@ -5249,19 +5200,21 @@ bool process::handleProcessExit()
  * handleForkEntry: do anything necessary when a fork is entered
  */
 
-bool process::handleForkEntry() {
-
+bool process::handleForkEntry() 
+{
     // Make bpatch callbacks as well
     BPatch::bpatch->registerForkingProcess(getPid(), NULL);
     return true;
 }
 
-bool process::handleForkExit(process *child) {
+bool process::handleForkExit(process *child) 
+{
     BPatch::bpatch->registerForkedProcess(getPid(), child->getPid(), child);
     return true;
 }
 
-bool process::handleExecEntry(char *arg0) {
+bool process::handleExecEntry(char *arg0) 
+{
     nextTrapIsExec = true;
     execPathArg = "";
     // The arg0 is an address in the mutatee's space
@@ -5285,7 +5238,7 @@ bool process::handleExecEntry(char *arg0) {
    mustn't try to enable anything...
    We finish by bootstrapping here (actually, we call setupExec)
 */
-bool process::handleExecExit() 
+bool process::handleExecExit(fileDescriptor &desc) 
 {
     fprintf(stderr, "%s[%d]:  welcome to handleExecExit\n", FILE__, __LINE__);
     inExec_ = true;
@@ -5295,9 +5248,11 @@ bool process::handleExecExit()
 
    // Should probably be renamed to clearProcess... deletes anything
    // unnecessary
+    fprintf(stderr, "%s[%d]:  about to delete process\n", FILE__, __LINE__);
    deleteProcess();
 
-   prepareExec();
+    fprintf(stderr, "%s[%d]:  about to prepare exec\n", FILE__, __LINE__);
+   prepareExec(desc);
    // The companion finishExec gets called from unix.C...
 
    // Do not call this here; instead we call it at the end of finalizeDyninstLib
@@ -5490,6 +5445,14 @@ process *process::findProcess(int pid) {
   for (unsigned u=0; u<size; u++)
     if (processVec[u] && processVec[u]->getPid() == pid)
       return processVec[u];
+
+#if defined (os_linux)
+  //  linux pids (returned from waitpid) may match lwpids instead of real pids
+  for (unsigned u=0; u<size; u++) {
+    if (processVec[u] && processVec[u]->lookupLWP(pid))
+      return processVec[u];
+  }
+#endif
   return NULL;
 }
 
@@ -5515,19 +5478,20 @@ pdstring process::getBootstrapStateAsString() const {
    return "???";
 }
 
-pdstring process::getStatusAsString() const {
+pdstring process::getStatusAsString() const 
+{
    // useful for debugging
-   if (status_ == neonatal)
-      return "neonatal";
-   if (status_ == stopped)
-      return "stopped";
-   if (status_ == running)
-      return "running";
-   if (status_ == exited)
-      return "exited";
-   if (status_ == detached)
-       return "detached";
-   assert(false);
+   switch (status_) {
+     case neonatal:    return "neonatal";   break;
+     case running:     return "running";    break;
+     case stopped:     return "stopped";    break;
+     case detached:    return "detached";   break;
+     case exited:      return "exited";     break;
+     case deleted:     return "deleted";    break;
+     case unknown_ps:  return "unknown_ps"; break;
+     default:          /*assert(0);*/ break;
+   };
+   
    return "???";
 }
 
@@ -5781,7 +5745,9 @@ dyn_lwp *process::getLWP(unsigned lwp_id)
   return foundLWP;
 }
 
-dyn_lwp *process::lookupLWP(unsigned lwp_id) {
+dyn_lwp *process::lookupLWP(unsigned lwp_id) 
+{
+   if (status_ == deleted) return NULL;
    dyn_lwp *foundLWP = NULL;
    bool found = real_lwps.find(lwp_id, foundLWP);
    if(! found) {
@@ -5965,7 +5931,7 @@ void process::recognize_threads(const process *parent)
            fprintf(stderr, "%s[%d]:  unexpected process exit\n", FILE__, __LINE__);
            return;
         }
-        getSH()->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
+        sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
         getMailbox()->executeCallbacks(FILE__, __LINE__);
      }
 
@@ -6085,9 +6051,8 @@ dynthread_t process::mapIndexToTid(int index)
       getRpcMgr()->launchRPCs(false);
       getMailbox()->executeCallbacks(FILE__, __LINE__);
       if(hasExited()) return (dynthread_t) -1;
-      getSH()->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
+      sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
       getMailbox()->executeCallbacks(FILE__, __LINE__);
-      //getSH()->checkForAndHandleProcessEvents(false);
    }
 
    return tid;

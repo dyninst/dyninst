@@ -43,7 +43,9 @@
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/EventHandler.h"
 #else
+#if !defined (os_windows)
 #pragma implementation "EventHandler.h"
+#endif
 #endif
 
 #include "mailbox.h"
@@ -72,7 +74,7 @@ const char *getThreadStr(unsigned long tid)
     if (threadmap[i].first == tid)
       return threadmap[i].second;
   }
-  if (tid == -1UL) 
+  if (tid == (unsigned long) -1L) 
     return "any_thread";
   fprintf(stderr, "%s[%d]:  FIXME, no entry found for thread id %lu\n", __FILE__, __LINE__, tid);
   return "invalid";
@@ -87,11 +89,31 @@ unsigned long getExecThreadID()
 #endif
 }
 
+EventRecord::EventRecord() :
+      proc(NULL), 
+      lwp(NULL), 
+      type(evtUndefined), 
+      what(0),
+      status(NULL_STATUS_INITIALIZER),
+      address(0), 
+      fd(0)
+{
+#if defined (os_windows)
+  info.dwDebugEventCode = 0;
+  info.dwProcessId = 0;
+  info.dwThreadId = 0;
+#else
+  info = 0;
+#endif
+}
+
 char *EventRecord::sprint_event(char *buf)
  {
-    sprintf(buf, "[%s:proc=%d:lwp=%d:%d:%d:%d:%p:%d]", eventType2str(type),
-            proc ? proc->getPid() : 0, lwp ? lwp->get_lwp_id() : 0, what,
-            (int) status, (int)info, (void *) address, fd);
+    int pid = -1;
+    if (proc && proc->sh && proc->status() != deleted) pid = proc->getPid();
+    sprintf(buf, "[%s:proc=%d:lwp=%d:%d:%d:%p:%d]", eventType2str(type),
+            pid, lwp ? lwp->get_lwp_id() : 0, what,
+            (int) status, (void *) address, fd);
     return buf;
 }
 
@@ -115,9 +137,15 @@ bool EventRecord::isTemplateOf(EventRecord &src)
      if ((status != src.status) && (status != NULL_STATUS_INITIALIZER)) {
        return false;
      }
+#if 0
+    // dont want to compare info, since this is either the raw status output
+    // from waitpid (or waitForDebugEvent), or the argument from a runtime
+    // library call -- eg the pid of a forked process.
+
      if ((info != src.info) && (info != NULL_INFO_INITIALIZER)) {
        return false;
      }
+#endif
 
      return true;
 }
@@ -135,7 +163,8 @@ InternalThread::InternalThread(const char *id) :
 //template <class S>
 //InternalThread<S>::InternalThread(const char *id) :
   _isRunning(false),
-  tid ((unsigned long ) -1)
+  tid ((unsigned long ) -1),
+  init_ok(true)
 {
   idstr = strdup(id);
 }
@@ -145,9 +174,9 @@ InternalThread::~InternalThread()
 //InternalThread<S>::~InternalThread() 
 {
   if (isRunning()) {
-    if (!killThread()) {
-       fprintf(stderr, "%s[%d]:  failed to terminate internalThread\n", __FILE__, __LINE__);
-    }
+    //if (!killThread()) {
+    //   fprintf(stderr, "%s[%d]:  failed to terminate internalThread\n", __FILE__, __LINE__);
+   // }
   }
   tid = (unsigned long) -1L;
   free (idstr);
@@ -164,16 +193,17 @@ bool InternalThread::createThread()
      return true;
   }
   
+  startupLock = new eventLock();
+  startupLock->_Lock(__FILE__, __LINE__);
+
 #if defined(os_windows)
   fprintf(stderr, "%s[%d]:  about to start thread\n", __FILE__, __LINE__);
-  handler_thread = _beginthread(eventHandlerWrapper<T>, 0, (void *) this);
+  handler_thread = _beginthread(eventHandlerWrapper, 0, (void *) this);
   if (-1L == handler_thread) {
     bperr("%s[%d]:  _beginthread(...) failed\n", __FILE__, __LINE__);
     fprintf(stderr,"%s[%d]:  _beginthread(...) failed\n", __FILE__, __LINE__);
     return false;
   }
-  fprintf(stderr, "%s[%d]:  started thread\n", __FILE__, __LINE__);
-  return true;
 #else  // Unixes
 
   int err = 0;
@@ -194,8 +224,6 @@ bool InternalThread::createThread()
     return false;
   }
 #endif
-  startupLock = new eventLock();
-  startupLock->_Lock(__FILE__, __LINE__);
   try {
   err = pthread_create(&handler_thread, &handler_thread_attr,
                        &eventHandlerWrapper, (void *) this);
@@ -216,15 +244,20 @@ bool InternalThread::createThread()
           __FILE__, __LINE__, strerror(err), err);
     return false;
   }
+#endif
 
-  while (!_isRunning) {
+  while (!_isRunning && (init_ok)) {
     startup_printf("%s[%d]:  createThread (%s) waiting for thread main to start\n", __FILE__, __LINE__, idstr);
    startupLock->_WaitForSignal(__FILE__, __LINE__);
    startup_printf("%s[%d]:  createThread (%s) got signal\n", __FILE__, __LINE__, idstr);
   }
   startupLock->_Unlock(__FILE__, __LINE__);
+
+  if (!init_ok) {
+    fprintf(stderr, "%s[%d]:  init failed for thread %s\n", FILE__, __LINE__, idstr);
+    return false;
+  }
   return true;
-#endif
 
 }
 
@@ -309,21 +342,37 @@ template <class T>
 void EventHandler<T>::main()
 {
   
-  startup_printf("%s[%d]:  welcome to main() for %s\n", __FILE__, __LINE__, idstr);
   pdpair<unsigned long, const char *> trec;
   trec.first = getExecThreadID();
   trec.second = (const char *) idstr;
   threadmap.push_back(trec);
+  startup_printf("%s[%d]:  welcome to main() for %s\n", __FILE__, __LINE__, idstr);
   startup_printf("%s[%d]:  new thread id %lu -- %s\n", __FILE__, __LINE__, trec.first, trec.second);
   tid = trec.first;
 
+
   startupLock->_Lock(__FILE__, __LINE__);
+  startup_printf("%s[%d]:  about to do init for %s\n", __FILE__, __LINE__, idstr);
+  if (!initialize_event_handler()) {
+    fprintf(stderr, "%s[%d]: failed to init event handler %s\n", FILE__, __LINE__, 
+            getThreadStr(getExecThreadID())); 
+    _isRunning = false;
+    init_ok = false; 
+    startupLock->_Broadcast(__FILE__, __LINE__);
+    startupLock->_Unlock(__FILE__, __LINE__);
+    return;
+  }
+
+  init_ok = true;;
+  startup_printf("%s[%d]:  init success for %s\n", __FILE__, __LINE__, idstr);
+
   _isRunning = true;
   startupLock->_Broadcast(__FILE__, __LINE__);
   startupLock->_Unlock(__FILE__, __LINE__);
 
   T ev;
 
+  startup_printf("%s[%d]:  before main loop for %s\n", __FILE__, __LINE__, idstr);
   while (1) {
     //fprintf(stderr, "%s[%d]:  %s waiting for an event\n", __FILE__, __LINE__, idstr);
     if (!this->waitNextEvent(ev)) {
@@ -332,7 +381,7 @@ void EventHandler<T>::main()
          continue;
     }
     if (stop_request) {
-      fprintf(stderr, "%s[%d]:  thread terminating at stop request\n", __FILE__, __LINE__);
+      signal_printf("%s[%d]:  thread terminating at stop request\n", __FILE__, __LINE__);
       break;
     }
     if (!handleEvent(ev)) {
@@ -341,8 +390,22 @@ void EventHandler<T>::main()
     }
   }
 
-  fprintf(stderr, "%s[%d]:  InternalThread::main exiting\n", __FILE__, __LINE__);
+ //  remove ourselves from the threadmap before exiting\n"
+  global_mutex->_Lock(FILE__, __LINE__);
+ 
+  for (unsigned int i = 0; i < threadmap.size(); ++i) {
+    pdpair<unsigned long, const char *> &trec = threadmap[i];
+    if (trec.first == getExecThreadID()) {
+       signal_printf("%s[%d]:  removing [%lu, %s] from thread map\n", FILE__, __LINE__, trec.first, trec.second);
+       threadmap.erase(i,i);
+       break;
+    }
+    
+  }
   _isRunning = false;
+  global_mutex->_Broadcast(FILE__, __LINE__);
+  global_mutex->_Unlock(FILE__, __LINE__);
+  signal_printf("%s[%d][%s]:  InternalThread::main exiting\n", FILE__, __LINE__, idstr);
 }
 
 //EventHandler::
@@ -361,7 +424,9 @@ char *eventType2str(eventType x)
   CASE_RETURN_STR(evtTimeout);
   CASE_RETURN_STR(evtSignalled);
   CASE_RETURN_STR(evtException);
+  CASE_RETURN_STR(evtCritical);
   CASE_RETURN_STR(evtProcessCreate);
+  CASE_RETURN_STR(evtProcessAttach);
   CASE_RETURN_STR(evtProcessExit); /* used to have exited normally, or via signal, now in info */
   CASE_RETURN_STR(evtProcessStop);
   CASE_RETURN_STR(evtProcessSelfTermination);
@@ -370,6 +435,7 @@ char *eventType2str(eventType x)
   CASE_RETURN_STR(evtThreadContextStart);
   CASE_RETURN_STR(evtThreadContextStop);
   CASE_RETURN_STR(evtLoadLibrary);
+  CASE_RETURN_STR(evtUnloadLibrary);
   CASE_RETURN_STR(evtSyscallEntry);
   CASE_RETURN_STR(evtSyscallExit);
   CASE_RETURN_STR(evtSuspended);

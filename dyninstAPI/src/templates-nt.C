@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.55 2006/01/14 23:48:00 nater Exp $
+// $Id: templates-nt.C,v 1.56 2006/01/30 07:16:53 jaw Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -153,10 +153,6 @@ template class  pdvector<dictionary_hash<Address,BPatch_basicBlock*>::entry>;
 template class BPatch_Vector<BPatch_frame>;
 #endif
 
-// Library callback templates
-template class dictionary_hash<pdstring, libraryCallback *>;
-template class pdvector<dictionary_hash <pdstring, libraryCallback *>::entry>;
-
 template class dictionary_hash<pdstring,supportedLanguages>;
 template class pdvector<dictionary_hash<pdstring,supportedLanguages>::entry>;
 
@@ -178,8 +174,23 @@ template class  pdvector<dictionary_hash<unsigned, dominatorBB *>::entry >;
 template class  BPatch_Vector<dominatorBB *>;
 template class  BPatch_Set<dominatorBB *>;
 
+#include "callbacks.h"
+#include "signalhandler.h"
+#include "mailbox.h"
+template class dictionary_hash< eventType, pdvector< CallbackBase * > >;
+template class pdvector<dictionary_hash < eventType, pdvector <CallbackBase *> >::entry>;
+
+template class pdvector<CallbackBase *>;
+template class pdvector<eventLock::lock_stack_elem>;
+template class pdvector<EventGate *>;
+template class pdvector<SignalHandler *>;
+
+
 class image_edge;
 template class  pdvector<image_edge*>;
 
 template class  dictionary_hash <int, int>;
 template class  pdvector<dictionary_hash<int,int>::entry >;
+
+template class  dictionary_hash <unsigned long, pdstring>;
+template class  pdvector<dictionary_hash<unsigned long,pdstring>::entry >;

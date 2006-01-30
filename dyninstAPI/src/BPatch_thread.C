@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.137 2005/11/21 17:16:11 jaw Exp $
+// $Id: BPatch_thread.C,v 1.138 2006/01/30 07:16:52 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -281,11 +281,18 @@ void BPatch_thread::BPatch_thread_dtor()
       }
    if (legacy_destructor)
    {
-      delete proc;
+     //  ~BPatch_process obtains a lock and does a wait(), so it will fail an assert 
+     //  unless we "creatively adjust" the recursive lock depth here.
+     BPatch_process *temp = proc;
+     proc = NULL;
+      __UNLOCK;
+      if (temp) delete temp;
+     __LOCK;
    }
    else
    {
-      proc->llproc->deleteThread(getTid());
+      dynthread_t thr  = getTid();
+      proc->llproc->deleteThread(thr);
    }
 }
 

@@ -552,8 +552,11 @@ sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b)
     
 }
 
-sharedLibHook::~sharedLibHook() {
-    proc_->writeDataSpace((void *)breakAddr_, SLH_SAVE_BUFFER_SIZE, saved_);
+sharedLibHook::~sharedLibHook() 
+{
+    if (!proc_->writeDataSpace((void *)breakAddr_, SLH_SAVE_BUFFER_SIZE, saved_)) {
+       fprintf(stderr, "%s[%d]:  WDS failed: %d bytes at %p\n", FILE__, __LINE__, SLH_SAVE_BUFFER_SIZE, breakAddr_);
+   }
 }
 #endif
 
@@ -711,6 +714,69 @@ bool dynamic_linking::initialize() {
 
     return true;
 }
+bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &ev,
+                                                       u_int &change_type)
+{
+   sharedLibHook *hook;
+   //dyn_lwp *lwp = ev.lwp; 
+   process *proc = ev.proc;
+
+   assert(ev.lwp);
+   Frame lwp_frame = ev.lwp->getActiveFrame();
+   hook = reachedLibHook(lwp_frame.getPC());
+   if (!hook) {
+     return false;
+   }
+
+   // find out what has changed in the link map
+   r_debug_x *debug_elm;
+   if (proc->getAddressWidth() == 4)
+     debug_elm = new r_debug_32(proc, r_debug_addr);
+   else
+     debug_elm = new r_debug_64(proc, r_debug_addr);
+    
+   if (!debug_elm->is_valid()) {
+       bperr("read failed r_debug_addr = 0x%x\n",r_debug_addr);
+       delete debug_elm;
+       return false;
+   }
+
+       switch(previous_r_state) {
+       case r_debug::RT_CONSISTENT:
+         change_type = SHAREDOBJECT_NOCHANGE;
+         break;
+       case r_debug::RT_ADD:
+          change_type = SHAREDOBJECT_ADDED;
+          break;
+        case r_debug::RT_DELETE:
+          change_type = SHAREDOBJECT_REMOVED;
+          break;
+        default:
+          break;
+       };
+
+    if (debug_elm->r_state() == r_debug::RT_CONSISTENT) {
+      // figure out how link maps have changed, and then create
+      // a list of either all the removed shared objects if this
+      // was a dlclose or the added shared objects if this was a dlopen
+      
+      // kludge: the state of the first add can get screwed up
+      // so if both change_type and r_state are 0 set change_type to 1
+      pdvector<fileDescriptor> newfds;
+      bool res = didLinkMapsChange(change_type, newfds);
+      if (!res) {
+        return false;
+      }
+      return true;
+    }
+
+    return true;
+}
+
+bool dynamic_linking::getChangedObjects(EventRecord &ev, pdvector<mapped_object*> &changed_objects)
+{
+  return false;
+}
 
 // handleIfDueToSharedObjectMapping: returns true if the trap was caused
 // by a change to the link maps,  If it is, and if the linkmaps state is
@@ -720,32 +786,19 @@ bool dynamic_linking::initialize() {
 // The added or removed shared objects are returned in changed_objects
 // the change_type value is set to indicate if the objects have been added 
 // or removed
-bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<mapped_object*> &changed_objects,
-						       u_int &change_type) { 
-  
+bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
+                                                       pdvector<mapped_object*> &changed_objects)
+{ 
   pdvector<dyn_thread *>::iterator iter = proc->threads.begin();
   
-  dyn_lwp *brk_lwp = NULL;
+  dyn_lwp *brk_lwp = ev.lwp;
   sharedLibHook *hook = NULL;
 
-  while (iter != proc->threads.end()) {
-    dyn_thread *thr = *(iter);
-    dyn_lwp *cur_lwp = thr->get_lwp();
-    
-    if(cur_lwp->status() == running) {
-      iter++;
-      continue;  // if lwp is running couldn't have hit load library trap
-    }
-    
-    Frame lwp_frame = cur_lwp->getActiveFrame();
+  if (brk_lwp) {
+    Frame lwp_frame = brk_lwp->getActiveFrame();
     hook = reachedLibHook(lwp_frame.getPC());
-    if (hook) {
-      brk_lwp = cur_lwp;
-      break;
-    }
-    
-    iter++;
   }
+
   // is the trap instr at at the breakpoint?
   if (force_library_load || hook != NULL) {
     // We can force this manually, even if we aren't at
@@ -774,13 +827,13 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<mapped_object*> 
     // and the "what's new" from "changing".
     switch(previous_r_state) {
     case r_debug::RT_CONSISTENT:
-      change_type = SHAREDOBJECT_NOCHANGE;
+      ev.what = SHAREDOBJECT_NOCHANGE;
       break;
     case r_debug::RT_ADD:
-      change_type = SHAREDOBJECT_ADDED;
+      ev.what = SHAREDOBJECT_ADDED;
       break;
     case r_debug::RT_DELETE:
-      change_type = SHAREDOBJECT_REMOVED;
+      ev.what = SHAREDOBJECT_REMOVED;
       break;
     default:
       assert(0);
@@ -795,7 +848,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<mapped_object*> 
       
       // kludge: the state of the first add can get screwed up
       // so if both change_type and r_state are 0 set change_type to 1
-      bool res = findChangeToLinkMaps(change_type,
+      bool res = findChangeToLinkMaps((u_int &)ev.what,
 				      changed_objects);
       if (!res) return false;
 #if defined(BPATCH_LIBRARY)
@@ -811,7 +864,6 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<mapped_object*> 
 	  setlowestSObaseaddr(changed_objects[index]->getBaseAddress());
 	}	
       }
-#endif
 #endif
     }
     
@@ -863,7 +915,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<mapped_object*> 
   } // Not a library load (!forced && pc != breakpoint)
   return false; 
 }
-
+#endif
 // This function performs all initialization necessary to catch shared object
 // loads and unloads (symbol lookups and trap setting)
 bool dynamic_linking::installTracing()

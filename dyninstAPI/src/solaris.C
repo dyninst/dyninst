@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.191 2006/01/13 08:21:32 jodom Exp $
+// $Id: solaris.C,v 1.192 2006/01/30 07:16:53 jaw Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -667,7 +667,7 @@ bool process::getDyninstRTLibName() {
          pdstring msg = pdstring("Environment variable ") +
                         pdstring("DYNINSTAPI_RT_LIB") +
                         pdstring(" has not been defined for process ") +
-                        pdstring(pid);
+                        pdstring(getPid());
          showErrorCallback(101, msg);
          return false;
       }
@@ -835,7 +835,7 @@ bool process::loadDYNINSTlibCleanup(dyn_lwp *)
     return true;
 }
 
-bool process::getExecFileDescriptor(pdstring filename,
+bool SignalGeneratorCommon::getExecFileDescriptor(pdstring filename,
                                     int /*pid*/,
                                     bool /*whocares*/,
                                     int &,

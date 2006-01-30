@@ -225,8 +225,10 @@ class BPATCH_DLL_EXPORT BPatch_field : public BPatch_eventLock{
   API_EXPORT_OPER(_equals, (src),
   BPatch_field &,operator=,(BPatch_field &src));
 
-  API_EXPORT_OPER(_equals_equals, (ofield),
-  bool ,operator==,(const BPatch_field &ofield));
+#ifdef NOTDEF
+  API_EXPORT_OPER(_equals_equals, (src),
+  bool ,operator==,(const BPatch_field &src));
+#endif
 			      
   API_EXPORT(Int, (),
   const char *,getName,()); 
@@ -384,6 +386,8 @@ class BPATCH_DLL_EXPORT BPatch_localVar : public BPatch_eventLock{
     BPatch_storageClass storageClass;
     // scope_t scope;
 
+public:
+    //  Internal use only
     BPatch_localVar(const char *_name,  BPatch_type *_type,
 		    int _lineNum, long _frameOffset, int _reg=-1,
 		    BPatch_storageClass _storageClass=BPatch_storageFrameOffset);
@@ -392,6 +396,7 @@ class BPATCH_DLL_EXPORT BPatch_localVar : public BPatch_eventLock{
     void fixupUnknown(BPatch_module *);
 
 public:
+    //  end of functions for nternal use only
     const char *	getName() { return name; }
     BPatch_type *	getType() { return type; }
     int			getLineNum() { return lineNum; }

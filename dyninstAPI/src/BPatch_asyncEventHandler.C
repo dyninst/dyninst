@@ -714,7 +714,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
        }
 
        BPatch::bpatch->mutateeStatusChange = true;
-       getSH()->signalEvent(evtThreadCreate);
+       ev.proc->sh->signalEvent(evtThreadCreate);
        return true;
      }
      case evtThreadExit: 
@@ -744,7 +744,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
        cb(appProc, appThread, cbs_copy); 
 
        BPatch::bpatch->mutateeStatusChange = true;
-       getSH()->signalEvent(evtThreadExit);
+       ev.proc->sh->signalEvent(evtThreadExit);
        return true;
      }
      case evtDynamicCall:

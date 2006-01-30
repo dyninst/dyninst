@@ -4,7 +4,7 @@
 # TARGET being set correctly in the module-specific template and the
 # architecture-specific Makefile.
 # 
-# $Id: nmake.library.tmpl,v 1.9 2005/12/19 19:41:38 pack Exp $
+# $Id: nmake.library.tmpl,v 1.10 2006/01/30 07:16:50 jaw Exp $
 #
 
 BUILD_ID= -s $(SUITE_NAME) -v $(RELEASE_NUM)$(BUILD_MARK)$(BUILD_NUM)
@@ -69,9 +69,11 @@ $(DEST)/$(TARGET2):  $(TARGET2)
 #
 
 #.PHONY : depend
-#depend:
-#	$(RM) DEPENDS
-#	$(MAKE) DEPENDS
+depend:
+	$(RM) DEPENDS
+#	touch DEPENDS
+#	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS)
+	$(MAKE) DEPENDS
 
 # 
 # Define DEPENDS dependencies such that the DEPENDS files depends on
@@ -94,12 +96,12 @@ $(DEST)/$(TARGET2):  $(TARGET2)
 #!ifdef EXPLICIT_DEPENDS
 #DEPENDS:
 #!else
-#DEPENDS: $(SRCS)
+DEPENDS: $(SRCS)
 #!endif
 #	touch DEPENDS
 #	$(MAKE) $(SRCS)
-#	$(MODCC) -MM $(MODCFLAGS) $(SRCS) > DEPENDS
-##       makedepend -fDEPENDS -- $(CFLAGS) $(SRCS)
+	$(MODCC) -MM $(MODCFLAGS) $(SRCS) > DEPENDS
+#	makedepend -fDEPENDS -- $(CFLAGS) $(SRCS)
 #!endif
 
 
@@ -143,5 +145,5 @@ pure:
 #
 # include the dependencies.
 #
-!include DEPENDS
+#!include DEPENDS
 

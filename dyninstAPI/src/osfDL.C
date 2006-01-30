@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.45 2005/11/23 00:09:13 jaw Exp $
+// $Id: osfDL.C,v 1.46 2006/01/30 07:16:53 jaw Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -194,8 +194,29 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs) {
 }
 
 
-bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<mapped_object *> &changed_objects,
+bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &ev,
 						       u_int &changeType)
+{
+
+  Address pc = proc->getRepresentativeLWP()->getActiveFrame().getPC();
+  
+  sharedLibHook *hook = reachedLibHook(pc);
+  if (!hook) {
+     fprintf(stderr, "%s[%d]:  not at lib hook\n", FILE__, __LINE__);
+     return false;
+  }
+
+  pdvector<fileDescriptor> newfds;
+  if (! didLinkMapsChange((u_int &)ev.what, newfds)) {
+    fprintf(stderr, "%s[%d]:  link maps not changed\n", FILE__, __LINE__);
+    return false;
+  }
+
+  return true;
+}
+
+bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
+                                                       pdvector<mapped_object *> &changed_objects)
 {
   Address pc;
   
@@ -210,7 +231,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<mapped_object *>
     fprintf(stderr, "Reached dlopen trap point, force %d\n", force_library_load);
     // findChangeToLinkMaps figures out the change type.
 
-    if (!findChangeToLinkMaps(changeType,
+    if (!findChangeToLinkMaps((u_int &) ev.what,
 			      changed_objects)) {
       fprintf(stderr, "findChange failed\n");
       return false;

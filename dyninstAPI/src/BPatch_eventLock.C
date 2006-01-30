@@ -56,7 +56,7 @@
 #endif
 
 #if defined(os_windows)
-#define MUTEX_TYPE CRITICAL_SECTION
+#define MUTEX_TYPE eventLock *
 extern MUTEX_TYPE global_mutex;
 #else
 #define MUTEX_TYPE eventLock *

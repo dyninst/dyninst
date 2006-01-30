@@ -119,10 +119,8 @@ typedef struct {
   unsigned int insnGenerated;
 } BPatch_stats;
 
-class SignalHandler;
+
 class EventRecord;
-class BPatch_asyncEventHandler;
-bool handleSigStopNInt(EventRecord &ev);
 
 #ifdef DYNINST_CLASS_NAME
 #undef DYNINST_CLASS_NAME
@@ -200,9 +198,6 @@ public:
     BPatch_typeCollection        *APITypes; //API/User defined types
     BPatch_type			 *type_Error;
     BPatch_type			 *type_Untyped;
-#ifdef NOTDEF // PDSEP
-    SignalHandler	    	 *signalHandler;
-#endif
 
     // The following are only to be called by the library:
     //  These functions are not locked.

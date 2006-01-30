@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_util.C,v 1.19 2004/04/20 01:27:56 jaw Exp $
+// $Id: test_util.C,v 1.20 2006/01/30 07:16:54 jaw Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -72,7 +72,9 @@ void waitUntilStopped(BPatch *bpatch, BPatch_thread *appThread, int testnum,
     if (!appThread->isStopped()) {
         printf("**Failed test #%d (%s)\n", testnum, testname);
         printf("    process did not signal mutator via stop\n");
-        fprintf(stderr, "thread is not stopped\n");
+        printf("thread is not stopped\n");
+        if (appThread->isTerminated())
+          printf("thread is terminated\n");
         exit(-1);
     }
 #if defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11) //ccw 10 apr 2001
@@ -96,8 +98,8 @@ void waitUntilStopped(BPatch *bpatch, BPatch_thread *appThread, int testnum,
 	     (appThread->stopSignal() != SIGHUP)) {
 #endif /* DETACH_ON_THE_FLY */
 	printf("**Failed test #%d (%s)\n", testnum, testname);
-	printf("    process stopped on signal %d, not SIGSTOP\n", 
-		appThread->stopSignal());
+	printf("    process stopped on signal %d, not SIGSTOP(%d)\n", 
+		appThread->stopSignal(), SIGSTOP);
 	exit(-1);
     }
 #endif

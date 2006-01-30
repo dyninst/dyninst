@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.4 2006/01/20 19:25:51 nater Exp $
+ * $Id: image-flowGraph.C,v 1.5 2006/01/30 07:16:52 jaw Exp $
  */
 
 #include <stdio.h>
@@ -1277,7 +1277,11 @@ image_func * image_func::FindOrCreateFunc(Address target,
     else
     {   
         char name[20];
+#if defined (os_windows)
+        _snprintf(name,20,"targ%lx",target);
+#else
         snprintf(name,20,"targ%lx",target);
+#endif
 
         targetFunc = new image_func(name,target,UINT_MAX,mod_,image_);
 

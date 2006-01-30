@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.h,v 1.16 2005/09/01 22:18:12 bernat Exp $
+// $Id: dynamiclinking.h,v 1.17 2006/01/30 07:16:52 jaw Exp $
 
 #if !defined(dynamic_linking_h)
 #define dynamic_linking_h
@@ -49,9 +49,11 @@
 #include "common/h/String.h"
 
 class process;
+class dyn_lwp;
 class instMapping;
 class mapped_object;
 class fileDescriptor;
+class EventRecord;
 
 
 // Encapsulate a shared object event/mapping pair
@@ -126,8 +128,11 @@ public:
     // and the change_type value is set to indicate if the object has been 
     // added or removed. On error error_occured is true.
     // This function normally only runs if we're at the dlopen/dlclose break address
-    bool handleIfDueToSharedObjectMapping(pdvector<mapped_object *> &changed_objects,
-					  u_int &change_type);
+    bool handleIfDueToSharedObjectMapping(EventRecord &ev,
+                                          pdvector<mapped_object *> &changed_objects);
+    bool decodeIfDueToSharedObjectMapping(EventRecord &, u_int &change_type);
+    bool getChangedObjects(EventRecord &,pdvector<mapped_object *> &changed_objects);
+                           
 
     // Force running handleIfDue... above
     void set_force_library_check(){ force_library_load = true; }
@@ -136,7 +141,8 @@ public:
     Address get_dlopen_addr() const { return dlopen_addr; }
 
     // External access to our list of traps (used by linux)
-    sharedLibHook *reachedLibHook(Address a);
+    sharedLibHook *reachedLibHook(Address);
+    dyn_lwp *findLwpAtLibHook(process *p, sharedLibHook **);
     
     // Does whatever is necessary to detect dlopen/dlclose events
     bool installTracing();
@@ -183,6 +189,8 @@ public:
     // change_type.  If an error occurs it sets error_occured to true.
     bool findChangeToLinkMaps(u_int &change_type,
 			      pdvector<mapped_object *> &);
+    bool didLinkMapsChange(u_int &change_type,
+			   pdvector<fileDescriptor> &);
     
     // getNewSharedObjects: returns a vector of mapped_object one element for 
     // newly mapped shared object. 

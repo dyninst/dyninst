@@ -111,7 +111,7 @@ class DebuggerInterface : public EventHandler<DBIEvent> {
     CREATE_DBI_THREAD
     dbi_thread_id = getThreadID();
     dbi_printf("%s[%d][%s]:  created DBI thread, dbi_thread_id = %lu, -1UL = %lu\n", 
-            __FILE__, __LINE__, getThreadStr(getExecThreadID()), dbi_thread_id, -1UL);
+            __FILE__, __LINE__, getThreadStr(getExecThreadID()), dbi_thread_id, (unsigned long)-1L);
   }
   virtual ~DebuggerInterface() {}
 
@@ -191,6 +191,7 @@ bool DBI_readDataSpace(pid_t pid, Address addr, int nelem, Address data, int wor
 //  Helper callback classes for use with mailbox system
 
 
+#ifdef NOTDEF // PDSEP
 class ForkNewProcessCallback : public DBICallbackBase
 {
   public:
@@ -226,7 +227,7 @@ class ForkNewProcessCallback : public DBICallbackBase
    int stdout_fd_;
    int stderr_fd_;
 };
-
+#endif
 class PtraceCallback : public DBICallbackBase
 {
   public:

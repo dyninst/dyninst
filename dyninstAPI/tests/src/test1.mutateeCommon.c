@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutateeCommon.c,v 1.9 2005/11/03 05:21:08 jaw Exp $ */
+/* $Id: test1.mutateeCommon.c,v 1.10 2006/01/30 07:16:54 jaw Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -159,9 +159,9 @@ int main(int iargc, char *argv[])
     unsigned int i, j;
     unsigned int testsFailed = 0;
     int useAttach = FALSE;
+    unsigned int e;
 #ifndef i386_unknown_nt4_0
     int pfd;
-    unsigned int e;
 #endif
 
     for (j=0; j <= MAX_TEST; j++) {

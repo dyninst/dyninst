@@ -49,6 +49,7 @@
 #include "common/h/Types.h" /*for Address */
 #include "common/h/Pair.h" /*for pdpair */
 #include "common/h/Vector.h" /*for pdvector */
+#include "common/h/headers.h" /*for DEBUG_EVENT */
 #include "BPatch_eventLock.h"
 #include "mailbox.h"
 class process;
@@ -62,7 +63,9 @@ typedef enum {
   evtTimeout,
   evtSignalled,
   evtException,
+  evtCritical,
   evtProcessCreate,
+  evtProcessAttach,
   evtProcessExit, /* used to have exited normally, or via signal, now in status */
   evtProcessStop,
   evtProcessSelfTermination,
@@ -71,6 +74,7 @@ typedef enum {
   evtThreadContextStart,
   evtThreadContextStop,
   evtLoadLibrary,
+  evtUnloadLibrary,
   evtSyscallEntry,
   evtSyscallExit,
   evtSuspended, 
@@ -98,17 +102,6 @@ char *eventType2str(eventType x);
 
 typedef Address eventAddress_t;
 
-#if defined (os_windows)
-
-typedef DWORD eventStatusCode_t;
-typedef DEBUG_EVENT eventInfo_t;
-typedef DWORD eventWhat_t;
-#define THREAD_RETURN void
-#define DO_THREAD_RETURN return
-#define NULL_STATUS_INITIALIZER 0 
-#define NULL_INFO_INITIALIZER {0,0,0,0}
-#else // !windows
-
 typedef enum {
   statusUnknown,
   statusNormal,
@@ -117,19 +110,25 @@ typedef enum {
   statusRPCAtReturn,
   statusError
 } eventStatusCode_t;
+
+#define NULL_STATUS_INITIALIZER statusUnknown
+#if defined (os_windows)
+
+typedef DEBUG_EVENT eventInfo_t;
+typedef DWORD eventWhat_t;
+#define THREAD_RETURN void
+#define DO_THREAD_RETURN return
+#else // !windows
+
 typedef unsigned long eventInfo_t;
 typedef unsigned int eventWhat_t;
 #define THREAD_RETURN void *
 #define DO_THREAD_RETURN return NULL
-#define NULL_STATUS_INITIALIZER statusUnknown
-#define NULL_INFO_INITIALIZER 0
 #endif
 typedef int eventFileDesc_t;
 class EventRecord {
   public:
-   EventRecord() : proc(NULL), lwp(NULL), type(evtUndefined), what(0), 
-                   status(NULL_STATUS_INITIALIZER),
-                   info(NULL_INFO_INITIALIZER), address(0), fd(0) {}
+   EventRecord(); 
    process *proc;
    dyn_lwp *lwp;  // the lwps causing the event (not the representative lwp)
    eventType type;
@@ -170,6 +169,7 @@ class InternalThread {
   char *idstr;
   eventLock *startupLock;
   
+  bool init_ok;
   private:
   
 #if defined (os_windows)
@@ -185,17 +185,23 @@ class InternalThread {
 #define DYNINST_CLASS_NAME EventHandler
 
 template <class T>
-//class EventHandler : public InternalThread<T> {
 class EventHandler : public InternalThread {
   friend THREAD_RETURN eventHandlerWrapper(void *);
   friend THREAD_RETURN asyncHandlerWrapper(void *);
 
   public:
+  void stopThreadNextIter() {stop_request = true;}
   protected:
+
+  //  initialize_event_handler is called before the main event handling
+  //  loop begins on the event handling thread.  When overloaded, allows 
+  //  derived classes to do some initialization on the created thread.
+  //  Returns false on failure to initialize.  Upon failure, the event loop
+  //  is not entered at all and the created thread exits.
+  virtual bool initialize_event_handler() {return true;}
 
   EventHandler(eventLock *_lock, const char *id, bool create_thread);
   virtual ~EventHandler();
-  void stopThreadNextIter() {stop_request = true;}
 
   virtual bool waitNextEvent(T &ev) = 0; 
   virtual bool handleEvent(T &ev) = 0;
@@ -206,9 +212,9 @@ class EventHandler : public InternalThread {
   bool _Broadcast(const char *__file__, unsigned int __line__); 
 
   eventLock *eventlock;
+  bool stop_request;
   private:
   void main();
-  bool stop_request;
 
 };
 

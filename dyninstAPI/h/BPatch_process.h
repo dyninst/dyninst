@@ -121,8 +121,6 @@ typedef enum {
 } BPatch_exitType;
 
 class EventRecord;
-class SignalHandler;
-int handleSignal(EventRecord &ev);
 /*
  * Represents a process
  */

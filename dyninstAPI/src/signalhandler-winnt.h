@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-winnt.h,v 1.6 2005/11/21 17:16:14 jaw Exp $
+/* $Id: signalhandler-winnt.h,v 1.7 2006/01/30 07:16:53 jaw Exp $
  */
 
 /*
@@ -55,6 +55,12 @@
 
 #include "common/h/headers.h"
 
+#define CAN_DUMP_CORE false
+#define SLEEP_ON_MUTATEE_CRASH 0 /*seconds*/
+#define sleep Sleep
+
+#define INFO_TO_EXIT_CODE(info) info.u.ExitProcess.dwExitCode
+#define INFO_TO_PID(info) -1
 class process;
 
 /*
@@ -108,59 +114,47 @@ typedef DEBUG_EVENT procSignalInfo_t;
 // should stay stopped the handlers must pause it explicitly.
 
 
-class SignalGeneratorWindows : public SignalGenerator
+class SignalGenerator : public SignalGeneratorCommon
 {
-  friend SignalGeneratorWindows *getSH();
+  friend class SignalHandler;
+  friend class SignalGenerator;
+  friend class process;
+
   public:
-   virtual ~SignalGeneratorWindows() {}
+   virtual ~SignalGenerator() {}
+
+   HANDLE getProcessHandle() {return (HANDLE)procHandle;}
+   HANDLE getThreadHandle() {return (HANDLE)thrHandle;}
+  SignalGenerator(char *idstr, pdstring file, pdstring dir,
+                         pdvector<pdstring> *argv,
+                         pdvector<pdstring> *envp,
+                         pdstring inputFile,
+                         pdstring outputFile,
+                         int stdin_fd, int stdout_fd,
+                         int stderr_fd)
+    : SignalGeneratorCommon(idstr, file, dir, argv, envp, inputFile, outputFile, 
+                      stdin_fd, stdout_fd, stderr_fd),
+      procHandle(-1), thrHandle(-1) {}
+
+  SignalGenerator(char *idstr, pdstring file, int pid)
+    : SignalGeneratorCommon(idstr, file, pid),
+      procHandle(-1), thrHandle(-1) {} 
 
   private:
-  SignalGeneratorWindows() : SignalGenerator() {}
-  bool waitNextEvent(EventRecord &);
+  SignalHandler *newSignalHandler(char *name, int id);
+  virtual bool forkNewProcess();
+  virtual bool attachProcess();
+  virtual bool waitForStopInline();
+  bool waitNextEventLocked(EventRecord &);
+
+  bool decodeEvent(EventRecord &);
+  bool decodeBreakpoint(EventRecord &);
+  bool decodeException(EventRecord &);
+
+  int procHandle;
+  int thrHandle;
 };
 
-class SignalHandlerWindows : public SignalHandler
-{
-  friend class SignalGeneratorWindows;
-  public:
-
-  private:
-  //  SignalHandler should only be constructed by SignalGenerator
-  SignalHandlerWindows() : SignalHandler() {}
-  virtual ~SignalHandlerWindows();
-
-  bool handleEvent(EventRecord &ev);
-
-  DWORD handleBreakpoint(EventRecord &ev);
-  DWORD handleException(EventRecord &ev);
-  DWORD handleIllegal(EventRecord &ev);
-  DWORD handleViolation(EventRecord &ev);
-  DWORD handleThreadCreate(EventRecord &ev);
-  DWORD handleThreadExit(EventRecord &ev);
-  DWORD handleProcessCreate(EventRecord &ev);
-  DWORD handleProcessExitWin(EventRecord &ev);
-  DWORD handleProcessSelfTermination(EventRecord &ev);
-  DWORD handleDllLoad(EventRecord &ev);
-};
-
-/////////////////////
-// Translation mechanisms
-/////////////////////
-
-inline bool didProcReceiveSignal(eventType type) {
-    return type == evtException; 
-}
-
-inline bool didProcExit(eventType type) {
-    return type == evtProcessExit;
-}
-
-// Is there an equivalent for this?
-inline bool didProcExitOnSignal(eventType type) {
-    return false;
-}
-
- 
 #endif
 
 

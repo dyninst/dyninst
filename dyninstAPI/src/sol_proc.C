@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.74 2005/12/01 00:56:25 jaw Exp $
+// $Id: sol_proc.C,v 1.75 2006/01/30 07:16:53 jaw Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -78,7 +78,8 @@
 // mutatee. In this case, DON'T reset the flags if there
 // is a stop on exec in effect.
 
-void OS::osTraceMe(void) {
+void OS::osTraceMe(void) 
+{
     sysset_t *exitSet = SYSSET_ALLOC(getpid());
     int bufsize = SYSSET_SIZE(exitSet) + sizeof(long);
 
@@ -488,6 +489,20 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs)
     memcpy(&(regs->theFpRegs), &(status.pr_fpreg), sizeof(prfpregset_t));
 
     return true;
+}
+
+void dyn_lwp::dumpRegisters()
+{
+   dyn_saved_regs regs;
+   if (!getRegisters(&regs)) {
+     fprintf(stderr, "%s[%d]:  registers unavailable\n", FILE__, __LINE__);
+     return;
+   }
+ 
+   fprintf(stderr, "PC:   %lx\n", GETREG_PC(regs.theIntRegs));
+   fprintf(stderr, "FP:   %lx\n", GETREG_FP(regs.theIntRegs));
+   fprintf(stderr, "INFO: %lx\n", GETREG_INFO(regs.theIntRegs));
+   //  plenty more register if we want to print em....
 }
 
 bool process::determineLWPs(pdvector<unsigned > &lwp_ids) {
@@ -1350,60 +1365,6 @@ int dyn_lwp::hasReachedSyscallTrap() {
     return 0;
 }
 
-
-int decodeProcStatus(process *,
-                     lwpstatus_t status,
-		     EventRecord &ev) {
-
-   ev.info = GETREG_INFO(status.pr_reg);
-
-   switch (status.pr_why) {
-     case PR_SIGNALLED:
-        ev.type = evtSignalled;
-        ev.what = status.pr_what;
-        break;
-     case PR_SYSENTRY:
-        ev.type = evtSyscallEntry;
-        ev.what = status.pr_what;
-        
-#if defined(AIX_PROC)
-        // We actually pull from the syscall argument vector
-        if (status.pr_nsysarg > 0)
-           ev.info = status.pr_sysarg[0];
-        else
-           ev.info = 0;
-#endif
-        break;
-     case PR_SYSEXIT:
-        ev.type = evtSyscallExit;
-        ev.what = status.pr_what;
-        
-#if defined(AIX_PROC)
-        // This from the proc header file: system returns are
-        // left in pr_sysarg[0]. NOT IN MAN PAGE.
-        ev.info = status.pr_sysarg[0];
-#endif
-        break;
-     case PR_REQUESTED:
-        // We don't expect PR_REQUESTED in the signal handler
-        assert(0 && "PR_REQUESTED not handled");
-#if defined(PR_SUSPENDED)
-     case PR_SUSPENDED:
-        // I'm seeing this state at times with a forking multi-threaded
-        // child process, currently handling by just continuing the process
-        ev.type = evtSuspended;
-        break;
-#endif
-     case PR_JOBCONTROL:
-     case PR_FAULTED:
-     default:
-        assert(0);
-        break;
-   }
-   
-   return 1;
-}
-
 int showProcStatus(lwpstatus_t status)
 {
    switch (status.pr_why) {
@@ -1437,9 +1398,11 @@ int showProcStatus(lwpstatus_t status)
 }
 
 bool find_matching_event(pdvector<EventRecord> &events,
-                         process *proc, EventRecord &ev,
-                         EventRecord &matching_ev) {
+                         EventRecord &ev,
+                         EventRecord &matching_ev) 
+{
    bool found = false;
+   process *proc = ev.proc;
    for(unsigned i=0; i<events.size(); i++) {
       EventRecord *cur_event = &(events[i]);
       if(cur_event->proc == proc && cur_event->type == ev.type &&
@@ -1454,11 +1417,12 @@ bool find_matching_event(pdvector<EventRecord> &events,
    return found;
 }
 
-//  decodeEvent() is here in lieu of a preexisting
+//  decodeKludge() is here in lieu of a preexisting
 //  function specialHandlingOfEvents(), which fixes up events in special
 //  cases.  Not pretty
 
-bool SignalGeneratorUnix::decodeEvent(EventRecord &cur_event) {
+bool SignalGenerator::decodeKludge(EventRecord &cur_event) 
+{
 
 #if defined(os_aix)
   if (cur_event.type == evtSignalled && cur_event.what == SIGSTOP) {
@@ -1472,7 +1436,7 @@ bool SignalGeneratorUnix::decodeEvent(EventRecord &cur_event) {
 #if defined(bug_aix_proc_broken_fork)
   if (cur_event.type == evtSignalled && cur_event.what == SIGSTOP) {
     // Possibly a fork stop in the RT library
-    getSH()->decodeRTSignal(cur_event);
+    decodeRTSignal(cur_event);
   }
 #endif
 
@@ -1486,21 +1450,20 @@ bool SignalGeneratorUnix::decodeEvent(EventRecord &cur_event) {
 }
 
 // returns true if updated events structure for this lwp 
-bool SignalGeneratorUnix::updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
+bool SignalGenerator::updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
                                pdvector<EventRecord> &events)
 {
-
   lwpstatus_t lwpstatus;
-  bool res = lwp->get_status(&lwpstatus);
-
-  if(res == false) {
+  if (!lwp->get_status(&lwpstatus)) {
+    fprintf(stderr, "%s[%d]:  failed to get status for lwp %d\n", 
+            FILE__, __LINE__, lwp->get_lwp_id());
     return false;
   }
 
   // This is the "why" for the lwps that were stopped because some other
   // lwp stopped for an interesting reason.  We don't care about lwps
   // that stopped for this reason.
-  if(lwpstatus.pr_why == PR_REQUESTED) {
+  if (lwpstatus.pr_why == PR_REQUESTED) {
      return false;
   }
    
@@ -1511,24 +1474,22 @@ bool SignalGeneratorUnix::updateEventsWithLwpStatus(process *curProc, dyn_lwp *l
   ev.proc = curProc;
   ev.lwp = lwp;
 
-  if(!decodeProcStatus(curProc, lwpstatus, ev))
+  if(!decodeProcStatus(lwpstatus, ev))
      return false;
    
   EventRecord matching_event;
-  bool found_match = find_matching_event(events, curProc, ev, matching_event);
+  bool found_match = find_matching_event(events, ev, matching_event);
 
   if(!found_match) {
-     decodeEvent(ev);
+     decodeKludge(ev);
      events.push_back(ev);
-  } else {
+  } else 
      matching_event.lwp = lwp;
-     decodeEvent(matching_event);
-  }
    
   return true;
 }
 
-bool SignalGeneratorUnix::updateEvents(pdvector<EventRecord> &events, process *p, int lwp_to_use)
+bool SignalGenerator::updateEvents(pdvector<EventRecord> &events, process *p, int lwp_to_use)
 {
   //  returns true if events are updated
   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(p->real_lwps);
@@ -1553,7 +1514,7 @@ bool SignalGeneratorUnix::updateEvents(pdvector<EventRecord> &events, process *p
   return updated_events;
 }
 
-bool SignalGeneratorUnix::getFDsForPoll(pdvector<unsigned int> &fds)
+bool SignalGenerator::getFDsForPoll(pdvector<unsigned int> &fds)
 {
   extern pdvector<process*> processVec;
   for(unsigned u = 0; u < processVec.size(); u++) {

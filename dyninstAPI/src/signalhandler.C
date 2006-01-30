@@ -42,13 +42,24 @@
 // $Id: signalhandler.C,v 
 
 #include "process.h"
+#include "dyn_lwp.h"
+#include "dyn_thread.h"
+#include "callbacks.h"
+#include "function.h"
+#include "stats.h"
 #include "signalhandler.h"
+#include "Object.h"
+#include "mapped_object.h"
+//  signal_generator_counter is used to generate identifier strings
+//  for signal generator threads.  eg SYNC1, SYNC2, SYNC3
+
+unsigned signal_generator_counter = 0;
 
 EventGate::EventGate(eventLock *l, eventType t, process *p, dyn_lwp *lwp,
                      eventStatusCode_t status) :
      lock(l), waiting(false)
 {
-  cond = new eventCond(lock);
+  //cond = new eventCond(lock);
   EventRecord target_event;
   target_event.type = t;
   target_event.proc = p;
@@ -84,7 +95,7 @@ bool EventGate::addEvent(eventType type, process *p)
 
 EventGate::~EventGate()
 {
-  delete cond;
+  //delete cond;
 }
 
 EventRecord &EventGate::wait()
@@ -105,7 +116,7 @@ EventRecord &EventGate::wait()
             getThreadStr(getExecThreadID()));
     for (unsigned int i = 0; i < evts.size(); ++i) {
       char buf[1024];
-      signal_printf("\t\%s\n", evts[i].sprint_event(buf));
+      signal_printf("\t%s\n", evts[i].sprint_event(buf));
     }
   }
 
@@ -122,7 +133,6 @@ EventRecord &EventGate::wait()
   }
   if (!triggered) goto still_waiting;
 
-  //getMailbox()->executeCallbacks(FILE__, __LINE__);
   return trigger;
 }
 
@@ -146,17 +156,393 @@ bool EventGate::signalIfMatch(EventRecord &ev)
   return ret;
 }
 
-SignalGenerator::SignalGenerator() :
+SignalHandler *SignalGenerator::newSignalHandler(char *name, int id)
+{
+  SignalHandler *sh;
+  sh  = new SignalHandler(name, id, this);
+  return (SignalHandler *)sh;
+}
+
+pdstring SignalGeneratorCommon::createExecPath(pdstring &file, pdstring &dir)
+{
+  pdstring ret = file;
+#if defined (os_windows)
+  if (dir.length() > 0) {
+      if ( (file.length() < 2)      // file is too short to be a drive specifier
+         || !isalpha( file[0] )     // first character in file is not a letter
+         || (file[1] != ':') )      // second character in file is not a colon
+            ret = dir + "\\" + file;
+  }
+#else
+  if (dir.length() > 0) {
+     if (!file.prefixed_by("/") ) {
+         // file does not start  with a '/', so it is a relative pathname
+         // we modify it to prepend the given directory
+         if (dir.suffixed_by("/") ) {
+             // the dir already has a trailing '/', so we can
+             // just concatenate them to get an absolute path
+             ret =  dir + file;
+          }
+          else {
+             // the dir does not have a trailing '/', so we must
+             // add a '/' to get the absolute path
+             ret =  dir + "/" + file;
+          }
+      }
+      else {
+         // file starts with a '/', so it is an absolute pathname
+         // DO NOT prepend the directory, regardless of what the
+         // directory variable holds.
+         // nothing to do in this case
+      }
+
+  }
+#endif
+  return ret;
+}
+SignalGenerator *SignalGeneratorCommon::newSignalGenerator(pdstring file, pdstring dir,
+                                                         pdvector<pdstring> *argv,
+                                                         pdvector<pdstring> *envp,
+                                                         pdstring inputFile,
+                                                         pdstring outputFile,
+                                                         int stdin_fd, int stdout_fd,
+                                                         int stderr_fd)
+{
+  char idstr[16];
+  sprintf(idstr, "SYNC%d", signal_generator_counter++);
+  return new SignalGenerator(idstr, 
+                             file, dir, 
+                             argv, envp, inputFile, outputFile,
+                             stdin_fd, stdout_fd, stderr_fd);
+}
+
+SignalGenerator *SignalGeneratorCommon::newSignalGenerator(pdstring file, int pid)
+{
+  char idstr[16];
+  sprintf(idstr, "SYNC%d", signal_generator_counter++);
+  return new SignalGenerator(idstr, file, pid);
+}
+
+process *SignalGeneratorCommon::newProcess(pdstring file_, pdstring dir, 
+                                                     pdvector<pdstring> *argv,
+                                                     pdvector<pdstring> *envp,
+                                                     int stdin_fd, int stdout_fd, 
+                                                     int stderr_fd)
+{
+   // Verify existence of exec file
+   pdstring file = createExecPath(file_, dir);
+   struct stat file_stat;
+   int stat_result;
+
+   stat_result = stat(file.c_str(), &file_stat);
+
+   if (stat_result == -1) {
+      startup_printf("%s[%d]:  failed to read file %s\n", __FILE__, __LINE__, file.c_str());
+      pdstring msg = pdstring("Can't read executable file ") + file + (": ") + strerror(errno);
+      showErrorCallback(68, msg.c_str());
+      return NULL;
+   }
+
+   // check for I/O redirection in arg list.
+   pdstring inputFile;
+   pdstring outputFile;
+#if !defined(BPATCH_LIBRARY) || defined(BPATCH_REDIRECT_IO)
+   // TODO -- this assumes no more than 1 of each "<", ">"
+   for (unsigned i1=0; i1<argv->size(); i1++) {
+     if ((*argv)[i1] == "<") {
+       inputFile = (*argv)[i1+1];
+       for (unsigned j=i1+2, k=i1; j<argv->size(); j++, k++)
+         (*argv)[k] = (*argv)[j];
+       argv->resize(argv->size()-2);
+     }
+   }
+   for (unsigned i2=0; i2<argv->size(); i2++) {
+     if ((*argv)[i2] == ">") {
+       outputFile = (*argv)[i2+1];
+       for (unsigned j=i2+2, k=i2; j<argv->size(); j++, k++)
+         (*argv)[k] = (*argv)[j];
+       argv->resize(argv->size()-2);
+     }
+   }
+#endif
+
+
+  SignalGenerator *sg = newSignalGenerator(file, dir, argv, envp, inputFile, outputFile,
+                                           stdin_fd, stdout_fd, stderr_fd);
+
+  if (!sg) {
+     fprintf(stderr, "%s[%d]:  failed to create event handler thread for %s\n", 
+             FILE__, __LINE__, getThreadStr(getExecThreadID()));
+     getMailbox()->executeCallbacks(FILE__, __LINE__);
+     return NULL;
+  }
+
+
+  process *theProc = new process(sg);
+  assert(theProc);
+  sg->setProcess(theProc);
+  //  finally, create the signal handler thread -- this creates the process
+  //  from the event handling thread.  We want to do it there because on some platforms
+  //  (windows, linux-with-linuxThreads) the only thread that can properly listen for
+  //  debug events is the thread that spawned the process. 
+
+  if (!sg->createThread()) {
+     fprintf(stderr, "%s[%d]:  failed to create event handler thread for %s\n", 
+             FILE__, __LINE__, getThreadStr(getExecThreadID()));
+     delete sg;
+     fprintf(stderr, "%s[%d]: WARN:  removed delete theProc\n", FILE__, __LINE__);
+     //delete theProc;
+     getMailbox()->executeCallbacks(FILE__, __LINE__);
+     return NULL;
+  }
+
+  assert(-1 != sg->getPid());
+
+  signal_printf("%s[%d]:  started signal listener for new process %d -- %s\n",
+          FILE__, __LINE__, sg->pid, file.c_str());
+
+  return theProc;
+}
+
+void SignalGeneratorCommon::stopSignalGenerator(SignalGenerator *sg)
+{
+   
+  signal_printf("%s[%d]:  waiting for thread to terminate\n", FILE__, __LINE__);
+    sg->stopThreadNextIter();
+    sg->wakeUpThreadForShutDown();
+  while (sg->isRunning()) {
+    sg->__UNLOCK;
+    fprintf(stderr, "%s[%d]:  sg is still running\n", FILE__, __LINE__);
+    sleep(1);
+   sg->__LOCK;
+  }
+}
+
+void SignalGeneratorCommon::deleteSignalGenerator(SignalGenerator *sg)
+{
+   
+  if (sg->isRunning())
+    stopSignalGenerator(sg);
+
+   delete (sg);
+}
+
+bool SignalGeneratorCommon::waitNextEvent(EventRecord &ev) 
+{
+  __LOCK;
+  //  If we have events left over from the last call of this fn,
+  //  just return one.
+  if (events_to_handle.size()) {
+    //  if per-call ordering is important this should grab events from the front
+    //  of events_to_handle.  Guessing that (if possible) multiple events generated
+    //  "simultaneously" can be handled in any order, however.
+    ev = events_to_handle[events_to_handle.size() - 1];
+    events_to_handle.pop_back();
+    char buf[128];
+    signal_printf("%s[%d][%s]:  waitNextEvent: had existing event %s\n", FILE__, __LINE__,
+                getThreadStr(getExecThreadID()), ev.sprint_event(buf));
+    __UNLOCK;
+    return true;
+  }
+
+  assert(proc);
+
+
+      if (proc->status() == deleted || proc->status() == exited) {
+        fprintf(stderr, "%s[%d]:  getting ready to shut down event handling thread\n", FILE__, __LINE__);
+        stopThreadNextIter();
+        ev.type = evtShutDown;
+        ev.proc = proc;
+         __UNLOCK;
+        return true;
+      }
+  //  maybe query_for_running_lwp is sufficient here??
+  while (  proc->status() != running
+         && proc->status() != neonatal
+         && !proc->query_for_running_lwp()) {
+#ifdef NOTDEF // PDSEP
+      if (proc->status() == deleted || proc->status() == exited) {
+        fprintf(stderr, "%s[%d]:  getting ready to shut down event handling thread\n", FILE__, __LINE__);
+        stopThreadNextIter();
+        ev.type = evtShutDown;
+        ev.proc = proc;
+         __UNLOCK;
+        return true;
+      }
+#endif
+
+    signal_printf("%s[%d]:  waiting for process %d to become active, status: %s\n",
+                  FILE__, __LINE__, pid, proc->getStatusAsString().c_str());
+    waiting_for_active_process = true;
+    __WAIT_FOR_SIGNAL;
+  }
+
+  if (stop_request) {
+    signal_printf("%s[%d]:  getting ready to shut down event handling thread\n", FILE__, __LINE__);
+    ev.type = evtShutDown;
+    ev.proc = proc;
+    __UNLOCK;
+    return true;
+  }
+
+  waiting_for_active_process = false;
+
+  ev.type = evtUndefined;
+  bool ret = waitNextEventLocked(ev);
+
+  //  shut down events will not make it to the handler thread(s), since this thread will
+  //  terminate execution after leaving this function.
+
+  if (ev.type == evtShutDown)
+    signalEvent(ev);
+
+  __UNLOCK;
+  return ret;
+}
+
+process *SignalGeneratorCommon::newProcess(pdstring &progpath, int pid_)
+{
+  SignalGenerator *sg = newSignalGenerator(progpath, pid_);
+
+  if (!sg) {
+     fprintf(stderr, "%s[%d]:  failed to create event handler thread for %s\n", 
+             FILE__, __LINE__, getThreadStr(getExecThreadID()));
+     getMailbox()->executeCallbacks(FILE__, __LINE__);
+     return NULL;
+  }
+
+
+  process *theProc = new process(sg);
+  assert(theProc);
+  sg->setProcess(theProc);
+  //  finally, create the signal handler thread -- this creates the process
+  //  from the event handling thread.  We want to do it there because on some platforms
+  //  (windows, linux-with-linuxThreads) the only thread that can properly listen for
+  //  debug events is the thread that spawned the process. 
+
+  if (!sg->createThread()) {
+     fprintf(stderr, "%s[%d]:  failed to create event handler thread for %s\n", 
+             FILE__, __LINE__, getThreadStr(getExecThreadID()));
+     delete sg;
+     getMailbox()->executeCallbacks(FILE__, __LINE__);
+     return NULL;
+  }
+
+  assert(-1 != sg->getPid());
+  signal_printf("%s[%d]:  started signal listener for new process %d -- %s\n",
+          FILE__, __LINE__, pid_, progpath.c_str());
+
+  
+
+  return theProc;
+}
+
+process * SignalGeneratorCommon::newProcess(process *parent, int pid_, int traceLink)
+{
+  char *progpath = const_cast<char *>(parent->getAOut()->fullName().c_str());
+  assert(progpath);
+  SignalGenerator *sg = newSignalGenerator(progpath, pid_);
+
+  if (!sg) {
+     fprintf(stderr, "%s[%d]:  failed to create event handler thread for %s\n", 
+             FILE__, __LINE__, getThreadStr(getExecThreadID()));
+     getMailbox()->executeCallbacks(FILE__, __LINE__);
+     return NULL;
+  }
+
+  process *theChild = new process(parent, sg, traceLink);
+  assert(theChild);
+  sg->setProcess(theChild);
+
+  if (!sg->createThread()) {
+     fprintf(stderr, "%s[%d]:  failed to create event handler thread for %s\n", 
+             FILE__, __LINE__, getThreadStr(getExecThreadID()));
+     delete sg;
+     getMailbox()->executeCallbacks(FILE__, __LINE__);
+     return NULL;
+  }
+
+  assert(-1 != sg->getPid());
+
+
+  return theChild;
+}
+
+SignalGeneratorCommon::SignalGeneratorCommon(char *idstr,pdstring file_, pdstring dir_,
+                                 pdvector<pdstring> *argv_,
+                                 pdvector<pdstring> *envp_,
+                                 pdstring inputFile_,
+                                 pdstring outputFile_,
+                                 int stdin_fd_, int stdout_fd_,
+                                 int stderr_fd_) :
                  EventHandler<EventRecord>(BPatch_eventLock::getLock(),
-                 "SYNC",/*start thread?*/ false)
+                                           idstr,/*start thread?*/ false),
+                 file(file_),
+                 dir(dir_),
+                 inputFile(inputFile_),
+                 outputFile(outputFile_),
+                 stdin_fd(stdin_fd_),
+                 stdout_fd(stdout_fd_),
+                 stderr_fd(stderr_fd_),
+                 argv(argv_),
+                 envp(envp_),
+                 pid(-1),
+                 traceLink(-1),
+                 waiting_for_event(false)
 {
   signal_printf("%s[%d]:  new SignalGenerator\n", FILE__, __LINE__);
 }
 
-SignalGenerator::~SignalGenerator() 
+SignalGeneratorCommon::SignalGeneratorCommon(char *idstr, pdstring file_,
+                                 int pid_) :
+                 EventHandler<EventRecord>(BPatch_eventLock::getLock(),
+                                           idstr,/*start thread?*/ false),
+                 file(file_),
+                 pid(pid_),
+                 traceLink(-1),
+                 waiting_for_event(false)
+{
+  signal_printf("%s[%d]:  new SignalGenerator\n", FILE__, __LINE__);
+}
+
+bool SignalGeneratorCommon::wakeUpThreadForShutDown()
+{
+#if defined (os_windows)
+  int sig_to_send = 5;
+  fprintf(stderr, "%s[%d]:  FIGURE ME OUT FOR WINDOWS\n", FILE__, __LINE__);
+  if (waiting_for_active_process) {
+    proc->set_status(running); // this may not be true, but since this is only
+                               // being used to shut down the sh thread, should not 
+                               // be a problem.
+    signalEvent(evtShutDown);
+    __BROADCAST;
+    return true;
+  }
+#else
+  int sig_to_send = SIGTRAP;
+   assert(global_mutex->depth());
+
+  if (waiting_for_event) {
+    fprintf(stderr, "%s[%d]:  sending SIGTRAP to wake up signal handler\n", FILE__, __LINE__);
+    P_kill (pid, sig_to_send);
+    waitForEvent(evtShutDown, proc);
+    fprintf(stderr, "%s[%d][%s]:  got shutdown event\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
+  }
+  else if (waiting_for_active_process) {
+    proc->set_status(running); // this may not be true, but since this is only
+                               // being used to shut down the sh thread, should not 
+                               // be a problem.
+    signalEvent(evtShutDown);
+    __BROADCAST;
+  }
+#endif
+  return true;
+}
+
+SignalGeneratorCommon::~SignalGeneratorCommon() 
 {
   fprintf(stderr, "%s[%d]:  welcome to ~SignalGenerator\n", FILE__, __LINE__);
-  killThread();
+  //killThread();
 
   for (unsigned int i = 0; i < handlers.size(); ++i) {
     signal_printf("%s[%d]:  destroying handler %s\n", FILE__, __LINE__, 
@@ -165,7 +551,129 @@ SignalGenerator::~SignalGenerator()
   }
 }
 
-bool SignalGenerator::handleEventLocked(EventRecord &ev)
+void SignalGeneratorCommon::deleteSignalHandler(SignalHandler *sh)
+{
+
+  EventRecord ev;
+  ev.type = evtShutDown;
+  sh->stopThreadNextIter();
+  sh->assignEvent(ev);
+
+  fprintf(stderr, "%s[%d]:  waiting for handler thread to shut down\n", FILE__, __LINE__);
+  while (sh->isRunning()) {
+    waitForEvent(evtAnyEvent);
+  }
+}
+
+bool SignalGeneratorCommon::initialize_event_handler()
+{
+  assert(proc);
+
+  //  This is the init function for the event handler.  It is called before the main
+  //  event handing loop.  
+
+  //  In the case of the signal handler, here we call either forkNewProcess() or
+  //  attachProcess() if the process already exists.
+
+  if (pid == -1) {
+    if (!forkNewProcess()) {
+       fprintf(stderr, "%s[%d]:  failed to fork a new process for %s\n", FILE__, __LINE__,
+               file.c_str());
+       return false;
+    }
+
+    proc->createRepresentativeLWP();
+
+    if (!proc->setupCreated(traceLink)) {
+        delete proc;
+        proc = NULL;
+        return false;
+    }
+
+    int status;
+    fileDescriptor desc;
+    if (!getExecFileDescriptor(file, getPid(), true, status, desc)) {
+        startup_cerr << "Failed to find exec descriptor" << endl;
+    ///    cleanupBPatchHandle(theProc->sh->getPid());
+      //  processVec.pop_back();
+        delete proc;
+        proc = NULL;
+        return false;
+    }
+    //HACKSTATUS = status;
+
+    if (!proc->setAOut(desc)) {
+        startup_printf("[%s:%u] - Couldn't setAOut\n", __FILE__, __LINE__);
+       // cleanupBPatchHandle(theProc->sh->getPid());
+       // processVec.pop_back();
+        delete proc;
+        proc = NULL;
+        return false;
+    }
+
+    
+  }
+  else if (!proc->getParent()){
+    //  attach case (pid != -1 && proc->parent == NULL)
+    proc->createRepresentativeLWP();
+
+    if (!attachProcess()) {
+       fprintf(stderr, "%s[%d]:  failed to attach to process %d\n", FILE__, __LINE__,
+               pid);
+       delete proc;
+       proc = NULL;
+       return false;
+    }
+
+#if defined(i386_unknown_nt4_0)
+    int status = (int)INVALID_HANDLE_VALUE;    // indicates we need to obtain a valid handle
+#else
+    int status = pid;
+#endif // defined(i386_unknown_nt4_0)
+
+    fileDescriptor desc;
+    if (!getExecFileDescriptor(file,
+#if defined(os_windows)
+                             (int)INVALID_HANDLE_VALUE,
+#else
+                             pid,
+#endif
+                             false,
+                             status,
+                             desc)) {
+        delete proc;
+        proc = NULL;
+        return false;
+    }
+    fprintf(stderr, "%s[%d]:  finishing attach:  setting AOut\n", FILE__, __LINE__);
+    if (!proc->setAOut(desc)) {
+       delete proc;
+       proc = NULL;
+       return false;
+    }
+
+  }
+  else {
+     fprintf(stderr, "%s[%d]: fork init section\n", FILE__, __LINE__);
+     if (!proc->setupFork()) {
+       fprintf(stderr, "%s[%d]:  failed to setupFork\n", FILE__, __LINE__);
+       delete proc;
+       proc = NULL;
+       return false;
+     }
+
+     fprintf(stderr, "%s[%d]: setup child in fork...\n", FILE__, __LINE__);
+#ifdef NOTDEF // PDSEP
+     process *parent = const_cast<process *>(proc->getParent());
+     parent->handleForkExit(proc);
+#endif
+  }
+  //  
+
+  return true;
+}
+
+bool SignalGeneratorCommon::handleEventLocked(EventRecord &ev)
 {
   char buf[128];
   signal_printf("%s[%d]:  dispatching event %s\n", FILE__, __LINE__,
@@ -206,8 +714,8 @@ bool SignalGenerator::handleEventLocked(EventRecord &ev)
   bool ret = true;
   if (!sh) {
     int shid = handlers.size();
-    char shname[16];
-    sprintf(shname, "SH-%d", shid);
+    char shname[64];
+    sprintf(shname, "SH-%d-%d", pid, shid);
     signal_printf("%s[%d]:  about to create event handler %s\n", 
                    FILE__, __LINE__, shname);
     sh = newSignalHandler(shname, shid);
@@ -221,11 +729,20 @@ bool SignalGenerator::handleEventLocked(EventRecord &ev)
     }
   }
 
+  //  special case:  if this event is a process exit event, we want to shut down
+  //  the SignalGenerator (there are not going to be any more events to listen for).
+  //  The exit event has been passed off to a handler presumably, which will take
+  //  care of user notifications, callbacks, etc.
+
+  if (ev.type == evtProcessExit) {
+    signal_printf("%s[%d]:  preparing to shut down signal gen for process %d\n", FILE__, __LINE__, pid);
+    stopThreadNextIter();
+  }
 
   return ret;
 }
 
-bool SignalGenerator::signalActiveProcess()
+bool SignalGeneratorCommon::signalActiveProcess()
 {         
   bool ret = true;
   if (waiting_for_active_process)
@@ -233,7 +750,7 @@ bool SignalGenerator::signalActiveProcess()
   return ret;
 }   
 
-bool SignalGenerator::signalEvent(EventRecord &ev)
+bool SignalGeneratorCommon::signalEvent(EventRecord &ev)
 {
   if (ev.type != evtError) {
     char buf[128];
@@ -265,14 +782,14 @@ bool SignalGenerator::signalEvent(EventRecord &ev)
   return ret;
 }
 
-bool SignalGenerator::signalEvent(eventType t)
+bool SignalGeneratorCommon::signalEvent(eventType t)
 {
   EventRecord ev;
   ev.type = t;
   return signalEvent(ev);
 }
 
-eventType SignalGenerator::waitForOneOf(pdvector<eventType> &evts)
+eventType SignalGeneratorCommon::waitForOneOf(pdvector<eventType> &evts)
 {
   assert(global_mutex->depth());
 
@@ -303,6 +820,9 @@ eventType SignalGenerator::waitForOneOf(pdvector<eventType> &evts)
     eg->addEvent(evts[i]);
   }
   wait_list.push_back(eg);
+  if (global_mutex->depth() > 1)
+    fprintf(stderr, "%s[%d]:  about to EventGate::wait(), lock depth %d\n", FILE__, __LINE__, 
+           global_mutex->depth());
   EventRecord result = eg->wait();
   
   bool found = false;
@@ -325,7 +845,7 @@ eventType SignalGenerator::waitForOneOf(pdvector<eventType> &evts)
   return result.type;
 }
 
-eventType SignalGenerator::waitForEvent(eventType evt, process *p, dyn_lwp *lwp,
+eventType SignalGeneratorCommon::waitForEvent(eventType evt, process *p, dyn_lwp *lwp,
                                         eventStatusCode_t status)
 {
   if (getExecThreadID() == getThreadID()) {
@@ -333,6 +853,10 @@ eventType SignalGenerator::waitForEvent(eventType evt, process *p, dyn_lwp *lwp,
             FILE__, __LINE__, getThreadStr(getExecThreadID()), eventType2str(evt));
     abort();
   }
+
+#if 0
+  fprintf(stderr, "%s[%d]:  welcome to waitForEvent(%s)\n", FILE__, __LINE__, eventType2str(evt));
+#endif
 
   //  When to set wait_flag ??
   //    (1)  If we are running on an event handler thread
@@ -352,6 +876,10 @@ eventType SignalGenerator::waitForEvent(eventType evt, process *p, dyn_lwp *lwp,
 
   EventGate *eg = new EventGate(global_mutex,evt,p, lwp, status);
   wait_list.push_back(eg);
+  
+  if (global_mutex->depth() > 1)
+    fprintf(stderr, "%s[%d]:  about to EventGate::wait(%s), lock depth %d\n", FILE__, __LINE__, 
+           eventType2str(evt), global_mutex->depth());
   EventRecord result = eg->wait();
   
   bool found = false;
@@ -374,7 +902,7 @@ eventType SignalGenerator::waitForEvent(eventType evt, process *p, dyn_lwp *lwp,
   return result.type;
 }
 
-SignalHandler *SignalGenerator::findSHWithThreadID(unsigned long tid)
+SignalHandler *SignalGeneratorCommon::findSHWithThreadID(unsigned long tid)
 {
   for (unsigned int i = 0; i < handlers.size(); ++i) {
     if (handlers[i]->getThreadID() == tid)
@@ -383,7 +911,7 @@ SignalHandler *SignalGenerator::findSHWithThreadID(unsigned long tid)
   return NULL;
 }
 
-SignalHandler *SignalGenerator::findSHWaitingForCallback(CallbackBase *cb)
+SignalHandler *SignalGeneratorCommon::findSHWaitingForCallback(CallbackBase *cb)
 {
   for (unsigned int i = 0; i < handlers.size(); ++i) {
     if (handlers[i]->wait_cb == cb)
@@ -392,7 +920,7 @@ SignalHandler *SignalGenerator::findSHWaitingForCallback(CallbackBase *cb)
   return NULL;
 }
 
-bool SignalGenerator::activeHandlerForProcess(process *p)
+bool SignalGeneratorCommon::activeHandlerForProcess(process *p)
 {
   for (unsigned int i = 0; i < handlers.size(); ++i) {
     if (handlers[i]->activeProcess() == p)
@@ -401,7 +929,7 @@ bool SignalGenerator::activeHandlerForProcess(process *p)
   return false;
 }
 
-bool SignalGenerator::anyActiveHandlers()
+bool SignalGeneratorCommon::anyActiveHandlers()
 {
   for (unsigned int i = 0; i < handlers.size(); ++i) {
     if (!handlers[i]->idle())
@@ -410,14 +938,83 @@ bool SignalGenerator::anyActiveHandlers()
   return false;
 }
 
+bool SignalGeneratorCommon::decodeIfDueToProcessStartup(EventRecord &ev)
+{
+  bool ret = false;
+  char buf[128];
+  process *proc = ev.proc;
+  bootstrapState_t bootstrapState = proc->getBootstrapState();
+
+  //fprintf(stderr, "%s[%d]:  decodeIfDueToProcessStartup: state: %s\n", FILE__, __LINE__, proc->getBootstrapStateAsString().c_str());
+  switch(bootstrapState) {
+    case bootstrapped_bs:  
+        break;
+    case unstarted_bs:     
+    case attached_bs:
+        if (proc->wasCreatedViaAttach())
+          ev.type = evtProcessAttach; 
+        else 
+          ev.type = evtProcessCreate; 
+        ret = true;
+        break;
+    case begun_bs:         
+#if defined (os_windows)
+       if (proc->trapAtEntryPointOfMain(NULL, (Address)ev.info.u.Exception.ExceptionRecord.ExceptionAddress)) {
+          ev.type = evtProcessInit; 
+          ret = true;
+       }
+#else
+       if (proc->trapAtEntryPointOfMain(ev.lwp)) {
+          ev.type = evtProcessInit; 
+          ret = true;
+       }
+#endif
+       else {
+
+         fprintf(stderr, "%s[%d]:  begun_bs, but no trap!!!!!\n", FILE__, __LINE__);
+       }
+       break;
+    case loadingRT_bs:
+        if (proc->trapDueToDyninstLib(ev.lwp)) {
+          ev.type = evtProcessLoadedRT;
+          ret = true;
+        }
+#if 0
+  //  windows has more info available here, not just from getActiveFrame -- we
+  //  used to use it, but it may not be necessary anymore...
+
+     if (proc->dyninstlib_brk_addr &&
+            (proc->dyninstlib_brk_addr == (Address)ev.info.u.Exception.ExceptionRecord.ExceptionAddress)) {
+
+        ev.type = evtProcessLoadedRT;
+       ret = true;
+     }
+
+#endif
+        break;
+    case initialized_bs:
+    case loadedRT_bs:
+    default:
+      break;
+  };
+  
+  if (ret)
+     signal_printf("%s[%d]:  decodeIfDueToProcessStartup got %s, status = %s\n",
+                   FILE__, __LINE__, ev.sprint_event(buf), 
+                   proc->getBootstrapStateAsString().c_str());
+
+  return ret;
+}
+
 SignalHandler::~SignalHandler()
 {
-   fprintf(stderr, "%s[%d]:  welcome to ~SignalHandler\n", FILE__, __LINE__);
+   signal_printf("%s[%d]:  welcome to ~SignalHandler\n", FILE__, __LINE__);
    if (idle_flag || wait_flag) {
      // maybe a bit heavy handed here....
-     killThread();
+     stopThreadNextIter();
+     //killThread();
    }else {
-     fprintf(stderr, "%s[%d]:  waiting for idle before killing thread %s\n", 
+     signal_printf("%s[%d]:  waiting for idle before killing thread %s\n", 
              FILE__, __LINE__);
      int timeout = 2000 /*ms*/, time_elapsed = 0;
      while (!idle_flag && !wait_flag) {
@@ -432,9 +1029,538 @@ SignalHandler::~SignalHandler()
        }
      }
      if (idle_flag || wait_flag) {
-       killThread();
+       stopThreadNextIter();
+     //  killThread();
      }
    }
+}
+
+
+bool SignalHandler::handleSingleStep(EventRecord &ev) 
+{
+   if (!ev.lwp->isSingleStepping()) {
+     fprintf(stderr, "%s[%d]:  unexpected step event\n", FILE__, __LINE__);
+   }
+   ev.lwp->setSingleStepping(false);
+   sg->signalEvent(evtDebugStep);
+   return true;
+}
+
+bool SignalHandler::handleProcessStop(EventRecord &ev)
+{
+   process *proc = ev.proc;
+   bool retval = false;
+
+#if defined(os_linux)
+      // Linux uses SIGSTOPs for process control.  If the SIGSTOP
+      // came during a process::pause (which we would know because
+      // suppressEventConts() is set) then we'll handle the signal.
+      // If it comes at another time we'll assume it came from something
+      // like a Dyninst Breakpoint and not handle it.      
+      if (!ev.lwp) {
+         fprintf(stderr, "%s[%d]:  no lwp for SIGSTOP handling (needed)\n", FILE__, __LINE__);
+         return false;
+      }
+      proc->set_lwp_status(ev.lwp, stopped);
+      proc->set_status(stopped);
+#else
+      signal_printf("%s[%d]:  unhandled SIGSTOP for pid %d, process will stay paused\n",
+             FILE__, __LINE__, proc->getPid());
+#endif
+      retval = true;
+
+   bool exists = false;
+   BPatch_process *bproc = BPatch::bpatch->getProcessByPid(proc->getPid(), &exists);
+   if (bproc)
+     setBPatchProcessSignal(bproc, ev.what);
+
+   // Unlike other signals, don't forward this to the process. It's stopped
+   // already, and forwarding a "stop" does odd things on platforms
+   // which use ptrace. PT_CONTINUE and SIGSTOP don't mix
+   return retval;
+}
+
+bool SignalHandler::forwardSigToProcess(EventRecord &ev) 
+{
+    process *proc = ev.proc;
+
+    // Pass the signal along to the child
+    bool res;
+    if(process::IndependentLwpControl()) {
+       res = ev.lwp->continueLWP(ev.what);
+    } else {
+       res = proc->continueProc(ev.what);
+    }
+    if (res == false) {
+        fprintf(stderr, "%s[%d]:  Couldn't forward signal %d to process %d\n",
+                FILE__, __LINE__, ev.what, proc->getPid());
+        logLine("error  in forwarding  signal\n");
+        showErrorCallback(38, "Error  in forwarding  signal");
+        return false;
+    } 
+
+    return true;
+}
+
+bool SignalHandler::handleProcessExit(EventRecord &ev) 
+{
+  bool ret = false;
+  process *proc = ev.proc;
+
+  if (ev.status == statusNormal) {
+      sprintf(errorLine, "Process %d has terminated with code 0x%x\n",
+              proc->getPid(), (int) ev.what);
+      statusLine(errorLine);
+#if defined(os_windows)
+      //  on the unixes we do this at syscall exit()
+      proc->triggerNormalExitCallback(ev.what);
+#endif
+      ret = proc->handleProcessExit();
+   } else if (ev.status == statusSignalled) {
+      sprintf(errorLine, "process %d has terminated on signal %d\n",
+              proc->getPid(), (int) ev.what);
+      logLine(errorLine);
+      statusLine(errorLine);
+      printDyninstStats();
+      proc->triggerSignalExitCallback(ev.what);
+      ret = proc->handleProcessExit();
+    } else {
+      sprintf(errorLine, "process %d has terminated for unknown reason\n",
+              proc->getPid());
+      logLine(errorLine);
+      ret = proc->handleProcessExit();
+      //ret = true; //  maybe this should be false?  (this case is an error)
+    }
+
+  flagBPatchStatusChange();
+  return ret;
+}
+
+bool SignalHandler::handleCritical(EventRecord &ev) 
+{
+   process *proc = ev.proc;
+   assert(proc);
+
+   signal_printf("Process %d dying on signal %d\n", proc->getPid(), ev.what);
+
+    {
+#ifndef mips_unknown_ce2_11 //ccw 6 feb 2001 : 29 mar 2001
+        // Should walk stacks for other threads as well
+        pdvector<pdvector<Frame> > stackWalks;
+        proc->walkStacks(stackWalks);
+        for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++) {
+            fprintf(stderr, "%s[%d]:  Registers for pid %d, lwpid %d\n", FILE__, __LINE__,
+                    stackWalks[walk_iter][0].getLWP()->proc()->getPid(), 
+                    stackWalks[walk_iter][0].getLWP()->get_lwp_id());
+            stackWalks[walk_iter][0].getLWP()->dumpRegisters();
+            fprintf(stderr, "%s[%d]:  Stack for pid %d, lwpid %d\n", FILE__, __LINE__,
+                    stackWalks[walk_iter][0].getLWP()->proc()->getPid(), 
+                    stackWalks[walk_iter][0].getLWP()->get_lwp_id());
+            for( unsigned i = 0; i < stackWalks[walk_iter].size(); i++ )
+            {
+                int_function* f = proc->findFuncByAddr( stackWalks[walk_iter][i].getPC() );
+                const char* szFuncName = (f != NULL) ? f->prettyName().c_str() : "<unknown>";
+                fprintf( stderr, "%08x: %s\n", stackWalks[walk_iter][i].getPC(), szFuncName );
+            }
+        }
+#endif
+    }
+
+    int sleep_counter = SLEEP_ON_MUTATEE_CRASH;
+    while (dyn_debug_signal && (sleep_counter > 0)) {
+       signal_printf("Critical signal received, spinning to allow debugger to attach\n");
+       sleep(10);
+       sleep_counter -= 10;
+    }
+
+    if (CAN_DUMP_CORE)
+      proc->dumpImage("imagefile");
+    else
+      proc->dumpMemory((void *)ev.address, 32);
+
+    return forwardSigToProcess(ev);
+}
+
+bool SignalHandler::handleEvent(EventRecord &ev)
+{
+  global_mutex->_Lock(FILE__, __LINE__);
+  bool ret = handleEventLocked(ev); 
+  if (!events_to_handle.size())
+    idle_flag = true;
+  active_proc = NULL;
+  global_mutex->_Unlock(FILE__, __LINE__);
+
+  return ret;
+}
+
+bool SignalHandler::handleForkEntry(EventRecord &ev)
+{
+     signal_printf("Welcome to FORK ENTRY for process %d\n",
+                   ev.proc->getPid());
+     return ev.proc->handleForkEntry();
+}
+
+bool SignalHandler::handleLwpExit(EventRecord &ev)
+{
+   signal_printf("%s[%d]:  welcome to handleLwpExit\n", FILE__, __LINE__);
+   process *proc = ev.proc;
+   dyn_lwp *lwp = ev.lwp;
+   dyn_thread *thr = NULL;
+   //Find the exiting thread
+   for (unsigned i=0; i<proc->threads.size(); i++)
+      if (proc->threads[i]->get_lwp()->get_lwp_id() == lwp->get_lwp_id())
+      {
+         thr = proc->threads[i];
+         break;
+      }
+   if (!thr)
+   {
+      return false;
+   }
+
+   ev.type = evtThreadExit;
+
+   if (proc->IndependentLwpControl())
+      proc->set_lwp_status(ev.lwp, exited);
+
+   BPatch_process *bproc = BPatch::bpatch->getProcessByPid(proc->getPid());
+   BPatch_thread *bthrd = bproc->getThread(thr->get_tid());
+
+   pdvector<CallbackBase *> cbs;
+   getCBManager()->dispenseCallbacksMatching(evtThreadExit, cbs);
+   for (unsigned int i = 0; i < cbs.size(); ++i) {
+     AsyncThreadEventCallback &cb = * ((AsyncThreadEventCallback *) cbs[i]);
+     mailbox_printf("%s[%d]:  executing thread exit callback\n", FILE__, __LINE__);
+     BPatch_thread *bpthread = bproc->getThreadByIndex(bthrd->getBPatchID());
+     assert(bpthread);
+     cb(bproc, bpthread);
+   }
+
+   flagBPatchStatusChange();
+   return true;
+}
+bool SignalHandler::handleSyscallEntry(EventRecord &ev)
+{
+    signal_printf("%s[%d]:  welcome to handleSyscallEntry\n", FILE__, __LINE__);
+    process *proc = ev.proc;
+    bool ret = false;
+    switch ((procSyscall_t)ev.what) {
+      case procSysFork:
+          ret = handleForkEntry(ev);
+          break;
+      case procSysExec:
+         ret = handleExecEntry(ev);
+         break;
+      case procSysExit:
+          signal_printf("%s[%d]:  handleSyscallEntry exit(%d)\n", FILE__, __LINE__, ev.what);
+          proc->triggerNormalExitCallback(INFO_TO_EXIT_CODE(ev.info));
+          ret = true;
+          break;
+      case procLwpExit:
+         assert(0);
+         //  this case should be hijacked during event decoding and mapped onto
+         //  the evtThreadExit event type.
+
+         break;
+      default:
+      // Check process for any other syscall
+      // we may have trapped on entry to?
+      ret = false;
+      break;
+    }
+    // Continue the process post-handling
+    proc->continueProc();
+    return ret;
+}
+
+bool SignalHandler::handleForkExit(EventRecord &ev)
+{
+     signal_printf("Welcome to FORK EXIT for process %d\n",
+                   ev.proc->getPid());
+
+     process *proc = ev.proc;
+     // Fork handler time
+     extern pdvector<process*> processVec;
+     int childPid = INFO_TO_PID(ev.info);
+
+     if (childPid == getpid()) {
+         // this is a special case where the normal createProcess code
+         // has created this process, but the attach routine runs soon
+         // enough that the child (of the mutator) gets a fork exit
+         // event.  We don't care about this event, so we just continue
+         // the process - jkh 1/31/00
+         return true;
+     } else if (childPid > 0) {
+
+         unsigned int i;
+         for (i=0; i < processVec.size(); i++) {
+             if (processVec[i] &&
+                 (processVec[i]->getPid() == childPid)) break;
+         }
+         if (i== processVec.size()) {
+             // this is a new child, register it with dyninst
+             sleep(1);
+
+             // We leave the parent paused until the child is finished,
+             // so that we can be sure to copy everything correctly.
+
+             process *theChild = ev.proc->sh->newProcess(proc, (int) childPid, -1);
+             if (!theChild)
+               return false;
+   
+             proc->handleForkExit(theChild);
+
+             proc->continueProc();
+             theChild->continueProc();
+
+#ifdef NOTDEF // PDSEP
+             if (theChild->setupFork()) {
+                 proc->handleForkExit(theChild);
+
+
+                 // Okay, let 'er rip
+                 proc->continueProc();
+                 theChild->continueProc();
+             }
+             else {
+                 // Can happen if we're forking something we can't trace
+                 delete theChild;
+                 proc->continueProc();
+             }
+#endif
+        }
+    }
+    return true;
+}
+// the alwaysdosomething argument is to maintain some strange old code
+bool SignalHandler::handleExecExit(EventRecord &ev)
+{
+    process *proc = ev.proc;
+    proc->nextTrapIsExec = false;
+    if(INFO_TO_PID(ev.info) == -1) {
+        // Failed exec, do nothing
+        return false;
+    }
+
+    proc->execFilePath = proc->tryToFindExecutable(proc->execPathArg, proc->getPid());
+    // As of Solaris 2.8, we get multiple exec signals per exec.
+    // My best guess is that the daemon reads the trap into the
+    // kernel as an exec call, since the process is paused
+    // and PR_SYSEXIT is set. We want to ignore all traps 
+    // but the last one.
+
+    // We also see an exec as the first signal in a process we create. 
+    // That's because it... wait for it... execed!
+    if (!proc->reachedBootstrapState(begun_bs)) {
+#ifdef NOTDEF // PDSEP
+       fprintf(stderr, "%s[%d]:  removed decodeSigTrap!\n", FILE__, __LINE__);
+        sg->decodeSigTrap(ev);
+#endif
+        return handleProcessCreate(ev);
+    }
+
+
+   int status = 0;
+   // False: not waitin' for a signal (theoretically, we already got
+    // it when we attached)
+    fileDescriptor desc;
+    if (!proc->sh->getExecFileDescriptor(proc->execFilePath,
+                                   proc->getPid(),
+                                   false,
+                                   status,
+                                   desc)) {
+        cerr << "Failed to find exec descriptor" << endl;
+        return false;
+    }
+
+    // Unlike fork, handleExecExit doesn't do all processing required.
+    // We finish up when the trap at main() is reached.
+    proc->handleExecExit(desc);
+
+    return true;
+}
+
+
+bool SignalHandler::handleSyscallExit(EventRecord &ev)
+{
+    process *proc = ev.proc;
+    bool ret = false;
+
+    // Check to see if a thread we were waiting for exited a
+    // syscall
+    bool wasHandled = proc->handleSyscallExit(ev.status, ev.lwp);
+
+    signal_printf( "%s[%d]:  welcome to handleSyscallExit:  wasHandled = %s\n", FILE__, __LINE__, wasHandled ? "true" : "false");
+
+    // Fall through no matter what since some syscalls have their
+    // own handlers.
+    switch((procSyscall_t) ev.what) {
+      case procSysFork:
+         signal_printf("%s[%d]:  Fork Exit\n", FILE__, __LINE__);
+         ret = handleForkExit(ev);
+         break;
+      case procSysExec:
+         signal_printf("%s[%d]:  Exec Exit\n", FILE__, __LINE__);
+         ret = handleExecExit(ev);
+         break;
+      case procSysLoad:
+         signal_printf("%s[%d]:  Load Exit\n", FILE__, __LINE__);
+         ret = handleLoadLibrary(ev);
+         break;
+      default:
+         fprintf(stderr, "%s[%d]:  unknown syscall\n", __FILE__, __LINE__);
+         break;
+    }
+
+#if defined(rs6000_ibm_aix4_1)
+    // When we handle a fork exit on AIX, we need to keep both parent and
+    // child stopped until we've seen the fork exit on both.  This is so
+    // we can copy the instrumentation from the parent to the child (if we
+    // don't keep the parent stopped, it may, for instance, exit before we
+    // can do this).  So, don't continue the process here - it will be
+    // continued at the appropriate time by handleForkExit.
+    if (((procSyscall_t)ev.what) != procSysFork)
+#endif
+      //if (proc->status() == stopped) proc->continueProc();
+      proc->continueProc();
+
+    return ret || wasHandled;
+}
+
+bool SignalHandler::handleEventLocked(EventRecord &ev)
+{
+  signal_printf("%s[%d]:  got event: %s\n", FILE__, __LINE__, eventType2str(ev.type));
+
+  process *proc = ev.proc;
+  bool ret = false;
+  Frame activeFrame;
+  assert(proc);
+  
+  // One big switch statement
+  switch(ev.type) {
+     // First the platform-independent stuff
+     // (/proc and waitpid)
+     case evtProcessExit:
+        ret = handleProcessExit(ev);
+        break;
+     case evtProcessCreate:
+        ret = handleProcessCreate(ev);
+        break;
+     case evtThreadCreate:
+        ret = handleThreadCreate(ev);
+        break;
+     case evtThreadExit:
+        ret = handleLwpExit(ev);
+        break;
+     case evtProcessAttach:
+        proc->setBootstrapState(initialized_bs);
+        ret = true;
+        break;
+     case evtProcessInit:
+        proc->handleTrapAtEntryPointOfMain(ev.lwp);
+        proc->setBootstrapState(initialized_bs);
+        // If we were execing, we now know we finished
+        if (proc->execing()) {
+           proc->finishExec();
+        }
+        ret = true;
+        break;
+     case evtProcessLoadedRT:
+     {
+        pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
+        buffer += pdstring(", loaded dyninst library");
+        statusLine(buffer.c_str());
+        startup_cerr << "trapDueToDyninstLib returned true, trying to handle\n";
+        proc->loadDYNINSTlibCleanup(ev.lwp);
+        proc->setBootstrapState(loadedRT_bs);
+        //getSH()->signalEvent(evtProcessLoadedRT);
+        ret = true;
+        break;
+     }
+     case evtInstPointTrap:
+         // Linux inst via traps
+         ev.lwp->changePC(proc->trampTrapMapping[ev.address], NULL);
+         proc->continueProc();
+         ret = true;
+         break;
+     case evtLoadLibrary:
+     case evtUnloadLibrary:
+        ret = handleLoadLibrary(ev);
+        proc->continueProc();
+        break;
+     case evtPreFork:
+        proc->continueProc();
+        break;
+     case evtSignalled:
+     {
+        char buf[128];
+        fprintf(stderr, "%s[%d]:  HANDLE SIGNAL is deprecated!!!\n", FILE__, __LINE__);
+         ret = true;
+        break;
+     }
+     case evtProcessStop:
+     {
+       ret = handleProcessStop(ev);
+       if (!ret) {
+         fprintf(stderr, "%s[%d]:  handleProcessStop failed\n", FILE__, __LINE__);
+       }
+       break;
+     }
+        // Now the /proc only
+        // AIX clones some of these (because of fork/exec/load notification)
+     case evtRPCSignal:
+       ret = proc->getRpcMgr()->handleRPCEvent(ev);
+       break;
+     case evtSyscallEntry:
+        ret = handleSyscallEntry(ev);
+        if (!ret)
+            cerr << "handleSyscallEntry failed!" << endl;
+        break;
+     case evtSyscallExit:
+        ret = handleSyscallExit(ev);
+        if (!ret)
+            fprintf(stderr, "%s[%d]: handlesyscallExit failed! ", __FILE__, __LINE__); ;
+        break;
+     case evtSuspended:
+       proc->continueProc();   // ignoring this signal
+       ret = true;
+       flagBPatchStatusChange();
+       break;
+     case evtDebugStep:
+         handleSingleStep(ev);
+         ret = 1;
+         break;
+     case evtUndefined:
+        // Do nothing
+         cerr << "Undefined event!" << endl;
+        break;
+     case evtCritical:
+         ret = handleCritical(ev);
+         break;
+     case evtTimeout:
+     case evtNullEvent:
+     case evtThreadDetect:
+        ret = true;
+        break;
+     default:
+        fprintf(stderr, "%s[%d]:  cannot handle signal %s\n", FILE__, __LINE__, eventType2str(ev.type));
+        assert(0 && "Undefined");
+   }
+
+   sg->signalEvent(ev);
+
+   proc->setSuppressEventConts(false);
+
+   if (ret == false) {
+      //  if ret is false, complain, but return true anyways, since the handler threads
+      //  should be shut down by the SignalGenerator.
+      char buf[128];
+      fprintf(stderr, "%s[%d]:  failed to handle event %s\n", FILE__, __LINE__,
+              ev.sprint_event(buf));
+      ret = true;
+   }
+
+   return ret;
 }
 
 bool SignalHandler::idle()
@@ -465,7 +1591,7 @@ bool SignalHandler::assignEvent(EventRecord &ev)
   //  for some event.  
 
   while (!idle_flag) {
-    if (wait_flag) {
+    if ((wait_flag) && (ev.type != evtShutDown)) {
       signal_printf("%s[%d]:  cannot assign event %s to %s, while it is waiting\n", 
                     FILE__, __LINE__, ev.sprint_event(buf), getName());
       return false;
@@ -474,7 +1600,7 @@ bool SignalHandler::assignEvent(EventRecord &ev)
          FILE__, __LINE__, ev.sprint_event(buf), getName());
     events_to_handle.push_back(ev);
     if (ev.type == evtProcessExit) 
-      getSH()->signalEvent(ev);
+      sg->signalEvent(ev);
     else 
       _Broadcast(FILE__, __LINE__);
     return true;
@@ -505,12 +1631,21 @@ bool SignalHandler::waitNextEvent(EventRecord &ev)
   while (idle_flag) {
     signal_printf("%s[%d]:  handler %s waiting for something to do\n", 
                   FILE__, __LINE__, getName());
-    if (!getSH()->anyActiveHandlers() && getSH()->waitingForActiveProcess()) {
-      //flagBPatchStatusChange();
-      getSH()->signalEvent(evtProcessStop);
-      //_Broadcast(FILE__, __LINE__);
+#if 0
+    fprintf(stderr, "%s[%d]:  sg->waitingForActiveProcess = %s\n", FILE__, __LINE__, sg->waitingForActiveProcess() ? "true" : "false");
+    fprintf(stderr, "%s[%d]:  sg->anyActiveHandlers() = %s\n", FILE__, __LINE__, sg->anyActiveHandlers() ? "true" : "false");
+#endif
+    if (!sg->anyActiveHandlers() && sg->waitingForActiveProcess()) {
+      sg->signalEvent(evtProcessStop);
     }
     _WaitForSignal(FILE__, __LINE__);
+    if (stop_request) {
+       fprintf(stderr, "%s[%d]:  sg got stop request... no more handling\n", FILE__, __LINE__);
+       ev.type = evtShutDown;
+       sg->signalEvent(ev);
+       _Unlock(FILE__, __LINE__);
+      return true;
+    }
     signal_printf("%s[%d]:  handler %s has been signalled: got event = %s\n", 
                   FILE__, __LINE__, getName(), idle_flag ? "false" : "true");
   }

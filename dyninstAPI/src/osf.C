@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.85 2005/12/01 00:56:24 jaw Exp $
+// $Id: osf.C,v 1.86 2006/01/30 07:16:53 jaw Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -234,8 +234,22 @@ static inline bool execResult(prstatus_t stat)
 }
 
 
+bool checkForAnyProcessExit(EventRecord &ev)
+{
+  extern pdvector<process*> processVec;
+  bool ret = false;
+  EventRecord temp;
+  for (unsigned u = 0; u < processVec.size(); u++) {
+    temp.proc = processVec[u];
+    if (ret = temp.proc->sh->checkForExit(temp, false /*block ? */)) 
+       break;
+  }
+  return ret;
+}
+
+#ifdef NOTDEF // PDSEP
 //  checkForExit returns true when an exit has been detected
-bool checkForExit(EventRecord &ev)
+bool checkForExit(EventRecord &ev, bool block)
 {
   extern pdvector<process*> processVec;
   for (unsigned u = 0; u < processVec.size(); u++) {
@@ -261,8 +275,10 @@ bool checkForExit(EventRecord &ev)
   }
   return false;
 }
+#endif
 
-bool SignalGeneratorUnix::decodeEvent(EventRecord &ev)
+#ifdef NOTDEF // PDSEP
+bool SignalGenerator::decodeEvent(EventRecord &ev)
 {
   if ((ev.type == evtSignalled) && (ev.what == SIGTRAP))
     return decodeSigTrap(ev);
@@ -274,13 +290,18 @@ bool SignalGeneratorUnix::decodeEvent(EventRecord &ev)
     return decodeSigStopNInt(ev);
   return true;
 }
-bool SignalGeneratorUnix::updateEventsWithLwpStatus(process *, dyn_lwp *,
+#endif
+bool SignalGenerator::decodeKludge(EventRecord &cur_event) 
+{
+  return true;
+}
+bool SignalGenerator::updateEventsWithLwpStatus(process *, dyn_lwp *,
                                   pdvector<EventRecord> &)
 {
   return true;
 }
 
-bool SignalGeneratorUnix::getFDsForPoll(pdvector<unsigned int> &fds)
+bool SignalGenerator::getFDsForPoll(pdvector<unsigned int> &fds)
 {
   extern pdvector<process*> processVec;
   for (unsigned int u = 0; u < processVec.size(); ++u) {
@@ -629,7 +650,7 @@ rawTime64 dyn_lwp::getRawCpuTime_sw()
 }
 #endif
 
-bool process::getExecFileDescriptor(pdstring filename,
+bool SignalGeneratorCommon::getExecFileDescriptor(pdstring filename,
                                     int /*pid*/,
                                     bool /*whocares*/,
                                     int &,
@@ -958,7 +979,7 @@ bool process::getDyninstRTLibName() {
          pdstring msg = pdstring("Environment variable ") +
                         pdstring("DYNINSTAPI_RT_LIB") +
                         pdstring(" has not been defined for process ") +
-                        pdstring(pid);
+                        pdstring(getPid());
          showErrorCallback(101, msg);
          return false;
       }

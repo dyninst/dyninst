@@ -39,13 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.C,v 1.13 2005/11/03 05:21:05 jaw Exp $
+// $Id: dynamiclinking.C,v 1.14 2006/01/30 07:16:52 jaw Exp $
 
 // Cross-platform dynamic linking functions
 
 #include "dyninstAPI/src/dynamiclinking.h"
 #include "dyninstAPI/src/process.h"
 #include "mapped_object.h"
+#include "dyn_thread.h"
 
 dynamic_linking::dynamic_linking(process *p): proc(p), dynlinked(false),
                                               dlopen_addr(0), 
@@ -88,7 +89,8 @@ dynamic_linking::~dynamic_linking() {
 
 
 // And unload the tracing breakpoints inserted
-bool dynamic_linking::uninstallTracing() {
+bool dynamic_linking::uninstallTracing() 
+{
     for (unsigned i= 0; i < sharedLibHooks_.size(); i++)
         delete sharedLibHooks_[i];
     sharedLibHooks_.resize(0);
@@ -101,6 +103,37 @@ sharedLibHook *dynamic_linking::reachedLibHook(Address a) {
             return sharedLibHooks_[i];
     return NULL;
 }
+
+dyn_lwp *dynamic_linking::findLwpAtLibHook(process *proc, sharedLibHook **hook_handle)
+{
+  pdvector<dyn_thread *>::iterator iter = proc->threads.begin();
+
+  dyn_lwp *brk_lwp = NULL;
+  sharedLibHook *hook = NULL;
+
+  while (iter != proc->threads.end()) {
+    dyn_thread *thr = *(iter);
+    dyn_lwp *cur_lwp = thr->get_lwp();
+
+    if(cur_lwp->status() == running) {
+      iter++;
+      continue;  // if lwp is running couldn't have hit load library trap
+    }
+
+    Frame lwp_frame = cur_lwp->getActiveFrame();
+    hook = reachedLibHook(lwp_frame.getPC());
+    if (hook) {
+      brk_lwp = cur_lwp;
+      if (hook_handle)
+        *hook_handle = hook;
+      break;
+    }
+
+    iter++;
+  }
+  return brk_lwp;
+}
+
 
 bool sharedLibHook::reachedBreakAddr(Address b) const {
 #if defined(arch_x86) || defined(arch_x86_64)
@@ -126,7 +159,8 @@ sharedLibHook::sharedLibHook(const sharedLibHook *pSLH, process *child) :
 // getSharedObjects: gets a complete list of shared objects in the
 // process. Normally used to initialize the process-level shared objects list.
 
-bool dynamic_linking::getSharedObjects(pdvector<mapped_object *> &mapped_objects) {
+bool dynamic_linking::getSharedObjects(pdvector<mapped_object *> &mapped_objects) 
+{
     pdvector<fileDescriptor> descs;
     
     if (!processLinkMaps(descs))
@@ -156,12 +190,9 @@ bool dynamic_linking::getSharedObjects(pdvector<mapped_object *> &mapped_objects
 
 #if !defined(os_windows) // Where we don't need it and the compiler complains...
 
-// findChangeToLinkMaps: This routine returns a vector of shared objects
-// that have been deleted or added to the link maps as indicated by
-// change_type.  If an error occurs it sets error_occured to true.
-bool dynamic_linking::findChangeToLinkMaps(u_int &change_type,
-					   pdvector<mapped_object *> &changed_objects) {
-  
+bool dynamic_linking::didLinkMapsChange(u_int &change_type, pdvector<fileDescriptor> &new_descs)
+{
+
   // get list of current shared objects
   const pdvector<mapped_object *> &curr_list = proc->mappedObjects();
   if((change_type == SHAREDOBJECT_REMOVED) && (curr_list.size() == 0)) {
@@ -169,19 +200,33 @@ bool dynamic_linking::findChangeToLinkMaps(u_int &change_type,
   }
 
   // get the list from the process via /proc
-  pdvector<fileDescriptor> new_descs;
-  if (!processLinkMaps(new_descs))
+  if (!processLinkMaps(new_descs)) {
       return false;
-
-  // Some platforms we set here
-  if (!change_type) {
-      if (curr_list.size() > new_descs.size())
-          change_type = SHAREDOBJECT_REMOVED;
-      else if (curr_list.size() < new_descs.size())
-          change_type = SHAREDOBJECT_ADDED;
-      else
-          change_type = SHAREDOBJECT_NOCHANGE;
   }
+
+  //  override change_type if we have definite evidence of a size chanage
+  //  in the link maps
+  if (curr_list.size() > new_descs.size())
+       change_type = SHAREDOBJECT_REMOVED;
+   else if (curr_list.size() < new_descs.size())
+       change_type = SHAREDOBJECT_ADDED;
+
+  return true;
+}
+
+// findChangeToLinkMaps: This routine returns a vector of shared objects
+// that have been deleted or added to the link maps as indicated by
+// change_type.  If an error occurs it sets error_occured to true.
+bool dynamic_linking::findChangeToLinkMaps(u_int &change_type,
+					   pdvector<mapped_object *> &changed_objects) 
+{
+  
+  pdvector<fileDescriptor> new_descs;
+  if (!didLinkMapsChange(change_type, new_descs))
+    return false;
+
+  const pdvector<mapped_object *> &curr_list = proc->mappedObjects();
+
 
 #if 0
   fprintf(stderr, "CURR_LIST:\n");
@@ -240,8 +285,10 @@ bool dynamic_linking::findChangeToLinkMaps(u_int &change_type,
   }
   // if change_type is remove then figure out what has been removed
   else if((change_type == SHAREDOBJECT_REMOVED) && (curr_list.size())) {
+#if 0
       fprintf(stderr, "SHOBJ_REMOVED: current size %d\n", curr_list.size());
       fprintf(stderr, "... %d new\n", new_descs.size());
+#endif
       // Look for the one that's not in descs
       bool stillThere[curr_list.size()];
       for (unsigned k = 0; k < curr_list.size(); k++) 
@@ -273,7 +320,8 @@ bool dynamic_linking::findChangeToLinkMaps(u_int &change_type,
 
 #else
 bool dynamic_linking::findChangeToLinkMaps(u_int &,
-                                           pdvector<mapped_object *> &) {
+                                           pdvector<mapped_object *> &) 
+{
     return true;
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.63 2005/11/03 05:21:05 jaw Exp $
+// $Id: aixDL.C,v 1.64 2006/01/30 07:16:52 jaw Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -207,6 +207,30 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &result)
     return true;
 }
 
+bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &ev,
+                                                       u_int &change_type) 
+{
+    assert(ev.lwp);
+    dyn_lwp *brk_lwp = ev.lwp;
+    sharedLibHook *hook = NULL;
+    
+    Frame brk_frame = brk_lwp->getActiveFrame();
+    hook = reachedLibHook(brk_frame.getPC());
+   
+    if (!hook) {
+      fprintf(stderr, "%s[%d]:  not at hook\n", FILE__, __LINE__);
+      return false;
+    }
+
+    pdvector<fileDescriptor> newfds;
+    if (! didLinkMapsChange((u_int &)ev.what, newfds)) {
+      fprintf(stderr, "%s[%d]:  link maps not changed\n", FILE__, __LINE__);
+      return false;
+    }
+
+   return true;
+}
+
 // handleIfDueToSharedObjectMapping: returns true if the trap was caused
 // by a change to the link maps
 // p - process we're dealing with
@@ -215,36 +239,21 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &result)
 // error_occurred -- duh
 // return value: true if there was a change to the link map,
 // false otherwise
-bool dynamic_linking::handleIfDueToSharedObjectMapping(pdvector<mapped_object *> &changed_objects,
-                                                       u_int &change_type) {
-
+bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
+                                                      pdvector<mapped_object *> &changed_objects)
+{
     // We discover it by comparing sizes
-    change_type = 0;
+    dyn_lwp *brk_lwp = instru_based ? NULL : ev.lwp;
+    sharedLibHook *hook = NULL;
 
-    // Check to see if any thread hit the breakpoint we inserted
-    pdvector<Frame> activeFrames;
-    if (!proc->getAllActiveFrames(activeFrames)) {
-        return false;
+    if (!instru_based && brk_lwp) {
+       Frame brk_frame = brk_lwp->getActiveFrame();
+       hook = reachedLibHook(brk_frame.getPC());
     }
-    
-    dyn_lwp *brk_lwp = NULL;
-    sharedLibHook *hook;
 
-    if (!instru_based) {
-       for (unsigned frame_iter = 0; frame_iter < activeFrames.size();frame_iter++)
-       {
-          hook = reachedLibHook(activeFrames[frame_iter].getPC());
-          if (hook) {
-             brk_lwp = activeFrames[frame_iter].getLWP();
-             break;
-          }
-       }
-    }
-    if (brk_lwp || 
-	instru_based || 
-        force_library_load) {
+    if (force_library_load || hook || instru_based) {
         
-        if (!findChangeToLinkMaps(change_type, 
+        if (!findChangeToLinkMaps((u_int &) ev.what, 
                                   changed_objects))
             return false;
 	if (brk_lwp) {
