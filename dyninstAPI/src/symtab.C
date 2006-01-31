@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.264 2006/01/14 23:47:58 nater Exp $
+ // $Id: symtab.C,v 1.265 2006/01/31 23:25:30 mirg Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -964,9 +964,10 @@ unsigned int int_addrHash(const Address& addr) {
 image *image::parseImage(fileDescriptor &desc)
 {
   /*
-   * Check to see if we have parsed this image at this offset before.
-   * We only match if the entire file descriptor matches, which can
-   * can be filename matching or filename/offset matching.
+   * Check to see if we have parsed this image before. We will
+   * consider it a match if the filename matches (Our code is now able
+   * to cache the parsing results even if a library is loaded at a
+   * different address for the second time).
    */
   unsigned numImages = allImages.size();
   
@@ -974,20 +975,7 @@ image *image::parseImage(fileDescriptor &desc)
   // about it. If so, yank the old one out of the images vector -- replace
   // it, basically.
   for (unsigned u=0; u<numImages; u++) {
-#if 0
-      fprintf(stderr, "Comparing %s/0x%x/0x%x/%s/%d to %s/0x%x/0x%x/%s/%d\n",
-              desc.file().c_str(),
-              desc.code(),
-              desc.data(),
-              desc.member().c_str(),
-              desc.pid(),
-              allImages[u]->desc().file().c_str(),
-              allImages[u]->desc().code(),
-              allImages[u]->desc().data(),
-              allImages[u]->desc().member().c_str(),
-              allImages[u]->desc().pid());
-#endif
-      if (desc == allImages[u]->desc()) {
+      if (desc.file() == allImages[u]->desc().file()) {
           // We reference count...
           //fprintf(stderr, "Reusing old %s (%s)\n", desc.file().c_str(), desc.member().c_str());
           return allImages[u]->clone();
