@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.87 2006/01/30 07:16:52 jaw Exp $
+// $Id: linux-x86.C,v 1.88 2006/02/01 18:24:05 nater Exp $
 
 #include <fstream>
 
@@ -94,6 +94,7 @@
 #define DLOPEN_MODE (RTLD_NOW | RTLD_GLOBAL)
 
 const char DL_OPEN_FUNC_NAME[] = "do_dlopen";
+const char DL_OPEN_FUNC_INTERNAL[] = "_dl_open";
 
 const char libc_version_symname[] = "__libc_version";
 
@@ -1628,7 +1629,44 @@ bool process::loadDYNINSTlib_libc21() {
 
   pdvector<int_function *> dlopen_funcs;
   if (!findFuncsByAll(DL_OPEN_FUNC_NAME, dlopen_funcs))
-      assert(0);
+  {
+    pdvector<int_function *> dlopen_int_funcs;                                    
+    // If we can't find the do_dlopen function (because this library
+    // is stripped, for example), try searching for the internal
+    // _dl_open function and find the do_dlopen function by examining
+    // the functions that call it. This depends on the do_dlopen
+    // function having been parsed (though its name is not known)
+    // through speculative parsing.
+    if(!findFuncsByAll(DL_OPEN_FUNC_INTERNAL, dlopen_int_funcs))
+    {    
+        fprintf(stderr,"Failed to find _dl_open\n");
+    }                                                                               else
+    {                                                                                   if(dlopen_int_funcs.size() > 1)
+        {
+            startup_printf("%s[%d] warning: found %d matches for %s\n",
+                           __FILE__,__LINE__,dlopen_int_funcs.size(),
+                           DL_OPEN_FUNC_INTERNAL);
+        }
+        dlopen_int_funcs[0]->getStaticCallers(dlopen_funcs);
+        if(dlopen_funcs.size() > 1)
+        {
+            startup_printf("%s[%d] warning: found %d do_dlopen candidates\n",
+                           __FILE__,__LINE__,dlopen_funcs.size());
+        }
+  
+        if(dlopen_funcs.size() > 0)
+        {
+            // give it a name
+            dlopen_funcs[0]->addSymTabName("do_dlopen",true);
+        }
+    }
+  }
+
+    if(dlopen_funcs.size() == 0)
+    {
+      startup_cerr << "Couldn't find method to load dynamic library" << endl;
+      return false;
+    } 
 
   Address dlopen_addr = dlopen_funcs[0]->getAddress();
 
