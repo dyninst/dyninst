@@ -546,6 +546,32 @@ bool int_function::getStaticCallees(pdvector <int_function *>&callees) {
 }
 #endif
 
+void int_function::getStaticCallers(pdvector< int_function * > &callers)
+{
+    pdvector<image_edge *> ib_ins;
+
+    if(!ifunc_ || !ifunc_->entryBlock())
+        return;
+
+    ifunc_->entryBlock()->getSources(ib_ins);
+
+    for (unsigned i = 0; i < ib_ins.size(); i++) {
+        if(ib_ins[i]->getType() == ET_CALL)
+        {   
+            pdvector< image_func * > ifuncs;
+            ib_ins[i]->getSource()->getFuncs(ifuncs);
+            
+            for(unsigned k=0;k<ifuncs.size();k++)
+            {   
+                int_function * f;
+                f = obj()->findFunction(ifuncs[k]);
+                
+                callers.push_back(f);
+            }
+        }
+    }
+}
+
 void int_function::addBBLInstance(bblInstance *instance) {
     assert(instance);
     blocksByAddr_.insert(instance);

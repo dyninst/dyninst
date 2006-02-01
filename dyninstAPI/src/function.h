@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.22 2006/01/14 23:47:44 nater Exp $
+// $Id: function.h,v 1.23 2006/02/01 18:24:02 nater Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -455,6 +455,10 @@ class int_function {
    // Returns false if unable to fill in that information....
    bool getStaticCallees(pdvector <int_function *> &callees);
 #endif
+
+    // Fill the <callers> vector with pointers to the statically-determined
+    // list of functions that call this function.
+    void getStaticCallers(pdvector <int_function *> &callers);
 
    codeRange *copy() const;
     
