@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.237 2005/12/19 23:45:38 rutar Exp $
+ * $Id: inst-power.C,v 1.238 2006/02/01 01:58:09 jodom Exp $
  */
 
 #include "common/h/headers.h"
@@ -2851,6 +2851,13 @@ bool int_basicBlock::initRegisterGenKill()
       if (!kill->bitarray_check(ii.getRBValue(),kill))
 	gen->bitarray_set(ii.getRBValue(),gen);
     }
+    if (ii.isA_MRT_ReadInstruction()) {
+       /* Assume worst case scenario */
+       for (int i = ii.getRTValue(); i < 32; i++) {
+          if (!kill->bitarray_check(i,kill))
+             gen->bitarray_set(i,gen);
+       }
+    }
     
     /* FPR Gens */
     if (ii.isA_FRT_ReadInstruction()){
@@ -2863,7 +2870,7 @@ bool int_basicBlock::initRegisterGenKill()
     }
     if (ii.isA_FRB_ReadInstruction()){
       if (!killFP->bitarray_check(ii.getFRBValue(),killFP))
-	killFP->bitarray_set(ii.getFRBValue(),genFP);
+	genFP->bitarray_set(ii.getFRBValue(),genFP);
     }
     if (ii.isA_FRC_ReadInstruction()){
       if (!killFP->bitarray_check(ii.getFRCValue(),killFP))
@@ -2876,6 +2883,12 @@ bool int_basicBlock::initRegisterGenKill()
     }    
     if (ii.isA_RA_WriteInstruction()){
       kill->bitarray_set(ii.getRAValue(),kill);
+    }
+    if (ii.isA_MRT_WriteInstruction()) {
+       /* Assume worst case scenario */
+       for (int i = ii.getRTValue(); i < 32; i++) {
+          kill->bitarray_set(i,kill);
+       }
     }
 
     /* FPR Kills */
@@ -2890,8 +2903,30 @@ bool int_basicBlock::initRegisterGenKill()
       /* Need to gen the possible regurn arguments */
       gen->bitarray_set(3,gen);
       gen->bitarray_set(4,gen);
-      gen->bitarray_set(1,genFP);
+      genFP->bitarray_set(1,genFP);
       genFP->bitarray_set(2,genFP);
+    }
+    if (ii.isAJumpInstruction()) {
+       Address branchAddress = ii.getBranchTargetAddress();
+       // Tail call optimization may mask a return
+
+       codeRange *range = func_->ifunc();
+
+       if (range) {
+          if (!(range->get_address_cr() <= branchAddress &&
+                branchAddress < (range->get_address_cr() + range->get_size_cr()))) {
+             gen->bitarray_set(3,gen);
+             gen->bitarray_set(4,gen);
+             genFP->bitarray_set(1,genFP);
+             genFP->bitarray_set(2,genFP);
+             
+          }
+       } else {
+          gen->bitarray_set(3,gen);
+          gen->bitarray_set(4,gen);
+          genFP->bitarray_set(1,genFP);
+          genFP->bitarray_set(2,genFP);
+       }
     }
 
     
@@ -2943,8 +2978,44 @@ bool int_basicBlock::initRegisterGenKill()
 				if (ah.isA_FRC_ReadInstruction()){
 				  genFP->bitarray_set(ah.getFRCValue(),genFP);
 				}
-				if (ah.isACallInstruction())
-				  break;
+				if (ah.isACallInstruction() || ah.isAIndirectJumpInstruction()) {
+                                   // Non-leaf.  Called function may
+                                   // use registers never used by callee,
+                                   // but used by this function.
+
+                                   // Tail call optimization can also use the CTR
+                                   // register that would normally be used by an
+                                   // indirect jump.  Err on the safe side
+                                   for (int a = 3; a <= 10; a++)
+                                      gen->bitarray_set(a,gen);
+                                   for (int a = 1; a <= 13; a++)
+                                      genFP->bitarray_set(a,genFP);
+                                   break;
+                                }
+                                if (ii.isAJumpInstruction()) {
+                                   Address branchAddress = ii.getBranchTargetAddress();
+                                   // This function might not use any input registers
+                                   // but the tail-call optimization could
+                                   
+                                   codeRange *range = func_->ifunc();
+                                   
+                                   if (range) {
+                                      if (!(range->get_address_cr() <= branchAddress &&
+                                            branchAddress < (range->get_address_cr() + range->get_size_cr()))) {
+                                         for (int a = 3; a <= 10; a++)
+                                            gen->bitarray_set(a,gen);
+                                         for (int a = 1; a <= 13; a++)
+                                            genFP->bitarray_set(a,genFP);
+                                         break;
+                                      }
+                                   } else {
+                                      for (int a = 3; a <= 10; a++)
+                                         gen->bitarray_set(a,gen);
+                                      for (int a = 1; a <= 13; a++)
+                                         genFP->bitarray_set(a,genFP);
+                                      break;
+                                   }
+                                }
                                   
                                   Address pos = ah++;
                               }
