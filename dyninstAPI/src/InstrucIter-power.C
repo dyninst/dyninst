@@ -166,7 +166,7 @@ bool InstrucIter::isA_RT_WriteInstruction()
 	/* X Form */
       ((*i).xform.op == X_EXTENDEDop 
        && ( (*i).xform.xo == LBZUXxop || (*i).xform.xo == LBZXxop || 
-	    (*i).xform.xo == ANDxop || (*i).xform.xo == LHAUXxop  || 
+	    (*i).xform.xo == LHAUXxop  || 
 	    (*i).xform.xo == LHAXxop || (*i).xform.xo == LHBRXxop ||
 	    (*i).xform.xo == LHZUXxop  || (*i).xform.xo == LHZXxop || 
 	    (*i).xform.xo == LWARXxop || (*i).xform.xo == LWBRXxop  || 
@@ -311,11 +311,13 @@ bool InstrucIter::isA_RA_ReadInstruction()
 	    (*i).xoform.xo == SFZExop || (*i).xoform.xo == AZExop || (*i).xoform.xo == SFMExop ||  
 	    (*i).xoform.xo == AMExop || (*i).xoform.xo == DOZxop || (*i).xoform.xo == CAXxop ||
 	    (*i).xoform.xo == DIVxop || (*i).xoform.xo == ABSxop || (*i).xoform.xo == DIVSxop ||
-	    (*i).xoform.xo == DIVWUxop || (*i).xoform.xo == NABSxop || (*i).xoform.xo == DIVWxop)) ||
+	    (*i).xoform.xo == DIVWUxop || (*i).xoform.xo == NABSxop || (*i).xoform.xo == DIVWxop ||
+            (*i).xoform.xo == MULSxop)) ||
       /* D Form */
       ((*i).dform.op == TIop || (*i).dform.op == MULIop || 
        (*i).dform.op == SFIop || (*i).dform.op == DOZIop   ) || 
-      ((*i).dform.op >= CMPLIop && (*i).dform.op  <= CAUop) ||
+      ((*i).dform.op >= CMPLIop && (*i).dform.op < CALop) ||
+      ((*i).dform.op >= CALop && (*i).dform.op <= CAUop && (*i).dform.ra) ||
       ((*i).dform.op >= Lop && (*i).dform.op <= STFDUop) ||
       
       /* X Form */
@@ -337,7 +339,7 @@ bool InstrucIter::isA_RA_ReadInstruction()
 	    (*i).xform.xo == STSIxop  || (*i).xform.xo == STFDXxop || (*i).xform.xo == STFDUXxop ||
 	    (*i).xform.xo == LHBRXxop  || (*i).xform.xo == RACxop ||
 	    (*i).xform.xo == STHBRXxop || (*i).xform.xo == ICBIxop || 
-	    (*i).xform.xo == STFIWXxop || (*i).xform.xo == DCLZxop )))
+	    (*i).xform.xo == STFIWXxop || (*i).xform.xo == DCLZxop)))
     {
       return true;
     }
@@ -357,8 +359,8 @@ bool InstrucIter::isA_RB_ReadInstruction()
       ((*i).xoform.op == XO_EXTENDEDop
        && ( (*i).xoform.xo == SFxop || (*i).xoform.xo == Axop || (*i).xoform.xo == MULHWUxop ||
 	    (*i).xoform.xo == SUBFxop  || (*i).xoform.xo == MULHWxop || 
-	    (*i).xoform.xo == MULxop || (*i).xoform.xo == SFExop 
-	    || (*i).xoform.xo == AExop || 
+	    (*i).xoform.xo == MULxop || (*i).xoform.xo == SFExop ||
+	    (*i).xoform.xo == MULSxop || (*i).xoform.xo == AExop || 
 	    (*i).xoform.xo == DOZxop || (*i).xoform.xo == CAXxop ||
 	    (*i).xoform.xo == DIVxop || (*i).xoform.xo == DIVSxop ||
 	    (*i).xoform.xo == DIVWUxop || (*i).xoform.xo == DIVWxop)) ||
@@ -552,18 +554,13 @@ bool InstrucIter::isA_RA_WriteInstruction()
 	     (*i).xform.xo == LFSUXxop   || (*i).xform.xo == LFSXxop  ||
 	     (*i).xform.xo == SRIQxop   || (*i).xform.xo == SRLIQxop   || (*i).xform.xo == SRLQxop  ||
 	     (*i).xform.xo == SRAxop  || (*i).xform.xo == SRAIxop || (*i).xform.xo == SRxop )) ||
-      /* XO Form */
-      ((*i).xoform.op == XO_EXTENDEDop 
-       && ( (*i).xoform.xo == SFxop || (*i).xoform.xo == SFExop || (*i).xoform.xo == SFMExop ||
-			      (*i).xoform.xo == SFZExop)) ||
       
       /* D Form */
       ((*i).dform.op == ANDILop || (*i).dform.op == ANDIUop || (*i).dform.op == LBZUop 
        || (*i).dform.op == LHAUop ||(*i).dform.op == LHZUop || (*i).dform.op == LUop || 
        (*i).dform.op == ORILop || (*i).dform.op == ORIUop || (*i).dform.op == STBUop || 
        (*i).dform.op == STHUop || (*i).dform.op == STUop || (*i).dform.op == XORILop ||
-       (*i).dform.op == XORIUop || (*i).dform.op == SFIop || (*i).dform.op == SIop || 
-       (*i).dform.op == AIDOTop) ||
+       (*i).dform.op == XORIUop || (*i).dform.op == SFIop || (*i).dform.op == SIop) || 
       
       /* M Form */
       ((*i).mform.op == RLIMIop || (*i).mform.op == RLINMxop || (*i).mform.op == RLMIop 
@@ -578,6 +575,42 @@ bool InstrucIter::isA_RA_WriteInstruction()
   
 }
 
+/* This function returns true if the instruction reads from multiple RT Registers */
+bool InstrucIter::isA_MRT_ReadInstruction()
+{
+  const instruction i = getInstruction();
+  if (
+      /* D Form */
+      ((*i).dform.op == STMop) ||
+      /* X Form */
+      ((*i).xform.op == X_EXTENDEDop
+       && ((*i).xform.xo == STSIxop || (*i).xform.xo == STSXxop)))
+     {
+        return true;
+     }
+  else
+     {
+        return false;
+     }
+}
+
+bool InstrucIter::isA_MRT_WriteInstruction()
+{
+  const instruction i = getInstruction();
+  if (
+      /* X Form */
+      ((*i).dform.op == LMop) ||
+      /* X Form */
+      ((*i).xform.op == X_EXTENDEDop
+       && ((*i).xform.xo == LSIxop || (*i).xform.xo == LSXxop)))
+     {
+        return true;
+     }
+  else
+     {
+        return false;
+     }
+}
 
 
 //some more function used to identify the properties of the instruction
@@ -614,13 +647,13 @@ bool InstrucIter::isAIndirectJumpInstruction()
 		if(!ah.hasPrev())
 			return false;
 		instruction j = ah.getInstruction();
-		if(((*j).xfxform.op == 31) && ((*j).xfxform.xo == 467) &&
-		   ((*j).xfxform.spr == 0x100))
+		if(((*j).xfxform.op == STXop) && ((*j).xfxform.xo == MTSPRxop) &&
+		   ((*j).xfxform.spr == 0x100)) // LR
 			return true;
 		++ah;
                 j = ah.getInstruction();
-		if(((*j).xfxform.op == 31) && ((*j).xfxform.xo == 467) &&
-		   ((*j).xfxform.spr == 0x100))
+		if(((*j).xfxform.op == STXop) && ((*j).xfxform.xo == MTSPRxop) &&
+		   ((*j).xfxform.spr == 0x100)) // LR
 			return true;
 	}
 #endif
@@ -667,7 +700,7 @@ bool InstrucIter::isACallInstruction()
     // register if it is the last function call
     //cerr << currentAddreOPmask << endl;
 
-    return (i.isInsnType(OPmask | AALKmask, CALLmatch));
+    return (i.isInsnType(OPmask | LLmask, CALLmatch));
 /*
   const instruction i = getInstruction();
   if((*i).iform.lk && 

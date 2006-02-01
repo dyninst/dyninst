@@ -283,6 +283,9 @@ class InstrucIter {
 
   bool isA_MX_Instruction();
 
+  bool isA_MRT_ReadInstruction();
+  bool isA_MRT_WriteInstruction();
+
   unsigned getRTValue();
   unsigned getRAValue();
   unsigned getRBValue();
