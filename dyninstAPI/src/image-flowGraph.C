@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.5 2006/01/30 07:16:52 jaw Exp $
+ * $Id: image-flowGraph.C,v 1.6 2006/02/01 18:24:04 nater Exp $
  */
 
 #include <stdio.h>
@@ -164,7 +164,7 @@ bool image::analyzeImage()
         image_func* func1 = everyUniqueFunction[p];
         image_func* func2 = everyUniqueFunction[p + 1];
       
-        Address gapStart = func1->getOffset() + func1->getSymTabSize();
+        Address gapStart = func1->getEndOffset();
         Address gapEnd = func2->getOffset();
         Address gap = gapEnd - gapStart;
       
@@ -192,16 +192,21 @@ bool image::analyzeImage()
                         // No typed name
                   
                         enterFunctionInTables(pdf, false);
-                    }
-                  
-                    if( callTargets.size() > 0 )
-                    {
-                        for( unsigned r = 0; r < callTargets.size(); r++ )
-                        {
-                            if( callTargets[r] < func1->getOffset() )
-                                p++;
+
+                        // If any calls were discovered, adjust our
+                        // position in the function vector accordingly
+                        if( callTargets.size() > 0 )
+                        {   
+                            for( unsigned r = 0; r < callTargets.size(); r++ )
+                            {   
+                                if( callTargets[r] < func1->getOffset() )
+                                    p++;
+                            }
+                            goto top; //goto is the devil's construct. repent!! 
                         }
-                        goto top; //goto is the devil's construct. repent!! 
+                        
+                        pos = ( gapEnd < pdf->getEndOffset() ?
+                                gapEnd : pdf->getEndOffset() );
                     }
                 }
                 pos++;
