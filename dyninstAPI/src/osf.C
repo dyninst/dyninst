@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.86 2006/01/30 07:16:53 jaw Exp $
+// $Id: osf.C,v 1.87 2006/02/01 00:42:54 jaw Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -277,9 +277,35 @@ bool checkForExit(EventRecord &ev, bool block)
 }
 #endif
 
-#ifdef NOTDEF // PDSEP
 bool SignalGenerator::decodeEvent(EventRecord &ev)
 {
+   procProcStatus_t procstatus;
+
+   //  read process status, and translate into internal event representation
+  if (!ev.proc->getRepresentativeLWP()->get_status(&procstatus)) {
+      if (ev.type == evtUndefined) {
+        ev.type = evtProcessExit;
+        ev.status = statusSignalled; // signifies unusual exit.
+        if (checkForExit(ev, false)) {
+          return true;
+        }
+        fprintf(stderr, "%s[%d]:  file desc for process exit not available\n",
+                FILE__, __LINE__);
+        return true;
+      }
+      fprintf(stderr, "%s[%d]:  file desc for %s not available\n",
+              FILE__, __LINE__, eventType2str(ev.type));
+      return false;
+   }
+
+   if (!decodeProcStatus(procstatus, ev)) {
+      fprintf(stderr, "%s[%d]:  decodeProcStatus failed\n", FILE__, __LINE__);
+      return false;
+   }
+
+   signal_printf("%s[%d]:  new event: %s\n",
+                   FILE__, __LINE__, eventType2str(ev.type));
+
   if ((ev.type == evtSignalled) && (ev.what == SIGTRAP))
     return decodeSigTrap(ev);
 
@@ -290,7 +316,7 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
     return decodeSigStopNInt(ev);
   return true;
 }
-#endif
+
 bool SignalGenerator::decodeKludge(EventRecord &cur_event) 
 {
   return true;
@@ -301,8 +327,10 @@ bool SignalGenerator::updateEventsWithLwpStatus(process *, dyn_lwp *,
   return true;
 }
 
+#ifdef NOTDEF // PDSEP
 bool SignalGenerator::getFDsForPoll(pdvector<unsigned int> &fds)
 {
+#ifdef NOTDEF // PDSEP
   extern pdvector<process*> processVec;
   for (unsigned int u = 0; u < processVec.size(); ++u) {
     if (processVec[u] 
@@ -312,7 +340,9 @@ bool SignalGenerator::getFDsForPoll(pdvector<unsigned int> &fds)
     }
   }
   return (fds.size() > 0);
+#endif
 }
+#endif
 
 Frame dyn_thread::getActiveFrameMT() {
 	return Frame();
@@ -664,7 +694,6 @@ bool dyn_lwp::get_status(procProcStatus_t *status) const
 {
   if (ioctl(get_fd(), 
             PIOCSTATUS, status) == -1) {
-     fprintf(stderr, "%s[%d]:  FIXME\n", __FILE__, __LINE__);
      return false;
   }
   return true;

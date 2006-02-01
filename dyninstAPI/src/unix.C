@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.154 2006/01/30 19:45:00 jaw Exp $
+// $Id: unix.C,v 1.155 2006/02/01 00:42:54 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -464,8 +464,24 @@ bool SignalHandler::handleThreadCreate(EventRecord &)
 //  checkForExit returns true when an exit has been detected
 bool SignalGenerator::checkForExit(EventRecord &ev, bool block)
 {
-  int waitpid_flags = block ? WNOHANG|WNOWAIT : 0;
+  int waitpid_flags = block ? 0 : WNOHANG|WNOWAIT;
+  int status;
 
+  int retWait = waitpid(pid, &status, waitpid_flags);
+  if (retWait == -1) {
+       fprintf(stderr, "%s[%d]:  waitpid failed\n", __FILE__, __LINE__);
+       return false;
+   }
+   else if (retWait > 1) {
+      //fprintf(stderr, "%s[%d]:  checkForExit is returning true: pid %d exited, status was %s\n", FILE__, __LINE__, ev.proc->getPid(), ev.proc->getStatusAsString().c_str());
+      decodeWaitPidStatus(status, ev);
+      ev.proc = proc;
+      ev.lwp = proc->getRepresentativeLWP();
+      ev.info = 0;
+      return true;
+   }
+
+#ifdef NOTDEF // PDSEP
   extern pdvector<process*> processVec;
   for (unsigned u = 0; u < processVec.size(); u++) {
     if (processVec[u] 
@@ -488,105 +504,12 @@ bool SignalGenerator::checkForExit(EventRecord &ev, bool block)
        }
     }
   }
+#endif
   return false;
 }
 
 #if !defined (os_linux)
-bool SignalGenerator::decodeEvent(EventRecord &ev)
-{
-
-  if ((ev.info & POLLHUP) || (ev.info & POLLNVAL)) {
-     // True if the process exited out from under us
-     ev.lwp = ev.proc->getRepresentativeLWP();
-     int status;
-     int ret;
-     do {
-         ret = waitpid(pid, &status, 0);
-     } while ((ret < 0) && (errno == EINTR));
-     if (ret < 0) {
-         fprintf(stderr, "%s[%d]:  This shouldn't happen\n", FILE__, __LINE__);
-         if (pid == -1) {
-           // This means that the application exited, but was not our child
-           // so it didn't wait around for us to get it's return code.  In
-           // this case, we can't know why it exited or what it's return
-           // code was.
-           fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
-         }
-         else {
-           fprintf(stderr, "%s[%d]:  got event for pid %d, expecting %d\n", FILE__, __LINE__, ev.proc->getPid(), pid);
-           //  but really it _should_ be our child since 
-           ev.type = evtProcessExit;
-           ev.what = 0;
-           status = 0;
-           return true;
-         }
-     }
-     
-     decodeWaitPidStatus(status, ev);
-     decodeKludge(ev);      
-     signal_printf("%s[%d]:  new event: %s\n", FILE__, __LINE__, eventType2str(ev.type)); 
-     return true;
-  }
-  
-   procProcStatus_t procstatus;
-   if(! ev.proc->getRepresentativeLWP()->get_status(&procstatus)) {
-      if (ev.type == evtUndefined) {
-        ev.type = evtProcessExit;
-        fprintf(stderr, "%s[%d]:  file desc for process exit not available\n", 
-                FILE__, __LINE__);
-        return true;
-      }
-      fprintf(stderr, "%s[%d]:  file desc for %s not available\n", 
-              FILE__, __LINE__, eventType2str(ev.type));
-      return false;
-   }
-
-
-   // copied from old code, must not care about events that don't stop proc
-   if ( !(procstatus.pr_flags & PR_STOPPED || procstatus.pr_flags & PR_ISTOP) ) {
-     ev.type = evtNullEvent;
-     decodeKludge(ev);
-     signal_printf("%s[%d]:  new event: %s\n", 
-                   FILE__, __LINE__, eventType2str(ev.type));
-     return true;
-   }
-#if defined (os_osf)
-   else {
-      ev.lwp = ev.proc->getRepresentativeLWP();
-      if (!decodeProcStatus(procstatus, ev)) {
-         fprintf(stderr, "%s[%d]:  decodeProcStatus failed\n", FILE__, __LINE__);
-         return false;
-      }
-      decodeKludge(ev);
-     signal_printf("%s[%d]:  new event: %s\n", 
-                   FILE__, __LINE__, eventType2str(ev.type));
-      return true;
-   }
-#endif
-
-#if defined (os_solaris) || defined (os_aix)
-   bool updated_events = false;
-   unsigned lwp_to_use = (unsigned) procstatus.pr_lwpid;
-   updated_events = updateEvents(events_to_handle, ev.proc, lwp_to_use);
-   return updated_events;
-#endif
-  return false;
-
-}
-#endif // (!defined os_linux)
-
-#if !defined (os_linux)
-int fake_poll(struct pollfd *ufds, unsigned int nfds, int timeout)
-{
-   int pollret = 0;
-   pollret  = poll(ufds, nfds, 0);
-   if (pollret == 0) {
-     sleep(1);
-     pollret  = poll(ufds, nfds, 0);
-   }
-   return pollret;
-}
-
+#ifdef NOTDEF // PDSEP
 process *SignalGenerator::findProcessByFD(unsigned int fd)
 {
   for(unsigned u = 0; u < processVec.size(); u++) {
@@ -615,6 +538,7 @@ process *SignalGenerator::findProcessByFD(unsigned int fd)
   }
   return NULL;
 }
+#endif
 
 bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
 {
@@ -631,7 +555,7 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
 
   struct pollfd pfds[1]; 
 
-  pfds[0].fd = proc->getRepresentativeLWP()->status_fd();
+  pfds[0].fd = proc->getRepresentativeLWP()->POLL_FD;
   pfds[0].events = POLLPRI;
   pfds[0].revents = 0;
 
@@ -663,17 +587,6 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
     signal_printf("%s[%d]:  poll timed out\n", FILE__, __LINE__);
     ev.type = evtTimeout;
     ev.proc = proc;
-    ret = true;
-#if defined(os_osf)
-  //  alpha-osf apparently does not detect process exits from poll events,
-  //  so we have to check for exits before calling poll().
-  if (checkForExit(ev)) {
-    char buf[128];
-    signal_printf("%s[%d][%s]:  process exited %s\n", FILE__, __LINE__, 
-                getThreadStr(getExecThreadID()), ev.sprint_event(buf));
-    decodeKludge(ev);
-  }
-#endif
     return true;
   }
 
@@ -699,6 +612,7 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
      events_to_handle.push_back(new_ev);
    }
 
+  //pfds[0].fd = proc->getRepresentativeLWP()->status_fd();
   ev = events_to_handle[0];
   events_to_handle.erase(0,0);
 

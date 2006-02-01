@@ -555,7 +555,8 @@ sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b)
 sharedLibHook::~sharedLibHook() 
 {
     if (!proc_->writeDataSpace((void *)breakAddr_, SLH_SAVE_BUFFER_SIZE, saved_)) {
-       fprintf(stderr, "%s[%d]:  WDS failed: %d bytes at %p\n", FILE__, __LINE__, SLH_SAVE_BUFFER_SIZE, breakAddr_);
+       //  This wds fails, and has so for a long time...
+       //fprintf(stderr, "%s[%d]:  WDS failed: %d bytes at %p\n", FILE__, __LINE__, SLH_SAVE_BUFFER_SIZE, breakAddr_);
    }
 }
 #endif

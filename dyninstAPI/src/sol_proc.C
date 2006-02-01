@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.75 2006/01/30 07:16:53 jaw Exp $
+// $Id: sol_proc.C,v 1.76 2006/02/01 00:42:54 jaw Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -1514,6 +1514,71 @@ bool SignalGenerator::updateEvents(pdvector<EventRecord> &events, process *p, in
   return updated_events;
 }
 
+bool SignalGenerator::decodeEvent(EventRecord &ev)
+{
+
+  if ((ev.info & POLLHUP) || (ev.info & POLLNVAL)) {
+     // True if the process exited out from under us
+     ev.lwp = ev.proc->getRepresentativeLWP();
+     int status;
+     int ret; 
+     do {
+         ret = waitpid(pid, &status, 0);
+     } while ((ret < 0) && (errno == EINTR));
+     if (ret < 0) { 
+         fprintf(stderr, "%s[%d]:  This shouldn't happen\n", FILE__, __LINE__);         if (pid == -1) {
+           // This means that the application exited, but was not our child
+           // so it didn't wait around for us to get it's return code.  In
+           // this case, we can't know why it exited or what it's return
+           // code was.
+           fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+         }
+         else {
+           fprintf(stderr, "%s[%d]:  got event for pid %d, expecting %d\n", FILE__, __LINE__, ev.proc->getPid(), pid);
+           //  but really it _should_ be our child since 
+           ev.type = evtProcessExit;
+           ev.what = 0;
+           status = 0;
+           return true;
+         }
+     }
+
+     decodeWaitPidStatus(status, ev);
+     decodeKludge(ev);
+     signal_printf("%s[%d]:  new event: %s\n", FILE__, __LINE__, eventType2str(ev.type));
+     return true;
+  }
+
+   procProcStatus_t procstatus;
+   if(! ev.proc->getRepresentativeLWP()->get_status(&procstatus)) {
+      if (ev.type == evtUndefined) {
+        ev.type = evtProcessExit;
+        fprintf(stderr, "%s[%d]:  file desc for process exit not available\n",
+                FILE__, __LINE__);
+        return true;
+      }
+      fprintf(stderr, "%s[%d]:  file desc for %s not available\n",
+              FILE__, __LINE__, eventType2str(ev.type));
+      return false;
+   }
+
+   // copied from old code, must not care about events that don't stop proc
+   if ( !(procstatus.pr_flags & PR_STOPPED || procstatus.pr_flags & PR_ISTOP) ) {
+     ev.type = evtNullEvent;
+     decodeKludge(ev);
+     signal_printf("%s[%d]:  new event: %s\n",
+                   FILE__, __LINE__, eventType2str(ev.type));
+     return true;
+   }
+
+   bool updated_events = false;
+   unsigned lwp_to_use = (unsigned) procstatus.pr_lwpid;
+   updated_events = updateEvents(events_to_handle, ev.proc, lwp_to_use);
+   return updated_events;
+
+}
+
+#ifdef NOTDEF // PDSEP
 bool SignalGenerator::getFDsForPoll(pdvector<unsigned int> &fds)
 {
   extern pdvector<process*> processVec;
@@ -1534,6 +1599,7 @@ bool SignalGenerator::getFDsForPoll(pdvector<unsigned int> &fds)
 #endif
   return (fds.size() > 0);
 }
+#endif
 
 pdstring process::tryToFindExecutable(const pdstring &iprogpath, int pid) {
   // This is called by exec, so we might have a valid file path. If so,

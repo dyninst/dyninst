@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-unix.h,v 1.18 2006/01/30 07:16:53 jaw Exp $
+/* $Id: signalhandler-unix.h,v 1.19 2006/02/01 00:42:54 jaw Exp $
  */
 
 /*
@@ -72,7 +72,9 @@
 // process exits do not cause poll events on alpha-osf, so we have a timeout
 #if defined (os_osf)
 #define POLL_TIMEOUT 1000 /*ms*/
+#define POLL_FD get_fd()
 #else
+#define POLL_FD status_fd()
 #define POLL_TIMEOUT -1
 #endif
 
@@ -207,10 +209,12 @@ class SignalGenerator : public SignalGeneratorCommon
   //  eg. procSysFork.  returns false if there is no available mapping.
   bool decodeSyscall(EventRecord &ev);
 
+#ifdef NOTDEF // PDSEP
   //  functions specific to the unix polling mechanism.
 //  bool createPollEvent(pdvector<EventRecord> &events, struct pollfd fds, process *curProc);
   bool getFDsForPoll(pdvector<unsigned int> &fds);
   process *findProcessByFD(unsigned int fd);
+#endif
 
 #if !defined (os_linux) 
    bool updateEvents(pdvector<EventRecord> &events, process *p, int lwp_to_use);

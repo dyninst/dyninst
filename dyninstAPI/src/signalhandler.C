@@ -307,15 +307,23 @@ process *SignalGeneratorCommon::newProcess(pdstring file_, pdstring dir,
 void SignalGeneratorCommon::stopSignalGenerator(SignalGenerator *sg)
 {
    
+  int dur = 0;
   signal_printf("%s[%d]:  waiting for thread to terminate\n", FILE__, __LINE__);
-    sg->stopThreadNextIter();
-    sg->wakeUpThreadForShutDown();
+
+  sg->stopThreadNextIter();
+  sg->wakeUpThreadForShutDown();
+
   while (sg->isRunning()) {
     sg->__UNLOCK;
-    fprintf(stderr, "%s[%d]:  sg is still running\n", FILE__, __LINE__);
-    sleep(1);
+    //  If we wait more than 5 iters here, something is defnitely wrong and
+    //  this should be reexamined.
+    if (dur++ > 5) 
+      fprintf(stderr, "%s[%d]:  sg still running\n", FILE__, __LINE__);
+     sleep(1);
    sg->__LOCK;
   }
+
+  signal_printf("%s[%d]:  sg has stopped\n", FILE__, __LINE__);
 }
 
 void SignalGeneratorCommon::deleteSignalGenerator(SignalGenerator *sg)

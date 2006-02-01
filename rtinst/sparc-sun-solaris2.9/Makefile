@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.2 2004/03/06 14:19:19 bernat Exp $
+# $Id: Makefile,v 1.3 2006/02/01 00:42:55 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -14,7 +14,7 @@ USES_SHM_SAMPLING = true
 include ../../make.config 
 
 # Now make any necessary architecture-specific changes to variables:
-
+USES_NATIVE_CC = true
 NATIVE_CC = cc
 ifneq (,$(findstring WorkShop,$(shell $(NATIVE_CC) -V 2>&1)))
 USES_NATIVE_CC = true
@@ -24,7 +24,6 @@ USES_NATIVE_CC = true
 endif
 
 
-CFLAGS		= -g -I. -I../.. -Dsparc_sun_solaris2_4
 ifdef INCLUDE_CP_PROFILING
 CFLAGS		+= -I$(PVM_INCDIR)
 endif
@@ -34,22 +33,24 @@ LD		= $(NATIVE_CC)
 # OVERRIDE CFLAGS
 CFLAGS		= $(IFLAGS) $(UNIFIED_DEF) $(COMMON_WARNINGS)
 CFLAGS		+= -Kpic -O
-LDFLAGS		= -dy -G -z text -z initarray=libparadynRT_init
+LDFLAGS		= -dy -G -z text
 else
 CC		= $(GCC)
 LD		= $(GCC)
 CFLAGS		+= -fpic -O2
-LDFLAGS		= -shared -Wl,-z -Wl,initarray=libparadynRT_init
+LDFLAGS		= -shared -Wl,-z
 endif
 
 VPATH        = ../src
 #:../../dyninstAPI_RT/src # ccw 18 apr 2002 : SPLIT
 
-SRCS	     += ../src/RTfirst.c \
-		../src/RTetc-posix.c \
+SRCS	     += ../src/RTetc-posix.c \
 		../src/RTetc-solaris.c \
-		../src/RTrexec.c
-
+		../src/RTrexec.c \
+		../src/RTinst.c \
+		../src/RTmpi.c 
+#		../src/thread-compat.c \
+#		../src/RTthread.c 
 #		../../dyninstAPI_RT/src/RTheap.c \ # ccw 18 apr 2002 : SPLIT
 #		../../dyninstAPI_RT/src/RTheap-svr4.c \
 #		../../dyninstAPI_RT/src/RTheap-solaris.c \
