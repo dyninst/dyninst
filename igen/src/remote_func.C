@@ -44,6 +44,12 @@
 #include "remote_func.h"
 #include "Options.h"
 
+static bool is_base_type(pdstring type)
+{
+   return ((type == "int") || (type == "unsigned") || (type == "char") || 
+           (type == "bool") || (type == "float") || (type == "double"));
+}
+
 pdstring remote_func::request_tag(bool unqual) const {
   return((unqual ? pdstring("") : Options::type_prefix()) + name() + "_REQ");}
 
@@ -305,9 +311,7 @@ bool remote_func::handle_request(const pdstring &spaces, ofstream &out_stream,
        if (!void_type)
 	 {
 	   pdstring type = call_sig_.type();
-	   // TODO fix to ignore all scalar types, instead of trying to 
-	   // list them all here.
-	   if( (type != "int") && (type != "double") && (type != "bool") )
+	   if( ! is_base_type(type) )
 	     {
 	       if( type.prefixed_by(Options::type_prefix()) ) 
 		 {
@@ -332,11 +336,6 @@ bool remote_func::handle_request(const pdstring &spaces, ofstream &out_stream,
 		     {
 		       out_stream << spacesp6 << "delete buffer;\n";
 		     }
-
-
-
-
-
 		 }
 	     }
 	   out_stream << spacesp6 << "break;" << endl;
@@ -432,9 +431,7 @@ bool remote_func::free_async(const pdstring &spaces,
    
    if (call_sig_.type() != "void") {
      pdstring type = call_sig_.type();
-     // TODO fix to ignore all scalar types, instead of trying to 
-     // list them all here.
-     if( (type != "int") && (type != "double") && (type != "bool") ) {
+     if( ! is_base_type(type) ) {
        if( type.prefixed_by(Options::type_prefix()) ) {
          //need to remove the type_prefix from type for destructor call
          int prefix_length = Options::type_prefix().length();
