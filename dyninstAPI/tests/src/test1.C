@@ -2224,7 +2224,7 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
                 oldPt = pt;
             }
             else 
-              fprintf(stderr, "%s[%d]:  non-arbitrary point (%d) being ignored\n", __FILE__, __LINE__);
+              fprintf(stderr, "%s[%d]:  non-arbitrary point being ignored\n", __FILE__, __LINE__);
 
           }
           else {

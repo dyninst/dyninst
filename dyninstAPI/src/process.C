@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.571 2006/01/30 07:16:53 jaw Exp $
+// $Id: process.C,v 1.572 2006/02/01 02:06:22 jodom Exp $
 
 #include <ctype.h>
 
@@ -4064,7 +4064,7 @@ bool process::handleChangeInSharedObjectMapping(EventRecord &ev)
    ev.what = 0;
    //if (!dyn->getChangedObjects(ev,changed_objs)) {
    if (!dyn->handleIfDueToSharedObjectMapping(ev,changed_objs)) {
-       fprintf(stderr, "change in mapping but no changed objs??\n", FILE__, __LINE__);
+       fprintf(stderr, "%s[%d]: change in mapping but no changed objs??\n", FILE__, __LINE__);
        return false;
    }
 
@@ -6092,7 +6092,7 @@ Address process::stepi(bool verbose, int lwp) {
       if (!result)
       {
          if (verbose) {
-            fprintf(stderr, "[stepi @ %s:%u] - Error. Couldn't stop %d.\n" 
+            fprintf(stderr, "[stepi @ %s:%u] - Error. Couldn't stop %d.\n", 
                     __FILE__, __LINE__, getPid());
          }
          return (Address) -1;
@@ -6121,7 +6121,7 @@ Address process::stepi(bool verbose, int lwp) {
    if ((nexti == (Address) -1) || lwp_to_step->status() != stopped)
    {
       if (verbose) {
-         fprintf(stderr, "[stepi @ %s:%u] - Warning. Couldn't step.\n",
+         fprintf(stderr, "[stepi @ %s:%u] - Warning. Couldn't step %d.\n",
                  __FILE__, __LINE__, getPid());
       }
    }

@@ -430,7 +430,7 @@ public:
     API_EXPORT(Int, (path, argv, envp, stdin_fd, stdout_fd, stderr_fd),
     BPatch_process *,processCreate,(const char *path,
                                     const char *argv[],
-                                    const char *envp[] = NULL,
+                                    const char **envp = NULL,
                                     int stdin_fd=0,
                                     int stdout_fd=1,
                                     int stderr_fd=2));

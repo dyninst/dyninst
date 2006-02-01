@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.25 2006/01/29 19:18:18 chadd Exp $
+// $Id: multiTramp.C,v 1.26 2006/02/01 02:06:22 jodom Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -1794,7 +1794,7 @@ generatedCodeObject *generatedCFG_t::iterator::operator++(int) {
             if (bti)
                 fprintf(stderr, "next is a base tramp\n");
             else if (reloc)
-                fprintf(stderr, "next is relocated insn from 0x%llx\n",
+                fprintf(stderr, "next is relocated insn from 0x%lx\n",
                         reloc->origAddr);
             else if (te)
                 fprintf(stderr, "next is tramp end\n");
@@ -1805,7 +1805,7 @@ generatedCodeObject *generatedCFG_t::iterator::operator++(int) {
             if (bti)
                 fprintf(stderr, "next->previous is a base tramp\n");
             else if (reloc)
-                fprintf(stderr, "next->previous is relocated insn from 0x%llx\n", 
+                fprintf(stderr, "next->previous is relocated insn from 0x%lx\n", 
                         reloc->origAddr);
             else if (te)
                 fprintf(stderr, "next->previous is tramp end\n");

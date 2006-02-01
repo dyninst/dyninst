@@ -8,7 +8,7 @@
 #define TEST6_THREADS 10
 #define TEST7_THREADS 10
 
-#define MAX_TEST 4
+#define MAX_TEST 5
 #define TIMEOUT 12000 /* ms */
 #if defined (os_windows)
 #error

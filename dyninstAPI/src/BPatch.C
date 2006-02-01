@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.106 2006/01/30 07:16:52 jaw Exp $
+// $Id: BPatch.C,v 1.107 2006/02/01 02:06:22 jodom Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -673,7 +673,7 @@ void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
 
     pdvector<CallbackBase *> cbs;
     if (! getCBManager()->dispenseCallbacksMatching(evtError, cbs)) {
-      fprintf(stdout, "%s[%d]:  DYNINST ERROR:\n %s\n", str);
+      fprintf(stdout, "%s[%d]:  DYNINST ERROR:\n %s\n", FILE__, __LINE__, str);
       fflush(stdout);
       return; 
     }

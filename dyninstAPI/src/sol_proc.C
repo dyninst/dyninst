@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.76 2006/02/01 00:42:54 jaw Exp $
+// $Id: sol_proc.C,v 1.77 2006/02/01 02:06:23 jodom Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -238,7 +238,7 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
         slp.tv_sec = 0;
         slp.tv_usec = 1 /*ms*/ *1000;
         select(0, NULL, NULL, NULL, &slp);
-        fprintf(stderr, "continueLWP_, ctl_fd is busy, trying again\n", FILE__, __LINE__);
+        fprintf(stderr, "%s[%d]: continueLWP_, ctl_fd is busy, trying again\n", FILE__, __LINE__);
         goto busy_retry;
       }
       perror("continueLWP: PCRUN2");
@@ -499,9 +499,9 @@ void dyn_lwp::dumpRegisters()
      return;
    }
  
-   fprintf(stderr, "PC:   %lx\n", GETREG_PC(regs.theIntRegs));
-   fprintf(stderr, "FP:   %lx\n", GETREG_FP(regs.theIntRegs));
-   fprintf(stderr, "INFO: %lx\n", GETREG_INFO(regs.theIntRegs));
+   fprintf(stderr, "PC:   %llx\n", GETREG_PC(regs.theIntRegs));
+   fprintf(stderr, "FP:   %llx\n", GETREG_FP(regs.theIntRegs));
+   fprintf(stderr, "INFO: %llx\n", GETREG_INFO(regs.theIntRegs));
    //  plenty more register if we want to print em....
 }
 

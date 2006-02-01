@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.186 2006/01/30 19:44:59 jaw Exp $
+// $Id: linux.C,v 1.187 2006/02/01 02:06:22 jodom Exp $
 
 #include <fstream>
 
@@ -532,7 +532,7 @@ bool process::trapAtEntryPointOfMain(dyn_lwp *trappingLWP, Address)
         (active.getPC()-1) == main_brk_addr)
         return true;
     else {
-      fprintf(stderr, "%s[%d]:  pc =  %p\n",
+      fprintf(stderr, "%s[%d]:  pc =  %lx\n",
             FILE__, __LINE__, active.getPC());
     }
     return false;
@@ -1023,7 +1023,7 @@ bool DebuggerInterface::bulkPtraceWrite(void *inTraced, u_int nbytes, void *inSe
       int retval =  P_ptrace(PTRACE_POKETEXT, pid, (Address) ap, w);
       if (retval < 0) {
          fprintf(stderr, "%s[%d]:  write data space failing, pid %d\n", __FILE__, __LINE__, pid);
-         fprintf(stderr, "%s[%d][%s]:  tried to write %p in address %p\n", FILE__, __LINE__, getThreadStr(getExecThreadID()),w, ap);
+         fprintf(stderr, "%s[%d][%s]:  tried to write %lx in address %lx\n", FILE__, __LINE__, getThreadStr(getExecThreadID()),w, ap);
          perror("ptrace");
          return false;
       }
@@ -2175,7 +2175,7 @@ bool process::initMT()
    if (!res)
    {
       fprintf(stderr, "[%s:%d] - Couldn't update dyn_pthread_self\n",
-              __FILE__, __LINE__, pthread_self_funcs.size());
+              __FILE__, __LINE__);
       return false;
    }
    return true;

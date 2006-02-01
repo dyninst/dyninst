@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.12 2006/01/14 23:47:54 nater Exp $
+// $Id: instPoint.C,v 1.13 2006/02/01 02:06:22 jodom Exp $
 // instPoint code
 
 
@@ -251,7 +251,7 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr, process *proc) {
     bblInstance *bbl = range->is_basicBlockInstance();
     if (!bbl) {
         inst_printf("Address not in known code, ret null\n");
-        fprintf(stderr, "Address not in known code, ret null\n", FILE__, __LINE__);
+        fprintf(stderr, "%s[%d]: Address not in known code, ret null\n", FILE__, __LINE__);
         return NULL;
     }
     int_basicBlock *block = bbl->block();
@@ -259,7 +259,7 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr, process *proc) {
     // For now: we constrain the address to be in the original instance
     // of the basic block.
     if (block->origInstance() != bbl) {
-        fprintf(stderr, "Address not in original basic block instance\n", FILE__, __LINE__);
+        fprintf(stderr, "%s[%d]: Address not in original basic block instance\n", FILE__, __LINE__);
         return NULL;
     }
     int_function *func = bbl->func();
@@ -269,7 +269,7 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr, process *proc) {
     while ((*newIter) < addr) newIter++;
     if (*newIter != addr) {
         inst_printf("Unaligned try for instruction iterator, ret null\n");
-        fprintf(stderr, "Unaligned try for instruction iterator, ret null\n", FILE__, __LINE__);
+        fprintf(stderr, "%s[%d]: Unaligned try for instruction iterator, ret null\n", FILE__, __LINE__);
         return NULL; // Not aligned
     }
 #if defined(arch_sparc)

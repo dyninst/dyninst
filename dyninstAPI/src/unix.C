@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.155 2006/02/01 00:42:54 jaw Exp $
+// $Id: unix.C,v 1.156 2006/02/01 02:06:23 jodom Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -133,7 +133,7 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
 
    if (vars.size() != 1) {
      fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 
-             FILE__, __LINE__, status_str.c_str());
+             FILE__, __LINE__, vars.size(), status_str.c_str());
      return false;
    }
 
@@ -156,7 +156,7 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
 
    if (vars.size() != 1) {
      fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 
-             FILE__, __LINE__, arg_str.c_str());
+             FILE__, __LINE__, vars.size(), arg_str.c_str());
      return false;
    }
 
@@ -864,7 +864,7 @@ bool PtraceCallback::execute_real()
 
   ret = P_ptrace(req_, pid_, addr_, data_, word_len_);
   if (errno) {
-    fprintf(stderr, "%s[%d][%s]:  ptrace(%d, pid = %d, %p, %p, %d) failed\n", 
+    fprintf(stderr, "%s[%d][%s]:  ptrace(%d, pid = %d, %lx, %lx, %d) failed\n", 
             FILE__, __LINE__, 
            getThreadStr(getExecThreadID()), req_, pid_, addr_, data_, word_len_);
     perror("ptrace error");
@@ -1410,7 +1410,7 @@ bool OS::execute_file(char *path) {
    int result;
    result = system(path);
    if (result == -1) {
-      fprintf(stderr, "%s ");
+      fprintf(stderr, "%s ",path);
       perror("couldn't be executed");
    }
    return (result != -1);

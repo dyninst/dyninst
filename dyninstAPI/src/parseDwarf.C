@@ -828,7 +828,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			}
 			if( functions.size() == 0 ) { // Still....
 				/* If we can't find it by address, try searching by pretty name. */
-				if( baseAddr != 0 ) { /* DEBUG */ fprintf( stderr, "%s[%d]: unable to locate function %s by address 0x%lx\n", __FILE__, __LINE__, functionName, baseAddr ); }
+				if( baseAddr != 0 ) { /* DEBUG */ fprintf( stderr, "%s[%d]: unable to locate function %s by address 0x%llx\n", __FILE__, __LINE__, functionName, baseAddr ); }
 				const pdvector<int_function *> *prettyFuncs = fileOnDisk->findFuncVectorByPretty(functionName);
 				if (prettyFuncs) {
 					for (unsigned bar = 0; bar < prettyFuncs->size(); bar++) {

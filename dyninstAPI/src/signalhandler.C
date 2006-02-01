@@ -1023,7 +1023,7 @@ SignalHandler::~SignalHandler()
      //killThread();
    }else {
      signal_printf("%s[%d]:  waiting for idle before killing thread %s\n", 
-             FILE__, __LINE__);
+             FILE__, __LINE__, getName());
      int timeout = 2000 /*ms*/, time_elapsed = 0;
      while (!idle_flag && !wait_flag) {
        struct timeval slp;
@@ -1032,7 +1032,7 @@ SignalHandler::~SignalHandler()
        select(0, NULL, NULL, NULL, &slp);
        time_elapsed +=10;
        if (time_elapsed >= timeout) {
-         fprintf(stderr, "%s[%d]:  cannot kill thread %s, did not become idle\n", FILE__, __LINE__);
+         fprintf(stderr, "%s[%d]:  cannot kill thread %s, did not become idle\n", FILE__, __LINE__, getName());
          break;
        }
      }
