@@ -76,7 +76,7 @@ bool SyncCallback::waitForCompletion()
 {
     //  Assume that we are already locked upon entry
     assert(lock->depth());
-
+    fprintf(stderr, "I'm curious... depth %d\n", lock->depth());
     //  we need to find the signal
     //  handler that has this thread id -- ie, find out if we are running on a 
     //  signal handler thread.  Since we do not have an easy way of getting 
@@ -84,11 +84,17 @@ bool SyncCallback::waitForCompletion()
 
     extern pdvector<process *> processVec;
     for (unsigned int i = 0; i < processVec.size(); ++i) {
-      if (processVec[i] && processVec[i]->status() != deleted && processVec[i]->sh)
-        if (NULL != (sh = processVec[i]->sh->findSHWithThreadID(getExecThreadID())))
-           break;
+        fprintf(stderr, "processVec %d: %p, (thrid %d)\n", processVec[i], getExecThreadID());
+        if (processVec[i]) {
+            fprintf(stderr, "processVec %d: status %d, sh %p\n",
+                    processVec[i]->status(), processVec[i]->sh);
+            if (processVec[i]->status() != deleted && processVec[i]->sh)
+                if (NULL != (sh = processVec[i]->sh->findSHWithThreadID(getExecThreadID())))
+                    break;
+        }
     }
-
+    fprintf(stderr, "Found sighandler %p\n", sh);
+    fprintf(stderr, "Lock is %p\n", lock);
     signal_printf("%s[%d]: SyncCallback, waiting for completion, sh = %p\n", FILE__, __LINE__, sh ? sh->getName() : "null");
     if (sh)
       sh->wait_cb = (CallbackBase *) this;
@@ -170,14 +176,14 @@ bool ForkCallback::operator()(BPatch_thread *parent, BPatch_thread *child)
 
 bool ExecCallback::execute_real(void) 
 {
-  cb(proc);
+  cb(thread);
   return true;
 }
 
-bool ExecCallback::operator()(BPatch_thread *process)
+bool ExecCallback::operator()(BPatch_thread *thr)
 {
   assert(lock->depth());
-  proc = process;
+  thread = thr;
   getMailbox()->executeOrRegisterCallback(this);
   if (synchronous) {
     signal_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
@@ -188,14 +194,14 @@ bool ExecCallback::operator()(BPatch_thread *process)
 
 bool ExitCallback::execute_real(void) 
 {
-  cb(proc, type);
+  cb(thread, type);
   return true;
 }
 
-bool ExitCallback::operator()(BPatch_thread *process, BPatch_exitType exit_type)
+bool ExitCallback::operator()(BPatch_thread *thr, BPatch_exitType exit_type)
 {
   assert(lock->depth());
-  proc = process;
+  thread = thr;;
   type = exit_type;
   getMailbox()->executeOrRegisterCallback(this);
   if (synchronous) {
@@ -207,17 +213,20 @@ bool ExitCallback::operator()(BPatch_thread *process, BPatch_exitType exit_type)
 
 bool SignalCallback::execute_real(void) 
 {
-  cb(proc, num);
-  return true;
+    cb(thread, num);
+    return true;
 }
 
-bool SignalCallback::operator()(BPatch_thread *process, int sigNum)
+bool SignalCallback::operator()(BPatch_thread *thr, int sigNum)
 {
   assert(lock->depth());
-  proc = process;
+  thread = thr;
   num = sigNum;
+  fprintf(stderr, "********* calling executeOrRegister....\n");
   getMailbox()->executeOrRegisterCallback(this);
+  fprintf(stderr, "((((((((( finished call...\n");
   if (synchronous) {
+      fprintf(stderr, "Waiting for notice of completion\n");
     signal_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
     waitForCompletion();
   }
@@ -226,14 +235,14 @@ bool SignalCallback::operator()(BPatch_thread *process, int sigNum)
 
 bool OneTimeCodeCallback::execute_real(void) 
 {
-  cb(proc, user_data, return_value);
+  cb(thread, user_data, return_value);
   return true;
 }
 
-bool OneTimeCodeCallback::operator()(BPatch_thread *process, void *userData, void *returnValue)
+bool OneTimeCodeCallback::operator()(BPatch_thread *thr, void *userData, void *returnValue)
 {
   assert(lock->depth());
-  proc = process;
+  thread = thr;
   user_data = userData;
   return_value = returnValue;
   getMailbox()->executeOrRegisterCallback(this);
@@ -246,14 +255,14 @@ bool OneTimeCodeCallback::operator()(BPatch_thread *process, void *userData, voi
 
 bool DynLibraryCallback::execute_real(void) 
 {
-  cb(proc, mod, load_param);
+  cb(thread, mod, load_param);
   return true;
 }
 
-bool DynLibraryCallback::operator()(BPatch_thread *process, BPatch_module *module, bool load)
+bool DynLibraryCallback::operator()(BPatch_thread *thr, BPatch_module *module, bool load)
 {
   assert(lock->depth());
-  proc = process;
+  thread = thr;
   mod = module;
   load_param = load;
   getMailbox()->executeOrRegisterCallback(this);

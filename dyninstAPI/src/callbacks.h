@@ -111,36 +111,36 @@ class ExecCallback : public SyncCallback
 {  
   public:
    ExecCallback(BPatchExecCallback callback) : SyncCallback(),
-      cb(callback), proc(NULL) {}
+      cb(callback), thread(NULL) {}
    ExecCallback(ExecCallback &src) : SyncCallback(),
-      cb(src.cb), proc(NULL) {}
+      cb(src.cb), thread(NULL) {}
    ~ExecCallback() {}
 
    CallbackBase *copy() { return new ExecCallback(*this);}
    bool execute_real(void); 
-   bool operator()(BPatch_thread *process);
+   bool operator()(BPatch_thread *thread);
    BPatchExecCallback getFunc() {return cb;}
   private:    
    BPatchExecCallback cb;    
-   BPatch_thread *proc;
+   BPatch_thread *thread;
 };
 
 class ExitCallback : public SyncCallback 
 {  
   public:
    ExitCallback(BPatchExitCallback callback) : SyncCallback(),
-      cb(callback), proc(NULL) {}
+      cb(callback), thread(NULL) {}
    ExitCallback(ExitCallback &src) : SyncCallback(),
-      cb(src.cb), proc(NULL) {}
+      cb(src.cb), thread(NULL) {}
    ~ExitCallback() {}
 
    CallbackBase *copy() { return new ExitCallback(*this);}
    bool execute_real(void); 
-   bool operator()(BPatch_thread *process, BPatch_exitType exit_type);
+   bool operator()(BPatch_thread *thread, BPatch_exitType exit_type);
    BPatchExitCallback getFunc() {return cb;}
   private:    
    BPatchExitCallback cb;    
-   BPatch_thread *proc;
+   BPatch_thread *thread;
    BPatch_exitType type;
 };
 
@@ -148,18 +148,18 @@ class SignalCallback : public SyncCallback
 {  
   public:
    SignalCallback(BPatchSignalCallback callback) : SyncCallback(),
-      cb(callback), proc(NULL) {}
+       cb(callback), thread(NULL) {}
    SignalCallback(SignalCallback &src) : SyncCallback(),
-      cb(src.cb), proc(NULL) {}
+      cb(src.cb), thread(NULL) {}
    ~SignalCallback() {}
 
    CallbackBase *copy() { return new SignalCallback(*this);}
    bool execute_real(void); 
-   bool operator()(BPatch_thread *process, int sigNum);
+   bool operator()(BPatch_thread *thread, int sigNum);
    BPatchSignalCallback getFunc() {return cb;}
   private:    
    BPatchSignalCallback cb;    
-   BPatch_thread *proc;
+   BPatch_thread *thread;
    int num;
 };
 
@@ -167,18 +167,18 @@ class OneTimeCodeCallback : public SyncCallback
 {  
   public:
    OneTimeCodeCallback(BPatchOneTimeCodeCallback callback) : SyncCallback(),
-      cb(callback), proc(NULL) {}
+      cb(callback), thread(NULL) {}
    OneTimeCodeCallback(OneTimeCodeCallback &src) : SyncCallback(),
-      cb(src.cb), proc(NULL), user_data(NULL), return_value(NULL) {}
+      cb(src.cb), thread(NULL), user_data(NULL), return_value(NULL) {}
    ~OneTimeCodeCallback() {}
 
    CallbackBase *copy() { return new OneTimeCodeCallback(*this);}
    bool execute_real(void); 
-   bool operator()(BPatch_thread *process, void *userData, void *returnValue);
+   bool operator()(BPatch_thread *thread, void *userData, void *returnValue);
    BPatchOneTimeCodeCallback getFunc() {return cb;}
   private:    
    BPatchOneTimeCodeCallback cb;    
-   BPatch_thread *proc;
+   BPatch_thread *thread;
    void *user_data;
    void *return_value;
 };
@@ -187,18 +187,18 @@ class DynLibraryCallback : public SyncCallback
 {  
   public:
    DynLibraryCallback(BPatchDynLibraryCallback callback) : SyncCallback(),
-      cb(callback), proc(NULL) {}
+      cb(callback), thread(NULL) {}
    DynLibraryCallback(DynLibraryCallback &src) : SyncCallback(),
-      cb(src.cb), proc(NULL), mod(NULL) {}
+       cb(src.cb), thread(NULL), mod(NULL) {}
    ~DynLibraryCallback() {}
 
    CallbackBase *copy() { return new DynLibraryCallback(*this);}
    bool execute_real(void); 
-   bool operator()(BPatch_thread *process, BPatch_module *module, bool load);
+   bool operator()(BPatch_thread *thread, BPatch_module *module, bool load);
    BPatchDynLibraryCallback getFunc() {return cb;}
   private:    
    BPatchDynLibraryCallback cb;    
-   BPatch_thread *proc;
+   BPatch_thread *thread;
    BPatch_module *mod;
    bool load_param;
 };
@@ -228,7 +228,7 @@ class UserEventCallback : public SyncCallback
    UserEventCallback(BPatchUserEventCallback callback) : SyncCallback(),
       cb(callback), proc(NULL), buf(NULL) {}
    UserEventCallback(UserEventCallback &src) : SyncCallback(),
-      cb(src.cb), proc(NULL), buf(NULL), bufsize(-1) {}
+       cb(src.cb), proc(NULL), buf(NULL), bufsize(-1) {}
    ~UserEventCallback();
 
    CallbackBase *copy() { return new UserEventCallback(*this);}
