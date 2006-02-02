@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.88 2006/02/01 18:24:05 nater Exp $
+// $Id: linux-x86.C,v 1.89 2006/02/02 03:51:11 bernat Exp $
 
 #include <fstream>
 
@@ -157,11 +157,13 @@ void dyn_lwp::dumpRegisters()
      return;
    }
 
+#if defined(arch_x86)
    fprintf(stderr, "eip:   %lx\n", regs.gprs.eip);
    fprintf(stderr, "eax:   %lx\n", regs.gprs.eax);
    fprintf(stderr, "ebx:   %lx\n", regs.gprs.ebx);
    fprintf(stderr, "ecx:   %lx\n", regs.gprs.ecx);
    fprintf(stderr, "esp:   %lx\n", regs.gprs.esp);
+#endif
    //  plenty more register if we want to print em....
 }
 
