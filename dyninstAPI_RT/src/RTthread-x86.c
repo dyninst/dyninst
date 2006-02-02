@@ -73,15 +73,15 @@ int atomic_set(int *val)
    int result;
    __asm(
       "movl $0,%%eax\n"
-      "movl $1,%%ebx\n"
+      "movl $1,%%edx\n"
       "movl %1,%%ecx\n"
       "lock\n"
-      "cmpxchgl %%ebx,(%%ecx)\n"
+      "cmpxchgl %%edx,(%%ecx)\n"
       "setz %%al\n"
       "movl %%eax,%0\n"
       : "=r" (result)
       : "r" (val)
-      : "%eax", "%ebx", "%ecx");
+      : "%eax", "%edx", "%ecx");
    return result;
 }
 #endif
