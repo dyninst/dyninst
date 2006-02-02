@@ -60,7 +60,7 @@ class BPatchSnippetHandle;
 class BPatch_basicBlockLoop;
 class BPatch_process;
 class BPatch_frame;
-
+class BPatch_edge;
 
 /*
  * Used to specify whether a snippet is to be called before the instructions
