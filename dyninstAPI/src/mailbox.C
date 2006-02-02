@@ -246,6 +246,7 @@ int eventLock::_Broadcast(const char *__file__, unsigned int __line__)
   //ret = SetEvent(mutex);
   //assert (ret);
 #else
+  assert(this);
   int err = 0;
   if(0 != (err = pthread_cond_broadcast(&cond))){
     ERROR_BUFFER;
