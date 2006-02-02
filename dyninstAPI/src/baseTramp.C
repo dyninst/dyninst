@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.21 2006/01/29 19:18:18 chadd Exp $
+// $Id: baseTramp.C,v 1.22 2006/02/02 03:51:08 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -76,7 +76,6 @@ baseTrampInstance::baseTrampInstance(const baseTrampInstance *parBTI,
 {
     // Register with parent
     cBT->instances.push_back(this);
-
     // And copy miniTrampInstances
     for (unsigned i = 0; i < parBTI->mtis.size(); i++) {
         miniTramp *cMini = NULL;
@@ -244,6 +243,7 @@ baseTramp::baseTramp(const baseTramp *pt, process *proc) :
     suppress_threads_(pt->suppress_threads_),
     instVersion_(pt->instVersion_)
 {
+
     if (pt->clobberedGPR)
         assert(0); // Don't know how to copy these
     if (pt->clobberedFPR)
@@ -269,7 +269,7 @@ baseTramp::baseTramp(const baseTramp *pt, process *proc) :
         }
 
         if (!firstPreMini &&
-            (childMini->instP = preInstP))
+            (childMini->instP == preInstP))
             firstPreMini = childMini;
             
 
