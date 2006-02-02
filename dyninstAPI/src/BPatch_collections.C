@@ -159,9 +159,6 @@ void BPatch_typeCollection::freeTypeCollection(BPatch_typeCollection *tc) {
     assert(tc);
     tc->refcount--;
     if (tc->refcount == 0) {
-        // Nuke...
-        // Do we want to? We could always leave 'em around to reduce parsing time.
-#if 0
         dictionary_hash_iter<pdstring, BPatch_typeCollection *> iter(fileToTypesMap);
         for (; iter; iter++) {
             if (iter.currval() == tc) {
@@ -170,7 +167,6 @@ void BPatch_typeCollection::freeTypeCollection(BPatch_typeCollection *tc) {
             }
         }
         delete tc;
-#endif
     }
 }
 
