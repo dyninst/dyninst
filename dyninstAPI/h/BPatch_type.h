@@ -371,7 +371,7 @@ class BPATCH_DLL_EXPORT BPatch_localVar : public BPatch_eventLock{
                                  int, BPatch_typeCommon *);
 #if defined(USES_DWARF_DEBUG)
     friend bool walkDwarvenTree(Dwarf_Debug &, char *, Dwarf_Die,
-                        BPatch_module *, process *, BPatch_function *,
+                        BPatch_module *, process *, Dwarf_Off, BPatch_function *,
                         BPatch_typeCommon *, BPatch_fieldListType *);
 #endif
 #if defined (os_osf)
