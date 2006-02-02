@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.69 2005/12/12 16:37:08 gquinn Exp $
+ * $Id: Object-elf.h,v 1.70 2006/02/02 03:51:00 bernat Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -102,6 +102,7 @@ class stab_entry {
   public:
     stab_entry(void *_stabptr = 0, const char *_stabstr = 0, long _nsyms = 0)
 	: stabptr(_stabptr), stabstr(_stabstr), nsyms(_nsyms) { }
+    virtual ~stab_entry() {};
 
     virtual const char *name(int i) = 0;
     virtual unsigned long nameIdx(int i) = 0;
@@ -124,6 +125,7 @@ class stab_entry_32 : public stab_entry {
   public:
     stab_entry_32(void *_stabptr = 0, const char *_stabstr = 0, long _nsyms = 0)
 	: stab_entry(_stabptr, _stabstr, _nsyms) { }
+    virtual ~stab_entry_32() {};
 
     const char *name(int i = 0) { return stabstr + ((stab32 *)stabptr)[i].name; }
     unsigned long nameIdx(int i = 0) { return ((stab32 *)stabptr)[i].name; }
@@ -137,6 +139,7 @@ class stab_entry_64 : public stab_entry {
   public:
     stab_entry_64(void *_stabptr = 0, const char *_stabstr = 0, long _nsyms = 0)
 	: stab_entry(_stabptr, _stabstr, _nsyms) { }
+    virtual ~stab_entry_64() {};
 
     const char *name(int i = 0) { return stabstr + ((stab64 *)stabptr)[i].name; }
     unsigned long nameIdx(int i = 0) { return ((stab64 *)stabptr)[i].name; }
