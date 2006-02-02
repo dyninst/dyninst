@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.189 2006/01/14 23:47:59 nater Exp $
+// $Id: symtab.h,v 1.190 2006/02/02 02:55:13 tlmiller Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -417,10 +417,11 @@ class image : public codeRange {
    // codeRange versions
    Address get_address_cr() const { return codeOffset(); }
    unsigned get_size_cr() const { return codeLength(); }
-   void *getPtrToInstruction(Address addr) const;
+   void *getPtrToInstruction(Address offset) const;
    // Heh... going by address is a really awful way to work on AIX.
    // Make it explicit.
    void *getPtrToData(Address offset) const;
+   void * getPtrToDataInText( Address offset ) const;
 
    Address codeValidStart() const { return codeValidStart_; }
    Address codeValidEnd() const { return codeValidEnd_; }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.265 2006/01/31 23:25:30 mirg Exp $
+ // $Id: symtab.C,v 1.266 2006/02/02 02:55:04 tlmiller Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2339,6 +2339,15 @@ void pdmodule::removeFunction(image_func *func) {
 }
 #endif
 
+void * image::getPtrToDataInText( Address offset ) const {
+	if( isData(offset) ) { return NULL; }
+	if( ! isCode(offset) ) { return NULL; }
+	
+	offset -= codeOffset_;
+	unsigned char * inst = (unsigned char *) linkedFile.code_ptr();
+	return (void *)(& inst[ offset ]);	
+	} /* end getPtrToDataInText() */
+
 void *image::getPtrToData(Address offset) const {
     if (!isData(offset)) return NULL;
     offset -= dataOffset_;
@@ -2367,7 +2376,12 @@ void *image::getPtrToInstruction(Address offset) const {
 // Address must be in code or data range since some code may end up
 // in the data segment
 bool image::isValidAddress(const Address &where) const{
+#if ! defined( arch_ia64 )
     return (instruction::isAligned(where) && (isCode(where) || isData(where)));
+#else
+	/* On IA-64, only instructions are "aligned." */
+    return (instruction::isAligned(where) && isCode(where)) || isData(where);
+#endif /* ! defined( arch_ia64 ) */    
 }
 
 bool image::isAllocedAddress(const Address &where) const{
