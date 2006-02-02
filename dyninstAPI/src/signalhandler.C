@@ -661,13 +661,23 @@ bool SignalGeneratorCommon::initialize_event_handler()
     }
 
   }
-  else {
+  else { // proc->getParent() is non-NULL, fork case
      fprintf(stderr, "%s[%d]: fork init section\n", FILE__, __LINE__);
+     proc->createRepresentativeLWP();
+     
+     if (!attachProcess()) {
+         fprintf(stderr, "%s[%d]:  failed to attach to process %d\n", FILE__, __LINE__,
+                 pid);
+         delete proc;
+         proc = NULL;
+         return false;
+     }
+     
      if (!proc->setupFork()) {
-       fprintf(stderr, "%s[%d]:  failed to setupFork\n", FILE__, __LINE__);
-       delete proc;
-       proc = NULL;
-       return false;
+         fprintf(stderr, "%s[%d]:  failed to setupFork\n", FILE__, __LINE__);
+         delete proc;
+         proc = NULL;
+         return false;
      }
 
      fprintf(stderr, "%s[%d]: setup child in fork...\n", FILE__, __LINE__);
@@ -1307,6 +1317,14 @@ bool SignalHandler::handleForkExit(EventRecord &ev)
          }
          if (i== processVec.size()) {
              // this is a new child, register it with dyninst
+             // Note: we need to wait for the child process to be created.
+             // For now, we sleep (apparently), but the better solution is to
+             // loop waiting for the child to be created and then attach to it.
+             // We have seen the following order:
+             // Parent exits fork
+             // We get notification -- but no child yet.
+             // Child is created
+             // This seems to be OS dependent on who goes first - parent or child.
              sleep(1);
 
              // We leave the parent paused until the child is finished,
@@ -1317,6 +1335,7 @@ bool SignalHandler::handleForkExit(EventRecord &ev)
                return false;
    
              proc->handleForkExit(theChild);
+
 
              proc->continueProc();
              theChild->continueProc();
@@ -1646,10 +1665,15 @@ bool SignalHandler::waitNextEvent(EventRecord &ev)
     if (!sg->anyActiveHandlers() && sg->waitingForActiveProcess()) {
       sg->signalEvent(evtProcessStop);
     }
+    // Waiting for someone to ping our lock (internal thread)
     _WaitForSignal(FILE__, __LINE__);
+
+    // Someone wants us to go away....
     if (stop_request) {
        fprintf(stderr, "%s[%d]:  sg got stop request... no more handling\n", FILE__, __LINE__);
        ev.type = evtShutDown;
+       
+       // And bounce it back to the signalGenerator
        sg->signalEvent(ev);
        _Unlock(FILE__, __LINE__);
       return true;
@@ -1658,6 +1682,7 @@ bool SignalHandler::waitNextEvent(EventRecord &ev)
                   FILE__, __LINE__, getName(), idle_flag ? "false" : "true");
   }
 
+  // Take the top thing off our queue and handle it. 
   ret = true;
   ev = events_to_handle[0];
   events_to_handle.erase(0,0);
