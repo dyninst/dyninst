@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.68 2006/01/19 20:01:19 legendre Exp $
+// $Id: BPatch_function.C,v 1.69 2006/02/02 03:51:04 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -563,20 +563,20 @@ BPatch_function::voidVoidFunctionPointer BPatch_function::getFunctionRefInt() {
 	/* IA-64 function pointers actually point to structures.  We insert such
 	   a structure in the mutatee so that instrumentation can use it. */
 	Address entryPoint = (Address)getBaseAddr();
-	Address gp = proc->getTOCoffsetInfo( entryPoint );
+	Address gp = proc->llproc->getTOCoffsetInfo( entryPoint );
 
-	Address remoteAddress = proc->inferiorMalloc( sizeof( Address ) * 2 );
+	Address remoteAddress = proc->llproc->inferiorMalloc( sizeof( Address ) * 2 );
 	assert( remoteAddress != (Address)NULL );
 
-	proc->writeDataSpace( (void *)remoteAddress, sizeof( Address ), & entryPoint );
-	proc->writeDataSpace( (void *)(remoteAddress + sizeof( Address )), sizeof( Address ), & gp );
+	proc->llproc->writeDataSpace( (void *)remoteAddress, sizeof( Address ), & entryPoint );
+	proc->llproc->writeDataSpace( (void *)(remoteAddress + sizeof( Address )), sizeof( Address ), & gp );
 
 	return (BPatch_function::voidVoidFunctionPointer)remoteAddress;
 #else
 	/* This will probably work on all other platforms. */
 	return (BPatch_function::voidVoidFunctionPointer) getBaseAddr();
 #endif
-	} /* end getFunctionRef() */
+} /* end getFunctionRef() */
 
 #endif
 

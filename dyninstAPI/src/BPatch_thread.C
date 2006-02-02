@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.138 2006/01/30 07:16:52 jaw Exp $
+// $Id: BPatch_thread.C,v 1.139 2006/02/02 03:51:07 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -53,6 +53,10 @@
 #include "dyn_thread.h"
 #include "dyn_lwp.h"
 #include "BPatch_libInfo.h"
+
+#if defined(IBM_BPATCH_COMPAT)
+#include <algorithm>
+#endif
 
 /*
  * BPatch_thread::getCallStack
@@ -273,12 +277,20 @@ unsigned long BPatch_thread::getStackTopAddrInt()
  **/    
 void BPatch_thread::BPatch_thread_dtor()
 {
-   for (unsigned i=0; i<proc->threads.size(); i++)
-      if (proc->threads[i] == this)
-      {
-         proc->threads.erase(i);
-         break;
-      }
+#ifndef IBM_BPATCH_COMPAT
+    for (unsigned i=0; i<proc->threads.size(); i++) {
+        if (proc->threads[i] == this) {
+            proc->threads.erase(i);
+            break;
+        }
+    }
+#else
+    // STL vectors don't have item erase. We use iterators instead...
+    proc->threads.erase(std::find(proc->threads.begin(),
+                                  proc->threads.end(),
+                                  this));
+#endif
+    
    if (legacy_destructor)
    {
      //  ~BPatch_process obtains a lock and does a wait(), so it will fail an assert 
