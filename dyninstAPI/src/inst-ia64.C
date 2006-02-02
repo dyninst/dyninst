@@ -67,7 +67,6 @@
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/showerror.h"
-#include "dyninstAPI/src/debuggerinterface.h"
 
 #include "dyninstAPI/src/arch-ia64.h"
 #include "dyninstAPI/src/inst-ia64.h"
@@ -79,6 +78,8 @@
 #include "dyninstAPI/src/miniTramp.h"
 
 #include "dyninstAPI/src/rpcMgr.h"
+
+#include "debuggerinterface.h"
 
 #include <sys/ptrace.h>
 #include <asm/ptrace_offsets.h>
@@ -1790,6 +1791,39 @@ bool generatePreservationHeader(codeGen &gen, bool * whichToPreserve, unw_dyn_re
 						unwindRegion->insn_count, UNW_IA64_AR_PFS, 32 + originalFrameSize );
 	unwindRegion->insn_count += 3;
   }
+	else if( originalFrameSize == 96 ) {
+		/* We can't generate our default alloc because it needs a free register.  However,
+		   we still need an alloc in order to write to the registers we're preserving.  So
+		   we use the technique we use for the restore allocs: spill and fill r1 around it. */
+		   
+		IA64_bundle saveBundle = IA64_bundle( MstopMIstop, 
+			generateShortImmediateAdd( REGISTER_SP, -16, REGISTER_SP ),
+			generateRegisterStoreImmediate( REGISTER_SP, REGISTER_GP, 0 ),
+			integerNOP );
+		saveBundle.generate(gen);
+
+		/* Generate our custom alloc. */	
+		insn_tmpl alloc = { 0x0 };
+
+		alloc.M34.opcode    = 0x1;
+		alloc.M34.x3        = 0x6;
+		alloc.M34.r1        = 1;
+
+		SET_M34_FIELDS( & alloc, 88, 8, regSpace->originalRotates );
+
+		instruction allocInsn( alloc.raw );
+		IA64_bundle allocBundle( MIIstop, allocInsn, NOP_I, NOP_I );
+		allocBundle.generate(gen);
+		
+		IA64_bundle restoreBundle = IA64_bundle( MIIstop,
+			generateRegisterLoadImmediate( REGISTER_GP, REGISTER_SP, +16 ),
+			integerNOP,
+			integerNOP );
+		restoreBundle.generate(gen);
+		
+		/* FIXME: Update for save-and-restore around alloc. */
+		unwindRegion->insn_count += 9;
+		} /* end if the frame has 96 registers */
 
   // generateMemoryStackSave() *MUST* be called before generateRegisterStackSave()
   generateMemoryStackSave( gen, whichToPreserve, unwindRegion );
@@ -1946,7 +1980,7 @@ bool needToHandleSyscall( process * proc, bool * pcMayHaveRewound ) {
   instruction *insn = origBundle.getInstruction(ri);
 
   // Determine predicate register and remove it from instruction.
-  pr = getDBI()->ptrace( PTRACE_PEEKUSER, proc->getPid(), PT_PR, 0 );
+	pr = getDBI()->ptrace( PTRACE_PEEKUSER, proc->getPid(), PT_PR, 0 );
   if (errno && pr == -1) assert(0);
   pr = ( pr >> insn->getPredicate() ) & 0x1;
 
@@ -1965,7 +1999,7 @@ extern void (* jumpFromNotInSyscallToPrefixCommon)();
 bool emitSyscallHeader( process * proc, codeGen &gen) {
   /* Extract the current slotNo. */
   errno = 0;
-  reg_tmpl reg = { getDBI()->ptrace( PTRACE_PEEKUSER, proc->getPid(), PT_CR_IPSR, 0 ) };
+	reg_tmpl reg = { getDBI()->ptrace( PTRACE_PEEKUSER, proc->getPid(), PT_CR_IPSR, 0 ) };
   assert( ! errno );
   uint64_t slotNo = reg.PSR.ri;
   assert( slotNo <= 2 );
@@ -2365,58 +2399,58 @@ extern void initBaseTrampStorageMap( registerSpace *, int, bool * );
 
 /* Required by process.C */
 bool rpcMgr::emitInferiorRPCheader( codeGen &gen ) {
-  /* Extract the CFM. */
-  errno = 0;
-  reg_tmpl reg = { getDBI()->ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CFM, 0 ) };
-  assert( ! errno );
+	/* Extract the CFM. */
+	errno = 0;
+	reg_tmpl reg = { getDBI()->ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CFM, 0 ) };
+	if( errno != 0 ) { return false; } // note that this doesn't work.
 
-  /* FIXME: */ if( ! ( 0 == reg.CFM.rrb_pr == reg.CFM.rrb_fr == reg.CFM.rrb_gr ) ) { assert( 0 ); }
-  /* FIXME: */ if( reg.raw == INVALID_CFM ) { assert( 0 ); }
+	/* FIXME: */ if( ! ( 0 == reg.CFM.rrb_pr == reg.CFM.rrb_fr == reg.CFM.rrb_gr ) ) { assert( 0 ); }
+	/* FIXME: */ if( reg.raw == INVALID_CFM ) { assert( 0 ); }
 
-  /* Set regSpace for the code generator. */
-  int baseReg = 32 + reg.CFM.sof + NUM_PRESERVED;
-  if( baseReg > 128 - (NUM_LOCALS + NUM_OUTPUT) ) {
-	baseReg = 128 - (NUM_LOCALS + NUM_OUTPUT); // Never allocate over 128 registers.
-  }
+	/* Set regSpace for the code generator. */
+	int baseReg = 32 + reg.CFM.sof + NUM_PRESERVED;
+	if( baseReg > 128 - (NUM_LOCALS + NUM_OUTPUT) ) {
+		baseReg = 128 - (NUM_LOCALS + NUM_OUTPUT); // Never allocate over 128 registers.
+		}
 
-  Register deadRegisterList[NUM_LOCALS + NUM_OUTPUT];
-  for( int i = 0; i < NUM_LOCALS + NUM_OUTPUT; ++i ) {
-	deadRegisterList[i] = baseReg + i;
-  } /* end deadRegisterList population */
-  registerSpace rs( NUM_LOCALS + NUM_OUTPUT, deadRegisterList, 0, NULL );
+	Register deadRegisterList[NUM_LOCALS + NUM_OUTPUT];
+	for( int i = 0; i < NUM_LOCALS + NUM_OUTPUT; ++i ) {
+		deadRegisterList[i] = baseReg + i;
+		} /* end deadRegisterList population */
+	registerSpace rs( NUM_LOCALS + NUM_OUTPUT, deadRegisterList, 0, NULL );
 
-  initBaseTrampStorageMap( &rs, reg.CFM.sof, NULL );
-  rs.originalLocals = reg.CFM.sol;
-  rs.originalOutputs = reg.CFM.sof - reg.CFM.sol;
-  rs.originalRotates = reg.CFM.sor;
+	initBaseTrampStorageMap( &rs, reg.CFM.sof, NULL );
+	rs.originalLocals = reg.CFM.sol;
+	rs.originalOutputs = reg.CFM.sof - reg.CFM.sol;
+	rs.originalRotates = reg.CFM.sor;
 
-  /* The code generator needs to know about the register space
-	 as well, so just take advantage of the existing globals. */
-  * regSpace = rs;
+	/* The code generator needs to know about the register space
+	   as well, so just take advantage of the existing globals. */
+	* regSpace = rs;
 
-  memcpy( ::deadRegisterList, deadRegisterList, 16 * sizeof( Register ) );
+	memcpy( ::deadRegisterList, deadRegisterList, 16 * sizeof( Register ) );
 
-  if( needToHandleSyscall( proc_ ) ) {
-	if( ! emitSyscallHeader( proc_, gen) ) { return false; }
-  }
-  else {
-	/* We'll be adjusting the PC to the start of the preservation code,
-	   but we can't change the slot number ([i]psr.ri), so we need to soak
-	   up the extra slots with nops.  (Because the syscall header may require
-	   a bundle _before_ the jump target, add two NOPs; the installation routine(s)
-	   will compensate.) */
-	IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ).generate(gen);
-	IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ).generate(gen);		
-  }
+	if( needToHandleSyscall( proc_ ) ) {
+		if( ! emitSyscallHeader( proc_, gen) ) { return false; }
+		}
+	else {
+		/* We'll be adjusting the PC to the start of the preservation code,
+		   but we can't change the slot number ([i]psr.ri), so we need to soak
+		   up the extra slots with nops.  (Because the syscall header may require
+		   a bundle _before_ the jump target, add two NOPs; the installation routine(s)
+		   will compensate.) */
+		IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ).generate(gen);
+		IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ).generate(gen);		
+		}
 
-  /* It'll probably be faster just to spill all the FP registers,
-	 given that this code'll only be running once. */
-  bool * whichToPreserve = NULL;
+	/* It'll probably be faster just to spill all the FP registers,
+	   given that this code'll only be running once. */
+	bool * whichToPreserve = NULL;
 
-  /* Generate the preservation header; don't bother with unwind information
-	 for an inferior RPC.  (It must be the top of the stack.) */
-  return generatePreservationHeader( gen, whichToPreserve, NULL );
-} /* end emitInferiorRPCheader() */
+	/* Generate the preservation header; don't bother with unwind information
+	   for an inferior RPC.  (It must be the top of the stack.) */
+	return generatePreservationHeader( gen, whichToPreserve, NULL );
+	} /* end emitInferiorRPCheader() */
 
 /* From ia64-template.s. */
 extern void (* syscallSuffix)();
@@ -2513,7 +2547,7 @@ bool rpcMgr::emitInferiorRPCtrailer( codeGen &gen,
 	 corresponding to ipsr.ri so that the mutatee resumes in the correct
 	 location after the daemon adjusts its PC. */
   errno = 0;
-  reg_tmpl reg = { getDBI()->ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CR_IPSR, 0 ) };
+	reg_tmpl reg = { getDBI()->ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CR_IPSR, 0 ) };
   assert( ! errno );
   uint64_t slotNo = reg.PSR.ri;
   assert( slotNo <= 2 );
@@ -2725,29 +2759,29 @@ void registerRemoteUnwindInformation( unw_word_t di, unw_word_t udil, pid_t pid 
 	 Things to our process control model, so I'm ignoring it for now. */
   unw_word_t generation, first;
   	
-  generation = getDBI()->ptrace( PTRACE_PEEKTEXT, pid, (udil + generationOffset), (Address)NULL );
+	generation = getDBI()->ptrace( PTRACE_PEEKTEXT, pid, (udil + generationOffset), (Address)NULL );
   assert( errno == 0 );
     
   ++generation;
     
-  getDBI()->ptrace( PTRACE_POKETEXT, pid, (udil + generationOffset), generation );
+	getDBI()->ptrace( PTRACE_POKETEXT, pid, (udil + generationOffset), generation );
   assert( errno == 0 );
     
     
-  first = getDBI()->ptrace( PTRACE_PEEKTEXT, pid, (udil + firstOffset), (Address)NULL );
+	first = getDBI()->ptrace( PTRACE_PEEKTEXT, pid, (udil + firstOffset), (Address)NULL );
   assert( errno == 0 );
     
-  getDBI()->ptrace( PTRACE_POKETEXT, pid, (di + nextOffset), first );
+	getDBI()->ptrace( PTRACE_POKETEXT, pid, (di + nextOffset), first );
   assert( errno == 0 );
-  getDBI()->ptrace( PTRACE_POKETEXT, pid, (di + prevOffset), (Address)NULL );
+	getDBI()->ptrace( PTRACE_POKETEXT, pid, (di + prevOffset), (Address)NULL );
   assert( errno == 0 );
     
   if ( first ) {
-	getDBI()->ptrace( PTRACE_POKETEXT, pid, (first + prevOffset), di );
+		getDBI()->ptrace( PTRACE_POKETEXT, pid, (first + prevOffset), di );
 	assert( errno == 0 );
   }
     
-  getDBI()->ptrace( PTRACE_POKETEXT, pid, (udil + firstOffset), di );
+	getDBI()->ptrace( PTRACE_POKETEXT, pid, (udil + firstOffset), di );
   assert( errno == 0 );  
 } /* end registerRemoteUnwindInformation() */
 
@@ -2800,6 +2834,8 @@ void dumpDynamicUnwindInformation( unw_dyn_info_t * unwindInformation, process *
 bool process::insertAndRegisterDynamicUnwindInformation( unw_dyn_info_t * baseTrampDynamicInfo ) {
   /* This also does a simple consistency check. */
   dumpDynamicUnwindInformation( baseTrampDynamicInfo, this );
+	/* DEBUG */ if( baseTrampDynamicInfo->gp == 0 && baseTrampDynamicInfo->start_ip == 0 ) { return false; }
+	
   process * proc = this;
 
   /* Note: assumes no 'handler' routine(s) in baseTrampDynamicInfo->u.pi. */
@@ -2886,10 +2922,8 @@ void emitFuncJump(opCode op, codeGen &gen, const int_function *callee,
 
   int outputRegisters = 8;
   int extraOuts = outputRegisters % 3;
-  /* FIXME: the knowledge about NUM_PRESERVED is spread all over creation, and should
-	 probably be localized to generatePreservation*(). */
   int offset = regSpace->getRegSlot( 0 )->number + 5;
-
+  
   // Generate a new register frame with an output size equal to the
   // original local size.
   // NOTE:	What we really want is the post-call, pre-alloc local size.
