@@ -241,18 +241,14 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
    int_function *_func;
    
    _func = point->findCallee();
-   if (!_func) {
-       fprintf(stderr, "findCallee failed in getCalledFunction\n");
-       return NULL;
+   
+   if( _func == NULL ) {
+      fprintf(stderr, "findCallee failed in getCalledFunction\n");
+      return NULL;
+   } else {
+      return proc->findOrCreateBPFunc( _func, NULL );
    }
-
-   if (_func != NULL)
-      ret = proc->func_map->get(_func);
-   else
-      ret = NULL;
-    
-   return ret;
-}
+}   
 
 void BPatch_point::attachMemAcc(BPatch_memoryAccess *newMemAcc) {
     if (memacc) {
