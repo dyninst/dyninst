@@ -376,7 +376,9 @@ Frame dyn_lwp::getActiveFrame() {
 	
   if( proc->unwindProcessArg == NULL ) {
     // /* DEBUG */ fprintf( stderr, "getActiveFrame(): Creating unwind context for process pid %d\n", proc->getPid() );
-    proc->unwindProcessArg = getDBI()->UPTcreate( proc->getPid() );
+    // proc->unwindProcessArg = getDBI()->UPTcreate( proc->getPid() );
+    // /* DEBUG */ fprintf( stderr, "getActiveFrame(): Creating unwind context for lwp id %d\n", get_lwp_id );
+    proc->unwindProcessArg = getDBI()->UPTcreate( get_lwp_id() );
     assert( proc->unwindProcessArg != NULL );
   }
 
@@ -492,7 +494,7 @@ bool process::loadDYNINSTlib() {
      at the entry the entry point to a function. */
 
   bool ok = theRpcMgr->emitInferiorRPCheader(gen);
-  assert( ok );
+  if( ! ok ) { return false; }
 	
   /* Generate the call to _dl_open with a large dummy constant as the
      the third argument to make sure we generate the same size code the second
@@ -542,7 +544,7 @@ bool process::loadDYNINSTlib() {
   unsigned breakOffset, resultOffset, justAfterResultOffset;
   ok = theRpcMgr->emitInferiorRPCtrailer(gen, breakOffset, false, 
 					 resultOffset, justAfterResultOffset );
-  assert( ok );
+  if( ! ok ) { return false; }					 
 
   /* Let everyone else know that we're expecting a SIGILL. */
   dyninstlib_brk_addr = codeBase + breakOffset;
