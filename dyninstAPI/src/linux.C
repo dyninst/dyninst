@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.187 2006/02/01 02:06:22 jodom Exp $
+// $Id: linux.C,v 1.188 2006/02/02 03:51:12 bernat Exp $
 
 #include <fstream>
 
@@ -165,7 +165,6 @@ bool SignalGenerator::attachToChild(int pid)
    //  wait for child process to stop itself, attach to it, and continue
      int wait_options = __WALL | WUNTRACED;
      int status = 0;
-     int ptrace_errno;
      int res = waitpid(pid, &status, wait_options);
      if (res <= 0) {
         fprintf(stderr, "%s[%d]:  waitpid failed\n", FILE__, __LINE__);
@@ -358,8 +357,6 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
 {
   signal_printf("%s[%d]:  welcome to waitNextEventLocked\n", FILE__, __LINE__);
 
-  bool ret = true;
-
   assert(proc);
 
   int waitpid_pid = 0;
@@ -384,8 +381,10 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
 
    waiting_for_event = true;
     __UNLOCK;
+    fprintf(stderr, "Waiting on pid %d...\n", pid_to_wait_for);
     waitpid_pid = waitpid_kludge( pid_to_wait_for /** pid*/ /* -1 for any child*/, 
                                   &status, wait_options, &dead_lwp );
+    fprintf(stderr, "Got something from %d\n", pid_to_wait_for);
     __LOCK;
    waiting_for_event = false;
     
@@ -484,8 +483,8 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
      if ( ! ( didProcEnterSyscall(ev.type)) 
              || didProcExitSyscall(ev.type)
              || (ev.type == evtSignalled && ev.what == SIGTRAP)) {
-       //ev.proc->setSuppressEventConts(true);    
-       fprintf(stderr, "%s[%d]:  COMMENTED OUT setting suppression for event conts\n", __FILE__, __LINE__);
+         ev.proc->setSuppressEventConts(true);    
+         //fprintf(stderr, "%s[%d]:  COMMENTED OUT setting suppression for event conts\n", __FILE__, __LINE__);
      }
      else {
        fprintf(stderr, "%s[%d]:  NOT setting suppression for event conts\n", __FILE__, __LINE__);
@@ -677,7 +676,7 @@ bool SignalGenerator::resendSuppressedSignals(EventRecord &ev)
   for (unsigned int i = 0; i < spr.suppressed_sigs.size(); ++i)
   {
     fprintf(stderr, "%s[%d]:  resending %d to %d via lwp_kill\n", FILE__, __LINE__,
-            spr.suppressed_sigs[i], spr.suppressed_lwps[i]);
+            spr.suppressed_sigs[i], spr.suppressed_lwps[i]->get_lwp_id());
     //Throw back the extra signals we caught.
     lwp_kill(spr.suppressed_lwps[i]->get_lwp_id(), spr.suppressed_sigs[i]);
   }
@@ -1023,7 +1022,7 @@ bool DebuggerInterface::bulkPtraceWrite(void *inTraced, u_int nbytes, void *inSe
       int retval =  P_ptrace(PTRACE_POKETEXT, pid, (Address) ap, w);
       if (retval < 0) {
          fprintf(stderr, "%s[%d]:  write data space failing, pid %d\n", __FILE__, __LINE__, pid);
-         fprintf(stderr, "%s[%d][%s]:  tried to write %lx in address %lx\n", FILE__, __LINE__, getThreadStr(getExecThreadID()),w, ap);
+         fprintf(stderr, "%s[%d][%s]:  tried to write %lx in address %p\n", FILE__, __LINE__, getThreadStr(getExecThreadID()),w, ap);
          perror("ptrace");
          return false;
       }
@@ -2164,7 +2163,7 @@ bool process::initMT()
       for (unsigned j=0; j<pthread_self_funcs.size(); j++)
       {
          int_function *ps = pthread_self_funcs[j];
-         fprintf(stderr, "[%s:%u] - %s in module %s at %x\n", __FILE__, __LINE__,
+         fprintf(stderr, "[%s:%u] - %s in module %s at %lx\n", __FILE__, __LINE__,
                  ps->prettyName().c_str(), ps->mod()->fullName().c_str(), 
                  ps->getAddress());
       }
