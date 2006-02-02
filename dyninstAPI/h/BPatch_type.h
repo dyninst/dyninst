@@ -52,6 +52,8 @@
 #include <libdwarf.h>
 #endif
 
+class BPatch_typeCommon;
+
 typedef enum {BPatchSymLocalVar,  BPatchSymGlobalVar, BPatchSymRegisterVar,
 	      BPatchSymStaticLocalVar, BPatchSymStaticGlobal,
 	      BPatchSymLocalFunc, BPatchSymGlobalFunc, BPatchSymFuncParam,
