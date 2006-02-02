@@ -93,7 +93,7 @@ int DYNINSTthreadIndex()
    return curr_index;
 }
 
-static tc_lock_t DYNINST_trace_lock;
+tc_lock_t DYNINST_trace_lock;
 
 static int asyncSendThreadEvent(int pid, rtBPatch_asyncEventType type, 
                                 void *ev, unsigned ev_size)
