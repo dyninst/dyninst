@@ -440,39 +440,44 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 				break;
 
 			case DW_OP_dup:
+				if( opStack.size() < 1 ) { return false; }
 				opStack.push( opStack.top() );
 				break;
 
 			case DW_OP_drop:
+				if( opStack.size() < 1 ) { return false; }
 				opStack.pop();
 				break;
 
 			case DW_OP_pick: {
 				/* Duplicate the entry at index locations[i].lr_number. */
 				std::stack< long int > temp = std::stack< long int >();
-				for( unsigned int i = 0; i < locations[i].lr_number; i++ ) {
+				for( unsigned int j = 0; j < locations[i].lr_number; j++ ) {
 					temp.push( opStack.top() ); opStack.pop();
 					}
 				long int dup = opStack.top();
-				for( unsigned int i = 0; i < locations[i].lr_number; i++ ) {
+				for( unsigned int j = 0; j < locations[i].lr_number; j++ ) {
 					opStack.push( temp.top() ); temp.pop();
 					}
 				opStack.push( dup );
 				} break;
 
 			case DW_OP_over: {
+				if( opStack.size() < 2 ) { return false; }
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( second ); opStack.push( first ); opStack.push( second );
 				} break;
 
 			case DW_OP_swap: {
+				if( opStack.size() < 2 ) { return false; }
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( first ); opStack.push( second );
 				} break;
 
 			case DW_OP_rot: {
+				if( opStack.size() < 3 ) { return false; }
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				long int third = opStack.top(); opStack.pop();
@@ -480,128 +485,150 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 				} break;
 
 			case DW_OP_abs: {
+				if( opStack.size() < 1 ) { return false; }
 				long int top = opStack.top(); opStack.pop();
 				opStack.push( abs( top ) );
 				} break;
 
 			case DW_OP_and: {
+				if( opStack.size() < 2 ) { return false; }
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( second & first );
 				} break;
 			
 			case DW_OP_div: {
+				if( opStack.size() < 2 ) { return false; }
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( second / first );
 				} break;
 
 			case DW_OP_minus: {
+				if( opStack.size() < 2 ) { return false; }
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( second - first );
 				} break;
 
 			case DW_OP_mod: {
+				if( opStack.size() < 2 ) { return false; }
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( second % first );
 				} break;
 
 			case DW_OP_mul: {
+				if( opStack.size() < 2 ) { return false; }
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( second * first );
 				} break;
 
 			case DW_OP_neg: {
+				if( opStack.size() < 1 ) { return false; }
 				long int first = opStack.top(); opStack.pop();
 				opStack.push( first * (-1) );
 				} break;
 
 			case DW_OP_not: {
+				if( opStack.size() < 1 ) { return false; }
 				long int first = opStack.top(); opStack.pop();
 				opStack.push( ~ first );
 				} break;
 
 			case DW_OP_or: {
+				if( opStack.size() < 2 ) { return false; }
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( second | first );
 				} break;
 
 			case DW_OP_plus: {
+				if( opStack.size() < 2 ) { return false; }
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( second + first );
 				} break;
 
 			case DW_OP_plus_uconst: {
+				if( opStack.size() < 1 ) { return false; }
 				long int first = opStack.top(); opStack.pop();
 				opStack.push( first + locations[i].lr_number );
 				} break;
 
 			case DW_OP_shl: {
+				if( opStack.size() < 2 ) { return false; }
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( second << first );
 				} break;
 
 			case DW_OP_shr: {
+				if( opStack.size() < 2 ) { return false; }
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( (long int)((unsigned long)second >> (unsigned long)first) );
 				} break;
 
 			case DW_OP_shra: {
+				if( opStack.size() < 2 ) { return false; }
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( second >> first );
 				} break;
 
 			case DW_OP_xor: {
+				if( opStack.size() < 2 ) { return false; }
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( second ^ first );
 				} break;
 
 			case DW_OP_le: {
+				if( opStack.size() < 2 ) { return false; }
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( first <= second ? 1 : 0 );
 				} break;
 
 			case DW_OP_ge: {
+				if( opStack.size() < 2 ) { return false; }
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( first >= second ? 1 : 0 );
 				} break;
 
 			case DW_OP_eq: {
+				if( opStack.size() < 2 ) { return false; }
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( first == second ? 1 : 0 );
 				} break;
 
 			case DW_OP_lt: {
+				if( opStack.size() < 2 ) { return false; }
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( first < second ? 1 : 0 );
 				} break;
 
 			case DW_OP_gt: {
+				if( opStack.size() < 2 ) { return false; }
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( first > second ? 1 : 0 );
 				} break;
 
 			case DW_OP_ne: {
+				if( opStack.size() < 2 ) { return false; }
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( first != second ? 1 : 0 );
 				} break;
 
 			case DW_OP_bra:
+				if( opStack.size() < 1 ) { return false; }
 				if( opStack.top() == 0 ) { break; }
 				opStack.pop();
 			case DW_OP_skip: {
@@ -639,7 +666,11 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 		} /* end iteration over Dwarf_Loc entries. */
 
 	/* The top of the stack is the computed location. */
-	// bperr( "Location decoded: %ld\n", opStack.top() );
+	if( opStack.empty() ) {
+		/* DEBUG */ fprintf( stderr, "%s[%d]: ignoring malformed location list.\n" );
+		return false;
+		}
+	// /* DEBUG */ fprintf( stderr, "Location decoded: %ld\n", opStack.top() );
 	* offset = opStack.top();
 	
 	/* decode successful */
@@ -713,6 +744,7 @@ void dumpAttributeList( Dwarf_Die dieEntry, Dwarf_Debug & dbg ) {
 bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			BPatch_module * module, 
 			process * proc,
+			Dwarf_Off cuOffset,
 			BPatch_function * currentFunction = NULL,
 			BPatch_typeCommon * currentCommonBlock = NULL,
 			BPatch_fieldListType * currentEnclosure = NULL ) {
@@ -1709,7 +1741,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 	assert( status != DW_DLV_ERROR );
 	
 	if( status == DW_DLV_OK && parsedChild == false ) {		
-		walkDwarvenTree( dbg, moduleName, childDwarf, module, proc, newFunction, newCommonBlock, newEnclosure );
+		walkDwarvenTree( dbg, moduleName, childDwarf, module, proc, cuOffset, newFunction, newCommonBlock, newEnclosure );
 		}
 
 	/* Recurse to its first sibling, if any. */
@@ -1740,6 +1772,7 @@ void BPatch_module::parseDwarfTypes() {
 	assert(moduleTypes);
 
 	if (moduleTypes->dwarfParsed()) {
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: already parsed %s, moduleTypes = %p\n", __FILE__, __LINE__, fileName, moduleTypes );
 		BPatch_Vector<BPatch_function *> *bpfuncs = getProcedures(true);
 		assert(bpfuncs);
 		for (unsigned int i = 0; i < bpfuncs->size(); i++) {
@@ -1748,6 +1781,8 @@ void BPatch_module::parseDwarfTypes() {
 		delete bpfuncs;
 		return;
 	}
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: parsing %s...\n", __FILE__, __LINE__, fileName );
+
 	/* Start the dwarven debugging. */
 	Dwarf_Debug dbg;
 
@@ -1762,14 +1797,19 @@ void BPatch_module::parseDwarfTypes() {
 	while( dwarf_next_cu_header( dbg, NULL, NULL, NULL, NULL, & hdr, NULL ) == DW_DLV_OK ) {
 		/* Obtain the module DIE. */
 		Dwarf_Die moduleDIE;
-		status = dwarf_siblingof( dbg, NULL, &moduleDIE, NULL);
+		status = dwarf_siblingof( dbg, NULL, &moduleDIE, NULL );
 		assert( status == DW_DLV_OK );
 
 		/* Make sure we've got the right one. */
 		Dwarf_Half moduleTag;
-		status = dwarf_tag( moduleDIE, & moduleTag, NULL);
+		status = dwarf_tag( moduleDIE, & moduleTag, NULL );
 		assert( status == DW_DLV_OK );
 		assert( moduleTag == DW_TAG_compile_unit );
+
+		/* We may need this later. */
+		Dwarf_Off cuOffset;
+		status = dwarf_dieoffset( moduleDIE, & cuOffset, NULL );
+		assert( status == DW_DLV_OK );
 
 		/* Extract the name of this module. */
 		char * moduleName;
@@ -1820,7 +1860,7 @@ void BPatch_module::parseDwarfTypes() {
 			} /* end language detection */
 
 		/* Iterate over the tree rooted here; walkDwarvenTree() deallocates the passed-in DIE. */
-		if( !walkDwarvenTree( dbg, moduleName, moduleDIE, this, this->proc->llproc ) ) {
+		if( !walkDwarvenTree( dbg, moduleName, moduleDIE, this, this->proc->llproc, cuOffset ) ) {
 			bperr( "Error while parsing DWARF info for module '%s'.\n", moduleName );
 			assert( 0 );
 		}
