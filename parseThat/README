@@ -1,0 +1,49 @@
+INTRODUCTION
+
+parseThat is an application that provides a rigorous and robust test of
+DyninstAPI on arbitrary binaries.  Geared mainly for debugging purposes,
+parseThat has many features which ultimately allow DyninstAPI developers
+to quickly find the source of parsing or instrumentation errors in the
+rare instance when they occur.
+
+CONFIGURATION
+
+There are a few variables which allow you to control how parseThat is
+built.  These variables can either be set in your shell's environment,
+as a parameter to the build command, or within the Makefile itself:
+
+	PLATFORM
+	This variable must be defined.  See the documentation for DyninstAPI
+	in core/dyninstAPI/README for valid values of this variable.
+
+	OPENSSL_DIR
+	parseThat depends upon OpenSSL for its message digest routines.  If
+	your system has OpenSSL installed in a non-standard location, you may
+	set this variable to aid the linker find the appropriate libraries.
+	OPENSSL_INC and OPENSSL_LIB are derived from this variable, but both
+	can be overridden for more complex installations.
+
+	DYNINST_DIR
+	This variable is used similarly to OPENSSL_DIR.  If not specified,
+	it uses the environment DYNINST_ROOT, if available.
+
+	DYNINST_VER
+	parseThat is backwards compatible with DyninstAPI through version
+	4.x.  However, due to an interface change between versions 4.x and
+	5.x,  there is a need to specify which version you will be using.
+	If not specified, it assumes you are using the latest version.
+
+BUILDING
+
+Once configured, you can build parseThat by simply invoking GNU make in the
+base directory.  To organize building for multiple platforms within the same
+directory, a subdirectory based on PLATFORM is created to hold all compiled
+objects and binary files.
+
+For the user's convenience, a symbolic link is created in the base directory
+pointing to the newly built binary.
+
+RUNNING
+
+Instructions for parseThats use are encoded within the binary itself.
+To retrieve them, simply run parseThat with no arguments.
