@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.9 2006/02/02 03:51:02 bernat Exp $
+ * $Id: emit-x86.h,v 1.10 2006/02/03 01:52:44 nater Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -74,6 +74,7 @@ class Emitter {
     virtual void emitLoadConst(Register dest, Address imm, codeGen &gen) = 0;
     virtual void emitLoadIndir(Register dest, Register addr_reg, codeGen &gen) = 0;
     virtual void emitLoadFrameRelative(Register dest, Address offset, codeGen &gen) = 0;
+    virtual void emitLoadRegRelative(Register dest, Address offset, Register base, codeGen &gen, bool store) = 0;
     virtual void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen) = 0;
     virtual void emitLoadPreviousStackFrameRegister(Address register_num, Register dest, codeGen &gen) = 0;
     virtual void emitStore(Address addr, Register src, codeGen &gen) = 0;
@@ -126,6 +127,7 @@ public:
     void emitLoadConst(Register dest, Address imm, codeGen &gen);
     void emitLoadIndir(Register dest, Register addr_reg, codeGen &gen);
     void emitLoadFrameRelative(Register dest, Address offset, codeGen &gen);
+    void emitLoadRegRelative(Register dest, Address offset, Register base, codeGen &gen, bool store);
     void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
     void emitLoadPreviousStackFrameRegister(Address register_num, Register dest, codeGen &gen);
     void emitStore(Address addr, Register src, codeGen &gen);
@@ -180,6 +182,7 @@ public:
     void emitLoadConst(Register dest, Address imm, codeGen &gen);
     void emitLoadIndir(Register dest, Register addr_reg, codeGen &gen);
     void emitLoadFrameRelative(Register dest, Address offset, codeGen &gen);
+    void emitLoadRegRelative(Register dest, Address offset, Register base, codeGen &gen, bool store);
     void emitLoadFrameAddr(Register dest, Address offset, codeGen &gen);
     void emitLoadPreviousStackFrameRegister(Address register_num, Register dest, codeGen &gen);
     void emitStore(Address addr, Register src, codeGen &gen);

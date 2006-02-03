@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.17 2005/12/19 23:45:38 rutar Exp $
+ * $Id: emit-x86.C,v 1.18 2006/02/03 01:52:43 nater Exp $
  */
 
 #include <assert.h>
@@ -228,6 +228,25 @@ void Emitter32::emitLoadFrameRelative(Register dest, Address offset, codeGen &ge
     emitMovRMToReg(REGNUM_EAX, REGNUM_EAX, offset, gen);    // mov <offset>(%eax), %eax 
     emitMovRegToRM(REGNUM_EBP, -(dest*4), REGNUM_EAX, gen);    // mov -(dest*4)[ebp], eax
 }
+
+void Emitter32::emitLoadRegRelative(Register dest, Address offset,
+                                    Register base, codeGen &gen,
+                                    bool store)
+{
+    emitMovRMToReg(REGNUM_EAX, base, 0, gen);
+    // either load the address or the contents at that address
+    if(store) 
+    {
+        // dest = [reg](offset)
+        emitMovRMToReg(REGNUM_EAX, REGNUM_EAX, offset, gen);
+    }
+    else
+    {
+        // dest = [reg] + offset
+        emitAddRegImm32(REGNUM_EAX, offset, gen);
+    }
+    emitMovRegToRM(REGNUM_EBP, -(dest*4), REGNUM_EAX, gen);
+} 
 
 void Emitter32::emitLoadFrameAddr(Register dest, Address offset, codeGen &gen)
 {
@@ -854,14 +873,11 @@ void Emitter64::emitLoadConst(Register dest, Address imm, codeGen &gen)
 
 void Emitter64::emitLoadIndir(Register dest, Register addr_src, codeGen &gen)
 {
-    // FIXME: we assume int (size == 4) for now
     emitMovRMToReg64(dest, addr_src, 0, false, gen);
 }
 
 void Emitter64::emitLoadFrameRelative(Register dest, Address offset, codeGen &gen)
 {
-    // FIXME: we assume int (size == 4) for now
-
     // mov (%rbp), %rax
     emitMovRMToReg64(REGNUM_RAX, REGNUM_RBP, 0, true, gen);
 
@@ -878,6 +894,28 @@ void Emitter64::emitLoadFrameAddr(Register dest, Address offset, codeGen &gen)
     emitOpRegImm64(0x81, 0x0, dest, offset, true, gen);
 }
 
+void Emitter32::emitLoadRegRelative(Register dest, Address offset,
+                                    Register base, codeGen &gen,
+                                    bool store)
+{
+    // either load the address or the contents at that address
+    if(store) 
+    {
+        // mov (%rbp), %rax
+        emitMovRMToReg64(REGNUM_RAX, base, 0, true, gen);
+
+        // mov offset(%rax), %dest
+        emitMovRMToReg64(dest, REGNUM_RAX, offset, false, gen);
+    }
+    else
+    {
+        // mov (%rbp), %dest
+        emitMovRMToReg64(dest, base, 0, true, gen);
+
+        // add $offset, %dest
+        emitOpRegImm64(0x81, 0x0, dest, offset, true, gen);
+    }
+} 
 // this is the distance on the basetramp stack frame from the
 // start of the GPR save region to where the base pointer is,
 // in 8-byte quadwords

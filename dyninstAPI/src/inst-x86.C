@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.233 2006/01/05 19:16:11 legendre Exp $
+ * $Id: inst-x86.C,v 1.234 2006/02/03 01:52:45 nater Exp $
  */
 #include <iomanip>
 
@@ -1193,7 +1193,7 @@ void Emitter32::emitCSload(int ra, int rb, int sc, long imm, Register dest, code
 #endif
 
 
-void emitVload(opCode op, Address src1, Register /*src2*/, Register dest, 
+void emitVload(opCode op, Address src1, Register src2, Register dest, 
                codeGen &gen, bool /*noCost*/, 
                registerSpace * /*rs*/, int size,
                const instPoint * /* location */, process * /* proc */)
@@ -1215,6 +1215,18 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
       // src1 is the offset of the from the frame of the variable
        x86_emitter->emitLoadFrameRelative(dest, src1, gen);
        return;
+   } else if (op == loadRegRelativeOp) {
+      // dest is a temporary
+      // src2 is the register 
+      // src1 is the offset from the address in src2
+      x86_emitter->emitLoadRegRelative(dest, src1, src2, gen, true);
+      return;
+   } else if (op == loadRegRelativeAddr) {
+      // dest is a temporary
+      // src2 is the register 
+      // src1 is the offset from the address in src2
+      x86_emitter->emitLoadRegRelative(dest, src1, src2, gen, false);
+      return;
    } else if (op == loadFrameAddr) {
        x86_emitter->emitLoadFrameAddr(dest, src1, gen);
        return;
