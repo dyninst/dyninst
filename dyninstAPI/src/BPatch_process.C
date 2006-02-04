@@ -1384,7 +1384,7 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
 {
    stopExecutionInt();
    if (!statusIsStopped()) {
-      cerr << "Process not stopped in loadLibrary" << endl;
+      fprintf(stderr, "%s[%d]:  Process not stopped in loadLibrary\n", FILE__, __LINE__);
       return false;
    }
    

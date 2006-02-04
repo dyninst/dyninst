@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.18 2005/11/03 05:21:08 jaw Exp $
+ * $Id: RTposix.c,v 1.19 2006/02/04 06:45:00 jaw Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -73,7 +73,7 @@
 
 void DYNINSTbreakPoint(void)
 {
-   kill(getpid(), SIGSTOP);
+   kill(getpid(), DYNINST_BREAKPOINT_SIGNUM);
 }
 
 #if !defined(cap_save_the_world)

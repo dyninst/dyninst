@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.188 2006/02/02 03:51:12 bernat Exp $
+// $Id: linux.C,v 1.189 2006/02/04 06:44:59 jaw Exp $
 
 #include <fstream>
 
@@ -218,9 +218,12 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
       decodeSignal(ev);
 
    if (ev.type == evtSignalled || ev.type == evtUndefined) {
-     char buf[512];
-     fprintf(stderr, "%s[%d]:  got event %s, should have been set by now\n", FILE__, __LINE__, ev.sprint_event(buf));
-     return false;
+     //  if we still have evtSignalled, then it must not be a signal that
+     //  we care about internally.  Still, send it along to the handler
+     //  to be forwarded back to the process.
+     //char buf[512];
+     //fprintf(stderr, "%s[%d]:  got event %s, should have been set by now\n", FILE__, __LINE__, ev.sprint_event(buf));
+     return true;
    }
 
    return true;

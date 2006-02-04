@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.77 2006/02/01 02:06:23 jodom Exp $
+// $Id: sol_proc.C,v 1.78 2006/02/04 06:44:59 jaw Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -60,6 +60,7 @@
 #include "dyninstAPI/src/stats.h"
 #include "common/h/pathName.h" // for path name manipulation routines
 #include "dyninstAPI/src/sol_proc.h"
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h" // for DYNINST_BREAKPOINT_SIGNUM
 
 #include "function.h"
 #include "mapped_object.h"
@@ -856,6 +857,7 @@ bool process::setProcessFlags()
     
    premptyset(&sigs);
    praddset(&sigs, SIGSTOP);
+   praddset(&sigs, DYNINST_BREAKPOINT_SIGNUM);
     
    praddset(&sigs, SIGTRAP);
     
@@ -1434,9 +1436,11 @@ bool SignalGenerator::decodeKludge(EventRecord &cur_event)
 #endif
 
 #if defined(bug_aix_proc_broken_fork)
-  if (cur_event.type == evtSignalled && cur_event.what == SIGSTOP) {
+  if (cur_event.type == evtSignalled && cur_event.what == DYNINST_BREAKPOINT_SIGNUM) {
     // Possibly a fork stop in the RT library
-    decodeRTSignal(cur_event);
+    if (!decodeRTSignal(cur_event)) {
+      cur_event.type = evtProcessStop; // happens when we get a DYNINSTbreakPoint
+    }
   }
 #endif
 

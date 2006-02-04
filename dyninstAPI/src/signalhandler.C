@@ -1520,9 +1520,12 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
         break;
      case evtSignalled:
      {
+#ifdef NOTDEF // PDSEP
         char buf[128];
         fprintf(stderr, "%s[%d]:  HANDLE SIGNAL is deprecated!!!\n", FILE__, __LINE__);
          ret = true;
+#endif
+        ret = forwardSigToProcess(ev);
         break;
      }
      case evtProcessStop:

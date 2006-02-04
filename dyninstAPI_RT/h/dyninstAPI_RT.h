@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.28 2006/01/13 00:00:48 jodom Exp $
+ * $Id: dyninstAPI_RT.h,v 1.29 2006/02/04 06:45:00 jaw Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -57,6 +57,7 @@
  */
 
 #define SYN_INST_BUF_SIZE (1024*1024*4)
+#define DYNINST_BREAKPOINT_SIGNUM SIGUSR2
 
 #include <stdio.h>
 #include "dyninstRTExport.h"

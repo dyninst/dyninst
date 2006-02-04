@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.573 2006/02/02 03:51:14 bernat Exp $
+// $Id: process.C,v 1.574 2006/02/04 06:44:59 jaw Exp $
 
 #include <ctype.h>
 
@@ -3967,6 +3967,7 @@ bool process::pause() {
   bool result;
   if (!isAttached()) {
     bperr( "Warning: pause attempted on non-attached process\n");
+    fprintf(stderr, "%s[%d]:  pause() failing here\n", FILE__, __LINE__);
     return false;
   }
       
@@ -3999,6 +4000,7 @@ bool process::pause() {
    result = stop_();
    if (!result) {
        bperr ("Warning: low-level paused failed, process is not paused\n");
+       fprintf(stderr, "%s[%d]:  pause() failing here\n", FILE__, __LINE__);
      return false;
    }
    status_ = stopped;

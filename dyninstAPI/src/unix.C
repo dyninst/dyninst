@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.156 2006/02/01 02:06:23 jodom Exp $
+// $Id: unix.C,v 1.157 2006/02/04 06:44:59 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -51,6 +51,7 @@
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/callbacks.h"
 #include "dyninstAPI/src/dynamiclinking.h"
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h"  // for DYNINST_BREAKPOINT_SIGNUM
 
 
 #ifndef BPATCH_LIBRARY
@@ -630,22 +631,15 @@ bool SignalGenerator::decodeSignal(EventRecord &ev)
   switch(ev.what)  {
   case SIGSTOP:
   case SIGINT:
-    if (!decodeRTSignal(ev)) {
-      if (ESRCH == errno) {
-        fprintf(stderr,"%s[%d]:  decodeRTSignal setting exit event\n",
-                FILE__, __LINE__);
-        ev.type = evtProcessExit;
-        ev.status = statusNormal;
-      }
-      else {
-        if (errno) {
-          fprintf(stderr, "%s[%d]:  WEIRD, got error\n", FILE__, __LINE__);
-          perror("here");
-        }
-        decodeSigStopNInt(ev);
-      }
-    }
+        if (!decodeSigStopNInt(ev)) {
+           fprintf(stderr, "%s[%d]:  weird, decodeSigStop failed for SIGSTOP\n", FILE__, __LINE__);
+         }
     break;
+  case DYNINST_BREAKPOINT_SIGNUM: /*SIGUSR2*/
+    if (!decodeRTSignal(ev)) {
+        ev.type = evtProcessStop; // happens when we get a DYNINSTbreakPoint
+      }
+     break;
   case SIGIOT:
   {
      ev.type = evtProcessExit;
@@ -702,28 +696,32 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
   process *proc = ev.proc;
 
   if (decodeIfDueToProcessStartup(ev))
-     return true;
+     goto finish;
 
   Frame af = ev.lwp->getActiveFrame();
 
+  // (1)  Is this trap due to an instPoint ??
   if (proc->trampTrapMapping.defines(af.getPC())) {
      ev.type = evtInstPointTrap;
      ev.address = af.getPC();
      goto finish;
   }
 
+  // (2) Is this trap due to a RPC ??
   if (proc->getRpcMgr()->decodeEventIfDueToIRPC(ev)) {
       signal_printf("%s[%d]:  SIGTRAP due to RPC\n", FILE__, __LINE__);
       goto finish;
   }
 
-  if(proc->isDynamicallyLinked()) {
-     if(proc->decodeIfDueToSharedObjectMapping(ev)){
+  // (3) Is this trap due to a library being loaded/unloaded ??
+  if (proc->isDynamicallyLinked()) {
+     if (proc->decodeIfDueToSharedObjectMapping(ev)){
          signal_printf("%s[%d]:  SIGTRAP due to dlopen/dlclose\n", FILE__, __LINE__);
          goto finish;
       }
    }
 
+  // (4) Is this trap due to a single step debugger operation ??
   if (ev.lwp->isSingleStepping()) {
      ev.type = evtDebugStep;
      ev.address = af.getPC();
@@ -732,6 +730,7 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
    }
 
 #if defined (os_linux)
+    // (5)  Is this trap due to an exec ??
     // On Linux we see a trap when the process execs. However,
     // there is no way to distinguish this trap from any other,
     // and so it is special-cased here.
@@ -743,6 +742,7 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
         goto finish;
     }
 #endif
+
   finish:
   signal_printf("%s[%d]:  decodeSigTrap for %s, state: %s\n",
                 FILE__, __LINE__, ev.sprint_event(buf), 

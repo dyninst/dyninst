@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_util.C,v 1.20 2006/01/30 07:16:54 jaw Exp $
+// $Id: test_util.C,v 1.21 2006/02/04 06:45:00 jaw Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -59,6 +59,7 @@
 #include "BPatch.h"
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h" // for DYNINST_BREAKPOINT_SIGNUM
 
 //
 // Wait for the mutatee to stop.
@@ -89,9 +90,11 @@ void waitUntilStopped(BPatch *bpatch, BPatch_thread *appThread, int testnum,
     /* FIXME: Why add SIGILL here? */
     else if ((appThread->stopSignal() != SIGSTOP) &&
 	     (appThread->stopSignal() != SIGHUP) &&
+	     (appThread->stopSignal() != DYNINST_BREAKPOINT_SIGNUM) &&
 	     (appThread->stopSignal() != SIGILL)) {
 #else
     else if ((appThread->stopSignal() != SIGSTOP) &&
+	     (appThread->stopSignal() != DYNINST_BREAKPOINT_SIGNUM) &&
 #if defined(bug_irix_broken_sigstop)
 	     (appThread->stopSignal() != SIGEMT) &&
 #endif
