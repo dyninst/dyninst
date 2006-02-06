@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.18 2006/02/03 01:52:43 nater Exp $
+ * $Id: emit-x86.C,v 1.19 2006/02/06 17:32:09 tlmiller Exp $
  */
 
 #include <assert.h>
@@ -894,7 +894,7 @@ void Emitter64::emitLoadFrameAddr(Register dest, Address offset, codeGen &gen)
     emitOpRegImm64(0x81, 0x0, dest, offset, true, gen);
 }
 
-void Emitter32::emitLoadRegRelative(Register dest, Address offset,
+void Emitter64::emitLoadRegRelative(Register dest, Address offset,
                                     Register base, codeGen &gen,
                                     bool store)
 {
