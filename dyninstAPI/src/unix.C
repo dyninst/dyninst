@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.157 2006/02/04 06:44:59 jaw Exp $
+// $Id: unix.C,v 1.158 2006/02/06 01:54:47 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -695,8 +695,12 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
   char buf[128];
   process *proc = ev.proc;
 
-  if (decodeIfDueToProcessStartup(ev))
-     goto finish;
+  if (decodeIfDueToProcessStartup(ev)) {
+     signal_printf("%s[%d]:  decodeSigTrap for %s, state: %s\n",
+                FILE__, __LINE__, ev.sprint_event(buf), 
+                proc->getBootstrapStateAsString().c_str());
+     return true;
+  }
 
   Frame af = ev.lwp->getActiveFrame();
 
