@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.7 2006/02/07 05:16:59 nater Exp $
+ * $Id: image-flowGraph.C,v 1.8 2006/02/07 18:27:10 nater Exp $
  */
 
 #include <stdio.h>
@@ -262,7 +262,9 @@ bool image::analyzeImage()
 
   // Sort block list and bind all intra-module call points
   for (unsigned b_iter = 0; b_iter < everyUniqueFunction.size(); b_iter++) {
-      everyUniqueFunction[b_iter]->sortBlocklist();
+      image_func *f = everyUniqueFunction[b_iter];
+      if(!f->isBLSorted())
+        f->sortBlocklist();
       everyUniqueFunction[b_iter]->checkCallPoints();
   }
 
@@ -1328,9 +1330,9 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
     image_instPoint * cpyInstPt;
 
     WL.push_back(firstBlock);
-    visited.insert(firstBlock);
+    visited.insert(curBlk);
 
-    parsing_printf("Parsing shared code at 0x%lx\n",firstBlock->firstInsnOffset_);
+    parsing_printf("Parsing shared code at 0x%lx, blockList size: %ld\n",firstBlock->firstInsnOffset_, blockList.size());
 
     // remember that we have shared blocks
     containsSharedBlocks_ = true;
