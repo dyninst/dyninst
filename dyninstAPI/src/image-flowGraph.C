@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.6 2006/02/01 18:24:04 nater Exp $
+ * $Id: image-flowGraph.C,v 1.7 2006/02/07 05:16:59 nater Exp $
  */
 
 #include <stdio.h>
@@ -260,8 +260,9 @@ bool image::analyzeImage()
 #endif
 #endif
 
-  // And bind all intra-module call points
+  // Sort block list and bind all intra-module call points
   for (unsigned b_iter = 0; b_iter < everyUniqueFunction.size(); b_iter++) {
+      everyUniqueFunction[b_iter]->sortBlocklist();
       everyUniqueFunction[b_iter]->checkCallPoints();
   }
 
