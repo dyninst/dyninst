@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.9 2006/01/20 00:12:20 nater Exp $
+// $Id: image-func.h,v 1.10 2006/02/07 05:17:01 nater Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -327,7 +327,11 @@ class image_func : public codeRange {
                       EdgeTypeEnum edgeType,
                       pdvector<Address> &worklist,
                       BPatch_Set<image_basicBlock *> &parserVisited); 
-   // And it uses blockList as well
+
+   // Add a basic block to the blocklist when this is not the function
+   // being parsed. Helps maintain consistency across basic block split
+   // operations initiated by another function's parsing.
+   void addToBlocklist(image_basicBlock *newBlk);
 
    // Can we determine whether this function returns?
    FuncReturnStatus returnStatus() { return retStatus_; }
@@ -336,6 +340,9 @@ class image_func : public codeRange {
    // basic blocks.
    bool cleanBlockList();
    void checkCallPoints();
+    
+   void sortBlocklist();
+
    Address newCallPoint(Address adr, const instruction code, bool &err);
 
    ////////////////////////////////////////////////

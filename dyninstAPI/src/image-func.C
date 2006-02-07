@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.17 2006/01/20 19:25:52 nater Exp $
+// $Id: image-func.C,v 1.18 2006/02/07 05:17:00 nater Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -453,11 +453,20 @@ void image_basicBlock::split(image_basicBlock * &newBlk)
         }
     }
 
-        // newBlk has all the same functions
+    // If the block that was split was owned by other functions, those
+    // functions need to have newBlk added to their blocklists.
+    // The blockList vector is sorted for all of these functions
+    // (they are done with parsing) so it is imperative to enforce
+    // an ordered insert.
     for(unsigned int i=0;i<funcs_.size();i++)
     {
         if(funcs_[i] != existing)
+        {
+            // tell the functions they own newBlk
+            funcs_[i]->addToBlocklist(newBlk);
+            // tell newBlk it's owned by the functions
             newBlk->addFunc(funcs_[i]);
+        }
     }
 
     // update this block
@@ -685,6 +694,10 @@ bool image_func::addBasicBlock(Address newAddr,
     return true;
 }
 
+void image_func::addToBlocklist(image_basicBlock * newBlk)
+{
+    blockList.push_back(newBlk);
+}
 
 #if 0 // TODO
 /* This method follows the speculative control flow path from a basic 
@@ -898,7 +911,6 @@ bool image_func::cleanBlockList() {
 
     }
 #endif
-    VECTOR_SORT( blockList, image_basicBlock::compare );
 
     parsing_printf("CLEANED BLOCK LIST\n");
     for (unsigned foo = 0; foo < blockList.size(); foo++) {
@@ -969,6 +981,11 @@ void image_func::checkCallPoints() {
                            destOffset);
         }
     }
+}
+
+void image_func::sortBlocklist()
+{
+    VECTOR_SORT( blockList, image_basicBlock::compare );
 }
 
 // No longer needed but kept around for reference
