@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.18 2006/02/07 05:17:00 nater Exp $
+// $Id: image-func.C,v 1.19 2006/02/07 18:27:11 nater Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -136,7 +136,8 @@ image_func::image_func(const pdstring &symbol,
   needsRelocation_(false),
   originalCode(NULL),
   o7_live(false),
-  highlevel_funcs(NULL)
+  highlevel_funcs(NULL),
+  bl_is_sorted(false)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     image_func_count++;
@@ -455,12 +456,12 @@ void image_basicBlock::split(image_basicBlock * &newBlk)
 
     // If the block that was split was owned by other functions, those
     // functions need to have newBlk added to their blocklists.
-    // The blockList vector is sorted for all of these functions
-    // (they are done with parsing) so it is imperative to enforce
-    // an ordered insert.
+    //
+    // Because of the way that pre-parsed code is handled, only functions
+    // that have already been parsed need this information.
     for(unsigned int i=0;i<funcs_.size();i++)
     {
-        if(funcs_[i] != existing)
+        if(funcs_[i] != existing && funcs_[i]->parsed())
         {
             // tell the functions they own newBlk
             funcs_[i]->addToBlocklist(newBlk);
@@ -697,6 +698,7 @@ bool image_func::addBasicBlock(Address newAddr,
 void image_func::addToBlocklist(image_basicBlock * newBlk)
 {
     blockList.push_back(newBlk);
+    bl_is_sorted = false;
 }
 
 #if 0 // TODO
@@ -911,6 +913,9 @@ bool image_func::cleanBlockList() {
 
     }
 #endif
+   
+    // Safety checks assume the block list is sorted 
+    sortBlocklist();
 
     parsing_printf("CLEANED BLOCK LIST\n");
     for (unsigned foo = 0; foo < blockList.size(); foo++) {
@@ -986,6 +991,7 @@ void image_func::checkCallPoints() {
 void image_func::sortBlocklist()
 {
     VECTOR_SORT( blockList, image_basicBlock::compare );
+    bl_is_sorted = true;
 }
 
 // No longer needed but kept around for reference

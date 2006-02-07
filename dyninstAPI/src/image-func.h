@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.10 2006/02/07 05:17:01 nater Exp $
+// $Id: image-func.h,v 1.11 2006/02/07 18:27:12 nater Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -342,6 +342,7 @@ class image_func : public codeRange {
    void checkCallPoints();
     
    void sortBlocklist();
+   bool isBLSorted() { return bl_is_sorted; }
 
    Address newCallPoint(Address adr, const instruction code, bool &err);
 
@@ -450,6 +451,8 @@ class image_func : public codeRange {
 
    image_basicBlock * entryBlock() const { return entryBlock_; }
 
+   bool parsed() { return parsed_; }
+
  private:
 
    ///////////////////// Basic func info
@@ -521,6 +524,9 @@ class image_func : public codeRange {
 
    // Functions only have one entry basic block
    image_basicBlock *entryBlock_;
+
+   // Block list must be sorted
+   bool bl_is_sorted;
 };
 
 typedef image_func *ifuncPtr;
