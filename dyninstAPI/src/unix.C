@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.158 2006/02/06 01:54:47 jaw Exp $
+// $Id: unix.C,v 1.159 2006/02/08 23:41:31 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -631,10 +631,13 @@ bool SignalGenerator::decodeSignal(EventRecord &ev)
   switch(ev.what)  {
   case SIGSTOP:
   case SIGINT:
-        if (!decodeSigStopNInt(ev)) {
-           fprintf(stderr, "%s[%d]:  weird, decodeSigStop failed for SIGSTOP\n", FILE__, __LINE__);
-         }
-    break;
+      if (!decodeRTSignal(ev) && !decodeSigStopNInt(ev)) {
+          fprintf(stderr, "%s[%d]:  weird, decodeSigStop failed for SIGSTOP\n", FILE__, __LINE__);
+      }
+
+      // We have to use SIGSTOP for RTsignals, since we may not be attached
+      // at that point...
+      break;
   case DYNINST_BREAKPOINT_SIGNUM: /*SIGUSR2*/
     if (!decodeRTSignal(ev)) {
         ev.type = evtProcessStop; // happens when we get a DYNINSTbreakPoint
@@ -765,7 +768,7 @@ bool SignalGenerator::decodeSigStopNInt(EventRecord &ev)
 
 
   if (! proc->getRpcMgr()->decodeEventIfDueToIRPC(ev)) {
-     fprintf(stderr, "%s[%d]:  unhandled sigstop/sigint\n", FILE__, __LINE__);
+      signal_printf("%s[%d]:  unhandled sigstop/sigint\n", FILE__, __LINE__);
      ev.type = evtProcessStop;
   }
   return true;
@@ -1446,3 +1449,33 @@ const char *dbiEventType2str(DBIEventType t)
   };
   return "invalid";
 }
+
+#include <sys/types.h>
+#include <dirent.h>
+
+
+/// Experiment: wait for the process we're attaching to to be created
+// before we return. 
+
+SignalGenerator::SignalGenerator(char *idstr, pdstring file, int pid)
+    : SignalGeneratorCommon(idstr, file, pid) {
+    char buffer[128];
+    sprintf(buffer, "/proc/%d", pid);
+
+    // We wait until the entry has shown up in /proc. I believe this
+    // is sufficient; unsure though.
+
+    // Not there after three seconds, give up.
+    int timeout = 3;
+    int counter = 0;
+
+    DIR *dirName = NULL;
+    while ((dirName == NULL) && (counter < timeout)) {
+        dirName = opendir(buffer);
+        if (!dirName) {
+            sleep(1);
+        }
+        counter++;
+    }
+    closedir(dirName);
+} 
