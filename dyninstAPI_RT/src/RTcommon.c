@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.51 2006/01/24 16:56:03 chadd Exp $ */
+/* $Id: RTcommon.c,v 1.52 2006/02/08 23:41:35 bernat Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -234,7 +234,7 @@ void DYNINST_instForkEntry() {
    DYNINST_synch_event_id = DSE_forkEntry;
    DYNINST_synch_event_arg1 = NULL;
    /* Stop ourselves */
-   DYNINSTbreakPoint();
+   DYNINSTsafeBreakPoint();
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;
@@ -247,7 +247,7 @@ void DYNINST_instForkExit(void *arg1) {
    DYNINST_synch_event_id = DSE_forkExit;
    DYNINST_synch_event_arg1 = arg1;
    /* Stop ourselves */
-   DYNINSTbreakPoint();
+   DYNINSTsafeBreakPoint();
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;
@@ -260,7 +260,7 @@ void DYNINST_instExecEntry(void *arg1) {
    DYNINST_synch_event_id = DSE_execEntry;
    DYNINST_synch_event_arg1 = arg1;
    /* Stop ourselves */
-   DYNINSTbreakPoint();
+   DYNINSTsafeBreakPoint();
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;
@@ -273,7 +273,7 @@ void DYNINST_instExecExit(void *arg1) {
    DYNINST_synch_event_id = DSE_execExit;
    DYNINST_synch_event_arg1 = arg1;
    /* Stop ourselves */
-   DYNINSTbreakPoint();
+   DYNINSTsafeBreakPoint();
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;
@@ -286,7 +286,7 @@ void DYNINST_instExitEntry(void *arg1) {
    DYNINST_synch_event_id = DSE_exitEntry;
    DYNINST_synch_event_arg1 = arg1;
    /* Stop ourselves */
-   DYNINSTbreakPoint();
+   DYNINSTsafeBreakPoint();
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;
@@ -298,7 +298,7 @@ void DYNINST_instLoadLibrary(void *arg1) {
    DYNINST_synch_event_id = DSE_loadLibrary;
    DYNINST_synch_event_arg1 = arg1;
    /* Stop ourselves */
-   DYNINSTbreakPoint();
+   DYNINSTsafeBreakPoint();
    /* Once the stop completes, clean up */
    DYNINST_synch_event_id = DSE_undefined;
    DYNINST_synch_event_arg1 = NULL;

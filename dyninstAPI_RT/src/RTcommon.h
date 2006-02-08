@@ -46,6 +46,8 @@
 #include "RTthread.h"
 
 void DYNINSTbreakPoint();
+// Use a signal that is safe if we're not attached.
+void DYNINSTsafeBreakPoint();
 void DYNINSTos_init(int calledByFork, int calledByAttach);
 void DYNINSTinit(int cause, int pid, int maxthreads);
 void RTmutatedBinary_init();
