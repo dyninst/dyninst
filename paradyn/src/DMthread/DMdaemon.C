@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.156 2006/01/27 00:19:07 darnold Exp $
+ * $Id: DMdaemon.C,v 1.157 2006/02/08 21:27:40 darnold Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -87,18 +87,17 @@ extern "C" {
 
 static int getNumberOfNodes( const pdvector<pdstring> &argv);
 
-static bool startMPI(const pdstring &, const pdstring &,
-                     const pdstring &, const pdstring &,
-                     const pdvector<pdstring> & ,
-                     const pdvector<pdstring> & , daemonEntry *,
-                     MRN::Network::LeafInfo **,
-                     int nLeaves);
+static bool startMPI( daemonEntry *,
+                      const pdvector<pdstring> & ,
+                      const pdvector<pdstring> & );
 
 
+#if defined(os_aix)
 static bool startPOE(const pdstring &, const pdstring &,
                      const pdstring &, const pdstring &,
                      const pdvector<pdstring> & , 
                      const pdvector<pdstring> , daemonEntry *);
+#endif
 
 
 
@@ -698,85 +697,69 @@ bool paradynDaemon::defineDaemon (const char *c, const char *d,
     return true;
 }
 
-MRN::Network * paradynDaemon::instantiateMPIDaemon(daemonEntry * de)
+bool paradynDaemon::instantiateMRNetforMPIDaemons(daemonEntry * ide,
+                                                  unsigned int iprocess_count)
 {
-    MRN::Network * network;
-    MRN::Network::LeafInfo **leafInfo;
-    unsigned  nLeaves = 0;
+    MRN::Network * network=NULL;
+    MRN::Network::LeafInfo **leafInfo=NULL;
+    unsigned int nLeaves = 0;
 
-#if defined(i386_unknown_nt4_0)
-    pdstring message = "Paradyn does not yet support MPI applications started from OS WinNT";
-				
-    uiMgr->showError(113, strdup(message.c_str()));
-    return false;
-#else
-    pdvector<pdstring> argv;
-    argv.push_back( processMet::allProcs[0]->name());
-    argv.push_back( processMet::allProcs[0]->command());
-    argv.push_back( processMet::allProcs[0]->daemon());
-    argv.push_back( processMet::allProcs[0]->host());
-    argv.push_back( processMet::allProcs[0]->user());
-    pdstring dir = processMet::allProcs[0]->execDir();
-    argv.push_back( processMet::allProcs[0]->execDir());
-
-    if(processMet::allProcs[0]->autoStart())
-        argv.push_back( pdstring("true"));
-    else
-        argv.push_back( pdstring("false"));
-				
-    if(de->getMRNetTopologyString().length() == 0) {
-        int n_nodes = getNumberOfNodes(argv);
+    if(ide->getMRNetTopologyString().length() == 0) {
         pdstring mrnet_top_buf=getNetworkName()+":0 => ";
 
-        for(int i = 0 ; i < n_nodes ; i++) {
+        for(unsigned int i = 0 ; i < iprocess_count ; i++) {
             char buf[256];
             snprintf(buf, 256, "mpidummy%d:%d ", i, i );
             mrnet_top_buf += buf;
         }
         mrnet_top_buf += ";";
-        fprintf(stderr, "starting mrnet w/ buffer \"%s\" ...\n", mrnet_top_buf.c_str() );
+        fprintf(stderr, "starting mrnet w/ buffer \"%s\" ...\n",
+                mrnet_top_buf.c_str() );
         network = new MRN::Network(mrnet_top_buf.c_str(), false,
-                                    &leafInfo, &nLeaves );
+                                   &leafInfo, &nLeaves );
     }
     else{
         fprintf(stderr, "starting mrnet w/ file \"%s\" ...\n",
-                de->getMRNetTopology() );
-        network = new MRN::Network(de->getMRNetTopology(),
-                                    &leafInfo, &nLeaves );
+                ide->getMRNetTopology() );
+        network = new MRN::Network(ide->getMRNetTopology(),
+                                   &leafInfo, &nLeaves );
     }
 
-    //Make sure we have the correct MPI implementation in MPItype
-    //if the user specified one in the user-interface (in MPItype) 
-    //then that value
-    //wins, otherwise, we use the value from pcl file (in def)
-				
-    struct utsname unameInfo;
-    if ( P_uname(&unameInfo) == -1 ) {
-      perror("uname");
-      return false;
-    }
-    pdstring os = unameInfo.sysname;
-
-    if ( os.prefixed_by ("AIX") ) {
-      //startPOE(machine, login, name, dir, argv, args, def, leafInfo);
-    }
-    else {
-        fprintf(stderr, "Calling startMPI()\n");
-        startMPI(de->getMachineString(), de->getLoginString(), de->getNameString(),
-                 de->getDir(), argv, args, de, leafInfo, nLeaves);
-    }
-				
-    int ret = network->connect_Backends();
-				
-    if(ret < 0)
-        fprintf(stderr,"MRN::Network::connect_Backends() failed ret = %d\n",ret);
-#endif
-
-    return network;
+    ide->setMRNetNetwork( network );
+    ide->setMRNetLeafInfo( leafInfo );
+    ide->setMRNetNumLeaves( nLeaves );
+    return true;
 }
 
-MRN::Network * paradynDaemon::instantiateDefaultDaemon( daemonEntry * de,
-                                                        const pdvector <pdstring> * process_hosts )
+bool paradynDaemon::startMPIDaemonsandApplication(daemonEntry * ide,
+                                                  processMet* proc )
+{
+#if defined(os_aix)
+    //startPOE(machine, login, name, dir, argv, args, def, leafInfo);
+#else
+    pdvector<pdstring> argv;
+    argv.push_back( proc->name());
+    argv.push_back( proc->command());
+    argv.push_back( proc->daemon());
+    argv.push_back( proc->host());
+    argv.push_back( proc->user());
+    argv.push_back( proc->execDir());
+    if( proc->autoStart() )
+        argv.push_back( pdstring("true"));
+    else
+        argv.push_back( pdstring("false"));
+    
+    startMPI(ide, argv, args);
+#endif
+				
+    if( ide->getMRNetNetwork()->connect_Backends() < 0)
+        fprintf(stderr,"MRN::Network::connect_Backends() failed\n");
+
+    return true;
+}
+
+bool paradynDaemon::instantiateDefaultDaemon( daemonEntry * de,
+                                              const pdvector <pdstring> * process_hosts )
 {
     MRN::Network * network;
     //first gather paradynd args into a argv vector;
@@ -827,15 +810,16 @@ MRN::Network * paradynDaemon::instantiateDefaultDaemon( daemonEntry * de,
         network = new MRN::Network (de->getMRNetTopology(),
                                      de->getCommand(), (const char **)argv);
     }
+    de->setMRNetNetwork( network );
 
     for( unsigned int i=0; i<paradynDaemon::args.size(); i++){
         free(argv[i]);
     }
 
-    return network;
+    return true;
 }
 
-bool paradynDaemon::initializeDaemon(daemonEntry * de, MRN::Network * inetwork )
+bool paradynDaemon::initializeDaemon(daemonEntry * de)
 {
     //Bind the socket that the MRNet front-end uses
     //Not an actual "network" bind, but just lets thr_mailbox::poll()
@@ -844,14 +828,14 @@ bool paradynDaemon::initializeDaemon(daemonEntry * de, MRN::Network * inetwork )
     thread_t stid;
     int *mrnet_sockets;
     unsigned int num_mrnet_sockets;
-    inetwork->get_SocketFd( &mrnet_sockets, &num_mrnet_sockets );
+    de->getMRNetNetwork()->get_SocketFd( &mrnet_sockets, &num_mrnet_sockets );
   
     for( unsigned int i=0; i<num_mrnet_sockets; i++) {
         msg_bind_socket (mrnet_sockets[i], true, NULL, NULL, &stid);
     }
 		
     std::vector<MRN::EndPoint *> endpoints =
-        inetwork->get_BroadcastCommunicator()->get_EndPoints();
+        de->getMRNetNetwork()->get_BroadcastCommunicator()->get_EndPoints();
 		
     //for all endpoints in the network, create a paradynd object and
     //the constructor puts the daemon in the allDaemons list
@@ -859,8 +843,10 @@ bool paradynDaemon::initializeDaemon(daemonEntry * de, MRN::Network * inetwork )
     paradynDaemon * pd = NULL;
     for( unsigned int j=0; j<endpoints.size(); j++) {
         pdstring daemon_machine = endpoints[j]->get_HostName() ;
-        pd = new paradynDaemon(inetwork, endpoints[j], (pdstring&)de->getMachineString(),
-                               (pdstring&)de->getLoginString(), (pdstring&)de->getNameString(),
+        pd = new paradynDaemon(de->getMRNetNetwork(), endpoints[j],
+                               (pdstring&)de->getMachineString(),
+                               (pdstring&)de->getLoginString(),
+                               (pdstring&)de->getNameString(),
                                (pdstring&)de->getFlavorString()); 
         T_dyninstRPC::daemonSetupStruc * dss =
             new T_dyninstRPC::daemonSetupStruc;
@@ -869,73 +855,79 @@ bool paradynDaemon::initializeDaemon(daemonEntry * de, MRN::Network * inetwork )
         di.push_back(*dss);
     }
 		
-  MRN::Stream * eqcStream = inetwork->new_Stream( inetwork->get_BroadcastCommunicator(),
-                                                  MRN::TFILTER_PD_UINT_EQ_CLASS);
+    MRN::Stream * eqcStream = de->getMRNetNetwork()->
+        new_Stream( de->getMRNetNetwork()->get_BroadcastCommunicator(),
+                    MRN::TFILTER_PD_UINT_EQ_CLASS);
 		
-  MRN::Stream * defStream = inetwork->new_Stream( inetwork->get_BroadcastCommunicator(),
-                                                  MRN::TFILTER_NULL,MRN::SFILTER_DONTWAIT);
-  pdvector <int> countStreams =	 pd->setDaemonDefaultStream(defStream);
+    MRN::Stream * defStream = de->getMRNetNetwork()->
+        new_Stream( de->getMRNetNetwork()->get_BroadcastCommunicator(),
+                    MRN::TFILTER_NULL,MRN::SFILTER_DONTWAIT);
+    pdvector <int> countStreams =	 pd->setDaemonDefaultStream(defStream);
 		
-  MRN::Stream * bcStream = inetwork->new_Stream( inetwork->get_BroadcastCommunicator(),
-                                                 MRN::TFILTER_NULL);
+    MRN::Stream * bcStream = de->getMRNetNetwork()->
+        new_Stream( de->getMRNetNetwork()->get_BroadcastCommunicator(),
+                    MRN::TFILTER_NULL);
 		
-  pdvector <T_dyninstRPC::daemonInfo> daemon_info = pd->getDaemonInfo( bcStream, di );
-  pdvector<pdstring> holdStatus;
+    pdvector <T_dyninstRPC::daemonInfo> daemon_info =
+        pd->getDaemonInfo( bcStream, di );
+    pdvector<pdstring> holdStatus;
 		
-  for( unsigned ij =0 ; ij < daemon_info.size() ; ij++) {
-    pd = paradynDaemon::allDaemons[ij];
-    if(de->getFlavorString() == "mpi") {
-      if(ij != (unsigned)daemon_info[ij].d_id) {
-        MRN::Communicator * temp =
-          paradynDaemon::allDaemons[daemon_info[ij].d_id]->getCommunicator();
-        MRN::Communicator * temp1 = paradynDaemon::allDaemons[ij]->getCommunicator();
+    for( unsigned ij =0 ; ij < daemon_info.size() ; ij++) {
+        pd = paradynDaemon::allDaemons[ij];
+        if(de->getFlavorString() == "mpi") {
+            if(ij != (unsigned)daemon_info[ij].d_id) {
+                MRN::Communicator * temp =
+                    paradynDaemon::allDaemons[daemon_info[ij].d_id]->
+                    getCommunicator();
+                MRN::Communicator * temp1 = paradynDaemon::allDaemons[ij]->
+                    getCommunicator();
+              
+                paradynDaemon::allDaemons[daemon_info[ij].d_id]->setCommunicator(temp1);
+                paradynDaemon::allDaemons[ij]->setCommunicator(temp);
+            }
 
-        paradynDaemon::allDaemons[daemon_info[ij].d_id]->setCommunicator(temp1);
-        paradynDaemon::allDaemons[ij]->setCommunicator(temp);
-      }
-
-      holdStatus.push_back(pd->status);
-      pd->machine = daemon_info[daemon_info[ij].d_id].machine;
-      if (pd->machine.suffixed_by(local_domain)) {
-        const unsigned namelength = pd->machine.length() - local_domain.length() - 1;
-        const pdstring localname = pd->machine.substr(0,namelength);
-        pd->status = localname;
-      } 
-      else {
-        pd->status = pd->machine;
-      }
-      uiMgr->createProcessStatusLine(pd->status.c_str());
+            holdStatus.push_back(pd->status);
+            pd->machine = daemon_info[daemon_info[ij].d_id].machine;
+            if (pd->machine.suffixed_by(local_domain)) {
+                const unsigned namelength = pd->machine.length() - local_domain.length() - 1;
+              const pdstring localname = pd->machine.substr(0,namelength);
+              pd->status = localname;
+            } 
+            else {
+                pd->status = pd->machine;
+            }
+            uiMgr->createProcessStatusLine(pd->status.c_str());
+        }
     }
-  }
 
-  //TODO: we shoud make this persistent for default async downcalls
-  delete bcStream;
+    //TODO: we shoud make this persistent for default async downcalls
+    delete bcStream;
 		
-  for( unsigned ik =0 ; ik < daemon_info.size() ; ik++) {
-    pd = paradynDaemon::allDaemons[ik];
-  }		
-  pd->setEquivClassReportStream(eqcStream);
+    for( unsigned ik =0 ; ik < daemon_info.size() ; ik++) {
+        pd = paradynDaemon::allDaemons[ik];
+    }		
+    pd->setEquivClassReportStream(eqcStream);
 
-  // Send the initial metrics, constraints, and other neato things
-  MRN::Stream * nbcStream = inetwork->
-    new_Stream( inetwork->get_BroadcastCommunicator(),MRN::TFILTER_NULL);
-  pd->SendMDLFiles(nbcStream);
-  delete nbcStream;	 
+    // Send the initial metrics, constraints, and other neato things
+    MRN::Stream * nbcStream = de->getMRNetNetwork()->
+        new_Stream( de->getMRNetNetwork()->get_BroadcastCommunicator(),MRN::TFILTER_NULL);
+    pd->SendMDLFiles(nbcStream);
+    delete nbcStream;	 
 		
-  nbcStream = inetwork->
-    new_Stream( inetwork->get_BroadcastCommunicator(),MRN::TFILTER_NULL);
-  pdvector<pdvector<T_dyninstRPC::metricInfo> > info =
-    pd->getAvailableMetrics(nbcStream);
+    nbcStream = de->getMRNetNetwork()->
+        new_Stream( de->getMRNetNetwork()->get_BroadcastCommunicator(),MRN::TFILTER_NULL);
+    pdvector<pdvector<T_dyninstRPC::metricInfo> > info =
+        pd->getAvailableMetrics(nbcStream);
 		
-  for (unsigned kl = 0 ; kl < info.size() ; kl ++) {
-    unsigned size = info[kl].size();
-    for (unsigned u=0; u<size; u++) {
-      addMetric(info[kl][u]);
-    }
-  }		
-  delete nbcStream;
-  pd->updateTimeAdjustment();
-  return true;
+    for (unsigned kl = 0 ; kl < info.size() ; kl ++) {
+        unsigned size = info[kl].size();
+        for (unsigned u=0; u<size; u++) {
+            addMetric(info[kl][u]);
+        }
+    }		
+    delete nbcStream;
+    pd->updateTimeAdjustment();
+    return true;
 }
 
 daemonEntry *paradynDaemon::findEntry(const pdstring &n)
@@ -1020,11 +1012,13 @@ pdvector<paradynDaemon*> paradynDaemon::machineName2Daemon(const pdstring &mach)
 
 static bool hostIsLocal(const pdstring &machine)
 {
-	return (machine.length() == 0 || machine == "localhost" || 
-		getNetworkName(machine) == getNetworkName() ||
-		getNetworkAddr(machine) == getNetworkAddr());
+	return (machine.length() == 0 ||
+            machine == "localhost" || 
+            getNetworkName(machine) == getNetworkName() ||
+            getNetworkAddr(machine) == getNetworkAddr());
 }
 
+#if defined(os_aix)
 static bool execPOE(const pdstring /* &machine*/, const pdstring /* &login */,
                     const pdstring /* &name   */, const pdstring         &dir,
                     const pdvector<pdstring> &argv, const pdvector<pdstring>  args,
@@ -1136,14 +1130,12 @@ static bool rshPOE(const pdstring  &machine, const pdstring   &login,
   return(false);
 }
 
-
 static bool startPOE(const pdstring &machine, const pdstring &login,
                      const pdstring &name,    const pdstring &dir,
                      const pdvector<pdstring> &argv, 
                      const pdvector<pdstring>  args,
                      daemonEntry *de)
 {
-#if !defined(i386_unknown_nt4_0)
     uiMgr->updateStatusLine(DMstatus.c_str(),   "ready");
 
   if (fork()) return(true);
@@ -1152,482 +1144,8 @@ static bool startPOE(const pdstring &machine, const pdstring &login,
     return(execPOE(machine, login, name, dir, argv, args, de));
   else
     return( rshPOE(machine, login, name, dir, argv, args, de));
-#else // !defined(i386_unknown_nt4_0)
-	// TODO - implement this?
-	return false;
-#endif // !defined(i386_unknown_nt4_0)
 }
-
-
-bool getIrixMPICommandLine(const pdvector<pdstring> argv,
-                           const pdvector<pdstring> args,
-                           daemonEntry* de, pdvector<pdstring>& cmdLineVec,
-                           pdstring& programNames)
-{
-   //  This parsing implemented for mpirun IRIX 6.5, SGI MPI 3.2.0.0
-
-   typedef struct arg_entry {
-        
-      char* argFlag;
-      bool hasValue;
-      bool definedBehavior;
-      bool supported;
-    
-   } ArgEntry;
-                
-   const unsigned int globalArgNo = 14;
-        
-   ArgEntry globalArgs[globalArgNo] =
-      {
-         {  "-a", true, true, true },
-         {  "-array", true, true, true },
-         {  "-cpr", false, false, true },
-         {  "-d", true, true, true },
-         {  "-dir", true, true, true },
-         {  "-f", true, false, true },
-         {  "-file", true, false, true },
-         {  "-h", false, false, false },
-         {  "-help", false, false, false },
-         {  "-miser", false, true, true },
-         {  "-p", true, true, true },
-         {  "-prefix", true, true, true },
-         {  "-v", false, true, true },
-         {  "-verbose", false, true, true }
-      };
-        
-        
-   const unsigned int localArgNo = 4;
-        
-   ArgEntry localArgs[localArgNo] =
-      {
-         {  "-f", true, false, true },
-         {  "-file", true, false, true },
-         {  "-np", true, true, true },
-         {  "-nt", true, true, true }
-      };
-
-   unsigned int i = 0, j = 0;
-   pdvector<pdstring> progNameVec;
-  
-   //  parse past mpirun
-   bool mpirunFound = false;
-   do 
-   {
-      cmdLineVec += argv[i];
-    
-      mpirunFound = (P_strstr(argv[i].c_str(), "mpirun") > 0);
-      i++;
-   }
-   while ( !mpirunFound && i < argv.size());
-
-   if ( !mpirunFound )
-   {
-      uiMgr->showError(113, "Unable to find mpirun command.");
-      return false;
-   }
-  
-   //  parse global options
-   bool flagFound = true;
-
-   while ( i < argv.size() && flagFound )
-   {
-      flagFound = false;
-     
-      for ( j = 0; j < globalArgNo && !flagFound; j++ )
-      {
-         if ( P_strcmp(argv[i].c_str(), globalArgs[j].argFlag) == 0 )
-         {
-            if ( !globalArgs[j].supported )
-            {
-               pdstring message ="Paradyn does not support use of mpirun flag ";
-               message += globalArgs[j].argFlag;
-               uiMgr->showError(113, P_strdup(message.c_str()));
-              
-               return false;
-            }
-           
-            if ( !globalArgs[j].definedBehavior )
-            {
-               pdstring message = "Behavior undefined with mpirun option ";
-               message += globalArgs[j].argFlag;
-               uiMgr->showError(114, P_strdup(message.c_str()));
-            }
-           
-            flagFound = true;
-            cmdLineVec += argv[i];
-            i++;
-           
-            if ( globalArgs[j].hasValue )
-            {
-               cmdLineVec += argv[i];
-               i++;
-            }
-         }
-      }
-   }
-
-   while ( i < argv.size() )
-   {
-      //  We have reached the first entry
-      //  The following arguments could be host list, process count, application,
-      //    or application argument
-
-      //  Is the argument of the first entry a number?
-      //  If so, assume that this is a process count and not
-      //    a hostname
-
-      bool isNumber = true;
-      unsigned int len;
-    
-      len = argv[i].length();
-
-      for ( j = 0; j < len && isNumber; j++ )
-      {
-         if ( !isdigit(argv[i][j]) )
-            isNumber = false;
-      }
-
-      if ( isNumber )  
-      {
-         //  this must be a process count
-         cmdLineVec += argv[i];
-         i++;
-      }
-
-      if ( !isNumber )
-      {
-         //  If not a number, then this argument can either be
-         //  a local flag or a hostname.  If it is a local flag,
-         //  then there is no hostlist for this entry (it is for
-         //  the local host).
-
-         // are there any local options?
-         //  This can consist of:
-         //    -f[ile] filename
-         //    -np number
-         //    -nt number
-        
-         bool flagFound = false;
-
-         for ( j = 0; j < localArgNo && !flagFound; j++ )
-         {
-            if ( strcmp(argv[i].c_str(), localArgs[j].argFlag) == 0 )
-            {
-               if ( !localArgs[j].supported )
-               {
-                  pdstring message =
-                     "Paradyn does not support use of mpirun flag ";
-                  message += globalArgs[j].argFlag;
-                  uiMgr->showError(113, P_strdup(message.c_str()));
-                  return false;
-               }
-            
-               if ( !localArgs[j].definedBehavior )
-               {
-                  pdstring message = "Behavior undefined with mpirun option ";
-                  message += globalArgs[j].argFlag;
-                  uiMgr->showError(114, P_strdup(message.c_str()));
-               }
-            
-               flagFound = true;
-            
-               cmdLineVec += argv[i];
-               i++;
-            
-               if ( localArgs[j].hasValue )
-               {
-                  cmdLineVec += argv[i];
-                  i++;
-               }
-            }
-         }
-        
-         //  If the first arg in the entry is neither a number or a local flag,
-         //  then this must be a hostlist.
-         //    hostlist can be constructed in the following ways:
-         //      "hostname1," "hostname2"
-         //      "hostname1" ",hostname2"
-         //      "hostname1" "," "hostname2"
-         //      "hostname1,hostname2"
-
-         if ( !flagFound )
-         {
-            bool inHostList = false;
-            char* commaPtr;
-            do
-            {
-               // If curr arg contains ",", then it is a hostname
-               // If last char is ',' or next arg starts with ',', then still in hostlist
-               commaPtr = strrchr(argv[i].c_str(), ',');
-
-               if ( (commaPtr && argv[i][argv[i].length()-1] == ',') ||
-                    ( (i+1) < argv.size() && argv[i+1][0] == ',') )
-               {
-                  inHostList = true;
-               }
-               else
-                  inHostList = false;
-
-               cmdLineVec += argv[i];
-               i++;
-        
-            } while ( inHostList );
-
-            // If there aren't anymore args, the command is invalid!
-            if ( i >= argv.size() )
-            {
-               uiMgr->showError(113, "Unable to parse mpirun command line.");
-               return false;
-            }
-        
-            // Now redo the number/flag-checking
-            isNumber = true;
-            len = argv[i].length();
-
-            for ( j = 0; j < len; j++ )
-            {
-               if ( !isdigit(argv[i][j]) )
-                  isNumber = false;
-            }
-
-            if ( isNumber )  
-            {
-               //  this must be a process count
-               cmdLineVec += argv[i];
-               i++;
-            }
-            else
-            {
-               flagFound = false;
-           
-               for ( j = 0; j < localArgNo && !flagFound; j++ )
-               {
-                  if ( strcmp(argv[i].c_str(), localArgs[j].argFlag) == 0 )
-                  {
-                     if ( !localArgs[j].supported )
-                     {
-                        pdstring message = "Paradyn does not support use of mpirun flag ";
-                        message += globalArgs[j].argFlag;
-                        uiMgr->showError(113, P_strdup(message.c_str()));
-                        return false;
-                     }
-              
-                     flagFound = true;
-                     cmdLineVec += argv[i];
-                     i++;
-        
-                     if ( localArgs[j].hasValue )
-                     {
-                        cmdLineVec += argv[i];
-                        i++;
-                     }
-                  }
-               }
-
-               if ( !flagFound )  // No process count!  Error parsing command.
-               {
-                  uiMgr->showError(113, "Unable to parse mpirun command line.");
-                  return false;
-               }
-            }
-         }
-      }
-
-      // If there aren't anymore args, the command is invalid!
-      if ( i >= argv.size() )
-      {
-         uiMgr->showError(113, "Unable to determine executable in mpirun command line.");
-         return false;
-      }
-
-      //  the current argument is an application, so insert daemon command & args
-      cmdLineVec += de->getCommand();
-    
-      for (j = 0; j < args.size(); j++)
-         cmdLineVec += strcmp(args[j].c_str(), "-l1") ? args[j] : "-l0";
-
-      cmdLineVec += pdstring("-z") + de->getFlavor();
-      cmdLineVec += "-runme";
-    
-      bool progNameFound = false;
-      for ( j = 0; j < progNameVec.size(); j++ )
-      {
-         if ( progNameVec[j] == argv[i] )
-            progNameFound = true;
-      }
-
-      if ( !progNameFound )
-         progNameVec += argv[i];
-
-      cmdLineVec += argv[i];
-    
-      i++;
-
-      //  Go past program arguments to find the next entry
-      while ( i < argv.size() && strcmp(argv[i].c_str(), ":") )
-      {
-         cmdLineVec += argv[i];
-         i++;
-      }
-
-      if ( i < argv.size() && !strcmp(argv[i].c_str(), ":") )
-      {
-         cmdLineVec += argv[i];
-         i++;
-      }
-   }
-
-   for ( j = 0; j < progNameVec.size(); j++ )
-   {
-      if ( programNames.length() )
-         programNames += ", ";
-      programNames += progNameVec[j];
-   }
-
-   return true;
-}
-
-
-static bool execIrixMPI(const pdstring &dir, pdvector<pdstring>& cmdLineVec)
-{
-  unsigned int j;
-  
-  const int cmdLineVecSize = 1000;
-  char **s = new char*[cmdLineVecSize]();
-
-  for ( j = 0; j < cmdLineVec.size(); j++ ) {
-    s[j] = P_strdup(cmdLineVec[j].c_str());
-  }
-
-  s[j] = NULL;
-  
-  if (dir.length()) {
-      // mpirun cds to "current directory" based on PWD environment variable
-      const int dirLength = 300;
-      char* buf = new char[dirLength]();
-      sprintf(buf, "PWD=%s",dir.c_str());
-      putenv(buf);
-  }
-
-  int execRetVal = execvp(s[0], s);
-
-  // Close Tk X connection to avoid conflicts with parent
-  uiMgr->CloseTkConnection();
-
-  if ( execRetVal == -1 )
-  {
-    if ( errno == ENOENT )
-      cerr << "Could not find executable." << endl;
-    else
-      cerr << "Could not start MPI on local host." << endl;
-  }
-  
-  P__exit(-1);
-  return(false);
-}
-
-
-static bool rshIrixMPI(const pdstring &machine, const pdstring &login,
-                       const pdstring &dir, daemonEntry* de,
-                       pdvector<pdstring>& cmdLineVec)
-{
-  char *s[6];
-  char  t[1024];
-  unsigned int i;
-  
-  //  create rsh command
-  pdstring remoteShell = de->getRemoteShellString();
-  assert(remoteShell.length() > 0);
-  s[0] = strdup(remoteShell.c_str());
-
-  s[1] = strdup(machine.c_str());
-  s[2] = (login.length()) ? strdup("-l"):              strdup("");
-  s[3] = (login.length()) ? strdup(login.c_str()): strdup("");
-
-  strcpy(t, "(");
-
-  if (dir.length())
-  {
-    strcat(t, "cd ");
-    strcat(t, dir.c_str());
-    strcat(t, "; ");
-  }
-
-  for ( i = 0; i < cmdLineVec.size(); i++ )
-  {
-    strcat(t, cmdLineVec[i].c_str());
-    strcat(t, " ");
-  }
-  
-  strcat(t, ")");
-
-  s[4] = strdup(t);
-  s[5] = NULL;
-
-  int execRetVal = execvp(s[0], s);
-
-  // Close Tk X connection to avoid conflicts with parent
-  uiMgr->CloseTkConnection();
-
-  if ( execRetVal == -1 )
-  {
-    if ( errno == ENOENT )
-      cerr << "Could not find executable to start remote shell." << endl;
-    else
-      cerr << "Could not start MPI on remote host." << endl;
-  }
-  
-  P__exit(-1);
-  return(false);
-}
-
-
-static bool startIrixMPI(const pdstring &machine,  const pdstring &login,
-                         const pdstring     &name, const pdstring &dir,
-                         const pdvector<pdstring> &argv,
-                         const pdvector<pdstring>  args,
-                         daemonEntry *de)
-{
-#if !defined(i386_unknown_nt4_0)
-    uiMgr->updateStatusLine(DMstatus.c_str(),   "ready");
-
-   pdstring programNames;
-   pdvector<pdstring> cmdLineVec;
-   
-   if ( !getIrixMPICommandLine(argv, args, de, cmdLineVec, programNames) )
-     return false;
-   else
-   {
-      pdstring newStatus;
-      newStatus = pdstring("program: ") + programNames + " ";
-      newStatus += pdstring("machine: ");
-      if ( machine.length() )
-         newStatus += machine;
-      else
-         newStatus += "(local_host)";
-      newStatus += " ";
-      newStatus += pdstring("user: ");
-      if ( login.length() )
-         newStatus += login;
-      else
-         newStatus += "(self)";
-      newStatus += " ";
-      newStatus += pdstring("daemon: ") + name + " ";
-
-      uiMgr->updateStatusLine("Application name", P_strdup(newStatus.c_str()));
-   }
-   
-   if (fork()) return(true);
-
-   if (hostIsLocal(machine))
-      return(execIrixMPI(dir, cmdLineVec));
-   else
-      return(rshIrixMPI(machine, login, dir, de, cmdLineVec));
-#else // !defined(i386_unknown_nt4_0)
-   // TODO - implement this?
-   return false;
-#endif // !defined(i386_unknown_nt4_0)
-}
+#endif
 
 /*
   Pick a unique name for the wrapper
@@ -1774,14 +1292,22 @@ void addMRNetInfoToScript(pdstring &script, MRN::Network::LeafInfo **leafInfo,
 
   If successful, adds an entry to paradynDaemon::wrappers.
 */
-bool mpichCreateWrapper (const pdstring& machine, bool localMachine,
-                         const pdstring& script, const char *dir,
-                         const pdstring& app_name,
-                         const pdvector<pdstring> args,
-                         daemonEntry *de, bool has_explicit_wd,
-                         MRN::Network::LeafInfo **leafInfo,
-                         int nLeaves)
+bool mpichCreateWrapper ( const pdstring& script, daemonEntry *de, 
+                          const pdstring& app_name,
+                          const pdvector<pdstring> args,
+                          bool has_explicit_wd,
+                          const pdstring & app_dir )
 {
+    pdstring host = de->getMachineString();
+
+    char dir[PATH_MAX];
+    if ( de->getDirString().length() ) {
+        strcpy(dir, de->getDir() );
+    }
+    else {
+        getcwd(dir, PATH_MAX);
+    }
+
 	const char* shellspec = "#!/bin/sh\n";
 	pdstring buffer;
 	unsigned int j;
@@ -1833,18 +1359,22 @@ bool mpichCreateWrapper (const pdstring& machine, bool localMachine,
 					buffer += pdstring(" ") + args[j];
 				}
 		}
+    if( app_dir.length() > 0 ){
+        buffer += (pdstring(" -d") + app_dir);
+    }
 	buffer += (pdstring(" -z") + pdstring(de->getFlavor()));
 	buffer += (pdstring(" -M") + pdstring(de->getMPItype()));
-   buffer += pdstring(" -N $0");
+    buffer += pdstring(" -N $0");
 	bool useLoops = tunableConstantRegistry::findBoolTunableConstant("EnableLoops").getValue();
 	if (useLoops)
 		buffer += pdstring(" -o");
 	// Next add the arguments that define the process to be created.
 	buffer += (pdstring(" -runme ") + app_name + pdstring(" $appargs "));
 
-   addMRNetInfoToScript(buffer, leafInfo, nLeaves);
+   addMRNetInfoToScript(buffer, de->getMRNetLeafInfo(),
+                        de->getMRNetNumLeaves());
 
-   if(localMachine) {
+   if( hostIsLocal(host) ) {
       // the file named by script is our wrapper - write the script to the
       // wrapper file
       int fd = open(script.c_str(), O_WRONLY | O_CREAT);
@@ -1863,7 +1393,6 @@ bool mpichCreateWrapper (const pdstring& machine, bool localMachine,
       return true;
    }
    
-	assert(! localMachine);
 	// the file named by script is the wrapper's remote name - we write the
 	// script to a local temporary file so as to copy it to the remote system
 	char templ[40] = "pd.wrapper.XXXXXX";
@@ -1909,7 +1438,7 @@ bool mpichCreateWrapper (const pdstring& machine, bool localMachine,
 			pdstring cmd;
 			cmd += de->getRemoteShellString();
 			cmd += " ";
-			cmd += machine;		// name of the remote system
+			cmd += host;		// name of the remote system
 			cmd += " cat - \">\" ";
 			cmd += script;			// name of wrapper on remote system
 			cmd += " \";\" chmod 755 ";
@@ -1937,7 +1466,7 @@ bool mpichCreateWrapper (const pdstring& machine, bool localMachine,
 		{
 			// keep info around till later about script that needs to be removed
 			paradynDaemon::wrappers += paradynDaemon::MPICHWrapperInfo(script, 
-																																 machine, de->getRemoteShellString());
+																																 host, de->getRemoteShellString());
 		}
 
 	if(!copySucceeded) {
@@ -1952,28 +1481,27 @@ extern void appendParsedString(pdvector<pdstring> &strList, const pdstring &str)
 /*
   Handle remote startup case
 */
-void mpiRemote(const pdstring &machine, const pdstring &login, 
-                 const char *cwd, daemonEntry *de, 
-                 pdvector<pdstring> &params)
+void mpiRemote( daemonEntry *de, const char *daemon_dir,
+                pdvector<pdstring> &params)
 {
 	pdstring rsh = de->getRemoteShellString();
 	assert(rsh.length() > 0);
 	appendParsedString(params, rsh);
 
-	if (login.length() != 0) {
+	if (de->getLoginString().length() != 0) {
 		params += pdstring("-l");
-		params += login;
+		params += de->getLoginString();
 	}
-    if( machine.length() != 0 )
+    if( de->getMachineString().length() != 0 )
     {
-        params += machine;
+        params += de->getMachineString();
     }
     else
     {
         params += "localhost";
     }
 	params += pdstring("cd");
-	params += pdstring(cwd);
+	params += pdstring(daemon_dir);
 	params += pdstring(";");
 }
 	
@@ -2473,53 +2001,21 @@ pdstring mpiGetStartCmd(const pdvector<pdstring> & argv){
 }
 static int getNumberOfNodes( const pdvector<pdstring> &argv)
 {
-	pdvector<pdstring> Argv;
-	//----------------------------------------------
-	char *line;
-	char* ar[64];
-	char** ars;
-	ars = ar;
-
- 	line = strdup(argv[1].c_str());
-								 
-	while (*line != '\0') 
-   {       /* if not the end of line ....... */ 
-      while (*line == ' ' || *line == '\t' || *line == '\n')
-      {
-         *line++ = '\0';     /* replace white spaces with 0    */
-      }
-      *ars++ = line; /* save the argument position     */
-      while (*line != '\0' && *line != ' ' && 
-             *line != '\t' && *line != '\n')
-      { 
-         line++;             /* skip the argument until ...    */
-      }
-   }
-	*ars = '\0';
-	ars = ar;
-	while(*ars !='\0')
-   {
-      Argv.push_back(*ars);
-      *ars++;
-   }
-	//-------------------------------------------------------
-   
-	pdstring startUp = mpiGetStartCmd(Argv);
-	unsigned i = 0;
 	pdstring target;
+	pdstring startUp = mpiGetStartCmd(argv);
+
 	if (startUp == "srun")
 		target = "-n";
 	else
 		target = "-np";
+
 	bool found = false;
-	while (i < Argv.size() ) 
-   {
-      found = (strstr(Argv[i].c_str(), target.c_str()) != 0);
-      if (found)
-      {
-         return atoi(Argv[i+1].c_str());
-      }
-      ++i;
+	for( unsigned int i=0; i < argv.size(); i++ ) {
+        found = (strstr(argv[i].c_str(), target.c_str()) != 0);
+        if (found) {
+            assert( i != argv.size()-1 );
+            return atoi(argv[i+1].c_str());
+        }
    }
    return 1;
 }
@@ -2529,313 +2025,215 @@ static int getNumberOfNodes( const pdvector<pdstring> &argv)
   Initiate the MPICH startup process: start the master application
   under paradynd
 */
-static bool startMPI(const pdstring &machine, const pdstring &login,
-                     const pdstring &/*name*/, const pdstring &dir,
-                     const pdvector<pdstring> &argv,
-                     const pdvector<pdstring> &args, daemonEntry *de,
-                     MRN::Network::LeafInfo **leafInfo, int nLeaves)
+static bool startMPI( daemonEntry *de,
+                      const pdvector<pdstring> &process_argv,
+                      const pdvector<pdstring> &paradynd_args )
+                     
 {
 	pdstring app_name;
 	pdvector<pdstring> params;
 	unsigned int i;
-	char cwd[PATH_MAX];
-	char **s;
-	bool localMachine = hostIsLocal(machine);
-
+	char daemon_dir[PATH_MAX];
 
 	pdvector<pdstring> Argv;
 	//----------------------------------------------
 	char* ar[64];
 	char** ars;
 	ars = ar;
-	char *line = strdup(argv[1].c_str());
-   char *orig_line = line;
+	char *line = strdup(process_argv[1].c_str());
+    char *orig_line = line;
+    pdstring app_dir = process_argv[5];
 
-	while (*line != '\0') 
-   {       /* if not the end of line ....... */ 
-      while (*line == ' ' || *line == '\t' || *line == '\n')
-      {
-         *line++ = '\0';     /* replace white spaces with 0    */
-      }
-      *ars++ = line; /* save the argument position     */
-      while (*line != '\0' && *line != ' ' && 
-             *line != '\t' && *line != '\n')
-      { 
-         line++;             /* skip the argument until ...    */
-      }
-   }
-   *ars = '\0';
-   ars = ar;
-   while(*ars !='\0')
-   {
-      Argv.push_back(*ars);
-      *ars++;
-   }
-   free(orig_line);
-	 //-------------------------------------------------------
+	while (*line != '\0') {       /* if not the end of line ....... */ 
+        while (*line == ' ' || *line == '\t' || *line == '\n') {
+            *line++ = '\0';     /* replace white spaces with 0    */
+        }
+        *ars++ = line; /* save the argument position     */
+        while (*line != '\0' && *line != ' ' && 
+               *line != '\t' && *line != '\n') { 
+            line++;             /* skip the argument until ...    */
+        }
+    }
+    *ars = '\0';
+    ars = ar;
+    while(*ars !='\0') {
+        Argv.push_back(*ars);
+        *ars++;
+    }
+    free(orig_line);
 
-   uiMgr->updateStatusLine(DMstatus.c_str(),   "ready");
+    uiMgr->updateStatusLine(DMstatus.c_str(),   "ready");
    
-   if (dir.length())
-   {
-      strcpy(cwd, dir.c_str());
-   }
-   else 
-   {
-      getcwd(cwd, PATH_MAX);
-   }
+    if ( de->getDirString().length() ) {
+        strcpy(daemon_dir, de->getDir());
+    }
+    else {
+        getcwd(daemon_dir, PATH_MAX);
+    }
    
-   // find out if we are using MPICH or LAM or SLURM
-   pdstring whichMPI = de->getMPItypeString();
-   if(whichMPI.length() == 0){
-      whichMPI = pdstring("MPICH");
-   }
+    // find out if we are using MPICH or LAM or SLURM
+    pdstring whichMPI = de->getMPItypeString();
+    if(whichMPI.length() == 0){
+        whichMPI = pdstring("MPICH");
+    }
    
-   if( !localMachine || (login.length() > 0) )
-   {
-      // run the mpirun command via rsh/ssh
-      // either because target host is remote, or
-      // because target process' user is likely not us
-      //
-      // Note that this is conservative: the user may have
-      // specified the same login as the one used to create
-      // the front-end process.  We expect the common case
-      // to be that the user explicitly specifies a user name
-      // iff it is different from the one they used to start
-      // the front end.
-      mpiRemote(machine, login, cwd, de, params);
-   }
+    if( !hostIsLocal( de->getMachineString() )
+        || ( de->getLoginString().length() > 0) ) {
+        // run mpirun via rsh/ssh if using remote host or login specified
+        mpiRemote(de, daemon_dir, params);
+    }
 	 
-   pdstring script = mpichNameWrapper(cwd);
 
-   bool has_explicit_wd = false;
-   bool parseRet = false;
-   pdstring startUp = mpiGetStartCmd(Argv);
-   if (startUp == ""){
-      cerr<<"could not find MPI command"<<endl;
-      uiMgr->showError(113, "Could not find MPI command, expected \"mpirun\" or \"srun\"");
-      return false;
-      
-   }
-   else if(startUp == "mpirun" && whichMPI == "MPICH")
-   {
-      parseRet = mpichParseCmdline(script, Argv, app_name, params, 
+    pdstring script = mpichNameWrapper(daemon_dir);
+
+    bool has_explicit_wd = false;
+    bool parseRet = false;
+    pdstring startUp = mpiGetStartCmd(Argv);
+    if (startUp == ""){
+        cerr<<"could not find MPI command"<<endl;
+        uiMgr->showError(113, "Could not find MPI command, expected \"mpirun\" or \"srun\"");
+        return false;
+    }
+    else if(startUp == "mpirun" && whichMPI == "MPICH") {
+        parseRet = mpichParseCmdline(script, Argv, app_name, params, 
+                                     has_explicit_wd);
+    }
+    else if(startUp == "mpirun" && whichMPI == "LAM") {
+        parseRet = lamParseCmdline(script, Argv, app_name,  params, 
                                    has_explicit_wd);
-   }
-   else if(startUp == "mpirun" && whichMPI == "LAM")
-   {
-      parseRet = lamParseCmdline(script, Argv, app_name,  params, 
-                                 has_explicit_wd);
-   }
-   else if(startUp == "SLURM")
-   {
-      parseRet = slurmParseCmdline(script, Argv, app_name,  params, 
-                                 has_explicit_wd);
-   }
-   if (!parseRet)
-   {
-      return false;
-   }
+    }
+    else if(startUp == "SLURM") {
+        parseRet = slurmParseCmdline(script, Argv, app_name,  params, 
+                                     has_explicit_wd);
+    }
+    if (!parseRet) {
+        return false;
+    }
    
-   bool createRet = mpichCreateWrapper(machine, localMachine, script,
-                                       cwd, app_name, args, de,
-                                       has_explicit_wd, leafInfo, nLeaves);
-   if (!createRet) 
-   {
-      return false;
-   }
+    bool createRet = mpichCreateWrapper(script, de, app_name, paradynd_args,
+                                        has_explicit_wd, app_dir);
+    if (!createRet) {
+        return false;
+    }
    
-   if ((s = (char **)malloc((params.size() + 4) * sizeof(char *))) == 0)
-   {
-      uiMgr->showError(113, "Out of memory");
-      return false;
-   }
+    char **cmd = new char *[ params.size() + 4 ];
+    if ( cmd == NULL ) {
+        fprintf(stderr, "Internal error: memory allocation failed.\n");
+        exit(-1);
+    }
 
-   for (i=0; i<params.size(); i++)
-   {
-      if(params[i] != NULL)
-         s[i] = strdup(params[i].c_str());
-      else
-         s[i] = strdup("");
-   }
+    for (i=0; i<params.size(); i++) {
+        if(params[i] != NULL)
+            cmd[i] = strdup(params[i].c_str());
+        else
+            cmd[i] = strdup("");
+    }
    
-   s[i] = 0;
+    cmd[i] = 0;
 
-   if (fork())
-      return true;
+    if ( fork() )
+        return true;
 
-   // Close Tk X connection to avoid conflicts with parent
-   uiMgr->CloseTkConnection();
+    // Close Tk X connection to avoid conflicts with parent
+    uiMgr->CloseTkConnection();
    
-   if (execvp(s[0], s) < 0) {
-		 uiMgr->showError(113, "Failed to start MPI");
-   }
-   return false;
+    if (execvp(cmd[0], cmd) < 0) {
+        uiMgr->showError(113, "Failed to start MPI");
+    }
+    return false;
 }
 #endif // !defined(i386_unknown_nt4_0)
 
 // add a new executable (binary) to a program.
-bool paradynDaemon::newExecutable(const pdstring &machineArg,
-                                  const pdstring &login,
-                                  const pdstring &daemon_name, 
-                                  const pdstring &dir,
-                                  const pdstring &MPItype, 
-                                  const pdvector <pdstring> &argv)
+// for non-mpi jobs, start mrnet with daemon(s) if not already started
+//     - then add executable to the daemon
+// for mpi jobs, this launches mrnet, and then the daemons and app. via mpirun 
+bool paradynDaemon::newExecutable(const pdstring &ihost,
+                                  const pdstring &iuser,
+                                  const pdstring &idaemon_name, 
+                                  const pdstring &idir,
+                                  const pdvector <pdstring> &iargv)
 {
-    pdstring machine = machineArg;
-
     if ( !DMstatus_initialized) {
         uiMgr->createStatusLine(DMstatus.c_str());
         DMstatus_initialized = true;
     }
 
     //Do we have a daemon by this name?
-    daemonEntry *def = findEntry( daemon_name ) ;
-    if (!def) {
-        pdstring msg = pdstring("Paradyn daemon \"") + daemon_name +
-            pdstring("\" not defined.");
-        uiMgr->showError(90,P_strdup(msg.c_str()));
-        return false;
+    daemonEntry *de = findEntry( idaemon_name ) ;
+    if (!de) {
+        fprintf( stderr, "Paradyn daemon \"%s\" not defined.",
+                 idaemon_name.c_str() );
+        exit(-1);
     }
 
-    if (machine.length() == 0) {
-        if (default_host.length()) {
-            pdstring m = getNetworkName(default_host);
-            if( m.length() == 0 ) {
-                pdstring msg = pdstring("Host \"") + default_host + 
-                    pdstring("\" (given as default_host) not found.");
+    if( de->getFlavorString() == "mpi" ){
+#if defined(i386_unknown_nt4_0)
+        fprintf(stderr, "MPI applications for WinNT not supported!");
+        exit(-1);
+#else
+        //TODO: find process, fix getnumberofnodes to only parse command
+        int process_count = getNumberOfNodes(iargv);
+        instantiateMRNetforMPIDaemons( de, process_count );
+        startMPIDaemonsandApplication( de, processMet::allProcs[0] );
+        fprintf(stderr, "AAA\n");
+#endif
+    }
+    else{
+        //non-mpi application
+        paradynDaemon *daemon = getDaemon( ihost, iuser, idaemon_name );
+
+        if( daemon == NULL){
+            pdvector < pdstring > hosts;
+            hosts.push_back( ihost );
+            instantiateDefaultDaemon( de, &hosts );
+            if( de->getMRNetNetwork()->fail() ) {
+                pdstring msg = pdstring("Failed: MRNet new network.");
+                //TODO: create new error code
                 uiMgr->showError(90,P_strdup(msg.c_str()));
                 return false;
             }
-            machine = m;
+    
+            initializeDaemon(de);
+        }
+
+        //try again, now the daemon should now exist
+        daemon = getDaemon( ihost, iuser, idaemon_name );
+        assert(daemon);
+
+        performanceStream::ResourceBatchMode(batchStart);
+
+        MRN::Stream * stream =
+            daemon->network->new_Stream( daemon->getCommunicator(),
+                                         MRN::TFILTER_NULL);
+
+        pdvector<int> pid = daemon->addExecutable(stream, iargv, idir);
+        delete stream;
+
+        performanceStream::ResourceBatchMode(batchEnd);
+        bool err_found = false;
+
+        for(unsigned zz = 0 ; zz < pid.size(); zz++) {
+            if (!(pid[zz] > 0 && !daemon->did_error_occur())) {
+                err_found = true;
+            }
+        }
+        if(err_found) {
+#ifdef notdef
+            executable *exec = new executable(pid[zz], argv, daemon);
+            paradynDaemon::programs += exec;
+            ++procRunning;
+#endif
+            return (true);
+        }
+        else {
+            return(false);
         }
     }
-    else if (getNetworkName(machine) == "") {
-        pdstring msg = pdstring("Host \"") + machine + pdstring("\" not found.");
-        uiMgr->showError(90,P_strdup(msg.c_str()));
-        return false;
-    }
 
-   if ( def->getFlavorString() == "mpi" ) {
-#if defined(i386_unknown_nt4_0)
-       pdstring message = "Paradyn does not yet support MPI applications started from OS WinNT";
-         
-       uiMgr->showError(113, strdup(message.c_str()));
-       return false;
-#else
-       pdstring os;
-
-      //Make sure we have the correct MPI implementation in MPItype
-      //if the user specified one in the user-interface (in MPItype) 
-      //then that value
-      //wins, otherwise, we use the value from pcl file (in def)
-      if (MPItype.length() >0 && def->getMPItypeString() != MPItype) {
-         def->setMPItype(MPItype);
-      }
-
-      if (hostIsLocal(machine))
-      {
-         struct utsname unameInfo;
-         if ( P_uname(&unameInfo) == -1 )
-         {
-            perror("uname");
-            return false;
-         }
-         os = unameInfo.sysname;
-      }
-      else {
-         // get OS name through remote uname	 
-          char comm[256];
-          FILE* commStream;
-          pdstring remoteShell;
-
-          remoteShell = def->getRemoteShellString();
-          assert(remoteShell.length() > 0);
-          snprintf(comm, 256, "%s%s%s %s uname -s", 
-                  remoteShell.c_str(),
-                  login.length() ? " -l " : "",
-                  login.length() ? login.c_str() : "",
-                  machine.c_str());
-
-          commStream = P_popen(comm, "r");
-
-          bool foundOS = false;
-      
-          if ( commStream ) {
-              if ( !P_fgets(comm, 256, commStream) )
-                  fclose(commStream);
-              else {
-                  os = comm;
-                  fclose(commStream);
-                  foundOS = true;
-              }
-          }
-      
-         if ( !foundOS ) {
-             uiMgr->showError(113, "Could not determine OS on remote host.");
-             return false;
-         }
-      }
-
-      if ( os.prefixed_by("IRIX") )
-      {
-         return(startIrixMPI(machine, login, daemon_name, dir, argv, args, def));
-      }
-      else if ( os.prefixed_by ("AIX") )
-      {
-         return(startPOE(machine, login, daemon_name, dir, argv, args, def));
-      }
-      else
-      {
-          //return(startMPI(machine, login, name, dir, argv, args, def));
-      }
-#endif
-   }  //end mpi flavor
-
-   paradynDaemon *daemon = getDaemon( machine, login, daemon_name );
-
-   if( daemon == (paradynDaemon*) NULL)
-     return false;
-
-   performanceStream::ResourceBatchMode(batchStart);
-
-   std::vector<MRN::EndPoint *> endpoints2 =
-       daemon->network->get_BroadcastCommunicator()->get_EndPoints();
-
-   MRN::Stream * stream =
-       daemon->network->new_Stream(daemon->network->get_BroadcastCommunicator(),
-                                   MRN::TFILTER_NULL);
-
-   pdvector<int> pid = daemon->addExecutable(stream, argv, dir);
-   delete stream;
-
-   performanceStream::ResourceBatchMode(batchEnd);
-
-   bool err_found = false;
-
-   for(unsigned zz = 0 ; zz < pid.size(); zz++)
-     {
-       if (!(pid[zz] > 0 && !daemon->did_error_occur())) 
-	 {
-	   err_found = true;
-	 }
-     }
-   if(err_found)
-     {
-#ifdef notdef
-       executable *exec = new executable(pid[zz], argv, daemon);
-       paradynDaemon::programs += exec;
-       ++procRunning;
-#endif
-       
-       return (true);
-     }
-   else
-     {
-       return(false);
-     }
-
+    return true;
 }
+
 
 bool paradynDaemon::attachStub(const pdstring &machine,
                                const pdstring &userName,
