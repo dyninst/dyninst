@@ -48,7 +48,7 @@
  *     metDoVisi(..) - declare a visi
  */
 
-// $Id: metMain.C,v 1.61 2006/01/27 00:19:11 darnold Exp $
+// $Id: metMain.C,v 1.62 2006/02/08 21:27:50 darnold Exp $
 
 #define GLOBAL_CONFIG_FILE "/paradyn.rc"
 #define LOCAL_CONFIG_FILE "/.paradynrc"
@@ -287,24 +287,18 @@ static void start_process(processMet *the_ps)
       *arguments += argv[i];
    }
 
-	cout << "metMain.C in start_process() "<< *arguments << endl;
 	uiMgr->ProcessCmd(arguments);
 }
 
 bool metDoProcess()
 {
-	return processMet::doInitProcess();
-}
-
-bool processMet::doInitProcess() {
     bool first_time=true;
     pdstring daemon_name;
-    pdvector<pdstring> process_hosts;
+    pdvector<pdstring> hosts;
 
-    fprintf( stderr, "In doInitProcess() ...\n");
     //make sure only one daemon definition is being used
-    for (unsigned u=0; u<allProcs.size(); u++) {
-        processMet * cur_proc = allProcs[u];
+    for (unsigned u=0; u<processMet::allProcs.size(); u++) {
+        processMet * cur_proc = processMet::allProcs[u];
         if( cur_proc && cur_proc->autoStart() ) {
 
             if(first_time){
@@ -316,10 +310,10 @@ bool processMet::doInitProcess() {
                 exit(-1);
             }
             if( cur_proc->host().length() != 0 ){
-                process_hosts.push_back( cur_proc->host() );
+                hosts.push_back( cur_proc->host() );
             }
             else{
-                process_hosts.push_back( "" );
+                hosts.push_back( "" );
             }
         }
     }
@@ -334,29 +328,27 @@ bool processMet::doInitProcess() {
         exit(-1);
     }
 
-    if( de->getFlavorString() == "mpi" && allProcs.size() > 1 ){
-        fprintf(stderr, "Error: Can't define multiple processes when using mpi flavor daemons.\n");
-        exit(-1);
+    //If more than one process definition is specified we start MRNet here
+    //to make sure they are all connected by a single MRNet network.
+    //For all other cases, addexecutable() starts the network
+    if( processMet::allProcs.size() > 1 ) {
+        if( de->getFlavorString() == "mpi" ) {
+            fprintf(stderr,
+                    "Error: MPI used with multiple process definitions.\n");
+            exit(-1);
+        }
+        else{
+            dataMgr->startMRNet(de->getName(), &hosts);
+        }
     }
 
-    //At this point we have either a single (set of) MPI process to instantiate
-    //or one or more non-mpi processes using a single daemon definition.
-    //Let's start the MRNet Network for the daemon process(es)
-    //   - in the non-mpi case, the actual daemons are started as well
-
-    fprintf(stderr, "Starting MRNet ...\n");
-    dataMgr->startMRNet(de->getName(), &process_hosts);
-
-
-   unsigned size = allProcs.size();
-   for (unsigned u=0; u<size; u++) {
-      if( allProcs[u] && allProcs[u]->autoStart() ) {
-         start_process( allProcs[u] );
-         //            delete allProcs[u];
-         allProcs[u] = NULL;
-      }
-   }
-   return true;
+    for (unsigned u=0; u<processMet::allProcs.size(); u++) {
+        if( processMet::allProcs[u] && processMet::allProcs[u]->autoStart() ) {
+            start_process( processMet::allProcs[u] );
+            //processMet::allProcs[u] = NULL;
+        }
+    }
+    return true;
 }
 
 void metCheckDaemonProcess( const pdstring &host ) {
