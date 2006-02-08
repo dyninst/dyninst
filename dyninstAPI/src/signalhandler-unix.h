@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-unix.h,v 1.19 2006/02/01 00:42:54 jaw Exp $
+/* $Id: signalhandler-unix.h,v 1.20 2006/02/08 23:41:28 bernat Exp $
  */
 
 /*
@@ -187,8 +187,7 @@ class SignalGenerator : public SignalGeneratorCommon
                       int stderr_fd)
     : SignalGeneratorCommon(idstr, file, dir, argv, envp, inputFile, outputFile, 
                       stdin_fd, stdout_fd, stderr_fd) {}
-  SignalGenerator(char *idstr, pdstring file, int pid)
-    : SignalGeneratorCommon(idstr, file, pid) {} 
+  SignalGenerator(char *idstr, pdstring file, int pid);
 
   virtual SignalHandler *newSignalHandler(char *name, int id);
 
