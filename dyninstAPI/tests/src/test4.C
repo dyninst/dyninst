@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4.C,v 1.32 2005/12/12 16:37:12 gquinn Exp $
+// $Id: test4.C,v 1.33 2006/02/08 23:41:32 bernat Exp $
 //
 
 #include <stdio.h>
@@ -151,6 +151,11 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
        // nothing to do for this case
     } else if (inTest == 2) {
        if (!child) return;	// skip prefork case
+
+       // Make a race condition always show up -- we don't run
+       // until the processes have had a chance.
+       sleep(1);
+       // That'll make erroneous continues break...
 
        // insert code into parent
        appImage = parent->getImage();
