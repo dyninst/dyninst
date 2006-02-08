@@ -198,6 +198,8 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
    void *mem_usage = sbrk(0);
    fprintf(stderr, "Post BPatch_process: sbrk %p\n", mem_usage);
 #endif
+
+   isVisiblyStopped = true;
 }
 
 /*
@@ -242,6 +244,8 @@ BPatch_process::BPatch_process(const char *path, int pid)
 
    assert(llproc->isBootstrappedYet());
    assert(llproc->status() == stopped);
+
+   isVisiblyStopped = true;
 }
 
 /*
@@ -252,7 +256,7 @@ BPatch_process::BPatch_process(const char *path, int pid)
  * parentPid          Pathname of the executable file for the process.
  * childPid           Process ID of the target process.
  */
-BPatch_process::BPatch_process(int /*pid*/, process *nProc)
+BPatch_process::BPatch_process(process *nProc)
    : llproc(nProc), image(NULL), lastSignal(-1), exitCode(-1),
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(true), detached(false),
@@ -275,6 +279,8 @@ BPatch_process::BPatch_process(int /*pid*/, process *nProc)
    llproc->registerInstPointCallback(createBPPointCB);
 
    image = new BPatch_image(this);
+
+   isVisiblyStopped = true;
 }
 
 /*
@@ -346,7 +352,12 @@ void BPatch_process::BPatch_process_dtor()
  */
 bool BPatch_process::stopExecutionInt()
 {
-   return llproc->pause();
+    if (llproc->pause()) {
+        isVisiblyStopped = true;
+        return true;
+    }
+    else
+        return false;
 }
 
 /*
@@ -362,14 +373,15 @@ bool BPatch_process::continueExecutionInt()
    if (!statusIsStopped()) {
      fprintf(stderr, "%s[%d]:  status change during continue execution, status is now %s\n",
              FILE__, __LINE__, llproc->getStatusAsString().c_str());
+     isVisiblyStopped = false;
      return true;
    }
 
    //  DON'T let the user continue the process if we have potentially active 
    //  signal handling going on:
    while (llproc->sh->activeHandlerForProcess(llproc)) {
-     signal_printf("%s[%d]:  waiting before doing user continue for process %d\n", FILE__, __LINE__, llproc->getPid());
-     llproc->sh->waitForEvent(evtAnyEvent);
+       signal_printf("%s[%d]:  waiting before doing user continue for process %d\n", FILE__, __LINE__, llproc->getPid());
+       llproc->sh->waitForEvent(evtAnyEvent);
    }
 
    getMailbox()->executeCallbacks(FILE__, __LINE__);
@@ -377,11 +389,13 @@ bool BPatch_process::continueExecutionInt()
    if (!statusIsStopped()) {
      fprintf(stderr, "%s[%d]:  status change during continue execution, status is now %s\n",
              FILE__, __LINE__, llproc->getStatusAsString().c_str());
+     isVisiblyStopped = false;
      return true;
    }
 
    if (llproc->continueProc()) {
       setUnreportedStop(false);
+      isVisiblyStopped = false;
       return true;
    }
 
@@ -428,6 +442,10 @@ bool BPatch_process::statusIsStopped()
  */
 bool BPatch_process::isStoppedInt()
 {
+    return isVisiblyStopped;
+
+#if 0
+
    assert(BPatch::bpatch);
    if (statusIsStopped()) {
       //  if there are signal handler threads that are acting on this process
@@ -444,6 +462,7 @@ bool BPatch_process::isStoppedInt()
    
 
    return false;
+#endif
 }
 
 /*
