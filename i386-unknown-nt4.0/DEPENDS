@@ -1,0 +1,34 @@
+test1.obj: ../src/test1.C ../../h/BPatch.h ../../h/BPatch_Vector.h \
+ ../../h/BPatch_thread.h ../../h/BPatch_image.h ../../h/BPatch_point.h \
+ ../../h/BPatch_snippet.h ../../h/BPatch_module.h ../src/test_util.h
+test2.obj: ../src/test2.C ../../h/BPatch.h ../../h/BPatch_Vector.h \
+ ../../h/BPatch_thread.h ../../h/BPatch_image.h ../../h/BPatch_point.h \
+ ../../h/BPatch_snippet.h ../../h/BPatch_module.h ../src/test_util.h
+test3.obj: ../src/test3.C ../../h/BPatch.h ../../h/BPatch_Vector.h \
+ ../../h/BPatch_thread.h ../../h/BPatch_image.h ../../h/BPatch_point.h \
+ ../../h/BPatch_snippet.h ../../h/BPatch_module.h ../src/test_util.h
+test4.obj: ../src/test4.C ../../h/BPatch.h ../../h/BPatch_Vector.h \
+ ../../h/BPatch_thread.h ../../h/BPatch_image.h ../../h/BPatch_point.h \
+ ../../h/BPatch_snippet.h ../../h/BPatch_module.h ../src/test_util.h
+test_util.obj: ../src/test_util.C ../../h/BPatch_Vector.h \
+ ../../h/BPatch_thread.h ../../h/BPatch_image.h ../../h/BPatch_point.h \
+ ../../h/BPatch_snippet.h ../../h/BPatch_module.h
+test1.mutatee.obj: ../src/test1.mutatee.c
+test2.mutatee.obj: ../src/test2.mutatee.c
+test3.mutatee.obj: ../src/test3.mutatee.c
+test4a.mutatee.obj: ../src/test4a.mutatee.c
+test4b.mutatee.obj: ../src/test4b.mutatee.c
+test_lib.obj: ../src/test_lib.h \
+              ../src/Process_data.h \
+              ../src/TestData.h \
+              ../src/ParameterDict.h \
+              ../src/test_lib_dll.h 
+TestData.obj: ../src/TestData.h \
+              ../src/test_lib_dll.h 
+Callbacks.obj: ../src/Callbacks.h \
+               ../src/test_lib_dll.h
+ParameterDict.obj: ../src/ParameterDict.h \
+                   ../src/test_lib_dll.h
+test_lib_dllExecution.obj: ../src/test_lib.h \
+                  ../src/ParameterDict.h
+test_lib_mutateeStart.obj: ../src/test_lib.h
