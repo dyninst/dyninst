@@ -186,6 +186,11 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
 	/* this is used to denote the fully qualified name of the prelink command on linux */
 	char *systemPrelinkCommand;
 
+        // Wrapper - start process running if it was not deleted. 
+        // We use this at the end of callbacks to user code, since those
+        // callbacks may delete BPatch objects. 
+        void continueIfExists(int pid);
+
     /* flag that is set when a mutatee's runnning status changes,
        for use with pollForStatusChange */
    bool mutateeStatusChange;
@@ -202,9 +207,12 @@ public:
     // The following are only to be called by the library:
     //  These functions are not locked.
     void registerProvisionalThread(int pid);
-    void registerForkedProcess(int parentPid, int childPid, process *proc);
+    void registerForkedProcess(process *parentProc, process *childProc);
     void registerForkingProcess(int forkingPid, process *proc);
-    void registerExec(process *proc);
+
+    void registerExecExit(process *proc);
+    void registerExecEntry(process *proc, char *arg0);
+
     void registerNormalExit(process *proc, int exitcode);
     void registerSignalExit(process *proc, int signalnum);
     void registerProcess(BPatch_process *process, int pid=0);
