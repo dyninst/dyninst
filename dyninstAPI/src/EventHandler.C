@@ -388,8 +388,8 @@ void EventHandler<T>::main()
        
       fprintf(stderr, "%s[%d][%s]:  handleEvent() failed\n", __FILE__, __LINE__,  getThreadStr(getExecThreadID()));
     }
+    if (stop_request) break;
   }
-
  //  remove ourselves from the threadmap before exiting\n"
   global_mutex->_Lock(FILE__, __LINE__);
  
