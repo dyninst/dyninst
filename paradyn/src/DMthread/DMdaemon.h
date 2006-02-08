@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.73 2006/01/27 00:19:08 darnold Exp $
+// $Id: DMdaemon.h,v 1.74 2006/02/08 21:27:39 darnold Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -81,19 +81,18 @@ public:
   daemonEntry (){ }
 
   daemonEntry (const pdstring &m, const pdstring &c, const pdstring &n,
-	       const pdstring &l, const pdstring &, const pdstring &r,
-	       const pdstring &f, const pdstring &t,
-	       const pdstring &MPIt) : 
-    command(c), name(n), login(l),
-    dir(""), remote_shell(r), flavor(f), mrnet_topology(t),
-    MPItype(MPIt) { }
+               const pdstring &l, const pdstring &, const pdstring &r,
+               const pdstring &f, const pdstring &t, const pdstring &MPIt) : 
+      command(c), name(n), login(l),
+      dir(""), remote_shell(r), flavor(f), mrnet_topology(t),
+      MPItype(MPIt), network(NULL), leafInfo(NULL), nLeaves(0) { }
 
   ~daemonEntry() { }
 
   bool setAll(const pdstring &m, const pdstring &c, const pdstring &n,
-	      const pdstring &l, const pdstring &d, const pdstring &r,
-	      const pdstring &f, const pdstring &t,
-	      const pdstring & MPIt);
+              const pdstring &l, const pdstring &d, const pdstring &r,
+              const pdstring &f, const pdstring &t,
+              const pdstring & MPIt);
 
   void print();
   const char *getCommand() const { return command.c_str();}
@@ -102,13 +101,20 @@ public:
   const char *getDir() const { return dir.c_str();}
   const char *getMachine() const { return machine.c_str();}
   const char *getFlavor() const { return flavor.c_str();}
-
   const char *getMRNetTopology() const { return mrnet_topology.c_str();}
-
   const char * getMPItype() const {return MPItype.c_str();}
+  MRN::Network * getMRNetNetwork() const { return network;}
+  MRN::Network::LeafInfo ** getMRNetLeafInfo() const { return leafInfo; }
+  unsigned int getMRNetNumLeaves() const { return nLeaves;}
+
+  void setMRNetNetwork(MRN::Network * n) { network=n;}
+  void setMRNetLeafInfo(MRN::Network::LeafInfo ** li) { leafInfo=li; }
+  void setMRNetNumLeaves(unsigned int c) { nLeaves=c;}
+
 
   const pdstring &getNameString() const { return name;}
   const pdstring &getLoginString() const { return login;}
+  const pdstring &getDirString() const { return dir;}
   const pdstring &getMachineString() const { return machine;}
   const pdstring &getCommandString() const { return command;}
   const pdstring getRemoteShellString() const;
@@ -130,6 +136,9 @@ private:
   pdstring flavor;
   pdstring mrnet_topology;
   pdstring MPItype;
+  MRN::Network * network;
+  MRN::Network::LeafInfo **leafInfo;
+  unsigned int nLeaves;
 };
 
 //
@@ -346,10 +355,12 @@ class paradynDaemon: public dynRPCUser {
                                      pdstring name,
                                      pdstring flavor,
                                      pdstring mrnet_topology );
-   static MRN::Network * instantiateMPIDaemon(daemonEntry * );
-   static MRN::Network * instantiateDefaultDaemon(daemonEntry *,
-                                           const pdvector<pdstring> * host_list );
-   static bool initializeDaemon(daemonEntry *, MRN::Network * inetwork );
+   static bool instantiateMRNetforMPIDaemons(daemonEntry *,
+                                                       unsigned int );
+   static bool instantiateDefaultDaemon(daemonEntry *,
+                                        const pdvector<pdstring> * host_list);
+   static bool initializeDaemon(daemonEntry *);
+   static bool startMPIDaemonsandApplication(daemonEntry *, processMet* );
 
 
    // start a new program; propagate all enabled metrics to it   
@@ -361,7 +372,6 @@ class paradynDaemon: public dynRPCUser {
    static bool newExecutable(const pdstring &machineArg, 
 			     const pdstring &login, const pdstring &name, 
 			     const pdstring &dir,
-			     const pdstring &MPItype, 
 			     const pdvector<pdstring> &argv);
 
 
@@ -417,6 +427,7 @@ class paradynDaemon: public dynRPCUser {
 					resourceListHandle, resourceList*,
 					metric*, u_int);
    static float currentSmoothObsCost();
+   static daemonEntry *findEntry(const pdstring &name);
 
    static unsigned int num_dmns_to_report_resources;
    
@@ -482,7 +493,6 @@ class paradynDaemon: public dynRPCUser {
    static paradynDaemon *getDaemon(const pdstring &machine,
                                    const pdstring &login,
                                    const pdstring &name);
-   static daemonEntry *findEntry(const pdstring &name);
    
    void propagateMetrics();
    void addProcessInfo(const pdvector<pdstring> &resource_name);
