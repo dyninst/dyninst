@@ -161,6 +161,12 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     BPatch_image *image;
     BPatch_Vector<BPatch_thread *> threads;
 
+    // Due to interactions of internal events and signal handling,
+    // we need to keep an internal variable of whether the user
+    // should observe us as stopped. This is set by internal 
+    // code if a "stop" is a real stop. 
+    bool isVisiblyStopped;
+
     int lastSignal;
     int exitCode;
     int exitSignal;
@@ -209,7 +215,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     BPatch_process(const char *path, int pid);	
 
     // for forking
-    BPatch_process(int childPid, process *proc);
+    BPatch_process(process *proc);
 
     // Create a new thread in this proc
     BPatch_thread *createOrUpdateBPThread(int lwp, dynthread_t tid, unsigned index, 
