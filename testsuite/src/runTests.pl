@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: runTests.pl,v 1.5 2006/01/30 04:31:41 bpellin Exp $
+# $Id: runTests.pl,v 1.6 2006/02/08 05:04:29 bpellin Exp $
 
 use strict;
 use POSIX;
@@ -74,7 +74,7 @@ sub SetupVars()
       my $TESTSLOGDIR=`dirname $logfile`;
       chomp $TESTSLOGDIR;
       if ( not -d $TESTSLOGDIR ) {
-         print "$TESTSLOGDIR dose not exist (yet)!\n";
+         print "$TESTSLOGDIR does not exist (yet)!\n";
          system("mkdir -p $TESTSLOGDIR");
          if ( not -d $TESTSLOGDIR ) {
             print "$TESTSLOGDIR creation failed - aborting!\n";
