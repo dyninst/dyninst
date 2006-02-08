@@ -1,6 +1,6 @@
 /*
  * dataManager.h - exported services of the Data Mgr thread of paradyn.
- * $Id: dataManager.I,v 1.121 2006/01/27 00:19:05 darnold Exp $
+ * $Id: dataManager.I,v 1.122 2006/02/08 21:27:38 darnold Exp $
  */
 
 #ifndef MMTHREAD_H
@@ -215,11 +215,10 @@ $remote dataManager {
     //            as null, anything else will be assumed to be a
     //            valid string.
     $async void addExecutable(const char *machine, 
-		           	const char *login, 
-		           	const char *name, 
-	              	const char *dir,
-                 	const char *MPItype,
-		       	const pdvector<pdstring> *argv);
+	    	           	      const char *login, 
+		               	      const char *name, 
+	              	          const char *dir,
+    		       	          const pdvector<pdstring> *argv);
 
 
     // Start the MRNet network for the daemons
