@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.139 2005/12/19 19:42:59 pack Exp $
+// $Id: main.C,v 1.140 2006/02/08 21:27:51 darnold Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -74,8 +74,6 @@ bool ok_toSendNewResources = false;
 
 
 bool isInfProcAttached = false;
-pdstring* newProcDir = NULL;
-pdvector<pdstring> newProcCmdLine;
 static bool reportedSelf = false;
        bool startOnReportSelfDone = false;
 
@@ -115,6 +113,8 @@ static int pd_known_socket_portnum=0;
 static int pd_flag=0;
 pdstring pd_flavor;
 pdstring MPI_impl;
+pdstring newProcDir;
+pdvector<pdstring> newProcCmdLine;
 // Unused on NT, but this makes prototypes simpler.
 int termWin_port = -1;
 
@@ -200,17 +200,18 @@ void cleanUpAndExit(int status) {
 bool
 RPC_undo_arg_list (pdstring &flavor, unsigned argc, char **argv, 
 		   pdstring &machine, int &well_known_socket,int &termWin_port,
-		   int &flag, int &attpid,  pdstring &MPI_impl)
+		   int &flag, int &attpid,  pdstring &MPI_impl, pdstring &proc_dir)
 {
   char *ptr;
   int c;
   extern char *optarg;
   bool err = false;
-  const char optstring[] = "p:P:vVL:m:l:z:a:r:t:s:M:o:N:";
+  const char optstring[] = "p:P:vVL:m:d:l:z:a:r:t:s:M:o:N:";
 
   // Defaults (for ones that make sense)
   machine = "localhost";
   flavor = "unix";
+  proc_dir=getenv("PWD");
   flag = 2;
   well_known_socket = 0;
   termWin_port = 0;
@@ -242,6 +243,10 @@ RPC_undo_arg_list (pdstring &flavor, unsigned argc, char **argv,
       // Machine specification. We could do "machine:portname", but there are
       // two ports. 
       machine = optarg;
+      break;
+    case 'd':
+      // directory from which to launch mpi jobs
+      proc_dir = optarg;
       break;
     case 'l':
       flag = P_strtol(optarg, &ptr, 10);
@@ -405,27 +410,13 @@ static void InitForMPI( pdstring& pd_machine, int &pd_port, int &pd_rank ) {
 	// which must report to paradyn
 	// the pdRPC is allocated and reportSelf is called
 
-	pd_rank = StartRunPastMPIinit(newProcCmdLine, *newProcDir);
+	pd_rank = StartRunPastMPIinit(newProcCmdLine, newProcDir);
 	parseScript(pd_machine, pd_port, pd_rank);
 	tp = new pdRPC(AF_INET, pd_port, SOCK_STREAM, pd_machine, NULL, NULL, 2);
 	assert( tp != NULL );
 	sdm_id = pd_rank;
 	sdm_id_set = true;
-
-
-
-	/*
-	if (!tp->net_obj())
-	{
-		cerr << "Failed to establish connection to Paradyn on "
-			 << pd_machine << " port " << pd_known_socket_portnum << endl;
-		cleanUpAndExit(-1);
-	}
-	*/
-
-	//	tp->reportSelf(defaultStream, machine_name, argv[0], getpid(), "mpi");
-	   reportedSelf = true;
-
+    reportedSelf = true;
 }
 
 static
@@ -520,7 +511,6 @@ void sighupInit() {
 int
 main( int argc, char* argv[] )
 {
-
 	PauseIfDesired();
 	init_daemon_debug();
 	
@@ -530,7 +520,7 @@ main( int argc, char* argv[] )
    
    
 #if defined(i386_unknown_nt4_0)
-   InitWinsock();
+    InitWinsock();
 #endif // defined(i386_unknown_nt4_0)
   
   
@@ -549,9 +539,9 @@ main( int argc, char* argv[] )
 
    aflag = RPC_undo_arg_list (pd_flavor, argc, argv, pd_machine,
                               pd_known_socket_portnum, termWin_port, 
-                              pd_flag, pd_attpid, MPI_impl);
+                              pd_flag, pd_attpid, MPI_impl, newProcDir );
 
-   if (!aflag || pd_debug)
+   if (!aflag || pd_debug )
    {
       if (!aflag)
       {
@@ -586,6 +576,11 @@ main( int argc, char* argv[] )
       if (MPI_impl.length())
       {
          cerr << "=" << MPI_impl;
+      }
+      cerr << "> -d<MPI_procdir";
+      if (newProcDir.length())
+      {
+         cerr << "=" << newProcDir;
       }
       cerr << ">" << endl;
 
@@ -636,14 +631,7 @@ main( int argc, char* argv[] )
 
    machine_name = getNetworkName();
 
-   //
-   // See if we should fork an app process now.
-   //
-   // We want to find two things
-   // First, get the current working dir (PWD)
-   newProcDir = new pdstring(getenv("PWD"));
-
-   // Second, put the inferior application and its command line
+   // Put the inferior application and its command line
    // arguments into the command line. Basically, loop through argv until
    // we find -runme, and put everything after it into the command line
    unsigned int argNum = 0;
@@ -664,7 +652,7 @@ main( int argc, char* argv[] )
 
    for (unsigned int i = argNum; i < (unsigned int)numberOfArgs; i++)
    {
-     newProcCmdLine += argv[i];
+       newProcCmdLine += argv[i];
    }
    // note - newProcCmdLine could be empty here, if the -runme flag is not given
    // There are several ways that we might have been started.
@@ -757,24 +745,14 @@ main( int argc, char* argv[] )
        myRank = (MRN::Rank)strtoul( argv[argc-1], NULL, 10 );
     }
 
-		//fprintf(stderr,"-------- %d %s\n",getpid(),getNetworkName().c_str());
-		//fprintf(stderr,"-------- %d %s %u %u\n",getpid(),parHostname.c_str(),parPort, myRank);
-
-	
     ntwrk = new MRN::Network( parHostname.c_str(), parPort, myRank );
-		if( ntwrk->fail() )
-			{
-				fprintf(stderr, "backend_init() failed\n");
-				exit(-1);
-			}
+    if( ntwrk->fail() ) {
+        fprintf(stderr, "backend_init() failed\n");
+        exit(-1);
+    }
 
     //----------------------------------------------------------------
-		
-		//
-		// Wait here for a stream
-		//
-		//*********************************************
-		//T_dyninstRPC::getDaemonInfo_REQ
+    // Wait here for a stream
 
 	 tp->wait_for(ntwrk, T_dyninstRPC::setDaemonDefaultStream_REQ);
 
@@ -823,18 +801,12 @@ main( int argc, char* argv[] )
 	 if( pd_flavor == "mpi" && runme_passed)
 		 startOnReportSelfDone = false;
 
-
-
-	 if( !startOnReportSelfDone )
-		 {
-			 int soaRet = StartOrAttach();
-			 if( soaRet != 0 )
-				 {
-					 return soaRet;
-				 }
-		 }
-
-
+	 if( !startOnReportSelfDone ) {
+         int soaRet = StartOrAttach();
+         if( soaRet != 0 ) {
+             return soaRet;
+         }
+     }
 
 	 // start handling requests
 	 controllerMainLoop( true );
@@ -947,15 +919,9 @@ static int break_at_mpi_init(BPatch_process *bproc)
   return my_rank;
 }
 
-//extern BPatch_thread *createBPProc(const pdstring &argv0, 
-//																		const pdvector<pdstring> &argv,
-//																		const pdstring &dir,
-//																		int stdin_fd, int stdout_fd, int stderr_fd);
-//
-
 int StartRunPastMPIinit( pdvector<pdstring> &argv, pdstring dir)
 {
-  initBPatch();
+    initBPatch();
 	initProcMgr();
 
 	char **argv_array = new char*[argv.size()+1];
@@ -966,11 +932,20 @@ int StartRunPastMPIinit( pdvector<pdstring> &argv, pdstring dir)
 
 	strcpy(path, argv[0].c_str());
 
+    if ((dir.length() > 0) && (P_chdir(dir.c_str()) < 0)) {
+        sprintf(errorLine, "cannot chdir to '%s': %s\n", dir.c_str(), 
+                strerror(errno));
+        logLine(errorLine);
+        P__exit(-1);
+    }
+			
 	//TODO: Change stdout to go to termwin
 	
+    fprintf(stderr, "Calling processCreate(%s) ...\n", path);
 	MPI_proc = getBPatch().processCreate(path, 
-																			 (const char **) argv_array, NULL, 
-																			 0, 1,2);
+                                         (const char **) argv_array, NULL, 
+                                         0, 1,2);
+    fprintf(stderr, "Calling processCreate(%s) ...DONE!\n", path);
 	
 
 	//TODO: Change stdout to go to termwin
@@ -1004,7 +979,7 @@ StartOrAttach( void )
 	if (newProcCmdLine.size() && (pd_attpid==0))
 	{
 		// ignore return val (is this right?)
-		pd_process *p =  pd_createProcess(newProcCmdLine, *newProcDir);		
+		pd_process *p =  pd_createProcess(newProcCmdLine, newProcDir);		
 		if( pd_flavor == "mpi" && runme_passed)
 		{
 			metricFocusNode::handleNewProcess(p);
