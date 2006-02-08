@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.166 2005/12/20 00:19:25 pack Exp $
+// $Id: DMmain.C,v 1.167 2006/02/08 21:27:41 darnold Exp $
 
 #include <assert.h>
 extern "C" {
@@ -350,9 +350,13 @@ void dynRPCUser::resourceInfoCallback(MRN::Stream*, u_int , pdvector<pdstring> ,
 printf("error calling virtual func: dynRPCUser::resourceInfoCallback\n");
 
 }
-void dynRPCUser::resourceUpdateCallback(MRN::Stream *stream, pdvector<pdstring> resource_name, pdvector<pdstring> display_name, pdstring abstraction)
+void dynRPCUser::resourceUpdateCallback(MRN::Stream *,
+                                        pdvector<pdstring>,
+                                        pdvector<pdstring>,
+                                        pdstring )
 {
-   fprintf(stderr, "error calling virtual func: dynRPCUser::resourceUpdateCallback\n");
+   fprintf(stderr,
+           "error calling virtual func: dynRPCUser::resourceUpdateCallback\n");
 }
 
 //
@@ -722,17 +726,6 @@ bool dataManager::DM_sequential_init(const char* met_file){
    return(metMain(mfile)); 
 }
 
-static void
-DMsetupSocket (PDSOCKET &sock)
-{
-  // setup "well known" socket for pvm paradynd's to connect to
-  dataManager::dm->sock_port = RPC_setup_socket (sock, AF_INET, SOCK_STREAM);
-  assert(dataManager::dm->sock_port != (-1));
-  
-  // bind fd for this thread
-  thread_t stid;
-  msg_bind_socket (sock, true, NULL, NULL, &stid);
-}
 int
 dataManager::DM_post_thread_create_init( DMthreadArgs* dmArgs )
 {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Status.C,v 1.10 2005/12/19 19:42:28 pack Exp $
+// $Id: Status.C,v 1.11 2006/02/08 21:27:46 darnold Exp $
 
 #include "Status.h"
 #include <string.h>
@@ -150,7 +150,7 @@ status_line::create(const char* title) {
 status_line::status_pair*
 status_line::reg_init() {
     status_pair* retval = new status_pair[MAX_STATUS_LINES];
-    for(int i = 0; i < MAX_STATUS_LINES; i++) {
+    for(unsigned int i = 0; i < MAX_STATUS_LINES; i++) {
         (retval[i]).name = NULL;
         (retval[i]).sl = NULL;
     }

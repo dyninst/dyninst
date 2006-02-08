@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.78 2005/12/20 00:19:36 pack Exp $
+// $Id: DMresource.C,v 1.79 2006/02/08 21:27:45 darnold Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -396,7 +396,8 @@ resource::create( pdstring resName,
 }
 void resource::update( pdvector<pdstring>& resource_name,
                        pdvector<pdstring>& display_name,
-                       pdstring& abstr) {
+                       pdstring& /*abstr*/)
+{
    resource *res = NULL;
    unsigned r_size = resource_name.size();
    pdstring r_name;

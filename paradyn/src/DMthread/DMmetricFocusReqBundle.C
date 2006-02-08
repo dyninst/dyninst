@@ -454,10 +454,9 @@ void metricFocusReqBundle::enableWithDaemons()
 					
 					bool result = cur_mi->convertToIDList(focus.focus);
 					assert(result);
-					for(unsigned u = 0 ; u < focus.focus.size(); u++)
-						{
-							resource* r = resource::handle_to_resource(focus.focus[u]);
-						}
+					for(unsigned u = 0 ; u < focus.focus.size(); u++) {
+                        resource::handle_to_resource(focus.focus[u]);
+                    }
 					foci[daemon_id].push_back(focus);
 					
 					metric_names[daemon_id].push_back(cur_mi->getMetricName());

@@ -41,7 +41,7 @@
 
 // new search history graph user interface, along the lines
 // of the new where axis user interface
-// $Id: shg.C,v 1.40 2004/03/23 01:12:30 eli Exp $
+// $Id: shg.C,v 1.41 2006/02/08 21:27:48 darnold Exp $
 // Ariel Tamches
 
 #include <sstream>
@@ -1001,7 +1001,7 @@ shg::configNodeResult shg::configNode(unsigned id, bool newActive,
 
    const shgRootNode::evaluationState oldEvalState = ptr->getNodeData().getEvalState();
    const bool oldActive = ptr->getNodeData().isActive();
-   const bool oldDeferred = ptr->getNodeData().isDeferred();
+   ptr->getNodeData().isDeferred();
    const bool oldHidden = state2hidden(oldEvalState, oldActive, false);
       // false --> we are not a shadow node
 

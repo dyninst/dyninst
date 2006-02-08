@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: shgPhases.C,v 1.35 2004/03/23 01:12:30 eli Exp $
+// $Id: shgPhases.C,v 1.36 2006/02/08 21:27:49 darnold Exp $
 // Analagous to "abstractions.h" for the where axis; this class
 // basically manages several "shg"'s, as defined in shgPhases.h
 
@@ -202,7 +202,8 @@ bool shgPhases::changeLL(unsigned newIndex) {
 
    // This should update the menu:
    Tcl_SetVar(interp, "currShgPhase",
-	      (char*)pdstring(theNewShgStruct.getPhaseId()).c_str(), TCL_GLOBAL_ONLY);
+              (char*)pdstring(theNewShgStruct.getPhaseId()).c_str(),
+              TCL_GLOBAL_ONLY);
 
    // Update the label containing the current phase name:
    commandStr = currPhaseLabelName + " config -text \"" +

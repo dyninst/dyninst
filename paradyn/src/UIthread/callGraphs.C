@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: callGraphs.C,v 1.11 2004/03/23 01:12:29 eli Exp $
+// $Id: callGraphs.C,v 1.12 2006/02/08 21:27:47 darnold Exp $
 
 #include <limits.h>
 #include "callGraphTcl.h"
@@ -115,7 +115,7 @@ const pdstring &callGraphs::id2name(int id) const {
 	<< " doesn't exist." << endl;
    assert(false);
    abort();
-   return ""; // placate VC++5.0 compiler (somewhat)
+   return pdstring(""); // placate VC++5.0 compiler (somewhat)
 }
 
 int callGraphs::find(const pdstring &str){
