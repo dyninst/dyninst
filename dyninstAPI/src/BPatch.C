@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.107 2006/02/01 02:06:22 jodom Exp $
+// $Id: BPatch.C,v 1.108 2006/02/08 23:41:23 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -468,6 +468,7 @@ BPatchForkCallback BPatch::registerPostForkCallbackInt(BPatchForkCallback func)
 #else
     BPatchForkCallback ret = NULL;
     ForkCallback *cb = new ForkCallback(func);
+    fprintf(stderr, "Registered new preForkCallback %p\n", cb);
 
     pdvector<CallbackBase *> cbs;
     getCBManager()->removeCallbacks(evtPostFork, cbs);
@@ -499,6 +500,7 @@ BPatchForkCallback BPatch::registerPreForkCallbackInt(BPatchForkCallback func)
 #else
     BPatchForkCallback ret = NULL;
     ForkCallback *cb = new ForkCallback(func);
+    fprintf(stderr, "Registered new postForkCallback %p\n", cb);
 
     pdvector<CallbackBase *> cbs;
     getCBManager()->removeCallbacks(evtPreFork, cbs);
@@ -855,35 +857,46 @@ void BPatch::registerProvisionalThread(int pid)
  * proc			lower lever handle to process specific stuff
  *
  */
-void BPatch::registerForkedProcess(int parentPid, int childPid, process *proc)
+void BPatch::registerForkedProcess(process *parentProc, process *childProc)
 {
-   forkexec_printf("BPatch: registering fork, parent %d, child %d\n",
-                   parentPid, childPid);
-   assert(!info->procsByPid.defines(childPid));
+    int parentPid = parentProc->getPid();
+    int childPid = childProc->getPid();
 
-   BPatch_process *parent = info->procsByPid[parentPid];
-
-   assert(parent);
-   new BPatch_process(childPid, proc);
-
+    forkexec_printf("BPatch: registering fork, parent %d, child %d\n",
+                    parentPid, childPid);
+    assert(getProcessByPid(childPid) == NULL);
+    
+    BPatch_process *parent = getProcessByPid(parentPid);
+    assert(parent);
+    parent->isVisiblyStopped = true;
+    
+    assert(parent);
+    BPatch_process *child = new BPatch_process(childProc);
+    
 #if defined(cap_async_events)
-    if (!getAsync()->connectToProcess(info->procsByPid[childPid])) {
-       bperr("%s[%d]:  asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
+    if (!getAsync()->connectToProcess(child)) {
+        bperr("%s[%d]:  asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
     }
     else 
-       asyncActive = true;
+        asyncActive = true;
 #endif
     forkexec_printf("Successfully connected socket to child\n");
-
-
+    
+    
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtPostFork,cbs);
+    
     for (unsigned int i = 0; i < cbs.size(); ++i) {
-      ForkCallback &cb = *((ForkCallback *) cbs[i]);
-      cb(parent->threads[0], info->procsByPid[childPid]->threads[0]);
+        ForkCallback &cb = *((ForkCallback *) cbs[i]);
+        cb(parent->threads[0], child->threads[0]);
     }
-    // We don't want to touch the bpatch threads here, as they may have been
-    // deleted in the callback
+
+    // Re-lookup the process pointers as they may have been deleted.
+    continueIfExists(parentPid);
+    continueIfExists(childPid);
+
+    forkexec_printf("BPatch: finished registering fork, parent %d, child %d\n",
+                    parentPid, childPid);
 }
 
 /*
@@ -898,32 +911,51 @@ void BPatch::registerForkedProcess(int parentPid, int childPid, process *proc)
  */
 void BPatch::registerForkingProcess(int forkingPid, process * /*proc*/)
 {
-    BPatch_process *forking = info->procsByPid[forkingPid];
-    // Wouldn't this be the same as proc->thread?
+    BPatch_process *forking = getProcessByPid(forkingPid);
     assert(forking);
+    forking->isVisiblyStopped = true;
 
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtPreFork,cbs);
     for (unsigned int i = 0; i < cbs.size(); ++i) {
-      ForkCallback &cb = *((ForkCallback *) cbs[i]);
-      cb(forking->threads[0], NULL);
+        ForkCallback &cb = *((ForkCallback *) cbs[i]);
+        cb(forking->threads[0], NULL);
     }
 
+    // Re-lookup since we made callbacks
+    continueIfExists(forkingPid);
 }
 
 
 /*
- * BPatch::registerExec
+ * BPatch::registerExecEntry
+ *
+ * Register a process that has just entered exec
+ *
+ * Currently doesn't do anything, as there is no "just before exec"
+ * callback in the API.
+ */
+
+void BPatch::registerExecEntry(process *p, char *) {
+    continueIfExists(p->getPid());
+}    
+
+/*
+ * BPatch::registerExecExit
  *
  * Register a process that has just done an exec call.
  *
  * thread	thread that has just performed the exec
  *
  */
-void BPatch::registerExec(process *proc)
+
+void BPatch::registerExecExit(process *proc)
 {
-   BPatch_process *process = info->procsByPid[proc->getPid()];
-   assert(process);
+    int execPid = proc->getPid();
+    BPatch_process *process = getProcessByPid(execPid);
+    assert(process);
+    process->isVisiblyStopped = true;
+
    // build a new BPatch_image for this one
    if (process->image)
        delete process->image;
@@ -932,11 +964,10 @@ void BPatch::registerExec(process *proc)
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtExec,cbs);
     for (unsigned int i = 0; i < cbs.size(); ++i) {
-      ExecCallback &cb = *((ExecCallback *) cbs[i]);
-      fprintf(stderr, "%s[%d][%s]:  registering EXEC CALLBACK\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
-      cb(process->threads[0]);
+        ExecCallback &cb = *((ExecCallback *) cbs[i]);
+        cb(process->threads[0]);
     }
-
+    continueIfExists(execPid);
 
 }
 
@@ -945,8 +976,11 @@ void BPatch::registerNormalExit(process *proc, int exitcode)
    if (!proc)
       return;
 
-   BPatch_process *process = info->procsByPid[proc->getPid()];
+   int pid = proc->getPid();
+
+   BPatch_process *process = getProcessByPid(pid);
    BPatch_thread *thrd = process->getThreadByIndex(0);
+   process->isVisiblyStopped = true;
 
    if (!process)
      return;
@@ -956,6 +990,8 @@ void BPatch::registerNormalExit(process *proc, int exitcode)
    process->setUnreportedTermination(true);
 
    pdvector<CallbackBase *> cbs;
+
+
 
    getCBManager()->dispenseCallbacksMatching(evtThreadExit,cbs);
    for (unsigned int i = 0; i < cbs.size(); ++i) {
@@ -972,13 +1008,18 @@ void BPatch::registerNormalExit(process *proc, int exitcode)
      signal_printf("%s[%d]:  exit callback done\n", FILE__, __LINE__);
    }
 
+   continueIfExists(pid);
+
 }
 
 void BPatch::registerSignalExit(process *proc, int signalnum)
 {
    if (!proc)
       return;
-   BPatch_process *bpprocess = info->procsByPid[proc->getPid()];
+
+   int pid = proc->getPid();
+
+   BPatch_process *bpprocess = getProcessByPid(pid);
    if (!bpprocess) {
        // Error during startup can cause this -- we have a partially
        // constructed process object, but it was never registered with
@@ -988,6 +1029,7 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
    assert(bpprocess);
    bpprocess->setExitedViaSignal(signalnum);
    bpprocess->setUnreportedTermination(true);
+   bpprocess->isVisiblyStopped = true;
 
    pdvector<CallbackBase *> cbs;
    getCBManager()->dispenseCallbacksMatching(evtThreadExit,cbs);
@@ -1002,6 +1044,8 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
      ExitCallback &cb = * ((ExitCallback *) cbs[i]);
      cb(bpprocess->threads[0], ExitedViaSignal);
    }
+
+   continueIfExists(pid);
 }
 
 
@@ -1245,7 +1289,7 @@ bool BPatch::waitForStatusChangeInt()
    waitingForStatusChange = true;
    getMailbox()->executeCallbacks(FILE__, __LINE__);
    if (mutateeStatusChange) break;
-   evt = sh->waitForOneOf(evts);
+   evt = SignalGeneratorCommon::globalWaitForOneOf(evts);
   } while ((    evt != evtProcessStop ) 
             && (evt != evtProcessExit)
             && (evt != evtThreadExit)
@@ -1718,3 +1762,9 @@ bool BPatch::removeUserEventCallbackInt(BPatchUserEventCallback cb)
     return ret;
 }
 
+
+
+void BPatch::continueIfExists(int pid) {
+    BPatch_process *proc = getProcessByPid(pid);
+    if (proc) proc->continueExecution();
+}
