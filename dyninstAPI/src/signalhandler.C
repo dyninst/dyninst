@@ -54,6 +54,8 @@
 //  for signal generator threads.  eg SYNC1, SYNC2, SYNC3
 
 unsigned signal_generator_counter = 0;
+eventLock SignalGeneratorCommon::global_wait_list_lock;
+pdvector<EventGate *> SignalGeneratorCommon::global_wait_list;
 
 EventGate::EventGate(eventLock *l, eventType t, process *p, dyn_lwp *lwp,
                      eventStatusCode_t status) :
@@ -313,14 +315,20 @@ void SignalGeneratorCommon::stopSignalGenerator(SignalGenerator *sg)
   sg->stopThreadNextIter();
   sg->wakeUpThreadForShutDown();
 
-  while (sg->isRunning()) {
+  while (sg->isRunning() && (dur < 5)) {
     sg->__UNLOCK;
     //  If we wait more than 5 iters here, something is defnitely wrong and
     //  this should be reexamined.
-    if (dur++ > 5) 
-      fprintf(stderr, "%s[%d]:  sg still running\n", FILE__, __LINE__);
-     sleep(1);
-   sg->__LOCK;
+    if (dur++ > 5) {
+        fprintf(stderr, "%s[%d]:  sg still running\n", FILE__, __LINE__);
+    }
+    sleep(1);
+    
+    sg->__LOCK;
+  }
+
+  for (unsigned i = 0; i < sg->handlers.size(); i++) {
+      sg->deleteSignalHandler(sg->handlers[i]);
   }
 
   signal_printf("%s[%d]:  sg has stopped\n", FILE__, __LINE__);
@@ -355,49 +363,39 @@ bool SignalGeneratorCommon::waitNextEvent(EventRecord &ev)
 
   assert(proc);
 
-
-      if (proc->status() == deleted || proc->status() == exited) {
-        fprintf(stderr, "%s[%d]:  getting ready to shut down event handling thread\n", FILE__, __LINE__);
-        stopThreadNextIter();
-        ev.type = evtShutDown;
-        ev.proc = proc;
-         __UNLOCK;
-        return true;
-      }
+  
+  if (proc->status() == deleted || proc->status() == exited) {
+      fprintf(stderr, "%s[%d]:  getting ready to shut down event handling thread\n", FILE__, __LINE__);
+      stopThreadNextIter();
+      ev.type = evtShutDown;
+      ev.proc = proc;
+      __UNLOCK;
+      return true;
+  }
   //  maybe query_for_running_lwp is sufficient here??
   while (  proc->status() != running
-         && proc->status() != neonatal
-         && !proc->query_for_running_lwp()) {
-#ifdef NOTDEF // PDSEP
-      if (proc->status() == deleted || proc->status() == exited) {
-        fprintf(stderr, "%s[%d]:  getting ready to shut down event handling thread\n", FILE__, __LINE__);
-        stopThreadNextIter();
-        ev.type = evtShutDown;
-        ev.proc = proc;
-         __UNLOCK;
-        return true;
-      }
-#endif
+           && proc->status() != neonatal
+           && !proc->query_for_running_lwp()) {
 
-    signal_printf("%s[%d]:  waiting for process %d to become active, status: %s\n",
-                  FILE__, __LINE__, pid, proc->getStatusAsString().c_str());
-    waiting_for_active_process = true;
-    __WAIT_FOR_SIGNAL;
+      signal_printf("%s[%d]:  waiting for process %d to become active, status: %s\n",
+                    FILE__, __LINE__, pid, proc->getStatusAsString().c_str());
+      waiting_for_active_process = true;
+      __WAIT_FOR_SIGNAL;
   }
-
+  
   if (stop_request) {
-    signal_printf("%s[%d]:  getting ready to shut down event handling thread\n", FILE__, __LINE__);
-    ev.type = evtShutDown;
-    ev.proc = proc;
-    __UNLOCK;
-    return true;
+      fprintf(stderr, "%s[%d]:  getting ready to shut down event handling thread 2\n", FILE__, __LINE__);
+      ev.type = evtShutDown;
+      ev.proc = proc;
+      __UNLOCK;
+      return true;
   }
-
+  
   waiting_for_active_process = false;
-
+  
   ev.type = evtUndefined;
   bool ret = waitNextEventLocked(ev);
-
+  
   //  shut down events will not make it to the handler thread(s), since this thread will
   //  terminate execution after leaving this function.
 
@@ -519,9 +517,6 @@ bool SignalGeneratorCommon::wakeUpThreadForShutDown()
   int sig_to_send = 5;
   fprintf(stderr, "%s[%d]:  FIGURE ME OUT FOR WINDOWS\n", FILE__, __LINE__);
   if (waiting_for_active_process) {
-    proc->set_status(running); // this may not be true, but since this is only
-                               // being used to shut down the sh thread, should not 
-                               // be a problem.
     signalEvent(evtShutDown);
     __BROADCAST;
     return true;
@@ -537,9 +532,6 @@ bool SignalGeneratorCommon::wakeUpThreadForShutDown()
     fprintf(stderr, "%s[%d][%s]:  got shutdown event\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
   }
   else if (waiting_for_active_process) {
-    proc->set_status(running); // this may not be true, but since this is only
-                               // being used to shut down the sh thread, should not 
-                               // be a problem.
     signalEvent(evtShutDown);
     __BROADCAST;
   }
@@ -561,16 +553,14 @@ SignalGeneratorCommon::~SignalGeneratorCommon()
 
 void SignalGeneratorCommon::deleteSignalHandler(SignalHandler *sh)
 {
-
-  EventRecord ev;
-  ev.type = evtShutDown;
-  sh->stopThreadNextIter();
-  sh->assignEvent(ev);
-
-  fprintf(stderr, "%s[%d]:  waiting for handler thread to shut down\n", FILE__, __LINE__);
-  while (sh->isRunning()) {
-    waitForEvent(evtAnyEvent);
-  }
+    EventRecord ev;
+    ev.type = evtShutDown;
+    sh->stopThreadNextIter();
+    sh->assignEvent(ev);
+    
+    while (sh->isRunning()) {
+        waitForEvent(evtAnyEvent);
+    }
 }
 
 bool SignalGeneratorCommon::initialize_event_handler()
@@ -662,7 +652,6 @@ bool SignalGeneratorCommon::initialize_event_handler()
 
   }
   else { // proc->getParent() is non-NULL, fork case
-     fprintf(stderr, "%s[%d]: fork init section\n", FILE__, __LINE__);
      proc->createRepresentativeLWP();
      
      if (!attachProcess()) {
@@ -680,7 +669,6 @@ bool SignalGeneratorCommon::initialize_event_handler()
          return false;
      }
 
-     fprintf(stderr, "%s[%d]: setup child in fork...\n", FILE__, __LINE__);
 #ifdef NOTDEF // PDSEP
      process *parent = const_cast<process *>(proc->getParent());
      parent->handleForkExit(proc);
@@ -791,6 +779,15 @@ bool SignalGeneratorCommon::signalEvent(EventRecord &ev)
     }
   }
 
+  global_wait_list_lock._Lock(__FILE__, __LINE__);
+  for (unsigned int i = 0; i < global_wait_list.size(); ++i) {
+      if (global_wait_list[i]->signalIfMatch(ev)) {
+          ret = true;
+      }
+  }
+  global_wait_list_lock._Unlock(__FILE__, __LINE__);
+
+
   
 #if 0
   if (!ret) 
@@ -860,6 +857,49 @@ eventType SignalGeneratorCommon::waitForOneOf(pdvector<eventType> &evts)
 
   if (sh)
     sh->wait_flag = false;
+  return result.type;
+}
+
+
+// Global version of the one above this: only called by threads external to
+// the entire signal process (e.g., UI thread) who need to wait cross-process.
+
+// Static method.
+eventType SignalGeneratorCommon::globalWaitForOneOf(pdvector<eventType> &evts)
+{
+  assert(global_mutex->depth());
+
+  EventGate *eg = new EventGate(global_mutex,evts[0]);
+  for (unsigned int i = 1; i < evts.size(); ++i) {
+      eg->addEvent(evts[i]);
+  }
+
+  global_wait_list_lock._Lock(__FILE__, __LINE__);
+  global_wait_list.push_back(eg);
+  global_wait_list_lock._Unlock(__FILE__, __LINE__);
+
+  if (global_mutex->depth() > 1)
+    fprintf(stderr, "%s[%d]:  about to EventGate::wait(), lock depth %d\n", FILE__, __LINE__, 
+           global_mutex->depth());
+  EventRecord result = eg->wait();
+  
+  global_wait_list_lock._Lock(__FILE__, __LINE__);
+  bool found = false;
+  for (int i = global_wait_list.size() -1; i >= 0; i--) {
+    if (global_wait_list[i] == eg) {
+       found = true;
+       global_wait_list.erase(i,i);
+       delete eg;
+       break;
+    } 
+  }
+  global_wait_list_lock._Unlock(__FILE__, __LINE__);
+  
+  if (!found) {
+     fprintf(stderr, "%s[%d]:  BAD NEWS, somehow lost a pointer to eg\n", 
+             FILE__, __LINE__);
+  }
+
   return result.type;
 }
 
@@ -938,11 +978,31 @@ SignalHandler *SignalGeneratorCommon::findSHWaitingForCallback(CallbackBase *cb)
   return NULL;
 }
 
+bool SignalHandler::isActive(process *p) {
+    // Cases:
+    if (idle_flag) return false;
+
+    if (wait_cb) {
+        // Experiment: release "lock" if we're waiting
+        // for a callback to complete.
+        return false;
+    }
+
+    return p == active_proc;
+}
+
 bool SignalGeneratorCommon::activeHandlerForProcess(process *p)
 {
+    // If the handler is active and running on a different thread from
+    // us (as we can get the following:
+    //    Handler calls into BPatch
+    //    BPatch tries continue
+    //    .... continue blocked because of active handler
+
   for (unsigned int i = 0; i < handlers.size(); ++i) {
-    if (handlers[i]->activeProcess() == p)
-      return true;
+      if (handlers[i]->isActive(p) &&
+          !(handlers[i]->getThreadID() == getExecThreadID()))
+          return true;
   }
   return false;
 }
@@ -1089,8 +1149,10 @@ bool SignalHandler::handleProcessStop(EventRecord &ev)
 
    bool exists = false;
    BPatch_process *bproc = BPatch::bpatch->getProcessByPid(proc->getPid(), &exists);
-   if (bproc)
-     setBPatchProcessSignal(bproc, ev.what);
+   if (bproc) {
+       setBPatchProcessSignal(bproc, ev.what);
+       bproc->isVisiblyStopped = true;
+   }
 
    // Unlike other signals, don't forward this to the process. It's stopped
    // already, and forwarding a "stop" does odd things on platforms
@@ -1286,8 +1348,6 @@ bool SignalHandler::handleSyscallEntry(EventRecord &ev)
       ret = false;
       break;
     }
-    // Continue the process post-handling
-    proc->continueProc();
     return ret;
 }
 
@@ -1325,7 +1385,6 @@ bool SignalHandler::handleForkExit(EventRecord &ev)
              // We get notification -- but no child yet.
              // Child is created
              // This seems to be OS dependent on who goes first - parent or child.
-             sleep(1);
 
              // We leave the parent paused until the child is finished,
              // so that we can be sure to copy everything correctly.
@@ -1335,28 +1394,12 @@ bool SignalHandler::handleForkExit(EventRecord &ev)
                return false;
    
              proc->handleForkExit(theChild);
-
-
-             proc->continueProc();
-             theChild->continueProc();
-
-#ifdef NOTDEF // PDSEP
-             if (theChild->setupFork()) {
-                 proc->handleForkExit(theChild);
-
-
-                 // Okay, let 'er rip
-                 proc->continueProc();
-                 theChild->continueProc();
-             }
-             else {
-                 // Can happen if we're forking something we can't trace
-                 delete theChild;
-                 proc->continueProc();
-             }
-#endif
         }
-    }
+     }
+     else {
+         // Child signalGenerator may execute this guy ; leave it untouched.
+
+     }
     return true;
 }
 // the alwaysdosomething argument is to maintain some strange old code
@@ -1448,8 +1491,6 @@ bool SignalHandler::handleSyscallExit(EventRecord &ev)
     // continued at the appropriate time by handleForkExit.
     if (((procSyscall_t)ev.what) != procSysFork)
 #endif
-      //if (proc->status() == stopped) proc->continueProc();
-      proc->continueProc();
 
     return ret || wasHandled;
 }
@@ -1516,6 +1557,8 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
         proc->continueProc();
         break;
      case evtPreFork:
+         // If we ever want to callback this guy, put it here.
+         ret = true;
         proc->continueProc();
         break;
      case evtSignalled:
@@ -1530,11 +1573,11 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
      }
      case evtProcessStop:
      {
-       ret = handleProcessStop(ev);
-       if (!ret) {
-         fprintf(stderr, "%s[%d]:  handleProcessStop failed\n", FILE__, __LINE__);
-       }
-       break;
+         ret = handleProcessStop(ev);
+         if (!ret) {
+             fprintf(stderr, "%s[%d]:  handleProcessStop failed\n", FILE__, __LINE__);
+         }
+         break;
      }
         // Now the /proc only
         // AIX clones some of these (because of fork/exec/load notification)
@@ -1673,7 +1716,7 @@ bool SignalHandler::waitNextEvent(EventRecord &ev)
 
     // Someone wants us to go away....
     if (stop_request) {
-       fprintf(stderr, "%s[%d]:  sg got stop request... no more handling\n", FILE__, __LINE__);
+        signal_printf("%s[%d]:  sg got stop request... no more handling\n", FILE__, __LINE__);
        ev.type = evtShutDown;
        
        // And bounce it back to the signalGenerator

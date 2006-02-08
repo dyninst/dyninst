@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.19 2006/01/30 07:16:53 jaw Exp $
+/* $Id: signalhandler.h,v 1.20 2006/02/08 23:41:30 bernat Exp $
  */
 
 #ifndef _SIGNAL_HANDLER_H
@@ -131,6 +131,7 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    virtual ~SignalGeneratorCommon(); 
    
    eventType waitForOneOf(pdvector<eventType> &evts);
+   static eventType globalWaitForOneOf(pdvector<eventType> &evts);
    eventType waitForEvent(eventType evt, process *p = NULL, dyn_lwp *lwp = NULL, 
                           eventStatusCode_t status = NULL_STATUS_INITIALIZER);
    bool signalEvent(EventRecord &ev);
@@ -173,8 +174,14 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
     virtual SignalHandler *newSignalHandler(char *name, int shid)  = 0;
     void deleteSignalHandler(SignalHandler *sh);
 
+    // A list of things waiting on this particular signal handler...
     pdvector<EventGate *> wait_list;
     bool waiting_for_active_process;
+
+    // And for all signal handlers.
+    static pdvector<EventGate *> global_wait_list;
+    static eventLock global_wait_list_lock;
+
 
     pdvector<SignalHandler *> handlers;
     pdvector<EventRecord> events_to_handle;
@@ -218,6 +225,7 @@ class SignalHandler : public EventHandler<EventRecord>
 
   bool idle();
   bool waiting();
+  bool isActive(process *p);
   process *activeProcess() {return idle_flag ? NULL : active_proc;}
   CallbackBase *waitingForCallback() {return wait_cb;}
   protected:
