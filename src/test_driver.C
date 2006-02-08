@@ -39,19 +39,19 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.7 2006/01/30 04:31:40 bpellin Exp $
+// $Id: test_driver.C,v 1.8 2006/02/08 05:04:25 bpellin Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <errno.h>
-#include <fnmatch.h>
 #include <vector>
 
 #if defined(i386_unknown_nt4_0)
 #define vsnprintf _vsnprintf
 #pragma waring(disable:4786)
 #else
+#include <fnmatch.h>
 #include <dirent.h>
 #endif
 
@@ -480,7 +480,11 @@ bool inTestList(test_data_t &test, std::vector<char *> &test_list)
 {
    for (unsigned int i = 0; i < test_list.size(); i++ )
    {
+#if defined(i386_unknown_nt4_0)
+      if ( strcmp(test_list[i], test.name) == 0 )
+#else
       if ( fnmatch(test_list[i], test.name, 0) == 0 )
+#endif
       {
          return true;
       }
@@ -493,7 +497,11 @@ bool inMutateeList(char *mutatee, std::vector<char *> &mutatee_list)
 {
    for (unsigned int i = 0; i < mutatee_list.size(); i++ )
    {
+#if defined(i386_unknown_nt4_0)
+      if ( strcmp(mutatee_list[i], mutatee) == 0 )
+#else
       if ( fnmatch(mutatee_list[i], mutatee, 0) == 0 )
+#endif
       {
          return true;
       }
@@ -560,7 +568,17 @@ void printResultHumanLog(test_data_t test, char *mutatee, create_mode_t cm, int 
    
    fclose(human);
 
+#if defined(i386_unknown_nt4_0)
+   SECURITY_ATTRIBUTES sa;
+   memset(&sa, 0, sizeof(sa));
+   HANDLE h_file = CreateFile(humanlog_name, GENERIC_WRITE|GENERIC_READ, FILE_SHARE_READ, &sa, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+   cout << "File Length " << eof << "trimmed" << endl;
+   SetFilePointer(h_file, eof, NULL, FILE_BEGIN);
+   SetEndOfFile(h_file);
+   CloseHandle(h_file);
+#else
    truncate(humanlog_name, eof);
+#endif
 }
 
 void updateResumeLog(int testnum, int mutateenum, int optionnum)
@@ -904,12 +922,17 @@ int main(unsigned int argc, char *argv[]) {
           // Verify that the following argument exists
           if ( i + 1 >= argc ) 
           {
-             fprintf(stderr, "-humanlog must by followed by a filename");
+             fprintf(stderr, "-humanlog must by followed by a filename\n");
              exit(1);
           }
 
           useHumanLog = true;
           humanlog_name = argv[++i];
+
+#if defined(i386_unknown_nt4_0)
+          fprintf(stderr, "-humanlog currently unimplemented on windows\n");
+          exit(1);
+#endif
        }
        else if ( strcmp(argv[i], "-help") == 0)
        {
