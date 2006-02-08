@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.574 2006/02/04 06:44:59 jaw Exp $
+// $Id: process.C,v 1.575 2006/02/08 23:41:27 bernat Exp $
 
 #include <ctype.h>
 
@@ -1930,7 +1930,6 @@ process::~process()
     if (sh) {
       signal_printf("%s[%d]:  removing signal handler for process\n", FILE__, __LINE__);
       SignalGeneratorCommon::stopSignalGenerator(sh);
-      fprintf(stderr, "%s[%d]:  WARN, got rid of delete for sg\n", FILE__, __LINE__);
     }
 
     // We used to delete the particular process, but this created no end of problems
@@ -2137,7 +2136,6 @@ int HACKSTATUS = 0;
 
 bool process::prepareExec(fileDescriptor &desc) 
 {
-    fprintf(stderr, "\n\n\n\n%s[%d]: EXEC...\n", FILE__, __LINE__);
     ///////////////////////////// CONSTRUCTION STAGE ///////////////////////////
     // For all intents and purposes: a new id.
     // However, we don't want to make a new object since all sorts
@@ -2236,7 +2234,7 @@ bool process::finishExec() {
     set_status(stopped); // was 'exited'
     
     inExec_ = false;
-    BPatch::bpatch->registerExec(this);
+    BPatch::bpatch->registerExecExit(this);
 
     return true;
 }
@@ -5212,7 +5210,7 @@ bool process::handleForkEntry()
 
 bool process::handleForkExit(process *child) 
 {
-    BPatch::bpatch->registerForkedProcess(getPid(), child->getPid(), child);
+    BPatch::bpatch->registerForkedProcess(this, child);
     return true;
 }
 
@@ -5229,6 +5227,9 @@ bool process::handleExecEntry(char *arg0)
     else
         execPathArg = temp;
     // /* DEBUG */ cerr << "Exec path arg is " << execPathArg << endl;
+
+    BPatch::bpatch->registerExecEntry(this, arg0);
+
    return true;
 
     // We now wait for exec to finish. We often see very many exec
@@ -5243,7 +5244,6 @@ bool process::handleExecEntry(char *arg0)
 */
 bool process::handleExecExit(fileDescriptor &desc) 
 {
-    fprintf(stderr, "%s[%d]:  welcome to handleExecExit\n", FILE__, __LINE__);
     inExec_ = true;
     // NOTE: for shm sampling, the shm segment has been removed, so we
     //       mustn't try to disable any dataReqNodes in the standard way...
@@ -5251,10 +5251,8 @@ bool process::handleExecExit(fileDescriptor &desc)
 
    // Should probably be renamed to clearProcess... deletes anything
    // unnecessary
-    fprintf(stderr, "%s[%d]:  about to delete process\n", FILE__, __LINE__);
    deleteProcess();
 
-    fprintf(stderr, "%s[%d]:  about to prepare exec\n", FILE__, __LINE__);
    prepareExec(desc);
    // The companion finishExec gets called from unix.C...
 

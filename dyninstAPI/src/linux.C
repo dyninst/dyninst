@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.189 2006/02/04 06:44:59 jaw Exp $
+// $Id: linux.C,v 1.190 2006/02/08 23:41:26 bernat Exp $
 
 #include <fstream>
 
@@ -221,10 +221,11 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
      //  if we still have evtSignalled, then it must not be a signal that
      //  we care about internally.  Still, send it along to the handler
      //  to be forwarded back to the process.
-     //char buf[512];
-     //fprintf(stderr, "%s[%d]:  got event %s, should have been set by now\n", FILE__, __LINE__, ev.sprint_event(buf));
+     char buf[512];
+     fprintf(stderr, "%s[%d]:  got event %s, should have been set by now\n", FILE__, __LINE__, ev.sprint_event(buf));
      return true;
    }
+
 
    return true;
 }
@@ -384,10 +385,8 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
 
    waiting_for_event = true;
     __UNLOCK;
-    fprintf(stderr, "Waiting on pid %d...\n", pid_to_wait_for);
     waitpid_pid = waitpid_kludge( pid_to_wait_for /** pid*/ /* -1 for any child*/, 
                                   &status, wait_options, &dead_lwp );
-    fprintf(stderr, "Got something from %d\n", pid_to_wait_for);
     __LOCK;
    waiting_for_event = false;
     
