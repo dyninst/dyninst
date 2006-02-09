@@ -454,7 +454,7 @@ $(TEST_DEST):
 #######################################################################
 
 $(MUTATORS): test% : test%.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test%.dep
-	$(M_GXX) -o $@ $(filter %.o,$^) $(MUTATOR_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) $(MUTATOR_LDFLAGS)
+	$(GXX) -o $@ $(filter %.o,$^) $(MUTATOR_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) $(MUTATOR_LDFLAGS)
 
 test11:
 	cp ../src/test11.sh test11
@@ -575,4 +575,4 @@ endif
 
 # Why we normally compile the _tests_ with -fno-implicit-templates, I don't know.
 test1.o : test1.C
-	$(M_GXX) -c -o $@ $(CFLAGS) $(DYNINST_INCDIR) $<
+	$(GXX) -c -o $@ $(CFLAGS) $(DYNINST_INCDIR) $<
