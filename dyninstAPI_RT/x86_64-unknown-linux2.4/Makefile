@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.6 2006/01/06 23:11:05 legendre Exp $
+# $Id: Makefile,v 1.7 2006/02/09 03:34:27 tlmiller Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -16,8 +16,8 @@ LD		= $(GCC)
 LDFLAGS         += -shared -nostdlib
 
 # Automatic init routine
-LDFLAGS		+= -Wl,-init,_start 
-CFLAGS		+= -Wall
+LDFLAGS		+= -Wl,-init,_start  -m64
+CFLAGS		+= -Wall -m64
 
 # if we want to produce a shared object...
 CC              = $(GCC)
@@ -59,14 +59,14 @@ VOUCHER_32   = V_$(XTARGET_32)
 OBJS_32      = $(patsubst %.c, %_m32.o, $(filter %.c,$(notdir $(SRCS))))
 ASM_OBJS_32  = $(patsubst %.S, %_m32.o, $(filter %.S,$(notdir $(ASM_SRCS_32))))
 
-CFLAGS_32    = -m32 -DMUTATEE_32 $(CFLAGS)
-LDFLAGS_32   = -m32 $(LDFLAGS)
+CFLAGS_32    = -DMUTATEE_32 $(CFLAGS)
+LDFLAGS_32   = $(LDFLAGS)
 LIBS_32      = -L/usr/lib $(LIBS)
 
 $(OBJS_32): %_m32.o: ../src/%.c
-	$(CC) $(CFLAGS_32) -c $< -o $@
+	$(CC) $(subst -m64,-m32,$(CFLAGS_32)) -c $< -o $@
 $(ASM_OBJS_32): %_m32.o: ../src/%.S
-	$(CC) $(CFLAGS_32) -c $< -o $@
+	$(CC) $(subst -m64,-m32,$(CFLAGS_32)) -c $< -o $@
 $(VOUCHER_32):
 	@echo Updating build voucher information: $(VOUCHER_32)
 	$(BUILDSTAMP) $(BUILD_ID) $(XTARGET)
@@ -74,7 +74,7 @@ $(VOUCHER_32):
 $(TARGET_32_SO): $(OBJS_32) $(ASM_OBJS_32)
 	@$(RM) $(TARGET_32_SO)
 	@$(MAKE) $(VOUCHER_32)
-	$(LD) $(LDFLAGS_32) -o $(TARGET_32_SO) $(VOUCHER_32).o $(OBJS_32) $(ASM_OBJS_32) $(LIBS_32)
+	$(LD) $(subst -m64,-m32,$(LDFLAGS_32)) -o $(TARGET_32_SO) $(VOUCHER_32).o $(OBJS_32) $(ASM_OBJS_32) $(LIBS_32)
 
 $(DEST)/$(TARGET_32_SO): $(TARGET_32_SO)
 	-$(CP) $(TARGET_32_SO) $(DEST)
