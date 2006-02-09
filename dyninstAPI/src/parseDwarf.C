@@ -337,11 +337,27 @@ AstNode * convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed list
 	if( DW_OP_reg0 <= location.lr_atom && location.lr_atom <= DW_OP_reg31 ) {
 		registerNumber = location.lr_atom - DW_OP_reg0;
 		}
+	else if( DW_OP_breg0 <= location.lr_atom && location.lr_atom <= DW_OP_breg31 ) {
+		registerNumber = location.lr_atom - DW_OP_breg0;
+		if( location.lr_number != 0 ) {
+			/* Actually, we should be able whip up an AST node for this. */
+			return NULL;
+			}
+		}
 	else if( location.lr_atom == DW_OP_regx ) {
 		registerNumber = location.lr_number;
 		}
+	else if( location.lr_atom == DW_OP_bregx ) {
+		registerNumber = location.lr_number;
+		if( location.lr_number2 != 0 ) {
+			/* Actually, we should be able whip up an AST node for this. */
+			return NULL;
+			}
+		}
 	else {
-		assert( 0 );
+		// Be more polite.
+		// assert( 0 );
+		return NULL;
 		}
 
 	/* We have to make sure no arithmetic is actually done to the frame pointer,
@@ -353,7 +369,7 @@ AstNode * convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed list
 	AstNode * moveFPtoDestination = new AstNode( orOp, constantZero, framePointer );
 	
 	return moveFPtoDestination;
-	} /* end convertLocListToAST(). */
+	} /* end convertFrameBaseToAST(). */
 
 bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, Dwarf_Signed listLength, long int * offset, int * regNum, long int * initialStackValue = NULL, BPatch_storageClass * storageClass = NULL ) {
 	/* We make a few heroic assumptions about locations in this decoder.
@@ -388,17 +404,27 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 	for( unsigned int i = 0; i < location.ld_cents; i++ ) {
 		/* Handle the literals w/o 32 case statements. */
 		if( DW_OP_lit0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_lit31 ) {
-			// bperr( "Pushing named constant: %d\n", locations[i].lr_atom - DW_OP_lit0 );
+			dwarf_printf( "pushing named constant: %d\n", locations[i].lr_atom - DW_OP_lit0 );
 			opStack.push( locations[i].lr_atom - DW_OP_lit0 );
 			continue;
 			}
 
-		/* Hendle registers w/o 32 case statements. */
+		/* Haandle registers w/o 32 case statements. */
 		if( DW_OP_reg0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_reg31 ) {
-			// bperr( "Pushing register number: %d\n", locations[i].lr_atom - DW_OP_reg0 );
-			if( storageClass != NULL ) { * storageClass = BPatch_storageReg; }
-			if( regNum != NULL ) { * regNum = locations[i].lr_number; }
-			opStack.push( locations[i].lr_atom - DW_OP_reg0 );
+			/* storageReg is unimplemented, so do an offset of 0 from the named register instead. */
+			dwarf_printf( "location is named register %d\n", locations[i].lr_atom - DW_OP_reg0 );
+			if( storageClass != NULL ) { * storageClass = BPatch_storageRegOffset; }
+			if( regNum != NULL ) { * regNum = locations[i].lr_atom - DW_OP_reg0; }
+			if( offset != NULL ) { * offset = 0; }
+			return true;
+			}
+			
+		/* Haandle registers w/o 32 case statements. */
+		if( DW_OP_breg0 <= locations[i].lr_atom && locations[i].lr_atom <= DW_OP_breg31 ) {
+			dwarf_printf( "setting storage class to named register, regNum to %d, offset %d\n", locations[i].lr_atom - DW_OP_breg0, locations[i].lr_number );
+			if( storageClass != NULL ) { * storageClass = BPatch_storageRegOffset; }
+			if( regNum != NULL ) { * regNum = locations[i].lr_atom - DW_OP_breg0; }
+			opStack.push( locations[i].lr_number );
 			continue;
 			}
 
@@ -409,7 +435,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 			case DW_OP_const4u:
 			case DW_OP_const8u:
 			case DW_OP_constu:
-				// bperr( "Pushing constant %lu\n", (unsigned long)locations[i].lr_number );
+				dwarf_printf( "pushing unsigned constant %lu\n", (unsigned long)locations[i].lr_number );
 				opStack.push( (Dwarf_Unsigned)locations[i].lr_number );
 				break;
 
@@ -418,25 +444,29 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 			case DW_OP_const4s:
 			case DW_OP_const8s:
 			case DW_OP_consts:
-				// bperr( "Pushing constant %ld\n", (signed long)(locations[i].lr_number) );
+				dwarf_printf( "pushing signed constant %ld\n", (signed long)(locations[i].lr_number) );
 				opStack.push( (Dwarf_Signed)(locations[i].lr_number) );
 				break;
 
 			case DW_OP_regx:
-				if( storageClass != NULL ) { * storageClass = BPatch_storageReg; }
+				/* storageReg is unimplemented, so do an offset of 0 from the named register instead. */
+				dwarf_printf( "location is register %d\n", locations[i].lr_number );
+				if( storageClass != NULL ) { * storageClass = BPatch_storageRegOffset; }
 				if( regNum != NULL ) { * regNum = locations[i].lr_number; }
-				opStack.push( (Dwarf_Unsigned)locations[i].lr_number );
-				break;
+				if( offset != NULL ) { * offset = 0; }
+				return true;
 
 			case DW_OP_fbreg:
+				dwarf_printf( "setting storage class to frame base\n" );
 				if( storageClass != NULL ) { * storageClass = BPatch_storageFrameOffset; }
-				opStack.push( (Dwarf_Signed)(locations[i].lr_number) );
+				opStack.push( locations[i].lr_number );
 				break;
 
 			case DW_OP_bregx:
+				dwarf_printf( "setting storage class to register, regNum to %d\n", locations[i].lr_number );
 				if( storageClass != NULL ) { * storageClass = BPatch_storageRegOffset; }
 				if( regNum != NULL ) { * regNum = locations[i].lr_number; }
-				opStack.push( (Dwarf_Signed)(locations[i].lr_number2) );
+				opStack.push( locations[i].lr_number2 );
 				break;
 
 			case DW_OP_dup:
@@ -659,18 +689,17 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 				break;
 
 			default:
-				/* FIXME: register names for formal parameters in libstdc++? */
-				// bperr("Unrecognized or non-static location opcode 0x%x, aborting.\n", locations[i].lr_atom );
+				dwarf_printf( "Unrecognized or non-static location opcode 0x%x, aborting.\n", locations[i].lr_atom );
 				return false;
 			} /* end operand switch */
 		} /* end iteration over Dwarf_Loc entries. */
 
 	/* The top of the stack is the computed location. */
 	if( opStack.empty() ) {
-		/* DEBUG */ fprintf( stderr, "%s[%d]: ignoring malformed location list.\n" );
+		dwarf_printf( "ignoring malformed location list (stack empty).\n" );
 		return false;
 		}
-	// /* DEBUG */ fprintf( stderr, "Location decoded: %ld\n", opStack.top() );
+	dwarf_printf( "setting offset to %d\n", opStack.top() );
 	* offset = opStack.top();
 	
 	/* decode successful */
@@ -906,6 +935,10 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				Dwarf_Locdesc * locationList;
 				Dwarf_Signed listLength;
 				status = dwarf_loclist( frameBaseAttribute, & locationList, & listLength, NULL );
+				if( status != DW_DLV_OK ) {
+					/* I think DWARF 3 generically allows this abomination of empty loclists. */
+					break;
+					}
 				assert( status == DW_DLV_OK );
 
 				dwarf_dealloc( dbg, frameBaseAttribute, DW_DLA_ATTR );
@@ -1068,9 +1101,13 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				Dwarf_Locdesc * locationList;
 				Dwarf_Signed listLength;
 				status = dwarf_loclist( locationAttribute, & locationList, & listLength, NULL );
+				dwarf_dealloc( dbg, locationAttribute, DW_DLA_ATTR );
+				if( status != DW_DLV_OK ) {
+					/* I think this is OK if the local variable was optimized away. */
+					break;
+					}
 				assert( status == DW_DLV_OK );			
 				
-				dwarf_dealloc( dbg, locationAttribute, DW_DLA_ATTR );
 
 				int regNum;
 				BPatch_storageClass storageClass;
@@ -1130,8 +1167,6 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			
 				/* The typeOffset forms a module-unique type identifier,
 				   so the BPatch_type look-ups by it rather than name. */
-				parsing_printf("%s/%d: %s/%d\n",
-							   __FILE__, __LINE__, variableName, typeOffset);
 				BPatch_type * variableType = module->getModuleTypes()->findOrCreateType( typeOffset );
 
 				dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
@@ -1156,7 +1191,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 							
 				/* We now have the variable name, type, offset, and line number.
 				   Tell Dyninst about it. */
-				// /* DEBUG */ fprintf( stderr, "localVariable '%s', currentFunction %p\n", variableName, currentFunction );
+				dwarf_printf( "localVariable '%s', currentFunction %p\n", variableName, currentFunction );
 				if( currentFunction != NULL ) {
 					if( !hasLineNumber ) { break; }
 					assert( hasLineNumber );
@@ -1207,9 +1242,12 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			Dwarf_Locdesc * locationList;
 			Dwarf_Signed listLength;
 			status = dwarf_loclist( locationAttribute, & locationList, & listLength, NULL );
-			assert( status == DW_DLV_OK );
-			
 			dwarf_dealloc( dbg, locationAttribute, DW_DLA_ATTR );
+			if( status != DW_DLV_OK ) {
+				/* I think this is legal if the parameter was optimized away. */
+				break;
+				}
+			assert( status == DW_DLV_OK );
 			
 			int regNum;
 			BPatch_storageClass storageClass;
