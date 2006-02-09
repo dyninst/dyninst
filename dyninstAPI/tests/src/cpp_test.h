@@ -40,13 +40,12 @@
  */
 
 // C++ mutatee tests header file
-// $Id: cpp_test.h,v 1.4 2004/03/23 19:11:08 eli Exp $
+// $Id: cpp_test.h,v 1.5 2006/02/09 03:34:25 tlmiller Exp $
 
 #ifndef CPP_TEST
 #define CPP_TEST
 
-const int CPP_DEFLT_ARG  = 1024;
-
+#define CPP_DEFLT_ARG_VAL 1024
 
 class cpp_test
 {
@@ -83,7 +82,7 @@ class arg_test : public cpp_test_util
 
      void dummy();
      void arg_pass(int test);
-     void call_cpp(const int test, int & arg2, int arg3 = CPP_DEFLT_ARG);
+     void call_cpp(const int test, int & arg2, int arg3 = CPP_DEFLT_ARG_VAL);
 
 
 };

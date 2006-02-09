@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test5.mutatee.C,v 1.15 2005/06/14 04:16:13 rchen Exp $ */
+/* $Id: test5.mutatee.C,v 1.16 2006/02/09 03:34:26 tlmiller Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -93,6 +93,8 @@ int debugPrint = 0;
 
 int runTest[MAX_TEST+1];
 int passedTest[MAX_TEST+1];
+
+int CPP_DEFLT_ARG = CPP_DEFLT_ARG_VAL;
 
 /*
  * Check to see if the mutator has attached to us.
