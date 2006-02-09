@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: api_showerror.C,v 1.21 2005/11/03 05:21:05 jaw Exp $
+// $Id: api_showerror.C,v 1.22 2006/02/09 03:34:20 tlmiller Exp $
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -221,6 +221,7 @@ int dyn_debug_dyn_dbi = 0;
 int dyn_debug_mutex = 0;
 int dyn_debug_mailbox = 0;
 int dyn_debug_async = 0;
+int dyn_debug_dwarf = 0;
 
 bool init_debug() {
   char *p;
@@ -275,6 +276,10 @@ bool init_debug() {
   if ( (p=getenv("DYNINST_DEBUG_MAILBOX"))) {
     fprintf(stderr, "Enabling DyninstAPI callbacks debug\n");
     dyn_debug_mailbox= 1;
+    }
+  if ( (p=getenv("DYNINST_DEBUG_DWARF"))) {
+    fprintf(stderr, "Enabling DyninstAPI dwarf debug\n");
+    dyn_debug_dwarf= 1;
     }
   return true;
 }
@@ -484,3 +489,18 @@ int async_printf(const char *format, ...)
 
   return ret;
 }
+
+int dwarf_printf(const char *format, ...)
+{
+  if (!dyn_debug_dwarf ) return 0;
+  if (NULL == format) return -1;
+  
+  fprintf(stderr, "(dwarf) [thread %s]: ", getThreadStr(getExecThreadID()));
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  return ret;
+}
+
