@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.162 2005/12/19 23:45:38 rutar Exp $
+// $Id: ast.C,v 1.163 2006/02/09 03:34:22 tlmiller Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1456,14 +1456,6 @@ Address AstNode::generateCode_phase2(process *proc,
               break;
            case FrameAddr:
               addr = (Address) loperand->oValue;
-#if !defined( ia64_unknown_linux2_4 )
-              /* This is really checking if the offset from the frame pointer
-                 is zero.  On the IA-64, this is certainly someplace the compiler
-                 might stash a local; this check is probably bogus on other
-                 platforms as well, but hidden by their prediliction for storing
-                 important things, like the return address, on the stack. */
-              assert(addr != 0); // check for NULL
-#endif              
               emitVstore(storeFrameRelativeOp, src1, src2, addr, gen, 
                          noCost, rs, size, location, proc);
               loperand->decUseCount(rs);
