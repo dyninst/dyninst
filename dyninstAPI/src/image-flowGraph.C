@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.8 2006/02/07 18:27:10 nater Exp $
+ * $Id: image-flowGraph.C,v 1.9 2006/02/10 19:19:29 nater Exp $
  */
 
 #include <stdio.h>
@@ -695,7 +695,7 @@ bool image_func::buildCFG(
     Address currAddr = funcBegin;
     // The reverse ordering here is to make things easier on
     // alpha. Indeed, the only reason funcEntries would ever
-    // have size > 1 is if we're on AIX.
+    // have size > 1 is if we're on alpha.
 
     // FIXME the real reason we do this is because our parser will
     // break if there are > 1 pre-existing blocks and they are not
@@ -1330,7 +1330,7 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
     image_instPoint * cpyInstPt;
 
     WL.push_back(firstBlock);
-    visited.insert(curBlk);
+    visited.insert(firstBlock);
 
     parsing_printf("Parsing shared code at 0x%lx, blockList size: %ld\n",firstBlock->firstInsnOffset_, blockList.size());
 
@@ -1380,6 +1380,9 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
         blockList.push_back(curBlk);
         parsing_printf("XXXX adding pre-parsed block %d (0x%lx) to blocklist\n",
                 curBlk->id(),curBlk->firstInsnOffset_);
+        // update "function end"
+        if(endOffset_ < curBlk->blockEndOffset_)
+            endOffset_ = curBlk->blockEndOffset_;
         parserVisited.insert(curBlk);
 
         targets.clear();
