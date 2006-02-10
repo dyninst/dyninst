@@ -405,18 +405,24 @@ process *int_basicBlock::proc() const {
     return func()->proc();
 }
 
-// TODO: Are we sure we want to ignore call edges at this level? Pretty sure...
+// Note that code sharing is masked at this level. That is, edges
+// to and from a block that do not originate from the low-level function
+// that this block's int_function represents will not be included in
+// the returned block collection
 void int_basicBlock::getSources(pdvector<int_basicBlock *> &ins) const {
     pdvector<image_edge *> ib_ins;
     ib_->getSources(ib_ins);
     for (unsigned i = 0; i < ib_ins.size(); i++) {
         if(ib_ins[i]->getType() != ET_CALL)
         {
-            // Note the mapping between int_basicBlock::id() and
-            // image_basicBlock::id()
-            unsigned img_id = ib_ins[i]->getSource()->id();
-            unsigned int_id = func()->blockIDmap[img_id];
-            ins.push_back(func()->blockList[int_id]);
+            if(ib_ins[i]->getSource()->containedIn(func()->ifunc()))
+            {
+                // Note the mapping between int_basicBlock::id() and
+                // image_basicBlock::id()
+                unsigned img_id = ib_ins[i]->getSource()->id();
+                unsigned int_id = func()->blockIDmap[img_id];
+                ins.push_back(func()->blockList[int_id]);
+            }
         }
     }
 }
@@ -427,11 +433,14 @@ void int_basicBlock::getTargets(pdvector<int_basicBlock *> &outs) const {
     for (unsigned i = 0; i < ib_outs.size(); i++) {
         if(ib_outs[i]->getType() != ET_CALL)
         {
-            // Note the mapping between int_basicBlock::id() and
-            // image_basicBlock::id()
-            unsigned img_id = ib_outs[i]->getTarget()->id();
-            unsigned int_id = func()->blockIDmap[img_id];
-            outs.push_back(func()->blockList[int_id]);
+            if(ib_outs[i]->getTarget()->containedIn(func()->ifunc()))
+            {
+                // Note the mapping between int_basicBlock::id() and
+                // image_basicBlock::id()
+                unsigned img_id = ib_outs[i]->getTarget()->id();
+                unsigned int_id = func()->blockIDmap[img_id];
+                outs.push_back(func()->blockList[int_id]);
+            }
         }
     }
 }
