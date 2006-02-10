@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.19 2006/02/06 17:32:09 tlmiller Exp $
+ * $Id: emit-x86.C,v 1.20 2006/02/10 19:19:39 nater Exp $
  */
 
 #include <assert.h>
@@ -233,7 +233,7 @@ void Emitter32::emitLoadRegRelative(Register dest, Address offset,
                                     Register base, codeGen &gen,
                                     bool store)
 {
-    emitMovRMToReg(REGNUM_EAX, base, 0, gen);
+    GET_GPR(base,gen);  // loads value of stored register 'base' into EAX
     // either load the address or the contents at that address
     if(store) 
     {
@@ -469,6 +469,11 @@ bool Emitter32::emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costUpdate
     // Dummy for now; we update at generation time.
     emitAddMemImm32(costAddr, 0, gen); 
     return true;
+}
+
+int Emitter32::Register_DWARFtoMachineEnc(int n)
+{
+    return n;   // no mapping for 32-bit targets
 }
 
 Emitter32 emitter32;
@@ -901,17 +906,15 @@ void Emitter64::emitLoadRegRelative(Register dest, Address offset,
     // either load the address or the contents at that address
     if(store) 
     {
-        // mov (%rbp), %rax
-        emitMovRMToReg64(REGNUM_RAX, base, 0, true, gen);
-
-        // mov offset(%rax), %dest
+        // load the stored register 'base' into RAX
+        emitLoadPreviousStackFrameRegister(base, REGNUM_RAX, gen);
+        // move offset(%rax), %dest
         emitMovRMToReg64(dest, REGNUM_RAX, offset, false, gen);
     }
     else
     {
-        // mov (%rbp), %dest
-        emitMovRMToReg64(dest, base, 0, true, gen);
-
+        // load the stored register 'base' into dest
+        emitLoadPreviousStackFrameRegister(base, dest, gen);
         // add $offset, %dest
         emitOpRegImm64(0x81, 0x0, dest, offset, true, gen);
     }
@@ -1697,6 +1700,26 @@ bool Emitter64::emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costUpdate
     instruction::generateNOOP(gen, 6);
 
     return true;
+}
+
+// on 64-bit x86_64 targets, the DWARF register number does not
+// correspond to the machine encoding. See the AMD-64 ABI.
+#define REG_CNT 53
+/* I stole this wholesale from gcc's gcc/config/i386/i386.c -- nater */
+static int const amd64_register_map[] =
+{ 
+  0, 2, 1, 3, 6, 7, 5, 4,       /* general regs */
+  11, 12, 13, 14, 15, 16, 17, 18,   /* fp regs */
+  -1, 9, -1, -1, -1,            /* arg, flags, fpsr, dir, frame */
+  21, 22, 23, 24, 25, 26, 27, 28,   /* SSE registers */
+  29, 30, 31, 32, 33, 34, 35, 36,   /* MMX registers */
+  -1, -1, -1, -1, -1, -1, -1, -1,   /* extended integer registers */
+  -1, -1, -1, -1, -1, -1, -1, -1,   /* extended SSE registers */
+};
+int Emitter64::Register_DWARFtoMachineEnc(int n)
+{
+    return amd64_register_map[n];
+
 }
 
 Emitter64 emitter64;
