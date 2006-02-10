@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.12 2006/01/30 07:16:53 jaw Exp $
+// $Id: mapped_object.C,v 1.13 2006/02/10 21:20:40 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -79,17 +79,6 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
     // Set occupied range (needs to be ranges)
     codeBase_ = fileDesc.code();
     dataBase_ = fileDesc.data();
-
-#if 0
-    fprintf(stderr, "Creating new mapped_object %s/%s\n",
-            fullName_.c_str(), getFileDesc().member().c_str());
-    fprintf(stderr, "codeBase 0x%x, codeOffset 0x%x, size %d\n",
-            codeBase_, image_->codeOffset(), image_->codeLength());
-    fprintf(stderr, "dataBase 0x%x, dataOffset 0x%x, size %d\n",
-            dataBase_, image_->dataOffset(), image_->dataLength());
-    fprintf(stderr, "fileDescriptor: code at 0x%x, data 0x%x\n",
-            fileDesc.code(), fileDesc.data());
-#endif
             
 
 #if defined(arch_power)
@@ -133,6 +122,22 @@ mapped_object::mapped_object(fileDescriptor fileDesc,
         //dataBase_ += image_->getObject().data_reloc();
     }
 #endif
+
+#if 0
+    fprintf(stderr, "Creating new mapped_object %s/%s\n",
+            fullName_.c_str(), getFileDesc().member().c_str());
+    fprintf(stderr, "codeBase 0x%x, codeOffset 0x%x, size %d\n",
+            codeBase_, image_->codeOffset(), image_->codeLength());
+    fprintf(stderr, "dataBase 0x%x, dataOffset 0x%x, size %d\n",
+            dataBase_, image_->dataOffset(), image_->dataLength());
+    fprintf(stderr, "fileDescriptor: code at 0x%x, data 0x%x\n",
+            fileDesc.code(), fileDesc.data());
+    fprintf(stderr, "Code: 0x%lx to 0x%lx\n",
+            codeAbs(), codeAbs() + codeSize());
+    fprintf(stderr, "Data: 0x%lx to 0x%lx\n",
+            dataAbs(), dataAbs() + dataSize());
+#endif
+
 
     // Sets "fileName_"
     set_short_name();
@@ -787,9 +792,14 @@ void mapped_object::getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const 
 #endif
 
     if (codeAbs() >= 0xd0000000) {
+        // This caused problems on sp3-01.cs.wisc.edu; apparently we were overwriting
+        // necessary library information. For now I'm disabling it (10FEB06) until
+        // we can get a better idea of what was going on.
+#if 0
         start = codeAbs() + codeSize();
         start += instruction::size() - (start % (Address)instruction::size());
         size = PAGESIZE - (start % PAGESIZE);
+#endif
     }
     else if (codeAbs() > 0x20000000) {
         // ...
@@ -824,7 +834,7 @@ void mapped_object::getInferiorHeaps(pdvector<foundHeapDesc> &foundHeaps) const 
         
         tmp.name = pdstring(name_scratch);
         tmp.addr = start;
-        
+        //fprintf(stderr, "Adding heap %s\n", name_scratch);
         foundHeaps.push_back(tmp);
     }
 #endif
