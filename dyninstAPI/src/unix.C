@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.160 2006/02/10 02:25:25 jaw Exp $
+// $Id: unix.C,v 1.161 2006/02/10 22:42:27 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -543,6 +543,7 @@ bool SignalGenerator::decodeSignal(EventRecord &ev)
     break;
   }
   case SIGILL:
+  case SIGSEGV:
   {
      signal_printf("%s[%d]:  SIGILL\n", FILE__, __LINE__);
 #if defined (arch_ia64)
