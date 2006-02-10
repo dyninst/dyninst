@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.109 2006/02/10 02:25:24 jaw Exp $
+// $Id: BPatch.C,v 1.110 2006/02/10 22:42:18 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1033,7 +1033,7 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
    bpprocess->setUnreportedTermination(true);
    bpprocess->isVisiblyStopped = true;
 
-   pdvector<CallbackBase *> cbs;
+  pdvector<CallbackBase *> cbs;
    getCBManager()->dispenseCallbacksMatching(evtThreadExit,cbs);
    for (unsigned int i = 0; i < cbs.size(); ++i) {
      AsyncThreadEventCallback &cb = * ((AsyncThreadEventCallback *) cbs[i]);
@@ -1047,7 +1047,10 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
      cb(bpprocess->threads[0], ExitedViaSignal);
    }
 
-   continueIfExists(pid);
+   // We need to clean this up... but the user still has pointers
+   // into this code. Ugh.
+   // Do not continue at this point; process is already gone.
+
 }
 
 
