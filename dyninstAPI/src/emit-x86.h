@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.10 2006/02/03 01:52:44 nater Exp $
+ * $Id: emit-x86.h,v 1.11 2006/02/10 19:19:38 nater Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -97,6 +97,7 @@ class Emitter {
     virtual bool emitBTGuardPreCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardJumpIndex) = 0;
     virtual bool emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardTargetIndex) = 0;
     virtual bool emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costValue) = 0;
+    virtual int Register_DWARFtoMachineEnc(int n) = 0;
 };
 
 // current set of code generation functions
@@ -153,7 +154,7 @@ public:
     bool emitBTCostCode(baseTramp* bt, codeGen& gen, unsigned& costValue);
     void emitLoadEffectiveAddress(Register base, Register index, unsigned int scale, int disp,
 				  Register dest, codeGen &gen);
-
+    int Register_DWARFtoMachineEnc(int n);
 };
 
 // some useful 64-bit codegen functions
@@ -206,6 +207,12 @@ public:
     bool emitBTGuardPreCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardJumpOffset);
     bool emitBTGuardPostCode(baseTramp* bt, codeGen &gen, codeBufIndex_t& guardTargetIndex);
     bool emitBTCostCode(baseTramp* bt, codeGen &gen, unsigned& costValue);
+
+    /* The DWARF register numbering does not correspond to the architecture's
+       register encoding for 64-bit target binaries *only*. This method
+       maps the number that DWARF reports for a register to the actual
+       register number. */
+    int Register_DWARFtoMachineEnc(int n);
 };
 #endif
 
