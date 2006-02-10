@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-unix.h,v 1.21 2006/02/10 02:25:25 jaw Exp $
+/* $Id: signalhandler-unix.h,v 1.22 2006/02/10 08:34:19 jaw Exp $
  */
 
 /*
@@ -176,6 +176,9 @@ class SignalGenerator : public SignalGeneratorCommon
    virtual ~SignalGenerator() {}
 
    bool checkForExit(EventRecord &ev, bool block =false);
+
+   bool waitingForStop() {return waiting_for_stop;}
+   void setWaitingForStop(bool flag) {waiting_for_stop = flag;}
   private:
   //  SignalGenerator should only be constructed by process
   SignalGenerator(char *idstr, pdstring file, pdstring dir,
@@ -186,7 +189,8 @@ class SignalGenerator : public SignalGeneratorCommon
                       int stdin_fd, int stdout_fd,
                       int stderr_fd)
     : SignalGeneratorCommon(idstr, file, dir, argv, envp, inputFile, outputFile, 
-                      stdin_fd, stdout_fd, stderr_fd) {}
+                      stdin_fd, stdout_fd, stderr_fd),
+     waiting_for_stop(false) {}
   SignalGenerator(char *idstr, pdstring file, int pid);
 
   virtual SignalHandler *newSignalHandler(char *name, int id);
@@ -220,19 +224,16 @@ class SignalGenerator : public SignalGeneratorCommon
                                   pdvector<EventRecord> &events);
 #endif
 
+   bool waiting_for_stop;
+
 #if defined (os_linux)
    public:
-   bool waitingForStop(process *p);
-   bool notWaitingForStop(process *p);
    bool add_lwp_to_poll_list(dyn_lwp *lwp);
    bool remove_lwp_from_poll_list(int lwp_id);
+   bool resendSuppressedSignals();
    private:
-   typedef struct {
-      process *proc;
-      pdvector<int> suppressed_sigs;
-      pdvector<dyn_lwp *> suppressed_lwps;
-   } stopping_proc_rec;
-   pdvector<stopping_proc_rec> stoppingProcs;
+   pdvector<int> suppressed_sigs;
+   pdvector<dyn_lwp *> suppressed_lwps;
    //  SignalHandler::suppressSignalWhenStopping
    //  needed on linux platforms.  Allows the signal handler function
    //  to ignore most non SIGSTOP signals when waiting for a process to stop
@@ -240,7 +241,6 @@ class SignalGenerator : public SignalGeneratorCommon
    bool suppressSignalWhenStopping(EventRecord &ev);
    //  SignalHandler::resendSuppressedSignals
    //  called upon receipt of a SIGSTOP.  Sends all deferred signals to the stopped process.
-   bool resendSuppressedSignals(EventRecord &ev);
    bool attachToChild(int pid);
    int find_dead_lwp();
    pid_t waitpid_kludge(pid_t, int *, int, int *);

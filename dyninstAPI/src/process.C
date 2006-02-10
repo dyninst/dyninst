@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.576 2006/02/10 02:25:24 jaw Exp $
+// $Id: process.C,v 1.577 2006/02/10 08:34:19 jaw Exp $
 
 #include <ctype.h>
 
@@ -1807,7 +1807,6 @@ void process::deleteProcess()
   deferredContinueProc = false;
   previousSignalAddr_ = 0;
   continueAfterNextStop_ = false;
-  suppressCont_ = false;
   
   // Don't touch exec; statically allocated anyway.
 
@@ -1966,7 +1965,6 @@ process::process(SignalGenerator *sh_) :
     deferredContinueProc(false),
     previousSignalAddr_(0),
     continueAfterNextStop_(false),
-    suppressCont_(false),
     status_(neonatal),
     nextTrapIsExec(false),
     inExec_(false),
@@ -2525,7 +2523,6 @@ process::process(const process *parentProc, SignalGenerator *sg_, int childTrace
     deferredContinueProc(parentProc->deferredContinueProc),
     previousSignalAddr_(parentProc->previousSignalAddr_),
     continueAfterNextStop_(parentProc->continueAfterNextStop_),
-    suppressCont_(parentProc->suppressCont_),
     status_(parentProc->status_),
     nextTrapIsExec(parentProc->nextTrapIsExec),
     inExec_(parentProc->inExec_),
@@ -4911,7 +4908,7 @@ bool process::continueProc(int signalToContinueWith)
     return false;
   }
 
-  if (suppressEventConts()) {
+  if (sh->waitingForStop()) {
     fprintf(stderr, "%s[%d][%s]:  suppressing continue\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
     return false;
   }

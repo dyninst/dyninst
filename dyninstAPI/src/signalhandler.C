@@ -1611,8 +1611,6 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
 
    sg->signalEvent(ev);
 
-   proc->setSuppressEventConts(false);
-
    if (ret == false) {
       //  if ret is false, complain, but return true anyways, since the handler threads
       //  should be shut down by the SignalGenerator.

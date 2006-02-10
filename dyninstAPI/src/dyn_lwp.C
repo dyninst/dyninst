@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.37 2006/01/30 07:16:52 jaw Exp $
+ * $Id: dyn_lwp.C,v 1.38 2006/02/10 08:34:18 jaw Exp $
  */
 
 #include "common/h/headers.h"
@@ -123,13 +123,14 @@ dyn_lwp::~dyn_lwp()
 }
 
 // TODO is this safe here ?
-bool dyn_lwp::continueLWP(int signalToContinueWith) {
+bool dyn_lwp::continueLWP(int signalToContinueWith) 
+{
    if(status_ == running) {
      fprintf(stderr, "%s[%d]:  already running\n", FILE__, __LINE__);
       return true;
    }
 
-   if (proc()->suppressEventConts())
+   if (proc()->sh->waitingForStop())
    {
      fprintf(stderr, "%s[%d]:  LWP continue has been suppresssed\n", FILE__, __LINE__);
      return false;

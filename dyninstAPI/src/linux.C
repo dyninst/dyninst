@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.190 2006/02/08 23:41:26 bernat Exp $
+// $Id: linux.C,v 1.191 2006/02/10 08:34:19 jaw Exp $
 
 #include <fstream>
 
@@ -214,10 +214,20 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
    }
 
    errno = 0;
-   if (ev.type == evtSignalled) 
+   if (ev.type == evtSignalled) {
+      if (waiting_for_stop) {
+        if (suppressSignalWhenStopping(ev)) {
+          //  we suppress this signal, just send a null event
+          char buf[128];
+          fprintf(stderr, "%s[%d]:  suppressing signal %s\n", FILE__, __LINE__, ev.sprint_event(buf));
+          ev.type = evtNullEvent;
+          return true;
+        }
+      }
       decodeSignal(ev);
+   }
 
-   if (ev.type == evtSignalled || ev.type == evtUndefined) {
+   if (/*ev.type == evtSignalled ||*/ ev.type == evtUndefined) {
      //  if we still have evtSignalled, then it must not be a signal that
      //  we care about internally.  Still, send it along to the handler
      //  to be forwarded back to the process.
@@ -469,19 +479,9 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
      return false;
    }
 
-   //  find out if we are waiting for this process to stop.
-   //  if we are, suppress continues.
-
-   bool process_stopping = false;
-   for (unsigned int i = 0; i < stoppingProcs.size(); ++i) {
-     stopping_proc_rec &spr = stoppingProcs[i];
-     if (spr.proc->getPid() == ev.proc->getPid()) {
-       process_stopping = true;
-       break;
-     }
-   }
-
-   if (process_stopping) {
+#ifdef NOTDEF // PDSEP
+   //  we suppress continues in decodeEvent now
+   if (waiting_for_stop) {
      if ( ! ( didProcEnterSyscall(ev.type)) 
              || didProcExitSyscall(ev.type)
              || (ev.type == evtSignalled && ev.what == SIGTRAP)) {
@@ -493,6 +493,7 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
 
      }
    }
+#endif
 
    return true;
 
@@ -644,71 +645,26 @@ bool SignalGenerator::suppressSignalWhenStopping(EventRecord &ev)
       || ev.what == SIGBUS )
     return suppressed_something;
 
-  for (unsigned int i = 0; i < stoppingProcs.size(); ++i) {
-    stopping_proc_rec spr = stoppingProcs[i];
-    if (spr.proc == ev.proc) {
-      spr.suppressed_sigs.push_back(ev.what);
-      spr.suppressed_lwps.push_back(ev.lwp);
-      suppressed_something = true;
-      break;
-    }
-  }
+  suppressed_sigs.push_back(ev.what);
+  suppressed_lwps.push_back(ev.lwp);
+  suppressed_something = true;
 
   return suppressed_something;
 }
 
-bool SignalGenerator::resendSuppressedSignals(EventRecord &ev)
+bool SignalGenerator::resendSuppressedSignals()
 {
-  stopping_proc_rec spr;
-  bool found_proc = false;
-  for (unsigned int i = 0; i < stoppingProcs.size(); ++i) {
-   spr = stoppingProcs[i];
-   if (ev.proc->getPid() == spr.proc->getPid()) {
-     found_proc = true;
-     break; 
-   }
-  }
-  if (!found_proc) {
-    //fprintf(stderr, "%s[%d]:  cannot resend signals for nonexistant process: %d stopping\n", 
-    //        __FILE__, __LINE__, stoppingProcs.size());
-    return false;
-   }
-
-  assert(spr.suppressed_sigs.size() == spr.suppressed_lwps.size());
-  for (unsigned int i = 0; i < spr.suppressed_sigs.size(); ++i)
+  assert(suppressed_sigs.size() == suppressed_lwps.size());
+  for (unsigned int i = 0; i < suppressed_sigs.size(); ++i)
   {
     fprintf(stderr, "%s[%d]:  resending %d to %d via lwp_kill\n", FILE__, __LINE__,
-            spr.suppressed_sigs[i], spr.suppressed_lwps[i]->get_lwp_id());
+            suppressed_sigs[i], suppressed_lwps[i]->get_lwp_id());
     //Throw back the extra signals we caught.
-    lwp_kill(spr.suppressed_lwps[i]->get_lwp_id(), spr.suppressed_sigs[i]);
+    lwp_kill(suppressed_lwps[i]->get_lwp_id(), suppressed_sigs[i]);
   }
-  spr.suppressed_lwps.clear();
-  spr.suppressed_sigs.clear();
+  suppressed_lwps.clear();
+  suppressed_sigs.clear();
   return true;
-}
-
-bool SignalGenerator::waitingForStop(process *p)
-{
-  for(unsigned int i = 0; i < stoppingProcs.size(); ++i) {
-       if (stoppingProcs[i].proc == p) return false;
-     } 
-   stopping_proc_rec spr;
-   spr.proc = p; 
-   stoppingProcs.push_back(spr);
-   return true;
-
-}
-bool SignalGenerator::notWaitingForStop(process *p)
-{
-  for(unsigned int i = 0; i < stoppingProcs.size(); ++i) {
-     if (stoppingProcs[i].proc == p) { 
-         assert(stoppingProcs[i].suppressed_lwps.size() == 0);
-         assert(stoppingProcs[i].suppressed_sigs.size() == 0);
-         stoppingProcs.erase(i,i);
-         return true;
-       }
-     } 
-  return false;
 }
 
 bool dyn_lwp::removeSigStop()
@@ -718,7 +674,8 @@ bool dyn_lwp::removeSigStop()
   return (lwp_kill(get_lwp_id(), SIGCONT) == 0);
 }
 
-bool dyn_lwp::continueLWP_(int signalToContinueWith) {
+bool dyn_lwp::continueLWP_(int signalToContinueWith) 
+{
    proccontrol_printf("%s[%d]:  ContinuingLWP_ %d with %d\n", FILE__, __LINE__,
           get_lwp_id(), signalToContinueWith);
 
@@ -730,10 +687,12 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
       arg4 = signalToContinueWith;
    }
 
-   if (proc()->suppressEventConts())
+   if (proc()->sh->waitingForStop())
    {
+     fprintf(stderr, "%s[%d]:  suppressing continue\n", FILE__, __LINE__);
      return false;
    }
+
    if (status() == exited)
    {
       return true;
@@ -772,13 +731,14 @@ bool dyn_lwp::waitUntilStopped()
 
   //return (doWaitUntilStopped(proc(), get_lwp_id(), true) != NULL);
   SignalGenerator *sh = (SignalGenerator *) proc()->sh;
-  sh->waitingForStop(proc());
+  sh->setWaitingForStop(true);
   while ( status() != stopped) {
     signal_printf("%s[%d]:  before waitForEvent(evtProcessStop): status is %s\n",
             FILE__, __LINE__, getStatusAsString().c_str());
     sh->waitForEvent(evtProcessStop);
   }
-  sh->notWaitingForStop(proc());
+  sh->setWaitingForStop(false);
+  sh->resendSuppressedSignals();
   return true;
 }
 
@@ -888,7 +848,7 @@ bool process::waitUntilLWPStops()
 {
 
   fprintf(stderr, "%s[%d]:  welcome to waitUntilLWPStops\n", FILE__, __LINE__);
-  ((SignalGenerator *)sh)->waitingForStop(this);
+  ((SignalGenerator *)sh)->setWaitingForStop(true);
   while ( status() != stopped) {
     if (status() == exited) {
       fprintf(stderr, "%s[%d]:  process exited\n", __FILE__, __LINE__);
@@ -899,7 +859,8 @@ bool process::waitUntilLWPStops()
     sh->waitForEvent(evtProcessStop);
   }
 
-  ((SignalGenerator *)sh)->notWaitingForStop(this);
+  ((SignalGenerator *)sh)->setWaitingForStop(false);
+  ((SignalGenerator *)sh)->resendSuppressedSignals();
 
   return true;
 

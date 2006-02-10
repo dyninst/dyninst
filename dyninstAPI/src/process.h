@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.351 2006/02/10 02:25:25 jaw Exp $
+/* $Id: process.h,v 1.352 2006/02/10 08:34:19 jaw Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -509,8 +509,6 @@ class process {
   public:
   // True if we've reached or past a certain state
   bool reachedBootstrapState(bootstrapState_t state) const { return bootstrapState >= state; }
-  bool suppressEventConts() { return suppressCont_; } 
-  void setSuppressEventConts(bool s) { suppressCont_ = s; }
 
   pdstring getBootstrapStateAsString() const;
   bootstrapState_t getBootstrapState() {return bootstrapState;}
@@ -1015,7 +1013,6 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   bool deferredContinueProc;
   Address previousSignalAddr_;
   bool continueAfterNextStop_;
-  bool suppressCont_;
   // Defined in os.h
   processState status_;         /* running, stopped, etc. */
 
