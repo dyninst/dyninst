@@ -413,10 +413,11 @@ bool BPatch_process::continueExecutionInt()
 bool BPatch_process::terminateExecutionInt()
 {
    proccontrol_printf("%s[%d]:  about to terminate proc\n", FILE__, __LINE__);
-   fprintf(stderr, "%s[%d]:  about to terminateProc\n", FILE__, __LINE__);
    if (!llproc || !llproc->terminateProc())
       return false;
-   while (!isTerminated());
+   while (!isTerminated()) {
+       BPatch::bpatch->waitForStatusChange();
+   }
    
    return true;
 }
@@ -1345,11 +1346,11 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
    OneTimeCodeInfo *info = new OneTimeCodeInfo(synchronous, userData);
 
    llproc->getRpcMgr()->postRPCtoDo(expr.ast,
-                                  false, 
-                                  BPatch_process::oneTimeCodeCallbackDispatch,
-                                  (void *)info,
-                                  false,
-                                  NULL, NULL); 
+                                    false, 
+                                    BPatch_process::oneTimeCodeCallbackDispatch,
+                                    (void *)info,
+                                    false,
+                                    NULL, NULL); 
     
    if (synchronous) {
       do {
