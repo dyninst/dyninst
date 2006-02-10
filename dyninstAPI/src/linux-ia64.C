@@ -453,8 +453,31 @@ bool process::loadDYNINSTlib() {
   Address codeBase = findFunctionToHijack(this);	
 
   if( !codeBase ) { return false; }
-        
-  /* FIXME: Check the glibc version.  If it's not appropriate, die. */
+  
+  /* glibc 2.3.4 and higher adds a fourth parameter to _dl_open().
+     While we could probably get away with treating the three and four
+     -argument functions the same, check the version anyway, since
+     we'll probably need to later. */
+  bool useFourArguments = true;
+  Symbol libcVersionSymbol;
+  if( getSymbolInfo( "__libc_version", libcVersionSymbol ) ) {
+    char libcVersion[ sizeof( int ) * libcVersionSymbol.size() + 1 ];
+	libcVersion[ sizeof( int ) * libcVersionSymbol.size() ] = '\0';
+    if( ! readDataSpace( (void *) libcVersionSymbol.addr(), libcVersionSymbol.size(), libcVersion, true ) ) {
+      fprintf( stderr, "%s[%d]: warning, failed to read libc version, assuming 2.3.4+\n", __FILE__, __LINE__ );
+      }
+    else {
+      startup_printf( "%s[%d]: libcVersion: %s\n", __FILE__, __LINE__, libcVersion );
+
+      /* We could potentially add a sanity check here to make sure we're looking at 2.3.x. */
+      int microVersion = ((int)libcVersion[4]) - ((int)'0');
+      if( microVersion <= 3 ) {
+	    useFourArguments = false;
+        }
+      } /* end if we read the version symbol */
+    } /* end if we found the version symbol */
+
+  if( useFourArguments ) { startup_printf( "%s[%d]: using four arguments.\n", __FILE__, __LINE__ ); }
 
   /* Fetch the name of the run-time library. */
   const char DyninstEnvVar[]="DYNINSTAPI_RT_LIB";
@@ -503,12 +526,15 @@ bool process::loadDYNINSTlib() {
   // segment, not dyninstlib_brk_addr (or we skip all the restores).
   // Of course, we're not sure what this addr represents....
 
-  pdvector< AstNode * > dlOpenArguments( 3 );
+  pdvector< AstNode * > dlOpenArguments( 4 );
   AstNode * dlOpenCall;
 	
   dlOpenArguments[ 0 ] = new AstNode( AstNode::Constant, (void *)dyninstlib_addr );
   dlOpenArguments[ 1 ] = new AstNode( AstNode::Constant, (void *)DLOPEN_MODE );
   dlOpenArguments[ 2 ] = new AstNode( AstNode::Constant, (void *)0xFFFFFFFFFFFFFFFF );
+  if( useFourArguments ) { 
+    dlOpenArguments[ 3 ] = new AstNode( AstNode::Constant, (void *)(long unsigned int)-2 );
+    }
   dlOpenCall = new AstNode( "_dl_open", dlOpenArguments );
 	
   /* Remember where we originally generated the call. */
@@ -537,6 +563,7 @@ bool process::loadDYNINSTlib() {
   removeAst( dlOpenArguments[ 0 ] );
   removeAst( dlOpenArguments[ 1 ] );
   removeAst( dlOpenArguments[ 2 ] );
+  if( useFourArguments ) { removeAst( dlOpenArguments[ 3 ] ); }
 
   // Okay, that was fun. Now restore. And trap. And stuff.
         
