@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.577 2006/02/10 08:34:19 jaw Exp $
+// $Id: process.C,v 1.578 2006/02/10 22:42:24 bernat Exp $
 
 #include <ctype.h>
 
@@ -270,7 +270,7 @@ bool process::walkStackFromFrame(Frame startFrame,
 #else
         // We should check to see if this early exit is warranted.
         fprintf(stderr, "%s[%d]:  failing stackWalk here\n", FILE__, __LINE__);
-        return false;
+        //return false;
 #endif
     }
 #endif
@@ -318,18 +318,18 @@ bool process::getAllActiveFrames(pdvector<Frame> &activeFrames)
   return success;
 }
 
-bool process::walkStacks(pdvector<pdvector<Frame> >&stackWalks)
+bool process::walkStacks(pdvector<pdvector<Frame> >&stackWalks, bool ignoreRPC /* = false */)
 {
   pdvector<Frame> stackWalk;
   if (!threads.size()) { // Nothing defined in thread data structures
-    if (!getRepresentativeLWP()->walkStack(stackWalk))
+    if (!getRepresentativeLWP()->walkStack(stackWalk, ignoreRPC))
       return false;
     // Use the walk from the default LWP
     stackWalks.push_back(stackWalk);
   }
   else { // Have threads defined
     for (unsigned i = 0; i < threads.size(); i++) {
-      if (!threads[i]->walkStack(stackWalk))
+      if (!threads[i]->walkStack(stackWalk, ignoreRPC))
          return false;
       stackWalks.push_back(stackWalk);
       stackWalk.resize(0);
@@ -3591,6 +3591,17 @@ bool process::terminateProc()
       signal_printf("%s[%d][%s]:  before waitForEvent(evtProcessExit)\n", 
               FILE__, __LINE__, getThreadStr(getExecThreadID()));
       fprintf(stderr, "%s[%d]:  waiting for evtProcessExit, lock depth is %d\n", FILE__, __LINE__, global_mutex->depth());
+
+
+      // Let it run so we can see it die...      
+      set_status(running);
+
+      if (getExecThreadID() != sh->getThreadID()) {
+          signal_printf("%s[%d][%s]:  signalling active process\n", 
+                        FILE__, __LINE__, getThreadStr(getExecThreadID()));
+          sh->signalActiveProcess();
+      }
+
       sh->waitForEvent(evtProcessExit);
      return true;
      }
@@ -3733,13 +3744,17 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
 bool process::writeTextSpace(void *inTracedProcess, u_int amount, 
                              const void *inSelf) 
 {
+    if (((unsigned long) inTracedProcess <= 0xd03f9080) &&
+        ((unsigned long)inTracedProcess + amount > 0xd03f9080))
+        fprintf(stderr, "**************** GOT IT!!!\n");
+
    assert(inTracedProcess);
    bool needToCont = false;
-   /*
-   fprintf(stderr, "writeTextSpace to %p to %p, %d\n",
-           inTracedProcess,
-           (char *)inTracedProcess + amount, amount);
-   */
+
+   //fprintf(stderr, "writeTextSpace to %p to %p, %d\n",
+   //inTracedProcess,
+   //(char *)inTracedProcess + amount, amount);
+
    if (!isAttached()) return false;
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
    if(stopped_lwp == NULL) {

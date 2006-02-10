@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.352 2006/02/10 08:34:19 jaw Exp $
+/* $Id: process.h,v 1.353 2006/02/10 22:42:25 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -209,7 +209,7 @@ class process {
   public:
   // Preferred function: returns a stack walk (vector of frames)
   // for each thread in the program
-  bool walkStacks(pdvector<pdvector<Frame> > &stackWalks);
+  bool walkStacks(pdvector<pdvector<Frame> > &stackWalks, bool ignoreRPC = false);
 
   // Get a vector of the active frames of all threads in the process
   bool getAllActiveFrames(pdvector<Frame> &activeFrames);
