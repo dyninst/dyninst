@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.42 2006/01/30 07:16:53 jaw Exp $
+// $Id: procfs.C,v 1.43 2006/02/10 02:25:25 jaw Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -188,8 +188,8 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
    int ret = ioctl(get_fd(), PIOCSTATUS, &stat);
 
    if (ret == -1) {
-      perror("status error is ");
-      return true;
+      fprintf(stderr, "%s[%d]:  ioctl error %s\n", FILE__, __LINE__, strerror(errno));
+      return false;
    }
 
    if (!(stat.pr_flags & PR_STOPPED)) {

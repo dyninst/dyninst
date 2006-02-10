@@ -41,6 +41,10 @@ bool CallbackManager::removeCallbacks(eventType evt, pdvector<CallbackBase *> &c
 
 bool CallbackManager::dispenseCallbacksMatching(eventType evt, pdvector<CallbackBase *> &cbs_out)
 {
+  if (cbs_out.size()) {
+    fprintf(stderr, "%s[%d]:  WARN, dispenseCallbacksMatching (%s) appending to existing callbacks\n", FILE__, __LINE__, eventType2str(evt));
+  }
+
   if (cbs.defines(evt)) {
     pdvector<CallbackBase *> &cbs_for_type = cbs[evt];
     for (unsigned int i = 0; i < cbs_for_type.size(); ++i) {

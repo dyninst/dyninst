@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.78 2006/02/04 06:44:59 jaw Exp $
+// $Id: sol_proc.C,v 1.79 2006/02/10 02:25:25 jaw Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -1419,40 +1419,6 @@ bool find_matching_event(pdvector<EventRecord> &events,
    return found;
 }
 
-//  decodeKludge() is here in lieu of a preexisting
-//  function specialHandlingOfEvents(), which fixes up events in special
-//  cases.  Not pretty
-
-bool SignalGenerator::decodeKludge(EventRecord &cur_event) 
-{
-
-#if defined(os_aix)
-  if (cur_event.type == evtSignalled && cur_event.what == SIGSTOP) {
-    // On AIX we can't manipulate a process stopped on a
-    // SIGSTOP... in any case, we clear it.
-    // No other signal exhibits this behavior.
-    cur_event.proc->getRepresentativeLWP()->clearSignal();
-   }
-#endif
-
-#if defined(bug_aix_proc_broken_fork)
-  if (cur_event.type == evtSignalled && cur_event.what == DYNINST_BREAKPOINT_SIGNUM) {
-    // Possibly a fork stop in the RT library
-    if (!decodeRTSignal(cur_event)) {
-      cur_event.type = evtProcessStop; // happens when we get a DYNINSTbreakPoint
-    }
-  }
-#endif
-
-  if (cur_event.type == evtSignalled && cur_event.what == SIGTRAP) 
-    decodeSigTrap(cur_event);
-
-  if ((cur_event.type == evtSignalled && cur_event.what == SIGSTOP) 
-    || (cur_event.type == evtSignalled && cur_event.what == SIGINT)) 
-    decodeSigStopNInt(cur_event);
-  return true;
-}
-
 // returns true if updated events structure for this lwp 
 bool SignalGenerator::updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
                                pdvector<EventRecord> &events)
@@ -1478,18 +1444,24 @@ bool SignalGenerator::updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
   ev.proc = curProc;
   ev.lwp = lwp;
 
-  if(!decodeProcStatus(lwpstatus, ev))
+  if (!decodeProcStatus(lwpstatus, ev)) {
+     fprintf(stderr, "%s[%d]:  failed to decodeProcStatus\n", FILE__, __LINE__);
      return false;
+  }
    
+
   EventRecord matching_event;
   bool found_match = find_matching_event(events, ev, matching_event);
 
-  if(!found_match) {
-     decodeKludge(ev);
+  if (!found_match) {
      events.push_back(ev);
   } else 
      matching_event.lwp = lwp;
    
+#if 0
+  char buf[128];
+  fprintf(stderr, "%s[%d]:  updateEvents got event %s\n", FILE__, __LINE__, ev.sprint_event(buf));
+#endif
   return true;
 }
 
@@ -1547,8 +1519,16 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
          }
      }
 
-     decodeWaitPidStatus(status, ev);
-     decodeKludge(ev);
+     if (!decodeWaitPidStatus(status, ev)) {
+        fprintf(stderr, "%s[%d]:  failed to decodeWaitPidStatus\n", FILE__, __LINE__);
+        return true;
+     }
+
+     if (ev.type == evtSignalled && !decodeSignal(ev)) {
+        fprintf(stderr, "%s[%d]:  failed to decodeSignal\n", FILE__, __LINE__);
+        return true;
+     }
+
      signal_printf("%s[%d]:  new event: %s\n", FILE__, __LINE__, eventType2str(ev.type));
      return true;
   }
@@ -1569,7 +1549,6 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
    // copied from old code, must not care about events that don't stop proc
    if ( !(procstatus.pr_flags & PR_STOPPED || procstatus.pr_flags & PR_ISTOP) ) {
      ev.type = evtNullEvent;
-     decodeKludge(ev);
      signal_printf("%s[%d]:  new event: %s\n",
                    FILE__, __LINE__, eventType2str(ev.type));
      return true;
@@ -1578,32 +1557,21 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
    bool updated_events = false;
    unsigned lwp_to_use = (unsigned) procstatus.pr_lwpid;
    updated_events = updateEvents(events_to_handle, ev.proc, lwp_to_use);
+
+   if (events_to_handle.size()) {
+     ev = events_to_handle[0];
+     events_to_handle.erase(0,0);
+   }
+   else
+     ev.type = evtUndefined;
+
+#if 0
+   char buf[128];
+   fprintf(stderr, "%s[%d]:  decodeEvent got %s\n", FILE__, __LINE__, ev.sprint_event(buf));
+#endif
    return updated_events;
 
 }
-
-#ifdef NOTDEF // PDSEP
-bool SignalGenerator::getFDsForPoll(pdvector<unsigned int> &fds)
-{
-  extern pdvector<process*> processVec;
-  for(unsigned u = 0; u < processVec.size(); u++) {
-     process *lproc = processVec[u];
-     if(lproc && (lproc->status() == running))
-       fds.push_back(lproc->getRepresentativeLWP()->status_fd());
-  }
-#ifdef DEBUG
-  if (!fds.size()) {
-    fprintf(stderr, "%s[%d]:  No valid proc fds available\n", __FILE__, __LINE__);
-    for (unsigned int i = 0; i < processVec.size(); ++i) {
-       process *p = processVec[i];
-      fprintf(stderr, "\tprocess %d in state %s\n", processVec[i]->getPid(), 
-              processVec[i]->getStatusAsString().c_str());
-    }
-  }
-#endif
-  return (fds.size() > 0);
-}
-#endif
 
 pdstring process::tryToFindExecutable(const pdstring &iprogpath, int pid) {
   // This is called by exec, so we might have a valid file path. If so,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.210 2006/01/30 07:16:52 jaw Exp $
+// $Id: aix.C,v 1.211 2006/02/10 02:25:24 jaw Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1650,6 +1650,28 @@ bool process::dumpImage(const pdstring outFile)
     
     return true;
 
+}
+
+bool SignalGenerator::decodeSignal_NP(EventRecord &ev)
+{
+  if (ev.type == evtSignalled && ev.what == SIGSTOP) {
+    // On AIX we can't manipulate a process stopped on a
+    // SIGSTOP... in any case, we clear it.
+    // No other signal exhibits this behavior.
+    ev.proc->getRepresentativeLWP()->clearSignal();
+   }
+
+#if defined(bug_aix_proc_broken_fork)
+  if (ev.type == evtSignalled && ev.what == DYNINST_BREAKPOINT_SIGNUM) {
+    // Possibly a fork stop in the RT library
+    if (!decodeRTSignal(ev)) {
+      ev.type = evtProcessStop; // happens when we get a DYNINSTbreakPoint
+    }
+    return true; // signal is decoded
+  }
+#endif
+
+  return false;  // signall needs further deccoding
 }
 
 bool SignalGeneratorCommon::getExecFileDescriptor(pdstring /*filename*/,

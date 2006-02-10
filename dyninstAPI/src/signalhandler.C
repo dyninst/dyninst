@@ -643,7 +643,7 @@ bool SignalGeneratorCommon::initialize_event_handler()
         proc = NULL;
         return false;
     }
-    fprintf(stderr, "%s[%d]:  finishing attach:  setting AOut\n", FILE__, __LINE__);
+
     if (!proc->setAOut(desc)) {
        delete proc;
        proc = NULL;
@@ -669,12 +669,7 @@ bool SignalGeneratorCommon::initialize_event_handler()
          return false;
      }
 
-#ifdef NOTDEF // PDSEP
-     process *parent = const_cast<process *>(proc->getParent());
-     parent->handleForkExit(proc);
-#endif
   }
-  //  
 
   return true;
 }
@@ -1407,7 +1402,7 @@ bool SignalHandler::handleExecExit(EventRecord &ev)
 {
     process *proc = ev.proc;
     proc->nextTrapIsExec = false;
-    if(INFO_TO_PID(ev.info) == -1) {
+    if ( (int) INFO_TO_PID(ev.info) == -1) {
         // Failed exec, do nothing
         return false;
     }
@@ -1422,10 +1417,6 @@ bool SignalHandler::handleExecExit(EventRecord &ev)
     // We also see an exec as the first signal in a process we create. 
     // That's because it... wait for it... execed!
     if (!proc->reachedBootstrapState(begun_bs)) {
-#ifdef NOTDEF // PDSEP
-       fprintf(stderr, "%s[%d]:  removed decodeSigTrap!\n", FILE__, __LINE__);
-        sg->decodeSigTrap(ev);
-#endif
         return handleProcessCreate(ev);
     }
 
@@ -1472,10 +1463,13 @@ bool SignalHandler::handleSyscallExit(EventRecord &ev)
       case procSysExec:
          signal_printf("%s[%d]:  Exec Exit\n", FILE__, __LINE__);
          ret = handleExecExit(ev);
+         if (!ret)
+           ev.proc->continueProc();
          break;
       case procSysLoad:
          signal_printf("%s[%d]:  Load Exit\n", FILE__, __LINE__);
          ret = handleLoadLibrary(ev);
+         ev.proc->continueProc();
          break;
       default:
          fprintf(stderr, "%s[%d]:  unknown syscall\n", __FILE__, __LINE__);
@@ -1563,11 +1557,6 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
         break;
      case evtSignalled:
      {
-#ifdef NOTDEF // PDSEP
-        char buf[128];
-        fprintf(stderr, "%s[%d]:  HANDLE SIGNAL is deprecated!!!\n", FILE__, __LINE__);
-         ret = true;
-#endif
         ret = forwardSigToProcess(ev);
         break;
      }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-unix.h,v 1.20 2006/02/08 23:41:28 bernat Exp $
+/* $Id: signalhandler-unix.h,v 1.21 2006/02/10 02:25:25 jaw Exp $
  */
 
 /*
@@ -197,6 +197,11 @@ class SignalGenerator : public SignalGeneratorCommon
   virtual bool waitNextEventLocked(EventRecord &ev);
   virtual bool decodeEvent(EventRecord &ev);
 
+  //  decodeSignal_NP is called by decodeSignal before decodeSignal does any
+  //  decoding.  It allows platform specific actions to be taken for signal
+  //  decoding.  If it returns true, decodeSignal assumes that a valid decode 
+  //  has taken place and it  will not do any further decoding.
+  bool decodeSignal_NP(EventRecord &ev);
   bool decodeSignal(EventRecord &ev);
   bool decodeRTSignal(EventRecord &ev);
   bool decodeSigTrap(EventRecord &ev);
@@ -208,19 +213,11 @@ class SignalGenerator : public SignalGeneratorCommon
   //  eg. procSysFork.  returns false if there is no available mapping.
   bool decodeSyscall(EventRecord &ev);
 
-#ifdef NOTDEF // PDSEP
-  //  functions specific to the unix polling mechanism.
-//  bool createPollEvent(pdvector<EventRecord> &events, struct pollfd fds, process *curProc);
-  bool getFDsForPoll(pdvector<unsigned int> &fds);
-  process *findProcessByFD(unsigned int fd);
-#endif
-
 #if !defined (os_linux) 
    bool updateEvents(pdvector<EventRecord> &events, process *p, int lwp_to_use);
    bool decodeProcStatus(procProcStatus_t status, EventRecord &ev);
    bool updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
                                   pdvector<EventRecord> &events);
-   bool decodeKludge(EventRecord &ev);
 #endif
 
 #if defined (os_linux)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.575 2006/02/08 23:41:27 bernat Exp $
+// $Id: process.C,v 1.576 2006/02/10 02:25:24 jaw Exp $
 
 #include <ctype.h>
 
@@ -2168,19 +2168,6 @@ bool process::prepareExec(fileDescriptor &desc)
     dyn = new dynamic_linking(this);
     int status = 0;
 
-#ifdef NOTDEF // PDSEP
-    // False: not waitin' for a signal (theoretically, we already got
-    // it when we attached)
-    fileDescriptor desc;
-    if (!sh->getExecFileDescriptor(execFilePath, 
-                               getPid(),
-                               false,
-                               status, 
-                               desc)) {
-        cerr << "Failed to find exec descriptor" << endl;
-        return false;
-    }
-#endif
     if (!setAOut(desc)) {
         return false;
     }
@@ -2489,22 +2476,6 @@ bool process::setupGeneral()
     startup_printf("Initializing vector heap\n");
     initInferiorHeap();
 
-#if defined(os_aix)
-#ifdef NOTDEF // PDSEP
-    fprintf(stderr, "%s[%d]:  WARN!  removed fake sigtrap here\n", FILE__, __LINE__);
-    if (HACKSTATUS == SIGTRAP) {
-      EventRecord ev;
-      ev.proc = this;
-      ev.type = evtSignalled;
-      ev.what = HACKSTATUS;
-      ev.info = 0;
-      //sh->handleSigTrap(ev);
-      SignalHandlerUnix::handleSigTrap(ev);
-    }
-#endif
-#endif
-        
-
     startup_printf("%s[%d]: Loading DYNINST lib...\n", FILE__, __LINE__);
     // TODO: loadDyninstLib actually embeds a lot of startup material;
     // should move it up to this function to make things more obvious.
@@ -2673,40 +2644,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
     processVec.push_back(theProc);
     activeProcesses++;
 
-#ifdef NOTDEF // PDSEP
-#if defined (os_windows)
-    fprintf(stderr, "%s[%d]:  windows init continue -- REMOVE\n", FILE__, __LINE__);
-    unsigned res = ResumeThread(theProc->sh->getThreadHandle());
-    if (res == 0xFFFFFFFF) {
-      fprintf(stderr, "%s[%d]:  could not resume thread here\n", FILE__, __LINE__);
-      //printSysError(GetLastError());
-    }
-#endif
-#endif
-
     statusLine("initializing process data structures");
-
-#ifdef NOTDEF // PDSEP
-    // AIX: wait for a trap so that we're sure the process is loaded
-    // This is because we still read out of memory; bad idea, but...
-    fileDescriptor desc;
-    if (!process::getExecFileDescriptor(theProc->sh->file, theProc->sh->getPid(), true, status, desc)) {
-        startup_cerr << "Failed to find exec descriptor" << endl;
-        cleanupBPatchHandle(theProc->sh->getPid());
-        processVec.pop_back();
-        delete theProc;
-        return NULL;
-    }
-    HACKSTATUS = status;
-
-    if (!theProc->setAOut(desc)) {
-        startup_printf("[%s:%u] - Couldn't setAOut\n", __FILE__, __LINE__);
-        cleanupBPatchHandle(theProc->sh->getPid());
-        processVec.pop_back();
-        delete theProc;
-        return NULL;
-    }
-#endif
 
     if (!theProc->setupGeneral()) {
         startup_printf("[%s:%u] - Couldn't setupGeneral\n", __FILE__, __LINE__);
@@ -2772,35 +2710,6 @@ process *ll_attachProcess(const pdstring &progpath, int pid)
   processVec.push_back(theProc);
   activeProcesses++;
 
-#ifdef NOTDEF // PDSEP
-
-#if defined(i386_unknown_nt4_0)
-  int status = (int)INVALID_HANDLE_VALUE;	// indicates we need to obtain a valid handle
-#else
-  int status = pid;
-#endif // defined(i386_unknown_nt4_0)
-
-  fileDescriptor desc;
-  if (!process::getExecFileDescriptor(fullPathToExecutable,
-#if defined(os_windows)
-                             (int)INVALID_HANDLE_VALUE,
-#else
-                             pid,
-#endif
-                             false,
-                             status, 
-                             desc)) {
-        processVec.pop_back();
-      delete theProc;
-      return NULL;
-  }
-  
-  if (!theProc->setAOut(desc)) {
-        processVec.pop_back();
-      delete theProc;
-      return NULL;
-  }
-#endif
   if (!theProc->setupGeneral()) {
         processVec.pop_back();
       delete theProc;

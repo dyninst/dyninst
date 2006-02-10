@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.87 2006/02/01 00:42:54 jaw Exp $
+// $Id: osf.C,v 1.88 2006/02/10 02:25:24 jaw Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -180,6 +180,7 @@ bool process::setProcessFlags()
    praddset(&sigs, SIGSTOP);
    praddset(&sigs, SIGTRAP);
    praddset(&sigs, SIGSEGV);
+   praddset(&sigs, DYNINST_BREAKPOINT_SIGNUM);
    
    if (ioctl(replwp->get_fd(), PIOCSTRACE, &sigs) < 0) {
        perror("setProcessFlags: PIOCSTRACE");
@@ -234,7 +235,7 @@ static inline bool execResult(prstatus_t stat)
 }
 
 
-bool checkForAnyProcessExit(EventRecord &ev)
+bool checkForAnyProcessExit(EventRecord &/*ev*/)
 {
   extern pdvector<process*> processVec;
   bool ret = false;
@@ -246,36 +247,6 @@ bool checkForAnyProcessExit(EventRecord &ev)
   }
   return ret;
 }
-
-#ifdef NOTDEF // PDSEP
-//  checkForExit returns true when an exit has been detected
-bool checkForExit(EventRecord &ev, bool block)
-{
-  extern pdvector<process*> processVec;
-  for (unsigned u = 0; u < processVec.size(); u++) {
-    if (processVec[u] 
-        && (processVec[u]->status() == running )) {
-            //|| processVec[u]->status() == neonatal)) { 
-       int status;
-       int retWait = waitpid(processVec[u]->getPid(), &status, WNOHANG|WNOWAIT);
-       if (retWait == -1) {
-          fprintf(stderr, "%s[%d]:  waitpid failed\n", __FILE__, __LINE__);
-          return false;
-       }
-       else if (retWait > 1) {
-         //fprintf(stderr, "%s[%d]:  checkForExit is returning true: pid %d exited, status was %s\n", FILE__, __LINE__, ev.proc->getPid(), ev.proc->getStatusAsString().c_str());
-         decodeWaitPidStatus(status, ev);
-         ev.proc = processVec[u];
-         ev.lwp = processVec[u]->getRepresentativeLWP();
-         ev.info = 0;
-         //ev.proc->set_status(exited);
-         return true;
-       }
-    }
-  }
-  return false;
-}
-#endif
 
 bool SignalGenerator::decodeEvent(EventRecord &ev)
 {
@@ -306,43 +277,14 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
    signal_printf("%s[%d]:  new event: %s\n",
                    FILE__, __LINE__, eventType2str(ev.type));
 
-  if ((ev.type == evtSignalled) && (ev.what == SIGTRAP))
-    return decodeSigTrap(ev);
-
-  if ((ev.type == evtSignalled) && (ev.what == SIGSTOP))
-    return decodeSigStopNInt(ev);
-
-  if ((ev.type == evtSignalled) && (ev.what == SIGINT))
-    return decodeSigStopNInt(ev);
-  return true;
+   return true;
 }
 
-bool SignalGenerator::decodeKludge(EventRecord &cur_event) 
-{
-  return true;
-}
 bool SignalGenerator::updateEventsWithLwpStatus(process *, dyn_lwp *,
                                   pdvector<EventRecord> &)
 {
   return true;
 }
-
-#ifdef NOTDEF // PDSEP
-bool SignalGenerator::getFDsForPoll(pdvector<unsigned int> &fds)
-{
-#ifdef NOTDEF // PDSEP
-  extern pdvector<process*> processVec;
-  for (unsigned int u = 0; u < processVec.size(); ++u) {
-    if (processVec[u] 
-        && (processVec[u]->status() == running )) {
-           // || processVec[u]->status() == neonatal)) {
-      fds.push_back(processVec[u]->getRepresentativeLWP()->get_fd());
-    }
-  }
-  return (fds.size() > 0);
-#endif
-}
-#endif
 
 Frame dyn_thread::getActiveFrameMT() {
 	return Frame();

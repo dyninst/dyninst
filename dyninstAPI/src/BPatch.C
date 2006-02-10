@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.108 2006/02/08 23:41:23 bernat Exp $
+// $Id: BPatch.C,v 1.109 2006/02/10 02:25:24 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -887,6 +887,7 @@ void BPatch::registerForkedProcess(process *parentProc, process *childProc)
     getCBManager()->dispenseCallbacksMatching(evtPostFork,cbs);
     
     for (unsigned int i = 0; i < cbs.size(); ++i) {
+        assert( cbs[i] );
         ForkCallback &cb = *((ForkCallback *) cbs[i]);
         cb(parent->threads[0], child->threads[0]);
     }
@@ -918,6 +919,7 @@ void BPatch::registerForkingProcess(int forkingPid, process * /*proc*/)
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtPreFork,cbs);
     for (unsigned int i = 0; i < cbs.size(); ++i) {
+        assert(cbs[i]);
         ForkCallback &cb = *((ForkCallback *) cbs[i]);
         cb(forking->threads[0], NULL);
     }

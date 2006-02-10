@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.159 2006/02/08 23:41:31 bernat Exp $
+// $Id: unix.C,v 1.160 2006/02/10 02:25:25 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -220,92 +220,7 @@ bool SignalGenerator::decodeSigIll(EventRecord &ev)
   return true;
 }
 
-#ifdef NOTDEF // PDSEP
-bool SignalHandler::handleSIGCHLD(EventRecord &ev) 
-{
-#if defined (os_linux)
-  // Linux fork() sends a SIGCHLD once the fork has been created
-  ev.type = evtPreFork;
-#endif
-  assert (ev.proc);
-  ev.proc->continueProc();
 
-  return true;
-}
-#endif
-
-#ifdef NOTDEF // PDSEP
-bool SignalHandler::handleSignal(EventRecord &ev) 
-{
-    process *proc = ev.proc;
-    bool ret = false;
-
-#if defined (os_linux)
-    if (getSH()->suppressSignalWhenStopping(ev)) {
-      ev.lwp->continueLWP_(0);
-      ev.proc->set_lwp_status(ev.lwp, running);
-      return true;
-    }
-#endif
-    switch(ev.what) {
-      case SIGTRAP: 
-         signal_printf("%s[%d]:  SIGTRAP\n", FILE__, __LINE__);
-         ret = handleSigTrap(ev); break;
-      case SIGSTOP:
-      case SIGINT: 
-         signal_printf("%s[%d]:  SIGSTOP\n", FILE__, __LINE__);
-         ret = handleSIGSTOP(ev); break;
-      case SIGILL: 
-         signal_printf("%s[%d]:  SIGILL\n", FILE__, __LINE__);
-         ret = handleCritical(ev); break;
-      case SIGCHLD: 
-         signal_printf("%s[%d]:  SIGCHLD\n", FILE__, __LINE__);
-         ret = handleSIGCHLD(ev); break;
-      case SIGIOT:
-        signal_printf("%s[%d]: SIGABRT\n", FILE__, __LINE__);
-        ev.status = statusSignalled;
-        //ev.info = ev.what;
-        sprintf(errorLine, "process %d has terminated on signal %d\n",
-                proc->getPid(), (int) ev.what);
-        logLine(errorLine);
-        statusLine(errorLine);
-        ev.proc->triggerSignalExitCallback(ev.what);
-        ev.proc->handleProcessExit();
-        flagBPatchStatusChange();
-        getSH()->signalEvent(evtProcessExit);
-        ret = true;
-        break;
-      case SIGBUS:
-        signal_printf("%s[%d]: SIGBUS\n", FILE__, __LINE__);
-      case SIGSEGV: 
-         signal_printf("%s[%d]: SIGSEGV\n", FILE__, __LINE__);
-         ret = handleCritical(ev); break;
-      case SIGCONT:
-#if defined(os_linux) || defined (os_aix)
-         ret = true;
-         break;
-#endif
-      case SIGALRM:
-      case SIGUSR1:
-      case SIGUSR2:
-      case SIGVTALRM:
-         signal_printf("%s[%d]:  sigalrm or sigusr\n", FILE__, __LINE__);
-         proc->set_lwp_status(ev.lwp, stopped);
-         ret = forwardSigToProcess(ev);
-         break; 
-      default:
-         fprintf(stderr, "%s[%d]:  bad signal id!: %d\n", FILE__, __LINE__, ev.what);
-         ret = false;
-         break;
-    }
-    
-     bool exists = false;   
-     BPatch_process *bproc = BPatch::bpatch->getProcessByPid(proc->getPid(), &exists);
-     if ((bproc)  && (ev.what != SIGTRAP))
-       setBPatchProcessSignal(bproc, ev.what);
-    return ret;
- }
-#endif
  //////////////////////////////////////////////////////////////////
  // Syscall handling
  //////////////////////////////////////////////////////////////////
@@ -340,6 +255,11 @@ bool SignalGenerator::decodeProcStatus(procProcStatus_t status, EventRecord &ev)
      case PR_SIGNALLED:
         ev.type = evtSignalled;
         ev.what = status.pr_what;
+        if (!decodeSignal(ev)) {
+          char buf[128];
+          fprintf(stderr, "%s[%d]:  decodeSignal failed\n", FILE__, __LINE__, ev.sprint_event(buf));
+          return false;
+        }
         break;
      case PR_SYSENTRY:
         ev.type = evtSyscallEntry;
@@ -482,64 +402,10 @@ bool SignalGenerator::checkForExit(EventRecord &ev, bool block)
       return true;
    }
 
-#ifdef NOTDEF // PDSEP
-  extern pdvector<process*> processVec;
-  for (unsigned u = 0; u < processVec.size(); u++) {
-    if (processVec[u] 
-        && (processVec[u]->status() == running )) {
-            //|| processVec[u]->status() == neonatal)) { 
-       int status;
-       int retWait = waitpid(processVec[u]->getPid(), &status, waitpid_flags);
-       if (retWait == -1) {
-          fprintf(stderr, "%s[%d]:  waitpid failed\n", __FILE__, __LINE__);
-          return false;
-       }
-       else if (retWait > 1) {
-         //fprintf(stderr, "%s[%d]:  checkForExit is returning true: pid %d exited, status was %s\n", FILE__, __LINE__, ev.proc->getPid(), ev.proc->getStatusAsString().c_str());
-         decodeWaitPidStatus(status, ev);
-         ev.proc = processVec[u];
-         ev.lwp = processVec[u]->getRepresentativeLWP();
-         ev.info = 0;
-         //ev.proc->set_status(exited);
-         return true;
-       }
-    }
-  }
-#endif
   return false;
 }
 
 #if !defined (os_linux)
-#ifdef NOTDEF // PDSEP
-process *SignalGenerator::findProcessByFD(unsigned int fd)
-{
-  for(unsigned u = 0; u < processVec.size(); u++) {
-    process *lproc = processVec[u];
-    if (!lproc) {
-      //fprintf(stderr, "%s[%d]:  missing pointer to process for fd %d\n", FILE__, __LINE__,fd);
-      continue;
-    }
-    dyn_lwp *lwp = lproc->getRepresentativeLWP();
-    if (!lwp) {
-      //fprintf(stderr, "%s[%d]:  missing pointer to lwp for fd %d\n", __FILE__, __LINE__,fd);
-      continue;
-
-    }
-    if (!lproc->getRepresentativeLWP()->is_attached()) {
-      //fprintf(stderr, "%s[%d]:  cannot get fd for unattached process\n", __FILE__, __LINE__);
-      continue;
-    }
-#if defined (os_osf)
-    if (fd == (unsigned) lproc->getRepresentativeLWP()->get_fd())
-      return lproc;
-#else
-    if (fd == (unsigned) lproc->getRepresentativeLWP()->status_fd())
-      return lproc;
-#endif
-  }
-  return NULL;
-}
-#endif
 
 bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
 {
@@ -577,7 +443,8 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
     signal_printf("%s[%d][%s]:  process exited %s\n", FILE__, __LINE__, 
                 getThreadStr(getExecThreadID()), ev.sprint_event(buf));
     ret = true;
-    decodeKludge(ev);
+    decodeSignal(ev);
+    //decodeKludge(ev);
   }
 #else
     fprintf(stderr, "%s[%d]:  checkForProcessEvents: poll failed: %s\n", FILE__, __LINE__, strerror(errno));
@@ -596,38 +463,57 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
      return false;
   }
 
-  EventRecord new_ev;
-  new_ev.proc = proc;
-  new_ev.lwp = proc->getRepresentativeLWP();
-  new_ev.info  = pfds[0].revents;
+  ev.type = evtUndefined;
+  ev.proc = proc;
+  ev.lwp = proc->getRepresentativeLWP();
+  ev.info  = pfds[0].revents;
 
-
-  if (new_ev.proc->status() == running) {
-      new_ev.proc->set_status(stopped);
+  if (ev.proc->status() == running) {
+      ev.proc->set_status(stopped);
   }
-  if (!decodeEvent(new_ev)) {
-       fprintf(stderr, "%s[%d]:  Internal Error: createPollEvent returned false\n", 
+  if (!decodeEvent(ev)) {
+       fprintf(stderr, "%s[%d]:  Internal Error: decodeEvent returned false\n", 
                FILE__, __LINE__);
    }
    else {
-     events_to_handle.push_back(new_ev);
+     if (ev.type == evtUndefined)
+       fprintf(stderr, "%s[%d]:  CHECK THIS evtUndefined\n", FILE__, __LINE__);
    }
-
-  //pfds[0].fd = proc->getRepresentativeLWP()->status_fd();
-  ev = events_to_handle[0];
-  events_to_handle.erase(0,0);
 
   return ret;
 }
 
 #endif
 
+#if !defined (os_aix)
+//  This function is only needed on aix (right now)
+bool SignalGenerator::decodeSignal_NP(EventRecord &)
+{
+  return false;
+}
+#endif
+
 bool SignalGenerator::decodeSignal(EventRecord &ev)
 {
-  //  signal number is assumed to be in ev.what
+
+  //  allow for platform specific decoding of signals, currently only used on
+  //  AIX.  If decodeSignal_NP() returns true, the event is fully decoded
+  //  so we're done here.
+
+  if (decodeSignal_NP(ev)) {
+    return true;
+  }
 
   errno = 0;
 
+  if (ev.type != evtSignalled) {
+    char buf[128];
+    fprintf(stderr, "%s[%d]:  decodeSignal:  event %s is not a signal event??\n", FILE__, __LINE__,
+            ev.sprint_event(buf));
+    return false;
+  }
+
+  //  signal number is assumed to be in ev.what
   switch(ev.what)  {
   case SIGSTOP:
   case SIGINT:
@@ -639,8 +525,10 @@ bool SignalGenerator::decodeSignal(EventRecord &ev)
       // at that point...
       break;
   case DYNINST_BREAKPOINT_SIGNUM: /*SIGUSR2*/
+    fprintf(stderr, "%s[%d]:  DYNINST BREAKPOINT\n", FILE__, __LINE__);
     if (!decodeRTSignal(ev)) {
         ev.type = evtProcessStop; // happens when we get a DYNINSTbreakPoint
+    fprintf(stderr, "%s[%d]:  DYNINST BREAKPOINT: stop\n", FILE__, __LINE__);
       }
      break;
   case SIGIOT:
@@ -1477,5 +1365,6 @@ SignalGenerator::SignalGenerator(char *idstr, pdstring file, int pid)
         }
         counter++;
     }
-    closedir(dirName);
+    if (dirName)
+      closedir(dirName);
 } 
