@@ -110,11 +110,11 @@ Frame dyn_thread::getActiveFrame()
 }
 
 // stackWalk: return parameter.
-bool dyn_thread::walkStack(pdvector<Frame> &stackWalk)
+bool dyn_thread::walkStack(pdvector<Frame> &stackWalk, bool ignoreRPC /* = false */)
 {
     stackWalk.clear();
     
-    if (useRPCStack_) {
+    if (useRPCStack_ && !ignoreRPC) {
         fprintf(stderr, "%s[%d]:  useRPCStack == true\n", FILE__, __LINE__);
         stackWalk = RPCstack_;
         return true;

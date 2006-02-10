@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.43 2006/01/30 07:16:52 jaw Exp $
+ * $Id: dyn_lwp.h,v 1.44 2006/02/10 22:42:21 bernat Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -157,7 +157,7 @@ class dyn_lwp
   Frame getActiveFrame();
 
   // Walk the stack of the given LWP
-  bool walkStack(pdvector<Frame> &stackWalk);
+  bool walkStack(pdvector<Frame> &stackWalk, bool ignoreRPC = false);
   bool markRunningIRPC();
   void markDoneRunningIRPC();
   bool waitUntilStopped();

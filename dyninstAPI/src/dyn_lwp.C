@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.38 2006/02/10 08:34:18 jaw Exp $
+ * $Id: dyn_lwp.C,v 1.39 2006/02/10 22:42:20 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -217,13 +217,13 @@ bool dyn_lwp::markRunningIRPC() {
    return proc_->walkStackFromFrame(active, cachedStackWalk);
 }
 
-bool dyn_lwp::walkStack(pdvector<Frame> &stackWalk)
+bool dyn_lwp::walkStack(pdvector<Frame> &stackWalk, bool ignoreRPC /* = false */)
 {
    // If we're in an inferior RPC, return the stack walk
    // from where the process "should" be
     stackWalk.clear();
     
-    if (isRunningIRPC) {
+    if (isRunningIRPC && !ignoreRPC) {
         stackWalk = cachedStackWalk;
         return true;
     }
