@@ -1222,7 +1222,7 @@ bool SignalHandler::handleCritical(EventRecord &ev)
 #ifndef mips_unknown_ce2_11 //ccw 6 feb 2001 : 29 mar 2001
         // Should walk stacks for other threads as well
         pdvector<pdvector<Frame> > stackWalks;
-        proc->walkStacks(stackWalks);
+        proc->walkStacks(stackWalks, true);
         for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++) {
             fprintf(stderr, "%s[%d]:  Registers for pid %d, lwpid %d\n", FILE__, __LINE__,
                     stackWalks[walk_iter][0].getLWP()->proc()->getPid(), 
@@ -1233,11 +1233,13 @@ bool SignalHandler::handleCritical(EventRecord &ev)
                     stackWalks[walk_iter][0].getLWP()->get_lwp_id());
             for( unsigned i = 0; i < stackWalks[walk_iter].size(); i++ )
             {
-                int_function* f = proc->findFuncByAddr( stackWalks[walk_iter][i].getPC() );
-                const char* szFuncName = (f != NULL) ? f->prettyName().c_str() : "<unknown>";
-                fprintf( stderr, "%08x: %s\n", stackWalks[walk_iter][i].getPC(), szFuncName );
+                //int_function* f = proc->findFuncByAddr( stackWalks[walk_iter][i].getPC() );
+                //const char* szFuncName = (f != NULL) ? f->prettyName().c_str() : "<unknown>";
+                //fprintf( stderr, "%08x: %s\n", stackWalks[walk_iter][i].getPC(), szFuncName );
+                cerr << stackWalks[walk_iter][i] << endl;
             }
         }
+        
 #endif
     }
 
@@ -1253,6 +1255,7 @@ bool SignalHandler::handleCritical(EventRecord &ev)
     else
       proc->dumpMemory((void *)ev.address, 32);
 
+    fprintf(stderr, "Forwarding signal to process\n");
     return forwardSigToProcess(ev);
 }
 
