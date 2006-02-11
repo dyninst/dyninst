@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.161 2006/02/10 22:42:27 bernat Exp $
+// $Id: unix.C,v 1.162 2006/02/11 19:54:43 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -525,10 +525,9 @@ bool SignalGenerator::decodeSignal(EventRecord &ev)
       // at that point...
       break;
   case DYNINST_BREAKPOINT_SIGNUM: /*SIGUSR2*/
-    fprintf(stderr, "%s[%d]:  DYNINST BREAKPOINT\n", FILE__, __LINE__);
+    signal_printf("%s[%d]:  DYNINST BREAKPOINT\n", FILE__, __LINE__);
     if (!decodeRTSignal(ev)) {
         ev.type = evtProcessStop; // happens when we get a DYNINSTbreakPoint
-    fprintf(stderr, "%s[%d]:  DYNINST BREAKPOINT: stop\n", FILE__, __LINE__);
       }
      break;
   case SIGIOT:
@@ -1347,7 +1346,8 @@ const char *dbiEventType2str(DBIEventType t)
 // before we return. 
 
 SignalGenerator::SignalGenerator(char *idstr, pdstring file, int pid)
-    : SignalGeneratorCommon(idstr, file, pid) {
+    : SignalGeneratorCommon(idstr, file, pid),
+      waiting_for_stop(false) {
     char buffer[128];
     sprintf(buffer, "/proc/%d", pid);
 
