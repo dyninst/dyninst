@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: api_showerror.C,v 1.22 2006/02/09 03:34:20 tlmiller Exp $
+// $Id: api_showerror.C,v 1.23 2006/02/12 22:25:17 jodom Exp $
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -65,13 +65,13 @@ void showErrorCallback(int num, pdstring msg)
     BPatch::reportError(BPatchSerious, num, msg.c_str());
 }
 
-void logLine(char const *line)
+void logLine(const char *line)
 {
     BPatch::reportError(BPatchWarning, 0, line);
 }
 
 // The unused parameter is used by Paradyn's version of this function.
-void statusLine(char const *line, bool /* unused */ )
+void statusLine(const char *line, bool /* unused */ )
 {
     BPatch::reportError(BPatchInfo, 0, line);
 }
