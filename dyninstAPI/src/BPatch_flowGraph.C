@@ -397,12 +397,12 @@ BPatch_flowGraph::createLoops()
 {
     loops = new BPatch_Set<BPatch_loop*>;
     
-    BPatch_edge **allBackEdges = new BPatch_edge*[backEdges->size()];
-    backEdges->elements(allBackEdges);
+    BPatch_edge **allBackEdges = new BPatch_edge*[backEdges.size()];
+    backEdges.elements(allBackEdges);
 
     // for each back edge
     unsigned i;
-    for (i = 0; i < backEdges->size(); i++) {
+    for (i = 0; i < backEdges.size(); i++) {
         assert(allBackEdges[i] != NULL);
         BPatch_loop *loop = new BPatch_loop(allBackEdges[i], this);
 	    
@@ -635,8 +635,6 @@ void BPatch_flowGraph::createEdges()
     * Indirect jumps are NOT currently handled correctly
     */
    
-   backEdges = new BPatch_Set<BPatch_edge*>;
-   
    BPatch_basicBlock **blks = new BPatch_basicBlock*[allBlocks.size()];
    allBlocks.elements(blks);
    
@@ -666,7 +664,7 @@ void BPatch_flowGraph::createEdges()
          //             fprintf(stderr, "t1 %2d %2d\n",source->blockNo(),
          //                     targs[0]->blockNo());
          if (targs[0]->dominates(source))
-            (*backEdges) += edge;
+            backEdges += edge;
       }
       else if (numTargs == 2) {
          //XXX could be an indirect jump with two targets
@@ -690,10 +688,10 @@ void BPatch_flowGraph::createEdges()
          targs[1]->incomingEdges += edge1;
 
          if (targs[0]->dominates(source))
-            (*backEdges) += edge0;
+            backEdges += edge0;
 
          if (targs[1]->dominates(source))
-            (*backEdges) += edge1;
+            backEdges += edge1;
 
          // taken and fall-through edge should not both be back edges
          // 	    if (targs[0]->dominates(source) && targs[1]->dominates(source)) {

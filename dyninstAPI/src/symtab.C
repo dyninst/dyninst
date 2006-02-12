@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.266 2006/02/02 02:55:04 tlmiller Exp $
+ // $Id: symtab.C,v 1.267 2006/02/12 22:21:32 jodom Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -467,7 +467,7 @@ bool image::addSymtabVariables()
 #endif
       if (symInfo.type() == Symbol::PDST_OBJECT) {
           image_variable *var;
-          bool addToPretty = false;
+          //          bool addToPretty = false;
           if (varsByAddr.defines(symInfo.addr())) {
               var = varsByAddr[symInfo.addr()];
               var->addSymTabName(mangledName);
@@ -1295,7 +1295,7 @@ void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> 
    double dursecs = difftime/(1000 );
    cout << __FILE__ << ":" << __LINE__ <<": getModuleLanguageInfo took "<<dursecs <<" msecs" << endl;
 #endif
-
+   delete stabptr;
 
 #endif // stabs platforms
 

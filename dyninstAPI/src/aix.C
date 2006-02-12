@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.211 2006/02/10 02:25:24 jaw Exp $
+// $Id: aix.C,v 1.212 2006/02/12 22:21:32 jodom Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1354,6 +1354,7 @@ bool process::loadDYNINSTlib()
     }
     
     setBootstrapState(loadingRT_bs);
+    delete dlopenRegSpace;
     return true;
 }
 

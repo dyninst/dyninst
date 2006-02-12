@@ -1789,13 +1789,12 @@ void mutatorTest15b(BPatch_thread *appThread, BPatch_image * /*appImage*/)
 
 BPatch_Vector<BPatch_snippet *> genLongExpr(BPatch_arithExpr *tail)
 {
-    BPatch_Vector<BPatch_snippet *> *ret;
+    BPatch_Vector<BPatch_snippet *> ret;
     
-    ret = new(BPatch_Vector<BPatch_snippet *>);
     for (int i=0; i < 1000; i++) {
-	ret->push_back(tail);
+	ret.push_back(tail);
     }
-    return *ret;
+    return ret;
 }
 
 //

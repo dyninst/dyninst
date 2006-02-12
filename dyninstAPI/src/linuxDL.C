@@ -774,7 +774,7 @@ bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &ev,
     return true;
 }
 
-bool dynamic_linking::getChangedObjects(EventRecord &ev, pdvector<mapped_object*> &changed_objects)
+bool dynamic_linking::getChangedObjects(EventRecord & /* ev */, pdvector<mapped_object*> & /* changed_objects */)
 {
   return false;
 }
@@ -790,7 +790,7 @@ bool dynamic_linking::getChangedObjects(EventRecord &ev, pdvector<mapped_object*
 bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
                                                        pdvector<mapped_object*> &changed_objects)
 { 
-  pdvector<dyn_thread *>::iterator iter = proc->threads.begin();
+   //  pdvector<dyn_thread *>::iterator iter = proc->threads.begin();
   
   dyn_lwp *brk_lwp = ev.lwp;
   sharedLibHook *hook = NULL;
@@ -842,6 +842,7 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
     }
     current_r_state = debug_elm->r_state();
     
+    delete debug_elm; 
     if (current_r_state == r_debug::RT_CONSISTENT) {
       // figure out how link maps have changed, and then create
       // a list of either all the removed shared objects if this

@@ -176,7 +176,7 @@ public:
   BPatch_loopTreeNode *loopRoot;
 
   /** set of back edges */
-  BPatch_Set<BPatch_edge*> *backEdges;
+  BPatch_Set<BPatch_edge*> backEdges;
   
   /** flag that keeps whether dominator info is initialized*/
   bool isDominatorInfoReady;

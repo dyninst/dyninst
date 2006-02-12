@@ -77,6 +77,7 @@ class BPATCH_DLL_EXPORT BPatch_module: public BPatch_sourceObj, public BPatch_ev
     BPatch_image	 *img;
     // Used in the destructor.
     BPatch_Vector<BPatch_function *> all_funcs;
+    BPatch_Vector<BPatch_function *> *retfuncs;
 
     bool nativeCompiler;
      
@@ -87,7 +88,7 @@ public:
 
     // The following functions are for internal use by  the library only:
     BPatch_module(BPatch_process *_proc, mapped_module *_mod, BPatch_image *img);
-    BPatch_module() : mod(NULL), img(NULL),nativeCompiler(false) {
+    BPatch_module() : mod(NULL), img(NULL), retfuncs(NULL), nativeCompiler(false) {
 	_srcType = BPatch_sourceModule;
     };
     virtual ~BPatch_module();
