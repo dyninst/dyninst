@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.9 2005/11/03 05:21:04 jaw Exp $
+# $Id: Makefile,v 1.10 2006/02/12 22:26:23 jodom Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -8,7 +8,7 @@
 #DO_INLINE_ALL           = true
 NO_IMPLICIT_TEMPLATES	 = true
 #NO_OPT_FLAG		 = true
-#DEBUG_FLAG = -g
+DEBUG_FLAG = -g
 
 ifdef COVERAGE
 NO_OPT_FLAG             = true
