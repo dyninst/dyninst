@@ -198,6 +198,7 @@ int eventLock::_Trylock(const char *__file__, unsigned int __line__)
 
 int eventLock::_Unlock(const char *__file__, unsigned int __line__)
 {
+  unsigned long old_owner_id = owner_id;
   if (!lock_depth) {
     fprintf(stderr, "%s[%d]:  MUTEX ERROR, attempt to unlock nonlocked mutex, at %s[%d]\n",
             FILE__, __LINE__, __file__, __line__);
@@ -206,6 +207,8 @@ int eventLock::_Unlock(const char *__file__, unsigned int __line__)
   lock_depth--;
   lock_stack_elem el = lock_stack[lock_stack.size() -1];
   lock_stack.pop_back();
+  if (!lock_depth)
+    owner_id = -1UL;
 
   mutex_printf("%s[%d]:  unlock issued from %s[%d], depth = %d\n", FILE__, __LINE__, __file__, __line__, lock_depth);
 
@@ -222,12 +225,11 @@ int eventLock::_Unlock(const char *__file__, unsigned int __line__)
             __file__, __line__, STRERROR(err, buf), err);
     lock_depth++;
     lock_stack.push_back(el);
+    owner_id = old_owner_id;
   }
 #endif
 
- if (!lock_depth)
-   owner_id = -1UL;
-  return 0;
+  return err;
 }
 
 int eventLock::_Broadcast(const char *__file__, unsigned int __line__)
