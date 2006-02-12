@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.14 2006/01/20 00:12:24 nater Exp $
+ * $Id: image-x86.C,v 1.15 2006/02/12 22:24:32 jodom Exp $
  */
 
 #include "common/h/Vector.h"
@@ -219,7 +219,7 @@ bool image_func::archAvoidParsing()
         return false;
 }
 
-void image_func::archGetFuncEntryAddr(Address &funcEntryAddr)
+void image_func::archGetFuncEntryAddr(Address & /* funcEntryAddr */)
 {
     return;
 }
@@ -231,12 +231,12 @@ bool image_func::archNoRelocate()
 }
 
 // Nop on x86
-void image_func::archSetFrameSize(int frameSize)
+void image_func::archSetFrameSize(int /* frameSize */)
 {
     return;
 }
 
-void image_func::archInstructionProc(InstrucIter &ah)
+void image_func::archInstructionProc(InstrucIter & /* ah */)
 {
     return;
 }

@@ -790,6 +790,7 @@ opCodeInfo *xopCodes[1024];
 
 void initOpCodeInfo()
 {
+  memset(xopCodes, sizeof(opCodeInfo *)*1024, 0);
   xopCodes[LWARXxop]	= new opCodeInfo(4, 0);
   xopCodes[LDXxop] 	= new opCodeInfo(8, 0);
   xopCodes[LXxop]	= new opCodeInfo(4, 0);
@@ -931,7 +932,9 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 
     opCodeInfo *oci = xopCodes[xop];
 
-    if(oci->bytes > 0)
+    if (oci == NULL)
+       return BPatch_memoryAccess::none;
+    else if(oci->bytes > 0)
       return oci->direc ? MK_SX(oci->bytes, i) : MK_LX(oci->bytes, i);
     else if(xop == LSIxop || xop == STSIxop) {
       b = (*i).xform.rb == 0 ? 32 : (*i).xform.rb; 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: addLibraryLinux.C,v 1.18 2005/10/04 18:10:03 legendre Exp $ */
+/* $Id: addLibraryLinux.C,v 1.19 2006/02/12 22:24:32 jodom Exp $ */
 
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
@@ -241,7 +241,7 @@ int addLibrary::findSection(char* name){
 }
 
 
-void addLibrary::updateProgramHeaders(Elf32_Phdr *phdr, unsigned int dynstrOffset){
+void addLibrary::updateProgramHeaders(Elf32_Phdr *phdr, unsigned int /* dynstrOffset */){
 
 
 	//update PT_PHDR
@@ -306,7 +306,7 @@ void addLibrary::addStr(Elf_Data *newData,Elf_Data *oldData ,char* libname){
 
 }
 
-int addLibrary::writeNewElf(char* filename, char* libname){
+int addLibrary::writeNewElf(char* filename, char* /* libname */){
 
 	Elf32_Ehdr *realEhdr;
 	Elf32_Phdr *realPhdr;
@@ -474,15 +474,16 @@ int addLibrary::writeNewElf(char* filename, char* libname){
 }
 
 
-unsigned int addLibrary::findSizeOfSegmentFromPHT(int type){
+unsigned int addLibrary::findSizeOfSegmentFromPHT(Elf32_Word type){
 	Elf32_Phdr *tmpPhdr = newElfFilePhdr;
-	int elements = newElfFileEhdr->e_phnum;
+	Elf32_Half elements = newElfFileEhdr->e_phnum;
 	unsigned int retValue=0;
- 
- 	for(int i =0;i< elements && tmpPhdr->p_type != type;i++){
+        Elf32_Half i;
+
+ 	for(i =0;i< elements && tmpPhdr->p_type != type;i++){
  		tmpPhdr++;
  	}
-	if( tmpPhdr->p_type == PT_NOTE){
+        if (i != elements) {
 		retValue = tmpPhdr->p_filesz;	
 	}
  	return retValue;
@@ -520,7 +521,7 @@ int addLibrary::moveNoteShiftFollowingSectionsUp(char *libname){
 	int lastTextSegmentIndex = findEndOfTextSegment();
 	Elf_element noteSection;
 	libnameIndx=-1;
-	int libnameLen = strlen(libname)+1;
+        //	int libnameLen = strlen(libname)+1;
 
 	if(oldNoteSectionIndex == -1 ){
 		// try to find .note
@@ -659,17 +660,17 @@ int addLibrary::driver(Elf *elf,  char* newfilename, char *libname){
 	checkFile(); // this sets textSideGap and dataSideGap
 
 
-	int sizeOfNoteSection = findSizeOfNoteSection();
+	unsigned int sizeOfNoteSection = findSizeOfNoteSection();
 	int isNoteBeforeDynstr;
 
-	if( sizeOfNoteSection == -1 ){
+	if( sizeOfNoteSection == 0 ){
 		//no .note section found!
 		isNoteBeforeDynstr = 0;
 	}else{	
 		isNoteBeforeDynstr = findIsNoteBeforeDynstr();
 	}
 	
-	if( sizeOfNoteSection == -1 || isNoteBeforeDynstr == 0){
+	if( sizeOfNoteSection == 0 || isNoteBeforeDynstr == 0){
 		//failure: no .note or .note not before .dynstr
 		return -1;
 	}
@@ -724,7 +725,7 @@ addLibrary::addLibrary(){
 addLibrary::~addLibrary(){
 	if(newElfFileSec != NULL){
 		
-		for(int cnt = 0; cnt < newElfFileEhdr->e_shnum-1 ; cnt++){
+		for(unsigned int cnt = 0; cnt+1 < newElfFileEhdr->e_shnum ; cnt++){
 			delete /*[] */ newElfFileSec[cnt].sec_hdr; //INSURE
 			if( cnt != dataSegStartIndx ){ //this is .dynamic, dont delete twice.
 				if( newElfFileSec[cnt].sec_data->d_buf ){
@@ -862,7 +863,7 @@ int addLibrary::checkFile(){
  	return retVal;
  }
 
-void addLibrary::updateSymbolsSectionInfo(Elf_Data* symtabData,Elf_Data* strData){
+void addLibrary::updateSymbolsSectionInfo(Elf_Data* symtabData,Elf_Data* /* strData */){
 
 	if(symtabData){
 	      Elf32_Sym *symPtr=(Elf32_Sym*)symtabData->d_buf;
@@ -879,7 +880,7 @@ void addLibrary::updateSymbolsSectionInfo(Elf_Data* symtabData,Elf_Data* strData
 }
  
 
-void addLibrary::updateSymbolsMovedTextSectionUp(Elf_Data* symtabData,Elf_Data* strData,int oldTextIndex){
+void addLibrary::updateSymbolsMovedTextSectionUp(Elf_Data* symtabData,Elf_Data* strData,int /* oldTextIndex */){
 
 	if(symtabData && strData ) { 
 	      Elf32_Sym *symPtr=(Elf32_Sym*)symtabData->d_buf;
@@ -958,7 +959,7 @@ void addLibrary::updateSymbolsMovedTextSectionUp(Elf_Data* symtabData,Elf_Data* 
  
  void addLibrary::moveDynamic(){
  
- 	int oldDynamicIndex;
+        unsigned int oldDynamicIndex;
  	unsigned int newDynamicIndex;
  	Elf_element *updatedElfFile;
  	Elf32_Shdr tmpShdr;
@@ -971,7 +972,7 @@ void addLibrary::updateSymbolsMovedTextSectionUp(Elf_Data* symtabData,Elf_Data* 
  
  	arraySize ++;
  		
- 	for(int cnt = 0, newIndex = 0; cnt < newElfFileEhdr->e_shnum-1 ; cnt++, newIndex++){
+ 	for(unsigned int cnt = 0, newIndex = 0; cnt+1 < newElfFileEhdr->e_shnum ; cnt++, newIndex++){
  	
  		if( cnt == newDynamicIndex ){
  			//copy in dynamic here

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: addLibraryLinux.h,v 1.9 2005/03/21 16:59:21 chadd Exp $ */
+/* $Id: addLibraryLinux.h,v 1.10 2006/02/12 22:24:32 jodom Exp $ */
 
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
@@ -102,7 +102,7 @@ class addLibrary {
 	int checkFile();
 	int moveNoteShiftFollowingSectionsUp(char *libname);
 
-	unsigned int findSizeOfSegmentFromPHT(int type);
+	unsigned int findSizeOfSegmentFromPHT(Elf32_Word type);
 	unsigned int findSizeOfNoteSection();
 	unsigned int findSizeOfDynamicSection();
 	unsigned int findEndOfTextSegment();

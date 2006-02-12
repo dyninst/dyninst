@@ -646,9 +646,9 @@ void parseRegisters(int * readArr, int * writeArr,
   ia32_entry * entry = ii->getEntry();
   ia32_prefixes * pref = ii->getPrefix();
 
-  char * addr = (char *) i->ptr();
+  const char * addr = (char *) i->ptr();
 
-  char * addrPtr = addr;
+  const char * addrPtr = addr;
   int hasSIB = 0;
   int hasModRM = 0;
   int opCodeSize = 1;

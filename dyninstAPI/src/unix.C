@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.162 2006/02/11 19:54:43 jaw Exp $
+// $Id: unix.C,v 1.163 2006/02/12 22:24:33 jodom Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -792,7 +792,7 @@ PTRACE_RETURN DebuggerInterface::ptrace(int req, pid_t pid, Address addr,
 
 
 
-PTRACE_RETURN DBI_ptrace(int req, pid_t pid, Address addr, Address data, int *ptrace_errno, int word_len,  const char *file, unsigned int line) 
+PTRACE_RETURN DBI_ptrace(int req, pid_t pid, Address addr, Address data, int *ptrace_errno, int word_len,  const char * /* file */, unsigned int /* line */) 
 {
   PTRACE_RETURN ret;
   ret = getDBI()->ptrace(req, pid, addr, data, word_len, ptrace_errno);

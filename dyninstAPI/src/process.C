@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.578 2006/02/10 22:42:24 bernat Exp $
+// $Id: process.C,v 1.579 2006/02/12 22:24:32 jodom Exp $
 
 #include <ctype.h>
 
@@ -874,7 +874,6 @@ void process::saveWorldCreateHighMemSections(
                         pdvector<imageUpdate*> &highmem_updates,
                         void *ptr) {
 
-   unsigned int trampGuardValue;
    Address guardFlagAddr= trampGuardBase();
 
    unsigned int pageSize = getpagesize();
@@ -883,7 +882,6 @@ void process::saveWorldCreateHighMemSections(
    int startIndex, stopIndex;
    char *data;
    char name[50];
-   	bool err ;
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
@@ -894,6 +892,8 @@ void process::saveWorldCreateHighMemSections(
 #endif
 
 #if 0
+   unsigned int trampGuardValue;
+   	bool err ;
 //#if !defined(rs6000_ibm_aix4_1)
 
 	/*fprintf(stderr,"guardFlagAddr %x\n",guardFlagAddr);*/
@@ -1850,7 +1850,7 @@ void process::deleteProcess()
       replacedFunctionCall *rfcVal = rfcIter.currval();
       assert(rfcVal->callAddr == rfcIter.currkey());
       assert(rfcVal);
-      free(rfcVal);
+      delete rfcVal;
   }
   replacedFunctionCalls_.clear();
 
@@ -2164,7 +2164,6 @@ bool process::prepareExec(fileDescriptor &desc)
     assert(dyn == NULL);
     theRpcMgr = new rpcMgr(this);
     dyn = new dynamic_linking(this);
-    int status = 0;
 
     if (!setAOut(desc)) {
         return false;
@@ -2597,14 +2596,14 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
   }
   startup_printf("Stdin: %d, stdout: %d, stderr: %d\n", stdin_fd, stdout_fd, stderr_fd);
 
-    int traceLink = -1; // set by forkNewProcess, below.
+  //    int traceLink = -1; // set by forkNewProcess, below.
 
-    int pid = -1;
-    int tid;
+  //    int pid = -1;
+  //    int tid;
 
     // NT
     int procHandle_temp;
-    int thrHandle_temp;
+    //    int thrHandle_temp;
 
     process *theProc = SignalGeneratorCommon::newProcess(File, dir,
                                                                     argv, envp,

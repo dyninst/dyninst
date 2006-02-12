@@ -75,7 +75,7 @@ bool saveSharedLibrary::readNewLib(){
 	Elf_Scn *scn, *newScn;
 	Elf32_Ehdr *ehdr;
 
-	Elf32_Ehdr  *newEhdr;
+        // 	Elf32_Ehdr  *newEhdr;
 	Elf_Data  *strdata, *newdata, *olddata;
 
 	if ((ehdr = elf32_getehdr(newElf)) == NULL){ 
@@ -93,7 +93,7 @@ bool saveSharedLibrary::readNewLib(){
 		fprintf(stderr," FAILED obtaining .shstrtab scn\n");
 	}
 
-	Elf32_Phdr *tmp, *newphdr;
+        //	Elf32_Phdr *tmp, *newphdr;
 
 
 	unsigned int newScnName =0;

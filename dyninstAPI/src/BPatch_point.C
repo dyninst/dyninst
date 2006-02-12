@@ -231,7 +231,7 @@ const BPatch_function *BPatch_point::getFunctionInt()
  */
 BPatch_function *BPatch_point::getCalledFunctionInt()
 {
-   BPatch_function *ret;
+   //   BPatch_function *ret;
    
    assert(point);
    

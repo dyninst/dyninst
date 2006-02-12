@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.9 2006/02/10 19:19:29 nater Exp $
+ * $Id: image-flowGraph.C,v 1.10 2006/02/12 22:24:32 jodom Exp $
  */
 
 #include <stdio.h>
@@ -349,7 +349,7 @@ void image::DumpAllStats()
 void image::parseStaticCallTargets( pdvector< Address >& callTargets,
                      pdvector< Address >& newTargets,
                      dictionary_hash< Address, image_func * > &preParseStubs, 
-                     pdmodule* mod )
+                     pdmodule* /* mod */ )
 {
 
   // TODO: I don't think "mod" is the right thing here; should

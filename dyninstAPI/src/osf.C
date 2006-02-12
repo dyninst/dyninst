@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.88 2006/02/10 02:25:24 jaw Exp $
+// $Id: osf.C,v 1.89 2006/02/12 22:24:32 jodom Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -64,6 +64,7 @@
 #include <dlfcn.h>
 
 #include "common/h/osfKludges.h"
+#include "common/h/pathName.h"
 #include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/signalhandler.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -76,7 +77,6 @@
 #define SP_REGNUM 30
 #define FP_REGNUM 15
 #define RA_REGNUM 26
-extern bool exists_executable(const pdstring &fullpathname);
 
 int getNumberOfCPUs()
 {
