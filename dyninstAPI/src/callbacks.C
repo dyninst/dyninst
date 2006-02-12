@@ -88,10 +88,10 @@ bool SyncCallback::waitForCompletion()
 
     extern pdvector<process *> processVec;
     for (unsigned int i = 0; i < processVec.size(); ++i) {
-        fprintf(stderr, "processVec %d: %p, (thrid %d)\n", processVec[i], getExecThreadID());
+        fprintf(stderr, "processVec %d: %p, (thrid %d)\n", i, processVec[i], getExecThreadID());
         if (processVec[i]) {
             fprintf(stderr, "processVec %d: status %d, sh %p\n",
-                    processVec[i]->status(), processVec[i]->sh);
+                    i, processVec[i]->status(), processVec[i]->sh);
             if (processVec[i]->status() != deleted && processVec[i]->sh)
                 if (NULL != (sh = processVec[i]->sh->findSHWithThreadID(getExecThreadID())))
                     break;
