@@ -45,6 +45,7 @@
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_eventLock.h"
+#include "common/h/String.h"
 #include <string.h>	
 
 #if defined (USES_DWARF_DEBUG)
@@ -287,7 +288,7 @@ public:
 class BPATCH_DLL_EXPORT BPatch_type : public BPatch_eventLock{
     friend class BPatch;
     friend class BPatch_typeCollection;
-    friend char *parseStabString(BPatch_module *, int, char *,
+    friend pdstring parseStabString(BPatch_module *, int, char *,
                                  int, BPatch_typeCommon *);
 protected:
   char		*name;
@@ -369,7 +370,7 @@ class BPATCH_DLL_EXPORT BPatch_localVar : public BPatch_eventLock{
     friend class BPatch_function;
     friend class BPatch_typeCommon;
     friend class BPatch_localVarCollection;
-    friend char *parseStabString(BPatch_module *, int, char *,
+    friend pdstring parseStabString(BPatch_module *, int, char *,
                                  int, BPatch_typeCommon *);
 #if defined(USES_DWARF_DEBUG)
     friend bool walkDwarvenTree(Dwarf_Debug &, char *, Dwarf_Die,

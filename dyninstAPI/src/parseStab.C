@@ -55,8 +55,8 @@
 #include "showerror.h"
 #include "Object.h" // For looking up compiler type
 
-extern char *current_func_name;
-extern char *current_mangled_func_name;
+extern pdstring current_func_name;
+extern pdstring current_mangled_func_name;
 extern BPatch_function *current_func;
 
 // Forward references for parsing routines
@@ -67,9 +67,9 @@ static char *parseTypeDef(BPatch_module*, char *stabstr,
 static int parseTypeUse(BPatch_module*, char *&stabstr, int &cnt,
                         const char *name);
 static inline bool isSymId(char ch);
-static char *getIdentifier(char *stabstr, int &cnt, bool stopOnSpace=false);
+static pdstring getIdentifier(char *stabstr, int &cnt, bool stopOnSpace=false);
 
-static char *currentRawSymbolName;
+static pdstring currentRawSymbolName;
 //
 // Start of code to parse Stab information.
 //    The structure of this code is a recursive decent parser that parses
@@ -103,7 +103,7 @@ void vectorNameMatchKLUDGE(BPatch_module *mod, char *demangled_sym, BPatch_Vecto
   } /* end iteration over function vector */
 }
 
-BPatch_function *mangledNameMatchKLUDGE(char *pretty, char *mangled, 
+BPatch_function *mangledNameMatchKLUDGE(const char *pretty, const char *mangled, 
 					BPatch_module *mod)
 {
 
@@ -176,7 +176,7 @@ BPatch_function *mangledNameMatchKLUDGE(char *pretty, char *mangled,
 //
 // <paramList> = | <typeUse>;<paramList> 
 //
-char *parseStabString(BPatch_module *mod, int linenum, char *stabstr, 
+pdstring parseStabString(BPatch_module *mod, int linenum, char *stabstr, 
 		      int framePtr, BPatch_typeCommon *commonBlock = NULL)
 {
     
@@ -191,15 +191,16 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
     cnt= 0;
 
     /* get type or variable name */
-    char * mangledname = getIdentifier( stabstr, cnt );
-	if( mangledname == NULL ) { mangledname = strdup(""); }
+    pdstring mangledname = getIdentifier( stabstr, cnt );
 
     currentRawSymbolName = mangledname;
-    char * name = P_cplus_demangle( mangledname, mod->isNativeCompiler() );
-    if( name == NULL ) {
-    	name = strdup( mangledname );
-    	assert( name != NULL );
-    	}
+    char * demangled = P_cplus_demangle( mangledname.c_str(), mod->isNativeCompiler() );
+    pdstring name;
+    if( demangled == NULL ) {
+    	name = mangledname;
+    } else {
+       name = demangled;
+    }
 
     if( name[0] != '\0' && stabstr[cnt] != ':' ) {
 		return name;
@@ -218,7 +219,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	//bperr("Variable: %s  Type ID: %d, file ID %d \n",name, ID, file_ID);
 	if (stabstr[cnt] == '=') {
 	  /* More Stuff to parse, call parseTypeDef */
-	  stabstr = parseTypeDef(mod, (&stabstr[cnt+1]), name, ID);
+	  stabstr = parseTypeDef(mod, (&stabstr[cnt+1]), name.c_str(), ID);
 	  cnt = 0;
 	  ptrType = mod->getModuleTypes()->findOrCreateType( ID);
 	  if (!current_func) {
@@ -229,11 +230,11 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      char modName[100];
 	      mod->getName(modName, 99);
 	      bperr("%s[%d] Can't find function %s in module %s\n", __FILE__, __LINE__,
-		     current_mangled_func_name, modName);
+		     current_mangled_func_name.c_str(), modName);
 	      bperr("Unable to add %s to local variable list in %s\n",
-		     name,current_func_name);
+		     name.c_str(),current_func_name.c_str());
 	  } else {
-	      locVar = new BPatch_localVar(name, ptrType, linenum, framePtr);
+	      locVar = new BPatch_localVar(name.c_str(), ptrType, linenum, framePtr);
 	      if (!ptrType) {
 		//bperr("adding local var with missing type %s, type = %d\n",
 		//      name, ID);
@@ -244,7 +245,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	  // Try to find the BPatch_Function
 	  ptrType = mod->getModuleTypes()->findOrCreateType( ID);
 	  
-	  locVar = new BPatch_localVar(name, ptrType, linenum, framePtr);
+	  locVar = new BPatch_localVar(name.c_str(), ptrType, linenum, framePtr);
 	  if (!ptrType) {
 	    //bperr("adding local var with missing type %s, type = %d\n",
 	    //	     name, ID);
@@ -255,18 +256,14 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
       BPatch_Vector<BPatch_function *> bpfv;
       switch (stabstr[cnt]) {
 	    case 'f': /*Local Function*/ {
-	      char *scopeName=NULL;
-	      char *lfuncName=NULL;
+	      pdstring scopeName;
+	      pdstring lfuncName;
 	      cnt++;
 
-              if (current_func_name != NULL)
-                 free(current_func_name);
-	      current_func_name = strdup(name);
-              if (current_mangled_func_name != NULL)
-                 free(current_mangled_func_name);
-	      current_mangled_func_name = strdup(mangledname);
+	      current_func_name = name;
+	      current_mangled_func_name = mangledname;
 
-	      funcReturnID = parseTypeUse(mod, stabstr, cnt, name);
+	      funcReturnID = parseTypeUse(mod, stabstr, cnt, name.c_str());
       
 	      if (stabstr[cnt]==',') {
 		  cnt++; 	/*skip the comma*/
@@ -285,13 +282,13 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  }
 	      }
 
-	      if (!scopeName) { // Not an embeded function
+	      if (!scopeName.length()) { // Not an embeded function
 		  ptrType = mod->getModuleTypes()->findOrCreateType(funcReturnID);
 		  if( !ptrType) ptrType = BPatch::bpatch->type_Untyped;
 
-		  if (NULL == mod->findFunction( name, bpfv, false ) || !bpfv.size()) {
+		  if (NULL == mod->findFunction( name.c_str(), bpfv, false ) || !bpfv.size()) {
 		    showInfoCallback(pdstring("missing local function ") +
-				     pdstring(name) + "\n");
+				     name + "\n");
                     // It's very possible that we might not find a function
                     // that's a weak reference, and defined in multiple places
                     // as we only store an object from the last definition
@@ -300,10 +297,10 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		    if (bpfv.size() > 1) {
 		      // warn if we find more than one function with current_func_name
 		      bperr("%s[%d]:  WARNING: found %d functions with name %s, using the first",
-			     __FILE__, __LINE__, bpfv.size(), name);
+			     __FILE__, __LINE__, bpfv.size(), name.c_str());
                     }else if (!bpfv.size()) {
                       bperr("%s[%d]:  SERIOUS: found 0 functions with name %s",
-                             __FILE__, __LINE__, name);
+                             __FILE__, __LINE__, name.c_str());
                       break;
                     }
 		    fp = bpfv[0];
@@ -311,7 +308,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		    fp->setReturnType(ptrType);
 		  }
 	      } else {
-		  bperr("%s is an embedded function in %s\n",name, scopeName);
+		  bperr("%s is an embedded function in %s\n",name.c_str(), scopeName.c_str());
 	      }
 
               current_func = fp;
@@ -324,14 +321,10 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	  case 'F':/* Global Function */
 	      cnt++; /*skipping 'F' */
 
-	      funcReturnID = parseTypeUse(mod, stabstr, cnt, name);
+	      funcReturnID = parseTypeUse(mod, stabstr, cnt, name.c_str());
 
-              if (current_func_name != NULL)
-                 free(current_func_name);
-	      current_func_name = strdup(name);
-              if (current_mangled_func_name != NULL)
-                 free(current_mangled_func_name);
-	      current_mangled_func_name = strdup(mangledname);
+	      current_func_name = name;
+	      current_mangled_func_name = mangledname;
 
 	      //
 	      // For SunPro compilers there may be a parameter list after 
@@ -348,15 +341,15 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      ptrType = mod->getModuleTypes()->findOrCreateType(funcReturnID);
 	      if (!ptrType) ptrType = BPatch::bpatch->type_Untyped;
 
-	      if (NULL == (fp = mod->findFunctionByMangled(current_mangled_func_name))){
+	      if (NULL == (fp = mod->findFunctionByMangled(current_mangled_func_name.c_str()))){
 		char modName[100];
 		mod->getName(modName, 99);
 		
-		if (NULL == (fp = mangledNameMatchKLUDGE(current_func_name, 
-							 current_mangled_func_name, mod))){
+		if (NULL == (fp = mangledNameMatchKLUDGE(current_func_name.c_str(), 
+							 current_mangled_func_name.c_str(), mod))){
                    bpwarn("%s L%d - Cannot find global function with mangled name '%s' or pretty name '%s' with return type '%s' in module '%s', possibly extern\n",
                           __FILE__, __LINE__,
-                          current_mangled_func_name, current_func_name,
+                          current_mangled_func_name.c_str(), current_func_name.c_str(),
                           ((ptrType->getName() == NULL) ? "" : ptrType->getName()), 
                           modName);
                    //char prefix[5];
@@ -377,7 +370,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      cnt++; /* skip the 'G' */
 
 	      /* Get variable type number */
-	      symdescID = parseTypeUse(mod, stabstr, cnt, name);
+	      symdescID = parseTypeUse(mod, stabstr, cnt, name.c_str());
 	      if (stabstr[cnt]) {
 		  bperr( "\tMore to parse - global var %s\n", &stabstr[cnt]);
 		  bperr( "\tFull String: %s\n", stabstr);
@@ -388,10 +381,10 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      BPtype = mod->getModuleTypes()->findOrCreateType(symdescID);
 	      if (!BPtype) {
 		      bperr("ERROR: unable to find type #%d for variable %s\n", 
-		       symdescID, name);
+		       symdescID, name.c_str());
 	      } else {
 		  /** XXXX - should add local too here **/
-		  mod->getModuleTypes()->addGlobalVariable(name, BPtype);
+		  mod->getModuleTypes()->addGlobalVariable(name.c_str(), BPtype);
 	      }
 	      break;
 
@@ -403,7 +396,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      cnt++; /* skip the 'p' */
 
 	      /* Get variable type number */
-	      symdescID = parseTypeUse(mod, stabstr, cnt, name);
+	      symdescID = parseTypeUse(mod, stabstr, cnt, name.c_str());
 
 	      if (stabstr[cnt] == ';') {
 		  // parameter type information, not used for now
@@ -418,11 +411,11 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 
 	      BPatch_localVar *param;
 	      
-	      param = new BPatch_localVar(name, ptrType, linenum, framePtr);
+	      param = new BPatch_localVar(name.c_str(), ptrType, linenum, framePtr);
       
 	      if (current_func) {
 		  current_func->funcParameters->addLocalVar(param);
-		  current_func->addParam(name, ptrType, linenum, framePtr);
+		  current_func->addParam(name.c_str(), ptrType, linenum, framePtr);
 	      } else {
 		//showInfoCallback(pdstring("parameter without local function ") 
 		//	 + pdstring(stabstr) + "\n");
@@ -441,16 +434,16 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      if (!ptrType) ptrType = BPatch::bpatch->type_Untyped;
 
 	      BPatch_localVar *var;
-	      var = new BPatch_localVar(name, ptrType, linenum, 0);
+	      var = new BPatch_localVar(name.c_str(), ptrType, linenum, 0);
       
-	      if (current_mangled_func_name) {
-		if (NULL == (fp = mod->findFunctionByMangled(current_mangled_func_name))){
+	      if (current_mangled_func_name.length()) {
+		if (NULL == (fp = mod->findFunctionByMangled(current_mangled_func_name.c_str()))){
 		  showInfoCallback(pdstring("missing local function ") + 
-				   pdstring(current_func_name) + "\n");
+				   current_func_name + "\n");
 		} else { // found function, add parameter
 		  current_func = fp;
 		  fp->funcParameters->addLocalVar(var);
-		  fp->addParam(name, ptrType, linenum, 0);
+		  fp->addParam(name.c_str(), ptrType, linenum, 0);
 		}
 	      } else {
 		//showInfoCallback(pdstring("parameter without local function ") 
@@ -476,31 +469,29 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      cnt++; /*move past the 'S'*/
 
 	      /* get type reference */
-	      symdescID = parseTypeUse(mod, stabstr, cnt, name);
+	      symdescID = parseTypeUse(mod, stabstr, cnt, name.c_str());
 
 	      // lookup symbol and set type
 	      BPatch_type *BPtype;
 
-              char *nameTrailer;
-	      if (strchr(name, '.')) {
-		  char *defaultNameSpace;
+              pdstring nameTrailer;
+	      if (name.find(".") < name.length()) {
+		  pdstring defaultNameSpace;
 
-		  defaultNameSpace = strdup(name);
-		  nameTrailer = strchr(defaultNameSpace, '.');
-		  *nameTrailer = '\0';
-		  mod->setDefaultNamespacePrefix(defaultNameSpace);
-		  nameTrailer++;
+                  defaultNameSpace = name.substr(0,name.find("."));
+                  nameTrailer = name.substr(name.find(".")+1,name.length()-name.find(".")-1);
+		  mod->setDefaultNamespacePrefix(strdup(defaultNameSpace.c_str()));
 	      } else
                  nameTrailer = name;
 
 	      BPtype = mod->getModuleTypes()->findOrCreateType(symdescID);
 	      if (!BPtype) {
 		      bperr("ERROR: unable to find type #%d for variable %s\n", 
-		       symdescID, nameTrailer);
+		       symdescID, nameTrailer.c_str());
 	      } else {
 		  BPatch_image *img = (BPatch_image *) mod->getObjParent();
-		  if (img->findVariable(nameTrailer,false)) {
-		      mod->getModuleTypes()->addGlobalVariable(nameTrailer, BPtype);
+		  if (img->findVariable(nameTrailer.c_str(),false)) {
+		      mod->getModuleTypes()->addGlobalVariable(nameTrailer.c_str(), BPtype);
 		  }
 	      }
 
@@ -520,7 +511,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      if (stabstr[cnt] == '=') {
 		/* More Stuff to parse, call parseTypeDef */
 		char *oldStr = stabstr;
-		stabstr = parseTypeDef(mod, (&stabstr[cnt+1]), name, symdescID);
+		stabstr = parseTypeDef(mod, (&stabstr[cnt+1]), name.c_str(), symdescID);
 		cnt = 0;
 		// AIX seems to append an semi at the end of these
 		if (stabstr[0] && strcmp(stabstr, ";")) {
@@ -532,7 +523,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		ptrType = mod->getModuleTypes()->findOrCreateType(symdescID);
 		if (!ptrType)
 		  ptrType = BPatch::bpatch->type_Untyped;
-                newType = new BPatch_typeTypedef(symdescID, ptrType, name);
+                newType = new BPatch_typeTypedef(symdescID, ptrType, name.c_str());
 		if (newType) {
 		    mod->getModuleTypes()->addOrUpdateType(newType);
 		}
@@ -564,7 +555,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      //Create BPatch_type.
 	      if (stabstr[cnt] == '=') {
 		  /* More Stuff to parse, call parseTypeDef */
-		  stabstr = parseTypeDef(mod,(&stabstr[cnt+1]),name,symdescID);
+		  stabstr = parseTypeDef(mod,(&stabstr[cnt+1]),name.c_str(),symdescID);
 		  cnt = 0;
 		  if (stabstr[0]) {
 		      bperr( "\tMore to parse aggregate type %s\n", (&stabstr[cnt]));
@@ -572,7 +563,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  }
 	      } else {
 		  //Create BPatch_type defined as a pre-exisitng type.
-		  newType = BPatch_type::createPlaceholder(symdescID, name);
+		  newType = BPatch_type::createPlaceholder(symdescID, name.c_str());
 		  if (newType) { newType = mod->getModuleTypes()->addOrUpdateType(newType); }
 	      }
 
@@ -583,7 +574,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 
 	      // bperr("parsing 'v' type of %s\n", stabstr);
 	      /* Get variable type number */
-	      symdescID = parseTypeUse(mod, stabstr, cnt, name);
+	      symdescID = parseTypeUse(mod, stabstr, cnt, name.c_str());
 	      if (stabstr[cnt]) {
 		  bperr( "\tMore to parse local static %s\n", &stabstr[cnt]);
 		  bperr( "\tFull String: %s\n", stabstr);
@@ -592,7 +583,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      BPtype = mod->getModuleTypes()->findOrCreateType(symdescID);
 	      if (!BPtype) {
 		      bperr("ERROR: unable to find type #%d for variable %s\n", 
-		       symdescID, name);
+		       symdescID, name.c_str());
 		  break;
 	      }
 	      if (commonBlock) {
@@ -607,7 +598,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  fields = commonBlock->getComponents();
 		  if (fields) {
 		      for (unsigned int i=0; i < fields->size(); i++) {
-			  if (!strcmp((*fields)[i]->getName(), name)) {
+			  if (name == (*fields)[i]->getName()) {
 			      found = true;
 			      break;
 			  }
@@ -620,23 +611,23 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 			      ((start1 >= start2) && (start1 < end2))) {
 			      /* common block aliasing detected */
 			      bpwarn("WARN: EQUIVALENCE used in %s: %s and %s\n",
-				  current_func_name, name, (*fields)[i]->getName());
+				  current_func_name.c_str(), name.c_str(), (*fields)[i]->getName());
 			      found = true;
 			      break;
 			  }
 		      }
 		  }
 		  if (!found) {
-		      commonBlock->addField(name, BPatch_dataScalar, BPtype,
+		      commonBlock->addField(name.c_str(), BPatch_dataScalar, BPtype,
 			  framePtr, BPtype->getSize());
 		  }
 	      } else {
 		  // put it into the local variable scope
 		if (!current_func) {
 		  bperr("Unable to add %s to local variable list in %s\n",
-			 name,current_func_name);
+			 name.c_str(),current_func_name.c_str());
 		} else {
-		  locVar = new BPatch_localVar(name, BPtype, linenum, framePtr,
+		  locVar = new BPatch_localVar(name.c_str(), BPtype, linenum, framePtr,
 					       -1, BPatch_storageAddr);
 		  current_func->localVariables->addLocalVar( locVar);
 		}
@@ -663,7 +654,7 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
                    while (stabstr[cnt] != ':') cnt++;
                    // Create fake stab string that cuts out template garbage
                    char *dupstring = strdup(stabstr);
-                   strcpy(dupstring, mangledname);
+                   strcpy(dupstring, mangledname.c_str());
                    strcat(dupstring, stabstr+cnt);
                    parseStabString(mod, linenum, dupstring, framePtr, commonBlock);
                    free(dupstring);
@@ -677,8 +668,6 @@ char *parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 	      bperr( " : %s\n", stabstr);
       }   
     }
-    free(name);
-    free(mangledname);
     return(&stabstr[cnt]);
 } /* end of parseStabString */
 
@@ -741,7 +730,7 @@ int parseSymDesc(char *stabstr, int &cnt)
 //
 // parse an identifier up to a ":" or "," or ";"
 //
-char * getIdentifier( char *stabstr, int &cnt, bool stopOnSpace ) {
+pdstring getIdentifier( char *stabstr, int &cnt, bool stopOnSpace ) {
 	int i = 0;
 	int brCnt = 0;
 	bool idChar = true;
@@ -802,7 +791,9 @@ char * getIdentifier( char *stabstr, int &cnt, bool stopOnSpace ) {
 	identifier[i] = '\0';
 	cnt += i;
 	
-	return identifier;
+        pdstring pd_identifier = identifier;
+        free(identifier);
+	return pd_identifier;
 	} /* end getIdentifier() */
 
 //
@@ -861,7 +852,7 @@ static int parseTypeUse(BPatch_module *mod,char *&stabstr, int &cnt,
 static char *parseCrossRef(BPatch_typeCollection *moduleTypes,const char * /*name*/,
                            int ID, char *stabstr, int &cnt)
 {
-    char *temp;
+    pdstring temp;
     BPatch_type *newType = NULL, *newType2 = NULL;
     char xreftype;
     cnt++; /* skip 'x'*/
@@ -875,17 +866,17 @@ static char *parseCrossRef(BPatch_typeCollection *moduleTypes,const char * /*nam
       cnt++; /*skip ':' */
 
       // Find type that this one points to.
-      BPatch_type *ptrType = moduleTypes->findType(temp);
+      BPatch_type *ptrType = moduleTypes->findType(temp.c_str());
       if (!ptrType) {
          // This type name hasn't been seen before.  Create the
          // skeleton for it, and we'll update it later when we actually see
          // it
          if (xreftype == 'e') {
-            newType = new BPatch_typeEnum(ID, temp);
+            newType = new BPatch_typeEnum(ID, temp.c_str());
          } else if (xreftype == 'u') {
-            newType = new BPatch_typeUnion(ID, temp);
+            newType = new BPatch_typeUnion(ID, temp.c_str());
          } else {
-            newType = new BPatch_typeStruct(ID, temp);
+            newType = new BPatch_typeStruct(ID, temp.c_str());
          }
 	// Add to typeCollection
 	if(newType) { newType2 = moduleTypes->addOrUpdateType(newType); }
@@ -1483,7 +1474,7 @@ static char *parseFieldList(BPatch_module *mod, BPatch_fieldListType *newType,
 	cnt++; //Skip '!'
 
 	//Get # of base classes
-	int baseClNum = atoi(getIdentifier(stabstr, cnt));
+	int baseClNum = atoi(getIdentifier(stabstr, cnt).c_str());
 	cnt++; //Skip ','
 
         BPatch_typeStruct *newStructType = dynamic_cast<BPatch_typeStruct *>(newType);
@@ -1617,8 +1608,7 @@ static char *parseFieldList(BPatch_module *mod, BPatch_fieldListType *newType,
 		}
 		else {
 			//Static member var
-			char *varName = getIdentifier(stabstr, cnt);
-			free(varName);
+			pdstring varName = getIdentifier(stabstr, cnt);
 			//Don't know what to do!
 		}
 	}
@@ -1797,7 +1787,8 @@ static char *parseCPlusPlusInfo(BPatch_module *mod,
 	// parse member functions
 	cnt++;
 	while (stabstr[cnt] && (stabstr[cnt] != ';')) {
-	    char *funcName = getIdentifier(stabstr, cnt, true);
+	    pdstring pd_funcName = getIdentifier(stabstr, cnt, true);
+            const char *funcName = pd_funcName.c_str();
 
 	    funcName++;	// skip ppp-code
 
@@ -1806,7 +1797,7 @@ static char *parseCPlusPlusInfo(BPatch_module *mod,
 	    while (isdigit(*funcName)) funcName++; // skip virtual function index
 	    funcName++;
 
-	    char *className = strdup(currentRawSymbolName);
+	    char *className = strdup(currentRawSymbolName.c_str());
 	    className[3] = 'c';
 	    className[strlen(className)-1] = '\0';	// remove tailing "_"
 	    pdstring methodName = pdstring(className) + pdstring(funcName) + pdstring("_");
@@ -1864,7 +1855,7 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
     BPatch_fieldListType * newFieldType = NULL, *newFieldType2 = NULL;
     BPatch_type * ptrType = NULL;
   
-    char * compsymdesc=NULL;
+    pdstring compsymdesc;
   
     BPatch_dataClass typdescr;
     int ptrID=0;
@@ -2129,11 +2120,8 @@ static char *parseTypeDef(BPatch_module *mod, char *stabstr,
 		value = parseSymDesc(stabstr, cnt);
 
 		// add enum field to type
-		newFieldType2->addField(compsymdesc, value);
+		newFieldType2->addField(compsymdesc.c_str(), value);
 		  
-		free(compsymdesc);
-		compsymdesc = NULL;
-
 		cnt++; /* skip trailing comma */
 		if ((stabstr[cnt]) == ';') cnt++; /* End of enum stab record */
 	    }

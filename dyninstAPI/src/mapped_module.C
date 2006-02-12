@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.C,v 1.3 2005/12/06 20:01:20 bernat Exp $
+// $Id: mapped_module.C,v 1.4 2006/02/12 22:23:26 jodom Exp $
 
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
@@ -173,22 +173,22 @@ int_function *mapped_module::findFuncByAddr(const Address &addr)  {
 }
 
 
-pdstring *mapped_module::processDirectories(pdstring *fn) const {
+pdstring mapped_module::processDirectories(const pdstring &fn) const {
     // This is black magic... assume Todd (I think) knew what
     // he was doing....
-	if(!fn)
-		return NULL;
+	if(fn == "")
+		return "";
 
-	if(!strstr(fn->c_str(),"/./") &&
-	   !strstr(fn->c_str(),"/../"))
+	if(!strstr(fn.c_str(),"/./") &&
+	   !strstr(fn.c_str(),"/../"))
             return fn;
 
-	pdstring* ret = NULL;
+	pdstring ret;
 	char suffix[10] = "";
 	char prefix[10] = "";
-	char* pPath = new char[strlen(fn->c_str())+1];
+	char* pPath = new char[strlen(fn.c_str())+1];
 
-	strcpy(pPath,fn->c_str());
+	strcpy(pPath,fn.c_str());
 
 	if(pPath[0] == '/')
            strcpy(prefix, "/");
@@ -224,17 +224,15 @@ pdstring *mapped_module::processDirectories(pdstring *fn) const {
 		p = strtok(NULL,"/");
 	}
 
-	ret = new pdstring;
-	*ret += prefix;
+	ret += prefix;
 	for(int i=0;i<count;i++){
-		*ret += pPathLocs[i];
+		ret += pPathLocs[i];
 		if(i != (count-1))
-			*ret += "/";
+			ret += "/";
 	}
-	*ret += suffix;
+	ret += suffix;
 
 	delete[] pPath;
-	delete fn;
 	return ret;
 }
 

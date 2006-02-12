@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.h,v 1.1 2005/09/01 22:18:30 bernat Exp $
+// $Id: mapped_module.h,v 1.2 2006/02/12 22:23:26 jodom Exp $
 
 #if !defined(mapped_module_h)
 #define mapped_module_h
@@ -120,7 +120,7 @@ class mapped_module {
     // things like converting absolute addresses (external) into offsets
     // (internal).
     
-    pdstring* processDirectories(pdstring* fn) const;
+    pdstring processDirectories(const pdstring &fn) const;
 
     // Have we parsed line information yet?
     bool lineInformation() const { return lineInfoValid_; }

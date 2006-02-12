@@ -76,8 +76,8 @@
 #define STABS_SYMBOL "@stabs"
 
 // Main functions needed to parse stab strings.
-extern char *current_func_name;
-extern char *parseStabString(BPatch_module *, int linenum, char *str,
+extern pdstring current_func_name;
+extern pdstring parseStabString(BPatch_module *, int linenum, char *str,
 			     int fPtr, BPatch_typeCommon *commonBlock = NULL);
 
 typedef union {
@@ -362,7 +362,7 @@ void parseCoff(BPatch_module *mod, char *exeName, const pdstring &modName,
 	    case 128:   // typedefs and variables -- N_LSYM
 	    case 160:   // parameter variable -- N_PSYM
 		int value = symbol.sym->value;
-		if ( ((typeCode == 128) || (typeCode == 160)) && current_func_name ) {
+		if ( ((typeCode == 128) || (typeCode == 160)) && current_func_name.length() ) {
 		    // See note above about STL strings.  This section of code
 		    // applies in particular.
 		    int varType = stLocal;
@@ -373,14 +373,14 @@ void parseCoff(BPatch_module *mod, char *exeName, const pdstring &modName,
 		    p++;
 		    if (*p == 'p') varType = stParam;
 
-		    value = stabsGetOffset(symbol, current_func_name, varType);
+		    value = stabsGetOffset(symbol, current_func_name.c_str(), varType);
 		}
 
-		char *temp = parseStabString(mod, 0, const_cast<char *>(symbol.name.c_str()),
+		pdstring temp = parseStabString(mod, 0, const_cast<char *>(symbol.name.c_str()),
                                              value);
-		if (*temp) {
+		if (temp != "") {
 		    // Error parsing the stabstr, return should be \0
-		    bperr("Stab string parsing ERROR!! More to parse: %s\n", temp);
+		    bperr("Stab string parsing ERROR!! More to parse: %s\n", temp.c_str());
 		}
 		break;
 	    }

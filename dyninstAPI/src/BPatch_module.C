@@ -76,8 +76,8 @@ int max_line_per_addr =0;
 //char * BPatch_module::current_func_name = NULL;
 //char * BPatch_module::current_mangled_func_name = NULL;
 //BPatch_function * BPatch_module::current_func = NULL;
-char * current_func_name = NULL;
-char * current_mangled_func_name = NULL;
+pdstring current_func_name;
+pdstring current_mangled_func_name;
 BPatch_function *current_func = NULL;
 
 
@@ -140,6 +140,7 @@ char *BPatch_module::getFullNameInt(char *buffer, int length)
 BPatch_module::BPatch_module( BPatch_process *_proc, mapped_module *_mod,
                               BPatch_image *_img ) :
    proc( _proc ), mod( _mod ), img( _img ), 
+   retfuncs(NULL),
    moduleTypes(NULL)
 {
 #if defined(TIMED_PARSE)
@@ -223,6 +224,8 @@ BPatch_module::~BPatch_module()
     for (unsigned i = 0; i < all_funcs.size(); i++) {
         delete all_funcs[i];
     }
+    if (retfuncs)
+       delete retfuncs;
 }
 
 void BPatch_module::parseTypesIfNecessary() {
@@ -265,7 +268,9 @@ BPatch_typeCollection *BPatch_module::getModuleTypesInt() {
 BPatch_Vector<BPatch_function *> *
 BPatch_module::getProceduresInt(bool incUninstrumentable)
 {
-    BPatch_Vector<BPatch_function *> *retfuncs = new BPatch_Vector<BPatch_function *>;
+    if (retfuncs)
+       return retfuncs;
+    retfuncs = new BPatch_Vector<BPatch_function *>;
     
     const pdvector<int_function *> &funcs = mod->getAllFunctions();
 
@@ -484,7 +489,7 @@ bool BPatch_module::dumpMangledInt(char * prefix)
   return true;
 }
 
-extern char *parseStabString(BPatch_module *, int linenum, char *str, 
+extern pdstring parseStabString(BPatch_module *, int linenum, char *str, 
 			     int fPtr, BPatch_typeCommon *commonBlock = NULL);
 
 
@@ -509,12 +514,12 @@ void BPatch_module::parseTypes()
     char *stabstr=NULL;
     union auxent *aux;
     image * imgPtr=NULL;
-    char* funcName = NULL;
+    pdstring funcName;
     Address staticBlockBaseAddr = 0;
     unsigned long linesfdptr;
     BPatch_typeCommon *commonBlock = NULL;
     BPatch_variableExpr *commonBlockVar = NULL;
-    pdstring* currentSourceFile = NULL;
+    pdstring currentSourceFile;
     bool inCommonBlock = false;
 
 #if defined(TIMED_PARSE)
@@ -562,8 +567,7 @@ void BPatch_module::parseTypes()
 	    }
 	 }
 
-	 if(currentSourceFile) delete currentSourceFile;
-	 currentSourceFile = new pdstring(moduleName);
+	 currentSourceFile = pdstring(moduleName);
 	 currentSourceFile = mod->processDirectories(currentSourceFile);
 
 	 if (strrchr(moduleName, '/')) {
@@ -618,16 +622,10 @@ void BPatch_module::parseTypes()
       if ((sym->n_sclass == C_BINCL) ||
 	  (sym->n_sclass == C_EINCL) ||
 	  (sym->n_sclass == C_FUN)) {
-		if (funcName) { 
-		    free(funcName);
-		    funcName = NULL;
-		}
-		funcName = strdup(nmPtr);
+		funcName = nmPtr;
 		/* The call to parseLineInformation(), below, used to modify the symbols passed to it. */
-		char * colonPtr = strchr( funcName, ':' );
-		if( colonPtr != NULL ) {
-			* colonPtr = '\0';
-		}
+                if (funcName.find(":") < funcName.length())
+                   funcName = funcName.substr(0,funcName.find(":"));
 
 //		I'm not sure why we bother with this here, since we fetch line numbers in symtab.C anyway.
 //		mod->parseLineInformation(proc->llproc, currentSourceFile, 
@@ -667,8 +665,8 @@ void BPatch_module::parseTypes()
 
 	      // copy this set of fields
 	    BPatch_Vector<BPatch_function *> bpmv;
-   	    if (NULL == findFunction(funcName, bpmv) || !bpmv.size()) {
-	      bperr("unable to locate current function %s\n", funcName);
+   	    if (NULL == findFunction(funcName.c_str(), bpmv) || !bpmv.size()) {
+	      bperr("unable to locate current function %s\n", funcName.c_str());
 	      } else {
 		BPatch_function *func = bpmv[0];
 		commonBlock->endCommonBlock(func, commonBlockVar->getBaseAddr());
@@ -723,10 +721,10 @@ void BPatch_module::parseTypes()
              continue;
 
 	  if (staticBlockBaseAddr && (sym->n_sclass == C_STSYM)) {
-	      parseStabString(this, 0, nmPtr, 
+              parseStabString(this, 0, nmPtr, 
 		  sym->n_value+staticBlockBaseAddr, commonBlock);
 	  } else {
-	      parseStabString(this, 0, nmPtr, sym->n_value, commonBlock);
+              parseStabString(this, 0, nmPtr, sym->n_value, commonBlock);
 	  }
       }
     }
@@ -778,7 +776,7 @@ void BPatch_module::parseStabTypes()
 
   unsigned i;
   char *modName;
-  char * temp=NULL;
+  pdstring temp;
   image * imgPtr=NULL;
   char *ptr, *ptr2, *ptr3;
   bool parseActive = false;
@@ -844,8 +842,8 @@ void BPatch_module::parseStabTypes()
       src_count++;
       gettimeofday(&t1, NULL);
 #endif
-      current_func_name = NULL; // reset for next object file
-      current_mangled_func_name = NULL; // reset for next object file
+      current_func_name = ""; // reset for next object file
+      current_mangled_func_name = ""; // reset for next object file
       current_func = NULL;
 
       modName = const_cast<char*>(stabptr->name(i));
@@ -1058,10 +1056,10 @@ void BPatch_module::parseStabTypes()
 	  temp = parseStabString(this, mostRecentLinenum, (char *)ptr, stabptr->val(i), commonBlock);
 	else
 	  temp = parseStabString(this, stabptr->desc(i), (char *)ptr, stabptr->val(i), commonBlock);
-	if (temp && *temp) {
+	if (temp.length()) {
 	  //Error parsing the stabstr, return should be \0
 	  bperr( "Stab string parsing ERROR!! More to parse: %s\n",
-		  temp);
+		  temp.c_str());
 	  bperr( "  symbol: %s\n", ptr);
 	}
 	

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: String.C,v 1.29 2005/09/09 18:05:59 legendre Exp $
+// $Id: String.C,v 1.30 2006/02/12 22:23:26 jodom Exp $
 
 #include <assert.h>
 #include "common/h/headers.h"
@@ -422,6 +422,7 @@ string_ll::suffixed_by(const string_ll& s) const {
 
 unsigned
 string_ll::find (const char *s, unsigned sl) const {
+   if (!len_) return 0;
   for(unsigned int i=0; i<=(len_-sl); i++) {
     if( STREQN(str_ + i, s, sl) ) return i;
   }

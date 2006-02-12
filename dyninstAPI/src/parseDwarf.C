@@ -1842,7 +1842,6 @@ void BPatch_module::parseDwarfTypes() {
 		for (unsigned int i = 0; i < bpfuncs->size(); i++) {
 			(*bpfuncs)[i]->fixupUnknown(this);
 		}
-		delete bpfuncs;
 		return;
 	}
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: parsing %s...\n", __FILE__, __LINE__, fileName );
@@ -1968,7 +1967,6 @@ void BPatch_module::parseDwarfTypes() {
 	for (unsigned int i = 0; i < bpfuncs->size(); i++) {
 		(*bpfuncs)[i]->fixupUnknown(this);
 	}
-	delete bpfuncs;
 	moduleTypes->setDwarfParsed();
 } /* end parseDwarfTypes() */
 
