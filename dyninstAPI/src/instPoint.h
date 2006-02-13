@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.24 2006/01/14 23:47:53 nater Exp $
+// $Id: instPoint.h,v 1.25 2006/02/13 19:31:28 rutar Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -261,6 +261,8 @@ class instPoint : public instPointBase {
 
   static instPoint *createForkedPoint(instPoint *p, int_basicBlock *child);
 
+  static int liveRegSize();
+
   ~instPoint();
 
   // Get the correct multitramp for a given function (or address)
@@ -428,11 +430,13 @@ class instPoint : public instPointBase {
   Address addr_;
 
  public:
+  
+  
   // Register optimization
   int *liveRegisters;
   int *liveFPRegisters;
   int *liveSPRegisters;
-  // AIX only.
+  // AIX && AMD64 only.
 };
 
 typedef instPoint::iterator instPointIter;

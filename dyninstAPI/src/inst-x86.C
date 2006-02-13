@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.234 2006/02/03 01:52:45 nater Exp $
+ * $Id: inst-x86.C,v 1.235 2006/02/13 19:31:28 rutar Exp $
  */
 #include <iomanip>
 
@@ -2209,5 +2209,8 @@ void registerSpace::resetLiveDeadInfo(const int * liveRegs,
    }
 }
 
-
+int instPoint::liveRegSize()
+{
+  return maxGPR;
+}
 

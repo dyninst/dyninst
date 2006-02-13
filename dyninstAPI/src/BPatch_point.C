@@ -298,6 +298,16 @@ BPatch_point::getCurrentSnippetsByWhen(BPatch_callWhen when)
     }
 }
 
+const int *
+BPatch_point::getLiveRegistersInt(int & size)
+{
+  instPoint * ip = getPoint();
+  int * liveR = ip->liveRegisters;
+  size = instPoint::liveRegSize();
+  return liveR;
+}
+
+
 /*
  * BPatch_point::getAddress
  *

@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.238 2006/02/01 01:58:09 jodom Exp $
+ * $Id: inst-power.C,v 1.239 2006/02/13 19:31:28 rutar Exp $
  */
 
 #include "common/h/headers.h"
@@ -151,6 +151,12 @@ float getPointFrequency(instPoint *point)
     } else {
         return (funcFrequencyTable[func->prettyName()]);
     }
+}
+
+
+int instPoint::liveRegSize()
+{
+  return maxGPR;
 }
 
 //
@@ -2278,6 +2284,7 @@ bool registerSpace::clobberFPRegister(Register reg)
     }
   return false;  
 }
+
 
 
 void registerSpace::saveClobberInfo(const instPoint *location)

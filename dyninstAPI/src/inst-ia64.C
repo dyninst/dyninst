@@ -3407,6 +3407,12 @@ bool process::MonitorCallSite( instPoint * callSite ) {
   } /* end getBTCost() */
 
  
+  int instPoint::liveRegSize()
+	{
+	  /* Stub Function --- should never be called */
+	  return 0;
+	}
+
   int instPoint::getPointCost() {
 	unsigned worstCost = 0;
 	for (unsigned i = 0; i < instances.size(); i++) {

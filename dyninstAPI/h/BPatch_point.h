@@ -277,7 +277,17 @@ public:
     API_EXPORT(ByWhen, (when),
 
     const BPatch_Vector<BPatchSnippetHandle *>,getCurrentSnippets,(BPatch_callWhen when));
-      
+
+
+    //  BPatch_point::getLiveRegisters
+    //  
+    //  Get Live registers at this point
+
+    API_EXPORT(Int, (size),
+
+    const int *,getLiveRegisters,(int & size));
+
+  
     //  BPatch_point::isDynamic
     //  
     //  isDynamic() returns true if this is a dynamic call site
