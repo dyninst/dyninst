@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.157 2006/02/08 21:27:40 darnold Exp $
+ * $Id: DMdaemon.C,v 1.158 2006/02/14 21:16:12 darnold Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -1000,14 +1000,15 @@ pdvector<pdstring> *paradynDaemon::getAvailableDaemons()
 }
 
 // For a given machine name, find the appropriate paradynd structure(s).
-pdvector<paradynDaemon*> paradynDaemon::machineName2Daemon(const pdstring &mach) {
-   pdvector<paradynDaemon*> v;
-   for (unsigned i=0; i < allDaemons.size(); i++) {
-      paradynDaemon *theDaemon = allDaemons[i];
-      if (theDaemon->getMachineName() == mach)
-        v += theDaemon;
-   }
-   return v;
+pdvector<paradynDaemon*> paradynDaemon::machineName2Daemon(const pdstring &mach)
+{
+    pdvector<paradynDaemon*> v;
+    for (unsigned i=0; i < allDaemons.size(); i++) {
+        paradynDaemon *theDaemon = allDaemons[i];
+        if (theDaemon->getMachineName() == mach)
+            v += theDaemon;
+    }
+    return v;
 }
 
 static bool hostIsLocal(const pdstring &machine)
@@ -2802,9 +2803,9 @@ void paradynDaemon::findMatchingDaemons(metricInstance *mi,
     {
       // get the daemon corr. to this focus and add it
       // to the list of daemons
-      pdvector<paradynDaemon*> vpd = 
-				paradynDaemon::machineName2Daemon(machine_name);
-      assert(vpd.size());
+        pdvector<paradynDaemon*> vpd = 
+            paradynDaemon::machineName2Daemon(machine_name);
+        assert(vpd.size());
 
       // Add daemons into daemon_subset
       filter_based_on_process_in_focus(vpd, &daemon_subset, focus_resources);
@@ -3135,7 +3136,7 @@ paradynDaemon::paradynDaemon(MRN::Network *net, MRN::EndPoint *e, pdstring &m,
     communicator->add_EndPoint( endpoint );
 
     if( machine.length() == 0 ){
-        machine = getHostName();
+        machine = getNetworkName();
     }
 
     if (machine.suffixed_by(local_domain)) {
@@ -3145,8 +3146,8 @@ paradynDaemon::paradynDaemon(MRN::Network *net, MRN::EndPoint *e, pdstring &m,
     } else {
         status = machine;
     }
-		if(flavor != "mpi")
-			uiMgr->createProcessStatusLine(status.c_str());
+    if(flavor != "mpi")
+        uiMgr->createProcessStatusLine(status.c_str());
 
     paradynDaemon::allDaemons += this;
     id = paradynDaemon::allDaemons.size()-1;
