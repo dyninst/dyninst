@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.127 2005/12/19 19:42:47 pack Exp $ */
+/* $Id: context.C,v 1.128 2006/02/14 20:02:20 bernat Exp $ */
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
@@ -186,12 +186,6 @@ bool addDataSource(char *name, char *machine,
 }
 #endif
 
-bool startApplication()
-{
-    continueAllProcesses();
-    return(false);
-}
-
 // TODO use timers here
 timeStamp startPause = timeStamp::ts1970();
 
@@ -240,50 +234,50 @@ bool isApplicationPaused()
 
 bool continueAllProcesses()
 {
-   processMgr::procIter itr = getProcMgr().begin();
-   while(itr != getProcMgr().end()) {
-
-     cerr << "in continueAllProcess while loop"<<endl;
-
-      pd_process *p = *itr++;
-      if(p != NULL && p->isStopped()) {
-          if(p->isTerminated() || ! p->continueProc())
-          {
-              sprintf(errorLine,"WARNING: cannot continue process %d\n",
-                      p->getPid());
-              cerr << errorLine << endl;
-          }
-      }
-   }
-
-	 cerr << "in continueAllProcess past while loop"<<endl;
-   statusLine("application running");
-   if (!markApplicationRunning()) {
-      return false;
-   }
-     cerr << "in continueAllProcess past !markApplicationRunning"<<endl;
-
-   // sprintf(errorLine, "continued at %f\n", getCurrentTime(false));
-   // logLine(errorLine);
-   
-   return(false); // Is this correct?
+    for (processMgr::procIter itr = getProcMgr().begin();
+         itr != getProcMgr().end();
+         itr++) {
+        cerr << "in continueAllProcess while loop"<<endl;
+        
+        pd_process *p = *itr;
+        if(p != NULL && p->isStopped()) {
+            if(p->isTerminated() || ! p->continueProc()) {
+                sprintf(errorLine,"WARNING: cannot continue process %d\n",
+                        p->getPid());
+                cerr << errorLine << endl;
+            }
+        }
+    }
+    
+    cerr << "in continueAllProcess past while loop"<<endl;
+    statusLine("application running");
+    if (!markApplicationRunning()) {
+        return false;
+    }
+    cerr << "in continueAllProcess past !markApplicationRunning"<<endl;
+    
+    // sprintf(errorLine, "continued at %f\n", getCurrentTime(false));
+    // logLine(errorLine);
+    
+    return(false); // Is this correct?
 }
 
 bool pauseAllProcesses()
 {
-   bool changed = markApplicationPaused();
-   processMgr::procIter itr = getProcMgr().begin();
-   while(itr != getProcMgr().end()) {
-      pd_process *p = *itr++;
-      if (p != NULL && !p->isStopped() && !p->isTerminated()) {
-         p->pause();
-      }
-   }
-
-   if (changed)
-      statusLine("application paused");
-   
-   return(changed);
+    bool changed = markApplicationPaused();
+    for (processMgr::procIter itr = getProcMgr().begin();
+         itr != getProcMgr().end();
+         itr++) {
+        pd_process *p = *itr;
+        if (p != NULL && !p->isStopped() && !p->isTerminated()) {
+            p->pauseProc();
+        }
+    }
+    
+    if (changed)
+        statusLine("application paused");
+    
+    return(changed);
 }
 
 void processNewTSConnection(int tracesocket_fd) {
