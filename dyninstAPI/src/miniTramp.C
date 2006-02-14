@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.16 2005/12/14 22:44:13 bernat Exp $
+// $Id: miniTramp.C,v 1.17 2006/02/14 22:46:47 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -110,6 +110,9 @@ bool miniTramp::uninstrument() {
       baseT->firstMini = next;
       // Correcting of jumps will be handled by removeCode calls
   }
+
+  if (baseT->firstPreMini == this)
+      baseT->firstPreMini = next;
   
   // DON'T delete the miniTramp. When it is deleted, the callback
   // is made... which should only happen when the memory is freed.
