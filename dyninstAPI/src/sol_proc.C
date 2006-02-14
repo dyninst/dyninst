@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.79 2006/02/10 02:25:25 jaw Exp $
+// $Id: sol_proc.C,v 1.80 2006/02/14 23:50:16 jaw Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -716,7 +716,8 @@ bool dyn_lwp::realLWP_attach_() {
    return true;
 }
 
-bool dyn_lwp::representativeLWP_attach_() {
+bool dyn_lwp::representativeLWP_attach_() 
+{
 #if defined(os_aix)
     // Wait a sec; we often outrun process creation.
     sleep(2);
@@ -728,21 +729,42 @@ bool dyn_lwp::representativeLWP_attach_() {
    char temp[128];
    // Open the process-wise handles
    sprintf(temp, "/proc/%d/ctl", getPid());
-   ctl_fd_ = P_open(temp, O_WRONLY | O_EXCL, 0);    
+
+   if (!waitForFileToExist(temp, 5 /*seconds */)) {
+     fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
+     return false;
+   }
+   ctl_fd_ = openFileWhenNotBusy(temp, O_WRONLY | O_EXCL, 0, 5/*seconds*/);
+   //ctl_fd_ = P_open(temp, O_WRONLY | O_EXCL, 0);    
    if (ctl_fd_ < 0) perror("Opening (LWP) ctl");
    
    sprintf(temp, "/proc/%d/status", getPid());
-   status_fd_ = P_open(temp, O_RDONLY, 0);    
+   if (!waitForFileToExist(temp, 5 /*seconds */)) {
+     fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
+     return false;
+   }
+   status_fd_ = openFileWhenNotBusy(temp, O_RDONLY, 0, 5/*seconds*/);
+   //status_fd_ = P_open(temp, O_RDONLY, 0);    
    if (status_fd_ < 0) perror("Opening (LWP) status");
 
    as_fd_ = INVALID_HANDLE_VALUE;
    sprintf(temp, "/proc/%d/as", getPid());
-   as_fd_ = P_open(temp, O_RDWR, 0);
+   if (!waitForFileToExist(temp, 5 /*seconds */)) {
+     fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
+     return false;
+   }
+   as_fd_ = openFileWhenNotBusy(temp, O_RDWR, 0, 5/*seconds*/);
+   //as_fd_ = P_open(temp, O_RDWR, 0);
    if (as_fd_ < 0) perror("Opening as fd");
 
 #if !defined(AIX_PROC)
    sprintf(temp, "/proc/%d/auxv", getPid());
-   auxv_fd_ = P_open(temp, O_RDONLY, 0);
+   if (!waitForFileToExist(temp, 5 /*seconds */)) {
+     fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
+     return false;
+   }
+   auxv_fd_ = openFileWhenNotBusy(temp, O_RDONLY, 0, 5/*seconds*/);
+   //auxv_fd_ = P_open(temp, O_RDONLY, 0);
    if (auxv_fd_ < 0) perror("Opening auxv fd");
 #else
    // AIX doesn't have the auxv file
@@ -750,15 +772,31 @@ bool dyn_lwp::representativeLWP_attach_() {
 #endif
 
    sprintf(temp, "/proc/%d/map", getPid());
-   map_fd_ = P_open(temp, O_RDONLY, 0);
+   if (!waitForFileToExist(temp, 5 /*seconds */)) {
+     fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
+     return false;
+   }
+   map_fd_ = openFileWhenNotBusy(temp, O_RDONLY, 0, 5/*seconds*/);
+   //map_fd_ = P_open(temp, O_RDONLY, 0);
    if (map_fd_ < 0) perror("map fd");
 
    sprintf(temp, "/proc/%d/psinfo", getPid());
-   ps_fd_ = P_open(temp, O_RDONLY, 0);
+   if (!waitForFileToExist(temp, 5 /*seconds */)) {
+     fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
+     return false;
+   }
+   ps_fd_ = openFileWhenNotBusy(temp, O_RDONLY, 0, 5/*seconds*/);
+   //ps_fd_ = P_open(temp, O_RDONLY, 0);
    if (ps_fd_ < 0) perror("Opening ps fd");
 
+  //  didn't we already open this file??
    sprintf(temp, "/proc/%d/status", getPid());
-   status_fd_ = P_open(temp, O_RDONLY, 0);
+   if (!waitForFileToExist(temp, 5 /*seconds */)) {
+     fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
+     return false;
+   }
+   status_fd_ = openFileWhenNotBusy(temp, O_RDONLY, 0, 5/*seconds*/);
+   //status_fd_ = P_open(temp, O_RDONLY, 0);
    if (status_fd_ < 0) perror("Opening status fd");
 
    lwpstatus_t status;
@@ -1073,6 +1111,8 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
    // Problem: we may be getting a address with the high bit
    // set. So how to convince the system that it's not negative?
    loc = (off64_t) ((unsigned) inTraced);
+
+   errno = 0;
 
    int written = pwrite64(as_fd(), inSelf, amount, loc);
    if(written != (int)amount) {
@@ -1502,21 +1542,17 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
          ret = waitpid(pid, &status, 0);
      } while ((ret < 0) && (errno == EINTR));
      if (ret < 0) { 
-         fprintf(stderr, "%s[%d]:  This shouldn't happen\n", FILE__, __LINE__);         if (pid == -1) {
-           // This means that the application exited, but was not our child
-           // so it didn't wait around for us to get it's return code.  In
-           // this case, we can't know why it exited or what it's return
-           // code was.
-           fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+         //  if we get ECHILD it just means that the child process no longer exists.
+         //  just create an exit event and keep quiet
+         if (errno != ECHILD) {
+           fprintf(stderr, "%s[%d]:  This shouldn't happen\n", FILE__, __LINE__);         
+           perror("waitpid");
          }
-         else {
-           fprintf(stderr, "%s[%d]:  got event for pid %d, expecting %d\n", FILE__, __LINE__, ev.proc->getPid(), pid);
-           //  but really it _should_ be our child since 
-           ev.type = evtProcessExit;
-           ev.what = 0;
-           status = 0;
-           return true;
-         }
+         //  but really it _should_ be our child since 
+         ev.type = evtProcessExit;
+         ev.what = 0;
+         status = 0;
+         return true;
      }
 
      if (!decodeWaitPidStatus(status, ev)) {

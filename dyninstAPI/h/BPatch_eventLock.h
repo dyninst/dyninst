@@ -97,7 +97,6 @@ protected:
 
   BPatch_eventLock(); 
   virtual ~BPatch_eventLock();
-  eventLock *lock;
 
 public:
   static eventLock *getLock() {assert(global_mutex); return global_mutex;}

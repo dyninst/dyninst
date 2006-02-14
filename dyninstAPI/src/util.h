@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: util.h,v 1.33 2005/11/03 05:21:08 jaw Exp $
+// $Id: util.h,v 1.34 2006/02/14 23:50:16 jaw Exp $
 
 #ifndef UTIL_H
 #define UTIL_H
@@ -50,6 +50,8 @@
 #include "common/h/Types.h"
 #include "common/h/String.h"
 
+bool waitForFileToExist(char *fname, int timeout_seconds);
+int openFileWhenNotBusy(char *fname, int flags, int mode, int timeout_seconds);
 
 #ifndef BPATCH_LIBRARY
 // DON'T access through this global variable

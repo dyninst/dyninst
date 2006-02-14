@@ -79,7 +79,9 @@ void SyncCallback::signalCompletion(CallbackBase *cb)
 bool SyncCallback::waitForCompletion() 
 {
     //  Assume that we are already locked upon entry
+    assert(lock);
     assert(lock->depth());
+    assert(lock == global_mutex);
     //  we need to find the signal
     //  handler that has this thread id -- ie, find out if we are running on a 
     //  signal handler thread.  Since we do not have an easy way of getting 
@@ -98,6 +100,10 @@ bool SyncCallback::waitForCompletion()
       sh->wait_cb = (CallbackBase *) this;
 
     while (!completion_signalled) {
+      if (!lock) {
+        fprintf(stderr, "%s[%d]:  LOCK IS GONE!!\n", FILE__, __LINE__);
+        return false;
+      }
       mailbox_printf("%s[%d][%s]:  waiting for completion of callback\n",
              FILE__, __LINE__, getThreadStr(getExecThreadID()));
       if (0 != lock->_Broadcast(FILE__, __LINE__)) assert(0);
@@ -123,6 +129,26 @@ bool SyncCallback::execute()
   return true;
 }
 
+bool SyncCallback::do_it()
+{
+  bool reset_delete_enabled = false;
+  if (synchronous) {
+    if (deleteEnabled()) {
+       enableDelete(false);
+       reset_delete_enabled = true;
+    }
+  }
+
+  getMailbox()->executeOrRegisterCallback(this);
+  if (synchronous) {
+    signal_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
+    waitForCompletion();
+    if (reset_delete_enabled)
+       enableDelete();
+  }
+  return true;
+}
+
 ErrorCallback::~ErrorCallback()
 {
   //  need to free memory allocated for the arguments 
@@ -144,13 +170,8 @@ bool ErrorCallback::operator()(BPatchErrorLevel severity, int number,
   str = strdup(error_string);
   num = number;
   sev = severity;    
-  getMailbox()->executeOrRegisterCallback(this);
-  if (synchronous) {
-    //signal_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
-    waitForCompletion();
-  }
 
-  return true;
+  return do_it();
 }
 
 bool ForkCallback::execute_real(void) 
@@ -164,12 +185,8 @@ bool ForkCallback::operator()(BPatch_thread *parent, BPatch_thread *child)
   assert(lock->depth());
   par = parent;
   chld = child;
-  getMailbox()->executeOrRegisterCallback(this);
-  if (synchronous) {
-    signal_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
-    waitForCompletion();
-  }
-  return true;
+
+  return do_it();
 }
 
 bool ExecCallback::execute_real(void) 
@@ -182,12 +199,8 @@ bool ExecCallback::operator()(BPatch_thread *thr)
 {
   assert(lock->depth());
   thread = thr;
-  getMailbox()->executeOrRegisterCallback(this);
-  if (synchronous) {
-    signal_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
-    waitForCompletion();
-  }
-  return true;
+
+  return do_it();
 }
 
 bool ExitCallback::execute_real(void) 
@@ -201,12 +214,8 @@ bool ExitCallback::operator()(BPatch_thread *thr, BPatch_exitType exit_type)
   assert(lock->depth());
   thread = thr;;
   type = exit_type;
-  getMailbox()->executeOrRegisterCallback(this);
-  if (synchronous) {
-    signal_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
-    waitForCompletion();
-  }
-  return true;
+
+  return do_it();
 }
 
 bool SignalCallback::execute_real(void) 
@@ -220,12 +229,8 @@ bool SignalCallback::operator()(BPatch_thread *thr, int sigNum)
   assert(lock->depth());
   thread = thr;
   num = sigNum;
-  getMailbox()->executeOrRegisterCallback(this);
-  if (synchronous) {
-    signal_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
-    waitForCompletion();
-  }
-  return true;
+
+  return do_it();
 }
 
 bool OneTimeCodeCallback::execute_real(void) 
@@ -240,12 +245,8 @@ bool OneTimeCodeCallback::operator()(BPatch_thread *thr, void *userData, void *r
   thread = thr;
   user_data = userData;
   return_value = returnValue;
-  getMailbox()->executeOrRegisterCallback(this);
-  if (synchronous) {
-    signal_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
-    waitForCompletion();
-  }
-  return true;
+
+  return do_it();
 }
 
 bool DynLibraryCallback::execute_real(void) 
@@ -260,12 +261,8 @@ bool DynLibraryCallback::operator()(BPatch_thread *thr, BPatch_module *module, b
   thread = thr;
   mod = module;
   load_param = load;
-  getMailbox()->executeOrRegisterCallback(this);
-  if (synchronous) {
-    signal_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
-    waitForCompletion();
-  }
-  return true;
+
+  return do_it();
 }
 
 bool DynamicCallsiteCallback::execute_real(void) 
@@ -280,12 +277,8 @@ bool DynamicCallsiteCallback::operator()(BPatch_point *at_point,
   assert(lock->depth());
   pt = at_point;
   func = called_function;
-  getMailbox()->executeOrRegisterCallback(this);
-  if (synchronous) {
-    signal_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
-    waitForCompletion();
-  }
-  return true;
+
+  return do_it();
 }
 
 UserEventCallback::~UserEventCallback()
@@ -306,12 +299,8 @@ bool UserEventCallback::operator()(BPatch_process *process, void *buffer, int bu
   bufsize = buffersize;
   buf = new int [buffersize];
   memcpy(buf, buffer, buffersize); 
-  getMailbox()->executeOrRegisterCallback(this);
-  if (synchronous) {
-    signal_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
-    waitForCompletion();
-  }
-  return true;
+
+  return do_it();
 }
 
 bool AsyncThreadEventCallback::execute_real(void) 
@@ -330,12 +319,8 @@ bool AsyncThreadEventCallback::operator()(BPatch_process *process, BPatch_thread
 
   proc = process;
   thr = thread;
-  getMailbox()->executeOrRegisterCallback(this);
-  if (synchronous) {
-    signal_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
-    waitForCompletion();
-  }
-  return true;
+
+  return do_it();
 }
 
 InternalThreadExitCallback::~InternalThreadExitCallback()
@@ -356,12 +341,8 @@ bool InternalThreadExitCallback::operator()(BPatch_process *p, BPatch_thread *t,
   proc = p;
   thr = t;
   cbs = callbacks;
-  getMailbox()->executeOrRegisterCallback(this);
-  if (synchronous) {
-    signal_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
-    waitForCompletion();
-  }
-  return true;
+
+  return do_it();
 }
 
 #ifdef IBM_BPATCH_COMPAT
@@ -377,11 +358,7 @@ bool ThreadEventCallback::operator()(BPatch_thread *thread, void *arg1, void *ar
   thr = thread;
   a1 = arg1;
   a2 = arg2;
-  getMailbox()->executeOrRegisterCallback(this);
-  if (synchronous) {
-    signal_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
-    waitForCompletion();
-  }
-  return true;
+
+  return do_it();
 }
 #endif

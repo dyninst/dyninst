@@ -321,7 +321,9 @@ void BPatch_process::BPatch_process_dtor()
        pendingInsertions = NULL;
    }
 
-   if (!llproc) { return; }
+   if (!llproc) { 
+      return; 
+   }
 
    //  unRegister process before doing detach
    BPatch::bpatch->unRegisterProcess(getPid());   

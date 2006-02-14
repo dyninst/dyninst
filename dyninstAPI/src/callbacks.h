@@ -45,7 +45,7 @@ class SyncCallback : public CallbackBase
     lock(l), completion_signalled(false), sh(NULL) {}
   SyncCallback(SyncCallback &src) :
     CallbackBase(src.targetThread(), src.getCleanupCallback()),  
-    synchronous(src.synchronous), lock(src.lock), completion_signalled(false), sh(NULL) {}
+    synchronous(src.synchronous), lock(global_mutex/*src.lock*/), completion_signalled(false), sh(NULL) {}
   virtual ~SyncCallback() {}
 
    void setSynchronous(bool flag = true) {synchronous = flag;}
@@ -54,6 +54,7 @@ class SyncCallback : public CallbackBase
   protected:
    virtual bool execute_real(void) = 0;
    virtual bool waitForCompletion(); 
+   bool do_it();
    bool synchronous;
    eventLock *lock;
    bool completion_signalled;

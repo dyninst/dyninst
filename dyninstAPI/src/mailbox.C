@@ -106,11 +106,7 @@ eventLock::~eventLock()
 #if defined(os_windows)
   DeleteCriticalSection(&mutex);  
   DeleteCriticalSection(&waiter_lock);
-#ifdef NOTDEF 
-  CloseHandle(mutex);
-#endif
   CloseHandle(cond);
-
 #else
   pthread_mutex_destroy(&mutex);
   pthread_cond_destroy(&cond);
@@ -248,7 +244,12 @@ int eventLock::_Broadcast(const char *__file__, unsigned int __line__)
   //ret = SetEvent(mutex);
   //assert (ret);
 #else
-  assert(this);
+  if (!this) {
+    fprintf(stderr, "%s[%d]:  lock is broken:\n", FILE__, __LINE__);
+    //  most likely the lock stack will crash here...  but this is pretty fatal anyways.
+    printLockStack();
+    return 1;
+  }
   int err = 0;
   if(0 != (err = pthread_cond_broadcast(&cond))){
     ERROR_BUFFER;
@@ -280,10 +281,12 @@ int eventLock::_WaitForSignal(const char *__file__, unsigned int __line__)
     printLockStack();
     abort();
   }
+
   lock_stack_elem el = lock_stack[lock_stack.size() -1];
   lock_stack.pop_back();
   owner_id = 0;
 
+  assert(lock_stack.size() == 0);
 #if defined(os_windows)
   EnterCriticalSection(&waiter_lock);
   num_waiters++;

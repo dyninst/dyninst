@@ -497,6 +497,7 @@ SignalGeneratorCommon::SignalGeneratorCommon(char *idstr,pdstring file_, pdstrin
                  waiting_for_event(false)
 {
   signal_printf("%s[%d]:  new SignalGenerator\n", FILE__, __LINE__);
+  assert(eventlock == global_mutex);
 }
 
 SignalGeneratorCommon::SignalGeneratorCommon(char *idstr, pdstring file_,
@@ -509,6 +510,7 @@ SignalGeneratorCommon::SignalGeneratorCommon(char *idstr, pdstring file_,
                  waiting_for_event(false)
 {
   signal_printf("%s[%d]:  new SignalGenerator\n", FILE__, __LINE__);
+  assert(eventlock == global_mutex);
 }
 
 bool SignalGeneratorCommon::wakeUpThreadForShutDown()
@@ -1376,6 +1378,9 @@ bool SignalHandler::handleForkExit(EventRecord &ev)
          if (i== processVec.size()) {
              // this is a new child, register it with dyninst
              // Note: we need to wait for the child process to be created.
+
+             sleep(1);
+
              // For now, we sleep (apparently), but the better solution is to
              // loop waiting for the child to be created and then attach to it.
              // We have seen the following order:

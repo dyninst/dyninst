@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.580 2006/02/14 20:02:18 bernat Exp $
+// $Id: process.C,v 1.581 2006/02/14 23:50:15 jaw Exp $
 
 #include <ctype.h>
 
@@ -1906,9 +1906,7 @@ process::~process()
 {
     // Failed creation... nothing is here yet
     if (!reachedBootstrapState(initialized_bs)) {
-        fprintf(stderr, "%s[%d]:  stopping signal handler\n", FILE__, __LINE__);
         if (sh) SignalGeneratorCommon::stopSignalGenerator(sh);
-        fprintf(stderr, "%s[%d]:  warn got rid of delete\n", FILE__, __LINE__);
         sh = NULL;
         return;
     }
@@ -3035,8 +3033,10 @@ bool process::attach()
 
    startup_printf("[%d]: attaching to representative LWP\n", getPid());
 
-   if(! getRepresentativeLWP()->attach())
+   if( !getRepresentativeLWP()->attach()) {
+      fprintf(stderr, "%s[%d]:  failed to attach to rep lwp\n", FILE__, __LINE__);
       return false;
+   }
 
    while (lwp_iter.next(index, lwp)) {
        startup_printf("[%d]: attaching to LWP %d\n", getPid(), index);
@@ -4977,7 +4977,6 @@ bool process::detachProcess(const bool leaveRunning)
     
     set_status(detached);
     // deleteProcess does the right thing depending on the status vrble
-    fprintf(stderr, "%s[%d][%s]:  about to delete process\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
     deleteProcess();
     return true;
 }

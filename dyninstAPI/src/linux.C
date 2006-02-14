@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.191 2006/02/10 08:34:19 jaw Exp $
+// $Id: linux.C,v 1.192 2006/02/14 23:50:15 jaw Exp $
 
 #include <fstream>
 
@@ -479,22 +479,6 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
      return false;
    }
 
-#ifdef NOTDEF // PDSEP
-   //  we suppress continues in decodeEvent now
-   if (waiting_for_stop) {
-     if ( ! ( didProcEnterSyscall(ev.type)) 
-             || didProcExitSyscall(ev.type)
-             || (ev.type == evtSignalled && ev.what == SIGTRAP)) {
-         ev.proc->setSuppressEventConts(true);    
-         //fprintf(stderr, "%s[%d]:  COMMENTED OUT setting suppression for event conts\n", __FILE__, __LINE__);
-     }
-     else {
-       fprintf(stderr, "%s[%d]:  NOT setting suppression for event conts\n", __FILE__, __LINE__);
-
-     }
-   }
-#endif
-
    return true;
 
 }
@@ -783,7 +767,6 @@ bool process::continueProc_(int sig)
 
 bool SignalGenerator::waitForStopInline()
 {
-   fprintf(stderr, "%s[%d]:  doing waitpid for initial process stop\n", FILE__, __LINE__);
 
    while (proc->isRunning_()) {
        if (0 > waitpid(getPid(), NULL, 0)) {
@@ -798,7 +781,6 @@ bool SignalGenerator::waitForStopInline()
 
 bool process::stop_(bool waitUntilStop)
 {
-  fprintf(stderr, "%s[%d]:  welcome to stop()_\n", FILE__, __LINE__);
   int result;
   
   //Stop the main process
@@ -1557,6 +1539,7 @@ bool dyn_lwp::realLWP_attach_() {
    if( 0 != DBI_ptrace(PTRACE_ATTACH, get_lwp_id(), 0, 0, &ptrace_errno, 
                        proc_->getAddressWidth(),  __FILE__, __LINE__) )
    {
+      fprintf(stderr, "%s[%d]:  ptrace attach to pid %d failing\n", FILE__, __LINE__, get_lwp_id());
       perror( "process::attach - PTRACE_ATTACH" );
       return false;
    }
@@ -1593,6 +1576,7 @@ bool dyn_lwp::representativeLWP_attach_() {
    
    // Only if we are really attaching rather than spawning the inferior
    // process ourselves do we need to call PTRACE_ATTACH
+
    if(proc_->wasCreatedViaAttach() || 
       proc_->wasCreatedViaFork() || 
       proc_->wasCreatedViaAttachToCreated())
@@ -1601,8 +1585,10 @@ bool dyn_lwp::representativeLWP_attach_() {
       int ptrace_errno = 0;
       int address_width = sizeof(Address);
       assert(address_width);
+
       if( 0 != DBI_ptrace(PTRACE_ATTACH, getPid(), 0, 0, &ptrace_errno, address_width, __FILE__, __LINE__) )
       {
+         fprintf(stderr, "%s[%d]:  ptrace attach to pid %d failing\n", FILE__, __LINE__, getPid());
          perror( "process::attach - PTRACE_ATTACH" );
          return false;
       }

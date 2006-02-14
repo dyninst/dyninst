@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.111 2006/02/14 20:02:16 bernat Exp $
+// $Id: BPatch.C,v 1.112 2006/02/14 23:50:15 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -108,8 +108,11 @@ BPatch::BPatch()
     type_Error(NULL),
     type_Untyped(NULL)
 {
-    if (!global_mutex)
+    if (!global_mutex) {
       global_mutex = new eventLock();
+      extern bool mutex_created;
+      mutex_created = true;
+    }
 
     global_mutex->_Lock(FILE__, __LINE__);
     memset(&stats, 0, sizeof(BPatch_stats));

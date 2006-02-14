@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.163 2006/02/12 22:24:33 jodom Exp $
+// $Id: unix.C,v 1.164 2006/02/14 23:50:16 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -447,6 +447,7 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
     //decodeKludge(ev);
   }
 #else
+    stopThreadNextIter();
     fprintf(stderr, "%s[%d]:  checkForProcessEvents: poll failed: %s\n", FILE__, __LINE__, strerror(errno));
 #endif
      return ret;
@@ -1133,7 +1134,8 @@ bool SignalGenerator::attachProcess()
   if (!proc->attach()) {
      proc->set_status( detached);
 
-     fprintf(stderr, "%s[%d] attach failing here\n", FILE__, __LINE__);
+     fprintf(stderr, "%s[%d] attach failing here: thread %s\n", FILE__, __LINE__,
+             getThreadStr(getExecThreadID()));
      pdstring msg = pdstring("Warning: unable to attach to specified process: ")
                   + pdstring(getPid());
      showErrorCallback(26, msg.c_str());
@@ -1362,9 +1364,14 @@ SignalGenerator::SignalGenerator(char *idstr, pdstring file, int pid)
     while ((dirName == NULL) && (counter < timeout)) {
         dirName = opendir(buffer);
         if (!dirName) {
+            fprintf(stderr, "%s[%d]: waiting for dir %s creation\n", FILE__, __LINE__, buffer);
             sleep(1);
         }
         counter++;
+    }
+
+    if (!dirName) {
+      fprintf(stderr, "%s[%d]:  WARNING:  could not open dir %s\n", FILE__, __LINE__, buffer);
     }
     if (dirName)
       closedir(dirName);

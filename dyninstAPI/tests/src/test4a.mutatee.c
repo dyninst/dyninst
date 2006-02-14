@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test4a.mutatee.c,v 1.12 2006/02/08 23:41:33 bernat Exp $ */
+/* $Id: test4a.mutatee.c,v 1.13 2006/02/14 23:50:16 jaw Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -150,8 +150,18 @@ void func2_1()
 #endif
         
         /* Make the parent exit first (again, testing) */
-        if (pid == 0)
-            sleep(5);
+        if (pid == 0) {
+		dprintf("%d SLEEPING\n",getpid());
+            sleep(1);
+		dprintf("%d SLEEPING\n",getpid());
+            sleep(1);
+		dprintf("%d SLEEPING\n",getpid());
+            sleep(1);
+		dprintf("%d SLEEPING\n",getpid());
+            sleep(1);
+		dprintf("%d SLEEPING\n",getpid());
+            sleep(1);
+        }
 
 	dprintf("Mutatee %d exiting...\n", getpid());
         exit(getpid());

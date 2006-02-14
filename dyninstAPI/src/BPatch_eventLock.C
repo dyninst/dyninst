@@ -79,18 +79,24 @@ eventLock *global_mutex = NULL;
 bool mutex_created = false;
 
 unsigned long primary_thread_id = (unsigned long) -1;
-int lock_depth = 0;
 
 BPatch_eventLock::BPatch_eventLock() 
 {
   if (mutex_created) return;
-    global_mutex = new eventLock();
+  global_mutex = new eventLock();
+  mutex_created = true;
+
+  //  Assume that this ctor is being called on the primary (UI) thread
+  //  and set its value accordingly.
+  primary_thread_id = getExecThreadID();
+
+#ifdef NOTDEF // PDSEP
 #if defined (os_windows)
   primary_thread_id = _threadid;
 #else
   primary_thread_id = (unsigned long)pthread_self();
 #endif
-  mutex_created = true;
+#endif
 }
 
 BPatch_eventLock::~BPatch_eventLock() {};

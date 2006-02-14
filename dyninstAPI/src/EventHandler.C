@@ -403,8 +403,14 @@ void EventHandler<T>::main()
     
   }
   _isRunning = false;
+  if (global_mutex->depth() != 1) {
+     fprintf(stderr, "%s[%d]:  WARNING:  global_mutex->depth() is %d, leaving thread %s\n",
+             FILE__, __LINE__, global_mutex->depth(),idstr);
+     global_mutex->printLockStack();
+  }
   global_mutex->_Broadcast(FILE__, __LINE__);
   global_mutex->_Unlock(FILE__, __LINE__);
+
   signal_printf("%s[%d][%s]:  InternalThread::main exiting\n", FILE__, __LINE__, idstr);
 }
 
