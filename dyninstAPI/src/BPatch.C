@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.110 2006/02/10 22:42:18 bernat Exp $
+// $Id: BPatch.C,v 1.111 2006/02/14 20:02:16 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -468,7 +468,6 @@ BPatchForkCallback BPatch::registerPostForkCallbackInt(BPatchForkCallback func)
 #else
     BPatchForkCallback ret = NULL;
     ForkCallback *cb = new ForkCallback(func);
-    fprintf(stderr, "Registered new preForkCallback %p\n", cb);
 
     pdvector<CallbackBase *> cbs;
     getCBManager()->removeCallbacks(evtPostFork, cbs);
@@ -500,7 +499,6 @@ BPatchForkCallback BPatch::registerPreForkCallbackInt(BPatchForkCallback func)
 #else
     BPatchForkCallback ret = NULL;
     ForkCallback *cb = new ForkCallback(func);
-    fprintf(stderr, "Registered new postForkCallback %p\n", cb);
 
     pdvector<CallbackBase *> cbs;
     getCBManager()->removeCallbacks(evtPreFork, cbs);
@@ -1243,11 +1241,13 @@ BPatch_thread *BPatch::attachProcessInt(const char *path, int pid)
  */
 bool BPatch::pollForStatusChangeInt()
 {
-  if (mutateeStatusChange) {
-    mutateeStatusChange = false;
-    return true;
-  }
-  return false;
+  getMailbox()->executeCallbacks(FILE__, __LINE__);
+    
+    if (mutateeStatusChange) {
+        mutateeStatusChange = false;
+        return true;
+    }
+    return false;
 }
 
 
@@ -1262,6 +1262,7 @@ bool BPatch::pollForStatusChangeInt()
  */
 bool BPatch::waitForStatusChangeInt()
 {
+
   getMailbox()->executeCallbacks(FILE__, __LINE__);
 
   if (mutateeStatusChange) {
