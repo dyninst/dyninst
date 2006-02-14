@@ -66,6 +66,9 @@ class BPatch_instpMap;
 class int_function;
 struct batchInsertionRecord;
 
+// PDSEP
+class pd_process;
+
 typedef enum {
   BPatch_nullEvent,
   BPatch_newConnectionEvent,
@@ -151,6 +154,11 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     friend bool pollForStatusChange();
     friend class AstNode; // AST needs to translate instPoint to
 		      // BPatch_point via instp_map
+
+    // PDSEP
+    // As long as the pd_process needs to reach into the lower-level
+    // objects, we'll need this
+    friend class pd_process;
     
     //References to lower level objects
     process *llproc;
