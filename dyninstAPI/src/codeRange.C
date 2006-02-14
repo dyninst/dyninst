@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.C,v 1.15 2006/01/30 07:16:52 jaw Exp $
+// $Id: codeRange.C,v 1.16 2006/02/14 20:02:19 bernat Exp $
 
 #include <stdio.h>
 #include "codeRange.h"
@@ -363,7 +363,10 @@ void codeRangeTree::insert(codeRange *value) {
  void codeRangeTree::remove(Address key){
 	entry* z = find_internal(key);
 	if(!z)
-		return;
+            return;
+        if (z->key != key)
+            return;
+
 	entry* y=((z->left == nil)||(z->right == nil)) ? z : treeSuccessor(z);
 	entry* x=(y->left != nil) ? y->left : y->right;
 	x->parent = y->parent;
