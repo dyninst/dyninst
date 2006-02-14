@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.123 2005/12/19 19:42:50 pack Exp $ */
+/* $Id: dynrpc.C,v 1.124 2006/02/14 20:02:21 bernat Exp $ */
 
 #include "paradynd/src/metricFocusNode.h"
 #include "paradynd/src/machineMetFocusNode.h"
@@ -228,7 +228,7 @@ void processInstrDeletionRequests() {
       for(unsigned j=0; j<procnodes.size(); j++) {
          processMetFocusNode *cur_procnode = procnodes[j];
          pd_process *proc = cur_procnode->proc();
-         proc->pause();
+         proc->pauseProc();
          procsToCont.push_back(proc);
       }
       
@@ -501,7 +501,7 @@ bool dynRPC::pauseProgram(MRN::Stream * stream,int program)
 		        machineResource->part_name());
       return false;
    }
-   return proc->pause();
+   return proc->pauseProc();
 }
 
 bool dynRPC::startProgram(MRN::Stream * /* stream */,int /* dummy */ )

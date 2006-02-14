@@ -310,8 +310,13 @@ class pd_process {
    bool isTerminated() const;
    bool isDetached() const;
    bool continueProc();
+   bool pauseProc();
+
+   // PDSEP
+   void overrideInternalRunningState(bool isRunning) { dyninst_process->isVisiblyStopped = !isRunning; }
+
    int getPid() const { return dyninst_process->getPid(); }
-   bool pause(); 
+
    shmMgr *getSharedMemMgr() { return sharedMemManager; }
 
    //Callbacks that are invoked from Dyninst when a thread is created or destroyed

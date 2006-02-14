@@ -1993,18 +1993,6 @@ bool pd_process::installInstrRequests(const pdvector<pdinstMapping*> &requests)
   return err;
 }
 
-bool pd_process::pause() 
-{
-  do {
-     if (!dyninst_process->stopExecution())
-        return false;
-     if (dyninst_process->isTerminated())
-        return false;
-  } while (!dyninst_process->isStopped());
-
-  return true;
-}
-
 bool pd_process::findAllFuncsByName(resource *func, resource *mod,
                            BPatch_Vector<BPatch_function *> &res) {
      const pdvector<pdstring> &f_names = func->names();
@@ -2041,7 +2029,20 @@ bool pd_process::findAllFuncsByName(resource *func, resource *mod,
 bool pd_process::isStopped() const {return dyninst_process->isStopped();}
 bool pd_process::isTerminated() const {return dyninst_process->isTerminated();}
 bool pd_process::isDetached() const {return dyninst_process->isDetached();}
-bool pd_process::continueProc() {return dyninst_process->continueExecution();}
+bool pd_process::continueProc() {
+    fprintf(stderr, "PDProcess %d continuing...\n", getPid());
+    return dyninst_process->continueExecution();
+}
+bool pd_process::pauseProc() 
+{
+    fprintf(stderr, "PDProcess %d pausing...\n", getPid());
+    if (!dyninst_process->stopExecution())
+        return false;
+    if (dyninst_process->isTerminated())
+        return false;
+
+  return true;
+}
 
 /**
  * Dyninst calls this function when a new thread is found
