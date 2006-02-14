@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.579 2006/02/12 22:24:32 jodom Exp $
+// $Id: process.C,v 1.580 2006/02/14 20:02:18 bernat Exp $
 
 #include <ctype.h>
 
@@ -4700,10 +4700,11 @@ bool process::addCodeRange(codeRange *codeobj) {
 }
 
 bool process::deleteCodeRange(Address addr) {
+    // Remove does nothing if the addr is not a key value
+
     codeRangesByAddr_.remove(addr);
-    // Don't do this -- we clean that at exit/exec.
-    //codeSections_.remove(addr);
-    // Need to nuke data section as well...
+
+    codeSections_.remove(addr);
 
     return true;
 }
