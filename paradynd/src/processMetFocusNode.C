@@ -545,6 +545,16 @@ bool processMetFocusNode::doCatchupInstrumentation(pdvector<pdvector<Frame> >&st
             continueProcess();
         return true;
     }
+    else {
+        // RPCs ran, but now we're out of sync with the BPatch process.
+        if (runWhenFinished_) {
+            // We need to set the BPatch_process status variable to "running".
+            // It thinks we're stopped.
+            fprintf(stderr, "DEBUG: overriding internal BPatch_process running state\n");
+            proc_->overrideInternalRunningState(runWhenFinished_);
+        }
+    }
+
     // runWhenFinished_ now becomes the state to leave the process in when we're
     // done with catchup. For a little while, we'll be out of sync with the 
     // actual process. This is annoying, but necessary, since we can't effectively
@@ -913,7 +923,7 @@ void processMetFocusNode::pauseProcess() {
                                  // don't need to pause, and setting runWhenFinished_
                                  // will result in the process getting started at
                                  // a bad moment.
-  if (proc()->pause())
+  if (proc()->pauseProc())
   {
     runWhenFinished_ = true;
   }
