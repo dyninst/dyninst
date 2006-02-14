@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.140 2006/02/08 21:27:51 darnold Exp $
+// $Id: main.C,v 1.141 2006/02/14 20:02:24 bernat Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -869,53 +869,51 @@ static int break_at_mpi_init(BPatch_process *bproc)
   var->writeValue(&negone, sizeof(int), false);
 
 
-  for (unsigned i=0; i<exit_points->size(); i++)
-  {
-    //Call MPI_COMM_WORLD
-    BPatch_Vector<BPatch_snippet *> args;
-    BPatch_constExpr arg1(mpi_comm_world); //MPI_COMM_WORLD value
-    BPatch_constExpr arg2((int) var->getBaseAddr());
-    args.push_back(&arg1);
-    args.push_back(&arg2);
-    BPatch_funcCallExpr call_to_rank(*mpi_comm_rank, args);
-
-    BPatch_Vector<BPatch_snippet *> dbp_args;
-    BPatch_funcCallExpr call_to_break(*dyninst_breakpoint, dbp_args);
-
-    bproc->insertSnippet(call_to_rank, exit_points[i], BPatch_callAfter, BPatch_firstSnippet);
-
-    bproc->insertSnippet(call_to_break, exit_points[i], BPatch_callAfter, BPatch_lastSnippet);
-
+  for (unsigned i=0; i<exit_points->size(); i++) {
+      // Call MPI_COMM_WORLD
+      BPatch_Vector<BPatch_snippet *> args;
+      BPatch_constExpr arg1(mpi_comm_world); //MPI_COMM_WORLD value
+      BPatch_constExpr arg2((int) var->getBaseAddr());
+      args.push_back(&arg1);
+      args.push_back(&arg2);
+      BPatch_funcCallExpr call_to_rank(*mpi_comm_rank, args);
+      
+      BPatch_Vector<BPatch_snippet *> dbp_args;
+      BPatch_funcCallExpr call_to_break(*dyninst_breakpoint, dbp_args);
+      
+      bproc->insertSnippet(call_to_rank, exit_points[i], BPatch_callAfter, BPatch_firstSnippet);
+      
+      bproc->insertSnippet(call_to_break, exit_points[i], BPatch_callAfter, BPatch_lastSnippet);
+      
   }
-	/*
-  bproc->continueExecution();
-  do {
+  /*
+    bproc->continueExecution();
+    do {
     BPatch::bpatch->waitForStatusChange();
     if (bproc->isTerminated())
-      break;
-		if (my_rank == -1)
-			var->readValue(&my_rank, sizeof(int));
-	} while (my_rank == -1);
-		//} while (!((my_rank != -1) && !bproc->isStopped()));
-		*/
-
-	bproc->continueExecution();
-
-
-  for (;;)
-		{
-			BPatch::bpatch->waitForStatusChange();
-			if (bproc->isTerminated())
-				break;
-			if (!bproc->isStopped())
-				continue;
-			var->readValue(&my_rank, sizeof(int));
-			if (my_rank != -1)
-				break;
-			bproc->continueExecution();
-		}
-
-	fprintf(stderr, "%u, [%s:%u] - Got a rank of %d\n",getpid(), __FILE__, __LINE__, my_rank);
+    break;
+    if (my_rank == -1)
+    var->readValue(&my_rank, sizeof(int));
+    } while (my_rank == -1);
+    //} while (!((my_rank != -1) && !bproc->isStopped()));
+    */
+  
+  bproc->continueExecution();
+  
+  
+  for (;;) {
+      BPatch::bpatch->waitForStatusChange();
+      if (bproc->isTerminated())
+          break;
+      if (!bproc->isStopped())
+          continue;
+      var->readValue(&my_rank, sizeof(int));
+      if (my_rank != -1)
+          break;
+      bproc->continueExecution();
+  }
+  
+  fprintf(stderr, "%u, [%s:%u] - Got a rank of %d\n",getpid(), __FILE__, __LINE__, my_rank);
   return my_rank;
 }
 
@@ -997,25 +995,23 @@ StartOrAttach( void )
 			// last bit of initialization, below
 			startByCreateAttach = true;
 		}
-   if (startByAttach) 
-		 {
-			 pd_process *p = pd_attachProcess("", pd_attpid);
-			 
-			 if (!p) 
-				 return -1;
-       p->pause();
-			 
-		 }
-	 else if (startByCreateAttach) 
-		 {
-       pd_process *p;
-       if (newProcCmdLine.size()){
-           p = pd_attachToCreatedProcess(newProcCmdLine[0], 
-                                         pd_attpid);
-       } else {
-           p = pd_attachToCreatedProcess("", 
-                                         pd_attpid);
-       }
+        if (startByAttach) {
+            pd_process *p = pd_attachProcess("", pd_attpid);
+            
+            if (!p) 
+                return -1;
+            p->pauseProc();
+            
+        }
+        else if (startByCreateAttach) {
+            pd_process *p;
+            if (newProcCmdLine.size()){
+                p = pd_attachToCreatedProcess(newProcCmdLine[0], 
+                                              pd_attpid);
+            } else {
+                p = pd_attachToCreatedProcess("", 
+                                              pd_attpid);
+            }
 
        if (!p) return -1;
 		 }

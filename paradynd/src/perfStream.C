@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.184 2005/12/19 19:43:17 pack Exp $
+// $Id: perfStream.C,v 1.185 2006/02/14 20:02:25 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/timing.h"
@@ -532,137 +532,126 @@ void controllerMainLoop(bool check_buffer_first)
    struct timeval pollTimeStruct;
    
    while (1) {
-#ifdef NOTDEF // PDSEP
+
       // we have moved this code at the beginning of the loop, so we will
       // process signals before igen requests: this is to avoid problems when
       // an inferiorRPC is waiting for a system call to complete and an igen
       // requests arrives at that moment - naim
 			
-      if (isInfProcAttached)
-				{
-					getBPatch().pollForStatusChange();
-				}
-#endif
-			
-			FD_ZERO(&readSet);
-			FD_ZERO(&errorSet);
-			width = 0;
-			
-			// add our igen connection with the paradyn process.
-			//
-			// get mrnet sockets for here
-			//
-			//FD_SET(tp->get_sock(), &readSet);
-			//FD_SET(tp->get_sock(), &errorSet);
-			FD_SET(ntwrk->get_SocketFd(), &readSet);
-			FD_SET(ntwrk->get_SocketFd(), &errorSet);
-			width = ntwrk->get_SocketFd();
-			
-			// Clean up any inferior RPCs that might still be queued do to a failure
-			// to start them
-			doDeferredRPCs();
+      if (isInfProcAttached) {
+          getBPatch().pollForStatusChange();
+      }
 
+      
+      FD_ZERO(&readSet);
+      FD_ZERO(&errorSet);
+      width = 0;
+      
+      // add our igen connection with the paradyn process.
+      //
+      // get mrnet sockets for here
+      //
+      //FD_SET(tp->get_sock(), &readSet);
+      //FD_SET(tp->get_sock(), &errorSet);
+      FD_SET(ntwrk->get_SocketFd(), &readSet);
+      FD_SET(ntwrk->get_SocketFd(), &errorSet);
+      width = ntwrk->get_SocketFd();
+      
+      // Clean up any inferior RPCs that might still be queued do to a failure
+      // to start them
+      doDeferredRPCs();
+      
 #if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
-			doDeferredInstrumentation();
-#endif
-			
-			extern void doDeferedRPCasyncXDRWrite();
-			doDeferedRPCasyncXDRWrite();
-			
-#if !defined(os_windows)
-			timeLength pollTime(50, timeUnit::ms());
-			// this is the time (rather arbitrarily) chosen fixed time length
-			// in which to check for signals, etc.
-#else
-			// Windows NT wait happens in WaitForDebugEvent (in pdwinnt.C)
-			timeLength pollTime = timeLength::Zero();
+      doDeferredInstrumentation();
 #endif
       
-			checkAndDoShmSampling(&pollTime);
-			// does shm sampling of each process, as appropriate.
-			// may update pollTimeUSecs.
-			
-			pollTimeStruct.tv_sec  = 
-				static_cast<long>(pollTime.getI(timeUnit::sec()));
-			pollTimeStruct.tv_usec = 
-				static_cast<long>(pollTime.getI(timeUnit::us()));
-			
-			// This fd may have been read from prior to entering this loop
-			// There may be some bytes lying around
-			if (check_buffer_first)
-				{
-					bool processed_data = true;
-					while (processed_data)
-						{
-							T_dyninstRPC::message_tags ret =tp->waitLoop(ntwrk, &processed_data);
-							if (ret == T_dyninstRPC::error) 
-								{
-									//fprintf(stderr,"%u In controllerMainLoop (perfStream.C) ERROR 1\n",getpid());
-									// assume the client has exited, and leave.
-									cleanUpAndExit(-1);
-								}
-						}
-				}
-			
-			// TODO - move this into an os dependent area
-			ct = P_select(width+1, &readSet, NULL, &errorSet, &pollTimeStruct);
-			if (ct <= 0)
-				continue;
-			
+      extern void doDeferedRPCasyncXDRWrite();
+      doDeferedRPCasyncXDRWrite();
+
 #if !defined(os_windows)
-			if (FD_ISSET(ntwrk->get_SocketFd(), &errorSet)) 
-				{
-					// Don't forward more messages to the frontend.
-					frontendExited = true;
-					// paradyn is gone so we go too.
-					cleanUpAndExit(-1);
-				}
+      timeLength pollTime(50, timeUnit::ms());
+      // this is the time (rather arbitrarily) chosen fixed time length
+      // in which to check for signals, etc.
+#else
+      // Windows NT wait happens in WaitForDebugEvent (in pdwinnt.C)
+      timeLength pollTime = timeLength::Zero();
+#endif
+      
+      checkAndDoShmSampling(&pollTime);
+      // does shm sampling of each process, as appropriate.
+      // may update pollTimeUSecs.
+      
+      pollTimeStruct.tv_sec  = 
+          static_cast<long>(pollTime.getI(timeUnit::sec()));
+      pollTimeStruct.tv_usec = 
+          static_cast<long>(pollTime.getI(timeUnit::us()));
+      
+      // This fd may have been read from prior to entering this loop
+      // There may be some bytes lying around
+      if (check_buffer_first) {
+          bool processed_data = true;
+          while (processed_data) {
+              T_dyninstRPC::message_tags ret =tp->waitLoop(ntwrk, &processed_data);
+              if (ret == T_dyninstRPC::error) {
+                  //fprintf(stderr,"%u In controllerMainLoop (perfStream.C) ERROR 1\n",getpid());
+                  // assume the client has exited, and leave.
+                  cleanUpAndExit(-1);
+              }
+          }
+      }
+      
+      // TODO - move this into an os dependent area
+      ct = P_select(width+1, &readSet, NULL, &errorSet, &pollTimeStruct);
+      if (ct <= 0)
+          continue;
+      
+#if !defined(os_windows)
+      if (FD_ISSET(ntwrk->get_SocketFd(), &errorSet)) {
+          // Don't forward more messages to the frontend.
+          frontendExited = true;
+          // paradyn is gone so we go too.
+          cleanUpAndExit(-1);
+      }
 #else
       // WinSock indicates the socket closed as a read event.  When
       // reading on the socket, the number of bytes available is zero.
-      if( FD_ISSET( ntwrk->get_SocketFd(), &readSet ))
-				{
-					int junk;
-					int nbytes = recv(ntwrk->get_SocketFd(), (char*)&junk, sizeof(junk),
-														MSG_PEEK );
-					if( nbytes == 0 ) 
-						{
-							// No more messages to Daddy
-							frontendExited = true;
-							// paradyn is gone so we go too
-							cleanUpAndExit(-1);
-						}
-				}
+      if( FD_ISSET( ntwrk->get_SocketFd(), &readSet )) {
+          int junk;
+          int nbytes = recv(ntwrk->get_SocketFd(), (char*)&junk, sizeof(junk),
+                            MSG_PEEK );
+          if( nbytes == 0 ) {
+              // No more messages to Daddy
+              frontendExited = true;
+              // paradyn is gone so we go too
+              cleanUpAndExit(-1);
+          }
+      }
 #endif // !defined(i386_unknown_nt4_0)
       bool delayIGENrequests=false;
-			
+      
       // if we are waiting for a system call to complete in order to
       // launch an inferiorRPC, we will avoid processing any igen
       // request - naim
-      if (!delayIGENrequests) 
-			{
-				// Check if something has arrived from Paradyn on our igen link.
-				if (FD_ISSET(ntwrk->get_SocketFd(), &readSet))
-					{
-						bool processed_data = true;
-						while (processed_data) {
-							T_dyninstRPC::message_tags ret =tp->waitLoop(ntwrk, &processed_data);
-							if (ret == T_dyninstRPC::error) {
-								// assume the client has exited, and leave.
-								cleanUpAndExit(-1);
-							}
-						}
-					}
-				while (tp->buffered_requests())
-				{
-					T_dyninstRPC::message_tags ret = tp->process_buffered(defaultStream );
-					if (ret == T_dyninstRPC::error)
-					{
-						cleanUpAndExit(-1);
-					}
-				}
-			}
-		}
+      if (!delayIGENrequests) {
+          // Check if something has arrived from Paradyn on our igen link.
+          if (FD_ISSET(ntwrk->get_SocketFd(), &readSet)) {
+              bool processed_data = true;
+              while (processed_data) {
+                  T_dyninstRPC::message_tags ret =tp->waitLoop(ntwrk, &processed_data);
+                  if (ret == T_dyninstRPC::error) {
+                      // assume the client has exited, and leave.
+                      cleanUpAndExit(-1);
+                  }
+              }
+          }
+          while (tp->buffered_requests()) {
+              T_dyninstRPC::message_tags ret = tp->process_buffered(defaultStream );
+              if (ret == T_dyninstRPC::error) {
+                  cleanUpAndExit(-1);
+              }
+          }
+      }
+   }
 }
 
 static void createResource(int pid, traceHeader *header, struct _newresource *r)
