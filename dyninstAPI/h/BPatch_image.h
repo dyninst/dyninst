@@ -78,6 +78,7 @@ class ThreadLibrary;
 #define DYNINST_CLASS_NAME BPatch_image
 
 class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eventLock {
+    friend class BPatch; // registerLoaded... callbacks
     friend class ThreadLibrary;
     friend class BPatch_module; // access to findOrCreate...
     friend class process; // Which also needs findOrCreate because we upcall when a library is loaded.
@@ -284,10 +285,13 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
 
 private:
     BPatch_Vector<BPatch_module *> modlist;
+    BPatch_Vector<BPatch_module *> removed_list;
     BPatch_module *defaultModule;
 
+    BPatch_module *findModule(mapped_module *base);
     BPatch_module *findOrCreateModule(mapped_module *base);
-    
+    void removeModule(BPatch_module *mod);
+
     AddrToVarExprHash *AddrToVarExpr;
 
     // These private "find" functions convert from internal int_function

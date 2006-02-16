@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.79 2005/11/21 17:16:11 jaw Exp $
+// $Id: BPatch_image.C,v 1.80 2006/02/16 20:42:23 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -114,6 +114,10 @@ BPatch_image::~BPatch_image()
     for (unsigned int i = 0; i < modlist.size(); i++) {
 	 delete modlist[i];
     }
+    for (unsigned j = 0; j < removed_list.size(); j++) {
+        delete removed_list[j];
+    }
+
     delete AddrToVarExpr;
 }
 /*
@@ -922,7 +926,9 @@ int  BPatch_image::lpTypeInt()
 };
 #endif
 
-BPatch_module *BPatch_image::findOrCreateModule(mapped_module *base) {
+BPatch_module *BPatch_image::findModule(mapped_module *base) {
+    // As below, but don't create if none already exists
+
     BPatch_module *bpm = NULL;
     for (unsigned j = 0; j < modlist.size(); j++) {
         if (modlist[j]->lowlevel_mod() == base) {
@@ -930,6 +936,12 @@ BPatch_module *BPatch_image::findOrCreateModule(mapped_module *base) {
             break;
         }
     }
+    return bpm;
+}
+
+BPatch_module *BPatch_image::findOrCreateModule(mapped_module *base) {
+    BPatch_module *bpm = findModule(base);
+
     if (bpm == NULL) {
         bpm = new BPatch_module( proc, base, this );
         modlist.push_back( bpm );
@@ -937,4 +949,18 @@ BPatch_module *BPatch_image::findOrCreateModule(mapped_module *base) {
     assert(bpm != NULL);
     return bpm;
 }
-    
+
+void BPatch_image::removeModule(BPatch_module *mod) {
+#ifndef IBM_BPATCH_COMPAT
+    for (unsigned j = 0; j < modlist.size(); j++) {
+        if (modlist[j] == mod) {
+            modlist.erase(j);
+        }
+    }
+#else
+    modlist.erase(std::find(modlist.begin(),
+                            modlist.end(),
+                            mod));
+#endif
+}
+
