@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test7_9.C,v 1.2 2005/11/22 19:41:08 bpellin Exp $
+// $Id: test7_9.C,v 1.3 2006/02/16 17:41:39 bpellin Exp $
 /*
  * #Name: test7_9
  * #Desc: Memory deallocate in parent
@@ -146,9 +146,9 @@ void postForkFunc(BPatch_thread *parent, BPatch_thread *child)
     /* For later identification */
     childThread = child;
     dprintf("Preparing tests on parent\n");
-    prepareTestCase2(Parent_p, parent, PostFork);
+    prepareTestCase9(Parent_p, parent, PostFork);
     dprintf("Preparing tests on child\n");
-    prepareTestCase2(Child_p,  child,  PostFork);
+    prepareTestCase9(Child_p,  child,  PostFork);
     dprintf("Fork handler finished (parent %p, child %p)\n", parent, child);
 }
 
@@ -157,13 +157,13 @@ void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type) {
     dprintf("Exit func called\n");
     if (thread == parentThread) {
         dprintf("Parent exit reached, checking...\n");
-        checkTestCase2(Parent_p, thread);
+        checkTestCase9(Parent_p, thread);
         parentDone = true;
         dprintf("Parent done\n");
     }
     else if (thread == childThread) {
         dprintf("Child exit reached, checking...\n");
-        checkTestCase2(Child_p, thread);
+        checkTestCase9(Child_p, thread);
         dprintf("Child done\n");
         childDone = true;
     }
@@ -181,7 +181,7 @@ void initialPreparation(BPatch_thread *parent)
    assert(parent->isStopped());
 
    //cerr << "ok, inserting instr\n";
-   prepareTestCase2(Parent_p, parent, PreFork);
+   prepareTestCase9(Parent_p, parent, PreFork);
 }
 
 int mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
