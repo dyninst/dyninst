@@ -417,20 +417,6 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
   FD_ZERO(&readSet);
   FD_ZERO(&errSet);
 
-  struct timeval timeout;
-  //timeout.tv_usec = 1000*100;
-#if defined(os_windows)
-  timeout.tv_sec = 20;
-#elif defined(arch_ia64)
-  timeout.tv_sec = 1;
-#elif defined(os_linux)
-  timeout.tv_sec = 5;
-#else
-  timeout.tv_sec = 5;
-#endif
-  timeout.tv_sec = 10;
-  timeout.tv_usec = 100*1000;
-
   //  start off with a NULL event:
   ev.type = evtNullEvent;
 
@@ -457,12 +443,13 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
 
   __UNLOCK;
 
-  if (-1 == P_select(width+1, &readSet, NULL, &errSet, &timeout)) {
+  int result = P_select(width+1, &readSet, NULL, &errSet, NULL);
+  if (-1 == result) {
     __LOCK;
     if (errno == EBADF) {
       if (!cleanUpTerminatedProcs()) {
-        //fprintf(stderr, "%s[%d]:  FIXME:  select got EBADF, but no procs terminated\n",
-        //       __FILE__, __LINE__);
+        //fprintf(stderr, "%s[%d]:  FIXME:  select got EBADF, but no procs "
+        // "terminated\n", __FILE__, __LINE__);
         __UNLOCK;
         return false;
       }
@@ -486,30 +473,26 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
      struct sockaddr cli_addr;
      SOCKLEN_T clilen = sizeof(cli_addr);
      
-     //fprintf(stderr, "%s[%d]:  about to accept\n", __FILE__, __LINE__); 
-
      int new_fd = P_accept(sock, (struct sockaddr *) &cli_addr, &clilen);
      if (-1 == new_fd) {
        bperr("%s[%d]:  accept failed\n", __FILE__, __LINE__);
        return false;
      }
-     else {
-       async_printf("%s[%d]:  about to read new connection\n", __FILE__, __LINE__); 
-       //  do a (blocking) read so that we can get the pid associated with
-       //  this connection.
-       EventRecord pid_ev;
-       if (! readEvent(new_fd, pid_ev)) {
-         fprintf(stderr,"%s[%d]:  readEvent failed due to process termination\n", __FILE__, __LINE__);
-         //bperr("%s[%d]:  readEvent failed\n", __FILE__, __LINE__);
-         return false;
-       }
-       else {
-         assert(pid_ev.type == evtNewConnection);
-         ev = pid_ev;
-         async_printf("%s[%d]:  new connection to %d\n", __FILE__, __LINE__, ev.proc->getPid());
-         ev.what = new_fd;
-       }
+     async_printf("%s[%d]:  about to read new connection\n", __FILE__, __LINE__); 
+     //  do a (blocking) read so that we can get the pid associated with
+     //  this connection.
+     EventRecord pid_ev;
+     if (!readEvent(new_fd, pid_ev)) {
+        fprintf(stderr,"%s[%d]:  readEvent failed due to process termination\n",
+                __FILE__, __LINE__);
+        //bperr("%s[%d]:  readEvent failed\n", __FILE__, __LINE__);
+        return false;
      }
+     assert(pid_ev.type == evtNewConnection);
+     ev = pid_ev;
+     async_printf("%s[%d]:  new connection to %d\n",  __FILE__, __LINE__, 
+                  ev.proc->getPid());
+     ev.what = new_fd;
   }
 
   ////////////////////////////////////////
@@ -519,63 +502,53 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
   __LOCK;
   //  See if we have any processes reporting events:
 
-  for (unsigned int j = 0; j < process_fds.size(); ++j) {
+  for (unsigned int j = 0; j < process_fds.size(); ++j) 
+  {
     if (-1 == process_fds[j].fd) continue;
 
     //  Possible race here, if mutator removes fd from set, but events
     //  are pending??
 
-    if (FD_ISSET(process_fds[j].fd, &readSet)) { 
+    if (!FD_ISSET(process_fds[j].fd, &readSet)) 
+       continue;
 
-      // Read event
-      EventRecord new_ev;
+    // Read event
+    EventRecord new_ev;
+    
+    bool result = readEvent(process_fds[j].fd, new_ev);
+    if (!result) 
+    { 
+       //  This read can fail if the mutatee has exited.  Just note that this
+       //  fd is no longer valid, and keep quiet.
+       //if (process_fds[j].process->isTerminated()) {
+       async_printf("%s[%d]:  read event failed\n", __FILE__, __LINE__);
+       //  remove this process/fd from our vector
+       async_printf("%s[%d]:  readEvent failed due to process termination\n", 
+                    __FILE__, __LINE__);
+       for (unsigned int k = j+1; k < process_fds.size(); ++k) {
+          process_fds[j] = process_fds[k];
+       }
+       process_fds.pop_back();
+       // and decrement counter so we examine this element (j) again
+       j--;
+       continue;
+    }
+    if (new_ev.type == evtNullEvent) {
+       continue;
+    }
 
-      if (! readEvent(process_fds[j].fd, new_ev)) { 
-        //  This read can fail if the mutatee has exited.  Just note that this
-        //  fd is no longer valid, and keep quiet.
-        //if (process_fds[j].process->isTerminated()) {
-        async_printf("%s[%d]:  read event failed\n", FILE__, __LINE__);
-        if (1) {
-          //  remove this process/fd from our vector
-          async_printf("%s[%d]:  readEvent failed due to process termination\n", __FILE__, __LINE__);
-          for (unsigned int k = j+1; k < process_fds.size(); ++k) {
-            process_fds[j] = process_fds[k];
-          }
-          process_fds.pop_back();
-          // and decrement counter so we examine this element (j) again
-          j--;
-        }
-        else
-          bperr("%s[%d]:  readEvent failed\n", __FILE__, __LINE__);
-      }
-      else { // ok
-
-        if (ev.type != evtNullEvent) {
-          ev = new_ev;
-          ev.what = process_fds[j].fd;
-        }
-        else {
-          // Queue up events if we got more than one.
-          //  NOT SAFE???
-          if (new_ev.type != evtNullEvent) {
-            EventRecord qev = new_ev;
-            qev.what = process_fds[j].fd;
-            event_queue.push_back(qev);
-          }
-        }
-
-      }
-      
+    new_ev.what = process_fds[j].fd;
+    if (ev.type == evtNullEvent) {
+       //If ev is unset, then set ev to new_ev
+       ev = new_ev;
+    }
+    else {
+       // If ev is set, then queue up new_ev as we got more than one.
+       event_queue.push_back(new_ev);
     }
   }
-#if 0
-  fprintf(stderr, "%s[%d]:  leaving waitNextEvent: events in queue:\n", __FILE__, __LINE__);
-  for (unsigned int r = 0; r < event_queue.size(); ++r) {
-    fprintf(stderr, "\t%s\n", eventType2str(event_queue[r].type));
-  }
-#endif
   async_printf("%s[%d]: leaving waitnextEvent\n",  FILE__, __LINE__);
-
+  
   __UNLOCK;
   return true;
 }

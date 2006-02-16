@@ -289,10 +289,7 @@ process *SignalGeneratorCommon::newProcess(pdstring file_, pdstring dir,
   //  debug events is the thread that spawned the process. 
 
   if (!sg->createThread()) {
-     fprintf(stderr, "%s[%d]:  failed to create event handler thread for %s\n", 
-             FILE__, __LINE__, getThreadStr(getExecThreadID()));
      delete sg;
-     fprintf(stderr, "%s[%d]: WARN:  removed delete theProc\n", FILE__, __LINE__);
      //delete theProc;
      getMailbox()->executeCallbacks(FILE__, __LINE__);
      return NULL;
@@ -427,8 +424,8 @@ process *SignalGeneratorCommon::newProcess(pdstring &progpath, int pid_)
   //  debug events is the thread that spawned the process. 
 
   if (!sg->createThread()) {
-     fprintf(stderr, "%s[%d]:  failed to create event handler thread for %s\n", 
-             FILE__, __LINE__, getThreadStr(getExecThreadID()));
+     signal_printf("%s[%d]:  failed to create event handler thread %s\n", 
+                   FILE__, __LINE__, getThreadStr(getExecThreadID()));
      delete sg;
      getMailbox()->executeCallbacks(FILE__, __LINE__);
      return NULL;
@@ -528,10 +525,10 @@ bool SignalGeneratorCommon::wakeUpThreadForShutDown()
    assert(global_mutex->depth());
 
   if (waiting_for_event) {
-    fprintf(stderr, "%s[%d]:  sending SIGTRAP to wake up signal handler\n", FILE__, __LINE__);
+    signal_printf("%s[%d]:  sending SIGTRAP to wake up signal handler\n", FILE__, __LINE__);
     P_kill (pid, sig_to_send);
     waitForEvent(evtShutDown, proc);
-    fprintf(stderr, "%s[%d][%s]:  got shutdown event\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
+    signal_printf("%s[%d][%s]:  got shutdown event\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
   }
   else if (waiting_for_active_process) {
     signalEvent(evtShutDown);
@@ -543,7 +540,6 @@ bool SignalGeneratorCommon::wakeUpThreadForShutDown()
 
 SignalGeneratorCommon::~SignalGeneratorCommon() 
 {
-  fprintf(stderr, "%s[%d]:  welcome to ~SignalGenerator\n", FILE__, __LINE__);
   //killThread();
 
   for (unsigned int i = 0; i < handlers.size(); ++i) {
@@ -618,29 +614,20 @@ bool SignalGeneratorCommon::initialize_event_handler()
     proc->createRepresentativeLWP();
 
     if (!attachProcess()) {
-       fprintf(stderr, "%s[%d]:  failed to attach to process %d\n", FILE__, __LINE__,
-               pid);
        delete proc;
        proc = NULL;
        return false;
     }
 
-#if defined(i386_unknown_nt4_0)
+#if defined(os_windows)
     int status = (int)INVALID_HANDLE_VALUE;    // indicates we need to obtain a valid handle
 #else
     int status = pid;
 #endif // defined(i386_unknown_nt4_0)
 
     fileDescriptor desc;
-    if (!getExecFileDescriptor(file,
-#if defined(os_windows)
-                             (int)INVALID_HANDLE_VALUE,
-#else
-                             pid,
-#endif
-                             false,
-                             status,
-                             desc)) {
+    if (!getExecFileDescriptor(file, status, false, status, desc)) 
+    {
         delete proc;
         proc = NULL;
         return false;

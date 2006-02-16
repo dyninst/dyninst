@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.192 2006/02/14 23:50:15 jaw Exp $
+// $Id: linux.C,v 1.193 2006/02/16 00:57:15 legendre Exp $
 
 #include <fstream>
 
@@ -56,7 +56,6 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <linux/wait.h>
 #include <sys/wait.h>
 #include <dirent.h>
 #include <sys/resource.h>
@@ -358,10 +357,6 @@ pid_t SignalGenerator::waitpid_kludge(pid_t pid_arg, int *status, int options, i
     }
 
     ret = waitpid(pid_arg, status, wait_options); 
-    struct timeval slp;
-    slp.tv_sec = 0;
-    slp.tv_usec = 10 /*ms*/ *1000;
-    select(0, NULL, NULL, NULL, &slp);
   } while (ret == 0);
 
   return ret; 
@@ -390,97 +385,74 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
    //  __WNOTHREAD signifies that children of other threads (other signal handlers)
    //  should not be listened for.
 
-   int wait_options = proc->getRepresentativeLWP() ? 0 : __WNOTHREAD; 
-   //int wait_options =  __WNOTHREAD;
+  int wait_options = __WALL;
 
-   waiting_for_event = true;
-    __UNLOCK;
-    waitpid_pid = waitpid_kludge( pid_to_wait_for /** pid*/ /* -1 for any child*/, 
-                                  &status, wait_options, &dead_lwp );
-    __LOCK;
-   waiting_for_event = false;
-    
-   if (waitpid_pid < 0 && errno == ECHILD) {
-        fprintf(stderr, "%s[%d]:  waitpid failed with ECHILD\n", __FILE__, __LINE__);
-        //assert(0);
-        return false; /* nothing to wait for */
-    } else if (waitpid_pid < 0) {
-        perror("checkForEventLinux: waitpid failure");
-    } else if(waitpid_pid == 0) {
-        fprintf(stderr, "%s[%d]:  waitpid \n", __FILE__, __LINE__);
-        return false;
-    }
+  waiting_for_event = true;
+  __UNLOCK;
+  waitpid_pid = waitpid_kludge( pid_to_wait_for /* -1 for any child*/, 
+                                &status, wait_options, &dead_lwp );
+  __LOCK;
+  waiting_for_event = false;
 
-   //  If the UI thread wants to initiate a shutdown, it might set a flag and 
-   //  then send a SIGTRAP to the mutatee process, so as to wake up the
-   //  event handling system.  A shutdown event trumps all others, so we handle it
-   //  first.
+  if (waitpid_pid < 0 && errno == ECHILD) {
+     fprintf(stderr, "%s[%d]:  waitpid failed with ECHILD\n", __FILE__, __LINE__);
+     //assert(0);
+     return false; /* nothing to wait for */
+  } else if (waitpid_pid < 0) {
+     perror("checkForEventLinux: waitpid failure");
+  } else if(waitpid_pid == 0) {
+     fprintf(stderr, "%s[%d]:  waitpid \n", __FILE__, __LINE__);
+     return false;
+  }
 
-   if (stop_request) {
+  //  If the UI thread wants to initiate a shutdown, it might set a flag and 
+  //  then send a SIGTRAP to the mutatee process, so as to wake up the
+  //  event handling system.  A shutdown event trumps all others, so we handle it
+  //  first.
+  
+  if (stop_request) {
      ev.type = evtShutDown;
      ev.proc = proc;
      return true;
-   }
+  }
 
-   //   sanity check, make sure we got the right pid
-   if (pid != waitpid_pid) {
-      fprintf(stderr, "%s[%d]:  awful...  got event for wrong process: %d not %d\n", 
-              FILE__, __LINE__, waitpid_pid, pid);
-      return false;
-   }
+  ev.proc = proc;
+  ev.lwp = proc->lookupLWP(waitpid_pid);
+  ev.type = evtUndefined;
 
-   ev.proc = proc;
-   ev.lwp = ev.proc->getRepresentativeLWP();
-   ev.type = evtUndefined;
+  assert(ev.lwp);
+  assert(ev.lwp->proc() == proc);
+  
+  if (!ev.lwp->is_attached()) {
+     //  Hijack thread detection events here (very platform specific)
+     ev.type = evtThreadDetect;
+     return true;
+  }
 
-   if (!ev.lwp) {
-      fprintf(stderr, "%s[%d]:  no representative lwp\n", FILE__, __LINE__);
-      //  MT Linux apps will have a NULL representative LWP
-      if ((ev.lwp = ev.proc->lookupLWP(pid))) {
-            if (!ev.lwp->is_attached()) {
-              //  Hijack thread detection events here (very platform specific)
-              //  -- XXX ugly
-              ev.type = evtThreadDetect;
-              return true;
-            }
-      }
-      else if (!ev.proc->getInitialThread() 
-               || !(ev.lwp = ev.proc->getInitialThread()->get_lwp())) {
-           fprintf(stderr, "%s[%d]:  no initial thread \n", FILE__, __LINE__);
-           //  return true here so that we enter the waitpid loop again, which 
-           //  will catch the process exit signal
-	   return true; //We must be shutting down
-      }
-      else {
-        assert(0);
-      }
-   }
-
-   assert(ev.lwp);
-   ev.proc->set_lwp_status(ev.lwp, stopped);
-   ev.type = evtUndefined;
-   ev.info = status;
+  assert(ev.lwp);
+  ev.proc->set_lwp_status(ev.lwp, stopped);
+  ev.type = evtUndefined;
+  ev.info = status;
    
-   bool process_exited = WIFEXITED(status) || dead_lwp;
-   if ((process_exited) && (pid != ev.proc->getPid())) {
-      proccontrol_printf("%s[%d]: Received a thread deletion event for %d\n", 
+  bool process_exited = WIFEXITED(status) || dead_lwp;
+  if ((process_exited) && (pid != ev.proc->getPid())) {
+     proccontrol_printf("%s[%d]: Received a thread deletion event for %d\n", 
                         FILE__, __LINE__, ev.lwp->get_lwp_id());
-      signal_printf("%s[%d]: Received a thread deletion event for %d\n", 
-                        FILE__, __LINE__, ev.lwp->get_lwp_id());
-      // Thread exited via signal
-      ev.type = evtSyscallEntry;      
-      ev.what = SYS_lwp_exit;
-      decodeSyscall(ev);
-   }
+     signal_printf("%s[%d]: Received a thread deletion event for %d\n", 
+                   FILE__, __LINE__, ev.lwp->get_lwp_id());
+     // Thread exited via signal
+     ev.type = evtSyscallEntry;      
+     ev.what = SYS_lwp_exit;
+     decodeSyscall(ev);
+  }
 
-   if (!decodeEvent(ev)) {
+  if (!decodeEvent(ev)) {
      char buf[128];
      fprintf(stderr, "%s[%d]:  FIXME: %s\n", __FILE__, __LINE__, ev.sprint_event(buf));
      return false;
-   }
+  }
 
-   return true;
-
+  return true;
 }
 
 void process::independentLwpControlInit() 
@@ -555,10 +527,12 @@ static int lwp_kill(int pid, int sig)
   if (result == -1 && errno == ENOSYS)
   {
      result = P_kill(pid, sig);
-     proccontrol_printf("%s[%d]: Sent %d to %d via kill\n", FILE__, __LINE__, sig, pid);
+     proccontrol_printf("%s[%d]: Sent %d to %d via kill\n", FILE__, __LINE__, 
+                        sig, pid);
   }
   else
-     proccontrol_printf("%s[%d]: Sent %d to %d via tkill\n", FILE__, __LINE__, sig, pid);
+     proccontrol_printf("%s[%d]: Sent %d to %d via tkill\n", FILE__, __LINE__, 
+                        sig, pid);
 
   return result;
 }
@@ -601,7 +575,6 @@ bool process::isRunning_() const
   char result = getState(getPid());
 //  assert(result != '\0');
   if (result == '\0') {
-    fprintf(stderr, "%s[%d]:  WARN:  removed assert here\n", FILE__, __LINE__);
     return false;
   }
   return (result != 'T');
@@ -829,11 +802,9 @@ bool process::waitUntilStopped()
 bool process::waitUntilLWPStops()
 {
 
-  fprintf(stderr, "%s[%d]:  welcome to waitUntilLWPStops\n", FILE__, __LINE__);
   ((SignalGenerator *)sh)->setWaitingForStop(true);
   while ( status() != stopped) {
     if (status() == exited) {
-      fprintf(stderr, "%s[%d]:  process exited\n", __FILE__, __LINE__);
       return false;
     }
     signal_printf("%s[%d][%s]:  before waitForEvent(evtProcessStop)\n", 
@@ -1530,7 +1501,7 @@ bool dyn_lwp::realLWP_attach_() {
    char procName[128];
    sprintf(procName, "/proc/%d/mem", get_lwp_id());
    fd_ = P_open(procName, O_RDWR, 0);
-   if (fd_ < 0) 
+   if (fd_ < 0)
      fd_ = INVALID_HANDLE_VALUE;
 
    startup_printf("%s[%d]:  realLWP_attach doing PTRACE_ATTACH to %lu\n", 
@@ -1545,14 +1516,17 @@ bool dyn_lwp::realLWP_attach_() {
    }
    
    proc()->sh->add_lwp_to_poll_list(this);
-   eventType evt;
-   if (evtThreadDetect != (evt = proc()->sh->waitForEvent(evtThreadDetect, proc_, this))) {
-     fprintf(stderr, "%s[%d]:  received unexpected event %s\n", FILE__, __LINE__, eventType2str(evt));
-     abort();
-   }
 
+   eventType evt;
+   evt = proc()->sh->waitForEvent(evtThreadDetect, proc_, this);
+   if (evt != evtThreadDetect) {
+      fprintf(stderr, "%s[%d]:  received unexpected event %s\n", 
+              __FILE__, __LINE__, eventType2str(evt));
+      abort();
+   }
    if (proc_->status() == running)
       continueLWP();
+
    return true;
 }
 
@@ -1588,7 +1562,7 @@ bool dyn_lwp::representativeLWP_attach_() {
 
       if( 0 != DBI_ptrace(PTRACE_ATTACH, getPid(), 0, 0, &ptrace_errno, address_width, __FILE__, __LINE__) )
       {
-         fprintf(stderr, "%s[%d]:  ptrace attach to pid %d failing\n", FILE__, __LINE__, getPid());
+         startup_printf("%s[%d]:  ptrace attach to pid %d failing\n", FILE__, __LINE__, getPid());
          perror( "process::attach - PTRACE_ATTACH" );
          return false;
       }
@@ -1642,7 +1616,6 @@ bool dyn_lwp::representativeLWP_attach_() {
          perror("process::attach: WAITPID");
          return false;
       }
-
       /* continue, resending the TRAP to emulate the normal situation*/
       if ( 0 > kill(getPid(), SIGTRAP)){
          perror("process::attach: KILL");
