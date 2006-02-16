@@ -93,11 +93,11 @@ BPatch_instruction::~BPatch_instruction() {
    if (buffer)
       delete[] buffer;
 
-   delete isLoad;
-   delete isStore;
-   delete preFcn;
-   delete condition;
-   delete nonTemporal;
+   delete[] isLoad;
+   delete[] isStore;
+   delete[] preFcn;
+   delete[] condition;
+   delete[] nonTemporal;
 }
 
 BPatch_basicBlock *BPatch_instruction::getParentInt()

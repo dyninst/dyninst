@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: MemoryAccess.C,v 1.9 2005/12/12 16:37:08 gquinn Exp $ */
+/* $Id: MemoryAccess.C,v 1.10 2006/02/16 03:55:00 jodom Exp $ */
 
 #include "BPatch_memoryAccess_NP.h"
 #include "BPatch_point.h"
@@ -308,8 +308,8 @@ BPatch_countSpec_NP BPatch_memoryAccess::getByteCount_NP(int which) const
 }
 
 BPatch_memoryAccess::~BPatch_memoryAccess() {
-   delete start;
-   delete count;
+   delete[] start;
+   delete[] count;
 }
 
 BPatch_memoryAccess* const BPatch_memoryAccess::none = init_tables();
