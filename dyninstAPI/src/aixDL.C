@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.64 2006/01/30 07:16:52 jaw Exp $
+// $Id: aixDL.C,v 1.65 2006/02/16 20:42:27 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -69,24 +69,44 @@ bool dynamic_linking::installTracing() {
     // We get this from the (already-parsed) listing of libc.
 
   // Should check only libc.a...
-  //int_function *load1 = proc->findOnlyOneFunction(pdstring("load1"));
+
   AstNode *retval = new AstNode(AstNode::ReturnVal, (void *)0);
   instMapping *loadInst = new instMapping("load1", "DYNINST_instLoadLibrary",
 					  FUNC_EXIT | FUNC_ARG,
 					  retval);
+  instMapping *unloadInst = new instMapping("unload", "DYNINST_instLoadLibrary",
+                                            FUNC_EXIT | FUNC_ARG,
+                                            retval);
+  
   loadInst->dontUseTrampGuard();
+  unloadInst->dontUseTrampGuard();
+
   removeAst(retval);
   pdvector<instMapping *>instReqs;
   instReqs.push_back(loadInst);
+  instReqs.push_back(unloadInst);
   proc->installInstrRequests(instReqs);
   if (loadInst->miniTramps.size()) {
       sharedLibHook *sharedHook = new sharedLibHook(proc, SLH_UNKNOWN,
                                                     loadInst);
       sharedLibHooks_.push_back(sharedHook);
       instru_based = true;
-      return true;
   }
-  else {
+  if (unloadInst->miniTramps.size()) {
+      sharedLibHook *sharedHook = new sharedLibHook(proc, SLH_UNKNOWN,
+                                                    unloadInst);
+      sharedLibHooks_.push_back(sharedHook);
+      instru_based = true;
+  }
+
+  if (sharedLibHooks_.size())
+      return true;
+  else
+      return false;
+
+
+#if 0
+      // Seriously deprecated
       const pdvector<mapped_object *> &objs = proc->mappedObjects();
       
       // Get libc
@@ -138,8 +158,7 @@ bool dynamic_linking::installTracing() {
         funcIter++;
     }
   }
-  return true;
-  // TODO: handle dlclose as well
+#endif
 }
 
 // If result has entries, use them as a base (don't double-create)
