@@ -44,7 +44,6 @@
 
 #include "BPatch_dll.h"
 #include "BPatch_eventLock.h"
-#include "common/h/Types.h"
 
 class InstrucIter;
 class BPatch_basicBlock;
@@ -76,12 +75,12 @@ class BPATCH_DLL_EXPORT BPatch_instruction : public BPatch_eventLock{
   bool *nonTemporal; // non-temporal (cache non-polluting) write on x86
 
   BPatch_basicBlock *parent;
-  Address addr;
+  long unsigned int addr;
  public:
 
   BPatch_instruction(const void *_buffer,
 		     unsigned char _length,
-                     Address _addr);
+                     long unsigned int _addr);
   virtual ~BPatch_instruction();
 
   void getInstruction(unsigned char *&_buffer, unsigned char &_length) {

@@ -45,7 +45,6 @@
 #include "BPatch_dll.h"
 #include "BPatch_Vector.h"
 #include "BPatch_eventLock.h"
-#include "common/h/String.h"
 #include <string.h>	
 
 #if defined (USES_DWARF_DEBUG)
@@ -54,6 +53,7 @@
 #endif
 
 class BPatch_typeCommon;
+class pdstring;
 
 typedef enum {BPatchSymLocalVar,  BPatchSymGlobalVar, BPatchSymRegisterVar,
 	      BPatchSymStaticLocalVar, BPatchSymStaticGlobal,

@@ -39,11 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: MemoryAccess.C,v 1.10 2006/02/16 03:55:00 jodom Exp $ */
+/* $Id: MemoryAccess.C,v 1.11 2006/02/16 18:05:34 jodom Exp $ */
 
 #include "BPatch_memoryAccess_NP.h"
 #include "BPatch_point.h"
 #include "BPatch_Vector.h"
+#include "../../common/h/Types.h"
 
 extern void initOpCodeInfo();
 
