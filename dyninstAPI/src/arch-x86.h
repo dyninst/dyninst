@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.39 2006/01/14 23:47:42 nater Exp $
+// $Id: arch-x86.h,v 1.40 2006/02/16 17:38:36 rutar Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -343,6 +343,13 @@ enum { am_A=1, am_C, am_D, am_E, am_F, am_G, am_I, am_J, am_M, am_O, // 10
 enum { op_a=1, op_b, op_c, op_d, op_dq, op_p, op_pd, op_pi, op_ps, // 9 
        op_q, op_s, op_sd, op_ss, op_si, op_v, op_w, op_z, op_lea, op_allgprs, op_512 };
 
+
+// tables and pseudotables
+enum {
+  t_ill=0, t_oneB, t_twoB, t_prefixedSSE, t_coprocEsc, t_grp, t_sse, t_grpsse, t_3dnow, t_done=99
+};
+
+
 // registers [only fancy names, not used right now]
 enum { r_AH=100, r_BH, r_CH, r_DH, r_AL, r_BL, r_CL, r_DL, //107
        r_AX, r_DX, //109
@@ -574,6 +581,7 @@ class ia32_instruction
                                           const ia32_prefixes& pref,
                                           const unsigned char* addr, 
                                           ia32_instruction& instruct,
+					  ia32_entry * entry,
                                           ia32_memacc *mac = NULL);
 
   unsigned int   size;
@@ -587,7 +595,7 @@ class ia32_instruction
 
  public:
   ia32_instruction(ia32_memacc* _mac = NULL, ia32_condition* _cnd = NULL)
-    : mac(_mac), cond(_cnd), rip_relative_data(false) {}
+    : mac(_mac), cond(_cnd), rip_relative_data(false), entry(NULL) {}
 
   ia32_entry * getEntry() { return entry; }
   unsigned int getSize() const { return size; }

@@ -831,18 +831,24 @@ bool InstrucIter::isFPWrite()
 {
   instruction i = getInstruction();
   ia32_instruction ii;
-
+  
   const unsigned char * addr = i.ptr();
-
-#if defined(os_windows) && _MSC_VER < 1300
+       
+ #if defined(os_windows) && _MSC_VER < 1300
   ia32_decode(0, addr,ii);
 #elif defined(os_windws)
   ia32_decode<0>(addr,ii);
 #else
   ia32_decode<0>(addr,ii);
 #endif
-
+    
   ia32_entry * entry = ii.getEntry();
+
+  assert(entry != NULL);
+  
+  /* X87 Floating Point Operations ... we don't care about the specifics */
+  if (entry->otable == t_coprocEsc)
+    return true;
 
   for ( int a = 0; a <  3; a++)
     {
@@ -877,71 +883,58 @@ void InstrucIter::readWriteRegisters(int * readRegs, int * writeRegs)
 
   ia32_entry * entry = ii.getEntry();
 
-  for (int a = 0; a < 3; a++)
+  if(entry != NULL)
     {
-      if (entry->operands[a].admet == am_G || /* GPR, selected by reg field (6) */
-	  entry->operands[a].admet == am_R || /* GPR, selected by mod field (13)*/
-	  entry->operands[a].admet == am_reg || /* implicit register (20)*/
-	  entry->operands[a].admet == am_E) /*register or memory location (4) */
+      for (int a = 0; a < 3; a++)
 	{
-	  if (a == 0)
+	  if (entry->operands[a].admet == am_G || /* GPR, selected by reg field (6) */
+	      entry->operands[a].admet == am_R || /* GPR, selected by mod field (13)*/
+	      entry->operands[a].admet == am_reg || /* implicit register (20)*/
+	      entry->operands[a].admet == am_E) /*register or memory location (4) */
 	    {
-	      if (entry->opsema == s1R || entry->opsema == s1RW || entry->opsema == s1R2R ||
-		  entry->opsema == s1RW2R || entry->opsema == s1RW2RW || entry->opsema == s1RW2R3R ||
-		  entry->opsema == s1RW2RW3R)
+	      if (a == 0)
 		{
-		  parseRegisters(readRegs,writeRegs,&i,&ii,a,READ_OP);
+		  if (entry->opsema == s1R || entry->opsema == s1RW || entry->opsema == s1R2R ||
+		      entry->opsema == s1RW2R || entry->opsema == s1RW2RW || entry->opsema == s1RW2R3R ||
+		      entry->opsema == s1RW2RW3R)
+		    {
+		      parseRegisters(readRegs,writeRegs,&i,&ii,a,READ_OP);
+		    }
+		  if(entry->opsema == s1W || entry->opsema == s1RW || entry->opsema == s1W2R ||
+		     entry->opsema == s1RW2R || entry->opsema == s1RW2RW || entry->opsema == s1W2R3R || 
+		     entry->opsema == s1W2W3R || entry->opsema == s1RW2R3R || entry->opsema == s1RW2RW3R ||
+		     entry->opsema == s1W2RW3R || entry->opsema == s1W2R3R)
+		    {
+		      parseRegisters(readRegs,writeRegs,&i,&ii,a,WRITE_OP);
+		    }
 		}
-	      if(entry->opsema == s1W || entry->opsema == s1RW || entry->opsema == s1W2R ||
-		      entry->opsema == s1RW2R || entry->opsema == s1RW2RW || entry->opsema == s1W2R3R || 
-		      entry->opsema == s1W2W3R || entry->opsema == s1RW2R3R || entry->opsema == s1RW2RW3R ||
-		      entry->opsema == s1W2RW3R || entry->opsema == s1W2R3R)
+	      else if (a == 1)
 		{
-		  parseRegisters(readRegs,writeRegs,&i,&ii,a,WRITE_OP);
+		  if (entry->opsema == s1R2R || entry->opsema == s1W2R || entry->opsema == s1RW2R ||
+		      entry->opsema == s1RW2RW || entry->opsema == s1W2R3R || entry->opsema == s1RW2R3R ||
+		      entry->opsema == s1RW2RW3R || entry->opsema == s1W2RW3R || entry->opsema == s1W2R3RW)
+		    {
+		      parseRegisters(readRegs,writeRegs,&i,&ii,a,READ_OP);
+		    }
+		  if(entry->opsema == s1RW2RW || entry->opsema == s1W2W3R || entry->opsema == s1W2RW3R ||
+		     entry->opsema == s1RW2RW3R )
+		    {
+		      parseRegisters(readRegs,writeRegs,&i,&ii,a,WRITE_OP);
+		    }
 		}
-	    }
-	  else if (a == 1)
-	    {
-	      if (entry->opsema == s1R2R || entry->opsema == s1W2R || entry->opsema == s1RW2R ||
-		  entry->opsema == s1RW2RW || entry->opsema == s1W2R3R || entry->opsema == s1RW2R3R ||
-		  entry->opsema == s1RW2RW3R || entry->opsema == s1W2RW3R || entry->opsema == s1W2R3RW)
+	      else if (a == 2)
 		{
-		  parseRegisters(readRegs,writeRegs,&i,&ii,a,READ_OP);
-		}
-	      if(entry->opsema == s1RW2RW || entry->opsema == s1W2W3R || entry->opsema == s1W2RW3R ||
-		      entry->opsema == s1RW2RW3R )
-		{
-		  parseRegisters(readRegs,writeRegs,&i,&ii,a,WRITE_OP);
-		}
-	    }
-	  else if (a == 2)
-	    {
-	      if (entry->opsema == s1W2R3R || entry->opsema == s1W2W3R || entry->opsema == s1W2RW3R ||
-		  entry->opsema == s1W2R3RW || entry->opsema == s1RW2R3R || entry->opsema == s1RW2RW3R)
-		{
-		  parseRegisters(readRegs,writeRegs,&i,&ii,a,READ_OP);
-		}
-	      if( entry->opsema == s1W2R3RW )
-		{
-		  parseRegisters(readRegs,writeRegs,&i,&ii,a,WRITE_OP);
+		  if (entry->opsema == s1W2R3R || entry->opsema == s1W2W3R || entry->opsema == s1W2RW3R ||
+		      entry->opsema == s1W2R3RW || entry->opsema == s1RW2R3R || entry->opsema == s1RW2RW3R)
+		    {
+		      parseRegisters(readRegs,writeRegs,&i,&ii,a,READ_OP);
+		    }
+		  if( entry->opsema == s1W2R3RW )
+		    {
+		      parseRegisters(readRegs,writeRegs,&i,&ii,a,WRITE_OP);
+		    }
 		}
 	    }
 	}
     }
-  /*
-  printf("\n");
-
-  printf("Read Regs ...");
-  for (int a = 0; a < 3; a++)
-    {
-      printf("%d ", readRegs[a]);
-    }
-  printf("\nWrite Regs ...");
-  
-  for (int a = 0; a < 3; a++)
-    {
-      printf("%d ",writeRegs[a]);
-    }
-  printf("\n");
-  */
 }

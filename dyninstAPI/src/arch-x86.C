@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.47 2006/02/01 18:24:01 nater Exp $
+// $Id: arch-x86.C,v 1.48 2006/02/16 17:38:36 rutar Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -57,10 +57,6 @@
 #include "InstrucIter.h"
 #include "dyninstAPI/src/emit-x86.h"
 
-// tables and pseudotables
-enum {
-  t_ill=0, t_oneB, t_twoB, t_prefixedSSE, t_coprocEsc, t_grp, t_sse, t_grpsse, t_3dnow, t_done=99
-};
 
 // groups
 enum {
@@ -1875,7 +1871,7 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
     instruct.legacy_type = ILLEGAL;
     return instruct;
   }
-    
+ 
   instruct.size = pref.getCount();
   addr += instruct.size;
 
@@ -1949,7 +1945,7 @@ ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instr
       instruct.legacy_type = 0;
       if(capa & IA32_DECODE_CONDITION)
         ; // FIXME: translation to tttn & set it
-      return ia32_decode_FP(idx, pref, addr, instruct, instruct.mac);
+      return ia32_decode_FP(idx, pref, addr, instruct, gotit, instruct.mac);
     case t_3dnow:
       // 3D now opcodes are given as suffix: ModRM [SIB] [displacement] opcode
       // Right now we don't care what the actual opcode is, so there's no table
@@ -2159,7 +2155,7 @@ template ia32_instruction& ia32_decode<(IA32_DECODE_MEMACCESS|IA32_DECODE_CONDIT
 
 ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
                                  const unsigned char* addr, ia32_instruction& instruct,
-                                 ia32_memacc *mac)
+                                 ia32_entry * entry, ia32_memacc *mac)
 {
   unsigned int nib = byteSzB; // modRM
   unsigned int addrSzAttr = (pref.getPrefix(3) == PREFIX_SZADDR ? 1 : 2); // 32-bit mode implicit
@@ -2169,155 +2165,158 @@ ia32_instruction& ia32_decode_FP(unsigned int opcode, const ia32_prefixes& pref,
     nib += ia32_decode_modrm(addrSzAttr, addr, mac, &pref);
     // operand size has to be determined from opcode
     if(mac)
-      switch(opcode) {
-      case 0xD8: // all single real
-        mac->size = 4;
-        mac->read = true;
-        break;
-      case 0xD9: {
-        unsigned char modrm = addr[0];
-        unsigned char reg = (modrm >> 3) & 7;
-        switch(reg) {
-        case 0:
-          mac->size = 4;
-          mac->read = true;
-          break;
-        case 2:
-        case 3:
-          mac->size = 4;
-          mac->write = true;
-          break;
-        case 1:
-          instruct.legacy_type = ILLEGAL;
-          break;
-        case 4:
-          mac->size = 14 * operSzAttr;
-          mac->read = true;
-          break;
-        case 5:
-        mac->read = true;
-        mac->size = 2;
-        break;
-        case 6:
-          mac->size = 14 * operSzAttr;
-          mac->write = true;
-          break;
-        case 7:
-          mac->write = true;
-          mac->size = 2;
-          break;
-        }
-        break; }
-      case 0xDA:  // all double real
-        mac->size = 8;
-        mac->read = true;
-        break;
-      case 0xDB: {
-        unsigned char modrm = addr[0];
-        unsigned char reg = (modrm >> 3) & 7;
-        switch(reg) {
-        case 0:
-          mac->size = dwordSzB;
-          mac->read = true;
-          break;
-        case 2:
-        case 3:
-          mac->size = dwordSzB;
-          mac->write = true;
-          break;
-        case 1:
-        case 4:
-        case 6:
-          instruct.legacy_type = ILLEGAL;
-          break;
-        case 5:
-          mac->size = 10; // extended real
-          mac->read = true;
-          break;
-        case 7:
-          mac->size = 10; // extended real
-          mac->write = true;
-          break;
-        }
-        break; }
-      case 0xDC:   // all double real
-        mac->size = 8;
-        mac->read = true;
-        break;
-      case 0xDD: {
-        unsigned char modrm = addr[0];
-        unsigned char reg = (modrm >> 3) & 7;
-        switch(reg) {
-        case 0:
-          mac->size = 8;
-          mac->read = true;
-          break;
-        case 2:
-        case 3:
-          mac->size = 8;
-          mac->write = true;
-          break;
-        case 1:
-        case 5:
-          instruct.legacy_type = ILLEGAL;
-          break;
-        case 4:
-          mac->size = operSzAttr == 2 ? 108 : 98;
-          mac->read = true;
-          break;
-        case 6:
-          mac->size = operSzAttr == 2 ? 108 : 98;
-          mac->write = true;
-          break;
-        case 7:
-          mac->size = 2;
-          mac->write = true;
-          break;    
-        }
-        break; }
-      case 0xDE: // all word integer
-        mac->size = wordSzB;
-        mac->write = true;
-        break;
-      case 0xDF: {
-        unsigned char modrm = addr[0];
-        unsigned char reg = (modrm >> 3) & 7;
-        switch(reg) {
-        case 0:
-          mac->size = wordSzB;
-          mac->read = true;
-          break;
-        case 2:
-        case 3:
-          mac->size = wordSzB;
-          mac->write = true;
-          break;
-        case 1:
-          instruct.legacy_type = ILLEGAL;
-          break;
-        case 4:
-          mac->size = 10;
-          mac->read = true;
-          break;
-        case 5:
-          mac->size = 8;
-          mac->read = true;
-          break;
-        case 6:
-          mac->size = 10;
-          mac->write = true;
-          break;
-        case 7:
-          mac->size = 8;
-          mac->write = true;
-          break;
-        }
-        break; }
-      } // switch(opcode)
+      {
+	switch(opcode) {
+	case 0xD8: // all single real
+	  mac->size = 4;
+	  mac->read = true;
+	  break;
+	case 0xD9: {
+	  unsigned char modrm = addr[0];
+	  unsigned char reg = (modrm >> 3) & 7;
+	  switch(reg) {
+	  case 0:
+	    mac->size = 4;
+	    mac->read = true;
+	    break;
+	  case 2:
+	  case 3:
+	    mac->size = 4;
+	    mac->write = true;
+	    break;
+	  case 1:
+	    instruct.legacy_type = ILLEGAL;
+	    break;
+	  case 4:
+	    mac->size = 14 * operSzAttr;
+	    mac->read = true;
+	    break;
+	  case 5:
+	    mac->read = true;
+	    mac->size = 2;
+	    break;
+	  case 6:
+	    mac->size = 14 * operSzAttr;
+	    mac->write = true;
+	    break;
+	  case 7:
+	    mac->write = true;
+	    mac->size = 2;
+	    break;
+	  }
+	  break; }
+	case 0xDA:  // all double real
+	  mac->size = 8;
+	  mac->read = true;
+	  break;
+	case 0xDB: {
+	  unsigned char modrm = addr[0];
+	  unsigned char reg = (modrm >> 3) & 7;
+	  switch(reg) {
+	  case 0:
+	    mac->size = dwordSzB;
+	    mac->read = true;
+	    break;
+	  case 2:
+	  case 3:
+	    mac->size = dwordSzB;
+	    mac->write = true;
+	    break;
+	  case 1:
+	  case 4:
+	  case 6:
+	    instruct.legacy_type = ILLEGAL;
+	    break;
+	  case 5:
+	    mac->size = 10; // extended real
+	    mac->read = true;
+	    break;
+	  case 7:
+	    mac->size = 10; // extended real
+	    mac->write = true;
+	    break;
+	  }
+	  break; }
+	case 0xDC:   // all double real
+	  mac->size = 8;
+	  mac->read = true;
+	  break;
+	case 0xDD: {
+	  unsigned char modrm = addr[0];
+	  unsigned char reg = (modrm >> 3) & 7;
+	  switch(reg) {
+	  case 0:
+	    mac->size = 8;
+	    mac->read = true;
+	    break;
+	  case 2:
+	  case 3:
+	    mac->size = 8;
+	    mac->write = true;
+	    break;
+	  case 1:
+	  case 5:
+	    instruct.legacy_type = ILLEGAL;
+	    break;
+	  case 4:
+	    mac->size = operSzAttr == 2 ? 108 : 98;
+	    mac->read = true;
+	    break;
+	  case 6:
+	    mac->size = operSzAttr == 2 ? 108 : 98;
+	    mac->write = true;
+	    break;
+	  case 7:
+	    mac->size = 2;
+	    mac->write = true;
+	    break;    
+	  }
+	  break; }
+	case 0xDE: // all word integer
+	  mac->size = wordSzB;
+	  mac->write = true;
+	  break;
+	case 0xDF: {
+	  unsigned char modrm = addr[0];
+	  unsigned char reg = (modrm >> 3) & 7;
+	  switch(reg) {
+	  case 0:
+	    mac->size = wordSzB;
+	    mac->read = true;
+	    break;
+	  case 2:
+	  case 3:
+	    mac->size = wordSzB;
+	    mac->write = true;
+	    break;
+	  case 1:
+	    instruct.legacy_type = ILLEGAL;
+	    break;
+	  case 4:
+	    mac->size = 10;
+	    mac->read = true;
+	    break;
+	  case 5:
+	    mac->size = 8;
+	    mac->read = true;
+	    break;
+	  case 6:
+	    mac->size = 10;
+	    mac->write = true;
+	    break;
+	  case 7:
+	    mac->size = 8;
+	    mac->write = true;
+	    break;
+	  }
+	  break; }
+	} // switch(opcode) 
+      } // if mac
   } // if modrm
   
   instruct.size += nib;
-
+  instruct.entry = entry;
+  
   return instruct;
 }
 
