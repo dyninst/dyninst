@@ -654,6 +654,7 @@ BPatch_Vector<BPatch_point*> *BPatch_point::getPoints(const BPatch_Set<BPatch_op
         case BPatch_opPrefetch: findPrefetch = true; break;	
         }
     }
+    delete[] opa;
     
     while(ii.hasMore()) {
         

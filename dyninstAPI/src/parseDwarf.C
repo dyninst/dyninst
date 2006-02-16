@@ -73,7 +73,7 @@
 /* A bound attribute can be either (a constant) or (a reference
    to a DIE which (describes an object containing the bound value) or
    (a constant value itself)). */
-bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, char ** boundString ) {
+bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, pdstring &boundString ) {
 	Dwarf_Half boundForm;
 	int status = dwarf_whatform( boundAttribute, & boundForm, NULL );
 	assert( status == DW_DLV_OK );
@@ -89,9 +89,7 @@ bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, char ** b
 			status = dwarf_formudata( boundAttribute, & constantBound, NULL );
 			assert( status == DW_DLV_OK );
 
-			* boundString = (char *)calloc( 12, sizeof( char ) );
-			assert( * boundString != NULL );
-			snprintf( * boundString, 12, "%lu", (unsigned long)constantBound );
+			boundString = pdstring((unsigned long)constantBound);
 			return true;
 			} break;
 
@@ -116,8 +114,7 @@ bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, char ** b
 			assert( status != DW_DLV_ERROR );
 
 			if( status == DW_DLV_OK ) {
-				* boundString = strdup( boundName );
-				assert( * boundString != NULL );
+			    boundString = boundName;
 
 				dwarf_dealloc( dbg, boundName, DW_DLA_STRING );
 				return true;
@@ -133,9 +130,7 @@ bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, char ** b
 				status = dwarf_formudata( constBoundAttribute, & constBoundValue, NULL );
 				assert( status == DW_DLV_OK );
 
-				* boundString = (char *)calloc( 12, sizeof( char ) );
-				assert( * boundString != NULL );
-				snprintf( * boundString, 12, "%lu", (unsigned long)constBoundValue );
+				boundString = pdstring((unsigned long)constBoundValue);
 
 				dwarf_dealloc( dbg, boundEntry, DW_DLA_DIE );
 				dwarf_dealloc( dbg, constBoundAttribute, DW_DLA_ATTR );
@@ -147,7 +142,7 @@ bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, char ** b
 
 		default:
 			bperr( "Invalid bound form 0x%x\n", boundForm );
-			* boundString = "{invalid bound form}";
+			boundString = "{invalid bound form}";
 			return false;
 			break;
 		} /* end boundForm switch */
@@ -155,20 +150,20 @@ bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, char ** b
 
 /* We don't have a sane way of dealing with DW_TAG_enumeration bounds, so
    just put the name of the enumeration, or {enum} if none, in the string. */
-void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE, char ** loBound, char ** hiBound, BPatch_module * module ) {
-	assert( loBound != NULL ); * loBound = "{unknown or default}";
-	assert( hiBound != NULL ); * hiBound = "{unknown or default}";
+void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE, pdstring & loBound, pdstring & hiBound, BPatch_module * module ) {
+	loBound = "{unknown or default}";
+	hiBound = "{unknown or default}";
 
 	/* Set the default lower bound, if we know it. */
 	switch( module->getLanguage() ) {
 		case BPatch_fortran:
 		case BPatch_fortran90:
 	    case BPatch_fortran95:
-			* loBound = "1";
+			loBound = "1";
 			break;
 		case BPatch_c:
 		case BPatch_cPlusPlus:
-			* loBound = "0";
+			loBound = "0";
 			break;
 		default:
 			break;
@@ -186,15 +181,11 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE, char ** loBound
 		assert( status != DW_DLV_ERROR );
 
 		if( enumerationName != NULL ) {
-			* loBound = strdup( enumerationName );
-			assert( * loBound != NULL );
-			* hiBound = strdup( enumerationName );
-			assert( * hiBound != NULL );
+			loBound = enumerationName;
+			hiBound = enumerationName;
 			} else {
-			* loBound = strdup( "{nameless enum lo}" );
-			assert( * loBound != NULL );
-			* hiBound = strdup( "{nameless enum hi}" );
-			assert( * hiBound != NULL );
+			loBound = "{nameless enum lo}";
+			hiBound = "{nameless enum hi}";
 			}
 		dwarf_dealloc( dbg, enumerationName, DW_DLA_STRING );
 		return;
@@ -237,7 +228,7 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE, char ** loBound
 	status = dwarf_dieoffset( subrangeDIE, & subrangeOffset, NULL );
 	assert( status != DW_DLV_ERROR );
 
-	BPatch_type * rangeType = new BPatch_typeRange( (int) subrangeOffset, 0, *loBound, *hiBound, subrangeName );
+	BPatch_type * rangeType = new BPatch_typeRange( (int) subrangeOffset, 0, loBound.c_str(), hiBound.c_str(), subrangeName );
 	assert( rangeType != NULL );
 	// bperr( "Adding range type '%s' (%lu) [%s, %s]\n", subrangeName, (unsigned long)subrangeOffset, * loBound, * hiBound );
 	rangeType = module->getModuleTypes()->addOrUpdateType( rangeType );
@@ -272,9 +263,9 @@ BPatch_type * parseMultiDimensionalArray( Dwarf_Debug & dbg, Dwarf_Die range, BP
 	assert( status == DW_DLV_OK );
 
 	/* Determine the range. */
-	char * loBound = NULL;
-	char * hiBound = NULL;
-	parseSubRangeDIE( dbg, range, & loBound, & hiBound, module );
+	pdstring loBound;
+	pdstring hiBound;
+	parseSubRangeDIE( dbg, range, loBound, hiBound, module );
 
 	/* Does the recursion continue? */
 	Dwarf_Die nextSibling;
@@ -288,7 +279,7 @@ BPatch_type * parseMultiDimensionalArray( Dwarf_Debug & dbg, Dwarf_Die range, BP
 		   Use the negative dieOffset to avoid conflicts with the range type created
 		   by parseSubRangeDIE(). */
 	   // N.B.  I'm going to ignore the type id, and just create an anonymous type here
-	   BPatch_type * innermostType = new BPatch_typeArray( elementType, atoi(loBound), atoi(hiBound), buf);
+	   BPatch_type * innermostType = new BPatch_typeArray( elementType, atoi(loBound.c_str()), atoi(hiBound.c_str()), buf);
 		assert( innermostType != NULL );
 		//		setArraySize( innermostType, loBound, hiBound );
 		// bperr( "Adding inner-most type %lu\n", (unsigned long) dieOffset );
@@ -300,7 +291,7 @@ BPatch_type * parseMultiDimensionalArray( Dwarf_Debug & dbg, Dwarf_Die range, BP
 	BPatch_type * innerType = parseMultiDimensionalArray( dbg, nextSibling, elementType, module );
 	assert( innerType != NULL );
 	// same here - type id ignored    jmo
-	BPatch_type * outerType = new BPatch_typeArray( innerType, atoi(loBound), atoi(hiBound), buf);
+	BPatch_type * outerType = new BPatch_typeArray( innerType, atoi(loBound.c_str()), atoi(hiBound.c_str()), buf);
 	//	setArraySize( outerType, loBound, hiBound );
 	assert( outerType != NULL );
 	// bperr( "Adding inner type %lu\n", (unsigned long) dieOffset );
@@ -1472,9 +1463,9 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			} break;
 
 		case DW_TAG_subrange_type: {
-			char * loBound;
-			char * hiBound;
-			parseSubRangeDIE( dbg, dieEntry, & loBound, & hiBound, module );
+			pdstring loBound;
+			pdstring hiBound;
+			parseSubRangeDIE( dbg, dieEntry, loBound, hiBound, module );
 			} break;
 
 		case DW_TAG_enumeration_type: {

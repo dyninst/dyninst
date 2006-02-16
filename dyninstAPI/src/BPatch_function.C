@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.69 2006/02/02 03:51:04 bernat Exp $
+// $Id: BPatch_function.C,v 1.70 2006/02/16 03:56:12 jodom Exp $
 
 #define BPATCH_FILE
 
@@ -606,6 +606,7 @@ void BPatch_function::fixupUnknown(BPatch_module *module) {
       BPatch_Vector<BPatch_localVar *> *vars = localVariables->getAllVars();
       for (unsigned int i = 0; i < vars->size(); i++)
          (*vars)[i]->fixupUnknown(module);
+      delete vars;
    }
 }
 

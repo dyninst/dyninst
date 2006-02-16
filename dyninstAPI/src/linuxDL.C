@@ -938,6 +938,7 @@ bool dynamic_linking::installTracing()
 	return true;
     }
     Address breakAddr = reinterpret_cast<Address>(debug_elm->r_brk());
+    delete debug_elm;
 
 #if defined(arch_ia64)
     /* The IA-64's function pointers don't actually point at the function,

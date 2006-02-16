@@ -86,6 +86,8 @@ void BPatch_basicBlock::BPatch_basicBlock_dtor(){
 		delete immediateDominates;
 	if (sourceBlocks)
 		delete sourceBlocks;
+        if (instructions)
+                delete instructions;
 	return;
 }
 
