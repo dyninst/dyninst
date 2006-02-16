@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.582 2006/02/16 00:57:24 legendre Exp $
+// $Id: process.C,v 1.583 2006/02/16 20:42:25 bernat Exp $
 
 #include <ctype.h>
 
@@ -1746,6 +1746,9 @@ void process::deleteProcess()
   // parent remains untouched
   for (iter = 0; iter < mapped_objects.size(); iter++) 
       delete mapped_objects[iter];
+  for (iter = 0; iter < deleted_objects.size(); iter++)
+      delete deleted_objects[iter];
+
   mapped_objects.clear();
   runtime_lib = NULL;
 
@@ -4011,16 +4014,7 @@ bool process::handleChangeInSharedObjectMapping(EventRecord &ev)
        // with each element in the vector of changed_objects
        // for now, just delete shared_objects to avoid memory leeks
        for(u_int i=0; i < changed_objs.size(); i++){
-           // Remove from mapped_objects list
-           for (unsigned j = 0; j < mapped_objects.size(); j++) {
-               if (changed_objs[i] == mapped_objects[j]) {
-                   assert(j != 0); // Better not delete the a.out. That makes things unhappy.
-                   mapped_objects[j] = mapped_objects.back();
-                   mapped_objects.pop_back();
-                   break;
-               }
-           }
-           delete changed_objs[i];
+           removeASharedObject(changed_objs[i]);
        }
        return true;
      default:
@@ -4164,35 +4158,47 @@ bool process::addASharedObject(mapped_object *new_obj)
 	 }
     }
 #endif
-        BPatch_process *bProc = BPatch::bpatch->getProcessByPid(getPid());
-        if (!bProc) return true; // Done
-        BPatch_image *bImage = bProc->getImage();
-        assert(bImage); // This we can assert to be true
-    
-        const pdvector<mapped_module *> &modlist = new_obj->getModules();
 
-        // This should all be moved to the bpatch layer
-        if (modlist.size()) {
-            for (unsigned i = 0; i < modlist.size(); i++) {
-                mapped_module *curr = modlist[i];
-                
-                BPatch_module *bpmod = bImage->findOrCreateModule(curr);
-                
-                pdvector<CallbackBase *> cbs;
+    const pdvector<mapped_module *> &modlist = new_obj->getModules();
 
-                if (! getCBManager()->dispenseCallbacksMatching(evtLoadLibrary, cbs)) {
-                   return true;
-                 }
+    for (unsigned i = 0; i < modlist.size(); i++) {
+        mapped_module *curr = modlist[i];
 
-                for (unsigned int i = 0; i < cbs.size(); ++i) {
-                  DynLibraryCallback &cb = *((DynLibraryCallback *) cbs[i]);
-                  cb(bProc->threads[0], bpmod, true);
-                 }
-            }
-        }
+        BPatch::bpatch->registerLoadedModule(this, curr);
+    }
     
     return true;
 }
+
+bool process::removeASharedObject(mapped_object *obj) {
+    // Remove from mapped_objects list
+    for (unsigned j = 0; j < mapped_objects.size(); j++) {
+        if (obj == mapped_objects[j]) {
+            mapped_objects[j] = mapped_objects.back();
+            mapped_objects.pop_back();
+            deleted_objects.push_back(obj);
+            break;
+        }
+    }
+
+    deleteCodeRange(obj->get_address_cr());
+
+    // Signal handler...
+    // TODO
+
+
+    const pdvector<mapped_module *> &modlist = obj->getModules();
+
+    for (unsigned i = 0; i < modlist.size(); i++) {
+        mapped_module *curr = modlist[i];
+
+        BPatch::bpatch->registerUnloadedModule(this, curr);
+    }
+
+    return true;
+}    
+    
+
 
 // processSharedObjects: This routine is called before main() or on attach
 // to an already running process.  It gets and process all shared objects
@@ -4877,20 +4883,7 @@ void process::addSignalHandler(Address addr, unsigned size) {
 // We keep a vector of all signal handler locations
 void process::findSignalHandler(mapped_object *obj){
     assert(obj);
-#if 0
-    // For some reason by-func search is breaking. Argh. This is the
-    // better way, too...
-    const pdvector<int_function *> *funcs;
-    pdstring signame(SIGNAL_HANDLER);
-    funcs = obj->findFuncVectorByMangled(signame);
-    if (funcs) {
-        for (unsigned i = 0; i < funcs->size(); i++) {
-            signal_handler_location *newSig = new signal_handler_location((*funcs)[i]->getAddress(),
-                                                                          (*funcs)[i]->getSize());
-            signalHandlerLocations_.insert(newSig);
-        }
-    }
-#endif
+
     // Old skool
     Symbol sigSym;
     pdstring signame(SIGNAL_HANDLER);
