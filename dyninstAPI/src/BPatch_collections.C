@@ -318,9 +318,9 @@ BPatch_type * BPatch_typeCollection::addOrUpdateType( BPatch_type * type ) {
 #else
         if (existingType->getDataClass() == BPatch_dataUnknownType) {
            typesByID[type->getID()] = type;
+           type->incrRefCount();
            existingType->decrRefCount();
            existingType = type;
-           type->incrRefCount();
         } else {
            /* Merge the type information. */
            existingType->merge(type);

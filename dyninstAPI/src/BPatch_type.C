@@ -174,8 +174,12 @@ bool BPatch_typePointer::isCompatibleInt(BPatch_type *otype) {
 }
 
 void BPatch_typePointer::fixupUnknowns(BPatch_module *module) {
-   if (ptr->getDataClass() == BPatch_dataUnknownType)
+   if (ptr->getDataClass() == BPatch_dataUnknownType) {
+      BPatch_type *optr = ptr;
       ptr = module->getModuleTypes()->findType(ptr->getID());
+      ptr->incrRefCount();
+      optr->decrRefCount();
+   }
 }
 
 /*
@@ -228,8 +232,12 @@ bool BPatch_typeFunction::isCompatibleInt(BPatch_type *otype) {
 }   
 
 void BPatch_typeFunction::fixupUnknowns(BPatch_module *module) {
-   if (retType->getDataClass() == BPatch_dataUnknownType)
+   if (retType->getDataClass() == BPatch_dataUnknownType) {
+      BPatch_type *otype = retType;
       retType = module->getModuleTypes()->findType(retType->getID());
+      retType->incrRefCount();
+      otype->decrRefCount();
+   }
 
    for (unsigned int i = 0; i < fieldList.size(); i++)
       fieldList[i]->fixupUnknown(module);
@@ -351,8 +359,12 @@ bool BPatch_typeArray::isCompatibleInt(BPatch_type *otype) {
 }
 
 void BPatch_typeArray::fixupUnknowns(BPatch_module *module) {
-   if (arrayElem->getDataClass() == BPatch_dataUnknownType)
+   if (arrayElem->getDataClass() == BPatch_dataUnknownType) {
+      BPatch_type *otype = arrayElem;
       arrayElem = module->getModuleTypes()->findType(arrayElem->getID());
+      arrayElem->incrRefCount();
+      otype->decrRefCount();
+   }
 }
 
 /*
@@ -725,8 +737,12 @@ void BPatch_typeTypedef::updateSize()
 }
 
 void BPatch_typeTypedef::fixupUnknowns(BPatch_module *module) {
-   if (base->getDataClass() == BPatch_dataUnknownType)
+   if (base->getDataClass() == BPatch_dataUnknownType) {
+      BPatch_type *otype = base;
       base = module->getModuleTypes()->findType(base->getID());   
+      base->incrRefCount();
+      otype->decrRefCount();
+   }
 }
 
 /*
@@ -783,8 +799,12 @@ const char *BPatch_typeRef::getHigh() const {
 }
 
 void BPatch_typeRef::fixupUnknowns(BPatch_module *module) {
-   if (refType->getDataClass() == BPatch_dataUnknownType)
+   if (refType->getDataClass() == BPatch_dataUnknownType) {
+      BPatch_type *otype = refType;
       refType = module->getModuleTypes()->findType(refType->getID());
+      refType->incrRefCount();
+      otype->decrRefCount();
+   }
 }
 
 /*
@@ -1241,8 +1261,12 @@ int BPatch_field::getOffsetInt()
 }
 
 void BPatch_field::fixupUnknown(BPatch_module *module) {
-   if (_type->getDataClass() == BPatch_dataUnknownType)
+   if (_type->getDataClass() == BPatch_dataUnknownType) {
+      BPatch_type *otype = _type;
       _type = module->getModuleTypes()->findType(_type->getID());
+      _type->incrRefCount();
+      otype->decrRefCount();
+   }
 }
 
 /**************************************************************************
@@ -1278,8 +1302,12 @@ BPatch_localVar::~BPatch_localVar()
 }
 
 void BPatch_localVar::fixupUnknown(BPatch_module *module) {
-   if (type->getDataClass() == BPatch_dataUnknownType)
+   if (type->getDataClass() == BPatch_dataUnknownType) {
+      BPatch_type *otype = type;
       type = module->getModuleTypes()->findType(type->getID());
+      type->incrRefCount();
+      otype->decrRefCount();
+   }
 }
 
 /**************************************************************************
