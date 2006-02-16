@@ -3,7 +3,7 @@
 # intended to be a useful Makefile in isolation; instead, it should be
 # included from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.74 2006/02/12 22:26:06 jodom Exp $
+# $Id: make.module.tmpl,v 1.75 2006/02/16 03:52:34 jodom Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -37,9 +37,9 @@ LDFLAGS += -lpthread
 LDFLAGS     += $(LIBDIR)
 ifndef USES_NATIVE_CC
 LD		= $(GXX)
-LDFLAGS		+= -shared -pthread
+LDFLAGS		+= -shared $(G_PTHREAD_LD)
 CFLAGS		+= -fPIC
-CXXFLAGS	+= -fPIC -pthread
+CXXFLAGS	+= -fPIC $(G_PTHREAD)
 else
 ifeq (solaris,$(findstring solaris,$(PLATFORM)))
 LDFLAGS		+= -G

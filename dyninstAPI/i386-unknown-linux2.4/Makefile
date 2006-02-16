@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.26 2005/07/29 19:17:11 bernat Exp $
+# $Id: Makefile,v 1.27 2006/02/16 03:52:34 jodom Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -85,6 +85,10 @@ AS		= /usr/bin/as
 CXXFLAGS	+= -DUSES_ELF32_ONLY
 CFLAGS		+= -DUSES_ELF32_ONLY
 TFLAGS		+= -DUSES_ELF32_ONLY
+
+# Add preprocessor and special link information for G++
+G_PTHREAD	= -pthread
+G_PTHREAD_LD	= -pthread
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

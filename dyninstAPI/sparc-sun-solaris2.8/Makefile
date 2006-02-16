@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.22 2005/09/28 17:02:26 bernat Exp $
+# $Id: Makefile,v 1.23 2006/02/16 03:52:34 jodom Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -51,6 +51,10 @@ TFLAGS		+= -DUSES_ELF32_ONLY
 #TFLAGS 		+= -g
 
 SYSLIBS = -lelf -lsocket -lnsl -ldl -lrt
+
+# Add preprocessor and special link information for G++
+G_PTHREAD       = -pthreads
+G_PTHREAD_LD	= -pthreads
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

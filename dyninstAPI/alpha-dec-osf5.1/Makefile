@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.10 2006/02/12 22:26:23 jodom Exp $
+# $Id: Makefile,v 1.11 2006/02/16 03:52:34 jodom Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -20,10 +20,9 @@ endif
 include ../../make.config 
 
 CXXFLAGS += -O0 -mieee
-CFLAGS += -pthread -mieee
+CFLAGS += -mieee
 TFLAGS += -pthread -mieee
 //-std=c89
-CXXFLAGS += -pthread
 
 # Now make any necessary architecture specific changes to variables:
 
@@ -44,6 +43,10 @@ SRCS =		 ../src/inst-osf.C \
 		 ../../common/src/osfKludges.C \
 		 ../../common/src/timing-aix.C \
 		../src/syscall-alpha.C
+
+# Add preprocessor and special link information for G++
+G_PTHREAD       = -pthread
+G_PTHREAD_LD	= -pthread
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

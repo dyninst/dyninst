@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.23 2005/07/29 19:17:13 bernat Exp $
+# $Id: Makefile,v 1.24 2006/02/16 03:52:34 jodom Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -60,6 +60,10 @@ else
 LIBS    += -lelf
 endif
 LIBS    += -L$(LIBUNWIND_LIB) -lunwind-ptrace -lunwind -lunwind-ia64
+
+# Add preprocessor and special link information for G++
+G_PTHREAD       = -pthread
+G_PTHREAD_LD	= -pthread
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
