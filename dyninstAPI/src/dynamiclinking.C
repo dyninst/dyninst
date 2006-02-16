@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.C,v 1.14 2006/01/30 07:16:52 jaw Exp $
+// $Id: dynamiclinking.C,v 1.15 2006/02/16 00:57:22 legendre Exp $
 
 // Cross-platform dynamic linking functions
 
@@ -285,10 +285,6 @@ bool dynamic_linking::findChangeToLinkMaps(u_int &change_type,
   }
   // if change_type is remove then figure out what has been removed
   else if((change_type == SHAREDOBJECT_REMOVED) && (curr_list.size())) {
-#if 0
-      fprintf(stderr, "SHOBJ_REMOVED: current size %d\n", curr_list.size());
-      fprintf(stderr, "... %d new\n", new_descs.size());
-#endif
       // Look for the one that's not in descs
       bool stillThere[curr_list.size()];
       for (unsigned k = 0; k < curr_list.size(); k++) 

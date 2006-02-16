@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.164 2006/02/14 23:50:16 jaw Exp $
+// $Id: unix.C,v 1.165 2006/02/16 00:57:26 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -401,6 +401,7 @@ bool SignalGenerator::checkForExit(EventRecord &ev, bool block)
       ev.info = 0;
       return true;
    }
+     fprintf(stderr, "[%s:%u] - Finished waitpid with %d\n", __FILE__, __LINE__, retWait);
 
   return false;
 }
@@ -760,9 +761,6 @@ bool PtraceCallback::execute_real()
 
   ret = P_ptrace(req_, pid_, addr_, data_, word_len_);
   if (errno) {
-    fprintf(stderr, "%s[%d][%s]:  ptrace(%d, pid = %d, %lx, %lx, %d) failed\n", 
-            FILE__, __LINE__, 
-           getThreadStr(getExecThreadID()), req_, pid_, addr_, data_, word_len_);
     perror("ptrace error");
   }
   ptrace_errno = errno;
@@ -1134,8 +1132,8 @@ bool SignalGenerator::attachProcess()
   if (!proc->attach()) {
      proc->set_status( detached);
 
-     fprintf(stderr, "%s[%d] attach failing here: thread %s\n", FILE__, __LINE__,
-             getThreadStr(getExecThreadID()));
+     startup_printf("%s[%d] attach failing here: thread %s\n", 
+                    __FILE__, __LINE__, getThreadStr(getExecThreadID()));
      pdstring msg = pdstring("Warning: unable to attach to specified process: ")
                   + pdstring(getPid());
      showErrorCallback(26, msg.c_str());
@@ -1293,7 +1291,8 @@ bool  OS::osKill(int pid)
 
 void OS::unlink(char *file) 
 {
-   unlink(file);
+   if (file)
+      unlink(file);
 }
 void OS::make_tempfile(char *s)
 {
@@ -1364,15 +1363,11 @@ SignalGenerator::SignalGenerator(char *idstr, pdstring file, int pid)
     while ((dirName == NULL) && (counter < timeout)) {
         dirName = opendir(buffer);
         if (!dirName) {
-            fprintf(stderr, "%s[%d]: waiting for dir %s creation\n", FILE__, __LINE__, buffer);
             sleep(1);
         }
         counter++;
     }
 
-    if (!dirName) {
-      fprintf(stderr, "%s[%d]:  WARNING:  could not open dir %s\n", FILE__, __LINE__, buffer);
-    }
     if (dirName)
       closedir(dirName);
 } 

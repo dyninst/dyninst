@@ -254,7 +254,6 @@ bool InternalThread::createThread()
   startupLock->_Unlock(__FILE__, __LINE__);
 
   if (!init_ok) {
-    fprintf(stderr, "%s[%d]:  init failed for thread %s\n", FILE__, __LINE__, idstr);
     return false;
   }
   return true;
@@ -354,8 +353,6 @@ void EventHandler<T>::main()
   startupLock->_Lock(__FILE__, __LINE__);
   startup_printf("%s[%d]:  about to do init for %s\n", __FILE__, __LINE__, idstr);
   if (!initialize_event_handler()) {
-    fprintf(stderr, "%s[%d]: failed to init event handler %s\n", FILE__, __LINE__, 
-            getThreadStr(getExecThreadID())); 
     _isRunning = false;
     init_ok = false; 
     startupLock->_Broadcast(__FILE__, __LINE__);

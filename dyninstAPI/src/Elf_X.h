@@ -10,45 +10,45 @@
 // ------------------------------------------------------------------------
 // Class Elf_X_Dyn simulates the Elf(32|64)_Dyn structure.
 class Elf_X_Dyn {
-  public:
-    Elf_X_Dyn()
-	: data(NULL), dyn32(NULL), dyn64(NULL), is64(false) { }
+ public:
+   Elf_X_Dyn()
+      : data(NULL), dyn32(NULL), dyn64(NULL), is64(false) { }
+   
+   Elf_X_Dyn(bool is64_, Elf_Data *input)
+      : data(input), dyn32(NULL), dyn64(NULL), is64(is64_) {
+      
+      if (input) {
+         if (!is64) dyn32 = (Elf32_Dyn *)data->d_buf;
+         else       dyn64 = (Elf64_Dyn *)data->d_buf;
+      }
+   }
 
-    Elf_X_Dyn(bool is64_, Elf_Data *input)
-	: data(input), dyn32(NULL), dyn64(NULL), is64(is64_) {
-
-	if (input) {
-	    if (!is64) dyn32 = (Elf32_Dyn *)data->d_buf;
-	    else       dyn64 = (Elf64_Dyn *)data->d_buf;
-	}
-    }
-
-    // Read Interface
-    signed long d_tag(int i) const { return (!is64 ? dyn32[i].d_tag
-						   : dyn64[i].d_tag); }
-    unsigned long d_val(int i) const { return (!is64 ? dyn32[i].d_un.d_val
-						     : dyn64[i].d_un.d_val); }
-    unsigned long d_ptr(int i) const { return (!is64 ? dyn32[i].d_un.d_ptr
-						     : dyn64[i].d_un.d_ptr); }
-
-    // Write Interface
-    void d_tag(int i, signed long input) { if (!is64) dyn32[i].d_tag = input;
-					   else       dyn64[i].d_tag = input; }
-    void d_val(int i, unsigned long input) { if (!is64) dyn32[i].d_un.d_val = input;
-					     else       dyn64[i].d_un.d_val = input; }
-    void d_ptr(int i, unsigned long input) { if (!is64) dyn32[i].d_un.d_ptr = input;
-					     else       dyn64[i].d_un.d_ptr = input; }
-
-    // Meta-Info Interface
-    unsigned long count() const { return (data->d_size / (!is64 ? sizeof(Elf32_Dyn)
-								: sizeof(Elf64_Dyn) )); }
-    bool isValid() const { return (dyn32 || dyn64); }
-
-  protected:
-    Elf_Data *data;
-    Elf32_Dyn *dyn32;
-    Elf64_Dyn *dyn64;
-    bool is64;
+   // Read Interface
+   signed long d_tag(int i) const { return (!is64 ? dyn32[i].d_tag
+                                            : dyn64[i].d_tag); }
+   unsigned long d_val(int i) const { return (!is64 ? dyn32[i].d_un.d_val
+                                              : dyn64[i].d_un.d_val); }
+   unsigned long d_ptr(int i) const { return (!is64 ? dyn32[i].d_un.d_ptr
+                                              : dyn64[i].d_un.d_ptr); }
+   
+   // Write Interface
+   void d_tag(int i, signed long input) { if (!is64) dyn32[i].d_tag = input;
+   else       dyn64[i].d_tag = input; }
+   void d_val(int i, unsigned long input) { if (!is64) dyn32[i].d_un.d_val = input;
+   else       dyn64[i].d_un.d_val = input; }
+   void d_ptr(int i, unsigned long input) { if (!is64) dyn32[i].d_un.d_ptr = input;
+   else       dyn64[i].d_un.d_ptr = input; }
+   
+   // Meta-Info Interface
+   unsigned long count() const { return (data->d_size / (!is64 ? sizeof(Elf32_Dyn)
+                                                         : sizeof(Elf64_Dyn) )); }
+   bool isValid() const { return (dyn32 || dyn64); }
+   
+ protected:
+   Elf_Data *data;
+   Elf32_Dyn *dyn32;
+   Elf64_Dyn *dyn64;
+   bool is64;
 };
 #endif
 
@@ -287,10 +287,10 @@ class Elf_X_Options {
 class Elf_X_Data {
   public:
     Elf_X_Data()
-	: data(NULL), is64(false) { }
-
+       : data(NULL), is64(false) { }
+    
     Elf_X_Data(bool is64_, Elf_Data *input)
-	: data(input), is64(is64_) { }
+       : data(input), is64(is64_) { }
 
     // Read Interface
     void *d_buf() const { return data->d_buf; }
@@ -299,7 +299,7 @@ class Elf_X_Data {
     size_t d_size() const { return data->d_size; }
     off_t d_off() const { return data->d_off; }
     size_t d_align() const { return data->d_align; }
-
+    
     // Write Interface
     void d_buf(void *input) { data->d_buf = input; }
     void d_type(Elf_Type input) { data->d_type = input; }

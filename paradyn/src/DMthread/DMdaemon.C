@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.158 2006/02/14 21:16:12 darnold Exp $
+ * $Id: DMdaemon.C,v 1.159 2006/02/16 00:57:30 legendre Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -167,74 +167,71 @@ bool paradynDaemon::addRunningProgram (int pid,
 				       paradynDaemon *daemon,
 				       bool calledFromExec,
 				       bool isInitiallyRunning) {
-    executable *exec = NULL;
+   executable *exec = NULL;
+   assert(daemon);    
 
-    assert(daemon);    
-
-    if (calledFromExec) 
+   if (calledFromExec) 
+   {
+      for (unsigned i=0; i < programs.size(); i++)
       {
-        for (unsigned i=0; i < programs.size(); i++)
-	  {
-            if ((int) programs[i]->pid == pid && programs[i]->controlPath == daemon) 
+         if ((int) programs[i]->pid == pid && programs[i]->controlPath == daemon) 
 	      {
-		exec = programs[i];
-		break;
+            exec = programs[i];
+            break;
 	      }
-	  }
-        assert(exec);
-        
-        // exec() doesn't change the pid, but paradynd_argv changes (big deal).
-        exec->argv = paradynd_argv;
-        
-        // fall through (we probably want to execute the daemon->continueProcess())
       }
-    else
+      assert(exec);
+      
+      // exec() doesn't change the pid, but paradynd_argv changes (big deal).
+      exec->argv = paradynd_argv;
+      
+      // fall through (we probably want to execute the daemon->continueProcess())
+   }
+   else
+   {
+      // the non-exec (the normal) case follows:
+      exec = new executable (pid, paradynd_argv, daemon);
+      programs += exec;
+      ++procRunning;
+      
+      // the following propagates mi's to the new process IF it's the only
+      // process on the daemon.  Otherwise, the daemon can and does propagate
+      // on its own.  We don't call it in the exec case (above) since we know it
+      // wouldn't do anything.
+      daemon->propagateMetrics();
+   }
+   
+   // Now... do we run the application or not? First, check what the frontend
+   // thinks is the case
+   if (applicationState == appRunning)
+   {
+      daemon->continueProcess(pid);
+      uiMgr->enablePauseOrRun();
+   }
+   else 
+   {
+      switch(daemon->afterAttach_ ) 
       {
-        // the non-exec (the normal) case follows:
-        exec = new executable (pid, paradynd_argv, daemon);
-        programs += exec;
-        ++procRunning;
-        
-        // the following propagates mi's to the new process IF it's the only
-        // process on the daemon.  Otherwise, the daemon can and does propagate
-        // on its own.  We don't call it in the exec case (above) since we know it
-        // wouldn't do anything.
-        daemon->propagateMetrics();
+         case 0:
+            // Leave as is... key off the isInitiallyRunning parameter
+            if (isInitiallyRunning) 
+            {
+               daemon->continueProcess(pid);
+               applicationState = appRunning;
+               performanceStream::notifyAllChange(appRunning);
+            }
+            break;
+         case 1:
+            break;
+         case 2:
+            // Run
+            daemon->continueProcess(pid);
+            applicationState = appRunning;
+            performanceStream::notifyAllChange(appRunning);
+            break;
       }
-    
-    // Now... do we run the application or not? First, check what the frontend
-    // thinks is the case
-    if (applicationState == appRunning)
-      {
-	daemon->continueProcess(pid);
-	uiMgr->enablePauseOrRun();
-      }
-    else 
-      {
-
-	cout  << "addRunningProgram daemon->afterAttach_ = "<<daemon->afterAttach_<<endl;
-        switch(daemon->afterAttach_ ) 
-	  {
-	  case 0:
-	    // Leave as is... key off the isInitiallyRunning parameter
-	    if (isInitiallyRunning) 
-	      {
-		daemon->continueProcess(pid);
-		applicationState = appRunning;
-		performanceStream::notifyAllChange(appRunning);
-	      }
-	    break;
-	  case 1:
-	    break;
-	  case 2:
-	    // Run
-	    daemon->continueProcess(pid);
-	    applicationState = appRunning;
-	    performanceStream::notifyAllChange(appRunning);
-	    break;
-	  }
-      }
-    return true;
+   }
+   return true;
 }
 
 //  TODO : fix this so that it really does clean up state
@@ -713,14 +710,10 @@ bool paradynDaemon::instantiateMRNetforMPIDaemons(daemonEntry * ide,
             mrnet_top_buf += buf;
         }
         mrnet_top_buf += ";";
-        fprintf(stderr, "starting mrnet w/ buffer \"%s\" ...\n",
-                mrnet_top_buf.c_str() );
         network = new MRN::Network(mrnet_top_buf.c_str(), false,
                                    &leafInfo, &nLeaves );
     }
     else{
-        fprintf(stderr, "starting mrnet w/ file \"%s\" ...\n",
-                ide->getMRNetTopology() );
         network = new MRN::Network(ide->getMRNetTopology(),
                                    &leafInfo, &nLeaves );
     }
@@ -765,7 +758,6 @@ bool paradynDaemon::instantiateDefaultDaemon( daemonEntry * de,
     //first gather paradynd args into a argv vector;
     char ** argv;
     
-    fprintf(stderr, "In instantiateDefaultDaemon() ...\n");
     argv = (char **)malloc(sizeof(char*) * (args.size()+1) );
     
     for( unsigned int i = 0; i<paradynDaemon::args.size(); i++){
@@ -801,12 +793,10 @@ bool paradynDaemon::instantiateDefaultDaemon( daemonEntry * de,
         
         mrnet_top_buf += ";";
 
-        fprintf(stderr, "starting mrnet w/ buffer \"%s\" ...\n", mrnet_top_buf.c_str() );
         network = new MRN::Network (mrnet_top_buf.c_str(), false,
                                      de->getCommand(), (const char **)argv);
     }
     else{
-        fprintf(stderr, "starting mrnet w/ file ...\n");
         network = new MRN::Network (de->getMRNetTopology(),
                                      de->getCommand(), (const char **)argv);
     }

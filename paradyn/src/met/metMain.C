@@ -48,7 +48,7 @@
  *     metDoVisi(..) - declare a visi
  */
 
-// $Id: metMain.C,v 1.62 2006/02/08 21:27:50 darnold Exp $
+// $Id: metMain.C,v 1.63 2006/02/16 00:57:33 legendre Exp $
 
 #define GLOBAL_CONFIG_FILE "/paradyn.rc"
 #define LOCAL_CONFIG_FILE "/.paradynrc"
@@ -265,7 +265,6 @@ static void start_process(processMet *the_ps)
 
    pdstring *arguments;
    arguments = new pdstring;
-   fprintf(stderr, "================== arguments %p\n", arguments);
    if (the_ps->user().length()) {
       *arguments += pdstring("-user ");
       *arguments += the_ps->user();

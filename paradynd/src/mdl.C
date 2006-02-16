@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.179 2006/01/05 19:16:17 legendre Exp $
+// $Id: mdl.C,v 1.180 2006/02/16 00:57:34 legendre Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -657,17 +657,14 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
            mdl_var index_var;
 
            if (!dynamic_cast<mdld_expr*>(left_)->apply_be(index_var))
-						 {
-							 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-
-							 return false;
-						 }
+           {
+              return false;
+           }
            int index_value;
            if (!index_var.get(index_value))
-						 {
-							 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-							 return false;
-						 }
+           {
+              return false;
+           }
            if (var_ == pdstring ("$arg"))
               snip = new BPatch_paramExpr ((int)index_value);
            else if (var_ == pdstring ("$constraint"))
@@ -681,7 +678,6 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
                  if (!the_var.get(value))
                  {
                     fflush(stderr);
-										fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
                     return false;
                  }
                  snip = new BPatch_constExpr((int)value);
@@ -691,7 +687,6 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
                  if (!the_var.get(value))
                  {
                     fflush(stderr);
-										fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
                     return false;
                  }
                  snip = new BPatch_constExpr(value.c_str());
@@ -701,15 +696,13 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
            {
               mdl_var array_var;
               if (!mdl_data::cur_mdl_data->env->get(array_var, var_))
-								{
-									fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-									return false;
-								}
+              {
+                 return false;
+              }
               if (!array_var.is_list())
-								{
-									fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-									return false;  
-								}
+              {
+                 return false;  
+              }
               mdl_var element;
               assert (array_var.get_ith_element(element, index_value));
               switch (element.get_type())
@@ -738,8 +731,7 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
                       break;
                    }
                 default:
-									fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-									return false;
+                   return false;
               }
            }
            return true;
@@ -749,15 +741,13 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
            BPatch_snippet* lnode_p;
            BPatch_snippet* rnode_p;
            if (!dynamic_cast<mdld_expr*>(left_)->apply_be (lnode_p))
-						 {
-							 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-							 return false;
-						 }
+           {
+              return false;
+           }
            if (!dynamic_cast<mdld_expr*>(right_)->apply_be (rnode_p))
-						 {
-							 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-							 return false;
-						 }
+           {
+              return false;
+           }
            BPatch_snippet &lnode = *lnode_p;
            BPatch_snippet &rnode = *rnode_p;
 
@@ -800,44 +790,39 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
                 snip = new BPatch_boolExpr(BPatch_or, lnode, rnode);
                 break;
              default: 
-							 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-							 return false;
+                return false;
            }
            return true;
         }
-     case MDL_EXPR_FUNC:
-        {
-           if (var_ == "startWallTimer" || var_ == "stopWallTimer"
-               || var_ == "startProcessTimer" || var_ == "stopProcessTimer"
-               || var_ == "destroyProcessTimer")
-           {
-              if (!args_)
-								{
-									fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-									return false;
-								}
-              unsigned size = args_->size();
-              if (size != 1)
-								{
-									fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-									return false;
-								}
-
-              mdl_var timer(false);
-              instrDataNode* dn;
-              if (!dynamic_cast<mdld_expr*>((*args_)[0])->apply_be(timer))
-								{
-									fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-									return false;
-								}
-              if (!timer.get(dn))
-								{
-									fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-									return false;
-								}
-
-              //XXX 
-              // set miss cycle count reader func here
+      case MDL_EXPR_FUNC:
+         {
+            if (var_ == "startWallTimer" || var_ == "stopWallTimer"
+                || var_ == "startProcessTimer" || var_ == "stopProcessTimer"
+                || var_ == "destroyProcessTimer")
+            {
+               if (!args_)
+               {
+                  return false;
+               }
+               unsigned size = args_->size();
+               if (size != 1)
+               {
+                  return false;
+               }
+               
+               mdl_var timer(false);
+               instrDataNode* dn;
+               if (!dynamic_cast<mdld_expr*>((*args_)[0])->apply_be(timer))
+               {
+                  return false;
+               }
+               if (!timer.get(dn))
+               {
+                  return false;
+               }
+               
+               //XXX 
+               // set miss cycle count reader func here
 
               pdstring timer_func;
               if (var_ == "startWallTimer")
@@ -860,48 +845,42 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
               BPatch_image *appImage = global_proc->getImage()->get_dyn_image();
               BPatch_variableExpr *base_var = dn->getVariableExpr();
               if (!base_var)
-								{
-									fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-									return false;
-								}
+              {
+                 return false;
+              }
               BPatch_Vector<BPatch_snippet *> snip_args;
               snip = createTimer(timer_func, base_var, snip_args,
-                                appImage, global_proc->multithread_capable());
+                                 appImage, global_proc->multithread_capable());
               if (!snip)
-								{
-									fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-									return false;
-								}
-           }
-           else if (var_ == "sampleHwCounter" || var_ == "startHwTimer" || var_ == "stopHwTimer") {
-
-              if (!args_)
-								{
-									fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-									return false;
-								}
-              unsigned size = args_->size();
-              if (size != 1)
-								{
-									fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-									return false;
-								}
-
-              mdl_var timer(false);
-              instrDataNode* dn;
-              if (!dynamic_cast<mdld_expr*>((*args_)[0])->apply_be(timer))
-								{
-									fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-									return false;
-								}
-              if (!timer.get(dn))
-								{
-									fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-									return false;
-								}
-              pdstring timer_func;
- 
-              if (var_ == "startHwTimer")
+              {
+                 return false;
+              }
+            }
+            else if (var_ == "sampleHwCounter" || var_ == "startHwTimer" || var_ == "stopHwTimer") {
+               
+               if (!args_)
+               {
+                  return false;
+               }
+               unsigned size = args_->size();
+               if (size != 1)
+               {
+                  return false;
+               }
+               
+               mdl_var timer(false);
+               instrDataNode* dn;
+               if (!dynamic_cast<mdld_expr*>((*args_)[0])->apply_be(timer))
+               {
+                  return false;
+               }
+               if (!timer.get(dn))
+               {
+                  return false;
+               }
+               pdstring timer_func;
+               
+               if (var_ == "startHwTimer")
                  timer_func = "DYNINSTstartHwTimer";
               else if (var_ == "stopHwTimer")
                  timer_func = "DYNINSTstopHwTimer";
@@ -927,16 +906,14 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
            {
               mdl_var symbol_var;
               if (!dynamic_cast<mdld_expr*>((*args_)[0])->apply_be(symbol_var))
-								{
-									fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-									return false;
-								}
+              {
+                 return false;
+              }
               pdstring symbol_name;
               if (!symbol_var.get(symbol_name))
               {
                  fprintf (stderr, "Unable to get symbol name for readSymbol()\n");
                  fflush(stderr);
-								 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
                  return false;
               }
 
@@ -957,7 +934,6 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
                                    + symbol_name + pdstring("'");
                     mdl_data::cur_mdl_data->env->appendErrorString( msg );
 
-										fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
                     return false;
                  }
 
@@ -978,15 +954,12 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
 
              mdl_var addr_var;
              if (!dynamic_cast<mdld_expr*>((*args_)[0])->apply_be (addr_var))
-							 {
-								 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-								 return false;
-							 }
+             {
+                return false;
+             }
              int addr;
              if (!addr_var.get(addr))
              {
-                fflush(stderr);
-								fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
                 return false;
              }
 
@@ -994,9 +967,7 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
              BPatch_type *inttype = appImage->findType("int");
              if (! inttype) {
                fprintf(stderr, "%s[%d]:  cannot find int type\n", 
-                      __FILE__, __LINE__);
-
-							 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
+                       __FILE__, __LINE__);
                return false;
              }
 
@@ -1015,10 +986,9 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
               {
                  BPatch_snippet *tmparg=NULL;
                  if (!dynamic_cast<mdld_expr*>((*args_)[u])->apply_be(tmparg))
-									 {
-										 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-										 return false;
-									 }
+                 {
+                    return false;
+                 }
                  snipargs.push_back(tmparg);
               }
 
@@ -1027,10 +997,9 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
               BPatch_function *bpf = NULL;
 
               if (NULL == (bpf = mdlFindFunction(var_.c_str(), appImage)))
-								{
-									fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-									return false;
-								}
+              {
+                 return false;
+              }
               snip = new BPatch_funcCallExpr(*bpf, snipargs);
               break;
            }
@@ -1044,9 +1013,6 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
         if (!dynamic_cast<mdld_expr*>(left_)->apply_be(dot_var))
         {
            fprintf (stderr, "Invalid expression on the left of DOT.\n");
-           fflush(stderr);
-
-					 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
            return false;
         }
         return true;
@@ -1056,21 +1022,18 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
         mdl_var get_dn;
         instrDataNode* dn;
         if (!mdl_data::cur_mdl_data->env->get(get_dn, var_))
-					{
-						fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-						return false;
-					}
+        {
+           return false;
+        }
         if (!get_dn.get(dn))
-					{
-						fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-						return false;
-					}
+        {
+           return false;
+        }
         BPatch_snippet* snip_arg;
         if (!dynamic_cast<mdld_expr*>(left_)->apply_be(snip_arg))
-					{
-						fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-						return false;
-					}
+        {
+           return false;
+        }
         pdstring func_str;
         switch (bin_op_)
         {
@@ -1078,16 +1041,14 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
           case MDL_PLUSASSIGN: func_str = "addCounter"; break;
           case MDL_MINUSASSIGN: func_str = "subCounter"; break;
           default:
-						fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-						return false;
+             return false;
         }
 
         BPatch_variableExpr *base_var = dn->getVariableExpr();
         if (!base_var)
-					{
-						fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-						return false;
-					}
+        {
+           return false;
+        }
         //BPatch_variableExpr *temp_var = dn->getVariableExpr();
         //if (!temp_var) return false;
         //BPatch_snippet *base_var = new BPatch_snippet(*temp_var);
@@ -1096,13 +1057,6 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
         snip = createCounter(func_str, (BPatch_variableExpr *)base_var, snip_arg,
                              global_proc->multithread_capable(),
                              global_proc->get_dyn_process()->getImage());
-        if (NULL == snip)
-					{
-						fprintf(stderr, "%s[%d]:  createCounter failed!\n", __FILE__, __LINE__);
-
-						fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-					}
-
         return (snip != NULL);
      }
   case MDL_EXPR_VAR:
@@ -1123,7 +1077,6 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
                    fprintf(stderr, "Unable to get value for %s\n", var_.c_str());
                    fflush(stderr);
 
-									 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
                    return false;
                 }
                 else 
@@ -1140,23 +1093,19 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
                    fprintf(stderr, "Unable to get value for %s\n", var_.c_str());
                    fflush(stderr);
 
-									 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
                    return false;
                 }
 
                 BPatch_variableExpr *base_var = dn->getVariableExpr();
                 if (!base_var)
-									{
-										fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-										return false;
-									}
+                {
+                   return false;
+                }
 
                 snip = getCounter(base_var, global_proc->get_dyn_process()->getImage(),
                                   global_proc->multithread_capable());
                 if (!snip) {
                    fprintf(stderr, "%s[%d]:  getCounter() failed!\n", __FILE__, __LINE__);
-
-									 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
                    return false;
                 }
                 return true;
@@ -1165,10 +1114,7 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
           default:
              fprintf(stderr, "type of variable %s is not known\n", 
                      var_.c_str());
-             fflush(stderr);
-
-						 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-						 return false;
+             return false;
         }
      }
   case MDL_EXPR_PREUOP:
@@ -1184,7 +1130,6 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
                       + pdstring("' : ") + pdstring("error in operand of address operator");
                    mdl_data::cur_mdl_data->env->appendErrorString( msg );
 
-									 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
                    return false;
                 }
                 instrDataNode *dn;
@@ -1192,16 +1137,12 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
 
                 BPatch_variableExpr *base_var = dn->getVariableExpr();
                 if (!base_var)
-									{
-										fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-										return false;
-									}
+                {
+                   return false;
+                }
                 snip = getTimerAddress(base_var, global_proc->get_dyn_process()->getImage(),
                                        global_proc->multithread_capable());
                 if (!snip) {
-                   fprintf(stderr, "%s[%d]: getTimerAddress() failed.\n", __FILE__, __LINE__);
-
-									 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
                    return false;
                 }
 
@@ -1211,22 +1152,19 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
              {
                 mdl_var tmp;
                 if (!dynamic_cast<mdld_expr*>(left_)->apply_be (tmp))
-									{
-										fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-										return false;
-									}
+                {
+                   return false;
+                }
                 int value;
                 if (!tmp.get(value))
-									{
-										fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-										return false;
-									}
+                {
+                   return false;
+                }
                 snip = new BPatch_constExpr(-value);
 
                 break;
              }
           default:
-						fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
              return false;
         }
         return true;
@@ -1240,15 +1178,13 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
                 instrDataNode* dn;
                 mdl_var dn_var;
                 if (!dynamic_cast<mdld_expr*>(left_)->apply_be(dn_var))
-									{
-										fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-										return false;
-									}
+                {
+                   return false;
+                }
                 if (!dn_var.get(dn))
-									{
-										fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-										return false;
-									}
+                {
+                   return false;
+                }
                 int value = 1;
                 BPatch_snippet* snip_arg = new BPatch_constExpr(value);
                 BPatch_variableExpr *base_var = dn->getVariableExpr();
@@ -1256,25 +1192,22 @@ mdld_v_expr::apply_be(BPatch_snippet*& snip)
                                     snip_arg, global_proc->multithread_capable(),
                                     global_proc->get_dyn_process()->getImage());
                 if (!snip) {
-                   fprintf(stderr, "%s[%d]:  createCounter failed!\n", __FILE__, __LINE__);
-
-									 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
+                   fprintf(stderr, "%s[%d]:  createCounter failed!\n",
+                           __FILE__, __LINE__);
                    return false;
                 }
 
                 break;
              }
           default:
-						fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-						return false;
+             return false;
         }
         return true;
-     }
-	 default:
-		fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-		return false;
-	 }
-return true;
+      }
+      default:
+         return false;
+   }
+   return true;
 }
 
 bool
@@ -1282,294 +1215,187 @@ mdld_v_expr::apply_be(mdl_var& ret)
 {
    switch (type_) 
    {
-     case MDL_EXPR_INT: 
+      case MDL_EXPR_INT: 
+         return ret.set(int_literal_);
+      case MDL_EXPR_STRING:
+         return ret.set(str_literal_);
+      case MDL_EXPR_INDEX: 
+         if (var_ == pdstring ("$arg"))
          {
-					 bool temp = ret.set(int_literal_);
-					 if (!temp)
-						 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-					 return temp;
-						//return ret.set(int_literal_);
+            // we only allow $arg to appear inside icode (is this right?),
+            // and therefore, the other mdl_v_expr::apply_be() should be used for
+            // $arg, and not this one. --chun
+            assert (0);
          }
-     case MDL_EXPR_STRING:
+         if (var_ == pdstring ("$constraint"))
          {
-					 bool temp = ret.set(str_literal_);
-					 if (!temp)
-						 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-					 return temp;
-					 //return ret.set(str_literal_);
-         }
-     case MDL_EXPR_INDEX: 
-        {
-           if (var_ == pdstring ("$arg"))
-           {
-              // we only allow $arg to appear inside icode (is this right?),
-              // and therefore, the other mdl_v_expr::apply_be() should be used for
-              // $arg, and not this one. --chun
-              assert (0);
-           }
-           if (var_ == pdstring ("$constraint"))
-           {
-              mdl_var ndx(false);
-
-              if (!dynamic_cast<mdld_expr*>(left_)->apply_be(ndx)) {
-								fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-                  return false;
-              }
-
-              int x;
-              if (!ndx.get(x)) {
-								fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-                  return false;
-              }
+            mdl_var ndx(false);
+            
+            if (!dynamic_cast<mdld_expr*>(left_)->apply_be(ndx)) {
+               return false;
+            }
+            
+            int x;
+            if (!ndx.get(x)) {
+               return false;
+            }
               
-              //XXX
-              // this is executing before do_trailing resources has a chance
-              // to set the buf. 
-
-              bool tmp = (mdl_data::cur_mdl_data->env->get(ret, var_+pdstring(x)));
-							if(!tmp)
-								fprintf(stderr,"%d [%s:%u] apply_be false tmp\n",getpid(),__FILE__,__LINE__);
-              return tmp;
-              //              return (mdl_data::cur_mdl_data->env->get(ret, var_+pdstring(x)));
-           }
-
-           mdl_var array(false);
-
-           if (!mdl_data::cur_mdl_data->env->get(array, var_)) {
-						 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
+            //XXX
+            // this is executing before do_trailing resources has a chance
+            // to set the buf. 
+            return (mdl_data::cur_mdl_data->env->get(ret, var_+pdstring(x)));
+            
+            mdl_var array(false);
+            
+            if (!mdl_data::cur_mdl_data->env->get(array, var_)) {
                return false;
-           }
-
-           if (!array.is_list()) {
-						 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-						 return false;  
-           }
-
-           mdl_var index_var;
-           if (!dynamic_cast<mdld_expr*>(left_)->apply_be(index_var)) {
-						 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-              return false;
-           }
-
-           int index_value;
-           if (!index_var.get(index_value)) {
-						 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
+            }
+            
+            if (!array.is_list()) {
+               return false;  
+            }
+            
+            mdl_var index_var;
+            if (!dynamic_cast<mdld_expr*>(left_)->apply_be(index_var)) {
                return false;
-           }
-
-           if (index_value >= (int)array.list_size()) {
-						 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
+            }
+            
+            int index_value;
+            if (!index_var.get(index_value)) {
                return false;
-           }
-
-					 bool temp = array.get_ith_element(ret, index_value);
-					 if (!temp)
-						 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-					 return temp;
-           //return array.get_ith_element(ret, index_value);
-        }
-     case MDL_EXPR_BINOP:
-        {
-           mdl_var left_val(false), right_val(false);
-           if (!left_ || !right_)
-						 {
-							 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-							 return false;
-						 }
-           if (!dynamic_cast<mdld_expr*>(left_)->apply_be(left_val))
-						 {
-							 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-							 return false;
-						 }
-           if (!dynamic_cast<mdld_expr*>(right_)->apply_be(right_val))
-						 {
-							 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-							 return false;
-						 }
-
-					 bool temp = do_operation(ret, left_val, right_val, bin_op_);
-					 if(!temp)
-						 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-
-					 return(temp);
-//return (do_operation(ret, left_val, right_val, bin_op_));
-        }
-     case MDL_EXPR_FUNC:
-        {
-        if (var_ == "startWallTimer" || var_ == "stopWallTimer"
-            || var_ == "startProcessTimer" || var_ == "stopProcessTimer"
-            || var_ == "startProcessTimer_lwp"
-            )
-        {
-           // this mdl_v_expr::apply_be() is for expressions outside
-           // instrumentation blocks.  these timer functions are not
-           // supposed to be used here
-					fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-           return false;
-        }
-        else
-        {
-           mdl_var arg0(false);
-           if (!dynamic_cast<mdld_expr*>((*args_)[0])->apply_be(arg0))
-						 {
-							 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-							 return false;
-						 }
-           pdstring func_name;
-           if (!arg0.get(func_name))
-						 {
-							 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-							 return false;
-						 }
-           if (global_proc)
-           {
-              BPatch_image *appImage = global_proc->get_dyn_process()->getImage();
-              BPatch_function *bpf = mdlFindFunction(func_name.c_str(), appImage);
-              if (!bpf)
-								{
-									fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-									return false; // mdlFindFunction prints warnings
-								}
-
-							bool temp = ret.set(bpf);
-							if (!temp)
-								fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-							return temp;
-              //return (ret.set(bpf));
-           }
-           else
-						 {
-							 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-							 assert(0);
-							 return false; 
-						 }
-        }
-     }
-  case MDL_EXPR_DOT:
-     {
-        if (!dynamic_cast<mdld_expr*>(left_)->apply_be(ret)) {
-					//fprintf(stderr,"mdl error left of EXPR dot is false\n");
-					fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-					return false;
-        }
-
-        if (!do_type_walk_)
-           return true;
-        else
-					{ // do_type_walk and type_walk are set in paradyn's mdl.C
-						bool temp = walk_deref(ret, type_walk);
-						if (!temp)
-							fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-						return temp;
-						//return walk_deref(ret, type_walk);
-					}
-     }
-  case MDL_EXPR_ASSIGN:
-     {
-        mdl_var lval(false), rval(false);
-        if (!mdl_data::cur_mdl_data->env->get(lval, var_))
-					{
-						fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-						return false;
-					}
-        if (!left_ || !dynamic_cast<mdld_expr*>(left_)->apply_be(rval))
-					{
-						fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-						return false;
-					}
-        if (rval.type() == MDL_T_NONE)
-        {
-           ok_ = true;
-           return ok_;
-        }
-        switch (bin_op_)
-        {
-          case MDL_ASSIGN:
-             {
-                int x;
-                if (!rval.get(x))
-									{
-										fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-										return false;
-									}
-                ok_ = ret.set(x);
-								if (!ok_)
-									fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-                return ok_;
-             }
-				case MDL_PLUSASSIGN:
-             {
-                //chun-- a hack for $arg[i]
-							 if (lval.type() != MDL_T_NONE && rval.type() != MDL_T_NONE)
-								 ok_ = do_operation(ret, lval, rval, MDL_MINUS);
-							 else
-								 ok_ = true;
-							 if (!ok_)
-								 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-							 return ok_;
-             }
-				case MDL_MINUSASSIGN:
-					{
-                //chun-- a hack for $arg[i]
-                if (lval.type() != MDL_T_NONE && rval.type() != MDL_T_NONE)
-                   ok_ = do_operation(ret, lval, rval, MDL_PLUS);
-                else
-                   ok_ = true;
-								if (!ok_)
-									fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-                return ok_;
-             }
-        }
-     }
-  case MDL_EXPR_VAR:
-     {
-
-        if (var_ == pdstring("$cmin") || var_ == pdstring("$cmax"))
-           ok_ = true;
-        else
-           ok_ = mdl_data::cur_mdl_data->env->get (ret, var_);
-
-				if(!ok_)
-					{
-						fprintf(stderr,"%d [%s:%u] apply_be var_ = %s\n",getpid(),__FILE__,__LINE__,var_.c_str());
-						fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-					}
-					
-        return ok_;
-     }
-  case MDL_EXPR_PREUOP:
-     {
-        mdl_var lval(false);
-        if (!left_ || !dynamic_cast<mdld_expr*>(left_)->apply_be (lval))
-					{
-						fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-						return false;
-					}
-        ok_ = do_operation(ret, lval, u_op_, true);
-				if (!ok_)
-					fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-        return ok_;
-     }
-  case MDL_EXPR_POSTUOP:
-     {
-        mdl_var lval(false);
-        if (!left_ || !dynamic_cast<mdld_expr*>(left_)->apply_be (lval))
-					{
-						fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-						return false;
-					}
-        ok_ = do_operation(ret, lval, u_op_, false);
-				if (!ok_)
-					fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);
-        return ok_;
-     }
-  default:
+            }
+            
+            if (index_value >= (int)array.list_size()) {
+               return false;
+            }
+            
+            return array.get_ith_element(ret, index_value);
+         }
+      case MDL_EXPR_BINOP:
       {
-				fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-         return false;
+         mdl_var left_val(false), right_val(false);
+         if (!left_ || !right_)
+         {
+            return false;
+         }
+         if (!dynamic_cast<mdld_expr*>(left_)->apply_be(left_val))
+         {
+            return false;
+         }
+         if (!dynamic_cast<mdld_expr*>(right_)->apply_be(right_val))
+         {
+            return false;
+         }
+         
+         return (do_operation(ret, left_val, right_val, bin_op_));
       }
-}
-return true;
+      case MDL_EXPR_FUNC:
+      {
+         if (var_ == "startWallTimer" || var_ == "stopWallTimer"
+             || var_ == "startProcessTimer" || var_ == "stopProcessTimer"
+             || var_ == "startProcessTimer_lwp")
+         {
+            // this mdl_v_expr::apply_be() is for expressions outside
+            // instrumentation blocks.  these timer functions are not
+            // supposed to be used here
+            return false;
+         }
+         mdl_var arg0(false);
+         if (!dynamic_cast<mdld_expr*>((*args_)[0])->apply_be(arg0))
+         {
+            return false;
+         }
+         pdstring func_name;
+         if (!arg0.get(func_name))
+         {
+            return false;
+         }
+         if (global_proc)
+         {
+            BPatch_image *appImage = global_proc->get_dyn_process()->getImage();
+            BPatch_function *bpf = mdlFindFunction(func_name.c_str(), appImage);
+            if (!bpf)
+            {
+               return false; // mdlFindFunction prints warnings
+            }
+            
+            return (ret.set(bpf));
+         }
+         assert(0);
+         return false; 
+      }
+      case MDL_EXPR_DOT:
+      {
+         if (!dynamic_cast<mdld_expr*>(left_)->apply_be(ret)) {
+            //fprintf(stderr,"mdl error left of EXPR dot is false\n");
+            return false;
+         }
+         
+         if (!do_type_walk_)
+            return true;
+         else
+         { // do_type_walk and type_walk are set in paradyn's mdl.C
+            return walk_deref(ret, type_walk);
+         }
+      }
+      case MDL_EXPR_ASSIGN:
+      {
+         mdl_var lval(false), rval(false);
+         if (!mdl_data::cur_mdl_data->env->get(lval, var_))
+            return false;
+         if (!left_ || !dynamic_cast<mdld_expr*>(left_)->apply_be(rval))
+            return false;
+         if (rval.type() == MDL_T_NONE)
+            return true;
+         switch (bin_op_)
+         {
+            case MDL_ASSIGN:
+            {
+               int x;
+               if (!rval.get(x))
+                  return false;
+               return ret.set(x);
+            }
+				case MDL_PLUSASSIGN:
+            {
+               //chun-- a hack for $arg[i]
+               if (lval.type() != MDL_T_NONE && rval.type() != MDL_T_NONE)
+                  return  do_operation(ret, lval, rval, MDL_MINUS);
+               return true;
+            }
+				case MDL_MINUSASSIGN:
+            {
+               //chun-- a hack for $arg[i]
+               if (lval.type() != MDL_T_NONE && rval.type() != MDL_T_NONE)
+                  return do_operation(ret, lval, rval, MDL_PLUS);
+               return true;
+            }
+         }
+      }
+      case MDL_EXPR_VAR:
+      {
+        if (var_ == pdstring("$cmin") || var_ == pdstring("$cmax"))
+           return true;
+        return mdl_data::cur_mdl_data->env->get (ret, var_);
+      }
+      case MDL_EXPR_PREUOP:
+      {
+         mdl_var lval(false);
+         if (!left_ || !dynamic_cast<mdld_expr*>(left_)->apply_be (lval))
+            return false;
+         return do_operation(ret, lval, u_op_, true);
+      }
+      case MDL_EXPR_POSTUOP:
+      {
+         mdl_var lval(false);
+         if (!left_ || !dynamic_cast<mdld_expr*>(left_)->apply_be (lval))
+            return false;
+         return do_operation(ret, lval, u_op_, false);
+      }
+      default:
+         return false;
+   }
+   return true;
 }
 
 
@@ -1634,22 +1460,19 @@ mdld_icode::apply_be(BPatch_snippet *&mn, bool mn_initialized,
   // a return value of true implies that "mn" has been written to
 
   if (!expr_)
-		{
-			fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-			return false;
-		}
+  {
+     return false;
+  }
   BPatch_snippet* pred = NULL;
   BPatch_snippet* snip = NULL;
 
   if (if_expr_) {
     if (!dynamic_cast<mdld_expr*>(if_expr_)->apply_be(pred)) {
-			fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
 			return false;
     }
   }
 
   if (!dynamic_cast<mdld_expr*>(expr_)->apply_be(snip)) {
-		fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
     return false;
   }
 
@@ -1696,26 +1519,16 @@ mdld_list_stmt::apply_be(instrCodeNode * /*mn*/,
     }
   }
   if (!found)
-		{
-			for (unsigned u0 = 0; u0 < flavor_->size(); u0++)
-				{
-					fprintf(stderr,"%d [%s:%u] apply_be daemon_flavor = %s : flavor[%u] = %s\n",
-									getpid(),__FILE__,__LINE__,daemon_flavor.c_str(),u0,(*flavor_)[u0].c_str());		
-				}
-			fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-			return false;
-		}
+     return false;
   if (!elements_) 
-		{
-			fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-			return false;
-		}
+  {
+     return false;
+  }
   mdl_var list_var(id_, false);
   if (!list_var.make_list(type_)) 
-		{
-			fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-			return false;
-		}
+  {
+     return false;
+  }
   unsigned size = elements_->size();
 
   if (type_ == MDL_T_PROCEDURE_NAME) {
@@ -1738,53 +1551,40 @@ mdld_list_stmt::apply_be(instrCodeNode * /*mn*/,
       int i; float f;
       mdl_var expr_var(false);
       switch (type_) {
-      case MDL_T_INT:
+         case MDL_T_INT:
 				if (sscanf((*elements_)[u].c_str(), "%d", &i) != 1)
-					{
-						fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-						return false;
-					}
+            {
+               return false;
+            }
 				if (!expr_var.set(i)) 
-					{
-						fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-						return false;
-					}
-        break;
-      case MDL_T_FLOAT:
+            {
+               return false;
+            }
+            break;
+         case MDL_T_FLOAT:
 				if (sscanf((*elements_)[u].c_str(), "%f", &f) != 1)
-					{
-						fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-						return false;
-					}
+            {
+               return false;
+            }
 				if (!expr_var.set(f))
-					{
-						fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-						return false;
-					}
+            {
+               return false;
+            }
 				break;
-      case MDL_T_STRING: 
+         case MDL_T_STRING: 
 				if (!expr_var.set((*elements_)[u]))
-					{
-						fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-						return false;
-					}
+            {
+               return false;
+            }
 				break;
-      default:
-				fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-				return false;
+         default:
+            return false;
       }
       if (!list_var.add_to_list(expr_var))
-				{
-					fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-					return false;
-				}
+         return false;
     }
   }
-	bool temp = mdl_data::cur_mdl_data->env->add(list_var);
-	if(!temp)
-		fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);	
-	return temp;	
-  //return (mdl_data::cur_mdl_data->env->add(list_var));
+  return (mdl_data::cur_mdl_data->env->add(list_var));
 }
 
 
@@ -1813,15 +1613,13 @@ mdld_for_stmt::apply_be(instrCodeNode *mn,
 
   // TODO -- build iterator closure here -- list may be vector or dictionary
   if (!dynamic_cast<mdld_expr*>(list_expr_)->apply_be(list_var))
-		{
-			fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-			return false;
-		}
+  {
+     return false;
+  }
   if (!list_var.is_list())
-		{
-			fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-			return false;
-		}
+  {
+     return false;
+  }
   // TODO
   //  pdvector<int_function*> *vp;
   //  list_var.get(vp);
@@ -1830,10 +1628,9 @@ mdld_for_stmt::apply_be(instrCodeNode *mn,
   // mdl_data::cur_mdl_data->env->set_type(list_var.element_type(), index_name_);
   while (closure.next()) {
     if (!dynamic_cast<mdld_stmt*>(for_body_)->apply_be(mn, flags))
-			{
-				fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-				return false;
-			}
+    {
+       return false;
+    }
   }
 	
   mdl_data::cur_mdl_data->env->pop();
@@ -1892,26 +1689,19 @@ mdld_if_stmt::apply_be(instrCodeNode *mn,
   // execute if true.
   mdl_var res(false);
   if (!dynamic_cast<mdld_expr*>(expr_)->apply_be(res))
-		{
-			fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-			return false;
-		}
+  {
+     return false;
+  }
   int iv;
   switch (res.type()) {
-  case MDL_T_INT:
-    if (!res.get(iv))
-			{
-				fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-				return false;
-			}
-    if (!iv)
-      return true;
-    break;
-  default:
-		{
-			fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-			return false;
-		}
+     case MDL_T_INT:
+        if (!res.get(iv))
+           return false;
+        if (!iv)
+           return true;
+        break;
+     default:
+        return false;
   }
 	
   return dynamic_cast<mdld_stmt*>(body_)->apply_be(mn, flags);
@@ -1939,10 +1729,7 @@ mdld_seq_stmt::apply_be(instrCodeNode *mn,
   unsigned size = stmts_->size();
   for (unsigned index=0; index<size; index++)
     if (!dynamic_cast<mdld_stmt*>((*stmts_)[index])->apply_be(mn, flags)) // virtual fn call
-			{
-				fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-				return false;
-			}
+       return false;
   return true;
 }
 
@@ -1977,31 +1764,27 @@ mdld_instr_stmt::apply_be(instrCodeNode *mn,
 
   mdl_var pointsVar(false);
   if (!dynamic_cast<mdld_expr*>(point_expr_)->apply_be(pointsVar)) { 
-      // process the 'point(s)' e.g. "$start.entry"
-		fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-    return false;
+     // process the 'point(s)' e.g. "$start.entry"
+     return false;
   }
 
   pdvector<BPatch_point *> points;
   if (pointsVar.type() == MDL_T_LIST_POINT) {
     pdvector<BPatch_point *> *pts;
     if (!pointsVar.get(pts))
-			{
-				fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-				return false;
-			}
+    {
+       return false;
+    }
     points = *pts;
   } else if (pointsVar.type() == MDL_T_POINT) {
-    BPatch_point *p;
-    if (!pointsVar.get(p)) // where the point is located...
-			{
-				fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-				return false;
-			}
-    points += p;
+     BPatch_point *p;
+     if (!pointsVar.get(p)) // where the point is located...
+     {
+        return false;
+     }
+     points += p;
   } else {
-		fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-		return false;
+     return false;
   }
 
   // Let's generate the code now (we used to calculate it in the loop below,
@@ -2010,7 +1793,6 @@ mdld_instr_stmt::apply_be(instrCodeNode *mn,
   unsigned size = icode_reqs_->size();
   for (unsigned u=0; u<size; u++) {
     if (!((mdld_icode*)(*icode_reqs_)[u])->apply_be(code, u>0, mn->proc())) {
-			fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
       // when u is 0, code is un-initialized
       return false;
     }
@@ -2025,17 +1807,12 @@ mdld_instr_stmt::apply_be(instrCodeNode *mn,
 
         BPatch_variableExpr *base_var = idn->getVariableExpr();
         if (!base_var) {
-           fprintf(stderr, "%s[%d]:  getVariableExpr() failed for intCounter\n",
-                   __FILE__, __LINE__);
            return false;
         }
 
         BPatch_snippet *temp1 = NULL;
         temp1 = getCounter(base_var, global_proc->get_dyn_process()->getImage(),
                            global_proc->multithread_capable());
-        if (!temp1) {
-          fprintf(stderr, "%s[%d]:  getCounter() failed\n", __FILE__, __LINE__);
-        }
 
         BPatch_snippet *temp2 = code;
         code = createIf((BPatch_boolExpr *)temp1, temp2,
@@ -2143,11 +1920,8 @@ mdld_constraint::apply_be(instrCodeNode *codeNode,
 
    // put $constraint[X] in the environment
    if (!do_trailing_resources(resource.tokenized(), proc)) {
-       mdl_data::cur_mdl_data->env->pop();
-
-			 fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-
-			 return false;
+      mdl_data::cur_mdl_data->env->pop();
+      return false;
    }
    
    // Now evaluate the constraint statements
@@ -2156,8 +1930,7 @@ mdld_constraint::apply_be(instrCodeNode *codeNode,
 
    for (unsigned u=0; u<size; u++) {
       if (!dynamic_cast<mdld_stmt*>((*stmts_)[u])->apply_be(codeNode, flags)) {
-				fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
-				return false;
+         return false;
       }
    }
    mdl_data::cur_mdl_data->env->pop();
@@ -2203,7 +1976,6 @@ mdld_metric::apply_be( pdvector<processMetFocusNode *> *createdProcNodes,
 
   // if another machine was specified, return NULL
   if(! (focus.allMachines() || focus.get_machine() == machine)) {
-		fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
     return false;
   }
 
@@ -2211,7 +1983,6 @@ mdld_metric::apply_be( pdvector<processMetFocusNode *> *createdProcNodes,
   filter_processes(focus, procs, &instProcess);
 
   if (!instProcess.size()) {
-		fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
     return false;
   }
 
@@ -2226,7 +1997,6 @@ mdld_metric::apply_be( pdvector<processMetFocusNode *> *createdProcNodes,
   pdvector<const Hierarchy *> flags_focus_data;
   if (! pick_out_matched_constraints(*constraints_, focus, &flag_cons,
 				 &repl_cons, &flags_focus_data, &repl_focus)) {
-		fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
     return false;
   }
 
@@ -2273,19 +2043,16 @@ mdld_metric::apply_be( pdvector<processMetFocusNode *> *createdProcNodes,
     if (!isPapiInitialized()) {
         pdstring msg = pdstring("PAPI hardware events are unavailable");
         mdl_data::cur_mdl_data->env->appendErrorString( msg );
-				fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
         return false;
     }
     else if (!papiMgr::isHwStrValid(hwcntr_)) {
         pdstring msg = pdstring(hwcntr_ + " PAPI hardware event is invalid");
         mdl_data::cur_mdl_data->env->appendErrorString( msg );
-				fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
         return false;
     }
 #else
     pdstring msg = pdstring("PAPI hardware events are not available");
     mdl_data::cur_mdl_data->env->appendErrorString( msg );
-		fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
     return false;
 #endif
   }
@@ -2297,8 +2064,6 @@ mdld_metric::apply_be( pdvector<processMetFocusNode *> *createdProcNodes,
 			     stmts_, flags_focus_data, *repl_focus, *temp_ctr_,
 			     replace_components_if_present,
 			     dontInsertData)) {
-
- 		fprintf(stderr,"%d [%s:%u] apply_be false\n",getpid(),__FILE__,__LINE__);		
 		return false;
   }
 
@@ -3158,22 +2923,13 @@ bool mdl_do(pdvector<processMetFocusNode *> *createdProcNodes,
 			T_dyninstRPC::mdl_metric *curMetric = mdl_data::cur_mdl_data->all_metrics[u];
 			if (curMetric->name_ == met_name)
 				{
-					// calls mdl_metric::apply_be()
-					
-          //cerr << "\nmdl_do calling apply_be" << endl;
-					
 					bool ret = ((mdld_metric*)curMetric)->apply_be(createdProcNodes,
-																												 focus,
-																												 procs,
-																												 replace_components_if_present,
-																												 enable);
+                                           focus, procs,
+                                           replace_components_if_present,
+                                           enable);
 					
 					(*aggOpToUse) = aggregateOp(curMetric->agg_op_);
-					if(!ret)
-						fprintf(stderr,"%u [%s:%u] mdl_do curMetric->name_ = %s :: met_name = %s\n",
-										getpid(),__FILE__,__LINE__,curMetric->name_.c_str(),met_name.c_str());
-					
-					return ret;
+               return ret;
 				}
 		}
 	

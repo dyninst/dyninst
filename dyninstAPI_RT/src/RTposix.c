@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.20 2006/02/08 23:41:38 bernat Exp $
+ * $Id: RTposix.c,v 1.21 2006/02/16 00:57:28 legendre Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -73,7 +73,6 @@
 
 void DYNINSTbreakPoint()
 {
-    fprintf(stderr, "Calling DYNINSTbreakPoint...\n");
     kill(getpid(), DYNINST_BREAKPOINT_SIGNUM);
 }
 

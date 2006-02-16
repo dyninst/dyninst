@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.13 2006/02/10 21:20:40 bernat Exp $
+// $Id: mapped_object.C,v 1.14 2006/02/16 00:57:23 legendre Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -166,7 +166,6 @@ mapped_object *mapped_object::createMappedObject(fileDescriptor desc,
     
     image *img = image::parseImage(desc);
     if (!img)  {
-        fprintf(stderr, "%s[%d]:  Failed to parse image, createMapped object returning NULL\n", FILE__, __LINE__);
         return NULL;
     }
     // Adds exported functions and variables..

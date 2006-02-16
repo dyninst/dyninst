@@ -60,7 +60,6 @@ void (*newthr_cb)(int);
  * basetramps everywhere.
  **/
 
-volatile int foobar = 0;
 int DYNINSTthreadIndex()
 {
    dyntid_t tid;
@@ -122,7 +121,6 @@ static int asyncSendThreadEvent(int pid, rtBPatch_asyncEventType type,
    }
 
    result = DYNINSTwriteEvent((void *) ev, ev_size);
-
    if (result == -1)
    {
       fprintf(stderr, "%s[%d]:  write error creating thread\n",
@@ -147,7 +145,6 @@ static unsigned threadCreate(dyntid_t tid)
 
    if (!DYNINSThasInitialized)
    {
-      fprintf(stderr, "[%s:%u] - Not initialized\n", __FILE__, __LINE__);
       return DYNINST_max_num_threads;
    }
    

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.267 2006/02/12 22:21:32 jodom Exp $
+ // $Id: symtab.C,v 1.268 2006/02/16 00:57:25 legendre Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1692,17 +1692,11 @@ image::image(fileDescriptor &desc, bool &err)
       msg += "\n";
       logLine(msg.c_str());
       err = true;
-      fprintf(stderr, "%s[%d]:  %s\n", __FILE__, __LINE__, msg.c_str());
-#ifndef mips_unknown_ce2_11 //ccw 29 mar 2001
-      
 #if defined(BPATCH_LIBRARY)
       BPatch_reportError(BPatchWarning, 27, msg.c_str()); 
 #else
       showErrorCallback(27, msg); 
 #endif
-#endif
-      bperr( "Error parsing\n");
-      
       return; 
    }
   

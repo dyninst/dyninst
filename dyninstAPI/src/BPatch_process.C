@@ -171,7 +171,6 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
    llproc = ll_createProcess(path, &argv_vec, (envp ? &envp_vec : NULL), 
                            directoryName, stdin_fd, stdout_fd, stderr_fd);
    if (llproc == NULL) { 
-      fprintf(stderr, "%s[%d][%s]: ll_createProcess failed\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
       BPatch::bpatch->reportError(BPatchFatal, 68, 
            "Dyninst was unable to create the specified process");
       return;

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.99 2006/01/30 07:16:52 jaw Exp $
+ * $Id: Object-elf.C,v 1.100 2006/02/16 00:57:21 legendre Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -614,15 +614,13 @@ void Object::load_object()
 	}
 
 	get_valid_memory_areas(elf);
-    
+
 	// find symbol and string data
-	Elf_X_Data symdata = symscnp->get_data();
-	Elf_X_Data strdata = strscnp->get_data();
-	if (!symdata.isValid() || !strdata.isValid()) {
-	    log_elferror(err_func_, "no symbol/string data");
-      
-	    //goto cleanup;
-	}
+   Elf_X_Data symdata, strdata;
+   if (symscnp)
+      symdata = symscnp->get_data();
+   if (strscnp)
+      strdata = strscnp->get_data();
 	pdstring module = "DEFAULT_MODULE";
 	pdstring name   = "DEFAULT_NAME";
 
@@ -678,7 +676,7 @@ void Object::load_object()
 	// populate "relocation_table_"
 	if(rel_plt_scnp && dynsym_scnp && dynstr_scnp) {
 	    if (!get_relocation_entries(rel_plt_scnp,dynsym_scnp,dynstr_scnp)) {
-		goto cleanup;
+          goto cleanup;
 	    }
 	}
     
@@ -997,53 +995,53 @@ void Object::parse_symbols(pdvector<Symbol> &allsymbols,
 			   bool shared, pdstring smodule)
 {
 #if defined(TIMED_PARSE)
-    struct timeval starttime;
-    gettimeofday(&starttime, NULL);
+   struct timeval starttime;
+   gettimeofday(&starttime, NULL);
 #endif
 
-    Elf_X_Sym syms = symdata.get_sym();
-    const char *strs = strdata.get_string();
-    for (unsigned i = 0; i < syms.count(); i++) {
-	// skip undefined symbols
-	if (syms.st_shndx(i) == SHN_UNDEF) continue;
-	int etype = syms.ST_TYPE(i);
-	int ebinding = syms.ST_BIND(i);
-
-	// resolve symbol elements
-	pdstring sname = &strs[ syms.st_name(i) ];
-	Symbol::SymbolType stype = pdelf_type(etype);
-	Symbol::SymbolLinkage slinkage = pdelf_linkage(ebinding);
-	unsigned ssize = syms.st_size(i);
-	Address saddr = syms.st_value(i);
-
-	if (stype == Symbol::PDST_UNKNOWN) continue;
-	if (slinkage == Symbol::SL_UNKNOWN) continue;
-
-	Symbol newsym(sname, smodule, stype, slinkage, saddr, false, ssize);
-
-	// register symbol in dictionary
-	if ((etype == STT_FILE) && (ebinding == STB_LOCAL) && 
-	    (shared) && (sname == extract_pathname_tail(smodule))) {
-
-	    // symbols_[sname] = newsym; // special case
-	    symbols_[sname].push_back( newsym );
-	} else {
-	    allsymbols.push_back(newsym); // normal case
-	}
-    }
+   Elf_X_Sym syms = symdata.get_sym();
+   const char *strs = strdata.get_string();
+   for (unsigned i = 0; i < syms.count(); i++) {
+      // skip undefined symbols
+      if (syms.st_shndx(i) == SHN_UNDEF) continue;
+      int etype = syms.ST_TYPE(i);
+      int ebinding = syms.ST_BIND(i);
+      
+      // resolve symbol elements
+      pdstring sname = &strs[ syms.st_name(i) ];
+      Symbol::SymbolType stype = pdelf_type(etype);
+      Symbol::SymbolLinkage slinkage = pdelf_linkage(ebinding);
+      unsigned ssize = syms.st_size(i);
+      Address saddr = syms.st_value(i);
+      
+      if (stype == Symbol::PDST_UNKNOWN) continue;
+      if (slinkage == Symbol::SL_UNKNOWN) continue;
+      
+      Symbol newsym(sname, smodule, stype, slinkage, saddr, false, ssize);
+      
+      // register symbol in dictionary
+      if ((etype == STT_FILE) && (ebinding == STB_LOCAL) && 
+          (shared) && (sname == extract_pathname_tail(smodule))) {
+         
+         // symbols_[sname] = newsym; // special case
+         symbols_[sname].push_back( newsym );
+      } else {
+         allsymbols.push_back(newsym); // normal case
+      }
+   }
 
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_nt4_0) 
   
-    if( dynamic_addr_ ) {
-	findDynamic( allsymbols );
-    }
-
-    if( !shared ) {
-	findMain( allsymbols );
-    }
+   if( dynamic_addr_ ) {
+      findDynamic( allsymbols );
+   }
+   
+   if( !shared ) {
+      findMain( allsymbols );
+   }
 #endif
 
 #if defined(TIMED_PARSE)

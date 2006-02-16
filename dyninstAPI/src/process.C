@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.581 2006/02/14 23:50:15 jaw Exp $
+// $Id: process.C,v 1.582 2006/02/16 00:57:24 legendre Exp $
 
 #include <ctype.h>
 
@@ -2608,8 +2608,6 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
                                                                     stdin_fd, stdout_fd, 
                                                                     stderr_fd);
    if (!theProc || !theProc->sh) {
-     fprintf(stderr, "%s[%d]:  failed to create process %s\n", 
-             FILE__, __LINE__, File.c_str());
      getMailbox()->executeCallbacks(FILE__, __LINE__);
      return NULL;
    }
@@ -2695,7 +2693,6 @@ process *ll_attachProcess(const pdstring &progpath, int pid)
 
   process *theProc = SignalGeneratorCommon::newProcess(fullPathToExecutable, pid);
   if (!theProc || !theProc->sh) {
-    fprintf(stderr, "%s[%d]:  failed to create process %s\n", FILE__, __LINE__, progpath.c_str());
     getMailbox()->executeCallbacks(FILE__, __LINE__);
     return NULL;
   }
@@ -3034,7 +3031,7 @@ bool process::attach()
    startup_printf("[%d]: attaching to representative LWP\n", getPid());
 
    if( !getRepresentativeLWP()->attach()) {
-      fprintf(stderr, "%s[%d]:  failed to attach to rep lwp\n", FILE__, __LINE__);
+      startup_printf("%s[%d]:  failed to attach to rep lwp\n", FILE__, __LINE__);
       return false;
    }
 
@@ -3589,8 +3586,6 @@ bool process::terminateProc()
      // handle the kill signal on the process, which will dispatch exit callback
       signal_printf("%s[%d][%s]:  before waitForEvent(evtProcessExit)\n", 
               FILE__, __LINE__, getThreadStr(getExecThreadID()));
-      fprintf(stderr, "%s[%d]:  waiting for evtProcessExit, lock depth is %d\n", FILE__, __LINE__, global_mutex->depth());
-
 
       // Let it run so we can see it die...      
       set_status(running);

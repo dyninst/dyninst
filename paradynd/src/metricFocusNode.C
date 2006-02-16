@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.259 2005/12/19 19:43:03 pack Exp $
+// $Id: metricFocusNode.C,v 1.260 2006/02/16 00:57:35 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -214,101 +214,94 @@ machineMetFocusNode *createMetricInstance(int mid, pdstring& metric_name,
 {
    // we make third parameter false to avoid printing warning messages in
    // focus2CanonicalFocus ("enable" was here previously) - naim
-
+   
    bool errFlag = false;
    Focus &focus = *(new Focus(focusData, &errFlag));
    if(errFlag) {
-		 fprintf(stderr,"%d [%s:%u] Failed to create new Focus metric_name = %s\n",getpid(),__FILE__,__LINE__,metric_name.c_str());
+      fprintf(stderr,"%d [%s:%u] Failed to create new Focus metric_name = %s\n",getpid(),__FILE__,__LINE__,metric_name.c_str());
       return NULL;
    }
 
    if (mdl_can_do(metric_name)) 
-		 {
-			 /* select the processes that should be instrumented. We skip process
-					that have exited, and processes that have been created but are not
-					completely initialized yet.  If we try to insert instrumentation in
-					a process that is not ready yet, we get a core dump.  A process is
-					ready when it is not in neonatal state and the isBootstrappedYet
-					returns true.
-			 */
-			 pdvector<pd_process*> procs;
+   {
+      /* select the processes that should be instrumented. We skip process
+         that have exited, and processes that have been created but are not
+         completely initialized yet.  If we try to insert instrumentation in
+         a process that is not ready yet, we get a core dump.  A process is
+         ready when it is not in neonatal state and the isBootstrappedYet
+         returns true.
+      */
+      pdvector<pd_process*> procs;
+      
+      processMgr::procIter itr = getProcMgr().begin();
+      while(itr != getProcMgr().end()) 
+      {
+         pd_process *curProc = *itr++;
+         if(!curProc) continue;
+         if (!curProc->isTerminated() 
+             && !curProc->isDetached()
+             && curProc->isBootstrappedYet())
+         {
+            procs += curProc;
+         }
+      }
 			 
-			 processMgr::procIter itr = getProcMgr().begin();
-			 while(itr != getProcMgr().end()) 
-				 {
-					 pd_process *curProc = *itr++;
-					 if(!curProc) continue;
-#ifdef NOTDEF // PDSEP
-					 //  I think there must be an error in this predicate?
-					 //  Doesn't match the comment above
-					 if(curProc->status()==exited || curProc->status()==neonatal || 
-							curProc->isBootstrappedYet())
-#endif
-						 if (!curProc->isTerminated() 
-								 && !curProc->isDetached()
-								 && curProc->isBootstrappedYet())
-							 {
-								 procs += curProc;
-							 }
-				 }
-			 
-			 if (procs.size() == 0)
-         // there are no processes to instrument
-				 {	    
-					 fprintf(stderr,"createMetricInstance failed, no processes to instrument\n");
-					 return NULL;
-				 }
+      // there are no processes to instrument
+      if (procs.size() == 0)
+      {	    
+         fprintf(stderr, "createMetricInstance failed, no "
+                 "processes to instrument\n");
+         return NULL;
+      }
 
-      //cerr << "makeMachineMetFocusNode START" << endl;
       machineMetFocusNode *machNode = 
          makeMachineMetFocusNode(mid, focus, metric_name, procs, false,enable);
-      //cerr << "makeMachineMetFocusNode END" << endl;
-
-      if (machNode == NULL) 
-				{
-					cerr << "createMetricInstance failed since mdl_do failed\n";
-          cerr << "metric name was " << metric_name << "; focus was ";
-          cerr << "createMetricInstance failed since mdl_do failed\n";
-				}
+      if (!machNode)
+      {
+         cerr << "createMetricInstance failed since mdl_do failed\n";
+         cerr << "metric name was " << metric_name << "; focus was ";
+         cerr << focus.getName() << endl;
+         cerr << "createMetricInstance failed since mdl_do failed\n";
+      }
       return machNode;
-		 } 
-	 else
-		 {
+   } 
+   else
+   {
       bool matched;
-
+      
       machineMetFocusNode *machNode = 
-				doInternalMetric(mid, focus, metric_name, enable, matched);
-
+         doInternalMetric(mid, focus, metric_name, enable, matched);
+      
       // NULL on serious error; -1 if enable was false; -2 if illegal to
       // instr with given focus [many internal metrics work only for whole
-      // program]
-
+      // program.
+      
       if (machNode == (machineMetFocusNode*)-2) 
-				{
-					//          cerr << "createMetricInstance: internal metric " 
-					//                      << metric_name << " isn't defined for focus: " 
-					//                      << focus.getName() << "\n";
-					machNode = NULL; // straighten up the return value
-				}
+      {
+         //          cerr << "createMetricInstance: internal metric " 
+         //               << metric_name << " isn't defined for focus: " 
+         //               << focus.getName() << "\n";
+         machNode = NULL; // straighten up the return value
+      }
       else if (machNode == (machineMetFocusNode*)-1) 
-				{
-					//          cerr << " createMetricInstance: internal metric not enable: " 
-					//                      << metric_name << endl;
-					assert(!enable); // no error msg needed
-					machNode = NULL; // straighten up the return value
-				}
+      {
+         //          cerr << " createMetricInstance: internal metric not enable: " 
+         //                      << metric_name << endl;
+         assert(!enable); // no error msg needed
+         machNode = NULL; // straighten up the return value
+      }
       else if (machNode == NULL)
-				{
-					//more serious error...do a printout
-					cerr << "createMetricInstance failed since doInternalMetric failed\n";
-					cerr << "metric name was " << metric_name << "; focus was "
-							 << focus.getName() << "\n";
-				}
+      {
+         //more serious error...do a printout
+         cerr << "createMetricInstance failed since doInternalMetric failed\n";
+         cerr << "metric name was " << metric_name << "; focus was "
+              << focus.getName() << "\n";
+      }
       if(machNode)
-				machNode->markAsInternalMetric();
-
+         machNode->markAsInternalMetric();
+      
       return machNode;
-		 }
+   }
 }
 
 

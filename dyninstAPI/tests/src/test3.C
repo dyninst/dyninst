@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3.C,v 1.39 2005/11/21 17:16:14 jaw Exp $
+// $Id: test3.C,v 1.40 2006/02/16 00:57:27 legendre Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -383,7 +383,6 @@ void mutatorTest2(char *pathname, BPatch *bpatch)
     // monitor the mutatee termination reports
     while (numTerminated < Mutatees) {
         bpatch->waitForStatusChange();
-        fprintf(stderr, "%s[%d]:  got status change\n", __FILE__, __LINE__);
         for (n=0; n<Mutatees; n++)
             if (!terminated[n] && (appThread[n]->isTerminated())) {
                 if(appThread[n]->terminationStatus() == ExitedNormally) {
@@ -403,7 +402,6 @@ void mutatorTest2(char *pathname, BPatch *bpatch)
                 numTerminated++;
             }
             else if (!terminated[n] && (appThread[n]->isStopped())) {
-                fprintf(stderr, "%s[%d]:  continuing stopped process\n", __FILE__, __LINE__);
                 appThread[n]->continueExecution();
             }
     }

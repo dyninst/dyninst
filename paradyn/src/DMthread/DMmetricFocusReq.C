@@ -450,10 +450,6 @@ metricFocusReq *metricFocusReq::createMetricFocusReq(metricInstance *mi,
    pdvector<paradynDaemon *> requested_daemons;
    paradynDaemon::findMatchingDaemons(mi, &requested_daemons);
 
-   for(unsigned i = 0 ; i < requested_daemons.size(); i++)
-   fprintf(stderr,"IN FE createMetricFocusReq (DMmetricFocusReq.C) mi = %u requested_daemons[%u] = %u\n",mi,i,requested_daemons[i]);
-
-
    metricFocusReq_Val *new_mfVal;
    new_mfVal = metricFocusReq_Val::lookup_mfReqVal(mi->getHandle());   
    if(new_mfVal == NULL) 
