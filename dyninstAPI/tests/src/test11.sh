@@ -115,7 +115,7 @@ fi
 FAIL_COUNT=0
 
 cd $BASEDIR/codeCoverage/$PLATFORM/tests/cc1
-DYNCOV_CC1_ARGS="--run ./cc1 `ls *.i`"
+DYNCOV_CC1_ARGS="--run ./cc1 `/bin/ls *.i`"
 
 # Fake output to simulate standard test
 echo
