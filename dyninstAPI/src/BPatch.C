@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.112 2006/02/14 23:50:15 jaw Exp $
+// $Id: BPatch.C,v 1.113 2006/02/16 20:42:21 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1054,6 +1054,64 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
 
 }
 
+
+/*
+ * BPatch::registerLoadedModule
+ *
+ * Register a new module loaded by a process (e.g., dlopen)
+ */
+
+void BPatch::registerLoadedModule(process *process, mapped_module *mod) {
+
+    BPatch_process *bProc = BPatch::bpatch->getProcessByPid(process->getPid());
+    if (!bProc) return; // Done
+    BPatch_image *bImage = bProc->getImage();
+    assert(bImage); // This we can assert to be true
+    
+    BPatch_module *bpmod = bImage->findOrCreateModule(mod);
+    
+    pdvector<CallbackBase *> cbs;
+    
+    if (! getCBManager()->dispenseCallbacksMatching(evtLoadLibrary, cbs)) {
+        return;
+    }
+    
+    for (unsigned int i = 0; i < cbs.size(); ++i) {
+        DynLibraryCallback &cb = *((DynLibraryCallback *) cbs[i]);
+        cb(bProc->threads[0], bpmod, true);
+    }
+}
+
+/*
+ * BPatch::registerUnloadedModule
+ *
+ * Register a new module loaded by a process (e.g., dlopen)
+ */
+
+void BPatch::registerUnloadedModule(process *process, mapped_module *mod) {
+
+    BPatch_process *bProc = BPatch::bpatch->getProcessByPid(process->getPid());
+    if (!bProc) return; // Done
+    BPatch_image *bImage = bProc->getImage();
+    assert(bImage); // This we can assert to be true
+    
+    BPatch_module *bpmod = bImage->findModule(mod);
+    if (bpmod == NULL) return;
+
+    bImage->removeModule(bpmod);
+    
+    pdvector<CallbackBase *> cbs;
+    
+    // For now we use the same callback for load and unload of library....
+    if (! getCBManager()->dispenseCallbacksMatching(evtLoadLibrary, cbs)) {
+        return;
+    }
+    
+    for (unsigned int i = 0; i < cbs.size(); ++i) {
+        DynLibraryCallback &cb = *((DynLibraryCallback *) cbs[i]);
+        cb(bProc->threads[0], bpmod, false);
+    }
+}
 
 
 /*

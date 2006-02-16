@@ -215,9 +215,14 @@ public:
 
     void registerNormalExit(process *proc, int exitcode);
     void registerSignalExit(process *proc, int signalnum);
+
     void registerProcess(BPatch_process *process, int pid=0);
     void unRegisterProcess(int pid);
+
     void launchDeferredOneTimeCode();
+
+    void registerLoadedModule(process *process, mapped_module *mod);
+    void registerUnloadedModule(process *process, mapped_module *mod);
 
     BPatch_thread *getThreadByPid(int pid, bool *exists = NULL);
     BPatch_process *getProcessByPid(int pid, bool *exists = NULL);
