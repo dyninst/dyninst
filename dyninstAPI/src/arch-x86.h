@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.40 2006/02/16 17:38:36 rutar Exp $
+// $Id: arch-x86.h,v 1.41 2006/02/16 20:42:24 bernat Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -595,7 +595,7 @@ class ia32_instruction
 
  public:
   ia32_instruction(ia32_memacc* _mac = NULL, ia32_condition* _cnd = NULL)
-    : mac(_mac), cond(_cnd), rip_relative_data(false), entry(NULL) {}
+    : mac(_mac), cond(_cnd), entry(NULL), rip_relative_data(false) {}
 
   ia32_entry * getEntry() { return entry; }
   unsigned int getSize() const { return size; }
