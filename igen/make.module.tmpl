@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: make.module.tmpl,v 1.17 2005/12/19 19:41:42 pack Exp $
+# $Id: make.module.tmpl,v 1.18 2006/02/16 00:59:59 legendre Exp $
 #
 
 USES_FLEX = true
@@ -34,7 +34,7 @@ ifdef CROSSCOMPILER
 SYSLIBS      += -lstdc++
 endif
 
-CXXFLAGS     += $(USEFULWARNINGS)
+CXXFLAGS     += $(USEFULWARNINGS) -fno-inline
 TFLAGS       += $(USEFULWARNINGS) 
 
 IFLAGS       += -I../$(PLATFORM) -I../src -I../../mrnet/mrnet/h/mrnet
