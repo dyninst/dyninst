@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyn_thread.h,v 1.22 2006/02/10 22:42:23 bernat Exp $
+// $Id: dyn_thread.h,v 1.23 2006/02/17 00:57:19 legendre Exp $
 
 #ifndef _DYNTHREAD_H_
 #define _DYNTHREAD_H_
@@ -93,6 +93,7 @@ class dyn_thread {
   
   Address get_pending_tramp_addr( void ) const	{ return pending_tramp_addr; }
   void set_pending_tramp_addr( Address a )	{ pending_tramp_addr = a; }
+  bool is_exited()                         { return lwp->status() == exited; }
 
   // When we're in an inferior RPC we use a cached stack walk from where
   // the process "was"

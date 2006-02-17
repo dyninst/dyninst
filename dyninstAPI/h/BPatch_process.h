@@ -152,6 +152,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     friend int handleSignal(EventRecord &ev);
     friend void threadDeleteWrapper(BPatch_process *, BPatch_thread *); 
     friend bool pollForStatusChange();
+    friend class AsyncThreadEventCallback;
     friend class AstNode; // AST needs to translate instPoint to
 		      // BPatch_point via instp_map
 

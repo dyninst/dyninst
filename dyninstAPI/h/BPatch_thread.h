@@ -73,6 +73,7 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     friend class BPatch_process;
     friend bool pollForStatusChange();
     friend class BPatch_asyncEventHandler;
+    friend class AsyncThreadEventCallback;
     friend class process;
 
     bool legacy_destructor;

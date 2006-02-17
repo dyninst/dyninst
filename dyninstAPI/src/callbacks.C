@@ -1,12 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "callbacks.h"
-#include "mailbox.h"
-#include "EventHandler.h"
-#include "util.h"
-#include "showerror.h"
-#include "process.h"
+#include "dyninstAPI/src/callbacks.h"
+#include "dyninstAPI/src/mailbox.h"
+#include "dyninstAPI/src/EventHandler.h"
+#include "dyninstAPI/src/util.h"
+#include "dyninstAPI/src/showerror.h"
+#include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/dyn_thread.h"
 
 CallbackManager *callback_manager = NULL;
 CallbackManager *getCBManager()
@@ -308,6 +309,11 @@ bool AsyncThreadEventCallback::execute_real(void)
   async_printf("%s[%d][%s]:  welcome to AsyncThreadEventCallback: execute\n", 
           FILE__, __LINE__, getThreadStr(getExecThreadID()));
   cb(proc, thr);
+
+  //After executing a thread delete callback, destroy the thread
+  if (thr->llthread->is_exited())
+     proc->deleteBPThread(thr);
+
   return true;
 }
 
