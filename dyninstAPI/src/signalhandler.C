@@ -1124,7 +1124,6 @@ bool SignalHandler::handleProcessStop(EventRecord &ev)
          return false;
       }
       proc->set_lwp_status(ev.lwp, stopped);
-      proc->set_status(stopped);
 #else
       signal_printf("%s[%d]:  unhandled SIGSTOP for pid %d, process will stay paused\n",
              FILE__, __LINE__, proc->getPid());
