@@ -118,5 +118,10 @@ int main(int argc, char *argv[])
               __FILE__, __LINE__);
       return -1;
    }
+   else
+   {
+      fprintf(stderr, "[%s:%u] - Test completed successfully\n",
+              __FILE__, __LINE__);
+   }
    return 0;
 }
