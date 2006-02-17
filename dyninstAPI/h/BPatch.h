@@ -170,6 +170,10 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
        Defaults to false */
     bool        trampMergeOn;
 
+    /* If true, we save FPRs in situations we normally would 
+       Defaults to true */
+    bool saveFloatingPointsOn;
+
     /* If true, override requests to block while waiting for events,
        polling instead */
     bool asyncActive;
@@ -289,6 +293,11 @@ public:
 
     bool,isMergeTramp,());        
 
+    // BPatch::saveFPROn:
+    // returns whether base tramp and mini-tramp is merged
+    API_EXPORT(Int, (),
+
+    bool,isSaveFPROn,());        
 
     // BPatch::hasForcedRelocation_NP:
     // returns whether all instrumented functions will be relocated
@@ -419,6 +428,13 @@ public:
     API_EXPORT_V(Int, (x),
 
     void,setMergeTramp,(bool x));
+
+    //  BPatch::setSaveFPR:
+    //  Turn on/off merged base & mini-tramps
+    API_EXPORT_V(Int, (x),
+
+    void,setSaveFPR,(bool x));
+
 
     //  BPatch::setForcedRelocation_NP:
     //  Turn on/off forced relocation of instrumted functions

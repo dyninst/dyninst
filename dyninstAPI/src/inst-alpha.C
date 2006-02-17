@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-alpha.C,v 1.98 2006/02/13 19:31:29 rutar Exp $
+// $Id: inst-alpha.C,v 1.99 2006/02/17 17:17:06 rutar Exp $
 
 #include "common/h/headers.h"
 
@@ -188,7 +188,7 @@ bool baseTramp::generateSaves(codeGen &gen,
   // push GP onto the stack
   instruction::generateStore(gen, REG_GP, REG_SP, 8, dw_quad);
 
-  if (isConservative()) {
+  if (isConservative() && BPatch::bpatch->isSaveFPROn() ) {
     callRTSequence(gen, proc(), "DYNINSTsave_conservative",
 		   REG_GP);
   }
@@ -201,7 +201,7 @@ bool baseTramp::generateSaves(codeGen &gen,
 
 bool baseTramp::generateRestores(codeGen &gen,
                                  registerSpace *) {
-  if (isConservative()) {
+  if (isConservative() && BPatch::bpatch->isSaveFPROn()) {
     callRTSequence(gen, proc(), "DYNINSTrestore_conservative",
 		   REG_GP);
   }

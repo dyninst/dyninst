@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.179 2006/02/13 19:31:29 rutar Exp $
+// $Id: inst-sparc.C,v 1.180 2006/02/17 17:17:06 rutar Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -864,7 +864,7 @@ bool baseTramp::generateSaves(codeGen &gen,
     }
 
 
-    if (isConservative()) {
+    if (isConservative() && BPatch::bpatch->isSaveFPROn() ) {
         for (unsigned f_iter = 0; f_iter <= 30; f_iter += 2) {
             // std %f[iter], [%fp + -(40 + iter*4)]
             instruction::generateStoreFD(gen, f_iter, REG_FPTR, 
@@ -886,7 +886,7 @@ bool baseTramp::generateSaves(codeGen &gen,
 
 bool baseTramp::generateRestores(codeGen &gen,
                                  registerSpace *) {
-    if (isConservative()) {
+    if (isConservative() && BPatch::bpatch->isSaveFPROn()) {
         for (unsigned f_iter = 0; f_iter <= 30; f_iter += 2) {
             // std %f[iter], [%fp + -(40 + iter*4)]
             instruction::generateLoadFD(gen, REG_FPTR, 

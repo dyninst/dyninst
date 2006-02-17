@@ -2541,6 +2541,7 @@ bool rpcMgr::emitInferiorRPCtrailer( codeGen &gen,
   bool * whichToPreserve = NULL; // doFloatingPointStaticAnalysis( interruptedFunction->funcEntry( proc_ ) );
 
   /* Generate the restoration code. */
+  
   generatePreservationTrailer( gen, whichToPreserve, NULL );
 
   /* The SIGILL for the demon needs to happen in the instruction slot
@@ -3381,7 +3382,20 @@ bool process::MonitorCallSite( instPoint * callSite ) {
 	  return false;
 	} 
 
-	return generatePreservationHeader( gen, point()->func()->usedFPregs, baseTrampRegion );
+	/* This will be used in the case we don't want to save any FPR */
+	bool * whichToPreserve = (bool *)malloc( 128 * sizeof( bool ) );
+	for( int i = 0; i < 128; i++ ) 
+	  whichToPreserve[i] = false;
+	
+	if (BPatch::bpatch->isSaveFPROn())
+	  	return generatePreservationHeader( gen, point()->func()->usedFPregs, baseTrampRegion );
+	else
+	  {
+		bool returnVal = generatePreservationHeader( gen, whichToPreserve, baseTrampRegion );
+		free(whichToPreserve);
+		return returnVal;
+	  }
+
   } /* end generateSaves() */
 
   bool baseTramp::generateRestores( codeGen & gen, registerSpace * rs ) {
@@ -3398,9 +3412,22 @@ bool process::MonitorCallSite( instPoint * callSite ) {
 	  return false;
 	} 
 	
-	return generatePreservationTrailer( gen, point()->func()->usedFPregs, baseTrampRegion );
+	/* This will be used in the case we don't want to save any FPR */
+	bool * whichToPreserve = (bool *)malloc( 128 * sizeof( bool ) );
+	for( int i = 0; i < 128; i++ ) 
+	  whichToPreserve[i] = false;
+	
+	if (BPatch::bpatch->isSaveFPROn())
+	  return generatePreservationTrailer( gen, point()->func()->usedFPregs, baseTrampRegion );
+	else
+	  {
+		bool returnVal = generatePreservationTrailer( gen, whichToPreserve, baseTrampRegion );
+		free(whichToPreserve);
+		return returnVal;
+	  }
+	
   }  /* end generateRestores() */
-
+  
   unsigned baseTramp::getBTCost() {
 	/* This seems to be defined to return a random constant.  Lovely. */
 	return STATE_SAVE_COST + STATE_RESTORE_COST;

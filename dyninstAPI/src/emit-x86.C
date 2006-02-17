@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.20 2006/02/10 19:19:39 nater Exp $
+ * $Id: emit-x86.C,v 1.21 2006/02/17 17:17:06 rutar Exp $
  */
 
 #include <assert.h>
@@ -329,7 +329,7 @@ bool Emitter32::emitBTSaves(baseTramp* bt, codeGen &gen)
     emitSimpleInsn(PUSH_EBP, gen);
     emitMovRegToReg(REGNUM_EBP, REGNUM_ESP, gen);
     
-    if (bt->isConservative() && regSpace->getSPFlag()) {
+    if (bt->isConservative() && regSpace->getSPFlag() && BPatch::bpatch->isSaveFPROn()) {
         // Allocate space for temporaries and floating points
         emitOpRegImm(5, REGNUM_ESP, TRAMP_FRAME_SIZE+FSAVE_STATE_SIZE, gen);
         emitOpRegRM(FSAVE, FSAVE_OP, REGNUM_EBP, -(TRAMP_FRAME_SIZE) - FSAVE_STATE_SIZE, gen);
@@ -342,7 +342,7 @@ bool Emitter32::emitBTSaves(baseTramp* bt, codeGen &gen)
 
 bool Emitter32::emitBTRestores(baseTramp* bt, codeGen &gen)
 {
-    if (bt->isConservative() && regSpace->getSPFlag()) {
+    if (bt->isConservative() && regSpace->getSPFlag() && BPatch::bpatch->isSaveFPROn()) {
         emitOpRegRM(FRSTOR, FRSTOR_OP, REGNUM_EBP, -TRAMP_FRAME_SIZE - FSAVE_STATE_SIZE, gen);
     }
     emitSimpleInsn(LEAVE, gen);
@@ -1460,7 +1460,7 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
        emitOpRegImm64(0x81, 5, REGNUM_RSP, 8, true, gen);
     }
 
-    if (bt->isConservative()) {
+    if (bt->isConservative() && BPatch::bpatch->isSaveFPROn()) {
       if (regSpace->getSPFlag())
 	{
 	  // need to save the floating point state (x87, MMX, SSE)
@@ -1494,7 +1494,7 @@ bool Emitter64::emitBTSaves(baseTramp* bt, codeGen &gen)
 
 bool Emitter64::emitBTRestores(baseTramp* bt, codeGen &gen)
 {
-    if (bt->isConservative()) {
+    if (bt->isConservative() && BPatch::bpatch->isSaveFPROn()) {
       if (regSpace->getSPFlag())
 	{
 	  // pop the old RSP value into RAX

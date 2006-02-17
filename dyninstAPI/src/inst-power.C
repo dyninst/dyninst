@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.239 2006/02/13 19:31:28 rutar Exp $
+ * $Id: inst-power.C,v 1.240 2006/02/17 17:17:06 rutar Exp $
  */
 
 #include "common/h/headers.h"
@@ -939,15 +939,17 @@ bool baseTramp::generateSaves(codeGen &gen,
     pushStack(gen);
 
     // Save GPRs
-    // Reverting to "save all" behavior; Nick's going to fix
-    // this.
     saveGPRegisters(gen,
                     theRegSpace,
                     TRAMP_GPR_OFFSET);
-    // Save FPRs
-    saveFPRegisters(gen,
-                    theRegSpace,
-                    TRAMP_FPR_OFFSET);
+
+    if(BPatch::bpatch->isSaveFPROn())
+      {
+	// Save FPRs
+	saveFPRegisters(gen,
+			theRegSpace,
+			TRAMP_FPR_OFFSET);
+      }
     
     // Save LR
     saveLR(gen, REG_SCRATCH, // register to use
@@ -980,8 +982,13 @@ bool baseTramp::generateRestores(codeGen &gen,
 
     // LR
     restoreLR(gen, REG_SCRATCH, TRAMP_SPR_OFFSET + STK_LR);
-    // FPRs
-    restoreFPRegisters(gen, theRegSpace, TRAMP_FPR_OFFSET);
+    
+    if(BPatch::bpatch->isSaveFPROn())
+      {
+	// FPRs
+	restoreFPRegisters(gen, theRegSpace, TRAMP_FPR_OFFSET);
+      }
+
     // GPRs
     restoreGPRegisters(gen, theRegSpace, TRAMP_GPR_OFFSET);
 
