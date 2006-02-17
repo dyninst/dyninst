@@ -425,10 +425,15 @@ bool dynamic_linking::get_ld_info( Address & addr, char ** path ) {
 
      	/* Does this line have a filename? */
      	char * fullPathName = long_fgets( maps );
-     	if( fullPathName != NULL && fullPathName[0] != '\n' && inode != 0 && inode != lastInode ) { 
-     		char * fileName = strrchr( fullPathName, '/' );
-     		assert( fileName != NULL );
-     		++fileName;
+     	char * fileName = NULL;
+     	if( fullPathName != NULL ) {
+     		/* Every legal full path has at least one '/'; this allows us
+     		   to ignore strings of the form "<whitespace>\n" easily. */
+     		fileName = rindex( fullPathName, '/' );
+     		}
+     	
+     	if( fileName != NULL && inode != 0 && inode != lastInode ) { 
+     		++fileName;     		
      		if( strncmp( "ld", fileName, 2 ) == 0 && strstr( fileName, ".so" ) != NULL ) {
      			/* Set the return values and finish up. */
      			addr = lowAddr;
