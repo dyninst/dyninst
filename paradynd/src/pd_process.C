@@ -2030,12 +2030,10 @@ bool pd_process::isStopped() const {return dyninst_process->isStopped();}
 bool pd_process::isTerminated() const {return dyninst_process->isTerminated();}
 bool pd_process::isDetached() const {return dyninst_process->isDetached();}
 bool pd_process::continueProc() {
-    fprintf(stderr, "PDProcess %d continuing...\n", getPid());
     return dyninst_process->continueExecution();
 }
 bool pd_process::pauseProc() 
 {
-    fprintf(stderr, "PDProcess %d pausing...\n", getPid());
     if (!dyninst_process->stopExecution())
         return false;
     if (dyninst_process->isTerminated())
@@ -2093,27 +2091,27 @@ void pd_process::reportOneThread(pd_thread *pd_thr)
 	pdstring buffer = pdstring("thr_") + pdstring(pd_thr->get_tid()) + 
 		pdstring("{") + pd_thr->get_initial_func_name() + pdstring("}");
 	resource *rid = resource::newResource(get_rid(),
-																				(void *) pd_thr,
-																				nullString, 
-																				buffer,
-																				timeStamp::ts1970(),
-																				"",
-																				ThreadResourceType,
-																				MDL_T_STRING,
-																				true);
+                                         (void *) pd_thr,
+                                         nullString, 
+                                         buffer,
+                                         timeStamp::ts1970(),
+                                         "",
+                                         ThreadResourceType,
+                                         MDL_T_STRING,
+                                         false);
 
+   
 
+   pd_thr->update_rid(rid);
+   unsigned index = pd_thr->get_index();
+   pd_thr->resetInferiorVtime(this->getVirtualTimer(index));  
 
-
-	pd_thr->update_rid(rid);
-	unsigned index = pd_thr->get_index();
-	pd_thr->resetInferiorVtime(this->getVirtualTimer(index));  
-	
-	// tell front-end about thread start function for newly created threads
-	BPatch_function *initial_func = pd_thr->get_dyn_thread()->getInitialFunc();
-	resource *funcRes = pd_module::getFunctionResource(initial_func);
-	pdstring full_res_name(funcRes->full_name());
-	CallGraphSetEntryFuncCallback(this->getImage()->get_file(), full_res_name,
+   // tell front-end about thread start function for newly created threads
+   BPatch_function *initial_func = pd_thr->get_dyn_thread()->getInitialFunc();
+   resource *funcRes = pd_module::getFunctionResource(initial_func);
+   pdstring full_res_name(funcRes->full_name());
+   rid->send_now();
+   CallGraphSetEntryFuncCallback(this->getImage()->get_file(), full_res_name,
 																pd_thr->get_tid());   
 }
 
