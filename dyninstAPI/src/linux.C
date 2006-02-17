@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.193 2006/02/16 00:57:15 legendre Exp $
+// $Id: linux.C,v 1.194 2006/02/17 00:57:20 legendre Exp $
 
 #include <fstream>
 
@@ -226,7 +226,7 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
       decodeSignal(ev);
    }
 
-   if (/*ev.type == evtSignalled ||*/ ev.type == evtUndefined) {
+   if (ev.type == evtUndefined) {
      //  if we still have evtSignalled, then it must not be a signal that
      //  we care about internally.  Still, send it along to the handler
      //  to be forwarded back to the process.
@@ -435,7 +435,7 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
   ev.info = status;
    
   bool process_exited = WIFEXITED(status) || dead_lwp;
-  if ((process_exited) && (pid != ev.proc->getPid())) {
+  if ((process_exited) && (waitpid_pid != ev.proc->getPid())) {
      proccontrol_printf("%s[%d]: Received a thread deletion event for %d\n", 
                         FILE__, __LINE__, ev.lwp->get_lwp_id());
      signal_printf("%s[%d]: Received a thread deletion event for %d\n", 
