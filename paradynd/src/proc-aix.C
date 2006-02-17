@@ -135,7 +135,7 @@ rawTime64 pd_thread::getRawCpuTime_hw()
    // PM counters are only valid when the process is paused. 
    bool needToCont = !(pd_proc->isStopped());
    if(needToCont) { // process running
-      if(!pd_proc->pause()) {
+      if (!pd_proc->pauseProc()) {
          return -1;  // pause failed, so returning failure
       }
    }
