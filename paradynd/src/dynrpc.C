@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.124 2006/02/14 20:02:21 bernat Exp $ */
+/* $Id: dynrpc.C,v 1.125 2006/02/17 00:57:27 legendre Exp $ */
 
 #include "paradynd/src/metricFocusNode.h"
 #include "paradynd/src/machineMetFocusNode.h"
@@ -371,9 +371,7 @@ bool dynRPC::detachProgram(MRN::Stream * /* stream */,int program, bool pause)
 //
 void dynRPC::continueApplication(MRN::Stream * /* stream */)
 {
-  cerr << "in continueApplication"<<endl;
     continueAllProcesses();
-    statusLine("application running");
 }
 //
 // set the stream used by defaut to do upcalls

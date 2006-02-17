@@ -372,8 +372,6 @@ bool BPatch_process::continueExecutionInt()
 
    //  maybe executeCallbacks led to the process execution status changing
    if (!statusIsStopped()) {
-     fprintf(stderr, "%s[%d]:  status change during continue execution, status is now %s\n",
-             FILE__, __LINE__, llproc->getStatusAsString().c_str());
      isVisiblyStopped = false;
      return true;
    }
@@ -388,8 +386,6 @@ bool BPatch_process::continueExecutionInt()
    getMailbox()->executeCallbacks(FILE__, __LINE__);
 
    if (!statusIsStopped()) {
-     fprintf(stderr, "%s[%d]:  status change during continue execution, status is now %s\n",
-             FILE__, __LINE__, llproc->getStatusAsString().c_str());
      isVisiblyStopped = false;
      return true;
    }
@@ -400,8 +396,6 @@ bool BPatch_process::continueExecutionInt()
       return true;
    }
 
-   fprintf(stderr, "%s[%d]:  failed to continueProc, status is %s\n", 
-           FILE__, __LINE__, llproc->getStatusAsString().c_str());
    return false;
 }
 

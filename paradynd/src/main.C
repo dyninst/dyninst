@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.141 2006/02/14 20:02:24 bernat Exp $
+// $Id: main.C,v 1.142 2006/02/17 00:57:28 legendre Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -529,13 +529,6 @@ main( int argc, char* argv[] )
    //
    pd_process::programName = argv[0];
    bool aflag;
-#ifdef DEBUG
-   // Print command line args
-   for (int j = 0; j < argc; j++)
-      cerr << argv[j] << " : ";
-   cerr << endl;
-#endif
-
 
    aflag = RPC_undo_arg_list (pd_flavor, argc, argv, pd_machine,
                               pd_known_socket_portnum, termWin_port, 
@@ -913,7 +906,6 @@ static int break_at_mpi_init(BPatch_process *bproc)
       bproc->continueExecution();
   }
   
-  fprintf(stderr, "%u, [%s:%u] - Got a rank of %d\n",getpid(), __FILE__, __LINE__, my_rank);
   return my_rank;
 }
 
@@ -939,12 +931,9 @@ int StartRunPastMPIinit( pdvector<pdstring> &argv, pdstring dir)
 			
 	//TODO: Change stdout to go to termwin
 	
-    fprintf(stderr, "Calling processCreate(%s) ...\n", path);
 	MPI_proc = getBPatch().processCreate(path, 
                                          (const char **) argv_array, NULL, 
                                          0, 1,2);
-    fprintf(stderr, "Calling processCreate(%s) ...DONE!\n", path);
-	
 
 	//TODO: Change stdout to go to termwin
 	//MPI_proc = createBPProc(argv[0], argv, dir, 0, 1, 2);

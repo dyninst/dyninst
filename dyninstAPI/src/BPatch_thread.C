@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.139 2006/02/02 03:51:07 bernat Exp $
+// $Id: BPatch_thread.C,v 1.140 2006/02/17 00:57:26 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -309,8 +309,9 @@ void BPatch_thread::BPatch_thread_dtor()
 }
 
 /**
- * Paradynd sometimes wants handles to the OS threads for reading timing information.
- * Not sure if this should become a part of the public, supported interface.
+ * Paradynd sometimes wants handles to the OS threads for reading timing 
+ * information.  Not sure if this should become a part of the public, 
+ * supported interface.
  **/
 unsigned long BPatch_thread::os_handleInt()
 {
