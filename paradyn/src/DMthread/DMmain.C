@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMmain.C,v 1.167 2006/02/08 21:27:41 darnold Exp $
+// $Id: DMmain.C,v 1.168 2006/02/21 16:22:27 darnold Exp $
 
 #include <assert.h>
 extern "C" {
@@ -786,33 +786,27 @@ static int check_MRNetForData()
     bool processed_request;
     int ret=0;
 
-    if( paradynDaemon::allDaemons.size() != 0 )
-      {
+    if( paradynDaemon::allDaemons.size() != 0 ) {
         paradynDaemon * pd = paradynDaemon::allDaemons[0];
 
-	//fprintf(stderr,"IN check_MRNetForData() pd = %p\n",pd);
-	//fprintf(stderr,"IN check_MRNetForData() pd->getNetwork() = %p\n",pd->getNetwork());
-	//fflush(stderr);
-	//sleep(10);
         //checking mrnet, waitLoop doesn't block if no requests are there.
         do{
-	  processed_request=false;
-	  //TODO: handle multiple networks
+            processed_request=false;
+            //TODO: handle multiple networks
 
-	  assert( pd->getNetwork());
+            assert( pd->getNetwork() );
 
-	  ret = pd-> waitLoop( pd->getNetwork(),
-			       &processed_request );
-	  if( processed_request ){
-	    num_requests++;
-	  }
+            ret = pd->waitLoop( pd->getNetwork(), &processed_request );
+            if( processed_request ){
+                num_requests++;
+            }
 	  
-	  //TODO: handle errors
+            //TODO: handle errors
         } while( ret != T_dyninstRPC::error && processed_request );
-      }
+    }
     
     if ( ret == T_dyninstRPC::error ){
-      return -1;
+        return -1;
     }
 
     return num_requests;
@@ -905,92 +899,80 @@ DMmain( void* varg )
     if (ret == -1 ){
         //TODO: handle error
     }
-    while (1)
-      {
 
-	//cout << "Ready to sleep" << endl;
-	//sleep(2);
-	//cout << "awake"<< endl;
-	// wait for next message from anyone, blocking till available
+    while (1) {
+        // wait for next message from anyone, blocking till available
         tid = THR_TID_UNSPEC;
         tag = MSG_TAG_ANY;
         //msg_dump_state();
         err = msg_poll_preference(&tid, &tag, true,fd_first);
+        //fprintf(stderr, ".");
         assert(err != THR_ERR);
         fd_first = !fd_first;
 	
-        if (tag == MSG_TAG_DO_EXIT_CLEANLY) 
-	  {
+        if (tag == MSG_TAG_DO_EXIT_CLEANLY) {
             // we're done handling events
             break;
-	  }
+        }
         
-        if (tag == MSG_TAG_SOCKET) 
-	  {
-	    // must be something on an mrnet network
-	    PDSOCKET fromSock = thr_socket( tid );
+        if (tag == MSG_TAG_SOCKET) {
+            // must be something on an mrnet network
+            PDSOCKET fromSock = thr_socket( tid );
             assert(fromSock != INVALID_PDSOCKET);
             
             //if there are any daemons, check mrnet and async bufs for requests
             ret = check_MRNetForData();
-            if (ret == -1 )
-	      {
+            clear_ready_sock(fromSock);
+            if (ret == -1 ) {
                 //TODO: handle error
-	      }
-	    
+            }
+
             //check async bufs for requests
             ret = check_AsyncBuffersForData();
-            if (ret == -1 )
-	      {
+            if (ret == -1 ) {
                 //TODO: handle error
-	      }
-	  } else  if (dataManager::dm->isValidTag((T_dataManager::message_tags)tag)) 
-	      {
-
-		if (dataManager::dm->waitLoop(true,
-					      (T_dataManager::message_tags)tag) 
-		    == T_dataManager::error) 
-		  {
-		    // handle error
-		    assert(0);
-		  }
-
-		//We must process mrnet and async buffers here for the case where
-		//this thread request resulted in a synchronous mrnet request
-		//during which the buffers could have been filled with async events
-		//if there are any daemons, check mrnet and async bufs for requests
-		ret = check_MRNetForData();
-		if (ret == -1 )
-		  {
-		    //TODO: handle error
-		  }
+            }
+        } else  if (dataManager::dm->isValidTag((T_dataManager::message_tags)tag)) {
+            
+            if (dataManager::dm->waitLoop(true,
+                                          (T_dataManager::message_tags)tag) 
+                == T_dataManager::error) {
+                // handle error
+                assert(0);
+            }
+            
+            //We must process mrnet and async buffers here for the case where
+            //this thread request resulted in a synchronous mrnet request
+            //during which the buffers could have been filled with async events
+            //if there are any daemons, check mrnet and async bufs for requests
+            ret = check_MRNetForData();
+            if (ret == -1 ) {
+                //TODO: handle error
+            }
 		
-		//check async bufs for requests
-		ret = check_AsyncBuffersForData();
-		if (ret == -1 )
-		  {
-		    //TODO: handle error
-		  }
-	      } 
-	    else 
-	      {
-		cerr << "Unrecognized message in DMmain.C: tag = "
-		     << tag << ", tid = "
-		     << tid << '\n';
-		assert(0);
-	      }
-      }
+            //check async bufs for requests
+            ret = check_AsyncBuffersForData();
+            if (ret == -1 ) {
+                //TODO: handle error
+            }
+        } 
+	    else {
+            cerr << "Unrecognized message in DMmain.C: tag = "
+                 << tag << ", tid = "
+                 << tid << '\n';
+            assert(0);
+        }
+    }
 
     //
     // cleanup
     //
 #if !defined(i386_unknown_nt4_0)
-  mpichUnlinkWrappers();
+    mpichUnlinkWrappers();
 
-  if( twUser != NULL )
-  {
-    twUser->shutdown();
-  }
+    if( twUser != NULL ) {
+        twUser->shutdown();
+    }
 
 #endif // !defined(i386_unknown_nt4_0)
 
@@ -1098,10 +1080,10 @@ StartTermWin( bool useTermWinGUI )
         // to our initial version number handshake)
         thread_t tw_sock_tid;
         msg_bind_socket( tw_sock,   // socket
-                            true,   // we will read data off connection
-                            NULL,   // no special will_block function
-                            NULL,
-                            &tw_sock_tid ); // tid assigned to bound socket
+                         true,   // we will read data off connection
+                         NULL,   // no special will_block function
+                         NULL,
+                         &tw_sock_tid ); // tid assigned to bound socket
 
         twUser = new termWinUser( tw_sock, NULL, NULL, 0 );
 
