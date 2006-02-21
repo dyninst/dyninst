@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.8 2006/02/08 05:04:25 bpellin Exp $
+// $Id: test_driver.C,v 1.9 2006/02/21 02:36:36 bpellin Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -269,8 +269,11 @@ void printLogMutateeHeader(char *mutatee)
    if ( mutatee != "" )
    {
       printf("[Tests with %s]\n", mutatee);
-      runScript("ls -lLF %s", mutatee);
-      runScript("%s/ldd_PD %s", pdscrdir, mutatee);
+      if ( pdscrdir )
+      {
+         runScript("ls -lLF %s", mutatee);
+         runScript("%s/ldd_PD %s", pdscrdir, mutatee);
+      }
    }
    else
    {
@@ -649,8 +652,11 @@ int startTest(test_data_t tests[], unsigned int n_tests, std::vector<char *> &te
    // Print Test Log Header
    if ( enableLogging && skipToTest == 0 && skipToMutatee == 0 && skipToOption == 0 ) {
       printf("Commencing DyninstAPI test(s) ...\n");
-      runScript("date");
-      runScript("uname -a");
+      if ( pdscrdir )
+      {
+         runScript("date");
+         runScript("uname -a");
+      }
       printf("TESTDIR=%s\n", getenv("PWD"));
    }
 
@@ -790,10 +796,11 @@ void setPDScriptDir()
          pdscrdir = umd_pdscrdir;
          return;
       }
-#endif
 
       fprintf(stderr, "Unabled to find paradyn script dir, please set PDSCRDIR\n");
       exit(1);
+#endif
+
    }
 
 }
