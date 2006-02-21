@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.212 2006/02/12 22:21:32 jodom Exp $
+// $Id: aix.C,v 1.213 2006/02/21 20:12:07 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1661,16 +1661,6 @@ bool SignalGenerator::decodeSignal_NP(EventRecord &ev)
     // No other signal exhibits this behavior.
     ev.proc->getRepresentativeLWP()->clearSignal();
    }
-
-#if defined(bug_aix_proc_broken_fork)
-  if (ev.type == evtSignalled && ev.what == DYNINST_BREAKPOINT_SIGNUM) {
-    // Possibly a fork stop in the RT library
-    if (!decodeRTSignal(ev)) {
-      ev.type = evtProcessStop; // happens when we get a DYNINSTbreakPoint
-    }
-    return true; // signal is decoded
-  }
-#endif
 
   return false;  // signall needs further deccoding
 }

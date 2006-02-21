@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.26 2006/02/01 02:06:22 jodom Exp $
+// $Id: multiTramp.C,v 1.27 2006/02/21 20:12:09 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -844,7 +844,7 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
         assert(!trampAddr_);
 
         inferiorHeapType heapToUse = anyHeap;
-#if defined(bug_aix_proc_broken_fork)
+#if defined(os_aix)
         // We need the base tramp to be in allocated heap space, not scavenged
         // text space, because scavenged text space is _not_ copied on fork.
         // Argh.

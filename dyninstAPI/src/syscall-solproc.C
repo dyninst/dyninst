@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-solproc.C,v 1.10 2005/11/21 17:16:14 jaw Exp $
+// $Id: syscall-solproc.C,v 1.11 2006/02/21 20:12:11 bernat Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -54,10 +54,8 @@
 #include "dyninstAPI/src/miniTramp.h"
 
 
-#if defined(bug_aix_proc_broken_fork)
 #include "dyninstAPI/src/symtab.h"
 #define FORK_FUNC "__fork"
-#endif
 
 syscallNotification::syscallNotification(syscallNotification *parentSN,
                                          process *child) :
@@ -70,11 +68,9 @@ syscallNotification::syscallNotification(syscallNotification *parentSN,
 
     // We set PR_FORK in the parent, so everything was copied.
     
-#if defined(bug_aix_proc_broken_fork)
-    if (parentSN->postForkInst) {
+    if (parentSN->postForkInst &&
+        (parentSN->postForkInst != SYSCALL_INSTALLED))
         postForkInst = new instMapping(parentSN->postForkInst, child);
-    }
-#endif
 
 }
 
@@ -107,27 +103,63 @@ bool syscallNotification::installPreFork() {
 /////////// Postfork instrumentation
 
 bool syscallNotification::installPostFork() {
-#if defined(bug_aix_proc_broken_fork)
+    // AIX 5.1 can't properly stop a child using /proc directives.
+    // Instead, we use instrumentation. We decide this at run-time... so
+    // let's figure out if we're on <= 5.1 or > 5.1
+    bool bugged_fork_stop = false;
+#if defined(os_aix)
+    FILE *oslevel = popen("/usr/bin/oslevel", "r");
+    if (oslevel == NULL) {
+        perror("popen(oslevel) - fork/pipe");
+    }
+    else if (oslevel == (FILE *)-1) {
+        perror("popen(oslevel) - wait4");
+    }
+    else {
+        // Now parse. We're looking at the following:
+        // <major>.<minor>.<stuff>.<stuff>
+        int major = 0;
+        int minor = 0;
+        int unknown1;
+        int unknown2;
+        int size = fscanf(oslevel, "%d.%d.%d.%d",
+                          &major, &minor, &unknown1, &unknown2);
+        if (size > 2) {
+            if ((major <= 5) &&
+                (minor < 2)) {
+                bugged_fork_stop = true;
+                fprintf(stderr, "Detected AIX 5.1 system: %d, %d\n", major, minor);
+            }
+        }
+        else {
+            // Odd... what do we do?
+        }
+        pclose(oslevel);
+    }
+#endif
 
-    AstNode *returnVal = new AstNode(AstNode::ReturnVal, (void *)0);
-    postForkInst = new instMapping(FORK_FUNC, "DYNINST_instForkExit",
-                                   FUNC_EXIT|FUNC_ARG,
-                                   returnVal);
-    postForkInst->dontUseTrampGuard();
-    removeAst(returnVal);
 
-    pdvector<instMapping *> instReqs;
-    instReqs.push_back(postForkInst);
-    
-    proc->installInstrRequests(instReqs);
+    if (bugged_fork_stop) {
+        AstNode *returnVal = new AstNode(AstNode::ReturnVal, (void *)0);
+        postForkInst = new instMapping(FORK_FUNC, "DYNINST_instForkExit",
+                                       FUNC_EXIT|FUNC_ARG,
+                                       returnVal);
+        postForkInst->dontUseTrampGuard();
+        removeAst(returnVal);
+        
+        pdvector<instMapping *> instReqs;
+        instReqs.push_back(postForkInst);
+        
+        proc->installInstrRequests(instReqs);
+        
+        // Check to see if we put anything in the proggie
+        if (postForkInst->miniTramps.size() == 0)
+            return false;
+        return true;
+    }
 
-    // Check to see if we put anything in the proggie
-    if (postForkInst->miniTramps.size() == 0)
-        return false;
-    return true;
+    // else....
 
-
-#else
     // Get existing flags, add post-fork, and set
     int proc_pid = proc->getPid();
     
@@ -149,7 +181,7 @@ bool syscallNotification::installPostFork() {
     // Make sure our removal code gets run
     postForkInst = SYSCALL_INSTALLED;
     return true;
-#endif
+
 }    
 
 /////////// Pre-exec instrumentation
@@ -278,30 +310,31 @@ bool syscallNotification::removePreFork() {
 bool syscallNotification::removePostFork() {
     if (!postForkInst) return false;
 
-#if defined(bug_aix_proc_broken_fork) 
-
-    if (!proc->isAttached() || proc->execing()) {
+    if (postForkInst != SYSCALL_INSTALLED) {
+        if (!proc->isAttached() || proc->execing()) {
+            delete postForkInst;
+            postForkInst = NULL;
+            return true;
+        }
+        
+        miniTramp *handle;
+        for (unsigned i = 0; i < postForkInst->miniTramps.size(); i++) {
+            handle = postForkInst->miniTramps[i];
+            
+            bool removed = handle->uninstrument();
+            // At some point we should handle a negative return... but I
+            // have no idea how.
+            
+            assert(removed);
+            // The miniTramp is deleted when the miniTramp is freed, so
+            // we don't have to.
+        } 
         delete postForkInst;
         postForkInst = NULL;
         return true;
     }
     
-    miniTramp *handle;
-    for (unsigned i = 0; i < postForkInst->miniTramps.size(); i++) {
-        handle = postForkInst->miniTramps[i];
-        
-        bool removed = handle->uninstrument();
-        // At some point we should handle a negative return... but I
-        // have no idea how.
-        
-        assert(removed);
-        // The miniTramp is deleted when the miniTramp is freed, so
-        // we don't have to.
-    } 
-    delete postForkInst;
-    postForkInst = NULL;
-    return true;
-#else
+    // else...
 
     if (!proc->isAttached() || proc->execing()) {
         postForkInst = NULL;
@@ -328,7 +361,6 @@ bool syscallNotification::removePostFork() {
     SYSSET_FREE(exitset);
     postForkInst = NULL;
     return true;
-#endif
 }
 
 /////// Remove pre-exec instrumentation

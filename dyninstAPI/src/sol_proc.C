@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.80 2006/02/14 23:50:16 jaw Exp $
+// $Id: sol_proc.C,v 1.81 2006/02/21 20:12:10 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -734,8 +734,8 @@ bool dyn_lwp::representativeLWP_attach_()
      fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
      return false;
    }
-   ctl_fd_ = openFileWhenNotBusy(temp, O_WRONLY | O_EXCL, 0, 5/*seconds*/);
-   //ctl_fd_ = P_open(temp, O_WRONLY | O_EXCL, 0);    
+   //ctl_fd_ = openFileWhenNotBusy(temp, O_WRONLY | O_EXCL, 0, 5/*seconds*/);
+   ctl_fd_ = P_open(temp, O_WRONLY | O_EXCL, 0);    
    if (ctl_fd_ < 0) perror("Opening (LWP) ctl");
    
    sprintf(temp, "/proc/%d/status", getPid());
@@ -743,8 +743,8 @@ bool dyn_lwp::representativeLWP_attach_()
      fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
      return false;
    }
-   status_fd_ = openFileWhenNotBusy(temp, O_RDONLY, 0, 5/*seconds*/);
-   //status_fd_ = P_open(temp, O_RDONLY, 0);    
+   //status_fd_ = openFileWhenNotBusy(temp, O_RDONLY, 0, 5/*seconds*/);
+   status_fd_ = P_open(temp, O_RDONLY, 0);    
    if (status_fd_ < 0) perror("Opening (LWP) status");
 
    as_fd_ = INVALID_HANDLE_VALUE;
@@ -753,8 +753,8 @@ bool dyn_lwp::representativeLWP_attach_()
      fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
      return false;
    }
-   as_fd_ = openFileWhenNotBusy(temp, O_RDWR, 0, 5/*seconds*/);
-   //as_fd_ = P_open(temp, O_RDWR, 0);
+   //as_fd_ = openFileWhenNotBusy(temp, O_RDWR, 0, 5/*seconds*/);
+   as_fd_ = P_open(temp, O_RDWR, 0);
    if (as_fd_ < 0) perror("Opening as fd");
 
 #if !defined(AIX_PROC)
@@ -763,8 +763,8 @@ bool dyn_lwp::representativeLWP_attach_()
      fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
      return false;
    }
-   auxv_fd_ = openFileWhenNotBusy(temp, O_RDONLY, 0, 5/*seconds*/);
-   //auxv_fd_ = P_open(temp, O_RDONLY, 0);
+   //auxv_fd_ = openFileWhenNotBusy(temp, O_RDONLY, 0, 5/*seconds*/);
+   auxv_fd_ = P_open(temp, O_RDONLY, 0);
    if (auxv_fd_ < 0) perror("Opening auxv fd");
 #else
    // AIX doesn't have the auxv file
@@ -776,8 +776,8 @@ bool dyn_lwp::representativeLWP_attach_()
      fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
      return false;
    }
-   map_fd_ = openFileWhenNotBusy(temp, O_RDONLY, 0, 5/*seconds*/);
-   //map_fd_ = P_open(temp, O_RDONLY, 0);
+   //map_fd_ = openFileWhenNotBusy(temp, O_RDONLY, 0, 5/*seconds*/);
+   map_fd_ = P_open(temp, O_RDONLY, 0);
    if (map_fd_ < 0) perror("map fd");
 
    sprintf(temp, "/proc/%d/psinfo", getPid());
@@ -785,19 +785,9 @@ bool dyn_lwp::representativeLWP_attach_()
      fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
      return false;
    }
-   ps_fd_ = openFileWhenNotBusy(temp, O_RDONLY, 0, 5/*seconds*/);
-   //ps_fd_ = P_open(temp, O_RDONLY, 0);
+   //ps_fd_ = openFileWhenNotBusy(temp, O_RDONLY, 0, 5/*seconds*/);
+   ps_fd_ = P_open(temp, O_RDONLY, 0);
    if (ps_fd_ < 0) perror("Opening ps fd");
-
-  //  didn't we already open this file??
-   sprintf(temp, "/proc/%d/status", getPid());
-   if (!waitForFileToExist(temp, 5 /*seconds */)) {
-     fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
-     return false;
-   }
-   status_fd_ = openFileWhenNotBusy(temp, O_RDONLY, 0, 5/*seconds*/);
-   //status_fd_ = P_open(temp, O_RDONLY, 0);
-   if (status_fd_ < 0) perror("Opening status fd");
 
    lwpstatus_t status;
 
