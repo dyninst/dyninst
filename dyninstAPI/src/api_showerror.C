@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: api_showerror.C,v 1.23 2006/02/12 22:25:17 jodom Exp $
+// $Id: api_showerror.C,v 1.24 2006/02/21 20:12:12 bernat Exp $
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -280,6 +280,10 @@ bool init_debug() {
   if ( (p=getenv("DYNINST_DEBUG_DWARF"))) {
     fprintf(stderr, "Enabling DyninstAPI dwarf debug\n");
     dyn_debug_dwarf= 1;
+    }
+  if ( (p=getenv("DYNINST_DEBUG_ASYNC"))) {
+    fprintf(stderr, "Enabling DyninstAPI async debug\n");
+    dyn_debug_async= 1;
     }
   return true;
 }
