@@ -183,6 +183,12 @@ class BPatch_asyncEventHandler : public EventHandler<EventRecord> {
     //  clean up any references to terminated processes in our lists
     //  (including any user specified callbacks).
     bool cleanUpTerminatedProcs();
+
+    //  BPatch_asyncEventHandler::cleanupProc(BPatch_process *p)
+    //  remove a particular process without detaching. Used in 
+    //  exec.
+    bool cleanupProc(BPatch_process *p);
+
     //  BPatch_asyncEventHandler::instrumentThreadEvent
     //  Associates a function in the thread library with a eventType
     BPatchSnippetHandle *instrumentThreadEvent(BPatch_process *process,

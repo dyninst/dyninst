@@ -171,6 +171,10 @@ bool BPatch_asyncEventHandler::detachFromProcess(BPatch_process *p)
 {
   //  find the fd for this process 
   //  (reformat process vector while we're at it)
+
+    // We can call this if the process has already exited; it then
+    // just cleans up state without executing any events.
+
 #if ! defined( cap_async_events )
    return true;
 #endif
@@ -478,7 +482,9 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
        bperr("%s[%d]:  accept failed\n", __FILE__, __LINE__);
        return false;
      }
+     
      async_printf("%s[%d]:  about to read new connection\n", __FILE__, __LINE__); 
+
      //  do a (blocking) read so that we can get the pid associated with
      //  this connection.
      EventRecord pid_ev;
@@ -627,21 +633,22 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
        return true;
      case evtNewConnection: 
      {
-       //  add this fd to the pair.
-       //  this fd will then be watched by select for new events.
-
-//       assert(event_fd == -1);
-       if (event_fd != -1)
-         fprintf(stderr, "%s[%d]:  WARNING:  event fd for process %d is %d (not -1)\n",
-                 FILE__, __LINE__, process_fds[j].process->getPid(), event_fd);
-
-       process_fds[j].fd = ev.what;
-
-       async_printf("%s[%d]:  after handling new connection, we have\n", __FILE__, __LINE__);
-       for (unsigned int t = 0; t < process_fds.size(); ++t) {
-          async_printf("\tpid = %d, fd = %d\n", process_fds[t].process->getPid(), process_fds[t].fd);
-       }
-       return true;
+         //  add this fd to the pair.
+         //  this fd will then be watched by select for new events.
+         
+         //       assert(event_fd == -1);
+         if (event_fd != -1) {
+             // Can happen if we're execing...
+             fprintf(stderr, "%s[%d]:  WARNING:  event fd for process %d is %d (not -1)\n",
+                     FILE__, __LINE__, process_fds[j].process->getPid(), event_fd);
+         }         
+         process_fds[j].fd = ev.what;
+         
+         async_printf("%s[%d]:  after handling new connection, we have\n", __FILE__, __LINE__);
+         for (unsigned int t = 0; t < process_fds.size(); ++t) {
+             async_printf("\tpid = %d, fd = %d\n", process_fds[t].process->getPid(), process_fds[t].fd);
+         }
+         return true;
      }
 
      case evtShutDown:
@@ -833,6 +840,14 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
 
 bool BPatch_asyncEventHandler::mutateeDetach(BPatch_process *p)
 {
+    // The process may have already exited... in this case, do nothing
+    // but return true. 
+
+    if ((p->llproc == NULL) ||
+        (p->llproc->status() == exited) ||
+        (p->llproc->status() == detached))
+        return true;
+
   //  find the function that will initiate the disconnection
   BPatch_Vector<BPatch_function *> funcs;
   if (!p->getImage()->findFunction("DYNINSTasyncDisconnect", funcs)
@@ -871,6 +886,20 @@ bool BPatch_asyncEventHandler::cleanUpTerminatedProcs()
       process_fds.erase(i,i);
       ret = true;
     }
+  }
+  return ret;
+}
+
+bool BPatch_asyncEventHandler::cleanupProc(BPatch_process *p)
+{
+  bool ret = false;
+  //  iterate from end of vector in case we need to use erase()
+  for (int i = (int) process_fds.size() -1; i >= 0; i--) {
+      if (process_fds[i].process == p) {
+          //fprintf(stderr, "%s[%d]: Cleaning up process %d\n", __FILE__, __LINE__, process_fds[i].process->getPid());
+          process_fds.erase(i,i);
+          ret = true;
+      }
   }
   return ret;
 }

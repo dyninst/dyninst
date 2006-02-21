@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.114 2006/02/17 17:17:05 rutar Exp $
+// $Id: BPatch.C,v 1.115 2006/02/21 20:12:04 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -944,11 +944,16 @@ void BPatch::registerForkingProcess(int forkingPid, process * /*proc*/)
  *
  * Register a process that has just entered exec
  *
- * Currently doesn't do anything, as there is no "just before exec"
- * callback in the API.
+ * Gives us some cleanup time
  */
 
 void BPatch::registerExecEntry(process *p, char *) {
+    BPatch_process *execing = getProcessByPid(p->getPid());
+    assert(execing);
+
+    // tell the async that the process went away
+    getAsync()->cleanupProc(execing);
+
     continueIfExists(p->getPid());
 }    
 
@@ -967,11 +972,12 @@ void BPatch::registerExecExit(process *proc)
     BPatch_process *process = getProcessByPid(execPid);
     assert(process);
     process->isVisiblyStopped = true;
-
    // build a new BPatch_image for this one
    if (process->image)
        delete process->image;
    process->image = new BPatch_image(process);
+
+   // The async pipe should be gone... handled in registerExecEntry
    
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtExec,cbs);
