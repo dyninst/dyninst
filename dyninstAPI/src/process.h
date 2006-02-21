@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.354 2006/02/16 20:42:26 bernat Exp $
+/* $Id: process.h,v 1.355 2006/02/21 20:12:14 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1101,6 +1101,12 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   unsigned char savedStackFrame[BYTES_TO_SAVE];
 #endif
   dyn_saved_regs *savedRegs;
+
+  // On platforms that depend on instrumentation to catch system call exits,
+  // we may accidentally receive multiple "syscall exit" signals. In particular,
+  // this causes problems on fork. We set this variable to true in the child and
+  // use it to ignore further signals.
+  bool childForkStopAlreadyReceived_;
 
   Address dyninstlib_brk_addr;
   Address main_brk_addr;

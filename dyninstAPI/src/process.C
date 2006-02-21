@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.583 2006/02/16 20:42:25 bernat Exp $
+// $Id: process.C,v 1.584 2006/02/21 20:12:13 bernat Exp $
 
 #include <ctype.h>
 
@@ -1979,6 +1979,7 @@ process::process(SignalGenerator *sh_) :
     replacedFunctionCalls_(addrHash4),
     bootstrapState(unstarted_bs),
     savedRegs(NULL),
+    childForkStopAlreadyReceived_(false),
     dyninstlib_brk_addr(0),
     main_brk_addr(0),
     systemPrelinkCommand(NULL),
@@ -2123,6 +2124,7 @@ bool process::setupAttached()
    else {
        startup_printf("%s[%d]: attached to previously paused process\n", FILE__, __LINE__);
        stateWhenAttached_ = stopped;
+       fprintf(stderr, "p2127\n");
        set_status(stopped);
    }
    startup_printf("%s[%d]: setupAttached returning true\n",FILE__, __LINE__);
@@ -2220,7 +2222,6 @@ bool process::finishExec() {
     
     inExec_ = false;
     BPatch::bpatch->registerExecExit(this);
-
     return true;
 }
 
@@ -2536,6 +2537,7 @@ process::process(const process *parentProc, SignalGenerator *sg_, int childTrace
     replacedFunctionCalls_(addrHash4), // Also later
     bootstrapState(parentProc->bootstrapState),
     savedRegs(NULL), // Later
+    childForkStopAlreadyReceived_(false),
     dyninstlib_brk_addr(parentProc->dyninstlib_brk_addr),
     main_brk_addr(parentProc->main_brk_addr),
     systemPrelinkCommand(NULL),
@@ -3883,7 +3885,6 @@ bool process::pause() {
   bool result;
   if (!isAttached()) {
     bperr( "Warning: pause attempted on non-attached process\n");
-    fprintf(stderr, "%s[%d]:  pause() failing here\n", FILE__, __LINE__);
     return false;
   }
       
@@ -4907,9 +4908,13 @@ bool process::continueProc(int signalToContinueWith)
     signal_printf("%s[%d]: warning continue on non-attached %d\n", 
                   FILE__, __LINE__, getPid());
     bpwarn( "Warning: continue attempted on non-attached process\n");
-    fprintf(stderr, "%s[%d]:  continue attempted on non-attached process\n", FILE__, __LINE__);
     return false;
   }
+
+  // Fork... we can get a spurious extra stop from the
+  // instrumentation-based fork mechanism. If we've tried continuing
+  // the process, then ignore these.
+  childForkStopAlreadyReceived_ = true;
 
   if (sh->waitingForStop()) {
     fprintf(stderr, "%s[%d][%s]:  suppressing continue\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
@@ -4949,6 +4954,11 @@ bool process::continueProc_(int sig)
 
 bool process::detachProcess(const bool leaveRunning) 
 {
+    // BPatch calls this in the process destructor. 
+    if ((status() == detached) ||
+        (status() == exited))
+        return true;
+
     // First, remove all syscall tracing and notifications
     delete tracedSyscalls_;
     tracedSyscalls_ = NULL;

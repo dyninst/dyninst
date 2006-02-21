@@ -456,7 +456,7 @@ process * SignalGeneratorCommon::newProcess(process *parent, int pid_, int trace
   process *theChild = new process(parent, sg, traceLink);
   assert(theChild);
   sg->setProcess(theChild);
-
+  
   if (!sg->createThread()) {
      fprintf(stderr, "%s[%d]:  failed to create event handler thread for %s\n", 
              FILE__, __LINE__, getThreadStr(getExecThreadID()));
@@ -1365,7 +1365,7 @@ bool SignalHandler::handleForkExit(EventRecord &ev)
              // this is a new child, register it with dyninst
              // Note: we need to wait for the child process to be created.
 
-             sleep(1);
+             sleep(5);
 
              // For now, we sleep (apparently), but the better solution is to
              // loop waiting for the child to be created and then attach to it.
@@ -1388,6 +1388,14 @@ bool SignalHandler::handleForkExit(EventRecord &ev)
      else {
          // Child signalGenerator may execute this guy ; leave it untouched.
 
+         // If we've already received the stop (AKA childForkStopAlreadyReceived
+         // is true), then we're getting double-signalled due to odd Linux behavior.
+         // Continue the process.
+         // If not, then set to true and leave paused.
+
+         if (proc->childForkStopAlreadyReceived_) {
+             proc->continueProc();
+         }
      }
     return true;
 }
@@ -1689,9 +1697,15 @@ bool SignalHandler::waitNextEvent(EventRecord &ev)
     fprintf(stderr, "%s[%d]:  sg->waitingForActiveProcess = %s\n", FILE__, __LINE__, sg->waitingForActiveProcess() ? "true" : "false");
     fprintf(stderr, "%s[%d]:  sg->anyActiveHandlers() = %s\n", FILE__, __LINE__, sg->anyActiveHandlers() ? "true" : "false");
 #endif
-    if (!sg->anyActiveHandlers() && sg->waitingForActiveProcess()) {
-      sg->signalEvent(evtProcessStop);
-    }
+
+    // Commented out 20FEB06 - Bernat
+    // This just makes us busy-wait; we wake up the signal generator,
+    // which wakes us up, ...
+    //if (!sg->anyActiveHandlers() && sg->waitingForActiveProcess()) {
+    //sg->signalEvent(evtProcessStop);
+    //}
+
+
     // Waiting for someone to ping our lock (internal thread)
     _WaitForSignal(FILE__, __LINE__);
 
