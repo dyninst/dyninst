@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_info.h,v 1.5 2006/02/16 16:45:06 mjbrim Exp $
+// $Id: test_info.h,v 1.6 2006/02/21 02:36:37 bpellin Exp $
 #ifndef TEST_INFO_H
 #define TEST_INFO_H
 
@@ -255,11 +255,9 @@ test_data_t tests[] = {
    test_data_t("test3_5", "./test3_5.so", test3_mutatee, all_platforms, NOMUTATEE, 3, 5, CREATE, ENABLED),
    test_data_t("test4_1", "./test4_1.so", test4_mutatee, all_platforms, NOMUTATEE, 4, 1, CREATE, ENABLED),
    test_data_t("test4_2", "./test4_2.so", test4_mutatee, all_platforms, NOMUTATEE, 4, 2, CREATE, ENABLED),
-   /* Not terminating x86-linux */
    test_data_t("test4_3", "./test4_3.so", test4_mutatee, all_platforms, NOMUTATEE, 4, 3, CREATE, ENABLED),
    test_data_t("test4_4", "./test4_4.so", test4_mutatee, all_platforms, NOMUTATEE, 4, 4, CREATE, ENABLED),
    test_data_t("test5_1", "./test5_1.so", test5_mutatee, test5_12_platforms, STOPPED, 5, 1, CREATE, ENABLED),
-   /* Segfaulting  x86-linux */
    test_data_t("test5_2", "./test5_2.so", test5_mutatee, test5_12_platforms, STOPPED, 5, 2, CREATE, ENABLED),
    test_data_t("test5_3", "./test5_3.so", test5_mutatee, test5_12_platforms, STOPPED, 5, 3, CREATE, ENABLED),
    test_data_t("test5_4", "./test5_4.so", test5_mutatee, test5_12_platforms, STOPPED, 5, 4, CREATE, ENABLED),
@@ -301,7 +299,6 @@ test_data_t tests[] = {
    test_data_t("test10_4", "./test10_4.so", test10_mutatee, test10_11_platforms, STOPPED, 10, 4, CREATE, ENABLED),
    test_data_t("test12_1", "./test12_1.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 1, CREATE, DISABLED),
    test_data_t("test12_2", "./test12_2.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 2, CREATE, DISABLED),
-   /* Segfaulting on x86-linux */
    test_data_t("test12_3", "./test12_3.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 3, CREATE, DISABLED),
    test_data_t("test12_4", "./test12_4.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 4, CREATE, DISABLED)
 };
