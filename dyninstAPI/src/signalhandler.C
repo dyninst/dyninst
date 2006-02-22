@@ -682,6 +682,12 @@ bool SignalGeneratorCommon::handleEventLocked(EventRecord &ev)
     }
   }
 
+#if 0
+  /// This code flat doesn't work. As written, it leads to an assert
+  //when freed memory is accessed.  Replacing the "delete handlers[i]"
+  //with deleteSignalHandler(handlers[i]) threw an assertion because
+  //the sync thread was blocking.
+
   if ((sh) && (handlers.size() > HANDLER_TRIM_THRESH)) {
     for (int i = handlers.size() - 1; i >= 0; i--) {
       if (!handlers[i]->idle()) break;
@@ -693,6 +699,7 @@ bool SignalGeneratorCommon::handleEventLocked(EventRecord &ev)
       }
     }
   }
+#endif
 
   if (handlers.size() > MAX_HANDLERS) {
      fprintf(stderr, "%s[%d]:  FATAL:  Something is horribly wrong.\n", FILE__, __LINE__);
