@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.19 2006/02/07 18:27:11 nater Exp $
+// $Id: image-func.C,v 1.20 2006/02/22 20:04:08 nater Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -423,9 +423,6 @@ void image_basicBlock::split(image_basicBlock * &newBlk)
     
     addEdge(this,newBlk,ET_FALLTHROUGH);
 
-    newBlk->containsCall_ = containsCall_;
-    newBlk->containsRet_ = containsRet_;
-
     // Note: if this block contains a call or return, then the block
     // that is splitting it will take those instructions (since they
     // must have ended the block currently). This has an effect if
@@ -479,11 +476,13 @@ void image_basicBlock::split(image_basicBlock * &newBlk)
     lastInsnOffset_ = *ah;
     blockEndOffset_ = loc;      // ah.getInstruction().size()
 
-        // this block can no longer have a CALL or a RET, since these
-        // by definition end the block FIXME revisit this assumption
-        // for delay slots!
+    // Copy properties and update:
+    newBlk->containsCall_ = containsCall_;
+    newBlk->containsRet_ = containsRet_;
+    newBlk->isExitBlock_ = isExitBlock_;
     containsCall_ = false;
     containsRet_ = false;
+    isExitBlock_ = false;
 }
 
 int image_instPoint_count = 0;
