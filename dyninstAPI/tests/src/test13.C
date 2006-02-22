@@ -352,9 +352,13 @@ int main(int argc, char *argv[])
    }
 
 
-   if (!error)
+   if (error)
    {
-      printf("Test completed without errors\n");
+       printf("*** Failed test #1 (Simple multithreaded test)\n");
+
+   } else {
+       printf("Passed test #1 (Simple multithreaded test)\n");
+       printf("Test completed without errors\n");
       return 0;
    }
    return -1;
