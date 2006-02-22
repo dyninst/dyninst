@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.52 2006/02/08 23:41:35 bernat Exp $ */
+/* $Id: RTcommon.c,v 1.53 2006/02/22 21:52:37 bernat Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -207,7 +207,8 @@ void DYNINSTinit(int cause, int pid, int maxthreads)
    initTrampGuards(DYNINST_max_num_threads);
 
 #if defined(cap_async_events)
-   DYNINSTasyncConnect(DYNINST_mutatorPid);
+   /* Done mutator-side to remove race */
+   /*DYNINSTasyncConnect(DYNINST_mutatorPid);*/
 #endif
    DYNINSTos_init(calledByFork, calledByAttach);
    DYNINST_initialize_index_list();
