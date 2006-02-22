@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.65 2006/02/16 20:42:27 bernat Exp $
+// $Id: aixDL.C,v 1.66 2006/02/22 21:52:32 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -312,15 +312,16 @@ sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, instMapping *inst)
 }
 
 sharedLibHook::~sharedLibHook() {
+    if (!proc_->isAttached() || proc_->execing())
+        return;
+    
     if (breakAddr_)
         proc_->writeDataSpace((void *)breakAddr_, SLH_SAVE_BUFFER_SIZE, saved_);
     else if (loadinst_) {
-        if (proc_->isAttached() && !proc_->execing()) {
-            miniTramp *handle;
-            for (unsigned i = 0; i < loadinst_->miniTramps.size(); i++) {
-                handle = loadinst_->miniTramps[i];
-                handle->uninstrument();
-            }
+        miniTramp *handle;
+        for (unsigned i = 0; i < loadinst_->miniTramps.size(); i++) {
+            handle = loadinst_->miniTramps[i];
+            handle->uninstrument();
         }
         delete loadinst_;
     }

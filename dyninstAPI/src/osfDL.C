@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.46 2006/01/30 07:16:53 jaw Exp $
+// $Id: osfDL.C,v 1.47 2006/02/22 21:52:34 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -306,6 +306,9 @@ sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b)
 
 
 sharedLibHook::~sharedLibHook() {
+    if (!proc_->isAttached() || proc_->execing())
+        return;
+
     proc_->writeDataSpace((void *)breakAddr_, instruction::size(), saved_);
 }
 

@@ -498,6 +498,9 @@ sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b)
 
 
 sharedLibHook::~sharedLibHook() {
+    if (!proc_->isAttached() || proc_->execing())
+        return;
+
     InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( breakAddr_, proc_ );
     iAddr.writeMyBundleFrom((uint8_t *)saved_);
 }
@@ -523,10 +526,15 @@ sharedLibHook::sharedLibHook(process *p, sharedLibHookType t, Address b)
 
 sharedLibHook::~sharedLibHook() 
 {
+    if (!proc_->isAttached() || proc_->execing())
+        return;
+
     if (!proc_->writeDataSpace((void *)breakAddr_, SLH_SAVE_BUFFER_SIZE, saved_)) {
-       //  This wds fails, and has so for a long time...
-       //fprintf(stderr, "%s[%d]:  WDS failed: %d bytes at %p\n", FILE__, __LINE__, SLH_SAVE_BUFFER_SIZE, breakAddr_);
-   }
+        //  This wds fails, and has so for a long time...
+        // Yeah, because the process may be, you know, GONE... -- bernat
+        
+        //fprintf(stderr, "%s[%d]:  WDS failed: %d bytes at %p\n", FILE__, __LINE__, SLH_SAVE_BUFFER_SIZE, breakAddr_);
+    }
 }
 #endif
 
