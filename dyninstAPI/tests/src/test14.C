@@ -66,17 +66,28 @@ void instr_func(BPatch_function *func, BPatch_function *lvl1func)
 
 int main(int argc, char *argv[])
 {
-   char *filename;
+   int i;
+   const char *child_prog = "test14.mutatee_gcc";
+   const char *child_args[2] = { NULL, NULL };
 
-   if (argc == 1)
-      filename = "test14.mutatee_gcc";
+   for (i = 1; i < argc; ++i) {
+       if (strcmp(argv[i], "-mutatee") == 0) {
+	   if (++i >= argc) {
+	       fprintf(stderr, "ERROR: -mutatee flag requires an argument\n");
+	       exit(-1);
+	   }
+       }
+       child_prog = argv[i];
+   }
+   if (strrchr(child_prog, '/'))
+       child_args[0] = strrchr(child_prog, '/') + 1;
    else
-      filename = argv[1];
+       child_args[0] = child_prog;
 
-   proc = bpatch.processCreate(filename, NULL);
+   proc = bpatch.processCreate(child_prog, child_args);
    if (!proc)
    {
-      fprintf(stderr, "Couldn't create process for %s\n", filename);
+      fprintf(stderr, "Couldn't create process for %s\n", child_prog);
       return -1;
    }
 
@@ -114,14 +125,13 @@ int main(int argc, char *argv[])
    int exitCode = proc->getExitCode();
    if (exitCode)
    {
-      fprintf(stderr, "[%s:%u] - Process terminated with errors\n",
-              __FILE__, __LINE__);
-      return -1;
+       fprintf(stdout, "*** Failed test #1 (Complex multithreaded test)\n");
+       return -1;
    }
    else
    {
-      fprintf(stderr, "[%s:%u] - Test completed successfully\n",
-              __FILE__, __LINE__);
+       fprintf(stdout, "Passed test #1 (Complex multithreaded test)\n");
+       fprintf(stdout, "All tests passed.\n");
    }
    return 0;
 }
