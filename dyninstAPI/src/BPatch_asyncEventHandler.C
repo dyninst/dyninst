@@ -149,6 +149,7 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
            __FILE__, __LINE__);
     return false;
   }
+#endif
 
   //  find the function that will initiate the connection
   BPatch_Vector<BPatch_function *> funcs;
@@ -161,6 +162,20 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
   if (funcs.size() > 1) {
     bperr("%s[%d]:  found %d varieties of function: DYNINSTasyncConnect\n",
           __FILE__, __LINE__, funcs.size());
+  }
+
+  //  The (int) argument to this function is our pid
+  BPatch_Vector<BPatch_snippet *> args;
+#if !defined(os_windows)
+  args.push_back(new BPatch_constExpr(getpid()));
+#endif
+  BPatch_funcCallExpr connectcall(*funcs[0], args);
+ 
+#if !defined (os_osf) && !defined (os_windows)
+  //  Run the connect call as oneTimeCode
+  if (!p->oneTimeCodeInt(connectcall)) {
+      fprintf(stderr,"%s[%d]:  failed to connect mutatee to async handler\n", __FILE__, __LINE__); 
+      return false;
   }
 #endif
 
@@ -332,7 +347,6 @@ bool BPatch_asyncEventHandler::initialize()
 
 BPatch_asyncEventHandler::~BPatch_asyncEventHandler()
 {
-  fprintf(stderr, "%s[%d]:  welcome to ~BPatch_asyncEventHandler()\n", FILE__, __LINE__);
   if (isRunning()) 
     if (!shutDown()) {
       bperr("%s[%d]:  shut down async event handler failed\n", __FILE__, __LINE__);
@@ -933,7 +947,10 @@ bool BPatch_asyncEventHandler::readEvent(PDSOCKET fd, EventRecord &ev)
     return false;
   }
   ev.proc = process::findProcess(rt_ev.pid);
-  assert (ev.proc);
+  if (ev.proc == NULL) {
+      fprintf(stderr, "ERROR: could not find process pointer for pid %d\n", rt_ev.pid);
+      assert (ev.proc);
+  }
   ev.what = rt_ev.event_fd;
   ev.fd = fd;
   ev.type = rt2EventType(rt_ev.type);
