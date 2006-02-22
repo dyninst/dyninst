@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.115 2006/02/21 20:12:04 bernat Exp $
+// $Id: BPatch.C,v 1.116 2006/02/22 21:52:30 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -882,8 +882,13 @@ void BPatch::registerForkedProcess(process *parentProc, process *childProc)
     
     assert(parent);
     BPatch_process *child = new BPatch_process(childProc);
-    
+
 #if defined(cap_async_events)
+    // We're already attached to the parent... let's see if the
+    // simple way works.
+    if (!getAsync()->mutateeDetach(child)) {
+        bperr("%s[%d]:  asyncEventHandler->mutateeDetach failed\n", __FILE__, __LINE__);
+    }
     if (!getAsync()->connectToProcess(child)) {
         bperr("%s[%d]:  asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
     }
@@ -1276,7 +1281,7 @@ BPatch_process *BPatch::processAttachInt(const char *path, int pid)
       delete ret;
       return NULL;
    }
-#if !defined (os_osf) && !defined (os_windows) && !defined(os_irix)  && !defined(arch_ia64)
+#if defined(cap_async_events)
    if (!getAsync()->connectToProcess(ret)) {
       bperr("%s[%d]:  asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
       return NULL;
