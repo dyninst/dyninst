@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test4a.mutatee.c,v 1.1 2005/09/29 20:37:55 bpellin Exp $ */
+/* $Id: test4a.mutatee.c,v 1.2 2006/02/22 22:06:32 bpellin Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -128,6 +128,7 @@ void func2_1()
     int pid;
 
     pid = fork();
+    dprintf("fork result: %d\n", pid);
     if (pid >= 0) {
         /* both parent and child exit here */
         func2_2();
@@ -147,6 +148,20 @@ void func2_1()
 		dprintf("%d DONE SLEEPING\n",getpid());
 	}
 #endif
+        
+        /* Make the parent exit first (again, testing) */
+        if (pid == 0) {
+		dprintf("%d SLEEPING\n",getpid());
+            sleep(1);
+		dprintf("%d SLEEPING\n",getpid());
+            sleep(1);
+		dprintf("%d SLEEPING\n",getpid());
+            sleep(1);
+		dprintf("%d SLEEPING\n",getpid());
+            sleep(1);
+		dprintf("%d SLEEPING\n",getpid());
+            sleep(1);
+        }
 
 	dprintf("Mutatee %d exiting...\n", getpid());
         exit(getpid());
@@ -177,6 +192,7 @@ void func3_1(int argc, char *argv[])
     globalVariable3_1 = 3000001;
     dprintf("Starting \"%s\"\n", newArgv[0]);
     errno = 0;
+    dprintf("Going into exec...\n");
     execvp(newArgv[0], newArgv);
     perror("execvp");
 }

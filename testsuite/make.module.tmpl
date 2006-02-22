@@ -624,22 +624,22 @@ MUTATEE_DEFS += -Dnative_fc=_$(NATIVE_fc)
 endif
 
 runTests.o: ../src/runTests.C $(DEPENDDIR)/runTests.dep
-	$(M_GXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/runTests.C
+	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/runTests.C
 
 runTests-utils.o: ../src/runTests-utils.C $(DEPENDDIR)/runTests-utils.dep
-	$(M_GXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/runTests-utils.C
+	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/runTests-utils.C
 
 runTests: runTests.o runTests-utils.o test_driver_templates.o 
-	$(M_GXX) -o $@ runTests.o runTests-utils.o test_driver_templates.o $(MUTATOR_LDFLAGS) $(LIBS) 
+	$(CXX) -o $@ runTests.o runTests-utils.o test_driver_templates.o $(MUTATOR_LDFLAGS) $(LIBS) 
 
 test_driver.o: ../src/test_driver.C $(DEPENDDIR)/test_driver.dep
-	$(M_GXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
+	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
-test_driver: test_driver.o test_driver_templates.o $(DEPENDDIR)/test_driver.dep
-	$(M_GXX) -o $@ test_driver.o test_driver_templates.o $(MUTATOR_LDFLAGS) $(LIBS) 
+test_driver: test_driver.o test_driver_templates.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE)
+	$(CXX) -o $@ test_driver.o test_driver_templates.o $(MUTATOR_LDFLAGS) $(LIBS) 
 
 $(MUTATORS_SO): test%.so : test%.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test%.dep $(LIBTESTSUITE)
-	$(M_GXX) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) 
+	$(CXX) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) 
 ifdef STRIP_SO
 	$(STRIP_SO) $@
 endif

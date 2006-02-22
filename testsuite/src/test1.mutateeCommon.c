@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutateeCommon.c,v 1.2 2005/10/25 04:18:02 bpellin Exp $ */
+/* $Id: test1.mutateeCommon.c,v 1.3 2006/02/22 22:06:25 bpellin Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -159,6 +159,7 @@ int main(int iargc, char *argv[])
     unsigned int i, j;
     unsigned int testsFailed = 0;
     int useAttach = FALSE;
+    unsigned int e;
 #ifndef i386_unknown_nt4_0
     int pfd;
 #endif
@@ -175,6 +176,11 @@ int main(int iargc, char *argv[])
 #ifndef i386_unknown_nt4_0
 	    if (++i >= argc) {
 		fprintf(stderr, "%s\n", USAGE);
+                fprintf(stderr, "Offending invocation:\n\t");
+                for (e = 0; e < argc; e++) {
+                  fprintf(stderr, "%s ", argv[e]);
+                }
+                fprintf(stderr, "\n");
 		exit(-1);
 	    }
 	    pfd = atoi(argv[i]);
@@ -201,6 +207,11 @@ int main(int iargc, char *argv[])
             i=j-1;
 		} else {
             fprintf(stderr, "%s\n", USAGE);
+             fprintf(stderr, "Offending invocation:\n\t");
+             for (e = 0; e < argc; e++) {
+               fprintf(stderr, "%s ", argv[e]);
+             }
+             fprintf(stderr, "\n");
             exit(-1);
         }
     }
@@ -239,7 +250,7 @@ int main(int iargc, char *argv[])
     }
 
     if (!testsFailed) {
-        /*printf("All tests passed\n");*/
+        printf("All tests passed\n");
     } else {
 	printf("**Failed** %d test%c\n",testsFailed,(testsFailed>1)?'s':' ');
     }

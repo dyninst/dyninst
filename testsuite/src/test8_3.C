@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test8_3.C,v 1.2 2006/01/23 22:21:59 bpellin Exp $
+// $Id: test8_3.C,v 1.3 2006/02/22 22:06:35 bpellin Exp $
 /*
  * #Name: test8_3
  * #Desc: getCallStack through instrumentation
@@ -62,7 +62,8 @@ BPatch *bpatch;
 #endif
 int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage ) {
 
-#if (defined( arch_alpha ) && defined( os_osf ))
+#if (defined( arch_alpha ) && defined( os_osf )) \
+ || (defined( arch_sparc ) && defined( os_solaris ))
 	printf("Skipping test #3 (getCallStack through instrumentation)\n");
 	printf("    unwinding through base & minitramps not implemented on this platform\n");
         return 0;

@@ -135,9 +135,9 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 	strcat(newLDPATH,":");
 	strcat(newLDPATH, currLDPATH);
 
-	mutatedBinary= new char[strlen(path) + strlen(realFileName) + 1];
+	mutatedBinary= new char[strlen(path) + strlen(realFileName) + 10];
 
-	memset(mutatedBinary, '\0', strlen(path) + strlen(realFileName) + 1);
+	memset(mutatedBinary, '\0', strlen(path) + strlen(realFileName) + 10);
 
 	strcat(mutatedBinary, path);
 	strcat(mutatedBinary, realFileName);

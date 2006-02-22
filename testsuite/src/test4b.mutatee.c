@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test4b.mutatee.c,v 1.1 2005/09/29 20:37:56 bpellin Exp $ */
+/* $Id: test4b.mutatee.c,v 1.2 2006/02/22 22:06:33 bpellin Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -134,6 +134,8 @@ void func4_1()
 int main(int argc, char *argv[])
 {                                       
     int i, j;
+
+    dprintf("test4b.mutatee started...\n");
 
     for (i=1; i < argc; i++) {
         if (!strcmp(argv[i], "-verbose")) {

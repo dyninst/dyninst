@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.3 2006/01/09 19:48:19 bpellin Exp $
+// $Id: test_lib.C,v 1.4 2006/02/22 22:06:36 bpellin Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -82,6 +82,7 @@
 #include "BPatch.h"
 #include "BPatch_Vector.h"
 #include "BPatch_thread.h"
+#include "dyninstAPI_RT/h/dyninstAPI_RT.h" // for DYNINST_BREAKPOINT_SIGNUM
 #include "test_lib.h"
 
 int expectError = DYNINST_NO_ERROR;
@@ -102,7 +103,7 @@ int waitUntilStopped(BPatch *bpatch, BPatch_thread *appThread, int testnum,
     if (!appThread->isStopped()) {
         printf("**Failed test #%d (%s)\n", testnum, testname);
         printf("    process did not signal mutator via stop\n");
-        fprintf(stderr, "thread is not stopped\n");
+        printf("thread is not stopped\n");
         return -1;
     }
 #if defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11) //ccw 10 apr 2001
@@ -117,9 +118,11 @@ int waitUntilStopped(BPatch *bpatch, BPatch_thread *appThread, int testnum,
     /* FIXME: Why add SIGILL here? */
     else if ((appThread->stopSignal() != SIGSTOP) &&
 	     (appThread->stopSignal() != SIGHUP) &&
+	     (appThread->stopSignal() != DYNINST_BREAKPOINT_SIGNUM) &&
 	     (appThread->stopSignal() != SIGILL)) {
 #else
     else if ((appThread->stopSignal() != SIGSTOP) &&
+	     (appThread->stopSignal() != DYNINST_BREAKPOINT_SIGNUM) &&
 #if defined(bug_irix_broken_sigstop)
 	     (appThread->stopSignal() != SIGEMT) &&
 #endif
@@ -127,7 +130,7 @@ int waitUntilStopped(BPatch *bpatch, BPatch_thread *appThread, int testnum,
 #endif /* DETACH_ON_THE_FLY */
 	printf("**Failed test #%d (%s)\n", testnum, testname);
 	printf("    process stopped on signal %d, not SIGSTOP\n", 
-		appThread->stopSignal());
+		appThread->stopSignal(), SIGSTOP);
         return -1;
     }
 #endif
@@ -538,13 +541,12 @@ int insertCallSnippetAt(BPatch_thread *appThread,
 
 BPatch_Vector<BPatch_snippet *> genLongExpr(BPatch_arithExpr *tail)
 {
-    BPatch_Vector<BPatch_snippet *> *ret;
+    BPatch_Vector<BPatch_snippet *> ret;
     
-    ret = new(BPatch_Vector<BPatch_snippet *>);
     for (int i=0; i < 1000; i++) {
-	ret->push_back(tail);
+	ret.push_back(tail);
     }
-    return *ret;
+    return ret;
 }
 
 // Build Architecture specific libname
@@ -1341,7 +1343,7 @@ int instrumentToCallZeroArg(BPatch_thread *appThread, BPatch_image *appImage, ch
 
   BPatch_Vector<BPatch_function *> found_funcs;
   if ((NULL == appImage->findFunction(instrumentee, found_funcs)) || !found_funcs.size()) {
-    fprintf(stderr, "    Unable to find function %s\n","instrumentee");
+    fprintf(stderr, "    Unable to find function %s\n",instrumentee);
     return -1;
   }
   
