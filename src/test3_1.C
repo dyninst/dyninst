@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_1.C,v 1.3 2006/01/09 19:48:09 bpellin Exp $
+// $Id: test3_1.C,v 1.4 2006/02/22 22:06:29 bpellin Exp $
 /*
  * #Name: test3_1
  * #Desc: Create processes, process events, and kill them, no instrumentation
@@ -91,7 +91,7 @@ int mutatorTest(char *pathname, BPatch *bpatch)
         dprintf("Mutatee %d started, pid=%d\n", n, appThread[n]->getPid());
     }
 
-    dprintf("Letting mutatee processes run a short while (10s).\n");
+    dprintf("Letting mutatee processes run a short while (5s).\n");
     for (n=0; n<Mutatees; n++) appThread[n]->continueExecution();
 
     P_sleep(5);

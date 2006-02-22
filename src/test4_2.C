@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4_2.C,v 1.4 2006/01/09 19:48:13 bpellin Exp $
+// $Id: test4_2.C,v 1.5 2006/02/22 22:06:31 bpellin Exp $
 /*
  * #Name: test4_2
  * #Desc: Fork Callback
@@ -80,6 +80,11 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
     }
 
     if (!child) return;	// skip prefork case
+
+    // Make a race condition always show up -- we don't run
+    // until the processes have had a chance.
+    sleep(1);
+    // That'll make erroneous continues break...
 
     // insert code into parent
     appImage = parent->getImage();

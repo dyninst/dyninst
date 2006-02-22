@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_2.C,v 1.3 2006/01/09 19:48:10 bpellin Exp $
+// $Id: test3_2.C,v 1.4 2006/02/22 22:06:30 bpellin Exp $
 /*
  * #Name: test3_2
  * #Desc: simultaneous multiple-process management - exit
@@ -120,7 +120,6 @@ int mutatorTest(char *pathname, BPatch *bpatch)
                 numTerminated++;
             }
             else if (!terminated[n] && (appThread[n]->isStopped())) {
-                fprintf(stderr, "%s[%d]:  continuing stopped process\n", __FILE__, __LINE__);
                 appThread[n]->continueExecution();
             }
     }

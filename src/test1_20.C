@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_20.C,v 1.5 2006/01/09 19:48:07 bpellin Exp $
+// $Id: test1_20.C,v 1.6 2006/02/22 22:06:27 bpellin Exp $
 /*
  * #Name: test1_20
  * #Desc: Mutator Side - Instrumentation at arbitrary points
@@ -137,7 +137,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
                     fprintf(stderr,
                             "%s[%d]: Unable to insert snippet into function \"func20_2.\"\n",
                              __FILE__, __LINE__);
-                    exit(1);
+                    return -1;
                 }
                 dprintf("%s[%d]:  SUCCESS installing inst at address %p/%p\n", __FILE__, __LINE__, insn->getAddress(), pt->getAddress());
             }
