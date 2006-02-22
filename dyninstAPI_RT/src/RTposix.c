@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.21 2006/02/16 00:57:28 legendre Exp $
+ * $Id: RTposix.c,v 1.22 2006/02/22 21:52:38 bernat Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -183,6 +183,7 @@ int DYNINSTasyncDisconnect()
 {
   if (needToDisconnect)
    close (async_socket);
+  async_socket = -1;
   return 0;
 }
 
