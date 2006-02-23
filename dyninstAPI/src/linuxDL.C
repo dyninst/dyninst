@@ -543,50 +543,49 @@ sharedLibHook::~sharedLibHook()
 // address space.  This routine reads the link maps from the application 
 // process to find the shared object file base mappings. It returns 0 on error.
 bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &descs) {
-    assert(r_debug_addr); // needs to be set before we're called
+   assert(r_debug_addr); // needs to be set before we're called
 
-    r_debug_x *debug_elm;
-    if (proc->getAddressWidth() == 4)
-	debug_elm = new r_debug_32(proc, r_debug_addr);
-    else
-	debug_elm = new r_debug_64(proc, r_debug_addr);
+   r_debug_x *debug_elm;
+   if (proc->getAddressWidth() == 4)
+      debug_elm = new r_debug_32(proc, r_debug_addr);
+   else
+      debug_elm = new r_debug_64(proc, r_debug_addr);
     
-    if (!debug_elm->is_valid()) {
-        startup_printf("debug element invalid!\n");
-	delete debug_elm;
-	return false;
-    }
+   if (!debug_elm->is_valid()) {
+      startup_printf("debug element invalid!\n");
+      delete debug_elm;
+      return false;
+   }
 
-    // get each link_map object
-    link_map_x *link_elm = debug_elm->r_map();
-    if (!link_elm->is_valid()) {
-	delete link_elm;
-	delete debug_elm;
-        startup_printf("Link element invalid!\n");
-	return false;
-    }
+   // get each link_map object
+   link_map_x *link_elm = debug_elm->r_map();
+   if (!link_elm->is_valid()) {
+      delete link_elm;
+      delete debug_elm;
+      startup_printf("Link element invalid!\n");
+      return false;
+   }
 
-    do {
-	pdstring obj_name = pdstring(link_elm->l_name());
-        if (obj_name == "" &&
-            link_elm->l_addr() == 0) {
-            continue;
-        }
+   do {
+      pdstring obj_name = pdstring(link_elm->l_name());
+      if (obj_name == "" && link_elm->l_addr() == 0) {
+         continue;
+      }
 
-	if (!link_elm->is_valid()) {
-	    delete link_elm;
-	    delete debug_elm;
-            startup_printf("Link element invalid! (2)\n");
-	    return 0;
-	}
-        descs.push_back(fileDescriptor(obj_name, 
-                                       link_elm->l_addr(), link_elm->l_addr(),
-                                       true));
-    } while (link_elm->load_next());
+      if (!link_elm->is_valid()) {
+         delete link_elm;
+         delete debug_elm;
+         startup_printf("Link element invalid! (2)\n");
+         return 0;
+      }
+      descs.push_back(fileDescriptor(obj_name, 
+                                     link_elm->l_addr(), link_elm->l_addr(),
+                                     true));
+   } while (link_elm->load_next());
     
-    delete link_elm;
-    delete debug_elm;
-    return true;
+   delete link_elm;
+   delete debug_elm;
+   return true;
 }
 
 // getLinkMapAddrs: returns a vector of addresses corresponding to all 

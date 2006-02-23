@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2004 Barton P. Miller
+ * Copyright (c) 1996-2006 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.584 2006/02/21 20:12:13 bernat Exp $
+// $Id: process.C,v 1.585 2006/02/23 00:14:12 legendre Exp $
 
 #include <ctype.h>
 
@@ -4917,7 +4917,6 @@ bool process::continueProc(int signalToContinueWith)
   childForkStopAlreadyReceived_ = true;
 
   if (sh->waitingForStop()) {
-    fprintf(stderr, "%s[%d][%s]:  suppressing continue\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
     return false;
   }
 
@@ -5704,8 +5703,6 @@ void process::deleteLWP(dyn_lwp *lwp_to_delete) {
    delete lwp_to_delete;
 }
 
-
-// Called for new threads
 void process::deleteThread(dynthread_t tid)
 {
   processState newst = running;

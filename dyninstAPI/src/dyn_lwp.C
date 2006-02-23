@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.39 2006/02/10 22:42:20 bernat Exp $
+ * $Id: dyn_lwp.C,v 1.40 2006/02/23 00:14:09 legendre Exp $
  */
 
 #include "common/h/headers.h"
@@ -118,7 +118,7 @@ dyn_lwp::dyn_lwp(const dyn_lwp &l) :
 
 dyn_lwp::~dyn_lwp()
 {
-  if (status_ != exited)
+  if (status_ != exited && is_attached())
     detach();
 }
 

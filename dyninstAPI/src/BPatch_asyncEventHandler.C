@@ -578,7 +578,7 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
 
 void threadDeleteWrapper(BPatch_process *p, BPatch_thread *t)
 {
-  p->deleteBPThread(t);
+   p->deleteBPThread(t);
 }
 
 void threadExitWrapper(BPatch_process *p, BPatch_thread *t, 
@@ -620,11 +620,6 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
 
    if (!appProc) {
      if (ev.type == evtNullEvent) return true; 
-     //fprintf(stderr, "%s[%d]:  ERROR:  Got event %s for pid %d, but no proc, out of %d procs\n",
-      //     __FILE__, __LINE__, eventType2str(ev.type), ev.proc->getPid(),process_fds.size());
-     //for (unsigned int k = 0; k < process_fds.size(); ++k) {
-     //  fprintf(stderr, "\thave process %d\n", process_fds[k].process->getPid());
-    // }
      //  This can happen if we received a connect packet before the BPatch_process has
      //  been created.  Shove it on the front of the queue.
      pdvector<EventRecord> temp;
@@ -647,22 +642,24 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
        return true;
      case evtNewConnection: 
      {
-         //  add this fd to the pair.
-         //  this fd will then be watched by select for new events.
-         
-         //       assert(event_fd == -1);
-         if (event_fd != -1) {
-             // Can happen if we're execing...
-             fprintf(stderr, "%s[%d]:  WARNING:  event fd for process %d is %d (not -1)\n",
-                     FILE__, __LINE__, process_fds[j].process->getPid(), event_fd);
-         }         
-         process_fds[j].fd = ev.what;
-         
-         async_printf("%s[%d]:  after handling new connection, we have\n", __FILE__, __LINE__);
-         for (unsigned int t = 0; t < process_fds.size(); ++t) {
-             async_printf("\tpid = %d, fd = %d\n", process_fds[t].process->getPid(), process_fds[t].fd);
-         }
-         return true;
+        //  add this fd to the pair.
+        //  this fd will then be watched by select for new events.
+        
+        if (event_fd != -1) {
+           // Can happen if we're execing...
+           fprintf(stderr, "%s[%d]:  WARNING:  event fd for process %d " \
+                   "is %d (not -1)\n", __FILE__, __LINE__, 
+                   process_fds[j].process->getPid(), event_fd);
+        }         
+        process_fds[j].fd = ev.what;
+        
+        async_printf("%s[%d]:  after handling new connection, we have\n", 
+                     __FILE__, __LINE__);
+        for (unsigned int t = 0; t < process_fds.size(); ++t) {
+           async_printf("\tpid = %d, fd = %d\n", 
+                        process_fds[t].process->getPid(), process_fds[t].fd);
+        }
+        return true;
      }
 
      case evtShutDown:
@@ -686,15 +683,11 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
 
        //Create the new BPatch_thread object
        async_printf("%s[%d]:  before createOrUpdateBPThread: start_pc = %p," \
-               "addr = %p, tid = %lu\n", 
-               FILE__, __LINE__, (void *) start_pc, (void *) stack_addr, call_rec.tid);
-       BPatch_thread *newthr = p->createOrUpdateBPThread( call_rec.lwp, 
-                                                          (dynthread_t) call_rec.tid,
-                                                          call_rec.index, stack_addr,
-                                                          start_pc);
-
-       assert(newthr);
-
+                    "addr = %p, tid = %lu\n", __FILE__, __LINE__, 
+                    (void *) start_pc, (void *) stack_addr, call_rec.tid);
+       BPatch_thread *newthr = 
+          p->createOrUpdateBPThread(call_rec.lwp, (dynthread_t) call_rec.tid,
+                                    call_rec.index, stack_addr, start_pc);
        if (thread_exists) {
          return true;
        }
@@ -715,7 +708,9 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
      {
         BPatch_deleteThreadEventRecord rec;
         if (!readEvent(ev.fd, (void *) &rec, 
-                       sizeof(BPatch_deleteThreadEventRecord))) {
+                       sizeof(BPatch_deleteThreadEventRecord))) 
+        {
+           
            bperr("%s[%d]:  failed to read thread event call record\n",
                  __FILE__, __LINE__);
            return false;

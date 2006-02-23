@@ -311,7 +311,7 @@ bool AsyncThreadEventCallback::execute_real(void)
   cb(proc, thr);
 
   //After executing a thread delete callback, destroy the thread
-  if (thr->llthread->is_exited())
+  if (thr->llthread && thr->llthread->is_exited() && !thr->is_deleted)
      proc->deleteBPThread(thr);
 
   return true;

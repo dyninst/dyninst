@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.140 2006/02/17 00:57:26 legendre Exp $
+// $Id: BPatch_thread.C,v 1.141 2006/02/23 00:14:07 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -154,13 +154,25 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
    return true;
 }
 
+BPatch_thread *BPatch_thread::createNewThread(BPatch_process *proc, 
+                                              int ind, int lwp_id)
+{
+   BPatch_thread *newthr;
+   newthr = new BPatch_thread(proc, ind, lwp_id);
+   return newthr;
+}
+
 BPatch_thread::BPatch_thread(BPatch_process *parent, int ind, int lwp_id) 
 {
    proc = parent;
+   is_deleted = false;
    index = ind;
    dyn_lwp *lwp = proc->llproc->getLWP(lwp_id);
-   if (!lwp) {
-      lwp = new dyn_lwp(lwp_id, proc->llproc);
+   doa = (lwp == NULL);
+   if (doa) {
+      is_deleted = true;
+      llthread = NULL;
+      return;
    }
    llthread = new dyn_thread(proc->llproc, index, lwp);   
    legacy_destructor = true;
@@ -169,6 +181,8 @@ BPatch_thread::BPatch_thread(BPatch_process *parent, int ind, int lwp_id)
 
 BPatch_thread::BPatch_thread(BPatch_process *parent, dyn_thread *dthr)
 {
+   doa = false;
+   is_deleted = false;
    index = 0;
    proc = parent;
    llthread = dthr;
@@ -243,16 +257,25 @@ BPatch_process *BPatch_thread::getProcessInt()
 
 dynthread_t BPatch_thread::getTidInt()
 {
+   if (doa || is_deleted) {
+      return (dynthread_t) -1;
+   }
    return llthread->get_tid();
 }
 
 int BPatch_thread::getLWPInt()
 {
+   if (doa || is_deleted) {
+      return (int) -1;
+   }
    return llthread->get_lwp()->get_lwp_id();
 }
 
 BPatch_function *BPatch_thread::getInitialFuncInt()
 {
+   if (doa || is_deleted) {
+      return NULL;
+   }
    int_function *ifunc = llthread->get_start_func();
    if (!ifunc)
       return NULL;
@@ -261,9 +284,28 @@ BPatch_function *BPatch_thread::getInitialFuncInt()
 
 unsigned long BPatch_thread::getStackTopAddrInt()
 {
+   if (doa || is_deleted) {
+      return (unsigned long) -1;
+   }
    return llthread->get_stack_addr();
 }
 
+
+void BPatch_thread::removeThreadFromProc() {
+#ifndef IBM_BPATCH_COMPAT
+   for (unsigned i=0; i<proc->threads.size(); i++) {
+      if (proc->threads[i] == this) {
+         proc->threads.erase(i);
+         break;
+      }
+   }
+#else
+   // STL vectors don't have item erase. We use iterators instead...
+   proc->threads.erase(std::find(proc->threads.begin(),
+                                 proc->threads.end(),
+                                 this));
+#endif    
+}
 
 /**
  * We can't overload destructors, and this function used to defined in
@@ -277,20 +319,7 @@ unsigned long BPatch_thread::getStackTopAddrInt()
  **/    
 void BPatch_thread::BPatch_thread_dtor()
 {
-#ifndef IBM_BPATCH_COMPAT
-    for (unsigned i=0; i<proc->threads.size(); i++) {
-        if (proc->threads[i] == this) {
-            proc->threads.erase(i);
-            break;
-        }
-    }
-#else
-    // STL vectors don't have item erase. We use iterators instead...
-    proc->threads.erase(std::find(proc->threads.begin(),
-                                  proc->threads.end(),
-                                  this));
-#endif
-    
+   removeThreadFromProc();
    if (legacy_destructor)
    {
      //  ~BPatch_process obtains a lock and does a wait(), so it will fail an assert 
@@ -303,9 +332,28 @@ void BPatch_thread::BPatch_thread_dtor()
    }
    else
    {
-      dynthread_t thr  = getTid();
-      proc->llproc->deleteThread(thr);
+      if (llthread) {
+         dynthread_t thr  = getTid();
+         proc->llproc->deleteThread(thr);
+      }
    }
+}
+
+void BPatch_thread::deleteThread() 
+{
+   removeThreadFromProc();
+
+   dynthread_t thr = getTid();
+   proc->llproc->deleteThread(thr);
+   llthread = NULL;
+   is_deleted = true;
+
+   //We're intentionally hanging onto thread objects rather than
+   // deleting them, in order to allow the user to still have a handle
+   // for deleted threads.  If we change our mind on this, uncomment the
+   // following two lines:
+   //legacy_destructor = true;
+   //delete this;
 }
 
 /**
@@ -315,6 +363,9 @@ void BPatch_thread::BPatch_thread_dtor()
  **/
 unsigned long BPatch_thread::os_handleInt()
 {
+   if (doa || is_deleted) {
+      return (unsigned long) -1;
+   }
 #if !defined(os_windows)
     // Don't need this any more; we only needed the /proc/<pid>/usage
     // fd on Solaris, and that's opened by the daemon. Windows... I don't
@@ -324,4 +375,8 @@ unsigned long BPatch_thread::os_handleInt()
 #else
     return (unsigned long) llthread->get_lwp()->get_fd();
 #endif
+}
+
+bool BPatch_thread::isDeadOnArrivalInt() {
+   return doa;
 }

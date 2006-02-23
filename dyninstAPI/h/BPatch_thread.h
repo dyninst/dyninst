@@ -76,16 +76,23 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     friend class AsyncThreadEventCallback;
     friend class process;
 
-    bool legacy_destructor;
     BPatch_process *proc;
     dyn_thread *llthread;
     unsigned index;
     bool updated;
+    bool doa;
+    bool is_deleted;
+    bool legacy_destructor;
 
  protected:
-    BPatch_thread(BPatch_process *parent, int ind, int lwp_id);
     BPatch_thread(BPatch_process *parent, dyn_thread *dthr);
+    BPatch_thread(BPatch_process *parent, int ind, int lwp_id);
 
+    //Generator for above constructor
+    static BPatch_thread *createNewThread(BPatch_process *proc, int ind, 
+                                          int lwp_id);
+    void deleteThread();
+    void removeThreadFromProc();
     void updateValues(dynthread_t tid, unsigned long stack_start, 
                       BPatch_function *initial_func, int lwp_id);
  public:
@@ -186,6 +193,9 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     
     API_EXPORT(Int, (),
     unsigned long, getStackTopAddr, ());
+
+    API_EXPORT(Int, (),
+    bool, isDeadOnArrival, ());
 
     API_EXPORT_DTOR(_dtor, (),
     ~,BPatch_thread,());

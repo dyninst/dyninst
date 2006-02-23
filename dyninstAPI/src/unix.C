@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.165 2006/02/16 00:57:26 legendre Exp $
+// $Id: unix.C,v 1.166 2006/02/23 00:14:14 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -74,7 +74,6 @@
 #include "dyninstAPI/src/sol_proc.h"
 
 #include <sys/poll.h>
-
 
 /////////////////////////////////////////////////////////////////////////////
 /// Massive amounts of signal handling code
@@ -356,25 +355,25 @@ bool SignalHandler::handleProcessCreate(EventRecord &ev)
   process * proc = ev.proc;
   proc->setBootstrapState(begun_bs);
   if (proc->insertTrapAtEntryPointOfMain()) {
-      pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
-      buffer += pdstring(", attached to process, stepping to main");
-      statusLine(buffer.c_str());
-      proc->continueProc();
-      return true;
-   } else {
-      // We couldn't insert the trap... so detach from the process
-      // and let it run. 
-      fprintf(stderr, "%s[%d][%s]:  ERROR:  couldn't insert at entry of main,\n",
-              FILE__, __LINE__, getThreadStr(getExecThreadID()));
-      fprintf(stderr, "\tinstrumenting process impossible\n");
-      // We should actually delete any mention of this
-      // process... including (for Paradyn) removing it from the
-      // frontend.
-      proc->triggerNormalExitCallback(0);
-      proc->handleProcessExit();
-      proc->continueProc();
-    }
-   return false;
+     pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
+     buffer += pdstring(", attached to process, stepping to main");
+     statusLine(buffer.c_str());
+     proc->continueProc();
+     return true;
+  } else {
+     // We couldn't insert the trap... so detach from the process
+     // and let it run. 
+     fprintf(stderr, "%s[%d][%s]:  ERROR:  couldn't insert at entry of main,\n",
+             FILE__, __LINE__, getThreadStr(getExecThreadID()));
+     fprintf(stderr, "\tinstrumenting process impossible\n");
+     // We should actually delete any mention of this
+     // process... including (for Paradyn) removing it from the
+     // frontend.
+     proc->triggerNormalExitCallback(0);
+     proc->handleProcessExit();
+     proc->continueProc();
+  }
+  return false;
 }
 
 bool SignalHandler::handleThreadCreate(EventRecord &)
@@ -760,10 +759,15 @@ bool PtraceCallback::execute_real()
   errno = 0;
 
   ret = P_ptrace(req_, pid_, addr_, data_, word_len_);
-  if (errno) {
-    perror("ptrace error");
-  }
   ptrace_errno = errno;
+  if (ptrace_errno == ESRCH && req_ == PTRACE_ATTACH) {
+     //Handled higher up
+     return false;
+  }
+  else if (ptrace_errno) {
+     perror("ptrace error");
+     return false;
+  }
   return true;
 }
 
@@ -1280,7 +1284,8 @@ bool DBI_readDataSpace(pid_t pid, Address addr, int nelem, Address data, int wor
 {
   bool ret =  getDBI()->readDataSpace(pid, addr, nelem, data, word_len, file, line);
   if (!ret)
-    fprintf(stderr, "%s[%d]:  readDataSpace at %s[%d] failing\n", FILE__, __LINE__, file, line);
+    signal_printf("%s[%d]:  readDataSpace at %s[%d] failing\n", 
+                  __FILE__, __LINE__, file, line);
   return ret;
 }
 

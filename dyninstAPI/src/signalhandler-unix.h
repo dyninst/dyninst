@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-unix.h,v 1.22 2006/02/10 08:34:19 jaw Exp $
+/* $Id: signalhandler-unix.h,v 1.23 2006/02/23 00:14:13 legendre Exp $
  */
 
 /*
@@ -244,7 +244,7 @@ class SignalGenerator : public SignalGeneratorCommon
    bool attachToChild(int pid);
    int find_dead_lwp();
    pid_t waitpid_kludge(pid_t, int *, int, int *);
-   pdvector<pdstring> attached_lwp_ids;
+   pdvector<int> attached_lwp_ids;
 #endif
 
 };

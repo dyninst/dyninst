@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.194 2006/02/17 00:57:20 legendre Exp $
+// $Id: linux.C,v 1.195 2006/02/23 00:14:10 legendre Exp $
 
 #include <fstream>
 
@@ -281,19 +281,23 @@ bool SignalGenerator::add_lwp_to_poll_list(dyn_lwp *lwp)
       return true;
    if (!lwp->proc()->multithread_capable(true))
       return true;
-   
+
+   /**
+    * Store pids that can be found as /proc/pid as pid 
+    * Store pids that can be found as /proc/.pid as -1*pid
+    **/
    lwpid = lwp->get_lwp_id();
    snprintf(filename, 64, "/proc/%d", lwpid);
    if (stat(filename, &buf) == 0)
    {
-      attached_lwp_ids.push_back(pdstring(lwpid));
+      attached_lwp_ids.push_back(lwpid);
       return true;
    }
 
    snprintf(filename, 64, "/proc/.%d", lwpid);
    if (stat(filename, &buf) == 0)
    {
-      attached_lwp_ids.push_back(pdstring(".") + pdstring(lwpid));
+      attached_lwp_ids.push_back(-1 * lwpid);
       return true;
    }
    
@@ -306,11 +310,10 @@ bool SignalGenerator::add_lwp_to_poll_list(dyn_lwp *lwp)
 bool SignalGenerator:: remove_lwp_from_poll_list(int lwp_id)
 {
    bool found = false;
-   for (unsigned i=0; i<attached_lwp_ids.size(); i++)
+   for (int i=attached_lwp_ids.size()-1; i>=0; i--)
    {
-      const char *lname = attached_lwp_ids[i].c_str();
-      if (*lname == '.') lname++;
-      if (atoi(lname) == lwp_id)
+      int lcur = abs(attached_lwp_ids[i]);
+      if (lcur == lwp_id)
       {
          attached_lwp_ids.erase(i, i);
          found = true;
@@ -327,12 +330,13 @@ int SignalGenerator::find_dead_lwp()
 
    for (unsigned i=0; i<attached_lwp_ids.size(); i++)
    {
-      snprintf(filename, 64, "/proc/.%s", attached_lwp_ids[i].c_str());
+      lwpid = attached_lwp_ids[i];
+      if (lwpid >= 0)
+         snprintf(filename, 64, "/proc/%d", lwpid);
+      else
+         snprintf(filename, 64, "/proc/.%d", -1 * lwpid);
       if (stat(filename, &buf) != 0)
       {
-         const char *s = attached_lwp_ids[i].c_str();
-         if (*s == '.') s++;
-         lwpid = atoi(s);
          remove_lwp_from_poll_list(lwpid);
          return lwpid;
       }
@@ -343,7 +347,7 @@ int SignalGenerator::find_dead_lwp()
 pid_t SignalGenerator::waitpid_kludge(pid_t pid_arg, int *status, int options, int *dead_lwp)
 {
   pid_t ret = 0;
-  int wait_options = options | WNOHANG;
+  int wait_options = options;
 
   do {
    *dead_lwp = find_dead_lwp();
@@ -1084,7 +1088,7 @@ bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf
           errno = 0;
           w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0, len);
           if (errno) {
-               fprintf(stderr, "%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, strerror(errno));
+               signal_printf("%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, strerror(errno));
                return false;
           }
           for (unsigned i = 0; i < nbytes; i++)
@@ -1105,7 +1109,8 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf) {
 
      bool ret = false;
      if (! (ret = DBI_readDataSpace(get_lwp_id(), (Address) ap, nbytes,(Address) dp, /*sizeof(Address)*/ len,__FILE__, __LINE__))) {
-       fprintf(stderr, "%s[%d]:  bulk ptrace read failed for lwp id %d\n", __FILE__, __LINE__, get_lwp_id());
+        signal_printf("%s[%d]:  bulk ptrace read failed for lwp id %d\n",
+                      __FILE__, __LINE__, get_lwp_id());
        return false;
      }
      return true;
@@ -1510,8 +1515,7 @@ bool dyn_lwp::realLWP_attach_() {
    if( 0 != DBI_ptrace(PTRACE_ATTACH, get_lwp_id(), 0, 0, &ptrace_errno, 
                        proc_->getAddressWidth(),  __FILE__, __LINE__) )
    {
-      fprintf(stderr, "%s[%d]:  ptrace attach to pid %d failing\n", FILE__, __LINE__, get_lwp_id());
-      perror( "process::attach - PTRACE_ATTACH" );
+      //Any thread could have exited before we attached to it.
       return false;
    }
    

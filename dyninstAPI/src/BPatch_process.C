@@ -579,7 +579,6 @@ bool BPatch_process::detachInt(bool cont)
             __FILE__, __LINE__, getPid());
    }
   // __LOCK;
-   fprintf(stderr, "%s[%d]:  about to detach process\n", FILE__, __LINE__);
    detached = llproc->detachProcess(cont);
    return detached;
 }
@@ -1597,10 +1596,10 @@ BPatch_point *BPatch_process::createBPPointCB(process *p, int_function *f,
    return proc->findOrCreateBPPoint(func, ip, (BPatch_procedureLocation) type);
 }
 
-BPatch_thread *BPatch_process::createOrUpdateBPThread(int lwp, dynthread_t tid, 
-                                                      unsigned index, 
-                                                      unsigned long stack_start, 
-                                                      unsigned long start_addr)
+BPatch_thread *BPatch_process::createOrUpdateBPThread(
+                         int lwp, dynthread_t tid, unsigned index, 
+                         unsigned long stack_start,  
+                         unsigned long start_addr)
 {
    //fprintf(stderr, "%s[%d][%s]:  welcome to createOrUpdateBPThread(tid = %lu)\n",
    //        FILE__, __LINE__, getThreadStr(getExecThreadID()), tid);
@@ -1617,7 +1616,11 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(int lwp, dynthread_t tid,
    //Needs creating
    if (!thr) 
    {
-      thr = new BPatch_thread(this, index, lwp);
+      thr = BPatch_thread::createNewThread(this, index, lwp);
+      if (thr->doa) {
+         return thr;
+      }
+         
       threads.push_back(thr);
    }
 
@@ -1644,9 +1647,8 @@ void BPatch_process::deleteBPThread(BPatch_thread *thrd)
       // under the users.
       return;
    }
-      
-   thrd->legacy_destructor = false;
-   delete thrd;      
+
+   thrd->deleteThread();
 }
 
 #ifdef IBM_BPATCH_COMPAT
