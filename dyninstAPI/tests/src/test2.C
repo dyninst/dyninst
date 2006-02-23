@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2.C,v 1.63 2005/11/03 05:21:08 jaw Exp $
+// $Id: test2.C,v 1.64 2006/02/23 00:14:17 legendre Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -268,7 +268,7 @@ void test5(BPatch_image *img)
 //	library via getModules.
 //
 
-void test6(BPatch_thread *thread, BPatch_image *img)
+void test6(BPatch_thread * /*thread*/, BPatch_image *img)
 {
 #if !defined(sparc_sun_solaris2_4) \
  && !defined(i386_unknown_solaris2_5) \
@@ -522,7 +522,7 @@ void test10(BPatch_thread *thread)
 //	This function tests the getDisplacedInstructions instructions methods.
 //	Currently this tests is only enabled on AIX platforms.
 //
-void test11(BPatch_thread * appThread, BPatch_image *appImage)
+void test11(BPatch_thread * /*appThread*/, BPatch_image *appImage)
 {
 
   BPatch_Vector<BPatch_function *> found_funcs;
@@ -574,7 +574,7 @@ void test11(BPatch_thread * appThread, BPatch_image *appImage)
 //		usesTrap_NP - returns true of the point requires a trap
 //			instruction.
 
-void test12(BPatch_thread *appThread, BPatch_image *appImage)
+void test12(BPatch_thread * /*appThread*/, BPatch_image *appImage)
 {
    
   BPatch_Vector<BPatch_function *> found_funcs;
@@ -625,7 +625,7 @@ void llErrorFunc(BPatchErrorLevel level, int num, const char **params)
 }
 
 // Start Test Case #13 - (loadLibrary failure test)
-void test13( BPatch_thread * appThread, BPatch_image * appImage )
+void test13( BPatch_thread * appThread, BPatch_image * /*appImage*/ )
 {
 
 #if !defined(i386_unknown_nt4_0) \

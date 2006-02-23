@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.37 2006/01/19 20:01:18 legendre Exp $
+ * $Id: RTlinux.c,v 1.38 2006/02/23 00:14:19 legendre Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -321,7 +321,7 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
     //how to read the information from the positions structure above.
     //It needs a new entry filled in.  Running the commented out program
     //that follows this function can help you collect the necessary data.
-    fprintf(stderr, "[%s:%d] Unable to parse the pthread_t structure for this"
+    RTprintf(stderr, "[%s:%d] Unable to parse the pthread_t structure for this"
 	    " version of libpthread.  Making a best guess effort.\n", 
 	    __FILE__, __LINE__);
     err_printed = 1;

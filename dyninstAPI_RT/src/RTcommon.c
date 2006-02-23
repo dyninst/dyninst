@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.53 2006/02/22 21:52:37 bernat Exp $ */
+/* $Id: RTcommon.c,v 1.54 2006/02/23 00:14:20 legendre Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -96,7 +96,7 @@ int libdyninstAPI_RT_init_localPid=-1;
 int libdyninstAPI_RT_init_maxthreads=-1;
 
 int DYNINST_mutatorPid;
-int DYNINSTdebugPrintRT;
+int DYNINSTdebugPrintRT = 0;
 int isMutatedExec = 0;
 
 unsigned *DYNINST_tramp_guards;

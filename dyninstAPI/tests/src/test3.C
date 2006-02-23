@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3.C,v 1.40 2006/02/16 00:57:27 legendre Exp $
+// $Id: test3.C,v 1.41 2006/02/23 00:14:18 legendre Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -681,8 +681,6 @@ void mutatorTest5(char *pathname, BPatch *bpatch)
             return;
         }
         dprintf("Mutatee %d started, pid=%d\n", n, appThread->getPid());
-        fprintf(stderr, "[%s]%d: Mutatee %d started, pid=%d\n", __FILE__, __LINE__,n, appThread->getPid());
-       
         appThread->continueExecution();
 
         while (!appThread->isTerminated()) {
