@@ -41,7 +41,7 @@ DLLEXPORT int DYNINSTuserMessage(void *msg, unsigned int msg_size);
 // dyninst versions.  Don't rely on it.
 typedef void * dyntid_t;
 typedef struct {
-   int mutex;
+   volatile int mutex;
    dyntid_t tid;
 } dyninst_lock_t;
 
