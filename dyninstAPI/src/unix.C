@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.166 2006/02/23 00:14:14 legendre Exp $
+// $Id: unix.C,v 1.167 2006/02/23 02:54:39 nater Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -859,15 +859,20 @@ int DebuggerInterface::waitpidNoBlock(int *status)
  *   inputFile: where to redirect standard input
  *   outputFile: where to redirect standard output
  *   traceLink: handle or file descriptor of trace link (read only)
-//removed all ioLink related code for output redirection
- *   ioLink: handle or file descriptor of io link (read only)
  *   pid: process id of new process
- *   tid: thread id for main thread (needed by WindowsNT)
- *   procHandle: handle for new process (needed by WindowsNT)
- *   thrHandle: handle for main thread (needed by WindowsNT)
+ // now an internal unix function, no longer trying to be consistent with
+ // Windows 
+ // *   tid: thread id for main thread (needed by WindowsNT)
+ // *   procHandle: handle for new process (needed by WindowsNT)
+ // *   thrHandle: handle for main thread (needed by WindowsNT)
  ****************************************************************************/
 
-bool SignalGenerator::forkNewProcess()
+//bool SignalGenerator::forkNewProcess()
+bool forkNewProcess_real(pdstring file,
+                    pdstring dir, pdvector<pdstring> *argv,
+                    pdvector<pdstring> *envp,
+                    pdstring inputFile, pdstring outputFile, int &traceLink,
+                    pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd)
 {
   forkexec_printf("%s[%d][%s]:  welcome to forkNewProcess(%s)\n",
           __FILE__, __LINE__, getThreadStr(getExecThreadID()), file.c_str());
@@ -892,10 +897,10 @@ bool SignalGenerator::forkNewProcess()
                __FILE__, __LINE__, getThreadStr(getExecThreadID()), file.c_str());
 
 
-#if defined(os_linux)
-      if (!attachToChild(pid)) 
-        assert (0 && "failed to ptrace attach to child process");
-#endif
+//#if defined(os_linux)
+//      if (!attachToChild(pid)) 
+//        assert (0 && "failed to ptrace attach to child process");
+//#endif
 
 #if (defined(BPATCH_LIBRARY) && !defined(alpha_dec_osf4_0))
       /*
@@ -1093,6 +1098,20 @@ bool SignalGenerator::forkNewProcess()
       return false;
    } 
    return false;
+}
+
+bool SignalGenerator::forkNewProcess()
+{
+#if !defined (os_linux)
+    return forkNewProcess_real(file, dir, argv, envp, inputFile, outputFile,
+                               traceLink, pid, stdin_fd, stdout_fd, stderr_fd);
+#else
+    // Linux platforms MUST execute fork() calls on the debugger interface
+    // (ptrace) thread; see comment above DebuggerInterface::forkNewProcess
+    // in debuginterface.h for details. -- nater 22.feb.06
+    return getDBI()->forkNewProcess(file, dir, argv, envp, inputFile, 
+                outputFile, traceLink, pid, stdin_fd, stdout_fd, stderr_fd);
+#endif
 }
 
 #if !defined (os_linux)
