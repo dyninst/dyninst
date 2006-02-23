@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.167 2006/02/23 02:54:39 nater Exp $
+// $Id: unix.C,v 1.168 2006/02/23 17:39:30 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -760,11 +760,13 @@ bool PtraceCallback::execute_real()
 
   ret = P_ptrace(req_, pid_, addr_, data_, word_len_);
   ptrace_errno = errno;
+#if defined(os_linux)
   if (ptrace_errno == ESRCH && req_ == PTRACE_ATTACH) {
      //Handled higher up
      return false;
   }
-  else if (ptrace_errno) {
+#endif
+  if (ptrace_errno) {
      perror("ptrace error");
      return false;
   }
