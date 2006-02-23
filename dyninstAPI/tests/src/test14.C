@@ -125,12 +125,12 @@ int main(int argc, char *argv[])
    int exitCode = proc->getExitCode();
    if (exitCode)
    {
-       fprintf(stdout, "*** Failed test #1 (Complex multithreaded test)\n");
+       fprintf(stdout, "*** Failed test #1 (Multithreaded tramp guards)\n");
        return -1;
    }
    else
    {
-       fprintf(stdout, "Passed test #1 (Complex multithreaded test)\n");
+       fprintf(stdout, "Passed test #1 (Multithreawded tramp guards)\n");
        fprintf(stdout, "All tests passed.\n");
    }
    return 0;

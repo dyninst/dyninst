@@ -88,10 +88,17 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
 
    if (my_proc != proc)
    {
-      fprintf(stderr, "[%s:%u] - Got invalid process\n", __FILE__, __LINE__);
+      fprintf(stderr, "[%s:%u] - Got invalid process\n", 
+              __FILE__, __LINE__);
       error = 1;
    }
 
+   if (thr->isDeadOnArrival()) {
+      fprintf(stderr, "[%s:%u] - Got a dead on arival thread\n", 
+              __FILE__, __LINE__);
+      error = 1;
+      return;
+   }
    dprintf(stderr, "%s[%d]:  newthr: BPatchID = %d\n", __FILE__, __LINE__, my_dyn_id);
    //Check initial function
    static char name[1024];
@@ -354,12 +361,11 @@ int main(int argc, char *argv[])
 
    if (error)
    {
-       printf("*** Failed test #1 (Simple multithreaded test)\n");
-
+       printf("*** Failed test #1 (Threading Callbacks)\n");
    } else {
-       printf("Passed test #1 (Simple multithreaded test)\n");
+       printf("Passed test #1 (Threading Callbacks)\n");
        printf("Test completed without errors\n");
-      return 0;
+       return 0;
    }
    return -1;
 }
