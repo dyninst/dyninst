@@ -53,7 +53,7 @@
  * (AT&T syntax on Linux and Intel on Windows)
  **/
 #if defined(os_windows)
-int atomic_set(int *val)
+int atomic_set(volatile int *val)
 {
    int result;
    __asm
@@ -68,7 +68,7 @@ int atomic_set(int *val)
    return result;
 }
 #else
-int atomic_set(int *val)
+int atomic_set(volatile int *val)
 {
    int result;
    __asm(
@@ -89,14 +89,12 @@ int atomic_set(int *val)
 int tc_lock_lock(tc_lock_t *tc)
 {
    dyntid_t me;
-   int lock_val;
 
    me = dyn_pthread_self();
    if (me == tc->tid)
       return DYNINST_DEAD_LOCK;
 
    while (1) {
-      lock_val = 1;
       if (tc->mutex == 0 && atomic_set(&tc->mutex))
       {
          tc->tid = me;
