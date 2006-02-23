@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.195 2006/02/23 00:14:10 legendre Exp $
+// $Id: linux.C,v 1.196 2006/02/23 02:54:38 nater Exp $
 
 #include <fstream>
 
@@ -159,7 +159,7 @@ void OS::osTraceMe(void)
   }
 }
 
-bool SignalGenerator::attachToChild(int pid)
+bool attachToChild(int pid)
 {
    //  wait for child process to stop itself, attach to it, and continue
      int wait_options = __WALL | WUNTRACED;
@@ -177,12 +177,12 @@ bool SignalGenerator::attachToChild(int pid)
        fprintf(stderr, "%s[%d]:  signal is not SIGILL: stopsig = %d\n", FILE__, __LINE__, WSTOPSIG(status));
      }
 
-     if (0 != getDBI()->ptrace(PTRACE_ATTACH, pid, 0, 0, 4 )) {
+     if (0 != P_ptrace(PTRACE_ATTACH, pid, 0, 0, 4 )) {
        fprintf(stderr, "%s[%d]:  ptrace (ATTACH) failed\n", FILE__, __LINE__);
        abort();
     }
 
-    if (0 != getDBI()->ptrace(PTRACE_CONT, pid, 0, SIGCONT, 4 ) )  {
+    if (0 != P_ptrace(PTRACE_CONT, pid, 0, SIGCONT, 4 ) )  {
        perror("ptrace(CONT)");
        fprintf(stderr, "%s[%d]:  ptrace (CONT) failed\n", FILE__, __LINE__);
        abort();
@@ -193,7 +193,7 @@ bool SignalGenerator::attachToChild(int pid)
        exit(1);
     }
 
-    if (0 != getDBI()->ptrace(PTRACE_CONT, pid, 0, SIGCONT, 4 ) )  {
+    if (0 != P_ptrace(PTRACE_CONT, pid, 0, SIGCONT, 4 ) )  {
        perror("ptrace(CONT)");
        fprintf(stderr, "%s[%d]:  ptrace (CONT) failed\n", FILE__, __LINE__);
        abort();
@@ -2134,4 +2134,77 @@ Address dyn_lwp::step_next_insn() {
    } while (singleStepping);
 
    return getActiveFrame().getPC();
+}
+
+// ****** Support linux-specific forkNewProcess DBI callbacks ***** //
+
+bool ForkNewProcessCallback::operator()(pdstring file, 
+                    pdstring dir, pdvector<pdstring> *argv,
+                    pdvector<pdstring> *envp,
+                    pdstring inputFile, pdstring outputFile, int &traceLink,
+                    pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd)
+{
+    lock->_Lock(FILE__, __LINE__);
+    file_ = &file;
+    dir_ = &dir;
+    argv_ = argv;
+    envp_ = envp;
+    inputFile_ = &inputFile;
+    outputFile_ = &outputFile;
+    traceLink_ = &traceLink;
+    pid_ = &pid;
+    stdin_fd_ = stdin_fd;
+    stdout_fd_ = stdout_fd;
+    stderr_fd_ = stderr_fd;
+    
+  startup_printf("%s[%d]:  ForkNewProcessCallback, target thread is %lu(%s)\n", 
+__FILE__, __LINE__, targetThread(), getThreadStr(targetThread()));
+  //DBIEvent ev(dbiForkNewProcess);
+  getMailbox()->executeOrRegisterCallback(this);
+  if (synchronous) {
+    dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__
+);
+    waitForCompletion();
+  }
+  lock->_Unlock(FILE__, __LINE__);
+  return true;
+}
+
+bool ForkNewProcessCallback::execute_real()
+{
+    // call the actual forking routine in unix.C
+    ret = forkNewProcess_real(*file_,*dir_,argv_,envp_,*inputFile_,
+            *outputFile_,*traceLink_,*pid_,stdin_fd_,stdout_fd_,
+            stderr_fd_); 
+   
+    // attach
+    if(ret && !attachToChild(*pid_))
+        assert(0 && "failed to ptrace attach to child process");
+
+    return ret;
+}
+
+bool DebuggerInterface::forkNewProcess(pdstring file, 
+                    pdstring dir, pdvector<pdstring> *argv,
+                    pdvector<pdstring> *envp,
+                    pdstring inputFile, pdstring outputFile, int &traceLink,
+                    pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd)
+{
+    dbi_printf("%s[%d][%s]:  welcome to DebuggerInterface::forkNewProcess()\n",
+          FILE__, __LINE__, getThreadStr(getExecThreadID()));
+    getBusy();
+
+    bool ret;
+    ForkNewProcessCallback *fnpp = new ForkNewProcessCallback(&dbilock);
+    ForkNewProcessCallback &fnp = *fnpp;
+
+    fnp.enableDelete(false);
+    fnp(file, dir, argv, envp, inputFile, outputFile, traceLink, pid,
+        stdin_fd, stdout_fd, stderr_fd);
+
+    ret = fnp.getReturnValue();
+    fnp.enableDelete();
+    releaseBusy();
+
+    return ret;  
 }

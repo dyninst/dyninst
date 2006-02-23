@@ -118,8 +118,7 @@ class DebuggerInterface : public EventHandler<DBIEvent> {
   bool forkNewProcess(pdstring file, pdstring dir, pdvector<pdstring> *argv, 
                       pdvector<pdstring> *envp,
                       pdstring inputFile, pdstring outputFile, int &traceLink,
-                      int &pid, int & /*tid*/, int & /*procHandle*/,
-                      int & /*thrHandle*/, int stdin_fd, int stdout_fd, int stderr_fd);
+                      int &pid, int stdin_fd, int stdout_fd, int stderr_fd);
 
   PTRACE_RETURN ptrace(int req, pid_t pid, Address addr, Address data, 
                        int word_len = -1, int *ptrace_errno = NULL);
@@ -187,11 +186,49 @@ PTRACE_RETURN DBI_ptrace(int req, pid_t pid, Address addr, Address data, int *pt
 bool DBI_writeDataSpace(pid_t pid, Address addr, int nelem, Address data, int word_len, const char *file = NULL, unsigned int line = 0); 
 bool DBI_readDataSpace(pid_t pid, Address addr, int nelem, Address data, int word_len, const char *file = NULL, unsigned int line = 0); 
 
+// Process creation may be a responsibility of the DBI.
+bool forkNewProcess_real(pdstring file,
+                    pdstring dir, pdvector<pdstring> *argv,
+                    pdvector<pdstring> *envp,
+                    pdstring inputFile, pdstring outputFile, int &traceLink,
+                    pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd);
 
 //  Helper callback classes for use with mailbox system
 
 
-#ifdef NOTDEF // PDSEP
+#if defined( os_linux )
+// There is a bug in linux kernels between 2.6.9 and 2.6.11.11 (inclusive)
+// that leads to a kernel panic under the following conditions:
+//
+// Process A creates a thread B using clone()
+// Process A forks off a child process C
+// Thread B attaches to process C using ptrace
+//
+// At this point, A is C's real_parent but B is C's parent. If A exits
+// before B completes, the process death handling routines will try to
+// assign all of A's children to B (as B is a peer in A's thread group).
+// This will trigger a (spurious) assert in the kernel (see kernel/exit.c,
+// choose_new_parent(), lines 525 and 526 in the 2.6.9 source tree).
+//
+// This test and BUG() combination was removed from linux in revision
+// 2.6.11.12, though it is unclear whether the developers realized
+// the significance of the problem or were rather just taking out a bogus
+// BUG() that they believed could not be triggered or was not indicative
+// of a real problem (it is, in fact, perfectly fine in the PTRACE case
+// for the newly assigned reaper process to be the same as the current
+// parent, and there is code in reparent_thread() to handle it).
+//
+// Details aside, what this means is that until the 2.6.x kernel series
+// is dust and ash, we cannot safely ptrace a process unless we are the
+// thread/process/[insert favorite entity here] that created it; otherwise
+// we are GUARANTEED to cause a kernel panic unless we are very careful
+// about exiting (and I think there is general agreement that people
+// should not be able crash their systems by handing Dyninst a SIGKILL).
+//
+// The workaround is to move fork operations onto the DBI thread for linux,
+// as was done until 30.Jan.2006, when the unix fork implementation was
+// brought in line with Windows. Hence this callback class.
+
 class ForkNewProcessCallback : public DBICallbackBase
 {
   public:
@@ -205,8 +242,7 @@ class ForkNewProcessCallback : public DBICallbackBase
    bool operator()(pdstring file, pdstring dir, pdvector<pdstring> *argv, 
                    pdvector<pdstring> *envp,
                    pdstring inputFile, pdstring outputFile, int &traceLink,
-                   int &pid, int & /*tid*/, int & /*procHandle*/,
-                   int & /*thrHandle*/, int stdin_fd, int stdout_fd, int stderr_fd);
+                   pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd);
 
    bool getReturnValue() {return ret;}
 
@@ -220,14 +256,12 @@ class ForkNewProcessCallback : public DBICallbackBase
    pdstring *outputFile_;
    int *traceLink_;
    int *pid_;
-   int *tid_;
-   int *procHandle_;
-   int *thrHandle_;
    int stdin_fd_;
    int stdout_fd_;
    int stderr_fd_;
 };
 #endif
+
 class PtraceCallback : public DBICallbackBase
 {
   public:
