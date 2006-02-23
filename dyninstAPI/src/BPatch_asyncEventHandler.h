@@ -103,6 +103,14 @@ typedef int PDSOCKET;
 #define THREAD_LIB_NAME "libpthread"
 #endif
 
+typedef enum {
+    REsuccess,
+    REnoData,
+    REinsufficientData,
+    REreadError,
+    REillegalProcess,
+    REerror} asyncReadReturnValue_t;
+    
 
 typedef struct {
     BPatchDynamicCallSiteCallback cb;
@@ -170,8 +178,8 @@ class BPatch_asyncEventHandler : public EventHandler<EventRecord> {
 
     //  BPatch_asyncEventHandler::readEvent()
     //  Reads from the async fd connection to the mutatee
-    static bool readEvent(PDSOCKET fd, void *ev, ssize_t sz);
-    static bool readEvent(PDSOCKET fd, EventRecord &ev);
+    static asyncReadReturnValue_t readEvent(PDSOCKET fd, void *ev, ssize_t sz);
+    static asyncReadReturnValue_t readEvent(PDSOCKET fd, EventRecord &ev);
 
     //  BPatch_asyncEventHandler::mutateeDetach()
     //  use oneTimeCode to call a function in the mutatee to handle
