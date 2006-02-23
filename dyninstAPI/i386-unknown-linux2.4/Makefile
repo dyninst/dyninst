@@ -1,12 +1,12 @@
 #
-# $Id: Makefile,v 1.27 2006/02/16 03:52:34 jodom Exp $
+# $Id: Makefile,v 1.28 2006/02/23 00:14:23 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
 
 #USES_SHM_SAMPLING = true
 #USES_PAPI = true
-DEBUG_FLAG = -g
+#DEBUG_FLAG = -g
 NO_IMPLICIT_TEMPLATES = true
 USES_DWARF_DEBUG = true
 USES_LIBELF = true
