@@ -293,6 +293,30 @@ bool rpcMgr::existsRunningIRPC() const {
         return false;
 }
 
+inferiorRPCinProgress *rpcMgr::findRunningRPCWithResultAddress(Address where)
+{
+  inferiorRPCinProgress *ret = NULL;
+  for (int i = allRunningRPCs_.size() -1; i >= 0; --i) {
+    if (allRunningRPCs_[i]->rpcResultAddr == where) {
+       ret = allRunningRPCs_[i];
+       break;
+    }
+  }
+  return ret;
+}
+
+inferiorRPCinProgress *rpcMgr::findRunningRPCWithCompletionAddress(Address where)
+{
+  inferiorRPCinProgress *ret = NULL;
+  for (int i = allRunningRPCs_.size() -1; i >= 0; --i) {
+    if (allRunningRPCs_[i]->rpcCompletionAddr == where) {
+       ret = allRunningRPCs_[i];
+       break;
+    }
+  }
+  return ret;
+}
+
 bool rpcMgr::decodeEventIfDueToIRPC(EventRecord &ev)
 {
     dyn_lwp *lwp_of_trap  = ev.lwp;
@@ -371,13 +395,17 @@ bool rpcMgr::handleRPCEvent(EventRecord &ev)
   if (ev.type != evtRPCSignal) return false;
 
   bool runProcess = false;
-  int rpc_index = (int) ev.what;
-  inferiorRPCinProgress *currRPC = allRunningRPCs_[rpc_index];
-  rpcThr *rpcThr = currRPC->rpcthr;
-  rpcLWP *rpcLwp = currRPC->rpclwp;
+  inferiorRPCinProgress *currRPC = NULL;
+  rpcThr *rpcThr = NULL;
+  rpcLWP *rpcLwp = NULL;
 
   if (ev.status == statusRPCAtReturn) {
+    currRPC = findRunningRPCWithResultAddress(ev.address);
+    assert(currRPC);
     assert(ev.address == currRPC->rpcResultAddr); 
+    rpcThr = currRPC->rpcthr;
+    rpcLwp = currRPC->rpclwp;
+
     runProcess = true;
     if (rpcThr) 
        rpcThr->getReturnValueIRPC();
@@ -385,7 +413,11 @@ bool rpcMgr::handleRPCEvent(EventRecord &ev)
        rpcLwp->getReturnValueIRPC();
   }
   else if (ev.status == statusRPCDone) {
+    currRPC = findRunningRPCWithCompletionAddress(ev.address);
+    assert(currRPC);
     assert(ev.address == currRPC->rpcCompletionAddr); 
+    rpcThr = currRPC->rpcthr;
+    rpcLwp = currRPC->rpclwp;
     if(rpcThr) 
        runProcess = rpcThr->handleCompletedIRPC();
     else 
@@ -403,6 +435,7 @@ bool rpcMgr::handleRPCEvent(EventRecord &ev)
           dyn_thread *dthr = rpcThr->get_thr();
           dthr->get_lwp()->continueLWP();
         }  else {
+          assert(rpcLwp);
           rpcLwp->get_lwp()->continueLWP();
         }
      }

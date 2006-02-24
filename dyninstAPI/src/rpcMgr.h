@@ -327,6 +327,14 @@ class rpcMgr {
    // The big function: launch RPCs everywhere possible
    bool launchRPCs(bool wasRunning);
 
+   // Search allRunningRPCs_ for a RPC with specified result address
+   // Returns pointer to RPC, or NULL if not found;
+   inferiorRPCinProgress *findRunningRPCWithResultAddress(Address where);
+
+   // Search allRunningRPCs_ for a RPC with specified completion address
+   // Returns pointer to RPC, or NULL if not found;
+   inferiorRPCinProgress *findRunningRPCWithCompletionAddress(Address where);
+
    bool decodeEventIfDueToIRPC(EventRecord &ev);
    bool handleRPCEvent(EventRecord &ev);
 
