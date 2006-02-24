@@ -132,6 +132,8 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
   newp.fd = -1;
   process_fds.push_back(newp);
 
+  return true;
+
   //  get mutatee to initiate connection
 
   //  find the runtime library module

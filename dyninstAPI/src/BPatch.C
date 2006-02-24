@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.119 2006/02/24 19:59:30 bernat Exp $
+// $Id: BPatch.C,v 1.120 2006/02/24 21:47:58 mjbrim Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -889,6 +889,11 @@ void BPatch::registerForkedProcess(process *parentProc, process *childProc)
     if (!getAsync()->mutateeDetach(child)) {
         bperr("%s[%d]:  asyncEventHandler->mutateeDetach failed\n", __FILE__, __LINE__);
     }
+    if (!getAsync()->connectToProcess(child)) {
+        bperr("%s[%d]:  asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
+    }
+    else 
+        asyncActive = true;
 #endif
     forkexec_printf("Successfully connected socket to child\n");
     
@@ -1219,6 +1224,16 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
     //functionality.
     ret->llproc->collectSaveWorldData = false;
     ret->updateThreadInfo();
+
+#if defined(cap_async_events)
+    async_printf("%s[%d]:  about to connect to process\n", FILE__, __LINE__);
+    if (!getAsync()->connectToProcess(ret)) {
+       bpfatal("%s[%d]: asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
+       fprintf(stderr,"%s[%d]: asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
+       return NULL;
+    }
+    asyncActive = true;
+#endif
     
 
     return ret;
@@ -1268,6 +1283,13 @@ BPatch_process *BPatch::processAttachInt(const char *path, int pid)
       delete ret;
       return NULL;
    }
+#if defined(cap_async_events)
+   if (!getAsync()->connectToProcess(ret)) {
+      bperr("%s[%d]:  asyncEventHandler->connectToProcess failed\n", __FILE__, __LINE__);
+      return NULL;
+   } 
+   asyncActive = true;
+#endif
     //ccw 31 jan 2003 : this forces the user to call
     //BPatch_thread::enableDumpPatchedImage() if they want to use the save the world
     //functionality.
