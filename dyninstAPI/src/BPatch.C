@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.117 2006/02/23 00:14:04 legendre Exp $
+// $Id: BPatch.C,v 1.118 2006/02/24 03:49:05 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1853,7 +1853,8 @@ bool BPatch::removeUserEventCallbackInt(BPatchUserEventCallback cb)
 
 
 
-void BPatch::continueIfExists(int pid) {
+void BPatch::continueIfExists(int pid) 
+{
     BPatch_process *proc = getProcessByPid(pid);
-    if (proc) proc->continueExecution();
+    if (proc) proc->continueExecutionInt();
 }
