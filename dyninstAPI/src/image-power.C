@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-power.C,v 1.6 2006/01/20 00:12:22 nater Exp $
+// $Id: image-power.C,v 1.7 2006/02/24 19:59:33 bernat Exp $
 
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
@@ -144,8 +144,7 @@ bool image_func::archIsIndirectTailCall(InstrucIter &ah)
 
 bool image_func::archIsAbortOrInvalid(InstrucIter &ah)
 {
-    // FIXME todo!
-    return false;
+    return ah.isAnAbortInstruction();
 }
 
 // not implemented on power
