@@ -1406,6 +1406,12 @@ bool InstrucIter::isALeaveInstruction()
    return false;
 }
 
+bool InstrucIter::isAnAbortInstruction()
+{
+    return !insn.valid();
+}
+
+
 bool InstrucIter::isAnAllocInstruction()
 {
    return false;
