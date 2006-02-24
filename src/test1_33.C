@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_33.C,v 1.2 2005/11/22 19:41:50 bpellin Exp $
+// $Id: test1_33.C,v 1.3 2006/02/24 03:10:45 bpellin Exp $
 /*
  * #Name: test1_33 
  * #Desc: Control Flow Graphs
@@ -287,7 +287,8 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
      */
     bpfv.clear();
     char *fn2 = "func33_3";
-    if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
+    // Bernat, 8JUN05 -- include uninstrumentable here...
+    if (NULL == appImage->findFunction(fn2, bpfv, false, false, true) || !bpfv.size()
 	|| NULL == bpfv[0]){
       fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
       fprintf(stderr, "    Unable to find function %s\n", fn2);
