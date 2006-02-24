@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.9 2006/02/21 02:36:36 bpellin Exp $
+// $Id: test_driver.C,v 1.10 2006/02/24 05:05:18 bpellin Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -336,7 +336,7 @@ void setupGeneralTest(BPatch *bpatch)
    // Set Test Library flags
    setBPatch(bpatch);
    setDebugPrint(debugPrint);
-   
+
    // Register a callback function that prints any error messages
    bpatch->registerErrorCallback(errorFunc);
 
@@ -354,6 +354,16 @@ void setupGeneralTest(BPatch *bpatch)
    if (mergeTramp)
      bpatch->setMergeTramp(true);
 
+}
+
+void setupFortran(BPatch_thread *appThread)
+{
+   BPatch_image *appImage = appThread->getImage();
+
+   if ( isMutateeFortran(appImage) )
+   {
+      setMutateeFortran(true);
+   }
 }
 
 int executeTest(BPatch *bpatch, test_data_t &test, char *mutatee, create_mode_t attachMode, ParameterDict &param)
@@ -402,6 +412,8 @@ int executeTest(BPatch *bpatch, test_data_t &test, char *mutatee, create_mode_t 
         return -1;
       }
    }
+
+   setupFortran(appThread);
 
    // Set up Test Specific parameters
    param["pathname"]->setString(mutatee);
