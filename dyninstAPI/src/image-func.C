@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.20 2006/02/22 20:04:08 nater Exp $
+// $Id: image-func.C,v 1.21 2006/02/24 05:57:57 nater Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -423,39 +423,12 @@ void image_basicBlock::split(image_basicBlock * &newBlk)
     
     addEdge(this,newBlk,ET_FALLTHROUGH);
 
-    // Note: if this block contains a call or return, then the block
-    // that is splitting it will take those instructions (since they
-    // must have ended the block currently). This has an effect if
-    // the new block's container function (it must only have one) does
-    // not contain this block; if so, the new block's container function will
-    // need a copy of the instPoints for calls and returns.
-    existing = newBlk->getFirstFunc();
-    if(existing && !containedIn(newBlk->getFirstFunc()))
-    {
-        if(containsCall_ && (tmpInstPt = getCallInstPoint()) != NULL)
-        {      
-            cpyInstPt = new image_instPoint(tmpInstPt->offset(),
-                                    tmpInstPt->insn(),
-                                    existing,
-                                    tmpInstPt->callTarget(),
-                                    tmpInstPt->isDynamicCall());
-            existing->addCallInstPoint(cpyInstPt);
-        }
-        if(containsRet_ && (tmpInstPt = getRetInstPoint()) != NULL)
-        {
-            cpyInstPt = new image_instPoint(tmpInstPt->offset(),
-                                    tmpInstPt->insn(),
-                                    existing,
-                                    tmpInstPt->getPointType());
-            existing->addExitInstPoint(cpyInstPt);
-        }
-    }
-
     // If the block that was split was owned by other functions, those
     // functions need to have newBlk added to their blocklists.
     //
     // Because of the way that pre-parsed code is handled, only functions
     // that have already been parsed need this information.
+    existing = newBlk->getFirstFunc();
     for(unsigned int i=0;i<funcs_.size();i++)
     {
         if(funcs_[i] != existing && funcs_[i]->parsed())
@@ -577,8 +550,8 @@ bool image_func::addBasicBlock(Address newAddr,
     {
         splitBlk = dynamic_cast<image_basicBlock *>(tmpRange);
 
-        parsing_printf(" - addBB: found split block at 0x%lx (newAddr: 0x%lx)\n",
-            splitBlk->firstInsnOffset_,newAddr);
+        parsing_printf("[%s:%u] block at 0x%lx split at 0x%lx\n", FILE__,
+            __LINE__,splitBlk->firstInsnOffset_,newAddr);
         if(splitBlk->firstInsnOffset_ == newAddr)
         {
             // not a split, but a re-use
@@ -588,7 +561,8 @@ bool image_func::addBasicBlock(Address newAddr,
             {
                 newBlk->addFunc(this);
                 worklist.push_back(newAddr);
-                parsing_printf("1 adding block %d (0x%lx) to worklist\n",newBlk->id(),newBlk->firstInsnOffset_);
+                parsing_printf("[%s:%u] adding block %d (0x%lx) to worklist\n",
+                    FILE__,__LINE__,newBlk->id(),newBlk->firstInsnOffset_);
             }
         }
         else
@@ -600,13 +574,15 @@ bool image_func::addBasicBlock(Address newAddr,
             if(!leaders.contains(splitBlk->firstInsnOffset_))
             {
                 worklist.push_back(newAddr);
-                parsing_printf("2 adding block %d (0x%lx) to worklist\n",newBlk->id(),newBlk->firstInsnOffset_);
+                parsing_printf("[%s:%u] adding block %d (0x%lx) to worklist\n",
+                    FILE__,__LINE__,newBlk->id(),newBlk->firstInsnOffset_);
             }
             else if(!leaders.contains(newBlk->firstInsnOffset_))
             {
                 // This is a new (to this function) block that will not be
                 // parsed, and so much be added to the blocklist here.
-                parsing_printf("xxx adding block %d (0x%lx) to blocklist (in addBB\n",newBlk->id(),newBlk->firstInsnOffset_);
+                parsing_printf("[%s:%u] adding block %d (0x%lx) to blocklist\n",
+                    FILE__,__LINE__,newBlk->id(),newBlk->firstInsnOffset_);
                 blockList.push_back(newBlk);
                 parserVisited.insert(newBlk);
             }
@@ -624,7 +600,8 @@ bool image_func::addBasicBlock(Address newAddr,
         image_->basicBlocksByRange.insert(newBlk);
         assert(image_->basicBlocksByRange.find(newAddr, tmpRange));
         worklist.push_back(newAddr);
-                parsing_printf("3 adding block %d (0x%lx) to worklist\n",newBlk->id(),newBlk->firstInsnOffset_);
+        parsing_printf("[%s:%u] adding block %d (0x%lx) to worklist\n",
+            FILE__,__LINE__,newBlk->id(),newBlk->firstInsnOffset_);
     }
 
     // Determine whether we are confident about this new block. A
@@ -945,6 +922,11 @@ bool image_func::cleanBlockList() {
 
         blockList[foo]->finalize();
     }
+
+    // sort inst points for future convenience
+    VECTOR_SORT( funcReturns, image_instPoint::compare);
+    VECTOR_SORT( calls, image_instPoint::compare);
+    VECTOR_SORT( funcEntries_, image_instPoint::compare);
 
     funcEntries_.reserve_exact(funcEntries_.size());
     funcReturns.reserve_exact(funcReturns.size());
