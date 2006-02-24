@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.21 2006/02/24 05:57:57 nater Exp $
+// $Id: image-func.C,v 1.22 2006/02/24 19:59:32 bernat Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -778,8 +778,6 @@ bool image_func::cleanBlockList() {
 #endif
 
    //sorted_ips_vector expects funcReturns and calls to be sorted
-    VECTOR_SORT( funcReturns, image_instPoint::compare);
-    VECTOR_SORT( calls, image_instPoint::compare);
 
     //check if basic blocks need to be split   
     VECTOR_SORT( blockList, image_basicBlock::compare );
@@ -923,11 +921,10 @@ bool image_func::cleanBlockList() {
         blockList[foo]->finalize();
     }
 
-    // sort inst points for future convenience
+    VECTOR_SORT( funcEntries_, image_instPoint::compare);
     VECTOR_SORT( funcReturns, image_instPoint::compare);
     VECTOR_SORT( calls, image_instPoint::compare);
-    VECTOR_SORT( funcEntries_, image_instPoint::compare);
-
+    
     funcEntries_.reserve_exact(funcEntries_.size());
     funcReturns.reserve_exact(funcReturns.size());
     calls.reserve_exact(calls.size());
