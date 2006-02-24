@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.22 2006/02/22 21:52:38 bernat Exp $
+ * $Id: RTposix.c,v 1.23 2006/02/24 19:59:35 bernat Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -133,8 +133,12 @@ int DYNINSTasyncConnect(int pid)
 
   if (async_socket != -1)
   {
-     fprintf(stderr, "[%s:%u] - DYNINSTasyncConnect already initialized\n",
+      /*
+        Not illegal - we lazy-connect
+        fprintf(stderr, "[%s:%u] - DYNINSTasyncConnect already initialized\n",
              __FILE__, __LINE__);
+      */
+
      return 0;
   }
   euid = geteuid();
@@ -181,15 +185,21 @@ int DYNINSTasyncConnect(int pid)
 
 int DYNINSTasyncDisconnect()
 {
-  if (needToDisconnect)
-   close (async_socket);
-  async_socket = -1;
-  return 0;
+    if (needToDisconnect) {
+        close (async_socket);
+        needToDisconnect = 0;
+    }
+    async_socket = -1;
+    return 0;
 }
 
 int DYNINSTwriteEvent(void *ev, size_t sz)
 {
   int res;
+
+  /* Connect if not already connected */
+  DYNINSTasyncConnect(DYNINST_mutatorPid);
+
 try_again:
   res = write(async_socket, ev, sz); 
   if (-1 == res) {
