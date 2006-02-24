@@ -8,7 +8,7 @@
 
 extern string pdscrdir;
 
-int timeout = 120;
+int timeout = 250;
 
 void generateTestString(bool resume, bool useLog, string& logfile,
       int testLimit, vector<char *>& child_argv, string& shellString)
