@@ -3862,6 +3862,7 @@ bool hasBackEdge(BPatch_basicBlock *bb, BPatch_Set<int> visited)
 
 void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 {
+    int pvalue;
     unsigned int i;
 
     if (mutateeFortran) {
@@ -4087,6 +4088,7 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
     if (blocks3.size() < 10) {
 	fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
 	fprintf(stderr, "  Detected %d basic blocks in func33_3, should be at least ten.\n", blocks3.size());
+        passedTest[33] = false;
 	return;
     }
 
@@ -4159,6 +4161,17 @@ void mutatorTest33( BPatch_thread * /*appThread*/, BPatch_image * appImage )
           return;
        }
     }
+
+    BPatch_variableExpr *expr33_1 = 
+    appImage->findVariable("globalVariable33_1");
+    if (expr33_1 == NULL) {
+          fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+          fprintf(stderr, "    Unable to locate globalVariable33_1\n");
+          exit(1);
+    } 
+
+    pvalue = 1;
+    expr33_1->writeValue(&pvalue);
 
 
     delete [] block_elements;

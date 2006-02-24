@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.118 2005/08/08 20:23:36 gquinn Exp $ */
+/* $Id: test1.mutatee.c,v 1.119 2006/02/24 20:32:23 bpellin Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -228,6 +228,8 @@ int globalVariable32_1 = 0;
 int globalVariable32_2 = 0;
 int globalVariable32_3 = 0;
 int globalVariable32_4 = 0;
+
+int globalVariable33_1 = 0;
 
 int globalVariable36_1 = 0;
 int globalVariable36_2 = 0;
@@ -2215,8 +2217,13 @@ void func33_1()
 {
     /* The only possible failures occur in the mutator. */
 
-    passedTest[ 33 ] = TRUE;
-    printf( "Passed test #33 (control flow graphs)\n" );
+    passedTest[ 33 ] = globalVariable33_1;
+    if ( passedTest[33] ) {
+       printf( "Passed test #33 (control flow graphs)\n" );
+    } else {
+       printf( "Failed test #33 (control flow graphs)\n" );
+    }
+
 }
 
 /*
