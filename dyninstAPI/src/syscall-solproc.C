@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-solproc.C,v 1.11 2006/02/21 20:12:11 bernat Exp $
+// $Id: syscall-solproc.C,v 1.12 2006/02/24 19:59:34 bernat Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -103,63 +103,44 @@ bool syscallNotification::installPreFork() {
 /////////// Postfork instrumentation
 
 bool syscallNotification::installPostFork() {
-    // AIX 5.1 can't properly stop a child using /proc directives.
-    // Instead, we use instrumentation. We decide this at run-time... so
-    // let's figure out if we're on <= 5.1 or > 5.1
-    bool bugged_fork_stop = false;
 #if defined(os_aix)
-    FILE *oslevel = popen("/usr/bin/oslevel", "r");
-    if (oslevel == NULL) {
-        perror("popen(oslevel) - fork/pipe");
-    }
-    else if (oslevel == (FILE *)-1) {
-        perror("popen(oslevel) - wait4");
-    }
-    else {
-        // Now parse. We're looking at the following:
-        // <major>.<minor>.<stuff>.<stuff>
-        int major = 0;
-        int minor = 0;
-        int unknown1;
-        int unknown2;
-        int size = fscanf(oslevel, "%d.%d.%d.%d",
-                          &major, &minor, &unknown1, &unknown2);
-        if (size > 2) {
-            if ((major <= 5) &&
-                (minor < 2)) {
-                bugged_fork_stop = true;
-                fprintf(stderr, "Detected AIX 5.1 system: %d, %d\n", major, minor);
-            }
-        }
-        else {
-            // Odd... what do we do?
-        }
-        pclose(oslevel);
-    }
-#endif
+    /* Block-comment
+       
+    On AIX, for reasons which are unclear, we cannot count on the OS
+    to copy the address space of the parent to the child on fork. In
+    particular, library text and the a.out text are _not_
+    copied. Areas allocated with mmap (data areas, effectively) are.
+
+    Also, if we tell the process to stop (via /proc) on the exit of
+    fork, we see one of two cases: either the child does not stop (AIX
+    5.1), or the child stops in an unmodifiable state (AIX
+    5.2). Neither is acceptable.
+
+    Our solution is to use instrumentation at the exit of
+    fork(). However, this is complicated by the non-copy behavior of
+    AIX. Our solution is relocation; we ensure that the fork() that is
+    executed is located in a data area. As a result, it is copied to
+    the child, and the child picks up executing there.
+    */
 
 
-    if (bugged_fork_stop) {
-        AstNode *returnVal = new AstNode(AstNode::ReturnVal, (void *)0);
-        postForkInst = new instMapping(FORK_FUNC, "DYNINST_instForkExit",
-                                       FUNC_EXIT|FUNC_ARG,
-                                       returnVal);
-        postForkInst->dontUseTrampGuard();
-        removeAst(returnVal);
-        
-        pdvector<instMapping *> instReqs;
-        instReqs.push_back(postForkInst);
-        
-        proc->installInstrRequests(instReqs);
-        
-        // Check to see if we put anything in the proggie
-        if (postForkInst->miniTramps.size() == 0)
-            return false;
-        return true;
-    }
-
-    // else....
-
+    AstNode *returnVal = new AstNode(AstNode::ReturnVal, (void *)0);
+    postForkInst = new instMapping(FORK_FUNC, "DYNINST_instForkExit",
+                                   FUNC_EXIT|FUNC_ARG,
+                                   returnVal);
+    postForkInst->dontUseTrampGuard();
+    removeAst(returnVal);
+    
+    pdvector<instMapping *> instReqs;
+    instReqs.push_back(postForkInst);
+    
+    proc->installInstrRequests(instReqs);
+    
+    // Check to see if we put anything in the proggie
+    if (postForkInst->miniTramps.size() == 0)
+        return false;
+    return true;
+#else
     // Get existing flags, add post-fork, and set
     int proc_pid = proc->getPid();
     
@@ -181,7 +162,7 @@ bool syscallNotification::installPostFork() {
     // Make sure our removal code gets run
     postForkInst = SYSCALL_INSTALLED;
     return true;
-
+#endif
 }    
 
 /////////// Pre-exec instrumentation
