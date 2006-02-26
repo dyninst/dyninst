@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.10 2006/01/14 23:47:55 nater Exp $
+// $Id: reloc-func.C,v 1.11 2006/02/26 05:06:40 bernat Exp $
 
 // We'll also try to limit this to relocation-capable platforms
 // in the Makefile. Just in case, though....
@@ -53,6 +53,7 @@
 #include "instPoint.h"
 #include "multiTramp.h"
 #include "InstrucIter.h"
+#include "mapped_object.h"
 
 class int_basicBlock;
 class instruction;
@@ -100,8 +101,8 @@ bool int_function::relocationGenerate(pdvector<funcMod *> &mods,
         }
         else
         {
-            reloc_printf("Forcing dependant relocation of %s\n",
-                         needReloc[i]->prettyName().c_str());
+            reloc_printf("Forcing dependant relocation of %p\n",
+                         needReloc[i]);
             // always version 0?
             ret &= needReloc[i]->relocationGenerateInt(
                                             needReloc[i]->enlargeMods(),
@@ -137,9 +138,11 @@ bool int_function::relocationGenerateInt(pdvector<funcMod *> &mods,
 
     generatedVersion_++;
 
+
     reloc_printf("Relocating function %s, version %d, 0x%lx, size: 0x%lx\n",
                  symTabName().c_str(), sourceVersion,
                  getAddress(), getSize_NP());
+
     // Make sure the blocklist is created.
     blocks(); 
 
@@ -391,7 +394,7 @@ bool int_function::expandForInstrumentation() {
         // If there isn't, then we don't care.
         multiTramp *multi = proc()->findMultiTramp(bblI->firstInsnAddr());
         if (!multi) continue;
-        if (bblI->getSize() < (unsigned) multi->sizeDesired()) {
+        if (bblI->getSize() < multi->sizeDesired()) {
             reloc_printf("Enlarging basic block %d\n",
                          i);
             pdvector<instruction *> whocares;
@@ -414,42 +417,6 @@ bool int_function::expandForInstrumentation() {
     }
     return true;
 }
-
-#if 0
-bool foo() {
-    // Left here for reference: we install and link as part of the 
-    // instrumentation process, which allows us to tag along on the
-    // stackwalk-based check. 
-
-    if (mods.size() == 0)
-        return true;
-
-    reloc_printf("Calling relocateAndReplace, version to use %d\n",
-                 0);
-    
-    // We work off version 0 for simplicity...
-    if (!relocationGenerate(mods, 0)) {
-        fprintf(stderr, "Failed relocationGenerate, ret false\n");
-        return false;
-    }
-
-    if (!relocationInstall()) {
-        fprintf(stderr, "Failed relocationInstall, ret false\n");
-        return false;
-    }
-    // CHECK THE STACK!!!
-    pdvector<codeRange *> overwritten_objs;
-    if (!relocationLink(0, overwritten_objs)) {
-        fprintf(stderr, "Failed relocationLink, ret false\n");
-        return false;
-    }
-    
-    // We still need to do something about the overwritten_objs
-    // list...
-
-    return true;
-}
-#endif
 
 // Return the absolute maximum size required to relocate this
 // block somewhere else. If this looks very familiar, well, 
@@ -648,8 +615,8 @@ unsigned functionReplacement::get_size_cr() const {
 // Dig down to the low-level block of b, find the low-level functions
 // that share it, and map up to int-level functions and add them
 // to the funcs list.
-void recordSharingFuncs(int_function * f, pdvector< int_function *> & funcs,
-                        int_basicBlock * b)
+void int_function::getSharingFuncs(int_basicBlock *b,
+                                   pdvector< int_function *> & funcs)
 {
     if(!b->hasSharedBase())
         return;
@@ -657,17 +624,23 @@ void recordSharingFuncs(int_function * f, pdvector< int_function *> & funcs,
     pdvector<image_func *> lfuncs;
 
     b->llb()->getFuncs(lfuncs);
-    for(unsigned i=0;i<lfuncs.size();i++)
-    {
-        pdvector<int_function *> *hltmp;
-        hltmp = (pdvector<int_function *> *)lfuncs[i]->getHighLevelFuncs();
-        
-        for(unsigned j=0;j<hltmp->size();j++)
-        {
-            if((*hltmp)[j] == f)
-                continue;
-            funcs.push_back((*hltmp)[j]);
+    for(unsigned i=0;i<lfuncs.size();i++) {
+        image_func *ll_func = lfuncs[i];
+        int_function *hl_func = obj()->findFunction(ll_func);
+        assert(hl_func);
+
+        if (hl_func == this) continue;
+
+        // Let's see if we've already got it...
+        bool found = false;
+        for (unsigned j = 0; j < funcs.size(); j++) {
+            if (funcs[j] == hl_func) {
+                found = true;
+                break;
+            }
         }
+        if (!found)
+            funcs.push_back(hl_func);
     }
 }
 
@@ -704,12 +677,11 @@ bool functionReplacement::generateFuncRep(pdvector<int_function *> &needReloc)
     // must be relocated before the jump can be written.
     //
 
-    if(sourceBlock_->hasSharedBase())
+    if(sourceBlock_->hasSharedBase() && 0)
     {
         // if this entry block is shared...
-        recordSharingFuncs(sourceBlock_->func(),
-                           needReloc,
-                           sourceBlock_);
+        sourceBlock_->func()->getSharingFuncs(sourceBlock_,
+                                              needReloc);
     }
 
     if (jumpToRelocated.used() > sourceInst->getSize()) {
@@ -733,9 +705,8 @@ bool functionReplacement::generateFuncRep(pdvector<int_function *> &needReloc)
                 if (curInst->block()->hasSharedBase())
                 {
                     // add functions to needReloc list
-                    recordSharingFuncs(sourceBlock_->func(),
-                                       needReloc,
-                                       curInst->block());
+                    sourceBlock_->func()->getSharingFuncs(curInst->block(),
+                                                          needReloc);
                 } 
                 // Otherwise keep going
                 // Inefficient...
@@ -821,9 +792,14 @@ bool enlargeBlock::modifyBBL(int_basicBlock *block,
                              unsigned &size)
 {
     if (block == targetBlock_) {
+        if (targetSize_ == (unsigned) -1) {
+            return true;
+        }
+
         if (size < targetSize_) {
             size = targetSize_;
         }
+
         return true;
     }
     return false;
@@ -833,6 +809,10 @@ bool enlargeBlock::update(int_basicBlock *block,
                           pdvector<instruction *> &,
                           unsigned size) {
     if (block == targetBlock_) {
+        if (size == (unsigned) -1) {
+            // Nothing we can do about it, we're just fudging...
+            return true;
+        }
         targetSize_ = (targetSize_ > size) ? targetSize_ : size;
         return true;
     }
