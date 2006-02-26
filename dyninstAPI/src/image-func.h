@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.11 2006/02/07 18:27:12 nater Exp $
+// $Id: image-func.h,v 1.12 2006/02/26 05:06:36 bernat Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -446,9 +446,6 @@ class image_func : public codeRange {
 
    bool containsSharedBlocks() const { return containsSharedBlocks_; }
 
-   void * getHighLevelFuncs() const;
-   void setHighLevelFuncs(void *);
-
    image_basicBlock * entryBlock() const { return entryBlock_; }
 
    bool parsed() { return parsed_; }
@@ -519,8 +516,6 @@ class image_func : public codeRange {
 
    // the vector "calls" should not be accessed until this is true.
    bool o7_live;
-
-   void * highlevel_funcs;
 
    // Functions only have one entry basic block
    image_basicBlock *entryBlock_;

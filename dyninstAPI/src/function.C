@@ -111,23 +111,11 @@ int_function::int_function(image_func *f,
     // we need it.
 
 #if defined(arch_ia64)
-	for( unsigned i = 0; i < f->allocs.size(); i++ ) {
-		allocs.push_back( baseAddr + f->allocs[i] );
-		}        
+    for( unsigned i = 0; i < f->allocs.size(); i++ ) {
+        allocs.push_back( baseAddr + f->allocs[i] );
+    }        
 #endif
 
-    // Allow the image_function to store an up-reference to us
-    pdvector< int_function * > *funcs;
-    if((funcs = (pdvector< int_function * >*)ifunc_->getHighLevelFuncs()))
-    {
-        funcs->push_back(this);
-    }
-    else
-    {
-        funcs = new pdvector< int_function * >;
-        funcs->push_back(this);
-        ifunc_->setHighLevelFuncs(funcs);
-    }
 }
 
 
@@ -208,23 +196,9 @@ int_function::int_function(const int_function *parFunc,
     /* ASTs are reference-counted, so assignAst() will prevent fPC from
        vanishing even if f does. */
 	if( framePointerCalculator == NULL && parFunc->framePointerCalculator != NULL ) {
-		framePointerCalculator = assignAst( parFunc->framePointerCalculator );
-		}
+            framePointerCalculator = assignAst( parFunc->framePointerCalculator );
+        }
 #endif
-
-    // Allow the image_function to store an up-reference to us
-    pdvector< int_function * > *f;
-    if((f = (pdvector< int_function * >*)ifunc_->getHighLevelFuncs()))
-    {
-        f->push_back(this);
-    }
-    else
-    {
-        f = new pdvector< int_function * >;
-        f->push_back(this);
-        ifunc_->setHighLevelFuncs(f);
-    }
-
      // TODO: relocated functions
 }
 
@@ -384,7 +358,7 @@ int_basicBlock *int_function::findBlockByAddr(Address addr) {
 
 
 const pdvector<int_basicBlock *> &int_function::blocks() {
-    parsing_printf("blocks() for %s\n", symTabName().c_str());
+    parsing_printf("blocks() for %s, pointer %p\n", symTabName().c_str(), ifunc_);
     if (blockList.size() == 0) {
         Address base = getAddress() - ifunc_->getOffset();
         // TODO: create flowgraph pointer...

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.23 2006/02/01 18:24:02 nater Exp $
+// $Id: function.h,v 1.24 2006/02/26 05:06:34 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -439,6 +439,8 @@ class int_function {
    bool canBeRelocated() const { return ifunc_->canBeRelocated(); }
    bool needsRelocation() const { return ifunc_->needsRelocation(); }
    int version() const { return version_; }
+   void getSharingFuncs(int_basicBlock *b,
+                        pdvector<int_function *> &funcs);
 
    ////////////////////////////////////////////////
    // Misc

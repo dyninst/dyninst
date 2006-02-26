@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.22 2006/02/24 19:59:32 bernat Exp $
+// $Id: image-func.C,v 1.23 2006/02/26 05:06:35 bernat Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -136,7 +136,6 @@ image_func::image_func(const pdstring &symbol,
   needsRelocation_(false),
   originalCode(NULL),
   o7_live(false),
-  highlevel_funcs(NULL),
   bl_is_sorted(false)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
@@ -1176,13 +1175,6 @@ void image_basicBlock::finalize() {
     sources_.reserve_exact(sources_.size());
 }
 
-void * image_func::getHighLevelFuncs() const {
-    return highlevel_funcs;
-}
-
-void image_func::setHighLevelFuncs(void * fs) {
-    highlevel_funcs = fs;
-}
 
 bool image_basicBlock::isEntryBlock(image_func * f) const
 {
