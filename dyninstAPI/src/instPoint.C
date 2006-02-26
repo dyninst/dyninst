@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.13 2006/02/01 02:06:22 jodom Exp $
+// $Id: instPoint.C,v 1.14 2006/02/26 05:06:37 bernat Exp $
 // instPoint code
 
 
@@ -962,7 +962,6 @@ bool instPointInstance::installInst() {
     // the original relocation may force others; install them too
     for(unsigned i=0; i < force_reloc.size(); i++)
     {
-        fprintf(stderr, "************* forcing relocation\n");
         force_reloc[i]->relocationInstall();
     }
 #endif
