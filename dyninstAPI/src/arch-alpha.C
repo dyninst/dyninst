@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-alpha.C,v 1.7 2005/11/23 00:09:13 jaw Exp $
+// $Id: arch-alpha.C,v 1.8 2006/02/26 05:06:24 bernat Exp $
 
 #include "common/h/headers.h"
 #include "alpha.h"
@@ -187,15 +187,15 @@ void instruction::generateBranch(codeGen &gen, Address from, Address to) {
     generateBranch(gen, displacement);
 }
 
-int instruction::jumpSize(Address from, Address to) {
+unsigned instruction::jumpSize(Address from, Address to) {
     int disp = (to - from);
     return jumpSize(disp);
 }
 
-int instruction::jumpSize(int disp) {
+unsigned instruction::jumpSize(int disp) {
     if (ABS(disp >> 2) > MAX_BRANCH) {
         fprintf(stderr, "Warning: Alpha doesn't handle multi-word jumps!\n");
-        return -1;
+        return (unsigned) -1;
     }
     return instruction::size();
 }

@@ -577,8 +577,8 @@ class instruction {
                   Address targetOverride = 0);
     
     // And tell us how much space we'll need...
-    static int jumpSize(Address from, Address to);
-    static int jumpSize(int disp);
+    static unsigned jumpSize(Address from, Address to);
+    static unsigned jumpSize(int disp);
     static unsigned maxJumpSize();
 
     static unsigned maxInterFunctionJumpSize();

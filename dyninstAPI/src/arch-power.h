@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.31 2005/10/17 18:19:43 rutar Exp $
+// $Id: arch-power.h,v 1.32 2006/02/26 05:06:28 bernat Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
@@ -641,8 +641,8 @@ class instruction {
 
     // And tell us how much space we'll need...
     // Returns -1 if we can't do a branch due to architecture limitations
-    static int jumpSize(Address from, Address to);
-    static int jumpSize(int disp);
+    static unsigned jumpSize(Address from, Address to);
+    static unsigned jumpSize(int disp);
     static unsigned maxJumpSize();
 
     static unsigned maxInterFunctionJumpSize();

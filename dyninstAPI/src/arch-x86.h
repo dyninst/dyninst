@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.41 2006/02/16 20:42:24 bernat Exp $
+// $Id: arch-x86.h,v 1.42 2006/02/26 05:06:32 bernat Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -737,8 +737,8 @@ class instruction {
   static unsigned maxInterFunctionJumpSize() { return maxJumpSize(); }
 
   // And tell us how much space we'll need...
-  static int jumpSize(Address from, Address to);
-  static int jumpSize(int disp);
+  static unsigned jumpSize(Address from, Address to);
+  static unsigned jumpSize(int disp);
   static unsigned maxJumpSize();
 
 

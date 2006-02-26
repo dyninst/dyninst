@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.5 2005/09/28 17:02:51 bernat Exp $
+ * $Id: arch-power.C,v 1.6 2006/02/26 05:06:27 bernat Exp $
  */
 
 #include "common/h/Types.h"
@@ -134,7 +134,7 @@ void instruction::generateInterFunctionBranch(codeGen &gen,
 
     instruction insn;
 
-    (*insn).raw = 0;                    //mtspr:  mtlr scratchReg
+    (*insn).raw = 0;                    //mtspr:  mtctr scratchReg
     (*insn).xform.op = 31;
     (*insn).xform.rt = 0;
     (*insn).xform.ra = SPR_CTR & 0x1f;
@@ -389,15 +389,15 @@ bool instruction::isCondBranch() const {
     return isInsnType(Bmask, BCmatch);
 }
 
-int instruction::jumpSize(Address from, Address to) {
+unsigned instruction::jumpSize(Address from, Address to) {
     int disp = (to - from);
     return jumpSize(disp);
 }
 
-// -2: can't do it, don't bother...
-int instruction::jumpSize(int disp) {
+// -1 is infinite, don't ya know.
+unsigned instruction::jumpSize(int disp) {
     if (ABS(disp) >= MAX_BRANCH) {
-        return -2;
+        return (unsigned) -1;
     }
     return instruction::size();
 }
@@ -410,6 +410,10 @@ unsigned instruction::maxJumpSize() {
 
 unsigned instruction::maxInterFunctionJumpSize() {
     // 4...
+    // move <high>, r0
+    // move <low>, r0
+    // move r0 -> ctr
+    // branch to ctr
     return 4*instruction::size();
 }
 
