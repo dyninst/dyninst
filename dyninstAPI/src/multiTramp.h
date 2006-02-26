@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.h,v 1.12 2005/12/14 22:44:16 bernat Exp $
+// $Id: multiTramp.h,v 1.13 2006/02/26 05:06:39 bernat Exp $
 
 #if !defined(MULTI_TRAMP_H)
 #define MULTI_TRAMP_H
@@ -504,8 +504,8 @@ class multiTramp : public generatedCodeObject {
   // The most that we can need to get to a multitramp...
   unsigned maxSizeRequired();
   // the space needed for a jump to this particular multitramp...
-  // -1: can't make it, so sorry.
-  int sizeDesired() const { return branchSize_; };
+  // (unsigned) -1: can't make it, so sorry.
+  unsigned sizeDesired() const { return branchSize_; };
   bool usesTrap() const { return usedTrap_; };
 
   bool hasChanged();
@@ -523,8 +523,8 @@ class multiTramp : public generatedCodeObject {
   Address trampAddr_;  // Where we are
   unsigned trampSize_; // Size of the generated multiTramp
   unsigned instSize_; // Size of the original instrumented area
-  int branchSize_; // Size of the branch instruction(s) used to get to
-                   // the multiTramp (in a perfect world). Also, -1
+  unsigned branchSize_; // Size of the branch instruction(s) used to get to
+                   // the multiTramp (in a perfect world). Also, MAXINT
                    // means that due to architecture limitations we
                    // can't put a branch in, and is a signal to either
                    // relocate or trap (or, likely, both).

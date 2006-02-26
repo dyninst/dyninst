@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.27 2006/02/21 20:12:09 bernat Exp $
+// $Id: multiTramp.C,v 1.28 2006/02/26 05:06:38 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -305,8 +305,10 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
                          size,
                          proc);
     relocatedInstruction *prev = NULL;
-    
-    while (insnIter.hasMore()) {
+
+    for (InstrucIter insnIter(startAddr, size, proc);
+         insnIter.hasMore(); 
+         insnIter++) {
         instruction *insn = insnIter.getInsnPtr();
         Address insnAddr = *insnIter;
 
@@ -342,7 +344,14 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
             }
         }
 #endif
-        insnIter++;
+
+#if defined(os_aix)
+        // AIX hackery
+        // TODO fix up the insnIter
+        if (insnAddr == (startAddr + size - instruction::size()))
+            break;
+#endif
+
     }   
 
     
@@ -1007,16 +1016,12 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
 bool multiTramp::installCode() {
     // We need to add a jump back and fix any conditional jump
     // instrumentation
-    if (branchSize_ == -2) {
-        return true;
-    }
 
     assert(generatedMultiT_.used() == trampSize_); // Nobody messed with things
     assert(generated_);
 
     // Try to branch to the tramp, but if we can't use a trap
-    if ((branchSize_ > (int)instSize_) ||
-        (branchSize_ == -1)) {
+    if (branchSize_ > instSize_) {
         // Crud. Go with traps.
         jumpBuf_.setIndex(0);
         generateTrapToTramp(jumpBuf_);
@@ -1122,8 +1127,6 @@ bool multiTramp::linkCode() {
 
 // And a wrapper for the above
 multiTramp::mtErrorCode_t multiTramp::linkMultiTramp() {
-    if (branchSize_ == -2)
-        return mtSuccess;
 
     // We can call generate, return an error, then call install anyway.
     if (!installed_) return mtError;
@@ -1139,8 +1142,6 @@ multiTramp::mtErrorCode_t multiTramp::linkMultiTramp() {
 }
 
 multiTramp::mtErrorCode_t multiTramp::installMultiTramp() {
-    if (branchSize_ == -2)
-        return mtSuccess;
 
     // We can call generate, return an error, then call install anyway.
     if (!generated_) return mtError;
@@ -1363,8 +1364,9 @@ multiTramp::mtErrorCode_t multiTramp::generateMultiTramp() {
         return mtError;
 
     // Relocation...
-    if (branchSize_ > (int) instSize_)
+    if (branchSize_ > instSize_)
         return mtTryRelocation;
+
     return mtSuccess;
 }
 
@@ -2133,22 +2135,19 @@ bool multiTramp::generateBranchToTramp(codeGen &gen)
     unsigned origUsed = gen.used();
 
     // TODO: we can use shorter branches, ya know.
-    int jumpSizeNeeded = instruction::jumpSize(instAddr_, trampAddr_);
-    if (jumpSizeNeeded < 0) {
-        // Try relocation...
-        branchSize_ = jumpSizeNeeded;
-        return false;
-    }
-    else if (instSize_ < (unsigned) jumpSizeNeeded) { // jumpSizeNeeded > 0...
+    unsigned jumpSizeNeeded = instruction::jumpSize(instAddr_, trampAddr_);
+
+    if (instSize_ <  jumpSizeNeeded) { // jumpSizeNeeded > 0...
         branchSize_ = jumpSizeNeeded;
         // Return value: do we continue making the tramp?
+        // Yes... we'll just use a trap later
         return true;
     }
 #if defined(arch_sparc)
     int dist = (trampAddr_ - instAddr_);
     if (!instruction::offsetWithinRangeOfBranchInsn(dist) &&
         func()->is_o7_live()) {
-        branchSize_ = -1;
+        branchSize_ = (unsigned) -1;
         return true;
     }
 #endif
