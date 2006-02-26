@@ -1372,7 +1372,7 @@ bool SignalHandler::handleForkExit(EventRecord &ev)
              // this is a new child, register it with dyninst
              // Note: we need to wait for the child process to be created.
 
-             sleep(5);
+             sleep(1);
 
              // For now, we sleep (apparently), but the better solution is to
              // loop waiting for the child to be created and then attach to it.
@@ -1484,16 +1484,6 @@ bool SignalHandler::handleSyscallExit(EventRecord &ev)
          fprintf(stderr, "%s[%d]:  unknown syscall\n", __FILE__, __LINE__);
          break;
     }
-
-#if defined(rs6000_ibm_aix4_1)
-    // When we handle a fork exit on AIX, we need to keep both parent and
-    // child stopped until we've seen the fork exit on both.  This is so
-    // we can copy the instrumentation from the parent to the child (if we
-    // don't keep the parent stopped, it may, for instance, exit before we
-    // can do this).  So, don't continue the process here - it will be
-    // continued at the appropriate time by handleForkExit.
-    if (((procSyscall_t)ev.what) != procSysFork)
-#endif
 
     return ret || wasHandled;
 }
