@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_info.h,v 1.6 2006/02/21 02:36:37 bpellin Exp $
+// $Id: test_info.h,v 1.7 2006/02/27 18:16:51 bpellin Exp $
 #ifndef TEST_INFO_H
 #define TEST_INFO_H
 
@@ -93,6 +93,10 @@ void initialize_mutatees()
    
 #ifdef gnu_fc
    test1_mutatee.push_back("test1.mutatee" xstr(gnu_fc));
+#endif
+
+#ifdef native_fc
+   test1_mutatee.push_back("test1.mutatee" xstr(native_fc));
 #endif
    
 #ifdef native_cc
