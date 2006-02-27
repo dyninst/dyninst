@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.51 2005/08/03 05:28:04 bernat Exp $
+ * $Id: Object.h,v 1.52 2006/02/27 23:15:24 bernat Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -91,6 +91,13 @@ class fileDescriptor {
          return !IsEqual(fd);
      }
      
+     // Not quite the same as above; is this the same on-disk file
+     bool isSameFile(const fileDescriptor &fd) const {
+         if ((file_ == fd.file_) &&
+             (member_ == fd.member_))
+             return true;
+         return false;
+     }
      
      const pdstring &file() const { return file_; }
      const pdstring &member() const { return member_; }
