@@ -1296,18 +1296,7 @@ bool SignalHandler::handleLwpExit(EventRecord &ev)
    if (proc->IndependentLwpControl())
       proc->set_lwp_status(ev.lwp, exited);
 
-   BPatch_process *bproc = BPatch::bpatch->getProcessByPid(proc->getPid());
-   BPatch_thread *bthrd = bproc->getThread(thr->get_tid());
-
-   pdvector<CallbackBase *> cbs;
-   getCBManager()->dispenseCallbacksMatching(evtThreadExit, cbs);
-   for (unsigned int i = 0; i < cbs.size(); ++i) {
-     AsyncThreadEventCallback &cb = * ((AsyncThreadEventCallback *) cbs[i]);
-     mailbox_printf("%s[%d]:  executing thread exit callback\n", FILE__, __LINE__);
-     BPatch_thread *bpthread = bproc->getThreadByIndex(bthrd->getBPatchID());
-     assert(bpthread);
-     cb(bproc, bpthread);
-   }
+   BPatch::bpatch->registerThreadExit(proc, thr->get_tid());
 
    flagBPatchStatusChange();
    return true;
@@ -1601,6 +1590,7 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
      case evtTimeout:
      case evtNullEvent:
      case evtThreadDetect:
+         proc->continueProc();
         ret = true;
         break;
      default:
