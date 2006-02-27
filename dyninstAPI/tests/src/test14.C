@@ -49,6 +49,10 @@
 BPatch bpatch;
 BPatch_process *proc;
 
+bool debug_flag = false;
+#define dprintf if (debug_flag) fprintf
+
+
 void instr_func(BPatch_function *func, BPatch_function *lvl1func)
 {
    BPatch_Vector<BPatch_point *> *points;
@@ -76,13 +80,17 @@ int main(int argc, char *argv[])
 	       fprintf(stderr, "ERROR: -mutatee flag requires an argument\n");
 	       exit(-1);
 	   }
+           child_prog = argv[i];
        }
-       child_prog = argv[i];
+       else if (strcmp(argv[i], "-verbose") == 0)
+           debug_flag = true;
+       else {
+           fprintf(stderr, "Usage: test13 [-verbose] [-attach]|[-mutatee <file>]\n");
+           exit(-1);
+       }
    }
-   if (strrchr(child_prog, '/'))
-       child_args[0] = strrchr(child_prog, '/') + 1;
-   else
-       child_args[0] = child_prog;
+
+   child_args[0] = child_prog;
 
    proc = bpatch.processCreate(child_prog, child_args);
    if (!proc)
