@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.81 2006/02/21 20:12:10 bernat Exp $
+// $Id: sol_proc.C,v 1.82 2006/02/27 23:15:30 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -1573,6 +1573,8 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
    }
 
    // copied from old code, must not care about events that don't stop proc
+   // Actually, this happens if we've requested a stop but didn't wait for it; the process
+   // is in a stopped state but we don't care why.
    if ( !(procstatus.pr_flags & PR_STOPPED || procstatus.pr_flags & PR_ISTOP) ) {
      ev.type = evtNullEvent;
      signal_printf("%s[%d]:  new event: %s\n",
