@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.13 2006/02/27 23:15:28 bernat Exp $
+// $Id: reloc-func.C,v 1.14 2006/02/27 23:35:14 nater Exp $
 
 // We'll also try to limit this to relocation-capable platforms
 // in the Makefile. Just in case, though....
@@ -522,7 +522,7 @@ bool bblInstance::generate() {
             for (unsigned edge_iter = 0; edge_iter < out_edges.size(); edge_iter++) {
                 EdgeTypeEnum edgeType = out_edges[edge_iter]->getType();
                 // Update to Nate's commit...
-                if ((edgeType == ET_COND) ||
+                if ((edgeType == ET_COND_TAKEN) ||
                     (edgeType == ET_DIRECT)) {
                     // Got the right edge... now find the matching high-level
                     // basic block
