@@ -143,8 +143,6 @@ int_function::int_function(const int_function *parFunc,
      for (i = 0; i < parFunc->blockList.size(); i++) {
          int_basicBlock *block = new int_basicBlock(parFunc->blockList[i], this,i);
          blockList.push_back(block);
-        //FIXME remove this after debuggin:
-         assert(parFunc->blockList[i]->id() == i);
      }
      // got the same blocks in the same order as the parent, so this is safe:
      blockIDmap = parFunc->blockIDmap;
@@ -458,6 +456,29 @@ unsigned int_function::getNumDynamicCalls()
 
 const pdstring &int_function::symTabName() const { 
     return ifunc_->symTabName(); 
+}
+
+void int_function::debugPrint() const {
+    fprintf(stderr, "Function debug dump (%p):\n", this);
+    fprintf(stderr, "  Symbol table names:\n");
+    for (unsigned i = 0; i < symTabNameVector().size(); i++) {
+        fprintf(stderr, "    %s\n", symTabNameVector()[i].c_str());
+    }
+    fprintf(stderr, "  Demangled names:\n");
+    for (unsigned j = 0; j < prettyNameVector().size(); j++) {
+        fprintf(stderr, "    %s\n", prettyNameVector()[j].c_str());
+    }
+    fprintf(stderr, "  Typed names:\n");
+    for (unsigned k = 0; k < typedNameVector().size(); k++) {
+        fprintf(stderr, "    %s\n", typedNameVector()[k].c_str());
+    }
+    fprintf(stderr, "  Address: 0x%lx\n", getAddress());
+    fprintf(stderr, "  Internal pointer: %p\n", ifunc_);
+    fprintf(stderr, "  Object: %s (%p), module: %s (%p)\n", 
+            obj()->fileName().c_str(), 
+            obj(),
+            mod()->fileName().c_str(),
+            mod());
 }
 
 // Add to internal

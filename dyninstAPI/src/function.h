@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.24 2006/02/26 05:06:34 bernat Exp $
+// $Id: function.h,v 1.25 2006/02/27 23:15:26 bernat Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -347,6 +347,9 @@ class int_function {
    const pdvector<pdstring> &symTabNameVector() const { return ifunc_->symTabNameVector(); }
    const pdvector<pdstring> &prettyNameVector() const { return ifunc_->prettyNameVector(); }
    const pdvector<pdstring> &typedNameVector() const { return ifunc_->typedNameVector(); }
+
+   // Debuggering functions
+   void debugPrint() const;
 
    // And add...
    // Don't make the pdstring a reference; we want a copy.
