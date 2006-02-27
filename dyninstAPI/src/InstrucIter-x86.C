@@ -185,7 +185,7 @@ bool InstrucIter::isAnAbortInstruction()
 
     // FIXME this all needs to be more general!
         // hlt
-    return(*ptr == 0xf4);
+    return(*ptr == 0xf4 || insn.isIllegal());
 }
 
 bool InstrucIter::isAnAllocInstruction()
