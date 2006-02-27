@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.11 2006/02/26 05:06:40 bernat Exp $
+// $Id: reloc-func.C,v 1.12 2006/02/27 18:44:05 bernat Exp $
 
 // We'll also try to limit this to relocation-capable platforms
 // in the Makefile. Just in case, though....
@@ -507,23 +507,44 @@ bool bblInstance::generate() {
                        
                 return false;
             }
-            // So we have zero, one, or two targets; one of them
-            // may be a jump target as opposed to a fallthrough.
-            // Find it and set targetOverride to the start of that
-            // basic block. We find the target by a guy who is not
-            // contiguous with us... would be much easier to label
-            // edges
-            for (unsigned j = 0; j < targets.size(); j++) {
-                bblInstance *targetInst = targets[j]->instVer(origInstance()->version_);
-                assert(targetInst);
-                if (targetInst->firstInsnAddr() != origInstance()->endAddr()) {
-                    reloc_printf("... found jmp target 0x%p->0x%p\n",
-                        origInstance()->endAddr(),targetInst->firstInsnAddr());
-                    // This is a jump target; get the start addr for the
-                    // new block.
-                    assert(targetOverride == 0);
-                    targetOverride = targets[j]->instVer(version_)->firstInsnAddr();
+            // We have edge types on the internal data, so we drop down and get that. 
+            // We want to find the "branch taken" edge and override the destination
+            // address for that guy.
+            pdvector<image_edge *> out_edges;
+            block_->llb()->getTargets(out_edges);
+
+            // May be greater; we add "extra" edges for things like function calls, etc.
+            assert (out_edges.size() >= targets.size());
+
+            int_basicBlock *hlTarget = NULL;
+
+            for (unsigned edge_iter = 0; edge_iter < out_edges.size(); edge_iter++) {
+                EdgeTypeEnum edgeType = out_edges[edge_iter]->getType();
+                // Update to Nate's commit...
+                if ((edgeType == ET_COND) ||
+                    (edgeType == ET_DIRECT)) {
+                    // Got the right edge... now find the matching high-level
+                    // basic block
+                    image_basicBlock *llTarget = out_edges[edge_iter]->getTarget();
+                    for (unsigned t_iter = 0; t_iter < targets.size(); t_iter++) {
+                        // Should be the same index, but this is a small set...
+                        if (targets[t_iter]->llb() == llTarget)
+                            hlTarget = targets[t_iter];
+                    }
+                    assert(hlTarget != NULL);
+                    break;
                 }
+            }
+            if (hlTarget != NULL) {
+                // Remap its destination
+                // This is a jump target; get the start addr for the
+                // new block.
+                assert(targetOverride == 0);
+                targetOverride = hlTarget->instVer(version_)->firstInsnAddr();
+                reloc_printf("... found jmp target 0x%lx->0x%lx, now to 0x%lx\n",
+                             origInstance()->endAddr(),
+                             hlTarget->origInstance()->firstInsnAddr(),
+                             targetOverride);
             }
         }
         reloc_printf("... generating insn %d, orig addr 0x%lx, new addr 0x%lx, " 
