@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.120 2006/02/24 21:47:58 mjbrim Exp $
+// $Id: BPatch.C,v 1.121 2006/02/27 23:15:23 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1075,6 +1075,38 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
    // Do not continue at this point; process is already gone.
 
 }
+
+
+void BPatch::registerThreadExit(process *proc, int tid)
+{
+    if (!proc)
+        return;
+    
+    int pid = proc->getPid();
+    
+    BPatch_process *bpprocess = getProcessByPid(pid);
+    if (!bpprocess) {
+        // Error during startup can cause this -- we have a partially
+        // constructed process object, but it was never registered with
+        // bpatch
+        return;
+    }
+    BPatch_thread *thrd = bpprocess->getThread(tid);
+    if (!thrd) return;
+
+    pdvector<CallbackBase *> cbs;
+    getCBManager()->dispenseCallbacksMatching(evtThreadExit, cbs);
+    for (unsigned int i = 0; i < cbs.size(); ++i) {
+        AsyncThreadEventCallback &cb = * ((AsyncThreadEventCallback *) cbs[i]);
+        mailbox_printf("%s[%d]:  executing thread exit callback\n", FILE__, __LINE__);
+        cb(bpprocess, thrd);
+    }
+
+   continueIfExists(pid);
+    
+
+}
+
 
 
 /*

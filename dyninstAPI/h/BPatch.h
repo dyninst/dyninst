@@ -220,6 +220,8 @@ public:
     void registerNormalExit(process *proc, int exitcode);
     void registerSignalExit(process *proc, int signalnum);
 
+    void registerThreadExit(process *proc, int tid);
+
     void registerProcess(BPatch_process *process, int pid=0);
     void unRegisterProcess(int pid);
 
