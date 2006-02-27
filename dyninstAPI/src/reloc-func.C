@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.12 2006/02/27 18:44:05 bernat Exp $
+// $Id: reloc-func.C,v 1.13 2006/02/27 23:15:28 bernat Exp $
 
 // We'll also try to limit this to relocation-capable platforms
 // in the Makefile. Just in case, though....
@@ -180,6 +180,7 @@ bool int_function::relocationGenerateInt(pdvector<funcMod *> &mods,
     // just pick it up and move it nearer instrumentation. Bring the mountain 
     // to Mohammed, I guess.
 #if defined(os_aix)
+    // Also, fork() instrumentation needs to go in data.
     Address baseInMutatee = proc()->inferiorMalloc(size_required, dataHeap);
 #elif defined(arch_x86_64)
     Address baseInMutatee = proc()->inferiorMalloc(size_required, anyHeap, getAddress());
