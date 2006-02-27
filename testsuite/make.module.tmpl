@@ -599,7 +599,7 @@ $(TEST_DEST):
 #######################################################################
 
 $(OBJS_ALL_MUTATORS): %.o : %.C $(DEPENDDIR)/%.dep
-	$(M_GXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
+	$(CXX) -c -o $@ -fPIC $(CXXFLAGS) -I../src/ ../src/$*.C
 
 MUTATEE_DEFS := -Dgnu_cc=_gcc -Dgnu_cxx=_g++
 
@@ -620,7 +620,7 @@ MUTATEE_DEFS += -Dnative_cxx=_$(NATIVE_CXX)
 endif
 
 ifdef NATIVE_FC
-MUTATEE_DEFS += -Dnative_fc=_$(NATIVE_fc)
+MUTATEE_DEFS += -Dnative_fc=_$(NATIVE_FC)
 endif
 
 runTests.o: ../src/runTests.C $(DEPENDDIR)/runTests.dep
