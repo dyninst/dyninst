@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.23 2006/02/26 05:06:35 bernat Exp $
+// $Id: image-func.C,v 1.24 2006/02/27 23:35:12 nater Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -81,8 +81,14 @@ char * image_edge::getTypeString()
         case ET_CALL:
             return "CALL";
             break;
-        case ET_COND:
-            return "COND BRANCH";
+        case ET_COND_TAKEN:
+            return "COND BRANCH - TAKEN";
+            break;
+        case ET_COND_NOT_TAKEN:
+            return "COND BRANCH - NOT TAKEN";
+            break;
+        case ET_INDIR:
+            return "INDIRECT BRANCH";
             break;
         case ET_DIRECT:
             return "UNCOND BRANCH";
@@ -597,10 +603,10 @@ bool image_func::addBasicBlock(Address newAddr,
         newBlk = new image_basicBlock(this,newAddr);
         newBlk->isStub_ = true;
         image_->basicBlocksByRange.insert(newBlk);
-        assert(image_->basicBlocksByRange.find(newAddr, tmpRange));
-        worklist.push_back(newAddr);
         parsing_printf("[%s:%u] adding block %d (0x%lx) to worklist\n",
             FILE__,__LINE__,newBlk->id(),newBlk->firstInsnOffset_);
+        assert(image_->basicBlocksByRange.find(newAddr, tmpRange));
+        worklist.push_back(newAddr);
     }
 
     // Determine whether we are confident about this new block. A
@@ -910,13 +916,16 @@ bool image_func::cleanBlockList() {
         /* Serious safety checks. These can tag things that are
            legal. Enable if you're trying to track down a parsing
            problem. */
+
+        // x86 instruction prefixes necessitate "overlapping" blocks.
+        // Annoying but true.
 #if !defined(arch_x86) && !defined(arch_x86_64)
         if (foo > 0) {
             assert(blockList[foo]->firstInsnOffset() >= blockList[foo-1]->endOffset());
         }
-        assert(blockList[foo]->endOffset() >= blockList[foo]->firstInsnOffset());
 #endif
 
+        assert(blockList[foo]->endOffset() >= blockList[foo]->firstInsnOffset());
         blockList[foo]->finalize();
     }
 

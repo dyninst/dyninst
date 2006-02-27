@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.12 2006/02/26 05:06:36 bernat Exp $
+// $Id: image-func.h,v 1.13 2006/02/27 23:35:13 nater Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -70,12 +70,15 @@ class image_edge;
 
 enum EdgeTypeEnum {
    ET_CALL,
-   ET_COND,
+   ET_COND_TAKEN,
+   ET_COND_NOT_TAKEN,
+   ET_INDIR,
    ET_DIRECT,
    ET_FALLTHROUGH,
    ET_CATCH,
-   ET_FUNLINK  // connect block ended by call instruction with next block
+   ET_FUNLINK,  // connect block ended by call instruction with next block
                // (see BIT)
+   ET_NOEDGE
 };
 
 // Function return status. Initially UNSET; after parsing
