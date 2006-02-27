@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.11 2006/02/24 20:32:24 bpellin Exp $
+// $Id: test_driver.C,v 1.12 2006/02/27 18:18:10 bpellin Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -621,7 +621,7 @@ int getResumeLog(int *testnum, int *mutateenum, int *optionnum)
    if ( fscanf(resume, "%d,%d,%d", testnum, mutateenum, optionnum) != 3 )
    {
       fprintf(stderr, "Unable to parse entry in the resume log\n");
-      exit(1);
+      exit(NOTESTS);
    }
    fclose(resume);
 
@@ -814,7 +814,7 @@ void setPDScriptDir()
       }
 
       fprintf(stderr, "Unabled to find paradyn script dir, please set PDSCRDIR\n");
-      exit(1);
+      exit(NOTESTS);
 #endif
 
    }
@@ -826,6 +826,7 @@ int main(unsigned int argc, char *argv[]) {
     unsigned int i;
     std::vector<char *> test_list;
     std::vector<char *> mutatee_list;
+
     
     for (i=1; i < argc; i++ )
     {
@@ -854,7 +855,7 @@ int main(unsigned int argc, char *argv[]) {
           if ( i + 1 >= argc )
           {
              fprintf(stderr, "-test must be followed by a testname\n");
-             exit(1);
+             exit(NOTESTS);
           }
 
           tests = strdup(argv[++i]);
@@ -879,7 +880,7 @@ int main(unsigned int argc, char *argv[]) {
           if ( i + 1 >= argc )
           {
              fprintf(stderr, "-mutatee must be followed by mutatee names\n");
-             exit(1);
+             exit(NOTESTS);
           }
 
           mutatees = strdup(argv[++i]);
@@ -936,7 +937,7 @@ int main(unsigned int argc, char *argv[]) {
           if ( i + 1 >= argc )
           {
             fprintf(stderr, "-limit must be followed by an integer limit\n");
-            exit(1);
+            exit(NOTESTS);
           }
           testLimit = atoi(argv[++i]);
        } 
@@ -946,7 +947,7 @@ int main(unsigned int argc, char *argv[]) {
           if ( i + 1 >= argc ) 
           {
              fprintf(stderr, "-humanlog must by followed by a filename\n");
-             exit(1);
+             exit(NOTESTS);
           }
 
           useHumanLog = true;
@@ -954,7 +955,7 @@ int main(unsigned int argc, char *argv[]) {
 
 #if defined(i386_unknown_nt4_0)
           fprintf(stderr, "-humanlog currently unimplemented on windows\n");
-          exit(1);
+          exit(NOTESTS);
 #endif
        }
        else if ( strcmp(argv[i], "-help") == 0)
@@ -966,7 +967,7 @@ int main(unsigned int argc, char *argv[]) {
        else
        {
           printf("Unrecognized option: %s\n", argv[i]);
-          exit(1);
+          exit(NOTESTS);
        }
     }
 
