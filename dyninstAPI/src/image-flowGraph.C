@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.10 2006/02/12 22:24:32 jodom Exp $
+ * $Id: image-flowGraph.C,v 1.11 2006/02/27 23:35:11 nater Exp $
  */
 
 #include <stdio.h>
@@ -663,6 +663,7 @@ bool image_func::buildCFG(
     // Basic block lookup
     BPatch_Set< Address > leaders;
     BPatch_Set< image_basicBlock* > visited;
+    BPatch_Set< Address > allInstAddrs;
     dictionary_hash< Address, image_basicBlock* > leadersToBlock( addrHash );
 
     // Prevent overrunning an existing basic block in linear scan
@@ -693,15 +694,10 @@ bool image_func::buildCFG(
 
     Address funcEnd = funcBegin;
     Address currAddr = funcBegin;
+
     // The reverse ordering here is to make things easier on
     // alpha. Indeed, the only reason funcEntries would ever
     // have size > 1 is if we're on alpha.
-
-    // FIXME the real reason we do this is because our parser will
-    // break if there are > 1 pre-existing blocks and they are not
-    // processed in descending address order. So, this array should
-    // be sorted. (of course, this is a special case for alpha only, so
-    // it probably doesn't matter)
     for(int j=funcEntries.size()-1; j >= 0; j--)
     {
         Address a = funcEntries[j]->firstInsnOffset();
@@ -710,21 +706,8 @@ bool image_func::buildCFG(
         worklist.push_back(a);
     }
 
-    /*
-    leaders += funcBegin;
-    leadersToBlock[funcBegin] = funcEntry;
-    worklist.push_back(funcBegin);
-    */
-
     for(unsigned i=0; i < worklist.size(); i++)
     {
-        /*
-        if(worklist[i] < startOffset_)
-        {
-            assert(0);
-        }
-        */
-
         InstrucIter ah(worklist[i],this);
 
         image_basicBlock* currBlk = leadersToBlock[worklist[i]];
@@ -757,7 +740,6 @@ bool image_func::buildCFG(
 
         // Remember where the next block is, so we don't blindly run over
         // the top of it when scanning through instructions.
-        //nextExistingBlockAddr = UINT_MAX;
         nextExistingBlockAddr = ULONG_MAX;
         if(image_->basicBlocksByRange.successor(ah.peekNext(),tmpRange))
         {
@@ -805,14 +787,36 @@ bool image_func::buildCFG(
                     if(nextExistingBlock->isStub_ && 
                        !nextExistingBlock->containedIn(this))
                     {
-                        parsing_printf("adding to this function\n");
                         nextExistingBlock->addFunc(this);
                     }
                 }
                 break;
             }
+            else if(allInstAddrs.contains( currAddr ))
+            {
+                // This address has been seen but is not the start of
+                // a basic block. This can only happen if two instructions
+                // overlap, as is the case with prefixed instructions on
+                // x86. We expect to have to split a block at this address.
+
+                currBlk->lastInsnOffset_ = ah.peekPrev();
+                currBlk->blockEndOffset_ = currAddr;
+
+                // The newly created basic block will split
+                // the existing basic block that encompasses this
+                // address.
+                addBasicBlock(currAddr,
+                              currBlk,
+                              leaders,
+                              leadersToBlock,
+                              ET_FALLTHROUGH,
+                              worklist,
+                              visited);
+                break;
+            }
 
             allInstructions.push_back( ah.getInstruction() );
+            allInstAddrs += currAddr;
 
             // only ever true on x86
             if(ah.isFrameSetup() && savesFP_)
@@ -825,7 +829,6 @@ bool image_func::buildCFG(
 
             if( ah.isACondBranchInstruction() )
             {
-                // delay slots ?
                 currBlk->lastInsnOffset_ = currAddr;
                 currBlk->blockEndOffset_ = ah.peekNext();
 
@@ -838,22 +841,15 @@ bool image_func::buildCFG(
 
                 // process fallthrough edge first, in case the target
                 // is within this block (forcing a split)
+
                 if(ah.isDelaySlot())
                 {
                     // Skip delay slot (sparc)
                     ah++;
                 } 
-                Address t2 = ah.peekNext(); 
-                //Address t2 = currAddr + insnSize;
-                
-                addBasicBlock(t2,
-                              currBlk,
-                              leaders,
-                              leadersToBlock,
-                              ET_FALLTHROUGH,
-                              worklist,
-                              visited);
 
+                // Process target first, to prevent overlap between
+                // the fallthrough block and the target block.
                 if( target < funcBegin )
                 {
                     // FIXME This is actually not true in the new model,
@@ -869,10 +865,21 @@ bool image_func::buildCFG(
                                   currBlk,
                                   leaders,
                                   leadersToBlock,
-                                  ET_COND,
+                                  ET_COND_TAKEN,
                                   worklist,
                                   visited);
                 }
+
+                Address t2 = ah.peekNext(); 
+                //Address t2 = currAddr + insnSize;
+                
+                addBasicBlock(t2,
+                              currBlk,
+                              leaders,
+                              leadersToBlock,
+                              ET_COND_NOT_TAKEN,
+                              worklist,
+                              visited);
 
                 break;                              
             }
@@ -940,7 +947,7 @@ bool image_func::buildCFG(
                                       currBlk,
                                       leaders,
                                       leadersToBlock,
-                                      ET_COND,
+                                      ET_INDIR,
                                       worklist,
                                       visited);
                     }
@@ -1040,6 +1047,7 @@ bool image_func::buildCFG(
                     funcEnd = ah.peekNext();
                     //funcEnd = currAddr + insnSize;
                 
+                    parsing_printf("... making new exit point at 0x%lx\n", currAddr);                
                 p = new image_instPoint( currAddr, 
                                          ah.getInstruction(),
                                          this,
@@ -1151,6 +1159,7 @@ bool image_func::buildCFG(
                 // FIXME should this really be an exit point if this
                 // instruction causes the program to error and terminate?
 
+                    parsing_printf("... making new exit point at 0x%lx\n", currAddr);                
                 p = new image_instPoint( currAddr,
                                          ah.getInstruction(),
                                          this,
@@ -1171,6 +1180,10 @@ bool image_func::buildCFG(
                 {
                     currBlk->lastInsnOffset_ = ah.peekPrev();
                     currBlk->blockEndOffset_ = currAddr;
+
+                    // remove some cumulative information
+                    allInstAddrs.remove(currAddr);
+                    allInstructions.pop_back();
 
                     addBasicBlock(currAddr,
                                     currBlk,
@@ -1367,6 +1380,7 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
         }
         if((tmpInstPt = curBlk->getRetInstPoint()) != NULL)
         {
+                    parsing_printf("... copying exit point at 0x%lx\n", tmpInstPt->offset());                
             cpyInstPt = new image_instPoint(tmpInstPt->offset(),
                                     tmpInstPt->insn(),
                                     this,
