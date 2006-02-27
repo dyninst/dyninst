@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.28 2006/02/26 05:06:38 bernat Exp $
+// $Id: multiTramp.C,v 1.29 2006/02/27 18:44:04 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -344,14 +344,6 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
             }
         }
 #endif
-
-#if defined(os_aix)
-        // AIX hackery
-        // TODO fix up the insnIter
-        if (insnAddr == (startAddr + size - instruction::size()))
-            break;
-#endif
-
     }   
 
     
