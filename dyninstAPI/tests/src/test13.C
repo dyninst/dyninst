@@ -57,7 +57,7 @@ static char dyn_tids[NUM_THREADS];
 static char deleted_tids[NUM_THREADS];
 static int deleted_threads;
 
-bool debug_flag;
+bool debug_flag = false;
 #define dprintf if (debug_flag) fprintf
 #define NUM_FUNCS 4
 char initial_funcs[NUM_FUNCS][25] = {"init_func", "main", "_start", "__start"};
@@ -204,14 +204,9 @@ unsigned num_args = 0;
 
 static BPatch_process *getProcess()
 {
-    fprintf(stderr, "Starting process %s\n", filename);
     int i = 0;
     args[0] = filename;
-    while (args[i] != NULL) {
-        fprintf(stderr, "arg %d: %p (%s)\n",
-                i, args[i], args[i]);
-        i++;
-    }
+
    BPatch_process *proc;
    if (should_exec)
       proc = bpatch.processCreate(filename, (const char **) args);
