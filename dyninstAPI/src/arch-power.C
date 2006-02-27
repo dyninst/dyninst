@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.6 2006/02/26 05:06:27 bernat Exp $
+ * $Id: arch-power.C,v 1.7 2006/02/27 18:44:03 bernat Exp $
  */
 
 #include "common/h/Types.h"
@@ -405,7 +405,8 @@ unsigned instruction::jumpSize(int disp) {
 unsigned instruction::maxJumpSize() {
     // TODO: some way to do a full-range branch
     // For now, a BRL-jump'll do.
-    return 4*instruction::size();
+    // plus two - store r0 and restore afterwards
+    return 6*instruction::size();
 }
 
 unsigned instruction::maxInterFunctionJumpSize() {
@@ -435,7 +436,8 @@ unsigned instruction::spaceToRelocate() const {
     }
     if (isUncondBranch()) {
         // Worst case... branch to LR
-        return 4*instruction::size();
+        // and save/restore r0
+        return 6*instruction::size();
     }
     return instruction::size();
 }
@@ -467,13 +469,36 @@ bool instruction::generate(codeGen &gen,
             // If we're doing a branch-n-link we can pull this off by making
             // several assumptions...
             if (insn_.bform.lk == 1) {
+                // The native compiler can be really aggravating. In this
+                // case, see the following sequence:
+                // mflr    r0
+                // bl      0x100098d8 <_savef14>
+                // mtlr    r0
+                // ... which looks like a call, but has a live r0. So we cannot
+                // assume that r0 is dead at the point of a call. 
+                // Fortunately, there's the extra stack slots... grab one to 
+                // stash r0 in. I'm open to other suggestions, but I don't think 
+                // there are any.
+
+                // st r0, 16 (r1)
+
+                instruction::generateImm(gen, STop, 
+                                         0, // source: r0
+                                         1, // ra: r1
+                                         16); // offset
+
                 // Whee. Stomp that link register.
                 unsigned int top_half = ((to & 0xffff0000) >> 16);
                 unsigned int bottom_half = (to & 0x0000ffff);
                 assert (to == ((top_half << 16) + bottom_half));
+
                 // AIX sign-extends. So if top_half is 0, and the top bit of
                 // bottom_half is 0, then we can use a single instruction. Otherwise
                 // do it the hard way.
+                
+                // Honestly, why do we bother? An address of 0x00008000 is in the
+                // _kernel_. This will never happen. Someone was overly clever.
+
                 if (!top_half && !(bottom_half & 0x8000)) {
                     // single instruction (CALop)
                     instruction::generateImm(gen, 
@@ -490,12 +515,21 @@ bool instruction::generate(codeGen &gen,
                 instruction mtlr(MTLR0raw);
                 mtlr.generate(gen);
                 
-                // And branch to CTR
+                // And branch to LR
                 instruction btlr(BRLraw);
                 btlr.generate(gen);
+
+                // lw r0, 16 (r1)
+
+                instruction::generateImm(gen, Lop, 
+                                         0, // target: r0
+                                         1, // ra: r1
+                                         16); // offset
             }
             else {
                 // Crud.
+                fprintf(stderr, "Fatal error: relocating branch, orig at 0x%lx, now 0x%lx, target 0x%lx, orig offset 0x%lx\n",
+                        origAddr, relocAddr, targetOverride, getBranchOffset());
                 assert(0);
             }
         } else {
@@ -579,5 +613,6 @@ bool instruction::generate(codeGen &gen,
     else {
         generate(gen);
     }
+    return true;
 }
                            
