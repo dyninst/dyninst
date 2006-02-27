@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.268 2006/02/16 00:57:25 legendre Exp $
+ // $Id: symtab.C,v 1.269 2006/02/27 23:15:31 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -975,9 +975,8 @@ image *image::parseImage(fileDescriptor &desc)
   // about it. If so, yank the old one out of the images vector -- replace
   // it, basically.
   for (unsigned u=0; u<numImages; u++) {
-      if (desc.file() == allImages[u]->desc().file()) {
+      if (desc.isSameFile(allImages[u]->desc())) {
           // We reference count...
-          //fprintf(stderr, "Reusing old %s (%s)\n", desc.file().c_str(), desc.member().c_str());
           return allImages[u]->clone();
       }
   }
