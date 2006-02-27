@@ -67,19 +67,17 @@ edge_type_string(BPatch_edgeType t)
 BPatch_edgeType 
 BPatch_edge::getType()
 {
-    InstrucIter sourceIter(source);
-    sourceIter.setCurrentAddress(source->getLastInsnAddress());
-    
-    if (sourceIter.isACondBranchInstruction()) {
-        if (source->getEndAddress() == target->getStartAddress()) 
-            return CondJumpNottaken;
-        else 
-            return CondJumpTaken;
+    EdgeTypeEnum lltype;
+    lltype = source->lowlevel_block()->getEdgeType(target->lowlevel_block());
+
+    switch(lltype) {
+        case ET_NOEDGE: { return NonJump; break; }
+        case ET_COND_TAKEN: { return CondJumpTaken; break; }
+        case ET_COND_NOT_TAKEN: { return CondJumpNottaken; break; }
+        case ET_DIRECT:
+        case ET_INDIR: { return UncondJump; break; }
+        default: { return NonJump; break; }
     }
-    else if (sourceIter.isAJumpInstruction())
-        return UncondJump;
-    else 
-        return NonJump;
 }
 
 

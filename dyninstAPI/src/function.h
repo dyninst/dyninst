@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.25 2006/02/27 23:15:26 bernat Exp $
+// $Id: function.h,v 1.26 2006/02/27 23:35:09 nater Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -223,6 +223,7 @@ class int_basicBlock {
 
     void getSources(pdvector<int_basicBlock *> &ins) const;
     void getTargets(pdvector<int_basicBlock *> &outs) const;
+    EdgeTypeEnum getEdgeType(int_basicBlock * target) const;
 
     int_basicBlock *getFallthrough() const;
 
