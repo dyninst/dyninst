@@ -191,7 +191,7 @@ void upgrade_mutatee_state()
    one = new BPatch_constExpr(1);
    inc_var = new BPatch_arithExpr(BPatch_plus, *var, *one);
    inc_var_assign = new BPatch_arithExpr(BPatch_assign, *var, *inc_var);
-
+   dprintf(stderr, "%s[%d]: going into oneTimecode...\n", __FILE__, __LINE__);
    proc->oneTimeCode(*inc_var_assign);
    dprintf(stderr, "%s[%d]:  upgrade_mutatee_state: after oneTimeCode\n", __FILE__, __LINE__);
 }
@@ -204,6 +204,14 @@ unsigned num_args = 0;
 
 static BPatch_process *getProcess()
 {
+    fprintf(stderr, "Starting process %s\n", filename);
+    int i = 0;
+    args[0] = filename;
+    while (args[i] != NULL) {
+        fprintf(stderr, "arg %d: %p (%s)\n",
+                i, args[i], args[i]);
+        i++;
+    }
    BPatch_process *proc;
    if (should_exec)
       proc = bpatch.processCreate(filename, (const char **) args);
@@ -224,22 +232,24 @@ static BPatch_process *getProcess()
 static void parse_args(unsigned argc, char *argv[])
 {
    unsigned i;
+   bool have_mutator = false;
    args[0] = NULL;
-   for (i=0; i<argc; i++)
+   for (i=1; i<argc; i++)
    {
       if (strcmp(argv[i], "-attach") == 0)
       {
          should_exec = false;
       }
-      else if (strcmp(argv[i], "-mutator") == 0)
+      else if (strcmp(argv[i], "-mutatee") == 0)
       {
          if (++i == argc) break;
          filename = argv[i];
       }
-      else
-      {
-         args[num_args++] = argv[i];
-         args[num_args] = NULL;
+      else if (strcmp(argv[i], "-verbose") == 0)
+          debug_flag = true;
+      else {
+          fprintf(stderr, "Usage: test13 [-verbose] [-attach]|[-mutatee <file>]\n");
+          exit(-1);
       }
    }
 }
@@ -258,19 +268,17 @@ int main(int argc, char *argv[])
       fprintf(stderr, "Couldn't create process for %s\n", filename);
       return -1;
    }
-
-
    BPatch_Vector<BPatch_thread *> orig_thrds;
    proc->getThreads(orig_thrds);
    if (!orig_thrds.size()) abort();
    for (unsigned i=0; i<orig_thrds.size(); i++) {
-      newthr(proc, orig_thrds[i]);
+       newthr(proc, orig_thrds[i]);
    }
-
    proc->continueExecution();
-
    do {
+       dprintf(stderr, "Going into waitForStatusChange...\n");
       bpatch.waitForStatusChange();
+      dprintf(stderr, "Back from waitForStatusChange...\n");
       if (proc->isTerminated())
       {
          fprintf(stderr, "[%s:%d] - App exited early\n", __FILE__, __LINE__);
