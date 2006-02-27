@@ -393,6 +393,7 @@ Address InstrucIter::operator*(){
 }
 
 bool InstrucIter::isStackFramePreamble(int &frameSize) {
+    assert(instPtr);
   // We check the entire block. Don't know when it ends,
   // so go until we hit a jump.
   frameSize = 0;
@@ -419,6 +420,7 @@ bool InstrucIter::isStackFramePreamble(int &frameSize) {
 }
 
 bool InstrucIter::isADynamicCallInstruction() {
+    assert(instPtr);
   return insn.isJsr();
 }
 

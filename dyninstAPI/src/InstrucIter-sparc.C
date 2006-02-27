@@ -425,6 +425,7 @@ Address InstrucIter::operator*(){
 // Check to see if we make a stack frame; in Sparc terms,
 // execute a save instruction
 bool InstrucIter::isStackFramePreamble(int &) {
+    assert(instPtr);
     while (!isAReturnInstruction() &&
            !isACondBranchInstruction() &&
            !isACallInstruction() &&
@@ -445,6 +446,7 @@ bool InstrucIter::isADynamicCallInstruction() {
 
 void InstrucIter::getAndSkipDSandAgg(instruction* &ds,
                               instruction* &agg) {
+    assert(instPtr);
     instruction insn = getInstruction();
     if (!insn.isDCTI())
         return;
@@ -495,6 +497,7 @@ void InstrucIter::getAndSkipDSandAgg(instruction* &ds,
 
 bool InstrucIter::isDelaySlot()
 {
+    assert(instPtr);
     return insn.isDCTI();
 }
 
@@ -520,5 +523,6 @@ bool InstrucIter::isAnAllocInstruction()
 
 bool InstrucIter::isAnAbortInstruction()
 {
+    assert(instPtr);
     return insn.isIllegal();
 }

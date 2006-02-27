@@ -1308,9 +1308,8 @@ Address InstrucIter::operator--()
 
 Address InstrucIter::operator++(int)
 {
-    
-	Address ret = current;
-	current += instruction::size();
+    Address ret = current;
+    current += instruction::size();
     initializeInsn();
     return ret;
 }
@@ -1334,7 +1333,8 @@ bool InstrucIter::isStackFramePreamble(int &/*unset*/) {
     // We check the entire block. Don't know when it ends,
     // so go until we hit a jump.
     bool foundStackPreamble = false;
-    while (!isAReturnInstruction() &&
+    while (instPtr != NULL &&
+           !isAReturnInstruction() &&
            !isACondBranchInstruction() &&
            !isACallInstruction() &&
            !isADynamicCallInstruction() &&
@@ -1367,7 +1367,8 @@ bool InstrucIter::isReturnValueSave() {
     // so go until we hit a jump.
     bool foundMFLR = false;
     bool foundR0Save = false;
-    while (!isAReturnInstruction() &&
+    while (instPtr != NULL &&
+           !isAReturnInstruction() &&
            !isACondBranchInstruction() &&
            !isACallInstruction() &&
            !isADynamicCallInstruction() &&
@@ -1408,6 +1409,7 @@ bool InstrucIter::isALeaveInstruction()
 
 bool InstrucIter::isAnAbortInstruction()
 {
+    assert(instPtr);
     return !insn.valid();
 }
 

@@ -66,11 +66,13 @@
   */
 bool InstrucIter::isALeaveInstruction()
 {
+    assert(instPtr);
     return insn.isLeave();
 }
 
 bool InstrucIter::isAReturnInstruction()
 {
+    assert(instPtr);
     return insn.isReturn();
 }
 
@@ -80,6 +82,7 @@ bool InstrucIter::isAReturnInstruction()
 
 bool InstrucIter::isAIndirectJumpInstruction()
 {
+    assert(instPtr);
     if((insn.type() & IS_JUMP) && (insn.type() & INDIR))
     {
         /* since there are two is_jump and indirect instructions
@@ -102,6 +105,7 @@ bool InstrucIter::isStackFramePreamble(int & /*unused*/)
 
 bool InstrucIter::isFramePush()
 {
+    assert(instPtr);
     // test for
     // push %ebp (or push %rbp for 64-bit)
     return (insn.size() == 1 && insn.ptr()[0] == 0x55);
@@ -109,6 +113,7 @@ bool InstrucIter::isFramePush()
 
 bool InstrucIter::isFrameSetup()
 {
+    assert(instPtr);
     //test for
     // movl %esp,%ebp
 
@@ -132,6 +137,7 @@ bool InstrucIter::isFrameSetup()
  */ 
 bool InstrucIter::isACondBranchInstruction()
 {
+    assert(instPtr);
     if(insn.type() & IS_JCC)
         return true;
     return false;
@@ -142,6 +148,7 @@ bool InstrucIter::isACondBranchInstruction()
  */
 bool InstrucIter::isAJumpInstruction()
 {
+    assert(instPtr);
     insn.setInstruction( (unsigned char *)instPtr );
     if((insn.type() & IS_JUMP) &&
        !(insn.type() & INDIR) && 
@@ -155,21 +162,25 @@ bool InstrucIter::isAJumpInstruction()
  */
 bool InstrucIter::isACallInstruction()
 {
+    assert(instPtr);
     return insn.isCall();
 }
 
 bool InstrucIter::isADynamicCallInstruction()
 {
+    assert(instPtr);
     return insn.isCall() && insn.isIndir();
 }
 
 bool InstrucIter::isANopInstruction()
 {
+    assert(instPtr);
     return insn.isNop();
 }
 
 bool InstrucIter::isAnAbortInstruction()
 {
+    assert(instPtr);
     const unsigned char *ptr = insn.op_ptr();
 
     // FIXME this all needs to be more general!
@@ -197,12 +208,14 @@ bool InstrucIter::isDelaySlot()
   */
 Address InstrucIter::getBranchTargetOffset()
 {
+    assert(instPtr);
     // getTarget returns displacement+address parameter
     return insn.getTarget(0);
 }
 
 Address InstrucIter::getBranchTargetAddress()
 {
+    assert(instPtr);
     return insn.getTarget(current);
 }
 
@@ -212,6 +225,7 @@ void initOpCodeInfo()
 
 BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 {
+    assert(instPtr);
     static unsigned int log2[] = { 0, 0, 1, 1, 2, 2, 2, 2, 3 };
     
     // TODO 16-bit registers
@@ -519,6 +533,7 @@ Address InstrucIter::peekPrev()
 }
 
 Address InstrucIter::peekNext() {
+    assert(instPtr);
     Address tmp = current;
     tmp += insn.size();
     return tmp;
@@ -574,6 +589,7 @@ instruction *InstrucIter::getInsnPtr() {
 
 instruction InstrucIter::getNextInstruction()
 {
+    assert(instPtr);
     instruction next_insn;
     next_insn.setInstruction( insn.ptr() + insn.size() );
     
@@ -582,6 +598,7 @@ instruction InstrucIter::getNextInstruction()
 
 instruction InstrucIter::getPrevInstruction()
 {
+    assert(instPtr);
     instruction prev_insn;
     prev_insn.setInstruction((unsigned char *) prevInsns.back().prevPtr);
 
@@ -591,6 +608,7 @@ instruction InstrucIter::getPrevInstruction()
 // Prefix...
 Address InstrucIter::operator++()
 {
+    assert(instPtr);
     previous prev;
     prev.prevAddr = current;
     prev.prevPtr = instPtr;
@@ -622,6 +640,7 @@ Address InstrucIter::operator--()
 // Postfix...
 Address InstrucIter::operator++(int)
 {
+    assert(instPtr);
     Address ret = current;
     ++(*this);
     return ret;

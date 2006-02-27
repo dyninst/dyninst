@@ -73,12 +73,12 @@ void InstrucIter::initializeInsn() {
         }
         else instPtr = img_->getPtrToInstruction(current);
     }            
-    if (!instPtr) {
-        fprintf(stderr, "ERROR: no pointer for address 0x%lx\n",
-                current);
-    }
-    assert(instPtr);
-    insn.setInstruction((codeBuf_t *)instPtr, current);
+    if (instPtr) 
+        insn.setInstruction((codeBuf_t *)instPtr, current);
+
+    // If there's no pointer we have an invalid instrucIter... however,
+    // this can happen if you're using logic like "while hasMore()... iter++"
+    // so we allow it. If the value gets used then choke.
 }
 #endif
 
@@ -166,10 +166,6 @@ InstrucIter::InstrucIter( int_basicBlock *ibb) :
 }
 
 
-//instPtr =addressImage->getPtrToInstruction(bpBasicBlock->currentAddress);
-//insn.getNextInstruction( instPtr ); 
-
-
 /** copy constructor
  * @param ii InstrucIter to copy
  */
@@ -230,6 +226,8 @@ InstrucIter::InstrucIter(Address current, image_func *func) :
 
 bool InstrucIter::hasMore()
 {
+    if (instPtr == NULL) return false;
+
     if (range == 0) return true; // Unsafe iteration, but there is more
 
     if((current < (base + range )) &&
@@ -240,6 +238,7 @@ bool InstrucIter::hasMore()
 
 bool InstrucIter::hasPrev()
 {
+    if (instPtr == NULL) return false;
     //cerr << "hasprev" << std::hex << current 
     //   << " "  << baseAddress << " "  << range << endl;
 #if defined(arch_x86) || defined(arch_x86_64) // arch_has_variable_length_insns...

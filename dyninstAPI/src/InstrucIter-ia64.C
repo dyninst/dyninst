@@ -209,6 +209,7 @@ void initOpCodeInfo() {
 
 BPatch_memoryAccess* InstrucIter::isLoadOrStore()
 {
+    assert(instPtr);
     instruction insn = getInstruction();
     instruction::insnType type = getInsnType();
     
@@ -797,6 +798,8 @@ void InstrucIter::initializeInsn() {
         }
         else instPtr = img_->getPtrToInstruction(aligned);
     }            
+
+    if (instPtr == NULL) return;
     
     ia64_bundle_t *rawBundle = (ia64_bundle_t *)instPtr;
     bundle = IA64_bundle(*rawBundle);
@@ -830,6 +833,8 @@ instruction *InstrucIter::getInsnPtr() {
         }
         else instPtr = img_->getPtrToInstruction(aligned);
     }            
+
+    if (instPtr == NULL) return NULL;
     
     ia64_bundle_t *rawBundle = (ia64_bundle_t *)instPtr;
     bundle = IA64_bundle(*rawBundle);
@@ -847,6 +852,7 @@ instruction *InstrucIter::getInsnPtr() {
                
 bool InstrucIter::isADynamicCallInstruction()
 {
+    assert(instPtr);
     return insn.getType() == instruction::INDIRECT_CALL;
 }
 
