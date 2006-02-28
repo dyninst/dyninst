@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9_5.C,v 1.2 2006/01/30 04:55:41 bpellin Exp $
+// $Id: test9_5.C,v 1.3 2006/02/28 03:39:43 bpellin Exp $
 /*
  * #Name: test9_5
  * #Desc: call loadLibrary and save the world
@@ -57,6 +57,8 @@
 #include "test_lib.h"
 #include "test9.h"
 
+#include <iostream>
+
 //
 // Start Test Case #5 - (call loadLibrary and save the world)
 //
@@ -68,20 +70,21 @@ int mutatorTest(char *pathname, BPatch *bpatch)
   char *savedDirectory;
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(rs6000_ibm_aix4_1)
-	BPatch_image *appImage;
-	BPatch_thread *appThread;
+	BPatch_image *appImage = NULL;
+	BPatch_thread *appThread = NULL;
 
 	const char* child_argv[MAX_TEST+5];
 	buildArgs(child_argv, pathname, testNo);
 
 
+        std::cout << appThread << "," << appImage << std::endl;
 	createNewProcess(bpatch, appThread, appImage, pathname, child_argv);
+        std::cout << appThread << "," << appImage << std::endl;
 	if (! appThread->loadLibrary("libLoadMe.so", true)) {
 	     fprintf(stderr, "**Failed test #5 (use loadLibrary)\n");
 	     fprintf(stderr, "  Mutator couldn't load libLoadMe.so into mutatee\n");
-	     exit(1);
+             return -1;
 	}
 
 	char * dirname = saveWorld(appThread);
