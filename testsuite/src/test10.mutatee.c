@@ -321,5 +321,5 @@ int main(int iargc, char *argv[])
 
     fflush(stdout);
     dprintf("Mutatee %s terminating.\n", argv[0]);
-    exit(testsFailed ? 127 :1); /* 1 is success! 127 is failure*/ 
+    exit(testsFailed ? 127 :0); /* 1 is success! 127 is failure*/ 
 }
