@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.12 2006/02/27 18:18:10 bpellin Exp $
+// $Id: test_driver.C,v 1.13 2006/02/28 03:39:38 bpellin Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -143,7 +143,7 @@ bool runOnThisPlatform(test_data_t &test)
 // Test Functions
 int cleanup(BPatch *bpatch, BPatch_thread *appThread, test_data_t &test, ProcessList &proc_list, int result)
 {
-   if ( test.oldtest == 1 || test.oldtest == 5 || test.oldtest == 6 || test.oldtest == 8 ) 
+   if ( test.oldtest == 1 || test.oldtest == 5 || test.oldtest == 6 || test.oldtest == 8 || test.oldtest == 10 ) 
    {
     if ( result < 0 ) {
        // Test failed in the mutator
