@@ -4,12 +4,12 @@
 # higher level, platform-specific makefiles in the build directories
 
 RM = rm -f
-   RMDIR ?= rmdir
-   M_GCC ?= $(GCC)
-   M_GXX ?= $(GXX)
+RMDIR ?= rmdir
+M_GCC ?= $(GCC)
+M_GXX ?= $(GXX)
 DEPCC ?= $(GCC)
-   DEPENDFLAGS ?= -MM -MT
-   DEPENDDIR = ./depends
+DEPENDFLAGS ?= -MM -MT
+DEPENDDIR = ./depends
 VPATH 	= ../src $(DEPENDDIR)
 
 #######################################################################
@@ -20,7 +20,6 @@ VPATH 	= ../src $(DEPENDDIR)
 ###
 #######################################################################
 
-CFLAGS += -g
 EMPTY:=
 BLANK:=$(EMPTY) $(EMPTY)
 LPAREN:=(
@@ -162,7 +161,9 @@ MUTATORS =      test1_1 \
                 test12_1 \
                 test12_2 \
                 test12_3 \
-                test12_4
+                test12_4 \
+                test13   \
+                test14
 
 
 MUTATORS_SO          += $(addsuffix .so,$(MUTATORS))
@@ -180,9 +181,9 @@ MUTATEES_C = 	test1.mutatee \
 		test8.mutatee \
 		test9.mutatee \
 		test10.mutatee \
-		test12.mutatee 
-#		test13.mutatee \
-#		test14.mutatee 
+		test12.mutatee \
+		test13.mutatee \
+		test14.mutatee 
 
 # MUTATEES_CXX specifies a subset of MUTATEES_C that are also compiled with a C++ compiler
 MUTATEES_CXX =	test1.mutatee \
@@ -193,9 +194,9 @@ MUTATEES_CXX =	test1.mutatee \
 		test7.mutatee \
 		test8.mutatee \
 		test9.mutatee \
-		test12.mutatee 
-#               test13.mutatee \
-#               test14.mutatee
+		test12.mutatee \
+                test13.mutatee \
+                test14.mutatee
 
 #  Most C mutatees are also compiled as C++ mutatees, there are some (well, one)
 #  that are c++ only, which cannot also be compiled as C mutatees
@@ -416,7 +417,7 @@ drivers: test_driver runTests
 
 .PHONY: clean install distclean mutators mutatees testlibs gnu_mutatees native_mutatees echo
 
-# Despite the look, this isnt actually a pattern rule and so is
+# Despite the look, this isn't actually a pattern rule and so is
 # defined _after_ all:
 $(CALL35_1_OBJ): $(CALL35_1_SRC)
 	$(M_GCC) -c $< $(CFLAGS) $(MUTATEE_CFLAGS_GNU) -o $@ 
@@ -430,7 +431,7 @@ $(TEST6_AS_OBJ_GNU): $(TEST6_AS_SRC)
 
 $(TESTLIBS): %.so : %.c $(DEPENDDIR)/%.dep
 ifdef MAKE_SHARED_LIB
-	$(CC) -g -c $(CFLAGS) $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
+	$(CC) -g -c $(CFLAGS) -I$(TO_CORE)/dyninstAPI_RT/h $(CFLAGS_TESTLIBS) $(filter %.c, $^) -o $*.o
 	$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $*.o -o $@
 else
 	$(CC) $(TESTLIB_FLAGS) -I$(TO_CORE)/dyninstAPI_RT/h -I../src/ $(filter %.c,$^) -o $@
@@ -475,6 +476,7 @@ test1.mutatee_$(NATIVE_CC)_$(M_ABI): $(CALL35_1_SRC_ABI) test1.mutateeCommon.c
 test1.mutatee_$(NATIVE_CXX)_$(M_ABI): $(CALL35_1_SRC_ABI) test1.mutateeCommon.c
 endif
 
+# Test 6 mutatee depends on a platform-specific asm file
 test6.mutatee_$(NATIVE_CC): $(TEST6_AS_OBJ_GNU) 
 test6.mutatee_$(NATIVE_CXX): $(TEST6_AS_OBJ_GNU) 
 test6.mutatee_gcc: $(TEST6_AS_OBJ_GNU) 
@@ -506,6 +508,8 @@ MUTATEE_SPECIFIC_LIBS_NATIVE 	+= 14.-lpthread
 ifdef M_ABI
 MUTATEE_SPECIFIC_LIBS_GNU_ABI 	+= $(MUTATEE_TEST9_EXTRA_LIB_ABI)
 MUTATEE_SPECIFIC_LIBS_GNU_ABI	+= 12.-lpthread
+MUTATEE_SPECIFIC_LIBS_GNU_ABI += 13.-lpthread
+MUTATEE_SPECIFIC_LIBS_GNU_ABI += 14.-lpthread
 endif
 
 #######################################################################
