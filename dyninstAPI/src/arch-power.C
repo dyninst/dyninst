@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.7 2006/02/27 18:44:03 bernat Exp $
+ * $Id: arch-power.C,v 1.8 2006/02/28 16:20:47 bernat Exp $
  */
 
 #include "common/h/Types.h"
@@ -406,7 +406,7 @@ unsigned instruction::maxJumpSize() {
     // TODO: some way to do a full-range branch
     // For now, a BRL-jump'll do.
     // plus two - store r0 and restore afterwards
-    return 6*instruction::size();
+    return 4*instruction::size();
 }
 
 unsigned instruction::maxInterFunctionJumpSize() {
@@ -525,6 +525,7 @@ bool instruction::generate(codeGen &gen,
                                          0, // target: r0
                                          1, // ra: r1
                                          16); // offset
+
             }
             else {
                 // Crud.
