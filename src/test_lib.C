@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.4 2006/02/22 22:06:36 bpellin Exp $
+// $Id: test_lib.C,v 1.5 2006/02/28 17:49:53 bernat Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -691,6 +691,14 @@ void killMutatee(BPatch_thread *appThread)
 {
     int pid = appThread->getPid();
 
+    appThread->terminateExecution();
+    dprintf("Mutatee process %d killed.\n", pid);
+    return;
+
+#if 0
+    // Without the above we were receiving signals after the process
+    // was killed. This means that process::detach may be broken.
+
 #ifndef i386_unknown_nt4_0 /* Not yet implemented on NT. */
     dprintf("Detaching from process %d (leaving it running).\n", pid);
     appThread->detach(true);
@@ -725,7 +733,8 @@ void killMutatee(BPatch_thread *appThread)
 	if (kret == pid) break;
     }
 #endif
-    dprintf("Mutatee process %d killed.\n", pid);
+
+#endif
 }
 
 // Tests to see if the mutatee has defined the mutateeCplusplus flag
