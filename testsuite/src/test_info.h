@@ -39,11 +39,11 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_info.h,v 1.7 2006/02/27 18:16:51 bpellin Exp $
+// $Id: test_info.h,v 1.8 2006/02/28 03:39:33 bpellin Exp $
 #ifndef TEST_INFO_H
 #define TEST_INFO_H
 
-const unsigned int num_tests = 105;
+const unsigned int num_tests = 109;
 //const unsigned int num_tests = 80;
 //const unsigned int num_tests = 20;
 mutatee_list_t test1_mutatee;
@@ -57,6 +57,8 @@ mutatee_list_t test8_mutatee;
 mutatee_list_t test9_mutatee;
 mutatee_list_t test10_mutatee;
 mutatee_list_t test12_mutatee;
+mutatee_list_t test13_mutatee;
+mutatee_list_t test14_mutatee;
 mutatee_list_t none;
 
 /* A little bit of macro magic to get the text of the extensions out */
@@ -77,6 +79,8 @@ void initialize_mutatees()
    test9_mutatee.push_back("test9.mutatee" xstr(gnu_cc));
    test10_mutatee.push_back("test10.mutatee" xstr(gnu_cc));
    test12_mutatee.push_back("test12.mutatee" xstr(gnu_cc));
+   test13_mutatee.push_back("test13.mutatee" xstr(gnu_cc));
+   test14_mutatee.push_back("test14.mutatee" xstr(gnu_cc));
 #endif
 
 #ifdef gnu_cxx
@@ -89,6 +93,8 @@ void initialize_mutatees()
    test8_mutatee.push_back("test8.mutatee" xstr(gnu_cxx));
    test9_mutatee.push_back("test9.mutatee" xstr(gnu_cxx));
    test12_mutatee.push_back("test12.mutatee" xstr(gnu_cxx));
+   test13_mutatee.push_back("test13.mutatee" xstr(gnu_cxx));
+   test14_mutatee.push_back("test14.mutatee" xstr(gnu_cxx));
 #endif
    
 #ifdef gnu_fc
@@ -109,6 +115,8 @@ void initialize_mutatees()
    test8_mutatee.push_back("test8.mutatee" xstr(native_cc));
    test9_mutatee.push_back("test9.mutatee" xstr(native_cc));
    test12_mutatee.push_back("test12.mutatee" xstr(native_cc));
+   test13_mutatee.push_back("test13.mutatee" xstr(native_cc));
+   test14_mutatee.push_back("test14.mutatee" xstr(native_cc));
 #endif
 
 #ifdef native_cxx
@@ -121,6 +129,8 @@ void initialize_mutatees()
    test8_mutatee.push_back("test8.mutatee" xstr(native_cxx));
    test9_mutatee.push_back("test9.mutatee" xstr(native_cxx));
    test12_mutatee.push_back("test12.mutatee" xstr(native_cxx));
+   test13_mutatee.push_back("test13.mutatee" xstr(native_cxx));
+   test14_mutatee.push_back("test14.mutatee" xstr(native_cxx));
 #endif
 
 #ifdef gnu_abi_cc
@@ -304,6 +314,8 @@ test_data_t tests[] = {
    test_data_t("test12_1", "./test12_1.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 1, CREATE, DISABLED),
    test_data_t("test12_2", "./test12_2.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 2, CREATE, DISABLED),
    test_data_t("test12_3", "./test12_3.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 3, CREATE, DISABLED),
-   test_data_t("test12_4", "./test12_4.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 4, CREATE, DISABLED)
+   test_data_t("test12_4", "./test12_4.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 4, CREATE, DISABLED),
+   test_data_t("test13", "./test13.so", test13_mutatee, all_platforms, NOMUTATEE, 13, 1, CREATE, ENABLED),
+   test_data_t("test14", "./test14.so", test14_mutatee, all_platforms, NOMUTATEE, 14, 1, CREATE, ENABLED)
 };
 #endif /* TEST_INFO_H */
