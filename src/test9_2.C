@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2004 Barton P. Miller
+ * cOpyright (c) 1996-2004 Barton P. Miller
  * 
  * We provide the Paradyn Parallel Performance Tools (below
  * described as "Paradyn") on an AS IS basis, and do not warrant its
@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9_2.C,v 1.2 2006/01/30 04:55:38 bpellin Exp $
+// $Id: test9_2.C,v 1.3 2006/02/28 03:39:41 bpellin Exp $
 /*
  * #Name: test9_2
  * #Desc: Instrument many function calls and save the world
@@ -71,7 +71,6 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 #if defined(sparc_sun_solaris2_4) \
  || defined(rs6000_ibm_aix4_1) \
  || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(rs6000_ibm_aix5_1)
 	const char* child_argv[MAX_TEST+5];
 	buildArgs(child_argv, pathname, testNo);
