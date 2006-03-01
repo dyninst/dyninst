@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.70 2006/02/16 03:56:12 jodom Exp $
+// $Id: BPatch_function.C,v 1.71 2006/03/01 19:10:42 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -526,7 +526,9 @@ char *BPatch_function::getModuleNameInt(char *name, int maxLen) {
 bool BPatch_function::getLineNumbersInt(unsigned int &start, unsigned int &end) {
   char name[256];
   unsigned int length = 255;
-  return getLineAndFile(start, end, name, length);
+  // TODO!
+  //return getLineAndFile(start, end, name, length);
+  return false;
 }
 
 void *BPatch_function::getAddressInt() { return getBaseAddr(); }
