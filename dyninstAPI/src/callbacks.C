@@ -352,13 +352,32 @@ bool InternalThreadExitCallback::operator()(BPatch_process *p, BPatch_thread *t,
 }
 
 #ifdef IBM_BPATCH_COMPAT
-bool ThreadEventCallback::execute_real(void) 
+bool DPCLProcessEventCallback::execute_real(void) 
+{
+  cb(proc, a1, a2);
+  return true;
+}
+
+bool DPCLProcessEventCallback::operator()(BPatch_process *process, void *arg1, void *arg2)
+{
+  assert(lock->depth());
+  proc = process;
+  a1 = arg1;
+  a2 = arg2;
+
+  return do_it();
+}
+
+DPCLProcessEventCallback::~DPCLProcessEventCallback() {}
+
+
+bool DPCLThreadEventCallback::execute_real(void) 
 {
   cb(thr, a1, a2);
   return true;
 }
 
-bool ThreadEventCallback::operator()(BPatch_thread *thread, void *arg1, void *arg2)
+bool DPCLThreadEventCallback::operator()(BPatch_thread *thread, void *arg1, void *arg2)
 {
   assert(lock->depth());
   thr = thread;
@@ -367,4 +386,7 @@ bool ThreadEventCallback::operator()(BPatch_thread *thread, void *arg1, void *ar
 
   return do_it();
 }
+
+DPCLThreadEventCallback::~DPCLThreadEventCallback() {}
+
 #endif

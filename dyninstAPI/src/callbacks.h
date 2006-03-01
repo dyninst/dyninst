@@ -289,16 +289,35 @@ class InternalThreadExitCallback : public SyncCallback
 };
 
 #ifdef IBM_BPATCH_COMPAT
-class ThreadEventCallback : public SyncCallback 
+class DPCLProcessEventCallback : public SyncCallback 
 {  
   public:
-   ThreadEventCallback(BPatchThreadEventCallback callback) : SyncCallback(),
-      cb(callback), thr(NULL) {}
-   ThreadEventCallback(ThreadEventCallback &src) : SyncCallback(),
-      cb(src.cb), thr(NULL), a1(NULL), a2(NULL) {}
-   ~ThreadEventCallback();
+    DPCLProcessEventCallback(BPatchProcessEventCallback callback) : SyncCallback(),
+      cb(callback), proc(NULL) {}
+    DPCLProcessEventCallback(DPCLProcessEventCallback &src) : SyncCallback(),
+      cb(src.cb), proc(NULL), a1(NULL), a2(NULL) {}
+    ~DPCLProcessEventCallback();
 
-   CallbackBase *copy() { return new ThreadEventCallback(*this);}
+   CallbackBase *copy() { return new DPCLProcessEventCallback(*this);}
+   bool execute_real(void); 
+   bool operator()(BPatch_process *process, void *arg1, void *arg2);
+   BPatchProcessEventCallback getFunc() {return cb;}
+  private:    
+   BPatchProcessEventCallback cb;    
+   BPatch_process *proc;
+   void *a1, *a2;
+};
+
+class DPCLThreadEventCallback : public SyncCallback 
+{  
+  public:
+    DPCLThreadEventCallback(BPatchThreadEventCallback callback) : SyncCallback(),
+      cb(callback), thr(NULL) {}
+    DPCLThreadEventCallback(DPCLThreadEventCallback &src) : SyncCallback(),
+      cb(src.cb), thr(NULL), a1(NULL), a2(NULL) {}
+    ~DPCLThreadEventCallback();
+
+   CallbackBase *copy() { return new DPCLThreadEventCallback(*this);}
    bool execute_real(void); 
    bool operator()(BPatch_thread *thread, void *arg1, void *arg2);
    BPatchThreadEventCallback getFunc() {return cb;}
@@ -307,6 +326,7 @@ class ThreadEventCallback : public SyncCallback
    BPatch_thread *thr;
    void *a1, *a2;
 };
+
 #endif
 
 #endif
