@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.269 2006/02/27 23:15:31 bernat Exp $
+ // $Id: symtab.C,v 1.270 2006/03/01 19:32:41 nater Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1456,9 +1456,14 @@ void image::enterFunctionInTables(image_func *func, bool wasSymtab) {
     if (!func) return;
     
     funcsByEntryAddr[func->getOffset()] = func;
-    
-    // TODO: out-of-line insertion here
-    funcsByRange.insert(func);
+  
+    // Functions added during symbol table parsing do not necessarily
+    // have valid sizes set, and should therefor not be added to
+    // the code range tree. They will be added after parsing. 
+    if(!wasSymtab) {
+        // TODO: out-of-line insertion here
+        funcsByRange.insert(func);
+    }
     
     everyUniqueFunction.push_back(func);
     if (wasSymtab)
@@ -1956,10 +1961,10 @@ pdmodule *image::getOrCreateModule(const pdstring &modName,
 // for on the process level (as relocated functions are per-process)
 codeRange *image::findCodeRangeByOffset(const Address &offset) {
     codeRange *range;
+    analyzeIfNeeded();
     if (!funcsByRange.find(offset, range)) {
         return NULL;
     }
-    analyzeIfNeeded();
     return range;
 }
 
@@ -1973,10 +1978,9 @@ image_func *image::findFuncByOffset(const Address &offset)  {
 // Similar to above, but checking by entry (only). Useful for 
 // "who does this call" lookups
 image_func *image::findFuncByEntry(const Address &entry) {
-
     image_func *func;
+    analyzeIfNeeded();
     if (funcsByEntryAddr.find(entry, func)) {
-      analyzeIfNeeded();
       return func;
     } 
     else
