@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.213 2006/02/21 20:12:07 bernat Exp $
+// $Id: aix.C,v 1.214 2006/03/01 19:16:31 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -2005,6 +2005,17 @@ bool process::initMT()
 {
    unsigned i;
    bool res;
+
+   /** Check the magic environment variable.
+    *  We want AIXTHREAD_SCOPE to be "S", which means map 1:1 pthread->kernel threads.
+    *  If it isn't set, we can't track threads correctly.
+    */
+   char *thread_scope = getenv("AIXTHREAD_SCOPE");
+   if ((thread_scope == NULL) ||
+       (strcmp(thread_scope, "S") != 0)) {
+       fprintf(stderr, "Error: multithread support requires the environment variable AIXTHREAD_SCOPE to be set to \"S\".\n");
+       return false;
+   }
 
    /**
     * Instrument thread_create with calls to DYNINST_dummy_create
