@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.11 2006/02/27 23:35:11 nater Exp $
+ * $Id: image-flowGraph.C,v 1.12 2006/03/01 19:32:38 nater Exp $
  */
 
 #include <stdio.h>
@@ -111,12 +111,15 @@ bool image::analyzeImage()
     pdvector<Address> new_targets;      // call targets detected in
                                         // parseStaticCallTargets
 
+  // Parse the functions reported in the symbol table
   for (unsigned i = 0; i < everyUniqueFunction.size(); i++) {
     pdf = everyUniqueFunction[i];
     mod = pdf->pdmod();
     assert(pdf); assert(mod);
     pdstring name = pdf->symTabName();
     parseFunction( pdf, callTargets, preParseStubs);
+    // these functions have not been added to the code range tree
+    funcsByRange.insert(pdf);
   }      
  
   // callTargets now holds a big list of target addresses; some are already
@@ -384,7 +387,7 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
                 parsing_printf(" ***** Adding %s (0x%lx) to tables\n",
                     pdf->symTabName().c_str(),pdf->getOffset());
 
-                enterFunctionInTables(pdf,true);
+                enterFunctionInTables(pdf,false);
 
                 addFunctionName(pdf, pdf->symTabName().c_str(), true); // mangled name
                 pdf->addPrettyName( pdf->symTabName().c_str() ); // Auto-adds to our list
@@ -734,7 +737,8 @@ bool image_func::buildCFG(
         else
         {
             // non-stub block must have previously been parsed
-            parseSharedBlocks(currBlk, leaders, leadersToBlock, visited);
+            parseSharedBlocks(currBlk, leaders, leadersToBlock, 
+                              visited, funcEnd);
             continue;
         }
 
@@ -892,12 +896,8 @@ bool image_func::buildCFG(
                 parsing_printf("... indirect jump at 0x%lx\n", currAddr);
 
                 if( currAddr >= funcEnd )
-                    funcEnd = currAddr + insnSize;
+                    funcEnd = ah.peekNext();
     
-                // TODO: verify this isn't necessary for x86 (or anything)
-                // anymore
-                // checkIfRelocatable( ah.getInstruction(), canBeRelocated_ );
-
                 // FIXME: these tests were specific to x86 originally, should
                 // they remain x86-only?
                 numInsns = allInstructions.size() - 2;
@@ -925,8 +925,6 @@ bool image_func::buildCFG(
                 // get the list of targets
                 if(!archGetMultipleJumpTargets(targets,currBlk,ah,allInstructions))
                 {
-                    // XXX temporarily disabling
-                    //isInstrumentable_ = false;
                     canBeRelocated_ = false;
                 }
                 
@@ -963,7 +961,7 @@ bool image_func::buildCFG(
                 //currBlk->blockEndOffset_ = currAddr + insnSize;
 
                 if( currAddr >= funcEnd )
-                    funcEnd = currAddr + insnSize;
+                    funcEnd = ah.peekNext();
 
                 Address target = ah.getBranchTargetAddress();
 
@@ -1045,7 +1043,6 @@ bool image_func::buildCFG(
                     
                 if( currAddr >= funcEnd )
                     funcEnd = ah.peekNext();
-                    //funcEnd = currAddr + insnSize;
                 
                     parsing_printf("... making new exit point at 0x%lx\n", currAddr);                
                 p = new image_instPoint( currAddr, 
@@ -1063,7 +1060,9 @@ bool image_func::buildCFG(
             {
                 currBlk->lastInsnOffset_ = currAddr;
                 currBlk->blockEndOffset_ = ah.peekNext();
-                //currBlk->blockEndOffset_ = currAddr + insnSize;
+
+                if( currAddr >= funcEnd )
+                    funcEnd = ah.peekNext();
 
                 parsing_printf("... 0x%lx is a call\n", currAddr);
                 
@@ -1155,6 +1154,9 @@ bool image_func::buildCFG(
                 currBlk->lastInsnOffset_ = currAddr;
                 currBlk->blockEndOffset_ = ah.peekNext();
                 //currBlk->blockEndOffset_ = currAddr + insnSize;
+
+                if( currAddr >= funcEnd )
+                    funcEnd = ah.peekNext();
             
                 // FIXME should this really be an exit point if this
                 // instruction causes the program to error and terminate?
@@ -1329,7 +1331,8 @@ image_func * image_func::FindOrCreateFunc(Address target,
 void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
                 BPatch_Set< Address > &leaders,
                 dictionary_hash< Address, image_basicBlock * > &leadersToBlock,
-                BPatch_Set< image_basicBlock* > &parserVisited)
+                BPatch_Set< image_basicBlock* > &parserVisited,
+                Address & funcEnd)
 {
     pdvector< image_basicBlock * > WL;
     pdvector< image_edge * > targets;
@@ -1345,7 +1348,7 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
     WL.push_back(firstBlock);
     visited.insert(firstBlock);
 
-    parsing_printf("Parsing shared code at 0x%lx, blockList size: %ld\n",firstBlock->firstInsnOffset_, blockList.size());
+    parsing_printf("Parsing shared code at 0x%lx, blockList size: %ld startoffset: 0x%lx endoffset: 0x%lx\n",firstBlock->firstInsnOffset_, blockList.size(), startOffset_, endOffset_);
 
     // remember that we have shared blocks
     containsSharedBlocks_ = true;
@@ -1380,7 +1383,7 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
         }
         if((tmpInstPt = curBlk->getRetInstPoint()) != NULL)
         {
-                    parsing_printf("... copying exit point at 0x%lx\n", tmpInstPt->offset());                
+            parsing_printf("... copying exit point at 0x%lx\n", tmpInstPt->offset());                
             cpyInstPt = new image_instPoint(tmpInstPt->offset(),
                                     tmpInstPt->insn(),
                                     this,
@@ -1395,8 +1398,8 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
         parsing_printf("XXXX adding pre-parsed block %d (0x%lx) to blocklist\n",
                 curBlk->id(),curBlk->firstInsnOffset_);
         // update "function end"
-        if(endOffset_ < curBlk->blockEndOffset_)
-            endOffset_ = curBlk->blockEndOffset_;
+        if(funcEnd < curBlk->blockEndOffset_)
+            funcEnd = curBlk->blockEndOffset_;
         parserVisited.insert(curBlk);
 
         targets.clear();
@@ -1430,5 +1433,6 @@ void image_func::parseSharedBlocks(image_basicBlock * firstBlock)
     BPatch_Set< image_basicBlock* > pv;
     dictionary_hash< Address, image_basicBlock * > leadersToBlock( addrHash );
 
-    parseSharedBlocks(firstBlock,leaders,leadersToBlock,pv);  
+    endOffset_ = startOffset_;
+    parseSharedBlocks(firstBlock,leaders,leadersToBlock,pv,endOffset_);  
 }
