@@ -1283,7 +1283,14 @@ void BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
           }
 #ifdef IBM_BPATCH_COMPAT
           // A different prototype...
-          ThreadEventCallback *tcb = dynamic_cast<ThreadEventCallback *>(cbs[i]);
+          DPCLProcessEventCallback *pcb = dynamic_cast<DPCLProcessEventCallback *>(cbs[i]);
+          if (pcb) {
+              pcb->setTargetThread(TARGET_UI_THREAD);
+              pcb->setSynchronous(false);
+              (*pcb)(bproc, (void *)info->getUserData(), (void *)returnValue);
+          }
+          // A different prototype...
+          DPCLThreadEventCallback *tcb = dynamic_cast<DPCLThreadEventCallback *>(cbs[i]);
           if (tcb) {
               tcb->setTargetThread(TARGET_UI_THREAD);
               tcb->setSynchronous(false);

@@ -89,6 +89,7 @@ typedef void (*BPatchLoggingCallback)(char *msg, int);
 extern void setLogging_NP(BPatchLoggingCallback func, int);
 
 typedef void (*BPatchThreadEventCallback)(BPatch_thread *thr, void *arg1, void *arg2);
+typedef void (*BPatchProcessEventCallback)(BPatch_process *proc, void *arg1, void *arg2);
 
 #define BP_OK			0
 #define BP_Pending		1
@@ -565,12 +566,28 @@ public:
     BPatch_stats &,getBPatchStatistics,());
 
 #ifdef IBM_BPATCH_COMPAT
-#ifdef NOTDEF // PDSEP
-    BPatchThreadEventCallback           RPCdoneCallback;
-#endif
 
     API_EXPORT(Int, (),
     int,getLastErrorCode,());
+
+    // New-style, BPatch_process versions. Use these.
+
+    API_EXPORT(Int, (cb),
+    BPatchProcessEventCallback,registerDetachDoneCallback,(BPatchProcessEventCallback cb)); 
+
+    API_EXPORT(Int, (cb),
+    BPatchProcessEventCallback,registerSnippetRemovedCallback,(BPatchProcessEventCallback cb));
+
+    API_EXPORT(Int, (func, sigNum),
+    BPatchProcessEventCallback,registerSignalCallback,(BPatchProcessEventCallback func, int sigNum)); 
+
+    API_EXPORT(DPCL, (func),
+    BPatchProcessEventCallback,registerExitCallback,(BPatchProcessEventCallback func));
+
+    API_EXPORT(Int, (cb),
+    BPatchProcessEventCallback,registerRPCTerminationCallback,(BPatchProcessEventCallback cb));
+
+    // DEPRECATED!!!
 
     API_EXPORT(Int, (cb),
     BPatchThreadEventCallback,registerDetachDoneCallback,(BPatchThreadEventCallback cb)); 
