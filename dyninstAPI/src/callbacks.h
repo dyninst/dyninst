@@ -303,7 +303,7 @@ class ThreadEventCallback : public SyncCallback
    bool operator()(BPatch_thread *thread, void *arg1, void *arg2);
    BPatchThreadEventCallback getFunc() {return cb;}
   private:    
-   BPatchAsyncThreadEventCallback cb;    
+   BPatchThreadEventCallback cb;    
    BPatch_thread *thr;
    void *a1, *a2;
 };
