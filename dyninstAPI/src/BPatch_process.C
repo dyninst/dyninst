@@ -1275,32 +1275,27 @@ void BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
       pdvector<CallbackBase *> cbs;
       getCBManager()->dispenseCallbacksMatching(evtOneTimeCode, cbs);
       for (unsigned int i = 0; i < cbs.size(); ++i) {
-        OneTimeCodeCallback &cb = * ((OneTimeCodeCallback *) cbs[i]);
-        cb.setTargetThread(TARGET_UI_THREAD);
-        cb.setSynchronous(false);
-        cb(bproc->threads[0], info->getUserData(), returnValue);
+          OneTimeCodeCallback *cb = dynamic_cast<OneTimeCodeCallback *>(cbs[i]);
+          if (cb) {
+              cb->setTargetThread(TARGET_UI_THREAD);
+              cb->setSynchronous(false);
+              (*cb)(bproc->threads[0], info->getUserData(), returnValue);
+          }
+#ifdef IBM_BPATCH_COMPAT
+          // A different prototype...
+          ThreadEventCallback *tcb = dynamic_cast<ThreadEventCallback *>(cbs[i]);
+          if (tcb) {
+              tcb->setTargetThread(TARGET_UI_THREAD);
+              tcb->setSynchronous(false);
+              (*tcb)(bproc->threads[0], (void *)info->getUserData(), (void *)returnValue);
+          }
+#endif
+
       }
 
       delete info;
    }
 
-#ifdef IBM_BPATCH_COMPAT
-   pdvector<void *> *args2 = new pdvector<void *>;
-   args2->push_back((void *)bproc);
-   args2->push_back((void *)userData);
-   args2->push_back((void *)returnValue);
-
-   pdvector<CallbackRecord *> cbs;
-   if ( getCBManager()->dispenseCallbacksMatching(evtRPCSignal, cbs)) {
-     for (unsigned int i = 0; i < cbs.size(); ++i) {
-       if (!getMailbox()->executeOrRegisterCallback(cbs[i]->cb, args, NULL, cbs[i]->target_thread_id, __FILE__, __LINE__)) {
-         fprintf(stderr, "%s[%d]: error registering callback\n", __FILE__, __LINE__);
-       }
-         fprintf(stderr, "%s[%d]:  registered/exec'd cb %p\n", __FILE__, __LINE__, (void*) cbs[i]->cb);
-     }
-   }
-
-#endif
   if (need_to_unlock)
      global_mutex->_Unlock(FILE__, __LINE__);
 }
