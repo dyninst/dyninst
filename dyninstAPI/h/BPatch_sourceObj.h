@@ -44,12 +44,11 @@
 
 #include "BPatch_dll.h"
 #include <BPatch_Vector.h>
-#ifdef IBM_BPATCH_COMPAT
-#include "BPatch_point.h"
-#endif
 
 class BPatch_type;
 class BPatch_variableExpr;
+class BPatch_point;
+
 #ifdef IBM_BPATCH_COMPAT
 #define BPatch_unknownLanguage BPatch_language_unknown
 #endif
