@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.13 2006/02/27 23:35:13 nater Exp $
+// $Id: image-func.h,v 1.14 2006/03/01 19:32:39 nater Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -287,10 +287,8 @@ class image_func : public codeRange {
 
    // coderange needs a get_address...
    Address get_address_cr() const { return getOffset();}
-   unsigned get_size_cr() const { return symTabSize_; } // May be
-                                                        // incorrect
-                                                        // but is
-                                                        // consistent.
+   unsigned get_size_cr() const { return endOffset_ - startOffset_; }
+
    void *getPtrToInstruction(Address addr) const;
 
 
@@ -318,7 +316,8 @@ class image_func : public codeRange {
    void image_func::parseSharedBlocks(image_basicBlock * firstBlock,
                 BPatch_Set< Address > &leaders,
                 dictionary_hash< Address, image_basicBlock * > &leadersToBlock,
-                BPatch_Set< image_basicBlock* > &parserVisited);
+                BPatch_Set< image_basicBlock* > &parserVisited,
+                Address & funcEnd);
    void image_func::parseSharedBlocks(image_basicBlock * firstBlock);
 
    // Helper function: create a new basic block and add to various data
