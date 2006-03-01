@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.196 2006/02/23 02:54:38 nater Exp $
+// $Id: linux.C,v 1.197 2006/03/01 23:35:35 mjbrim Exp $
 
 #include <fstream>
 
@@ -347,7 +347,7 @@ int SignalGenerator::find_dead_lwp()
 pid_t SignalGenerator::waitpid_kludge(pid_t pid_arg, int *status, int options, int *dead_lwp)
 {
   pid_t ret = 0;
-  int wait_options = options;
+  int wait_options = options | WNOHANG;
 
   do {
    *dead_lwp = find_dead_lwp();
@@ -397,6 +397,9 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
                                 &status, wait_options, &dead_lwp );
   __LOCK;
   waiting_for_event = false;
+  if (WIFSTOPPED(status))
+     proccontrol_printf("waitpid - %d stopped with %d\n", waitpid_pid, 
+                        WSTOPSIG(status));
 
   if (waitpid_pid < 0 && errno == ECHILD) {
      fprintf(stderr, "%s[%d]:  waitpid failed with ECHILD\n", __FILE__, __LINE__);
@@ -596,15 +599,29 @@ bool SignalGenerator::suppressSignalWhenStopping(EventRecord &ev)
  
   bool suppressed_something = false;
 
-  //  signals that we do not suppress
+  if ( ev.what == SIGSTOP )
+     return suppressed_something;
+
+#if defined(arch_x86)
   //  SIGTRAP here should rewind the pc by one...  check this
-  if (   ev.what == SIGILL
-      || ev.what == SIGTRAP
-      || ev.what == SIGSTOP
-      || ev.what == SIGFPE
-      || ev.what == SIGSEGV
-      || ev.what == SIGBUS )
-    return suppressed_something;
+  if( ev.what == SIGTRAP )
+     ev.lwp->changePC(ev.lwp->getActiveFrame().getPC() - 1, NULL);
+#endif     
+
+  ev.lwp->continueLWP_(0, true);
+  ev.proc->set_lwp_status(ev.lwp, running);
+
+  if ( ev.what == SIGILL  || 
+       ev.what == SIGTRAP || 
+       ev.what == SIGFPE  || 
+       ev.what == SIGSEGV || 
+       ev.what == SIGBUS ) {
+     // We don't actually throw back signals that are caused by 
+     // executing an instruction.  We can just drop these and
+     // let the continueLWP_ re-execute the instruction and cause
+     // it to be rethrown.
+     return suppressed_something;
+  }
 
   suppressed_sigs.push_back(ev.what);
   suppressed_lwps.push_back(ev.lwp);
@@ -635,7 +652,7 @@ bool dyn_lwp::removeSigStop()
   return (lwp_kill(get_lwp_id(), SIGCONT) == 0);
 }
 
-bool dyn_lwp::continueLWP_(int signalToContinueWith) 
+bool dyn_lwp::continueLWP_(int signalToContinueWith, bool ignore_suppress) 
 {
    proccontrol_printf("%s[%d]:  ContinuingLWP_ %d with %d\n", FILE__, __LINE__,
           get_lwp_id(), signalToContinueWith);
@@ -648,16 +665,16 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith)
       arg4 = signalToContinueWith;
    }
 
-   if (proc()->sh->waitingForStop())
-   {
-     fprintf(stderr, "%s[%d]:  suppressing continue\n", FILE__, __LINE__);
-     return false;
+   if (! ignore_suppress) {
+      if (proc()->sh->waitingForStop())
+      {
+         fprintf(stderr, "%s[%d]:  suppressing continue\n", FILE__, __LINE__);
+         return false;
+      }
    }
 
    if (status() == exited)
-   {
       return true;
-   }
 
    ptraceOps++; 
    ptraceOtherOps++;
@@ -700,13 +717,14 @@ bool dyn_lwp::waitUntilStopped()
   }
   sh->setWaitingForStop(false);
   sh->resendSuppressedSignals();
+
   return true;
 }
 
 bool dyn_lwp::stop_() 
 {
   proccontrol_printf("%s[%d][%s]:  welcome to stop_, about to lwp_kill(%d, %d)\n",
-          FILE__, __LINE__, getThreadStr(getExecThreadID()), get_lwp_id(), SIGCONT);
+          FILE__, __LINE__, getThreadStr(getExecThreadID()), get_lwp_id(), SIGSTOP);
   return (lwp_kill(get_lwp_id(), SIGSTOP) == 0);
 } 
 
@@ -716,12 +734,13 @@ bool process::continueProc_(int sig)
   dyn_lwp *lwp;
   unsigned index = 0; 
 
-  //Continue all real LWPs
+   //Continue all real LWPs
   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
   while (lwp_iter.next(index, lwp))
   {
     if (lwp->status() == running || lwp->status() == exited)
       continue;
+
     bool result = lwp->continueLWP(sig);
     if (result)
       set_lwp_status(lwp, running);
@@ -820,7 +839,6 @@ bool process::waitUntilLWPStops()
   ((SignalGenerator *)sh)->resendSuppressedSignals();
 
   return true;
-
 }
 
 terminateProcStatus_t process::terminateProc_()
