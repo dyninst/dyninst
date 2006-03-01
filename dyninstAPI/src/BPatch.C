@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.121 2006/02/27 23:15:23 bernat Exp $
+// $Id: BPatch.C,v 1.122 2006/03/01 19:10:41 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -604,24 +604,6 @@ BPatchOneTimeCodeCallback BPatch::registerOneTimeCodeCallbackInt(BPatchOneTimeCo
     return ret;
 }
 
-#ifdef IBM_BPATCH_COMPAT
-BPatchExitCallback BPatch::registerExitCallbackDPCL(BPatchThreadEventCallback func)
-{
-
-    BPatchExitCallback ret = NULL;
-
-    ExitCallback *cb = new ExitCallback(func);
-    pdvector<CallbackBase *> cbs;
-    getCBManager()->removeCallbacks(evtProcessExit, cbs);
-    getCBManager()->registerCallback(evtProcessExit, cb);
-    if (cbs.size()) {
-      ExitCallback *fcb = (ExitCallback *) cbs[0];
-      ret =  fcb->getFunc();
-    }
-
-    return ret;
-}
-#endif
 
 /*
  * BPatch::registerDynLibraryCallback
@@ -1026,10 +1008,21 @@ void BPatch::registerNormalExit(process *proc, int exitcode)
    cbs.clear();
    getCBManager()->dispenseCallbacksMatching(evtProcessExit,cbs);
    for (unsigned int i = 0; i < cbs.size(); ++i) {
-     ExitCallback &cb = *((ExitCallback *) cbs[i]);
-     signal_printf("%s[%d]:  about to register/wait for exit callback\n", FILE__, __LINE__);
-     cb(process->threads[0], ExitedNormally);
-     signal_printf("%s[%d]:  exit callback done\n", FILE__, __LINE__);
+       ExitCallback *cb = dynamic_cast<ExitCallback *>(cbs[i]);
+       if (cb) {
+           signal_printf("%s[%d]:  about to register/wait for exit callback\n", FILE__, __LINE__);
+           (*cb)(process->threads[0], ExitedNormally);
+           signal_printf("%s[%d]:  exit callback done\n", FILE__, __LINE__);
+       }
+#if defined(IBM_BPATCH_COMPAT)
+       // A different (compatibility) callback type. 
+       ThreadEventCallback *tcb = dynamic_cast<ThreadEventCallback *>(cbs[i]);
+       if (tcb) {
+           signal_printf("%s[%d]:  about to register/wait for exit callback\n", FILE__, __LINE__);
+           (*tcb)(process->threads[0], NULL, NULL);
+           signal_printf("%s[%d]:  exit callback done\n", FILE__, __LINE__);
+       }
+#endif           
    }
 
    continueIfExists(pid);
@@ -1721,21 +1714,48 @@ bool BPatch::waitUntilStoppedInt(BPatch_thread *appThread){
 
 #ifdef IBM_BPATCH_COMPAT
 
+BPatchThreadEventCallback BPatch::registerExitCallbackDPCL(BPatchThreadEventCallback func)
+{
+
+    BPatchThreadEventCallback ret = NULL;
+
+    ThreadEventCallback *cb = new ThreadEventCallback(func);
+    pdvector<CallbackBase *> cbs;
+    getCBManager()->removeCallbacks(evtProcessExit, cbs);
+    getCBManager()->registerCallback(evtProcessExit, cb);
+    if (cbs.size()) {
+        ThreadEventCallback *fcb = dynamic_cast<ThreadEventCallback *>(cbs[0]);
+        if (!fcb) return NULL;
+        ret =  fcb->getFunc();
+    }
+    
+    return ret;
+}
+
 /*
  * Register a function to call when an RPC (i.e. oneshot) is done.
  *
  * dyninst version is a callback that is defined for BPatch_thread
  *
  */
+
 BPatchThreadEventCallback BPatch::registerRPCTerminationCallbackInt(BPatchThreadEventCallback func)
 {
-    BPatchThreadEventCallback ret;
+    BPatchThreadEventCallback ret = NULL;
 
-    ret = RPCdoneCallback;
-    RPCdoneCallback = func;
-
+    ThreadEventCallback *cb = new ThreadEventCallback(func);
+    pdvector<CallbackBase *> cbs;
+    getCBManager()->removeCallbacks(evtOneTimeCode, cbs);
+    getCBManager()->registerCallback(evtOneTimeCode, cb);
+    if (cbs.size()) {
+        ThreadEventCallback *fcb = dynamic_cast<ThreadEventCallback *>(cbs[0]);
+        if (!fcb) return NULL;
+        ret =  fcb->getFunc();
+    }
+    
     return ret;
 }
+
 
 void setLogging_NP(BPatchLoggingCallback, int)
 {
