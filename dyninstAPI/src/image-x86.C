@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.15 2006/02/12 22:24:32 jodom Exp $
+ * $Id: image-x86.C,v 1.16 2006/03/01 19:32:40 nater Exp $
  */
 
 #include "common/h/Vector.h"
@@ -186,12 +186,12 @@ bool image_func::archCheckEntry( InstrucIter &ah, image_func *func )
 // parse this function.
 bool image_func::archIsUnparseable()
 {
-    if( !isInstrumentableByFunctionName() || getSymTabSize() == 0 )
+    if( !isInstrumentableByFunctionName() /* || getSymTabSize() == 0 */ )
     {   
         if (!isInstrumentableByFunctionName())
             parsing_printf("... uninstrumentable by func name\n");
-        if (getSymTabSize() == 0)
-            parsing_printf("... uninstrumentable, size equals zero\n");
+        //if (getSymTabSize() == 0)
+        //    parsing_printf("... uninstrumentable, size equals zero\n");
         endOffset_ = startOffset_;
         isInstrumentable_ = false;
 
