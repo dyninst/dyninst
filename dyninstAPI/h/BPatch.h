@@ -582,7 +582,7 @@ public:
     BPatchThreadEventCallback,registerSignalCallback,(BPatchThreadEventCallback func, int sigNum)); 
 
     API_EXPORT(DPCL, (func),
-    BPatchExitCallback,registerExitCallback,(BPatchThreadEventCallback func));
+    BPatchThreadEventCallback,registerExitCallback,(BPatchThreadEventCallback func));
 
     API_EXPORT(Int, (cb),
     BPatchThreadEventCallback,registerRPCTerminationCallback,(BPatchThreadEventCallback cb));
