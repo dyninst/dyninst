@@ -40,7 +40,7 @@
  */
 
 
-// $Id: image-sparc.C,v 1.8 2006/01/20 00:12:23 nater Exp $
+// $Id: image-sparc.C,v 1.9 2006/03/01 19:32:42 nater Exp $
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -179,7 +179,7 @@ bool image_func::archIsRealCall(InstrucIter &ah, bool &validTarget)
     return true;
 }                                
                                  
-bool image_func::archCheckEntry( InstrucIter &ah, image_func *func )                                    
+bool image_func::archCheckEntry( InstrucIter &ah, image_func * /* func */ )                                    
 {                                                              
     return ah.getInstruction().valid();
 }
@@ -201,7 +201,7 @@ bool image_func::archAvoidParsing()
     return false;
 }
 
-void image_func::archGetFuncEntryAddr(Address &funcEntryAddr)
+void image_func::archGetFuncEntryAddr(Address & /* funcEntryAddr */)
 {
     return;
 }
@@ -211,7 +211,7 @@ bool image_func::archNoRelocate()
     return false;
 }
 
-void image_func::archSetFrameSize(int frameSize)
+void image_func::archSetFrameSize(int /* frameSize */)
 {
     return;
 }
@@ -222,9 +222,9 @@ void image_func::archSetFrameSize(int frameSize)
 // data flow operation.
 bool image_func::archGetMultipleJumpTargets(
                                 BPatch_Set< Address >& targets,
-                                image_basicBlock * currBlk,
+                                image_basicBlock * /* currBlk */,
                                 InstrucIter &ah,
-                                pdvector< instruction >& allInstructions)
+                                pdvector< instruction >& /* allInstructions */)
 {
     return ah.getMultipleJumpTargets( targets );
 }
@@ -239,7 +239,7 @@ bool image_func::archGetMultipleJumpTargets(
 // Currently, this function returns false regardless of whether the
 // instruction matches our tail call heuristics.
 bool image_func::archIsATailCall(InstrucIter &ah,
-                                 pdvector< instruction >& allInstructions)
+                                 pdvector< instruction >& /* allInstructions */)
 {
     if( CallRestoreTC(ah.getInstruction(), ah.getNextInstruction()) ||
         JmpNopTC(ah.getInstruction(), ah.getNextInstruction(), *ah, this) ||            MovCallMovTC(ah.getInstruction(), ah.getNextInstruction())) 
@@ -253,7 +253,7 @@ bool image_func::archIsATailCall(InstrucIter &ah,
 }
 
 // not implemented?
-bool image_func::archIsIndirectTailCall(InstrucIter &ah)
+bool image_func::archIsIndirectTailCall(InstrucIter & /* ah */)
 {
     return false;
 }
@@ -278,7 +278,8 @@ void image_func::archInstructionProc(InstrucIter &ah)
     }
 }
 
-bool image_func::archProcExceptionBlock(Address &catchStart, Address a)
+bool image_func::archProcExceptionBlock(Address & /* catchStart */, 
+                                        Address /* a */)
 {
     return false;
 }
