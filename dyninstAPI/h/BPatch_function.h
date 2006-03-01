@@ -264,7 +264,7 @@ public:
 #ifdef IBM_BPATCH_COMPAT
     API_EXPORT(Int, (start, end),
 
-    virtual bool,getLineNumbers,(unsigned int &start, unsigned int &end));
+    bool,getLineNumbers,(unsigned int &start, unsigned int &end));
 
     API_EXPORT(Int, (),
 
