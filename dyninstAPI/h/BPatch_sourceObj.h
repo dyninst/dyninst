@@ -109,10 +109,10 @@ class BPATCH_DLL_EXPORT BPatch_sourceObj {
       //int getNameLen();
 
 #ifdef IBM_BPATCH_COMPAT
- virtual bool getAddressRange(void*& _startAddress, void*& _endAddress) {return false;}
- virtual bool getLineNumbers(unsigned int &_startLine, unsigned int  &_endLine) {return false;}
- virtual void getIncPoints(BPatch_Vector<BPatch_point *> &vect) {return;}
- virtual void getExcPoints(BPatch_Vector<BPatch_point *> &vect) {return;}
+      virtual bool getAddressRange(void*& /*_startAddress*/, void*& /*_endAddress*/) {return false;}
+      virtual bool getLineNumbers(unsigned int & /*_startLine*/, unsigned int  & /*_endLine*/) {return false;}
+      virtual void getIncPoints(BPatch_Vector<BPatch_point *> & /*vect*/) {return;}
+      virtual void getExcPoints(BPatch_Vector<BPatch_point *> & /*vect*/) {return;}
 #endif
   protected:
       enum BPatch_sourceType _srcType;
