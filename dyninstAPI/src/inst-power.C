@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.240 2006/02/17 17:17:06 rutar Exp $
+ * $Id: inst-power.C,v 1.241 2006/03/02 23:52:33 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -1539,19 +1539,19 @@ Register emitFuncCall(opCode /* ocode */,
    // Set up the new TOC value
 
    emitVload(loadConstOp, toc_anchor, 2, 2, gen, false);
-   inst_printf("toc setup (%d)...");
+   //inst_printf("toc setup (%d)...");
 
    // generate a branch to the subroutine to be called.
    // load r0 with address, then move to link reg and branch and link.
 
    emitVload(loadConstOp, callee_addr, 0, 0, gen, false);
-   inst_printf("addr setup (%d)....");
+   //inst_printf("addr setup (%d)....");
   
    // Move to link register
    instruction mtlr0(MTLR0raw);
    mtlr0.generate(gen);
    
-   inst_printf("mtlr0 (%d)...");
+   //inst_printf("mtlr0 (%d)...");
 
    // Linear Scan on the functions to see which registers get clobbered
      
