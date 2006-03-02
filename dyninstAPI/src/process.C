@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.586 2006/03/02 20:00:12 tlmiller Exp $
+// $Id: process.C,v 1.587 2006/03/02 23:52:35 bernat Exp $
 
 #include <ctype.h>
 
@@ -5232,6 +5232,7 @@ void process::unregisterInstPointAddr(Address addr, instPoint *inst) {
     }
 }
 
+#if 0
 void process::installInstrRequests(const pdvector<instMapping*> &requests) {
     for (unsigned lcv=0; lcv < requests.size(); lcv++) {
         instMapping *req = requests[lcv];
@@ -5312,6 +5313,101 @@ void process::installInstrRequests(const pdvector<instMapping*> &requests) {
         }
     }
 }
+#endif
+
+void process::installInstrRequests(const pdvector<instMapping*> &requests) {
+    // Anyone know why we're explicitly backing off on this?
+    bool mtramp = BPatch::bpatch->isMergeTramp();
+    BPatch::bpatch->setMergeTramp(false);
+
+
+    for (unsigned lcv=0; lcv < requests.size(); lcv++) {
+
+        instMapping *req = requests[lcv];
+        pdvector<miniTramp *> minis;
+        
+        if(!multithread_capable() && req->is_MTonly())
+            continue;
+        
+        pdvector<int_function *> matchingFuncs;
+        
+        findFuncsByAll(req->func, matchingFuncs, req->lib);
+        
+        for (unsigned funcIter = 0; funcIter < matchingFuncs.size(); funcIter++) {
+            int_function *func = matchingFuncs[funcIter];
+            if (!func) {
+                continue;  // probably should have a flag telling us whether errors
+            }
+            
+            // should be silently handled or not
+            AstNode *ast;
+            if ((req->where & FUNC_ARG) && req->args.size()>0) {
+                ast = new AstNode(req->inst, req->args);
+            } else {
+                AstNode *tmp = new AstNode(AstNode::Constant, (void*)0);
+                ast = new AstNode(req->inst, tmp);
+                removeAst(tmp);
+            }
+            if (req->where & FUNC_EXIT) {
+                const pdvector<instPoint*> func_rets = func->funcExits();
+                for (unsigned j=0; j < func_rets.size(); j++) {
+                    miniTramp *mt = func_rets[j]->addInst(ast,
+                                                          req->when,
+                                                          req->order,
+                                                          (!req->useTrampGuard),
+                                                          false);
+                    if (mt) 
+                        minis.push_back(mt);
+                }
+            }
+            
+            if (req->where & FUNC_ENTRY) {
+                const pdvector<instPoint *> func_entries = func->funcEntries();
+                for (unsigned k=0; k < func_entries.size(); k++) {
+                    miniTramp *mt = func_entries[k]->addInst(ast,
+                                                             req->when,
+                                                             req->order,
+                                                             (!req->useTrampGuard),
+                                                             false);
+                    if (mt) 
+                        minis.push_back(mt);
+                }
+            }
+            
+            if (req->where & FUNC_CALL) {
+                pdvector<instPoint*> func_calls = func->funcCalls();
+                for (unsigned l=0; l < func_calls.size(); l++) {
+                    miniTramp *mt = func_calls[l]->addInst(ast,
+                                                           req->when,
+                                                           req->order,
+                                                           (!req->useTrampGuard),
+                                                           false);
+                    if (mt) 
+                        minis.push_back(mt);
+                }
+            }
+            
+            removeAst(ast);
+            
+            }
+        
+        for (unsigned m = 0; m < minis.size(); m++) {
+            miniTramp *mt = minis[m];
+            
+            if (!mt->instP->generateInst())
+                continue;
+            if (!mt->instP->installInst())
+                continue;
+            if (!mt->instP->linkInst())
+                continue;
+            
+            req->miniTramps.push_back(mt);
+        }
+    }
+
+    BPatch::bpatch->setMergeTramp(mtramp);
+}
+
 
 
 bool process::extractBootstrapStruct(DYNINST_bootstrapStruct *bs_record)
