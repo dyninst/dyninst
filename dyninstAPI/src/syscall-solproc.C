@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-solproc.C,v 1.12 2006/02/24 19:59:34 bernat Exp $
+// $Id: syscall-solproc.C,v 1.13 2006/03/02 23:52:37 bernat Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -55,7 +55,9 @@
 
 
 #include "dyninstAPI/src/symtab.h"
-#define FORK_FUNC "__fork"
+
+#define FORK_FUNC "fork"
+#define FORK_LIB  "libc.a"
 
 syscallNotification::syscallNotification(syscallNotification *parentSN,
                                          process *child) :
@@ -127,7 +129,8 @@ bool syscallNotification::installPostFork() {
     AstNode *returnVal = new AstNode(AstNode::ReturnVal, (void *)0);
     postForkInst = new instMapping(FORK_FUNC, "DYNINST_instForkExit",
                                    FUNC_EXIT|FUNC_ARG,
-                                   returnVal);
+                                   returnVal,
+                                   FORK_LIB);
     postForkInst->dontUseTrampGuard();
     removeAst(returnVal);
     
