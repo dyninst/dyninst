@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.141 2006/02/23 00:14:07 legendre Exp $
+// $Id: BPatch_thread.C,v 1.142 2006/03/02 20:00:06 tlmiller Exp $
 
 #define BPATCH_FILE
 
@@ -70,9 +70,9 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
    pdvector<Frame> stackWalk;   
    bool was_stopped = false;
 
-   was_stopped = proc->isStopped();
+   was_stopped = proc->llproc->isStopped();
    if (!was_stopped)
-      proc->stopExecutionInt();
+      proc->llproc->pause();
 
    if (!llthread->walkStack(stackWalk) ) {
      fprintf(stderr, "%s[%d]: ERROR doing stackwalk\n", FILE__, __LINE__);
@@ -150,7 +150,7 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
       }
    }
    if (!was_stopped)
-      proc->continueExecution();
+      proc->llproc->continueProc();
    return true;
 }
 
