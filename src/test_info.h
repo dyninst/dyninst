@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_info.h,v 1.8 2006/02/28 03:39:33 bpellin Exp $
+// $Id: test_info.h,v 1.9 2006/03/02 15:08:46 bpellin Exp $
 #ifndef TEST_INFO_H
 #define TEST_INFO_H
 
@@ -315,7 +315,7 @@ test_data_t tests[] = {
    test_data_t("test12_2", "./test12_2.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 2, CREATE, DISABLED),
    test_data_t("test12_3", "./test12_3.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 3, CREATE, DISABLED),
    test_data_t("test12_4", "./test12_4.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 4, CREATE, DISABLED),
-   test_data_t("test13", "./test13.so", test13_mutatee, all_platforms, NOMUTATEE, 13, 1, CREATE, ENABLED),
-   test_data_t("test14", "./test14.so", test14_mutatee, all_platforms, NOMUTATEE, 14, 1, CREATE, ENABLED)
+   test_data_t("test13_1", "./test13_1.so", test13_mutatee, all_platforms, NOMUTATEE, 13, 1, CREATE, ENABLED),
+   test_data_t("test14_1", "./test14_1.so", test14_mutatee, all_platforms, NOMUTATEE, 14, 1, CREATE, ENABLED)
 };
 #endif /* TEST_INFO_H */
