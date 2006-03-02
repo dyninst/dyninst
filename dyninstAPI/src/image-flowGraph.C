@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.12 2006/03/01 19:32:38 nater Exp $
+ * $Id: image-flowGraph.C,v 1.13 2006/03/02 21:50:31 nater Exp $
  */
 
 #include <stdio.h>
@@ -1236,12 +1236,6 @@ image_func * image_func::bindCallTarget(
 
     if(image_->basicBlocksByRange.find(target,tmpRange))
     {
-        if(tmpRange->get_size_cr() == 0)
-        {
-            printf("zero-size basic block found at 0x%lx\n",tmpRange->get_address_cr());
-            assert(0);
-        }
-
         ph_callTarget =       
             dynamic_cast<image_basicBlock*>(tmpRange);
         
