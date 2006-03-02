@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.71 2006/03/01 19:10:42 bernat Exp $
+// $Id: BPatch_function.C,v 1.72 2006/03/02 19:35:17 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -196,11 +196,11 @@ char *BPatch_function::getNameBuffer(char *s, int len)
 #ifdef IBM_BPATCH_COMPAT
 const char *BPatch_function::getNameDPCL()
 {
-  char n[1024];
-  getName(n, 1023)[1023]='\0';
-  return n;
+    assert(func);
+    return func->prettyName().c_str();
 }
 #endif
+
 /*
  * BPatch_function::getMangledName
  *
@@ -220,7 +220,7 @@ char *BPatch_function::getMangledNameInt(char *s, int len)
 }
 
 /*
- * BPatch_function::getMangledName
+ * BPatch_function::getTypedName
  *
  * Copies the mangled name of the function into a buffer, up to a given maximum
  * length.  Returns a pointer to the beginning of the buffer that was
@@ -235,6 +235,51 @@ char *BPatch_function::getTypedNameInt(char *s, int len)
   pdstring typedname = func->typedName();
   strncpy(s, typedname.c_str(), len);
   return s;
+}
+
+
+/*
+ * BPatch_function::getNames
+ *
+ * Copies all names of the function into the provided BPatch_Vector.
+ * Names are represented as const char *s and are
+ * allocated/deallocated by Dyninst.
+ *
+ * names           BPatch_Vector reference
+ */
+
+bool BPatch_function::getNamesInt(BPatch_Vector<const char *> &names)
+{
+    assert(func);
+    int pre_size = names.size();
+
+    for (unsigned i = 0; i < func->prettyNameVector().size(); i++) {
+        names.push_back(func->prettyNameVector()[i].c_str());
+    }
+
+    return names.size() > pre_size;
+}
+
+/*
+ * BPatch_function::getMangledNames
+ *
+ * Copies all mangled names of the function into the provided
+ * BPatch_Vector.  Names are represented as const char *s and are
+ * allocated/deallocated by Dyninst.
+ *
+ * names           BPatch_Vector reference
+ */
+
+bool BPatch_function::getMangledNamesInt(BPatch_Vector<const char *> &names)
+{
+    assert(func);
+    int pre_size = names.size();
+
+    for (unsigned i = 0; i < func->symTabNameVector().size(); i++) {
+        names.push_back(func->symTabNameVector()[i].c_str());
+    }
+
+    return names.size() > pre_size;
 }
 
 
