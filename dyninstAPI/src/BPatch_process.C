@@ -1627,6 +1627,21 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(
    }
 
    //Update the non-esential values for the thread
+   // /* DEBUG */ fprintf( stderr, "%s[%d]: start address = 0x%lx\n", __FILE__, __LINE__, start_addr );
+#if defined( arch_ia64 )
+	/* On IA-64, function pointers point to descriptors.  Since we could
+	   segfault the mutatee it we derefenced start_addr there, do so here. */
+	Address functionEntry = 0;
+	bool readDataSpace = llproc->readDataSpace( (void *) start_addr, sizeof( Address ), & functionEntry, false );
+	if( readDataSpace ) {
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: function entry actually 0x%lx\n", __FILE__, __LINE__, functionEntry );
+		start_addr = functionEntry;
+		}
+	else {
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: unable to read function descriptor at 0x%lx\n", __FILE__, __LINE__, start_addr );
+		}
+#endif
+   
    BPatch_function *initial_func = getImage()->findFunction(start_addr);
    if (!initial_func) {
      //fprintf(stderr, "%s[%d][%s]:  WARNING:  no function at %p found for thread\n",
