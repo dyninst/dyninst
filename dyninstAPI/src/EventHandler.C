@@ -216,14 +216,13 @@ bool InternalThread::createThread()
     return false;
   }
 
-#if defined (os_solaris) 
   err = pthread_attr_setdetachstate(&handler_thread_attr, PTHREAD_CREATE_DETACHED);
   if (err) {
     bperr("%s[%d]:  could not set async handler thread attrixibcutes: %s, %d\n",
           __FILE__, __LINE__, strerror(err), err);
     return false;
   }
-#endif
+
   try {
   err = pthread_create(&handler_thread, &handler_thread_attr,
                        &eventHandlerWrapper, (void *) this);
