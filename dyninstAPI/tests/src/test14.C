@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
    }
    else
    {
-       fprintf(stdout, "Passed test #1 (Multithreawded tramp guards)\n");
+       fprintf(stdout, "Passed test #1 (Multithweaded tramp guards)\n");
        fprintf(stdout, "All tests passed.\n");
    }
    return 0;
