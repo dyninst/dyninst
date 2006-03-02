@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.270 2006/03/01 19:32:41 nater Exp $
+ // $Id: symtab.C,v 1.271 2006/03/02 21:34:17 nater Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2000,7 +2000,7 @@ image_basicBlock *image::findBlockByAddr(const Address &addr) {
 
 const pdvector<image_func *> *image::findFuncVectorByPretty(const pdstring &name) {
     if (funcsByPretty.defines(name)) {
-        analyzeIfNeeded();
+        //analyzeIfNeeded();
         return funcsByPretty[name];
     }
     
@@ -2018,7 +2018,7 @@ const pdvector <image_func *> *image::findFuncVectorByMangled(const pdstring &na
   bperr( "%s[%d]:  inside findFuncVectorByMangled\n", __FILE__, __LINE__);
 #endif
   if (funcsByMangled.defines(name)) {
-      analyzeIfNeeded();
+      //analyzeIfNeeded();
       return funcsByMangled[name];
   }
   
