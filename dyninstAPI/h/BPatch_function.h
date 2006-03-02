@@ -142,6 +142,22 @@ public:
 
     char *,getTypedName,(char *s, int len));
 
+    // BPatch_function::getNames
+    // Adds all names of the function (inc. weak symbols) to the
+    // provided vector. Names are represented as const char *s,
+    // and do not require cleanup by the user.
+
+    API_EXPORT(Int, (names),
+    bool, getNames, (BPatch_Vector<const char *> &names));
+
+    // BPatch_function::getMangledNames
+    // Adds all mangled names of the function (inc. weak symbols) to
+    // the provided vector. Names are represented as const char *s,
+    // and do not require cleanup by the user.
+
+    API_EXPORT(Int, (names),
+    bool, getMangledNames, (BPatch_Vector<const char *> &names));
+
     //  BPatch_function::getBaseAddr
     //  Returns base address of function
     API_EXPORT(Int, (),
