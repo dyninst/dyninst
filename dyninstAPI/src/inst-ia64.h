@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-ia64.h,v 1.15 2004/12/02 00:57:07 tlmiller Exp $
+// $Id: inst-ia64.h,v 1.16 2006/03/02 20:00:10 tlmiller Exp $
 
 #ifndef INST_IA64_H
 #define INST_IA64_H
@@ -141,9 +141,10 @@ class IA64_iterator {
 		IA64_bundle currentBundle;
 }; /* end class IA64_iterator */
 
+class dyn_lwp;
 /* Necessary for get and restore registers() to Do The Right Thing
    for inferior RPCs. */
-bool needToHandleSyscall( process * proc, bool * pcMayHaveRewound = NULL );
+bool needToHandleSyscall( dyn_lwp * lwp, bool * pcMayHaveRewound = NULL );
 
 /* Handle machine-encoded offsets correctly. */
 uint64_t signExtend( bool signBit, uint64_t immediate );

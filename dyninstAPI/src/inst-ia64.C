@@ -1941,18 +1941,18 @@ bool generatePreservationTrailer( codeGen &gen, bool * whichToPreserve, unw_dyn_
 } /* end generatePreservationTrailer() */
 
 /* Originally from linux-ia64.C's executingSystemCall(). */
-bool needToHandleSyscall( process * proc, bool * pcMayHaveRewound ) {
+bool needToHandleSyscall( dyn_lwp * lwp, bool * pcMayHaveRewound ) {
   ia64_bundle_t rawBundle;
   uint64_t iip, ri;
   int64_t pr;
 
   // Bad things happen if you use ptrace on a running process.
-  assert( proc->status() == stopped );
-  errno = 0;
-
+  assert( lwp->status() == stopped );
+	
   // Find the correct bundle.
-  iip = getPC( proc->getPid() );
-  reg_tmpl reg = { getDBI()->ptrace( PTRACE_PEEKUSER, proc->getPid(), PT_CR_IPSR, 0 ) };
+  errno = 0;
+  iip = getPC( lwp->get_lwp_id() );
+  reg_tmpl reg = { getDBI()->ptrace( PTRACE_PEEKUSER, lwp->get_lwp_id(), PT_CR_IPSR, 0, -1, &errno ) };
   if( errno && (reg.raw == ((unsigned long)-1)) ) {
 	// Error reading process information.  Should we assert here?
 	assert(0);
@@ -1966,13 +1966,13 @@ bool needToHandleSyscall( process * proc, bool * pcMayHaveRewound ) {
 	else { * pcMayHaveRewound = false; }
   }
 
-  // Read bundle data
-  if( ! proc->readDataSpace( (void *)iip, 16, (void *)&rawBundle, true ) ) {
-	// Could have gotten here because the mutatee stopped right
-	// after a jump to the beginning of a memory segment (aka,
-	// no previous bundle).  But, that can't happen from a syscall.
-	return false;
-  }
+	// Read bundle data
+	if( ! lwp->proc()->readDataSpace( (void *)iip, 16, (void *)&rawBundle, true ) ) {
+		// Could have gotten here because the mutatee stopped right
+		// after a jump to the beginning of a memory segment (aka,
+		// no previous bundle).  But, that can't happen from a syscall.
+		return false;
+		}
 
   // Isolate previous instruction.
   ri = (ri + 2) % 3;
@@ -1980,10 +1980,10 @@ bool needToHandleSyscall( process * proc, bool * pcMayHaveRewound ) {
   instruction *insn = origBundle.getInstruction(ri);
 
   // Determine predicate register and remove it from instruction.
-	pr = getDBI()->ptrace( PTRACE_PEEKUSER, proc->getPid(), PT_PR, 0 );
+	pr = getDBI()->ptrace( PTRACE_PEEKUSER, lwp->get_lwp_id(), PT_PR, 0 );
   if (errno && pr == -1) assert(0);
   pr = ( pr >> insn->getPredicate() ) & 0x1;
-
+  
   return (insn->getType() == instruction::SYSCALL && pr);
 } /* end needToHandleSyscall() */
 
@@ -2399,9 +2399,12 @@ extern void initBaseTrampStorageMap( registerSpace *, int, bool * );
 
 /* Required by process.C */
 bool rpcMgr::emitInferiorRPCheader( codeGen &gen ) {
+	dyn_lwp * lwpToUse = gen.getLWP() != NULL ? gen.getLWP() : proc_->getRepresentativeLWP();
+	assert( lwpToUse->status() == stopped );
+	
 	/* Extract the CFM. */
 	errno = 0;
-	reg_tmpl reg = { getDBI()->ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CFM, 0 ) };
+	reg_tmpl reg = { getDBI()->ptrace( PTRACE_PEEKUSER, lwpToUse->get_lwp_id(), PT_CFM, 0 ) };
 	if( errno != 0 ) { return false; } // note that this doesn't work.
 
 	/* FIXME: */ if( ! ( 0 == reg.CFM.rrb_pr == reg.CFM.rrb_fr == reg.CFM.rrb_gr ) ) { assert( 0 ); }
@@ -2430,8 +2433,8 @@ bool rpcMgr::emitInferiorRPCheader( codeGen &gen ) {
 
 	memcpy( ::deadRegisterList, deadRegisterList, 16 * sizeof( Register ) );
 
-	if( needToHandleSyscall( proc_ ) ) {
-		if( ! emitSyscallHeader( proc_, gen) ) { return false; }
+	if( needToHandleSyscall( lwpToUse ) ) {
+		if( ! emitSyscallHeader( proc_, gen ) ) { return false; }
 		}
 	else {
 		/* We'll be adjusting the PC to the start of the preservation code,
@@ -2520,6 +2523,9 @@ bool rpcMgr::emitInferiorRPCtrailer( codeGen &gen,
 									 unsigned & breakOffset, bool shouldStopForResult,
 									 unsigned & stopForResultOffset,
 									 unsigned & justAfter_stopForResultOffset ) {
+	dyn_lwp * lwpToUse = gen.getLWP() != NULL ? gen.getLWP() : proc_->getRepresentativeLWP();
+	assert( lwpToUse->status() == stopped );
+	
   /* We'll need two of these. */
   IA64_bundle trapBundle = generateTrapBundle();
 
@@ -2536,9 +2542,7 @@ bool rpcMgr::emitInferiorRPCtrailer( codeGen &gen,
 	/* Determine which of the scratch (f6 - f15, f32 - f127) floating-point
 	   registers need to be preserved.  See comment in emitInferiorRPCHeader()
 	   for why we don't actually do this. */
-	// Address interruptedAddress = getPC( proc_->getPid() );
-	// int_function * interruptedFunction = proc_->findFuncByAddr( interruptedAddress );
-  bool * whichToPreserve = NULL; // doFloatingPointStaticAnalysis( interruptedFunction->funcEntry( proc_ ) );
+  bool * whichToPreserve = NULL;
 
   /* Generate the restoration code. */
   
@@ -2548,13 +2552,13 @@ bool rpcMgr::emitInferiorRPCtrailer( codeGen &gen,
 	 corresponding to ipsr.ri so that the mutatee resumes in the correct
 	 location after the daemon adjusts its PC. */
   errno = 0;
-	reg_tmpl reg = { getDBI()->ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CR_IPSR, 0 ) };
+	reg_tmpl reg = { getDBI()->ptrace( PTRACE_PEEKUSER, lwpToUse->get_lwp_id(), PT_CR_IPSR, 0 ) };
   assert( ! errno );
   uint64_t slotNo = reg.PSR.ri;
   assert( slotNo <= 2 );
 
-  if( needToHandleSyscall( proc_ ) ) {
-	if( ! emitSyscallTrailer(gen, slotNo ) ) { return false; }
+  if( needToHandleSyscall( lwpToUse ) ) {
+	if( ! emitSyscallTrailer( gen, slotNo ) ) { return false; }
 	breakOffset = gen.used() - 16;
   }
   else {
@@ -2671,7 +2675,7 @@ bool baseTramp::generateGuardPostCode(codeGen &gen, codeBufIndex_t &postIndex,
 							   generateShortConstantInRegister( trampGuardFlagValue, 1 ),
 							   generateLongConstantInRegister( trampGuardFlagAddr, proc()->trampGuardBase() ));
 								 
-  IA64_bundle guardOnBundle05(	MstopMIstop,
+  IA64_bundle guardOffBundle05(	MstopMIstop,
 								generateShiftLeftAndAdd( trampGuardFlagAddr, rs->getRegSlot( 0 )->number - 1, 3, trampGuardFlagAddr ),
 								instruction( NOP_M ),
 								instruction( NOP_I ) );
@@ -2682,6 +2686,7 @@ bool baseTramp::generateGuardPostCode(codeGen &gen, codeBufIndex_t &postIndex,
 							   instruction( NOP_I ));
 
   guardOffBundle0.generate(gen);
+  guardOffBundle05.generate(gen);
   guardOffBundle1.generate(gen);
   postIndex = gen.getIndex();
   return true;
@@ -3461,10 +3466,22 @@ bool process::MonitorCallSite( instPoint * callSite ) {
 	return worstCost;
   }
 
-  /**
-   * Fills in an indirect function pointer at 'addr' to point to 'f'.
-   **/
-  bool writeFunctionPtr( process *, Address, int_function * ) {
-	/* FIXME */ fprintf( stderr, "%s[%d]: FIXME writeFunctionPtr() unimplemented.\n", __FILE__, __LINE__ );
+/**
+  * Fills in an indirect function pointer at 'addr' to point to 'f'.
+ **/
+bool writeFunctionPtr( process * proc, Address fnptr, int_function * func ) {
+	/* IA-64 function pointers actually point to structures.  We insert such
+	   a structure in the mutatee so that instrumentation can use it. */
+	Address entryPoint = (Address)func->getAddress();
+	Address gp = proc->getTOCoffsetInfo( entryPoint );
+	
+	Address remoteAddress = proc->inferiorMalloc( sizeof( Address ) * 2 );
+	if( ((void *) remoteAddress) == NULL ) { return false; }
+	
+	proc->writeDataSpace( (void *) remoteAddress, sizeof( Address ), & entryPoint );
+	proc->writeDataSpace( (void *) (remoteAddress + sizeof( Address )), sizeof( Address ), & gp );
+
+	proc->writeDataSpace( (void *) fnptr, sizeof( Address ), & remoteAddress );
+	
 	return true;
-  } /* end writeFunctionPtr() */
+	} /* end writeFunctionPtr() */
