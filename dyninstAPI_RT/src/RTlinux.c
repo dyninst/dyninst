@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.38 2006/02/23 00:14:19 legendre Exp $
+ * $Id: RTlinux.c,v 1.39 2006/03/02 20:00:21 tlmiller Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -291,8 +291,9 @@ static pthread_offset_t positions[POS_ENTRIES] = { { 72, 476, 516, 576 },
                                                    { 72, 476, 516, 80 } };
 #else
 //x86_64 and ia64 share structrues
-#define POS_ENTRIES 1
-static pthread_offset_t positions[POS_ENTRIES] = { { 144, 952, 1008, 160 } };
+#define POS_ENTRIES 2
+static pthread_offset_t positions[POS_ENTRIES] = { { 144, 952, 1008, 160 },
+                                                   { 144, 148, 1000, 160 } };
 #endif
 
 int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
@@ -307,11 +308,15 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
   
   for (i = 0; i < POS_ENTRIES; i++)
   {
-     if ((READ_FROM_BUF(positions[i].pid_pos, pid_t) != ev->ppid) ||
-         (READ_FROM_BUF(positions[i].lwp_pos, int) != ev->lwp))
+     pid_t pid = READ_FROM_BUF(positions[i].pid_pos, pid_t);
+     int lwp = READ_FROM_BUF(positions[i].lwp_pos, int);
+     if( pid != ev->ppid || lwp != ev->lwp ) {
+        // /* DEBUG */ fprintf( stderr, "%s[%d]: pid %d != ev->ppid %d or lwp %d != ev->lwp %d\n", __FILE__, __LINE__, pid, ev->ppid, lwp, ev->lwp );
         continue;
+        }
      ev->stack_addr = READ_FROM_BUF(positions[i].stck_start_pos, void *);
      ev->start_pc = READ_FROM_BUF(positions[i].start_func_pos, void *);
+     // /* DEBUG */ fprintf( stderr, "%s[%d]: stack_addr %p, start_pc %p\n", __FILE__, __LINE__, ev->stack_addr, ev->start_pc );
      return 1;
   }
   
@@ -321,9 +326,7 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
     //how to read the information from the positions structure above.
     //It needs a new entry filled in.  Running the commented out program
     //that follows this function can help you collect the necessary data.
-    RTprintf(stderr, "[%s:%d] Unable to parse the pthread_t structure for this"
-	    " version of libpthread.  Making a best guess effort.\n", 
-	    __FILE__, __LINE__);
+    RTprintf( stderr, "[%s:%d] Unable to parse the pthread_t structure for this version of libpthread.  Making a best guess effort.\n",  __FILE__, __LINE__ );
     err_printed = 1;
   }
    
