@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.123 2006/03/01 22:38:38 bernat Exp $
+// $Id: BPatch.C,v 1.124 2006/03/02 20:00:03 tlmiller Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1083,7 +1083,7 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
 }
 
 
-void BPatch::registerThreadExit(process *proc, int tid)
+void BPatch::registerThreadExit(process *proc, long tid)
 {
     if (!proc)
         return;
