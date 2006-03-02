@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.14 2006/02/27 23:35:14 nater Exp $
+// $Id: reloc-func.C,v 1.15 2006/03/02 23:52:36 bernat Exp $
 
 // We'll also try to limit this to relocation-capable platforms
 // in the Makefile. Just in case, though....
@@ -79,6 +79,13 @@ bool int_function::relocationGenerate(pdvector<funcMod *> &mods,
                                       pdvector< int_function *> &needReloc)
 {
     bool ret;
+
+#if defined(os_aix)
+    // Once we've relocated once, we're good... there's a new function version
+    // near the heap. The code will blithely relocate a bazillion times, too. 
+    if (version() > 0)
+        return true;
+#endif
 
     // process this function (with mods)
     ret = relocationGenerateInt(mods,sourceVersion,needReloc);
@@ -587,6 +594,13 @@ bool bblInstance::install() {
                 maxSize(), generatedBlock().used());
     }
     assert(generatedBlock().used() == maxSize());
+
+    reloc_printf("(%d) Writing from 0x%lx 0x%lx to 0x%lx 0x%lx\n",
+                 proc()->getPid(),
+                 generatedBlock().start_ptr(), 
+                 (long) generatedBlock().start_ptr() + generatedBlock().used(),
+                 firstInsnAddr_,
+                 firstInsnAddr_ + generatedBlock().used());
     
     bool success = proc()->writeTextSpace((void *)firstInsnAddr_,
                                           generatedBlock().used(),
