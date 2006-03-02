@@ -40,7 +40,7 @@
  */
 
 
-// $Id: templates2.C,v 1.61 2006/02/10 08:34:19 jaw Exp $
+// $Id: templates2.C,v 1.62 2006/03/02 20:00:18 tlmiller Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -234,3 +234,8 @@ template class pdvector<dictionary_hash <int, multiTramp *>::entry>;
 class replacedFunctionCall;
 template class dictionary_hash<Address, replacedFunctionCall *>;
 template class pdvector<dictionary_hash<Address, replacedFunctionCall *>::entry>;
+
+#if defined( arch_ia64 )
+template class dictionary_hash< Address, void * >;
+template class pdvector< dictionary_hash< Address, void * >::entry >;
+#endif /* defined( arch_ia64 ) */
