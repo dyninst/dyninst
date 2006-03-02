@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.585 2006/02/23 00:14:12 legendre Exp $
+// $Id: process.C,v 1.586 2006/03/02 20:00:12 tlmiller Exp $
 
 #include <ctype.h>
 
@@ -1920,7 +1920,11 @@ process::~process()
         assert(!isAttached());
 
 #if defined( ia64_unknown_linux2_4 )
-	if( unwindProcessArg != NULL ) { getDBI()->UPTdestroy( unwindProcessArg ); }
+	upaIterator iter = unwindProcessArgs.begin();
+	for( ; iter != unwindProcessArgs.end(); ++iter ) {
+		void * unwindProcessArg = * iter;
+		if( unwindProcessArg != NULL ) { getDBI()->UPTdestroy( unwindProcessArg ); }
+		}
 	if( unwindAddressSpace != NULL ) { getDBI()->destroyUnwindAddressSpace( unwindAddressSpace ); }
 #endif
     
@@ -1997,8 +2001,8 @@ process::process(SignalGenerator *sh_) :
     threadIndexAddr(0),
     trampGuardBase_(0)
 #if defined(arch_ia64)
-    , unwindAddressSpace(NULL) // Automatically created in getActiveFrame
-    , unwindProcessArg(NULL) // And this one too
+    , unwindAddressSpace( NULL )
+    , unwindProcessArgs( addrHash )
 #endif
 #if defined(os_linux)
     , vsys_status_(vsys_unknown)
@@ -2551,8 +2555,8 @@ process::process(const process *parentProc, SignalGenerator *sg_, int childTrace
     threadIndexAddr(parentProc->threadIndexAddr),
     trampGuardBase_(parentProc->trampGuardBase_)
 #if defined(arch_ia64)
-    , unwindAddressSpace(NULL) // Recreated automatically in getActiveFrame
-    , unwindProcessArg(NULL) // And this
+    , unwindAddressSpace( NULL )
+    , unwindProcessArgs( addrHash )
 #endif
 #if defined(os_linux)
     , vsyscall_start_(parentProc->vsyscall_start_)

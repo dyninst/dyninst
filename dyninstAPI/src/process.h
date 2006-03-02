@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.356 2006/02/24 03:49:05 jaw Exp $
+/* $Id: process.h,v 1.357 2006/03/02 20:00:13 tlmiller Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1165,7 +1165,8 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
 
 #if defined( arch_ia64 )
   unw_addr_space * unwindAddressSpace;
-  void * unwindProcessArg;
+  dictionary_hash< Address, void * > unwindProcessArgs;
+  typedef dictionary_hash< Address, void * >::iterator upaIterator;
   
   bool insertAndRegisterDynamicUnwindInformation( unw_dyn_info_t * unwindInformation );
 #endif

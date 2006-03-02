@@ -73,8 +73,8 @@ bool changePC( int pid, Address loc ) {
 
 bool dyn_lwp::changePC( Address loc, dyn_saved_regs * regs ) {
   if( regs != NULL ) { restoreRegisters( *regs ); }
-
-  return ::changePC( proc_->getPid(), loc );
+  
+  return ::changePC( get_lwp_id(), loc );
 } /* end changePC() */
 
 /* This should really be printRegisters().  I also have to admit
@@ -97,23 +97,25 @@ bool dyn_lwp::executingSystemCall() {
  * We must support running arbitrary code.
  */
 bool dyn_lwp::getRegisters_( struct dyn_saved_regs *regs ) {
-  errno = 0;
-  regs->pc = getDBI()->ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CR_IIP, 0 );
-  assert( ! errno );
+	assert( status_ == stopped );
 
-  /* If the PC may have rewound, handle it intelligently. */
-  needToHandleSyscall( proc_, & regs->pcMayHaveRewound );
+	errno = 0;
+	regs->pc = getDBI()->ptrace( PTRACE_PEEKUSER, get_lwp_id(), PT_CR_IIP, 0, -1, & errno );
+	assert( ! errno );
+
+	/* If the PC may have rewound, handle it intelligently. */
+	needToHandleSyscall( this, & regs->pcMayHaveRewound );
 	
-  /* We use the basetramp preservation code in our inferior RPCs, so we
-     don't have to preserve anything.  The only exception is the predicate
-     registers, because we may need them to handle system calls correctly.
-     (We predicate break instructions based on if the kernel attempted to
-     restart the system call.) */
-  regs->pr = getDBI()->ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_PR, 0 );
-  assert( ! errno );
+	/* We use the basetramp preservation code in our inferior RPCs, so we
+	   don't have to preserve anything.  The only exception is the predicate
+	   registers, because we may need them to handle system calls correctly.
+	   (We predicate break instructions based on if the kernel attempted to
+	   restart the system call.) */
+	regs->pr = getDBI()->ptrace( PTRACE_PEEKUSER, get_lwp_id(), PT_PR, 0, -1, & errno );
+	assert( ! errno );
 
-  return true;
-} /* end getRegisters_() */
+	return true;
+	} /* end getRegisters_() */
 
 bool dyn_lwp::restoreRegisters_( const struct dyn_saved_regs &regs ) {
   /* Restore the PC. */
@@ -127,7 +129,7 @@ bool dyn_lwp::restoreRegisters_( const struct dyn_saved_regs &regs ) {
        is correct.  If it's 2, then the PC rewound and we adjust
        adjust regs->pc appropriately.  No other cases are possible. */
     errno = 0;
-    uint64_t ipsr = getDBI()->ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CR_IPSR, 0 );
+    uint64_t ipsr = getDBI()->ptrace( PTRACE_PEEKUSER, get_lwp_id(), PT_CR_IPSR, 0, -1, & errno );
     assert( ! errno );
 
     uint64_t ipsr_ri = (ipsr & 0x0000060000000000) >> 41;
@@ -150,7 +152,7 @@ bool dyn_lwp::restoreRegisters_( const struct dyn_saved_regs &regs ) {
   } /* end if pcMayHaveRewound */
 
   /* Restore the predicate registers. */
-  int status = getDBI()->ptrace( PTRACE_POKEUSER, proc_->getPid(), PT_PR, regs.pr );
+  int status = getDBI()->ptrace( PTRACE_POKEUSER, get_lwp_id(), PT_PR, regs.pr );
   assert( status == 0 );
 		
   return true;
@@ -170,7 +172,7 @@ void dyn_lwp::dumpRegisters()
 
 Address getPC( int pid ) {
   errno = 0;
-  Address pc = getDBI()->ptrace( PTRACE_PEEKUSER, pid, PT_CR_IIP, 0 );
+  Address pc = getDBI()->ptrace( PTRACE_PEEKUSER, pid, PT_CR_IIP, 0, -1, & errno );
   assert( ! errno );
 
   return pc;
@@ -247,18 +249,18 @@ Address dyn_lwp::readRegister( Register reg ) {
 
   /* Acquire the BSP. */
   errno = 0;
-  Address bsp = getDBI()->ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_AR_BSP, 0 );
+  Address bsp = getDBI()->ptrace( PTRACE_PEEKUSER, get_lwp_id(), PT_AR_BSP, 0, -1, & errno );
   assert( ! errno );
 
   /* Acquire the CFM. */
-  reg_tmpl tmpl = { getDBI()->ptrace( PTRACE_PEEKUSER, proc_->getPid(), PT_CFM, 0 ) };
+  reg_tmpl tmpl = { getDBI()->ptrace( PTRACE_PEEKUSER, get_lwp_id(), PT_CFM, 0, -1, & errno ) };
   assert( ! errno );
 
   /* Calculate the address of the register. */
   Address addressOfReg = calculateRSEOffsetFromBySlots( bsp, (-1 * tmpl.CFM.sof) + (reg - 32) );
 
   /* Acquire and return the value of the register. */
-  Address value = getDBI()->ptrace( PTRACE_PEEKTEXT, proc_->getPid(), addressOfReg, 0 );
+  Address value = getDBI()->ptrace( PTRACE_PEEKTEXT, get_lwp_id(), addressOfReg, 0, -1, & errno );
   assert( ! errno );
   return value;
 } /* end readRegister */
@@ -362,44 +364,44 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
 } /* end createFrameFromUnwindCursor() */
 
 Frame dyn_lwp::getActiveFrame() {
-  int status = 0;
-  process * proc = proc_;
+	int status = 0;
+	process * proc = proc_;
 	
-  /* DEBUG  fprintf( stderr, "%s[%d]: getActiveFrame(): working on process %d\n", __FILE__, __LINE__, proc->getPid() ); */
+	assert( status_ == stopped );
 
-  /* Initialize the unwinder. */
-  if( proc->unwindAddressSpace == NULL ) {
-    // /* DEBUG */ fprintf( stderr, "getActiveFrame(): Creating unwind address space for process pid %d\n", proc->getPid() );
-    proc->unwindAddressSpace = (unw_addr_space *) getDBI()->createUnwindAddressSpace( & _UPT_accessors, 0 );
-    assert( proc->unwindAddressSpace != NULL );
-  }
-	
-  if( proc->unwindProcessArg == NULL ) {
-    // /* DEBUG */ fprintf( stderr, "getActiveFrame(): Creating unwind context for process pid %d\n", proc->getPid() );
-    // proc->unwindProcessArg = getDBI()->UPTcreate( proc->getPid() );
-    // /* DEBUG */ fprintf( stderr, "getActiveFrame(): Creating unwind context for lwp id %d\n", get_lwp_id );
-    proc->unwindProcessArg = getDBI()->UPTcreate( get_lwp_id() );
-    assert( proc->unwindProcessArg != NULL );
-  }
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: getActiveFrame(): working on lwp %d\n", __FILE__, __LINE__, get_lwp_id() );
 
-  /* Allocate an unwindCursor for this stackwalk. */
-  unw_cursor_t * unwindCursor = (unw_cursor_t *)malloc( sizeof( unw_cursor_t ) );
-  assert( unwindCursor != NULL );
+	/* Initialize the unwinder. */
+	if( proc->unwindAddressSpace == NULL ) {
+		// /* DEBUG */ fprintf( stderr, "getActiveFrame(): Creating unwind address space for process pid %d\n", proc->getPid() );
+		proc->unwindAddressSpace = (unw_addr_space *) getDBI()->createUnwindAddressSpace( & _UPT_accessors, 0 );
+		assert( proc->unwindAddressSpace != NULL );
+		}
+    
+	/* Initialize the thread-specific accessors. */
+	unsigned lid = get_lwp_id();
+	if( ! proc->unwindProcessArgs.defines( lid ) ) {
+		proc->unwindProcessArgs[ lid ] = getDBI()->UPTcreate( lid );
+		assert( proc->unwindProcessArgs[ lid ] != NULL );
+		}
+
+	/* Allocate an unwindCursor for this stackwalk. */
+	unw_cursor_t * unwindCursor = (unw_cursor_t *)malloc( sizeof( unw_cursor_t ) );
+	assert( unwindCursor != NULL );
 		
-  /* Initialize it to the active frame. */
-  status = getDBI()->initFrame( unwindCursor, proc->unwindAddressSpace, proc->unwindProcessArg );
- 
-  assert( status == 0 );
+	/* Initialize it to the active frame. */
+	status = getDBI()->initFrame( unwindCursor, proc->unwindAddressSpace, proc->unwindProcessArgs[ lid ] );
+	assert( status == 0 );
 	
-  /* Generate a Frame from the unwinder. */
-  Frame currentFrame = createFrameFromUnwindCursor( unwindCursor, this, proc->getPid() );
+	/* Generate a Frame from the unwinder. */
+	Frame currentFrame = createFrameFromUnwindCursor( unwindCursor, this, lid );
 	
-  /* createFrameFromUnwindCursor() copies the unwind cursor into the Frame it returns */
-  free( unwindCursor );
+	/* createFrameFromUnwindCursor() copies the unwind cursor into the Frame it returns */
+	free( unwindCursor );
 	
-  /* Return the result. */
-  return currentFrame;
-} /* end getActiveFrame() */
+	/* Return the result. */
+	return currentFrame;
+	} /* end getActiveFrame() */
 
 #define DLOPEN_MODE		(RTLD_NOW | RTLD_GLOBAL)
 #define DLOPEN_CALL_LENGTH	4
@@ -493,7 +495,7 @@ bool process::loadDYNINSTlib() {
     } /* end if enviromental variable not found */
   } /* end enviromental variable extraction */
         
-  /* Save the current PC. */
+  /* Save the (main thread's) current PC.*/
   savedPC = getPC( getPid() );	
         
   /* _dl_open() takes three arguments: a pointer to the library name,
@@ -595,7 +597,7 @@ bool process::loadDYNINSTlib() {
   InsnAddr jAddr = InsnAddr::generateFromAlignedDataAddress( codeBase, this );
   jAddr.writeBundlesFrom( (unsigned char *)gen.start_ptr(), gen.used() / 16 );
 
-  /* Now that we know where the code will start, move the PC there. */
+  /* Now that we know where the code will start, move the (main thread's) PC there. */
   changePC( getPid(), dlopencall_addr );
 
   /* Let them know we're working on it. */
@@ -613,7 +615,7 @@ bool process::loadDYNINSTlibCleanup(dyn_lwp * /*ignored*/) {
   InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( entry, this );
   iAddr.writeBundlesFrom( savedCodeBuffer, sizeof(savedCodeBuffer) / 16 );
 
-  /* Continue execution at the correct point. */
+  /* Continue (the main thread's) execution at the correct point. */
   pid_t pid = getPid();
   changePC( pid, savedPC );
 
@@ -648,146 +650,94 @@ bool Frame::setPC( Address addr ) {
 #include <baseTramp.h>	
 #include <instPoint.h>
 Frame Frame::getCallerFrame() {
-  int status = 0;
+	int status = 0;	
+	assert( lwp_->status() == stopped );
 
-  /* Initialize the unwinder. */
-  if( getProc()->unwindAddressSpace == NULL ) {
-    // /* DEBUG */ fprintf( stderr, "Creating unwind address space for process pid %d\n", proc->getPid() );
-    getProc()->unwindAddressSpace = (unw_addr_space *)getDBI()->createUnwindAddressSpace( & _UPT_accessors, 0 );
-    assert( getProc()->unwindAddressSpace != NULL );
-  }
+	/* Initialize the unwinder. */
+	if( getProc()->unwindAddressSpace == NULL ) {
+		// /* DEBUG */ fprintf( stderr, "Creating unwind address space for process pid %d\n", proc->getPid() );
+		getProc()->unwindAddressSpace = (unw_addr_space *)getDBI()->createUnwindAddressSpace( & _UPT_accessors, 0 );
+		assert( getProc()->unwindAddressSpace != NULL );
+		}
 	
-  if( getProc()->unwindProcessArg == NULL ) {
-    // /* DEBUG */ fprintf( stderr, "Creating unwind context for process pid %d\n", proc->getPid() );
-    getProc()->unwindProcessArg = getDBI()->UPTcreate( getProc()->getPid() );
-    assert( getProc()->unwindProcessArg != NULL );
-  }
-	
-  /* Generating the synthetic frame above the instrumentation is in cross-platform code. */
+	/* Initialize the thread-specific accessors. */
+	unsigned lid = lwp_->get_lwp_id();
+	if( ! getProc()->unwindProcessArgs.defines( lid ) ) {
+		getProc()->unwindProcessArgs[ lid ] = getDBI()->UPTcreate( lid );
+		assert( getProc()->unwindProcessArgs[ lid ] != NULL );
+		}
+		
+	/* Generating the synthetic frame above the instrumentation is in cross-platform code. */
 
-  Frame currentFrame;
-  if( ! this->hasValidCursor ) {
-    /* DEBUG */ fprintf( stderr, "%s[%d]: no valid cursor in frame, regenerating.\n", __FILE__, __LINE__ );
+	Frame currentFrame;
+	if( ! this->hasValidCursor ) {
+		/* DEBUG */ fprintf( stderr, "%s[%d]: no valid cursor in frame, regenerating.\n", __FILE__, __LINE__ );
 
-    /* Allocate an unwindCursor for this stackwalk. */
-    unw_cursor_t * unwindCursor = (unw_cursor_t *)malloc( sizeof( unw_cursor_t ) );
-    assert( unwindCursor != NULL );
+		/* Allocate an unwindCursor for this stackwalk. */
+		unw_cursor_t * unwindCursor = (unw_cursor_t *)malloc( sizeof( unw_cursor_t ) );
+		assert( unwindCursor != NULL );
 
-    /* Initialize it to the active frame. */
-    status = getDBI()->initFrame( unwindCursor, getProc()->unwindAddressSpace, getProc()->unwindProcessArg );
-    assert( status == 0 );
+		/* Initialize it to the active frame. */
+		status = getDBI()->initFrame( unwindCursor, getProc()->unwindAddressSpace, getProc()->unwindProcessArgs[ lid ] );
+		assert( status == 0 );
 
-    /* Unwind to the current frame. */
-    currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, getProc()->getPid() );
-    while( ! currentFrame.isUppermost() ) {
-      if( getFP() == currentFrame.getFP() && getSP() == currentFrame.getSP() && getPC() == currentFrame.getPC() ) {
-	currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, getProc()->getPid() );
-	break;
-      } /* end if we've found this frame */
-      currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, getProc()->getPid() );
-    }
+		/* Unwind to the current frame. */
+		currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, lid );
+		while( ! currentFrame.isUppermost() ) {
+			if( getFP() == currentFrame.getFP() && getSP() == currentFrame.getSP() && getPC() == currentFrame.getPC() ) {
+				currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, lid );
+				break;
+				} /* end if we've found this frame */
+			currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, lid );
+			}
 			
-    /* createFrameFromUnwindCursor() copies the unwind cursor into the Frame it returns. */
-    free( unwindCursor );	
-  } /* end if this frame was copied before being unwound. */
-  else {
-    /* Don't try to walk off the end of the stack. */
-    assert( ! this->uppermost_ );
+		/* createFrameFromUnwindCursor() copies the unwind cursor into the Frame it returns. */
+		free( unwindCursor );	
+		} /* end if this frame was copied before being unwound. */
+	else {
+		/* Don't try to walk off the end of the stack. */
+		assert( ! this->uppermost_ );
 
-    /* Allocate an unwindCursor for this stackwalk. */
-    unw_cursor_t * unwindCursor = (unw_cursor_t *)malloc( sizeof( unw_cursor_t ) );
-    assert( unwindCursor != NULL );
+		/* Allocate an unwindCursor for this stackwalk. */
+		unw_cursor_t * unwindCursor = (unw_cursor_t *)malloc( sizeof( unw_cursor_t ) );
+		assert( unwindCursor != NULL );
 
-    /* Initialize it to this frame. */
-    * unwindCursor = this->unwindCursor;
+		/* Initialize it to this frame. */
+		* unwindCursor = this->unwindCursor;
 
-    /* Unwind the cursor to the caller's frame. */
-    int status = getDBI()->stepFrameUp( unwindCursor );
+		/* Unwind the cursor to the caller's frame. */
+		int status = getDBI()->stepFrameUp( unwindCursor );
 		
-    /* We unwound from this frame once before to get its FP. */
-    assert( status > 0 );
+		/* We unwound from this frame once before to get its FP. */
+		assert( status > 0 );
 
-    /* Create a Frame from the unwound cursor. */
-    currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, getProc()->getPid() );
+		/* Create a Frame from the unwound cursor. */
+		currentFrame = createFrameFromUnwindCursor( unwindCursor, lwp_, lid );
 		
-    /* createFrameFromUnwindCursor() copies the unwind cursor into the Frame it returns. */
-    free( unwindCursor );	
-  } /* end if this frame was _not_ copied before being unwound. */
+		/* createFrameFromUnwindCursor() copies the unwind cursor into the Frame it returns. */
+		free( unwindCursor );	
+	} /* end if this frame was _not_ copied before being unwound. */
 	
-  /* Make sure we made progress. */	
-  if( getFP() == currentFrame.getFP() && getSP() == currentFrame.getSP() && getPC() == currentFrame.getPC() ) {	
-    /* This will forcibly terminate the stack walk. */
-    currentFrame.fp_ = (Address)NULL;
-    currentFrame.pc_ = (Address)NULL;
-    currentFrame.sp_ = (Address)NULL;
-    currentFrame.uppermost_ = false;
+	/* Make sure we made progress. */	
+	if( getFP() == currentFrame.getFP() && getSP() == currentFrame.getSP() && getPC() == currentFrame.getPC() ) {	
+		/* This will forcibly terminate the stack walk. */
+		currentFrame.fp_ = (Address)NULL;
+		currentFrame.pc_ = (Address)NULL;
+		currentFrame.sp_ = (Address)NULL;
+		currentFrame.uppermost_ = false;
 
-    fprintf( stderr, "%s[%d]: detected duplicate stack frame, aborting stack with zeroed frame.\n", __FILE__, __LINE__ );
-  }
-				
-  /* Return the result. */
-  return currentFrame;
-} /* end getCallerFrame() */
+		fprintf( stderr, "%s[%d]: detected duplicate stack frame, aborting stack with zeroed frame.\n", __FILE__, __LINE__ );
+		}
 
-syscallTrap *process::trapSyscallExitInternal(Address syscall) {
-  syscallTrap *trappedSyscall = NULL;
+	/* Return the result. */
+	return currentFrame;
+	} /* end getCallerFrame() */
 
-  // First, the cross-platform bit. If we're already trapping
-  // on this syscall, then increment the reference counter
-  // and return
-
-  for (unsigned iter = 0; iter < syscallTraps_.size(); iter++) {
-    if (syscallTraps_[iter]->syscall_id == syscall) {
-      trappedSyscall = syscallTraps_[iter];
-      break;
-    }
-  }
-  if (trappedSyscall) {
-    // That was easy...
-    trappedSyscall->refcount++;
-    return trappedSyscall;
-  }
-  else {
-    // Okay, we haven't trapped this system call yet.
-    // Things to do:
-    // 1) Get the original value
-    // 2) Place a trap
-    // 3) Create a new syscallTrap object and return it
-
-    trappedSyscall = new syscallTrap;
-    trappedSyscall->refcount = 1;
-    trappedSyscall->syscall_id = (int) syscall;
-
-    uint64_t codeBase;
-    assert( (Address)&(trappedSyscall->saved_insn) % 8 == 0 );
-    uint64_t * savedBundle = (uint64_t *)(Address)&(trappedSyscall->saved_insn);
-    int64_t ipsr_ri;
-
-    IA64_bundle trapBundle;
-    instruction newInst;
-        
-    // Determine exact interruption point (IIP and IPSR.ri)
-    codeBase = getPC(getPid());
-    ipsr_ri = getDBI()->ptrace(PTRACE_PEEKUSER, getPid(), PT_CR_IPSR, 0);
-    if (errno && (ipsr_ri == -1)) return NULL;
-    ipsr_ri = (ipsr_ri & 0x0000060000000000) >> 41;
-        
-    // Save current bundle
-    if (!readDataSpace((void *)codeBase, 16, (void *)trappedSyscall->saved_insn, true))
-      return NULL;
-
-    // Modify current bundle
-    trapBundle = IA64_bundle(savedBundle[0], savedBundle[1]);
-    newInst = instruction(0x0, 0, ipsr_ri);
-    trapBundle.setInstruction(newInst);
-        
-    // Write modified bundle
-    if (!writeDataSpace((void *)codeBase, 16, trapBundle.getMachineCodePtr()))
-      return NULL;
-    return trappedSyscall;
-  }
-  return NULL;
-} /* trapSyscallExitInternal() */
+syscallTrap * process::trapSyscallExitInternal( Address syscall ) {
+	/* The IA-64 port does not trap system call exits for inferior RPCs. */
+	assert( 0 );
+	return NULL;
+	} /* end trapSyscallExitInternal() */
 
 bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
   // Decrement the reference count, and if it's 0 remove the trapped
