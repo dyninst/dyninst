@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.45 2006/03/01 23:35:34 mjbrim Exp $
+ * $Id: dyn_lwp.h,v 1.46 2006/03/02 14:33:24 mjbrim Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -174,7 +174,12 @@ class dyn_lwp
   bool pauseLWP(bool shouldWaitUntilStopped = true);
   bool stop_(); // formerly OS::osStop
   bool continueLWP(int signalToContinueWith = NoSignal);
+
+#if defined( os_linux )
   bool continueLWP_(int signalToContinueWith, bool ignore_suppress = false);
+#else
+  bool continueLWP_(int signalToContinueWith);
+#endif
 
   bool writeDataSpace(void *inTracedProcess, u_int amount, const void *inSelf);
   bool readDataSpace(const void *inTracedProcess, u_int amount, void *inSelf);
