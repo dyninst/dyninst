@@ -670,7 +670,7 @@ Address rpcMgr::createRPCImage(AstNode *action,
                                Address &stopForResultAddr,
                                Address &justAfter_stopForResultAddr,
                                Register &resultReg,
-                               bool lowmem) {
+                               bool lowmem, dyn_lwp * lwp) {
    // Returns addr of temp tramp, which was allocated in the inferior heap.
    // You must free it yourself when done.
    // Note how this is, in many ways, a greatly simplified version of
@@ -686,6 +686,7 @@ Address rpcMgr::createRPCImage(AstNode *action,
    // already done a GETREGS and we'll restore with a SETREGS, right?
    // unsigned char insnBuffer[4096];
     codeGen irpcBuf(MAX_IRPC_SIZE);
+    irpcBuf.setLWP( lwp );
     
     // initializes "regSpace", but only the 1st time called
     initTramps(proc_->multithread_capable()); 

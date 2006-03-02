@@ -362,7 +362,7 @@ class rpcMgr {
                           bool shouldStopForResult, Address &breakAddr,
                           Address &stopForResultAddr,
                           Address &justAfter_stopForResultAddr,
-                          Register &resultReg, bool lowmem);
+                          Register &resultReg, bool lowmem, dyn_lwp * lwp);
 
    
    bool emitInferiorRPCheader(codeGen &gen);

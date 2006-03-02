@@ -281,7 +281,7 @@ irpcLaunchState_t rpcLWP::runPendingIRPC() {
                          runningRPC_->rpcResultAddr,
                          runningRPC_->rpcContPostResultAddr,
                          runningRPC_->resultRegister,
-                         runningRPC_->rpc->lowmem); // Where to allocate
+                         runningRPC_->rpc->lowmem, lwp_); // Where to allocate
     if (!runningRPC_->rpcStartAddr) {
         cerr << "launchRPC failed, couldn't create image" << endl;
         return irpcError;
