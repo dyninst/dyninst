@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.26 2005/09/09 18:06:41 legendre Exp $
+// $Id: frame.h,v 1.27 2006/03/02 21:34:15 nater Exp $
 
 #ifndef FRAME_H
 #define FRAME_H
@@ -107,9 +107,9 @@ class Frame {
   dyn_thread *getThread() const { return thread_; }
   dyn_lwp  *getLWP() const { return lwp_;}
   bool     isUppermost() const { return uppermost_; }
-  bool	   isSignalFrame() const { return frameType_ == FRAME_signalhandler;}
-  bool 	   isInstrumentation() const { return frameType_ == FRAME_instrumentation;}
-  bool     isSyscall() const { return frameType_ == FRAME_syscall; }
+  bool	   isSignalFrame();
+  bool 	   isInstrumentation();
+  bool     isSyscall();
 
   instPoint *getPoint(); // If we're in instrumentation returns the appropriate point
   int_function *getFunc(); // As above

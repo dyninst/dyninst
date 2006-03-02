@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.C,v 1.14 2005/10/14 16:37:47 legendre Exp $
+// $Id: frame.C,v 1.15 2006/03/02 21:34:14 nater Exp $
 
 #include <stdio.h>
 #include <iostream>
@@ -80,7 +80,6 @@ Frame::Frame(Address pc, Address fp, Address sp,
   pc_(pc), fp_(fp), sp_(sp),
   pid_(pid), proc_(proc), thread_(thread), lwp_(lwp), 
   range_(0), hasValidCursor(false), pcAddr_(pcAddr) {
-  calcFrameType();
   stackwalk_cerr << "Base frame:   " << (*this) << endl;
 };
 
@@ -93,7 +92,6 @@ Frame::Frame(Address pc, Address fp, Address sp,
   pid_(f->pid_), proc_(f->proc_),
   thread_(f->thread_), lwp_(f->lwp_),
   range_(0), hasValidCursor(false), pcAddr_(pcAddr) {
-  calcFrameType();
   stackwalk_cerr << "Called frame: " << (*this) << endl;
 }
 
@@ -251,6 +249,7 @@ Address Frame::getUninstAddr() {
 
 
 ostream & operator << ( ostream & s, Frame & f ) {
+    f.calcFrameType();
 	codeRange * range = f.getRange();
 	int_function * func_ptr = range->is_function();
         multiTramp *multi_ptr = range->is_multitramp();
@@ -312,4 +311,22 @@ ostream & operator << ( ostream & s, Frame & f ) {
 	
 	return s;
 	}
+
+bool Frame::isSignalFrame()
+{ 
+    calcFrameType();
+    return frameType_ == FRAME_signalhandler;
+}
+
+bool Frame::isInstrumentation()
+{ 
+    calcFrameType();
+    return frameType_ == FRAME_instrumentation;
+}
+
+bool Frame::isSyscall()
+{ 
+    calcFrameType();
+    return frameType_ == FRAME_syscall;
+}
 
