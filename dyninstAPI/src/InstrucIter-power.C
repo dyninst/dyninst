@@ -1006,7 +1006,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
         }
     }
 
-    assert(TOC_address);
+    if (!TOC_address) return 0;
     
     instruction check;
     
