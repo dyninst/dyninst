@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.197 2006/03/01 23:35:35 mjbrim Exp $
+// $Id: linux.C,v 1.198 2006/03/02 20:00:04 tlmiller Exp $
 
 #include <fstream>
 
@@ -603,10 +603,29 @@ bool SignalGenerator::suppressSignalWhenStopping(EventRecord &ev)
      return suppressed_something;
 
 #if defined(arch_x86)
-  //  SIGTRAP here should rewind the pc by one...  check this
+  /* If we're suppressing signals, regenerate them at the end of the
+     queue to avoid race conditions. */
   if( ev.what == SIGTRAP )
      ev.lwp->changePC(ev.lwp->getActiveFrame().getPC() - 1, NULL);
-#endif     
+#elif defined( arch_ia64 )
+  if( ev.what == SIGTRAP ) {
+     /* DEBUG */ fprintf( stderr, "%s[%d]: IA-64 regenerating suppressed SIGTRAP.\n", __FILE__, __LINE__ );
+     Address trapAddr = ev.lwp->getActiveFrame().getPC();
+     Address preTrapAddr = trapAddr;
+     uint64_t slotNo = trapAddr % 16;
+     assert( slotNo < 3 );
+     if( slotNo == 0 ) {
+     	fprintf( stderr, "%s[%d]: FIXME: test for long instruction in previous bundle.\n", __FILE__, __LINE__ );
+        preTrapAddr -= 16;
+        slotNo = 2;
+        }
+    else { --slotNo; }
+    preTrapAddr = (preTrapAddr % 16) + slotNo;
+ 
+    /* DEBUG */ fprintf( stderr, "%s[%d]: 0x%lx -> 0x%lx\n", __FILE__, __LINE__, trapAddr, trapAddr );
+    ev.lwp->changePC( preTrapAddr, NULL );
+    }
+#endif /* defined( arch_ia64 ) */
 
   ev.lwp->continueLWP_(0, true);
   ev.proc->set_lwp_status(ev.lwp, running);
@@ -1070,7 +1089,7 @@ bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf
           errno = 0;
           w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) (ap-cnt), w, len);
           if (errno) {
-               fprintf(stderr, "%s[%d]:  ptrace failed: for pid %d%s\n", FILE__, __LINE__, pid, strerror(errno));
+               signal_printf("%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, strerror(errno));
                return false;
           }
           for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
@@ -1088,7 +1107,7 @@ bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf
           errno = 0;
           w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0, len);
           if (errno) {
-               fprintf(stderr, "%s[%d]:  ptrace(PEEK, pid %d, %p, 0, len %d) failed: %s\n", FILE__, __LINE__, pid, (void *) ( (Address) ap), len,strerror(errno));
+              signal_printf("%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, strerror(errno));
               return false;
           }
           memcpy(dp, &w, len);
