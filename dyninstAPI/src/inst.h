@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.h,v 1.92 2005/10/17 18:19:43 rutar Exp $
+// $Id: inst.h,v 1.93 2006/03/02 23:52:34 bernat Exp $
 
 #ifndef INST_HDR
 #define INST_HDR
@@ -122,21 +122,25 @@ public:
   //   : func(f), inst(i), where(w) { arg = assignAst(a); };
   // ~instMapping() { removeAst(arg); };
   instMapping(const pdstring f, const pdstring i, const int w, 
-	      callWhen wn, callOrder o, AstNode *a=NULL)
-      : func(f), inst(i), where(w), when(wn), order(o), useTrampGuard(true),
+	      callWhen wn, callOrder o, AstNode *a=NULL, pdstring l = "")
+      : func(f), inst(i), lib(l),
+      where(w), when(wn), order(o), useTrampGuard(true),
       mt_only(false), allow_trap(false) {
       if(a) args.push_back(assignAst(a));
   }
   
-  instMapping(const pdstring f, const pdstring i, const int w, AstNode *a=NULL)
-      : func(f), inst(i), where(w), when(callPreInsn), order(orderLastAtPoint),
+  instMapping(const pdstring f, const pdstring i, const int w, 
+              AstNode *a=NULL, pdstring l = "")
+      : func(f), inst(i), lib(l),
+      where(w), when(callPreInsn), order(orderLastAtPoint),
       useTrampGuard(true), mt_only(false), allow_trap(false) {
       if(a) args.push_back(assignAst(a));
   }
   
   instMapping(const pdstring f, const pdstring i, const int w, 
-              pdvector<AstNode*> &aList) :
-      func(f), inst(i), where(w), when(callPreInsn), order(orderLastAtPoint),
+              pdvector<AstNode*> &aList, pdstring l = "") :
+      func(f), inst(i), lib(l),
+      where(w), when(callPreInsn), order(orderLastAtPoint),
       useTrampGuard(true), mt_only(false), allow_trap(false) {
       for(unsigned u=0; u < aList.size(); u++) {
           if(aList[u]) args.push_back(assignAst(aList[u]));
@@ -163,6 +167,7 @@ public:
 
   pdstring func;                 /* function to instrument */
   pdstring inst;                 /* inst. function to place at func */
+  pdstring lib;                  /* library name */
   int where;                   /* FUNC_ENTRY, FUNC_EXIT, FUNC_CALL */
   callWhen when;               /* callPreInsn, callPostInsn */
   callOrder order;             /* orderFirstAtPoint, orderLastAtPoint */
