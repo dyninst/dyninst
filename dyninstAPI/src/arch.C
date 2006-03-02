@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch.C,v 1.1 2005/09/14 21:21:40 bernat Exp $
+// $Id: arch.C,v 1.2 2006/03/02 20:00:07 tlmiller Exp $
 // Code generation
 
 //////////////////////////
@@ -66,14 +66,16 @@ codeGen::codeGen() :
     buffer_(NULL),
     offset_(0),
     size_(0),
-    allocated_(false) {}
+    allocated_(false),
+    lwp(NULL) {}
 
 // Note: this is in "units", typically the 
 // instruction size
 codeGen::codeGen(unsigned size) :
     offset_(0),
     size_(size),
-    allocated_(true) {
+    allocated_(true),
+    lwp(NULL) {
     buffer_ = (codeBuf_t *)malloc(size);
     memset(buffer_, 0, size);
     if (!buffer_)
@@ -300,3 +302,10 @@ void codeGen::fillRemaining(int fillType) {
     }
 }
 
+void codeGen::setLWP( dyn_lwp * lwp ) {
+	this->lwp = lwp;
+	}
+	
+dyn_lwp * codeGen::getLWP() const {
+	return this->lwp;
+	}

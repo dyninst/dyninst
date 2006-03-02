@@ -40,7 +40,7 @@
  */
 
 // Architecture include. Use this one instead of arch-<platform>
-// $Id: arch.h,v 1.19 2005/08/25 22:45:19 bernat Exp $
+// $Id: arch.h,v 1.20 2006/03/02 20:00:08 tlmiller Exp $
 
 #if !defined(arch_h)
 #define arch_h
@@ -73,6 +73,8 @@
 #error "unknown architecture"
 
 #endif
+
+class dyn_lwp;
 
 // Code generation
 // This class wraps the actual code generation mechanism: we keep a buffer
@@ -157,12 +159,17 @@ class codeGen {
     // Since we have a known size
     void fillRemaining(int fillType);
 
+    dyn_lwp * getLWP() const;
+    void setLWP( dyn_lwp * lwp );
+
  private:
     codeBuf_t *buffer_;
     codeBufIndex_t offset_;
     unsigned size_;
 
     bool allocated_;
+    
+    dyn_lwp * lwp;
 };
 
 // For platforms that require bit-twiddling. These should go away in the future.
