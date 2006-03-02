@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.29 2006/02/27 18:44:04 bernat Exp $
+// $Id: multiTramp.C,v 1.30 2006/03/02 19:08:32 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -149,8 +149,14 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
                 continue;
             }
             if (tmp == bti) {
-                if (tmp->previous_) {
+                if (tmp->previous_ && 
+                    (tmp->previous_->fallthrough_ == tmp)) {
                     tmp->previous_->setFallthrough(tmp->fallthrough_);
+                }
+                else if (tmp->previous_ && 
+                    (tmp->previous_->target_ == tmp)) {
+                    // Edge instrumentation...
+                    tmp->previous_->setTarget(tmp->fallthrough_);
                 }
                 else {
                     // Assert we're the first thing in line.
@@ -1782,6 +1788,24 @@ generatedCodeObject *generatedCFG_t::iterator::operator++(int) {
                         reloc->origAddr);
             else if (te)
                 fprintf(stderr, "current is tramp end\n");
+
+            bti = dynamic_cast<baseTrampInstance *>(cur_->previous_);
+            reloc = dynamic_cast<relocatedInstruction *>(cur_->previous_);
+            te = dynamic_cast<trampEnd *>(cur_->previous_);
+            if (bti)
+                fprintf(stderr, "previous is a base tramp\n");
+            else if (reloc)
+                fprintf(stderr, "previous is relocated insn from 0x%lx\n",
+                        reloc->origAddr);
+            else if (te)
+                fprintf(stderr, "previous is tramp end\n");
+            
+            if (cur_->previous_) 
+                fprintf(stderr, "Previous pointers: fallthrough %p, target %p\n",
+                        cur_->previous_->fallthrough_,
+                        cur_->previous_->target_);
+
+
             bti = dynamic_cast<baseTrampInstance *>(cur_->fallthrough_);
             reloc = dynamic_cast<relocatedInstruction *>(cur_->fallthrough_);
             te = dynamic_cast<trampEnd *>(cur_->fallthrough_);
