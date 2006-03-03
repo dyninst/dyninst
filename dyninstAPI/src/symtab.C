@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.271 2006/03/02 21:34:17 nater Exp $
+ // $Id: symtab.C,v 1.272 2006/03/03 18:10:56 nater Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1869,7 +1869,7 @@ bool pdmodule::findFunctionByMangled( const pdstring &name,
             found.push_back((*obj_funcs)[i]);
     }
     if (found.size() > orig_size) {
-        exec()->analyzeIfNeeded();
+        //exec()->analyzeIfNeeded();
         return true;
     }
     
@@ -1895,7 +1895,7 @@ bool pdmodule::findFunctionByPretty( const pdstring &name,
             found.push_back((*obj_funcs)[i]);
     }
     if (found.size() > orig_size) {
-        exec()->analyzeIfNeeded();
+        //exec()->analyzeIfNeeded();
         return true;
     }
     
@@ -2032,7 +2032,7 @@ const pdvector <image_variable *> *image::findVarVectorByPretty(const pdstring &
   bperr( "%s[%d]:  inside findVariableVectorByPretty\n", __FILE__, __LINE__);
 #endif
   if (varsByPretty.defines(name)) {
-      analyzeIfNeeded();
+      //analyzeIfNeeded();
       return varsByPretty[name];
   }
   return NULL;
@@ -2045,7 +2045,7 @@ const pdvector <image_variable *> *image::findVarVectorByMangled(const pdstring 
   bperr( "%s[%d]:  inside findVariableVectorByPretty\n", __FILE__, __LINE__);
 #endif
   if (varsByMangled.defines(name)) {
-      analyzeIfNeeded();
+      //analyzeIfNeeded();
       return varsByMangled[name];
   }
   return NULL;
@@ -2072,7 +2072,7 @@ image_func *image::findOnlyOneFunction(const pdstring &name) {
 	   << ")...  found more than one... failing... " << endl;
       return NULL;
     }
-    analyzeIfNeeded();
+    //analyzeIfNeeded();
     return (*pdfv)[0];
   }
 
@@ -2083,7 +2083,7 @@ image_func *image::findOnlyOneFunction(const pdstring &name) {
 	   << ")...  found more than one... failing... " << endl;
       return NULL;
     }
-    analyzeIfNeeded();
+    //analyzeIfNeeded();
     return (*pdfv)[0];
   }
   
@@ -2175,7 +2175,7 @@ pdvector<image_func *> *image::findFuncVectorByPretty(functionNameSieve_t bpsiev
       found->push_back((*result[i])[j]);
 
   if (found->size()) {
-    analyzeIfNeeded();
+    //analyzeIfNeeded();
     return found;
   }
   return NULL;
@@ -2208,7 +2208,7 @@ pdvector<image_func *> *image::findFuncVectorByMangled(functionNameSieve_t bpsie
       found->push_back((*result[i])[j]);
 
   if (found->size()) {
-    analyzeIfNeeded();
+    //analyzeIfNeeded();
     return found;
   }
   return NULL;
