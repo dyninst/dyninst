@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.80 2006/02/16 20:42:23 bernat Exp $
+// $Id: BPatch_image.C,v 1.81 2006/03/03 18:10:55 nater Exp $
 
 #define BPATCH_FILE
 
@@ -760,17 +760,24 @@ BPatch_variableExpr *BPatch_image::findVariableInt(const char *name, bool showEr
     // XXX - should this stuff really be by image ??? jkh 3/19/99
     BPatch_Vector<BPatch_module *> *mods = getModules();
     BPatch_type *type = NULL;
+
+    // XXX look up the type off of the int_variable's module
+    BPatch_module *module = NULL;
     for (unsigned int m = 0; m < mods->size(); m++) {
-        BPatch_module *module = (*mods)[m];
-        //bperr("The moduleType address is : %x\n", &(module->getModuleTypes()));
-        type = module->getModuleTypes()->findVariableType(name);
-        if (type) {
+        if( (*mods)[m]->lowlevel_mod() == var->mod() ) {
+            module = (*mods)[m];
             break;
-        }	  
+        }
     }
-    if (!type) {
+    if(module) {
+        type = module->getModuleTypes()->findVariableType(name);
+    }
+    else {
+        bperr("findVariable: failed look up module %s\n",
+            var->mod()->fileName().c_str()); 
+    }
+    if(!type)
         type = BPatch::bpatch->type_Untyped;
-    }
     
     char *nameCopy = strdup(name);
     assert(nameCopy);
