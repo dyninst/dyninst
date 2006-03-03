@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.163 2006/02/09 03:34:22 tlmiller Exp $
+// $Id: ast.C,v 1.164 2006/03/03 19:21:54 nater Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -1673,13 +1673,12 @@ Address AstNode::generateCode_phase2(process *proc,
 	break;
       case DataIndir:
            src = (Register)loperand->generateCode_phase2(proc, rs, gen, noCost, ifForks, location);
-#ifdef BPATCH_LIBRARY
            Type = const_cast<BPatch_type *> (getType());
-           assert(Type);
-           tSize = Type->getSize();
-#else
-           tSize = sizeof(int);
-#endif
+           // Internally generated calls will not have type information set
+           if(Type)
+                tSize = Type->getSize();
+           else
+                tSize = sizeof(long);
            emitV(loadIndirOp, src, 0, dest, gen, noCost, rs, tSize, location, proc); 
            rs->freeRegister(src);
            break;
