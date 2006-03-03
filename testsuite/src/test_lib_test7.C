@@ -39,20 +39,20 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_lib_test7.C,v 1.2 2005/11/22 19:40:53 bpellin Exp $
+// $Id: test_lib_test7.C,v 1.3 2006/03/03 00:24:04 bpellin Exp $
 #include "test_lib_test7.h"
 #include "test_lib.h"
 #include <sys/msg.h>
 
-int setupMessaging(int *msgid) {
+bool setupMessaging(int *msgid) {
   key_t msgkey = 1234;
 
   if((*msgid = msgget(msgkey, 0666|IPC_CREAT)) == -1) {
     perror("Couldn't create messaging");
-    return -1;
+    return false;
   }
 
-  return 0;
+  return true;
 }
 
 bool doError(bool *passedTest, bool cond, const char *str) {

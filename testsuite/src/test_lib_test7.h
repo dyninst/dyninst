@@ -13,7 +13,7 @@ typedef struct msgSt ipcMsg;
 typedef struct msgSt ipcMsg;
 
 /* Test7 Functions */
-int setupMessaging(int *msgid);
+bool setupMessaging(int *msgid);
 bool doError(bool *passedTest, bool cond, const char *str);
 bool verifyProcMemory(BPatch_thread *appThread, const char *name,
                       int expectedVal, procType proc_type);

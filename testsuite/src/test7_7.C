@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test7_7.C,v 1.2 2005/11/22 19:41:06 bpellin Exp $
+// $Id: test7_7.C,v 1.3 2006/03/03 00:24:01 bpellin Exp $
 /*
  * #Name: test7_7
  * #Desc: Memory allocation in parent & child
@@ -213,7 +213,12 @@ int mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
     bpatch->registerPostForkCallback(postForkFunc);
     bpatch->registerExitCallback(exitFunc);
 
-    RETURNONFAIL(setupMessaging(&msgid));
+    if ( !setupMessaging(&msgid) )
+    {
+       passedTest = false;
+       delete parentThread;
+       return passedTest;
+    }
 
     parentThread = appThread;
 
@@ -225,25 +230,31 @@ int mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
     /* Secondary test: we should not have to manually continue
        either parent or child at any point */
 
-    // Cleanup child parent is cleaned externally
-    while ( !parentThread->isTerminated() || !childThread->isTerminated() )
+    while ( !parentThread->isTerminated() ) 
     {
        bpatch->waitForStatusChange();
     }
 
+    // At this point if childThread == NULL the postfork handler failed
+    // to run.  Fail gracefully instead of segfaulting on 
+    // childThread->isTerminated()
+    if (doError(&passedTest, childThread == NULL,
+             "childThread == NULL: postForkFunc must not have run\n") )
+    {
+       delete parentThread;
+       return passedTest;
+    }
+    
+    if ( !childThread->isTerminated() )
+    {
+       bpatch->waitForStatusChange();
+    }
+
+    // Cleanup child, parent
     delete childThread;
     delete parentThread;
 
-    showFinalResults(passedTest, 7);
-
-    if ( passedTest )
-    {
-       return 0;
-    }
-    else
-    {
-       return -1;
-    }
+    return passedTest;
 }
 
 extern "C" int mutatorMAIN(ParameterDict &param)
@@ -252,6 +263,11 @@ extern "C" int mutatorMAIN(ParameterDict &param)
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
-    return mutatorTest(bpatch, appThread);
-    
+    bool passed = mutatorTest(bpatch, appThread);
+
+    showFinalResults(passed, 7);
+    if ( passed )
+       return 0;
+    else
+       return -1;
 }
