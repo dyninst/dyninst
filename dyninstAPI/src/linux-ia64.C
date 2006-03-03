@@ -97,7 +97,7 @@ bool dyn_lwp::executingSystemCall() {
  * We must support running arbitrary code.
  */
 bool dyn_lwp::getRegisters_( struct dyn_saved_regs *regs ) {
-	assert( status_ == stopped );
+	assert( status_ != running );
 
 	errno = 0;
 	regs->pc = getDBI()->ptrace( PTRACE_PEEKUSER, get_lwp_id(), PT_CR_IIP, 0, -1, & errno );
@@ -367,7 +367,7 @@ Frame dyn_lwp::getActiveFrame() {
 	int status = 0;
 	process * proc = proc_;
 	
-	assert( status_ == stopped );
+	assert( status_ != running );
 
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: getActiveFrame(): working on lwp %d\n", __FILE__, __LINE__, get_lwp_id() );
 
@@ -651,7 +651,7 @@ bool Frame::setPC( Address addr ) {
 #include <instPoint.h>
 Frame Frame::getCallerFrame() {
 	int status = 0;	
-	assert( lwp_->status() == stopped );
+	assert( lwp_->status() != running );
 
 	/* Initialize the unwinder. */
 	if( getProc()->unwindAddressSpace == NULL ) {

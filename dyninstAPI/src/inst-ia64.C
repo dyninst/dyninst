@@ -1947,7 +1947,7 @@ bool needToHandleSyscall( dyn_lwp * lwp, bool * pcMayHaveRewound ) {
   int64_t pr;
 
   // Bad things happen if you use ptrace on a running process.
-  assert( lwp->status() == stopped );
+  assert( lwp->status() != running );
 	
   // Find the correct bundle.
   errno = 0;
@@ -2400,7 +2400,7 @@ extern void initBaseTrampStorageMap( registerSpace *, int, bool * );
 /* Required by process.C */
 bool rpcMgr::emitInferiorRPCheader( codeGen &gen ) {
 	dyn_lwp * lwpToUse = gen.getLWP() != NULL ? gen.getLWP() : proc_->getRepresentativeLWP();
-	assert( lwpToUse->status() == stopped );
+	assert( lwpToUse->status() != running );
 	
 	/* Extract the CFM. */
 	errno = 0;
@@ -2524,7 +2524,7 @@ bool rpcMgr::emitInferiorRPCtrailer( codeGen &gen,
 									 unsigned & stopForResultOffset,
 									 unsigned & justAfter_stopForResultOffset ) {
 	dyn_lwp * lwpToUse = gen.getLWP() != NULL ? gen.getLWP() : proc_->getRepresentativeLWP();
-	assert( lwpToUse->status() == stopped );
+	assert( lwpToUse->status() != running );
 	
   /* We'll need two of these. */
   IA64_bundle trapBundle = generateTrapBundle();
