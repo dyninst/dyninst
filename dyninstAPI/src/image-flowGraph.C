@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.13 2006/03/02 21:50:31 nater Exp $
+ * $Id: image-flowGraph.C,v 1.14 2006/03/03 18:10:57 nater Exp $
  */
 
 #include <stdio.h>
@@ -86,6 +86,11 @@ int addrfunccmp( image_func*& pdf1, image_func*& pdf2 )
 //Note: basic blocks may be shared between several functions
 bool image::analyzeImage()
 {
+#if defined(TIMED_PARSE)
+  struct timeval starttime;
+  gettimeofday(&starttime, NULL);
+#endif
+
     // TODO: remove arch_x86 from here - it's just for testing
 #if defined(arch_x86_64) || defined(arch_x86)
     ia32_set_mode_64(getObject().getAddressWidth() == 8);
@@ -274,6 +279,17 @@ bool image::analyzeImage()
   // TODO remove this; it is just for getting some cheap statistics
 
   //DumpAllStats();
+
+#if defined(TIMED_PARSE)
+  struct timeval endtime;
+  gettimeofday(&endtime, NULL);
+  unsigned long lstarttime = starttime.tv_sec * 1000 * 1000 + starttime.tv_usec;
+  unsigned long lendtime = endtime.tv_sec * 1000 * 1000 + endtime.tv_usec;
+  unsigned long difftime = lendtime - lstarttime;
+  double dursecs = difftime/(1000 );
+  cout << __FILE__ << ":" << __LINE__ <<": analyzeImage of " << name_ << " took "<<dursecs <<" msecs" << endl;
+#endif 
+
   
   parseState_ = analyzed;
   return true;
