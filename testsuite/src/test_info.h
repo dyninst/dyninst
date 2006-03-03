@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_info.h,v 1.9 2006/03/02 15:08:46 bpellin Exp $
+// $Id: test_info.h,v 1.10 2006/03/03 21:25:07 mjbrim Exp $
 #ifndef TEST_INFO_H
 #define TEST_INFO_H
 
@@ -248,8 +248,8 @@ test_data_t tests[] = {
    test_data_t("test1_38", "./test1_38.so", test1_mutatee, all_platforms, STOPPED, 1, 38, BOTH, ENABLED),
    test_data_t("test1_39", "./test1_39.so", test1_mutatee, all_platforms, STOPPED, 1, 39, BOTH, ENABLED),
    test_data_t("test1_40", "./test1_40.so", test1_mutatee, all_platforms, STOPPED, 1, 40, BOTH, ENABLED),
-   test_data_t("test2_1", "./test2_1.so", none, all_platforms, NOMUTATEE, 2, 1, BOTH, ENABLED),
-   test_data_t("test2_2", "./test2_2.so", none, all_platforms, NOMUTATEE, 2, 2, BOTH, ENABLED),
+   test_data_t("test2_1", "./test2_1.so", none, all_platforms, NOMUTATEE, 2, 1, CREATE, ENABLED),
+   test_data_t("test2_2", "./test2_2.so", none, all_platforms, NOMUTATEE, 2, 2, CREATE, ENABLED),
    test_data_t("test2_3", "./test2_3.so", none, all_platforms, NOMUTATEE, 2, 3, USEATTACH, ENABLED),
    test_data_t("test2_4", "./test2_4.so", none, all_platforms, NOMUTATEE, 2, 4, USEATTACH, ENABLED),
    test_data_t("test2_5", "./test2_5.so", test2_mutatee, all_platforms, STOPPED, 2, 5, BOTH, ENABLED),
