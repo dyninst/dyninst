@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.24 2006/02/27 23:35:12 nater Exp $
+// $Id: image-func.C,v 1.25 2006/03/03 18:10:58 nater Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -605,7 +605,6 @@ bool image_func::addBasicBlock(Address newAddr,
         image_->basicBlocksByRange.insert(newBlk);
         parsing_printf("[%s:%u] adding block %d (0x%lx) to worklist\n",
             FILE__,__LINE__,newBlk->id(),newBlk->firstInsnOffset_);
-        assert(image_->basicBlocksByRange.find(newAddr, tmpRange));
         worklist.push_back(newAddr);
     }
 
