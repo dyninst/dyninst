@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.39 2005/07/06 18:27:44 rchen Exp $
+# $Id: Makefile,v 1.40 2006/03/03 19:21:55 nater Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -35,6 +35,7 @@ MUTATEE_CFLAGS_GNU 	= $(UNIFIED_DEF) $(GNU_WARNING_FLAGS)
 MUTATEE_CXXFLAGS_GNU 	= $(UNIFIED_DEF) $(GNU_WARNING_FLAGS)
 MUTATEE_LIBS = -Wl,-ldl
 MUTATEE_LDFLAGS_GNU += -Wl,-export-dynamic
+MUTATEE_LDFLAGS_NATIVE += -Wl,-export-dynamic
 
 COMMA=,
 MUTATEE_G77_FFLAGS += -Di386_unknown_linux2_0 -DF77 -fno-second-underscore -g
@@ -43,8 +44,8 @@ MUTATEE_G77_CFLAGS += -DF77 -DFortran -g $(MUTATEE_FFLAGS)  -fno-implicit-templa
 TEST1_FORTRAN_CSOURCE = test1.mutateeFortC.c
 
 MUTATOR_LIBS += -liberty
-MUTATEE_CFLAGS_NATIVE 	= $(UNIFIED_DEF)
-MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF)
+MUTATEE_CFLAGS_NATIVE 	= $(UNIFIED_DEF) -g
+MUTATEE_CXXFLAGS_NATIVE = $(UNIFIED_DEF) -g
 
 # Definitions used for test1 assembly
 TEST1_AS = gcc -c
