@@ -127,7 +127,7 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
    }
    else
    {
-       fprintf(stdout, "Passed test #1 (Multithreawded tramp guards)\n");
+       fprintf(stdout, "Passed test #1 (Multithreaded tramp guards)\n");
        fprintf(stdout, "All tests passed.\n");
    }
    return 0;
