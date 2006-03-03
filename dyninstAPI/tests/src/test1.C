@@ -2940,10 +2940,13 @@ void mutatorTest26(BPatch_thread *appThread, BPatch_image *appImage)
     	// start of code for localVariable26_1
         expectError = 100;
         lvar = appImage->findVariable(*(*point26_1) [0], "localVariable26_1");
-        if (!lvar)
-            lvar = appImage->findVariable(*(*point26_1) [0], "localvariable26_1");
-	assert(lvar);
-	expectError = DYNINST_NO_ERROR;
+        if (!lvar) {
+	        fprintf(stderr, "**Failed** test #26 (struct elements)\n");
+	        fprintf(stderr, "  could not find localVariable26_1\n");
+            return;
+        }
+	
+        expectError = DYNINST_NO_ERROR;
 
     	fields = lvar->getComponents();
     	if (!fields || (fields->size() < 4)) {
