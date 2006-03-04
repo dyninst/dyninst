@@ -1474,12 +1474,8 @@
 
 	SUBROUTINE func22_1
 #include "test1_common.h"
-#if !defined(sparc_sun_solaris2_4) \
- && !defined(alpha_dec_osf4_0)
-
 	print *, 'Skipped test #22 (replace function)'
-	print *, '       - not implemented on this platform'
-#endif
+	print *, '       - not implemented for Fortran'
 	passedTest (22) = .true.
 	END
 
