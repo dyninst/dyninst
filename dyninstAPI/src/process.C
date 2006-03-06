@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.587 2006/03/02 23:52:35 bernat Exp $
+// $Id: process.C,v 1.588 2006/03/06 20:14:31 nater Exp $
 
 #include <ctype.h>
 
@@ -3583,9 +3583,9 @@ dyn_lwp *process::stop_an_lwp(bool *wasRunning) {
 
 bool process::terminateProc() 
 {
-   if(status() == exited || status() == deleted || !sh->isRunning()) {
-     // "Sure, we terminated it... really!"
-     return true;
+   if(status() == exited || status() == deleted || status() == detached
+      || !sh->isRunning()) {
+     return false;
    }
    terminateProcStatus_t retVal = terminateProc_();
 
