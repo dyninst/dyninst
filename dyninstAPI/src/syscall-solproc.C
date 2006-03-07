@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-solproc.C,v 1.13 2006/03/02 23:52:37 bernat Exp $
+// $Id: syscall-solproc.C,v 1.14 2006/03/07 23:18:21 bernat Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -58,6 +58,8 @@
 
 #define FORK_FUNC "fork"
 #define FORK_LIB  "libc.a"
+
+#define LWP_EXIT_FUNC "_thr_exit_common"
 
 syscallNotification::syscallNotification(syscallNotification *parentSN,
                                          process *child) :
@@ -252,7 +254,24 @@ bool syscallNotification::installPreLwpExit() {
     // Make sure our removal code gets run
     preLwpExitInst = SYSCALL_INSTALLED;
     SYSSET_FREE(entryset);
+
     return true;
+
+#if 0
+    preLwpExitInst = new instMapping(LWP_EXIT_FUNC, "DYNINST_instLwpExit",
+                                   FUNC_ENTRY);
+    preLwpExitInst->dontUseTrampGuard();
+    
+    pdvector<instMapping *> instReqs;
+    instReqs.push_back(preLwpExitInst);
+    
+    proc->installInstrRequests(instReqs);
+    
+    // Check to see if we put anything in the proggie
+    if (preLwpExitInst->miniTramps.size() == 0)
+        return false;
+    return true;
+#endif
 }    
 
 
@@ -439,6 +458,31 @@ bool syscallNotification::removePreExit() {
 
 bool syscallNotification::removePreLwpExit() {
     if (!preLwpExitInst) return false;
+
+    if (preLwpExitInst != SYSCALL_INSTALLED) {
+        if (!proc->isAttached() || proc->execing()) {
+            delete preLwpExitInst;
+            preLwpExitInst = NULL;
+            return true;
+        }
+        
+        miniTramp *handle;
+        for (unsigned i = 0; i < preLwpExitInst->miniTramps.size(); i++) {
+            handle = preLwpExitInst->miniTramps[i];
+            
+            bool removed = handle->uninstrument();
+            // At some point we should handle a negative return... but I
+            // have no idea how.
+            
+            assert(removed);
+            // The miniTramp is deleted when the miniTramp is freed, so
+            // we don't have to.
+        } 
+        delete preLwpExitInst;
+        preLwpExitInst = NULL;
+        return true;
+    }
+
     if (!proc->isAttached()) {
         preLwpExitInst = NULL;
         return true;
