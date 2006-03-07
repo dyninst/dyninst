@@ -1280,14 +1280,16 @@ bool SignalHandler::handleLwpExit(EventRecord &ev)
    dyn_lwp *lwp = ev.lwp;
    dyn_thread *thr = NULL;
    //Find the exiting thread
-   for (unsigned i=0; i<proc->threads.size(); i++)
-      if (proc->threads[i]->get_lwp()->get_lwp_id() == lwp->get_lwp_id())
-      {
-         thr = proc->threads[i];
-         break;
-      }
+   for (unsigned i=0; i<proc->threads.size(); i++) {
+       if (proc->threads[i]->get_lwp()->get_lwp_id() == lwp->get_lwp_id()) {
+           thr = proc->threads[i];
+           break;
+       }
+   }
    if (!thr)
    {
+       fprintf(stderr, "No matching thread!\n");
+       proc->continueProc();
       return false;
    }
 
