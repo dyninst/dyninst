@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.23 2006/02/14 20:02:17 bernat Exp $
+// $Id: baseTramp.C,v 1.24 2006/03/07 23:18:15 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -480,7 +480,10 @@ Address baseTramp::origInstAddr() {
     instPoint *setInstP = preInstP;
     if (!setInstP) setInstP = postInstP;
 
-    assert(setInstP); // Base tramp with no instPoint? That's an error.
+    if (!setInstP) {
+        assert(rpcMgr_ != NULL);
+        return 0;
+    }
 
     return setInstP->addr();
 }
