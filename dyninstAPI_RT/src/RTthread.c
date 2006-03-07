@@ -67,13 +67,12 @@ int DYNINSTthreadIndex()
 
    if (!DYNINSThasInitialized) 
    {
-      return 0;
+       return 0;
    }
-
+   
    tid = dyn_pthread_self();
-   if (tid == (dyntid_t) -1)
-   {
-      return 0;
+   if (tid == (dyntid_t) -1) {
+       return 0;
    }
 
    curr_index = DYNINSTthreadIndexFAST();
@@ -86,7 +85,8 @@ int DYNINSTthreadIndex()
    curr_index = DYNINSTthreadIndexSLOW(tid);
    if (curr_index == DYNINST_max_num_threads)
    {
-      curr_index = threadCreate(tid);
+       curr_index = threadCreate(tid);
+
    }
 
    return curr_index;
