@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.168 2006/02/23 17:39:30 legendre Exp $
+// $Id: unix.C,v 1.169 2006/03/07 23:18:22 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -201,6 +201,10 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
         ev.type = evtSyscallExit;
         ev.what = SYS_load;
      break;
+   case DSE_lwpExit:
+       ev.type = evtSyscallEntry;
+       ev.what = SYS_lwp_exit;
+       break;
 
      default:
         assert(0);
@@ -600,20 +604,20 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
   if (proc->trampTrapMapping.defines(af.getPC())) {
      ev.type = evtInstPointTrap;
      ev.address = af.getPC();
-     goto finish;
+     return true;
   }
 
   // (2) Is this trap due to a RPC ??
   if (proc->getRpcMgr()->decodeEventIfDueToIRPC(ev)) {
       signal_printf("%s[%d]:  SIGTRAP due to RPC\n", FILE__, __LINE__);
-      goto finish;
+      return true;
   }
 
   // (3) Is this trap due to a library being loaded/unloaded ??
   if (proc->isDynamicallyLinked()) {
      if (proc->decodeIfDueToSharedObjectMapping(ev)){
          signal_printf("%s[%d]:  SIGTRAP due to dlopen/dlclose\n", FILE__, __LINE__);
-         goto finish;
+         return true;
       }
    }
 
@@ -622,7 +626,7 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
      ev.type = evtDebugStep;
      ev.address = af.getPC();
      signal_printf("Single step trap at %lx\n", ev.address);
-     goto finish;
+     return true;
    }
 
 #if defined (os_linux)
@@ -635,15 +639,11 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
         ev.type = evtSyscallExit;
         ev.what = SYS_exec;
         decodeSyscall(ev);
-        goto finish;
+        return true;
     }
 #endif
 
-  finish:
-  signal_printf("%s[%d]:  decodeSigTrap for %s, state: %s\n",
-                FILE__, __LINE__, ev.sprint_event(buf), 
-                proc->getBootstrapStateAsString().c_str());
-  return true;
+    return false;
 }
 
 
