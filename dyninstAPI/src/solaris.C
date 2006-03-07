@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.192 2006/01/30 07:16:53 jaw Exp $
+// $Id: solaris.C,v 1.193 2006/03/07 23:18:20 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1257,8 +1257,120 @@ void loadNativeDemangler() {
 }
 // vim:ts=5:
 
+/**
+ * Searches for function in order, with preference given first 
+ * to libpthread, then to libc, then to the process.
+ **/
+static void findThreadFuncs(process *p, pdstring func, 
+                            pdvector<int_function *> &result)
+{
+   bool found = false;
+   mapped_module *lpthread = p->findModule("libthread*", true);
+   if (lpthread)
+      found = lpthread->findFuncVectorByPretty(func, result);
+   if (found) {
+      return;
+   }
+   /*
+    * Do not look in libc... there are matches, but they're singlethread versions
+
+    mapped_module *lc = p->findModule("libc.so*", true);
+    if (lc)
+    found = lc->findFuncVectorByPretty(func, result);
+    if (found) {
+    fprintf(stderr, "found in libc.so\n");
+    return;
+    }
+   */
+
+   p->findFuncsByPretty(func, result);
+}
+
 bool process::initMT()
 {
+    unsigned i;
+    bool res;
+    
+#if !defined(cap_threads)
+    return true;
+#endif
+
+    /**
+     * Instrument thread_create with calls to DYNINST_dummy_create
+     **/
+    //Find create_thread
+    pdvector<int_function *> thread_init_funcs;
+    //findThreadFuncs(this, "_thrp_create", thread_init_funcs);
+    findThreadFuncs(this, "init_func", thread_init_funcs);
+    if (thread_init_funcs.size() < 1) {
+        fprintf(stderr, "[%s:%d] - Found no copies of create_thread, expected 1\n",
+                __FILE__, __LINE__);
+        return false;
+    }
+
+    //Find DYNINST_dummy_create
+   int_function *dummy_create = findOnlyOneFunction("DYNINST_dummy_create");
+   if (!dummy_create) {
+       fprintf(stderr, "[%s:%d] - Couldn't find DYNINST_dummy_create",
+               __FILE__, __LINE__);
+       return false;
+   }
+   //Instrument
+   for (i=0; i<thread_init_funcs.size(); i++)
+   {
+      pdvector<AstNode *> args;
+      AstNode call_dummy_create(dummy_create, args);
+      AstNode *ast = &call_dummy_create;
+      const pdvector<instPoint *> &ips = thread_init_funcs[i]->funcEntries();
+      for (unsigned j=0; j<ips.size(); j++)
+      {
+         miniTramp *mt;
+         mt = ips[j]->instrument(ast, callPreInsn, orderFirstAtPoint, false, 
+                                 false);
+         if (!mt)
+         {
+            fprintf(stderr, "[%s:%d] - Couldn't instrument thread_create\n",
+                    __FILE__, __LINE__);
+         }
+         //TODO: Save the mt objects for detach
+      }
+   }
+   
+   /**
+    * Have dyn_pthread_self call the actual pthread_self
+    **/
+   //Find dyn_pthread_self
+   pdvector<int_variable *> ptself_syms;
+   res = findVarsByAll("DYNINST_pthread_self", ptself_syms);
+   if (!res) {
+       fprintf(stderr, "[%s:%d] - Couldn't find any dyn_pthread_self, expected 1\n",
+               __FILE__, __LINE__);
+   }
+   assert(ptself_syms.size() == 1);
+   Address dyn_pthread_self = ptself_syms[0]->getAddress();
+
+
+   //Find pthread_self
+   pdvector<int_function *> pthread_self_funcs;
+   findThreadFuncs(this, "thr_self", pthread_self_funcs);   
+   if (pthread_self_funcs.size() != 1) {
+       fprintf(stderr, "[%s:%d] - Found %d pthread_self functions, expected 1\n",
+               __FILE__, __LINE__, pthread_self_funcs.size());
+       for (unsigned j=0; j<pthread_self_funcs.size(); j++) {
+           int_function *ps = pthread_self_funcs[j];
+           fprintf(stderr, "[%s:%u] - %s in module %s at %lx\n", __FILE__, __LINE__,
+                   ps->prettyName().c_str(), ps->mod()->fullName().c_str(), 
+                   ps->getAddress());
+       }
+       return false;
+   }   
+   //Replace
+   res = writeFunctionPtr(this, dyn_pthread_self, pthread_self_funcs[0]);
+   if (!res) {
+       fprintf(stderr, "[%s:%d] - Couldn't update dyn_pthread_self\n",
+               __FILE__, __LINE__);
+       return false;
+   }
    return true;
 }
 
