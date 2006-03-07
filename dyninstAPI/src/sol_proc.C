@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.82 2006/02/27 23:15:30 bernat Exp $
+// $Id: sol_proc.C,v 1.83 2006/03/07 23:18:19 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -1246,7 +1246,7 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
         Address trapAddr = inferiorMalloc(instruction::size());
         trappedSyscall->trapAddr = trapAddr;
 
-        codeGen gen(1);
+        codeGen gen(instruction::size());
         instruction::generateTrap(gen);
 
         bool ret = writeDataSpace((void *)trapAddr, 
@@ -1464,7 +1464,7 @@ bool SignalGenerator::updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
   // lwp stopped for an interesting reason.  We don't care about lwps
   // that stopped for this reason.
   if (lwpstatus.pr_why == PR_REQUESTED) {
-     return false;
+      return false;
   }
    
   EventRecord ev;
@@ -1508,14 +1508,14 @@ bool SignalGenerator::updateEvents(pdvector<EventRecord> &events, process *p, in
   if (numreal_lwps == 0)
      updated_events = updateEventsWithLwpStatus(p, replwp, events);
   else {
-     while (lwp_iter.next(index, cur_lwp)) {
-       if (cur_lwp->get_lwp_id() != (unsigned)lwp_to_use)
-         continue;
-       if (updateEventsWithLwpStatus(p, cur_lwp, events)) {
-         updated_events = true;
-         break;
-       }
-     }
+      while (lwp_iter.next(index, cur_lwp)) {
+          if (cur_lwp->get_lwp_id() != (unsigned)lwp_to_use)
+              continue;
+          if (updateEventsWithLwpStatus(p, cur_lwp, events)) {
+              updated_events = true;
+          }
+          break;
+      }
   }
   return updated_events;
 }
