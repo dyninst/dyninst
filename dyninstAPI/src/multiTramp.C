@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.30 2006/03/02 19:08:32 bernat Exp $
+// $Id: multiTramp.C,v 1.31 2006/03/07 18:58:52 tlmiller Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -2045,74 +2045,73 @@ bool relocatedInstruction::generateCode(codeGen &gen,
                                         UNW_INFO_TYPE ** /* unwindInformation*/ ) 
 #endif
 {
-    if (alreadyGenerated(gen, baseInMutatee))
-        return true;
+  if( ! alreadyGenerated(gen, baseInMutatee) ) {
     generateSetup(gen, baseInMutatee);
 
     // addrInMutatee_ == base for this insn
     if (!insn->generate(gen,
-                        multiT->proc(),
-                        origAddr,
-                        addrInMutatee_,
-                        0, // fallthrough is not overridden
-                        targetOverride_)) {
-        fprintf(stderr, "WARNING: returned false from relocate insn (orig at 0x%lx, now 0x%lx)\n",
-                origAddr, addrInMutatee_);
-        return false;
+			multiT->proc(),
+			origAddr,
+			addrInMutatee_,
+			0, // fallthrough is not overridden
+			targetOverride_)) {
+      fprintf(stderr, "WARNING: returned false from relocate insn (orig at 0x%lx, now 0x%lx)\n", origAddr, addrInMutatee_);
+      return false;
     }
 
 #if defined(arch_sparc) 
     // We pin delay instructions.
     if (insn->isDCTI()) {
-        if (ds_insn) {
-            inst_printf("... copying delay slot\n");
-            ds_insn->generate(gen);
-        }
-        if (agg_insn) {
-            inst_printf("... copying aggregate\n");
-            agg_insn->generate(gen);
-        }
+      if (ds_insn) {
+        inst_printf("... copying delay slot\n");
+	    ds_insn->generate(gen);
+      }
+      if (agg_insn) {
+        inst_printf("... copying aggregate\n");
+	    agg_insn->generate(gen);
+      }
     }
 #endif
 
     size_ = gen.currAddr(baseInMutatee) - addrInMutatee_;
     generated_ = true;
     hasChanged_ = false;
+  } /* end code generation */
     
 #if defined( cap_unwind )
-	/* FIXME: a relocated instruction could easily change the unwind state.
-	   IA64-specific: can we ALIAS into the middle of bundles?
-	   Generally, can a relocated instruction tell how far into a basic block (bundle) it is? */
-	dyn_unw_printf( "%s[%d]: aliasing relocated instruction to 0x%lx\n", __FILE__, __LINE__, multiT->instAddr() );
-	unw_dyn_region_info_t * aliasRegion = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 2 ) );
-	assert( aliasRegion != NULL );
-	aliasRegion->insn_count = 0;
-	aliasRegion->op_count = 2;
+  /* FIXME: a relocated instruction could easily change the unwind state.
+     IA64-specific: can we ALIAS into the middle of bundles?
+     Generally, can a relocated instruction tell how far into a basic block (bundle) it is? */
+  dyn_unw_printf( "%s[%d]: aliasing relocated instruction to 0x%lx\n", __FILE__, __LINE__, multiT->instAddr() );
+  unw_dyn_region_info_t * aliasRegion = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 2 ) );
+  assert( aliasRegion != NULL );
+  aliasRegion->insn_count = 0;
+  aliasRegion->op_count = 2;
 	
-	_U_dyn_op_alias( & aliasRegion->op[0], _U_QP_TRUE, -1, multiT->instAddr() );
-	_U_dyn_op_stop( & aliasRegion->op[1] );
+  _U_dyn_op_alias( & aliasRegion->op[0], _U_QP_TRUE, -1, multiT->instAddr() );
+  _U_dyn_op_stop( & aliasRegion->op[1] );
      
-	unw_dyn_region_info_t * relocatedRegion = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 1 ) );
-    assert( relocatedRegion != NULL );
+  unw_dyn_region_info_t * relocatedRegion = (unw_dyn_region_info_t *)malloc( _U_dyn_region_info_size( 1 ) );
+  assert( relocatedRegion != NULL );
     
-    relocatedRegion->op_count = 1;
-	_U_dyn_op_stop( & relocatedRegion->op[0] );
+  relocatedRegion->op_count = 1;
+  _U_dyn_op_stop( & relocatedRegion->op[0] );
 		
-	/* size_ is in bytes. */
+  /* size_ is in bytes. */
 #if defined( arch_ia64 )
-	relocatedRegion->insn_count = (size_ / 16) * 3;
+  relocatedRegion->insn_count = (size_ / 16) * 3;
 #else 	
 #error How do I know how many instructions are in the jump region?
 #endif /* defined( arch_ia64 ) */
 
-	/* The care and feeding of pointers. */
-	unw_dyn_region_info_t * prevRegion = * unwindInformation;
-	prevRegion->next = aliasRegion;
-	aliasRegion->next = relocatedRegion;
-	relocatedRegion->next = NULL;
-	* unwindInformation = relocatedRegion;
+  /* The care and feeding of pointers. */
+  unw_dyn_region_info_t * prevRegion = * unwindInformation;
+  prevRegion->next = aliasRegion;
+  aliasRegion->next = relocatedRegion;
+  relocatedRegion->next = NULL;
+  * unwindInformation = relocatedRegion;
 #endif /* defined( cap_unwind ) */
-    return true;
+  return true;
 }
 
 bool multiTramp::fillJumpBuf(codeGen &gen) {
