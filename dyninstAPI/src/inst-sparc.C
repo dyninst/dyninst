@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.180 2006/02/17 17:17:06 rutar Exp $
+// $Id: inst-sparc.C,v 1.181 2006/03/07 23:18:16 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -822,8 +822,9 @@ bool baseTramp::generateMTCode(codeGen &gen,
     /* Get the hashed value of the thread */
     if (!threaded()) 
         threadPOS = new AstNode("DYNINSTreturnZero", dummy);
-    else 
+    else {
         threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
+    }
     src = threadPOS->generateCode(proc(), regSpace, gen,
                                   false, // noCost 
                                   true); // root node
@@ -1743,4 +1744,13 @@ int instPoint::liveRegSize()
 void registerSpace::saveClobberInfo(const instPoint *)
 {
   /*Stub function*/
+}
+
+/**
+ * Fills in an indirect function pointer at 'addr' to point to 'f'.
+ **/
+bool writeFunctionPtr(process *p, Address addr, int_function *f)
+{
+   Address val_to_write = f->getAddress();
+   return p->writeDataSpace((void *) addr, sizeof(Address), &val_to_write);   
 }
