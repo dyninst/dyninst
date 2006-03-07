@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.588 2006/03/06 20:14:31 nater Exp $
+// $Id: process.C,v 1.589 2006/03/07 23:18:17 bernat Exp $
 
 #include <ctype.h>
 
@@ -5920,10 +5920,19 @@ void process::recognize_threads(const process *parent)
       * Step 4: Create (if it doesn't exist) threads using the index and
       *         lwps
       **/
+     unsigned expected = 0;
+     
      for (i = 0; i < lwp_ids.size(); i++)
      {
         unsigned lwp_id = lwp_ids[i];
         dyn_lwp *lwp = getLWP(lwp_id);
+
+#if defined(os_aix) || defined(os_solaris)
+        // More "if we can't abort a system call....
+        if (lwp->executingSystemCall()) {
+            continue;
+        }
+#endif
         
         pdvector<AstNode *> ast_args;
         AstNode *ast = new AstNode("DYNINSTthreadIndex", ast_args);
@@ -5936,23 +5945,28 @@ void process::recognize_threads(const process *parent)
         bundle->num_completed = &num_completed;
         getRpcMgr()->postRPCtoDo(ast, true, doneRegistering, bundle, false, 
                                  NULL, lwp);
+        expected++;
      }
 
      inferiorrpc_printf("%s[%d]:  waiting for rpc completion\n", FILE__, __LINE__);
-     while(num_completed != lwp_ids.size())
-     {
-        getRpcMgr()->launchRPCs(false);
-        getMailbox()->executeCallbacks(FILE__, __LINE__);
-        if(hasExited()) {
-           fprintf(stderr, "%s[%d]:  unexpected process exit\n", FILE__, __LINE__);
-           return;
-        }
-        sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
-        getMailbox()->executeCallbacks(FILE__, __LINE__);
+
+     // We hit a problem here. On Solaris, some LWPs are "fake" and permanently
+     // in a system call. We can't run iRPCs on those threads at all, and if we
+     // wait for them to complete we'll just spin. 
+
+     while(num_completed != expected) {
+         getRpcMgr()->launchRPCs(false);
+         getMailbox()->executeCallbacks(FILE__, __LINE__);
+         if(hasExited()) {
+             fprintf(stderr, "%s[%d]:  unexpected process exit\n", FILE__, __LINE__);
+             return;
+         }
+         sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
+         getMailbox()->executeCallbacks(FILE__, __LINE__);
      }
 
-     assert(ret_lwps.size() == lwp_ids.size());
-     assert(ret_lwps.size() == ret_indexes.size());
+     assert(ret_lwps.size() == expected);
+     assert(ret_lwps.size() == expected);
 
      assert(status() == stopped);
  
@@ -5971,6 +5985,8 @@ void process::recognize_threads(const process *parent)
     assert(status() == stopped);
     return;
   }
+
+  // Fork case
   
   // We have LWPs with objects. The parent has a vector of threads.
   // Hook them up.
