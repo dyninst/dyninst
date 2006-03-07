@@ -12,11 +12,10 @@ volatile int proc_current_state;
 
 void *init_func(void *arg)
 {
-   while (!done)
-   {
-      /*      sleep(1);*/
-   }
-   return arg;
+    while (!done) {
+        sched_yield();
+    }
+    return arg;
 }
 
 int attached_fd;
@@ -39,9 +38,12 @@ int main(int argc, char *argv[])
    char c = 'T';
    pthread_t threads[NTHRD];
    pthread_attr_t attr;
+
    void *ret_val;
 
    pthread_attr_init(&attr);
+   pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
+
    parse_args(argc, argv);
 
    for (i=0; i<NTHRD; i++)
@@ -51,7 +53,7 @@ int main(int argc, char *argv[])
    if (attached_fd)
       write(attached_fd, &c, sizeof(char));
    fprintf(stderr, "[%s:%d]: stage 1\n", __FILE__, __LINE__);
-   while (proc_current_state == 0);
+   while (proc_current_state == 0) sched_yield();
    fprintf(stderr, "[%s:%d]: stage 2\n", __FILE__, __LINE__);
    done = 1;
    for (i=0; i<NTHRD; i++)
@@ -59,7 +61,7 @@ int main(int argc, char *argv[])
       pthread_join(threads[i], &ret_val);
    }
    fprintf(stderr, "[%s:%d]: stage 3\n", __FILE__, __LINE__);
-   while (proc_current_state == 1);
+   while (proc_current_state == 1) sched_yield();
    fprintf(stderr, "[%s:%d]: stage 4\n", __FILE__, __LINE__);
    return 0;
 }
