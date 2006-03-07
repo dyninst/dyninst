@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.54 2006/02/23 00:14:20 legendre Exp $ */
+/* $Id: RTcommon.c,v 1.55 2006/03/07 23:18:30 bernat Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -298,6 +298,18 @@ void DYNINST_instLoadLibrary(void *arg1) {
    /* Set the state so the mutator knows what's up */
    DYNINST_synch_event_id = DSE_loadLibrary;
    DYNINST_synch_event_arg1 = arg1;
+   /* Stop ourselves */
+   DYNINSTsafeBreakPoint();
+   /* Once the stop completes, clean up */
+   DYNINST_synch_event_id = DSE_undefined;
+   DYNINST_synch_event_arg1 = NULL;
+}
+
+/* Used to instrument (and report) the entry of exit */
+void DYNINST_instLwpExit(void) {
+   /* Set the state so the mutator knows what's up */
+   DYNINST_synch_event_id = DSE_lwpExit;
+   DYNINST_synch_event_arg1 = NULL;
    /* Stop ourselves */
    DYNINSTsafeBreakPoint();
    /* Once the stop completes, clean up */
