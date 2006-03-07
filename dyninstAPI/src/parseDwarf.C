@@ -1203,8 +1203,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				   Tell Dyninst about it. */
 				dwarf_printf( "localVariable '%s', currentFunction %p\n", variableName, currentFunction );
 				if( currentFunction != NULL ) {
-					if( !hasLineNumber ) { break; }
-					assert( hasLineNumber );
+                    if(!hasLineNumber)
+                        variableLineNo = 0;
 					
 					BPatch_localVar * newVariable = new BPatch_localVar( variableName, variableType, variableLineNo, variableOffset, regNum, storageClass );
 					currentFunction->localVariables->addLocalVar( newVariable );
