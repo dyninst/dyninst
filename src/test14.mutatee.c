@@ -130,6 +130,7 @@ int main()
 
    pthread_attr_t attr;
    pthread_attr_init(&attr);
+   pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
    
    pthread_mutex_init(&barrier_mutex, NULL);
    pthread_mutex_init(&count_mutex, NULL);

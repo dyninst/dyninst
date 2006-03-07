@@ -42,6 +42,8 @@ int main(int argc, char *argv[])
    void *ret_val;
 
    pthread_attr_init(&attr);
+   pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
+
    parse_args(argc, argv);
 
    for (i=0; i<NTHRD; i++)
