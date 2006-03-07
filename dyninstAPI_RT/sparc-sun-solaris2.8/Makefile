@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.19 2005/10/17 19:24:25 bernat Exp $
+# $Id: Makefile,v 1.20 2006/03/07 23:18:28 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -51,7 +51,10 @@ SRCS		+= ../src/RTposix.c \
 		   ../src/RTheap-svr4.c \
 			../src/RTmutatedBinary.c \
 			../src/RTmutatedBinary_ELF.c \
-		../src/RTthread-sparc-asm.s
+			../src/RTthread.c \
+			../src/RTthread-index.c \
+			../src/RTthread-solaris.c \
+			../src/RTthread-sparc-asm.s
 
 
 # Include the module-specific Makefile, which defines everything about
