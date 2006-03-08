@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9_7.C,v 1.2 2006/02/28 03:39:45 bpellin Exp $
+// $Id: test9_7.C,v 1.3 2006/03/08 16:45:03 bpellin Exp $
 /*
  * #Name: test9_7
  * #Desc: instrument entry point of main and first basic block in main
@@ -76,7 +76,11 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 
 	BPatch_thread *appThread;
 	BPatch_image *appImage;
-	createNewProcess(bpatch, appThread, appImage, pathname, child_argv);
+	if ( !createNewProcess(bpatch, appThread, appImage, pathname, child_argv) )
+        {
+           fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+           return -1;
+        }
 	
 	BPatch_Vector<BPatch_function *> found_funcs;
 	if ((NULL == appImage->findFunction("main", found_funcs)) || !found_funcs.size()) {

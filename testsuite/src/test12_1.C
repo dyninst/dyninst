@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test12_1.C,v 1.2 2005/10/17 19:14:27 bpellin Exp $
+// $Id: test12_1.C,v 1.3 2006/03/08 16:44:52 bpellin Exp $
 /*
  * #Name: test12_1
  * #Desc: dynamic call site callback
@@ -142,7 +142,7 @@ int mutatorTest(BPatch_thread *appT, BPatch_image *appImage)
   if (!calls) {
      FAIL_MES(TESTNO, TESTNAME);
      fprintf(stderr, "  cannot find call points for func1_1\n");
-     exit(1);
+     return -1;
   }
 
   for (unsigned int i = 0; i < calls->size(); ++i) {
@@ -153,7 +153,7 @@ int mutatorTest(BPatch_thread *appT, BPatch_image *appImage)
       if (!handle) {
         FAIL_MES(TESTNO, TESTNAME);
         fprintf(stderr, "  registerDynamicCallCallback failed\n");
-        exit(1);
+        return -1;
       } 
       test1handles.push_back(handle);
       dyncalls.push_back(pt);
@@ -165,7 +165,7 @@ int mutatorTest(BPatch_thread *appT, BPatch_image *appImage)
      fprintf(stderr, "  wrong number of dynamic points found (%d -- not 3)\n",
              dyncalls.size());
      fprintf(stderr, "  total number of calls found: %d\n", calls->size());
-        exit(1);
+     return -1;
   }
 
   appThread->continueExecution();

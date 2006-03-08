@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4_2.C,v 1.5 2006/02/22 22:06:31 bpellin Exp $
+// $Id: test4_2.C,v 1.6 2006/03/08 16:44:56 bpellin Exp $
 /*
  * #Name: test4_2
  * #Desc: Fork Callback
@@ -94,7 +94,7 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
     if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
 	   || NULL == bpfv[0]){
 	 fprintf(stderr, "    Unable to find function %s\n",fn);
-	 exit(1);
+         exit(1);
     }
 
     BPatch_function *func2_3_parent = bpfv[0];
@@ -105,7 +105,7 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
     if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
 	   || NULL == bpfv[0]){
 	 fprintf(stderr, "    Unable to find function %s\n",fn2);
-	 exit(1);
+         exit(1);
     }
 
     BPatch_function *func2_2_parent = bpfv[0];
@@ -124,7 +124,7 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
     if (NULL == appImage->findFunction(fn3, bpfv) || !bpfv.size()
 	   || NULL == bpfv[0]){
 	 fprintf(stderr, "    Unable to find function %s\n",fn3);
-	 exit(1);
+         exit(1);
     }
 
     BPatch_function *func2_4_child = bpfv[0];
@@ -135,7 +135,7 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
     if (NULL == appImage->findFunction(fn4, bpfv) || !bpfv.size()
 	   || NULL == bpfv[0]){
 	 fprintf(stderr, "    Unable to find function %s\n",fn4);
-	 exit(1);
+         exit(1);
     }
 
     BPatch_function *func2_2_child = bpfv[0];
@@ -233,7 +233,7 @@ int mutatorTest(char *pathname, BPatch *bpatch)
     dprintf("Process %p created", appThread);
     if (appThread == NULL) {
 	fprintf(stderr, "Unable to run test program.\n");
-	exit(1);
+        return -1;
     }
 
     contAndWaitForAllThreads(bpatch, appThread, mythreads, &threadCount);

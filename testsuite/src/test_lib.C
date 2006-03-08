@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.5 2006/02/28 17:49:53 bernat Exp $
+// $Id: test_lib.C,v 1.6 2006/03/08 16:44:48 bpellin Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -144,17 +144,18 @@ int waitUntilStopped(BPatch *bpatch, BPatch_thread *appThread, int testnum,
 // "isAttached."  We add instrumentation to "checkIfAttached" to set
 // "isAttached" to 1.
 //
-void signalAttached(BPatch_thread* /*appThread*/, BPatch_image *appImage)
+bool signalAttached(BPatch_thread* /*appThread*/, BPatch_image *appImage)
 {
     BPatch_variableExpr *isAttached = appImage->findVariable("isAttached");
     if (isAttached == NULL) {
 	printf("*ERROR*: unable to start tests because variable \"isAttached\""
                " could not be found in the child process\n");
-	exit(-1);
+        return false;
     }
 
     int yes = 1;
     isAttached->writeValue(&yes);
+    return true;
 }
 
 void setMutateeFortran(int mutFor)
@@ -212,7 +213,7 @@ int startNewProcessForAttach(const char *pathname, const char *argv[])
     int fds[2];
     if (pipe(fds) != 0) {
 	fprintf(stderr, "*ERROR*: Unable to create pipe.\n");
-	exit(-1);
+        return -1;
     }
 
     /* Create the argv string for the child process. */
@@ -234,7 +235,7 @@ int startNewProcessForAttach(const char *pathname, const char *argv[])
 	// child
 	close(fds[0]); // We don't need the read side
 	execv(pathname, (char * const *)attach_argv);
-	exit(-1);
+        return -1;
     } else if (pid < 0) {
 	return -1;
     }
@@ -247,12 +248,12 @@ int startNewProcessForAttach(const char *pathname, const char *argv[])
     if (read(fds[0], &ch, sizeof(char)) != sizeof(char)) {
 	perror("read");
 	fprintf(stderr, "*ERROR*: Error reading from pipe\n");
-	exit(-1);
+        return -1;
     }
 
     if (ch != 'T') {
 	fprintf(stderr, "*ERROR*: Child didn't write expected value to pipe.\n");
-	exit(-1);
+        return -1;
     }
 
     close(fds[0]);  // We're done with the pipe
@@ -383,7 +384,7 @@ int replaceFunctionCalls(BPatch_thread *appThread, BPatch_image *appImage,
 	  || NULL == bpfv[0]){
 	fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
 	fprintf(stderr, "    Unable to find function %s\n", replacement);
-	exit(1);
+        return -1;
       }
       call_replacement = bpfv[0];
     }
@@ -1329,7 +1330,7 @@ void buildArgs(const char** child_argv, char *pathname, int testNo){
 }
 
 
-void createNewProcess(BPatch *bpatch, BPatch_thread *&appThread, BPatch_image *&appImage, 
+bool createNewProcess(BPatch *bpatch, BPatch_thread *&appThread, BPatch_image *&appImage, 
       char *pathname, const char** child_argv)
 {
 
@@ -1338,13 +1339,14 @@ void createNewProcess(BPatch *bpatch, BPatch_thread *&appThread, BPatch_image *&
 
     if (appThread == NULL) {
 	fprintf(stderr, "Unable to run test program.\n");
-	exit(1);
+        return false;
     }
     appThread->enableDumpPatchedImage();
 
     // Read the program's image and get an associated image object
     appImage = appThread->getImage();
 
+    return true;
 }
 
 
@@ -1467,7 +1469,7 @@ void dumpVars(BPatch_image *appImage)
   }
 }
 
-void setVar(BPatch_image *appImage, const char *vname, void *addr, int testno, const char *testname)
+bool setVar(BPatch_image *appImage, const char *vname, void *addr, int testno, const char *testname)
 {
    BPatch_variableExpr *v;
    void *buf = addr;
@@ -1475,31 +1477,35 @@ void setVar(BPatch_image *appImage, const char *vname, void *addr, int testno, c
       fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
       fprintf(stderr, "  cannot find variable %s, avail vars:\n", vname);
       dumpVars(appImage);
-         exit(1);
+      return false;
    }
 
    if (! v->writeValue(buf, sizeof(int),true)) {
       fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
       fprintf(stderr, "  failed to write call site var to mutatee\n");
-      exit(1);
+      return false;
    }
+
+   return true;
 }
 
-void getVar(BPatch_image *appImage, const char *vname, void *addr, int testno, const char *testname)
+bool getVar(BPatch_image *appImage, const char *vname, void *addr, int testno, const char *testname)
 {
    BPatch_variableExpr *v;
    if (NULL == (v = appImage->findVariable(vname))) {
       fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
       fprintf(stderr, "  cannot find variable %s: avail vars:\n", vname);
       dumpVars(appImage);
-         exit(1);
+      return false;
    }
 
    if (! v->readValue(addr, sizeof(int))) {
       fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
       fprintf(stderr, "  failed to read var in mutatee\n");
-      exit(1);
+      return false;
    }
+
+   return true;
 }
 
 // End Test12 Library functions

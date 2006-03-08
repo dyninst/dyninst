@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test12_2.C,v 1.2 2005/10/17 19:14:28 bpellin Exp $
+// $Id: test12_2.C,v 1.3 2006/03/08 16:44:53 bpellin Exp $
 /*
  * #Name: test12_2
  * #Desc: rtlib spinlocks
@@ -66,7 +66,10 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
   //  unset mutateeIde to trigger thread (10) spawn.
   int zero = 0;
-  setVar(appImage,"mutateeIdle", (void *) &zero, TESTNO, TESTNAME);
+  if ( !setVar(appImage,"mutateeIdle", (void *) &zero, TESTNO, TESTNAME) )
+  {
+     return -1;
+  }
 
   appThread->getProcess()->continueExecution();
 
@@ -78,8 +81,14 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     sleep_ms(1000/*ms*/);
     timeout += 1000;
     appThread->getProcess()->stopExecution();
-    getVar(appImage, "subtest2counter", (void *) &test2counter, TESTNO, TESTNAME);
-    getVar(appImage, "subtest2err", (void *) &test2err, TESTNO, TESTNAME);
+    if ( !getVar(appImage, "subtest2counter", (void *) &test2counter, TESTNO, TESTNAME) )
+    {
+       return false;
+    }
+    if ( !getVar(appImage, "subtest2err", (void *) &test2err, TESTNO, TESTNAME) )
+    {
+       return false;
+    }
     appThread->getProcess()->continueExecution();
   }
 

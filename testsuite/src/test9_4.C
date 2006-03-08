@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9_4.C,v 1.3 2006/02/28 03:39:42 bpellin Exp $
+// $Id: test9_4.C,v 1.4 2006/03/08 16:45:00 bpellin Exp $
 /*
  * #Name: test9_4
  * #Desc: call writeValue and save the world
@@ -79,13 +79,17 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 	buildArgs(child_argv, pathname, testNo);
 
 
-	createNewProcess(bpatch, appThread, appImage, pathname, child_argv);
+	if ( !createNewProcess(bpatch, appThread, appImage, pathname, child_argv) )
+        {
+           fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+           return -1;
+        }
 
   BPatch_Vector<BPatch_function *> found_funcs;
     if ((NULL == appImage->findFunction("func4_1", found_funcs)) || !found_funcs.size()) {
       fprintf(stderr, "    Unable to find function %s\n",
 	      "func4_1");
-      exit(1);
+      return -1;
     }
 
     if (1 < found_funcs.size()) {
@@ -97,7 +101,7 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 
     if (!func4_1 || ((*func4_1).size() == 0)) {
 	fprintf(stderr, "Unable to find entry point to \"func4_1\".\n");
-	exit(1);
+        return -1;
     }
 
     BPatch_variableExpr *expr4_1 = findVariable(appImage, "globalVariable4_1", func4_1);
@@ -105,7 +109,7 @@ int mutatorTest(char *pathname, BPatch *bpatch)
     if (expr4_1 == NULL) {
 	fprintf(stderr, "**Failed** test #4 (read/write a variable in the mutatee)\n");
 	fprintf(stderr, "    Unable to locate globalVariable4_1\n");
-	exit(1);
+        return -1;
     }
 
     int n;
@@ -114,7 +118,7 @@ int mutatorTest(char *pathname, BPatch *bpatch)
     if (n != 42) {
 	fprintf(stderr, "**Failed** test #4 (read/write a variable in the mutatee)\n");
 	fprintf(stderr, "    value read from globalVariable4_1 was %d, not 42 as expected\n", n);
-	exit(1);
+        return -1;
     }
 
     n = 17;
