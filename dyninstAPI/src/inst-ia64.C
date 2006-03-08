@@ -808,197 +808,218 @@ IA64_bundle generateBundleFor( instruction insnToBundle ) {
 } /* end generateBundleFor() */
 
 /* private refactoring function */
-bool instruction_x::generate(codeGen &gen, 
-							 process *,
-							 Address originalLocation,
-							 Address allocatedAddress,
-							 Address,
-							 Address fallthroughTarget) {
-  if (fallthroughTarget) {
-	fprintf(stderr, "WARNING: ignoring redirected branch target of 0x%lx!\n",
-			fallthroughTarget);
-  }
-
-  instruction::insnType instructionType = getType();
-  insn_tmpl tmpl = { getMachineCode().high };
-  insn_tmpl imm  = { getMachineCode().low };
-  int64_t immediate;
+bool instruction_x::generate(	codeGen &gen, 
+								process *,
+								Address originalLocation,
+								Address allocatedAddress,
+								Address fallthroughTarget,
+								Address branchTarget ) {
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: fallthroughTarget 0x%lx, branchTarget 0x%lx\n", __FILE__, __LINE__, fallthroughTarget, branchTarget );
+								
+	instruction::insnType instructionType = getType();
+	insn_tmpl tmpl = { getMachineCode().high };
+	insn_tmpl imm  = { getMachineCode().low };
+	int64_t immediate;
 	
-  /* originalLocation is NOT an encoded address */
-  switch( instructionType ) {
-  case instruction::DIRECT_BRANCH: immediate = GET_X3_TARGET( &tmpl, &imm ); break;
-  case instruction::DIRECT_CALL:   immediate = GET_X4_TARGET( &tmpl, &imm ); break;
-  default: {
-	instruction memoryNOP( NOP_M );
-	IA64_bundle( MLXstop,
-				 memoryNOP,
-				 *this ).generate(gen);
+	/* originalLocation is NOT an encoded address */
+	switch( instructionType ) {
+		case instruction::DIRECT_BRANCH: immediate = GET_X3_TARGET( &tmpl, &imm ); break;
+		case instruction::DIRECT_CALL:   immediate = GET_X4_TARGET( &tmpl, &imm ); break;
+		default: {
+			instruction memoryNOP( NOP_M );
+			IA64_bundle( MLXstop, memoryNOP,  *this ).generate(gen);
+			return true;
+			}
+		}
+	
+	/* Correct the immediate by the difference between originalLocation and (insnPtr + size). */
+	/* originalLocation is NOT an encoded address */
+	Address target = immediate + originalLocation;
+	Address source = allocatedAddress + gen.used();
+	int64_t displacement = target - source;
+	
+	/* Handle edge instrumentation. */
+	if( branchTarget != 0x0 ) {
+		/* DEBUG */ fprintf( stderr, "%s[%d]: given branchTarget 0x%lx, changing displacement from 0x%lx to 0x%lx\n",
+			__FILE__, __LINE__, branchTarget, displacement, branchTarget - source );
+		displacement = branchTarget - source;
+		}
+	
+	switch( instructionType ) {
+		case instruction::DIRECT_BRANCH: SET_X3_TARGET( &tmpl, &imm, displacement ); break;
+		case instruction::DIRECT_CALL:   SET_X4_TARGET( &tmpl, &imm, displacement ); break;
+		default: break;
+		}
+	
+	instruction_x alteredLong( imm.raw, tmpl.raw, getTemplateID() );
+	IA64_bundle( MLXstop, instruction( NOP_M ), alteredLong ).generate( gen );
+	
+	if( fallthroughTarget != 0x0 ) {
+		/* DEBUG */ fprintf( stderr, "%s[%d]: given fallthroughTarget 0x%lx, generating second branch with displacement of 0x%lx\n",
+			__FILE__, __LINE__, fallthroughTarget, fallthroughTarget - source );
+		IA64_bundle( MLXstop, instruction( NOP_M ), generateLongBranchTo( fallthroughTarget - source ) ).generate( gen );
+		}
+
 	return true;
-  }
-  }
-	
-  /* Correct the immediate by the difference between originalLocation and (insnPtr + size). */
-  /* originalLocation is NOT an encoded address */
-  Address target = immediate + originalLocation;
-  Address source = allocatedAddress + gen.used();
-  int64_t displacement = target - source;
-	
-  switch( instructionType ) {
-  case instruction::DIRECT_BRANCH: SET_X3_TARGET( &tmpl, &imm, displacement); break;
-  case instruction::DIRECT_CALL:   SET_X4_TARGET( &tmpl, &imm, displacement); break;
-  default: break;
-  }
-	
-  instruction_x alteredLong( imm.raw, tmpl.raw, getTemplateID() );
-  IA64_bundle( MLXstop,
-			   instruction( NOP_M ),
-			   alteredLong ).generate(gen);
-
-  return true;
-} /* end emulateLongInstruction */
+	} /* end emulateLongInstruction */
 
 /* private refactoring function */
-void rewriteShortOffset( instruction insnToRewrite, Address originalLocation,
-						 codeGen &gen, Address allocatedAddress ) {
-  /* We insert a short jump past a long jump to the original target, followed
-	 by the instruction rewritten to branch one bundle backwards.
-	 It's not very elegant, but it's very straightfoward to implement. :) */
+void rewriteShortOffset(	instruction insnToRewrite, Address originalLocation,
+							codeGen &gen, Address allocatedAddress, Address fallthroughTarget, Address branchTarget ) {
+	/* We insert a short jump past a long jump to the original target, followed
+	   by the instruction rewritten to branch one bundle backwards.
+	   It's not very elegant, but it's very straightfoward to implement. :) */
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: rewriteShortOffset(): fallthroughTarget 0x%lx, branchTarget 0x%lx\n", __FILE__, __LINE__, fallthroughTarget, branchTarget );
 	   
-  /* CHECKME: do we need to worry about (dynamic) unwind information for any
-	 of the instruction we'll rewrite here?  We special-cased direct calls below. */
+	int forwardOffset = 0x20;
+	int backwardOffset = -0x10;
+	if( fallthroughTarget != 0x0 ) {
+		/* DEBUG */ fprintf( stderr, "%s[%d]: fallthroughTarget 0x%lx generating extra bundle.\n", __FILE__, __LINE__, fallthroughTarget );
+		forwardOffset = 0x30;
+		backwardOffset = -0x20;
+		}
 
-  /* Skip the long branch. */
-  instruction memoryNOP( NOP_M );
-  instruction_x skipInsn = generateLongBranchTo( 32 ); // could be short
-  IA64_bundle skipInsnBundle( MLXstop, memoryNOP, skipInsn );
-  skipInsnBundle.generate(gen); 
+	/* CHECKME: do we need to worry about (dynamic) unwind information for any
+	   of the instruction we'll rewrite here?  We special-cased direct calls below. */
 
-  /* Extract the original target. */
-  insn_tmpl tmpl = { insnToRewrite.getMachineCode() };
-  bool isSpecCheck = ( insnToRewrite.getType() == instruction::SPEC_CHECK );
-  Address originalTarget;
+	/* Skip the long branch. */
+	instruction memoryNOP( NOP_M );
+	instruction_x skipInsn = generateLongBranchTo( forwardOffset );
+	IA64_bundle skipInsnBundle( MLXstop, memoryNOP, skipInsn );
+	skipInsnBundle.generate( gen ); 
+
+	/* Extract the original target. */
+	insn_tmpl tmpl = { insnToRewrite.getMachineCode() };
+	bool isSpecCheck = ( insnToRewrite.getType() == instruction::SPEC_CHECK );
+	Address originalTarget;
 	
-  if( isSpecCheck )
-	originalTarget = GET_M20_TARGET( &tmpl ) + originalLocation;
-  else {
-	// This is cheating a bit, but all non-SPEC_CHECK instructions
-	// that flow through this function share the same immediate
-	// encoding, so using the M22 template should work.
-	originalTarget = GET_M22_TARGET( &tmpl ) + originalLocation;
-  }
+	if( isSpecCheck ) {
+		originalTarget = GET_M20_TARGET( &tmpl ) + originalLocation;
+		}
+	else {
+		// This is cheating a bit, but all non-SPEC_CHECK instructions
+		// that flow through this function share the same immediate
+		// encoding, so using the M22 template should work.
+		originalTarget = GET_M22_TARGET( &tmpl ) + originalLocation;
+		}
 
-  /* The long branch. */
-  // /* DEBUG */ fprintf( stderr, "originalTarget 0x%lx = 0x%lx + 0x%lx\n", originalTarget, ( signExtend( signBit, immediate ) << 4 ), originalLocation );
-  // Align originalTarget
-  originalTarget -= originalTarget % 16;
-  // TODO: handle this better. AllocatedAddress is as of the start
-  // of our code generation, but we're a bundle farther. We should
-  // be flexible so that if someone adds in another random bundle we
-  // don't break.
+	/* The long branch. */
+	// /* DEBUG */ fprintf( stderr, "originalTarget 0x%lx = 0x%lx + 0x%lx\n", originalTarget, ( signExtend( signBit, immediate ) << 4 ), originalLocation );
+	// Align originalTarget
+	originalTarget -= originalTarget % 16;
+	// TODO: handle this better. AllocatedAddress is as of the start
+	// of our code generation, but we're a bundle farther. We should
+	// be flexible so that if someone adds in another random bundle we
+	// don't break.
 
-  // 0x10: sizeof(bundle)
-  instruction_x longBranch = generateLongBranchTo( originalTarget - (allocatedAddress + 0x10));
-  IA64_bundle longBranchBundle( MLXstop, memoryNOP, longBranch );
-	
-  longBranchBundle.generate(gen);
+	if( branchTarget != 0x0 ) {
+		/* DEBUG */ fprintf( stderr, "%s[%d]: retargeting branch to 0x%lx\n", __FILE__, __LINE__, branchTarget );
+		originalTarget = branchTarget;
+		}
 
-  /* Rewrite the short immediate. */
-  if( isSpecCheck )
-	SET_M20_TARGET( &tmpl, -16 );
-  else
-	SET_M22_TARGET( &tmpl, -16 );
+	// 0x10: sizeof(bundle)
+	instruction_x longBranch = generateLongBranchTo( originalTarget - ( allocatedAddress + 0x10 ) );
+	IA64_bundle longBranchBundle( MLXstop, memoryNOP, longBranch );
+	longBranchBundle.generate( gen );
 
-  /* Emit the rewritten immediate. */
-  instruction rewrittenInsn( tmpl.raw, insnToRewrite.getTemplateID(), insnToRewrite.getSlotNumber() );
-  generateBundleFor( rewrittenInsn ).generate(gen);
-} /* end rewriteShortOffset() */
+	if( fallthroughTarget != 0x0 ) {
+		instruction_x fallBranch = generateLongBranchTo( fallthroughTarget - ( allocatedAddress + 0x20 ) );
+		IA64_bundle fallBranchBundle( MLXstop, memoryNOP, fallBranch );
+		fallBranchBundle.generate( gen );
+		}
+
+	/* Rewrite the short immediate. */
+	if( isSpecCheck ) {
+		SET_M20_TARGET( &tmpl, backwardOffset );
+		}
+	else {
+		SET_M22_TARGET( &tmpl, backwardOffset );
+		}
+
+	/* Emit the rewritten immediate. */
+	instruction rewrittenInsn( tmpl.raw, insnToRewrite.getTemplateID(), insnToRewrite.getSlotNumber() );
+	generateBundleFor( rewrittenInsn ).generate(gen);
+	} /* end rewriteShortOffset() */
 
 /* private refactoring function */
-bool instruction::generate(codeGen &gen, 
-						   process *,
-						   Address originalLocation,
-						   Address allocatedAddress,
-						   Address,
-						   Address fallthroughTarget) {
-  if (fallthroughTarget) {
-	fprintf(stderr, "WARNING: ignoring redirected branch target of 0x%lx!\n",
-			fallthroughTarget);
-  }
-	
-  insn_tmpl tmpl = { getMachineCode() };
-
-  switch( getType() ) {
-  case instruction::DIRECT_BRANCH:
-	rewriteShortOffset( *this, originalLocation, gen,  allocatedAddress);
-	break; /* end direct jump handling */
-		
-  case instruction::DIRECT_CALL: {
-	/* Direct calls have to be rewritten as long calls in order to make sure the assertions
-	   installBaseTramp() makes about the frame state in the dynamic unwind information
-	   are true.  (If we call backwards one instruction, the frame there is not the same as
-	   it was at the instruction we're emulating.)  */
+bool instruction::generate(	codeGen &gen,
+							process *,
+							Address originalLocation,
+							Address allocatedAddress,
+							Address fallthroughTarget,
+							Address branchTarget ) {
 	insn_tmpl tmpl = { getMachineCode() };
-	Address originalTarget = GET_M22_TARGET( &tmpl ) + originalLocation - (originalLocation % 16);
-	instruction_x longCall = generateLongCallTo( originalTarget - allocatedAddress,
-												 tmpl.B3.b1, tmpl.B3.qp );
-	instruction memoryNOP( NOP_M );			
-	IA64_bundle longCallBundle( MLXstop, memoryNOP, longCall );
-	longCallBundle.generate(gen);
-  } break; /* end direct call handling */		
-	
-  case instruction::BRANCH_PREDICT:
-	/* We can suffer the performance loss. :) */
-	IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ).generate(gen);
-		
-	break; /* end branch predict handling */
-		
-  case instruction::ALAT_CHECK:
-  case instruction::SPEC_CHECK:
-	/* The advanced load checks can be handled exactly as we 
-	   handle direct branches and calls.  The other three checks
-	   (I&M unit integer speculation, fp speculation) are handled
-	   identically to each other, but their immediates are laid
-	   out a little different, so we can't handle them as we do
-	   the advanced loads. */
-	rewriteShortOffset( *this, originalLocation, gen, allocatedAddress );
-		
-	/* FIXME: the jump back needs to be fixed.  Implies we need to leave the emulated code in-place. */
-	break; /* end speculation check handling */
-		
-  case instruction::BRANCH_IA:
-	assert( 0 );
-	break; /* end branch to x86 handling */
-		
-  case instruction::MOVE_FROM_IP: {
-	/* Replace with a movl of the original IP. */
-	unsigned int originalRegister = tmpl.I25.r1;
-	instruction memoryNOP( NOP_M );
-	instruction_x emulatedIPMove = generateLongConstantInRegister( originalRegister, originalLocation );
-	IA64_bundle ipMoveBundle( MLXstop, memoryNOP, emulatedIPMove );
-	ipMoveBundle.generate(gen);
-	break; } /* end ip move handling */
-		
-  case instruction::INVALID:
-	fprintf( stderr, "Not emulating INVALID instruction.\n" );
-	break;
-		
-  case instruction::ALLOC:
-	// When emulating an alloc instruction, we must insure that it is the
-	// first instruction of an instruction group.
-	IA64_bundle( MstopMIstop, NOP_M, *this, NOP_I ).generate(gen);
-	break;
-		
-  case instruction::RETURN:
-  case instruction::INDIRECT_CALL:
-  case instruction::INDIRECT_BRANCH:
-	/* Branch registers hold absolute addresses. */
-  default:
-	generateBundleFor( *this ).generate(gen);
-	break; /* end default case */
-  } /* end type switch */
 
-  return true;
-} /* end emulate */
+	switch( getType() ) {
+		case instruction::DIRECT_BRANCH:
+			rewriteShortOffset( *this, originalLocation, gen,  allocatedAddress, fallthroughTarget, branchTarget );
+			break; /* end direct jump handling */
+		
+		case instruction::DIRECT_CALL: {
+			/* Direct calls have to be rewritten as long calls in order to make sure the assertions
+			   installBaseTramp() makes about the frame state in the dynamic unwind information
+			   are true.  (If we call backwards one instruction, the frame there is not the same as
+			   it was at the instruction we're emulating.)  */
+			insn_tmpl tmpl = { getMachineCode() };
+			Address originalTarget = GET_M22_TARGET( &tmpl ) + originalLocation - (originalLocation % 16);
+			instruction_x longCall = generateLongCallTo( originalTarget - allocatedAddress, tmpl.B3.b1, tmpl.B3.qp );
+			instruction memoryNOP( NOP_M );
+			IA64_bundle longCallBundle( MLXstop, memoryNOP, longCall );
+			longCallBundle.generate( gen );
+			} break; /* end direct call handling */		
+	
+		case instruction::BRANCH_PREDICT:
+			/* We can suffer the performance loss. :) */
+			IA64_bundle( MIIstop, NOP_M, NOP_I, NOP_I ).generate(gen);
+			break; /* end branch predict handling */
+		
+		case instruction::ALAT_CHECK:
+		case instruction::SPEC_CHECK:
+			/* The advanced load checks can be handled exactly as we 
+			   handle direct branches and calls.  The other three checks
+			   (I&M unit integer speculation, fp speculation) are handled
+			   identically to each other, but their immediates are laid
+			   out a little different, so we can't handle them as we do
+			   the advanced loads. */
+			rewriteShortOffset( *this, originalLocation, gen, allocatedAddress, fallthroughTarget, branchTarget );
+		
+			/* FIXME: the jump back needs to be fixed.  Implies we need to leave the emulated code in-place. */
+			break; /* end speculation check handling */
+		
+		case instruction::BRANCH_IA:
+			assert( 0 );
+			break; /* end branch to x86 handling */
+		
+		case instruction::MOVE_FROM_IP: {
+			/* Replace with a movl of the original IP. */
+			unsigned int originalRegister = tmpl.I25.r1;
+			instruction memoryNOP( NOP_M );
+			instruction_x emulatedIPMove = generateLongConstantInRegister( originalRegister, originalLocation );
+			IA64_bundle ipMoveBundle( MLXstop, memoryNOP, emulatedIPMove );
+			ipMoveBundle.generate(gen);
+			break; } /* end ip move handling */
+		
+		case instruction::INVALID:
+			fprintf( stderr, "Not emulating INVALID instruction.\n" );
+			break;
+		
+		case instruction::ALLOC:
+			// When emulating an alloc instruction, we must insure that it is the
+			// first instruction of an instruction group.
+			IA64_bundle( MstopMIstop, NOP_M, *this, NOP_I ).generate(gen);
+			break;
+		
+		case instruction::RETURN:
+		case instruction::INDIRECT_CALL:
+		case instruction::INDIRECT_BRANCH:
+			/* Branch registers hold absolute addresses. */
+		default:
+			generateBundleFor( *this ).generate(gen);
+			break; /* end default case */
+		} /* end type switch */
+
+	return true;
+	} /* end instruction emulation */
 
 /* Required by BPatch_thread.C */
 #define NEAR_ADDRESS 0x2000000000000000               /* The lower end of the shared memory segment. */
@@ -3320,10 +3341,10 @@ void registerSpace::saveClobberInfo(const instPoint *)
 
 #if defined( OLD_DYNAMIC_CALLSITE_MONITORING )
 bool process::MonitorCallSite( instPoint * callSite ) {
-  pdvector< AstNode * > arguments;
+	pdvector< AstNode * > arguments;
 #else
-  /* This is a really horribly-named function. */
-  bool process::getDynamicCallSiteArgs( instPoint * callSite, pdvector<AstNode *> & arguments ) {
+/* This is a really horribly-named function. */
+bool process::getDynamicCallSiteArgs( instPoint * callSite, pdvector<AstNode *> & arguments ) {
 #endif
 	insn_tmpl tmpl = { callSite->insn().getMachineCode() };
 	uint64_t targetAddrRegister = tmpl.B4.b2;			
@@ -3350,22 +3371,19 @@ bool process::MonitorCallSite( instPoint * callSite ) {
 	return true;
   } /* end MonitorCallSite() */
 
-  unsigned relocatedInstruction::maxSizeRequired() {
+unsigned relocatedInstruction::maxSizeRequired() {
 	// This can be pruned to be a better estimate.
 	return 48; // bundles. I think. Might be 3.
-  }
+	}
 
-  bool baseTrampInstance::finalizeGuardBranch( codeGen & gen, int displacement ) {
+bool baseTrampInstance::finalizeGuardBranch( codeGen & gen, int displacement ) {
 	/* Displacement is in bytes. */
-	IA64_bundle guardOnBundle3( MLXstop,
-								instruction( NOP_M ),
-								generateLongBranchTo( displacement, GUARD_PREDICATE_TRUE ));
+	IA64_bundle guardOnBundle3( MLXstop, instruction( NOP_M ), generateLongBranchTo( displacement, GUARD_PREDICATE_TRUE ) );
 	guardOnBundle3.generate( gen );
-	
 	return true;
-  }
+	}
 
-  bool baseTramp::generateSaves( codeGen & gen, registerSpace * rs ) {
+bool baseTramp::generateSaves( codeGen & gen, registerSpace * rs ) {
 	assert( baseTrampRegion == NULL );
 	assert( rs != NULL );
 
@@ -3382,28 +3400,27 @@ bool process::MonitorCallSite( instPoint * callSite ) {
 	   this information as well. */
 	bool staticallyAnalyzed = defineBaseTrampRegisterSpaceFor( point(), regSpace, deadRegisterList );
 	if( ! staticallyAnalyzed ) {
-	  fprintf( stderr, "FIXME: Dynamic determination of register frame required but not yet implemented, aborting.\n" );
-	  fprintf( stderr, "FIXME: mutatee instrumentation point 0x%lx\n", point()->addr() );
-	  return false;
-	} 
+		fprintf( stderr, "FIXME: Dynamic determination of register frame required but not yet implemented, aborting.\n" );
+		fprintf( stderr, "FIXME: mutatee instrumentation point 0x%lx\n", point()->addr() );
+		return false;
+		} 
 
 	/* This will be used in the case we don't want to save any FPR */
 	bool * whichToPreserve = (bool *)malloc( 128 * sizeof( bool ) );
 	for( int i = 0; i < 128; i++ ) 
 	  whichToPreserve[i] = false;
 	
-	if (BPatch::bpatch->isSaveFPROn())
+	if( BPatch::bpatch->isSaveFPROn() ) {
 	  	return generatePreservationHeader( gen, point()->func()->usedFPregs, baseTrampRegion );
-	else
-	  {
+	  	}
+	else {
 		bool returnVal = generatePreservationHeader( gen, whichToPreserve, baseTrampRegion );
-		free(whichToPreserve);
+		free( whichToPreserve );
 		return returnVal;
-	  }
+		}
+	} /* end generateSaves() */
 
-  } /* end generateSaves() */
-
-  bool baseTramp::generateRestores( codeGen & gen, registerSpace * rs ) {
+bool baseTramp::generateRestores( codeGen & gen, registerSpace * rs ) {
 	assert( baseTrampRegion != NULL );
 	assert( rs != NULL );
 	
@@ -3412,59 +3429,58 @@ bool process::MonitorCallSite( instPoint * callSite ) {
 	   this information as well. */
 	bool staticallyAnalyzed = defineBaseTrampRegisterSpaceFor( point(), regSpace, deadRegisterList );
 	if( ! staticallyAnalyzed ) {
-	  fprintf( stderr, "FIXME: Dynamic determination of register frame required but not yet implemented, aborting.\n" );
-	  fprintf( stderr, "FIXME: mutatee instrumentation point 0x%lx\n", point()->addr() );
-	  return false;
-	} 
+		fprintf( stderr, "FIXME: Dynamic determination of register frame required but not yet implemented, aborting.\n" );
+		fprintf( stderr, "FIXME: mutatee instrumentation point 0x%lx\n", point()->addr() );
+		return false;
+		} 
 	
 	/* This will be used in the case we don't want to save any FPR */
 	bool * whichToPreserve = (bool *)malloc( 128 * sizeof( bool ) );
-	for( int i = 0; i < 128; i++ ) 
-	  whichToPreserve[i] = false;
+	for( int i = 0; i < 128; i++ ) {
+		whichToPreserve[i] = false;
+		}
 	
-	if (BPatch::bpatch->isSaveFPROn())
-	  return generatePreservationTrailer( gen, point()->func()->usedFPregs, baseTrampRegion );
-	else
-	  {
+	if( BPatch::bpatch->isSaveFPROn() ) { 
+		return generatePreservationTrailer( gen, point()->func()->usedFPregs, baseTrampRegion );
+		}
+	else {
 		bool returnVal = generatePreservationTrailer( gen, whichToPreserve, baseTrampRegion );
 		free(whichToPreserve);
 		return returnVal;
-	  }
-	
-  }  /* end generateRestores() */
+		}
+	}  /* end generateRestores() */
   
-  unsigned baseTramp::getBTCost() {
+unsigned baseTramp::getBTCost() {
 	/* This seems to be defined to return a random constant.  Lovely. */
 	return STATE_SAVE_COST + STATE_RESTORE_COST;
-  } /* end getBTCost() */
+	} /* end getBTCost() */
 
  
-  int instPoint::liveRegSize()
-	{
-	  /* Stub Function --- should never be called */
-	  return 0;
+int instPoint::liveRegSize() {
+	/* Stub Function --- should never be called */
+	return 0;
 	}
 
-  int instPoint::getPointCost() {
+int instPoint::getPointCost() {
 	unsigned worstCost = 0;
 	for (unsigned i = 0; i < instances.size(); i++) {
-      if (instances[i]->multi()) {
-		if (instances[i]->multi()->usesTrap()) {
-		  // Stop right here
-		  // Actually, probably don't want this if the "always
-		  // delivered" instrumentation happens
-		  return 9000; // Estimated trap cost
-		}
+    	if (instances[i]->multi()) {
+			if (instances[i]->multi()->usesTrap()) {
+				// Stop right here
+				// Actually, probably don't want this if the "always
+				// delivered" instrumentation happens
+				return 9000; // Estimated trap cost
+				}
+			else {
+				worstCost = 105; // Magic constant from before time
+				}
+			 }
 		else {
-		  worstCost = 105; // Magic constant from before time
+			// No multiTramp, so still free (we're not instrumenting here).
+			}
 		}
-      }
-      else {
-		// No multiTramp, so still free (we're not instrumenting here).
-      }
-	}
 	return worstCost;
-  }
+	}
 
 /**
   * Fills in an indirect function pointer at 'addr' to point to 'f'.
