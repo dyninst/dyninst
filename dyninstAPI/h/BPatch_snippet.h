@@ -115,6 +115,7 @@ typedef enum {
 
 class BPATCH_DLL_EXPORT BPatch_snippet : public BPatch_eventLock {
     friend class BPatch_process;
+    friend class BPatch_thread;
     friend class BPatch_arithExpr;
     friend class BPatch_boolExpr;
     friend class BPatch_funcCallExpr;
