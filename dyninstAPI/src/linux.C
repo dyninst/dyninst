@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.198 2006/03/02 20:00:04 tlmiller Exp $
+// $Id: linux.C,v 1.199 2006/03/08 19:57:50 mjbrim Exp $
 
 #include <fstream>
 
@@ -215,13 +215,17 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
    errno = 0;
    if (ev.type == evtSignalled) {
       if (waiting_for_stop) {
-        if (suppressSignalWhenStopping(ev)) {
-          //  we suppress this signal, just send a null event
-          char buf[128];
-          fprintf(stderr, "%s[%d]:  suppressing signal %s\n", FILE__, __LINE__, ev.sprint_event(buf));
-          ev.type = evtNullEvent;
-          return true;
-        }
+         if (suppressSignalWhenStopping(ev)) {
+            //  we suppress this signal, just send a null event
+            if (ev.what != SIGTRAP) {
+               // it's common to suppress traps while waiting for a stop,
+               // only report other signals
+               char buf[128];
+               fprintf(stderr, "%s[%d]:  suppressing signal %s\n", FILE__, __LINE__, ev.sprint_event(buf));
+            }
+            ev.type = evtNullEvent;
+            return true;
+         }
       }
       decodeSignal(ev);
    }
@@ -602,13 +606,13 @@ bool SignalGenerator::suppressSignalWhenStopping(EventRecord &ev)
   if ( ev.what == SIGSTOP )
      return suppressed_something;
 
-#if defined(arch_x86)
   /* If we're suppressing signals, regenerate them at the end of the
      queue to avoid race conditions. */
-  if( ev.what == SIGTRAP )
-     ev.lwp->changePC(ev.lwp->getActiveFrame().getPC() - 1, NULL);
-#elif defined( arch_ia64 )
   if( ev.what == SIGTRAP ) {
+#if defined(arch_x86)
+     Address trap_pc = ev.lwp->getActiveFrame().getPC();
+     ev.lwp->changePC(trap_pc - 1, NULL);
+#elif defined(arch_ia64)
      /* DEBUG */ fprintf( stderr, "%s[%d]: IA-64 regenerating suppressed SIGTRAP.\n", __FILE__, __LINE__ );
      Address trapAddr = ev.lwp->getActiveFrame().getPC();
      Address preTrapAddr = trapAddr;
@@ -624,14 +628,14 @@ bool SignalGenerator::suppressSignalWhenStopping(EventRecord &ev)
  
     /* DEBUG */ fprintf( stderr, "%s[%d]: 0x%lx -> 0x%lx\n", __FILE__, __LINE__, trapAddr, trapAddr );
     ev.lwp->changePC( preTrapAddr, NULL );
-    }
 #endif /* defined( arch_ia64 ) */
+  }
 
   ev.lwp->continueLWP_(0, true);
   ev.proc->set_lwp_status(ev.lwp, running);
 
   if ( ev.what == SIGILL  || 
-       ev.what == SIGTRAP || 
+       //ev.what == SIGTRAP || 
        ev.what == SIGFPE  || 
        ev.what == SIGSEGV || 
        ev.what == SIGBUS ) {
@@ -642,8 +646,10 @@ bool SignalGenerator::suppressSignalWhenStopping(EventRecord &ev)
      return suppressed_something;
   }
 
-  suppressed_sigs.push_back(ev.what);
-  suppressed_lwps.push_back(ev.lwp);
+  if ( ev.what != SIGTRAP ) {
+     suppressed_sigs.push_back(ev.what);
+     suppressed_lwps.push_back(ev.lwp);
+  }
   suppressed_something = true;
 
   return suppressed_something;
