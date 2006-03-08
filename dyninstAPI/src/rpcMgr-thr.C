@@ -381,7 +381,6 @@ bool rpcThr::deleteThrIRPC(unsigned id) {
     if (pendingRPC_ && pendingRPC_->rpc->id == id) {
        // we don't want to do as we normally do when a exit trap occurs,
        // that is to run the rpc, which gets triggered by this callback
-       get_thr()->get_lwp()->clearSyscallExitTrapCallback();
        get_thr()->get_lwp()->clearSyscallExitTrap();
        
         delete pendingRPC_->rpc;
