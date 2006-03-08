@@ -1427,6 +1427,20 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
    return true;
 }
 
+bool BPatch_process::getAddressRangesInt( const char * fileName, unsigned int lineNo, std::vector< std::pair< unsigned long, unsigned long > > & ranges ) {
+	unsigned int originalSize = ranges.size();
+
+	/* Iteratate over the modules, looking for addr in each. */
+	BPatch_Vector< BPatch_module * > * modules = image->getModules();
+	for( unsigned int i = 0; i < modules->size(); i++ ) {
+		LineInformation & lineInformation = (* modules)[i]->getLineInformation();		
+		lineInformation.getAddressRanges( fileName, lineNo, ranges );
+		} /* end iteration over modules */
+	if( ranges.size() != originalSize ) { return true; }
+	
+	return false;
+	} /* end getAddressRangesInt() */
+
 bool BPatch_process::getSourceLinesInt( unsigned long addr, std::vector< LineInformation::LineNoTuple > & lines ) {
 	unsigned int originalSize = lines.size();
 

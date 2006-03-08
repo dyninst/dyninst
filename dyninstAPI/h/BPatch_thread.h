@@ -191,6 +191,10 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
        { return proc->loadLibrary(libname, reload); }
     bool getSourceLines( unsigned long addr, std::vector< std::pair< const char *, unsigned int > > & lines )
        { return proc->getSourceLines( addr, lines ); }
+    bool getAddressRanges( const char * fileName, unsigned int lineNo, std::vector< std::pair< unsigned long, unsigned long > > & ranges )
+       { return proc->getAddressRanges( fileName, lineNo, ranges ); }
+    // getLineAndFile() should be deprecated.
+    bool getLineAndFile( unsigned long addr, unsigned short & lineNo, char * fileName, int length );
     BPatch_function *findFunctionByAddr(void *addr)
        { return proc->findFunctionByAddr(addr); }
     void enableDumpPatchedImage() { proc->enableDumpPatchedImage(); }

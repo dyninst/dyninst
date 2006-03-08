@@ -558,13 +558,20 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     API_EXPORT(Int, (libname, reload),
     bool,loadLibrary,(const char *libname, bool reload = false));
 
-    //  BPatch_process::getLineAndFile
+    //  BPatch_process::getSourceLines
     //  
     //  Method that retrieves the line number and file name corresponding 
     //  to an address
 
     API_EXPORT(Int, (addr, lines),
     bool,getSourceLines,(unsigned long addr, std::vector< std::pair< const char *, unsigned int > > & lines ));
+    
+    // BPatch_process::getAddressRanges
+    //
+    // Method that retrieves address range(s) for a given filename and line number.
+    
+    API_EXPORT(Int, (fileName, lineNo, ranges),
+    bool,getAddressRanges,(const char * fileName, unsigned int lineNo, std::vector< std::pair< unsigned long, unsigned long > > & ranges ));
 	
     //  BPatch_process::findFunctionByAddr
     //  

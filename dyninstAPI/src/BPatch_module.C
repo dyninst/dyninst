@@ -1204,15 +1204,32 @@ bool BPatch_module::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 #endif
 }
 
-bool BPatch_module::getAddressRangesInt( const char * fileName, unsigned int lineNo, std::vector< std::pair< Address, Address > > & ranges ) {
-    LineInformation & li = mod->getLineInformation();
-    if( fileName == NULL ) { fileName = mod->fileName().c_str(); }
-    return li.getAddressRanges( fileName, lineNo, ranges );
-} /* end getAddressRanges() */
+/* This function should be deprecated. */
+bool BPatch_module::getLineToAddrInt( unsigned int lineNo, BPatch_Vector< unsigned long > & buffer, bool ) {
+	std::vector< std::pair< Address, Address > > ranges;
+	if( ! getAddressRangesInt( NULL, lineNo, ranges ) ) { return false; }
 
-LineInformation & BPatch_module::getLineInformationInt() {
-    return this->mod->getLineInformation();
-} /* end getLineInformation() */
+	for( unsigned int i = 0; i < ranges.size(); ++i ) {
+		buffer.push_back( ranges[i].first );
+		}
+
+	return true;
+	} /* end getLineToAddr() */
+
+bool BPatch_module::getSourceLinesInt( unsigned long addr, std::vector< std::pair< const char *, unsigned int > > & lines ) {
+	LineInformation & li = mod->getLineInformation();
+	return li.getSourceLines( addr, lines );
+	} /* end getSourceLines() */
+
+bool BPatch_module::getAddressRangesInt( const char * fileName, unsigned int lineNo, std::vector< std::pair< Address, Address > > & ranges ) {
+	LineInformation & li = mod->getLineInformation();
+	if( fileName == NULL ) { fileName = mod->fileName().c_str(); }
+	return li.getAddressRanges( fileName, lineNo, ranges );
+	} /* end getAddressRanges() */
+
+LineInformation & BPatch_module::getLineInformation() {
+	return this->mod->getLineInformation();
+	} /* end getLineInformation() */
 
 bool BPatch_module::isSharedLibInt() {
   return mod->obj()->isSharedLib();

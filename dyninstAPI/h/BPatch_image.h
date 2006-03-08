@@ -249,6 +249,9 @@ class BPATCH_DLL_EXPORT BPatch_image: public BPatch_sourceObj, public BPatch_eve
     API_EXPORT(Int, (fileName, lineNo, ranges),
 
     bool,getAddressRanges,( const char * fileName, unsigned int lineNo, std::vector< std::pair< unsigned long, unsigned long > > & ranges ));
+    
+    API_EXPORT(Int, (addr, lines),
+    bool,getSourceLines,( unsigned long addr, std::vector< std::pair< const char *, unsigned int > > & lines ));
 
     //  BPatch_image::getProgramName
     //  

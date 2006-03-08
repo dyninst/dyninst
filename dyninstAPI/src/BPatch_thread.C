@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.143 2006/03/08 19:57:47 mjbrim Exp $
+// $Id: BPatch_thread.C,v 1.144 2006/03/08 21:59:34 tlmiller Exp $
 
 #define BPATCH_FILE
 
@@ -473,3 +473,19 @@ bool BPatch_thread::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
 bool BPatch_thread::isDeadOnArrivalInt() {
    return doa;
 }
+
+/* This function should be deprecated. */
+bool BPatch_thread::getLineAndFile( unsigned long addr, unsigned short & lineNo, char * fileName, int length ) {
+	std::vector< std::pair< const char *, unsigned int > > lines;
+	if( ! getSourceLines( addr, lines ) ) { return false; }
+	
+	if( lines.size() > 0 ) {
+		lineNo = lines[0].second;
+		strncpy( fileName, lines[0].first, length );
+		
+		return true;
+		}
+		
+	return false;
+	} /* end getLineAndFile() */
+    

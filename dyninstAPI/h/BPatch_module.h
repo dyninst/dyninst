@@ -96,7 +96,8 @@ public:
     BPatch_sourceObj *getObjParent();
     void parseTypes();
     char *parseStabStringSymbol(int line, char *stabstr, void *stabptr);
-    void setDefaultNamespacePrefix(char *name);
+    void setDefaultNamespacePrefix(char *name);    
+    LineInformation & getLineInformation();
     // End functions for internal use only
   
     // BPatch_module::getName
@@ -185,6 +186,11 @@ public:
 
     bool,isNativeCompiler,());
 
+	// This function should be deprecated.
+	API_EXPORT(Int, (lineNo, buffer, exactMatch),
+	
+	bool,getLineToAddr,(unsigned int lineNo, BPatch_Vector<unsigned long> & buffer, bool exactMatch = true ));
+
     // BPatch_module::getAddressRanges
     // 
     // function to get addresses for a line of the module
@@ -192,14 +198,16 @@ public:
     API_EXPORT(Int, (fileName, lineNo, ranges),
 
     bool,getAddressRanges,( const char * fileName, unsigned int lineNo, std::vector< std::pair< unsigned long, unsigned long > > & ranges ));
-
-    // BPatch_module::getLineInformation
-    // Returns a pointer to LineInformation for this module
-    API_EXPORT(Int, (),
-
-    LineInformation &,getLineInformation,());
     
-    // BPatch_module::getBaseAddr
+    // BPatch_module::getSourceLines
+    //
+    // function to get source file names and lines
+    // for an address in the module
+    API_EXPORT(Int, (addr, lines),
+    
+    bool,getSourceLines,( unsigned long addr, std::vector< std::pair< const char *, unsigned int > > & lines ));
+
+    // BPatch_module::wgetBaseAddr
     // Returns a base address of the module; defined as the start
     // of the first function.
     API_EXPORT(Int, (),

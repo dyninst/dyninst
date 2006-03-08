@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.81 2006/03/03 18:10:55 nater Exp $
+// $Id: BPatch_image.C,v 1.82 2006/03/08 21:59:30 tlmiller Exp $
 
 #define BPATCH_FILE
 
@@ -880,10 +880,24 @@ BPatch_type *BPatch_image::findTypeInt(const char *name)
 
 }
 
+bool BPatch_image::getSourceLinesInt( unsigned long addr, std::vector< std::pair< const char *, unsigned int > > & lines ) {
+	unsigned int originalSize = lines.size();
+	
+	/* Iteratate over the modules, looking for addr in each. */
+	BPatch_Vector< BPatch_module * > * modules = getModules();
+	for( unsigned int i = 0; i < modules->size(); i++ ) {
+		LineInformation & lineInformation = (* modules)[i]->getLineInformation();
+		lineInformation.getSourceLines( addr, lines );
+		} /* end iteration over modules */
+	if( lines.size() != originalSize ) { return true; }	
+	
+	return false;
+	} /* eng getSourceLines() */
+
 bool BPatch_image::getAddressRangesInt( const char * lineSource, unsigned int lineNo, std::vector< LineInformation::AddressRange > & ranges ) {
 	unsigned int originalSize = ranges.size();
 
-	/* Iteratate over the modules, looking for addr in each. */
+	/* Iteratate over the modules, looking for ranges in each. */
 	BPatch_Vector< BPatch_module * > * modules = getModules();
 	for( unsigned int i = 0; i < modules->size(); i++ ) {
 		LineInformation & lineInformation = (* modules)[i]->getLineInformation();

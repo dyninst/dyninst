@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.72 2006/03/02 19:35:17 bernat Exp $
+// $Id: BPatch_function.C,v 1.73 2006/03/08 21:59:29 tlmiller Exp $
 
 #define BPATCH_FILE
 
@@ -571,9 +571,7 @@ char *BPatch_function::getModuleNameInt(char *name, int maxLen) {
 bool BPatch_function::getLineNumbersInt(unsigned int &start, unsigned int &end) {
   char name[256];
   unsigned int length = 255;
-  // TODO!
-  //return getLineAndFile(start, end, name, length);
-  return false;
+  return getLineAndFileInt(start, end, name, length);
 }
 
 void *BPatch_function::getAddressInt() { return getBaseAddr(); }
@@ -731,3 +729,36 @@ const char *BPatch_function::addNameInt(const char *name,
     }
     return name;
 }
+
+/* This function should be deprecated. */
+bool BPatch_function::getLineAndFileInt( int & start, int & end, char * filename, int max ) {
+	Address startAddress = func->getAddress();
+	Address endAddress = startAddress + func->getSize_NP();
+	
+	std::vector< std::pair< const char *, unsigned int > > startLines;
+	if( ! mod->getSourceLines( startAddress, startLines ) ) { return false; }
+	if( startLines.size() == 0 ) { return false; }
+	start = startLines[0].second;
+	
+	/* Arbitrarily... */
+	strncpy( filename, startLines[0].first, max );
+	
+	std::vector< std::pair< const char *, unsigned int > > endLines;
+	if( ! mod->getSourceLines( endAddress, endLines ) ) { return false; }
+	if( endLines.size() == 0 ) { return false; }
+	end = endLines[0].second;
+
+	return true;
+	} /* end getLineAndFile() */
+
+/* This function should be deprecated. */
+bool BPatch_function::getLineToAddrInt( unsigned short lineNo, BPatch_Vector< unsigned long > & buffer, bool exactMatch ) {
+	std::vector< std::pair< unsigned long, unsigned long > > ranges;
+	if( ! mod->getAddressRanges( NULL, lineNo, ranges ) ) { return false; }
+	
+	for( unsigned int i = 0; i < ranges.size(); ++i ) {
+		buffer.push_back( ranges[i].first );
+		}
+	
+	return true;
+	} /* end getLineToAddr() */

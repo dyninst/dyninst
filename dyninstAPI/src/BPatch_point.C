@@ -342,8 +342,6 @@ bool BPatch_point::usesTrap_NPInt()
  */
 bool BPatch_point::isDynamicInt()
 {
-#if !defined(ia64_unknown_linux2_4)
-
     if (!dynamic_call_site_flag) return false;
     if (dynamic_call_site_flag == 1) return true;
     
@@ -354,11 +352,6 @@ bool BPatch_point::isDynamicInt()
     bool is_dyn = point->isDynamicCall();
     dynamic_call_site_flag = is_dyn ? 1 : 0;
     return is_dyn;
-#else
-    fprintf(stderr, "%s[%d]:  Dynamic Call Sites not implemented for ia64 yet\n",
-            __FILE__, __LINE__);
-    return false;
-#endif
 }
 
 /*
