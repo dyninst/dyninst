@@ -70,13 +70,20 @@
 #define DWARF_TO_MACHINE_ENC(n) (n)
 #endif
 
+#define DWARF_FALSE_IF(condition,...) \
+	if( condition ) { bpwarn( __VA_ARGS__ ); return false; }
+#define DWARF_RETURN_IF(condition,...) \
+	if( condition ) { bpwarn( __VA_ARGS__ ); return; }
+#define DWARF_NULL_IF(condition,...) \
+	if( condition ) { bpwarn( __VA_ARGS__ ); return NULL; }
+
 /* A bound attribute can be either (a constant) or (a reference
    to a DIE which (describes an object containing the bound value) or
    (a constant value itself)). */
 bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, pdstring &boundString ) {
 	Dwarf_Half boundForm;
 	int status = dwarf_whatform( boundAttribute, & boundForm, NULL );
-	assert( status == DW_DLV_OK );
+	DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: unable to decode form of bounds attribute.\n", __FILE__, __LINE__ );
 
 	switch( boundForm ) {
 		case DW_FORM_data1:
@@ -87,7 +94,7 @@ bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, pdstring 
 		case DW_FORM_udata: {
 			Dwarf_Unsigned constantBound;
 			status = dwarf_formudata( boundAttribute, & constantBound, NULL );
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: unable decode unsigned data in bounds attribute.\n", __FILE__, __LINE__ );
 
 			boundString = pdstring((unsigned long)constantBound);
 			return true;
@@ -102,16 +109,16 @@ bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, pdstring 
 			/* Acquire the referenced DIE. */
 			Dwarf_Off boundOffset;
 			status = dwarf_global_formref( boundAttribute, & boundOffset, NULL );
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: unable decode reference in bounds attribute.\n", __FILE__, __LINE__ );
 
 			Dwarf_Die boundEntry;
 			status = dwarf_offdie( dbg, boundOffset, & boundEntry, NULL );
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: unable dereference DWARF pointer in bounds attribute.\n", __FILE__, __LINE__ );
 
 			/* Does it have a name? */
 			char * boundName = NULL;
 			status = dwarf_diename( boundEntry, & boundName, NULL );
-			assert( status != DW_DLV_ERROR );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error checking for name of bounds attribute.\n", __FILE__, __LINE__ );
 
 			if( status == DW_DLV_OK ) {
 			    boundString = boundName;
@@ -123,12 +130,12 @@ bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, pdstring 
 			/* Does it describe a nameless constant? */
 			Dwarf_Attribute constBoundAttribute;
 			status = dwarf_attr( boundEntry, DW_AT_const_value, & constBoundAttribute, NULL );
-			assert( status != DW_DLV_ERROR );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error checking for constant value of bounds attribute.\n", __FILE__, __LINE__ );
 
 			if( status == DW_DLV_OK ) {
 				Dwarf_Unsigned constBoundValue;
 				status = dwarf_formudata( constBoundAttribute, & constBoundValue, NULL );
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error decoding unsigned data of bounds constant value attribute.\n", __FILE__, __LINE__ );
 
 				boundString = pdstring((unsigned long)constBoundValue);
 
@@ -140,6 +147,16 @@ bool decipherBound( Dwarf_Debug & dbg, Dwarf_Attribute boundAttribute, pdstring 
 			return false;
 			} break;
 
+		case DW_FORM_block: {
+			/* PGI extends DWARF to allow some bounds to be location lists.  Since we can't
+			   do anything sane with them, ignore them. */
+			// Dwarf_Locdesc * locationList;
+			// Dwarf_Signed listLength;
+			// status = dwarf_loclist( boundAttribute, & locationList, & listLength, NULL );
+			boundString = "{PGI extension}";
+			return false;
+			} break;
+		
 		default:
 			bperr( "Invalid bound form 0x%x\n", boundForm );
 			boundString = "{invalid bound form}";
@@ -171,14 +188,14 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE, pdstring & loBo
 
 	Dwarf_Half subrangeTag;
 	int status = dwarf_tag( subrangeDIE, & subrangeTag, NULL );
-	assert( status == DW_DLV_OK );
+	DWARF_RETURN_IF( status != DW_DLV_OK, "%s[%d]: unable to obtain tag of subrange DIE.\n", __FILE__, __LINE__ );
 
 	/* Could be an enumerated range. */
 	if( subrangeTag == DW_TAG_enumeration_type ) {
 		/* FIXME? First child of enumeration type is lowest, last is highest. */
 		char * enumerationName = NULL;
 		status = dwarf_diename( subrangeDIE, & enumerationName, NULL );
-		assert( status != DW_DLV_ERROR );
+		DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error cehcking for name of enumeration.\n", __FILE__, __LINE__ );
 
 		if( enumerationName != NULL ) {
 			loBound = enumerationName;
@@ -192,12 +209,12 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE, pdstring & loBo
 		} /* end if an enumeration type */
 
 	/* Is a subrange type. */
-	assert( subrangeTag == DW_TAG_subrange_type );
+	DWARF_RETURN_IF( subrangeTag != DW_TAG_subrange_type, "%s[%d]: unknown tag while parsing subrange\n", __FILE__, __LINE__ );
 
 	/* Look for the lower bound. */
 	Dwarf_Attribute lowerBoundAttribute;
 	status = dwarf_attr( subrangeDIE, DW_AT_lower_bound, & lowerBoundAttribute, NULL );
-	assert( status != DW_DLV_ERROR );
+	DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error while checking for lower bound of subrange\n", __FILE__, __LINE__ );
 
 	if( status == DW_DLV_OK ) {
 		decipherBound( dbg, lowerBoundAttribute, loBound );
@@ -207,12 +224,11 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE, pdstring & loBo
 	/* Look for the upper bound. */
 	Dwarf_Attribute upperBoundAttribute;
 	status = dwarf_attr( subrangeDIE, DW_AT_upper_bound, & upperBoundAttribute, NULL );
-	assert( status != DW_DLV_ERROR );
+	DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error while checking for upper bound of subrange\n", __FILE__, __LINE__ );
 	if( status == DW_DLV_NO_ENTRY ) {
 		status = dwarf_attr( subrangeDIE, DW_AT_count, & upperBoundAttribute, NULL );
-		assert( status != DW_DLV_ERROR );
+		DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error while checking for count of subrange\n", __FILE__, __LINE__ );
 		}
-
 	if( status == DW_DLV_OK ) {
 		decipherBound( dbg, upperBoundAttribute, hiBound );
 		dwarf_dealloc( dbg, upperBoundAttribute, DW_DLA_ATTR );
@@ -221,46 +237,25 @@ void parseSubRangeDIE( Dwarf_Debug & dbg, Dwarf_Die subrangeDIE, pdstring & loBo
 	/* Construct the range type. */
 	char * subrangeName = "{anonymous range}"; // BPatch_type doesn't like NULL.
 	status = dwarf_diename( subrangeDIE, & subrangeName, NULL );
-	assert( status != DW_DLV_ERROR );
+	DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error while checking for name of subrange\n", __FILE__, __LINE__ );
 	int dwarvenName = status;
 
 	Dwarf_Off subrangeOffset;
 	status = dwarf_dieoffset( subrangeDIE, & subrangeOffset, NULL );
-	assert( status != DW_DLV_ERROR );
+	DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error dereferencing DWARF pointer\n", __FILE__, __LINE__ );
 
 	BPatch_type * rangeType = new BPatch_typeRange( (int) subrangeOffset, 0, loBound.c_str(), hiBound.c_str(), subrangeName );
 	assert( rangeType != NULL );
-	// bperr( "Adding range type '%s' (%lu) [%s, %s]\n", subrangeName, (unsigned long)subrangeOffset, * loBound, * hiBound );
 	rangeType = module->getModuleTypes()->addOrUpdateType( rangeType );
-	if( dwarvenName == DW_DLV_OK ) { dwarf_dealloc( dbg, subrangeName, DW_DLA_STRING ); }
+	if( dwarvenName == DW_DLV_OK ) { dwarf_dealloc( dbg, subrangeName, DW_DLA_STRING ); }	
 	} /* end parseSubRangeDIE() */
-
-/* We don't use the array constructor for BPatch_type arrays
-   because DWARF arrays may be bounded by enumerations.  However,
-   this means the size of these arrays are never set correctly.
-   This corrects that problem, when it can.
-
-   FIXME? when bounds are enumerations, let the size be the
-   the number of elements in the enumeration. */
-/*
-void setArraySize( BPatch_type * arrayType, const char * loBound, const char * hiBound ) {
-	char * endPtr = NULL;
-	long longLoBound = strtol( loBound, &endPtr, 0 );
-	if( endPtr == loBound ) { arrayType->setSize( 0 ); return; }
-	long longHiBound = strtol( hiBound, & endPtr, 0 );
-	if( endPtr == hiBound ) { arrayType->setSize( 0 ); return; }
-
-	long longCount = longHiBound - longLoBound + 1;
-	arrayType->setSize( longCount * arrayType->getConstituentType()->getSize() );
-	}
-*/ /* end setArraySize() */
 
 BPatch_type * parseMultiDimensionalArray( Dwarf_Debug & dbg, Dwarf_Die range, BPatch_type * elementType, BPatch_module * module ) {
     char buf[32];
 	/* Get the (negative) typeID for this range/subarray. */
 	Dwarf_Off dieOffset;
 	int status = dwarf_dieoffset( range, & dieOffset, NULL );
-	assert( status == DW_DLV_OK );
+	DWARF_NULL_IF( status != DW_DLV_OK, "%s[%d]: error while parsing multidimensional array.\n", __FILE__, __LINE__ );
 
 	/* Determine the range. */
 	pdstring loBound;
@@ -270,7 +265,7 @@ BPatch_type * parseMultiDimensionalArray( Dwarf_Debug & dbg, Dwarf_Die range, BP
 	/* Does the recursion continue? */
 	Dwarf_Die nextSibling;
 	status = dwarf_siblingof( dbg, range, & nextSibling, NULL );
-	assert( status != DW_DLV_ERROR );
+	DWARF_NULL_IF( status == DW_DLV_ERROR, "%s[%d]: error checking for second dimension in array.\n", __FILE__, __LINE__ );
 
 	snprintf(buf, 31, "__array%d", (int) dieOffset);
 
@@ -278,11 +273,9 @@ BPatch_type * parseMultiDimensionalArray( Dwarf_Debug & dbg, Dwarf_Die range, BP
 		/* Terminate the recursion by building an array type out of the elemental type.
 		   Use the negative dieOffset to avoid conflicts with the range type created
 		   by parseSubRangeDIE(). */
-	   // N.B.  I'm going to ignore the type id, and just create an anonymous type here
-	   BPatch_type * innermostType = new BPatch_typeArray( elementType, atoi(loBound.c_str()), atoi(hiBound.c_str()), buf);
+		// N.B.  I'm going to ignore the type id, and just create an anonymous type here
+		BPatch_type * innermostType = new BPatch_typeArray( elementType, atoi( loBound.c_str() ), atoi( hiBound.c_str() ), buf );
 		assert( innermostType != NULL );
-		//		setArraySize( innermostType, loBound, hiBound );
-		// bperr( "Adding inner-most type %lu\n", (unsigned long) dieOffset );
 		innermostType = module->getModuleTypes()->addOrUpdateType( innermostType );
 		return innermostType;
 		} /* end base-case of recursion. */
@@ -292,9 +285,7 @@ BPatch_type * parseMultiDimensionalArray( Dwarf_Debug & dbg, Dwarf_Die range, BP
 	assert( innerType != NULL );
 	// same here - type id ignored    jmo
 	BPatch_type * outerType = new BPatch_typeArray( innerType, atoi(loBound.c_str()), atoi(hiBound.c_str()), buf);
-	//	setArraySize( outerType, loBound, hiBound );
 	assert( outerType != NULL );
-	// bperr( "Adding inner type %lu\n", (unsigned long) dieOffset );
 	outerType = module->getModuleTypes()->addOrUpdateType( outerType );
 
 	dwarf_dealloc( dbg, nextSibling, DW_DLA_DIE );
@@ -312,7 +303,7 @@ void deallocateLocationList( Dwarf_Debug & dbg, Dwarf_Locdesc * locationList, Dw
 void dumpLocListAddrRanges( Dwarf_Locdesc * locationList, Dwarf_Signed listLength ) {
 	for( int i = 0; i < listLength; i++ ) {
 		Dwarf_Locdesc location = locationList[i];
-		fprintf(stderr, "0x%lx to 0x%lx; ", (Address)location.ld_lopc, (Address)location.ld_hipc );
+		fprintf( stderr, "0x%lx to 0x%lx; ", (Address)location.ld_lopc, (Address)location.ld_hipc );
 		}
 	fprintf( stderr, "\n" );
 	} /* end dumpLocListAddrRanges */
@@ -324,11 +315,11 @@ AstNode * convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed list
 	   will be in place. */
 	   
 	/* There is only one location. */
-	assert( listLength == 1 );
+	DWARF_NULL_IF( listLength != 1, "%s[%d]: unable to handle location lists of more than one element in frame base.\n" );
 	Dwarf_Locdesc locationDescriptor = locationList[0];
 	
 	/* It is defined by a single operation. */
-	assert( locationDescriptor.ld_cents == 1 );
+	DWARF_NULL_IF( locationDescriptor.ld_cents != 1, "%s[%d]: unable to handle multioperation locations in frame base.\n" );
 	Dwarf_Loc location = locationDescriptor.ld_s[0];
 
 	/* That operation is naming a register. */
@@ -354,8 +345,6 @@ AstNode * convertFrameBaseToAST( Dwarf_Locdesc * locationList, Dwarf_Signed list
 			}
 		}
 	else {
-		// Be more polite.
-		// assert( 0 );
 		return NULL;
 		}
 
@@ -388,7 +377,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 	   will use to calculate the frame pointer when asked to do frame-relative operations.
 	   (These calculations will be invalid until the frame pointer is established,
 	   which may require some fiddling with the location of the 'entry' instpoint.) */
-	assert( listLength == 1 );
+	DWARF_FALSE_IF( listLength != 1, "%s[%d]: unable to decode location lists of non-unit length.\n", __FILE__, __LINE__ );
 
 	if( storageClass != NULL ) { * storageClass = BPatch_storageAddr; }
 	if( regNum != NULL ) { *regNum = -1; }
@@ -479,12 +468,12 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 				break;
 
 			case DW_OP_dup:
-				if( opStack.size() < 1 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 1, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				opStack.push( opStack.top() );
 				break;
 
 			case DW_OP_drop:
-				if( opStack.size() < 1 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 1, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				opStack.pop();
 				break;
 
@@ -502,21 +491,21 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 				} break;
 
 			case DW_OP_over: {
-				if( opStack.size() < 2 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( second ); opStack.push( first ); opStack.push( second );
 				} break;
 
 			case DW_OP_swap: {
-				if( opStack.size() < 2 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( first ); opStack.push( second );
 				} break;
 
 			case DW_OP_rot: {
-				if( opStack.size() < 3 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 3, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				long int third = opStack.top(); opStack.pop();
@@ -524,150 +513,150 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 				} break;
 
 			case DW_OP_abs: {
-				if( opStack.size() < 1 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 1, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int top = opStack.top(); opStack.pop();
 				opStack.push( abs( top ) );
 				} break;
 
 			case DW_OP_and: {
-				if( opStack.size() < 2 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( second & first );
 				} break;
 			
 			case DW_OP_div: {
-				if( opStack.size() < 2 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( second / first );
 				} break;
 
 			case DW_OP_minus: {
-				if( opStack.size() < 2 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( second - first );
 				} break;
 
 			case DW_OP_mod: {
-				if( opStack.size() < 2 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( second % first );
 				} break;
 
 			case DW_OP_mul: {
-				if( opStack.size() < 2 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( second * first );
 				} break;
 
 			case DW_OP_neg: {
-				if( opStack.size() < 1 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 1, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int first = opStack.top(); opStack.pop();
 				opStack.push( first * (-1) );
 				} break;
 
 			case DW_OP_not: {
-				if( opStack.size() < 1 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 1, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int first = opStack.top(); opStack.pop();
 				opStack.push( ~ first );
 				} break;
 
 			case DW_OP_or: {
-				if( opStack.size() < 2 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( second | first );
 				} break;
 
 			case DW_OP_plus: {
-				if( opStack.size() < 2 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( second + first );
 				} break;
 
 			case DW_OP_plus_uconst: {
-				if( opStack.size() < 1 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 1, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int first = opStack.top(); opStack.pop();
 				opStack.push( first + locations[i].lr_number );
 				} break;
 
 			case DW_OP_shl: {
-				if( opStack.size() < 2 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( second << first );
 				} break;
 
 			case DW_OP_shr: {
-				if( opStack.size() < 2 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( (long int)((unsigned long)second >> (unsigned long)first) );
 				} break;
 
 			case DW_OP_shra: {
-				if( opStack.size() < 2 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( second >> first );
 				} break;
 
 			case DW_OP_xor: {
-				if( opStack.size() < 2 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( second ^ first );
 				} break;
 
 			case DW_OP_le: {
-				if( opStack.size() < 2 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( first <= second ? 1 : 0 );
 				} break;
 
 			case DW_OP_ge: {
-				if( opStack.size() < 2 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( first >= second ? 1 : 0 );
 				} break;
 
 			case DW_OP_eq: {
-				if( opStack.size() < 2 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( first == second ? 1 : 0 );
 				} break;
 
 			case DW_OP_lt: {
-				if( opStack.size() < 2 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( first < second ? 1 : 0 );
 				} break;
 
 			case DW_OP_gt: {
-				if( opStack.size() < 2 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( first > second ? 1 : 0 );
 				} break;
 
 			case DW_OP_ne: {
-				if( opStack.size() < 2 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 2, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				long int first = opStack.top(); opStack.pop();
 				long int second = opStack.top(); opStack.pop();
 				opStack.push( first != second ? 1 : 0 );
 				} break;
 
 			case DW_OP_bra:
-				if( opStack.size() < 1 ) { return false; }
+				DWARF_FALSE_IF( opStack.size() < 1, "%s[%d]: invalid stack, returning false.\n", __FILE__, __LINE__ );
 				if( opStack.top() == 0 ) { break; }
 				opStack.pop();
 			case DW_OP_skip: {
@@ -705,7 +694,7 @@ bool decodeLocationListForStaticOffsetOrAddress( Dwarf_Locdesc * locationList, D
 
 	/* The top of the stack is the computed location. */
 	if( opStack.empty() ) {
-		dwarf_printf( "ignoring malformed location list (stack empty).\n" );
+		dwarf_printf( "ignoring malformed location list (stack empty at end of list).\n" );
 		return false;
 		}
 	dwarf_printf( "setting offset to %d\n", opStack.top() );
@@ -757,18 +746,18 @@ unsigned long tvDifference( struct timeval lhs, struct timeval rhs ) {
 void dumpAttributeList( Dwarf_Die dieEntry, Dwarf_Debug & dbg ) {
 	char * entryName = NULL;
 	int status = dwarf_diename( dieEntry, & entryName, NULL );
-	assert( status != DW_DLV_ERROR );
+	DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error dumping attribute list.\n", __FILE__, __LINE__ );
 
 	Dwarf_Attribute * attributeList;
 	Dwarf_Signed attributeCount;
 	status = dwarf_attrlist( dieEntry, & attributeList, & attributeCount, NULL );
-	assert( status != DW_DLV_ERROR );
+	DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error dumping attribute list.\n", __FILE__, __LINE__ );
 
 	bperr( "DIE %s has attributes:", entryName );
 	for( int i = 0; i < attributeCount; i++ ) {
 		Dwarf_Half whatAttr = 0;
 		status = dwarf_whatattr( attributeList[i], & whatAttr, NULL );
-		assert( status != DW_DLV_ERROR );
+		DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error dumping attribute list.\n", __FILE__, __LINE__ );
 		fprintf( stderr, " 0x%x", whatAttr );
 		
 		dwarf_dealloc( dbg, attributeList[i], DW_DLA_ATTR );
@@ -790,12 +779,12 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 	/* optimization */ tail_recursion:;
 	Dwarf_Half dieTag;
 	int status = dwarf_tag( dieEntry, & dieTag, NULL );
-	assert( status == DW_DLV_OK );
+	DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 	
 	Dwarf_Off dieOffset;
 	status = dwarf_dieoffset( dieEntry, & dieOffset, NULL );
-	assert( status == DW_DLV_OK );
-	// /* DEBUG */ fprintf( stderr, "Considering DIE at %lu with tag 0x%x\n", (unsigned long)dieOffset, dieTag );
+	DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
+	dwarf_printf( "Considering DIE at %lu with tag 0x%x\n", (unsigned long)dieOffset, dieTag );
 
 	/* If this entry is a function, common block, or structure (class),
 	   its children will be in its scope, rather than its
@@ -814,7 +803,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			/* Is this entry specified elsewhere?  We may need to look there for its name. */
 			Dwarf_Bool hasSpecification;
 			status = dwarf_hasattr( dieEntry, DW_AT_specification, & hasSpecification, NULL );
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			/* Our goal is three-fold: First, we want to set the return type
 			   of the function.  Second, we want to set the newFunction variable
@@ -831,14 +820,14 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			if( hasSpecification ) {
 				Dwarf_Attribute specAttribute;
 				status = dwarf_attr( dieEntry, DW_AT_specification, & specAttribute, NULL );
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 				Dwarf_Off specOffset;
 				status = dwarf_global_formref( specAttribute, & specOffset, NULL );
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 				status = dwarf_offdie( dbg, specOffset, & specEntry, NULL );
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 				dwarf_dealloc( dbg, specAttribute, DW_DLA_ATTR );
 				} /* end if the function has a specification */
@@ -846,26 +835,26 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			/* Prefer linkage names. */
 			Dwarf_Attribute linkageNameAttr;
 			status = dwarf_attr( specEntry, DW_AT_MIPS_linkage_name, & linkageNameAttr, NULL );
-			assert( status != DW_DLV_ERROR );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			bool hasLinkageName;
 			if( status == DW_DLV_OK ) {
 				hasLinkageName = true;
 				status = dwarf_formstring( linkageNameAttr, & functionName, NULL );
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 				
 				dwarf_dealloc( dbg, linkageNameAttr, DW_DLA_ATTR );
 				} /* end if there's a linkage name. */
 			else {
 				hasLinkageName = false;
 				status = dwarf_diename( specEntry, & functionName, NULL );
-				assert( status != DW_DLV_ERROR );
+				DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 				} /* end if there isn't a linkage name. */
 
 			if( functionName == NULL ) {
 				/* I'm not even sure what an anonymous function _means_,
 				   but we sure can't do anything with it. */
-				// /* DEBUG */ fprintf( stderr, "Warning: anonymous function (type %lu).\n", (unsigned long)dieOffset );
+				dwarf_printf( "Warning: anonymous function (type %lu).\n", (unsigned long)dieOffset );
 
 				/* Don't parse the children, since we can't add them. */
 				parsedChild = true;
@@ -899,7 +888,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			}
 			if( functions.size() == 0 ) { // Still....
 				/* If we can't find it by address, try searching by pretty name. */
-				if( baseAddr != 0 ) { /* DEBUG */ fprintf( stderr, "%s[%d]: unable to locate function %s by address 0x%llx\n", __FILE__, __LINE__, functionName, baseAddr ); }
+				if( baseAddr != 0 ) { dwarf_printf( "%s[%d]: unable to locate function %s by address 0x%llx\n", __FILE__, __LINE__, functionName, baseAddr ); }
 				const pdvector<int_function *> *prettyFuncs = fileOnDisk->findFuncVectorByPretty(functionName);
 				if (prettyFuncs) {
 					for (unsigned bar = 0; bar < prettyFuncs->size(); bar++) {
@@ -910,7 +899,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			
 			if( functions.size() == 0 ) {
 				/* Don't parse the children, since we can't add them. */
-				// /* DEBUG */ fprintf( stderr, "Failed to find function '%s'\n", functionName );
+				dwarf_printf( "Failed to find function '%s'\n", functionName );
 				parsedChild = true;
 
 				if( hasSpecification ) { dwarf_dealloc( dbg, specEntry, DW_DLA_DIE ); }
@@ -918,7 +907,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				break;
 				}
 			else if( functions.size() > 1 ) {
-				// /* DEBUG */ fprintf( stderr, "Warning: found more than one function '%s', unable to do anything reasonable.\n", functionName );
+				dwarf_printf( "Warning: found more than one function '%s', unable to do anything reasonable.\n", functionName );
 
 				/* Don't parse the children, since we can't add them. */
 				parsedChild = true;
@@ -939,7 +928,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			   frame base, and some functions do not have frames. */
 			Dwarf_Attribute frameBaseAttribute;
 			status = dwarf_attr( dieEntry, DW_AT_frame_base, & frameBaseAttribute, NULL );
-			assert( status != DW_DLV_ERROR );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			if( status == DW_DLV_OK ) {
 				Dwarf_Locdesc * locationList;
@@ -949,7 +938,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 					/* I think DWARF 3 generically allows this abomination of empty loclists. */
 					break;
 					}
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 				dwarf_dealloc( dbg, frameBaseAttribute, DW_DLA_ATTR );
 					
@@ -964,7 +953,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			/* Find its return type. */
 			Dwarf_Attribute typeAttribute;
 			status = dwarf_attr( specEntry, DW_AT_type, & typeAttribute, NULL );
-			assert( status != DW_DLV_ERROR );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			BPatch_type * returnType = NULL;
 			if( status == DW_DLV_NO_ENTRY ) { 
@@ -975,7 +964,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				/* There's a return type attribute. */
 				Dwarf_Off typeOffset;
 				status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 				parsing_printf("%s/%d: ret type %d\n",
 							   __FILE__, __LINE__, typeOffset);
@@ -994,7 +983,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 				char * leftMost = NULL;
 				if( demangledName == NULL ) {
-					// /* DEBUG */ fprintf( stderr, "%s[%d]: unable to demangle '%s', using mangled name.\n", __FILE__, __LINE__, functionName );
+					dwarf_printf( "%s[%d]: unable to demangle '%s', using mangled name.\n", __FILE__, __LINE__, functionName );
 					demangledName = strdup( functionName );
 					assert( demangledName != NULL );
 					leftMost = demangledName;
@@ -1017,7 +1006,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 		case DW_TAG_common_block: {
 			char * commonBlockName;
 			status = dwarf_diename( dieEntry, & commonBlockName, NULL );
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			BPatch_image * wholeProgram = (BPatch_image *) module->getObjParent();
 			BPatch_variableExpr * commonBlockVar = 
@@ -1072,21 +1061,21 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				/* Then this variable must be a global.  Acquire its name and type. */
 				char * variableName;
 				status = dwarf_diename( dieEntry, & variableName, NULL );
-				assert( status != DW_DLV_ERROR );
+				DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 				
 				if( status == DW_DLV_NO_ENTRY ) { break; }
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 				
 				Dwarf_Attribute typeAttribute;
 				status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );
-				assert( status != DW_DLV_ERROR );
+				DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 				
 				if( status == DW_DLV_NO_ENTRY ) { break; }
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 				
 				Dwarf_Off typeOffset;
 				status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 				
 				/* The typeOffset forms a module-unique type identifier,
 				   so the BPatch_type look-ups by it rather than name. */
@@ -1103,10 +1092,10 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				   require the _specification. */
 				Dwarf_Attribute locationAttribute;
 				status = dwarf_attr( dieEntry, DW_AT_location, & locationAttribute, NULL );
-				assert( status != DW_DLV_ERROR );
+				DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 				
 				if( status == DW_DLV_NO_ENTRY ) { break; }
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 				
 				Dwarf_Locdesc * locationList;
 				Dwarf_Signed listLength;
@@ -1116,7 +1105,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 					/* I think this is OK if the local variable was optimized away. */
 					break;
 					}
-				assert( status == DW_DLV_OK );			
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 				
 
 				int regNum;
@@ -1133,15 +1122,15 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				
 				Dwarf_Attribute specAttribute;
 				status = dwarf_attr( dieEntry, DW_AT_specification, & specAttribute, NULL );
-				assert( status != DW_DLV_ERROR );
+				DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 				
 				if( status == DW_DLV_OK ) {
 					Dwarf_Off specOffset;
 					status = dwarf_global_formref( specAttribute, & specOffset, NULL );
-					assert( status == DW_DLV_OK );
+					DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 					
 					status = dwarf_offdie( dbg, specOffset, & specEntry, NULL );
-					assert( status == DW_DLV_OK );
+					DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 				
 					dwarf_dealloc( dbg, specAttribute, DW_DLA_ATTR );
 					} /* end if dieEntry has a _specification */
@@ -1149,11 +1138,11 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				/* Acquire the name, type, and line number. */
 				char * variableName;
 				status = dwarf_diename( specEntry, & variableName, NULL );
-				assert( status != DW_DLV_ERROR );
+				DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 				
 				/* We can't do anything with an anonymous variable. */
 				if( status == DW_DLV_NO_ENTRY ) { break; }
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 				/* If we're fortran, get rid of the trailing _ */
 				BPatch_language language = module->getLanguage();
@@ -1166,14 +1155,14 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				/* Acquire the parameter's type. */
 				Dwarf_Attribute typeAttribute;
 				status = dwarf_attr( specEntry, DW_AT_type, & typeAttribute, NULL );
-				assert( status != DW_DLV_ERROR );
+				DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
 				if( status == DW_DLV_NO_ENTRY ) { break; }
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
 				Dwarf_Off typeOffset;
 				status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
 				/* The typeOffset forms a module-unique type identifier,
 				   so the BPatch_type look-ups by it rather than name. */
@@ -1187,14 +1176,14 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 				Dwarf_Attribute lineNoAttribute;
 				status = dwarf_attr( specEntry, DW_AT_decl_line, & lineNoAttribute, NULL );
-				assert( status != DW_DLV_ERROR );
+				DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
 				/* We don't need to tell Dyninst a line number for C++ static variables,
 				   so it's OK if there isn't one. */
 				if( status == DW_DLV_OK ) {
 					hasLineNumber = true;
 					status = dwarf_formudata( lineNoAttribute, & variableLineNo, NULL );
-					assert( status == DW_DLV_OK );
+					DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 					
 					dwarf_dealloc( dbg, lineNoAttribute, DW_DLA_ATTR );			
 					} /* end if there is a line number */
@@ -1239,7 +1228,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			   most likely to require using the _abstract_origin. */
 			Dwarf_Bool hasLocation = false;
 			status = dwarf_hasattr( dieEntry, DW_AT_location, & hasLocation, NULL );
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
 			if( !hasLocation ) { break; }
 			assert( hasLocation );
@@ -1247,7 +1236,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			/* Acquire the location of this formal parameter. */
 			Dwarf_Attribute locationAttribute;
 			status = dwarf_attr( dieEntry, DW_AT_location, & locationAttribute, NULL );
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
 			Dwarf_Locdesc * locationList;
 			Dwarf_Signed listLength;
@@ -1257,7 +1246,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				/* I think this is legal if the parameter was optimized away. */
 				break;
 				}
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
 			int regNum;
 			BPatch_storageClass storageClass;
@@ -1276,15 +1265,15 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 		
 			Dwarf_Attribute originAttribute;
 			status = dwarf_attr( dieEntry, DW_AT_abstract_origin, & originAttribute, NULL );
-			assert( status != DW_DLV_ERROR );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
 			if( status == DW_DLV_OK ) {
 				Dwarf_Off originOffset;
 				status = dwarf_global_formref( originAttribute, & originOffset, NULL );
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 				
 				status = dwarf_offdie( dbg, originOffset, & originEntry, NULL );
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 				
 				dwarf_dealloc( dbg, originAttribute, DW_DLA_ATTR );
 				} /* end if the DIE has an _abstract_origin */
@@ -1292,23 +1281,23 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			/* Acquire the parameter's name. */
 			char * parameterName;
 			status = dwarf_diename( originEntry, & parameterName, NULL );
-			assert( status != DW_DLV_ERROR );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
 			/* We can't do anything with anonymous parameters. */
 			if( status == DW_DLV_NO_ENTRY ) { break; }
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
 			/* Acquire the parameter's type. */
 			Dwarf_Attribute typeAttribute;
 			status = dwarf_attr( originEntry, DW_AT_type, & typeAttribute, NULL );
-			assert( status != DW_DLV_ERROR );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
 			if( status == DW_DLV_NO_ENTRY ) { break; }
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
 			Dwarf_Off typeOffset;
 			status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
 			/* The typeOffset forms a module-unique type identifier,
 			   so the BPatch_type look-ups by it rather than name. */
@@ -1321,14 +1310,14 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			/* Acquire the parameter's lineNo. */
 			Dwarf_Attribute lineNoAttribute;
 			status = dwarf_attr( originEntry, DW_AT_decl_line, & lineNoAttribute, NULL );
-			assert( status != DW_DLV_ERROR );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
 			if( status == DW_DLV_NO_ENTRY ) { break; }
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
 			Dwarf_Unsigned parameterLineNo;
 			status = dwarf_formudata( lineNoAttribute, & parameterLineNo, NULL );
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
 			dwarf_dealloc( dbg, lineNoAttribute, DW_DLA_ATTR );
 			
@@ -1348,15 +1337,15 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			/* What's the type's name? */
 			char * typeName;
 			status = dwarf_diename( dieEntry, & typeName, NULL );
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			/* How big is it? */
 			Dwarf_Attribute byteSizeAttr;
 			Dwarf_Unsigned byteSize;
 			status = dwarf_attr( dieEntry, DW_AT_byte_size, & byteSizeAttr, NULL );
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			status = dwarf_formudata( byteSizeAttr, & byteSize, NULL );
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			dwarf_dealloc( dbg, byteSizeAttr, DW_DLA_ATTR );
 			
@@ -1376,12 +1365,12 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 		case DW_TAG_typedef: {
 			char * definedName = NULL;
 			status = dwarf_diename( dieEntry, & definedName, NULL );
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			BPatch_type * referencedType = NULL;
 			Dwarf_Attribute typeAttribute;
 			status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );
-			assert( status != DW_DLV_ERROR );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			if( status == DW_DLV_NO_ENTRY ) {
 				/* According to the DWARF spec, "A declaration of the type that is not also a definition."
 				   This includes constructions like "typedef void _IO_lock_t", from libio.h, which
@@ -1393,7 +1382,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			else {
 				Dwarf_Off typeOffset;
 				status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 				dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 
@@ -1417,18 +1406,31 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			} break;
 
 		case DW_TAG_array_type: {
+			/* Two words about pgf90 arrays.
+			
+			   Primus: the PGI extensions to DWARF are documented in 
+				'/p/paradyn/doc/External/manuals/pgf90-dwarf-arrays.txt'.
+				
+			   Secundus: we ignore DW_AT_PGI_lbase, DW_AT_PGI_loffset, and DW_AT_PGI_lstride,
+			   even though libdwarf recognizes them, because our type modelling doesn't allow
+			   us to make use of this information.  Similarly, in virtually every place where
+			   the Portland Group extends DWARF to allow _form_block attributes encoding location
+			   lists, we ignore them.  We should, however, recognize these cases and ignore them
+			   gracefully, that is, without an error. :)
+			*/
+				
 			char * arrayName = NULL;
 			status = dwarf_diename( dieEntry, & arrayName, NULL );
-			assert( status != DW_DLV_ERROR );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			/* Find the type of the elements. */
 			Dwarf_Attribute typeAttribute;
 			status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
 			Dwarf_Off typeOffset;
 			status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 			
@@ -1439,7 +1441,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			/* Find the range(s) of the elements. */
 			Dwarf_Die firstRange;
 			status = dwarf_child( dieEntry, & firstRange, NULL );
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			BPatch_type * baseArrayType = parseMultiDimensionalArray( dbg, firstRange, elementType, module );
 			assert( baseArrayType != NULL );
 
@@ -1471,7 +1473,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 		case DW_TAG_enumeration_type: {
 			char * typeName = NULL;
 			status = dwarf_diename( dieEntry, & typeName, NULL );
-			assert( status != DW_DLV_ERROR );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			BPatch_fieldListType * enumerationType = new BPatch_typeEnum( dieOffset, typeName);
 			assert( enumerationType != NULL );
@@ -1485,11 +1487,11 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			/* Acquire the super class's type. */
 			Dwarf_Attribute scAttr;
 			status = dwarf_attr( dieEntry, DW_AT_type, & scAttr, NULL );
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			Dwarf_Off scOffset;
 			status = dwarf_global_formref( scAttr, & scOffset, NULL );
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			dwarf_dealloc( dbg, scAttr, DW_DLA_ATTR );
 
@@ -1501,13 +1503,13 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			   to distinguish it from symbol table visibility. */
 			Dwarf_Attribute visAttr;
 			status = dwarf_attr( dieEntry, DW_AT_accessibility, & visAttr, NULL );
-			assert( status != DW_DLV_ERROR );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			BPatch_visibility visibility = BPatch_private;
 			if( status == DW_DLV_OK ) {
 				Dwarf_Unsigned visValue;
 				status = dwarf_formudata( visAttr, & visValue, NULL );
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 				switch( visValue ) {
 					case DW_ACCESS_public: visibility = BPatch_public; break;
@@ -1531,16 +1533,16 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 		case DW_TAG_class_type: {
 			char * typeName = NULL;
 			status = dwarf_diename( dieEntry, & typeName, NULL );
-			assert( status != DW_DLV_ERROR );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
 			Dwarf_Attribute sizeAttr;
 			Dwarf_Unsigned typeSize = 0;
 			status = dwarf_attr( dieEntry, DW_AT_byte_size, & sizeAttr, NULL );
-			assert( status != DW_DLV_ERROR );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			if( status == DW_DLV_OK ) {
 				status = dwarf_formudata( sizeAttr, & typeSize, NULL );
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 				dwarf_dealloc( dbg, sizeAttr, DW_DLA_ATTR );
 				}
@@ -1570,16 +1572,16 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			/* An entry in an enumeration. */
 			char * enumName = NULL;
 			status = dwarf_diename( dieEntry, & enumName, NULL );
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			Dwarf_Attribute valueAttr;
 			status = dwarf_attr( dieEntry, DW_AT_const_value, & valueAttr, NULL );
-			assert( status != DW_DLV_ERROR );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 		
 			Dwarf_Signed enumValue = 0;
 			if( status == DW_DLV_OK ) {
 				status = dwarf_formsdata( valueAttr, & enumValue, NULL );
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 				dwarf_dealloc( dbg, valueAttr, DW_DLA_ATTR );
 				}
@@ -1593,16 +1595,16 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 		case DW_TAG_member: {
 			char * memberName = NULL;
 			status = dwarf_diename( dieEntry, & memberName, NULL );
-			assert( status != DW_DLV_ERROR );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
 			Dwarf_Attribute typeAttribute;
 			status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );
 			if( status == DW_DLV_NO_ENTRY ) break;
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			Dwarf_Off typeOffset;
 			status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 			
@@ -1612,15 +1614,15 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				
 			Dwarf_Attribute locationAttr;
 			status = dwarf_attr( dieEntry, DW_AT_data_member_location, & locationAttr, NULL );
-			assert( status != DW_DLV_ERROR );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			if( status == DW_DLV_NO_ENTRY ) { break; }
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			Dwarf_Locdesc * locationList;
 			Dwarf_Signed listLength;
 			status = dwarf_loclist( locationAttr, & locationList, & listLength, NULL );
-			assert( status == DW_DLV_OK );
+			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			dwarf_dealloc( dbg, locationAttr, DW_DLA_ATTR );
 
@@ -1644,22 +1646,22 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 			Dwarf_Attribute bitOffset;
 			status = dwarf_attr( dieEntry, DW_AT_bit_offset, & bitOffset, NULL );
-			assert( status != DW_DLV_ERROR );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			if( status == DW_DLV_OK ) {
 				Dwarf_Unsigned memberOffset_du = memberOffset;
 				status = dwarf_formudata( bitOffset, &memberOffset_du, NULL );
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 				dwarf_dealloc( dbg, bitOffset, DW_DLA_ATTR );
 
 				Dwarf_Attribute bitSize;
 				status = dwarf_attr( dieEntry, DW_AT_bit_size, & bitSize, NULL );
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 				Dwarf_Unsigned memberSize_du = memberSize;
 				status = dwarf_formudata( bitSize, &memberSize_du, NULL );
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 				dwarf_dealloc( dbg, bitSize, DW_DLA_ATTR );
 
@@ -1687,7 +1689,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 		case DW_TAG_volatile_type: {
 			char * typeName = NULL;
 			status = dwarf_diename( dieEntry, & typeName, NULL );
-			assert( status != DW_DLV_ERROR );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			/* Which type does it modify? */
 			Dwarf_Attribute typeAttribute;
@@ -1701,7 +1703,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				typeModified = module->getModuleTypes()->findType( "void" );
 				} else {			
 				status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 				parsing_printf("%s/%d: %s/%d\n",
 							   __FILE__, __LINE__, typeName, typeOffset);
 				typeModified = module->getModuleTypes()->findOrCreateType( typeOffset );
@@ -1728,12 +1730,12 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 		case DW_TAG_reference_type: {
 			char * typeName = NULL;
 			status = dwarf_diename( dieEntry, & typeName, NULL );
-			assert( status != DW_DLV_ERROR );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			/* To which type does it point? */
 			Dwarf_Attribute typeAttribute;
 			status = dwarf_attr( dieEntry, DW_AT_type, & typeAttribute, NULL );
-			assert( status != DW_DLV_ERROR );
+			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 			Dwarf_Off typeOffset = 0;
 			BPatch_type * typePointedTo = NULL;
@@ -1742,7 +1744,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				typePointedTo = module->getModuleTypes()->findType( "void" );
 				} else {			
 				status = dwarf_global_formref( typeAttribute, & typeOffset, NULL );
-				assert( status == DW_DLV_OK );
+				DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 				parsing_printf("%s/%d: %s/%d\n",
 							   __FILE__, __LINE__, typeName, typeOffset);
 				typePointedTo = module->getModuleTypes()->findOrCreateType( typeOffset );
@@ -1786,7 +1788,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 	/* Recurse to its child, if any. */
 	Dwarf_Die childDwarf;
 	status = dwarf_child( dieEntry, & childDwarf, NULL );
-	assert( status != DW_DLV_ERROR );
+	DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 	
 	if( status == DW_DLV_OK && parsedChild == false ) {		
 		walkDwarvenTree( dbg, moduleName, childDwarf, module, proc, cuOffset, newFunction, newCommonBlock, newEnclosure );
@@ -1795,7 +1797,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 	/* Recurse to its first sibling, if any. */
 	Dwarf_Die siblingDwarf;
 	status = dwarf_siblingof( dbg, dieEntry, & siblingDwarf, NULL );
-	assert( status != DW_DLV_ERROR );
+	DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
 	/* Deallocate the entry we just parsed. */
 	dwarf_dealloc( dbg, dieEntry, DW_DLA_DIE );
@@ -1816,26 +1818,28 @@ void BPatch_module::parseDwarfTypes() {
 	const char *fileName = mod->obj()->fullName().c_str();
 	// Man do we do to a lot of trouble for this...
 	const Object &moduleObject = mod->obj()->parse_img()->getObject();
-	assert(fileName);
-	assert(moduleTypes);
+	assert( fileName );
+	assert( moduleTypes );
 
 #if defined(arch_x86_64)
-    if(moduleObject.getAddressWidth() == 8)
-        emit64();
-    else
-        emit32();
+	if( moduleObject.getAddressWidth() == 8 ) {
+		emit64();
+        }
+	else {
+		emit32();
+		}
 #endif
 
-	if (moduleTypes->dwarfParsed()) {
-		// /* DEBUG */ fprintf( stderr, "%s[%d]: already parsed %s, moduleTypes = %p\n", __FILE__, __LINE__, fileName, moduleTypes );
-		BPatch_Vector<BPatch_function *> *bpfuncs = getProcedures(true);
-		assert(bpfuncs);
-		for (unsigned int i = 0; i < bpfuncs->size(); i++) {
-			(*bpfuncs)[i]->fixupUnknown(this);
-		}
+	if( moduleTypes->dwarfParsed() ) {
+		dwarf_printf( "%s[%d]: already parsed %s, moduleTypes = %p\n", __FILE__, __LINE__, fileName, moduleTypes );
+		BPatch_Vector<BPatch_function *> * bpfuncs = getProcedures( true );
+		assert( bpfuncs );
+		for( unsigned int i = 0; i < bpfuncs->size(); i++ ) {
+			(*bpfuncs)[i]->fixupUnknown( this );
+			}
 		return;
-	}
-	// /* DEBUG */ fprintf( stderr, "%s[%d]: parsing %s...\n", __FILE__, __LINE__, fileName );
+		}
+	dwarf_printf( "%s[%d]: parsing %s...\n", __FILE__, __LINE__, fileName );
 
 	/* Start the dwarven debugging. */
 	Dwarf_Debug dbg;
@@ -1843,7 +1847,7 @@ void BPatch_module::parseDwarfTypes() {
 	int fd = open( fileName, O_RDONLY );
 	assert( fd != -1 );
 	int status = dwarf_init( fd, DW_DLC_READ, & pd_dwarf_handler, moduleObject.getErrFunc(), & dbg, NULL );
-	assert( status == DW_DLV_OK );
+	DWARF_RETURN_IF( status != DW_DLV_OK, "%s[%d]: error initializing libdwarf.\n", __FILE__, __LINE__ );
 
 	/* Iterate over the compilation-unit headers. */
 	Dwarf_Unsigned hdr;
@@ -1852,18 +1856,18 @@ void BPatch_module::parseDwarfTypes() {
 		/* Obtain the module DIE. */
 		Dwarf_Die moduleDIE;
 		status = dwarf_siblingof( dbg, NULL, &moduleDIE, NULL );
-		assert( status == DW_DLV_OK );
+		DWARF_RETURN_IF( status != DW_DLV_OK, "%s[%d]: error finding next CU header.\n", __FILE__, __LINE__ );
 
 		/* Make sure we've got the right one. */
 		Dwarf_Half moduleTag;
 		status = dwarf_tag( moduleDIE, & moduleTag, NULL );
-		assert( status == DW_DLV_OK );
+		DWARF_RETURN_IF( status != DW_DLV_OK, "%s[%d]: error acquiring CU header tag.\n", __FILE__, __LINE__ );
 		assert( moduleTag == DW_TAG_compile_unit );
 
 		/* We may need this later. */
 		Dwarf_Off cuOffset;
 		status = dwarf_dieoffset( moduleDIE, & cuOffset, NULL );
-		assert( status == DW_DLV_OK );
+		DWARF_RETURN_IF( status != DW_DLV_OK, "%s[%d]: error acquiring CU header offset.\n", __FILE__, __LINE__ );
 
 		/* Extract the name of this module. */
 		char * moduleName;
@@ -1872,18 +1876,18 @@ void BPatch_module::parseDwarfTypes() {
 			moduleName = strdup( "{ANONYMOUS}" );
 			assert( moduleName != NULL );
 			}
-		assert( status != DW_DLV_ERROR );
-		// /* DEBUG */ fprintf( stderr, "%s[%d]: considering compilation unit '%s'\n", __FILE__, __LINE__, moduleName );
+		DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error acquiring module name.\n", __FILE__, __LINE__ );
+		dwarf_printf( "%s[%d]: considering compilation unit '%s'\n", __FILE__, __LINE__, moduleName );
 
 		/* Set the language, if any. */
 		Dwarf_Attribute languageAttribute;
 		status = dwarf_attr( moduleDIE, DW_AT_language, & languageAttribute, NULL );
-		assert( status != DW_DLV_ERROR );
+		DWARF_RETURN_IF( status == DW_DLV_ERROR, "%s[%d]: error acquiring language attribute.\n", __FILE__, __LINE__ );
 
 		if( status == DW_DLV_OK ) {
 			Dwarf_Unsigned languageConstant;
 			status = dwarf_formudata( languageAttribute, & languageConstant, NULL );
-			assert( status == DW_DLV_OK );
+			DWARF_RETURN_IF( status != DW_DLV_OK, "%s[%d]: error formulating language attribute.\n", __FILE__, __LINE__ );
 
 			switch( languageConstant ) {
 				case DW_LANG_C:
@@ -1915,9 +1919,9 @@ void BPatch_module::parseDwarfTypes() {
 
 		/* Iterate over the tree rooted here; walkDwarvenTree() deallocates the passed-in DIE. */
 		if( !walkDwarvenTree( dbg, moduleName, moduleDIE, this, this->proc->llproc, cuOffset ) ) {
-			bperr( "Error while parsing DWARF info for module '%s'.\n", moduleName );
-			assert( 0 );
-		}
+			bpwarn( "Error while parsing DWARF info for module '%s'.\n", moduleName );
+			return;
+			}
 
 		dwarf_dealloc( dbg, moduleName, DW_DLA_STRING );
 		} /* end iteration over compilation-unit headers. */
@@ -1925,14 +1929,14 @@ void BPatch_module::parseDwarfTypes() {
 	/* Clean up. */
 	Elf * dwarfElf;
 	status = dwarf_get_elf( dbg, & dwarfElf, NULL );
-	assert( status == DW_DLV_OK );
+	DWARF_RETURN_IF( status != DW_DLV_OK, "%s[%d]: error during libdwarf cleanup.\n", __FILE__, __LINE__ );
 
 	status = dwarf_finish( dbg, NULL );
-	assert( status == DW_DLV_OK );
+	DWARF_RETURN_IF( status != DW_DLV_OK, "%s[%d]: error during libdwarf cleanup.\n", __FILE__, __LINE__ );
 	P_close( fd );
 
 	/* Run a sanity check. */
-	assert (moduleTypes);
+	assert( moduleTypes );
 
 	/* Fix type list. */
 	int typeID;
@@ -1954,9 +1958,9 @@ void BPatch_module::parseDwarfTypes() {
 
 	/* Fix the type references in functions. */
 	BPatch_Vector<BPatch_function *> *bpfuncs = getProcedures(true);
-	assert(bpfuncs);
-	for (unsigned int i = 0; i < bpfuncs->size(); i++) {
-		(*bpfuncs)[i]->fixupUnknown(this);
+	assert( bpfuncs );
+	for( unsigned int i = 0; i < bpfuncs->size(); i++ ) {
+		(*bpfuncs)[i]->fixupUnknown( this );
 	}
 	moduleTypes->setDwarfParsed();
 } /* end parseDwarfTypes() */
