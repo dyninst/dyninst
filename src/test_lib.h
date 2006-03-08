@@ -81,7 +81,7 @@ typedef enum {
 
 TESTLIB_DLL_EXPORT int waitUntilStopped(BPatch *, BPatch_thread *appThread, 
                       int testnum, const char *testname);
-TESTLIB_DLL_EXPORT void signalAttached(BPatch_thread *appThread, BPatch_image *appImage);
+TESTLIB_DLL_EXPORT bool signalAttached(BPatch_thread *appThread, BPatch_image *appImage);
 int startNewProcessForAttach(const char *pathname, const char *argv[]);
 
 
@@ -205,7 +205,7 @@ TESTLIB_DLL_EXPORT bool checkStack(BPatch_thread *appThread,
 void buildArgs(const char** child_argv, char *pathname, int testNo);
 
 
-void createNewProcess(BPatch *bpatch, BPatch_thread *&appThread, BPatch_image *&appImage, 
+bool createNewProcess(BPatch *bpatch, BPatch_thread *&appThread, BPatch_image *&appImage, 
       char *pathname, const char** child_argv);
 
 
@@ -219,8 +219,8 @@ int letOriginalMutateeFinish(BPatch_thread *appThread);
 BPatch_function *findFunction(const char *fname, BPatch_image *appImage, int testno, const char *testname);
 BPatch_function *findFunction(const char *fname, BPatch_module *inmod, int testno, const char *testname);
 
-void setVar(BPatch_image *appImage, const char *vname, void *addr, int testno, const char *testname);
-void getVar(BPatch_image *appImage, const char *vname, void *addr, int testno, const char *testname);
+bool setVar(BPatch_image *appImage, const char *vname, void *addr, int testno, const char *testname);
+bool getVar(BPatch_image *appImage, const char *vname, void *addr, int testno, const char *testname);
 
 
 // Functions in test_lib_soExecution.C below

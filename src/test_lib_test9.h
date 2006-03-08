@@ -3,7 +3,7 @@
  * of libtestSuite are not linked in on windows
  */
 
-int runMutatedBinary(char *path, char* fileName, char* testID);
+//int runMutatedBinary(char *path, char* fileName, char* testID);
 
 void changePath(char *path);
 

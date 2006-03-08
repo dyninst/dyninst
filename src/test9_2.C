@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9_2.C,v 1.3 2006/02/28 03:39:41 bpellin Exp $
+// $Id: test9_2.C,v 1.4 2006/03/08 16:44:58 bpellin Exp $
 /*
  * #Name: test9_2
  * #Desc: Instrument many function calls and save the world
@@ -81,8 +81,11 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 	BPatch_image *appImage;
 	BPatch_thread *appThread;
 
-	createNewProcess(bpatch, appThread, appImage, pathname, child_argv);
-
+	if ( !createNewProcess(bpatch, appThread, appImage, pathname, child_argv) )
+        {
+           fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+           return -1;
+        }
 
 	for( i = 1;i<1001; i++){
 		sprintf(instrumentee, "func2_%d", i);

@@ -15,6 +15,7 @@
 #include <unistd.h>
 #endif
 
+#if 0
 int runMutatedBinary(char *path, char* fileName, char* testID){
 
    pid_t pid;
@@ -87,6 +88,7 @@ int runMutatedBinary(char *path, char* fileName, char* testID){
 	
 
 }
+#endif 
 
 extern char **environ;
 
@@ -148,7 +150,7 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 	switch((pid=fork())){
 		case -1: 
 		fprintf(stderr,"can't fork\n");
-    	    		exit(-1);
+                        return 0;
 		case 0 : 
 			//child
 			fprintf(stderr," running: %s %s %s\n", mutatedBinary, realFileName, testID);
@@ -179,7 +181,7 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 #endif
 			fprintf(stderr,"ERROR!\n");
 			perror("execl");
-			exit(-1);
+                        return 0;
 
 		default: 
 			//parent

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test12_3.C,v 1.2 2005/10/17 19:14:29 bpellin Exp $
+// $Id: test12_3.C,v 1.3 2006/03/08 16:44:54 bpellin Exp $
 /*
  * #Name: test12_3
  * #Desc: thread create callback
@@ -88,7 +88,10 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
   }
   //  unset mutateeIde to trigger thread (10) spawn.
   int zero = 0;
-  setVar(appImage, "mutateeIdle", (void *) &zero, TESTNO, TESTNAME);
+  if ( !setVar(appImage, "mutateeIdle", (void *) &zero, TESTNO, TESTNAME) )
+  {
+     return -1;
+  }
   appThread->continueExecution();
 
   //  wait until we have received the desired number of events

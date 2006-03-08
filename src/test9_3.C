@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9_3.C,v 1.2 2006/01/30 04:55:39 bpellin Exp $
+// $Id: test9_3.C,v 1.3 2006/03/08 16:44:59 bpellin Exp $
 /*
  * #Name: test9_3
  * #Desc: instrument a function with arguments and save the world
@@ -82,14 +82,17 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 	const char* child_argv[MAX_TEST+5];
 	buildArgs(child_argv, pathname, testNo);
 
-
-	createNewProcess(bpatch, appThread, appImage, pathname, child_argv);
+	if ( !createNewProcess(bpatch, appThread, appImage, pathname, child_argv) )
+        {
+           fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+           return -1;
+        }
 
   BPatch_Vector<BPatch_function *> found_funcs;
   if ((NULL == appImage->findFunction("func3_1", found_funcs)) || !found_funcs.size()) {
     fprintf(stderr, "    Unable to find function %s\n",
 	    "func3_1");
-    exit(1);
+    return -1;
   }
   
   if (1 < found_funcs.size()) {
@@ -102,7 +105,7 @@ int mutatorTest(char *pathname, BPatch *bpatch)
   if (!point3_1 || ((*point3_1).size() == 0)) {
     fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
     fprintf(stderr, "    Unable to find entry point to \"func3_1.\"\n");
-    exit(1);
+    return -1;
   }
 
   BPatch_Vector<BPatch_function *> bpfv;
@@ -111,7 +114,7 @@ int mutatorTest(char *pathname, BPatch *bpatch)
       || NULL == bpfv[0]){
     fprintf(stderr, "**Failed** test #%d (%s)\n", testNo, testName);
     fprintf(stderr, "    Unable to find function %s\n", fn);
-    exit(1);
+    return -1;
   }
   BPatch_function *call2_func = bpfv[0];
 

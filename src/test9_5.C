@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9_5.C,v 1.4 2006/03/01 21:58:32 bpellin Exp $
+// $Id: test9_5.C,v 1.5 2006/03/08 16:45:01 bpellin Exp $
 /*
  * #Name: test9_5
  * #Desc: call loadLibrary and save the world
@@ -79,7 +79,11 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 
 
         std::cout << appThread << "," << appImage << std::endl;
-	createNewProcess(bpatch, appThread, appImage, pathname, child_argv);
+	if ( !createNewProcess(bpatch, appThread, appImage, pathname, child_argv) )
+        {
+           fprintf(stderr,"**Failed Test #%d: Original Mutatee failed subtest: %d\n\n", testNo,testNo);
+           return -1;
+        }
         std::cout << appThread << "," << appImage << std::endl;
 	if (! appThread->loadLibrary("./libLoadMe.so", true)) {
 	     fprintf(stderr, "**Failed test #5 (use loadLibrary)\n");
