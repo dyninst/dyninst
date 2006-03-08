@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.16 2006/03/08 16:44:07 bpellin Exp $
+// $Id: test_driver.C,v 1.17 2006/03/08 19:58:00 mjbrim Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -976,7 +976,7 @@ int main(unsigned int argc, char *argv[]) {
        else if ( strcmp(argv[i], "-help") == 0)
        {
           printf("Usage: %s [-skipTo <test_num>] [-humanlog filename] [-verbose]\n", argv[0]);
-          printf("       [-log] [-run <name> ...]\n", argv[0]);
+          printf("       [-log] [-test <name> ...]\n", argv[0]);
           exit(SUCCESS);
        }
        else
