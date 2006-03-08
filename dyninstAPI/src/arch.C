@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch.C,v 1.2 2006/03/02 20:00:07 tlmiller Exp $
+// $Id: arch.C,v 1.3 2006/03/08 19:57:48 mjbrim Exp $
 // Code generation
 
 //////////////////////////
@@ -69,8 +69,7 @@ codeGen::codeGen() :
     allocated_(false),
     lwp(NULL) {}
 
-// Note: this is in "units", typically the 
-// instruction size
+// size is in bytes
 codeGen::codeGen(unsigned size) :
     offset_(0),
     size_(size),
@@ -83,7 +82,7 @@ codeGen::codeGen(unsigned size) :
     assert(buffer_);
 }
 
-// And this is actual size in bytes.
+// preallocated buffer with size in bytes.
 codeGen::codeGen(codeBuf_t *buffer, int size) :
     offset_(0),
     size_(size),
