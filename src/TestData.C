@@ -8,6 +8,7 @@ TestData::TestData(
       start_state_t st,
       int old,
       int sub,
+      cleanup_mode_t clean,
       create_mode_t use,
       enabled_t en
       ) : mutatee(m), platforms(p)
@@ -18,6 +19,7 @@ TestData::TestData(
    state = st;
    oldtest = old;
    subtest = sub;
+   cleanup = clean;
    useAttach = use;
    enabled = en;
 }

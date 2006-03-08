@@ -5,9 +5,12 @@
 #include <vector>
 
 enum start_state_t {
+   // Start up the mutatee and pass it to the test in a stopped state
    STOPPED,
+   // Start up the mutatee and start it before passing it to the test
    RUNNING,
-   NOMUTATEE,
+   // Allow the test to setup the mutatee itself
+   SELFSTART,
 };
 
 enum create_mode_t {
@@ -15,6 +18,18 @@ enum create_mode_t {
    USEATTACH = 1,
    BOTH,
 };
+
+enum cleanup_mode_t {
+   // If mutator passes collect exit code from the mutatee, kill mutatee 
+   //    if mutator fails 
+   COLLECT_EXITCODE,
+   // Don't collect exit code from mutatee, just kill it
+   KILL_MUTATEE,
+   // The test contains it's own cleanup code
+   NONE,
+};
+      
+
 
 enum enabled_t {
    DISABLED = 0,
@@ -40,8 +55,10 @@ struct TESTLIB_DLL_EXPORT TestData {
    mutatee_list_t &mutatee;
    platforms_t &platforms;
    start_state_t state;
+
    int oldtest;
    int subtest;
+   cleanup_mode_t cleanup;
    create_mode_t useAttach;
    enabled_t enabled;
 
@@ -52,6 +69,7 @@ struct TESTLIB_DLL_EXPORT TestData {
          start_state_t state,
          int oldtest,
          int subtest,
+         cleanup_mode_t cleanup,
          create_mode_t useAttach,
          enabled_t enabled
          );
