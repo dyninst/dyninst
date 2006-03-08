@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyn_thread.h,v 1.23 2006/02/17 00:57:19 legendre Exp $
+// $Id: dyn_thread.h,v 1.24 2006/03/08 20:52:28 bernat Exp $
 
 #ifndef _DYNTHREAD_H_
 #define _DYNTHREAD_H_
@@ -69,7 +69,7 @@ class dyn_thread {
   Frame getActiveFrame();
 
   // Walk the stack of the thread
-  bool walkStack(pdvector<Frame> &stackWalk, bool ignoreRPC = false);
+  bool walkStack(pdvector<Frame> &stackWalk);
 
   bool updateLWP();
   
@@ -95,11 +95,6 @@ class dyn_thread {
   void set_pending_tramp_addr( Address a )	{ pending_tramp_addr = a; }
   bool is_exited()                         { return lwp->status() == exited; }
 
-  // When we're in an inferior RPC we use a cached stack walk from where
-  // the process "was"
-  bool savePreRPCStack();
-  void clearPreRPCStack();
-  
   ///
  private:
   int ppid;
@@ -113,11 +108,7 @@ class dyn_thread {
   int_function *start_func ;
   process *proc;
   Address pending_tramp_addr;	// address of pending instrumentation
-  // currently used on NT only
-
-  bool useRPCStack_;
-  pdvector<Frame> RPCstack_;
-  
+  // currently used on NT only  
 };
 
 #endif

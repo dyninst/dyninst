@@ -50,8 +50,7 @@ dyn_thread::dyn_thread(process *pproc) :
    stack_addr(0),
    start_pc(0), 
    start_func(NULL),
-   pending_tramp_addr(ADDR_NULL),
-   useRPCStack_(false)
+   pending_tramp_addr(ADDR_NULL)
 { 
    proc = pproc; 
    lwp  = pproc->getRepresentativeLWP();
@@ -65,8 +64,7 @@ dyn_thread::dyn_thread(process *proc_, unsigned index_, dyn_lwp *lwp_) :
     stack_addr(0),
     start_pc(0),
     start_func(NULL),
-    pending_tramp_addr( ADDR_NULL ),
-    useRPCStack_(false)
+    pending_tramp_addr( ADDR_NULL )
 {
    proc = proc_;
    proc->addThread(this);
@@ -84,7 +82,6 @@ dyn_thread::dyn_thread(dyn_thread *src, process *child)
    start_func = src->start_func;
    proc = child;
    pending_tramp_addr = ADDR_NULL;
-   useRPCStack_ = false;
    proc->addThread(this);
 }
 
@@ -110,15 +107,10 @@ Frame dyn_thread::getActiveFrame()
 }
 
 // stackWalk: return parameter.
-bool dyn_thread::walkStack(pdvector<Frame> &stackWalk, bool ignoreRPC /* = false */)
+bool dyn_thread::walkStack(pdvector<Frame> &stackWalk)
 {
     stackWalk.clear();
-    
-    if (useRPCStack_ && !ignoreRPC) {
-        fprintf(stderr, "%s[%d]:  useRPCStack == true\n", FILE__, __LINE__);
-        stackWalk = RPCstack_;
-        return true;
-    }
+
     Frame active = getActiveFrame();
 
     return proc->walkStackFromFrame(active, stackWalk);
@@ -130,26 +122,6 @@ dyn_lwp *dyn_thread::get_lwp()
     updateLWP();
    return lwp;
 }
-
-bool dyn_thread::savePreRPCStack()
-{
-    if (useRPCStack_)
-        assert(0);
-    
-    walkStack(RPCstack_);
-    useRPCStack_ = true;
-    inferiorrpc_printf("Thread %d saving stack for RPC:\n", get_tid());
-    for (unsigned i = 0; i < RPCstack_.size(); i++)
-      inferiorrpc_cerr << i << ": " << RPCstack_[i] << endl;
-    return true;
-}
-
-void dyn_thread::clearPreRPCStack() {
-  inferiorrpc_printf("Thread %d clearing saved stack\n", get_tid());
-  RPCstack_.clear();
-    useRPCStack_ = false;
-}
-
 
 dyn_thread::~dyn_thread() 
 {
