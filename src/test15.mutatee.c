@@ -14,8 +14,8 @@ int thr_ids[NTHRD] = {0, 1, 2, 3, 4};
 int ok_to_exit[NTHRD] = {0, 0, 0, 0, 0};
 
 /* oneTimeCodes will set these to the tid for the desired thread */
-volatile int sync_test = 0;
-volatile int async_test = 0;
+volatile pthread_t sync_test = 0;
+volatile pthread_t async_test = 0;
 int sync_failure = 0;
 int async_failure = 0;
 
@@ -23,10 +23,10 @@ volatile unsigned thr_exits;
 
 void check_sync()
 {
-   int tid = pthread_self();
+   pthread_t tid = pthread_self();
    int id = -1, i;
    for(i = 0; i < NTHRD; i++) {
-      if(thrds[i] == (pthread_t)tid) {
+      if(thrds[i] == tid) {
          id = i;
          break;
       }
@@ -47,10 +47,10 @@ void check_sync()
 
 void check_async()
 {
-   int tid = pthread_self();
+   pthread_t tid = pthread_self();
    int id = -1, i;
    for(i = 0; i < NTHRD; i++) {
-      if(thrds[i] == (pthread_t)tid) {
+      if(thrds[i] == tid) {
          id = i;
          break;
       }
@@ -72,7 +72,7 @@ void check_async()
    async_failure++;
 }
 
-void thr_loop(int id, int tid)
+void thr_loop(int id, pthread_t tid)
 {
    unsigned long timeout = 0;
    while( (! ok_to_exit[id]) && (timeout != 50000000) ) {
@@ -82,13 +82,13 @@ void thr_loop(int id, int tid)
    if(timeout == 50000000)
       fprintf(stderr, 
               "%s[%d]: ERROR: Thread %d [tid %lu] - timed-out in thr_loop\n", 
-              __FILE__, __LINE__, id, tid);
+              __FILE__, __LINE__, id, (unsigned long)tid);
 }
 
 void thr_func(void *arg)
 {
    int id = *((int*)arg);
-   int tid = pthread_self();
+   pthread_t tid = pthread_self();
    thr_loop(id, tid);
    thr_exits++;
 }
