@@ -188,13 +188,12 @@ void DYNINSTthreadDestroy()
    int index = DYNINSTthreadIndex();
    int pid = dyn_pid_self();
    int err;
+   BPatch_deleteThreadEventRecord rec;
 
    err = DYNINST_free_index(tid);
    if (err)
       return;
    
-   BPatch_deleteThreadEventRecord rec;
-
    memset(&rec, 0, sizeof(rec));
    rec.index = index;
    

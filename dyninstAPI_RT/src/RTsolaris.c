@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTsolaris.c,v 1.24 2006/03/07 23:18:31 bernat Exp $
+ * $Id: RTsolaris.c,v 1.25 2006/03/08 23:31:12 jodom Exp $
  * RTsolaris.c: mutatee-side library function specific to Solaris
  ************************************************************************/
 
@@ -342,9 +342,10 @@ dyntid_t dyn_pthread_self()
 
 int which(void *tls) {
   static int w = 0;
+  dyntid_t tid;
   int i;
   if (w) return w;
-  dyntid_t tid = dyn_pthread_self();
+  tid = dyn_pthread_self();
   if (tid == (dyntid_t) -1)
       return 0;
 
