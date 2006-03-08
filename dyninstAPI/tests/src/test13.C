@@ -78,7 +78,7 @@ void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
    }
    deleted_tids[my_dyn_id] = 1;
    deleted_threads++;
-   dprintf(stderr, "%s[%d]:  leaving to deadthr\n", __FILE__, __LINE__);
+   dprintf(stderr, "%s[%d]:  leaving deadthr\n", __FILE__, __LINE__);
 }
 
 void newthr(BPatch_process *my_proc, BPatch_thread *thr)

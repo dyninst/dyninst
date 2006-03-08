@@ -104,22 +104,24 @@ int main(int argc, char *argv[])
    image->findFunction("level1", lvl1funcs);
    if (lvl1funcs.size() != 1)
    {
-      fprintf(stderr, "[%s:%u] - Found %d level0 functions.  Expected 1\n",
+      fprintf(stderr, "[%s:%u] - Found %d level1 functions.  Expected 1\n",
               __FILE__, __LINE__, lvl1funcs.size());
       return -1;
    }
    BPatch_function *lvl1func = lvl1funcs[0];
 
+   // Instrument level[0-3] entry points to call level1()
    BPatch_Vector<BPatch_function *> funcs;
    image->findFunction("level0", funcs);
    instr_func(funcs[0], lvl1func);
    funcs.clear();
-   image->findFunction("level1", funcs);
-   instr_func(funcs[0], lvl1func);
-   funcs.clear();
+   
+   instr_func(lvl1func, lvl1func);
+   
    image->findFunction("level2", funcs);
    instr_func(funcs[0], lvl1func);
    funcs.clear();
+   
    image->findFunction("level3", funcs);
    instr_func(funcs[0], lvl1func);
    funcs.clear();
@@ -138,7 +140,7 @@ int main(int argc, char *argv[])
    }
    else
    {
-       fprintf(stdout, "Passed test #1 (Multithweaded tramp guards)\n");
+       fprintf(stdout, "Passed test #1 (Multithreaded tramp guards)\n");
        fprintf(stdout, "All tests passed.\n");
    }
    return 0;
