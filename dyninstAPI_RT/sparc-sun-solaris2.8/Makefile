@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.20 2006/03/07 23:18:28 bernat Exp $
+# $Id: Makefile,v 1.21 2006/03/08 14:27:58 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -53,7 +53,6 @@ SRCS		+= ../src/RTposix.c \
 			../src/RTmutatedBinary_ELF.c \
 			../src/RTthread.c \
 			../src/RTthread-index.c \
-			../src/RTthread-solaris.c \
 			../src/RTthread-sparc-asm.s
 
 
