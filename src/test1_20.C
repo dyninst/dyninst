@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_20.C,v 1.6 2006/02/22 22:06:27 bpellin Exp $
+// $Id: test1_20.C,v 1.7 2006/03/08 16:44:20 bpellin Exp $
 /*
  * #Name: test1_20
  * #Desc: Mutator Side - Instrumentation at arbitrary points
@@ -169,6 +169,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 // External Interface
 extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 {
+    bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
     mergeTramp = param["mergeTramp"]->getInt();
@@ -176,6 +177,12 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();
+
+    if ( useAttach )
+    {
+      if ( ! signalAttached(appThread, appImage) )
+         return -1;
+    }
 
     // Run mutator code
     return mutatorTest(appThread, appImage);

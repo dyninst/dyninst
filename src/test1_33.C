@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_33.C,v 1.3 2006/02/24 03:10:45 bpellin Exp $
+// $Id: test1_33.C,v 1.4 2006/03/08 16:44:34 bpellin Exp $
 /*
  * #Name: test1_33 
  * #Desc: Control Flow Graphs
@@ -392,12 +392,19 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
+    bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();
+
+    if ( useAttach )
+    {
+      if ( ! signalAttached(appThread, appImage) )
+         return -1;
+    }
 
     mutateeFortran = isMutateeFortran(appImage);
 
