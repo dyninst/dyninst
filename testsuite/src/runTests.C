@@ -19,8 +19,6 @@ int testLimit = 10;
 
 vector<char *> child_argv;
 
-// POSIX implementation
-// TODO: Check portability
 // isRegFile:
 // Returns true if filename is a regular file
 bool isRegFile(const string& filename)
