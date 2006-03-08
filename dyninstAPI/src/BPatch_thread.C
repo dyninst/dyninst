@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.142 2006/03/02 20:00:06 tlmiller Exp $
+// $Id: BPatch_thread.C,v 1.143 2006/03/08 19:57:47 mjbrim Exp $
 
 #define BPATCH_FILE
 
@@ -375,6 +375,99 @@ unsigned long BPatch_thread::os_handleInt()
 #else
     return (unsigned long) llthread->get_lwp()->get_fd();
 #endif
+}
+
+
+/*
+ * BPatch_thread::oneTimeCodeInternal
+ *
+ * Causes a snippet expression to be evaluated once in the mutatee at the next
+ * available opportunity.  Optionally, Dyninst will call a callback function
+ * when the snippet has executed in the mutatee, and can wait until the
+ * snippet has executed to return.
+ *
+ * expr		The snippet to evaluate.
+ * userData	This value is given to the callback function along with the
+ *		return value for the snippet.  Can be used by the caller to
+ *		store per-oneTimeCode information.
+ * synchronous	True means wait until the snippet has executed, false means
+ *		return immediately.
+ */
+void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
+                                         void *userData,
+                                         bool synchronous)
+{
+   bool needToResume = false;
+
+   if (synchronous && !isStopped()) {
+      stopExecution();
+      
+      if (!isStopped()) {
+         fprintf(stderr, "%s[%d]:  failed to run oneTimeCodeInternal .. status is %s\n", 
+                 FILE__, __LINE__, 
+                 proc->llproc ? proc->llproc->getStatusAsString().c_str() : "unavailable");
+         return NULL;
+      }
+      needToResume = true;
+   }
+
+   OneTimeCodeInfo *info = new OneTimeCodeInfo(synchronous, userData, index);
+
+   proc->llproc->getRpcMgr()->postRPCtoDo(expr.ast,
+                                          false, 
+                                          BPatch_process::oneTimeCodeCallbackDispatch,
+                                          (void *)info,
+                                          false,
+                                          llthread, NULL); 
+    
+   if (synchronous) {
+      do {
+        proc->llproc->getRpcMgr()->launchRPCs(false);
+        getMailbox()->executeCallbacks(FILE__, __LINE__);
+        if (info->isCompleted()) break;
+        proc->llproc->sh->waitForEvent(evtRPCSignal, proc->llproc, NULL /*lwp*/, statusRPCDone);
+        getMailbox()->executeCallbacks(FILE__, __LINE__);
+      } while (!info->isCompleted() && !isTerminated());
+      
+      void *ret = info->getReturnValue();
+      delete info;
+
+      if (needToResume) {
+         continueExecution();
+      }
+        
+      return ret;
+   } else {
+      proc->llproc->getRpcMgr()->launchRPCs(proc->llproc->status() == running);
+      return NULL;
+   }
+}
+
+/*
+ * BPatch_thread::oneTimeCode
+ *
+ * Have the mutatee execute specified code expr once.  Wait until done.
+ *
+ */
+void *BPatch_thread::oneTimeCodeInt(const BPatch_snippet &expr)
+{
+   return oneTimeCodeInternal(expr, NULL, true);
+}
+
+/*
+ * BPatch_thread::oneTimeCodeAsync
+ *
+ * Have the mutatee execute specified code expr once.  Don't wait until done.
+ *
+ */
+bool BPatch_thread::oneTimeCodeAsyncInt(const BPatch_snippet &expr, 
+                                        void *userData)
+{
+   if (NULL == oneTimeCodeInternal(expr, userData, false)) {
+      //fprintf(stderr, "%s[%d]:  oneTimeCodeInternal failed\n", FILE__, __LINE__);
+      return false;
+   }
+   return true;   
 }
 
 bool BPatch_thread::isDeadOnArrivalInt() {
