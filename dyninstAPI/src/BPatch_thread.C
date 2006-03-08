@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.144 2006/03/08 21:59:34 tlmiller Exp $
+// $Id: BPatch_thread.C,v 1.145 2006/03/08 23:53:40 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -197,7 +197,6 @@ void BPatch_thread::updateValues(dynthread_t tid, unsigned long stack_start,
      //fprintf(stderr, "%s[%d]:  thread already updated\n", FILE__, __LINE__);
      return;
    }
-   BPatch_Vector<BPatch_frame> stack;
 
    dyn_lwp *lwp = proc->llproc->getLWP(lwp_id);
 
@@ -205,44 +204,21 @@ void BPatch_thread::updateValues(dynthread_t tid, unsigned long stack_start,
    llthread->update_stack_addr(stack_start);
    llthread->update_lwp(lwp);
 
-   if (tid == -1)
-   {
-      //Expensive... uses an iRPC to get it from the RT library
-      tid = proc->llproc->mapIndexToTid(index);
+   if (tid == -1) {
+       //Expensive... uses an iRPC to get it from the RT library
+       tid = proc->llproc->mapIndexToTid(index);
    }
    llthread->update_tid(tid);
-
+   
    //If initial_func or stack_start aren't provided then
    // we can update them with a stack walk
-   if (!initial_func || !stack_start)
-   {
-      getCallStackInt(stack);
-
-      int pos = stack.size() - 1;
-      //Consider stack_start as starting at the first
-      //function with a stack frame.
-      while ((!stack_start || !initial_func) && (pos >= 0))
-      {
-         if (!stack_start)
-            stack_start = (unsigned long) stack[pos].getFP();
-         if (!initial_func)
-         {
-            initial_func = stack[pos].findFunction();
-            if (initial_func) {
-              char fname[2048];
-              initial_func->getName(fname, 2048);
-              //fprintf(stderr, "%s[%d]:  setting initial func to %s\n", FILE__, __LINE__, fname);
-            }
-         }
-         pos--;
-      }
-   }
+   // We delay this to speed initialization -- the main thread
+   // never comes in with info, which triggers a.out parsing.
 
    if (initial_func)
    {
       llthread->update_start_func(initial_func->func);
    }
-   llthread->update_stack_addr(stack_start);
 }
 
 unsigned BPatch_thread::getBPatchIDInt()
@@ -277,8 +253,41 @@ BPatch_function *BPatch_thread::getInitialFuncInt()
       return NULL;
    }
    int_function *ifunc = llthread->get_start_func();
-   if (!ifunc)
-      return NULL;
+
+   if (!ifunc) {
+       BPatch_Vector<BPatch_frame> stackWalk;
+
+       getCallStackInt(stackWalk);
+       unsigned long stack_start = 0;
+       BPatch_function *initial_func = NULL;
+       
+       int pos = stackWalk.size() - 1;
+       //Consider stack_start as starting at the first
+       //function with a stack frame.
+       while ((!stack_start || !initial_func) && (pos >= 0)) {
+           if (!stack_start)
+               stack_start = (unsigned long) stackWalk[pos].getFP();
+           if (!initial_func) {
+               initial_func = stackWalk[pos].findFunction();
+               if (initial_func) {
+                   char fname[2048];
+                   initial_func->getName(fname, 2048);
+                   //fprintf(stderr, "%s[%d]:  setting initial func to %s\n", FILE__, __LINE__, fname);
+               }
+           }
+           pos--;
+       }
+       assert(stack_start);
+       llthread->update_stack_addr(stack_start);
+       if (initial_func)
+           llthread->update_start_func(initial_func->func);
+   }
+
+   // Try again...
+   ifunc = llthread->get_start_func();
+
+   if (!ifunc) return NULL;
+
    return proc->func_map->get(ifunc);
 }
 
@@ -287,6 +296,35 @@ unsigned long BPatch_thread::getStackTopAddrInt()
    if (doa || is_deleted) {
       return (unsigned long) -1;
    }
+   if (llthread->get_stack_addr() == 0) {
+       BPatch_Vector<BPatch_frame> stackWalk;
+
+       getCallStackInt(stackWalk);
+       unsigned long stack_start = 0;
+       BPatch_function *initial_func = NULL;
+       
+       int pos = stackWalk.size() - 1;
+       //Consider stack_start as starting at the first
+       //function with a stack frame.
+       while ((!stack_start || !initial_func) && (pos >= 0)) {
+           if (!stack_start)
+               stack_start = (unsigned long) stackWalk[pos].getFP();
+           if (!initial_func) {
+               initial_func = stackWalk[pos].findFunction();
+               if (initial_func) {
+                   char fname[2048];
+                   initial_func->getName(fname, 2048);
+                   //fprintf(stderr, "%s[%d]:  setting initial func to %s\n", FILE__, __LINE__, fname);
+               }
+           }
+           pos--;
+       }
+       assert(stack_start);
+       llthread->update_stack_addr(stack_start);
+       if (initial_func)
+           llthread->update_start_func(initial_func->func);
+   }
+   
    return llthread->get_stack_addr();
 }
 
