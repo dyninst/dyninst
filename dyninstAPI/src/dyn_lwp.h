@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.46 2006/03/02 14:33:24 mjbrim Exp $
+ * $Id: dyn_lwp.h,v 1.47 2006/03/08 22:08:18 bernat Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -133,17 +133,17 @@ class dyn_lwp
   bool setSyscallExitTrap(syscallTrapCallbackLWP_t callback,
                           void *data);
 
-  void clearSyscallExitTrapCallback() {
-     trappedSyscallCallback_ = NULL;
-  }
+  bool decodeSyscallTrap(EventRecord &ev);
+  bool handleSyscallTrap(EventRecord &ev);
 
-  // Clear the above, and perform any necessary emulation work
+  // Remove the trap. Either called by signal handling code,
+  // or by whoever set the trap in the first place (if we don't
+  // need it anymore).
   bool clearSyscallExitTrap();
-  // What if the wrong lwp hits the trap?
-  bool stepPastSyscallTrap();
+
   // Query functions for syscall exits
   bool isWaitingForSyscall() const;
-  int hasReachedSyscallTrap();
+
   
   int getLastSignal() { return lastSig_; }
   void setSignal(int sig) { lastSig_ = sig; }
@@ -300,6 +300,12 @@ class dyn_lwp
   //  the mutatee crashes, or for debug output.
   void dumpRegisters();
  private:
+  // Internal system call trap functions
+
+  // What if the wrong lwp hits the trap?
+  bool stepPastSyscallTrap();
+
+
   processState status_;
 
   bool representativeLWP_attach_();  // os specific

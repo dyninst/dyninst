@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.41 2006/03/08 19:57:49 mjbrim Exp $
+ * $Id: dyn_lwp.C,v 1.42 2006/03/08 22:08:09 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -314,14 +314,21 @@ bool dyn_lwp::clearSyscallExitTrap()
     if (!proc()->clearSyscallTrapInternal(trappedSyscall_))
         return false;
     
-    // Make the callback
-    if (trappedSyscallCallback_)
-        (*trappedSyscallCallback_)(this, trappedSyscallData_);
-
     trappedSyscall_ = NULL;
     trappedSyscallCallback_ = NULL;
     trappedSyscallData_ = NULL;
     return true;
+}
+
+bool dyn_lwp::handleSyscallTrap(EventRecord &ev) {
+    // Make the callback
+    if (trappedSyscallCallback_)
+        (*trappedSyscallCallback_)(this, trappedSyscallData_);
+    // Step past the trap (if necessary)
+    stepPastSyscallTrap();
+
+    // And clear the callback
+    clearSyscallExitTrap();
 }
 
 bool dyn_lwp::isWaitingForSyscall() const {
