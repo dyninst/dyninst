@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.89 2006/02/02 03:51:11 bernat Exp $
+// $Id: linux-x86.C,v 1.90 2006/03/08 22:08:20 bernat Exp $
 
 #include <fstream>
 
@@ -1448,11 +1448,18 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
     return true;
 }
 
-int dyn_lwp::hasReachedSyscallTrap() {
+bool dyn_lwp::decodeSyscallTrap(EventRecord &ev) {
     if (!trappedSyscall_) return false;
+
     Frame active = getActiveFrame();
-    return active.getPC() == trappedSyscall_->syscall_id;
+    if (active.getPC() == trappedSyscall_->syscall_id) {
+        ev.type = evtSyscallExit;
+        ev.what = trappedSyscall_->syscall_id;
+        return true;
+    }
+    return false;
 }
+    
 
 Address dyn_lwp::getCurrentSyscall() {
     Frame active = getActiveFrame();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.44 2006/02/24 03:49:05 jaw Exp $
+// $Id: procfs.C,v 1.45 2006/03/08 22:08:21 bernat Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -413,22 +413,14 @@ bool dyn_lwp::stepPastSyscallTrap() {
     return true;
 }
 
-// 0: not reached syscall trap
-// 1: lwp that isn't blocking reached syscall trap
-// 2: lwp that is blocking reached syscall trap
-int dyn_lwp::hasReachedSyscallTrap() {
-    prstatus theStatus;
-    if (ioctl(fd_, PIOCSTATUS, &theStatus) == -1) {
-        return 0;
-    }
-    if (theStatus.pr_why != PR_SYSEXIT) {
-        return 0;
-    }
-
-    // Due to lack of information, we assume this was not the
-    // syscall we wanted. 
-    return 0;
+// False: not decoded
+// True: decoded
+bool dyn_lwp::decodeSyscallTrap(EventRecord &ev) {
+  // As we only use /proc for syscall traps, we never
+  // need to decode.
+  return false;
 }
+
 
 bool dyn_lwp::writeTextWord(caddr_t inTraced, int data) {
    return writeDataSpace(inTraced, sizeof(int), (caddr_t) &data);

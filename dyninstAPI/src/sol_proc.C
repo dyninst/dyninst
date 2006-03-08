@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.83 2006/03/07 23:18:19 bernat Exp $
+// $Id: sol_proc.C,v 1.84 2006/03/08 22:08:22 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -1292,6 +1292,7 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
     assert(trappedSyscall->refcount > 0);
 
     trappedSyscall->refcount--;
+
     if (trappedSyscall->refcount > 0) {
         //bperr( "Refcount on syscall %d reduced to %d\n",
         //        (int)trappedSyscall->syscall_id,
@@ -1299,10 +1300,9 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
         return true;
     }
     // Erk... it hit 0. Remove the trap at the system call
-#if defined(AIX_PROC) 
-    dyn_lwp *lwp = getLWP(trappedSyscall->syscall_id);
+
+#if defined(os_aix)
     inferiorFree(trappedSyscall->trapAddr);
-    lwp->changePC(trappedSyscall->origLR, NULL);
 #else
     sysset_t *cur_syscalls = SYSSET_ALLOC(getPid());
 
@@ -1348,8 +1348,7 @@ Address dyn_lwp::getCurrentSyscall() {
 bool dyn_lwp::stepPastSyscallTrap()
 {
 #if defined(AIX_PROC)
-    // What is something else doing hitting our trap?
-    assert(0);
+    changePC(trappedSyscall_->origLR, NULL);
 #endif
     // Nice... on /proc systems we don't need to do anything here
     return true;
@@ -1361,40 +1360,25 @@ bool dyn_lwp::stepPastSyscallTrap()
 // 0: did not trap at the exit of a syscall
 // 1: Trapped, but did not have a syscall trap placed for this LWP
 // 2: Trapped with a syscall trap desired.
-int dyn_lwp::hasReachedSyscallTrap() {
+bool dyn_lwp::decodeSyscallTrap(EventRecord &ev) {
 #if defined(AIX_PROC) 
-    if (!trappedSyscall_) return 0;
+    if (!trappedSyscall_) return false;
     
     Frame frame = getActiveFrame();
     
-    if (frame.getPC() == trappedSyscall_->trapAddr)
-        return 2;
-#else
-    Address syscall;
-    // Get the status of the LWP
-    lwpstatus_t status;
-    if (!get_status(&status)) {
-        bperr( "Failed to get thread status\n");
-        return 0;
+    if (frame.getPC() == trappedSyscall_->trapAddr) {
+        ev.type = evtSyscallExit;
+        ev.what = trappedSyscall_->syscall_id;
+        return true;
     }
-    
-    if (status.pr_why != PR_SYSEXIT) {
-        return 0;
-    }
-    syscall = status.pr_what;
-    
-    if (trappedSyscall_ && syscall == trappedSyscall_->syscall_id) {
-        return 2;
-    }
-    // Unfortunately we can't check a recorded system call trap,
-    // since we don't have one saved. So do a scan through all traps the
-    // process placed
-    if (proc()->checkTrappedSyscallsInternal(syscall))
-        return 1;
-#endif
 
-    // This is probably an error case... but I'm not sure.
-    return 0;
+    return false;
+#else
+    // There is no decoding to do -- we don't use signals to
+    // fake a system call.
+
+    return false;
+#endif
 }
 
 int showProcStatus(lwpstatus_t status)

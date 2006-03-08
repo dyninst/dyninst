@@ -779,10 +779,15 @@ bool dyn_lwp::stepPastSyscallTrap() {
   return false;
 } /* end stepPastSyscallTrap() */
 
-int dyn_lwp::hasReachedSyscallTrap() {
-  if (!trappedSyscall_) return false;
-  Frame active = getActiveFrame();
-  return active.getPC() == trappedSyscall_->syscall_id;
+bool dyn_lwp::decodeSyscallTrap(EventRecord &ev) {
+    if (!trappedSyscall_) return false;
+    Frame active = getActiveFrame();
+    if (active.getPC() == trappedSyscall_->syscall_id) {
+        ev.type = evtSyscallExit;
+        ev.what = trappedSyscall_->syscall_id;
+        return true;
+    }
+    return false;
 } /* end hasReachedSyscallTrap() */
 
 /* Required by linux.C */
