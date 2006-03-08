@@ -340,17 +340,6 @@ irpcLaunchState_t rpcThr::runPendingIRPC() {
     inferiorrpc_cerr << "Thread currently at frame " << curFrame << endl;
 #endif    
 
-
-    // don't save the stack we are initializing, preventing unnecessary
-    // and expensive stack walks
-    
-    if(thr_->get_proc()->reachedBootstrapState(bootstrapped_bs))
-    {
-        // Save the current stack (to fake stack walks while we're in
-        // the RPC)
-        thr_->savePreRPCStack();
-    }
-
     // Launch this sucker. Change the PC, and the caller will set running
 #if !defined(ia64_unknown_linux2_4)
     if (!lwp->changePC(runningRPC_->rpcStartAddr, NULL)) {
@@ -479,8 +468,6 @@ bool rpcThr::handleCompletedIRPC() {
     delete runningRPC_->rpc;
     delete runningRPC_;
     runningRPC_ = NULL;
-    thr_->clearPreRPCStack();
-    
 
     // step 3) invoke user callback, if any
     // call the callback function if needed

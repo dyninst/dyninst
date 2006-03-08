@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.589 2006/03/07 23:18:17 bernat Exp $
+// $Id: process.C,v 1.590 2006/03/08 20:52:29 bernat Exp $
 
 #include <ctype.h>
 
@@ -318,18 +318,18 @@ bool process::getAllActiveFrames(pdvector<Frame> &activeFrames)
   return success;
 }
 
-bool process::walkStacks(pdvector<pdvector<Frame> >&stackWalks, bool ignoreRPC /* = false */)
+bool process::walkStacks(pdvector<pdvector<Frame> >&stackWalks)
 {
   pdvector<Frame> stackWalk;
   if (!threads.size()) { // Nothing defined in thread data structures
-    if (!getRepresentativeLWP()->walkStack(stackWalk, ignoreRPC))
+    if (!getRepresentativeLWP()->walkStack(stackWalk))
       return false;
     // Use the walk from the default LWP
     stackWalks.push_back(stackWalk);
   }
   else { // Have threads defined
     for (unsigned i = 0; i < threads.size(); i++) {
-      if (!threads[i]->walkStack(stackWalk, ignoreRPC))
+      if (!threads[i]->walkStack(stackWalk))
          return false;
       stackWalks.push_back(stackWalk);
       stackWalk.resize(0);

@@ -1217,7 +1217,7 @@ bool SignalHandler::handleCritical(EventRecord &ev)
 #ifndef mips_unknown_ce2_11 //ccw 6 feb 2001 : 29 mar 2001
         // Should walk stacks for other threads as well
         pdvector<pdvector<Frame> > stackWalks;
-        proc->walkStacks(stackWalks, true);
+        proc->walkStacks(stackWalks);
         for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++) {
             fprintf(stderr, "%s[%d]:  Registers for pid %d, lwpid %d\n", FILE__, __LINE__,
                     stackWalks[walk_iter][0].getLWP()->proc()->getPid(), 
