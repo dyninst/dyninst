@@ -61,6 +61,36 @@ class dyn_thread;
 typedef long dynthread_t;
 
 /*
+ * class OneTimeCodeInfo
+ *
+ * This is used by the oneTimeCode (inferiorRPC) mechanism to keep per-RPC
+ * information.
+ */
+class OneTimeCodeInfo {
+   bool synchronous;
+   bool completed;
+   void *userData;
+   void *returnValue;
+   unsigned thrID;
+public:
+   OneTimeCodeInfo(bool _synchronous, void *_userData, unsigned _thrID) :
+      synchronous(_synchronous), completed(false), userData(_userData),
+      thrID(_thrID) { };
+
+   bool isSynchronous() { return synchronous; }
+
+   bool isCompleted() const { return completed; }
+   void setCompleted(bool _completed) { completed = _completed; }
+
+   void *getUserData() { return userData; }
+
+   void setReturnValue(void *_returnValue) { returnValue = _returnValue; }
+   void *getReturnValue() { return returnValue; }
+
+   unsigned getThreadID() { return thrID; }
+};
+
+/*
  * Represents a thread of execution.
  */
 #ifdef DYNINST_CLASS_NAME
@@ -95,10 +125,14 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     void removeThreadFromProc();
     void updateValues(dynthread_t tid, unsigned long stack_start, 
                       BPatch_function *initial_func, int lwp_id);
+
+    void *oneTimeCodeInternal(const BPatch_snippet &expr,
+                              void *userData,
+                              bool synchronous);
  public:
 
     /**
-     * The following function are all deprecated.  They've been replaced
+     * The following functions are all deprecated.  They've been replaced
      * by equivently named functions in BPatch_process.  See BPatch_process.h
      * for documentation.
      **/  
@@ -153,10 +187,6 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
        { return proc->removeFunctionCall(point); }
     bool replaceFunction(BPatch_function &oldFunc, BPatch_function &newFunc)
        { return proc->replaceFunction(oldFunc, newFunc); }
-    void *oneTimeCode(const BPatch_snippet &expr)
-       { return proc->oneTimeCode(expr); }
-    bool oneTimeCodeAsync(const BPatch_snippet &expr, void *userData = NULL)
-       { return proc->oneTimeCodeAsync(expr, userData); }
     bool loadLibrary(const char *libname, bool reload = false)
        { return proc->loadLibrary(libname, reload); }
     bool getSourceLines( unsigned long addr, std::vector< std::pair< const char *, unsigned int > > & lines )
@@ -170,10 +200,10 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
 #endif
 
     //  BPatch_thread::getCallStack
-    //  
     //  Returns a vector of BPatch_frame, representing the current call stack
     API_EXPORT(Int, (stack),
     bool,getCallStack,(BPatch_Vector<BPatch_frame>& stack));
+
     //  BPatch_thread::getProcess
     //  Returns a pointer to the process that owns this thread
     API_EXPORT(Int, (),
@@ -202,6 +232,17 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
 
     API_EXPORT(Int, (),
     unsigned long, os_handle, ());
+
+    //  BPatch_thread::oneTimeCode
+    //  Have mutatee execute specified code expr once.  Wait until done.
+    API_EXPORT(Int, (expr),
+    void *,oneTimeCode,(const BPatch_snippet &expr));
+
+    //  BPatch_thread::oneTimeCodeAsync
+    //  Have mutatee execute specified code expr once.  Dont wait until done.
+    API_EXPORT(Int, (expr, userData),
+    bool,oneTimeCodeAsync,(const BPatch_snippet &expr, void *userData = NULL));
+
 
     // DO NOT USE
     // this function should go away as soon as Paradyn links against Dyninst
