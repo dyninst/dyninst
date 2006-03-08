@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.591 2006/03/08 22:08:23 bernat Exp $
+// $Id: process.C,v 1.592 2006/03/08 23:53:42 bernat Exp $
 
 #include <ctype.h>
 
@@ -5894,7 +5894,10 @@ void process::recognize_threads(const process *parent)
         bundle->lwps = &ret_lwps;
         bundle->this_lwp = lwp_id;
         bundle->num_completed = &num_completed;
-        getRpcMgr()->postRPCtoDo(ast, true, doneRegistering, bundle, false, 
+        getRpcMgr()->postRPCtoDo(ast, true, 
+                                 doneRegistering, 
+                                 bundle, 
+                                 false, 
                                  NULL, lwp);
         expected++;
      }
@@ -5916,25 +5919,27 @@ void process::recognize_threads(const process *parent)
          getMailbox()->executeCallbacks(FILE__, __LINE__);
      }
 
-     assert(ret_lwps.size() == expected);
-     assert(ret_lwps.size() == expected);
+     // Don't assert these... the RPCs can fail (well DYNINSTthreadIndex can fail).
+     //assert(ret_lwps.size() == expected);
+     //assert(ret_indexes.size() == expected);
 
      assert(status() == stopped);
- 
-   for (i = 0; i < ret_lwps.size(); ++i) {
+     
      BPatch_process *bproc = BPatch::bpatch->getProcessByPid(getPid());
-     BPatch_thread *bpthrd = bproc->getThreadByIndex(ret_indexes[i]);
-     if (bpthrd && bpthrd->updated) {
-        //Already 
+     for (i = 0; i < ret_lwps.size(); ++i) {
+         
+         BPatch_thread *bpthrd = NULL;
+         // Wait for the thread to show up...
+         int timeout = 0;
+         while ( (bpthrd = bproc->getThreadByIndex(ret_indexes[i])) == NULL) {
+             usleep(1);
+             timeout++;
+             if (timeout > 1000) break;
+         }
      }
-     else {
-       //fprintf(stderr, "%s[%d]:  before createOrUpdateBPThread: index %d\n", FILE__, __LINE__,ret_indexes[i]); 
-       bproc->createOrUpdateBPThread(ret_lwps[i], (dynthread_t) -1, ret_indexes[i], 0, 0);
-     }
-   }
-
-    assert(status() == stopped);
-    return;
+     
+     assert(status() == stopped);
+     return;
   }
 
   // Fork case
