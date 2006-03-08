@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.170 2006/03/08 19:57:52 mjbrim Exp $
+// $Id: unix.C,v 1.171 2006/03/08 22:08:28 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -619,7 +619,14 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
      }
   }
 
-  // (4) Is this trap due to a single step debugger operation ??
+  // (4) Is this an instrumentation-based method of grabbing the exit
+  // of a system call?
+  if (ev.lwp->decodeSyscallTrap(ev)) {
+      // That sets all information....
+      return true;
+  }
+
+  // (5) Is this trap due to a single step debugger operation ??
   if (ev.lwp->isSingleStepping()) {
      ev.type = evtDebugStep;
      ev.address = af.getPC();
@@ -628,17 +635,17 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
   }
 
 #if defined (os_linux)
-  // (5)  Is this trap due to an exec ??
-  // On Linux we see a trap when the process execs. However,
-  // there is no way to distinguish this trap from any other,
-  // and so it is special-cased here.
-  if (proc->nextTrapIsExec) {
-     signal_printf("%s[%d]: decoding trap as exec exit\n", FILE__, __LINE__);
-     ev.type = evtSyscallExit;
-     ev.what = SYS_exec;
-     decodeSyscall(ev);
-     return true;
-  }
+    // (6)  Is this trap due to an exec ??
+    // On Linux we see a trap when the process execs. However,
+    // there is no way to distinguish this trap from any other,
+    // and so it is special-cased here.
+    if (proc->nextTrapIsExec) {
+        signal_printf("%s[%d]: decoding trap as exec exit\n", FILE__, __LINE__);
+        ev.type = evtSyscallExit;
+        ev.what = SYS_exec;
+        decodeSyscall(ev);
+        return true;
+    }
 #endif
 
   return false;

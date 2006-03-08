@@ -1404,7 +1404,7 @@ bool SignalHandler::handleExecExit(EventRecord &ev)
     proc->nextTrapIsExec = false;
     if ( (int) INFO_TO_PID(ev.info) == -1) {
         // Failed exec, do nothing
-        return false;
+        proc->continueProc();
     }
 
     proc->execFilePath = proc->tryToFindExecutable(proc->execPathArg, proc->getPid());
@@ -1431,7 +1431,7 @@ bool SignalHandler::handleExecExit(EventRecord &ev)
                                    status,
                                    desc)) {
         cerr << "Failed to find exec descriptor" << endl;
-        return false;
+        proc->continueProc();
     }
 
     // Unlike fork, handleExecExit doesn't do all processing required.
@@ -1445,38 +1445,40 @@ bool SignalHandler::handleExecExit(EventRecord &ev)
 bool SignalHandler::handleSyscallExit(EventRecord &ev)
 {
     process *proc = ev.proc;
-    bool ret = false;
+    bool runProcess = false;
 
-    // Check to see if a thread we were waiting for exited a
-    // syscall
-    bool wasHandled = proc->handleSyscallExit(ev.status, ev.lwp);
+    signal_printf( "%s[%d]:  welcome to handleSyscallExit\n", FILE__, __LINE__);
 
-    signal_printf( "%s[%d]:  welcome to handleSyscallExit:  wasHandled = %s\n", FILE__, __LINE__, wasHandled ? "true" : "false");
+    runProcess = ev.lwp->handleSyscallTrap(ev);
 
     // Fall through no matter what since some syscalls have their
     // own handlers.
     switch((procSyscall_t) ev.what) {
-      case procSysFork:
-         signal_printf("%s[%d]:  Fork Exit\n", FILE__, __LINE__);
-         ret = handleForkExit(ev);
-         break;
-      case procSysExec:
-         signal_printf("%s[%d]:  Exec Exit\n", FILE__, __LINE__);
-         ret = handleExecExit(ev);
-         if (!ret)
-           ev.proc->continueProc();
-         break;
-      case procSysLoad:
-         signal_printf("%s[%d]:  Load Exit\n", FILE__, __LINE__);
-         ret = handleLoadLibrary(ev);
-         ev.proc->continueProc();
-         break;
-      default:
-         fprintf(stderr, "%s[%d]:  unknown syscall\n", __FILE__, __LINE__);
-         break;
+    case procSysFork:
+        signal_printf("%s[%d]:  Fork Exit\n", FILE__, __LINE__);
+        handleForkExit(ev);
+        runProcess = false; // Fork handler runs process
+        break;
+    case procSysExec:
+        signal_printf("%s[%d]:  Exec Exit\n", FILE__, __LINE__);
+        handleExecExit(ev);
+        runProcess = false; // As with fork, above
+        break;
+    case procSysLoad:
+        signal_printf("%s[%d]:  Load Exit\n", FILE__, __LINE__);
+        handleLoadLibrary(ev);
+        runProcess = true;
+        break;
+    default:
+        // We stopped on a system call and didn't particularly care,
+        // or handled it above but left ourselves paused. 
+        break;
     }
 
-    return ret || wasHandled;
+    if (runProcess)
+        proc->continueProc();
+
+    return true;
 }
 
 bool SignalHandler::handleEventLocked(EventRecord &ev)
