@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_5.C,v 1.2 2005/11/22 19:41:59 bpellin Exp $
+// $Id: test1_5.C,v 1.3 2006/03/08 16:44:43 bpellin Exp $
 /*
  * #Name: test1_5
  * #Desc: Mutator Side - If without else
@@ -137,12 +137,19 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
+    bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();
+
+    if ( useAttach )
+    {
+      if ( ! signalAttached(appThread, appImage) )
+         return -1;
+    }
 
     // Run mutator code
     return mutatorTest(appThread, appImage);
