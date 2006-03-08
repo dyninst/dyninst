@@ -70,33 +70,6 @@
 
 
 /*
- * class OneTimeCodeInfo
- *
- * This is used by the oneTimeCode (inferiorRPC) mechanism to keep per-RPC
- * information.
- */
-class OneTimeCodeInfo {
-   bool synchronous;
-   bool completed;
-   void *userData;
-   void *returnValue;
-public:
-   OneTimeCodeInfo(bool _synchronous, void *_userData) :
-      synchronous(_synchronous), completed(false), userData(_userData) { };
-
-   bool isSynchronous() { return synchronous; }
-
-   bool isCompleted() const { return completed; }
-   void setCompleted(bool _completed) { completed = _completed; }
-
-   void *getUserData() { return userData; }
-
-   void setReturnValue(void *_returnValue) { returnValue = _returnValue; }
-   void *getReturnValue() { return returnValue; }
-};
-
-
-/*
  * BPatch_process::getImage
  *
  * Return the BPatch_image this object.
@@ -1339,7 +1312,8 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
       needToResume = true;
    }
 
-   OneTimeCodeInfo *info = new OneTimeCodeInfo(synchronous, userData);
+   OneTimeCodeInfo *info = new OneTimeCodeInfo(synchronous, userData, 
+                                               0 /* default thread */);
 
    llproc->getRpcMgr()->postRPCtoDo(expr.ast,
                                     false, 
@@ -1378,11 +1352,11 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
 bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr, 
                                          void *userData)
 {
-   bool ret;
-   if (!(ret = oneTimeCodeInternal(expr, userData, false))) {
-     //fprintf(stderr, "%s[%d]:  oneTimeCodeInternal failed\n", FILE__, __LINE__);
+   if (NULL == oneTimeCodeInternal(expr, userData, false)) {
+      //fprintf(stderr, "%s[%d]:  oneTimeCodeInternal failed\n", FILE__, __LINE__);
+      return false;
    }
-   return ret;
+   return true;
 }
 
 /*
