@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.169 2006/03/07 23:18:22 bernat Exp $
+// $Id: unix.C,v 1.170 2006/03/08 19:57:52 mjbrim Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -200,13 +200,12 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
      /* We need to hook this into the shared library handling code... */
         ev.type = evtSyscallExit;
         ev.what = SYS_load;
-     break;
+        break;
    case DSE_lwpExit:
-       ev.type = evtSyscallEntry;
-       ev.what = SYS_lwp_exit;
-       break;
-
-     default:
+        ev.type = evtSyscallEntry;
+        ev.what = SYS_lwp_exit;
+        break;
+   default:
         assert(0);
         break;
    }
@@ -543,8 +542,7 @@ bool SignalGenerator::decodeSignal(EventRecord &ev)
   case SIGTRAP:
   {
     signal_printf("%s[%d]:  SIGTRAP\n", FILE__, __LINE__);
-    decodeSigTrap(ev);
-    break;
+    return decodeSigTrap(ev);
   }
   case SIGILL:
   case SIGSEGV:
@@ -609,17 +607,17 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
 
   // (2) Is this trap due to a RPC ??
   if (proc->getRpcMgr()->decodeEventIfDueToIRPC(ev)) {
-      signal_printf("%s[%d]:  SIGTRAP due to RPC\n", FILE__, __LINE__);
-      return true;
+     signal_printf("%s[%d]:  SIGTRAP due to RPC\n", FILE__, __LINE__);
+     return true;
   }
 
   // (3) Is this trap due to a library being loaded/unloaded ??
   if (proc->isDynamicallyLinked()) {
      if (proc->decodeIfDueToSharedObjectMapping(ev)){
-         signal_printf("%s[%d]:  SIGTRAP due to dlopen/dlclose\n", FILE__, __LINE__);
-         return true;
-      }
-   }
+        signal_printf("%s[%d]:  SIGTRAP due to dlopen/dlclose\n", FILE__, __LINE__);
+        return true;
+     }
+  }
 
   // (4) Is this trap due to a single step debugger operation ??
   if (ev.lwp->isSingleStepping()) {
@@ -627,23 +625,23 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
      ev.address = af.getPC();
      signal_printf("Single step trap at %lx\n", ev.address);
      return true;
-   }
+  }
 
 #if defined (os_linux)
-    // (5)  Is this trap due to an exec ??
-    // On Linux we see a trap when the process execs. However,
-    // there is no way to distinguish this trap from any other,
-    // and so it is special-cased here.
-    if (proc->nextTrapIsExec) {
-        signal_printf("%s[%d]: decoding trap as exec exit\n", FILE__, __LINE__);
-        ev.type = evtSyscallExit;
-        ev.what = SYS_exec;
-        decodeSyscall(ev);
-        return true;
-    }
+  // (5)  Is this trap due to an exec ??
+  // On Linux we see a trap when the process execs. However,
+  // there is no way to distinguish this trap from any other,
+  // and so it is special-cased here.
+  if (proc->nextTrapIsExec) {
+     signal_printf("%s[%d]: decoding trap as exec exit\n", FILE__, __LINE__);
+     ev.type = evtSyscallExit;
+     ev.what = SYS_exec;
+     decodeSyscall(ev);
+     return true;
+  }
 #endif
 
-    return false;
+  return false;
 }
 
 
