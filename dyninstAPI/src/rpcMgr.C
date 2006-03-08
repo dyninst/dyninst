@@ -319,9 +319,9 @@ inferiorRPCinProgress *rpcMgr::findRunningRPCWithCompletionAddress(Address where
 
 bool rpcMgr::decodeEventIfDueToIRPC(EventRecord &ev)
 {
-    dyn_lwp *lwp_of_trap  = ev.lwp;
+   dyn_lwp *lwp_of_trap  = ev.lwp;
 
-   //fprintf(stderr, "%s[%d]:  deocdeEventIfDueToIRPC:  allRunningRPCs_.size = %d\n", FILE__, __LINE__, allRunningRPCs_.size());
+   //fprintf(stderr, "%s[%d]:  decodeEventIfDueToIRPC:  allRunningRPCs_.size = %d\n", FILE__, __LINE__, allRunningRPCs_.size());
 
    int curr_rpc_index = allRunningRPCs_.size();
    pdvector<inferiorRPCinProgress *>::iterator iter = allRunningRPCs_.end();
@@ -372,6 +372,7 @@ bool rpcMgr::decodeEventIfDueToIRPC(EventRecord &ev)
           activeFrame = rpcLwp->get_lwp()->getActiveFrame();
        }
 
+       
        if (activeFrame.getPC() == currRPC->rpcResultAddr) {
           ev.type = evtRPCSignal;
           ev.status = statusRPCAtReturn;
@@ -387,6 +388,7 @@ bool rpcMgr::decodeEventIfDueToIRPC(EventRecord &ev)
           return true;
        }
    }
+          
    return false;
 }
 
@@ -534,8 +536,7 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
        for (unsigned i = 0; i < thrs_.size(); i++) {
           rpcThr *curThr = thrs_[i];
           if(curThr == NULL) {
-             fprintf(stderr, "Odd case: RPC thread object is NULL for slot %d\n",
-                     i);
+             //fprintf(stderr, "Odd case: RPC thread object is NULL for slot %d\n",i);
              continue;
           }
           if (curThr->isReadyForIRPC()) {
