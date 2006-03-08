@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.15 2006/03/04 23:47:05 bpellin Exp $
+// $Id: test_driver.C,v 1.16 2006/03/08 16:44:07 bpellin Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -90,13 +90,33 @@ int saveTheWorld = 0;
 int mergeTramp = 0;
 int debugPrint = 0;
 int errorPrint = 0;
-//TODO: detect if this is the case
-int mutateeXLC = 0;
 
 /* */
 
 // Include test setup data
 #include "test_info.h"
+
+bool isMutateeXLC(char *name)
+{
+   int name_len = strlen(name);
+
+   // Can't match
+   if ( name_len - 4 < 0 )
+   {
+      return false;
+   }
+
+   // If the last 4 characters match _xlc or _xlC
+   // return true
+   if ( strcmp(name + name_len - 4, "_xlc") == 0 ||
+        strcmp(name + name_len - 4, "_xlC") == 0 )
+   {
+      return true;
+   } else
+   {
+      return false;
+   }
+}
 
 int runScript(const char *name, ...)
 {
@@ -143,7 +163,7 @@ bool runOnThisPlatform(test_data_t &test)
 // Test Functions
 int cleanup(BPatch *bpatch, BPatch_thread *appThread, test_data_t &test, ProcessList &proc_list, int result)
 {
-   if ( test.oldtest == 1 || test.oldtest == 5 || test.oldtest == 6 || test.oldtest == 8 || test.oldtest == 10 ) 
+   if ( test.cleanup == COLLECT_EXITCODE ) 
    {
     if ( result < 0 ) {
        // Test failed in the mutator
@@ -163,7 +183,7 @@ int cleanup(BPatch *bpatch, BPatch_thread *appThread, test_data_t &test, Process
        
       // Start of code to continue the process.  All mutations made
       // above will be in place before the mutatee begins its tests.
-      if ( test.state != NOMUTATEE )
+      if ( test.state != SELFSTART )
       {
          dprintf("starting program execution.\n");
          appThread->continueExecution();
@@ -192,15 +212,14 @@ int cleanup(BPatch *bpatch, BPatch_thread *appThread, test_data_t &test, Process
       }
     }
    }
-   else if ( (test.oldtest == 2 && test.subtest != 14 ) && test.state != NOMUTATEE )
+   else if ( test.cleanup == KILL_MUTATEE )
    {
-      killMutatee(appThread);
-      return result;
-   }
-   else if ( test.oldtest == 12 )
-   {
-    if (!appThread->isTerminated())
-       appThread->terminateExecution();
+      if ( !appThread->isTerminated() )
+      {
+         int pid = appThread->getPid();
+         appThread->terminateExecution();
+         dprintf("Mutatee process %d killed.\n", pid);
+      }
 
    }
 
@@ -398,16 +417,13 @@ int executeTest(BPatch *bpatch, test_data_t &test, char *mutatee, create_mode_t 
    ParamPtr bp_ptr(bpatch);
    param.undef("bpatch");
    param["bpatch"] = &bp_ptr;
-   ParamInt subtest(0);
-   param.undef("subtestno");
-   param["subtestno"] = &subtest;
    ParamPtr bp_appThread;
    param.undef("appThread");
    param["appThread"] = &bp_appThread;
 
 
    // If test requires a mutatee start it up for the test
-   if ( test.state != NOMUTATEE )
+   if ( test.state != SELFSTART )
    {
       appThread = startMutateeTest(bpatch, mutatee, test.subtest, useAttach, proc_list);
       if (appThread == NULL) {
@@ -422,8 +438,14 @@ int executeTest(BPatch *bpatch, test_data_t &test, char *mutatee, create_mode_t 
    // Set up Test Specific parameters
    param["pathname"]->setString(mutatee);
    param["appThread"]->setPtr(appThread);
-   param["subtestno"]->setInt(test.subtest);
    param["useAttach"]->setInt(useAttach); 
+
+   if ( isMutateeXLC(mutatee) ) {
+      param["mutateeXLC"]->setInt(1);
+   } else {
+      param["mutateeXLC"]->setInt(0);
+   }
+
 
    // If mutatee needs to be run before the test is start, begin it
    if ( test.state == RUNNING )
@@ -433,11 +455,6 @@ int executeTest(BPatch *bpatch, test_data_t &test, char *mutatee, create_mode_t 
 
    // Setup save the world
    setupSaveTheWorld(appThread, saveTheWorld);
-
-   if ( useAttach && test.oldtest == 1)
-   {
-      signalAttached(appThread, appThread->getImage());
-   }
 
    // Let's try to profile memory usage
 #if defined(PROFILE_MEM_USAGE)
@@ -457,8 +474,7 @@ int executeTest(BPatch *bpatch, test_data_t &test, char *mutatee, create_mode_t 
    // result will hold the value of the complete test's success
    result = cleanup(bpatch, appThread, test, proc_list, result);
 
-   // FIXME: Hardcoded exception
-   if ( appThread != NULL && !(test.oldtest == 2 && test.subtest == 14) && test.oldtest != 7)
+   if ( appThread != NULL && !(test.state == SELFSTART || test.cleanup == NONE ) )
    {
      delete appThread;
    }
@@ -654,14 +670,13 @@ int startTest(test_data_t tests[], unsigned int n_tests, std::vector<char *> &te
     ParamInt errorp(errorPrint);
     ParamInt debugp(debugPrint);
     ParamInt merget(mergeTramp);
-    ParamInt mutXLC(mutateeXLC);
+    ParamInt mutXLC(0);
     ParamString pathname;
     
     param["pathname"] = &pathname;
     param["useAttach"] = &attach;
     param["errorPrint"] = &errorp;
     param["debugPrint"] = &debugp;
-    // TODO: Set based on test data
     param["mutateeXLC"] = &mutXLC;
     param["mergeTramp"] = &merget;
 
