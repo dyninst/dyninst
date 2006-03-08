@@ -59,14 +59,15 @@ MUTATORS = 	test1 \
 		test3 \
 		test4 \
 		test5 \
-      test6 \
+                test6 \
 		test7 \
 		test8 \
 		test9 \
 		test10 \
 		test12 \
 		test13 \
-		test14
+		test14 \
+                test15
       
 
 FORALL_MUTATORS = test_util
@@ -76,14 +77,15 @@ MUTATEES_C = 	test1.mutatee \
 		test3.mutatee \
 		test4a.mutatee \
 		test4b.mutatee \
-      test6.mutatee \
+                test6.mutatee \
 		test7.mutatee \
 		test8.mutatee \
 		test9.mutatee \
 		test10.mutatee \
 		test12.mutatee \
 		test13.mutatee \
-		test14.mutatee 
+		test14.mutatee \
+                test15.mutatee 
 
 # MUTATEES_CXX specifies a subset of MUTATEES_C that are also compiled with a C++ compiler
 MUTATEES_CXX =	test1.mutatee \
@@ -95,8 +97,9 @@ MUTATEES_CXX =	test1.mutatee \
 		test8.mutatee \
 		test9.mutatee \
 		test12.mutatee \
-      test13.mutatee \
-      test14.mutatee
+                test13.mutatee \
+                test14.mutatee \
+                test15.mutatee
 
 #  Most C mutatees are also compiled as C++ mutatees, there are some (well, one)
 #  that are c++ only, which cannot also be compiled as C mutatees
@@ -353,14 +356,17 @@ MUTATEE_SPECIFIC_LIBS_NATIVE 	+= $(MUTATEE_TEST9_EXTRA_LIB)
 MUTATEE_SPECIFIC_LIBS_NATIVE 	+= 12.-lpthread
 MUTATEE_SPECIFIC_LIBS_GNU += 13.-lpthread
 MUTATEE_SPECIFIC_LIBS_GNU += 14.-lpthread
+MUTATEE_SPECIFIC_LIBS_GNU += 15.-lpthread
 MUTATEE_SPECIFIC_LIBS_NATIVE 	+= 13.-lpthread
 MUTATEE_SPECIFIC_LIBS_NATIVE 	+= 14.-lpthread
+MUTATEE_SPECIFIC_LIBS_NATIVE 	+= 15.-lpthread
 
 ifdef M_ABI
 MUTATEE_SPECIFIC_LIBS_GNU_ABI 	+= $(MUTATEE_TEST9_EXTRA_LIB_ABI)
 MUTATEE_SPECIFIC_LIBS_GNU_ABI	+= 12.-lpthread
 MUTATEE_SPECIFIC_LIBS_GNU_ABI += 13.-lpthread
 MUTATEE_SPECIFIC_LIBS_GNU_ABI += 14.-lpthread
+MUTATEE_SPECIFIC_LIBS_GNU_ABI += 15.-lpthread
 endif
 
 #######################################################################
