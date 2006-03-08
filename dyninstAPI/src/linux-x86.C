@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.90 2006/03/08 22:08:20 bernat Exp $
+// $Id: linux-x86.C,v 1.91 2006/03/08 23:53:41 bernat Exp $
 
 #include <fstream>
 
@@ -991,8 +991,9 @@ Frame Frame::getCallerFrame()
 	  // assume that's the one in use.
 	  stack_top = max_stack_frame_addr - (addr_size - 1); // Points to first possible integer
       }
-      else if (getProc()->multithread_capable() && thread_ != NULL)
-      {
+      else if (getProc()->multithread_capable() && 
+               (thread_ != NULL) && 
+               (thread_->get_stack_addr() != 0)) {
          int stack_diff = thread_->get_stack_addr() - sp_;
          if (stack_diff < MAX_STACK_FRAME_SIZE && stack_diff > 0)
             stack_top = thread_->get_stack_addr();
