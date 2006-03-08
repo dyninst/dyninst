@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.358 2006/03/08 20:52:30 bernat Exp $
+/* $Id: process.h,v 1.359 2006/03/08 22:08:24 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -775,10 +775,6 @@ class process {
   bool handleExecEntry(char *arg0);
   bool handleExecExit(fileDescriptor &desc);
 
-  // Generic handler for anything else waiting on a system call
-  // Returns true if handling was done
-  bool handleSyscallExit(eventWhat_t syscall, dyn_lwp *lwp_with_event);
-  
   public:
 
   dyn_thread *getThread(dynthread_t tid);

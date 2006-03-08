@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.590 2006/03/08 20:52:29 bernat Exp $
+// $Id: process.C,v 1.591 2006/03/08 22:08:23 bernat Exp $
 
 #include <ctype.h>
 
@@ -5025,55 +5025,6 @@ bool process::detach(const bool leaveRunning )
 #endif
 
     return true;
-}
-
-/*
- * Generic syscall exit handling.
- * Returns true if handling was done
- */
-
-#if defined(alpha_dec_osf4_0)
-bool process::handleSyscallExit(eventWhat_t syscall,
-                                dyn_lwp *lwp_with_event)
-#else
-bool process::handleSyscallExit(eventWhat_t, dyn_lwp *lwp_with_event)
-#endif
-{
-   // For each thread:
-   // Get the LWP associated with the thread
-   // Check to see if the LWP is at a syscall exit trap
-   // Check to see if the trap is desired
-   // Return the first thread to match the above conditions.
-   bool lwp_with_trap_event = false;
-   for (unsigned iter = 0; iter < threads.size(); iter++) {
-      dyn_thread *thr = threads[iter];
-      dyn_lwp *lwp = thr->get_lwp();
-#if !defined(rs6000_ibm_aix4_1) || defined(AIX_PROC)  // non AIX-PTRACE
-      if(lwp != lwp_with_event)
-         continue;
-#endif
-
-      int match_type = lwp->hasReachedSyscallTrap();
-      if (match_type == 0)
-         continue; // No match
-      else if (match_type == 1) {
-         // Uhh... crud. 
-         lwp->stepPastSyscallTrap();
-         // Question: what to return? The trap was incorrect,
-         // and as such should silently disappear. For now, return
-         // the thread that hit the trap, and the caller should 
-         // determine there is nothing to be done.
-         //return true;  ... don't return here, need to look through
-         //                  all lwps for match_type of 2
-         lwp_with_trap_event = true;
-      }
-      else {
-         lwp->clearSyscallExitTrap();
-         lwp_with_trap_event = true;
-      }
-   }
-   
-   return lwp_with_trap_event;
 }
 
 void process::triggerNormalExitCallback(int exitCode) 
