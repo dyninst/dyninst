@@ -378,6 +378,8 @@ bool SignalGeneratorCommon::waitNextEvent(EventRecord &ev)
                     FILE__, __LINE__, pid, proc->getStatusAsString().c_str());
       waiting_for_active_process = true;
       __WAIT_FOR_SIGNAL;
+      signal_printf("%s[%d]: process %d marked active, continuing on to waitNextEventLocked, status: %s\n",
+                    FILE__, __LINE__, pid, proc->getStatusAsString().c_str());
   }
   
   if (stop_request) {
@@ -742,8 +744,15 @@ bool SignalGeneratorCommon::handleEventLocked(EventRecord &ev)
 bool SignalGeneratorCommon::signalActiveProcess()
 {         
   bool ret = true;
-  if (waiting_for_active_process)
+  signal_printf("%s[%d]: signalActiveProcess\n", FILE__, __LINE__);
+  if (waiting_for_active_process) {
+    signal_printf("%s[%d]: signalActiveProcess waking up SignalGenerator\n", FILE__, __LINE__);
     ret = __BROADCAST;
+  }
+  else {
+    signal_printf("%s[%d]: signalActiveProcess, SignalGenerator already awake\n", FILE__, __LINE__);
+  }
+
   return ret;
 }   
 
