@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTsolaris.c,v 1.25 2006/03/08 23:31:12 jodom Exp $
+ * $Id: RTsolaris.c,v 1.26 2006/03/09 22:00:59 bernat Exp $
  * RTsolaris.c: mutatee-side library function specific to Solaris
  ************************************************************************/
 
@@ -178,157 +178,6 @@ int setmemwrite()
 #include <thread.h>
 #include <sys/lwp.h>
 
-
-/* Thread structure for libthread sparc-solaris2.6 */
-typedef struct {
-        long    sp;
-        long    pc;
-        long    dontcare1;
-        long    dontcare2;
-        long    g2;
-        long    g3;
-        long    g4;
-} rs_sol26;
-
-typedef struct thread_sol26_s {
-        struct thread_sol26_s   *dontcare1;  
-        char                    *thread_stack;        
-        unsigned int             thread_stacksize;     
-        char                    *dontcare2;         
-        rs_sol26                 t_resumestate; 
-        long                     start_pc;      
-        thread_t                 thread_id;     
-        lwpid_t                  lwp_id;        
-        int                      opts;     
-
-} thread_sol26;
-
-/* Thread structure for libthread sparc-solaris2.7 */
-typedef struct {
-        int     sp;
-        int     pc;
-        int     fsr;
-        int     fpu_en;
-        int     g2;
-        int     g3;
-        int     g4;
-        uint8_t dontcare3; 
-} rs_sol27;
-
-typedef struct thread_sol27_s {
-        struct thread_sol27_s   *dontcare1;   
-        caddr_t         thread_stack;    
-        size_t          thread_stacksize;
-        size_t          dontcare2; 
-        caddr_t         dontcare3;      
-        rs_sol27        t_resumestate;  
-        void            (*start_pc)(); 
-        thread_t        thread_id;     
-        lwpid_t         lwp_id;       
-        int             opts;      
-        int             flag;       
-} thread_sol27;
-
-
-/* Thread structure for libthread sparc-solaris2.8 */
-typedef struct {
-        int     sp;
-        int     pc;
-        int     fsr;
-        int     fpu_en;
-        int     g2;
-        int     g3;
-        int     g4;
-        uint8_t dontcare5;
-} rs_sol28;
-
-/* stack structure for libthread sparc-solaris2.8 */
-typedef struct {
-        char   *sp;
-        int     size;
-        int     flags;
-} stack_sol28;
-
-typedef struct thread_sol28_s {
-        struct thread_sol28_s   *dontcare1;   
-        caddr_t         thread_stack;    
-        size_t          thread_stacksize;
-        size_t          dontcare2;
-        stack_sol28     dontcare3;
-        caddr_t         dontcare4;      
-        rs_sol28        t_resumestate;
-        void            (*start_pc)(); 
-        thread_t        thread_id;     
-        lwpid_t         lwp_id;       
-        int             opts;      
-        int             flag; 
-} thread_sol28;
-
-/* Thread structure for libthread sparc-solaris2.8 */
-typedef struct {
-        int     sp;
-        int     pc;
-} rs_sol28patch;
-
-typedef struct thread_sol28patch_s {
-   char            dontcare[20];
-   caddr_t         thread_stack;    
-   size_t          thread_stacksize;
-   char            dontcare2[8];
-   rs_sol28patch   t_resumestate;
-   char            dontcare3[24];
-   void            (*start_pc)();    
-   thread_t        thread_id;     
-   lwpid_t         lwp_id;
-} thread_sol28patch;
-
-
-typedef struct thread_sol29_s {
-    void *t_resumestate; /* 0xff2775a8 */
-    int dontcare1;   /* 0xff2775a8 */
-    int dontcare2;   /* 0 */
-    int dontcare3;   /* 0 */
-    int dontcare4;   /* 0 */
-    int stackbottom; /* 0xff100000 */
-    int stacksize;   /* 0xfc000 */
-    int dontcare5;   /* 0 */
-    int thread_stack;/* 0xff1fc000 */
-    int stacksize2;  /* 0xfc000 */
-    thread_t lwp_id; /* 2 */
-    lwpid_t thread_id;  /* 2 */
-    int dontcare[42];
-    void (*start_pc)();
-} thread_sol29;
-
-typedef struct thread_sol29_pinky_s {
-    /* This is the structure on pinky as determined by fprintf */
-    int zero[2];
-    void *base_thr_structs; /* 2 */
-    void *next_thr_struct;  /* 3 */
-    int zero2[3]; 
-    void *stackbottom;      /* 7 */
-    int fc000;
-    int zero3;
-    void *t_resumestate;    /* 10 */
-    int fc000_2;
-    thread_t lwp_id;    /* 12 */
-    lwpid_t thread_id;  /* 13 */
-    int zero4[32];
-    void (*start_pc)();
-} thread_sol29_pinky;
-
-
-/*
-// A simple test to determine the right thread package
-*/
-#define LIBTHR_UNKNOWN 0
-#define LIBTHR_SOL26   1
-#define LIBTHR_SOL27   2
-#define LIBTHR_SOL28   3
-#define LIBTHR_SOL29   4
-#define LIBTHR_SOL28PATCH   5
-#define LIBTHR_SOL29_PINKY 6
-
 dyntid_t (*DYNINST_pthread_self)(void);
 dyntid_t dyn_pthread_self()
 {
@@ -340,81 +189,90 @@ dyntid_t dyn_pthread_self()
    return (dyntid_t) me;
 }
 
-int which(void *tls) {
-  static int w = 0;
-  dyntid_t tid;
-  int i;
-  if (w) return w;
-  tid = dyn_pthread_self();
-  if (tid == (dyntid_t) -1)
-      return 0;
-
-  if ( ((thread_sol29_pinky*)tls)->thread_id == tid) {
-      w = LIBTHR_SOL29_PINKY;
-  }
-  if ( ((thread_sol29*)tls)->thread_id == tid) {
-      w = LIBTHR_SOL29;
-  }  
-  if ( ((thread_sol28patch*)tls)->thread_id == tid) {
-      w = LIBTHR_SOL28PATCH;
-  }  
-  if ( ((thread_sol28*)tls)->thread_id == tid) {
-    w = LIBTHR_SOL28;
-  }
-  if ( ((thread_sol27*)tls)->thread_id == tid) {
-    w = LIBTHR_SOL27;
-  }
-  if ( ((thread_sol26*)tls)->thread_id == tid) {
-    w = LIBTHR_SOL26;
-  }
-  return w;
+int dyn_pid_self()
+{
+   return getpid();
 }
+
+int dyn_lwp_self()
+{
+   return _lwp_self();
+}
+
+/* New approach - from Linux. Store offsets rather than
+   structures. Mo' easia. */
+
+typedef struct pthread_offset_t
+{
+  unsigned thr_pos;
+  unsigned lwp_pos;
+  unsigned start_func_pos;
+  unsigned stck_start_pos;
+} pthread_offset_t;
+
+
+/* Increase when we get more types... like Solaris 2.10 */
+#define POS_ENTRIES 2
+
+static pthread_offset_t positions[POS_ENTRIES] = {
+  { 18, 19, 17, 2 }, /* shemesh.cs.wisc.edu, Sol 2.8 */
+  { 16, 17, 50, 11} /* adams.cs.umd.edu, Sol 2.9. thr_pos and lwp_pos
+                        may be reversed, as the values were identical
+                        in tests. */
+};
 
 void DYNINST_ThreadPInfo(void* tls, void** stkbase, long *pc)
 {
-    switch (which(tls)) {
-    case LIBTHR_SOL29: {
-        thread_sol29 *ptr = (thread_sol29 *) tls;
-        *stkbase = (void*) (ptr->thread_stack);
-        *pc = (long) ptr->start_pc ;
+  static int w = -1;
+  dyntid_t tid;
+  int lwp;
+  int i;
+  int *tls_int = (int *)tls;
+  int *temp;
+
+  *stkbase = 0;
+  *pc = 0;
+
+  /*if (w) return w;*/
+  tid = dyn_pthread_self();
+  if (tid == (dyntid_t) -1)
+      return;
+  lwp = dyn_lwp_self();
+
+  fprintf(stderr, "tid == %d (%x), lwp %d (%x)\n",
+          tid, tid,
+          lwp, lwp);
+  temp = (int *)tls;
+  for (i = 0; i < 100; i++) {
+    fprintf(stderr, "%d: 0x%x\n",
+            i, temp[i]);
+  }
+
+  /* Find the right type... */
+  if (w == -1) {
+    for (i = 0; i < POS_ENTRIES; i++) {
+      if ((tls_int[positions[i].thr_pos] == (int) tid) &&
+          (tls_int[positions[i].lwp_pos] == lwp)) {
+        w = i;
+
         break;
+      }
     }
-        
-    case LIBTHR_SOL28PATCH: {
-        thread_sol28patch *ptr = (thread_sol28patch *) tls ;
-        *stkbase = (void*) (ptr->thread_stack);
-        *pc = (long) ptr->start_pc ;
-        break;
-    }  
-    case LIBTHR_SOL28: {
-        thread_sol28 *ptr = (thread_sol28 *) tls ;
-        *stkbase = (void*) (ptr->thread_stack);
-        *pc = (long) ptr->start_pc ;
-        break;
-    }
-    case LIBTHR_SOL27: {
-        thread_sol27 *ptr = (thread_sol27 *) tls ;
-        *stkbase = (void*) (ptr->thread_stack);
-        *pc = (long) ptr->start_pc ;
-        break;
-    }
-    case LIBTHR_SOL26: {
-        thread_sol26 *ptr = (thread_sol26 *) tls ;
-        *stkbase = (void*) (ptr->thread_stack);
-        *pc = (long) ptr->start_pc ;
-        break;
-    }
-    case LIBTHR_SOL29_PINKY: {
-        thread_sol29_pinky *ptr = (thread_sol29_pinky *) tls;
-        *stkbase = (void*) (ptr->stackbottom);
-        *pc = (long) ptr->start_pc;
-        break;
-    }
-    default:
-        fprintf(stderr, "Unknown thread type: %d\n", which(tls));
-        assert(0);
-    }
+  }
+  if (w == -1) {
+    /* Couldn't find... */
+    return;
+  }
+
+  *stkbase = tls_int[positions[w].stck_start_pos];
+  *pc = tls_int[positions[w].start_func_pos];
+
+  fprintf(stderr, "thread library slot: %d, stkbase %p, pc 0x%lx\n",
+          w, *stkbase, *pc);
+
+  return;
 }
+
 
 /* Defined in RTthread-sparc-asm.s, access %g7 */
 void *DYNINST_curthread(void) ;
@@ -429,18 +287,10 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev) {
         DYNINST_ThreadPInfo(curthread, &stkbase, &startpc);
         ev->stack_addr = stkbase;
         ev->start_pc = (void *)startpc;
+        fprintf(stderr, "stack_addr %p, start_pc %p\n",
+                ev->stack_addr, ev->start_pc);
         return 1;
     }
     return 0;
-}
-
-int dyn_pid_self()
-{
-   return getpid();
-}
-
-int dyn_lwp_self()
-{
-   return _lwp_self();
 }
 
