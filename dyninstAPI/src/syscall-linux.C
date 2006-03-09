@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-linux.C,v 1.13 2005/11/21 17:16:14 jaw Exp $
+// $Id: syscall-linux.C,v 1.14 2006/03/09 16:34:37 bernat Exp $
 
 #if defined( arch_x86 ) || defined( arch_x86_64 )
 #define FORK_FUNC "__libc_fork"
@@ -69,6 +69,7 @@ syscallNotification::syscallNotification(syscallNotification *parentSN,
                                                            preExecInst(NULL),
                                                            postExecInst(NULL),
                                                            preExitInst(NULL),
+                                                           preLwpExitInst(NULL),
                                                            proc(child) {
     // We need to copy over the instMappings and get the new miniTramps from
     // the parent process
@@ -84,6 +85,10 @@ syscallNotification::syscallNotification(syscallNotification *parentSN,
     }
     if (parentSN->preExitInst) {
         preExitInst = new instMapping(parentSN->preExitInst, child);
+    }
+
+    if (parentSN->preLwpExitInst) {
+        preLwpExitInst = new instMapping(parentSN->preLwpExitInst, child);
     }
 }
 

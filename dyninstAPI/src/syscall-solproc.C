@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-solproc.C,v 1.14 2006/03/07 23:18:21 bernat Exp $
+// $Id: syscall-solproc.C,v 1.15 2006/03/09 16:34:38 bernat Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -68,6 +68,7 @@ syscallNotification::syscallNotification(syscallNotification *parentSN,
     preExecInst(parentSN->preExecInst),
     postExecInst(parentSN->postExecInst),
     preExitInst(parentSN->preExitInst),
+    preLwpExitInst(parentSN->preLwpExitInst),
     proc(child) {
 
     // We set PR_FORK in the parent, so everything was copied.
@@ -75,6 +76,12 @@ syscallNotification::syscallNotification(syscallNotification *parentSN,
     if (parentSN->postForkInst &&
         (parentSN->postForkInst != SYSCALL_INSTALLED))
         postForkInst = new instMapping(parentSN->postForkInst, child);
+
+    // I thought we needed this for a while, but we don't. Leave it here 
+    // anyway
+    if (parentSN->preLwpExitInst &&
+        (parentSN->preLwpExitInst != SYSCALL_INSTALLED))
+        preLwpExitInst = new instMapping(parentSN->preLwpExitInst, child);
 
 }
 
