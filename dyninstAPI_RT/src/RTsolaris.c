@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTsolaris.c,v 1.26 2006/03/09 22:00:59 bernat Exp $
+ * $Id: RTsolaris.c,v 1.27 2006/03/09 23:48:10 bernat Exp $
  * RTsolaris.c: mutatee-side library function specific to Solaris
  ************************************************************************/
 
@@ -228,7 +228,6 @@ void DYNINST_ThreadPInfo(void* tls, void** stkbase, long *pc)
   int lwp;
   int i;
   int *tls_int = (int *)tls;
-  int *temp;
 
   *stkbase = 0;
   *pc = 0;
@@ -238,15 +237,6 @@ void DYNINST_ThreadPInfo(void* tls, void** stkbase, long *pc)
   if (tid == (dyntid_t) -1)
       return;
   lwp = dyn_lwp_self();
-
-  fprintf(stderr, "tid == %d (%x), lwp %d (%x)\n",
-          tid, tid,
-          lwp, lwp);
-  temp = (int *)tls;
-  for (i = 0; i < 100; i++) {
-    fprintf(stderr, "%d: 0x%x\n",
-            i, temp[i]);
-  }
 
   /* Find the right type... */
   if (w == -1) {
@@ -267,9 +257,6 @@ void DYNINST_ThreadPInfo(void* tls, void** stkbase, long *pc)
   *stkbase = tls_int[positions[w].stck_start_pos];
   *pc = tls_int[positions[w].start_func_pos];
 
-  fprintf(stderr, "thread library slot: %d, stkbase %p, pc 0x%lx\n",
-          w, *stkbase, *pc);
-
   return;
 }
 
@@ -287,8 +274,6 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev) {
         DYNINST_ThreadPInfo(curthread, &stkbase, &startpc);
         ev->stack_addr = stkbase;
         ev->start_pc = (void *)startpc;
-        fprintf(stderr, "stack_addr %p, start_pc %p\n",
-                ev->stack_addr, ev->start_pc);
         return 1;
     }
     return 0;
