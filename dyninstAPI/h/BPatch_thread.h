@@ -131,6 +131,10 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
                               bool synchronous);
  public:
 
+    // Don't use this......
+    // PDSEP
+    dyn_thread *ll_thread() { return llthread; }
+
     /**
      * The following functions are all deprecated.  They've been replaced
      * by equivently named functions in BPatch_process.  See BPatch_process.h
