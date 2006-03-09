@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.145 2006/03/08 23:53:40 bernat Exp $
+// $Id: BPatch_thread.C,v 1.146 2006/03/09 22:00:56 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -68,15 +68,23 @@
 bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
 {
    pdvector<Frame> stackWalk;   
-   bool was_stopped = false;
 
-   was_stopped = proc->llproc->isStopped();
-   if (!was_stopped)
-      proc->llproc->pause();
+   bool wasStopped = proc->isStopped();
+
+   if (!wasStopped && proc->statusIsStopped()) {
+       fprintf(stderr, "Odd case... internally stopped, externally running\n");
+   }
+
+   // Cannot stackwalk running process
+   proc->stopExecution(); 
 
    if (!llthread->walkStack(stackWalk) ) {
      fprintf(stderr, "%s[%d]: ERROR doing stackwalk\n", FILE__, __LINE__);
    }
+
+   if (!wasStopped)
+       proc->continueExecution();
+
 
    // The internal representation of a stack walk treats instrumentation
    // as part of the original instrumented function. That is to say, if A() 
@@ -149,8 +157,6 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
                                       isSignalFrame));
       }
    }
-   if (!was_stopped)
-      proc->llproc->continueProc();
    return true;
 }
 
