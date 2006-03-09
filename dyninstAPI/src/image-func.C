@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.25 2006/03/03 18:10:58 nater Exp $
+// $Id: image-func.C,v 1.26 2006/03/09 17:05:11 bernat Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -307,6 +307,27 @@ const pdvector<image_instPoint*> &image_func::funcCalls() {
 
   return calls;
 }
+
+const pdvector<image_basicBlock *> &image_func::blocks() {
+    if (!parsed_) image_->analyzeIfNeeded();
+    return blockList;
+}
+
+bool image_func::hasNoStackFrame() { 
+    if (!parsed_) image_->analyzeIfNeeded();
+    return noStackFrame;
+}
+
+bool image_func::makesNoCalls() { 
+    if (!parsed_) image_->analyzeIfNeeded();
+    return makesNoCalls_;
+}
+
+bool image_func::savesFramePointer() { 
+    if (!parsed_) image_->analyzeIfNeeded();
+    return savesFP_;
+}
+
 
 int image_basicBlock_count = 0;
 

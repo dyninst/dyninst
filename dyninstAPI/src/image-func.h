@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.14 2006/03/01 19:32:39 nater Exp $
+// $Id: image-func.h,v 1.15 2006/03/09 17:05:12 bernat Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -303,11 +303,11 @@ class image_func : public codeRange {
    // CFG and other function body methods
    ////////////////////////////////////////////////
 
-   const pdvector< image_basicBlock* > &blocks() const{ return blockList; }
+   const pdvector< image_basicBlock* > &blocks();
 
-   bool hasNoStackFrame() const {return noStackFrame;}
-   bool makesNoCalls() const {return makesNoCalls_;}
-   bool savesFramePointer() const {return savesFP_;}
+   bool hasNoStackFrame();
+   bool makesNoCalls();
+   bool savesFramePointer();
 
    ////////////////////////////////////////////////
    // Parsing support methods
