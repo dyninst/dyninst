@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.124 2006/03/02 20:00:03 tlmiller Exp $
+// $Id: BPatch.C,v 1.125 2006/03/09 16:34:35 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1074,7 +1074,26 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
        ExitCallback *cb = dynamic_cast<ExitCallback *>(cbs[i]);
        if (cb) 
            (*cb)(bpprocess->threads[0], ExitedViaSignal);
+#if defined(IBM_BPATCH_COMPAT)
+       // A different (compatibility) callback type. 
+       DPCLThreadEventCallback *tcb = dynamic_cast<DPCLThreadEventCallback *>(cbs[i]);
+       if (tcb) {
+           signal_printf("%s[%d]:  about to register/wait for exit callback\n", FILE__, __LINE__);
+           (*tcb)(process->threads[0], NULL, NULL);
+           signal_printf("%s[%d]:  exit callback done\n", FILE__, __LINE__);
+       }
+       // A different (compatibility) callback type. 
+       DPCLProcessEventCallback *pcb = dynamic_cast<DPCLProcessEventCallback *>(cbs[i]);
+       if (pcb) {
+           signal_printf("%s[%d]:  about to register/wait for exit callback\n", FILE__, __LINE__);
+           (*pcb)(process, NULL, NULL);
+           signal_printf("%s[%d]:  exit callback done\n", FILE__, __LINE__);
+       }
+#endif           
+
+
    }
+
 
    // We need to clean this up... but the user still has pointers
    // into this code. Ugh.
