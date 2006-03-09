@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.84 2006/03/08 22:08:22 bernat Exp $
+// $Id: sol_proc.C,v 1.85 2006/03/09 22:00:58 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -196,9 +196,10 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
       return false;
   }
 
-  if ((0==status.pr_flags & PR_STOPPED) && (0==status.pr_flags & PR_ISTOP)) {
-      bperr( "LWP not stopped\n");
-      return false;
+  if ((0== (status.pr_flags & PR_STOPPED)) && 
+      (0== (status.pr_flags & PR_ISTOP))) {
+      // Already running, so catch our state up.
+      return true;
   }
 
 
