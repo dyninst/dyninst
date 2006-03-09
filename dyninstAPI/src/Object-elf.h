@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.70 2006/02/02 03:51:00 bernat Exp $
+ * $Id: Object-elf.h,v 1.71 2006/03/09 18:34:53 nater Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -87,11 +87,17 @@ struct stab32 {
 			// be obtained from the symtab section
 };
 struct stab64 {
-    unsigned long name; // stabstr table index for this symbol
+    // XXX ELF stabs are currently not implementing actual 64-bit support
+    //     on AMD-64, for which this separation was introduced. Until we
+    //     start seeing stab records with fields of the appropriate length,
+    //     we should assume the smaller records.
+    //unsigned long name; // stabstr table index for this symbol
+    unsigned int name; // stabstr table index for this symbol
     unsigned char type; // type of this symbol
     unsigned char other;
     unsigned short desc;
-    unsigned long val;  // value of this symbol -- usually zero. The real value must
+    //unsigned long val;
+    unsigned int val;  // value of this symbol -- usually zero. The real value must
 			// be obtained from the symtab section
 };
 
