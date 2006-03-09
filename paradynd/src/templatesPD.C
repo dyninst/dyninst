@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templatesPD.C,v 1.46 2005/12/19 19:43:28 pack Exp $
+// $Id: templatesPD.C,v 1.47 2006/03/09 22:01:06 bernat Exp $
 
 #pragma implementation "Dictionary.h"
 #include "common/src/Dictionary.C"
@@ -218,3 +218,5 @@ template class  pdvector<catchup_t>;
 template class  pdvector<sideEffect_t>;
 template class  pdvector<threadMetFocusNode_Val *>;
 template class  pdvector<const threadMetFocusNode_Val *>;
+
+template class BPatch_Vector<BPatch_Vector<BPatch_frame> >;

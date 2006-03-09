@@ -66,6 +66,7 @@ class dyn_lwp;
 struct catchup_t {
     AstNode *ast;
     dyn_thread *thread;
+    pdvector<Frame> stackWalk;
 };
 
 struct sideEffect_t {
@@ -214,6 +215,8 @@ class processMetFocusNode : public metricFocusNode {
   bool cancelPendingRPC(unsigned rpc_id);
   void cancelPendingRPCs();
   bool anyPendingRPCs() { return (rpc_id_buf.size() > 0); }
+
+  static void postCatchupRPCDispatch(process *p, unsigned rpcid, void *data, void *result);
 };
 
 

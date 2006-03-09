@@ -1527,6 +1527,7 @@ virtualTimer *pd_process::getVirtualTimer(unsigned index) {
       // minitramps to the beginning or end of the current tramp
       // chain (between 1 and 2 or 2 and 3... but not within 2)
 
+#if 0
 typedef enum {beforeInstru, baseEntry, preInsn, 
 	      emulInsns, postInsn, baseExit, afterInstru, nowhere} logicalPCLocation_t;
 
@@ -1800,6 +1801,31 @@ bool pd_process::triggeredInStackFrame(Frame &frame,
     bool catchupNeeded = false;
     return catchupNeeded;
 }
+
+#endif
+
+bool pd_process::walkStacks(BPatch_Vector<BPatch_Vector<BPatch_frame> > &stackWalks) {
+    bool success = true;
+    for (threadMgr::thrIter iter = thr_mgr.begin();
+         iter != thr_mgr.end();
+         iter++) {
+        BPatch_Vector<BPatch_frame> walk;
+        success &= (*iter)->walkStack(walk);
+        stackWalks.push_back(walk);
+    }
+}
+
+bool pd_process::walkStacks_ll(pdvector<pdvector<Frame> > &stackWalks) {
+    bool success = true;
+    for (threadMgr::thrIter iter = thr_mgr.begin();
+         iter != thr_mgr.end();
+         iter++) {
+        pdvector<Frame> walk;
+        success &= (*iter)->walkStack_ll(walk);
+        stackWalks.push_back(walk);
+    }
+}
+
 
 BPatch_Vector<BPatch_function *> *pd_process::getIncludedFunctions(BPatch_module *mod)
 {

@@ -370,13 +370,11 @@ class pd_process {
                                             thr, lwp);
    }
    
-   bool triggeredInStackFrame(Frame &frame, BPatch_point *point,
-			      BPatch_callWhen when, BPatch_snippetOrder order);
+   //bool triggeredInStackFrame(Frame &frame, BPatch_point *point,
+   //BPatch_callWhen when, BPatch_snippetOrder order);
    
-   bool walkStacks(pdvector<pdvector<Frame> > &stackWalks) {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->walkStacks(stackWalks);
-   }
+   bool walkStacks(BPatch_Vector<BPatch_Vector<BPatch_frame> > &stackWalks);
+   bool walkStacks_ll(pdvector<pdvector<Frame> > &stackWalks);
    
    /*
    int_function *findOnlyOneFunction(resource *func, resource *mod) {

@@ -44,6 +44,7 @@
 #include "dyninstAPI/h/BPatch_function.h"
 #include "paradynd/src/pd_process.h"
 #include "dyninstAPI/src/dyn_thread.h"
+#include "paradynd/src/debug.h"
 
 // Moved from the .h to get rid of cross-.h includes
 
@@ -121,6 +122,7 @@ unsigned pos_junk = 101;
 pd_thread::pd_thread(BPatch_thread *t, pd_process *p) :
     dyninst_thread(t), pd_proc(p), rid(NULL), 
     hw_previous_(0), sw_previous_(0), 
+    savedStackRefCount_(0),
     time_handle_(INVALID_HANDLE_VALUE),
     currentLWP_(t->getLWP())
 {  
@@ -228,4 +230,47 @@ bool pd_thread::resetInferiorVtime(virtualTimer *vTimer) {
 bool pd_thread::walkStack(BPatch_Vector<BPatch_frame> &stackWalk) 
 {
    return dyninst_thread->getCallStack(stackWalk);
+}
+
+bool pd_thread::walkStack_ll(pdvector<Frame> &stackWalk)
+{
+    if (savedStack_.size()) {
+        stackWalk = savedStack_;
+        return true;
+    }
+   return dyninst_thread->ll_thread()->walkStack(stackWalk);
+}
+
+bool pd_thread::saveStack(pdvector<Frame> &stackToSave) {
+        
+    savedStackRefCount_++;
+    if (pd_debug_catchup)
+        fprintf(stderr, "Saving stack for thread %d: ref count %d\n",
+                get_tid(), savedStackRefCount_);
+
+    if (savedStack_.size() > 0) {
+        // Should assert the two stacks are the same... for now, use
+        // current
+        assert(stackToSave.size() == savedStack_.size());
+        return true;
+    }
+
+    savedStack_ = stackToSave;
+    return true;
+}
+
+bool pd_thread::clearSavedStack() {
+    // Refcount...
+
+    if (pd_debug_catchup)
+        fprintf(stderr, "Clearing stack for thread %d: ref count %d\n",
+                get_tid(), savedStackRefCount_);
+
+    assert(savedStackRefCount_ > 0);
+    savedStackRefCount_--;
+
+    if (savedStackRefCount_ == 0) {
+        savedStack_.clear();
+    }
+    return true;
 }

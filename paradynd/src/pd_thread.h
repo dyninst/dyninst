@@ -74,7 +74,13 @@ class pd_thread {
    unsigned get_index() const { return dyninst_thread->getBPatchID(); }
    int get_lwp() const { return dyninst_thread->getLWP(); }
    BPatch_function* get_start_func() {return dyninst_thread->getInitialFunc();}
+
    bool walkStack(BPatch_Vector<BPatch_frame> &stackWalk);
+   // Used for catchup
+   bool walkStack_ll(pdvector<Frame> &stackWalk);
+
+   bool saveStack(pdvector<Frame> &stackToSave);
+   bool clearSavedStack();
 
    void update_rid(resource *rid_) { rid = rid_; } 
    resource* get_rid() { return rid; }
@@ -86,7 +92,11 @@ class pd_thread {
    bool       resetInferiorVtime(virtualTimer*);
    pdstring get_initial_func_name() { return initial_func_name; }
 
+
  private:
+   // Saved stack walk (for catchup)
+   pdvector<Frame> savedStack_;
+   int savedStackRefCount_;
 
    // Cross-platform... if there's an OS fd/handle that you ping to get
    // thread time, this is the one to use.

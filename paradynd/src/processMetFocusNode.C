@@ -385,7 +385,7 @@ inst_insert_result_t processMetFocusNode::insertInstrumentation() {
     assert(!instrLinked());
 
     pdvector <pdvector <Frame> > stackWalks;
-    proc()->walkStacks(stackWalks);
+    proc()->walkStacks_ll(stackWalks);
 
     if (pd_debug_catchup) {
         for (unsigned thr_iter = 0; thr_iter < stackWalks.size(); thr_iter++) {
@@ -550,7 +550,8 @@ bool processMetFocusNode::doCatchupInstrumentation(pdvector<pdvector<Frame> >&st
         if (runWhenFinished_) {
             // We need to set the BPatch_process status variable to "running".
             // It thinks we're stopped.
-            fprintf(stderr, "DEBUG: overriding internal BPatch_process running state\n");
+            if (pd_debug_catchup)
+                fprintf(stderr, "DEBUG: overriding internal BPatch_process running state\n");
             proc_->overrideInternalRunningState(runWhenFinished_);
         }
     }
@@ -640,6 +641,8 @@ void processMetFocusNode::prepareCatchupInstr(pdvector<pdvector<Frame> > &stackW
             //conglomerate->print();
             catchup.ast = conglomerate;
             catchup.thread = catchupWalk[0]->frame.getThread();
+            // Store the stackwalk for caching later
+            catchup.stackWalk = stackWalks[thr_iter];
             catchupASTList.push_back(catchup);      
         }
 #else
@@ -659,6 +662,8 @@ void processMetFocusNode::prepareCatchupInstr(pdvector<pdvector<Frame> > &stackW
                     catchup_t catchup;
                     catchup.ast = AST;
                     catchup.thread = catchupWalk[0]->frame.getThread();
+                    // Store the stackwalk for caching later
+                    catchup.stackWalk = stackWalks[thr_iter];
                     catchupASTList.push_back(catchup);
                 }
             }
@@ -708,11 +713,26 @@ bool processMetFocusNode::postCatchupRPCs()
          
       }
 
+      // TODO: this needs thread-specific oneTimeCodes to work.
+      // General design: we store the stack walk, and return it
+      // as long as there is an infRPC running on this thread
+      // so that catchup won't get confused. We reference count
+      // by using a post-RPC allback.
+
+      // Get the pd_thread for this thread's tid
+      pd_thread *thr = proc_->findThread(catchupASTList[i].thread->get_tid());
+      assert(thr);
+
+      thr->saveStack(catchupASTList[i].stackWalk);
+      
       unsigned rpc_id =
-         proc_->postRPCtoDo(catchupASTList[i].ast, false, 
-                            NULL, NULL,
-                            false,  // lowmem parameter
-                            catchupASTList[i].thread, NULL);
+          proc_->postRPCtoDo(catchupASTList[i].ast,
+                             false, // noCost
+                             processMetFocusNode::postCatchupRPCDispatch, // callbackFunc
+                             (void *)thr, // user data
+                             false,  // lowmem parameter
+                             catchupASTList[i].thread, 
+                             NULL);
       rpc_id_buf.push_back(rpc_id);
    }
    
@@ -720,6 +740,16 @@ bool processMetFocusNode::postCatchupRPCs()
 
    return true;
 }
+
+void processMetFocusNode::postCatchupRPCDispatch(process * /*p*/,
+                                                 unsigned /*rpcid*/,
+                                                 void *data,
+                                                 void * /*result*/) {
+    pd_thread *thr = (pd_thread *)data;
+    assert(thr);
+    thr->clearSavedStack();
+}
+
 
 void processMetFocusNode::initializeForSampling(timeStamp startTime, 
 						pdSample initValue)
