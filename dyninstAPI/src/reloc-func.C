@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.15 2006/03/02 23:52:36 bernat Exp $
+// $Id: reloc-func.C,v 1.16 2006/03/10 21:57:51 nater Exp $
 
 // We'll also try to limit this to relocation-capable platforms
 // in the Makefile. Just in case, though....
@@ -741,7 +741,7 @@ bool functionReplacement::generateFuncRep(pdvector<int_function *> &needReloc)
                 if (curInst->block()->hasSharedBase())
                 {
                     // add functions to needReloc list
-                    sourceBlock_->func()->getSharingFuncs(curInst->block(),
+                    curInst->block()->func()->getSharingFuncs(curInst->block(),
                                                           needReloc);
                 } 
                 // Otherwise keep going
