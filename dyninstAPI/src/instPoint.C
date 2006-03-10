@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.15 2006/02/27 23:15:27 bernat Exp $
+// $Id: instPoint.C,v 1.16 2006/03/10 21:57:42 nater Exp $
 // instPoint code
 
 
@@ -931,7 +931,8 @@ bool instPointInstance::generateInst() {
         inst_printf("Trying relocation, %d, %d %s\n", 
                     block_->getSize(),
                     multi()->sizeDesired(),
-                    func()->needsRelocation() ? "(func req reloc)" : "");
+                    block_->block()->needsRelocation() ? 
+                        "(block req reloc)" : "");
 
         if (block_->getSize() < multi()->sizeDesired()) {
             // expandForInstrumentation will append to the expand list, so can 
