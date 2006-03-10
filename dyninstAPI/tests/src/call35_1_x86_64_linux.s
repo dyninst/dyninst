@@ -1,4 +1,7 @@
-	.file	"call35_1_x86_64_linux.s"
+/* Force Dyninst function relocation through simulated code sharing. See
+   call35_1_x86_linux.s for details.
+*/	
+    .file	"call35_1_x86_64_linux.s"
     .version "01.01"
 	.stabs	"call35_1_x86_64_linux.s",100,0,0,.Ltext0
 	.text
@@ -37,6 +40,13 @@ call35_2:
 	pushq	%rbp
 .LCFI0:
 	movq	%rsp, %rbp
+    /* this comparison should never be equal */
+    cmpl $0,%esp
+    jne .LM2
+    /* this branch should never be taken, but tricks
+       the parser into thinking call35_2 and call35_1 share code
+    */
+    jmp .ForceRelocation
 .LCFI1:
 	.stabn 68,0,43,.LM2-call35_2
 .LM2:
@@ -92,140 +102,6 @@ call35_1:
 .LM12:
 	movl	-16(%rbp), %eax
     jmp .L3
-    jmp .ForceRelocation
-    jmp .InsertNops1
-.InsertNops2:
-        ret
-        jmp .InsertNops2
-.InsertNops1:
-        jmp .InsertNops3
-.InsertNops4:
-        ret
-        jmp .InsertNops4        
-.InsertNops3:   
-.SplitPointsApart:
-        ret
-        ret
-.FillTenBytes1:
-	nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-.FillTenBytes2: 
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-.FillTenBytes3: 
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-.FillTenBytes4:
-	nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-.FillTenBytes5:
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-.FillTenBytes6:
-	nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-.FillTenBytes7: 
-	nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-.FillTenBytes8:
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-.FillTenBytes9: 
-	nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-.FillTenBytes10:
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-.Fill10Bytes11:
-	nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
-        nop
 .CauseProblemsIfExecuted:               
 	subq	$16, %rsp
 		
