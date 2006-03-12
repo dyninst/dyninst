@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_7.C,v 1.2 2005/11/22 19:42:33 bpellin Exp $
+// $Id: test5_7.C,v 1.3 2006/03/12 23:33:41 legendre Exp $
 /*
  * #Name: test5_7
  * #Desc: Template
@@ -61,10 +61,7 @@
 //
 int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(ia64_unknown_linux2_4)
+#if defined(os_solaris) || defined(os_windows) || defined(os_linux)
 
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn2 = "template_test::func_cpp";

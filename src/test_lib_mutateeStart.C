@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_lib_mutateeStart.C,v 1.2 2005/11/22 19:41:23 bpellin Exp $
+// $Id: test_lib_mutateeStart.C,v 1.3 2006/03/12 23:33:56 legendre Exp $
 // Functions Dealing with mutatee Startup
 
 #include "test_lib.h"
@@ -50,9 +50,7 @@ BPatch_thread *startMutateeTestGeneric(BPatch *bpatch, char *pathname, const cha
 {
    BPatch_thread *appThread;
     if (useAttach) {
-        printf("Starting process for attach\n");
 	int pid = startNewProcessForAttach(pathname, child_argv);
-        printf("Started process for attach\n");
 	if (pid < 0) {
 	    printf("*ERROR*: unable to start tests due to error creating mutatee process\n");
             return NULL;

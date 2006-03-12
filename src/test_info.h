@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_info.h,v 1.12 2006/03/08 19:57:57 mjbrim Exp $
+// $Id: test_info.h,v 1.13 2006/03/12 23:33:53 legendre Exp $
 #ifndef TEST_INFO_H
 #define TEST_INFO_H
 
@@ -146,6 +146,7 @@ void initialize_mutatees()
    test9_mutatee.push_back("test9.mutatee" xstr(gnu_abi_cc));
    test10_mutatee.push_back("test10.mutatee" xstr(gnu_abi_cc));
    test12_mutatee.push_back("test12.mutatee" xstr(gnu_abi_cc));
+   test13_mutatee.push_back("test13.mutatee" xstr(gnu_abi_cc));
 #endif
 
 #ifdef gnu_abi_cxx
@@ -157,6 +158,7 @@ void initialize_mutatees()
    test8_mutatee.push_back("test8.mutatee" xstr(gnu_abi_cxx));
    test9_mutatee.push_back("test9.mutatee" xstr(gnu_abi_cxx));
    test12_mutatee.push_back("test12.mutatee" xstr(gnu_abi_cxx));
+   test13_mutatee.push_back("test13.mutatee" xstr(gnu_abi_cxx));
 #endif
 
    none.push_back("");
@@ -207,6 +209,17 @@ platforms_t test10_11_platforms =
      /*mips_sgi_irix6_5        =*/ false,
      /*rs6000_ibm_aix5_1       =*/ false,
      /*sparc_sun_solaris2_8    =*/ true,
+   };
+
+platforms_t threaded_platforms =
+   { /*alpha_dec_osf5_1        =*/ false,
+     /*i386_unknown_linux2_4   =*/ true, 
+     /*i386_unknown_nt4_0      =*/ true, 
+     /*ia64_unknown_linux2_4   =*/ true,
+     /*x86_64_unknown_linux2_4 =*/ true,
+     /*mips_sgi_irix6_5        =*/ false,
+     /*rs6000_ibm_aix5_1       =*/ true,
+     /*sparc_sun_solaris2_8    =*/ false,
    };
 
 test_data_t tests[] = {

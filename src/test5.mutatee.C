@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test5.mutatee.C,v 1.3 2006/02/22 22:06:34 bpellin Exp $ */
+/* $Id: test5.mutatee.C,v 1.4 2006/03/12 23:33:34 legendre Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -95,6 +95,21 @@ int runTest[MAX_TEST+1];
 int passedTest[MAX_TEST+1];
 
 int CPP_DEFLT_ARG = CPP_DEFLT_ARG_VAL;
+
+//Global Vars for C++ tests
+
+arg_test test1; 
+overload_func_test test2;
+overload_op_test test3;
+static_test test4;
+namespace_test test5;
+exception_test test6;
+template_test test7;
+decl_test test8; 
+derivation_test test9;
+stdlib_test1 test10;
+stdlib_test2 test11;
+func_test test12;
 
 /*
  * Check to see if the mutator has attached to us.
@@ -171,11 +186,7 @@ void cpp_test_util::call_cpp(int test)
 
 void arg_test::func_cpp()
 {
-#if !defined(sparc_sun_solaris2_4) \
- && !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(ia64_unknown_linux2_4)
-
+#if !defined(os_solaris) && !defined(os_linux) && !defined(os_windows)
     printf("Skipped test #1 (argument)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[1] = TRUE;
@@ -191,10 +202,12 @@ void arg_test::func_cpp()
 
 void arg_test::arg_pass(int test)
 {
-   if (test != 1) {
-    cerr << "**Failed** test #1 (C++ argument pass)" << endl;
-    cerr << "    Pass in an incorrect parameter value" << endl;
-    return;
+   if (test != 1 || value != 5) {
+      cerr << "**Failed** test #1 (C++ argument pass)" << endl;
+      cerr << "    Passed in an incorrect parameter value: " << endl;
+      cerr << "    test = " << test << ", this = " << (void *) this;
+      cerr << ", test1 = " << (void *) &test1;
+      return;
    }
    cpp_test_util::call_cpp(test);
 }
@@ -223,10 +236,7 @@ void arg_test::call_cpp(const int arg1, int & arg2, int arg3)
 
 void overload_func_test::func_cpp()
 {
-#if !defined(sparc_sun_solaris2_4) \
- && !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(ia64_unknown_linux2_4)
+#if !defined(os_solaris) && !defined(os_linux) && !defined(os_windows)
 
     printf("Skipped test #2 (function overload)\n");
     printf("\t- not implemented on this platform\n");
@@ -295,10 +305,7 @@ int static_test::count = 0;
 
 void static_test::func_cpp()
 {
-#if !defined(sparc_sun_solaris2_4) \
- && !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(ia64_unknown_linux2_4)
+#if !defined(os_solaris) && !defined(os_linux) && !defined(os_windows)
 
     printf("Skipped test #4 (static member)\n");
     printf("\t- not implemented on this platform\n");
@@ -319,16 +326,7 @@ static int local_file_var = 3;
 
 void namespace_test::func_cpp()
 {
-#if !defined(sparc_sun_solaris2_4) \
- && !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(ia64_unknown_linux2_4)
-
-    printf("Skipped test #5 (namespace)\n");
-    printf("\t- not implemented on this platform\n");
-    passedTest[5] = TRUE;
-
-#else
+#if defined(os_solaris) || defined(os_linux) || defined(os_windows)
   int local_fn_var = local_file_var;
 
   class_variable = local_fn_var;
@@ -337,6 +335,10 @@ void namespace_test::func_cpp()
     cout << "::CPP_DEFLT_ARG init value wrong" <<endl;
   if ( 0 != cpp_test_util::CPP_TEST_UTIL_VAR )
     cout <<"cpp_test_util::CPP_TEST_UTIL_VAR int value wrong"<<endl;
+#else
+    printf("Skipped test #5 (namespace)\n");
+    printf("\t- not implemented on this platform\n");
+    passedTest[5] = TRUE;
 #endif
 }
 
@@ -366,29 +368,26 @@ void exception_test::call_cpp()
 
 void exception_test::func_cpp()
 {
-#if !defined(sparc_sun_solaris2_4) \
- && !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(ia64_unknown_linux2_4)
-
+#if !defined(os_solaris) && !defined(os_linux)
     printf("Skipped test #6 (exception)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[6] = TRUE;
 
 #else
-
    try {
-          int testno = 6;
-          call_cpp();
+      int testno = 6;
+      call_cpp();
    }
    catch ( sample_exception & ex) {
-     ex.response();
+      ex.response();
+      return;
    }
    catch ( ... ) {
      cerr << "**Failed** test #6 (exception)" << endl;
      cerr << "    Does not catch appropriate exception" << endl;
      throw;
    }
+   fprintf(stderr, "Missed proper exception\n");
 #endif
 }
 
@@ -411,11 +410,7 @@ template class sample_template <double>;
 
 void template_test::func_cpp()
 {
-#if !defined(sparc_sun_solaris2_4) \
- && !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(ia64_unknown_linux2_4)
-
+#if !defined(os_solaris) && !defined(os_linux) && !defined(os_windows)
     printf("Skipped test #7 (template)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[7] = TRUE;
@@ -440,11 +435,7 @@ void template_test_call_cpp(int test)
 
 void decl_test::func_cpp()
 {
-#if !defined(sparc_sun_solaris2_4) \
- && !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(ia64_unknown_linux2_4)
-
+#if !defined(os_solaris) && !defined(os_linux) && !defined(os_windows)
     printf("Skipped test #8 (declaration)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[8] = TRUE;
@@ -483,13 +474,7 @@ void derivation_test::func_cpp()
 
 void stdlib_test1::func_cpp()
 {
-#if defined(sparc_sun_solaris2_4) \
- || defined(mips_sgi_irix6_4) \
- || defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(alpha_dec_osf4_0) \
- || defined(ia64_unknown_linux2_4)
+#if defined(os_solaris) || defined(os_linux) || defined(os_windows) || defined(os_osf)
      cout << "Passed test #10 (find standard C++ library)" << endl;
      passedTest[10] = TRUE;
 #else
@@ -507,9 +492,8 @@ void stdlib_test2::call_cpp()
 
 void stdlib_test2::func_cpp()
 {
-#if defined(sparc_sun_solaris2_4) \
- || defined(alpha_dec_osf4_0) \
- || defined(ia64_unknown_linux2_4)
+#if defined(os_windows) || defined(os_linux) || defined(os_osf) || defined(os_solaris)
+
     cout<<"Passed test #11 (replace function in standard C++ library)"<<endl;
     passedTest[11] = TRUE;
 #else
@@ -517,7 +501,6 @@ void stdlib_test2::func_cpp()
     cout<<"\t- not implemented on this platform"<<endl;
     passedTest[11] = TRUE;
 #endif
-
 }
 
 
@@ -532,23 +515,6 @@ void func_test::func_cpp()
    int int12 = func2_cpp();
    call_cpp(int12);
 }
-
-
-//Global Vars for C++ tests
-
-arg_test test1; 
-overload_func_test test2;
-overload_op_test test3;
-static_test test4;
-namespace_test test5;
-exception_test test6;
-template_test test7;
-decl_test test8; 
-derivation_test test9;
-stdlib_test1 test10;
-stdlib_test2 test11;
-func_test test12;
-
 
 /****************************************************************************/
 /****************************************************************************/

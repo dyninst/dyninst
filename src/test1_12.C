@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_12.C,v 1.3 2006/03/08 16:44:11 bpellin Exp $
+// $Id: test1_12.C,v 1.4 2006/03/12 23:33:18 legendre Exp $
 /*
  * #Name: test1_12
  * #Desc: Mutator Side - Insert/Remove and Malloc/Free
@@ -97,24 +97,14 @@ int mutatorTesta(BPatch_thread *appThread, BPatch_image *appImage)
     setExpectError(66); // We're expecting a heap overflow error
     BPatch_variableExpr* memStuff[30000];
     BPatch_variableExpr *temp;
-    temp = appThread->malloc(HEAP_TEST_UNIT_SIZE); 
-    int count = 0;
-    while (temp) {
-#if defined(USES_DYNAMIC_INF_HEAP)
-        if (! temp) {
-	     printf("*** Inferior malloc stress test failed\n"); 
-	     exit(-1);
-	}
-#endif /* USES_DYNAMIC_INF_HEAP */
-	memStuff[count++] = temp;
-	temp = appThread->malloc(HEAP_TEST_UNIT_SIZE);
-#if defined(USES_DYNAMIC_INF_HEAP)
-	// heap will grow indefinitely on dynamic heap platforms
-	//if (count == 10000) break;
-	// I get tired of waiting
-	if (count == 500) break;
-#endif /* USES_DYNAMIC_INF_HEAP */
-	assert(count < 30000);
+    int count;
+    for (count = 0; count < 500; count++) {
+        temp = appThread->malloc(HEAP_TEST_UNIT_SIZE);
+        if (!temp) {
+            printf("*** Inferior malloc stress test failed\n"); 
+            exit(-1);
+        }
+        memStuff[count] = temp;
     }
     setExpectError(DYNINST_NO_ERROR);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test8_2.C,v 1.1 2005/09/29 20:39:52 bpellin Exp $
+// $Id: test8_2.C,v 1.2 2006/03/12 23:33:50 legendre Exp $
 /*
  * #Name: test8_2
  * #Desc: getCallStack in signal handler
@@ -103,7 +103,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 {
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());

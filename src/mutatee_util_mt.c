@@ -38,71 +38,69 @@
  * software licensed hereunder) for any and all liability it may
  * incur to third parties resulting from your use of Paradyn.
  */
+#include <stdlib.h>
 
-/* Test application (Mutatee) */
+#if defined(os_windows)
 
-/* $Id: test1.mutateeCommon.h,v 1.2 2006/03/12 23:33:14 legendre Exp $ */
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+void *spawnNewThread(void *initial_func, void *param) {
+    return (void *) CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) initial_func, 
+                                 param, 0, NULL);
+	return NULL;
+}
 
-/* Empty functions are sometimes compiled too tight for entry and exit
-   points.  The following macro is used to flesh out these
-   functions. (expanded to use on all platforms for non-gcc compilers jkh 10/99)
- */
-static volatile int dummy3__;
+void joinThread(void *threadid) {
+    HANDLE tid;
+    DWORD result;
 
-#define DUMMY_FN_BODY \
-  int dummy1__ = 1; \
-  int dummy2__ = 2; \
-  dummy3__ = dummy1__ + dummy2__
+    tid = (HANDLE) threadid;
+    for (;;) {
+        GetExitCodeThread(tid, &result);
+        if (result != STILL_ACTIVE)
+            break;
+        Sleep(500);
+    }
+    CloseHandle(tid);
+}
 
-/* control debug printf statements */
-#define dprintf	if (debugPrint) printf
+void initThreads() {
+}
 
-#define MAX_TEST 40 
-
-extern int kludge;
-extern int debugPrint;
-extern int runTest[MAX_TEST+1];
-extern int passedTest[MAX_TEST+1];
-
-extern void verifyScalarValue(const char *name, int a, int value, int testNum,
-                              const char *testName);
-extern void verifyValue(const char *name, int *a, int index, int value, 
-                        int tst, const char *tn);
-
-#define TRUE	1
-#define FALSE	0
-
-#define RET13_1 1300100
-
-#define RAN17_1 1701000
-
-#define RET17_1 1700100
-#define RET17_2 1700200
-
-#define MAGIC19_1 1900100
-#define MAGIC19_2 1900200
-
-/* These are copied in libtestA.c and libtestB.c */
-#define MAGIC22_1   2200100
-#define MAGIC22_2   2200200
-#define MAGIC22_3   2200300
-#define MAGIC22_4   2200400
-#define MAGIC22_5A  2200510
-#define MAGIC22_5B  2200520
-#define MAGIC22_6   2200600
-#define MAGIC22_7   2200700
-
-#define TEST20_A 3
-#define TEST20_B 4.3
-#define TEST20_C 7
-#define TEST20_D 6.4
-#define TEST20_TIMES 41
-
-
-#if defined(x86_64_unknown_linux2_4) && (__WORDSIZE == 32)
-static const char *libNameA = "libtestA_m32.so";
-#elif defined(os_windows)
-static const char *libNameA = "libtestA.dll";
 #else
-static const char *libNameA = "libtestA.so";
+#include <pthread.h>
+
+/*Spawn a posix thread with pthread_create*/
+ void *spawnNewThread(void *initial_func, void *param) {
+    static int initialized = 0;
+    static pthread_attr_t attr;
+    pthread_t *new_thread;
+    int result;
+
+    if (!initialized) {
+        initialized = 1;
+        pthread_attr_init(&attr);
+        pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
+    }
+    
+    new_thread = (pthread_t *) malloc(sizeof(pthread_t));
+    if (!new_thread) return NULL;
+
+    result = pthread_create(new_thread, &attr, 
+                            (void*(*)(void*)) initial_func, 
+                            param);
+    if (result != 0) {
+        return NULL;
+    }
+    return new_thread;
+}
+
+ void joinThread(void *threadid) {
+     pthread_t *p = (pthread_t *) threadid;
+     pthread_join(*p, NULL);
+ }
+
+void initThreads() {
+}
+
 #endif

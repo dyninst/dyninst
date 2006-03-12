@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutateeCommon.c,v 1.3 2006/02/22 22:06:25 bpellin Exp $ */
+/* $Id: test1.mutateeCommon.c,v 1.4 2006/03/12 23:33:13 legendre Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -230,9 +230,7 @@ int main(int iargc, char *argv[])
 	}
 	close(pfd);
 #endif
-	printf("Waiting for mutator to attach...\n");
-    	while (!checkIfAttached()) ;
-	printf("Mutator attached.  Mutatee continuing.\n");
+    	while (!checkIfAttached());
     }
 
     /* actually invoke the tests.  This function is implemented in two

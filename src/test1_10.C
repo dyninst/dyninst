@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_10.C,v 1.2 2006/03/08 16:44:09 bpellin Exp $
+// $Id: test1_10.C,v 1.3 2006/03/12 23:33:17 legendre Exp $
 /*
  * #Name: test1_10
  * #Desc: Mutator Side - Insert Snippet Order
@@ -130,7 +130,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 }
 
 // External Interface
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     bool useAttach = param["useAttach"]->getInt();

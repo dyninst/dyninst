@@ -40,7 +40,7 @@
  */
 
 // C++ mutatee tests header file
-// $Id: cpp_test.h,v 1.2 2006/02/22 22:06:24 bpellin Exp $
+// $Id: cpp_test.h,v 1.3 2006/03/12 23:33:07 legendre Exp $
 
 #ifndef CPP_TEST
 #define CPP_TEST
@@ -74,8 +74,9 @@ class cpp_test_util : public cpp_test
 class arg_test : public cpp_test_util
 {
    public :
+     int value;
 
-     arg_test():cpp_test_util() {};
+     arg_test():cpp_test_util() { value = 5; };
      void func_cpp();
      
    private :
@@ -83,8 +84,6 @@ class arg_test : public cpp_test_util
      void dummy();
      void arg_pass(int test);
      void call_cpp(const int test, int & arg2, int arg3 = CPP_DEFLT_ARG_VAL);
-
-
 };
 
 class overload_func_test : public cpp_test_util

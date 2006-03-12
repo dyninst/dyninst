@@ -2,8 +2,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
+#include "mutatee_util.h"
+
+#if !defined(os_windows)
 #include <unistd.h>
+#endif
+
 #define NTHRD 4
 
 volatile int done;
@@ -37,28 +41,27 @@ int main(int argc, char *argv[])
 {
    unsigned i;
    char c = 'T';
-   pthread_t threads[NTHRD];
-   pthread_attr_t attr;
-   void *ret_val;
+   void *threads[NTHRD];
 
-   pthread_attr_init(&attr);
-   pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
+   initThreads();
 
    parse_args(argc, argv);
 
-   for (i=0; i<NTHRD; i++)
-   {
-      pthread_create(&threads[i], &attr, init_func, (void *) i);
+   for (i=0; i<NTHRD; i++)  {
+       threads[i] = spawnNewThread((void *) init_func, (void *) i);
    }
+
+#if !defined(i386_unknown_nt4_0)
    if (attached_fd)
       write(attached_fd, &c, sizeof(char));
+#endif
    fprintf(stderr, "[%s:%d]: stage 1\n", __FILE__, __LINE__);
    while (proc_current_state == 0);
    fprintf(stderr, "[%s:%d]: stage 2\n", __FILE__, __LINE__);
    done = 1;
    for (i=0; i<NTHRD; i++)
    {
-      pthread_join(threads[i], &ret_val);
+      joinThread(threads[i]);
    }
    fprintf(stderr, "[%s:%d]: stage 3\n", __FILE__, __LINE__);
    while (proc_current_state == 1);

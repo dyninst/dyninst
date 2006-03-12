@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test8_3.C,v 1.4 2006/02/28 03:39:39 bpellin Exp $
+// $Id: test8_3.C,v 1.5 2006/03/12 23:33:51 legendre Exp $
 /*
  * #Name: test8_3
  * #Desc: getCallStack through instrumentation
@@ -67,8 +67,8 @@ int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage ) {
 	printf("    unwinding through base & minitramps not implemented on this platform\n");
         return 0;
 #else
-        bool passedTest;
-        appThread->continueExecution();
+    bool passedTest;
+    appThread->continueExecution();
 	static const frameInfo_t correct_frame_info[] = {
 	
 #if defined( os_linux ) && (defined( arch_x86 ) || defined( arch_x86_64 ))
@@ -201,7 +201,7 @@ int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage ) {
 } /* end mutatorTest3() */
 
 // External Interface
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 {
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
@@ -209,7 +209,6 @@ extern "C" int mutatorMAIN(ParameterDict &param)
 
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();
-
     // Run mutator code
     return mutatorTest(appThread, appImage);
 }

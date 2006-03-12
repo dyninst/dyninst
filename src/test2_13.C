@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_13.C,v 1.2 2005/11/22 19:42:08 bpellin Exp $
+// $Id: test2_13.C,v 1.3 2006/03/12 23:33:25 legendre Exp $
 /*
  * #Name: test2_13
  * #Desc: loadLibrary failure test
@@ -77,8 +77,8 @@ void llErrorFunc(BPatchErrorLevel level, int num, const char **params)
 // Start Test Case #13 - (loadLibrary failure test)
 int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
 {
-#if !defined(i386_unknown_nt4_0) \
- && !defined(alpha_dec_osf4_0)
+    int retval;
+#if !defined(alpha_dec_osf4_0)
 
   if (appThread->isTerminated()) {
     printf( "**Failed** test #13 (dlopen failure reporting test)\n" );
@@ -90,20 +90,21 @@ int mutatorTest( BPatch_thread * appThread, BPatch_image * appImage )
   
   if (appThread->loadLibrary("noSuchLibrary.Ever")) {
     fprintf(stderr, "**Failed** test #13 (failure reporting for loadLibrary)\n");
-    return -1;
+    retval = -1;
   }
   else {
-    if (!strcmp(loadLibErrStr, "no error")) {
+    if (!strcmp(loadLibErrStr, "no error") || !strcmp(loadLibErrStr, "")) {
       printf( "**Failed** test #13 (dlopen failure reporting test)\n" );
       printf( "\tno error string produced\n" );
-      return -1;
+      retval = -1;
     }
     else {
       printf( "Passed test #13 (dlopen failure test: %s)\n", loadLibErrStr);
-      return 0;
+      retval = 0;
     }
   }
   bpatch->registerErrorCallback(oldErrorFunc);
+  return retval;
 #else
   printf( "Skipped test #13 (dlopen failure reporting test)\n" );
   printf( "\t- not implemented on this platform\n" );
