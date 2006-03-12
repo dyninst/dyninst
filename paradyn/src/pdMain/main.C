@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.72 2006/01/27 00:19:12 darnold Exp $
+// $Id: main.C,v 1.73 2006/03/12 03:40:04 darnold Exp $
 
 /*
  * main.C - main routine for paradyn.  
@@ -158,6 +158,11 @@ main(int argc, char* argv[])
     // We do this before we create the UI thread because we need to know
     // what type of UI to create
     ParseCommandLine( argc, argv );
+
+    //Make sure default_host is initialized, if not, set to local host
+    //also, make sure it is a fully qualified machine name
+    default_host = getNetworkName(default_host);
+    assert( default_host.length() > 0 );
 
     // save the tid of the main thread (and, as a side effect,
     // initialize the thread library)
