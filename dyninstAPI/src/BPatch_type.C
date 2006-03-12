@@ -133,29 +133,28 @@ bool BPatch_typeEnum::isCompatibleInt(BPatch_type *otype) {
 
 BPatch_typePointer::BPatch_typePointer(int _ID, BPatch_type *_ptr, const char *_name) 
    : BPatch_type(_name, _ID, BPatch_dataPointer) {
-   assert(_ptr != NULL);
    size = sizeof(void *);
-   ptr = _ptr;
-   _ptr->incrRefCount();
-
-   if (_name == NULL && _ptr->getName() != NULL) {
-      char buf[1024];
-      snprintf(buf,1023,"%s *",_ptr->getName());
-      name = strdup(buf);
-   }
+   if (_ptr)
+     setPtr(_ptr);
 }
 
 BPatch_typePointer::BPatch_typePointer(BPatch_type *_ptr, const char *_name) 
    : BPatch_type(_name, USER_BPATCH_TYPE_ID--, BPatch_dataPointer) {
-   assert(_ptr != NULL);
    size = sizeof(void *);
-   ptr = _ptr;
+   if (_ptr)
+     setPtr(_ptr);
+}
 
-   if (_name == NULL && _ptr->getName() != NULL) {
-      char buf[1024];
-      snprintf(buf,1023,"%s *",_ptr->getName());
-      name = strdup(buf);
-   }
+void BPatch_typePointer::setPtr(BPatch_type *_ptr) { 
+  assert(_ptr);
+  ptr = _ptr; 
+  _ptr->incrRefCount(); 
+
+  if (name == NULL && _ptr->getName() != NULL) {
+     char buf[1024];
+     snprintf(buf,1023,"%s *",_ptr->getName());
+     name = strdup(buf);
+  }
 }
 
 bool BPatch_typePointer::isCompatibleInt(BPatch_type *otype) {
@@ -189,7 +188,17 @@ void BPatch_typePointer::fixupUnknowns(BPatch_module *module) {
 BPatch_typeFunction::BPatch_typeFunction(int _ID, BPatch_type *_retType, const char *_name)
    : BPatch_fieldListType(_name, _ID, BPatch_dataFunction), retType(_retType) {
    size = sizeof(void *);
-   retType->incrRefCount();
+   if (retType)
+     retType->incrRefCount();
+}
+
+void BPatch_typeFunction::setRetType(BPatch_type *rtype) {
+    retType = rtype;
+    retType->incrRefCount();
+}
+
+void BPatch_typeFunction::setName(const char *name_) {
+    name = strdup(name_);
 }
 
 bool BPatch_typeFunction::isCompatibleInt(BPatch_type *otype) {
@@ -372,7 +381,7 @@ void BPatch_typeArray::fixupUnknowns(BPatch_module *module) {
  */
 
 BPatch_typeStruct::BPatch_typeStruct(int _ID, const char *_name) 
-   : BPatch_fieldListType(_name, _ID, BPatch_dataStructure) {}
+   : BPatch_fieldListType(_name, _ID, BPatch_dataStructure) { }
 
 BPatch_typeStruct::BPatch_typeStruct(const char *_name) 
    : BPatch_fieldListType(_name, USER_BPATCH_TYPE_ID--, BPatch_dataStructure) {}
@@ -852,7 +861,7 @@ unsigned int BPatch_type::getSizeInt()
  */
 
 BPatch_fieldListType::BPatch_fieldListType(const char *_name, int _ID, BPatch_dataClass _class) 
-   : BPatch_type(_name, _ID, _class), derivedFieldList(NULL) {}
+   : BPatch_type(_name, _ID, _class), derivedFieldList(NULL) { size = 0; }
 
 BPatch_fieldListType::~BPatch_fieldListType() {
    if (derivedFieldList != NULL)
@@ -878,7 +887,6 @@ BPatch_Vector<BPatch_field *> * BPatch_fieldListType::getComponents() const
 {
    if (derivedFieldList == NULL)
       const_cast<BPatch_fieldListType *>(this)->fixupComponents();
-
    return derivedFieldList;
 }
 
@@ -891,7 +899,8 @@ void BPatch_fieldListType::fixupComponents()
    for( unsigned int i = 0; i < fieldList.size(); i++ ) {
       BPatch_field * currentField = fieldList[i];
       // bperr( "Considering field '%s'\n", currentField->getName() );
-      if( strcmp( currentField->getName(), "{superclass}" ) == 0 ) {
+      if( currentField->getName() &&
+          strcmp( currentField->getName(), "{superclass}" ) == 0 ) {
          /* Note that this is a recursive call.  However, because
             the class-graph is acyclic (Stroustrup SpecialEd pg 308),
             we're OK. */
@@ -1026,10 +1035,9 @@ static int findIntrensicType(const char *name)
 void BPatch_fieldListType::addField(const char * _fieldname, int value)
 {
   BPatch_field * newField;
-
   newField = new BPatch_field(_fieldname, BPatch_dataScalar, value);
-
   // Add field to list of enum fields
+  assert(newField);
   fieldList.push_back(newField);
 }
 
@@ -1045,7 +1053,7 @@ void BPatch_fieldListType::addField(const char * _fieldname, BPatch_dataClass _t
   BPatch_field * newField;
 
   newField = new BPatch_field(_fieldname, _typeDes, value, _vis);
-
+ 
   // Add field to list of enum fields
   fieldList.push_back(newField);
 }
@@ -1077,6 +1085,17 @@ void BPatch_fieldListType::addField(const char * _fieldname, BPatch_dataClass _t
 
   // API defined structs/union's size are defined on the fly.
   postFieldInsert(_offset, _nsize);
+}
+
+
+void BPatch_fieldListType::addField(BPatch_type *_type)
+{
+  BPatch_field * newField;
+
+  // Create Field for parameter
+  newField = new BPatch_field("param", BPatch_dataUnknownType, _type, 0, 0);
+  // Add field to list of struct/union fields
+  fieldList.push_back(newField);
 }
 
 /*

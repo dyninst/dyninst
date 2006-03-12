@@ -1117,68 +1117,6 @@ void BPatch_module::parseTypes()
 
 #endif
 
-
-
-#if defined(i386_unknown_nt4_0) \
- || defined(mips_unknown_ce2_11) //ccw 6 apr 2001
-
-// Parsing symbol table for NT platform
-// Mehmet 7/24/00
-
-#include "CodeView.h"
-
-void BPatch_module::parseTypes()
-{
-  
-  image * imgPtr=NULL;
-
-  //Using mapped_module to get the image Object.
-  imgPtr = mod->obj()->parse_img();
-
-  // trying to get at codeview symbols
-  // need text section id and addr of codeview symbols
-  unsigned int textSectionId = imgPtr->getObject().GetTextSectionId();
-  PIMAGE_NT_HEADERS peHdr = imgPtr->getObject().GetImageHeader();
-
-  DWORD modBaseAddr = imgPtr->getObject().code_off();
-  PVOID mapAddr = imgPtr->getObject().GetMapAddr();
-
-  PVOID pCodeViewSymbols = NULL;
-  ULONG dirEntSize = 0;
-  PIMAGE_SECTION_HEADER pDebugSectHeader = NULL;
-  PIMAGE_DEBUG_DIRECTORY baseDirEnt = 
-	  (PIMAGE_DEBUG_DIRECTORY)ImageDirectoryEntryToDataEx( mapAddr,
-											FALSE,   // we mapped using MapViewOfFile
-											IMAGE_DIRECTORY_ENTRY_DEBUG,
-											&dirEntSize,
-											&pDebugSectHeader );
-  if( baseDirEnt != NULL )
-  {
-	PIMAGE_DEBUG_DIRECTORY pDirEnt = baseDirEnt;
-	unsigned int nDirEnts = dirEntSize / sizeof(IMAGE_DEBUG_DIRECTORY);
-	for( unsigned int i = 0; i < nDirEnts; i++ )
-	{
-		if( pDirEnt->Type == IMAGE_DEBUG_TYPE_CODEVIEW )
-		{
-			pCodeViewSymbols = (PVOID)(((char*)mapAddr) + pDirEnt->PointerToRawData);
-			break;
-		}
-		// advance to next entry
-		pDirEnt++;
-	}
-  }
-
-  if( pCodeViewSymbols != NULL )
-  {
-	CodeView* cv = new CodeView( (const char*)pCodeViewSymbols, 
-					textSectionId );
-
-	cv->CreateTypeAndLineInfo(this, modBaseAddr, mod->getLineInformation());
-  }
-}
-#endif
-
-
 bool BPatch_module::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 {
  

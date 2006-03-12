@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.31 2005/09/09 18:06:29 legendre Exp $
+ * $Id: Object-nt.h,v 1.32 2006/03/12 23:31:26 legendre Exp $
 ************************************************************************/
 
 
@@ -83,30 +83,26 @@ public:
 		DWORD type;
 		DWORD linkage;
 		DWORD size;
-		DWORD line;
 
 	public:
 		Symbol( pdstring _name,
-				DWORD64 _addr,
-				DWORD _type,
-				DWORD _linkage,
-				DWORD _size,
-				DWORD _lineNumber )
+              DWORD64 _addr,
+              DWORD _type,
+              DWORD _linkage,
+              DWORD _size)
 		  : name(_name),
 			addr(_addr),
 			type(_type),
-			size(_size),
-			line(_lineNumber)
+			size(_size)
 		{}
 
         pdstring GetName( void ) const          { return name; }
         DWORD64 GetAddr( void ) const           { return addr; }
         DWORD	GetSize( void ) const				{ return size; }
-        DWORD  GetLine( void ) const            { return line; }
         DWORD	GetType( void ) const				{ return type; }
         DWORD	GetLinkage( void ) const			{ return linkage; }
 
-		void	SetSize( DWORD cb )					{ size = cb; }
+        void	SetSize( DWORD cb )					{ size = cb; }
 
         void DefineSymbol( dictionary_hash<pdstring, pdvector< ::Symbol > >& syms,
                             const pdstring& modName ) const;
@@ -167,50 +163,28 @@ public:
 	};
 
 private:
-	class CurrentModuleScoper
-	{
-	private:
-		Module** pCurModPtr;
-
-	public:
-		CurrentModuleScoper( Module** pCurrentModulePtr )
-			: pCurModPtr( pCurrentModulePtr )
-		{}
-		~CurrentModuleScoper( void )
-		{
-            delete *pCurModPtr;
-			(*pCurModPtr) = NULL;
-		}
-	};
-
 	Module* curModule;
 
-
 public:
-	Object(fileDescriptor &desc,
+    Object(fileDescriptor &desc,
            void (*)(const char *) = log_msg);
 
-	virtual ~Object( void );
+    virtual ~Object( void );
 
-	bool isForwarded( Address addr );
-	bool isEEL() const { return false; }
-    bool isText( const Address& addr ) const 
-    {
-        return( addr >= code_off_ && addr <= code_len_ );
-    }
-	Address get_base_addr() const { return baseAddr;} //ccw 20 july 2000
-#if defined(mips_unknown_ce2_11) //ccw 28 mar 2001
-	bool set_gp_value(Address addr) {  gp_value = addr; return true;} //ccw 27 july 2000
-	Address get_gp_value() const { return gp_value;} //ccw 20 july 2000
-#endif
-        const fileDescriptor& GetDescriptor( void ) const     { return desc; }
-	Module* GetCurrentModule( void )				    { return curModule; }
-
-    bool getCatchBlock(ExceptionBlock &b, Address addr, unsigned size = 0) const { return false; }
+    bool isForwarded( Address addr );
+    bool isEEL() const { return false; }
+    bool isText( const Address& addr ) const; 
+    Address get_base_addr() const { return baseAddr;} 
+    const fileDescriptor& GetDescriptor( void ) const     { return desc; }
+    Module* GetCurrentModule( void )				    { return curModule; }
+   
+    bool getCatchBlock(ExceptionBlock &b, Address addr, unsigned size = 0) const;
     unsigned int GetTextSectionId( void ) const         { return textSectionId;}
     PIMAGE_NT_HEADERS   GetImageHeader( void ) const    { return peHdr; }
     PVOID GetMapAddr( void ) const                      { return mapAddr; }
-
+   
+    void    ParseGlobalSymbol(PSYMBOL_INFO pSymInfo);
+    const pdvector<Address> &getPossibleMains() const   { return possible_mains; }
 private:
     void    ParseDebugInfo( void );
     void    FindInterestingSections( HANDLE hProc, HANDLE hFile );
@@ -218,20 +192,16 @@ private:
 	Address	baseAddr;					// location of this object in 
 								// mutatee address space
 
-#if defined(mips_unknown_ce2_11)
-	Address gp_value;				//pointer to global area 
-							//ccw 20 july 2000 : 28 mar 2001
-#endif
-
     PIMAGE_NT_HEADERS   peHdr;      // PE file headers
 	PIMAGE_OPTIONAL_HEADER optHdr;
 
 	unsigned int textSectionId;		// id of .text segment (section)
 	unsigned int dataSectionId;		// id of .data segment (section)
-
+   
     HANDLE  hMap;                   // handle to mapping object
     LPVOID  mapAddr;                // location of mapped file in *our* address space
     fileDescriptor desc;
+    pdvector<Address> possible_mains; //Addresses of functions that may be main
 };
 
 

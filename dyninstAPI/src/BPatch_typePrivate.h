@@ -143,6 +143,7 @@ class BPATCH_DLL_EXPORT BPatch_typePointer : public BPatch_type {
    API_EXPORT(Int, (otype),
    bool,isCompatible,(BPatch_type *otype));
    void fixupUnknowns(BPatch_module *);
+   void setPtr(BPatch_type *_ptr);
 };
 
 #ifdef DYNINST_CLASS_NAME
@@ -161,6 +162,8 @@ class BPATCH_DLL_EXPORT BPatch_typeFunction : public BPatch_fieldListType {
    API_EXPORT(Int, (otype),
    bool,isCompatible,(BPatch_type *otype));
    void fixupUnknowns(BPatch_module *);
+   void setRetType(BPatch_type *rtype);
+   void setName(const char *name);
 };
 
 #ifdef DYNINST_CLASS_NAME
