@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_21.C,v 1.3 2006/03/08 16:44:21 bpellin Exp $
+// $Id: test1_21.C,v 1.4 2006/03/12 23:33:21 legendre Exp $
 /*
  * #Name: test1_21
  * #Desc: findFunction in module
@@ -69,21 +69,19 @@ char libNameA[128], libNameB[128];
 // But this is already checked by the "non-existent function" test in
 // test2.
 
+
 int mutatorTest21(BPatch_thread *, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) \
- || defined(alpha_dec_osf4_0) \
- || defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(ia64_unknown_linux2_4) \
- || defined(mips_sgi_irix6_4) \
- || defined(rs6000_ibm_aix4_1)
+#if defined(os_aix) \
+ || defined(os_osf) \
+ || defined(os_solaris) \
+ || defined(os_linux) \
+ || defined(os_windows) \
 
     // Lookup the libtestA.so and libtestB.so modules that we've just loaded
 
     if (mutateeFortran) {
-	return 0;
+        return 0;
     }
 
     BPatch_module *modA = NULL;
@@ -92,23 +90,25 @@ int mutatorTest21(BPatch_thread *, BPatch_image *appImage)
     if (!mods || mods->size() == 0) {
 	 fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
 	 fprintf(stderr, "  Mutator couldn't search modules of mutatee\n");
-         for (unsigned int j = 0; j < mods->size(); ++j) {
-            char buf2[1024];
-            BPatch_module *m = (*mods)[j];
-            m->getName(buf2, 1024);
-            fprintf(stderr, "%s[%d]:  module: %s\n", __FILE__, __LINE__, buf2);
-         }
-	 return -1;
+     return -1;
     }
+    /*
+    for (unsigned int j = 0; j < mods->size(); ++j) {
+        char buf2[1024];
+        BPatch_module *m = (*mods)[j];
+        m->getName(buf2, 1024);
+        fprintf(stderr, "%s[%d]:  module: %s\n", __FILE__, __LINE__, buf2);
+    }
+    */
 
     for (unsigned int i = 0; i < mods->size() && !(modA && modB); i++) {
 	 char buf[1024];
 	 BPatch_module *m = (*mods)[i];
 	 m->getName(buf, 1024);
 	 // module names sometimes have "_module" appended
-	 if (!strncmp(libNameA, buf, strlen(libNameA)))
+	 if (!strcmpcase(libNameA, buf))
 	      modA = m;
-	 else if (!strncmp(libNameB, buf, strlen(libNameB)))
+	 else if (!strcmpcase(libNameB, buf))
 	      modB = m;
     }
     if (! modA || ! modB ) {
@@ -150,6 +150,7 @@ int mutatorTest21(BPatch_thread *, BPatch_image *appImage)
     //  the basic mechanism that deals with regexes is not broken
 
     bpmv.clear();
+#if !defined(os_windows)
     //   regex "^cb" should match all functions that begin with "cb"
     //   We dont use existing "call" functions here since (at least on
     //   linux, we also find call_gmon_start().  Thus the dummy fns.
@@ -173,6 +174,7 @@ int mutatorTest21(BPatch_thread *, BPatch_image *appImage)
          return -1;
     }
 #endif
+#endif
     return 0;
 }
 
@@ -186,8 +188,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
    RETURNONFAIL(readyTest21or22(appThread, libNameA, libNameB));
 
-   return mutatorTest21(appThread, appImage);
 
+   return mutatorTest21(appThread, appImage);
 }
 
 // External Interface

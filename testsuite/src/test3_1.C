@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_1.C,v 1.4 2006/02/22 22:06:29 bpellin Exp $
+// $Id: test3_1.C,v 1.5 2006/03/12 23:33:27 legendre Exp $
 /*
  * #Name: test3_1
  * #Desc: Create processes, process events, and kill them, no instrumentation
@@ -55,6 +55,12 @@
 
 #include "test_lib.h"
 //#include "test3.h"
+
+#if defined(os_windows)
+BPatch_exitType expectedSignal = ExitedNormally;
+#else
+BPatch_exitType expectedSignal = ExitedViaSignal;
+#endif
 
 const unsigned int MAX_MUTATEES = 32;
 unsigned int Mutatees=3;
@@ -97,6 +103,7 @@ int mutatorTest(char *pathname, BPatch *bpatch)
     P_sleep(5);
     dprintf("Terminating mutatee processes.\n");
 
+    appThread[0]->getProcess();
     unsigned int numTerminated=0;
     for (n=0; n<Mutatees; n++) {
         bool dead = appThread[n]->terminateExecution();
@@ -105,7 +112,7 @@ int mutatorTest(char *pathname, BPatch *bpatch)
             printf("    mutatee process [%d] was not terminated\n", n);
             continue;
         }
-        if(appThread[n]->terminationStatus() != ExitedViaSignal) {
+        if(appThread[n]->terminationStatus() != expectedSignal) {
             printf("**Failed** test #1 (simultaneous multiple-process management - terminate)\n");
             printf("    mutatee process [%d] didn't get notice of termination\n", n);
             continue;
@@ -124,7 +131,7 @@ int mutatorTest(char *pathname, BPatch *bpatch)
     return -1;
 }
 
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     char *pathname = param["pathname"]->getString();

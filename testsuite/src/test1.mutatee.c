@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.1 2005/09/29 20:37:48 bpellin Exp $ */
+/* $Id: test1.mutatee.c,v 1.2 2006/03/12 23:33:12 legendre Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -69,8 +69,15 @@
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(i386_unknown_solaris2_5) \
- || defined(ia64_unknown_linux2_4)
+ || defined(ia64_unknown_linux2_4) \
+ || defined(os_aix)
 #include <dlfcn.h> /* For replaceFunction test */
+#endif
+
+#if defined(os_windows)
+#define DLLEXPORT __declspec( dllexport )
+#else
+#define DLLEXPORT
 #endif
 
 #include "test1.mutateeCommon.h"
@@ -290,7 +297,7 @@ void call3_1(int arg1, int arg2)
     } else {
 	printf("**Failed** test #3 (passing variables to functions)\n");
 	printf("    arg1 = %d, should be 31\n", arg1);
-	printf("    arg2 = %d, should be 32\n", arg2);
+	printf("    arg2 = %d, should be 32\n", arg2);    
     }
 }
 
@@ -493,28 +500,24 @@ void call20_1()
 			 ))))))))))))))))))))))))))))))))))))))));
 }
 
-void call22_1(int x)
+int call22_1(int x)
 {
-     globalVariable22_1 += x;
-     globalVariable22_1 += MAGIC22_1;
+    return x + MAGIC22_1;
 }
 
-void call22_2(int x)
+int call22_2(int x)
 {
-     globalVariable22_1 += x;
-     globalVariable22_1 += MAGIC22_2;
+    return x + MAGIC22_2;
 }
 
-void call22_3(int x)
+int call22_3(int x)
 {
-     globalVariable22_2 += x;
-     globalVariable22_2 += MAGIC22_3;
+    return x + MAGIC22_3;
 }
 
-void call22_7(int x)
+int call22_7(int x)
 {
-     globalVariable22_4 += x;
-     globalVariable22_4 += MAGIC22_7;
+    return x + MAGIC22_7;
 }
 
 #if defined(sparc_sun_solaris2_4) \
@@ -1275,7 +1278,8 @@ void func21_1()
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(alpha_dec_osf4_0) \
  || defined(rs6000_ibm_aix4_1) \
- || defined(ia64_unknown_linux2_4)
+ || defined(ia64_unknown_linux2_4) \
+ || defined(os_windows)
 
      printf("Passed test #21 (findFunction in module)\n");
      passedTest[21] = TRUE;
@@ -1296,13 +1300,49 @@ extern void call22_6(int);
 
 volatile int _unused;	/* move decl here to dump compiler warning - jkh */
 
+typedef int (*call_type)(int);
+
+#if !defined(os_windows)
+void getFuncs_22(call_type *call22_5, call_type *call22_6) {
+    char dlopenName[128];
+    void *handleA;
+    int dlopenMode;
+#if defined(os_solaris)
+    dlopenMode = RTLD_NOW | RTLD_GLOBAL;
+#else
+    dlopenMode = RTLD_NOW;
+#endif
+    *call22_5 = NULL;
+    *call22_6 = NULL;
+
+    _unused = sprintf(dlopenName, "./%s", libNameA);
+    handleA = dlopen(dlopenName, dlopenMode);
+    if (! handleA) {
+        fprintf(stderr, "Failed test 22.  Unable to open libTestA\n");
+        return;
+    }
+    *call22_5 = (call_type) dlsym(handleA, "call22_5");
+    *call22_6 = (call_type) dlsym(handleA, "call22_6");
+}
+#elif defined(os_windows)
+void getFuncs_22(call_type *call22_5, call_type *call22_6) {
+    char dlopenName[128];
+    HMODULE handle;
+    *call22_5 = NULL;
+    *call22_6 = NULL;
+    sprintf(dlopenName, "./%s", libNameA);
+    handle = LoadLibrary(libNameA);
+    if (!handle)
+        return;
+    *call22_5 = (call_type) GetProcAddress(handle, "call22_5");
+    *call22_6 = (call_type) GetProcAddress(handle, "call22_6");
+}
+#endif
+
 void func22_1()
 {
-#if !defined(sparc_sun_solaris2_4) \
- && !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(alpha_dec_osf4_0) \
- && !defined(ia64_unknown_linux2_4)
+#if !defined(os_solaris) && !defined(os_linux) && \
+    !defined(os_osf) && !defined(os_windows)
 
     printf("Skipped test #22 (replace function)\n");
     printf("\t- not implemented on this platform\n");
@@ -1311,55 +1351,38 @@ void func22_1()
     /* libtestA.so should already be loaded (by the mutator), but we
        need to use the dl interface to get pointers to the functions
        it defines. */
-    void (*call22_5)(int);
-    void (*call22_6)(int);
-
-    void *handleA;
-    char dlopenName[128];
-#if defined(sparc_sun_solaris2_4)
-    int dlopenMode = RTLD_NOW | RTLD_GLOBAL;
-#else
-    int dlopenMode = RTLD_NOW;
-#endif
-    _unused = sprintf(dlopenName, "./%s", libNameA);
-    handleA = dlopen(dlopenName, dlopenMode);
-    if (! handleA) {
-	 printf("**Failed test #22 (replaceFunction)\n");
-	 printf("  Mutatee couldn't get handle for %s\n", libNameA);
+    int result;
+    call_type call22_5;
+    call_type call22_6;
+    getFuncs_22(&call22_5, &call22_6);
+    if (!call22_5 || !call22_6) {
+        fprintf(stderr, "Failed test #22.  Couldn't find function: ");
+        if (!call22_5) fprintf(stderr, "call22_5 ");
+        if (!call22_6) fprintf(stderr, "call22_6 ");
+        fprintf(stderr, "\n");
+        return;
     }
-    call22_5 = (void(*)(int))dlsym(handleA, "call22_5");
-    if (! call22_5) {
-	 printf("**Failed test #22 (replaceFunction)\n");
-	 printf("  Mutatee couldn't get handle for call22_5 in %s\n", libNameA);
-    }
-    call22_6 = (void(*)(int))dlsym(handleA, "call22_6");
-    if (! call22_6) {
-	 printf("**Failed test #22 (replaceFunction)\n");
-	 printf("  Mutatee couldn't get handle for call22_6 in %s\n", libNameA);
-    }
-
+    
     /* Call functions that have been replaced by the mutator.  The
        side effects of these calls (replaced, not replaced, or
        otherwise) are independent of each other. */
-    call22_1(10);  /* replaced by call22_2 */
-    if (globalVariable22_1 != 10 + MAGIC22_2) {
+    result = call22_1(10);  /* replaced by call22_2 */
+    if (result != 10 + MAGIC22_2) {
 	 printf("**Failed test #22 (replace function) (a.out -> a.out)\n");
 	 return;
     }
-    call22_3(20);  /* replaced by call22_4 */
-    if (globalVariable22_2 != 20 + MAGIC22_4) {
+    result = call22_3(20);  /* replaced by call22_4 */
+    if (result != 20 + MAGIC22_4) {
 	 printf("**Failed test #22 (replace function) (a.out -> shlib)\n");
 	 return;
     }
-    call22_5(30);  /* replaced by call22_5 (in libtestB) */
-    if (globalVariable22_3 != 30 + MAGIC22_5B) {
-	 printf("globalVariable22_3 = %d\n", globalVariable22_3);
-	 printf("30 + MAGIC22_5B = %d\n", 30 + MAGIC22_5B);
+    result = call22_5(30);  /* replaced by call22_5 (in libtestB) */
+    if (result != 30 + MAGIC22_5B) {
 	 printf("**Failed test #22 (replace function) (shlib -> shlib)\n");
 	 return;
     }
-    call22_6(40);  /* replaced by call22_6 */
-    if (globalVariable22_4 != 40 + MAGIC22_7) {
+    result = call22_6(40);  /* replaced by call22_7 */
+    if (result != 40 + MAGIC22_7) {
 	 printf("**Failed test #22 (replace function) (shlib -> a.out)\n");
 	 return;
     }

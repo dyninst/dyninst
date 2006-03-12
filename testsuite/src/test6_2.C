@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test6_2.C,v 1.5 2006/01/09 19:48:17 bpellin Exp $
+// $Id: test6_2.C,v 1.6 2006/03/12 23:33:46 legendre Exp $
 /*
  * #Name: test6_2
  * #Desc: Store Instrumentation
@@ -137,30 +137,15 @@ void init_test_data()
 }
 #endif
 
-#if defined(i386_unknown_linux2_0) \
- || defined(i386_unknown_nt4_0)
-const unsigned int nstores = 23;
-BPatch_memoryAccess* storeList[nstores];
-
 void *divarwp, *dfvarsp, *dfvardp, *dfvartp, *dlargep;
 
 void get_vars_addrs(BPatch_image* bip) // from mutatee
 {
-#ifdef i386_unknown_nt4_0
-  // FIXME: With or without leading _ dyninst cannot find these variables.
-  // VC++6 debugger has no such problems...
-  BPatch_variableExpr* bpvep_diwarw = bip->findVariable("_divarw");
-  BPatch_variableExpr* bpvep_diwars = bip->findVariable("_dfvars");
-  BPatch_variableExpr* bpvep_diward = bip->findVariable("_dfvard");
-  BPatch_variableExpr* bpvep_diwart = bip->findVariable("_dfvart");
-  BPatch_variableExpr* bpvep_dlarge = bip->findVariable("_dlarge");
-#else
   BPatch_variableExpr* bpvep_diwarw = bip->findVariable("divarw");
   BPatch_variableExpr* bpvep_diwars = bip->findVariable("dfvars");
   BPatch_variableExpr* bpvep_diward = bip->findVariable("dfvard");
   BPatch_variableExpr* bpvep_diwart = bip->findVariable("dfvart");
   BPatch_variableExpr* bpvep_dlarge = bip->findVariable("dlarge");
-#endif
   
   divarwp = bpvep_diwarw->getBaseAddr();
   dfvarsp = bpvep_diwars->getBaseAddr();
@@ -168,6 +153,12 @@ void get_vars_addrs(BPatch_image* bip) // from mutatee
   dfvartp = bpvep_diwart->getBaseAddr();
   dlargep = bpvep_dlarge->getBaseAddr();
 }
+
+
+#if defined(i386_unknown_linux2_0) \
+ || defined(i386_unknown_nt4_0)
+const unsigned int nstores = 23;
+BPatch_memoryAccess* storeList[nstores];
 
 void init_test_data()
 {
@@ -223,22 +214,6 @@ void init_test_data() {
 #ifdef x86_64_unknown_linux2_4
 const unsigned int nstores = 25;
 
-void *divarwp, *dfvarsp, *dfvardp, *dfvartp, *dlargep;
-
-void get_vars_addrs(BPatch_image* bip) // from mutatee
-{
-
-  BPatch_variableExpr* bpvep_diwarw = bip->findVariable("divarw");
-  BPatch_variableExpr* bpvep_diwars = bip->findVariable("dfvars");
-  BPatch_variableExpr* bpvep_diward = bip->findVariable("dfvard");
-  BPatch_variableExpr* bpvep_diwart = bip->findVariable("dfvart");
-  BPatch_variableExpr* bpvep_dlarge = bip->findVariable("dlarge");
-  divarwp = bpvep_diwarw->getBaseAddr();
-  dfvarsp = bpvep_diwars->getBaseAddr();
-  dfvardp = bpvep_diward->getBaseAddr();
-  dfvartp = bpvep_diwart->getBaseAddr();
-  dlargep = bpvep_dlarge->getBaseAddr();
-}
 BPatch_memoryAccess* storeList[nstores];
 
 void init_test_data()
@@ -319,12 +294,9 @@ int mutatorTest(BPatch_thread *bpthr, BPatch_image *bpimg)
  && !defined(ia64_unknown_linux2_4)
   skiptest(testnum, testdesc);
 #else
-
-#if defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
+#if defined(arch_x86) || defined(arch_x86_64)
   get_vars_addrs(bpimg);
 #endif
-
   init_test_data();
 
   BPatch_Set<BPatch_opCode> stores;

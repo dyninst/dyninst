@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_3.C,v 1.2 2005/11/22 19:42:29 bpellin Exp $
+// $Id: test5_3.C,v 1.3 2006/03/12 23:33:37 legendre Exp $
 /*
  * #Name: test5_3
  * #Desc: Overload Operatior
@@ -84,7 +84,9 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
      }
      char fn[256];
      if (!strcmp("overload_op_test::operator++", func->getName(fn, 256)))
+     {
         break;
+     }
      index ++;
   }
 

@@ -42,7 +42,7 @@
 #include <BPatch.h>
 #include <BPatch_process.h>
 #include <BPatch_thread.h>
-#include <unistd.h>
+#include <BPatch_function.h>
 #include "test_lib.h"
 
 #define NUM_THREADS 5
@@ -211,6 +211,7 @@ static BPatch_process *getProcess()
       proc = bpatch->processCreate(filename, (const char **) args);
    else
    {
+#if !defined(os_windows)
       int pid = startNewProcessForAttach(filename, (const char **) args);
       if (pid < 0)
       {
@@ -219,6 +220,7 @@ static BPatch_process *getProcess()
          return NULL;
       }
       proc = bpatch->processAttach(filename, pid);      
+#endif
    }
    return proc;
 }
@@ -272,7 +274,7 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
               __FILE__, __LINE__, thread_count, NUM_THREADS);
          return -1;
       }
-      sleep(1);
+      P_sleep(1);
    } while (thread_count < NUM_THREADS);
 
    BPatch_Vector<BPatch_thread *> thrds;
@@ -313,7 +315,7 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
                  __FILE__, __LINE__);
          break;
       }
-      sleep(1);
+      P_sleep(1);
    } while (deleted_threads < NUM_THREADS-1);
 
    for (unsigned i=1; i<NUM_THREADS; i++)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_20.C,v 1.7 2006/03/08 16:44:20 bpellin Exp $
+// $Id: test1_20.C,v 1.8 2006/03/12 23:33:20 legendre Exp $
 /*
  * #Name: test1_20
  * #Desc: Mutator Side - Instrumentation at arbitrary points
@@ -82,8 +82,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
     bpfv.clear();
     char *fn2 = "func20_2";
-    if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size()
-	|| NULL == bpfv[0]){
+    if (NULL == appImage->findFunction(fn2, bpfv) || !bpfv.size() ||
+	    NULL == bpfv[0]){
       fprintf(stderr, "    Unable to find function %s\n", fn2);
       return -1;
     }
@@ -111,8 +111,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     if (!cfg->getAllBasicBlocks(blocks))
         assert(0); // This can't return false :)
     if (blocks.size() == 0) {
-	fprintf(stderr, "**Failed** test #20 (instrumentation at arbitrary points)\n");
-	fprintf(stderr, "    no blocks for function 20_2\n");
+        fprintf(stderr, "**Failed** test #20 (instrumentation at arbitrary points)\n");
+        fprintf(stderr, "    no blocks for function 20_2\n");
         return -1;
     }
     

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_1.C,v 1.2 2005/11/22 19:42:27 bpellin Exp $
+// $Id: test5_1.C,v 1.3 2006/03/12 23:33:35 legendre Exp $
 /*
  * #Name: test5_1
  * #Desc: C++ Argument Pass
@@ -60,16 +60,13 @@
 //       
 int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(ia64_unknown_linux2_4)
+#if defined(os_solaris) || defined(os_linux) || defined(os_windows)
 
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn = "arg_test::call_cpp";
   if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
       || NULL == bpfv[0]){
-    fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+    fprintf(stderr, "**Failed** test #1\n");
     fprintf(stderr, "    Unable to find function %s\n", fn);
     return -1;
   }
@@ -172,8 +169,9 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 
    checkCost(call1Expr);
    appThread->insertSnippet(call1Expr, *point1_2);
+#else
+   fprintf(stderr, "Not supported on this platform\n");
 #endif
-
    return 0;
 }
 
@@ -184,10 +182,13 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
-
     // Read the program's image and get an associated image object
     BPatch_image *appImage = appThread->getImage();
 
-    // Run mutator code
-    return mutatorTest(appThread, appImage);
+        // Run mutator code
+    int result = mutatorTest(appThread, appImage);
+        /*fprintf(stderr, "Kaboom\n");
+        appThread->getProcess()->debugSuicide();
+        exit(0);*/
+    return result;
 }

@@ -54,6 +54,7 @@
 
 #if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 10 apr 2001 
 #define P_sleep(sec) Sleep(1000*(sec))
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #else
 #define P_sleep(sec) sleep(sec)
@@ -94,7 +95,7 @@ TESTLIB_DLL_EXPORT void checkCost(BPatch_snippet snippet);
 TESTLIB_DLL_EXPORT BPatch_variableExpr *findVariable(BPatch_image *appImage, const char* var,
                                   BPatch_Vector <BPatch_point *> *point);
 
-void setMutateeFortran(int mutFor);
+TESTLIB_DLL_EXPORT void setMutateeFortran(int mutFor);
 TESTLIB_DLL_EXPORT void setDebugPrint(int debug);
 
 //
@@ -137,7 +138,7 @@ TESTLIB_DLL_EXPORT void addLibArchExt(char *dest, unsigned int dest_max_len);
 
 // Function to preload some libraries for test1_21 and test1_22
 TESTLIB_DLL_EXPORT int readyTest21or22(BPatch_thread *appThread, char *libNameA, char *libNameB);
-
+TESTLIB_DLL_EXPORT int strcmpcase(char *s1, char *s2);
 
 TESTLIB_DLL_EXPORT void instrument_entry_points( BPatch_thread * app_thread,
 			      BPatch_image * ,
@@ -159,7 +160,7 @@ int isMutateeF77(BPatch_image *appImage);
 
 TESTLIB_DLL_EXPORT void MopUpMutatees(const unsigned int mutatees, BPatch_thread *appThread[]);
 
-void contAndWaitForAllThreads(BPatch *bpatch, BPatch_thread *appThread, 
+TEST_DLL_EXPORT void contAndWaitForAllThreads(BPatch *bpatch, BPatch_thread *appThread, 
       BPatch_thread **mythreads, int *threadCount);
 
 /*

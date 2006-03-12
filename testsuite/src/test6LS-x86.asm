@@ -1,4 +1,4 @@
-; $Id: test6LS-x86.asm,v 1.1 2005/09/29 20:38:03 bpellin Exp $
+; $Id: test6LS-x86.asm,v 1.2 2006/03/12 23:33:44 legendre Exp $
 ;
 ; This file must be assembled with nasm  - http://freshmeat.net/projects/nasm/
 
@@ -41,7 +41,7 @@
 ; assuming nt==win32
 %elifidn PLATFORM,i386-unknown-nt4.0 
 
-; WARNING! Extremely nasty hack: defines all symbols prefixed with _ for win32 linkage
+; defines all symbols prefixed with _ for win32 linkage
 %macro global_function 1
     %define %1 _%1
     global %1

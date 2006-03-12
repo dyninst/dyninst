@@ -52,33 +52,41 @@
 #define MAGIC22_6   2200600
 #define MAGIC22_7   2200700
 
-extern int globalVariable22_1;
-extern int globalVariable22_2;
-extern int globalVariable22_3;
-extern int globalVariable22_4;
+#if defined(os_windows)
+#define DLLEXPORT __declspec( dllexport )
+#else
+#define DLLEXPORT
+#endif
+
+#if defined(os_windows) && defined(__cplusplus)
+extern "C" {
+#endif
 
 /* Keep this function at the start of this file to kludgily ensure
 // that its base address differs from its counterpart in libtestB.c
 */
-void call21_1()
+DLLEXPORT int call21_1()
 {
-     printf("This function was not meant to be called!\n");
+     printf("This function was not meant to be called %d!\n");
+     return -1;
 }
 
-void call22_4(int x)
+DLLEXPORT int call22_4(int x)
 {
-     globalVariable22_2 += x;
-     globalVariable22_2 += MAGIC22_4;
+    return x + MAGIC22_4;
 }
 
-void call22_5(int x)
+DLLEXPORT int call22_5(int x)
 {
-     globalVariable22_3 += x;
-     globalVariable22_3 += MAGIC22_5A;
+    return x + MAGIC22_5A;
 }
 
-void call22_6(int x)
+DLLEXPORT int call22_6(int x)
 {
-     globalVariable22_4 += x;
-     globalVariable22_4 += MAGIC22_6;
+    return x + MAGIC22_6;
 }
+
+#if defined(os_windows) && defined(__cplusplus)
+}
+#endif
+

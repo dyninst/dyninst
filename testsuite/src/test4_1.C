@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4_1.C,v 1.3 2005/11/22 19:42:23 bpellin Exp $
+// $Id: test4_1.C,v 1.4 2006/03/12 23:33:32 legendre Exp $
 /*
  * #Name: test4_1
  * #Desc: Exit Callback
@@ -116,8 +116,7 @@ void execFunc(BPatch_thread *thread)
 
 int mutatorTest(char *pathname, BPatch *bpatch)
 {
-#if defined(i386_unknown_nt4_0) \
- || defined(alpha_dec_osf4_0)
+#if defined(alpha_dec_osf4_0)
     printf("Skipping test #1 (exit callback)\n");
     printf("    not implemented on this platform\n");
     return 0;

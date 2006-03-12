@@ -53,7 +53,7 @@
 
 #define do_dyninst_breakpoint() stop_process_()
 
-#if defined(i386_unknown_nt4_0) && !defined(__GNUC__)
+#if defined(os_windows) && !defined(__GNUC__)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #define getpid _getpid
@@ -172,7 +172,7 @@ void func3_1() {
 	do_dyninst_breakpoint();
 	
 	/* This function will be instrumented. */
-	func3_2();	
+	func3_2();
 	} /* end func3_1() */
 
 int main(int argc, char *argv[])

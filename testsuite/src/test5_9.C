@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_9.C,v 1.2 2005/11/22 19:42:35 bpellin Exp $
+// $Id: test5_9.C,v 1.3 2006/03/12 23:33:43 legendre Exp $
 /*
  * #Name: test5_9
  * #Desc: Derivation
@@ -60,9 +60,7 @@
 //
 int mutatorTest(BPatch_thread *, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
+#if defined(os_solaris) || defined(os_windows) || defined(os_linux)
    bool found = false;
    
   BPatch_Vector<BPatch_function *> bpfv;
@@ -111,7 +109,8 @@ int mutatorTest(BPatch_thread *, BPatch_image *appImage)
 
    int index = 0;
    while ( index < fields->size() ) {
-       if ( !strcmp("call_cpp", (*fields)[index]->getName()) ) {
+       if ( !strcmp("call_cpp", (*fields)[index]->getName()) ||
+           !strcmp("cpp_test_util::call_cpp", (*fields)[index]->getName())) {
           found = true;
           break;
        }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4_2.C,v 1.6 2006/03/08 16:44:56 bpellin Exp $
+// $Id: test4_2.C,v 1.7 2006/03/12 23:33:33 legendre Exp $
 /*
  * #Name: test4_2
  * #Desc: Fork Callback
@@ -83,7 +83,9 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
 
     // Make a race condition always show up -- we don't run
     // until the processes have had a chance.
+#if !defined(os_windows)
     sleep(1);
+#endif
     // That'll make erroneous continues break...
 
     // insert code into parent

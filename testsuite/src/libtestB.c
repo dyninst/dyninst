@@ -42,6 +42,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#if defined(os_windows)
+#define DLLEXPORT __declspec( dllexport )
+#else
+#define DLLEXPORT
+#endif
+
+#if defined(os_windows) && defined(__cplusplus)
+extern "C" {
+#endif
+
 /* These are copied in test1.mutatee.c and libtestA.c */
 #define MAGIC22_1   2200100
 #define MAGIC22_2   2200200
@@ -52,15 +62,9 @@
 #define MAGIC22_6   2200600
 #define MAGIC22_7   2200700
 
-extern int globalVariable22_1;
-extern int globalVariable22_2;
-extern int globalVariable22_3;
-extern int globalVariable22_4;
-
-void call22_5(int x)
+int call22_5(int x)
 {
-     globalVariable22_3 += x;
-     globalVariable22_3 += MAGIC22_5B;
+    return x + MAGIC22_5B;
 }
 /* function to make regex (test 21)search non-trivial */
 void cbll21_1()
@@ -117,5 +121,9 @@ void func_40_monitorFunc(unsigned int callee_addr, unsigned int callsite_addr)
   }
    fprintf(stderr, "%s[%d]:  FIXME!\n", __FILE__, __LINE__);
   return;
+}
+#endif
+
+#if defined(os_windows) && defined(__cplusplus)
 }
 #endif

@@ -46,4 +46,8 @@
 
 extern void stop_process_();
 
+extern void *spawnNewThread(void *initial_func, void *param);
+extern void joinThread(void *threadid);
+extern void initThreads();
+
 #endif /* _mutatee_util_h_ */

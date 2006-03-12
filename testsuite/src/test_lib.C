@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.6 2006/03/08 16:44:48 bpellin Exp $
+// $Id: test_lib.C,v 1.7 2006/03/12 23:33:54 legendre Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -178,7 +178,7 @@ void setDebugPrint(int debug) {
 //
 int startNewProcessForAttach(const char *pathname, const char *argv[])
 {
-#if defined(i386_unknown_nt4_0)  || defined(mips_unknown_ce2_11) //ccw 10 apr 2001
+#if defined(i386_unknown_nt4_0)
     char child_args[1024];
     strcpy(child_args, "");
     if (argv[0] != NULL) {
@@ -564,7 +564,7 @@ void addLibArchExt(char *dest, unsigned int dest_max_len)
    dest_len += 3;
 #endif
 
-#if defined(i386_unknown_nt4_0)
+#if defined(os_windows)
    strncat(dest, ".dll", dest_max_len - dest_len);
    dest_len += 4;
 #else
@@ -578,7 +578,6 @@ int readyTest21or22(BPatch_thread *appThread, char *libNameA, char *libNameB)
     char libA[128], libB[128];
     snprintf(libA, 128, "./%s", libNameA);
     snprintf(libB, 128, "./%s", libNameB);
-#if !defined(i386_unknown_nt4_0)
     if (!mutateeFortran) {
 	if (! appThread->loadLibrary(libA)) {
 	     fprintf(stderr, "**Failed test #21 (findFunction in module)\n");
@@ -591,7 +590,21 @@ int readyTest21or22(BPatch_thread *appThread, char *libNameA, char *libNameB)
              return -1;
 	}
     }
-#endif
+    return 0;
+}
+
+#define TOLOWER(c) ((c >= 'A' && c <= 'Z') ? c - 'A' + 'a' : c)
+int strcmpcase(char *s1, char *s2) {
+    unsigned i;
+    unsigned char s1_c, s2_c;
+    for (i=0; s1[i] || s2[i]; i++) {
+        s1_c = TOLOWER(s1[i]);
+        s2_c = TOLOWER(s2[i]);
+        if (s1_c < s2_c)
+            return -1;
+        if (s1_c > s2_c)
+            return 1;
+    }
     return 0;
 }
 
@@ -808,7 +821,7 @@ void MopUpMutatees(const unsigned int mutatees, BPatch_thread *appThread[])
     dprintf("MopUpMutatees(%d) done\n", mutatees);
 }
 
-void contAndWaitForAllThreads(BPatch *bpatch, BPatch_thread *appThread, 
+TEST_DLL_EXPORT void contAndWaitForAllThreads(BPatch *bpatch, BPatch_thread *appThread, 
       BPatch_thread **mythreads, int *threadCount)
 {
 
@@ -1239,6 +1252,8 @@ bool checkStack(BPatch_thread *appThread,
 	}
 #endif
 
+    if (stack.size() >= j)
+        break;
 	if (correct_frame_info[i].valid) {
 	    char name[name_max], name2[name_max];
 

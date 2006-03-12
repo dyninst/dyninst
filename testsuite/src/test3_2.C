@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3_2.C,v 1.4 2006/02/22 22:06:30 bpellin Exp $
+// $Id: test3_2.C,v 1.5 2006/03/12 23:33:28 legendre Exp $
 /*
  * #Name: test3_2
  * #Desc: simultaneous multiple-process management - exit
@@ -128,9 +128,10 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 	printf("Passed Test #2 (simultaneous multiple-process management - exit)\n");
         return 0;
     }
+	return -1;
 }
 
-extern "C" int mutatorMAIN(ParameterDict &param)
+extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 {
     BPatch *bpatch;
     char *pathname = param["pathname"]->getString();

@@ -493,6 +493,11 @@ test9.mutatee_gcc: libInstMe_$(M_ABI).so
 test9.mutatee_$(NATIVE_CC): libInstMe_(M_ABI).so
 endif
 
+test13.mutatee_$(NATIVE_CXX): mutatee_util_mt_$(NATIVE_CXX).o
+test13.mutatee_$(NATIVE_CC): mutatee_util_mt_$(NATIVE_CC).o
+test13.mutatee_$(M_GCC): mutatee_util_mt_$(M_GCC).o
+test13.mutatee_$(M_GXX): mutatee_util_mt_$(M_GXX).o
+
 # MUTATEE_SPECIFIC_LIBS is analyzed by gmake when constructing the link line
 # If you want to specify that a specific library should be used to link a specific
 # mutatee, add an entry to this variable in the format <testno>.-libwhatever

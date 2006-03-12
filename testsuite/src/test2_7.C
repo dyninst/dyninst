@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_7.C,v 1.2 2005/11/22 19:42:15 bpellin Exp $
+// $Id: test2_7.C,v 1.3 2006/03/12 23:33:26 legendre Exp $
 /*
  * #Name: test2_7
  * #Desc: Load a dynamically linked lbibraryr from the mutator
@@ -56,15 +56,17 @@
 #include "test_lib.h"
 #include "test2.h"
 
+static void lcase(char *s) {
+    while (*s) {
+        if (*s >= 'A' && *s <= 'Z')
+            *s = *s - 'A' + 'a';
+        s++;
+    }
+}
 int mutatorTest(BPatch_thread *thread, BPatch_image *img)
 {
-#if !defined(sparc_sun_solaris2_4) \
- && !defined(i386_unknown_solaris2_5) \
- && !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(mips_sgi_irix6_4) \
- && !defined(rs6000_ibm_aix4_1) \
- && !defined(ia64_unknown_linux2_4)
+#if !defined(os_solaris) && !defined(os_linux) && !defined(os_irix) && \
+    !defined(os_aix) && !defined(os_windows)
     printf("Skipping test #7 (load a dynamically linked library from the mutator)\n");
     printf("    feature not implemented on this platform\n");
     return 0;
@@ -84,6 +86,11 @@ int mutatorTest(BPatch_thread *thread, BPatch_image *img)
 	for (unsigned int i=0; i < m->size(); i++) {
 		char name[80];
 		(*m)[i]->getName(name, sizeof(name));
+#if defined(os_windows)
+        //Windows files don't have case sensitive names, so make
+        //sure we have a consistent name.
+        lcase(name);
+#endif
 		if (strstr(name, TEST_DYNAMIC_LIB2) ||
 #ifdef rs6000_ibm_aix4_1
 		    strcmp(name, TEST_DYNAMIC_LIB2_NOPATH) == 0 ||

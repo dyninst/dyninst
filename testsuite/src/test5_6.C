@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_6.C,v 1.2 2005/11/22 19:42:32 bpellin Exp $
+// $Id: test5_6.C,v 1.3 2006/03/12 23:33:40 legendre Exp $
 /*
  * #Name: test5_6
  * #Desc: Exception
@@ -61,10 +61,7 @@
 // 
 int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(ia64_unknown_linux2_4)
+#if defined(os_solaris) || defined(os_linux)
 
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn2 = "exception_test::func_cpp";
@@ -96,21 +93,22 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
         continue;
      }
      char fn[256];
+     func->getName(fn, 256);
      if (!strcmp("sample_exception::response", func->getName(fn, 256))) {
          BPatch_Vector<BPatch_point *> *point6_2 = func->findPoint(BPatch_exit);
          assert(point6_2);
 
-	 bpfv.clear();
-	 char *fn3 = "exception_test_call_cpp";
-	 if (NULL == appImage->findFunction(fn3, bpfv) || !bpfv.size()
-	     || NULL == bpfv[0]){
-	   fprintf(stderr, "**Failed** test #6 (exception)\n");
-	   fprintf(stderr, "    Unable to find function %s\n", fn3);
-	   return FAIL;
-	 }
-	 BPatch_function *call6_func = bpfv[0];
+         bpfv.clear();
+         char *fn3 = "exception_test_call_cpp";
+         if (NULL == appImage->findFunction(fn3, bpfv) || !bpfv.size()
+             || NULL == bpfv[0]){
+           fprintf(stderr, "**Failed** test #6 (exception)\n");
+           fprintf(stderr, "    Unable to find function %s\n", fn3);
+           return FAIL;
+         }
+         BPatch_function *call6_func = bpfv[0];
   
-	 BPatch_Vector<BPatch_snippet *> call6_args;
+         BPatch_Vector<BPatch_snippet *> call6_args;
          BPatch_constExpr expr6_0(6);
          call6_args.push_back(&expr6_0);
          BPatch_funcCallExpr call6Expr(*call6_func, call6_args);

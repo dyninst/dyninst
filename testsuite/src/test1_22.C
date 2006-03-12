@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_22.C,v 1.3 2006/03/08 16:44:22 bpellin Exp $
+// $Id: test1_22.C,v 1.4 2006/03/12 23:33:22 legendre Exp $
 /*
  * #Name: test1_22
  * #Desc: Mutator Side - Replace Function
@@ -69,14 +69,13 @@ char libNameA[128], libNameB[128];
 // test2.
 int mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+#if defined(os_solaris) \
  || defined(alpha_dec_osf4_0) \
- || defined(ia64_unknown_linux2_4)
+ || defined(os_linux) \
+ || defined(os_windows)
 
     if (mutateeFortran) {
-	return 0;
+        return 0;
     }
 
     char errbuf[1024]; errbuf[0] = '\0';
@@ -97,9 +96,9 @@ int mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
 	 BPatch_module *m = (*mods)[i];
 	 m->getName(buf, 1024);
 	 // module names sometimes have "_module" appended
-	 if (!strncmp(libNameA, buf, strlen(libNameA)))
+	 if (!strcmpcase(libNameA, buf))
 	      modA = m;
-	 else if (!strncmp(libNameB, buf, strlen(libNameB)))
+	 else if (!strcmpcase(libNameB, buf))
 	      modB = m;
     }
     if (! modA || ! modB) {
@@ -223,13 +222,11 @@ int mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
       return -1;
     }
     BPatch_function *call22_7func = bpfv[0];
-
     if (! appThread->replaceFunction(*call22_6func, *call22_7func)) {
 	 fprintf(stderr, "**Failed test #22 (replace function)\n");
 	 fprintf(stderr, "  Mutator couldn't replaceFunction (shlib -> a.out)\n");
 	 return -1;
     }
-
 #endif
     return 0;
 }

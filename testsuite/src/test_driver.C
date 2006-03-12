@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.17 2006/03/08 19:58:00 mjbrim Exp $
+// $Id: test_driver.C,v 1.18 2006/03/12 23:33:52 legendre Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -49,7 +49,7 @@
 
 #if defined(i386_unknown_nt4_0)
 #define vsnprintf _vsnprintf
-#pragma waring(disable:4786)
+#pragma warning(disable:4786)
 #else
 #include <fnmatch.h>
 #include <dirent.h>
@@ -186,14 +186,16 @@ int cleanup(BPatch *bpatch, BPatch_thread *appThread, test_data_t &test, Process
       if ( test.state != SELFSTART )
       {
          dprintf("starting program execution.\n");
-         appThread->continueExecution();
 
          // Reset Error callback
          //bpatch->registerErrorCallback(errorFunc);
 
          // Test poll for status change
-         while (!appThread->isTerminated())
+         do {
+             appThread->continueExecution();
              bpatch->waitForStatusChange();
+         } while (!appThread->isTerminated());
+         
 
          int retVal;
          if(appThread->terminationStatus() == ExitedNormally) {
@@ -634,6 +636,9 @@ int getResumeLog(int *testnum, int *mutateenum, int *optionnum)
 {
    FILE *resume;
    resume = fopen(resumelog_name, "r");
+   if (!resume) {
+	   return -1;
+   }
    if ( fscanf(resume, "%d,%d,%d", testnum, mutateenum, optionnum) != 3 )
    {
       fprintf(stderr, "Unable to parse entry in the resume log\n");
@@ -662,7 +667,7 @@ int startTest(test_data_t tests[], unsigned int n_tests, std::vector<char *> &te
     BPatch *bpatch;
     // Create an instance of the BPatch library
     bpatch = new BPatch;
-   
+
     // Begin setting up test parameters
     ParameterDict param(pdstring::hash);
     // Setup parameters
@@ -698,6 +703,8 @@ int startTest(test_data_t tests[], unsigned int n_tests, std::vector<char *> &te
    int j_init = skipToMutatee;
    int k_init = skipToOption;
    // Loop over list of tests
+
+   unsigned count = 0;
    for (unsigned int i = i_init; i < n_tests; i++ )
    {
       // Skip test if disabled on current platform
@@ -714,6 +721,7 @@ int startTest(test_data_t tests[], unsigned int n_tests, std::vector<char *> &te
       }
       // Run test over list of mutatees
       dprintf("%s has %d mutatees.\n", tests[i].name, tests[i].mutatee.size());
+      //for (unsigned int j = j_init; j < tests[i].mutatee.size(); j++ )
       for (unsigned int j = j_init; j < tests[i].mutatee.size(); j++ )
       {
          if ( !runAllMutatees && !inMutateeList(tests[i].mutatee[j], mutatee_list) )
@@ -769,13 +777,14 @@ int startTest(test_data_t tests[], unsigned int n_tests, std::vector<char *> &te
             
             // Execute the test
             result = executeTest(bpatch, tests[i], tests[i].mutatee[j], cm, param);
-            
             if ( useHumanLog )
             {
                printResultHumanLog(tests[i], tests[i].mutatee[j], cm, result, replay_position);
             }
             // End execution if we've set a limit and reached it
             testsRun++;
+            if (count == 5)
+                goto END_OF_TESTS;
             if ( testLimit != 0 && testsRun >= testLimit )
             {
                // Break out of all loops
@@ -803,7 +812,14 @@ int startTest(test_data_t tests[], unsigned int n_tests, std::vector<char *> &te
       return result;
    }
 }
-
+void DebugPause() {
+    fprintf(stderr, "Waiting for attach by debugger\n");
+#if defined(i386_unknown_nt4_0)
+    DebugBreak();
+#else
+    sleep(10);
+#endif
+}
 void setPDScriptDir()
 {
    pdscrdir = getenv("PDSCRDIR");
@@ -837,8 +853,8 @@ void setPDScriptDir()
 }
    
 int main(unsigned int argc, char *argv[]) {
-
     unsigned int i;
+    bool shouldDebugBreak = false;
     std::vector<char *> test_list;
     std::vector<char *> mutatee_list;
 
@@ -860,6 +876,10 @@ int main(unsigned int argc, char *argv[]) {
        else if ( strcmp(argv[i], "-log")==0)
        {
           enableLogging = true;
+       }
+       else if ( strcmp(argv[i], "-debug")==0)
+       {
+           shouldDebugBreak = true;
        }
        else if ( strcmp(argv[i], "-test") == 0)
        {
@@ -914,7 +934,6 @@ int main(unsigned int argc, char *argv[]) {
        // TODO: Remove the -run option, it is replaced by the -test option
        else if ( strcmp(argv[i], "-run") == 0)
        {
-          fprintf(stderr, "Warning: The -run option is deprecated, use -test instead\n");
           unsigned int j;
           runAllTests = false;
           for ( j = i+1; j < argc; j++ )
@@ -999,6 +1018,11 @@ int main(unsigned int argc, char *argv[]) {
     if ( getenv("RESUMELOG") )
     {
        resumelog_name = getenv("RESUMELOG");
+    }
+
+    if ( shouldDebugBreak )
+    {
+        DebugPause();
     }
 
     // Set the initial test to the value in the resume log
