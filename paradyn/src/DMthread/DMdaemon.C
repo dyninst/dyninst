@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.160 2006/03/12 03:40:01 darnold Exp $
+ * $Id: DMdaemon.C,v 1.161 2006/03/12 04:44:03 darnold Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -615,14 +615,14 @@ paradynDaemon *paradynDaemon::getDaemon(const pdstring &machine,
 		pd = paradynDaemon::allDaemons[i];
 
 		if ((!m.c_str() || (pd->machine == m)) && 
-				(!login.c_str() || (pd->login == login))) {
+            (!login.c_str() || (pd->login == login))) {
 
-      if((name.c_str() && (pd->name == name))) {
-        return (pd);     
-      }
-      else 
-        foundSimilarDaemon = true;
-    }
+            if((name.c_str() && (pd->name == name))) {
+                return (pd);     
+            }
+            else 
+                foundSimilarDaemon = true;
+        }
 	}
 
 	if(foundSimilarDaemon) {
@@ -819,8 +819,9 @@ bool paradynDaemon::initializeDaemon(daemonEntry * de)
     paradynDaemon * pd = NULL;
     for( unsigned int j=0; j<endpoints.size(); j++) {
         pdstring daemon_machine = endpoints[j]->get_HostName() ;
+
         pd = new paradynDaemon(de->getMRNetNetwork(), endpoints[j],
-                               (pdstring&)de->getMachineString(),
+                               daemon_machine,
                                (pdstring&)de->getLoginString(),
                                (pdstring&)de->getNameString(),
                                (pdstring&)de->getFlavorString()); 
@@ -3109,9 +3110,7 @@ paradynDaemon::paradynDaemon(MRN::Network *net, MRN::EndPoint *e, pdstring &m,
     communicator = net->new_Communicator();
     communicator->add_EndPoint( endpoint );
 
-    if( machine.length() == 0 ){
-        machine = getNetworkName();
-    }
+    machine = getNetworkName(machine);
 
     if (machine.suffixed_by(local_domain)) {
         const unsigned namelength = machine.length()-local_domain.length()-1;
@@ -3120,6 +3119,7 @@ paradynDaemon::paradynDaemon(MRN::Network *net, MRN::EndPoint *e, pdstring &m,
     } else {
         status = machine;
     }
+
     if(flavor != "mpi")
         uiMgr->createProcessStatusLine(status.c_str());
 
