@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.159 2006/02/16 00:57:30 legendre Exp $
+ * $Id: DMdaemon.C,v 1.160 2006/03/12 03:40:01 darnold Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -751,56 +751,42 @@ bool paradynDaemon::startMPIDaemonsandApplication(daemonEntry * ide,
     return true;
 }
 
-bool paradynDaemon::instantiateDefaultDaemon( daemonEntry * de,
-                                              const pdvector <pdstring> * process_hosts )
+bool paradynDaemon::instantiateDefaultDaemon( daemonEntry * ide,
+                                              const pdvector <pdstring> * ihosts )
 {
     MRN::Network * network;
+
     //first gather paradynd args into a argv vector;
     char ** argv;
-    
     argv = (char **)malloc(sizeof(char*) * (args.size()+1) );
-    
     for( unsigned int i = 0; i<paradynDaemon::args.size(); i++){
         argv[i] = strdup(paradynDaemon::args[i].c_str() );
         argv[i+1] = NULL;
     }
-    
-    if( de->getMRNetTopologyString() == "" ){
+
+    if( ide->getMRNetTopologyString() == "" ){
         //create network using a automated topology buffer if necessary
-        pdstring host;
         unsigned int count=1;
-        
-        if (default_host.length() == 0) {
-            host = getNetworkName(default_host);
-            if(host.length() == 0)
-                host = getNetworkName();
-        }
         
         pdstring mrnet_top_buf=getNetworkName()+":0 => ";
         
-        for( unsigned int i=0; i<process_hosts->size(); i++ ){
+        for( unsigned int i=0; i < (*ihosts).size(); i++ ){
             char buf[256];
             
-            if( (*process_hosts)[i] != "" ){
-                snprintf(buf, 256, "%s:%d ", (*process_hosts)[i].c_str(), count++ );
-                mrnet_top_buf += buf;
-            }
-            else{
-                snprintf(buf, 256, "%s:%d ", host.c_str(), count++ );
-                mrnet_top_buf += buf;
-            }
+            snprintf(buf, 256, "%s:%d ", (*ihosts)[i].c_str(), count++ );
+            mrnet_top_buf += buf;
         }
         
         mrnet_top_buf += ";";
 
         network = new MRN::Network (mrnet_top_buf.c_str(), false,
-                                     de->getCommand(), (const char **)argv);
+                                     ide->getCommand(), (const char **)argv);
     }
     else{
-        network = new MRN::Network (de->getMRNetTopology(),
-                                     de->getCommand(), (const char **)argv);
+        network = new MRN::Network (ide->getMRNetTopology(),
+                                    ide->getCommand(), (const char **)argv);
     }
-    de->setMRNetNetwork( network );
+    ide->setMRNetNetwork( network );
 
     for( unsigned int i=0; i<paradynDaemon::args.size(); i++){
         free(argv[i]);
@@ -852,7 +838,7 @@ bool paradynDaemon::initializeDaemon(daemonEntry * de)
     MRN::Stream * defStream = de->getMRNetNetwork()->
         new_Stream( de->getMRNetNetwork()->get_BroadcastCommunicator(),
                     MRN::TFILTER_NULL,MRN::SFILTER_DONTWAIT);
-    pdvector <int> countStreams =	 pd->setDaemonDefaultStream(defStream);
+    pdvector <int> countStreams = pd->setDaemonDefaultStream(defStream);
 		
     MRN::Stream * bcStream = de->getMRNetNetwork()->
         new_Stream( de->getMRNetNetwork()->get_BroadcastCommunicator(),
@@ -2167,7 +2153,8 @@ bool paradynDaemon::newExecutable(const pdstring &ihost,
         int process_count = getNumberOfNodes(iargv);
         instantiateMRNetforMPIDaemons( de, process_count );
         startMPIDaemonsandApplication( de, processMet::allProcs[0] );
-        fprintf(stderr, "AAA\n");
+
+        initializeDaemon(de);
 #endif
     }
     else{
@@ -2380,7 +2367,6 @@ bool paradynDaemon::continueAll()
     //TODO: there should be a static func that doesn't need a daemon to
     //broadcast commands
     paradynDaemon::allDaemons[0]->continueApplication(stream);
-    
     delete stream;
     delete comm;
 
@@ -2732,7 +2718,6 @@ void filter_based_on_process_in_focus(
    bool result = focus_resources->getProcessReferredTo(NULL, &pid);
    if(result == true) {
       // the metric-focus is specific to a particular process      
-		 //     fprintf(stderr, "[filter_based_on_process_in_focus] - %d\n", pid);
       for(unsigned i=0; i<daemon_list.size(); i++) {
          paradynDaemon *cur_dmn = daemon_list[i];
          if(cur_dmn->isMonitoringProcess(pid)) {
@@ -2807,7 +2792,6 @@ void paradynDaemon::findMatchingDaemons(metricInstance *mi,
   else 
     {  // focus is not refined on process or machine 
       // Don't need to prune, as there's only one daemon
-      //fprintf(stderr,"IN findMatchingDaemons not refined on process or machine \n");
       matching_daemons->clear();
       for(unsigned i=0; i<paradynDaemon::allDaemons.size(); i++)
 	{
@@ -3210,78 +3194,55 @@ void paradynDaemon::batchSampleDataCallbackFunc(MRN::Stream *, int ,
 																								pdvector<T_dyninstRPC::batch_buffer_entry> theBatchBuffer)
 {
 
-  our_print_sample_arrival = true;
+    our_print_sample_arrival = true;
 
 
-  sampleVal_cerr << "batchSampleDataCallbackFunc(), burst size: " 
-								 << theBatchBuffer.size() << "   earliestFirstTime: " 
-								 << getEarliestStartTime() << "\n";
-  // Go through every item in the batch buffer we've just received and
-  // process it.
-  for (unsigned index=0; index < theBatchBuffer.size(); index++) 
-    {
-      const T_dyninstRPC::batch_buffer_entry &entry = theBatchBuffer[index] ; 
-      unsigned mid = entry.mid ;
-      // Okay, the sample is not an error; let's process it.
-      metricInstance *mi;
-      bool found = activeMids.find(mid, mi);
-      if (!found)
-				{
-					// this can occur due to asynchrony of enable or disable requests
-					// so just ignore the data
-					if (our_print_sample_arrival)
-						cout << "ignoring that sample since it's no longer active" << endl;
-					continue;
-				}
+    sampleVal_cerr << "batchSampleDataCallbackFunc(), burst size: " 
+                   << theBatchBuffer.size() << "   earliestFirstTime: " 
+                   << getEarliestStartTime() << "\n";
+    // Process every item in the batch buffer we've just received and
+
+    for (unsigned index=0; index < theBatchBuffer.size(); index++) {
+        const T_dyninstRPC::batch_buffer_entry &entry = theBatchBuffer[index] ; 
+        unsigned mid = entry.mid ;
+        // Okay, the sample is not an error; let's process it.
+        metricInstance *mi;
+        bool found = activeMids.find(mid, mi);
+        if (!found) {
+            // this can occur due to asynchrony of enable or disable requests
+            // so just ignore the data
+            continue;
+        }
     
-      assert(mi);
-
-      timeStamp startTimeStamp = 
-				timeStamp(entry.startTimeStamp, timeUnit::sec(), timeBase::bStd());
-    
-      timeStamp endTimeStamp   =
-				timeStamp(entry.endTimeStamp, timeUnit::sec(), timeBase::bStd());
+        assert(mi);
+        
+        timeStamp startTimeStamp = 
+            timeStamp(entry.startTimeStamp, timeUnit::sec(), timeBase::bStd());
       
-      // ---------------------------------------------------------------
-      // The following code converts the old format received through the
-      // visis into the new format.  This switchover can be eliminated
-      // once the visis are converted.
-      metric *met = metric::getMetric(mi->getMetricHandle());
-      double multiplier;
-      if(met->getStyle() == SampledFunction)
-				{
-					multiplier = 1.0;
-				} 
-      else 
-				{
-					multiplier = 1000000000.0;
-				}
-      // ---------------------------------------------------------------
-      pdSample value= pdSample(static_cast<int64_t>(entry.value*multiplier));
-      /*
-				if (our_print_sample_arrival)
-				{
-				cerr << "[" << index << "] mid " << mid << "-   \nfrom: " 
-				<< startTimeStamp << " \n to: " << endTimeStamp << "   \nval: "
-				<< value << " \n machine: " << machine.c_str() << "\n"<<std::flush;
-				}
-      */
+        timeStamp endTimeStamp   =
+            timeStamp(entry.endTimeStamp, timeUnit::sec(), timeBase::bStd());
+        
+        // ---------------------------------------------------------------
+        // The following code converts the old format received through the
+        // visis into the new format.  This switchover can be eliminated
+        // once the visis are converted.
+        metric *met = metric::getMetric(mi->getMetricHandle());
+        double multiplier;
+        if(met->getStyle() == SampledFunction) {
+            multiplier = 1.0;
+        } 
+        else {
+            multiplier = 1000000000.0;
+        }
+        // ---------------------------------------------------------------
+        pdSample value= pdSample(static_cast<int64_t>(entry.value*multiplier));
+        
+        timeStamp newStartTime = this->getAdjustedTime(startTimeStamp);
+        timeStamp newEndTime   = this->getAdjustedTime(endTimeStamp);
       
-      timeStamp newStartTime = this->getAdjustedTime(startTimeStamp);
-      timeStamp newEndTime   = this->getAdjustedTime(endTimeStamp);
-      
-      /*
-				if (our_print_sample_arrival) 
-				{
-				cerr << "(after adj) [" << index << "] mid " << mid << "-  \n from: " 
-				<< newStartTime << " \n to: " << newEndTime << "  \n val: "
-				<< value << " \n machine: " << machine.c_str() << "\n"<<std::flush;
-				}
-      */
+        mi->updateComponent(this, newStartTime, newEndTime, value);
 
-      mi->updateComponent(this, newStartTime, newEndTime, value);
-
-      mi->doAggregation();
+        mi->doAggregation();
     }
 }
 
@@ -3540,17 +3501,16 @@ void paradynDaemon::resourceReportsDone( MRN::Stream *,int )
 
 void paradynDaemon::callGraphEquivClassReportCallback(MRN::Stream*, pdvector<T_dyninstRPC::equiv_class_entry> eqclasses )
 {
-  if(eqclasses.size() == 0)
-    return;
+    if(eqclasses.size() == 0)
+        return;
 
-  MRN::Communicator * comm = allDaemons[0]->getNetwork()->new_Communicator();
+    MRN::Communicator * comm = allDaemons[0]->getNetwork()->new_Communicator();
 
-  extern unsigned num_dmns_to_report_callgraph;
+    extern unsigned num_dmns_to_report_callgraph;
 
-  for(unsigned i = 0 ; i < eqclasses.size() ; i++)
-    {
-      num_dmns_to_report_callgraph++;
-      comm->add_EndPoint(  paradynDaemon::allDaemons[eqclasses[i].class_rep]->endpoint );
+    for(unsigned i = 0 ; i < eqclasses.size() ; i++) {
+        num_dmns_to_report_callgraph++;
+        comm->add_EndPoint(  paradynDaemon::allDaemons[eqclasses[i].class_rep]->endpoint );
     }
   
   MRN::Stream * stream = network->new_Stream( comm ,MRN::TFILTER_NULL);
