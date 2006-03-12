@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.154 2006/02/16 00:57:32 legendre Exp $
+// $Id: DMpublic.C,v 1.155 2006/03/12 03:40:02 darnold Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -244,9 +244,7 @@ bool dataManager::startMRNet(const char * idaemon_name,
                              const pdvector <pdstring> * ihosts)
 {
     daemonEntry * de = paradynDaemon::findEntry( idaemon_name );
-    assert(de &&
-           de->getFlavorString() == "mpi" &&
-           ihosts->size() > 1 ) ;
+    assert(de && de->getFlavorString() != "mpi" ) ;
 
     paradynDaemon::instantiateDefaultDaemon(de, ihosts);
 
