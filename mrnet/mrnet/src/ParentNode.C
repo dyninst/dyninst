@@ -59,6 +59,9 @@ int ParentNode::recv_PacketsFromDownStream( std::list< Packet >&pkt_list,
 
         const RemoteNode *currRemNode = *iter;
         assert( currRemNode != NULL );
+        if( currRemNode->fail() )
+            continue;
+
         int curr_fd = currRemNode->get_SocketFd();
         FD_SET( curr_fd, &rfds );
 
@@ -102,6 +105,8 @@ int ParentNode::recv_PacketsFromDownStream( std::list< Packet >&pkt_list,
              iter != children_nodes.end( );
              iter++, i++ ) {
 
+            if( (*iter)->fail() )
+                continue;
             int curr_fd = (*iter)->get_SocketFd();
             if( FD_ISSET( curr_fd, &rfds ) ) {
                 readyNode = ( *iter );
@@ -111,6 +116,8 @@ int ParentNode::recv_PacketsFromDownStream( std::list< Packet >&pkt_list,
                     ret = -1;
                     mrn_dbg( 1, mrn_printf(FLF, stderr,
                                 "PN: recv() from ready node failed\n" ));
+                    readyNode->error( MRN_ENETWORK_FAILURE, "recv() failed");
+                    //TODO: handle error
                 }
             }
         }
