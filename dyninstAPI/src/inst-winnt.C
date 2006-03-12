@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-winnt.C,v 1.24 2006/01/30 19:44:59 jaw Exp $
+// $Id: inst-winnt.C,v 1.25 2006/03/12 23:31:59 legendre Exp $
 
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/dyninst.h"
@@ -117,7 +117,6 @@ void initPrimitiveCost()
     // 240 ns
     primitiveCosts["DYNINSTdecrementCounter"] = 16;
 
-    logLine("WindowsNT platform\n");
     // Updated calculation of the cost for the following procedures.
     // cost in cycles
     // Values (in cycles) benchmarked on a Pentium II 450MHz
@@ -159,23 +158,17 @@ bool process::hasBeenBound(const relocationEntry &,int_function *&, Address ) {
     return false;
 }
 
-#ifndef mips_unknown_ce2_11 //ccw 27 july 2000 : 29 mar 2001
-//defined in inst-mips.C
-
 // findCallee: returns false unless callee is already set in instPoint
 // dynamic linking not implemented on this platform
 int_function *instPoint::findCallee() 
 {
-  // Already been bound
-  if (callee_) {
+   // Already been bound
+   if (callee_) {
       return callee_;
-  }  
-  if (ipType_ != callSite) {
-      // Assert?
-      return NULL; 
-  }
+   }  
+   assert(ipType_ == callSite);
   
-  if (!isDynamicCall()) {
+   if (!isDynamicCall()) {
       // We have a direct call but don't yet know the callee.
       // This may be because we didn't see a symbol for a
       // thunk in the ILT.
@@ -192,20 +185,17 @@ int_function *instPoint::findCallee()
       // find code range that contains the target address
       // TODO: optimize by checking callsite image first?
       codeRange* cr = proc()->findCodeRangeByAddress(callTarget);
-      if (cr == NULL) {
-          return NULL;
-      } else {
-          // if target address is a known function, return it
-          int_function* func = cr->is_function();
-          if (func != NULL) {
-              fprintf(stderr, "FOUND FUNC: %s\n", func->prettyName().c_str());
-              callee_ = func;
-              return func;
-          }
+      if (cr == NULL) 
+         return NULL;
+      // if target address is a known function, return it
+      int_function* func = cr->is_function();
+      if (func != NULL) {
+         callee_ = func;
+         return func;
       }
       mapped_object *obj = cr->is_mapped_object();
       if (obj == NULL)
-          return NULL;
+         return NULL;
       
       // get a "local" pointer to the call target instruction
       const void *insnLocalAddr = proc()->getPtrToInstruction(callTarget);
@@ -213,111 +203,111 @@ int_function *instPoint::findCallee()
       
       if( callTargetInst.isJumpDir() ||
           callTargetInst.isJumpIndir() )
-          {
-              // the instruction is a jmp
-              // get the target address of the jmp
-              Address jmpTargetAddr = callTargetInst.getTarget(callTarget);
-              
-              // see if we know about that target address
-              int_function *target = proc()->findFuncByAddr( jmpTargetAddr );
-              if (target) {
-                  callee_ = target;
-                  return target;
-              }
-          }
-  }
-  else
       {
-          // An call that uses an indirect call instruction could be one
-          // of three things:
-          //
-          // 1. A call to a function within the same executable or DLL.  In 
-          //    this case, it could be a call through a function pointer in
-          //    memory or a register, or some other type of call.
-          //   
-          // 2. A call to a function in an implicitly-loaded DLL.  These are
-          //    indirect calls through an entry in the object's Import Address 
-          //    Table (IAT). An IAT entry is set to the address of the target 
-          //    when the DLL is loaded at process creation.
-          //
-          // 3. A call to a function in a delay-loaded DLL.  Like calls to 
-          //    implicitly-loaded DLLs, these are calls through an entry in the 
-          //    IAT.  However, for delay-loaded DLLs the IAT entry initially 
-          //    holds the address of a short code sequence that loads the DLL,
-          //    looks up the target function, patches the IAT entry with the 
-          //    address of the target function, and finally executes the target 
-          //    function.  After the first call, the IAT entry has been patched
-          //    and subsequent calls look the same as calls into an
-          //    implicitly-loaded DLL.
-          //
-          // Figure out what type of indirect call instruction this is
-          //
-          Register base_reg;
-          Register index_reg;
-          int displacement;
-          unsigned int scale;
-          unsigned int mod;
-          int instMode = get_instruction_operand( insn().ptr(),
-                                                  base_reg,
-                                                  index_reg,
-                                                  displacement,
-                                                  scale,
-                                                  mod );
+         // the instruction is a jmp
+         // get the target address of the jmp
+         Address jmpTargetAddr = callTargetInst.getTarget(callTarget);
+              
+         // see if we know about that target address
+         int_function *target = proc()->findFuncByAddr( jmpTargetAddr );
+         if (target) {
+            callee_ = target;
+            return target;
+         }
+      }
+   }
+   else
+   {
+      // An call that uses an indirect call instruction could be one
+      // of three things:
+      //
+      // 1. A call to a function within the same executable or DLL.  In 
+      //    this case, it could be a call through a function pointer in
+      //    memory or a register, or some other type of call.
+      //   
+      // 2. A call to a function in an implicitly-loaded DLL.  These are
+      //    indirect calls through an entry in the object's Import Address 
+      //    Table (IAT). An IAT entry is set to the address of the target 
+      //    when the DLL is loaded at process creation.
+      //
+      // 3. A call to a function in a delay-loaded DLL.  Like calls to 
+      //    implicitly-loaded DLLs, these are calls through an entry in the 
+      //    IAT.  However, for delay-loaded DLLs the IAT entry initially 
+      //    holds the address of a short code sequence that loads the DLL,
+      //    looks up the target function, patches the IAT entry with the 
+      //    address of the target function, and finally executes the target 
+      //    function.  After the first call, the IAT entry has been patched
+      //    and subsequent calls look the same as calls into an
+      //    implicitly-loaded DLL.
+      //
+      // Figure out what type of indirect call instruction this is
+      //
+      Register base_reg;
+      Register index_reg;
+      int displacement;
+      unsigned int scale;
+      unsigned int mod;
+      int instMode = get_instruction_operand( insn().ptr(),
+                                              base_reg,
+                                              index_reg,
+                                              displacement,
+                                              scale,
+                                              mod );
           
-          if( instMode == DISPLACED )
-              {
-                  // it is a call through a function pointer in memory
-                  Address funcPtrAddress = (Address)displacement;
-                  assert( funcPtrAddress != ADDR_NULL );
+      if( instMode == DISPLACED )
+      {
+          // it is a call through a function pointer in memory
+         Address funcPtrAddress = (Address)displacement;
+         assert( funcPtrAddress != ADDR_NULL );
                   
-                  // obtain the target address from memory if it is available
-                  Address targetAddr = ADDR_NULL;
-                  proc()->readDataSpace( (const void*)funcPtrAddress, sizeof(Address),
-                                         &targetAddr, true );
-                  if( targetAddr != ADDR_NULL )
-                      {
-                          // see whether we already know anything about the target
-                          // this may be the case with implicitly-loaded and delay-loaded
-                          // DLLs, and it is possible with other types of indirect calls
-                          int_function *target = proc()->findFuncByAddr( targetAddr );
+         // obtain the target address from memory if it is available
+         Address targetAddr = ADDR_NULL;
+         proc()->readDataSpace( (const void*)funcPtrAddress, sizeof(Address),
+                                &targetAddr, true );
+         if( targetAddr != ADDR_NULL )
+         {
+            
+            // see whether we already know anything about the target
+            // this may be the case with implicitly-loaded and delay-loaded
+            // DLLs, and it is possible with other types of indirect calls
+            int_function *target = proc()->findFuncByAddr( targetAddr );
                           
-                          // we need to handle the delay-loaded function case specially,
-                          // since we want the actual target function, not the temporary
-                          // code sequence that handles delay loading
-                          if( (target != NULL) &&
-                              (!strncmp( target->prettyName().c_str(), "_imp_load_", 10 )) )
-                              {
-                                  // The target is named like a linker-generated
-                                  // code sequence for a call into a delay-loaded DLL.
-                                  //
-                                  // Try to look up the function based on its name
-                                  // without the 
+            // we need to handle the delay-loaded function case specially,
+            // since we want the actual target function, not the temporary
+            // code sequence that handles delay loading
+            if( (target != NULL) &&
+                (!strncmp( target->prettyName().c_str(), "_imp_load_", 10 )) )
+            {
+               // The target is named like a linker-generated
+               // code sequence for a call into a delay-loaded DLL.
+               //
+               // Try to look up the function based on its name
+               // without the 
                                   
 #if READY
-                                  // check if the target is in the same module as the function
-                                  // containing the instPoint
-                                  // check whether the function pointer is in the IAT
-                                  if( (funcPtrAddress >= something.iatBase) &&
-                                      (funcPtrAddress <= (something.iatBase + something.iatLength)) )
-                                      {
-                                          // it is a call through the IAT, to a function in our
-                                          // own module, so it is a call into a delay-loaded DLL
-                                          // ??? how to handle this case
-                                      }
+               // check if the target is in the same module as the function
+               // containing the instPoint
+               // check whether the function pointer is in the IAT
+               if((funcPtrAddress >= something.iatBase) &&
+                  (funcPtrAddress <= (something.iatBase+something.iatLength)))
+               {
+                  // it is a call through the IAT, to a function in our
+                  // own module, so it is a call into a delay-loaded DLL
+                  // ??? how to handle this case
+               }
 #else
-                                  // until we can detect the actual callee for delay-loaded
-                                  // DLLs, make sure that we don't report the linker-
-                                  // generated code sequence as the target
-                                  target = NULL;
+               // until we can detect the actual callee for delay-loaded
+               // DLLs, make sure that we don't report the linker-
+               // generated code sequence as the target
+               target = NULL;
 #endif // READY
-                              }
-                          else {
-                              callee_ = target;
-                              return target;
-                          }
-                      }   
-              }
+            }
+            else {
+               callee_ = target;
+               return target;
+            }
+         }   
       }
-  return NULL;
+   }
+   return NULL;
 }
-#endif

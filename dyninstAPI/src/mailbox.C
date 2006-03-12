@@ -210,9 +210,7 @@ int eventLock::_Unlock(const char *__file__, unsigned int __line__)
 
 #if defined(os_windows)
   LeaveCriticalSection(&mutex);
-#if 0
-  assert(ReleaseMutex(mutex));
-#endif
+  return 0;
 #else
   int err = 0;
   if(0 != (err = pthread_mutex_unlock(&mutex))){
@@ -223,9 +221,8 @@ int eventLock::_Unlock(const char *__file__, unsigned int __line__)
     lock_stack.push_back(el);
     owner_id = old_owner_id;
   }
-#endif
-
   return err;
+#endif
 }
 
 int eventLock::_Broadcast(const char *__file__, unsigned int __line__)
@@ -262,6 +259,10 @@ int eventLock::_Broadcast(const char *__file__, unsigned int __line__)
   return 0;
 }
 
+/**
+ * The windows locking algorithm is described at 
+ * http://www.cs.wustl.edu/~schmidt/win32-cv-1.html
+ **/
 int eventLock::_WaitForSignal(const char *__file__, unsigned int __line__)
 {
   int err = 0;
@@ -331,8 +332,9 @@ int eventLock::_WaitForSignal(const char *__file__, unsigned int __line__)
    bool do_reset  = (release_num == 0);
    LeaveCriticalSection(&waiter_lock);
 
-   if (do_reset)
+   if (do_reset) {
       ResetEvent(cond);
+   }
 
 #else
   mutex_printf("%s[%d]:  unlock/wait issued from %s[%d], depth = %d\n", FILE__, __LINE__, __file__, __line__, lock_depth);

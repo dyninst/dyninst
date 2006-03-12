@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2006/02/16 03:52:34 jodom Exp $
+# $Id: Makefile,v 1.5 2006/03/12 23:32:37 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -36,6 +36,7 @@ SRCS =          ../src/linux.C \
 		../src/InstrucIter-x86.C \
 		../src/addLibraryLinux.C \
 		../src/writeBackElf.C \
+      ../src/stackwalk-x86.C \
 		../src/saveSharedLibrary.C \
 		../src/parseDwarf.C \
 		../src/image-x86.C \

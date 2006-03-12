@@ -190,11 +190,8 @@ void checkCost(BPatch_snippet snippet)
     dprintf("Snippet cost=%g\n", cost);
     if (cost < 0.0) {
 	printf("*Error*: negative snippet cost\n");
-    } else if (cost == 0.0) {
-#if !defined(alpha_dec_osf4_0)
-	printf("*Warning*: zero snippet cost\n");
-#endif
-    } else if (cost > 0.01) {
+    }
+    else if (cost > 0.01) {
 	printf("*Error*: snippet cost of %f, exceeds max expected of 0.1",
 	    cost);
     }
@@ -1531,7 +1528,7 @@ const int HEAP_TEST_UNIT_SIZE = 5000;
 void mutatorTest12a(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func12_2"
-  BPatch_Vector<BPatch_function *> found_funcs;
+    BPatch_Vector<BPatch_function *> found_funcs;
     if ((NULL == appImage->findFunction("func12_2", found_funcs)) || !found_funcs.size()) {
       fprintf(stderr, "    Unable to find function %s\n",
 	      "func12_2");
@@ -1561,42 +1558,32 @@ void mutatorTest12a(BPatch_thread *appThread, BPatch_image *appImage)
     expectError = 66; // We're expecting a heap overflow error
     BPatch_variableExpr* memStuff[30000];
     BPatch_variableExpr *temp;
-    temp = appThread->malloc(HEAP_TEST_UNIT_SIZE); 
-    int count = 0;
-    while (temp) {
-#if defined(USES_DYNAMIC_INF_HEAP)
-        if (! temp) {
-	     printf("*** Inferior malloc stress test failed\n"); 
-	     exit(-1);
-	}
-#endif /* USES_DYNAMIC_INF_HEAP */
-	memStuff[count++] = temp;
-	temp = appThread->malloc(HEAP_TEST_UNIT_SIZE);
-#if defined(USES_DYNAMIC_INF_HEAP)
-	// heap will grow indefinitely on dynamic heap platforms
-	//if (count == 10000) break;
-	// I get tired of waiting
-	if (count == 500) break;
-#endif /* USES_DYNAMIC_INF_HEAP */
-	assert(count < 30000);
+    int count;
+    for (count = 0; count < 2000; count++) {
+        temp = appThread->malloc(HEAP_TEST_UNIT_SIZE);
+        if (!temp) {
+            printf("*** Inferior malloc stress test failed\n"); 
+            exit(-1);
+        }
+        memStuff[count] = temp;
     }
     expectError = DYNINST_NO_ERROR;
 
     int freeCount = 0;
     for (int i =0; i < count; i++) {
-	appThread->free(*memStuff[i]);
-	freeCount++;
+        appThread->free(*memStuff[i]);
+        freeCount++;
     }
 
     temp = appThread->malloc(500); 
     if (!temp) {
-	printf("*** Unable to allocate memory after using then freeing heap\n");
+        printf("*** Unable to allocate memory after using then freeing heap\n");
     }
 
     BPatch_Vector<BPatch_function *> bpfv;
     char *fn = "call12_1";
-    if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
-	|| NULL == bpfv[0]){
+    if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size() || 
+        NULL == bpfv[0]){
       fprintf(stderr, "    Unable to find function %s\n", fn);
       exit(1);
     }
@@ -1609,9 +1596,8 @@ void mutatorTest12a(BPatch_thread *appThread, BPatch_image *appImage)
     checkCost(call12_1Expr);
     snippetHandle12_1 = appThread->insertSnippet(call12_1Expr, *point12_2);
     if (!snippetHandle12_1) {
-	fprintf(stderr,
-		"Unable to insert snippet to call function \"call12_1.\"\n");
-	exit(-1);
+	    fprintf(stderr, "Unable to insert snippet to call function \"call12_1.\"\n");
+        exit(-1);
     }
 }
 
@@ -2055,22 +2041,9 @@ void mutatorTest18(BPatch_thread *appThread, BPatch_image *appImage)
     expr18_1->writeValue(&n,true); //ccw 31 jul 2002
 }
 
-#ifdef NOTDEF // PDSEP
-void test19_oneTimeCodeCallback(BPatch_thread *thread,
-				void *userData,
-				void *returnValue)
-{
-    bool dummy = (userData == NULL) || (returnValue == NULL) || (thread == NULL);
-    assert(userData);
-
-    if (dummy)
-      *(int *)userData = 1;
-    else
-      *(int *)userData = 1;
-#endif
 void test19_oneTimeCodeCallback(BPatch_thread */*thread*/,
                                 void *userData,
-                                void */*returnValue*/)
+                                void * /*returnValue*/)
 {
    *(int *)userData = 1;
 }
@@ -2636,10 +2609,10 @@ void mutatorTest24(BPatch_thread *appThread, BPatch_image *appImage)
         //     First verify that we can find function call24_1
       BPatch_Vector<BPatch_function *> bpfv;
       char *fn = "call24_1";
-      if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size()
-	  || NULL == bpfv[0]){
-	fprintf(stderr, "    Unable to find function %s\n", fn);
-	exit(1);
+      if (NULL == appImage->findFunction(fn, bpfv) || !bpfv.size() ||
+	      NULL == bpfv[0]){
+            fprintf(stderr, "    Unable to find function %s\n", fn);
+            exit(1);
       }
       
       BPatch_function *call24_1_func = bpfv[0];
@@ -2655,8 +2628,7 @@ void mutatorTest24(BPatch_thread *appThread, BPatch_image *appImage)
             dprintf("Found %d callsites in function call24_1\n", temp->size());
         }
 
-        BPatch_Vector<BPatch_point *> *point24_1  =
-	    new(BPatch_Vector<BPatch_point *>);
+        BPatch_Vector<BPatch_point *> *point24_1 = new BPatch_Vector<BPatch_point *>;
         point24_1->push_back((*temp)[0]);
 
 	BPatch_Vector<BPatch_point *> *point24_2 = call24_1_func->findPoint(BPatch_exit);
@@ -2743,7 +2715,7 @@ void mutatorTest24(BPatch_thread *appThread, BPatch_image *appImage)
 
         // now test multi-dimensional arrays
         //	   globalVariable24_8[2][3] = 2400011
-        BPatch_arithExpr assignment9(BPatch_assign,
+        BPatch_arithExpr assignment9(BPatch_assign, 
             BPatch_arithExpr(BPatch_ref, BPatch_arithExpr(BPatch_ref, *gvar[8],
 	    BPatch_constExpr(2)), BPatch_constExpr(3)), BPatch_constExpr(2400011));
         if (!appThread->insertSnippet(assignment9, *point24_1))
@@ -4875,7 +4847,7 @@ void mutatorTest38(BPatch_thread *appThread, BPatch_image *appImage)
 //  Test case 39:  verify that regex search is working
 //
 
-void mutatorTest39(BPatch_thread */*appThread*/, BPatch_image *appImage)
+void mutatorTest39(BPatch_thread * /*appThread*/, BPatch_image *appImage)
 {
   //  Note:  regex search by module is covered in test 21
 #if defined(sparc_sun_solaris2_4) \
@@ -4966,7 +4938,7 @@ void setVar40(const char *vname, void *addr, BPatch_image *appImage)
    }
 }
 
-void mutatorTest40(BPatch_thread */*appThread*/, BPatch_image *appImage)
+void mutatorTest40(BPatch_thread * /*appThread*/, BPatch_image *appImage)
 {
 
 #if !defined(alpha_dec_osf4_0) \
@@ -5425,6 +5397,13 @@ int mutatorMAIN(char *pathname, bool useAttach)
 
     dprintf("starting program execution.\n");
     //sleep(10000);
+/*
+    fprintf(stderr, "Starting debuging\n");
+    appThread->getProcess()->debugSuicide();
+    fprintf(stderr, "Done debugging\n");
+    exit(0);
+*/
+
     appThread->continueExecution();
 
     // Test poll for status change
@@ -5511,7 +5490,6 @@ main(unsigned int argc, char *argv[])
 	  mergeTramp = 1;
 #endif
 	} else if (!strcmp(argv[i], "-V")) {
-            fprintf (stdout, "%s\n", V_libdyninstAPI);
             if (libRTname[0])
                 fprintf (stdout, "DYNINSTAPI_RT_LIB=%s\n", libRTname);
             fflush(stdout);

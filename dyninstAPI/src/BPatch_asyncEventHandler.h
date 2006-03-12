@@ -64,7 +64,6 @@
 #define ssize_t int
 typedef SOCKET PDSOCKET;
 #define DYNINST_ASYNC_PORT 28003
-#define CLOSEPDSOCKET(s) closesocket(s)
 #define PDSOCKET_ERRNO WSAGetLastError()
 #define INVALID_PDSOCKET (INVALID_SOCKET)
 #define PDSOCKET_ERROR SOCKET_ERROR
@@ -79,7 +78,6 @@ typedef SOCKET PDSOCKET;
 #include <pthread.h>
 typedef int PDSOCKET;
 
-#define CLOSEPDSOCKET(s) P_close(s)
 #define PDSOCKET_ERRNO errno
 #define INVALID_PDSOCKET (-1)
 #define PDSOCKET_ERROR (-1)

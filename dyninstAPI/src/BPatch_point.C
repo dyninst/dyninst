@@ -231,8 +231,6 @@ const BPatch_function *BPatch_point::getFunctionInt()
  */
 BPatch_function *BPatch_point::getCalledFunctionInt()
 {
-   //   BPatch_function *ret;
-   
    assert(point);
    
    if (point->getPointType() != callSite)
@@ -241,14 +239,12 @@ BPatch_function *BPatch_point::getCalledFunctionInt()
    int_function *_func;
    
    _func = point->findCallee();
-   
-   if( _func == NULL ) {
-      fprintf(stderr, "findCallee failed in getCalledFunction\n");
-      return NULL;
-   } else {
-      return proc->findOrCreateBPFunc( _func, NULL );
+   if (!_func) {
+       parsing_printf("findCallee failed in getCalledFunction\n");
+       return NULL;
    }
-}   
+   return proc->findOrCreateBPFunc(_func, NULL);
+}
 
 void BPatch_point::attachMemAcc(BPatch_memoryAccess *newMemAcc) {
     if (memacc) {

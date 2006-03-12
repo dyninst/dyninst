@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: util.C,v 1.29 2006/02/14 23:50:16 jaw Exp $
+/* $Id: util.C,v 1.30 2006/03/12 23:32:23 legendre Exp $
  * util.C - support functions.
  */
 
@@ -56,9 +56,12 @@
 #include <sys/time.h>  // for gethrtime()
 #endif
 
+#if !defined(os_windows)
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#endif
+
 bool waitForFileToExist(char *fname, int timeout_seconds)
 {
   int timeout = 0; // milliseconds
@@ -89,6 +92,7 @@ bool waitForFileToExist(char *fname, int timeout_seconds)
   return true;
 }
 
+#if !defined(os_windows)
 int openFileWhenNotBusy(char *fname, int flags, int mode, int timeout_seconds)
 {
 
@@ -118,6 +122,7 @@ int openFileWhenNotBusy(char *fname, int flags, int mode, int timeout_seconds)
   assert (fd > 0);
   return fd;
 }
+#endif
 
 #ifndef BPATCH_LIBRARY
 timeStamp *pFirstRecordTime = NULL;

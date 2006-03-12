@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.15 2006/03/09 17:05:12 bernat Exp $
+// $Id: image-func.h,v 1.16 2006/03/12 23:31:58 legendre Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -308,6 +308,7 @@ class image_func : public codeRange {
    bool hasNoStackFrame();
    bool makesNoCalls();
    bool savesFramePointer();
+   bool cleansOwnStack();
 
    ////////////////////////////////////////////////
    // Parsing support methods
@@ -464,6 +465,7 @@ class image_func : public codeRange {
    pdmodule *mod_;		/* pointer to file that defines func. */
    image *image_;
    bool parsed_;                /* Set to true in findInstPoints */
+   bool cleansOwnStack_;
 
 
    ///////////////////// CFG and function body

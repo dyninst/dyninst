@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.14 2006/02/16 00:57:23 legendre Exp $
+// $Id: mapped_object.C,v 1.15 2006/03/12 23:32:08 legendre Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -503,6 +503,21 @@ const pdvector <int_variable *> *mapped_object::findVarVectorByMangled(const pds
   assert(allVarsByMangledName.defines(varname));
   return allVarsByMangledName[varname];
 } 
+
+//Returns one variable, doesn't search other mapped_objects.  Use carefully.
+const int_variable *mapped_object::getVariable(const pdstring &varname) const {
+    pdvector<int_variable *> *vars = NULL; 
+    if (allVarsByMangledName.defines(varname)) {
+        vars = allVarsByMangledName[varname];
+    }
+    else if (allVarsByPrettyName.defines(varname)) {
+        vars = allVarsByPrettyName[varname];
+    }
+    
+    if (!vars || !vars->size())
+        return NULL;
+    return (*vars)[0];
+}
 
 codeRange *mapped_object::findCodeRangeByAddress(const Address &addr)  {
     // Quick bounds check...

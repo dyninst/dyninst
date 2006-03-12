@@ -1,7 +1,7 @@
-<?xml version="1.0" encoding = "Windows-1252"?>
+<?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="7.00"
+	Version="7.10"
 	Name="xplat"
 	ProjectGUID="{6EEC078F-CD5B-4A67-8089-625026FCE928}"
 	SccProjectName=""
@@ -54,6 +54,12 @@
 				Culture="1033"/>
 			<Tool
 				Name="VCWebServiceProxyGeneratorTool"/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"/>
+			<Tool
+				Name="VCManagedWrapperGeneratorTool"/>
+			<Tool
+				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
@@ -98,8 +104,16 @@
 				Culture="1033"/>
 			<Tool
 				Name="VCWebServiceProxyGeneratorTool"/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"/>
+			<Tool
+				Name="VCManagedWrapperGeneratorTool"/>
+			<Tool
+				Name="VCAuxiliaryManagedWrapperGeneratorTool"/>
 		</Configuration>
 	</Configurations>
+	<References>
+	</References>
 	<Files>
 		<Filter
 			Name="Source Files"
@@ -138,10 +152,10 @@
 				RelativePath="..\..\mrnet\xplat\src\SharedObject-win.C">
 			</File>
 			<File
-				RelativePath="..\..\mrnet\xplat\src\TLSKey-win.C">
+				RelativePath="..\..\mrnet\xplat\src\Thread-win.C">
 			</File>
 			<File
-				RelativePath="..\..\mrnet\xplat\src\Thread-win.C">
+				RelativePath="..\..\mrnet\xplat\src\TLSKey-win.C">
 			</File>
 		</Filter>
 		<Filter
@@ -187,13 +201,13 @@
 				RelativePath="..\..\mrnet\xplat\include\xplat\SharedObject.h">
 			</File>
 			<File
+				RelativePath="..\..\mrnet\xplat\include\xplat\Thread.h">
+			</File>
+			<File
 				RelativePath="..\..\mrnet\xplat\src\TLSKey-win.h">
 			</File>
 			<File
 				RelativePath="..\..\mrnet\xplat\include\xplat\TLSKey.h">
-			</File>
-			<File
-				RelativePath="..\..\mrnet\xplat\include\xplat\Thread.h">
 			</File>
 			<File
 				RelativePath="..\..\mrnet\xplat\include\xplat\Tokenizer.h">

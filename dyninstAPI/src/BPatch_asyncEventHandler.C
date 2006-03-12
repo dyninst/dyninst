@@ -455,7 +455,7 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
 
   //  Add the (listening) socket to set(s)
   FD_SET(sock, &readSet);
-  if (sock > width)
+  if ((int) sock > width)
      width = sock;
 
   // "width" is computed but ignored on Windows NT, where sockets

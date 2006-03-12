@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-sparc.h,v 1.41 2006/02/26 05:06:30 bernat Exp $
+// $Id: arch-sparc.h,v 1.42 2006/03/12 23:31:47 legendre Exp $
 
 #if !defined(arch_sparc)
 #error "invalid architecture-os inclusion"
@@ -563,6 +563,7 @@ class instruction {
     }
     return false;
   }
+  bool isCleaningRet() const { return false; }
   
  private:
   instructUnion insn_;

@@ -60,9 +60,9 @@
  *************************************************************************/
 
 #if defined(arch_x86) || defined(arch_x86_64)
-unsigned int BPatch_instruction::nmaxacc_NP = 2;
+const unsigned int BPatch_instruction::nmaxacc_NP = 2;
 #else
-unsigned int BPatch_instruction::nmaxacc_NP = 1;
+const unsigned int BPatch_instruction::nmaxacc_NP = 1;
 #endif
 
 BPatch_instruction::BPatch_instruction(const void *_buffer,

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.26 2006/03/09 17:05:11 bernat Exp $
+// $Id: image-func.C,v 1.27 2006/03/12 23:31:57 legendre Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -328,6 +328,10 @@ bool image_func::savesFramePointer() {
     return savesFP_;
 }
 
+bool image_func::cleansOwnStack() { 
+    if (!parsed_) image_->analyzeIfNeeded();
+    return cleansOwnStack_;
+}
 
 int image_basicBlock_count = 0;
 

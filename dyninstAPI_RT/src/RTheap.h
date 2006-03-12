@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.h,v 1.8 2005/10/14 16:37:31 legendre Exp $ */
+/* $Id: RTheap.h,v 1.9 2006/03/12 23:32:44 legendre Exp $ */
 
 #ifndef _RT_HEAP_H
 #define _RT_HEAP_H
@@ -55,9 +55,7 @@
 #include <sys/procfs.h>
 typedef prmap_t dyninstmm_t;
 
-#elif defined(i386_unknown_linux2_0) \
-   || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
-   || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+#elif defined(os_linux)
 
 /* LINUX */
 typedef struct {
@@ -65,7 +63,7 @@ typedef struct {
      unsigned long pr_size;
 } dyninstmm_t;
 
-#elif defined(rs6000_ibm_aix4_1)
+#elif defined(os_aix)
 
 /* No actual /proc on AIX, we fake it with pre-built data */
 typedef struct {
@@ -73,6 +71,11 @@ typedef struct {
   unsigned long pr_size;
 } dyninstmm_t;
 
+#elif defined(os_windows)
+typedef struct {
+  Address pr_vaddr;
+  unsigned long pr_size;
+} dyninstmm_t;
 #else
 #error Dynamic heaps are not implemented on this platform
 #endif

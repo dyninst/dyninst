@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.23 2005/12/14 22:44:11 bernat Exp $
+// $Id: inst-x86.h,v 1.24 2006/03/12 23:32:01 legendre Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
@@ -147,14 +147,14 @@
 // These values are taken from the Pentium manual and CANNOT be changed.
 
 // 32-bit
-#define REGNUM_EAX (0)
-#define REGNUM_ECX (1)
-#define REGNUM_EDX (2)
-#define REGNUM_EBX (3)
-#define REGNUM_ESP (4)
-#define REGNUM_EBP (5)
-#define REGNUM_ESI (6)
-#define REGNUM_EDI (7)
+#define REGNUM_EAX 0
+#define REGNUM_ECX 1
+#define REGNUM_EDX 2
+#define REGNUM_EBX 3
+#define REGNUM_ESP 4
+#define REGNUM_EBP 5
+#define REGNUM_ESI 6
+#define REGNUM_EDI 7
 
 // 64-bit
 #define REGNUM_RAX (0)
@@ -196,6 +196,8 @@ void emitOpRegImm(int opcode, Register dest, int imm, codeGen &gen);
 void emitOpRegRMImm(unsigned opcode, Register dest, Register base, int disp, int imm, codeGen &gen);
 void emitOpRMImm(unsigned opcode1, unsigned opcode2, Register base, int disp, int imm, codeGen &gen);
 void emitOpRMImm8( unsigned opcode1, unsigned opcode2, Register base, int disp, char imm, codeGen &gen);
+void emitOpRMReg(unsigned opcode, Register base, int disp,
+                               Register src, codeGen &gen);
 
 void emitMovRegToReg(Register dest, Register src, codeGen &gen);
 void emitMovMToReg(Register dest, int disp, codeGen &gen);
@@ -207,7 +209,6 @@ void emitMovImmToRM(Register base, int disp, int imm, codeGen &gen);
 void emitMovRegToRM(Register base, int disp, Register src, codeGen &gen);
 void emitMovRMToReg(Register dest, Register base, int disp, codeGen &gen);
 void emitMovImmToMem(Address maddr, int imm, codeGen &gen);
-
 void emitPushImm(unsigned int imm, codeGen &gen);
 
 void emitSimpleInsn(unsigned opcode, codeGen &gen);

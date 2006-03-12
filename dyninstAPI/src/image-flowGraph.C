@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.14 2006/03/03 18:10:57 nater Exp $
+ * $Id: image-flowGraph.C,v 1.15 2006/03/12 23:31:56 legendre Exp $
  */
 
 #include <stdio.h>
@@ -833,7 +833,7 @@ bool image_func::buildCFG(
                               worklist,
                               visited);
                 break;
-            }
+            }            
 
             allInstructions.push_back( ah.getInstruction() );
             allInstAddrs += currAddr;
@@ -1068,6 +1068,10 @@ bool image_func::buildCFG(
                 funcReturns.push_back( p );
                 currBlk->containsRet_ = true;
                 retStatus_ = RS_RETURN;
+
+                if (ah.getInstruction().isCleaningRet()) {
+                    cleansOwnStack_ = true;
+                }
 
                 break;
             }

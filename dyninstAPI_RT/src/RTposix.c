@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.23 2006/02/24 19:59:35 bernat Exp $
+ * $Id: RTposix.c,v 1.24 2006/03/12 23:32:45 legendre Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -56,9 +56,11 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <sys/mman.h>
 #include <pwd.h>
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
-#include "RTcommon.h"
+#include "dyninstAPI_RT/src/RTcommon.h"
+#include "dyninstAPI_RT/src/RTheap.h"
 
 #if defined (os_osf)
 #define SOCKLEN_T size_t
@@ -219,4 +221,19 @@ try_again:
   return 0;
 }
 
+void *map_region(void *addr, int len, int fd) {
+     void *result;
+     result = mmap(addr, len, PROT_READ|PROT_WRITE|PROT_EXEC, 
+                   DYNINSTheap_mmapFlags, fd, 0);
+     if (result == MAP_FAILED)
+         return NULL;
+     return result;
+}
 
+int unmap_region(void *addr, int len) {
+    int result;
+    result = munmap(addr, len);
+    if (result == -1)
+        return 0;
+    return 1;
+}

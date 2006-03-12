@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-power.h,v 1.32 2006/02/26 05:06:28 bernat Exp $
+// $Id: arch-power.h,v 1.33 2006/03/12 23:31:46 legendre Exp $
 
 #ifndef _ARCH_POWER_H
 #define _ARCH_POWER_H
@@ -728,6 +728,7 @@ class instruction {
 
   bool isTrueCallInsn() const { return (isCall() && !isCallIndir()); }
 #endif
+  bool isCleaningRet() const {return false; }
 
  private:
   instructUnion insn_;

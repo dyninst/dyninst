@@ -41,7 +41,7 @@
 
 
 /* 
- * $Id: MapSymbols.h,v 1.3 2004/03/23 01:11:59 eli Exp $
+ * $Id: MapSymbols.h,v 1.4 2006/03/12 23:31:39 legendre Exp $
  */
 
 //MapSymbols.h
@@ -55,6 +55,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#define _WINSOCKAPI_
 #include <windows.h>
 #include <iostream>
 #include <stdlib.h>

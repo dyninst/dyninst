@@ -79,6 +79,10 @@ int_function::int_function(image_func *f,
     linkedVersion_(0),
 #endif
     version_(0)
+#if defined(os_windows) 
+   , callingConv(unknown_call)
+   , paramSize(0)
+#endif
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     int_function_count++;

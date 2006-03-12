@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-winnt.h,v 1.7 2006/01/30 07:16:53 jaw Exp $
+/* $Id: signalhandler-winnt.h,v 1.8 2006/03/12 23:32:16 legendre Exp $
  */
 
 /*
@@ -117,7 +117,7 @@ typedef DEBUG_EVENT procSignalInfo_t;
 class SignalGenerator : public SignalGeneratorCommon
 {
   friend class SignalHandler;
-  friend class SignalGenerator;
+  friend class SignalGeneratorCommon;
   friend class process;
 
   public:
@@ -139,6 +139,9 @@ class SignalGenerator : public SignalGeneratorCommon
   SignalGenerator(char *idstr, pdstring file, int pid)
     : SignalGeneratorCommon(idstr, file, pid),
       procHandle(-1), thrHandle(-1) {} 
+
+   bool waitingForStop() {return false;}
+   void setWaitingForStop(bool flag) {;}
 
   private:
   SignalHandler *newSignalHandler(char *name, int id);

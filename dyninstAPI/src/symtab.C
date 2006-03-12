@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.272 2006/03/03 18:10:56 nater Exp $
+ // $Id: symtab.C,v 1.273 2006/03/12 23:32:20 legendre Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -166,7 +166,7 @@ bool buildDemangledName( const pdstring &mangled,
   //         symbols.  We may need to do something more sophisticated
   //         in the future.  JAW 10/03
   
-#if !defined(i386_unknown_nt4_0)
+#if !defined(os_windows)
   char *atat;
   if (NULL != (atat = strstr(mangled.c_str(), "@@"))) {
       pretty = mangled.substr(0 /*start pos*/, 
@@ -187,16 +187,19 @@ bool buildDemangledName( const pdstring &mangled,
   char * demangled = P_cplus_demangle( mangled.c_str(), nativeCompiler, false);
   if (demangled) {
       pretty = pdstring( demangled );
-      free( demangled );
       retval = true;
   }
   
   char *t_demangled = P_cplus_demangle(mangled.c_str(), nativeCompiler, true);
-  if (t_demangled) {
+  if (t_demangled && (strcmp(t_demangled, demangled) != 0)) {
       typed = pdstring(t_demangled);
-      free(t_demangled);
       retval = true;
   }
+
+  if (demangled)
+      free(demangled);
+  if (t_demangled)
+      free(t_demangled);
 
   return retval;
 } /* end buildDemangledName() */
@@ -298,14 +301,15 @@ bool image::symbolsToFunctions(pdvector<Symbol> &mods,
   //Checking "main" function names in same order as in the inst-*.C files
   if (linkedFile.get_symbols(symString="main",     lookUps) ||
       linkedFile.get_symbols(symString="_main",    lookUps)
-#if defined(i386_unknown_nt4_0)
+#if defined(os_windows)
       ||
       linkedFile.get_symbols(symString="WinMain",  lookUps) ||
       linkedFile.get_symbols(symString="_WinMain", lookUps) ||
       linkedFile.get_symbols(symString="wWinMain", lookUps) ||
       linkedFile.get_symbols(symString="_wWinMain", lookUps)
 #endif
-      ) {
+      ) 
+  {
       assert( lookUps.size() == 1 );
       lookUp = lookUps[0];
       
@@ -991,8 +995,6 @@ image *image::parseImage(fileDescriptor &desc)
   
   bool err=false;
 
-  
-  // TODO -- kill process here
   image *ret = new image(desc, err); 
 
   if (err || !ret) {
@@ -1456,13 +1458,13 @@ void image::enterFunctionInTables(image_func *func, bool wasSymtab) {
     if (!func) return;
     
     funcsByEntryAddr[func->getOffset()] = func;
-  
     // Functions added during symbol table parsing do not necessarily
     // have valid sizes set, and should therefor not be added to
     // the code range tree. They will be added after parsing. 
     if(!wasSymtab) {
         // TODO: out-of-line insertion here
-        funcsByRange.insert(func);
+        if (func->get_size_cr())
+          funcsByRange.insert(func);
     }
     
     everyUniqueFunction.push_back(func);
@@ -1547,14 +1549,14 @@ bool image::buildFunctionLists(pdvector <image_func *> &raw_funcs)
             
         pdstring pretty_name = "<UNSET>";
         pdstring typed_name = "<UNSET>";
-        
-        //strip scoping information from mangled name before demangling:
+#if !defined(os_windows)        
+        //Remove extra stabs information
         const char *p = P_strchr(working_name.c_str(), ':');
         if( p ) {
             unsigned nchars = p - mangled_name.c_str();
             working_name = pdstring(mangled_name.c_str(), nchars);
         }
-        
+#endif        
         if (!buildDemangledName(working_name, pretty_name, typed_name,
                                 nativeCompiler, rawmod->language())) {
             pretty_name = working_name;
@@ -1689,7 +1691,7 @@ image::image(fileDescriptor &desc, bool &err)
    dataValidEnd_ = linkedFile.data_vldE();
 
    // if unable to parse object file (somehow??), try to
-   //  notify luser/calling process + return....    
+   //  notify user/calling process + return....    
    if (!codeLen_ || !linkedFile.code_ptr()) {
       pdstring msg = pdstring("Parsing problem with executable file: ") + desc.file();
       statusLine(msg.c_str());
@@ -2091,8 +2093,7 @@ image_func *image::findOnlyOneFunction(const pdstring &name) {
 }
 
 #if 0
-#if !defined(i386_unknown_nt4_0) \
- && !defined(mips_unknown_ce2_11) // no regex for M$
+#if !defined(os_windows)
 int image::findFuncVectorByPrettyRegex(pdvector<image_func *> *found, pdstring pattern,
 				       bool case_sensitive)
 {

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.125 2006/03/09 16:34:35 bernat Exp $
+// $Id: BPatch.C,v 1.126 2006/03/12 23:31:29 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -285,7 +285,7 @@ BPatch::BPatch()
     // -30 wchar, Wide character, 16 bits wide, unsigned (unknown format)
     builtInTypes->addBuiltInType(newType = new BPatch_typeScalar(-30, 2, "wchar"));
     newType->decrRefCount();
-#ifdef i386_unknown_nt4_0
+#if defined(os_windows)
     // -31 long long, 64 bit signed integral type
     builtInTypes->addBuiltInType(newType = new BPatch_typeScalar(-31, sizeof(LONGLONG), "long long"));
     newType->decrRefCount();
@@ -663,7 +663,7 @@ void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
     assert(global_mutex->depth());
     // don't log BPatchWarning or BPatchInfo messages as "errors"
     if ((severity == BPatchFatal) || (severity == BPatchSerious))
-	bpatch->lastError = number;
+        bpatch->lastError = number;
 
     pdvector<CallbackBase *> cbs;
     if (! getCBManager()->dispenseCallbacksMatching(evtError, cbs)) {

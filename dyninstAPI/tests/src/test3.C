@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3.C,v 1.41 2006/02/23 00:14:18 legendre Exp $
+// $Id: test3.C,v 1.42 2006/03/12 23:32:30 legendre Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -739,7 +739,6 @@ int main(unsigned int argc, char *argv[])
 	if (strncmp(argv[i], "-verbose", 2) == 0) {
 	    debugPrint = 1;
 	} else if (!strcmp(argv[i], "-V")) {
-            fprintf (stdout, "%s\n", V_libdyninstAPI);
             if (libRTname[0]) 
                 fprintf (stdout, "DYNINSTAPI_RT_LIB=%s\n", libRTname);
             fflush(stdout);

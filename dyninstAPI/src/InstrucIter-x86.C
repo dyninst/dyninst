@@ -239,11 +239,7 @@ BPatch_memoryAccess* InstrucIter::isLoadOrStore()
     const unsigned char* addr = insn.ptr();
     BPatch_memoryAccess* bmap = BPatch_memoryAccess::none;
     
-#if defined(i386_unknown_nt4_0) && _MSC_VER < 1300
-    ia32_decode(IA32_DECODE_MEMACCESS|IA32_DECODE_CONDITION, addr, i);
-#else
-  ia32_decode<(IA32_DECODE_MEMACCESS|IA32_DECODE_CONDITION)>(addr, i);
-#endif
+  ia32_decode(IA32_DECODE_MEMACCESS|IA32_DECODE_CONDITION, addr, i);
   
   bool first = true;
 
@@ -853,14 +849,7 @@ bool InstrucIter::isFPWrite()
   
   const unsigned char * addr = i.ptr();
        
- #if defined(os_windows) && _MSC_VER < 1300
-  ia32_decode(0, addr,ii);
-#elif defined(os_windws)
-  ia32_decode<0>(addr,ii);
-#else
-  ia32_decode<0>(addr,ii);
-#endif
-    
+  ia32_decode(0, addr,ii);    
   ia32_entry * entry = ii.getEntry();
 
   assert(entry != NULL);
@@ -892,14 +881,7 @@ void InstrucIter::readWriteRegisters(int * readRegs, int * writeRegs)
   ia32_instruction ii;
   
   const unsigned char * addr = i.ptr();
-#if defined(os_windows) && _MSC_VER < 1300
-  ia32_decode(0,addr,ii);
-#elif defined(os_windows)
-  ia32_decode<0>(addr,ii);
-#else
-  ia32_decode<0>(addr,ii);
-#endif
-
+  ia32_decode(0, addr,ii);
   ia32_entry * entry = ii.getEntry();
 
   if(entry != NULL)

@@ -172,10 +172,14 @@ static unsigned threadCreate(dyntid_t tid)
       newthr_cb(index);
    }
 
+#if !defined(os_windows)
    //Only async for now.  We should parameterize this function to also have a
    // sync option.
+   //Windows doesn't need to use the trace pipe for thread events, thread 
+   // creation/deletion is handled through the debugging interface.
    asyncSendThreadEvent(ev.ppid, rtBPatch_threadCreateEvent, &ev, 
                         sizeof(BPatch_newThreadEventRecord));
+#endif
    return index;
 }
 
@@ -193,12 +197,12 @@ void DYNINSTthreadDestroy()
    err = DYNINST_free_index(tid);
    if (err)
       return;
-   
    memset(&rec, 0, sizeof(rec));
    rec.index = index;
-   
+#if !defined(os_windows)
    asyncSendThreadEvent(pid, rtBPatch_threadDestroyEvent, &rec, 
                         sizeof(BPatch_deleteThreadEventRecord));
+#endif
 }
 
 /**

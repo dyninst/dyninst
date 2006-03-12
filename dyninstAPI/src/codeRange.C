@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.C,v 1.16 2006/02/14 20:02:19 bernat Exp $
+// $Id: codeRange.C,v 1.17 2006/03/12 23:31:52 legendre Exp $
 
 #include <stdio.h>
 #include "codeRange.h"
@@ -313,11 +313,11 @@ void codeRangeTree::traverse(pdvector<codeRange *> &all, entry* node) const{
 //////////////////////////// PUBLIC FUNCTIONS ////////////////////////////////
 
 void codeRangeTree::insert(codeRange *value) {
-	entry* x = treeInsert(value->get_address_cr(), value);
+ 	entry* x = treeInsert(value->get_address_cr(), value);
 	if(!x) {
-            // We're done.
-            return;
-        }
+         // We're done.
+         return;
+    }
 	x->color = TREE_RED;
 	while((x != setData) && (x->parent->color == TREE_RED)){
 		if(x->parent == x->parent->parent->left){
@@ -406,7 +406,7 @@ bool codeRangeTree::find(Address key, codeRange *& value) const{
         return false;
     // Check to see if the range works
     if (!value->get_size_cr()) {
-        fprintf(stderr, "%s[%d]:  Warning:  size was 0...", FILE__, __LINE__);
+        fprintf(stderr, "%s[%d]:  Warning:  size was 0...\n", FILE__, __LINE__);
     }
     if (key >= (value->get_address_cr() + value->get_size_cr())) {
         return false;

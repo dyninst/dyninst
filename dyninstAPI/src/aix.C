@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.214 2006/03/01 19:16:31 bernat Exp $
+// $Id: aix.C,v 1.215 2006/03/12 23:31:42 legendre Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -394,7 +394,7 @@ Address process::getTOCoffsetInfo(Address dest)
 }
 #endif
 
-#if defined(USES_DYNAMIC_INF_HEAP)
+#if defined(cap_dynamic_heap)
 static const Address branch_range = 0x01fffffc;
 static const Address lowest_addr = 0x10000000;
 static const Address highest_addr = 0xe0000000;
@@ -2074,4 +2074,9 @@ bool process::initMT()
 void dyninst_yield()
 {
    sched_yield();
+}
+
+bool SignalHandler::handleProcessExitPlat(EventRecord & /*ev*/) 
+{
+    return true;
 }

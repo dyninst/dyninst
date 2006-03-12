@@ -59,7 +59,7 @@ class BPATCH_DLL_EXPORT BPatch_instruction : public BPatch_eventLock{
 
  public:
   // maximum number of memory accesses per instruction; platform dependent
-   static unsigned int nmaxacc_NP;
+   static const unsigned int nmaxacc_NP;
 
  protected:
 

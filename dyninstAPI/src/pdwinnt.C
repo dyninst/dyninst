@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.149 2006/01/30 07:16:53 jaw Exp $
+// $Id: pdwinnt.C,v 1.150 2006/03/12 23:32:12 legendre Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -57,7 +57,10 @@
 #include "dyninstAPI/src/debuggerinterface.h"
 #include <psapi.h>
 #include <windows.h>
-#include "mapped_object.h"
+#include "dyninstAPI/src/mapped_object.h"
+#include "dyninstAPI/src/emit-x86.h"
+#include "dyninstAPI/src/arch-x86.h"
+#include "dyninstAPI/src/inst-x86.h"
 
 #ifndef BPATCH_LIBRARY
 #include "paradynd/src/main.h"
@@ -83,9 +86,13 @@ extern bool isValidAddress(process *proc, Address where);
 
 void printSysError(unsigned errNo) {
     char buf[1000];
-    FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, errNo, 
+    bool result = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, errNo, 
 		  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		  buf, 1000, NULL);
+    if (!result) {
+        fprintf(stderr, "Couldn't print error message\n");
+        printSysError(GetLastError());
+    }
     fprintf(stderr, "*** System error [%d]: %s\n", errNo, buf);
     fflush(stderr);
 }
@@ -151,246 +158,6 @@ walkStackFrame( HANDLE hProc, HANDLE hThread, STACKFRAME* psf )
 		                NULL);
 }
 
-
-#ifdef i386_unknown_nt4_0 //ccw 27 july 2000 : 29 mar 2001
-//
-// process::walkStackFromFrame
-//
-// 8OCT02: this should now pay proper attention to threads,
-//         though a better method than handing in a thread to
-//         kickstart the stackwalk is probably a good idea -- Bernat
-//
-// Note that we have *not* been able to find a mechanism that 
-// can perform stack walks reliably for apps compiled with the FPO 
-// (frame pointer omission) optimization.  Even if the FPO data is
-// available, the Win32 StackWalk call either skips functions or bottoms
-// out the stack too early.  Unfortunately, this means that we require
-// that the app under study *not* use the FPO optimization.  (Specify /Oy- 
-// for the VC++ compiler to turn this optimization off.)
-//
-
-bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
-{
-    if (!isStopped()) return false;
-
-#ifdef DEBUG_STACKWALK
-    cout << "\n<stack>" << endl;
-#endif // DEBUG_STACKWALK
-    
-    // establish the current execution context
-    CONTEXT cont;
-    HANDLE hThread = (HANDLE)(currentFrame.getLWP()->get_fd());
-    
-    cont.ContextFlags = CONTEXT_FULL;
-    if (!GetThreadContext(hThread, &cont))
-    {
-        cerr << "walkStack: GetThreadContext failed:" << GetLastError()
-             << endl;
-
-        return false;
-    }
-
-    STACKFRAME sf;
-    ZeroMemory( &sf, sizeof(STACKFRAME) );
-    sf.AddrPC.Offset = cont.Eip;
-    sf.AddrPC.Mode = AddrModeFlat;
-    sf.AddrFrame.Offset = cont.Ebp;
-    sf.AddrFrame.Mode = AddrModeFlat;
-    sf.AddrStack.Offset = cont.Esp;
-    sf.AddrStack.Mode = AddrModeFlat;
-    sf.AddrReturn.Mode = AddrModeFlat;
-
-    // walk the stack, frame by frame
-    // we use the Win32 StackWalk function to automatically
-    // handle compiler optimizations, especially FPO optimizations
-    bool done = false;
-
-    while( !done ) {
-       STACKFRAME saved_sf = sf;
-       BOOL walked;
-       ADDRESS patchedAddrReturn;
-       ADDRESS patchedAddrPC;
-       instPoint* ip = NULL;
-       int_function* fp = NULL;
-       dyn_lwp *replwp = getRepresentativeLWP();
-       
-       // set defaults for return address and PC
-       patchedAddrReturn = saved_sf.AddrReturn;
-       patchedAddrPC = saved_sf.AddrPC;
-       
-       handleT procHandle = replwp->getProcessHandle();
-       
-       // try to step through the stack using the current information
-       walked = walkStackFrame((HANDLE)procHandle, hThread, &sf);
-       
-       if( !walked && (GetLastError() == ERROR_INVALID_ADDRESS) ) {
-          
-          // try to patch the return address, in case it is outside
-          // of the original text of the process.  It might be outside
-          // the original text if the function has been relocated, or
-          // if it represents a return from a call instruction that
-          // has been relocated to a base tramp.
-          // we first try to patch the return address only, because it
-          // is most likely that the return address only is out of the
-          // original text space.  Once we process the first stack
-          // frame, it appears that the StackWalk function transfers 
-          // the return address from the STACKFRAME struct to the PC,
-          // so once we've gotten a valid return address in a 
-          // STACKFRAME, the PC will be within the original text after
-          // the StackWalk
-          sf = saved_sf;
-          fp = findFuncByAddr(sf.AddrReturn.Offset);
-          
-          if( fp != NULL ) {
-      	    // because StackWalk seems to support it, we simply use 
-       	    // the address of the function itself rather than
-       	    // trying to do the much more difficult task of finding
-       	    // the original address of the relocated instruction
-              patchedAddrReturn.Offset = fp->getAddress();
-              sf.AddrReturn = patchedAddrReturn;
-          }
-          
-          // retry the stack step
-          walked = walkStackFrame((HANDLE)replwp->getProcessHandle(),
-                                  hThread, &sf);
-       }
-       
-       if( !walked && (GetLastError() == ERROR_INVALID_ADDRESS) ) {
-          
-          // patching the return address alone didn't work.
-          // try patching the return address and the PC
-          sf = saved_sf;
-          fp = findFuncByAddr(sf.AddrPC.Offset);
-          
-          if( fp != NULL ) {
-             
-       	    // because StackWalk seems to support it, we simply use 
-       	    // the address of the function itself rather than
-       	    // trying to do the much more difficult task of finding
-       	    // the original address of the relocated instruction
-       	    patchedAddrPC.Offset = fp->getAddress();
-       	    sf.AddrPC = patchedAddrPC;
-          }
-          
-          // use the patched return address we calculated above
-          sf.AddrReturn = patchedAddrReturn;
-
-          // retry the stack step
-          walked = walkStackFrame((HANDLE)getRepresentativeLWP()->getProcessHandle(),
-                                  hThread, &sf);
-       }
-       
-       if( !walked && (GetLastError() == ERROR_INVALID_ADDRESS) )
-       {
-          
-          // patching both addresses didn't work
-          //
-          // try patching the PC only
-          sf = saved_sf;
-          sf.AddrPC = patchedAddrPC;
-          
-          // retry the stack step
-          walked = walkStackFrame((HANDLE)replwp->getProcessHandle(),
-                                  hThread, &sf);
-       }
-       
-
-       // by now we've tried all of our tricks to handle the stack 
-       // frame if we haven't succeeded by now, we're not going to be
-       // able to handle this frame
-       if( walked ) {
-          
-          Address pc = NULL;
-	  
-          // save the PC for this stack frame
-          // make sure we use the original address in case
-          // it was outside the original text of the process
-          if( saved_sf.AddrReturn.Offset == 0 ) {
-             
-             // this was the first stack frame, so we had better
-             // use the original PC
-             pc = saved_sf.AddrPC.Offset;
-             
-          } else {
-             
-             // this was not the first stack frame
-             // use the original return address
-             pc = saved_sf.AddrReturn.Offset;
-          }
-          
-          stackWalk.push_back(Frame(pc, 0, 0, getPid(), 
-                                    currentFrame.getProc(),
-				    currentFrame.getThread(), 
-                                    currentFrame.getLWP(), 
-                                    false));
-          
-#ifdef DEBUG_STACKWALK
-          cout << "0x" << setw(8) << setfill('0') << std::hex << pc << ": ";
-          
-          if( fp != NULL ) {
-             cout << fp->prettyName();
-          } else {
-             cout << "<unknown>";
-          }
-          
-          if( sf.AddrPC.Offset != pc ) {
-             cout << " (originally 0x" << setw(8) << setfill('0') 
-                  << std::hex << sf.AddrPC.Offset << ")";
-          }
-          cout << endl;
-#endif
-          
-       } else {
-          // we tried everything we know to recover - we'll have 
-          // to fail
-          done = true;
-       }
-       
-    }
-
-    // Terminate stack walk with an empty frame
-    stackWalk.push_back(Frame());
-
-    return true;
-}
-#endif
-
-#if defined(mips_unknown_ce2_11) //ccw 6 feb 2001 : 29 mar 2001
-//ccw 6 feb 2001 : windows CE does not have the NT walkStack function
-//so we use this one.
-
-bool process::walkStackFromFrame(Frame currentFrame, pdvector<Frame> &stackWalk)
-{
-    if (!isStopped()) return false;
-
-    Address spOld = 0xffffffff;
-    
-    while (!currentFrame.isLastFrame(this)) {
-        Address spNew = currentFrame.getSP(); // ccw 6 feb 2001 : should get SP?
-        
-        // successive frame pointers might be the same (e.g. leaf functions)
-        if (spOld < spNew) {
-            return false;            
-        }
-        
-        spOld = spNew;
-        
-        Address next_pc = currentFrame.getPC();
-        stackWalk.push_back(currentFrame);
-        
-        //ccw 6 feb 2001 : at this point, i need to use the 
-        //list of functions parsed from the debug symbols to
-        //determine the frame size for each function and find the 
-        //return value for each (which is the previous fir value)
-        currentFrame = currentFrame.getCallerFrame(this); 
-        
-    }    
-    stackWalk.push_back(currentFrame);
-    return true;    
-}
-#endif
-
-
 /* 
    Loading libDyninstRT.dll
 
@@ -409,126 +176,6 @@ Address loadDyninstDll(process *p, char Buffer[LOAD_DYNINST_BUF_SIZE]) {
 // osTraceMe is not needed in Windows NT
 void OS::osTraceMe(void) {}
 
-// Default continue type (modified by handlers)
-DWORD continueType = DBG_CONTINUE; //ccw 25 oct 2000 : 28 mar 2001
-
-// Breakpoint handler
-#ifdef NOTDEF // PDSEP
-DWORD SignalHandler::handleBreakpoint(EventRecord &ev) 
-{
-    fprintf(stderr, "%s[%d]:  welcome to handleBreakpoint\n", FILE__, __LINE__);
-    process *proc = ev.proc;
-    assert (proc);
-    Address addr =
-       (Address) ev.info.u.Exception.ExceptionRecord.ExceptionAddress;
-
-
-
-#ifdef NOTDEF // PDSEP
-    /*
-      printf("Debug breakpoint exception, %d, addr = %x\n", 
-      ev.info.u.Exception.ExceptionRecord.ExceptionFlags,
-      ev.info.u.Exception.ExceptionRecord.ExceptionAddress);
-    */
-    if( proc->getRpcMgr()->decodeEventIfDueToIRPC(ev) )
-    {
-       bool ret = proc->getRpcMgr()->handleRPCEvent(ev);
-       assert(ret);
-       fprintf(stderr, "%s[%d]:  breakpoint due to RPC\n", FILE__, __LINE__);
-       return DBG_CONTINUE;
-    }
-#endif
-
-      int_function *func = proc->findFuncByAddr((Address) ev.info.u.Exception.ExceptionRecord.ExceptionAddress);
-              
-   fprintf(stderr, "%s[%d]:  after findFuncByAddr\n", FILE__, __LINE__);
-
-
-#ifdef NOTDEF // PDSEP
-    // Hitting a base tramp?
-    
-    fprintf(stderr, "%s[%d]:  handleBreakPoint() before base tramp check\n", FILE__, __LINE__);
-    Address trampAddr = 0;
-#ifdef NOTDEF // PDSEP
-    Frame af = ev.lwp->getActiveFrame();
-    fprintf(stderr, "%s[%d]:  handleBreakPoint() after GAF\n", FILE__, __LINE__);
-#endif
-    //  program counter has been stored in ev.address
-    if (proc->trampTrapMapping.defines(ev.address))
-        trampAddr = proc->trampTrapMapping[ev.address];
-    if (trampAddr) {
-        // this is a trap from an instrumentation point
-        
-        // find the current thread
-        dyn_thread* currThread = NULL;
-        dyn_lwp *lwpToUse = NULL;
-        for(unsigned int i = 0; i < proc->threads.size(); i++)
-            {
-                if ((unsigned)proc->threads[i]->get_tid() == ev.info.dwThreadId)
-                    {
-                        currThread = proc->threads[i];
-                        lwpToUse = currThread->get_lwp();
-                        break;
-                    }
-            }
-        if (lwpToUse == NULL)
-            lwpToUse = proc->getRepresentativeLWP();
-    fprintf(stderr, "%s[%d]:  handleBreakPoint() before changePC\n", FILE__, __LINE__);
-        lwpToUse->changePC(trampAddr, NULL);
-    fprintf(stderr, "%s[%d]:  handleBreakPoint() after changePC\n", FILE__, __LINE__);
-
-#if 0
-        // Due to a race between the processing of trap debug events
-        // and the desire to run an inferior RPC, it is possible that
-        // we hit the trap, set ourselves up to run an inferior RPC,
-        // and then processed the trap notification.  If this happens,
-        // we don't end up running *any* of the inferior RPC code.
-        //
-        // We can tell that this is what's happened based on the
-        // thread's Eip - if it doesn't match the ExceptionAddress, we
-        // know that we had tried to reset the Eip to execute an inferior
-        // RPC.  In that case, we leave the Eip alone here, which means
-        // the inferior RPC code will execute when we continue the 
-        // thread.
-        // We have to remember that we need to execute this 
-        // instrumentation once the inferior RPC is done, however.
-        
-        CONTEXT cont;
-        cont.ContextFlags = CONTEXT_FULL;
-        if( !GetThreadContext( (HANDLE)currThread->get_lwp()->get_fd(), &cont ) )
-            assert(0 && "Failed to get thread context");
-        if( addr == Address(cont.Eip - 1) )
-            {
-                // The Eip indicates we've just executed a trap instruction
-                // reset the Eip to the address of the base tramp
-                cont.Eip = trampAddr;
-                if( !SetThreadContext( (HANDLE)currThread->get_lwp()->get_fd(), &cont ) )
-                    assert(0 && "Failed to set thread context");
-            }
-        else {
-            // We leave the Eip alone, since we've set it to execute 
-            // at inferior RPC code.  However, we need to remember that
-            // we should execute the base tramp once the inferiorRPC is
-            // completed.
-            currThread->set_pending_tramp_addr( trampAddr );
-        }
-#endif // disabled RPC/trap conflict
-        // We're actually in instrumentation, so rerun the 
-        // process
-    fprintf(stderr, "%s[%d]:  handleBreakPoint() after base tramp check\n", FILE__, __LINE__);
-        proc->continueProc();
-    fprintf(stderr, "%s[%d]:  handleBreakPoint() after continueProc\n", FILE__, __LINE__);
-        return DBG_CONTINUE;
-    } // if trampAddr         
-#endif
-    
-    // If it is not from an instrumentation point,
-    // it could be from a call to DYNINSTbreakPoint,
-    // and so we leave paused
-    fprintf(stderr, "%s[%d]:  leaving handleBreakPoint()\n", FILE__, __LINE__);
-    return DBG_EXCEPTION_NOT_HANDLED;
-}
-#endif
 bool process::dumpImage(pdstring outFile)
 {
   fprintf(stderr, "%s[%d]:  Sorry, dumpImage() not implemented for windows yet\n", FILE__, __LINE__);
@@ -536,8 +183,7 @@ bool process::dumpImage(pdstring outFile)
   return false;
 }
 
-dyn_lwp *process::createRepresentativeLWP() 
-{
+dyn_lwp *process::createRepresentativeLWP() {
    // I'm not sure if the initial lwp should be in the real_lwps array.  Is
    // this lwp more like a representative lwp or more like the linux initial
    // lwp?
@@ -557,9 +203,8 @@ bool SignalHandler::handleThreadCreate(EventRecord &ev)
    l->attach();
    dyn_thread *t = new dyn_thread(proc, proc->threads.size(), // POS in threads array (and rpcMgr thrs_ array?)
                                   l); // dyn_lwp object for thread handle
-   proc->threads.push_back(t);
    proc->continueProc();
-   return DBG_CONTINUE;
+   return true;
 }
 
 bool SignalHandler::handleExecEntry(EventRecord &)
@@ -567,6 +212,7 @@ bool SignalHandler::handleExecEntry(EventRecord &)
   assert(0);
   return false;
 }
+
 // Process creation
 bool SignalHandler::handleProcessCreate(EventRecord &ev) 
 {
@@ -574,125 +220,84 @@ bool SignalHandler::handleProcessCreate(EventRecord &ev)
     const procSignalInfo_t &info = ev.info;
     
     if(! proc)
-        return DBG_CONTINUE;
+        return true;
     
     
     dyn_lwp *rep_lwp = proc->getRepresentativeLWP();
     assert(rep_lwp);  // the process based lwp should already be set
     
-    if (!rep_lwp->isFileHandleSet()) {
-        rep_lwp->setFileHandle(info.u.CreateProcessInfo.hThread);
-        // the real lwp id is at info.dwThreadId if want to save around
-    }
-    if (!rep_lwp->isProcessHandleSet()) {
-        rep_lwp->setProcessHandle(info.u.CreateProcessInfo.hProcess);
-    }
-        
     if (proc->threads.size() == 0) {
         dyn_thread *t = new dyn_thread(proc, 
                                        0, // POS (main thread is always 0)
                                        rep_lwp);
-        // define the main thread
-        proc->threads.push_back(t);
     }
     else {
         proc->threads[0]->update_tid(info.dwThreadId);
         proc->threads[0]->update_lwp(rep_lwp);
     }
-    
-    // TODO: "set" flag
-    proc->processHandle_ = info.u.CreateProcessInfo.hProcess;
-    proc->mainFileHandle_ = info.u.CreateProcessInfo.hFile;
-    proc->mainFileBase_ = (Address) info.u.CreateProcessInfo.lpBaseOfImage;
-#if 0
-   // TODO FIXME - this should be stored and rolled into setAOut
 
-   if( proc->getImage()->getObject().have_deferred_parsing() )
-   {
-      fileDescriptor_Win* oldDesc = 
-         proc->getImage()->getObject().GetDescriptor();
-      
-      // now we have an process to work with -
-      // build a new descriptor with the new information
-      fileDescriptor_Win* desc = new fileDescriptor_Win( *oldDesc );
-      
-      // update the descriptor with the new information
-      desc->SetAddr( (Address)info.u.CreateProcessInfo.lpBaseOfImage );
-      desc->SetFileHandle( info.u.CreateProcessInfo.hFile );
-      // 7APR -- when we attach we get a process handle after oldDesc was created
-      if(! rep_lwp->isProcessHandleSet()) {
-         desc->SetProcessHandle( info.u.CreateProcessInfo.hProcess );
-         rep_lwp->setProcessHandle( info.u.CreateProcessInfo.hProcess );
-      } else {
-         desc->SetProcessHandle(rep_lwp->getProcessHandle());
-      }
-      
-      fileDescriptor_Win *ptr = dynamic_cast<fileDescriptor_Win*>(desc);
-
-      // reparse the image with the updated descriptor
-      image* img = image::parseImage( desc );
-      img->defineModules(proc);
-      proc->overwriteImage( img );
-      
-   }
-#endif
    proc->setBootstrapState(begun_bs);
    if (proc->insertTrapAtEntryPointOfMain()) {
-     fprintf(stderr, "%s[%d]:  attached to process, stepping to main\n", FILE__, __LINE__);
+     startup_printf("%s[%d]:  attached to process, stepping to main\n", FILE__, __LINE__);
    }
    else {
      proc->handleProcessExit();
    }
    proc->continueProc();
-
-   return DBG_CONTINUE;
+   return true;
 }
 
-
+/*
+   SymEnumerateModules64(proc->processHandle_, (PSYM_ENUMMODULES_CALLBACK64) printMods, NULL);
+fprintf(stderr, "\n");
+bool CALLBACK printMods(PCSTR name, DWORD64 addr, PVOID unused) {
+    fprintf(stderr, " %s @ %llx\n", name, addr);
+    return true;
+}
+*/
 bool SignalHandler::handleLoadLibrary(EventRecord &ev) 
 {
    process *proc = ev.proc;
    const procSignalInfo_t &info = ev.info;
-   
-#if 0
-   fprintf(stderr, "%s[%d]: load dll: hFile=%x, base=%x, debugOff=%x, debugSz=%d lpname=%x, %d\n",
-     FILE__, __LINE__,
+
+   // obtain the name of the DLL
+   pdstring imageName = GetLoadedDllImageName( proc, info );
+
+   parsing_printf("%s[%d]: load dll %s: hFile=%x, base=%x, debugOff=%x, debugSz=%d lpname=%x, %d\n",
+     __FILE__, __LINE__,
+     imageName.c_str(),
      info.u.LoadDll.hFile, info.u.LoadDll.lpBaseOfDll,
      info.u.LoadDll.dwDebugInfoFileOffset,
      info.u.LoadDll.nDebugInfoSize,
-     info.u.LoadDll.lpImageName,
+     imageName.c_str(),
      info.u.LoadDll.fUnicode,
      GetFileSize(info.u.LoadDll.hFile,NULL));
-#endif
+   startup_printf("Loaded dll: %s\n", imageName.c_str());
    
-   // This is NT's version of handleIfDueToSharedObjectMapping
-   
-   // Hacky hacky: after the Paradyn RT lib is loaded, skip further
-   // parsings. 
-   
-   // obtain the name of the DLL
-   pdstring imageName = GetLoadedDllImageName( proc, info );
+   // This is NT's version of handleIfDueToSharedObjectMapping     
    handleT procHandle = proc->getRepresentativeLWP()->getProcessHandle();
-   
+
+   if (!imageName.length()) {
+     proc->continueProc();
+     return true;
+   }
    fileDescriptor desc(imageName, 
                        (Address)info.u.LoadDll.lpBaseOfDll,
                        (HANDLE)procHandle,
-                       info.u.LoadDll.hFile );
+                       info.u.LoadDll.hFile, true, (Address)info.u.LoadDll.lpBaseOfDll);
    
    // discover structure of new DLL, and incorporate into our
    // list of known DLLs
    if (imageName.length() > 0) {
        mapped_object *newobj = mapped_object::createMappedObject(desc, proc);
-
-       proc->addASharedObject(newobj);
-        
+       proc->addASharedObject(newobj);        
    }
    
    // WinCE used to check for "coredll.dll" here to see if the process
    // was initialized, this should have been fixed by inserting a trap
    // at the entry of main -- bernat, JAN03
    proc->continueProc();
-   return DBG_CONTINUE;
+   return true;
 }
 
 // ccw 2 may 2001 win2k fixes
@@ -735,17 +340,17 @@ bool SignalHandler::handleLoadLibrary(EventRecord &ev)
 // that it is done. dyninst catches this, patches up the code that was used
 // to load the dll, replaces what was overwritten in main() and resets the
 // instruction pointer (EIP) to the beginning of main().
-
-#ifdef mips_unknown_ce2_11
-int secondDLL = 0; //ccw 24 oct 2000 : 28 mar 2001
-#endif
-
 bool SignalGenerator::waitNextEventLocked(EventRecord &ev) 
 {
   static bool first_signal = true;
   DWORD milliseconds = INFINITE;
 
-  if (!WaitForDebugEvent(&ev.info, milliseconds))
+  waiting_for_event = true;
+  __UNLOCK;
+  bool result = WaitForDebugEvent(&ev.info, milliseconds);
+  __LOCK;
+  waiting_for_event = false;
+  if (!result)
   {
     DWORD err = GetLastError();
     if ((WAIT_TIMEOUT == err) || (ERROR_SEM_TIMEOUT == err)) {
@@ -788,18 +393,20 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
 
    const procSignalInfo_t &info = ev.info;
 
+   proc->set_status(stopped);
+   Frame af = ev.lwp->getActiveFrame();
+   ev.address = (Address) af.getPC();
+
    // Due to NT's odd method, we have to call pause_
    // directly (a call to pause returns without doing anything
    // pre-initialization)
-   proc->getRepresentativeLWP()->stop_();
-   proc->set_status(stopped);
-
-   Frame af = ev.lwp->getActiveFrame();
-   ev.address = (Address) af.getPC();
-   if (!ContinueDebugEvent(info.dwProcessId, info.dwThreadId, DBG_CONTINUE)) {
+   bool success = proc->getRepresentativeLWP()->stop_();
+   if (success) {
+     if (!ContinueDebugEvent(info.dwProcessId, info.dwThreadId, DBG_CONTINUE)) {
          DebugBreak();
          printf("ContinueDebugEvent failed\n");
          printSysError(GetLastError());
+     }
    }
 
    return true;
@@ -819,26 +426,30 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
         ret = true;
         break;
      case CREATE_PROCESS_DEBUG_EVENT:
-       {
         //ev.type = evtNullEvent;
         ev.type = evtProcessCreate;
         ret = true;
-   }
         break;
      case EXIT_THREAD_DEBUG_EVENT:
         ev.type = evtThreadExit;
         ret = true;
         break;
      case EXIT_PROCESS_DEBUG_EVENT:
-           ev.type = evtProcessExit;
-           ev.what = ev.info.u.ExitProcess.dwExitCode;
-           ev.status = statusNormal;
+        ev.type = evtProcessExit;
+        ev.what = ev.info.u.ExitProcess.dwExitCode;
+        ev.status = statusNormal;
         ret = true;
         break;
      case LOAD_DLL_DEBUG_EVENT:
         ev.type = evtLoadLibrary;
+        ev.what = SHAREDOBJECT_ADDED;
         ret = true;
         break;
+     case UNLOAD_DLL_DEBUG_EVENT:
+         signal_printf("WaitForDebugEvent returned UNLOAD_DLL_DEBUG_EVENT\n");
+         ev.type = evtUnloadLibrary;
+         ev.what = SHAREDOBJECT_REMOVED;
+         break;
      default:
         fprintf(stderr, "%s[%d]:  WARN:  unknown debug event\n", FILE__, __LINE__);
         ev.type = evtNullEvent;
@@ -857,28 +468,23 @@ bool SignalGenerator::decodeBreakpoint(EventRecord &ev)
 
   if (decodeIfDueToProcessStartup(ev)) {
      ret = true;
-     goto finish;
   }
-
-  if (proc->getRpcMgr()->decodeEventIfDueToIRPC(ev)) {
-      signal_printf("%s[%d]:  BREAKPOINT due to RPC\n", FILE__, __LINE__);
-      ret = true;
-      goto finish;
+  else if (proc->getRpcMgr()->decodeEventIfDueToIRPC(ev)) {
+     signal_printf("%s[%d]:  BREAKPOINT due to RPC\n", FILE__, __LINE__);
+     ret = true;
   }
-
-  if (proc->trampTrapMapping.defines(ev.address)) {
+  else if (proc->trampTrapMapping.defines(ev.address)) {
      ev.type = evtInstPointTrap;
      ret = true;
-     goto finish;
   }
-
-  finish:
+  else {
+     ev.type = evtProcessStop;
+     ret = true;
+  }
 
   signal_printf("%s[%d]:  decodeSigTrap for %s, state: %s\n",
                 FILE__, __LINE__, ev.sprint_event(buf),
                 proc->getBootstrapStateAsString().c_str());
-  if (!ret) 
-    fprintf(stderr, "%s[%d]:  UNKNOWN BREAKPOINT\n", FILE__, __LINE__);
 
   return ret;
 }
@@ -898,11 +504,13 @@ bool SignalGenerator::decodeException(EventRecord &ev)
          signal_printf("DECODE CRITICAL --  ILLEGAL INSN OR ACCESS VIOLATION\n");
          ev.type = evtCritical;
          ev.address = (eventAddress_t) ev.info.u.Exception.ExceptionRecord.ExceptionAddress;
+         ret = true;
         break;
       case EXCEPTION_SINGLE_STEP:
          signal_printf("SINGLE STEP\n");
          ev.type = evtDebugStep;
          ev.address = (eventAddress_t) ev.info.u.Exception.ExceptionRecord.ExceptionAddress;
+         ret = true;
          break;
      default:
         ev.type = evtNullEvent;
@@ -914,20 +522,13 @@ bool SignalGenerator::decodeException(EventRecord &ev)
 // already setup on this FD.
 // disconnect from controlling terminal 
 void OS::osDisconnect(void) {
-#ifdef notdef
-  int ttyfd = open ("/dev/tty", O_RDONLY);
-  ioctl (ttyfd, TIOCNOTTY, NULL); 
-  P_close (ttyfd);
-#endif
 }
 
-bool process::setProcessFlags()
-{
+bool process::setProcessFlags() {
     return true;
 }
 
-bool process::unsetProcessFlags()
-{
+bool process::unsetProcessFlags() {
     return true;
 }
 
@@ -935,13 +536,9 @@ bool process::unsetProcessFlags()
 /* continue a process that is stopped */
 bool dyn_lwp::continueLWP_(int /*signalToContinueWith*/) {
    unsigned count = 0;
-#ifdef mips_unknown_ce2_11 //ccw 10 feb 2001 : 29 mar 2001
-   count = BPatch::bpatch->rDevice->RemoteResumeThread((HANDLE)get_fd());
-#else
    count = ResumeThread((HANDLE)get_fd());
-#endif
-      
-   if (count == 0xFFFFFFFF) {
+   if (count == (unsigned) -1) {
+      fprintf(stderr, "[%s:%u] - Couldn't resume thread\n", __FILE__, __LINE__);
       printSysError(GetLastError());
       return false;
    } else
@@ -958,7 +555,6 @@ terminateProcStatus_t process::terminateProc_()
     return terminateSucceeded;
 }
 
-
 /*
    pause a process that is running
 */
@@ -966,11 +562,9 @@ bool dyn_lwp::stop_() {
    unsigned count = 0;
 
    count = SuspendThread((HANDLE)get_fd());
-   if (count == 0xFFFFFFFF) {
-      // printf("pause_: %d\n", threads[u]->get_tid());
-      // printSysError(GetLastError());
+   if (count == (unsigned) -1)
       return false;
-   }  else
+   else
       return true;
 }
 
@@ -1001,14 +595,8 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
 {
     DWORD nbytes;
     handleT procHandle = getProcessHandle();
-#ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-    bool res = BPatch::bpatch->rDevice->RemoteWriteProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 
-				  (LPVOID)inSelf, (DWORD)amount, &nbytes);
-#else
     bool res = WriteProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 
 				  (LPVOID)inSelf, (DWORD)amount, &nbytes);
-#endif
-    
     return res && (nbytes == amount);
 }
 
@@ -1016,17 +604,13 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
 bool dyn_lwp::readDataSpace(const void *inTraced, u_int amount, void *inSelf) {
     DWORD nbytes;
     handleT procHandle = getProcessHandle();
-#ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-    bool res = BPatch::bpatch->rDevice->RemoteReadProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 
-				 (LPVOID)inSelf, (DWORD)amount, &nbytes);
-#else
     bool res = ReadProcessMemory((HANDLE)procHandle, (LPVOID)inTraced, 
 				 (LPVOID)inSelf, (DWORD)amount, &nbytes);
 	if( !res )
-	{
+	{          
+      printSysError(GetLastError());
 		fprintf( stderr, "ReadProcessMemory failed! %x\n", GetLastError() );
 	}
-#endif
     return res && (nbytes == amount);
 }
 
@@ -1055,74 +639,16 @@ Frame dyn_lwp::getActiveFrame()
   // in this case, the control registers.
   // The values for ContextFlags are defined in winnt.h
   cont.ContextFlags = CONTEXT_CONTROL;
-#ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-  if (BPatch::bpatch->rDevice->RemoteGetThreadContext((HANDLE)get_fd(), &cont))
-#else
   if (GetThreadContext((HANDLE)get_fd(), &cont))
-#endif
-    {
-#ifdef i386_unknown_nt4_0 //ccw 27 july 2000 : 29 mar 2001
-      fp = cont.Ebp;
-      pc = cont.Eip;
-#elif mips_unknown_ce2_11
-      pc = cont.Fir;
-      sp = cont.IntSp;
-      fp = cont.IntS8;
-#endif
-      return Frame(pc, fp, sp, proc_->getPid(), proc_, NULL, this, true);
-    }
-    printSysError(GetLastError());
-    return Frame();
+  {
+     fp = cont.Ebp;
+     pc = cont.Eip;
+     sp = cont.Esp;
+     return Frame(pc, fp, sp, proc_->getPid(), proc_, NULL, this, true);
+  }
+  printSysError(GetLastError());
+  return Frame();
 }
-
-#if defined(i386_unknown_nt4_0) //ccw 29 mar 2001
- 
-
-Frame Frame::getCallerFrame()
-{
-    // For x86, the frame-pointer (EBP) points to the previous 
-    // frame-pointer, and the saved return address is in EBP-4.
-
-    struct {
-	Address fp;
-	Address rtn;
-    } addrs;
-
-    Address newPC=0;
-    Address newFP=0;
-
-    if (getProc()->readDataSpace((caddr_t)(fp_), sizeof(int)*2,
-			 (caddr_t)&addrs, true))
-    {
-      newPC = addrs.rtn;
-      newFP = addrs.fp;
-      return Frame(newPC, newFP, 0, 0, this);
-    }
-    
-
-    return Frame(); // zero frame
-}
-
-#elif mips_unknown_ce2_11 //ccw 6 feb 2001
-
-Frame Frame::getCallerFrame(process *p) const
-{
-//	DebugBreak();//ccw 6 feb 2001
-
-	Address prevPC;
-	Address newSP;
-	Address newPC;
-
-	newSP = sp_ - callee->frame_size;
-
-	Address tmpSp = sp_ + 20;
-	getProc()->readDataSpace((caddr_t)(tmpSp), sizeof(int),
-			 &prevPC, true);
-
-	newPC = prevPC;
-	return Frame(newPC, 0, newSP, 0, this);
-}
-#endif
 
 bool Frame::setPC(Address newpc) {
   fprintf(stderr, "Implement me! Changing frame PC from %x to %x\n",
@@ -1135,12 +661,8 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs) {
    // in this case, the control registers.
    // The values for ContextFlags are defined in winnt.h
    regs->cont.ContextFlags = w32CONTEXT_FULL;//ccw 27 july 2000 : 29 mar 2001
-#ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-   if (!BPatch::bpatch->rDevice->RemoteGetThreadContext((HANDLE)get_fd(), &(regs->cont)))
-#else
-      handleT handle = get_fd();
+   handleT handle = get_fd();
    if (!GetThreadContext((HANDLE)handle, &(regs->cont)))
-#endif
    {
       return false;
    }
@@ -1162,54 +684,34 @@ void dyn_lwp::dumpRegisters()
 }
 
 bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
-{
-    
+{    
   w32CONTEXT cont;//ccw 27 july 2000
   if (!regs) {
       cont.ContextFlags = w32CONTEXT_FULL;//ccw 27 july 2000 : 29 mar 2001
-      //	DebugBreak();
-#ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-      if (!BPatch::bpatch->rDevice->RemoteGetThreadContext((HANDLE)get_fd(), &cont)) 
-#else
-          if (!GetThreadContext((HANDLE)get_fd(), &cont))
-#endif
-          {
-              printf("GetThreadContext failed\n");
-              return false;
-          }
+      if (!GetThreadContext((HANDLE)get_fd(), &cont))
+      {
+          printf("GetThreadContext failed\n");
+          return false;
+      }
   }
   else {
       memcpy(&cont, &(regs->cont), sizeof(w32CONTEXT));
   }
-#ifdef i386_unknown_nt4_0 //ccw 27 july 2000 : 29 mar 2001 
   cont.Eip = addr;
-#elif  mips_unknown_ce2_11 
-  cont.Fir = addr;
-#endif
-#ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-  if (!BPatch::bpatch->rDevice->RemoteSetThreadContext((HANDLE)get_fd(), &cont))
-#else
   if (!SetThreadContext((HANDLE)get_fd(), &cont))
-#endif
-    {
-      printf("SethreadContext failed\n");
-      return false;
-    }
+  {
+    printf("SethreadContext failed\n");
+    return false;
+  }
   return true;
 }
 
 bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs) {
-#ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-  if (!BPatch::bpatch->rDevice->RemoteSetThreadContext((HANDLE)get_fd(),
-                                                       &(regs.cont)))
-#else
-  if (!SetThreadContext((HANDLE)get_fd(), 
-                        &(regs.cont)))
-#endif
-    {
-      //printf("SetThreadContext failed\n");
-      return false;
-    }
+  if (!SetThreadContext((HANDLE)get_fd(), &(regs.cont)))
+  {
+    //printf("SetThreadContext failed\n");
+    return false;
+  }
   return true;
 }
 
@@ -1310,10 +812,6 @@ bool dyn_lwp::stepPastSyscallTrap() {
     return false;
 }
 
-int dyn_lwp::hasReachedSyscallTrap() {
-    return 0;
-}
-
 Address dyn_lwp::readRegister(Register reg)
 {
    w32CONTEXT *cont = new w32CONTEXT;//ccw 27 july 2000 : 29 mar 2001
@@ -1323,22 +821,11 @@ Address dyn_lwp::readRegister(Register reg)
     // in this case, the control registers.
     // The values for ContextFlags are defined in winnt.h
     cont->ContextFlags = w32CONTEXT_FULL;//ccw 27 july 2000
-#ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-    if (!BPatch::bpatch->rDevice->RemoteGetThreadContext((HANDLE)get_fd(), cont)) {
-#else
     if (!GetThreadContext((HANDLE)get_fd(), cont)) {
-#endif
-	delete cont;
-	return NULL;
+      delete cont;
+	  return NULL;
     }
-#ifdef i386_unknown_nt4_0 //ccw 27 july 2000 : 29 mar 2001
     return cont->Eax;
-#elif mips_unknown_ce2_11 
-	return (&cont->IntZero)[reg]; 
-	//the registers in the MIPS context returned by
-	//winCE return general registers 0..31 in the struct
-	//starting at IntZero and going to IntRa, each being a DWORD
-#endif
 }
 
 bool dyn_lwp::executingSystemCall() {
@@ -1347,18 +834,8 @@ bool dyn_lwp::executingSystemCall() {
 }
 
 
-void
-InitSymbolHandler( HANDLE hProcess )
+void InitSymbolHandler( HANDLE hProcess )
 {
-#if READY
-    fprintf( stderr, "Calling SymInitialize with handle %x\n", hProcess );
-    if( !SymInitialize( hProcess, NULL, FALSE ) )
-    {
-        // TODO how to report error?
-        fprintf( stderr, "failed to initialize symbol handler: %x\n",
-            GetLastError() );
-    }
-#endif // READY
 }
 
 void
@@ -1372,15 +849,8 @@ ReleaseSymbolHandler( HANDLE hProcess )
     }
 }
 
-bool SignalGenerator::attachProcess()
-{
-   fprintf(stderr, "%s[%d]:  attachProcess() just returns true now\n", FILE__, __LINE__);
-   return true;
-}
-
 bool SignalGenerator::waitForStopInline()
 {
-   fprintf(stderr, "%s[%d]:  waitForStopInline() just returns true now\n", FILE__, __LINE__);
    return true;
 }
 /*****************************************************************************
@@ -1395,7 +865,6 @@ bool SignalGenerator::waitForStopInline()
  *   inputFile: where to redirect standard input
  *   outputFile: where to redirect standard output
  *   traceLink: handle or file descriptor of trace link (read only)
- //removed all ioLink related code for output redirection
  *   ioLink: handle or file descriptor of io link (read only)
  *   pid: process id of new process
  *   tid: thread id for main thread (needed by WindowsNT)
@@ -1404,57 +873,7 @@ bool SignalGenerator::waitForStopInline()
  ****************************************************************************/
 bool SignalGenerator::forkNewProcess()
 {
-#ifdef mips_unknown_ce2_11 //ccw 8 aug 2000 : 29 mar 2001
-	WCHAR appName[256];
-	WCHAR dirName[256];
-	WCHAR commLine[256];
-#endif
-
-#ifndef BPATCH_LIBRARY
-#ifdef notdef_Pipes     // isn't this all obsolete???
-    HANDLE rTracePipe;
-    HANDLE wTracePipe;
-    // security attributes to make handles inherited
-    SECURITY_ATTRIBUTES sa;
-    sa.nLength = sizeof(SECURITY_ATTRIBUTES);
-    sa.bInheritHandle = true;
-    sa.lpSecurityDescriptor = NULL;
-    
-    // create trace pipe
-    if (!CreatePipe(&rTracePipe, &wTracePipe, &sa, 0)) {
-       pdstring msg = pdstring("Unable to create trace pipe for program '") +
-                      File + pdstring("': ") + pdstring(sys_errlist[errno]);
-       showErrorCallback(68, msg);
-       return(NULL);
-    }
-    
-    /* removed for output redirection
-    HANDLE rIoPipe;
-    HANDLE wIoPipe;
-    // create IO pipe
-    // ioPipe is used to redirect the child's stdout & stderr to a pipe which
-    // is in turn read by the parent via the process->ioLink socket.
-    if (!CreatePipe(&rIoPipe, &wIoPipe, &sa, 0)) {
-       pdstring msg = pdstring("Unable to create IO pipe for program '") +
-       File + pdstring("': ") + pdstring(sys_errlist[errno]);
-       showErrorCallback(68, msg);
-       return(NULL);
-    }
-    SetEnvironmentVariable("PARADYN_IO_PIPE",
-                           pdstring((unsigned)wIoPipe).c_str());
-    */
-
-    printf("tracepipe = %d\n", (unsigned)wTracePipe);
-    // enter trace and IO pipes in child's environment
-    SetEnvironmentVariable("PARADYN_TRACE_PIPE", 
-			   pdstring((unsigned)wTracePipe).c_str());
-#endif
-    //  extern int traceSocket;
-    //  SetEnvironmentVariable("PARADYND_TRACE_SOCKET", pdstring((unsigned)traceSocket).c_str());
-#endif /* BPATCH_LIBRARY */
-    
-    // create the child process
-    
+    // create the child process    
     pdstring args;
     for (unsigned ai=0; ai<argv->size(); ai++) {
        args += (*argv)[ai];
@@ -1477,73 +896,51 @@ bool SignalGenerator::forkNewProcess()
 		      NULL, NULL, TRUE,
 		      DEBUG_PROCESS /* | CREATE_NEW_CONSOLE */ | CREATE_SUSPENDED ,
 		      NULL, dir == "" ? NULL : dir.c_str(), 
-		      &stinfo, &procInfo)) {
-
-	procHandle = (Word)procInfo.hProcess;
-	thrHandle = (Word)procInfo.hThread;
-	pid = (Word)procInfo.dwProcessId;
-	tid = (Word)procInfo.dwThreadId;
-#ifdef notdef_Pipes
-        traceLink = (Word)rTracePipe;
-	CloseHandle(wTracePipe);
-	/ *removed for output redirection
-        //ioLink = (Word)rIoPipe;
-        CloseHandle(wIoPipe);
-        */
-#else
-        traceLink = -1;
-	/* removed for output redirection
-        ioLink = -1;
-	*/
-#endif
-	return true;
+		      &stinfo, &procInfo)) 
+    {
+                  procHandle = (Word)procInfo.hProcess;
+                  thrHandle = (Word)procInfo.hThread;
+                  pid = (Word)procInfo.dwProcessId;
+                  tid = (Word)procInfo.dwThreadId;
+                  traceLink = -1;
+                  return true;    
     }
    
-#ifndef BPATCH_LIBRARY
-#ifdef notdef_Pipes
-    CloseHandle(rTracePipe);
-    CloseHandle(wTracePipe);
-    / *removed for output redirection
-    CloseHandle(rIoPipe);
-    CloseHandle(wIoPipe);
-    */
-#endif
-#endif /* BPATCH_LIBRARY */
+   // Output failure message
+   LPVOID lpMsgBuf;
 
-    // Output failure message
-    LPVOID lpMsgBuf;
+   if (FormatMessage( 
+                     FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+                     NULL,
+                     GetLastError(),
+                     MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
+                     (LPTSTR) &lpMsgBuf,
+                     0,
+                     NULL 
+                     ) > 0) 
+    {
+      char *errorLine = (char *)malloc(strlen((char *)lpMsgBuf) +
+                                       file.length() + 64);
+      if (errorLine != NULL) {
+         sprintf(errorLine, "Unable to start %s: %s\n", file.c_str(),
+                 (char *)lpMsgBuf);
+         logLine(errorLine);
+         showErrorCallback(68, (const char *) errorLine);
 
-    if (FormatMessage( 
-	    FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
-	    NULL,
-	    GetLastError(),
-	    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
-	    (LPTSTR) &lpMsgBuf,
-	    0,
-	    NULL 
-	) > 0) {
-	char *errorLine = (char *)malloc(strlen((char *)lpMsgBuf) +
-					 file.length() + 64);
-	if (errorLine != NULL) {
-	    sprintf(errorLine, "Unable to start %s: %s\n", file.c_str(),
-		    (char *)lpMsgBuf);
-	    logLine(errorLine);
-	    showErrorCallback(68, (const char *) errorLine);
+         free(errorLine);
+      }
 
-	    free(errorLine);
-	}
-
-	// Free the buffer returned by FormatMsg
-	LocalFree(lpMsgBuf);
+      // Free the buffer returned by FormatMsg
+      LocalFree(lpMsgBuf);    
     } else {
-	char errorLine[512];
-	sprintf(errorLine, "Unable to start %s: unknown error\n",
-		file.c_str());
-	logLine(errorLine);
-	showErrorCallback(68, (const char *) errorLine);
+      char errorLine[512];
+      sprintf(errorLine, "Unable to start %s: unknown error\n",
+              file.c_str());
+      logLine(errorLine);
+      showErrorCallback(68, (const char *) errorLine);
     }
 
-    return false;
+   return false;
 }
 
 /*
@@ -1573,52 +970,43 @@ static void stripAtSuffix(char *str)
 char *cplus_demangle(char *c, int, bool includeTypes) { 
     char buf[1000];
     if (c[0]=='_') {
-        // VC++ 5.0 seems to decorate C symbols differently to C++ symbols
-        // and the UnDecorateSymbolName() function provided by imagehlp.lib
-        // doesn't manage (or want) to undecorate them, so it has to be done
-        // manually, removing a leading underscore from functions & variables
-        // and the trailing "$stuff" from variables (actually "$Sstuff")
-        unsigned i;
-        for (i=1; i<sizeof(buf) && c[i]!='$' && c[i]!='\0'; i++)
-           { buf[i-1]=c[i]; }
-        buf[i-1]='\0';
-	stripAtSuffix(buf);
-        if (buf[0] == '\0') return 0; // avoid null names which seem to annoy Paradyn
-        return strdup(buf);
-      } else {
-        if (includeTypes) {
+       // VC++ 5.0 seems to decorate C symbols differently to C++ symbols
+       // and the UnDecorateSymbolName() function provided by imagehlp.lib
+       // doesn't manage (or want) to undecorate them, so it has to be done
+       // manually, removing a leading underscore from functions & variables
+       // and the trailing "$stuff" from variables (actually "$Sstuff")
+       unsigned i;
+       for (i=1; i<sizeof(buf) && c[i]!='$' && c[i]!='\0'; i++)
+           buf[i-1]=c[i];
+       buf[i-1]='\0';
+       stripAtSuffix(buf);
+       if (buf[0] == '\0') return 0; // avoid null names which seem to annoy Paradyn
+       return strdup(buf);
+    } else {
+       if (includeTypes) {
           if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_COMPLETE| UNDNAME_NO_ACCESS_SPECIFIERS|UNDNAME_NO_MEMBER_TYPE|UNDNAME_NO_MS_KEYWORDS)) {
             //   printf("Undecorate with types: %s = %s\n", c, buf);
             stripAtSuffix(buf);
             return strdup(buf);
           }
-        }  else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_NAME_ONLY)) {
-          //     else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_COMPLETE|UNDNAME_32_BIT_DECODE)) {
-          //	printf("Undecorate: %s = %s\n", c, buf);
-          stripAtSuffix(buf);
-          return strdup(buf);
-        }
-      }
+       }  else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_NAME_ONLY)) {
+         //     else if (UnDecorateSymbolName(c, buf, 1000, UNDNAME_COMPLETE|UNDNAME_32_BIT_DECODE)) {
+         //	printf("Undecorate: %s = %s\n", c, buf);
+         stripAtSuffix(buf);          
+         return strdup(buf);
+       }
+    }
     return 0;
 }
 
 bool OS::osKill(int pid) {
     bool res;
-#ifdef mips_unknown_ce2_11 //ccw 28 july 2000 : 29 mar 2001
-    HANDLE h = BPatch::bpatch->rDevice->RemoteOpenProcess(PROCESS_ALL_ACCESS, false, pid);
-#else
     HANDLE h = OpenProcess(PROCESS_ALL_ACCESS, false, pid);
-#endif
     if (h == NULL) {
-	return false;
+    	return false;
     }
-#ifdef mips_unknown_ce2_11 //ccw 31 aug 2000 : 29 mar 2001
-    res = BPatch::bpatch->rDevice->RemoteTerminateProcess(h,0);
-    BPatch::bpatch->rDevice->RemoteCloseHandle(h);
-#else
     res = TerminateProcess(h,0);
     CloseHandle(h);
-#endif
     return res;
 }
 
@@ -1634,16 +1022,18 @@ bool SignalGeneratorCommon::getExecFileDescriptor(pdstring filename,
 
     if (proc->processHandle_ == INVALID_HANDLE_VALUE) {
 
-       unsigned res = ResumeThread(proc->sh->getThreadHandle());
-       if (res == 0xFFFFFFFF) {
-         fprintf(stderr, "%s[%d]:  could not resume thread here\n", FILE__, __LINE__);
-         //printSysError(GetLastError());
-       }
+        if (!proc->wasCreatedViaAttach()) {
+           int res = ResumeThread(proc->sh->getThreadHandle());
+           if (res == -1) {
+             fprintf(stderr, "%s[%d]:  could not resume thread here\n", FILE__, __LINE__);
+             printSysError(GetLastError());
+           }
+        }
 
        //  need to snarf up the next debug event, at which point we can get 
        //  a handle to the debugged process.
 
-      DEBUG_EVENT snarf_event;
+       DEBUG_EVENT snarf_event;
        timed_out_retry:
 
        if (!WaitForDebugEvent(&snarf_event, INFINITE))
@@ -1668,6 +1058,8 @@ bool SignalGeneratorCommon::getExecFileDescriptor(pdstring filename,
        proc->processHandle_ = snarf_event.u.CreateProcessInfo.hProcess;
        proc->mainFileHandle_ = snarf_event.u.CreateProcessInfo.hFile;
        proc->mainFileBase_ = (Address)snarf_event.u.CreateProcessInfo.lpBaseOfImage;
+       proc->sh->thrHandle = (int) snarf_event.u.CreateProcessInfo.hThread;
+       proc->sh->procHandle = (int) snarf_event.u.CreateProcessInfo.hProcess;
 
        rep_lwp->setFileHandle(snarf_event.u.CreateProcessInfo.hThread);
        if (NULL == snarf_event.u.CreateProcessInfo.hThread)
@@ -1678,10 +1070,23 @@ bool SignalGeneratorCommon::getExecFileDescriptor(pdstring filename,
            dyn_thread *t = new dyn_thread(proc, 
                                           0, // POS (main thread is always 0)
                                           rep_lwp);
-           // define the main thread
-           proc->threads.push_back(t);
        }
-
+    
+       //This must be called on each process in order to use the 
+       // symbol/line-info reading API
+       bool result = SymInitialize(proc->processHandle_, NULL, FALSE);
+       if (!result) {
+           fprintf(stderr, "Couldn't SymInitialize\n");
+           printSysError(GetLastError());
+       } 
+       
+       /*
+       int res = ResumeThread((HANDLE) proc->sh->thrHandle);
+       if (res == -1) {
+          fprintf(stderr, "%s[%d]:  could not resume thread here\n", FILE__, __LINE__);
+          printSysError(GetLastError());
+       }
+*/
        if (!ContinueDebugEvent(snarf_event.dwProcessId, 
                                snarf_event.dwThreadId, DBG_CONTINUE))
        {
@@ -1690,14 +1095,19 @@ bool SignalGeneratorCommon::getExecFileDescriptor(pdstring filename,
          printSysError(GetLastError());
          return false;
        }
+
+       proc->set_status(running);
     }
 
-  desc = fileDescriptor(filename, 
-                        (Address) proc->mainFileBase_,
+    desc = fileDescriptor(filename, 
+                        (Address) 0,
                         (HANDLE) proc->processHandle_,
-                        (HANDLE) proc->mainFileHandle_);
+                        (HANDLE) proc->mainFileHandle_, 
+                        false,
+                        (Address) proc->mainFileBase_);
     return true;
 }
+
 
 bool getLWPIDs(pdvector <unsigned> &LWPids)
 {
@@ -1735,34 +1145,23 @@ bool getLWPIDs(pdvector <unsigned> &LWPids)
 //
 static pdstring GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev )
 {
+    char *msgText = NULL;
 	pdstring ret;
-
-
-	if( ev.u.LoadDll.lpImageName == NULL )
-	{
-		// there is no image name string for us to read
-		return ret;
-	}
-
-	char* msgText = new char[1024];	// buffer for error messages
-
-#if defined(mips_unknown_ce2_11)
-
-	// On Windows CE, the address given in the debug event struct
-	// is the address of the DLL name string.
-	void* pImageName = ev.u.LoadDll.lpImageName;
-#else // defined(ce)
-	// On non-CE flavors of Windows, the address given in the debug
-	// event struct is the address of a pointer to the DLL name string.
 	void* pImageName = NULL;
-	if( !p->readDataSpace( ev.u.LoadDll.lpImageName, 4, &pImageName, false ) )
-	{
-		sprintf( msgText, "Failed to read DLL image name pointer: %d\n",
-			GetLastError() );
-		logLine( msgText );
-	}
-#endif // defined(ce)
 
+	if( ev.u.LoadDll.lpImageName != NULL )
+	{
+        msgText = new char[1024];	// buffer for error messages
+	    // On non-CE flavors of Windows, the address given in the debug
+        // event struct is the address of a pointer to the DLL name string.
+
+        if( !p->readDataSpace( ev.u.LoadDll.lpImageName, 4, &pImageName, false ) )
+        {
+            sprintf( msgText, "Failed to read DLL image name pointer: %d\n",
+            GetLastError() );
+            logLine( msgText );
+	    }
+    }
 	if( pImageName != NULL )
 	{
 		// we have the pointer to the DLL image name -
@@ -1929,11 +1328,34 @@ static pdstring GetLoadedDllImageName( process* p, const DEBUG_EVENT& ev )
 		//
 		// This call only changes the string parameter if the indicated file is
 		// actually kernel32.dll.
-		kludge_isKernel32Dll( ev.u.LoadDll.hFile, ret );
+		if (kludge_isKernel32Dll(ev.u.LoadDll.hFile, ret))
+            return ret;
+
+        //I'm embarassed to be writing this.  We didn't get a name for the image, 
+        // but we did get a file handle.  According to MSDN, the best way to turn
+        // a file handle into a file name is to map the file into the address space
+        // (using the handle), then ask the OS what file we have mapped at that location.
+        // I'm sad now.
+        
+        void *pmap = NULL;
+        HANDLE fmap = CreateFileMapping(ev.u.LoadDll.hFile, NULL, 
+                                        PAGE_READONLY, 0, 1, NULL);
+        if (fmap) {
+            pmap = MapViewOfFile(fmap, FILE_MAP_READ, 0, 0, 1);
+            if (pmap) {   
+                char filename[MAX_PATH+1];
+                int result = GetMappedFileName(GetCurrentProcess(), pmap, filename, MAX_PATH);
+                if (result)
+                    ret = pdstring(filename);
+                UnmapViewOfFile(pmap);
+            }
+            CloseHandle(fmap);
+        }
 	}
 
 	// cleanup
-	delete[] msgText;
+    if (msgText)
+        delete[] msgText;
 
 	return ret;
 }
@@ -1954,6 +1376,7 @@ bool dyn_lwp::representativeLWP_attach_() {
     // We either created this process, or we have just attached it.
     // In either case, our descriptor already has a valid process handle.
     setProcessHandle(proc()->processHandle_);
+    proc()->set_lwp_status(this, stopped);
 
     return true;
 }
@@ -1970,76 +1393,105 @@ void dyn_lwp::representativeLWP_detach_()
    return;
 }
 
-
 // Insert a breakpoint at the entry of main()
+bool process::insertTrapAtEntryPointOfMain() {
+  mapped_object *aout = getAOut();
+  const Object &aout_obj = aout->parse_img()->getObject();
+  pdvector<int_function *> funcs;
+  Address brk_address;
+  Address min_addr = 0xffffffff;
+  Address max_addr = 0x0;
+  bool result;
+  unsigned char oldbyte;
+  const unsigned char trapInsn = 0xcc;
+  
+  startup_printf("[%s:%u] - Asked to insert bp at entry point of main\n", 
+      __FILE__, __LINE__);
+  
+  if (main_function) {
+     Address addr = main_function->getAddress();
+     startup_printf("[%s:%u] - insertTrapAtEntryPointOfMain found main at %x\n",
+                    __FILE__, __LINE__, addr);
+     result = readDataSpace((void *) addr, sizeof(trapInsn), &oldbyte, false);
+     if (!result) {
+         fprintf(stderr, "Internal Error - Couldn't write breakpoint at top of main\n");
+         return false;
+     }
+     assert (oldbyte != trapInsn);
+     writeDataSpace((void *) addr, sizeof(trapInsn), (void *) &trapInsn);
+     main_breaks[addr] = oldbyte;
+     flushInstructionCache_((void *) addr, 1);
+     return true;
+  }
+  
+  const pdvector<Address> &possible_mains = aout_obj.getPossibleMains();
 
-bool process::insertTrapAtEntryPointOfMain() 
-{
-    // if this was created via attach then
-    // we are not at main() so no reason to
-    // put a breakpoint there, we are already
-    // at a state that will allow loadLibrary() to
-    // succeed. 
-    
-    int_function *mainFunc;
-    //DebugBreak();//ccw 14 may 2001  
-    if (!((mainFunc = findOnlyOneFunction("main")))){
-        if(!(mainFunc = findOnlyOneFunction("_main"))){
-            if(!(mainFunc = findOnlyOneFunction("WinMain"))){
-                if(!(mainFunc = findOnlyOneFunction("_WinMain"))){
-                    if(!(mainFunc = findOnlyOneFunction("wWinMain"))){
-                        if(!(mainFunc = findOnlyOneFunction("_wWinMain"))){
-                            fprintf(stderr, "%s[%d]: Couldn't find main!\n", FILE__, __LINE__);
-                            
-                            return false;
-                        }
-                    }
-                }
-            }
-        }
-        
-    }
-    main_brk_addr = mainFunc->getAddress();
-    
-    readDataSpace((void*) (main_brk_addr), BYTES_TO_SAVE, (void*)savedCodeBuffer, false);
-    
-    // A trap instruction. 
-    unsigned char trapInsn = 0xcc;
-    
-    // write the modified code sequence back
-    writeDataSpace((void*) (main_brk_addr), sizeof(trapInsn), 
-                   (void*)&trapInsn);
-    flushInstructionCache_( (void*)main_brk_addr, sizeof(trapInsn) );
-    return true;
+  for (unsigned i=0; i<possible_mains.size(); i++) {
+    brk_address = possible_mains[i] + aout->codeBase();
+    startup_printf("[%s:%u] - insertTrapAtEntryPointOfMain found potential main at %x\n",
+          __FILE__, __LINE__, brk_address);
+    result = this->readDataSpace((void *) brk_address, 1, &oldbyte, false);
+    if (!result)
+        continue;
+    main_breaks[brk_address] = oldbyte;
+    result = writeDataSpace((void *) brk_address, 1, (void *) &trapInsn);
+    assert(result);
+    if (brk_address > max_addr)
+        max_addr = brk_address;
+    if (brk_address < min_addr)
+        min_addr = brk_address;
+  }
+
+  if (max_addr >= min_addr)
+    flushInstructionCache_( (void*)min_addr, max_addr - min_addr + 1 );
+  return true;
 }
 
 // True if we hit the trap at the entry of main
+bool process::trapAtEntryPointOfMain(dyn_lwp *lwp, Address trapAddr) {
+    if (getBootstrapState() < begun_bs || getBootstrapState() > loadingRT_bs) return false;
+    if (!main_breaks.defines(trapAddr)) return false;
 
-bool process::trapAtEntryPointOfMain(dyn_lwp *,Address trapAddr) 
-{
-    if (!main_brk_addr) return false;
-    if (trapAddr == main_brk_addr) {
-        return true;
+    startup_printf("[%s:%u] - Hit possible main breakpoint at %x:\n", __FILE__, __LINE__, trapAddr);
+
+    //Set the last function we hit as a possible main
+    if (!main_function) {
+       main_function = this->findFuncByAddr(trapAddr);
     }
-    return false;
+    main_brk_addr = trapAddr;
+
+    return true;
 }
 
-
 // Clean up after breakpoint in main() is hit
-bool process::handleTrapAtEntryPointOfMain(dyn_lwp *)
+bool process::handleTrapAtEntryPointOfMain(dyn_lwp *lwp)
 {
-    // Rewrite saved registers and code buffer
-    assert(main_brk_addr);
+    //Remove this trap
+    dictionary_hash<Address, unsigned char>::iterator iter = main_breaks.begin();
+    Address min_addr = 0xffffffff;
+    Address max_addr = 0x0;
+    for (; iter != main_breaks.end(); iter++) {
+        Address addr = iter.currkey();
+        unsigned char value = *(iter);
 
-    writeDataSpace((void *)main_brk_addr,
-                   sizeof(unsigned char), (void *)savedCodeBuffer);
-    flushInstructionCache_((void *)main_brk_addr, sizeof(unsigned char));
+        bool result = writeDataSpace((void *) addr, sizeof(unsigned char), &value);
+        if (!result) {
+            fprintf(stderr, "Unexpected Error.  Couldn't remove breakpoint from "
+                    "potential main at %x\n", addr);
+            continue;   
+        }
+        if (max_addr < addr)
+            max_addr = addr;
+        if (min_addr > addr)
+            min_addr = addr;
+    }
+    main_breaks.clear();
 
-    // And bump the PC back
-    getRepresentativeLWP()->changePC(main_brk_addr, NULL);
+    //Restore PC and flush instruction cache
+    flushInstructionCache_((void *)min_addr, max_addr - min_addr + 1);
+    lwp->changePC(main_brk_addr, NULL);
 
-    // Don't trap here accidentally
-    main_brk_addr = 0;
+    setBootstrapState(initialized_bs);
     return true;
 }
 
@@ -2059,6 +1511,13 @@ bool process::getDyninstRTLibName() {
             return false;
         }
     }
+    //Canonicalize name
+    char *sptr = strdup(dyninstRT_name.c_str());
+    for (unsigned i=0; i<strlen(sptr); i++)
+       if (sptr[i] == '/') sptr[i] = '\\';
+    dyninstRT_name = sptr;
+    free(sptr);
+           
     if (_access(dyninstRT_name.c_str(), 04)) {
         pdstring msg = pdstring("Runtime library ") + dyninstRT_name +
                        pdstring(" does not exist or cannot be accessed!");
@@ -2088,8 +1547,9 @@ bool process::loadDYNINSTlib()
     assert(LoadLibAddr);
 
     char ibuf[BYTES_TO_SAVE];
-    char *iptr = ibuf;
     memset(ibuf, '\0', BYTES_TO_SAVE);//ccw 25 aug 2000
+    char *iptr = ibuf;
+    strcpy(iptr, dyninstRT_name.c_str());
     
     // Code overview:
     // Dynininst library name
@@ -2098,17 +1558,6 @@ bool process::loadDYNINSTlib()
     // Call LoadLibrary
     // Pop (cancel push)
     // Trap
-    
-    process::dyninstRT_name = getenv("DYNINSTAPI_RT_LIB");
-    
-    if (!process::dyninstRT_name.length())
-        // if environment variable unset, use the default name/strategy
-        process::dyninstRT_name = "libdyninstAPI_RT.dll";
-    
-    // make sure that directory separators are what LoadLibrary expects
-    strcpy(iptr, process::dyninstRT_name.c_str());
-    for (unsigned int i=0; i<strlen(iptr); i++)
-        if (iptr[i]=='/') iptr[i]='\\';
     
     // 4: give us plenty of room after the string to start instructions
     int instructionOffset = strlen(iptr) + 4;
@@ -2144,7 +1593,7 @@ bool process::loadDYNINSTlib()
     
     int offsetToTrap = (int) iptr - (int) ibuf;
 
-   readDataSpace((void *)codeBase, BYTES_TO_SAVE, savedCodeBuffer, false);
+    readDataSpace((void *)codeBase, BYTES_TO_SAVE, savedCodeBuffer, false);
     writeDataSpace((void *)codeBase, BYTES_TO_SAVE, ibuf);
     
     flushInstructionCache_((void *)codeBase, BYTES_TO_SAVE);
@@ -2199,128 +1648,20 @@ bool process::loadDYNINSTlibCleanup(dyn_lwp *)
     return true;
 }
 
-//MIPS code from loadDyninstLib. I'm sticking it here
-//to assist in debugging NT. Copy it back in when needed
-
-#if 0
-
-	//the following are the instructions to load libdyninstRT_API.dll
-	
-	//ccw 2 oct 2000
-	//the instructions we need to generate are:
-	// lui $a0,hi16(codeBase)  # codeBase contains libBuf
-	// ori $a0,lo16(codeBase)
-	// lui $t0, hi16(hackLoadLibAddr)
-	// ori $t0, lo16(hackLoadLibAddr)
-	// jalr $t0
-	// nop
-	// nop
-	// break
-	// nop
-	// nop
-	// nop
-	// where libBuf is the location of the string containing the name of the dll
-	// in the remote process's memory
-
-	WCHAR libBuf[] = L"\\libdyninstAPI_RT.dll";
-	BYTE instBuff[4]; //buffer for the instruction to write to memory;
-
-	//lay the name of the DLL to load into memory, UNICODE!
-	assert(memcpy(iptr, (char*)libBuf, 42));
-	iptr +=42;
-	memset(iptr, '\0', 2);
-	iptr +=2;
-
-	//LUI //ccw 2 oct 2000
-	instBuff[0]=((char*) &codeBase)[2];
-	instBuff[1]=((char*) &codeBase)[3];
-	instBuff[2]=0x04;
-	instBuff[3]=0x3C;
-	memcpy(iptr, (char*) &instBuff, 4);
-	iptr +=4;
-
-	//ORI //ccw 2 oct 2000
-	instBuff[0]=((char*) &codeBase)[0];
-	instBuff[1]=((char*) &codeBase)[1];
-	instBuff[2]=0x84;
-	instBuff[3]=0x34;
-	memcpy(iptr, (char*) &instBuff, 4);
-	iptr +=4;
-
-	//LUI //ccw 2 feb 2001
-	instBuff[0]=((char*) &hackLoadLibAddr)[2];
-	instBuff[1]=((char*) &hackLoadLibAddr)[3];
-	instBuff[2]=0x08;
-	instBuff[3]=0x3C;
-	memcpy(iptr, (char*) &instBuff, 4);
-	iptr +=4;
-
-	//ORI //ccw 2 feb 2001
-	instBuff[0]=((char*) &hackLoadLibAddr)[0];
-	instBuff[1]=((char*) &hackLoadLibAddr)[1];
-	instBuff[2]=0x08;
-	instBuff[3]=0x35;
-	memcpy(iptr, (char*) &instBuff, 4);
-	iptr +=4;
-
-	//JALR
-	instBuff[0]=0x09;
-	instBuff[1]=0xf8;
-	instBuff[2]=0x00;
-	instBuff[3]=0x01;
-	memcpy(iptr, (char*) &instBuff, 4);
-	iptr +=4;
-
-
-	//NOP
-	instBuff[0]=0x00;
-	instBuff[1]=0x00;
-	instBuff[2]=0x00;
-	instBuff[3]=0x00;
-	memcpy(iptr, (char*) &instBuff, 4);
-	iptr +=4;
-
-	//NOP
-	instBuff[0]=0x00;
-	instBuff[1]=0x00;
-	instBuff[2]=0x00;
-	instBuff[3]=0x00;
-	memcpy(iptr, (char*) &instBuff, 4);
-	iptr +=4;
-
-
-	//DebugBreak();
-	instBuff[0]=0x0D;
-	instBuff[1]=0x00;
-	instBuff[2]=0x00;
-	instBuff[3]=0x00;
-	memcpy(iptr, (char*) &instBuff, 4);
-	iptr +=4;
-
-
-	//ccw 25 aug 2000 : throw some NOPs after the debugBreak just in case!
-	//NOP
-	instBuff[0]=0x00;
-	instBuff[1]=0x00;
-	instBuff[2]=0x00;
-	instBuff[3]=0x00;
-	memcpy(iptr, (char*) &instBuff, 4);
-	iptr +=4;
-	
-	memcpy(iptr, (char*) &instBuff, 4);
-	iptr +=4;
-
-	memcpy(iptr, (char*) &instBuff, 4);
-	iptr +=4;
-
-#endif
-
-void loadNativeDemangler() {}
+void loadNativeDemangler() 
+{
+    // ensure we load line number information when we load
+    // modules, and give us mangled names
+    DWORD dwOpts = SymGetOptions();
+    dwOpts &= ~(SYMOPT_UNDNAME);
+    dwOpts |= SYMOPT_LOAD_LINES;
+    SymSetOptions(dwOpts);
+}
 
 
 Frame dyn_thread::getActiveFrameMT() {
-   return Frame();
-}  // not used until MT supported
+   return get_lwp()->getActiveFrame();
+}
 
 bool process::determineLWPs(pdvector<unsigned> &lwp_ids)
 {
@@ -2400,4 +1741,291 @@ Address dyn_lwp::step_next_insn() {
    } while (singleStepping);
 
    return getActiveFrame().getPC();
+}
+
+void process::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
+                                        inferiorHeapType /* type */ ) 
+{
+}
+
+void process::inferiorMallocAlign(unsigned &size)
+{
+  // 32 byte alignment
+  if (size % 32) {
+    size = (size & ~31) + 32;
+  }
+}
+
+/**
+ stdcall:
+   * C Naming - Name prefixed by a '_', followed by the name, then an '@',
+     followed by number of bytes in arguments.  
+     i.e. foo(int a, double b) = _foo@12
+   * C++ Naming - __stdcall
+   * Args - Arguments are passed on the stack.
+   * Cleanup - Callee cleans up the stack before returning
+ cdecl:
+   * C Naming - Name prefixed by a '_'
+   * C++ Naming - __cdecl in demangled name
+   * Args - Arguments are passed on the stack.
+   * Cleanup - Caller cleans up the stack after the return
+ fastcall:
+   * C Naming - Name prefixed by a '@', followed by the func name, then 
+     another '@', followed by the number of bytes in the arguments.  i.e.
+     foo(double a, int b, int c, int d) = @foo@20
+   * C++ Naming - __fastcall in the mangled name
+   * Args - First two arguments that are less than DWORD size are passed in ECX & EDX
+   * Cleanup - Callee cleans up the stack before returning
+ thiscall:
+   * C Naming - NA
+   * C++ Naming - __thiscall in the demangled name
+   * 'this' parameter is passed in ECX, others are passed in the stack
+   * Cleanup Callee cleans up the stack before returning
+ **/
+callType int_function::getCallingConvention() {
+    const char *name = symTabName().c_str();
+    const int buffer_size = 1024;
+    char buffer[buffer_size];
+    char *pos;
+
+    if (callingConv != unknown_call)
+        return callingConv;
+
+    if (!name) {
+        //Umm...
+        return unknown_call;
+    }
+
+    switch(name[0]) {
+        case '?':
+            //C++ Encoded symbol. Everything is stored in the C++ name 
+            // mangling scheme
+            UnDecorateSymbolName(name, buffer, buffer_size, 
+                UNDNAME_NO_ARGUMENTS | UNDNAME_NO_FUNCTION_RETURNS);
+            if (strstr(buffer, "__thiscall")) {
+                callingConv = thiscall_call;
+                return callingConv;
+            }
+            if (strstr(buffer, "__fastcall")) {
+                callingConv = fastcall_call;
+                return callingConv;
+            }
+            if (strstr(buffer, "__stdcall")) {
+                callingConv = stdcall_call;
+                return callingConv;
+            }
+            if (strstr(buffer, "__cdecl")) {
+                callingConv = cdecl_call;
+                return callingConv;
+            }
+            break;
+        case '_':
+          //Check for stdcall or cdecl
+          pos = strrchr(name, '@');
+          if (pos) {
+            callingConv = stdcall_call;
+            return callingConv;
+          }
+          else {
+            callingConv = cdecl_call;
+            return callingConv;
+          }
+          break;
+        case '@':
+          //Should be a fast call
+          pos = strrchr(name, '@');
+          if (pos) {
+             callingConv = fastcall_call;
+             return callingConv;
+          }
+          break;
+    }
+
+    //We have no idea what this call is.  We probably got an undecorated
+    // name.  If the function doesn't clean up it's own stack (doesn't 
+    // have a ret #) instruction, then it must be a cdecl call, as that's
+    // the only type that doesn't clean its own stack.
+    //If the function is part of a class, then it's most likely a thiscall,
+    // although that could be incorrect for a static function.  
+    //Otherwise let's guess that it's a stdcall.
+    if (!ifunc()->cleansOwnStack()) {
+        callingConv = cdecl_call;
+    }
+    else if (strstr(name, "::")) {
+        callingConv = thiscall_call;
+    }
+    else {
+        callingConv = stdcall_call;
+    }
+    return callingConv;
+}
+
+static void emitNeededCallSaves(codeGen &gen, Register reg, pdvector<Register> &extra_saves);
+static void emitNeededCallRestores(codeGen &gen, pdvector<Register> &saves);
+
+int Emitter32::emitCallParams(registerSpace *rs, codeGen &gen, 
+                   const pdvector<AstNode *> &operands, process *proc,
+                   int_function *target, const pdvector<AstNode *> &ifForks,
+                   pdvector<Register> &extra_saves, const instPoint *location,
+                   bool noCost)
+{
+    callType call_conven = target->getCallingConvention();
+    int estimatedFrameSize = 0;
+    pdvector <Register> srcs;
+    bool result;
+    Register ecx_target = 0, edx_target = 0;
+    const int num_operands = operands.size();
+
+    switch (call_conven) {
+        case unknown_call:
+        case cdecl_call:
+        case stdcall_call:
+            //Push all registers onto stack
+            for (unsigned u = 0; u < operands.size(); u++) {
+                srcs.push_back((Register)operands[u]->generateCode_phase2(proc, 
+                               rs, gen, noCost, ifForks, location));
+            }
+            break;
+        case thiscall_call:
+            //Allocate the ecx register for the 'this' parameter
+            if (num_operands) {
+              result = rs->allocateSpecificRegister(gen, REGNUM_ECX, false);
+              if (!result) {
+                  emitNeededCallSaves(gen, REGNUM_ECX, extra_saves);
+              }
+              ecx_target = (Register) operands[0]->generateCode_phase2(proc,
+                  rs, gen, noCost, ifForks, location);
+            }
+
+            //Push other registers onto the stack
+            for (unsigned u = 1; u < operands.size(); u++) {
+                srcs.push_back((Register)operands[u]->generateCode_phase2(proc, 
+                               rs, gen, noCost, ifForks, location));
+            }     
+            break;
+        case fastcall_call:
+            if (num_operands) {
+                //Allocate the ecx register for the first parameter
+                result = rs->allocateSpecificRegister(gen, REGNUM_ECX, false);
+                if (!result) {
+                    emitNeededCallSaves(gen, REGNUM_ECX, extra_saves);
+                }
+            }
+            if (num_operands > 1) {
+               //Allocate the edx register for the second parameter
+               result = rs->allocateSpecificRegister(gen, REGNUM_EDX, false);
+               if (!result) {
+                  emitNeededCallSaves(gen, REGNUM_EDX, extra_saves);
+               }
+            }
+            if (num_operands) {
+              ecx_target = (Register) operands[0]->generateCode_phase2(proc,
+                  rs, gen, noCost, ifForks, location);
+            }
+            if (num_operands > 1) {
+              edx_target = (Register) operands[1]->generateCode_phase2(proc,
+                  rs, gen, noCost, ifForks, location);
+            }
+
+            //Push other registers onto the stack
+            for (unsigned u = 2; u < operands.size(); u++) {
+                srcs.push_back((Register)operands[u]->generateCode_phase2(proc, 
+                               rs, gen, noCost, ifForks, location));
+            }
+            break;
+        default:
+            fprintf(stderr, "Internal error.  Unknown calling convention\n");
+            assert(0);
+    }
+
+    // push arguments in reverse order, last argument first
+    // must use int instead of unsigned to avoid nasty underflow problem:
+    for (int i=srcs.size() - 1; i >= 0; i--) {
+        emitOpRMReg(PUSH_RM_OPC1, REGNUM_EBP, -( (int) srcs[i]*4), PUSH_RM_OPC2, gen);
+        estimatedFrameSize += 4;
+        rs->freeRegister(srcs[i]);
+    }
+
+    if (ecx_target) {
+        //Store the parameter in ecx
+        emitMovRMToReg(REGNUM_ECX, REGNUM_EBP, -4 * ecx_target, gen);
+    }
+
+    if (edx_target) {
+        //Store the parameter in edx
+        emitMovRMToReg(REGNUM_EDX, REGNUM_EBP, -4 * edx_target, gen);
+        /*if (edx_target != REGNUM_EDX) {
+            emitMovRegToReg(REGNUM_EDX, edx_target, gen);
+        }*/
+    }
+    return estimatedFrameSize;
+}
+
+bool Emitter32::emitCallCleanup(codeGen &gen, process *p, int_function *target, 
+                     int frame_size, pdvector<Register> &extra_saves)
+{
+    callType call_conv = target->getCallingConvention();
+    if ((call_conv == unknown_call || call_conv == cdecl_call) && frame_size)
+    {
+        //Caller clean-up
+        emitOpRegImm(0, REGNUM_ESP, frame_size, gen); // add esp, frame_size        
+    }
+
+    //Restore extra registers we may have saved when storing parameters in
+    // specific registers
+    emitNeededCallRestores(gen, extra_saves);
+    return 0;
+}
+
+static void emitNeededCallSaves(codeGen &gen, Register regi, 
+                           pdvector<Register> &extra_saves)
+{
+    extra_saves.push_back(regi);
+    switch (regi) {
+        case REGNUM_EAX:
+            emitSimpleInsn(PUSHEAX, gen);
+            break;
+        case REGNUM_EBX:
+            emitSimpleInsn(PUSHEBX, gen);
+            break;
+        case REGNUM_ECX:
+            emitSimpleInsn(PUSHECX, gen);
+            break;
+        case REGNUM_EDX:
+            emitSimpleInsn(PUSHEDX, gen);
+            break;
+        case REGNUM_EDI:
+            emitSimpleInsn(PUSHEDI, gen);
+            break;
+    }
+}
+
+static void emitNeededCallRestores(codeGen &gen, pdvector<Register> &saves)
+{
+    for (unsigned i=0; i<saves.size(); i++) {
+      switch (saves[i]) {
+          case REGNUM_EAX:
+              emitSimpleInsn(POP_EAX, gen);
+              break;
+          case REGNUM_EBX:
+              emitSimpleInsn(POP_EBX, gen);
+              break;
+          case REGNUM_ECX:
+              emitSimpleInsn(POP_ECX, gen);
+              break;
+          case REGNUM_EDX:
+              emitSimpleInsn(POP_EDX, gen);
+              break;
+          case REGNUM_EDI:
+              emitSimpleInsn(POP_EDI, gen);
+              break;
+      }
+    }
+    saves.clear();
+}
+
+bool SignalHandler::handleProcessExitPlat(EventRecord &ev) 
+{
+    ReleaseSymbolHandler(ev.proc->processHandle_);
+    return true;
 }

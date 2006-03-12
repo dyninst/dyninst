@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.55 2006/03/07 23:18:30 bernat Exp $ */
+/* $Id: RTcommon.c,v 1.56 2006/03/12 23:32:40 legendre Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -203,7 +203,6 @@ void DYNINSTinit(int cause, int pid, int maxthreads)
    assert(sizeof(int64_t) == 8);
    assert(sizeof(int32_t) == 4);
    
-   RTprintf("%s\n", V_libdyninstAPI_RT);
    initTrampGuards(DYNINST_max_num_threads);
 
 #if defined(cap_async_events)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.73 2006/03/08 21:59:29 tlmiller Exp $
+// $Id: BPatch_function.C,v 1.74 2006/03/12 23:31:32 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -132,14 +132,9 @@ BPatch_function::~BPatch_function()
 {
     // if (ast != NULL)
         // removeAst(ast);
-#if 0
-    // TODO!!!
-    // There appears to be some illegal sharing going on here that needs to
-    // be tracked down. Instead of leaking the entire function, we'll only
-    // leak the variable collections...
     if (localVariables) delete localVariables;
     if (funcParameters) delete funcParameters;
-#endif
+
     if (cfg) delete cfg;
 
     // Remove us from the proc map...
@@ -331,7 +326,7 @@ BPatch_module *BPatch_function::getModuleInt()
 BPatch_Vector<BPatch_localVar *> * BPatch_function::getParamsInt()
 {
     mod->parseTypesIfNecessary();
-    return &params;
+    return funcParameters->getAllVars();
 }
 
 
@@ -395,9 +390,9 @@ BPatch_Vector<BPatch_point*> *BPatch_function::findPointInt(
                                                               this, Cpoints[c], BPatch_subroutine));
 	      c++;
 	    } else {
-	      result->push_back(proc->findOrCreateBPPoint(
-							  this, Rpoints[r], BPatch_exit));
-	      r++;
+                 result->push_back(proc->findOrCreateBPPoint(
+                                   this, Rpoints[r], BPatch_exit));
+                 r++;
 	    }
           }
           break;

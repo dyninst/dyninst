@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.18 2006/02/21 20:12:08 bernat Exp $
+// $Id: miniTramp.C,v 1.19 2006/03/12 23:32:10 legendre Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -188,10 +188,14 @@ miniTrampInstance *miniTramp::getMTInstanceByBTI(baseTrampInstance *bti) {
 }
 
 miniTrampInstance::~miniTrampInstance() {
+    //deleteMTI frees the pointer used by proc(), so get everything in
+    // the proper order
+    process *this_proc = proc();
+
     mini->deleteMTI(this);
     if (!BPatch::bpatch->isMergeTramp()) {
-        proc()->deleteCodeRange(get_address_cr());
-        proc()->inferiorFree(trampBase);
+        this_proc->deleteCodeRange(get_address_cr());
+        this_proc->inferiorFree(trampBase);
     }
 }
 

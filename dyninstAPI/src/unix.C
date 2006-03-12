@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.171 2006/03/08 22:08:28 bernat Exp $
+// $Id: unix.C,v 1.172 2006/03/12 23:32:22 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -1143,66 +1143,6 @@ bool SignalGenerator::waitForStopInline()
 
 }
 #endif
-
-bool SignalGenerator::attachProcess()
-{
-  assert(proc);
-
-    proc->creationMechanism_ = process::attached_cm;
-    // We're post-main... run the bootstrapState forward
-
-#if !defined(os_windows)
-    proc->bootstrapState = initialized_bs;
-#else
-    // We need to wait for the CREATE_PROCESS debug event.
-    // Set to "begun" here, and fix up in the signal loop
-    proc->bootstrapState = begun_bs;
-#endif
-
-  if (!proc->attach()) {
-     proc->set_status( detached);
-
-     startup_printf("%s[%d] attach failing here: thread %s\n", 
-                    __FILE__, __LINE__, getThreadStr(getExecThreadID()));
-     pdstring msg = pdstring("Warning: unable to attach to specified process: ")
-                  + pdstring(getPid());
-     showErrorCallback(26, msg.c_str());
-     return false;
-  }
-
-  startup_printf("%s[%d]: attached, getting current process state\n", FILE__, __LINE__);
-
-   // Record what the process was doing when we attached, for possible
-   // use later.
-   if (proc->isRunning_()) {
-       startup_printf("[%d]: process running when attached, pausing...\n", getPid());
-       proc->stateWhenAttached_ = running;
-       proc->set_status(running);
-
-
-       //  Now pause the process -- since we are running on the signal handling thread
-       //  we cannot use the "normal" pause, which sends a signal and then waits
-       //  for the signal handler to receive the trap.
-       //  Need to do it all inline.
-       if (!proc->stop_(false)) {
-          fprintf(stderr, "%s[%d]:  failed to stop process\n", FILE__, __LINE__);
-          return false;
-       }
-
-       if (!waitForStopInline()) {
-         fprintf(stderr, "%s[%d]:  failed to do initial stop of process\n", FILE__, __LINE__);
-         return false;
-       }
-       proc->set_status(stopped);
-   }
-   else {
-       startup_printf("%s[%d]: attached to previously paused process: %d\n", FILE__, __LINE__, getPid());
-       proc->stateWhenAttached_ = stopped;
-       //proc->set_status(stopped);
-   }
-
-  return true;
-}
 
 bool DebuggerInterface::writeDataSpace(pid_t pid, Address addr, int nbytes, Address data, int word_len, const char * /*file*/, unsigned int /*line*/) 
 {

@@ -39,24 +39,27 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.c,v 1.22 2005/10/14 16:37:30 legendre Exp $ */
+/* $Id: RTheap.c,v 1.23 2006/03/12 23:32:43 legendre Exp $ */
 /* RTheap.c: platform-generic heap management */
 
 #include <stdlib.h>
 #include <stdio.h>
-#if !defined(mips_unknown_ce2_11) /* ccw 15 may 2000 : 29 mar 2001 */
-	/* wince 2.11 does not have these header files.  it appears the only
+#if !defined(os_windows) /* ccw 15 may 2000 : 29 mar 2001 */
+	/* win does not have these header files.  it appears the only
 	one that is used assert.h anyway.
 	*/
-#include <assert.h>
 #include <errno.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>                 /* open() */
 #include <fcntl.h>                    /* open() */
-#include <sys/mman.h>                 /* mmap() */
+#else
+extern int getpagesize();
 #endif
+#include <assert.h>
+
 #include "dyninstAPI_RT/src/RTheap.h"
+#include "dyninstAPI_RT/src/RTcommon.h"
 
 
 typedef enum {
@@ -123,137 +126,113 @@ static Address heap_alignDown(Address addr, int align)
 #define BEG(x) ((Address)(x)->pr_vaddr)
 #define END(x) ((Address)(x)->pr_vaddr + (x)->pr_size)
 
-#ifndef MAP_FAILED
-#define MAP_FAILED -1
-#endif
-
-static Address
-trymmap(size_t len, Address beg, Address end, size_t inc, int fd)
+static Address trymmap(size_t len, Address beg, Address end, size_t inc, int fd)
 {
-  Address try;
+  Address addr;
   void *result;
-  for (try = beg; try + len <= end; try += inc)
-    {
-    /*
-    fprintf(stderr, "Calling mmap(addr = 0x%x, len = 0x%x, prot = 0x%x, flags = 0x%x)\n",
-	    try, len, PROT_READ|PROT_WRITE|PROT_EXEC, DYNINSTheap_mmapFlags);
-    */
-    result = mmap((void*)try, len, 
-		  PROT_READ|PROT_WRITE|PROT_EXEC,
-		  DYNINSTheap_mmapFlags, 
-		  fd, 
-		  0);
-    if (result != MAP_FAILED)
-      {
-	return (Address)result;
-      }
-    
-    /* Ugly. Can someone fix this? */
+  //We have a possibly large region (beg to end) and a hopefully smaller 
+  // allocation size (len).  We try to map at every page in the region
+  // until we get one that succeeds.
+  for (addr = beg; addr + len <= end; addr += inc) {
+    result = map_region((void *) addr, len, fd);
+    if (result)
+        return (Address) result;
   }
-  return 0;
+  return (Address) NULL;
 }
 
 /* Attempt to mmap a region of memory of size LEN bytes somewhere
    between LO and HI.  Returns the address of the region on success, 0
    otherwise.  MAPS is the current address space map, with NMAPS
    elements.  FD is the mmap file descriptor argument. */
-static Address
-constrained_mmap(size_t len, Address lo, Address hi,
-		 const dyninstmm_t *maps, int nmaps, int fd)
+static Address constrained_mmap(size_t len, Address lo, Address hi,
+                                const dyninstmm_t *maps, int nmaps, int fd)
 {
-     const dyninstmm_t *mlo, *mhi, *p;
-     Address beg, end, try;
-     /*
-      * Interesting question -- what if the low address is
-      * above the high address? Hrm... right now we die
-      * in the assert below.
-      */
-     if (lo > DYNINSTheap_hiAddr) return 0;
+   const dyninstmm_t *mlo, *mhi, *p;
+   Address beg, end, try;
 
-     if (lo < DYNINSTheap_loAddr) lo = DYNINSTheap_loAddr;
-     if (hi > DYNINSTheap_hiAddr) hi = DYNINSTheap_hiAddr;
+   if (lo > DYNINSTheap_hiAddr) return 0;
 
-     /* Round down to nearest page boundary */
-     lo = lo & ~(psize-1);
-     hi = hi & ~(psize-1);
+   if (lo < DYNINSTheap_loAddr) lo = DYNINSTheap_loAddr;
+   if (hi > DYNINSTheap_hiAddr) hi = DYNINSTheap_hiAddr;
 
-     /* Round up to nearest page boundary */
-     if (len % psize) {
-	  len += psize;
-	  len = len & ~(psize-1);
-     }
+   /* Round down to nearest page boundary */
+   lo = lo & ~(psize-1);
+   hi = hi & ~(psize-1);
 
-#if !defined(mips_unknown_ce2_11) /* ccw 15 may 2000 : 29 mar 2001*/
-	 /*sorry, no assert in wince 2.11*/
-    assert(lo < hi);
-#endif
-     /* Find lowest (mlo) and highest (mhi) segments between lo and
-	hi.  If either lo or hi occurs within a segment, they are
-	shifted out of it toward the other bound. */
-     mlo = maps;
-     mhi = &maps[nmaps-1];
-     while (mlo <= mhi) {
-	  beg = BEG(mlo);
-	  end = END(mlo);
+   /* Round up to nearest page boundary */
+   if (len % psize) {
+      len += psize;
+      len = len & ~(psize-1);
+   }
 
-	  if (lo < beg)
-	       break;
+   assert(lo < hi);
+   /* Find lowest (mlo) and highest (mhi) segments between lo and
+      hi.  If either lo or hi occurs within a segment, they are
+      shifted out of it toward the other bound. */
+   mlo = maps;
+   mhi = &maps[nmaps-1];
+   while (mlo <= mhi) {
+      beg = BEG(mlo);
+      end = END(mlo);
 
-	  if (lo >= beg && lo < end)
-	       /* lo occurs in this segment.  Shift lo to end of segment. */
-	       lo = end; /* still a page boundary */
+      if (lo < beg)
+         break;
 
-	  ++mlo;
-     }
+      if (lo >= beg && lo < end)
+         /* lo occurs in this segment.  Shift lo to end of segment. */
+         lo = end; /* still a page boundary */
+
+      ++mlo;
+   }
 	     
-     while (mhi >= mlo) {
-	  beg = BEG(mhi);
-	  end = END(mhi);
+   while (mhi >= mlo) {
+      beg = BEG(mhi);
+      end = END(mhi);
 
-	  if (hi > end)
-	       break;
-	  if (hi >= beg && hi <= end)
-	       /* hi occurs in this segment (or just after it).  Shift
-	          hi to beginning of segment. */
-	       hi = beg; /* still a page boundary */
+      if (hi > end)
+         break;
+      if (hi >= beg && hi <= end)
+         /* hi occurs in this segment (or just after it).  Shift
+            hi to beginning of segment. */
+         hi = beg; /* still a page boundary */
 
-	  --mhi;
-     }
-     if (lo >= hi)
-	  return 0;
+      --mhi;
+   }
+   if (lo >= hi)
+      return 0;
 
-     /* We've set the bounds of the search, now go find some free space. */
+   /* We've set the bounds of the search, now go find some free space. */
 
-     /* Pathological cases in which the range (lo,hi) is entirely
-	above or below the rest of the address space, or there are no
-	segments between lo and hi.  Return no matter what from
-	here. */
-     if (BEG(mlo) >= hi || END(mhi) <= lo)
-	  return trymmap(len, lo, hi, psize, fd);
+   /* Pathological cases in which the range (lo,hi) is entirely
+      above or below the rest of the address space, or there are no
+      segments between lo and hi.  Return no matter what from
+      here. */
+   if (BEG(mlo) >= hi || END(mhi) <= lo) {
+      return trymmap(len, lo, hi, psize, fd);
+   }
+   assert(lo < BEG(mlo) && hi > END(mhi));
+   /* Try to mmap in space before mlo */
+   try = trymmap(len, lo, BEG(mlo), psize, fd);
+   if (try) {
+      return try;
+   }
 
-#if !defined(mips_unknown_ce2_11) /* ccw 15 may 2000 : 29 mar 2001*/
-    assert(lo < BEG(mlo) && hi > END(mhi));
-#endif
-     /* Try to mmap in space before mlo */
-     try = trymmap(len, lo, BEG(mlo), psize, fd);
-     if (try)
-	  return try;
+   /* Try to mmap in space between mlo and mhi.  Try nothing here if
+      mlo and mhi are the same. */
+   for (p = mlo; p < mhi; p++) {
+      try = trymmap(len, END(p), BEG(p+1), psize, fd);
+      if (try)
+         return try;
+   }
 
-     /* Try to mmap in space between mlo and mhi.  Try nothing here if
-	mlo and mhi are the same. */
-     for (p = mlo; p < mhi; p++) {
-	  try = trymmap(len, END(p), BEG(p+1), psize, fd);
-	  if (try)
-	       return try;
-     }
+   /* Try to mmap in space between mhi and hi */
+   try = trymmap(len, END(mhi), hi, psize, fd);
+   if (try)
+      return try;
 
-     /* Try to mmap in space between mhi and hi */
-     try = trymmap(len, END(mhi), hi, psize, fd);
-     if (try)
-	  return try;
-
-     /* We've tried everything */
-     return 0;
+   /* We've tried everything */
+   return 0;
 }
 #undef BEG
 #undef END
@@ -273,10 +252,7 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
   void *heap;
   size_t size = nbytes;
   heapList_t *node = (heapList_t *)malloc(sizeof(heapList_t));
-  /*
-  fprintf(stderr, "*** DYNINSTos_malloc(%iB, 0x%016x, 0x%016x)\n", 
-	  nbytes, lo_addr, hi_addr);
-  */
+
   /* initialize page size */
   if (psize == -1) psize = getpagesize();
 
@@ -300,7 +276,7 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
     
     /* malloc buffer must meet range constraints */
     if (ret_heap < (Address)lo_addr ||
-	ret_heap + size - 1 > (Address)hi_addr) {
+        ret_heap + size - 1 > (Address)hi_addr) {
       free(heap);
       free(node);
 #ifdef DEBUG
@@ -346,21 +322,21 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
     /*DYNINSTheap_printMappings(nmaps, maps);*/
 
     fd = DYNINSTheap_mmapFdOpen();
-#ifndef alpha_dec_osf4_0
+#if !defined(os_alpha)
     if (0 > fd) {
-	 free(node);
-	 return NULL;
+      free(node);
+      return NULL;
     }
 #endif
     heap = (void*) constrained_mmap(size, lo, hi, maps, nmaps, fd);
     free(maps);
     DYNINSTheap_mmapFdClose(fd);
     if (!heap) {
-	 free(node);
+       free(node);
 #ifdef DEBUG
-	 fprintf(stderr, "failed MMAP(2)\n");
+       fprintf(stderr, "failed MMAP(2)\n");
 #endif 
-	 return NULL;
+       return NULL;
     }
 
     /* define new heap */
@@ -375,9 +351,7 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
   node->next = Heaps;
   if (Heaps) Heaps->prev = node;
   Heaps = node;
-  /*
-  fprintf(stderr, "Returning addr %x\n", (unsigned) node->heap.ret_addr);
-  */
+  
   return node->heap.ret_addr;
 }
 
@@ -401,9 +375,9 @@ int DYNINSTos_free(void *buf)
     /* deallocate heap */
     switch (heap->type) {
     case HEAP_TYPE_MMAP:
-      if (munmap(heap->addr, heap->len) == -1) {
-	perror("DYNINSTos_free(munmap)");
-	ret = -1;
+      if (!unmap_region(heap->addr, heap->len)) {
+        perror("DYNINSTos_free(munmap)");
+        ret = -1;
       }
       break;
     case HEAP_TYPE_MALLOC:

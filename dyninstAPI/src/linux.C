@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.199 2006/03/08 19:57:50 mjbrim Exp $
+// $Id: linux.C,v 1.200 2006/03/12 23:32:04 legendre Exp $
 
 #include <fstream>
 
@@ -1515,7 +1515,6 @@ bool SignalGeneratorCommon::getExecFileDescriptor(pdstring filename,
     return true;
 }
 
-#if defined(USES_DYNAMIC_INF_HEAP)
 static const Address lowest_addr = 0x0;
 void process::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
 			       inferiorHeapType /* type */ )
@@ -1543,7 +1542,6 @@ void process::inferiorMallocAlign(unsigned &size)
      /* 32 byte alignment.  Should it be 64? */
   size = (size + 0x1f) & ~0x1f;
 }
-#endif
 
 bool dyn_lwp::realLWP_attach_() {
    char procName[128];
@@ -2250,4 +2248,9 @@ bool DebuggerInterface::forkNewProcess(pdstring file,
     releaseBusy();
 
     return ret;  
+}
+
+bool SignalHandler::handleProcessExitPlat(EventRecord & /*ev*/) 
+{
+    return true;
 }

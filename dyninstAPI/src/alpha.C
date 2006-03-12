@@ -40,8 +40,12 @@
  */
 
 /* 
- * $Id: alpha.C,v 1.4 2004/03/23 19:10:52 eli Exp $
+ * $Id: alpha.C,v 1.5 2006/03/12 23:31:43 legendre Exp $
  */
 
 class ptraceKludge { };
 
+bool SignalHandler::handleProcessExitPlat(EventRecord & /*ev*/) 
+{
+    return true;
+}

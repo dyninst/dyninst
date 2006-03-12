@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test7.C,v 1.19 2005/07/06 18:28:26 rchen Exp $
+// $Id: test7.C,v 1.20 2006/03/12 23:32:34 legendre Exp $
 //
 
 #include <stdio.h>
@@ -1260,7 +1260,6 @@ main(unsigned int argc, char *argv[])
 	if (strncmp(argv[i], "-verbose", 2) == 0) {
 	    debugPrint = 1;
 	} else if (!strcmp(argv[i], "-V")) {
-            fprintf (stdout, "%s\n", V_libdyninstAPI);
             if (libRTname[0]) 
                 fprintf (stdout, "DYNINSTAPI_RT_LIB=%s\n", libRTname);
             fflush(stdout);

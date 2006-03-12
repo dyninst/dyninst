@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.121 2006/03/09 03:43:38 bernat Exp $ */
+/* $Id: test1.mutatee.c,v 1.122 2006/03/12 23:32:26 legendre Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -1859,7 +1859,6 @@ void func28_1()
 
     passedTest[28] = TRUE;
 
-
     temp = (struct struct28_2 *) globalVariable28_1;
 
     temp->field1 = 28001001;
@@ -2417,10 +2416,10 @@ void func36_1()
 
 /* Test #37 (loop instrumentation) */
 
-int globalVariable37_1 = 0;
+volatile int globalVariable37_1 = 0;
 
 void inc37_1() { globalVariable37_1++; }
-
+#if 0
 void call37_1()
 {
     int i, j, k, m;
@@ -2428,25 +2427,35 @@ void call37_1()
     /* inserting a call to inc37_1 in each loop body in call37_1 should make
        the total 17200 = 200 + (100 * 20) + (100 * 10 * 14) + (10 * 100) */
     for (i = 0; i < 100; i++) {
-	globalVariable37_1++;
+        globalVariable37_1++;
 
-	for (j = 0; j < 10; j++) {
-	    globalVariable37_1++;
+        for (j = 0; j < 10; j++) {
+	        globalVariable37_1++;
 
-	    for (k = 0; k < 7; k++) {
-		globalVariable37_1++;
+	        for (k = 0; k < 7; k++) {
+		        globalVariable37_1++;
+	        }
 	    }
-	}
 
-	m = 0;
-	do {
-	    globalVariable37_1++;
-	    m++;
-	} while (m < 5);
+	    m = 0;
+	    do {
+            globalVariable37_1++;
+	        m++;
+	    } while (m < 5);
+    }
+}
+#endif
+
+volatile int foobar;
+void call37_1()
+{
+    unsigned i;
+    for (i=0; i<1; i++) {
+        foobar++;
     }
 }
 
-int globalVariable37_2 = 0;
+volatile int globalVariable37_2 = 0;
 
 void inc37_2() { globalVariable37_2++; }
 
@@ -2454,43 +2463,43 @@ void inc37_2() { globalVariable37_2++; }
    start of the outer two loops there isn't much space to instrument. */
 void call37_2()
 {
-    int i = 0;
-    int j = 0;
-    int k = 0;
+    volatile int i = 0;
+    volatile int j = 0;
+    volatile int k = 0;
 
     /* inserting a call to inc37_2 in each loop body in call37_2 should make
        the total 42. 40 for the inner loop plus two for the outer loops. */
     while (i < 5) {
-	while (j < 10) {
-	    do {
-		globalVariable37_2++;
-		i++; j++; k++;
-	    } while (k < 20);
-	}
+        while (j < 10) {
+            do {
+                globalVariable37_2++;
+                i++; j++; k++;
+	        } while (k < 20);
+	    }
     }
 }
 
 
-int globalVariable37_3 = 0;
+volatile int globalVariable37_3 = 0;
 
 void inc37_3() { globalVariable37_3++; }
 
 /* test with if statements as the only statements in a loop body. */
 void call37_3()
 {
-    int i, j;
+    volatile int i, j;
 
     /* inserting a call to inc37_3 in each loop body in call37_3 should make
        the total 1650 = 100 + 50 + 100*10 + (100*10) / 2 */
     for (i = 0; i < 100; i++) {
-	if (0 == (i % 2)) {            
-	    globalVariable37_3++;     
-	}
-	for (j = 0; j < 10; j++) {     
-	    if (0 == (i % 2)) {
-		globalVariable37_3++; 
-	    }
-	}
+        if (0 == (i % 2)) {            
+            globalVariable37_3++;
+        }
+        for (j = 0; j < 10; j++) {     
+            if (0 == (i % 2)) {
+                globalVariable37_3++; 
+	        }
+        }
     }
 }
 
@@ -2824,7 +2833,6 @@ void runTests()
     if (runTest[28]) func28_1();
     if (runTest[29]) func29_1();
     if (runTest[30]) func30_1();
-
     if (runTest[31]) func31_1();
     if (runTest[32]) func32_1();
     if (runTest[33]) func33_1();
@@ -2835,4 +2843,43 @@ void runTests()
     if (runTest[38]) func38_1();
     if (runTest[39]) func39_1();
     if (runTest[40]) func40_1();
+
+    fprintf(stderr, "Finished running tests\n");
 }
+
+
+typedef int   matt_int;
+typedef int*  matt_pint;
+typedef char  matt_char;
+typedef char* matt_pchar;
+typedef long long int matt_llint;
+typedef struct {
+	int a;
+	int *b;
+	char c;
+	struct {
+		int sa;
+		int sb;
+		char sc;
+	} d;
+	unsigned long int e	;
+	int f;
+} matt_struct;
+
+struct matt_recursive {
+    struct matt_recursive *next;
+};
+
+matt_int matt_vint;
+matt_pint matt_vpint;
+matt_char matt_vchar;
+matt_struct matt_vstruct;
+matt_pchar matt_vpchar;
+matt_llint matt_vllint;
+typedef void (*mattfoo)(void(*)(void), int);
+
+mattfoo mattbar(mattfoo a, mattfoo b) {
+    return NULL;
+}
+
+struct matt_recursive matt_vrecurse;

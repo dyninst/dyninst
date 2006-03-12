@@ -42,7 +42,6 @@
 #include <BPatch.h>
 #include <BPatch_process.h>
 #include <BPatch_thread.h>
-#include <unistd.h>
 #include "test_util.h"
 
 #define NUM_THREADS 5
@@ -288,7 +287,7 @@ int main(int argc, char *argv[])
               __FILE__, __LINE__, thread_count, NUM_THREADS);
          return -1;
       }
-      sleep(1);
+      P_sleep(1);
    } while (thread_count < NUM_THREADS);
 
    BPatch_Vector<BPatch_thread *> thrds;
@@ -329,7 +328,7 @@ int main(int argc, char *argv[])
                  __FILE__, __LINE__);
          break;
       }
-      sleep(1);
+      P_sleep(1);
    } while (deleted_threads < NUM_THREADS-1);
 
    for (unsigned i=1; i<NUM_THREADS; i++)

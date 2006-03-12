@@ -336,7 +336,7 @@ void SignalGeneratorCommon::deleteSignalGenerator(SignalGenerator *sg)
    
   if (sg->isRunning())
     stopSignalGenerator(sg);
-
+ 
    delete (sg);
 }
 
@@ -515,8 +515,7 @@ SignalGeneratorCommon::SignalGeneratorCommon(char *idstr, pdstring file_,
 bool SignalGeneratorCommon::wakeUpThreadForShutDown()
 {
 #if defined (os_windows)
-  int sig_to_send = 5;
-  fprintf(stderr, "%s[%d]:  FIGURE ME OUT FOR WINDOWS\n", FILE__, __LINE__);
+//  DebugBreakProcess(this->proc->processHandle_);
   if (waiting_for_active_process) {
     signalEvent(evtShutDown);
     __BROADCAST;
@@ -1035,7 +1034,7 @@ bool SignalGeneratorCommon::decodeIfDueToProcessStartup(EventRecord &ev)
           ev.type = evtProcessCreate; 
         ret = true;
         break;
-    case begun_bs:         
+    case begun_bs:
 #if defined (os_windows)
        if (proc->trapAtEntryPointOfMain(NULL, (Address)ev.info.u.Exception.ExceptionRecord.ExceptionAddress)) {
           ev.type = evtProcessInit; 
@@ -1210,6 +1209,8 @@ bool SignalHandler::handleProcessExit(EventRecord &ev)
       ret = proc->handleProcessExit();
       //ret = true; //  maybe this should be false?  (this case is an error)
     }
+
+  handleProcessExitPlat(ev);
 
   flagBPatchStatusChange();
   return ret;
@@ -1514,6 +1515,9 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
         break;
      case evtThreadExit:
         ret = handleLwpExit(ev);
+#if defined(os_windows)
+        proc->continueProc();
+#endif
         break;
      case evtProcessAttach:
         proc->setBootstrapState(initialized_bs);
@@ -1742,3 +1746,65 @@ bool SignalHandler::waitNextEvent(EventRecord &ev)
 signal_handler_location::signal_handler_location(Address addr, unsigned size) :
     addr_(addr),
     size_(size) {}
+
+bool SignalGenerator::attachProcess()
+{
+  assert(proc);
+
+    proc->creationMechanism_ = process::attached_cm;
+    // We're post-main... run the bootstrapState forward
+
+#if !defined(os_windows)
+    proc->bootstrapState = initialized_bs;
+#else
+    // We need to wait for the CREATE_PROCESS debug event.
+    // Set to "begun" here, and fix up in the signal loop
+    proc->bootstrapState = attached_bs;
+#endif
+
+  if (!proc->attach()) {
+     proc->set_status( detached);
+
+     startup_printf("%s[%d] attach failing here: thread %s\n", 
+                    __FILE__, __LINE__, getThreadStr(getExecThreadID()));
+     pdstring msg = pdstring("Warning: unable to attach to specified process: ")
+                  + pdstring(getPid());
+     showErrorCallback(26, msg.c_str());
+     return false;
+  }
+
+  startup_printf("%s[%d]: attached, getting current process state\n", FILE__, __LINE__);
+
+   // Record what the process was doing when we attached, for possible
+   // use later.
+#if !defined(os_windows)
+   if (proc->isRunning_()) {
+       startup_printf("[%d]: process running when attached, pausing...\n", getPid());
+       proc->stateWhenAttached_ = running;
+       proc->set_status(running);
+
+
+       //  Now pause the process -- since we are running on the signal handling thread
+       //  we cannot use the "normal" pause, which sends a signal and then waits
+       //  for the signal handler to receive the trap.
+       //  Need to do it all inline.
+       if (!proc->stop_(false)) {
+          fprintf(stderr, "%s[%d]:  failed to stop process\n", FILE__, __LINE__);
+          return false;
+       }
+
+       if (!waitForStopInline()) {
+         fprintf(stderr, "%s[%d]:  failed to do initial stop of process\n", FILE__, __LINE__);
+         return false;
+       }
+       proc->set_status(stopped);
+   } else
+#endif
+   {
+       startup_printf("%s[%d]: attached to previously paused process: %d\n", FILE__, __LINE__, getPid());
+       proc->stateWhenAttached_ = stopped;
+       //proc->set_status(stopped);
+   }
+
+  return true;
+}

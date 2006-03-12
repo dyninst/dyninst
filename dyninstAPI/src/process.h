@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.359 2006/03/08 22:08:24 bernat Exp $
+/* $Id: process.h,v 1.360 2006/03/12 23:32:15 legendre Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -206,6 +206,7 @@ class process {
   protected:  
   bool walkStackFromFrame(Frame currentFrame, // Where to start walking from
 			  pdvector<Frame> &stackWalk); // return parameter
+  Frame preStackWalkInit(Frame startFrame); //Let's the OS do any needed initialization
   public:
   // Preferred function: returns a stack walk (vector of frames)
   // for each thread in the program
@@ -555,9 +556,9 @@ class process {
  // inferior heap management
  public:
 
-  //
-  //  PRIVATE DATA MEMBERS (and structure definitions)....
-  //
+ //Run the mutatee until exit in single-step mode, printing each instruction
+ //as it executes.  
+ void debugSuicide();
  private:
 
 
@@ -738,7 +739,7 @@ class process {
   // And the same for objects
   // Wildcard: handles "*" and "?"
   mapped_object *findObject(const pdstring &obj_name, bool wildcard = false);
-
+  mapped_object *findObject(Address addr);
   // getAllFunctions: returns a vector of all functions defined in the
   // a.out and in the shared objects
   void getAllFunctions(pdvector<int_function *> &);
@@ -937,12 +938,12 @@ private:
 
  public:
    // Handling of inferior memory management
-#if defined(USES_DYNAMIC_INF_HEAP)
+#if defined(cap_dynamic_heap)
    // platform-specific definition of "near" (i.e. close enough for one-insn jump)
    void inferiorMallocConstraints(Address near_, Address &lo, Address &hi, inferiorHeapType type);
    // platform-specific buffer size alignment
    void inferiorMallocAlign(unsigned &size);
-#endif /* USES_DYNAMIC_INF_HEAP */
+#endif
 
    
    Address inferiorMalloc(unsigned size, inferiorHeapType type=anyHeap,
@@ -1093,6 +1094,9 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   //////////////////
   bootstrapState_t bootstrapState;
   unsigned char savedCodeBuffer[BYTES_TO_SAVE];
+#if defined(arch_x86) && defined(os_windows)
+  dictionary_hash<Address, unsigned char> main_breaks;
+#endif
 #if defined(arch_x86) || defined(arch_x86_64)
   unsigned char savedStackFrame[BYTES_TO_SAVE];
 #endif
@@ -1197,5 +1201,8 @@ inline void process::independentLwpControlInit() { }
 #endif
 
 extern pdvector<process *> processVec;
+
+#define NUMBER_OF_MAIN_POSSIBILITIES 7
+extern char main_function_names[NUMBER_OF_MAIN_POSSIBILITIES][20];
 
 #endif

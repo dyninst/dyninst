@@ -634,6 +634,7 @@ class instruction {
 
   bool isTrueCallInsn() const { return (isCall() && !isCallIndir()); }
 #endif
+  bool isCleaningRet() const { return false; }
 
  private:
   instructUnion insn_;

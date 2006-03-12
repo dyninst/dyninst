@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.193 2006/03/07 23:18:20 bernat Exp $
+// $Id: solaris.C,v 1.194 2006/03/12 23:32:19 legendre Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -845,7 +845,7 @@ bool SignalGeneratorCommon::getExecFileDescriptor(pdstring filename,
     return true;
 }
 
-#if defined(USES_DYNAMIC_INF_HEAP)
+#if defined(cap_dynamic_heap)
 static const Address lowest_addr = 0x0;
 void process::inferiorMallocConstraints(Address near, Address &lo, Address &hi,
                                         inferiorHeapType /* type */)
@@ -1378,4 +1378,9 @@ bool process::initMT()
 void dyninst_yield()
 {
    sched_yield();
+}
+
+bool SignalHandler::handleProcessExitPlat(EventRecord & /*ev*/) 
+{
+    return true;
 }

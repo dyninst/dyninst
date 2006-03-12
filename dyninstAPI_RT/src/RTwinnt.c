@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTwinnt.c,v 1.15 2005/10/17 15:49:35 legendre Exp $
+ * $Id: RTwinnt.c,v 1.16 2006/03/12 23:32:47 legendre Exp $
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  ************************************************************************/
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
@@ -67,10 +67,13 @@
  * stop oneself.
 ************************************************************************/
 
-void
-DYNINSTbreakPoint(void) {
+void DYNINSTbreakPoint(void) {
   /* TODO: how do we stop all threads? */
   DebugBreak();
+}
+
+void DYNINSTsafeBreakPoint() {
+    DYNINSTbreakPoint();
 }
 
 
@@ -109,16 +112,16 @@ int DYNINSTloadLibrary(char *libname)
 {
     HMODULE res;
     gLoadLibraryErrorString[0] = '\0';
-    //fprintf(stderr, "Attempting to load %s\n", libname);
-    
     res = LoadLibrary(libname);
     if (res == NULL) {
-        perror("DYNINSTloadLibrary - load of library failed");
+        FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, GetLastError(), 
+		  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		  gLoadLibraryErrorString, ERROR_STRING_LENGTH, NULL);
         return 0;
     }
     return 1;
 }
-int DYNINSTwriteEvent(void *ev, int sz);
+
 /************************************************************************
  * void DYNINSTasyncConnect()
  *
@@ -128,9 +131,8 @@ int DYNINSTwriteEvent(void *ev, int sz);
 
 int async_socket = -1;
 int connect_port = 0;
-int DYNINSTasyncConnect()
+int DYNINSTasyncConnect(int mutatorpid)
 {
-
   int sock_fd;
   struct sockaddr_in sadr;
   struct in_addr *inadr;
@@ -194,7 +196,7 @@ int DYNINSTasyncDisconnect()
   return _close (async_socket);
 }
 
-int DYNINSTwriteEvent(void *ev, int sz)
+int DYNINSTwriteEvent(void *ev, size_t sz)
 {
   if (send((SOCKET)async_socket, ev, sz, 0) != sz) {
     printf("DYNINSTwriteTrace: send error %d, %d %d\n",
@@ -206,16 +208,23 @@ int DYNINSTwriteEvent(void *ev, int sz)
   return 1;
 }
 
-void DYNINST_initialize_index_list()
-{
-}
-
 int dyn_pid_self()
 {
    return _getpid();
 }
 
+int dyn_lwp_self()
+{
+    return GetCurrentThreadId();
+}
+
 dyntid_t dyn_pthread_self()
 {
-   return 0;
+   return (dyntid_t) dyn_lwp_self();
 }
+
+int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
+{
+    return 1;
+}
+

@@ -57,12 +57,13 @@ int DYNINSTasyncConnect(int pid);
 
 extern int DYNINSTdebuPrintRT;
 extern int DYNINST_mutatorPid;
-extern const char V_libdyninstAPI_RT[];
 extern int libdyninstAPI_RT_init_localCause;
 extern int libdyninstAPI_RT_init_localPid;
 extern int libdyninstAPI_RT_init_maxthreads;
 extern int DYNINSTdebugPrintRT;
 extern tc_lock_t DYNINST_trace_lock;
 
+extern void *map_region(void *addr, int len, int fd);
+extern int unmap_region(void *addr, int len);
 #endif
        

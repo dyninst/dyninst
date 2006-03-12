@@ -197,11 +197,9 @@ bool InternalThread::createThread()
   startupLock->_Lock(__FILE__, __LINE__);
 
 #if defined(os_windows)
-  fprintf(stderr, "%s[%d]:  about to start thread\n", __FILE__, __LINE__);
   handler_thread = _beginthread(eventHandlerWrapper, 0, (void *) this);
   if (-1L == handler_thread) {
     bperr("%s[%d]:  _beginthread(...) failed\n", __FILE__, __LINE__);
-    fprintf(stderr,"%s[%d]:  _beginthread(...) failed\n", __FILE__, __LINE__);
     return false;
   }
 #else  // Unixes

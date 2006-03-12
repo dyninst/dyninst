@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.235 2006/02/13 19:31:28 rutar Exp $
+ * $Id: inst-x86.C,v 1.236 2006/03/12 23:32:00 legendre Exp $
  */
 #include <iomanip>
 
@@ -773,7 +773,7 @@ Register emitFuncCall(opCode op,
                       pdvector<AstNode *> &operands, 
                       process *proc,
                       bool noCost,
-		      Address callee_addr,
+                      Address callee_addr,
                       const pdvector<AstNode *> &ifForks,
                       const instPoint *location)
 {
@@ -850,6 +850,9 @@ Register Emitter32::emitCall(opCode op,
 {
    assert(op == callOp);
    pdvector <Register> srcs;
+   int param_size;
+   int_function *target_func;
+   pdvector<Register> saves;
 
    //  Sanity check for NULL address arg
    if (!callee_addr) {
@@ -860,19 +863,33 @@ Register Emitter32::emitCall(opCode op,
       assert(0);
    }
  
+
+   /*
+      int emitCallParams(registerSpace *rs, codeGen &gen, 
+                   const pdvector<AstNode *> &operands, process *proc,
+                   int_function *target, const pdvector<AstNode *> &ifForks,
+                   pdvector<Register> &extra_saves, const instPoint *location,
+                   bool noCost);
+                   */
+
+   target_func = proc->findFuncByAddr(callee_addr);
+   assert(target_func);
+   param_size = emitCallParams(rs, gen, operands, proc, target_func, ifForks, saves,
+                  location, noCost);
+
+   /*
    for (unsigned u = 0; u < operands.size(); u++)
        srcs.push_back((Register)operands[u]->generateCode_phase2(proc, rs, gen,
                                                                  noCost, 
                                                                  ifForks, 
                                                                  location));
-
    // push arguments in reverse order, last argument first
    // must use int instead of unsigned to avoid nasty underflow problem:
    for (int i=srcs.size() - 1 ; i >= 0; i--) {
-       emitOpRMReg(PUSH_RM_OPC1, REGNUM_EBP, -(srcs[i]*4), PUSH_RM_OPC2, gen);
+       emitOpRMReg(PUSH_RM_OPC1, REGNUM_EBP, -( (int) srcs[i]*4), PUSH_RM_OPC2, gen);
        rs->freeRegister(srcs[i]);
    }
-
+*/
    // make the call
    // we are using an indirect call here because we don't know the
    // address of this instruction, so we can't use a relative call.
@@ -880,13 +897,16 @@ Register Emitter32::emitCall(opCode op,
    emitMovImmToReg(REGNUM_EAX, callee_addr, gen);       // mov eax, addr
    emitOpRegReg(CALL_RM_OPC1, CALL_RM_OPC2, REGNUM_EAX, gen);   // call *(eax)
 
+   /*
    // reset the stack pointer
    if (srcs.size() > 0)
       emitOpRegImm(0, REGNUM_ESP, srcs.size()*4, gen); // add esp, srcs.size()*4
+  */
+   emitCallCleanup(gen, proc, target_func, param_size, saves);
 
    // allocate a (virtual) register to store the return value
    Register ret = rs->allocateRegister(gen, noCost);
-   emitMovRegToRM(REGNUM_EBP, -(ret*4), REGNUM_EAX, gen);
+   emitMovRegToRM(REGNUM_EBP, -((int) ret*4), REGNUM_EAX, gen);
 
    // Figure out if we need to save FPR in base tramp
    bool useFPR = clobberAllFuncCall(rs, proc, callee_addr,0);
@@ -1072,7 +1092,7 @@ void Emitter32::emitASload(int ra, int rb, int sc, long imm, Register dest, code
    emitLEA((havera ? REGNUM_EAX : Null_Register), (haverb ? REGNUM_EDX : Null_Register),
            sc, (long)imm, REGNUM_EAX, gen);
 
-   emitMovRegToRM(REGNUM_EBP, -(dest<<2), REGNUM_EAX, gen); // mov (virtual reg) dest, eax
+   emitMovRegToRM(REGNUM_EBP, -((int) dest<<2), REGNUM_EAX, gen); // mov (virtual reg) dest, eax
 }
 
 void emitCSload(const BPatch_countSpec_NP *as, Register dest,
@@ -1133,7 +1153,7 @@ void Emitter32::emitCSload(int ra, int rb, int sc, long imm, Register dest, code
               emitSHL(REGNUM_EAX, sc, gen);              // shl eax, scale
 
            // mov (virtual reg) dest, eax
-           emitMovRegToRM(REGNUM_EBP, -(dest<<2), REGNUM_EAX, gen);
+           emitMovRegToRM(REGNUM_EBP, -((int) dest<<2), REGNUM_EAX, gen);
 
            break;
         case IA32_NECMPS:
@@ -1169,7 +1189,7 @@ void Emitter32::emitCSload(int ra, int rb, int sc, long imm, Register dest, code
               emitSHL(REGNUM_EAX, sc, gen);              // shl eax, scale
 
            // mov (virtual reg) dest, eax
-           emitMovRegToRM(REGNUM_EBP, -(dest<<2), REGNUM_EAX, gen);
+           emitMovRegToRM(REGNUM_EBP, -((int) dest<<2), REGNUM_EAX, gen);
 
            break;
         default:
@@ -1185,7 +1205,7 @@ void Emitter32::emitCSload(int ra, int rb, int sc, long imm, Register dest, code
          emitSHL(REGNUM_EAX, sc, gen);              // shl eax, scale
 
       // mov (virtual reg) dest, eax
-      emitMovRegToRM(REGNUM_EBP, -(dest<<2), REGNUM_EAX, gen);
+      emitMovRegToRM(REGNUM_EBP, -((int) dest<<2), REGNUM_EAX, gen);
    }
    else
       emitMovImmToRM(REGNUM_EBP, -(dest<<2), (int)imm, gen);
@@ -2213,4 +2233,3 @@ int instPoint::liveRegSize()
 {
   return maxGPR;
 }
-

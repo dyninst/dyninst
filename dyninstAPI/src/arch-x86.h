@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.42 2006/02/26 05:06:32 bernat Exp $
+// $Id: arch-x86.h,v 1.43 2006/03/12 23:31:49 legendre Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -98,6 +98,7 @@ typedef int dword_t;   /* a double word (32-bit) operand */
 #define IS_JCC  (1<<5)   /* conditional jump instruction */
 #define ILLEGAL (1<<6)   /* illegal instruction */
 #define PRVLGD  (1<<7)   /* privileged */
+#define IS_RETC (1<<8)   /* return and pop bytes off of stack*/
 
 /* addressing modes for calls and jumps */
 #define REL_B   (1<<10)  /* relative address, byte offset */
@@ -564,13 +565,8 @@ class ia32_instruction
 {
   friend unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& gotit, 
                                             const char* addr, ia32_instruction& instruct);
-#if defined(i386_unknown_nt4_0) && _MSC_VER < 1300
   friend ia32_instruction& ia32_decode(unsigned int capa, const unsigned char* addr,
 		  		       ia32_instruction& instruct);
-#else
-  template <unsigned int capa>
-    friend ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction& instruct);
-#endif
   friend unsigned int ia32_decode_operands (const ia32_prefixes& pref, const ia32_entry& gotit, 
                                             const unsigned char* addr, ia32_instruction& instruct,
                                             ia32_memacc *mac = NULL);
@@ -624,21 +620,8 @@ class ia32_instruction
 #define IA32_FULL_DECODER 0xffffffffffffffffu
 #define IA32_SIZE_DECODER 0
 
-// old broken MS compiler cannot do this properly, so we revert to args
-#if defined(i386_unknown_nt4_0) && _MSC_VER < 1300
-
 ia32_instruction& ia32_decode(unsigned int capabilities, const unsigned char* addr, ia32_instruction&);
 
-#else
-
-template <unsigned int capabilities>
-ia32_instruction& ia32_decode(const unsigned char* addr, ia32_instruction&);
-// If typing the template every time is a pain, the following should help:
-#define ia32_decode_all  ia32_decode<IA32_FULL_DECODER>
-#define ia32_decode_size ia32_decode<IA32_SIZE_DECODER>
-#define ia32_size(a,i)   ia32_decode_size((a),(i)).size
-
-#endif
 
 enum dynamic_call_address_mode {
   REGISTER_DIRECT, REGISTER_INDIRECT,
@@ -765,6 +748,7 @@ class instruction {
   bool isCallIndir() const { return (type_ & IS_CALL) && (type_ & INDIR); }
   bool isReturn() const { return (type_ & IS_RET) || (type_ & IS_RETF); }
   bool isRetFar() const { return type_ & IS_RETF; }
+  bool isCleaningRet() const {return type_ & IS_RETC; }
   bool isJumpIndir() const { return (type_ & IS_JUMP) && (type_ & INDIR); }
   bool isJumpDir() const
     { return ~(type_ & INDIR) && ((type_ & IS_JUMP) || (type_ & IS_JCC)); }

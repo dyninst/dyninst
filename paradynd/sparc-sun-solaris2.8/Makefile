@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.14 2005/09/09 18:06:03 legendre Exp $
+# $Id: Makefile,v 1.15 2006/03/12 23:32:56 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -36,8 +36,8 @@ SRCS =		../../dyninstAPI/src/solaris.C \
 		../../dyninstAPI/src/arch-sparc.C \
 		../../dyninstAPI/src/image-sparc.C
 
-CXXFLAGS 	+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP
-CFLAGS 		+= -DNO_MDL_PRINT -DUSES_DYNAMIC_INF_HEAP
+CXXFLAGS 	+= -DNO_MDL_PRINT
+CFLAGS 		+= -DNO_MDL_PRINT
 
 # Tradeoff: adding -g to TFLAGS aids gdb but uses gobs of disk space
 #TFLAGS 		+= -g

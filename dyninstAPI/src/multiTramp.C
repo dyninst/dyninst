@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.31 2006/03/07 18:58:52 tlmiller Exp $
+// $Id: multiTramp.C,v 1.32 2006/03/12 23:32:11 legendre Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -871,6 +871,7 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
         trampAddr_ = proc()->inferiorMalloc(size_required,
                                             heapToUse,
                                             instAddr_);
+        inst_printf("inferiorMalloc Returned %x\n", trampAddr_);
         if (!trampAddr_) {
             fprintf(stderr, "Failed to inferiorMalloc, ret false\n");
             return false;

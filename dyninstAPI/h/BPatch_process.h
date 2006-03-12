@@ -259,6 +259,11 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     // this function should go away as soon as Paradyn links against Dyninst
     BPatch_function *get_function(int_function *f);
 
+    // DO NOT USE
+    // This is an internal debugging function
+    API_EXPORT_V(Int, (), 
+    void, debugSuicide,());
+
   
     //  BPatch_process::~BPatch_process
     //

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: function.h,v 1.26 2006/02/27 23:35:09 nater Exp $
+// $Id: function.h,v 1.27 2006/03/12 23:31:55 legendre Exp $
 
 #ifndef FUNCTION_H
 #define FUNCTION_H
@@ -82,6 +82,14 @@ class int_basicBlock;
 class bitArray;
 
 class funcMod;
+
+typedef enum callType {
+  unknown_call,
+  cdecl_call,
+  stdcall_call,
+  fastcall_call,
+  thiscall_call
+} callType;
 
 // A specific instance (relocated version) of a basic block
 // It's really a semi-smart struct...
@@ -541,6 +549,14 @@ class int_function {
 
 #endif
 
+#if defined(os_windows) 
+   //Calling convention for this function
+   callType int_function::getCallingConvention();
+   int getParamSize() { return paramSize; }
+   void setParamSize(int s) { paramSize = s; }
+#endif
+
+
  private:
 
    ///////////////////// Basic func info
@@ -590,6 +606,10 @@ class int_function {
 
 #ifndef BPATCH_LIBRARY
    resource *funcResource;
+#endif
+#if defined(os_windows) 
+   callType callingConv;
+   int paramSize;
 #endif
 };
 

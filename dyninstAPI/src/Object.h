@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object.h,v 1.52 2006/02/27 23:15:24 bernat Exp $
+ * $Id: Object.h,v 1.53 2006/03/12 23:31:41 legendre Exp $
  * Object.h: interface to objects, symbols, lines and instructions.
 ************************************************************************/
 
@@ -105,6 +105,7 @@ class fileDescriptor {
      Address data() const { return data_; };
      bool isSharedObject() const { return shared_; }
      int pid() const { return pid_; }
+     Address loadAddr() const { return loadAddr_; };
      
      void setMember(pdstring member) { member_ = member; }
      void setPid(int pid) { pid_ = pid; }
@@ -112,10 +113,11 @@ class fileDescriptor {
 #if defined(os_windows)
      // Windows gives you file handles. Since I collapsed the fileDescriptors
      // to avoid having to track allocated/deallocated memory, these moved here.
-     fileDescriptor(pdstring name, Address baseAddr, HANDLE procH, HANDLE fileH) :
+     fileDescriptor(pdstring name, Address baseAddr, HANDLE procH, HANDLE fileH,
+                    bool isShared, Address loadAddr) :
          file_(name), code_(baseAddr), data_(baseAddr), 
          procHandle_(procH), fileHandle_(fileH),
-         shared_(true) {}
+         shared_(isShared), pid_(0), loadAddr_(loadAddr) {}
      HANDLE procHandle() const { return procHandle_; }
      HANDLE fileHandle() const { return fileHandle_; }
 
@@ -134,6 +136,7 @@ class fileDescriptor {
      Address data_;
      bool shared_;
      int pid_;
+     Address loadAddr_;
      
      bool IsEqual( const fileDescriptor &fd ) const
          {

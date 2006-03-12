@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.592 2006/03/08 23:53:42 bernat Exp $
+// $Id: process.C,v 1.593 2006/03/12 23:32:14 legendre Exp $
 
 #include <ctype.h>
 
@@ -53,6 +53,7 @@
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/function.h"
+#include "dyninstAPI/src/Object.h"
 //#include "dyninstAPI/src/func-reloc.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -201,93 +202,45 @@ Address process::getTOCoffsetInfo(Address dest)
 extern void calcVSyscallFrame(process *p);
 #endif
 
-// Windows NT has its own version of the walkStack function in pdwinnt.C
-
 // Note: stack walks may terminate early. In this case, return what we can.
 // Relies on the getCallerFrame method in the various <os>.C files
+#if !defined(os_linux)
+Frame process::preStackWalkInit(Frame startFrame) {
+    return startFrame;
+}
+#endif
 
-#if !defined(mips_unknown_ce2_11) && !defined(i386_unknown_nt4_0)
 bool process::walkStackFromFrame(Frame startFrame,
-				 pdvector<Frame> &stackWalk)
+                                 pdvector<Frame> &stackWalk)
 {
+#if !defined( arch_x86) && !defined(arch_x86_64)
   Address fpOld   = 0;
-  Address fpNew   = 0;
-
-  Frame currentFrame = startFrame;
-  
-  if (!isStopped()) {
-      fprintf(stderr, "%s[%d]:  walkStackFromFrame failing\n", FILE__, __LINE__);
+#endif
+  if (!isStopped())
       return false;
-  }
 
-#if defined( os_linux ) 
-	/* Do a special check for the vsyscall page.  Silently drop
-	   the page if it exists. */
-#if defined( arch_ia64 )
-	/* The IA-64 doesn't use DWARF to unwind out of the vsyscall page,
-	   so calcVsyscallFrame() is overkill. */
-	if( getVsyscallStart() == 0x0 ) {
-		if( ! readAuxvInfo() ) {
-			/* We're probably on Linux 2.4; use default values. */
-			setVsyscallRange( 0xffffffffffffe000, 0xfffffffffffff000 );
-			setVsyscallData( NULL );
-			}
-		}
-#else
-	calcVSyscallFrame( this );
-#endif /* defined( arch_ia64 ) */
-  
-  Address next_pc = currentFrame.getPC();
-  if (next_pc >= getVsyscallStart() && next_pc < getVsyscallEnd()) {
-     currentFrame = currentFrame.getCallerFrame();
-  }
-#endif /* defined( os_linux ) */
+  Frame currentFrame = preStackWalkInit(startFrame);
 
   while (!currentFrame.isLastFrame()) {
-    // grab the frame pointer
-    fpNew = currentFrame.getFP();
 
-    // Check that we are not moving up the stack
+#if !defined( arch_x86) && !defined(arch_x86_64)
+    // Check that we are not moving up the stack.  Not relevant on x86,
+    // since the frame pointer may be used for data.
     // successive frame pointers might be the same (e.g. leaf functions)
-#if ! defined( os_linux )
-    if (fpOld > fpNew) {
-      // AIX:
-      // There's a signal function in the MPI library that we're not
-      // handling properly. Instead of returning an empty stack,
-      // return what we have.
-      // One thing that makes me feel better: gdb is getting royally
-      // confused as well. This sucks for catchup.
-      
-#if defined( ia64_unknown_linux2_4 )
-        /* My single-stepper needs to be able to continue past stackwalking errors. */      
-        // /* DEBUG */ fprintf( stderr, "Not terminating stackwalk early, even though fpOld (0x%lx) > fpNew (0x%lx).\n", fpOld, fpNew );
-        // /* DEBUG */ for( unsigned int i = 0; i < stackWalk.size(); i++ ) {
-        // /* DEBUG */ 	cerr << stackWalk[i] << endl;
-        // /* DEBUG */ 	} 
-        // /* DEBUG */	cerr << currentFrame << endl; 
-        // /* DEBUG */ cerr << endl;
-        break;
-#else
-        // We should check to see if this early exit is warranted.
-        fprintf(stderr, "%s[%d]:  failing stackWalk here\n", FILE__, __LINE__);
-        //return false;
+    if (fpOld > currentFrame.getFP())
+        return false;
+    fpOld = currentFrame.getFP();
 #endif
-    }
-#endif
-    fpOld = fpNew;
-    stackWalk.push_back(currentFrame);    
-    currentFrame = currentFrame.getCallerFrame(); 
+
+    stackWalk.push_back(currentFrame);
+    currentFrame = currentFrame.getCallerFrame();
   }
-  // Clean up after while loop (push end frame)
-  // FIXME: get LastFrame on AMD64 des not work the same as on other platforms
-  //        since the FP is not always zero
-  if (currentFrame.getProc() != NULL) {
+  if (currentFrame.getProc() != NULL)
       stackWalk.push_back(currentFrame);
-  }
 
   return true;
 }
-#endif
+
 
 // Return a vector (possibly with one object) of active frames
 // in the process
@@ -1288,7 +1241,7 @@ int process::findFreeIndex(unsigned size, int type, Address lo, Address hi)
 //
 // dynamic inferior heap stuff
 //
-#if defined(USES_DYNAMIC_INF_HEAP)
+#if defined(cap_dynamic_heap)
 #define HEAP_DYN_BUF_SIZE (0x100000)
 // "imd_rpc_ret" = Inferior Malloc Dynamic RPC RETurn structure
 typedef struct {
@@ -1432,7 +1385,7 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
    inInferiorMallocDynamic = false;
 #endif
 }
-#endif /* USES_DYNAMIC_INF_HEAP */
+#endif 
 
 const Address ADDRESS_LO = ((Address)0);
 const Address ADDRESS_HI = ((Address)~((Address)0));
@@ -1449,14 +1402,14 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
    Address lo = ADDRESS_LO; // Should get reset to a more reasonable value
    Address hi = ADDRESS_HI; // Should get reset to a more reasonable value
    
-#if defined(USES_DYNAMIC_INF_HEAP)
+#if defined(cap_dynamic_heap)
    inferiorMallocAlign(size); // align size
    // Set the lo/hi constraints (if necessary)
    inferiorMallocConstraints(near_, lo, hi, type);
 #else
    /* align to cache line size (32 bytes on SPARC) */
    size = (size + 0x1f) & ~0x1f; 
-#endif /* USES_DYNAMIC_INF_HEAP */
+#endif
 
 
    // find free memory block (7 attempts)
@@ -1474,7 +1427,7 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
       switch(ntry) {
 	case 0: // as is
 	   break;
-#if defined(USES_DYNAMIC_INF_HEAP)
+#if defined(cap_dynamic_heap)
 	case 1: // compact free blocks
 	  gcInstrumentation();
 	  inferiorFreeCompact(hp);
@@ -1502,11 +1455,11 @@ Address process::inferiorMalloc(unsigned size, inferiorHeapType type,
 	case 7: // deferred free, compact free blocks
 	   inferiorFreeCompact(hp);
 	   break;
-#else /* !(USES_DYNAMIC_INF_HEAP) */
+#else /* !(cap_dynamic_heap) */
 	case 1: // deferred free, compact free blocks
 	   inferiorFreeCompact(hp);
 	   break;
-#endif /* USES_DYNAMIC_INF_HEAP */
+#endif /* cap_dynamic_heap */
 	   
 	default: // error - out of memory
 	   sprintf(errorLine, "***** Inferior heap overflow: %d bytes "
@@ -1633,7 +1586,7 @@ bool process::inferiorRealloc(Address block, unsigned newSize)
 {
   inferiorHeap *hp = &heap;
 
-#if defined (USES_DYNAMIC_INF_HEAP)
+#if defined (cap_dynamic_heap)
   // This is why it's not a reference...
   inferiorMallocAlign(newSize);
 #endif
@@ -1982,6 +1935,9 @@ process::process(SignalGenerator *sh_) :
     multiTrampDict(intHash),
     replacedFunctionCalls_(addrHash4),
     bootstrapState(unstarted_bs),
+#if defined(os_windows)
+    main_breaks(addrHash4),
+#endif
     savedRegs(NULL),
     childForkStopAlreadyReceived_(false),
     dyninstlib_brk_addr(0),
@@ -2092,7 +2048,7 @@ bool process::setupAttached()
 #else
     // We need to wait for the CREATE_PROCESS debug event.
     // Set to "begun" here, and fix up in the signal loop
-    bootstrapState = begun_bs;
+    bootstrapState = attached_bs;
 #endif
 
    traceLink = -1; // will be set later, when the appl runs DYNINSTinit
@@ -2449,7 +2405,6 @@ bool process::setMainFunction()
         if (main_function) break;
     }
 
-    assert(main_function);
     return true;
 }
 
@@ -2460,7 +2415,6 @@ bool process::setupGeneral()
 
     if (reachedBootstrapState(bootstrapped_bs)) 
         return true;
-
     // We should be paused; be sure.
     pause();
     
@@ -2500,7 +2454,7 @@ bool process::setupGeneral()
 
     if(process::IndependentLwpControl())
         independentLwpControlInit();
-    
+
     initTramps(multithread_capable());
 
     return true;
@@ -2540,6 +2494,9 @@ process::process(const process *parentProc, SignalGenerator *sg_, int childTrace
     multiTrampDict(intHash), // Later
     replacedFunctionCalls_(addrHash4), // Also later
     bootstrapState(parentProc->bootstrapState),
+#if defined(os_windows)
+    main_breaks(addrHash4),
+#endif
     savedRegs(NULL), // Later
     childForkStopAlreadyReceived_(false),
     dyninstlib_brk_addr(parentProc->dyninstlib_brk_addr),
@@ -2609,7 +2566,6 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
   //    int tid;
 
     // NT
-    int procHandle_temp;
     //    int thrHandle_temp;
 
     process *theProc = SignalGeneratorCommon::newProcess(File, dir,
@@ -2629,15 +2585,6 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
     assert(BPatch::bpatch != NULL);
     BPatch::bpatch->registerProvisionalThread(theProc->sh->getPid());
 #endif
-
-#if defined(i386_unknown_nt4_0)
-    int status = procHandle_temp;
-    // DEBUGGING
-#else
-    int status = theProc->sh->getPid();
-#endif // defined(i386_unknown_nt4_0)
-    
-
     theProc->set_status(running);
 
     // We need to add this as soon as possible, since a _lot_ of things
@@ -2763,6 +2710,7 @@ bool process::loadDyninstLib() {
   startup_printf("Entry to loadDyninstLib\n");
     // Wait for the process to get to an initialized (dlopen exists)
     // state
+
     while (!reachedBootstrapState(initialized_bs)) {
       startup_printf("Waiting for process to reach initialized state...\n");
        if(hasExited()) {
@@ -2777,6 +2725,8 @@ bool process::loadDyninstLib() {
        sh->waitForOneOf(evts);
        getMailbox()->executeCallbacks(FILE__, __LINE__);
     }
+
+
     assert (isStopped());
     startup_printf("Stopped at entry of main\n");
 
@@ -2833,9 +2783,10 @@ bool process::loadDyninstLib() {
     startup_printf("%s[%d]: Starting load of Dyninst library...\n", FILE__, __LINE__);
     loadDYNINSTlib();
     startup_printf("Think we have Dyninst RT lib set up...\n");
-    
+
+
     setBootstrapState(loadingRT_bs);
-    
+
     if (!continueProc()) {
         assert(0);
     }
@@ -2950,6 +2901,9 @@ bool process::setDyninstLibInitParams() {
                       dyninstRT_name))
        if (!findVarsByAll("_libdyninstAPI_RT_init_localCause",
                           vars))
+          if (!findVarsByAll("libdyninstAPI_RT_init_localCause",
+                              vars))
+
            assert(0 && "Could not find necessary internal variable");
    assert(vars.size() == 1);
    writeDataSpace((void*)vars[0]->getAddress(), sizeof(int), (void *)&cause);
@@ -3434,6 +3388,10 @@ bool process::multithread_capable(bool ignore_if_mt_not_set)
    return false;
 #endif
 
+#if defined(os_windows)
+   return true;
+#endif
+
    if(cached_result != not_cached) {
        if(cached_result == cached_mt_true) {
            return true;
@@ -3461,6 +3419,18 @@ bool process::multithread_capable(bool ignore_if_mt_not_set)
        cached_result = cached_mt_false;
        return false;
    }
+}
+
+mapped_object *process::findObject(Address addr) {
+    for (unsigned i=0; i<mapped_objects.size(); i++)
+    {
+        if (addr >= mapped_objects[i]->codeAbs() &&
+            addr < mapped_objects[i]->codeAbs() + mapped_objects[i]->codeSize())
+        {
+            return mapped_objects[i];
+        }
+    }
+    return NULL;
 }
 
 void process::addThread(dyn_thread *thread)
@@ -4905,9 +4875,8 @@ void process::findSignalHandler(mapped_object *obj){
 }
 
 bool process::continueProc(int signalToContinueWith) 
-{
-   
-   signal_printf("%s[%d]: continuing process %d\n", FILE__, __LINE__, getPid());
+{   
+  signal_printf("%s[%d]: continuing process %d\n", FILE__, __LINE__, getPid());
   if (!isAttached()) {
     signal_printf("%s[%d]: warning continue on non-attached %d\n", 
                   FILE__, __LINE__, getPid());
@@ -4927,7 +4896,7 @@ bool process::continueProc(int signalToContinueWith)
   bool res = continueProc_(signalToContinueWith);
   if (!res) 
   {
-         fprintf(stderr, "%s[%d]:  continueProc_ failed\n", FILE__, __LINE__);
+    fprintf(stderr, "%s[%d]:  continueProc_ failed\n", FILE__, __LINE__);
     showErrorCallback(38, "System error: can't continue process");
     return false;
   }
@@ -5932,7 +5901,9 @@ void process::recognize_threads(const process *parent)
          // Wait for the thread to show up...
          int timeout = 0;
          while ( (bpthrd = bproc->getThreadByIndex(ret_indexes[i])) == NULL) {
-             usleep(1);
+#if !defined(os_windows)
+			 usleep(1);
+#endif
              timeout++;
              if (timeout > 1000) break;
          }
@@ -6222,4 +6193,26 @@ void process::print_instrucs(unsigned char *buffer, unsigned size,
    }
 }
 
+/**
+ * debugSuicide is a kind of alternate debugging continueProc.  It runs the process 
+ * until terminated in single step mode, printing each instruction as it executes.
+ **/
+void process::debugSuicide() {
+   pdvector<Frame> activeFrames;
+   getAllActiveFrames(activeFrames);
+ 
+   for (unsigned i=0; i < activeFrames.size(); i++) {
+     Address addr = activeFrames[i].getPC();
+     codeRange *range = findCodeRangeByAddress(addr);
+     fprintf(stderr, "Frame %u @ 0x%lx ", i, addr);
+     if (range)
+        range->print_range();
+     else
+        fprintf(stderr, "\n");
+   }
+
+    while (!hasExited()) {
+        stepi();
+    }
+}
 /* vim: set ts=5: */

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.165 2006/03/07 15:57:49 nater Exp $
+// $Id: ast.C,v 1.166 2006/03/12 23:31:50 legendre Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -106,9 +106,9 @@ registerSpace::registerSpace(const unsigned int deadCount, Register *dead,
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(ia64_unknown_linux2_4) \
  || defined(os_windows)
-   initTramps(is_multithreaded);
+  initTramps(is_multithreaded);
 #endif
-   
+
   
   unsigned i;
   numRegisters = deadCount + liveCount;
@@ -166,7 +166,27 @@ void registerSpace::initFloatingPointRegisters(const unsigned int count, Registe
     }
 }
 
+bool registerSpace::allocateSpecificRegister(codeGen &gen, Register reg, 
+                                             bool noCost)
+{
+    if (registers[reg].refCount != 0) {
+        return false;
+    }
 
+    registers[reg].refCount = 1;
+    if (reg > highWaterRegister)
+        highWaterRegister = reg;
+
+    if (registers[reg].needsSaving) {
+#if !defined(arch_power) && !defined(arch_ia64)
+        emitV(saveRegOp, registers[reg].number, 0, 0, gen, noCost);
+        registers[reg].mustRestore = true;
+#endif
+            registers[reg].needsSaving = false;
+    }
+
+    return true;
+}
 
 Register registerSpace::allocateRegister(codeGen &gen, bool noCost) 
 {

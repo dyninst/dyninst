@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap-linux.c,v 1.5 2005/10/14 16:37:29 legendre Exp $ */
+/* $Id: RTheap-linux.c,v 1.6 2006/03/12 23:32:42 legendre Exp $ */
 /* RTheap-linux.c: Linux-specific heap components */
 
 #include <stdlib.h>
@@ -103,87 +103,87 @@ static char procAsciiMap[1<<15];
 int
 DYNINSTgetMemoryMap(unsigned *nump, dyninstmm_t **mapp)
 {
-     int fd;
-     ssize_t ret, length;
-     char *p;
-     dyninstmm_t *ms;
-     unsigned i, num;
+   int fd;
+   ssize_t ret, length;
+   char *p;
+   dyninstmm_t *ms;
+   unsigned i, num;
 
-/* 
-    Here are two lines from 'cat /proc/self/maps' on Linux 2.2.  Each
-    describes a segment of the address space.  We parse out the first
-    two addresses for the start address and length of the segment.  We
-    throw away the rest.
+   /* 
+      Here are two lines from 'cat /proc/self/maps' on Linux 2.2.  Each
+      describes a segment of the address space.  We parse out the first
+      two addresses for the start address and length of the segment.  We
+      throw away the rest.
 
-|SADDR-| |EADDR-|
-0804a000-0804c000 rw-p 00001000 08:09 12089      /bin/cat
-0804c000-0804f000 rwxp 00000000 00:00 0
-*/
+      |SADDR-| |EADDR-|
+      0804a000-0804c000 rw-p 00001000 08:09 12089      /bin/cat
+      0804c000-0804f000 rwxp 00000000 00:00 0
+   */
 
-     fd = open("/proc/self/maps", O_RDONLY);
-     if (0 > fd) {
-	  perror("open /proc");
-	  return -1;
-     }
-     length = 0;
-     while (1)
-     {
-         ret = read(fd, procAsciiMap + length, sizeof(procAsciiMap) - length);
-         if (0 == ret) break;
-         if (0 > ret) {
+   fd = open("/proc/self/maps", O_RDONLY);
+   if (0 > fd) {
+      perror("open /proc");
+      return -1;
+   }
+   length = 0;
+   while (1)
+   {
+      ret = read(fd, procAsciiMap + length, sizeof(procAsciiMap) - length);
+      if (0 == ret) break;
+      if (0 > ret) {
 	      perror("read /proc");
 	      return -1;
-         }
-         length += ret;
-         if (length >= sizeof(procAsciiMap)) {
+      }
+      length += ret;
+      if (length >= sizeof(procAsciiMap)) {
 	      fprintf(stderr, "DYNINSTgetMemoryMap: memory map buffer overflow\n");
 	      return -1;
-         }
-     }
-     procAsciiMap[length] = '\0'; /* Now string processing works */
+      }
+   }
+   procAsciiMap[length] = '\0'; /* Now string processing works */
 
-     close(fd);
+   close(fd);
 
-     /* Count lines, which is the same as the number of segments.
-	Newline characters separating lines are converted to nulls. */
-     for (num = 0, p = strtok(procAsciiMap, "\n");
-	  p != NULL;
-	  num++, p = strtok(NULL, "\n"))
-	  ;
+   /* Count lines, which is the same as the number of segments.
+      Newline characters separating lines are converted to nulls. */
+   for (num = 0, p = strtok(procAsciiMap, "\n");
+        p != NULL;
+        num++, p = strtok(NULL, "\n"))
+      ;
      
-     ms = (dyninstmm_t *) malloc(num * sizeof(dyninstmm_t));
-     if (! ms) {
-	  fprintf(stderr, "DYNINSTgetMemoryMap: Out of memory\n");
-	  return -1;
-     }
+   ms = (dyninstmm_t *) malloc(num * sizeof(dyninstmm_t));
+   if (! ms) {
+      fprintf(stderr, "DYNINSTgetMemoryMap: Out of memory\n");
+      return -1;
+   }
 
-     p = procAsciiMap;
-     for (i = 0; i < num; i++) {
-	  char *next = p + strlen(p) + 1; /* start of next line */
-	  Address saddr, eaddr;
+   p = procAsciiMap;
+   for (i = 0; i < num; i++) {
+      char *next = p + strlen(p) + 1; /* start of next line */
+      Address saddr, eaddr;
 
-	  /* parse start address */
-	  p = strtok(p, "-");
-	  if (! p) goto parseerr;
-	  saddr = strtoul(p, &p, 16);
-	  ++p; /* skip '-' */
+      /* parse start address */
+      p = strtok(p, "-");
+      if (! p) goto parseerr;
+      saddr = strtoul(p, &p, 16);
+      ++p; /* skip '-' */
 
-	  /* parse end address */
-	  p = strtok(NULL, " ");
-	  if (! p) goto parseerr;
-	  eaddr = strtoul(p, NULL, 16);
+      /* parse end address */
+      p = strtok(NULL, " ");
+      if (! p) goto parseerr;
+      eaddr = strtoul(p, NULL, 16);
 
-	  ms[i].pr_vaddr = saddr;
-	  ms[i].pr_size = eaddr - saddr;
+      ms[i].pr_vaddr = saddr;
+      ms[i].pr_size = eaddr - saddr;
 
-	  p = next;
-     }
+      p = next;
+   }
 
-     *nump = num;
-     *mapp = ms;
-     return 0;
-parseerr:
-     free(ms);
-     fprintf(stderr, "DYNINSTgetMemoryMap: /proc/self/maps parse error\n");
-     return -1;
+   *nump = num;
+   *mapp = ms;
+   return 0;
+ parseerr:
+   free(ms);
+   fprintf(stderr, "DYNINSTgetMemoryMap: /proc/self/maps parse error\n");
+   return -1;
 }

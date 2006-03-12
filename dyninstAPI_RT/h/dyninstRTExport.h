@@ -6,11 +6,13 @@
       libraries.
   */
 
+#if !defined(DLLEXPORT)
 #if defined (_MSC_VER)
 //If we're on Windows, we need to explicetely export these functions:
 #define DLLEXPORT __declspec(dllexport) 
 #else
 #define DLLEXPORT
+#endif
 #endif
   /*
     DYNINSTuserMessage(void *msg, unsigned int msg_size) may be used 

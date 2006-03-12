@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.39 2006/02/26 05:06:26 bernat Exp $
+// $Id: arch-ia64.h,v 1.40 2006/03/12 23:31:45 legendre Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -144,6 +144,7 @@ class instruction {
 	static instruction createIlegal();
 
 	uint64_t getMachineCode() const { return insn_; }
+	bool isCleaningRet() const { return false; }
 	
 	enum insnType { RETURN, BRANCH_IA, DIRECT_CALL, DIRECT_BRANCH,
 					INDIRECT_CALL, INDIRECT_BRANCH, BRANCH_PREDICT,

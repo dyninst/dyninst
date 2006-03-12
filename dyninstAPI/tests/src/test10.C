@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test10.C,v 1.5 2005/02/24 10:17:28 rchen Exp $
+// $Id: test10.C,v 1.6 2006/03/12 23:32:27 legendre Exp $
 //
 // libdyninst validation suite test #10
 //    Author: Jeff Hollingsworth Williams (14 aug 2003) 
@@ -336,8 +336,7 @@ int mutatorMAIN(char *pathname)
 //
 // main - decide our role and call the correct "main"
 //
-int
-main(unsigned int argc, char *argv[])
+int main(unsigned int argc, char *argv[])
 {
     char mutateeName[128];
     char libRTname[256];

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.C,v 1.4 2006/02/12 22:23:26 jodom Exp $
+// $Id: mapped_module.C,v 1.5 2006/03/12 23:32:07 legendre Exp $
 
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
@@ -410,7 +410,7 @@ Address trueBaseAddress = 0;
 void mapped_module::parseFileLineInfo() {
 	static std::set< image * > haveParsedFileMap;
 	
-        image * fileOnDisk = obj()->parse_img();
+   image * fileOnDisk = obj()->parse_img();
 	assert( fileOnDisk != NULL );
 	if( haveParsedFileMap.count( fileOnDisk ) != 0 ) { return; }
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: Considering image at 0x%lx\n", __FILE__, __LINE__, fileOnDisk );
@@ -439,101 +439,101 @@ void mapped_module::parseFileLineInfo() {
 	char temporaryName[256];
 	char * funcName = NULL;
 	char * currentSourceFile = NULL;
-        char *moduleName = NULL;
+   char *moduleName = NULL;
 
 	/* Iterate over STAB entries. */
 	for( int i = 0; i < nstabs; i++ ) {
 		/* sizeof( SYMENT ) is 20, not 18, as it should be. */
 		SYMENT * sym = (SYMENT *)( (unsigned)syms + (i * SYMESZ) );
 
-                /* Get the name (period) */
-                if (!sym->n_zeroes) {
-                    moduleName = &stringpool[sym->n_offset];
-                } else {
-                    memset(temporaryName, 0, 9);
-                    strncpy(temporaryName, sym->n_name, 8);
-                    moduleName = temporaryName;
-                }
+      /* Get the name (period) */
+      if (!sym->n_zeroes) {
+         moduleName = &stringpool[sym->n_offset];
+      } else {
+         memset(temporaryName, 0, 9);
+         strncpy(temporaryName, sym->n_name, 8);
+         moduleName = temporaryName;
+      }
 
 	
 		/* Extract the current source file from the C_FILE entries. */
 		if( sym->n_sclass == C_FILE ) {
-                    if (!strcmp(moduleName, ".file")) {
-                        // The actual name is in an aux record.
+         if (!strcmp(moduleName, ".file")) {
+            // The actual name is in an aux record.
 
-                        int j;
-                        /* has aux record with additional information. */
-                        for (j=1; j <= sym->n_numaux; j++) {
-                            union auxent *aux = (union auxent *) ((char *) sym + j * SYMESZ);
-                            if (aux->x_file._x.x_ftype == XFT_FN) {
-                                // this aux record contains the file name.
-                                if (!aux->x_file._x.x_zeroes) {
-                                    moduleName = &stringpool[aux->x_file._x.x_offset];
-                                } else {
-                                    // x_fname is 14 bytes
-                                    memset(temporaryName, 0, 15);
-                                    strncpy(temporaryName, aux->x_file.x_fname, 14);
-                                    moduleName = temporaryName;
-                                }
-                            }
-                        }
-                    }
+            int j;
+            /* has aux record with additional information. */
+            for (j=1; j <= sym->n_numaux; j++) {
+               union auxent *aux = (union auxent *) ((char *) sym + j * SYMESZ);
+               if (aux->x_file._x.x_ftype == XFT_FN) {
+                  // this aux record contains the file name.
+                  if (!aux->x_file._x.x_zeroes) {
+                     moduleName = &stringpool[aux->x_file._x.x_offset];
+                  } else {
+                     // x_fname is 14 bytes
+                     memset(temporaryName, 0, 15);
+                     strncpy(temporaryName, aux->x_file.x_fname, 14);
+                     moduleName = temporaryName;
+                  }
+               }
+            }
+         }
 			
-                    currentSourceFile = strrchr( moduleName, '/' );
-                    if( currentSourceFile == NULL ) { currentSourceFile = moduleName; }
-                    else { ++currentSourceFile; }
+         currentSourceFile = strrchr( moduleName, '/' );
+         if( currentSourceFile == NULL ) { currentSourceFile = moduleName; }
+         else { ++currentSourceFile; }
                     
-                    /* We're done with this entry. */
-                    continue;
-                } /* end if C_FILE */
+         /* We're done with this entry. */
+         continue;
+      } /* end if C_FILE */
 	
 		/* This apparently compensates for a bug in the naming of certain entries. */
 		char * nmPtr = NULL;
 		if( 	! sym->n_zeroes && (
-				( sym->n_sclass & DBXMASK ) ||
-				( sym->n_sclass == C_BINCL ) ||
-				( sym->n_sclass == C_EINCL )
-				) ) {
+                                ( sym->n_sclass & DBXMASK ) ||
+                                ( sym->n_sclass == C_BINCL ) ||
+                                ( sym->n_sclass == C_EINCL )
+                                ) ) {
 			if( sym->n_offset < 3 ) {
 				if( sym->n_offset == 2 && stabstr[ 0 ] ) {
 					nmPtr = & stabstr[ 0 ];
-					} else {
+            } else {
 					nmPtr = & stabstr[ sym->n_offset ];
-					}
-				} else if( ! stabstr[ sym->n_offset - 3 ] ) {
+            }
+         } else if( ! stabstr[ sym->n_offset - 3 ] ) {
 				nmPtr = & stabstr[ sym->n_offset ];
-				} else {
+         } else {
 				/* has off by two error */
 				nmPtr = & stabstr[ sym->n_offset - 2 ];
-				} 
-			} else {
+         } 
+      } else {
 			// names 8 or less chars on inline, not in stabstr
 			memset( temporaryName, 0, 9 );
 			strncpy( temporaryName, sym->n_name, 8 );
 			nmPtr = temporaryName;
-			} /* end bug compensation */
+      } /* end bug compensation */
 
 		/* Now that we've compensated for buggy naming, actually
 		   parse the line information. */
 		if(	( sym->n_sclass == C_BINCL ) 
-			|| ( sym->n_sclass == C_EINCL )
-			|| ( sym->n_sclass == C_FUN ) ) {
+            || ( sym->n_sclass == C_EINCL )
+            || ( sym->n_sclass == C_FUN ) ) {
 			if( funcName ) {
 				free( funcName );
 				funcName = NULL;
-				}
+         }
 			funcName = strdup( nmPtr );
 
 			pdstring pdCSF( currentSourceFile );
 			parseLineInformation( proc(), & pdCSF, funcName, (SYMENT *)sym, linesfdptr, lines, nlines );
-			} /* end if we're actually parsing line information */
-		} /* end iteration over STAB entries. */
+      } /* end if we're actually parsing line information */
+   } /* end iteration over STAB entries. */
 
 	if( funcName != NULL ) { 
 		free( funcName );
-		}		
+   }		
 	haveParsedFileMap.insert( fileOnDisk );
-	} /* end parseFileLineInfo() */
+} /* end parseFileLineInfo() */
 
 void mapped_module::parseLineInformation(process * proc,
                                          pdstring * currentSourceFile,
@@ -807,9 +807,9 @@ void mapped_module::parseFileLineInfo() {
 
 }
 #elif defined(os_windows)
-void mapped_module::parseFileLineInfo() {
-    // Or here, I believe
-}
+//void mapped_module::parseFileLineInfo() {
+// Or here, I believe
+//}
 #endif
 
 

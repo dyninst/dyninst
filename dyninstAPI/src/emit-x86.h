@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.h - x86 & AMD64 code generators
- * $Id: emit-x86.h,v 1.11 2006/02/10 19:19:38 nater Exp $
+ * $Id: emit-x86.h,v 1.12 2006/03/12 23:31:53 legendre Exp $
  */
 
 #ifndef _EMIT_X86_H
@@ -140,6 +140,13 @@ public:
 			      const pdvector<AstNode *> &operands,
 			      process *proc, bool noCost, Address callee_addr, const pdvector<AstNode *> &ifForks,
 			      const instPoint *location);
+    int emitCallParams(registerSpace *rs, codeGen &gen, 
+                   const pdvector<AstNode *> &operands, process *proc,
+                   int_function *target, const pdvector<AstNode *> &ifForks,
+                   pdvector<Register> &extra_saves, const instPoint *location,
+                   bool noCost);
+    bool emitCallCleanup(codeGen &gen, process *p, int_function *target, 
+                         int frame_size, pdvector<Register> &extra_saves);
     void emitGetRetVal(Register dest, codeGen &gen);
     void emitGetParam(Register dest, Register param_num, instPointType_t pt_type, codeGen &gen);
     void emitFuncJump(Address addr, instPointType_t ptType, codeGen &gen);

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.85 2005/12/19 23:45:38 rutar Exp $
+// $Id: ast.h,v 1.86 2006/03/12 23:31:51 legendre Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -128,6 +128,7 @@ class registerSpace {
                  bool multithreaded = false);
    ~registerSpace();
 	Register allocateRegister(codeGen &gen, bool noCost);
+    bool allocateSpecificRegister(codeGen &gen, Register r, bool noCost);
 	// Free the specified register (decrement its refCount)
 	void freeRegister(Register k);
 	// Free the register even if its refCount is greater that 1

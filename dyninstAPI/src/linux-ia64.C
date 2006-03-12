@@ -733,7 +733,7 @@ Frame Frame::getCallerFrame() {
 	return currentFrame;
 	} /* end getCallerFrame() */
 
-syscallTrap * process::trapSyscallExitInternal( Address syscall ) {
+syscallTrap * process::trapSyscallExitInternal( Address /*syscall*/ ) {
 	/* The IA-64 port does not trap system call exits for inferior RPCs. */
 	assert( 0 );
 	return NULL;
@@ -1175,3 +1175,22 @@ bool WaitpidCallback::execute_real()
   return true;
 }
 
+Frame process::preStackWalkInit(Frame startFrame)
+{
+   /* Do a special check for the vsyscall page.  Silently drop
+      the page if it exists. The IA-64 doesn't use DWARF to unwind out of 
+      the vsyscall page, so calcVsyscallFrame() is overkill.
+   */
+    if( getVsyscallStart() == 0x0 ) {
+        if( ! readAuxvInfo() ) {
+            /* We're probably on Linux 2.4; use default values. */
+            setVsyscallRange( 0xffffffffffffe000, 0xfffffffffffff000 );
+            setVsyscallData( NULL );
+        }
+    }
+    Address next_pc = startFrame.getPC();
+    if (next_pc >= getVsyscallStart() && next_pc < getVsyscallEnd()) {
+       return startFrame.getCallerFrame();
+    }
+    return startFrame;
+}

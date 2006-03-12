@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.23 2006/02/23 02:54:37 nater Exp $
+// $Id: linux.h,v 1.24 2006/03/12 23:32:05 legendre Exp $
 
 #if !defined(i386_unknown_linux2_0) \
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
@@ -47,6 +47,8 @@
 
 #error "invalid architecture-os inclusion"
 #endif
+
+class process;
 
 #ifndef LINUX_PD_HDR
 #define LINUX_PD_HDR
@@ -68,6 +70,18 @@
 #define SIGNAL_HANDLER	 "__restore"
 #else
 #define SIGNAL_HANDLER   "__restore_rt"
+#endif
+
+#if defined(arch_x86) || defined(arch_x86_64)
+//Constant values used for the registers in the vsyscall page.
+#define DW_CFA  0
+#define DW_ESP 4
+#define DW_EBP 5
+#define DW_PC  8
+#define MAX_DW_VALUE 8
+
+Address getRegValueAtFrame(void *ehf, Address pc, int reg, int *reg_map,
+                           process *p, bool *error);
 #endif
 
 typedef int handleT; // a /proc file descriptor
@@ -95,6 +109,8 @@ Address findFunctionToHijack(process *p);
 bool get_linux_version(int &major, int &minor, int &subvers);
 
 bool attachToChild(int pid);
+
+void calcVSyscallFrame(process *p);
 
 #include "linux-signals.h"
 

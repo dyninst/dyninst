@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.24 2005/07/29 19:17:20 bernat Exp $
+# $Id: Makefile,v 1.25 2006/03/12 23:32:55 legendre Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -27,6 +27,7 @@ SRCS =		../src/pdwinnt.C \
 		../../dyninstAPI/src/syscall-nt.C \
 		../../dyninstAPI/src/pdwinntDL.C \
 		../../dyninstAPI/src/dynamiclinking.C \
+		../../dyninstAPI/src/stackwalk-x86.C \
 		../src/debug.C \
 		../../dyninstAPI/src/image-x86.C
 
@@ -40,6 +41,7 @@ OBJS = 		pdwinnt.obj \
 		arch-x86.obj \
 		RThwtimer-winnt.obj \
 		InstrucIter-x86.obj \
+		stackwalk-x86.obj \
 		syscall-nt.obj \
 		pdwinntDL.obj \
 		dynamiclinking.obj \

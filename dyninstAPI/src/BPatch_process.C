@@ -142,7 +142,7 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
 #endif
 
    llproc = ll_createProcess(path, &argv_vec, (envp ? &envp_vec : NULL), 
-                           directoryName, stdin_fd, stdout_fd, stderr_fd);
+                             directoryName, stdin_fd, stdout_fd, stderr_fd);
    if (llproc == NULL) { 
       BPatch::bpatch->reportError(BPatchFatal, 68, 
            "Dyninst was unable to create the specified process");
@@ -389,7 +389,7 @@ bool BPatch_process::terminateExecutionInt()
    if (!llproc || !llproc->terminateProc())
       return false;
    while (!isTerminated()) {
-       BPatch::bpatch->waitForStatusChange();
+       BPatch::bpatch->waitForStatusChangeInt();
    }
    
    return true;
@@ -1089,7 +1089,6 @@ bool BPatch_process::deleteSnippetInt(BPatchSnippetHandle *handle)
  * activate	If set to true, execution of snippets is enabled.  If false,
  *		execution is disabled.
  */
-#ifdef BPATCH_SET_MUTATIONS_ACTIVE
 bool BPatch_process::setMutationsActiveInt(bool activate)
 {
    // If not activating or deactivating, just return.
@@ -1104,9 +1103,6 @@ bool BPatch_process::setMutationsActiveInt(bool activate)
    mutationsActive = activate;
    return true;
 }
-#else
-bool BPatch_process::setMutationsActiveInt(bool) { return true; }
-#endif
 
 /*
  * BPatch_process::replaceFunctionCall
@@ -1179,8 +1175,10 @@ bool BPatch_process::replaceFunctionInt(BPatch_function &oldFunc,
    // The non-linking jump ensures that when NEWFUNC returns, it
    // returns directly to the caller of OLDFUNC.
    BPatch_Vector<BPatch_point *> *pts = oldFunc.findPoint(BPatch_entry);
-   if (! pts || ! pts->size())
+   if (! pts || ! pts->size()) {
+      BPatch::bpatch->setTrampRecursive( old_recursion_flag );
       return false;
+   }
    BPatch_funcJumpExpr fje(newFunc);
    BPatchSnippetHandle * result = insertSnippetAtPointsWhen(fje, *pts, BPatch_callBefore);
    
@@ -1649,7 +1647,7 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(
  **/
 void BPatch_process::deleteBPThread(BPatch_thread *thrd)
 {
-   if (!thrd->getBPatchID()) 
+   if (!thrd || !thrd->getBPatchID()) 
    {
       //Don't delete if this is the initial thread.  Some Dyninst programs
       // may use the initial BPatch_thread as a handle instead of the 
@@ -1720,4 +1718,12 @@ void BPatch_process::updateThreadInfo()
    // no registered handlers so we can start getting MT events.
    if (!getAsync()->startupThread())
        return;
+}
+
+/**
+ * This function continues a stopped process, letting it execute in single step mode,
+ * and printing the current instruction as it executes.
+ **/
+void BPatch_process::debugSuicideInt() {
+    llproc->debugSuicide();
 }

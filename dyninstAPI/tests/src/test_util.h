@@ -51,9 +51,11 @@
 #include "BPatch_process.h"
 
 
-#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 10 apr 2001 
+#if defined(os_windows)
+#include <windows.h>
 #define P_sleep(sec) Sleep(1000*(sec))
 #else
+#include <unistd.h>
 #define P_sleep(sec) sleep(sec)
 #endif
 

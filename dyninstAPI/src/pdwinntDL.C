@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinntDL.C,v 1.6 2006/01/30 07:16:53 jaw Exp $
+// $Id: pdwinntDL.C,v 1.7 2006/03/12 23:32:13 legendre Exp $
 
 #include "dynamiclinking.h"
 #include "process.h"
@@ -73,13 +73,13 @@ bool dynamic_linking::getChangedObjects(EventRecord &, pdvector<mapped_object *>
 {
     // This can be called by a platform indep. layer that wants
     // to get the list of new libraries loaded. 
-    return false;
+    return true;
 }
 bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &, pdvector<mapped_object *> &)
 {
     // This can be called by a platform indep. layer that wants
     // to get the list of new libraries loaded. 
-    return false;
+    return true;
 }
 
 bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &) {
