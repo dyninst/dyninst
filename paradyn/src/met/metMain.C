@@ -48,7 +48,7 @@
  *     metDoVisi(..) - declare a visi
  */
 
-// $Id: metMain.C,v 1.63 2006/02/16 00:57:33 legendre Exp $
+// $Id: metMain.C,v 1.64 2006/03/12 03:40:03 darnold Exp $
 
 #define GLOBAL_CONFIG_FILE "/paradyn.rc"
 #define LOCAL_CONFIG_FILE "/.paradynrc"
@@ -291,8 +291,9 @@ static void start_process(processMet *the_ps)
 
 bool metDoProcess()
 {
-    bool first_time=true;
-    pdstring daemon_name;
+    static bool first_time=true;
+    bool found;
+    pdstring daemon_name, cur_host;
     pdvector<pdstring> hosts;
 
     //make sure only one daemon definition is being used
@@ -308,17 +309,26 @@ bool metDoProcess()
                 fprintf(stderr, "Error: different daemons cannot be used in the same paradyn session. Process \"%s\" wants to use Daemon \"%s\" while Daemon \"%s\" was previously specified.\n", cur_proc->name().c_str(), cur_proc->daemon().c_str(), daemon_name.c_str() );
                 exit(-1);
             }
-            if( cur_proc->host().length() != 0 ){
-                hosts.push_back( cur_proc->host() );
+
+            if( cur_proc->host().length() == 0 ){
+                cur_host = default_host;
             }
             else{
-                hosts.push_back( "" );
+                cur_host = cur_proc->host();
             }
+
+            //insert only unique hosts into host list
+            found=false;
+            for( unsigned int i=0; i<hosts.size(); i++ ){
+                if( hosts[i] == cur_host ){
+                    found=true;
+                    break;
+                }
+            }
+            if( !found )
+                hosts.push_back( cur_host );
         }
     }
-
-    //TODO: make sure process_hosts is a set (unique membership)
-    //     since we only want one daemon per host
 
     daemonEntry * de = paradynDaemon::findEntry( daemon_name );
     if( !de ) {
@@ -344,7 +354,6 @@ bool metDoProcess()
     for (unsigned u=0; u<processMet::allProcs.size(); u++) {
         if( processMet::allProcs[u] && processMet::allProcs[u]->autoStart() ) {
             start_process( processMet::allProcs[u] );
-            //processMet::allProcs[u] = NULL;
         }
     }
     return true;
