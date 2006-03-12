@@ -14,8 +14,6 @@ include $(TO_CORE)/make.config
 
 CXXFLAGS += -pthread
 CFLAGS += -pthread
-#CXXFLAGS += -g -DUSES_DYNAMIC_INF_HEAP
-#CFLAGS += -g -DUSES_DYNAMIC_INF_HEAP
 
 SYSLIBS   += -lmld
 

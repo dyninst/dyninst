@@ -15,9 +15,6 @@ include $(TO_CORE)/make.config
 
 # Now make any necessary architecture specific changes to variables:
 
-#CXXFLAGS += -DUSES_DYNAMIC_INF_HEAP
-#CFLAGS += -g -DUSES_DYNAMIC_INF_HEAP
-
 SYSLIBS   += -lelf -lnsl -ldl -lsocket -lrt
 IFLAGS    += -I/usr/imports/include
 
