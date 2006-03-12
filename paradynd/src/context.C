@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: context.C,v 1.128 2006/02/14 20:02:20 bernat Exp $ */
+/* $Id: context.C,v 1.129 2006/03/12 03:40:05 darnold Exp $ */
 
 #include "rtinst/h/rtinst.h"
 #include "rtinst/h/trace.h"
@@ -237,7 +237,6 @@ bool continueAllProcesses()
     for (processMgr::procIter itr = getProcMgr().begin();
          itr != getProcMgr().end();
          itr++) {
-        cerr << "in continueAllProcess while loop"<<endl;
         
         pd_process *p = *itr;
         if(p != NULL && p->isStopped()) {
@@ -249,15 +248,10 @@ bool continueAllProcesses()
         }
     }
     
-    cerr << "in continueAllProcess past while loop"<<endl;
     statusLine("application running");
     if (!markApplicationRunning()) {
         return false;
     }
-    cerr << "in continueAllProcess past !markApplicationRunning"<<endl;
-    
-    // sprintf(errorLine, "continued at %f\n", getCurrentTime(false));
-    // logLine(errorLine);
     
     return(false); // Is this correct?
 }
@@ -274,8 +268,9 @@ bool pauseAllProcesses()
         }
     }
     
-    if (changed)
+    if (changed){
         statusLine("application paused");
+    }
     
     return(changed);
 }
