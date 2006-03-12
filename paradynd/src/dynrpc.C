@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: dynrpc.C,v 1.125 2006/02/17 00:57:27 legendre Exp $ */
+/* $Id: dynrpc.C,v 1.126 2006/03/12 03:40:06 darnold Exp $ */
 
 #include "paradynd/src/metricFocusNode.h"
 #include "paradynd/src/machineMetFocusNode.h"
@@ -272,38 +272,28 @@ void dynRPC::resourceInfoResponse(MRN::Stream * /* stream */,pdvector<u_int> tem
 		}
 }
 
-void dynRPC::enableDataCollection(MRN::Stream * /* stream */,pdvector<T_dyninstRPC::focusStruct> focusVector, 
-																	pdvector<pdstring> metric, pdvector<u_int> mi_ids, 
-																	u_int daemon_id, u_int request_id) {
-  extern u_int sdm_id;
+void dynRPC::enableDataCollection(MRN::Stream * /* stream */,
+                                  pdvector<T_dyninstRPC::focusStruct> focusVector, 
+                                  pdvector<pdstring> metric,
+                                  pdvector<u_int> mi_ids, 
+                                  u_int daemon_id, u_int request_id)
+{
+    extern u_int sdm_id;
 
 	if(sdm_id != daemon_id)
 		return;
 
-  for (unsigned i=0; i < metric.size(); i++) 
-    {
-      for(unsigned j = 0 ; j < focusVector[i].focus.size() ; j++)
-				{
-					resource *res = resource::findResource(focusVector[i].focus[j]);
-					//if(res == NULL)
-					//  return;
-				}
-    }
+    processInstrDeletionRequests();
 	
-  //daemon_id = sdm_id;
-	
-  processInstrDeletionRequests();
-	
-  assert(focusVector.size() == metric.size());
-  totalInstTime.start();
+    assert(focusVector.size() == metric.size());
+    totalInstTime.start();
 	
 	metFocInstResponse* cbi = new metFocInstResponse( request_id, daemon_id );
   
-  bool responce = false;
+    bool responce = false;
   
-  for (unsigned j=0; j < metric.size(); j++) 
-    {
-			responce = startCollecting( metric[j], focusVector[j].focus, mi_ids[j], cbi );
+    for (unsigned j=0; j < metric.size(); j++) {
+        responce = startCollecting( metric[j], focusVector[j].focus, mi_ids[j], cbi );
     }
 	
 	totalInstTime.stop();
@@ -402,7 +392,7 @@ void dynRPC::reportInitialResources( MRN::Stream * /* stream */ )
 // and get and send daemon information
 //
 T_dyninstRPC::daemonInfo
-dynRPC::getDaemonInfo(MRN::Stream * stream, pdvector<T_dyninstRPC::daemonSetupStruc> dss )
+dynRPC::getDaemonInfo(MRN::Stream *, pdvector<T_dyninstRPC::daemonSetupStruc> dss )
 {
   extern pdstring machine_name_out;
   extern pdstring program_name;
@@ -526,16 +516,19 @@ void dynRPC::MonitorDynamicCallSites(MRN::Stream * /* stream */,pdstring functio
 // start a new program for the tool.
 //
 
-int dynRPC::addExecutable(MRN::Stream * /* stream */,pdvector<pdstring> argv, pdstring dir)
+int dynRPC::addExecutable(MRN::Stream * /* stream */,
+                          pdvector<pdstring> argv,
+                          pdstring dir)
 {
-  pd_process *p = pd_createProcess(argv, dir);
-  metricFocusNode::handleNewProcess(p);
-  if (p) {
+    pd_process *p = pd_createProcess(argv, dir);
+    metricFocusNode::handleNewProcess(p);
+
+    if (p) {
 		resource::report_ChecksumToFE( );
-    return 1;
-  }
-  else
-    return -1;
+        return 1;
+    }
+    else
+        return -1;
 }
 
 //
@@ -702,82 +695,54 @@ pdvector<double> dynRPC::get_ClockSkew( MRN::Stream * )
 }
 
 
+//We assume that all processes managed by the same daemon
+//has the same callgraph and only report that from the 1st
 void dynRPC::reportCallGraphEquivClass( MRN::Stream *)
 {
     processMgr::procIter itr = getProcMgr().begin();
 
-    assert(getProcMgr().size()==1);
+    assert(itr != getProcMgr().end() );
 
-    while(itr != getProcMgr().end()) {
-        pd_process *p = *itr++;
-        assert(p);
-        p->report_CallGraphChecksumToFE( );
-    }
+    pd_process *p = *itr++;
+    assert(p);
+    p->report_CallGraphChecksumToFE( );
 }
 
 void dynRPC::reportStaticCallgraph( MRN::Stream * )
 {
     processMgr::procIter itr = getProcMgr().begin();
-
-    PARADYN_bootstrapStruct bs_record;
-
-    extern resource *machineResource;
-    const bool calledFromExec   = (bs_record.event == 4);
-    extern pdRPC *tp;
-
-    assert(getProcMgr().size()==1);
-
-    while(itr != getProcMgr().end()) {
-        pd_process *p = *itr++;
-        if (!p)
-            continue;
-        p->FillInCallGraphStatic();
-				//        if (!p->extractBootstrapStruct(&bs_record)){
-				//            assert(false);
-        //}
-	/*
-        tp->newProgramCallbackFunc(defaultStream, bs_record.pid, p->arg_list, 
-                                   machineResource->part_name(),
-                                   calledFromExec,
-                                   p->wasRunningWhenAttached());
-
-        pdstring buffer = pdstring("PID=") + pdstring(p->getPid());
-        buffer += pdstring(", ready");
-        statusLine(buffer.c_str());
-	*/
-    }
+    assert( itr != getProcMgr().end());
+    pd_process *p = *itr++;
+    assert(p);
+    p->FillInCallGraphStatic();
 }
 
 void dynRPC::staticCallgraphReportsComplete( MRN::Stream * )
 {
-    processMgr::procIter itr = getProcMgr().begin();
-
     PARADYN_bootstrapStruct bs_record;
 
     extern resource *machineResource;
     const bool calledFromExec   = (bs_record.event == 4);
     extern pdRPC *tp;
 
-    assert(getProcMgr().size()==1);
+    processMgr::procIter itr = getProcMgr().begin();
+    assert( itr != getProcMgr().end());
+    pd_process *p = *itr++;
+    assert(p);
 
-    while(itr != getProcMgr().end()) {
-        pd_process *p = *itr++;
-        if (!p)
-            continue;
+    tp->newProgramCallbackFunc(defaultStream, p->getPid(), p->arg_list, 
+                               machineResource->part_name(),
+                               calledFromExec,
+                               p->wasRunningWhenAttached());
+    p->setCanReportResources(true);
+    p->reportInitialThreads();
+    pdstring buffer = pdstring("PID=") + pdstring(p->getPid());
+    buffer += pdstring(", ready");
+    statusLine(buffer.c_str());
 
-        tp->newProgramCallbackFunc(defaultStream, p->getPid(), p->arg_list, 
-                                   machineResource->part_name(),
-                                   calledFromExec,
-                                   p->wasRunningWhenAttached());
-				p->setCanReportResources(true);
-				p->reportInitialThreads();
-        pdstring buffer = pdstring("PID=") + pdstring(p->getPid());
-        buffer += pdstring(", ready");
-        statusLine(buffer.c_str());
-    }
-		extern bool readyToRun;
-		readyToRun = false;
-		extern void doDelayedReport();
-		doDelayedReport();
+    extern bool readyToRun;
+    readyToRun = false;
+    extern void doDelayedReport();
+    doDelayedReport();
 }
 

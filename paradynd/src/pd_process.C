@@ -2214,21 +2214,15 @@ void pd_process::report_CallGraphChecksumToFE( void )
 
 resource::ChecksumType pd_process::calculateCallGraphChecksum()
 {
-	//fprintf(stderr, "[%s:%u] - At top of pd_process::calculateCallGraphChecksum\n", __FILE__, __LINE__);
     processMgr::procIter itr = getProcMgr().begin();
+    assert( itr != getProcMgr().end()); 
 
     pdstring graph = " ";
-    assert(getProcMgr().size()==1);
-
     unsigned checksum = 0;
 
-    while(itr != getProcMgr().end()) 
-      {
-        pd_process *p = *itr++;
-        if (!p)
-					continue;
-        p->FillInCallGraphStatic(true,&checksum);
-      }
+    pd_process *p = *itr++;
+    assert(p);
+    p->FillInCallGraphStatic(true, &checksum);
 		
     return(checksum);
 }
