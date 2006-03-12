@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Types.h,v 1.23 2005/03/29 22:28:42 igor Exp $
+ * $Id: Types.h,v 1.24 2006/03/12 23:31:13 legendre Exp $
  * Types.h: commonly used types (used by runtime libs and other modules)
 ************************************************************************/
 
@@ -81,8 +81,7 @@ WindowsNT    nonexistant
   # we rename all of the 64 bit literal macros to our shortened name
 */
 
-#if defined(i386_unknown_nt4_0) \
- || defined(mips_unknown_ce2_11) /*ccw 20 july 2000 : 29 mar 2001*/
+#if defined(os_windows)
 /* nt -------------------------- */
    typedef __int64 int64_t;
    typedef __int32 int32_t;

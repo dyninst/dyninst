@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ntHeaders.h,v 1.20 2004/08/10 22:01:50 legendre Exp $
+// $Id: ntHeaders.h,v 1.21 2006/03/12 23:31:14 legendre Exp $
 
 #if !defined(pd_nt_headers_h)
 #define pd_nt_headers_h
@@ -60,28 +60,25 @@
 #include <direct.h>
 #include <malloc.h>
 
-
 #ifdef BPATCH_LIBRARY
 
 #include <wtypes.h>
 typedef void *caddr_t; 
 
 #else
-
+#if defined(PARADYND)
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
 
-#ifndef mips_unknown_ce2_11 //ccw 9 apr 2001
 #include <rpc/rpc.h>
 #include <rpc/types.h>
 #include <rpc/xdr.h>
-#endif
 
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
-
+#endif
 #endif /* BPATCH_LIBRARY */
 
 
@@ -209,6 +206,7 @@ inline char * P_cplus_demangle( const char * symbol, bool /* nativeCompiler */, 
    } /* end P_cplus_demangle() */
 
 #ifndef BPATCH_LIBRARY
+#if defined(PARADYND)
 typedef int (*P_xdrproc_t)(XDR*, ...);
 //extern const char *sys_errlist[];
 
@@ -235,5 +233,5 @@ inline bool_t P_xdrrec_endofrecord(XDR *x, int now) {
 inline bool_t P_xdrrec_skiprecord(XDR *x) { return (xdrrec_skiprecord(x));}
 inline bool_t P_xdrrec_eof(XDR *x) { return (xdrrec_eof(x)); }
 #endif
-
+#endif
 #endif

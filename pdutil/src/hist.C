@@ -40,7 +40,7 @@
  */
 
 // hist.C - routines to manage histograms.
-// $Id: hist.C,v 1.47 2004/07/20 21:22:39 pcroth Exp $
+// $Id: hist.C,v 1.48 2006/03/12 23:31:12 legendre Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/hist.h"
@@ -317,7 +317,7 @@ void Histogram::bucketValue(relTimeStamp start_clock, relTimeStamp end_clock,
       time_in_last_bin = timeLength::Zero();
     }
 
-    timeLength time_in_other_bins = max(elapsed_clock - 
+    timeLength time_in_other_bins = maximum(elapsed_clock - 
 		   (time_in_first_bin + time_in_last_bin), timeLength::Zero());
     // ignore bad values
     if((time_in_first_bin < timeLength::Zero()) || 

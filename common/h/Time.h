@@ -687,13 +687,14 @@ inline bool operator<=(const timeLength a, const timeLength b) {
   return (a.get_ns() <= b.get_ns());
 }
 
-inline timeLength min(const timeLength a, const timeLength b) {  
+
+inline timeLength minimum(const timeLength a, const timeLength b) {  
   assert(a.isInitialized() && b.isInitialized());
   if(a<=b)  return a;
   else      return b;
 }
 
-inline timeLength max(const timeLength a, const timeLength b) {  
+inline timeLength maximum(const timeLength a, const timeLength b) {  
   assert(a.isInitialized() && b.isInitialized());
   if(a>=b)  return a;
   else      return b;
@@ -701,7 +702,7 @@ inline timeLength max(const timeLength a, const timeLength b) {
 
 inline const timeLength abs(const timeLength a) {  
   assert(a.isInitialized());
-  return max(a,-a);
+  return maximum(a,-a);
 }
 
 // need to put this here so can get at timeStamp
