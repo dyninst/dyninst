@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.166 2006/03/12 23:31:50 legendre Exp $
+// $Id: ast.C,v 1.167 2006/03/13 20:01:23 rutar Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -346,6 +346,22 @@ void registerSpace::copyInfo( registerSpace *rs ) const {
       rs->fpRegisters[j].beenClobbered = fpRegisters[j].beenClobbered;
    }
 } /* end registerSpace::copyInfo() */
+
+
+void registerSpace::setAllLive(){
+  for (u_int i = 0; i < numRegisters; i++)
+    {
+      registers[i].needsSaving = true;
+      registers[i].startsLive = true;
+    }
+  for (u_int i = 0; i < numFPRegisters; i++)
+    {
+      fpRegisters[i].needsSaving = true;
+      fpRegisters[i].startsLive = true;
+    }
+  spFlag = true;
+}
+
 
 void registerSpace::resetSpace() {
    for (u_int i=0; i < numRegisters; i++) {

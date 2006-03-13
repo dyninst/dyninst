@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.24 2006/03/07 23:18:15 bernat Exp $
+// $Id: baseTramp.C,v 1.25 2006/03/13 20:01:23 rutar Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -1102,6 +1102,9 @@ bool baseTramp::generateBT() {
     // Restore registers
     restoreStartOffset = postTrampCode_.used();
     generateRestores(postTrampCode_, regSpace);
+
+    regSpace->setAllLive();
+
     restoreEndOffset = postTrampCode_.used();
     //inst_printf("Ending restores: %d\n", restoreEndOffset);
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.86 2006/03/12 23:31:51 legendre Exp $
+// $Id: ast.h,v 1.87 2006/03/13 20:01:23 rutar Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -135,6 +135,7 @@ class registerSpace {
 	void forceFreeRegister(Register k);
 	void resetSpace();
 	void resetClobbers();
+	void setAllLive();
 	void saveClobberInfo(const instPoint * location);
 	void resetLiveDeadInfo(const int* liveRegs,
 			       const int *, const int *, bool);
