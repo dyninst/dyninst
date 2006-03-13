@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_33.C,v 1.4 2006/03/08 16:44:34 bpellin Exp $
+// $Id: test1_33.C,v 1.5 2006/03/13 21:05:46 bpellin Exp $
 /*
  * #Name: test1_33 
  * #Desc: Control Flow Graphs
@@ -82,6 +82,7 @@ bool hasBackEdge(BPatch_basicBlock *bb, BPatch_Set<int> visited)
 
 int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
 {
+    int pvalue;
     unsigned int i;
 
     if (mutateeFortran) {
@@ -381,6 +382,17 @@ int mutatorTest( BPatch_thread * /*appThread*/, BPatch_image * appImage )
           return -1;
        }
     }
+
+    BPatch_variableExpr *expr33_1 = 
+    appImage->findVariable("globalVariable33_1");
+    if (expr33_1 == NULL) {
+          fprintf(stderr, "**Failed** test #33 (control flow graphs)\n");
+          fprintf(stderr, "    Unable to locate globalVariable33_1\n");
+          return -1;
+    } 
+
+    pvalue = 1;
+    expr33_1->writeValue(&pvalue);
 
 
     delete [] block_elements;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_26.C,v 1.3 2006/03/08 16:44:26 bpellin Exp $
+// $Id: test1_26.C,v 1.4 2006/03/13 21:05:45 bpellin Exp $
 /*
  * #Name: test1_26
  * #Desc: Struct Elements
@@ -175,7 +175,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
             lvar = appImage->findVariable(*(*point26_1) [0], "localvariable26_1");
 	if (!lvar) {
 	    fprintf(stderr, "**Failed** test #26 (struct elements)\n");
-	    fprintf(stderr, "  lvar NULL\n");
+	    fprintf(stderr, "  could not find localVariable26_1\n");
 	    return -1;
     	}
 	setExpectError(DYNINST_NO_ERROR);
