@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_12.C,v 1.4 2006/03/12 23:33:18 legendre Exp $
+// $Id: test1_12.C,v 1.5 2006/03/13 21:05:43 bpellin Exp $
 /*
  * #Name: test1_12
  * #Desc: Mutator Side - Insert/Remove and Malloc/Free
@@ -67,7 +67,7 @@ const int HEAP_TEST_UNIT_SIZE = 5000;
 int mutatorTesta(BPatch_thread *appThread, BPatch_image *appImage)
 {
     // Find the entry point to the procedure "func12_2"
-  BPatch_Vector<BPatch_function *> found_funcs;
+    BPatch_Vector<BPatch_function *> found_funcs;
     if ((NULL == appImage->findFunction("func12_2", found_funcs)) || !found_funcs.size()) {
       fprintf(stderr, "    Unable to find function %s\n",
 	      "func12_2");
@@ -98,7 +98,7 @@ int mutatorTesta(BPatch_thread *appThread, BPatch_image *appImage)
     BPatch_variableExpr* memStuff[30000];
     BPatch_variableExpr *temp;
     int count;
-    for (count = 0; count < 500; count++) {
+    for (count = 0; count < 2000; count++) {
         temp = appThread->malloc(HEAP_TEST_UNIT_SIZE);
         if (!temp) {
             printf("*** Inferior malloc stress test failed\n"); 

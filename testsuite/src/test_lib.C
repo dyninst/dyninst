@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.7 2006/03/12 23:33:54 legendre Exp $
+// $Id: test_lib.C,v 1.8 2006/03/13 21:05:48 bpellin Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -288,10 +288,6 @@ void checkCost(BPatch_snippet snippet)
    dprintf("Snippet cost=%g\n", cost);
     if (cost < 0.0) {
         printf("*Error*: negative snippet cost\n");
-    } else if (cost == 0.0) {
-#if !defined(alpha_dec_osf4_0)
-        dprintf("*Warning*: zero snippet cost\n");
-#endif
     } else if (cost > 0.01) {
         printf("*Error*: snippet cost of %f, exceeds max expected of 0.1",
             cost);

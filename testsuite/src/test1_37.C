@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_37.C,v 1.3 2006/03/08 16:44:38 bpellin Exp $
+// $Id: test1_37.C,v 1.4 2006/03/13 21:05:47 bpellin Exp $
 /*
  * #Name: test1_37
  * #Desc: Instrument Loops
@@ -185,6 +185,7 @@ int instrumentFuncLoopsWithCall(BPatch_thread *appThread,
 
 int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
+#if 0
     if (mutateeFortran) {
 	return 0;
     } 
@@ -194,6 +195,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     RETURNONFAIL(instrumentFuncLoopsWithCall(appThread, appImage,"call37_2", "inc37_2"));
 
     RETURNONFAIL(instrumentFuncLoopsWithCall(appThread, appImage,"call37_3", "inc37_3"));
+#endif
 
     return 0;
 }

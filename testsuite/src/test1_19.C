@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_19.C,v 1.4 2006/03/08 16:44:18 bpellin Exp $
+// $Id: test1_19.C,v 1.5 2006/03/13 21:05:44 bpellin Exp $
 /*
  * #Name: test1_19
  * #Desc: Mutator Side - oneTimeCode
@@ -55,20 +55,6 @@
 #include "test_lib.h"
 
 BPatch *bpatch;
-
-#ifdef NOTDEF // PDSEP
-void test19_oneTimeCodeCallback(BPatch_thread *thread,
-				void *userData,
-				void *returnValue)
-{
-    bool dummy = (userData == NULL) || (returnValue == NULL) || (thread == NULL);
-    assert(userData);
-
-    if (dummy)
-      *(int *)userData = 1;
-    else
-      *(int *)userData = 1;
-#endif
 
 void test19_oneTimeCodeCallback(BPatch_thread * /*thread*/,
 				void *userData,
