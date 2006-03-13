@@ -40,8 +40,9 @@
  */
 
 /* 
- * $Id: alpha.C,v 1.5 2006/03/12 23:31:43 legendre Exp $
+ * $Id: alpha.C,v 1.6 2006/03/13 17:59:33 legendre Exp $
  */
+#include "signalhandler.h"
 
 class ptraceKludge { };
 
