@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.126 2006/03/12 23:31:29 legendre Exp $
+// $Id: BPatch.C,v 1.127 2006/03/14 22:57:12 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -821,6 +821,31 @@ BPatch_Vector<BPatch_thread *> *BPatch::getThreadsInt()
     }
 
     return result;
+}
+
+/*
+ * BPatch::getProcs
+ *
+ * Returns a vector of all threads that are currently defined.  Includes
+ * threads created directly using the library and those created with UNIX fork
+ * or Windows NT spawn system calls.  The caller is responsible for deleting
+ * the vector when it is no longer needed.
+ */
+BPatch_Vector<BPatch_process *> *BPatch::getProcessesInt()
+{
+   BPatch_Vector<BPatch_process *> *result = new BPatch_Vector<BPatch_process *>;
+   dictionary_hash_iter<int, BPatch_process *> ti(info->procsByPid);
+
+   int pid;
+   BPatch_process *proc;
+   
+   while (ti.next(pid, proc))
+   {
+      assert(proc);
+      result->push_back(proc);
+   }
+   
+   return result;
 }
 
 

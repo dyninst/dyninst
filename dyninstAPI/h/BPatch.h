@@ -391,12 +391,15 @@ public:
     bool,removeUserEventCallback,(BPatchUserEventCallback cb));
 
 
+    //  BPatch::getThreads:
+    //  Get a vector of all threads
+    API_EXPORT(Int, (),
+    BPatch_Vector<BPatch_thread*> *,getThreads,());
 
     //  BPatch::getThreads:
-    //  Get a vector of all threads in mutatee process
+    //  Get a vector of all processes 
     API_EXPORT(Int, (),
-
-    BPatch_Vector<BPatch_thread*> *,getThreads,());
+    BPatch_Vector<BPatch_process*> *,getProcesses,());
 
     //
     //  General BPatch parameter settings:
