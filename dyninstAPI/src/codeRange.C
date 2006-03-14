@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.C,v 1.17 2006/03/12 23:31:52 legendre Exp $
+// $Id: codeRange.C,v 1.18 2006/03/14 04:56:07 nater Exp $
 
 #include <stdio.h>
 #include "codeRange.h"
@@ -406,9 +406,12 @@ bool codeRangeTree::find(Address key, codeRange *& value) const{
         return false;
     // Check to see if the range works
     if (!value->get_size_cr()) {
+        // XXX do we really need this warning?
         fprintf(stderr, "%s[%d]:  Warning:  size was 0...\n", FILE__, __LINE__);
+        if(key > value->get_address_cr())
+            return false;
     }
-    if (key >= (value->get_address_cr() + value->get_size_cr())) {
+    else if(key >= (value->get_address_cr() + value->get_size_cr())) {
         return false;
     }
     // We can also underflow
