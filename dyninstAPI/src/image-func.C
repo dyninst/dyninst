@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.27 2006/03/12 23:31:57 legendre Exp $
+// $Id: image-func.C,v 1.28 2006/03/14 23:12:03 bernat Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -146,7 +146,7 @@ image_func::image_func(const pdstring &symbol,
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     image_func_count++;
-    if ((image_func_count % 10) == 0)
+    if ((image_func_count % 100) == 0)
         fprintf(stderr, "image_func_count: %d (%d)\n",
                 image_func_count, image_func_count*sizeof(image_func));
 #endif
@@ -354,7 +354,7 @@ image_basicBlock::image_basicBlock(image_func *func, Address firstOffset) :
     blockNumber_ = func->img()->getNextBlockID();
 #if defined(ROUGH_MEMORY_PROFILE)
     image_basicBlock_count++;
-    if ((image_basicBlock_count % 10) == 0)
+    if ((image_basicBlock_count % 100) == 0)
         fprintf(stderr, "image_basicBlock_count: %d (%d)\n",
                 image_basicBlock_count, image_basicBlock_count*sizeof(image_basicBlock));
 #endif
@@ -503,7 +503,7 @@ image_instPoint::image_instPoint(Address offset,
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     image_instPoint_count++;
-    if ((image_instPoint_count % 10) == 0)
+    if ((image_instPoint_count % 100) == 0)
         fprintf(stderr, "image_instPoint_count: %d (%d)\n",
                 image_instPoint_count,
                 image_instPoint_count*sizeof(image_instPoint));
@@ -524,7 +524,7 @@ image_instPoint::image_instPoint(Address offset,
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     image_instPoint_count++;
-    if ((image_instPoint_count % 10) == 0)
+    if ((image_instPoint_count % 100) == 0)
         fprintf(stderr, "image_instPoint_count: %d (%d)\n",
                 image_instPoint_count, image_instPoint_count * sizeof(image_instPoint));
 #endif
@@ -960,6 +960,7 @@ bool image_func::cleanBlockList() {
     funcEntries_.reserve_exact(funcEntries_.size());
     funcReturns.reserve_exact(funcReturns.size());
     calls.reserve_exact(calls.size());
+    blockList.reserve_exact(blockList.size());
     return true;
 }
 

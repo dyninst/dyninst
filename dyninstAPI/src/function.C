@@ -86,7 +86,7 @@ int_function::int_function(image_func *f,
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     int_function_count++;
-    if ((int_function_count % 10) == 0)
+    if ((int_function_count % 1000) == 0)
         fprintf(stderr, "int_function_count: %d (%d)\n",
                 int_function_count, int_function_count*sizeof(int_function));
 #endif
@@ -256,6 +256,7 @@ const pdvector<instPoint *> &int_function::funcEntries() {
             entryPoints_.push_back(point);
         }
     }
+    entryPoints_.reserve_exact(entryPoints_.size());
     return entryPoints_;
 }
 
@@ -284,6 +285,7 @@ const pdvector<instPoint*> &int_function::funcExits() {
             exitPoints_.push_back(point);
         }
     }
+    exitPoints_.reserve_exact(exitPoints_.size());
     return exitPoints_;
 }
 
@@ -313,6 +315,7 @@ const pdvector<instPoint*> &int_function::funcCalls() {
             callPoints_.push_back(point);
         }
     }
+    callPoints_.reserve_exact(callPoints_.size());
     return callPoints_;
 }
 
@@ -374,6 +377,7 @@ const pdvector<int_basicBlock *> &int_function::blocks() {
         }
     }
     // And a quick consistency check...
+    blockList.reserve_exact(blockList.size());
     return blockList;
 }
 
@@ -665,7 +669,7 @@ int_basicBlock::int_basicBlock(const image_basicBlock *ib, Address baseAddr, int
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     int_basicBlock_count++;
-    if ((int_basicBlock_count % 10) == 0)
+    if ((int_basicBlock_count % 100) == 0)
         fprintf(stderr, "int_basicBlock_count: %d (%d)\n",
                 int_basicBlock_count, int_basicBlock_count*sizeof(int_basicBlock));
 #endif
@@ -778,7 +782,7 @@ bblInstance::bblInstance(Address start, Address last, Address end, int_basicBloc
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     bblInstance_count++;
-    if ((bblInstance_count % 10) == 0)
+    if ((bblInstance_count % 100) == 0)
         fprintf(stderr, "bblInstance_count: %d (%d)\n",
                 bblInstance_count, bblInstance_count*sizeof(bblInstance));
 #endif
