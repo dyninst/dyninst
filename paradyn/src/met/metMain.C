@@ -48,7 +48,7 @@
  *     metDoVisi(..) - declare a visi
  */
 
-// $Id: metMain.C,v 1.64 2006/03/12 03:40:03 darnold Exp $
+// $Id: metMain.C,v 1.65 2006/03/14 01:30:22 darnold Exp $
 
 #define GLOBAL_CONFIG_FILE "/paradyn.rc"
 #define LOCAL_CONFIG_FILE "/.paradynrc"
@@ -291,10 +291,13 @@ static void start_process(processMet *the_ps)
 
 bool metDoProcess()
 {
-    static bool first_time=true;
+    bool first_time=true;
     bool found;
     pdstring daemon_name, cur_host;
     pdvector<pdstring> hosts;
+
+    if( processMet::allProcs.size() == 0 )
+        return false;
 
     //make sure only one daemon definition is being used
     for (unsigned u=0; u<processMet::allProcs.size(); u++) {

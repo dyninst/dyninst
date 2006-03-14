@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMpublic.C,v 1.155 2006/03/12 03:40:02 darnold Exp $
+// $Id: DMpublic.C,v 1.156 2006/03/14 01:30:22 darnold Exp $
 
 extern "C" {
 #include <malloc.h>
@@ -222,7 +222,7 @@ void dataManager::addExecutable(const char *machine,
 
   // This is the implementation of an igen call...usually from the UI thread
   // when a new process is defined in the dialog box.
-  pdstring m = machine;
+  pdstring m = ( machine ? machine : default_host );
   pdstring l = login;
   pdstring n = name;
   pdstring d = dir;
