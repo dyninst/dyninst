@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.26 2006/03/14 04:31:17 rutar Exp $
+// $Id: baseTramp.C,v 1.27 2006/03/14 23:11:58 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -447,9 +447,16 @@ void baseTrampInstance::generateBranchToMT(codeGen &gen) {
     if (baseT->firstMini) {
         Address firstTarget = baseT->firstMini->getMTInstanceByBTI(this)->trampBase;
         // If MT is out-of-line...
+#if defined(os_aix) 
+        // AIX uses funky branches
+        instruction::generateInterFunctionBranch(gen,
+                                                 trampPreAddr() + baseT->instStartOffset,
+                                                 firstTarget);
+#else
         instruction::generateBranch(gen,
 				    trampPreAddr() + baseT->instStartOffset,
 				    firstTarget);
+#endif
         // Safety: make sure we didn't stomp on anything important.
         assert(gen.used() <= baseT->instSize);
     }
@@ -1268,14 +1275,10 @@ bool baseTrampInstance::linkCode() {
                     leave, arrive,
                     this,
                     baseT->firstMini->getMTInstanceByBTI(this));
-#if defined(os_aix)
-        resetBRL(baseT->proc(), leave, arrive);
-#else
         generateAndWriteBranch(baseT->proc(), 
                                leave, 
                                arrive, 
                                instruction::maxJumpSize());
-#endif
     }
 
     // Cost calculation

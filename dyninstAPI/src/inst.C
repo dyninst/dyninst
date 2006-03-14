@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst.C,v 1.151 2005/12/14 22:44:12 bernat Exp $
+// $Id: inst.C,v 1.152 2006/03/14 23:11:59 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 // Misc constructs.
 
@@ -102,7 +102,11 @@ unsigned generateAndWriteBranch(process *proc,
 
     codeGen gen(fillSize);
 
+#if defined(os_aix)
+    instruction::generateInterFunctionBranch(gen, fromAddr, newAddr);
+#else
     instruction::generateBranch(gen, fromAddr, newAddr);
+#endif
     gen.fillRemaining(codeGen::cgNOP);
     
     proc->writeTextSpace((caddr_t)fromAddr, gen.used(), gen.start_ptr());

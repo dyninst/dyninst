@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.19 2006/03/12 23:32:10 legendre Exp $
+// $Id: miniTramp.C,v 1.20 2006/03/14 23:12:01 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -52,11 +52,6 @@
 #include "function.h"
 
 int miniTramp::_id = 1;
-
-#if defined(os_aix)
-  extern void resetBRL(process *p, Address loc, unsigned val); //inst-power.C
-  extern void resetBR( process *p, Address loc);               //inst-power.C
-#endif
 
 /*
  * The tramps are chained together left to right, so we need to find the
@@ -518,16 +513,10 @@ bool miniTrampInstance::linkCode() {
                     this,
                     baseTI);
 
-#if defined(os_aix)
-        // TODO: miniTramp methods to wrap this.
-        resetBR(mini->proc(),
-                trampBase + mini->returnOffset);
-#else
         generateAndWriteBranch(mini->proc(),
                                (trampBase + mini->returnOffset),
                                baseTI->miniTrampReturnAddr(),
                                instruction::maxJumpSize());
-#endif
     }
 
     linked_ = true;
