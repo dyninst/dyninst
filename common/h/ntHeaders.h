@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ntHeaders.h,v 1.21 2006/03/12 23:31:14 legendre Exp $
+// $Id: ntHeaders.h,v 1.22 2006/03/14 22:57:08 legendre Exp $
 
 #if !defined(pd_nt_headers_h)
 #define pd_nt_headers_h
@@ -47,6 +47,11 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winsock2.h>
+
+#if !defined(__out_ecount_opt)
+#define __out_ecount_opt(x) //Working around dbhelp.h bugs
+#endif
+
 #include <dbghelp.h>
 
 #include <assert.h>
