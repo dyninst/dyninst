@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.593 2006/03/12 23:32:14 legendre Exp $
+// $Id: process.C,v 1.594 2006/03/14 23:12:05 bernat Exp $
 
 #include <ctype.h>
 
@@ -4919,7 +4919,6 @@ bool process::continueProc_(int sig)
   if (status_ == running)
     return true;
   bool ret =  getRepresentativeLWP()->continueLWP(sig);
-  sh->signalActiveProcess();
   return ret;
 }
 #endif
