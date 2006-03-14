@@ -439,6 +439,7 @@ char *eventType2str(eventType x)
   CASE_RETURN_STR(evtSyscallEntry);
   CASE_RETURN_STR(evtSyscallExit);
   CASE_RETURN_STR(evtSuspended);
+  CASE_RETURN_STR(evtRequestedStop);
   CASE_RETURN_STR(evtInstPointTrap);
   CASE_RETURN_STR(evtDebugStep);
   CASE_RETURN_STR(evtDynamicCall);

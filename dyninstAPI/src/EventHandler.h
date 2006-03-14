@@ -78,6 +78,7 @@ typedef enum {
   evtSyscallEntry,
   evtSyscallExit,
   evtSuspended, 
+  evtRequestedStop, // For platforms where "stop" can generate a signal
   evtInstPointTrap,
   evtDebugStep,
   evtDynamicCall,

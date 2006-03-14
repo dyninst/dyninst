@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.85 2006/03/09 22:00:58 bernat Exp $
+// $Id: sol_proc.C,v 1.86 2006/03/14 23:11:52 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -1445,12 +1445,14 @@ bool SignalGenerator::updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
     return false;
   }
 
+  /*
   // This is the "why" for the lwps that were stopped because some other
   // lwp stopped for an interesting reason.  We don't care about lwps
   // that stopped for this reason.
   if (lwpstatus.pr_why == PR_REQUESTED) {
       return false;
   }
+  */
    
   EventRecord ev;
   ev.type = evtUndefined;
@@ -1473,10 +1475,8 @@ bool SignalGenerator::updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
   } else 
      matching_event.lwp = lwp;
    
-#if 0
   char buf[128];
-  fprintf(stderr, "%s[%d]:  updateEvents got event %s\n", FILE__, __LINE__, ev.sprint_event(buf));
-#endif
+  signal_printf("%s[%d]:  updateEvents got event %s\n", FILE__, __LINE__, ev.sprint_event(buf));
   return true;
 }
 
@@ -1557,15 +1557,32 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
       return false;
    }
 
+   signal_printf("Thread status flags: 0x%x (STOPPED %d, ISTOP %d, ASLEEP %d)\n",
+                 procstatus.pr_flags,
+                 procstatus.pr_flags & PR_STOPPED,
+                 procstatus.pr_flags & PR_ISTOP,
+                 procstatus.pr_flags & PR_ASLEEP);
+   signal_printf("Current signal: %d, reason for stopping: %d, (REQ %d, SIG %d, ENT %d, EXIT %d), what %d\n",
+            procstatus.pr_cursig, procstatus.pr_why,
+            procstatus.pr_why == PR_REQUESTED,
+            procstatus.pr_why == PR_SIGNALLED,
+            procstatus.pr_why == PR_SYSENTRY,
+            procstatus.pr_why == PR_SYSEXIT,
+            procstatus.pr_what);
+
+   signal_printf("Signal encountered on LWP %d\n", procstatus.pr_lwpid);
+
    // copied from old code, must not care about events that don't stop proc
    // Actually, this happens if we've requested a stop but didn't wait for it; the process
    // is in a stopped state but we don't care why.
    if ( !(procstatus.pr_flags & PR_STOPPED || procstatus.pr_flags & PR_ISTOP) ) {
-     ev.type = evtNullEvent;
-     signal_printf("%s[%d]:  new event: %s\n",
-                   FILE__, __LINE__, eventType2str(ev.type));
-     return true;
+       ev.proc->set_status(running);
+       ev.type = evtNullEvent;
+       signal_printf("%s[%d]:  new event: %s\n",
+                     FILE__, __LINE__, eventType2str(ev.type));
+       return true;
    }
+
 
    bool updated_events = false;
    unsigned lwp_to_use = (unsigned) procstatus.pr_lwpid;
@@ -1578,12 +1595,10 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
    else
      ev.type = evtUndefined;
 
-#if 0
    char buf[128];
-   fprintf(stderr, "%s[%d]:  decodeEvent got %s\n", FILE__, __LINE__, ev.sprint_event(buf));
-#endif
-   return updated_events;
+   signal_printf("%s[%d]:  decodeEvent got %s, returning %d\n", FILE__, __LINE__, ev.sprint_event(buf), updated_events);
 
+   return updated_events;
 }
 
 pdstring process::tryToFindExecutable(const pdstring &iprogpath, int pid) {

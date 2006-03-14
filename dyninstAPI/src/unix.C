@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.172 2006/03/12 23:32:22 legendre Exp $
+// $Id: unix.C,v 1.173 2006/03/14 23:11:54 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -293,8 +293,13 @@ bool SignalGenerator::decodeProcStatus(procProcStatus_t status, EventRecord &ev)
         decodeSyscall(ev);
         break;
      case PR_REQUESTED:
-        // We don't expect PR_REQUESTED in the signal handler
-        assert(0 && "PR_REQUESTED not handled");
+         // Because we asked for it... for example:
+         // Thread 1: poll for /proc event
+         // Thread 2: pause process
+         // Thread 1: ... read PR_REQUESTED stop
+         ev.type = evtRequestedStop;
+         break;
+
 #if defined(PR_SUSPENDED)
      case PR_SUSPENDED:
         // I'm seeing this state at times with a forking multi-threaded

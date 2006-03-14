@@ -369,6 +369,8 @@ bool SignalGeneratorCommon::waitNextEvent(EventRecord &ev)
       __UNLOCK;
       return true;
   }
+  signal_printf("%s[%d]: checking process status %s (%d)\n",
+                FILE__, __LINE__, proc->getStatusAsString().c_str(), proc->status());
   //  maybe query_for_running_lwp is sufficient here??
   while (  proc->status() != running
            && proc->status() != neonatal
@@ -1604,12 +1606,17 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
      case evtCritical:
          ret = handleCritical(ev);
          break;
+     case evtRequestedStop:
+         ret = true;
+         break;
      case evtTimeout:
-     case evtNullEvent:
      case evtThreadDetect:
-         proc->continueProc();
+         proc->continueProc();         
         ret = true;
         break;
+     case evtNullEvent:
+         ret = true;
+         break;
      default:
         fprintf(stderr, "%s[%d]:  cannot handle signal %s\n", FILE__, __LINE__, eventType2str(ev.type));
         assert(0 && "Undefined");
