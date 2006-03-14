@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-sparc.C,v 1.8 2006/02/26 05:06:29 bernat Exp $
+ * $Id: arch-sparc.C,v 1.9 2006/03/14 23:11:55 bernat Exp $
  */
 
 #include "common/h/Types.h"
@@ -50,6 +50,7 @@
 #include "util.h"
 #include "showerror.h"
 #include "InstrucIter.h"
+#include "process.h"
 
 //inline unsigned getMaxBranch1Insn() {
 //   // The length we can branch using just 1 instruction is dictated by the
@@ -582,7 +583,7 @@ bool instruction::generate(codeGen &gen,
             instruction::generateImm(gen, ORop3, REG_O(7),
                                      LOW10(origAddr), REG_O(7));
         }
-        else {
+        else if (proc->isValidAddress(target)) {
             // Need to check the destination. Grab it with an InstrucIter
             InstrucIter callTarget(target, proc);
             instruction callInsn = callTarget.getInstruction();

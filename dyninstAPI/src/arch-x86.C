@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.50 2006/03/12 23:31:48 legendre Exp $
+// $Id: arch-x86.C,v 1.51 2006/03/14 23:11:56 bernat Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -56,6 +56,7 @@
 #include "showerror.h"
 #include "InstrucIter.h"
 #include "dyninstAPI/src/emit-x86.h"
+#include "process.h"
 
 
 // groups
@@ -3554,7 +3555,7 @@ bool instruction::generate(codeGen &gen,
          assert((newInsn - insnBuf) == 5);
          done = true;
       }
-      else {
+      else if (proc->isValidAddress(target)) {
          // Get us an instrucIter
          InstrucIter callTarget(target, proc);
          instruction firstInsn = callTarget.getInstruction();
