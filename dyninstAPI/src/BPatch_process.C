@@ -148,19 +148,24 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
            "Dyninst was unable to create the specified process");
       return;
    }
-   
+   startup_cerr << "Registering function callback..." << endl;
    llproc->registerFunctionCallback(createBPFuncCB);
+   
+   startup_cerr << "Registering instPoint callback..." << endl;
    llproc->registerInstPointCallback(createBPPointCB);
 
    // Add this object to the list of processes
    assert(BPatch::bpatch != NULL);
+   startup_cerr << "Registering process..." << endl;
    BPatch::bpatch->registerProcess(this);
 
    // Create an initial thread
+   startup_cerr << "Getting initial thread..." << endl;
    dyn_thread *dynthr = llproc->getInitialThread();
    BPatch_thread *initial_thread = new BPatch_thread(this, dynthr);
    threads.push_back(initial_thread);
 
+   startup_cerr << "Creating new BPatch_image..." << endl;
    image = new BPatch_image(this);
 
    assert(llproc->isBootstrappedYet());
@@ -171,6 +176,7 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
    fprintf(stderr, "Post BPatch_process: sbrk %p\n", mem_usage);
 #endif
 
+   startup_cerr << "BPatch_process::BPatch_process, completed." << endl;
    isVisiblyStopped = true;
 }
 
@@ -1668,7 +1674,7 @@ void BPatch_process::deleteBPThread(BPatch_thread *thrd)
 bool BPatch_process::addSharedObjectInt(const char *name, 
                                         const unsigned long loadaddr)
 {
-   return loadLibrary(name);
+   return loadLibraryInt(name);
 }
 #endif
 
