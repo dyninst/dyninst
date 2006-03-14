@@ -39,18 +39,18 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.39 2006/03/12 23:31:25 legendre Exp $
+// $Id: Object-nt.C,v 1.40 2006/03/14 22:57:20 legendre Exp $
 
 #define WIN32_LEAN_AND_MEAN
+
+
 #include <windows.h>
-#include <dbghelp.h>
 #include <cvconst.h>
 #include <oleauto.h>
 
 #include <iostream>
 #include <iomanip>
 #include <limits.h>
-
 #include "common/h/String.h"
 #include "common/h/Vector.h"
 #include "dyninstAPI/src/Object.h"

@@ -41,7 +41,7 @@
 
 
 /* 
- * $Id: wincetypes.h,v 1.2 2004/03/23 01:12:11 eli Exp $
+ * $Id: wincetypes.h,v 1.3 2006/03/14 22:57:33 legendre Exp $
  */
 
 

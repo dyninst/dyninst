@@ -44,7 +44,7 @@
 // for the indentation mode, the above line switches users into tabs
 // mode with emacs when editing this file.
 
-/* $Id: addLibrary.h,v 1.7 2004/03/23 19:10:49 eli Exp $ */
+/* $Id: addLibrary.h,v 1.8 2006/03/14 22:57:22 legendre Exp $ */
 
 #if defined(sparc_sun_solaris2_4)
 

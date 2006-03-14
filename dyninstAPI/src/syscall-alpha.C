@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-alpha.C,v 1.4 2005/11/23 00:09:14 jaw Exp $
+// $Id: syscall-alpha.C,v 1.5 2006/03/14 22:57:30 legendre Exp $
 
 #include <sys/procfs.h>
 #include <sys/syscall.h>

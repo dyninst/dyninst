@@ -41,7 +41,7 @@
 
 
 /* 
- * $Id: asmExterns.h,v 1.2 2004/03/23 01:12:02 eli Exp $
+ * $Id: asmExterns.h,v 1.3 2006/03/14 22:57:24 legendre Exp $
 */
 
 //ccw 3 aug 2000 

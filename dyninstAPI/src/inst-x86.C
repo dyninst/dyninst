@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.236 2006/03/12 23:32:00 legendre Exp $
+ * $Id: inst-x86.C,v 1.237 2006/03/14 22:57:26 legendre Exp $
  */
 #include <iomanip>
 

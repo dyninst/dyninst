@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-nt.C,v 1.3 2005/09/09 18:07:10 legendre Exp $
+// $Id: syscall-nt.C,v 1.4 2006/03/14 22:57:31 legendre Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/inst.h"

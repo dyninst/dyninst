@@ -41,7 +41,7 @@
 
 
 /* 
- * $Id: MapSymbols.h,v 1.4 2006/03/12 23:31:39 legendre Exp $
+ * $Id: MapSymbols.h,v 1.5 2006/03/14 22:57:18 legendre Exp $
  */
 
 //MapSymbols.h

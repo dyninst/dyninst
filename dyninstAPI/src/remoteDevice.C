@@ -41,7 +41,7 @@
 
 
 /* 
- * $Id: remoteDevice.C,v 1.2 2004/03/23 01:12:08 eli Exp $
+ * $Id: remoteDevice.C,v 1.3 2006/03/14 22:57:28 legendre Exp $
  */
 
 

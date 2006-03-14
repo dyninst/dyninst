@@ -41,7 +41,7 @@
 
 
 /* 
- * $Id: MapSymbols.C,v 1.2 2004/03/23 01:11:59 eli Exp $
+ * $Id: MapSymbols.C,v 1.3 2006/03/14 22:57:17 legendre Exp $
  */
 
 //MapSymbols.cpp
