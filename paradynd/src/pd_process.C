@@ -151,53 +151,51 @@ pd_process *pd_createProcess(pdvector<pdstring> &argv, pdstring dir)
 {
 
 #if !defined(i386_unknown_nt4_0)
-	if (termWin_port == -1)
-		return NULL;
-	
-	PDSOCKET stdout_fd = INVALID_PDSOCKET;	
-	if ((stdout_fd = connect_Svr(pd_machine,termWin_port)) == INVALID_PDSOCKET)
-		{
-			return NULL;
-		}
-	if (write(stdout_fd,"from_app\n",strlen("from_app\n")) <= 0)
-		{
-			CLOSEPDSOCKET(stdout_fd);
-			return NULL;
-		}
-#endif
-
-	pd_process *proc;
-#if defined(os_windows)
-	proc = new pd_process(argv[0], argv, dir, 0, 1, 2);
-#else
-	proc = new pd_process(argv[0], argv, dir, 0, stdout_fd, 2);
-#endif
-	if ( (proc == NULL) || (proc->get_dyn_process() == NULL) ) {
-#if !defined(os_windows)
-		CLOSEPDSOCKET(stdout_fd);
-#endif
-		return NULL;
-	}
-
-	//Add to process manager
-	getProcMgr().addProcess(proc);
-
-	// Load the paradyn runtime lib
-	if (!proc->getSharedMemMgr()->initialize()) {
-		fprintf(stderr, "%s[%d]:  failed to init shared mem mgr, fatal...\n", __FILE__, __LINE__);
-		return NULL;
-	}
-
-	proc->loadParadynLib(pd_process::create_load);
+    if (termWin_port == -1)
+        return NULL;
     
-	// Run necessary initialization
-	proc->init();
-
-	process *llproc = proc->get_dyn_process()->lowlevel_process();
-	if(!costMetric::addProcessToAll(llproc))
-		assert(false);
-
-	return proc;
+    PDSOCKET stdout_fd = INVALID_PDSOCKET;	
+    if ((stdout_fd = connect_Svr(pd_machine,termWin_port)) == INVALID_PDSOCKET) {
+        return NULL;
+    }
+    if (write(stdout_fd,"from_app\n",strlen("from_app\n")) <= 0) {
+        CLOSEPDSOCKET(stdout_fd);
+        return NULL;
+    }
+#endif
+    
+    pd_process *proc;
+#if defined(os_windows)
+    proc = new pd_process(argv[0], argv, dir, 0, 1, 2);
+#else
+    proc = new pd_process(argv[0], argv, dir, 0, stdout_fd, 2);
+#endif
+    if ( (proc == NULL) || (proc->get_dyn_process() == NULL) ) {
+#if !defined(os_windows)
+        CLOSEPDSOCKET(stdout_fd);
+#endif
+        return NULL;
+    }
+    
+    //Add to process manager
+    getProcMgr().addProcess(proc);
+    
+    // Load the paradyn runtime lib
+    if (!proc->getSharedMemMgr()->initialize()) {
+        fprintf(stderr, "%s[%d]:  failed to init shared mem mgr, fatal...\n", __FILE__, __LINE__);
+        return NULL;
+    }
+    
+    proc->loadParadynLib(pd_process::create_load);
+    
+    // Run necessary initialization
+    proc->init();
+    
+    process *llproc = proc->get_dyn_process()->lowlevel_process();
+    if(!costMetric::addProcessToAll(llproc))
+        assert(false);
+    
+    return proc;
 }
 
 pd_process *pd_attachProcess(const pdstring &progpath, int pid)
@@ -284,104 +282,98 @@ void pd_process::init()
 pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
                        const pdstring dir, int stdin_fd, int stdout_fd,
                        int stderr_fd) 
-        : monitorFunc(NULL),
-          numOfActCounters_is(0), numOfActProcTimers_is(0),
-          numOfActWallTimers_is(0), 
-          cpuTimeMgr(NULL),
+    : monitorFunc(NULL),
+      numOfActCounters_is(0), numOfActProcTimers_is(0),
+      numOfActWallTimers_is(0), 
+      cpuTimeMgr(NULL),
 #ifdef PAPI
-          papi(NULL),
+      papi(NULL),
 #endif
-          paradynRTState(libUnloaded),
-          inExec(false),
-					canReportResources_(false)
+      paradynRTState(libUnloaded),
+      inExec(false),
+      canReportResources_(false)
 {
-
-	if (!MPI_proc)
-		{
-			if ((dir.length() > 0) && (P_chdir(dir.c_str()) < 0)) {
-				sprintf(errorLine, "cannot chdir to '%s': %s\n", dir.c_str(), 
-								strerror(errno));
-				logLine(errorLine);
-				P__exit(-1);
-			}
-			
-			char **argv_array = new char*[argv.size()+1];
-			for(unsigned i=0; i<argv.size(); i++)
-				argv_array[i] = const_cast<char *>(argv[i].c_str());
-			argv_array[argv.size()] = NULL;
-			
-			char *path = new char[  argv0.length() + 5];
-			strcpy(path, argv0.c_str());
-			getBPatch().setTypeChecking(false);
-			dyninst_process = getBPatch().processCreate(path, 
-																									(const char **) argv_array, NULL, 
-																									stdin_fd, stdout_fd, stderr_fd);
-			if (!dyninst_process) {
-				// createProcess will print proper error message in the paradyn msg box
-				P__exit(-1);
-			}
-			
-			delete []argv_array;
-			delete []path;
-		}
-	else
-		{
-			dyninst_process = MPI_proc;
-			getBPatch().registerExecCallback(paradynExecDispatch);
-			getBPatch().registerPostForkCallback(paradynPostForkDispatch);
-			getBPatch().registerExitCallback(paradynExitDispatch);
-		}
-	if (!dyninst_process) 
-		{
-		// createProcess will print proper error message in the paradyn msg box
-			P__exit(-1);
-		}
-	
-
-	created_via_attach = false;
-	img = new pd_image(dyninst_process->getImage(), this);
-
-	pdstring img_name = img->get_file();
-	if (img_name == (char *) NULL)
-	{
-		//  this will cause an assertion failure in newResource()
-		fprintf(stderr, "%s[%d]:  unnamed image!\n", __FILE__, __LINE__);
-	}
-	pdstring buff = pdstring(getPid()); // + pdstring("_") + getHostName();
-
-	rid = resource::newResource(machineResource, // parent
-															(void*)this, // handle
-															nullString, // abstraction
-															img->get_file(), // process name
-															timeStamp::ts1970(), // creation time
-															buff, // unique name (?)
-															ProcessResourceType,
-															MDL_T_STRING, // mdl type (?)
-															true
-															);
-	
-	if (!dyninst_process) {
-		// Ummm.... 
-		return;
-	}
-
-	initCpuTimeMgr();
-
-	// Initialize the shared memory segment
-	sharedMemManager = new shmMgr(dyninst_process,
-																7000, // Arbitrary constant for shared key
-																SHARED_SEGMENT_SIZE,
-																false // Don't leave around -- if we're attached, then the
-																// inferior process will have the segment as long is it 
-																// exists
-																);
-
-	shmMetaData = new sharedMetaData(sharedMemManager, MAX_NUMBER_OF_THREADS);
     
-	// Set the paradyn RT lib name
-	if (!getParadynRTname()) {
-			assert(0 && "Need to do cleanup");
-	}
+    if (!MPI_proc) {
+        if ((dir.length() > 0) && (P_chdir(dir.c_str()) < 0)) {
+            sprintf(errorLine, "cannot chdir to '%s': %s\n", dir.c_str(), 
+                    strerror(errno));
+            logLine(errorLine);
+            P__exit(-1);
+        }
+        
+        char **argv_array = new char*[argv.size()+1];
+        for(unsigned i=0; i<argv.size(); i++)
+            argv_array[i] = const_cast<char *>(argv[i].c_str());
+        argv_array[argv.size()] = NULL;
+        
+        char *path = new char[  argv0.length() + 5];
+        strcpy(path, argv0.c_str());
+        getBPatch().setTypeChecking(false);
+        dyninst_process = getBPatch().processCreate(path, 
+                                                    (const char **) argv_array, NULL, 
+                                                    stdin_fd, stdout_fd, stderr_fd);
+        if (!dyninst_process) {
+            // createProcess will print proper error message in the paradyn msg box
+            P__exit(-1);
+        }
+        
+        delete []argv_array;
+        delete []path;
+    }
+    else {
+        dyninst_process = MPI_proc;
+        getBPatch().registerExecCallback(paradynExecDispatch);
+        getBPatch().registerPostForkCallback(paradynPostForkDispatch);
+        getBPatch().registerExitCallback(paradynExitDispatch);
+    }
+    if (!dyninst_process) {
+        // createProcess will print proper error message in the paradyn msg box
+        P__exit(-1);
+    }
+    
+    
+    created_via_attach = false;
+    img = new pd_image(dyninst_process->getImage(), this);
+    
+    pdstring img_name = img->get_file();
+    if (img_name == (char *) NULL) {
+        //  this will cause an assertion failure in newResource()
+        fprintf(stderr, "%s[%d]:  unnamed image!\n", __FILE__, __LINE__);
+    }
+    pdstring buff = pdstring(getPid()); // + pdstring("_") + getHostName();
+    
+    rid = resource::newResource(machineResource, // parent
+                                (void*)this, // handle
+                                nullString, // abstraction
+                                img->get_file(), // process name
+                                timeStamp::ts1970(), // creation time
+                                buff, // unique name (?)
+                                ProcessResourceType,
+                                MDL_T_STRING, // mdl type (?)
+                                true);
+    
+    if (!dyninst_process) {
+        // Ummm.... 
+        return;
+    }
+    
+    initCpuTimeMgr();
+    
+    // Initialize the shared memory segment
+    sharedMemManager = new shmMgr(dyninst_process,
+                                  7000, // Arbitrary constant for shared key
+                                  SHARED_SEGMENT_SIZE,
+                                  false); // Don't leave around -- if we're attached, then the
+                                  // inferior process will have the segment as long is it 
+                                  // exists
+    
+    shmMetaData = new sharedMetaData(sharedMemManager, MAX_NUMBER_OF_THREADS);
+    
+    // Set the paradyn RT lib name
+    if (!getParadynRTname()) {
+        assert(0 && "Need to do cleanup");
+    }
 }
 
 // Attach constructor
