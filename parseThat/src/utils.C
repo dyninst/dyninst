@@ -43,12 +43,12 @@ char *fgets_static(FILE *stream)
         errno = 0;
         retval = fgets(buf + tail, len - tail, stream);
 
-	if (errno && errno == EINTR) {
+	if (errno == EINTR || errno == ECHILD) {
 	    if (config.state != NORMAL) {
 		errno = 0;
 		return NULL;
 
-	    } else if (++i > MAX_RETRY) {
+	    } else if (errno == EINTR && ++i > MAX_RETRY) {
 		dlog(ERR, "fgets() has been interrupted %d times.  Giving up.\n", MAX_RETRY);
 		return NULL;
 	    }
@@ -76,7 +76,7 @@ char *fgets_static(FILE *stream)
 	}
 	break;
     }
-    return buf;
+    return (*buf ? buf : NULL);
 }
 
 char *sprintf_static(const char *fmt, ...)

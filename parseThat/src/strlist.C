@@ -200,15 +200,14 @@ strlist char2strlist(char *buf)
     return result;
 }
 
-char *strlist2char(strlist *list, char *buf)
+char *strlist2char(strlist *list)
 {
     char *data = strlist_get(list, 0);
 
-    strcpy(buf, encodeStr(data));
+    data = strcat_static(encodeStr(data), "");
     for (unsigned i = 1; i < list->count; ++i) {
-	strcat(buf, " ");
-	data = strlist_get(list, i);
-	strcat(buf, encodeStr(data));
+	data = strcat_static(data, " ");
+	data = strcat_static(data, encodeStr(strlist_get(list, i)));
     }
-    return buf;
+    return data;
 }

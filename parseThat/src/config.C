@@ -30,6 +30,14 @@ void configInit()
     config.recursive = false;
     config.summary = false;
     config.include_libs = false;
+    config.use_attach = false;
+    config.use_merge_tramp = false;
+    config.use_save_world = false;
+    config.saved_mutatee = NULL;
+
+    config.trace_inst = false;
+    config.trace_count = 0;
+    config.pipefd = -1;
 
     config.pid = 0;
     config.grandchildren = set< int >();
@@ -47,13 +55,16 @@ void configInit()
 
     homedir = getenv("HOME");
     if (!homedir) {
-	fprintf(stderr, "*\n* $HOME not defined.  Disabling history records.\n*\n");
-	config.record_enabled = -1;
+	config.record_dir[0] = '\0';
+	config.pipe_filename[0] = '\0';
     } else {
-	if (homedir[ strlen(homedir) - 1 ] == '/')
+	if (homedir[ strlen(homedir) - 1 ] == '/') {
 	    snprintf(config.record_dir, sizeof(config.record_dir), "%s%s", homedir, HISTORY_RECORD_DIR_DEFAULT);
-	else
+	    snprintf(config.pipe_filename, sizeof(config.pipe_filename), "%spipe-%d", homedir, (int)getpid());
+	} else {
 	    snprintf(config.record_dir, sizeof(config.record_dir), "%s/%s", homedir, HISTORY_RECORD_DIR_DEFAULT);
+	    snprintf(config.pipe_filename, sizeof(config.pipe_filename), "%s/pipe-%d", homedir, (int)getpid());
+	}
     }
     config.curr_rec = record_init();
 }

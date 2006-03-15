@@ -17,6 +17,9 @@ bool instrumentFunctionEntry(dynHandle *, BPatch_function *func);
 bool instrumentFunctionExit(dynHandle *, BPatch_function *func);
 bool instrumentBasicBlocks(dynHandle *, BPatch_function *func);
 
+// Needed by ipc.C
+void closeTracePipe();
+
 #include "dyninstCompat.h"
 
 #endif

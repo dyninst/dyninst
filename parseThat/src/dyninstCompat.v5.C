@@ -39,6 +39,16 @@ dynHandle *mutatorInit(void)
 	sendMsg(config.outfd, ID_INIT_CREATE_BPATCH, INFO, ID_PASS);
 
     /*
+     * BPatch class level flags.
+     */
+    dh->bpatch->setDelayedParsing(true);
+    if (config.use_merge_tramp) {
+	sendMsg(config.outfd, ID_INIT_MERGE_TRAMP, INFO);
+	dh->bpatch->setMergeTramp(true);
+	sendMsg(config.outfd, ID_INIT_MERGE_TRAMP, INFO, ID_PASS);
+    }
+
+    /*
      * We should probably have a notion of a default callback
      * handler to return here instead of NULL to differentiate
      * between the error case.
@@ -51,16 +61,37 @@ dynHandle *mutatorInit(void)
     dh->bpatch->registerPostForkCallback(reportNewProcess);
     sendMsg(config.outfd, ID_INIT_REGISTER_FORK, INFO, ID_PASS);
 
-    sendMsg(config.outfd, ID_INIT_CREATE_PROCESS, INFO);
-    dh->proc = dh->bpatch->processCreate(config.target, (const char **)config.argv);
-    if (!dh->proc) {
-	sendMsg(config.outfd, ID_INIT_CREATE_PROCESS, INFO, ID_FAIL,
-		"Failure in BPatch::processCreate()");
-	return NULL;
+    if (config.use_attach) {
+	sendMsg(config.outfd, ID_INIT_ATTACH_PROCESS, INFO);
+	dh->proc = dh->bpatch->processAttach(config.target, config.attach_pid);
+	if (!dh->proc) {
+	    sendMsg(config.outfd, ID_INIT_ATTACH_PROCESS, INFO, ID_FAIL,
+		    "Failure in BPatch::processAttach()");
+	    return NULL;
+	} else {
+	    config.dynlib = dh;
+	    sendMsg(config.outfd, ID_INIT_ATTACH_PROCESS, INFO, ID_PASS,
+		    dh->proc->getPid());
+	}
+
     } else {
-	config.dynlib = dh;
-	sendMsg(config.outfd, ID_INIT_CREATE_PROCESS, INFO, ID_PASS,
-		dh->proc->getPid());
+	sendMsg(config.outfd, ID_INIT_CREATE_PROCESS, INFO);
+	dh->proc = dh->bpatch->processCreate(config.target, (const char **)config.argv);
+	if (!dh->proc) {
+	    sendMsg(config.outfd, ID_INIT_CREATE_PROCESS, INFO, ID_FAIL,
+		    "Failure in BPatch::processCreate()");
+	    return NULL;
+	} else {
+	    config.dynlib = dh;
+	    sendMsg(config.outfd, ID_INIT_CREATE_PROCESS, INFO, ID_PASS,
+		    dh->proc->getPid());
+	}
+    }
+
+    if (config.use_save_world) {
+	sendMsg(config.outfd, ID_INIT_SAVE_WORLD, INFO);
+	dh->proc->enableDumpPatchedImage();
+	sendMsg(config.outfd, ID_INIT_SAVE_WORLD, INFO, ID_PASS);
     }
 
     sendMsg(config.outfd, ID_INIT_GET_IMAGE, INFO);
@@ -93,34 +124,4 @@ bool dynEndTransaction(dynHandle *dh)
     }
     sendMsg(config.outfd, ID_INST_END_TRANS, INFO, ID_PASS);
     return true;
-}
-
-bool dynContinueExecution(dynHandle *dh)
-{
-    return dh->proc->continueExecution();
-}
-
-bool dynIsTerminated(dynHandle *dh)
-{
-    return dh->proc->isTerminated();
-}
-
-BPatch_exitType dynTerminationStatus(dynHandle *dh)
-{   
-    return dh->proc->terminationStatus();
-}
-
-int dynGetExitCode(dynHandle *dh)
-{   
-    return dh->proc->getExitCode();
-}
-
-int dynGetExitSignal(dynHandle *dh)
-{
-    return dh->proc->getExitSignal();
-}
-
-void dynTerminateExecution(dynHandle *dh)
-{
-    dh->proc->terminateExecution();
 }

@@ -6,41 +6,7 @@
 #include "ipc.h"
 #include "utils.h"
 #include "record.h"
-
-/* --------------------------------------------------------
- * PRIVATE: SHA1 message digest from OpenSSL 
- */
-#include <openssl/evp.h>
-#define DIGEST_STRING_MAX	(EVP_MAX_MD_SIZE * 2 + 1) // Two chars for each byte, plus one for NULL.
-
-char *sha_file(const char *filename, char *result_ptr = NULL)
-{
-    EVP_MD_CTX ctx;
-    unsigned int digest_len;
-    char buf[STRING_MAX];
-
-    static char result[DIGEST_STRING_MAX];
-
-    if (result_ptr == NULL)
-	result_ptr = result;
-
-    FILE *fd = fopen(filename, "r");
-    if (!fd) return NULL;
-
-    EVP_DigestInit(&ctx, EVP_sha1());
-    while (!feof(fd)) {
-	unsigned long len = fread(buf, sizeof(char), sizeof(buf), fd);
-	EVP_DigestUpdate(&ctx, buf, len);
-    }
-    EVP_DigestFinal(&ctx, (unsigned char *)buf, &digest_len);
-
-    fclose(fd);
-
-    for (unsigned int i = 0; i < digest_len; ++i)
-	sprintf(&result_ptr[i*2], "%02x", (unsigned char)buf[i]);
-
-    return result_ptr;
-}
+#include "sha1.h"
 
 /* --------------------------------------------------------
  * PRIVATE: Given a binary filename, it will open a pipe to
@@ -81,7 +47,7 @@ strlist libs_diff(strlist *prev_run, strlist *curr_run)
     unsigned prev_cnt = 0, curr_cnt = 0;
     char *prev_ptr = strlist_get(prev_run, prev_cnt);
     char *curr_ptr = strlist_get(curr_run, curr_cnt);
-    int retval;
+    int retval = 0;
 
     while (prev_ptr || curr_ptr) {
 	if (prev_ptr && curr_ptr) {
@@ -149,7 +115,7 @@ void record_clear(record_t *record)
 
 bool record_create(record_t *record, const char *prog, int argc, char **argv)
 {
-    char hash_buf[DIGEST_STRING_MAX];
+    char hash_buf[SHA1_STRING_LEN];
     const char *prog_bin = prog;
     unsigned i;
 
@@ -158,9 +124,9 @@ bool record_create(record_t *record, const char *prog, int argc, char **argv)
     if (strrchr(prog, '/'))
 	prog_bin = strrchr(prog, '/') + 1;
 
-    if (!sha_file(prog, hash_buf)) return false;
+    if (!sha1_file(prog, hash_buf)) return false;
     strlist_push_back(&record->prog_line, prog_bin);
-    strlist_push_back(&record->prog_line, sha_file(prog, hash_buf));
+    strlist_push_back(&record->prog_line, sha1_file(prog, hash_buf));
     for (i = 0; i < (unsigned)argc; ++i)
 	strlist_push_back(&record->prog_line, argv[i]);
 
@@ -169,9 +135,9 @@ bool record_create(record_t *record, const char *prog, int argc, char **argv)
     for (i = 0; i < lib_list.count; ++i) {
 	const char *lib_path = strlist_get(&lib_list, i);
 
-	if (!sha_file(lib_path, hash_buf)) continue;
+	if (!sha1_file(lib_path, hash_buf)) continue;
 	strlist_push_back(&record->lib_line, lib_path);
-	strlist_push_back(&record->lib_line, sha_file(lib_path, hash_buf));
+	strlist_push_back(&record->lib_line, sha1_file(lib_path, hash_buf));
     }
 
     record->enabled = true;
@@ -304,30 +270,29 @@ void record_update(record_t *newRecord)
 	return;
     }
 
-    char buf[8196];
+    char *buf = NULL;
     bool found = false;
     strlist prog_line = STRLIST_INITIALIZER;
-    while (fgets(buf, sizeof(buf), index_fd)) {
-	if (buf[0] == '\t' || buf[0] == '\n') {
-	    fprintf(new_fd, "%s", buf);  // NOTE: Do not print "%s\n" here.
+    while ( (buf = fgets_static(index_fd))) {
+	chomp(buf);
+
+	if (buf[0] == '\t' || buf[0] == '\0') {
+	    fprintf(new_fd, "%s\n", buf);
 	    buf[0] = '\0';
 	    continue;
 	}
 
-	if (buf[ strlen(buf) - 1 ] == '\n')
-	    buf[ strlen(buf) - 1 ] = '\0';
 	prog_line = char2strlist(buf);
 	if (strlist_cmp(&prog_line, &newRecord->prog_line)) {
 	    fprintf(new_fd, "%s\n", buf);
 
 	    strlist_push_front(&newRecord->lib_line, newRecord->filename);
-	    strlist2char(&newRecord->lib_line, buf);
+	    buf = strlist2char(&newRecord->lib_line);
 	    fprintf(new_fd, "\t%s\n", buf);
 	    strlist_pop_front(&newRecord->lib_line);
 
-	    while (fgets(buf, sizeof(buf), index_fd) && buf[0] == '\t') {
-		if (buf[ strlen(buf) - 1 ] == '\n')
-		    buf[ strlen(buf) - 1 ] = '\0';
+	    while ( (buf = fgets_static(index_fd)) && buf[0] == '\t') {
+		chomp(buf);
 
 		strlist lib_line = char2strlist(buf);
 		strlist_pop_front(&lib_line);
@@ -354,21 +319,21 @@ void record_update(record_t *newRecord)
 
     // New binary signature entry.
     if (!found) {
-	char buf2[8196];
+	char *buf2;
 
-	strlist2char(&newRecord->prog_line, buf2);
+	buf2 = strlist2char(&newRecord->prog_line);
 	fprintf(new_fd, "%s\n", buf2);
 
 	strlist_push_front(&newRecord->lib_line, newRecord->filename);
-	strlist2char(&newRecord->lib_line, buf2);
+	buf2 = strlist2char(&newRecord->lib_line);
 	fprintf(new_fd, "\t%s\n\n", buf2);
 	strlist_pop_front(&newRecord->lib_line);
 
-	if (buf[0] != '\0')
+	if (buf && buf[0] != '\0')
 	    fprintf(new_fd, "%s\n", buf);
     }
 
-    while (fgets(buf, sizeof(buf), index_fd))
+    while ( (buf = fgets_static(index_fd)))
 	fprintf(new_fd, "%s", buf);  // NOTE: Do not print "%s\n" here.
 
     fclose(index_fd);
@@ -376,4 +341,17 @@ void record_update(record_t *newRecord)
 
     unlink(index_filename);
     rename(new_index_filename, index_filename);
+}
+
+void record_close(record_t *newRecord)
+{
+    if (newRecord->enabled) {
+	fprintf(newRecord->fd, "[ Log End ] --------------------------------------------------------------------\n\n");
+	fclose(newRecord->fd);
+
+	fprintf(newRecord->raw_fd, "[ Log End ] --------------------------------------------------------------------\n\n");
+	fclose(newRecord->raw_fd);
+
+	newRecord->enabled = false;
+    }
 }

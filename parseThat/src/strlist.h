@@ -30,6 +30,6 @@ char *strlist_get(strlist *, unsigned);
 
 bool strlist_cmp(strlist *, strlist *);
 strlist char2strlist(char *);
-char *strlist2char(strlist *, char *);
+char *strlist2char(strlist *);
 
 #endif

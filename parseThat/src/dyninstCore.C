@@ -1,9 +1,13 @@
 #include <iostream>
+#include <map>
 #include <list>
 #include <vector>
 #include <string>
 #include <algorithm>
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include "BPatch.h"
 #include "BPatch_Vector.h"
@@ -26,13 +30,14 @@ void stateBasedPrint(message *msgData, statusID prevStat, statusID currStat, int
 {
     switch (currStat) {
     case ID_PASS:
-	--(*tabDepth);
+	if (priority <= config.verbose) --(*tabDepth);
 	if (prevStat == ID_TEST) {
 	    switch (getMsgID(msgData->id_data)) {
 	    case ID_INIT_CREATE_PROCESS: dlog(priority, "Mutatee launched as process %d.\n", msgData->int_data); break;
 	    case ID_PARSE_MODULE: dlog(priority, "Found %d module(s).\n", msgData->int_data); break;
 	    case ID_PARSE_FUNC: dlog(priority, "Found %d function(s).\n", msgData->int_data); break;
 	    case ID_INST_GET_FUNCS: dlog(priority, "Retrieved %d function(s).\n", msgData->int_data); break;
+	    case ID_SAVE_WORLD: dlog(priority, "Mutated binary saved as '%s'.\n", msgData->str_data); break;
 	    default: dlog(priority, "done.\n"); break;
 	    }
 	    return;
@@ -40,7 +45,7 @@ void stateBasedPrint(message *msgData, statusID prevStat, statusID currStat, int
 	break;
 
     case ID_WARN:
-	--(*tabDepth);
+	if (priority <= config.verbose) --(*tabDepth);
 	if (prevStat == ID_TEST) {
 	    dlog(priority, "%s\n", msgData->str_data);
 	    return;
@@ -48,7 +53,7 @@ void stateBasedPrint(message *msgData, statusID prevStat, statusID currStat, int
 	break;
 
     case ID_FAIL:
-	--(*tabDepth);
+	if (priority <= config.verbose) --(*tabDepth);
 	if (prevStat == ID_TEST) {
 	    dlog(priority, "failed.\n");
 	}
@@ -72,6 +77,14 @@ void stateBasedPrint(message *msgData, statusID prevStat, statusID currStat, int
     case ID_PASS: dlog(priority, "done.\n"); break;
     case ID_WARN: dlog(priority, "Warning: %s\n", msgData->str_data); break;
     case ID_INFO:
+	switch (getMsgID(msgData->id_data)) {
+	case ID_EXIT_CODE: dlog(priority, "Mutatee exited normally and returned %d\n", msgData->int_data); break;
+	case ID_EXIT_SIGNAL: dlog(priority, "Mutatee exited via signal %d\n", msgData->int_data); break;
+	case ID_DATA_STRING: dlog(priority, "%s\n", msgData->str_data); break;
+	case ID_TRACE_POINT: dlog(priority, "TRACE_POINT: %s\n", msgData->str_data); break;
+	default: dlog(ERR, "Internal error.  Invalid MessageID used with ID_INFO status.\n");
+	}
+	break;
     case ID_TEST:
 	switch (getMsgID(msgData->id_data)) {
 	case ID_PARSE_FUNC: dlog(priority, "Parsing function data from %s module... ", msgData->str_data); break;
@@ -79,12 +92,10 @@ void stateBasedPrint(message *msgData, statusID prevStat, statusID currStat, int
 	case ID_PARSE_FUNC_CFG: dlog(priority, "Parsing CFG data from %s function... ", msgData->str_data); break;
 	case ID_INST_MODULE: dlog(priority, "Instrumenting functions in module %s... ", msgData->str_data); break;
 	case ID_INST_FUNC: dlog(priority, "Instrumenting function %s... ", msgData->str_data); break;
-	case ID_EXIT_CODE: dlog(priority, "Mutatee exited normally and returned %d\n", msgData->int_data); break;
-	case ID_EXIT_SIGNAL: dlog(priority, "Mutatee exited via signal %d\n", msgData->int_data); break;
-	case ID_DATA_STRING: dlog(priority, "%s\n", msgData->str_data); --(*tabDepth); break;
 	default: dlog(priority, "%s... ", msgStr(getMsgID(msgData->id_data))); break;
 	}
-	++(*tabDepth);
+	if (priority <= config.verbose) ++(*tabDepth);
+	break;
     }
 }
 
@@ -111,13 +122,23 @@ int launch_monitor(FILE *infd)
 	    config.grandchildren.insert(msgData.int_data);
 	}
 
+	if (getMsgID(msgData.id_data) == ID_DETACH_CHILD && currStat == ID_PASS) {
+	    config.state = DETACHED;
+	}
+
+	if (getMsgID(msgData.id_data) == ID_TRACE_POINT && config.trace_count) {
+	    config.trace_history.push_back( msgData.str_data );
+	    if (config.trace_history.size() > config.trace_count)
+		config.trace_history.pop_front();
+	    continue;
+	}
+
 	if (priority <= config.verbose) {
 	    stateBasedPrint(&msgData, prevStat, currStat, &tabDepth, priority);
 	    tabDepthLog = tabDepth;
 	} else {
 	    stateBasedPrint(&msgData, prevStatLog, currStat, &tabDepthLog, LOG_ONLY);
 	}
-
 	free(msgData.str_data);
     }
 
@@ -125,15 +146,19 @@ int launch_monitor(FILE *infd)
     alarm(0);
 
     if (config.state == NORMAL) {
-	config.state = SIGCHLD_WAIT;
-	dlog(INFO, "Waiting for mutator to exit...\n");
-	sleep(10);
+	// Give everybody a chance to catch up.
+        config.state = SIGCHLD_WAIT;
+        dlog(INFO, "Waiting for mutator to exit...\n");
+        sleep(10);
     }
 
-    // Cleanup process group just in case.
-    if (config.state != CHILD_EXITED)
-	killProcess(-config.pid);
-
+    // Report trace history, if needed.
+    if (config.trace_inst && config.trace_count) {
+	while (config.trace_history.size()) {
+	    dlog(INFO, "TRACE_POINT: %s\n", config.trace_history[0].c_str());
+	    config.trace_history.pop_front();
+	}
+    }
     return 0;
 }
 
@@ -144,21 +169,31 @@ int launch_monitor(FILE *infd)
 void printSummary(BPatch_thread *, BPatch_exitType);
 void reportNewProcess(BPatch_thread *, BPatch_thread *);
 bool insertSummary(BPatch_function *, BPatch_variableExpr *);
-BPatch_variableExpr *allocateCounterInMutatee(dynHandle *, BPatch_function *);
+BPatch_variableExpr *allocateIntegerInMutatee(dynHandle *, BPatch_function *);
 bool instrumentFunctionEntry(dynHandle *, BPatch_function *);
 bool instrumentFunctionExit(dynHandle *, BPatch_function *);
 bool instrumentBasicBlocks(dynHandle *, BPatch_function *);
 bool instrumentMemoryReads(dynHandle *, BPatch_function *);
 bool instrumentMemoryWrites(dynHandle *, BPatch_function *);
 
+// Helpful global variables for instrumentation tracing.
+static int trace_msglen;
+static BPatch_variableExpr *trace_fd = NULL;
+static BPatch_function *trace_write = NULL;
+static map< void *, BPatch_function * > trace_points;
+
+bool initTraceInMutatee(dynHandle *);
+bool generateTraceSnippet(dynHandle *, BPatch_function *);
+void readTracePipe();
+
 int launch_mutator()
 {
-    unsigned i, j;
-    const char *reason;
-    char buf[STRING_MAX];
-    BPatch_Vector< BPatch_module * > *appModules;
-    BPatch_Vector< BPatch_function * > *appFunctions;
-    BPatch_flowGraph *appCFG;
+    unsigned i = 0, j = 0;
+    const char *reason = NULL;
+    char buf[STRING_MAX] = {0};
+    BPatch_Vector< BPatch_module * > *appModules = NULL;
+    BPatch_Vector< BPatch_function * > *appFunctions = NULL;
+    BPatch_flowGraph *appCFG = NULL;
 
     dynHandle *dh = mutatorInit();
     if (!dh) return(-1);
@@ -234,6 +269,37 @@ int launch_mutator()
     /**************************************************************
      * Instrumentation Phase
      */
+
+    if (config.trace_inst) {
+	errno = 0;
+	sendMsg(config.outfd, ID_TRACE_INIT, INFO);
+
+	sendMsg(config.outfd, ID_TRACE_OPEN_READER, VERB1);
+	config.pipefd = open(config.pipe_filename, O_RDONLY | O_RSYNC | O_NONBLOCK);
+	if (config.pipefd < 0) {
+	    sendMsg(config.outfd, ID_TRACE_OPEN_READER, VERB1, ID_FAIL,
+		    sprintf_static("Mutator could not open trace pipe (%s) for read: %s\n",
+				   config.pipe_filename, strerror(errno)));
+	    config.pipefd = -1;
+
+	} else {
+	    sendMsg(config.outfd, ID_TRACE_OPEN_READER, VERB1, ID_PASS);
+
+	    // Run mutatee side of trace initialization.
+	    sendMsg(config.outfd, ID_TRACE_INIT_MUTATEE, VERB1);
+	    if (!initTraceInMutatee(dh)) {
+		sendMsg(config.outfd, ID_TRACE_INIT_MUTATEE, VERB1, ID_FAIL);
+		config.pipefd = -1;
+	    } else
+		sendMsg(config.outfd, ID_TRACE_INIT_MUTATEE, VERB1, ID_PASS);
+	}
+
+	if (config.pipefd == -1) {
+	    sendMsg(config.outfd, ID_TRACE_INIT, INFO, ID_FAIL,
+		    "Disabling instrumentation tracing.");
+	} else
+	    sendMsg(config.outfd, ID_TRACE_INIT, INFO, ID_PASS);
+    }
 
     if (config.inst_level >= INST_FUNC_ENTRY) {
 
@@ -346,39 +412,63 @@ int launch_mutator()
 	    dynEndTransaction(dh);
     }
 
+    if (config.use_save_world) {
+	sendMsg(config.outfd, ID_SAVE_WORLD, INFO);
+	char *destdir = dh->proc->dumpPatchedImage(config.saved_mutatee);
+	if (!destdir) {
+	    sendMsg(config.outfd, ID_SAVE_WORLD, INFO, ID_FAIL,
+		    "BPatch_process::dumpPatchedImage() returned NULL");
+	} else {
+	    sendMsg(config.outfd, ID_SAVE_WORLD, INFO, ID_PASS,
+		    strcat_static(destdir, config.saved_mutatee));
+	}
+    }
+
     sendMsg(config.outfd, ID_RUN_CHILD, INFO);
-    if (!dynContinueExecution(dh)) {
+    if (!dh->proc->continueExecution()) {
         sendMsg(config.outfd, ID_RUN_CHILD, INFO, ID_FAIL,
                 "Failure in BPatch_thread::continueExecution()");
         return false;
     }
     sendMsg(config.outfd, ID_RUN_CHILD, INFO, ID_PASS);
 
+    //
+    // Child continued.  Start reading from trace pipe, if enabled.
+    //
+    if (config.trace_inst) {
+	while (config.pipefd != -1) {
+	    sendMsg(config.outfd, ID_POLL_STATUS_CHANGE, DEBUG);
+	    bool change = dh->bpatch->pollForStatusChange();
+	    sendMsg(config.outfd, ID_POLL_STATUS_CHANGE, DEBUG, ID_PASS);
+
+	    // Recheck conditional if a change was detected.
+	    if (change) continue;
+
+	    readTracePipe();
+
+	    // Eeeew.  I know.  But how else do you wait on a file descriptor,
+	    // AND BPatch::pollforStatusChange() == true at the same time?
+
+	    // We should probably have BPatch::registerStatusChangeCallback()
+	    // or something similar.
+	    sleep(1);
+	}
+    }
+
+    //
+    // All processing complete.  Loop indefinitly until exit handler called.
+    //
     sendMsg(config.outfd, ID_WAIT_TERMINATION, INFO);
-    while (!dynIsTerminated(dh)) {
-        sendMsg(config.outfd, ID_WAIT_STATUS_CHANGE, DEBUG);
-        if (!dh->bpatch->waitForStatusChange())
+    while (!dh->proc->isTerminated()) {
+	sendMsg(config.outfd, ID_WAIT_STATUS_CHANGE, DEBUG);
+	if (!dh->bpatch->waitForStatusChange())
 	    sendMsg(config.outfd, ID_WAIT_STATUS_CHANGE, DEBUG, ID_FAIL);
 	else
 	    sendMsg(config.outfd, ID_WAIT_STATUS_CHANGE, DEBUG, ID_PASS);
+	sendMsg(config.outfd, ID_WAIT_TERMINATION, INFO, ID_PASS);
     }
     sendMsg(config.outfd, ID_WAIT_TERMINATION, INFO, ID_PASS);
 
-    BPatch_exitType mutatee_status = dynTerminationStatus(dh);
-    switch (mutatee_status) {
-    case ExitedNormally:
-	sendMsg(config.outfd, ID_EXIT_CODE, INFO, ID_INFO, dynGetExitCode(dh));
-	break;
-
-    case ExitedViaSignal:
-	sendMsg(config.outfd, ID_EXIT_SIGNAL, INFO, ID_INFO, dynGetExitSignal(dh));
-	break;
-
-    case NoExit:
-	sendMsg(config.outfd, ID_DATA_STRING, INFO, ID_INFO,
-		"Conflicting reports about mutatee status.");
-	break;
-    }
     return 0;
 }
 
@@ -398,11 +488,11 @@ void printSummary(BPatch_thread *proc, BPatch_exitType exit_type)
     char *ptr;
     vector<int> value;
 
-    if (exit_type == ExitedViaSignal) {
-	sendMsg(config.outfd, ID_DATA_STRING, INFO, ID_INFO,
-		"Mutator cannot provide exit summary.  Mutatee terminated by signal.");
+    // Mutatee has closed.  Drain the trace pipe.
+    if (config.pipefd) readTracePipe();
 
-    } else if (exit_type == ExitedNormally) {
+    switch (exit_type) {
+    case ExitedNormally:
 	if (config.summary) {
 	    for (i = 0; i < summary.size(); ++i) {
 		value.resize(summary[i]->count.size());
@@ -427,14 +517,24 @@ void printSummary(BPatch_thread *proc, BPatch_exitType exit_type)
 		}
 	    }
 	}
-    } else if (exit_type == NoExit) {
-	sendMsg(config.outfd, ID_DATA_STRING, INFO, ID_INFO,
-		"DyninstAPI error.  Exit callback executed before end of mutatee.");
+	sendMsg(config.outfd, ID_EXIT_CODE, INFO, ID_INFO, proc->getExitCode());
+	break;
 
-    } else {
+    case ExitedViaSignal:
+	sendMsg(config.outfd, ID_EXIT_SIGNAL, INFO, ID_INFO, proc->getExitSignal());
+	exit(-1);  // Nothing left to do.  The mutatee is gone.
+	break;
+
+    case NoExit:
 	sendMsg(config.outfd, ID_DATA_STRING, INFO, ID_INFO,
-		"Monitor error.  Possibly linked with wrong version of DyninstAPI.\n");
+		"Conflicting reports about mutatee status.");
+	break;
+
+    default:
+	sendMsg(config.outfd, ID_DATA_STRING, INFO, ID_INFO,
+                "Monitor error.  Possibly linked with wrong version of DyninstAPI.\n");
     }
+    return;
 }
 
 void reportNewProcess(BPatch_thread *parent, BPatch_thread *child)
@@ -475,9 +575,8 @@ bool insertSummary(BPatch_function *func, BPatch_variableExpr *expr)
     return true;
 }
 
-BPatch_variableExpr *allocateCounterInMutatee(dynHandle *dh, BPatch_function *func)
+BPatch_variableExpr *allocateIntegerInMutatee(dynHandle *dh, int defaultValue = 0)
 {
-    int zero = 0;
     BPatch_variableExpr *countVar;
 
     sendMsg(config.outfd, ID_ALLOC_COUNTER, VERB3);
@@ -498,7 +597,7 @@ BPatch_variableExpr *allocateCounterInMutatee(dynHandle *dh, BPatch_function *fu
 		"Failure in BPatch_process::malloc()");
 	goto fail;
 
-    } else if (!countVar->writeValue(&zero)) {
+    } else if (!countVar->writeValue(&defaultValue)) {
 	sendMsg(config.outfd, ID_INST_MALLOC_INT, VERB4, ID_FAIL,
 		"Failure initializing counter in mutatee [BPatch_variableExpr::writeValue()]");
 	goto fail;
@@ -506,9 +605,6 @@ BPatch_variableExpr *allocateCounterInMutatee(dynHandle *dh, BPatch_function *fu
     } else {
 	sendMsg(config.outfd, ID_INST_MALLOC_INT, VERB4, ID_PASS);
     }
-
-    if (!insertSummary(func, countVar))
-	goto fail;
 
     sendMsg(config.outfd, ID_ALLOC_COUNTER, VERB3, ID_PASS);
     return(countVar);
@@ -522,6 +618,238 @@ BPatch_variableExpr *allocateCounterInMutatee(dynHandle *dh, BPatch_function *fu
 // Instrumentation code.
 //
 
+bool initTraceInMutatee(dynHandle *dh)
+{
+    // Chicken: Can't use goto for error handling because it would branch past
+    // variable initialization.
+
+    // Egg: Can't define variables at top of function (with dummy constructors)
+    // because BPatch_funcCallExpr() needs a valid BPatch_function object.
+
+    // Temporary solution: Deviate from similar functions and rely on external
+    // error handling.
+
+    // Permanent solution: BPatch_snippet and derivitives should have default
+    // constructors.
+
+    int value;
+    BPatch_function *openFunc;
+    BPatch_Vector< BPatch_function * > funcs;
+
+    sendMsg(config.outfd, ID_TRACE_FIND_OPEN, VERB2, ID_TEST);
+    if (!dh->image->findFunction("^(__)?open(64)?$", funcs)) {
+	sendMsg(config.outfd, ID_TRACE_FIND_OPEN, VERB2, ID_FAIL,
+		"Failure in BPatch_image::findFunction()");
+	return false;
+
+    } else if (funcs.size() == 0) {
+	sendMsg(config.outfd, ID_TRACE_FIND_OPEN, VERB2, ID_FAIL,
+		"Could not find any functions named 'open' in mutatee");
+	return false;
+    }
+    sendMsg(config.outfd, ID_TRACE_FIND_OPEN, VERB2, ID_PASS);
+    openFunc = funcs[0];
+
+    //
+    // Initialize global variables
+    //
+    trace_msglen = sizeof(void *) * 2;
+    trace_fd = allocateIntegerInMutatee(dh, -1);
+    funcs.clear();
+    sendMsg(config.outfd, ID_TRACE_FIND_WRITE, VERB2);
+    if (!dh->image->findFunction("^(__)?write$", funcs)) {
+	sendMsg(config.outfd, ID_TRACE_FIND_WRITE, VERB2, ID_FAIL,
+		"Failure in BPatch_image::findFunction()");
+	return false;
+
+    } else if (funcs.size() == 0) {
+	sendMsg(config.outfd, ID_TRACE_FIND_WRITE, VERB2, ID_FAIL,
+		"Could not find any functions named 'write' in mutatee");
+	return false;
+    }
+    sendMsg(config.outfd, ID_TRACE_FIND_WRITE, VERB2, ID_PASS);
+    trace_write = funcs[0];
+
+    // "open(config.pipe_filename, O_WRONLY | O_DSYNC)"
+    BPatch_constExpr path(config.pipe_filename);
+    BPatch_constExpr flags(O_WRONLY | O_DSYNC);
+
+    BPatch_Vector< BPatch_snippet * > param;
+    param.push_back( &path );
+    param.push_back( &flags );
+    BPatch_funcCallExpr openCall(*openFunc, param); // Problem child. See above.
+
+    // "fd = open(config.pipe_filename, O_WRONLY)"
+    BPatch_arithExpr assign(BPatch_assign, *trace_fd, openCall);
+
+    // Run the snippet.
+    sendMsg(config.outfd, ID_TRACE_OPEN_WRITER, VERB2);
+    dh->proc->oneTimeCode(assign);
+    trace_fd->readValue(&value);
+    if (value < 0) {
+	sendMsg(config.outfd, ID_TRACE_OPEN_WRITER, VERB2, ID_FAIL,
+		"Error detected in mutatee's call to open()");
+	return false;
+    }
+    sendMsg(config.outfd, ID_TRACE_OPEN_WRITER, VERB2, ID_PASS);
+
+    return true;
+}
+
+bool insertTraceSnippet(dynHandle *dh, BPatch_function *func, BPatch_Vector<BPatch_point *> *points)
+{
+    char *buf;
+    BPatch_point *point;
+    BPatch_callWhen when;
+    BPatch_snippetOrder order;
+
+    int warn_cnt = 0, pass_cnt = 0;
+
+    sendMsg(config.outfd, ID_TRACE_INSERT, VERB3);
+
+    for (unsigned int i = 0; i < points->size(); ++i) {
+	sendMsg(config.outfd, ID_TRACE_INSERT_ONE, VERB4);
+
+	point = (*points)[i];
+	buf = sprintf_static("%0*lx", trace_msglen, (void *)point);
+
+	BPatch_constExpr data(buf);
+	BPatch_constExpr len(trace_msglen);
+
+	BPatch_Vector< BPatch_snippet * > param;
+	param.push_back( trace_fd );
+	param.push_back( &data );
+	param.push_back( &len );
+
+	// write(trace_fd, buf, trace_msglen);
+	BPatch_funcCallExpr writeCall(*trace_write, param);
+
+	// if (trace_fd > 0)
+	BPatch_boolExpr checkFd(BPatch_gt, *trace_fd, BPatch_constExpr( 0 ));
+
+	BPatch_ifExpr traceSnippet(checkFd, writeCall);
+
+	switch (point->getPointType()) {
+	case BPatch_entry:
+	    when = BPatch_callBefore;
+	    order = BPatch_firstSnippet;
+	    break;
+
+	case BPatch_exit:
+	    when = BPatch_callAfter;
+	    order = BPatch_lastSnippet;
+	    break;
+
+	default:
+	    sendMsg(config.outfd, ID_TRACE_INSERT_ONE, VERB4, ID_FAIL,
+		    "Internal error.  Attempting to trace non entry/exit point.");
+	    ++warn_cnt;
+	    continue;
+	}
+
+	BPatchSnippetHandle *handle = dh->proc->insertSnippet(traceSnippet, *point, when, order);
+	if (!handle) {
+	    sendMsg(config.outfd, ID_TRACE_INSERT_ONE, VERB4, ID_FAIL,
+		    "Error detected in BPatch_process::insertSnippet().");
+	    ++warn_cnt;
+	    continue;
+	}
+	sendMsg(config.outfd, ID_TRACE_INSERT_ONE, VERB4, ID_PASS);
+	++pass_cnt;
+	trace_points[(void *)point] = func;
+    }
+
+    if (warn_cnt) {
+	sendMsg(config.outfd, ID_TRACE_INSERT, VERB3, ID_WARN,
+		sprintf_static("%d warning(s), %d passed.", warn_cnt, pass_cnt));
+    } else {
+	sendMsg(config.outfd, ID_TRACE_INSERT, VERB3, ID_PASS);
+    }
+    return true;
+}
+
+void readTracePipe()
+{
+    int read_len;
+    char buf[ STRING_MAX ] = { '\0' };
+
+    if (config.pipefd < 0) return;
+
+    do {
+	errno = 0;
+	sendMsg(config.outfd, ID_TRACE_READ, DEBUG);
+	read_len = read(config.pipefd, buf, trace_msglen);
+	buf[trace_msglen] = '\0';
+
+	if (read_len < trace_msglen) {
+	    if (read_len == -1 && errno == EAGAIN) {
+		// No data on pipe.  Break out of read loop
+		// and re-poll for status change.
+		sendMsg(config.outfd, ID_TRACE_READ, DEBUG, ID_PASS);
+		break;
+
+	    } else if (read_len == 0 && errno == 0) {
+		// Read EOF from pipefd.  Close pipe and break.
+		sendMsg(config.outfd, ID_TRACE_READ, DEBUG, ID_PASS);
+		close(config.pipefd);
+		config.pipefd = -1;
+		break;
+
+	    } else if (read_len > 0) {
+		// Partial data written to trace pipe.  Report to monitor.
+		sendMsg(config.outfd, ID_TRACE_READ, DEBUG, ID_FAIL,
+			sprintf_static("Read partial message from trace pipe.  Discarding message '%s'.", buf));
+		break;
+
+	    } else if (errno) {
+		// Send error message to monitor.
+		sendMsg(config.outfd, ID_TRACE_READ, DEBUG, ID_FAIL,
+			sprintf_static("Mutator encountered error on trace pipe read(): %s", strerror(errno)));
+		close(config.pipefd);
+		config.pipefd = -1;
+		break;
+	    }
+	}
+
+	void *traceMsg = (void *)strtol(buf, NULL, 16);
+	map< void *, BPatch_function * >::iterator iter = trace_points.find(traceMsg);
+	if (iter == trace_points.end()) {
+	    sendMsg(config.outfd, ID_TRACE_READ, DEBUG, ID_FAIL,
+		    sprintf_static("Read invalid message from trace pipe.  0x%s does not refer to a valid BPatch_point.", buf));
+	    break;
+	}
+	sendMsg(config.outfd, ID_TRACE_READ, DEBUG, ID_PASS);
+
+	BPatch_point *point = (BPatch_point *)traceMsg;
+
+	char *pType = "Unknown ";
+	if (point->getPointType() == BPatch_entry) pType = "Entering ";
+	if (point->getPointType() == BPatch_exit)  pType = "Exiting ";
+
+	char *pName = "anonymous function";
+	BPatch_function *pFunc = (*iter).second;
+	if (pFunc) {
+	    if (pFunc->getName(buf, sizeof(buf)))
+		pName = sprintf_static("function %s", buf);
+	    else
+		pName = sprintf_static("anonymous function at 0x%0*lx", sizeof(void *), pFunc->getBaseAddr());
+	}
+
+	if (config.pipefd > 0) {
+	    // Could have been interrupted by mutatee exit.
+	    sendMsg(config.outfd, ID_TRACE_POINT, INFO, ID_INFO, strcat_static(pType, pName));
+	}
+    } while (errno == 0);
+}
+
+void closeTracePipe()
+{
+    int negOne = -1;
+
+    // Should we acutally create snippets to call close()?
+    if (trace_fd) trace_fd->writeValue(&negOne);
+}
+
 bool instrumentFunctionEntry(dynHandle *dh, BPatch_function *func)
 {
     BPatch_Vector<BPatch_point *> *points;
@@ -530,9 +858,9 @@ bool instrumentFunctionEntry(dynHandle *dh, BPatch_function *func)
 
     sendMsg(config.outfd, ID_INST_FUNC_ENTRY, VERB2);
 
-    BPatch_variableExpr *countVar = allocateCounterInMutatee(dh, func);
-    if (!countVar)
-	goto fail;
+    BPatch_variableExpr *countVar = allocateIntegerInMutatee(dh);
+    if (!countVar) goto fail;
+    if (!insertSummary(func, countVar)) goto fail;
 
     // Should we test for errors on this?
     incSnippet = BPatch_arithExpr( BPatch_assign, *countVar,
@@ -564,6 +892,8 @@ bool instrumentFunctionEntry(dynHandle *dh, BPatch_function *func)
     } else
 	sendMsg(config.outfd, ID_INST_INSERT_CODE, VERB3, ID_PASS);
 
+    if (trace_fd) insertTraceSnippet(dh, func, points);
+
     sendMsg(config.outfd, ID_INST_FUNC_ENTRY, VERB2, ID_PASS);
     return true;
 
@@ -581,9 +911,9 @@ bool instrumentFunctionExit(dynHandle *dh, BPatch_function *func)
 
     sendMsg(config.outfd, ID_INST_FUNC_EXIT, VERB2);
 
-    BPatch_variableExpr *countVar = allocateCounterInMutatee(dh, func);
-    if (!countVar)
-	goto fail;
+    BPatch_variableExpr *countVar = allocateIntegerInMutatee(dh);
+    if (!countVar) goto fail;
+    if (!insertSummary(func, countVar)) goto fail;
 
     // Should we test for errors on this?
     incSnippet = BPatch_arithExpr( BPatch_assign, *countVar,
@@ -615,6 +945,8 @@ bool instrumentFunctionExit(dynHandle *dh, BPatch_function *func)
 
     } else
 	sendMsg(config.outfd, ID_INST_INSERT_CODE, VERB3, ID_PASS);
+
+    if (trace_fd) insertTraceSnippet(dh, func, points);
 
     sendMsg(config.outfd, ID_INST_FUNC_EXIT, VERB2, ID_PASS);
     return true;
@@ -662,9 +994,9 @@ bool instrumentBasicBlocks(dynHandle *dh, BPatch_function *func)
 	sendMsg(config.outfd, ID_INST_GET_BB, VERB3, ID_PASS);
     }
 
-    countVar = allocateCounterInMutatee(dh, func);
-    if (!countVar)
-	goto fail;
+    countVar = allocateIntegerInMutatee(dh);
+    if (!countVar) goto fail;
+    if (!insertSummary(func, countVar)) goto fail;
 
     // Should we test for errors on this?
     incSnippet = BPatch_arithExpr( BPatch_assign, *countVar,
@@ -758,9 +1090,9 @@ bool instrumentMemoryReads(dynHandle *dh, BPatch_function *func)
 	sendMsg(config.outfd, ID_INST_GET_BB, VERB3, ID_PASS);
     }
 
-    countVar = allocateCounterInMutatee(dh, func);
-    if (!countVar)
-	goto fail;
+    countVar = allocateIntegerInMutatee(dh);
+    if (!countVar) goto fail;
+    if (!insertSummary(func, countVar)) goto fail;
 
     // Should we test for errors on this?
     incSnippet = BPatch_arithExpr( BPatch_assign, *countVar,
@@ -853,9 +1185,9 @@ bool instrumentMemoryWrites(dynHandle *dh, BPatch_function *func)
 	sendMsg(config.outfd, ID_INST_GET_BB, VERB3, ID_PASS);
     }
 
-    countVar = allocateCounterInMutatee(dh, func);
-    if (!countVar)
-	goto fail;
+    countVar = allocateIntegerInMutatee(dh);
+    if (!countVar) goto fail;
+    if (!insertSummary(func, countVar)) goto fail;
 
     // Should we test for errors on this?
     incSnippet = BPatch_arithExpr( BPatch_assign, *countVar,
@@ -909,4 +1241,5 @@ bool instrumentMemoryWrites(dynHandle *dh, BPatch_function *func)
     sendMsg(config.outfd, ID_INST_MEM_WRITE, VERB2, ID_WARN,
 	    "Failure while instrumenting memory writes.");
     return false;
+
 }

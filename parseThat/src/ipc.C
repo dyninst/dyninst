@@ -9,7 +9,8 @@
 #include "log.h"
 #include "utils.h"
 #include "config.h"
-#include "dyninstCompat.h"
+#include "record.h"
+#include "dyninstCore.h"
 
 using namespace std;
 
@@ -21,6 +22,9 @@ const char *msgStr(messageID msgID)
     case ID_INIT_REGISTER_EXIT:		return "Requesting notification of mutatee exit.";
     case ID_INIT_REGISTER_FORK:		return "Requestion notification of mutator fork.";
     case ID_INIT_CREATE_PROCESS:	return "Forking mutatee process.";
+    case ID_INIT_ATTACH_PROCESS:	return "Attaching to existing process.";
+    case ID_INIT_MERGE_TRAMP:		return "Enabling merge tramp functionality.";
+    case ID_INIT_SAVE_WORLD:		return "Enabling Save-the-World functionality.";
     case ID_INIT_GET_IMAGE:		return "Retrieving BPatch_image object.";
 
     case ID_PARSE_MODULE:		return "Parsing image for module information.";
@@ -53,11 +57,26 @@ const char *msgStr(messageID msgID)
     case ID_INST_FIND_POINTS:		return "Retrieving list of instrumentable points from function.";
     case ID_INST_INSERT_CODE:		return "Inserting counter-increment snippet into function entry.";
 
+    case ID_TRACE_INIT:			return "Initializing instrumentation tracing.";
+    case ID_TRACE_INIT_MUTATEE:		return "Initializing mutatee side of instrumentation tracing.";
+    case ID_TRACE_FIND_OPEN:		return "Retrieving list of functions named 'open'.";
+    case ID_TRACE_FIND_WRITE:		return "Retrieving list of functions named 'write'.";
+    case ID_TRACE_OPEN_READER:		return "Opening trace pipe for reading.";
+    case ID_TRACE_OPEN_WRITER:		return "Instructing mutatee to open trace pipe for writing.";
+    case ID_TRACE_INSERT:		return "Inserting trace instrumentation to function.";
+    case ID_TRACE_INSERT_ONE:		return "Inserting trace instrumentation to specific point.";
+    case ID_TRACE_READ:			return "Reading from trace pipe.";
+    case ID_TRACE_POINT:		return "Mutatee passed trace point.";
+
     case ID_RUN_CHILD:			return "Continuing execution of mutatee.";
     case ID_WAIT_TERMINATION:		return "Waiting for child termination.";
     case ID_WAIT_STATUS_CHANGE:		return "Waiting for status change in child.";
+    case ID_POLL_STATUS_CHANGE:		return "Polling for status change in child.";
     case ID_EXIT_CODE:			return "Mutatee exited normally.";
     case ID_EXIT_SIGNAL:		return "Mutatee terminated via signal.";
+    case ID_SAVE_WORLD:			return "Writing patched binary to disk.";
+    case ID_DETACH_CHILD:		return "Detaching from mutatee and instructing it to continue.";
+    case ID_STOP_CHILD:			return "Halting mutatee execution.";
 
     case ID_SUMMARY_INSERT:		return "Inserting information into summary report.";
 
@@ -130,7 +149,7 @@ void sendMsg(FILE *outfd, messageID msgID, logLevel priority, statusID statID, c
 	return;
     }
 
-    const char *msgstr;
+    const char *msgstr = NULL;
     switch (statID) {
     case ID_INFO:
     case ID_TEST: msgstr = msgStr(msgID); break;
@@ -193,7 +212,7 @@ void killProcess(pid_t pid)
     int retval = 10;
 
     if (kill(pid, 0) == -1) return;
-    dlog(INFO, "Allowing mutator/mutatee (%d) time to exit gracefully...\n", pid);
+    dlog(INFO, "Allowing %s (%d) time to exit gracefully...\n", (config.pid == pid ? "mutator" : "mutatee"), pid);
 
     do {
 	if (kill(pid, SIGTERM) == -1) return;
@@ -213,17 +232,32 @@ void killProcess(pid_t pid)
     dlog(WARN, "\n* Could not terminate process %d.\n",  pid);
 }
 
-void cleanupProcesses()
+void cleanupProcess()
 {
-    // Clean up any grandchildren we know about.
-    set< int >::iterator iter = config.grandchildren.begin();
-    while (iter != config.grandchildren.end()) {
-	killProcess(-(*iter));
-	++iter;
+    // Let the grandchildren live if we detached on purpose.
+    if (config.state != DETACHED) {
+	// Otherwise, clean up any grandchildren we know about.
+	set< int >::iterator iter = config.grandchildren.begin();
+	while (iter != config.grandchildren.end()) {
+	    killProcess((*iter));
+	    ++iter;
+	}
+
+	// Clean up mutator
+	killProcess(config.pid);
+
     }
 
-    // Clean up mutator
-    killProcess(-config.pid);
+    if (config.curr_rec.enabled) {
+	record_close(&config.curr_rec);
+    }
+}
+
+void cleanupFinal()
+{
+    if (config.trace_inst) {
+	unlink(config.pipe_filename);
+    }
 }
 
 void sigintHandler(int signal)
@@ -231,21 +265,62 @@ void sigintHandler(int signal)
     assert(signal == SIGINT);
 
     if (config.pid > 0) {
-	dlog(ERR, "\nMonitor received SIGINT.  Requesting mutator to exit...\n");
+	// Monitor received SIGINT.
 
-	// Disable alarm, if any.
-	alarm(0);
-
+	// No matter what, forward signal to mutator.
 	kill(-config.pid, SIGINT);
-	sleep(10);
 
-	cleanupProcesses();
+	// SIGINT will be considered normal under attach case.
+	if (config.use_attach) {
+	    return;
+
+	} else {
+	    dlog(ERR, "\nMonitor received SIGINT.  Requesting mutator to exit...\n");
+
+	    // Disable alarm (if any), and wait for mutator to finish.
+	    alarm(0);
+	    sleep(10);
+	}
+
+	// Final cleanup.
+	cleanupProcess();
+	cleanupFinal();
+
 	exit(-1);
 
     } else if (config.pid == 0) {
-	// Mutator received SIGINT.  Instruct mutatee to terminate.
-	if (config.dynlib && !dynIsTerminated(config.dynlib))
-	    dynTerminateExecution(config.dynlib);
+	// Mutator received SIGINT.
+	if (config.dynlib) {
+	    if (config.use_attach) {
+		if (!config.dynlib->proc->isStopped()) {
+		    sendMsg(config.outfd, ID_STOP_CHILD, VERB1);
+		    if (!config.dynlib->proc->stopExecution()) {
+			sendMsg(config.outfd, ID_STOP_CHILD, VERB1, ID_FAIL,
+				"BPatch_process::stopExecution() failed.  Cannot detach properly.");
+		    } else {
+			sendMsg(config.outfd, ID_STOP_CHILD, VERB1, ID_PASS);
+		    }
+		}
+
+		if (config.dynlib->proc->isStopped()) {
+		    if (config.trace_inst) closeTracePipe();
+
+		    sendMsg(config.outfd, ID_DETACH_CHILD, INFO);
+		    config.dynlib->proc->detach(true);
+		    sendMsg(config.outfd, ID_DETACH_CHILD, INFO, ID_PASS);
+		    exit(0);
+
+		} else {
+		    sendMsg(config.outfd, ID_DATA_STRING, INFO, ID_INFO,
+			    "Could not stop processes for detach.");
+		}
+
+	    } else /* if (!config.use_attach) */ {
+		if (!config.dynlib->proc->isTerminated()) {
+		    config.dynlib->proc->terminateExecution();
+		}
+	    }
+	}
 	exit(-1);
     }
 }

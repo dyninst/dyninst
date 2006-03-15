@@ -22,6 +22,9 @@ enum messageID {
     ID_INIT_REGISTER_EXIT,
     ID_INIT_REGISTER_FORK,
     ID_INIT_CREATE_PROCESS,
+    ID_INIT_ATTACH_PROCESS,
+    ID_INIT_MERGE_TRAMP,
+    ID_INIT_SAVE_WORLD,
     ID_INIT_GET_IMAGE,
     ID_POST_FORK,
 
@@ -55,13 +58,28 @@ enum messageID {
     ID_NO_POINTS,
     ID_INST_INSERT_CODE,
 
+    ID_TRACE_INIT,
+    ID_TRACE_INIT_MUTATEE,
+    ID_TRACE_FIND_OPEN,
+    ID_TRACE_FIND_WRITE,
+    ID_TRACE_OPEN_READER,
+    ID_TRACE_OPEN_WRITER,
+    ID_TRACE_INSERT,
+    ID_TRACE_INSERT_ONE,
+    ID_TRACE_READ,
+    ID_TRACE_POINT,
+
     ID_ALLOC_COUNTER,
 
     ID_RUN_CHILD,
-    ID_WAIT_TERMINATION,
+    ID_WAIT_TERMINATION, 
     ID_WAIT_STATUS_CHANGE,
+    ID_POLL_STATUS_CHANGE,
     ID_EXIT_CODE,
     ID_EXIT_SIGNAL,
+    ID_SAVE_WORLD,
+    ID_DETACH_CHILD,
+    ID_STOP_CHILD,
 
     ID_SUMMARY_INSERT,
     ID_SUMMARY_START,
@@ -92,7 +110,8 @@ void sendMsg(FILE *, messageID, logLevel, statusID = ID_TEST, const char * = NUL
 void sendMsg(FILE *, messageID, logLevel, statusID, int);
 void sendStr(FILE *, const char *fmt, ...);
 void killProcess(pid_t);
-void cleanupProcesses();
+void cleanupProcess();
+void cleanupFinal();
 
 int readStr(FILE *, char *, int);
 

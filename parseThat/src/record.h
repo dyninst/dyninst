@@ -13,10 +13,11 @@ struct record_t {
     FILE *raw_fd;
 };
 
+bool get_libs(strlist *, const char *);
 record_t record_init();
 bool record_create(record_t *record, const char *prog, int argc, char **argv);
 bool record_search(record_t *newRecord);
 void record_update(record_t *newRecord);
-bool get_libs(strlist *, const char *);
+void record_close(record_t *newRecord);
 
 #endif

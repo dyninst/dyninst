@@ -13,12 +13,11 @@
 #include "BPatch_image.h"
 #include "BPatch_Vector.h"
 
-#if DYNINST_VER > 4
+#if defined(HAVE_BPATCH_PROCESS_H)
 #include "BPatch_process.h"
 #else
 #define BPatch_process BPatch_thread
 #endif
-
 
 struct dynHandle {
     BPatch *bpatch;
@@ -29,11 +28,5 @@ struct dynHandle {
 dynHandle *mutatorInit(void);
 bool dynStartTransaction(dynHandle *);
 bool dynEndTransaction(dynHandle *);
-bool dynContinueExecution(dynHandle *);
-bool dynIsTerminated(dynHandle *);
-BPatch_exitType dynTerminationStatus(dynHandle *);
-int dynGetExitCode(dynHandle *);
-int dynGetExitSignal(dynHandle *);
-void dynTerminateExecution(dynHandle *);
 
 #endif
