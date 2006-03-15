@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-aix.C,v 1.37 2005/09/28 17:03:21 bernat Exp $
+// $Id: init-aix.C,v 1.38 2006/03/15 20:08:04 bernat Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/pd_process.h"
@@ -132,36 +132,9 @@ bool initOS()
                                               FUNC_ENTRY|FUNC_ARG, &mpiScattervCommArg, no_warn);
     initialRequestsPARADYN += new pdinstMapping("MPI_Scan", "DYNINSTrecordGroup",
                                               FUNC_ENTRY|FUNC_ARG, &mpiScanCommArg, no_warn);
+
+    pdinstMapping *mapping;
     
-    // ===  MULTI-THREADED FUNCTIONS  ======================================
-    // Official gotten-from-tracing name. While pthread_create() is the
-    // call made from user space, _pthread_body is the parent of any created
-    // thread, and so is a good place to instrument.
-    pdinstMapping *mapping = new pdinstMapping("_pthread_body", "DYNINST_dummy_create",
-                                               FUNC_ENTRY, BPatch_callBefore, BPatch_firstSnippet);
-    mapping->markAs_MTonly();
-    initialRequestsPARADYN.push_back(mapping);
-
-
-    mapping = new pdinstMapping("pthread_exit", "DYNINSTthreadDelete", 
-                              FUNC_ENTRY, BPatch_callBefore, BPatch_lastSnippet);
-    mapping->markAs_MTonly();
-    initialRequestsPARADYN.push_back(mapping);
-
-
-    // Should really be the longjmp in the pthread library
-    mapping = new pdinstMapping("_longjmp", "DYNINSTthreadStart",
-                              FUNC_ENTRY, BPatch_callBefore, BPatch_lastSnippet) ;
-    mapping->markAs_MTonly();
-    initialRequestsPARADYN.push_back(mapping);
-
-
-    mapping = new pdinstMapping("_usched_swtch", "DYNINSTthreadStop",
-                              FUNC_ENTRY, BPatch_callBefore, BPatch_lastSnippet) ;
-    mapping->markAs_MTonly();
-    initialRequestsPARADYN.push_back(mapping);
-
-
     // Thread SyncObjects
     // mutex
     BPatch_snippet* arg0 = new BPatch_paramExpr(0);

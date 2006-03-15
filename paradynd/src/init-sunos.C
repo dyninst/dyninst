@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: init-sunos.C,v 1.53 2005/09/09 18:07:32 legendre Exp $ */
+/* $Id: init-sunos.C,v 1.54 2006/03/15 20:08:06 bernat Exp $ */
 
 #include <sys/time.h>
 #include "paradynd/src/internalMetrics.h"
@@ -71,32 +71,7 @@ bool initOS() {
    } else { /* Fork and exec */
    }
 
-   // ===  MULTI-THREADED FUNCTIONS  ======================================  
-   pdinstMapping *mapping;
-   mapping = new pdinstMapping("_thread_start", "DYNINST_dummy_create",
-                               FUNC_ENTRY, BPatch_callBefore, BPatch_lastSnippet);
-   mapping->markAs_MTonly();
-   initialRequestsPARADYN.push_back(mapping);
-
-
-   mapping = new pdinstMapping("_thr_exit_common", "DYNINSTthreadDelete", 
-                               FUNC_ENTRY, BPatch_callBefore, BPatch_lastSnippet);
-   mapping->markAs_MTonly();
-   initialRequestsPARADYN.push_back(mapping);
-
-#if 0
-   // Unsupported
-   mapping = new pdinstMapping("_resume_ret", "DYNINSTthreadStart",
-                               FUNC_ENTRY, callPreInsn, orderLastAtPoint) ;
-   mapping->markAs_MTonly();
-   initialRequestsPARADYN.push_back(mapping);
-
-
-   mapping = new pdinstMapping("_resume", "DYNINSTthreadStop",
-                               FUNC_ENTRY, callPreInsn, orderLastAtPoint) ;
-   mapping->markAs_MTonly();
-   initialRequestsPARADYN.push_back(mapping);
-#endif
+    pdinstMapping *mapping;
 
    // Thread SyncObjects
    // mutex
