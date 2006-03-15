@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.96 2005/12/19 19:43:52 pack Exp $
+ * $Id: RTinst.c,v 1.97 2006/03/15 20:08:10 bernat Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -224,11 +224,12 @@ void DYNINSTstopWallTimer(tTimer* timer)
 void PARADYNinit(int paradyndPid, int creationMethod,
                  virtualTimer *virtualTimersAddr, int *obsCostAddr) 
 {
+
     int calledFromAttachToCreated = (creationMethod == 3);
     int calledFromFork = (creationMethod == 2);
     int calledFromAttach = (creationMethod == 1);
     int calledFromExec = (creationMethod == 4);
-    
+
    /* sanity check */
    assert(sizeof(rawTime64) == 8);
    assert(sizeof(int64_t) == 8);
@@ -243,11 +244,6 @@ void PARADYNinit(int paradyndPid, int creationMethod,
    virtualTimers = virtualTimersAddr;
    // /* DEBUG */ fprintf(stderr, "[%s:%u] - virtualTimers = %p\n", __FILE__, __LINE__, virtualTimers);
    RTobserved_cost = obsCostAddr;
-
-#if defined(cap_threads)
-   newthr_cb = newPDThread;
-   newPDThread(0);
-#endif
 
    /*
      In accordance with usual stdio rules, stdout is line-buffered and stderr
@@ -276,6 +272,8 @@ void PARADYNinit(int paradyndPid, int creationMethod,
    /* Note: until this point we are not multithread-safe. */
 #if defined(cap_threads)
    PARADYN_initialize_once();
+   newthr_cb = newPDThread;
+   newPDThread(0);
 #endif
 }
 

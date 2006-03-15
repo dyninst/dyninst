@@ -41,7 +41,7 @@
 
 /************************************************************************
  * RTaix.c: clock access functions for AIX.
- * $Id: RTetc-aix.c,v 1.44 2005/09/28 17:03:23 bernat Exp $
+ * $Id: RTetc-aix.c,v 1.45 2006/03/15 20:08:09 bernat Exp $
  ************************************************************************/
 
 #include <malloc.h>
@@ -212,12 +212,12 @@ void PARADYN_initialize_pmapi(int calledByFork) {
   /* we need to set up a group because we need to sample the cycle hwctr
      for all of the threads (in addition to, for each thread) */
   if(!calledByFork) {
-     ret = pm_set_program_mygroup(&pdyn_pm_prog);
-     if (ret) pm_error("PARADYNos_init: pm_set_program_mythread", ret); 
+      ret = pm_set_program_mygroup(&pdyn_pm_prog);
+      if (ret) pm_error("PARADYNos_init: pm_set_program_mythread", ret); 
   } else {
-     pm_delete_program_mythread();
-     ret = pm_set_program_mygroup(&pdyn_pm_prog);
-     if (ret) pm_error("PARADYNos_init: pm_set_program_mythread", ret); 
+      pm_delete_program_mythread();
+      ret = pm_set_program_mygroup(&pdyn_pm_prog);
+      if (ret) pm_error("PARADYNos_init: pm_set_program_mythread", ret); 
   }
 }
 
