@@ -164,8 +164,8 @@ rawTime64 pd_thread::getRawCpuTime_hw()
    if (ret) {
       if(!pd_proc->hasExited()) {
          pm_error("dyn_lwp::getRawCpuTime_hw: pm_get_data_thread", ret);
-         bperr( "Attempted pm_get_data(%d, %d, %d)\n",
-		 pd_proc->getPid(), get_lwp(), lwp_to_use);
+         fprintf(stderr, "Attempted pm_get_data(%d, %d, %d)\n",
+                 pd_proc->getPid(), get_lwp(), lwp_to_use);
       }
       return -1;
    }
