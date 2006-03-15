@@ -2,48 +2,56 @@ INTRODUCTION
 
 parseThat is an application that provides a rigorous and robust test of
 DyninstAPI on arbitrary binaries.  Geared mainly for debugging purposes,
-parseThat has many features which ultimately allow DyninstAPI developers
-to quickly find the source of parsing or instrumentation errors in the
-rare instance when they occur.
+parseThat generates copious output for each dyninstAPI feature it uses.
+
+These output logs can be used to quickly locate the source of parsing or
+instrumentation bugs, in the rare instance when they occur.
 
 CONFIGURATION
 
+Autoconf scripts are used to gather information about the target platform
+before building.  Run the script "configure" to initiate the process:
+
+	./configure
+
+Building outside of the source tree is possible as well:
+
+	mkdir ${OBJ_DIR}; cd ${OBJ_DIR}
+	/path/to/parseThat/configure
+
+By default, the parseThat binary will be placed in the build directory.
+Use the --prefix flag to install it somewhere else.  For example, to
+install parseThat in /usr/local/bin:
+
+	./configure --prefix=/usr/local/bin
+
 There are a few variables which allow you to control how parseThat is
-built.  These variables can either be set in your shell's environment,
-as a parameter to the build command, or within the Makefile itself:
+built.
 
 	PLATFORM
-	This variable must be defined.  See the documentation for DyninstAPI
-	in core/dyninstAPI/README for valid values of this variable.
+	The configuration scripts will attempt to guess your target
+	platform, but it's sometime helpful to specify your build
+	platform manually.  See the documentation for DyninstAPI in
+	core/dyninstAPI/README for valid values of this variable.
 
-	OPENSSL_DIR
-	parseThat depends upon OpenSSL for its message digest routines.  If
-	your system has OpenSSL installed in a non-standard location, you may
-	set this variable to aid the linker find the appropriate libraries.
-	OPENSSL_INC and OPENSSL_LIB are derived from this variable, but both
-	can be overridden for more complex installations.
+	DYNINST_ROOT
+	The various headers and libraries for DyninstAPI may not be
+	installed in a standard location.  Use this environment
+	variable to manually specify where you placed a source or
+	binary distribution of DyninstAPI.
 
-	DYNINST_DIR
-	This variable is used similarly to OPENSSL_DIR.  If not specified,
-	it uses the environment DYNINST_ROOT, if available.
-
-	DYNINST_VER
-	parseThat is backwards compatible with DyninstAPI through version
-	4.x.  However, due to an interface change between versions 4.x and
-	5.x,  there is a need to specify which version you will be using.
-	If not specified, it assumes you are using the latest version.
-
-BUILDING
+BUILDING & INSTALLING
 
 Once configured, you can build parseThat by simply invoking GNU make in the
-base directory.  To organize building for multiple platforms within the same
-directory, a subdirectory based on PLATFORM is created to hold all compiled
-objects and binary files.
+base directory.  To build parseThat for multiple platforms simultaneously
+with the same source tree, you must create a seperate object directory for
+each platform.  See instructions under CONFIGURATION for details on building
+outside the source tree.
 
-For the user's convenience, a symbolic link is created in the base directory
-pointing to the newly built binary.
+Once successfully built, invoking GNU make with the "install" target will
+copy the binary to its final destination.
 
 RUNNING
 
-Instructions for parseThats use are encoded within the binary itself.
-To retrieve them, simply run parseThat with no arguments.
+Documentation on running parseThat is encoded within the binary itself.
+It can be viewed by simply running parseThat with the --help flag.
