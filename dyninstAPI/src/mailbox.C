@@ -266,25 +266,18 @@ int eventLock::_Broadcast(const char *__file__, unsigned int __line__)
 int eventLock::_WaitForSignal(const char *__file__, unsigned int __line__)
 {
   int err = 0;
+  pdvector<lock_stack_elem> lstack;
+  unsigned cached_lock_depth = lock_depth;
   if (!lock_depth) {
     fprintf(stderr, "%s[%d][%s]: cannot call wait until lock is obtained, see %s[%d]\n", FILE__, __LINE__, getThreadStr(getExecThreadID()), __file__, __line__);
     abort();
   }
-  lock_depth--;
-
-  if (lock_depth) {
-    const char *thread_name = getThreadStr(getExecThreadID());
-    if (!thread_name) thread_name = "unnamed thread";
-    assert(__file__);
-    assert (FILE__);
-    fprintf(stderr, "%s[%d][%s]:  FATAL, cannot wait while recursively locked to depth %d, called from %s[%d]\n",
-            FILE__, __LINE__, thread_name, lock_depth +1, __file__, __line__);
-    printLockStack();
-    abort();
-  }
-
-  lock_stack_elem el = lock_stack[lock_stack.size() -1];
-  lock_stack.pop_back();
+  
+  lstack = lock_stack;
+  for (unsigned i=0; i<cached_lock_depth-1; i++) 
+     __UNLOCK;
+  lock_depth = 0;
+  lock_stack.clear();
   owner_id = 0;
 
   assert(lock_stack.size() == 0);
@@ -346,8 +339,10 @@ int eventLock::_WaitForSignal(const char *__file__, unsigned int __line__)
   }
 #endif
 
-  lock_depth++;
-  lock_stack.push_back(el);
+  for (unsigned i=0; i<cached_lock_depth-1; i++) 
+     __LOCK;
+  lock_stack = lstack;
+  lock_depth = cached_lock_depth;
   owner_id = getExecThreadID();
   mutex_printf("%s[%d]:  wait/re-loc issued from %s[%d], depth = %d\n", FILE__, __LINE__, __file__, __line__, lock_depth);
   return 0;
