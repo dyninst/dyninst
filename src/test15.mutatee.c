@@ -138,14 +138,7 @@ int main()
               __FILE__, __LINE__, async_failure);
 
    /* let mutator do final work after noticing all workers exit */
-   i = 1000000;
-   j = 1;
-   while(i-- > 0) {
-      if(i>j)
-         j += (i-j)%99;
-      else
-         j += (j-i)%99;
-   }
+   sleep(5);
 
    return 0;
 }
