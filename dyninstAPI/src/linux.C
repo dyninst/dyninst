@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.200 2006/03/12 23:32:04 legendre Exp $
+// $Id: linux.C,v 1.201 2006/03/16 19:19:10 mjbrim Exp $
 
 #include <fstream>
 
@@ -707,7 +707,10 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith, bool ignore_suppress)
    int ptrace_errno = 0;
    int ret = DBI_ptrace(PTRACE_CONT, get_lwp_id(), arg3, arg4, &ptrace_errno, proc_->getAddressWidth(),  FILE__, __LINE__);
    if (ret == 0)
-     return true;
+      return true;
+
+   if(ptrace_errno == ESRCH) // lwp terminated
+      return true;
 
    /**
     * A stopped ptrace'd process can be in two states on Linux.
@@ -721,24 +724,33 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith, bool ignore_suppress)
     **/
    ret = P_kill(get_lwp_id(), SIGCONT);
    if (ret == -1)
-     return false;
+      return false;
    return true;
 }
 
 bool dyn_lwp::waitUntilStopped()
 {
-  if (status() == stopped)
+  pdvector<eventType> evts;
+  eventType evt;
+  if ((status() == stopped) || (status() == exited))
   {
-    return true;
+     return true;
   }
 
-  //return (doWaitUntilStopped(proc(), get_lwp_id(), true) != NULL);
   SignalGenerator *sh = (SignalGenerator *) proc()->sh;
   sh->setWaitingForStop(true);
-  while ( status() != stopped) {
-    signal_printf("%s[%d]:  before waitForEvent(evtProcessStop): status is %s\n",
-            FILE__, __LINE__, getStatusAsString().c_str());
-    sh->waitForEvent(evtProcessStop);
+  evts.push_back(evtProcessStop);
+  evts.push_back(evtThreadExit);
+  while ( status() != stopped ) {
+     if( status() == exited ) 
+        break;
+     signal_printf("%s[%d]:  before waitForEvent(evtProcessStop): status is %s\n",
+                   FILE__, __LINE__, getStatusAsString().c_str());
+     evt = sh->waitForOneOf(evts);
+     if (evt == evtThreadExit && status() == exited) {
+        // it was this lwp that exited
+        break;
+     }
   }
   sh->setWaitingForStop(false);
   sh->resendSuppressedSignals();
@@ -763,24 +775,24 @@ bool process::continueProc_(int sig)
   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
   while (lwp_iter.next(index, lwp))
   {
-    if (lwp->status() == running || lwp->status() == exited)
-      continue;
+     if (lwp->status() == running || lwp->status() == exited)
+        continue;
 
-    bool result = lwp->continueLWP(sig);
-    if (result)
-      set_lwp_status(lwp, running);
-    else
-      no_err = false;
+     bool result = lwp->continueLWP(sig);
+     if (result)
+        set_lwp_status(lwp, running);
+     else
+        no_err = false;
   }
 
   //Continue any representative LWP
   if (representativeLWP && representativeLWP->status() != running)
   {
-    bool result = representativeLWP->continueLWP(sig);
-    if (result)
-      set_lwp_status(representativeLWP, running);
-    else
-      no_err = false;
+     bool result = representativeLWP->continueLWP(sig);
+     if (result)
+        set_lwp_status(representativeLWP, running);
+     else
+        no_err = false;
   }
 
   return no_err;
@@ -826,7 +838,7 @@ bool process::stop_(bool waitUntilStop)
   
   while(lwp_iter.next(index, lwp))
   {
-    lwp->pauseLWP(waitUntilStop);
+     lwp->pauseLWP(waitUntilStop);
   }
 
   return true;
