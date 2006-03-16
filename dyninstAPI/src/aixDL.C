@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.66 2006/02/22 21:52:32 bernat Exp $
+// $Id: aixDL.C,v 1.67 2006/03/16 00:14:20 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -237,7 +237,6 @@ bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &ev,
     hook = reachedLibHook(brk_frame.getPC());
    
     if (!hook) {
-      fprintf(stderr, "%s[%d]:  not at hook\n", FILE__, __LINE__);
       return false;
     }
 
