@@ -463,7 +463,11 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
 
   __UNLOCK;
 
-  int result = P_select(width+1, &readSet, NULL, &errSet, NULL);
+  int result = 0;
+  do {
+    result = P_select(width+1, &readSet, NULL, &errSet, NULL);
+  } while ((result == -1) && (errno == EINTR));
+
   if (-1 == result) {
     __LOCK;
     if (errno == EBADF) {
