@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: String.C,v 1.30 2006/02/12 22:23:26 jodom Exp $
+// $Id: String.C,v 1.31 2006/03/16 18:59:22 mjbrim Exp $
 
 #include <assert.h>
 #include "common/h/headers.h"
@@ -52,105 +52,147 @@
 
 /* This doesn't actually belong here. */
 void dedemangle( const char * demangled, char * result ) {
-	/* Lifted from Jeffrey Odom.  Code reformatted so
-	   I could figure out how to eliminate compiler warnings.
-	   Adjusted to handle spaces inside templates intelligently.
-	   We cut off everything after the first l-paren, so we don't
-	   need to worry about the space after the parameters but
-	   before the 'const'. */
-	const char * resultBegins = NULL;
-	char * resultEnds = NULL;
+   /* Lifted from Jeffrey Odom.  Code reformatted so
+      I could figure out how to eliminate compiler warnings.
+      Adjusted to handle spaces inside templates intelligently.
+      We cut off everything after the first l-paren, so we don't
+      need to worry about the space after the parameters but
+      before the 'const'. */
+   const char * resultBegins = NULL;
+   char * resultEnds = NULL;
+   
+   if (	demangled[0] == '(' &&
+        strstr( demangled, "::" ) != NULL) {
+      /* Local variable.  Strip off the opening ( :: ). */
+      resultBegins = strrchr( demangled, ')' ) + 3;
+      
+      /* End it at the right-most space, if any. */
+      resultEnds = strrchr( resultBegins, ' ' );
+      if( resultEnds != NULL ) { * resultEnds = '\0'; }
+   }
+   else if ( strrchr( demangled, '(' ) != NULL ) {
+      /* Strip off return types, if any.  Be careful not to
+         pull off [template?/]class/namespace information.
+         
+         The only space that matters is the one that's _not_
+         inside a template, so skip the templates and cut at the
+         first space.  We can ignore 'operator[<[<]|>[>]]' because
+         we'll stop before we reach it.
+         
+         Caveat: conversion operators (e.g., "operator bool") have
+         spaces in the function name.  Right now we deal with this
+         specifically (is the function "operator *"?).  Could be
+         altered to after the last template but before the last
+         left parenthesis.  (Instead of next, for "operator ()".)
+      */
 
-	if (	demangled[0] == '(' &&
-		strstr( demangled, "::" ) != NULL) {
-		/* Local variable.  Strip off the opening ( :: ). */
-		resultBegins = strrchr( demangled, ')' ) + 3;
+      resultBegins = demangled;
+      int stack = 0; bool inTemplate = false;
+      unsigned int offset, start_template_offset=0, stop_template_offset=0;
+      int lastColon = 0;
+      for( offset = 0; offset < strlen( resultBegins ); offset++ ) {
+         if( resultBegins[offset] == '<' ) {
+            stack++;
+            inTemplate = true;
+            if(stack == 1)
+               start_template_offset = offset;
+         }
+         else if( resultBegins[offset] == '>' ) {
+            stack--;
+            if( stack == 0 ) { 
+               inTemplate = false;
+               stop_template_offset = offset;
+            }
+         }
+         else if( !inTemplate && resultBegins[offset] == '(' ) {
+            /* We've stumbled on something without a return value. */
 
-		/* End it at the right-most space, if any. */
-		resultEnds = strrchr( resultBegins, ' ' );
-		if( resultEnds != NULL ) { * resultEnds = '\0'; }
-		}
-	else if ( strrchr( demangled, '(' ) != NULL ) {
-		/* Strip off return types, if any.  Be careful not to
-		   pull off [template?/]class/namespace information.
-	
-		   The only space that matters is the one that's _not_
-		   inside a template, so skip the templates and cut at the
-		   first space.  We can ignore 'operator[<[<]|>[>]]' because
-		   we'll stop before we reach it.
-		   
-		   Caveat: conversion operators (e.g., "operator bool") have
-		   spaces in the function name.  Right now we deal with this
-		   specifically (is the function "operator *"?).  Could be
-		   altered to after the last template but before the last
-		   left parenthesis.  (Instead of next, for "operator ()".)
-		  */
+#ifdef os_solaris
+            /* ptr return types for native compiler don't seem to have a space
+               before the start of the func name (e.g. void*func_name(void*) ).
 
-		resultBegins = demangled;
-		int stack = 0; bool inTemplate = false;
-		unsigned int offset = 0;
-		int lastColon = 0;
-		for( offset = 0; offset < strlen( resultBegins ); offset++ ) {
-			if( resultBegins[offset] == '<' ) {
-				stack++;
-				inTemplate = true;
-				}
-			if( resultBegins[offset] == '>' ) {
-				stack--;
-				if( stack == 0 ) { inTemplate = false; }
-				}
-			if( !inTemplate && resultBegins[offset] == '(' ) {
-				/* We've stumbled on something without a return value. */
-				offset = 0;
-				resultBegins = demangled;
-				break;
-			        }
-			if( !inTemplate && resultBegins[offset] == ' ' ) {
-				/* FIXME: verify that the space isn't in the function name,
-				   e.g., 'operator bool'.  If the first space we meet _is_
-				   a function name, it doesn't have a(n explicit) return type. */
-				if( strstr( &(resultBegins[ lastColon + 1 ]), "operator " ) == resultBegins + lastColon + 1 ) {
-					resultBegins = demangled;
-					offset = 0;
-					}
-				else{
-					resultBegins = &(resultBegins[offset + 1]);
-					offset++;
-					}
+               need to find last asterick before '(' and see if it's within
+               a template area. if not, then set resultBegins to next offset.
+            */
+            char *prefix = (char*)malloc(strlen(demangled));
+            if(prefix != NULL) {
+               strncpy(prefix, demangled, offset+1); 
+               prefix[offset+1] = '\0';
+               char *last_ast = strrchr(prefix, '*');            
+               if( last_ast != NULL ) {
+                  unsigned last_ast_off = last_ast - prefix;
+                  if( stop_template_offset ) {
+                     if( last_ast_off > start_template_offset &&
+                         last_ast_off < stop_template_offset ) {
+                        // last '*' is in template, no return type
+                        offset = 0;
+                        resultBegins = demangled;
+                        free(prefix);
+                        break;
+                     }
+                  }
+                  // not in template, so last '*' must be end of return type
+                  resultBegins = demangled + last_ast_off + 1;
+                  offset = last_ast_off + 1;
+                  free(prefix);
+                  break;
+               }
+            }
+            // no '*', is actually no return type function
+            offset = 0;
+            resultBegins = demangled;
+#else
+            offset = 0;
+            resultBegins = demangled;
+#endif
+            break;
+         }
+         else if( !inTemplate && resultBegins[offset] == ' ' ) {
+            /* FIXME: verify that the space isn't in the function name,
+               e.g., 'operator bool'.  If the first space we meet _is_
+               a function name, it doesn't have a(n explicit) return type. */
+            if( strstr( &(resultBegins[ lastColon + 1 ]), "operator " ) == resultBegins + lastColon + 1 ) {
+               resultBegins = demangled;
+               offset = 0;
+            }
+            else {
+               resultBegins = &(resultBegins[offset + 1]);
+               offset++;
+            }
+            
+            break;
+         }
+         else if( !inTemplate && resultBegins[offset] == ':' ) {
+            lastColon = offset;
+         }
+      } /* end template elimination loop */
 
-				break;
-				}
-			if( !inTemplate && resultBegins[offset] == ':' ) {
-				lastColon = offset;
-				}
-			} /* end template elimination loop */
-
-		/* Scan past the function name; the first left parenthesis
-		   not in in a template declaration starts the function arguments. */
-		stack = 0; inTemplate = false;
-		for( ; offset < strlen( resultBegins ); offset++ ) {
-			if( resultBegins[offset] == '<' ) {
-				stack++;
-				inTemplate = true;
-				}
-			if( resultBegins[offset] == '>' ) {
-				stack--;
-				if( stack == 0 ) { inTemplate = false; }
-				}
-			if( !inTemplate && resultBegins[offset] == '(' ) {
-				resultEnds = const_cast<char *>(&(resultBegins[offset]));
-				* resultEnds = '\0';
-				break;
-				} 
-			} /* end template elimination loop */
-		} /* end if a function prototype */
-	else {
-		/* Assume demangle OK. */
-		resultBegins = demangled;
-		}
-
-	strcpy( result, resultBegins );
-	} /* end dedemangle */
+      /* Scan past the function name; the first left parenthesis
+         not in in a template declaration starts the function arguments. */
+      stack = 0; inTemplate = false;
+      for( ; offset < strlen( resultBegins ); offset++ ) {
+         if( resultBegins[offset] == '<' ) {
+            stack++;
+            inTemplate = true;
+         }
+         if( resultBegins[offset] == '>' ) {
+            stack--;
+            if( stack == 0 ) { inTemplate = false; }
+         }
+         if( !inTemplate && resultBegins[offset] == '(' ) {
+            resultEnds = const_cast<char *>(&(resultBegins[offset]));
+            * resultEnds = '\0';
+            break;
+         } 
+      } /* end template elimination loop */
+   } /* end if a function prototype */
+   else {
+      /* Assume demangle OK. */
+      resultBegins = demangled;
+   }
+   
+   strcpy( result, resultBegins );
+} /* end dedemangle */
 
 // Declare static member vrbles:
 pdstring *pdstring::nilptr = NULL;
