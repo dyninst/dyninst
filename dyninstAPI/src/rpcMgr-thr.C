@@ -337,7 +337,8 @@ irpcLaunchState_t rpcThr::runPendingIRPC() {
     // the PC back to the original value
     Frame curFrame = lwp->getActiveFrame();
     runningRPC_->origPC = curFrame.getPC();
-    inferiorrpc_cerr << "Thread currently at frame " << curFrame << endl;
+    inferiorrpc_printf("%s[%d]: thread %d at PC 0x%lx, saving and setting to 0x%lx\n",
+                       FILE__, __LINE__, thr_->get_tid(), runningRPC_->origPC, runningRPC_->rpcStartAddr);
 #endif    
 
     // Launch this sucker. Change the PC, and the caller will set running
@@ -432,7 +433,7 @@ bool rpcThr::handleCompletedIRPC() {
     }
 #endif
 
-    inferiorrpc_cerr << "Completed thread RPC " << runningRPC_->rpc->id << " on thread " << thr_->get_tid() << endl;
+    inferiorrpc_printf("Completed thread RPC %d on thread %d\n", runningRPC_->rpc->id, thr_->get_tid());
 
     // step 1) restore registers:
     if (runningRPC_->savedRegs) {

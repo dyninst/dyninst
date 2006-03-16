@@ -490,8 +490,9 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
       // after the RPCs are done". Now, if there weren't any RPCs, do we 
       // run the process? 
       if (wasRunning && proc_->isStopped()) {
-        fprintf(stderr, "%s[%d]:  WARNING:  calling continueProc\n", __FILE__, __LINE__);
-	proc_->continueProc();
+          assert(0);
+          fprintf(stderr, "%s[%d]:  WARNING:  calling continueProc\n", __FILE__, __LINE__);
+          proc_->continueProc();
       }
       recursionGuard = false;
       return false;
