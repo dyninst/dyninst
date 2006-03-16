@@ -622,7 +622,8 @@ bool InstrucIter::isAReturnInstruction()
   const instruction i = getInstruction();
   if(((*i).xlform.op == BCLRop) &&
      ((*i).xlform.xo == BCLRxop) && 
-     ((*i).xlform.bt & 0x10) && ((*i).xlform.bt & 0x4))
+     ((*i).xlform.bt & 0x10) && ((*i).xlform.bt & 0x4) &&
+     !((*i).xlform.bb))
       return true;
   return false;
 }
@@ -635,6 +636,10 @@ bool InstrucIter::isAIndirectJumpInstruction()
   const instruction i = getInstruction();
 	if(((*i).xlform.op == BCLRop) && ((*i).xlform.xo == BCCTRxop) &&
 	   !(*i).xlform.lk && ((*i).xlform.bt & 0x10) && ((*i).xlform.bt & 0x4))
+		return true;
+	if(((*i).xlform.op == BCLRop) && ((*i).xlform.xo == BCLRxop) &&
+	   !(*i).xlform.lk && ((*i).xlform.bt & 0x10) && ((*i).xlform.bt & 0x4) &&
+	   ((*i).xlform.bb == 0x1))
 		return true;
 #if 0
         // Disabled; a branch to link register is a return until we can prove
@@ -1142,6 +1147,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
     Address tableStart = 0;
 
     if (img_) {
+       if (tableIsRelative) {
         void *jumpStartPtr = img_->getPtrToData(jumpStartAddress);
         //fprintf(stderr, "jumpStartPtr (0x%x) = %p\n", jumpStartAddress, jumpStartPtr);
         if (jumpStartPtr)
@@ -1153,6 +1159,7 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
             setCurrentAddress(initialAddress);
             return false;
         }
+       }
         void *tableStartPtr = img_->getPtrToData(tableStartAddress);
         //fprintf(stderr, "tableStartPtr (0x%x) = %p\n", tableStartAddress, tableStartPtr);
         if (tableStartPtr)
@@ -1217,9 +1224,12 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result)
         }
     }
     else {
-        void *ptr = proc_->getPtrToInstruction(jumpStartAddress);
+       void *ptr;
+       if (tableIsRelative) {
+        ptr = proc_->getPtrToInstruction(jumpStartAddress);
         assert(ptr);
         jumpStart = *((Address *)ptr);
+       }
         ptr = NULL;
         ptr = proc_->getPtrToInstruction(tableStartAddress);
         assert(ptr);
