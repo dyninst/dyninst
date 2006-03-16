@@ -836,9 +836,11 @@ eventType SignalGeneratorCommon::waitForOneOf(pdvector<eventType> &evts)
     eg->addEvent(evts[i]);
   }
   wait_list.push_back(eg);
+
   if (global_mutex->depth() > 1)
-    fprintf(stderr, "%s[%d]:  about to EventGate::wait(), lock depth %d\n", FILE__, __LINE__, 
-           global_mutex->depth());
+    signal_printf("%s[%d]:  about to EventGate::wait(), lock depth %d\n", 
+                  FILE__, __LINE__, global_mutex->depth());
+
   EventRecord result = eg->wait();
   
   bool found = false;
@@ -880,8 +882,9 @@ eventType SignalGeneratorCommon::globalWaitForOneOf(pdvector<eventType> &evts)
   global_wait_list_lock._Unlock(__FILE__, __LINE__);
 
   if (global_mutex->depth() > 1)
-    fprintf(stderr, "%s[%d]:  about to EventGate::wait(), lock depth %d\n", FILE__, __LINE__, 
-           global_mutex->depth());
+     signal_printf("%s[%d]:  about to EventGate::wait(), lock depth %d\n", 
+                   FILE__, __LINE__, global_mutex->depth());
+
   EventRecord result = eg->wait();
   
   global_wait_list_lock._Lock(__FILE__, __LINE__);
@@ -937,8 +940,9 @@ eventType SignalGeneratorCommon::waitForEvent(eventType evt, process *p, dyn_lwp
   wait_list.push_back(eg);
   
   if (global_mutex->depth() > 1)
-    fprintf(stderr, "%s[%d]:  about to EventGate::wait(%s), lock depth %d\n", FILE__, __LINE__, 
-           eventType2str(evt), global_mutex->depth());
+    signal_printf("%s[%d]:  about to EventGate::wait(%s), lock depth %d\n", 
+                  FILE__, __LINE__, 
+                  eventType2str(evt), global_mutex->depth());
   EventRecord result = eg->wait();
   
   bool found = false;
@@ -1302,7 +1306,7 @@ bool SignalHandler::handleLwpExit(EventRecord &ev)
    {
        fprintf(stderr, "No matching thread!\n");
        proc->continueProc();
-      return false;
+       return false;
    }
 
    ev.type = evtThreadExit;
