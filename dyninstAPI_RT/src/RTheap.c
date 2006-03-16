@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.c,v 1.23 2006/03/12 23:32:43 legendre Exp $ */
+/* $Id: RTheap.c,v 1.24 2006/03/16 19:00:00 bernat Exp $ */
 /* RTheap.c: platform-generic heap management */
 
 #include <stdlib.h>
@@ -322,7 +322,7 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
     /*DYNINSTheap_printMappings(nmaps, maps);*/
 
     fd = DYNINSTheap_mmapFdOpen();
-#if !defined(os_alpha)
+#if !defined(os_osf)
     if (0 > fd) {
       free(node);
       return NULL;
