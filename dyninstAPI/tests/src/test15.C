@@ -68,7 +68,6 @@ char initial_funcs[NUM_FUNCS][25] = {"init_func", "main", "_start", "__start", "
 
 void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
 {
-   dprintf(stderr, "%s[%d]:  welcome to deadthr\n", __FILE__, __LINE__);
    if (!thr) {
      dprintf(stderr, "%s[%d]:  deadthr called without valid ptr to thr\n",
             __FILE__, __LINE__);
@@ -82,12 +81,11 @@ void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
    }
    deleted_tids[my_dyn_id] = 1;
    deleted_threads++;
-   dprintf(stderr, "%s[%d]:  leaving deadthr\n", __FILE__, __LINE__);
+   dprintf(stderr, "[%s] Thread %d has exited.\n", __FILE__, my_dyn_id);
 }
 
 void newthr(BPatch_process *my_proc, BPatch_thread *thr)
 {
-   dprintf(stderr, "%s[%d]:  welcome to newthr, error = %d\n", __FILE__, __LINE__, error);
    unsigned my_dyn_id = thr->getBPatchID();
 
    if (my_proc != proc)
@@ -96,7 +94,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
       error = 1;
    }
 
-   dprintf(stderr, "%s[%d]:  newthr: BPatchID = %d\n", __FILE__, __LINE__, my_dyn_id);
+   dprintf(stderr, "[%s] New Thread: BPatchID = %d\n", __FILE__, my_dyn_id);
    //Check initial function
    static char name[1024];
    BPatch_function *f = thr->getInitialFunc();   
@@ -110,7 +108,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
          found_name = 1;
          break;
       }
-   dprintf(stderr, "%s[%d]:  newthr: %s\n", __FILE__, __LINE__, name);
+   dprintf(stderr, "[%s]           : initial func is %s\n", __FILE__, name);
    if (!found_name)
    {
       fprintf(stderr, "[%s:%d] - Thread %d has '%s' as initial function\n",
@@ -160,7 +158,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
       fprintf(stderr, "[%s:%d] - Thread %d has a tid of -1\n", 
               __FILE__, __LINE__, my_dyn_id);
    }
-   dprintf(stderr, "%s[%d]:  newthr: tid = %lu\n", __FILE__, __LINE__,  mytid);
+   dprintf(stderr, "[%s]           : tid = %lu\n", __FILE__, mytid);
    for (unsigned i=0; i<NUM_THREADS; i++)
       if (i != my_dyn_id && dyn_tids[i] && mytid == pthread_ids[i])
       {
@@ -169,9 +167,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
             error = 1;
       }
    pthread_ids[my_dyn_id] = mytid;
-
    thread_count++;
-   dprintf(stderr, "%s[%d]:  leaving newthr: error = %d\n", __FILE__, __LINE__, error);
 }
 
 #define MAX_ARGS 32
@@ -210,7 +206,7 @@ static void parse_args(unsigned argc, char *argv[])
       {
          should_exec = false;
       }
-      else if (strcmp(argv[i], "-mutator") == 0)
+      else if (strcmp(argv[i], "-mutatee") == 0)
       {
          if (++i == argc) break;
          filename = argv[i];
@@ -435,7 +431,6 @@ int main(int argc, char *argv[])
            "  Expected %d\n", __FILE__, __LINE__, deleted_threads, NUM_THREADS);
       error = 1;
    }
-
 
    if (error) 
       error_exit();
