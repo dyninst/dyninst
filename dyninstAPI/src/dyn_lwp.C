@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.44 2006/03/16 00:14:21 bernat Exp $
+ * $Id: dyn_lwp.C,v 1.45 2006/03/16 19:19:08 mjbrim Exp $
  */
 
 #include "common/h/headers.h"
@@ -138,7 +138,9 @@ bool dyn_lwp::continueLWP(int signalToContinueWith)
 
    bool ret = continueLWP_(signalToContinueWith);
    if(ret == false) {
-      perror("continueLWP()");
+      fprintf(stderr, "%s[%d]:  continueLWP(%lu) failed: ", FILE__, __LINE__,
+              get_lwp_id());
+      perror(NULL);
       return false;
    }
 
@@ -182,7 +184,7 @@ bool dyn_lwp::pauseLWP(bool shouldWaitUntilStopped) {
    // dyninst tests.  My guess is that somewhere we set the process status to
    // running.  If we can find this, then we can set the lwp status to
    // running also.
-   if(status_ == stopped) {
+   if(status_ == stopped || status_ == exited) {
       return true;
    }
 
