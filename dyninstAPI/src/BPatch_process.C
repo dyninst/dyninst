@@ -333,7 +333,7 @@ void BPatch_process::BPatch_process_dtor()
 bool BPatch_process::stopExecutionInt()
 {
    while (llproc->sh->activeHandlerForProcess(llproc)) {
-       signal_printf("%s[%d]:  waiting before doing user continue for process %d\n", FILE__, __LINE__, llproc->getPid());
+       signal_printf("%s[%d]:  waiting before doing user stop for process %d\n", FILE__, __LINE__, llproc->getPid());
        llproc->sh->waitForEvent(evtAnyEvent);
    }
 
