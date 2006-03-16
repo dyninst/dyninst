@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.594 2006/03/14 23:12:05 bernat Exp $
+// $Id: process.C,v 1.595 2006/03/16 19:19:12 mjbrim Exp $
 
 #include <ctype.h>
 
@@ -1752,6 +1752,12 @@ void process::deleteProcess()
           representativeLWP = NULL;
       }
   }
+
+  // Blow away dyn_lwp's that we delayed delete'ing
+  for (unsigned lwp_ndx = 0; lwp_ndx < lwps_to_delete.size(); lwp_ndx++) {
+      delete lwps_to_delete[lwp_ndx];
+  }
+  lwps_to_delete.clear();
   
   // Blow away threads; we'll recreate later
   for (unsigned thr_iter = 0; thr_iter < threads.size(); thr_iter++) {
@@ -5712,6 +5718,7 @@ dyn_lwp *process::createRealLWP(unsigned lwp_id, int /*lwp_index*/) {
 }
 
 void process::deleteLWP(dyn_lwp *lwp_to_delete) {
+   // remove lwp from internal structures
    if(real_lwps.size() > 0 && lwp_to_delete!=NULL) {
       theRpcMgr->deleteLWP(lwp_to_delete);
       lwp_to_delete->get_lwp_id();
@@ -5719,7 +5726,10 @@ void process::deleteLWP(dyn_lwp *lwp_to_delete) {
    }
    if (lwp_to_delete == representativeLWP)
       representativeLWP = NULL;
-   delete lwp_to_delete;
+
+   // we keep around the actual dyn_lwp until the process exits.
+   // avoids random segfaults when threads exit early
+   lwps_to_delete.push_back(lwp_to_delete);
 }
 
 void process::deleteThread(dynthread_t tid)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.360 2006/03/12 23:32:15 legendre Exp $
+/* $Id: process.h,v 1.361 2006/03/16 19:19:13 mjbrim Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -1007,6 +1007,8 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   dyn_lwp *representativeLWP;
   // LWPs are index by their id
   dictionary_hash<unsigned, dyn_lwp *> real_lwps;
+  pdvector<dyn_lwp *> lwps_to_delete;
+
   // Threads are accessed by index.
   int max_number_of_threads;
   pdvector<dyn_thread *> threads;
