@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.C,v 1.15 2006/03/02 21:34:14 nater Exp $
+// $Id: frame.C,v 1.16 2006/03/17 22:52:36 jodom Exp $
 
 #include <stdio.h>
 #include <iostream>
@@ -150,7 +150,7 @@ void Frame::calcFrameType()
    // than a stack of 90% equivalent functions
 #if defined(os_linux) && defined(arch_x86)
    calcVSyscallFrame(getProc());
-   if (pc_ >= getProc()->getVsyscallStart() && pc_ < getProc()->getVsyscallEnd()) {
+   if ((pc_ >= getProc()->getVsyscallStart() && pc_ < getProc()->getVsyscallEnd()) || /* Hack for RH9 */ (pc_ >= 0xffffe000 && pc_ < 0xfffff000)) {
      frameType_ = FRAME_syscall;
      return;
    }

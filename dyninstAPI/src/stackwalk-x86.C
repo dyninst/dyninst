@@ -104,7 +104,7 @@ static frameStatus_t getFrameStatus(process *p, unsigned long pc)
       return frame_sighandler;
 #if defined(os_linux)
    calcVSyscallFrame(p);
-   if (pc >= p->getVsyscallStart() && pc < p->getVsyscallEnd())
+   if ((pc >= p->getVsyscallStart() && pc < p->getVsyscallEnd()) || /* RH9 Hack */ (pc >= 0xffffe000 && pc < 0xfffff000))
       return frame_vsyscall;
 #endif
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.92 2006/03/12 23:32:03 legendre Exp $
+// $Id: linux-x86.C,v 1.93 2006/03/17 22:52:36 jodom Exp $
 
 #include <fstream>
 
@@ -535,7 +535,7 @@ static char *execVsyscallFetch(process *p, char *buffer) {
    old_segv = signal(SIGSEGV, catchSigSegV);
 
    //Copy buffer
-   for (unsigned i=1; i<size; i++) {
+   for (unsigned i=0; i<size; i++) {
       buffer[i] = start[i];
       if (segfaulted) 
          break;
@@ -1511,7 +1511,8 @@ Frame process::preStackWalkInit(Frame startFrame)
   calcVSyscallFrame( this );
   
   Address next_pc = startFrame.getPC();
-  if (next_pc >= getVsyscallStart() && next_pc < getVsyscallEnd()) {
+  if ((next_pc >= getVsyscallStart() && next_pc < getVsyscallEnd()) ||
+      /* RH9 Hack */ (next_pc >= 0xffffe000 && next_pc < 0xfffff000)) {
      return startFrame.getCallerFrame();
   }
   return startFrame;
