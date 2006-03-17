@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.16 2006/03/12 23:31:58 legendre Exp $
+// $Id: image-func.h,v 1.17 2006/03/17 19:02:31 nater Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -449,7 +449,7 @@ class image_func : public codeRange {
 
    bool containsSharedBlocks() const { return containsSharedBlocks_; }
 
-   image_basicBlock * entryBlock() const { return entryBlock_; }
+   image_basicBlock * entryBlock();
 
    bool parsed() { return parsed_; }
 
