@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.595 2006/03/16 19:19:12 mjbrim Exp $
+// $Id: process.C,v 1.596 2006/03/17 21:13:27 bernat Exp $
 
 #include <ctype.h>
 
@@ -4139,6 +4139,12 @@ bool process::addASharedObject(mapped_object *new_obj)
 	 }
     }
 #endif
+
+    if (!reachedBootstrapState(bootstrapped_bs)) 
+        // Don't let BPatch know about modules before we've
+        // loaded
+        return true;
+    
 
     const pdvector<mapped_module *> &modlist = new_obj->getModules();
 
