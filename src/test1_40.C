@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_40.C,v 1.3 2006/03/08 16:44:42 bpellin Exp $
+// $Id: test1_40.C,v 1.4 2006/03/18 00:19:23 bpellin Exp $
 /*
  * #Name: test1_40
  * #Desc: Verify that we can monitor call sites
@@ -133,6 +133,7 @@ int mutatorTest(BPatch_thread * /*appThread*/, BPatch_image *appImage)
   //RETURNONFAIL(setVar40("gv_addr_of_call40_5", call40_5->getBaseAddr(),appImage));
 
   monitorFunc = findFunction40(monitorFuncName, appImage);
+  RETURNONNULL(monitorFunc);
 
    BPatch_Vector<BPatch_point *> *calls = targetFunc->findPoint(BPatch_subroutine);
    if (!calls) {
