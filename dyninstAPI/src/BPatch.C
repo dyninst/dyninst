@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.127 2006/03/14 22:57:12 legendre Exp $
+// $Id: BPatch.C,v 1.128 2006/03/19 18:34:46 mirg Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -448,16 +448,21 @@ void BPatch::setSaveFPRInt(bool x)
 BPatchErrorCallback BPatch::registerErrorCallbackInt(BPatchErrorCallback function)
 {
     BPatchErrorCallback ret = NULL;
-    ErrorCallback *cb = new ErrorCallback(function);
 
     pdvector<CallbackBase *> cbs;
     getCBManager()->removeCallbacks(evtError, cbs);
-    getCBManager()->registerCallback(evtError, cb);
+
     if (cbs.size()) {
       mailbox_printf("%s[%d]:  removed %d error cbs\n", FILE__, __LINE__, cbs.size());
       ErrorCallback *ercb = (ErrorCallback *) cbs[0];
       ret = ercb->getFunc();
     }
+
+    if (function != 0) {
+	ErrorCallback *cb = new ErrorCallback(function);
+	getCBManager()->registerCallback(evtError, cb);
+    }
+    // If function is zero, we treat it as a remove-callback request
 
     return ret;
 }
@@ -479,16 +484,20 @@ BPatchForkCallback BPatch::registerPostForkCallbackInt(BPatchForkCallback func)
   return NULL;
 #else
     BPatchForkCallback ret = NULL;
-    ForkCallback *cb = new ForkCallback(func);
 
     pdvector<CallbackBase *> cbs;
     getCBManager()->removeCallbacks(evtPostFork, cbs);
-    getCBManager()->registerCallback(evtPostFork, cb);
 
     if (cbs.size()) {
       ForkCallback *fcb = (ForkCallback *) cbs[0];
       ret =  fcb->getFunc();
     }
+
+    if (func != 0) {
+	ForkCallback *cb = new ForkCallback(func);
+	getCBManager()->registerCallback(evtPostFork, cb);
+    }
+    // If func is zero, we assume it is a remove-callback request
 
     return ret;
 #endif
@@ -510,16 +519,21 @@ BPatchForkCallback BPatch::registerPreForkCallbackInt(BPatchForkCallback func)
     return NULL;
 #else
     BPatchForkCallback ret = NULL;
-    ForkCallback *cb = new ForkCallback(func);
 
     pdvector<CallbackBase *> cbs;
     getCBManager()->removeCallbacks(evtPreFork, cbs);
-    getCBManager()->registerCallback(evtPreFork, cb);
+
     if (cbs.size()) {
       ForkCallback *fcb = (ForkCallback *) cbs[0];
       ret =  fcb->getFunc();
     }
 
+    if (func != 0) {
+	ForkCallback *cb = new ForkCallback(func);
+	getCBManager()->registerCallback(evtPreFork, cb);
+    }
+    // If func is zero, we assume it is a remove-callback request
+	
     return ret;
 #endif
 }
@@ -543,13 +557,17 @@ BPatchExecCallback BPatch::registerExecCallbackInt(BPatchExecCallback func)
     BPatchExecCallback ret = NULL;
 
     pdvector<CallbackBase *> cbs;
-    ExecCallback *cb = new ExecCallback(func);
     getCBManager()->removeCallbacks(evtExec, cbs);
-    getCBManager()->registerCallback(evtExec, cb);
     if (cbs.size()) {
       ExecCallback *fcb = (ExecCallback *) cbs[0];
       ret =  fcb->getFunc();
     }
+
+    if (func != 0) {
+	ExecCallback *cb = new ExecCallback(func);
+	getCBManager()->registerCallback(evtExec, cb);
+    }
+    // If func is zero, we assume it is a remove-callback request
 
     return ret;
 
@@ -566,16 +584,20 @@ BPatchExecCallback BPatch::registerExecCallbackInt(BPatchExecCallback func)
  */
 BPatchExitCallback BPatch::registerExitCallbackInt(BPatchExitCallback func)
 {
-    BPatchExitCallback ret = NULL;
-    ExitCallback *cb = new ExitCallback(func);
-
     pdvector<CallbackBase *> cbs;
     getCBManager()->removeCallbacks(evtProcessExit, cbs);
-    getCBManager()->registerCallback(evtProcessExit, cb);
+
+    BPatchExitCallback ret = NULL;
     if (cbs.size()) {
-      ExitCallback *fcb = (ExitCallback *) cbs[0];
-      ret =  fcb->getFunc();
+	ExitCallback *fcb = (ExitCallback *) cbs[0];
+	ret =  fcb->getFunc();
     }
+
+    if (func != 0) {
+	ExitCallback *cb = new ExitCallback(func);
+	getCBManager()->registerCallback(evtProcessExit, cb);
+    }
+    // If func is zero, we assume it is a remove-callback request
 
     return ret;
 }
@@ -591,15 +613,19 @@ BPatchExitCallback BPatch::registerExitCallbackInt(BPatchExitCallback func)
 BPatchOneTimeCodeCallback BPatch::registerOneTimeCodeCallbackInt(BPatchOneTimeCodeCallback func)
 {
     BPatchOneTimeCodeCallback ret = NULL;
-    OneTimeCodeCallback *cb = new OneTimeCodeCallback(func);
 
     pdvector<CallbackBase *> cbs;
     getCBManager()->removeCallbacks(evtOneTimeCode, cbs);
-    getCBManager()->registerCallback(evtOneTimeCode, cb);
     if (cbs.size()) {
       OneTimeCodeCallback *fcb = (OneTimeCodeCallback *) cbs[0];
       ret =  fcb->getFunc();
     }
+
+    if (func != 0) {
+	OneTimeCodeCallback *cb = new OneTimeCodeCallback(func);
+	getCBManager()->registerCallback(evtOneTimeCode, cb);
+    }
+    // If func is zero, we assume it is a remove-callback request
 
     return ret;
 }
@@ -619,15 +645,19 @@ BPatch::registerDynLibraryCallbackInt(BPatchDynLibraryCallback function)
 {
 
     BPatchDynLibraryCallback ret = NULL;
-    DynLibraryCallback *cb = new DynLibraryCallback(function);
 
     pdvector<CallbackBase *> cbs;
     getCBManager()->removeCallbacks(evtLoadLibrary, cbs);
-    getCBManager()->registerCallback(evtLoadLibrary, cb);
     if (cbs.size()) {
       DynLibraryCallback *fcb = (DynLibraryCallback *) cbs[0];
       ret =  fcb->getFunc();
     }
+
+    if (function != 0) {
+	DynLibraryCallback *cb = new DynLibraryCallback(function);
+	getCBManager()->registerCallback(evtLoadLibrary, cb);
+    }
+    // If function is zero, we assume it is a remove-callback request
 
     return ret;
 }
@@ -1807,10 +1837,18 @@ bool BPatch::registerThreadEventCallbackInt(BPatch_asyncEventType type,
     };
 
     pdvector<CallbackBase *> cbs;
-    AsyncThreadEventCallback *cb = new AsyncThreadEventCallback(func);
     getCBManager()->removeCallbacks(evt, cbs);
-    bool ret = getCBManager()->registerCallback(evt, cb);
-
+    
+    bool ret;
+    if (func != 0) {
+	AsyncThreadEventCallback *cb = new AsyncThreadEventCallback(func);
+	ret = getCBManager()->registerCallback(evt, cb);
+    }
+    else {
+	// For consistency with fork, exit, ... callbacks, treat
+	// func == 0 as a remove-all-callbacks-of-type-x request
+	ret = true;
+    }
     return ret;
 }
 
@@ -1909,16 +1947,21 @@ BPatchProcessEventCallback BPatch::registerExitCallbackDPCL(BPatchProcessEventCa
 
     BPatchProcessEventCallback ret = NULL;
 
-    DPCLProcessEventCallback *cb = new DPCLProcessEventCallback(func);
     pdvector<CallbackBase *> cbs;
     getCBManager()->removeCallbacks(evtProcessExit, cbs);
-    getCBManager()->registerCallback(evtProcessExit, cb);
+    
+    if (func != 0) {
+	DPCLProcessEventCallback *cb = new DPCLProcessEventCallback(func);
+	getCBManager()->registerCallback(evtProcessExit, cb);
+    }
+    // If func is zero, we assume it is a remove-callback request
+
     if (cbs.size()) {
         DPCLProcessEventCallback *fcb = dynamic_cast<DPCLProcessEventCallback *>(cbs[0]);
         if (!fcb) return NULL;
         ret =  fcb->getFunc();
     }
-    
+
     return ret;
 }
 
@@ -1933,16 +1976,21 @@ BPatchProcessEventCallback BPatch::registerRPCTerminationCallbackInt(BPatchProce
 {
     BPatchProcessEventCallback ret = NULL;
 
-    DPCLProcessEventCallback *cb = new DPCLProcessEventCallback(func);
     pdvector<CallbackBase *> cbs;
     getCBManager()->removeCallbacks(evtOneTimeCode, cbs);
-    getCBManager()->registerCallback(evtOneTimeCode, cb);
+
+    if (func != 0) {
+	DPCLProcessEventCallback *cb = new DPCLProcessEventCallback(func);
+	getCBManager()->registerCallback(evtOneTimeCode, cb);
+    }
+    // If func is zero, we assume it is a remove-callback request
+    
     if (cbs.size()) {
         DPCLProcessEventCallback *fcb = dynamic_cast<DPCLProcessEventCallback *>(cbs[0]);
         if (!fcb) return NULL;
         ret =  fcb->getFunc();
     }
-    
+
     return ret;
 }
 
@@ -1982,16 +2030,21 @@ BPatchThreadEventCallback BPatch::registerExitCallbackDPCL(BPatchThreadEventCall
 
     BPatchThreadEventCallback ret = NULL;
 
-    DPCLThreadEventCallback *cb = new DPCLThreadEventCallback(func);
     pdvector<CallbackBase *> cbs;
     getCBManager()->removeCallbacks(evtProcessExit, cbs);
-    getCBManager()->registerCallback(evtProcessExit, cb);
+    
+    if (func != 0) {
+	getCBManager()->registerCallback(evtProcessExit, cb);
+	DPCLThreadEventCallback *cb = new DPCLThreadEventCallback(func);
+    }
+    // If func is zero, we assume it is a remove-callback request
+
     if (cbs.size()) {
         DPCLThreadEventCallback *fcb = dynamic_cast<DPCLThreadEventCallback *>(cbs[0]);
         if (!fcb) return NULL;
         ret =  fcb->getFunc();
     }
-    
+
     return ret;
 }
 
@@ -1999,10 +2052,15 @@ BPatchThreadEventCallback BPatch::registerRPCTerminationCallbackInt(BPatchThread
 {
     BPatchThreadEventCallback ret = NULL;
 
-    DPCLThreadEventCallback *cb = new DPCLThreadEventCallback(func);
     pdvector<CallbackBase *> cbs;
     getCBManager()->removeCallbacks(evtOneTimeCode, cbs);
-    getCBManager()->registerCallback(evtOneTimeCode, cb);
+
+    if (func != 0) {
+	DPCLThreadEventCallback *cb = new DPCLThreadEventCallback(func);
+	getCBManager()->registerCallback(evtOneTimeCode, cb);
+    }
+    // If func is zero, we assume it is a remove-callback request
+
     if (cbs.size()) {
         DPCLThreadEventCallback *fcb = dynamic_cast<DPCLThreadEventCallback *>(cbs[0]);
         if (!fcb) return NULL;
