@@ -207,21 +207,9 @@ int error_exit()
    return -1;
 }
 
-extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+static int mutatorTest(BPatch *bpatch)
 {
    unsigned num_attempts = 0;
-
-   /* Grab info from param */
-   bpatch = (BPatch *)(param["bpatch"]->getPtr());
-   filename = param["pathname"]->getString();
-
-   if ( param["useAttach"]->getInt() != 0 )
-   {
-      should_exec = false;
-   }
-
-   bpatch->registerThreadEventCallback(BPatch_threadCreateEvent, newthr);
-   bpatch->registerThreadEventCallback(BPatch_threadDestroyEvent, deadthr);
 
    proc = getProcess();
    if (!proc)
@@ -418,4 +406,38 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 
    printf("Test completed without errors\n");
    return 0;
+}
+
+extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
+{
+   /* Grab info from param */
+   bpatch = (BPatch *)(param["bpatch"]->getPtr());
+   filename = param["pathname"]->getString();
+
+   if ( param["useAttach"]->getInt() != 0 )
+   {
+      should_exec = false;
+   }
+
+   if (!bpatch->registerThreadEventCallback(BPatch_threadCreateEvent,
+					    newthr) ||
+       !bpatch->registerThreadEventCallback(BPatch_threadDestroyEvent,
+					    deadthr))
+   {
+      fprintf(stderr, "%s[%d]:  failed to register thread callback\n",
+	      __FILE__, __LINE__);
+      return (-1);
+   }
+   
+   int rv = mutatorTest(bpatch);
+
+   if (!bpatch->removeThreadEventCallback(BPatch_threadCreateEvent, newthr) ||
+       !bpatch->removeThreadEventCallback(BPatch_threadDestroyEvent, deadthr))
+   {
+      fprintf(stderr, "%s[%d]:  failed to remove thread callback\n",
+	      __FILE__, __LINE__);
+      return (-1);
+   }
+
+   return rv;
 }

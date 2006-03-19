@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test7_5.C,v 1.3 2006/03/03 00:23:59 bpellin Exp $
+// $Id: test7_5.C,v 1.4 2006/03/19 18:34:57 mirg Exp $
 /*
  * #Name: test7_5
  * #Desc: Add snippets to parent & child
@@ -248,10 +248,6 @@ void initialPreparation(BPatch_thread *parent)
 
 int mutatorTest(BPatch *bpatch, BPatch_thread *appThread)
 {
-   // Register Handlers
-    bpatch->registerPostForkCallback(postForkFunc);
-    bpatch->registerExitCallback(exitFunc);
-
     if ( !setupMessaging(&msgid) )
     {
        passedTest = false;
@@ -302,7 +298,15 @@ extern "C" int mutatorMAIN(ParameterDict &param)
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
 
+    // Register callbacks
+    bpatch->registerPostForkCallback(postForkFunc);
+    bpatch->registerExitCallback(exitFunc);
+
     bool passed = mutatorTest(bpatch, appThread);
+
+    // Remove callbacks upon test completion
+    bpatch->registerPostForkCallback(NULL);
+    bpatch->registerExitCallback(NULL);
 
     showFinalResults(passed, 5);
     if ( passed )

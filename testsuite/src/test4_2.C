@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4_2.C,v 1.7 2006/03/12 23:33:33 legendre Exp $
+// $Id: test4_2.C,v 1.8 2006/03/19 18:34:50 mirg Exp $
 /*
  * #Name: test4_2
  * #Desc: Fork Callback
@@ -215,12 +215,6 @@ int mutatorTest(char *pathname, BPatch *bpatch)
 	
     dprintf("in mutatorTest2\n");
 
-    // Register the proper callbacks for this test
-    bpatch->registerPreForkCallback(forkFunc);
-    bpatch->registerPostForkCallback(forkFunc);
-    bpatch->registerExecCallback(execFunc);
-    bpatch->registerExitCallback(exitFunc);
-
     child_argv[n++] = pathname;
     if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
 
@@ -257,6 +251,19 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     debugPrint = param["debugPrint"]->getInt();
 
-    return mutatorTest(pathname, bpatch);
-    
+    // Register the proper callbacks for this test
+    bpatch->registerPreForkCallback(forkFunc);
+    bpatch->registerPostForkCallback(forkFunc);
+    bpatch->registerExecCallback(execFunc);
+    bpatch->registerExitCallback(exitFunc);
+
+    int rv = mutatorTest(pathname, bpatch);
+
+    // Remove callbacks upon test completion
+    bpatch->registerPreForkCallback(NULL);
+    bpatch->registerPostForkCallback(NULL);
+    bpatch->registerExecCallback(NULL);
+    bpatch->registerExitCallback(NULL);
+
+    return rv;
 }
