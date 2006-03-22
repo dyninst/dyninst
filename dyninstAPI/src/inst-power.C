@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.241 2006/03/02 23:52:33 bernat Exp $
+ * $Id: inst-power.C,v 1.242 2006/03/22 14:47:30 rutar Exp $
  */
 
 #include "common/h/headers.h"
@@ -253,13 +253,17 @@ void initTramps(bool is_multithreaded)
     //   sites.
     // reg 3-10 are used to pass arguments to functions.
     //   We must save them before we can use them.
+    
+    
     Register deadRegList[1];
     unsigned dead_reg_count = 0;
+
+    
     if(! is_multithreaded) {
        dead_reg_count++;
        deadRegList[0] = 12;
     }
-
+    
     
     regSpace = 
        new registerSpace(dead_reg_count, deadRegList, 
@@ -2943,115 +2947,122 @@ bool int_basicBlock::initRegisterGenKill()
        }
     }
 
-    
+    if (ii.isADynamicCallInstruction())
+      {
+	 for (int a = 3; a <= 10; a++)
+	   gen->bitarray_set(a,gen);
+	 for (int a = 1; a <= 13; a++)
+	   genFP->bitarray_set(a,genFP);
+      }
+
     /* If it is a call instruction we look at which registers are used
        at the beginning of the called function, If we can't do that, we just
        gen registers 3-10 (the parameter holding volative 
        registers for power) & (1-13 for FPR)*/
     if (ii.isACallInstruction())
       {
-          Address callAddress = ii.getBranchTargetAddress();
+	Address callAddress = ii.getBranchTargetAddress();
 	//printf("Call Address is 0x%x \n",callAddress);
-
-          //process *proc = flowGraph->getBProcess()->lowlevel_process();
+	
+	//process *proc = flowGraph->getBProcess()->lowlevel_process();
+	
+	// process * procc = proc();
+	int_function * funcc;
           
-	  // process * procc = proc();
-	  int_function * funcc;
-          
-          codeRange * range = proc()->findCodeRangeByAddress(callAddress);
-          
-          if (range)
-              {
-                  funcc = range->is_function();
-                  if (funcc)
-                      {
-                          InstrucIter ah(funcc);
-                          while (ah.hasMore())
-                              {
-				// GPR
-				if (ah.isA_RT_ReadInstruction()){
-				  gen->bitarray_set(ah.getRTValue(),gen);
-				}
-				if (ah.isA_RA_ReadInstruction()){
-				  gen->bitarray_set(ah.getRAValue(),gen);
-				}
-				if (ah.isA_RB_ReadInstruction()){
-				  gen->bitarray_set(ah.getRBValue(),gen);
-				}
-
-				// FPR
-				if (ah.isA_FRT_ReadInstruction()){
-				  genFP->bitarray_set(ah.getFRTValue(),genFP);
-				}
-				if (ah.isA_FRA_ReadInstruction()){
-				  genFP->bitarray_set(ah.getFRAValue(),genFP);
-				}
-				if (ah.isA_FRB_ReadInstruction()){
-				  genFP->bitarray_set(ah.getFRBValue(),genFP);
-				}
-				if (ah.isA_FRC_ReadInstruction()){
-				  genFP->bitarray_set(ah.getFRCValue(),genFP);
-				}
-				if (ah.isACallInstruction() || ah.isAIndirectJumpInstruction()) {
-                                   // Non-leaf.  Called function may
-                                   // use registers never used by callee,
-                                   // but used by this function.
-
-                                   // Tail call optimization can also use the CTR
-                                   // register that would normally be used by an
-                                   // indirect jump.  Err on the safe side
-                                   for (int a = 3; a <= 10; a++)
-                                      gen->bitarray_set(a,gen);
-                                   for (int a = 1; a <= 13; a++)
-                                      genFP->bitarray_set(a,genFP);
-                                   break;
-                                }
-                                if (ii.isAJumpInstruction()) {
-                                   Address branchAddress = ii.getBranchTargetAddress();
-                                   // This function might not use any input registers
-                                   // but the tail-call optimization could
-                                   
-                                   codeRange *range = func_->ifunc();
-                                   
-                                   if (range) {
-                                      if (!(range->get_address_cr() <= branchAddress &&
-                                            branchAddress < (range->get_address_cr() + range->get_size_cr()))) {
-                                         for (int a = 3; a <= 10; a++)
-                                            gen->bitarray_set(a,gen);
-                                         for (int a = 1; a <= 13; a++)
-                                            genFP->bitarray_set(a,genFP);
-                                         break;
-                                      }
-                                   } else {
-                                      for (int a = 3; a <= 10; a++)
-                                         gen->bitarray_set(a,gen);
-                                      for (int a = 1; a <= 13; a++)
-                                         genFP->bitarray_set(a,genFP);
-                                      break;
-                                   }
-                                }
-                                  
-                                  Address pos = ah++;
-                              }
-                      }
-                  else
-                      {
-                          for (int a = 3; a <= 10; a++)
+	codeRange * range = proc()->findCodeRangeByAddress(callAddress);
+	
+	if (range)
+	  {
+	    funcc = range->is_function();
+	    if (funcc)
+	      {
+		InstrucIter ah(funcc);
+		while (ah.hasMore())
+		  {
+		    // GPR
+		    if (ah.isA_RT_ReadInstruction()){
+		      gen->bitarray_set(ah.getRTValue(),gen);
+		    }
+		    if (ah.isA_RA_ReadInstruction()){
+		      gen->bitarray_set(ah.getRAValue(),gen);
+		    }
+		    if (ah.isA_RB_ReadInstruction()){
+		      gen->bitarray_set(ah.getRBValue(),gen);
+		    }
+		    
+		    // FPR
+		    if (ah.isA_FRT_ReadInstruction()){
+		      genFP->bitarray_set(ah.getFRTValue(),genFP);
+		    }
+		    if (ah.isA_FRA_ReadInstruction()){
+		      genFP->bitarray_set(ah.getFRAValue(),genFP);
+		    }
+		    if (ah.isA_FRB_ReadInstruction()){
+		      genFP->bitarray_set(ah.getFRBValue(),genFP);
+		    }
+		    if (ah.isA_FRC_ReadInstruction()){
+		      genFP->bitarray_set(ah.getFRCValue(),genFP);
+		    }
+		    if (ah.isACallInstruction() || ah.isAIndirectJumpInstruction()) {
+		      // Non-leaf.  Called function may
+		      // use registers never used by callee,
+		      // but used by this function.
+		      
+		      // Tail call optimization can also use the CTR
+		      // register that would normally be used by an
+		      // indirect jump.  Err on the safe side
+		      for (int a = 3; a <= 10; a++)
+			gen->bitarray_set(a,gen);
+		      for (int a = 1; a <= 13; a++)
+			genFP->bitarray_set(a,genFP);
+		      break;
+		    }
+		    if (ii.isAJumpInstruction()) {
+		      Address branchAddress = ii.getBranchTargetAddress();
+		      // This function might not use any input registers
+		      // but the tail-call optimization could
+		      
+		      codeRange *range = func_->ifunc();
+		      
+		      if (range) {
+			if (!(range->get_address_cr() <= branchAddress &&
+			      branchAddress < (range->get_address_cr() + range->get_size_cr()))) {
+			  for (int a = 3; a <= 10; a++)
 			    gen->bitarray_set(a,gen);
 			  for (int a = 1; a <= 13; a++)
 			    genFP->bitarray_set(a,genFP);
-                      }
-              }
-          else
-              {
-                  for (int a = 3; a <= 10; a++)
-		    gen->bitarray_set(a,gen);
-		  for (int a = 1; a <= 13; a++)
-		    genFP->bitarray_set(a,genFP);
-              }
-      } 
+			  break;
+			}
+		      } else {
+			for (int a = 3; a <= 10; a++)
+			  gen->bitarray_set(a,gen);
+			for (int a = 1; a <= 13; a++)
+			  genFP->bitarray_set(a,genFP);
+			break;
+		      }
+		    }
+		    
+		    Address pos = ah++;
+		  } /* ah.hasMore */
+	      }
+	    else
+	      {
+		for (int a = 3; a <= 10; a++)
+		  gen->bitarray_set(a,gen);
+		for (int a = 1; a <= 13; a++)
+		  genFP->bitarray_set(a,genFP);
+	      } /* funcc */
+	  }
+	else /* if range */
+	  {
+	    for (int a = 3; a <= 10; a++)
+	      gen->bitarray_set(a,gen);
+	    for (int a = 1; a <= 13; a++)
+	      genFP->bitarray_set(a,genFP);
+	  }
+      } /* if call */
     ii++;
-  } 
+  } /*while ii.hasMore */
   return true;
 }
 
