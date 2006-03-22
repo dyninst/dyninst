@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_40.C,v 1.4 2006/03/18 00:19:23 bpellin Exp $
+// $Id: test1_40.C,v 1.5 2006/03/22 14:07:30 bpellin Exp $
 /*
  * #Name: test1_40
  * #Desc: Verify that we can monitor call sites
@@ -179,6 +179,7 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
     bool useAttach = param["useAttach"]->getInt();
     bpatch = (BPatch *)(param["bpatch"]->getPtr());
     BPatch_thread *appThread = (BPatch_thread *)(param["appThread"]->getPtr());
+    mutateeXLC = param["mutateeXLC"]->getInt();
 
 
     // Read the program's image and get an associated image object
