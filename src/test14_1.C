@@ -72,6 +72,12 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
    const char *child_prog;
    const char *child_args[2] = { NULL, NULL };
 
+#if defined(os_osf)
+   printf("Skipped test #1 (Multithreaded Tramp Guards)\n");
+   printf("\t- Not implemented on this platform\n");
+   return 0;
+#endif
+
    bpatch = (BPatch *)(param["bpatch"]->getPtr());
    child_prog = param["pathname"]->getString();
 

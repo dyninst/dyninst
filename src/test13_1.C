@@ -351,6 +351,12 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
    bpatch = (BPatch *)(param["bpatch"]->getPtr());
    filename = param["pathname"]->getString();
 
+#if defined(os_osf)
+   printf("Skipped test #1 (Threading Callbacks)\n");
+   printf("\t- Not implemented on this platform\n");
+   return 0;
+#endif
+
    if ( param["useAttach"]->getInt() != 0 )
    {
       should_exec = false;

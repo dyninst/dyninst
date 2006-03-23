@@ -105,6 +105,10 @@ int main()
    unsigned i, j;
    void *ret_val;
 
+#if defined(os_osf)
+   return 0;
+#endif
+
    pthread_attr_t attr;
    pthread_attr_init(&attr);
    pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
