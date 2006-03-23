@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.161 2006/03/12 04:44:03 darnold Exp $
+ * $Id: DMdaemon.C,v 1.162 2006/03/23 23:57:30 legendre Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -1234,13 +1234,13 @@ bool writeMPICHWrapper(int fd, const pdstring& buffer )
         perror("Failed to write MPI wrapper (seek)");
         return false;
     }
+    if (fchmod(fd, S_IRWXU | S_IRWXG | S_IRWXO) == -1) {
+        perror("Failed to write MPI wrapper (chmod)");
+        return false;
+    }
     if (write(fd, buffer.c_str(), strlen(buffer.c_str())) !=
         (ssize_t)(strlen(buffer.c_str()))) {
         perror("Failed to write MPI wrapper (write)");
-        return false;
-    }
-    if (fchmod(fd, S_IRWXU | S_IRWXG | S_IRWXO) == -1) {
-        perror("Failed to write MPI wrapper (chmod)");
         return false;
     }
     if (close(fd) == -1) {
