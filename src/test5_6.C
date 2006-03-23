@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test5_6.C,v 1.3 2006/03/12 23:33:40 legendre Exp $
+// $Id: test5_6.C,v 1.4 2006/03/23 23:57:43 legendre Exp $
 /*
  * #Name: test5_6
  * #Desc: Exception
@@ -61,7 +61,7 @@
 // 
 int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(os_solaris) || defined(os_linux)
+#if defined(os_linux) && defined(arch_x86)
 
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn2 = "exception_test::func_cpp";
@@ -119,7 +119,6 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
      }
      index++;
    }
-
 #endif
    return PASS;
 }
