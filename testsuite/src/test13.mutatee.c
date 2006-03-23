@@ -43,6 +43,10 @@ int main(int argc, char *argv[])
    char c = 'T';
    void *threads[NTHRD];
 
+#if defined(os_osf)
+   return 0;
+#endif
+
    initThreads();
 
    parse_args(argc, argv);
