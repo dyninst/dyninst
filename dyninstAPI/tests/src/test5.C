@@ -319,7 +319,7 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
     exit(-1);
   }
 
-    for (int n=0; n<point2_1->size(); n++) {
+    for (unsigned n=0; n<point2_1->size(); n++) {
        BPatch_function *func;
 
        if ((func = (*point2_1)[n]->getCalledFunction()) == NULL) continue;
@@ -431,7 +431,7 @@ void mutatorTest3(BPatch_thread *appThread, BPatch_image *appImage)
 
   assert(point3_1);
 
-  int index = 0;
+  unsigned index = 0;
   BPatch_function *func;
   while (index < point3_1->size()) {
      if ((func = (*point3_1)[index]->getCalledFunction()) == NULL) {
@@ -624,7 +624,7 @@ void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
       exit(-1);
    }
    
-   int index = 0;
+   unsigned index = 0;
    while ( index < fields->size() ) {
       if (!strcmp("class_variable", (*fields)[index]->getName()) ) {
 
@@ -669,10 +669,7 @@ void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
 // 
 void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(ia64_unknown_linux2_4)
+#if defined(i386_unknown_linux2_0)
 
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn2 = "exception_test::func_cpp";
@@ -729,7 +726,6 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
      }
      index++;
    }
-
 #endif
 }
 
@@ -1000,7 +996,7 @@ void mutatorTest9(BPatch_thread *, BPatch_image *appImage)
          exit(-1);
    }
 
-   int index = 0;
+   unsigned index = 0;
    while ( index < fields->size() ) {
        if ( !strcmp("call_cpp", (*fields)[index]->getName()) ) {
           found = true;
@@ -1041,7 +1037,7 @@ void mutatorTest10(BPatch_thread *appThread, BPatch_image *appImage)
      fprintf(stderr, "  Mutator couldn't search modules of standard library\n");
      exit(1);
    }
-   for (int i = 0; i < mods->size() && !(modStdC); i++) {
+   for (unsigned i = 0; i < mods->size() && !(modStdC); i++) {
        char buf[1024];
        BPatch_module *m = (*mods)[i];
        m->getName(buf, 1024);
@@ -1347,7 +1343,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
 	signalAttached(appThread, appImage);
     }
 
-    int i;
+    unsigned i;
     BPatch_Vector<BPatch_module *> *m = appImage->getModules();
     for (i=0; i < m->size(); i++) {
         // dprintf("func %s\n", (*m)[i]->name());

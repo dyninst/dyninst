@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test5.mutatee.C,v 1.16 2006/02/09 03:34:26 tlmiller Exp $ */
+/* $Id: test5.mutatee.C,v 1.17 2006/03/23 23:57:41 legendre Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -366,17 +366,7 @@ void exception_test::call_cpp()
 
 void exception_test::func_cpp()
 {
-#if !defined(sparc_sun_solaris2_4) \
- && !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(ia64_unknown_linux2_4)
-
-    printf("Skipped test #6 (exception)\n");
-    printf("\t- not implemented on this platform\n");
-    passedTest[6] = TRUE;
-
-#else
-
+#if defined(arch_x86) && !defined(arch_x86_64) && defined(os_linux)
    try {
           int testno = 6;
           call_cpp();
@@ -389,6 +379,10 @@ void exception_test::func_cpp()
      cerr << "    Does not catch appropriate exception" << endl;
      throw;
    }
+#else
+    printf("Skipped test #6 (exception)\n");
+    printf("\t- not implemented on this platform\n");
+    passedTest[6] = TRUE;
 #endif
 }
 

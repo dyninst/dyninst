@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test5.mutatee.C,v 1.4 2006/03/12 23:33:34 legendre Exp $ */
+/* $Id: test5.mutatee.C,v 1.5 2006/03/23 23:57:42 legendre Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -368,12 +368,7 @@ void exception_test::call_cpp()
 
 void exception_test::func_cpp()
 {
-#if !defined(os_solaris) && !defined(os_linux)
-    printf("Skipped test #6 (exception)\n");
-    printf("\t- not implemented on this platform\n");
-    passedTest[6] = TRUE;
-
-#else
+#if defined(os_linux) && defined(arch_x86) && !defined(arch_x86_64)
    try {
       int testno = 6;
       call_cpp();
@@ -388,6 +383,10 @@ void exception_test::func_cpp()
      throw;
    }
    fprintf(stderr, "Missed proper exception\n");
+#else
+    printf("Skipped test #6 (exception)\n");
+    printf("\t- not implemented on this platform\n");
+    passedTest[6] = TRUE;
 #endif
 }
 
