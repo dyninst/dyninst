@@ -1,5 +1,8 @@
 #
 # $Log: Makefile,v $
+# Revision 1.2  2006/03/27 17:32:45  igor
+# Add uses USES_TCLTK
+#
 # Revision 1.1  2005/02/24 10:14:27  rchen
 # Introduction of the x86_64-unknown-linux2.4 platform.  - - - - - - - - -
 # Platform directory structure creation.
@@ -20,6 +23,7 @@
 # Define any symbols needed to invoke configuration changes in make.config
 
 USES_X11	= true
+USES_TCLTK      = true
 TO_CORE		= ../../..
 NO_IMPLICIT_TEMPLATES = true
 
