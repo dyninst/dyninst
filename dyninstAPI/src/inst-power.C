@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.242 2006/03/22 14:47:30 rutar Exp $
+ * $Id: inst-power.C,v 1.243 2006/03/27 18:43:52 rutar Exp $
  */
 
 #include "common/h/headers.h"
@@ -229,7 +229,7 @@ Register conservativeDeadRegList[] = { };
 #endif
 
 // The registers that aren't preserved by called functions are considered live.
-Register conservativeLiveRegList[] = { 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 0 };
+Register conservativeLiveRegList[] = { 11, 10, 9, 8, 7, 6, 5, 4, 3, 0 };
 
 #if defined(__XLC__) || defined(__xlC__)
 Register *floatingDeadRegList;
@@ -258,12 +258,12 @@ void initTramps(bool is_multithreaded)
     Register deadRegList[1];
     unsigned dead_reg_count = 0;
 
-    
+    /*
     if(! is_multithreaded) {
        dead_reg_count++;
        deadRegList[0] = 12;
     }
-    
+    */
     
     regSpace = 
        new registerSpace(dead_reg_count, deadRegList, 
@@ -771,8 +771,8 @@ unsigned restoreGPRegisters(codeGen &gen,
     for(u_int i = 0; i < theRegSpace->getRegisterCount(); i++) {
         registerSlot *reg = theRegSpace->getRegSlot(i);
         if (reg->startsLive) {
-            restoreRegister(gen, reg->number, save_off);
-            numRegs++;
+	  restoreRegister(gen, reg->number, save_off);
+	  numRegs++;
         }
     }
 #endif
@@ -942,6 +942,9 @@ bool baseTramp::generateSaves(codeGen &gen,
     // Make a stack frame.
     pushStack(gen);
 
+    // Multithread GPR -- always save
+    saveRegister(gen, REG_MT_POS, TRAMP_GPR_OFFSET);
+
     // Save GPRs
     saveGPRegisters(gen,
                     theRegSpace,
@@ -995,6 +998,9 @@ bool baseTramp::generateRestores(codeGen &gen,
 
     // GPRs
     restoreGPRegisters(gen, theRegSpace, TRAMP_GPR_OFFSET);
+
+    // Multithread GPR -- always save
+    restoreRegister(gen, REG_MT_POS, TRAMP_GPR_OFFSET);
 
     popStack(gen);
 
