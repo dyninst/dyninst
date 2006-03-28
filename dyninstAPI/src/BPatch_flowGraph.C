@@ -97,6 +97,7 @@ BPatch_flowGraph::BPatch_flowGraph(BPatch_function *func,
 bool DEBUG_LOOP = false;
 
 /* Called once per function to initalize the liveness information for the CFG */
+#if defined(os_aix) || defined(arch_x86_64)
 void BPatch_flowGraph::initLivenessInfoInt()
 {
   BPatch_basicBlock **blocks = new BPatch_basicBlock *[allBlocks.size()];
@@ -132,7 +133,11 @@ void BPatch_flowGraph::initLivenessInfoInt()
   
   delete[] blocks; 
 }
-
+#else
+void BPatch_flowGraph::initLivenessInfoInt()
+{
+}
+#endif
 
 void 
 BPatch_flowGraph::findLoopExitInstPoints(BPatch_loop *loop,
