@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.74 2006/03/12 23:31:32 legendre Exp $
+// $Id: BPatch_function.C,v 1.75 2006/03/28 19:59:55 rutar Exp $
 
 #define BPATCH_FILE
 
@@ -77,7 +77,7 @@ int bpatch_function_count = 0;
 
 BPatch_function::BPatch_function(BPatch_process *_proc, int_function *_func,
 	BPatch_module *_mod) :
-	proc(_proc), mod(_mod), cfg(NULL), cfgCreated(false), func(_func)
+	proc(_proc), mod(_mod), cfg(NULL), cfgCreated(false), liveInit(false), func(_func)
 {
 #if defined(ROUGH_MEMORY_PROFILE)
     bpatch_function_count++;
@@ -110,7 +110,7 @@ BPatch_function::BPatch_function(BPatch_process *_proc, int_function *_func,
  */
 BPatch_function::BPatch_function(BPatch_process *_proc, int_function *_func,
 				 BPatch_type * _retType, BPatch_module *_mod) :
-	proc(_proc), mod(_mod), cfg(NULL), cfgCreated(false), func(_func)
+	proc(_proc), mod(_mod), cfg(NULL), cfgCreated(false), liveInit(false), func(_func)
 {
   assert(proc && !proc->func_map->defines(_func));
 
@@ -666,8 +666,18 @@ void BPatch_function::calc_liveness(BPatch_point *point) {
     
     // Need the CFG to do liveness analysis 
     BPatch_flowGraph * cfg = getCFG();
+    
+
     // No CFG, no liveness.
     if (!cfg) return;
+
+    // Initialize the liveness information once for each function
+    if (!liveInit)
+      {
+	cfg->initLivenessInfo();
+	liveInit = true;
+      }
+
     BPatch_Set<BPatch_basicBlock*> allBlocks;
     cfg->getAllBasicBlocks(allBlocks);
     BPatch_basicBlock** elements = new BPatch_basicBlock*[allBlocks.size()];

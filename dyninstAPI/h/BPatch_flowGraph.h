@@ -148,6 +148,9 @@ public:
   API_EXPORT(Int, (name),
   BPatch_basicBlockLoop *,findLoop,(const char *name));
 
+  API_EXPORT_V(Int, (),
+  void, initLivenessInfo,());
+
   /*
   API_EXPORT(Int, (edge),
   BPatch_point *,createInstPointAtEdge,(BPatch_edge *edge));
@@ -217,6 +220,7 @@ public:
   void createLoops();
 
   void dump();
+
 
   void findLoopExitInstPoints(BPatch_basicBlockLoop *loop,
                               BPatch_Vector<BPatch_point*> *points);

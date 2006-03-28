@@ -92,53 +92,47 @@ BPatch_flowGraph::BPatch_flowGraph(BPatch_function *func,
       valid = false;
       return;
    }
-
-#if defined(rs6000_ibm_aix4_1) || defined(arch_x86_64)
-   
-   // LIVENESS ANALYSIS CODE STARTS
-   
-
-   BPatch_basicBlock **blocks = new BPatch_basicBlock *[allBlocks.size()];
-   allBlocks.elements(blocks);
-
-   // Initializes the gen kill set for all blocks in the CFG
-   for (unsigned int i = 0; i < allBlocks.size(); i++)
-     {
-       (blocks[i]->lowlevel_block())->initRegisterGenKill();
-     }
-   
-   bool change = true;
-   
-   //  Does fixed point iteration to figure out the in out sets 
-   do {
-     change = false;
-     for (unsigned int i = 0; i < allBlocks.size(); i++) {
-       if ((blocks[i]->lowlevel_block())->updateRegisterInOut(false)) 
-	 change = true;
-     }
-   } while (change);
-  
-   change = true;
-
-   // Same thing for floating point
-   do {
-     change = false;
-     for (unsigned int i = 0; i < allBlocks.size(); i++) {
-       if ((blocks[i]->lowlevel_block())->updateRegisterInOut(true)) 
-	 change = true;
-     }
-   } while (change);
-
-   delete[] blocks;
-   
-   // LIVENESS ANALYSIS CODE STOPS
-  
-
-#endif 
-
 }
 
 bool DEBUG_LOOP = false;
+
+/* Called once per function to initalize the liveness information for the CFG */
+void BPatch_flowGraph::initLivenessInfoInt()
+{
+  BPatch_basicBlock **blocks = new BPatch_basicBlock *[allBlocks.size()];
+  allBlocks.elements(blocks);
+  
+  // Initializes the gen kill set for all blocks in the CFG
+  for (unsigned int i = 0; i < allBlocks.size(); i++)
+    {
+      (blocks[i]->lowlevel_block())->initRegisterGenKill();
+    }
+  
+  bool change = true;
+  
+  //  Does fixed point iteration to figure out the in out sets 
+  do {
+    change = false;
+    for (unsigned int i = 0; i < allBlocks.size(); i++) {
+      if ((blocks[i]->lowlevel_block())->updateRegisterInOut(false)) 
+	change = true;
+    }
+  } while (change);
+  
+  change = true;
+  
+  // Same thing for floating point
+  do {
+    change = false;
+    for (unsigned int i = 0; i < allBlocks.size(); i++) {
+      if ((blocks[i]->lowlevel_block())->updateRegisterInOut(true)) 
+	change = true;
+    }
+  } while (change);
+  
+  delete[] blocks; 
+}
+
 
 void 
 BPatch_flowGraph::findLoopExitInstPoints(BPatch_loop *loop,
