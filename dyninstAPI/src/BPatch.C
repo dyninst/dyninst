@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.128 2006/03/19 18:34:46 mirg Exp $
+// $Id: BPatch.C,v 1.129 2006/03/29 21:34:41 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -60,6 +60,7 @@
 #include "callbacks.h"
 #include "common/h/timing.h"
 #include "showerror.h"
+#include "signalgenerator.h"
 
 #if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 20 july 2000 : 28 mar 2001
 #include "nt_signal_emul.h"

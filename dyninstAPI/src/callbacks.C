@@ -8,6 +8,7 @@
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_thread.h"
+#include "dyninstAPI/src/signalgenerator.h"
 
 CallbackManager *callback_manager = NULL;
 CallbackManager *getCBManager()

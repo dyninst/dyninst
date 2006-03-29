@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.89 2006/02/12 22:24:32 jodom Exp $
+// $Id: osf.C,v 1.90 2006/03/29 21:34:44 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -67,6 +67,7 @@
 #include "common/h/pathName.h"
 #include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/signalhandler.h"
+#include "dyninstAPI/src/signalgenerator.h"
 #include "dyninstAPI/src/dyn_thread.h"
 
 #include "mapped_object.h"

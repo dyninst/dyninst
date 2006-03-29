@@ -45,6 +45,8 @@
 #include "EventHandler.h"
 #include "mailbox.h"
 #include "BPatch_libInfo.h"
+#include "signalhandler.h"
+#include "signalgenerator.h"
 #include <stdio.h>
 
 #if defined (os_windows)
@@ -698,19 +700,25 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
        BPatch_process *p = (BPatch_process *) appProc;
        unsigned long start_pc = (unsigned long) call_rec.start_pc;
        unsigned long stack_addr = (unsigned long) call_rec.stack_addr;
+       
        bool thread_exists = (p->getThreadByIndex(call_rec.index) != NULL);
 
        //Create the new BPatch_thread object
        async_printf("%s[%d]:  before createOrUpdateBPThread: start_pc = %p," \
-                    "addr = %p, tid = %lu\n", __FILE__, __LINE__, 
-                    (void *) start_pc, (void *) stack_addr, call_rec.tid);
+                    "addr = %p, tid = %lu, index = %d\n", __FILE__, __LINE__, 
+                    (void *) start_pc, (void *) stack_addr, call_rec.tid, 
+                    call_rec.index);
        BPatch_thread *newthr = 
           p->createOrUpdateBPThread(call_rec.lwp, (dynthread_t) call_rec.tid,
                                     call_rec.index, stack_addr, start_pc);
        if (thread_exists) {
-         return true;
+           async_printf("%s[%d]: thread already exists, returning now\n",
+                        FILE__, __LINE__);
+           return true;
        }
 
+       async_printf("%s[%d]: setting up new thread callbacks...\n", 
+                    FILE__, __LINE__);
        pdvector<CallbackBase *> cbs;
        getCBManager()->dispenseCallbacksMatching(ev.type, cbs);
        for (unsigned int i = 0; i < cbs.size(); ++i) {
@@ -719,7 +727,10 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
          cb(p, newthr);
        }
 
+       async_printf("%s[%d]: flagging mutatee status change...\n",
+                    FILE__, __LINE__);
        BPatch::bpatch->mutateeStatusChange = true;
+       async_printf("%s[%d]: signalling evtThreadCreate\n", FILE__, __LINE__);
        ev.proc->sh->signalEvent(evtThreadCreate);
        return true;
      }
