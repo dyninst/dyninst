@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.45 2006/03/16 19:19:08 mjbrim Exp $
+ * $Id: dyn_lwp.C,v 1.46 2006/03/29 00:57:13 mjbrim Exp $
  */
 
 #include "common/h/headers.h"
@@ -132,7 +132,8 @@ bool dyn_lwp::continueLWP(int signalToContinueWith)
 
    if (proc()->sh->waitingForStop())
    {
-     fprintf(stderr, "%s[%d]:  LWP continue has been suppressed\n", FILE__, __LINE__);
+     fprintf(stderr, "[%s] %s[%d]:  LWP (%lu) continue has been suppressed\n", 
+             getThreadStr(getExecThreadID()), FILE__, __LINE__, get_lwp_id());
      return false;
    }
 
