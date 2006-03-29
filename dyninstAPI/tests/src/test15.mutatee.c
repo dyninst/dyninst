@@ -87,9 +87,11 @@ void thr_loop(int id, pthread_t tid)
 
 void thr_func(void *arg)
 {
+   unsigned busy_work = 0;
    int id = *((int*)arg);
    pthread_t tid = pthread_self();
    thr_loop(id, tid);
+   while(++busy_work != UINT_MAX/10);
    thr_exits++;
 }
 

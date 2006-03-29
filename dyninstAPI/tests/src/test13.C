@@ -310,26 +310,16 @@ int main(int argc, char *argv[])
    }
 
    dprintf(stderr, "%s[%d]:  done waiting for thread creations, error = %d\n", __FILE__, __LINE__, error);
-   upgrade_mutatee_state();
-   dprintf(stderr, "%s[%d]:  Now waiting for threads to die.\n", __FILE__, __LINE__);
 
-   //Wait for n-1 threads to die
-   do {
+   // Update state to allow threads to exit
+   upgrade_mutatee_state();
+
+   dprintf(stderr, "%s[%d]:  Now waiting for application to terminate.\n", __FILE__, __LINE__);
+
+   while (!proc->isTerminated())
       bpatch.waitForStatusChange();
-      if (proc->isTerminated())
-      {
-         fprintf(stderr, "[%s:%d] - App exited early\n", __FILE__, __LINE__);
-         error = 1;
-         return -1;
-      }
-      if (num_attempts++ == TIMEOUT)
-      {
-         fprintf(stderr, "[%s:%d] - Timed out while deleting threads\n", 
-                 __FILE__, __LINE__);
-         break;
-      }
-      P_sleep(1);
-   } while (deleted_threads < NUM_THREADS-1);
+
+   sleep(10); // wait for thread delete callbacks to run
 
    for (unsigned i=1; i<NUM_THREADS; i++)
    {
@@ -340,18 +330,6 @@ int main(int argc, char *argv[])
          error = 1;
       }
    }
-   if (deleted_tids[0])
-   {
-      fprintf(stderr, "[%s:%d] - Prematurely deleted thread 0\n",
-              __FILE__, __LINE__);
-      error = 1;
-   }
-
-   upgrade_mutatee_state();
-
-   do {
-      bpatch.waitForStatusChange();
-   } while (!proc->isTerminated());
 
    if (deleted_threads != NUM_THREADS || !deleted_tids[0])
    {
@@ -359,7 +337,6 @@ int main(int argc, char *argv[])
            "  Expected %d\n", __FILE__, __LINE__, deleted_threads, NUM_THREADS);
       error = 1;
    }
-
 
    if (error)
    {

@@ -59,7 +59,6 @@ static long pthread_ids[NUM_THREADS];
 static char deleted_tids[NUM_THREADS];
 static int deleted_threads;
 
-
 bool debug_flag = false;
 #define dprintf if (debug_flag) fprintf
 
@@ -356,6 +355,8 @@ int main(int argc, char *argv[])
       printf("Passed test #1 (thread-specific oneTimeCodeAsync)\n");
    }
 
+   sleep(10);
+
    // OneTimeCode each worker thread to allow it to exit
    for (unsigned i=1; i<NUM_THREADS; i++)
    {
@@ -369,8 +370,6 @@ int main(int argc, char *argv[])
             error = 1;
             continue;
          }
-         dprintf(stderr, "%s[%d]: stopping process\n", __FILE__, __LINE__);
-         proc->stopExecution();
          BPatch_constExpr *val = new BPatch_constExpr(pthread_ids[i]);
          BPatch_arithExpr *set_sync_test = 
             new BPatch_arithExpr(BPatch_assign, *sync_var, *val);
@@ -382,10 +381,7 @@ int main(int argc, char *argv[])
          BPatch_sequence *code = new BPatch_sequence(sync_code);
          dprintf(stderr, "%s[%d]: issuing oneTimeCode for tid %lu\n", __FILE__, __LINE__, tid);
          thr->oneTimeCode(*code);
-         sleep(1); // let oneTimeCode finish before continuing
-         dprintf(stderr, "%s[%d]: continuing process\n", __FILE__, __LINE__);
-         proc->continueExecution();
-         //bpatch.waitForStatusChange();
+         dprintf(stderr, "%s[%d]: finished oneTimeCode for tid %lu\n", __FILE__, __LINE__, tid);
       }
    }
    if(!error) {
@@ -393,24 +389,12 @@ int main(int argc, char *argv[])
       printf("Passed test #2 (thread-specific oneTimeCode)\n");
    }
 
-   dprintf(stderr, "%s[%d]:  Now waiting for threads to die.\n", __FILE__, __LINE__);
+   dprintf(stderr, "%s[%d]:  Now waiting for application to terminate.\n", __FILE__, __LINE__);
 
-   // Wait for NUM_THREADS-1 threads to die
-   do {
+   while (!proc->isTerminated())
       bpatch.waitForStatusChange();
-      if (proc->isTerminated())
-      {
-         fprintf(stderr, "[%s:%d] - App exited early\n", __FILE__, __LINE__);
-         error_exit();
-      }
-      if (num_attempts++ == TIMEOUT)
-      {
-         fprintf(stderr, "[%s:%d] - Timed out while deleting threads\n", 
-                 __FILE__, __LINE__);
-         break;
-      }
-      sleep(1);
-   } while (deleted_threads < NUM_THREADS-1);
+
+   sleep(10); // wait for thread delete callbacks to run
 
    for (unsigned i=1; i<NUM_THREADS; i++)
    {
@@ -421,9 +405,6 @@ int main(int argc, char *argv[])
          error = 1;
       }
    }
-
-   while (!proc->isTerminated())
-      bpatch.waitForStatusChange();
 
    if (deleted_threads != NUM_THREADS || !deleted_tids[0])
    {

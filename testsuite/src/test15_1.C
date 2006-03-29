@@ -320,6 +320,7 @@ static int mutatorTest(BPatch *bpatch)
          async_code.push_back(set_async_test);
          async_code.push_back(&call_check_async);
          BPatch_sequence *code = new BPatch_sequence(async_code);
+         dprintf(stderr, "%s[%d]: issuing oneTimeCodeAsync for tid %lu\n", __FILE__, __LINE__, tid);
          thr->oneTimeCodeAsync(*code);
       }
    }
@@ -327,6 +328,8 @@ static int mutatorTest(BPatch *bpatch)
       failed_tests--;
       printf("Passed test #1 (thread-specific oneTimeCodeAsync)\n");
    }
+
+   sleep(10);
 
    // OneTimeCode each worker thread to allow it to exit
    for (unsigned i=1; i<NUM_THREADS; i++)
@@ -341,7 +344,6 @@ static int mutatorTest(BPatch *bpatch)
             error15 = 1;
             continue;
          }
-         proc->stopExecution();
          BPatch_constExpr *val = new BPatch_constExpr(pthread_ids[i]);
          BPatch_arithExpr *set_sync_test = 
             new BPatch_arithExpr(BPatch_assign, *sync_var, *val);
@@ -351,9 +353,9 @@ static int mutatorTest(BPatch *bpatch)
          sync_code.push_back(set_sync_test);
          sync_code.push_back(&call_check_sync);
          BPatch_sequence *code = new BPatch_sequence(sync_code);
+         dprintf(stderr, "%s[%d]: issuing oneTimeCode for tid %lu\n", __FILE__, __LINE__, tid);
          thr->oneTimeCode(*code);
-         sleep(1); // let oneTimeCode finish before continuing
-         proc->continueExecution();
+         dprintf(stderr, "%s[%d]: finished oneTimeCode for tid %lu\n", __FILE__, __LINE__, tid);
       }
    }
    if(!error15) {
@@ -363,22 +365,10 @@ static int mutatorTest(BPatch *bpatch)
 
    dprintf(stderr, "%s[%d]:  Now waiting for threads to die.\n", __FILE__, __LINE__);
 
-   // Wait for NUM_THREADS-1 threads to die
-   do {
+   while (!proc->isTerminated())
       bpatch->waitForStatusChange();
-      if (proc->isTerminated())
-      {
-         fprintf(stderr, "[%s:%d] - App exited early\n", __FILE__, __LINE__);
-         return error_exit();
-      }
-      if (num_attempts++ == TIMEOUT)
-      {
-         fprintf(stderr, "[%s:%d] - Timed out while deleting threads\n", 
-                 __FILE__, __LINE__);
-         break;
-      }
-      sleep(1);
-   } while (deleted_threads < NUM_THREADS-1);
+
+   sleep(10); // wait for thread delete callbacks to run
 
    for (unsigned i=1; i<NUM_THREADS; i++)
    {
@@ -389,9 +379,6 @@ static int mutatorTest(BPatch *bpatch)
          error15 = 1;
       }
    }
-
-   while (!proc->isTerminated())
-      bpatch->waitForStatusChange();
 
    if (deleted_threads != NUM_THREADS || !deleted_tids[0])
    {

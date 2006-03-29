@@ -59,16 +59,14 @@ int main(int argc, char *argv[])
    if (attached_fd)
       write(attached_fd, &c, sizeof(char));
 #endif
-   fprintf(stderr, "[%s:%d]: stage 1\n", __FILE__, __LINE__);
+   fprintf(stderr, "[%s:%d]: stage 1 - all threads created\n", __FILE__, __LINE__);
    while (proc_current_state == 0);
-   fprintf(stderr, "[%s:%d]: stage 2\n", __FILE__, __LINE__);
+   fprintf(stderr, "[%s:%d]: stage 2 - allowing threads to exit\n", __FILE__, __LINE__);
    done = 1;
    for (i=0; i<NTHRD; i++)
    {
       joinThread(threads[i]);
    }
-   fprintf(stderr, "[%s:%d]: stage 3\n", __FILE__, __LINE__);
-   while (proc_current_state == 1);
-   fprintf(stderr, "[%s:%d]: stage 4\n", __FILE__, __LINE__);
+   fprintf(stderr, "[%s:%d]: stage 3 - all threads joined\n", __FILE__, __LINE__);
    return 0;
 }
