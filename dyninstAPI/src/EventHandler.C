@@ -54,30 +54,60 @@
 #include "common/h/Vector.h"
 #include "debuggerinterface.h"
 #include "process.h"
+#include "common/h/Dictionary.h"
 
+eventLock *threadMapLock = NULL;
 
-pdvector< pdpair <unsigned long, const char *> > threadmap;
+dictionary_hash<Address, threadmap_t *> *threadmap;
+
+void initializeThreadMap() {
+    if (threadMapLock != NULL) return;
+
+    threadMapLock  = new eventLock;
+    threadMapLock->_Lock(FILE__, __LINE__);
+
+    threadmap = new dictionary_hash<Address, threadmap_t *>(addrHash4);
+
+    assert(threadmap->size() == 0);
+    assert(getExecThreadID() == primary_thread_id);
+
+    // Initialization
+    threadmap_t *t = new threadmap_t;
+    t->active = true;
+    t->name = strdup("UI");
+#if defined(os_windows)
+    (*threadmap)[_threadid] = t;
+#else
+    (*threadmap)[getExecThreadID()] = t;
+#endif
+
+    threadMapLock->_Unlock(FILE__, __LINE__);
+}
+
+const char *defaultThreadName = "INVALID";
+const char *anyThreadName = "any thread";
+
 const char *getThreadStr(unsigned long tid)
 {
-  if (!threadmap.size() && (getExecThreadID() == primary_thread_id)) {
-    pdpair<unsigned long, const char *> trec;
-#if defined(os_windows)
-    trec.first = (unsigned long) _threadid;
-#else
-    trec.first = (unsigned long) pthread_self();
-#endif
-    trec.second = "UI";
-    threadmap.push_back(trec);
-  }
+    //fprintf(stderr, "... getThreadStr for 0x%lx\n", tid);
+    initializeThreadMap();
 
-  for (unsigned int i = 0; i < threadmap.size(); ++i) {
-    if (threadmap[i].first == tid)
-      return threadmap[i].second;
-  }
-  if (tid == (unsigned long) -1L) 
-    return "any_thread";
-  fprintf(stderr, "%s[%d]:  FIXME, no entry found for thread id %lu\n", __FILE__, __LINE__, tid);
-  return "invalid";
+    const char *retval = defaultThreadName;
+  
+    threadMapLock->_Lock(FILE__, __LINE__);
+
+    if (threadmap->defines(tid)) {
+        retval = (*threadmap)[tid]->name;
+    }
+    else if (tid == (unsigned long) -1L)  {
+        retval = anyThreadName;
+    }
+    // Else... could be calling this before the thread is named.
+
+    //fprintf(stderr, "... returning string %s\n", retval);
+    threadMapLock->_Unlock(FILE__, __LINE__);
+    
+    return retval;
 }
 
 unsigned long getExecThreadID() 
@@ -154,8 +184,9 @@ bool EventRecord::isTemplateOf(EventRecord &src)
 
 inline THREAD_RETURN eventHandlerWrapper(void *h)
 {
-  startup_printf("%s[%d]:  about to call main() for %s\n", __FILE__, __LINE__, ((EventHandler<EventRecord> *)h)->idstr);
+    thread_printf("%s[%d]:  about to call main() for %s\n", __FILE__, __LINE__, ((EventHandler<EventRecord> *)h)->idstr);
   ((EventHandler<EventRecord> * )h)->main();
+  thread_printf("%s[%d]: main returned from %s\n", FILE__, __LINE__,  ((EventHandler<EventRecord> *)h)->idstr);
   DO_THREAD_RETURN;
 }
 
@@ -186,7 +217,7 @@ bool InternalThread::createThread()
 //template <class S>
 //bool InternalThread<S>::createThread()
 {
-  mailbox_printf("%s[%d]  welcome to createThread(%s)\n", __FILE__, __LINE__, idstr);
+    thread_printf("%s[%d]  welcome to createThread(%s)\n", __FILE__, __LINE__, idstr);
   if (isRunning()) {
      fprintf(stderr, "%s[%d]:  WARNING:  cannot create thread '%s'which is already running\n", 
              __FILE__, __LINE__, idstr);
@@ -244,11 +275,13 @@ bool InternalThread::createThread()
 #endif
 
   while (!_isRunning && (init_ok)) {
-    startup_printf("%s[%d]:  createThread (%s) waiting for thread main to start\n", __FILE__, __LINE__, idstr);
-   startupLock->_WaitForSignal(__FILE__, __LINE__);
-   startup_printf("%s[%d]:  createThread (%s) got signal\n", __FILE__, __LINE__, idstr);
+      thread_printf("%s[%d]:  createThread (%s) waiting for thread main to start\n", __FILE__, __LINE__, idstr);
+      startupLock->_WaitForSignal(__FILE__, __LINE__);
+      thread_printf("%s[%d]:  createThread (%s) got signal\n", __FILE__, __LINE__, idstr);
   }
   startupLock->_Unlock(__FILE__, __LINE__);
+
+  thread_printf("%s[%d]: createThread returning %d\n", FILE__, __LINE__, init_ok);
 
   if (!init_ok) {
     return false;
@@ -293,17 +326,13 @@ EventHandler<T>::EventHandler(eventLock *_lock, const char *id, bool create) :
   eventlock(_lock),
   stop_request(false)
 {
-  //  presume that event handler is created on the ui thread, so make an entry
-  if (!threadmap.size()) {
-    pdpair<unsigned long, const char *> trec;
-    trec.first = getExecThreadID();
-    trec.second = "UI";
-    threadmap.push_back(trec);
-  }
-  if (create) 
-    if (!createThread()) {
-      fprintf(stderr, "%s[%d]:  failed to create InternalThread\n", __FILE__, __LINE__);
-    }
+    //  presume that event handler is created on the ui thread, so make an entry
+    initializeThreadMap();
+    
+    if (create) 
+        if (!createThread()) {
+            fprintf(stderr, "%s[%d]:  failed to create InternalThread\n", __FILE__, __LINE__);
+        }
 }
 
 template <class T>
@@ -337,76 +366,126 @@ bool EventHandler<T>::_Broadcast(const char *__file__, unsigned int __line__)
 template <class T>
 void EventHandler<T>::main()
 {
-  
-  pdpair<unsigned long, const char *> trec;
-  trec.first = getExecThreadID();
-  trec.second = (const char *) idstr;
-  threadmap.push_back(trec);
-  startup_printf("%s[%d]:  welcome to main() for %s\n", __FILE__, __LINE__, idstr);
-  startup_printf("%s[%d]:  new thread id %lu -- %s\n", __FILE__, __LINE__, trec.first, trec.second);
-  tid = trec.first;
+    addToThreadMap();
 
+    thread_printf("%s[%d]:  welcome to main() for %s\n", __FILE__, __LINE__, idstr);
+    thread_printf("%s[%d]:  new thread id %lu -- %s\n", __FILE__, __LINE__, tid, idstr);
 
-  startupLock->_Lock(__FILE__, __LINE__);
-  startup_printf("%s[%d]:  about to do init for %s\n", __FILE__, __LINE__, idstr);
-  if (!initialize_event_handler()) {
-    _isRunning = false;
-    init_ok = false; 
-    startupLock->_Broadcast(__FILE__, __LINE__);
-    startupLock->_Unlock(__FILE__, __LINE__);
-    return;
-  }
+    startupLock->_Lock(__FILE__, __LINE__);
+    thread_printf("%s[%d]:  about to do init for %s\n", __FILE__, __LINE__, idstr);
+    if (!initialize_event_handler()) {
+        _isRunning = false;
+        init_ok = false; 
 
-  init_ok = true;;
-  startup_printf("%s[%d]:  init success for %s\n", __FILE__, __LINE__, idstr);
+        removeFromThreadMap();
 
-  _isRunning = true;
-  startupLock->_Broadcast(__FILE__, __LINE__);
-  startupLock->_Unlock(__FILE__, __LINE__);
-
-  T ev;
-
-  startup_printf("%s[%d]:  before main loop for %s\n", __FILE__, __LINE__, idstr);
-  while (1) {
-    //fprintf(stderr, "%s[%d]:  %s waiting for an event\n", __FILE__, __LINE__, idstr);
-    if (!this->waitNextEvent(ev)) {
-       fprintf(stderr, "%s[%d][%s]:  waitNextEvent failed \n", __FILE__, __LINE__,getThreadStr(getExecThreadID()));
-       if (!stop_request)
-         continue;
-    }
-    if (stop_request) {
-      signal_printf("%s[%d]:  thread terminating at stop request\n", __FILE__, __LINE__);
-      break;
-    }
-    if (!handleEvent(ev)) {
-       
-      fprintf(stderr, "%s[%d][%s]:  handleEvent() failed\n", __FILE__, __LINE__,  getThreadStr(getExecThreadID()));
-    }
-    if (stop_request) break;
-  }
- //  remove ourselves from the threadmap before exiting\n"
-  global_mutex->_Lock(FILE__, __LINE__);
- 
-  for (unsigned int i = 0; i < threadmap.size(); ++i) {
-    pdpair<unsigned long, const char *> &trec = threadmap[i];
-    if (trec.first == getExecThreadID()) {
-       signal_printf("%s[%d]:  removing [%lu, %s] from thread map\n", FILE__, __LINE__, trec.first, trec.second);
-       threadmap.erase(i,i);
-       break;
+        startupLock->_Broadcast(__FILE__, __LINE__);
+        startupLock->_Unlock(__FILE__, __LINE__);
+        return;
     }
     
-  }
-  _isRunning = false;
-  if (global_mutex->depth() != 1) {
-     fprintf(stderr, "%s[%d]:  WARNING:  global_mutex->depth() is %d, leaving thread %s\n",
-             FILE__, __LINE__, global_mutex->depth(),idstr);
-     global_mutex->printLockStack();
-  }
-  global_mutex->_Broadcast(FILE__, __LINE__);
-  global_mutex->_Unlock(FILE__, __LINE__);
-
-  signal_printf("%s[%d][%s]:  InternalThread::main exiting\n", FILE__, __LINE__, idstr);
+    init_ok = true;;
+    thread_printf("%s[%d]:  init success for %s\n", __FILE__, __LINE__, idstr);
+    
+    _isRunning = true;
+    startupLock->_Broadcast(__FILE__, __LINE__);
+    startupLock->_Unlock(__FILE__, __LINE__);
+    
+    T ev;
+    
+    thread_printf("%s[%d]:  before main loop for %s\n", __FILE__, __LINE__, idstr);
+    while (1) {
+        //fprintf(stderr, "%s[%d]:  %s waiting for an event\n", __FILE__, __LINE__, idstr);
+        if (!this->waitNextEvent(ev)) {
+            fprintf(stderr, "%s[%d][%s]:  waitNextEvent failed \n", __FILE__, __LINE__,getThreadStr(getExecThreadID()));
+            if (!stop_request)
+                continue;
+        }
+        if (stop_request) {
+            thread_printf("%s[%d]:  thread terminating at stop request\n", __FILE__, __LINE__);
+            break;
+        }
+        if (!handleEvent(ev)) {
+            
+            fprintf(stderr, "%s[%d][%s]:  handleEvent() failed\n", __FILE__, __LINE__,  getThreadStr(getExecThreadID()));
+        }
+        if (stop_request) break;
+    }
+ 
+   global_mutex->_Lock(FILE__, __LINE__);
+ 
+    removeFromThreadMap();
+    
+    _isRunning = false;
+    if (global_mutex->depth() != 1) {
+        fprintf(stderr, "%s[%d]:  WARNING:  global_mutex->depth() is %d, leaving thread %s\n",
+                FILE__, __LINE__, global_mutex->depth(),idstr);
+        global_mutex->printLockStack();
+    }
+    assert(global_mutex->depth() == 1);
+    global_mutex->_Broadcast(FILE__, __LINE__);
+    global_mutex->_Unlock(FILE__, __LINE__);
+    
+    thread_printf("%s[%d][%s]:  InternalThread::main exiting\n", FILE__, __LINE__, idstr);
 }
+
+template <class T>
+void EventHandler<T>::addToThreadMap() {
+    assert(tid == (unsigned long) -1);
+    assert(threadMapLock != NULL);
+    tid = getExecThreadID();
+
+    threadMapLock->_Lock(FILE__, __LINE__);
+
+    if (threadmap->defines(tid)) {
+        // Can happen if we reuse threads... nuke the old.
+        if ((*threadmap)[tid]->active == true) {
+            // Weird...
+            fprintf(stderr, "Warning: replacing thread %s that's still marked as active\n",
+                    (*threadmap)[tid]->name);
+        }
+
+        assert((*threadmap)[tid]->active == false);
+        // We create a new name when we deactivate - delete it here.
+        free((*threadmap)[tid]->name);
+        threadmap_t *foo = (*threadmap)[tid];
+        threadmap->undef(tid);
+        delete foo;
+    }
+
+    threadmap_t *t = new threadmap_t;
+    t->name = strdup(idstr);
+    t->active = true;
+    (*threadmap)[tid] = t;
+    
+    threadMapLock->_Unlock(FILE__, __LINE__);
+}
+
+template <class T>
+void EventHandler<T>::removeFromThreadMap() {
+    //  remove ourselves from the threadmap before exiting\n"
+    assert(threadMapLock != NULL);
+    threadMapLock->_Lock(FILE__, __LINE__);
+
+    //fprintf(stderr, "removeFromThreadMap for 0x%lx\n", getExecThreadID());
+    
+    if (threadmap->defines(getExecThreadID())) {
+        (*threadmap)[getExecThreadID()]->active = false;
+
+        // We mark the fact that the thread is deleted by changing out the name.
+        char *oldname = (*threadmap)[getExecThreadID()]->name;
+        assert(oldname);
+        char *newname = (char *)malloc(strlen(oldname) + strlen("-DELETED") + 1);
+        sprintf(newname, "%s-DELETED", oldname);
+        (*threadmap)[getExecThreadID()]->name = newname;
+
+        free(oldname);
+    }
+    
+    threadMapLock->_Unlock(FILE__, __LINE__);
+}
+
+
 
 //EventHandler::
 //EventHandler::
@@ -462,6 +541,16 @@ char *eventType2str(eventType x)
   return "unknown_event_type";
 }
 
+void  EventRecord::clear() {
+    proc = NULL;
+    lwp = NULL;
+    type = evtUndefined;
+    what = 0;
+    status = statusUnknown;
+    info = 0;
+    address = 0;
+    fd = 0;
+}
 
 //  OK -- these template instantiations probably belong more rightly
 //  in templates2.C, however, including them here gets around
@@ -469,3 +558,4 @@ char *eventType2str(eventType x)
 //  and non-template functions in this file.
 template class EventHandler<EventRecord>;
 template class EventHandler<DBIEvent>;
+

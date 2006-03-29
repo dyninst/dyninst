@@ -50,6 +50,7 @@
 #include "common/h/Pair.h" /*for pdpair */
 #include "common/h/Vector.h" /*for pdvector */
 #include "common/h/headers.h" /*for DEBUG_EVENT */
+#include "common/h/Dictionary.h" /* threadmap */
 #include "BPatch_eventLock.h"
 #include "mailbox.h"
 class process;
@@ -141,6 +142,8 @@ class EventRecord {
 
    char *sprint_event(char *buf); 
    bool isTemplateOf(EventRecord &src);
+
+   void clear();
 }; 
 
 #if defined (os_windows)
@@ -212,6 +215,9 @@ class EventHandler : public InternalThread {
   bool _WaitForSignal(const char *__file__, unsigned int __line__); 
   bool _Broadcast(const char *__file__, unsigned int __line__); 
 
+  void addToThreadMap();
+  void removeFromThreadMap();
+
   eventLock *eventlock;
   bool stop_request;
   private:
@@ -219,7 +225,11 @@ class EventHandler : public InternalThread {
 
 };
 
-extern pdvector< pdpair<unsigned long, const char *> > threadmap;
+typedef struct {
+    char *name;
+    bool active;
+} threadmap_t;
+
 const char *getThreadStr(unsigned long tid);
 unsigned long getExecThreadID();
 #endif
