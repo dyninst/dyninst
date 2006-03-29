@@ -49,7 +49,7 @@
 #include "process.h"
 #include "EventHandler.h"
 #include "mailbox.h"
-#include "signalhandler.h"
+#include "signalgenerator.h"
 #include "inst.h"
 #include "instP.h"
 #include "instPoint.h"
@@ -257,7 +257,6 @@ BPatch_process::BPatch_process(process *nProc)
    llproc->registerInstPointCallback(createBPPointCB);
 
    image = new BPatch_image(this);
-
    isVisiblyStopped = true;
 }
 
@@ -332,17 +331,18 @@ void BPatch_process::BPatch_process_dtor()
  */
 bool BPatch_process::stopExecutionInt()
 {
-   while (llproc->sh->activeHandlerForProcess(llproc)) {
+
+   while (llproc->sh->isActivelyProcessing()) {
        signal_printf("%s[%d]:  waiting before doing user stop for process %d\n", FILE__, __LINE__, llproc->getPid());
        llproc->sh->waitForEvent(evtAnyEvent);
    }
 
-    if (llproc->pause()) {
-        isVisiblyStopped = true;
-        return true;
-    }
-    else
-        return false;
+   if (llproc->pause()) {
+     isVisiblyStopped = true;
+     return true;
+   }
+   else
+     return false;
 }
 
 /*
@@ -354,6 +354,7 @@ bool BPatch_process::continueExecutionInt()
 {
    getMailbox()->executeCallbacks(FILE__, __LINE__);
 
+
    //  maybe executeCallbacks led to the process execution status changing
    if (!statusIsStopped()) {
      isVisiblyStopped = false;
@@ -362,7 +363,8 @@ bool BPatch_process::continueExecutionInt()
 
    //  DON'T let the user continue the process if we have potentially active 
    //  signal handling going on:
-   while (llproc->sh->activeHandlerForProcess(llproc)) {
+   // You know... this should really never happen. 
+   while (llproc->sh->isActivelyProcessing()) {
        signal_printf("%s[%d]:  waiting before doing user continue for process %d\n", FILE__, __LINE__, llproc->getPid());
        llproc->sh->waitForEvent(evtAnyEvent);
    }
@@ -1309,6 +1311,12 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
                                           bool synchronous)
 {
    bool needToResume = false;
+
+   while (llproc->sh->isActivelyProcessing()) {
+       signal_printf("%s[%d]:  waiting before doing user stop for process %d\n", FILE__, __LINE__, llproc->getPid());
+       llproc->sh->waitForEvent(evtAnyEvent);
+   }
+
    if (synchronous && !statusIsStopped()) {
       stopExecutionInt();
       
@@ -1617,7 +1625,7 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(
    {
       thr = BPatch_thread::createNewThread(this, index, lwp);
       if (thr->doa) {
-         return thr;
+          return thr;
       }
          
       threads.push_back(thr);
@@ -1626,6 +1634,7 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(
    //Update the non-esential values for the thread
    // /* DEBUG */ fprintf( stderr, "%s[%d]: start address = 0x%lx\n", __FILE__, __LINE__, start_addr );
 #if defined( arch_ia64 )
+
 	/* On IA-64, function pointers point to descriptors.  Since we could
 	   segfault the mutatee it we derefenced start_addr there, do so here. */
 	Address functionEntry = 0;
@@ -1637,6 +1646,7 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(
 	else {
 		// /* DEBUG */ fprintf( stderr, "%s[%d]: unable to read function descriptor at 0x%lx\n", __FILE__, __LINE__, start_addr );
 		}
+
 #endif
    
    BPatch_function *initial_func = getImage()->findFunction(start_addr);

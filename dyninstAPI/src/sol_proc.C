@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.86 2006/03/14 23:11:52 bernat Exp $
+// $Id: sol_proc.C,v 1.87 2006/03/29 21:34:46 bernat Exp $
 
 #ifdef AIX_PROC
 #include <sys/procfs.h>
@@ -54,6 +54,7 @@
 #include <dirent.h>     // for reading lwps out of proc
 #include "common/h/headers.h"
 #include "dyninstAPI/src/signalhandler.h"
+#include "dyninstAPI/src/signalgenerator.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -1507,14 +1508,13 @@ bool SignalGenerator::updateEvents(pdvector<EventRecord> &events, process *p, in
 
 bool SignalGenerator::decodeEvent(EventRecord &ev)
 {
-
   if ((ev.info & POLLHUP) || (ev.info & POLLNVAL)) {
      // True if the process exited out from under us
      ev.lwp = ev.proc->getRepresentativeLWP();
      int status;
      int ret; 
      do {
-         ret = waitpid(pid, &status, 0);
+         ret = waitpid(getPid(), &status, 0);
      } while ((ret < 0) && (errno == EINTR));
      if (ret < 0) { 
          //  if we get ECHILD it just means that the child process no longer exists.

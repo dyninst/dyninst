@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.195 2006/03/16 19:19:18 mjbrim Exp $
+// $Id: solaris.C,v 1.196 2006/03/29 21:34:47 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -66,6 +66,8 @@
 #else
 #include "dyninstAPI/src/inst-x86.h"
 #endif
+
+#include "signalgenerator.h"
 
 #include "instPoint.h"
 #include "baseTramp.h"
@@ -1378,7 +1380,7 @@ void dyninst_yield()
    sched_yield();
 }
 
-bool SignalHandler::handleProcessExitPlat(EventRecord & /*ev*/) 
+bool SignalHandler::handleProcessExitPlat(EventRecord & /*ev*/, bool &) 
 {
     return true;
 }
