@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.16 2006/03/10 21:57:42 nater Exp $
+// $Id: instPoint.C,v 1.17 2006/03/29 21:35:06 bernat Exp $
 // instPoint code
 
 
@@ -902,6 +902,7 @@ bool instPointInstance::generateInst() {
         return false;
     }
     multiTramp::mtErrorCode_t errCode = multi()->generateMultiTramp();
+
     if (errCode == multiTramp::mtError) {
         return false;
     }
@@ -928,12 +929,12 @@ bool instPointInstance::generateInst() {
         // We can try to simply shift the entire function nearer
         // instrumentation. TODO: a funcMod that says "hey, move me to
         // this address.
-        inst_printf("Trying relocation, %d, %d %s\n", 
-                    block_->getSize(),
-                    multi()->sizeDesired(),
-                    block_->block()->needsRelocation() ? 
-                        "(block req reloc)" : "");
-
+        reloc_printf("Trying relocation, %d, %d %s\n", 
+                     block_->getSize(),
+                     multi()->sizeDesired(),
+                     block_->block()->needsRelocation() ? 
+                     "(block req reloc)" : "");
+        
         if (block_->getSize() < multi()->sizeDesired()) {
             // expandForInstrumentation will append to the expand list, so can 
             // be called multiple times without blowing up
