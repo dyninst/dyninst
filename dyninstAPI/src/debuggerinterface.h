@@ -89,7 +89,8 @@ class DBICallbackBase : public SyncCallback
   public:
   DBICallbackBase(DBIEventType t, eventLock *l) : SyncCallback(true /*synchronous*/, l,
                                                   DBI_PLATFORM_TARGET_THREAD, 
-                                                  dbi_signalCompletion), type(t) {}
+                                                  dbi_signalCompletion), type(t) {
+  }
   virtual ~DBICallbackBase() {}
   static void dbi_signalCompletion(CallbackBase *cb);
   virtual bool waitForCompletion();
@@ -109,10 +110,10 @@ class DebuggerInterface : public EventHandler<DBIEvent> {
                         isBusy(false), evt(dbiUndefined) 
   {
     CREATE_DBI_THREAD
-    dbi_thread_id = getThreadID();
+    dbi_thread_id = getThreadID(); 
     dbi_printf("%s[%d][%s]:  created DBI thread, dbi_thread_id = %lu, -1UL = %lu\n", 
             __FILE__, __LINE__, getThreadStr(getExecThreadID()), dbi_thread_id, (unsigned long)-1L);
-  }
+ }
   virtual ~DebuggerInterface() {}
 
   bool forkNewProcess(pdstring file, pdstring dir, pdvector<pdstring> *argv, 

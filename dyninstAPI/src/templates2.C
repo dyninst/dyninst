@@ -40,7 +40,7 @@
  */
 
 
-// $Id: templates2.C,v 1.62 2006/03/02 20:00:18 tlmiller Exp $
+// $Id: templates2.C,v 1.63 2006/03/29 21:34:56 bernat Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -151,6 +151,9 @@ template class pdvector<BPatch_field *>;
 #include "EventHandler.h"
 template class pdvector<EventRecord *>;
 template class pdvector<EventRecord>;
+template class dictionary_hash<Address, threadmap_t *>;
+template class pdvector<dictionary_hash<Address, threadmap_t *>::entry>;
+
 
 template class pdvector<pdpair<pdstring, pdvector<pdstring> *> >;
 template class dictionary_hash <pdstring, pdvector<pdstring> *>;
@@ -190,6 +193,7 @@ template class pdvector<process_record>;
 template class pdvector<BPatchSnippetHandle *>;
 template class pdvector<BPatch_function *>;
 template class pdvector<eventLock::lock_stack_elem>;
+class EventGate;
 template class pdvector<EventGate *>;
 template class dictionary_hash< eventType, pdvector< CallbackBase * > >;
 template class pdvector<dictionary_hash < eventType, pdvector <CallbackBase *> >::entry>;
@@ -239,3 +243,4 @@ template class pdvector<dictionary_hash<Address, replacedFunctionCall *>::entry>
 template class dictionary_hash< Address, void * >;
 template class pdvector< dictionary_hash< Address, void * >::entry >;
 #endif /* defined( arch_ia64 ) */
+
