@@ -497,10 +497,17 @@ bool rpcThr::getReturnValueIRPC() {
     if (!runningRPC_ || !runningRPC_->rpc->callbackFunc)
         return false;
     Address returnValue = 0;
+
+    dyn_lwp *thr_lwp = thr_->get_lwp();
+
+    // make sure lwp is stopped
+    if(thr_lwp->status() != stopped) {
+       return false;
+    }
     
     if (runningRPC_->resultRegister != Null_Register) {
         // We have a result that we care about
-        returnValue = thr_->get_lwp()->readRegister(runningRPC_->resultRegister);
+        returnValue = thr_lwp->readRegister(runningRPC_->resultRegister);
         // Okay, this bit I don't understand. 
         // Oh, crud... we should have a register space for each thread.
         // Or not do this at all. 
@@ -511,7 +518,7 @@ bool rpcThr::getReturnValueIRPC() {
     // we continue the process...but not quite at the PC where we left off,
     // since that will just re-do the trap!  Instead, we need to continue at
     // the location of the next instruction.
-    if (!thr_->get_lwp()->changePC(runningRPC_->rpcContPostResultAddr, NULL))
+    if (! thr_lwp->changePC(runningRPC_->rpcContPostResultAddr, NULL))
         assert(false);
     return true;
 }
