@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.201 2006/03/16 19:19:10 mjbrim Exp $
+// $Id: linux.C,v 1.202 2006/03/29 00:57:15 mjbrim Exp $
 
 #include <fstream>
 
@@ -351,7 +351,7 @@ int SignalGenerator::find_dead_lwp()
 pid_t SignalGenerator::waitpid_kludge(pid_t pid_arg, int *status, int options, int *dead_lwp)
 {
   pid_t ret = 0;
-  int wait_options = options | WNOHANG;
+  int wait_options = options;
 
   do {
    *dead_lwp = find_dead_lwp();
@@ -609,7 +609,7 @@ bool SignalGenerator::suppressSignalWhenStopping(EventRecord &ev)
   /* If we're suppressing signals, regenerate them at the end of the
      queue to avoid race conditions. */
   if( ev.what == SIGTRAP ) {
-#if defined(arch_x86)
+#if defined(arch_x86) || defined(arch_x86_64)
      Address trap_pc = ev.lwp->getActiveFrame().getPC();
      ev.lwp->changePC(trap_pc - 1, NULL);
 #elif defined(arch_ia64)
