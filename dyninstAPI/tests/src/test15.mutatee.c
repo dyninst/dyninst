@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <pthread.h>
 #include <signal.h>
 #include <sys/types.h>
@@ -102,24 +103,50 @@ void *init_func(void *arg)
    return NULL;
 }
 
-int main()
+int attached_fd;
+void parse_args(int argc, char *argv[])
+{
+   int i;
+   for (i=0; i<argc; i++)
+   {
+      if (strstr(argv[i], "-attach"))
+      {
+         if (++i == argc) break;
+         attached_fd = atoi(argv[i]);
+      }
+   }
+}
+
+int main(int argc, char *argv[])
 {
    unsigned i, j;
    void *ret_val;
-
+   char c = 'T';
+   
    pthread_attr_t attr;
    pthread_attr_init(&attr);
    pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
 
    thr_exits = 0;
 
+   parse_args(argc, argv);
+
+   if (attached_fd) {
+      if (write(attached_fd, &c, sizeof(char)) != sizeof(char)) {
+         fprintf(stderr, "*ERROR*: Writing to pipe\n");
+         exit(-1);
+      }
+      close(attached_fd);
+      sleep(5); /* wait for mutator to attach */
+   }
+   
    /* create the workers */
    for (i=1; i<NTHRD; i++)
    {
       pthread_create(&(thrds[i]), &attr, init_func, &(thr_ids[i]));
    }
    thrds[0] = pthread_self();
-   
+
    /* give time for workers to run thr_loop */
    while(thr_exits == 0)
       sched_yield();
