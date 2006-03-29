@@ -40,13 +40,13 @@
  */
 
 /* 
- * $Id: alpha.C,v 1.6 2006/03/13 17:59:33 legendre Exp $
+ * $Id: alpha.C,v 1.7 2006/03/29 21:34:52 bernat Exp $
  */
 #include "signalhandler.h"
 
 class ptraceKludge { };
 
-bool SignalHandler::handleProcessExitPlat(EventRecord & /*ev*/) 
+bool SignalHandler::handleProcessExitPlat(EventRecord & /*ev*/, bool &) 
 {
     return true;
 }

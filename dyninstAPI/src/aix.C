@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.215 2006/03/12 23:31:42 legendre Exp $
+// $Id: aix.C,v 1.216 2006/03/29 21:34:51 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -50,6 +50,7 @@
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/signalhandler.h"
+#include "dyninstAPI/src/signalgenerator.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -1666,10 +1667,10 @@ bool SignalGenerator::decodeSignal_NP(EventRecord &ev)
 }
 
 bool SignalGeneratorCommon::getExecFileDescriptor(pdstring /*filename*/,
-                                    int pid,
-                                    bool waitForTrap,
-                                    int &status,
-                                    fileDescriptor &desc) 
+                                                  int pid,
+                                                  bool waitForTrap,
+                                                  int &status,
+                                                  fileDescriptor &desc) 
 {
     // AIX's /proc has a map file which contains data about
     // files loaded into the address space. The first two appear
@@ -2076,7 +2077,7 @@ void dyninst_yield()
    sched_yield();
 }
 
-bool SignalHandler::handleProcessExitPlat(EventRecord & /*ev*/) 
+bool SignalHandler::handleProcessExitPlat(EventRecord & /*ev*/, bool &) 
 {
     return true;
 }
