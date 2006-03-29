@@ -168,7 +168,7 @@ class rpcThr {
     irpcLaunchState_t launchProcIRPC(bool runProcWhenDone);
 
     // Handle the syscall callback
-    static void launchThrIRPCCallbackDispatch(dyn_lwp *lwp, void *data);
+    static bool launchThrIRPCCallbackDispatch(dyn_lwp *lwp, void *data);
     
     // Remove a pending IRPC
     bool deleteThrIRPC(unsigned id);
@@ -236,7 +236,7 @@ class rpcLWP {
     irpcLaunchState_t launchLWPIRPC(bool runProcWhenDone);
 
     // Handle the syscall callback
-    static void launchLWPIRPCCallbackDispatch(dyn_lwp *lwp, void *data);
+    static bool launchLWPIRPCCallbackDispatch(dyn_lwp *lwp, void *data);
     
     // Remove a pending IRPC
     bool deleteLWPIRPC(unsigned id);
@@ -336,7 +336,7 @@ class rpcMgr {
    inferiorRPCinProgress *findRunningRPCWithCompletionAddress(Address where);
 
    bool decodeEventIfDueToIRPC(EventRecord &ev);
-   bool handleRPCEvent(EventRecord &ev);
+   bool handleRPCEvent(EventRecord &ev, bool &continueHint);
 
    // State query functions
    // Note: since we're multithreaded, there might be multiple

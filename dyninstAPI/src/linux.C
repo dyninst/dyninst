@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.202 2006/03/29 00:57:15 mjbrim Exp $
+// $Id: linux.C,v 1.203 2006/03/29 21:34:57 bernat Exp $
 
 #include <fstream>
 
@@ -67,6 +67,8 @@
 #include "dyninstAPI/src/instPoint.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/signalhandler.h"
+#include "dyninstAPI/src/signalgenerator.h"
+#include "dyninstAPI/src/eventgate.h"
 #include "dyninstAPI/src/mailbox.h"
 #include "dyninstAPI/src/debuggerinterface.h"
 #include "common/h/headers.h"
@@ -215,18 +217,22 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
    errno = 0;
    if (ev.type == evtSignalled) {
       if (waiting_for_stop) {
-         if (suppressSignalWhenStopping(ev)) {
-            //  we suppress this signal, just send a null event
-            if (ev.what != SIGTRAP) {
-               // it's common to suppress traps while waiting for a stop,
-               // only report other signals
-               char buf[128];
-               fprintf(stderr, "%s[%d]:  suppressing signal %s\n", FILE__, __LINE__, ev.sprint_event(buf));
-            }
-            ev.type = evtNullEvent;
-            return true;
-         }
+          signal_printf("%s[%d]: waiting_for_stop true, checking for suppression...\n", FILE__, __LINE__);
+          if (suppressSignalWhenStopping(ev)) {
+              signal_printf("%s[%d]: suppressing signal... \n", FILE__, __LINE__);
+              //  we suppress this signal, just send a null event
+              if (ev.what != SIGTRAP) {
+                  // it's common to suppress traps while waiting for a stop,
+                  // only report other signals
+                  char buf[128];
+                  fprintf(stderr, "%s[%d]:  suppressing signal %s\n", FILE__, __LINE__, ev.sprint_event(buf));
+              }
+              ev.type = evtNullEvent;
+              signal_printf("%s[%d]: suppressing signal during wait for stop\n", FILE__, __LINE__);
+              return true;
+          }
       }
+      signal_printf("%s[%d]: decoding signal \n", FILE__, __LINE__);
       decodeSignal(ev);
    }
 
@@ -370,7 +376,7 @@ pid_t SignalGenerator::waitpid_kludge(pid_t pid_arg, int *status, int options, i
   return ret; 
 }
 
-bool SignalGenerator::waitNextEventLocked(EventRecord &ev) 
+bool SignalGenerator::waitForEventInternal(EventRecord &ev) 
 {
   signal_printf("%s[%d]:  welcome to waitNextEventLocked\n", FILE__, __LINE__);
 
@@ -384,7 +390,7 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
   //  the pid.  If the process is MT, wait for (-pid), which waits for all process
   //  with thread group <pid>
 
-  int pid_to_wait_for = proc->getRepresentativeLWP() ? pid : -1 * pid;
+  int pid_to_wait_for = proc->getRepresentativeLWP() ? getPid() : -1 * getPid();
 
    //  wait for process events, on linux __WALL signifies that both normal children
    //  and cloned children (lwps) should be listened for.
@@ -395,12 +401,12 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
 
   int wait_options = __WALL;
 
-  waiting_for_event = true;
+  waitingForOS_ = true;
   __UNLOCK;
   waitpid_pid = waitpid_kludge( pid_to_wait_for /* -1 for any child*/, 
                                 &status, wait_options, &dead_lwp );
   __LOCK;
-  waiting_for_event = false;
+  waitingForOS_ = false;
   if (WIFSTOPPED(status))
      proccontrol_printf("waitpid - %d stopped with %d\n", waitpid_pid, 
                         WSTOPSIG(status));
@@ -421,12 +427,6 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
   //  event handling system.  A shutdown event trumps all others, so we handle it
   //  first.
   
-  if (stop_request) {
-     ev.type = evtShutDown;
-     ev.proc = proc;
-     return true;
-  }
-
   ev.proc = proc;
   ev.lwp = proc->lookupLWP(waitpid_pid);
   ev.type = evtUndefined;
@@ -434,17 +434,17 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
   assert(ev.lwp);
   assert(ev.lwp->proc() == proc);
   
+  assert(ev.lwp);
+  ev.proc->set_lwp_status(ev.lwp, stopped);
+  ev.type = evtUndefined;
+  ev.info = status;
+  
   if (!ev.lwp->is_attached()) {
      //  Hijack thread detection events here (very platform specific)
      ev.type = evtThreadDetect;
      return true;
   }
-
-  assert(ev.lwp);
-  ev.proc->set_lwp_status(ev.lwp, stopped);
-  ev.type = evtUndefined;
-  ev.info = status;
-   
+ 
   bool process_exited = WIFEXITED(status) || dead_lwp;
   if ((process_exited) && (waitpid_pid != ev.proc->getPid())) {
      proccontrol_printf("%s[%d]: Received a thread deletion event for %d\n", 
@@ -455,12 +455,6 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
      ev.type = evtSyscallEntry;      
      ev.what = SYS_lwp_exit;
      decodeSyscall(ev);
-  }
-
-  if (!decodeEvent(ev)) {
-     char buf[128];
-     fprintf(stderr, "%s[%d]:  FIXME: %s\n", __FILE__, __LINE__, ev.sprint_event(buf));
-     return false;
   }
 
   return true;
@@ -604,7 +598,7 @@ bool SignalGenerator::suppressSignalWhenStopping(EventRecord &ev)
   bool suppressed_something = false;
 
   if ( ev.what == SIGSTOP )
-     return suppressed_something;
+     return false;
 
   /* If we're suppressing signals, regenerate them at the end of the
      queue to avoid race conditions. */
@@ -643,16 +637,15 @@ bool SignalGenerator::suppressSignalWhenStopping(EventRecord &ev)
      // executing an instruction.  We can just drop these and
      // let the continueLWP_ re-execute the instruction and cause
      // it to be rethrown.
-     return suppressed_something;
+     return true;
   }
 
   if ( ev.what != SIGTRAP ) {
      suppressed_sigs.push_back(ev.what);
      suppressed_lwps.push_back(ev.lwp);
   }
-  suppressed_something = true;
 
-  return suppressed_something;
+  return true;
 }
 
 bool SignalGenerator::resendSuppressedSignals()
@@ -1107,8 +1100,9 @@ bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf
           errno = 0;
           w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) (ap-cnt), w, len);
           if (errno) {
-               signal_printf("%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, strerror(errno));
-               return false;
+              signal_printf("%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, strerror(errno));
+              assert(0);
+              return false;
           }
           for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
                dp[i] = p[cnt+i];
@@ -1515,10 +1509,10 @@ int_function *instPoint::findCallee() {
 }
 
 bool SignalGeneratorCommon::getExecFileDescriptor(pdstring filename,
-                                    int /*pid*/,
-                                    bool /*whocares*/,
-                                    int &,
-                                    fileDescriptor &desc)
+                                                  int /*pid*/,
+                                                  bool /*whocares*/,
+                                                  int &,
+                                                  fileDescriptor &desc)
 {
     desc = fileDescriptor(filename, 
                           0, // code
@@ -1575,6 +1569,10 @@ bool dyn_lwp::realLWP_attach_() {
    proc()->sh->add_lwp_to_poll_list(this);
 
    eventType evt;
+   signal_printf("%s[%d]: attaching to LWP, waiting for evtThreadDetect\n",
+                 FILE__, __LINE__);
+   // Be sure that the signal generator is actually waiting for things. 
+   proc()->sh->signalActiveProcess();
    evt = proc()->sh->waitForEvent(evtThreadDetect, proc_, this);
    if (evt != evtThreadDetect) {
       fprintf(stderr, "%s[%d]:  received unexpected event %s\n", 
@@ -2262,7 +2260,7 @@ bool DebuggerInterface::forkNewProcess(pdstring file,
     return ret;  
 }
 
-bool SignalHandler::handleProcessExitPlat(EventRecord & /*ev*/) 
+bool SignalHandler::handleProcessExitPlat(EventRecord & /*ev*/, bool & /*continueHint */) 
 {
     return true;
 }

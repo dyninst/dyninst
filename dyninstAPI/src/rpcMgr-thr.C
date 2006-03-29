@@ -505,6 +505,9 @@ bool rpcThr::getReturnValueIRPC() {
        return false;
     }
     
+    inferiorrpc_printf("Getting return value for irpc %d, thr %d\n",
+                       runningRPC_->rpc->id, thr_->get_tid());
+
     if (runningRPC_->resultRegister != Null_Register) {
         // We have a result that we care about
         returnValue = thr_lwp->readRegister(runningRPC_->resultRegister);
@@ -523,14 +526,17 @@ bool rpcThr::getReturnValueIRPC() {
     return true;
 }
 
-void rpcThr::launchThrIRPCCallbackDispatch(dyn_lwp * /*lwp*/,
+bool rpcThr::launchThrIRPCCallbackDispatch(dyn_lwp * /*lwp*/,
                                            void *data)
 {
     rpcThr *thr = (rpcThr *)data;
     // the runProcess code here is ignored if a pending RPC
     // is already set (which must be true for this callback to
     // happen)
-    thr->runPendingIRPC();
+    irpcLaunchState_t launchState = thr->runPendingIRPC();
+    if (launchState == irpcStarted)
+      return true;
+    return false;
 }
 
 

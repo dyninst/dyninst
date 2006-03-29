@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.46 2006/03/29 00:57:13 mjbrim Exp $
+ * $Id: dyn_lwp.C,v 1.47 2006/03/29 21:34:58 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -49,6 +49,7 @@
 #include "process.h"
 #include "debuggerinterface.h"
 #include <assert.h>
+#include "signalgenerator.h"
 
 dyn_lwp::dyn_lwp() :
   changedPCvalue(0),
@@ -126,10 +127,14 @@ dyn_lwp::~dyn_lwp()
 bool dyn_lwp::continueLWP(int signalToContinueWith) 
 {
    if(status_ == running) {
-      //fprintf(stderr, "%s[%d]:  already running\n", FILE__, __LINE__);
+       //fprintf(stderr, "%s[%d]:  already running\n", FILE__, __LINE__);
       return true;
    }
 
+   if (status_ == exited) {
+       // fprintf(stderr, "%s[%d]: already exited\n", FILE__, __LINE__);
+	  return true;
+	}
    if (proc()->sh->waitingForStop())
    {
      fprintf(stderr, "[%s] %s[%d]:  LWP (%lu) continue has been suppressed\n", 
@@ -323,7 +328,7 @@ bool dyn_lwp::clearSyscallExitTrap()
     return true;
 }
 
-bool dyn_lwp::handleSyscallTrap(EventRecord &ev) {
+bool dyn_lwp::handleSyscallTrap(EventRecord &ev, bool &continueHint) {
     // See if this is the right one...
     if (ev.type != evtSyscallExit) return false;
 
@@ -345,7 +350,7 @@ bool dyn_lwp::handleSyscallTrap(EventRecord &ev) {
 
     // Make the callback
     if (callback)
-        (*callback)(this, data);
+      continueHint = (*callback)(this, data);
 
     return true;
 }

@@ -457,7 +457,7 @@ bool rpcLWP::getReturnValueIRPC() {
     return true;
 }
 
-void rpcLWP::launchLWPIRPCCallbackDispatch(dyn_lwp * /*lwp*/,
+bool rpcLWP::launchLWPIRPCCallbackDispatch(dyn_lwp * /*lwp*/,
                                            void *data)
 {
     rpcLWP *lwp = (rpcLWP *)data;
@@ -465,5 +465,8 @@ void rpcLWP::launchLWPIRPCCallbackDispatch(dyn_lwp * /*lwp*/,
     // the runProcess code here is ignored if a pending RPC
     // is already set (which must be true for this callback to
     // happen)
-    lwp->runPendingIRPC();
+    irpcLaunchState_t launchState = lwp->runPendingIRPC();
+    if (launchState == irpcStarted)
+      return true; // continue
+    return false;
 }

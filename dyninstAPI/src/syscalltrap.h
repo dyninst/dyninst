@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: syscalltrap.h,v 1.4 2004/03/23 01:12:10 eli Exp $
+/* $Id: syscalltrap.h,v 1.5 2006/03/29 21:35:04 bernat Exp $
  */
 
 #ifndef _SYSCALL_TRAP_H_
@@ -82,6 +82,6 @@ struct syscallTrap {
  * system call exits
  */
 
-typedef void (*syscallTrapCallbackLWP_t)(dyn_lwp *lwp, void *data);
+typedef bool (*syscallTrapCallbackLWP_t)(dyn_lwp *lwp, void *data);
 
 #endif /*_SYSCALL_TRAP_H_*/

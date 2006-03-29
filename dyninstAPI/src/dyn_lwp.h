@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.48 2006/03/16 19:19:09 mjbrim Exp $
+ * $Id: dyn_lwp.h,v 1.49 2006/03/29 21:34:59 bernat Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -134,7 +134,7 @@ class dyn_lwp
                           void *data);
 
   bool decodeSyscallTrap(EventRecord &ev);
-  bool handleSyscallTrap(EventRecord &ev);
+  bool handleSyscallTrap(EventRecord &ev, bool &continueHint);
 
   // Remove the trap. Either called by signal handling code,
   // or by whoever set the trap in the first place (if we don't

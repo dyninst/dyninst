@@ -392,7 +392,7 @@ bool rpcMgr::decodeEventIfDueToIRPC(EventRecord &ev)
    return false;
 }
 
-bool rpcMgr::handleRPCEvent(EventRecord &ev) 
+bool rpcMgr::handleRPCEvent(EventRecord &ev, bool &continueHint) 
 {
   if (ev.type != evtRPCSignal) return false;
 
@@ -400,6 +400,8 @@ bool rpcMgr::handleRPCEvent(EventRecord &ev)
   inferiorRPCinProgress *currRPC = NULL;
   rpcThr *rpcThr = NULL;
   rpcLWP *rpcLwp = NULL;
+
+  inferiorrpc_printf("handleRPCEvent, status %d, addr 0x%lx\n", ev.status, ev.address);
 
   if (ev.status == statusRPCAtReturn) {
     currRPC = findRunningRPCWithResultAddress(ev.address);
@@ -431,7 +433,9 @@ bool rpcMgr::handleRPCEvent(EventRecord &ev)
   inferiorrpc_printf("Completed RPC: pending %d, requestedRun %d\n",
                      allRunningRPCs_.size(), runProcess);
 
-  if (runProcess || allRunningRPCs_.size() > 0) {
+  if (runProcess || allRunningRPCs_.size() > 0) 
+    continueHint = true;
+#if 0
     if(process::IndependentLwpControl()) {
        if(rpcThr) {
           dyn_thread *dthr = rpcThr->get_thr();
@@ -444,8 +448,8 @@ bool rpcMgr::handleRPCEvent(EventRecord &ev)
      else {
        ev.proc->continueProc();
      }
-  }
-
+#endif
+    
   return true;
 }
 
@@ -490,7 +494,6 @@ bool rpcMgr::launchRPCs(bool wasRunning) {
       // after the RPCs are done". Now, if there weren't any RPCs, do we 
       // run the process? 
       if (wasRunning && proc_->isStopped()) {
-          assert(0);
           fprintf(stderr, "%s[%d]:  WARNING:  calling continueProc\n", __FILE__, __LINE__);
           proc_->continueProc();
       }
@@ -887,12 +890,14 @@ bool rpcMgr::cancelRPC(unsigned id) {
 
     // And running...
     for (unsigned l = 0; l < allRunningRPCs_.size(); l++) {
-       inferiorRPCinProgress *running = allRunningRPCs_[l];
-       inferiorrpc_printf("Checking running RPC %d against %d\n", running->rpc->id, id);
-
+        inferiorRPCinProgress *running = allRunningRPCs_[l];
+        inferiorrpc_printf("Checking running RPC %d against %d\n", running->rpc->id, id);
+        
         if (running->rpc->id == id) {
-	  assert(0);
-	  return false;
+            // Oops... nothing we can do. 
+            fprintf(stderr, "[%s:%d] WARNING: cancelling currently active iRPC\n",
+                    __FILE__, __LINE__);
+            return false;
         }
     }
     return false;
