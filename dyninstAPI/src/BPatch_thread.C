@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.147 2006/03/29 00:57:09 mjbrim Exp $
+// $Id: BPatch_thread.C,v 1.148 2006/03/29 21:34:48 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -48,7 +48,7 @@
 #include "BPatch_libInfo.h"
 #include "BPatch_function.h"
 #include "process.h"
-#include "signalhandler.h"
+#include "signalgenerator.h"
 #include "mailbox.h"
 #include "dyn_thread.h"
 #include "dyn_lwp.h"
@@ -69,22 +69,9 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
 {
    pdvector<Frame> stackWalk;   
 
-   bool wasStopped = proc->isStopped();
-
-   if (!wasStopped && proc->statusIsStopped()) {
-       fprintf(stderr, "Odd case... internally stopped, externally running\n");
-   }
-
-   // Cannot stackwalk running process
-   proc->stopExecution(); 
-
    if (!llthread->walkStack(stackWalk) ) {
      fprintf(stderr, "%s[%d]: ERROR doing stackwalk\n", FILE__, __LINE__);
    }
-
-   if (!wasStopped)
-       proc->continueExecution();
-
 
    // The internal representation of a stack walk treats instrumentation
    // as part of the original instrumented function. That is to say, if A() 
@@ -442,6 +429,12 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
                                          bool synchronous)
 {
    bool needToResume = false;
+
+   while (proc->llproc->sh->isActivelyProcessing()) {
+       fprintf(stderr, "UI thread backing off from active signal handler...\n");
+       signal_printf("%s[%d]:  waiting before doing user stop for process %d\n", FILE__, __LINE__, proc->llproc->getPid());
+       proc->llproc->sh->waitForEvent(evtAnyEvent);
+   }
       
    if (synchronous && !proc->statusIsStopped()) {
       proc->stopExecutionInt();
