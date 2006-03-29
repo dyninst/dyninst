@@ -173,6 +173,7 @@ void dyn_lwp::dumpRegisters()
 Address getPC( int pid ) {
   errno = 0;
   Address pc = getDBI()->ptrace( PTRACE_PEEKUSER, pid, PT_CR_IIP, 0, -1, & errno );
+  if (errno) perror("OHMYGOD! ERRNO!");
   assert( ! errno );
 
   return pc;
@@ -366,7 +367,7 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
 Frame dyn_lwp::getActiveFrame() {
 	int status = 0;
 	process * proc = proc_;
-	
+
 	assert( status_ != running );
 
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: getActiveFrame(): working on lwp %d\n", __FILE__, __LINE__, get_lwp_id() );
