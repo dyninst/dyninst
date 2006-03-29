@@ -333,10 +333,7 @@ class pd_process {
    bool hasExited() { return dyninst_process->isTerminated();}
    bool wasCreatedViaAttach() const {return created_via_attach;}
 
-   bool launchRPCs(bool wasRunning) {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->getRpcMgr()->launchRPCs(wasRunning);
-   }
+   bool launchRPCs(bool wasRunning); 
 
    bool isPARADYNBootstrappedYet() const {
        // Good enough approximation (should use a flag here)
@@ -362,13 +359,7 @@ class pd_process {
    unsigned postRPCtoDo(AstNode *action, bool noCost,
                         inferiorRPCcallbackFunc callbackFunc,
                         void *userData, bool lowmem,
-                        dyn_thread *thr, dyn_lwp *lwp) {
-      process *llproc = dyninst_process->lowlevel_process();
-      return llproc->getRpcMgr()->postRPCtoDo(action, noCost,
-                                            callbackFunc, userData,
-                                            lowmem,
-                                            thr, lwp);
-   }
+                        dyn_thread *thr, dyn_lwp *lwp);
    
    //bool triggeredInStackFrame(Frame &frame, BPatch_point *point,
    //BPatch_callWhen when, BPatch_snippetOrder order);
@@ -590,23 +581,37 @@ class pd_process {
    bool finalizeParadynLib(load_cause_t ldcause);
    bool getParadynRTname();
    
-	 bool canReportResources() { return canReportResources_; }
+   bool canReportResources() { return canReportResources_; }
    /*************************************************************
     **** Process state variables                             ****
     *************************************************************/
  private:
    
    bool inExec;
-	 bool canReportResources_;
-	 
+   
    pdstring paradynRTname;
-
+   
+   bool canReportResources_;
    /*************************************************************
     **** Shared Memory handling                              ****
     *************************************************************/
    shmMgr *sharedMemManager;
    sharedMetaData *shmMetaData;
-   
+
+
+   /*******************************************
+    ***** PDSEP LOCK HANDLING *****************
+    *******************************************/
+ public:
+
+   // Special functions used to acquire the BPatch global lock before
+   // we use internal code. The lock "backs off" until there are no
+   // low-level signal handlers processing; this avoids a problem
+   // where the UI thread "intercepts" in the middle of the SignalGenerator
+   // to signalHandler handoff.
+   void PDSEP_LOCK(char *, unsigned);
+   void PDSEP_UNLOCK(char *, unsigned);
+
 };
 
 

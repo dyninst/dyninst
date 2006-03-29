@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.185 2006/02/14 20:02:25 bernat Exp $
+// $Id: perfStream.C,v 1.186 2006/03/29 21:35:17 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/timing.h"
@@ -297,6 +297,9 @@ void DyninstRTMessageCB(BPatch_process *p, void *msg, unsigned msg_size)
 extern pdvector<int> deferredMetricIDs;
 
 static void doDeferredRPCs() {
+    return;
+
+
     processMgr::procIter itr = getProcMgr().begin();
     while(itr != getProcMgr().end()) {
         pd_process *theProc = *itr;
@@ -304,7 +307,8 @@ static void doDeferredRPCs() {
         if (!theProc) continue;
 
         if (theProc->isTerminated()) continue;
-        theProc->launchRPCs(!theProc->isStopped());
+        // PDSEP!!!
+        theProc->launchRPCs(!theProc->get_dyn_process()->lowlevel_process()->isStopped());
     }
 }
 
@@ -342,26 +346,24 @@ static void doDeferredInstrumentation() {
 
          }
       } else if(insert_status == inst_insert_failure) {
-         deferredMetricIDs.erase(itr);
-
-         if(cbi != NULL)
-					 {
-						 if(mdl_data::cur_mdl_data->env->getSavedErrorString() != NULL)
-							 {
-								 cbi->updateResponse( mid,
-																			inst_insert_failure,
-																			mdl_data::cur_mdl_data->env->getSavedErrorString() );
-							 }
-						 else
-							 {
-								 cbi->updateResponse( mid,
-																			inst_insert_failure,
-																			"Unspecified error" );
-							 }
-						 cbi->makeCallback();
-
-         }
-         delete machNode;
+          deferredMetricIDs.erase(itr);
+          
+          if(cbi != NULL) {
+              if(mdl_data::cur_mdl_data->env->getSavedErrorString() != NULL) {
+                  cbi->updateResponse( mid,
+                                       inst_insert_failure,
+                                       mdl_data::cur_mdl_data->env->getSavedErrorString() );
+              }
+              else
+                  {
+                      cbi->updateResponse( mid,
+                                           inst_insert_failure,
+                                           "Unspecified error" );
+                  }
+              cbi->makeCallback();
+              
+          }
+          delete machNode;
       } // else insert_status == inst_insert_deferred
    }  
 }
@@ -561,7 +563,7 @@ void controllerMainLoop(bool check_buffer_first)
       // to start them
       doDeferredRPCs();
       
-#if defined(i386_unknown_nt4_0) || defined(i386_unknown_linux2_0) || defined(ia64_unknown_linux2_4) /* Temporary duplication - TLM */
+#if defined(arch_x86)
       doDeferredInstrumentation();
 #endif
       

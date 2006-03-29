@@ -326,8 +326,12 @@ void registerAsDeferred(int metricID) {
 
 inst_insert_result_t processMetFocusNode::insertInstrumentation() {
     //fprintf(stderr, "InsertInstrumentation for %p, status done %d, inserted %d, hooked %d, catchuped %d\n", this, instrInserted(), instrLoaded(), instrLinked(), instrCatchuped());
+
+    proc()->PDSEP_LOCK(__FILE__, __LINE__);
+
     assert(dontInsertData() == false);  // code doesn't have allocated variables
     if(instrInserted()) {
+        proc()->PDSEP_UNLOCK(__FILE__, __LINE__);
         return inst_insert_success;
     }
 
@@ -337,6 +341,7 @@ inst_insert_result_t processMetFocusNode::insertInstrumentation() {
         // If linked, then catchuped
         assert(instrCatchuped());
         instrInserted_ = true;
+        proc()->PDSEP_UNLOCK(__FILE__, __LINE__);
         return inst_insert_success;
     }
 
@@ -356,6 +361,7 @@ inst_insert_result_t processMetFocusNode::insertInstrumentation() {
     if(proc()->hasExited()) {
         // though technically we failed to insert instrumentation, from the
         // perspective of the machineMetFocusNode, it succeeded.
+        proc()->PDSEP_UNLOCK(__FILE__, __LINE__);
         return inst_insert_success;
     }
     
@@ -372,6 +378,7 @@ inst_insert_result_t processMetFocusNode::insertInstrumentation() {
             + getFullName() + " into process with pid " 
             + pdstring(proc()->getPid());
         showErrorCallback(126, msg);
+        proc()->PDSEP_UNLOCK(__FILE__, __LINE__);
         return inst_insert_failure;
     }
 
@@ -429,10 +436,13 @@ inst_insert_result_t processMetFocusNode::insertInstrumentation() {
         // If any of the instrCodeNodes are marked as deferred...
         if(instrDeferred()) {
             registerAsDeferred(getMetricID());
+            proc()->PDSEP_UNLOCK(__FILE__, __LINE__);
             return inst_insert_deferred;
         }
-        else
+        else {
+            proc()->PDSEP_UNLOCK(__FILE__, __LINE__);
             return inst_insert_failure;
+        }
     }
     
     // Now that the timers and counters have been allocated on the heap, and
@@ -453,6 +463,7 @@ inst_insert_result_t processMetFocusNode::insertInstrumentation() {
 
     assert(res); // No fallback for failed catchup.
     instrInserted_ = true;
+    proc()->PDSEP_UNLOCK(__FILE__, __LINE__);
     return inst_insert_success;
 }
 
@@ -1074,7 +1085,9 @@ bool processMetFocusNode::cancelPendingRPC(unsigned rpc_id) {
       unsigned cur_rpc_id = (*iter);
       if(rpc_id == cur_rpc_id) {
          rpc_id_buf.erase(iter);
+         proc_->PDSEP_LOCK(__FILE__, __LINE__);
          erased = proc_->get_dyn_process()->PDSEP_process()->getRpcMgr()->cancelRPC(cur_rpc_id);
+         proc_->PDSEP_UNLOCK(__FILE__, __LINE__);
          break;
       }
    }

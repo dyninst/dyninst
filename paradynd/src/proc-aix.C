@@ -135,8 +135,8 @@ rawTime64 pd_thread::getRawCpuTime_hw()
    // PM counters are only valid when the process is paused. 
    bool needToCont = !(pd_proc->isStopped());
    if(needToCont) { // process running
-      if (!pd_proc->pauseProc()) {
-         return -1;  // pause failed, so returning failure
+       if (!pd_proc->pauseProc()) {
+           return -1;  // pause failed, so returning failure
       }
    }
 
@@ -166,6 +166,8 @@ rawTime64 pd_thread::getRawCpuTime_hw()
          pm_error("dyn_lwp::getRawCpuTime_hw: pm_get_data_thread", ret);
          fprintf(stderr, "Attempted pm_get_data(%d, %d, %d)\n",
                  pd_proc->getPid(), get_lwp(), lwp_to_use);
+         fprintf(stderr, "needToCont is %d, internal process state %s\n",
+                 needToCont, pd_proc->get_dyn_process()->lowlevel_process()->getStatusAsString().c_str());
       }
       return -1;
    }

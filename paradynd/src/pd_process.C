@@ -57,6 +57,7 @@
 #include "dyninstAPI/src/dyn_thread.h"
 
 #include "dyninstAPI/src/function.h"
+#include "dyninstAPI/src/signalgenerator.h"
 
 #include "dyninstAPI/h/BPatch.h"
 #include "dyninstAPI/src/inst.h"
@@ -447,7 +448,7 @@ pd_process::pd_process(const pd_process &parent, BPatch_process *childDynProc) :
 #endif
         paradynRTState(libLoaded), inExec(false),
         paradynRTname(parent.paradynRTname),
-				canReportResources_(true)
+        canReportResources_(true)
 {
    img = new pd_image(dyninst_process->getImage(), this);
 
@@ -780,6 +781,8 @@ bool pd_process::loadParadynLib(load_cause_t ldcause)
    
    pdstring libname = formatLibParadynName(paradynRTname);
 
+    fprintf(stderr, "Loading library %s...\n", libname.c_str());
+
    result = dyninst_process->loadLibrary(libname.c_str());
    if (!result)
    {
@@ -788,6 +791,8 @@ bool pd_process::loadParadynLib(load_cause_t ldcause)
       return false;
    }
 
+    fprintf(stderr, "Done loading library %s...\n", libname.c_str());
+    
    if (!runParadynInit(ldcause)) {
       fprintf(stderr, "%s[%d]:  failed set lib params for %s, fatal...\n",
               __FILE__, __LINE__, paradynRTname.c_str());
@@ -983,11 +988,16 @@ bool pd_process::loadAuxiliaryLibrary(pdstring libname) {
     removeAst(loadLib);
 #endif
 
+    fprintf(stderr, "Loading library %s...\n", libname.c_str());
+
     setLibState(auxLibState, libLoading);
     if (!dyninst_process->loadLibrary(libname.c_str())) {
       fprintf(stderr, "%s[%d]:  failed to load library %s\n", __FILE__, __LINE__, libname.c_str());
       assert(0);
     }
+    fprintf(stderr, "Done loading library %s...\n", libname.c_str());
+
+
     setLibState(auxLibState, libLoaded);
     return true;
 }
@@ -1805,6 +1815,7 @@ bool pd_process::walkStacks(BPatch_Vector<BPatch_Vector<BPatch_frame> > &stackWa
         success &= (*iter)->walkStack(walk);
         stackWalks.push_back(walk);
     }
+    return success;
 }
 
 bool pd_process::walkStacks_ll(pdvector<pdvector<Frame> > &stackWalks) {
@@ -1816,6 +1827,7 @@ bool pd_process::walkStacks_ll(pdvector<pdvector<Frame> > &stackWalks) {
         success &= (*iter)->walkStack_ll(walk);
         stackWalks.push_back(walk);
     }
+    return success;
 }
 
 
@@ -2249,3 +2261,43 @@ unsigned pd_process::calculate_Checksum( pdstring graph)
     return ret;
 }
 
+
+bool pd_process::launchRPCs(bool wasRunning) {
+    fprintf(stderr, "pd_proc::launchRPCs(%d)\n", wasRunning);
+    PDSEP_LOCK(__FILE__, __LINE__);
+    process *llproc = dyninst_process->lowlevel_process();
+    bool retval = llproc->getRpcMgr()->launchRPCs(wasRunning);
+    PDSEP_UNLOCK(__FILE__, __LINE__);
+    fprintf(stderr, "pd_proc::launchRPCs(%d) returned, my stopped %d\n", wasRunning, isStopped());
+    return retval;
+}
+
+unsigned pd_process::postRPCtoDo(AstNode *action, bool noCost,
+                                 inferiorRPCcallbackFunc callbackFunc,
+                                 void *userData, bool lowmem,
+                                 dyn_thread *thr, dyn_lwp *lwp) {
+    PDSEP_LOCK(__FILE__, __LINE__);
+    process *llproc = dyninst_process->lowlevel_process();
+    unsigned retval = llproc->getRpcMgr()->postRPCtoDo(action, noCost,
+                                                       callbackFunc, userData,
+                                                       lowmem,
+                                                       thr, lwp);
+    PDSEP_UNLOCK(__FILE__, __LINE__);
+    return retval;
+}
+
+
+void pd_process::PDSEP_LOCK(char *file, unsigned line) {
+    global_mutex->_Lock(file, line);
+
+    while (dyninst_process->lowlevel_process()->sh->isActivelyProcessing()) {
+        fprintf(stderr, "%s[%d]:  waiting before doing user pause for process %d\n",
+                FILE__, __LINE__, 
+                dyninst_process->lowlevel_process()->getPid());
+        dyninst_process->lowlevel_process()->sh->waitForEvent(evtAnyEvent);
+    }
+}
+
+void pd_process::PDSEP_UNLOCK(char *file, unsigned line) {
+    global_mutex->_Unlock(file, line);
+}
