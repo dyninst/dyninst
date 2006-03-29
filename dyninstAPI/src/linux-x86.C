@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.93 2006/03/17 22:52:36 jodom Exp $
+// $Id: linux-x86.C,v 1.94 2006/03/29 00:57:14 mjbrim Exp $
 
 #include <fstream>
 
@@ -174,7 +174,8 @@ bool dyn_lwp::changePC(Address loc,
    assert(get_lwp_id() != 0);
    int ptrace_errno = 0;
    if (0 != DBI_ptrace(PTRACE_POKEUSER, get_lwp_id(), regaddr, loc, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__ )) {
-      perror( "dyn_lwp::changePC - PTRACE_POKEUSER" );
+      fprintf(stderr, "dyn_lwp::changePC - PTRACE_POKEUSER failure for %lu",
+              get_lwp_id());
       return false;
    }
    
@@ -266,7 +267,8 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs) {
 Frame dyn_lwp::getActiveFrame()
 {
    if(status() == running) {
-   fprintf(stderr, "%s[%d][%s]:  FIXME\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
+      fprintf(stderr, "%s[%d][%s]:  FIXME\n", __FILE__, __LINE__, 
+              getThreadStr(getExecThreadID()));
       cerr << "    performance problem in call to dyn_lwp::getActiveFrame\n"
            << "       successive pauses and continues with ptrace calls\n";
    }
