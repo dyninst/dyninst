@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.361 2006/03/16 19:19:13 mjbrim Exp $
+/* $Id: process.h,v 1.362 2006/03/29 21:35:09 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -65,7 +65,6 @@
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/syscalltrap.h"
 #include "dyninstAPI/src/libState.h"
-#include "dyninstAPI/src/signalhandler.h"
 #include "dyninstAPI/src/rpcMgr.h"
 #include "dyninstAPI/src/codeRange.h"
 
@@ -342,7 +341,7 @@ class process {
   // Get LWP handles from /proc (or as appropriate)
   bool determineLWPs(pdvector<unsigned> &lwp_ids);
 
-  int getPid() const { return sh ? sh->getPid() : -1;}
+  int getPid() const;
 
   /***************************************************************************
    **** Runtime library initialization code (Dyninst)                     ****

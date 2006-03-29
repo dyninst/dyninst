@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.596 2006/03/17 21:13:27 bernat Exp $
+// $Id: process.C,v 1.597 2006/03/29 21:35:08 bernat Exp $
 
 #include <ctype.h>
 
@@ -61,6 +61,7 @@
 #include "dyninstAPI/src/dyn_thread.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/signalhandler.h"
+#include "dyninstAPI/src/signalgenerator.h"
 #include "dyninstAPI/src/mailbox.h"
 #include "dyninstAPI/src/EventHandler.h"
 #include "dyninstAPI/src/process.h"
@@ -273,22 +274,39 @@ bool process::getAllActiveFrames(pdvector<Frame> &activeFrames)
 
 bool process::walkStacks(pdvector<pdvector<Frame> >&stackWalks)
 {
-  pdvector<Frame> stackWalk;
-  if (!threads.size()) { // Nothing defined in thread data structures
-    if (!getRepresentativeLWP()->walkStack(stackWalk))
-      return false;
-    // Use the walk from the default LWP
-    stackWalks.push_back(stackWalk);
-  }
-  else { // Have threads defined
-    for (unsigned i = 0; i < threads.size(); i++) {
-      if (!threads[i]->walkStack(stackWalk))
-         return false;
-      stackWalks.push_back(stackWalk);
-      stackWalk.resize(0);
-    }
-  }
-  return true;
+	bool needToContinue = false;
+	bool retval = true;
+	
+	if (!isStopped()) {
+		needToContinue = true;
+		pause();
+	}
+	
+  	pdvector<Frame> stackWalk;
+  	if (!threads.size()) { // Nothing defined in thread data structures
+    	if (!getRepresentativeLWP()->walkStack(stackWalk)) {
+			retval = false;
+		}
+    	else {
+			// Use the walk from the default LWP
+    		stackWalks.push_back(stackWalk);
+		}
+  	}
+  	else { // Have threads defined
+    	for (unsigned i = 0; i < threads.size(); i++) {
+      		if (!threads[i]->walkStack(stackWalk)) {
+				retval = false;
+			}
+      		else {
+				stackWalks.push_back(stackWalk);
+      			stackWalk.clear();
+			}
+    	}
+  	}
+	if (needToContinue)
+		continueProc();
+		
+	return retval;
 }
 
 extern "C" int heapItemCmpByAddr(const heapItem **A, const heapItem **B)
@@ -3653,6 +3671,7 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
              __FILE__, __LINE__, getThreadStr(getExecThreadID()));
       return false;
    }
+
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
    if(stopped_lwp == NULL) {
       stopped_lwp = stop_an_lwp(&needToCont);
@@ -3677,14 +3696,13 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
          fprintf(stderr, "%s[%d]:  readDataSpace failed\n", FILE__, __LINE__);
          showErrorCallback(38, msg);
       }
-      return false;
    }
 
    if (needToCont) {
-      return stopped_lwp->continueLWP();
+      stopped_lwp->continueLWP();
    }
 
-   return true;
+   return res;
 }
 
 bool process::writeTextWord(caddr_t inTracedProcess, int data) {
@@ -3901,6 +3919,9 @@ bool process::pause() {
      return false;
    }
    status_ = stopped;
+
+   if (sh) sh->signalPausedProcess();
+
    return true;
 }
 
@@ -6230,4 +6251,9 @@ void process::debugSuicide() {
         stepi();
     }
 }
+
+
+int process::getPid() const { return sh ? sh->getPid() : -1;}
+
 /* vim: set ts=5: */
+
