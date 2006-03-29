@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.173 2006/03/14 23:11:54 bernat Exp $
+// $Id: unix.C,v 1.174 2006/03/29 21:35:14 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -61,6 +61,7 @@
 
 // the following are needed for handleSigChild
 #include "dyninstAPI/src/signalhandler.h"
+#include "dyninstAPI/src/signalgenerator.h"
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/dyn_lwp.h"
 #include "dyninstAPI/src/dyn_thread.h"
@@ -230,12 +231,15 @@ bool SignalGenerator::decodeSigIll(EventRecord &ev)
  // doing a (for i in $path; do exec $i/<progname>
  // This means that the entry will be called multiple times
  // until the exec call gets the path right.
-bool SignalHandler::handleExecEntry(EventRecord &ev) 
+bool SignalHandler::handleExecEntry(EventRecord &ev, bool &continueHint) 
 {
-     return ev.proc->handleExecEntry((char *)ev.info);
+  bool retval = ev.proc->handleExecEntry((char *)ev.info);
+  // continuation is handled at the BPatch layer via callbacks
+  // continueHint = true;
+  return retval;
 }
 
-bool SignalHandler::handleLoadLibrary(EventRecord &ev)
+bool SignalHandler::handleLoadLibrary(EventRecord &ev, bool &continueHint)
 {
    process *proc = ev.proc;
    if (!proc->handleChangeInSharedObjectMapping(ev)) {
@@ -244,6 +248,8 @@ bool SignalHandler::handleLoadLibrary(EventRecord &ev)
      ev.type = evtNullEvent;
      return false;
    }
+
+   continueHint = true;
    return true;
 }
 
@@ -358,7 +364,7 @@ bool SignalGenerator::decodeSyscall(EventRecord &ev)
     return false;
 }
 
-bool SignalHandler::handleProcessCreate(EventRecord &ev)
+bool SignalHandler::handleProcessCreate(EventRecord &ev, bool &continueHint)
 {
   process * proc = ev.proc;
   proc->setBootstrapState(begun_bs);
@@ -366,7 +372,7 @@ bool SignalHandler::handleProcessCreate(EventRecord &ev)
      pdstring buffer = pdstring("PID=") + pdstring(proc->getPid());
      buffer += pdstring(", attached to process, stepping to main");
      statusLine(buffer.c_str());
-     proc->continueProc();
+     continueHint = true;
      return true;
   } else {
      // We couldn't insert the trap... so detach from the process
@@ -379,14 +385,15 @@ bool SignalHandler::handleProcessCreate(EventRecord &ev)
      // frontend.
      proc->triggerNormalExitCallback(0);
      proc->handleProcessExit();
-     proc->continueProc();
+     continueHint = true;
   }
   return false;
 }
 
-bool SignalHandler::handleThreadCreate(EventRecord &)
+bool SignalHandler::handleThreadCreate(EventRecord &, bool &)
 {
   assert(0);
+  return false;
 }
 
 //  checkForExit returns true when an exit has been detected
@@ -395,7 +402,7 @@ bool SignalGenerator::checkForExit(EventRecord &ev, bool block)
   int waitpid_flags = block ? 0 : WNOHANG|WNOWAIT;
   int status;
 
-  int retWait = waitpid(pid, &status, waitpid_flags);
+  int retWait = waitpid(getPid(), &status, waitpid_flags);
   if (retWait == -1) {
        fprintf(stderr, "%s[%d]:  waitpid failed\n", __FILE__, __LINE__);
        return false;
@@ -415,7 +422,7 @@ bool SignalGenerator::checkForExit(EventRecord &ev, bool block)
 
 #if !defined (os_linux)
 
-bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
+bool SignalGenerator::waitForEventInternal(EventRecord &ev)
 {
   bool ret = true;
   int timeout = POLL_TIMEOUT;
@@ -437,7 +444,9 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
   waiting_for_event = true;
   __UNLOCK;
   int num_selected_fds = poll(pfds, 1, timeout);
+  
   __LOCK;
+  
   waiting_for_event = false;
   int handled_fds = 0;
 
@@ -480,16 +489,8 @@ bool SignalGenerator::waitNextEventLocked(EventRecord &ev)
   if (ev.proc->status() == running) {
       ev.proc->set_status(stopped);
   }
-  if (!decodeEvent(ev)) {
-       fprintf(stderr, "%s[%d]:  Internal Error: decodeEvent returned false\n", 
-               FILE__, __LINE__);
-   }
-   else {
-     if (ev.type == evtUndefined)
-       fprintf(stderr, "%s[%d]:  CHECK THIS evtUndefined\n", FILE__, __LINE__);
-   }
 
-  return ret;
+  return true;
 }
 
 #endif
@@ -554,7 +555,11 @@ bool SignalGenerator::decodeSignal(EventRecord &ev)
   {
      signal_printf("%s[%d]:  SIGILL\n", FILE__, __LINE__);
 #if defined (arch_ia64)
-     Address pc = getPC(ev.proc->getPid());
+     assert(ev.lwp);
+     
+     Frame frame = ev.lwp->getActiveFrame();
+
+     Address pc = frame.getPC();
 
      if (pc == ev.proc->dyninstlib_brk_addr ||
          pc == ev.proc->main_brk_addr ||
@@ -565,9 +570,9 @@ bool SignalGenerator::decodeSignal(EventRecord &ev)
       else
         decodeSigIll(ev);
 
-      signal_printf("%s[%d]:  SIGILL:  main brk = %p, dyn brk = %p, pc = %p/%p\n",
+      signal_printf("%s[%d]:  SIGILL:  main brk = %p, dyn brk = %p, pc = %p\n",
            FILE__, __LINE__, ev.proc->main_brk_addr, ev.proc->dyninstlib_brk_addr,
-           pc, getPC(ev.proc->getPid()));
+           pc);
 #else
 
       decodeSigIll(ev);
@@ -582,7 +587,6 @@ bool SignalGenerator::decodeSignal(EventRecord &ev)
      break;
   default:
      signal_printf("%s[%d]:  got signal %d\n", FILE__, __LINE__, ev.what);
-     fprintf(stderr, "%s[%d]:  Signal %d\n", FILE__, __LINE__, ev.what);
      break;
   }
 
@@ -681,9 +685,9 @@ unsigned long dbi_thread_id = -1UL;
 DebuggerInterface *global_dbi = NULL;
 DebuggerInterface *getDBI()
 {
-  if (global_dbi) return global_dbi;
-  global_dbi = new DebuggerInterface();
-  return global_dbi; 
+    if (global_dbi) return global_dbi;
+    global_dbi = new DebuggerInterface();
+    return global_dbi; 
 }
 
 void DBICallbackBase::dbi_signalCompletion(CallbackBase *cbb) 
@@ -776,10 +780,19 @@ bool PtraceCallback::execute_real()
      return false;
   }
 #endif
-  if (ptrace_errno) {
+  switch (ptrace_errno) {
+  case 0:
+      break;
+  case ESRCH:
+      // Don't report an error... and LWP could have gone away and we don't know
+      // about it yet.
+      break;
+  default:
      perror("ptrace error");
      return false;
+     break;
   }
+
   return true;
 }
 
@@ -1115,14 +1128,20 @@ bool forkNewProcess_real(pdstring file,
 bool SignalGenerator::forkNewProcess()
 {
 #if !defined (os_linux)
-    return forkNewProcess_real(file, dir, argv, envp, inputFile, outputFile,
-                               traceLink, pid, stdin_fd, stdout_fd, stderr_fd);
+    return forkNewProcess_real(file_, dir_, 
+                               argv_, envp_, 
+                               inputFile_, outputFile_,
+                               traceLink_, pid_, 
+                               stdin_fd_, stdout_fd_, stderr_fd_);
 #else
     // Linux platforms MUST execute fork() calls on the debugger interface
     // (ptrace) thread; see comment above DebuggerInterface::forkNewProcess
     // in debuginterface.h for details. -- nater 22.feb.06
-    return getDBI()->forkNewProcess(file, dir, argv, envp, inputFile, 
-                outputFile, traceLink, pid, stdin_fd, stdout_fd, stderr_fd);
+    return getDBI()->forkNewProcess(file_, dir_, 
+                                    argv_, envp_, 
+                                    inputFile_, outputFile_, 
+                                    traceLink_, pid_,
+                                    stdin_fd_, stdout_fd_, stderr_fd_);
 #endif
 }
 
@@ -1318,15 +1337,31 @@ const char *dbiEventType2str(DBIEventType t)
 #include <sys/types.h>
 #include <dirent.h>
 
+SignalGenerator::SignalGenerator(char *idstr, pdstring file, pdstring dir,
+                                 pdvector<pdstring> *argv,
+                                 pdvector<pdstring> *envp,
+                                 pdstring inputFile,
+                                 pdstring outputFile,
+                                 int stdin_fd, int stdout_fd,
+                                 int stderr_fd) :
+    SignalGeneratorCommon(idstr),
+    waiting_for_stop(false) {
+    setupCreated(file, dir, 
+                 argv, envp, 
+                 inputFile, outputFile,
+                 stdin_fd, stdout_fd, stderr_fd);
+}
 
 /// Experiment: wait for the process we're attaching to to be created
 // before we return. 
 
 SignalGenerator::SignalGenerator(char *idstr, pdstring file, int pid)
-    : SignalGeneratorCommon(idstr, file, pid),
+    : SignalGeneratorCommon(idstr),
       waiting_for_stop(false) {
     char buffer[128];
     sprintf(buffer, "/proc/%d", pid);
+
+    setupAttached(file, pid);
 
     // We wait until the entry has shown up in /proc. I believe this
     // is sufficient; unsure though.

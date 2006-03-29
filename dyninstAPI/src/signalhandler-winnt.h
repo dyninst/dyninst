@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-winnt.h,v 1.8 2006/03/12 23:32:16 legendre Exp $
+/* $Id: signalhandler-winnt.h,v 1.9 2006/03/29 21:35:11 bernat Exp $
  */
 
 /*
@@ -100,63 +100,6 @@ typedef DWORD procSignalWhat_t;
  */
 
 typedef DEBUG_EVENT procSignalInfo_t;
-
-///////////////////////////////////////////////////////////////////
-////////// Handler section
-///////////////////////////////////////////////////////////////////
-
-// These are the prototypes for the NT-style signal handler
-// NT has a two-level continue mechanism which we have to handle.
-// There is a process-wide debug pause/resume, and a per-thread flag
-// to pause or resume. We use the per-thread for pause() and continueProc(),
-// and the process-wide for debug events. The process is stopped when
-// the signal handler executes, and is re-run at the end. If the process
-// should stay stopped the handlers must pause it explicitly.
-
-
-class SignalGenerator : public SignalGeneratorCommon
-{
-  friend class SignalHandler;
-  friend class SignalGeneratorCommon;
-  friend class process;
-
-  public:
-   virtual ~SignalGenerator() {}
-
-   HANDLE getProcessHandle() {return (HANDLE)procHandle;}
-   HANDLE getThreadHandle() {return (HANDLE)thrHandle;}
-  SignalGenerator(char *idstr, pdstring file, pdstring dir,
-                         pdvector<pdstring> *argv,
-                         pdvector<pdstring> *envp,
-                         pdstring inputFile,
-                         pdstring outputFile,
-                         int stdin_fd, int stdout_fd,
-                         int stderr_fd)
-    : SignalGeneratorCommon(idstr, file, dir, argv, envp, inputFile, outputFile, 
-                      stdin_fd, stdout_fd, stderr_fd),
-      procHandle(-1), thrHandle(-1) {}
-
-  SignalGenerator(char *idstr, pdstring file, int pid)
-    : SignalGeneratorCommon(idstr, file, pid),
-      procHandle(-1), thrHandle(-1) {} 
-
-   bool waitingForStop() {return false;}
-   void setWaitingForStop(bool flag) {;}
-
-  private:
-  SignalHandler *newSignalHandler(char *name, int id);
-  virtual bool forkNewProcess();
-  virtual bool attachProcess();
-  virtual bool waitForStopInline();
-  bool waitNextEventLocked(EventRecord &);
-
-  bool decodeEvent(EventRecord &);
-  bool decodeBreakpoint(EventRecord &);
-  bool decodeException(EventRecord &);
-
-  int procHandle;
-  int thrHandle;
-};
 
 #endif
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.21 2006/03/12 23:32:18 legendre Exp $
+/* $Id: signalhandler.h,v 1.22 2006/03/29 21:35:13 bernat Exp $
  */
 
 #ifndef _SIGNAL_HANDLER_H
@@ -78,140 +78,12 @@ class signal_handler_location : public codeRange {
 
 class process;
 
-class EventGate {
-  public:
-    EventGate(eventLock *l, eventType type, process *p = NULL, dyn_lwp *lwp = NULL,
-              eventStatusCode_t status = NULL_STATUS_INITIALIZER);
-    EventGate(eventLock *l, eventType type, unsigned long id);
-    bool addEvent(eventType type, process *p = NULL);
-    ~EventGate();
-
-    EventRecord &wait();
-    bool signalIfMatch(EventRecord &ev);
-
-  private:
-    pdvector<EventRecord> evts;
-    eventLock *lock;
-    EventRecord trigger;
-    bool waiting;
-};
-
 class SignalHandler;
+
 class SignalGenerator;
+
 #define MAX_HANDLERS 64  /*This is just arbitrarily large-ish */
 #define HANDLER_TRIM_THRESH 2 /*try to delete handlers if we have more than this */
-
-class SignalGeneratorCommon : public EventHandler<EventRecord> {
- friend class process;
- friend class SignalHandler;
-
- public:
-   static process *newProcess(pdstring file_, pdstring dir, 
-                                            pdvector<pdstring> *argv,
-                                            pdvector<pdstring> *envp,
-                                            int stdin_fd, int stdout_fd, 
-                                            int stderr_fd);
-   static process *newProcess(pdstring &progpath, int pid);
-   process *newProcess(process *parent, int pid_, int traceLink);
-
-   static void deleteSignalGenerator(SignalGenerator *sg);
-   static void stopSignalGenerator(SignalGenerator *sg);
-
-    //  newSignalGenerator provides a way to make a signal generator in
-    //  a platform indep manner.
-    static SignalGenerator *newSignalGenerator(pdstring file, pdstring dir,
-                                                pdvector<pdstring> *argv,
-                                                pdvector<pdstring> *envp,
-                                                pdstring inputFile,
-                                                pdstring outputFile,
-                                                int stdin_fd, int stdout_fd,
-                                                int stderr_fd);
-    static SignalGenerator *newSignalGenerator(pdstring file, int pid);
-
-   virtual ~SignalGeneratorCommon(); 
-   
-   eventType waitForOneOf(pdvector<eventType> &evts);
-   static eventType globalWaitForOneOf(pdvector<eventType> &evts);
-   eventType waitForEvent(eventType evt, process *p = NULL, dyn_lwp *lwp = NULL, 
-                          eventStatusCode_t status = NULL_STATUS_INITIALIZER);
-   bool signalEvent(EventRecord &ev);
-   bool signalEvent(eventType t);
-
-   bool signalActiveProcess();
-
-   SignalHandler *findSHWithThreadID(unsigned long tid);
-   SignalHandler *findSHWaitingForCallback(CallbackBase *cb);
-   bool activeHandlerForProcess(process *p);
-   bool anyActiveHandlers();
-   bool wakeUpThreadForShutDown();
-   bool waitingForActiveProcess() {return waiting_for_active_process;}
-   int getPid() {return pid;}
-
-   void setProcess(process *p) {proc = p;}
-
-   pdstring file;
-   pdstring dir;
-   //  SignalGeneratorCommon should only be constructed via derived classes
-   SignalGeneratorCommon(char *idstr, pdstring file, pdstring dir,
-                         pdvector<pdstring> *argv,
-                         pdvector<pdstring> *envp,
-                         pdstring inputFile,
-                         pdstring outputFile,
-                         int stdin_fd, int stdout_fd,
-                         int stderr_fd);
-   SignalGeneratorCommon(char *idstr, pdstring file, int pid);
-
-   protected:
-    bool handleEvent(EventRecord &ev)
-      { LOCK_FUNCTION(bool, handleEventLocked, (ev));}
-    bool handleEventLocked(EventRecord &ev);
-    bool waitNextEvent(EventRecord &ev);
-    virtual bool waitNextEventLocked(EventRecord &ev) = 0;
-
-    virtual bool decodeEvent(EventRecord &ev) = 0;
-    bool decodeIfDueToProcessStartup(EventRecord &ev);
-
-    virtual SignalHandler *newSignalHandler(char *name, int shid)  = 0;
-    void deleteSignalHandler(SignalHandler *sh);
-
-    // A list of things waiting on this particular signal handler...
-    pdvector<EventGate *> wait_list;
-    bool waiting_for_active_process;
-
-    // And for all signal handlers.
-    static pdvector<EventGate *> global_wait_list;
-    static eventLock global_wait_list_lock;
-
-
-    pdvector<SignalHandler *> handlers;
-    pdvector<EventRecord> events_to_handle;
-
-    virtual bool forkNewProcess() = 0;
-    virtual bool attachProcess() = 0;
-    virtual bool waitForStopInline() = 0;
-    //  process creation parameters
-    pdstring inputFile, outputFile;
-    int stdin_fd, stdout_fd, stderr_fd;
-    pdvector<pdstring> *argv;
-    pdvector<pdstring> *envp;
-
-    process *proc;
-    pid_t pid;
-    int traceLink;
-
-    static pdstring createExecPath(pdstring &file, pdstring &dir);
-    bool getExecFileDescriptor(pdstring filename,
-                               int pid,
-                               bool waitForTrap, // Should we wait for process init
-                               int &status,
-                               fileDescriptor &desc);
-
-    bool waiting_for_event;
-   private:
-
-    bool initialize_event_handler();
-};
-
 
 class SignalHandler : public EventHandler<EventRecord>
 {
@@ -225,17 +97,21 @@ class SignalHandler : public EventHandler<EventRecord>
 
   bool idle();
   bool waiting();
+  bool processing();
   bool isActive(process *p);
   process *activeProcess() {return idle_flag ? NULL : active_proc;}
   CallbackBase *waitingForCallback() {return wait_cb;}
   protected:
     //  SignalHandler is only constructed by derived classes
-    SignalHandler(char *name, int shid, SignalGenerator *sg_) : 
-                  EventHandler<EventRecord>(global_mutex, 
-                  name, false /*start thread?*/), id(shid), sg(sg_),idle_flag(true),
-                  wait_flag(false), wait_cb(NULL), active_proc(NULL) { }
-    SignalGenerator *sg;
-    
+  SignalHandler(char *name, int shid, SignalGenerator *sg_) : 
+      EventHandler<EventRecord>(global_mutex, 
+                                name, 
+                                false /*start thread?*/), 
+      id(shid), sg(sg_),idle_flag(true),
+      wait_flag(false), wait_cb(NULL), active_proc(NULL) { }
+
+  SignalGenerator *sg;
+  
   bool handleEvent(EventRecord &ev);
   bool handleEventLocked(EventRecord &ev);
 
@@ -243,25 +119,25 @@ class SignalHandler : public EventHandler<EventRecord>
 
   //  SignalHandler::forwardSigToProcess()
   //  continue process with the (unhandled) signal
-  static bool forwardSigToProcess(EventRecord &ev);
+  static bool forwardSigToProcess(EventRecord &ev, bool &continueHint);
 
-  bool handleCritical(EventRecord &ev);
-  bool handleProcessExit(EventRecord &ev);
-  bool handleProcessExitPlat(EventRecord &ev);
-  bool handleSingleStep(EventRecord &ev);
-  bool handleLoadLibrary(EventRecord &ev);
-  bool handleProcessStop(EventRecord &ev);
+  bool handleCritical(EventRecord &ev, bool &continueHint);
+  bool handleProcessExit(EventRecord &ev, bool &continueHint);
+  bool handleProcessExitPlat(EventRecord &ev, bool &continueHint);
+  bool handleSingleStep(EventRecord &ev, bool &continueHint);
+  bool handleLoadLibrary(EventRecord &ev, bool &continueHint);
+  bool handleProcessStop(EventRecord &ev, bool &continueHint);
 
-  bool handleThreadCreate(EventRecord &ev);
-  bool handleForkEntry(EventRecord &ev);
-  bool handleForkExit(EventRecord &ev);
-  bool handleLwpExit(EventRecord &ev);
-  bool handleExecEntry(EventRecord &ev);
-  bool handleExecExit(EventRecord &ev);
-  bool handleSyscallEntry(EventRecord &ev);
-  bool handleSyscallExit(EventRecord &ev);
+  bool handleThreadCreate(EventRecord &ev, bool &continueHint);
+  bool handleForkEntry(EventRecord &ev, bool &continueHint);
+  bool handleForkExit(EventRecord &ev, bool &continueHint);
+  bool handleLwpExit(EventRecord &ev, bool &continueHint);
+  bool handleExecEntry(EventRecord &ev, bool &continueHint);
+  bool handleExecExit(EventRecord &ev, bool &continueHint);
+  bool handleSyscallEntry(EventRecord &ev, bool &continueHint);
+  bool handleSyscallExit(EventRecord &ev, bool &continueHint);
 
-  bool handleProcessCreate(EventRecord &ev);
+  bool handleProcessCreate(EventRecord &ev, bool &continueHint);
   bool assignEvent(EventRecord &ev);
   pdvector<EventRecord> events_to_handle;
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-unix.h,v 1.24 2006/02/23 02:54:35 nater Exp $
+/* $Id: signalhandler-unix.h,v 1.25 2006/03/29 21:35:10 bernat Exp $
  */
 
 /*
@@ -166,87 +166,6 @@ extern int SYSSET_MAP(int, int);
 #define A0_REGNUM 16
 #endif
 
-class SignalGenerator : public SignalGeneratorCommon
-{
-  friend class SignalHandler;
-  friend class SignalGeneratorCommon;
-  friend class process;
-
-  public:
-   virtual ~SignalGenerator() {}
-
-   bool checkForExit(EventRecord &ev, bool block =false);
-
-   bool waitingForStop() {return waiting_for_stop;}
-   void setWaitingForStop(bool flag) {waiting_for_stop = flag;}
-  private:
-  //  SignalGenerator should only be constructed by process
-  SignalGenerator(char *idstr, pdstring file, pdstring dir,
-                      pdvector<pdstring> *argv,
-                      pdvector<pdstring> *envp,
-                      pdstring inputFile,
-                      pdstring outputFile,
-                      int stdin_fd, int stdout_fd,
-                      int stderr_fd)
-    : SignalGeneratorCommon(idstr, file, dir, argv, envp, inputFile, outputFile, 
-                      stdin_fd, stdout_fd, stderr_fd),
-     waiting_for_stop(false) {}
-  SignalGenerator(char *idstr, pdstring file, int pid);
-
-  virtual SignalHandler *newSignalHandler(char *name, int id);
-
-  virtual bool forkNewProcess();
-  virtual bool attachProcess();
-  virtual bool waitForStopInline();
-  virtual bool waitNextEventLocked(EventRecord &ev);
-  virtual bool decodeEvent(EventRecord &ev);
-
-  //  decodeSignal_NP is called by decodeSignal before decodeSignal does any
-  //  decoding.  It allows platform specific actions to be taken for signal
-  //  decoding.  If it returns true, decodeSignal assumes that a valid decode 
-  //  has taken place and it  will not do any further decoding.
-  bool decodeSignal_NP(EventRecord &ev);
-  bool decodeSignal(EventRecord &ev);
-  bool decodeRTSignal(EventRecord &ev);
-  bool decodeSigTrap(EventRecord &ev);
-  bool decodeSigStopNInt(EventRecord &ev);
-  bool decodeSigIll(EventRecord &ev);
-
-  //  decodeSyscall changes the field ev.what from a platform specific
-  //  syscall representation, eg, SYS_fork, to a platform indep. one,
-  //  eg. procSysFork.  returns false if there is no available mapping.
-  bool decodeSyscall(EventRecord &ev);
-
-#if !defined (os_linux) 
-   bool updateEvents(pdvector<EventRecord> &events, process *p, int lwp_to_use);
-   bool decodeProcStatus(procProcStatus_t status, EventRecord &ev);
-   bool updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
-                                  pdvector<EventRecord> &events);
-#endif
-
-   bool waiting_for_stop;
-
-#if defined (os_linux)
-   public:
-   bool add_lwp_to_poll_list(dyn_lwp *lwp);
-   bool remove_lwp_from_poll_list(int lwp_id);
-   bool resendSuppressedSignals();
-   private:
-   pdvector<int> suppressed_sigs;
-   pdvector<dyn_lwp *> suppressed_lwps;
-   //  SignalHandler::suppressSignalWhenStopping
-   //  needed on linux platforms.  Allows the signal handler function
-   //  to ignore most non SIGSTOP signals when waiting for a process to stop
-   //  Returns true if signal is to be suppressed.
-   bool suppressSignalWhenStopping(EventRecord &ev);
-   //  SignalHandler::resendSuppressedSignals
-   //  called upon receipt of a SIGSTOP.  Sends all deferred signals to the stopped process.
-   int find_dead_lwp();
-   pid_t waitpid_kludge(pid_t, int *, int, int *);
-   pdvector<int> attached_lwp_ids;
-#endif
-
-};
 
 /////////////////////
 // Translation mechanisms
