@@ -109,11 +109,22 @@ Frame dyn_thread::getActiveFrame()
 // stackWalk: return parameter.
 bool dyn_thread::walkStack(pdvector<Frame> &stackWalk)
 {
+	bool continueWhenDone = false;
+	if (!proc->isStopped()) {
+		continueWhenDone = true;
+		proc->pause();
+	}
+	
     stackWalk.clear();
 
     Frame active = getActiveFrame();
 
-    return proc->walkStackFromFrame(active, stackWalk);
+    bool retval = proc->walkStackFromFrame(active, stackWalk);
+	if (continueWhenDone) {
+		proc->continueProc();
+	}
+	
+	return retval;
 }
 
 dyn_lwp *dyn_thread::get_lwp()
