@@ -45,6 +45,7 @@
 #include <BPatch_image.h>
 #include <BPatch_function.h>
 #include <assert.h>
+#include "test_util.h"
 
 BPatch bpatch;
 BPatch_process *proc;
@@ -52,6 +53,11 @@ BPatch_process *proc;
 bool debug_flag = false;
 #define dprintf if (debug_flag) fprintf
 
+#define MAX_ARGS 32
+char *filename = "test14.mutatee_gcc";
+bool should_exec = true;
+char *args[MAX_ARGS];
+unsigned num_args = 0; 
 
 void instr_func(BPatch_function *func, BPatch_function *lvl1func)
 {
@@ -68,34 +74,74 @@ void instr_func(BPatch_function *func, BPatch_function *lvl1func)
    }
 }
 
+static BPatch_process *getProcess()
+{
+   int i = 0;
+   args[0] = filename;
+
+   BPatch_process *proc;
+   if (should_exec)
+      proc = bpatch.processCreate(filename, (const char **) args);
+   else
+   {
+      int pid = startNewProcessForAttach(filename, (const char **) args);
+      if (pid < 0)
+      {
+         fprintf(stderr, "%s ", filename);
+         perror("couldn't be started");
+         return NULL;
+      }
+      proc = bpatch.processAttach(filename, pid);      
+   }
+   return proc;
+}
+
 int main(int argc, char *argv[])
 {
    int i;
-   const char *child_prog = "test14.mutatee_gcc";
-   const char *child_args[2] = { NULL, NULL };
+   char libRTname[256];
+
+   libRTname[0]='\0';
+   if (!getenv("DYNINSTAPI_RT_LIB")) {
+      fprintf(stderr,"Environment variable DYNINSTAPI_RT_LIB undefined:\n"
+#if defined(i386_unknown_nt4_0)
+		 "    using standard search strategy for libdyninstAPI_RT.dll\n");
+#else
+	         "    set it to the full pathname of libdyninstAPI_RT\n");
+      exit(-1);
+#endif
+   } else
+      strcpy((char *)libRTname, (char *)getenv("DYNINSTAPI_RT_LIB"));
 
    for (i = 1; i < argc; ++i) {
-       if (strcmp(argv[i], "-mutatee") == 0) {
-	   if (++i >= argc) {
-	       fprintf(stderr, "ERROR: -mutatee flag requires an argument\n");
-	       exit(-1);
-	   }
-           child_prog = argv[i];
+       if (strcmp(argv[i], "-attach") == 0) {
+          should_exec = false;
+       }
+       else if (strcmp(argv[i], "-mutatee") == 0) {
+          if (++i >= argc) {
+             fprintf(stderr, "ERROR: -mutatee flag requires an argument\n");
+             exit(-1);
+          }
+          filename = argv[i];
        }
        else if (strcmp(argv[i], "-verbose") == 0)
-           debug_flag = true;
+          debug_flag = true;
+       else if (!strcmp(argv[i], "-V")) {
+          if (libRTname[0]) {
+             fprintf (stdout, "DYNINSTAPI_RT_LIB=%s\n", libRTname);
+             fflush(stdout);
+          }
+       }
        else {
-           fprintf(stderr, "Usage: test13 [-verbose] [-attach]|[-mutatee <file>]\n");
-           exit(-1);
+          fprintf(stderr, "Usage: test14 [-V] [-verbose] [-attach]|[-mutatee <file>]\n");
+          exit(-1);
        }
    }
 
-   child_args[0] = child_prog;
-
-   proc = bpatch.processCreate(child_prog, child_args);
+   proc = getProcess();
    if (!proc)
    {
-      fprintf(stderr, "Couldn't create process for %s\n", child_prog);
+      fprintf(stderr, "Couldn't create process for %s\n", filename);
       return -1;
    }
 

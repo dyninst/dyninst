@@ -195,6 +195,7 @@ static BPatch_process *getProcess()
    return proc;
 }
 
+char libRTname[256];
 static void parse_args(unsigned argc, char *argv[])
 {
    unsigned i;
@@ -214,10 +215,16 @@ static void parse_args(unsigned argc, char *argv[])
       {
          debug_flag = true;
       }
+      else if (!strcmp(argv[i], "-V")) {
+         if (libRTname[0]) {
+            fprintf (stdout, "DYNINSTAPI_RT_LIB=%s\n", libRTname);
+            fflush(stdout);
+         }
+      }
       else
       {
-         args[num_args++] = argv[i];
-         args[num_args] = NULL;
+         fprintf(stderr, "Usage: test15 [-V] [-verbose] [-attach]|[-mutatee <file>]\n");
+         exit(-1);
       }
    }
 }
@@ -232,6 +239,19 @@ void error_exit()
 int main(int argc, char *argv[])
 {
    unsigned num_attempts = 0;
+   
+   libRTname[0]='\0';
+   if (!getenv("DYNINSTAPI_RT_LIB")) {
+      fprintf(stderr,"Environment variable DYNINSTAPI_RT_LIB undefined:\n"
+#if defined(i386_unknown_nt4_0)
+		 "    using standard search strategy for libdyninstAPI_RT.dll\n");
+#else
+	         "    set it to the full pathname of libdyninstAPI_RT\n");
+      exit(-1);
+#endif
+   } else
+      strcpy((char *)libRTname, (char *)getenv("DYNINSTAPI_RT_LIB"));
+
    parse_args(argc, argv);
 
    bpatch.registerThreadEventCallback(BPatch_threadCreateEvent, newthr);
