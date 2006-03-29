@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.146 2006/03/09 22:00:56 bernat Exp $
+// $Id: BPatch_thread.C,v 1.147 2006/03/29 00:57:09 mjbrim Exp $
 
 #define BPATCH_FILE
 
@@ -442,9 +442,9 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
                                          bool synchronous)
 {
    bool needToResume = false;
-
-   if (synchronous && !isStopped()) {
-      stopExecution();
+      
+   if (synchronous && !proc->statusIsStopped()) {
+      proc->stopExecutionInt();
       
       if (!isStopped()) {
          fprintf(stderr, "%s[%d]:  failed to run oneTimeCodeInternal .. status is %s\n", 
@@ -477,7 +477,7 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
       delete info;
 
       if (needToResume) {
-         continueExecution();
+         proc->continueExecutionInt();
       }
         
       return ret;
