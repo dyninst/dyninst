@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.67 2006/03/16 00:14:20 bernat Exp $
+// $Id: aixDL.C,v 1.68 2006/03/30 20:56:05 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -171,6 +171,8 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &result)
     
     prmap_t mapEntry;
     int iter = 0; // Starting with the a.out is _just fine_.
+
+    bool is_aout = true;
     
     // We want to fill in this vector.
 
@@ -214,13 +216,24 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &result)
             fda.setMember(objname+strlen(objname)+1);
             //fda.setPid(pid);
 
-#ifdef DEBUG
-            fprintf(stderr, "Adding %s:%s with textorg 0x%x and dataorg 0x%x\n",
-                    objname, objname+strlen(objname)+1,
-                    textOrg, dataOrg);
-#endif
 
-            result.push_back(fda);
+            if (!is_aout)  {
+#if 0
+                fprintf(stderr, "Adding %s:%s with textorg 0x%x and dataorg 0x%x\n",
+                        objname, objname+strlen(objname)+1,
+                        textOrg, dataOrg);
+#endif
+                result.push_back(fda);
+            }
+            else {
+                // Skip the first entry... it's the a.out.
+                is_aout = false;
+#if 0
+                fprintf(stderr, "Skipping %s:%s with textorg 0x%x and dataorg 0x%x\n",
+                        objname, objname+strlen(objname)+1,
+                        textOrg, dataOrg);
+#endif
+            }
         }
     } while (mapEntry.pr_size != 0);    
     return true;
