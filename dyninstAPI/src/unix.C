@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.175 2006/03/30 01:00:10 bernat Exp $
+// $Id: unix.C,v 1.176 2006/03/30 15:32:21 bpellin Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -1115,10 +1115,13 @@ bool forkNewProcess_real(pdstring file,
          }
       }
       {
-	  for(unsigned i = 0; envs[i] != NULL; ++i) {
-	      sprintf(errorLine, "envp %d = %s\n", i, envs[i]);
-	      logLine(errorLine);
-	  }
+          if ( envp )
+          {
+	      for(unsigned i = 0; envs[i] != NULL; ++i) {
+	          sprintf(errorLine, "envp %d = %s\n", i, envs[i]);
+	          logLine(errorLine);
+	      }
+           }
       }	      
       P__exit(-1);
       // not reached
