@@ -424,23 +424,24 @@ BPatch_flowGraph::createLoops()
             
             BPatch_loop *l1 = allLoops[i];
             BPatch_loop *l2 = allLoops[j];
-            
-            unsigned long l1start = l1->backEdge->target->getStartAddress();
-	    unsigned long l2start = l2->backEdge->target->getStartAddress();   
-	    unsigned long l1end   = l1->backEdge->source->getLastInsnAddress();
-	    unsigned long l2end   = l2->backEdge->source->getLastInsnAddress();
-            
-            // if l2 is inside l1
-            if (l1start < l2start && l2end < l1end) {
+
+            // Note that address ranges (as were previously used here)
+            // between the target of the back edge and the last instruction
+            // of the source of the back edge are insufficient to determine
+            // whether a block lies within a loop, given all possible
+            // layouts of loops in the address space. Instead, check
+            // for set membership.
+            if(l1->hasBlock(l2->getLoopHead()))
+            {
                 // l1 contains l2
                 l1->containedLoops += l2;
-                
+
                 // l2 has no parent, l1 is best so far
-                if (!l2->parent) 
+                if(!l2->parent)
                     l2->parent = l1;
-                else 
+                else
                    // if l1 is closer to l2 than l2's existing parent
-                    if (l1start > l2->parent->getLoopHead()->getStartAddress()) 
+                    if(l2->parent->hasBlock(l1->getLoopHead()))
                         l2->parent = l1;
             }
         }
