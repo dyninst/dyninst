@@ -258,7 +258,8 @@ void SignalGeneratorCommon::waitForActiveProcess() {
 
     assert(!processIsPaused());    
     
-    signal_printf("%s[%d]: reacquiring global lock\n", FILE__, __LINE__);
+    signal_printf("%s[%d]: reacquiring global lock\n", 
+                  FILE__, __LINE__);
     eventlock->_Lock(FILE__, __LINE__);
     assert(eventlock->depth() == 1);
 }
@@ -292,25 +293,39 @@ bool SignalGeneratorCommon::processIsPaused() {
 // says 'back off' to the UI thread.
 
 bool SignalGeneratorCommon::isActivelyProcessing() {
-	if (decodingEvent_) return true;
-	if (dispatchingEvent_) return true;
-	
-	// Signal handlers have three states: idle (waiting
-	// for an event), processing (handling an event), 
-	// or waiting (waiting for a callback to complete). 
-	// If the handler is processing, we consider it active.
-	
-	for (unsigned i = 0; i < handlers.size(); i++) {
-            if (handlers[i]->processing()) {
-                // If we're the same thread (inquiring about ourselves),
-                // override...
-                if (getExecThreadID() == handlers[i]->getThreadID())
-                    continue;
-                else
-                    return true;
+    if (decodingEvent_) {
+        signal_printf("%s[%d]: decoding event, returning active\n",
+                      FILE__, __LINE__);
+        return true;
+    }
+    if (dispatchingEvent_) {
+        signal_printf("%s[%d]: dispatching event, returning active\n",
+                      FILE__, __LINE__);
+        return true;
+    }
+
+    // Signal handlers have three states: idle (waiting
+    // for an event), processing (handling an event), 
+    // or waiting (waiting for a callback to complete). 
+    // If the handler is processing, we consider it active.
+    
+    for (unsigned i = 0; i < handlers.size(); i++) {
+        if (handlers[i]->processing()) {
+            // If we're the same thread (inquiring about ourselves),
+            // override...
+            if (getExecThreadID() == handlers[i]->getThreadID()) {
+                signal_printf("%s[%d]: handler %s processing, same thread, skipping\n",
+                              FILE__, __LINE__, getThreadStr(handlers[i]->getThreadID()));
+                continue;
             }
-	}
-	return false;
+            else {
+                signal_printf("%s[%d]: handler %s processing, returning active\n",
+                              FILE__, __LINE__, getThreadStr(handlers[i]->getThreadID()));
+                return true;
+            }
+        }
+    }
+    return false;
 }
 	
 // When we're blocked on the OS we release the lock (as 
@@ -536,22 +551,31 @@ eventType SignalGeneratorCommon::waitForOneOf(pdvector<eventType> &evts)
     abort();
   }
 
+  signal_printf("%s[%d]: waitForOneOf... \n", FILE__, __LINE__);
+
   //  When to set wait_flag ??
   //    (1)  If we are running on an event handler thread
   //    (2)  If we are currently running inside a callback AND an 
   //         event handler is waiting for the completion of this callback
   SignalHandler *sh = findSHWithThreadID(getExecThreadID());
-  if (sh)
-    sh->wait_flag = true;
-  else {
-    CallbackBase *cb = NULL;
-    if (NULL != (cb = getMailbox()->runningInsideCallback())) {
-      sh = findSHWaitingForCallback(cb);
-      if (sh)
-        sh->wait_flag = true;
-    }
+  if (sh) {
+      signal_printf("%s[%d]: signal handler waiting, setting wait_flag\n", FILE__, __LINE__);
+      sh->wait_flag = true;
   }
-
+  else {
+      CallbackBase *cb = NULL;
+      if (NULL != (cb = getMailbox()->runningInsideCallback())) {
+          signal_printf("%s[%d]: running inside callback... \n",
+                        FILE__, __LINE__);
+          sh = findSHWaitingForCallback(cb);
+          if (sh) {
+              signal_printf("%s[%d]: signal handler %s waiting on callback, setting wait_flag\n",
+                            FILE__, __LINE__, getThreadStr(sh->getThreadID()));
+              sh->wait_flag = true;
+          }
+      }
+  }
+  
   EventGate *eg = new EventGate(global_mutex,evts[0]);
   for (unsigned int i = 1; i < evts.size(); ++i) {
     eg->addEvent(evts[i]);
@@ -637,24 +661,30 @@ eventType SignalGeneratorCommon::waitForEvent(eventType evt, process *p, dyn_lwp
     abort();
   }
 
-#if 0
-  fprintf(stderr, "%s[%d]:  welcome to waitForEvent(%s)\n", FILE__, __LINE__, eventType2str(evt));
-#endif
+  signal_printf("%s[%d]:  welcome to waitForEvent(%s)\n", FILE__, __LINE__, eventType2str(evt));
+
 
   //  When to set wait_flag ??
   //    (1)  If we are running on an event handler thread
   //    (2)  If we are currently running inside a callback AND a 
   //         signal handler is waiting for the completion of this callback
   SignalHandler *sh = findSHWithThreadID(getExecThreadID());
-  if (sh)
-    sh->wait_flag = true;
+  if (sh) {
+      signal_printf("%s[%d]: signal handler waiting, setting wait_flag\n", FILE__, __LINE__);
+      sh->wait_flag = true;
+  }
   else {
-    CallbackBase *cb = NULL;
-    if (NULL != (cb = getMailbox()->runningInsideCallback())) {
-      sh = findSHWaitingForCallback(cb);
-      if (sh)
-        sh->wait_flag = true;
-    }
+      CallbackBase *cb = NULL;
+      if (NULL != (cb = getMailbox()->runningInsideCallback())) {
+          signal_printf("%s[%d]: running inside callback... \n",
+                        FILE__, __LINE__);
+          sh = findSHWaitingForCallback(cb);
+          if (sh) {
+              signal_printf("%s[%d]: signal handler %s waiting on callback, setting wait_flag\n",
+                            FILE__, __LINE__, getThreadStr(sh->getThreadID()));
+              sh->wait_flag = true;
+          }
+      }
   }
 
   EventGate *eg = new EventGate(global_mutex,evt,p, lwp, status);
@@ -698,6 +728,8 @@ SignalHandler *SignalGeneratorCommon::findSHWithThreadID(unsigned long tid)
 SignalHandler *SignalGeneratorCommon::findSHWaitingForCallback(CallbackBase *cb)
 {
   for (unsigned int i = 0; i < handlers.size(); ++i) {
+      signal_printf("%s[%d]: comparing handler wait_cb %p with given %p\n",
+                    FILE__, __LINE__, handlers[i]->wait_cb, cb);
     if (handlers[i]->wait_cb == cb)
       return handlers[i];
   }
