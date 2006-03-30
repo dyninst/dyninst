@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.47 2006/03/29 21:34:58 bernat Exp $
+ * $Id: dyn_lwp.C,v 1.48 2006/03/30 15:13:52 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -157,7 +157,7 @@ bool dyn_lwp::continueLWP(int signalToContinueWith)
    if (signalToContinueWith != SIGSTOP)  {
       proc()->set_lwp_status(this, running);
       if (getExecThreadID() != proc()->sh->getThreadID()) {
-        signal_printf("%s[%d][%s]:  signalling active process\n", 
+        signal_printf("%s[%d][%s]:  signalling active process from continueLWP\n", 
                       FILE__, __LINE__, getThreadStr(getExecThreadID()));
         proc()->sh->signalActiveProcess();
       }

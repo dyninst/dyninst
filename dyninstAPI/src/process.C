@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.597 2006/03/29 21:35:08 bernat Exp $
+// $Id: process.C,v 1.598 2006/03/30 15:13:52 bernat Exp $
 
 #include <ctype.h>
 
@@ -3033,6 +3033,8 @@ bool process::attach()
    // Fork calls attach() but is probably past this; silencing warning
    if (!reachedBootstrapState(attached_bs))
        setBootstrapState(attached_bs);
+   signal_printf("%s[%d]: calling signalActiveProcess from attach\n",
+                 FILE__, __LINE__);
    sh->signalActiveProcess();
    startup_printf("[%d]: setting process flags\n", getPid());
    return setProcessFlags();
@@ -3594,7 +3596,7 @@ bool process::terminateProc()
       set_status(running);
 
       if (getExecThreadID() != sh->getThreadID()) {
-          signal_printf("%s[%d][%s]:  signalling active process\n", 
+          signal_printf("%s[%d][%s]:  signalling active process from termination\n", 
                         FILE__, __LINE__, getThreadStr(getExecThreadID()));
           sh->signalActiveProcess();
       }
@@ -3911,6 +3913,8 @@ bool process::pause() {
    if (status_ == stopped || status_ == neonatal) {
       return true;
    }
+
+   signal_printf("%s[%d]: stopping process\n", FILE__, __LINE__);
 
    result = stop_();
    if (!result) {
@@ -4938,7 +4942,7 @@ bool process::continueProc(int signalToContinueWith)
      status_ = running;
 
   if (getExecThreadID() != sh->getThreadID()) {
-    signal_printf("%s[%d][%s]:  signalling active process\n", 
+    signal_printf("%s[%d][%s]:  signalling active process from continueProc\n", 
                   FILE__, __LINE__, getThreadStr(getExecThreadID()));
     sh->signalActiveProcess();
   }
