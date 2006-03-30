@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.17 2006/03/29 21:35:06 bernat Exp $
+// $Id: instPoint.C,v 1.18 2006/03/30 00:09:26 bernat Exp $
 // instPoint code
 
 
@@ -945,8 +945,10 @@ bool instPointInstance::generateInst() {
             }
         }
         else {
-            pdvector<funcMod *> funcMods; // Empty since we're not trying to make changes.
-            func()->relocationGenerate(funcMods, 0, force_reloc);
+            // Use func's enlargeMods so that we don't regress the 
+            // relocated state.
+            func()->relocationGenerate(func()->enlargeMods(), 
+                                       0, force_reloc);
         }
     }
 #endif
