@@ -238,7 +238,6 @@ bool SignalHandler::handleCritical(EventRecord &ev, bool &continueHint)
     else
       proc->dumpMemory((void *)ev.address, 32);
 
-    fprintf(stderr, "Forwarding signal to process\n");
     return forwardSigToProcess(ev, continueHint);
 }
 
@@ -663,7 +662,24 @@ bool SignalHandler::waiting() {
 }
 
 bool SignalHandler::processing() {
-    return !(idle_flag || wait_flag);
+    if (idle_flag) return false;
+    if (wait_flag) return false;
+    // Processing... well, if we're waiting on a callback, then we're not processing. 
+    // Previously we set wait_flag inside the call to waitForEvent, but that was called
+    // after this was checked. Whoopsie.
+
+    CallbackBase *cb = NULL;
+    if (NULL != (cb = getMailbox()->runningInsideCallback())) {
+        signal_printf("%s[%d]: running inside callback... \n",
+                      FILE__, __LINE__);
+        if (wait_cb == cb) {
+            signal_printf("%s[%d]: signal handler %s waiting on callback, setting wait_flag\n",
+                          FILE__, __LINE__, getThreadStr(getThreadID()));
+            wait_flag = true;
+            return false;
+        }
+    }
+    return true;
 }
 
 bool SignalHandler::assignEvent(EventRecord &ev) 
