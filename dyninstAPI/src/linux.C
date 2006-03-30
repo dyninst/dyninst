@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.203 2006/03/29 21:34:57 bernat Exp $
+// $Id: linux.C,v 1.204 2006/03/30 16:44:57 legendre Exp $
 
 #include <fstream>
 
@@ -1916,7 +1916,7 @@ bool process::readAuxvInfo()
            // This is really likely to be it.
            vsyscall_start_ = entry->start;
            vsyscall_end_ = entry->end;
-           vsyscall_text_ = 0x0;
+           vsyscall_text_ = text_start;
            vsys_status_ = vsys_found;
            free(maps);
            return true;
@@ -1940,7 +1940,7 @@ bool process::readAuxvInfo()
      if (couldBeVsyscallPage(&(maps[i]), true, page_size)) {
         vsyscall_start_ = maps[i].start;
         vsyscall_end_ = maps[i].end;
-        vsyscall_text_ = 0x0;
+        vsyscall_text_ = text_start;
         vsys_status_ = vsys_found;
         free(maps);
         return true;
@@ -1953,7 +1953,7 @@ bool process::readAuxvInfo()
   if (secondary_match) {
      vsyscall_start_ = secondary_match->start;
      vsyscall_end_ = secondary_match->end;
-     vsyscall_text_ = 0x0;
+     vsyscall_text_ = text_start;;
      vsys_status_ = vsys_found;
      free(maps);
      return true;

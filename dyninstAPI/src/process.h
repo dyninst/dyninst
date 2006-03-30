@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.362 2006/03/29 21:35:09 bernat Exp $
+/* $Id: process.h,v 1.363 2006/03/30 16:44:58 legendre Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -503,6 +503,7 @@ class process {
     { vsyscall_start_ = start; vsyscall_end_ = end; }
   void *getVsyscallData() { return vsyscall_data_; }
   void setVsyscallData(void *data) { vsyscall_data_ = data; }
+  void setVsyscallText(Address addr) { vsyscall_text_ = addr; }
   bool readAuxvInfo(); 
 #endif
 

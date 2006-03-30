@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.94 2006/03/29 00:57:14 mjbrim Exp $
+// $Id: linux-x86.C,v 1.95 2006/03/30 16:44:57 legendre Exp $
 
 #include <fstream>
 
@@ -476,6 +476,9 @@ static void getVSyscallSignalSyms(char *buffer, unsigned dso_size, process *p)
    {
       shdr = elf32_getshdr(sec);
       if (shdr == NULL) goto err_handler;
+      if (!p->getVsyscallText() && (shdr->sh_flags & SHF_EXECINSTR)) {
+	p->setVsyscallText(shdr->sh_addr);
+      }
       if (shdr->sh_type == SHT_DYNSYM)
       {
          syms = (Elf32_Sym *) elf_getdata(sec, NULL)->d_buf;
