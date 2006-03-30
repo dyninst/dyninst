@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.5 2006/03/30 04:57:49 nater Exp $ */
+/* $Id: test1.mutatee.c,v 1.6 2006/03/30 18:00:07 nater Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -2506,8 +2506,6 @@ void call37_2()
     volatile int j = 0;
     volatile int k = 0;
     
-    /* inserting a call to inc37_2 in each loop body in call37_2 should make
-       the total 42. 40 for the inner loop plus two for the outer loops. */
     while (i < 5) {
         while (j < 10) {
             do {
