@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.32 2006/03/12 23:32:11 legendre Exp $
+// $Id: multiTramp.C,v 1.33 2006/03/30 04:57:51 nater Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -516,6 +516,11 @@ void multiTramp::updateInstInstances() {
                 obj->setTarget(targetBTI);
                 // And a tramp end marker goes here as well.
                 Address origTarget = insn->originalTarget();
+#if defined(arch_ia64)
+                // Target lookups on ia64 need to be adjusted for offsets
+                // from the start of the bundle
+                origTarget = origTarget - (origTarget % 0x10);
+#endif
                 targetBTI->setFallthrough(new trampEnd(this, origTarget));
                 targetBTI->fallthrough_->setPrevious(targetBTI);
                 changedSinceLastGeneration_ = true;
