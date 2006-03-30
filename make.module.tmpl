@@ -650,7 +650,7 @@ runTests: runTests.o runTests-utils.o test_driver_templates.o
 test_driver.o: ../src/test_driver.C $(DEPENDDIR)/test_driver.dep
 	$(CXX) -c -o $@ $(CXXFLAGS) $(MUTATEE_DEFS) ../src/test_driver.C
 
-test_driver: test_driver.o test_driver_templates.o $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE)
+test_driver: test_driver.o test_driver_templates.o $(LIBTESTSUITE_DEST) $(DEPENDDIR)/test_driver.dep $(LIBTESTSUITE)
 	$(CXX) -o $@ test_driver.o test_driver_templates.o $(MUTATOR_LDFLAGS) $(LIBS) 
 
 $(MUTATORS_SO): test%.so : test%.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test%.dep $(LIBTESTSUITE)
