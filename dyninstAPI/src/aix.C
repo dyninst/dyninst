@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.216 2006/03/29 21:34:51 bernat Exp $
+// $Id: aix.C,v 1.217 2006/03/30 20:54:39 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1732,11 +1732,9 @@ bool SignalGeneratorCommon::getExecFileDescriptor(pdstring /*filename*/,
     }
 
     prmap_t text_map;
-    char text_name[512];
     prmap_t data_map;
     
     pread(map_fd, &text_map, sizeof(prmap_t), 0);
-    pread(map_fd, text_name, 512, text_map.pr_pathoff);
     //assert(text_map.pr_mflags & MA_MAINEXEC);
     
     pread(map_fd, &data_map, sizeof(prmap_t), sizeof(prmap_t));
@@ -1767,6 +1765,11 @@ bool SignalGeneratorCommon::getExecFileDescriptor(pdstring /*filename*/,
        data_low_addr = 0x20000000;
 
     // Check if text_name substring matches filename?
+
+   // text_name... heh. The entry in maps is stripped of path information. 
+   // Instead, we go with /proc/<pid>/object/a.out
+   char text_name[1024];
+   sprintf(text_name, "/proc/%d/object/a.out", pid);
 
     desc = fileDescriptor(text_name,
                           textOrg,
