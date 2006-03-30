@@ -430,19 +430,31 @@ BPatch_flowGraph::createLoops()
             // of the source of the back edge are insufficient to determine
             // whether a block lies within a loop, given all possible
             // layouts of loops in the address space. Instead, check
-            // for set membership.
-            if(l1->hasBlock(l2->getLoopHead()))
+            // for set membership. 
+            //
+            // If loop A contains both the head block and the source
+            // of the back edge of loop B, it contains loop B (for
+            // nested natural loops)
+            if(l1->hasBlock(l2->getLoopHead()) &&
+               l1->hasBlock(l2->getBackEdge()->source))
             {
                 // l1 contains l2
                 l1->containedLoops += l2;
 
                 // l2 has no parent, l1 is best so far
-                if(!l2->parent)
+                if(!l2->parent) 
+                {
                     l2->parent = l1;
+                }
                 else
+                {
                    // if l1 is closer to l2 than l2's existing parent
-                    if(l2->parent->hasBlock(l1->getLoopHead()))
+                    if(l2->parent->hasBlock(l1->getLoopHead()) &&
+                       l2->parent->hasBlock(l1->getBackEdge()->source))
+                    {
                         l2->parent = l1;
+                    }
+                }
             }
         }
     }
