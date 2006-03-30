@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.8 2006/03/13 21:05:48 bpellin Exp $
+// $Id: test_lib.C,v 1.9 2006/03/30 17:24:36 bernat Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -89,7 +89,7 @@ int expectError = DYNINST_NO_ERROR;
 
 /* Control Debug printf statements */
 int debugPrint = 0;
-int mutateeFortran;
+bool mutateeFortran = false;
 
 //
 // Wait for the mutatee to stop.
@@ -158,9 +158,9 @@ bool signalAttached(BPatch_thread* /*appThread*/, BPatch_image *appImage)
     return true;
 }
 
-void setMutateeFortran(int mutFor)
+void setMutateeFortran(bool mutFor)
 {
-   mutateeFortran = mutFor;
+    mutateeFortran = mutFor;
 }
 
 

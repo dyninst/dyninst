@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.18 2006/03/12 23:33:52 legendre Exp $
+// $Id: test_driver.C,v 1.19 2006/03/30 17:24:36 bernat Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -377,8 +377,12 @@ void setupGeneralTest(BPatch *bpatch)
 
 }
 
+// In test_lib.C
+void setMutateeFortran(bool mutFor);
+
 void setupFortran(BPatch_thread *appThread)
 {
+    setMutateeFortran(false);
 
    if ( appThread == NULL )
       return;
@@ -390,6 +394,7 @@ void setupFortran(BPatch_thread *appThread)
       setMutateeFortran(true);
    }
 }
+
 
 int executeTest(BPatch *bpatch, test_data_t &test, char *mutatee, create_mode_t attachMode, ParameterDict &param)
 {
