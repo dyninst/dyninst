@@ -11,10 +11,14 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+// To prevent run away never run test_driver more the MAX_ITER times
+#define MAX_ITER 1000
 
 bool useLog = false;
 string logfile = "";
 string pdscrdir;
+
+// Run No more than testLimit tests before re-exec'ing test_driver
 int testLimit = 10;
 
 vector<char *> child_argv;
@@ -146,7 +150,7 @@ int main(int argc, char *argv[])
    int invocation = 0;
 
    // result == 2 indicates that there are no more tests to run
-   while ( result != NOTESTS )
+   while ( result != NOTESTS && invocation < MAX_ITER )
    {
       result = RunTest(invocation);
       invocation++;
