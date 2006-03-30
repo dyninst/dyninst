@@ -245,23 +245,30 @@ void SignalGeneratorCommon::waitForActiveProcess() {
 
     assert(eventlock->depth() == 1);
     assert(processIsPaused());
-    runlock->_Lock(FILE__, __LINE__);
-
-    eventlock->_Unlock(FILE__, __LINE__);
-    waitingForActiveProcess_ = true;
-    signal_printf("[%s:%d]: waiting for process to be active\n", FILE__, __LINE__);
-    assert(runlock);
-    runlock->_WaitForSignal(FILE__, __LINE__);
-    signal_printf("[%s:%d]: process activated\n", FILE__, __LINE__);
-    waitingForActiveProcess_ = false;
-    runlock->_Unlock(FILE__, __LINE__);
-
-    assert(!processIsPaused());    
     
-    signal_printf("%s[%d]: reacquiring global lock\n", 
-                  FILE__, __LINE__);
-    eventlock->_Lock(FILE__, __LINE__);
-    assert(eventlock->depth() == 1);
+    do {
+        runlock->_Lock(FILE__, __LINE__);
+
+        eventlock->_Unlock(FILE__, __LINE__);
+        waitingForActiveProcess_ = true;
+        signal_printf("[%s:%d]: waiting for process to be active\n", FILE__, __LINE__);
+        assert(runlock);
+        runlock->_WaitForSignal(FILE__, __LINE__);
+        signal_printf("[%s:%d]: process activated\n", FILE__, __LINE__);
+        waitingForActiveProcess_ = false;
+        runlock->_Unlock(FILE__, __LINE__);
+        
+        // Left in here and disabled - if we say "continue, pause"
+        // on the UI thread the generator will be woken up but not 
+        // (necessarily) paused. In this case we'll get the lock, 
+        // find out that we're paused, and go through it again.
+        //assert(!processIsPaused());   
+        
+        signal_printf("%s[%d]: reacquiring global lock\n", 
+                      FILE__, __LINE__);
+        eventlock->_Lock(FILE__, __LINE__);
+        assert(eventlock->depth() == 1);
+    } while (processIsPaused());
 }
 
 
@@ -275,9 +282,14 @@ bool SignalGeneratorCommon::processIsPaused() {
     }
 
     // Return true if: global process status is paused, and there
-    // are _no_ LWPs that are running.
+    // are _no_ LWPs that are running.                  
 
     dyn_lwp *lwp = proc->query_for_running_lwp();
+
+    signal_printf("%s[%d]: process state %s, running lwp 0x%lx\n",
+                  FILE__, __LINE__,
+                  proc->getStatusAsString().c_str(),
+                  (lwp != NULL) ? lwp->get_lwp_id() : (unsigned) -1);
 
     return ((proc->status() != running) &&
             (proc->status() != neonatal) &&
@@ -464,10 +476,18 @@ bool SignalGeneratorCommon::signalActiveProcess()
       ret = runlock->_Broadcast(FILE__, __LINE__);
       waitingForActiveProcess_ = false;
   }
+  else if (waitingForOS_) {
+      // Clear that flag
+      signal_printf("%s[%d]: signalActiveProcess, process continued during OS wait, clearing flag\n", FILE__, __LINE__);
+      processPausedDuringOSWait_ = false;
+  }
   else {
       signal_printf("%s[%d]: signalActiveProcess, SignalGenerator already awake\n", FILE__, __LINE__);
   }
-  
+
+  signal_printf("%s[%d]: signalActiveProcess exit, processIsPaused %d\n",
+                FILE__, __LINE__, processIsPaused());
+
   runlock->_Unlock(FILE__, __LINE__);
   return ret;
 }   
@@ -477,11 +497,18 @@ bool SignalGeneratorCommon::signalActiveProcess()
 
 bool SignalGeneratorCommon::signalPausedProcess() {
     // Check to see if we're signal generator/handler and if so ignore?
+    signal_printf("%s[%d]: signalling pause on process\n",
+                  FILE__, __LINE__);
+    bool retval = false;
+    runlock->_Lock(FILE__, __LINE__);
     if (waitingForOS_) {
+        signal_printf("%s[%d]: marking paused during OS wait\n",
+                      FILE__, __LINE__);
         processPausedDuringOSWait_ = true;
-        return true;
+        retval = true;
     }
-    return false;
+    runlock->_Unlock(FILE__, __LINE__);
+    return retval;
 }
 
 SignalHandler *SignalGenerator::newSignalHandler(char *name, int id)
