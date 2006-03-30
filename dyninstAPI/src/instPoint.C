@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.18 2006/03/30 00:09:26 bernat Exp $
+// $Id: instPoint.C,v 1.19 2006/03/30 19:40:19 bernat Exp $
 // instPoint code
 
 
@@ -472,26 +472,29 @@ miniTramp *instPoint::instrument(AstNode *ast,
 // by any jumps. This allows for us to atomically add multiple different
 // instPoints at the same time.
 
+// Return value... we used to return false if any generation failed. However,
+// if we relocate a function then generating into the entry point of the original
+// will fail, and that's 'bad'. So we now return true if anyone succeeded.
+
 bool instPoint::generateInst() {
     updateInstances();
 
-    bool success = true;
+    bool success = false;
     for (unsigned i = 0; i < instances.size(); i++) {
-        if (!instances[i]->generateInst()) {
-            fprintf(stderr, "Failed generation for instance %d!\n",
-                    i);
-            success = false;
-        }
+        // I was using |=, but it looked like it was getting short-cutted?
+        bool ret = instances[i]->generateInst();
+        if (ret) success = true;
     }
     return success;
 }
 
+// See above return value comment...
+
 bool instPoint::installInst() {
-    bool success = true;
+    bool success = false;
     for (unsigned i = 0; i < instances.size(); i++) {
-        if (!instances[i]->installInst()) {
-            success = false;
-        }
+        bool ret = instances[i]->installInst();
+        if (ret) success = true;
     }
     return success;
 }
@@ -504,6 +507,8 @@ bool instPoint::checkInst(pdvector<Address> &checkPCs) {
         Address pc = checkPCs[sI];
         for (unsigned iI = 0; iI < instances.size(); iI++) {
             multiTramp *mt = instances[iI]->multi();
+            // No multi -> not installed.
+            if (!mt) continue;
             if ((pc > mt->instAddr()) &&
                 (pc < (mt->instAddr() + mt->instSize()))) {
                 // We have a conflict. Now, we may still be able to make this 
@@ -532,15 +537,14 @@ bool instPoint::checkInst(pdvector<Address> &checkPCs) {
     return true;
 }
 
+// See comment in generateInst w.r.t. return value
+
 bool instPoint::linkInst() {
-    bool success = true;
+    bool success = false;
 
     for (unsigned i = 0; i < instances.size(); i++) {
-        if (!instances[i]->linkInst()) {
-            fprintf(stderr, "instance %d failed link\n",
-                    i);
-            success = false;
-        }
+        bool ret = instances[i]->linkInst();
+        if (ret) success = true;
     }
     return success;
 }
@@ -799,6 +803,13 @@ bool instPoint::instrSideEffect(Frame &frame)
     
     for (unsigned i = 0; i < instances.size(); i++) {
         instPointInstance *target = instances[i];
+
+        // May not exist if instrumentation was overridden by (say)
+        // a relocated function.
+        if (!target->multi()) {
+            continue;
+        }
+        
         // Question: generalize into "if the PC is in instrumentation,
         // move to the equivalent address?" 
         // Sure....
@@ -898,7 +909,6 @@ bool instPointInstance::generateInst() {
                                                       proc());
     }
     if (!multi()) {
-        fprintf(stderr, "No multiTramp for instInstance %p, ret false\n", this);
         return false;
     }
     multiTramp::mtErrorCode_t errCode = multi()->generateMultiTramp();
@@ -970,7 +980,14 @@ bool instPointInstance::installInst() {
     }
 #endif
 
-    assert(multi());
+    if (!multi()) {
+        // Alternative: keep a set of sequence #s for generated/
+        // installed/linked. We tried to generate and failed (prolly
+        // due to stepping on a relocated function), so fail here
+        // but don't assert.
+        return false;
+    }
+
     // We now "install", that is copy the generated code into the 
     // addr space. This doesn't link.
     
@@ -997,7 +1014,8 @@ bool instPointInstance::linkInst() {
     // Funny thing is, we might very well try to link a multiTramp
     // multiple times...
     // Ah, well.
-    assert(multi());
+    // See comment in installInst
+    if (!multi()) return false;
     
     if (multi()->linkMultiTramp() != multiTramp::mtSuccess) {
         fprintf(stderr, "ipInst: linkMulti returned false for 0x%lx\n",

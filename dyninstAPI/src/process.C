@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.598 2006/03/30 15:13:52 bernat Exp $
+// $Id: process.C,v 1.599 2006/03/30 19:40:20 bernat Exp $
 
 #include <ctype.h>
 
@@ -4747,8 +4747,9 @@ void process::addMultiTramp(multiTramp *newMulti) {
         // It could be something else, which should have been
         // caught already
         if (!area) {
-            fprintf(stderr, "ERROR: failed to find mt at 0x%lx\n",
-                    newMulti->instAddr());
+			// Oops, someone already here... and multiTramps have
+			// the lowest priority.
+			return;
         }
         assert(area);
         area->multi = newMulti;

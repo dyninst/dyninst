@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.33 2006/03/30 04:57:51 nater Exp $
+// $Id: multiTramp.C,v 1.34 2006/03/30 19:40:19 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -295,12 +295,21 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
                                             startAddr,
                                             size)) {
         // Assert fail?
+        fprintf(stderr, "Could not get multiTramp footprint at 0x%lx, ret false\n", pointAddr);
         return 0;
     }
 
     // Cannot make a point here if someone else got there first
-    if (proc->findModifiedPointByAddr(startAddr))
+	// We're allowing this for now; we'll go through the motions, and finally
+	// "fake" the actual link phase. Otherwise things get weirdly out of
+	// step.
+#if 0
+    if (proc->findModifiedPointByAddr(startAddr)) {
+        fprintf(stderr, "Address 0x%lx within previously modified point, cannot instrument\n",
+                startAddr);
         return 0;
+    }
+#endif
 
     newMulti = new multiTramp(startAddr,
                               size,
