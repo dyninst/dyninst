@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.148 2006/03/29 21:34:48 bernat Exp $
+// $Id: BPatch_thread.C,v 1.149 2006/03/30 00:58:23 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -431,7 +431,6 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
    bool needToResume = false;
 
    while (proc->llproc->sh->isActivelyProcessing()) {
-       fprintf(stderr, "UI thread backing off from active signal handler...\n");
        signal_printf("%s[%d]:  waiting before doing user stop for process %d\n", FILE__, __LINE__, proc->llproc->getPid());
        proc->llproc->sh->waitForEvent(evtAnyEvent);
    }
