@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_37.C,v 1.4 2006/03/13 21:05:47 bpellin Exp $
+// $Id: test1_37.C,v 1.5 2006/03/30 04:57:50 nater Exp $
 /*
  * #Name: test1_37
  * #Desc: Instrument Loops
@@ -75,72 +75,77 @@ void sort_blocks(BPatch_Vector<BPatch_basicBlock*> &a, int n) {
     }
 }
 
-// instrument the body of each loop in loops with callInc
+/* This method instruments the entry and exit edges of a loop with 
+   the passed-in function. It accomplishes this by looking up the entry
+   and exit blocks of the loop, finding the edges that do not come from
+   or target other blocks in the loop (respectively), and instrumenting
+   those edges. So effectively, this is a test of both our loop detection
+   and edge instrumentation facilities. Two for one, yay!
+*/
 void instrumentLoops(BPatch_thread *appThread, BPatch_image *appImage,
-		     BPatch_Vector<BPatch_basicBlockLoop*> &loops,
-		     BPatch_funcCallExpr &callInc) 
-{
+             BPatch_Vector<BPatch_basicBlockLoop*> &loops,
+             BPatch_funcCallExpr &callInc) 
+{            
     // for each loop (set of basic blocks)
     for (unsigned int i = 0; i < loops.size(); i++) {
+        BPatch_flowGraph *cfg; 
+        BPatch_Vector<BPatch_point*> * exits;
+        BPatch_Vector<BPatch_point*> * entries;
+        
+        cfg = loops[i]->getFlowGraph();
+        
+        // Find loop entry and exit points
+        entries = cfg->findLoopInstPoints(BPatch_locLoopEntry,
+                                          loops[i]);
+        exits = cfg->findLoopInstPoints(BPatch_locLoopExit,
+                                        loops[i]);
+        // instrument those points      
+        
+        if(entries->size() == 0) {
+            fprintf(stderr,"**Failed** test #37 (instrument loops)\n");
+            fprintf(stderr,"   Unable to find loop entry inst point.\n");
+        }
+        if(exits->size() == 0) {
+            fprintf(stderr,"**Failed** test #37 (instrument loops)\n");
+            fprintf(stderr,"   Unable to find loop exit inst point.\n");
+        }
 
-	// get the basic blocks of this loop's body (not the blocks of its 
-	// sub loops) and sort them according to block number
-	BPatch_Vector<BPatch_basicBlock*> blocks;
-	loops[i]->getLoopBasicBlocksExclusive(blocks);
-	sort_blocks(blocks, blocks.size());
+        unsigned int j;
+        BPatch_point *p = NULL;
+        for(j=0;j<entries->size();j++) {
+            p = (*entries)[j];
 
-	BPatch_point *p = NULL;
+            BPatchSnippetHandle * han =
+            appThread->insertSnippet(callInc, *p, BPatch_callBefore);
 
-	if (blocks.size() == 0) {
-	    // there should always be at least 1 basic block
-	    assert(0); 
-	}
-	else if (blocks.size() == 1) {
-	    // if the loop body has a single block then we try to create
-	    // an inst point after the start of this block. 
-	    void *start, *end;
-	    blocks[0]->getAddressRange(start, end);
-	    p = appImage->createInstPointAtAddr((char *)start);
-	}
-	else {
-	    // there are at least 2 basic blocks. try to create an inst point
-	    // after the start of the second block. the rationale is that the
-	    // first block may contain the loop predicate and instrumentation 
-	    // needs to be inserted after this block's final jump instruction
-	    // in order to be part of the loop's body
-	    void *start, *end;
-	    blocks[1]->getAddressRange(start, end);
+            // did we insert the snippet?
+            if (han == NULL) {
+                fprintf(stderr,"**Failed** test #37 (instrument loops)\n");
+                fprintf(stderr,"   Unable to insert snippet at loop entry.\n");
+            }
+        }
+        for(j=0;j<exits->size();j++) {
+            p = (*exits)[j];
 
-	    BPatchErrorCallback oldError =
-		bpatch->registerErrorCallback(createInstPointError);
+            BPatchSnippetHandle * han =
+            appThread->insertSnippet(callInc, *p, BPatch_callBefore);
 
-	    p = appImage->createInstPointAtAddr((char *)start);
+            // did we insert the snippet?
+            if (han == NULL) {
+                fprintf(stderr,"**Failed** test #37 (instrument loops)\n");
+                fprintf(stderr,"   Unable to insert snippet at loop exit.\n");
+            }
+        }
 
-	    bpatch->registerErrorCallback(oldError);
-	}
+        // we are responsible for releasing the point vectors
+        delete entries;
+        delete exits;
 
-	// was an inst point created?
-	if (p == NULL) {
-	    fprintf(stderr,"**Failed** test #37 (instrument loops)\n");
-	    fprintf(stderr,"   Unable to create inst point.\n");
-	}
-	else {
-	    // insert a call to the function which increments the global
-	    BPatchSnippetHandle * han = 
-		appThread->insertSnippet(callInc, *p, BPatch_callBefore);
-	    
-	    // did we insert the snippet?
-	    if (han == NULL) {
-		fprintf(stderr,"**Failed** test #37 (instrument loops)\n");
-		fprintf(stderr,"   Unable to insert snippet at loop.\n");
-	    }
-	}
+        BPatch_Vector<BPatch_basicBlockLoop*> lps;
+        loops[i]->getOuterLoops(lps);
 
-	BPatch_Vector<BPatch_basicBlockLoop*> lps;
-	loops[i]->getOuterLoops(lps);
-
-	// recur with this loop's outer loops
-	instrumentLoops(appThread, appImage, lps, callInc);
+        // recur with this loop's outer loops
+        instrumentLoops(appThread, appImage, lps, callInc);
     }
 }
 
@@ -149,9 +154,6 @@ int instrumentFuncLoopsWithCall(BPatch_thread *appThread,
 				 char *call_func,
 				 char *inc_func)
 {
-    // DON'T RUN FOR NOW
-    //return 0;
-
     // get function * for call_func
     BPatch_Vector<BPatch_function *> funcs;
 
@@ -185,7 +187,6 @@ int instrumentFuncLoopsWithCall(BPatch_thread *appThread,
 
 int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if 0
     if (mutateeFortran) {
 	return 0;
     } 
@@ -195,7 +196,6 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     RETURNONFAIL(instrumentFuncLoopsWithCall(appThread, appImage,"call37_2", "inc37_2"));
 
     RETURNONFAIL(instrumentFuncLoopsWithCall(appThread, appImage,"call37_3", "inc37_3"));
-#endif
 
     return 0;
 }
