@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.122 2006/03/12 23:32:26 legendre Exp $ */
+/* $Id: test1.mutatee.c,v 1.123 2006/03/30 04:57:48 nater Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -2419,13 +2419,20 @@ void func36_1()
 volatile int globalVariable37_1 = 0;
 
 void inc37_1() { globalVariable37_1++; }
-#if 0
+
+/* At the end of normal execution, globalVariable37_1 should
+   hold 100 + 500 + ( 100 * 10 ) + ( 100 * 10 * 7 ) = 8600
+
+   If we instrument the entry and exit edge of each loop with a call
+   to inc37_1, globalVariable37_1 should be increased by
+   2 + ( 2 * 100 ) + ( 2 * 100 * 10 ) + ( 2 * 100 ) = 2402
+
+   Successful loop edge instrumentation will give us a value of 11002.
+*/
 void call37_1()
 {
     int i, j, k, m;
 
-    /* inserting a call to inc37_1 in each loop body in call37_1 should make
-       the total 17200 = 200 + (100 * 20) + (100 * 10 * 14) + (10 * 100) */
     for (i = 0; i < 100; i++) {
         globalVariable37_1++;
 
@@ -2444,20 +2451,29 @@ void call37_1()
 	    } while (m < 5);
     }
 }
-#endif
-
-volatile int foobar;
-void call37_1()
-{
-    unsigned i;
-    for (i=0; i<1; i++) {
-        foobar++;
-    }
-}
 
 volatile int globalVariable37_2 = 0;
 
 void inc37_2() { globalVariable37_2++; }
+
+/* At the end of normal execution, globalVariable37_2 should
+   hold 20.
+
+   If we instrument the entry and exit edge of each loop with a call
+   to inc37_2, globalVariable37_2 should be increased by
+   2 + 2 + 2 = 6
+
+   Successful loop edge instrumentation will give us a value of 26.
+*/
+
+/* The comment below is no longer relevant, but has been left in as an
+ explanation of how this test arose. The original mechanism for testing
+ loops (instrumenting some arbitrary block in the body that was expected
+ to execute a certain number of times was fundamentally flawed, for
+ reasons that will become apparent with a little thought. We're leaving
+ these tests in, though, in the hopes that the compiler will produce
+ different loop idioms and thus stress-test our loop detection code.
+*/
 
 /* test with small loop bodies. since there are no statements right after the
    start of the outer two loops there isn't much space to instrument. */
@@ -2484,13 +2500,21 @@ volatile int globalVariable37_3 = 0;
 
 void inc37_3() { globalVariable37_3++; }
 
+/* At the end of normal execution, globalVariable37_3 should
+   hold 100 / 2 + (100 / 2 ) * 10 = 550
+
+   If we instrument the entry and exit edge of each loop with a call
+   to inc37_3, globalVariable37_3 should be increased by
+   2 * 100 + 2 = 202
+
+   Successful loop edge instrumentation will give us a value of 752.
+*/
+
 /* test with if statements as the only statements in a loop body. */
 void call37_3()
 {
     volatile int i, j;
 
-    /* inserting a call to inc37_3 in each loop body in call37_3 should make
-       the total 1650 = 100 + 50 + 100*10 + (100*10) / 2 */
     for (i = 0; i < 100; i++) {
         if (0 == (i % 2)) {            
             globalVariable37_3++;
@@ -2505,19 +2529,9 @@ void call37_3()
 
 
 void func37_1() {
-    printf("Skipped test #37 (Loop test)\n");
-    printf("\t- not implemented on this platform\n");
-    passedTest[37] = TRUE;
-    return;
-#if 0
-
-
-    const int ANSWER37_1 = 17200;
-    const int ANSWER37_2 = 42;
-    const int ANSWER37_3 = 1650;
-
-    printf("Test 37: work in progress; setting passed to TRUE for nightly regression tests...\n");
-    passedTest[37] = TRUE;
+    const int ANSWER37_1 = 11002;
+    const int ANSWER37_2 = 26;
+    const int ANSWER37_3 = 752;
 
     call37_1();
     call37_2();
@@ -2526,19 +2540,19 @@ void func37_1() {
     passedTest[ 37 ] = TRUE;
 
     if (globalVariable37_1 != ANSWER37_1) {
-	/*passedTest[ 37 ] = FALSE;*/
+	passedTest[ 37 ] = FALSE;
 	printf( "**Failed** test #37 (instrument loops)\n");
 	printf( "  globalVariable37_1 is %d, should have been %d.\n",
 		globalVariable37_1, ANSWER37_1);
     }
     if (globalVariable37_2 != ANSWER37_2) {
-	/*passedTest[ 37 ] = FALSE;*/
+	passedTest[ 37 ] = FALSE;
 	printf( "**Failed** test #37 (instrument loops)\n");
 	printf( "  globalVariable37_2 is %d, should have been %d.\n",
 		globalVariable37_2, ANSWER37_2);
     } 
     if (globalVariable37_3 != ANSWER37_3) {
-	/*passedTest[ 37 ] = FALSE;*/
+	passedTest[ 37 ] = FALSE;
 	printf( "**Failed** test #37 (instrument loops)\n");
 	printf( "  globalVariable37_3 is %d, should have been %d.\n",
 		globalVariable37_3, ANSWER37_3);
@@ -2547,7 +2561,6 @@ void func37_1() {
     if (passedTest[ 37 ]) {
 	printf( "Passed test #37 (instrument loops)\n" );    
     }
-#endif
 }
 
 
