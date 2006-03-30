@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_37.C,v 1.5 2006/03/30 04:57:50 nater Exp $
+// $Id: test1_37.C,v 1.6 2006/03/30 18:00:06 nater Exp $
 /*
  * #Name: test1_37
  * #Desc: Instrument Loops
@@ -182,6 +182,8 @@ int instrumentFuncLoopsWithCall(BPatch_thread *appThread,
     cfg->getOuterLoops(loops);
 
     instrumentLoops(appThread, appImage, loops, callInc);
+
+    return 0;
 }
 
 
