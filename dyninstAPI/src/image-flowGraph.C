@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.15 2006/03/12 23:31:56 legendre Exp $
+ * $Id: image-flowGraph.C,v 1.16 2006/03/30 04:57:46 nater Exp $
  */
 
 #include <stdio.h>
@@ -892,9 +892,20 @@ bool image_func::buildCFG(
 
                 Address t2 = ah.peekNext(); 
                 //Address t2 = currAddr + insnSize;
-                
+               
+                // If this branch instruction split the current block,
+                // the fallthrough should be added to the newly created
+                // block instead of this current block. 
+                image_basicBlock * real_src;
+                if(target > currBlk->firstInsnOffset_ && target <= currAddr) {
+                    real_src = leadersToBlock[target];
+                    assert(real_src);
+                } else {
+                    real_src = currBlk;
+                }
+
                 addBasicBlock(t2,
-                              currBlk,
+                              real_src,
                               leaders,
                               leadersToBlock,
                               ET_COND_NOT_TAKEN,
