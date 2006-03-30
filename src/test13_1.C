@@ -59,8 +59,8 @@ static int deleted_threads;
 
 bool debug_flag = false;
 #define dprintf if (debug_flag) fprintf
-#define NUM_FUNCS 5
-char initial_funcs[NUM_FUNCS][25] = {"init_func", "main", "_start", "__start", "__libc_start_main"};
+#define NUM_FUNCS 6
+char initial_funcs[NUM_FUNCS][25] = {"init_func", "main", "_start", "__start", "__libc_start_main", "start_thread"};
 
 void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
 {
