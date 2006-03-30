@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.174 2006/03/29 21:35:14 bernat Exp $
+// $Id: unix.C,v 1.175 2006/03/30 01:00:10 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -661,6 +661,11 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
 }
 
 
+// This function is a hollow shell of its former self. It used to check for other things,
+// such as iRPC completion. However, iRPCs don't stop for SIGSTOP or SIGINT, and
+// were creating false positives when compared with stopping the process before
+// the iRPC event was consumed.
+
 bool SignalGenerator::decodeSigStopNInt(EventRecord &ev)
 {
   process *proc = ev.proc;
@@ -670,10 +675,8 @@ bool SignalGenerator::decodeSigStopNInt(EventRecord &ev)
                 proc->getBootstrapStateAsString().c_str());
 
 
-  if (! proc->getRpcMgr()->decodeEventIfDueToIRPC(ev)) {
-      signal_printf("%s[%d]:  unhandled sigstop/sigint\n", FILE__, __LINE__);
-     ev.type = evtProcessStop;
-  }
+  ev.type = evtProcessStop;
+
   return true;
 }
 
