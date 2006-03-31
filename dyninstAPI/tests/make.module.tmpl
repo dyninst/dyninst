@@ -240,7 +240,7 @@ endif
 	$(CXX) -c $< $(CXXFLAGS) $(MUTATOR_CXXFLAGS) -o $@
 
 $(TEST_DEST)/%: %
-	$(CP) $< $(TEST_DEST)
+	-$(CP) $< $(TEST_DEST)
 
 #######################################################################
 ###  High level targets
