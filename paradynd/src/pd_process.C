@@ -781,8 +781,6 @@ bool pd_process::loadParadynLib(load_cause_t ldcause)
    
    pdstring libname = formatLibParadynName(paradynRTname);
 
-    fprintf(stderr, "Loading library %s...\n", libname.c_str());
-
    result = dyninst_process->loadLibrary(libname.c_str());
    if (!result)
    {
@@ -791,8 +789,6 @@ bool pd_process::loadParadynLib(load_cause_t ldcause)
       return false;
    }
 
-    fprintf(stderr, "Done loading library %s...\n", libname.c_str());
-    
    if (!runParadynInit(ldcause)) {
       fprintf(stderr, "%s[%d]:  failed set lib params for %s, fatal...\n",
               __FILE__, __LINE__, paradynRTname.c_str());
@@ -988,15 +984,11 @@ bool pd_process::loadAuxiliaryLibrary(pdstring libname) {
     removeAst(loadLib);
 #endif
 
-    fprintf(stderr, "Loading library %s...\n", libname.c_str());
-
     setLibState(auxLibState, libLoading);
     if (!dyninst_process->loadLibrary(libname.c_str())) {
       fprintf(stderr, "%s[%d]:  failed to load library %s\n", __FILE__, __LINE__, libname.c_str());
       assert(0);
     }
-    fprintf(stderr, "Done loading library %s...\n", libname.c_str());
-
 
     setLibState(auxLibState, libLoaded);
     return true;
@@ -1470,7 +1462,7 @@ void pd_process::MonitorDynamicCallSites(pdstring function_name) {
       // going to insert instrumentation, pause it from up here.
       // pausing at lower levels can cause performance problems, particularly
       // on ptrace systems, where pauses are slow
-      if(pause() == true)
+      if(pauseProc() == true)
          needToCont = true;
    }
   
@@ -2263,12 +2255,10 @@ unsigned pd_process::calculate_Checksum( pdstring graph)
 
 
 bool pd_process::launchRPCs(bool wasRunning) {
-    fprintf(stderr, "pd_proc::launchRPCs(%d)\n", wasRunning);
     PDSEP_LOCK(__FILE__, __LINE__);
     process *llproc = dyninst_process->lowlevel_process();
     bool retval = llproc->getRpcMgr()->launchRPCs(wasRunning);
     PDSEP_UNLOCK(__FILE__, __LINE__);
-    fprintf(stderr, "pd_proc::launchRPCs(%d) returned, my stopped %d\n", wasRunning, isStopped());
     return retval;
 }
 
