@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.176 2006/03/30 15:32:21 bpellin Exp $
+// $Id: unix.C,v 1.177 2006/03/31 02:09:31 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -441,13 +441,12 @@ bool SignalGenerator::waitForEventInternal(EventRecord &ev)
   pfds[0].events = POLLPRI;
   pfds[0].revents = 0;
 
-  waiting_for_event = true;
+  waitingForOS_ = true;
   __UNLOCK;
   int num_selected_fds = poll(pfds, 1, timeout);
   
   __LOCK;
-  
-  waiting_for_event = false;
+  waitingForOS_ = false;
   int handled_fds = 0;
 
   if (num_selected_fds < 0) {
@@ -767,6 +766,7 @@ bool PtraceCallback::operator()(int req, pid_t pid, Address addr,
     dbi_printf("%s[%d]:  waiting for completion of callback\n", FILE__, __LINE__);
     waitForCompletion();
   }
+
   lock->_Unlock(FILE__, __LINE__);
   return true;
 }

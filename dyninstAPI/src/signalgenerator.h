@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator.h,v 1.1 2006/03/29 21:38:35 bernat Exp $
+/* $Id: signalgenerator.h,v 1.2 2006/03/31 02:09:31 bernat Exp $
  */
 
 #ifndef _SIGNAL_GENERATOR_H_
@@ -189,8 +189,6 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
                               int &status,
                               fileDescriptor &desc);
    
-   bool waiting_for_event;
-   bool waiting_for_wakeup;
    bool waitingForActiveProcess_;
 
    bool processPausedDuringOSWait_; 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dynamiclinking.C,v 1.15 2006/02/16 00:57:22 legendre Exp $
+// $Id: dynamiclinking.C,v 1.16 2006/03/31 02:09:30 bernat Exp $
 
 // Cross-platform dynamic linking functions
 
@@ -220,10 +220,10 @@ bool dynamic_linking::didLinkMapsChange(u_int &change_type, pdvector<fileDescrip
 bool dynamic_linking::findChangeToLinkMaps(u_int &change_type,
 					   pdvector<mapped_object *> &changed_objects) 
 {
-  
   pdvector<fileDescriptor> new_descs;
-  if (!didLinkMapsChange(change_type, new_descs))
+  if (!didLinkMapsChange(change_type, new_descs)) {
     return false;
+  }
 
   const pdvector<mapped_object *> &curr_list = proc->mappedObjects();
 
@@ -240,6 +240,7 @@ bool dynamic_linking::findChangeToLinkMaps(u_int &change_type,
   if(change_type == SHAREDOBJECT_ADDED) {
       // Look for the one that doesn't match
       for (unsigned int i=0; i < new_descs.size(); i++) {
+
 	  bool found = false;
 	  for (unsigned int j = 0; j < curr_list.size(); j++) {
 #if 0 
@@ -261,6 +262,11 @@ bool dynamic_linking::findChangeToLinkMaps(u_int &change_type,
               }
 	  }
 	  if (!found) {
+#if 0
+              fprintf(stderr, "Adding %s/%s\n",
+                      new_descs[i].file().c_str(),
+                      new_descs[i].member().c_str());
+#endif
               mapped_object *newobj = mapped_object::createMappedObject(new_descs[i],
                                                                         proc);
               changed_objects.push_back(newobj);

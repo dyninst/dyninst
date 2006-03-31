@@ -1176,8 +1176,6 @@ SignalGeneratorCommon::SignalGeneratorCommon(char *idstr) :
     envp_(NULL),
     pid_(-1),
     traceLink_(-1),
-    waiting_for_event(false),
-    waiting_for_wakeup(false),
     waitingForActiveProcess_(false),
     processPausedDuringOSWait_(false),
     decodingEvent_(false),
@@ -1229,7 +1227,7 @@ bool SignalGeneratorCommon::wakeUpThreadForShutDown()
   int sig_to_send = SIGTRAP;
    assert(global_mutex->depth());
 
-  if (waiting_for_event) {
+  if (waitingForOS_) {
     signal_printf("%s[%d]:  sending SIGTRAP to wake up signal handler\n", FILE__, __LINE__);
     P_kill (getPid(), sig_to_send);
     waitForEvent(evtShutDown, proc);
