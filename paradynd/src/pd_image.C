@@ -162,7 +162,9 @@ BPatch_Vector<BPatch_function *> *pd_image::getIncludedFunctions()
     BPatch_Vector<BPatch_function *> *temp;
     temp = getIncludedFunctions(some_mods[i]->get_dyn_module());
     if (NULL == temp) continue;
-    (*ret) += (*temp);
+    for (unsigned j = 0; j < temp->size(); j++) {
+        ret->push_back((*temp)[j]);
+    }
   }
   return ret;
 }
