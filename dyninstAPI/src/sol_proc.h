@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sol_proc.h,v 1.3 2005/11/03 05:21:07 jaw Exp $
+// $Id: sol_proc.h,v 1.4 2006/03/31 20:19:51 bernat Exp $
 
 
 /*
@@ -49,7 +49,7 @@
  * This section defines macros to deal with this
  */
 
-#if defined(sparc_sun_solaris2_4)
+#if defined(os_solaris) && defined(arch_sparc)
 #define GETREG_nPC(regs)      (regs[R_nPC])
 #define GETREG_PC(regs)       (regs[R_PC])
 #define GETREG_FP(regs)       (regs[R_O6])
@@ -65,13 +65,11 @@
 #define SYSSET_ALLOC(x)     ((sysset_t *)malloc(sizeof(sysset_t)))
 #define SYSSET_FREE(x)      (free(x))
 #define SYSSET_SIZE(x)      (sizeof(sysset_t))
-#endif
-#if defined(i386_unknown_solaris2_5)
+#elif defined(os_solaris) && defined(arch_x86)
 #define REG_PC(regs) (regs->theIntRegs[EIP])
 #define REG_FP(regs) (regs->theIntRegs[EBP])
 #define REG_SP(regs) (regs->theIntRegs[UESP])
-#endif
-#if defined(AIX_PROC)
+#elif defined(os_aix)
 #define GETREG_nPC(regs)       (regs.__iar)
 #define GETREG_PC(regs)        (regs.__iar)
 #define GETREG_FP(regs)        (regs.__gpr[1])
