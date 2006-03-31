@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.12 2005/08/03 05:28:32 bernat Exp $
+# $Id: Makefile,v 1.13 2006/03/31 20:10:06 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -15,8 +15,6 @@ NO_IMPLICIT_TEMPLATES = true
 
 # Include standard make configuration stuff that applies to everything
 # in the paradyn tree.
-
-AIX_PROC = true
 
 include ../../make.config 
 

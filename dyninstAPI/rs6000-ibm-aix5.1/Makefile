@@ -19,9 +19,6 @@ ifdef COVERAGE
 NO_OPT_FLAG		= true
 endif
 
-# Use /proc support
-AIX_PROC	= true
-
 # AIX uses .a for library names...
 TARGET	= libdyninstAPI.a
 
