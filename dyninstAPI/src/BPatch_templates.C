@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_templates.C,v 1.39 2006/03/12 23:31:36 legendre Exp $
+// $Id: BPatch_templates.C,v 1.40 2006/03/31 22:25:12 bernat Exp $
 
 #include <sys/types.h>
 
@@ -115,12 +115,10 @@ template class BPatch_Vector<miniTramp *>;
 template class BPatch_Vector<const char *>;
 
 
-//#ifndef USE_STL_VECTOR
 template class BPatch_Vector<BPatch_localVar *>;
 template class BPatch_Vector<BPatch_field *>;
 template class BPatch_Vector<int>;
 template class BPatch_Vector<unsigned long>;
-//#endif
 
 template struct comparison<unsigned short>;
 template class BPatch_Set<unsigned short>;

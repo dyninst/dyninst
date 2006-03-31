@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.149 2006/03/30 00:58:23 bernat Exp $
+// $Id: BPatch_thread.C,v 1.150 2006/03/31 22:25:13 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -323,18 +323,18 @@ unsigned long BPatch_thread::getStackTopAddrInt()
 
 
 void BPatch_thread::removeThreadFromProc() {
-#ifndef IBM_BPATCH_COMPAT
+#if !defined(USE_DEPRECATED_BPATCH_VECTOR)
+   // STL vectors don't have item erase. We use iterators instead...
+   proc->threads.erase(std::find(proc->threads.begin(),
+                                 proc->threads.end(),
+                                 this));
+#else
    for (unsigned i=0; i<proc->threads.size(); i++) {
       if (proc->threads[i] == this) {
          proc->threads.erase(i);
          break;
       }
    }
-#else
-   // STL vectors don't have item erase. We use iterators instead...
-   proc->threads.erase(std::find(proc->threads.begin(),
-                                 proc->threads.end(),
-                                 this));
 #endif    
 }
 

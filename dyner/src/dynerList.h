@@ -42,7 +42,7 @@
 #ifndef __DYNERLIST__
 #define __DYNERLIST__
 
-#ifdef USE_STL_VECTOR
+#if !defined(USE_DEPRECATED_BPATCH_VECTOR)
 #include <list>
 #include <algorithm>
 #define DynerList	std::list

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.82 2006/03/08 21:59:30 tlmiller Exp $
+// $Id: BPatch_image.C,v 1.83 2006/03/31 22:25:10 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -972,16 +972,16 @@ BPatch_module *BPatch_image::findOrCreateModule(mapped_module *base) {
 }
 
 void BPatch_image::removeModule(BPatch_module *mod) {
-#ifndef IBM_BPATCH_COMPAT
+#if !defined(USE_DEPRECATED_BPATCH_VECTOR)
+    modlist.erase(std::find(modlist.begin(),
+                            modlist.end(),
+                            mod));
+#else
     for (unsigned j = 0; j < modlist.size(); j++) {
         if (modlist[j] == mod) {
             modlist.erase(j);
         }
     }
-#else
-    modlist.erase(std::find(modlist.begin(),
-                            modlist.end(),
-                            mod));
 #endif
 }
 
