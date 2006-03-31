@@ -347,11 +347,10 @@ bool rpcMgr::decodeEventIfDueToIRPC(EventRecord &ev)
              }
           }
 
-#if !defined(rs6000_ibm_aix4_1)  || defined(AIX_PROC)  // non AIX-PTRACE
           if(cur_dthr->get_lwp()->get_lwp_id() != lwp_of_trap->get_lwp_id()) {
              continue;
           }
-#endif
+
           activeFrame = cur_dthr->getActiveFrame();
        } else {
           assert(rpcLwp != NULL);
@@ -364,11 +363,9 @@ bool rpcMgr::decodeEventIfDueToIRPC(EventRecord &ev)
                 continue;
              }
           }
-#if !defined(rs6000_ibm_aix4_1)  || defined(AIX_PROC)  // non AIX-PTRACE
           if(cur_dlwp->get_lwp_id() != lwp_of_trap->get_lwp_id()) {
              continue;
           }
-#endif
           activeFrame = rpcLwp->get_lwp()->getActiveFrame();
        }
 

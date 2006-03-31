@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.217 2006/03/30 20:54:39 bernat Exp $
+// $Id: aix.C,v 1.218 2006/03/31 20:06:25 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -70,7 +70,7 @@
 #include "mapped_module.h"
 #include "mapped_object.h"
 
-#if defined(AIX_PROC)
+#if defined(cap_proc)
 #include <sys/procfs.h>
 #include <poll.h>
 #endif
@@ -1548,7 +1548,9 @@ bool process::dumpCore_(const pdstring coreFile)
 bool process::dumpImage(const pdstring outFile)
 {
     // formerly OS::osDumpImage()
-    const pdstring &imageFileName = getAOut()->fileName();
+    const pdstring &imageFileName = getAOut()->fullName();
+
+	
     // const Address codeOff = symbols->codeOffset();
     int i;
     int rd;
@@ -1732,9 +1734,12 @@ bool SignalGeneratorCommon::getExecFileDescriptor(pdstring /*filename*/,
     }
 
     prmap_t text_map;
+    char prog_name[512];
+
     prmap_t data_map;
     
     pread(map_fd, &text_map, sizeof(prmap_t), 0);
+    pread(map_fd, prog_name, 512, text_map.pr_pathoff);
     //assert(text_map.pr_mflags & MA_MAINEXEC);
     
     pread(map_fd, &data_map, sizeof(prmap_t), sizeof(prmap_t));
@@ -1768,7 +1773,7 @@ bool SignalGeneratorCommon::getExecFileDescriptor(pdstring /*filename*/,
 
    // text_name... heh. The entry in maps is stripped of path information. 
    // Instead, we go with /proc/<pid>/object/a.out
-   char text_name[1024];
+   char text_name[256];
    sprintf(text_name, "/proc/%d/object/a.out", pid);
 
     desc = fileDescriptor(text_name,
@@ -1776,7 +1781,9 @@ bool SignalGeneratorCommon::getExecFileDescriptor(pdstring /*filename*/,
                           dataOrg,
                           false); // Not a shared object
     // Try and track the types of descriptors created in aixDL.C...
-    desc.setMember("");
+	// We set this to the pathless file name (so that we can distinguish
+	// exec'ed processes)
+    desc.setMember(prog_name);
     //desc.setPid(pid);
     
     return true;

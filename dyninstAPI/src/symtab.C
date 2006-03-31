@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.273 2006/03/12 23:32:20 legendre Exp $
+ // $Id: symtab.C,v 1.274 2006/03/31 20:06:35 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -717,12 +717,6 @@ void dfsCreateLoopResources(BPatch_loopTreeNode *n, resource *res,
 extern bool should_report_loops;
 #endif
 
-// Tests if a symbol starts at a given point
-bool image::hasSymbolAtPoint(Address point) const
-{
-    return knownSymAddrs.defines(point);
-}
-
 const pdvector<image_func*> &image::getAllFunctions() 
 {
   analyzeIfNeeded();
@@ -984,10 +978,11 @@ image *image::parseImage(fileDescriptor &desc)
           return allImages[u]->clone();
       }
   }
+
+
   /*
    * load the symbol table. (This is the a.out format specific routine).
    */
-  //fprintf(stderr, "Making new object %s (%s)...\n", desc.file().c_str(), desc.member().c_str());
   if(desc.isSharedObject()) 
     statusLine("Processing a shared object file");
   else  
@@ -1063,6 +1058,24 @@ void image::removeImage(fileDescriptor &desc)
   }
   if (img) image::removeImage(img);
 }
+
+int image::destroy() {
+    refCount--;
+    if (refCount == 0) {
+        if (!desc().isSharedObject()) {
+            // a.out... destroy it
+#if defined(os_aix)
+            // "If we're on a platform where the Object-class destructor is trusted...
+            delete this;
+#endif
+            return 0;
+        }
+    }
+    if (refCount < 0)
+        assert(0 && "NEGATIVE REFERENCE COUNT FOR IMAGE!");
+    return refCount; 
+}
+
 
 //  a helper routine that selects a language based on information from the symtab
 supportedLanguages pickLanguage(pdstring &working_module, char *working_options, 
@@ -1644,10 +1657,9 @@ image::image(fileDescriptor &desc, bool &err)
    is_a_out(false),
    main_call_addr_(0),
    nativeCompiler(false),    
-   linkedFile(desc,pd_log_perror),//ccw jun 2002
+   linkedFile(desc_,pd_log_perror),//ccw jun 2002
    knownJumpTargets(int_addrHash, 8192),
    _mods(0),
-   knownSymAddrs(addrHash4),
    funcsByEntryAddr(addrHash4),
    funcsByPretty(pdstring::hash),
    funcsByMangled(pdstring::hash),
@@ -1747,8 +1759,6 @@ image::image(fileDescriptor &desc, bool &err)
             tmods.push_back(lookUp);
          }
       }
-      // As a side project, fill knownSymAddrs
-      knownSymAddrs[lookUp.addr()] = 0; // 0 is a dummy value
    }
   
    // sort the modules by address
@@ -1843,8 +1853,38 @@ image::image(fileDescriptor &desc, bool &err)
 
 image::~image() 
 {
-  // Doesn't do anything yet, moved here so we don't mess with symtab.h
-  // Only called if we fail to create a process.
+    // Doesn't do anything yet, moved here so we don't mess with symtab.h
+    // Only called if we fail to create a process.
+    // Or delete the a.out...
+
+    unsigned i;
+
+    // linkedFile : static, will go away automatically
+    for (i = 0; i < _mods.size(); i++) {
+        delete _mods[i];
+    }
+    _mods.clear();
+
+    for (i = 0; i < everyUniqueFunction.size(); i++) {
+        delete everyUniqueFunction[i];
+    }
+    everyUniqueFunction.clear();
+    createdFunctions.clear();
+    exportedFunctions.clear();
+
+    for (i = 0; i < everyUniqueVariable.size(); i++) {
+        delete everyUniqueVariable[i];
+    }
+    everyUniqueVariable.clear();
+    createdVariables.clear();
+    exportedVariables.clear();
+
+    // Finally, remove us from the image list.
+    for (i = 0; i < allImages.size(); i++) {
+        if (allImages[i] == this)
+            allImages.erase(i,i);
+    }
+
 }
 
 bool pdmodule::findFunction( const pdstring &name, pdvector<image_func *> &found ) {
@@ -1926,10 +1966,9 @@ void pdmodule::dumpMangled(pdstring &prefix) const
 
 #ifdef CHECK_ALL_CALL_POINTS
 void image::checkAllCallPoints() {
-  dictionary_hash_iter<pdstring, pdmodule*> di(modsByFullName);
-  pdstring s; pdmodule *mod;
-  while (di.next(s, mod))
-    mod->checkAllCallPoints();
+    for (unsigned i = 0; i < _mods.size(); i++) {
+        _mods[i]->checkAllCallPoints();
+    }
 }
 #endif
 pdmodule *image::getOrCreateModule(const pdstring &modName, 

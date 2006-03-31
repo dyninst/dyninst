@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.69 2006/03/31 02:09:30 bernat Exp $
+// $Id: aixDL.C,v 1.70 2006/03/31 20:06:25 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -192,22 +192,14 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &result)
             }
             
             char objname[256];
-            if (!is_aout) {
-                if (mapEntry.pr_pathoff) {
-                    pread(mapfd, objname, 256,
-                          mapEntry.pr_pathoff);
-                }
-                else {
-                    objname[0] = objname[1] = objname[2] = 0;
-                }
+            if (mapEntry.pr_pathoff) {
+                pread(mapfd, objname, 256,
+                      mapEntry.pr_pathoff);
             }
             else {
-                // We override the a.out name, matching the code in
-                // getExecFileDescriptor (aix.C)
-                sprintf(objname, "/proc/%d/object/a.out", 
-                        proc->getPid());
+                objname[0] = objname[1] = objname[2] = 0;
             }
-
+ 
             Address textOrg = (Address) mapEntry.pr_vaddr;
             Address dataOrg = (Address) next.pr_vaddr;
             
@@ -218,10 +210,20 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &result)
             if (dataOrg % sizeof(unsigned))
                 dataOrg += sizeof(unsigned) - (dataOrg % sizeof(unsigned));
             
-            fileDescriptor fda = fileDescriptor(objname, 
-                                                textOrg, dataOrg,
-                                                true);
-            if (!is_aout) fda.setMember(objname+strlen(objname)+1);
+			fileDescriptor fda;
+
+			if (is_aout) {
+				char buf[256];
+				sprintf(buf, "/proc/%d/object/a.out", proc->getPid());
+				fda = fileDescriptor(buf, textOrg, dataOrg, false);
+				fda.setMember(objname);
+			}
+			else {
+           		fda = fileDescriptor(objname, 
+                                     textOrg, dataOrg,
+                                     true);
+                fda.setMember(objname+strlen(objname)+1);
+            }
             //fda.setPid(pid);
 
             result.push_back(fda);

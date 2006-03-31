@@ -429,7 +429,9 @@ bool SignalHandler::handleExecExit(EventRecord &ev, bool &continueHint)
     // Unlike fork, handleExecExit doesn't do all processing required.
     // We finish up when the trap at main() is reached.
     proc->handleExecExit(desc);
-
+    
+    continueHint = true;
+    
     return true;
 }
 

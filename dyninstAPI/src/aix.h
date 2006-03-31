@@ -39,16 +39,16 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.h,v 1.20 2005/10/11 07:32:07 jodom Exp $
+// $Id: aix.h,v 1.21 2006/03/31 20:06:25 bernat Exp $
 
-#if !defined(rs6000_ibm_aix3_2) && !defined(rs6000_ibm_aix4_1) && !defined(AIX_PROC)
+#if !defined(os_aix)
 #error "invalid architecture-os inclusion"
 #endif
 
 #ifndef AIX_PD_HDR
 #define AIX_PD_HDR
 
-#if defined(AIX_PROC)
+#if defined(cap_proc)
 #include <sys/procfs.h>
 #endif
 
@@ -67,7 +67,7 @@ typedef int handleT; // defined for compatibility with other platforms
                      // not currently used on the AIX platform
 
 #define num_special_registers 9
-#if defined(AIX_PROC)
+#if defined(cap_proc)
 // Register storage structure
 struct dyn_saved_regs
 {

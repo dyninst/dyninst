@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.49 2006/03/29 21:34:59 bernat Exp $
+ * $Id: dyn_lwp.h,v 1.50 2006/03/31 20:06:25 bernat Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -192,7 +192,7 @@ class dyn_lwp
   bool isRunning() const;
 #endif
 
-#if defined(AIX_PROC)
+#if defined(cap_proc) && defined(os_aix)
   void reopen_fds(); // Re-open whatever FDs might need to be
 #endif
 
@@ -335,9 +335,7 @@ class dyn_lwp
   // to avoid platform-dependent initialization in process ctor.)
   bool stoppedInSyscall_;  
   Address postsyscallpc_;  // PC after the syscall is interrupted
-#if defined(sparc_sun_solaris2_4) \
- || defined(i386_unknown_solaris2_5) \
- || defined(AIX_PROC)
+#if defined(cap_proc)
   // These variables are meaningful only when `stoppedInSyscall' is true.
   int stoppedSyscall_;     // The number of the interrupted syscall
   dyn_saved_regs *syscallreg_; // Registers during sleeping syscall

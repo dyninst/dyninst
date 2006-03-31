@@ -41,7 +41,7 @@
 
 /************************************************************************
  * AIX object files.
- * $Id: Object-xcoff.h,v 1.13 2005/08/03 05:28:03 bernat Exp $
+ * $Id: Object-xcoff.h,v 1.14 2006/03/31 20:06:25 bernat Exp $
 ************************************************************************/
 
 
@@ -134,12 +134,12 @@ class Archive_64 : private Archive {
 class fileOpener {
  public:
     static pdvector<fileOpener *> openedFiles;
-    static fileOpener *openFile(const pdstring &f);
+    static fileOpener *openFile(const fileDescriptor &desc);
     
     void closeFile();
 
-    fileOpener(const pdstring &f) : refcount_(1), 
-        fileName_(f), fd_(0), 
+    fileOpener(pdstring file) : refcount_(1), 
+        file_(file), fd_(0), 
         size_(0), mmapStart_(NULL),
         offset_(0) {}
     ~fileOpener();
@@ -156,14 +156,14 @@ class fileOpener {
     // No write :)
     // Get me a pointer into the mapped area
     void *ptr() const;
-
-    const pdstring &file() const { return fileName_; }
+    
+    const pdstring &file() const { return file_; }
     int fd() const { return fd_; }
     unsigned size() const { return size_; }
 
  private:
     int refcount_;
-    pdstring fileName_;
+    pdstring file_;
     int fd_;
     unsigned size_;
     void *mmapStart_;

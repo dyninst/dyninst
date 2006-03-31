@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-unix.h,v 1.25 2006/03/29 21:35:10 bernat Exp $
+/* $Id: signalhandler-unix.h,v 1.26 2006/03/31 20:06:34 bernat Exp $
  */
 
 /*
@@ -154,7 +154,7 @@ typedef int procProcStatus_t;
 // Handle individual signal types
 /////////////////////
 
-#if defined (AIX_PROC)
+#if defined (os_aix) && defined(cap_proc)
 extern int SYSSET_MAP(int, int);
 #else
 #define SYSSET_MAP(x, pid)  (x)

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.599 2006/03/30 19:40:20 bernat Exp $
+// $Id: process.C,v 1.600 2006/03/31 20:06:34 bernat Exp $
 
 #include <ctype.h>
 
@@ -2135,7 +2135,7 @@ bool process::prepareExec(fileDescriptor &desc)
     // tell.
     //
 
-#if defined(AIX_PROC)
+#if defined(os_aix) && defined(cap_proc)
     // AIX oddly detaches from the process... fix that here
     // Actually, it looks like only the as FD is closed (probably because
     // the file it refers to is gone). Reopen.
@@ -2151,6 +2151,9 @@ bool process::prepareExec(fileDescriptor &desc)
     assert(dyn == NULL);
     theRpcMgr = new rpcMgr(this);
     dyn = new dynamic_linking(this);
+
+    startup_printf("%s[%d]: exec exit, setting a.out to %s:%s\n",
+                   FILE__, __LINE__, desc.file().c_str(), desc.member().c_str());
 
     if (!setAOut(desc)) {
         return false;
@@ -2174,7 +2177,6 @@ bool process::prepareExec(fileDescriptor &desc)
     // and guess what we just consumed. So replicate it manually.
     setBootstrapState(begun_bs);
     insertTrapAtEntryPointOfMain();
-    continueProc();
 
     return true;
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.45 2006/01/13 22:10:27 jodom Exp $
+// $Id: Object-xcoff.C,v 1.46 2006/03/31 20:06:25 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -80,12 +80,6 @@
 #include "dyninstAPI/src/showerror.h"
 #include "common/h/debugOstream.h"
 #include "arch.h"
-
-#if defined(AIX_PROC)
-#include <sys/procfs.h>
-#else
-#include <sys/ptrace.h>
-#endif
 
 /* For some reason this symbol type isn't global */
 #if !defined(C_WEAKEXT)
@@ -236,25 +230,32 @@ int Archive_64::read_mbrhdr()
 
 pdvector<fileOpener *> fileOpener::openedFiles;
 
-fileOpener *fileOpener::openFile(const pdstring &f) {
-    for (unsigned i = 0; i < openedFiles.size(); i++) {
-        if (openedFiles[i]->file() == f) {
-            openedFiles[i]->refcount_++;
-            return openedFiles[i];
+fileOpener *fileOpener::openFile(const fileDescriptor &desc) {
+    // Logic: if we're opening a library, match by name. If
+    // we're opening an a.out, then we have to uniquely
+    // open each time (as we open in /proc, and exec has the
+    // same name).
+
+    if (desc.isSharedObject()) {
+        for (unsigned i = 0; i < openedFiles.size(); i++) {
+            if (openedFiles[i]->file() == desc.file()) {
+                openedFiles[i]->refcount_++;
+                return openedFiles[i];
+            }
         }
     }
 
     // New file. Neeefty.
-    fileOpener *newFO = new fileOpener(f);
+    fileOpener *newFO = new fileOpener(desc.file());
     assert(newFO);
     
     if (!newFO->open()) {
-        fprintf(stderr, "File %s\n", f.c_str());
+        fprintf(stderr, "File %s\n", desc.file().c_str());
         perror("Opening file");
         return NULL;
     }
     if (!newFO->mmap()) {
-        fprintf(stderr, "File %s\n", f.c_str());
+        fprintf(stderr, "File %s\n", desc.file().c_str());
         perror("mmaping file");
         return NULL;
     }
@@ -263,14 +264,43 @@ fileOpener *fileOpener::openFile(const pdstring &f) {
     return newFO;
 }
 
+void fileOpener::closeFile() {
+    refcount_--;
+
+    if (refcount_ > 0) return;
+
+    // Remove us from the big list...
+    for (unsigned i = 0; i < openedFiles.size(); i++) {
+        if (openedFiles[i] == this)
+            openedFiles.erase(i, i);
+    }
+
+    ::munmap(mmapStart_, size_);
+
+    ::close(fd_);
+
+    mmapStart_ = 0;
+    fd_ = 0;
+    size_ = 0;
+
+    delete this;
+}
+
+fileOpener::~fileOpener() {
+    // Assert that we're already closed?
+    assert(fd_ == 0);
+    assert(mmapStart_ == 0);
+    assert(size_ == 0);
+}
+
 bool fileOpener::open() {
     if (fd_ != 0)
         return true;
-    // Open ze file....
-    fd_ = ::open(fileName_.c_str(), O_RDONLY, 0); 
+
+    fd_ = ::open(file().c_str(), O_RDONLY, 0); 
     if (fd_ < 0) {
         sprintf(errorLine, "Unable to open %s: %s\n",
-                fileName_.c_str(), strerror(errno));
+                file().c_str(), strerror(errno));
         statusLine(errorLine);
         showErrorCallback(27, errorLine);
         fd_ = 0;
@@ -283,12 +313,13 @@ bool fileOpener::open() {
     ret = fstat(fd_, &statBuf);
     if (ret == -1) {
         sprintf(errorLine, "Unable to stat %s: %s\n",
-                fileName_.c_str(), strerror(errno));
+                file().c_str(), strerror(errno));
         statusLine(errorLine);
         showErrorCallback(27, errorLine);
         return false;
     }
     assert(ret == 0);
+
     size_ = statBuf.st_size;
     assert(size_);
     return true;
@@ -305,7 +336,7 @@ bool fileOpener::mmap() {
 
     if (mmapStart_ == MAP_FAILED) {
         sprintf(errorLine, "Unable to mmap %s: %s\n",
-                fileName_.c_str(), strerror(errno));
+                file().c_str(), strerror(errno));
         statusLine(errorLine);
         showErrorCallback(27, errorLine);
         mmapStart_ = NULL;
@@ -1146,7 +1177,7 @@ Object::Object(const fileDescriptor &desc, void (*err_func)(const char *))
     : AObject(desc.file(), err_func) {
     member_ = desc.member();
     
-    fo_ = fileOpener::openFile(desc.file());
+    fo_ = fileOpener::openFile(desc);
     assert(fo_);
     // We want this to be "if a.out", so... 
     
@@ -1155,10 +1186,7 @@ Object::Object(const fileDescriptor &desc, void (*err_func)(const char *))
 
 Object::~Object() 
 {
-  // Cleanup memory, otherwise we'll have mega-leaks.
-  if (code_ptr_) free(code_ptr_);
-  if (data_ptr_) free(data_ptr_);
-
+  fo_->closeFile();
 }
 
 Object& Object::operator=(const Object& obj) {

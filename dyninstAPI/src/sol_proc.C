@@ -41,9 +41,9 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.87 2006/03/29 21:34:46 bernat Exp $
+// $Id: sol_proc.C,v 1.88 2006/03/31 20:06:35 bernat Exp $
 
-#ifdef AIX_PROC
+#if defined(os_aix)
 #include <sys/procfs.h>
 #else
 #include <procfs.h>
@@ -100,7 +100,7 @@ void OS::osTraceMe(void)
         delete [] buf;
         return;
     }
-#if defined(AIX_PROC) 
+#if defined(os_aix) 
     if (status.pr_sysexit_offset)
         pread(stat_fd, exitSet, SYSSET_SIZE(exitSet), status.pr_sysexit_offset);
     else // No syscalls are being traced 
@@ -586,7 +586,7 @@ bool dyn_lwp::executingSystemCall()
       }
   }
   
-#if defined(AIX_PROC)
+#if defined(os_aix)
   if (status.pr_why == PR_SIGNALLED &&
       status.pr_what == SIGSTOP) {
       // We can't operate on a process in SIGSTOP, so clear it
@@ -759,7 +759,7 @@ bool dyn_lwp::representativeLWP_attach_()
    as_fd_ = P_open(temp, O_RDWR, 0);
    if (as_fd_ < 0) perror("Opening as fd");
 
-#if !defined(AIX_PROC)
+#if !defined(os_aix)
    sprintf(temp, "/proc/%d/auxv", getPid());
    if (!waitForFileToExist(temp, 5 /*seconds */)) {
      fprintf(stderr, "%s[%d]:  cannot attach because %s does not exist\n", FILE__, __LINE__, temp);
@@ -945,7 +945,7 @@ bool process::unsetProcessFlags()
 // AIX requires us to re-open the process-wide handles after
 // an exec call
 
-#if defined(AIX_PROC)
+#if defined(os_aix)
 void dyn_lwp::reopen_fds() {
         // Reopen the process-wide handles
     char temp[128];
@@ -954,7 +954,7 @@ void dyn_lwp::reopen_fds() {
     sprintf(temp, "/proc/%d/as", getPid());
     as_fd_ = P_open(temp, O_RDWR, 0);
     if (as_fd_ <= 0) perror("Opening as fd");
-#if !defined(AIX_PROC)
+#if !defined(os_aix)
     P_close(auxv_fd_);
     sprintf(temp, "/proc/%d/auxv", getPid());
     auxv_fd_ = P_open(temp, O_RDONLY, 0);
@@ -1229,7 +1229,7 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
         //bperr( "  trapping syscall %d for 1st time (%d)\n",
         //       (int)trappedSyscall->syscall_id, trappedSyscall->refcount);
         
-#if defined(AIX_PROC) 
+#if defined(os_aix) 
         // AIX does some weird things, as we can't modify a thread
         // at a system call exit -- this means that using /proc
         // doesn't get us anywhere.
@@ -1338,18 +1338,20 @@ Address dyn_lwp::getCurrentSyscall() {
         bperr( "Failed to get status\n");
         return 0;
     }
-#if defined(AIX_PROC)
+#if defined(os_aix)
+    // lwps stopped in syscalls are unmodifiable.. so we 'fake' it
     return get_lwp_id();
-#else
-    return status.pr_syscall;
 #endif
+
+    return status.pr_syscall;
 }
 
 
 
 bool dyn_lwp::stepPastSyscallTrap()
 {
-#if defined(AIX_PROC)
+#if defined(os_aix)
+    // We trap the exit, as lwps stopped in syscalls are unmodifiable
     changePC(trappedSyscall_->origLR, NULL);
 #endif
     // Nice... on /proc systems we don't need to do anything here
@@ -1363,7 +1365,7 @@ bool dyn_lwp::stepPastSyscallTrap()
 // 1: Trapped, but did not have a syscall trap placed for this LWP
 // 2: Trapped with a syscall trap desired.
 bool dyn_lwp::decodeSyscallTrap(EventRecord &ev) {
-#if defined(AIX_PROC) 
+#if defined(os_aix) 
     if (!trappedSyscall_) return false;
     
     Frame frame = getActiveFrame();

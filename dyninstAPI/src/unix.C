@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.177 2006/03/31 02:09:31 bernat Exp $
+// $Id: unix.C,v 1.178 2006/03/31 20:06:35 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -69,7 +69,7 @@
 #include "dyninstAPI/src/stats.h"
 
 // BREAK_POINT_INSN
-#if defined(AIX_PROC)
+#if defined(os_aix)
 #include "dyninstAPI/src/arch-power.h"
 #endif
 #include "dyninstAPI/src/sol_proc.h"
@@ -272,7 +272,7 @@ bool SignalGenerator::decodeProcStatus(procProcStatus_t status, EventRecord &ev)
      case PR_SYSENTRY:
         ev.type = evtSyscallEntry;
         ev.what = status.pr_what;
-#if defined(AIX_PROC)
+#if defined(os_aix)
         // We actually pull from the syscall argument vector
         if (status.pr_nsysarg > 0)
            ev.info = status.pr_sysarg[0];
@@ -288,7 +288,7 @@ bool SignalGenerator::decodeProcStatus(procProcStatus_t status, EventRecord &ev)
         ev.type = evtSyscallExit;
         ev.what = status.pr_what;
 
-#if defined(AIX_PROC)
+#if defined(os_aix)
         // This from the proc header file: system returns are
         // left in pr_sysarg[0]. NOT IN MAN PAGE.
         ev.info = status.pr_sysarg[0];

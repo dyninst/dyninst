@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.190 2006/02/02 02:55:13 tlmiller Exp $
+// $Id: symtab.h,v 1.191 2006/03/31 20:06:35 bernat Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -330,16 +330,7 @@ class image : public codeRange {
    ~image();
 
    // 7JAN05: go through the removeImage call!
-   int destroy() {
-     refCount--;
-     if (refCount == 0) {
-       //delete this;
-       // Uncomment that when we have a destructor that works...
-     }
-     if (refCount < 0)
-       assert(0 && "NEGATIVE REFERENCE COUNT FOR IMAGE!");
-     return refCount; 
-   }
+   int destroy();
  public:
 
    // Check the list of symbols returned by the parser, return
@@ -466,9 +457,6 @@ class image : public codeRange {
    const pdvector<image_variable *> &getExportedVariables() const;
    const pdvector<image_variable *> &getCreatedVariables();
 
-   // Tests if a symbol starts at a given point
-   bool hasSymbolAtPoint(Address point) const;
-
 #ifndef BPATCH_LIBRARY
 
    // get all modules, including excluded ones....
@@ -583,10 +571,6 @@ class image : public codeRange {
 
    pdvector<pdmodule *> _mods;
 
-   // The dictionary of all symbol addresses in the image. We use it as a hack
-   // on x86 to scavenge some bytes past a function exit for the exit-point
-   // instrumentation
-   dictionary_hash<Address, unsigned> knownSymAddrs;
    //
    // Hash Tables of Functions....
    //
