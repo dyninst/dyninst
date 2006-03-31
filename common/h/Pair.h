@@ -50,7 +50,7 @@
 #if !defined(_Pair_h_)
 #define _Pair_h_
 
-//ifdef USE_STL_VECTOR
+//#ifdef STL...
 //#include <stl.h>
 //#else
 

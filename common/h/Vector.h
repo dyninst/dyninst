@@ -671,6 +671,4 @@ bool pdvector<T, A>::operator== (const pdvector<T,A> &) const
   return false;
 }
 
-//#endif /* ifdef USE_STL_VECTOR */
-
 #endif /* !defined(_Pdvector_h_) */
