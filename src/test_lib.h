@@ -68,16 +68,6 @@
 #define PASS 0
 #define FAIL -1
 
-typedef enum {
-   TEST1,
-   TEST2,
-   TEST2B,
-   TEST3,
-   TEST4,
-   TEST12,
-} test_style_t;
-
-
 // Functions in test_lib.C
 
 TESTLIB_DLL_EXPORT int waitUntilStopped(BPatch *, BPatch_thread *appThread, 
@@ -95,7 +85,7 @@ TESTLIB_DLL_EXPORT void checkCost(BPatch_snippet snippet);
 TESTLIB_DLL_EXPORT BPatch_variableExpr *findVariable(BPatch_image *appImage, const char* var,
                                   BPatch_Vector <BPatch_point *> *point);
 
-TESTLIB_DLL_EXPORT void setMutateeFortran(int mutFor);
+TESTLIB_DLL_EXPORT void setMutateeFortran(bool mutFor);
 TESTLIB_DLL_EXPORT void setDebugPrint(int debug);
 
 //
