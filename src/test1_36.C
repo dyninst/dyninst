@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_36.C,v 1.3 2006/03/08 16:44:37 bpellin Exp $
+// $Id: test1_36.C,v 1.4 2006/04/01 06:33:10 bpellin Exp $
 /*
  * #Name: test1_36
  * #Desc: Callsite Parameter Referencing
@@ -114,16 +114,26 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
       return -1;
    }
 
-   BPatch_variableExpr *expr36_1 =findVariable(appImage, "globalVariable36_1", all_points36_1);
-   BPatch_variableExpr *expr36_2 =findVariable(appImage, "globalVariable36_2", all_points36_1);
-   BPatch_variableExpr *expr36_3 =findVariable(appImage, "globalVariable36_3", all_points36_1);
-   BPatch_variableExpr *expr36_4 =findVariable(appImage, "globalVariable36_4", all_points36_1);
-   BPatch_variableExpr *expr36_5 =findVariable(appImage, "globalVariable36_5", all_points36_1);
-   BPatch_variableExpr *expr36_6 =findVariable(appImage, "globalVariable36_6", all_points36_1);
-   BPatch_variableExpr *expr36_7 =findVariable(appImage, "globalVariable36_7", all_points36_1);
-   BPatch_variableExpr *expr36_8 =findVariable(appImage, "globalVariable36_8", all_points36_1);
-   BPatch_variableExpr *expr36_9 =findVariable(appImage, "globalVariable36_9", all_points36_1);
-   BPatch_variableExpr *expr36_10 = findVariable(appImage, "globalVariable36_10", all_points36_1);
+   BPatch_variableExpr *expr36_1 =findVariable(appImage, "globalVariable36_1", 
+         all_points36_1, mutateeFortran);
+   BPatch_variableExpr *expr36_2 =findVariable(appImage, "globalVariable36_2", 
+         all_points36_1, mutateeFortran);
+   BPatch_variableExpr *expr36_3 =findVariable(appImage, "globalVariable36_3", 
+         all_points36_1, mutateeFortran);
+   BPatch_variableExpr *expr36_4 =findVariable(appImage, "globalVariable36_4", 
+         all_points36_1, mutateeFortran);
+   BPatch_variableExpr *expr36_5 =findVariable(appImage, "globalVariable36_5", 
+         all_points36_1, mutateeFortran);
+   BPatch_variableExpr *expr36_6 =findVariable(appImage, "globalVariable36_6", 
+         all_points36_1, mutateeFortran);
+   BPatch_variableExpr *expr36_7 =findVariable(appImage, "globalVariable36_7", 
+         all_points36_1, mutateeFortran);
+   BPatch_variableExpr *expr36_8 =findVariable(appImage, "globalVariable36_8", 
+         all_points36_1, mutateeFortran);
+   BPatch_variableExpr *expr36_9 =findVariable(appImage, "globalVariable36_9", 
+         all_points36_1, mutateeFortran);
+   BPatch_variableExpr *expr36_10 = findVariable(appImage, "globalVariable36_10", 
+         all_points36_1, mutateeFortran);
    
    if (expr36_1 == NULL || expr36_2 == NULL || expr36_3 == NULL ||
        expr36_4 == NULL || expr36_5 == NULL || expr36_6 == NULL ||
@@ -134,7 +144,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
       fprintf(stderr, "    Unable to locate at least one of "
               "globalVariable36_{1...10}\n");
       return -1;
-	}
+   }
 
    BPatch_Vector<BPatch_snippet *> snippet_seq;
    snippet_seq.push_back(makeTest36paramExpr(expr36_1, 0));

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.20 2006/04/01 03:37:13 bpellin Exp $
+// $Id: test_driver.C,v 1.21 2006/04/01 06:33:11 bpellin Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -379,22 +379,6 @@ void setupGeneralTest(BPatch *bpatch)
 
 }
 
-void setupFortran(BPatch_thread *appThread)
-{
-    setMutateeFortran(false);
-
-   if ( appThread == NULL )
-      return;
-   
-   BPatch_image *appImage = appThread->getImage();
-
-   if ( isMutateeFortran(appImage) )
-   {
-      setMutateeFortran(true);
-   }
-}
-
-
 int executeTest(BPatch *bpatch, test_data_t &test, char *mutatee, create_mode_t attachMode, ParameterDict &param)
 {
    BPatch_thread *appThread = NULL;
@@ -436,8 +420,6 @@ int executeTest(BPatch *bpatch, test_data_t &test, char *mutatee, create_mode_t 
         return -1;
       }
    }
-
-   setupFortran(appThread);
 
    // Set up Test Specific parameters
    param["pathname"]->setString(mutatee);
@@ -559,6 +541,7 @@ void printCrashHumanLog(test_data_t test, char *mutatee, create_mode_t cm, off_t
 
    if ( stat(humanlog_name, &file_info) != 0 )
    {
+      // File doesn't exist, so it has length 0
       if ( errno == ENOENT )
       {
          *init_pos = 0;
@@ -567,6 +550,7 @@ void printCrashHumanLog(test_data_t test, char *mutatee, create_mode_t cm, off_t
          exit(1);
       }
    } else {
+       // Set inital position to the current file size
       *init_pos = file_info.st_size;
    }
    
@@ -612,6 +596,8 @@ void printResultHumanLog(test_data_t test, char *mutatee, create_mode_t cm, int 
    
    fclose(human);
 
+   // This code truncates using methods specific to Windows, and 
+   // POSIX platforms
 #if defined(i386_unknown_nt4_0)
    SECURITY_ATTRIBUTES sa;
    memset(&sa, 0, sizeof(sa));
