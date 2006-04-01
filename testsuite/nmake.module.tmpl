@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.4 2006/03/12 23:33:00 legendre Exp $
+# $Id: nmake.module.tmpl,v 1.5 2006/04/01 03:37:17 bpellin Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -28,13 +28,12 @@ SRCS_LIBTESTSUITE = ../src/test_lib.C \
                     ../src/Process_data.C \
                     ../src/ParameterDict.C \
                     ../src/TestData.C \
-                    ../src/Callbacks.C \
-                    ../src/test_lib_templates-nt.C
+                    ../src/Callbacks.C 
 
 OBJS_LIBTESTSUITE = $(SRCS_LIBTESTSUITE:.C=.obj)
 OBJS_LIBTESTSUITE = $(OBJS_LIBTESTSUITE:../src/=)
 
-all: $(LIBTESTSUITE) test_driver.exe runTests $(TEST_LIBS) $(MUTATEES) libtestA.dll libtestB.dll
+all: $(LIBTESTSUITE) test_driver.exe runTests.exe $(TEST_LIBS) $(MUTATEES) libtestA.dll libtestB.dll
 
 
 UNCOMMON_INSTALL=true
@@ -59,17 +58,11 @@ $(LIBTESTSUITE): $(OBJS_LIBTESTSUITE)
 
 $(OBJS_LIBTESTSUITE): $(SRCS_LIBTESTSUITE)
 
-test_driver.exe:  test_driver.obj test_lib_templates-nt.obj test_lib.obj
-	$(LINK) $(LDFLAGS) test_driver.obj test_lib_templates-nt.obj libdyninstAPI.lib libtestSuite.lib
+test_driver.exe:  test_driver.obj test_lib.obj
+	$(LINK) $(LDFLAGS) test_driver.obj libdyninstAPI.lib libtestSuite.lib
 
 test_driver.obj: ../src/test_driver.C 
 	$(CXX) $(CXXFLAGS_NORM) -Dnative_cc=_VC.exe -Dnative_cxx=_VC++.exe -c $**
 
-runTests.exe:  runTests.obj test_lib_templates-nt.obj
-	$(LINK) runTests.obj test_lib_templates-nt.obj
-
-runTests.obj: ../src/runTests.C 
-	$(CXX) $(CXXFLAGS_NORM) -Dnative_cc=_VC.exe -c $**
-
-runTests: ../src/runTests.pl
-	copy ..\src\runTests.pl runTests
+runTests.exe:  ../src/runTests.C ../src/runTests-utils-nt.C
+	$(CXX) $(CXXFLAGS_NORM) ../src/runTests.C ../src/runTests-utils-nt.C
