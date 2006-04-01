@@ -1,7 +1,7 @@
 #
 # Makefile for dyninst test programs on Windows NT.
 #
-# $Id: Makefile,v 1.4 2006/03/12 23:33:02 legendre Exp $
+# $Id: Makefile,v 1.5 2006/04/01 03:37:16 bpellin Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in nmake.config
@@ -23,7 +23,7 @@ CFLAGS = /Zi /D_DEBUG
 #M_GXX = g++
 NATIVE_CC = VC
 NATIVE_CXX = VC++
-TEST_LINKS = libdyninstAPI.lib libtestSuite.lib test_lib_templates-nt.obj
+TEST_LINKS = libdyninstAPI.lib libtestSuite.lib
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.
