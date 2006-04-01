@@ -94,7 +94,7 @@ class BPATCH_DLL_EXPORT BPatch_loopTreeNode : public BPatch_eventLock {
 
     const char *,getCalleeName,(unsigned int i));
 
-    //  BPatch_loopTreeNode::numCalleexs
+    //  BPatch_loopTreeNode::numCallees
     //  Return the number of callees contained in this loop's body. 
     API_EXPORT(Int, (),
 
