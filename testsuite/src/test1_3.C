@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_3.C,v 1.4 2006/03/12 23:33:23 legendre Exp $
+// $Id: test1_3.C,v 1.5 2006/04/01 06:33:09 bpellin Exp $
 /*
  * #Name: test1_3
  * #Desc: Mutator Side (passing variables to a function)
@@ -114,7 +114,8 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
         return -1;
     }
 
-    BPatch_variableExpr *expr3_1 = findVariable (appImage, "globalVariable3_1", call3_1);
+    BPatch_variableExpr *expr3_1 = findVariable (appImage, 
+          "globalVariable3_1", call3_1, mutateeFortran);
 
     if (!expr3_1) {
         fprintf(stderr, "**Failed** test #3 (passing variables)\n");

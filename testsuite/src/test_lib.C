@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.9 2006/03/30 17:24:36 bernat Exp $
+// $Id: test_lib.C,v 1.10 2006/04/01 06:33:12 bpellin Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -89,7 +89,6 @@ int expectError = DYNINST_NO_ERROR;
 
 /* Control Debug printf statements */
 int debugPrint = 0;
-bool mutateeFortran = false;
 
 //
 // Wait for the mutatee to stop.
@@ -157,12 +156,6 @@ bool signalAttached(BPatch_thread* /*appThread*/, BPatch_image *appImage)
     isAttached->writeValue(&yes);
     return true;
 }
-
-void setMutateeFortran(bool mutFor)
-{
-    mutateeFortran = mutFor;
-}
-
 
 void setDebugPrint(int debug) {
    debugPrint = debug;
@@ -297,7 +290,7 @@ void checkCost(BPatch_snippet snippet)
 // Wrapper function to find variables
 // For Fortran, will look for lowercase variable, if mixed case not found
 BPatch_variableExpr *findVariable(BPatch_image *appImage, const char* var,
-                                  BPatch_Vector <BPatch_point *> *point = NULL)
+                                  BPatch_Vector <BPatch_point *> *point = NULL, int mutateeFortran)
 {
   //BPatch_variableExpr *FortVar = NULL;
     BPatch_variableExpr *ret = NULL;
@@ -569,7 +562,8 @@ void addLibArchExt(char *dest, unsigned int dest_max_len)
 #endif
 }
 
-int readyTest21or22(BPatch_thread *appThread, char *libNameA, char *libNameB)
+int readyTest21or22(BPatch_thread *appThread, char *libNameA, char *libNameB,
+      int mutateeFortran)
 {
     char libA[128], libB[128];
     snprintf(libA, 128, "./%s", libNameA);

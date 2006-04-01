@@ -82,10 +82,11 @@ TESTLIB_DLL_EXPORT void checkCost(BPatch_snippet snippet);
 
 // Wrapper function to find variables
 // For Fortran, will look for lowercase variable, if mixed case not found
-TESTLIB_DLL_EXPORT BPatch_variableExpr *findVariable(BPatch_image *appImage, const char* var,
-                                  BPatch_Vector <BPatch_point *> *point);
+TESTLIB_DLL_EXPORT BPatch_variableExpr *findVariable(BPatch_image *appImage, 
+                                  const char* var,
+                                  BPatch_Vector <BPatch_point *> *point, 
+                                  int mutateeFortran = 0);
 
-TESTLIB_DLL_EXPORT void setMutateeFortran(bool mutFor);
 TESTLIB_DLL_EXPORT void setDebugPrint(int debug);
 
 //
@@ -127,7 +128,9 @@ TESTLIB_DLL_EXPORT BPatch_Vector<BPatch_snippet *> genLongExpr(BPatch_arithExpr 
 TESTLIB_DLL_EXPORT void addLibArchExt(char *dest, unsigned int dest_max_len);
 
 // Function to preload some libraries for test1_21 and test1_22
-TESTLIB_DLL_EXPORT int readyTest21or22(BPatch_thread *appThread, char *libNameA, char *libNameB);
+TESTLIB_DLL_EXPORT int readyTest21or22(BPatch_thread *appThread, 
+      char *libNameA, char *libNameB, int mutateeFortran);
+
 TESTLIB_DLL_EXPORT int strcmpcase(char *s1, char *s2);
 
 TESTLIB_DLL_EXPORT void instrument_entry_points( BPatch_thread * app_thread,

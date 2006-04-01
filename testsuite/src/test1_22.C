@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_22.C,v 1.5 2006/04/01 03:37:20 bpellin Exp $
+// $Id: test1_22.C,v 1.6 2006/04/01 06:33:06 bpellin Exp $
 /*
  * #Name: test1_22
  * #Desc: Mutator Side - Replace Function
@@ -235,7 +235,10 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
    addLibArchExt(libNameA,128);
    strncpy(libNameB, libNameBroot, 128);
    addLibArchExt(libNameB,128);
-   RETURNONFAIL(readyTest21or22(appThread, libNameA, libNameB));
+
+   RETURNONFAIL(readyTest21or22(appThread, libNameA, libNameB,
+            mutateeFortran));
+
    return mutatorTest22(appThread, appImage);
 
 }
