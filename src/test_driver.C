@@ -39,13 +39,16 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.19 2006/03/30 17:24:36 bernat Exp $
+// $Id: test_driver.C,v 1.20 2006/04/01 03:37:13 bpellin Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <errno.h>
 #include <vector>
+#include <iostream>
+
+#include <sys/stat.h>
 
 #if defined(i386_unknown_nt4_0)
 #define vsnprintf _vsnprintf
@@ -59,7 +62,6 @@
 #include "test_lib.h"
 #include "Callbacks.h"
 #include "error.h"
-#include "common/h/String.h"
 
 
 // Globals, should be eventually set by commandline options
@@ -377,9 +379,6 @@ void setupGeneralTest(BPatch *bpatch)
 
 }
 
-// In test_lib.C
-void setMutateeFortran(bool mutFor);
-
 void setupFortran(BPatch_thread *appThread)
 {
     setMutateeFortran(false);
@@ -422,10 +421,8 @@ int executeTest(BPatch *bpatch, test_data_t &test, char *mutatee, create_mode_t 
 
    // Add bpatch pointer to test parameter's
    ParamPtr bp_ptr(bpatch);
-   param.undef("bpatch");
    param["bpatch"] = &bp_ptr;
    ParamPtr bp_appThread;
-   param.undef("appThread");
    param["appThread"] = &bp_appThread;
 
 
@@ -554,18 +551,26 @@ bool inMutateeList(char *mutatee, std::vector<char *> &mutatee_list)
 
 
 // Human Readable Log Editing Functions
-fpos_t printCrashHumanLog(test_data_t test, char *mutatee, create_mode_t cm)
+void printCrashHumanLog(test_data_t test, char *mutatee, create_mode_t cm, off_t *init_pos)
 {
    FILE *human;
-   fpos_t init_pos;
+
+   struct stat file_info;
+
+   if ( stat(humanlog_name, &file_info) != 0 )
+   {
+      if ( errno == ENOENT )
+      {
+         *init_pos = 0;
+      } else {
+         fprintf(stderr, "stat failed\n");
+         exit(1);
+      }
+   } else {
+      *init_pos = file_info.st_size;
+   }
    
    human = fopen(humanlog_name, "a");
-   // Set initial file pointer position
-   if ( fgetpos(human, &init_pos) != 0 )
-   {
-      fprintf(stderr, "fgetpos failed\n");
-      exit(1);
-   }
 
    fprintf(human, "%s: mutatee: %s create_mode: ", test.name, mutatee);
    if ( cm == CREATE )
@@ -574,23 +579,20 @@ fpos_t printCrashHumanLog(test_data_t test, char *mutatee, create_mode_t cm)
       fprintf(human, "attach\tresult: ");
 
    fprintf(human, "CRASHED\n");
-   
    fclose(human);
 
-   return init_pos;
 }
 
-void printResultHumanLog(test_data_t test, char *mutatee, create_mode_t cm, int result, fpos_t init_pos)
+void printResultHumanLog(test_data_t test, char *mutatee, create_mode_t cm, int result, off_t init_pos)
 {
    FILE *human;
    human = fopen(humanlog_name, "r+");
-
    // Backup stream to overwrite crash result
-   if ( fsetpos(human, &init_pos) )
+   if ( fseek(human, (long)init_pos, SEEK_SET) != 0 )
    {
-      fprintf(stderr, "fsetpos failed\n");
+      fprintf(stderr, "fseek failed\n");
+	  exit(1);
    }
-
    fprintf(human, "%s: mutatee: %s create_mode: ", test.name, mutatee);
    if ( cm == CREATE )
       fprintf(human, "create\tresult: ");
@@ -614,7 +616,6 @@ void printResultHumanLog(test_data_t test, char *mutatee, create_mode_t cm, int 
    SECURITY_ATTRIBUTES sa;
    memset(&sa, 0, sizeof(sa));
    HANDLE h_file = CreateFile(humanlog_name, GENERIC_WRITE|GENERIC_READ, FILE_SHARE_READ, &sa, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-   cout << "File Length " << eof << "trimmed" << endl;
    SetFilePointer(h_file, eof, NULL, FILE_BEGIN);
    SetEndOfFile(h_file);
    CloseHandle(h_file);
@@ -674,7 +675,8 @@ int startTest(test_data_t tests[], unsigned int n_tests, std::vector<char *> &te
     bpatch = new BPatch;
 
     // Begin setting up test parameters
-    ParameterDict param(pdstring::hash);
+    //ParameterDict param(pdstring::hash);
+    ParameterDict param;
     // Setup parameters
     ParamInt attach(0);
     ParamInt errorp(errorPrint);
@@ -770,14 +772,14 @@ int startTest(test_data_t tests[], unsigned int n_tests, std::vector<char *> &te
                cm = USEATTACH;
             }
             
-            fpos_t replay_position;
+            off_t replay_position = 0;
             if ( useHumanLog )
             {
                // In case the follow test causes a program crash we 
                // premptively print a crash error in the human log.
                // If it does not crash, we'll use the replay position
                // to overwrite that entry with a correct one.
-               replay_position = printCrashHumanLog(tests[i], tests[i].mutatee[j], cm);
+               printCrashHumanLog(tests[i], tests[i].mutatee[j], cm, &replay_position);
             }
             
             // Execute the test
@@ -993,8 +995,8 @@ int main(unsigned int argc, char *argv[]) {
           humanlog_name = argv[++i];
 
 #if defined(i386_unknown_nt4_0)
-          fprintf(stderr, "-humanlog currently unimplemented on windows\n");
-          exit(NOTESTS);
+          //fprintf(stderr, "-humanlog currently unimplemented on windows\n");
+          //exit(NOTESTS);
 #endif
        }
        else if ( strcmp(argv[i], "-help") == 0)
