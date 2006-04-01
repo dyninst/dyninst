@@ -14,7 +14,6 @@ template class std::vector<std::pair< unsigned long, unsigned long > >;
 template class std::vector<std::pair< const char *, unsigned int > >;
 
 #include "ParameterDict.h"
-#include "common/src/Dictionary.C"
-#include "common/h/String.h"
-template class dictionary_hash<pdstring, Parameter*>;
-template class pdvector<dictionary_hash<pdstring, Parameter*>::entry>;
+#include <map>
+#include <string>
+template class std::map<std::string, Parameter*>;
