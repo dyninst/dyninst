@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.24 2006/03/12 23:32:45 legendre Exp $
+ * $Id: RTposix.c,v 1.25 2006/04/01 20:19:46 mirg Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -100,6 +100,11 @@ void libdyninstAPI_RT_init()
    static int initCalledOnce = 0;
    if (initCalledOnce) return;
    initCalledOnce++;
+
+#if defined(arch_x86) || defined(arch_x86_64) || defined(arch_ia64)
+   /* Modern x86-32/x86-64/ia64 cpus have non-executable data */
+   mark_heaps_exec();
+#endif
 
    RTmutatedBinary_init();
    

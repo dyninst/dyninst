@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.39 2006/03/02 20:00:21 tlmiller Exp $
+ * $Id: RTlinux.c,v 1.40 2006/04/01 20:19:45 mirg Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -53,16 +53,13 @@
 #include <sys/types.h>
 #include <sys/syscall.h>
 #include <string.h>
-
-#if defined(arch_ia64) || defined(arch_x86_64)
-
 #include <errno.h>
 #include <sys/mman.h>
 
 extern double DYNINSTstaticHeap_32K_lowmemHeap_1[];
 extern double DYNINSTstaticHeap_4M_anyHeap_1[];
 
-void _start( void ) 
+void mark_heaps_exec(void) 
 {
    int result;
 	RTprintf("*** Initializing dyninstAPI runtime.\n" );
@@ -115,7 +112,6 @@ void _start( void )
 	RTprintf("*** Marked memory from 0x%lx to 0x%lx executable.\n", 
             alignedHeapPointer, alignedHeapPointer + adjustedSize );
 }
-#endif
 
 #if defined(arch_ia64)
 /* Ensure we an executable block of memory. */
