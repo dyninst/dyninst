@@ -1466,7 +1466,8 @@
 	SUBROUTINE func21_1
 #include "test1_common.h"
 
-	print *, 'Passed test #21 (findFunction in module)'
+	print *, 'Skipping test #21 (findFunction in module)\n'
+	print *, '       - not implemented for Fortran'
 	passedTest (21) = .true.
 	END
 

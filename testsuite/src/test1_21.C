@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_21.C,v 1.4 2006/03/12 23:33:21 legendre Exp $
+// $Id: test1_21.C,v 1.5 2006/04/01 03:37:19 bpellin Exp $
 /*
  * #Name: test1_21
  * #Desc: findFunction in module
@@ -79,10 +79,6 @@ int mutatorTest21(BPatch_thread *, BPatch_image *appImage)
  || defined(os_windows) \
 
     // Lookup the libtestA.so and libtestB.so modules that we've just loaded
-
-    if (mutateeFortran) {
-        return 0;
-    }
 
     BPatch_module *modA = NULL;
     BPatch_module *modB = NULL;
@@ -211,6 +207,11 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
     }
 
     mutateeFortran = isMutateeFortran(appImage);
+
+    if ( mutateeFortran )
+    {
+      return 0;
+    }
 
     // Run mutator code
     return mutatorTest(appThread, appImage);

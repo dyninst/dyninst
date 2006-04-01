@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_22.C,v 1.4 2006/03/12 23:33:22 legendre Exp $
+// $Id: test1_22.C,v 1.5 2006/04/01 03:37:20 bpellin Exp $
 /*
  * #Name: test1_22
  * #Desc: Mutator Side - Replace Function
@@ -73,10 +73,6 @@ int mutatorTest22(BPatch_thread *appThread, BPatch_image *appImage)
  || defined(alpha_dec_osf4_0) \
  || defined(os_linux) \
  || defined(os_windows)
-
-    if (mutateeFortran) {
-        return 0;
-    }
 
     char errbuf[1024]; errbuf[0] = '\0';
     BPatch_module *modA = NULL;
@@ -263,6 +259,11 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
     }
 
     mutateeFortran = isMutateeFortran(appImage);
+    if ( mutateeFortran )
+    {
+      return 0;
+    }
+
 
     // Run mutator code
     return mutatorTest(appThread, appImage);
