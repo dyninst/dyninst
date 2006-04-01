@@ -39,12 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ParameterDict.h,v 1.3 2005/11/22 19:41:18 bpellin Exp $
+// $Id: ParameterDict.h,v 1.4 2006/04/01 03:37:12 bpellin Exp $
 #ifndef PARAMETERDICT_H
 #define PARAMETERDICT_H
 
-#include "common/h/String.h"
-#include "common/h/Dictionary.h"
+//#include "common/h/String.h"
+//#include "common/h/Dictionary.h"
+#include <map>
+#include <string>
 #include "test_lib_dll.h"
 
 
@@ -98,6 +100,6 @@ class TESTLIB_DLL_EXPORT ParamPtr : public Parameter {
       void setPtr(void *ptr);
 };
 
-typedef dictionary_hash<pdstring, Parameter*> ParameterDict;
+typedef std::map<std::string, Parameter*> ParameterDict;
 
 #endif /* PARAMETERDICT_H */
