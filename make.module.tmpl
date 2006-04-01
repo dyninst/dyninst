@@ -372,6 +372,12 @@ $(TEST_DEST)/%: %
 $(LIB_DEST)/%: %
 	-$(CP) $< $(LIB_DEST)
 
+$(TEST_DEST_LN)/%: %
+	-$(LN) $< $(TEST_DEST)
+
+$(LIB_DEST_LN)/%: %
+	-$(LN) $< $(LIB_DEST)
+
 
 #######################################################################
 ###  High level targets
@@ -388,8 +394,18 @@ echo:
 	echo "MUTATEES_NATIVE_CC = $(MUTATEES_NATIVE_CC)"; \
         echo "MUTATORS = $(MUTATORS)" 
 
-install: $(TEST_DEST) $(ALL_TARGETS_DEST) $(LIBTESTSUITE_DEST)
+install: $(TEST_DEST) $(ALL_TARGETS_DEST) $(LIB_DEST) $(LIBTESTSUITE_DEST)
 	@echo "install completed"
+
+symlink: $(TEST_DEST) $(LIBTESTSUITE_DEST) $(ALL_TARGETS)
+	@for i in $(ALL_TARGETS); do \
+           $(RM) $(TEST_DEST)/$$i; \
+           echo $(LN) $(PWD)/$$i $(TEST_DEST)/$$i; \
+	   $(LN) $(PWD)/$$i $(TEST_DEST)/$$i; \
+	done
+
+	@$(RM) $(LIB_DEST)/$(LIBTESTSUITE)
+	$(LN) $(PWD)/$(LIBTESTSUITE) $(LIB_DEST)/$(LIBTESTSUITE)
 
 clean:
 	$(RM) *.da *.bb. *.bbg 
