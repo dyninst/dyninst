@@ -104,7 +104,7 @@ void *init_func(void *arg)
 
 int main()
 {
-   unsigned i, j;
+   unsigned i;
    void *ret_val;
 
 #if defined(os_osf)
