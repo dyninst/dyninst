@@ -13,8 +13,11 @@
 #else
 /* Unix Specific includes */
 #include <unistd.h>
-#include <wait.h>
 
+#endif
+
+#if !defined(os_aix) && !defined(os_windows)
+#include <wait.h>
 #endif
 
 #if defined(i386_unknown_nt4_0)
