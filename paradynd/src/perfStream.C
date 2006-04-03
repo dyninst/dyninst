@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.186 2006/03/29 21:35:17 bernat Exp $
+// $Id: perfStream.C,v 1.187 2006/04/03 19:44:52 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/timing.h"
@@ -541,7 +541,7 @@ void controllerMainLoop(bool check_buffer_first)
       // requests arrives at that moment - naim
 			
       if (isInfProcAttached) {
-          getBPatch().pollForStatusChange();
+          //getBPatch().pollForStatusChange();
       }
 
       
@@ -558,6 +558,10 @@ void controllerMainLoop(bool check_buffer_first)
       FD_SET(ntwrk->get_SocketFd(), &readSet);
       FD_SET(ntwrk->get_SocketFd(), &errorSet);
       width = ntwrk->get_SocketFd();
+
+      // Mmmm bpatch FD interface...
+      FD_SET(getBPatch().getNotificationFD(), &readSet);
+      width = (width < getBPatch().getNotificationFD()) ? getBPatch().getNotificationFD() : width;
       
       // Clean up any inferior RPCs that might still be queued do to a failure
       // to start them
@@ -629,6 +633,13 @@ void controllerMainLoop(bool check_buffer_first)
           }
       }
 #endif // !defined(i386_unknown_nt4_0)
+
+      if (FD_ISSET(getBPatch().getNotificationFD(), &readSet)) {
+          // Dyninst has something for us...
+          fprintf(stderr, "Making BPatch poll callback\n");
+          getBPatch().pollForStatusChange();
+      }
+
       bool delayIGENrequests=false;
       
       // if we are waiting for a system call to complete in order to
