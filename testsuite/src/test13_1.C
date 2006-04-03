@@ -59,8 +59,8 @@ static int deleted_threads;
 
 bool debug_flag = false;
 #define dprintf if (debug_flag) fprintf
-#define NUM_FUNCS 7
-char initial_funcs[NUM_FUNCS][25] = {"init_func", "main", "_start", "__start", "__libc_start_main", "start_thread", "_thread_start"};
+#define NUM_FUNCS 5
+char initial_funcs[NUM_FUNCS][25] = {"init_func", "main", "_start", "__start", "__libc_start_main"};
 
 void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
 {
@@ -157,14 +157,15 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    stack_addrs[my_dyn_id] = my_stack;
 
    //Thread IDs should be unique
-   static unsigned long pthread_ids[NUM_THREADS];
-   unsigned mytid = thr->getTid();
+   static long pthread_ids[NUM_THREADS];
+   long mytid = thr->getTid();
    if (mytid == -1)
    {
       fprintf(stderr, "[%s:%d] - Thread %d has a tid of -1\n", 
               __FILE__, __LINE__, my_dyn_id);
    }
-   dprintf(stderr, "%s[%d]:  newthr: tid = %lu\n", __FILE__, __LINE__,  mytid);
+   dprintf(stderr, "%s[%d]:  newthr: tid = %lu\n", 
+           __FILE__, __LINE__,  (unsigned long)mytid);
    for (unsigned i=0; i<NUM_THREADS; i++)
       if (i != my_dyn_id && dyn_tids[i] && mytid == pthread_ids[i])
       {
