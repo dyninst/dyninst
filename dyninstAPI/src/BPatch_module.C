@@ -1211,11 +1211,31 @@ void BPatch_module::setDefaultNamespacePrefix(char *name)
 
 #ifdef IBM_BPATCH_COMPAT
 
-bool BPatch_module::getLineNumbersInt(unsigned int &start, unsigned int &end)
+bool BPatch_module::getLineNumbersInt( unsigned int & startLine, unsigned int & endLine )
 {
-    start = 0;
-    end = 0;
-    return true;
+    /* I don't think this function has ever returned nonzeroes.  Approximate a better 
+       result by with the line numbers for the first and last addresses in the module. */
+    void * startAddr, * endAddr;
+    if( ! getAddressRangeInt( startAddr, endAddr ) ) {
+    	return false;
+    	}
+   
+    bool setAValue = false;
+    std::vector< std::pair< const char *, unsigned int > > lines; 
+    getSourceLines( (Address)startAddr, lines );
+    if( lines.size() != 0 ) {
+	    startLine = lines[0].second;
+	    setAValue = true;
+	    }
+	   
+    lines.clear();
+    getSourceLines( (Address)endAddr, lines );
+    if( lines.size() != 0 ) {
+	    endLine = lines[0].second;
+	    setAValue = true;
+	    }
+    
+    return setAValue;
 }
 
 bool BPatch_module::getAddressRangeInt(void * &start, void * &end)
@@ -1233,7 +1253,7 @@ char *BPatch_module::getUniqueStringInt(char *buffer, int length)
     getAddressRange(start, end);
     
     // Form unique name from module name and start address
-    int written = snprintf(buffer, length, "%llx|%s",
+    int written = snprintf(buffer, length, "%p|%s",
                            start, mod->fileName().c_str());
     assert((written >= 0) && (written < length));
     
