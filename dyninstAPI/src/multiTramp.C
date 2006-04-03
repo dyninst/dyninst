@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.34 2006/03/30 19:40:19 bernat Exp $
+// $Id: multiTramp.C,v 1.35 2006/04/03 19:44:51 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -148,6 +148,8 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
             if (!tmp) {
                 continue;
             }
+			// We loop through everything on purpose to determine whether
+			// there are other instrumented points.
             if (tmp == bti) {
                 if (tmp->previous_ && 
                     (tmp->previous_->fallthrough_ == tmp)) {
@@ -186,6 +188,8 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
         else {
             doWeDelete = true;
         }
+
+		deletedObjs.push_back(bti);
     }
     
     if (doWeDelete) {
@@ -202,11 +206,21 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
             free(savedCodeBuf_);
             savedCodeBuf_ = 0;
         }
+
         if (proc()->multiTrampDict[id()] == this) {
             // Won't leak as the process knows to delete us
             proc()->multiTrampDict[id()] = NULL;
         }
         
+		// Move everything else to the deleted list
+        generatedCFG_t::iterator cfgIter(generatedCFG_);
+        generatedCodeObject *obj = NULL;
+
+        while ((obj = cfgIter++)) {
+			deletedObjs.push_back(obj);
+		}
+		generatedCFG_.setStart(NULL);
+
         proc()->deleteGeneratedCode(this);
         proc()->removeMultiTramp(this);
 
@@ -1218,6 +1232,47 @@ Address multiTramp::instToUninstAddr(Address addr) {
     
     while ((obj = cfgIter++)) {
         relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);
+        baseTrampInstance *bti = dynamic_cast<baseTrampInstance *>(obj);
+        trampEnd *end = dynamic_cast<trampEnd *>(obj);
+
+        if (insn && 
+            (addr >= insn->relocAddr()) &&
+            (addr < insn->relocAddr() + insn->get_size_cr()))
+            return insn->origAddr;
+        if (bti && bti->isInInstance(addr)) {
+            // If we're pre for an insn, return that;
+            // else return the insn we're post/target for.
+            baseTramp *baseT = bti->baseT;
+            instPoint *point = NULL;
+            if (baseT->preInstP)
+                point = baseT->preInstP;
+            else if (baseT->postInstP)
+                point = baseT->postInstP;
+            else
+                assert(0);
+            for (unsigned i = 0; i < point->instances.size(); i++) {
+                // We check by ID instead of pointer because we may
+                // have been replaced by later instrumentation, but 
+                // are still being executed.
+                if (point->instances[i]->multiID() == id_)
+                    return point->addr();
+            }
+            // No match: bad data structures.
+            assert(0);
+        }
+        if (end) {
+            // Ah hell. 
+            // Umm... see if we're in the size_ area
+            if ((end->addrInMutatee_ <= addr) &&
+                (addr < (end->addrInMutatee_ + end->size_))) {
+                return end->target();
+            }
+        }
+    }
+
+	// Ran out of iterator... 
+	for (unsigned i = 0; i < deletedObjs.size(); i++) {
+		relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);
         baseTrampInstance *bti = dynamic_cast<baseTrampInstance *>(obj);
         trampEnd *end = dynamic_cast<trampEnd *>(obj);
 
