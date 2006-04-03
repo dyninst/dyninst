@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.130 2006/04/03 19:44:48 bernat Exp $
+// $Id: BPatch.C,v 1.131 2006/04/03 21:18:57 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1468,15 +1468,10 @@ BPatch_thread *BPatch::attachProcessInt(const char *path, int pid)
  */
 bool BPatch::pollForStatusChangeInt()
 {
-    fprintf(stderr, "Enter pFSC\n");
     getMailbox()->executeCallbacks(FILE__, __LINE__);
-
-    fprintf(stderr, "Callbacks made...\n");
 
     clearNotificationFD();
     
-    fprintf(stderr, "FD Cleared\n");
-
     if (mutateeStatusChange) {
         mutateeStatusChange = false;
         return true;
@@ -1988,8 +1983,6 @@ void BPatch::continueIfExists(int pid)
 
 void BPatch::signalNotificationFD() {
     // If the FDs are set up, write a byte to the input side.
-    fprintf(stderr, "signalNotificationFD...\n");
-    
     if (notificationFDInput_ == -1) return;
     if (FDneedsPolling_) return;
 
@@ -2012,8 +2005,6 @@ void BPatch::clearNotificationFD() {
 
     read(notificationFDOutput_, &buf, sizeof(char));
     FDneedsPolling_ = false;
-
-    fprintf(stderr, "Done with clear\n");
     return;
 }
 
