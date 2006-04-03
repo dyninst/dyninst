@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.16 2006/03/10 21:57:51 nater Exp $
+// $Id: reloc-func.C,v 1.17 2006/04/03 21:19:13 bernat Exp $
 
 // We'll also try to limit this to relocation-capable platforms
 // in the Makefile. Just in case, though....
@@ -335,8 +335,19 @@ bool int_function::relocationInvalidate() {
     // installedVersion_++;
     // version_++; -- so that instpoints will be updated
     // linkedVersion_++;
-    if (linkedVersion_ == version_) return true;
-    
+    reloc_printf("%s[%d]: relocationInvalidate for %s: linkedVersion %d, version %d\n",
+                 FILE__, __LINE__, symTabName().c_str(), linkedVersion_, version_);
+
+    assert(generatedVersion_ >= installedVersion_);
+    assert(installedVersion_ >= version_);
+    assert(version_ >= linkedVersion_);
+
+    if (generatedVersion_ == linkedVersion_) {
+        reloc_printf("%s[%d]: nothing to do, returning\n",
+                     FILE__, __LINE__);
+        return true;
+    }
+
     while (installedVersion_ > linkedVersion_) {
         reloc_printf("******* Removing installed version %d\n",
                      installedVersion_);
