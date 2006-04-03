@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.48 2006/03/30 15:13:52 bernat Exp $
+ * $Id: dyn_lwp.C,v 1.49 2006/04/03 22:25:23 tlmiller Exp $
  */
 
 #include "common/h/headers.h"
@@ -366,3 +366,8 @@ Address dyn_lwp::step_next_insn() {
    return 0x0;
 }
 #endif
+
+void dyn_lwp::internal_lwp_set_status___(processState st) {
+	status_ = st;
+	}
+  

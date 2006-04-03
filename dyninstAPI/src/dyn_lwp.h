@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.50 2006/03/31 20:06:25 bernat Exp $
+ * $Id: dyn_lwp.h,v 1.51 2006/04/03 22:25:24 tlmiller Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -165,7 +165,7 @@ class dyn_lwp
   processState status() const { return status_;}
   pdstring getStatusAsString() const; // useful for debug printing etc.
   // to set dyn_lwp status, use process::set_lwp_status()
-  void internal_lwp_set_status___(processState st) { status_ = st; }
+  void internal_lwp_set_status___(processState st);
   
   enum { NoSignal = -1 };  // matches declaration in process.h
 
