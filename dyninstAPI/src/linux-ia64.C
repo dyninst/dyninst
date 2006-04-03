@@ -62,19 +62,14 @@
 #include <asm/ptrace_offsets.h>
 #include <dlfcn.h>
 
-bool changePC( int pid, Address loc ) { 
-  /* We assume until further notice that all of our jumps
-     are properly (bundle) aligned, because we should be
-     getting their destinations from code we didn't generate. */
-  assert( loc % 16 == 0 );
-
-  return (getDBI()->ptrace( PTRACE_POKEUSER, pid, PT_CR_IIP, loc ) != -1);
-} /* end changePC() */
-
 bool dyn_lwp::changePC( Address loc, dyn_saved_regs * regs ) {
   if( regs != NULL ) { restoreRegisters( *regs ); }
-  
-  return ::changePC( get_lwp_id(), loc );
+
+  /* We can't change the PC to a slot number other than 0. */  
+  assert( loc % 16 == 0 );
+
+  // /* DEBUG */ fprintf( stderr, "%s[%d]: (lwp %d) changing PC to 0x%lx\n", __FILE__, __LINE__, get_lwp_id(), loc );
+  return (getDBI()->ptrace( PTRACE_POKEUSER, get_lwp_id(), PT_CR_IIP, loc, -1, & errno ) != -1);
 } /* end changePC() */
 
 /* This should really be printRegisters().  I also have to admit
@@ -169,15 +164,6 @@ void dyn_lwp::dumpRegisters()
    fprintf(stderr, "pc:   %lx\n", regs.pc);
    fprintf(stderr, "pr:   %lx\n", regs.pr);
 }
-
-Address getPC( int pid ) {
-  errno = 0;
-  Address pc = getDBI()->ptrace( PTRACE_PEEKUSER, pid, PT_CR_IIP, 0, -1, & errno );
-  if (errno) perror("OHMYGOD! ERRNO!");
-  assert( ! errno );
-
-  return pc;
-} /* end getPC() */
 
 bool process::handleTrapAtEntryPointOfMain(dyn_lwp * /*dontcare*/) {
   InsnAddr iAddr = InsnAddr::generateFromAlignedDataAddress( main_brk_addr, this );
@@ -497,7 +483,7 @@ bool process::loadDYNINSTlib() {
   } /* end enviromental variable extraction */
         
   /* Save the (main thread's) current PC.*/
-  savedPC = getPC( getPid() );	
+  savedPC = getRepresentativeLWP()->getActiveFrame().getPC();	
         
   /* _dl_open() takes three arguments: a pointer to the library name,
      the DLOPEN_MODE, and the return address of the current frame
@@ -599,7 +585,7 @@ bool process::loadDYNINSTlib() {
   jAddr.writeBundlesFrom( (unsigned char *)gen.start_ptr(), gen.used() / 16 );
 
   /* Now that we know where the code will start, move the (main thread's) PC there. */
-  changePC( getPid(), dlopencall_addr );
+  getRepresentativeLWP()->changePC( dlopencall_addr, NULL );
 
   /* Let them know we're working on it. */
   setBootstrapState( loadingRT_bs );
@@ -617,8 +603,7 @@ bool process::loadDYNINSTlibCleanup(dyn_lwp * /*ignored*/) {
   iAddr.writeBundlesFrom( savedCodeBuffer, sizeof(savedCodeBuffer) / 16 );
 
   /* Continue (the main thread's) execution at the correct point. */
-  pid_t pid = getPid();
-  changePC( pid, savedPC );
+  getRepresentativeLWP()->changePC( savedPC, NULL );
 
   return true;
 } /* end loadDYNINSTlibCleanup() */
@@ -730,11 +715,15 @@ Frame Frame::getCallerFrame() {
 		fprintf( stderr, "%s[%d]: detected duplicate stack frame, aborting stack with zeroed frame.\n", __FILE__, __LINE__ );
 		}
 
+	if( thread_ != NULL ) {
+		currentFrame.thread_ = thread_;
+		}
+                    
 	/* Return the result. */
 	return currentFrame;
 	} /* end getCallerFrame() */
 
-syscallTrap * process::trapSyscallExitInternal( Address /*syscall*/ ) {
+syscallTrap * process::trapSyscallExitInternal( Address /* syscall */ ) {
 	/* The IA-64 port does not trap system call exits for inferior RPCs. */
 	assert( 0 );
 	return NULL;
@@ -751,9 +740,9 @@ bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
 	   trappedSyscall->refcount);
     return true;
   }
-  bperr( "Removing trapped syscall at %ld\n",
+  bperr( "Removing trapped syscall at 0x%lx\n",
 	 trappedSyscall->syscall_id);
-  if (!writeDataSpace((void *)getPC(getPid()), 16, trappedSyscall->saved_insn))
+  if (!writeDataSpace( (void *)trappedSyscall->syscall_id, 16, trappedSyscall->saved_insn))
     return false;
         
   // Now that we've reset the original behavior, remove this
