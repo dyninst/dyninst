@@ -119,7 +119,7 @@ void parse_args(int argc, char *argv[])
 
 int main(int argc, char *argv[])
 {
-   unsigned i, j;
+   unsigned i;
    void *ret_val;
    char c = 'T';
    
