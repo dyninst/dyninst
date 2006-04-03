@@ -200,6 +200,16 @@ class BPATCH_DLL_EXPORT BPatch : public BPatch_eventLock {
        for use with pollForStatusChange */
    bool mutateeStatusChange;
    bool waitingForStatusChange;
+
+   /* Internal notification file descriptor - a pipe */
+   int notificationFDOutput_;
+   int notificationFDInput_;
+   // Easier than non-blocking reads... there is either 1 byte in the pipe or 0.
+   bool FDneedsPolling_;
+   /* And auxiliary functions for the above */
+   void signalNotificationFD();
+   void clearNotificationFD();
+   
 public:
     static BPatch		 *bpatch;
 
@@ -390,7 +400,6 @@ public:
     API_EXPORT(Int, (cb),
     bool,removeUserEventCallback,(BPatchUserEventCallback cb));
 
-
     //  BPatch::getThreads:
     //  Get a vector of all threads
     API_EXPORT(Int, (),
@@ -544,17 +553,28 @@ public:
 
     BPatch_type *,createTypedef,(const char * name, BPatch_type * ptr));
 	 
-    //  Polling/waiting functions 
-    API_EXPORT(Int, (),
+    // User programs are required to call pollForStatusChange or
+    // waitForStatusChange before user-level callback functions
+    // are executed (for example, fork, exit, or a library load). 
 
+    // Non-blocking form; returns immediately if no callback is
+    // ready, or executes callback(s) then returns.
+    API_EXPORT(Int, (),
     bool,pollForStatusChange,());
 
-    public:
-    //  BPatch:: waitForStatusChange:
-    //  Block until any process control event is received from a mutatee
+    // Blocks until a callback is ready.
     API_EXPORT(Int, (),
-
     bool,waitForStatusChange,());
+
+    // For user programs that block on other things as well,
+    // we provide a (simulated) file descriptor that can be added
+    // to a poll or select fdset. When a callback is prepared the BPatch
+    // layer writes to this fd, thus making poll/select return. The user
+    // program should then call pollForStatusChange. The BPatch layer
+    // will handle clearing the file descriptor; all the program must do 
+    // is call pollForStatusChange or waitForStatusChange.
+    API_EXPORT(Int, (),
+    int, getNotificationFD, ());
 
     //  BPatch:: waitUntilStopped:
     //  Block until specified process has stopped.

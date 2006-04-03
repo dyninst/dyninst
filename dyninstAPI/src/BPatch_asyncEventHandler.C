@@ -606,8 +606,9 @@ void threadExitWrapper(BPatch_process *p, BPatch_thread *t,
 
   pdvector<AsyncThreadEventCallback *> &cbs = *cbs_ptr;
   for (unsigned int i = 0; i < cbs.size(); ++i) {
-    AsyncThreadEventCallback &cb = * ((AsyncThreadEventCallback *) cbs[i]);
-    cb(p,t);
+      AsyncThreadEventCallback *cb = dynamic_cast<AsyncThreadEventCallback *>(cbs[i]);
+      if (cb)
+          (*cb)(p,t);
   }
   threadDeleteWrapper(p,t);
 }
@@ -717,19 +718,23 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
            return true;
        }
 
+       BPatch::bpatch->mutateeStatusChange = true;
+
        async_printf("%s[%d]: setting up new thread callbacks...\n", 
                     FILE__, __LINE__);
        pdvector<CallbackBase *> cbs;
        getCBManager()->dispenseCallbacksMatching(ev.type, cbs);
        for (unsigned int i = 0; i < cbs.size(); ++i) {
-         AsyncThreadEventCallback &cb = * ((AsyncThreadEventCallback *) cbs[i]);
-         async_printf("%s[%d]:  before executing thread create callback\n", FILE__, __LINE__);
-         cb(p, newthr);
+           BPatch::bpatch->signalNotificationFD();
+
+           AsyncThreadEventCallback *cb = dynamic_cast<AsyncThreadEventCallback *>(cbs[i]);
+           async_printf("%s[%d]:  before executing thread create callback\n", FILE__, __LINE__);
+           if (cb)
+               (*cb)(p, newthr);
        }
 
        async_printf("%s[%d]: flagging mutatee status change...\n",
                     FILE__, __LINE__);
-       BPatch::bpatch->mutateeStatusChange = true;
        async_printf("%s[%d]: signalling evtThreadCreate\n", FILE__, __LINE__);
        ev.proc->sh->signalEvent(evtThreadCreate);
        return true;
@@ -752,17 +757,21 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
        //  this is a bit nasty:  since we need to ensure that the callbacks are 
        //  called before the thread is deleted, we use a special callback function,
        //  threadExitWrapper, specified above, which guarantees serialization.
+
+       BPatch::bpatch->mutateeStatusChange = true;
+
        pdvector<CallbackBase *> cbs;
        pdvector<AsyncThreadEventCallback *> *cbs_copy = new pdvector<AsyncThreadEventCallback *>;
        getCBManager()->dispenseCallbacksMatching(ev.type, cbs);
-       for (unsigned int i = 0; i < cbs.size(); ++i)
-          cbs_copy->push_back((AsyncThreadEventCallback *)cbs[i]); 
+       for (unsigned int i = 0; i < cbs.size(); ++i) {
+           BPatch::bpatch->signalNotificationFD();
+           cbs_copy->push_back((AsyncThreadEventCallback *)cbs[i]); 
+       }
 
        InternalThreadExitCallback *cb_ptr = new InternalThreadExitCallback(threadExitWrapper);
        InternalThreadExitCallback &cb = *cb_ptr;
        cb(appProc, appThread, cbs_copy); 
 
-       BPatch::bpatch->mutateeStatusChange = true;
        ev.proc->sh->signalEvent(evtThreadExit);
        return true;
      }
@@ -836,8 +845,10 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
          pdvector<CallbackBase *> cbs;
          getCBManager()->dispenseCallbacksMatching(evtDynamicCall, cbs);
          for (unsigned int i = 0; i < cbs.size(); ++i) {
-           DynamicCallsiteCallback &cb = * ((DynamicCallsiteCallback *) cbs[i]);
-           cb(pt, bpf);
+             BPatch::bpatch->signalNotificationFD();
+             DynamicCallsiteCallback *cb = dynamic_cast<DynamicCallsiteCallback *>(cbs[i]);
+             if (cb) 
+                 (*cb)(pt, bpf);
          }
 
        }
@@ -862,8 +873,11 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
         pdvector<CallbackBase *> cbs;
         getCBManager()->dispenseCallbacksMatching(evtUserEvent, cbs);
         for (unsigned int i = 0; i < cbs.size(); ++i) {
-          UserEventCallback &cb = *((UserEventCallback *) cbs[i]);
-          cb(appProc, userbuf, ev.info);
+            BPatch::bpatch->signalNotificationFD();
+            
+            UserEventCallback *cb = dynamic_cast<UserEventCallback *>(cbs[i]);
+            if (cb)
+                (*cb)(appProc, userbuf, ev.info);
         }
 
         delete [] userbuf;

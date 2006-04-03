@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.129 2006/03/29 21:34:41 bernat Exp $
+// $Id: BPatch.C,v 1.130 2006/04/03 19:44:48 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -105,6 +105,10 @@ BPatch::BPatch()
     delayedParsing_(false),
     systemPrelinkCommand(NULL),
     mutateeStatusChange(false),
+    waitingForStatusChange(false),
+    notificationFDOutput_(-1),
+    notificationFDInput_(-1),
+    FDneedsPolling_(false),
     builtInTypes(NULL),
     stdTypes(NULL),
     type_Error(NULL),
@@ -936,14 +940,16 @@ void BPatch::registerForkedProcess(process *parentProc, process *childProc)
 #endif
     forkexec_printf("Successfully connected socket to child\n");
     
-    
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtPostFork,cbs);
     
     for (unsigned int i = 0; i < cbs.size(); ++i) {
+        signalNotificationFD();
+
         ForkCallback *cb = dynamic_cast<ForkCallback *>(cbs[i]);
-        if (cb)
+        if (cb) {
             (*cb)(parent->threads[0], child->threads[0]);
+        }
     }
 
     // Re-lookup the process pointers as they may have been deleted.
@@ -970,9 +976,13 @@ void BPatch::registerForkingProcess(int forkingPid, process * /*proc*/)
     assert(forking);
     forking->isVisiblyStopped = true;
 
+    signalNotificationFD();
+
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtPreFork,cbs);
     for (unsigned int i = 0; i < cbs.size(); ++i) {
+        signalNotificationFD();
+
         assert(cbs[i]);
         ForkCallback *cb = dynamic_cast<ForkCallback *>(cbs[i]);
         if (cb)
@@ -1024,9 +1034,13 @@ void BPatch::registerExecExit(process *proc)
 
    // The async pipe should be gone... handled in registerExecEntry
    
+    signalNotificationFD();
+
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtExec,cbs);
     for (unsigned int i = 0; i < cbs.size(); ++i) {
+        signalNotificationFD();
+
         ExecCallback *cb = dynamic_cast<ExecCallback *>(cbs[i]);
         if (cb)
             (*cb)(process->threads[0]);
@@ -1056,10 +1070,12 @@ void BPatch::registerNormalExit(process *proc, int exitcode)
 
    pdvector<CallbackBase *> cbs;
 
-
+    signalNotificationFD();
 
    getCBManager()->dispenseCallbacksMatching(evtThreadExit,cbs);
    for (unsigned int i = 0; i < cbs.size(); ++i) {
+        signalNotificationFD();
+
      AsyncThreadEventCallback *cb = dynamic_cast<AsyncThreadEventCallback *>(cbs[i]);
      if (cb)
          (*cb)(process, thrd);
@@ -1068,6 +1084,8 @@ void BPatch::registerNormalExit(process *proc, int exitcode)
    cbs.clear();
    getCBManager()->dispenseCallbacksMatching(evtProcessExit,cbs);
    for (unsigned int i = 0; i < cbs.size(); ++i) {
+       signalNotificationFD();
+
        ExitCallback *cb = dynamic_cast<ExitCallback *>(cbs[i]);
        if (cb) {
            signal_printf("%s[%d]:  about to register/wait for exit callback\n", FILE__, __LINE__);
@@ -1119,6 +1137,8 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
    pdvector<CallbackBase *> cbs;
    getCBManager()->dispenseCallbacksMatching(evtThreadExit,cbs);
    for (unsigned int i = 0; i < cbs.size(); ++i) {
+           signalNotificationFD();
+
        AsyncThreadEventCallback *cb = dynamic_cast<AsyncThreadEventCallback *>(cbs[i]);
        if (cb) 
            (*cb)(bpprocess, thrd);
@@ -1127,6 +1147,8 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
    cbs.clear();
    getCBManager()->dispenseCallbacksMatching(evtProcessExit,cbs);
    for (unsigned int i = 0; i < cbs.size(); ++i) {
+           signalNotificationFD();
+
        ExitCallback *cb = dynamic_cast<ExitCallback *>(cbs[i]);
        if (cb) 
            (*cb)(bpprocess->threads[0], ExitedViaSignal);
@@ -1178,6 +1200,8 @@ void BPatch::registerThreadExit(process *proc, long tid)
     pdvector<CallbackBase *> cbs;
     getCBManager()->dispenseCallbacksMatching(evtThreadExit, cbs);
     for (unsigned int i = 0; i < cbs.size(); ++i) {
+           signalNotificationFD();
+
         AsyncThreadEventCallback *cb = dynamic_cast<AsyncThreadEventCallback *>(cbs[i]);
         mailbox_printf("%s[%d]:  executing thread exit callback\n", FILE__, __LINE__);
         if (cb)
@@ -1213,6 +1237,8 @@ void BPatch::registerLoadedModule(process *process, mapped_module *mod) {
     }
     
     for (unsigned int i = 0; i < cbs.size(); ++i) {
+           signalNotificationFD();
+
         DynLibraryCallback *cb = dynamic_cast<DynLibraryCallback *>(cbs[i]);
         if (cb)
             (*cb)(bProc->threads[0], bpmod, true);
@@ -1245,6 +1271,8 @@ void BPatch::registerUnloadedModule(process *process, mapped_module *mod) {
     }
     
     for (unsigned int i = 0; i < cbs.size(); ++i) {
+           signalNotificationFD();
+
         DynLibraryCallback *cb = dynamic_cast<DynLibraryCallback *>(cbs[i]);
         if (cb)
             (*cb)(bProc->threads[0], bpmod, false);
@@ -1440,8 +1468,15 @@ BPatch_thread *BPatch::attachProcessInt(const char *path, int pid)
  */
 bool BPatch::pollForStatusChangeInt()
 {
-  getMailbox()->executeCallbacks(FILE__, __LINE__);
+    fprintf(stderr, "Enter pFSC\n");
+    getMailbox()->executeCallbacks(FILE__, __LINE__);
+
+    fprintf(stderr, "Callbacks made...\n");
+
+    clearNotificationFD();
     
+    fprintf(stderr, "FD Cleared\n");
+
     if (mutateeStatusChange) {
         mutateeStatusChange = false;
         return true;
@@ -1466,6 +1501,8 @@ bool BPatch::waitForStatusChangeInt()
 
   if (mutateeStatusChange) {
     mutateeStatusChange = false;
+    clearNotificationFD();
+
     return true;
   }
 
@@ -1473,7 +1510,11 @@ bool BPatch::waitForStatusChangeInt()
 
   //  find a signal handler (in an active process)
   extern pdvector<process *> processVec;
-  if (!processVec.size()) return false;
+  if (!processVec.size()) {
+      clearNotificationFD();
+      return false;
+  }
+
   for (unsigned int i = 0; i < processVec.size(); ++i) {
     if (processVec[i] && processVec[i]->status() != deleted) {
       sh = processVec[i]->sh;
@@ -1482,6 +1523,8 @@ bool BPatch::waitForStatusChangeInt()
   } 
   if (!sh) {
     fprintf(stderr, "%s[%d]:  cannot find an event generator to wait for!\n", FILE__, __LINE__);
+
+    clearNotificationFD();
     return false;
   }
   eventType evt;
@@ -1501,6 +1544,8 @@ bool BPatch::waitForStatusChangeInt()
             && (evt != evtThreadCreate));
 
   waitingForStatusChange = false;
+
+  clearNotificationFD();
 
   if (mutateeStatusChange) {
     mutateeStatusChange = false;
@@ -1939,7 +1984,61 @@ void BPatch::continueIfExists(int pid)
     if (proc) proc->continueExecutionInt();
 }
 
+////////////// Signal FD functions
 
+void BPatch::signalNotificationFD() {
+    // If the FDs are set up, write a byte to the input side.
+    fprintf(stderr, "signalNotificationFD...\n");
+    
+    if (notificationFDInput_ == -1) return;
+    if (FDneedsPolling_) return;
+
+    char f = (char) 42;
+
+    int ret = write(notificationFDInput_, &f, sizeof(char));
+
+    if (ret == -1)
+        perror("Notification write");
+    else 
+        FDneedsPolling_ = true;
+
+    return;
+}
+
+void BPatch::clearNotificationFD() {
+    if (notificationFDOutput_ == -1) return;
+    if (!FDneedsPolling_) return;
+    char buf;
+
+    read(notificationFDOutput_, &buf, sizeof(char));
+    FDneedsPolling_ = false;
+
+    fprintf(stderr, "Done with clear\n");
+    return;
+}
+
+int BPatch::getNotificationFDInt() {
+    if (notificationFDOutput_ == -1) {
+        assert(notificationFDInput_ == -1);
+        int pipeFDs[2];
+        pipeFDs[0] = pipeFDs[1] = -1;
+        int ret = pipe(pipeFDs);
+        if (ret == 0) {
+            notificationFDOutput_ = pipeFDs[0];
+            notificationFDInput_ = pipeFDs[1];
+        }
+    }
+
+    return notificationFDOutput_;
+}
+
+/*********************************************************************
+ *** DPCL COMPATIBILITY 
+ ***
+ *** These functions exist for source-level compatibility with IBM's DPCL
+ *** library. Do not use them if you are not using DPCL. If you are using
+ *** DPCL, consider moving to the new event interfaces.
+ *********************************************************************/
 
 #ifdef IBM_BPATCH_COMPAT
 

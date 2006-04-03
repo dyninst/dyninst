@@ -1259,6 +1259,8 @@ void BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
       pdvector<CallbackBase *> cbs;
       getCBManager()->dispenseCallbacksMatching(evtOneTimeCode, cbs);
       for (unsigned int i = 0; i < cbs.size(); ++i) {
+          BPatch::bpatch->signalNotificationFD();
+
           OneTimeCodeCallback *cb = dynamic_cast<OneTimeCodeCallback *>(cbs[i]);
           if (cb) {
               cb->setTargetThread(TARGET_UI_THREAD);
