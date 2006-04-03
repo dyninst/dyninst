@@ -13,10 +13,11 @@
 #else
 /* Unix Specific includes */
 #include <unistd.h>
+#include <wait.h>
 
 #endif
 
-#if defined(i386_unknown_nt4_0) || defined(alpha_dec_osf4_0)
+#if defined(i386_unknown_nt4_0)
 #define WEXITSTATUS(x) x
 #endif
 
