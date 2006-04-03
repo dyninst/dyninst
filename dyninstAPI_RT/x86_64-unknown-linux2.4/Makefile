@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.7 2006/02/09 03:34:27 tlmiller Exp $
+# $Id: Makefile,v 1.8 2006/04/03 01:11:51 mirg Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -16,7 +16,7 @@ LD		= $(GCC)
 LDFLAGS         += -shared -nostdlib
 
 # Automatic init routine
-LDFLAGS		+= -Wl,-init,_start  -m64
+LDFLAGS		+= -Wl,-init -Wl,libdyninstAPI_RT_init -m64
 CFLAGS		+= -Wall -m64
 
 # if we want to produce a shared object...

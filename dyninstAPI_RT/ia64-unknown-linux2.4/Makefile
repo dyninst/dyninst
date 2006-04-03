@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.14 2005/09/13 00:23:14 legendre Exp $
+# $Id: Makefile,v 1.15 2006/04/03 01:11:50 mirg Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -17,7 +17,10 @@ include ../../make.config
 CC			= $(GCC)
 LD			= $(GCC)
 CFLAGS		+= -I. -I../.. -fpic 
-LDFLAGS		+=	-shared -ldl -Wl,-init,_start -L$(LIBUNWIND_LIB) -lunwind 
+LDFLAGS		+=	-shared -ldl -L$(LIBUNWIND_LIB) -lunwind 
+
+# Automatic init routine
+LDFLAGS		+= -Wl,-init -Wl,libdyninstAPI_RT_init
 
 ASFLAGS		= 
 
