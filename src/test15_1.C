@@ -63,27 +63,8 @@ unsigned error15 = 0;
 bool debug_flag = false;
 #define dprintf if (debug_flag) fprintf
 
-#define NUM_FUNCS 7
-char initial_funcs[NUM_FUNCS][25] = {"init_func", "main", "_start", "__start", "__libc_start_main", "start_thread", "_thread_start"};
-
-void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
-{
-   dprintf(stderr, "%s[%d]:  welcome to deadthr\n", __FILE__, __LINE__);
-   if (!thr) {
-     dprintf(stderr, "%s[%d]:  deadthr called without valid ptr to thr\n",
-            __FILE__, __LINE__);
-     return;
-   }
-   unsigned my_dyn_id = thr->getBPatchID();
-   if (my_proc != proc)
-   {
-      fprintf(stderr, "[%s:%u] - Got invalid process\n", __FILE__, __LINE__);
-      error15 = 1;
-   }
-   deleted_tids[my_dyn_id] = 1;
-   deleted_threads++;
-   dprintf(stderr, "%s[%d]:  leaving deadthr\n", __FILE__, __LINE__);
-}
+#define NUM_FUNCS 5
+char initial_funcs[NUM_FUNCS][25] = {"init_func", "main", "_start", "__start", "__libc_start_main"};
 
 void newthr(BPatch_process *my_proc, BPatch_thread *thr)
 {
@@ -154,13 +135,14 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    stack_addrs[my_dyn_id] = my_stack;
 
    //Thread IDs should be unique
-   unsigned mytid = thr->getTid();
-   if (mytid == (unsigned)-1)
+   long mytid = thr->getTid();
+   if (mytid == -1)
    {
       fprintf(stderr, "[%s:%d] - Thread %d has a tid of -1\n", 
               __FILE__, __LINE__, my_dyn_id);
    }
-   dprintf(stderr, "%s[%d]:  newthr: tid = %lu\n", __FILE__, __LINE__,  mytid);
+   dprintf(stderr, "%s[%d]:  newthr: tid = %lu\n", 
+           __FILE__, __LINE__,  (unsigned long)mytid);
    for (unsigned i=0; i<NUM_THREADS; i++)
       if (i != my_dyn_id && dyn_tids[i] && mytid == pthread_ids[i])
       {
@@ -307,7 +289,7 @@ static int mutatorTest(BPatch *bpatch)
          BPatch_thread *thr = proc->getThread(tid);
          if(thr == NULL) {
             fprintf(stderr, "%s[%d]: ERROR - can't find thread with tid %lu\n",
-                    __FILE__, __LINE__, tid);
+                    __FILE__, __LINE__, (unsigned long)tid);
             error15 = 1;
             continue;
          }
@@ -340,7 +322,7 @@ static int mutatorTest(BPatch *bpatch)
          BPatch_thread *thr = proc->getThread(tid);
          if(thr == NULL) {
             fprintf(stderr, "%s[%d]: ERROR - can't find thread with tid %lu\n",
-                    __FILE__, __LINE__, tid);
+                    __FILE__, __LINE__, (unsigned long)tid);
             error15 = 1;
             continue;
          }
@@ -368,26 +350,6 @@ static int mutatorTest(BPatch *bpatch)
    while (!proc->isTerminated())
       bpatch->waitForStatusChange();
 
-   sleep(10); // wait for thread delete callbacks to run
-
-   for (unsigned i=1; i<NUM_THREADS; i++)
-   {
-      if (!deleted_tids[i])
-      {
-         fprintf(stderr, "[%s:%d] - Thread %d wasn't deleted\n",
-                 __FILE__, __LINE__, i);
-         error15 = 1;
-      }
-   }
-
-   if (deleted_threads != NUM_THREADS || !deleted_tids[0])
-   {
-      fprintf(stderr, "[%s:%d] - %d threads deleted at termination." 
-           "  Expected %d\n", __FILE__, __LINE__, deleted_threads, NUM_THREADS);
-      error15 = 1;
-   }
-
-
    if (error15 || failed_tests) 
       return error_exit();
 
@@ -412,10 +374,7 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
       should_exec = false;
    }
 
-   if (!bpatch->registerThreadEventCallback(BPatch_threadCreateEvent,
-					    newthr) ||
-       !bpatch->registerThreadEventCallback(BPatch_threadDestroyEvent,
-					    deadthr))
+   if (!bpatch->registerThreadEventCallback(BPatch_threadCreateEvent, newthr))
    {
       fprintf(stderr, "%s[%d]:  failed to register thread callback\n",
 	      __FILE__, __LINE__);
@@ -424,8 +383,7 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
    
    int rv = mutatorTest(bpatch);
 
-   if (!bpatch->removeThreadEventCallback(BPatch_threadCreateEvent, newthr) ||
-       !bpatch->removeThreadEventCallback(BPatch_threadDestroyEvent, deadthr))
+   if (!bpatch->removeThreadEventCallback(BPatch_threadCreateEvent, newthr))
    {
       fprintf(stderr, "%s[%d]:  failed to remove thread callback\n",
 	      __FILE__, __LINE__);
