@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.C,v 1.5 2006/03/12 23:32:07 legendre Exp $
+// $Id: mapped_module.C,v 1.6 2006/04/03 22:25:30 tlmiller Exp $
 
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
@@ -677,8 +677,7 @@ void mapped_module::parseFileLineInfo() {
 	int status = dwarf_init(	fd, DW_DLC_READ, & pd_dwarf_handler,
 								moduleObject.getErrFunc(),
 								& dbg, NULL );
-	assert( status != DW_DLV_ERROR );
-	if( status == DW_DLV_NO_ENTRY ) { P_close( fd ); return; }
+	if( status != DW_DLV_OK ) { P_close( fd ); return; }
 	
 	/* Itereate over the CU headers. */
 	Dwarf_Unsigned header;
@@ -686,13 +685,21 @@ void mapped_module::parseFileLineInfo() {
 		/* Acquire the CU DIE. */
 		Dwarf_Die cuDIE;
 		status = dwarf_siblingof( dbg, NULL, & cuDIE, NULL);
-		assert( status == DW_DLV_OK );
-
+		if( status != DW_DLV_OK ) { 
+			/* If we can get no (more) CUs, we're done. */
+			break;
+			}
+		
 		/* Acquire this CU's source lines. */
 		Dwarf_Line * lineBuffer;
 		Dwarf_Signed lineCount;
 		status = dwarf_srclines( cuDIE, & lineBuffer, & lineCount, NULL );
-		assert( status != DW_DLV_ERROR );
+		
+		/* See if we can get anything useful out of the next CU
+		   if this one is corrupt. */
+		if( status == DW_DLV_ERROR ) {
+			dwarf_printf( "%s[%d]: dwarf_srclines() error.\n" );
+			}
 		
 		/* It's OK for a CU not to have line information. */
 		if( status != DW_DLV_OK ) {
@@ -717,20 +724,20 @@ void mapped_module::parseFileLineInfo() {
 			/* Acquire the line number, address, source, and end of sequence flag. */
 			Dwarf_Unsigned lineNo;
 			status = dwarf_lineno( lineBuffer[i], & lineNo, NULL );
-			assert( status == DW_DLV_OK );			
+			if( status != DW_DLV_OK ) { continue; }
 				
 			Dwarf_Addr lineAddr;
 			status = dwarf_lineaddr( lineBuffer[i], & lineAddr, NULL );
-			assert( status == DW_DLV_OK );
+			if( status != DW_DLV_OK ) { continue; }
 			lineAddr += baseAddr;
 			
 			char * lineSource;
 			status = dwarf_linesrc( lineBuffer[i], & lineSource, NULL );
-			assert( status == DW_DLV_OK );
+			if( status != DW_DLV_OK ) { continue; }
 						
 			Dwarf_Bool isEndOfSequence;
 			status = dwarf_lineendsequence( lineBuffer[i], & isEndOfSequence, NULL );
-			assert( status == DW_DLV_OK );
+			if( status != DW_DLV_OK ) { continue; }
 			
 			if( isPreviousValid ) {
 				/* If we're talking about the same (source file, line number) tuple,
@@ -790,12 +797,10 @@ void mapped_module::parseFileLineInfo() {
 		} /* end CU header iteration */
 
 	/* Wind down libdwarf. */
-	Elf * dwarfElf;
-	status = dwarf_get_elf( dbg, & dwarfElf, NULL );
-	assert( status == DW_DLV_OK );
-	                                              
 	status = dwarf_finish( dbg, NULL );
-	assert( status == DW_DLV_OK );
+	if( status != DW_DLV_OK ) {
+		dwarf_printf( "%s[%d]: failed to dwarf_finish()\n" );
+		}
 	P_close( fd );
 	
 	/* Note that we've parsed this file. */
