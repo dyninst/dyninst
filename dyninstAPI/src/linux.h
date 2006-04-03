@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.24 2006/03/12 23:32:05 legendre Exp $
+// $Id: linux.h,v 1.25 2006/04/03 22:25:25 tlmiller Exp $
 
 #if !defined(i386_unknown_linux2_0) \
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
@@ -98,10 +98,8 @@ typedef int handleT; // a /proc file descriptor
 class process;
 
 /* For linux.C */
-Address getPC( int );
-bool changePC( int pid, Address loc );
-void printRegs( void *save );
-Address findFunctionToHijack(process *p);
+void printRegs( void * save );
+Address findFunctionToHijack( process * p );
 
 #ifndef WNOWAIT
 #define WNOWAIT WNOHANG

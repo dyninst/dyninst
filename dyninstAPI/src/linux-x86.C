@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.95 2006/03/30 16:44:57 legendre Exp $
+// $Id: linux-x86.C,v 1.96 2006/04/03 22:25:27 tlmiller Exp $
 
 #include <fstream>
 
@@ -289,31 +289,6 @@ Frame dyn_lwp::getActiveFrame()
               FILE__, __LINE__, pc, sp, fp);
 
    return Frame(pc, fp, sp, proc_->getPid(), proc_, NULL, this, true);
-}
-
-// MT problem FIXME
-
-Address getPC(int pid) {
-   process *p = process::findProcess(pid);
-   assert(p);
-   int width = p->getAddressWidth();
-   Address regaddr = offsetof(struct user_regs_struct, PTRACE_REG_IP);
-   int res;
-   int ptrace_errno = 0;
-   res = DBI_ptrace (PTRACE_PEEKUSER, pid, regaddr, 0, &ptrace_errno, width,  FILE__, __LINE__);
-   if(ptrace_errno == ESRCH) { //ccw 6 sep 2002
-      //pause and try again, let the mutatee have time
-      //to ptrace(TRACEME)
-      sleep(2);
-      res = DBI_ptrace (PTRACE_PEEKUSER, pid, regaddr, 0, &ptrace_errno, width,  FILE__, __LINE__);
-   }
-   if( ptrace_errno ) {
-      perror( "getPC" );
-      return 0; // Shut up the compiler
-   } else {
-      assert(res);
-      return (Address)res;
-   }
 }
 
 bool process::loadDYNINSTlibCleanup(dyn_lwp *trappingLWP)

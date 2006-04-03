@@ -1972,7 +1972,7 @@ bool needToHandleSyscall( dyn_lwp * lwp, bool * pcMayHaveRewound ) {
 	
   // Find the correct bundle.
   errno = 0;
-  iip = getPC( lwp->get_lwp_id() );
+  iip = lwp->getActiveFrame().getPC();
   reg_tmpl reg = { getDBI()->ptrace( PTRACE_PEEKUSER, lwp->get_lwp_id(), PT_CR_IPSR, 0, -1, &errno ) };
   if( errno && (reg.raw == ((unsigned long)-1)) ) {
 	// Error reading process information.  Should we assert here?
