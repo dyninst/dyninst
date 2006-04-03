@@ -62,26 +62,8 @@ static int deleted_threads;
 bool debug_flag = false;
 #define dprintf if (debug_flag) fprintf
 
-#define NUM_FUNCS 7
-char initial_funcs[NUM_FUNCS][25] = {"init_func", "main", "_start", "__start", "__libc_start_main", "start_thread", "_thread_start"};
-
-void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
-{
-   if (!thr) {
-     dprintf(stderr, "%s[%d]:  deadthr called without valid ptr to thr\n",
-            __FILE__, __LINE__);
-     return;
-   }
-   unsigned my_dyn_id = thr->getBPatchID();
-   if (my_proc != proc)
-   {
-      fprintf(stderr, "[%s:%u] - Got invalid process\n", __FILE__, __LINE__);
-      error = 1;
-   }
-   deleted_tids[my_dyn_id] = 1;
-   deleted_threads++;
-   dprintf(stderr, "[%s] Thread %d has exited.\n", __FILE__, my_dyn_id);
-}
+#define NUM_FUNCS 5
+char initial_funcs[NUM_FUNCS][25] = {"init_func", "main", "_start", "__start", "__libc_start_main"};
 
 void newthr(BPatch_process *my_proc, BPatch_thread *thr)
 {
@@ -152,17 +134,18 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
 
    //Thread IDs should be unique
    long mytid = thr->getTid();
-   if (mytid == (unsigned)-1)
+   if (mytid == -1)
    {
       fprintf(stderr, "[%s:%d] - Thread %d has a tid of -1\n", 
               __FILE__, __LINE__, my_dyn_id);
    }
-   dprintf(stderr, "[%s]           : tid = %lu\n", __FILE__, mytid);
+   dprintf(stderr, "[%s]           : tid = %lu\n", 
+           __FILE__, (unsigned long)mytid);
    for (unsigned i=0; i<NUM_THREADS; i++)
       if (i != my_dyn_id && dyn_tids[i] && mytid == pthread_ids[i])
       {
-            fprintf(stderr, "[%s:%d] - Thread %d and %d share a tid of %u\n",
-                    __FILE__, __LINE__, my_dyn_id, i, mytid);
+            fprintf(stderr, "[%s:%d] - Thread %d and %d share a tid of %lu\n",
+                    __FILE__, __LINE__, my_dyn_id, i, (unsigned long)mytid);
             error = 1;
       }
    pthread_ids[my_dyn_id] = mytid;
@@ -255,7 +238,6 @@ int main(int argc, char *argv[])
    parse_args(argc, argv);
 
    bpatch.registerThreadEventCallback(BPatch_threadCreateEvent, newthr);
-   bpatch.registerThreadEventCallback(BPatch_threadDestroyEvent, deadthr);
 
    proc = getProcess();
    if (!proc)
@@ -353,7 +335,7 @@ int main(int argc, char *argv[])
          BPatch_thread *thr = proc->getThread(tid);
          if(thr == NULL) {
             fprintf(stderr, "%s[%d]: ERROR - can't find thread with tid %lu\n",
-                    __FILE__, __LINE__, tid);
+                    __FILE__, __LINE__, (unsigned long)tid);
             error = 1;
             continue;
          }
@@ -366,7 +348,8 @@ int main(int argc, char *argv[])
          async_code.push_back(set_async_test);
          async_code.push_back(&call_check_async);
          BPatch_sequence *code = new BPatch_sequence(async_code);
-         dprintf(stderr, "%s[%d]: issuing oneTimeCodeAsync for tid %lu\n", __FILE__, __LINE__, tid);
+         dprintf(stderr, "%s[%d]: issuing oneTimeCodeAsync for tid %lu\n", 
+	         __FILE__, __LINE__, (unsigned long)tid);
          thr->oneTimeCodeAsync(*code);
       }
    }
@@ -386,7 +369,7 @@ int main(int argc, char *argv[])
          BPatch_thread *thr = proc->getThread(tid);
          if(thr == NULL) {
             fprintf(stderr, "%s[%d]: ERROR - can't find thread with tid %lu\n",
-                    __FILE__, __LINE__, tid);
+                    __FILE__, __LINE__, (unsigned long)tid);
             error = 1;
             continue;
          }
@@ -399,9 +382,11 @@ int main(int argc, char *argv[])
          sync_code.push_back(set_sync_test);
          sync_code.push_back(&call_check_sync);
          BPatch_sequence *code = new BPatch_sequence(sync_code);
-         dprintf(stderr, "%s[%d]: issuing oneTimeCode for tid %lu\n", __FILE__, __LINE__, tid);
+         dprintf(stderr, "%s[%d]: issuing oneTimeCode for tid %lu\n", 
+	         __FILE__, __LINE__, (unsigned long)tid);
          thr->oneTimeCode(*code);
-         dprintf(stderr, "%s[%d]: finished oneTimeCode for tid %lu\n", __FILE__, __LINE__, tid);
+         dprintf(stderr, "%s[%d]: finished oneTimeCode for tid %lu\n", 
+	         __FILE__, __LINE__, (unsigned long)tid);
       }
    }
    if(!error) {
@@ -413,25 +398,6 @@ int main(int argc, char *argv[])
 
    while (!proc->isTerminated())
       bpatch.waitForStatusChange();
-
-   sleep(10); // wait for thread delete callbacks to run
-
-   for (unsigned i=1; i<NUM_THREADS; i++)
-   {
-      if (!deleted_tids[i])
-      {
-         fprintf(stderr, "[%s:%d] - Thread %d wasn't deleted\n",
-                 __FILE__, __LINE__, i);
-         error = 1;
-      }
-   }
-
-   if (deleted_threads != NUM_THREADS || !deleted_tids[0])
-   {
-      fprintf(stderr, "[%s:%d] - %d threads deleted at termination." 
-           "  Expected %d\n", __FILE__, __LINE__, deleted_threads, NUM_THREADS);
-      error = 1;
-   }
 
    if (error) 
       error_exit();
