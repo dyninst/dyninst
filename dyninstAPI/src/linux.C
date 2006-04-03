@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.204 2006/03/30 16:44:57 legendre Exp $
+// $Id: linux.C,v 1.205 2006/04/03 22:25:29 tlmiller Exp $
 
 #include <fstream>
 
@@ -429,16 +429,20 @@ bool SignalGenerator::waitForEventInternal(EventRecord &ev)
   
   ev.proc = proc;
   ev.lwp = proc->lookupLWP(waitpid_pid);
-  ev.type = evtUndefined;
 
   assert(ev.lwp);
   assert(ev.lwp->proc() == proc);
   
-  assert(ev.lwp);
-  ev.proc->set_lwp_status(ev.lwp, stopped);
+  /* For clarity during debugging, fully initialize the event. */
   ev.type = evtUndefined;
+  ev.what = 0;
+  ev.status = statusUnknown;
   ev.info = status;
+  ev.address = 0;      
+  ev.fd = -1;
   
+  ev.proc->set_lwp_status(ev.lwp, stopped);
+    
   if (!ev.lwp->is_attached()) {
      //  Hijack thread detection events here (very platform specific)
      ev.type = evtThreadDetect;
