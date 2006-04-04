@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.364 2006/04/04 01:10:23 legendre Exp $
+/* $Id: process.h,v 1.365 2006/04/04 08:45:00 nater Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -599,6 +599,9 @@ class process {
   // functions
   bool loadDYNINSTlib_libc20();
   bool loadDYNINSTlib_libc21();
+
+  // Unprotect stack if necessary for runtime library loading
+  Address tryUnprotectStack(codeGen &buf, Address codeBase);
 #endif
   bool loadDYNINSTlibCleanup(dyn_lwp *trappingLWP);
   bool trapDueToDyninstLib(dyn_lwp *trappingLWP);

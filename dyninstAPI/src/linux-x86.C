@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.96 2006/04/03 22:25:27 tlmiller Exp $
+// $Id: linux-x86.C,v 1.97 2006/04/04 08:45:02 nater Exp $
 
 #include <fstream>
 
@@ -1126,10 +1126,10 @@ bool process::loadDYNINSTlib_libc21() {
 
   // we need to make a call to dlopen to open our runtime library
 
-  
   // Variables what we're filling in
   Address dyninstlib_str_addr = 0;
   Address dlopen_call_addr = 0;
+  Address mprotect_call_addr = 0;
 
   pdvector<int_function *> dlopen_funcs;
   if (!findFuncsByAll(DL_OPEN_FUNC_NAME, dlopen_funcs))
@@ -1184,6 +1184,25 @@ bool process::loadDYNINSTlib_libc21() {
   startup_printf("(%d) dyninst str addr at 0x%x\n", getPid(), dyninstlib_str_addr);
 
   startup_printf("(%d) after copy, %d used\n", getPid(), scratchCodeBuffer.used());
+
+  // Since we are punching our way down to an internal function, we
+  // may run into problems due to stack execute protection. Basically,
+  // glibc knows that it needs to be able to execute on the stack in
+  // in order to load libraries with dl_open(). It has code in
+  // _dl_map_object_from_fd (the workhorse of dynamic library loading)
+  // that unprotects a global, exported variable (__stack_prot), sets
+  // the execute flag, and reprotects it. This only happens, however,
+  // when the higher-level dl_open() functions (which we skip) are called,
+  // as they append an undocumented flag to the library open mode. Otherwise,
+  // assignment to the variable happens without protection, which will
+  // cause a fault.
+  //
+  // Instead of chasing the value of the undocumented flag, we will
+  // unprotect the __stack_prot variable ourselves (if we can find it).
+
+  if(!( mprotect_call_addr = tryUnprotectStack(scratchCodeBuffer,codeBase) )) {
+    startup_printf("Failed to disable stack protection.\n");
+  }
 
   // Now the real work begins...
   dlopen_call_addr = codeBase + scratchCodeBuffer.used();
@@ -1243,6 +1262,9 @@ bool process::loadDYNINSTlib_libc21() {
   dyninstlib_brk_addr = codeBase + scratchCodeBuffer.used();
   instruction::generateTrap(scratchCodeBuffer);
 
+  if(mprotect_call_addr != 0) {
+    startup_printf("(%d) mprotect call addr at 0x%lx\n", getPid(), mprotect_call_addr);
+  }
   startup_printf("(%d) dyninst lib string addr at 0x%x\n", getPid(), dyninstlib_str_addr);
   startup_printf("(%d) dyninst lib call addr at 0x%x\n", getPid(), dlopen_call_addr);
   startup_printf("(%d) break address is at %p\n", getPid(), (void *) dyninstlib_brk_addr);
@@ -1297,10 +1319,17 @@ bool process::loadDYNINSTlib_libc21() {
      lwp_to_use = getInitialThread()->get_lwp();
   else
      lwp_to_use = getRepresentativeLWP();
-  startup_printf("Changing PC to 0x%x\n", dlopen_call_addr);
+
+    Address destPC;
+    if(mprotect_call_addr != 0)
+        destPC = mprotect_call_addr;
+    else
+        destPC = dlopen_call_addr;
+
+  startup_printf("Changing PC to 0x%x\n", destPC);
   startup_printf("String at 0x%x\n", dyninstlib_str_addr);
 
-  if (! lwp_to_use->changePC(dlopen_call_addr,NULL))
+  if (! lwp_to_use->changePC(destPC,NULL))
     {
       logLine("WARNING: changePC failed in dlopenDYNINSTlib\n");
       assert(0);
@@ -1316,7 +1345,91 @@ bool process::loadDYNINSTlib_libc21() {
   return true;
 }
 
+Address process::tryUnprotectStack(codeGen &buf, Address codeBase) {
+    // find variable __stack_prot
 
+    // mprotect READ/WRITE __stack_prot
+    pdvector<int_variable *> vars; 
+    pdvector<int_function *> funcs;
+
+    Address var_addr;
+    Address func_addr;
+    Address ret_addr;
+    int size;
+    int pagesize;
+    int page_start;
+    bool ret;
+    
+    ret = findVarsByAll("__stack_prot", vars);
+
+    if(!ret || vars.size() == 0) {
+        return 0;
+    } else if(vars.size() > 1) {
+        startup_printf("Warning: found more than one __stack_prot variable\n");
+    }
+
+    pagesize = getpagesize();
+
+    var_addr = vars[0]->getAddress();
+    page_start = var_addr & ~(pagesize -1);
+    size = var_addr - page_start +sizeof(int);
+
+    ret = findFuncsByAll("mprotect",funcs);
+
+    if(!ret || funcs.size() == 0) {
+        startup_printf("Couldn't find mprotect\n");
+        return 0;
+    }
+
+    int_function * mprot = funcs[0];
+    func_addr = mprot->getAddress();
+    ret_addr = codeBase + buf.used();
+
+#if defined(arch_x86_64)
+  if (getAddressWidth() == 4) {
+#endif
+      // Push caller
+      emitPushImm(func_addr, buf);
+      
+      // Push mode (READ|WRITE|EXECUTE)
+      emitPushImm(7, buf);
+      
+      // Push variable size
+      emitPushImm(size, buf);
+      
+      // Push variable location
+      emitPushImm(page_start, buf);
+     
+      startup_printf("(%d): emitting call for mprotect from 0x%x to 0x%x\n",
+		     getPid(), codeBase + buf.used(), func_addr);
+      instruction::generateCall(buf, buf.used() + codeBase, func_addr);
+#if defined(arch_x86_64)
+  } else {
+      // Push caller
+      emitMovImmToReg64(REGNUM_RAX, func_addr, true, buf);
+      emitSimpleInsn(0x50, buf); // push %rax
+
+      // Push mode (READ|WRITE|EXECUTE)
+      emitMovImmToReg64(REGNUM_EAX, 7, true, buf); //32-bit mov
+      emitSimpleInsn(0x50, buf); // push %rax
+   
+      // Push variable size
+      emitMovImmToReg64(REGNUM_EAX, size, true, buf); //32-bit mov
+      emitSimpleInsn(0x50, buf); // push %rax 
+
+      // Push variable location 
+      emitMovImmToReg64(REGNUM_RAX, page_start, true, buf);
+      emitSimpleInsn(0x50, buf); // push %rax 
+
+      // The call (must be done through a register in order to reach)
+      emitMovImmToReg64(REGNUM_RAX, func_addr, true, buf);
+      emitSimpleInsn(0xff, buf); // group 5
+      emitSimpleInsn(0xd0, buf); // mod=11, ext_op=2 (call Ev), r/m=0 (RAX)
+  }
+#endif
+    
+    return ret_addr;
+}
 
 bool process::loadDYNINSTlib_libc20() {
 #if false && defined(PTRACEDEBUG)
