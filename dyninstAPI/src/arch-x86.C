@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.51 2006/03/14 23:11:56 bernat Exp $
+// $Id: arch-x86.C,v 1.52 2006/04/04 01:10:08 legendre Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -3048,8 +3048,10 @@ bool isStackFramePreamble( instruction& insn1 )
     const unsigned char* q = insn2.op_ptr();
     const unsigned char* r = insn3.op_ptr();
     
-    unsigned Mod1 =  ( q[ 1 ] >> 3 ) & 0x07;
-    unsigned Mod2 =  ( r[ 1 ] >> 3 ) & 0x07;  
+    unsigned Mod1_1 =  ( q[ 1 ] >> 3 ) & 0x07;
+    unsigned Mod1_2 =  q[ 1 ] & 0x07;
+    unsigned Mod2_1 =  ( r[ 1 ] >> 3 ) & 0x07;
+    unsigned Mod2_2 =  r[ 1 ] & 0x07;
 
     if( insn1.size() != 1 )
     {
@@ -3058,13 +3060,17 @@ bool isStackFramePreamble( instruction& insn1 )
     
     if( p[ 0 ] == PUSHEBP  )
     {   
-        // Looking for mov %esp, %ebp in one of the two
-        // following instructions. The ModR/M byte for
-        // this operation encodes as e5
-        if( insn2.isMoveRegMemToRegMem() && Mod1 == 0x04 )
+        // Looking for mov %esp -> %ebp in one of the two
+        // following instructions.  There are two ways to encode 
+        // mov %esp -> %ebp: as '0x8b 0xec' or as '0x89 0xe5'.  
+        if( insn2.isMoveRegMemToRegMem() && 
+            ((Mod1_1 == 0x05 && Mod1_2 == 0x06) ||
+             (Mod1_1 == 0x06 && Mod1_2 == 0x05)))
             return true;
 
-        if( insn3.isMoveRegMemToRegMem() && Mod2 == 0x04 )
+        if( insn3.isMoveRegMemToRegMem() && 
+            ((Mod2_1 == 0x05 && Mod2_2 == 0x06) ||
+             (Mod2_1 == 0x06 && Mod2_2 == 0x05)))
             return true;
     }
     
