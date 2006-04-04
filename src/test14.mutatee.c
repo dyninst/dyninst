@@ -88,13 +88,13 @@ void level1()
 
    if (i == NTHRD)
    {
-      fprintf(stderr, "[%s:%d] - Error, couldn't find thread id %u\n",
+      fprintf(stderr, "[%s:%d] - Error, couldn't find thread id %lu\n",
               __FILE__, __LINE__, thread_int(me));
       exit(1);
    }
    if (thrds[i].is_in_instr)
    {
-      fprintf(stderr, "[%s:%d] - Error, thread %u reentered instrumentation\n",
+      fprintf(stderr, "[%s:%d] - Error, thread %lu reentered instrumentation\n",
               __FILE__, __LINE__, thread_int(me));
       exit(1);
    }
