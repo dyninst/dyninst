@@ -498,6 +498,7 @@ char *eventType2str(eventType x)
   switch(x) {
   CASE_RETURN_STR(evtUndefined);
   CASE_RETURN_STR(evtNullEvent);
+  CASE_RETURN_STR(evtIgnore);
   CASE_RETURN_STR(evtAnyEvent);
   CASE_RETURN_STR(evtNewConnection);
   CASE_RETURN_STR(evtTimeout);
