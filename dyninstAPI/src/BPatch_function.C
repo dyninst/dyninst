@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.76 2006/04/04 01:10:54 legendre Exp $
+// $Id: BPatch_function.C,v 1.77 2006/04/04 16:55:47 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -736,7 +736,7 @@ const char *BPatch_function::addNameInt(const char *name,
 }
 
 /* This function should be deprecated. */
-bool BPatch_function::getLineAndFileInt( int & start, int & end, char * filename, int max ) {
+bool BPatch_function::getLineAndFileInt( unsigned int & start, unsigned int & end, char * filename, unsigned int max ) {
 	Address startAddress = func->getAddress();
 	Address endAddress = startAddress + func->getSize_NP();
 	

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.132 2006/04/04 01:10:12 legendre Exp $
+// $Id: BPatch.C,v 1.133 2006/04/04 16:55:47 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1157,14 +1157,14 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
        DPCLThreadEventCallback *tcb = dynamic_cast<DPCLThreadEventCallback *>(cbs[i]);
        if (tcb) {
            signal_printf("%s[%d]:  about to register/wait for exit callback\n", FILE__, __LINE__);
-           (*tcb)(process->threads[0], NULL, NULL);
+           (*tcb)(bpprocess->threads[0], NULL, NULL);
            signal_printf("%s[%d]:  exit callback done\n", FILE__, __LINE__);
        }
        // A different (compatibility) callback type. 
        DPCLProcessEventCallback *pcb = dynamic_cast<DPCLProcessEventCallback *>(cbs[i]);
        if (pcb) {
            signal_printf("%s[%d]:  about to register/wait for exit callback\n", FILE__, __LINE__);
-           (*pcb)(process, NULL, NULL);
+           (*pcb)(bpprocess, NULL, NULL);
            signal_printf("%s[%d]:  exit callback done\n", FILE__, __LINE__);
        }
 #endif           
@@ -2122,9 +2122,9 @@ BPatchThreadEventCallback BPatch::registerExitCallbackDPCL(BPatchThreadEventCall
     pdvector<CallbackBase *> cbs;
     getCBManager()->removeCallbacks(evtProcessExit, cbs);
     
-    if (func != 0) {
-	getCBManager()->registerCallback(evtProcessExit, cb);
+    if (func != NULL) {
 	DPCLThreadEventCallback *cb = new DPCLThreadEventCallback(func);
+	getCBManager()->registerCallback(evtProcessExit, cb);
     }
     // If func is zero, we assume it is a remove-callback request
 
