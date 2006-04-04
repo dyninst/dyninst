@@ -44,9 +44,9 @@ void check_sync()
       return;
    }
    else if( thread_int(sync_test) != 0)
-      fprintf(stderr, "%s[%d]: ERROR: Thread %d [tid %lu] - mistakenly ran oneTimeCode for thread with tid %lu\n", __FILE__, __LINE__, id, tid, sync_test);
+      fprintf(stderr, "%s[%d]: ERROR: Thread %d [tid %lu] - mistakenly ran oneTimeCode for thread with tid %lu\n", __FILE__, __LINE__, id, thread_int(tid), thread_int(sync_test));
    else
-      fprintf(stderr, "%s[%d]: ERROR: Thread %d [tid %lu] - sync_test is 0\n", __FILE__, __LINE__, id, tid);
+      fprintf(stderr, "%s[%d]: ERROR: Thread %d [tid %lu] - sync_test is 0\n", __FILE__, __LINE__, id, thread_int(tid));
    sync_failure++;
 }
 
@@ -63,17 +63,17 @@ void check_async()
 
    if(threads_equal(tid, async_test)) {
       printf("Thread %d [tid %lu] - oneTimeCodeAsync completed successfully\n",
-             id, tid);
+             id, thread_int(tid));
       return;
    }
    else if(thread_int(async_test) != 0)
       fprintf(stderr, 
               "%s[%d]: ERROR: Thread %d [tid %lu] - mistakenly ran oneTimeCodeAsync for thread with tid %lu\n", 
-              __FILE__, __LINE__, id, tid, thread_int(async_test));
+              __FILE__, __LINE__, id, thread_int(tid), thread_int(async_test));
    else
       fprintf(stderr, 
               "%s[%d]: ERROR: Thread %d [tid %lu] - async_test is 0\n", 
-              __FILE__, __LINE__, id, tid);
+              __FILE__, __LINE__, id, thread_int(tid));
    async_failure++;
 }
 
@@ -96,6 +96,8 @@ void thr_func(void *arg)
    int id = *((int*)arg);
    thread_t tid = threadSelf();
    thr_loop(id, tid);
+   /* busy work simulates the fact that we don't expect a thread to immediately
+      exit after performing a oneTimeCode */
    while(++busy_work != UINT_MAX/10);
    thr_exits++;
 }
@@ -109,7 +111,7 @@ void *init_func(void *arg)
 
 int main()
 {
-   unsigned i, j;
+   unsigned i;
 
 #if defined(os_osf)
    return 0;
@@ -142,9 +144,6 @@ int main()
       fprintf(stderr, 
               "%s[%d]: ERROR: oneTimeCodeAsync failed for %d threads\n", 
               __FILE__, __LINE__, async_failure);
-
-   /* let mutator do final work after noticing all workers exit */
-   P_sleep(5);
 
    return 0;
 }

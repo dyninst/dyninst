@@ -99,8 +99,8 @@ int threads_equal(thread_t a, thread_t b) {
     return a.threadid == b.threadid;
 }
 
-int thread_int(thread_t a) {
-    return a.threadid;
+unsigned long thread_int(thread_t a) {
+    return (unsigned long)a.threadid;
 }
 
 void schedYield() {
@@ -132,10 +132,10 @@ thread_t spawnNewThread(void *initial_func, void *param) {
     return (thread_t) new_thread;
 }
 
- void joinThread(thread_t threadid) {
-     pthread_t p = (pthread_t) threadid;
-     pthread_join(p, NULL);
- }
+void joinThread(thread_t threadid) {
+    pthread_t p = (pthread_t) threadid;
+    pthread_join(p, NULL);
+}
 
 void initThreads() {
 }
@@ -160,8 +160,8 @@ int threads_equal(thread_t a, thread_t b) {
     return a == b;
 }
 
-int thread_int(thread_t a) {
-    return (int) a;
+unsigned long thread_int(thread_t a) {
+    return a;
 }
 
 void schedYield() {

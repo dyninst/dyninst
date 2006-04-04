@@ -78,7 +78,7 @@ extern void initLock(testlock_t *newlock);
 extern void testLock(testlock_t *lck);
 extern void testUnlock(testlock_t *lck);
 extern thread_t threadSelf();
-extern int thread_int(thread_t a);
+extern unsigned long thread_int(thread_t a);
 extern void schedYield();
 
 extern void *loadDynamicLibrary(char *name);
