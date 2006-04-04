@@ -3,7 +3,7 @@
 # be a useful Makefile in isolation; instead, it should be included
 # from within an architecture-specific Makefile.
 #
-# $Id: nmake.module.tmpl,v 1.5 2006/04/01 03:37:17 bpellin Exp $
+# $Id: nmake.module.tmpl,v 1.6 2006/04/04 01:10:35 legendre Exp $
 #
 
 SUITE_NAME	= Dyninst
@@ -61,8 +61,12 @@ $(OBJS_LIBTESTSUITE): $(SRCS_LIBTESTSUITE)
 test_driver.exe:  test_driver.obj test_lib.obj
 	$(LINK) $(LDFLAGS) test_driver.obj libdyninstAPI.lib libtestSuite.lib
 
-test_driver.obj: ../src/test_driver.C 
+test_driver.obj: ../src/test_driver.C
 	$(CXX) $(CXXFLAGS_NORM) -Dnative_cc=_VC.exe -Dnative_cxx=_VC++.exe -c $**
+
+#runTests.exe:  runTests.obj test_lib_templates-nt.obj runTests-utils-nt.obj ParameterDict.obj
+#	$(LINK) runTests.obj test_lib_templates-nt.obj runTests-utils-nt.obj ParameterDict.obj
 
 runTests.exe:  ../src/runTests.C ../src/runTests-utils-nt.C
 	$(CXX) $(CXXFLAGS_NORM) ../src/runTests.C ../src/runTests-utils-nt.C
+

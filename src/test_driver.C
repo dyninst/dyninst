@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.21 2006/04/01 06:33:11 bpellin Exp $
+// $Id: test_driver.C,v 1.22 2006/04/04 01:10:52 legendre Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -979,11 +979,6 @@ int main(unsigned int argc, char *argv[]) {
 
           useHumanLog = true;
           humanlog_name = argv[++i];
-
-#if defined(i386_unknown_nt4_0)
-          //fprintf(stderr, "-humanlog currently unimplemented on windows\n");
-          //exit(NOTESTS);
-#endif
        }
        else if ( strcmp(argv[i], "-help") == 0)
        {

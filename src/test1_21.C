@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_21.C,v 1.6 2006/04/01 06:33:05 bpellin Exp $
+// $Id: test1_21.C,v 1.7 2006/04/04 01:10:51 legendre Exp $
 /*
  * #Name: test1_21
  * #Desc: findFunction in module
@@ -76,7 +76,7 @@ int mutatorTest21(BPatch_thread *, BPatch_image *appImage)
  || defined(os_osf) \
  || defined(os_solaris) \
  || defined(os_linux) \
- || defined(os_windows) \
+ || defined(os_windows)
 
     // Lookup the libtestA.so and libtestB.so modules that we've just loaded
 

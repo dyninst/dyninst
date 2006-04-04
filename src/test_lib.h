@@ -52,13 +52,15 @@
 #include "test_lib_dll.h"
 
 
-#if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 10 apr 2001 
+#if !defined(P_sleep)
+#if defined(os_windows)
 #define P_sleep(sec) Sleep(1000*(sec))
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #else
 #define P_sleep(sec) sleep(sec)
 #include <unistd.h>
+#endif
 #endif
 
 #define DYNINST_NO_ERROR -1
