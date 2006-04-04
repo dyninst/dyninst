@@ -127,7 +127,7 @@ public:
 
 	// This function should be deprecated.
 	API_EXPORT(Int, (start, end, filename, max),
-	bool,getLineAndFile,( int & start, int & end, char * filename, int max ));
+	bool,getLineAndFile,( unsigned int & start, unsigned int & end, char * filename, unsigned int max ));
 	
 	// This function should be deprecated.
 	API_EXPORT(Int, (lineNo, buffer, exactMatch),
