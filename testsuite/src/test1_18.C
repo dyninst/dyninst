@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_18.C,v 1.4 2006/04/01 06:33:04 bpellin Exp $
+// $Id: test1_18.C,v 1.5 2006/04/04 20:17:15 jodom Exp $
 /*
  * #Name: test1_18
  * #Desc: Mutator Side - Read/Write a variable in the mutatee
@@ -81,7 +81,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
     }
 
     BPatch_variableExpr *expr18_1 = findVariable(appImage, 
-          "globalVariable18_1", func18_1, mutateeFortran);
+          "globalVariable18_1", func18_1);
 
 /* Initialization must be done, because C would have done initialization at declaration */
     if (mutateeFortran) {

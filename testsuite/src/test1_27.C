@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_27.C,v 1.4 2006/04/01 06:33:08 bpellin Exp $
+// $Id: test1_27.C,v 1.5 2006/04/04 20:17:15 jodom Exp $
 /*
  * #Name: test1_27
  * #Desc: Type compatibility
@@ -136,14 +136,10 @@ int mutatorTest(BPatch_thread *, BPatch_image *appImage)
 
     BPatch_variableExpr *expr27_5, *expr27_6, *expr27_7, *expr27_8;
 
-    expr27_5 = findVariable(appImage, "globalVariable27_5", point27_1,
-          mutateeFortran);
-    expr27_6 = findVariable(appImage, "globalVariable27_6", point27_1,
-          mutateeFortran);
-    expr27_7 = findVariable(appImage, "globalVariable27_7", point27_1,
-          mutateeFortran);
-    expr27_8 = findVariable(appImage, "globalVariable27_8", point27_1,
-          mutateeFortran);
+    expr27_5 = findVariable(appImage, "globalVariable27_5", point27_1);
+    expr27_6 = findVariable(appImage, "globalVariable27_6", point27_1);
+    expr27_7 = findVariable(appImage, "globalVariable27_7", point27_1);
+    expr27_8 = findVariable(appImage, "globalVariable27_8", point27_1);
 
     assert(expr27_5 && expr27_6 && expr27_7 && expr27_8);
 
@@ -177,7 +173,7 @@ int mutatorTest(BPatch_thread *, BPatch_image *appImage)
 
     // all ok, set the global variable, depends on test 18 working
     BPatch_variableExpr *expr27_1 = findVariable(appImage, 
-          "globalVariable27_1", point27_1, mutateeFortran);
+          "globalVariable27_1", point27_1);
 
     if (expr27_1 == NULL) {
 	fprintf(stderr, "**Failed** test #27 (type compatibility)\n");

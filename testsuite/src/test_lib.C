@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.10 2006/04/01 06:33:12 bpellin Exp $
+// $Id: test_lib.C,v 1.11 2006/04/04 20:17:15 jodom Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -290,9 +290,10 @@ void checkCost(BPatch_snippet snippet)
 // Wrapper function to find variables
 // For Fortran, will look for lowercase variable, if mixed case not found
 BPatch_variableExpr *findVariable(BPatch_image *appImage, const char* var,
-                                  BPatch_Vector <BPatch_point *> *point = NULL, int mutateeFortran)
+                                  BPatch_Vector <BPatch_point *> *point = NULL)
 {
   //BPatch_variableExpr *FortVar = NULL;
+    int mutateeFortran = isMutateeFortran(appImage);
     BPatch_variableExpr *ret = NULL;
     int i, numchars = strlen (var);
     char *lowercase = new char [numchars];
