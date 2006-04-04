@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.600 2006/03/31 20:06:34 bernat Exp $
+// $Id: process.C,v 1.601 2006/04/04 01:07:30 mirg Exp $
 
 #include <ctype.h>
 
@@ -2773,6 +2773,13 @@ bool process::loadDyninstLib() {
     }
     startup_printf("Initialized dynamic linking tracer\n");
 
+    if (!getDyninstRTLibName()) {
+        startup_printf("Failed to get Dyninst RT lib name\n");
+        return false;
+    }
+    startup_printf("%s[%d]: Got Dyninst RT libname: %s\n", FILE__, __LINE__,
+                   dyninstRT_name.c_str());
+
     // And get the list of all shared objects in the process. More properly,
     // get the address of dlopen.
     if (!processSharedObjects()) {
@@ -2789,62 +2796,61 @@ bool process::loadDyninstLib() {
     startup_printf("----\n");
 
     if (dyninstLibAlreadyLoaded()) {
-        logLine("ERROR: dyninst library already loaded, we missed initialization!");
-	// TODO: We could handle this case better :)
-        assert(0);
+	// LD_PRELOAD worked or we are attaching for the second time
+	// or app was linked with RTlib
+	setBootstrapState(loadedRT_bs);
     }
-    
-    if (!getDyninstRTLibName()) {
-        startup_printf("Failed to get Dyninst RT lib name\n");
-        return false;
-    }
-    startup_printf("%s[%d]: Got Dyninst RT libname: %s\n", FILE__, __LINE__,
-                   dyninstRT_name.c_str());
+    else {
+	// Force a call to dlopen(dyninst_lib)
+	buffer = pdstring("PID=") + pdstring(getPid());
+	buffer += pdstring(", loading dyninst library");       
+	statusLine(buffer.c_str());
 
-    // Force a call to dlopen(dyninst_lib)
-    buffer = pdstring("PID=") + pdstring(getPid());
-    buffer += pdstring(", loading dyninst library");       
-    statusLine(buffer.c_str());
-
-    startup_printf("%s[%d]: Starting load of Dyninst library...\n", FILE__, __LINE__);
-    loadDYNINSTlib();
-    startup_printf("Think we have Dyninst RT lib set up...\n");
+	startup_printf("%s[%d]: Starting load of Dyninst library...\n",
+		       FILE__, __LINE__);
+	loadDYNINSTlib();
+	startup_printf("Think we have Dyninst RT lib set up...\n");
 
 
-    setBootstrapState(loadingRT_bs);
+	setBootstrapState(loadingRT_bs);
 
-    if (!continueProc()) {
-        assert(0);
-    }
-    // Loop until the dyninst lib is loaded
-    while (!reachedBootstrapState(loadedRT_bs)) {
-        if(hasExited()) {
-            startup_printf("Odd, process exited while waiting for Dyninst RT lib load\n");
-            return false;
-        }
-        sh->waitForEvent(evtProcessLoadedRT);
-    }
-    getMailbox()->executeCallbacks(FILE__, __LINE__);
-    // We haven't inserted a trap at dlopen yet (as we require the runtime lib for that)
-    // So re-check all loaded libraries (and add to the list gotten earlier)
-    // We force a compare even though the PC is not at the correct address.
-    dyn->set_force_library_check();
-    EventRecord load_rt_event;
-    load_rt_event.proc = this;
-    load_rt_event.lwp = NULL;
-    load_rt_event.type = evtLoadLibrary;
-    load_rt_event.what = SHAREDOBJECT_ADDED;
-    if (!handleChangeInSharedObjectMapping(load_rt_event)) {
-      fprintf(stderr, "%s[%d]:  handleChangeInSharedObjectMapping failed!\n", FILE__, __LINE__);
-    }
-    dyn->unset_force_library_check();
+	if (!continueProc()) {
+	    assert(0);
+	}
+	// Loop until the dyninst lib is loaded
+	while (!reachedBootstrapState(loadedRT_bs)) {
+	    if(hasExited()) {
+		startup_printf("Odd, process exited while waiting for "
+			       "Dyninst RT lib load\n");
+		return false;
+	    }
+	    sh->waitForEvent(evtProcessLoadedRT);
+	}
+	getMailbox()->executeCallbacks(FILE__, __LINE__);
 
-    // Make sure the library was actually loaded
-    if (!runtime_lib) {
-        fprintf(stderr, "%s[%d]:  Don't have runtime library handle\n", __FILE__, __LINE__);
-        return false;
-    }
-    
+	// We haven't inserted a trap at dlopen yet (as we require the
+	// runtime lib for that) So re-check all loaded libraries (and
+	// add to the list gotten earlier) We force a compare even
+	// though the PC is not at the correct address.
+	dyn->set_force_library_check();
+	EventRecord load_rt_event;
+	load_rt_event.proc = this;
+	load_rt_event.lwp = NULL;
+	load_rt_event.type = evtLoadLibrary;
+	load_rt_event.what = SHAREDOBJECT_ADDED;
+	if (!handleChangeInSharedObjectMapping(load_rt_event)) {
+	    fprintf(stderr, "%s[%d]:  handleChangeInSharedObjectMapping "
+		    "failed!\n", FILE__, __LINE__);
+	}
+	dyn->unset_force_library_check();
+
+	// Make sure the library was actually loaded
+	if (!runtime_lib) {
+	    fprintf(stderr, "%s[%d]:  Don't have runtime library handle\n",
+		    __FILE__, __LINE__);
+	    return false;
+	}
+    }    
     buffer = pdstring("PID=") + pdstring(getPid());
     buffer += pdstring(", initializing mutator-side structures");
     statusLine(buffer.c_str());    
