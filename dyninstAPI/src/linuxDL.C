@@ -628,9 +628,14 @@ pdvector<Address> *dynamic_linking::getLinkMapAddrs() {
 bool dynamic_linking::initialize() {
     r_debug_addr = 0;
     r_brk_target_addr = 0;
-    // We figure the first thing we'll see is an add... this serves
-    // as an initial value in handleIfDue... above
-    previous_r_state = r_debug::RT_ADD;
+
+    // Set an initial value for use in
+    // handleIfDueToSharedObjectMapping.  The value should be
+    // RT_CONSISTENT if we ld-preloaded our RT lib and RT_ADD if we
+    // are force-loading RT lib (the hook is not placed
+    // yet). Fortunately, the code recognizes that the RT lib is added
+    // even if previous_r_state was set to RT_CONSISTENT.
+    previous_r_state = r_debug::RT_CONSISTENT;
     
     /* Is this a dynamic executable? */
     pdstring dyn_str = pdstring("DYNAMIC");
