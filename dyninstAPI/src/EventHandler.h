@@ -59,6 +59,7 @@ class dyn_lwp;
 typedef enum {
   evtUndefined,   /* undefined event -- usually indicates error */
   evtNullEvent,   /* null event, nothing (important) happened, but no error */
+  evtIgnore, /* Throw this away when decode is done */
   evtAnyEvent,
   evtNewConnection,
   evtTimeout,

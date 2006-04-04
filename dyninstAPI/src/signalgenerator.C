@@ -410,6 +410,9 @@ bool SignalGeneratorCommon::dispatchEvent(EventRecord &ev)
         signalEvent(ev);
         return true;
         break;
+    case evtIgnore:
+        // Make it go away....
+        return true;
     case evtProcessExit:
         signal_printf("%s[%d]:  preparing to shut down signal gen for process %d\n", FILE__, __LINE__, getPid());
         stop_request = true;
