@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.178 2006/03/31 20:06:35 bernat Exp $
+// $Id: unix.C,v 1.179 2006/04/04 01:07:29 mirg Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -874,6 +874,75 @@ int DebuggerInterface::waitpidNoBlock(int *status)
   return ret;
 }
 
+// Setup the environment for preloading our runtime library
+// Modify pnum_entries and envs if not null, putenv otherwise
+bool setEnvPreload(unsigned max_entries, char **envs, unsigned *pnum_entries)
+{
+    unsigned num_entries = *pnum_entries;
+    char *rt_lib_name = getenv("DYNINSTAPI_RT_LIB");
+    if (rt_lib_name == 0) {
+	logLine("setEnvPreload: DYNINSTAPI_RT_LIB is undefined\n");
+	return false;
+    }
+
+    const char *var_name = "LD_PRELOAD";
+    if (envs != 0) {
+	// Check if some LD_PRELOAD is already part of the environment.
+	unsigned ivar;
+	for (ivar=0; ivar < num_entries &&
+		 strncmp(envs[ivar], var_name, strlen(var_name)) != 0;
+	     ivar++);
+	if (ivar == num_entries) {
+	    // Not found, append an entry to envs
+	    pdstring ld_preload = pdstring(var_name) + pdstring("=") +
+		pdstring(rt_lib_name);
+	    if (num_entries >= max_entries) {
+		logLine("setEnvPreload: out of memory\n");
+		return false;
+	    }
+	    if ((envs[num_entries++] = P_strdup(ld_preload.c_str())) == 0) {
+		logLine("setEnvPreload: out of memory\n");
+		return false;
+	    }
+	    envs[num_entries] = NULL;
+	    *pnum_entries = num_entries;
+	}
+	else {
+	    // Found, modify envs in-place
+	    pdstring ld_preload = pdstring(envs[ivar]) + pdstring(":") + 
+		pdstring(rt_lib_name);
+	    if ((envs[ivar] = P_strdup(ld_preload.c_str())) == 0) {
+		logLine("setEnvPreload: out of memory\n");
+		return false;
+	    }
+	}
+    }
+    else {
+	// Environment inherited from this process, do putenv
+	char *ld_preload_orig = getenv("LD_PRELOAD");
+	pdstring ld_preload;
+
+	if (ld_preload_orig != 0) {
+	    // Append to existing var
+	    ld_preload = pdstring(var_name) + pdstring("=") +
+		pdstring(ld_preload_orig) + pdstring(":") +
+		pdstring(rt_lib_name);
+	}
+	else {
+	    // Define a new var
+	    ld_preload = pdstring(var_name) + pdstring("=") +
+		pdstring(rt_lib_name);
+	}
+	char *ld_preload_cstr = P_strdup(ld_preload.c_str());
+	if (ld_preload_cstr == 0 ||
+	    P_putenv(ld_preload_cstr) < 0) {
+	    logLine("setEnvPreload: out of memory\n");
+	    return false;
+	}
+    }
+    return true;
+}
+
 /*****************************************************************************
  * forkNewProcess: starts a new process, setting up trace and io links between
  *                the new process and the daemon
@@ -1050,13 +1119,24 @@ bool forkNewProcess_real(pdstring file,
       }
 
       char **envs = NULL;
+      unsigned num_envs_entries = 0; // not including terminating NULL
+      unsigned max_envs_entries = 0;
       if (envp) {
-	  envs = new char*[envp->size() + 2]; // Also room for PARADYN_MASTER_INFO
+	  max_envs_entries = envp->size() + 3;
+	  // +3: Allocate room for PARADYN_MASTER_INFO, LD_PRELOAD, and NULL
+	  envs = new char*[max_envs_entries];
 	  for(unsigned ei = 0; ei < envp->size(); ++ei)
 	      envs[ei] = P_strdup((*envp)[ei].c_str());
-	  envs[envp->size()] = NULL;
+	  num_envs_entries = envp->size();
+	  envs[num_envs_entries] = NULL;
       }
-      
+#if defined(os_linux) || defined(os_solaris)
+      // Platforms that use LD_PRELOAD
+      if (!setEnvPreload(max_envs_entries, envs, &num_envs_entries)) {
+	  return false;
+      }
+#endif
+
 #ifndef BPATCH_LIBRARY
       // hand off info about how to start a paradynd to the application.
       //   used to catch rexec calls, and poe events.
@@ -1076,8 +1156,8 @@ bool forkNewProcess_real(pdstring file,
       }
 
       if (envp) {
-	  envs[envp->size()] = P_strdup(paradynInfo);
-	  envs[envp->size() + 1] = NULL;
+	  envs[num_envs_entries++] = P_strdup(paradynInfo);
+	  envs[num_envs_entries] = NULL;
       } else {
 	  P_putenv(paradynInfo);
       }
