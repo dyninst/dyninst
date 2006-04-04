@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-unix.h,v 1.26 2006/03/31 20:06:34 bernat Exp $
+/* $Id: signalhandler-unix.h,v 1.27 2006/04/04 01:10:27 legendre Exp $
  */
 
 /*
@@ -165,7 +165,6 @@ extern int SYSSET_MAP(int, int);
 #define V0_REGNUM 0
 #define A0_REGNUM 16
 #endif
-
 
 /////////////////////
 // Translation mechanisms

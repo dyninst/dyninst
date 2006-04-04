@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator.h,v 1.2 2006/03/31 02:09:31 bernat Exp $
+/* $Id: signalgenerator.h,v 1.3 2006/04/04 01:10:26 legendre Exp $
  */
 
 #ifndef _SIGNAL_GENERATOR_H_
@@ -181,7 +181,8 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    process *proc;
    pid_t pid_;
    int traceLink_;
-   
+   bool requested_wait_until_active;
+
    static pdstring createExecPath(pdstring &file, pdstring &dir);
    bool getExecFileDescriptor(pdstring filename,
                               int pid,
@@ -202,7 +203,12 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    /////////////////
    void enterOSBlock();
    void exitOSBlock();
-   
+
+   virtual bool postSignalHandler();
+#if defined(os_windows)
+   bool SuspendThreadFromEvent(LPDEBUG_EVENT ev, dyn_lwp *lwp);
+#endif
+
  private:
    
    bool initialize_event_handler();

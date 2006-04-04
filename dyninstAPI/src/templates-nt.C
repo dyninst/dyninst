@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: templates-nt.C,v 1.57 2006/03/12 23:32:21 legendre Exp $
+// $Id: templates-nt.C,v 1.58 2006/04/04 01:10:31 legendre Exp $
 
 /* The VC++ v5.0 compiler (probably correctly) generates warning C4660's 
  * "template class specialization XXXX is already instantiated"
@@ -183,6 +183,8 @@ template class  BPatch_Set<dominatorBB *>;
 template class dictionary_hash< eventType, pdvector< CallbackBase * > >;
 template class pdvector<dictionary_hash < eventType, pdvector <CallbackBase *> >::entry>;
 
+class EventGate;
+
 template class pdvector<CallbackBase *>;
 template class pdvector<eventLock::lock_stack_elem>;
 template class pdvector<EventGate *>;
@@ -197,3 +199,6 @@ template class  pdvector<dictionary_hash<int,int>::entry >;
 
 template class  dictionary_hash <unsigned long, pdstring>;
 template class  pdvector<dictionary_hash<unsigned long,pdstring>::entry >;
+
+template class dictionary_hash<Address, threadmap_t *>;
+template class pdvector<dictionary_hash<Address, threadmap_t *>::entry>;

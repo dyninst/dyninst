@@ -86,7 +86,6 @@ int DYNINSTthreadIndex()
    if (curr_index == DYNINST_max_num_threads)
    {
        curr_index = threadCreate(tid);
-
    }
 
    return curr_index;
@@ -200,6 +199,8 @@ void DYNINSTthreadDestroy()
    memset(&rec, 0, sizeof(rec));
    rec.index = index;
 #if !defined(os_windows)
+   //Windows doesn't need to use the trace pipe for thread events, thread 
+   // creation/deletion is handled through the debugging interface.
    asyncSendThreadEvent(pid, rtBPatch_threadDestroyEvent, &rec, 
                         sizeof(BPatch_deleteThreadEventRecord));
 #endif

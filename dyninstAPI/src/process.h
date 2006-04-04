@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.363 2006/03/30 16:44:58 legendre Exp $
+/* $Id: process.h,v 1.364 2006/04/04 01:10:23 legendre Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -224,6 +224,7 @@ class process {
   bool isInSignalHandler(Address addr);
 
   void deleteThread(dynthread_t tid);
+  void deleteThread_(dyn_thread *thr);
 
   // Thread index functions
   unsigned getIndexToThread(unsigned index);
@@ -339,6 +340,7 @@ class process {
   void installInstrRequests(const pdvector<instMapping*> &requests);
   void recognize_threads(const process *parent = NULL);
   // Get LWP handles from /proc (or as appropriate)
+
   bool determineLWPs(pdvector<unsigned> &lwp_ids);
 
   int getPid() const;
@@ -408,7 +410,7 @@ class process {
                      const void *inSelf);
 
   static bool IndependentLwpControl() {
-#if defined(os_linux)
+#if defined(os_linux) || defined(os_windows)
      return true;
 #else
      return false;
@@ -553,7 +555,11 @@ class process {
      { new_instp_cb = f; }
   
   void warnOfThreadDelete(dyn_thread *thr);
- // inferior heap management
+ 
+  //Anonymous up pointer to the containing process.  This is BPatch_process
+  // in Dyninst.  Currently stored as an void pointer in case we do
+  // anything with this during the library split.
+  void *container_proc;
  public:
 
  //Run the mutatee until exit in single-step mode, printing each instruction
@@ -794,6 +800,7 @@ class process {
      return representativeLWP;
   }
 
+  dyn_lwp *getInitialLwp() const;
   dyn_thread *getInitialThread() const {
      if(threads.size() == 0)
         return NULL;
@@ -1096,8 +1103,10 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   //////////////////
   bootstrapState_t bootstrapState;
   unsigned char savedCodeBuffer[BYTES_TO_SAVE];
+  Address loadDyninstLibAddr;
 #if defined(arch_x86) && defined(os_windows)
   dictionary_hash<Address, unsigned char> main_breaks;
+  pdvector<unsigned> cached_lwps;
 #endif
 #if defined(arch_x86) || defined(arch_x86_64)
   unsigned char savedStackFrame[BYTES_TO_SAVE];
@@ -1125,6 +1134,9 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   handleT processHandle_;
   handleT mainFileHandle_;
   Address mainFileBase_;
+
+  pdvector<int> continueHandles;
+  pdvector<int> continueTypes;
 #endif
 
   ////////////////////
@@ -1193,7 +1205,7 @@ process *ll_createProcess(const pdstring file, pdvector<pdstring> *argv,
                           const pdstring dir, int stdin_fd, int stdout_fd,
                           int stderr_fd);
 
-process *ll_attachProcess(const pdstring &progpath, int pid);
+process *ll_attachProcess(const pdstring &progpath, int pid, void *container_proc_);
 
 
 bool isInferiorAllocated(process *p, Address block);

@@ -41,7 +41,7 @@
 
 /************************************************************************
  * Windows NT/2000 object files.
- * $Id: Object-nt.h,v 1.32 2006/03/12 23:31:26 legendre Exp $
+ * $Id: Object-nt.h,v 1.33 2006/04/04 01:10:18 legendre Exp $
 ************************************************************************/
 
 
@@ -182,6 +182,8 @@ public:
     unsigned int GetTextSectionId( void ) const         { return textSectionId;}
     PIMAGE_NT_HEADERS   GetImageHeader( void ) const    { return peHdr; }
     PVOID GetMapAddr( void ) const                      { return mapAddr; }
+    Address getEntryPoint( void ) const                 { return peHdr->OptionalHeader.AddressOfEntryPoint + 
+                                                                 desc.loadAddr(); }
    
     void    ParseGlobalSymbol(PSYMBOL_INFO pSymInfo);
     const pdvector<Address> &getPossibleMains() const   { return possible_mains; }

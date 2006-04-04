@@ -14,7 +14,7 @@
 		<Configuration
 			Name="Debug|Win32"
 			OutputDirectory="i386-unknown-nt4.0"
-			IntermediateDirectory="$(WiscTmp)i386-unknown-nt4.0"
+			IntermediateDirectory="i386-unknown-nt4.0"
 			ConfigurationType="2"
 			CharacterSet="2"
 			ManagedExtensions="FALSE">

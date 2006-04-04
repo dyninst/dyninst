@@ -130,31 +130,6 @@ bool SignalHandler::handleProcessStop(EventRecord &ev, bool &continueHint)
    return retval;
 }
 
-bool SignalHandler::forwardSigToProcess(EventRecord &ev, bool &continueHint) 
-{
-    signal_printf("%s[%d]: forwardSigToProcess\n", FILE__, __LINE__);
-    
-    // We continue the process here to ensure that the signal gets there
-
-    bool res = false;
-    if(process::IndependentLwpControl()) {
-        res = ev.lwp->continueLWP(ev.what);
-    } else {
-        res = ev.proc->continueProc(ev.what);
-    }
-    if (res == false) {
-        fprintf(stderr, "%s[%d]:  Couldn't forward signal %d to process %d\n",
-                FILE__, __LINE__, ev.what, ev.proc->getPid());
-        logLine("error  in forwarding  signal\n");
-        showErrorCallback(38, "Error  in forwarding  signal");
-        return false;
-    } 
-
-    // And so don't continue later.
-    continueHint = false;
-    return true;
-}
-
 bool SignalHandler::handleProcessExit(EventRecord &ev, bool &continueHint) 
 {
   bool ret = false;
@@ -184,9 +159,7 @@ bool SignalHandler::handleProcessExit(EventRecord &ev, bool &continueHint)
       ret = proc->handleProcessExit();
       //ret = true; //  maybe this should be false?  (this case is an error)
     }
-
   handleProcessExitPlat(ev, continueHint);
-
   flagBPatchStatusChange();
 
   continueHint = false;
@@ -290,6 +263,15 @@ bool SignalHandler::handleLwpExit(EventRecord &ev, bool &continueHint)
    BPatch::bpatch->registerThreadExit(proc, thr->get_tid());
 
    flagBPatchStatusChange();
+
+#if defined(os_windows)
+   if (getExecThreadID() != sg->getThreadID()) {
+      signal_printf("%s[%d][%s]:  signalling active process\n", 
+                    FILE__, __LINE__, getThreadStr(getExecThreadID()));
+      sg->requested_wait_until_active = false;
+      sg->signalActiveProcess();
+   }
+#endif
    return true;
 }
 
@@ -300,15 +282,15 @@ bool SignalHandler::handleSyscallEntry(EventRecord &ev, bool &continueHint)
     bool ret = false;
     switch ((procSyscall_t)ev.what) {
       case procSysFork:
-	ret = handleForkEntry(ev, continueHint);
+          ret = handleForkEntry(ev, continueHint);
           break;
       case procSysExec:
-	ret = handleExecEntry(ev, continueHint);
-         break;
+          ret = handleExecEntry(ev, continueHint);
+          break;
       case procSysExit:
           signal_printf("%s[%d]:  handleSyscallEntry exit(%d)\n", FILE__, __LINE__, ev.what);
           proc->triggerNormalExitCallback(INFO_TO_EXIT_CODE(ev.info));
-	  continueHint = false;
+          continueHint = false;
           ret = true;
           break;
       case procLwpExit:
@@ -318,11 +300,11 @@ bool SignalHandler::handleSyscallEntry(EventRecord &ev, bool &continueHint)
 
          break;
       default:
-      // Check process for any other syscall
-      // we may have trapped on entry to?
-	continueHint = true;
-      ret = false;
-      break;
+         // Check process for any other syscall
+         // we may have trapped on entry to?
+         continueHint = true;
+         ret = false;
+         break;
     }
     return ret;
 }
@@ -511,7 +493,7 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
        break;
      case evtProcessAttach:
         proc->setBootstrapState(initialized_bs);
-	continueHint = false;
+        continueHint = false;
         ret = true;
         break;
      case evtProcessInit:
@@ -521,7 +503,7 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
         if (proc->execing()) {
            proc->finishExec();
         }
-	continueHint = false;
+        continueHint = false;
         ret = true;
         break;
      case evtProcessLoadedRT:
@@ -534,10 +516,10 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
         proc->setBootstrapState(loadedRT_bs);
         //getSH()->signalEvent(evtProcessLoadedRT);
         ret = true;
-	continueHint = false;
+       continueHint = false;
         break;
      }
-  case evtInstPointTrap: {
+     case evtInstPointTrap: {
          // Linux inst via traps
          // First, we scream... this is undesired behavior.
          fprintf(stderr, "WARNING: inst point trap detected at 0x%lx, trap to 0x%lx\n",
@@ -546,83 +528,79 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
          codeRange *to = proc->findCodeRangeByAddress(ev.address);
          from->print_range();
          to->print_range();
-
-
          ev.lwp->changePC(proc->trampTrapMapping[ev.address], NULL);
-	 continueHint = true;
+         continueHint = true;
          ret = true;
          break;
-  }
+     }
      case evtLoadLibrary:
      case evtUnloadLibrary:
        ret = handleLoadLibrary(ev, continueHint);
-	continueHint = true;
-        break;
+       continueHint = true;
+       break;
      case evtPreFork:
          // If we ever want to callback this guy, put it here.
-         ret = true;
-	 continueHint = true;
+        ret = true;
+        continueHint = true;
         break;
      case evtSignalled:
      {
-       ret = forwardSigToProcess(ev, continueHint);
+        ret = forwardSigToProcess(ev, continueHint);
         break;
      }
      case evtProcessStop:
-     {
        ret = handleProcessStop(ev, continueHint);
-         if (!ret) {
-             fprintf(stderr, "%s[%d]:  handleProcessStop failed\n", FILE__, __LINE__);
-         }
-         break;
-     }
-        // Now the /proc only
-        // AIX clones some of these (because of fork/exec/load notification)
+       if (!ret) {
+           fprintf(stderr, "%s[%d]:  handleProcessStop failed\n", FILE__, __LINE__);
+       }
+       break;
+     // Now the /proc only
+     // AIX clones some of these (because of fork/exec/load notification)
      case evtRPCSignal:
-       ret = proc->getRpcMgr()->handleRPCEvent(ev, continueHint);
-       break;
+         ret = proc->getRpcMgr()->handleRPCEvent(ev, continueHint);
+         break;
      case evtSyscallEntry:
-       ret = handleSyscallEntry(ev, continueHint);
-        if (!ret)
-            cerr << "handleSyscallEntry failed!" << endl;
-        break;
+         ret = handleSyscallEntry(ev, continueHint);
+         if (!ret)
+             cerr << "handleSyscallEntry failed!" << endl;
+         break;
      case evtSyscallExit:
-       ret = handleSyscallExit(ev, continueHint);
-        if (!ret)
+         ret = handleSyscallExit(ev, continueHint);
+         if (!ret)
             fprintf(stderr, "%s[%d]: handlesyscallExit failed! ", __FILE__, __LINE__); ;
-        break;
+         break;
      case evtSuspended:
-       continueHint = true;
-       ret = true;
-       flagBPatchStatusChange();
-       break;
+         continueHint = true;
+         ret = true;
+         flagBPatchStatusChange();
+         break;
      case evtDebugStep:
-       handleSingleStep(ev, continueHint);
+         handleSingleStep(ev, continueHint);
          ret = 1;
          break;
      case evtUndefined:
         // Do nothing
-         cerr << "Undefined event!" << endl;
-	 continueHint = true;
+        cerr << "Undefined event!" << endl;
+        continueHint = true;
         break;
      case evtCritical:
        ret = handleCritical(ev, continueHint);
          break;
      case evtRequestedStop:
-       // /proc-age. We asked for a stop and the process did, and the signalGenerator
-       // saw it.
+         // /proc-age. We asked for a stop and the process did, and the signalGenerator
+         // saw it.
          fprintf(stderr, "******************** REQUESTED STOP\n");
-	 continueHint = false;
+         continueHint = false;
          ret = true;
          break;
      case evtTimeout:
      case evtThreadDetect:
-       continueHint = true;
-        ret = true;
-        break;
+         continueHint = true;
+         ret = true;
+         break;
      case evtNullEvent:
          ret = true;
-	 continueHint = true;
+         continueHint = true;
          break;
      default:
         fprintf(stderr, "%s[%d]:  cannot handle signal %s\n", FILE__, __LINE__, eventType2str(ev.type));

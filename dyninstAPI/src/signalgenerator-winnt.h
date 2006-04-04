@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator-winnt.h,v 1.1 2006/03/29 21:38:37 bernat Exp $
+/* $Id: signalgenerator-winnt.h,v 1.2 2006/04/04 01:10:24 legendre Exp $
  */
 
 #ifndef _SIGNAL_GENERATOR_WINNT_H
@@ -77,14 +77,9 @@ class SignalGenerator : public SignalGeneratorCommon
                          pdstring inputFile,
                          pdstring outputFile,
                          int stdin_fd, int stdout_fd,
-                         int stderr_fd)
-    : SignalGeneratorCommon(idstr, file, dir, argv, envp, inputFile, outputFile, 
-                      stdin_fd, stdout_fd, stderr_fd),
-      procHandle(-1), thrHandle(-1) {}
+                         int stderr_fd);
 
-  SignalGenerator(char *idstr, pdstring file, int pid)
-    : SignalGeneratorCommon(idstr, file, pid),
-      procHandle(-1), thrHandle(-1) {} 
+  SignalGenerator(char *idstr, pdstring file, int pid);
 
    bool waitingForStop() {return false;}
    void setWaitingForStop(bool flag) {;}
@@ -95,10 +90,12 @@ class SignalGenerator : public SignalGeneratorCommon
   virtual bool attachProcess();
   virtual bool waitForStopInline();
   bool waitNextEventInternal(EventRecord &);
+  bool waitForEventInternal(EventRecord &ev);
 
   bool decodeEvent(EventRecord &);
   bool decodeBreakpoint(EventRecord &);
   bool decodeException(EventRecord &);
+  bool SuspendThreadFromEvent(LPDEBUG_EVENT ev, dyn_lwp *lwp);
 
   int procHandle;
   int thrHandle;

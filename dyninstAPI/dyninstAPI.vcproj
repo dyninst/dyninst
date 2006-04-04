@@ -14,7 +14,7 @@
 		<Configuration
 			Name="Debug|Win32"
 			OutputDirectory="i386-unknown-nt4.0"
-			IntermediateDirectory="$(WiscTmp)i386-unknown-nt4.0"
+			IntermediateDirectory="i386-unknown-nt4.0"
 			ConfigurationType="2"
 			CharacterSet="2"
 			ManagedExtensions="FALSE">
@@ -694,6 +694,21 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath=".\src\eventgate.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
 				RelativePath=".\src\EventHandler.C">
 				<FileConfiguration
 					Name="Debug|Win32">
@@ -1190,6 +1205,21 @@ copy $(PLATFORM)\libdyninstAPI.lib ..\..\$(PLATFORM)\lib
 			</File>
 			<File
 				RelativePath=".\src\rpcMgr.C">
+				<FileConfiguration
+					Name="Debug|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAs="2"/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath=".\src\signalgenerator.C">
 				<FileConfiguration
 					Name="Debug|Win32">
 					<Tool

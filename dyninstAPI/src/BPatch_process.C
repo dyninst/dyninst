@@ -153,6 +153,7 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
    
    startup_cerr << "Registering instPoint callback..." << endl;
    llproc->registerInstPointCallback(createBPPointCB);
+   llproc->container_proc = this;
 
    // Add this object to the list of processes
    assert(BPatch::bpatch != NULL);
@@ -204,7 +205,7 @@ BPatch_process::BPatch_process(const char *path, int pid)
 
    image = new BPatch_image(this);
 
-   llproc = ll_attachProcess(path, pid);
+   llproc = ll_attachProcess(path, pid, this);
    if (!llproc) {
       BPatch::bpatch->unRegisterProcess(pid);
       BPatch::bpatch->reportError(BPatchFatal, 68, 
@@ -219,6 +220,7 @@ BPatch_process::BPatch_process(const char *path, int pid)
 
    llproc->registerFunctionCallback(createBPFuncCB);
    llproc->registerInstPointCallback(createBPPointCB);
+   llproc->container_proc = this;
 
    assert(llproc->isBootstrappedYet());
    assert(llproc->status() == stopped);
@@ -255,6 +257,7 @@ BPatch_process::BPatch_process(process *nProc)
 
    llproc->registerFunctionCallback(createBPFuncCB);
    llproc->registerInstPointCallback(createBPPointCB);
+   llproc->container_proc = this;
 
    image = new BPatch_image(this);
    isVisiblyStopped = true;
@@ -1744,4 +1747,29 @@ void BPatch_process::updateThreadInfo()
  **/
 void BPatch_process::debugSuicideInt() {
     llproc->debugSuicide();
+}
+
+BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid, dynthread_t threadid, 
+                                        unsigned long stack_top, unsigned long start_pc, process *proc_)
+{
+  bool thread_exists = (getThreadByIndex(index) != NULL);
+  if (!llproc && proc_) llproc = proc_;
+  BPatch_thread *newthr = 
+      createOrUpdateBPThread(lwpid, threadid, index, stack_top, start_pc);
+  if (thread_exists) {
+     return newthr;
+  }
+
+  pdvector<CallbackBase *> cbs;
+  getCBManager()->dispenseCallbacksMatching(evtThreadCreate, cbs);
+  for (unsigned int i = 0; i < cbs.size(); ++i) {
+     AsyncThreadEventCallback &cb = * ((AsyncThreadEventCallback *) cbs[i]);
+     async_printf("%s[%d]:  before executing thread create callback\n", FILE__, __LINE__);
+     cb(this, newthr);
+  }
+
+  BPatch::bpatch->mutateeStatusChange = true;
+  llproc->sh->signalEvent(evtThreadCreate);
+
+  return newthr;
 }

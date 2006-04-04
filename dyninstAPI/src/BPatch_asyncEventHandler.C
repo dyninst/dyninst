@@ -701,7 +701,9 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
        BPatch_process *p = (BPatch_process *) appProc;
        unsigned long start_pc = (unsigned long) call_rec.start_pc;
        unsigned long stack_addr = (unsigned long) call_rec.stack_addr;
-       
+       unsigned index = (unsigned) call_rec.index;
+       int lwpid = call_rec.lwp;
+       dynthread_t tid = (dynthread_t) call_rec.tid;
        bool thread_exists = (p->getThreadByIndex(call_rec.index) != NULL);
 
        //Create the new BPatch_thread object
@@ -709,35 +711,8 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
                     "addr = %p, tid = %lu, index = %d\n", __FILE__, __LINE__, 
                     (void *) start_pc, (void *) stack_addr, call_rec.tid, 
                     call_rec.index);
-       BPatch_thread *newthr = 
-          p->createOrUpdateBPThread(call_rec.lwp, (dynthread_t) call_rec.tid,
-                                    call_rec.index, stack_addr, start_pc);
-       if (thread_exists) {
-           async_printf("%s[%d]: thread already exists, returning now\n",
-                        FILE__, __LINE__);
-           return true;
-       }
-
-       BPatch::bpatch->mutateeStatusChange = true;
-
-       async_printf("%s[%d]: setting up new thread callbacks...\n", 
-                    FILE__, __LINE__);
-       pdvector<CallbackBase *> cbs;
-       getCBManager()->dispenseCallbacksMatching(ev.type, cbs);
-       for (unsigned int i = 0; i < cbs.size(); ++i) {
-           BPatch::bpatch->signalNotificationFD();
-
-           AsyncThreadEventCallback *cb = dynamic_cast<AsyncThreadEventCallback *>(cbs[i]);
-           async_printf("%s[%d]:  before executing thread create callback\n", FILE__, __LINE__);
-           if (cb)
-               (*cb)(p, newthr);
-       }
-
-       async_printf("%s[%d]: flagging mutatee status change...\n",
-                    FILE__, __LINE__);
-       async_printf("%s[%d]: signalling evtThreadCreate\n", FILE__, __LINE__);
-       ev.proc->sh->signalEvent(evtThreadCreate);
-       return true;
+       BPatch_thread *thr = p->handleThreadCreate(index, lwpid, tid, stack_addr, start_pc);
+       return (thr != NULL);
      }
      case evtThreadExit: 
      {

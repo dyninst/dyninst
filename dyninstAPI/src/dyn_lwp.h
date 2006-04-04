@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.51 2006/04/03 22:25:24 tlmiller Exp $
+ * $Id: dyn_lwp.h,v 1.52 2006/04/04 01:10:21 legendre Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -94,6 +94,7 @@ class DebuggerInterface;
 class dyn_lwp
 {
   friend class DebuggerInterface;
+  friend class process;
   bool getRegisters_(struct dyn_saved_regs *regs);
   bool restoreRegisters_(const struct dyn_saved_regs &regs);
 
@@ -274,6 +275,9 @@ class dyn_lwp
   void setFileHandle( handleT h ) {
      fd_ = h;
   }
+  void set_lwp_id(int newid) {
+     lwp_id_ = newid;
+  }
 
   
   // Open and close (if necessary) the file descriptor/handle. Used
@@ -313,7 +317,7 @@ class dyn_lwp
   void closeFD_();  // os specific
 
   process *proc_;
-  const unsigned lwp_id_;
+  unsigned lwp_id_;
   handleT fd_;
 
   // "new" /proc model: multiple files instead of ioctls.

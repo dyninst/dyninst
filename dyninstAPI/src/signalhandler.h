@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.22 2006/03/29 21:35:13 bernat Exp $
+/* $Id: signalhandler.h,v 1.23 2006/04/04 01:10:29 legendre Exp $
  */
 
 #ifndef _SIGNAL_HANDLER_H
@@ -101,6 +101,7 @@ class SignalHandler : public EventHandler<EventRecord>
   bool isActive(process *p);
   process *activeProcess() {return idle_flag ? NULL : active_proc;}
   CallbackBase *waitingForCallback() {return wait_cb;}
+
   protected:
     //  SignalHandler is only constructed by derived classes
   SignalHandler(char *name, int shid, SignalGenerator *sg_) : 
@@ -119,7 +120,7 @@ class SignalHandler : public EventHandler<EventRecord>
 
   //  SignalHandler::forwardSigToProcess()
   //  continue process with the (unhandled) signal
-  static bool forwardSigToProcess(EventRecord &ev, bool &continueHint);
+  bool forwardSigToProcess(EventRecord &ev, bool &continueHint);
 
   bool handleCritical(EventRecord &ev, bool &continueHint);
   bool handleProcessExit(EventRecord &ev, bool &continueHint);

@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DyninstAPI_RT", "DyninstAPI
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testsuite", "testsuite\i386-unknown-nt4.0\testsuite.vcproj", "{73BD9B12-EDAE-48F5-9118-250FF506ED16}"
 	ProjectSection(ProjectDependencies) = postProject
+		{33F95814-6383-4480-A3F5-B9DC73B1DA1A} = {33F95814-6383-4480-A3F5-B9DC73B1DA1A}
+		{2AB5FA1E-CF56-4E8A-93B7-6A8940DCB602} = {2AB5FA1E-CF56-4E8A-93B7-6A8940DCB602}
 	EndProjectSection
 EndProject
 Global

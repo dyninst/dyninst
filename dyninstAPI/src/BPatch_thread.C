@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.150 2006/03/31 22:25:13 bernat Exp $
+// $Id: BPatch_thread.C,v 1.151 2006/04/04 01:10:15 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -258,8 +258,9 @@ BPatch_function *BPatch_thread::getInitialFuncInt()
        //Consider stack_start as starting at the first
        //function with a stack frame.
        while ((!stack_start || !initial_func) && (pos >= 0)) {
-           if (!stack_start)
+           if (!stack_start) {
                stack_start = (unsigned long) stackWalk[pos].getFP();
+           }
            if (!initial_func) {
                initial_func = stackWalk[pos].findFunction();
                if (initial_func) {
@@ -270,8 +271,8 @@ BPatch_function *BPatch_thread::getInitialFuncInt()
            }
            pos--;
        }
-       assert(stack_start);
-       llthread->update_stack_addr(stack_start);
+       if (!llthread->get_stack_addr())
+           llthread->update_stack_addr(stack_start);
        if (initial_func)
            llthread->update_start_func(initial_func->func);
    }
@@ -312,7 +313,6 @@ unsigned long BPatch_thread::getStackTopAddrInt()
            }
            pos--;
        }
-       assert(stack_start);
        llthread->update_stack_addr(stack_start);
        if (initial_func)
            llthread->update_start_func(initial_func->func);
@@ -357,9 +357,7 @@ void BPatch_thread::BPatch_thread_dtor()
      //  unless we "creatively adjust" the recursive lock depth here.
      BPatch_process *temp = proc;
      proc = NULL;
-      __UNLOCK;
       if (temp) delete temp;
-     __LOCK;
    }
    else
    {

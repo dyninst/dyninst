@@ -541,17 +541,6 @@ char *eventType2str(eventType x)
   return "unknown_event_type";
 }
 
-void  EventRecord::clear() {
-    proc = NULL;
-    lwp = NULL;
-    type = evtUndefined;
-    what = 0;
-    status = statusUnknown;
-    info = 0;
-    address = 0;
-    fd = 0;
-}
-
 //  OK -- these template instantiations probably belong more rightly
 //  in templates2.C, however, including them here gets around
 //  multiple definition problems introduced by having both template

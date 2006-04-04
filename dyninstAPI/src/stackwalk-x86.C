@@ -407,7 +407,7 @@ Frame Frame::getCallerFrame()
             getProc()->getAddressWidth() == 8 ? tramp_pre_frame_size_64 : tramp_pre_frame_size_32;
       goto done;
    }
-   else if (status ==  frame_saves_fp_noframe || status == frame_no_use_fp)
+   else if (status ==  frame_saves_fp_noframe || status == frame_no_use_fp || status == frame_unknown)
    {
       /**
        * The evil case.  We don't have a valid frame pointer.  We'll

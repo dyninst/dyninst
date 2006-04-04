@@ -230,6 +230,8 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     BPatch_thread *createOrUpdateBPThread(int lwp, dynthread_t tid, unsigned index, 
                                           unsigned long stack_start, 
                                           unsigned long start_addr);
+    BPatch_thread *handleThreadCreate(unsigned index, int lwpid, dynthread_t threadid, 
+                            unsigned long stack_top, unsigned long start_pc, process *proc = NULL);
     void deleteBPThread(BPatch_thread *thrd);
     BPatch_function *findOrCreateBPFunc(int_function *ifunc, 
                                         BPatch_module *bpmod);

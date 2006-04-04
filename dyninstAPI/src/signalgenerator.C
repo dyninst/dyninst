@@ -36,7 +36,7 @@
  * will, or computer failure or malfunction.  You agree to indemnify
  * us (and any other person or entity with proprietary rights in the
  * software licensed hereunder) for any and all liability it may
- * incur to third parties resulting from your use of Paradyn.
++ * incur to third parties resulting from your use of Paradyn.
  */
 
 // $Id: signalhandler.C,v 
@@ -169,13 +169,13 @@ void SignalGeneratorCommon::main() {
         }
         
         // If there is an event to handle, then keep going. 
-        if (processIsPaused() &&
-            (events_to_handle.size() == 0)) {
+        if ((processIsPaused() && (events_to_handle.size() == 0)) || requested_wait_until_active) {
             signal_printf("%s[%d]: process is paused, waiting (loop top)\n", FILE__, __LINE__);
             // waitForActive... used to unlock/relock the global mutex. 
             waitForActiveProcess();
             continue;
         }        
+        postSignalHandler();
 
         // Process not paused
         signal_printf("%s[%d]: Grabbing event\n", FILE__, __LINE__);
@@ -244,7 +244,7 @@ bool SignalGeneratorCommon::exitRequested(EventRecord & /*ev*/) {
 void SignalGeneratorCommon::waitForActiveProcess() {
 
     assert(eventlock->depth() == 1);
-    assert(processIsPaused());
+    assert(processIsPaused() || requested_wait_until_active);
     
     do {
         runlock->_Lock(FILE__, __LINE__);
@@ -1176,6 +1176,7 @@ SignalGeneratorCommon::SignalGeneratorCommon(char *idstr) :
     envp_(NULL),
     pid_(-1),
     traceLink_(-1),
+    requested_wait_until_active(false),
     waitingForActiveProcess_(false),
     processPausedDuringOSWait_(false),
     decodingEvent_(false),
@@ -1398,3 +1399,18 @@ bool SignalGeneratorCommon::handleEvent(EventRecord &) {
     return true;
 }
 
+SignalGenerator::SignalGenerator(char *idstr, pdstring file, pdstring dir,
+                                 pdvector<pdstring> *argv,
+                                 pdvector<pdstring> *envp,
+                                 pdstring inputFile,
+                                 pdstring outputFile,
+                                 int stdin_fd, int stdout_fd,
+                                 int stderr_fd) :
+   SignalGeneratorCommon(idstr),
+   waiting_for_stop(false)
+{
+    setupCreated(file, dir, 
+                 argv, envp, 
+                 inputFile, outputFile,
+                 stdin_fd, stdout_fd, stderr_fd);
+}

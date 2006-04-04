@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-nt.C,v 1.40 2006/03/14 22:57:20 legendre Exp $
+// $Id: Object-nt.C,v 1.41 2006/04/04 01:10:17 legendre Exp $
 
 #define WIN32_LEAN_AND_MEAN
 
@@ -612,7 +612,7 @@ void Object::ParseDebugInfo( void )
 
         if (!found_main)
         {
-            Address curr = eAddr;
+            Address curr = eAddr + dw64BaseAddr;
             p = (const unsigned char*) ImageRvaToVa(peHdr, mapAddr, eAddr, 0);
             instruction insn((const void *)p);
             while( !insn.isReturn() )
@@ -629,14 +629,14 @@ void Object::ParseDebugInfo( void )
                     if (insn.isJumpDir())
                         endTarget = insn.getTarget(callTarget);
                 }
-
+ 
                 bool found = false;
                 for (unsigned i=0; i<possible_mains.size(); i++) {
                     if (possible_mains[i] == endTarget) {
-                          found = true;
+                        found = true;
                         break;
-                    }                      
-                  }
+                    }                
+                }
                 if (!found) {
                     possible_mains.push_back( endTarget );
                 }
@@ -654,22 +654,22 @@ void Object::ParseDebugInfo( void )
                                                     code_off(),
                                                     0,
                                                     0) );
-            }            
+            }                        
             if (!symbols_.defines("start")) {
                 //use 'start' for mainCRTStartup.
-                ::Symbol startSym( "start", "DEFAULT_MODULE", ::Symbol::PDST_FUNCTION,
-                                ::Symbol::SL_GLOBAL, eAddr, 0, UINT_MAX );
+                ::Symbol startSym( "start", curModule->GetName().c_str(), ::Symbol::PDST_FUNCTION,
+                                ::Symbol::SL_GLOBAL, eAddr + dw64BaseAddr, 0, UINT_MAX );
                 symbols_[ "start" ].push_back( startSym );
             }
             if (!symbols_.defines("winStart")) {
                 //make up a func name for the start of the text section
-                ::Symbol sSym( "winStart", "DEFAULT_MODULE",::Symbol::PDST_FUNCTION,
+                ::Symbol sSym( "winStart", curModule->GetName().c_str(), ::Symbol::PDST_FUNCTION,
                             ::Symbol::SL_GLOBAL, code_off(), 0, UINT_MAX );
                 symbols_[ "winStart" ].push_back( sSym );
             }
             if (!symbols_.defines("winFini")) {
                 //make up one for the end of the text section
-                ::Symbol fSym( "winFini", "DEFAULT_MODULE",::Symbol::PDST_FUNCTION,
+                ::Symbol fSym( "winFini", curModule->GetName().c_str(), ::Symbol::PDST_FUNCTION,
                             ::Symbol::SL_GLOBAL, code_off() + code_len_ - 1, 
                             0, UINT_MAX );
                 symbols_[ "winFini" ].push_back( fSym );

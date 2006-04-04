@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.131 2006/04/03 21:18:57 bernat Exp $
+// $Id: BPatch.C,v 1.132 2006/04/04 01:10:12 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1207,10 +1207,8 @@ void BPatch::registerThreadExit(process *proc, long tid)
         if (cb)
             (*cb)(bpprocess, thrd);
     }
-
+   bpprocess->deleteBPThread(thrd);
    continueIfExists(pid);
-    
-
 }
 
 
