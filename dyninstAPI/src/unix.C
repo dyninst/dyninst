@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.179 2006/04/04 01:07:29 mirg Exp $
+// $Id: unix.C,v 1.180 2006/04/04 02:25:30 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -1423,21 +1423,6 @@ const char *dbiEventType2str(DBIEventType t)
 #include <sys/types.h>
 #include <dirent.h>
 
-SignalGenerator::SignalGenerator(char *idstr, pdstring file, pdstring dir,
-                                 pdvector<pdstring> *argv,
-                                 pdvector<pdstring> *envp,
-                                 pdstring inputFile,
-                                 pdstring outputFile,
-                                 int stdin_fd, int stdout_fd,
-                                 int stderr_fd) :
-    SignalGeneratorCommon(idstr),
-    waiting_for_stop(false) {
-    setupCreated(file, dir, 
-                 argv, envp, 
-                 inputFile, outputFile,
-                 stdin_fd, stdout_fd, stderr_fd);
-}
-
 /// Experiment: wait for the process we're attaching to to be created
 // before we return. 
 
@@ -1468,3 +1453,43 @@ SignalGenerator::SignalGenerator(char *idstr, pdstring file, int pid)
     if (dirName)
       closedir(dirName);
 } 
+
+void EventRecord::clear() {
+    proc = NULL;
+    lwp = NULL;
+    type = evtUndefined;
+    what = 0;
+    status = statusUnknown;
+    info = 0;
+    address = 0;
+    fd = 0;
+}
+
+bool SignalHandler::forwardSigToProcess(EventRecord &ev, bool &continueHint) 
+{
+    signal_printf("%s[%d]: forwardSigToProcess\n", FILE__, __LINE__);
+    
+    // We continue the process here to ensure that the signal gets there
+
+    bool res = false;
+    if(process::IndependentLwpControl()) {
+        res = ev.lwp->continueLWP(ev.what);
+    } else {
+        res = ev.proc->continueProc(ev.what);
+    }
+    if (res == false) {
+        fprintf(stderr, "%s[%d]:  Couldn't forward signal %d to process %d\n",
+                FILE__, __LINE__, ev.what, ev.proc->getPid());
+        logLine("error  in forwarding  signal\n");
+        showErrorCallback(38, "Error  in forwarding  signal");
+        return false;
+    } 
+
+    // And so don't continue later.
+    continueHint = false;
+    return true;
+}
+
+bool SignalGeneratorCommon::postSignalHandler() {
+    return true;
+}

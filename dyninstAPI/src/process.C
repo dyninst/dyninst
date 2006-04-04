@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.601 2006/04/04 01:07:30 mirg Exp $
+// $Id: process.C,v 1.602 2006/04/04 02:25:29 legendre Exp $
 
 #include <ctype.h>
 
@@ -1959,6 +1959,7 @@ process::process(SignalGenerator *sh_) :
     multiTrampDict(intHash),
     replacedFunctionCalls_(addrHash4),
     bootstrapState(unstarted_bs),
+    loadDyninstLibAddr(0),
 #if defined(os_windows)
     main_breaks(addrHash4),
 #endif
@@ -2520,6 +2521,7 @@ process::process(const process *parentProc, SignalGenerator *sg_, int childTrace
     multiTrampDict(intHash), // Later
     replacedFunctionCalls_(addrHash4), // Also later
     bootstrapState(parentProc->bootstrapState),
+    loadDyninstLibAddr(0),
 #if defined(os_windows)
     main_breaks(addrHash4),
 #endif
@@ -2640,7 +2642,7 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
 }
 
 
-process *ll_attachProcess(const pdstring &progpath, int pid) 
+process *ll_attachProcess(const pdstring &progpath, int pid, void *container_proc_) 
 {
   // implementation of dynRPC::attach() (the igen call)
   // This is meant to be "the other way" to start a process (competes w/ createProcess)
@@ -2678,6 +2680,7 @@ process *ll_attachProcess(const pdstring &progpath, int pid)
     getMailbox()->executeCallbacks(FILE__, __LINE__);
     return NULL;
   }
+  theProc->container_proc = container_proc_;
 
   // Add this as we can't do _anything_ without a process to look up.
   processVec.push_back(theProc);
@@ -3938,7 +3941,7 @@ bool process::pause() {
 }
 
 //process::stop_ is only different on linux
-#if !defined(os_linux)
+#if !defined(os_linux) && !defined(os_windows)
 bool process::stop_(bool waitUntilStop)
 {
    assert(status_ == running);      
@@ -4958,8 +4961,8 @@ bool process::continueProc(int signalToContinueWith)
   return true;
 }
 
-//Only different on Linux
-#if !defined(os_linux)
+//Only different on Linux and Windows
+#if !defined(os_linux) && !defined(os_windows)
 bool process::continueProc_(int sig)
 {
   if (status_ == running)
@@ -5772,6 +5775,12 @@ void process::deleteLWP(dyn_lwp *lwp_to_delete) {
    lwps_to_delete.push_back(lwp_to_delete);
 }
 
+#if !defined(os_windows)
+void process::deleteThread_(dyn_thread * /*thr*/) {
+    //Architecture specific deleteThread_ only needed on windows
+}
+#endif
+
 void process::deleteThread(dynthread_t tid)
 {
   processState newst = running;
@@ -5787,6 +5796,7 @@ void process::deleteThread(dynthread_t tid)
          newst = stopped;
       continue;
     } 
+    deleteThread_(thr);
     //Delete the thread
     getRpcMgr()->deleteThread(thr);
     delete thr;
@@ -5944,8 +5954,7 @@ void process::recognize_threads(const process *parent)
      assert(status() == stopped);
      
      BPatch_process *bproc = BPatch::bpatch->getProcessByPid(getPid());
-     for (i = 0; i < ret_lwps.size(); ++i) {
-         
+     for (i = 0; i < ret_lwps.size(); ++i) {         
          BPatch_thread *bpthrd = NULL;
          // Wait for the thread to show up...
          int timeout = 0;
@@ -6265,8 +6274,10 @@ void process::debugSuicide() {
     }
 }
 
+dyn_lwp *process::getInitialLwp() const {
+  return getInitialThread()->get_lwp();
+}
 
 int process::getPid() const { return sh ? sh->getPid() : -1;}
 
-/* vim: set ts=5: */
 
