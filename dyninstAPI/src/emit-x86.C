@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.21 2006/02/17 17:17:06 rutar Exp $
+ * $Id: emit-x86.C,v 1.22 2006/04/04 17:32:22 rutar Exp $
  */
 
 #include <assert.h>
@@ -330,9 +330,41 @@ bool Emitter32::emitBTSaves(baseTramp* bt, codeGen &gen)
     emitMovRegToReg(REGNUM_EBP, REGNUM_ESP, gen);
     
     if (bt->isConservative() && regSpace->getSPFlag() && BPatch::bpatch->isSaveFPROn()) {
-        // Allocate space for temporaries and floating points
-        emitOpRegImm(5, REGNUM_ESP, TRAMP_FRAME_SIZE+FSAVE_STATE_SIZE, gen);
-        emitOpRegRM(FSAVE, FSAVE_OP, REGNUM_EBP, -(TRAMP_FRAME_SIZE) - FSAVE_STATE_SIZE, gen);
+      if (regSpace->hasXMM)
+	{
+	  // Allocate space for temporaries
+	  emitOpRegImm(5, REGNUM_ESP, TRAMP_FRAME_SIZE, gen);
+
+	  // need to save the floating point state (x87, MMX, SSE)
+	  // we do this on the stack, but the problem is that the save
+	  // area must be 16-byte aligned. the following sequence does
+	  // the job:
+	  //   mov %esp, %eax          ; copy the current stack pointer
+	  //   sub $512, %esp          ; allocate space
+	  //   and $0xfffffff0, %esp   ; make sure we're aligned (allocates some more space)
+	  //   fxsave (%esp)           ; save the state
+	  //   push %eax               ; save the old stack pointer
+	  
+	  emitMovRegToReg(REGNUM_EAX, REGNUM_ESP, gen);
+	  emitOpRegImm(5, REGNUM_ESP, 512, gen);
+	  emitOpRegImm(4, REGNUM_ESP, -16, gen);
+	  
+	  // fxsave (%rsp) ; 0x0f 0xae 0x04 0x24
+	  GET_PTR(insn, gen);
+	  *insn++ = 0x0f;
+	  *insn++ = 0xae;
+	  *insn++ = 0x04;
+	  *insn++ = 0x24;
+	  SET_PTR(insn, gen);
+	  
+	  emitSimpleInsn(0x50 + REGNUM_EAX, gen); /* Push EAX */
+	}
+      else
+	{
+	  // Allocate space for temporaries and floating points
+	  emitOpRegImm(5, REGNUM_ESP, TRAMP_FRAME_SIZE+FSAVE_STATE_SIZE, gen);
+	  emitOpRegRM(FSAVE, FSAVE_OP, REGNUM_EBP, -(TRAMP_FRAME_SIZE) - FSAVE_STATE_SIZE, gen);
+	}
     } else {
         // Allocate space for temporaries
         emitOpRegImm(5, REGNUM_ESP, TRAMP_FRAME_SIZE, gen);
@@ -343,7 +375,25 @@ bool Emitter32::emitBTSaves(baseTramp* bt, codeGen &gen)
 bool Emitter32::emitBTRestores(baseTramp* bt, codeGen &gen)
 {
     if (bt->isConservative() && regSpace->getSPFlag() && BPatch::bpatch->isSaveFPROn()) {
-        emitOpRegRM(FRSTOR, FRSTOR_OP, REGNUM_EBP, -TRAMP_FRAME_SIZE - FSAVE_STATE_SIZE, gen);
+      if (regSpace->hasXMM)
+	{
+	  // pop the old ESP value into EAX
+	  emitSimpleInsn(0x58 + REGNUM_EAX, gen);
+
+	  // restore saved FP state
+	  // fxrstor (%rsp) ; 0x0f 0xae 0x04 0x24
+	  GET_PTR(insn, gen);
+	  *insn++ = 0x0f;
+	  *insn++ = 0xae;
+	  *insn++ = 0x0c;
+	  *insn++ = 0x24;
+	  SET_PTR(insn, gen);
+	  
+	  // restore stack pointer (deallocates FP save area)
+	  emitMovRegToReg(REGNUM_ESP, REGNUM_EAX, gen);
+	}
+      else
+	emitOpRegRM(FRSTOR, FRSTOR_OP, REGNUM_EBP, -TRAMP_FRAME_SIZE - FSAVE_STATE_SIZE, gen);
     }
     emitSimpleInsn(LEAVE, gen);
     if (bt->rpcMgr_ == NULL)

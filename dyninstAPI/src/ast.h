@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.h,v 1.87 2006/03/13 20:01:23 rutar Exp $
+// $Id: ast.h,v 1.88 2006/04/04 17:32:22 rutar Exp $
 
 #ifndef AST_HDR
 #define AST_HDR
@@ -140,6 +140,7 @@ class registerSpace {
 	void resetLiveDeadInfo(const int* liveRegs,
 			       const int *, const int *, bool);
 
+
 	// Check to see if the register is free
 	bool isFreeRegister(Register k);
 	bool getDisregardLiveness() {return disregardLiveness;}
@@ -201,7 +202,11 @@ class registerSpace {
 	registerSlot *fpRegisters;
 	int spFlag;
 	bool disregardLiveness; // for RPC base tramps
-   bool is_multithreaded;
+	bool is_multithreaded;
+ public:
+	bool hasXMM;  // for Intel architectures, XMM registers
+ 
+
 #if defined(ia64_unknown_linux2_4)
 
 public:

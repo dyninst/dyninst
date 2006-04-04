@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.237 2006/03/14 22:57:26 legendre Exp $
+ * $Id: inst-x86.C,v 1.238 2006/04/04 17:32:22 rutar Exp $
  */
 #include <iomanip>
 
@@ -85,6 +85,9 @@ extern bool relocateFunction(process *proc, instPoint *&location);
 extern bool isPowerOf2(int value, int &result);
 void BaseTrampTrapHandler(int); //siginfo_t*, ucontext_t*);
 
+
+extern "C" int cpuidCall();
+
 /****************************************************************************/
 /****************************************************************************/
 /****************************************************************************/
@@ -125,6 +128,20 @@ Register deadList64[] = {/* callee saved */REGNUM_RBX,
 			 /* params, caller saved*/REGNUM_RDX, REGNUM_RSI, REGNUM_RDI};
 int deadList64Size = sizeof(deadList64);
 
+/* This makes a call to the cpuid instruction, which returns an int where each bit is 
+   a feature.  Bit 24 contains whether fxsave is possible, meaning that xmm registers
+   are saved. */
+bool xmmCapable()
+{
+  int features = cpuidCall();
+  char * ptr = (char *)&features;
+  ptr += 3;
+  if (0x1 & (*ptr))
+    return TRUE;
+  else
+    return FALSE;
+}
+
 void initTramps(bool is_multithreaded)
 {
 
@@ -145,12 +162,15 @@ void initTramps(bool is_multithreaded)
 
     regSpace32 = new registerSpace(deadList32Size/sizeof(Register), deadList32,
 				   0, NULL, is_multithreaded);
+    /* We'll use this later to determine how we save FP's. */
+    regSpace32->hasXMM = xmmCapable();
 
     regSpace64 = new registerSpace(deadList64Size/sizeof(Register), deadList64,
 				   0, NULL, is_multithreaded);
 
     // default to 32-bit
     regSpace = regSpace32;
+
 }
 
 
@@ -777,7 +797,7 @@ Register emitFuncCall(opCode op,
                       const pdvector<AstNode *> &ifForks,
                       const instPoint *location)
 {
-    return x86_emitter->emitCall(op, rs, gen, operands, proc, noCost, callee_addr, ifForks, location);
+  return x86_emitter->emitCall(op, rs, gen, operands, proc, noCost, callee_addr, ifForks, location);
 }
 
 
@@ -803,23 +823,23 @@ bool Emitter32::clobberAllFuncCall( registerSpace *rs,
 	 
 	   //while there are still instructions to check for in the
 	   //address space of the function
-	 
-	 while (ah.hasMore()) 
+	   while (ah.hasMore()) 
 	   {
 	     if (ah.isFPWrite())
 	       return true;
-	     if (ah.isACallInstruction()){
-	       if (level >= 1)
-		 return true;
-	       else
-		 {
-		   Address callAddr = ah.getCallTarget();
-		   if (clobberAllFuncCall(rs, proc, callAddr,level+1))
-		     return true;
-		 }
-	     }
+	     if (ah.isACallInstruction())
+	       {
+		 if (level >= 1)
+		   return true;
+		 else
+		   {
+		     Address callAddr = ah.getCallTarget();
+		     if (clobberAllFuncCall(rs, proc, callAddr,level+1))
+		       return true;
+		   }
+	       }
 	     ah++;
-	   }
+	   }  
 	 }
      }
    return false;
@@ -910,7 +930,7 @@ Register Emitter32::emitCall(opCode op,
 
    // Figure out if we need to save FPR in base tramp
    bool useFPR = clobberAllFuncCall(rs, proc, callee_addr,0);
-      
+   
    if (location != NULL)
       setFPSaveOrNot(location->liveFPRegisters, useFPR);
 

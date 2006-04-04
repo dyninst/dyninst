@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.29 2006/03/12 23:31:20 legendre Exp $
+# $Id: Makefile,v 1.30 2006/04/04 17:33:31 rutar Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -27,6 +27,7 @@ SRCS =          ../src/linux.C \
 		../src/dynamiclinking.C \
 		../src/linuxMT.C \
                 ../src/inst-linux.C \
+		../src/cpuid-x86.S \
                 ../src/inst-x86.C \
 		../src/emit-x86.C \
                 ../src/arch-x86.C \

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.5 2005/06/09 17:20:49 gquinn Exp $
+# $Id: Makefile,v 1.6 2006/04/04 17:34:18 rutar Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -19,6 +19,7 @@ LDFLAGS	= -DLL -debug -pdb:none -export:V_libdyninstAPI   /NODEFAULTLIB:libc.lib
 
 SRCS =		../src/pdwinnt.C \
 		../src/inst-winnt.C \
+		../src/cpuid-x86.S \
 		../src/inst-x86.C \
 		../src/emit-x86.C \
 		../src/func-reloc.C \

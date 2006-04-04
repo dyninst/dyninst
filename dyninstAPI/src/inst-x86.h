@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-x86.h,v 1.24 2006/03/12 23:32:01 legendre Exp $
+// $Id: inst-x86.h,v 1.25 2006/04/04 17:32:22 rutar Exp $
 
 #ifndef INST_X86_H
 #define INST_X86_H
@@ -231,5 +231,10 @@ void emitCallRel32(unsigned disp32, codeGen &gen);
 void emitJmpMC(int condition, int offset, codeGen &gen);
 // helper functions for emitters
 unsigned char jccOpcodeFromRelOp(unsigned op);
+
+
+// function that uses cpuid instruction to figure out whether the processor uses 
+// XMM registers
+bool xmmCapable();
 
 #endif
