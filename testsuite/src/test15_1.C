@@ -43,10 +43,14 @@
 #include <BPatch_process.h>
 #include <BPatch_thread.h>
 #include <stdio.h>
-#include <unistd.h>
 #include <stdarg.h>
 #include "test_lib.h"
 
+#if defined(os_windows)
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
 #define NUM_THREADS 5 // one controller, four workers
 #define TIMEOUT 20
 
@@ -63,8 +67,8 @@ unsigned error15 = 0;
 bool debug_flag = false;
 #define dprintf if (debug_flag) fprintf
 
-#define NUM_FUNCS 5
-char initial_funcs[NUM_FUNCS][25] = {"init_func", "main", "_start", "__start", "__libc_start_main"};
+#define NUM_FUNCS 6
+char initial_funcs[NUM_FUNCS][25] = {"init_func", "main", "_start", "__start", "__libc_start_main", "mainCRTStartup"};
 
 void newthr(BPatch_process *my_proc, BPatch_thread *thr)
 {
@@ -92,12 +96,16 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
          break;
       }
    dprintf(stderr, "%s[%d]:  newthr: %s\n", __FILE__, __LINE__, name);
+#if !defined(os_windows)
+   //Initial thread function detection is proving VERY difficult on Windows,
+   //currently leaving disabled.
    if (!found_name)
    {
       fprintf(stderr, "[%s:%d] - Thread %d has '%s' as initial function\n",
               __FILE__, __LINE__, my_dyn_id, name);
       error15 = 1;
    }
+#endif
 
    //Check that thread_id is unique
    if (my_dyn_id >= NUM_THREADS)
@@ -170,6 +178,7 @@ static BPatch_process *getProcess()
       proc = bpatch->processCreate(filename, (const char **) args);
    else
    {
+#if !defined(os_windows)
       int pid = startNewProcessForAttach(filename, (const char **) args);
       if (pid < 0)
       {
@@ -178,6 +187,7 @@ static BPatch_process *getProcess()
          return NULL;
       }
       proc = bpatch->processAttach(filename, pid);      
+#endif
    }
    return proc;
 }
@@ -256,7 +266,7 @@ static int mutatorTest(BPatch *bpatch)
               __FILE__, __LINE__, thread_count, NUM_THREADS);
          return error_exit();
       }
-      sleep(1);
+      P_sleep(1);
    } while (thread_count < NUM_THREADS);
 
    BPatch_Vector<BPatch_thread *> thrds;
@@ -311,7 +321,7 @@ static int mutatorTest(BPatch *bpatch)
       printf("Passed test #1 (thread-specific oneTimeCodeAsync)\n");
    }
 
-   sleep(10);
+   P_sleep(10);
 
    // OneTimeCode each worker thread to allow it to exit
    for (unsigned i=1; i<NUM_THREADS; i++)

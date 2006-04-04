@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.6 2006/03/30 18:00:07 nater Exp $ */
+/* $Id: test1.mutatee.c,v 1.7 2006/04/04 01:10:43 legendre Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -1273,16 +1273,11 @@ void func20_1()
 void func21_1()
 {
      /* Nothing for the mutatee to do in this test (findFunction in module) */
-#if defined(sparc_sun_solaris2_4) \
- || defined(mips_sgi_irix6_4) \
- || defined(i386_unknown_solaris2_5) \
- || defined(i386_unknown_linux2_0) \
- || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(alpha_dec_osf4_0) \
- || defined(rs6000_ibm_aix4_1) \
- || defined(ia64_unknown_linux2_4) \
+#if defined(os_aix) \
+ || defined(os_osf) \
+ || defined(os_solaris) \
+ || defined(os_linux) \
  || defined(os_windows)
-
      printf("Passed test #21 (findFunction in module)\n");
      passedTest[21] = TRUE;
 #else
@@ -1304,65 +1299,37 @@ volatile int _unused;	/* move decl here to dump compiler warning - jkh */
 
 typedef int (*call_type)(int);
 
-#if !defined(os_windows)
-void getFuncs_22(call_type *call22_5, call_type *call22_6) {
-    char dlopenName[128];
-    void *handleA;
-    int dlopenMode;
-#if defined(os_solaris)
-    dlopenMode = RTLD_NOW | RTLD_GLOBAL;
-#else
-    dlopenMode = RTLD_NOW;
-#endif
-    *call22_5 = NULL;
-    *call22_6 = NULL;
-
-    _unused = sprintf(dlopenName, "./%s", libNameA);
-    handleA = dlopen(dlopenName, dlopenMode);
-    if (! handleA) {
-        fprintf(stderr, "Failed test 22.  Unable to open libTestA\n");
-        return;
-    }
-    *call22_5 = (call_type) dlsym(handleA, "call22_5");
-    *call22_6 = (call_type) dlsym(handleA, "call22_6");
-}
-#elif defined(os_windows)
-void getFuncs_22(call_type *call22_5, call_type *call22_6) {
-    char dlopenName[128];
-    HMODULE handle;
-    *call22_5 = NULL;
-    *call22_6 = NULL;
-    sprintf(dlopenName, "./%s", libNameA);
-    handle = LoadLibrary(libNameA);
-    if (!handle)
-        return;
-    *call22_5 = (call_type) GetProcAddress(handle, "call22_5");
-    *call22_6 = (call_type) GetProcAddress(handle, "call22_6");
-}
-#endif
-
 void func22_1()
 {
-#if !defined(os_solaris) && !defined(os_linux) && \
-    !defined(os_osf) && !defined(os_windows)
-
-    printf("Skipped test #22 (replace function)\n");
-    printf("\t- not implemented on this platform\n");
-    passedTest[22] = TRUE;
-#else
+#if defined(os_solaris) \
+ || defined(alpha_dec_osf4_0) \
+ || defined(os_linux) \
+ || defined(os_windows)
     /* libtestA.so should already be loaded (by the mutator), but we
        need to use the dl interface to get pointers to the functions
        it defines. */
+    int (*call22_5)(int);
+    int (*call22_6)(int);
+
+    void *handleA;
+    char dlopenName[128];
     int result;
-    call_type call22_5;
-    call_type call22_6;
-    getFuncs_22(&call22_5, &call22_6);
-    if (!call22_5 || !call22_6) {
-        fprintf(stderr, "Failed test #22.  Couldn't find function: ");
-        if (!call22_5) fprintf(stderr, "call22_5 ");
-        if (!call22_6) fprintf(stderr, "call22_6 ");
-        fprintf(stderr, "\n");
-        return;
+    _unused = sprintf(dlopenName, "./%s", libNameA);
+
+    handleA = loadDynamicLibrary(dlopenName);
+    if (! handleA) {
+	 printf("**Failed test #22 (replaceFunction)\n");
+	 printf("  Mutatee couldn't get handle for %s\n", libNameA);
+    }
+    call22_5 = (int(*)(int)) getFuncFromDLL(handleA, "call22_5");
+    if (! call22_5) {
+	 printf("**Failed test #22 (replaceFunction)\n");
+	 printf("  Mutatee couldn't get handle for call22_5 in %s\n", libNameA);
+    }
+    call22_6 = (int(*)(int)) getFuncFromDLL(handleA, "call22_6");
+    if (! call22_6) {
+	 printf("**Failed test #22 (replaceFunction)\n");
+	 printf("  Mutatee couldn't get handle for call22_6 in %s\n", libNameA);
     }
 
     /* Call functions that have been replaced by the mutator.  The
@@ -1389,6 +1356,10 @@ void func22_1()
 	 return;
     }
     printf("Passed test #22 (replace function)\n");
+    passedTest[22] = TRUE;
+#else
+    printf("Skipped test #22 (replace function)\n");
+    printf("\t- not implemented on this platform\n");
     passedTest[22] = TRUE;
 #endif
 }
@@ -1452,15 +1423,7 @@ void call23_1()
 
 void func23_1()
 {
-#if !defined(sparc_sun_solaris2_4) \
- && !defined(alpha_dec_osf4_0) \
- && !defined(rs6000_ibm_aix4_1) \
- && !defined(i386_unknown_linux2_0) \
- && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- && !defined(i386_unknown_solaris2_5) \
- && !defined(i386_unknown_nt4_0) \
- && !defined(ia64_unknown_linux2_4)
-
+#if defined(mips_sgi_irix6_4)
     printf("Skipped test #23 (local variables)\n");
     printf("\t- not implemented on this platform\n");
     passedTest[23] = TRUE;
@@ -2305,7 +2268,7 @@ void func35_1()
 #if defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
- || defined(sparc_sun_solaris2_4)
+ || defined(sparc_sun_solaris2_4)  
 
 #if !defined Fortran
 

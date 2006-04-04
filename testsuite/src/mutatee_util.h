@@ -44,10 +44,52 @@
 #ifndef _mutatee_util_h_
 #define _mutatee_util_h_
 
+#if defined(os_windows)
+
+#include <windows.h>
+
+#if !defined(INVALID_HANDLE)
+#define INVALID_HANDLE ((HANDLE) -1)
+#endif
+
+typedef CRITICAL_SECTION testlock_t;
+typedef struct  {
+    int threadid;
+    HANDLE hndl;
+} thread_t;
+
+#else
+
+#include <pthread.h>
+#include <unistd.h>
+typedef pthread_mutex_t testlock_t;
+typedef pthread_t thread_t;
+
+#endif
+
 extern void stop_process_();
 
-extern void *spawnNewThread(void *initial_func, void *param);
-extern void joinThread(void *threadid);
+extern thread_t spawnNewThread(void *initial_func, void *param);
+extern void joinThread(thread_t tid);
+extern int threads_equal(thread_t a, thread_t b);
 extern void initThreads();
+
+extern void initLock(testlock_t *newlock);
+extern void testLock(testlock_t *lck);
+extern void testUnlock(testlock_t *lck);
+extern thread_t threadSelf();
+extern int thread_int(thread_t a);
+extern void schedYield();
+
+extern void *loadDynamicLibrary(char *name);
+extern void *getFuncFromDLL(void *libhandle, char *func_name);
+
+#if !defined(P_sleep)
+#if defined(os_windows)
+#define P_sleep(sec) Sleep(1000*(sec))
+#else
+#define P_sleep(sec) sleep(sec)
+#endif
+#endif
 
 #endif /* _mutatee_util_h_ */

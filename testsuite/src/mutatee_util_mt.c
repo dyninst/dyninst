@@ -39,22 +39,28 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 #include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
+#include "mutatee_util.h"
 
 #if defined(os_windows)
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-void *spawnNewThread(void *initial_func, void *param) {
-    return (void *) CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) initial_func, 
-                                 param, 0, NULL);
-	return NULL;
+
+thread_t spawnNewThread(void *initial_func, void *param) {
+    thread_t newthr;
+    newthr.hndl = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE) initial_func, 
+                               param, 0, (LPDWORD) &(newthr.threadid));
+    return newthr;
 }
 
-void joinThread(void *threadid) {
+void joinThread(thread_t threadid) {
     HANDLE tid;
     DWORD result;
 
-    tid = (HANDLE) threadid;
+    tid = threadid.hndl;
+    assert(tid != INVALID_HANDLE);
     for (;;) {
         GetExitCodeThread(tid, &result);
         if (result != STILL_ACTIVE)
@@ -64,17 +70,51 @@ void joinThread(void *threadid) {
     CloseHandle(tid);
 }
 
+thread_t threadSelf() {
+    thread_t self;
+    self.hndl = INVALID_HANDLE;
+    self.threadid = GetCurrentThreadId();
+    return self;
+}
+
 void initThreads() {
+}
+
+void initLock(testlock_t *newlock) {
+    CRITICAL_SECTION *cs = (CRITICAL_SECTION *) newlock;
+    InitializeCriticalSection(cs);
+}
+
+void testLock(testlock_t *lck) {
+    CRITICAL_SECTION *cs = (CRITICAL_SECTION *) lck;
+    EnterCriticalSection(lck);
+}
+
+void testUnlock(testlock_t *lck) {
+    CRITICAL_SECTION *cs = (CRITICAL_SECTION *) lck;
+    LeaveCriticalSection(lck);
+}
+
+int threads_equal(thread_t a, thread_t b) {
+    return a.threadid == b.threadid;
+}
+
+int thread_int(thread_t a) {
+    return a.threadid;
+}
+
+void schedYield() {
+    Sleep(1);
 }
 
 #else
 #include <pthread.h>
 
 /*Spawn a posix thread with pthread_create*/
- void *spawnNewThread(void *initial_func, void *param) {
+thread_t spawnNewThread(void *initial_func, void *param) {
     static int initialized = 0;
     static pthread_attr_t attr;
-    pthread_t *new_thread;
+    pthread_t new_thread;
     int result;
 
     if (!initialized) {
@@ -83,24 +123,49 @@ void initThreads() {
         pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
     }
     
-    new_thread = (pthread_t *) malloc(sizeof(pthread_t));
-    if (!new_thread) return NULL;
-
-    result = pthread_create(new_thread, &attr, 
+    result = pthread_create(&new_thread, &attr, 
                             (void*(*)(void*)) initial_func, 
                             param);
     if (result != 0) {
-        return NULL;
+        return 0;
     }
-    return new_thread;
+    return (thread_t) new_thread;
 }
 
- void joinThread(void *threadid) {
-     pthread_t *p = (pthread_t *) threadid;
-     pthread_join(*p, NULL);
+ void joinThread(thread_t threadid) {
+     pthread_t p = (pthread_t) threadid;
+     pthread_join(p, NULL);
  }
 
 void initThreads() {
+}
+
+void initLock(testlock_t *newlock) {
+   pthread_mutex_init((pthread_mutex_t *) newlock, NULL);
+}
+
+void testLock(testlock_t *lck) {
+   pthread_mutex_lock((pthread_mutex_t *) lck);
+}
+
+void testUnlock(testlock_t *lck) {
+   pthread_mutex_unlock((pthread_mutex_t *) lck);
+}
+
+thread_t threadSelf() {
+    return (thread_t) pthread_self();
+}
+
+int threads_equal(thread_t a, thread_t b) {
+    return a == b;
+}
+
+int thread_int(thread_t a) {
+    return (int) a;
+}
+
+void schedYield() {
+    sched_yield();
 }
 
 #endif

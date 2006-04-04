@@ -6,6 +6,8 @@
 
 #if !defined(os_windows)
 #include <unistd.h>
+#else
+#include <windows.h>
 #endif
 
 #define NTHRD 4
@@ -16,10 +18,7 @@ volatile int proc_current_state;
 
 void *init_func(void *arg)
 {
-   while (!done)
-   {
-      /*      sleep(1);*/
-   }
+   while (!done) { }
    return arg;
 }
 
@@ -41,7 +40,7 @@ int main(int argc, char *argv[])
 {
    unsigned i;
    char c = 'T';
-   void *threads[NTHRD];
+   thread_t threads[NTHRD];
 
 #if defined(os_osf)
    return 0;

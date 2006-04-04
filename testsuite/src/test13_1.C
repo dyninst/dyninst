@@ -59,8 +59,8 @@ static int deleted_threads;
 
 bool debug_flag = false;
 #define dprintf if (debug_flag) fprintf
-#define NUM_FUNCS 5
-char initial_funcs[NUM_FUNCS][25] = {"init_func", "main", "_start", "__start", "__libc_start_main"};
+#define NUM_FUNCS 6
+char initial_funcs[NUM_FUNCS][25] = {"init_func", "main", "_start", "__start", "__libc_start_main", "mainCRTStartup"};
 
 void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
 {
@@ -78,7 +78,7 @@ void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
    }
    deleted_tids[my_dyn_id] = 1;
    deleted_threads++;
-   dprintf(stderr, "%s[%d]:  leaving to deadthr\n", __FILE__, __LINE__);
+   dprintf(stderr, "%s[%d]:  leaving to deadthr, %d is dead\n", __FILE__, __LINE__, my_dyn_id);
 }
 
 void newthr(BPatch_process *my_proc, BPatch_thread *thr)
@@ -114,13 +114,16 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
          break;
       }
    dprintf(stderr, "%s[%d]:  newthr: %s\n", __FILE__, __LINE__, name);
+#if !defined(os_windows)
+   //Initial thread function detection is proving VERY difficult on Windows,
+   //currently leaving disabled.
    if (!found_name)
    {
       fprintf(stderr, "[%s:%d] - Thread %d has '%s' as initial function\n",
               __FILE__, __LINE__, my_dyn_id, name);
       error13 = 1;
    }
-
+#endif
    //Check that thread_id is unique
    if (my_dyn_id >= NUM_THREADS)
    {
@@ -290,7 +293,7 @@ static int mutatorTest(BPatch *bpatch)
    while (!proc->isTerminated())
       bpatch->waitForStatusChange();
 
-   sleep(10); // wait for thread delete callbacks to run
+   P_sleep(10); // wait for thread delete callbacks to run
 
    for (unsigned i=1; i<NUM_THREADS; i++)
    {

@@ -68,7 +68,6 @@ void instr_func(BPatch_function *func, BPatch_function *lvl1func)
 
 extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 {
-   int i;
    const char *child_prog;
    const char *child_args[2] = { NULL, NULL };
 
