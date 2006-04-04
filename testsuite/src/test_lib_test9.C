@@ -110,6 +110,32 @@ void changePath(char *path){
 
 }
 
+static int preloadMutatedRT(const char *path)
+{
+    char *rt_lib_name = getenv("DYNINSTAPI_RT_LIB");
+    if (rt_lib_name == 0) {
+	fprintf(stderr, "preloadMutatedRT: DYNINSTAPI_RT_LIB is undefined\n");
+	return (-1);
+    }
+    char *rt_lib_base = strrchr(rt_lib_name, '/');
+    if (rt_lib_base == 0) {
+	fprintf(stderr,
+		"preloadMutatedRT: DYNINSTAPI_RT_LIB not a full path\n");
+	return (-1);
+    }
+    const char *var_prefix = "LD_PRELOAD=";
+    char *ld_preload = new char[strlen(var_prefix) + strlen(path) +
+				strlen(rt_lib_base) + 1];
+    strcpy(ld_preload, var_prefix);
+    strcat(ld_preload, path);
+    strcat(ld_preload, rt_lib_base); // starts with a slash
+    if (putenv(ld_preload) < 0) {
+	perror("preloadMutatedRT: putenv error");
+	return (-1);
+    }
+    return 0;
+}
+
 int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 
    pid_t pid;
@@ -164,6 +190,9 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 				if( strstr(environ[i], "LD_LIBRARY_PATH=") ){
 					environ[i] = newLDPATH;
 				}
+			}
+			if (preloadMutatedRT(path) < 0) {
+			    return (-1);
 			}
 #if  defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4)
