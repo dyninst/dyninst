@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.238 2006/04/04 17:32:22 rutar Exp $
+ * $Id: inst-x86.C,v 1.239 2006/04/04 22:39:53 rutar Exp $
  */
 #include <iomanip>
 
@@ -128,19 +128,7 @@ Register deadList64[] = {/* callee saved */REGNUM_RBX,
 			 /* params, caller saved*/REGNUM_RDX, REGNUM_RSI, REGNUM_RDI};
 int deadList64Size = sizeof(deadList64);
 
-/* This makes a call to the cpuid instruction, which returns an int where each bit is 
-   a feature.  Bit 24 contains whether fxsave is possible, meaning that xmm registers
-   are saved. */
-bool xmmCapable()
-{
-  int features = cpuidCall();
-  char * ptr = (char *)&features;
-  ptr += 3;
-  if (0x1 & (*ptr))
-    return TRUE;
-  else
-    return FALSE;
-}
+
 
 void initTramps(bool is_multithreaded)
 {
@@ -162,8 +150,10 @@ void initTramps(bool is_multithreaded)
 
     regSpace32 = new registerSpace(deadList32Size/sizeof(Register), deadList32,
 				   0, NULL, is_multithreaded);
+
     /* We'll use this later to determine how we save FP's. */
     regSpace32->hasXMM = xmmCapable();
+
 
     regSpace64 = new registerSpace(deadList64Size/sizeof(Register), deadList64,
 				   0, NULL, is_multithreaded);
@@ -172,6 +162,29 @@ void initTramps(bool is_multithreaded)
     regSpace = regSpace32;
 
 }
+
+
+
+/* This makes a call to the cpuid instruction, which returns an int where each bit is 
+   a feature.  Bit 24 contains whether fxsave is possible, meaning that xmm registers
+   are saved. */
+#if !defined(x86_64_unknown_linux2_4)
+bool xmmCapable()
+{
+  int features = cpuidCall();
+  char * ptr = (char *)&features;
+  ptr += 3;
+  if (0x1 & (*ptr))
+    return true;
+  else
+    return false;
+}
+#else
+bool xmmCapable()
+{
+  return true;
+}
+#endif
 
 
 bool baseTramp::generateSaves(codeGen& gen, registerSpace*) {
