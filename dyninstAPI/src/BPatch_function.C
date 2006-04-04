@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.75 2006/03/28 19:59:55 rutar Exp $
+// $Id: BPatch_function.C,v 1.76 2006/04/04 01:10:54 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -246,7 +246,7 @@ char *BPatch_function::getTypedNameInt(char *s, int len)
 bool BPatch_function::getNamesInt(BPatch_Vector<const char *> &names)
 {
     assert(func);
-    int pre_size = names.size();
+    unsigned pre_size = names.size();
 
     for (unsigned i = 0; i < func->prettyNameVector().size(); i++) {
         names.push_back(func->prettyNameVector()[i].c_str());
@@ -268,7 +268,7 @@ bool BPatch_function::getNamesInt(BPatch_Vector<const char *> &names)
 bool BPatch_function::getMangledNamesInt(BPatch_Vector<const char *> &names)
 {
     assert(func);
-    int pre_size = names.size();
+    unsigned pre_size = names.size();
 
     for (unsigned i = 0; i < func->symTabNameVector().size(); i++) {
         names.push_back(func->symTabNameVector()[i].c_str());

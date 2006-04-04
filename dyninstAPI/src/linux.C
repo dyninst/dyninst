@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.205 2006/04/03 22:25:29 tlmiller Exp $
+// $Id: linux.C,v 1.206 2006/04/04 01:10:57 legendre Exp $
 
 #include <fstream>
 
@@ -599,8 +599,6 @@ bool dyn_lwp::isRunning() const
 bool SignalGenerator::suppressSignalWhenStopping(EventRecord &ev)
 {
  
-  bool suppressed_something = false;
-
   if ( ev.what == SIGSTOP )
      return false;
 

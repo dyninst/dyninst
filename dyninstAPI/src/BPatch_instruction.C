@@ -132,7 +132,6 @@ BPatch_point *BPatch_instruction::getInstPointInt()
   instPoint *p = NULL;
 
   if ((p = proc->findInstPByAddr((Address)addr))) {
-    fprintf(stderr, "%s[%d]:  point exists at requested address\n", FILE__, __LINE__);
     return bpproc->findOrCreateBPPoint(NULL, p, BPatch_locInstruction);
   }
 
