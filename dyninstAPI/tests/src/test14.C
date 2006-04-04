@@ -76,7 +76,6 @@ void instr_func(BPatch_function *func, BPatch_function *lvl1func)
 
 static BPatch_process *getProcess()
 {
-   int i = 0;
    args[0] = filename;
 
    BPatch_process *proc;
