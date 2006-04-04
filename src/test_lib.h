@@ -86,8 +86,8 @@ TESTLIB_DLL_EXPORT void checkCost(BPatch_snippet snippet);
 // For Fortran, will look for lowercase variable, if mixed case not found
 TESTLIB_DLL_EXPORT BPatch_variableExpr *findVariable(BPatch_image *appImage, 
                                   const char* var,
-                                  BPatch_Vector <BPatch_point *> *point, 
-                                  int mutateeFortran = 0);
+                                  BPatch_Vector <BPatch_point *> *point);
+
 
 TESTLIB_DLL_EXPORT void setDebugPrint(int debug);
 

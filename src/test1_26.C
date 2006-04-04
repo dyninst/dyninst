@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test1_26.C,v 1.5 2006/04/01 06:33:07 bpellin Exp $
+// $Id: test1_26.C,v 1.6 2006/04/04 20:17:15 jodom Exp $
 /*
  * #Name: test1_26
  * #Desc: Struct Elements
@@ -104,7 +104,7 @@ int mutatorTest(BPatch_thread *appThread, BPatch_image *appImage)
 	    char name[80];
 
 	    sprintf (name, "globalVariable26_%d", i);
-	    gvar [i] = findVariable(appImage, name, point26_2, mutateeFortran);
+	    gvar [i] = findVariable(appImage, name, point26_2);
 
 	    if (!gvar[i]) {
 		fprintf(stderr, "**Failed** test #26 (struct elements)\n");
