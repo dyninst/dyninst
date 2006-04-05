@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.11 2006/04/04 20:17:15 jodom Exp $
+// $Id: test_lib.C,v 1.12 2006/04/05 23:39:36 legendre Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -161,99 +161,166 @@ void setDebugPrint(int debug) {
    debugPrint = debug;
 }
 
+#if !defined(os_windows)
+#if !defined(os_linux)
+pid_t fork_mutatee() {
+   return fork();
+}
+#else
+pid_t fork_mutatee() {
+   /**
+    * Perform a granchild fork.  This code forks off a child, that child
+    * then forks off a granchild.  The original child then exits, making
+    * the granchild's new parent init.  Both the original process and the
+    * granchild then exit from this function.
+    *
+    * This works around a linux kernel bug in kernel version 2.6.9 to
+    * 2.6.11, see https://www.dyninst.org/emails/2006/5676.html for
+    * details.
+    **/
+   int status, result;
+   pid_t gchild_pid, child_pid;
+   int filedes[2];
 
+   pipe(filedes);
 
+   child_pid = fork();
+   if (child_pid < 0) {
+      close(filedes[0]);
+      close(filedes[1]);
+      return child_pid;
+   }
 
+   if (child_pid) {
+      //Read the grandchild pid from the child.
+      result = read(filedes[0], &gchild_pid, sizeof(pid_t));
+      if (result == -1) {
+         perror("Couldn't read from pipe");
+      }
+
+      int options = 0;
+      do {
+         result = waitpid(child_pid, &status, options);
+         if (result != child_pid) {
+            perror("Couldn't join child");
+            break;
+         }
+      } while (!WIFEXITED(status));
+      close(filedes[0]);
+      close(filedes[1]);
+      return gchild_pid;
+   }
+   //Child
+   
+   gchild_pid = fork();
+   if (gchild_pid) {
+      //Child pid, send grand child pid to parent then terminate
+      result = write(filedes[1], &gchild_pid, sizeof(pid_t));
+      if (result == -1) {
+         perror("Couldn't write to parent");
+      }         
+      close(filedes[0]);
+      close(filedes[1]);
+      exit(0);
+   }   
+
+   //Granchild
+   close(filedes[0]);
+   close(filedes[1]);
+   return 0;
+}
+#endif
+#endif
 
 //
 // Create a new process and return its process id.  If process creation 
 // fails, this function returns -1.
 //
-int startNewProcessForAttach(const char *pathname, const char *argv[])
-{
+ int startNewProcessForAttach(const char *pathname, const char *argv[])
+    {
 #if defined(i386_unknown_nt4_0)
-    char child_args[1024];
-    strcpy(child_args, "");
-    if (argv[0] != NULL) {
-	strcpy(child_args, pathname);
-	for (int i = 1; argv[i] != NULL; i++) {
-	    strcat(child_args, " ");
-	    strcat(child_args, argv[i]);
-	}	    
-	strcat(child_args, " -attach");
-    }
+       char child_args[1024];
+       strcpy(child_args, "");
+       if (argv[0] != NULL) {
+          strcpy(child_args, pathname);
+          for (int i = 1; argv[i] != NULL; i++) {
+             strcat(child_args, " ");
+             strcat(child_args, argv[i]);
+          }	    
+          strcat(child_args, " -attach");
+       }
 
-    STARTUPINFO si;
-    memset(&si, 0, sizeof(STARTUPINFO));
-    si.cb = sizeof(STARTUPINFO);
-    PROCESS_INFORMATION pi;
-    if (!CreateProcess(pathname,	// application name
-		       child_args,	// command line
-		       NULL,		// security attributes
-		       NULL,		// thread security attributes
-		       FALSE,		// inherit handles
-		       0,		// creation flags
-		       NULL,		// environment,
-		       NULL,		// current directory
-		       &si,
-		       &pi)) {
-	return -1;
-    }
+       STARTUPINFO si;
+       memset(&si, 0, sizeof(STARTUPINFO));
+       si.cb = sizeof(STARTUPINFO);
+       PROCESS_INFORMATION pi;
+       if (!CreateProcess(pathname,	// application name
+                          child_args,	// command line
+                          NULL,		// security attributes
+                          NULL,		// thread security attributes
+                          FALSE,		// inherit handles
+                          0,		// creation flags
+                          NULL,		// environment,
+                          NULL,		// current directory
+                          &si,
+                          &pi)) {
+          return -1;
+       }
 
-    return pi.dwProcessId;
+       return pi.dwProcessId;
 #else
-    /* Make a pipe that we will use to signal that the mutatee has started. */
-    int fds[2];
-    if (pipe(fds) != 0) {
-	fprintf(stderr, "*ERROR*: Unable to create pipe.\n");
-        return -1;
-    }
+       /* Make a pipe that we will use to signal that the mutatee has started. */
+       int fds[2];
+       if (pipe(fds) != 0) {
+          fprintf(stderr, "*ERROR*: Unable to create pipe.\n");
+          return -1;
+       }
 
-    /* Create the argv string for the child process. */
-    char fdstr[32];
-    sprintf(fdstr, "%d", fds[1]);
+       /* Create the argv string for the child process. */
+       char fdstr[32];
+       sprintf(fdstr, "%d", fds[1]);
 
-    int i;
-    for (i = 0; argv[i] != NULL; i++) ;
-    const char **attach_argv = (const char**)malloc(sizeof(char *) * (i + 3));
+       int i;
+       for (i = 0; argv[i] != NULL; i++) ;
+       const char **attach_argv = (const char**)malloc(sizeof(char *) * (i + 3));
 
-    for (i = 0; argv[i] != NULL; i++)
-	attach_argv[i] = argv[i];
-    attach_argv[i++] = const_cast<char*>("-attach");
-    attach_argv[i++] = fdstr;
-    attach_argv[i++] = NULL;
+       for (i = 0; argv[i] != NULL; i++)
+          attach_argv[i] = argv[i];
+       attach_argv[i++] = const_cast<char*>("-attach");
+       attach_argv[i++] = fdstr;
+       attach_argv[i++] = NULL;
 
-    int pid = fork();
-    if (pid == 0) {
-	// child
-	close(fds[0]); // We don't need the read side
-	execv(pathname, (char * const *)attach_argv);
-        return -1;
-    } else if (pid < 0) {
-	return -1;
-    }
+       int pid = fork_mutatee();
+       if (pid == 0) {
+          // child
+          close(fds[0]); // We don't need the read side
+          execv(pathname, (char * const *)attach_argv);
+          return -1;
+       } else if (pid < 0) {
+          return -1;
+       }
 
-    // parent
-    close(fds[1]);  // We don't need the write side
+       // parent
+       close(fds[1]);  // We don't need the write side
 
-    // Wait for the child to write to the pipe
-    char ch;
-    if (read(fds[0], &ch, sizeof(char)) != sizeof(char)) {
-	perror("read");
-	fprintf(stderr, "*ERROR*: Error reading from pipe\n");
-        return -1;
-    }
+       // Wait for the child to write to the pipe
+       char ch;
+       if (read(fds[0], &ch, sizeof(char)) != sizeof(char)) {
+          perror("read");
+          fprintf(stderr, "*ERROR*: Error reading from pipe\n");
+          return -1;
+       }
 
-    if (ch != 'T') {
-	fprintf(stderr, "*ERROR*: Child didn't write expected value to pipe.\n");
-        return -1;
-    }
+       if (ch != 'T') {
+          fprintf(stderr, "*ERROR*: Child didn't write expected value to pipe.\n");
+          return -1;
+       }
 
-    close(fds[0]);  // We're done with the pipe
+       close(fds[0]);  // We're done with the pipe
 
-    return pid;
+       return pid;
 #endif
-}
+    }
 
 
 // control debug printf statements
