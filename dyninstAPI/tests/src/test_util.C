@@ -40,12 +40,14 @@
  */
 
 //
-// $Id: test_util.C,v 1.21 2006/02/04 06:45:00 jaw Exp $
+// $Id: test_util.C,v 1.22 2006/04/05 23:39:35 legendre Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
 #include <stdio.h>
 #include <signal.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 10 apr 2001 
 #ifndef mips_unknown_ce2_11 //ccw 10 apr 2001
@@ -128,6 +130,76 @@ void signalAttached(BPatch_thread* /*appThread*/, BPatch_image *appImage)
     isAttached->writeValue(&yes);
 }
 
+#if !defined(os_windows)
+#if !defined(os_linux)
+pid_t fork_mutatee() {
+   return fork();
+}
+#else
+pid_t fork_mutatee() {
+   /**
+    * Perform a granchild fork.  This code forks off a child, that child
+    * then forks off a granchild.  The original child then exits, making
+    * the granchild's new parent init.  Both the original process and the
+    * granchild then exit from this function.
+    *
+    * This works around a linux kernel bug in kernel version 2.6.9 to
+    * 2.6.11, see https://www.dyninst.org/emails/2006/5676.html for
+    * details.
+    **/
+   int status, result;
+   pid_t gchild_pid, child_pid;
+   int filedes[2];
+
+   pipe(filedes);
+
+   child_pid = fork();
+   if (child_pid < 0) {
+      close(filedes[0]);
+      close(filedes[1]);
+      return child_pid;
+   }
+
+   if (child_pid) {
+      //Read the grandchild pid from the child.
+      result = read(filedes[0], &gchild_pid, sizeof(pid_t));
+      if (result == -1) {
+         perror("Couldn't read from pipe");
+      }
+
+      int options = 0;
+      do {
+         result = waitpid(child_pid, &status, options);
+         if (result != child_pid) {
+            perror("Couldn't join child");
+            break;
+         }
+      } while (!WIFEXITED(status));
+      close(filedes[0]);
+      close(filedes[1]);
+      return gchild_pid;
+   }
+   //Child
+   
+   gchild_pid = fork();
+   if (gchild_pid) {
+      //Child pid, send grand child pid to parent then terminate
+      result = write(filedes[1], &gchild_pid, sizeof(pid_t));
+      if (result == -1) {
+         perror("Couldn't write to parent");
+      }         
+      close(filedes[0]);
+      close(filedes[1]);
+      exit(0);
+   }   
+
+   //Granchild
+   close(filedes[0]);
+   close(filedes[1]);
+   return 0;
+}
+#endif
+#endif
 
 //
 // Create a new process and return its process id.  If process creation 
@@ -187,7 +259,7 @@ int startNewProcessForAttach(const char *pathname, const char *argv[])
     attach_argv[i++] = fdstr;
     attach_argv[i++] = NULL;
 
-    int pid = fork();
+    int pid = fork_mutatee();
     if (pid == 0) {
 	// child
 	close(fds[0]); // We don't need the read side
