@@ -66,131 +66,77 @@ int main(int argc, char **argv)
             " data types, and the popular functions in the interface.\n\n");
     fflush( stdout );
 
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     test = new Test( "MRNet Basic Test", stdout );
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
 
-		const char * dummy_argv=NULL;
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
+    const char * dummy_argv=NULL;
     Network * network = new Network( argv[1], argv[2], &dummy_argv );
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     if( network->fail() ){
         fprintf(stderr, "Network Initialization failure\n");
         network->print_error(argv[0]);
         exit(-1);
     }
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     Communicator * comm_BC = network->get_BroadcastCommunicator( );
     assert(comm_BC);
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
 
     stream_BC = network->new_Stream(comm_BC, TFILTER_NULL, SFILTER_DONTWAIT);
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
 
     /* For all the following tests, the 1st bool param indicates *
      * whether the recv() call should be stream-anonymous or not *
      * and the 2nd bool param indicates whether the recv should block *
      * or not */
 
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     if( test_char( network, stream_BC, false, true) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
     if( test_char( network, stream_BC, false, false) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     if( test_char( network, stream_BC, true, false) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     if( test_char( network, stream_BC, true, true) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
             
     if( test_uchar( network, stream_BC, false, true) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     if( test_uchar( network, stream_BC, false, false) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     if( test_uchar( network, stream_BC, true, false) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     if( test_uchar( network, stream_BC, true, true) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
             
     if( test_short( network, stream_BC, false, true) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     if( test_short( network, stream_BC, false, false) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     if( test_short( network, stream_BC, true, false) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     if( test_short( network, stream_BC, true, true) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
             
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     if( test_ushort( network, stream_BC, false, true) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     if( test_ushort( network, stream_BC, false, false) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     if( test_ushort( network, stream_BC, true, false) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     if( test_ushort( network, stream_BC, true, true) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
             
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     if( test_int( network, stream_BC, false, true) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     if( test_int( network, stream_BC, false, false) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     if( test_int( network, stream_BC, true, false) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     if( test_int( network, stream_BC, true, true) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
             
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     if( test_uint( network, stream_BC, false, true) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     if( test_uint( network, stream_BC, false, false) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     if( test_uint( network, stream_BC, true, false) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     if( test_uint( network, stream_BC, true, true) == -1 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     }
                
     if( test_long( network, stream_BC, false, true) == -1 ){
@@ -294,13 +240,11 @@ int test_char( Network * network, Stream *stream, bool anonymous, bool block)
         testname += "non-blocking_recv)";
     }
 
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     test->start_SubTest(testname);
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
 
     num_to_receive = stream->get_NumEndPoints();
 
-		fprintf(stderr,"[%s:%d] ***********number of end points = %d\n",__FILE__,__LINE__,num_to_receive);
+    fprintf(stderr,"[%s:%d] ***********number of end points = %d\n",__FILE__,__LINE__,num_to_receive);
 
     if( num_to_receive == 0 ){
         test->print("No endpoints in stream\n", testname);
@@ -308,14 +252,11 @@ int test_char( Network * network, Stream *stream, bool anonymous, bool block)
         return -1;
     }
 
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
-
     if(stream->send(PROT_CHAR, "%c", send_val) == -1){
         test->print("stream::send() failure\n", testname);
         test->end_SubTest(testname, FAILURE);
         return -1;
     }
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
 
     if(stream->flush() == -1){
         test->print("stream::flush() failure\n", testname);
@@ -323,35 +264,26 @@ int test_char( Network * network, Stream *stream, bool anonymous, bool block)
         return -1;
     }
 
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
     do{
         int retval;
 
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
         if(!anonymous){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
             retval = stream->recv(&tag, &buf, block);
         }
         else{
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
             retval = network->recv(&tag, &buf, &recv_stream, block);
         }
 
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
         if( retval == -1){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
             //recv error
             test->print("stream::recv1() failure\n", testname);
             test->end_SubTest(testname, FAILURE);
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
             return -1;
         }
         else if ( retval == 0 ){
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
             //No data available
         }
         else{
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
             //Got data
             char tmp_buf[256];
 
@@ -362,22 +294,18 @@ int test_char( Network * network, Stream *stream, bool anonymous, bool block)
             test->print(tmp_buf, testname);
 						//#endif
 
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
             if( Stream::unpack( buf, "%c", &recv_val ) == -1 ){
                 test->print("stream::unpack() failure\n", testname);
                 success = false;
             }
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
             if(send_val != recv_val ){
                 sprintf(tmp_buf, "send_val(%c) != recv_val(%c) failure.\n",
                         send_val, recv_val);
                 test->print(tmp_buf, testname);
                 success = false;
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
             }
         }
     } while(num_received < num_to_receive);
-		fprintf(stderr,"[%s:%d] ***********\n",__FILE__,__LINE__);
 
     if( success ){
         test->end_SubTest(testname, SUCCESS);
