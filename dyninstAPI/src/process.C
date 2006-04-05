@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.602 2006/04/04 02:25:29 legendre Exp $
+// $Id: process.C,v 1.603 2006/04/05 23:39:31 legendre Exp $
 
 #include <ctype.h>
 
@@ -3865,6 +3865,12 @@ void process::set_lwp_status(dyn_lwp *whichLWP, processState lwp_st)
    if(lwp_st == stopped)
       status_ = stopped;
 
+   proccontrol_printf("[%s:%u] - Setting %d to state %s (%d)\n",
+                      __FILE__, __LINE__, whichLWP->get_lwp_id(),
+                      lwp_st == running ? "running" : 
+                      lwp_st == stopped ? "stopped" : 
+                      lwp_st == exited ? "exited" : "other",
+                      lwp_st);
    whichLWP->internal_lwp_set_status___(lwp_st);
 
    if(IndependentLwpControl()) {
@@ -4556,12 +4562,12 @@ bool process::dumpMemory(void * addr, unsigned nbytes)
     memset(buf, 0, nbytes);
     assert(buf);
 
-    if (!readDataSpace((void *)((unsigned)addr-32), nbytes, buf, true)) {
+    if (!readDataSpace((void *)((long)addr-32), nbytes, buf, true)) {
        fprintf(stderr, "%s[%d]:  dumpMemory failing, cannot read\n", FILE__, __LINE__);
        return false;
     }
 
-    fprintf(stderr, "## 0x%lx:\n", (unsigned)addr-32);
+    fprintf(stderr, "## 0x%lx:\n", (long)addr-32);
     for (unsigned u = 0; u < nbytes; u++)
     {
             fprintf(stderr, " %x", buf[u]);

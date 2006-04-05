@@ -171,6 +171,7 @@ bool SignalHandler::handleCritical(EventRecord &ev, bool &continueHint)
 {
    process *proc = ev.proc;
    assert(proc);
+   proc->pause(); //On independent LWP system, other LWPs might not be stopped.
 
    signal_printf("Process %d dying on signal %d\n", proc->getPid(), ev.what);
 

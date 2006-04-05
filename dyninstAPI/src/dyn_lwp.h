@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.52 2006/04/04 01:10:21 legendre Exp $
+ * $Id: dyn_lwp.h,v 1.53 2006/04/05 23:39:28 legendre Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -191,6 +191,7 @@ class dyn_lwp
 #if defined( os_linux )
   bool removeSigStop();  
   bool isRunning() const;
+  bool isWaitingForStop() const;
 #endif
 
 #if defined(cap_proc) && defined(os_aix)
@@ -306,8 +307,6 @@ class dyn_lwp
 
   // What if the wrong lwp hits the trap?
   bool stepPastSyscallTrap();
-
-
   volatile processState status_;
 
   bool representativeLWP_attach_();  // os specific
@@ -339,6 +338,7 @@ class dyn_lwp
   // to avoid platform-dependent initialization in process ctor.)
   bool stoppedInSyscall_;  
   Address postsyscallpc_;  // PC after the syscall is interrupted
+  bool waiting_for_stop;
 #if defined(cap_proc)
   // These variables are meaningful only when `stoppedInSyscall' is true.
   int stoppedSyscall_;     // The number of the interrupted syscall

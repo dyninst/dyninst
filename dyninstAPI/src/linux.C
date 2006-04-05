@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.206 2006/04/04 01:10:57 legendre Exp $
+// $Id: linux.C,v 1.207 2006/04/05 23:39:29 legendre Exp $
 
 #include <fstream>
 
@@ -216,18 +216,12 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
 
    errno = 0;
    if (ev.type == evtSignalled) {
-      if (waiting_for_stop) {
+      if (waiting_for_stop || (ev.lwp && ev.lwp->isWaitingForStop())) {
           signal_printf("%s[%d]: waiting_for_stop true, checking for suppression...\n", FILE__, __LINE__);
           if (suppressSignalWhenStopping(ev)) {
               signal_printf("%s[%d]: suppressing signal... \n", FILE__, __LINE__);
               //  we suppress this signal, just send a null event
-              if (ev.what != SIGTRAP) {
-                  // it's common to suppress traps while waiting for a stop,
-                  // only report other signals
-                  char buf[128];
-                  fprintf(stderr, "%s[%d]:  suppressing signal %s\n", FILE__, __LINE__, ev.sprint_event(buf));
-              }
-              ev.type = evtNullEvent;
+              ev.type = evtIgnore;
               signal_printf("%s[%d]: suppressing signal during wait for stop\n", FILE__, __LINE__);
               return true;
           }
@@ -440,7 +434,7 @@ bool SignalGenerator::waitForEventInternal(EventRecord &ev)
   ev.info = status;
   ev.address = 0;      
   ev.fd = -1;
-  
+
   ev.proc->set_lwp_status(ev.lwp, stopped);
     
   if (!ev.lwp->is_attached()) {
@@ -608,22 +602,6 @@ bool SignalGenerator::suppressSignalWhenStopping(EventRecord &ev)
 #if defined(arch_x86) || defined(arch_x86_64)
      Address trap_pc = ev.lwp->getActiveFrame().getPC();
      ev.lwp->changePC(trap_pc - 1, NULL);
-#elif defined(arch_ia64)
-     /* DEBUG */ fprintf( stderr, "%s[%d]: IA-64 regenerating suppressed SIGTRAP.\n", __FILE__, __LINE__ );
-     Address trapAddr = ev.lwp->getActiveFrame().getPC();
-     Address preTrapAddr = trapAddr;
-     uint64_t slotNo = trapAddr % 16;
-     assert( slotNo < 3 );
-     if( slotNo == 0 ) {
-     	fprintf( stderr, "%s[%d]: FIXME: test for long instruction in previous bundle.\n", __FILE__, __LINE__ );
-        preTrapAddr -= 16;
-        slotNo = 2;
-        }
-    else { --slotNo; }
-    preTrapAddr = (preTrapAddr % 16) + slotNo;
- 
-    /* DEBUG */ fprintf( stderr, "%s[%d]: 0x%lx -> 0x%lx\n", __FILE__, __LINE__, trapAddr, trapAddr );
-    ev.lwp->changePC( preTrapAddr, NULL );
 #endif /* defined( arch_ia64 ) */
   }
 
@@ -733,7 +711,7 @@ bool dyn_lwp::waitUntilStopped()
   }
 
   SignalGenerator *sh = (SignalGenerator *) proc()->sh;
-  sh->setWaitingForStop(true);
+  waiting_for_stop = true;
   evts.push_back(evtProcessStop);
   evts.push_back(evtThreadExit);
   while ( status() != stopped ) {
@@ -747,7 +725,7 @@ bool dyn_lwp::waitUntilStopped()
         break;
      }
   }
-  sh->setWaitingForStop(false);
+  waiting_for_stop = false;
   sh->resendSuppressedSignals();
 
   return true;

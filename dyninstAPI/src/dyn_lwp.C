@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.50 2006/04/04 01:10:20 legendre Exp $
+ * $Id: dyn_lwp.C,v 1.51 2006/04/05 23:39:27 legendre Exp $
  */
 
 #include "common/h/headers.h"
@@ -67,6 +67,7 @@ dyn_lwp::dyn_lwp() :
   singleStepping(false),
   stoppedInSyscall_(false),
   postsyscallpc_(0),
+  waiting_for_stop(false),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
   isRunningIRPC(false), is_attached_(false)  
@@ -89,6 +90,7 @@ dyn_lwp::dyn_lwp(unsigned lwp, process *proc) :
   singleStepping(false),
   stoppedInSyscall_(false),
   postsyscallpc_(0),
+  waiting_for_stop(false),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
   isRunningIRPC(false), is_attached_(false)
@@ -111,6 +113,7 @@ dyn_lwp::dyn_lwp(const dyn_lwp &l) :
   singleStepping(false),
   stoppedInSyscall_(false),
   postsyscallpc_(0),
+  waiting_for_stop(false),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
   isRunningIRPC(false), is_attached_(false)
@@ -374,5 +377,9 @@ Address dyn_lwp::step_next_insn() {
 
 void dyn_lwp::internal_lwp_set_status___(processState st) {
 	status_ = st;
-	}
+}
   
+bool dyn_lwp::isWaitingForStop() const {
+   return waiting_for_stop;
+}
+
