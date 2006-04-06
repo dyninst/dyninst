@@ -358,6 +358,6 @@ int main(int argc, char *argv[])
    if (error) 
       error_exit();
 
-   printf("Test completed without errors\n");
+   printf("All tests passed\n");
    return 0;
 }
