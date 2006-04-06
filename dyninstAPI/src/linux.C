@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.207 2006/04/05 23:39:29 legendre Exp $
+// $Id: linux.C,v 1.208 2006/04/06 01:26:40 mjbrim Exp $
 
 #include <fstream>
 
@@ -588,6 +588,11 @@ bool dyn_lwp::isRunning() const
   char result = getState(get_lwp_id());
   assert(result != '\0');
   return (result != 'T');
+}
+
+bool dyn_lwp::isWaitingForStop() const
+{
+   return waiting_for_stop;
 }
 
 bool SignalGenerator::suppressSignalWhenStopping(EventRecord &ev)
