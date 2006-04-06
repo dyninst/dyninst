@@ -2658,19 +2658,13 @@ void mutatorTest24(BPatch_thread *appThread, BPatch_image *appImage)
             return;
         }
 
-        fprintf(stderr, "%s[%d]:  before assign1\n", __FILE__, __LINE__);
-        // get rid of this -- just checking type --
-        BPatch_arithExpr test_arith(BPatch_ref, *gvar[1], BPatch_constExpr(1));
-        fprintf(stderr, "%s[%d]:  before assign2\n", __FILE__, __LINE__);
         //     globalVariable24_1[1] = 2400001
         BPatch_arithExpr assignment1(BPatch_assign,
             BPatch_arithExpr(BPatch_ref, *gvar[1], BPatch_constExpr(1)),
             BPatch_constExpr(2400001));
-        fprintf(stderr, "%s[%d]:  before insertSnippet\n", __FILE__, __LINE__);
         if (!appThread->insertSnippet(assignment1, *point24_1))
            abort();
 
-        fprintf(stderr, "%s[%d]:  after insertSnippet\n", __FILE__, __LINE__);
         //     globalVariable24_1[globalVariable24_2] = 2400002
         BPatch_arithExpr assignment2(BPatch_assign,
             BPatch_arithExpr(BPatch_ref, *gvar[1], *gvar[2]),

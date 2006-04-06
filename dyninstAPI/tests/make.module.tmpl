@@ -110,7 +110,7 @@ MUTATEES_FORTRAN = test1.mutatee
 
 FORALL_MUTATEES = mutatee_util
 
-TESTLIB_STEMS 	+= libtestA libtestB libTest12 libInstMe libLoadMe
+TESTLIB_STEMS 	+= libtestA libtestB libInstMe libLoadMe
 TESTLIBS = $(addsuffix .so, $(TESTLIB_STEMS))
 
 ifdef M_ABI
@@ -260,6 +260,7 @@ install: $(TEST_DEST) $(ALL_TARGETS_DEST)
 clean:
 	$(RM) *.da *.bb. *.bbg 
 	$(RM) $(TESTLIBS) $(TESTLIBS_ABI)
+	$(RM) libTest12.so
 	$(RM) $(MUTATORS) $(MUTATEES_GCC) $(MUTATEES_GXX) $(MUTATEES_GCC_ABI) $(MUTATEES_GXX_ABI) $(MUTATEES_G77) $(MUTATEES_GXX_ONLY)
 	$(RM) *.o $(MUTATEES_NATIVE_CC) $(MUTATEES_NATIVE_CXX) $(MUTATEES_NATIVE_FC) $(MUTATEES_NATIVE_CXX_ONLY)
 	$(RM) test11
@@ -278,7 +279,7 @@ mutators: $(MUTATORS) test11
 mutatees: gnu_mutatees native_mutatees
 gnu_mutatees: $(MUTATEES_GCC) $(MUTATEES_GXX) $(MUTATEES_G77) $(MUTATEES_GCC_ABI) $(MUTATEES_GXX_ABI)
 native_mutatees: $(MUTATEES_NATIVE_CC) $(MUTATEES_NATIVE_CXX) $(MUTATEES_NATIVE_FC) $(MUTATEES_NATIVE_CXX_ONLY)
-testlibs: $(TESTLIBS) $(TESTLIBS_ABI)
+testlibs: $(TESTLIBS) $(TESTLIBS_ABI) libTest12.so
 
 .PHONY: clean install distclean mutators mutatees testlibs gnu_mutatees native_mutatees
 
@@ -313,6 +314,13 @@ else
 endif
 endif
 
+libTest12.so: libTest12.c $(DEPENDDIR)/libTest12.dep
+ifdef MAKE_SHARED_LIB
+	$(CC) -g -c $(CFLAGS) -I$(TO_CORE)/dyninst_RT/h $(CFLAGS_TESTLIBS) $(filter %.c, $^)  -o libTest12.o
+	$(MAKE_SHARED_LIB) $(TESTLIB_FLAGS) $(LIBTEST12_FLAGS) libTest12.o -o $@
+else
+	$(CC) $(TESTLIB_FLAGS) -I$(TO_CORE)/dyninstAPI_RT/h $(LIBTEST12_FLAGS) $(filter %.c, $^) -o $@
+endif
 #######################################################################
 ###  Special Prerequisites for specific Mutatees:
 #######################################################################
