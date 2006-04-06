@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test12_1.C,v 1.3 2006/03/08 16:44:52 bpellin Exp $
+// $Id: test12_1.C,v 1.4 2006/04/06 10:08:47 jaw Exp $
 /*
  * #Name: test12_1
  * #Desc: dynamic call site callback
@@ -106,11 +106,13 @@ void dynSiteCB(BPatch_point *dyn_site, BPatch_function *called_function)
     appThread->stopExecution();      
     //  not passed yet, now remove dynamic call monitoring handles
     assert (test1handles.size());
+#if 0
     for (unsigned int i = 0; i < test1handles.size(); ++i) {
       if (!dyncalls[i]->removeDynamicCallCallback(test1handles[i])) {
         removal_error = true;
       }
     }
+#endif
     if (removal_error) {
       FAIL_MES(TESTNO, TESTNAME);
       test1err = 1;
@@ -149,12 +151,14 @@ int mutatorTest(BPatch_thread *appT, BPatch_image *appImage)
     BPatch_point *pt = (*calls)[i];
     if (pt->isDynamic()){
       void *handle = NULL;
+#if 0
       handle = pt->registerDynamicCallCallback(dynSiteCB);
       if (!handle) {
         FAIL_MES(TESTNO, TESTNAME);
         fprintf(stderr, "  registerDynamicCallCallback failed\n");
         return -1;
       } 
+#endif
       test1handles.push_back(handle);
       dyncalls.push_back(pt);
     }
