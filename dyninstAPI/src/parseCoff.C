@@ -325,7 +325,7 @@ void parseCoff(BPatch_module *mod, char *exeName, const pdstring &modName,
 
     if (!eCoffFindModule(symtab, modName, currInfo)) {
 	// Print an error message here.
-        fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+        fprintf(stderr, "%s[%d]:  Can't find module %s\n", FILE__, __LINE__, modName.c_str());
 	return;
     }
 

@@ -247,6 +247,14 @@ cleanupSockets( void )
 {
     WSACleanup();
 }
+#else
+
+#define ASYNC_SOCKET_PATH_LEN 128
+char path_to_unlink[ASYNC_SOCKET_PATH_LEN];
+void unlink_async_socket()
+{
+  unlink(path_to_unlink);
+}
 #endif
 
 bool BPatch_asyncEventHandler::initialize()
@@ -297,9 +305,11 @@ bool BPatch_asyncEventHandler::initialize()
   uid_t euid = geteuid();
   struct passwd *passwd_info = getpwuid(euid);
   assert(passwd_info);
-  char path[128];
+  char path[ASYNC_SOCKET_PATH_LEN];
   snprintf(path, 128, "%s/dyninstAsync.%s.%d", P_tmpdir, 
                  passwd_info->pw_name, (int) getpid());
+  strcpy(path_to_unlink, path);
+  atexit(unlink_async_socket);
 
   struct sockaddr_un saddr;
   saddr.sun_family = AF_UNIX;
@@ -345,6 +355,7 @@ bool BPatch_asyncEventHandler::initialize()
           FILE__, __LINE__);
     return false;
   }
+
 
   startup_printf("%s[%d]:  Created async thread\n", FILE__ , __LINE__);
   return true;

@@ -1118,7 +1118,6 @@ void BPatch_module::parseTypes()
   char *file = const_cast<char *>(fnamestr.c_str());
 
   assert(file);
-  fprintf(stderr, "%s[%d]:  doing parseCoff for %s\n", FILE__, __LINE__, mod->fileName().c_str());
   parseCoff(this, file, mod->fileName(),mod->getLineInformation());
 
 }
