@@ -8,7 +8,7 @@
 
 #if !defined(DLLEXPORT)
 #if defined (_MSC_VER)
-//If we're on Windows, we need to explicetely export these functions:
+/* If we're on Windows, we need to explicetely export these functions: */
 #define DLLEXPORT __declspec(dllexport) 
 #else
 #define DLLEXPORT
@@ -39,19 +39,19 @@ DLLEXPORT int DYNINSTuserMessage(void *msg, unsigned int msg_size);
  * conditions can trigger even on simple synchronization mechanisms.
  **/
 
-//The contents of this structure are subject to change between
-// dyninst versions.  Don't rely on it.
+/* The contents of this structure are subject to change between
+   dyninst versions.  Don't rely on it. */
 typedef void * dyntid_t;
 typedef struct {
    volatile int mutex;
    dyntid_t tid;
 } dyninst_lock_t;
 
-//Return values for 'dyninst_lock'
+/* Return values for 'dyninst_lock' */
 #define DYNINST_LIVE_LOCK      -1
 #define DYNINST_DEAD_LOCK      -2
 
-//Declare a lock already initialized
+/* Declare a lock already initialized */
 #define DECLARE_DYNINST_LOCK(lck) dyninst_lock_t lck = {0, 0}
 
 DLLEXPORT void dyninst_init_lock(dyninst_lock_t *lock);
