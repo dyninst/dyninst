@@ -293,7 +293,11 @@ static int mutatorTest(BPatch *bpatch)
    while (!proc->isTerminated())
       bpatch->waitForStatusChange();
 
-   P_sleep(10); // wait for thread delete callbacks to run
+   num_attempts = 0;
+   while(deleted_threads != NUM_THREADS && num_attempts != TIMEOUT) {
+      num_attempts++;
+      P_sleep(1);
+   }
 
    for (unsigned i=1; i<NUM_THREADS; i++)
    {
