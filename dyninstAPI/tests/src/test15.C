@@ -62,9 +62,6 @@ static int deleted_threads;
 bool debug_flag = false;
 #define dprintf if (debug_flag) fprintf
 
-#define NUM_FUNCS 5
-char initial_funcs[NUM_FUNCS][25] = {"init_func", "main", "_start", "__start", "__libc_start_main"};
-
 void newthr(BPatch_process *my_proc, BPatch_thread *thr)
 {
    unsigned my_dyn_id = thr->getBPatchID();
@@ -76,28 +73,8 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    }
 
    dprintf(stderr, "[%s] New Thread: BPatchID = %d\n", __FILE__, my_dyn_id);
-   //Check initial function
-   static char name[1024];
-   BPatch_function *f = thr->getInitialFunc();   
-   if (f) f->getName(name, 1024);
-   else strcpy(name, "<NONE>");
 
-   int found_name = 0;
-   for (unsigned i=0; i<NUM_FUNCS; i++)
-      if (!strcmp(name, initial_funcs[i]))
-      {
-         found_name = 1;
-         break;
-      }
-   dprintf(stderr, "[%s]           : initial func is %s\n", __FILE__, name);
-   if (!found_name)
-   {
-      fprintf(stderr, "[%s:%d] - Thread %d has '%s' as initial function\n",
-              __FILE__, __LINE__, my_dyn_id, name);
-      error = 1;
-   }
-
-   //Check that thread_id is unique
+   //Check that BPatch id is unique
    if (my_dyn_id >= NUM_THREADS)
    {
       fprintf(stderr, "[%s:%d] - Thread ID %d out of range\n",
@@ -110,27 +87,6 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
       error = 1;
    }
    dyn_tids[my_dyn_id] = 1;
-
-   //Stacks should be unique and non-zero
-   static unsigned long stack_addrs[NUM_THREADS];
-   unsigned long my_stack = thr->getStackTopAddr();
-   if (!my_stack)
-   {
-      fprintf(stderr, "[%s:%d] - Thread %d has no stack\n",
-              __FILE__, __LINE__, my_dyn_id);
-      error = 1;
-   }
-   else
-   {
-      for (unsigned i=0; i<NUM_THREADS; i++)
-         if (stack_addrs[i] == my_stack)
-         {
-            fprintf(stderr, "[%s:%d] - Thread %d and %d share a stack at %x\n",
-                    __FILE__, __LINE__, my_dyn_id, i, my_stack);
-            error = 1;
-         }
-   }
-   stack_addrs[my_dyn_id] = my_stack;
 
    //Thread IDs should be unique
    long mytid = thr->getTid();
