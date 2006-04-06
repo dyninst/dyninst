@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.134 2006/04/06 10:08:44 jaw Exp $
+// $Id: BPatch.C,v 1.135 2006/04/06 16:52:59 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -121,6 +121,8 @@ BPatch::BPatch()
     }
 
     global_mutex->_Lock(FILE__, __LINE__);
+    init_debug();
+
     memset(&stats, 0, sizeof(BPatch_stats));
     extern bool init();
 
@@ -134,8 +136,6 @@ BPatch::BPatch()
     bpinfo("installed default error reporting function");
     initCyclesPerSecond();
     
-    init_debug();
-
     /*
      * Create the list of processes.
      */
