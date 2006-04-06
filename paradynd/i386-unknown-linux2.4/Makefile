@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.28 2006/03/12 23:32:54 legendre Exp $
+# $Id: Makefile,v 1.29 2006/04/06 18:38:38 rutar Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -37,6 +37,7 @@ SRCS =		../../dyninstAPI/src/linux.C \
 		../../dyninstAPI/src/linuxMT.C \
 		../../dyninstAPI/src/inst-linux.C \
 		../../paradynd/src/proc-linux.C \
+		../../dyninstAPI/src/cpuid-x86.S \
 		../../dyninstAPI/src/inst-x86.C \
 		../../dyninstAPI/src/emit-x86.C \
 		../../dyninstAPI/src/arch-x86.C \
