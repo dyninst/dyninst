@@ -122,7 +122,7 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
       //  This case can be encountered in the case of multiple process management
       //  when processes are created and terminated rapidly.
       //fprintf(stderr,"%s[%d]:  duplicate request to connect to process %d\n",
-      //      __FILE__, __LINE__, p->getPid());
+      //      FILE__, __LINE__, p->getPid());
       process_fds.erase(i,i);
       //return false;
     }
@@ -145,12 +145,12 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
   portVar = p->getImage()->findVariable("connect_port");
   if (!portVar) {
     fprintf(stderr, "%s[%d]:  cannot find var connect_port in rt lib\n",
-           __FILE__, __LINE__);
+           FILE__, __LINE__);
     return false;
   }
   if (!portVar->writeValue((void *) &listen_port, sizeof(listen_port), false)) {
     fprintf(stderr, "%s[%d]:  cannot write var connect_port in rt lib\n",
-           __FILE__, __LINE__);
+           FILE__, __LINE__);
     return false;
   }
 #endif
@@ -160,12 +160,12 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
   if (!p->getImage()->findFunction("DYNINSTasyncConnect", funcs, true, true, true)
       || !funcs.size() ) {
     bpfatal("%s[%d]:  could not find function: DYNINSTasyncConnect\n",
-            __FILE__, __LINE__);
+            FILE__, __LINE__);
     return false;
   }
   if (funcs.size() > 1) {
     bperr("%s[%d]:  found %d varieties of function: DYNINSTasyncConnect\n",
-          __FILE__, __LINE__, funcs.size());
+          FILE__, __LINE__, funcs.size());
   }
 
   //  The (int) argument to this function is our pid
@@ -178,7 +178,7 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
 #if !defined (os_osf) && !defined (os_windows)
   //  Run the connect call as oneTimeCode
   if (!p->oneTimeCodeInt(connectcall)) {
-      fprintf(stderr,"%s[%d]:  failed to connect mutatee to async handler\n", __FILE__, __LINE__); 
+      fprintf(stderr,"%s[%d]:  failed to connect mutatee to async handler\n", FILE__, __LINE__); 
       return false;
   }
 #endif
@@ -200,7 +200,7 @@ bool BPatch_asyncEventHandler::detachFromProcess(BPatch_process *p)
   int targetfd = -2;
   for (unsigned int i = 0; i < process_fds.size(); ++i) {
     if (process_fds[i].process == p) {
-      //fprintf(stderr, "%s[%d]:  removing process %d\n", __FILE__, __LINE__, p->getPid());
+      //fprintf(stderr, "%s[%d]:  removing process %d\n", FILE__, __LINE__, p->getPid());
       targetfd  = process_fds[i].fd;
       process_fds.erase(i,i);
       break;
@@ -210,7 +210,7 @@ bool BPatch_asyncEventHandler::detachFromProcess(BPatch_process *p)
   if (targetfd == -2) {
     //  if we have no record of this process. must already be detached
     //bperr("%s[%d]:  detachFromProcess(%d) could not find process record\n",
-    //      __FILE__, __LINE__, p->getPid());
+    //      FILE__, __LINE__, p->getPid());
     return true;
   }
 
@@ -222,7 +222,7 @@ bool BPatch_asyncEventHandler::detachFromProcess(BPatch_process *p)
 
   if (!mutateeDetach(p)) {
     //bperr("%s[%d]:  detachFromProcess(%d) could not clean up mutatee\n",
-    //      __FILE__, __LINE__, p->getPid());
+    //      FILE__, __LINE__, p->getPid());
   }
 
   //  close our own file desc for this process.
@@ -232,7 +232,8 @@ bool BPatch_asyncEventHandler::detachFromProcess(BPatch_process *p)
 }
 
 BPatch_asyncEventHandler::BPatch_asyncEventHandler() :
-  EventHandler<EventRecord>(BPatch_eventLock::getLock(), "ASYNC",false /*create thread*/)
+  EventHandler<EventRecord>(BPatch_eventLock::getLock(), "ASYNC",false /*create thread*/),
+  monitored_points(addrHash) 
 {
   //  prefer to do socket init in the initialize() function so that we can
   //  return errors.
@@ -269,7 +270,7 @@ bool BPatch_asyncEventHandler::initialize()
   //  set up socket to accept connections from mutatees (on demand)
   sock = P_socket(PF_INET, SOCK_STREAM, 0);
   if (INVALID_PDSOCKET == sock) {
-    bperr("%s[%d]:  new socket failed, sock = %d, lasterror = %d\n", __FILE__, __LINE__, (unsigned int) sock, WSAGetLastError());
+    bperr("%s[%d]:  new socket failed, sock = %d, lasterror = %d\n", FILE__, __LINE__, (unsigned int) sock, WSAGetLastError());
     return false;
   }
 
@@ -289,7 +290,7 @@ bool BPatch_asyncEventHandler::initialize()
   //  set up socket to accept connections from mutatees (on demand)
   sock = P_socket(SOCKET_TYPE, SOCK_STREAM, 0);
   if (INVALID_PDSOCKET == sock) {
-    bperr("%s[%d]:  new socket failed\n", __FILE__, __LINE__);
+    bperr("%s[%d]:  new socket failed\n", FILE__, __LINE__);
     return false;
   }
 
@@ -306,7 +307,7 @@ bool BPatch_asyncEventHandler::initialize()
 
   //  make sure this file does not exist already.
   if ( 0 != unlink(path) && (errno != ENOENT)) {
-     bperr("%s[%d]:  unlink failed [%d: %s]\n", __FILE__, __LINE__, errno, 
+     bperr("%s[%d]:  unlink failed [%d: %s]\n", FILE__, __LINE__, errno, 
             strerror(errno));
   }
 #endif
@@ -315,7 +316,7 @@ bool BPatch_asyncEventHandler::initialize()
 
   if (PDSOCKET_ERROR == bind(sock, (struct sockaddr *) &saddr, 
                              sizeof(saddr))) { 
-    bperr("%s[%d]:  bind socket to %s failed\n", __FILE__, __LINE__, path);
+    bperr("%s[%d]:  bind socket to %s failed\n", FILE__, __LINE__, path);
     return false;
   }
 
@@ -324,7 +325,7 @@ bool BPatch_asyncEventHandler::initialize()
   int length = sizeof(saddr);
   if (PDSOCKET_ERROR == getsockname(sock, (struct sockaddr *) &saddr,
                                     &length)) {
-    bperr("%s[%d]:  getsockname failed\n", __FILE__, __LINE__);
+    bperr("%s[%d]:  getsockname failed\n", FILE__, __LINE__);
     return false;
   }
   listen_port = ntohs (saddr.sin_port);
@@ -334,18 +335,18 @@ bool BPatch_asyncEventHandler::initialize()
   // (we will explicitly accept in the main event loop)
 
   if (PDSOCKET_ERROR == listen(sock, 32)) {  //  this is the number of simultaneous connects we can handle
-    bperr("%s[%d]:  listen to %s failed\n", __FILE__, __LINE__, path);
+    bperr("%s[%d]:  listen to %s failed\n", FILE__, __LINE__, path);
     return false;
   }
 
   //  Finally, create the event handling thread
   if (!createThread()) {
     bperr("%s[%d]:  could not create event handling thread\n", 
-          __FILE__, __LINE__);
+          FILE__, __LINE__);
     return false;
   }
 
-  startup_printf("%s[%d]:  Created async thread\n", __FILE__ , __LINE__);
+  startup_printf("%s[%d]:  Created async thread\n", FILE__ , __LINE__);
   return true;
 }
 
@@ -353,7 +354,7 @@ BPatch_asyncEventHandler::~BPatch_asyncEventHandler()
 {
   if (isRunning()) 
     if (!shutDown()) {
-      bperr("%s[%d]:  shut down async event handler failed\n", __FILE__, __LINE__);
+      bperr("%s[%d]:  shut down async event handler failed\n", FILE__, __LINE__);
     }
 
 #if defined (os_windows)
@@ -383,11 +384,11 @@ bool BPatch_asyncEventHandler::shutDown()
   int killres;
   killres = pthread_kill(handler_thread, 9);
   if (killres) {
-     fprintf(stderr, "%s[%d]:  pthread_kill: %s[%d]\n", __FILE__, __LINE__,
+     fprintf(stderr, "%s[%d]:  pthread_kill: %s[%d]\n", FILE__, __LINE__,
              strerror(killres), killres);
      return false;
   }
-  fprintf(stderr, "%s[%d]:  \t\t..... killed.\n", __FILE__, __LINE__);
+  fprintf(stderr, "%s[%d]:  \t\t..... killed.\n", FILE__, __LINE__);
 #endif
 
   close_comms:
@@ -413,7 +414,9 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
   //     return
   __LOCK;
 
+#if 0
   async_printf("%s[%d]: welcome to waitnextEvent\n", FILE__, __LINE__);
+#endif
   //  keep a static list of events in case we get several simultaneous
   //  events from select()...  just in case.
 
@@ -426,8 +429,10 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
     //event_queue.pop_back();
     ev = event_queue[0];
     event_queue.erase(0,0);
+#if 0
     async_printf("%s[%d]: waitnextEvent, stale event %s from last time\n", 
                  FILE__, __LINE__, eventType2str(ev.type));
+#endif
     __UNLOCK;
     return true;
   }
@@ -475,7 +480,7 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
     if (errno == EBADF) {
       if (!cleanUpTerminatedProcs()) {
         //fprintf(stderr, "%s[%d]:  FIXME:  select got EBADF, but no procs "
-        // "terminated\n", __FILE__, __LINE__);
+        // "terminated\n", FILE__, __LINE__);
         __UNLOCK;
         return false;
       }
@@ -484,7 +489,7 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
         return true;  
       }
     }
-    bperr("%s[%d]:  select returned -1\n", __FILE__, __LINE__);
+    bperr("%s[%d]:  select returned -1\n", FILE__, __LINE__);
     __UNLOCK;
     return false;
   }
@@ -501,21 +506,23 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
      
      int new_fd = P_accept(sock, (struct sockaddr *) &cli_addr, &clilen);
      if (-1 == new_fd) {
-       bperr("%s[%d]:  accept failed\n", __FILE__, __LINE__);
+       bperr("%s[%d]:  accept failed\n", FILE__, __LINE__);
        return false;
      }
      
-     async_printf("%s[%d]:  about to read new connection\n", __FILE__, __LINE__); 
+     async_printf("%s[%d]:  about to read new connection\n", FILE__, __LINE__); 
 
      //  do a (blocking) read so that we can get the pid associated with
      //  this connection.
      EventRecord pid_ev;
      asyncReadReturnValue_t result = readEvent(new_fd, pid_ev);
-     if (result != REsuccess) 
+     if (result != REsuccess) {
+         async_printf("%s[%d]:  READ ERROR\n", FILE__, __LINE__);
          return false;
+     }
      assert(pid_ev.type == evtNewConnection);
      ev = pid_ev;
-     async_printf("%s[%d]:  new connection to %d\n",  __FILE__, __LINE__, 
+     async_printf("%s[%d]:  new connection to %d\n",  FILE__, __LINE__, 
                   ev.proc->getPid());
      ev.what = new_fd;
   }
@@ -547,18 +554,18 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
         case REinsufficientData:
         case REreadError:
         case REerror:
-            async_printf("%s[%d]: readEvent returned error code %d\n",
-                         __FILE__, __LINE__, result);
+            async_printf("%s[%d]: READ ERROR readEvent returned error code %d\n",
+                         FILE__, __LINE__, result);
             continue;
             break;
         case REnoData:
             //  This read can fail if the mutatee has exited.  Just note that this
             //  fd is no longer valid, and keep quiet.
             //if (process_fds[j].process->isTerminated()) {
-            async_printf("%s[%d]:  read event failed\n", __FILE__, __LINE__);
+            async_printf("%s[%d]:  READ ERROR read event failed\n", FILE__, __LINE__);
             //  remove this process/fd from our vector
             async_printf("%s[%d]:  readEvent failed due to process termination\n", 
-                         __FILE__, __LINE__);
+                         FILE__, __LINE__);
             for (unsigned int k = j+1; k < process_fds.size(); ++k) {
                 process_fds[j] = process_fds[k];
             }
@@ -586,7 +593,9 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
        event_queue.push_back(new_ev);
     }
   }
+#if 0
   async_printf("%s[%d]: leaving waitnextEvent\n",  FILE__, __LINE__);
+#endif
   
   __UNLOCK;
   return true;
@@ -617,7 +626,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
 {
    if ((ev.type != evtNewConnection) && (ev.type != evtNullEvent))
      async_printf("%s[%d]:  inside handleEvent, got %s\n", 
-           __FILE__, __LINE__, eventType2str(ev.type));
+           FILE__, __LINE__, eventType2str(ev.type));
 
    int event_fd = -1;
    BPatch_process *appProc = NULL;
@@ -626,7 +635,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
 
    for (j = 0; j < process_fds.size(); ++j) {
       if (!process_fds[j].process) {
-        fprintf(stderr, "%s[%d]:  invalid process record!\n", __FILE__, __LINE__);
+        fprintf(stderr, "%s[%d]:  invalid process record!\n", FILE__, __LINE__);
         continue;
       }
       int process_pid = process_fds[j].process->getPid();
@@ -668,13 +677,13 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
         if (event_fd != -1) {
            // Can happen if we're execing...
            fprintf(stderr, "%s[%d]:  WARNING:  event fd for process %d " \
-                   "is %d (not -1)\n", __FILE__, __LINE__, 
+                   "is %d (not -1)\n", FILE__, __LINE__, 
                    process_fds[j].process->getPid(), event_fd);
         }         
         process_fds[j].fd = ev.what;
         
         async_printf("%s[%d]:  after handling new connection, we have\n", 
-                     __FILE__, __LINE__);
+                     FILE__, __LINE__);
         for (unsigned int t = 0; t < process_fds.size(); ++t) {
            async_printf("\tpid = %d, fd = %d\n", 
                         process_fds[t].process->getPid(), process_fds[t].fd);
@@ -694,7 +703,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
                                                    sizeof(BPatch_newThreadEventRecord));
          if (retval != REsuccess) {
              bperr("%s[%d]:  failed to read thread event call record\n",
-                   __FILE__, __LINE__);
+                   FILE__, __LINE__);
              return false;
          }
          
@@ -708,21 +717,31 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
 
        //Create the new BPatch_thread object
        async_printf("%s[%d]:  before createOrUpdateBPThread: start_pc = %p," \
-                    "addr = %p, tid = %lu, index = %d\n", __FILE__, __LINE__, 
+                    "addr = %p, tid = %lu, index = %d\n", FILE__, __LINE__, 
                     (void *) start_pc, (void *) stack_addr, call_rec.tid, 
                     call_rec.index);
+
        BPatch_thread *thr = p->handleThreadCreate(index, lwpid, tid, stack_addr, start_pc);
+       if (!thr) {
+         async_printf("%s[%d]: handleThreadCreate failed!\n", FILE__, __LINE__);
+       }
+       else {
+         if (thr->getTid() != tid) {
+           fprintf(stderr, "%s[%d]:  thr->getTid(): %lu, tid %lu\n", FILE__, __LINE__, thr->getTid(), tid);
+         }
+       }
        return (thr != NULL);
      }
      case evtThreadExit: 
      {
+        fprintf(stderr, "%s[%d]:  got a thread exit event\n", FILE__, __LINE__);
         BPatch_deleteThreadEventRecord rec;
          asyncReadReturnValue_t retval = readEvent(ev.fd/*fd*/, 
                                                    (void *) &rec, 
                                                    sizeof(BPatch_deleteThreadEventRecord));
          if (retval != REsuccess) {
              bperr("%s[%d]:  failed to read thread event call record\n",
-                   __FILE__, __LINE__);
+                   FILE__, __LINE__);
              return false;
          }
 
@@ -760,13 +779,23 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
                                                    sizeof(BPatch_dynamicCallRecord));
          if (retval != REsuccess) {
              bperr("%s[%d]:  failed to read dynamic call record\n",
-                   __FILE__, __LINE__);
+                   FILE__, __LINE__);
              return false;
          }
 
        Address callsite_addr = (Address) call_rec.call_site_addr;
        Address func_addr = (Address) call_rec.call_target;
 
+       //  find the point that triggered this event
+       if (!monitored_points.defines((Address)call_rec.call_site_addr)) {
+         fprintf(stderr, "%s[%d]:  could not find point for address %lu\n", 
+                 FILE__, __LINE__, (unsigned long) call_rec.call_site_addr);
+        return false;
+       }
+
+       BPatch_point *pt = monitored_points[(Address)call_rec.call_site_addr];
+
+#ifdef NOTDEF // PDSEP
        //  find the record(s) for the pt that triggered this event
        //
 
@@ -776,21 +805,21 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
             pts.push_back(&(dyn_pts[i]));
          }
        }
-
        if (!pts.size()) {
            bperr("%s[%d]:  failed to find async call point %p\n Valid Addrs:\n",
-                 __FILE__, __LINE__, callsite_addr);
+                 FILE__, __LINE__, callsite_addr);
            for (unsigned int r = 0; r < dyn_pts.size(); ++r) {
              bperr("\t%p\n", (void *) dyn_pts[r].pt->getAddress());
            } 
            return false;
        }
 
+#endif
        //  found the record(s), now find the function that was called
        int_function *f = appProc->llproc->findFuncByAddr(func_addr);
        if (!f) {
            bperr("%s[%d]:  failed to find BPatch_function\n",
-                 __FILE__, __LINE__);
+                 FILE__, __LINE__);
           return false;
        }
 
@@ -798,7 +827,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
 
        if (!appProc->func_map->defines(f)) {
            bperr("%s[%d]:  failed to find BPatch_function\n",
-                 __FILE__, __LINE__);
+                 FILE__, __LINE__);
            return false;
        }
 
@@ -806,10 +835,20 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
 
        if (!bpf) {
            bperr("%s[%d]:  failed to find BPatch_function\n",
-                 __FILE__, __LINE__);
+                 FILE__, __LINE__);
            return false;
        }
 
+       //  issue the callback(s) and we're done:
+
+       pdvector<CallbackBase *> cbs;
+       getCBManager()->dispenseCallbacksMatching(evtDynamicCall, cbs);
+       for (unsigned int i = 0; i < cbs.size(); ++i) {
+         DynamicCallsiteCallback &cb = * ((DynamicCallsiteCallback *) cbs[i]);
+         cb(pt, bpf);
+       }
+
+#ifdef NOTDEF // PDSEP
        //  call the callback(s) and we're done:
        //  actually, just register callback in mailbox
        //  (to be executed on primary thread) and we're done.
@@ -827,6 +866,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
          }
 
        }
+#endif
 
        return true;
      }
@@ -840,7 +880,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
        asyncReadReturnValue_t retval = readEvent(ev.what, (void *) userbuf, ev.info);
        if (retval != REsuccess) {
            bperr("%s[%d]:  failed to read user specified data\n",
-                 __FILE__, __LINE__);
+                 FILE__, __LINE__);
            delete [] userbuf;
            return false;
        }
@@ -861,7 +901,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
      } 
      default:
        bperr("%s[%d]:  request to handle unsupported event: %s\n", 
-             __FILE__, __LINE__, eventType2str(ev.type));
+             FILE__, __LINE__, eventType2str(ev.type));
        return false;
        break;
       
@@ -884,12 +924,12 @@ bool BPatch_asyncEventHandler::mutateeDetach(BPatch_process *p)
   if (!p->getImage()->findFunction("DYNINSTasyncDisconnect", funcs)
       || ! funcs.size() ) {
     bpfatal("%s[%d]:  could not find function: DYNINSTasyncDisconnect\n",
-            __FILE__, __LINE__);
+            FILE__, __LINE__);
     return false;
   }
   if (funcs.size() > 1) {
     bperr("%s[%d]:  found %d varieties of function: DYNINSTasyncDisconnect\n",
-          __FILE__, __LINE__, funcs.size());
+          FILE__, __LINE__, funcs.size());
   }
 
   //  The (int) argument to this function is our pid
@@ -900,7 +940,7 @@ bool BPatch_asyncEventHandler::mutateeDetach(BPatch_process *p)
   //  Run the connect call as oneTimeCode
   if (!p->oneTimeCodeInt(disconnectcall)) {
     bpfatal("%s[%d]:  failed to disconnect mutatee to async handler\n", 
-            __FILE__, __LINE__);
+            FILE__, __LINE__);
     return false;
   }
 
@@ -913,7 +953,7 @@ bool BPatch_asyncEventHandler::cleanUpTerminatedProcs()
   //  iterate from end of vector in case we need to use erase()
   for (int i = (int) process_fds.size() -1; i >= 0; i--) {
     if (process_fds[i].process->llproc->status() == exited) {
-    //  fprintf(stderr, "%s[%d]:  Process %d has terminated, cleaning up\n", __FILE__, __LINE__, process_fds[i].process->getPid());
+    //  fprintf(stderr, "%s[%d]:  Process %d has terminated, cleaning up\n", FILE__, __LINE__, process_fds[i].process->getPid());
       process_fds.erase(i,i);
       ret = true;
     }
@@ -927,7 +967,7 @@ bool BPatch_asyncEventHandler::cleanupProc(BPatch_process *p)
   //  iterate from end of vector in case we need to use erase()
   for (int i = (int) process_fds.size() -1; i >= 0; i--) {
       if (process_fds[i].process == p) {
-          //fprintf(stderr, "%s[%d]: Cleaning up process %d\n", __FILE__, __LINE__, process_fds[i].process->getPid());
+          //fprintf(stderr, "%s[%d]: Cleaning up process %d\n", FILE__, __LINE__, process_fds[i].process->getPid());
           process_fds.erase(i,i);
           ret = true;
       }
@@ -946,7 +986,7 @@ eventType rt2EventType(rtBPatch_asyncEventType t)
     case rtBPatch_dynamicCallEvent: return evtDynamicCall;
     case rtBPatch_userEvent: return evtUserEvent;
     default:
-    fprintf(stderr, "%s[%d], invalid conversion\n", __FILE__, __LINE__);
+    fprintf(stderr, "%s[%d], invalid conversion\n", FILE__, __LINE__);
   }
   return evtUndefined;
 }         
@@ -989,24 +1029,24 @@ asyncReadReturnValue_t BPatch_asyncEventHandler::readEvent(PDSOCKET fd, void *ev
     bytes_read = recv( fd, (char *)ev, sz, 0 );
     
     if ( PDSOCKET_ERROR == bytes_read ) {
-        fprintf(stderr, "%s[%d]:  read failed: %s:%d\n", __FILE__, __LINE__,
+        fprintf(stderr, "%s[%d]:  read failed: %s:%d\n", FILE__, __LINE__,
                 strerror(errno), errno);
         return REreadError;
     }
     
     if (0 == bytes_read) {
         //  fd closed on other end (most likely)
-        //bperr("%s[%d]:  cannot read, fd is closed\n", __FILE__, __LINE__);
+        //bperr("%s[%d]:  cannot read, fd is closed\n", FILE__, __LINE__);
         return REnoData;
     }
     
     if (bytes_read != sz) {
-        bperr("%s[%d]:  read wrong number of bytes!\n", __FILE__, __LINE__);
+        bperr("%s[%d]:  read wrong number of bytes!\n", FILE__, __LINE__);
         bperr("FIXME:  Need better logic to handle incomplete reads\n");
         return REinsufficientData;
     }
     
-    fprintf(stderr, "%s[%d] done recv\n", __FILE__, __LINE__);
+    fprintf(stderr, "%s[%d] done recv\n", FILE__, __LINE__);
     return REsuccess;
 }
 
@@ -1021,19 +1061,19 @@ try_again:
     if (errno == EAGAIN || errno == EINTR) 
        goto try_again;
 
-    fprintf(stderr, "%s[%d]:  read failed: %s:%d\n", __FILE__, __LINE__,
+    fprintf(stderr, "%s[%d]:  read failed: %s:%d\n", FILE__, __LINE__,
             strerror(errno), errno);
     return REreadError;
   }
 
   if (0 == bytes_read) {
     //  fd closed on other end (most likely)
-    //bperr("%s[%d]:  cannot read, fd is closed\n", __FILE__, __LINE__);
+    //bperr("%s[%d]:  cannot read, fd is closed\n", FILE__, __LINE__);
       return REnoData;
   }
   if (bytes_read != sz) {
     bperr("%s[%d]:  read wrong number of bytes! %d, not %d\n", 
-          __FILE__, __LINE__, bytes_read, sz);
+          FILE__, __LINE__, bytes_read, sz);
     bperr("FIXME:  Need better logic to handle incomplete reads\n");
     return REinsufficientData;
   }
@@ -1064,9 +1104,19 @@ bool BPatch_asyncEventHandler::startupThread()
 {
   if (!isRunning()) {
     if (!createThread()) {
-      fprintf(stderr, "%s[%d]:  failed to create thread\n", __FILE__, __LINE__);
+      fprintf(stderr, "%s[%d]:  failed to create thread\n", FILE__, __LINE__);
       return false;
     }
   }
+  return true;
+}
+
+bool BPatch_asyncEventHandler::registerMonitoredPoint(BPatch_point *p)
+{
+  if (monitored_points.defines((Address)p->getAddress())) {
+    fprintf(stderr, "%s[%d]:  address %lu already exists in monitored_points hash\n", FILE__, __LINE__, (unsigned long) p->getAddress());
+    return false;
+  }
+  monitored_points[(Address)p->getAddress()] = p;
   return true;
 }

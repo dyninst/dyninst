@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.76 2005/11/22 13:50:32 jaw Exp $
+// $Id: BPatch_snippet.C,v 1.77 2006/04/06 10:08:45 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -154,9 +154,11 @@ AstNode *generateArrayRef(const BPatch_snippet &lOperand,
         if (lOperand.ast->getType() == NULL) 
             BPatch_reportError(BPatchSerious, 109,
                                "array reference has no type information");
-        else
+        else {
+            fprintf(stderr, "%s[%d]:  error here: type is %s\n", FILE__, __LINE__,lOperand.ast->getType()->getName());
             BPatch_reportError(BPatchSerious, 109,
                                "array reference has array reference to non-array type");
+        }
 	return NULL;
     }
 
@@ -290,6 +292,10 @@ AstNode *generateFieldRef(const BPatch_snippet &lOperand,
 void BPatch_arithExpr::BPatch_arithExprBin(BPatch_binOp op,
         const BPatch_snippet &lOperand, const BPatch_snippet &rOperand)
 {
+#if 0
+    fprintf(stderr, "%s[%d]:  welcome to BPatch_arithExprBin: types (l,r):", FILE__, __LINE__);
+    fprintf(stderr, " %s, %s\n",lOperand.ast->getType() ? lOperand.ast->getType()->getName() : "<no type>",  rOperand.ast->getType() ? rOperand.ast->getType()->getName() : "<no type>");
+#endif
     assert(BPatch::bpatch != NULL);
 
     opCode astOp = undefOp; // Quiet the compiler
@@ -356,8 +362,8 @@ void BPatch_arithExpr::BPatch_arithExprBin(BPatch_binOp op,
 
         ast = new AstNode("divide", args);
 
-        removeAst(args[0]);
-        removeAst(args[1]);
+        //removeAst(args[0]);
+        //removeAst(args[1]);
     } else {
         ast = new AstNode(astOp, lOperand.ast, rOperand.ast);
     }

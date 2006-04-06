@@ -131,8 +131,8 @@ void SignalGeneratorCommon::main() {
 
     addToThreadMap();
     
-    startupLock->_Lock(__FILE__, __LINE__);
-    thread_printf("%s[%d]:  about to do init for %s\n", __FILE__, __LINE__, idstr);
+    startupLock->_Lock(FILE__, __LINE__);
+    thread_printf("%s[%d]:  about to do init for %s\n", FILE__, __LINE__, idstr);
     if (!initialize_event_handler()) {
         thread_printf("%s[%d]: initialize event handler failed, %s returning\n", FILE__, __LINE__, idstr);
         _isRunning = false;
@@ -140,21 +140,21 @@ void SignalGeneratorCommon::main() {
 
         removeFromThreadMap();
 
-        startupLock->_Broadcast(__FILE__, __LINE__);
-        startupLock->_Unlock(__FILE__, __LINE__);
+        startupLock->_Broadcast(FILE__, __LINE__);
+        startupLock->_Unlock(FILE__, __LINE__);
         return;
     }
     
     init_ok = true;;
-    thread_printf("%s[%d]:  init success for %s\n", __FILE__, __LINE__, idstr);
+    thread_printf("%s[%d]:  init success for %s\n", FILE__, __LINE__, idstr);
     
     _isRunning = true;
-    startupLock->_Broadcast(__FILE__, __LINE__);
-    startupLock->_Unlock(__FILE__, __LINE__);
+    startupLock->_Broadcast(FILE__, __LINE__);
+    startupLock->_Unlock(FILE__, __LINE__);
     
     EventRecord ev;
     
-    thread_printf("%s[%d]:  before main loop for %s\n", __FILE__, __LINE__, idstr);
+    thread_printf("%s[%d]:  before main loop for %s\n", FILE__, __LINE__, idstr);
 
     eventlock->_Lock(FILE__, __LINE__);
     while (1) {
@@ -244,7 +244,10 @@ bool SignalGeneratorCommon::exitRequested(EventRecord & /*ev*/) {
 void SignalGeneratorCommon::waitForActiveProcess() {
 
     assert(eventlock->depth() == 1);
-    assert(processIsPaused() || requested_wait_until_active);
+    if (!(processIsPaused() || requested_wait_until_active)) {
+      fprintf(stderr, "%s[%d]:  WARN:  used to assert here\n", FILE__, __LINE__);
+      return;
+    }
     
     do {
         runlock->_Lock(FILE__, __LINE__);
@@ -546,13 +549,13 @@ bool SignalGeneratorCommon::signalEvent(EventRecord &ev)
       }
   }
 
-  global_wait_list_lock._Lock(__FILE__, __LINE__);
+  global_wait_list_lock._Lock(FILE__, __LINE__);
   for (unsigned int i = 0; i < global_wait_list.size(); ++i) {
       if (global_wait_list[i]->signalIfMatch(ev)) {
           ret = true;
       }
   }
-  global_wait_list_lock._Unlock(__FILE__, __LINE__);
+  global_wait_list_lock._Unlock(FILE__, __LINE__);
 
 
   
@@ -652,9 +655,9 @@ eventType SignalGeneratorCommon::globalWaitForOneOf(pdvector<eventType> &evts)
       eg->addEvent(evts[i]);
   }
 
-  global_wait_list_lock._Lock(__FILE__, __LINE__);
+  global_wait_list_lock._Lock(FILE__, __LINE__);
   global_wait_list.push_back(eg);
-  global_wait_list_lock._Unlock(__FILE__, __LINE__);
+  global_wait_list_lock._Unlock(FILE__, __LINE__);
 
   if (global_mutex->depth() > 1)
      signal_printf("%s[%d]:  about to EventGate::wait(), lock depth %d\n", 
@@ -662,7 +665,7 @@ eventType SignalGeneratorCommon::globalWaitForOneOf(pdvector<eventType> &evts)
 
   EventRecord result = eg->wait();
   
-  global_wait_list_lock._Lock(__FILE__, __LINE__);
+  global_wait_list_lock._Lock(FILE__, __LINE__);
   bool found = false;
   for (int i = global_wait_list.size() -1; i >= 0; i--) {
     if (global_wait_list[i] == eg) {
@@ -672,7 +675,7 @@ eventType SignalGeneratorCommon::globalWaitForOneOf(pdvector<eventType> &evts)
        break;
     } 
   }
-  global_wait_list_lock._Unlock(__FILE__, __LINE__);
+  global_wait_list_lock._Unlock(FILE__, __LINE__);
   
   if (!found) {
      fprintf(stderr, "%s[%d]:  BAD NEWS, somehow lost a pointer to eg\n", 
@@ -878,7 +881,7 @@ bool SignalGenerator::attachProcess()
      proc->set_status( detached);
 
      startup_printf("%s[%d] attach failing here: thread %s\n", 
-                    __FILE__, __LINE__, getThreadStr(getExecThreadID()));
+                    FILE__, __LINE__, getThreadStr(getExecThreadID()));
      pdstring msg = pdstring("Warning: unable to attach to specified process: ")
                   + pdstring(getPid());
      showErrorCallback(26, msg.c_str());
@@ -995,7 +998,7 @@ process *SignalGeneratorCommon::newProcess(pdstring file_, pdstring dir,
    stat_result = stat(file.c_str(), &file_stat);
 
    if (stat_result == -1) {
-      startup_printf("%s[%d]:  failed to read file %s\n", __FILE__, __LINE__, file.c_str());
+      startup_printf("%s[%d]:  failed to read file %s\n", FILE__, __LINE__, file.c_str());
       pdstring msg = pdstring("Can't read executable file ") + file + (": ") + strerror(errno);
       showErrorCallback(68, msg.c_str());
       return NULL;
@@ -1324,7 +1327,7 @@ bool SignalGeneratorCommon::initialize_event_handler()
     //HACKSTATUS = status;
 
     if (!proc->setAOut(desc)) {
-        startup_printf("[%s:%u] - Couldn't setAOut\n", __FILE__, __LINE__);
+        startup_printf("[%s:%u] - Couldn't setAOut\n", FILE__, __LINE__);
        // cleanupBPatchHandle(theProc->sh->getPid());
        // processVec.pop_back();
         delete proc;

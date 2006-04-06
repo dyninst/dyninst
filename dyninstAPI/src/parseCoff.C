@@ -303,12 +303,14 @@ void parseCoff(BPatch_module *mod, char *exeName, const pdstring &modName,
     if (!ldptr) {
 	bperr( "Error opening %s\n", exeName);
 	// Print an error message here.
+        fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
 	return;
     }
 
     if (LDSWAP(ldptr)) {
 	// Print an error message here.
 	ldaclose(ldptr);
+        fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
 	return; // Bytes are swapped
     }
 
@@ -317,11 +319,13 @@ void parseCoff(BPatch_module *mod, char *exeName, const pdstring &modName,
 	// Print an error message here.
 	// bperr( "%s has no symbol table.\n", argv[1]);
 	ldaclose(ldptr);
+        fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
 	return;
     }
 
     if (!eCoffFindModule(symtab, modName, currInfo)) {
 	// Print an error message here.
+        fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
 	return;
     }
 
@@ -409,8 +413,15 @@ void parseCoff(BPatch_module *mod, char *exeName, const pdstring &modName,
 	    case stStatic:
 		if (_SC_IS_DATA(symbol.sym->sc) || _SC_IS_TLSDATA(symbol.sym->sc)) {
 		    BPatch_type *ptrType = eCoffParseType(mod, symbol);
-		    if (ptrType)
+		    if (ptrType) {
 			mod->getModuleTypes()->addGlobalVariable(symbol.name.c_str(), ptrType);
+                    }
+                    else {
+#if 0
+                       fprintf(stderr, "%s[%d]:  no type for symbol %s\n", FILE__, __LINE__, symbol.name.c_str());
+#endif
+
+                    }
 		}
 		break;
 
@@ -418,7 +429,9 @@ void parseCoff(BPatch_module *mod, char *exeName, const pdstring &modName,
 	    case stBlock:   // Possible C structure, union, or enum.
 	    case stBase:    // Base class.
 	    case stTag:     // C++ class, structure, union, or enum.
-		eCoffParseType(mod, symbol, true);
+		if (!eCoffParseType(mod, symbol, true)) {
+                  fprintf(stderr, "%s[%d]:  no type for %s\n", FILE__, __LINE__, symbol.name.c_str());
+                }
 		break;
 
 	    case stFile:
@@ -654,15 +667,22 @@ void FindLineInfo(LDFILE *ldptr, eCoffParseInfo &info,
     free(lineInfo);
 }
 
-BPatch_type *eCoffParseType(BPatch_module *mod, eCoffSymbol &symbol, bool typeDef) {
+BPatch_type *eCoffParseType(BPatch_module *mod, eCoffSymbol &symbol, bool typeDef) 
+{
     int id = symbol.id();
     pdstring name;
     eCoffSymbol remoteSymbol;
     BPatch_type *newType = NULL;
 
     // Symbol has no type information.
-    if (!symbol.aux && symbol.sym->st != stBlock)
+    if (!symbol.aux && symbol.sym->st != stBlock) {
+#if 0
+        fprintf(stderr, "%s[%d]:  symbol %s has no type\n", FILE__, __LINE__, symbol.name.c_str());
+        fprintf(stderr, "%s[%d]:  symbol.aux = %d\n", FILE__, __LINE__, symbol.aux);
+        fprintf(stderr, "%s[%d]:  symbol.sym->st = %d, stBlock = %d\n", FILE__, __LINE__, symbol.sym->st, stBlock);
+#endif
 	return NULL;
+    }
 
     newType = mod->getModuleTypes()->findType(id);
     if (newType) {
@@ -692,6 +712,7 @@ BPatch_type *eCoffParseType(BPatch_module *mod, eCoffSymbol &symbol, bool typeDe
 
     case stUsing:
 	eCoffHandleRNDX(symbol);
+        fprintf(stderr, "%s[%d]:  symbol %s has no type\n", FILE__, __LINE__, symbol.name.c_str());
 	return NULL;
 
     case stAlias:

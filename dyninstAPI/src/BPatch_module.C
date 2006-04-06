@@ -1107,12 +1107,20 @@ void BPatch_module::parseTypes()
   image * imgPtr=NULL;
 
   //Using mapped_module to get the image Object.
+  //imgPtr = mod->obj()->parse_img();
   imgPtr = mod->pmod()->exec();
+  assert(imgPtr);
 
   //Get the path name of the process
-  char *file = const_cast<char *>((imgPtr->file()).c_str());
+  //char *file = const_cast<char *>((imgPtr->file()).c_str());
+  const fileDescriptor fdesc = imgPtr->desc();
+  pdstring fnamestr = fdesc.file(); 
+  char *file = const_cast<char *>(fnamestr.c_str());
 
+  assert(file);
+  fprintf(stderr, "%s[%d]:  doing parseCoff for %s\n", FILE__, __LINE__, mod->fileName().c_str());
   parseCoff(this, file, mod->fileName(),mod->getLineInformation());
+
 }
 
 #endif

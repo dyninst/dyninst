@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.151 2006/04/04 01:10:15 legendre Exp $
+// $Id: BPatch_thread.C,v 1.152 2006/04/06 10:08:45 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -148,20 +148,22 @@ bool BPatch_thread::getCallStackInt(BPatch_Vector<BPatch_frame>& stack)
 }
 
 BPatch_thread *BPatch_thread::createNewThread(BPatch_process *proc, 
-                                              int ind, int lwp_id)
+                                              int ind, int lwp_id, dynthread_t async_tid)
 {
    BPatch_thread *newthr;
-   newthr = new BPatch_thread(proc, ind, lwp_id);
+   newthr = new BPatch_thread(proc, ind, lwp_id, async_tid);
    return newthr;
 }
 
-BPatch_thread::BPatch_thread(BPatch_process *parent, int ind, int lwp_id) 
+BPatch_thread::BPatch_thread(BPatch_process *parent, int ind, int lwp_id, dynthread_t async_tid) 
 {
    proc = parent;
    is_deleted = false;
    index = ind;
+   doa_tid = (dynthread_t) -1;
    dyn_lwp *lwp = proc->llproc->getLWP(lwp_id);
    doa = (lwp == NULL);
+   doa_tid = async_tid;
    if (doa) {
       is_deleted = true;
       llthread = NULL;
@@ -175,6 +177,7 @@ BPatch_thread::BPatch_thread(BPatch_process *parent, int ind, int lwp_id)
 BPatch_thread::BPatch_thread(BPatch_process *parent, dyn_thread *dthr)
 {
    doa = false;
+   doa_tid = (dynthread_t) -1;
    is_deleted = false;
    index = 0;
    proc = parent;
@@ -227,7 +230,7 @@ BPatch_process *BPatch_thread::getProcessInt()
 dynthread_t BPatch_thread::getTidInt()
 {
    if (doa || is_deleted) {
-      return (dynthread_t) -1;
+      return doa_tid/*(dynthread_t) -1*/;
    }
    return llthread->get_tid();
 }
@@ -504,7 +507,8 @@ bool BPatch_thread::oneTimeCodeAsyncInt(const BPatch_snippet &expr,
    return true;   
 }
 
-bool BPatch_thread::isDeadOnArrivalInt() {
+bool BPatch_thread::isDeadOnArrivalInt() 
+{
    return doa;
 }
 

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.208 2006/04/06 01:26:40 mjbrim Exp $
+// $Id: linux.C,v 1.209 2006/04/06 10:08:45 jaw Exp $
 
 #include <fstream>
 
@@ -1560,6 +1560,11 @@ bool dyn_lwp::realLWP_attach_() {
    proc()->sh->signalActiveProcess();
    evt = proc()->sh->waitForEvent(evtThreadDetect, proc_, this);
    if (evt != evtThreadDetect) {
+      //  process can exit here while we are waiting...  no??
+      if (evt == evtProcessExit) {
+        fprintf(stderr, "%s[%d]:  process exited before thread detect event... bye...\n", FILE__, __LINE__);
+        return false;
+      }
       fprintf(stderr, "%s[%d]:  received unexpected event %s\n", 
               __FILE__, __LINE__, eventType2str(evt));
       abort();

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.133 2006/04/04 16:55:47 bernat Exp $
+// $Id: BPatch.C,v 1.134 2006/04/06 10:08:44 jaw Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1926,6 +1926,46 @@ bool BPatch::removeThreadEventCallbackInt(BPatch_asyncEventType type,
     //  we deleted any found target functions, put the others back.
     for (unsigned int i = 0; i < cbs.size(); ++i) 
        if (!getCBManager()->registerCallback(evt, cbs[i]))
+          ret = false;
+
+    return ret;
+}
+
+bool BPatch::registerDynamicCallCallbackInt(BPatchDynamicCallSiteCallback func)
+{
+    pdvector<CallbackBase *> cbs;
+    DynamicCallsiteCallback *cb = new DynamicCallsiteCallback(func);
+    getCBManager()->removeCallbacks(evtDynamicCall, cbs);
+    bool ret = getCBManager()->registerCallback(evtDynamicCall, cb);
+
+    return ret;
+}
+
+bool BPatch::removeDynamicCallCallbackInt(BPatchDynamicCallSiteCallback func)
+{
+
+    pdvector<CallbackBase *> cbs;
+    if (!getCBManager()->removeCallbacks(evtDynamicCall, cbs)) {
+        fprintf(stderr, "%s[%d]:  Cannot remove callback for type evtDynamicCall, not found\n",
+               FILE__, __LINE__);
+        return false;
+    }
+
+    //  See if supplied function was in the set of removed functions
+    bool ret = false;
+    for (int i = cbs.size() -1; i >= 0; i--) {
+      DynamicCallsiteCallback *test = (DynamicCallsiteCallback *)cbs[i];
+      if (test->getFunc() == func) {
+        //  found it, destroy it
+        cbs.erase(i,i);
+        ret = true;
+        delete test;
+      } 
+    }
+
+    //  we deleted any found target functions, put the others back.
+    for (unsigned int i = 0; i < cbs.size(); ++i) 
+       if (!getCBManager()->registerCallback(evtDynamicCall, cbs[i]))
           ret = false;
 
     return ret;

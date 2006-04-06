@@ -1628,7 +1628,7 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(
    //Needs creating
    if (!thr) 
    {
-      thr = BPatch_thread::createNewThread(this, index, lwp);
+      thr = BPatch_thread::createNewThread(this, index, lwp, tid);
       if (thr->doa) {
           return thr;
       }
@@ -1749,14 +1749,18 @@ void BPatch_process::debugSuicideInt() {
     llproc->debugSuicide();
 }
 
-BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid, dynthread_t threadid, 
-                                        unsigned long stack_top, unsigned long start_pc, process *proc_)
+BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid, 
+                                                  dynthread_t threadid, 
+                                                  unsigned long stack_top, 
+                                                  unsigned long start_pc, process *proc_)
 {
   bool thread_exists = (getThreadByIndex(index) != NULL);
   if (!llproc && proc_) llproc = proc_;
   BPatch_thread *newthr = 
       createOrUpdateBPThread(lwpid, threadid, index, stack_top, start_pc);
   if (thread_exists) {
+     async_printf("%s[%d]:  NOT ISSUING CALLBACK:  thread %l exists\n", 
+                  FILE__, __LINE__, (long) threadid);
      return newthr;
   }
 
@@ -1764,12 +1768,31 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid, dyn
   getCBManager()->dispenseCallbacksMatching(evtThreadCreate, cbs);
   for (unsigned int i = 0; i < cbs.size(); ++i) {
      AsyncThreadEventCallback &cb = * ((AsyncThreadEventCallback *) cbs[i]);
-     async_printf("%s[%d]:  before executing thread create callback\n", FILE__, __LINE__);
+     async_printf("%s[%d]:  before issuing thread create callback: tid %lu\n", 
+                 FILE__, __LINE__, newthr->getTid());
      cb(this, newthr);
   }
 
   BPatch::bpatch->mutateeStatusChange = true;
   llproc->sh->signalEvent(evtThreadCreate);
 
+  if (newthr->isDeadOnArrival()) {
+    //  thread was created, yes, but it also already exited...  set up and 
+    //  execute thread exit callbacks too... (this thread will not trigger
+    //  other thread events since we never attached to it)
+    //  it is up to the user to check deadOnArrival() before doing anything
+    //  with the thread object.
+    pdvector<CallbackBase *> cbs;
+    getCBManager()->dispenseCallbacksMatching(evtThreadExit, cbs);
+    for (unsigned int i = 0; i < cbs.size(); ++i) {
+      BPatch::bpatch->mutateeStatusChange = true;
+      llproc->sh->signalEvent(evtThreadExit);
+       AsyncThreadEventCallback &cb = * ((AsyncThreadEventCallback *) cbs[i]);
+       async_printf("%s[%d]:  before issuing thread exit callback: tid %lu\n", 
+                   FILE__, __LINE__, newthr->getTid());
+       cb(this, newthr);
+    }
+
+  }
   return newthr;
 }

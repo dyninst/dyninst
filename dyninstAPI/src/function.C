@@ -362,7 +362,8 @@ int_basicBlock *int_function::findBlockByAddr(Address addr) {
 }
 
 
-const pdvector<int_basicBlock *> &int_function::blocks() {
+const pdvector<int_basicBlock *> &int_function::blocks() 
+{
     parsing_printf("blocks() for %s, pointer %p\n", symTabName().c_str(), ifunc_);
     if (blockList.size() == 0) {
         Address base = getAddress() - ifunc_->getOffset();

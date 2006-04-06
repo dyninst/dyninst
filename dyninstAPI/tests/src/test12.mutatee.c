@@ -8,6 +8,7 @@
 #include <errno.h>
 
 #include "test12.h"
+#include "../../../dyninstAPI_RT/h/dyninstRTExport.h"
 #define TRUE 1
 #define FALSE 0
 
@@ -46,8 +47,6 @@ int isAttached = 0;
 int mutateeIdle = 0;
 int mutateeXLC = 0;
 
-int subtest2counter = 0;
-int subtest2err = 0;
 
 /*
  * Stop the process (in order to wait for the mutator to finish what it's
@@ -85,7 +84,7 @@ pthread_attr_t attr;
 
 Thread_t *createThreads(int num, ThreadMain_t tmain, Thread_t *tbuf)
 {
-  unsigned int i;
+  int i;
   int err = 0;
   Thread_t *threads;
   if (tbuf == NULL)
@@ -119,18 +118,18 @@ Thread_t *createThreads(int num, ThreadMain_t tmain, Thread_t *tbuf)
 
   /* start a bunch of threads */
   for (i = 0; i < num; ++i) {
-    /*fprintf(stderr, "%s[%d]:  PTHREAD_CREATE\n", __FILE__, __LINE__); */
     if (0 != pthread_create(&(threads[i]), &attr, (void *(*)(void*))tmain, NULL)) {
       err = 1;
       fprintf(stderr, "%s[%d]:pthread_create\n", __FILE__, __LINE__);
       goto cleanup;
     }
+    dprintf("%s[%d]:  PTHREAD_CREATE: %lu\n", __FILE__, __LINE__, threads[i]); 
   }
 
   cleanup:
 
   if (err) {
-    free (threads);
+    if (!tbuf) free (threads);
     return NULL;
   }
 
@@ -190,104 +189,6 @@ int checkIfAttached()
 {
     return isAttached;
 }
-/********************************************************************/
-/********************************************************************/
-/********************************************************************/
-#define NUM_DYN_CALLS 8 
-typedef int (*intFuncArg) (int);
-int call1_zero() {return 0;}
-
-int call1_1(int arg) {return arg+1;}
-int call1_2(int arg) {return arg+2;}
-int call1_3(int arg) {return arg+3;}
-int call1_4(int arg) {return arg+4;}
-
-int call1_dispatch(intFuncArg callme, int arg) 
-{
-  /*fprintf(stderr, "%s[%d]:  inside call1_dispatch\n", __FILE__, __LINE__);*/
-  static int callsite_selector = 0;
-  int ret = -1;
-  intFuncArg tocall = (intFuncArg) callme;
-
-  ret = call1_zero(); /* lets have a non-dynamic call site here too */
-
-  if (!tocall) {
-    fprintf(stderr, "%s[%d]:  FIXME!\n", __FILE__, __LINE__);
-    return -1;
-  }
-
-  /*  3 dynamic call sites */
-  switch (callsite_selector) {
-  case 0: ret = (tocall)(arg); callsite_selector++; break;
-  case 1: ret = (tocall)(arg+1); callsite_selector++; break;
-  case 2: ret = (tocall)(arg+2); callsite_selector = 0; break;
-  }
-
-  if (ret) 
-    ret = call1_zero(); /* lets have a non-dynamic call site here too */
-
-  return ret;
-
-}
-
-void func1_1()
-{
-
-  /*  want to trigger a lot of dynamic calls, and then stop the process. */
-  /*  to make sure we test possible race in event handling. */
-
-  int nextfunc = 1;
-  unsigned int i;
-  for (i = 0; i < NUM_DYN_CALLS; ++i) {
-    switch (nextfunc) {
-    case 1: call1_dispatch(call1_1, i); nextfunc++; break;
-    case 2: call1_dispatch(call1_2, i); nextfunc++; break;
-    case 3: call1_dispatch(call1_3, i); nextfunc++; break;
-    case 4: call1_dispatch(call1_4, i); nextfunc = 1; break;
-    }; 
-  }
-  
-  mutateeIdle = 1;
-  while (mutateeIdle);
-  /*  stop the process (mutator will restart us) */
-  /*stop_process(); */
-
-}
-
-
-unsigned long current_locks[TEST2_THREADS];
-/*Thread_t  *test2threads; */
-pthread_t test2threads[TEST2_THREADS];
-pthread_mutex_t real_lock;
-
-void register_my_lock(unsigned long id, unsigned int val)
-{
-  unsigned int i;
-  int found = 0;
-  for (i = 0; i < TEST2_THREADS; ++i) {
-    if (pthread_equal(test2threads[i],(pthread_t)id)) {
-      found = 1;
-      current_locks[i] = (unsigned)val;
-      break;
-    }
-  }
-  if (!found)
-    fprintf(stderr, "%s[%d]: FIXME\n", __FILE__, __LINE__);
-}
-int is_only_one() {
-  unsigned int i;
-  int foundone = 0;
-  for (i = 0; i < TEST2_THREADS; ++i) {
-    if (0 != current_locks[i]) {
-      if (foundone) return 0; /*false*/
-      foundone++;
-    }
-  }
-  return 1; /*true */
-}
-
-void (*DYNINSTlock_thelock)(void);
-void (*DYNINSTunlock_thelock)(void);
 
 void sleep_ms(int _ms) 
 {
@@ -309,47 +210,123 @@ void sleep_ms(int _ms)
 
 }
 
-void *thread_main2 (void *arg)
+/********************************************************************/
+/********************************************************************/
+/***********  Subtest 1:  rtlib spinlocks */
+/***********  use dlopen/dlsym to get access to rt lib lock */
+/***********  then start up a bunch of threads to contend for it */
+/***********  monitor contention for deadlock/broken lock */
+/********************************************************************/
+/********************************************************************/
+
+unsigned long current_locks[TEST1_THREADS];
+/*Thread_t  *test2threads; */
+pthread_t test1threads[TEST1_THREADS];
+pthread_mutex_t real_lock;
+
+int subtest1counter = 0;
+int subtest1err = 0;
+
+void register_my_lock(unsigned long id, unsigned int val)
+{
+  dprintf("%s[%d]:  %sregister lock for thread %lu\n", __FILE__, __LINE__,
+           val ? "" : "un", id);
+  unsigned int i;
+  int found = 0;
+  for (i = 0; i < TEST1_THREADS; ++i) {
+    if (pthread_equal(test1threads[i],(pthread_t)id)) {
+      found = 1;
+      current_locks[i] = (unsigned)val;
+      break;
+    }
+  }
+  if (!found)
+    fprintf(stderr, "%s[%d]: FIXME\n", __FILE__, __LINE__);
+}
+
+int done_threads = 0;
+
+int all_threads_done()
+{
+  return done_threads == TEST1_THREADS;
+}
+
+int is_only_one() {
+  unsigned int i;
+  int foundone = 0;
+  for (i = 0; i < TEST1_THREADS; ++i) {
+    if (0 != current_locks[i]) {
+      if (foundone) return 0; /*false*/
+      foundone++;
+    }
+  }
+  return 1; /*true */
+}
+
+void (*DYNINSTinit_thelock)(dyninst_lock_t *);
+int (*DYNINSTlock_thelock)(dyninst_lock_t *);
+void (*DYNINSTunlock_thelock)(dyninst_lock_t *);
+/*dyninst_lock_t test1lock; */
+static DECLARE_DYNINST_LOCK(test1lock);
+
+void *thread_main1 (void *arg)
 {
    int tmp;
-   (DYNINSTlock_thelock)();
+   int lockres =    (*DYNINSTlock_thelock)(&test1lock);
 
    register_my_lock((unsigned long)pthread_self(),1);
    pthread_mutex_lock(&real_lock);
 
-  sleep_ms(1);
+  /*sleep_ms(1); */
 
    if (!is_only_one()) {
-     fprintf(stderr, "FAIL subtest2: more than one lock has been obtained\n");
-     subtest2err = 1;
+     subtest1err = 1;
    }
    pthread_mutex_unlock(&real_lock);
    register_my_lock((unsigned long)pthread_self(),0);
-   subtest2counter++;
+   subtest1counter++;
 
-   (DYNINSTunlock_thelock)(); 
+   (*DYNINSTunlock_thelock)(&test1lock); 
+
+   pthread_mutex_lock(&real_lock);
+    done_threads++;
+   pthread_mutex_unlock(&real_lock);
    return NULL;
 }
 
-void func2_1()
+unsigned long local_pthread_self() {
+  return (unsigned long) pthread_self();
+}
+void func1_1()
 {
 
   /*pthread_attr_t attr;*/
   int err = 0;
-  unsigned int timeout = 0; /* in ms */
   unsigned int i;
   void *RTlib;
 
+  //  zero out lock registry:
+
+  for (i = 0; i < TEST1_THREADS; ++i) {
+    current_locks[i] = 0;
+  }
+
 #if !defined (os_windows) && !defined(os_irix)
 
-  RTlib = dlopen("libdyninstAPI_RT.so.1", RTLD_LAZY);
+  RTlib = dlopen("libdyninstAPI_RT.so.1", RTLD_NOW);
   if (!RTlib) {
     fprintf(stderr, "%s[%d]:  could not open dyninst RT lib: %s\n", __FILE__, __LINE__, dlerror());
     exit(1);
   }
 
-  DYNINSTlock_thelock = (void (*)(void))dlsym(RTlib, "DYNINSTlock_thelock");
-  DYNINSTunlock_thelock = (void (*)(void))dlsym(RTlib, "DYNINSTunlock_thelock");
+  DYNINSTinit_thelock = (void (*)(dyninst_lock_t *))dlsym(RTlib, "dyninst_init_lock");
+  DYNINSTlock_thelock = (int (*)(dyninst_lock_t *))dlsym(RTlib, "dyninst_lock");
+  DYNINSTunlock_thelock = (void (*)(dyninst_lock_t *))dlsym(RTlib, "dyninst_unlock");
+  dyntid_t (**DYNINST_pthread_self)(void) = (dyntid_t (**)(void))dlsym(RTlib, "DYNINST_pthread_self");
+  if (!DYNINSTinit_thelock) {
+    fprintf(stderr, "%s[%d]:  could not DYNINSTinit_thelock: %s\n", __FILE__, __LINE__, dlerror());
+    exit(1);
+  }
   if (!DYNINSTlock_thelock) {
     fprintf(stderr, "%s[%d]:  could not DYNINSTlock_thelock: %s\n", __FILE__, __LINE__, dlerror());
     exit(1);
@@ -361,6 +338,7 @@ void func2_1()
 
   pthread_mutex_init(&real_lock, NULL);
 
+  (*DYNINSTunlock_thelock)(&test1lock);
 #if !defined(os_solaris)
    /*  XXX this is nasty */
    /*  The way this is supposed to work is that we get a lock, then start a bunch of
@@ -376,65 +354,277 @@ void func2_1()
        the mutator, but that might've been because the asm that was imported to implement
        the locks was the gnu asm, not the solaris-cc asm, which is the stuff that gets
        compiled, by default into the runtime lib*/
-   (DYNINSTlock_thelock)();
+/*
+   int lockres = (*DYNINSTlock_thelock)(&test1lock); 
+*/
 #endif
-
-  createThreads(TEST2_THREADS, thread_main2,test2threads);
-  assert(test2threads);
+   int lockres = (*DYNINSTlock_thelock)(&test1lock);
+  createThreads(TEST1_THREADS, thread_main1, test1threads);
+  assert(test1threads);
 
 
   sleep_ms(5);
 
+  dprintf("%s[%d]:  doing initial unlock...\n", __FILE__, __LINE__);
 #if !defined(os_solaris)
-   (DYNINSTunlock_thelock)(); 
-#endif
+  /* (*DYNINSTunlock_thelock)(&test1lock); */ 
 
 #endif
+   (*DYNINSTunlock_thelock)(&test1lock); 
+  /*pthread_mutex_unlock(&real_lock); */
 
-  mutateeIdle = 1;
-  while (mutateeIdle);
+#endif
 
-  /*free (test2threads);*/
+  int bigTIMEOUT = 5000;
+  int timeout = 0;
+
+  /*   wait for all threads to exit */
+  while (timeout < bigTIMEOUT && ! all_threads_done()) {
+    timeout += 100;
+    sleep_ms(100);
+  }
+
+  dlclose(RTlib);
+  exit(subtest1err);
 }
 
-void *thread_main(void *arg)
+/********************************************************************/
+/********************************************************************/
+/***********  Subtest 2:  dynamic callsites */
+/********************************************************************/
+/********************************************************************/
+
+#define NUM_DYN_CALLS 8 
+typedef int (*intFuncArg) (int);
+int call2_zero() {return 0;}
+
+int call2_1(int arg) {return arg+1;}
+int call2_2(int arg) {return arg+2;}
+int call2_3(int arg) {return arg+3;}
+int call2_4(int arg) {return arg+4;}
+
+int call2_dispatch(intFuncArg callme, int arg) 
 {
+  /*fprintf(stderr, "%s[%d]:  inside call2_dispatch\n", __FILE__, __LINE__);*/
+  static int callsite_selector = 0;
+  int ret = -1;
+  intFuncArg tocall = (intFuncArg) callme;
+
+  ret = call2_zero(); /* lets have a non-dynamic call site here too */
+
+  if (!tocall) {
+    fprintf(stderr, "%s[%d]:  FIXME!\n", __FILE__, __LINE__);
+    return -1;
+  }
+
+  /*  3 dynamic call sites */
+  switch (callsite_selector) {
+  case 0: ret = (tocall)(arg); callsite_selector++; break;
+  case 1: ret = (tocall)(arg+1); callsite_selector++; break;
+  case 2: ret = (tocall)(arg+2); callsite_selector = 0; break;
+  }
+
+  if (ret) 
+    ret = call2_zero(); /* lets have a non-dynamic call site here too */
+
+  return ret;
+
+}
+
+void func2_1()
+{
+#if !defined(arch_ia64)
+  /*  want to trigger a lot of dynamic calls, and then stop the process. */
+  /*  to make sure we test possible race in event handling. */
+
+  int nextfunc = 1;
+  unsigned int i;
+  for (i = 0; i < NUM_DYN_CALLS; ++i) {
+    switch (nextfunc) {
+    case 1: call2_dispatch(call2_1, i); nextfunc++; break;
+    case 2: call2_dispatch(call2_2, i); nextfunc++; break;
+    case 3: call2_dispatch(call2_3, i); nextfunc++; break;
+    case 4: call2_dispatch(call2_4, i); nextfunc = 1; break;
+    }; 
+  }
+  
+  mutateeIdle = 1;
+  fprintf(stderr, "%s[%d]:  mutatee idling....\n", __FILE__, __LINE__);
+  while (mutateeIdle);
+  fprintf(stderr, "%s[%d]:  mutatee waking up....\n", __FILE__, __LINE__);
+  /*  stop the process (mutator will restart us) */
+  /*stop_process(); */
+#endif
+}
+
+Lock_t test3lock;
+
+void *thread_main3(void *arg)
+{
+  lockLock(&test3lock);
   int x, i;
   x = 0;
-  for (i = 0; i < 0xffffff; ++i) {
+  for (i = 0; i < 0xffff; ++i) {
     x = x + i;
   }
   /*fprintf(stderr, "%s[%d]:  PTHREAD_DESTROY\n", __FILE__, __LINE__); */
+
+  unlockLock(&test3lock);
+  dprintf("%s[%d]:  %lu exiting...\n", __FILE__, __LINE__, (unsigned long) pthread_self());
   return (void *) x;
 }
 
+
+Thread_t test3_threads[TEST3_THREADS];
 void func3_1()
 {
-  Thread_t *threads;
 
-  threads = createThreads(TEST3_THREADS, thread_main, NULL);
-  assert (threads);
+  createLock(&test3lock);
+  lockLock(&test3lock);
+  assert (NULL != createThreads(TEST3_THREADS, thread_main3, test3_threads));
+
+  sleep_ms(999);
+  unlockLock(&test3lock);
+  mutateeIdle = 1;
+  fprintf(stderr, "%s[%d]:  mutatee idling....\n", __FILE__, __LINE__);
+  while (mutateeIdle) {}
+  fprintf(stderr, "%s[%d]:  mutatee waking up....\n", __FILE__, __LINE__);
+
+}
+
+Lock_t test4lock;
+void *thread_main4(void *arg)
+{
+  lockLock(&test4lock); 
+  int x, i;
+  x = 0;
+  for (i = 0; i < 0xf; ++i) {
+    x = x + i;
+  }
+
+  unlockLock(&test4lock); 
+  dprintf("%s[%d]:  %lu exiting...\n", __FILE__, __LINE__, (unsigned long) pthread_self());
+  return (void *) x;
+}
+
+Thread_t test4_threads[TEST3_THREADS];
+void func4_1()
+{
+
+#if defined(os_linux) && defined(arch_x86)
+#else
+  createLock(&test4lock);
+  lockLock(&test4lock); 
+   
+  assert (NULL != createThreads(TEST3_THREADS, thread_main4, test4_threads));
+
+  unlockLock(&test4lock); 
+  mutateeIdle = 1;
+  while (mutateeIdle) {}
+#endif
+
+}
+
+Lock_t test5lock;
+void *thread_main5(void *arg)
+{
+  lockLock(&test5lock); 
+  int x, i;
+  x = 0;
+  for (i = 0; i < 0xfffffff; ++i) {
+    x = x + i;
+  }
+
+  unlockLock(&test5lock); 
+  dprintf("%s[%d]:  %lu exiting...\n", __FILE__, __LINE__, (unsigned long) pthread_self());
+  return (void *) x;
+}
+
+Thread_t test5_threads[TEST5_THREADS];
+
+void func5_1()
+{
+#if defined(os_none)
+  createLock(&test5lock);
+  lockLock(&test5lock); 
+  assert (NULL != createThreads(TEST5_THREADS, thread_main5, test5_threads));
+
+  sleep_ms(999);
+  unlockLock(&test5lock); 
+  mutateeIdle = 1;
+  while (mutateeIdle) {}
+#else
+#endif
+}
+
+Lock_t test6lock;
+void *thread_main6(void *arg)
+{
+  lockLock(&test6lock); 
+  int x, i;
+  x = 0;
+  for (i = 0; i < 0xf; ++i) {
+    x = x + i;
+  }
+
+  unlockLock(&test6lock); 
+  dprintf("%s[%d]:  %lu exiting...\n", __FILE__, __LINE__, (unsigned long) pthread_self());
+  return (void *) x;
+}
+
+Thread_t test6_threads[TEST5_THREADS];
+
+void func6_1()
+{
+#if defined(os_none)
+  createLock(&test6lock);
+  lockLock(&test6lock); 
+  assert (NULL != createThreads(TEST6_THREADS, thread_main6, test6_threads));
+
+  unlockLock(&test6lock); 
+  mutateeIdle = 1;
+  while (mutateeIdle) {}
+#else
+#endif
+}
+
+int call7_2(int x)
+{
+  int i;
+  int y = x;
+  for (i = 0; i < 0xfff; ++i) 
+    y += i;
+  
+  return y;
+}
+
+int call7_1() 
+{
+  int x = 0;
+  int z = 0;
+  int i;
+  for (i = 0; i < TEST7_NUMCALLS; ++i) {
+    z += call7_2(x); 
+  }
+  return z;
+}
+
+void func7_1()
+{
+  /*  this is a simple single threaded scenario for user defined callback testing
+      the entry, exit and callpoints of call7_1 are instrumented with messaging
+      functions
+  */
+  int x = 0;
+  x = call7_1();
 
   mutateeIdle = 1;
   while (mutateeIdle);
 
-  free (threads);
+  /*free (threads);*/
 }
 
-void func4_1()
-{
-  Thread_t *threads;
-
-  threads = createThreads(TEST4_THREADS, thread_main, NULL);
-  assert (threads);
-
-  mutateeIdle = 1;
-  while (mutateeIdle) {}
-
-  free (threads);
-}
-
-void *thread_main5(void *arg)
+void *thread_main8(void *arg)
 {
   /*  The mutator will patch in messaging primitives to signal events at mutex creation,
       deletion, locking and unlocking.  Thus far, we are only considering reporting of events
@@ -464,12 +654,12 @@ void *thread_main5(void *arg)
   return NULL;
 }
 
-Thread_t test5threads[TEST5_THREADS];
-void func5_1()
+Thread_t test8threads[TEST8_THREADS];
+void func8_1()
 {
-  Thread_t *threads = test5threads;
+  Thread_t *threads = test8threads;
 
-  threads = createThreads(TEST5_THREADS, thread_main5,threads);
+  threads = createThreads(TEST8_THREADS, thread_main8,threads);
   assert (threads);
 
   mutateeIdle = 1;
@@ -478,11 +668,6 @@ void func5_1()
   /*free (threads);*/
 }
 
-void func8_1()
-{
-  mutateeIdle = 1;
-  while (mutateeIdle) {}
-}
 
 /********************************************************************/
 /********************************************************************/
@@ -501,6 +686,7 @@ int main(int iargc, char *argv[])
     int pfd;
 #endif
     int useAttach = FALSE;
+    int doAttachCheck = TRUE;
 
     for (j=0; j <= MAX_TEST; j++) runTest[j] = FALSE;
 
@@ -517,6 +703,8 @@ int main(int iargc, char *argv[])
             }
             pfd = atoi(argv[i]);
 #endif
+        } else if (!strcmp(argv[i], "-attachrun")) {
+            doAttachCheck = FALSE;
         } else if (!strcmp(argv[i], "-run")) {
             for (j=i+1; j < argc; j++) {
                 unsigned int testId;
@@ -563,16 +751,29 @@ int main(int iargc, char *argv[])
         }
         close(pfd);
 #endif
-        printf("Waiting for mutator to attach...\n"); fflush(stdout);
-        while (!checkIfAttached()) ;
-        printf("Mutator attached.  Mutatee continuing.\n");
+        if (doAttachCheck) {
+          printf("Waiting for mutator to attach...\n"); fflush(stdout);
+          while (!checkIfAttached()) ;
+          printf("Mutator attached.  Mutatee continuing.\n");
+        }
     }
+
+    //  test1 operates on a different "mode", ie the mutatee is started
+    //  specially for test1, which executes it apart from the other tests.
+    if (runTest[2] || runTest[3] || 
+        runTest[4] || runTest[5] ||
+        runTest[6] || runTest[7] ||
+        runTest[8]) 
+          runTest[1] = FALSE;
 
     if (runTest[1]) func1_1();
     if (runTest[2]) func2_1();
     if (runTest[3]) func3_1();
     if (runTest[4]) func4_1();
-    /*if (runTest[5]) func5_1();*/
+    if (runTest[5]) func5_1();
+    if (runTest[6]) func6_1();
+    if (runTest[7]) func7_1();
+    if (runTest[8]) func8_1();
 
     while(1);
 

@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.88 2006/03/31 20:06:35 bernat Exp $
+// $Id: sol_proc.C,v 1.89 2006/04/06 10:08:46 jaw Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -1470,9 +1470,11 @@ bool SignalGenerator::updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
   }
    
 
+#ifdef NOTDEF // PDSEP
   EventRecord matching_event;
   bool found_match = find_matching_event(events, ev, matching_event);
 
+  // This code is not working...  
   if (!found_match) {
      events.push_back(ev);
   } else 
@@ -1480,6 +1482,8 @@ bool SignalGenerator::updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
    
   char buf[128];
   signal_printf("%s[%d]:  updateEvents got event %s\n", FILE__, __LINE__, ev.sprint_event(buf));
+#endif
+  events.push_back(ev);
   return true;
 }
 
@@ -1542,6 +1546,11 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
         return true;
      }
 
+     if (ev.type == evtUndefined) {
+        fprintf(stderr, "%s[%d]:  failed to decodeSignal\n", FILE__, __LINE__);
+        return true;
+     }
+
      signal_printf("%s[%d]:  new event: %s\n", FILE__, __LINE__, eventType2str(ev.type));
      return true;
   }
@@ -1585,17 +1594,69 @@ bool SignalGenerator::decodeEvent(EventRecord &ev)
        return true;
    }
 
-
+#ifdef NOTDEF // PDSEP
    bool updated_events = false;
    unsigned lwp_to_use = (unsigned) procstatus.pr_lwpid;
    updated_events = updateEvents(events_to_handle, ev.proc, lwp_to_use);
+#endif
+
+  //  find the right dyn_lwp to work with
+  dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(ev.proc->real_lwps);
+  dyn_lwp *cur_lwp;
+  unsigned index;
+  unsigned target_lwp_id = (unsigned) procstatus.pr_lwpid;
+  dyn_lwp *lwp_to_use = NULL;
+  dyn_lwp *replwp = ev.proc->getRepresentativeLWP();
+  int numreal_lwps = ev.proc->real_lwps.size();
+  bool updated_events = false;
+
+  if (ev.proc->real_lwps.size()) {
+      while (lwp_iter.next(index, cur_lwp)) {
+          if (cur_lwp->get_lwp_id() == (unsigned)target_lwp_id) {
+              lwp_to_use = cur_lwp;
+              break;
+          }
+      }
+  }
+  else {
+    //  not threaded, just use representative LWP
+    lwp_to_use = ev.proc->getRepresentativeLWP();
+  }
+
+  if (lwp_to_use)
+    updated_events = updateEventsWithLwpStatus(ev.proc, lwp_to_use, events_to_handle);
+
 
    if (events_to_handle.size()) {
      ev = events_to_handle[0];
      events_to_handle.erase(0,0);
    }
-   else
-     ev.type = evtUndefined;
+   else {
+     if (updated_events) {
+        fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
+        ev.type = evtUndefined;
+     }
+     else
+       //  don't use evt undefined here since that indicates an error
+       //  null event should do it...  (but do we need to continue the proc??)
+       ev.type = evtUndefined;
+   }
+
+   if (ev.type == evtUndefined) {
+     fprintf(stderr, "%s[%d]:  got evtUndefined!\n", FILE__, __LINE__);
+     fprintf(stderr, "Thread status flags: 0x%x (STOPPED %d, ISTOP %d, ASLEEP %d)\n",
+                 procstatus.pr_flags,
+                 procstatus.pr_flags & PR_STOPPED,
+                 procstatus.pr_flags & PR_ISTOP,
+                 procstatus.pr_flags & PR_ASLEEP);
+     fprintf(stderr, "Current signal: %d, reason for stopping: %d, (REQ %d, SIG %d, ENT %d, EXIT %d), what %d\n",
+            procstatus.pr_cursig, procstatus.pr_why,
+            procstatus.pr_why == PR_REQUESTED,
+            procstatus.pr_why == PR_SIGNALLED,
+            procstatus.pr_why == PR_SYSENTRY,
+            procstatus.pr_why == PR_SYSEXIT,
+            procstatus.pr_what);
+   }
 
    char buf[128];
    signal_printf("%s[%d]:  decodeEvent got %s, returning %d\n", FILE__, __LINE__, ev.sprint_event(buf), updated_events);

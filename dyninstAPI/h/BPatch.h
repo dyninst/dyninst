@@ -83,6 +83,8 @@ typedef void (*BPatchSignalCallback)(BPatch_thread *proc, int sigNum);
 typedef void (*BPatchOneTimeCodeCallback)(BPatch_thread *proc, 
                                           void *userData, void *returnValue);
 
+typedef void (*BPatchDynamicCallSiteCallback)(BPatch_point *at_point,
+                                              BPatch_function *called_function);
 #ifdef IBM_BPATCH_COMPAT
 typedef void *BPatch_Address;
 typedef void (*BPatchLoggingCallback)(char *msg, int);
@@ -384,6 +386,17 @@ public:
     API_EXPORT(Int, (type,cb),
     bool,removeThreadEventCallback,(BPatch_asyncEventType type,
                                     BPatchAsyncThreadEventCallback cb));
+
+    //  BPatch::registerDynamicCallCallback
+    //  Specifies a user-supplied function to be called when a dynamic call is
+    //  executed.
+
+    API_EXPORT(Int, (cb),
+    bool,registerDynamicCallCallback,(BPatchDynamicCallSiteCallback cb));
+
+    API_EXPORT(Int, (cb),
+    bool,removeDynamicCallCallback,(BPatchDynamicCallSiteCallback cb));
+
 
     //  BPatch::registerUserEventCallback
     //  

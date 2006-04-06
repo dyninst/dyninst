@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.196 2006/03/29 21:34:47 bernat Exp $
+// $Id: solaris.C,v 1.197 2006/04/06 10:08:46 jaw Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -1303,9 +1303,14 @@ bool process::initMT()
     pdvector<int_function *> thread_init_funcs;
     findThreadFuncs(this, "init_func", thread_init_funcs);
     if (thread_init_funcs.size() < 1) {
-        fprintf(stderr, "[%s:%d] - Found no copies of init_func, expected 1\n",
-                __FILE__, __LINE__);
-        return false;
+        //findThreadFuncs(this, "_lwp_start", thread_init_funcs);
+        findThreadFuncs(this, "_thr_setup", thread_init_funcs);
+        if (thread_init_funcs.size() < 1) {
+          fprintf(stderr, "[%s:%d] - Found no copies of thread start function, expected 1\n",
+                  FILE__, __LINE__);
+
+          return false;
+        }
     }
 
     //Find DYNINST_dummy_create

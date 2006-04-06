@@ -135,9 +135,9 @@ typedef enum BPatch_opCode {
 
 class BPatch_point;
 
+#ifdef NOTDEF // PDSEP
 typedef void (*BPatchDynamicCallSiteCallback)(BPatch_point *at_point, 
                                               BPatch_function *called_function);
-#ifdef NOTDEF // PDSEP
 typedef struct {
   BPatchDynamicCallSiteCallback cb;
   int handle;
@@ -196,7 +196,12 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
     //    2:  dynamic status unknown (initial value)
     int dynamic_call_site_flag;
 
+    //  a snippet used in monitoring of dynamic calls
+    //  maybe we want BPatchSnippetHandle here
+    miniTramp *dynamic_point_monitor_func;
+#ifdef NOTDEF // PDSEP
     BPatch_Vector<miniTramp *> dynamicMonitoringCalls; // This should be BPatchSnippetHandle
+#endif
 
     instPoint * getPoint() {return point;}
 
@@ -310,16 +315,17 @@ public:
 
     API_EXPORT(Int, (f),
 
-    void *,monitorCalls,(BPatch_function *f));
+    void *,monitorCalls,(BPatch_function *f = NULL));
 
     //  BPatch_point::stopMonitoring
     //  If this point, as a dynamic call site, was being monitored, turns off monitoring
     //  <handle> is the handle returned my monitorCalls()
 
-    API_EXPORT(Int, (handle),
+    API_EXPORT(Int, (),
 
-    bool,stopMonitoring,(void *handle));
+    bool,stopMonitoring,());
 
+#ifdef NOTDEF // PDSEP
     //  BPatch_point::registerDynamicCallCallback
     //  Specifies a user-supplied function to be called when a dynamic call is
     //  executed.
@@ -340,6 +346,7 @@ public:
 
     bool,removeDynamicCallCallback,(void *handle));
 
+#endif
     //  BPatch_point::getDisplacedInstructions
     //  Returns the instructions to be relocated when instrumentation is inserted
     //  at this point.  Returns the number of bytes taken up by these instructions.

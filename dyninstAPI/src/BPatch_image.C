@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.83 2006/03/31 22:25:10 bernat Exp $
+// $Id: BPatch_image.C,v 1.84 2006/04/06 10:08:45 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -776,8 +776,30 @@ BPatch_variableExpr *BPatch_image::findVariableInt(const char *name, bool showEr
         bperr("findVariable: failed look up module %s\n",
             var->mod()->fileName().c_str()); 
     }
-    if(!type)
-        type = BPatch::bpatch->type_Untyped;
+    if(!type) {
+        //  if we can't find the type in the module, check the other modules
+        //  (fixes prob on alpha) --  actually seems like most missing types 
+        //  end up in DEFAULT_MODULE
+        for (unsigned int m = 0; m < mods->size(); m++) {
+          BPatch_module *tm = (*mods)[m];
+          type = tm->getModuleTypes()->findVariableType(name); 
+          if (type) {
+#if 0
+            char buf1[1024], buf2[1024];
+            tm->getName(buf1, 1024);
+            module->getName(buf2, 1024);
+            fprintf(stderr, "%s[%d]:  found type for %s in module %s, not %s\n", FILE__, __LINE__, name, buf2, buf1);
+#endif
+            break;
+          }
+ 
+        }
+
+        if (!type) {
+          fprintf(stderr, "%s[%d]:  cannot find type for var %s\n", FILE__, __LINE__, name);
+          type = BPatch::bpatch->type_Untyped;
+        }
+    }
     
     char *nameCopy = strdup(name);
     assert(nameCopy);

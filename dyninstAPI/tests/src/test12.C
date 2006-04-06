@@ -23,6 +23,7 @@
 #endif
 
 #include <iostream>
+#include <vector>
 using namespace std;
 
 #include "BPatch.h"
@@ -31,6 +32,9 @@ using namespace std;
 #include "BPatch_snippet.h"
 #include "test_util.h"
 #include "test12.h"
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
 
 
 #define FAIL(x,y) fprintf(stdout, "**Failed test #%d (%s)\n", x,y);
@@ -54,6 +58,8 @@ int mutateeF77 = 0;
 bool runAllTests = true;
 bool runTest[MAX_TEST+1];
 bool passedTest[MAX_TEST+1];
+char mutateeName[128];
+const char *child_argv[MAX_TEST+5];
 
 BPatch *bpatch;
 
@@ -82,16 +88,6 @@ void dprintf(const char *fmt, ...) {
 
 void sleep_ms(int ms) 
 {
-//#if defined(os_solaris) && (os_solaris < 9)
-#ifdef NOTDEF
-  if (ms < 1000) {
-    usleep(ms * 1000);
-  }
-  else {
-    sleep(ms / 1000);
-    usleep((ms % 1000) * 1000);
-  }
-#else
   struct timespec ts,rem;
   if (ms >= 1000) {
     ts.tv_sec = (int) ms / 1000;
@@ -114,7 +110,6 @@ void sleep_ms(int ms)
     }
     assert(0);
   }
-#endif
 }
 
 /**************************************************************************
@@ -179,27 +174,33 @@ BPatch_function *findFunction(const char *fname, BPatch_module *inmod, int testn
   }
   return bpfv[0];
 }
-BPatch_point *findPoint(BPatch_function *f, BPatch_procedureLocation loc, int testno, const char *testname)
+
+BPatch_point *findPoint(BPatch_function *f, BPatch_procedureLocation loc, 
+                        int testno, const char *testname)
 {
   assert(f);
   BPatch_Vector<BPatch_point *> *pts = f->findPoint(loc);
+
   if (!pts) {
     FAIL(testno, testname);
     fprintf(stderr, "%s[%d]:  no points matching requested location\n", __FILE__, __LINE__);
     exit(1);
   }
+
   if (pts->size() != 1) {
     FAIL(testno, testname);
     fprintf(stderr, "%s[%d]:  %d points matching requested location, not 1\n", __FILE__, __LINE__, 
            pts->size());
     exit(1);
   }
+
   return (*pts)[0];
 }
 
 //  at -- simple instrumentation.  As written, only can insert funcs without args -- 
 //     -- modify to take snippet vector args if necessary.
-BPatchSnippetHandle *at(BPatch_point * pt, BPatch_function *call, int testno, const char *testname)
+BPatchSnippetHandle *at(BPatch_point * pt, BPatch_function *call, 
+                        int testno, const char *testname)
 {
   BPatch_Vector<BPatch_snippet *> args;
   BPatch_funcCallExpr snip(*call, args);
@@ -207,15 +208,18 @@ BPatchSnippetHandle *at(BPatch_point * pt, BPatch_function *call, int testno, co
   BPatch_callWhen when;
   if (pttype == BPatch_entry) when = BPatch_callBefore;
   else if (pttype == BPatch_exit) when = BPatch_callAfter;
+  else if (pttype == BPatch_subroutine) when = BPatch_callBefore;
   else assert(0);
 
   BPatchSnippetHandle *ret;
   ret = appThread->insertSnippet(snip, *pt,when);
+
   if (!ret) {
     FAIL(testno, testname);
     fprintf(stderr, "%s[%d]:  could not insert instrumentation\n", __FILE__, __LINE__);
     exit(1);
   }
+
   return ret;
 }
 
@@ -227,6 +231,7 @@ void dumpVars(void)
     fprintf(stderr, "\t%s\n", vars[i]->getName());
   }
 }
+
 void setVar(const char *vname, void *addr, int testno, const char *testname)
 {
    BPatch_variableExpr *v;
@@ -244,7 +249,8 @@ void setVar(const char *vname, void *addr, int testno, const char *testname)
       exit(1);
    }
 }
-void getVar(const char *vname, void *addr, int testno, const char *testname)
+
+void getVar(const char *vname, void *addr, int len, int testno, const char *testname)
 {
    BPatch_variableExpr *v;
    if (NULL == (v = appImage->findVariable(vname))) {
@@ -254,7 +260,7 @@ void getVar(const char *vname, void *addr, int testno, const char *testname)
          exit(1);
    }
 
-   if (! v->readValue(addr, sizeof(int))) {
+   if (! v->readValue(addr, len)) {
       fprintf(stderr, "**Failed test #%d (%s)\n", testno, testname);
       fprintf(stderr, "  failed to read var in mutatee\n");
       exit(1);
@@ -266,14 +272,123 @@ void getVar(const char *vname, void *addr, int testno, const char *testname)
 /*******************************************************************************/
 /*******************************************************************************/
 /*******************************************************************************/
-
+#undef  TESTNO
 #define TESTNO 1
+#undef  TESTNAME
+#define TESTNAME "rtlib spinlocks"
+#define THREADS 10
+
+bool mutatorTest1()
+{
+  
+  const char *local_child_argv[MAX_TEST+5];
+
+  //  not really going to attach, just start and let run to completion,
+  //  checking exit code.  
+
+  dprintf("%s[%d]: starting mutatee for attach: %s ", __FILE__, __LINE__, mutateeName);
+  int j = 0;
+  int i = 0;
+  local_child_argv[i++] = child_argv[j++];
+  for ( j = 0; j < MAX_TEST +5; ++j) {
+    if (child_argv[j]) {
+       if (!strcmp(child_argv[j], "-verbose"))
+          local_child_argv[i++] = child_argv[j];
+    }
+    else {
+      local_child_argv[i++] = "-run";
+      local_child_argv[i++] = "1";
+      local_child_argv[i++] = NULL;
+      break;
+    }
+  } 
+  for (j = 0; i < MAX_TEST +5; ++j) {
+    if (local_child_argv[j]) dprintf(" %s", local_child_argv[j]);
+    else break;
+  }
+  dprintf("\n");
+
+  BPatch_process *proc = bpatch->processCreate(mutateeName, local_child_argv);
+  if (!proc)  {
+     FAIL(TESTNO, TESTNAME);
+     fprintf(stderr, "could not create process %s\n", mutateeName);
+  }
+
+  int childpid = proc->getPid();
+  dprintf("%s[%d]:  mutatee process: %d\n", __FILE__, __LINE__, childpid);
+
+  proc->continueExecution();
+
+   sleep (3);
+   int timeout = 0;
+   while (timeout < TIMEOUT) {
+     sleep_ms(1000/*ms*/);
+     timeout += 1000;
+     if (proc->isTerminated()) 
+        break;
+     if (proc->isStopped()) {
+        fprintf(stderr, "%s[%d]:  BAD NEWS:  process is stopped, something is broken\n", 
+                __FILE__, __LINE__);
+        proc->continueExecution();
+     }
+     if (proc->isDetached()) {
+        fprintf(stderr, "%s[%d]:  BAD NEWS:  process is detached, something is broken\n", 
+                __FILE__, __LINE__);
+        abort();
+     }
+     fprintf(stderr, "%s[%d]:  sleeping some more....\n", __FILE__, __LINE__);
+   }
+
+   if (proc->isTerminated()) {
+     switch(proc->terminationStatus()) {
+       case ExitedNormally:
+         {
+          int code = proc->getExitCode();
+          dprintf("%s[%d]:  exited normally with code %d\n", 
+                  __FILE__, __LINE__, code);
+          if (code != 0) return false;
+          break;
+         }
+       case ExitedViaSignal:
+         {
+          int code = proc->getExitSignal();
+          fprintf(stderr, "%s[%d]:  exited with signal %d\n", 
+                  __FILE__, __LINE__, code);
+          return false;
+          break;
+         }
+       case NoExit:
+       default:
+          assert(0);
+     };
+   }
+
+   if (timeout >= TIMEOUT) {
+     FAIL(TESTNO, TESTNAME);
+     fprintf(stderr, "%s[%d]:  test timed out.\n",
+            __FILE__, __LINE__);
+     //test1err = 1;
+     return false;
+   }
+
+  sleep_ms(1000/*ms*/);
+  PASS(TESTNO,TESTNAME);
+  fprintf(stderr, "%s[%d]:  test1 success\n", __FILE__, __LINE__);
+  //delete(proc);
+  return true;
+}
+
+
+
+#undef TESTNO
+#undef TESTNAME
+#define TESTNO 2 
 #define TESTNAME "dynamic call site callback"
-static const char *expected_fnames[] = {"call1_1","call1_2","call1_3","call1_4"};
-int test1done = 0;
-int test1err = 0;
+static const char *expected_fnames[] = {"call2_1","call2_2","call2_3","call2_4"};
+int test2done = 0;
+int test2err = 0;
 template class BPatch_Vector<void *>;
-BPatch_Vector<void *> test1handles;
+BPatch_Vector<BPatch_point *> test2handles;
 BPatch_Vector<BPatch_point *> dyncalls;
 
 void dynSiteCB(BPatch_point *dyn_site, BPatch_function *called_function)
@@ -298,7 +413,7 @@ void dynSiteCB(BPatch_point *dyn_site, BPatch_function *called_function)
     printf("\t%s[%d]:  got func %s, expect func %s\n", __FILE__, __LINE__, buf,
           expected_fnames[counter]);
     appThread->stopExecution();      
-    test1done = 1;
+    test2done = 1;
   }
   counter++;
   if (counter > 3) {
@@ -310,25 +425,26 @@ void dynSiteCB(BPatch_point *dyn_site, BPatch_function *called_function)
     bool removal_error = false;
     appThread->stopExecution();      
     //  not passed yet, now remove dynamic call monitoring handles
-    assert (test1handles.size());
-    for (unsigned int i = 0; i < test1handles.size(); ++i) {
-      if (!dyncalls[i]->removeDynamicCallCallback(test1handles[i])) {
+    assert (test2handles.size());
+    for (unsigned int i = 0; i < test2handles.size(); ++i) {
+      if (!test2handles[i]->stopMonitoring()) {
         removal_error = true;
       }
     }
     if (removal_error) {
       FAIL(TESTNO, TESTNAME);
-      test1err = 1;
+      test2err = 1;
     }else {
       PASS(TESTNO, TESTNAME);
     }
-    test1done = 1;
+    test2done = 1;
   }
 }
 
 
-bool mutatorTest1()
+bool mutatorTest2()
 {
+#if !defined(arch_ia64)
   int timeout = 0;
 
   if (mutateeXLC) {
@@ -339,8 +455,14 @@ bool mutatorTest1()
      return true;
   }
 
-  BPatch_function *func1_1 = findFunction("call1_dispatch", TESTNO, TESTNAME);
-  BPatch_function *targetFunc = func1_1;
+  if (!bpatch->registerDynamicCallCallback(dynSiteCB)) {
+     FAIL(TESTNO, TESTNAME);
+     fprintf(stderr, "  failed to register callsite callback\n");
+     exit(1);
+  }
+
+  BPatch_function *func2_1 = findFunction("call2_dispatch", TESTNO, TESTNAME);
+  BPatch_function *targetFunc = func2_1;
 
   BPatch_Vector<BPatch_point *> *calls = targetFunc->findPoint(BPatch_subroutine);
   if (!calls) {
@@ -352,14 +474,14 @@ bool mutatorTest1()
   for (unsigned int i = 0; i < calls->size(); ++i) {
     BPatch_point *pt = (*calls)[i];
     if (pt->isDynamic()){
-      void *handle = NULL;
-      handle = pt->registerDynamicCallCallback(dynSiteCB);
-      if (!handle) {
+      bool ret;
+      ret = pt->monitorCalls();
+      if (!ret) {
         FAIL(TESTNO, TESTNAME);
-        fprintf(stderr, "  registerDynamicCallCallback failed\n");
+        fprintf(stderr, "  failed monitorCalls\n");
         exit(1);
       } 
-      test1handles.push_back(handle);
+      test2handles.push_back(pt);
       dyncalls.push_back(pt);
     }
   }
@@ -377,7 +499,7 @@ bool mutatorTest1()
   //  wait until we have received the desired number of events
   //  (or timeout happens)
 
-  while(!test1done && (timeout < TIMEOUT)) {
+  while(!test2done && (timeout < TIMEOUT)) {
     bpatch->pollForStatusChange();
     sleep_ms(SLEEP_INTERVAL/*ms*/);
     timeout += SLEEP_INTERVAL;
@@ -387,98 +509,55 @@ bool mutatorTest1()
     FAIL(TESTNO, TESTNAME);
     fprintf(stderr, "%s[%d]:  test timed out.\n",
            __FILE__, __LINE__);
-    test1err = 1;
-  }
-
-  return (test1err == 0);
-}
-
-#undef  TESTNO
-#define TESTNO 2
-#undef  TESTNAME
-#define TESTNAME "rtlib spinlocks"
-#define THREADS 10
-
-bool mutatorTest2()
-{
-#if !defined (os_windows) && !defined(os_irix)
-
-  //  unset mutateeIde to trigger thread (10) spawn.
-  int zero = 0;
-  setVar("mutateeIdle", (void *) &zero, TESTNO, TESTNAME);
-
-  appThread->getProcess()->continueExecution();
-
-  int test2counter = 0;
-  int test2err = 0;
-  int timeout = 0;
-
-  while((test2counter < THREADS) && !test2err && (timeout < TIMEOUT)) {
-    sleep_ms(1000/*ms*/);
-    timeout += 1000;
-    appThread->getProcess()->stopExecution();
-    getVar("subtest2counter", (void *) &test2counter, TESTNO, TESTNAME);
-    getVar("subtest2err", (void *) &test2err, TESTNO, TESTNAME);
-    appThread->getProcess()->continueExecution();
-  }
-
-  if (timeout >= TIMEOUT) {
-    FAIL(TESTNO, TESTNAME);
-    fprintf(stderr, "%s[%d]:  test timed out.\n",
-           __FILE__, __LINE__);
     test2err = 1;
   }
 
-
-  if (test2err) {
-    FAIL(TESTNO, TESTNAME);
-    fprintf(stderr, "%s[%d]:  mutatee side error\n", __FILE__, __LINE__);
-    return false;
-  }
-  else {
-    PASS(TESTNO, TESTNAME);
-  }
+  return (test2err == 0);
 #else
-    SKIP(TESTNO, TESTNAME);
-    fprintf(stderr, "%s[%d]:  This test is not supported on this platform\n",
-                    __FILE__, __LINE__);
-#endif
+  SKIP(TESTNO, TESTNAME);
   return true;
+#endif
 }
-
 
 #undef  TESTNO
 #define TESTNO 3
 #undef  TESTNAME
 #define TESTNAME "thread create callback"
 
+vector<unsigned long> callback_tids;
 int test3_threadCreateCounter = 0;
+
 void threadCreateCB(BPatch_process * /*proc*/, BPatch_thread *thr)
 {
+  assert(thr);
   if (debugPrint)
-     fprintf(stderr, "%s[%d]:  thread %lu start event for pid %d", __FILE__, __LINE__,
+     fprintf(stderr, "%s[%d]:  thread %lu start event for pid %d\n", __FILE__, __LINE__,
                thr->getTid(), thr->getPid());
   test3_threadCreateCounter++;
-//  fprintf(stderr, "%s[%d]:  got a thread start event: %d\n", __FILE__, __LINE__,
-//          test3_threadCreateCounter);
+  callback_tids.push_back(thr->getTid());
 }
 
-bool mutatorTest3()
+bool mutatorTest3and4(int testno, const char *testname)
 {
+  test3_threadCreateCounter = 0;
+  callback_tids.clear();
+
   unsigned int timeout = 0; // in ms
   int err = 0;
 
   BPatchAsyncThreadEventCallback createcb = threadCreateCB;
   if (!bpatch->registerThreadEventCallback(BPatch_threadCreateEvent, createcb)) 
   {
-    FAIL(TESTNO, TESTNAME);
+    FAIL(testno, testname);
     fprintf(stderr, "%s[%d]:  failed to register thread callback\n",
            __FILE__, __LINE__);
     return false;
   }
+
   //  unset mutateeIde to trigger thread (10) spawn.
   int zero = 0;
-  setVar("mutateeIdle", (void *) &zero, TESTNO, TESTNAME);
+  setVar("mutateeIdle", (void *) &zero, testno, testname);
+  dprintf("%s[%d]:  continue execution for test %d\n", __FILE__, __LINE__, testno);
   appThread->continueExecution();
 
   //  wait until we have received the desired number of events
@@ -491,44 +570,105 @@ bool mutatorTest3()
   }
 
   if (timeout >= TIMEOUT) {
-    FAIL(TESTNO, TESTNAME);
+    FAIL(testno, testname);
     fprintf(stderr, "%s[%d]:  test timed out.\n",
            __FILE__, __LINE__);
     err = 1;
   }
 
+  sleep_ms(100);
+  dprintf("%s[%d]:  stop execution for test %d\n", __FILE__, __LINE__, testno);
   appThread->stopExecution();
 
+  //   read all tids from the mutatee and verify that we got them all
+  unsigned long mutatee_tids[TEST3_THREADS];
+  const char *threads_varname = NULL;
+  if (testno == 3)
+     threads_varname = "test3_threads";
+  if (testno == 4)
+     threads_varname = "test4_threads";
+  assert(threads_varname);
+  getVar(threads_varname, (void *) mutatee_tids, (sizeof(unsigned long) * TEST3_THREADS),
+          testno, testname);
+
+  if (debugPrint) {
+    fprintf(stderr, "%s[%d]:  read following tids for test%d from mutatee\n", __FILE__, __LINE__, testno);
+    
+    for (unsigned int i = 0; i < TEST3_THREADS; ++i) {
+       fprintf(stderr, "\t%lu\n", mutatee_tids[i]);
+    }
+  }
+
+  for (unsigned int i = 0; i < TEST3_THREADS; ++i) {
+     bool found = false;
+     for (unsigned int j = 0; j < callback_tids.size(); ++j) {
+       if (callback_tids[j] == mutatee_tids[i]) {
+         found = true;
+         break;
+       }
+     }
+
+    if (!found) {
+      FAIL(testno, testname);
+      fprintf(stderr, "%s[%d]:  could not find record for tid %lu: have these:\n",
+             __FILE__, __LINE__, mutatee_tids[i]);
+       for (unsigned int j = 0; j < callback_tids.size(); ++j) {
+          fprintf(stderr, "%lu\n", callback_tids[j]);
+       }
+      err = true;
+      break;
+    }
+  }
+
+  dprintf("%s[%d]: removing thread callback\n", __FILE__, __LINE__);
   if (!bpatch->removeThreadEventCallback(BPatch_threadCreateEvent, createcb)) {
-    FAIL(TESTNO, TESTNAME);
+    FAIL(testno, testname);
     fprintf(stderr, "%s[%d]:  failed to remove thread callback\n",
            __FILE__, __LINE__);
-    return false;
+    err = true;
   }
+
   if (!err)  {
-    PASS(TESTNO, TESTNAME);
+    PASS(testno, testname);
     return true;
   }
   return false;
 }
 
+bool mutatorTest3()
+{
+  return  mutatorTest3and4(TESTNO, TESTNAME);
+}
+
 #undef  TESTNO
-#define TESTNO 4 
+#define TESTNO 4
+#undef  TESTNAME
+#define TESTNAME "thread create callback -- doa"
+
+bool mutatorTest4()
+{
+#if defined(os_linux) && defined(arch_x86)
+  SKIP(TESTNO, TESTNAME);
+#else
+  return  mutatorTest3and4(TESTNO, TESTNAME);
+#endif
+}
+
+#undef  TESTNO
+#define TESTNO 5 
 #undef  TESTNAME
 #define TESTNAME "thread exit callback"
 
-int test4_threadDestroyCounter = 0;
+int test5_threadDestroyCounter = 0;
 void threadDestroyCB(BPatch_process * /*proc*/, BPatch_thread *thr)
 {
   if (debugPrint)
     fprintf(stderr, "%s[%d]:  thread %lu destroy event for pid %d\n", 
             __FILE__, __LINE__, thr->getTid(), thr->getPid());
-  test4_threadDestroyCounter++;
- // fprintf(stderr, "%s[%d]:  got a thread destroy event: %d\n", __FILE__, __LINE__,
-  //        test4_threadDestroyCounter);
+  test5_threadDestroyCounter++;
 }
 
-bool mutatorTest4()
+bool mutatorTest5and6(int testno, const char *testname)
 {
   unsigned int timeout = 0; // in ms
   int err = 0;
@@ -536,28 +676,33 @@ bool mutatorTest4()
   BPatchAsyncThreadEventCallback destroycb = threadDestroyCB;
   if (!bpatch->registerThreadEventCallback(BPatch_threadDestroyEvent, destroycb)) 
   {
-    FAIL(TESTNO, TESTNAME);
+    FAIL(testno, testname);
     fprintf(stderr, "%s[%d]:  failed to register thread callback\n",
            __FILE__, __LINE__);
     return false;
   }
 
+  if (debugPrint)
+    fprintf(stderr, "%s[%d]:  registered threadDestroy callback\n", 
+            __FILE__, __LINE__);
+
   //  unset mutateeIdle to trigger thread (10) spawn.
 
   int zero = 0;
-  setVar("mutateeIdle", (void *) &zero, TESTNO, TESTNAME);
+  setVar("mutateeIdle", (void *) &zero, testno, testname);
   appThread->continueExecution();
 
   //  wait until we have received the desired number of events
   //  (or timeout happens)
-  while(test4_threadDestroyCounter < TEST4_THREADS && (timeout < TIMEOUT)) {
+  while(test5_threadDestroyCounter < TEST5_THREADS && (timeout < TIMEOUT)) {
     sleep_ms(SLEEP_INTERVAL/*ms*/);
     timeout += SLEEP_INTERVAL; 
+    fprintf(stderr, "%s[%d]:  polliing\n", __FILE__, __LINE__);
     bpatch->pollForStatusChange();
   }
 
   if (timeout >= TIMEOUT) {
-    FAIL(TESTNO, TESTNAME);
+    FAIL(testno, testname);
     fprintf(stderr, "%s[%d]:  test timed out.\n",
            __FILE__, __LINE__);
     err = 1;
@@ -566,34 +711,197 @@ bool mutatorTest4()
   appThread->stopExecution();
 
   if (!bpatch->removeThreadEventCallback(BPatch_threadDestroyEvent, destroycb)) {
-    FAIL(TESTNO, TESTNAME);
+    FAIL(testno, testname);
     fprintf(stderr, "%s[%d]:  failed to remove thread callback\n",
            __FILE__, __LINE__);
     return false;
   }
 
   if (!err) {
-    PASS(TESTNO, TESTNAME);
+    PASS(testno, testname);
     return true;
   }
   return false;
 }
 
+bool mutatorTest5()
+{
+#if defined (os_none)
+  return mutatorTest5and6(TESTNO, TESTNAME);
+#else
+  SKIP(TESTNO, TESTNAME);
+  return true;
+#endif
+}
 
 #undef  TESTNO
-#define TESTNO 5
+#define TESTNO 6 
 #undef  TESTNAME
-#define TESTNAME "user defined message callback"
-bool test5done = false;
-bool test5err = false;
-unsigned long tids[TEST5_THREADS];
-user_event_t last_event[TEST5_THREADS];
+#define TESTNAME "thread exit callback -- doa"
+
+bool mutatorTest6()
+{
+#if defined (os_none)
+  return mutatorTest5and6(TESTNO, TESTNAME);
+#else
+  SKIP(TESTNO, TESTNAME);
+  return true;
+#endif
+}
+
+#undef  TESTNO
+#define TESTNO 7 
+#undef  TESTNAME
+#define TESTNAME "user defined message callback -- st"
+
+bool test7done = false;
+bool test7err = false;
+unsigned long test7_tids[TEST8_THREADS];
+
+void test7cb(BPatch_process * proc, void *buf, unsigned int bufsize)
+{
+  static int callback_counter = 0;
+  if (debugPrint)
+    fprintf(stderr, "%s[%d]:  inside test7cb\n", __FILE__, __LINE__);
+
+  if (bufsize != sizeof(user_msg_t)) {
+    //  something is incredibly wrong
+    fprintf(stderr, "%s[%d]:  unexpected message size %d not %d\n", 
+            __FILE__, __LINE__, bufsize, sizeof(user_msg_t));
+    test7err = true;
+    return;
+  }
+
+  user_msg_t *msg = (user_msg_t *) buf;
+  user_event_t what = msg->what;
+  unsigned long tid = msg->tid;
+
+  if (debugPrint)
+    fprintf(stderr, "%s[%d]:  thread = %lu, what = %d\n", __FILE__, __LINE__, tid, what);
+
+  if (callback_counter == 0) {
+    //  we expect the entry point to be reported first
+    if (what != func_entry) {
+      fprintf(stderr, "%s[%d]:  unexpected message %d not %d\n", 
+            __FILE__, __LINE__, (int) what, (int) func_entry);
+      FAIL(TESTNO, TESTNAME);
+      test7err = 1;
+      return; 
+    }
+  } else if (callback_counter <= TEST7_NUMCALLS) {
+    // we expect to get a bunch of function calls next
+    if (what != func_callsite) {
+      fprintf(stderr, "%s[%d]:  unexpected message %d not %d\n", 
+            __FILE__, __LINE__, (int) what, (int) func_callsite);
+      FAIL(TESTNO, TESTNAME);
+      test7err = 1;
+      return; 
+    }
+  }
+  else if (callback_counter == (TEST7_NUMCALLS +1)) {
+    // lastly comes the function exit
+    if (what != func_exit) {
+      fprintf(stderr, "%s[%d]:  unexpected message %d not %d\n", 
+            __FILE__, __LINE__, (int) what, (int) func_exit);
+      FAIL(TESTNO, TESTNAME);
+      test7err = 1;
+      return; 
+    }
+    // set test7done to end the test
+    test7done = true;
+  }
+  callback_counter++;
+}
+
+bool mutatorTest7()
+{
+  //  a simple single threaded user messagin scenario where we want to send
+  //  async messages at function entry/exit and call points.
+
+  BPatchUserEventCallback cb = test7cb;
+  if (!bpatch->registerUserEventCallback(cb)) {
+    FAIL(TESTNO, TESTNAME);
+    fprintf(stderr, "%s[%d]: could not register callback\n", __FILE__, __LINE__);
+    return false;
+  }
+
+  //  instrument entry and exit of call7_1, as well as call points inside call7_1
+  BPatch_function *call7_1 = findFunction("call7_1", TESTNO, TESTNAME);
+  BPatch_point *entry = findPoint(call7_1, BPatch_entry,TESTNO, TESTNAME);
+  BPatch_point *exit = findPoint(call7_1, BPatch_exit,TESTNO, TESTNAME);
+  BPatch_point *callsite = findPoint(call7_1, BPatch_subroutine,TESTNO, TESTNAME);
+
+  //  These are our asynchronous message functions (in libTest12) that we
+  //  attach to the "interesting" points
+  BPatch_function *reportEntry = findFunction("reportEntry", TESTNO, TESTNAME);
+  BPatch_function *reportExit = findFunction("reportExit", TESTNO, TESTNAME);
+  BPatch_function *reportCallsite = findFunction("reportCallsite", TESTNO, TESTNAME);
+
+  //  Do the instrumentation
+  BPatchSnippetHandle *entryHandle = at(entry, reportEntry, TESTNO, TESTNAME); 
+  BPatchSnippetHandle *exitHandle = at(exit, reportExit, TESTNO, TESTNAME); 
+  BPatchSnippetHandle *callsiteHandle = at(callsite, reportCallsite, TESTNO, TESTNAME); 
+
+
+  if (debugPrint) {
+     int one = 1;
+     setVar("libraryDebug", (void *) &one, TESTNO, TESTNAME);
+  }
+ //  unset mutateeIdle to trigger mutatee to issue messages.
+
+  int zero = 0;
+  int timeout = 0;
+  setVar("mutateeIdle", (void *) &zero, TESTNO, TESTNAME);
+  appThread->getProcess()->continueExecution();
+
+  //  wait until we have received the desired number of events
+  //  (or timeout happens)
+  while(!test7err && !test7done && (timeout < TIMEOUT)) {
+    sleep_ms(SLEEP_INTERVAL/*ms*/);
+    timeout += SLEEP_INTERVAL;
+    bpatch->pollForStatusChange();
+  }
+
+  if (timeout >= TIMEOUT) {
+    FAIL(TESTNO, TESTNAME);
+    fprintf(stderr, "%s[%d]:  test timed out.\n",
+           __FILE__, __LINE__);
+    test7err = true;
+  }
+
+  appThread->getProcess()->stopExecution();
+
+  if (!bpatch->removeUserEventCallback(test7cb)) {
+    FAIL(TESTNO, TESTNAME);
+    fprintf(stderr, "%s[%d]:  failed to remove callback\n",
+           __FILE__, __LINE__);
+    return false;
+  }
+
+  if (!test7err) {
+    PASS(TESTNO, TESTNAME);
+    return true;
+  } 
+
+  FAIL(TESTNO, TESTNAME);
+  return false;
+}
+
+#undef  TESTNO
+#define TESTNO 8 
+#undef  TESTNAME
+#define TESTNAME "user defined message callback -- mt"
+
+bool test8done = false;
+bool test8err = false;
+unsigned long tids[TEST8_THREADS];
+user_event_t last_event[TEST8_THREADS];
 
 bool findThreadIndex(unsigned long tid, unsigned int &index)
 {
  //  find the index with tid <tid>, if it exists, otherwise, the index of
  //  an empty slot.  If no empty slot, return false (fail);
-  for (index = 0; index < TEST5_THREADS; ++index) {
+  for (index = 0; index < TEST8_THREADS; ++index) {
     if (0 == tids[index]) {
       tids[index] = tid;
       if (debugPrint)
@@ -607,17 +915,17 @@ bool findThreadIndex(unsigned long tid, unsigned int &index)
   return false;
 }
 
-void test5cb(BPatch_process * /*proc*/, void *buf, unsigned int bufsize)
+void test8cb(BPatch_process * /*proc*/, void *buf, unsigned int bufsize)
 {
   static int destroy_counter = 0;
   if (debugPrint)
-    fprintf(stderr, "%s[%d]:  inside test7cb\n", __FILE__, __LINE__);
+    fprintf(stderr, "%s[%d]:  inside test8cb\n", __FILE__, __LINE__);
 
   if (bufsize != sizeof(user_msg_t)) {
     //  something is incredibly wrong
     fprintf(stderr, "%s[%d]:  unexpected message size %d not %d\n", 
             __FILE__, __LINE__, bufsize, sizeof(user_msg_t));
-    test5err = true;
+    test8err = true;
     return;
   }
 
@@ -629,7 +937,7 @@ void test5cb(BPatch_process * /*proc*/, void *buf, unsigned int bufsize)
     fprintf(stderr, "%s[%d]:  thread = %lu, what = %d\n", __FILE__, __LINE__, tid, what);
   unsigned int index;
   if (!findThreadIndex(tid, index)) {
-    test5err = true;
+    test8err = true;
     fprintf(stderr, "%s[%d]:  failed to find record for tid %lu (or empty slot)\n",
             __FILE__, __LINE__,tid);
     return;
@@ -638,7 +946,7 @@ void test5cb(BPatch_process * /*proc*/, void *buf, unsigned int bufsize)
   if (debugPrint)
     fprintf(stderr, "%s[%d]:  thread id %lu: index %d\n", __FILE__, __LINE__, tid, index);
   if (last_event[index] != (what - 1)) {
-    test5err = true;
+    test8err = true;
     fprintf(stderr, "%s[%d]:  out of order messsage received for thread %lu, last = %d, now = %d\n",
            __FILE__, __LINE__, tid, last_event[index], what);
     return;
@@ -648,14 +956,14 @@ void test5cb(BPatch_process * /*proc*/, void *buf, unsigned int bufsize)
   
   if (what == mutex_destroy) 
      destroy_counter++;
-  if (destroy_counter == TEST5_THREADS)
-    test5done = true;
+  if (destroy_counter == TEST8_THREADS)
+    test8done = true;
   sleep_ms(10);
 }
 
-bool mutatorTest5()
+bool mutatorTest8()
 {
-  for (unsigned int i = 0; i < TEST5_THREADS; ++i) {
+  for (unsigned int i = 0; i < TEST8_THREADS; ++i) {
     tids[i] = 0;
     last_event[i] = null_event;
   }  
@@ -682,7 +990,7 @@ bool mutatorTest5()
   BPatch_function *reportUnlock = findFunction("reportMutexUnlock", TESTNO, TESTNAME);
   BPatchSnippetHandle *unlockHandle = at(mutUnlockPt, reportUnlock, TESTNO, TESTNAME); 
 
-  BPatchUserEventCallback cb = test5cb;
+  BPatchUserEventCallback cb = test8cb;
   if (!bpatch->registerUserEventCallback(cb)) {
     FAIL(TESTNO, TESTNAME);
     fprintf(stderr, "%s[%d]: could not register callback\n", __FILE__, __LINE__);
@@ -698,7 +1006,7 @@ bool mutatorTest5()
 
   //  wait until we have received the desired number of events
   //  (or timeout happens)
-  while(!test5err && !test5done && (timeout < TIMEOUT)) {
+  while(!test8err && !test8done && (timeout < TIMEOUT)) {
     sleep_ms(SLEEP_INTERVAL/*ms*/);
     timeout += SLEEP_INTERVAL;
     bpatch->pollForStatusChange();
@@ -708,12 +1016,12 @@ bool mutatorTest5()
     FAIL(TESTNO, TESTNAME);
     fprintf(stderr, "%s[%d]:  test timed out.\n",
            __FILE__, __LINE__);
-    test5err = true;
+    test8err = true;
   }
 
   appThread->getProcess()->stopExecution();
 
-  if (!bpatch->removeUserEventCallback(test5cb)) {
+  if (!bpatch->removeUserEventCallback(test8cb)) {
     FAIL(TESTNO, TESTNAME);
     fprintf(stderr, "%s[%d]:  failed to remove callback\n",
            __FILE__, __LINE__);
@@ -727,7 +1035,7 @@ bool mutatorTest5()
   appThread->getProcess()->deleteSnippet(destroyHandle);
   appThread->getProcess()->deleteSnippet(lockHandle);
   appThread->getProcess()->deleteSnippet(unlockHandle);
-  if (!test5err) {
+  if (!test8err) {
     PASS(TESTNO, TESTNAME);
     return true;
   }
@@ -755,11 +1063,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
     // Register a callback function that prints any error messages
     bpatch->registerErrorCallback(errorFunc);
 
-    // Start the mutatee
-    printf("Starting \"%s\"\n", pathname);
-
-    const char *child_argv[MAX_TEST+5];
-
+    //  set up argument vector for mutatee
     int n = 0;
     child_argv[n++] = pathname;
     if (debugPrint) child_argv[n++] = const_cast<char*>("-verbose");
@@ -777,7 +1081,28 @@ int mutatorMAIN(char *pathname, bool useAttach)
         }
     }
 
+
+    //  subtest1 does not have a mutatee, exactly, so deal with it here
+    //  before we start the mutatee
     child_argv[n] = NULL;
+    if (runTest[1]) passedTest[1] = mutatorTest1();
+
+    if ( ! ( runTest[2] ||
+             runTest[3] ||
+             runTest[4] ||
+             runTest[5] ||
+             runTest[6] ||
+             runTest[7] ||
+             runTest[8] )) {
+      if (passedTest[1])
+         printf("All requested tests passed\n");
+      else
+         printf("** Failed test1 (rtlib spinlocks)\n");
+     return 0;
+    }
+
+    // Start the mutatee
+    printf("Starting \"%s\"\n", pathname);
 
     if (useAttach) {
         int pid = startNewProcessForAttach(pathname, child_argv);
@@ -790,6 +1115,9 @@ int mutatorMAIN(char *pathname, bool useAttach)
         P_sleep(1); // let the mutatee catch its breath for a moment
         appThread = bpatch->attachProcess(pathname, pid);
     } else {
+        child_argv[n++] = const_cast<char *>("-attachrun");
+        child_argv[n] = NULL;
+        dprintf("%s[%d]:  starting mutatee %s for tests2 and higher\n", __FILE__, __LINE__, pathname);
         appThread = bpatch->createProcess(pathname, child_argv,NULL);
     }
 
@@ -818,6 +1146,7 @@ int mutatorMAIN(char *pathname, bool useAttach)
 
     // load libtest12.so -- currently only used by subtest 5, but make it generally
     // available
+    dprintf("%s[%d]:  loading test library: %s\n", __FILE__, __LINE__, TEST12_LIBNAME);
     if (!appThread->loadLibrary(TEST12_LIBNAME)) {
       fprintf(stderr, "%s[%d]:  failed to load library %s, cannot proceed\n", __FILE__, __LINE__,
               TEST12_LIBNAME);
@@ -825,12 +1154,13 @@ int mutatorMAIN(char *pathname, bool useAttach)
     }
     printf("\n");
 
-    if (runTest[1]) passedTest[1] = mutatorTest1();
     if (runTest[2]) passedTest[2] = mutatorTest2();
     if (runTest[3]) passedTest[3] = mutatorTest3();
     if (runTest[4]) passedTest[4] = mutatorTest4();
     if (runTest[5]) passedTest[5] = mutatorTest5();
-    //if (runTest[8]) passedTest[8] = mutatorTest8();
+    if (runTest[6]) passedTest[6] = mutatorTest6();
+    if (runTest[7]) passedTest[7] = mutatorTest7();
+    if (runTest[8]) passedTest[8] = mutatorTest8();
 
     cleanup:
     if (appThread && !appThread->isTerminated())
@@ -864,7 +1194,6 @@ int mutatorMAIN(char *pathname, bool useAttach)
 int
 main(unsigned int argc, char *argv[])
 {
-    char mutateeName[128];
     char libRTname[256];
 
     bool ABI_32 = false;

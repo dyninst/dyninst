@@ -74,7 +74,7 @@ BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func, instPo
                            BPatch_procedureLocation _pointType) :
     // Note: MIPSPro compiler complains about redefinition of default argument
     proc(_proc), func(_func), point(_point), pointType(_pointType), memacc(NULL),
-    edge_(NULL)
+    dynamic_point_monitor_func(NULL),edge_(NULL)
 {
     if (_pointType == BPatch_subroutine)
         dynamic_call_site_flag = 2; // dynamic status unknown
@@ -132,7 +132,7 @@ BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func,
                            BPatch_edge *_edge, instPoint *_point) :
     // Note: MIPSPro compiler complains about redefinition of default argument
     proc(_proc), func(_func), point(_point), pointType(BPatch_locInstruction), memacc(NULL),
-    dynamic_call_site_flag(0), edge_(_edge)
+    dynamic_call_site_flag(0), dynamic_point_monitor_func(NULL),edge_(_edge)
 {
   // I'd love to have a "loop" constructor, but the code structure
   // doesn't work right. We create an entry point as a set of edge points,
@@ -360,7 +360,9 @@ bool BPatch_point::isDynamicInt()
  *
  */
 
-void *BPatch_point::monitorCallsInt( BPatch_function * user_cb ) {
+void *BPatch_point::monitorCallsInt( BPatch_function * user_cb ) 
+{
+  BPatch_function *func_to_use = user_cb;
 
   if ( !isDynamic() ) {
     fprintf(stderr, "%s[%d]:  call site is not dynamic, cannot monitor\n", 
@@ -368,6 +370,24 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb ) {
     return NULL;
   }
 
+  if ( dynamic_point_monitor_func ) {
+    fprintf(stderr, "%s[%d]:  call site is already monitored\n", 
+            __FILE__, __LINE__ );
+    return NULL;
+  }
+
+  if (!func_to_use) {
+    BPatch_image *bpi = proc->getImage();
+    assert(bpi);
+    //  if no user cb is provided, use the one in the rt lib
+    BPatch_Vector<BPatch_function *> funcs;
+    bpi->findFunction("DYNINSTasyncDynFuncCall", funcs);
+    if (!funcs.size()) {
+      fprintf(stderr, "%s[%d]:  cannot find function DYNINSTasyncDynFuncCall\n", FILE__, __LINE__);
+      return NULL;
+    }
+    func_to_use = funcs[0];
+  }
   // The callback takes two arguments: the first is the (address of the) callee,
   // the second the (address of the) callsite. 
 
@@ -380,7 +400,7 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb ) {
   }
 
   // construct function call and insert
-  int_function * fb = user_cb->lowlevel_func();
+  int_function * fb = func_to_use->lowlevel_func();
 
   // Monitoring function
   AstNode * ast = new AstNode( fb, args );
@@ -396,7 +416,13 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb ) {
      return NULL;
   }
 
+  //  Let asyncEventHandler know that we are being monitored
+  getAsync()->registerMonitoredPoint(this);
+
+  dynamic_point_monitor_func = res;
+#ifdef NOTDEF // PDSEP
   dynamicMonitoringCalls.push_back(res);
+#endif
 
   //  Return pointer to handle as unique id, user does not need to know its a
   //  miniTramp.
@@ -404,8 +430,9 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb ) {
   return (void*) res;
 } /* end monitorCalls() */
 
-bool BPatch_point::stopMonitoringInt(void * handle)
+bool BPatch_point::stopMonitoringInt()
 {
+#ifdef NOTDEF // PDSEP
   miniTramp *target = NULL, *mtHandle = (miniTramp *) handle;
 
   for (unsigned int i = 0 ; i < dynamicMonitoringCalls.size(); ++i) {
@@ -428,17 +455,19 @@ bool BPatch_point::stopMonitoringInt(void * handle)
     }    
   }
 
-  if (!target) {
+#endif
+  if (!dynamic_point_monitor_func) {
     bperr("%s[%d]:  call site not currently monitored", __FILE__, __LINE__);
     return false;
   }
-
   bool ret;
-  ret = target->uninstrument();
+  ret = dynamic_point_monitor_func->uninstrument();
 
+  dynamic_point_monitor_func = NULL;
   return ret;
 }
 
+#ifdef NOTDEF // PDSEP
 //  BPatch_point::registerDynamicCallCallback
 //
 //  Specifies a user-supplied function to be called when a dynamic call is
@@ -455,6 +484,8 @@ void *BPatch_point::registerDynamicCallCallbackInt(BPatchDynamicCallSiteCallback
   return ret;
 #endif
   fprintf(stderr, "%s[%d]:  re-implement me!\n", FILE__, __LINE__);
+
+  
   return NULL;
 }
 
@@ -474,7 +505,7 @@ bool BPatch_point::removeDynamicCallCallbackInt(void *handle)
   fprintf(stderr, "%s[%d]:  re-implement me!\n", FILE__, __LINE__);
   return false;
 }
-
+#endif
 /*
  * BPatch_point::getDisplacedInstructions
  *

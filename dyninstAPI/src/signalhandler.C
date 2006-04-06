@@ -312,8 +312,8 @@ bool SignalHandler::handleSyscallEntry(EventRecord &ev, bool &continueHint)
 
 bool SignalHandler::handleForkExit(EventRecord &ev, bool &continueHint)
 {
-     signal_printf("Welcome to FORK EXIT for process %d\n",
-                   ev.proc->getPid());
+     signal_printf("%s[%d]: Welcome to FORK EXIT for process %d\n",
+                   FILE__, __LINE__, ev.proc->getPid());
 
      process *proc = ev.proc;
      // Fork handler time
