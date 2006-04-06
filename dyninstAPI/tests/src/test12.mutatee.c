@@ -229,10 +229,10 @@ int subtest1err = 0;
 
 void register_my_lock(unsigned long id, unsigned int val)
 {
-  dprintf("%s[%d]:  %sregister lock for thread %lu\n", __FILE__, __LINE__,
-           val ? "" : "un", id);
   unsigned int i;
   int found = 0;
+  dprintf("%s[%d]:  %sregister lock for thread %lu\n", __FILE__, __LINE__,
+           val ? "" : "un", id);
   for (i = 0; i < TEST1_THREADS; ++i) {
     if (pthread_equal(test1threads[i],(pthread_t)id)) {
       found = 1;
@@ -300,13 +300,17 @@ unsigned long local_pthread_self() {
 void func1_1()
 {
 
+  dyntid_t (**DYNINST_pthread_self)(void);
+  int lockres;
+  int bigTIMEOUT;
+  int timeout;
+
   /*pthread_attr_t attr;*/
   int err = 0;
   unsigned int i;
   void *RTlib;
 
-  //  zero out lock registry:
-
+  /* zero out lock registry: */
   for (i = 0; i < TEST1_THREADS; ++i) {
     current_locks[i] = 0;
   }
@@ -322,7 +326,7 @@ void func1_1()
   DYNINSTinit_thelock = (void (*)(dyninst_lock_t *))dlsym(RTlib, "dyninst_init_lock");
   DYNINSTlock_thelock = (int (*)(dyninst_lock_t *))dlsym(RTlib, "dyninst_lock");
   DYNINSTunlock_thelock = (void (*)(dyninst_lock_t *))dlsym(RTlib, "dyninst_unlock");
-  dyntid_t (**DYNINST_pthread_self)(void) = (dyntid_t (**)(void))dlsym(RTlib, "DYNINST_pthread_self");
+  DYNINST_pthread_self = (dyntid_t (**)(void))dlsym(RTlib, "DYNINST_pthread_self");
   if (!DYNINSTinit_thelock) {
     fprintf(stderr, "%s[%d]:  could not DYNINSTinit_thelock: %s\n", __FILE__, __LINE__, dlerror());
     exit(1);
@@ -358,7 +362,7 @@ void func1_1()
    int lockres = (*DYNINSTlock_thelock)(&test1lock); 
 */
 #endif
-   int lockres = (*DYNINSTlock_thelock)(&test1lock);
+  lockres = (*DYNINSTlock_thelock)(&test1lock);
   createThreads(TEST1_THREADS, thread_main1, test1threads);
   assert(test1threads);
 
@@ -375,8 +379,8 @@ void func1_1()
 
 #endif
 
-  int bigTIMEOUT = 5000;
-  int timeout = 0;
+  bigTIMEOUT = 5000;
+  timeout = 0;
 
   /*   wait for all threads to exit */
   while (timeout < bigTIMEOUT && ! all_threads_done()) {
@@ -461,8 +465,8 @@ Lock_t test3lock;
 
 void *thread_main3(void *arg)
 {
-  lockLock(&test3lock);
   int x, i;
+  lockLock(&test3lock);
   x = 0;
   for (i = 0; i < 0xffff; ++i) {
     x = x + i;
@@ -495,8 +499,8 @@ void func3_1()
 Lock_t test4lock;
 void *thread_main4(void *arg)
 {
-  lockLock(&test4lock); 
   int x, i;
+  lockLock(&test4lock); 
   x = 0;
   for (i = 0; i < 0xf; ++i) {
     x = x + i;
@@ -528,8 +532,8 @@ void func4_1()
 Lock_t test5lock;
 void *thread_main5(void *arg)
 {
-  lockLock(&test5lock); 
   int x, i;
+  lockLock(&test5lock); 
   x = 0;
   for (i = 0; i < 0xfffffff; ++i) {
     x = x + i;
@@ -560,8 +564,8 @@ void func5_1()
 Lock_t test6lock;
 void *thread_main6(void *arg)
 {
-  lockLock(&test6lock); 
   int x, i;
+  lockLock(&test6lock); 
   x = 0;
   for (i = 0; i < 0xf; ++i) {
     x = x + i;
@@ -758,8 +762,8 @@ int main(int iargc, char *argv[])
         }
     }
 
-    //  test1 operates on a different "mode", ie the mutatee is started
-    //  specially for test1, which executes it apart from the other tests.
+    /*  test1 operates on a different "mode", ie the mutatee is started
+        specially for test1, which executes it apart from the other tests. */
     if (runTest[2] || runTest[3] || 
         runTest[4] || runTest[5] ||
         runTest[6] || runTest[7] ||
