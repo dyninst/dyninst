@@ -230,10 +230,6 @@ ifdef M_ABI
 	$(M_GXX) $(M_ABI_FLAG) $(CXXFLAGS) $(MUTATEE_CXXFLAGS_GNU) -c $< -o $@
 endif
 
-ifdef M_ABI
-$(CALL35_1_OBJ_ABI): $(CALL35_1_SRC_ABI)
-	$(M_GCC) $(M_ABI_FLAG) -c $< $(CFLAGS) $(MUTATEE_CFLAGS_GNU) -o $@ 
-endif
 
 
 .C.o:
@@ -274,6 +270,10 @@ distclean: clean
           rmdir $(DEPENDDIR); \
          fi
 
+ifdef M_ABI
+$(CALL35_1_OBJ_ABI): $(CALL35_1_SRC_ABI)
+	$(M_GCC) $(M_ABI_FLAG) -c $< $(CFLAGS) $(MUTATEE_CFLAGS_GNU) -o $@ 
+endif
 
 mutators: $(MUTATORS) test11
 mutatees: gnu_mutatees native_mutatees
@@ -556,7 +556,8 @@ $(DEPS_TESTLIBS): $(DEPENDDIR)/lib%.dep : lib%.c
 	@mkdir -p $(DEPENDDIR)
 	$(DEPCC) $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI_RT/h $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) lib$*.so > $@
 
-
+$(DEPENDDIR)/libTest12.dep: libTest12.c
+	$(DEPCC) $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI_RT/h libTest12.c $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) libTest12.so > $@
 # do not include dep files for "clean" targets
 ifneq ($(MAKECMDGOALS),clean)
 ifneq ($(MAKECMDGOALS),distclean)
