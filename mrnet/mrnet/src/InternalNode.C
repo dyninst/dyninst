@@ -26,6 +26,7 @@ InternalNode::InternalNode( std::string _hostname, Port _port,
                 _phostname.c_str(  ), _pport ));
 
     RemoteNode * tmp_upstream_node = new RemoteNode( true, _phostname, _pport );
+    set_UpStreamNode( tmp_upstream_node );
     RemoteNode::local_child_node = this;
     RemoteNode::local_parent_node = this;
 
@@ -54,7 +55,6 @@ InternalNode::InternalNode( std::string _hostname, Port _port,
                                     ( void * )tmp_upstream_node,
                                     &( tmp_upstream_node->send_thread_id ) );
 
-    set_UpStreamNode( tmp_upstream_node );
     if( retval != 0 ) {
         //Call childnode's error here, because we want to record event
         //locally as well as send upstream
