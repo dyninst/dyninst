@@ -235,7 +235,7 @@ static int mutatorTest(BPatch *bpatch)
                     __FILE__, __LINE__, i);
          }
       }
-      fprintf(stderr, "ERROR: Can not run test due to missing threads");
+      fprintf(stderr, "ERROR: Can not run test due to missing threads\n");
       return error_exit();
    }
 
