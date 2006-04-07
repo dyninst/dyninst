@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.97 2006/04/04 08:45:02 nater Exp $
+// $Id: linux-x86.C,v 1.98 2006/04/07 17:35:53 bernat Exp $
 
 #include <fstream>
 
@@ -873,9 +873,9 @@ Address dyn_lwp::readRegister(Register /*reg*/) {
    }
 
    int ptrace_errno = 0;
-   int ret = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(), offsetof(struct user_regs_struct, PTRACE_REG_AX), 0,
+   Address ret = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(), offsetof(struct user_regs_struct, PTRACE_REG_AX), 0,
                         &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__);
-   return (Address)ret;
+   return ret;
 }
 
 syscallTrap *process::trapSyscallExitInternal(Address syscall) {
