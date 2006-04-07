@@ -81,7 +81,7 @@ void level1()
 
    thread_t me = threadSelf();
    for (i=0; i<NTHRD; i++) {
-      /*fprintf(stderr, "Comparing %d to %d\n", thrds[i].tid.threadid, me.threadid);*/
+      /* fprintf(stderr, "Comparing %lu to %lu\n", thread_int(thrds[i].tid), thread_int(me)); */
       if (threads_equal(thrds[i].tid, me))
          break;
    }
@@ -124,9 +124,11 @@ void level0(int count)
       level0(count - 1);
 }
 
+volatile unsigned ok_to_go = 0;
 void *init_func(void *arg)
 {
    assert(arg == NULL);
+   while(! ok_to_go) sleep(1);
    level0(N_INSTR-1);
    return NULL;
 }
@@ -147,6 +149,7 @@ int main()
    }
    thrds[0].is_in_instr = 0;
    thrds[0].tid = threadSelf();
+   ok_to_go = 1;
    init_func(NULL);
    for (i=1; i<NTHRD; i++)
    {
