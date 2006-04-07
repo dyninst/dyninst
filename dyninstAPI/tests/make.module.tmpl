@@ -484,7 +484,7 @@ DEPS_MUTATEES_GCC	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _gcc.dep, $(MUTATEES_
 DEPS_MUTATEES_GXX	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _g++.dep, $(MUTATEES_CXX)))
 DEPS_MUTATEES_GXX	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _g++.dep, $(MUTATEES_CXX_ONLY)))
 DEPS_TESTLIBS	 	+= $(addprefix $(DEPENDDIR)/,$(addsuffix .dep,$(TESTLIB_STEMS)))
-
+DEPS_TESTLIBS		+= $(DEPENDDIR)/libTest12.dep
 ifdef M_G77
 DEPS_MUTATEES_G77	+= $(addprefix $(DEPENDDIR)/,$(addsuffix _g77.dep, $(MUTATEES_FORTRAN)))
 endif
@@ -556,8 +556,6 @@ $(DEPS_TESTLIBS): $(DEPENDDIR)/lib%.dep : lib%.c
 	@mkdir -p $(DEPENDDIR)
 	$(DEPCC) $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI_RT/h $< $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) lib$*.so > $@
 
-$(DEPENDDIR)/libTest12.dep: libTest12.c
-	$(DEPCC) $(CXXFLAGS) -I$(TO_CORE)/dyninstAPI_RT/h libTest12.c $(MUTATOR_CXXFLAGS) $(DEPENDFLAGS) libTest12.so > $@
 # do not include dep files for "clean" targets
 ifneq ($(MAKECMDGOALS),clean)
 ifneq ($(MAKECMDGOALS),distclean)
