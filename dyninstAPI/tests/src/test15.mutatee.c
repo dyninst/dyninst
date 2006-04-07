@@ -8,9 +8,19 @@
 #include <unistd.h>
 #include <limits.h>
 
+#ifdef __cplusplus
+int mutateeCplusplus = 1;
+#else
+int mutateeCplusplus = 0;
+#endif
+
+#ifndef COMPILER
+#define COMPILER ""
+#endif
+const char *Builder_id=COMPILER; /* defined on compile line */
+
 #define NTHRD 5
 pthread_t thrds[NTHRD];
-
 int thr_ids[NTHRD] = {0, 1, 2, 3, 4};
 int ok_to_exit[NTHRD] = {0, 0, 0, 0, 0};
 
@@ -73,14 +83,19 @@ void check_async()
    async_failure++;
 }
 
+#define MAX_TIMEOUTS 5
 void thr_loop(int id, pthread_t tid)
 {
    unsigned long timeout = 0;
-   while( (! ok_to_exit[id]) && (timeout != 50000000) ) {
+   unsigned num_timeout = 0;
+   while( (! ok_to_exit[id]) && (num_timeout != MAX_TIMEOUTS) ) {
       timeout++;
-      sched_yield();
+      if(timeout == ULONG_MAX) {
+         timeout = 0;
+         num_timeout++;
+      }
    }
-   if(timeout == 50000000)
+   if(num_timeout == MAX_TIMEOUTS)
       fprintf(stderr, 
               "%s[%d]: ERROR: Thread %d [tid %lu] - timed-out in thr_loop\n", 
               __FILE__, __LINE__, id, (unsigned long)tid);
@@ -122,8 +137,14 @@ int main(int argc, char *argv[])
    unsigned i;
    void *ret_val;
    char c = 'T';
-   
    pthread_attr_t attr;
+
+   if(argc == 1) {
+      printf("Mutatee %s [%s]:\"%s\"\n", argv[0], 
+             mutateeCplusplus ? "C++" : "C", Builder_id);
+      return 0;
+   }
+
    pthread_attr_init(&attr);
    pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
 

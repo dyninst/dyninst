@@ -4,18 +4,26 @@
 #include <string.h>
 #include <pthread.h>
 #include <unistd.h>
-#define NTHRD 4
 
+#ifdef __cplusplus
+int mutateeCplusplus = 1;
+#else
+int mutateeCplusplus = 0;
+#endif
+
+#ifndef COMPILER
+#define COMPILER ""
+#endif
+const char *Builder_id=COMPILER; /* defined on compile line */
+
+#define NTHRD 4
 volatile int done;
 volatile int proc_current_state;
 
-
 void *init_func(void *arg)
 {
-    while (!done) {
-        sched_yield();
-    }
-    return arg;
+   while (!done);
+   return arg;
 }
 
 int attached_fd;
@@ -40,6 +48,12 @@ int main(int argc, char *argv[])
    pthread_attr_t attr;
 
    void *ret_val;
+
+   if(argc == 1) {
+      printf("Mutatee %s [%s]:\"%s\"\n", argv[0], 
+             mutateeCplusplus ? "C++" : "C", Builder_id);
+      return 0;
+   }
 
    pthread_attr_init(&attr);
    pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
