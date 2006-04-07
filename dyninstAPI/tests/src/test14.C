@@ -57,6 +57,7 @@ bool debug_flag = false;
 char *filename = "test14.mutatee_gcc";
 bool should_exec = true;
 char *args[MAX_ARGS];
+char *create_arg = "-create";
 unsigned num_args = 0; 
 
 void instr_func(BPatch_function *func, BPatch_function *lvl1func)
@@ -79,8 +80,10 @@ static BPatch_process *getProcess()
    args[0] = filename;
 
    BPatch_process *proc;
-   if (should_exec)
+   if (should_exec) {
+      args[1] = create_arg;
       proc = bpatch.processCreate(filename, (const char **) args);
+   }
    else
    {
       int pid = startNewProcessForAttach(filename, (const char **) args);
