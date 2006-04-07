@@ -130,18 +130,29 @@ unsigned DYNINSTthreadIndexSLOW(dyntid_t tid)
          break;
    }
 
+  /**  DONT return deleted threads,  we want to create new threads
+       so that the notification scheme works 
+       THIS MAY NOT BE SCALABLE -- ie we might not even want to keep 
+                                   deleted threads around  **/
+
+  /**  Alternately, have createNewThread check deleted threads and
+       return it as a new thread **/
+#if 0
    /**
     * If we didn't find a tid it could have been deleted,
     * search the deleted list linearly.  A find here should
     * be rare, since it should mean that a thread called DYNINST_free_index
     * and then DYNINST_index_slow.
     **/
+
+   
    for (t = first_deleted; t != NONE; t = threads[t].next)
       if (threads[t].tid == tid)
       {
          retval = t;
          goto done;
       }
+#endif
 
    retval = DYNINST_max_num_threads; //Couldn't find it
 
@@ -215,8 +226,10 @@ int DYNINST_free_index(dyntid_t tid)
    unsigned long tid_val = (unsigned long) tid;
 
    result = tc_lock_lock(&DYNINST_index_lock);
-   if (result == DYNINST_DEAD_LOCK)
+   if (result == DYNINST_DEAD_LOCK) {
+      rtdebug_printf("%s[%d]:  DEADLOCK HERE\n", __FILE__, __LINE__);
       return -1;
+   }
    
    /**
     * Find this thread in the hash table
@@ -233,6 +246,7 @@ int DYNINST_free_index(dyntid_t tid)
          hash_id = 0;
       if (orig == hash_id)
       {
+         rtdebug_printf("%s[%d]:  DESTROY FAILURE:  tid not in hash\n", __FILE__, __LINE__);
          retval = -1;
          goto done; //tid doesn't exist
       }
@@ -246,6 +260,7 @@ int DYNINST_free_index(dyntid_t tid)
    {
       if (t == index)
       {
+         rtdebug_printf("%s[%d]:  DESTROY FAILURE:  tid already deleted\n", __FILE__, __LINE__);
          retval = -1;
          goto done; //double free
       }

@@ -630,6 +630,8 @@ bool mutatorTest3and4(int testno, const char *testname)
 
   if (!err)  {
     PASS(testno, testname);
+    //sleep(5);
+    sleep_ms(200);
     return true;
   }
   return false;
@@ -647,11 +649,14 @@ bool mutatorTest3()
 
 bool mutatorTest4()
 {
+#if 0
 #if defined(os_linux) && defined(arch_x86)
   SKIP(TESTNO, TESTNAME);
 #else
   return  mutatorTest3and4(TESTNO, TESTNAME);
 #endif
+#endif
+  return  mutatorTest3and4(TESTNO, TESTNAME);
 }
 
 #undef  TESTNO
@@ -758,7 +763,7 @@ bool test7done = false;
 bool test7err = false;
 unsigned long test7_tids[TEST8_THREADS];
 
-void test7cb(BPatch_process * proc, void *buf, unsigned int bufsize)
+void test7cb(BPatch_process * /* proc*/, void *buf, unsigned int bufsize)
 {
   static int callback_counter = 0;
   if (debugPrint)

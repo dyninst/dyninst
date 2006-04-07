@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.25 2006/04/01 20:19:46 mirg Exp $
+ * $Id: RTposix.c,v 1.26 2006/04/07 15:01:02 jaw Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -113,7 +113,7 @@ void libdyninstAPI_RT_init()
        libdyninstAPI_RT_init_maxthreads != -1)
    {
       DYNINSTinit(libdyninstAPI_RT_init_localCause, libdyninstAPI_RT_init_localPid,
-                  libdyninstAPI_RT_init_maxthreads);
+                  libdyninstAPI_RT_init_maxthreads, libdyninstAPI_RT_init_debug_flag);
    }
 }
 
@@ -175,7 +175,9 @@ int DYNINSTasyncConnect(int pid)
   ev.type = rtBPatch_newConnectionEvent;
   ev.pid = getpid();
 
+  rtdebug_printf("%s[%d]:  sending new connection info to mutator\n", __FILE__, __LINE__);
   err = DYNINSTwriteEvent((void *) &ev, sizeof(rtBPatch_asyncEventRecord));
+  rtdebug_printf("%s[%d]:  sent new connection info to mutator\n", __FILE__, __LINE__);
 
   if (err) {
     fprintf(stderr, "%s[%d]:  report new connection failed\n", __FILE__, __LINE__);
@@ -192,6 +194,7 @@ int DYNINSTasyncConnect(int pid)
 
 int DYNINSTasyncDisconnect()
 {
+    rtdebug_printf("%s[%d]:  welcome to DYNINSTasyncDisconnect\n", __FILE__, __LINE__);
     if (needToDisconnect) {
         close (async_socket);
         needToDisconnect = 0;

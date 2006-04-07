@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.56 2006/03/12 23:32:40 legendre Exp $ */
+/* $Id: RTcommon.c,v 1.57 2006/04/07 15:01:02 jaw Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -58,6 +58,7 @@ unsigned DYNINST_max_num_threads;
 struct DYNINST_bootstrapStruct DYNINST_bootstrap_info;
 char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
 void *gBRKptr;
+int DYNINSTdebugRTlib;
 
 /**
  * Allocate the Dyninst heaps
@@ -94,6 +95,7 @@ void *DYNINST_synch_event_arg1;
 int libdyninstAPI_RT_init_localCause=-1;
 int libdyninstAPI_RT_init_localPid=-1;
 int libdyninstAPI_RT_init_maxthreads=-1;
+int libdyninstAPI_RT_init_debug_flag=0;
 
 int DYNINST_mutatorPid;
 int DYNINSTdebugPrintRT = 0;
@@ -181,7 +183,7 @@ static void initTrampGuards(unsigned maxthreads)
  *    Linux: ld with -init libdyninstAPI_RT_init
  *           gcc with -Wl,-init -Wl,...
  **/
-void DYNINSTinit(int cause, int pid, int maxthreads)
+void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag)
 {
    int calledByFork = 0, calledByAttach = 0;
    initFPU();
@@ -198,6 +200,7 @@ void DYNINSTinit(int cause, int pid, int maxthreads)
    calledByAttach = (cause == 3);
    DYNINSThasInitialized = 1;
    DYNINST_max_num_threads = maxthreads;
+   DYNINSTdebugRTlib = debug_flag; /* set by mutator on request */
 
    /* sanity check */
    assert(sizeof(int64_t) == 8);
@@ -326,6 +329,7 @@ int DYNINSTasyncDynFuncCall (void * call_target, void *call_addr)
   rtBPatch_asyncEventRecord ev;
   BPatch_dynamicCallRecord call_ev;
 
+  rtdebug_printf("%s[%d]:  welcome to DYNINSTasyncDynFuncCall\n", __FILE__, __LINE__);
   result = tc_lock_lock(&DYNINST_trace_lock);
   if (result == DYNINST_DEAD_LOCK)
   {
@@ -356,6 +360,9 @@ int DYNINSTasyncDynFuncCall (void * call_target, void *call_addr)
 
  done:
   tc_lock_unlock(&DYNINST_trace_lock);
+
+  rtdebug_printf("%s[%d]:  leaving DYNINSTasyncDynFuncCall: status = %s\n", 
+                 __FILE__, __LINE__, err ? "error" : "ok");
   return err;
 }
 
@@ -364,6 +371,7 @@ int DYNINSTuserMessage(void *msg, unsigned int msg_size)
   int err = 0, result;
   rtBPatch_asyncEventRecord ev;
 
+  rtdebug_printf("%s[%d]:  welcome to DYNINSTuserMessage\n", __FILE__, __LINE__);
   result = tc_lock_lock(&DYNINST_trace_lock);
   if (result == DYNINST_DEAD_LOCK)
   {
@@ -393,6 +401,8 @@ int DYNINSTuserMessage(void *msg, unsigned int msg_size)
 
  done:
   tc_lock_unlock(&DYNINST_trace_lock);
+  rtdebug_printf("%s[%d]:  leaving DYNINSTuserMessage: status = %s\n", 
+                 __FILE__, __LINE__, err ? "error" : "ok");
   return err;
 }
 
@@ -449,3 +459,37 @@ unsigned dyninst_maxNumOfThreads()
    return DYNINST_max_num_threads;
 #endif
 }
+
+int rtdebug_printf(const char *format, ...)
+{
+  if (!DYNINSTdebugRTlib) return 0;
+  if (NULL == format) return -1;
+
+  fprintf(stderr, "[RTLIB]");
+  va_list va;
+  va_start(va, format);
+  int ret = vfprintf(stderr, format, va);
+  va_end(va);
+
+  return ret;
+}
+
+#ifndef CASE_RETURN_STR
+#define CASE_RETURN_STR(x) case x: return #x
+#endif
+
+const char *asyncEventType2str(rtBPatch_asyncEventType t)
+{
+  switch (t) {
+  CASE_RETURN_STR(rtBPatch_nullEvent);
+  CASE_RETURN_STR(rtBPatch_newConnectionEvent);
+  CASE_RETURN_STR(rtBPatch_internalShutDownEvent);
+  CASE_RETURN_STR(rtBPatch_threadCreateEvent);
+  CASE_RETURN_STR(rtBPatch_threadDestroyEvent);
+  CASE_RETURN_STR(rtBPatch_dynamicCallEvent);
+  CASE_RETURN_STR(rtBPatch_userEvent);
+  default: return "bad_async_event_type";
+  }
+  return "bad_async_event_type";
+} 
+

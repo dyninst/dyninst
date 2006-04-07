@@ -20,7 +20,6 @@ int libraryDebug = 0;
 
 void reportEntry()
 {
-  fprintf(stderr, "%s[%d]:  welcome to reportEntry\n", __FILE__, __LINE__);
   user_msg_t msg;
   msg.id = nextid++;
   msg.what = func_entry;

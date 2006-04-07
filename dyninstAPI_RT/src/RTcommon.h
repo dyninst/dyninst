@@ -44,12 +44,13 @@
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "RTthread.h"
+#include <stdarg.h>
 
 void DYNINSTbreakPoint();
 // Use a signal that is safe if we're not attached.
 void DYNINSTsafeBreakPoint();
 void DYNINSTos_init(int calledByFork, int calledByAttach);
-void DYNINSTinit(int cause, int pid, int maxthreads);
+void DYNINSTinit(int cause, int pid, int maxthreads, int debug_flag);
 void RTmutatedBinary_init();
 int DYNINSTreturnZero();
 int DYNINSTwriteEvent(void *ev, size_t sz);
@@ -60,11 +61,15 @@ extern int DYNINST_mutatorPid;
 extern int libdyninstAPI_RT_init_localCause;
 extern int libdyninstAPI_RT_init_localPid;
 extern int libdyninstAPI_RT_init_maxthreads;
+extern int libdyninstAPI_RT_init_debug_flag;
 extern int DYNINSTdebugPrintRT;
 extern tc_lock_t DYNINST_trace_lock;
 
 extern void *map_region(void *addr, int len, int fd);
 extern int unmap_region(void *addr, int len);
 extern void mark_heaps_exec(void);
+
+extern int DYNINSTdebugRTlib;
+int rtdebug_printf(const char *format, ...);
 #endif
        

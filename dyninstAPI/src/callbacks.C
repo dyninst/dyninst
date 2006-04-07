@@ -32,6 +32,7 @@ bool CallbackManager::removeCallbacks(eventType evt, pdvector<CallbackBase *> &c
     for (unsigned int i = 0; i < cbs_for_type.size(); ++i) {
       cbs_out.push_back(cbs_for_type[i]); 
     }
+    assert(!cbs.defines(evt));
   }
   else  {
     mailbox_printf("%s[%d]:  no callbacks matching %s\n", 

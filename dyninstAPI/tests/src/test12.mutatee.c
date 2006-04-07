@@ -200,7 +200,7 @@ void sleep_ms(int _ms)
  sleep:
  if (0 != nanosleep(&ts, &rem)) {
     if (errno == EINTR) {
-      fprintf(stderr, "%s[%d]:  sleep interrupted\n", __FILE__, __LINE__);
+      dprintf("%s[%d]:  sleep interrupted\n", __FILE__, __LINE__);
       ts.tv_sec = rem.tv_sec;
       ts.tv_nsec = rem.tv_nsec;
       goto sleep;
@@ -453,9 +453,7 @@ void func2_1()
   }
   
   mutateeIdle = 1;
-  fprintf(stderr, "%s[%d]:  mutatee idling....\n", __FILE__, __LINE__);
   while (mutateeIdle);
-  fprintf(stderr, "%s[%d]:  mutatee waking up....\n", __FILE__, __LINE__);
   /*  stop the process (mutator will restart us) */
   /*stop_process(); */
 #endif
@@ -490,9 +488,7 @@ void func3_1()
   sleep_ms(999);
   unlockLock(&test3lock);
   mutateeIdle = 1;
-  fprintf(stderr, "%s[%d]:  mutatee idling....\n", __FILE__, __LINE__);
   while (mutateeIdle) {}
-  fprintf(stderr, "%s[%d]:  mutatee waking up....\n", __FILE__, __LINE__);
 
 }
 
@@ -514,9 +510,10 @@ void *thread_main4(void *arg)
 Thread_t test4_threads[TEST3_THREADS];
 void func4_1()
 {
-
+/*
 #if defined(os_linux) && defined(arch_x86)
 #else
+*/
   createLock(&test4lock);
   lockLock(&test4lock); 
    
@@ -525,7 +522,9 @@ void func4_1()
   unlockLock(&test4lock); 
   mutateeIdle = 1;
   while (mutateeIdle) {}
+/*
 #endif
+*/
 
 }
 

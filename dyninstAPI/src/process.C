@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.603 2006/04/05 23:39:31 legendre Exp $
+// $Id: process.C,v 1.604 2006/04/07 15:01:01 jaw Exp $
 
 #include <ctype.h>
 
@@ -2958,6 +2958,14 @@ bool process::setDyninstLibInitParams() {
    writeDataSpace((void*)vars[0]->getAddress(), sizeof(int), (void *) &max_number_of_threads);
    vars.clear();   
 
+   extern int dyn_debug_rtlib;
+   if (!findVarsByAll("libdyninstAPI_RT_init_debug_flag", vars))
+       if (!findVarsByAll("_libdyninstAPI_RT_init_debug_flag", vars))
+           assert(0 && "Could not find necessary internal variable");
+   assert(vars.size() == 1);
+   writeDataSpace((void*)vars[0]->getAddress(), sizeof(int), (void *) &dyn_debug_rtlib);
+   vars.clear();   
+
    startup_cerr << "process::installBootstrapInst() complete" << endl;   
    return true;
 }
@@ -2968,6 +2976,7 @@ bool process::iRPCDyninstInit() {
     // Duplicates the parameter code in setDyninstLibInitParams()
     int pid = getpid();
     int maxthreads = maxNumberOfThreads();
+    extern int dyn_debug_rtlib;
 
     int cause = 0;
     switch (creationMechanism_) {
@@ -2986,12 +2995,14 @@ bool process::iRPCDyninstInit() {
         break;
    }
 
-    pdvector<AstNode*> the_args(3);
+    pdvector<AstNode*> the_args(4);
     the_args[0] = new AstNode(AstNode::Constant, (void*)(Address)cause);
     the_args[1] = new AstNode(AstNode::Constant, (void*)(Address)pid);
     the_args[2] = new AstNode(AstNode::Constant, (void*)(Address)maxthreads);
+    the_args[3] = new AstNode(AstNode::Constant, (void*)(Address)dyn_debug_rtlib);
     AstNode *dynInit = new AstNode("DYNINSTinit", the_args);
     removeAst(the_args[0]); removeAst(the_args[1]); removeAst(the_args[2]);
+    removeAst(the_args[3]);
     getRpcMgr()->postRPCtoDo(dynInit,
                              true, // Don't update cost
                              process::DYNINSTinitCompletionCallback,

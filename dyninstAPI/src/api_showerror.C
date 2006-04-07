@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: api_showerror.C,v 1.25 2006/03/29 21:34:53 bernat Exp $
+// $Id: api_showerror.C,v 1.26 2006/04/07 15:01:01 jaw Exp $
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -226,6 +226,7 @@ int dyn_debug_mailbox = 0;
 int dyn_debug_async = 0;
 int dyn_debug_dwarf = 0;
 int dyn_debug_thread = 0;
+int dyn_debug_rtlib = 0;
 
 bool init_debug() {
   char *p;
@@ -292,6 +293,10 @@ bool init_debug() {
   if ( (p=getenv("DYNINST_DEBUG_THREAD"))) {
       fprintf(stderr, "Enabling DyninstAPI thread debug\n");
       dyn_debug_thread = 1;
+  }
+  if ( (p=getenv("DYNINST_DEBUG_RTLIB"))) {
+      fprintf(stderr, "Enabling DyninstAPI RTlib debug\n");
+      dyn_debug_rtlib = 1;
   }
 
   debugPrintLock = new eventLock();

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTwinnt.c,v 1.17 2006/03/14 22:57:37 legendre Exp $
+ * $Id: RTwinnt.c,v 1.18 2006/04/07 15:01:02 jaw Exp $
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  ************************************************************************/
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
@@ -100,7 +100,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 
    if(libdyninstAPI_RT_init_localPid != -1 || libdyninstAPI_RT_init_localCause != -1)
       DYNINSTinit(libdyninstAPI_RT_init_localCause, libdyninstAPI_RT_init_localPid,
-                  libdyninstAPI_RT_init_maxthreads);
+                  libdyninstAPI_RT_init_maxthreads, libdyninstAPI_RT_init_debug_flag);
 
 	return 1; 
 }

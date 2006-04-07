@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.209 2006/04/06 10:08:45 jaw Exp $
+// $Id: linux.C,v 1.210 2006/04/07 15:01:01 jaw Exp $
 
 #include <fstream>
 
@@ -2067,13 +2067,12 @@ bool process::initMT()
          //TODO: Save the mt objects for detach
       }
    }
-#if 0
-      /*
+      
    //Find functions that are run on pthread exit
    pdvector<int_function *> thread_dest_funcs;
-   findThreadFuncs(this, "__pthread_do_exit", &thread_dest_funcs);
-   findThreadFuncs(this, "pthread_exit", &thread_dest_funcs);
-   findThreadFuncs(this, "deallocate_tsd", &thread_dest_funcs);
+   findThreadFuncs(this, "__pthread_do_exit", thread_dest_funcs);
+   findThreadFuncs(this, "pthread_exit", thread_dest_funcs);
+   findThreadFuncs(this, "deallocate_tsd", thread_dest_funcs);
    if (!thread_dest_funcs.size())
    {
       fprintf(stderr,"[%s:%d] - Found 0 copies of pthread_exit, expected 1\n",
@@ -2088,6 +2087,27 @@ bool process::initMT()
               __FILE__, __LINE__);
       return false;
    }
+
+   for (i=0; i<thread_dest_funcs.size(); i++)
+   {
+      pdvector<AstNode *> args;
+      AstNode call_DYNINSTthreadDestroy(threadDestroy, args);
+      AstNode *ast = &call_DYNINSTthreadDestroy;
+      const pdvector<instPoint *> &ips = thread_dest_funcs[i]->funcExits();
+      for (unsigned j=0; j<ips.size(); j++)
+      {
+         miniTramp *mt;
+         mt = ips[j]->instrument(ast, callPreInsn, orderFirstAtPoint, false, 
+                                 false);
+         if (!mt)
+         {
+            fprintf(stderr, "[%s:%d] - Couldn't instrument thread_exit\n",
+                    __FILE__, __LINE__);
+         }
+         //TODO: Save the mt objects for detach
+      }
+   }
+#if 0
    //Instrument
    for (i=0; i<thread_dest_funcs.size(); i++)
    {
@@ -2105,8 +2125,8 @@ bool process::initMT()
                  __FILE__, __LINE__);
       }
    }
-      */
 #endif
+     
    /**
     * Have dyn_pthread_self call the actual pthread_self
     **/

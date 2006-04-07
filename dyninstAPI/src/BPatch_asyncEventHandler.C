@@ -486,8 +486,9 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
     result = P_select(width+1, &readSet, NULL, &errSet, NULL);
   } while ((result == -1) && (errno == EINTR));
 
+  __LOCK;
+
   if (-1 == result) {
-    __LOCK;
     if (errno == EBADF) {
       if (!cleanUpTerminatedProcs()) {
         //fprintf(stderr, "%s[%d]:  FIXME:  select got EBADF, but no procs "
@@ -542,7 +543,7 @@ bool BPatch_asyncEventHandler::waitNextEvent(EventRecord &ev)
   ////////////////////////////////////////
   ////////////////////////////////////////
 
-  __LOCK;
+  //__LOCK;
   //  See if we have any processes reporting events:
 
   for (unsigned int j = 0; j < process_fds.size(); ++j) 

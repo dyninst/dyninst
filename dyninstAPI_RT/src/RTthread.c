@@ -65,12 +65,16 @@ int DYNINSTthreadIndex()
    dyntid_t tid;
    int curr_index;
 
+  rtdebug_printf("%s[%d]:  welcome to DYNINSTthreadIndex()\n", 
+                 __FILE__, __LINE__);
    if (!DYNINSThasInitialized) 
    {
        return 0;
    }
    
    tid = dyn_pthread_self();
+  rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): tid = %lu\n", 
+                 __FILE__, __LINE__, (unsigned long) tid);
    if (tid == (dyntid_t) -1) {
        return 0;
    }
@@ -79,15 +83,21 @@ int DYNINSTthreadIndex()
    if ((curr_index >= 0) && (curr_index < DYNINST_max_num_threads) &&
        (DYNINST_getThreadFromIndex(curr_index) == tid))
    {
+     rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): index exists already, returning %d\n", 
+                 __FILE__, __LINE__, curr_index);
       return curr_index;
    }
    
    curr_index = DYNINSTthreadIndexSLOW(tid);
    if (curr_index == DYNINST_max_num_threads)
    {
+     rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): doing threadCreate\n", 
+                 __FILE__, __LINE__);
        curr_index = threadCreate(tid);
    }
 
+     rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): returning index: %d\n", 
+                 __FILE__, __LINE__, curr_index);
    return curr_index;
 }
 
@@ -103,6 +113,8 @@ static int asyncSendThreadEvent(int pid, rtBPatch_asyncEventType type,
    aev.event_fd = 0;
    aev.size = ev_size;
 
+  rtdebug_printf("%s[%d]:  welcome to DYNINSTsendThreadEvent(%s)\n", 
+                 __FILE__, __LINE__, asyncEventType2str(type));
    result = tc_lock_lock(&DYNINST_trace_lock);
    if (result == DYNINST_DEAD_LOCK)
    {
@@ -130,6 +142,8 @@ static int asyncSendThreadEvent(int pid, rtBPatch_asyncEventType type,
    
  done:
    tc_lock_unlock(&DYNINST_trace_lock);
+  rtdebug_printf("%s[%d]:  leaving DYNINSTsendThreadEvent: status = %s\n", 
+                 __FILE__, __LINE__, result ? "error" : "ok");
    return result;
 }
 
@@ -142,6 +156,8 @@ static unsigned threadCreate(dyntid_t tid)
    BPatch_newThreadEventRecord ev;
    unsigned index;
 
+  rtdebug_printf("%s[%d]:  welcome to threadCreate\n", 
+                 __FILE__, __LINE__);
    if (!DYNINSThasInitialized)
    {
       return DYNINST_max_num_threads;
@@ -179,6 +195,8 @@ static unsigned threadCreate(dyntid_t tid)
    asyncSendThreadEvent(ev.ppid, rtBPatch_threadCreateEvent, &ev, 
                         sizeof(BPatch_newThreadEventRecord));
 #endif
+  rtdebug_printf("%s[%d]:  leaving threadCreate: index = %d\n", 
+                 __FILE__, __LINE__, index);
    return index;
 }
 
@@ -193,9 +211,15 @@ void DYNINSTthreadDestroy()
    int err;
    BPatch_deleteThreadEventRecord rec;
 
+  rtdebug_printf("%s[%d]: DESTROY freeing index for thread %lu, index = %d\n", 
+                 __FILE__, __LINE__, tid, index);
    err = DYNINST_free_index(tid);
-   if (err)
+   if (err) {
+      rtdebug_printf("%s[%d]:  DYNINST_free_index FAILED\n", __FILE__, __LINE__);
       return;
+   }
+#if 0
+   //  no longer do notification of exits asynchronously
    memset(&rec, 0, sizeof(rec));
    rec.index = index;
 #if !defined(os_windows)
@@ -203,6 +227,7 @@ void DYNINSTthreadDestroy()
    // creation/deletion is handled through the debugging interface.
    asyncSendThreadEvent(pid, rtBPatch_threadDestroyEvent, &rec, 
                         sizeof(BPatch_deleteThreadEventRecord));
+#endif
 #endif
 }
 
