@@ -77,14 +77,19 @@ void check_async()
    async_failure++;
 }
 
+#define MAX_TIMEOUTS 5
 void thr_loop(int id, thread_t tid)
 {
    unsigned long timeout = 0;
-   while( (! ok_to_exit[id]) && (timeout != 50000000) ) {
+   unsigned num_timeout = 0;
+   while( (! ok_to_exit[id]) && (num_timeout != MAX_TIMEOUTS) ) {
       timeout++;
-      schedYield();
+      if(timeout == ULONG_MAX) {
+         timeout = 0;
+         num_timeout++;
+      }
    }
-   if(timeout == 50000000)
+   if(num_timeout == MAX_TIMEOUTS)
       fprintf(stderr, 
               "%s[%d]: ERROR: Thread %d [tid %lu] - timed-out in thr_loop\n", 
               __FILE__, __LINE__, id, thread_int(tid));
