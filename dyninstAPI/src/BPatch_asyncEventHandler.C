@@ -950,7 +950,7 @@ bool BPatch_asyncEventHandler::mutateeDetach(BPatch_process *p)
   BPatch_funcCallExpr disconnectcall(*funcs[0], args);
 
   //  Run the connect call as oneTimeCode
-  if (!p->oneTimeCodeInt(disconnectcall)) {
+  if ( p->oneTimeCodeInt(disconnectcall) != 0 ) {
     bpfatal("%s[%d]:  failed to disconnect mutatee to async handler\n", 
             FILE__, __LINE__);
     return false;
