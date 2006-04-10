@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.142 2006/02/17 00:57:28 legendre Exp $
+// $Id: main.C,v 1.143 2006/04/10 17:09:04 tlmiller Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -866,7 +866,7 @@ static int break_at_mpi_init(BPatch_process *bproc)
       // Call MPI_COMM_WORLD
       BPatch_Vector<BPatch_snippet *> args;
       BPatch_constExpr arg1(mpi_comm_world); //MPI_COMM_WORLD value
-      BPatch_constExpr arg2((int) var->getBaseAddr());
+      BPatch_constExpr arg2((unsigned long) var->getBaseAddr());
       args.push_back(&arg1);
       args.push_back(&arg2);
       BPatch_funcCallExpr call_to_rank(*mpi_comm_rank, args);
