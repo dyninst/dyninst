@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.101 2006/04/03 22:25:22 tlmiller Exp $
+ * $Id: Object-elf.C,v 1.102 2006/04/10 18:11:47 nater Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -123,7 +123,7 @@ bool Object::shared()
 
 // loaded_elf(): populate elf section pointers
 // for EEL rewritten code, also populate "code_*_" members
-bool Object::loaded_elf(Elf_X &elf, Address& txtaddr, Address& bssaddr,
+bool Object::loaded_elf(Elf_X &elf, Address& txtaddr, Address& dataddr,
 			Elf_X_Shdr*& symscnp, Elf_X_Shdr*& strscnp, 
 			Elf_X_Shdr*& stabscnp, Elf_X_Shdr*& stabstrscnp, 
 			Elf_X_Shdr*& stabs_indxcnp, Elf_X_Shdr*& stabstrs_indxcnp, 
@@ -248,9 +248,24 @@ bool Object::loaded_elf(Elf_X &elf, Address& txtaddr, Address& bssaddr,
 	    if (txtaddr == 0)
 		txtaddr = scnp->sh_addr();
 	}
-	else if (strcmp(name, BSS_NAME) == 0) {
-	    bssaddr = scnp->sh_addr();
+    /* The following sections help us find the PH entry that
+       encompasses the data region. */
+	else if (strcmp(name, DATA_NAME) == 0) {
+	    dataddr = scnp->sh_addr();
 	}
+	else if (strcmp(name, RO_DATA_NAME) == 0) {
+	    if (!dataddr) dataddr = scnp->sh_addr();
+	}
+	else if (strcmp(name, GOT_NAME) == 0) {
+	    got_scnp = scnp;
+	    got_addr_ = scnp->sh_addr();
+	    got_size_ = scnp->sh_size();
+	    if (!dataddr) dataddr = scnp->sh_addr();
+	}
+	else if (strcmp(name, BSS_NAME) == 0) {
+	    if (!dataddr) dataddr = scnp->sh_addr();
+	}
+    /* End data region search */
 	else if (strcmp( name, FINI_NAME) == 0) {
 	    fini_addr_ = scnp->sh_addr();
 	}
@@ -323,12 +338,6 @@ bool Object::loaded_elf(Elf_X &elf, Address& txtaddr, Address& bssaddr,
 	    plt_entry_size_ = scnp->sh_entsize();
 #endif // defined(i386_unknown_linux2_0) || defined(x86_64_unknown_linux2_4)
 	}
-	else if (strcmp(name, GOT_NAME) == 0) {
-	    got_scnp = scnp;
-	    got_addr_ = scnp->sh_addr();
-	    got_size_ = scnp->sh_size();
-	    if (!bssaddr) bssaddr = scnp->sh_addr();
-	}
 	else if (strcmp(name, DYNSYM_NAME) == 0) {
 	    dynsym_scnp = scnp;
 	    dynsym_addr_ = scnp->sh_addr();
@@ -336,12 +345,6 @@ bool Object::loaded_elf(Elf_X &elf, Address& txtaddr, Address& bssaddr,
 	else if (strcmp(name, DYNSTR_NAME) == 0) {
 	    dynstr_scnp = scnp;
 	    dynstr_addr_ = scnp->sh_addr();
-	}
-	else if (strcmp(name, DATA_NAME) == 0) {
-	    if (!bssaddr) bssaddr = scnp->sh_addr();
-	}
-	else if (strcmp(name, RO_DATA_NAME) == 0) {
-	    if (!bssaddr) bssaddr = scnp->sh_addr();
 	}
 	else if (strcmp(name, ".debug_info") == 0) {
 	    dwarvenDebugInfo = true;
@@ -422,7 +425,7 @@ bool Object::loaded_elf(Elf_X &elf, Address& txtaddr, Address& bssaddr,
 #endif
 
 #ifndef BPATCH_LIBRARY /* Some objects really don't have all sections. */
-  if (!bssaddr || !symscnp || !strscnp) {
+  if (!dataddr || !symscnp || !strscnp) {
     log_elferror(err_func_, "no text/bss/symbol/string section");
     return false;
   }
@@ -558,7 +561,7 @@ void Object::load_object()
     Elf_X_Shdr *stabs_indxcnp = 0;
     Elf_X_Shdr *stabstrs_indxcnp = 0;
     Address txtaddr = 0;
-    Address bssaddr = 0;
+    Address dataddr = 0;
     Elf_X_Shdr *rel_plt_scnp = 0;
     Elf_X_Shdr *plt_scnp = 0; 
     Elf_X_Shdr *got_scnp = 0;
@@ -594,7 +597,7 @@ void Object::load_object()
 
 	// And attempt to parse the ELF data structures in the file....
 	// EEL, added one more parameter
-	if (!loaded_elf(elf, txtaddr, bssaddr, symscnp, strscnp,
+	if (!loaded_elf(elf, txtaddr, dataddr, symscnp, strscnp,
 			stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
 			rel_plt_scnp,plt_scnp,got_scnp,dynsym_scnp,
 			dynstr_scnp,eh_frame_scnp,gcc_except, true)) {
@@ -603,7 +606,7 @@ void Object::load_object()
 	addressWidth_nbytes = elf.wordSize();
 
 	// find code and data segments....
-	find_code_and_data(elf, txtaddr, bssaddr);
+	find_code_and_data(elf, txtaddr, dataddr);
 	if (!code_ptr_ || !code_len_) {
 	    bpfatal( "no text segment\n");
 	    goto cleanup;
@@ -706,7 +709,7 @@ void Object::load_shared_object()
     Elf_X_Shdr *stabs_indxcnp = 0;
     Elf_X_Shdr *stabstrs_indxcnp = 0;
     Address txtaddr = 0;
-    Address bssaddr = 0;
+    Address dataddr = 0;
     Elf_X_Shdr *rel_plt_scnp = 0;
     Elf_X_Shdr *plt_scnp = 0; 
     Elf_X_Shdr *got_scnp = 0;
@@ -732,7 +735,7 @@ void Object::load_shared_object()
 	data_vldS_ = (Address) -1;
 	data_vldE_ = 0;
 
-	if (!loaded_elf(elf, txtaddr, bssaddr, symscnp, strscnp,
+	if (!loaded_elf(elf, txtaddr, dataddr, symscnp, strscnp,
 			stabscnp, stabstrscnp, stabs_indxcnp, stabstrs_indxcnp,
 			rel_plt_scnp, plt_scnp, got_scnp, dynsym_scnp,
 			dynstr_scnp, eh_frame_scnp, gcc_except))
@@ -741,7 +744,7 @@ void Object::load_shared_object()
 	addressWidth_nbytes = elf.wordSize();
 
 	// find code and data segments....
-	find_code_and_data(elf, txtaddr, bssaddr);
+	find_code_and_data(elf, txtaddr, dataddr);
 
 	get_valid_memory_areas(elf);
 
@@ -2036,27 +2039,26 @@ void Object::insert_symbols_shared(pdvector<Symbol> allsymbols) {
 //   data_ptr_, data_off_, data_len_
 void Object::find_code_and_data(Elf_X &elf,
 				Address txtaddr, 
-				Address bssaddr) 
+				Address dataddr) 
 {
     for (int i = 0; i < elf.e_phnum(); ++i) {
 	Elf_X_Phdr phdr = elf.get_phdr(i);
 
 	if ((phdr.p_vaddr() <= txtaddr) && 
-	    (phdr.p_vaddr() + phdr.p_memsz() >= txtaddr)) {
+	    (phdr.p_vaddr() + phdr.p_filesz() >= txtaddr)) {
 
 	    if (code_ptr_ == 0 && code_off_ == 0 && code_len_ == 0) {
 		code_ptr_ = (Word *)(void*)&file_ptr_[phdr.p_offset()];
 		code_off_ = (Address)phdr.p_vaddr();
-		code_len_ = (unsigned)phdr.p_memsz();
+		code_len_ = (unsigned)phdr.p_filesz();
 	    }
 
-	} else if ((phdr.p_vaddr() <= bssaddr) && 
-		   (phdr.p_vaddr() + phdr.p_memsz() >= bssaddr)) {
-
+	} else if ((phdr.p_vaddr() <= dataddr) && 
+		   (phdr.p_vaddr() + phdr.p_filesz() >= dataddr)) {
 	    if (data_ptr_ == 0 && data_off_ == 0 && data_len_ == 0) {
 		data_ptr_ = (Word *)(void *)&file_ptr_[phdr.p_offset()];
 		data_off_ = (Address)phdr.p_vaddr();
-		data_len_ = (unsigned)phdr.p_memsz();
+		data_len_ = (unsigned)phdr.p_filesz();
 	    }
 	}
     }

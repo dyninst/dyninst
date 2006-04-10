@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.h,v 1.71 2006/03/09 18:34:53 nater Exp $
+ * $Id: Object-elf.h,v 1.72 2006/04/10 18:11:48 nater Exp $
  * Object-elf.h: Object class for ELF file format
 ************************************************************************/
 
@@ -348,7 +348,7 @@ class Object : public AObject {
   void override_weak_symbols(pdvector<Symbol> &allsymbols);
   void insert_symbols_shared(pdvector<Symbol> allsymbols);
   void find_code_and_data(Elf_X &elf,
-       Address txtaddr, Address bssaddr);
+       Address txtaddr, Address dataddr);
   void insert_symbols_static(pdvector<Symbol> allsymbols);
   bool fix_global_symbol_modules_static_stab(Elf_X_Shdr *stabscnp,
 					     Elf_X_Shdr *stabstrscnp);
