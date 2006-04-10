@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.29 2006/03/17 19:02:30 nater Exp $
+// $Id: image-func.C,v 1.30 2006/04/10 18:11:51 nater Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -435,9 +435,6 @@ void image_basicBlock::split(image_basicBlock * &newBlk)
     Address loc;
     image_func * existing;
 
-    image_instPoint * tmpInstPt;
-    image_instPoint * cpyInstPt;
-
     loc = newBlk->firstInsnOffset_;
 
     // update new block's properties
@@ -580,8 +577,6 @@ bool image_func::addBasicBlock(Address newAddr,
     {
         splitBlk = dynamic_cast<image_basicBlock *>(tmpRange);
 
-        parsing_printf("[%s:%u] block at 0x%lx split at 0x%lx\n", FILE__,
-            __LINE__,splitBlk->firstInsnOffset_,newAddr);
         if(splitBlk->firstInsnOffset_ == newAddr)
         {
             // not a split, but a re-use
@@ -597,6 +592,8 @@ bool image_func::addBasicBlock(Address newAddr,
         }
         else
         {
+            parsing_printf("[%s:%u] block at 0x%lx split at 0x%lx\n", FILE__,
+                __LINE__,splitBlk->firstInsnOffset_,newAddr);
             // split
             newBlk = splitBlk->split(newAddr,this);
             // newBlk only goes on the worklist if the block that was split
