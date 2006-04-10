@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.365 2006/04/04 08:45:00 nater Exp $
+/* $Id: process.h,v 1.366 2006/04/10 18:15:52 mirg Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -595,10 +595,9 @@ class process {
   bool getDyninstRTLibName();
   bool loadDYNINSTlib();
 #if defined(os_linux)
-  // There are two mutually incompatible load types... split into
-  // functions
-  bool loadDYNINSTlib_libc20();
-  bool loadDYNINSTlib_libc21();
+  // If dlopen is present, use it. Otherwise, call a libc-internal function
+  bool loadDYNINSTlib_exported();
+  bool loadDYNINSTlib_hidden();
 
   // Unprotect stack if necessary for runtime library loading
   Address tryUnprotectStack(codeGen &buf, Address codeBase);
@@ -1110,9 +1109,6 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
 #if defined(arch_x86) && defined(os_windows)
   dictionary_hash<Address, unsigned char> main_breaks;
   pdvector<unsigned> cached_lwps;
-#endif
-#if defined(arch_x86) || defined(arch_x86_64)
-  unsigned char savedStackFrame[BYTES_TO_SAVE];
 #endif
   dyn_saved_regs *savedRegs;
 
