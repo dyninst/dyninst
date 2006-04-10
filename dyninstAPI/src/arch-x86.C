@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.52 2006/04/04 01:10:08 legendre Exp $
+// $Id: arch-x86.C,v 1.53 2006/04/10 18:11:49 nater Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -3064,13 +3064,13 @@ bool isStackFramePreamble( instruction& insn1 )
         // following instructions.  There are two ways to encode 
         // mov %esp -> %ebp: as '0x8b 0xec' or as '0x89 0xe5'.  
         if( insn2.isMoveRegMemToRegMem() && 
-            ((Mod1_1 == 0x05 && Mod1_2 == 0x06) ||
-             (Mod1_1 == 0x06 && Mod1_2 == 0x05)))
+            ((Mod1_1 == 0x05 && Mod1_2 == 0x04) ||
+             (Mod1_1 == 0x04 && Mod1_2 == 0x05)))
             return true;
 
         if( insn3.isMoveRegMemToRegMem() && 
-            ((Mod2_1 == 0x05 && Mod2_2 == 0x06) ||
-             (Mod2_1 == 0x06 && Mod2_2 == 0x05)))
+            ((Mod2_1 == 0x05 && Mod2_2 == 0x04) ||
+             (Mod2_1 == 0x04 && Mod2_2 == 0x05)))
             return true;
     }
     
