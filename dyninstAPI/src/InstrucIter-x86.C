@@ -489,6 +489,17 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
         result += backupAddress;	
         return false;
     }
+    else if( (proc_ && !proc_->isValidAddress( jumpTable )) ||
+             (img_ && !img_->isValidAddress( jumpTable )) )
+    {
+        // If the "jump table" has a start address that is outside
+        // of the valid range of the binary, we can say with high
+        // probability that we have misinterpreted some other
+        // construct (such as a function pointer comparison & tail
+        // call, for example) as a jump table. Give up now.
+        result += backupAddress;
+        return false;
+    }
 
     for(unsigned int i=0;i<maxSwitch;i++)
     {
