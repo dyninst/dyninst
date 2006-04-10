@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.16 2006/03/30 04:57:46 nater Exp $
+ * $Id: image-flowGraph.C,v 1.17 2006/04/10 18:11:50 nater Exp $
  */
 
 #include <stdio.h>
@@ -135,7 +135,6 @@ bool image::analyzeImage()
         parseStaticCallTargets( callTargets, new_targets, preParseStubs, mod );
         callTargets.clear();
       
-            // FIXME hi, wasteful person
         VECTOR_APPEND(callTargets,new_targets); 
         new_targets.clear();
     }
@@ -144,14 +143,30 @@ bool image::analyzeImage()
   
   int numIndir = 0;
   unsigned p = 0;
+  
+  image_func *func1, *func2;
+  func1 = NULL;
+  func2 = NULL;
   // We start over until things converge; hence the goto target
  top:
 
-    parseStaticCallTargets( callTargets, new_targets, preParseStubs, mod );
-    callTargets.clear(); 
+    while(callTargets.size() > 0)
+    {
+        // FIXME because of the assumption that functions in callTargets
+        // are successfully parsed, we may skip possible gaps because we
+        // have advanced our p index too far.
+        for( unsigned r = 0; r < callTargets.size(); r++ )
+        {   
+            if( func1 && callTargets[r] < func1->getOffset() )
+                p++;
+        }
 
-    VECTOR_APPEND(callTargets,new_targets);
-    new_targets.clear();
+        parseStaticCallTargets( callTargets, new_targets, preParseStubs, mod );
+        callTargets.clear(); 
+
+        VECTOR_APPEND(callTargets,new_targets);
+        new_targets.clear();
+    }
    
     // nothing to do, exit
     if( everyUniqueFunction.size() <= 0 )
@@ -169,12 +184,14 @@ bool image::analyzeImage()
   
     for( ; p + 1 < rawFuncSize; p++ )
     {
-        image_func* func1 = everyUniqueFunction[p];
-        image_func* func2 = everyUniqueFunction[p + 1];
+        func1 = everyUniqueFunction[p];
+        func2 = everyUniqueFunction[p + 1];
       
         Address gapStart = func1->getEndOffset();
         Address gapEnd = func2->getOffset();
         Address gap = gapEnd - gapStart;
+
+        parsing_printf("searching for function prologue in gap (0x%lx - 0x%lx)\n", gapStart, gapEnd);
       
         //gap should be big enough to accomodate a function prologue
         if( gap >= 5 )
@@ -205,11 +222,6 @@ bool image::analyzeImage()
                         // position in the function vector accordingly
                         if( callTargets.size() > 0 )
                         {   
-                            for( unsigned r = 0; r < callTargets.size(); r++ )
-                            {   
-                                if( callTargets[r] < func1->getOffset() )
-                                    p++;
-                            }
                             goto top; //goto is the devil's construct. repent!! 
                         }
                         
@@ -770,19 +782,22 @@ bool image_func::buildCFG(
             }
         }
 
+        parsing_printf("- successor: 0x%lx, ah.peekNext(): 0x%lx\n",
+            nextExistingBlockAddr, ah.peekNext());
+
         while(true) // instructions in block
         {
             currAddr = *ah;
             insnSize = ah.getInstruction().size();
 
-           // Check whether we're stomping over an existing basic block
-            // (one which we have not yet parsed [addr isn't in visited])
+            // The following three cases ensure that we properly handle
+            // situations where our parsing comes across previously
+            // pased code:
             if(currAddr == nextExistingBlockAddr)
             {
                 assert(nextExistingBlock->firstInsnOffset_ == currAddr);
 
                 parsing_printf("rolling over existing block at 0x%lx\n",currAddr);
-
                 // end block with previous addr
                 // add edge to to this newly found block
                 // push it on the worklist vector            
@@ -812,28 +827,76 @@ bool image_func::buildCFG(
                 }
                 break;
             }
+#if defined(arch_x86) || defined(arch_x86_64)
+            // These portions correspond only to situations that arise
+            // because of overlapping but offset instruction streams --
+            // the kind that only happen on x86.
+
             else if(allInstAddrs.contains( currAddr ))
             {
                 // This address has been seen but is not the start of
-                // a basic block. This can only happen if two instructions
-                // overlap, as is the case with prefixed instructions on
-                // x86. We expect to have to split a block at this address.
+                // a basic block. This has the following interpretation:
+                // The current instruction stream has become aligned with
+                // an existing (previously parsed) instruction stream.
+                // This should only be possible on x86, and in normal code
+                // it should only be seen when dealing with cases like
+                // instruction prefixes (where the bytes of two different
+                // versions of an instruction effectively overlap).
 
-                currBlk->lastInsnOffset_ = ah.peekPrev();
-                currBlk->blockEndOffset_ = currAddr;
+                // XXX Because our codeRangeTree has no support for
+                // overlapping ranges, we are only capable of supporting the
+                // case where the current instruction stream starts at a
+                // lower value in the address space than the stream it
+                // overlaps with. This is sufficient to handle the
+                // prefixed instruction case (because of the order we
+                // place blocks on the work list), but any other case
+                // will make the function uninstrumentable.
 
-                // The newly created basic block will split
-                // the existing basic block that encompasses this
-                // address.
-                addBasicBlock(currAddr,
-                              currBlk,
-                              leaders,
-                              leadersToBlock,
-                              ET_FALLTHROUGH,
-                              worklist,
-                              visited);
+                //parsing_printf("- allInstAddrs match at 0x%lx (last set to 0x%lx\n", currAddr, ah.peekPrev());
+                if(currAddr > currBlk->firstInsnOffset_) {
+                 //   parsing_printf("- due to overlap: first insn: 0x%lx\n",
+                 //       currBlk->firstInsnOffset_);
+
+                    currBlk->lastInsnOffset_ = ah.peekPrev();
+                    currBlk->blockEndOffset_ = currAddr;
+
+                    // The newly created basic block will split
+                    // the existing basic block that encompasses this
+                    // address.
+                    addBasicBlock(currAddr,
+                                  currBlk,
+                                  leaders,
+                                  leadersToBlock,
+                                  ET_FALLTHROUGH,
+                                  worklist,
+                                  visited);
+                } else {
+                    parsing_printf(" ... uninstrumentable due to instruction stream overlap\n");
+                    currBlk->lastInsnOffset_ = currAddr;
+                    currBlk->blockEndOffset_ = ah.peekNext();
+                    isInstrumentable_ = false;
+                }
                 break;
-            }            
+            }
+            else if(currAddr > nextExistingBlockAddr)
+            {
+                // Overlapping instructions on x86 can mean that we
+                // can step over the start of an existing block because
+                // our instruction stream does not exactly coincide with its
+                // instruction stream. In that case, find the next existing
+                // block address and reprocess this instruction.
+
+                nextExistingBlockAddr = ULONG_MAX;
+                if(image_->basicBlocksByRange.successor(currAddr,tmpRange))
+                {
+                    nextExistingBlock = 
+                            dynamic_cast<image_basicBlock*>(tmpRange);
+
+                    nextExistingBlockAddr = nextExistingBlock->firstInsnOffset_;
+                }
+                continue; // reprocess current instruction
+            }
+#endif
 
             allInstructions.push_back( ah.getInstruction() );
             allInstAddrs += currAddr;
@@ -948,7 +1011,7 @@ bool image_func::buildCFG(
 
                 BPatch_Set< Address > targets;
                 BPatch_Set< Address >::iterator iter;
-                
+               
                 // get the list of targets
                 if(!archGetMultipleJumpTargets(targets,currBlk,ah,allInstructions))
                 {
