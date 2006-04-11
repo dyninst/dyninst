@@ -480,7 +480,15 @@ void InstrucIter::getAndSkipDSandAgg(instruction* &ds,
 
     assert(dsPtr);
     ds = new instruction(*(unsigned int *)dsPtr);
-    assert(aggPtr);
+    
+    /* Cases where an unimp 0 actually follows a delay slot */
+    if (!aggPtr)
+      {
+	(*this)++;
+	agg = NULL;
+	return;
+      }      
+
     agg = new instruction(*(unsigned int *)aggPtr);
     if (!agg->valid()) {
         if ((**agg).raw != 0x0) {
