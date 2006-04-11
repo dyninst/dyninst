@@ -229,30 +229,79 @@ BPatch_module::~BPatch_module()
 }
 
 void BPatch_module::parseTypesIfNecessary() {
-    if (moduleTypes) return; // Already done
+    if( moduleTypes != NULL ) { 
+    	return;
+    	}
     
-    moduleTypes = BPatch_typeCollection::getModTypeCollection(this);
-    
-    // We create all functions before parsing types; this is necessary
-    // to prevent infinite recursion.
-    
-    if( BPatch::bpatch->parseDebugInfo() ) {
-        // This gets slightly complex. We need to ensure that all
-        // modules in the image are defined, since there is a slight
-        // mismatch between BPatch's view of a "module" and the
-        // debugging info's view.  It's easy enough to do.
+    moduleTypes = BPatch_typeCollection::getModTypeCollection( this );
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: parsing module '%s' @ %p (file %s) with type collection %p\n",	__FILE__, __LINE__, mod->fileName().c_str(), this, mod->obj()->fileName().c_str(), moduleTypes );
 
-        const pdvector<mapped_module *> &map_mods = mod->obj()->getModules();
-        for (unsigned i = 0; i < map_mods.size(); i++) {
+#if ! defined( USES_DWARF_DEBUG )
+    if( BPatch::bpatch->parseDebugInfo() ) {
+		parseTypes();
+		}
+#elif defined( arch_x86 ) || defined( arch_x86_64 ) || defined( arch_ia64 )
+	/* I'm not actually sure about IA-64, but certainly on the other two,
+	   it's legal and not uncommon to mix STABS and DWARF debug information
+	   in the same file.  However, this causes problems because of the
+	   differences in DWARF and STABS numeric type IDs.  In DWARF, the numeric
+	   type IDs are unique accross the entire file, and are used to resolve
+	   forward type references.  Thus, we parse all STABS debug information
+	   before parsing any DWARF information.  Furthermore, DWARF requires
+	   that all the BPatch_functions exist before parsing.  Thus... */
+	   
+	if( BPatch::bpatch->parseDebugInfo() ) {
+        const pdvector< mapped_module  *> & map_mods = mod->obj()->getModules();
+        
+        /* Ensure all functions and type collections are defined. */
+        for( unsigned i = 0; i < map_mods.size(); i++ ) {
             // use map_mods[i] instead of a name to get a precise match
-            BPatch_module *bpmod = img->findOrCreateModule(map_mods[i]);
-            assert(bpmod);
-            bpmod->getProcedures(); // Ensures that all functions are defined.
-            bpmod->parseTypesIfNecessary(); // Since we should debug parse at the object level
-        }
-        parseTypes();
-    } 
-}
+            BPatch_module * bpmod = img->findOrCreateModule( map_mods[i] );
+            assert( bpmod != NULL );
+
+            bpmod->getProcedures();
+
+			if( bpmod->moduleTypes == NULL ) {
+				bpmod->moduleTypes = BPatch_typeCollection::getModTypeCollection( bpmod );
+				}
+            } /* end function instantiation */
+		
+		/* We'll need to have two loops anyway, so use three for clarity. */
+        for( unsigned i = 0; i < map_mods.size(); i++ ) {
+            // use map_mods[i] instead of a name to get a precise match
+            BPatch_module * bpmod = img->findOrCreateModule( map_mods[i] );
+            assert( bpmod != NULL );
+
+            image * moduleImage = bpmod->mod->obj()->parse_img();
+            assert( moduleImage != NULL );
+            const Object & moduleObject = moduleImage->getObject();
+            
+            if( moduleObject.hasStabInfo() ) {
+				/* This will blow away previous information, but not its own. */
+				bpmod->parseStabTypes();
+
+	            /* Therefore, blow away left-over STABS information to avoid type conflicts. */
+    	        bpmod->moduleTypes->clearNumberedTypes();            
+				}
+            } /* end STABS parsing */
+
+        for( unsigned i = 0; i < map_mods.size(); i++ ) {
+            // use map_mods[i] instead of a name to get a precise match
+            BPatch_module * bpmod = img->findOrCreateModule( map_mods[i] );
+            assert( bpmod != NULL );
+            
+            image * moduleImage = bpmod->mod->obj()->parse_img();
+            assert( moduleImage != NULL );
+            const Object & moduleObject = moduleImage->getObject();
+            
+            if( moduleObject.hasDwarfInfo() ) { bpmod->parseDwarfTypes(); }            
+			} /* end DWARF parsing */
+		} /* end if we'rep parsing debug information at all */
+#else 
+	#error DWARF on platforms other than 86, x86-64, and IA-64 is unsupported.
+#endif /* ! defined( USES_DWARF_DEBUG ) */
+	return;
+	} /* end parseTypesIfNecessary() */
 
 BPatch_typeCollection *BPatch_module::getModuleTypesInt() {
   parseTypesIfNecessary();
@@ -742,30 +791,26 @@ void BPatch_module::parseTypes()
 
 #endif
 
+#if ! defined( USES_DWARF_DEBUG ) && ! defined( rs6000_ibm_aix4_1 ) && ! defined( alpha_dec_osf4_0 ) && ! defined( os_windows )
+/* Platforms which use DWARF call parseStabTypes() and parseDwarfTypes() directly.
+   Our POWER, Alpha, and Windows ports have their own custom parseTypes() functions.  */
+void BPatch_module::parseTypes() {
+	image *moduleImage = mod->obj()->parse_img();
+	assert( moduleImage != NULL );
+	const Object & moduleObject = moduleImage->getObject();
+
+	if( moduleObject.hasStabInfo() ) {
+		parseStabTypes();
+		}
+	} /* end BPatch_module::parseTypes() */
+#endif /* ! defined( USES_DWARF_DEBUG ) */
+                                    
+
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_solaris2_5) \
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(ia64_unknown_linux2_4)
-
-
-void BPatch_module::parseTypes() 
-{
-   image *moduleImage = mod->obj()->parse_img();
-   assert( moduleImage != NULL );
-   const Object & moduleObject = moduleImage->getObject();	
-
-   if (moduleObject.hasStabInfo()) { 
-      parseStabTypes(); 
-   }
-	
-#if defined( USES_DWARF_DEBUG )
-   if (moduleObject.hasDwarfInfo()) { 
-       parseDwarfTypes(); 
-   }
-#endif
-} 
-
 
 // parseStabTypes:  parses type and variable info, does some init
 // does NOT parse file-line info anymore, this is done later, upon request.
