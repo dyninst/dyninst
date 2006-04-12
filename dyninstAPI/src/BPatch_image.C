@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.84 2006/04/06 10:08:45 jaw Exp $
+// $Id: BPatch_image.C,v 1.85 2006/04/12 15:52:55 nater Exp $
 
 #define BPATCH_FILE
 
@@ -329,8 +329,14 @@ BPatch_module *BPatch_image::findModuleInt(const char *name, bool substring_matc
 
   if (target) 
       return target;
-  
-  mapped_module *mod = proc->llproc->findModule(pdstring(name),substring_match);
+
+  // process::findModule does a wildcard match, not a substring match 
+  char tmp[512];
+  if(substring_match)
+    snprintf(tmp,512,"*%s*",name); 
+  else 
+    strncpy(tmp,name,512);
+  mapped_module *mod = proc->llproc->findModule(pdstring(tmp),substring_match);
   if (!mod) return false;
   
   target = findOrCreateModule(mod);
