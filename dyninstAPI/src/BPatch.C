@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.135 2006/04/06 16:52:59 bernat Exp $
+// $Id: BPatch.C,v 1.136 2006/04/12 16:59:10 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1523,10 +1523,20 @@ bool BPatch::waitForStatusChangeInt()
   eventType evt;
   do {
    pdvector<eventType> evts;
-   evts.push_back(evtProcessStop);
-   evts.push_back(evtProcessExit);
-   evts.push_back(evtThreadCreate);
-   evts.push_back(evtThreadExit);
+   //evts.push_back(evtProcessStop);
+   //evts.push_back(evtProcessExit);
+   //evts.push_back(evtThreadCreate);
+   //evts.push_back(evtThreadExit);
+
+   // I'm kinda confused... what about fork or exec? The above wouldn't wake us
+   // up...
+   //evts.push_back(evtSyscallExit);
+   // Or a library load for that matter.
+
+   // We need to wait for anything; non-exits may cause a callback to be made
+   // (without hitting an evtProcessStop)
+   evts.push_back(evtAnyEvent);
+
    waitingForStatusChange = true;
    getMailbox()->executeCallbacks(FILE__, __LINE__);
    if (mutateeStatusChange) break;
@@ -2014,7 +2024,8 @@ bool BPatch::removeUserEventCallbackInt(BPatchUserEventCallback cb)
 void BPatch::continueIfExists(int pid) 
 {
     BPatch_process *proc = getProcessByPid(pid);
-    if (proc) proc->continueExecutionInt();
+    // Don't want to block; we're a signal handler thread...
+    if (proc) proc->llproc->sh->continueProcessAsync();
 }
 
 ////////////// Signal FD functions
