@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.27 2006/03/02 21:34:15 nater Exp $
+// $Id: frame.h,v 1.28 2006/04/12 16:59:23 bernat Exp $
 
 #ifndef FRAME_H
 #define FRAME_H
@@ -60,7 +60,7 @@ class instPoint;
 class miniTramp;
 class int_function;
 
-typedef enum { FRAME_unset, FRAME_instrumentation, FRAME_signalhandler, FRAME_normal, FRAME_syscall, FRAME_unknown } frameType_t;
+typedef enum { FRAME_unset, FRAME_instrumentation, FRAME_signalhandler, FRAME_normal, FRAME_syscall, FRAME_iRPC, FRAME_unknown } frameType_t;
 
 class Frame {
   friend class dyn_lwp;

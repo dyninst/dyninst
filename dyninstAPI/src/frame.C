@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.C,v 1.16 2006/03/17 22:52:36 jodom Exp $
+// $Id: frame.C,v 1.17 2006/04/12 16:59:22 bernat Exp $
 
 #include <stdio.h>
 #include <iostream>
@@ -174,6 +174,10 @@ void Frame::calcFrameType()
      frameType_ = FRAME_normal;
      return;
    }
+   else if (range->is_inferior_rpc()) {
+       frameType_ = FRAME_iRPC;
+       return;
+   }
    else {
      frameType_ = FRAME_unknown;
      return;
@@ -294,6 +298,9 @@ ostream & operator << ( ostream & s, Frame & f ) {
 	case FRAME_syscall:
 	  s << "[SYSCALL]";
 	  break;
+        case FRAME_iRPC:
+            s << "[iRPC]";
+            break;
 	case FRAME_unknown:
 	  s << "[UNKNOWN]";
 	  break;
