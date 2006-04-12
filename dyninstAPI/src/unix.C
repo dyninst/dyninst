@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.181 2006/04/06 10:08:46 jaw Exp $
+// $Id: unix.C,v 1.182 2006/04/12 16:59:26 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -336,26 +336,36 @@ bool SignalGenerator::decodeSyscall(EventRecord &ev)
     if (syscall == SYSSET_MAP(SYS_fork, pid) ||
         syscall == SYSSET_MAP(SYS_fork1, pid) ||
         syscall == SYSSET_MAP(SYS_vfork, pid)) {
+        signal_printf("%s[%d]: decoded fork\n",
+                      FILE__, __LINE__);
         ev.what = (int) procSysFork;
         return true;
     }
     if (syscall == SYSSET_MAP(SYS_exec, pid) ||
         syscall == SYSSET_MAP(SYS_execv, pid) ||
         syscall == SYSSET_MAP(SYS_execve, pid)) {
+        signal_printf("%s[%d]: decoded exec\n",
+                      FILE__, __LINE__);
         ev.what = (int) procSysExec;
         return true;
     }
     if (syscall == SYSSET_MAP(SYS_exit, pid)) {
+        signal_printf("%s[%d]: decoded exit\n",
+                      FILE__, __LINE__);
         ev.what = (int) procSysExit; 
         return true;
     }
     if (syscall == SYSSET_MAP(SYS_lwp_exit, pid)) {
+        signal_printf("%s[%d]: decoded lwp exit\n",
+                      FILE__, __LINE__);
        ev.type = evtThreadExit;
        ev.what = (int) procLwpExit;
        return true;
     }
     // Don't map -- we make this up
     if (syscall == SYS_load) {
+        signal_printf("%s[%d]: decoded load\n",
+                      FILE__, __LINE__);
       ev.what = procSysLoad;
       return true;
     }
@@ -423,8 +433,12 @@ bool SignalGenerator::checkForExit(EventRecord &ev, bool block)
 
 #if !defined (os_linux)
 
-bool SignalGenerator::waitForEventInternal(EventRecord &ev)
+bool SignalGenerator::waitForEventsInternal(pdvector<EventRecord> &events)
 {
+    assert(events.size() == 0);
+    EventRecord ev;
+    ev.clear();
+
   bool ret = true;
   int timeout = POLL_TIMEOUT;
   signal_printf("%s[%d][%s]:  waitNextEvent\n", FILE__, __LINE__, 
@@ -445,9 +459,12 @@ bool SignalGenerator::waitForEventInternal(EventRecord &ev)
   waitingForOS_ = true;
   __UNLOCK;
   int num_selected_fds = poll(pfds, 1, timeout);
+
+  signal_printf("%s[%d]: poll returned, acquiring lock...\n", FILE__, __LINE__);
   
   __LOCK;
   waitingForOS_ = false;
+
   int handled_fds = 0;
 
   if (num_selected_fds < 0) {
@@ -467,12 +484,14 @@ bool SignalGenerator::waitForEventInternal(EventRecord &ev)
     stopThreadNextIter();
     fprintf(stderr, "%s[%d]:  checkForProcessEvents: poll failed: %s\n", FILE__, __LINE__, strerror(errno));
 #endif
-     return ret;
+    events.push_back(ev);
+    return ret;
   } else if (num_selected_fds == 0) {
     //  poll timed out with nothing to report
     signal_printf("%s[%d]:  poll timed out\n", FILE__, __LINE__);
     ev.type = evtTimeout;
     ev.proc = proc;
+    events.push_back(ev);
     return true;
   }
 
@@ -489,7 +508,8 @@ bool SignalGenerator::waitForEventInternal(EventRecord &ev)
   if (ev.proc->status() == running) {
       ev.proc->set_status(stopped);
   }
-
+  
+  events.push_back(ev);
   return true;
 }
 
@@ -778,6 +798,7 @@ bool PtraceCallback::execute_real()
 
   ret = P_ptrace(req_, pid_, addr_, data_, word_len_);
   ptrace_errno = errno;
+
 #if defined(os_linux)
   if (ptrace_errno == ESRCH && req_ == PTRACE_ATTACH) {
      //Handled higher up
@@ -788,8 +809,10 @@ bool PtraceCallback::execute_real()
   case 0:
       break;
   case ESRCH:
+      //fprintf(stderr, "... got esrch, returning true anyway\n");
       // Don't report an error... and LWP could have gone away and we don't know
       // about it yet.
+      return false;
       break;
   default:
      perror("ptrace error");

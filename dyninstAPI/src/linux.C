@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.210 2006/04/07 15:01:01 jaw Exp $
+// $Id: linux.C,v 1.211 2006/04/12 16:59:24 bernat Exp $
 
 #include <fstream>
 
@@ -204,43 +204,49 @@ bool attachToChild(int pid)
     return true;
 }
 
-bool SignalGenerator::decodeEvent(EventRecord &ev)
+bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events)
 {
   //  ev.info has the status result from waitpid
+    for (unsigned i = 0; i < events.size(); i++) {
+        EventRecord &ev = events[i];
 
-   if (ev.type == evtUndefined) {
-      if (!decodeWaitPidStatus(ev.info, ev)) 
-          fprintf(stderr, "%s[%d][%s]:  failed to decode status for event\n", 
-          FILE__, __LINE__, getThreadStr(getExecThreadID()));
-   }
+        if (ev.type == evtUndefined) {
+            if (!decodeWaitPidStatus(ev.info, ev)) 
+                fprintf(stderr, "%s[%d][%s]:  failed to decode status for event\n", 
+                        FILE__, __LINE__, getThreadStr(getExecThreadID()));
+        }
+        
+        errno = 0;
+        if (ev.type == evtSignalled) {
+            if (waiting_for_stop || (ev.lwp && ev.lwp->isWaitingForStop())) {
+                signal_printf("%s[%d]: waiting_for_stop %d (lwp %d waiting %s), checking for suppression...\n",
+                              FILE__, __LINE__,
+                              waiting_for_stop, 
+                              ev.lwp ? ev.lwp->get_lwp_id() : -1,
+                              ev.lwp ? (ev.lwp->isWaitingForStop() ? "waiting for stop" : "not waiting for stop") : "no LWP");
 
-   errno = 0;
-   if (ev.type == evtSignalled) {
-      if (waiting_for_stop || (ev.lwp && ev.lwp->isWaitingForStop())) {
-          signal_printf("%s[%d]: waiting_for_stop true, checking for suppression...\n", FILE__, __LINE__);
-          if (suppressSignalWhenStopping(ev)) {
-              signal_printf("%s[%d]: suppressing signal... \n", FILE__, __LINE__);
-              //  we suppress this signal, just send a null event
-              ev.type = evtIgnore;
-              signal_printf("%s[%d]: suppressing signal during wait for stop\n", FILE__, __LINE__);
-              return true;
-          }
-      }
-      signal_printf("%s[%d]: decoding signal \n", FILE__, __LINE__);
-      decodeSignal(ev);
-   }
-
-   if (ev.type == evtUndefined) {
-     //  if we still have evtSignalled, then it must not be a signal that
-     //  we care about internally.  Still, send it along to the handler
-     //  to be forwarded back to the process.
-     char buf[512];
-     fprintf(stderr, "%s[%d]:  got event %s, should have been set by now\n", FILE__, __LINE__, ev.sprint_event(buf));
-     return true;
-   }
-
-
-   return true;
+                if (suppressSignalWhenStopping(ev)) {
+                    signal_printf("%s[%d]: suppressing signal... \n", FILE__, __LINE__);
+                    //  we suppress this signal, just send a null event
+                    ev.type = evtIgnore;
+                    signal_printf("%s[%d]: suppressing signal during wait for stop\n", FILE__, __LINE__);
+                    return true;
+                }
+            }
+            signal_printf("%s[%d]: decoding signal \n", FILE__, __LINE__);
+            decodeSignal(ev);
+        }
+        
+        if (ev.type == evtUndefined) {
+            //  if we still have evtSignalled, then it must not be a signal that
+            //  we care about internally.  Still, send it along to the handler
+            //  to be forwarded back to the process.
+            char buf[512];
+            fprintf(stderr, "%s[%d]:  got event %s, should have been set by now\n", FILE__, __LINE__, ev.sprint_event(buf));
+        }
+    }
+    
+    return true;
 }
 
 bool get_linux_version(int &major, int &minor, int &subvers)
@@ -370,7 +376,7 @@ pid_t SignalGenerator::waitpid_kludge(pid_t pid_arg, int *status, int options, i
   return ret; 
 }
 
-bool SignalGenerator::waitForEventInternal(EventRecord &ev) 
+bool SignalGenerator::waitForEventsInternal(pdvector<EventRecord> &events) 
 {
   signal_printf("%s[%d]:  welcome to waitNextEventLocked\n", FILE__, __LINE__);
 
@@ -420,7 +426,9 @@ bool SignalGenerator::waitForEventInternal(EventRecord &ev)
   //  then send a SIGTRAP to the mutatee process, so as to wake up the
   //  event handling system.  A shutdown event trumps all others, so we handle it
   //  first.
-  
+ 
+  EventRecord ev;
+ 
   ev.proc = proc;
   ev.lwp = proc->lookupLWP(waitpid_pid);
 
@@ -440,21 +448,21 @@ bool SignalGenerator::waitForEventInternal(EventRecord &ev)
   if (!ev.lwp->is_attached()) {
      //  Hijack thread detection events here (very platform specific)
      ev.type = evtThreadDetect;
-     return true;
   }
- 
-  bool process_exited = WIFEXITED(status) || dead_lwp;
-  if ((process_exited) && (waitpid_pid != ev.proc->getPid())) {
-     proccontrol_printf("%s[%d]: Received a thread deletion event for %d\n", 
+  else {
+      bool process_exited = WIFEXITED(status) || dead_lwp;
+      if ((process_exited) && (waitpid_pid != ev.proc->getPid())) {
+          proccontrol_printf("%s[%d]: Received a thread deletion event for %d\n", 
+                             FILE__, __LINE__, ev.lwp->get_lwp_id());
+          signal_printf("%s[%d]: Received a thread deletion event for %d\n", 
                         FILE__, __LINE__, ev.lwp->get_lwp_id());
-     signal_printf("%s[%d]: Received a thread deletion event for %d\n", 
-                   FILE__, __LINE__, ev.lwp->get_lwp_id());
-     // Thread exited via signal
-     ev.type = evtSyscallEntry;      
-     ev.what = SYS_lwp_exit;
-     decodeSyscall(ev);
+          // Thread exited via signal
+          ev.type = evtSyscallEntry;      
+          ev.what = SYS_lwp_exit;
+          decodeSyscall(ev);
+      }
   }
-
+  events.push_back(ev);
   return true;
 }
 
@@ -592,6 +600,8 @@ bool dyn_lwp::isRunning() const
 
 bool dyn_lwp::isWaitingForStop() const
 {
+    signal_printf("%s[%d]: checking LWP %d waiting_for_stop: %d\n",
+                  FILE__, __LINE__, get_lwp_id(), waiting_for_stop);
    return waiting_for_stop;
 }
 
@@ -716,24 +726,33 @@ bool dyn_lwp::waitUntilStopped()
   }
 
   SignalGenerator *sh = (SignalGenerator *) proc()->sh;
-  waiting_for_stop = true;
-  evts.push_back(evtProcessStop);
-  evts.push_back(evtThreadExit);
-  while ( status() != stopped ) {
+ waiting_for_stop = true;
+  
+  // Wake up the signal generator...
+ signal_printf("%s[%d]: waitUntilStopped for lwp %u\n",
+               FILE__, __LINE__, get_lwp_id());
+ 
+ sh->markProcessStop();
+ sh->signalActiveProcess();
+ evts.push_back(evtProcessStop);
+ evts.push_back(evtThreadExit);
+ while ( status() != stopped ) {
      if( status() == exited ) 
-        break;
-     signal_printf("%s[%d]:  before waitForEvent(evtProcessStop): status is %s\n",
-                   FILE__, __LINE__, getStatusAsString().c_str());
+         break;
+     signal_printf("%s[%d]:  before waitForEvent(evtProcessStop) for lwp %d: status is %s\n",
+                   FILE__, __LINE__, get_lwp_id(), getStatusAsString().c_str());
      evt = sh->waitForOneOf(evts);
      if (evt == evtThreadExit && status() == exited) {
-        // it was this lwp that exited
-        break;
+         // it was this lwp that exited
+         break;
      }
-  }
-  waiting_for_stop = false;
-  sh->resendSuppressedSignals();
+ }
+ waiting_for_stop = false;
+ sh->unmarkProcessStop();
 
-  return true;
+ sh->resendSuppressedSignals();
+ 
+ return true;
 }
 
 bool dyn_lwp::stop_() 
@@ -793,6 +812,8 @@ bool SignalGenerator::waitForStopInline()
 bool process::stop_(bool waitUntilStop)
 {
   int result;
+
+  sh->markProcessStop();
   
   //Stop the main process
   result = P_kill(getPid(), SIGSTOP);
@@ -819,22 +840,26 @@ bool process::stop_(bool waitUntilStop)
      lwp->pauseLWP(waitUntilStop);
   }
 
+  sh->unmarkProcessStop();
+
   return true;
 }
 
 bool process::waitUntilStopped()
 {
-  dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
-  dyn_lwp *lwp;
-  unsigned index = 0;
-  bool result = true;
-
-  while(lwp_iter.next(index, lwp))
-  {
-    result &= lwp->waitUntilStopped();
-  }
-
-  return result;
+    signal_printf("%s[%d]: process waitUntilStopped...\n", FILE__, __LINE__);
+    dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
+    dyn_lwp *lwp;
+    unsigned index = 0;
+    bool result = true;
+    
+    while(lwp_iter.next(index, lwp))
+        {
+            
+            result &= lwp->waitUntilStopped();
+        }
+    
+    return result;
 }
 
 bool process::waitUntilLWPStops()
@@ -1569,8 +1594,14 @@ bool dyn_lwp::realLWP_attach_() {
               __FILE__, __LINE__, eventType2str(evt));
       abort();
    }
-   if (proc_->status() == running)
-      continueLWP();
+   if (proc_->status() == running) {
+       signal_printf("%s[%d]: overall status is running, so continuing detected LWP\n",
+                     FILE__, __LINE__);
+       continueLWP();
+   }
+   else 
+       signal_printf("%s[%d]: overall status is stopped (%s), so not continuing detected LWP\n",
+                     FILE__, __LINE__, proc_->getStatusAsString().c_str());
 
    return true;
 }

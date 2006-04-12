@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.89 2006/04/06 10:08:46 jaw Exp $
+// $Id: sol_proc.C,v 1.90 2006/04/12 16:59:25 bernat Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -452,6 +452,8 @@ dyn_lwp *process::createRepresentativeLWP() {
 bool dyn_lwp::stop_() {
   long command[2];
   command[0] = PCSTOP;
+
+  signal_printf("%s[%d]: writing stop command\n", FILE__, __LINE__);
 
   if (write(ctl_fd(), command, sizeof(long)) != sizeof(long)) {
       fprintf(stderr, "%s[%d][%s]: ", FILE__, __LINE__, getThreadStr(getExecThreadID()));
@@ -1039,11 +1041,40 @@ terminateProcStatus_t process::terminateProc_()
 }
 
 bool dyn_lwp::waitUntilStopped() {
-   return true;
+    signal_printf("%s[%d]: waiting until stopped, process status %s\n", FILE__, __LINE__, proc()->getStatusAsString().c_str());
+    pdvector<eventType> evts;
+    eventType evt;
+
+    while (proc()->status() != stopped) {
+        if (proc()->status() == exited) break;
+        evts.push_back(evtAnyEvent);
+        signal_printf("%s[%d]: waiting for event in waitUntilStopped...\n", FILE__, __LINE__);
+        evt = proc()->sh->waitForOneOf(evts);
+        signal_printf("%s[%d]: got event in waitUntilStopped, process status %s\n", FILE__, __LINE__, proc()->getStatusAsString().c_str());
+    }
+
+    signal_printf("%s[%d]: stopped...\n", FILE__, __LINE__);
+    
+    return true;
 }
 
+// I'm not sure this version is ever called...
 bool process::waitUntilStopped() {
-   return true;
+    signal_printf("%s[%d]: waiting until stopped, process status %s\n", FILE__, __LINE__, getStatusAsString().c_str());
+    pdvector<eventType> evts;
+    eventType evt;
+
+    while (status() != stopped) {
+        if (status() == exited) break;
+        evts.push_back(evtAnyEvent);
+        signal_printf("%s[%d]: waiting for event in waitUntilStopped...\n", FILE__, __LINE__);
+        evt = sh->waitForOneOf(evts);
+        signal_printf("%s[%d]: got event in waitUntilStopped, process status %s\n", FILE__, __LINE__, getStatusAsString().c_str());
+    }
+
+    signal_printf("%s[%d]: stopped...\n", FILE__, __LINE__);
+    
+    return true;
 }
 
 bool dyn_lwp::writeTextWord(caddr_t inTraced, int data) {
@@ -1259,6 +1290,10 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
         writeDataSpace((void *)(callerFrame.getFP() + 8), 
                        sizeof(Address),
                        (void *)&trapAddr);
+
+        signal_printf("%s[%d]: LWP placing syscall trap at addr 0x%lx\n",
+                      FILE__, __LINE__, trapAddr);
+
         if (!ret) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n",
                           __FILE__, __LINE__, getThreadStr(getExecThreadID()));
         assert(ret);
@@ -1489,6 +1524,8 @@ bool SignalGenerator::updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
 
 bool SignalGenerator::updateEvents(pdvector<EventRecord> &events, process *p, int lwp_to_use)
 {
+    signal_printf("%s[%d]: %d events in queue, updating\n", FILE__, __LINE__, events.size());
+
   //  returns true if events are updated
   dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(p->real_lwps);
   dyn_lwp *cur_lwp;
@@ -1509,159 +1546,151 @@ bool SignalGenerator::updateEvents(pdvector<EventRecord> &events, process *p, in
           break;
       }
   }
+    signal_printf("%s[%d]:post update: %d in queue\n", FILE__, __LINE__, events.size());
+
   return updated_events;
 }
 
-bool SignalGenerator::decodeEvent(EventRecord &ev)
+bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events)
 {
-  if ((ev.info & POLLHUP) || (ev.info & POLLNVAL)) {
-     // True if the process exited out from under us
-     ev.lwp = ev.proc->getRepresentativeLWP();
-     int status;
-     int ret; 
-     do {
-         ret = waitpid(getPid(), &status, 0);
-     } while ((ret < 0) && (errno == EINTR));
-     if (ret < 0) { 
-         //  if we get ECHILD it just means that the child process no longer exists.
-         //  just create an exit event and keep quiet
-         if (errno != ECHILD) {
-           fprintf(stderr, "%s[%d]:  This shouldn't happen\n", FILE__, __LINE__);         
-           perror("waitpid");
-         }
-         //  but really it _should_ be our child since 
-         ev.type = evtProcessExit;
-         ev.what = 0;
-         status = 0;
-         return true;
-     }
+    assert(events.size() > 0);
+    signal_printf("%s[%d]: decodeEvents entry, %d queued events\n",
+                  FILE__, __LINE__, events.size());
 
-     if (!decodeWaitPidStatus(status, ev)) {
-        fprintf(stderr, "%s[%d]:  failed to decodeWaitPidStatus\n", FILE__, __LINE__);
-        return true;
-     }
+    // There'll only ever be one... Highlander!
+    for (unsigned i = 0; i < events.size(); i++) {
+        EventRecord &ev = events[i];
 
-     if (ev.type == evtSignalled && !decodeSignal(ev)) {
-        fprintf(stderr, "%s[%d]:  failed to decodeSignal\n", FILE__, __LINE__);
-        return true;
-     }
+        if ((ev.info & POLLHUP) || (ev.info & POLLNVAL)) {
+            // True if the process exited out from under us
+            ev.lwp = ev.proc->getRepresentativeLWP();
+            int status;
+            int ret; 
+            do {
+                ret = waitpid(getPid(), &status, 0);
+            } while ((ret < 0) && (errno == EINTR));
+            if (ret < 0) { 
+                //  if we get ECHILD it just means that the child process no longer exists.
+                //  just create an exit event and keep quiet
+                if (errno != ECHILD) {
+                    fprintf(stderr, "%s[%d]:  This shouldn't happen\n", FILE__, __LINE__);         
+                    perror("waitpid");
+                }
+                //  but really it _should_ be our child since 
+                ev.type = evtProcessExit;
+                ev.what = 0;
+                status = 0;
+                continue;
+            }
+            
+            if (!decodeWaitPidStatus(status, ev)) {
+                fprintf(stderr, "%s[%d]:  failed to decodeWaitPidStatus\n", FILE__, __LINE__);
+                continue;
+            }
+            
+            if (ev.type == evtSignalled && !decodeSignal(ev)) {
+                fprintf(stderr, "%s[%d]:  failed to decodeSignal\n", FILE__, __LINE__);
+                continue;
+            }
+            
+            if (ev.type == evtUndefined) {
+                fprintf(stderr, "%s[%d]:  undefined event\n", FILE__, __LINE__);
+                continue;
+            }
+            
+            signal_printf("%s[%d]:  new event: %s\n", FILE__, __LINE__, eventType2str(ev.type));
+            continue;
+        }
+        
+        procProcStatus_t procstatus;
+        if(! ev.proc->getRepresentativeLWP()->get_status(&procstatus)) {
+            if (ev.type == evtUndefined) {
+                ev.type = evtProcessExit;
+                fprintf(stderr, "%s[%d]:  file desc for process exit not available\n",
+                        FILE__, __LINE__);
+                continue;
+            }
+            fprintf(stderr, "%s[%d]:  file desc for %s not available\n",
+                    FILE__, __LINE__, eventType2str(ev.type));
+            continue;
+        }
+        
+        signal_printf("Thread status flags: 0x%x (STOPPED %d, ISTOP %d, ASLEEP %d)\n",
+                      procstatus.pr_flags,
+                      procstatus.pr_flags & PR_STOPPED,
+                      procstatus.pr_flags & PR_ISTOP,
+                      procstatus.pr_flags & PR_ASLEEP);
+        signal_printf("Current signal: %d, reason for stopping: %d, (REQ %d, SIG %d, ENT %d, EXIT %d), what %d\n",
+                      procstatus.pr_cursig, procstatus.pr_why,
+                      procstatus.pr_why == PR_REQUESTED,
+                      procstatus.pr_why == PR_SIGNALLED,
+                      procstatus.pr_why == PR_SYSENTRY,
+                      procstatus.pr_why == PR_SYSEXIT,
+                      procstatus.pr_what);
+        
+        signal_printf("Signal encountered on LWP %d\n", procstatus.pr_lwpid);
+        
+        // copied from old code, must not care about events that don't stop proc
+        // Actually, this happens if we've requested a stop but didn't wait for it; the process
+        // is _actually_ running although we had thought it stopped.
+        if ( !(procstatus.pr_flags & PR_STOPPED || procstatus.pr_flags & PR_ISTOP) ) {
+            ev.proc->set_status(running);
+            ev.type = evtIgnore;
+            signal_printf("%s[%d]:  new event: %s\n",
+                          FILE__, __LINE__, eventType2str(ev.type));
+            continue;
+        }
+        
+        //  find the right dyn_lwp to work with
+        unsigned target_lwp_id = (unsigned) procstatus.pr_lwpid;
+        dyn_lwp *lwp_to_use = ev.proc->getRepresentativeLWP();
+        bool updated_events = false;
+        
+        if (ev.proc->real_lwps.size()) {
+            if (ev.proc->real_lwps.find((unsigned) procstatus.pr_lwpid))
+                lwp_to_use  = ev.proc->real_lwps[procstatus.pr_lwpid];
+            else {
+                // Odd case....
+                fprintf(stderr, "%s[%d]: failed to find lwp structure for lwp id %d, ignoring event\n",
+                        FILE__, __LINE__, procstatus.pr_lwpid);
+                ev.type = evtUndefined;
+                continue;
+            }
+        }
 
-     if (ev.type == evtUndefined) {
-        fprintf(stderr, "%s[%d]:  failed to decodeSignal\n", FILE__, __LINE__);
-        return true;
-     }
+        // Debugging... let's see if multiple LWPs are showing an event.
+        // They shouldn't, but....
+        dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(ev.proc->real_lwps);
+        dyn_lwp *cur_lwp;
+        unsigned index;
+        unsigned num_lwps_with_event = 0;
 
-     signal_printf("%s[%d]:  new event: %s\n", FILE__, __LINE__, eventType2str(ev.type));
-     return true;
-  }
+        while(lwp_iter.next(index, cur_lwp)) {
+            signal_printf("%s[%d]: checking LWP %d for event, %d so far...\n",
+                          FILE__, __LINE__, index, num_lwps_with_event);
+            lwpstatus_t lwpstatus;
+            cur_lwp->get_status(&lwpstatus);
+            if (lwpstatus.pr_why != PR_REQUESTED) {
+                num_lwps_with_event++;
+                showProcStatus(lwpstatus);
+            }
+        }
+        
+        ev.lwp = lwp_to_use;
 
-   procProcStatus_t procstatus;
-   if(! ev.proc->getRepresentativeLWP()->get_status(&procstatus)) {
-      if (ev.type == evtUndefined) {
-        ev.type = evtProcessExit;
-        fprintf(stderr, "%s[%d]:  file desc for process exit not available\n",
-                FILE__, __LINE__);
-        return true;
-      }
-      fprintf(stderr, "%s[%d]:  file desc for %s not available\n",
-              FILE__, __LINE__, eventType2str(ev.type));
-      return false;
-   }
+        signal_printf("%s[%d]: decodeEvents, calling decodeProcStatus...\n",
+                      FILE__, __LINE__);
 
-   signal_printf("Thread status flags: 0x%x (STOPPED %d, ISTOP %d, ASLEEP %d)\n",
-                 procstatus.pr_flags,
-                 procstatus.pr_flags & PR_STOPPED,
-                 procstatus.pr_flags & PR_ISTOP,
-                 procstatus.pr_flags & PR_ASLEEP);
-   signal_printf("Current signal: %d, reason for stopping: %d, (REQ %d, SIG %d, ENT %d, EXIT %d), what %d\n",
-            procstatus.pr_cursig, procstatus.pr_why,
-            procstatus.pr_why == PR_REQUESTED,
-            procstatus.pr_why == PR_SIGNALLED,
-            procstatus.pr_why == PR_SYSENTRY,
-            procstatus.pr_why == PR_SYSEXIT,
-            procstatus.pr_what);
+        // Now decode the sucker
+        if (!decodeProcStatus(procstatus, ev)) {
+            fprintf(stderr, "%s[%d]:  failed to decodeProcStatus\n", FILE__, __LINE__);
+            continue;
+        }
 
-   signal_printf("Signal encountered on LWP %d\n", procstatus.pr_lwpid);
-
-   // copied from old code, must not care about events that don't stop proc
-   // Actually, this happens if we've requested a stop but didn't wait for it; the process
-   // is in a stopped state but we don't care why.
-   if ( !(procstatus.pr_flags & PR_STOPPED || procstatus.pr_flags & PR_ISTOP) ) {
-       ev.proc->set_status(running);
-       ev.type = evtNullEvent;
-       signal_printf("%s[%d]:  new event: %s\n",
-                     FILE__, __LINE__, eventType2str(ev.type));
-       return true;
-   }
-
-#ifdef NOTDEF // PDSEP
-   bool updated_events = false;
-   unsigned lwp_to_use = (unsigned) procstatus.pr_lwpid;
-   updated_events = updateEvents(events_to_handle, ev.proc, lwp_to_use);
-#endif
-
-  //  find the right dyn_lwp to work with
-  dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(ev.proc->real_lwps);
-  dyn_lwp *cur_lwp;
-  unsigned index;
-  unsigned target_lwp_id = (unsigned) procstatus.pr_lwpid;
-  dyn_lwp *lwp_to_use = NULL;
-  dyn_lwp *replwp = ev.proc->getRepresentativeLWP();
-  int numreal_lwps = ev.proc->real_lwps.size();
-  bool updated_events = false;
-
-  if (ev.proc->real_lwps.size()) {
-      while (lwp_iter.next(index, cur_lwp)) {
-          if (cur_lwp->get_lwp_id() == (unsigned)target_lwp_id) {
-              lwp_to_use = cur_lwp;
-              break;
-          }
-      }
-  }
-  else {
-    //  not threaded, just use representative LWP
-    lwp_to_use = ev.proc->getRepresentativeLWP();
-  }
-
-  if (lwp_to_use)
-    updated_events = updateEventsWithLwpStatus(ev.proc, lwp_to_use, events_to_handle);
-
-
-   if (events_to_handle.size()) {
-     ev = events_to_handle[0];
-     events_to_handle.erase(0,0);
-   }
-   else {
-     if (updated_events) {
-        fprintf(stderr, "%s[%d]:  FIXME\n", FILE__, __LINE__);
-        ev.type = evtUndefined;
-     }
-     else
-       //  don't use evt undefined here since that indicates an error
-       //  null event should do it...  (but do we need to continue the proc??)
-       ev.type = evtUndefined;
-   }
-
-   if (ev.type == evtUndefined) {
-     fprintf(stderr, "%s[%d]:  got evtUndefined!\n", FILE__, __LINE__);
-     fprintf(stderr, "Thread status flags: 0x%x (STOPPED %d, ISTOP %d, ASLEEP %d)\n",
-                 procstatus.pr_flags,
-                 procstatus.pr_flags & PR_STOPPED,
-                 procstatus.pr_flags & PR_ISTOP,
-                 procstatus.pr_flags & PR_ASLEEP);
-     fprintf(stderr, "Current signal: %d, reason for stopping: %d, (REQ %d, SIG %d, ENT %d, EXIT %d), what %d\n",
-            procstatus.pr_cursig, procstatus.pr_why,
-            procstatus.pr_why == PR_REQUESTED,
-            procstatus.pr_why == PR_SIGNALLED,
-            procstatus.pr_why == PR_SYSENTRY,
-            procstatus.pr_why == PR_SYSEXIT,
-            procstatus.pr_what);
-   }
-
-   char buf[128];
-   signal_printf("%s[%d]:  decodeEvent got %s, returning %d\n", FILE__, __LINE__, ev.sprint_event(buf), updated_events);
-
-   return updated_events;
+        char buf[128];
+        signal_printf("%s[%d]:  decodeEvent got %s, returning %d\n", FILE__, __LINE__, ev.sprint_event(buf), updated_events);
+    }
+    return true;
 }
 
 pdstring process::tryToFindExecutable(const pdstring &iprogpath, int pid) {
