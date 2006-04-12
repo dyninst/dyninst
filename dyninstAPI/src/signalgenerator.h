@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator.h,v 1.3 2006/04/04 01:10:26 legendre Exp $
+/* $Id: signalgenerator.h,v 1.4 2006/04/12 16:59:36 bernat Exp $
  */
 
 #ifndef _SIGNAL_GENERATOR_H_
@@ -91,9 +91,24 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    bool signalEvent(EventRecord &ev);
    bool signalEvent(eventType t);
 
-   bool signalActiveProcess();
-   bool signalPausedProcess();
+   // Continue methods; we need to have agreement between the signalHandler
+   // threads and the BPatch layer. The SH's use the async call, which basically says
+   // "When everyone is done processing, then run the process". The blocking call
+   // is for BPatch, and says "Return when the process is running".
 
+   bool continueProcessAsync(int signalToContinueWith = -1);
+   bool continueProcessBlocking(int signalToContinueWith = -1);
+
+   // And the "just wake up and see what's going on" version
+   bool signalActiveProcess();
+
+   // The BPatch counterpart to the above; return when the process is guaranteed
+   // stopped.
+   bool pauseProcessBlocking();
+
+   void markProcessStop() { independentLwpStop_ = true; }
+   void unmarkProcessStop() { independentLwpStop_ = false; }
+ 
    SignalHandler *findSHWithThreadID(unsigned long tid);
    SignalHandler *findSHWaitingForCallback(CallbackBase *cb);
 
@@ -104,6 +119,7 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    // Subfunctions
    bool isDecoding() const { return decodingEvent_; }
    bool isDispatching() const { return dispatchingEvent_; }
+   bool isWaitingForOS() const { return waitingForOS_; }
 
    bool wakeUpThreadForShutDown();
 
@@ -122,30 +138,21 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
                      int stderr_fd);
    bool setupAttached(pdstring file, int pid);
 
-   /////////////////////////////
-   // If the SignalGenerator is in poll() (or waitpid, theoretically) and
-   // the UI thread attempts a pause, we need to wait for the stop to be
-   // received and handled - otherwise it is possible to get a signal handler
-   // running in parallel with UI operations (since the UI thread doesn't need
-   // to keep the global lock). We handle this by using an eventLock around the
-   // call to poll that can be waited on by the UI. These are functions to wrap
-   // this call. 
-
-   bool isBlockedInOS() const;
-   bool waitForOSReturn();
-
-
  protected:
    // Main loop functionality
    
    void main(); // Override from InternalThread - don't release lock
 
-   void waitForActiveProcess(); // Wait until process is marked running
-   
-   bool getEvent(EventRecord &ev); // Fill in ev with raw data.
-   virtual bool waitForEventInternal(EventRecord &ev) = 0; // OS-specific
+   void waitForActivation(); // Wait until process is marked running
 
-   virtual bool decodeEvent(EventRecord &ev) = 0; // Decode ev to proper high-level info
+   bool continueProcess();
+   void setContinueSig(int signalToContinueWith);
+   
+   bool getEvents(pdvector<EventRecord> &events); // Fill in ev with raw data.
+   virtual bool waitForEventsInternal(pdvector<EventRecord> &events) = 0; // OS-specific
+
+   // We may need to mix 'n match events during decode
+   virtual bool decodeEvents(pdvector<EventRecord> &events) = 0; // Decode ev to proper high-level info
 
    bool dispatchEvent(EventRecord &ev); // Dispatch
    bool assignOrCreateSignalHandler(EventRecord &ev); // Get someone to take care of this sig.
@@ -164,7 +171,6 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    static eventLock global_wait_list_lock;
 
    pdvector<SignalHandler *> handlers;
-   pdvector<EventRecord> events_to_handle;
    
    virtual bool forkNewProcess() = 0;
    virtual bool attachProcess() = 0;
@@ -190,14 +196,41 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
                               int &status,
                               fileDescriptor &desc);
    
-   bool waitingForActiveProcess_;
+   bool waitingForActivation_;
 
    bool processPausedDuringOSWait_; 
-   
+
+   // If true, don't continue the process... delay continue until later.
+   bool pendingDecode_;
    bool decodingEvent_;
    bool dispatchingEvent_;
    bool waitingForOS_;
+   bool continueDesired_;
+
+   // We barrier-continue; if there is a signal to use, it's stored in 
+   // here until the actual continue is executed.
+   int continueSig_;
    
+   // The BPatch layer can (basically) asynchronously stop the process
+   // without knowledge of the current signal handling state. We mark that
+   // here.
+   bool syncRunWhenFinished_;
+   
+   // And signal handlers... if any of them want a continue, this gets set
+   // to true. For now, we're going with "if anyone wants a continue the process
+   // gets continued". We may want "if anyone wants it stopped it stays stopped"...
+   // not sure yet. 
+   bool asyncRunWhenFinished_;
+
+   // And sometimes we need to override everything - for example, attaching to 
+   // a new process...
+   bool activeProcessSignalled_;
+
+   // Whee... we generally don't go into waitpid unless all of our lwps (independent
+   // case) are running. However, if we're trying to stop the process, we need to call
+   // waitpid until _none_ are running. 
+   bool independentLwpStop_;
+
    /////////////////
    // See above discussion (synchronizing with UI thread
    /////////////////
@@ -213,7 +246,7 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    
    bool initialize_event_handler();
    
-   bool exitRequested(EventRecord &ev);
+   bool exitRequested();
 
    bool pauseAttemptedOnProcess();
 
@@ -224,13 +257,21 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    // eventLock *eventlock -- derived from parent class
    // stop_request -- derived from parent class
 
-   // If the process is paused, we don't want to waitpid/poll on it. 
-   // We create a new lock here that we can block on and that can
-   // be signalled by others. Eventually we can stop using the global
-   // lock (eventlock, above) -- however, that's being kept around to
-   // minimize changes.
-   eventLock *runlock;
+   // Other side: when we stop the process, we want to wait for this
+   // to get back through the signalgenerator so we can be sure that
+   // we don't race in process control. On Linux this is handled through
+   // a highly complex loop; on /proc-based platforms, you can wait on 
+   // this event lock.
+   eventLock *waitlock;
 
+   // Continuing is tough... we want agreement between everyone that
+   // wants to continue the process.
+   // 1) If the UI wants a stop, don't allow signal handlers to continue;
+   // 2) If there is an event in decode, don't allow UI to continue.
+   eventLock *activationLock;
+
+   // Used for blocking continue requests
+   eventLock *waitForContinueLock;
 
    ///////// Unused functions
    // Virtualized from parent class; we don't use them.

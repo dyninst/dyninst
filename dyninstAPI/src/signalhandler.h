@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.23 2006/04/04 01:10:29 legendre Exp $
+/* $Id: signalhandler.h,v 1.24 2006/04/12 16:59:39 bernat Exp $
  */
 
 #ifndef _SIGNAL_HANDLER_H
@@ -98,9 +98,10 @@ class SignalHandler : public EventHandler<EventRecord>
   bool idle();
   bool waiting();
   bool processing();
+  bool waitingForCallback();
   bool isActive(process *p);
   process *activeProcess() {return idle_flag ? NULL : active_proc;}
-  CallbackBase *waitingForCallback() {return wait_cb;}
+  CallbackBase *getCallback() {return wait_cb;}
 
   protected:
     //  SignalHandler is only constructed by derived classes

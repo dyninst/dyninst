@@ -97,6 +97,11 @@ bool SignalHandler::handleProcessStop(EventRecord &ev, bool &continueHint)
    process *proc = ev.proc;
    bool retval = false;
 
+   // Unlike other signals, don't forward this to the process. It's stopped
+   // already, and forwarding a "stop" does odd things on platforms
+   // which use ptrace. PT_CONTINUE and SIGSTOP don't mix
+   continueHint = false;
+
 #if defined(os_linux)
       // Linux uses SIGSTOPs for process control.  If the SIGSTOP
       // came during a process::pause (which we would know because
@@ -107,7 +112,10 @@ bool SignalHandler::handleProcessStop(EventRecord &ev, bool &continueHint)
          fprintf(stderr, "%s[%d]:  no lwp for SIGSTOP handling (needed)\n", FILE__, __LINE__);
          return false;
       }
+      bool done =  ev.lwp->isWaitingForStop() || sg->waitingForStop();
       proc->set_lwp_status(ev.lwp, stopped);
+      if (done) return true;
+
 #else
       signal_printf("%s[%d]:  unhandled SIGSTOP for pid %d, process will stay paused\n",
              FILE__, __LINE__, proc->getPid());
@@ -117,15 +125,10 @@ bool SignalHandler::handleProcessStop(EventRecord &ev, bool &continueHint)
    bool exists = false;
    BPatch_process *bproc = BPatch::bpatch->getProcessByPid(proc->getPid(), &exists);
    if (bproc) {
+       fprintf(stderr, "Sending BProcess::isVisiblyStopped...\n");
        setBPatchProcessSignal(bproc, ev.what);
        bproc->isVisiblyStopped = true;
    }
-
-   // Unlike other signals, don't forward this to the process. It's stopped
-   // already, and forwarding a "stop" does odd things on platforms
-   // which use ptrace. PT_CONTINUE and SIGSTOP don't mix
-
-   continueHint = false;
 
    return retval;
 }
@@ -194,6 +197,10 @@ bool SignalHandler::handleCritical(EventRecord &ev, bool &continueHint)
                 //const char* szFuncName = (f != NULL) ? f->prettyName().c_str() : "<unknown>";
                 //fprintf( stderr, "%08x: %s\n", stackWalks[walk_iter][i].getPC(), szFuncName );
                 cerr << stackWalks[walk_iter][i] << endl;
+                int_function *f = stackWalks[walk_iter][i].getFunc();
+                if (f) {
+                    fprintf(stderr, "... 0x%lx to 0x%lx\n", f->getAddress(), f->getAddress() + f->getSize_NP());
+                }
             }
         }
         
@@ -217,14 +224,21 @@ bool SignalHandler::handleCritical(EventRecord &ev, bool &continueHint)
 
 bool SignalHandler::handleEvent(EventRecord &ev)
 {
-  global_mutex->_Lock(FILE__, __LINE__);
+    char buf[128];
+    global_mutex->_Lock(FILE__, __LINE__);
+    signal_printf("%s[%d]: locked, and handling event %s\n", 
+                  FILE__, __LINE__,ev.sprint_event(buf));
   bool ret = handleEventLocked(ev); 
+  signal_printf("%s[%d]: event handled, %d on the queue\n", 
+                FILE__, __LINE__, events_to_handle.size());
   if (!events_to_handle.size()) {
+      signal_printf("%s[%d]: marking as idle...\n",
+                    FILE__, __LINE__);      
       idle_flag = true;
   }
   active_proc = NULL;
   global_mutex->_Unlock(FILE__, __LINE__);
-
+  
   return ret;
 }
 
@@ -626,9 +640,11 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
 
    // Process continue hint...
    if (continueHint) {
-       signal_printf("%s[%d]: continueHint is true, continuing process\n",
+       signal_printf("%s[%d]: requesting continue\n",
                      FILE__, __LINE__);
-     ev.proc->continueProc();
+       wait_flag = true;
+       sg->continueProcessAsync();
+       wait_flag = false;
    }
 
    return ret;
@@ -638,13 +654,7 @@ bool SignalHandler::idle() {
 	return idle_flag;
 }
 
-bool SignalHandler::waiting() {
-	return wait_flag;
-}
-
-bool SignalHandler::processing() {
-    if (idle_flag) return false;
-    if (wait_flag) return false;
+bool SignalHandler::waitingForCallback() {
     // Processing... well, if we're waiting on a callback, then we're not processing. 
     // Previously we set wait_flag inside the call to waitForEvent, but that was called
     // after this was checked. Whoopsie.
@@ -654,12 +664,22 @@ bool SignalHandler::processing() {
         signal_printf("%s[%d]: running inside callback... \n",
                       FILE__, __LINE__);
         if (wait_cb == cb) {
-            signal_printf("%s[%d]: signal handler %s waiting on callback, setting wait_flag\n",
+            signal_printf("%s[%d]: signal handler %s waiting on callback\n",
                           FILE__, __LINE__, getThreadStr(getThreadID()));
-            wait_flag = true;
-            return false;
+            return true;
         }
     }
+    return false;
+}
+
+bool SignalHandler::processing() {
+    signal_printf("%s[%d]: checking whether processing for SH %s: idle_flag %d, waiting for callback %d, wait_flag %d\n", 
+                  FILE__, __LINE__, getThreadStr(getThreadID()), idle_flag, waitingForCallback(), wait_flag);
+
+    if (idle_flag) return false;
+    if (waitingForCallback()) return false;
+    if (wait_flag) return false;
+
     return true;
 }
 
@@ -671,39 +691,33 @@ bool SignalHandler::assignEvent(EventRecord &ev)
 
   //  after we get the lock, the handler thread should be either idle, or waiting
   //  for some event.  
-
-  while (!idle_flag) {
-    if ((wait_flag) && (ev.type != evtShutDown)) {
-      signal_printf("%s[%d]:  cannot assign event %s to %s, while it is waiting\n", 
-                    FILE__, __LINE__, ev.sprint_event(buf), getName());
-      return false;
-    }
-    signal_printf("%s[%d]:  shoving event %s into the queue for %s\n",
-         FILE__, __LINE__, ev.sprint_event(buf), getName());
-    events_to_handle.push_back(ev);
-    if (ev.type == evtProcessExit) 
-      sg->signalEvent(ev);
-    else 
+  
+  if (idle_flag) {
+      // Good, you just volunteered...
+      // handler thread is not doing anything, assign away...
+      signal_printf("%s[%d]:  assigning event %s to %s\n", FILE__, __LINE__,
+                    ev.sprint_event(buf), getName());
+      events_to_handle.push_back(ev);
+      ret = true;
+      idle_flag = false;
       _Broadcast(FILE__, __LINE__);
-    return true;
+      return true;
   }
 
-  if (idle_flag) {
-    // handler thread is not doing anything, assign away...
-    signal_printf("%s[%d]:  assigning event %s to %s\n", FILE__, __LINE__,
-                  ev.sprint_event(buf), getName());
-    events_to_handle.push_back(ev);
-    ret = true;
-    idle_flag = false;
-    _Broadcast(FILE__, __LINE__);
-  } 
- // else {
- //   char buf[128];
- //   fprintf(stderr, "%s[%d]:  WEIRD, tried to assign %s to busy handler\n",
- //          FILE__, __LINE__, ev.sprint_event(buf));
- // } 
+  if (waitingForCallback()) {
+      signal_printf("%s[%d]: SH %s in callback, event type %s\n",
+                    FILE__, __LINE__, getName(), ev.sprint_event(buf));
+      if (ev.type != evtShutDown)
+          return false;
+      assert(ev.type == evtShutDown);
+      // We can send this to the SH even if it's in a callback.
+      events_to_handle.push_back(ev);
+      return true;
+  }
 
-  return ret;
+  // Otherwise we already assigned an event but the SH hasn't run yet.
+
+  return false;
 }
 
 bool SignalHandler::waitNextEvent(EventRecord &ev)
@@ -713,10 +727,6 @@ bool SignalHandler::waitNextEvent(EventRecord &ev)
   while (idle_flag) {
     signal_printf("%s[%d]:  handler %s waiting for something to do\n", 
                   FILE__, __LINE__, getName());
-#if 0
-    fprintf(stderr, "%s[%d]:  sg->waitingForActiveProcess = %s\n", FILE__, __LINE__, sg->waitingForActiveProcess() ? "true" : "false");
-    fprintf(stderr, "%s[%d]:  sg->anyActiveHandlers() = %s\n", FILE__, __LINE__, sg->anyActiveHandlers() ? "true" : "false");
-#endif
 
     // Waiting for someone to ping our lock (internal thread)
     _WaitForSignal(FILE__, __LINE__);
@@ -734,18 +744,18 @@ bool SignalHandler::waitNextEvent(EventRecord &ev)
     signal_printf("%s[%d]:  handler %s has been signalled: got event = %s\n", 
                   FILE__, __LINE__, getName(), idle_flag ? "false" : "true");
   }
-
+  
   // Take the top thing off our queue and handle it. 
   ret = true;
   ev = events_to_handle[0];
   events_to_handle.erase(0,0);
   active_proc = ev.proc;
-
+  
   if (ev.type == evtUndefined) {
-    fprintf(stderr, "%s[%d]:  got evtUndefined for next event!\n", FILE__, __LINE__);
-    ret = false;
+      fprintf(stderr, "%s[%d]:  got evtUndefined for next event!\n", FILE__, __LINE__);
+      ret = false;
   }
-
+  
   _Unlock(FILE__, __LINE__);
   if (!ret) abort();
   return ret;

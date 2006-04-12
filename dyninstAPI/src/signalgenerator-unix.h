@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator-unix.h,v 1.1 2006/03/29 21:38:37 bernat Exp $
+/* $Id: signalgenerator-unix.h,v 1.2 2006/04/12 16:59:33 bernat Exp $
  */
 
 
@@ -76,8 +76,8 @@ class SignalGenerator : public SignalGeneratorCommon
   virtual bool forkNewProcess();
   virtual bool attachProcess();
   virtual bool waitForStopInline();
-  virtual bool decodeEvent(EventRecord &ev);
-  virtual bool waitForEventInternal(EventRecord &ev);
+  virtual bool decodeEvents(pdvector<EventRecord> &events);
+  virtual bool waitForEventsInternal(pdvector<EventRecord> &events);
 
   //  decodeSignal_NP is called by decodeSignal before decodeSignal does any
   //  decoding.  It allows platform specific actions to be taken for signal

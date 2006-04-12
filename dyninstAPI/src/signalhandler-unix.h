@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-unix.h,v 1.27 2006/04/04 01:10:27 legendre Exp $
+/* $Id: signalhandler-unix.h,v 1.28 2006/04/12 16:59:37 bernat Exp $
  */
 
 /*
@@ -131,7 +131,7 @@ bool decodeWaitPidStatus(procWaitpidStatus_t status, EventRecord &ev);
 
 // proc decode
 // There are two possible types of data structures:
-#if defined(sparc_sun_solaris2_4) || defined (os_aix)
+#if defined(os_solaris) || defined (os_aix)
 typedef lwpstatus_t procProcStatus_t;
 #elif defined(mips_sgi_irix6_4) || defined(alpha_dec_osf4_0)
 typedef prstatus_t procProcStatus_t;

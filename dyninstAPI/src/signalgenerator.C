@@ -106,6 +106,8 @@ pdvector<EventGate *> SignalGeneratorCommon::global_wait_list;
  * TOP
  *  ((
  *   if process is paused:
+ *     Collect continue events; when neither the UI thread nor any
+ *       handler thread is executing, continue the process.
  *     ))
  *     wait until it runs.
  *     goto TOP
@@ -114,10 +116,7 @@ pdvector<EventGate *> SignalGeneratorCommon::global_wait_list;
  *     wait for an OS event
  *     ((
  *     if process is pausing:
- *       signal return of poll to pausing thread
- *       ))
- *       sleep until process is continued
- *       ((
+ *        signal return of poll to pausing thread
  *     set process state to paused
  *     decode the event (lowlevel data -> high level representation)
  *     dispatch the event to a signal handler
@@ -152,61 +151,67 @@ void SignalGeneratorCommon::main() {
     startupLock->_Broadcast(FILE__, __LINE__);
     startupLock->_Unlock(FILE__, __LINE__);
     
-    EventRecord ev;
-    
-    thread_printf("%s[%d]:  before main loop for %s\n", FILE__, __LINE__, idstr);
+    thread_printf("%s[%d]:  before main loop for %s\n", __FILE__, __LINE__, idstr);
 
     eventlock->_Lock(FILE__, __LINE__);
+    pdvector<EventRecord> events;
     while (1) {
         // TOP
-		signal_printf("%s[%d]: signal generator at top of loop\n", FILE__, __LINE__);
+        signal_printf("%s[%d]: signal generator at top of loop\n", FILE__, __LINE__);
         assert(haveLock());
-        ev.clear();
-
-        if (exitRequested(ev)) {
-			signal_printf("%s[%d]: exit request (loop top)\n", FILE__, __LINE__);
+        
+        if (exitRequested()) {
+            signal_printf("%s[%d]: exit request (loop top)\n", FILE__, __LINE__);
             break;
         }
-        
+
         // If there is an event to handle, then keep going. 
-        if ((processIsPaused() && (events_to_handle.size() == 0)) || requested_wait_until_active) {
+        if (processIsPaused() || requested_wait_until_active) {
             signal_printf("%s[%d]: process is paused, waiting (loop top)\n", FILE__, __LINE__);
             // waitForActive... used to unlock/relock the global mutex. 
-            waitForActiveProcess();
-            continue;
-        }        
+            waitForActivation();
+            // waitForActiveProcess will return when everyone agrees that the process should
+            // run. This means:
+            // 1) All signal handlers are either done or waiting in a callback;
+            // 2) If there was a pause request from BPatch, then there has been a run request.
+            continueProcess();
+        }
+
+        // Post cleanup
+        // Cleanup...
+        // we don't touch syncRunWhen... it's set by the BPatch layer
+        //syncRunWhenFinished_ = true;
+        // async is set to false here as all sighandlers are paused
+        asyncRunWhenFinished_ = false;
+        activeProcessSignalled_ = false;
+
+
         postSignalHandler();
 
         // Process not paused
         signal_printf("%s[%d]: Grabbing event\n", FILE__, __LINE__);
-        getEvent(ev);
+        getEvents(events);
 
-        if (exitRequested(ev)) {
+        if (exitRequested()) {
             signal_printf("%s[%d]: exit request (post-getEvent)\n", FILE__, __LINE__);
             break;
         }
 
-        if (pauseAttemptedOnProcess()) {
-            // Someone else is trying to pause us... wait for a continue
-            // before we decode.
-            // Unlocks
-            signal_printf("%s[%d]: process is paused, waiting (post-getEvent)\n", FILE__, __LINE__);
-            waitForActiveProcess();
-
-            processPausedDuringOSWait_ = false;
-            // ... and locks
-            if (exitRequested(ev)) break;
-        }
-        
-        decodingEvent_ = true;
         signal_printf("%s[%d]: decoding event\n", FILE__, __LINE__);
-        decodeEvent(ev);
-        
+        decodingEvent_ = true;
+        // Translate everything in the events_to_handle vector from low-level
+        // (OS return) to high-level (Dyninst event)
+
+        decodeEvents(events);
+
         // Overlapping control areas...
         dispatchingEvent_ = true; decodingEvent_ = false;
         
-        signal_printf("%s[%d]: dispatching event\n", FILE__, __LINE__);
-        dispatchEvent(ev);
+        for (unsigned i = 0; i < events.size(); i++) {
+            signal_printf("%s[%d]: dispatching event %d\n", FILE__, __LINE__, i);
+            dispatchEvent(events[i]);
+        }
+        events.clear();
         dispatchingEvent_ = false;
     }        
 
@@ -225,7 +230,7 @@ void SignalGeneratorCommon::main() {
     thread_printf("%s[%d][%s]:  SignalGenerator::main exiting\n", FILE__, __LINE__, idstr);
 }
 
-bool SignalGeneratorCommon::exitRequested(EventRecord & /*ev*/) {
+bool SignalGeneratorCommon::exitRequested() {
     // Commented out for reference: we handle this at
     // dispatch time. 
     //    if (ev.type == evtShutdown) return true;
@@ -241,25 +246,90 @@ bool SignalGeneratorCommon::exitRequested(EventRecord & /*ev*/) {
     return false;
 }
 
-void SignalGeneratorCommon::waitForActiveProcess() {
+
+void SignalGeneratorCommon::waitForActivation() {
 
     assert(eventlock->depth() == 1);
-    if (!(processIsPaused() || requested_wait_until_active)) {
-      fprintf(stderr, "%s[%d]:  WARN:  used to assert here\n", FILE__, __LINE__);
-      return;
-    }
-    
-    do {
-        runlock->_Lock(FILE__, __LINE__);
 
+    assert(processIsPaused() || requested_wait_until_active);
+
+    bool runProcess = false;
+    
+    while (!runProcess) {
+        
+        // Now, do we want to return or wait for more people?
+        
+        // bool syncRunWhenFinished_ -- member vrble, set to true if BPatch
+        // has requested a run (and false when they stop...)
+        
+        bool activeHandler = false;
+        
+        for (unsigned i = 0; i < handlers.size(); i++) {
+            if (handlers[i]->processing()) {
+                signal_printf("%s[%d]: waitForActivation: handler %s active, returning true\n",
+                              FILE__, __LINE__, getThreadStr(handlers[i]->getThreadID()));
+                activeHandler = true;
+            }
+        }
+
+        // bool asyncRunWhenFinished_ - member vrble, set to true if any signal handler
+        // requested us to run when it finished up (aka executed process->continueProc)
+        
+        signal_printf("%s[%d]: waitForActivation loop top: activeProcessSignalled_ %d, syncRun %d, activeHandler %d, asyncRun %d\n",
+                      FILE__, __LINE__,
+                      activeProcessSignalled_, syncRunWhenFinished_, 
+                      activeHandler, asyncRunWhenFinished_);
+
+        // Ordering... activeProcessSignalled activeHandler beats
+        // syncRunWhenFinished beats asyncRunWhenFinished.
+        if (activeProcessSignalled_) {
+            signal_printf("%s[%d]: active process signalled, run_process true;\n", 
+                          FILE__, __LINE__);
+            runProcess = true;
+        }
+        else if (activeHandler) {
+            signal_printf("%s[%d]: active handler, run_process false;\n", 
+                          FILE__, __LINE__);
+            runProcess = false;
+        }
+        else if (!syncRunWhenFinished_) {
+            signal_printf("%s[%d]: syncRunWhenFinished false, run_process false;\n", 
+                          FILE__, __LINE__);
+            runProcess = false;
+        }
+        else if (asyncRunWhenFinished_) {
+            runProcess = true;
+            signal_printf("%s[%d]: asyncRunWhenFinished true, run_process true;\n", 
+                          FILE__, __LINE__);
+        }
+        else  {
+            signal_printf("%s[%d]: default case, syncRun set and asyncRun false. Running.\n", 
+                          FILE__, __LINE__);
+            runProcess = true;
+        }
+
+        if (runProcess) {
+            signal_printf("%s[%d]: waitForActivation kicking up...\n",
+                          FILE__, __LINE__);
+            // Someone wants us to wake up...
+            break;
+        }
+
+        // Otherwise, wait for someone to get a round tuit.
+        assert(activationLock);
+        activationLock->_Lock(FILE__, __LINE__);
+
+        assert(eventlock->depth() == 1);
         eventlock->_Unlock(FILE__, __LINE__);
-        waitingForActiveProcess_ = true;
+        
+        signal_printf("%s[%d]: released global lock in waitForActivation\n", FILE__, __LINE__);
+        
+        waitingForActivation_ = true;
         signal_printf("[%s:%d]: waiting for process to be active\n", FILE__, __LINE__);
-        assert(runlock);
-        runlock->_WaitForSignal(FILE__, __LINE__);
-        signal_printf("[%s:%d]: process activated\n", FILE__, __LINE__);
-        waitingForActiveProcess_ = false;
-        runlock->_Unlock(FILE__, __LINE__);
+        activationLock->_WaitForSignal(FILE__, __LINE__);
+        signal_printf("[%s:%d]: process received activation request\n", FILE__, __LINE__);
+        waitingForActivation_ = false;
+        activationLock->_Unlock(FILE__, __LINE__);
         
         // Left in here and disabled - if we say "continue, pause"
         // on the UI thread the generator will be woken up but not 
@@ -267,13 +337,68 @@ void SignalGeneratorCommon::waitForActiveProcess() {
         // find out that we're paused, and go through it again.
         //assert(!processIsPaused());   
         
-        signal_printf("%s[%d]: reacquiring global lock\n", 
-                      FILE__, __LINE__);
+        signal_printf("%s[%d]: reacquiring global lock\n", FILE__, __LINE__);
         eventlock->_Lock(FILE__, __LINE__);
+
         assert(eventlock->depth() == 1);
-    } while (processIsPaused());
+
+
+    }
+
+    // Cleanup...
+    // we don't touch syncRunWhen... it's set by the BPatch layer
+    //syncRunWhenFinished_ = true;
+    // async is set to false here as all sighandlers are paused
+    asyncRunWhenFinished_ = false;
+    activeProcessSignalled_ = false;
 }
 
+bool SignalGeneratorCommon::continueProcessAsync(int signalToContinueWith) {
+    // First, let see if there was a signal to continue with. Only one person can send
+    // a signal; complain if there are multiples. 
+
+    // Technically, this is one per LWP... but we're not there yet.
+    setContinueSig(signalToContinueWith);
+
+    // Grab the activation lock, set asyncRun... and signal the SG if necessary
+    assert(activationLock);
+    signal_printf("%s[%d]: async continue grabbing activation lock\n", FILE__, __LINE__);
+    activationLock->_Lock(FILE__, __LINE__);
+    
+    if (!waitingForActivation_) {
+        // We got here before the SG...
+        signal_printf("%s[%d]: Raced with SG %s, setting asyncRun anyway...\n",
+                      FILE__, __LINE__, getThreadStr(getThreadID()));
+    }
+
+    asyncRunWhenFinished_ = true;
+
+    signal_printf("%s[%d]: async continue broadcasting...\n", FILE__, __LINE__);
+    activationLock->_Broadcast(FILE__, __LINE__);
+    signal_printf("%s[%d]: async continue releasing activation lock\n", FILE__, __LINE__);
+    activationLock->_Unlock(FILE__, __LINE__);
+
+    // Note: this can wake up the SG before the SH is done handling. However, the global
+    // lock is still held, and the SG re-acquires that before checking state again. So the 
+    // order of events *should* be:
+    // SH signals run
+    // SH finishes
+    // SH releases lock
+    // SG acquires lock
+    // SG checks and discovers all SHs are done
+
+    return true;
+}
+
+// This is a logical, not physical, call. The process is "paused" if one of the
+// following is true:
+// 
+// 1) There has been a BPatch_process pause (stopExecution) without a 
+//   more recent continue (continueExecution).
+// 2) There is an active signal handler. A signal handler is active if all of the
+//   following are true:
+//    a) There is an event in the SH queue.
+//    b) The SH is not blocked in a callback.
 
 bool SignalGeneratorCommon::processIsPaused() { 
     assert(proc);
@@ -286,17 +411,23 @@ bool SignalGeneratorCommon::processIsPaused() {
 
     // Return true if: global process status is paused, and there
     // are _no_ LWPs that are running.                  
-
+    
     dyn_lwp *lwp = proc->query_for_running_lwp();
-
-    signal_printf("%s[%d]: process state %s, running lwp 0x%lx\n",
+    
+    signal_printf("%s[%d]: process state %s, running lwp %d\n",
                   FILE__, __LINE__,
                   proc->getStatusAsString().c_str(),
                   (lwp != NULL) ? lwp->get_lwp_id() : (unsigned) -1);
 
-    return ((proc->status() != running) &&
-            (proc->status() != neonatal) &&
-            (!proc->query_for_running_lwp())); 
+    bool isPaused = false;
+    if (proc->status() == neonatal) isPaused = false;
+    else if (independentLwpStop_ && proc->query_for_running_lwp()) isPaused = false;
+    else if (proc->query_for_stopped_lwp() == NULL) isPaused = false;
+    else if (proc->status() != running) isPaused = true;
+
+    signal_printf("%s[%d]: decision is %s\n", FILE__, __LINE__, isPaused ? "paused" : "running");
+
+    return isPaused;
 }
 
 // True if: the signal generator is decoding (we'd have a lock,
@@ -362,9 +493,13 @@ bool SignalGeneratorCommon::pauseAttemptedOnProcess() {
 // Either returns an event from the pending queue,
 // or waits for a new one from the OS.
 
-bool SignalGeneratorCommon::getEvent(EventRecord &ev) 
+bool SignalGeneratorCommon::getEvents(pdvector<EventRecord> &events) 
 {
     assert(eventlock->depth() > 0);
+
+    // should be empty; we dispatch simultaneously
+    assert(events.size() == 0);
+#if 0
     
     //  If we have events left over from the last call of this fn,
     //  just return one.
@@ -379,10 +514,11 @@ bool SignalGeneratorCommon::getEvent(EventRecord &ev)
                       getThreadStr(getExecThreadID()), ev.sprint_event(buf));
         return true;
     }
+#endif
     
     assert(proc);
     
-    bool ret = waitForEventInternal(ev);
+    bool ret = waitForEventsInternal(events);
 
     if (ret == false) return false;
 
@@ -410,12 +546,12 @@ bool SignalGeneratorCommon::dispatchEvent(EventRecord &ev)
         // Don't propagate to signal handlers
         stop_request = true;
         // We signal because the UI thread could be waiting for us.
+        // fallthrough...
+    case evtIgnore:
+    case evtRequestedStop:
         signalEvent(ev);
         return true;
         break;
-    case evtIgnore:
-        // Make it go away....
-        return true;
     case evtProcessExit:
         signal_printf("%s[%d]:  preparing to shut down signal gen for process %d\n", FILE__, __LINE__, getPid());
         stop_request = true;
@@ -433,8 +569,7 @@ bool SignalGeneratorCommon::dispatchEvent(EventRecord &ev)
     //  special case:  if this event is a process exit event, we want to shut down
     //  the SignalGenerator (there are not going to be any more events to listen for).
     //  The exit event has been passed off to a handler presumably, which will take
-    //  care of user notifications, callbacks, etc.
-    
+    //  care of user notifications, callbacks, etc.    
     
     return ret;
 }
@@ -448,8 +583,7 @@ bool SignalGeneratorCommon::assignOrCreateSignalHandler(EventRecord &ev) {
             break;
         }
     }
-    
-    
+        
     bool ret = true;
     if (!sh) {
         int shid = handlers.size();
@@ -475,47 +609,23 @@ bool SignalGeneratorCommon::assignOrCreateSignalHandler(EventRecord &ev) {
 bool SignalGeneratorCommon::signalActiveProcess()
 {         
   bool ret = true;
-  signal_printf("%s[%d]: signalActiveProcess\n", FILE__, __LINE__);
-  runlock->_Lock(FILE__, __LINE__);
-  if (waitingForActiveProcess_) {
-      signal_printf("%s[%d]: signalActiveProcess waking up SignalGenerator\n", FILE__, __LINE__);
-      ret = runlock->_Broadcast(FILE__, __LINE__);
-      waitingForActiveProcess_ = false;
-  }
-  else if (waitingForOS_) {
-      // Clear that flag
-      signal_printf("%s[%d]: signalActiveProcess, process continued during OS wait, clearing flag\n", FILE__, __LINE__);
-      processPausedDuringOSWait_ = false;
-  }
-  else {
-      signal_printf("%s[%d]: signalActiveProcess, SignalGenerator already awake\n", FILE__, __LINE__);
-  }
+  assert(activationLock);
+  
+  if (waitingForOS_) return true;
 
+  signal_printf("%s[%d]: signalActiveProcess\n", FILE__, __LINE__);
+  activationLock->_Lock(FILE__, __LINE__);
+
+  activeProcessSignalled_ = true;
+  signal_printf("%s[%d]: signalActiveProcess waking up SignalGenerator\n", FILE__, __LINE__);
+  activationLock->_Broadcast(FILE__, __LINE__);
+  
   signal_printf("%s[%d]: signalActiveProcess exit, processIsPaused %d\n",
                 FILE__, __LINE__, processIsPaused());
+  activationLock->_Unlock(FILE__, __LINE__);
 
-  runlock->_Unlock(FILE__, __LINE__);
   return ret;
 }   
-
-// Mark when someone else tried to pause the process to properly
-// handle it.
-
-bool SignalGeneratorCommon::signalPausedProcess() {
-    // Check to see if we're signal generator/handler and if so ignore?
-    signal_printf("%s[%d]: signalling pause on process\n",
-                  FILE__, __LINE__);
-    bool retval = false;
-    runlock->_Lock(FILE__, __LINE__);
-    if (waitingForOS_) {
-        signal_printf("%s[%d]: marking paused during OS wait\n",
-                      FILE__, __LINE__);
-        processPausedDuringOSWait_ = true;
-        retval = true;
-    }
-    runlock->_Unlock(FILE__, __LINE__);
-    return retval;
-}
 
 SignalHandler *SignalGenerator::newSignalHandler(char *name, int id)
 {
@@ -535,6 +645,7 @@ bool SignalGeneratorCommon::signalEvent(EventRecord &ev)
   }
   assert(global_mutex->depth());
 
+  signal_printf("%s[%d]: executing callbacks\n", FILE__, __LINE__);
   getMailbox()->executeCallbacks(FILE__, __LINE__);
 
   if (ev.type == evtProcessStop || ev.type == evtProcessExit) {
@@ -542,6 +653,7 @@ bool SignalGeneratorCommon::signalEvent(EventRecord &ev)
      SignalHandler::flagBPatchStatusChange();
   }
 
+  signal_printf("%s[%d]: signalling wait list\n", FILE__, __LINE__);
   bool ret = false;
   for (unsigned int i = 0; i <wait_list.size(); ++i) {
       if (wait_list[i]->signalIfMatch(ev)) {
@@ -549,7 +661,8 @@ bool SignalGeneratorCommon::signalEvent(EventRecord &ev)
       }
   }
 
-  global_wait_list_lock._Lock(FILE__, __LINE__);
+  signal_printf("%s[%d]: signalling global wait list\n", FILE__, __LINE__);
+  global_wait_list_lock._Lock(__FILE__, __LINE__);
   for (unsigned int i = 0; i < global_wait_list.size(); ++i) {
       if (global_wait_list[i]->signalIfMatch(ev)) {
           ret = true;
@@ -564,6 +677,7 @@ bool SignalGeneratorCommon::signalEvent(EventRecord &ev)
     signal_printf("%s[%d][%s]:  signalEvent(%s): nobody waiting\n", FILE__, __LINE__, 
                   getThreadStr(getExecThreadID()), eventType2str(ev.type));
 #endif
+  signal_printf("%s[%d]: signalEvent returning\n", FILE__, __LINE__);
   return ret;
 }
 
@@ -573,6 +687,36 @@ bool SignalGeneratorCommon::signalEvent(eventType t)
   ev.type = t;
   return signalEvent(ev);
 }
+
+#if 0
+bool SignalGeneratorCommon::unsafeToContinue() {
+    // If there are any pending events, then don't continue. Otherwise,
+    // obey the continuation hint.
+
+    signal_printf("%s[%d]: checking whether safe to continue...\n",
+                  FILE__, __LINE__);
+
+    continueDesired_ = true;
+
+    if (events_to_handle.size()) {
+        signal_printf("%s[%d]: %d pending signal generator events, unsafe to continue\n",
+                      FILE__, __LINE__, events_to_handle.size());
+        return true;
+    }    
+
+    for (unsigned i =0; i < handlers.size(); i++) {
+        if (handlers[i]->events_to_handle.size()) {
+            signal_printf("%s[%d]: handler %s has %d pending signal generator events, unsafe to continue\n",
+                          FILE__, __LINE__, getThreadStr(handlers[i]->getThreadID()), handlers[i]->events_to_handle.size());
+            return true;
+        }
+    }
+    
+    // Reset, we're okay
+    continueDesired_ = false;
+    return false;
+}
+#endif
 
 eventType SignalGeneratorCommon::waitForOneOf(pdvector<eventType> &evts)
 {
@@ -1183,15 +1327,25 @@ SignalGeneratorCommon::SignalGeneratorCommon(char *idstr) :
     pid_(-1),
     traceLink_(-1),
     requested_wait_until_active(false),
-    waitingForActiveProcess_(false),
+    waitingForActivation_(false),
     processPausedDuringOSWait_(false),
+    pendingDecode_(false),
     decodingEvent_(false),
     dispatchingEvent_(false),
-    waitingForOS_(false)
+    waitingForOS_(false),
+    continueDesired_(false),
+    continueSig_(-1),
+    syncRunWhenFinished_(true),
+    asyncRunWhenFinished_(false),
+    activeProcessSignalled_(false),
+    independentLwpStop_(false)
 {
     signal_printf("%s[%d]:  new SignalGenerator\n", FILE__, __LINE__);
     assert(eventlock == global_mutex);
-    runlock = new eventLock;
+
+    waitlock = new eventLock;
+    activationLock = new eventLock;
+    waitForContinueLock = new eventLock;
 }
 
 bool SignalGeneratorCommon::setupCreated(pdstring file,
@@ -1369,7 +1523,14 @@ bool SignalGeneratorCommon::initialize_event_handler()
 
   }
   else { // proc->getParent() is non-NULL, fork case
+      signal_printf("%s[%d]: attaching to forked child, creating representative LWP\n",
+                    FILE__, __LINE__);
+
      proc->createRepresentativeLWP();
+     // Set the status to stopped - it's stopped at the exit of fork() and we may
+     // want to do things to it.
+     proc->set_lwp_status(proc->getRepresentativeLWP(), stopped);
+
      
      if (!attachProcess()) {
          fprintf(stderr, "%s[%d]:  failed to attach to process %d\n", FILE__, __LINE__,
@@ -1386,10 +1547,73 @@ bool SignalGeneratorCommon::initialize_event_handler()
          return false;
      }
 
+
   }
 
   return true;
 }
+
+#if 0
+bool SignalGeneratorCommon::isBlockedInOS() const {
+    waitlock->_Lock(FILE__, __LINE__);
+    bool ret = waitingForOS_;
+    waitlock->_Unlock(FILE__, __LINE__);
+    return ret;
+}
+
+bool SignalGeneratorCommon::waitForOSReturn() {
+    signal_printf("%s[%d]: thread %s waiting for OS return, grabbing lock...\n",
+                  FILE__, __LINE__, getThreadStr(getExecThreadID()));
+    waitlock->_Lock(FILE__, __LINE__);
+
+    int lock_depth = eventlock->depth();
+    assert(lock_depth > 0);
+    
+    // We can't iterate over eventlock->depth(); we unlock, someone else locks...
+    // TODO: make this an eventLock method: "completely release"
+    for (unsigned i = 0; i < lock_depth; i++) {
+        eventlock->_Unlock(FILE__, __LINE__);
+    }
+    
+    signal_printf("%s[%d]: released global lock in waitForOS: stack of %d\n", FILE__, __LINE__, lock_depth);
+
+    signal_printf("%s[%d]: thread %s waiting for OS return, waiting for signal...\n",
+                  FILE__, __LINE__, getThreadStr(getExecThreadID()));
+    waitlock->_WaitForSignal(FILE__, __LINE__);
+
+    signal_printf("%s[%d]: thread %s waiting for OS return, returning...\n",
+                  FILE__, __LINE__, getThreadStr(getExecThreadID()));
+    waitlock->_Unlock(FILE__, __LINE__);
+
+    signal_printf("%s[%d]: reacquiring global lock (taken %d times)\n", 
+                  FILE__, __LINE__, lock_depth);
+    while (lock_depth > 0) {
+        eventlock->_Lock(FILE__, __LINE__);
+        lock_depth--;
+    }
+    
+    assert(!isBlockedInOS());
+
+    return true;
+}    
+
+bool SignalGeneratorCommon::signalOSReturn() {
+    signal_printf("%s[%d]: signalling return from OS: acquiring lock\n", 
+                  FILE__, __LINE__);
+    waitlock->_Lock(FILE__, __LINE__);
+
+    signal_printf("%s[%d]: signalling return from OS: broadcast\n",
+                  FILE__, __LINE__);
+    waitlock->_Broadcast(FILE__, __LINE__);
+
+    signal_printf("%s[%d]: signalling return from OS: unlock\n",
+                  FILE__, __LINE__);
+    waitlock->_Unlock(FILE__, __LINE__);
+    return true;
+}    
+
+#endif
+
 
 ////////////////////////////////////////////
 // Unused functions
@@ -1419,4 +1643,167 @@ SignalGenerator::SignalGenerator(char *idstr, pdstring file, pdstring dir,
                  argv, envp, 
                  inputFile, outputFile,
                  stdin_fd, stdout_fd, stderr_fd);
+}
+
+// The signalGenerator is waiting for waitForContinueLock to get signalled.
+// We'll bounce it, then wait on requestContinueLock... 
+
+bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal) {
+    // Ask (politely) the signal generator to continue us...
+    
+    signal_printf("%s[%d]: requestContinue entry, locking...\n", FILE__, __LINE__);
+    activationLock->_Lock(FILE__, __LINE__);
+
+    setContinueSig(requestedSignal);
+
+    // We could be in waitpid for a particular thread (yay IndependentLwpControl...),
+    // in which case we just kick _everyone_ up.
+    
+    if (proc->query_for_stopped_lwp() &&
+        waitingForOS_) {
+        // Make sure that all active signal handlers kick off...
+        while (isActivelyProcessing()) {
+            signal_printf("%s[%d]: continueProcessBlocking waiting for signal handlers\n",
+                          FILE__, __LINE__);
+            activationLock->_Unlock(FILE__, __LINE__);
+            waitForEvent(evtAnyEvent);
+            activationLock->_Lock(FILE__, __LINE__);
+        }
+            
+        signal_printf("%s[%d]: Blocking continue and already in waitpid; overriding and continuing\n",
+                      FILE__, __LINE__);
+        // Just continue ze sucker
+        continueProcess();
+    }
+
+    signal_printf("%s[%d]: grabbed requestContinueLock...\n", FILE__, __LINE__);
+
+    syncRunWhenFinished_ = true;
+
+    int lock_depth = eventlock->depth();
+    assert(lock_depth > 0);
+    
+    // We can't iterate over eventlock->depth(); we unlock, someone else locks...
+    // TODO: make this an eventLock method: "completely release"
+    for (unsigned i = 0; i < lock_depth; i++) {
+        eventlock->_Unlock(FILE__, __LINE__);
+    }
+
+    signal_printf("%s[%d]: continueProcessBlocking: gave up global mutex\n", FILE__, __LINE__);
+
+    signal_printf("%s[%d]: continueProcessBlocking, signalling SG\n", FILE__, __LINE__);
+    activationLock->_Broadcast(FILE__, __LINE__);
+
+    signal_printf("%s[%d]: continueProcessBlocking, locking waitForContinue\n", FILE__, __LINE__);
+    waitForContinueLock->_Lock(FILE__, __LINE__);
+    signal_printf("%s[%d]: continueProcessBlocking, unlocking activationLock\n", FILE__, __LINE__);
+    activationLock->_Unlock(FILE__, __LINE__);
+
+    signal_printf("%s[%d]: continueProcessBlocking, waiting...\n", FILE__, __LINE__);
+    waitForContinueLock->_WaitForSignal(FILE__, __LINE__);
+    
+    signal_printf("%s[%d]: continueProcessBlocking, woken up and releasing waitForContinue lock.\n", FILE__, __LINE__);
+    waitForContinueLock->_Unlock(FILE__, __LINE__);
+
+    signal_printf("%s[%d]: continueProcessBlocking, process continued, grabbing %d global mutexes\n",
+                  FILE__, __LINE__, lock_depth);
+
+    while (lock_depth > 0) {
+        eventlock->_Lock(FILE__, __LINE__);
+        lock_depth--;
+    }
+
+    signal_printf("%s[%d]: continueProcessBlocking, returning\n",
+                  FILE__, __LINE__);
+    
+    return true;
+}
+
+// Continue when both the UI and all active signal handlers have
+// asked for the process to continue.
+
+#if 0
+bool SignalGeneratorCommon::waitToContinueProcess() {
+    signal_printf("%s[%d]: continueProcess, grabbing continueProcessBlockingLock\n",
+                  FILE__, __LINE__);
+    requestContinueLock->_Lock(FILE__, __LINE__);
+
+    assert(eventlock->depth() == 1);
+    
+    eventlock->_Unlock(FILE__, __LINE__);
+
+    while(1) {
+        signal_printf("%s[%d]: waiting for someone to wake up the process\n", FILE__, __LINE__);
+        requestContinueLock->_WaitForSignal(FILE__, __LINE__);
+
+        int activeHandlers = 0;
+#if 0
+        for (unsigned i = 0; i < handlers.size(); i++) {
+            signal_printf("%s[%d]: checking handler %s, processing %d\n",
+                          FILE__, __LINE__, getThreadStr(handlers[i]->getThreadID()), handlers[i]->processing());
+            if (handlers[i]->processing())
+                activeHandlers++;
+        }
+#endif
+        signal_printf("%s[%d]: continueProcess, activeHandlers %d, UIRequested %d\n",
+                      FILE__, __LINE__, activeHandlers, stopsDesired_);
+
+        if ((activeHandlers == 0) && (stopsDesired_ == 0))
+            break;
+    }
+
+    signal_printf("%s[%d]: exchanging requestContinueLock for eventlock\n",
+                  FILE__, __LINE__);
+    eventlock->_Lock(FILE__, __LINE__);
+    requestContinueLock->_Unlock(FILE__, __LINE__);
+
+    return true;
+}
+#endif
+
+bool SignalGeneratorCommon::continueProcess() {
+    signal_printf("%s[%d]: continuing process...\n", FILE__, __LINE__);
+
+    bool res = proc->continueProc_(continueSig_);
+    continueSig_ = -1;
+
+    if (!res)  {
+        fprintf(stderr, "%s[%d]:  continueProc_ failed\n", FILE__, __LINE__);
+        showErrorCallback(38, "System error: can't continue process");
+        return false;
+    }
+    signal_printf("%s[%d]: setting global process state to running\n", FILE__, __LINE__);
+    
+    if (proc->status() != exited)
+        proc->set_status(running);
+    
+    // Now wake up everyone who was waiting for me...
+    signal_printf("%s[%d]: waking up everyone who was waiting for continue, locking...\n",
+                  FILE__, __LINE__);
+    waitForContinueLock->_Lock(FILE__, __LINE__);
+    signal_printf("%s[%d]: waking up everyone who was waiting for continue, broadcasting...\n",
+                  FILE__, __LINE__);
+    waitForContinueLock->_Broadcast(FILE__, __LINE__);
+    signal_printf("%s[%d]: waking up everyone who was waiting for continue, unlocking\n",
+                  FILE__, __LINE__);
+    waitForContinueLock->_Unlock(FILE__, __LINE__);
+   
+    return true;
+}
+
+
+void SignalGeneratorCommon::setContinueSig(int signalToContinueWith) {
+    if ((continueSig_ != -1) &&
+        (signalToContinueWith != continueSig_)) {
+        fprintf(stderr, "%s[%d]: WARNING: conflict in signal to continue with: previous %d, new %d\n",
+                FILE__, __LINE__, continueSig_,  signalToContinueWith);
+    }
+
+    continueSig_ = signalToContinueWith;
+}
+
+bool SignalGeneratorCommon::pauseProcessBlocking() {
+    syncRunWhenFinished_ = false;
+
+    return proc->pause();
 }
