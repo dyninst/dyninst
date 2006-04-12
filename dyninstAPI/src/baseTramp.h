@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.h,v 1.11 2005/12/14 22:44:08 bernat Exp $
+// $Id: baseTramp.h,v 1.12 2006/04/12 16:59:16 bernat Exp $
 
 // baseTramp class definition
 
@@ -241,7 +241,9 @@ class baseTramp {
 
     process *proc() const;
 
-    bool generateBT();
+    bool generateBT(codeGen &baseGen); // we copy any necessary information out of the "base" codeGen
+    void invalidateBT() { valid = false; };
+
     bool generateSaves(codeGen &gen,
                        registerSpace *rs = NULL);
     bool generateRestores(codeGen &gen,

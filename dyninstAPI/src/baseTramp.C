@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.27 2006/03/14 23:11:58 bernat Exp $
+// $Id: baseTramp.C,v 1.28 2006/04/12 16:59:15 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -316,7 +316,7 @@ bool baseTrampInstance::generateCode(codeGen &gen,
 
 
   if (!generated_) {
-    baseT->generateBT();
+      baseT->generateBT(gen);
     
     // if in-line...
     // For now BTs are in-lined; they could be made out-of-line
@@ -782,14 +782,14 @@ unsigned baseTrampInstance::maxSizeRequired() {
     else
       {
 	if (!baseT->valid)
-	  baseT->generateBT();
+            baseT->generateBT(codeGen::baseTemplate);
 
 	assert(baseT->valid);
 	size += baseT->preSize + baseT->postSize;
       }
 #else    
     if (!baseT->valid)
-      baseT->generateBT();
+        baseT->generateBT(codeGen::baseTemplate);
     
     assert(baseT->valid);
     size += baseT->preSize + baseT->postSize;
@@ -895,7 +895,7 @@ bool baseTramp::getRecursive() const {
 }
 
 // Generates an instruction buffer that holds the base tramp
-bool baseTramp::generateBT() {
+bool baseTramp::generateBT(codeGen &baseGen) {
 
   if (valid && !(BPatch::bpatch->isMergeTramp())
 #if defined(os_aix) && defined(BPATCH_LIBRARY) //ccw 8 oct 2005
@@ -967,8 +967,9 @@ bool baseTramp::generateBT() {
 
   assert(preTrampCode_ == NULL);
   assert(postTrampCode_ == NULL);
-
+  preTrampCode_.applyTemplate(baseGen);
   preTrampCode_.allocate(PRE_TRAMP_SIZE);
+  postTrampCode_.applyTemplate(baseGen);
   postTrampCode_.allocate(POST_TRAMP_SIZE);
   
   extern registerSpace *regSpace;
