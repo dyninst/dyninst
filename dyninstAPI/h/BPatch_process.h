@@ -124,6 +124,39 @@ typedef enum {
 } BPatch_exitType;
 
 class EventRecord;
+
+/*
+ * class OneTimeCodeInfo
+ *
+ * This is used by the oneTimeCode (inferiorRPC) mechanism to keep per-RPC
+ * information.
+ */
+class OneTimeCodeInfo {
+   bool synchronous;
+   bool completed;
+   void *userData;
+   void *returnValue;
+   unsigned thrID;
+public:
+   OneTimeCodeInfo(bool _synchronous, void *_userData, unsigned _thrID) :
+      synchronous(_synchronous), completed(false), userData(_userData),
+      thrID(_thrID) { };
+
+   bool isSynchronous() { return synchronous; }
+
+   bool isCompleted() const { return completed; }
+   void setCompleted(bool _completed) { completed = _completed; }
+
+   void *getUserData() { return userData; }
+
+   void setReturnValue(void *_returnValue) { returnValue = _returnValue; }
+   void *getReturnValue() { return returnValue; }
+
+   unsigned getThreadID() { return thrID; }
+};
+
+
+
 /*
  * Represents a process
  */
@@ -209,6 +242,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
                                             void *returnValue);
 
     void *oneTimeCodeInternal(const BPatch_snippet &expr,
+                              BPatch_thread *thread, // == NULL if proc-wide
                               void *userData,
                               bool synchronous);
 

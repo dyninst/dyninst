@@ -61,36 +61,6 @@ class dyn_thread;
 typedef long dynthread_t;
 
 /*
- * class OneTimeCodeInfo
- *
- * This is used by the oneTimeCode (inferiorRPC) mechanism to keep per-RPC
- * information.
- */
-class OneTimeCodeInfo {
-   bool synchronous;
-   bool completed;
-   void *userData;
-   void *returnValue;
-   unsigned thrID;
-public:
-   OneTimeCodeInfo(bool _synchronous, void *_userData, unsigned _thrID) :
-      synchronous(_synchronous), completed(false), userData(_userData),
-      thrID(_thrID) { };
-
-   bool isSynchronous() { return synchronous; }
-
-   bool isCompleted() const { return completed; }
-   void setCompleted(bool _completed) { completed = _completed; }
-
-   void *getUserData() { return userData; }
-
-   void setReturnValue(void *_returnValue) { returnValue = _returnValue; }
-   void *getReturnValue() { return returnValue; }
-
-   unsigned getThreadID() { return thrID; }
-};
-
-/*
  * Represents a thread of execution.
  */
 #ifdef DYNINST_CLASS_NAME
@@ -130,9 +100,6 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     void updateValues(dynthread_t tid, unsigned long stack_start, 
                       BPatch_function *initial_func, int lwp_id);
 
-    void *oneTimeCodeInternal(const BPatch_snippet &expr,
-                              void *userData,
-                              bool synchronous);
  public:
 
     // Don't use this......
