@@ -252,6 +252,9 @@ irpcLaunchState_t rpcLWP::runPendingIRPC() {
     // CHECK FOR SYSTEM CALL STATUS
     if (!pendingRPC_) return irpcNoIRPC;
 
+    if (mgr_->proc()->IndependentLwpControl())
+        lwp_->pauseLWP();
+
     // We passed the system call check, so the lwp is in a state
     // where it is possible to run iRPCs.
     struct dyn_saved_regs *theSavedRegs = NULL;
@@ -281,7 +284,8 @@ irpcLaunchState_t rpcLWP::runPendingIRPC() {
                          runningRPC_->rpcResultAddr,
                          runningRPC_->rpcContPostResultAddr,
                          runningRPC_->resultRegister,
-                         runningRPC_->rpc->lowmem, lwp_); // Where to allocate
+                         runningRPC_->rpc->lowmem, 
+                         NULL, lwp_); // Where to allocate
     if (!runningRPC_->rpcStartAddr) {
         cerr << "launchRPC failed, couldn't create image" << endl;
         return irpcError;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.366 2006/04/10 18:15:52 mirg Exp $
+/* $Id: process.h,v 1.367 2006/04/12 16:59:28 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -168,6 +168,7 @@ class process {
     friend Address loadDyninstDll(process *, char Buffer[]);
     friend class multiTramp;
     friend class SignalGenerator;
+    friend class SignalGeneratorCommon;
 
     //  
     //  PUBLIC MEMBERS FUNCTIONS
@@ -418,6 +419,8 @@ class process {
   }
   void independentLwpControlInit();
 
+  // Internal calls only; this is an asynchronous call that says "run when everyone
+  // is finished". BPatch should use the equivalent SignalGeneratorCommon call.
   bool continueProc(int signalToContinueWith = -1);
 
   bool terminateProc();

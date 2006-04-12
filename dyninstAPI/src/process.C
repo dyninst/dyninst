@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.604 2006/04/07 15:01:01 jaw Exp $
+// $Id: process.C,v 1.605 2006/04/12 16:59:27 bernat Exp $
 
 #include <ctype.h>
 
@@ -1328,13 +1328,14 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
   // issue RPC and wait for result
   imd_rpc_ret ret = { false, NULL };
 
+  bool wasRunning = (status() == running);
  
   /* set lowmem to ensure there is space for inferior malloc */
   getRpcMgr()->postRPCtoDo(code, true, // noCost
                            &inferiorMallocCallback, &ret, 
+                           wasRunning, // run when finished?
                            true, // But use reserved memory
                            NULL, NULL); // process-wide
-  bool wasRunning = (status() == running);
 
   // Specify that we want to wait for a RPCDone event
   eventType res = evtUndefined;
@@ -1342,7 +1343,12 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
   inferiorMallocCallbackFlag = false;
      inferiorrpc_printf("%s[%d]:  waiting for rpc completion\n", FILE__, __LINE__);
   do {
-     getRpcMgr()->launchRPCs(wasRunning);
+      bool rpcNeedsContinue = false;
+      getRpcMgr()->launchRPCs(rpcNeedsContinue,
+                              wasRunning);
+      assert(rpcNeedsContinue);
+      continueProc();
+
      getMailbox()->executeCallbacks(FILE__, __LINE__);
 
      if(hasExited()) {
@@ -3007,13 +3013,20 @@ bool process::iRPCDyninstInit() {
                              true, // Don't update cost
                              process::DYNINSTinitCompletionCallback,
                              NULL, // No user data
+                             false, // Don't run when done
                              true, // Use reserved memory
                              NULL, NULL);// No particular thread or LWP
 
     // We loop until dyninst init has run (check via the callback)
      inferiorrpc_printf("%s[%d]:  waiting for rpc completion\n", FILE__, __LINE__);
+
+     bool rpcNeedsContinue = false;
+     getRpcMgr()->launchRPCs(rpcNeedsContinue,
+                             false); // false: not running
+     assert(rpcNeedsContinue);
+     continueProc();
+
     while (!reachedBootstrapState(bootstrapped_bs)) {
-        getRpcMgr()->launchRPCs(false); // false: not running
         if(hasExited()) {
             fprintf(stderr, "%s[%d][%s]:  unexpected exit\n", __FILE__, __LINE__, getThreadStr(getExecThreadID()));
            return false;
@@ -3088,7 +3101,7 @@ bool process::finalizeDyninstLib()
 
    // Now that we have the dyninst library loaded, insert the hooks to dlopen/dlclose
    // (which may require the dyninst library)
-    
+
    assert(bs_record.event == 1 || bs_record.event == 2 || bs_record.event==3);
 
    bool calledFromFork = (bs_record.event == 2);
@@ -3952,7 +3965,7 @@ bool process::pause() {
    }
    status_ = stopped;
 
-   if (sh) sh->signalPausedProcess();
+   signal_printf("%s[%d]: process stopped\n", FILE__, __LINE__);
 
    return true;
 }
@@ -4959,6 +4972,12 @@ bool process::continueProc(int signalToContinueWith)
     return false;
   }
 
+  // Asynchronously signals "make my people run".
+  sh->continueProcessAsync(signalToContinueWith);
+
+#if 0
+
+  // Handled by the SignalGenerator...
   bool res = continueProc_(signalToContinueWith);
   if (!res) 
   {
@@ -4969,12 +4988,8 @@ bool process::continueProc(int signalToContinueWith)
 
   if (status_ != exited)
      status_ = running;
+#endif
 
-  if (getExecThreadID() != sh->getThreadID()) {
-    signal_printf("%s[%d][%s]:  signalling active process from continueProc\n", 
-                  FILE__, __LINE__, getThreadStr(getExecThreadID()));
-    sh->signalActiveProcess();
-  }
   return true;
 }
 
@@ -5942,6 +5957,7 @@ void process::recognize_threads(const process *parent)
         getRpcMgr()->postRPCtoDo(ast, true, 
                                  doneRegistering, 
                                  bundle, 
+                                 false, // Don't run when done
                                  false, 
                                  NULL, lwp);
         expected++;
@@ -5954,7 +5970,12 @@ void process::recognize_threads(const process *parent)
      // wait for them to complete we'll just spin. 
 
      while(num_completed != expected) {
-         getRpcMgr()->launchRPCs(false);
+         bool rpcNeedsContinue = false;
+         getRpcMgr()->launchRPCs(rpcNeedsContinue,
+                                 false);
+         assert(rpcNeedsContinue);
+         continueProc();
+
          getMailbox()->executeCallbacks(FILE__, __LINE__);
          if(hasExited()) {
              fprintf(stderr, "%s[%d]:  unexpected process exit\n", FILE__, __LINE__);
@@ -6077,12 +6098,18 @@ dynthread_t process::mapIndexToTid(int index)
    AstNode call_get_tid("DYNINST_getThreadFromIndex", ast_args);
 
    getRpcMgr()->postRPCtoDo(&call_get_tid, true, mapIndexToTid_cb, &tid,
+                            false, // Don't run when done
                             false, NULL, NULL);
 
      inferiorrpc_printf("%s[%d]:  waiting for rpc completion\n", FILE__, __LINE__);
    while (tid == -1)
    {
-      getRpcMgr()->launchRPCs(false);
+       bool rpcNeedsContinue = false;
+       getRpcMgr()->launchRPCs(rpcNeedsContinue,
+                               false);
+       assert(rpcNeedsContinue);
+       continueProc();
+
       getMailbox()->executeCallbacks(FILE__, __LINE__);
       if(hasExited()) return (dynthread_t) -1;
       sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);

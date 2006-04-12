@@ -70,9 +70,13 @@ class codeGen;
 typedef enum { irpcNotValid, irpcNotRunning, irpcRunning, irpcWaitingForSignal,
                irpcNotReadyForIRPC } irpcState_t;
 
+char *irpcStateAsString(irpcState_t state);
+
 // RPC launch return type
 typedef enum { irpcNoIRPC, irpcStarted, irpcAgain, irpcBreakpointSet, 
                irpcError } irpcLaunchState_t;
+
+char *irpcLaunchStateAsString(irpcLaunchState_t state);
 
 // inferior RPC callback function type
 typedef void(*inferiorRPCcallbackFunc)(process *p, unsigned rpcid, void *data, void *result);
@@ -85,6 +89,7 @@ struct inferiorRPCtoDo {
     void *userData; /* Good 'ol callback/void * pair */
     bool lowmem; /* Steers allocation of memory for the RPC to run in */
     unsigned id;
+    bool runProcessWhenDone; 
     dyn_thread *thr;
     dyn_lwp *lwp;
 };
@@ -325,7 +330,13 @@ class rpcMgr {
    inferiorRPCtoDo *getProcessRPC();
    
    // The big function: launch RPCs everywhere possible
-   bool launchRPCs(bool wasRunning);
+   // runProcessNow: the RPC mechanism requires the process
+   // to be run; set by launchRPCs
+   // runProcessWhenDone: when the RPC finishes, recommend that
+   // the process be run (set by the caller).
+   // Note: can also be set on a per-RPC basis...
+   bool launchRPCs(bool &runProcessNow,
+                   bool runProcessWhenDone);
 
    // Search allRunningRPCs_ for a RPC with specified result address
    // Returns pointer to RPC, or NULL if not found;
@@ -354,7 +365,9 @@ class rpcMgr {
    // posting RPC on a process
    unsigned postRPCtoDo(AstNode *action, bool noCost,
                         inferiorRPCcallbackFunc callbackFunc,
-                        void *userData, bool lowmem, dyn_thread *thr,
+                        void *userData, 
+                        bool runProcessWhenDone,
+                        bool lowmem, dyn_thread *thr,
                         dyn_lwp *lwp);
 
    // Create the body of the IRPC
@@ -362,7 +375,9 @@ class rpcMgr {
                           bool shouldStopForResult, Address &breakAddr,
                           Address &stopForResultAddr,
                           Address &justAfter_stopForResultAddr,
-                          Register &resultReg, bool lowmem, dyn_lwp * lwp);
+                          Register &resultReg, bool lowmem, 
+                          dyn_thread *thr,
+                          dyn_lwp *lwp);
 
    
    bool emitInferiorRPCheader(codeGen &gen);
