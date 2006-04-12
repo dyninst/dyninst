@@ -392,7 +392,6 @@ bool BPatch_process::continueExecutionInt()
 
    //  maybe executeCallbacks led to the process execution status changing
    if (!statusIsStopped()) {
-       fprintf(stderr, "Setting isVisiblyStopped to false\n");
        isVisiblyStopped = false;
        return true;
    }
@@ -406,7 +405,6 @@ bool BPatch_process::continueExecutionInt()
    // Set isVisiblyStopped first... due to races (and the fact that CPBlocking gives
    // up the lock) we can hit a signal handler before this function returns...
 
-   fprintf(stderr, "Setting isVisiblyStopped to false (2)\n");
    isVisiblyStopped = false;
    setUnreportedStop(false);
 

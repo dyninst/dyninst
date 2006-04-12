@@ -125,7 +125,6 @@ bool SignalHandler::handleProcessStop(EventRecord &ev, bool &continueHint)
    bool exists = false;
    BPatch_process *bproc = BPatch::bpatch->getProcessByPid(proc->getPid(), &exists);
    if (bproc) {
-       fprintf(stderr, "Sending BProcess::isVisiblyStopped...\n");
        setBPatchProcessSignal(bproc, ev.what);
        bproc->isVisiblyStopped = true;
    }
