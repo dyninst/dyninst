@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.52 2006/04/06 01:26:40 mjbrim Exp $
+ * $Id: dyn_lwp.C,v 1.53 2006/04/12 16:59:17 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -129,6 +129,16 @@ dyn_lwp::~dyn_lwp()
 // TODO is this safe here ?
 bool dyn_lwp::continueLWP(int signalToContinueWith) 
 {
+    if (!proc()->IndependentLwpControl() &&
+        (this != proc()->getRepresentativeLWP())) {
+        // This'll hit stop_, which calls pauseLWP on the representative LWP.
+        // Hence the comparison.
+        return proc()->continueProc(); 
+    }
+
+    assert(proc()->IndependentLwpControl() ||
+           (this == proc()->getRepresentativeLWP()));
+
    if(status_ == running) {
        //fprintf(stderr, "%s[%d]:  already running\n", FILE__, __LINE__);
       return true;
@@ -137,7 +147,7 @@ bool dyn_lwp::continueLWP(int signalToContinueWith)
    if (status_ == exited) {
        // fprintf(stderr, "%s[%d]: already exited\n", FILE__, __LINE__);
 	  return true;
-	}
+   }
    if (proc()->sh->waitingForStop())
    {
      fprintf(stderr, "[%s] %s[%d]:  LWP (%lu) continue has been suppressed\n", 
@@ -194,6 +204,16 @@ pdstring dyn_lwp::getStatusAsString() const
 }
 
 bool dyn_lwp::pauseLWP(bool shouldWaitUntilStopped) {
+    if (!proc()->IndependentLwpControl() &&
+        (this != proc()->getRepresentativeLWP())) {
+        // This'll hit stop_, which calls pauseLWP on the representative LWP.
+        // Hence the comparison.
+        return proc()->pause(); 
+    }
+
+    assert(proc()->IndependentLwpControl() ||
+           (this == proc()->getRepresentativeLWP()));
+
    // Not checking lwp status_ for neonatal because it breaks attach with the
    // dyninst tests.  My guess is that somewhere we set the process status to
    // running.  If we can find this, then we can set the lwp status to
@@ -309,7 +329,9 @@ bool dyn_lwp::setSyscallExitTrap(syscallTrapCallbackLWP_t callback,
 
     Address syscallInfo = getCurrentSyscall();
     if(syscallInfo == 0) return false;
-    
+    signal_printf("%s[%d]: LWP %d placing syscall trap...\n",
+                  FILE__, __LINE__, get_lwp_id());
+
     trappedSyscall_ = proc()->trapSyscallExitInternal(syscallInfo);
 
     assert(trappedSyscallCallback_ == NULL);
@@ -329,7 +351,7 @@ bool dyn_lwp::clearSyscallExitTrap()
     
     if (!proc()->clearSyscallTrapInternal(trappedSyscall_))
         return false;
-    
+
     trappedSyscall_ = NULL;
     trappedSyscallCallback_ = NULL;
     trappedSyscallData_ = NULL;
