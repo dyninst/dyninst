@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch.C,v 1.3 2006/03/08 19:57:48 mjbrim Exp $
+// $Id: arch.C,v 1.4 2006/04/12 16:59:13 bernat Exp $
 // Code generation
 
 //////////////////////////
@@ -67,6 +67,7 @@ codeGen::codeGen() :
     offset_(0),
     size_(0),
     allocated_(false),
+    thr_(NULL),
     lwp(NULL) {}
 
 // size is in bytes
@@ -74,6 +75,7 @@ codeGen::codeGen(unsigned size) :
     offset_(0),
     size_(size),
     allocated_(true),
+    thr_(NULL),
     lwp(NULL) {
     buffer_ = (codeBuf_t *)malloc(size);
     memset(buffer_, 0, size);
@@ -86,7 +88,10 @@ codeGen::codeGen(unsigned size) :
 codeGen::codeGen(codeBuf_t *buffer, int size) :
     offset_(0),
     size_(size),
-    allocated_(true) {
+    allocated_(true),
+    thr_(NULL),
+    lwp(NULL)
+{
     buffer_ = buffer;
 }
 
@@ -98,7 +103,10 @@ codeGen::~codeGen() {
 codeGen::codeGen(const codeGen &g) :
     offset_(g.offset_),
     size_(g.size_),
-    allocated_(g.allocated_) {
+    allocated_(g.allocated_),
+    thr_(g.thr_),
+    lwp(g.lwp)
+{
     if (size_ != 0) {
         assert(allocated_); 
         buffer_ = (codeBuf_t *) malloc(size_);
@@ -122,6 +130,9 @@ codeGen &codeGen::operator=(const codeGen &g) {
     offset_ = g.offset_;
     size_ = g.size_;
     allocated_ = g.allocated_;
+    thr_ = g.thr_;
+    lwp = g.lwp;
+
 
     if (size_ != 0) {
         assert(allocated_); 
@@ -301,10 +312,26 @@ void codeGen::fillRemaining(int fillType) {
     }
 }
 
+void codeGen::applyTemplate(codeGen &codeTemplate) {
+    // Copy off necessary bits...
+    setLWP(codeTemplate.getLWP());
+    setThread(codeTemplate.getThread());
+}
+
+codeGen codeGen::baseTemplate;
+
 void codeGen::setLWP( dyn_lwp * lwp ) {
 	this->lwp = lwp;
-	}
+}
 	
 dyn_lwp * codeGen::getLWP() const {
 	return this->lwp;
-	}
+}
+
+void codeGen::setThread(dyn_thread *thr) {
+    thr_ = thr;
+}
+
+dyn_thread *codeGen::getThread() const {
+    return thr_;
+}

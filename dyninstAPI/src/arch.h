@@ -40,7 +40,7 @@
  */
 
 // Architecture include. Use this one instead of arch-<platform>
-// $Id: arch.h,v 1.20 2006/03/02 20:00:08 tlmiller Exp $
+// $Id: arch.h,v 1.21 2006/04/12 16:59:14 bernat Exp $
 
 #if !defined(arch_h)
 #define arch_h
@@ -75,6 +75,7 @@
 #endif
 
 class dyn_lwp;
+class dyn_thread;
 
 // Code generation
 // This class wraps the actual code generation mechanism: we keep a buffer
@@ -103,7 +104,11 @@ class codeGen {
 
     // Assignment....
     codeGen &operator=(const codeGen &param);
-    
+
+    // Initialize the current using the argument as a "template"
+    void applyTemplate(codeGen &codeTemplate);
+    static codeGen baseTemplate;
+
     // Allocate a certain amount of space
     void allocate(unsigned);
     // And invalidate
@@ -161,6 +166,8 @@ class codeGen {
 
     dyn_lwp * getLWP() const;
     void setLWP( dyn_lwp * lwp );
+    dyn_thread *getThread() const;
+    void setThread(dyn_thread *thr);
 
  private:
     codeBuf_t *buffer_;
@@ -168,7 +175,8 @@ class codeGen {
     unsigned size_;
 
     bool allocated_;
-    
+
+    dyn_thread *thr_;
     dyn_lwp * lwp;
 };
 
