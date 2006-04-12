@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.197 2006/04/06 10:08:46 jaw Exp $
+// $Id: solaris.C,v 1.198 2006/04/12 16:59:40 bernat Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -145,62 +145,62 @@ bool process::get_exit_syscalls(sysset_t *exit)
 
 //TODO: This function should be converted to use process objects, not BPatch.
 bool process::dldumpSharedLibrary(pdstring originalLibNameFullPath, char* dirName){
-	BPatch_Vector<BPatch_snippet *> args;
-	char *newLibName = saveWorldFindNewSharedLibraryName(originalLibNameFullPath,dirName);
-
-   bool exists;
-   BPatch_process *bproc = BPatch::bpatch->getProcessByPid(getPid(), &exists);
-
-   assert(exists);
-	BPatch_constExpr oldNameArg(originalLibNameFullPath.c_str());
-	BPatch_constExpr newNameArg(newLibName);
-
-	args.push_back(&oldNameArg);
-	args.push_back(&newNameArg);
+    BPatch_Vector<BPatch_snippet *> args;
+    char *newLibName = saveWorldFindNewSharedLibraryName(originalLibNameFullPath,dirName);
+    
+    bool exists;
+    BPatch_process *bproc = BPatch::bpatch->getProcessByPid(getPid(), &exists);
+    
+    assert(exists);
+    BPatch_constExpr oldNameArg(originalLibNameFullPath.c_str());
+    BPatch_constExpr newNameArg(newLibName);
+    
+    args.push_back(&oldNameArg);
+    args.push_back(&newNameArg);
+    
+    BPatch_Vector<BPatch_function *> bpfv;
+    
+    if (((NULL == bproc->getImage()->findFunction("DYNINSTsaveRtSharedLibrary", bpfv) || !bpfv.size()))) {
+        cout << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find Internal Function " << "DYNINSTsaveRtSharedLibrary" << endl;
+        if( newLibName){
+            delete [] newLibName;
+        }
+        return false;
+    }
+    
+    BPatch_function *dldump_func = bpfv[0]; 
+    if (dldump_func == NULL) {
+        if(newLibName){
+            delete [] newLibName;
+        }
+        return false;
+    }
+    
+    BPatch_funcCallExpr call_dldump(*dldump_func, args);
+    
+    /*fprintf(stderr,"CALLING dldump\n"); */
+    if (!bproc->oneTimeCodeInternal(call_dldump, NULL, NULL, true)) {
+        fprintf(stderr, "%s[%d]:  oneTimeCodeInternal failed\n", FILE__, __LINE__);
+        // dldump FAILED
+        // find the (global var) error string in the RT Lib and send it to the
+        // error reporting mechanism
+        BPatch_variableExpr *dlerror_str_var = bproc->getImage()->findVariable("gLoadLibraryErrorString");
+        assert(NULL != dlerror_str_var);
 	
-	BPatch_Vector<BPatch_function *> bpfv;
-	
-	if (((NULL == bproc->getImage()->findFunction("DYNINSTsaveRtSharedLibrary", bpfv) || !bpfv.size()))) {
-		cout << __FILE__ << ":" << __LINE__ << ": FATAL:  Cannot find Internal Function " << "DYNINSTsaveRtSharedLibrary" << endl;
-		if( newLibName){
-			delete [] newLibName;
-		}
-		return false;
-	}
-	
-	BPatch_function *dldump_func = bpfv[0]; 
-	if (dldump_func == NULL) {
-		if(newLibName){
-			delete [] newLibName;
-		}
-		return false;
-	}
-	
-	BPatch_funcCallExpr call_dldump(*dldump_func, args);
-	
-	/*fprintf(stderr,"CALLING dldump\n"); */
-	if (!bproc->oneTimeCodeInternal(call_dldump, NULL, true)) {
-                fprintf(stderr, "%s[%d]:  oneTimeCodeInternal failed\n", FILE__, __LINE__);
-		// dldump FAILED
-		// find the (global var) error string in the RT Lib and send it to the
-		// error reporting mechanism
-		BPatch_variableExpr *dlerror_str_var = bproc->getImage()->findVariable("gLoadLibraryErrorString");
-		assert(NULL != dlerror_str_var);
-	
-		char dlerror_str[256];
-		dlerror_str_var->readValue((void *)dlerror_str, 256);
-		cerr << dlerror_str << endl;
-		BPatch_reportError(BPatchWarning, 0, dlerror_str);
-		if(newLibName){
-			delete [] newLibName;
-		}
-		return false;
-	}
-
-	editSharedLibrary editSL;
-	bool res = editSL.removeBSSfromSharedLibrary(newLibName);	
-	delete [] newLibName;
-	return res;
+        char dlerror_str[256];
+        dlerror_str_var->readValue((void *)dlerror_str, 256);
+        cerr << dlerror_str << endl;
+        BPatch_reportError(BPatchWarning, 0, dlerror_str);
+        if(newLibName){
+            delete [] newLibName;
+        }
+        return false;
+    }
+    
+    editSharedLibrary editSL;
+    bool res = editSL.removeBSSfromSharedLibrary(newLibName);	
+    delete [] newLibName;
+    return res;
 }
 
 
