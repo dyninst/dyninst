@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfDL.C,v 1.47 2006/02/22 21:52:34 bernat Exp $
+// $Id: osfDL.C,v 1.48 2006/04/12 18:37:27 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -228,7 +228,6 @@ bool dynamic_linking::handleIfDueToSharedObjectMapping(EventRecord &ev,
   // dumpMap(proc->getProcFileDescriptor());
   if (force_library_load ||
       hook) {
-    fprintf(stderr, "Reached dlopen trap point, force %d\n", force_library_load);
     // findChangeToLinkMaps figures out the change type.
 
     if (!findChangeToLinkMaps((u_int &) ev.what,

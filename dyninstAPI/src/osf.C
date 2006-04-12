@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.90 2006/03/29 21:34:44 bernat Exp $
+// $Id: osf.C,v 1.91 2006/04/12 18:37:27 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -249,35 +249,39 @@ bool checkForAnyProcessExit(EventRecord &/*ev*/)
   return ret;
 }
 
-bool SignalGenerator::decodeEvent(EventRecord &ev)
+bool SignalGenerator::decodeEvents(pdvector<EventRecord> &evts)
 {
+  // There can be only one...
+  assert(evts.size() == 1);
+  EventRecord &ev = evts[0];
+
    procProcStatus_t procstatus;
 
    //  read process status, and translate into internal event representation
-  if (!ev.proc->getRepresentativeLWP()->get_status(&procstatus)) {
-      if (ev.type == evtUndefined) {
-        ev.type = evtProcessExit;
-        ev.status = statusSignalled; // signifies unusual exit.
-        if (checkForExit(ev, false)) {
-          return true;
-        }
-        fprintf(stderr, "%s[%d]:  file desc for process exit not available\n",
-                FILE__, __LINE__);
-        return true;
-      }
-      fprintf(stderr, "%s[%d]:  file desc for %s not available\n",
-              FILE__, __LINE__, eventType2str(ev.type));
-      return false;
+   if (!ev.proc->getRepresentativeLWP()->get_status(&procstatus)) {
+     if (ev.type == evtUndefined) {
+       ev.type = evtProcessExit;
+       ev.status = statusSignalled; // signifies unusual exit.
+       if (checkForExit(ev, false)) {
+	 return true;
+       }
+       fprintf(stderr, "%s[%d]:  file desc for process exit not available\n",
+	       FILE__, __LINE__);
+       return true;
+     }
+     fprintf(stderr, "%s[%d]:  file desc for %s not available\n",
+	     FILE__, __LINE__, eventType2str(ev.type));
+     return false;
    }
-
+   
    if (!decodeProcStatus(procstatus, ev)) {
-      fprintf(stderr, "%s[%d]:  decodeProcStatus failed\n", FILE__, __LINE__);
-      return false;
+     fprintf(stderr, "%s[%d]:  decodeProcStatus failed\n", FILE__, __LINE__);
+     return false;
    }
-
+   
    signal_printf("%s[%d]:  new event: %s\n",
-                   FILE__, __LINE__, eventType2str(ev.type));
-
+		 FILE__, __LINE__, eventType2str(ev.type));
+   
    return true;
 }
 
@@ -994,8 +998,6 @@ bool process::loadDYNINSTlib()
   
   Address baseAddr = _startfn->getAddress();
   assert(baseAddr);
-
-  fprintf(stderr, "baseAddress for dlopen: %llx\n", baseAddr);
 
   codeGen gen(BYTES_TO_SAVE);
 
