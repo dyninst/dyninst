@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-sparc.C,v 1.181 2006/03/07 23:18:16 bernat Exp $
+// $Id: inst-sparc.C,v 1.182 2006/04/12 16:59:21 bernat Exp $
 
 #include "dyninstAPI/src/inst-sparc.h"
 
@@ -49,6 +49,8 @@
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/InstrucIter.h"
+
+#include "dyninstAPI/src/dyn_thread.h" // get_index
 
 /****************************************************************************/
 /****************************************************************************/
@@ -818,20 +820,26 @@ bool baseTramp::generateMTCode(codeGen &gen,
     
     // registers cleanup
     regSpace->resetSpace();
-    
+
+    dyn_thread *thr = gen.getThread();
+    if (!threaded()) {
     /* Get the hashed value of the thread */
-    if (!threaded()) 
-        threadPOS = new AstNode("DYNINSTreturnZero", dummy);
+        emitVload(loadConstOp, 0, REG_MT_POS, REG_MT_POS, gen, false);
+    }
+    else if (thr) {
+        // Override 'normal' index value...
+        emitVload(loadConstOp, thr->get_index(), REG_MT_POS, REG_MT_POS, gen, false);
+    }    
     else {
         threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
-    }
-    src = threadPOS->generateCode(proc(), regSpace, gen,
-                                  false, // noCost 
-                                  true); // root node
-    if ((src) != REG_MT_POS) {
-        // This is always going to happen... we reserve REG_MT_POS, so the
-        // code generator will never use it as a destination
-        emitV(orOp, src, 0, REG_MT_POS, gen, false);
+        src = threadPOS->generateCode(proc(), regSpace, gen,
+                                      false, // noCost 
+                                      true); // root node
+        if ((src) != REG_MT_POS) {
+            // This is always going to happen... we reserve REG_MT_POS, so the
+            // code generator will never use it as a destination
+            emitV(orOp, src, 0, REG_MT_POS, gen, false);
+        }
     }
 
     return true;

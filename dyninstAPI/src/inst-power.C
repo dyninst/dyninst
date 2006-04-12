@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.243 2006/03/27 18:43:52 rutar Exp $
+ * $Id: inst-power.C,v 1.244 2006/04/12 16:59:20 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -70,6 +70,8 @@
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/multiTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
+
+#include "dyninstAPI/src/dyn_thread.h"
 
 #include "InstrucIter.h"
 
@@ -1029,22 +1031,25 @@ bool baseTramp::generateMTCode(codeGen &gen,
     // registers cleanup
     regSpace->resetSpace();
     
-    /* Get the hashed value of the thread */
-    if (!threaded()) 
-      {
-       threadPOS = new AstNode("DYNINSTreturnZero", dummy);
-      }
-    else
-      {
-       threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
-      }
-    src = threadPOS->generateCode(proc(), regSpace, gen,
-                                  false, // noCost 
-                                  true); // root node
-    if ((src) != REG_MT_POS) {
-        // This is always going to happen... we reserve REG_MT_POS, so the
-        // code generator will never use it as a destination
-        instruction::generateImm(gen, ORILop, src, REG_MT_POS, 0);
+    dyn_thread *thr = gen.getThread();
+    if (!threaded()) {
+        /* Get the hashed value of the thread */
+        emitVload(loadConstOp, 0, REG_MT_POS, REG_MT_POS, gen, false);
+    }
+    else if (thr) {
+        // Override 'normal' index value...
+        emitVload(loadConstOp, thr->get_index(), REG_MT_POS, REG_MT_POS, gen, false);
+    }
+    else {
+        threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
+        src = threadPOS->generateCode(proc(), regSpace, gen,
+                                      false, // noCost 
+                                      true); // root node
+        if ((src) != REG_MT_POS) {
+            // This is always going to happen... we reserve REG_MT_POS, so the
+            // code generator will never use it as a destination
+            instruction::generateImm(gen, ORILop, src, REG_MT_POS, 0);
+        }
     }
     regSpace->resetSpace();
     return true;

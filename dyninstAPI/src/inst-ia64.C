@@ -68,6 +68,7 @@
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/showerror.h"
 
+#include "dyninstAPI/src/dyn_thread.h" // get_index
 #include "dyninstAPI/src/arch-ia64.h"
 #include "dyninstAPI/src/inst-ia64.h"
 #include "dyninstAPI/src/instPoint.h"	// includes instPoint-ia64.h
@@ -2746,23 +2747,30 @@ bool baseTramp::generateCostCode( codeGen & gen, unsigned & costUpdateOffset, re
 bool baseTramp::generateMTCode( codeGen & gen, registerSpace * rs ) {
   pdvector< AstNode * > dummy;
 
-  if( this->threaded() ) {
-	AstNode * threadPos = new AstNode( "DYNINSTthreadIndex", dummy );
-	assert( threadPos != NULL );
-		
-	Register src = threadPos->generateCode(	this->proc(), rs, gen,
-											false /* no cost */, true /* root node */ );
-										
-	/* Ray: I'm asserting that we don't use the 35th preserved register for anything. */
-	emitRegisterToRegisterCopy( src, rs->getRegSlot( 0 )->number - 1, gen, rs );
-		
-	removeAst( threadPos );
+  dyn_thread *thr = gen.getThread();
+  if(!this->threaded() ) {
+	  /* Stick a zero in the Known Thread Index register. */
+	  emitRegisterToRegisterCopy( BP_GR0, rs->getRegSlot( 0 )->number - 1, gen, rs );		
+  }
+  else if (thr) {
+	  // For some reason we're overriding the normal index calculation
+	  unsigned index = thr->get_index();
+	  // TODO: I need some code from Todd...
+	  assert(0);
   }
   else {
-	/* Stick a zero in the Known Thread Index register. */
-	emitRegisterToRegisterCopy( BP_GR0, rs->getRegSlot( 0 )->number - 1, gen, rs );		
+	  AstNode * threadPos = new AstNode( "DYNINSTthreadIndex", dummy );
+	  assert( threadPos != NULL );
+	  
+	  Register src = threadPos->generateCode(	this->proc(), rs, gen,
+												false /* no cost */, true /* root node */ );
+	  
+	  /* Ray: I'm asserting that we don't use the 35th preserved register for anything. */
+	  emitRegisterToRegisterCopy( src, rs->getRegSlot( 0 )->number - 1, gen, rs );
+	  
+	  removeAst( threadPos );
   }
-		
+  
   return true;
 } /* end generateMTCode() */
 

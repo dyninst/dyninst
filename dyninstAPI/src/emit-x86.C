@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.22 2006/04/04 17:32:22 rutar Exp $
+ * $Id: emit-x86.C,v 1.23 2006/04/12 16:59:18 bernat Exp $
  */
 
 #include <assert.h>
@@ -53,6 +53,9 @@
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/process.h"
+
+// get_index...
+#include "dyninstAPI/src/dyn_thread.h"
 
 #include "InstrucIter.h"
 
@@ -412,22 +415,26 @@ bool Emitter32::emitBTMTCode(baseTramp* bt, codeGen &gen)
 
     assert(regSpace != NULL);
     regSpace->resetSpace();
-    
-    /* Get the hashed value of the thread */
-    if (bt->threaded())
-       threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
-    else
-       threadPOS = new AstNode("DYNINSTreturnZero", dummy);
-    
-    src = threadPOS->generateCode(bt->proc(), regSpace, gen,
-                                  false, // noCost 
-                                  true); // root
-    
-    // AST generation uses a base pointer and a current address; the lower-level
-    // code uses a current pointer. Convert between the two.
-    LOAD_VIRTUAL32(src, gen);
-    SAVE_VIRTUAL32(REG_MT_POS, gen);
-    
+
+    dyn_thread *thr = gen.getThread();
+    if (!bt->threaded()) {
+        /* Get the hashed value of the thread */
+        emitVload(loadConstOp, 0, REG_MT_POS, REG_MT_POS, gen, false);
+    }
+    else if (thr) {
+        // Override 'normal' index value...
+        emitVload(loadConstOp, thr->get_index(), REG_MT_POS, REG_MT_POS, gen, false);
+    }    
+    else {
+        threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
+        src = threadPOS->generateCode(bt->proc(), regSpace, gen,
+                                      false, // noCost 
+                                      true); // root
+        // AST generation uses a base pointer and a current address; the lower-level
+        // code uses a current pointer. Convert between the two.
+        LOAD_VIRTUAL32(src, gen);
+        SAVE_VIRTUAL32(REG_MT_POS, gen);
+    }
     return true;
 }
 
@@ -1119,12 +1126,13 @@ Register Emitter64::emitCall(opCode op, registerSpace *rs, codeGen &gen, const p
     }
 
     // generate code for arguments
-    for (unsigned u = 0; u < operands.size(); u++)
+    for (unsigned u = 0; u < operands.size(); u++) {
 	srcs.push_back((Register)operands[u]->generateCode_phase2(proc, rs, gen,
 								  noCost, 
 								  ifForks, 
 								  location));
-    
+    }
+
     // here we save the argument registers we're going to use
     // then we use the stack to shuffle everything into the right place
     // FIXME: optimize this a bit - this initial implementation is very conservative
@@ -1636,19 +1644,30 @@ bool Emitter64::emitBTMTCode(baseTramp* bt, codeGen& gen)
     // registers cleanup
     regSpace->resetSpace();
     
-    /* Get the hashed value of the thread */
-    if (bt->threaded())
-       threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
-    else
-       threadPOS = new AstNode("DYNINSTreturnZero", dummy);
-    
-    src = threadPOS->generateCode(bt->proc(), regSpace, gen,
-                                  false, // noCost 
-                                  true); // root node
+    dyn_thread *thr = gen.getThread();
+    if (!bt->threaded()) {
+        /* Get the hashed value of the thread */
+        //emitVload(loadConstOp, 0, REG_MT_POS, REG_MT_POS, gen, false);
+        emitMovImmToReg64(REGNUM_RAX, 0, true, gen);
+    }
+    else if (thr) {
+        // Override 'normal' index value...
+        //emitVload(loadConstOp, thr->get_index(), REG_MT_POS, REG_MT_POS, gen, false);
+        emitMovImmToReg64(REGNUM_RAX, thr->get_index(), true, gen);
+    }    
+    else {
+        threadPOS = new AstNode("DYNINSTthreadIndex", dummy);
+        src = threadPOS->generateCode(bt->proc(), regSpace, gen,
+                                      false, // noCost 
+                                      true); // root
+        // AST generation uses a base pointer and a current address; the lower-level
+        // code uses a current pointer. Convert between the two.
+    }
 
-    // AST generation uses a base pointer and a current address; the lower-level
-    // code uses a current pointer. Convert between the two.
+    // assert(index is in _RAX)
+
     emitMovRegToRM64(REGNUM_RBP, mt_offset, REGNUM_RAX, true, gen);
+
     return true;
 }
 
