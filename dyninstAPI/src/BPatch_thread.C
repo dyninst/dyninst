@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.152 2006/04/06 10:08:45 jaw Exp $
+// $Id: BPatch_thread.C,v 1.153 2006/04/12 16:59:12 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -409,6 +409,8 @@ unsigned long BPatch_thread::os_handleInt()
 #endif
 }
 
+#if 0
+// We use the one in BPatch_process, feeding it thread info...
 
 /*
  * BPatch_thread::oneTimeCodeInternal
@@ -431,14 +433,19 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
 {
    bool needToResume = false;
 
+   signal_printf("%s[%d]: UI top of oneTimeCode (threaded)...\n", FILE__, __LINE__);
+
    while (proc->llproc->sh->isActivelyProcessing()) {
        signal_printf("%s[%d]:  waiting before doing user stop for process %d\n", FILE__, __LINE__, proc->llproc->getPid());
        proc->llproc->sh->waitForEvent(evtAnyEvent);
    }
       
+   signal_printf("%s[%d]: oneTimeCode (threaded), handlers quiet, sync %d, statusIsStopped %d\n",
+                 FILE__, __LINE__, synchronous, proc->statusIsStopped());
+
    if (synchronous && !proc->statusIsStopped()) {
-      proc->stopExecutionInt();
-      
+       assert(0); // ...
+       
       if (!isStopped()) {
          fprintf(stderr, "%s[%d]:  failed to run oneTimeCodeInternal .. status is %s\n", 
                  FILE__, __LINE__, 
@@ -479,6 +486,7 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
       return NULL;
    }
 }
+#endif
 
 /*
  * BPatch_thread::oneTimeCode
@@ -488,7 +496,7 @@ void *BPatch_thread::oneTimeCodeInternal(const BPatch_snippet &expr,
  */
 void *BPatch_thread::oneTimeCodeInt(const BPatch_snippet &expr)
 {
-   return oneTimeCodeInternal(expr, NULL, true);
+    return proc->oneTimeCodeInternal(expr, this, NULL, true);
 }
 
 /*
@@ -500,7 +508,7 @@ void *BPatch_thread::oneTimeCodeInt(const BPatch_snippet &expr)
 bool BPatch_thread::oneTimeCodeAsyncInt(const BPatch_snippet &expr, 
                                         void *userData)
 {
-   if (NULL == oneTimeCodeInternal(expr, userData, false)) {
+    if (NULL == proc->oneTimeCodeInternal(expr, this, userData, false)) {
       //fprintf(stderr, "%s[%d]:  oneTimeCodeInternal failed\n", FILE__, __LINE__);
       return false;
    }

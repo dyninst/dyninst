@@ -368,18 +368,17 @@ void BPatch_process::BPatch_process_dtor()
  */
 bool BPatch_process::stopExecutionInt()
 {
+    if (isVisiblyStopped) return true;
 
-   while (llproc->sh->isActivelyProcessing()) {
-       signal_printf("%s[%d]:  waiting before doing user stop for process %d\n", FILE__, __LINE__, llproc->getPid());
-       llproc->sh->waitForEvent(evtAnyEvent);
-   }
-
-   if (llproc->pause()) {
-     isVisiblyStopped = true;
-     return true;
+   signal_printf("%s[%d]: entry to stopExecution, lock depth %d\n", FILE__, __LINE__, global_mutex->depth());
+   
+   if (llproc->sh->pauseProcessBlocking()) {
+       isVisiblyStopped = true;
+       signal_printf("%s[%d]: exit of stopExecution, lock depth %d\n", FILE__, __LINE__, global_mutex->depth());
+       return true;
    }
    else
-     return false;
+       return false;
 }
 
 /*
@@ -391,35 +390,27 @@ bool BPatch_process::continueExecutionInt()
 {
    getMailbox()->executeCallbacks(FILE__, __LINE__);
 
-
    //  maybe executeCallbacks led to the process execution status changing
    if (!statusIsStopped()) {
-     isVisiblyStopped = false;
-     return true;
+       fprintf(stderr, "Setting isVisiblyStopped to false\n");
+       isVisiblyStopped = false;
+       return true;
    }
 
    //  DON'T let the user continue the process if we have potentially active 
    //  signal handling going on:
    // You know... this should really never happen. 
-   while (llproc->sh->isActivelyProcessing()) {
-       signal_printf("%s[%d]:  waiting before doing user continue for process %d\n", FILE__, __LINE__, llproc->getPid());
-       llproc->sh->waitForEvent(evtAnyEvent);
-   }
 
-   getMailbox()->executeCallbacks(FILE__, __LINE__);
+   // Just let them know we care...
 
-   if (!statusIsStopped()) {
-     isVisiblyStopped = false;
-     return true;
-   }
+   // Set isVisiblyStopped first... due to races (and the fact that CPBlocking gives
+   // up the lock) we can hit a signal handler before this function returns...
 
-   if (llproc->continueProc()) {
-      setUnreportedStop(false);
-      isVisiblyStopped = false;
-      return true;
-   }
+   fprintf(stderr, "Setting isVisiblyStopped to false (2)\n");
+   isVisiblyStopped = false;
+   setUnreportedStop(false);
 
-   return false;
+   return llproc->sh->continueProcessBlocking();
 }
 
 
@@ -1251,7 +1242,7 @@ bool BPatch_process::replaceFunctionInt(BPatch_function &oldFunc,
  */
 void *BPatch_process::oneTimeCodeInt(const BPatch_snippet &expr)
 {
-   return oneTimeCodeInternal(expr, NULL, true);
+    return oneTimeCodeInternal(expr, NULL, NULL, true);
 }
 
 /*
@@ -1346,59 +1337,82 @@ void BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
  *		return immediately.
  */
 void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
+                                          BPatch_thread *thread, 
                                           void *userData,
                                           bool synchronous)
 {
    bool needToResume = false;
 
+   if (!isVisiblyStopped) needToResume = true;
+
+   inferiorrpc_printf("%s[%d]: UI top of oneTimeCode...\n", FILE__, __LINE__);
    while (llproc->sh->isActivelyProcessing()) {
-       signal_printf("%s[%d]:  waiting before doing user stop for process %d\n", FILE__, __LINE__, llproc->getPid());
+       inferiorrpc_printf("%s[%d]:  waiting before doing user stop for process %d\n", FILE__, __LINE__, llproc->getPid());
        llproc->sh->waitForEvent(evtAnyEvent);
    }
 
-   if (synchronous && !statusIsStopped()) {
-      stopExecutionInt();
-      
-      if (!statusIsStopped()) {
-         fprintf(stderr, "%s[%d]:  failed to run oneTimeCodeInternal .. status is %s\n", 
-                 FILE__, __LINE__, 
-                 llproc ? llproc->getStatusAsString().c_str() : "unavailable");
-         return NULL;
-      }
-      needToResume = true;
+   inferiorrpc_printf("%s[%d]: oneTimeCode, handlers quiet, sync %d, statusIsStopped %d, needToResume %d\n",
+                      FILE__, __LINE__, synchronous, statusIsStopped(), needToResume);
+
+   if (!statusIsStopped()) {
+       llproc->sh->pauseProcessBlocking();
+       if (!statusIsStopped()) {
+           fprintf(stderr, "%s[%d]:  failed to run oneTimeCodeInternal .. status is %s\n", 
+                   FILE__, __LINE__, 
+                   llproc ? llproc->getStatusAsString().c_str() : "unavailable");
+           return NULL;
+       }
    }
 
    OneTimeCodeInfo *info = new OneTimeCodeInfo(synchronous, userData, 
-                                               0 /* default thread */);
+                                               (thread) ? thread->index : 0);
 
    llproc->getRpcMgr()->postRPCtoDo(expr.ast,
                                     false, 
                                     BPatch_process::oneTimeCodeCallbackDispatch,
                                     (void *)info,
-                                    false,
-                                    NULL, NULL); 
-    
-   if (synchronous) {
-      do {
-        llproc->getRpcMgr()->launchRPCs(false);
-        getMailbox()->executeCallbacks(FILE__, __LINE__);
-        if (info->isCompleted()) break;
-        llproc->sh->waitForEvent(evtRPCSignal, llproc, NULL /*lwp*/, statusRPCDone);
-        getMailbox()->executeCallbacks(FILE__, __LINE__);
-      } while (!info->isCompleted() && !statusIsTerminated());
-      
-      void *ret = info->getReturnValue();
-      delete info;
-
-      if (needToResume) {
-         continueExecutionInt();
-      }
-        
-      return ret;
-   } else {
-      llproc->getRpcMgr()->launchRPCs(llproc->status() == running);
-      return NULL;
+                                    synchronous ? false : needToResume, // Run when finished?
+                                    false, // don't use lowmem heap...
+                                    (thread) ? (thread->llthread) : NULL,
+                                    NULL); 
+  
+   bool rpcNeedsContinue = false;
+   inferiorrpc_printf("%s[%d]: calling launchRPCs(%d, %d)\n",
+                      FILE__, __LINE__, rpcNeedsContinue, 
+                      synchronous ? false : needToResume);
+   
+   llproc->getRpcMgr()->launchRPCs(rpcNeedsContinue,
+                                   synchronous ? false : needToResume);
+   if (rpcNeedsContinue) {
+       inferiorrpc_printf("%s[%d]: Continuing process\n",
+                          FILE__, __LINE__);
+       llproc->sh->continueProcessBlocking();
    }
+
+   // Async... don't wait.
+   if (!synchronous) return NULL;
+
+   while (!info->isCompleted()) {
+       inferiorrpc_printf("%s[%d]: waiting for RPC to complete\n",
+                          FILE__, __LINE__);
+       llproc->sh->waitForEvent(evtRPCSignal, llproc, NULL /*lwp*/, statusRPCDone);
+       if (statusIsTerminated()) break;
+       getMailbox()->executeCallbacks(FILE__, __LINE__);
+   }
+
+   void *ret = info->getReturnValue();
+
+   inferiorrpc_printf("%s[%d]: RPC completed, process status %s, %s\n",
+                      FILE__, __LINE__, statusIsStopped() ? "stopped" : "running",
+                      needToResume ? "continuing" : "leaving stopped");
+   
+   if (needToResume) {
+       inferiorrpc_printf("%s[%d]: continuing process post-iRPC\n",
+                          FILE__, __LINE__);
+       llproc->sh->continueProcessBlocking();
+   }
+   delete info;
+   return ret;
 }
 
 //  BPatch_process::oneTimeCodeAsync
@@ -1408,7 +1422,7 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
 bool BPatch_process::oneTimeCodeAsyncInt(const BPatch_snippet &expr, 
                                          void *userData)
 {
-   if (NULL == oneTimeCodeInternal(expr, userData, false)) {
+    if (NULL == oneTimeCodeInternal(expr, NULL, userData, false)) {
       //fprintf(stderr, "%s[%d]:  oneTimeCodeInternal failed\n", FILE__, __LINE__);
       return false;
    }
@@ -1460,7 +1474,7 @@ bool BPatch_process::loadLibraryInt(const char *libname, bool)
    args.push_back(&nameArg);   
    BPatch_funcCallExpr call_dlopen(*dlopen_func, args);
     
-   if (!oneTimeCodeInternal(call_dlopen, NULL, true)) {
+   if (!oneTimeCodeInternal(call_dlopen, NULL, NULL, true)) {
       BPatch_variableExpr *dlerror_str_var = 
          image->findVariable("gLoadLibraryErrorString");
       assert(NULL != dlerror_str_var);      
