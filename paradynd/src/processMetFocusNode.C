@@ -551,21 +551,9 @@ bool processMetFocusNode::doCatchupInstrumentation(pdvector<pdvector<Frame> >&st
     //    our purposes
     // 3) Waiting for a system call, no trap. Nothing we can do but
     //    wait and pick it up somewhere else.
-    if (!proc_->launchRPCs(runWhenFinished_)) {
-        if (runWhenFinished_) 
-            continueProcess();
-        return true;
-    }
-    else {
-        // RPCs ran, but now we're out of sync with the BPatch process.
-        if (runWhenFinished_) {
-            // We need to set the BPatch_process status variable to "running".
-            // It thinks we're stopped.
-            if (pd_debug_catchup)
-                fprintf(stderr, "DEBUG: overriding internal BPatch_process running state\n");
-            proc_->overrideInternalRunningState(runWhenFinished_);
-        }
-    }
+    proc_->launchRPCs(runWhenFinished_);
+
+    continueProcess();
 
     // runWhenFinished_ now becomes the state to leave the process in when we're
     // done with catchup. For a little while, we'll be out of sync with the 
@@ -741,6 +729,7 @@ bool processMetFocusNode::postCatchupRPCs()
                              false, // noCost
                              processMetFocusNode::postCatchupRPCDispatch, // callbackFunc
                              (void *)thr, // user data
+                             true, // Run when done
                              false,  // lowmem parameter
                              catchupASTList[i].thread, 
                              NULL);
@@ -958,17 +947,15 @@ void processMetFocusNode::removeProcNodesToDeleteLater() {
 }
 
 void processMetFocusNode::pauseProcess() {
-  // /* DEBUG */ fprintf(stderr, "procMetFoc, pauseProc %d\n", runWhenFinished_);
-  if(runWhenFinished_ == true)  return;
-  if (proc()->isStopped()) return; // at startup, process can be stopped, but not "paused"
-                                 // don't need to pause, and setting runWhenFinished_
-                                 // will result in the process getting started at
-                                 // a bad moment.
-  if (proc()->pauseProc())
-  {
-    runWhenFinished_ = true;
-  }
-
+    /* DEBUG */ fprintf(stderr, "procMetFoc, pauseProc %d\n", runWhenFinished_);
+    if(runWhenFinished_ == true)  return;
+    if (proc()->isStopped()) return; // at startup, process can be stopped, but not "paused"
+    // don't need to pause, and setting runWhenFinished_
+    // will result in the process getting started at
+    // a bad moment.
+    if (proc()->pauseProc()) {
+        runWhenFinished_ = true;
+    }
 }
 
 void processMetFocusNode::continueProcess() {

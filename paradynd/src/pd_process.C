@@ -957,33 +957,6 @@ bool pd_process::getParadynRTname() {
 bool pd_process::loadAuxiliaryLibrary(pdstring libname) {
     auxLibState = libUnloaded;
 
-#ifdef NOTDEF // PDSEP
-    pdvector<AstNode*> loadLibAstArgs(1);
-    loadLibAstArgs[0] = new AstNode(AstNode::ConstantString, 
-                reinterpret_cast<void *>(const_cast<char *>(libname.c_str())));
-    AstNode *loadLib = new AstNode("DYNINSTloadLibrary", loadLibAstArgs);
-    removeAst(loadLibAstArgs[0]);
-
-    // We've built a call to loadLibrary, now run it via inferior RPC
-    postRPCtoDo(loadLib, true, // Don't update cost
-                pd_process::loadAuxiliaryLibraryCallback,
-                (void *)this, // User data
-                false,
-                NULL, NULL);
-
-    setLibState(auxLibState, libLoading);
-    // .. run RPC
-
-    // We block on paradynRTState, which is set to libLoaded
-    // via the inferior RPC callback
-    while (!reachedLibState(auxLibState, libLoaded)) {
-        if(hasExited()) return false;
-        launchRPCs(false);
-        getSH()->checkForAndHandleProcessEvents(true);
-    }
-    removeAst(loadLib);
-#endif
-
     setLibState(auxLibState, libLoading);
     if (!dyninst_process->loadLibrary(libname.c_str())) {
       fprintf(stderr, "%s[%d]:  failed to load library %s\n", __FILE__, __LINE__, libname.c_str());
@@ -2056,6 +2029,8 @@ bool pd_process::continueProc() {
 }
 bool pd_process::pauseProc() 
 {
+    fprintf(stderr, "pd_process:pauseProc...\n");
+
     if (!dyninst_process->stopExecution())
         return false;
     if (dyninst_process->isTerminated())
@@ -2257,19 +2232,26 @@ unsigned pd_process::calculate_Checksum( pdstring graph)
 bool pd_process::launchRPCs(bool wasRunning) {
     PDSEP_LOCK(__FILE__, __LINE__);
     process *llproc = dyninst_process->lowlevel_process();
-    bool retval = llproc->getRpcMgr()->launchRPCs(wasRunning);
+    bool runProcess = false;
+    bool retval = llproc->getRpcMgr()->launchRPCs(runProcess,
+                                                  wasRunning);
+    // Let's go toplevel continue for a bit...
+    //if (runProcess) llproc->continueProc();
     PDSEP_UNLOCK(__FILE__, __LINE__);
     return retval;
 }
 
 unsigned pd_process::postRPCtoDo(AstNode *action, bool noCost,
                                  inferiorRPCcallbackFunc callbackFunc,
-                                 void *userData, bool lowmem,
+                                 void *userData, 
+                                 bool runWhenFinished,
+                                 bool lowmem,
                                  dyn_thread *thr, dyn_lwp *lwp) {
     PDSEP_LOCK(__FILE__, __LINE__);
     process *llproc = dyninst_process->lowlevel_process();
     unsigned retval = llproc->getRpcMgr()->postRPCtoDo(action, noCost,
                                                        callbackFunc, userData,
+                                                       runWhenFinished,
                                                        lowmem,
                                                        thr, lwp);
     PDSEP_UNLOCK(__FILE__, __LINE__);

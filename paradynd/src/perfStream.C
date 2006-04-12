@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.187 2006/04/03 19:44:52 bernat Exp $
+// $Id: perfStream.C,v 1.188 2006/04/12 16:59:44 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/timing.h"
@@ -565,7 +565,7 @@ void controllerMainLoop(bool check_buffer_first)
       
       // Clean up any inferior RPCs that might still be queued do to a failure
       // to start them
-      doDeferredRPCs();
+      //doDeferredRPCs();
       
 #if defined(arch_x86)
       doDeferredInstrumentation();

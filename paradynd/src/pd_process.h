@@ -358,7 +358,9 @@ class pd_process {
 
    unsigned postRPCtoDo(AstNode *action, bool noCost,
                         inferiorRPCcallbackFunc callbackFunc,
-                        void *userData, bool lowmem,
+                        void *userData, 
+                        bool runWhenFinished,
+                        bool lowmem,
                         dyn_thread *thr, dyn_lwp *lwp);
    
    //bool triggeredInStackFrame(Frame &frame, BPatch_point *point,

@@ -347,8 +347,9 @@ bool papiMgr::inferiorPapiAddEvent(int eventCode)
   extern void checkProcStatus();
 
   do {
-    proc_->launchRPCs(proc_->status()==running);
-    checkProcStatus();
+      bool continueHint;
+      proc_->launchRPCs(proc_->status()==running);
+      checkProcStatus();
   } while (!ret.ready);
 
   switch ((int)ret.result) {
