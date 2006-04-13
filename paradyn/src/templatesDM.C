@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: templatesDM.C,v 1.39 2005/12/19 19:42:17 pack Exp $
+// $Id: templatesDM.C,v 1.40 2006/04/13 23:05:29 legendre Exp $
 // templates for DMthread, excluding igen templates
 //
 
@@ -61,6 +61,8 @@
 #include "dyninstRPC.mrnet.h"
 #pragma implementation "visi.xdr.h"
 #include "visi.xdr.h"
+
+#include "paradyn/src/DMthread/DMabstractions.h"
 
 /*
  * Handy ready-to-use templates for the templates
@@ -130,6 +132,9 @@ template class pdvector<rlNameIdType>;
 
 template class dictionary_hash<pdstring,metric*>;
 template class pdvector<dictionary_hash<pdstring,metric*>::entry>;
+
+template class dictionary_hash<pdstring,abstraction*>;
+template class pdvector<dictionary_hash<pdstring,abstraction*>::entry>;
 
 template class pdvector<dataValueType>;
 template class BufferPool<dataValueType>;

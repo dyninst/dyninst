@@ -43,6 +43,9 @@
  * DMabstractions.C: code to handle programming abstractions
  *
  * $Log: DMabstractions.C,v $
+ * Revision 1.13  2006/04/13 23:05:30  legendre
+ * ParadynFE compilation fixes
+ *
  * Revision 1.12  2005/12/20 00:19:19  pack
  * RNet new igen  - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  * front end files
@@ -109,8 +112,7 @@
 #include "common/h/Dictionary.h"
 #include "common/h/String.h"
 
-//template class dictionary_hash<pdstring, abstraction*>;
-//dictionary_hash<pdstring, abstraction*> abstraction::allAbstractions(pdstring::hash);
+dictionary_hash<pdstring, abstraction*> abstraction::allAbstractions(pdstring::hash);
 
 abstraction::abstraction(const char *a)
 {

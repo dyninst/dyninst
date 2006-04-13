@@ -40,14 +40,14 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.162 2006/03/23 23:57:30 legendre Exp $
+ * $Id: DMdaemon.C,v 1.163 2006/04/13 23:05:31 legendre Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
 #include <assert.h>
 #include <stdio.h>
 #include <malloc.h>
-
+#include "common/h/headers.h"
 #include "pdutil/h/mdlParse.h"
 
 template class pdvector<double>;
@@ -86,11 +86,6 @@ extern "C" {
 #include <fstream>
 
 static int getNumberOfNodes( const pdvector<pdstring> &argv);
-
-static bool startMPI( daemonEntry *,
-                      const pdvector<pdstring> & ,
-                      const pdvector<pdstring> & );
-
 
 #if defined(os_aix)
 static bool startPOE(const pdstring &, const pdstring &,
@@ -724,33 +719,6 @@ bool paradynDaemon::instantiateMRNetforMPIDaemons(daemonEntry * ide,
     return true;
 }
 
-bool paradynDaemon::startMPIDaemonsandApplication(daemonEntry * ide,
-                                                  processMet* proc )
-{
-#if defined(os_aix)
-    //startPOE(machine, login, name, dir, argv, args, def, leafInfo);
-#else
-    pdvector<pdstring> argv;
-    argv.push_back( proc->name());
-    argv.push_back( proc->command());
-    argv.push_back( proc->daemon());
-    argv.push_back( proc->host());
-    argv.push_back( proc->user());
-    argv.push_back( proc->execDir());
-    if( proc->autoStart() )
-        argv.push_back( pdstring("true"));
-    else
-        argv.push_back( pdstring("false"));
-    
-    startMPI(ide, argv, args);
-#endif
-				
-    if( ide->getMRNetNetwork()->connect_Backends() < 0)
-        fprintf(stderr,"MRN::Network::connect_Backends() failed\n");
-
-    return true;
-}
-
 bool paradynDaemon::instantiateDefaultDaemon( daemonEntry * ide,
                                               const pdvector <pdstring> * ihosts )
 {
@@ -1164,7 +1132,11 @@ pdstring mpichNameWrapper( const pdstring& dir )
 }
 
 
-#if !defined(i386_unknown_nt4_0)
+#if !defined(os_windows)
+
+static bool startMPI( daemonEntry *,
+                      const pdvector<pdstring> & ,
+                      const pdvector<pdstring> & );
 
 /*
   Perform a cleanup when the frontend exits
@@ -2120,6 +2092,34 @@ static bool startMPI( daemonEntry *de,
     }
     return false;
 }
+
+bool paradynDaemon::startMPIDaemonsandApplication(daemonEntry * ide,
+                                                  processMet* proc )
+{
+#if defined(os_aix)
+    //startPOE(machine, login, name, dir, argv, args, def, leafInfo);
+#else
+    pdvector<pdstring> argv;
+    argv.push_back( proc->name());
+    argv.push_back( proc->command());
+    argv.push_back( proc->daemon());
+    argv.push_back( proc->host());
+    argv.push_back( proc->user());
+    argv.push_back( proc->execDir());
+    if( proc->autoStart() )
+        argv.push_back( pdstring("true"));
+    else
+        argv.push_back( pdstring("false"));
+    
+    startMPI(ide, argv, args);
+#endif
+				
+    if( ide->getMRNetNetwork()->connect_Backends() < 0)
+        fprintf(stderr,"MRN::Network::connect_Backends() failed\n");
+
+    return true;
+}
+
 #endif // !defined(i386_unknown_nt4_0)
 
 // add a new executable (binary) to a program.
@@ -3162,7 +3162,7 @@ paradynDaemon::paradynDaemon(const pdstring &m, const pdstring &u,
     // on the same host into the same status line in the GUI
     {
         char idxbuf[16];
-        sprintf( idxbuf, "%d", paradynDaemon::daemonsByHost[status].size() );
+        snprintf( idxbuf, 16, "%d", paradynDaemon::daemonsByHost[status].size() );
 
         pdstring sfx = ((pdstring)("[")) + idxbuf + "]";
         paradynDaemon::daemonsByHost[status].push_back( this );
@@ -3349,7 +3349,7 @@ paradynDaemon::reportSelf(MRN::Stream *stream, pdstring m, pdstring p, int /*pid
     // on the same host into the same status line in the GUI
     {
         char idxbuf[16];
-        sprintf( idxbuf, "%d", paradynDaemon::daemonsByHost[status].size() );
+        snprintf( idxbuf, 16, "%d", paradynDaemon::daemonsByHost[status].size() );
 
         pdstring sfx = ((pdstring)("[")) + idxbuf + "]";
         paradynDaemon::daemonsByHost[status].push_back( this );

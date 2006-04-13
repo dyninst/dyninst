@@ -40,11 +40,13 @@
  */
 
 /*
- * $Id: DMtime-nt.C,v 1.5 2005/12/20 00:19:38 pack Exp $
+ * $Id: DMtime-nt.C,v 1.6 2006/04/13 23:05:32 legendre Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
-#include "DMinclude.h"
+#include "common/h/Time.h"
+
 #include "DMtime.h"
+#include "DMinclude.h"
 
 
 // returns the current time in seconds, in a manner comparable to
@@ -58,8 +60,7 @@
 //
 // TODO - can this be shared between front end and daemon?
 
-timeStamp
-getCurrentTime( void )
+timeStamp getCurrentTime(void)
 {
     static double freq = 0.0; // the counter frequency
     static double previousTime = 0.0;
