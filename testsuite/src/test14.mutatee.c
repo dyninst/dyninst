@@ -128,7 +128,7 @@ volatile unsigned ok_to_go = 0;
 void *init_func(void *arg)
 {
    assert(arg == NULL);
-   while(! ok_to_go) sleep(1);
+   while(! ok_to_go) P_sleep(1);
    level0(N_INSTR-1);
    return NULL;
 }
