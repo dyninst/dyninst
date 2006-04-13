@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ntHeaders.h,v 1.22 2006/03/14 22:57:08 legendre Exp $
+// $Id: ntHeaders.h,v 1.23 2006/04/13 23:05:09 legendre Exp $
 
 #if !defined(pd_nt_headers_h)
 #define pd_nt_headers_h
@@ -237,6 +237,7 @@ inline bool_t P_xdrrec_endofrecord(XDR *x, int now) {
   return (xdrrec_endofrecord(x, now));}
 inline bool_t P_xdrrec_skiprecord(XDR *x) { return (xdrrec_skiprecord(x));}
 inline bool_t P_xdrrec_eof(XDR *x) { return (xdrrec_eof(x)); }
+extern "C" int snprintf(char *, size_t, const char *, ...);
 #endif
 #endif
 #endif

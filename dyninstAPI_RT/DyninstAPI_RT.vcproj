@@ -36,13 +36,15 @@
 				OutputFile="$(OutDir)\libdyninstAPI_RT.dll"
 				LinkIncremental="2"
 				GenerateDebugInformation="TRUE"
-				AssemblyDebug="1"/>
+				AssemblyDebug="1"
+				ProgramDatabaseFile="i386-unknown-nt4.0\libdyninstAPI_RT.pdb"/>
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
 				CommandLine="copy i386-unknown-nt4.0\libdyninstAPI_RT.dll ..\..\i386-unknown-nt4.0\lib
 copy i386-unknown-nt4.0\libdyninstAPI_RT.lib ..\..\i386-unknown-nt4.0\lib
+copy i386-unknown-nt4.0\libdyninstAPI_RT.pdb ..\..\i386-unknown-nt4.0\lib
 "/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
@@ -65,7 +67,7 @@ copy i386-unknown-nt4.0\libdyninstAPI_RT.lib ..\..\i386-unknown-nt4.0\lib
 			Name="Release|Win32"
 			OutputDirectory="i386-unknown-nt4.0"
 			IntermediateDirectory="i386-unknown-nt4.0"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			CharacterSet="2"
 			ManagedExtensions="TRUE">
 			<Tool
@@ -81,12 +83,16 @@ copy i386-unknown-nt4.0\libdyninstAPI_RT.lib ..\..\i386-unknown-nt4.0\lib
 				Name="VCLinkerTool"
 				OutputFile="$(OutDir)\libdyninstAPI_RT.dll"
 				LinkIncremental="1"
-				GenerateDebugInformation="TRUE"/>
+				GenerateDebugInformation="TRUE"
+				ProgramDatabaseFile="i386-unknown-nt4.0\libdyninstAPI_RT.pdb"/>
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy i386-unknown-nt4.0\libdyninstAPI_RT.dll ..\..\i386-unknown-nt4.0\lib"/>
+				CommandLine="copy i386-unknown-nt4.0\libdyninstAPI_RT.dll ..\..\i386-unknown-nt4.0\lib
+copy i386-unknown-nt4.0\libdyninstAPI_RT.lib ..\..\i386-unknown-nt4.0\lib
+copy i386-unknown-nt4.0\libdyninstAPI_RT.pdb ..\..\i386-unknown-nt4.0\lib
+"/>
 			<Tool
 				Name="VCPreBuildEventTool"
 				CommandLine="..\..\scripts\buildstaamp.bat 0 libdyninstAPI_RT.dll"/>
@@ -151,6 +157,12 @@ copy i386-unknown-nt4.0\libdyninstAPI_RT.lib ..\..\i386-unknown-nt4.0\lib
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}">
+			<File
+				RelativePath=".\h\dyninstAPI_RT.h">
+			</File>
+			<File
+				RelativePath=".\h\dyninstRTExport.h">
+			</File>
 		</Filter>
 	</Files>
 	<Globals>
