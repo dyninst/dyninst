@@ -89,14 +89,6 @@ BPatch_eventLock::BPatch_eventLock()
   //  Assume that this ctor is being called on the primary (UI) thread
   //  and set its value accordingly.
   primary_thread_id = getExecThreadID();
-
-#ifdef NOTDEF // PDSEP
-#if defined (os_windows)
-  primary_thread_id = _threadid;
-#else
-  primary_thread_id = (unsigned long)pthread_self();
-#endif
-#endif
 }
 
 BPatch_eventLock::~BPatch_eventLock() {};

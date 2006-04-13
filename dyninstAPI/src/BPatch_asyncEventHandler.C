@@ -807,26 +807,6 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
 
        BPatch_point *pt = monitored_points[(Address)call_rec.call_site_addr];
 
-#ifdef NOTDEF // PDSEP
-       //  find the record(s) for the pt that triggered this event
-       //
-
-       pdvector<dyncall_cb_record *> pts;
-       for (unsigned int i = 0; i < dyn_pts.size(); ++i) {
-         if (dyn_pts[i].pt->getAddress() == (void *) callsite_addr) {
-            pts.push_back(&(dyn_pts[i]));
-         }
-       }
-       if (!pts.size()) {
-           bperr("%s[%d]:  failed to find async call point %p\n Valid Addrs:\n",
-                 FILE__, __LINE__, callsite_addr);
-           for (unsigned int r = 0; r < dyn_pts.size(); ++r) {
-             bperr("\t%p\n", (void *) dyn_pts[r].pt->getAddress());
-           } 
-           return false;
-       }
-
-#endif
        //  found the record(s), now find the function that was called
        int_function *f = appProc->llproc->findFuncByAddr(func_addr);
        if (!f) {
@@ -859,26 +839,6 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
          DynamicCallsiteCallback &cb = * ((DynamicCallsiteCallback *) cbs[i]);
          cb(pt, bpf);
        }
-
-#ifdef NOTDEF // PDSEP
-       //  call the callback(s) and we're done:
-       //  actually, just register callback in mailbox
-       //  (to be executed on primary thread) and we're done.
-       for (unsigned int j = 0; j < pts.size(); ++j) {
-         //assert(pts[j]->cb);
-         //BPatchDynamicCallSiteCallback cb = pts[j]->cb;
-         BPatch_point *pt = pts[j]->pt;
-         pdvector<CallbackBase *> cbs;
-         getCBManager()->dispenseCallbacksMatching(evtDynamicCall, cbs);
-         for (unsigned int i = 0; i < cbs.size(); ++i) {
-             BPatch::bpatch->signalNotificationFD();
-             DynamicCallsiteCallback *cb = dynamic_cast<DynamicCallsiteCallback *>(cbs[i]);
-             if (cb) 
-                 (*cb)(pt, bpf);
-         }
-
-       }
-#endif
 
        return true;
      }

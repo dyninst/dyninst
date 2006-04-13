@@ -40,7 +40,7 @@
  */
 
 
-// $Id: templates2.C,v 1.64 2006/04/06 10:08:46 jaw Exp $
+// $Id: templates2.C,v 1.65 2006/04/13 20:04:33 jaw Exp $
 
 #if defined(__XLC__) || defined(__xlC__)
 #include "common/h/Dictionary.h"
@@ -201,10 +201,6 @@ template class pdvector<dictionary_hash < eventType, pdvector <CallbackBase *> >
 template class pdvector<CallbackBase *>;
 template class pdvector<BPatchAsyncThreadEventCallback *>;
 template class pdvector<AsyncThreadEventCallback *>;
-#ifdef NOTDEF // PDSEP
-template class pdvector<dyncall_cb_record>;
-template class pdvector<dyncall_cb_record *>;
-#endif
 template class pdvector<thread_event_cb_record>;
 template class pdvector<void (*)()>;
 template class pdvector<void *>;

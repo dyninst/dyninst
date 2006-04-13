@@ -420,9 +420,6 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
   getAsync()->registerMonitoredPoint(this);
 
   dynamic_point_monitor_func = res;
-#ifdef NOTDEF // PDSEP
-  dynamicMonitoringCalls.push_back(res);
-#endif
 
   //  Return pointer to handle as unique id, user does not need to know its a
   //  miniTramp.
@@ -432,30 +429,6 @@ void *BPatch_point::monitorCallsInt( BPatch_function * user_cb )
 
 bool BPatch_point::stopMonitoringInt()
 {
-#ifdef NOTDEF // PDSEP
-  miniTramp *target = NULL, *mtHandle = (miniTramp *) handle;
-
-  for (unsigned int i = 0 ; i < dynamicMonitoringCalls.size(); ++i) {
-    if (!target) {
-      // haven't found it yet -- keep looking
-      if (dynamicMonitoringCalls[i] == mtHandle) {
-        target = dynamicMonitoringCalls[i];
-      } 
-    }
-    if (target) {
-      //  target is found, shift everthing after it one to the left.
-      //  (this removes target from the array)
-      if ( (i+1) < dynamicMonitoringCalls.size()) {
-        dynamicMonitoringCalls[i] = dynamicMonitoringCalls[i+1];
-      }
-      else {
-        // last element, resize vector (length - 1)
-        dynamicMonitoringCalls.resize(dynamicMonitoringCalls.size()-1);
-      }
-    }    
-  }
-
-#endif
   if (!dynamic_point_monitor_func) {
     bperr("%s[%d]:  call site not currently monitored", __FILE__, __LINE__);
     return false;
@@ -467,45 +440,6 @@ bool BPatch_point::stopMonitoringInt()
   return ret;
 }
 
-#ifdef NOTDEF // PDSEP
-//  BPatch_point::registerDynamicCallCallback
-//
-//  Specifies a user-supplied function to be called when a dynamic call is
-//  executed.
-//
-//  Returns a handle (useful for de-registering callback), NULL if error
-
-void *BPatch_point::registerDynamicCallCallbackInt(BPatchDynamicCallSiteCallback cb)
-{
-#ifdef NOTDEF // PDSEP
-  void *ret = NULL;
-  ret = getAsync()->registerDynamicCallCallback(cb, this);
-  if (ret) BPatch::bpatch->asyncActive = true;
-  return ret;
-#endif
-  fprintf(stderr, "%s[%d]:  re-implement me!\n", FILE__, __LINE__);
-
-  
-  return NULL;
-}
-
-//  BPatch_point::removeDynamicCallCallback
-//
-//  Argument is (void *) handle to previously specified callback function to be
-//  de-listed.
-//
-//  Returns true upon success, false if handle is not currently represented
-
-bool BPatch_point::removeDynamicCallCallbackInt(void *handle)
-{
-#ifdef NOTDEF // PDSEP
-  return getAsync()->removeDynamicCallCallback(handle);
-#endif
-  
-  fprintf(stderr, "%s[%d]:  re-implement me!\n", FILE__, __LINE__);
-  return false;
-}
-#endif
 /*
  * BPatch_point::getDisplacedInstructions
  *

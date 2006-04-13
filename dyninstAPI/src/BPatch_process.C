@@ -179,23 +179,6 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
 
    startup_cerr << "BPatch_process::BPatch_process, completed." << endl;
    isVisiblyStopped = true;
-
-#ifdef NOTDEF // PDSEP
-   //  turn on debugging flag in rt lib if asked
-   extern int dyn_debug_rtlib;
-   if (dyn_debug_rtlib) {
-      BPatch_variableExpr *debug_flag = image->findVariable("DYNINSTdebugRTlib");
-      if (!debug_flag) {
-         fprintf(stderr, "%s[%d]:  cannot find debug flag variable \n", FILE__, __LINE__);
-      }
-      else {
-        int one = 1;
-        if (! debug_flag->writeValue((void *) &one, sizeof(int),true)) {
-            fprintf(stderr, "cannot set debug flag variable\n", FILE__, __LINE__);
-        }
-      }
-   }
-#endif
 }
 
 /*
@@ -243,23 +226,6 @@ BPatch_process::BPatch_process(const char *path, int pid)
    assert(llproc->status() == stopped);
 
    isVisiblyStopped = true;
-
-#ifdef NOTDEF // PDSEP
-   //  turn on debugging flag in rt lib if asked
-   extern int dyn_debug_rtlib;
-   if (dyn_debug_rtlib) {
-      BPatch_variableExpr *debug_flag = image->findVariable("DYNINSTdebugRTlib");
-      if (!debug_flag) {
-         fprintf(stderr, "%s[%d]:  cannot find debug flag variable \n", FILE__, __LINE__);
-      }
-      else {
-        int one = 1;
-        if (! debug_flag->writeValue((void *) &one, sizeof(int),true)) {
-            fprintf(stderr, "cannot set debug flag variable\n", FILE__, __LINE__);
-        }
-      }
-   }
-#endif
 }
 
 /*

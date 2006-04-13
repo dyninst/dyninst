@@ -107,16 +107,8 @@ typedef enum {
     REinsufficientData,
     REreadError,
     REillegalProcess,
-    REerror} asyncReadReturnValue_t;
-    
-
-#ifdef NOTDEF // PDSEP
-typedef struct {
-    BPatchDynamicCallSiteCallback cb;
-    void *handle;
-    BPatch_point *pt;
-} dyncall_cb_record;
-#endif
+    REerror
+} asyncReadReturnValue_t;
 
 typedef struct {
     pdvector<BPatch_function *> *mutatee_side_cbs;
@@ -220,14 +212,6 @@ class BPatch_asyncEventHandler : public EventHandler<EventRecord> {
     //   will have to be locked.  
     pdvector<process_record> process_fds;
 
-#ifdef NOTDEF // PDSEP
-    //  dyn_pts holds BPatch_point and callback info for dynamic call events.
-    //  XXX -- since this is linearly searched for each dynamic call event
-    //  it could get prohibitively slow in cases where there are a lot of
-    //  requests to monitor dynamic calls.  Maybe a (somewhat more complex)
-    //  data structure is necessary?
-    pdvector<dyncall_cb_record> dyn_pts;
-#endif
     dictionary_hash<Address, BPatch_point *> monitored_points;
 };
 
