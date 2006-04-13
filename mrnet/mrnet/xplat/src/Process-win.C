@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Process-win.C,v 1.5 2005/03/29 16:01:33 darnold Exp $
+// $Id: Process-win.C,v 1.6 2006/04/13 23:05:28 legendre Exp $
 #include <winsock2.h>
 #include <string.h>
 #include "xplat/Process.h"
@@ -12,6 +12,19 @@
 
 namespace XPlat
 {
+
+void printSysError(unsigned errNo) {
+    char buf[1000];
+    bool result = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, errNo, 
+		  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		  buf, 1000, NULL);
+    if (!result) {
+        fprintf(stderr, "Couldn't print error message\n");
+        printSysError(GetLastError());
+    }
+    fprintf(stderr, "System error [%d]: %s\n", errNo, buf);
+    fflush(stderr);
+}
 
 int
 Process::CreateLocal( const std::string& cmd, 
@@ -31,6 +44,7 @@ Process::CreateLocal( const std::string& cmd,
     }
     char* mutableCmdline = new char[cmdline.length() + 1];
     strncpy( mutableCmdline, cmdline.c_str(), cmdline.length() );
+    mutableCmdline[cmdline.length()] = '\0';
 
     // spawn the process
     STARTUPINFO startupInfo;
@@ -57,7 +71,9 @@ Process::CreateLocal( const std::string& cmd,
         // process was created successfully
         ret = 0;
     }
-
+    else {
+        printSysError(GetLastError());
+    }
     // cleanup
     delete[] mutableCmdline;
     CloseHandle( processInfo.hProcess );
