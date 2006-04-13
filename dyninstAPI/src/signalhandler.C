@@ -264,7 +264,7 @@ bool SignalHandler::handleLwpExit(EventRecord &ev, bool &continueHint)
    }
    if (!thr)
    {
-       fprintf(stderr, "No matching thread!\n");
+       fprintf(stderr, "%s[%d]: No matching thread! for lwp exit\n", FILE__, __LINE__);
        continueHint = true;
        return false;
    }

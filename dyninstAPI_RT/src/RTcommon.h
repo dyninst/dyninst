@@ -70,6 +70,11 @@ extern int unmap_region(void *addr, int len);
 extern void mark_heaps_exec(void);
 
 extern int DYNINSTdebugRTlib;
+#if (os_solaris == 8) || defined (os_windows)
+//  solaris 2.8 is having some trouble with varargs...  
+#define rtdebug_printf if (DYNINSTdebugPrintRT) printf
+#else
 int rtdebug_printf(const char *format, ...);
+#endif
 #endif
        

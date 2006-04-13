@@ -161,7 +161,7 @@ int threads_equal(thread_t a, thread_t b) {
 }
 
 unsigned long thread_int(thread_t a) {
-    return a;
+    return (unsigned long)a;
 }
 
 void schedYield() {

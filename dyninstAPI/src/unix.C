@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.182 2006/04/12 16:59:26 bernat Exp $
+// $Id: unix.C,v 1.183 2006/04/13 19:20:37 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -314,12 +314,40 @@ bool SignalGenerator::decodeProcStatus(procProcStatus_t status, EventRecord &ev)
         break;
 #endif
      case PR_JOBCONTROL:
+        //  not really sure what this means
+        fprintf(stderr, "%s[%d]:  WARNING:  got PR_JOBCONTROL\n", FILE__, __LINE__);
+        ev.type = evtSuspended;
+        return false;
+        break;
      case PR_FAULTED:
+        fprintf(stderr, "%s[%d]:  WARNING:  got PR_FAULTED\n", FILE__, __LINE__);
+        ev.type = evtCritical;
+        return false;
+        break;
      default:
-        assert(0);
+        fprintf(stderr, "%s[%d]:  WARNING:  unknown process status: %d\n", FILE__, __LINE__, status.pr_why);
+        ev.type = evtSuspended;
+        return false;
         break;
    }
 
+   if (ev.type == evtUndefined) {
+     fprintf(stderr, "%s[%d]: WARNING:  could not decode event: \n", FILE__, __LINE__);
+     fprintf(stderr, "\tpr.what = %d, pr.why = %d\n", status.pr_what, status.pr_why);
+     fprintf(stderr, "Thread status flags: 0x%x (STOPPED %d, ISTOP %d, ASLEEP %d)\n",
+                 status.pr_flags,
+                 status.pr_flags & PR_STOPPED,
+                 status.pr_flags & PR_ISTOP,
+                 status.pr_flags & PR_ASLEEP);
+     fprintf(stderr, "Current signal: %d, reason for stopping: %d, (REQ %d, SIG %d, ENT %d, EXIT %d), what %d\n",
+            status.pr_cursig, status.pr_why,
+            status.pr_why == PR_REQUESTED,
+            status.pr_why == PR_SIGNALLED,
+            status.pr_why == PR_SYSENTRY,
+            status.pr_why == PR_SYSEXIT,
+            status.pr_what);
+     return false;
+   }
    return true;
 }
 #endif
@@ -575,7 +603,10 @@ bool SignalGenerator::decodeSignal(EventRecord &ev)
   {
      signal_printf("%s[%d]:  SIGILL\n", FILE__, __LINE__);
 #if defined (arch_ia64)
-     assert(ev.lwp);
+     if (!ev.lwp) {
+       fprintf(stderr, "%s[%d]:  CRITICAL SIGNAL\n", FILE__, __LINE__);
+       break;
+     }
      
      Frame frame = ev.lwp->getActiveFrame();
 
@@ -677,6 +708,7 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
     }
 #endif
 
+  fprintf(stderr, "%s[%d]: decodeSigTrap failing\n", FILE__, __LINE__);
   return false;
 }
 

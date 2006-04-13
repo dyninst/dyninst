@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.57 2006/04/07 15:01:02 jaw Exp $ */
+/* $Id: RTcommon.c,v 1.58 2006/04/13 19:20:37 jaw Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -460,19 +460,21 @@ unsigned dyninst_maxNumOfThreads()
 #endif
 }
 
+#if !(os_solaris==8)
 int rtdebug_printf(const char *format, ...)
 {
   if (!DYNINSTdebugRTlib) return 0;
   if (NULL == format) return -1;
 
   fprintf(stderr, "[RTLIB]");
-  va_list va;
-  va_start(va, format);
-  int ret = vfprintf(stderr, format, va);
-  va_end(va);
+  va_list val;
+  va_start(val, format);
+  int ret = vfprintf(stderr, format, val);
+  va_end(val);
 
   return ret;
 }
+#endif
 
 #ifndef CASE_RETURN_STR
 #define CASE_RETURN_STR(x) case x: return #x

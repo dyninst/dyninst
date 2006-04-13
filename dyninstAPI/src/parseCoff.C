@@ -1401,21 +1401,37 @@ int eCoffGetOffset(eCoffSymbol &symbol, pPDR func) {
 
 // This version returns the pPDR structure associated
 // with a text string.  Very inefficient.
-pPDR stabsGetFunction(eCoffSymbol &origSymbol, const char *func) {
+pPDR stabsGetFunction(eCoffSymbol &origSymbol, const char *func) 
+{
     eCoffParseInfo *info = origSymbol.getParseInfo();
+    assert(info);
     eCoffSymbol symbol(info);
 
+    pPDR ret = NULL;
+    fprintf(stderr, "%s[%d]:  Not a match: ", FILE__, __LINE__);
     for (int i = 0; i < info->pdrCount; ++i) {
        symbol = info->pdrBase[i].isym;
-       if (symbol.name == func)
-          return info->pdrBase + i;
+       if (symbol.name == func) {
+          ret = info->pdrBase + i;
+          fprintf(stderr, "%s ", symbol.name.c_str());
+          break;
+       }
     }
+    fprintf(stderr, "\n");
     return NULL;
 }
 
-int stabsGetOffset(eCoffSymbol &symbol, const char *func, int st) {
+int stabsGetOffset(eCoffSymbol &symbol, const char *func, int st) 
+{
     if (!func) return -1;
     pPDR func_pdr = stabsGetFunction(symbol, func);
+
+    if (!func_pdr) {
+       fprintf(stderr, "%s[%d]:  stabsGetFunction failed for %s/%s\n", FILE__, __LINE__, symbol.name.c_str(), func);
+       return -1;
+    }
+    assert(func_pdr);
+    assert(symbol.sym);
 
     if (st == stLocal)
        return (func_pdr->frameoffset - func_pdr->localoff + symbol.sym->value);
