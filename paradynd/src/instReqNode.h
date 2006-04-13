@@ -44,6 +44,7 @@
 
 
 #include "common/h/Vector.h"
+#include "common/h/Time.h"
 #include "dyninstAPI/h/BPatch_snippet.h"
 #include "dyninstAPI/h/BPatch_process.h"
 #include "dyninstAPI/src/instP.h" // for mtHandle

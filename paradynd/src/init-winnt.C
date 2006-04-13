@@ -39,13 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init-winnt.C,v 1.17 2005/10/10 18:45:49 legendre Exp $
+// $Id: init-winnt.C,v 1.18 2006/04/13 23:05:37 legendre Exp $
 
 #include "paradynd/src/internalMetrics.h"
 #include "paradynd/src/init.h"
 #include "paradynd/src/pd_process.h"
 #include "common/h/timing.h"
 #include "rtinst/h/RThwtimer-winnt.h"
+#include "dyninstAPI/h/BPatch_process.h"
 
 #ifdef NOTDEF // PDSEP
    // why were these here?

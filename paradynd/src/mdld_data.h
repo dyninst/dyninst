@@ -43,7 +43,7 @@
 #define _MDLD_DATA_H
 
 #include "pdutil/h/mdl_data.h"
-
+#include "dyninstAPI/h/BPatch_snippet.h"
 
 class mdld_data : public mdl_data
 {

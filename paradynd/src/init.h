@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: init.h,v 1.42 2005/12/19 19:42:55 pack Exp $
+// $Id: init.h,v 1.43 2006/04/13 23:05:38 legendre Exp $
 
 #ifndef INIT_HDR
 #define INIT_HDR
@@ -47,6 +47,7 @@
 #include "paradynd/src/timeMgr.h"
 
 class BPatch;
+class BPatch_process;
 
 extern BPatch *bpatch;
 

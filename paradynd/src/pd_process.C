@@ -82,6 +82,7 @@ extern PDSOCKET connect_Svr(pdstring machine,int port);
 extern pdRPC *tp;
 extern MRN::Stream * defaultStream;
 extern pdvector<pdinstMapping*> initialRequestsPARADYN; 
+extern unsigned SHARED_SEGMENT_SIZE;
 
 // Exec callback
 extern void pd_execCallback(pd_process *proc);

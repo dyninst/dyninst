@@ -45,11 +45,7 @@
 #include "paradynd/src/threadMetFocusNode.h"
 #include "paradynd/src/pd_process.h"
 #include "dyninstAPI/h/BPatch_point.h"
-#ifdef NOTDEF // PDSEP
-#include "dyninstAPI/src/instP.h"
-#include "dyninstAPI/src/instPoint.h"
-#include "dyninstAPI/src/instPoint.h" // for pointFunc
-#endif
+#include "dyninstAPI/h/BPatch_function.h"
 #include "pdutil/h/pdDebugOstream.h"
 #include "paradynd/src/instReqNode.h"
 #include "paradynd/src/variableMgr.h"

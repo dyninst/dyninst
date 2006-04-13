@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.143 2006/04/10 17:09:04 tlmiller Exp $
+// $Id: main.C,v 1.144 2006/04/13 23:05:41 legendre Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -48,10 +48,7 @@
 #define  DEBUG 1
 
 extern "C" const char V_paradynd[];
-extern "C" const char V_libpdutil[];
-
 Ident V_id(V_paradynd,"Paradyn");
-Ident V_Uid(V_libpdutil,"Paradyn");
 
 #include "rtinst/h/rtinst.h"
 #include "paradynd/src/comm.h"
@@ -64,6 +61,7 @@ Ident V_Uid(V_libpdutil,"Paradyn");
 #include "paradynd/src/pd_process.h"
 #include "paradynd/src/processMetFocusNode.h"
 #include "paradynd/src/debug.h"
+#include "dyninstAPI/h/BPatch_function.h"
 
 int StartOrAttach( void );
 
@@ -102,6 +100,10 @@ int ready;
 
 unsigned SHARED_SEGMENT_SIZE = 2097152;
 
+#if defined(os_windows)
+const char V_paradynd[] = "$Paradyn: v5.0 paradynd #0 " __DATE__ __TIME__ "paradyn@cs.wisc.edu$";
+#endif
+
 /*
  * These variables are global so that we can easily find out what
  * machine/socket/etc we're connected to paradyn on; we may need to
@@ -117,7 +119,6 @@ pdstring newProcDir;
 pdvector<pdstring> newProcCmdLine;
 // Unused on NT, but this makes prototypes simpler.
 int termWin_port = -1;
-
 
 void configStdIO(bool closeStdIn)
 {
@@ -314,7 +315,7 @@ void RPC_undo_environment_work(){
 static void PauseIfDesired( void )
 {
 	char *pdkill = getenv( "PARADYND_DEBUG" );
-   if( pdkill && ( *pdkill == 'y' || *pdkill == 'Y' ) )
+   if( (pdkill && ( *pdkill == 'y' || *pdkill == 'Y' )))
 	{
 		int pid = getpid();
 		cerr << "breaking for debug in controllerMainLoop...pid=" << pid << endl;
@@ -511,6 +512,10 @@ void sighupInit() {
 int
 main( int argc, char* argv[] )
 {
+    for (unsigned i=0; i<argc; i++) {
+        fprintf(stderr, "%s ", argv[i]);
+    }
+    fprintf(stderr, "\n");
 	PauseIfDesired();
 	init_daemon_debug();
 	

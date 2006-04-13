@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.180 2006/02/16 00:57:34 legendre Exp $
+// $Id: mdl.C,v 1.181 2006/04/13 23:05:42 legendre Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -66,6 +66,9 @@
 
 #include "dyninstAPI/src/function.h"
 
+#include "dyninstAPI/h/BPatch_basicBlock.h"
+#include "dyninstAPI/h/BPatch_flowGraph.h"
+#include "dyninstAPI/h/BPatch_function.h"
 // for REG_MT_POS
 #if defined(sparc_sun_sunos4_1_3) || defined(sparc_sun_solaris2_4)
 #include "dyninstAPI/src/inst-sparc.h"
