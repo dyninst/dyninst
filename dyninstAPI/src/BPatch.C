@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.136 2006/04/12 16:59:10 bernat Exp $
+// $Id: BPatch.C,v 1.137 2006/04/13 23:05:14 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -2031,6 +2031,7 @@ void BPatch::continueIfExists(int pid)
 ////////////// Signal FD functions
 
 void BPatch::signalNotificationFD() {
+#if !defined(os_windows)
     // If the FDs are set up, write a byte to the input side.
     if (notificationFDInput_ == -1) return;
     if (FDneedsPolling_) return;
@@ -2043,21 +2044,24 @@ void BPatch::signalNotificationFD() {
         perror("Notification write");
     else 
         FDneedsPolling_ = true;
-
+#endif
     return;
 }
 
 void BPatch::clearNotificationFD() {
+#if !defined(os_windows)
     if (notificationFDOutput_ == -1) return;
     if (!FDneedsPolling_) return;
     char buf;
 
     read(notificationFDOutput_, &buf, sizeof(char));
     FDneedsPolling_ = false;
+#endif
     return;
 }
 
 int BPatch::getNotificationFDInt() {
+#if !defined(os_windows)
     if (notificationFDOutput_ == -1) {
         assert(notificationFDInput_ == -1);
         int pipeFDs[2];
@@ -2070,6 +2074,9 @@ int BPatch::getNotificationFDInt() {
     }
 
     return notificationFDOutput_;
+#else
+    return -1;
+#endif
 }
 
 /*********************************************************************
