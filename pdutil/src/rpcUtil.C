@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.97 2005/12/19 19:43:49 pack Exp $
+// $Id: rpcUtil.C,v 1.98 2006/04/13 23:05:51 legendre Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -1508,18 +1508,41 @@ const pdstring getNetworkName (const pdstring hostname)
     }
     networkname = hp->h_name;
 
-    // check that networkname is fully-qualified with domain information
-    while (idx < networkname.length() && networkname[idx]!='.') idx++;
-    if (idx == networkname.length()) {  //network name must contain '.'
-        cerr << "networkname is not fully qualified ("
-             << networkname.c_str() << "); using IP address" << endl;
-        networkname = ip_address;
+
+    if (networkname != pdstring("") &&                  //We have a name
+        getNetworkAddr(networkname) == pdstring("") &&  //The name doesn't work
+        strchr(networkname.c_str(), '.'))                //The name is fully-qualified
+    {
+        /**
+         * Some machines with bad DHCP think they have fully qualified name that work,
+         * but the really don't.  i.e. My laptop is named munny, and when it gets a 
+         * DHCP address it thinks it becomes munny.cs.wisc.edu, but no DNS server
+         * actually resolves to that name.
+         *
+         * In this case, we'll actually strip off the domain.
+         **/
+        char *newname = strdup(networkname.c_str());
+        char *c = strchr(newname, '.');
+        *c = '\0';
+        pdstring pnewname = pdstring(newname);
+        free(newname);
+        if (getNetworkAddr(pnewname) != pdstring("")) {
+            networkname = pnewname;
+        }
+    }
+    else {
+        // check that networkname is fully-qualified with domain information
+        while (idx < networkname.length() && networkname[idx]!='.') idx++;
+        if (idx == networkname.length()) {  //network name must contain '.'
+            cerr << "networkname is not fully qualified ("
+                << networkname.c_str() << "); using IP address" << endl;
+            networkname = ip_address;
+        }
     }
 
     if( !name[0] ){
-        local_network_name = networkname;
+         local_network_name = networkname;
     }
-
     //cerr << "getNetworkName=" << networkname << endl;
     return (networkname);
 }
@@ -1541,7 +1564,6 @@ const pdstring getNetworkAddr (const pdstring hostname)
 
     hp = gethostbyname(name);
     if (hp == NULL) {
-        cerr << "Host information not found for " << name << endl;
         return pdstring("");
     }
 
