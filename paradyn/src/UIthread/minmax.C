@@ -41,18 +41,16 @@
 
 // minmax.C
 
-/* $Id: minmax.C,v 1.5 2004/03/23 01:12:30 eli Exp $ */
+/* $Id: minmax.C,v 1.6 2006/04/13 23:05:33 legendre Exp $ */
 
 #include "minmax.h"
 
-template <class T>
-T min(const T item1, const T item2) {
+template <class T> T min(const T item1, const T item2) {
    if (item1 < item2) return item1;
    return item2;
 }
 
-template <class T>
-T max(const T item1, const T item2) {
+template <class T> T max(const T item1, const T item2) {
    if (item1 > item2) return item1;
    return item2;
 }

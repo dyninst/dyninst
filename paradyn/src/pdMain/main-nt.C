@@ -47,12 +47,15 @@
 // the platform-shared main() routine.
 //
 //----------------------------------------------------------------------------
-// $Id: main-nt.C,v 1.6 2004/03/23 01:12:33 eli Exp $
+// $Id: main-nt.C,v 1.7 2006/04/13 23:05:35 legendre Exp $
 //----------------------------------------------------------------------------
 #include <windows.h>
 #include <tchar.h>
 #include <stdio.h>
+#include <assert.h>
 #include "pdutil/h/winMain.h"
+
+const "C" char V_paradyn[] = "$Paradyn: v5.0 paradyn #0 " __DATE__ __TIME__ "paradyn@cs.wisc.edu$";
 
 int main( int argc, char* argv[] );
 
@@ -86,5 +89,3 @@ WinMain( HINSTANCE hInstance,
 
     return ret;
 }
-
-

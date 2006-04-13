@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.73 2006/03/12 03:40:04 darnold Exp $
+// $Id: main.C,v 1.74 2006/04/13 23:05:36 legendre Exp $
 
 /*
  * main.C - main routine for paradyn.  
@@ -375,6 +375,13 @@ ParseCommandLine( int /* argc */, char* argv[] )
         {
             default_host = argv[a_ct+1];
             a_ct += 2;
+        }
+        else if (!strcmp(argv[a_ct], "-debug"))
+        {
+#if defined(os_windows)
+            DebugBreak();
+#endif
+            a_ct += 1;
         }
         else
         {

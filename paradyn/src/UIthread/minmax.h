@@ -41,15 +41,20 @@
 
 // minmax.h
 
-/* $Id: minmax.h,v 1.5 2004/03/23 01:12:30 eli Exp $ */
+/* $Id: minmax.h,v 1.6 2006/04/13 23:05:34 legendre Exp $ */
 #ifndef _MINMAX_H_
 #define _MINMAX_H_
 
-template <class T>
-T min(const T item1, const T item2);
+#if defined(min)
+#undef min
+#endif
+#if defined(max)
+#undef max
+#endif
 
-template <class T>
-T max(const T item1, const T item2);
+template <class T> T min(const T item1, const T item2);
+
+template <class T> T max(const T item1, const T item2);
 
 // "ip" stands for in-place.
 // item = min(item, otherItem):
