@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.59 2006/04/13 23:05:22 legendre Exp $ */
+/* $Id: RTcommon.c,v 1.60 2006/04/13 23:50:31 legendre Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -463,7 +463,7 @@ unsigned dyninst_maxNumOfThreads()
 }
 
 #if !(os_solaris==8)
-int rtdebug_printf(const char *format, ...)
+int rtdebug_printf(char *format, ...)
 {
   int ret;
   va_list va;

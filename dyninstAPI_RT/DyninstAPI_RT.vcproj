@@ -163,6 +163,15 @@ copy i386-unknown-nt4.0\libdyninstAPI_RT.pdb ..\..\i386-unknown-nt4.0\lib
 			<File
 				RelativePath=".\h\dyninstRTExport.h">
 			</File>
+			<File
+				RelativePath=".\src\RTcommon.h">
+			</File>
+			<File
+				RelativePath=".\src\RTheap.h">
+			</File>
+			<File
+				RelativePath=".\src\RTthread.h">
+			</File>
 		</Filter>
 	</Files>
 	<Globals>
