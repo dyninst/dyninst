@@ -2018,10 +2018,13 @@ extern void (* prefixInSyscall)();
 extern void (* prefixCommon)();
 extern void (* jumpFromNotInSyscallToPrefixCommon)();
 
-bool emitSyscallHeader( process * proc, codeGen &gen) {
+bool emitSyscallHeader( process * proc, codeGen &gen ) {
+  /* Be polite. */
+  int firstHeaderIndex = gen.getIndex();
+
   /* Extract the current slotNo. */
   errno = 0;
-	reg_tmpl reg = { getDBI()->ptrace( PTRACE_PEEKUSER, proc->getPid(), PT_CR_IPSR, 0 ) };
+  reg_tmpl reg = { getDBI()->ptrace( PTRACE_PEEKUSER, proc->getPid(), PT_CR_IPSR, 0 ) };
   assert( ! errno );
   uint64_t slotNo = reg.PSR.ri;
   assert( slotNo <= 2 );
@@ -2087,7 +2090,7 @@ bool emitSyscallHeader( process * proc, codeGen &gen) {
 	break;
   }
 		
-  gen.setIndex( 0 );
+  gen.setIndex( firstHeaderIndex );
   firstJumpBundle.generate( gen );
   secondJumpBundle.generate( gen );
   gen.setIndex( endOfTemplateIndex );
