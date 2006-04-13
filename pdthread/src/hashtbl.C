@@ -78,7 +78,7 @@ class hashtbl {
         const char* format = "monitor_for_hashtbl_key_t-%s_value_t-%s_%s";
         int len = strlen(format) + strlen(kt) + strlen(vt) + strlen(c) + 1;
         char* retval = new char[len+1];
-        snprintf(retval, len, format, kt, vt, c);
+        sprintf(retval, format, kt, vt, c);
         return (const char *)retval;
     }
 

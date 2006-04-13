@@ -101,7 +101,7 @@ class refarray {
         }
         
         items = new REFOBJ*[_size];
-        for(unsigned int i = 0; i < sz; i++)
+        for(int i = 0; i < sz; i++)
         {
             items[i] = def_value;
         }

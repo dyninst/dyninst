@@ -44,6 +44,9 @@
 #include "pdthread/src/thrtab.h"
 #include "pdthread/src/io_message.h"
 
+
+const "C" char V_libpdthread[] = "$Paradyn: v5.0 pdthread #0 " __DATE__ __TIME__ "paradyn@cs.wisc.edu$";
+
 namespace pdthr
 {
 
