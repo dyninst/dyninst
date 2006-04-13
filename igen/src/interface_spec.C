@@ -579,14 +579,14 @@ bool interface_spec::gen_dtor_body(ofstream &/*out_stream*/, bool /*server*/) co
 
 bool interface_spec::gen_server_verify(ofstream &out_stream) const {
   if (!Options::dont_gen_handle_err) 
-    {
+  {
       out_stream << "void " << gen_class_prefix(true) << "handle_error() {" << endl;
       out_stream << "  cerr << \"Error not handled, exiting\" << endl;" << endl;
       out_stream << "  cerr << \"from :"<<Options::file_base() << "_" << Options::ml->name() << "_SRVR\";"<< endl;
       out_stream << "  IGEN_ERR_ASSERT" << endl;
       out_stream << "  exit(-1);" << endl;
       out_stream << "}" << endl << endl;
-    }
+  }
 
   if (Options::ml->address_space() == message_layer::AS_one) 
     return true;
@@ -605,17 +605,17 @@ bool interface_spec::gen_server_verify(ofstream &out_stream) const {
   out_stream << "  if (!tag_read) {\n";
 
   if (Options::ml->name() != "mrnet") 
-    {
+  {
       out_stream << "  " << Options::set_dir_decode() << ";\n";
       if (Options::ml->skip())
-	{
-	  out_stream << "if (!" << Options::ml->skip_message() << ") ";
-	  out_stream << Options::error_state(true, 6, "igen_read_err", "false");
-	}
+      {
+        out_stream << "if (!" << Options::ml->skip_message() << ") ";
+        out_stream << Options::error_state(true, 6, "igen_read_err", "false");
+	  }
 
       out_stream << "  if (!" << Options::ml->bundler_prefix()
 		 << "recv(net_obj(), tag)) ";
-    }
+  }
   else
     {
       out_stream <<"\tMRN::Stream * stream;\n";
@@ -844,10 +844,10 @@ bool interface_spec::gen_stl_temps() const {
   for (unsigned stl_index=0; stl_index < Options::stl_types.size(); stl_index++) {
     if (Options::stl_types[stl_index].elements.size()) {
       if (Options::stl_types[stl_index].need_include) {
-	Options::temp_dot_c <<  "#pragma implementation \"" 
-			    << Options::stl_types[stl_index].pragma_name << "\"\n";
-	Options::temp_dot_c << "#include "
-			    << Options::stl_types[stl_index].include_file << "\n";
+        Options::temp_dot_c <<  "#pragma implementation \"" 
+                            << Options::stl_types[stl_index].pragma_name << "\"\n";
+        Options::temp_dot_c << "#include "
+                            << Options::stl_types[stl_index].include_file << "\n";
       }
       for (unsigned el_index=0; el_index < Options::stl_types[stl_index].elements.size();
 	   el_index++) {
@@ -882,6 +882,7 @@ bool interface_spec::gen_stl_temps() const {
 			  << ", " << "const " << Options::stl_types[stl_index1].name << "<"
 			  << Options::stl_types[stl_index1].elements[el_index].name
 			  << ">&);\n";
+#if 0
       // explicitly instantiate bundler send_common
       Options::temp_dot_c << "template "
 			  << Options::ml->bundler_return_type() << " "
@@ -893,6 +894,7 @@ bool interface_spec::gen_stl_temps() const {
 			  << Options::ml->marshall_obj_ptr() << ", " 
 			  << Options::stl_types[stl_index1].elements[el_index].name
 			  << "));\n";
+#endif
       // explicitly instantiate writerfn_noMethod
       Options::temp_dot_c << "template "
 			  << Options::ml->bundler_return_type() << " "
@@ -903,7 +905,7 @@ bool interface_spec::gen_stl_temps() const {
 			  << ");\n";
     }
   }
-
+#if 0 //MATT
   for (unsigned stl_index2=0; stl_index2 < Options::stl_types.size(); stl_index2++) {
     for (unsigned el_index=0; el_index < Options::stl_types[stl_index2].elements.size();
 	 el_index++) {
@@ -925,7 +927,7 @@ bool interface_spec::gen_stl_temps() const {
 			  << ">*);\n";
     }
   }
-  
+#endif
   return true;
 }
 

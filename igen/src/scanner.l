@@ -60,14 +60,6 @@ char cur_file[80];
 int yylook();
 int yyback(int*,int);
 
-#ifdef notdef
-#ifdef FLEX_SCANNER
-/* flex defines this as a macro (bad flex!). */
-#undef yywrap;
-extern int yywrap();
-#endif
-#endif
-
 extern void yyerror(char *);
 
 int curr;
@@ -167,6 +159,7 @@ FWD     "forward"
 .       	{ yyerror("invalid character"); }
 %%
 
+
 void doString()
 {
     char ch;
@@ -201,4 +194,8 @@ void yyerror(char *message)
 	fprintf(stderr, " ");
     }
     fprintf(stderr, "^\n");
+}
+
+int yywrap() {
+	return 1;
 }
