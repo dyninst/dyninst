@@ -39,10 +39,12 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.58 2006/04/13 19:20:37 jaw Exp $ */
+/* $Id: RTcommon.c,v 1.59 2006/04/13 23:05:22 legendre Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
 #include "RTcommon.h"
 #include "RTthread.h"
@@ -463,14 +465,15 @@ unsigned dyninst_maxNumOfThreads()
 #if !(os_solaris==8)
 int rtdebug_printf(const char *format, ...)
 {
+  int ret;
+  va_list va;
   if (!DYNINSTdebugRTlib) return 0;
   if (NULL == format) return -1;
 
   fprintf(stderr, "[RTLIB]");
-  va_list val;
-  va_start(val, format);
-  int ret = vfprintf(stderr, format, val);
-  va_end(val);
+  va_start(va, format);
+  ret = vfprintf(stderr, format, va);
+  va_end(va);
 
   return ret;
 }
@@ -480,7 +483,7 @@ int rtdebug_printf(const char *format, ...)
 #define CASE_RETURN_STR(x) case x: return #x
 #endif
 
-const char *asyncEventType2str(rtBPatch_asyncEventType t)
+char *asyncEventType2str(rtBPatch_asyncEventType t)
 {
   switch (t) {
   CASE_RETURN_STR(rtBPatch_nullEvent);
