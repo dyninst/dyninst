@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.151 2006/04/04 01:10:22 legendre Exp $
+// $Id: pdwinnt.C,v 1.152 2006/04/13 23:05:19 legendre Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -366,10 +366,11 @@ bool SignalGenerator::SuspendThreadFromEvent(LPDEBUG_EVENT ev, dyn_lwp *lwp) {
 // that it is done. dyninst catches this, patches up the code that was used
 // to load the dll, replaces what was overwritten in main() and resets the
 // instruction pointer (EIP) to the beginning of main().
-bool SignalGenerator::waitForEventInternal(EventRecord &ev) 
+bool SignalGenerator::waitForEventsInternal(pdvector<EventRecord> &events) 
 {
   static bool first_signal = true;
   DWORD milliseconds = INFINITE;
+  EventRecord ev;
 
   waitingForOS_ = true;
   __UNLOCK;
@@ -383,6 +384,7 @@ bool SignalGenerator::waitForEventInternal(EventRecord &ev)
       //  apparently INFINITE milliseconds returns with SEM_TIMEOUT
       //  This may be a problem, but it doesn't seem to break anything.
       ev.type = evtTimeout;
+      events.push_back(ev);
       return true;
     }else {
       printSysError(err);
@@ -401,6 +403,7 @@ bool SignalGenerator::waitForEventInternal(EventRecord &ev)
      ContinueDebugEvent(ev.info.dwProcessId, ev.info.dwThreadId, DBG_CONTINUE);
      ev.type = evtNullEvent;
      fprintf(stderr, "%s[%d][%s]:  no process yet...\n", FILE__, __LINE__, getThreadStr(getExecThreadID()));
+     events.push_back(ev);
      return true;
    }
 
@@ -427,7 +430,17 @@ bool SignalGenerator::waitForEventInternal(EventRecord &ev)
    Frame af = ev.lwp->getActiveFrame();
    ev.address = (Address) af.getPC();
 
+   events.push_back(ev);
    return true;
+}
+
+bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events) {
+    bool result = true;
+    for (unsigned i=0; i<events.size(); i++) {
+        if (!decodeEvent(events[i]))
+            result = false;
+    }
+    return result;
 }
 
 bool SignalGenerator::decodeEvent(EventRecord &ev)
@@ -2142,3 +2155,13 @@ void EventRecord::clear() {
     address = 0;
     fd = 0;
 }
+
+// Unix functions that aren't needed on Windows
+void DBICallbackBase::dbi_signalCompletion(CallbackBase *cbb) {}
+bool DBICallbackBase::execute() { return false; }
+bool DBICallbackBase::waitForCompletion() { return false; }
+bool PtraceCallback::execute_real() {return false;}
+bool ReadDataSpaceCallback::execute_real() {return false;}
+bool WaitPidNoBlockCallback::execute_real() {return false;}
+bool WriteDataSpaceCallback::execute_real() {return false;}
+
