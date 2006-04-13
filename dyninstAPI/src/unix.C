@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.183 2006/04/13 19:20:37 jaw Exp $
+// $Id: unix.C,v 1.184 2006/04/13 23:05:17 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -786,6 +786,10 @@ bool DebuggerInterface::waitNextEvent(DBIEvent &ev)
    //       eventType2str(ev.type));
   dbilock._Unlock(FILE__, __LINE__);
   return true;
+}
+
+bool DBICallbackBase::execute() {
+    return execute_real();
 }
 
 bool DebuggerInterface::handleEventLocked(DBIEvent &ev)

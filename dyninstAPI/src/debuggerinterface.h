@@ -1,4 +1,4 @@
-#ifndef __DEBUGGER_INTERFACE__
+#if !defined(__DEBUGGER_INTERFACE__)
 #define __DEBUGGER_INTERFACE__
 
 //  DebuggerInterface exists to abstract debugger-like operations
@@ -87,14 +87,13 @@ class DBICallbackBase : public SyncCallback
   //friend void dbi_signal_done_(CallbackBase *cb);
 
   public:
-  DBICallbackBase(DBIEventType t, eventLock *l) : SyncCallback(true /*synchronous*/, l,
-                                                  DBI_PLATFORM_TARGET_THREAD, 
-                                                  dbi_signalCompletion), type(t) {
-  }
-  virtual ~DBICallbackBase() {}
+  DBICallbackBase(DBIEventType t, eventLock *l) 
+    : SyncCallback(true /*synchronous*/, l, DBI_PLATFORM_TARGET_THREAD, dbi_signalCompletion), 
+      type(t) { }  
+  virtual ~DBICallbackBase() {};
   static void dbi_signalCompletion(CallbackBase *cb);
   virtual bool waitForCompletion();
-  virtual bool execute() {return execute_real();}
+  virtual bool execute();
   virtual bool execute_real() = 0;
   protected:
   DBIEventType type;
