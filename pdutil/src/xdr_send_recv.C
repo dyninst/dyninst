@@ -47,19 +47,19 @@
 bool P_xdr_send(XDR *xdr, const bool &b) {
    assert(xdr->x_op == XDR_ENCODE);
    bool_t actual_b = b; // needed since they're probably of different types
-   return xdr_bool(xdr, &actual_b);
+   return xdr_bool(xdr, &actual_b) != 0;
 }
 
 bool P_xdr_send(XDR *xdr, const short &s) {
    assert(xdr->x_op == XDR_ENCODE);
    short actual_s = s; 
-   return xdr_short(xdr, &actual_s);
+   return xdr_short(xdr, &actual_s) != 0;
 }
 
 bool P_xdr_send(XDR *xdr, const unsigned short &us) {
    assert(xdr->x_op == XDR_ENCODE);
    unsigned short actual_us = us;
-   return xdr_u_short(xdr, &actual_us);
+   return xdr_u_short(xdr, &actual_us) != 0;
 }
 
 #if defined(i386_unknown_nt4_0) && defined(_MSC_VER) && (_MSC_VER < 1300)
@@ -93,13 +93,13 @@ bool P_xdr_send(XDR *xdr, const unsigned long &ul) {
 bool P_xdr_send(XDR *xdr, const uint32_t &num) {
    assert(xdr->x_op == XDR_ENCODE);
    uint32_t actual_num = num;
-   return xdr_u_int(xdr, (unsigned *)&actual_num);
+   return xdr_u_int(xdr, (unsigned *)&actual_num) != 0;
 }
 
 bool P_xdr_send(XDR *xdr, const int32_t &num) {
    assert(xdr->x_op == XDR_ENCODE);
    int32_t actual_num = num;
-   return xdr_int(xdr, (int *)&actual_num);
+   return xdr_int(xdr, (int *)&actual_num) != 0;
 }
 
 #if !defined(i386_unknown_nt4_0)
@@ -121,13 +121,13 @@ bool P_xdr_send(XDR *xdr, const int64_t &num) {
 bool P_xdr_send(XDR *xdr, const float &f) {
    assert(xdr->x_op == XDR_ENCODE);
    float actual_f = f;
-   return xdr_float(xdr, &actual_f);
+   return xdr_float(xdr, &actual_f) != 0;
 }
 
 bool P_xdr_send(XDR *xdr, const double &d) {
    assert(xdr->x_op == XDR_ENCODE);
    double actual_d = d;
-   return xdr_double(xdr, &actual_d);
+   return xdr_double(xdr, &actual_d) != 0;
 }
 
 bool P_xdr_send(XDR *xdr, const byteArray &ba) {
@@ -166,26 +166,26 @@ bool P_xdr_send(XDR *xdr, const pdstring &s) {
 bool P_xdr_recv(XDR *xdr, bool &b) {
    assert(xdr->x_op == XDR_DECODE);
    bool_t actual_b;
-   const bool result = xdr_bool(xdr, &actual_b); 
+   const bool result = xdr_bool(xdr, &actual_b) != 0; 
    b = actual_b;
    return result;
 }
 
 bool P_xdr_recv(XDR *xdr, short &s) {
    assert(xdr->x_op == XDR_DECODE);
-   return xdr_short(xdr, &s);
+   return xdr_short(xdr, &s) != 0;
 }
 
 bool P_xdr_recv(XDR *xdr, unsigned short &us) {
    assert(xdr->x_op == XDR_DECODE);
-   return xdr_u_short(xdr, &us);
+   return xdr_u_short(xdr, &us) != 0;
 }
 
 #if defined(i386_unknown_nt4_0) && defined(_MSC_VER) && (_MSC_VER < 1300)
 
 bool P_xdr_recv(XDR *xdr, int &num) {
    assert(xdr->x_op == XDR_DECODE);
-   return xdr_int(xdr, &num);
+   return xdr_int(xdr, &num) != 0;
 }
 
 bool P_xdr_recv(XDR *xdr, unsigned &num) {
@@ -207,12 +207,12 @@ bool P_xdr_recv(XDR *xdr, unsigned long &ul) {
 
 bool P_xdr_recv(XDR *xdr, uint32_t &num) {
    assert(xdr->x_op == XDR_DECODE);
-   return xdr_u_int(xdr, (unsigned *)&num);
+   return xdr_u_int(xdr, (unsigned *)&num) != 0;
 }
 
 bool P_xdr_recv(XDR *xdr, int32_t &num) {
    assert(xdr->x_op == XDR_DECODE);
-   return xdr_int(xdr, (int *)&num);
+   return xdr_int(xdr, (int *)&num) != 0;
 }
 
 #if !defined(i386_unknown_nt4_0)
@@ -231,12 +231,12 @@ bool P_xdr_recv(XDR *xdr, int64_t &num) {
 
 bool P_xdr_recv(XDR *xdr, float &f) {
    assert(xdr->x_op == XDR_DECODE);
-   return xdr_float(xdr, &f);
+   return xdr_float(xdr, &f) != 0;
 }
 
 bool P_xdr_recv(XDR *xdr, double &d) {
    assert(xdr->x_op == XDR_DECODE);
-   return xdr_double(xdr, &d);
+   return xdr_double(xdr, &d) != 0;
 }
 
 bool P_xdr_recv(XDR *xdr, byteArray &ba) {

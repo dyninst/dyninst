@@ -51,6 +51,7 @@
 #include <sstream>
 #include "pdutil/h/winMain.h"
 
+const "C" char V_libpdutil[] = "$Paradyn: v5.0 pdutil #0 " __DATE__ __TIME__ "paradyn@cs.wisc.edu$";
 
 // variables used only by functions in this file
 static bool waitForKeypressOnExit = true;

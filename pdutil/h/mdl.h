@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.h,v 1.10 2005/10/10 18:45:56 legendre Exp $
+// $Id: mdl.h,v 1.11 2006/04/13 23:05:48 legendre Exp $
 
 #ifndef MDL_EXTRA_H
 #define MDL_EXTRA_H
@@ -53,11 +53,8 @@
 #include <fstream>
 #include "pdutil/h/aggregationDefines.h"
 
+
 #include "dyninstAPI/h/BPatch_Vector.h"
-#include "dyninstAPI/h/BPatch_function.h"
-#include "dyninstAPI/h/BPatch_image.h"
-#include "dyninstAPI/h/BPatch_module.h"
-#include "dyninstAPI/h/BPatch_point.h"
 
 // Toplevel for code in resource heirarchy....
 #define CODE_RH_NAME "Code"
@@ -194,7 +191,11 @@ struct mdl_focus_element {
 typedef unsigned inst_var_index;
 
 #if defined(PARADYN)
-class process { };
+class BPatch_point { };
+class BPatch_function { };
+class BPatch_module { };
+class BPatch_thread { };
+class BPatch_basicBlockLoop { };
 class pd_process { };
 class dyn_thread { };
 class function_base { };
@@ -206,12 +207,15 @@ class processMetFocusNode { };
 class instrCodeNode { };
 class instrDataNode { };
 class threadMetFocusNode { };
-#ifdef NOTDEF // PDSEP
-class AstNode { };
-#endif
 class Focus { };
 class Hierarchy { };
 #else
+class BPatch_point;
+class BPatch_function;
+class BPatch_module;
+class BPatch_thread;
+class BPatch_basicBlockLoop;
+class BPatch_module;
 class process;
 class pd_process;
 class dyn_thread;
@@ -224,9 +228,6 @@ class processMetFocusNode;
 class instrCodeNode;
 class instrDataNode;
 class threadMetFocusNode;
-#ifdef NOTDEF // PDSEP
-class AstNode;
-#endif
 class Focus;
 class Hierarchy;
 #endif
