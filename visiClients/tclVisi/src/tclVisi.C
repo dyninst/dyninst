@@ -43,7 +43,7 @@
  *  tclVisi.C -- This file handles the bare essentials of tcl application
  *     initialization.  Essentially, it implements the Tcl_AppInit() function.
  *
- *  $Id: tclVisi.C,v 1.18 2004/03/23 22:23:57 pcroth Exp $
+ *  $Id: tclVisi.C,v 1.19 2006/04/13 23:06:05 legendre Exp $
  */
 
 #include <stdio.h>
@@ -58,8 +58,13 @@
 #include "pdLogo.h"
 #include "paradyn/xbm/logo.xbm"
 
-#include "common/h/Ident.h"
+#if defined(os_windows)
+const "C" char V_tclVisi[] = "$Paradyn: v5.0 tclVisi #0 " __DATE__ __TIME__ "paradyn@cs.wisc.edu$";
+#else
 extern "C" const char V_tclVisi[];
+#endif
+
+#include "common/h/Ident.h"
 Ident V_id(V_tclVisi,"Paradyn");
 extern "C" const char V_libpdutil[];
 Ident V_Uid(V_libpdutil,"Paradyn");

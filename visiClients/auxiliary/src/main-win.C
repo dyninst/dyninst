@@ -47,7 +47,7 @@
 // the platform-shared main() routine.
 //
 //----------------------------------------------------------------------------
-// $Id: main-win.C,v 1.1 2003/07/18 15:45:20 schendel Exp $
+// $Id: main-win.C,v 1.2 2006/04/13 23:06:00 legendre Exp $
 //----------------------------------------------------------------------------
 #include <windows.h>
 #include <tchar.h>
@@ -55,7 +55,6 @@
 #include "pdutil/h/winMain.h"
 
 int main( int argc, char* argv[] );
-
 
 int
 WINAPI

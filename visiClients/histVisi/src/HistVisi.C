@@ -46,7 +46,7 @@
 // A HistVisi represents the Paradyn histogram visi.
 //
 //---------------------------------------------------------------------------
-// $Id: HistVisi.C,v 1.15 2004/03/23 01:12:48 eli Exp $
+// $Id: HistVisi.C,v 1.16 2006/04/13 23:06:02 legendre Exp $
 //---------------------------------------------------------------------------
 #include <limits.h>
 #include "common/h/headers.h"
@@ -73,6 +73,9 @@
 
 #include <sstream>
 
+#if defined(os_windows)
+const "C" char V_rthist[] = "$Paradyn: v5.0 rthist #0 " __DATE__ __TIME__ "paradyn@cs.wisc.edu$";
+#endif
 
 //---------------------------------------------------------------------------
 // prototypes of functions used in this file

@@ -43,7 +43,7 @@
 // Ariel Tamches
 
 /*
- * $Id: tableVisi.C,v 1.22 2005/02/15 17:44:24 legendre Exp $
+ * $Id: tableVisi.C,v 1.23 2006/04/13 23:06:04 legendre Exp $
  */
 
 #include <iostream>
@@ -54,6 +54,10 @@
 #include "tableVisi.h"
 
 /* ************************************************************* */
+
+#if defined(os_windows)
+const "C" char V_tableVisi[] = "$Paradyn: v5.0 tableVisi #0 " __DATE__ __TIME__ "paradyn@cs.wisc.edu$";
+#endif
 
 extern "C" {int isnan(double);}
 

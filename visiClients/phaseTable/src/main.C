@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.14 2004/03/23 22:23:56 pcroth Exp $
+// $Id: main.C,v 1.15 2006/04/13 23:06:03 legendre Exp $
 
 #include <stdio.h>
 #include <signal.h>
@@ -55,7 +55,12 @@
 #include "visiClients/auxiliary/h/NoSoloVisiMsg.h"
 
 #include "common/h/Ident.h"
+#if defined(os_windows)
+const char V_phaseTable[] = "$Paradyn: v5.0 phaseTable #0 " __DATE__ __TIME__ "paradyn@cs.wisc.edu$";
+#else
 extern "C" const char V_phaseTable[];
+#endif
+
 Ident V_id(V_phaseTable,"Paradyn");
 extern "C" const char V_libpdutil[];
 Ident V_Uid(V_libpdutil,"Paradyn");

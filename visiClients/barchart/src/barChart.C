@@ -47,7 +47,7 @@
 // for maximum speed.  Can be done from makefile, e.g. a "make optimized"
 // option which does -O and -DNDEBUG
 
-/* $Id: barChart.C,v 1.37 2004/03/23 01:12:47 eli Exp $ */
+/* $Id: barChart.C,v 1.38 2006/04/13 23:06:01 legendre Exp $ */
 
 // tk/tcl has a very nice interface for mixing C++ and tk/tcl
 // scripts.  From within tcl, C++ code can be called via
@@ -91,6 +91,10 @@
  // Created dynamically in DrawBarsInstallCommand.  Cannot be
  // created before then since necessary constructor arguments
  // such as tk window name are not yet known.
+
+#if defined(os_windows)
+const "C" char V_barChart[] = "$Paradyn: v5.0 barChart #0 " __DATE__ __TIME__ "paradyn@cs.wisc.edu$";
+#endif
 
 BarChart *theBarChart;
 

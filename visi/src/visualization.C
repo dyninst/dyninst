@@ -70,6 +70,10 @@ unsigned enable_pd_samplevalue_debug = 0;
 #define sampleVal_cerr if (0) cerr
 #endif /* ENABLE_DEBUG_CERR == 1 */
 
+#if defined(os_windows)
+const "C" char V_libvisi[] = "$Paradyn: v5.0 libvisi #0 " __DATE__ __TIME__ "paradyn@cs.wisc.edu$";
+#endif
+
 int
 visi_callback( void )
 {

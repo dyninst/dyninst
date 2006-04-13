@@ -1,5 +1,8 @@
 #
 # $Log: Makefile,v $
+# Revision 1.3  2006/04/13 23:06:06  legendre
+# Fixes to get visis building in new Windows build system
+#
 # Revision 1.2  2005/12/19 19:44:15  pack
 # MRNet replaces xdr for frontend to daemon communication.  New igen  - - -
 # MRNet changes
@@ -40,7 +43,7 @@ VPATH		+= ..
 CXXFLAGS	+= $(TCLFRIENDLYWARNINGS)
 TFLAGS		+= $(TCLFRIENDLYWARNINGS)
 CFLAGS		+= $(TCLFRIENDLYWARNINGS)
-SYSLIBS		+= -ldl
+SYSLIBS		+= -ldl -lSM -lICE -lXpm
 #SYSLIBS		= -lsocket -lnsl
 
 # Include the module-specific Makefile, which defines everything about
