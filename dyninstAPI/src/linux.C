@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.211 2006/04/12 16:59:24 bernat Exp $
+// $Id: linux.C,v 1.212 2006/04/13 19:37:11 mjbrim Exp $
 
 #include <fstream>
 
@@ -219,7 +219,7 @@ bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events)
         errno = 0;
         if (ev.type == evtSignalled) {
             if (waiting_for_stop || (ev.lwp && ev.lwp->isWaitingForStop())) {
-                signal_printf("%s[%d]: waiting_for_stop %d (lwp %d waiting %s), checking for suppression...\n",
+                signal_printf("%s[%d]: waiting_for_stop %d (lwp %d %s), checking for suppression...\n",
                               FILE__, __LINE__,
                               waiting_for_stop, 
                               ev.lwp ? ev.lwp->get_lwp_id() : -1,
