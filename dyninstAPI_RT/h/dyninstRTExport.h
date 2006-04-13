@@ -65,5 +65,7 @@ DLLEXPORT void dyninst_unlock(dyninst_lock_t *lock);
 DLLEXPORT unsigned dyninst_maxNumOfThreads();
 DLLEXPORT unsigned dyninst_threadIndex();
 
+DLLEXPORT void setNewthrCB(void (*rt_newthr_cb)(int));
+
 #endif
 #endif

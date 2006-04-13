@@ -46,6 +46,7 @@
 #include "RTthread.h"
 #include "RTcommon.h"
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
+#include "dyninstAPI_RT/h/dyninstRTExport.h"
 
 unsigned DYNINST_max_num_threads;
 int DYNINST_multithread_capable;
@@ -53,7 +54,10 @@ extern unsigned int DYNINSThasInitialized;
 
 static unsigned threadCreate(dyntid_t tid);
 
-void (*newthr_cb)(int);
+static void (*rt_newthr_cb)(int) = NULL;
+void setNewthrCB(void (*cb)(int)) {
+    rt_newthr_cb = cb;
+}
 
 /**
  * Translate a tid given by pthread_self into an index.  Called by 
@@ -182,9 +186,9 @@ static unsigned threadCreate(dyntid_t tid)
       return DYNINST_max_num_threads;
    }
    
-   if (newthr_cb)
+   if (rt_newthr_cb)
    {
-      newthr_cb(index);
+      rt_newthr_cb(index);
    }
 
 #if !defined(os_windows)
