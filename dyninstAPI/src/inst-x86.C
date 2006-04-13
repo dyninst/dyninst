@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.239 2006/04/04 22:39:53 rutar Exp $
+ * $Id: inst-x86.C,v 1.240 2006/04/13 23:05:18 legendre Exp $
  */
 #include <iomanip>
 
@@ -168,6 +168,17 @@ void initTramps(bool is_multithreaded)
 /* This makes a call to the cpuid instruction, which returns an int where each bit is 
    a feature.  Bit 24 contains whether fxsave is possible, meaning that xmm registers
    are saved. */
+#if defined(os_windows)
+int cpuidCall() {
+    DWORD result;
+    _asm {
+        xor eax, eax
+        cpuid
+        mov result, eax
+    }
+    return result;
+}
+#endif
 #if !defined(x86_64_unknown_linux2_4)
 bool xmmCapable()
 {
