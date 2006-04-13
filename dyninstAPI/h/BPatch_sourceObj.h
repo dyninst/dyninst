@@ -43,7 +43,7 @@
 #define _BPatch_sourceObj_h_
 
 #include "BPatch_dll.h"
-#include <BPatch_Vector.h>
+#include "BPatch_Vector.h"
 
 class BPatch_type;
 class BPatch_variableExpr;

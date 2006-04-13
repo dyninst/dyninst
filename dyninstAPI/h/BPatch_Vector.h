@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_Vector.h,v 1.20 2006/03/31 22:25:09 bernat Exp $
+// $Id: BPatch_Vector.h,v 1.21 2006/04/13 23:05:10 legendre Exp $
 
 #ifndef _BPatch_Vector_h_
 #define _BPatch_Vector_h_
@@ -47,7 +47,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "BPatch_dll.h"
 
 #if !defined(USE_DEPRECATED_BPATCH_VECTOR)
 //#include <stl.h>
@@ -60,6 +59,7 @@
 //#endif
 
 #else
+#include "BPatch_dll.h"
 #ifdef external_templates
 #pragma interface
 #endif /* external_templates */
