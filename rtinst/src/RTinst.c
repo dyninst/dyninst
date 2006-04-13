@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTinst.c,v 1.97 2006/03/15 20:08:10 bernat Exp $
+ * $Id: RTinst.c,v 1.98 2006/04/13 23:05:53 legendre Exp $
  * RTinst.c: platform independent runtime instrumentation functions
  *
  ************************************************************************/
@@ -76,7 +76,6 @@ extern const char V_libparadyn[];
 virtualTimer *virtualTimers = NULL;
 unsigned *RTobserved_cost = NULL;
 
-extern void (*newthr_cb)(int);
 extern void newPDThread(int index);
 
 /* platform dependent functions */
@@ -224,11 +223,10 @@ void DYNINSTstopWallTimer(tTimer* timer)
 void PARADYNinit(int paradyndPid, int creationMethod,
                  virtualTimer *virtualTimersAddr, int *obsCostAddr) 
 {
-
-    int calledFromAttachToCreated = (creationMethod == 3);
-    int calledFromFork = (creationMethod == 2);
-    int calledFromAttach = (creationMethod == 1);
-    int calledFromExec = (creationMethod == 4);
+   int calledFromAttachToCreated = (creationMethod == 3);
+   int calledFromFork = (creationMethod == 2);
+   int calledFromAttach = (creationMethod == 1);
+   int calledFromExec = (creationMethod == 4);
 
    /* sanity check */
    assert(sizeof(rawTime64) == 8);
@@ -272,7 +270,7 @@ void PARADYNinit(int paradyndPid, int creationMethod,
    /* Note: until this point we are not multithread-safe. */
 #if defined(cap_threads)
    PARADYN_initialize_once();
-   newthr_cb = newPDThread;
+   setNewthrCB(newPDThread);
    newPDThread(0);
 #endif
 }
@@ -530,7 +528,6 @@ void PARADYN_initialize_once()
    }    
    PARADYN_initialize_done=1;
 
- done:  
    dyninst_unlock(&PARADYN_initLock);
 }
 

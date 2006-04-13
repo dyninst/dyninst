@@ -48,6 +48,8 @@
 #elif defined(os_solaris)
 #include <thread.h>
 #include <synch.h>
+#elif defined(os_windows)
+#include <windows.h>
 #else
 #error "Unknown OS"
 #endif

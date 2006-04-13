@@ -42,7 +42,7 @@
 /************************************************************************
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  *
- * $Id: RTetc-winnt.c,v 1.18 2005/10/10 18:46:01 legendre Exp $
+ * $Id: RTetc-winnt.c,v 1.19 2006/04/13 23:05:52 legendre Exp $
  *
  ************************************************************************/
 
@@ -53,7 +53,6 @@
 #include <mmsystem.h>
 #include <errno.h>
 #include <limits.h>
-
 
 #include "rtinst/h/trace.h"
 #include "rtinst/h/rtinst.h"
@@ -122,23 +121,12 @@ static int MaxRollbackReport = INT_MAX; /* report all rollbacks */
 
 /* --- CPU time retrieval functions --- */
 /* Hardware Level --- */
-rawTime64 
-DYNINSTgetCPUtime_hw(void) {
+rawTime64 DYNINSTgetCPUtime_hw(void) {
   return 0;
 }
 
-/* Software Level ---
-   method:      GetProcessTimes()
-   return unit: 100 ns resolution
-*/
-rawTime64
-DYNINSTgetCPUtime_sw(void) {
+static rawTime64 getThreadOrProcessTime(HANDLE hnd, int get_thread) {
   FILETIME kernelT, userT, creatT, exitT;
-  static rawTime64 cpuPrevious=0;
-  static int cpuRollbackOccurred=0;
-  rawTime64 now, tmp_cpuPrevious=cpuPrevious;
-  static HANDLE procHandle;
-  HANDLE thrHandle = GetCurrentThread();
   DWORD timerTries = 0;
   DWORD maxTimerTries = 5;
   DWORD gttRet = 0;
@@ -157,8 +145,10 @@ DYNINSTgetCPUtime_sw(void) {
       ZeroMemory( &userT, sizeof(userT) );
       ZeroMemory( &creatT, sizeof(creatT) );
       ZeroMemory( &exitT, sizeof(exitT) );
-      
-      gttRet = GetThreadTimes(thrHandle, &creatT, &exitT, &kernelT,&userT);
+      if (get_thread)
+        gttRet = GetThreadTimes(hnd, &creatT, &exitT, &kernelT,&userT);
+      else
+        gttRet = GetProcessTimes(hnd, &creatT, &exitT, &kernelT,&userT);
       timerTries++;
     } while( (gttRet == 0) && (timerTries < maxTimerTries) );
     if( (gttRet == 0) && (timerTries == maxTimerTries) )
@@ -168,8 +158,24 @@ DYNINSTgetCPUtime_sw(void) {
         fflush( stderr );
         abort();
     }
+    return (FILETIME2rawTime64(userT)+FILETIME2rawTime64(kernelT));
+}
 
-  now = (FILETIME2rawTime64(userT)+FILETIME2rawTime64(kernelT));
+rawTime64 DYNINSTgetCPUtime_LWP(unsigned lwp_id, unsigned fd) {
+    return getThreadOrProcessTime(GetCurrentThread(), 1);
+}
+
+/* Software Level ---
+   method:      GetProcessTimes()
+   return unit: 100 ns resolution
+*/
+rawTime64
+DYNINSTgetCPUtime_sw(void) {
+  static rawTime64 cpuPrevious=0;
+  static int cpuRollbackOccurred=0;
+  rawTime64 now, tmp_cpuPrevious=cpuPrevious;
+
+  now = getThreadOrProcessTime(GetCurrentProcess(), 0);
 
   if (now < tmp_cpuPrevious) {
     if (cpuRollbackOccurred < MaxRollbackReport) {
@@ -367,4 +373,8 @@ static void printSysError(unsigned errNo) {
 		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 		buf, 1000, NULL);
   printf("*** System error [%d]: %s\n", errNo, buf);
+}
+
+unsigned PARADYNgetFD(unsigned lwp) {
+    return 0;
 }

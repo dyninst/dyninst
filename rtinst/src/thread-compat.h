@@ -91,4 +91,18 @@ extern void *P_thread_getspecific(dyninst_key_t);
 
 #endif
 
+#if defined(os_windows)
+#include <windows.h>
+typedef void*                     dyninst_key_t;
+typedef void*                           dyninst_cond_t;
+typedef void*                          dyninst_mutex_t;
+typedef void*                         dyninst_rwlock_t;
+typedef void*                         dyninst_t;
+typedef void*                           dyninst_sema_t;
+extern void *P_thread_getspecific(dyninst_key_t);
+#define P_thread_setspecific(key, val)    
+#define P_thread_key_create(key,dest)     
+#define P_thread_self()                   GetCurrentThreadId();
+#define P_lwp_self()                      GetCurrentThreadId();
+#endif
 #endif

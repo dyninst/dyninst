@@ -44,7 +44,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include "RTcompat.h"
-
+#include "dyninstAPI_RT/h/dyninstRTExport.h"
 
 void DEBUG_VIRTUAL_TIMER_START(virtualTimer *timer, int context) {
   switch(context) {
@@ -120,17 +120,18 @@ void _VirtualTimerStop(virtualTimer* timer) {
   //        timer->lwp);
 }
 
+void _VirtualTimerFinalize(virtualTimer *vt) {
+#if !defined(os_windows)
+    if (vt->rt_fd) close (vt->rt_fd);
+#endif
+}
 
 /* called when the virtual timer is reused by another thread */
 void _VirtualTimerDestroy(virtualTimer* vt) {
   if (vt->lwp) {
-    if (vt->rt_fd) close(vt->rt_fd);
+    _VirtualTimerFinalize(vt);
     memset((char*) vt, '\0', sizeof(virtualTimer)) ;
   }
-}
-
-void _VirtualTimerFinalize(virtualTimer *vt) {
-    if (vt->rt_fd) close (vt->rt_fd);
 }
 
 /* getThreadCPUTime */
@@ -192,7 +193,7 @@ rawTime64 getThreadCPUTime(unsigned index, int *valid) {
 */
 void DYNINSTstartThreadTimer(tTimer* timer)
 {
-   rawTime64 start, old_start ;
+   rawTime64 start;
    int valid = 0;  
    int i;
    
