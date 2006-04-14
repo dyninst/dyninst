@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.17 2006/04/10 18:11:50 nater Exp $
+ * $Id: image-flowGraph.C,v 1.18 2006/04/14 01:22:13 nater Exp $
  */
 
 #include <stdio.h>
@@ -1159,16 +1159,20 @@ bool image_func::buildCFG(
                     funcEnd = ah.peekNext();
 
                 parsing_printf("... 0x%lx is a call\n", currAddr);
-                
+               
                 //validTarget is set to false if the call target is not a 
                 //valid address in the applications process space 
                 bool validTarget = true;
+                //simulateJump is set to true if the call should be treated
+                //as an unconditional branch for the purposes of parsing
+                //(a special case)
+                bool simulateJump = false;
 
                 image_func *targetFunc = NULL;
                 
                 // XXX move this out of archIsRealCall protection... safe?
                 Address target = ah.getBranchTargetAddress();
-                if ( archIsRealCall(ah, validTarget) )
+                if ( archIsRealCall(ah, validTarget, simulateJump) )
                 {
                     //parsing_printf("... making new call point at 0x%lx to 0x%lx\n", currAddr, target);
                     if (ah.isADynamicCallInstruction()) {
@@ -1190,7 +1194,8 @@ bool image_func::buildCFG(
                     }
                     calls.push_back( p );
                     currBlk->containsCall_ = true;
-                }
+
+                } // real call
                 else
                 {
                     parsing_printf(" ! call at 0x%lx rejected by isRealCall()\n",
@@ -1198,6 +1203,16 @@ bool image_func::buildCFG(
                     if( validTarget == false )
                     {
                         parsing_printf("... invalid call target\n");
+                    }
+                    else if( simulateJump )
+                    {
+                        addBasicBlock(target,
+                                  currBlk,
+                                  leaders,
+                                  leadersToBlock,
+                                  ET_DIRECT,
+                                  worklist,
+                                  visited);
                     }
                 }
 
@@ -1212,27 +1227,29 @@ bool image_func::buildCFG(
                                   targetFunc->symTabName() == "__f90_stop"))
                 { 
                     parsing_printf("Call to %s (%lx) detected at 0x%lx\n",
-                                        targetFunc->symTabName().c_str(),
-                                        target, currAddr);
+                                    targetFunc->symTabName().c_str(),
+                                    target, currAddr);
                 }
                 else if(pltFuncs[target] == "exit" || 
                         pltFuncs[target] == "abort" ||
                         pltFuncs[target] == "__f90_stop")
                 {
                     parsing_printf("Call to %s (%lx) detected at 0x%lx\n",
-                                        pltFuncs[target].c_str(),
-                                        target, currAddr);
+                                    pltFuncs[target].c_str(),
+                                    target, currAddr);
                 }
-                else
+                else if(!simulateJump)
                 {
+                    // we don't wire up a fallthrough edge if we're treating
+                    // the call insruction as an unconditional branch
                     Address next = ah.peekNext();
                     addBasicBlock(next,
-                              currBlk,
-                              leaders,
-                              leadersToBlock,
-                              ET_FUNLINK,
-                              worklist,
-                              visited);
+                                currBlk,
+                                leaders,
+                                leadersToBlock,
+                                ET_FUNLINK,
+                                worklist,
+                                visited);
                 }
                 break;
             }
