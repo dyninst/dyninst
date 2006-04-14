@@ -41,7 +41,7 @@
 
 /************************************************************************
  *
- * $Id: RTshared-win.c,v 1.1 2004/05/11 19:02:29 bernat Exp $
+ * $Id: RTshared-win.c,v 1.2 2006/04/14 02:08:09 legendre Exp $
  * RTshared.c: shared memory implementation
  *
  ************************************************************************/
@@ -84,5 +84,6 @@ void *RTsharedAttach(unsigned key, unsigned size, void *addr) {
 void *RTsharedDetach(unsigned key, unsigned size, void *addr) {
     UnmapViewOfFile( addr );
     /*CloseHandle( hMapping );*/
+    return NULL;
 }
 

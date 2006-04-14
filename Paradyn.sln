@@ -92,6 +92,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "mrnet_commnode", "mrnet\i38
 		{F23F7EDF-18A7-4DEF-BA24-6374E1958EAC} = {F23F7EDF-18A7-4DEF-BA24-6374E1958EAC}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sharedMem", "sharedMem\sharedMem.vcproj", "{C34542B3-DD0D-42E6-A9CD-C490ACB4980E}"
+	ProjectSection(ProjectDependencies) = postProject
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
@@ -162,6 +166,10 @@ Global
 		{7FDF565C-8091-4F35-A556-442E0A922606}.Debug.Build.0 = Debug|Win32
 		{7FDF565C-8091-4F35-A556-442E0A922606}.Release.ActiveCfg = Release|Win32
 		{7FDF565C-8091-4F35-A556-442E0A922606}.Release.Build.0 = Release|Win32
+		{C34542B3-DD0D-42E6-A9CD-C490ACB4980E}.Debug.ActiveCfg = Debug|Win32
+		{C34542B3-DD0D-42E6-A9CD-C490ACB4980E}.Debug.Build.0 = Debug|Win32
+		{C34542B3-DD0D-42E6-A9CD-C490ACB4980E}.Release.ActiveCfg = Release|Win32
+		{C34542B3-DD0D-42E6-A9CD-C490ACB4980E}.Release.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection
