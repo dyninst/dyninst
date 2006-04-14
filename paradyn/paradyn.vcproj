@@ -1781,7 +1781,7 @@ cd ..
 ..\..\..\i386-unknown-nt4.0\bin\igen.exe -thread ..\h\VISIthread.I
 cd ..
 "
-							Outputs="VISIthread.thread.C;VISIthread.thread.CLNT.C;VISIthread.thread.CLNT.h;VISIthread.thread.SRVR.C;VISIthread.thread.SRVR.h;VISIthread.thread.h;VISIthread.thread.temp.C"/>
+							Outputs="i386-unknown-nt4.0\VISIthread.thread.C;i386-unknown-nt4.0\VISIthread.thread.CLNT.C;i386-unknown-nt4.0\VISIthread.thread.CLNT.h;i386-unknown-nt4.0\VISIthread.thread.SRVR.C;i386-unknown-nt4.0\VISIthread.thread.SRVR.h;i386-unknown-nt4.0\VISIthread.thread.h;i386-unknown-nt4.0\VISIthread.thread.temp.C"/>
 					</FileConfiguration>
 					<FileConfiguration
 						Name="Release|Win32">
@@ -1791,7 +1791,7 @@ cd ..
 ..\..\..\i386-unknown-nt4.0\bin\igen.exe -thread ..\h\VISIthread.I
 cd ..
 "
-							Outputs="VISIthread.thread.C;VISIthread.thread.CLNT.C;VISIthread.thread.CLNT.h;VISIthread.thread.SRVR.C;VISIthread.thread.SRVR.h;VISIthread.thread.h;VISIthread.thread.temp.C"/>
+							Outputs="i386-unknown-nt4.0\VISIthread.thread.C;i386-unknown-nt4.0\VISIthread.thread.CLNT.C;i386-unknown-nt4.0\VISIthread.thread.CLNT.h;i386-unknown-nt4.0\VISIthread.thread.SRVR.C;i386-unknown-nt4.0\VISIthread.thread.SRVR.h;i386-unknown-nt4.0\VISIthread.thread.h;i386-unknown-nt4.0\VISIthread.thread.temp.C"/>
 					</FileConfiguration>
 				</File>
 				<File
