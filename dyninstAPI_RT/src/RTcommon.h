@@ -74,7 +74,7 @@ extern int DYNINSTdebugRTlib;
 //  solaris 2.8 is having some trouble with varargs...  
 #define rtdebug_printf if (DYNINSTdebugPrintRT) printf
 #else
-int rtdebug_printf(const char *format, ...);
+int rtdebug_printf(char *format, ...);
 #endif
 #endif
        
