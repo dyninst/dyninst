@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.3 2005/12/12 16:37:51 gquinn Exp $
+# $Id: Makefile,v 1.4 2006/04/14 18:28:38 mirg Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -37,7 +37,12 @@ GNU_WARNING_FLAGS = -W -Wall
 MUTATOR_CXXFLAGS += $(GNU_WARNING_FLAGS)
 MUTATEE_CFLAGS_GNU 	= $(UNIFIED_DEF) $(GNU_WARNING_FLAGS)
 MUTATEE_CXXFLAGS_GNU 	= $(UNIFIED_DEF) $(GNU_WARNING_FLAGS)
-MUTATEE_LIBS = -Wl,-ldl
+
+# Tests 1, 2, and 12 use libdl. It is only added to their link lines
+# as we must also test the harder-to-bootstrap general case (mutatee
+# without the libdl)
+MUTATEE_USE_LIBDL_SELECTIVELY = true
+MUTATEE_LIBS =
 MUTATEE_LDFLAGS_GNU += -Wl,-export-dynamic
 
 COMMA=,
