@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.17 2006/03/17 19:02:31 nater Exp $
+// $Id: image-func.h,v 1.18 2006/04/14 01:22:07 nater Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -368,7 +368,7 @@ class image_func : public codeRange {
              pdvector< instruction >& allInstructions);
     bool archIsIndirectTailCall(InstrucIter &ah);
     bool archIsAbortOrInvalid(InstrucIter &ah);
-    bool archIsRealCall(InstrucIter &ah, bool &validTarget);
+    bool archIsRealCall(InstrucIter &ah, bool &validTarget, bool &simulateJump);
     bool archCheckEntry(InstrucIter &ah, image_func *func );
     void archInstructionProc(InstrucIter &ah);
 

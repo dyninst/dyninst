@@ -38,7 +38,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-ia64.C,v 1.7 2006/01/20 00:12:25 nater Exp $
+// $Id: image-ia64.C,v 1.8 2006/04/14 01:22:09 nater Exp $
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -52,7 +52,8 @@
 #include "arch.h"
 
 // Not used on IA64
-bool image_func::archIsRealCall(InstrucIter &ah, bool &validTarget)
+bool image_func::archIsRealCall(InstrucIter &ah, bool &/*validTarget*/,
+                                bool & /* simulateJump */)
 {
     return true;
 }

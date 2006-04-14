@@ -40,7 +40,7 @@
  */
 
 
-// $Id: image-sparc.C,v 1.9 2006/03/01 19:32:42 nater Exp $
+// $Id: image-sparc.C,v 1.10 2006/04/14 01:22:11 nater Exp $
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -143,7 +143,8 @@ static inline bool JmpNopTC(instruction instr, instruction nexti,
     
     return 1;
 }
-bool image_func::archIsRealCall(InstrucIter &ah, bool &validTarget)
+bool image_func::archIsRealCall(InstrucIter &ah, bool &validTarget,
+                                bool &simulateJump)
 {
     if(!ah.isADynamicCallInstruction())
     {
@@ -172,6 +173,23 @@ bool image_func::archIsRealCall(InstrucIter &ah, bool &validTarget)
         {
             parsing_printf("Skipping call to retl at 0x%x, func %s\n",
                             *ah, symTabName().c_str());
+            return false;
+        }
+
+        // We also have "get-my-pc" combos, which we also handle in
+        // instrumentation. These may be offset by 8 or 12 bytes from   
+        // the call, in one of these forms:
+        //
+        //  call, nop, <target>
+        // or
+        //  call, nop, unimpl, <target>
+
+        if(callTarget == *ah + 2*instruction::size() ||
+           callTarget == *ah + 3*instruction::size())
+        {
+            parsing_printf("Skipping \"get-my-pc\" combo at 0x%x\n", *ah);
+            // tell the parser to treat this call as an indirect jump
+            simulateJump = true;
             return false;
         }
     }

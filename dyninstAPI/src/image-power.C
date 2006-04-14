@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-power.C,v 1.7 2006/02/24 19:59:33 bernat Exp $
+// $Id: image-power.C,v 1.8 2006/04/14 01:22:10 nater Exp $
 
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
@@ -59,7 +59,8 @@
 
 // Not used on power
 bool image_func::archIsRealCall(InstrucIter &ah,
-                bool &validTarget)
+                bool &/*validTarget*/,
+                bool & /*simulateJump*/)
 {   
     return true;
 }

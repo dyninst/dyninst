@@ -38,7 +38,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-alpha.C,v 1.5 2006/01/20 00:12:21 nater Exp $
+// $Id: image-alpha.C,v 1.6 2006/04/14 01:22:08 nater Exp $
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -53,7 +53,8 @@
 #include "alpha.h"
 
 // Not used on alpha
-bool image_func::archIsRealCall(InstrucIter &ah, bool &validTarget)
+bool image_func::archIsRealCall(InstrucIter &ah, bool &/* validTarget */,
+                                bool & /* simulateJump */)
 {
     return true;
 }

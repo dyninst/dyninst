@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.16 2006/03/01 19:32:40 nater Exp $
+ * $Id: image-x86.C,v 1.17 2006/04/14 01:22:12 nater Exp $
  */
 
 #include "common/h/Vector.h"
@@ -74,7 +74,8 @@ void checkIfRelocatable(instruction insn, bool &canBeRelocated) {
   }
 }
 
-bool image_func::archIsRealCall(InstrucIter &ah, bool &validTarget)
+bool image_func::archIsRealCall(InstrucIter &ah, bool &validTarget,
+                                bool & /* simulateJump */)
 {
     instruction insn = ah.getInstruction();
     Address adr = *ah;
@@ -87,6 +88,10 @@ bool image_func::archIsRealCall(InstrucIter &ah, bool &validTarget)
    // dynamically linked libraries to get the address of the code.
    if (insn.getTarget(adr) == adr + 5) {
        parsing_printf("... getting PC\n");
+       // XXX we can do this like on sparc, but we don't need to: we do it
+       // on sparc because the intervening instructions don't get executed;
+       // on x86 for this heuristic there *are* no intervening instructions.
+       //simulateJump = true;
        return false;
    }
 
