@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-sparc.C,v 1.9 2006/03/14 23:11:55 bernat Exp $
+ * $Id: arch-sparc.C,v 1.10 2006/04/14 01:22:06 nater Exp $
  */
 
 #include "common/h/Types.h"
@@ -571,17 +571,39 @@ bool instruction::generate(codeGen &gen,
     // offset
     if (isInsnType(CALLmask, CALLmatch)) {
         // Check to see if we're a "get-my-pc" combo.
-        // Two forms exist: call +8, and call to a retl/nop 
+        // Two forms exist: call +8|+12, and call to a retl/nop 
         // pair. This is very similar to x86, amusingly enough.
         // If this is the case, we replace with an immediate load of 
         // the PC.
 
+        // FIXME The target offset heuristic is rough may not capture all
+        // cases. We should do a better job of detecting these false calls
+        // during parsing and use that information (instead of inspection of
+        // the individual call instruction) to determine whether this
+        // is a real call or a "get-my-pc" combo.
         Address target = getTarget(origAddr);
-        if (target == origAddr + (2*instruction::size())) {
+        if (target == origAddr + (2*instruction::size()))
+        {
             inst_printf("Relocating get PC combo\n");
             instruction::generateSetHi(gen, origAddr, REG_O(7));
             instruction::generateImm(gen, ORop3, REG_O(7),
                                      LOW10(origAddr), REG_O(7));
+        }
+        else if(target == origAddr + (3*instruction::size())) {
+            inst_printf("Relocating get PC combo (long form)\n");
+            // for this case, we want to make sure the intervening
+            // instructions are skipped, thereby preserving the
+            // semantics of the original binary
+
+            // load the PC into o7
+            instruction::generateSetHi(gen, origAddr, REG_O(7));
+            instruction::generateImm(gen, ORop3, REG_O(7),
+                                     LOW10(origAddr), REG_O(7));
+
+            // We've generated two instructions; update the offset accordingly
+            newLongOffset = (long long)target - (relocAddr + 2*instruction::size());
+            //inst_printf("storing PC (0x%lx) into o7, adding branch to target 0x%lx (offset 0x%llx)\n",origAddr,target,newLongOffset);
+            instruction::generateBranch(gen,newLongOffset);
         }
         else if (proc->isValidAddress(target)) {
             // Need to check the destination. Grab it with an InstrucIter
@@ -639,6 +661,8 @@ bool instruction::generate(codeGen &gen,
 	// heap for a call instruction to branch target.  The base tramp 
 	// will branch to this new inferior heap code, which will call the
 	// target of the branch
+
+    // XXX doesn't instruction::generateBranch take care of this for you?
 
 	if ((newLongOffset < (long long)(-0x7fffffff-1)) ||
 	    (newLongOffset > (long long)0x7fffffff) ||
