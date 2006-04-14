@@ -3,7 +3,7 @@
  *                  Detailed MRNet usage rights in "LICENSE" file.     *
  **********************************************************************/
 
-// $Id: Process-win.C,v 1.6 2006/04/13 23:05:28 legendre Exp $
+// $Id: Process-win.C,v 1.7 2006/04/14 02:08:17 legendre Exp $
 #include <winsock2.h>
 #include <string.h>
 #include "xplat/Process.h"
@@ -56,7 +56,7 @@ Process::CreateLocal( const std::string& cmd,
     startupInfo.cb = sizeof(startupInfo);
 
     BOOL bRet = ::CreateProcess( 
-                cmd.c_str(),    // module to execute
+                NULL,    // module to execute
                 mutableCmdline, // command line for new process
                 NULL,           // process security attributes (default)
                 NULL,           // thread security attributes (default)
