@@ -248,7 +248,7 @@ int launch_mutator()
 
 		    sendMsg(config.outfd, ID_PARSE_FUNC_CFG, VERB1, ID_TEST, buf);
 		    appCFG = (*appFunctions)[j]->getCFG();
-		    if (appCFG) {
+		    if (!appCFG) {
 			sendMsg(config.outfd, ID_PARSE_FUNC_CFG, VERB1, ID_WARN,
 				"Failure in BPatch_function::getCFG()");
 			++cfg_warn_cnt;
@@ -980,7 +980,7 @@ bool instrumentBasicBlocks(dynHandle *dh, BPatch_function *func)
     }
 
     sendMsg(config.outfd, ID_INST_GET_BB, VERB3);
-    if (appCFG->getAllBasicBlocks(allBlocks)) {
+    if (!appCFG->getAllBasicBlocks(allBlocks)) {
 	sendMsg(config.outfd, ID_INST_GET_BB, VERB3, ID_FAIL,
 		"Failure in BPatch_flowGraph::getAllBasicBlocks()");
 	goto fail;
@@ -1076,7 +1076,7 @@ bool instrumentMemoryReads(dynHandle *dh, BPatch_function *func)
     }
 
     sendMsg(config.outfd, ID_INST_GET_BB, VERB3);
-    if (appCFG->getAllBasicBlocks(allBlocks)) {
+    if (!appCFG->getAllBasicBlocks(allBlocks)) {
 	sendMsg(config.outfd, ID_INST_GET_BB, VERB3, ID_FAIL,
 		"Failure in BPatch_flowGraph::getAllBasicBlocks()");
 	goto fail;
@@ -1171,7 +1171,7 @@ bool instrumentMemoryWrites(dynHandle *dh, BPatch_function *func)
     }
 
     sendMsg(config.outfd, ID_INST_GET_BB, VERB3);
-    if (appCFG->getAllBasicBlocks(allBlocks)) {
+    if (!appCFG->getAllBasicBlocks(allBlocks)) {
 	sendMsg(config.outfd, ID_INST_GET_BB, VERB3, ID_FAIL,
 		"Failure in BPatch_flowGraph::getAllBasicBlocks()");
 	goto fail;
