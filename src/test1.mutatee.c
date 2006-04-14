@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.7 2006/04/04 01:10:43 legendre Exp $ */
+/* $Id: test1.mutatee.c,v 1.8 2006/04/14 18:28:40 mirg Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -249,6 +249,66 @@ int globalVariable36_8 = 0;
 int globalVariable36_9 = 0;
 int globalVariable36_10 = 0;
 
+/* A couple of dlopen-related functions. Moved here from mutatee_util
+   so as not to introduce the libdl dependency on all mutatees */
+#if defined(os_windows)
+void printSysError(unsigned errNo) {
+    char buf[1000];
+    int result = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, NULL, errNo, 
+		  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		  buf, 1000, NULL);
+    if (!result) {
+        fprintf(stderr, "Couldn't print error message\n");
+    }
+    fprintf(stderr, "%s\n", buf);
+}
+
+void *loadDynamicLibrary(char *name) {
+  void *result = (void *) LoadLibrary(name);
+  if (!result) {
+      fprintf(stderr, "[%s:%u] - The mutatee could not load %s\n", __FILE__, __LINE__);
+      printSysError(GetLastError());
+  }
+  return result;
+}
+
+void *getFuncFromDLL(void *libhandle, char *func_name) {
+    void *result;
+    if (!libhandle || !func_name) {
+        fprintf(stderr, "[%s:%u] - Test error - getFuncFromDLL passed NULL "
+                "parameter\n", __FILE__, __LINE__);
+        return NULL;            
+    }
+    result = GetProcAddress((HMODULE) libhandle, func_name);
+    if (!result) {
+        fprintf(stderr, "[%s:%u] - Couldn't load symbol %s\n", __FILE__, __LINE__, func_name);
+        printSysError(GetLastError());
+    }
+    return result;
+}
+#else
+void *loadDynamicLibrary(char *name) {
+    void *result;
+#if defined(os_solaris)
+    int dlopenMode = RTLD_NOW | RTLD_GLOBAL;
+#else
+    int dlopenMode = RTLD_NOW;
+#endif
+    result = dlopen(name, dlopenMode);
+    if (!result) {
+        perror("The mutatee couldn't load a dynamic library");
+    }
+    return result;
+}
+
+void *getFuncFromDLL(void *libhandle, char *func_name) {
+    void *result = dlsym(libhandle, func_name);
+    if (!result) {
+        perror("The mutatee couldn't find a function");
+    }
+    return result;
+}
+#endif
 
 /*
  * Determine if two doubles are close to being equal (for our purposes, that
