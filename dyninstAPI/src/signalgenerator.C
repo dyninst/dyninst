@@ -1136,12 +1136,8 @@ process *SignalGeneratorCommon::newProcess(pdstring file_, pdstring dir,
 {
    // Verify existence of exec file
    pdstring file = createExecPath(file_, dir);
-   struct stat file_stat;
-   int stat_result;
 
-   stat_result = stat(file.c_str(), &file_stat);
-
-   if (stat_result == -1) {
+   if (!OS::executableExists(file)) {
       startup_printf("%s[%d]:  failed to read file %s\n", FILE__, __LINE__, file.c_str());
       pdstring msg = pdstring("Can't read executable file ") + file + (": ") + strerror(errno);
       showErrorCallback(68, msg.c_str());

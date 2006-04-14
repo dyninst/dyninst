@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.184 2006/04/13 23:05:17 legendre Exp $
+// $Id: unix.C,v 1.185 2006/04/14 02:08:15 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -1552,4 +1552,12 @@ bool SignalHandler::forwardSigToProcess(EventRecord &ev, bool &continueHint)
 
 bool SignalGeneratorCommon::postSignalHandler() {
     return true;
+}
+
+bool OS::executableExists(pdstring &file) {
+   struct stat file_stat;
+   int stat_result;
+
+   stat_result = stat(file.c_str(), &file_stat);
+   return (stat_result != -1);
 }

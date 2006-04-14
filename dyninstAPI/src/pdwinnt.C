@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.152 2006/04/13 23:05:19 legendre Exp $
+// $Id: pdwinnt.C,v 1.153 2006/04/14 02:08:13 legendre Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -2165,3 +2165,12 @@ bool ReadDataSpaceCallback::execute_real() {return false;}
 bool WaitPidNoBlockCallback::execute_real() {return false;}
 bool WriteDataSpaceCallback::execute_real() {return false;}
 
+bool OS::executableExists(pdstring &file) {
+   struct stat file_stat;
+   int stat_result;
+
+   stat_result = stat(file.c_str(), &file_stat);
+   if (stat_result == -1)
+       stat_result = stat((file + pdstring(".exe")).c_str(), &file_stat);
+   return (stat_result != -1);
+}

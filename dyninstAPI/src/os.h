@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: os.h,v 1.31 2005/10/21 21:48:20 legendre Exp $
+// $Id: os.h,v 1.32 2006/04/14 02:08:12 legendre Exp $
 
 #ifndef _OS_HDR
 #define _OS_HDR
@@ -95,6 +95,7 @@ public:
   static void make_tempfile(char *);
   static bool execute_file(char *);
   static void unlink(char *);
+  static bool executableExists(pdstring &file);
 };
 
 #endif
