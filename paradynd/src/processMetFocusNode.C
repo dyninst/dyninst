@@ -947,7 +947,6 @@ void processMetFocusNode::removeProcNodesToDeleteLater() {
 }
 
 void processMetFocusNode::pauseProcess() {
-    /* DEBUG */ fprintf(stderr, "procMetFoc, pauseProc %d\n", runWhenFinished_);
     if(runWhenFinished_ == true)  return;
     if (proc()->isStopped()) return; // at startup, process can be stopped, but not "paused"
     // don't need to pause, and setting runWhenFinished_
@@ -959,7 +958,6 @@ void processMetFocusNode::pauseProcess() {
 }
 
 void processMetFocusNode::continueProcess() {
-    // /* DEBUG */ fprintf(stderr, "procMetFoc, paused %d\n", runWhenFinished_);
     if(runWhenFinished_) {
         proc()->continueProc();
         runWhenFinished_ = false;

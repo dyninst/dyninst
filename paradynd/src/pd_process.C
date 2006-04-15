@@ -2030,8 +2030,6 @@ bool pd_process::continueProc() {
 }
 bool pd_process::pauseProc() 
 {
-    fprintf(stderr, "pd_process:pauseProc...\n");
-
     if (!dyninst_process->stopExecution())
         return false;
     if (dyninst_process->isTerminated())

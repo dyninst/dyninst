@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.144 2006/04/13 23:05:41 legendre Exp $
+// $Id: main.C,v 1.145 2006/04/15 01:07:51 legendre Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -512,10 +512,6 @@ void sighupInit() {
 int
 main( int argc, char* argv[] )
 {
-    for (unsigned i=0; i<argc; i++) {
-        fprintf(stderr, "%s ", argv[i]);
-    }
-    fprintf(stderr, "\n");
 	PauseIfDesired();
 	init_daemon_debug();
 	
