@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.99 2006/04/10 18:15:51 mirg Exp $
+// $Id: linux-x86.C,v 1.100 2006/04/15 01:07:49 legendre Exp $
 
 #include <fstream>
 
@@ -192,21 +192,6 @@ bool dyn_lwp::clearOPC()
       perror( "dyn_lwp::changePC - PTRACE_POKEUSER" );
       return false;
    }
-   return true;
-}
-
-static bool changeBP(int pid, Address loc) 
-{
-   process *p = process::findProcess(pid);
-   assert (p);
-   int width = p->getAddressWidth();
-   Address regaddr = offsetof(struct user_regs_struct, PTRACE_REG_BP);
-   int ptrace_errno = 0;
-   if (0 != DBI_ptrace(PTRACE_POKEUSER, pid, regaddr, loc, &ptrace_errno, width,  __FILE__, __LINE__ )) {
-      perror( "process::changeBP - PTRACE_POKEUSER" );
-      return false;
-   }
-
    return true;
 }
 
@@ -576,11 +561,19 @@ void calcVSyscallFrame(process *p)
 }
 
 bool Frame::setPC(Address newpc) {
-    fprintf(stderr, "Implement me! Changing frame PC from %lx to %lx\n",
-            pc_, newpc);
-    //pc_ = newpc;
-    //range_ = NULL;
-    return false;
+   if (!pcAddr_)
+   {
+      fprintf(stderr, "[%s:%u] - Frame::setPC aborted", __FILE__, __LINE__);
+      return false;
+   }
+
+   fprintf(stderr, "[%s:%u] - Frame::setPC setting %x to %x",
+           __FILE__, __LINE__, pcAddr_, newpc);
+   getProc()->writeDataSpace((void*)pcAddr_, sizeof(Address), &newpc);
+   pc_ = newpc;
+   range_ = NULL;
+
+   return false;
 }
 
 void process::setPrelinkCommand(char *command){

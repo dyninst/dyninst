@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: frame.h,v 1.28 2006/04/12 16:59:23 bernat Exp $
+// $Id: frame.h,v 1.29 2006/04/15 01:07:48 legendre Exp $
 
 #ifndef FRAME_H
 #define FRAME_H
@@ -160,7 +160,7 @@ class Frame {
 #if defined( arch_ia64 )  
   unw_cursor_t	unwindCursor;
 #endif  
-  Address		pcAddr_;			// AIX
+  Address		pcAddr_;
   
 };
 

@@ -278,6 +278,7 @@ Frame Frame::getCallerFrame()
    Address newFP=0;
    Address newSP=0;
    Address newpcAddr=0;
+   Address pcLoc=0;
 
    status = getFrameStatus(getProc(), getPC());
 
@@ -337,30 +338,30 @@ Frame Frame::getCallerFrame()
    }
    else if (status == frame_sighandler)
    {
-       int fp_offset, pc_offset, frame_size;
-       if (getProc()->getAddressWidth() == 4) {
-	   fp_offset = SIG_HANDLER_FP_OFFSET_32;
-	   pc_offset = SIG_HANDLER_PC_OFFSET_32;
-	   frame_size = SIG_HANDLER_FRAME_SIZE_32;
-       }
-       else {
-	   fp_offset = SIG_HANDLER_FP_OFFSET_64;
-	   pc_offset = SIG_HANDLER_PC_OFFSET_64;
-	   frame_size = SIG_HANDLER_FRAME_SIZE_64;
-       }
-
-       if (!getProc()->readDataSpace((caddr_t)(sp_+fp_offset), sizeof(Address),
- 				     &addrs.fp, true)) {
-	   // FIXME
-	   assert(0);
-       }
-       if (!getProc()->readDataSpace((caddr_t)(sp_+pc_offset), sizeof(Address),
-				     &addrs.rtn, true)) {
-	   // FIXME
-	   assert(0);
-       }
-
-
+      int fp_offset, pc_offset, frame_size;
+      if (getProc()->getAddressWidth() == 4) {
+         fp_offset = SIG_HANDLER_FP_OFFSET_32;
+         pc_offset = SIG_HANDLER_PC_OFFSET_32;
+         frame_size = SIG_HANDLER_FRAME_SIZE_32;
+      }
+      else {
+         fp_offset = SIG_HANDLER_FP_OFFSET_64;
+         pc_offset = SIG_HANDLER_PC_OFFSET_64;
+         frame_size = SIG_HANDLER_FRAME_SIZE_64;
+      }
+      
+      if (!getProc()->readDataSpace((caddr_t)(sp_+fp_offset), sizeof(Address),
+                                    &addrs.fp, true)) {
+         // FIXME
+         assert(0);
+      }
+      if (!getProc()->readDataSpace((caddr_t)(sp_+pc_offset), sizeof(Address),
+                                    &addrs.rtn, true)) {
+         // FIXME
+         assert(0);
+      }
+      
+      
       /**
        * If the current frame is for the signal handler function, then we need 
        * to read the information about the next frame from the data saved by 
@@ -369,6 +370,7 @@ Frame Frame::getCallerFrame()
       newFP = addrs.fp;
       newPC = addrs.rtn;
       newSP = sp_ + frame_size;
+      pcLoc = sp_ + pc_offset;
       goto done;
    }   
    else if ((status == frame_allocates_frame || status == frame_tramp))
@@ -380,7 +382,8 @@ Frame Frame::getCallerFrame()
        **/
       int offset = 0;
       // FIXME: for tramps, we need to check if we've saved the FP yet
-      if ((status != frame_tramp && !hasAllocatedFrame(pc_, getProc(), offset)) || 
+      if ((status != frame_tramp && 
+           !hasAllocatedFrame(pc_, getProc(), offset)) || 
           (prevFrameValid && isInEntryExitInstrumentation(prevFrame)))
       {
          addrs.fp = offset + sp_;
@@ -390,6 +393,7 @@ Frame Frame::getCallerFrame()
          newPC = addrs.rtn;
          newFP = fp_;
          newSP = addrs.fp + getProc()->getAddressWidth();
+         pcLoc = addrs.fp;
       }
       else
       {
@@ -401,13 +405,15 @@ Frame Frame::getCallerFrame()
          newFP = addrs.fp;
          newPC = addrs.rtn;
          newSP = fp_+ (2 * sizeof(Address));
+         pcLoc = fp_ + sizeof(Address);
       }
       if (status == frame_tramp)
-         newSP += 
-            getProc()->getAddressWidth() == 8 ? tramp_pre_frame_size_64 : tramp_pre_frame_size_32;
+         newSP += getProc()->getAddressWidth() == 8 ? 
+            tramp_pre_frame_size_64 : tramp_pre_frame_size_32;
       goto done;
    }
-   else if (status ==  frame_saves_fp_noframe || status == frame_no_use_fp || status == frame_unknown)
+   else if (status ==  frame_saves_fp_noframe || status == frame_no_use_fp ||
+            status == frame_unknown)
    {
       /**
        * The evil case.  We don't have a valid frame pointer.  We'll
@@ -492,6 +498,7 @@ Frame Frame::getCallerFrame()
          // value (fingers crossed).
          if (cur_func != NULL && cur_func == callee)
          {
+            pcLoc = estimated_sp;
             newPC = estimated_ip;
             newFP = estimated_fp;
             newSP = estimated_sp+addr_size;
@@ -532,6 +539,7 @@ Frame Frame::getCallerFrame()
  done:
 
    Frame ret = Frame(newPC, newFP, newSP, newpcAddr, this);
+   ret.pcAddr_ = pcLoc;
 
    if (status == frame_tramp)
    {
