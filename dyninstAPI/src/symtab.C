@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.274 2006/03/31 20:06:35 bernat Exp $
+ // $Id: symtab.C,v 1.275 2006/04/15 21:53:00 nater Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1791,7 +1791,7 @@ image::image(fileDescriptor &desc, bool &err)
    }
   
 
-#if defined(os_solaris) || defined(os_aix)
+#if defined(os_solaris) || defined(os_aix) || defined(os_linux)
    // make sure we're using the right demangler
 
    nativeCompiler = parseCompilerType(&linkedFile);

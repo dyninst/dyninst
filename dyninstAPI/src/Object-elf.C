@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.102 2006/04/10 18:11:47 nater Exp $
+ * $Id: Object-elf.C,v 1.103 2006/04/15 21:52:59 nater Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -2287,6 +2287,27 @@ void Object::get_valid_memory_areas(Elf_X &elf)
 //
 //
 //
+#if defined(os_linux)
+    // Differentiating between g++ and pgCC by stabs info (as in the solaris/
+    // aix case, below) will not work; the gcc-compiled object files that
+    // get included at link time will fill in the N_OPT stabs line. Instead,
+    // look for "pgCC_compiled." symbols.
+bool parseCompilerType(Object *objPtr)
+{
+   for (SymbolIter symIter(*objPtr); symIter; symIter++) {
+      const Symbol &lookUp = symIter.currval();
+      if(lookUp.type() == Symbol::PDST_NOTYPE) {
+         const pdstring &lookUpName = lookUp.name();
+         if(lookUpName == "pgCC_compiled.")
+         {
+            fprintf(stderr,"setting native!\n");
+            return true;
+         }
+      }
+   }
+   return false;
+} 
+#else
 bool parseCompilerType(Object *objPtr) 
 {
    stab_entry *stabptr = objPtr->get_stab_info();
@@ -2319,6 +2340,7 @@ bool parseCompilerType(Object *objPtr)
    delete stabptr;
    return false; // Shouldn't happen - maybe N_OPT stripped
 }
+#endif
 
 
 #if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))

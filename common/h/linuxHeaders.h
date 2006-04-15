@@ -253,15 +253,25 @@ inline int P_rexec(char **ahost, u_short inport, char *user,
 		   char *passwd, char *cmd, int *fd2p) {
   return (rexec(ahost, inport, user, passwd, cmd, fd2p));}
 
+/* The following values are taken from demangle.h in binutils */
 #define DMGL_PARAMS      (1 << 0)       /* Include function args */
 #define DMGL_ANSI        (1 << 1)       /* Include const, volatile, etc */
 
+#define DMGL_ARM         (1 << 11)      /* Use C++ ARM name mangling */ 
+
 extern "C" char *cplus_demangle(char *, int);
 extern void dedemangle( const char * demangled, char * dedemangled );
-inline char * P_cplus_demangle( const char * symbol, bool /* nativeCompiler */,
+inline char * P_cplus_demangle( const char * symbol, bool nativeCompiler,
                                 bool includeTypes = false ) {
-   char * demangled = cplus_demangle( const_cast< char *>(symbol), 
-				includeTypes ? DMGL_PARAMS | DMGL_ANSI : 0 );
+   int opts = 0;
+   opts |= includeTypes ? DMGL_PARAMS | DMGL_ANSI : 0;
+   //   [ pgcc/CC are the "native" compilers on Linux. Go figure. ]
+   // pgCC's mangling scheme most closely resembles that of the Annotated
+   // C++ Reference Manual, only with "some exceptions" (to quote the PGI
+   // documentation). I guess we'll demangle names with "some exceptions".
+   opts |= nativeCompiler ? DMGL_ARM : 0;
+
+   char * demangled = cplus_demangle( const_cast< char *>(symbol), opts);
    if( demangled == NULL ) { return NULL; }
 
    if( ! includeTypes ) {
