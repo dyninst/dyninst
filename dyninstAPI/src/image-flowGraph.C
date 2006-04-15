@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.18 2006/04/14 01:22:13 nater Exp $
+ * $Id: image-flowGraph.C,v 1.19 2006/04/15 21:53:01 nater Exp $
  */
 
 #include <stdio.h>
@@ -781,9 +781,6 @@ bool image_func::buildCFG(
                 nextExistingBlockAddr = nextExistingBlock->firstInsnOffset_;
             }
         }
-
-        parsing_printf("- successor: 0x%lx, ah.peekNext(): 0x%lx\n",
-            nextExistingBlockAddr, ah.peekNext());
 
         while(true) // instructions in block
         {
