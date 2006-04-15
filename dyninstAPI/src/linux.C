@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.212 2006/04/13 19:37:11 mjbrim Exp $
+// $Id: linux.C,v 1.213 2006/04/15 01:07:55 legendre Exp $
 
 #include <fstream>
 
@@ -1110,8 +1110,8 @@ bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf
           errno = 0;
           w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) (ap-cnt), w, len);
           if (errno) {
-              signal_printf("%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, strerror(errno));
-              assert(0);
+              signal_printf("%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, 
+                            strerror(errno));
               return false;
           }
           for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
@@ -1129,7 +1129,8 @@ bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf
           errno = 0;
           w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0, len);
           if (errno) {
-              signal_printf("%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, strerror(errno));
+              signal_printf("%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, 
+                            strerror(errno));
               return false;
           }
           memcpy(dp, &w, len);
@@ -1147,7 +1148,8 @@ bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf
           errno = 0;
           w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0, len);
           if (errno) {
-               signal_printf("%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, strerror(errno));
+               signal_printf("%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, 
+                             strerror(errno));
                return false;
           }
           for (unsigned i = 0; i < nbytes; i++)
