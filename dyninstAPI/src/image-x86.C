@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.17 2006/04/14 01:22:12 nater Exp $
+ * $Id: image-x86.C,v 1.18 2006/04/17 07:32:03 nater Exp $
  */
 
 #include "common/h/Vector.h"
@@ -246,6 +246,64 @@ void image_func::archInstructionProc(InstrucIter & /* ah */)
     return;
 }
 
+bool findMaxSwitchInsn(image_basicBlock *start, instruction &maxSwitch,
+                       instruction &branchInsn)
+{
+    BPatch_Set<image_basicBlock *> visited;
+    pdvector<image_basicBlock *> WL;
+    pdvector<image_edge *> sources;
+    image_basicBlock *curBlk;
+
+    bool foundMaxSwitch = false;
+
+    WL.push_back(start);
+
+    for(unsigned j=0;j < WL.size(); j++)
+    {
+        curBlk = WL[j];
+        visited.insert(curBlk);
+    
+        InstrucIter iter( curBlk );
+        instruction ins = iter.getInstruction();
+        iter++;
+        while( *iter < curBlk->endOffset() ) {
+            // check for cmp followed by jcc
+            if( iter.getInstruction().type() & IS_JCC  &&
+                ins.isCmp() )
+            {
+                parsing_printf("Found jmp table cmp instruction at 0x%lx\n",
+                                *iter);
+                maxSwitch = ins;
+                branchInsn = iter.getInstruction();
+                foundMaxSwitch = true;
+                break;
+            }
+            ins = iter.getInstruction();
+            iter++;
+        }
+
+        if(foundMaxSwitch) {
+            // done
+            break; 
+        } else {
+            // look further back
+            sources.clear();
+            curBlk->getSources( sources );
+            for(unsigned i=0;i<sources.size();i++)
+            {
+                if(sources[i]->getType() == ET_CALL)
+                    continue;
+
+                image_basicBlock * src = sources[i]->getSource();
+                if( !visited.contains( src ) ) {
+                    WL.push_back(src);
+                }
+            }
+        }
+    }
+    WL.zap();
+    return foundMaxSwitch;
+}
 // Very complicated for x86. Look for a jump table in the blocks preceeding
 // this block, and extract targets from it if found or mark this function
 // unrelocatable if it was not found or not understood.
@@ -272,6 +330,8 @@ bool image_func::archGetMultipleJumpTargets(
     else {
         instruction tableInsn = ah.getInstruction();
         instruction maxSwitch;
+        instruction branchInsn;
+
         bool isAddInJmp = true;
         
         int j = allInstructions.size() - 2;
@@ -309,24 +369,11 @@ bool image_func::archGetMultipleJumpTargets(
                     }
             }
 
-        //now examine the instructions in my source block to 
-        //get the maximum switch value
-        //we are looking for the cmp instruction before the 
-        //conditional jump
-
-        image_basicBlock *sBlk = in[0]->getSource();
-        InstrucIter iter( sBlk );
-        instruction ins = iter.getInstruction();
-        iter++;
-        bool foundMaxSwitch = false;
-        while( *iter < sBlk->endOffset() ) {
-            if( iter.getInstruction().type() & IS_JCC ) {
-                maxSwitch = ins;
-                foundMaxSwitch = true;
-            }
-            ins = iter.getInstruction();
-            iter++;
-        }
+        // search backward over the blocks that reach this one. we're looking
+        // for a comparison on this register. if we find an assignment to the
+        // register but don't find the comparison, we give up on this jump
+        // table.
+        bool foundMaxSwitch = findMaxSwitchInsn(currBlk, maxSwitch, branchInsn);
         
         if( !foundMaxSwitch ) {
             parsing_printf("... uninstrumentable, unable to fix max switch size\n");
@@ -337,7 +384,7 @@ bool image_func::archGetMultipleJumpTargets(
         //found the max switch assume jump table
         else {
             if( !ah.getMultipleJumpTargets( targets, tableInsn, 
-                                            maxSwitch, isAddInJmp ))
+                                            maxSwitch, branchInsn, isAddInJmp ))
             {
                 return false;
             }
