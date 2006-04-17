@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.605 2006/04/12 16:59:27 bernat Exp $
+// $Id: process.C,v 1.606 2006/04/17 22:32:02 bernat Exp $
 
 #include <ctype.h>
 
@@ -1970,7 +1970,6 @@ process::process(SignalGenerator *sh_) :
     main_breaks(addrHash4),
 #endif
     savedRegs(NULL),
-    childForkStopAlreadyReceived_(false),
     dyninstlib_brk_addr(0),
     main_brk_addr(0),
     systemPrelinkCommand(NULL),
@@ -2222,6 +2221,8 @@ bool process::setupFork()
 {
     assert(parent);
     assert(parent->status() == stopped);
+
+    fprintf(stderr, "PROCESS FORKING ****************************************\n");
 
     // Do stuff....
 
@@ -2532,7 +2533,6 @@ process::process(const process *parentProc, SignalGenerator *sg_, int childTrace
     main_breaks(addrHash4),
 #endif
     savedRegs(NULL), // Later
-    childForkStopAlreadyReceived_(false),
     dyninstlib_brk_addr(parentProc->dyninstlib_brk_addr),
     main_brk_addr(parentProc->main_brk_addr),
     systemPrelinkCommand(NULL),
@@ -3938,7 +3938,7 @@ bool process::pause() {
     return true;
   }
 
-
+#if 0
 #if defined(sparc_sun_solaris2_4)
      inferiorrpc_printf("%s[%d]:  waiting for rpc completion\n", FILE__, __LINE__);
    while (getRpcMgr()->existsRunningIRPC()) {
@@ -3946,6 +3946,7 @@ bool process::pause() {
               FILE__, __LINE__, getThreadStr(getExecThreadID()));
      sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
    }
+#endif
 #endif
 
    // Let's try having stopped mean all lwps stopped and running mean
@@ -4963,11 +4964,6 @@ bool process::continueProc(int signalToContinueWith)
     return false;
   }
 
-  // Fork... we can get a spurious extra stop from the
-  // instrumentation-based fork mechanism. If we've tried continuing
-  // the process, then ignore these.
-  childForkStopAlreadyReceived_ = true;
-
   if (sh->waitingForStop()) {
     return false;
   }
@@ -5941,6 +5937,7 @@ void process::recognize_threads(const process *parent)
 #if defined(os_aix) || defined(os_solaris)
         // More "if we can't abort a system call....
         if (lwp->executingSystemCall()) {
+            startup_printf("%s[%d]: skipping lwp %d in system call\n", FILE__, __LINE__, lwp_id);
             continue;
         }
 #endif
@@ -5954,6 +5951,9 @@ void process::recognize_threads(const process *parent)
         bundle->lwps = &ret_lwps;
         bundle->this_lwp = lwp_id;
         bundle->num_completed = &num_completed;
+
+        startup_printf("%s[%d]: RECOGNITION RPC posting on LWP %d\n", FILE__, __LINE__, lwp_id);
+
         getRpcMgr()->postRPCtoDo(ast, true, 
                                  doneRegistering, 
                                  bundle, 
@@ -5973,15 +5973,21 @@ void process::recognize_threads(const process *parent)
          bool rpcNeedsContinue = false;
          getRpcMgr()->launchRPCs(rpcNeedsContinue,
                                  false);
-         assert(rpcNeedsContinue);
-         continueProc();
+         startup_printf("%s[%d]: launchRPCs complete for process attach, completed %d expected %d\n",
+                            FILE__, __LINE__, num_completed, expected);
+         if (rpcNeedsContinue)
+             continueProc();
 
          getMailbox()->executeCallbacks(FILE__, __LINE__);
          if(hasExited()) {
              fprintf(stderr, "%s[%d]:  unexpected process exit\n", FILE__, __LINE__);
              return;
          }
+
          sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
+
+         startup_printf("%s[%d]: got RPC event...\n",
+                        FILE__, __LINE__);
          getMailbox()->executeCallbacks(FILE__, __LINE__);
      }
 

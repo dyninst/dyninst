@@ -339,6 +339,9 @@ bool SignalHandler::handleForkExit(EventRecord &ev, bool &continueHint)
          // enough that the child (of the mutator) gets a fork exit
          // event.  We don't care about this event, so we just continue
          // the process - jkh 1/31/00
+         signal_printf("%s[%d]: received FORK on self pid\n",
+                       FILE__, __LINE__);
+         continueHint = true;
          return true;
      } else if (childPid > 0) {
 
@@ -379,7 +382,11 @@ bool SignalHandler::handleForkExit(EventRecord &ev, bool &continueHint)
          // Continue the process.
          // If not, then set to true and leave paused.
 
-         if (proc->childForkStopAlreadyReceived_) {
+         signal_printf("%s[%d]: child case in fork handling; stopAlreadyReceived = %d\n",
+                       FILE__, __LINE__, proc->sh->childForkStopAlreadyReceived_);
+
+         // Might be a different signal generator from us...
+         if (proc->sh->childForkStopAlreadyReceived_) {
 	   continueHint = true;
          }
      }
@@ -658,17 +665,27 @@ bool SignalHandler::waitingForCallback() {
     // Previously we set wait_flag inside the call to waitForEvent, but that was called
     // after this was checked. Whoopsie.
 
-    CallbackBase *cb = NULL;
-    if (NULL != (cb = getMailbox()->runningInsideCallback())) {
-        signal_printf("%s[%d]: running inside callback... \n",
-                      FILE__, __LINE__);
-        if (wait_cb == cb) {
-            signal_printf("%s[%d]: signal handler %s waiting on callback\n",
-                          FILE__, __LINE__, getThreadStr(getThreadID()));
-            return true;
-        }
+    return (wait_cb != NULL);
+#if 0
+
+    CallbackBase *cb = getMailbox()->runningInsideCallback();
+
+    signal_printf("%s[%d]: running inside callback: %p... \n",
+                  FILE__, __LINE__, cb);
+    if (cb == NULL) return false;
+
+    if (wait_cb == cb) {
+        signal_printf("%s[%d]: signal handler %s waiting on callback\n",
+                      FILE__, __LINE__, getThreadStr(getThreadID()));
+        return true;
     }
+    else {
+        signal_printf("%s[%d]: running inside callback %p different from stored %p, odd case\n",
+                      FILE__, __LINE__, cb, wait_cb);
+    }
+
     return false;
+#endif
 }
 
 bool SignalHandler::processing() {
