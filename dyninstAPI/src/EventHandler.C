@@ -141,7 +141,7 @@ char *EventRecord::sprint_event(char *buf)
  {
     int pid = -1;
     if (proc && proc->sh && proc->status() != deleted) pid = proc->getPid();
-    sprintf(buf, "[%s:proc=%d:lwp=%d:%d:%d:%p:%d]", eventType2str(type),
+    sprintf(buf, "[%s:proc=%d:lwp=%d:what=%d:status=%d:addr=%p:fd=%d]", eventType2str(type),
             pid, lwp ? lwp->get_lwp_id() : 0, what,
             (int) status, (void *) address, fd);
     return buf;
