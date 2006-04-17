@@ -383,9 +383,13 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
 //             the displacement will give us the table's base address
 // maxSwitchInsn - compare instrction that does a range check on the
 //                 jump table index, gives us number of entries in immediate
+// branchInsn - the branch instruction, which we need for the condition code
+//              that will help us avoid off-by-one errors in our target
+//              calculation
 bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
-					 instruction& tableInsn, 
-					 instruction& maxSwitchInsn,
+                                         instruction& tableInsn, 
+                                         instruction& maxSwitchInsn,
+                                         instruction& branchInsn,
                                          bool isAddressInJmp )
 { 
     int addrWidth;
@@ -416,14 +420,11 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
         }
         else
             maxSwitch = *(const unsigned*)ptr;
-        
-        maxSwitch++;
     }
     else if( *ptr == 0x3c )
     {
         ptr++;
         maxSwitch = *ptr;
-        maxSwitch++;
     }
     else if( *ptr == 0x83 || *ptr == 0x80 || *ptr == 0x81 ) 
     {
@@ -445,7 +446,6 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
                 ptr += 4;
             }
             maxSwitch = *ptr;
-            maxSwitch++;
         }
     }
     
@@ -454,6 +454,26 @@ bool InstrucIter::getMultipleJumpTargets(BPatch_Set<Address>& result,
         result += backupAddress;	
         return false;
     }
+
+    parsing_printf("maxSwitch set to %d\n",maxSwitch);
+
+    const unsigned char * p = branchInsn.op_ptr();
+    if( *p == 0x0f ) {
+        // skip to second byte of opcode
+        p++;
+    }
+    // Test whether we have a ja or jg; if so, we want to add one to
+    // the switch index. The Portland Group compiler generally uses jge,
+    // so the value is an accurate count of the entries in the jump table,
+    // while gcc uses ja, so the value is one less than the number of entries
+    // in the table. *This is assuming the jump table is indexed from zero,
+    // which is the only type of jump table we can currently handle*.
+    //
+    // Fact: we really should be testing whether this is an upper bound
+    // before even getting into this code.
+    if( (*p & 0x0f) == 0x07 || (*p & 0x0f) == 0x0f ) {
+        maxSwitch++;
+    } 
     
     Address jumpTable = 0;
     ptr = tableInsn.op_ptr();
