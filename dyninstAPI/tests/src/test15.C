@@ -100,8 +100,9 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    for (unsigned i=0; i<NUM_THREADS; i++)
       if (i != my_dyn_id && dyn_tids[i] && mytid == pthread_ids[i])
       {
-            fprintf(stderr, "[%s:%d] - Thread %d and %d share a tid of %lu\n",
-                    __FILE__, __LINE__, my_dyn_id, i, (unsigned long)mytid);
+         unsigned long my_stack = thr->getStackTopAddr();
+            fprintf(stderr, "[%s:%d] - Thread %d and %d share a tid of %lu, stack is 0x%lx\n",
+                    __FILE__, __LINE__, my_dyn_id, i, (unsigned long)mytid, my_stack);
             error = 1;
       }
    pthread_ids[my_dyn_id] = mytid;
@@ -131,7 +132,9 @@ static BPatch_process *getProcess()
          perror("couldn't be started");
          return NULL;
       }
-      proc = bpatch.processAttach(filename, pid);      
+      proc = bpatch.processAttach(filename, pid);
+      BPatch_image *appimg = proc->getImage();
+      signalAttached(NULL, appimg);
    }
    return proc;
 }

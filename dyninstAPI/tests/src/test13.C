@@ -214,6 +214,7 @@ static BPatch_process *getProcess()
    }
    else
    {
+      dprintf(stderr, "%s[%d]: starting process for attach\n", __FILE__, __LINE__);
       int pid = startNewProcessForAttach(filename, (const char **) args);
       if (pid < 0)
       {
@@ -221,7 +222,11 @@ static BPatch_process *getProcess()
          perror("couldn't be started");
          return NULL;
       }
-      proc = bpatch.processAttach(filename, pid);      
+      dprintf(stderr, "%s[%d]: started process, now attaching\n", __FILE__, __LINE__);
+      proc = bpatch.processAttach(filename, pid);
+      dprintf(stderr, "%s[%d]: attached to process\n", __FILE__, __LINE__);
+      BPatch_image *appimg = proc->getImage();
+      signalAttached(NULL, appimg);
    }
    return proc;
 }

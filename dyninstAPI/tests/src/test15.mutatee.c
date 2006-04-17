@@ -132,6 +132,13 @@ void parse_args(int argc, char *argv[])
    }
 }
 
+int isAttached = 0;
+/* Check to see if the mutator has attached to us. */
+int checkIfAttached()
+{
+    return isAttached;
+}
+
 int main(int argc, char *argv[])
 {
    unsigned i;
@@ -152,15 +159,6 @@ int main(int argc, char *argv[])
 
    parse_args(argc, argv);
 
-   if (attached_fd) {
-      if (write(attached_fd, &c, sizeof(char)) != sizeof(char)) {
-         fprintf(stderr, "*ERROR*: Writing to pipe\n");
-         exit(-1);
-      }
-      close(attached_fd);
-      sleep(5); /* wait for mutator to attach */
-   }
-   
    /* create the workers */
    for (i=1; i<NTHRD; i++)
    {
@@ -168,6 +166,17 @@ int main(int argc, char *argv[])
    }
    thrds[0] = pthread_self();
 
+   if (attached_fd) {
+      if (write(attached_fd, &c, sizeof(char)) != sizeof(char)) {
+         fprintf(stderr, "*ERROR*: Writing to pipe\n");
+         exit(-1);
+      }
+      close(attached_fd);
+      printf("Waiting for mutator to attach...\n");
+      while(! checkIfAttached()) ;
+      printf("Mutator attached.  Mutatee continuing.\n");
+   }
+   
    /* give time for workers to run thr_loop */
    while(thr_exits == 0)
       sched_yield();

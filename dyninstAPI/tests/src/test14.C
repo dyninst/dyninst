@@ -93,7 +93,9 @@ static BPatch_process *getProcess()
          perror("couldn't be started");
          return NULL;
       }
-      proc = bpatch.processAttach(filename, pid);      
+      proc = bpatch.processAttach(filename, pid);  
+      BPatch_image *appimg = proc->getImage();
+      signalAttached(NULL, appimg);    
    }
    return proc;
 }
