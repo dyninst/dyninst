@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.606 2006/04/17 22:32:02 bernat Exp $
+// $Id: process.C,v 1.607 2006/04/17 22:35:49 bernat Exp $
 
 #include <ctype.h>
 
@@ -2221,8 +2221,6 @@ bool process::setupFork()
 {
     assert(parent);
     assert(parent->status() == stopped);
-
-    fprintf(stderr, "PROCESS FORKING ****************************************\n");
 
     // Do stuff....
 
