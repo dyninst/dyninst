@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator.h,v 1.4 2006/04/12 16:59:36 bernat Exp $
+/* $Id: signalgenerator.h,v 1.5 2006/04/17 22:32:15 bernat Exp $
  */
 
 #ifndef _SIGNAL_GENERATOR_H_
@@ -54,6 +54,10 @@ class SignalHandler;
 class EventGate;
 class SignalGenerator;
 class fileDescriptor;
+
+// Various "do we want this to stop or run" requests; tri-state
+// so that we can have "unset" as well as stop/run.
+typedef enum { unsetRequest, stopRequest, runRequest, ignoreRequest } processRunState_t;
 
 class SignalGeneratorCommon : public EventHandler<EventRecord> {
  friend class process;
@@ -91,6 +95,20 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    bool signalEvent(EventRecord &ev);
    bool signalEvent(eventType t);
 
+   // Setting the process to running, and whether to do into poll/waitpid, turns
+   // out to be a slightly complex problem. We have a couple of inputs into the
+   // decision:
+   //   1) we can force entry into waitpid/poll, and not continue the process, 
+   //       with a call to signalActiveProcess (AKA "we know it's really running"). 
+   //   2) if there is a running signal handler, we _always_ wait for it to finish.
+   //   3) BPatch can "asynchronously" stop or continue the process
+   //   4) Completing signal handlers can stop or continue the process; currently,
+   //     we either run it or leave it "as before" (and assume someone else is going
+   //     to do something interesting). 
+
+   // And the "just wake up and see what's going on" version
+   bool signalActiveProcess();
+
    // Continue methods; we need to have agreement between the signalHandler
    // threads and the BPatch layer. The SH's use the async call, which basically says
    // "When everyone is done processing, then run the process". The blocking call
@@ -99,12 +117,11 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    bool continueProcessAsync(int signalToContinueWith = -1);
    bool continueProcessBlocking(int signalToContinueWith = -1);
 
-   // And the "just wake up and see what's going on" version
-   bool signalActiveProcess();
-
-   // The BPatch counterpart to the above; return when the process is guaranteed
-   // stopped.
+   bool pauseProcessAsync();
    bool pauseProcessBlocking();
+
+   void overrideSyncContinueState(processRunState_t state) { syncRunWhenFinished_ = state; }
+   void overrideAsyncContinueState(processRunState_t state){ asyncRunWhenFinished_ = state; }
 
    void markProcessStop() { independentLwpStop_ = true; }
    void unmarkProcessStop() { independentLwpStop_ = false; }
@@ -145,7 +162,8 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
 
    void waitForActivation(); // Wait until process is marked running
 
-   bool continueProcess();
+   bool continueRequired();
+   bool continueProcessInternal();
    void setContinueSig(int signalToContinueWith);
    
    bool getEvents(pdvector<EventRecord> &events); // Fill in ev with raw data.
@@ -214,13 +232,13 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    // The BPatch layer can (basically) asynchronously stop the process
    // without knowledge of the current signal handling state. We mark that
    // here.
-   bool syncRunWhenFinished_;
+   processRunState_t syncRunWhenFinished_;
    
    // And signal handlers... if any of them want a continue, this gets set
    // to true. For now, we're going with "if anyone wants a continue the process
    // gets continued". We may want "if anyone wants it stopped it stays stopped"...
    // not sure yet. 
-   bool asyncRunWhenFinished_;
+   processRunState_t asyncRunWhenFinished_;
 
    // And sometimes we need to override everything - for example, attaching to 
    // a new process...
@@ -230,6 +248,12 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    // case) are running. However, if we're trying to stop the process, we need to call
    // waitpid until _none_ are running. 
    bool independentLwpStop_;
+
+  // On platforms that depend on instrumentation to catch system call exits,
+  // we may accidentally receive multiple "syscall exit" signals. In particular,
+  // this causes problems on fork. We set this variable to true in the child and
+  // use it to ignore further signals.
+  bool childForkStopAlreadyReceived_;
 
    /////////////////
    // See above discussion (synchronizing with UI thread

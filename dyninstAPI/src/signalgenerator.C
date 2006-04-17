@@ -59,6 +59,17 @@ unsigned signal_generator_counter = 0;
 eventLock SignalGeneratorCommon::global_wait_list_lock;
 pdvector<EventGate *> SignalGeneratorCommon::global_wait_list;
 
+static char *processRunStateStr(processRunState_t runState) {
+    switch (runState) {
+    case unsetRequest: return "unset";
+    case stopRequest: return "stopped";
+    case runRequest: return "run";
+    case ignoreRequest: return "ignoring";
+    default: assert(0); return "<ASSERT FAILURE>";
+    }
+    return "<IMPOSSIBLE CASE";
+}
+
 
 /*
  * So here's the deal. We want to basically use this structure:
@@ -174,17 +185,16 @@ void SignalGeneratorCommon::main() {
             // run. This means:
             // 1) All signal handlers are either done or waiting in a callback;
             // 2) If there was a pause request from BPatch, then there has been a run request.
-            continueProcess();
+            if (continueRequired()) 
+                continueProcessInternal();
+            // Post cleanup
+            // Cleanup...
+
+            asyncRunWhenFinished_ = unsetRequest;
+            // Commented out; set by BPatch layer
+            //syncRunWhenFinished_ = unsetRequest;
+            activeProcessSignalled_ = false;
         }
-
-        // Post cleanup
-        // Cleanup...
-        // we don't touch syncRunWhen... it's set by the BPatch layer
-        //syncRunWhenFinished_ = true;
-        // async is set to false here as all sighandlers are paused
-        asyncRunWhenFinished_ = false;
-        activeProcessSignalled_ = false;
-
 
         postSignalHandler();
 
@@ -253,9 +263,7 @@ void SignalGeneratorCommon::waitForActivation() {
 
     assert(processIsPaused() || requested_wait_until_active);
 
-    bool runProcess = false;
-    
-    while (!runProcess) {
+    while (1) {
         
         // Now, do we want to return or wait for more people?
         
@@ -275,45 +283,43 @@ void SignalGeneratorCommon::waitForActivation() {
         // bool asyncRunWhenFinished_ - member vrble, set to true if any signal handler
         // requested us to run when it finished up (aka executed process->continueProc)
         
-        signal_printf("%s[%d]: waitForActivation loop top: activeProcessSignalled_ %d, syncRun %d, activeHandler %d, asyncRun %d\n",
+        signal_printf("%s[%d]: waitForActivation loop top: activeProcessSignalled_ %d, syncRun %s, activeHandler %d, asyncRun %s\n",
                       FILE__, __LINE__,
-                      activeProcessSignalled_, syncRunWhenFinished_, 
-                      activeHandler, asyncRunWhenFinished_);
+                      activeProcessSignalled_, processRunStateStr(syncRunWhenFinished_),
+                      activeHandler, processRunStateStr(asyncRunWhenFinished_));
 
         // Ordering... activeProcessSignalled activeHandler beats
         // syncRunWhenFinished beats asyncRunWhenFinished.
-        if (activeProcessSignalled_) {
-            signal_printf("%s[%d]: active process signalled, run_process true;\n", 
-                          FILE__, __LINE__);
-            runProcess = true;
-        }
-        else if (activeHandler) {
-            signal_printf("%s[%d]: active handler, run_process false;\n", 
-                          FILE__, __LINE__);
-            runProcess = false;
-        }
-        else if (!syncRunWhenFinished_) {
-            signal_printf("%s[%d]: syncRunWhenFinished false, run_process false;\n", 
-                          FILE__, __LINE__);
-            runProcess = false;
-        }
-        else if (asyncRunWhenFinished_) {
-            runProcess = true;
-            signal_printf("%s[%d]: asyncRunWhenFinished true, run_process true;\n", 
+        if (activeHandler) {
+            signal_printf("%s[%d]: active handler, continuing around;\n", 
                           FILE__, __LINE__);
         }
-        else  {
-            signal_printf("%s[%d]: default case, syncRun set and asyncRun false. Running.\n", 
+        else if (activeProcessSignalled_) {
+            signal_printf("%s[%d]: active process signalled, breaking out of wait loop;\n", 
                           FILE__, __LINE__);
-            runProcess = true;
-        }
-
-        if (runProcess) {
-            signal_printf("%s[%d]: waitForActivation kicking up...\n",
-                          FILE__, __LINE__);
-            // Someone wants us to wake up...
             break;
         }
+        else if (syncRunWhenFinished_ == stopRequest) {
+            signal_printf("%s[%d]: syncRunWhenFinished is stay stopped, continuing around;\n", 
+                          FILE__, __LINE__);
+        }
+        else if (syncRunWhenFinished_ == runRequest) {
+            signal_printf("%s[%d]: syncRunWhenFinished is run, breaking out of wait loop;\n", 
+                          FILE__, __LINE__);
+            break;
+        }
+        else if (asyncRunWhenFinished_ == stopRequest) {
+            signal_printf("%s[%d]: asyncRunWhenFinished is stay stopped, waiting;\n", 
+                          FILE__, __LINE__);
+        }
+        else if (asyncRunWhenFinished_ == runRequest) {
+            signal_printf("%s[%d]: asyncRunWhenFinished is run, breaking;\n", 
+                          FILE__, __LINE__);
+            break;
+        }
+        else 
+            signal_printf("%s[%d]: default case, waiting.\n", 
+                          FILE__, __LINE__);
 
         // Otherwise, wait for someone to get a round tuit.
         assert(activationLock);
@@ -341,19 +347,14 @@ void SignalGeneratorCommon::waitForActivation() {
         eventlock->_Lock(FILE__, __LINE__);
 
         assert(eventlock->depth() == 1);
-
-
     }
-
-    // Cleanup...
-    // we don't touch syncRunWhen... it's set by the BPatch layer
-    //syncRunWhenFinished_ = true;
-    // async is set to false here as all sighandlers are paused
-    asyncRunWhenFinished_ = false;
-    activeProcessSignalled_ = false;
 }
 
 bool SignalGeneratorCommon::continueProcessAsync(int signalToContinueWith) {
+    // Fixes an odd case when we receive multiple fork exit events; as soon as
+    // we've handled one skip the rest.
+    childForkStopAlreadyReceived_ = true;
+
     // First, let see if there was a signal to continue with. Only one person can send
     // a signal; complain if there are multiples. 
 
@@ -371,7 +372,14 @@ bool SignalGeneratorCommon::continueProcessAsync(int signalToContinueWith) {
                       FILE__, __LINE__, getThreadStr(getThreadID()));
     }
 
-    asyncRunWhenFinished_ = true;
+    if (waitingForOS_) {
+        // We managed to get into waitpid (prolly signalActiveProcess) without
+        // continuing the process...
+        continueProcessInternal();
+        return true;
+    }
+
+    asyncRunWhenFinished_ = runRequest;
 
     signal_printf("%s[%d]: async continue broadcasting...\n", FILE__, __LINE__);
     activationLock->_Broadcast(FILE__, __LINE__);
@@ -1331,10 +1339,11 @@ SignalGeneratorCommon::SignalGeneratorCommon(char *idstr) :
     waitingForOS_(false),
     continueDesired_(false),
     continueSig_(-1),
-    syncRunWhenFinished_(true),
-    asyncRunWhenFinished_(false),
+    syncRunWhenFinished_(unsetRequest),
+    asyncRunWhenFinished_(unsetRequest),
     activeProcessSignalled_(false),
-    independentLwpStop_(false)
+    independentLwpStop_(false),
+    childForkStopAlreadyReceived_(false)
 {
     signal_printf("%s[%d]:  new SignalGenerator\n", FILE__, __LINE__);
     assert(eventlock == global_mutex);
@@ -1645,6 +1654,9 @@ SignalGenerator::SignalGenerator(char *idstr, pdstring file, pdstring dir,
 // We'll bounce it, then wait on requestContinueLock... 
 
 bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal) {
+    // Fixes an odd case when we receive multiple fork exit events; as soon as
+    // we've handled one skip the rest.
+    childForkStopAlreadyReceived_ = true;
     // Ask (politely) the signal generator to continue us...
     
     signal_printf("%s[%d]: requestContinue entry, locking...\n", FILE__, __LINE__);
@@ -1654,6 +1666,9 @@ bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal) {
 
     // We could be in waitpid for a particular thread (yay IndependentLwpControl...),
     // in which case we just kick _everyone_ up.
+
+    // Set runRequest to true
+    syncRunWhenFinished_ = runRequest;
     
     if (proc->query_for_stopped_lwp() &&
         waitingForOS_) {
@@ -1669,12 +1684,11 @@ bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal) {
         signal_printf("%s[%d]: Blocking continue and already in waitpid; overriding and continuing\n",
                       FILE__, __LINE__);
         // Just continue ze sucker
-        continueProcess();
+        continueProcessInternal();
+        return true;
     }
 
     signal_printf("%s[%d]: grabbed requestContinueLock...\n", FILE__, __LINE__);
-
-    syncRunWhenFinished_ = true;
 
     int lock_depth = eventlock->depth();
     assert(lock_depth > 0);
@@ -1757,7 +1771,37 @@ bool SignalGeneratorCommon::waitToContinueProcess() {
 }
 #endif
 
-bool SignalGeneratorCommon::continueProcess() {
+bool SignalGeneratorCommon::continueRequired() {
+    // Do we need to continue the process or just check waitpid/poll?
+
+    // sync run gets priority...
+    if (syncRunWhenFinished_ == stopRequest)
+        return false;
+
+    if (syncRunWhenFinished_ == runRequest) {
+        if (asyncRunWhenFinished_ == stopRequest) {
+            fprintf(stderr, "Odd case: BPatch requests run, internals request stop\n");
+            return false;
+        }
+        return true;
+    }
+
+    // We're unset or purposefully ignoring. 
+
+    if (asyncRunWhenFinished_ == runRequest) {
+        return true;
+    }
+    else if (asyncRunWhenFinished_ == stopRequest) {
+        return false;
+    }
+    assert(asyncRunWhenFinished_ == unsetRequest);
+
+    // Both are unset... this might be an assert case.
+    return false;
+}
+
+
+bool SignalGeneratorCommon::continueProcessInternal() {
     signal_printf("%s[%d]: continuing process...\n", FILE__, __LINE__);
 
     bool res = proc->continueProc_(continueSig_);
@@ -1783,7 +1827,7 @@ bool SignalGeneratorCommon::continueProcess() {
     signal_printf("%s[%d]: waking up everyone who was waiting for continue, unlocking\n",
                   FILE__, __LINE__);
     waitForContinueLock->_Unlock(FILE__, __LINE__);
-   
+
     return true;
 }
 
@@ -1799,7 +1843,9 @@ void SignalGeneratorCommon::setContinueSig(int signalToContinueWith) {
 }
 
 bool SignalGeneratorCommon::pauseProcessBlocking() {
-    syncRunWhenFinished_ = false;
+
+    signal_printf("%s[%d]: pauseProcessBlocking...\n", FILE__, __LINE__);
+    syncRunWhenFinished_ = stopRequest;
 
     return proc->pause();
 }
