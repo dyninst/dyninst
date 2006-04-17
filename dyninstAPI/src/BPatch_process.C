@@ -1319,7 +1319,10 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
                       FILE__, __LINE__, synchronous, statusIsStopped(), needToResume);
 
    if (!statusIsStopped()) {
+       inferiorrpc_printf("%s[%d]: pausing process (blocking style)\n", FILE__, __LINE__);
        llproc->sh->pauseProcessBlocking();
+       inferiorrpc_printf("%s[%d]: process is now stopped\n", FILE__, __LINE__);
+
        if (!statusIsStopped()) {
            fprintf(stderr, "%s[%d]:  failed to run oneTimeCodeInternal .. status is %s\n", 
                    FILE__, __LINE__, 
@@ -1330,6 +1333,14 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
 
    OneTimeCodeInfo *info = new OneTimeCodeInfo(synchronous, userData, 
                                                (thread) ? thread->index : 0);
+
+   // inferior RPCs are a bit of a pain; we need to hand off control of process pause/continue
+   // to the internal layers. In general BPatch takes control of the process _because_ we can't
+   // predict what the user will do; if there is a BPatch-pause it overrides internal pauses. However,
+   // here we give back control to the internals so that the rpc will complete.
+
+   inferiorrpc_printf("%s[%d]: Overriding sync state to ignore...\n", FILE__, __LINE__);
+   llproc->sh->overrideSyncContinueState(ignoreRequest);
 
    llproc->getRpcMgr()->postRPCtoDo(expr.ast,
                                     false, 
