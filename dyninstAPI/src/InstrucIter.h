@@ -199,6 +199,7 @@ class InstrucIter {
   bool getMultipleJumpTargets( BPatch_Set< Address >& result, 
                                instruction& tableInsn, 
                                instruction& maxSwitchInsn, 
+                               instruction& branchInsn,
                                bool isAddressInJmp );
 #else
   
