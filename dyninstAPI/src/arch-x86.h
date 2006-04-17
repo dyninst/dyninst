@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.h,v 1.43 2006/03/12 23:31:49 legendre Exp $
+// $Id: arch-x86.h,v 1.44 2006/04/17 07:32:02 nater Exp $
 // x86 instruction declarations
 
 #include <stdio.h>
@@ -774,6 +774,8 @@ class instruction {
   bool isTrueCallInsn() const { return (isCall() && !isCallIndir()); }
 
   static bool isAligned(const Address ) { return true; }
+
+  bool isCmp() const;
 
   void print()
   {

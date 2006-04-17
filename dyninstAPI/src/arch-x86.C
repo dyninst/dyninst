@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.53 2006/04/10 18:11:49 nater Exp $
+// $Id: arch-x86.C,v 1.54 2006/04/17 07:32:01 nater Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -3881,4 +3881,24 @@ unsigned instruction::maxJumpSize() {
 #else
     return JUMP_ABS64_SZ;
 #endif
+}
+
+bool instruction::isCmp() const {
+    if(*op_ptr_ == CMP_EB_GB || *op_ptr_ == CMP_EV_GV ||
+       *op_ptr_ == CMP_GB_EB || *op_ptr_ == CMP_GV_EV ||
+       *op_ptr_ == CMP_AL_LB || *op_ptr_ == CMP_RAX_LZ)
+    {
+        return true;
+    }
+
+    if(*op_ptr_ == 0x80 || *op_ptr_ == 0x81 || *op_ptr_ == 0x83) 
+    {
+        // group 1 opcodes -- operation depends on reg (bits 3-5) of
+        // modr/m byte
+        const unsigned char *p = op_ptr_+1;
+        if( (*p & (7<<3)) == (7<<3))
+            return true;
+    }
+
+    return false;
 }
