@@ -516,8 +516,11 @@ bool rpcMgr::launchRPCs(bool &needsToRun,
           needsToRun = true;
       }
       recursionGuard = false;
+      inferiorrpc_printf("%s[%d]: no posted RPCs, returning immediately\n", FILE__, __LINE__);
       return true;
     }
+
+      inferiorrpc_printf("%s[%d]: launchRPCs checking for RPCs\n", FILE__, __LINE__);
 
     dictionary_hash<unsigned, rpcLWP *>::iterator rpc_iter = lwps_.begin();
     while(rpc_iter != lwps_.end()) {
