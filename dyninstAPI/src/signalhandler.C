@@ -127,6 +127,7 @@ bool SignalHandler::handleProcessStop(EventRecord &ev, bool &continueHint)
    if (bproc) {
        setBPatchProcessSignal(bproc, ev.what);
        bproc->isVisiblyStopped = true;
+       sg->overrideSyncContinueState(stopRequest);
    }
 
    return retval;
