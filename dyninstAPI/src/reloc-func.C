@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.17 2006/04/03 21:19:13 bernat Exp $
+// $Id: reloc-func.C,v 1.18 2006/04/18 22:06:34 bernat Exp $
 
 // We'll also try to limit this to relocation-capable platforms
 // in the Makefile. Just in case, though....
@@ -335,8 +335,12 @@ bool int_function::relocationInvalidate() {
     // installedVersion_++;
     // version_++; -- so that instpoints will be updated
     // linkedVersion_++;
-    reloc_printf("%s[%d]: relocationInvalidate for %s: linkedVersion %d, version %d\n",
-                 FILE__, __LINE__, symTabName().c_str(), linkedVersion_, version_);
+    reloc_printf("%s[%d]: relocationInvalidate for %s: linkedVersion %d, installedVersion %d, generatedVersion %d, version %d\n",
+                 FILE__, __LINE__, symTabName().c_str(), 
+                 linkedVersion_,
+                 installedVersion_,
+                 generatedVersion_,
+                 version_);
 
     assert(generatedVersion_ >= installedVersion_);
     assert(installedVersion_ >= version_);
@@ -352,6 +356,8 @@ bool int_function::relocationInvalidate() {
         reloc_printf("******* Removing installed version %d\n",
                      installedVersion_);
         for (i = 0; i < blockList.size(); i++) {
+            reloc_printf("%s[%d]: Removing installed version %d of block %d\n",
+                         FILE__, __LINE__, installedVersion_, i);
             bblInstance *instance = blockList[i]->instVer(installedVersion_);
             assert(instance);
             proc()->deleteCodeRange(instance->firstInsnAddr());
@@ -369,11 +375,20 @@ bool int_function::relocationInvalidate() {
                      generatedVersion_);
         proc()->inferiorFree(blockList[0]->instVer(generatedVersion_)->firstInsnAddr());
         for (i = 0; i < blockList.size(); i++) {
+            reloc_printf("%s[%d]: Removing generated version %d of block %d\n",
+                         FILE__, __LINE__, generatedVersion_, i);
             blockList[i]->removeVersion(generatedVersion_);
         }
         generatedVersion_--;
     }
     version_ = linkedVersion_;
+
+    reloc_printf("%s[%d]: version %d, linked %d, installed %d, generated %d\n",
+                 FILE__, __LINE__, version_, linkedVersion_, installedVersion_, generatedVersion_);
+    for (i = 0; i < blockList.size(); i++) {
+        reloc_printf("%s[%d]: block %d has %d versions\n",
+                     FILE__, __LINE__, i, blockList[i]->instances().size());
+    }
 
     for (i = 0; i < entryPoints_.size(); i++)
         entryPoints_[i]->updateInstances();
