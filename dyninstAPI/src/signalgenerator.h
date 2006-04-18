@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator.h,v 1.5 2006/04/17 22:32:15 bernat Exp $
+/* $Id: signalgenerator.h,v 1.6 2006/04/18 22:06:36 bernat Exp $
  */
 
 #ifndef _SIGNAL_GENERATOR_H_
@@ -114,14 +114,14 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    // "When everyone is done processing, then run the process". The blocking call
    // is for BPatch, and says "Return when the process is running".
 
-   bool continueProcessAsync(int signalToContinueWith = -1);
+   bool continueProcessAsync(int signalToContinueWith = -1, dyn_lwp *lwp = NULL);
    bool continueProcessBlocking(int signalToContinueWith = -1);
 
    bool pauseProcessAsync();
    bool pauseProcessBlocking();
 
-   void overrideSyncContinueState(processRunState_t state) { syncRunWhenFinished_ = state; }
-   void overrideAsyncContinueState(processRunState_t state){ asyncRunWhenFinished_ = state; }
+   processRunState_t overrideSyncContinueState(processRunState_t state); 
+   processRunState_t overrideAsyncContinueState(processRunState_t state); 
 
    void markProcessStop() { independentLwpStop_ = true; }
    void unmarkProcessStop() { independentLwpStop_ = false; }
@@ -163,7 +163,7 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    void waitForActivation(); // Wait until process is marked running
 
    bool continueRequired();
-   bool continueProcessInternal();
+   bool continueProcessInternal(dyn_lwp *contLWP = NULL);
    void setContinueSig(int signalToContinueWith);
    
    bool getEvents(pdvector<EventRecord> &events); // Fill in ev with raw data.

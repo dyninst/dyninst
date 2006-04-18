@@ -650,7 +650,8 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
        signal_printf("%s[%d]: requesting continue\n",
                      FILE__, __LINE__);
        wait_flag = true;
-       sg->continueProcessAsync();
+       sg->continueProcessAsync(-1, // No signal...
+                                ev.lwp); // But give the LWP
        wait_flag = false;
    }
 

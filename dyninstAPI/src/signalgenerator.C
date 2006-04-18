@@ -365,7 +365,7 @@ void SignalGeneratorCommon::waitForActivation() {
     }
 }
 
-bool SignalGeneratorCommon::continueProcessAsync(int signalToContinueWith) {
+bool SignalGeneratorCommon::continueProcessAsync(int signalToContinueWith, dyn_lwp *lwp) {
     // Fixes an odd case when we receive multiple fork exit events; as soon as
     // we've handled one skip the rest.
     childForkStopAlreadyReceived_ = true;
@@ -392,7 +392,9 @@ bool SignalGeneratorCommon::continueProcessAsync(int signalToContinueWith) {
         // continuing the process...
         signal_printf("%s[%d]: Raced with SG %s, in waitpid, going to continue...\n",
                       FILE__, __LINE__, getThreadStr(getThreadID()));
-        continueProcessInternal();
+        // Okay, we must be in a "lwps are partially running" situation. Feed in
+        // the LWP we were given in continue.
+        continueProcessInternal(lwp);
         signal_printf("%s[%d]: async continue broadcasting...\n", FILE__, __LINE__);
         activationLock->_Broadcast(FILE__, __LINE__);
         activationLock->_Unlock(FILE__, __LINE__);
@@ -1834,10 +1836,21 @@ bool SignalGeneratorCommon::continueRequired() {
 }
 
 
-bool SignalGeneratorCommon::continueProcessInternal() {
+bool SignalGeneratorCommon::continueProcessInternal(dyn_lwp *contLWP) {
     signal_printf("%s[%d]: continuing process...\n", FILE__, __LINE__);
 
-    bool res = proc->continueProc_(continueSig_);
+    bool res = false;
+
+    if ((contLWP != NULL) &&
+        process::IndependentLwpControl()) {
+        res = contLWP->continueLWP(continueSig_);
+    }
+    else  {
+        res = proc->continueProc_(continueSig_);
+        if (proc->status() != exited)
+            proc->set_status(running);
+    }
+    
     continueSig_ = -1;
 
     if (!res)  {
@@ -1846,10 +1859,7 @@ bool SignalGeneratorCommon::continueProcessInternal() {
         return false;
     }
     signal_printf("%s[%d]: setting global process state to running\n", FILE__, __LINE__);
-    
-    if (proc->status() != exited)
-        proc->set_status(running);
-    
+        
     // Now wake up everyone who was waiting for me...
     signal_printf("%s[%d]: waking up everyone who was waiting for continue, locking...\n",
                   FILE__, __LINE__);
@@ -1881,4 +1891,16 @@ bool SignalGeneratorCommon::pauseProcessBlocking() {
     syncRunWhenFinished_ = stopRequest;
 
     return proc->pause();
+}
+
+processRunState_t SignalGeneratorCommon::overrideSyncContinueState(processRunState_t newState) {
+    processRunState_t current = syncRunWhenFinished_;
+    syncRunWhenFinished_ = newState;
+    return current;
+}
+
+processRunState_t SignalGeneratorCommon::overrideAsyncContinueState(processRunState_t newState) {
+    processRunState_t current = asyncRunWhenFinished_;
+    asyncRunWhenFinished_ = newState;
+    return current;
 }
