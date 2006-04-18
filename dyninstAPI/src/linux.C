@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.213 2006/04/15 01:07:55 legendre Exp $
+// $Id: linux.C,v 1.214 2006/04/18 18:10:04 tlmiller Exp $
 
 #include <fstream>
 
@@ -411,9 +411,16 @@ bool SignalGenerator::waitForEventsInternal(pdvector<EventRecord> &events)
      proccontrol_printf("waitpid - %d stopped with %d\n", waitpid_pid, 
                         WSTOPSIG(status));
 
+  /* If we were in waitpid() when we detach from/deleted the process, Funky
+     Stuff may happen.  You may want to check if this is the case before
+     and return false, before doing anything that uses the 'proc' variable. */
+
   if (waitpid_pid < 0 && errno == ECHILD) {
-     fprintf(stderr, "%s[%d]:  waitpid failed with ECHILD\n", __FILE__, __LINE__);
-     //assert(0);
+     /* I am told that this can spontaneously and transiently occur while running under
+        Valgrind, and that the proper thing to do is just go back and try again.  I'm
+        leaving the fprintf() in because while this condition is thus not always erroneous,
+        we should be worried about it when it shows up otherwise. */
+     fprintf( stderr, "%s[%d]:  waitpid failed with ECHILD\n", __FILE__, __LINE__ );
      return false; /* nothing to wait for */
   } else if (waitpid_pid < 0) {
      perror("checkForEventLinux: waitpid failure");
