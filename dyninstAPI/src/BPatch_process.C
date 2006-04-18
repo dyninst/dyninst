@@ -374,7 +374,11 @@ bool BPatch_process::continueExecutionInt()
    isVisiblyStopped = false;
    setUnreportedStop(false);
 
-   return llproc->sh->continueProcessBlocking();
+   bool ret =  llproc->sh->continueProcessBlocking();
+
+   // Now here's amusing for you... we can hit a DyninstDebugBreakpoint
+   // while continuing. That's handled in signalhandler.C
+   return ret;
 }
 
 
