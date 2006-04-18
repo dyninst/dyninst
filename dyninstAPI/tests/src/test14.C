@@ -83,6 +83,12 @@ static BPatch_process *getProcess()
    if (should_exec) {
       args[1] = create_arg;
       proc = bpatch.processCreate(filename, (const char **) args);
+      if(proc == NULL) {
+         fprintf(stderr, "%s[%d]: processCreate(%s) failed\n", 
+                 __FILE__, __LINE__, filename);
+         return NULL;
+      }
+      
    }
    else
    {
@@ -94,6 +100,11 @@ static BPatch_process *getProcess()
          return NULL;
       }
       proc = bpatch.processAttach(filename, pid);  
+      if(proc == NULL) {
+         fprintf(stderr, "%s[%d]: processAttach(%s, %d) failed\n", 
+                 __FILE__, __LINE__, filename, pid);
+         return NULL;
+      }
       BPatch_image *appimg = proc->getImage();
       signalAttached(NULL, appimg);    
    }
@@ -143,11 +154,7 @@ int main(int argc, char *argv[])
    }
 
    proc = getProcess();
-   if (!proc)
-   {
-      fprintf(stderr, "Couldn't create process for %s\n", filename);
       return -1;
-   }
 
    BPatch_image *image = proc->getImage();
    BPatch_Vector<BPatch_function *> lvl1funcs;
