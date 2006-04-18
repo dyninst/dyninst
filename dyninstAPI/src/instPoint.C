@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.19 2006/03/30 19:40:19 bernat Exp $
+// $Id: instPoint.C,v 1.20 2006/04/18 22:06:31 bernat Exp $
 // instPoint code
 
 
@@ -350,14 +350,26 @@ bool instPoint::updateInstances() {
     if (func()->version() == funcVersion)
         return true;
     else if (func()->version() < funcVersion) {
+        reloc_printf("DEBUG: func version %d, our version %d, block instances %d, our instances %d\n",
+                func()->version(), funcVersion, 
+                block()->instances().size(),
+                instances.size());
         const pdvector<bblInstance *> &bbls = block()->instances();
-        assert(bbls.size() < instances.size());
+        assert(bbls.size() <= instances.size());
         for (unsigned i = instances.size(); i > bbls.size(); i--) {
             instPointInstance *inst = instances[i-1];
             instances.pop_back();
             // Delete...
             proc()->unregisterInstPointAddr(inst->addr(), this);
         }
+
+        // Safety check....
+        for (unsigned i = 0; i < instances.size(); i++) {
+            reloc_printf("%s[%d]: checking IPI block %p against block %p, entry %d\n",
+                         FILE__, __LINE__, instances[i]->block(), bbls[i], i);
+            assert(instances[i]->block() == bbls[i]);
+        }
+
         funcVersion = func()->version();
         return true;
     }
