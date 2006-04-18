@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.609 2006/04/18 18:50:23 bernat Exp $
+// $Id: process.C,v 1.610 2006/04/18 22:06:33 bernat Exp $
 
 #include <ctype.h>
 
@@ -1341,32 +1341,39 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
   eventType res = evtUndefined;
 
   inferiorMallocCallbackFlag = false;
-     inferiorrpc_printf("%s[%d]:  waiting for rpc completion\n", FILE__, __LINE__);
+  inferiorrpc_printf("%s[%d]:  waiting for rpc completion\n", FILE__, __LINE__);
+  // Aggravation....
+  // We need to override the BPatch paused behavior; we may be BPatch-paused,
+  // but we _really_ need to run the process here.
+
+  processRunState_t oldState = sh->overrideSyncContinueState(ignoreRequest);
+
   do {
       bool rpcNeedsContinue = false;
       getRpcMgr()->launchRPCs(rpcNeedsContinue,
                               wasRunning);
       assert(rpcNeedsContinue);
       continueProc();
+      
+      getMailbox()->executeCallbacks(FILE__, __LINE__);
+      
+      if(hasExited()) {
+          fprintf(stderr, "%s[%d]:  BAD NEWS, process has exited\n", __FILE__, __LINE__);
+          return;
+      }
+      if (inferiorMallocCallbackFlag) {
+          break;
+      }
+      
+      inferiorrpc_printf("%s[%d][%s]:  before wait for RPCDone, status == running is %s\n", 
+                         FILE__, __LINE__, getThreadStr(getExecThreadID()), 
+                         status() == running ? "true" : "false");
+      
+      res = sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
+      getMailbox()->executeCallbacks(FILE__, __LINE__);
+  } while (res != evtRPCSignal); // Loop until callback has fired.
 
-     getMailbox()->executeCallbacks(FILE__, __LINE__);
-
-     if(hasExited()) {
-        fprintf(stderr, "%s[%d]:  BAD NEWS, process has exited\n", __FILE__, __LINE__);
-        return;
-     }
-    if (inferiorMallocCallbackFlag) {
-       break;
-     }
-
-     inferiorrpc_printf("%s[%d][%s]:  before wait for RPCDone, status == running is %s\n", 
-                        FILE__, __LINE__, getThreadStr(getExecThreadID()), 
-                        status() == running ? "true" : "false");
-
-     res = sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
-     getMailbox()->executeCallbacks(FILE__, __LINE__);
-   } while (res != evtRPCSignal); // Loop until callback has fired.
-
+  sh->overrideSyncContinueState(oldState);
   inferiorMallocCallbackFlag = false;
 
    switch ((int)(Address)ret.result) {
@@ -3867,6 +3874,12 @@ void process::set_status(processState st)
 {
    // update the process status
    status_ = st;
+
+   proccontrol_printf("[%s:%u] - Setting everyone to state %s\n",
+                      __FILE__, __LINE__, 
+                      st == running ? "running" : 
+                      st == stopped ? "stopped" : 
+                      st == exited ? "exited" : "other");
 
    pdvector<dyn_thread *>::iterator iter = threads.begin();
    
