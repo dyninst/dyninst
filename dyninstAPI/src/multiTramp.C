@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.35 2006/04/03 19:44:51 bernat Exp $
+// $Id: multiTramp.C,v 1.36 2006/04/18 16:33:22 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -1270,12 +1270,13 @@ Address multiTramp::instToUninstAddr(Address addr) {
         }
     }
 
-	// Ran out of iterator... 
-	for (unsigned i = 0; i < deletedObjs.size(); i++) {
-		relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);
+    // Ran out of iterator... 
+    for (unsigned i = 0; i < deletedObjs.size(); i++) {
+        obj = deletedObjs[i];
+        relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);
         baseTrampInstance *bti = dynamic_cast<baseTrampInstance *>(obj);
         trampEnd *end = dynamic_cast<trampEnd *>(obj);
-
+        
         if (insn && 
             (addr >= insn->relocAddr()) &&
             (addr < insn->relocAddr() + insn->get_size_cr()))
@@ -1312,6 +1313,60 @@ Address multiTramp::instToUninstAddr(Address addr) {
     }
 
     // Assert: we should never reach here
+
+    // DEBUGGING TIME! Break it down...
+    
+    generatedCFG_t::iterator debugIter(generatedCFG_);
+
+    fprintf(stderr, "ERROR: Multitramp address mapping for addr 0x%lx not found!\n",
+            addr);
+
+    fprintf(stderr, "First pointer in internal CFG: %p\n",
+            generatedCFG_.start());
+
+    while ((obj = debugIter++)) {
+        relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);
+        baseTrampInstance *bti = dynamic_cast<baseTrampInstance *>(obj);
+        trampEnd *end = dynamic_cast<trampEnd *>(obj);
+        
+        if (insn) {
+            fprintf(stderr, "Relocated instruction from 0x%lx to 0x%lx\n",
+                    insn->relocAddr(), insn->relocAddr() + insn->get_size_cr());
+        }
+        if (bti)
+            fprintf(stderr, "Base tramp instance from 0x%lx to 0x%lx\n",
+                    bti->trampPreAddr(),
+                    bti->trampPostAddr() + bti->baseT->postSize);
+        if (end) {
+            fprintf(stderr, "Tramp end from 0x%lx to 0x%lx\n",
+                    end->addrInMutatee_,
+                    end->addrInMutatee_ + end->size_);
+        }
+    }
+
+    // Ran out of iterator... 
+    fprintf(stderr, "Checking %d deleted objects\n", deletedObjs.size());
+    for (unsigned i = 0; i < deletedObjs.size(); i++) {
+        obj = deletedObjs[i];
+        relocatedInstruction *insn = dynamic_cast<relocatedInstruction *>(obj);
+        baseTrampInstance *bti = dynamic_cast<baseTrampInstance *>(obj);
+        trampEnd *end = dynamic_cast<trampEnd *>(obj);
+        
+        if (insn) {
+            fprintf(stderr, "<DELETED> Relocated instruction from 0x%lx to 0x%lx\n",
+                    insn->relocAddr(), insn->relocAddr() + insn->get_size_cr());
+        }
+        if (bti)
+            fprintf(stderr, "<DELETED> Base tramp instance from 0x%lx to 0x%lx\n",
+                    bti->trampPreAddr(),
+                    bti->trampPostAddr() + bti->baseT->postSize);
+        if (end) {
+            fprintf(stderr, "<DELETED> Tramp end from 0x%lx to 0x%lx\n",
+                    end->addrInMutatee_,
+                    end->addrInMutatee_ + end->size_);
+        }
+    }
+
     assert(0);
     return 0;
 }
