@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.36 2006/04/18 16:33:22 bernat Exp $
+// $Id: multiTramp.C,v 1.37 2006/04/18 22:06:32 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -201,7 +201,7 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
                                              (void *)savedCodeBuf_);
             // This better work, or we're going to be jumping into all sorts
             // of hurt.
-            assert(res);
+            assert(res || (proc()->status() == exited));
             
             free(savedCodeBuf_);
             savedCodeBuf_ = 0;
@@ -1292,15 +1292,11 @@ Address multiTramp::instToUninstAddr(Address addr) {
                 point = baseT->postInstP;
             else
                 assert(0);
-            for (unsigned i = 0; i < point->instances.size(); i++) {
-                // We check by ID instead of pointer because we may
-                // have been replaced by later instrumentation, but 
-                // are still being executed.
-                if (point->instances[i]->multiID() == id_)
-                    return point->addr();
-            }
-            // No match: bad data structures.
-            assert(0);
+
+            return point->addr();
+            // We used to check by instances... thing is, we can remove instances
+            // and still be running inside that instrumentation.
+
         }
         if (end) {
             // Ah hell. 
