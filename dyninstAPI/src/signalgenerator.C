@@ -142,9 +142,9 @@ void SignalGeneratorCommon::main() {
     addToThreadMap();
     
     startupLock->_Lock(FILE__, __LINE__);
-    thread_printf("%s[%d]:  about to do init for %s\n", FILE__, __LINE__, idstr);
+    signal_printf("%s[%d]:  about to do init for %s\n", FILE__, __LINE__, idstr);
     if (!initialize_event_handler()) {
-        thread_printf("%s[%d]: initialize event handler failed, %s returning\n", FILE__, __LINE__, idstr);
+        signal_printf("%s[%d]: initialize event handler failed, %s returning\n", FILE__, __LINE__, idstr);
         _isRunning = false;
         init_ok = false; 
 
@@ -155,14 +155,14 @@ void SignalGeneratorCommon::main() {
         return;
     }
     
-    init_ok = true;;
-    thread_printf("%s[%d]:  init success for %s\n", FILE__, __LINE__, idstr);
+    init_ok = true;
+    signal_printf("%s[%d]:  init success for %s\n", FILE__, __LINE__, idstr);
     
     _isRunning = true;
     startupLock->_Broadcast(FILE__, __LINE__);
     startupLock->_Unlock(FILE__, __LINE__);
     
-    thread_printf("%s[%d]:  before main loop for %s\n", __FILE__, __LINE__, idstr);
+    signal_printf("%s[%d]:  before main loop for %s\n", __FILE__, __LINE__, idstr);
 
     eventlock->_Lock(FILE__, __LINE__);
     pdvector<EventRecord> events;
@@ -181,15 +181,17 @@ void SignalGeneratorCommon::main() {
             signal_printf("%s[%d]: process is paused, waiting (loop top)\n", FILE__, __LINE__);
             // waitForActive... used to unlock/relock the global mutex. 
             waitForActivation();
-            
-            /* Continuing a process we no longer care about can trigger a
-               spinloop around waitpid() (if we're detached, waitpid()
-               doesn't block, but just returns ECHILD). */
-	        if( exitRequested() ) {
-    			signal_printf("%s[%d]: exit request (post-waitForActivation)\n", FILE__, __LINE__);
-	    		break;
-	    	    }            
-            
+
+            // Check for process detach/exit...
+            signal_printf("%s[%d]: post-activation, process status %s\n",
+                          FILE__, __LINE__, proc->getStatusAsString().c_str());
+
+            // We blocked; therefore, check to see if the process is gone
+            if( exitRequested() ) {
+                signal_printf("%s[%d]: exit request (post-waitForActivation)\n", FILE__, __LINE__);
+                break;
+            }            
+
             // waitForActiveProcess will return when everyone agrees that the process should
             // run. This means:
             // 1) All signal handlers are either done or waiting in a callback;
@@ -260,7 +262,7 @@ bool SignalGeneratorCommon::exitRequested() {
     if (proc->status() == exited)
         return true;
     if (proc->status() == detached)
-    	return true;
+        return true;
     if (stop_request)
         return true;
 
@@ -1165,6 +1167,8 @@ process *SignalGeneratorCommon::newProcess(pdstring file_, pdstring dir,
       return NULL;
    }
 
+   
+
    // check for I/O redirection in arg list.
    pdstring inputFile;
    pdstring outputFile;
@@ -1212,6 +1216,8 @@ process *SignalGeneratorCommon::newProcess(pdstring file_, pdstring dir,
      delete sg;
      //delete theProc;
      getMailbox()->executeCallbacks(FILE__, __LINE__);
+     startup_printf("%s[%d]: failed to create signal generator thread, returning NULL\n",
+                    FILE__, __LINE__);
      return NULL;
   }
 
@@ -1472,53 +1478,55 @@ bool SignalGeneratorCommon::initialize_event_handler()
   //  attachProcess() if the process already exists.
 
   if (getPid() == -1) {
-    if (!forkNewProcess()) {
-       fprintf(stderr, "%s[%d]:  failed to fork a new process for %s\n", FILE__, __LINE__,
-               file_.c_str());
-       return false;
-    }
+      if (!forkNewProcess()) {
+          fprintf(stderr, "%s[%d]:  failed to fork a new process for %s\n", FILE__, __LINE__,
+                  file_.c_str());
+          return false;
+      }
+      
+      proc->createRepresentativeLWP();
+      
+      if (!proc->setupCreated(traceLink_)) {
+          signal_printf("%s[%d]: Failed to do basic process setup\n", FILE__, __LINE__);
+          P_kill(getPid(), SIGKILL);
+          delete proc;
+          proc = NULL;
+          return false;
+      }
 
-    proc->createRepresentativeLWP();
+      int status;
+      fileDescriptor desc;
+      if (!getExecFileDescriptor(file_, getPid(), true, status, desc)) {
+          signal_printf("%s[%d]: Failed to find exec descriptor\n", FILE__, __LINE__);
+          P_kill(getPid(), SIGKILL);
+          ///    cleanupBPatchHandle(theProc->sh->getPid());
+          //  processVec.pop_back();
+          delete proc;
+          proc = NULL;
+          return false;
+      }
 
-    if (!proc->setupCreated(traceLink_)) {
-        delete proc;
-        proc = NULL;
-        return false;
-    }
-
-    int status;
-    fileDescriptor desc;
-    if (!getExecFileDescriptor(file_, getPid(), true, status, desc)) {
-        startup_cerr << "Failed to find exec descriptor" << endl;
-    ///    cleanupBPatchHandle(theProc->sh->getPid());
-      //  processVec.pop_back();
-        delete proc;
-        proc = NULL;
-        return false;
-    }
-    //HACKSTATUS = status;
-
-    if (!proc->setAOut(desc)) {
-        startup_printf("[%s:%u] - Couldn't setAOut\n", FILE__, __LINE__);
-       // cleanupBPatchHandle(theProc->sh->getPid());
-       // processVec.pop_back();
-        delete proc;
-        proc = NULL;
-        return false;
-    }
-
-    
+      if (!proc->setAOut(desc)) {
+          startup_printf("%s[%d] - Couldn't setAOut\n", FILE__, __LINE__);
+          P_kill(getPid(), SIGKILL);
+          // cleanupBPatchHandle(theProc->sh->getPid());
+          // processVec.pop_back();
+          delete proc;
+          proc = NULL;
+          return false;
+      }
+      //HACKSTATUS = status;      
   }
   else if (!proc->getParent()){
-    //  attach case (pid != -1 && proc->parent == NULL)
-    proc->createRepresentativeLWP();
-
-    if (!attachProcess()) {
-       delete proc;
-       proc = NULL;
-       return false;
-    }
-
+      //  attach case (pid != -1 && proc->parent == NULL)
+      proc->createRepresentativeLWP();
+      
+      if (!attachProcess()) {
+          delete proc;
+          proc = NULL;
+          return false;
+      }
+      
 #if defined(os_windows)
     int status = (int)INVALID_HANDLE_VALUE;    // indicates we need to obtain a valid handle
 #else
@@ -1698,9 +1706,9 @@ bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal) {
                       FILE__, __LINE__);
         // Just continue ze sucker
         continueProcessInternal();
+        assert(activationLock->depth() == 1);
         activationLock->_Unlock(FILE__, __LINE__);
 
-        assert(activationLock->depth() == 0);
         return true;
     }
 
@@ -1723,12 +1731,16 @@ bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal) {
     signal_printf("%s[%d]: continueProcessBlocking, locking waitForContinue\n", FILE__, __LINE__);
     waitForContinueLock->_Lock(FILE__, __LINE__);
     signal_printf("%s[%d]: continueProcessBlocking, unlocking activationLock\n", FILE__, __LINE__);
+
+    assert(activationLock->depth() == 1);
     activationLock->_Unlock(FILE__, __LINE__);
 
     signal_printf("%s[%d]: continueProcessBlocking, waiting...\n", FILE__, __LINE__);
     waitForContinueLock->_WaitForSignal(FILE__, __LINE__);
     
     signal_printf("%s[%d]: continueProcessBlocking, woken up and releasing waitForContinue lock.\n", FILE__, __LINE__);
+
+    assert(waitForContinueLock->depth() == 1);
     waitForContinueLock->_Unlock(FILE__, __LINE__);
 
     signal_printf("%s[%d]: continueProcessBlocking, process continued, grabbing %d global mutexes\n",
@@ -1742,8 +1754,6 @@ bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal) {
     signal_printf("%s[%d]: continueProcessBlocking, returning\n",
                   FILE__, __LINE__);
     
-    assert(activationLock->depth() == 0);
-    assert(waitForContinueLock->depth() == 0);
     return true;
 }
 
