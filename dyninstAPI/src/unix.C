@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.185 2006/04/14 02:08:15 legendre Exp $
+// $Id: unix.C,v 1.186 2006/04/18 18:10:07 tlmiller Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -1561,3 +1561,4 @@ bool OS::executableExists(pdstring &file) {
    stat_result = stat(file.c_str(), &file_stat);
    return (stat_result != -1);
 }
+
