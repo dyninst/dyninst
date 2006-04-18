@@ -456,8 +456,8 @@ void InstrucIter::getAndSkipDSandAgg(instruction* &ds,
     ds = NULL;
     agg = NULL;
     
-    void *dsPtr;
-    void *aggPtr;
+    void *dsPtr = NULL;
+    void *aggPtr = NULL;
 
     if (proc_) {
         dsPtr = proc_->getPtrToInstruction(current + instruction::size());
