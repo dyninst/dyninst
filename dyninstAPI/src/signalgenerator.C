@@ -181,6 +181,15 @@ void SignalGeneratorCommon::main() {
             signal_printf("%s[%d]: process is paused, waiting (loop top)\n", FILE__, __LINE__);
             // waitForActive... used to unlock/relock the global mutex. 
             waitForActivation();
+            
+            /* Continuing a process we no longer care about can trigger a
+               spinloop around waitpid() (if we're detached, waitpid()
+               doesn't block, but just returns ECHILD). */
+	        if( exitRequested() ) {
+    			signal_printf("%s[%d]: exit request (post-waitForActivation)\n", FILE__, __LINE__);
+	    		break;
+	    	    }            
+            
             // waitForActiveProcess will return when everyone agrees that the process should
             // run. This means:
             // 1) All signal handlers are either done or waiting in a callback;
@@ -250,6 +259,8 @@ bool SignalGeneratorCommon::exitRequested() {
         return true;
     if (proc->status() == exited)
         return true;
+    if (proc->status() == detached)
+    	return true;
     if (stop_request)
         return true;
 
