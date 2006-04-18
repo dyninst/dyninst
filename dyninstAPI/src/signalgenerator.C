@@ -323,6 +323,8 @@ void SignalGeneratorCommon::waitForActivation() {
 
         // Otherwise, wait for someone to get a round tuit.
         assert(activationLock);
+        
+        signal_printf("%s[%d]: Grabbing the activationLock...\n", FILE__, __LINE__);
         activationLock->_Lock(FILE__, __LINE__);
 
         assert(eventlock->depth() == 1);
@@ -1685,6 +1687,9 @@ bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal) {
                       FILE__, __LINE__);
         // Just continue ze sucker
         continueProcessInternal();
+        activationLock->_Unlock(FILE__, __LINE__);
+
+        assert(activationLock->depth() == 0);
         return true;
     }
 
@@ -1726,6 +1731,8 @@ bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal) {
     signal_printf("%s[%d]: continueProcessBlocking, returning\n",
                   FILE__, __LINE__);
     
+    assert(activationLock->depth() == 0);
+    assert(waitForContinueLock->depth() == 0);
     return true;
 }
 
