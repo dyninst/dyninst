@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.608 2006/04/18 16:33:23 bernat Exp $
+// $Id: process.C,v 1.609 2006/04/18 18:50:23 bernat Exp $
 
 #include <ctype.h>
 
@@ -2605,8 +2605,10 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
                                                                     stdin_fd, stdout_fd, 
                                                                     stderr_fd);
    if (!theProc || !theProc->sh) {
-     getMailbox()->executeCallbacks(FILE__, __LINE__);
-     return NULL;
+       startup_printf("%s[%d]: For new process... failed (theProc %p, SH %p)\n", FILE__, __LINE__,
+                      theProc, theProc ? theProc->sh : NULL);
+       getMailbox()->executeCallbacks(FILE__, __LINE__);
+       return NULL;
    }
 
     startup_printf( "%s[%d]:  Fork new process... succeeded",FILE__, __LINE__);
@@ -2681,6 +2683,7 @@ process *ll_attachProcess(const pdstring &progpath, int pid, void *container_pro
 
   process *theProc = SignalGeneratorCommon::newProcess(fullPathToExecutable, pid);
   if (!theProc || !theProc->sh) {
+       startup_printf("%s[%d]: Fork new process... failed\n", FILE__, __LINE__);
     getMailbox()->executeCallbacks(FILE__, __LINE__);
     return NULL;
   }
@@ -3595,12 +3598,14 @@ dyn_lwp *process::stop_an_lwp(bool *wasRunning) {
          stopped_lwp = getRepresentativeLWP();
       }
    } else {
-      if(getRepresentativeLWP()->status() == stopped)
+       // We whole-process pause....
+      if(status() == stopped)
          *wasRunning = false;
       else {
-         getRepresentativeLWP()->pauseLWP();
-         *wasRunning = true;
+          *wasRunning = true;
       }
+
+      sh->pauseProcessBlocking();
       stopped_lwp = getRepresentativeLWP();
    }
 
