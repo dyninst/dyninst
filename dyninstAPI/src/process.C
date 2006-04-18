@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.607 2006/04/17 22:35:49 bernat Exp $
+// $Id: process.C,v 1.608 2006/04/18 16:33:23 bernat Exp $
 
 #include <ctype.h>
 
@@ -2821,7 +2821,7 @@ bool process::loadDyninstLib() {
 
 	setBootstrapState(loadingRT_bs);
 
-	if (!continueProc()) {
+	if (!sh->continueProcessBlocking()) {
 	    assert(0);
 	}
 	// Loop until the dyninst lib is loaded
