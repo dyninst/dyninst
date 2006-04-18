@@ -390,7 +390,12 @@ bool SignalGeneratorCommon::continueProcessAsync(int signalToContinueWith) {
     if (waitingForOS_) {
         // We managed to get into waitpid (prolly signalActiveProcess) without
         // continuing the process...
+        signal_printf("%s[%d]: Raced with SG %s, in waitpid, going to continue...\n",
+                      FILE__, __LINE__, getThreadStr(getThreadID()));
         continueProcessInternal();
+        signal_printf("%s[%d]: async continue broadcasting...\n", FILE__, __LINE__);
+        activationLock->_Broadcast(FILE__, __LINE__);
+        activationLock->_Unlock(FILE__, __LINE__);
         return true;
     }
 
