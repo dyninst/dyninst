@@ -784,8 +784,14 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 	Dwarf_Off dieOffset;
 	status = dwarf_dieoffset( dieEntry, & dieOffset, NULL );
 	DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
-	dwarf_printf( "Considering DIE at %lu with tag 0x%x\n", (unsigned long)dieOffset, dieTag );
+	
+	Dwarf_Off dieCUOffset;
+	status = dwarf_die_CU_offset( dieEntry, & dieCUOffset, NULL );
+	DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 
+	dwarf_printf( "Considering DIE at %lu (%lu CU-relative) with tag 0x%x\n", (unsigned long)dieOffset, (unsigned long)dieCUOffset, dieTag );
+	
+	
 	/* If this entry is a function, common block, or structure (class),
 	   its children will be in its scope, rather than its
 	   enclosing scope. */
@@ -1212,7 +1218,10 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			/* A formal parameter must occur in the context of a function.
 			   (That is, we can't do anything with a formal parameter to a
 			   function we don't know about.) */
-			if( currentFunction == NULL ) { break; }
+			if( currentFunction == NULL ) {
+				dwarf_printf( "%s[%d]: ignoring formal parameter without corresponding function.\n", __FILE__, __LINE__ );
+				break;
+				}
 			assert( currentFunction != NULL );
 			
 			/* We need the formal parameter's name, its type, its line number,
@@ -1230,7 +1239,10 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			status = dwarf_hasattr( dieEntry, DW_AT_location, & hasLocation, NULL );
 			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
-			if( !hasLocation ) { break; }
+			if( !hasLocation ) {
+				dwarf_printf( "%s[%d]: ignoring formal parameter without location.\n", __FILE__, __LINE__ );
+				break;
+				}
 			assert( hasLocation );
 		
 			/* Acquire the location of this formal parameter. */
@@ -1244,6 +1256,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			dwarf_dealloc( dbg, locationAttribute, DW_DLA_ATTR );
 			if( status != DW_DLV_OK ) {
 				/* I think this is legal if the parameter was optimized away. */
+				dwarf_printf( "%s[%d]: ignoring formal parameter with bogus location.\n", __FILE__, __LINE__ );
 				break;
 				}
 			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
@@ -1254,7 +1267,10 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			bool decodedOffset = decodeLocationListForStaticOffsetOrAddress( locationList, listLength, & parameterOffset, & regNum, NULL, & storageClass );
 			deallocateLocationList( dbg, locationList, listLength );
 			
-			if( ! decodedOffset ) { break; }
+			if( ! decodedOffset ) {
+				dwarf_printf( "%s[%d]: ignoring formal parameter with undecodable location.\n", __FILE__, __LINE__ );
+				break;
+				}
 			assert( decodedOffset );
 			
 			assert( storageClass != BPatch_storageAddr );
@@ -1301,8 +1317,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			
 			/* The typeOffset forms a module-unique type identifier,
 			   so the BPatch_type look-ups by it rather than name. */
-			parsing_printf("%s/%d: %s/%d\n",
-						   __FILE__, __LINE__, parameterName, typeOffset);
+			dwarf_printf( "%s[%d]: found formal parameter %s with type %ld\n", __FILE__, __LINE__, parameterName, typeOffset );
 			BPatch_type * parameterType = module->getModuleTypes()->findOrCreateType( typeOffset );
 
 			dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
@@ -1312,7 +1327,10 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			status = dwarf_attr( originEntry, DW_AT_decl_line, & lineNoAttribute, NULL );
 			DWARF_FALSE_IF( status == DW_DLV_ERROR, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
-			if( status == DW_DLV_NO_ENTRY ) { break; }
+			if( status == DW_DLV_NO_ENTRY ) {
+				dwarf_printf( "%s[%d]: ignoring formal parameter without line number.\n", __FILE__, __LINE__ );
+				break;
+				}
 			DWARF_FALSE_IF( status != DW_DLV_OK, "%s[%d]: error walking DWARF tree.\n", __FILE__, __LINE__ );
 			
 			Dwarf_Unsigned parameterLineNo;
@@ -1329,8 +1347,8 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			/* This is just brutally ugly.  Why don't we take care of this invariant automatically? */
 			currentFunction->funcParameters->addLocalVar( newParameter );
 			currentFunction->addParam( parameterName, parameterType, parameterLineNo, parameterOffset );
-			
-			// /* DEBUG */ bperr( "Added formal parameter '%s' (at FP + %ld) of type %p from line %lu.\n", parameterName, parameterOffset, parameterType, (unsigned long)parameterLineNo );
+
+			dwarf_printf( "%s[%d]: added formal parameter '%s' (at FP + %ld) of type %p from line %lu.\n", __FILE__, __LINE__, parameterName, parameterOffset, parameterType, (unsigned long)parameterLineNo );
 			} break;
 
 		case DW_TAG_base_type: {
@@ -1352,11 +1370,11 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 			/* Generate the appropriate built-in type; since there's no
 			   reliable way to distinguish between a built-in and a scalar,
 			   we don't bother to try. */
-			BPatch_type * baseType = new BPatch_typeScalar( dieOffset, byteSize, typeName);
+			BPatch_type * baseType = new BPatch_typeScalar( dieOffset, byteSize, typeName );
 			assert( baseType != NULL );
 
 			/* Add the basic type to our collection. */
-			// bperr( "Adding base type '%s' (%lu) of size %lu\n\n", typeName, (unsigned long)dieOffset, (unsigned long)byteSize );
+			dwarf_printf( "Adding base type '%s' (%lu) of size %lu to type collection %p\n", typeName, (unsigned long)dieOffset, (unsigned long)byteSize, module->getModuleTypes() );
 			baseType = module->getModuleTypes()->addOrUpdateType( baseType );
 			
 			dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
@@ -1769,7 +1787,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 
 
 			assert( indirectType != NULL );
-			// bperr( "Adding indirect type '%s' (%lu) pointing to (%lu)\n", typeName, (unsigned long)dieOffset, (unsigned long)typeOffset );
+			dwarf_printf( "Adding indirect type '%s' (%lu) pointing to (%lu)\n", typeName, (unsigned long)dieOffset, (unsigned long)typeOffset );
 			indirectType = module->getModuleTypes()->addOrUpdateType( indirectType );
 
 			dwarf_dealloc( dbg, typeName, DW_DLA_STRING );
