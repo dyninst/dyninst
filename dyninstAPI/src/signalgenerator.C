@@ -366,6 +366,11 @@ void SignalGeneratorCommon::waitForActivation() {
 }
 
 bool SignalGeneratorCommon::continueProcessAsync(int signalToContinueWith, dyn_lwp *lwp) {
+    if (exitRequested()) {
+        // We're going away... so don't do anything
+        return true;
+    }
+
     // Fixes an odd case when we receive multiple fork exit events; as soon as
     // we've handled one skip the rest.
     childForkStopAlreadyReceived_ = true;
@@ -1153,8 +1158,8 @@ SignalGenerator *SignalGeneratorCommon::newSignalGenerator(pdstring file, pdstri
 
 SignalGenerator *SignalGeneratorCommon::newSignalGenerator(pdstring file, int pid)
 {
-  char idstr[16];
-  sprintf(idstr, "SYNC%d", signal_generator_counter++);
+  char idstr[32];
+  sprintf(idstr, "SG-%d", pid);
   return new SignalGenerator(idstr, file, pid);
 }
 
@@ -1490,6 +1495,11 @@ bool SignalGeneratorCommon::initialize_event_handler()
                   file_.c_str());
           return false;
       }
+
+      // We have a PID, override the name of this thread
+      char newIdStr[32];
+      sprintf(newIdStr, "SG-%d", getPid());
+      setName(newIdStr);
       
       proc->createRepresentativeLWP();
       
@@ -1682,11 +1692,16 @@ SignalGenerator::SignalGenerator(char *idstr, pdstring file, pdstring dir,
 // We'll bounce it, then wait on requestContinueLock... 
 
 bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal) {
+    if (exitRequested()) {
+        // We're going away... so don't do anything
+        return true;
+    }
+
     // Fixes an odd case when we receive multiple fork exit events; as soon as
     // we've handled one skip the rest.
     childForkStopAlreadyReceived_ = true;
     // Ask (politely) the signal generator to continue us...
-    
+
     signal_printf("%s[%d]: requestContinue entry, locking...\n", FILE__, __LINE__);
     activationLock->_Lock(FILE__, __LINE__);
 
@@ -1886,6 +1901,10 @@ void SignalGeneratorCommon::setContinueSig(int signalToContinueWith) {
 }
 
 bool SignalGeneratorCommon::pauseProcessBlocking() {
+    if (exitRequested()) {
+        // We're going away... so don't do anything
+        return true;
+    }
 
     signal_printf("%s[%d]: pauseProcessBlocking...\n", FILE__, __LINE__);
     syncRunWhenFinished_ = stopRequest;
