@@ -49,6 +49,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "RTthread.h"
+#include "RTcommon.h"
 
 #define NONE -1
 
