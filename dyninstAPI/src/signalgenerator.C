@@ -1713,6 +1713,23 @@ bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal) {
     // Set runRequest to true
     syncRunWhenFinished_ = runRequest;
     
+    // We can run this from a signal handler thread, which deadlocks - the sig handler
+    // is waiting for the generator to run the process, and the generator thinks the handler
+    // is active. One specific case of this is exec; we call proc->finishExec from the handler
+    // and that calls loadDyninstLib. 
+    // So if we're in a handler, then set the wait_flag.
+    int waitingHandler = -1; // 0 or positive if we match...
+    for (unsigned i = 0; i < handlers.size(); i++) {
+        if (handlers[i]->getThreadID() == getExecThreadID()) {
+            signal_printf("%s[%d]: continueProcessBlocking called on handler, setting wait_flag\n",
+                          FILE__, __LINE__);
+            waitingHandler = i;
+            assert(handlers[i]->wait_flag == false);
+            handlers[i]->wait_flag = true;
+            break;
+        }
+    }
+
     if (proc->query_for_stopped_lwp() &&
         waitingForOS_) {
         // Make sure that all active signal handlers kick off...
@@ -1731,6 +1748,11 @@ bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal) {
         assert(activationLock->depth() == 1);
         activationLock->_Unlock(FILE__, __LINE__);
 
+        if (waitingHandler != -1) {
+            signal_printf("%s[%d]: continueProcessBlocking on handler returning, resetting wait_flag\n",
+                          FILE__, __LINE__);
+            handlers[waitingHandler]->wait_flag = false;
+        }
         return true;
     }
 
@@ -1775,6 +1797,12 @@ bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal) {
 
     signal_printf("%s[%d]: continueProcessBlocking, returning\n",
                   FILE__, __LINE__);
+
+    if (waitingHandler != -1) {
+        signal_printf("%s[%d]: continueProcessBlocking on handler returning, resetting wait_flag\n",
+                      FILE__, __LINE__);
+        handlers[waitingHandler]->wait_flag = false;
+    }
     
     return true;
 }
