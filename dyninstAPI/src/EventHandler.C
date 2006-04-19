@@ -485,6 +485,21 @@ void EventHandler<T>::removeFromThreadMap() {
     threadMapLock->_Unlock(FILE__, __LINE__);
 }
 
+template <class T>
+void EventHandler<T>::setName(char *newIdStr) {
+    free(idstr);
+    idstr = strdup(newIdStr);
+
+    // Update the thread map
+    if (threadmap->defines(getExecThreadID())) {
+        free((*threadmap)[getExecThreadID()]->name);
+        (*threadmap)[getExecThreadID()]->name = strdup(idstr);
+    }
+    else {
+        fprintf(stderr, "ERROR: threadMap does not contain name for thread %p (%s)\n",
+                getExecThreadID(), idstr);
+    }
+}
 
 
 //EventHandler::

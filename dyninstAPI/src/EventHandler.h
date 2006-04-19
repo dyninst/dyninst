@@ -218,6 +218,7 @@ class EventHandler : public InternalThread {
 
   void addToThreadMap();
   void removeFromThreadMap();
+  void setName(char *idstr);
 
   eventLock *eventlock;
   bool stop_request;
