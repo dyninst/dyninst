@@ -154,6 +154,7 @@ int main(int argc, char *argv[])
    }
 
    proc = getProcess();
+   if (!proc)
       return -1;
 
    BPatch_image *image = proc->getImage();
