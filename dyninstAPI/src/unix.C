@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.186 2006/04/18 18:10:07 tlmiller Exp $
+// $Id: unix.C,v 1.187 2006/04/19 16:26:30 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -708,7 +708,7 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
     }
 #endif
 
-  fprintf(stderr, "%s[%d]: decodeSigTrap failing\n", FILE__, __LINE__);
+    signal_printf("%s[%d]: decodeSigTrap failing\n", FILE__, __LINE__);
   return false;
 }
 
@@ -1524,6 +1524,9 @@ void EventRecord::clear() {
     address = 0;
     fd = 0;
 }
+
+// TODO: we need to centralize this code as well. Maybe make continueHint
+// a struct to hold signals, or set the signal separately.
 
 bool SignalHandler::forwardSigToProcess(EventRecord &ev, bool &continueHint) 
 {
