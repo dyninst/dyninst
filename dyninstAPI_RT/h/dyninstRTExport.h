@@ -42,6 +42,8 @@ DLLEXPORT int DYNINSTuserMessage(void *msg, unsigned int msg_size);
 /* The contents of this structure are subject to change between
    dyninst versions.  Don't rely on it. */
 typedef void * dyntid_t;
+#define DYNINST_INITIAL_LOCK_PID ((void *)-129)
+
 typedef struct {
    volatile int mutex;
    dyntid_t tid;
@@ -52,7 +54,7 @@ typedef struct {
 #define DYNINST_DEAD_LOCK      -2
 
 /* Declare a lock already initialized */
-#define DECLARE_DYNINST_LOCK(lck) dyninst_lock_t lck = {0, 0}
+#define DECLARE_DYNINST_LOCK(lck) dyninst_lock_t lck = {0, DYNINST_INITIAL_LOCK_PID}
 
 DLLEXPORT void dyninst_init_lock(dyninst_lock_t *lock);
 DLLEXPORT void dyninst_free_lock(dyninst_lock_t *lock);

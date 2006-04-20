@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.33 2006/04/13 23:05:21 legendre Exp $
+ * $Id: dyninstAPI_RT.h,v 1.34 2006/04/20 21:53:03 bernat Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -131,6 +131,13 @@ typedef struct {
 typedef struct {
    int index;        //Index of the dead thread
 } BPatch_deleteThreadEventRecord;
+
+/* Let's define some constants for, well, everything.... */
+/* These should be different to avoid unexpected collisions */
+
+#define DYNINST_SINGLETHREADED -128
+#define DYNINST_TRACEPIPE_ERRVAL -1
+#define DYNINST_PRINTF_ERRVAL -2
 
 #include "dyninstRTExport.h"
 #endif /* _DYNINSTAPI_RT_H */
