@@ -296,8 +296,12 @@ class InstrucIter {
   unsigned getFRCValue();
   /* END Power only */
 
+  // Thought: since we check, we can probably get the data for
+  // free.
+  bool isInterModuleCallSnippet(Address &info);
+
   Address getBranchTargetOffset();
-  Address getBranchTargetAddress();
+  Address getBranchTargetAddress(bool *isAbsolute = NULL);
   Address getCallTarget();
 
 

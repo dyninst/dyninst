@@ -972,7 +972,7 @@ BPatch_instruction *InstrucIter::getBPInstruction() {
 /** function which returns the offset of control transfer instructions
   * @param i the instruction value 
   */
-Address InstrucIter::getBranchTargetAddress()
+Address InstrucIter::getBranchTargetAddress(bool *isAbsolute)
 {
     const instruction i = getInstruction();
     Address ret = 0;
@@ -983,8 +983,10 @@ Address InstrucIter::getBranchTargetAddress()
         else if((*i).bform.op == BCop)
             disp = (*i).bform.bd;
         disp <<= 2;
-        if((*i).iform.aa)
+        if((*i).iform.aa) {
             ret = (Address)disp;
+            if (isAbsolute) *isAbsolute = true;
+        }
         else
             ret = (Address)(current+disp);
     }
@@ -1373,6 +1375,7 @@ bool InstrucIter::isStackFramePreamble(int &/*unset*/) {
 // by a save.
 
 bool InstrucIter::isReturnValueSave() {
+    Address currentAddr = current;
     // We check the entire block. Don't know when it ends,
     // so go until we hit a jump.
     bool foundMFLR = false;
@@ -1399,6 +1402,7 @@ bool InstrucIter::isReturnValueSave() {
         }
         (*this)++;
     }
+    setCurrentAddress(currentAddr);
     return (foundR0Save && foundMFLR);
 }
 
@@ -1434,3 +1438,70 @@ bool InstrucIter::isDelaySlot()
    return false;
 }
 
+bool InstrucIter::isInterModuleCallSnippet(Address &info) {
+    Address currentAddr = current;
+
+    // Template for linkage functions:
+    // l      r12,<offset>(r2) // address of call into R12
+    // st     r2,20(r1)        // Store old TOC on the stack
+    // l      r0,0(r12)        // Address of callee func
+    // l      r2,4(r12)        // callee TOC
+    // mtctr  0                // We keep the LR static, use the CTR
+    // bctr                    // non-saving branch to CTR
+    
+    bool retval = true;
+
+    for (unsigned i = 0; i < 6; i++) {
+        parsing_printf("Checking for linkage at addr 0x%lx\n", current);
+        if (!retval) break;
+
+        if (!hasMore()) {
+            parsing_printf("failed hasMore check %d: %p, %d, 0x%lx <= 0x%lx <= 0x%lx",
+                           i, instPtr, range, base, current, base+range);
+            retval = false;
+            break;
+        }
+        instruction scratch = getInstruction();
+        parsing_printf("Slot %d: raw bytes 0x%x\n",
+                       i, scratch.raw());
+        switch(i) {
+        case 0: // l r12, <offset> (r2)
+            if (((*scratch).dform.op != Lop) ||
+                ((*scratch).dform.rt != 12) ||
+                ((*scratch).dform.ra != 2))  {
+                parsing_printf("Insn 0 not load\n");
+                retval = false;
+            }
+            info = (*scratch).dform.d_or_si;
+            break;
+        case 1: // st     r2,20(r1)
+            break; // Don't check this one. 
+        case 2: // l      r0,0(r12) 
+            if (((*scratch).dform.op != Lop) ||
+                ((*scratch).dform.rt != 0) ||
+                (((*scratch).dform.ra != 1) && ((*scratch).dform.ra != 12))) {
+                parsing_printf("Insn 2 not load\n");
+                retval = false;
+            }
+            break;
+        case 3: // l      r2,4(r12)
+            break;
+        case 4: // mtctr  0  
+            break; // Could check individually...
+        case 5:// bctr 
+            if (((*scratch).xlform.op != BCLRop) ||
+                ((*scratch).xlform.xo != BCCTRxop)) {
+                parsing_printf("Insn 2 not BCTR\n");
+                retval = false;
+            }
+            break;
+        default:
+            assert(0);
+            break;
+        }
+        (*this)++;
+    }
+    setCurrentAddress(currentAddr);
+    return retval;
+
+}
