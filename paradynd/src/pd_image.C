@@ -81,13 +81,10 @@ pd_image::pd_image(BPatch_image *d_image, pd_process *p_proc) :
 
    BPatch_Vector<BPatch_module *> *mods = parent_proc->getAllModules();
 
-   for (unsigned int m = 0; m < mods->size(); m++) 
-		 {
-
-			 BPatch_module *curr = (BPatch_module *) (*mods)[m];
-
-			 addModule(curr);
-		 }
+   for (unsigned int m = 0; m < mods->size(); m++)  {
+       BPatch_module *curr = (BPatch_module *) (*mods)[m];
+       addModule(curr);
+   }
 
    char namebuf[NAME_LEN];
    d_image->getProgramName(namebuf, NAME_LEN);
@@ -109,17 +106,14 @@ pd_image::~pd_image() {
 
 bool pd_image::addModule(BPatch_module *mod)
 {
-
-	pd_module *pd_mod = new pd_module(mod);
-
-	all_mods.push_back(pd_mod);
-
-	if (!pd_mod->isExcluded())
-		{
-			some_mods.push_back(pd_mod);
-
-		}
-  return true;
+    pd_module *pd_mod = new pd_module(mod);
+    
+    all_mods.push_back(pd_mod);
+    
+    if (!pd_mod->isExcluded()) {
+        some_mods.push_back(pd_mod);
+    }
+    return true;
 }
 
 bool pd_image::hasModule(BPatch_module *mod)
@@ -187,12 +181,13 @@ pdvector<BPatch_module *> *pd_image::getIncludedModules(pdvector<BPatch_module *
 
 BPatch_module *pd_image::findModule(const pdstring &mod_name, bool check_excluded)
 {
-  pdvector<pd_module *> &modlist = check_excluded ? some_mods : all_mods;
+  pdvector<pd_module *> &modlist = check_excluded ? all_mods : some_mods;
   for (unsigned int i = 0; i < modlist.size(); ++i) {
      char buf[512];
      modlist[i]->get_dyn_module()->getName(buf, 512);
-     if (!strcmp(buf, mod_name.c_str())) 
-       return modlist[i]->get_dyn_module();
+     if (!strcmp(buf, mod_name.c_str()))  {
+         return modlist[i]->get_dyn_module();
+     }
   }
   return NULL;
 }
