@@ -1323,5 +1323,31 @@ int BPatch_module::getBindingTypeInt()
     return 0;
 }
 
+std::vector<struct BPatch_module::Statement> BPatch_module::getStatementsInt()
+{
+    std::vector<struct BPatch_module::Statement> statements;
+
+    // Iterate over each address range in the line information
+    for(LineInformation::const_iterator i = mod->getLineInformation().begin();
+	i != mod->getLineInformation().end();
+	++i) {
+
+        // Form a Statement object for this entry
+        struct BPatch_module::Statement statement;
+        statement.begin = i->first.first;
+        statement.end = i->first.second;
+        statement.path = i->second.first;
+        statement.line = i->second.second;
+        statement.column = 0;
+
+        // Add this statement
+        statements.push_back(statement);
+
+    }
+
+    // Return the statements to the caller
+    return statements;
+}
+
 #endif
 

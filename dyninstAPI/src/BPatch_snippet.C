@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.77 2006/04/06 10:08:45 jaw Exp $
+// $Id: BPatch_snippet.C,v 1.78 2006/04/20 21:52:57 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -573,7 +573,9 @@ void BPatch_constExpr::BPatch_constExprVoidStar(const void *value)
 }
 
 
+
 #ifdef IBM_BPATCH_COMPAT
+
 char *BPatch_variableExpr::getNameWithLength(char *buffer, int max)
 {
   if (max > strlen(name)) {
@@ -584,6 +586,7 @@ char *BPatch_variableExpr::getNameWithLength(char *buffer, int max)
   }
   return NULL;
 }
+
 void *BPatch_variableExpr::getAddressInt()
 {
   //  for AIX this may be broken, in the case where the mutator is 32b
@@ -591,65 +594,18 @@ void *BPatch_variableExpr::getAddressInt()
   return address;
 }
 
-//
-// this is long long only in size, it will fail if a true long long
-//    with high bits is passed.
-
-#if defined(ia64_unknown_linux2_4)
-void BPatch_constExpr::BPatch_constExprLong(long value)
+void BPatch_constExpr::BPatch_constExprLongLong(long long value) 
 {
-    ast = new AstNode(AstNode::Constant, (void *)(value));
-    assert(BPatch::bpatch != NULL);
-    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+    ast = new AstNode(AstNode::Constant, (void*)value);
 
-    BPatch_type *type = BPatch::bpatch->stdTypes->findType("long");
-    if( type == NULL ) {
-       type =  BPatch::bpatch->builtInTypes->findBuiltInType("long");
-    }
-    printf("size of const expr type  long is %d\n", type->getSize());
-
-    assert(type != NULL);
-
-    ast->setType(type);
-    printf("generating long constant\n");
-    fflush(stdout);
-}
-
-void BPatch_constExpr::BPatch_constExprLongLong(long long value) {
-    ast = new AstNode(AstNode::Constant, (void *)value);
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
     
-    BPatch_type *type = BPatch::bpatch->stdTypes->findType("long long");
-    if (type == NULL) {
-        type = BPatch::bpatch->builtInTypes->findBuiltInType("long long");
-    }
-    assert(type != NULL);
-
-    ast->setType(type);
-}
-
-#else
-
-void BPatch_constExpr::BPatch_constExprLongLong(long long value)
-{
-    assert(value < 0x00000000ffffffff);
-
-    ast = new AstNode(AstNode::Constant, (void *)(value & 0x00000000ffffffff));
-
-    assert(BPatch::bpatch != NULL);
-    ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
-
-    BPatch_type *type = BPatch::bpatch->stdTypes->findType("long long");
-    bperr("size of const expr type long long is %d\n", type->getSize());
+    BPatch_type* type = BPatch::bpatch->stdTypes->findType("long long");
 
     assert(type != NULL);
-
     ast->setType(type);
-    bperr("generating long long constant\n");
-    fflush(stdout);
 }
-#endif
 
 void BPatch_constExpr::BPatch_constExprFloat(float value)
 {
@@ -657,7 +613,10 @@ void BPatch_constExpr::BPatch_constExprFloat(float value)
 	int ivalue = (int) value;
 	BPatch_constExpr((int) ivalue);
 }
+
 #endif
+
+
 
 /*
  * BPatch_regExpr::BPatch_regExpr
