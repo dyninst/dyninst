@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.187 2006/04/19 16:26:30 bernat Exp $
+// $Id: unix.C,v 1.188 2006/04/20 18:24:22 mirg Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -934,6 +934,12 @@ int DebuggerInterface::waitpidNoBlock(int *status)
   return ret;
 }
 
+void reportPreloadError(const pdstring &msg)
+{
+    showErrorCallback(101, msg);
+    cerr << msg << endl;
+}
+
 // Setup the environment for preloading our runtime library
 // Modify pnum_entries and envs if not null, putenv otherwise
 bool setEnvPreload(unsigned max_entries, char **envs, unsigned *pnum_entries)
@@ -941,8 +947,16 @@ bool setEnvPreload(unsigned max_entries, char **envs, unsigned *pnum_entries)
     unsigned num_entries = *pnum_entries;
     char *rt_lib_name = getenv("DYNINSTAPI_RT_LIB");
     if (rt_lib_name == 0) {
-	logLine("setEnvPreload: DYNINSTAPI_RT_LIB is undefined\n");
+	reportPreloadError(pdstring("setEnvPreload: DYNINSTAPI_RT_LIB is "
+				    "undefined"));
 	return false;
+    }
+    // Check to see if the library given exists.
+    if (access(rt_lib_name, R_OK)) {
+        pdstring msg = pdstring("Runtime library ") + pdstring(rt_lib_name) +
+	    pdstring(" does not exist or cannot be accessed!");
+	reportPreloadError(msg);
+        return false;
     }
 
     const char *var_name = "LD_PRELOAD";
@@ -957,11 +971,11 @@ bool setEnvPreload(unsigned max_entries, char **envs, unsigned *pnum_entries)
 	    pdstring ld_preload = pdstring(var_name) + pdstring("=") +
 		pdstring(rt_lib_name);
 	    if (num_entries >= max_entries) {
-		logLine("setEnvPreload: out of memory\n");
+		reportPreloadError(pdstring("setEnvPreload: out of space"));
 		return false;
 	    }
 	    if ((envs[num_entries++] = P_strdup(ld_preload.c_str())) == 0) {
-		logLine("setEnvPreload: out of memory\n");
+		reportPreloadError(pdstring("setEnvPreload: out of memory"));
 		return false;
 	    }
 	    envs[num_entries] = NULL;
@@ -972,7 +986,7 @@ bool setEnvPreload(unsigned max_entries, char **envs, unsigned *pnum_entries)
 	    pdstring ld_preload = pdstring(envs[ivar]) + pdstring(":") + 
 		pdstring(rt_lib_name);
 	    if ((envs[ivar] = P_strdup(ld_preload.c_str())) == 0) {
-		logLine("setEnvPreload: out of memory\n");
+		reportPreloadError(pdstring("setEnvPreload: out of memory"));
 		return false;
 	    }
 	}
@@ -996,7 +1010,7 @@ bool setEnvPreload(unsigned max_entries, char **envs, unsigned *pnum_entries)
 	char *ld_preload_cstr = P_strdup(ld_preload.c_str());
 	if (ld_preload_cstr == 0 ||
 	    P_putenv(ld_preload_cstr) < 0) {
-	    logLine("setEnvPreload: out of memory\n");
+	    reportPreloadError(pdstring("setEnvPreload: out of memory"));
 	    return false;
 	}
     }
@@ -1190,8 +1204,10 @@ bool forkNewProcess_real(pdstring file,
 	  num_envs_entries = envp->size();
 	  envs[num_envs_entries] = NULL;
       }
-#if defined(os_linux) || defined(os_solaris)
-      // Platforms that use LD_PRELOAD
+#if (defined(os_linux) && !defined(arch_x86_64)) || defined(os_solaris)
+      // Platforms that use LD_PRELOAD. We exclude x86_64 since we do
+      // not yet know which kind of the RT lib to load (we determine
+      // whether the mutatee is 32 or 64-bit only after starting it).
       if (!setEnvPreload(max_envs_entries, envs, &num_envs_entries)) {
 	  return false;
       }
