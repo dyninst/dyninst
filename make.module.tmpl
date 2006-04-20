@@ -292,6 +292,10 @@ endif
 TEST6_AS_OBJ_GNU 		= $(addsuffix .o,$(TEST6_AS_OBJ_BASE))
 CALL35_1_OBJ 			= $(CALL35_1_SRC:call%.s=call%.o)
 
+ifdef M_ABI
+CALL35_1_OBJ_ABI		= $(CALL35_1_SRC_ABI:call%.s=call%.o)
+endif
+
 OBJS_MUTATORS                   = $(SRCS_MUTATORS:%.C=%.o)
 
 OBJS_ALL_MUTATORS               = $(OBJS_MUTATORS) \
@@ -357,12 +361,6 @@ ifdef M_ABI
 	$(M_GXX) $(M_ABI_FLAG) $(CXXFLAGS) $(MUTATEE_CXXFLAGS_GNU) -c $< -o $@
 endif
 
-ifdef M_ABI
-$(CALL35_1_OBJ_ABI): $(CALL35_1_SRC_ABI)
-	$(M_GCC) $(M_ABI_FLAG) -c $< $(CFLAGS) $(MUTATEE_CFLAGS_GNU) -o $@ 
-endif
-
-
 .C.o:
 	$(CXX) -c $< $(CXXFLAGS) $(MUTATOR_CXXFLAGS) -o $@
 
@@ -392,7 +390,8 @@ echo:
 	@echo "DEPS TESTLIBS = $(DEPS_TESTLIBS)"; \
 	echo "MUTATEES_NATIVE_CXX = $(MUTATEES_NATIVE_CXX)"; \
 	echo "MUTATEES_NATIVE_CC = $(MUTATEES_NATIVE_CC)"; \
-        echo "MUTATORS = $(MUTATORS)" 
+        echo "MUTATORS = $(MUTATORS)" ; \
+	echo "MUTATEES_GCC_ABI = $(MUTATEES_GCC_ABI)"
 
 install: $(TEST_DEST) $(ALL_TARGETS_DEST) $(LIB_DEST) $(LIBTESTSUITE_DEST)
 	@echo "install completed"
@@ -424,6 +423,11 @@ distclean: clean
 	  $(RM) $(DEPENDDIR)/*.dep; \
           rmdir $(DEPENDDIR); \
          fi
+
+ifdef M_ABI
+$(CALL35_1_OBJ_ABI): $(CALL35_1_SRC_ABI)
+	$(M_GCC) $(M_ABI_FLAG) -c $< $(CFLAGS) $(MUTATEE_CFLAGS_GNU) -o $@ 
+endif
 
 
 mutators: $(MUTATORS_SO) test11
@@ -531,6 +535,32 @@ test15.mutatee_$(NATIVE_CXX): mutatee_util_mt_$(NATIVE_CXX).o
 test15.mutatee_$(NATIVE_CC): mutatee_util_mt_$(NATIVE_CC).o
 test15.mutatee_$(M_GCC): mutatee_util_mt_$(M_GCC).o
 test15.mutatee_$(M_GXX): mutatee_util_mt_$(M_GXX).o
+
+ifdef M_ABI
+test13.mutatee_$(NATIVE_CXX)_$(M_ABI): mutatee_util_mt_$(NATIVE_CXX)_$(M_ABI).o
+test13.mutatee_$(NATIVE_CC)_$(M_ABI): mutatee_util_mt_$(NATIVE_CC)_$(M_ABI).o
+test13.mutatee_$(M_GCC)_$(M_ABI): mutatee_util_mt_$(M_GCC)_$(M_ABI).o
+test13.mutatee_$(M_GXX)_$(M_ABI): mutatee_util_mt_$(M_GXX)_$(M_ABI).o
+test14.mutatee_$(NATIVE_CXX)_$(M_ABI): mutatee_util_mt_$(NATIVE_CXX)_$(M_ABI).o
+test14.mutatee_$(NATIVE_CC)_$(M_ABI): mutatee_util_mt_$(NATIVE_CC)_$(M_ABI).o
+test14.mutatee_$(M_GCC)_$(M_ABI): mutatee_util_mt_$(M_GCC)_$(M_ABI).o
+test14.mutatee_$(M_GXX)_$(M_ABI): mutatee_util_mt_$(M_GXX)_$(M_ABI).o
+test15.mutatee_$(NATIVE_CXX)_$(M_ABI): mutatee_util_mt_$(NATIVE_CXX)_$(M_ABI).o
+test15.mutatee_$(NATIVE_CC)_$(M_ABI): mutatee_util_mt_$(NATIVE_CC)_$(M_ABI).o
+test15.mutatee_$(M_GCC)_$(M_ABI): mutatee_util_mt_$(M_GCC)_$(M_ABI).o
+test15.mutatee_$(M_GXX)_$(M_ABI): mutatee_util_mt_$(M_GXX)_$(M_ABI).o
+
+test14.mutatee_$(NATIVE_CXX)_$(M_ABI): mutatee_util_mt_$(NATIVE_CXX)_$(M_ABI).o
+test14.mutatee_$(NATIVE_CC)_$(M_ABI): mutatee_util_mt_$(NATIVE_CC)_$(M_ABI).o
+test14.mutatee_$(M_GCC)_$(M_ABI): mutatee_util_mt_$(M_GCC)_$(M_ABI).o
+test14.mutatee_$(M_GXX)_$(M_ABI): mutatee_util_mt_$(M_GXX)_$(M_ABI).o
+
+test15.mutatee_$(NATIVE_CXX)_$(M_ABI): mutatee_util_mt_$(NATIVE_CXX)_$(M_ABI).o
+test15.mutatee_$(NATIVE_CC)_$(M_ABI): mutatee_util_mt_$(NATIVE_CC)_$(M_ABI).o
+test15.mutatee_$(M_GCC)_$(M_ABI): mutatee_util_mt_$(M_GCC)_$(M_ABI).o
+test15.mutatee_$(M_GXX)_$(M_ABI): mutatee_util_mt_$(M_GXX)_$(M_ABI).o
+
+endif
 
 # MUTATEE_SPECIFIC_LIBS is analyzed by gmake when constructing the link line
 # If you want to specify that a specific library should be used to link a specific
@@ -668,7 +698,7 @@ $(OBJS_ALL_MUTATORS): %.o : %.C $(DEPENDDIR)/%.dep
 MUTATEE_DEFS := -Dgnu_cc=_gcc -Dgnu_cxx=_g++
 
 ifdef M_ABI
-MUTATEE_DEFS += -Dgnu_abi_cc=_gcc_$(M_ABI) -Dgnu_abi_cxx=_g++_$(M_ABI)
+MUTATEE_DEFS += -Dgnu_abi_cc=_gcc_$(M_ABI) -Dgnu_abi_cxx=_g++_$(M_ABI) -Dm_abi
 endif
 
 ifdef M_G77
