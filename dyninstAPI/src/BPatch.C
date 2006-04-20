@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.137 2006/04/13 23:05:14 legendre Exp $
+// $Id: BPatch.C,v 1.138 2006/04/20 22:44:48 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -2153,17 +2153,17 @@ int BPatch::getLastErrorCodeInt()
 }
 BPatchProcessEventCallback BPatch::registerDetachDoneCallbackInt(BPatchProcessEventCallback)
 {
-  fprintf(stderr, "%s[%d]:  WARNING:  registerDetachDoneCallback is not implemented yet\n", __FILE__, __LINE__);
+    //fprintf(stderr, "%s[%d]:  WARNING:  registerDetachDoneCallback is not implemented yet\n", __FILE__, __LINE__);
   return NULL;
 }
 BPatchProcessEventCallback BPatch::registerSnippetRemovedCallbackInt(BPatchProcessEventCallback)
 {
-  fprintf(stderr, "%s[%d]:  WARNING:  registerSnippetRemovedCallback is not implemented yet\n", __FILE__, __LINE__);
+    //fprintf(stderr, "%s[%d]:  WARNING:  registerSnippetRemovedCallback is not implemented yet\n", __FILE__, __LINE__);
   return NULL;
 }
 BPatchProcessEventCallback BPatch::registerSignalCallbackInt(BPatchProcessEventCallback, int signum)
 {
-  fprintf(stderr, "%s[%d]:  WARNING:  registerSignalCallback is not implemented yet\n", __FILE__, __LINE__);
+    //fprintf(stderr, "%s[%d]:  WARNING:  registerSignalCallback is not implemented yet\n", __FILE__, __LINE__);
   return NULL;
 }
 
@@ -2219,17 +2219,17 @@ BPatchThreadEventCallback BPatch::registerRPCTerminationCallbackInt(BPatchThread
 
 BPatchThreadEventCallback BPatch::registerDetachDoneCallbackInt(BPatchThreadEventCallback)
 {
-  fprintf(stderr, "%s[%d]:  WARNING:  registerDetachDoneCallback is not implemented yet\n", __FILE__, __LINE__);
+    //fprintf(stderr, "%s[%d]:  WARNING:  registerDetachDoneCallback is not implemented yet\n", __FILE__, __LINE__);
   return NULL;
 }
 BPatchThreadEventCallback BPatch::registerSnippetRemovedCallbackInt(BPatchThreadEventCallback)
 {
-  fprintf(stderr, "%s[%d]:  WARNING:  registerSnippetRemovedCallback is not implemented yet\n", __FILE__, __LINE__);
+    //fprintf(stderr, "%s[%d]:  WARNING:  registerSnippetRemovedCallback is not implemented yet\n", __FILE__, __LINE__);
   return NULL;
 }
 BPatchThreadEventCallback BPatch::registerSignalCallbackInt(BPatchThreadEventCallback, int signum)
 {
-  fprintf(stderr, "%s[%d]:  WARNING:  registerSignalCallback is not implemented yet\n", __FILE__, __LINE__);
+    //fprintf(stderr, "%s[%d]:  WARNING:  registerSignalCallback is not implemented yet\n", __FILE__, __LINE__);
   return NULL;
 }
 
