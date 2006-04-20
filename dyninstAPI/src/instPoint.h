@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.h,v 1.25 2006/02/13 19:31:28 rutar Exp $
+// $Id: instPoint.h,v 1.26 2006/04/20 02:59:49 bernat Exp $
 // Defines class instPoint
 
 #ifndef _INST_POINT_H_
@@ -134,7 +134,8 @@ class image_instPoint : public instPointBase {
                     instruction insn,
                     image_func *func,
                     Address callTarget_,
-                    bool isDynamicCall);
+                    bool isDynamicCall,
+                    bool isAbsolute = false);
   
 
   Address offset_;
@@ -146,7 +147,9 @@ class image_instPoint : public instPointBase {
 
   image_func *callee_;
   Address callTarget_;
+  bool targetIsAbsolute_;
   Address callTarget() const { return callTarget_; }
+  bool targetIsAbsolute() const { return targetIsAbsolute_; }
   bool isDynamicCall_; 
   bool isDynamicCall() const { return isDynamicCall_; }
 
@@ -319,6 +322,8 @@ class instPoint : public instPointBase {
   int_function *func() const;
 
   Address addr() const { return addr_; }
+
+  Address callTarget() const;
 
   // We use a three-phase instrumentation structure:
 

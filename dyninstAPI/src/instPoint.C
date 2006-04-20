@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.20 2006/04/18 22:06:31 bernat Exp $
+// $Id: instPoint.C,v 1.21 2006/04/20 02:59:48 bernat Exp $
 // instPoint code
 
 
@@ -61,7 +61,7 @@
 #include "dyninstAPI/src/function.h"
 #include "dyninstAPI/src/image-func.h"
 #include "dyninstAPI/src/arch.h"
-
+#include "dyninstAPI/src/mapped_object.h"
 
 #ifndef BPATCH_LIBRARY
 #include "paradynd/src/init.h"
@@ -1058,3 +1058,13 @@ int_function *instPointInstance::func() const {
     return point->func();
 }
 
+Address instPoint::callTarget() const {
+    if (img_p_->callTarget() == 0) return 0;
+
+    // We can have an absolute addr... lovely.
+    if (img_p_->targetIsAbsolute())
+        return img_p_->callTarget();
+
+    // Return the shifted kind...
+    return img_p_->callTarget() + func()->obj()->codeBase();
+}
