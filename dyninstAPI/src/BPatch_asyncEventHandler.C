@@ -951,8 +951,8 @@ eventType rt2EventType(rtBPatch_asyncEventType t)
 {       
   switch(t) {
     case rtBPatch_nullEvent: return evtNullEvent;
-    case rtBPatch_internalShutDownEvent: return evtShutDown;
     case rtBPatch_newConnectionEvent: return evtNewConnection;
+    case rtBPatch_internalShutDownEvent: return evtShutDown;
     case rtBPatch_threadCreateEvent: return evtThreadCreate;
     case rtBPatch_threadDestroyEvent: return evtThreadExit;
     case rtBPatch_dynamicCallEvent: return evtDynamicCall;
