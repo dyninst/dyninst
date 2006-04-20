@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.215 2006/04/20 21:52:59 bernat Exp $
+// $Id: linux.C,v 1.216 2006/04/20 22:44:59 bernat Exp $
 
 #include <fstream>
 
@@ -1188,25 +1188,94 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf) {
      return true;
 }
 
-// You know, /proc/*/exe is a perfectly good link (directly to the inode) to
-// the executable file, who cares where the executable really is, we can open
-// this link. - nash
-pdstring process::tryToFindExecutable(const pdstring & /* iprogpath */, int pid) {
-  // We need to dereference the /proc link.
-  // Case 1: multiple copies of the same file opened with multiple
-  // pids will not match (and should)
-  // Case 2: an exec'ed program will have the same /proc path,
-  // but different program paths
-  pdstring procpath = pdstring("/proc/") + pdstring(pid) + pdstring("/exe");
-  char buf[1024];
-  int chars_read = readlink(procpath.c_str(), buf, 1024);
-  if (chars_read == -1) {
-    // Note: the name could be too long. Not handling yet.
-    return procpath;
-  }
-  buf[chars_read] = 0;
-  return pdstring(buf);
+
+
+static pdstring getNextLine(int fd)
+{
+    pdstring line = "";
+    while(true) {
+	char byte;
+	size_t retval = P_read(fd, &byte, 1);
+	if((retval > 0) && (byte > 0))
+	    line += pdstring(byte);
+	else
+	    break;
+    }
+    return line;
 }
+
+pdstring process::tryToFindExecutable(const pdstring& /* progpath */, int pid)
+{
+    char buffer[PATH_MAX];
+    int fd, length;
+    
+    //
+    // Simply dereferencing the symbolic link at /proc/<pid>/exe will give the
+    // full path of the executable 99% of the time on Linux. Check there first.
+    // The funky business with memset() and strlen() here is to deal with early
+    // Linux kernels that returned incorrect length values from readlink().
+    //
+    memset(buffer, 0, sizeof(buffer));
+    readlink((pdstring("/proc/") + pdstring(pid) + pdstring("/exe")).c_str(),
+	     buffer, sizeof(buffer) - 1);
+    length = strlen(buffer);
+    if((length > 0) && (buffer[length-1] == '*'))
+        buffer[length-1] = 0;
+    if(strlen(buffer) > 0)
+	return buffer;
+    
+    //
+    // Currently the only known case where the above fails is on the back-end
+    // nodes of a bproc (http://bproc.sourceforge.net/) system. On these systems
+    // /proc/<pid>/exe is simply a zero-sized file and the /proc/<pid>/maps
+    // table has an empty name for the executable's mappings. So we have to get
+    // a little more creative.
+    //
+    
+    // Obtain the command name from /proc/<pid>/cmdline
+    pdstring cmdname = "";
+    fd = P_open((pdstring("/proc/") + pdstring(pid) +
+		 pdstring("/cmdline")).c_str(), O_RDONLY, 0);
+    if(fd >= 0) {
+	cmdname = getNextLine(fd);
+	P_close(fd);
+    }
+    
+    // Obtain the path from /proc/<pid>/environ
+    pdstring path = "";
+    fd = P_open((pdstring("/proc/") + pdstring(pid) +
+		 pdstring("/environ")).c_str(), O_RDONLY, 0);
+    if(fd >= 0) {
+	while(true) {
+	    path = getNextLine(fd);
+	    if(path.prefixed_by("PATH=")) {
+		path = path.substr(5, path.length() - 5);
+		break;
+	    }
+	    else if(path.length() == 0)
+		break;
+	}
+	P_close(fd);
+    }
+    
+    // Obtain the current working directory from /proc/<pid>/cwd
+    pdstring cwd = "";
+    memset(buffer, 0, sizeof(buffer));
+    readlink((pdstring("/proc/") + pdstring(pid) +
+              pdstring("/cwd")).c_str(), buffer, sizeof(buffer) - 1);
+    length = strlen(buffer);
+    if(length > 0)
+	cwd = buffer;
+    
+    // Now try to find the executable using these three items
+    pdstring executable = "";
+    if(executableFromArgv0AndPathAndCwd(executable, cmdname, path, cwd))
+	return executable;
+    
+    // Indicate an error if none of the above methods succeeded
+    return "";
+}
+
 
 
 bool process::determineLWPs(pdvector<unsigned> &lwp_ids)
