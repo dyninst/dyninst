@@ -244,9 +244,13 @@ class BPATCH_DLL_EXPORT BPatch_constExpr : public BPatch_snippet {
     BPatch_constExpr,(const void *value));
 
 #ifdef IBM_BPATCH_COMPAT
+    //  BPatch_constExpr::BPatch_constExpr
+    //  Creates a representation of a (long long) value
     API_EXPORT_CTOR(LongLong, (value),
     BPatch_constExpr,(long long value));
 
+    //  BPatch_constExpr::BPatch_constExpr
+    //  Creates a representation of a (float) value
     API_EXPORT_CTOR(Float, (value),
     BPatch_constExpr,(float value));
 #endif

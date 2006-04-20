@@ -50,7 +50,7 @@
 typedef enum {
     BPatch_frameNormal,
     BPatch_frameSignal,
-    BPatch_frameTrampoline,
+    BPatch_frameTrampoline
 } BPatch_frameType;
 
 class BPatch_function;

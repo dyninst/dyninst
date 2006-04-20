@@ -237,6 +237,17 @@ public:
 
     API_EXPORT(Int, (),
     int,getBindingType,());
+
+    struct Statement {
+        unsigned long begin;  // Beginning address for this statement
+        unsigned long end;    // Ending address for this statement
+        std::string path;     // Path name of this statement's source file
+        int line;             // Line number of the statement
+	int column;           // Column number of the statement
+    } Statement;
+
+    API_EXPORT(Int, (),
+    std::vector<struct BPatch_module::Statement>, getStatements, ());
 #endif
 
 
