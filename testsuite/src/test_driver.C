@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.22 2006/04/04 01:10:52 legendre Exp $
+// $Id: test_driver.C,v 1.23 2006/04/20 04:12:24 bpellin Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -88,6 +88,11 @@ char *pdscrdir = NULL;
 char *uw_pdscrdir = "/p/paradyn/builds/scripts";
 char *umd_pdscrdir = "/fs/dyninst/dyninst/current/scripts";
 
+char *libRTname;
+#if defined(m_abi)
+char *libRTname_m_abi;
+#endif
+
 int saveTheWorld = 0;
 int mergeTramp = 0;
 int debugPrint = 0;
@@ -98,26 +103,35 @@ int errorPrint = 0;
 // Include test setup data
 #include "test_info.h"
 
-bool isMutateeXLC(char *name)
+bool isNameExt(char *name, char *ext, int ext_len)
 {
    int name_len = strlen(name);
 
    // Can't match
-   if ( name_len - 4 < 0 )
+   if ( name_len < ext_len )
    {
       return false;
    }
 
    // If the last 4 characters match _xlc or _xlC
    // return true
-   if ( strcmp(name + name_len - 4, "_xlc") == 0 ||
-        strcmp(name + name_len - 4, "_xlC") == 0 )
+   if ( strcmp(name + name_len - ext_len, ext) == 0 )
    {
       return true;
    } else
    {
       return false;
    }
+}
+
+bool isMutateeXLC(char *name)
+{
+   return isNameExt(name, "_xlc", 4) || isNameExt(name, "_xlC", 4);
+}
+
+bool isMutateeMABI32(char *name)
+{
+   return isNameExt(name, "_m32", 4);
 }
 
 int runScript(const char *name, ...)
@@ -384,6 +398,20 @@ int executeTest(BPatch *bpatch, test_data_t &test, char *mutatee, create_mode_t 
    BPatch_thread *appThread = NULL;
    ProcessList proc_list;
    bool useAttach;
+
+#if defined(m_abi)
+   // Set correct runtime lib
+   if ( isMutateeMABI32(mutatee) )
+   {
+      if ( libRTname_m_abi == NULL )
+         return -1;
+      setenv("DYNINSTAPI_RT_LIB", libRTname_m_abi, 1);
+   }
+   else
+   {
+      setenv("DYNINSTAPI_RT_LIB", libRTname, 1);
+   }
+#endif
 
    if ( attachMode == CREATE )
       useAttach = false;
@@ -1018,6 +1046,37 @@ int main(unsigned int argc, char *argv[]) {
     {
        getResumeLog(&skipToTest,&skipToMutatee,&skipToOption);
     }
+
+    if ( getenv("DYNINSTAPI_RT_LIB") ) 
+    {
+        char *temp = getenv("DYNINSTAPI_RT_LIB");
+        int len = strlen(temp);
+        libRTname = (char *) malloc(len+1);
+        strncpy(libRTname, temp, len);
+    }
+    else {
+       fprintf(stderr,"Environment variable DYNINSTAPI_RT_LIB undefined:\n"
+#if defined(i386_unknown_nt4_0)
+		 "    using standard search strategy for libdyninstAPI_RT.dll\n");
+#else
+	         "    set it to the full pathname of libdyninstAPI_RT\n");
+       exit(-1);
+#endif
+    }
+
+#if defined(m_abi)
+    if ( getenv("DYNINSTAPI_RT_LIB_MABI") )
+    {
+        char *temp = getenv("DYNINSTAPI_RT_LIB_MABI");
+        int len = strlen(temp);
+        libRTname_m_abi = (char *) malloc(len+1);
+        strncpy(libRTname_m_abi, temp, len);
+    } else
+    {
+       fprintf(stderr,"Warning: Environment variable DYNINSTAPI_RT_LIB_MABI undefined:\n"
+                   "32 mutatees will not run\n");
+    }
+#endif
 
     return -startTest(tests, num_tests, test_list, mutatee_list);
 }
