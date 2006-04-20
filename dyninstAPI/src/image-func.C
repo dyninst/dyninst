@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.30 2006/04/10 18:11:51 nater Exp $
+// $Id: image-func.C,v 1.31 2006/04/20 02:59:46 bernat Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -511,12 +511,14 @@ image_instPoint::image_instPoint(Address offset,
                                  instruction insn,
                                  image_func *func,
                                  Address callTarget,
-                                 bool isDynamicCall) :
+                                 bool isDynamicCall,
+                                 bool isAbsolute) :
     instPointBase(insn, callSite),
     offset_(offset),
     func_(func),
     callee_(NULL),
     callTarget_(callTarget),
+    targetIsAbsolute_(isAbsolute),
     isDynamicCall_(isDynamicCall)
 {
 #if defined(ROUGH_MEMORY_PROFILE)

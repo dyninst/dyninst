@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-power.C,v 1.8 2006/04/14 01:22:10 nater Exp $
+// $Id: image-power.C,v 1.9 2006/04/20 02:59:47 bernat Exp $
 
 // Determine if the called function is a "library" function or a "user" function
 // This cannot be done until all of the functions have been seen, verified, and
@@ -71,6 +71,8 @@ bool image_func::archCheckEntry(InstrucIter &ah, image_func *func)
     // "check entry" as seen on x86 & sparc, but is just a convenient place
     // to put this code.
 
+    parsing_printf("calling archCheckEntry for 0x%lx, function %s\n", *ah, symTabName().c_str());
+
     if (ah.isReturnValueSave())
         makesNoCalls_ = false;
     else
@@ -78,7 +80,17 @@ bool image_func::archCheckEntry(InstrucIter &ah, image_func *func)
 
     // end cheating
 
-    return ah.getInstruction().valid();
+    if (!ah.getInstruction().valid()) return false;
+
+    // We see if we're a procedure linkage table; if so, we are _not_
+    // a function (and return false)
+
+    // We don't consider linkage snippets "functions". 
+    Address dontcare1;
+    if (ah.isInterModuleCallSnippet(dontcare1))
+        return false;
+
+    return true;
 }
 
 // Not used on power

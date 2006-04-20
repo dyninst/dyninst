@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.19 2006/04/15 21:53:01 nater Exp $
+ * $Id: image-flowGraph.C,v 1.20 2006/04/20 02:59:45 bernat Exp $
  */
 
 #include <stdio.h>
@@ -123,6 +123,7 @@ bool image::analyzeImage()
     assert(pdf); assert(mod);
     pdstring name = pdf->symTabName();
     parseFunction( pdf, callTargets, preParseStubs);
+        
     // these functions have not been added to the code range tree
     funcsByRange.insert(pdf);
   }      
@@ -1168,7 +1169,8 @@ bool image_func::buildCFG(
                 image_func *targetFunc = NULL;
                 
                 // XXX move this out of archIsRealCall protection... safe?
-                Address target = ah.getBranchTargetAddress();
+                bool isAbsolute = false;
+                Address target = ah.getBranchTargetAddress(&isAbsolute);
                 if ( archIsRealCall(ah, validTarget, simulateJump) )
                 {
                     //parsing_printf("... making new call point at 0x%lx to 0x%lx\n", currAddr, target);
@@ -1184,7 +1186,8 @@ bool image_func::buildCFG(
                                                  ah.getInstruction(),
                                                  this,
                                                  target,
-                                                 false);
+                                                 false,
+                                                 isAbsolute);
 
                         targetFunc = bindCallTarget(target,currBlk,callTargets,
                                        preParseStubs);
