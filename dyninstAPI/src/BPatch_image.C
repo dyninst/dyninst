@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.87 2006/04/20 22:44:49 bernat Exp $
+// $Id: BPatch_image.C,v 1.88 2006/04/20 22:52:02 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -993,7 +993,11 @@ char *BPatch_image::programNameInt(char *name, unsigned int len) {
 
 int  BPatch_image::lpTypeInt() 
 {
-    return 0;
+    switch(proc->lowlevel_process()->getAddressWidth()) {
+    case 4: return LP32; break;
+    case 8: return LP64; break;
+    default: return UNKNOWN_LP; break;
+    }
 };
 #endif
 
