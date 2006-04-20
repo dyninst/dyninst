@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.610 2006/04/18 22:06:33 bernat Exp $
+// $Id: process.C,v 1.611 2006/04/20 02:59:50 bernat Exp $
 
 #include <ctype.h>
 
@@ -3040,6 +3040,9 @@ bool process::iRPCDyninstInit() {
            return false;
         }
         getMailbox()->executeCallbacks(FILE__, __LINE__);
+        // This needs to be before after _anything_ that can give up the global lock.
+        if (reachedBootstrapState(bootstrapped_bs)) break;
+
         sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
         getMailbox()->executeCallbacks(FILE__, __LINE__);
     }
