@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2006/04/14 18:28:38 mirg Exp $
+# $Id: Makefile,v 1.5 2006/04/20 04:12:18 bpellin Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -17,8 +17,8 @@ include $(TO_CORE)/make.config
 # Now make any necessary architecture specific changes to variables:
 
 #if M_ABI is defined, secondary ABI specific mutatees will be built
-#M_ABI = m32
-#M_ABI_FLAG = -m32 -Di386_unknown_linux2_4
+M_ABI = m32
+M_ABI_FLAG = -m32 -Di386_unknown_linux2_4
 
 #if M_G77 is defined, g77 mutatees will be built
 #M_G77 = g77
@@ -65,8 +65,8 @@ CALL35_1_SRC_ABI = call35_1_x86_linux.s
 TEST6_AS_GNU = as
 TEST6_ASFLAGS_GNU =
 TEST6_AS_SRC = test6LS-x86_64.s
-TEST6_AS_OBJ_BASE = test6LS-x86_64
-TEST6_AS_OBJ_BASE_ASM = $(basename $(TEST6_AS_SRC))
+TEST6_AS_OBJ_BASE = $(basename $(TEST6_AS_SRC))
+#TEST6_AS_OBJ_BASE_ASM = $(basename $(TEST6_AS_SRC))
 
 TESTLIB_FLAGS = -fpic -shared -g -Wl,-export-dynamic -Wl,-ldl
 
