@@ -193,7 +193,7 @@ bool InstrucIter::isDelaySlot()
     return false;
 }
 
-Address InstrucIter::getBranchTargetAddress()
+Address InstrucIter::getBranchTargetAddress(bool *)
 {
     instruction * itmp = getInsnPtr();
     Address rawTargetAddress = itmp->getTargetAddress() + current;

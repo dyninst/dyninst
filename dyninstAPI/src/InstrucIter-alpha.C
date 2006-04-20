@@ -152,7 +152,7 @@ bool InstrucIter::isDelaySlot()
 /** function which returns the offset of control transfer instructions
   * @param i the instruction value 
   */
-Address InstrucIter::getBranchTargetAddress()
+Address InstrucIter::getBranchTargetAddress(bool *)
 {
   Address pos = current;
   const instruction i = getInstruction();

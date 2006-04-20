@@ -266,7 +266,7 @@ Address InstrucIter::getBranchTargetOffset()
   return i.getOffset();
 }
 
-Address InstrucIter::getBranchTargetAddress() {
+Address InstrucIter::getBranchTargetAddress(bool *) {
     const instruction i = getInstruction();
     return i.getTarget(current);
 }

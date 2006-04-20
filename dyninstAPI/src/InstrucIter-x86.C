@@ -213,7 +213,7 @@ Address InstrucIter::getBranchTargetOffset()
     return insn.getTarget(0);
 }
 
-Address InstrucIter::getBranchTargetAddress()
+Address InstrucIter::getBranchTargetAddress(bool *)
 {
     assert(instPtr);
     return insn.getTarget(current);

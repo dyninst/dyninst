@@ -228,7 +228,8 @@ bool InstrucIter::hasMore()
 {
     if (instPtr == NULL) return false;
 
-    if (range == 0) return true; // Unsafe iteration, but there is more
+    if ((range == 0) ||
+        (range ==-1)) return true; // Unsafe iteration, but there is more
 
     if((current < (base + range )) &&
        (current >= base))
