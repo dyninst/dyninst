@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: arch-power.C,v 1.8 2006/02/28 16:20:47 bernat Exp $
+ * $Id: arch-power.C,v 1.9 2006/04/20 02:59:44 bernat Exp $
  */
 
 #include "common/h/Types.h"
@@ -454,10 +454,20 @@ bool instruction::generate(codeGen &gen,
 
     if (isUncondBranch()) {
         // unconditional pc relative branch.
+
+        // If it's absolute, no change
+        if (isInsnType(Bmask, BAAmatch) && !targetOverride) {
+            generate(gen);
+            return true;
+        }
+        if (isInsnType(Bmask, BCAAmatch) && !targetOverride) {
+            generate(gen);
+            return true;
+        }
         
         if (!targetOverride) {
             newOffset = origAddr - relocAddr + (int)getBranchOffset(); 
-            to = origAddr + getBranchOffset();
+            to = getTarget(origAddr);
         }
         else {
             // We need to pin the jump
