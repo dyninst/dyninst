@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.611 2006/04/20 02:59:50 bernat Exp $
+// $Id: process.C,v 1.612 2006/04/20 21:53:00 bernat Exp $
 
 #include <ctype.h>
 
@@ -2183,7 +2183,7 @@ bool process::prepareExec(fileDescriptor &desc)
     createInitialThread();
 
     // Status: stopped.
-    set_status(stopped);
+    set_status(stopped, true); // Revert and ignore
 
     // Annoying; most of our initialization code is in unix.C, and it
     // knows how to get us to main. Problem is, it triggers on a trap...
@@ -3873,27 +3873,89 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
    return true;
 }
 
-void process::set_status(processState st) 
+void process::set_status(processState st, bool override /* = false */) 
 {
-   // update the process status
-   status_ = st;
+    // There's a state machine:
+    // neonatal
+    // running <-> stopped
+    // detached
+    // deleted
+    // exited
+    // Make sure we never regress on that...
+
+    if (override) {
+        status_ = st;
+    } 
+    else {
+        switch (status_) {
+        case neonatal:
+            status_ = st;
+            break;
+        case running:
+        case stopped:
+            if (st == neonatal) {
+                fprintf(stderr, "%s[%d]: REGRESSION OF STATUS: %d to %d\n",
+                        FILE__, __LINE__, status_, st);
+            }
+            else
+                status_ = st;
+            break;
+        case detached:
+            if ((st == neonatal) ||
+                (st == running) ||
+                (st == stopped)) {
+                fprintf(stderr, "%s[%d]: REGRESSION OF STATUS: %d to %d\n",
+                        FILE__, __LINE__, status_, st);
+            }
+            else
+                status_ = st;
+            break;
+        case exited:
+            if ((st == neonatal) ||
+                (st == running) ||
+                (st == stopped) ||
+                (st == detached)) {
+                fprintf(stderr, "%s[%d]: REGRESSION OF STATUS: %d to %d\n",
+                        FILE__, __LINE__, status_, st);
+            }
+            else
+                status_ = st;
+            break;
+        case deleted:
+            if ((st == neonatal) ||
+                (st == running) ||
+                (st == stopped) ||
+                (st == detached) ||
+                (st == exited)) {
+                fprintf(stderr, "%s[%d]: REGRESSION OF STATUS: %d to %d\n",
+                        FILE__, __LINE__, status_, st);
+            }
+            else
+                status_ = st;
+            break;
+        default:
+            // ???
+            assert(0);
+            break;
+        }
+    }
 
    proccontrol_printf("[%s:%u] - Setting everyone to state %s\n",
                       __FILE__, __LINE__, 
-                      st == running ? "running" : 
-                      st == stopped ? "stopped" : 
-                      st == exited ? "exited" : "other");
+                      status_ == running ? "running" : 
+                      status_ == stopped ? "stopped" : 
+                      status_ == exited ? "exited" : "other");
 
    pdvector<dyn_thread *>::iterator iter = threads.begin();
    
    dyn_lwp *proclwp = getRepresentativeLWP();
-   if(proclwp) proclwp->internal_lwp_set_status___(st);
+   if(proclwp) proclwp->internal_lwp_set_status___(status_);
    
    while(iter != threads.end()) {
       dyn_thread *thr = *(iter);
       dyn_lwp *lwp = thr->get_lwp();
       assert(lwp);
-      lwp->internal_lwp_set_status___(st);
+      lwp->internal_lwp_set_status___(status_);
       iter++;
    }
 }
