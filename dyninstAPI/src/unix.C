@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.188 2006/04/20 18:24:22 mirg Exp $
+// $Id: unix.C,v 1.189 2006/04/20 22:44:58 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -1137,11 +1137,12 @@ bool forkNewProcess_real(pdstring file,
 
 
       if ((dir.length() > 0) && (P_chdir(dir.c_str()) < 0)) {
-         bpfatal("cannot chdir to '%s': %s\n", dir.c_str(), 
+         bpwarn("cannot chdir to '%s': %s\n", dir.c_str(), 
                  strerror(errno));
          P__exit(-1);
       }
 #endif
+
 #if !defined(BPATCH_LIBRARY)
       /* see if I/O needs to be redirected */
       if (inputFile.length()) {

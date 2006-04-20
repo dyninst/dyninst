@@ -141,6 +141,19 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
       directoryName = dotslash;
 #endif
 
+   /*
+    * Set directoryName if a current working directory can be found in
+    * the new process' environment (and override any previous settings).
+    */
+   if (envp) {
+       for (int i = 0; envp[i] != NULL; ++i) {
+           if (strncmp(envp[i], "PWD=", 4) == 0) {
+               directoryName = envp[i] + 4;
+               break;
+           }
+       }
+   }
+   
    llproc = ll_createProcess(path, &argv_vec, (envp ? &envp_vec : NULL), 
                              directoryName, stdin_fd, stdout_fd, stderr_fd);
    if (llproc == NULL) { 
