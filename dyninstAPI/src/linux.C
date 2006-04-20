@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.214 2006/04/18 18:10:04 tlmiller Exp $
+// $Id: linux.C,v 1.215 2006/04/20 21:52:59 bernat Exp $
 
 #include <fstream>
 
@@ -804,16 +804,20 @@ bool process::continueProc_(int sig)
 
 bool SignalGenerator::waitForStopInline()
 {
-
-   while (proc->isRunning_()) {
-       if (0 > waitpid(getPid(), NULL, 0)) {
-         //  should do some better checking here....
-         perror("waitpid");
-         return false;
-       }
-   }
-   
-   return true;
+    int retval = 0;
+    int status = 0;
+    
+    retval = waitpid(getPid(), &status, 0);
+    if (retval < 0) {
+        //  should do some better checking here....
+        perror("waitpid");
+        return false;
+    }
+    
+    signal_printf("%s[%d]: waitForStopInline with retval %d, sig %d/%d\n", 
+                  FILE__, __LINE__, retval, WIFSTOPPED(status), WSTOPSIG(status));
+    
+    return true;
 }
 
 bool process::stop_(bool waitUntilStop)
@@ -1628,6 +1632,10 @@ bool dyn_lwp::representativeLWP_attach_() {
    if( proc_->wasCreatedViaAttach() )
       running = proc_->isRunning_();
    
+   startup_printf("%s[%d]: in representative lwp attach, isRunning %d\n",
+                  FILE__, __LINE__, running);
+
+
    // QUESTION: does this attach operation lead to a SIGTRAP being forwarded
    // to paradynd in all cases?  How about when we are attaching to an
    // already-running process?  (Seems that in the latter case, no SIGTRAP
@@ -1640,10 +1648,11 @@ bool dyn_lwp::representativeLWP_attach_() {
       proc_->wasCreatedViaFork() || 
       proc_->wasCreatedViaAttachToCreated())
    {
-      startup_cerr << "process::attach() doing PTRACE_ATTACH to " <<get_lwp_id() << endl;
       int ptrace_errno = 0;
       int address_width = sizeof(Address);
       assert(address_width);
+      startup_printf("%s[%d]: process attach doing PT_ATTACH to %d\n",
+                     FILE__, __LINE__, get_lwp_id());
 
       if( 0 != DBI_ptrace(PTRACE_ATTACH, getPid(), 0, 0, &ptrace_errno, address_width, __FILE__, __LINE__) )
       {
@@ -1651,19 +1660,19 @@ bool dyn_lwp::representativeLWP_attach_() {
          perror( "process::attach - PTRACE_ATTACH" );
          return false;
       }
+      startup_printf("%s[%d]: attached via DBI\n", FILE__, __LINE__);
       proc_->sh->add_lwp_to_poll_list(this);
-
-#if defined (arch_ia64)
-      if (0 > getDBI()->waitpid(getPid(), NULL, 0)) {
-         perror("process::attach - waitpid");
-         exit(1);
+      
+      int status = 0;
+      int retval = 0;
+      retval = waitpid(getPid(), &status, 0);
+      if (retval < 0) {
+          perror("process::attach - waitpid");
+          exit(1);
       }
-#else
-      if (0 > waitpid(getPid(), NULL, 0)) {
-         perror("process::attach - waitpid");
-         exit(1);
-      }
-#endif
+      startup_printf("%s[%d]: waitpid return from %d of %d/%d\n",
+                     FILE__, __LINE__, retval, WIFSTOPPED(status), WSTOPSIG(status));
+      proc_->set_status(stopped);
    }
 
    if(proc_->wasCreatedViaAttach() )
@@ -1702,19 +1711,14 @@ bool dyn_lwp::representativeLWP_attach_() {
          return false;
       }
       /* continue, resending the TRAP to emulate the normal situation*/
-      if ( 0 > kill(getPid(), SIGTRAP)){
-         perror("process::attach: KILL");
-         return false;
-      }
-      
-      if (0 > DBI_ptrace(PTRACE_CONT, getPid(), 0, SIGCONT, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__)) {
+      if (0 > DBI_ptrace(PTRACE_CONT, getPid(), 0, SIGTRAP, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__)) {
          perror("process::attach: PTRACE_CONT 2");
          return false;
       }
-
+      
       proc_->set_status(neonatal);
    } // end - if createdViaAttachToCreated
-
+   
    return true;
 }
 
