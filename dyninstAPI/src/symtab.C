@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.275 2006/04/15 21:53:00 nater Exp $
+ // $Id: symtab.C,v 1.276 2006/04/20 22:44:54 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2334,6 +2334,19 @@ bool pdmodule::getFunctions(pdvector<image_func *> &funcs)  {
     }
   
     return (funcs.size() > curFuncSize);
+} /* end getFunctions() */
+
+/* Instrumentable-only, by the last version's source. */
+bool pdmodule::getVariables(pdvector<image_variable *> &vars)  {
+    pdvector<image_variable *> allVars = exec()->getAllVariables();
+    unsigned curVarSize = vars.size();
+
+    for (unsigned i = 0; i < allVars.size(); i++) {
+        if (allVars[i]->pdmod() == this)
+            vars.push_back(allVars[i]);
+    }
+  
+    return (vars.size() > curVarSize);
 } /* end getFunctions() */
 
 

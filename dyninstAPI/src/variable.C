@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: variable.C,v 1.3 2005/12/06 20:01:25 bernat Exp $
+// $Id: variable.C,v 1.4 2006/04/20 22:44:56 bernat Exp $
 
 // Variable.C
 
@@ -152,4 +152,8 @@ const pdvector<pdstring> &int_variable::prettyNameVector() const {
 
 const pdvector<pdstring> &int_variable::symTabNameVector() const {
     return ivar_->symTabNameVector();
+}
+
+const pdstring &int_variable::symTabName() const {
+    return ivar_->symTabName();
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.86 2006/04/13 23:05:15 legendre Exp $
+// $Id: BPatch_image.C,v 1.87 2006/04/20 22:44:49 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -194,20 +194,40 @@ BPatch_variableExpr *BPatch_image::createVarExprByName(BPatch_module *mod, const
     BPatch_type *type;
     
     type = mod->getModuleTypes()->globalVarsByName[name];
-    assert(type);
+    
+    if (!type) {
+        switch (syminfo.size()) {
+        case 1:
+            type = findType("char");
+            break;
+        case 2:
+            type = findType("short");
+            break;
+        case 8:
+            type = findType("integer*8");
+            break;
+        case 4:
+        default:
+            type = findType("int");
+            break;
+        }
+    }
+
+    if (!type) return NULL;
+
     if (!proc->llproc->getSymbolInfo(name, syminfo)) {
-       bperr("unable to find variable %s\n", name);
        return NULL;
     }
+
     // Error case. 
     if (syminfo.addr() == 0)
         return NULL;
-
+    
     BPatch_variableExpr *var = AddrToVarExpr->hash[syminfo.addr()];
     if (!var) {
-       var = new BPatch_variableExpr( const_cast<char *>(name), proc,
-                 (void *)syminfo.addr(), type);
-       AddrToVarExpr->hash[syminfo.addr()] = var;
+        var = new BPatch_variableExpr( const_cast<char *>(name), proc,
+                                       (void *)syminfo.addr(), type);
+        AddrToVarExpr->hash[syminfo.addr()] = var;
     }
     return var;
 }

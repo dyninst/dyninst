@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.h,v 1.2 2006/02/12 22:23:26 jodom Exp $
+// $Id: mapped_module.h,v 1.3 2006/04/20 22:44:52 bernat Exp $
 
 #if !defined(mapped_module_h)
 #define mapped_module_h
@@ -97,7 +97,8 @@ class mapped_module {
     supportedLanguages language() const;
     
     const pdvector<int_function *> &getAllFunctions();
-    
+    const pdvector<int_variable *> &getAllVariables();
+
     bool findFuncVectorByPretty(const pdstring &funcname,
                                 pdvector<int_function *> &funcs);
     // Yeah, we can have multiple mangled matches -- for libraries there

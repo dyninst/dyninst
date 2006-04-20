@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.h,v 1.8 2006/03/12 23:32:09 legendre Exp $
+// $Id: mapped_object.h,v 1.9 2006/04/20 22:44:53 bernat Exp $
 
 #if !defined(_mapped_object_h)
 #define _mapped_object_h
@@ -74,6 +74,7 @@ class int_variable {
 
     Address getAddress() const { return addr_; }
     // Can variables have multiple names?
+    const pdstring &symTabName() const;
     const pdvector<pdstring> &prettyNameVector() const;
     const pdvector<pdstring> &symTabNameVector() const;
     mapped_module *mod() const { return mod_; };

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.C,v 1.6 2006/04/03 22:25:30 tlmiller Exp $
+// $Id: mapped_module.C,v 1.7 2006/04/20 22:44:51 bernat Exp $
 
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
@@ -61,6 +61,19 @@ const pdvector<int_function *> &mapped_module::getAllFunctions() {
     }
     assert(everyUniqueFunction.size() == pdfuncs.size());
     return everyUniqueFunction;
+}
+
+const pdvector<int_variable *> &mapped_module::getAllVariables() {
+    pdvector<image_variable *> img_vars;
+    internal_mod_->getVariables(img_vars);
+
+    if (everyUniqueVariable.size() == img_vars.size())
+        return everyUniqueVariable;
+
+    for (unsigned i = 0; i < img_vars.size(); i++) {
+        obj()->findVariable(img_vars[i]);
+    }
+    return everyUniqueVariable;
 }
 
 // We rely on the mapped_object for pretty much everything...

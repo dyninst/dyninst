@@ -1171,26 +1171,39 @@ void BPatch_module::parseTypes()
 
 bool BPatch_module::getVariablesInt(BPatch_Vector<BPatch_variableExpr *> &vars)
 {
- 
-  BPatch_variableExpr *var;
-  parseTypesIfNecessary();
-  
-  pdvector<pdstring> keys = moduleTypes->globalVarsByName.keys();
-  int limit = keys.size();
-  for (int j = 0; j < limit; j++) {
-    pdstring name = keys[j];
-    var = img->createVarExprByName(this, name.c_str());
-    if (var != NULL)
-        vars.push_back(var);
-  }
-  if (limit) 
-    return true;
-  
+     BPatch_variableExpr *var;
+     parseTypesIfNecessary();
+     
+     pdvector<pdstring> keys = moduleTypes->globalVarsByName.keys();
+     int limit = keys.size();
+     for (int j = 0; j < limit; j++) {
+         pdstring name = keys[j];
+         var = img->createVarExprByName(this, name.c_str());
+         if (var != NULL)
+             vars.push_back(var);
+     }
+     if (limit) 
+         return true;
+
+     // We may not have top-level (debugging derived) variable info.
+     // If not, go into the low-level code.
+     const pdvector<int_variable *> &allVars = mod->getAllVariables();
+
+     for (unsigned i = 0; i < allVars.size(); i++) {
+         BPatch_variableExpr *var = img->createVarExprByName(this, 
+                                                             allVars[i]->symTabName().c_str());
+         if (var)
+             vars.push_back(var);
+     }
+
+     if (vars.size())
+         return true;
+     
 #ifdef IBM_BPATCH_COMPAT
-  //  IBM getVariables can be successful while returning an empty set of vars
-  return true;
+     //  IBM getVariables can be successful while returning an empty set of vars
+     return true;
 #else
-  return false;
+     return false;
 #endif
 }
 
@@ -1299,6 +1312,8 @@ bool BPatch_module::getAddressRangeInt(void * &start, void * &end)
 }
 char *BPatch_module::getUniqueStringInt(char *buffer, int length)
 {
+#if 0
+    // Old version, did not allow sharing even if the file was the same
     // Get the start and end address of this module
     void* start = NULL;
     void* end = NULL;
@@ -1308,6 +1323,17 @@ char *BPatch_module::getUniqueStringInt(char *buffer, int length)
     int written = snprintf(buffer, length, "%p|%s",
                            start, mod->fileName().c_str());
     assert((written >= 0) && (written < length));
+    
+    // Return the unique name to the caller
+    return buffer;
+#endif
+    // Use "<program_name>|<module_name>" as the unique name if this module is
+    // part of the executable and "<module_name>" if it is not.
+    if(isSharedLib())
+        snprintf(buffer, length, "%s", mod->fileName().c_str());
+    else
+        snprintf(buffer, length, "%s|%s",
+                 proc->getImage()->name().c_str(), mod->fileName().c_str());
     
     // Return the unique name to the caller
     return buffer;
