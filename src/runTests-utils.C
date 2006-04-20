@@ -10,6 +10,8 @@ extern string pdscrdir;
 
 int timeout = 1200;
 
+string ReplaceAllWith(const string &in, const string &replace, const string &with);
+
 void generateTestString(bool resume, bool useLog, string& logfile,
       int testLimit, vector<char *>& child_argv, string& shellString)
 {
@@ -85,6 +87,17 @@ char *setLibPath()
 void setupVars(bool useLog, string& logfile)
 {
    string base_dir, tlog_dir;
+
+#if defined(m_abi)
+   if ( getenv("DYNINSTAPI_RT_LIB") )
+   {
+      char *rtlib = getenv("DYNINSTAPI_RT_LIB");
+
+      string temp = ReplaceAllWith(rtlib, "libdyninstAPI_RT.so", "libdyninstAPI_RT_m32.so");
+      char *rtlib_mabi = strdup(temp.c_str());
+      setenv("DYNINSTAPI_RT_LIB_MABI", rtlib_mabi, 0);
+   }
+#endif
   
    // Determine Base Dir
    if ( getenv("PARADYN_BASE") == NULL )
