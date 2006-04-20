@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.46 2006/03/31 20:06:25 bernat Exp $
+// $Id: Object-xcoff.C,v 1.47 2006/04/20 02:59:42 bernat Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -747,7 +747,7 @@ void Object::parse_aout(int offset, bool is_aout)
                size *= sizeof(Word);
            }
        }
-       
+
        // AIX linkage code appears as a function. Since we don't remove it from
        // the whereaxis yet, I append a _linkage tag to each so that they don't
        // appear as duplicate functions
@@ -760,7 +760,8 @@ void Object::parse_aout(int offset, bool is_aout)
        // bctr                    // non-saving branch to CTR
        
        if (size == 0x18) {
-           // See if this is linkage code
+           // See if this is linkage code, and if so skip (so it doesn't go in the
+           // list of functions). 
            Word *inst = (Word *)((char *)code_ptr_ + value - code_off_);
            instructUnion lr12, lr0, bctr;
            lr12.raw = inst[0];
@@ -770,19 +771,24 @@ void Object::parse_aout(int offset, bool is_aout)
            if ((lr12.dform.op == Lop) && (lr12.dform.rt == 12) && (lr12.dform.ra == 2) &&
                 (lr0.dform.op == Lop) && (lr0.dform.rt == 0) &&
                 (lr0.dform.ra == 1 || lr0.dform.ra == 12) &&
-               (bctr.xlform.op == BCLRop) && (bctr.xlform.xo == BCCTRxop) 
-	        && !( (name == "execve") && (modName == "/usr/lib/libc.a") ) )
-               name += "_linkage";
+               (bctr.xlform.op == BCLRop) && (bctr.xlform.xo == BCCTRxop))
+               continue;
        }
 
+       
        // HACK. This avoids double-loading various tramp spaces
        if (name.prefixed_by("DYNINSTstaticHeap") &&
            size == 0x18) {
            continue;
        }
 
+#if 0
        // We ignore the symbols for the floating-point and general purpose
        // register save/restore macros
+       // Not any more - 20APR06, bernat
+       // With nate's "hunt it all down" parsing we find these anyway; might
+       // as well give 'em a name.
+       
        if (name.prefixed_by("_savef") ||
            name.prefixed_by("_restf") ||
            name.prefixed_by("_savegpr") ||
@@ -794,7 +800,7 @@ void Object::parse_aout(int offset, bool is_aout)
            name == "fres" ||
            name == "fsav")
            continue;
-       
+#endif       
        
        if( name == "main" )
            foundMain = true;
