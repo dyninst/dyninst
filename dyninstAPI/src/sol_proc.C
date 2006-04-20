@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.92 2006/04/13 20:04:32 jaw Exp $
+// $Id: sol_proc.C,v 1.93 2006/04/20 02:59:52 bernat Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -68,6 +68,12 @@
 #include "mapped_module.h"
 #include "dynamiclinking.h" //getlowestSO...
 
+void safeClose(handleT &fd) {
+    if (fd != INVALID_HANDLE_VALUE)
+        P_close(fd);
+    fd = INVALID_HANDLE_VALUE;
+}
+
 /*
    osTraceMe is called after we fork a child process to set
    a breakpoint on the exit of the exec system call.
@@ -75,6 +81,8 @@
    be sent to the process. The parent should use PIOCWSTOP to wait for 
    the child.
 */
+
+
 // Interesting problem: I've seen a race condition occur when
 // we set the proc trace flags from the mutator before the
 // mutatee. In this case, DON'T reset the flags if there
@@ -108,7 +116,7 @@ void OS::osTraceMe(void)
 #else
     memcpy(exitSet, &(status.pr_sysexit), SYSSET_SIZE(exitSet));
 #endif
-    P_close(stat_fd);
+    safeClose(stat_fd);
 
     sprintf(procName,"/proc/%d/ctl", (int) getpid());
     int fd = P_open(procName, O_WRONLY, 0);
@@ -722,7 +730,7 @@ bool dyn_lwp::realLWP_attach_()
    status_fd_ = P_open(temp, O_RDONLY, 0);    
    if (status_fd_ < 0) {
      fprintf(stderr, "%s[%d]: Opening lwpstatus: %s\n", FILE__, __LINE__, strerror(errno));
-     P_close(ctl_fd_);
+     safeClose(ctl_fd_);
      return false;
    }
 
@@ -831,10 +839,13 @@ void dyn_lwp::realLWP_detach_()
    // a signal sent that it may have no clue about
    // But we can't do that here -- all FDs associated with the process
    // are closed. 
-   if (ctl_fd_ != INVALID_HANDLE_VALUE)
-      P_close(ctl_fd_);
-   if (status_fd_ != INVALID_HANDLE_VALUE)
-      P_close(status_fd_);
+   safeClose(ctl_fd_);
+   safeClose(status_fd_);
+   safeClose(as_fd_);
+   safeClose(auxv_fd_);
+   safeClose(map_fd_);
+   safeClose(ps_fd_);
+
    is_attached_ = false;
 }
 
@@ -848,14 +859,13 @@ void dyn_lwp::representativeLWP_detach_()
    // a signal sent that it may have no clue about
    // But we can't do that here -- all FDs associated with the process
    // are closed.
-   if (ctl_fd_ != INVALID_HANDLE_VALUE)
-      P_close(ctl_fd_);
-   if (status_fd_ != INVALID_HANDLE_VALUE)
-      P_close(status_fd_);
-   if (as_fd_ != INVALID_HANDLE_VALUE)
-      P_close(as_fd_);
-   if (ps_fd_ != INVALID_HANDLE_VALUE)
-      P_close(ps_fd_);
+   safeClose(ctl_fd_);
+   safeClose(status_fd_);
+   safeClose(as_fd_);
+   safeClose(auxv_fd_);
+   safeClose(map_fd_);
+   safeClose(ps_fd_);
+
    is_attached_ = false;
 }
 
@@ -1168,9 +1178,12 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int amount, void *inSelf) {
     //       FILE__, __LINE__, getThreadStr(getExecThreadID()), res,
     //       inTraced, amount, inSelf);
     if (res != (int) amount) {
-        perror("readDataSpace");
-        bperr( "From 0x%x (mutator) to 0x%x (mutatee), %d bytes, got %d\n",
-                (int)inSelf, (int)inTraced, amount, res);
+        /*
+          // Commented out; the top-level call will print an error if desired.
+          perror("readDataSpace");
+          bperr( "From 0x%x (mutator) to 0x%x (mutatee), %d bytes, got %d\n",
+          (int)inSelf, (int)inTraced, amount, res);
+        */
         return false;
     }
     return true;
@@ -1714,8 +1727,8 @@ pdstring process::tryToFindExecutable(const pdstring &iprogpath, int pid) {
    if (iprogpath.c_str()) {
        int filedes = open(iprogpath.c_str(), O_RDONLY);
        if (filedes != -1) {
-          P_close(filedes);
-          return iprogpath;
+           P_close(filedes);
+           return iprogpath;
        }
    }
 
