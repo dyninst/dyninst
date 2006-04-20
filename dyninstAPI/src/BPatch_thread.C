@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.153 2006/04/12 16:59:12 bernat Exp $
+// $Id: BPatch_thread.C,v 1.154 2006/04/20 17:14:11 jodom Exp $
 
 #define BPATCH_FILE
 
@@ -274,6 +274,30 @@ BPatch_function *BPatch_thread::getInitialFuncInt()
            }
            pos--;
        }
+
+#if defined(os_linux)
+       // RH9 once again does it half-right.  The "initial function" by our
+       // heuristics is start_thread, but in reality is actually the called
+       // function of this frame.
+       
+       if (initial_func && pos >= 0) {
+          // Check if function is in libpthread
+          char mname[2048], fname[2048], pfname[2048];
+          initial_func->getModule()->getName(mname, 2048);
+          initial_func->getName(fname, 2048);
+          if (strstr(mname, "libpthread.so")) {
+             initial_func = stackWalk[pos].findFunction();
+             stack_start = (unsigned long) stackWalk[pos].getFP();
+          } else if (!strstr(fname,"start_thread") &&
+                     pos < stackWalk.size() - 2 &&
+                     stackWalk[pos+2].findFunction() &&
+                     !strstr(stackWalk[pos+2].findFunction()->getName(pfname, 2048), "clone")) {
+             initial_func = stackWalk[pos].findFunction();
+             stack_start = (unsigned long) stackWalk[pos].getFP();
+          }
+       }
+#endif
+
        if (!llthread->get_stack_addr())
            llthread->update_stack_addr(stack_start);
        if (initial_func)
