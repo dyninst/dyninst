@@ -185,7 +185,7 @@ dyntid_t dyn_pthread_self()
 {
    if (!DYNINST_pthread_self_record.func)
    {
-      return -1;
+      return DYNINST_SINGLETHREADED;
    }
    return (*DYNINST_pthread_self)();
 }

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.40 2006/04/01 20:19:45 mirg Exp $
+ * $Id: RTlinux.c,v 1.41 2006/04/20 21:53:07 bernat Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -254,7 +254,7 @@ dyntid_t dyn_pthread_self()
 {
    dyntid_t me;
    if (!DYNINST_pthread_self) {
-      return (dyntid_t) -1;
+      return (dyntid_t) DYNINST_SINGLETHREADED;
    }
    me = (*DYNINST_pthread_self)();
    return (dyntid_t) me;

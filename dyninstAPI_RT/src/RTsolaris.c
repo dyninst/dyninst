@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTsolaris.c,v 1.27 2006/03/09 23:48:10 bernat Exp $
+ * $Id: RTsolaris.c,v 1.28 2006/04/20 21:53:08 bernat Exp $
  * RTsolaris.c: mutatee-side library function specific to Solaris
  ************************************************************************/
 
@@ -183,7 +183,7 @@ dyntid_t dyn_pthread_self()
 {
    dyntid_t me;
    if (!DYNINST_pthread_self) {
-       return (dyntid_t) -1;
+       return (dyntid_t) DYNINST_SINGLETHREADED;
    }
    me = (*DYNINST_pthread_self)();
    return (dyntid_t) me;

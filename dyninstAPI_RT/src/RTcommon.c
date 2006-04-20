@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.60 2006/04/13 23:50:31 legendre Exp $ */
+/* $Id: RTcommon.c,v 1.61 2006/04/20 21:53:06 bernat Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -105,7 +105,7 @@ int isMutatedExec = 0;
 
 unsigned *DYNINST_tramp_guards;
 
-tc_lock_t DYNINST_trace_lock;
+DECLARE_DYNINST_LOCK(DYNINST_trace_lock);
 
 /**
  * Init the FPU.  We've seen bugs with Linux (e.g., Redhat 6.2 stock kernel on 
@@ -337,7 +337,7 @@ int DYNINSTasyncDynFuncCall (void * call_target, void *call_addr)
   {
      fprintf(stderr, "[%s:%d] - Error in libdyninstAPI_RT: trace pipe deadlock\n",
              __FILE__, __LINE__);
-     return -1;
+     return DYNINST_TRACEPIPE_ERRVAL;
   }
  
   ev.type = rtBPatch_dynamicCallEvent;
@@ -379,7 +379,7 @@ int DYNINSTuserMessage(void *msg, unsigned int msg_size)
   {
      fprintf(stderr, "[%s:%d] - Error in libdyninstAPI_RT: trace pipe deadlock\n",
              __FILE__, __LINE__);
-     return -1;
+     return DYNINST_TRACEPIPE_ERRVAL;
   }
 
   ev.type = rtBPatch_userEvent;
@@ -411,28 +411,28 @@ int DYNINSTuserMessage(void *msg, unsigned int msg_size)
 int tc_lock_init(tc_lock_t *t)
 {
   t->mutex = 0;
-  t->tid = (dyntid_t) -1;
+  t->tid = (dyntid_t) DYNINST_INITIAL_LOCK_PID;
   return 0;
 }
 
 int tc_lock_unlock(tc_lock_t *t)
 {
   t->mutex = 0;
-  t->tid = (dyntid_t) -1;
+  t->tid = (dyntid_t) DYNINST_INITIAL_LOCK_PID;
   return 0;
 }
     
 int tc_lock_destroy(tc_lock_t *t)
 {
   t->mutex = 0;
-  t->tid = (dyntid_t) -1;
+  t->tid = (dyntid_t) DYNINST_INITIAL_LOCK_PID;
   return 0;
 }
 
 void dyninst_init_lock(dyninst_lock_t *lock)
 {
    lock->mutex = 0;
-   lock->tid = (dyntid_t) -1;
+   lock->tid = (dyntid_t) DYNINST_INITIAL_LOCK_PID;
 }
 
 void dyninst_free_lock(dyninst_lock_t *lock)
@@ -468,7 +468,7 @@ int rtdebug_printf(char *format, ...)
   int ret;
   va_list va;
   if (!DYNINSTdebugRTlib) return 0;
-  if (NULL == format) return -1;
+  if (NULL == format) return DYNINST_PRINTF_ERRVAL;
 
   fprintf(stderr, "[RTLIB]");
   va_start(va, format);

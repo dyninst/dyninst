@@ -79,7 +79,7 @@ int DYNINSTthreadIndex()
    tid = dyn_pthread_self();
   rtdebug_printf("%s[%d]:  DYNINSTthreadIndex(): tid = %lu\n", 
                  __FILE__, __LINE__, (unsigned long) tid);
-   if (tid == (dyntid_t) -1) {
+   if (tid == (dyntid_t) DYNINST_SINGLETHREADED) {
        return 0;
    }
 
@@ -105,7 +105,7 @@ int DYNINSTthreadIndex()
    return curr_index;
 }
 
-tc_lock_t DYNINST_trace_lock;
+extern tc_lock_t DYNINST_trace_lock;
 
 static int asyncSendThreadEvent(int pid, rtBPatch_asyncEventType type, 
                                 void *ev, unsigned ev_size)
@@ -124,7 +124,7 @@ static int asyncSendThreadEvent(int pid, rtBPatch_asyncEventType type,
    {
       fprintf(stderr, "[%s:%d] - Error in libdyninstAPI_RT: trace pipe deadlock\n",
                     __FILE__, __LINE__);
-      return -1;
+      return DYNINST_TRACEPIPE_ERRVAL;
    }
    
    result = DYNINSTwriteEvent((void *) &aev, sizeof(rtBPatch_asyncEventRecord));
