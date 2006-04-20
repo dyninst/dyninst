@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.C,v 1.218 2006/03/31 20:06:25 bernat Exp $
+// $Id: aix.C,v 1.219 2006/04/20 02:59:43 bernat Exp $
 
 #include <dlfcn.h>
 #include <sys/types.h>
@@ -1864,93 +1864,57 @@ int_function *instPoint::findCallee() {
       return NULL;
   }
 
-
     // Other possibilities: call through a function pointer,
     // or a inter-module call. We handle inter-module calls as
     // a static function call, since they're bound at load time.
 
-    // Or module == glink.s == "Global_Linkage"
-    if (func()->prettyName().suffixed_by("_linkage")) {
-        // Make sure we're not mistaking a function named
-        // *_linkage for global linkage code. 
-        
-        if ((*insn_).raw != 0x4e800420) // BCTR
-            return NULL;
+    // We figure out the linkage by running a quick instructiter over the target...
+    // Code is similar to archCheckEntry in image-power.C
+
+    // TODO: encapsulate this in the instPoint so we can handle absolute branches
+    // acceptably.
+    
+    InstrucIter targetIter(callTarget(), proc());
+    if (!targetIter.getInstruction().valid()) {
+        return NULL;
+    }
+    Address toc_offset = 0;
+
+    if (targetIter.isInterModuleCallSnippet(toc_offset)) {
         Address TOC_addr = (func()->obj()->parse_img()->getObject()).getTOCoffset();
-
-        // Love the fixed-length platforms; we can go backwards.
-        InstrucIter linkIter(addr(), proc());
         
-        // Linkage code looks like a bunch of loads, a move, then a jump to CTR.
-        // Find the load.
+        // We need to read out of memory rather than disk... so this is a call to
+        // readDataSpace. Yummy.
 
-        Address toc_offset = 0;
-        // Don't run off the function
-        while (*linkIter > func()->getAddress()) {
-            instruction inst = linkIter.getInstruction();
-            if (((*inst).dform.op == Lop) &&
-                ((*inst).dform.rt == 12) &&
-                ((*inst).dform.ra == 2)) {
-                if ((*linkIter) != (addr() - 20)) {
-                    fprintf(stderr, "Odd addr for linkage load: 0x%x, for call at 0x%x, in func %s\n",
-                            *linkIter, addr(), func()->prettyName().c_str());
-                }
-                toc_offset = (*inst).dform.d_or_si;
-                break;
-            }
-            linkIter--;
+        Address linkageAddr = 0;
+        Address linkageTarget = 0;
+        // Basically, load r12, <x>(r2)
+        if (!proc()->readDataSpace((void *)(TOC_addr + toc_offset),
+                                   sizeof(Address),
+                                   (void *)&linkageAddr, false))
+            return NULL;
+        // And load r0, 0(r12)
+        if (!proc()->readDataSpace((void *)linkageAddr,
+                                   sizeof(Address),
+                                   (void *)&linkageTarget, false))
+            return NULL;
+
+        if (linkageTarget == 0) {
+            // No error for this one... looks like unloaded libs
+            // do it.
+            return NULL;
         }
 
-        if (toc_offset) {
-            // This should be the contents of R12 in the linkage function
+        // Again, by definition, the function is not in owner.
+        // So look it up.
+        int_function *pdf = proc()->findFuncByAddr(linkageTarget);
 
-            void *callee_TOC_ptr = func()->obj()->getPtrToData(TOC_addr + toc_offset);
-            Address callee_TOC_entry = *((Address *)callee_TOC_ptr);
-
-            // We need to find what object the callee TOC entry is defined in. This will be the
-            // same place we find the function, later.
-            Address callee_addr = 0;
-            
-            const pdvector<mapped_object *> &m_objs = proc()->mappedObjects();
-            
-            for (unsigned i = 0; i < m_objs.size(); i++) {
-                if ((callee_TOC_entry <= m_objs[i]->dataAbs()) &&
-                    (callee_TOC_entry < (m_objs[i]->dataAbs() + m_objs[i]->dataSize()))) {
-                    // Found it. So grab the target
-                    void *toc_ptr = m_objs[i]->getPtrToData(callee_TOC_entry);
-                    callee_addr = *((Address *)toc_ptr);
-                    break;
-                }
-            }
-            
-            if (!callee_addr) return NULL;
-            // callee_addr: address of function called, contained in image callee_img
-            // Sanity check on callee_addr
-            if ((callee_addr < 0x20000000) ||
-                (callee_addr > 0xdfffffff)) {
-                if (callee_addr != 0) { // unexpected -- where is this function call? Print it out.
-                    bperr( "Skipping illegal address 0x%x in function %s\n",
-                           (unsigned) callee_addr, func()->prettyName().c_str());
-                }
-                return NULL;
-            }
-            
-            // Again, by definition, the function is not in owner.
-            // So look it up.
-            int_function *pdf = 0;
-            codeRange *range = proc()->findCodeRangeByAddress(callee_addr);
-            pdf = range->is_function();
-            
-            if (pdf)
-                {
-                    callee_ = pdf;
-                    return callee_;
-                }
-            else
-                bperr( "Couldn't find target function for address 0x%x, jump at 0x%x\n",
-                       (unsigned) callee_addr,
-                       (unsigned) addr());
+        if (pdf) {
+            callee_ = pdf;
+            return callee_;
         }
+        else
+            return NULL;
     }
     return NULL;
 }
