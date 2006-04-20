@@ -1884,6 +1884,19 @@ bool SignalGeneratorCommon::continueProcessInternal(dyn_lwp *contLWP) {
 
     bool res = false;
 
+    // We can get the following sequence of events:
+    // UI: grab activationLock
+    // UI: release eventLock
+    // SG: grab eventLock
+    // SG: continue process
+    // SG: signal waitForContinueLock
+    // SG: release eventLock
+    // UI: wait for waitForContinueLock
+    // ... so signal happens before wait. To prevent this,
+    // we acquire the activationLock here. 
+
+    activationLock->_Lock(FILE__, __LINE__);
+
     if ((contLWP != NULL) &&
         process::IndependentLwpControl()) {
         res = contLWP->continueLWP(continueSig_);
@@ -1899,6 +1912,7 @@ bool SignalGeneratorCommon::continueProcessInternal(dyn_lwp *contLWP) {
     if (!res)  {
         fprintf(stderr, "%s[%d]:  continueProc_ failed\n", FILE__, __LINE__);
         showErrorCallback(38, "System error: can't continue process");
+        activationLock->_Unlock(FILE__, __LINE__);
         return false;
     }
     signal_printf("%s[%d]: setting global process state to running\n", FILE__, __LINE__);
@@ -1907,12 +1921,14 @@ bool SignalGeneratorCommon::continueProcessInternal(dyn_lwp *contLWP) {
     signal_printf("%s[%d]: waking up everyone who was waiting for continue, locking...\n",
                   FILE__, __LINE__);
     waitForContinueLock->_Lock(FILE__, __LINE__);
+    activationLock->_Unlock(FILE__, __LINE__);
     signal_printf("%s[%d]: waking up everyone who was waiting for continue, broadcasting...\n",
                   FILE__, __LINE__);
     waitForContinueLock->_Broadcast(FILE__, __LINE__);
     signal_printf("%s[%d]: waking up everyone who was waiting for continue, unlocking\n",
                   FILE__, __LINE__);
     waitForContinueLock->_Unlock(FILE__, __LINE__);
+
 
     return true;
 }
