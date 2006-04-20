@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.612 2006/04/20 21:53:00 bernat Exp $
+// $Id: process.C,v 1.613 2006/04/20 22:45:01 bernat Exp $
 
 #include <ctype.h>
 
@@ -3894,8 +3894,8 @@ void process::set_status(processState st, bool override /* = false */)
         case running:
         case stopped:
             if (st == neonatal) {
-                fprintf(stderr, "%s[%d]: REGRESSION OF STATUS: %d to %d\n",
-                        FILE__, __LINE__, status_, st);
+                fprintf(stderr, "%s[%d]: REGRESSION OF STATUS: %s to %s\n",
+                        FILE__, __LINE__, processStateAsString(status_), processStateAsString(st));
             }
             else
                 status_ = st;
@@ -3904,8 +3904,8 @@ void process::set_status(processState st, bool override /* = false */)
             if ((st == neonatal) ||
                 (st == running) ||
                 (st == stopped)) {
-                fprintf(stderr, "%s[%d]: REGRESSION OF STATUS: %d to %d\n",
-                        FILE__, __LINE__, status_, st);
+                fprintf(stderr, "%s[%d]: REGRESSION OF STATUS: %s to %s\n",
+                        FILE__, __LINE__, processStateAsString(status_), processStateAsString(st));
             }
             else
                 status_ = st;
@@ -3915,8 +3915,8 @@ void process::set_status(processState st, bool override /* = false */)
                 (st == running) ||
                 (st == stopped) ||
                 (st == detached)) {
-                fprintf(stderr, "%s[%d]: REGRESSION OF STATUS: %d to %d\n",
-                        FILE__, __LINE__, status_, st);
+                fprintf(stderr, "%s[%d]: REGRESSION OF STATUS: %s to %s\n",
+                        FILE__, __LINE__, processStateAsString(status_), processStateAsString(st));
             }
             else
                 status_ = st;
@@ -3927,8 +3927,8 @@ void process::set_status(processState st, bool override /* = false */)
                 (st == stopped) ||
                 (st == detached) ||
                 (st == exited)) {
-                fprintf(stderr, "%s[%d]: REGRESSION OF STATUS: %d to %d\n",
-                        FILE__, __LINE__, status_, st);
+                fprintf(stderr, "%s[%d]: REGRESSION OF STATUS: %s to %s\n",
+                        FILE__, __LINE__, processStateAsString(status_), processStateAsString(st));
             }
             else
                 status_ = st;
@@ -3942,9 +3942,7 @@ void process::set_status(processState st, bool override /* = false */)
 
    proccontrol_printf("[%s:%u] - Setting everyone to state %s\n",
                       __FILE__, __LINE__, 
-                      status_ == running ? "running" : 
-                      status_ == stopped ? "stopped" : 
-                      status_ == exited ? "exited" : "other");
+                      processStateAsString(status_));
 
    pdvector<dyn_thread *>::iterator iter = threads.begin();
    
@@ -5573,21 +5571,23 @@ pdstring process::getBootstrapStateAsString() const {
    return "???";
 }
 
+char *processStateAsString(processState state) {
+    switch (state) {
+    case neonatal:    return "neonatal";   break;
+    case running:     return "running";    break;
+    case stopped:     return "stopped";    break;
+    case detached:    return "detached";   break;
+    case exited:      return "exited";     break;
+    case deleted:     return "deleted";    break;
+    case unknown_ps:  return "unknown_ps"; break;
+    default:          /*assert(0);*/ break;
+    };
+    return "<INVALID>";
+}
+
 pdstring process::getStatusAsString() const 
 {
-   // useful for debugging
-   switch (status_) {
-     case neonatal:    return "neonatal";   break;
-     case running:     return "running";    break;
-     case stopped:     return "stopped";    break;
-     case detached:    return "detached";   break;
-     case exited:      return "exited";     break;
-     case deleted:     return "deleted";    break;
-     case unknown_ps:  return "unknown_ps"; break;
-     default:          /*assert(0);*/ break;
-   };
-   
-   return "???";
+    return pdstring(processStateAsString(status_));
 }
 
 bool process::uninstallMutations() {
