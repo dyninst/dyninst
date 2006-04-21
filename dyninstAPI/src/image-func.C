@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.C,v 1.31 2006/04/20 02:59:46 bernat Exp $
+// $Id: image-func.C,v 1.32 2006/04/21 18:56:54 nater Exp $
 
 #include "function.h"
 #include "instPoint.h"
@@ -133,7 +133,7 @@ image_func::image_func(const pdstring &symbol,
   containsSharedBlocks_(false),
   retStatus_(RS_UNSET),
   isTrap(false),
-  isInstrumentable_(true),
+  instLevel_(NORMAL),
 #if defined(arch_ia64)
   framePointerCalculator(NULL),
   usedFPregs(NULL),
@@ -347,7 +347,8 @@ image_basicBlock::image_basicBlock(image_func *func, Address firstOffset) :
     containsRet_(false),
     containsCall_(false),
     callIsOpaque_(false),
-    isSpeculative_(false)
+    isSpeculative_(false),
+    canBeRelocated_(true)
 { 
     funcs_.push_back(func);
     // basic block IDs are unique within images.

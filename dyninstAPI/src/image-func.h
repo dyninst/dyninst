@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: image-func.h,v 1.18 2006/04/14 01:22:07 nater Exp $
+// $Id: image-func.h,v 1.19 2006/04/21 18:56:55 nater Exp $
 
 #ifndef IMAGE_FUNC_H
 #define IMAGE_FUNC_H
@@ -88,6 +88,18 @@ enum FuncReturnStatus {
     RS_UNKNOWN,
     RS_RETURN,
     RS_NORETURN
+};
+
+// There are three levels of function-level "instrumentability":
+// 1) The function can be instrumented normally with no problems (normal case)
+// 2) The function contains unresolved indirect branches; we have to assume
+//    these can go anywhere in the function to be safe, so we must instrument
+//    safely (e.g., with traps)
+// 3) The function is flatly uninstrumentable and must not be touched.
+enum InstrumentableLevel {
+    NORMAL,
+    HAS_BR_INDIR,
+    UNINSTRUMENTABLE
 };
 
 class image_edge {
@@ -191,6 +203,7 @@ class image_basicBlock : public codeRange {
     image_instPoint * getCallInstPoint();
     image_instPoint * getRetInstPoint();
 
+    bool canBeRelocated() const { return canBeRelocated_; }
 
    private:
 
@@ -218,6 +231,8 @@ class image_basicBlock : public codeRange {
                         // the target function returns or not is unknown)
 
     bool isSpeculative_;    // validity uncertain
+
+    bool canBeRelocated_; // some blocks contain uninstrumentable constructs
 
     pdvector<image_edge *> targets_;
     pdvector<image_edge *> sources_;
@@ -392,10 +407,9 @@ class image_func : public codeRange {
                       pdvector< Address >& callTargets,
                       dictionary_hash< Address, image_func *>& preParseStubs);
 
-   void canFuncBeInstrumented( bool b ) { isInstrumentable_ = b; };
-
    bool isTrapFunc() const {return isTrap;}
-   bool isInstrumentable() const { return isInstrumentable_; }
+   bool isInstrumentable() const { return instLevel_ != UNINSTRUMENTABLE; }
+   InstrumentableLevel instLevel() const { return instLevel_; }
 
    void addCallInstPoint(image_instPoint *p);
    void addExitInstPoint(image_instPoint *p);
@@ -504,7 +518,8 @@ class image_func : public codeRange {
    pdvector<image_instPoint*> calls;		/* pointer to the calls */
    
    bool isTrap; 		// true if function contains a trap instruct
-   bool isInstrumentable_;     // true if the function is instrumentable
+   InstrumentableLevel instLevel_;   // the degree of freedom we have in
+                                    // instrumenting the function
    
    bool canBeRelocated_;           // True if nothing prevents us from
                                    // relocating function
