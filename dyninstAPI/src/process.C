@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.613 2006/04/20 22:45:01 bernat Exp $
+// $Id: process.C,v 1.614 2006/04/21 22:23:10 bernat Exp $
 
 #include <ctype.h>
 
@@ -4017,17 +4017,6 @@ bool process::pause() {
     return true;
   }
 
-#if 0
-#if defined(sparc_sun_solaris2_4)
-     inferiorrpc_printf("%s[%d]:  waiting for rpc completion\n", FILE__, __LINE__);
-   while (getRpcMgr()->existsRunningIRPC()) {
-      fprintf(stderr, "%s[%d][%s]:  before waitForEvent(evtRPCSignal,...,statusRPCDone)\n", 
-              FILE__, __LINE__, getThreadStr(getExecThreadID()));
-     sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
-   }
-#endif
-#endif
-
    // Let's try having stopped mean all lwps stopped and running mean
    // atleast one lwp running.
    
@@ -6015,14 +6004,6 @@ void process::recognize_threads(const process *parent)
         unsigned lwp_id = lwp_ids[i];
         dyn_lwp *lwp = getLWP(lwp_id);
 
-#if defined(os_aix) || defined(os_solaris)
-        // More "if we can't abort a system call....
-        if (lwp->executingSystemCall()) {
-            startup_printf("%s[%d]: skipping lwp %d in system call\n", FILE__, __LINE__, lwp_id);
-            continue;
-        }
-#endif
-        
         pdvector<AstNode *> ast_args;
         AstNode *ast = new AstNode("DYNINSTthreadIndex", ast_args);
 
@@ -6050,27 +6031,26 @@ void process::recognize_threads(const process *parent)
      // in a system call. We can't run iRPCs on those threads at all, and if we
      // wait for them to complete we'll just spin. 
 
-     while(num_completed != expected) {
+     do {
          bool rpcNeedsContinue = false;
          getRpcMgr()->launchRPCs(rpcNeedsContinue,
                                  false);
          startup_printf("%s[%d]: launchRPCs complete for process attach, completed %d expected %d\n",
-                            FILE__, __LINE__, num_completed, expected);
+                        FILE__, __LINE__, num_completed, expected);
          if (rpcNeedsContinue)
              continueProc();
-
-         getMailbox()->executeCallbacks(FILE__, __LINE__);
+         
          if(hasExited()) {
              fprintf(stderr, "%s[%d]:  unexpected process exit\n", FILE__, __LINE__);
              return;
          }
-
+         
          sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
 
          startup_printf("%s[%d]: got RPC event...\n",
                         FILE__, __LINE__);
          getMailbox()->executeCallbacks(FILE__, __LINE__);
-     }
+     } while (getRpcMgr()->existsActiveIRPC());
 
      // Don't assert these... the RPCs can fail (well DYNINSTthreadIndex can fail).
      //assert(ret_lwps.size() == expected);
