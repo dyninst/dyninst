@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.100 2006/04/15 01:07:49 legendre Exp $
+// $Id: linux-x86.C,v 1.101 2006/04/21 05:42:15 bernat Exp $
 
 #include <fstream>
 
@@ -563,12 +563,12 @@ void calcVSyscallFrame(process *p)
 bool Frame::setPC(Address newpc) {
    if (!pcAddr_)
    {
-      fprintf(stderr, "[%s:%u] - Frame::setPC aborted", __FILE__, __LINE__);
+       //fprintf(stderr, "[%s:%u] - Frame::setPC aborted", __FILE__, __LINE__);
       return false;
    }
 
-   fprintf(stderr, "[%s:%u] - Frame::setPC setting %x to %x",
-           __FILE__, __LINE__, pcAddr_, newpc);
+   //fprintf(stderr, "[%s:%u] - Frame::setPC setting %x to %x",
+   //__FILE__, __LINE__, pcAddr_, newpc);
    getProc()->writeDataSpace((void*)pcAddr_, sizeof(Address), &newpc);
    pc_ = newpc;
    range_ = NULL;
