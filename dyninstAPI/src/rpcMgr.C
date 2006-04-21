@@ -45,10 +45,10 @@
 #include "dyninstAPI/src/instP.h" // initTramps
 #include "dyninstAPI/src/baseTramp.h" // irpc code
 #include "dyninstAPI/src/process.h"
-#include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/stats.h"
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/ast.h"
+#include "dyninstAPI/src/rpcMgr.h"
 
 #if defined(arch_x86_64)
 #include "dyninstAPI/src/emit-x86.h"
@@ -279,21 +279,67 @@ void rpcMgr::showState() const {
 }
 #endif
 
-bool rpcMgr::existsReadyIRPC() const {
-    if (postedProcessRPCs_.size() > 0)
-        return true;
-    for (unsigned i = 0; i < thrs_.size(); i++)
-        if (thrs_[i]->isReadyForIRPC())
+bool rpcMgr::existsActiveIRPC() const {
+    for (unsigned i = 0; i < thrs_.size(); i++) {
+        if (thrs_[i]->isRunningIRPC()) {
+            inferiorrpc_printf("%s[%d]: active IRPC on thread %d (slot %d), ret true\n",
+                               FILE__, __LINE__, thrs_[i]->thr_->get_tid(), i);
             return true;
-    // CHECK LWPS TODO
+        }
+    }
+    dictionary_hash<unsigned, rpcLWP *>::iterator rpc_iter = lwps_.begin();
+    while(rpc_iter != lwps_.end()) {
+        if ((*rpc_iter)->isRunningIRPC()) {
+            inferiorrpc_printf("%s[%d]: active IRPC on lwp %d, ret true\n",
+                               FILE__, __LINE__, (*rpc_iter)->lwp_->get_lwp_id());
+            return true;
+        }
+        rpc_iter++;
+    }
+    inferiorrpc_printf("%s[%d]: No active IRPC\n", FILE__, __LINE__);
     return false;
 }
 
-bool rpcMgr::existsRunningIRPC() const {
-    if (allRunningRPCs_.size() > 0)
-        return true;
-    else
-        return false;
+bool rpcMgr::existsPendingIRPC() const {
+    for (unsigned i = 0; i < thrs_.size(); i++) {
+        if (thrs_[i]->isWaitingForBreakpoint()) {
+            inferiorrpc_printf("%s[%d]: thread %d (slot %d) waiting for breakpoint, ret true\n",
+                               FILE__, __LINE__, thrs_[i]->thr_->get_tid(), i);
+            return true;
+        }
+    }
+    dictionary_hash<unsigned, rpcLWP *>::iterator rpc_iter = lwps_.begin();
+    while(rpc_iter != lwps_.end()) {
+        if ((*rpc_iter)->isWaitingForBreakpoint()) {
+            inferiorrpc_printf("%s[%d]: pending IRPC on lwp %d, ret true\n",
+                               FILE__, __LINE__, (*rpc_iter)->lwp_->get_lwp_id());
+            return true;
+        }
+        rpc_iter++;
+    }
+    inferiorrpc_printf("%s[%d]: No pending IRPC\n", FILE__, __LINE__);
+    return false;
+}
+
+bool rpcMgr::existsWaitingIRPC() const {
+    for (unsigned i = 0; i < thrs_.size(); i++) {
+        if (thrs_[i]->isReadyForIRPC()) {
+            inferiorrpc_printf("%s[%d]: thread %d (slot %d) has ready RPC, ret true\n",
+                               FILE__, __LINE__, thrs_[i]->thr_->get_tid(), i);
+            return true;
+        }
+    }
+    dictionary_hash<unsigned, rpcLWP *>::iterator rpc_iter = lwps_.begin();
+    while(rpc_iter != lwps_.end()) {
+        if ((*rpc_iter)->isReadyForIRPC()) {
+            inferiorrpc_printf("%s[%d]: ready IRPC on lwp %d, ret true\n",
+                               FILE__, __LINE__, (*rpc_iter)->lwp_->get_lwp_id());
+            return true;
+        }
+        rpc_iter++;
+    }
+    inferiorrpc_printf("%s[%d]: No ready IRPC\n", FILE__, __LINE__);
+    return false;
 }
 
 inferiorRPCinProgress *rpcMgr::findRunningRPCWithResultAddress(Address where)

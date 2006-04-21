@@ -354,11 +354,13 @@ class rpcMgr {
    // overlapping states. These functions return true if any thread
    // fulfills the requirement (hence 'exists')
 
-   // IRPC ready, not running
-   bool existsReadyIRPC() const;
-
-   // IRPC running
-   bool existsRunningIRPC() const;
+   // True if there is any thread/LWP running an IRPC
+   bool existsActiveIRPC() const;
+   // True if there is any thread/LWP waiting on a system call
+   bool existsPendingIRPC() const;
+   // True if there is any thread/LWP with a pending (unscheduled) IRPC (e.g.,
+   // if we cannot add the trap)
+   bool existsWaitingIRPC() const;
 
    void showState() const;
    
