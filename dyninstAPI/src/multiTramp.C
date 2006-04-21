@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.37 2006/04/18 22:06:32 bernat Exp $
+// $Id: multiTramp.C,v 1.38 2006/04/21 18:57:02 nater Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -406,6 +406,29 @@ bool multiTramp::getMultiTrampFootprint(Address instAddr,
     if (!bbl) {
         inst_printf("No basic block instance in createMultiTramp, ret NULL\n");
         return false;
+    }
+
+    // check whether this block is legal to relocate (instrumentation requires
+    // relocation of the basic block)
+    if(!bbl->block()->llb()->canBeRelocated())
+    {
+        inst_printf("Basic block cannot be instrumented, ret NULL\n");
+        return false;
+    }
+
+    // If the function contains unresolved indirect branches, we have to
+    // assume that the branch could go anywhere (e.g., it could split
+    // this block). So we don't get to use the entire block size, just
+    // the instruction size.
+    if(bbl->func()->ifunc()->instLevel() == HAS_BR_INDIR)
+    {
+        inst_printf("Target function contains unresolved indirect branches\n"
+                    "   Setting multiTramp size to instruction size\n");
+        
+        InstrucIter ah(instAddr,proc);
+        startAddr = instAddr;
+        size = ah.getInstruction().size();
+        return true;
     }
     
     // start is the start of the basic block, size is the size
