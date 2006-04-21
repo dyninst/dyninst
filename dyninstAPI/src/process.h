@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.369 2006/04/20 21:53:01 bernat Exp $
+/* $Id: process.h,v 1.370 2006/04/21 22:23:12 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -63,9 +63,8 @@
 #include "dyninstAPI/src/inst.h" // callWhen
 #include "dyninstAPI/src/frame.h"
 #include "dyninstAPI/src/showerror.h"
-#include "dyninstAPI/src/syscalltrap.h"
 #include "dyninstAPI/src/libState.h"
-#include "dyninstAPI/src/rpcMgr.h"
+#include "dyninstAPI/src/syscalltrap.h"
 #include "dyninstAPI/src/codeRange.h"
 
 //#include "dyninstAPI/src/symtab.h"
@@ -141,6 +140,7 @@ class int_function;
 
 class rpcMgr;
 class syscallNotification;
+
 
 #ifdef BPATCH_LIBRARY
 class BPatch_thread;
