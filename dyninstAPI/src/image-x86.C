@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: image-x86.C,v 1.18 2006/04/17 07:32:03 nater Exp $
+ * $Id: image-x86.C,v 1.19 2006/04/21 18:57:00 nater Exp $
  */
 
 #include "common/h/Vector.h"
@@ -191,15 +191,13 @@ bool image_func::archCheckEntry( InstrucIter &ah, image_func *func )
 // parse this function.
 bool image_func::archIsUnparseable()
 {
-    if( !isInstrumentableByFunctionName() /* || getSymTabSize() == 0 */ )
+    if( !isInstrumentableByFunctionName() )
     {   
         if (!isInstrumentableByFunctionName())
             parsing_printf("... uninstrumentable by func name\n");
-        //if (getSymTabSize() == 0)
-        //    parsing_printf("... uninstrumentable, size equals zero\n");
-        endOffset_ = startOffset_;
-        isInstrumentable_ = false;
 
+        endOffset_ = startOffset_;
+        instLevel_ = UNINSTRUMENTABLE; 
         return true;
     }           
     else
@@ -321,10 +319,6 @@ bool image_func::archGetMultipleJumpTargets(
 
     if( in.size() < 1 )
     {
-        parsing_printf("... uninstrumentable, unable to find targets of indirect jump\n");
-        isInstrumentable_ = false;
-        canBeRelocated_ = false;
-
         return false;
     }
     else {
@@ -362,9 +356,7 @@ bool image_func::archGetMultipleJumpTargets(
                 if( !foundTableInsn )
                     {
                         //can't determine register contents
-                        //give up on this function
-                        canBeRelocated_ = false;
-                        isInstrumentable_ = false;
+                        //give up on this possible jump table
                         return false;
                     }
             }
@@ -376,9 +368,7 @@ bool image_func::archGetMultipleJumpTargets(
         bool foundMaxSwitch = findMaxSwitchInsn(currBlk, maxSwitch, branchInsn);
         
         if( !foundMaxSwitch ) {
-            parsing_printf("... uninstrumentable, unable to fix max switch size\n");
-            canBeRelocated_ = false;
-            isInstrumentable_ = false;
+            parsing_printf("... unable to fix max switch size\n");
             return false;
         }
         //found the max switch assume jump table
