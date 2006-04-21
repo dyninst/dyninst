@@ -47,6 +47,10 @@
 #include "BPatch_eventLock.h"
 #include <vector>
 
+#if defined(IBM_BPATCH_COMPAT)
+#include <string>
+#endif
+
 class mapped_module;
 
 class process;

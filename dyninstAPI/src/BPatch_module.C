@@ -1331,10 +1331,12 @@ char *BPatch_module::getUniqueStringInt(char *buffer, int length)
     // part of the executable and "<module_name>" if it is not.
     if(isSharedLib())
         snprintf(buffer, length, "%s", mod->fileName().c_str());
-    else
+    else {
+        char prog[1024];
+        proc->getImage()->getProgramFileName(prog, 1024);
         snprintf(buffer, length, "%s|%s",
-                 proc->getImage()->name().c_str(), mod->fileName().c_str());
-    
+                 prog, mod->fileName().c_str());
+    }
     // Return the unique name to the caller
     return buffer;
 }
