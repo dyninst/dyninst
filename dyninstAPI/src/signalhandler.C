@@ -153,8 +153,11 @@ bool SignalHandler::handleProcessExit(EventRecord &ev, bool &continueHint)
       logLine(errorLine);
       statusLine(errorLine);
       printDyninstStats();
-      proc->triggerSignalExitCallback(ev.what);
+      // The process is gone at this point; we just have a return code.
+      // So handle the exit _before_ we do the user-level callback, as
+      // it sets state appropriately.
       ret = proc->handleProcessExit();
+      proc->triggerSignalExitCallback(ev.what);
     } else {
       sprintf(errorLine, "process %d has terminated for unknown reason\n",
               proc->getPid());
