@@ -328,6 +328,11 @@ inst_insert_result_t processMetFocusNode::insertInstrumentation() {
     //fprintf(stderr, "InsertInstrumentation for %p, status done %d, inserted %d, hooked %d, catchuped %d\n", this, instrInserted(), instrLoaded(), instrLinked(), instrCatchuped());
 
     proc()->PDSEP_LOCK(__FILE__, __LINE__);
+    if (proc()->hasExited()) {
+        // This in addition to the below; locking can run callbacks
+        proc()->PDSEP_UNLOCK(__FILE__, __LINE__);
+        return inst_insert_success;
+    }
 
     assert(dontInsertData() == false);  // code doesn't have allocated variables
     if(instrInserted()) {

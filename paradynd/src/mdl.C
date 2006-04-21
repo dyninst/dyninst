@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.181 2006/04/13 23:05:42 legendre Exp $
+// $Id: mdl.C,v 1.182 2006/04/21 05:42:17 bernat Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -2589,6 +2589,9 @@ bool createThreadNodes(processMetFocusNode **procNode_arg,
    pd_process *proc = procNode->proc();
    bool bMT = proc->multithread_capable();
 
+   if (proc->hasExited())
+       return false;
+
    pdvector<threadMetFocusNode *> threadNodeBuf;
    if(! bMT) {   // --- single-threaded ---
       threadMetFocusNode *thrNode = 
@@ -2709,7 +2712,8 @@ static bool apply_to_process_list(pdvector<pd_process*>& instProcess,
      // skip exited processes 
      if (proc->isTerminated()) 
        continue;
-      
+     
+
       processMetFocusNode *procRetNode = 
          apply_to_process(proc, id, name, focus, agg_op, type, hw_cntr_str, 
                           flag_cons, repl_cons, stmts, flags_focus_data, 
