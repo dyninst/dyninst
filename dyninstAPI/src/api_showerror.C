@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: api_showerror.C,v 1.26 2006/04/07 15:01:01 jaw Exp $
+// $Id: api_showerror.C,v 1.27 2006/04/21 22:22:59 bernat Exp $
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -238,11 +238,19 @@ bool init_debug() {
     fprintf(stderr, "Enabling DyninstAPI inferior RPC debug\n");
     dyn_debug_infrpc = 1;
   }
+  if ( (p=getenv("DYNINST_DEBUG_INFERIORRPC"))) {
+    fprintf(stderr, "Enabling DyninstAPI inferior RPC debug\n");
+    dyn_debug_infrpc = 1;
+  }
   if ( (p=getenv("DYNINST_DEBUG_STARTUP"))) {
     fprintf(stderr, "Enabling DyninstAPI startup debug\n");
     dyn_debug_startup = 1;
   }
   if ( (p=getenv("DYNINST_DEBUG_PARSING"))) {
+    fprintf(stderr, "Enabling DyninstAPI parsing debug\n");
+    dyn_debug_parsing = 1;
+  }
+  if ( (p=getenv("DYNINST_DEBUG_PARSE"))) {
     fprintf(stderr, "Enabling DyninstAPI parsing debug\n");
     dyn_debug_parsing = 1;
   }
@@ -263,6 +271,10 @@ bool init_debug() {
     dyn_debug_inst = 1;
   }
   if ( (p=getenv("DYNINST_DEBUG_RELOC"))) {
+    fprintf(stderr, "Enabling DyninstAPI relocation debug\n");
+    dyn_debug_reloc = 1;
+  }
+  if ( (p=getenv("DYNINST_DEBUG_RELOCATION"))) {
     fprintf(stderr, "Enabling DyninstAPI relocation debug\n");
     dyn_debug_reloc = 1;
   }
