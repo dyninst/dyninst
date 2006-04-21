@@ -221,6 +221,11 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     bool unreportedStop;
     bool unreportedTermination;
 
+    // BPatch-level; once the callbacks are sent by the llproc, we're terminated
+    // Used because callbacks go (and can clean up user code) before the low-level process
+    // sets flags.
+    bool terminated; 
+
     void setUnreportedStop(bool new_value) { unreportedStop = new_value; }
     void setUnreportedTermination(bool new_value) {unreportedTermination = new_value;}
 
