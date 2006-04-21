@@ -1130,8 +1130,10 @@ bool SignalGenerator::attachProcess()
 #if defined(os_linux)
     else {
       // We need to SIGCONT the process...
-        fprintf(stderr, "%s[%d]: WARNING: attach to paused process %d hanging pending SIGCONT!\n",
-              FILE__, __LINE__, getPid());
+        if (!proc->wasCreatedViaFork()) {
+            fprintf(stderr, "%s[%d]: WARNING: attach to paused process %d hanging pending SIGCONT!\n",
+                    FILE__, __LINE__, getPid());
+        }
     }
     // Other platforms, we can attach to a paused process. I think.
 #endif
