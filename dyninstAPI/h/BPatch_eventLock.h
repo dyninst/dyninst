@@ -47,7 +47,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
-#include "dyninstAPI/h/BPatch_dll.h"
+#include "BPatch_dll.h"
 
 #if defined(os_irix) || defined (os_windows)
 #define CONST_EXPORT
