@@ -108,7 +108,7 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
    : llproc(NULL), image(NULL), lastSignal(-1), exitCode(-1), 
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(false), detached(false), unreportedStop(false), 
-     unreportedTermination(false), pendingInsertions(NULL)
+     unreportedTermination(false), terminated(false), pendingInsertions(NULL)
 {
    func_map = new BPatch_funcMap();
    instp_map = new BPatch_instpMap();
@@ -207,7 +207,7 @@ BPatch_process::BPatch_process(const char *path, int pid)
    : llproc(NULL), image(NULL), lastSignal(-1), exitCode(-1), 
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(true), detached(false), unreportedStop(false), 
-     unreportedTermination(false), pendingInsertions(NULL)
+     unreportedTermination(false), terminated(false), pendingInsertions(NULL)
 {
    func_map = new BPatch_funcMap();
    instp_map = new BPatch_instpMap();
@@ -253,7 +253,7 @@ BPatch_process::BPatch_process(process *nProc)
    : llproc(nProc), image(NULL), lastSignal(-1), exitCode(-1),
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(true), detached(false),
-     unreportedStop(false), unreportedTermination(false), 
+     unreportedStop(false), unreportedTermination(false), terminated(false),
      pendingInsertions(NULL)
 {
    // Add this object to the list of threads
@@ -497,28 +497,19 @@ bool BPatch_process::statusIsTerminated()
  */
 bool BPatch_process::isTerminatedInt()
 {
-   getMailbox()->executeCallbacks(FILE__, __LINE__);
-   // First see if we've already terminated to avoid 
-   // checking process status too often.
-   if (statusIsTerminated()) {
-      proccontrol_printf("%s[%d]:  about to terminate proc\n", FILE__, __LINE__); 
-      llproc->terminateProc();
-      setUnreportedTermination(false);
-      return true;
-   }
+    if (terminated) return true;
+    
+    getMailbox()->executeCallbacks(FILE__, __LINE__);
+    // First see if we've already terminated to avoid 
+    // checking process status too often.
+    if (statusIsTerminated()) {
+        proccontrol_printf("%s[%d]:  about to terminate proc\n", FILE__, __LINE__); 
+        llproc->terminateProc();
+        setUnreportedTermination(false);
+        return true;
+    }
 
-   // Check for status changes.
-   assert(BPatch::bpatch);
-   
-   // Check again
-   if (statusIsTerminated()) {
-      proccontrol_printf("%s[%d]:  about to terminate proc\n", FILE__, __LINE__);
-      llproc->terminateProc();
-      setUnreportedTermination(false);
-      return true;
-   } else {
-      return false;
-   }
+    return false;
 }
 
 /*
