@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.101 2006/04/21 05:42:15 bernat Exp $
+// $Id: linux-x86.C,v 1.102 2006/04/21 22:22:54 bernat Exp $
 
 #include <fstream>
 
@@ -1185,6 +1185,27 @@ bool process::loadDYNINSTlib_hidden() {
 
   // Now the real work begins...
   dlopen_call_addr = codeBase + scratchCodeBuffer.used();
+
+#if defined(bug_syscall_changepc_rewind)
+  // Reported by SGI, during attach to a process in a system call:
+
+  // Insert eight NOP instructions before the actual call to dlopen(). Loading
+  // the runtime library when the mutatee was in a system call will sometimes
+  // cause the process to (on IA32 anyway) execute the instruction four bytes
+  // PREVIOUS to the PC we actually set here. No idea why. Prepending the
+  // actual dlopen() call with eight NOP instructions insures this doesn't
+  // really matter. Eight was selected rather than four because I don't know
+  // if x86-64 does the same thing (and jumps eight bytes instead of four).
+
+  // We will put in <addr width> rather than always 8; this will be 4 on x86 and
+  // 32-bit AMD64, and 8 on 64-bit AMD64.
+
+  scratchCodeBuffer.fill(getAddressWidth(), 
+                         codeGen::cgNOP);
+  // And since we apparently execute at (addr - <width>), shift dlopen_call_addr
+  // up past the NOPs.
+  dlopen_call_addr = codeBase + scratchCodeBuffer.used();
+#endif
 
 #if defined(arch_x86_64)
   if (getAddressWidth() == 4) {
