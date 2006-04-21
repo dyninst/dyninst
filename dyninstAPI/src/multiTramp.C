@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.38 2006/04/21 18:57:02 nater Exp $
+// $Id: multiTramp.C,v 1.39 2006/04/21 22:23:08 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -201,8 +201,11 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
                                              (void *)savedCodeBuf_);
             // This better work, or we're going to be jumping into all sorts
             // of hurt.
-            assert(res || (proc()->status() == exited));
-            
+            if (!res) {
+                // Well, we could be detached... or exited... or deleted....
+                assert(!proc()->isAttached());
+            }
+
             free(savedCodeBuf_);
             savedCodeBuf_ = 0;
         }
@@ -949,8 +952,8 @@ bool multiTramp::generateCode(codeGen & /*jumpBuf...*/,
         // We set this = true before we call generateBranchToTramp
         generated_ = true;
         if (!generateBranchToTramp(jumpBuf_)) {
-            fprintf(stderr, "%s[%d][%s]: MT %p needs reloc, can't install\n", 
-                    __FILE__, __LINE__, getThreadStr(getExecThreadID()), this);
+            inst_printf("%s[%d]: MT %p needs reloc, can't install\n", 
+                        __FILE__, __LINE__, this);
             return false;
         }
     }
