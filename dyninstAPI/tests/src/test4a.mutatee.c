@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test4a.mutatee.c,v 1.13 2006/02/14 23:50:16 jaw Exp $ */
+/* $Id: test4a.mutatee.c,v 1.14 2006/04/21 00:30:21 mjbrim Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -179,12 +179,23 @@ void func3_1(int argc, char *argv[])
     int i;
     char *ch;
     char **newArgv;
+    char *testb;
 
     newArgv = (char **) calloc(sizeof(char *), argc +1);
     for (i = 0; i < argc; i++) newArgv[i] = argv[i];
 
-    /* replace 4a in copy of myName by 4b */
-    newArgv[0] = strdup(argv[0]);
+    /* prepend './' if necessary and replace 4a in copy of myName by 4b */
+    if(strncmp(argv[0], "./", 2)) {
+       testb = (char*) malloc(strlen(argv[0])+5);
+       assert(testb);
+       testb[0] = '.';
+       testb[1] = '/';
+       strcpy(&testb[2], argv[0]);
+       newArgv[0] = testb;
+    }
+    else
+       newArgv[0] = strdup(argv[0]);
+
     for (ch=newArgv[0]; *ch; ch++) {
 	if (!strncmp(ch, "4a", 2)) *(ch+1) = 'b';
     }
@@ -195,6 +206,8 @@ void func3_1(int argc, char *argv[])
     dprintf("Going into exec...\n");
     execvp(newArgv[0], newArgv);
     perror("execvp");
+    fprintf(stderr, "ERROR: Failed to exec \"%s\"\n", newArgv[0]);
+    exit(1);
 }
 
 unsigned int globalVariable4_1 = 0xdeadbeef;
@@ -218,22 +231,35 @@ void func4_1(int argc, char *argv[])
     int pid;
     char *ch;
     char **newArgv;
+    char *testb;
 
     pid = fork();
     if (pid == 0) {
         newArgv = (char**) calloc(sizeof(char *), argc +1);
         for (i = 0; i < argc; i++) newArgv[i] = argv[i];
         
-        /* replace 4a in copy of myName by 4b */
-        newArgv[0] = strdup(argv[0]);
+        /* prepend './' if necessary and replace 4a in copy of myName by 4b */
+        if (strncmp(argv[0], "./", 2)) {
+           testb = (char*) malloc(strlen(argv[0])+5);
+           assert(testb);
+           testb[0] = '.';
+           testb[1] = '/';
+           strcpy(&testb[2], argv[0]);
+           newArgv[0] = testb;
+        }
+        else
+           newArgv[0] = strdup(argv[0]);
+
         for (ch=newArgv[0]; *ch; ch++) {
-            if (!strncmp(ch, "4a", 2)) *(ch+1) = 'b';
+           if (!strncmp(ch, "4a", 2)) *(ch+1) = 'b';
         }
         
         globalVariable3_1 = 3000001;
         dprintf("Starting \"%s\"\n", newArgv[0]);
         execvp(newArgv[0], newArgv);
         perror("execvp");
+        fprintf(stderr, "ERROR: Failed to exec \"%s\"\n", newArgv[0]);
+        exit(1);
     } else {
         func4_2();
 #if defined(rs6000_ibm_aix4_1)
