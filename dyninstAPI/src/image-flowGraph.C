@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.20 2006/04/20 02:59:45 bernat Exp $
+ * $Id: image-flowGraph.C,v 1.21 2006/04/21 18:56:53 nater Exp $
  */
 
 #include <stdio.h>
@@ -133,7 +133,7 @@ bool image::analyzeImage()
     while(callTargets.size() > 0)
     {
         // parse any new functions entered at addresses in callTargets
-        parseStaticCallTargets( callTargets, new_targets, preParseStubs, mod );
+        parseStaticCallTargets( callTargets, new_targets, preParseStubs );
         callTargets.clear();
       
         VECTOR_APPEND(callTargets,new_targets); 
@@ -154,7 +154,7 @@ bool image::analyzeImage()
     while(callTargets.size() > 0)
     {
         // FIXME because of the assumption that functions in callTargets
-        // are successfully parsed, we may skip possible gaps because we
+        // will be successfully parsed, we may skip possible gaps because we
         // have advanced our p index too far.
         for( unsigned r = 0; r < callTargets.size(); r++ )
         {   
@@ -162,7 +162,7 @@ bool image::analyzeImage()
                 p++;
         }
 
-        parseStaticCallTargets( callTargets, new_targets, preParseStubs, mod );
+        parseStaticCallTargets( callTargets, new_targets, preParseStubs );
         callTargets.clear(); 
 
         VECTOR_APPEND(callTargets,new_targets);
@@ -234,51 +234,6 @@ bool image::analyzeImage()
             }   
         }
     }
-#endif
-
-#if 0  
-#if defined(cap_stripped_binaries)
-
-  //phase 2 - error detection and recovery 
-  VECTOR_SORT( everyUniqueFunction, addrfunccmp );
-  for( unsigned int k = 0; k + 1 < everyUniqueFunction.size(); k++ )
-    {
-      image_func* func1 = everyUniqueFunction[ k ];
-      image_func* func2 = everyUniqueFunction[ k + 1 ];
-      
-      if( func1->getOffset() == 0 ) 
-          continue;
-
-      assert( func1->getOffset() != func2->getOffset() );
-      
-      //look for overlapping functions
-#if defined(os_linux) && (defined(arch_x86) || defined(arch_x86_64))
-      if ((func2->getOffset() < func1->getEndOffset()) &&
-	  (strstr(func2->prettyName().c_str(), "nocancel") ||
-	   strstr(func2->prettyName().c_str(), "_L_mutex_lock")))
-          
-          { 
-              func1->markAsNeedingRelocation(true);
-          }
-      else
-#endif
-          if( func2->getOffset() < func1->getEndOffset() )
-              {
-                 /* lies 
-                   //use the start address of the second function as the upper bound
-                  //on the end address of the first */
-                  Address addr = func2->getOffset();
-                  func1->updateFunctionEnd(addr);
-
-               // TODO: drop through the basic blocks between
-               // func2->getOffset() and func2->getEndOffset and mark
-               // as shared.  Also mark func1 and func2 as needing
-               // relocation.
-
-                  
-              }
-    }    
-#endif
 #endif
 
   // Sort block list and bind all intra-module call points
@@ -380,12 +335,8 @@ void image::DumpAllStats()
 //parsing of these functions.
 void image::parseStaticCallTargets( pdvector< Address >& callTargets,
                      pdvector< Address >& newTargets,
-                     dictionary_hash< Address, image_func * > &preParseStubs, 
-                     pdmodule* /* mod */ )
+                     dictionary_hash< Address, image_func * > &preParseStubs)
 {
-
-  // TODO: I don't think "mod" is the right thing here; should
-  // do a lookup by address
     image_func* pdf;
 
     for( unsigned j = 0; j < callTargets.size(); j++ )
@@ -417,9 +368,11 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
                     pdf->symTabName().c_str(),pdf->getOffset());
 
                 enterFunctionInTables(pdf,false);
-
-                addFunctionName(pdf, pdf->symTabName().c_str(), true); // mangled name
-                pdf->addPrettyName( pdf->symTabName().c_str() ); // Auto-adds to our list
+                
+                // mangled name
+                addFunctionName(pdf, pdf->symTabName().c_str(), true);
+                // Auto-adds to our list
+                pdf->addPrettyName( pdf->symTabName().c_str() );
             }
         }
         else
@@ -427,29 +380,6 @@ void image::parseStaticCallTargets( pdvector< Address >& callTargets,
             parsing_printf("Call target 0x%lx does not have associated func\n",
                             callTargets[j]);
         } 
- 
-
-        // Functions are now created when the call target is detected,
-        // in order to have a destination for call edges.
-        /*      
-        sprintf(name, "f%lx", callTargets[j] );
-        //some (rare) compiler generated symbols have 0 for the size.
-        //most of these belong to screwy functions and, it seems
-        //best to avoid them. to distinguish between these screwy functions
-        //and the unparsed ones that we make up we use UINT_MAX for the sizes 
-        //of the unparsed functions
-        pdf = new image_func( name, callTargets[ j ], UINT_MAX, mod, this);
-        pdf->addPrettyName( name );
-        
-        //we no longer keep separate lists for instrumentable and 
-        //uninstrumentable
-        if (parseFunction( pdf, newTargets )) {
-            everyUniqueFunction.push_back(pdf);
-            createdFunctions.push_back(pdf);
-            enterFunctionInTables( pdf, mod );
-            //raw_funcs.push_back( pdf );
-        }
-        */
     }
 }
 
@@ -512,7 +442,7 @@ bool image_func::parse(
     }
 
     // Optimistic assumptions
-    isInstrumentable_ = true;
+    instLevel_ = NORMAL;
     canBeRelocated_ = true;
 
     noStackFrame = true;
@@ -541,7 +471,7 @@ bool image_func::parse(
         }
 
         endOffset_ = ah.peekNext();
-        isInstrumentable_ = false;
+        instLevel_ = UNINSTRUMENTABLE;
         return false;
     }
 
@@ -850,11 +780,7 @@ bool image_func::buildCFG(
                 // place blocks on the work list), but any other case
                 // will make the function uninstrumentable.
 
-                //parsing_printf("- allInstAddrs match at 0x%lx (last set to 0x%lx\n", currAddr, ah.peekPrev());
                 if(currAddr > currBlk->firstInsnOffset_) {
-                 //   parsing_printf("- due to overlap: first insn: 0x%lx\n",
-                 //       currBlk->firstInsnOffset_);
-
                     currBlk->lastInsnOffset_ = ah.peekPrev();
                     currBlk->blockEndOffset_ = currAddr;
 
@@ -872,7 +798,7 @@ bool image_func::buildCFG(
                     parsing_printf(" ... uninstrumentable due to instruction stream overlap\n");
                     currBlk->lastInsnOffset_ = currAddr;
                     currBlk->blockEndOffset_ = ah.peekNext();
-                    isInstrumentable_ = false;
+                    instLevel_ = UNINSTRUMENTABLE;
                 }
                 break;
             }
@@ -919,9 +845,6 @@ bool image_func::buildCFG(
 
                 Address target = ah.getBranchTargetAddress();
                 img()->addJumpTarget( target );
-
-                // process fallthrough edge first, in case the target
-                // is within this block (forcing a split)
 
                 if(ah.isDelaySlot())
                 {
@@ -977,23 +900,19 @@ bool image_func::buildCFG(
             }
             else if( ah.isAIndirectJumpInstruction() )
             {
-                // delay slots ?
                 currBlk->lastInsnOffset_ = currAddr;
                 currBlk->blockEndOffset_ = ah.peekNext();
-                //currBlk->blockEndOffset_ = currAddr + insnSize;
                 parsing_printf("... indirect jump at 0x%lx\n", currAddr);
 
                 if( currAddr >= funcEnd )
                     funcEnd = ah.peekNext();
     
-                // FIXME: these tests were specific to x86 originally, should
-                // they remain x86-only?
                 numInsns = allInstructions.size() - 2;
                 if( numInsns == 0 ) {
                     // this "function" is a single instruction long
                     // (a jmp to the "real" function)
                     parsing_printf("... uninstrumentable due to 0 size\n");
-                    isInstrumentable_ = false;
+                    instLevel_ = UNINSTRUMENTABLE;
                     endOffset_ = startOffset_;
                     return false; 
                 }                 
@@ -1002,18 +921,26 @@ bool image_func::buildCFG(
                 {
                     // looks like a tail call
                     currBlk->isExitBlock_ = true;
+                    p = new image_instPoint(currAddr,
+                                            ah.getInstruction(),
+                                            this,
+                                            functionExit);
                     break;
-                    //FIXME shouldn't there be an instPoint here?
                 }
-                // *** end x86-only
+
+                // Whether or not we are able to determine the targets
+                // of this indirect branch instruction, it is not safe
+                // to relocate this function.
+                canBeRelocated_ = false;
 
                 BPatch_Set< Address > targets;
                 BPatch_Set< Address >::iterator iter;
                
                 // get the list of targets
-                if(!archGetMultipleJumpTargets(targets,currBlk,ah,allInstructions))
+                if(!archGetMultipleJumpTargets(targets,currBlk,ah,
+                                               allInstructions))
                 {
-                    canBeRelocated_ = false;
+                    instLevel_ = HAS_BR_INDIR;
                 }
                 
                 iter = targets.begin();
@@ -1046,7 +973,6 @@ bool image_func::buildCFG(
                 // delay slots?
                 currBlk->lastInsnOffset_ = currAddr;
                 currBlk->blockEndOffset_ = ah.peekNext();
-                //currBlk->blockEndOffset_ = currAddr + insnSize;
 
                 if( currAddr >= funcEnd )
                     funcEnd = ah.peekNext();
@@ -1126,13 +1052,12 @@ bool image_func::buildCFG(
 
                 currBlk->lastInsnOffset_ = currAddr;
                 currBlk->blockEndOffset_ = ah.peekNext();
-                //currBlk->blockEndOffset_ = currAddr + insnSize;
                 currBlk->isExitBlock_ = true;
                     
                 if( currAddr >= funcEnd )
                     funcEnd = ah.peekNext();
                 
-                    parsing_printf("... making new exit point at 0x%lx\n", currAddr);                
+                parsing_printf("... making new exit point at 0x%lx\n", currAddr);                
                 p = new image_instPoint( currAddr, 
                                          ah.getInstruction(),
                                          this,
@@ -1173,7 +1098,6 @@ bool image_func::buildCFG(
                 Address target = ah.getBranchTargetAddress(&isAbsolute);
                 if ( archIsRealCall(ah, validTarget, simulateJump) )
                 {
-                    //parsing_printf("... making new call point at 0x%lx to 0x%lx\n", currAddr, target);
                     if (ah.isADynamicCallInstruction()) {
                         p = new image_instPoint( currAddr,
                                                  ah.getInstruction(),
@@ -1203,6 +1127,8 @@ bool image_func::buildCFG(
                     if( validTarget == false )
                     {
                         parsing_printf("... invalid call target\n");
+                        currBlk->canBeRelocated_ = false;
+                        canBeRelocated_ = false;
                     }
                     else if( simulateJump )
                     {
@@ -1269,10 +1195,7 @@ bool image_func::buildCFG(
                 if( currAddr >= funcEnd )
                     funcEnd = ah.peekNext();
             
-                // FIXME should this really be an exit point if this
-                // instruction causes the program to error and terminate?
-
-                    parsing_printf("... making new exit point at 0x%lx\n", currAddr);                
+                parsing_printf("... making new exit point at 0x%lx\n", currAddr);                
                 p = new image_instPoint( currAddr,
                                          ah.getInstruction(),
                                          this,
