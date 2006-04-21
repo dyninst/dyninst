@@ -53,6 +53,7 @@
 BPatch bpatch;
 BPatch_process *proc;
 unsigned error;
+bool create_proc = true;
 unsigned thread_count;
 static char dyn_tids[NUM_THREADS];
 static long pthread_ids[NUM_THREADS];
@@ -66,7 +67,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
 {
    unsigned my_dyn_id = thr->getBPatchID();
 
-   if (my_proc != proc)
+   if (create_proc && (my_proc != proc))
    {
       fprintf(stderr, "[%s:%u] - Got invalid process\n", __FILE__, __LINE__);
       error = 1;
@@ -77,14 +78,15 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    //Check that BPatch id is unique
    if (my_dyn_id >= NUM_THREADS)
    {
-      fprintf(stderr, "[%s:%d] - Thread ID %d out of range\n",
+      fprintf(stderr, "[%s:%d] - WARNING: Thread ID %d out of range\n",
               __FILE__, __LINE__, my_dyn_id);
+      return;
    }
    if (dyn_tids[my_dyn_id])
    {
-      fprintf(stderr, "[%s:%d] - Thread %d called in callback twice\n",
+      fprintf(stderr, "[%s:%d] - WARNING: Thread %d called in callback twice\n",
               __FILE__, __LINE__, my_dyn_id);
-      error = 1;
+      return;
    }
    dyn_tids[my_dyn_id] = 1;
 
@@ -92,7 +94,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    long mytid = thr->getTid();
    if (mytid == -1)
    {
-      fprintf(stderr, "[%s:%d] - Thread %d has a tid of -1\n", 
+      fprintf(stderr, "[%s:%d] - WARNING: Thread %d has a tid of -1\n", 
               __FILE__, __LINE__, my_dyn_id);
    }
    dprintf(stderr, "[%s]           : tid = %lu\n", 
@@ -101,7 +103,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
       if (i != my_dyn_id && dyn_tids[i] && mytid == pthread_ids[i])
       {
          unsigned long my_stack = thr->getStackTopAddr();
-            fprintf(stderr, "[%s:%d] - Thread %d and %d share a tid of %lu, stack is 0x%lx\n",
+            fprintf(stderr, "[%s:%d] - WARNING: Thread %d and %d share a tid of %lu, stack is 0x%lx\n",
                     __FILE__, __LINE__, my_dyn_id, i, (unsigned long)mytid, my_stack);
             error = 1;
       }
@@ -111,7 +113,6 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
 
 #define MAX_ARGS 32
 char *filename = "test15.mutatee_gcc";
-bool should_exec = true;
 char *args[MAX_ARGS];
 char *create_arg = "-create";
 unsigned num_args = 0; 
@@ -120,7 +121,7 @@ static BPatch_process *getProcess()
 {
    args[0] = filename;
    BPatch_process *proc;
-   if (should_exec) {
+   if (create_proc) {
       args[1] = create_arg;
       proc = bpatch.processCreate(filename, (const char **) args);
       if(proc == NULL) {
@@ -158,7 +159,7 @@ static void parse_args(unsigned argc, char *argv[])
    {
       if (strcmp(argv[i], "-attach") == 0)
       {
-         should_exec = false;
+         create_proc = false;
       }
       else if (strcmp(argv[i], "-mutatee") == 0)
       {

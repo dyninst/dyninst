@@ -50,9 +50,9 @@
 BPatch bpatch;
 BPatch_process *proc;
 unsigned error = 0;
+bool create_proc = true;
 unsigned thread_count;
 static char dyn_tids[NUM_THREADS];
-
 static char deleted_tids[NUM_THREADS];
 static int deleted_threads;
 
@@ -85,7 +85,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    dprintf(stderr, "%s[%d]:  welcome to newthr, error = %d\n", __FILE__, __LINE__, error);
    unsigned my_dyn_id = thr->getBPatchID();
 
-   if (my_proc != proc)
+   if (create_proc && (my_proc != proc))
    {
       fprintf(stderr, "[%s:%u] - Got invalid process\n", 
               __FILE__, __LINE__);
@@ -123,14 +123,15 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    //Check that thread_id is unique
    if (my_dyn_id >= NUM_THREADS)
    {
-      fprintf(stderr, "[%s:%d] - Thread ID %d out of range\n",
+      fprintf(stderr, "[%s:%d] - WARNING: Thread ID %d out of range\n",
               __FILE__, __LINE__, my_dyn_id);
+      return;
    }
    if (dyn_tids[my_dyn_id])
    {
-      fprintf(stderr, "[%s:%d] - Thread %d called in callback twice\n",
+      fprintf(stderr, "[%s:%d] - WARNING: Thread %d called in callback twice\n",
               __FILE__, __LINE__, my_dyn_id);
-      error = 1;
+      return;
    }
    dyn_tids[my_dyn_id] = 1;
 
@@ -139,7 +140,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    unsigned long my_stack = thr->getStackTopAddr();
    if (!my_stack)
    {
-      fprintf(stderr, "[%s:%d] - Thread %d has no stack\n",
+      fprintf(stderr, "[%s:%d] - WARNING: Thread %d has no stack\n",
               __FILE__, __LINE__, my_dyn_id);
       error = 1;
    }
@@ -148,7 +149,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
       for (unsigned i=0; i<NUM_THREADS; i++)
          if (stack_addrs[i] == my_stack)
          {
-            fprintf(stderr, "[%s:%d] - Thread %d and %d share a stack at %x\n",
+            fprintf(stderr, "[%s:%d] - WARNING: Thread %d and %d share a stack at %x\n",
                     __FILE__, __LINE__, my_dyn_id, i, my_stack);
             error = 1;
          }
@@ -160,7 +161,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    long mytid = thr->getTid();
    if (mytid == -1)
    {
-      fprintf(stderr, "[%s:%d] - Thread %d has a tid of -1\n", 
+      fprintf(stderr, "[%s:%d] - WARNING: Thread %d has a tid of -1\n", 
               __FILE__, __LINE__, my_dyn_id);
    }
    dprintf(stderr, "%s[%d]:  newthr: tid = %lu\n", 
@@ -168,7 +169,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    for (unsigned i=0; i<NUM_THREADS; i++)
       if (i != my_dyn_id && dyn_tids[i] && mytid == pthread_ids[i])
       {
-            fprintf(stderr, "[%s:%d] - Thread %d and %d share a tid of %u\n",
+            fprintf(stderr, "[%s:%d] - WARNING: Thread %d and %d share a tid of %u\n",
                     __FILE__, __LINE__, my_dyn_id, i, mytid);
             error = 1;
       }
@@ -198,7 +199,6 @@ void upgrade_mutatee_state()
 
 #define MAX_ARGS 32
 char *filename = "test13.mutatee_gcc";
-bool should_exec = true;
 char *args[MAX_ARGS];
 char *create_arg = "-create";
 unsigned num_args = 0; 
@@ -208,7 +208,7 @@ static BPatch_process *getProcess()
    args[0] = filename;
 
    BPatch_process *proc;
-   if (should_exec) {
+   if (create_proc) {
       args[1] = create_arg;
       proc = bpatch.processCreate(filename, (const char **) args);
       if(proc == NULL) {
@@ -251,7 +251,7 @@ static void parse_args(unsigned argc, char *argv[])
    {
       if (strcmp(argv[i], "-attach") == 0)
       {
-         should_exec = false;
+         create_proc = false;
       }
       else if (strcmp(argv[i], "-mutatee") == 0)
       {
@@ -306,7 +306,7 @@ int main(int argc, char *argv[])
    }
    proc->continueExecution();
    do {
-       dprintf(stderr, "Going into waitForStatusChange...\n");
+      dprintf(stderr, "Going into waitForStatusChange...\n");
       bpatch.waitForStatusChange();
       dprintf(stderr, "Back from waitForStatusChange...\n");
       if (proc->isTerminated())
@@ -321,7 +321,8 @@ int main(int argc, char *argv[])
                  __FILE__, __LINE__);
          fprintf(stderr, "[%s:%d] - Only have %u threads, expected %u!\n",
               __FILE__, __LINE__, thread_count, NUM_THREADS);
-         return -1;
+         error = 1;
+         break;
       }
       P_sleep(1);
    } while (thread_count < NUM_THREADS);
@@ -346,6 +347,11 @@ int main(int argc, char *argv[])
    }
 
    dprintf(stderr, "%s[%d]:  done waiting for thread creations, error = %d\n", __FILE__, __LINE__, error);
+
+   if(error) {
+      fprintf(stderr, "%s[%d]: ERROR during thread create stage, exiting\n", __FILE__, __LINE__);
+      return -1;
+   }
 
    // Update state to allow threads to exit
    upgrade_mutatee_state();
