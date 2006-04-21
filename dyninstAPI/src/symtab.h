@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: symtab.h,v 1.192 2006/04/20 22:44:55 bernat Exp $
+// $Id: symtab.h,v 1.193 2006/04/21 18:57:03 nater Exp $
 
 #ifndef SYMTAB_HDR
 #define SYMTAB_HDR
@@ -320,8 +320,7 @@ class image : public codeRange {
    // Fills  in raw_funcs with targets in callTargets
    void parseStaticCallTargets( pdvector< Address >& callTargets,
                 pdvector< Address > &newTargets,
-                dictionary_hash< Address, image_func * > &preParseStubs,
-                pdmodule* mod );
+                dictionary_hash< Address, image_func * > &preParseStubs);
 
    bool parseFunction( image_func* pdf, pdvector< Address >& callTargets,
                 dictionary_hash< Address, image_func * >& preParseStubs); 
