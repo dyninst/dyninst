@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.21 2006/04/20 02:59:48 bernat Exp $
+// $Id: instPoint.C,v 1.22 2006/04/21 18:57:01 nater Exp $
 // instPoint code
 
 
@@ -256,6 +256,15 @@ instPoint *instPoint::createArbitraryInstPoint(Address addr, process *proc) {
     }
     int_basicBlock *block = bbl->block();
     assert(block);
+
+    // Some blocks cannot be relocated; since instrumentation requires
+    // relocation of the block, don't even bother.
+    if(!block->llb()->canBeRelocated())
+    {
+        inst_printf("Address is in unrelocatable block, ret null\n");
+        return NULL;
+    }    
+
     // For now: we constrain the address to be in the original instance
     // of the basic block.
     if (block->origInstance() != bbl) {
