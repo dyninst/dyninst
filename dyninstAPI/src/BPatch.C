@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.138 2006/04/20 22:44:48 bernat Exp $
+// $Id: BPatch.C,v 1.139 2006/04/21 05:42:13 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1057,10 +1057,12 @@ void BPatch::registerNormalExit(process *proc, int exitcode)
    int pid = proc->getPid();
 
    BPatch_process *process = getProcessByPid(pid);
-   process->isVisiblyStopped = true;
 
-   if (!process)
-     return;
+   if (!process) return;
+
+   process->isVisiblyStopped = true;
+   process->terminated = true;
+
 
    BPatch_thread *thrd = process->getThreadByIndex(0);
 
@@ -1109,6 +1111,7 @@ void BPatch::registerNormalExit(process *proc, int exitcode)
        }
 #endif           
    }
+   
 
    continueIfExists(pid);
 
@@ -1133,7 +1136,8 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
    bpprocess->setExitedViaSignal(signalnum);
    bpprocess->setUnreportedTermination(true);
    bpprocess->isVisiblyStopped = true;
-   
+   bpprocess->terminated = true;
+
    pdvector<CallbackBase *> cbs;
    getCBManager()->dispenseCallbacksMatching(evtThreadExit,cbs);
    for (unsigned int i = 0; i < cbs.size(); ++i) {
