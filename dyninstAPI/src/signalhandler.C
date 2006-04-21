@@ -50,6 +50,7 @@
 #include "dyn_lwp.h"
 #include "Object.h"
 #include "function.h" // instPointTrap debugging
+#include "rpcMgr.h"
 
 SignalHandler::~SignalHandler()
 {

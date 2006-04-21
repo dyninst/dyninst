@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: miniTramp.C,v 1.20 2006/03/14 23:12:01 bernat Exp $
+// $Id: miniTramp.C,v 1.21 2006/04/21 22:23:02 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "miniTramp.h"
@@ -81,6 +81,9 @@ bool miniTramp::uninstrument() {
   // to be deleted again. Sigh. 
   
   // Better fix: figure out why we're double-deleting instrCodeNodes.
+
+    if (!proc()->isAttached())
+        return true;
 
   if (deleteInProgress)
     return false;

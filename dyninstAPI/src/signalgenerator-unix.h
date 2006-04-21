@@ -39,12 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator-unix.h,v 1.2 2006/04/12 16:59:33 bernat Exp $
+/* $Id: signalgenerator-unix.h,v 1.3 2006/04/21 22:23:04 bernat Exp $
  */
 
 
 #ifndef _SIGNAL_GENERATOR_UNIX_H_
 #define _SIGNAL_GENERATOR_UNIX_H_
+
+#include "signalhandler-unix.h"
 
 class SignalGenerator : public SignalGeneratorCommon
 {

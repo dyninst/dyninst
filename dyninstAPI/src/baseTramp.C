@@ -39,12 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.28 2006/04/12 16:59:15 bernat Exp $
+// $Id: baseTramp.C,v 1.29 2006/04/21 22:23:00 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/instP.h"
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/rpcMgr.h"
 
 #if defined(os_aix)
   extern void resetBRL(process *p, Address loc, unsigned val); //inst-power.C

@@ -39,12 +39,13 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyn_thread.h,v 1.25 2006/04/04 01:10:56 legendre Exp $
+// $Id: dyn_thread.h,v 1.26 2006/04/21 22:23:01 bernat Exp $
 
 #ifndef _DYNTHREAD_H_
 #define _DYNTHREAD_H_
 
 #include "dyninstAPI/src/process.h"
+#include "dyninstAPI/src/dyn_lwp.h"
 
 typedef long dynthread_t;
 
