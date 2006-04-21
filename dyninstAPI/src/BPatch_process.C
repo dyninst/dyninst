@@ -347,6 +347,8 @@ void BPatch_process::BPatch_process_dtor()
  */
 bool BPatch_process::stopExecutionInt()
 {
+    if (isTerminated()) return true;
+
     if (isVisiblyStopped) return true;
 
    signal_printf("%s[%d]: entry to stopExecution, lock depth %d\n", FILE__, __LINE__, global_mutex->depth());
@@ -367,7 +369,8 @@ bool BPatch_process::stopExecutionInt()
  */
 bool BPatch_process::continueExecutionInt()
 {
-   getMailbox()->executeCallbacks(FILE__, __LINE__);
+
+    if (isTerminated()) return true;
 
    //  maybe executeCallbacks led to the process execution status changing
    if (!statusIsStopped()) {
@@ -497,8 +500,6 @@ bool BPatch_process::statusIsTerminated()
  */
 bool BPatch_process::isTerminatedInt()
 {
-    if (terminated) return true;
-    
     getMailbox()->executeCallbacks(FILE__, __LINE__);
     // First see if we've already terminated to avoid 
     // checking process status too often.
@@ -1077,6 +1078,8 @@ bool BPatch_process::finalizeInsertionSetInt(bool atomic) {
  */
 bool BPatch_process::deleteSnippetInt(BPatchSnippetHandle *handle)
 {   
+    if (terminated) return true;
+
     if (handle->proc_ == this) {
         for (unsigned int i=0; i < handle->mtHandles_.size(); i++)
             handle->mtHandles_[i]->uninstrument();

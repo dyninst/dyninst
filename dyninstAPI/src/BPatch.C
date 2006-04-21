@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.139 2006/04/21 05:42:13 bernat Exp $
+// $Id: BPatch.C,v 1.140 2006/04/21 22:22:57 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -921,6 +921,7 @@ void BPatch::registerForkedProcess(process *parentProc, process *childProc)
     
     BPatch_process *parent = getProcessByPid(parentPid);
     assert(parent);
+    bool wasProcessStopped = parent->isVisiblyStopped;
     parent->isVisiblyStopped = true;
     
     assert(parent);
@@ -953,8 +954,8 @@ void BPatch::registerForkedProcess(process *parentProc, process *childProc)
     }
 
     // Re-lookup the process pointers as they may have been deleted.
-    continueIfExists(parentPid);
-    continueIfExists(childPid);
+    if (!wasProcessStopped) continueIfExists(parentPid);
+    if (!wasProcessStopped) continueIfExists(childPid);
 
     forkexec_printf("BPatch: finished registering fork, parent %d, child %d\n",
                     parentPid, childPid);
@@ -974,6 +975,7 @@ void BPatch::registerForkingProcess(int forkingPid, process * /*proc*/)
 {
     BPatch_process *forking = getProcessByPid(forkingPid);
     assert(forking);
+    bool wasProcessStopped = forking->isVisiblyStopped;
     forking->isVisiblyStopped = true;
 
     signalNotificationFD();
@@ -990,7 +992,8 @@ void BPatch::registerForkingProcess(int forkingPid, process * /*proc*/)
     }
 
     // Re-lookup since we made callbacks
-    continueIfExists(forkingPid);
+    if (!wasProcessStopped) continueIfExists(forkingPid);
+
 }
 
 
@@ -1026,6 +1029,7 @@ void BPatch::registerExecExit(process *proc)
     int execPid = proc->getPid();
     BPatch_process *process = getProcessByPid(execPid);
     assert(process);
+   bool wasProcessStopped = process->isVisiblyStopped;
     process->isVisiblyStopped = true;
    // build a new BPatch_image for this one
    if (process->image)
@@ -1045,7 +1049,7 @@ void BPatch::registerExecExit(process *proc)
         if (cb)
             (*cb)(process->threads[0]);
     }
-    continueIfExists(execPid);
+    if (!wasProcessStopped) continueIfExists(execPid);
 
 }
 
@@ -1059,6 +1063,8 @@ void BPatch::registerNormalExit(process *proc, int exitcode)
    BPatch_process *process = getProcessByPid(pid);
 
    if (!process) return;
+
+   bool wasProcessStopped = process->isVisiblyStopped;
 
    process->isVisiblyStopped = true;
    process->terminated = true;
@@ -1112,9 +1118,14 @@ void BPatch::registerNormalExit(process *proc, int exitcode)
 #endif           
    }
    
+   if (!wasProcessStopped)
+       continueIfExists(pid);
 
-   continueIfExists(pid);
-
+   // We now run the process out; set its state to terminated. Really, the user shouldn't
+   // try to do anything else with this, but we can get that happening.
+   BPatch_process *stillAround = getProcessByPid(pid);
+   if (stillAround)
+       stillAround->terminated = true;
 }
 
 void BPatch::registerSignalExit(process *proc, int signalnum)
@@ -1176,6 +1187,11 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
 
    }
 
+   // We now run the process out; set its state to terminated. Really, the user shouldn't
+   // try to do anything else with this, but we can get that happening.
+   BPatch_process *stillAround = getProcessByPid(pid);
+   if (stillAround)
+       stillAround->terminated = true;
 
    // We need to clean this up... but the user still has pointers
    // into this code. Ugh.
@@ -1192,6 +1208,8 @@ void BPatch::registerThreadExit(process *proc, long tid)
     int pid = proc->getPid();
     
     BPatch_process *bpprocess = getProcessByPid(pid);
+   bool wasProcessStopped = bpprocess->isVisiblyStopped;
+
     if (!bpprocess) {
         // Error during startup can cause this -- we have a partially
         // constructed process object, but it was never registered with
@@ -1212,7 +1230,7 @@ void BPatch::registerThreadExit(process *proc, long tid)
             (*cb)(bpprocess, thrd);
     }
    bpprocess->deleteBPThread(thrd);
-   continueIfExists(pid);
+   if (!wasProcessStopped) continueIfExists(pid);
 }
 
 
@@ -2028,8 +2046,17 @@ bool BPatch::removeUserEventCallbackInt(BPatchUserEventCallback cb)
 void BPatch::continueIfExists(int pid) 
 {
     BPatch_process *proc = getProcessByPid(pid);
-    // Don't want to block; we're a signal handler thread...
-    if (proc) proc->llproc->sh->continueProcessAsync();
+    if (!proc) return;
+
+    // Set everything back to the way it was...
+    // We use async continue here to _be sure_ that the SH
+    // that we're in runs to completion, instead of blocking
+    // on someone else.
+
+    proc->isVisiblyStopped = false;
+    proc->llproc->sh->overrideSyncContinueState(runRequest);
+
+    proc->llproc->sh->continueProcessAsync();
 }
 
 ////////////// Signal FD functions
