@@ -1648,7 +1648,7 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(
                          unsigned long start_addr)
 {
    //fprintf(stderr, "%s[%d][%s]:  welcome to createOrUpdateBPThread(tid = %lu)\n",
-   //        FILE__, __LINE__, getThreadStr(getExecThreadID()), tid);
+   //      FILE__, __LINE__, getThreadStr(getExecThreadID()), tid);
    BPatch_thread *thr = NULL;
 
    //Find this thread if it already exists.
@@ -1793,9 +1793,9 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
   BPatch_thread *newthr = 
       createOrUpdateBPThread(lwpid, threadid, index, stack_top, start_pc);
   if (thread_exists) {
-     async_printf("%s[%d]:  NOT ISSUING CALLBACK:  thread %l exists\n", 
+     async_printf("%s[%d]:  NOT ISSUING CALLBACK:  thread %lu exists\n", 
                   FILE__, __LINE__, (long) threadid);
-     return newthr;
+     //return newthr;
   }
 
   pdvector<CallbackBase *> cbs;
