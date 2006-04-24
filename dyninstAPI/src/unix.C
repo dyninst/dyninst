@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.189 2006/04/20 22:44:58 bernat Exp $
+// $Id: unix.C,v 1.190 2006/04/24 15:59:25 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -286,7 +286,7 @@ bool SignalGenerator::decodeProcStatus(procProcStatus_t status, EventRecord &ev)
         break;
      case PR_SYSEXIT:
         ev.type = evtSyscallExit;
-        ev.what = status.pr_what;
+        ev.what = status.pr_syscall;
 
 #if defined(os_aix)
         // This from the proc header file: system returns are
@@ -399,6 +399,8 @@ bool SignalGenerator::decodeSyscall(EventRecord &ev)
     }
 
     fprintf(stderr, "%s[%d]:  unknown syscall ??\n", FILE__, __LINE__);
+    // Swap the syscall number into the info field
+    ev.info = ev.what;
     ev.what = procSysOther;
     return false;
 }
