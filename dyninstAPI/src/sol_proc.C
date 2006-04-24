@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.93 2006/04/20 02:59:52 bernat Exp $
+// $Id: sol_proc.C,v 1.94 2006/04/24 15:59:24 bernat Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -1064,6 +1064,9 @@ bool dyn_lwp::waitUntilStopped() {
     pdvector<eventType> evts;
     eventType evt;
 
+    // This ensures that we don't start running accidentally...
+    processRunState_t oldState = proc()->sh->overrideSyncContinueState(stopRequest);
+
     while (proc()->status() != stopped) {
         if (proc()->status() == exited) break;
         evts.push_back(evtAnyEvent);
@@ -1073,6 +1076,8 @@ bool dyn_lwp::waitUntilStopped() {
     }
 
     signal_printf("%s[%d]: stopped...\n", FILE__, __LINE__);
+    // And now put things back the way they were.
+    proc()->sh->overrideSyncContinueState(oldState);
     
     return true;
 }
@@ -1429,16 +1434,14 @@ bool dyn_lwp::decodeSyscallTrap(EventRecord &ev) {
     
     if (frame.getPC() == trappedSyscall_->trapAddr) {
         ev.type = evtSyscallExit;
-        ev.what = trappedSyscall_->syscall_id;
+        ev.what = procSysOther;
+        ev.info = trappedSyscall_->syscall_id;
         return true;
     }
 
     return false;
 #else
-    // There is no decoding to do -- we don't use signals to
-    // fake a system call.
-
-    return false;
+    return true;
 #endif
 }
 
