@@ -88,14 +88,15 @@ EventGate::~EventGate()
   //delete cond;
 }
 
-EventRecord &EventGate::wait()
+EventRecord &EventGate::wait(bool executeCallbacks /* = true */)
 {
   trigger.type = evtUndefined;
   assert(lock->depth());
  
   still_waiting:
   waiting = true;
-  getMailbox()->executeCallbacks(FILE__, __LINE__);
+  if (executeCallbacks) 
+    getMailbox()->executeCallbacks(FILE__, __LINE__);
 
   if (trigger.type != evtUndefined) {
     return trigger;

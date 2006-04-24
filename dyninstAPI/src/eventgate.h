@@ -56,7 +56,7 @@ class EventGate {
     bool addEvent(eventType type, process *p = NULL);
     ~EventGate();
 
-    EventRecord &wait();
+    EventRecord &wait(bool executeCallbacks = true);
     bool signalIfMatch(EventRecord &ev);
 
   private:
