@@ -167,7 +167,7 @@ static unsigned threadCreate(dyntid_t tid)
       return DYNINST_max_num_threads;
    }
    
-   // Get an index
+   /* Get an index */
    index = DYNINST_alloc_index(tid);   
 
    /**
