@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.9 2005/10/17 19:24:28 bernat Exp $
+# $Id: Makefile,v 1.10 2006/04/24 21:15:57 bernat Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -48,14 +48,10 @@ SRCS	     += ../src/RTetc-posix.c \
 		../src/RTetc-solaris.c \
 		../src/RTrexec.c \
 		../src/RTinst.c \
-		../src/RTmpi.c 
-#		../src/thread-compat.c \
-#		../src/RTthread.c 
-#		../../dyninstAPI_RT/src/RTheap.c \ # ccw 18 apr 2002 : SPLIT
-#		../../dyninstAPI_RT/src/RTheap-svr4.c \
-#		../../dyninstAPI_RT/src/RTheap-solaris.c \
-#		../../dyninstAPI_RT/src/RTposix.c \
-#		../../dyninstAPI_RT/src/RTsolaris.c \
+		../src/RTmpi.c \
+		../src/thread-compat.c \
+		../src/RTthread.c \
+		../src/RTthread-timer.c
 
 #CFLAGS += -DDEBUG_PRINT_RT     # enable debug/trace messages from library
 #CFLAGS += -DSHM_SAMPLING_DEBUG # shared-memory sampling debug/trace
