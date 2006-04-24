@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.191 2006/04/24 20:47:57 bernat Exp $
+// $Id: unix.C,v 1.192 2006/04/24 23:33:12 mirg Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -1211,7 +1211,7 @@ bool forkNewProcess_real(pdstring file,
       // not yet know which kind of the RT lib to load (we determine
       // whether the mutatee is 32 or 64-bit only after starting it).
       if (!setEnvPreload(max_envs_entries, envs, &num_envs_entries)) {
-	  return false;
+	  P__exit(-1);
       }
 #endif
 
