@@ -115,7 +115,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    dprintf(stderr, "%s[%d]:  newthr: %s\n", __FILE__, __LINE__, name);
    if (!found_name)
    {
-      fprintf(stderr, "[%s:%d] - Thread %d has '%s' as initial function\n",
+      fprintf(stderr, "[%s:%d] - Thread %d has unexpected initial function '%s'\n",
               __FILE__, __LINE__, my_dyn_id, name);
       error = 1;
    }
@@ -298,12 +298,15 @@ int main(int argc, char *argv[])
    if (!proc)
       return -1;
 
-   BPatch_Vector<BPatch_thread *> orig_thrds;
-   proc->getThreads(orig_thrds);
-   if (!orig_thrds.size()) abort();
-   for (unsigned i=0; i<orig_thrds.size(); i++) {
-       newthr(proc, orig_thrds[i]);
+   if(create_proc) {
+      BPatch_Vector<BPatch_thread *> orig_thrds;
+      proc->getThreads(orig_thrds);
+      if (!orig_thrds.size()) abort();
+      for (unsigned i=0; i<orig_thrds.size(); i++) {
+         newthr(proc, orig_thrds[i]);
+      }
    }
+
    proc->continueExecution();
    do {
       dprintf(stderr, "Going into waitForStatusChange...\n");
@@ -329,7 +332,7 @@ int main(int argc, char *argv[])
 
    BPatch_Vector<BPatch_thread *> thrds;
    proc->getThreads(thrds);
-   if (thrds.size() != NUM_THREADS)
+   if (thrds.size() < NUM_THREADS)
    {
       fprintf(stderr, "[%s:%d] - Only have %u threads, expected %u!\n",
               __FILE__, __LINE__, thrds.size(), NUM_THREADS);
@@ -350,6 +353,9 @@ int main(int argc, char *argv[])
 
    if(error) {
       fprintf(stderr, "%s[%d]: ERROR during thread create stage, exiting\n", __FILE__, __LINE__);
+      printf("*** Failed test #1 (Threading Callbacks)\n");
+      if(proc && !proc->isTerminated())
+         proc->terminateExecution();
       return -1;
    }
 

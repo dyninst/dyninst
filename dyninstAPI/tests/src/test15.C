@@ -188,6 +188,8 @@ unsigned failed_tests = 2;
 void error_exit()
 {
    printf("**Failed** %d tests\n", failed_tests);
+   if(proc && !proc->isTerminated()) 
+      proc->terminateExecution();
    exit(-1);
 }
 
@@ -246,11 +248,13 @@ int main(int argc, char *argv[])
       error_exit();
    }
 
-   BPatch_Vector<BPatch_thread *> orig_thrds;
-   proc->getThreads(orig_thrds);
-   if (!orig_thrds.size()) abort();
-   for (unsigned i=0; i<orig_thrds.size(); i++) {
-      newthr(proc, orig_thrds[i]);
+   if(create_proc) {
+      BPatch_Vector<BPatch_thread *> orig_thrds;
+      proc->getThreads(orig_thrds);
+      if (!orig_thrds.size()) abort();
+      for (unsigned i=0; i<orig_thrds.size(); i++) {
+         newthr(proc, orig_thrds[i]);
+      }
    }
 
    proc->continueExecution();
