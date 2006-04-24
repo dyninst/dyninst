@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.615 2006/04/24 15:59:21 bernat Exp $
+// $Id: process.C,v 1.616 2006/04/24 23:33:10 mirg Exp $
 
 #include <ctype.h>
 
@@ -2617,12 +2617,11 @@ process *ll_createProcess(const pdstring File, pdvector<pdstring> *argv,
 
     startup_printf( "%s[%d]:  Fork new process... succeeded",FILE__, __LINE__);
 
-#ifdef BPATCH_LIBRARY
     // Register the pid with the BPatch library (not yet associated with a
     // BPatch_thread object).
     assert(BPatch::bpatch != NULL);
     BPatch::bpatch->registerProvisionalThread(theProc->sh->getPid());
-#endif
+
     theProc->set_status(running);
 
     // We need to add this as soon as possible, since a _lot_ of things
