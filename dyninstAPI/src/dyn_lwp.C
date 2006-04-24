@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.53 2006/04/12 16:59:17 bernat Exp $
+ * $Id: dyn_lwp.C,v 1.54 2006/04/24 15:59:20 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -328,9 +328,11 @@ bool dyn_lwp::setSyscallExitTrap(syscallTrapCallbackLWP_t callback,
     }
 
     Address syscallInfo = getCurrentSyscall();
+
     if(syscallInfo == 0) return false;
-    signal_printf("%s[%d]: LWP %d placing syscall trap...\n",
-                  FILE__, __LINE__, get_lwp_id());
+    signal_printf("%s[%d]: LWP %d placing syscall trap for %d (0x%lx)...\n",
+                  FILE__, __LINE__, get_lwp_id(),
+		  syscallInfo, syscallInfo);
 
     trappedSyscall_ = proc()->trapSyscallExitInternal(syscallInfo);
 
@@ -361,10 +363,15 @@ bool dyn_lwp::clearSyscallExitTrap()
 bool dyn_lwp::handleSyscallTrap(EventRecord &ev, bool &continueHint) {
     // See if this is the right one...
     if (ev.type != evtSyscallExit) return false;
-
     if (!trappedSyscall_) return false;
+    if (ev.what != procSysOther) return false;
 
-    if (ev.what != trappedSyscall_->syscall_id) return false;
+    // Our event handling is a little skewed. We have a two-level
+    // structure: known syscalls (mapped to a local enumerated type)
+    // and unknown (with the syscall # in the info field).
+    // Let's assume for now that we only trap unknown syscalls...
+    
+    if (ev.info != trappedSyscall_->syscall_id) return false;
 
     // Step past the trap (if necessary)
     stepPastSyscallTrap();
