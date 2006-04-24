@@ -709,10 +709,22 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
      case evtThreadCreate:
      {
         //  Read details of new thread from fd 
+         async_printf("%s[%d]: reading event from fd %d\n",
+                      FILE__, __LINE__, ev.fd);
          BPatch_newThreadEventRecord call_rec;
+         // This can take some arbitrary amount of time to finish; release lockage.
+         int lock_depth = eventlock->depth();
+         for (unsigned i = 0; i < lock_depth; i++) {
+	   eventlock->_Unlock(FILE__, __LINE__);
+         }
          asyncReadReturnValue_t retval = readEvent(ev.fd/*fd*/, 
                                                    (void *) &call_rec, 
                                                    sizeof(BPatch_newThreadEventRecord));
+         async_printf("%s[%d]: read event, retval %d\n", FILE__, __LINE__);
+         for (unsigned i = 0; i < lock_depth; i++) {
+	   eventlock->_Lock(FILE__, __LINE__);
+         }
+
          if (retval != REsuccess) {
              bperr("%s[%d]:  failed to read thread event call record\n",
                    FILE__, __LINE__);
@@ -742,6 +754,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
            fprintf(stderr, "%s[%d]:  thr->getTid(): %lu, tid %lu\n", FILE__, __LINE__, thr->getTid(), tid);
          }
        }
+       ev.proc->sh->signalEvent(evtThreadCreate);
        return (thr != NULL);
      }
      case evtThreadExit: 
