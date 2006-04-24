@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.190 2006/04/24 15:59:25 bernat Exp $
+// $Id: unix.C,v 1.191 2006/04/24 20:47:57 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -398,7 +398,6 @@ bool SignalGenerator::decodeSyscall(EventRecord &ev)
       return true;
     }
 
-    fprintf(stderr, "%s[%d]:  unknown syscall ??\n", FILE__, __LINE__);
     // Swap the syscall number into the info field
     ev.info = ev.what;
     ev.what = procSysOther;
