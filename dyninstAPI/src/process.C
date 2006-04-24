@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.614 2006/04/21 22:23:10 bernat Exp $
+// $Id: process.C,v 1.615 2006/04/24 15:59:21 bernat Exp $
 
 #include <ctype.h>
 
@@ -2076,7 +2076,6 @@ bool process::setupCreated(int iTraceLink)
 // if someone has a good way of saying "has main been reached".
 bool process::setupAttached() 
 {
-    fprintf(stderr, "%s[%d]:  welcome to setupAttached()\n", FILE__, __LINE__);
     creationMechanism_ = attached_cm;
     // We're post-main... run the bootstrapState forward
 
@@ -2121,7 +2120,6 @@ bool process::setupAttached()
    else {
        startup_printf("%s[%d]: attached to previously paused process\n", FILE__, __LINE__);
        stateWhenAttached_ = stopped;
-       fprintf(stderr, "p2127\n");
        set_status(stopped);
    }
    startup_printf("%s[%d]: setupAttached returning true\n",FILE__, __LINE__);
@@ -2565,7 +2563,6 @@ process::process(const process *parentProc, SignalGenerator *sg_, int childTrace
 
 static void cleanupBPatchHandle(int pid)
 {
-   fprintf(stderr, "%s[%d]:  about to unRegisterProcess\n", FILE__, __LINE__);
    BPatch::bpatch->unRegisterProcess(pid);
 }
 
@@ -2831,7 +2828,7 @@ bool process::loadDyninstLib() {
 
 	setBootstrapState(loadingRT_bs);
 
-	if (!sh->continueProcessBlocking()) {
+	if (!sh->continueProcessAsync()) {
 	    assert(0);
 	}
 	// Loop until the dyninst lib is loaded
@@ -3632,7 +3629,6 @@ bool process::terminateProc()
      return false;
    }
    terminateProcStatus_t retVal = terminateProc_();
-
    switch (retVal) {
    case terminateSucceeded:
      {
@@ -3648,7 +3644,6 @@ bool process::terminateProc()
                         FILE__, __LINE__, getThreadStr(getExecThreadID()));
           sh->signalActiveProcess();
       }
-
       sh->waitForEvent(evtProcessExit);
      return true;
      }
@@ -5153,11 +5148,16 @@ void process::triggerNormalExitCallback(int exitCode)
 void process::triggerSignalExitCallback(int signalnum) 
 {
    // special case where can't wait to continue process
+#if 0
+  // Removed; we set status to exited before calling this so that
+  // the user callbacks don't start doing dangerous things - the process
+  // is gone and can't be modified.
    if (status() == exited) {
       //fprintf(stderr, "%s[%d]:  cannot trigger exit callback, process already exited\n", 
       //        FILE__, __LINE__);
       return;
    }
+#endif
    BPatch::bpatch->registerSignalExit(this, signalnum);
 }
 
@@ -6004,6 +6004,14 @@ void process::recognize_threads(const process *parent)
         unsigned lwp_id = lwp_ids[i];
         dyn_lwp *lwp = getLWP(lwp_id);
 
+	// See comment below about Solaris threads.
+	// TODO: see if there is some mechanism of identifying the helper
+	// threads...
+#if defined(os_aix) || defined(os_solaris)
+	if (lwp->executingSystemCall())
+	  continue;
+#endif
+
         pdvector<AstNode *> ast_args;
         AstNode *ast = new AstNode("DYNINSTthreadIndex", ast_args);
 
@@ -6030,6 +6038,11 @@ void process::recognize_threads(const process *parent)
      // We hit a problem here. On Solaris, some LWPs are "fake" and permanently
      // in a system call. We can't run iRPCs on those threads at all, and if we
      // wait for them to complete we'll just spin. 
+     // Better yet, we don't do independent LWP control - so if we're doing
+     // process create and wait for them _at all_ we'll run the process past
+     // its starting point. 
+     // Instead, we skip anything in a syscall.
+     
 
      do {
          bool rpcNeedsContinue = false;
@@ -6059,16 +6072,15 @@ void process::recognize_threads(const process *parent)
      assert(status() == stopped);
      
      BPatch_process *bproc = BPatch::bpatch->getProcessByPid(getPid());
+     assert(bproc);
      for (i = 0; i < ret_lwps.size(); ++i) {         
          BPatch_thread *bpthrd = NULL;
          // Wait for the thread to show up...
          int timeout = 0;
          while ( (bpthrd = bproc->getThreadByIndex(ret_indexes[i])) == NULL) {
-#if !defined(os_windows)
-			 usleep(1);
-#endif
-             timeout++;
-             if (timeout > 1000) break;
+	   sh->waitForEvent(evtThreadCreate);
+	   timeout++;
+	   if (timeout > 1000) break;
          }
      }
      
