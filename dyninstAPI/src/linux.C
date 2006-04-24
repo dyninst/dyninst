@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.216 2006/04/20 22:44:59 bernat Exp $
+// $Id: linux.C,v 1.217 2006/04/24 23:38:43 mjbrim Exp $
 
 #include <fstream>
 
@@ -222,7 +222,7 @@ bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events)
                 signal_printf("%s[%d]: waiting_for_stop %d (lwp %d %s), checking for suppression...\n",
                               FILE__, __LINE__,
                               waiting_for_stop, 
-                              ev.lwp ? ev.lwp->get_lwp_id() : -1,
+                              ev.lwp ? ev.lwp->get_lwp_id() : (unsigned)-1,
                               ev.lwp ? (ev.lwp->isWaitingForStop() ? "waiting for stop" : "not waiting for stop") : "no LWP");
 
                 if (suppressSignalWhenStopping(ev)) {
@@ -387,24 +387,23 @@ bool SignalGenerator::waitForEventsInternal(pdvector<EventRecord> &events)
   int dead_lwp = 0;
 
   //  If we have a rep lwp, the process is not multithreaded, so just wait for 
-  //  the pid.  If the process is MT, wait for (-pid), which waits for all process
-  //  with thread group <pid>
+  //  the pid.  If the process is MT, wait for the process group of the first
+  //  mutatee thread (-1 * pgid)
 
-  int pid_to_wait_for = proc->getRepresentativeLWP() ? getPid() : -1 * getPid();
+  int pid_to_wait_for = (proc->getRepresentativeLWP() ? getPid() : -1*getpgid(getPid()));
 
-   //  wait for process events, on linux __WALL signifies that both normal children
-   //  and cloned children (lwps) should be listened for.
-   //  Right now, we are blocking.  To make this nonblocking, or this val with WNOHANG.
-
-   //  __WNOTHREAD signifies that children of other threads (other signal handlers)
-   //  should not be listened for.
+  //  wait for process events, on linux __WALL signifies that both normal children
+  //  and cloned children (lwps) should be listened for.
+  //  Right now, we are blocking.  To make this nonblocking, or this val with WNOHANG.
+  
+  //  __WNOTHREAD signifies that children of other threads (other signal handlers)
+  //  should not be listened for.
 
   int wait_options = __WALL;
 
   waitingForOS_ = true;
   __UNLOCK;
-  waitpid_pid = waitpid_kludge( pid_to_wait_for /* -1 for any child*/, 
-                                &status, wait_options, &dead_lwp );
+  waitpid_pid = waitpid_kludge( pid_to_wait_for, &status, wait_options, &dead_lwp );
   __LOCK;
   waitingForOS_ = false;
   if (WIFSTOPPED(status))
@@ -420,7 +419,8 @@ bool SignalGenerator::waitForEventsInternal(pdvector<EventRecord> &events)
         Valgrind, and that the proper thing to do is just go back and try again.  I'm
         leaving the fprintf() in because while this condition is thus not always erroneous,
         we should be worried about it when it shows up otherwise. */
-     fprintf( stderr, "%s[%d]:  waitpid failed with ECHILD\n", __FILE__, __LINE__ );
+     fprintf( stderr, "%s[%d]:  waitpid(%d) failed with ECHILD\n", 
+              __FILE__, __LINE__, pid_to_wait_for );
      return false; /* nothing to wait for */
   } else if (waitpid_pid < 0) {
      perror("checkForEventLinux: waitpid failure");
@@ -1660,31 +1660,42 @@ bool dyn_lwp::realLWP_attach_() {
    
    proc()->sh->add_lwp_to_poll_list(this);
 
-   eventType evt;
-   signal_printf("%s[%d]: attaching to LWP, waiting for evtThreadDetect\n",
-                 FILE__, __LINE__);
-   // Be sure that the signal generator is actually waiting for things. 
-   proc()->sh->signalActiveProcess();
-   evt = proc()->sh->waitForEvent(evtThreadDetect, proc_, this);
-   if (evt != evtThreadDetect) {
-      //  process can exit here while we are waiting...  no??
-      if (evt == evtProcessExit) {
-        fprintf(stderr, "%s[%d]:  process exited before thread detect event... bye...\n", FILE__, __LINE__);
-        return false;
+   if(proc_->wasCreatedViaAttach()) {
+      int result;
+      result = waitpid(get_lwp_id(), NULL, __WALL);
+      if (result < 0) {
+         perror("dyn_lwp::realLWP_attach_() - waitpid");
+         exit(1);
       }
-      fprintf(stderr, "%s[%d]:  received unexpected event %s\n", 
-              __FILE__, __LINE__, eventType2str(evt));
-      abort();
+      //fprintf(stderr, "[%s:%u] - waitpid returned %d, called from dyn_lwp::realLWP_attach_()\n", __FILE__, __LINE__, result);
    }
-   if (proc_->status() == running) {
-       signal_printf("%s[%d]: overall status is running, so continuing detected LWP\n",
-                     FILE__, __LINE__);
-       continueLWP();
-   }
-   else 
-       signal_printf("%s[%d]: overall status is stopped (%s), so not continuing detected LWP\n",
-                     FILE__, __LINE__, proc_->getStatusAsString().c_str());
+   else {
 
+      eventType evt;
+      signal_printf("%s[%d]: attaching to LWP, waiting for evtThreadDetect\n",
+                 FILE__, __LINE__);
+      // Be sure that the signal generator is actually waiting for things. 
+      proc()->sh->signalActiveProcess();
+      evt = proc()->sh->waitForEvent(evtThreadDetect, proc_, this);
+      if (evt != evtThreadDetect) {
+         //  process can exit here while we are waiting...  no??
+         if (evt == evtProcessExit) {
+            fprintf(stderr, "%s[%d]:  process exited before thread detect event... bye...\n", FILE__, __LINE__);
+            return false;
+         }
+         fprintf(stderr, "%s[%d]:  received unexpected event %s\n", 
+                 __FILE__, __LINE__, eventType2str(evt));
+         abort();
+      }
+      if (proc_->status() == running) {
+         signal_printf("%s[%d]: overall status is running, so continuing detected LWP\n",
+                       FILE__, __LINE__);
+         continueLWP();
+      }
+      else 
+         signal_printf("%s[%d]: overall status is stopped (%s), so not continuing detected LWP\n",
+                       FILE__, __LINE__, proc_->getStatusAsString().c_str());
+   }
    return true;
 }
 
@@ -1726,12 +1737,12 @@ bool dyn_lwp::representativeLWP_attach_() {
       if( 0 != DBI_ptrace(PTRACE_ATTACH, getPid(), 0, 0, &ptrace_errno, address_width, __FILE__, __LINE__) )
       {
          startup_printf("%s[%d]:  ptrace attach to pid %d failing\n", FILE__, __LINE__, getPid());
-         perror( "process::attach - PTRACE_ATTACH" );
+         perror( "dyn_lwp::representativeLWP_attach_() - PTRACE_ATTACH" );
          return false;
       }
       startup_printf("%s[%d]: attached via DBI\n", FILE__, __LINE__);
       proc_->sh->add_lwp_to_poll_list(this);
-      
+
       int status = 0;
       int retval = 0;
       retval = waitpid(getPid(), &status, 0);
@@ -1755,7 +1766,7 @@ bool dyn_lwp::representativeLWP_attach_() {
          int address_width = sizeof(Address); //proc_->getAddressWidth();
          if( 0 != DBI_ptrace(PTRACE_CONT, getPid(), 0, 0, &ptrace_errno, address_width,  __FILE__, __LINE__) )
          {
-            perror( "process::attach - continue 1" );
+            perror( "dyn_lwp::representativeLWP_attach_() - PTRACE_CONT" );
          }
       }
    }
@@ -1771,17 +1782,17 @@ bool dyn_lwp::representativeLWP_attach_() {
       int ptrace_errno = 0; 
       /* continue, clearing pending stop */
       if (0 > DBI_ptrace(PTRACE_CONT, getPid(), 0, SIGCONT, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__)) {
-         perror("process::attach: PTRACE_CONT 1");
+         perror("dyn_lwp::representativeLWP_attach_() - PTRACE_CONT 1");
          return false;
       }
      
       if (0 > waitpid(getPid(), NULL, 0)) {
-         perror("process::attach: WAITPID");
+         perror("dyn_lwp::representativeLWP_attach_() - waitpid 1");
          return false;
       }
       /* continue, resending the TRAP to emulate the normal situation*/
       if (0 > DBI_ptrace(PTRACE_CONT, getPid(), 0, SIGTRAP, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__)) {
-         perror("process::attach: PTRACE_CONT 2");
+         perror("dyn_lwp::representativeLWP_attach_() - PTRACE_CONT 2");
          return false;
       }
       
@@ -1887,6 +1898,7 @@ struct maps_entries *getLinuxMaps(int pid, unsigned &maps_size) {
 #endif 
 
 static bool couldBeVsyscallPage(map_entries *entry, bool strict, Address pagesize) {
+   assert(pagesize != 0);
    if (strict) {
        if (entry->prems != PREMS_PRIVATE)
          return false;
@@ -1950,6 +1962,8 @@ bool process::readAuxvInfo()
      P_close(fd);
   }
 
+  if (!page_size)
+     page_size = getpagesize();
  /**
    * Even if we found dso_start in /proc/pid/auxv, the vsyscall 'page'
    * can be larger than a single page.  Thus we look through /proc/pid/maps
