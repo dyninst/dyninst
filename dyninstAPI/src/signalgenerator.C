@@ -213,6 +213,10 @@ void SignalGeneratorCommon::main() {
         signal_printf("%s[%d]: Grabbing event\n", FILE__, __LINE__);
         getEvents(events);
 
+	// Reset signalActiveProcess - we're back from the grabEvent. 
+	// TODO: do we want to have an unsignalActiveProcess instead?
+	activeProcessSignalled_ = false;
+
         if (exitRequested()) {
             signal_printf("%s[%d]: exit request (post-getEvent)\n", FILE__, __LINE__);
             break;
@@ -706,6 +710,14 @@ bool SignalGeneratorCommon::signalEvent(EventRecord &ev)
   global_wait_list_lock._Unlock(FILE__, __LINE__);
 
 
+  signal_printf("%s[%d]: acquiring activation lock in signalEvent...\n", FILE__, __LINE__);
+  activationLock->_Lock(FILE__, __LINE__);
+  if (waitingForActivation_) {
+  signal_printf("%s[%d]: generator sleeping, waking up...\n", FILE__, __LINE__);
+    activationLock->_Broadcast(FILE__, __LINE__);
+  }
+  signal_printf("%s[%d]: releasing activation lock in signalEvent...\n", FILE__, __LINE__);
+  activationLock->_Unlock(FILE__, __LINE__);
   
 #if 0
   if (!ret) 
@@ -864,8 +876,10 @@ eventType SignalGeneratorCommon::globalWaitForOneOf(pdvector<eventType> &evts)
   return result.type;
 }
 
-eventType SignalGeneratorCommon::waitForEvent(eventType evt, process *p, dyn_lwp *lwp,
-                                        eventStatusCode_t status)
+eventType SignalGeneratorCommon::waitForEvent(eventType evt, 
+					      process *p, dyn_lwp *lwp,
+					      eventStatusCode_t status,
+					      bool executeCallbacks /* = true */)
 {
   if (getExecThreadID() == getThreadID()) {
     fprintf(stderr, "%s[%d][%s]:   ILLEGAL:  SYNC THREAD waiting on for a signal: %s\n", 
@@ -906,7 +920,7 @@ eventType SignalGeneratorCommon::waitForEvent(eventType evt, process *p, dyn_lwp
     signal_printf("%s[%d]:  about to EventGate::wait(%s), lock depth %d\n", 
                   FILE__, __LINE__, 
                   eventType2str(evt), global_mutex->depth());
-  EventRecord result = eg->wait();
+  EventRecord result = eg->wait(executeCallbacks);
   
   bool found = false;
   for (int i = wait_list.size() -1; i >= 0; i--) {
@@ -1815,8 +1829,7 @@ bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal) {
         }
     }
 
-    if (proc->query_for_stopped_lwp() &&
-        waitingForOS_) {
+    if (waitingForOS_) {
         // Make sure that all active signal handlers kick off...
         while (isActivelyProcessing()) {
             signal_printf("%s[%d]: continueProcessBlocking waiting for signal handlers\n",
@@ -1936,6 +1949,11 @@ bool SignalGeneratorCommon::waitToContinueProcess() {
 
 bool SignalGeneratorCommon::continueRequired() {
     // Do we need to continue the process or just check waitpid/poll?
+
+  if (independentLwpStop_) {
+    // We're trying to stop an LWP, impolite to continue...
+    return false;
+  }
 
     // sync run gets priority...
     if (syncRunWhenFinished_ == stopRequest)
