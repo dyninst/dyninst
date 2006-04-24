@@ -48,6 +48,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 #include "RTthread.h"
 #include "RTcommon.h"
 
@@ -196,7 +197,7 @@ unsigned DYNINST_alloc_index(dyntid_t tid)
       retval = DYNINST_max_num_threads;
       goto done;
    }
-   
+ 
    //Initialize the thread_t object
    threads[t].tid = tid;
    threads[t].next = NONE;
