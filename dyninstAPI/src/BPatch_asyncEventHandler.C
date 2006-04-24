@@ -251,9 +251,15 @@ cleanupSockets( void )
 
 #define ASYNC_SOCKET_PATH_LEN 128
 char path_to_unlink[ASYNC_SOCKET_PATH_LEN];
+pid_t mutator_pid;
 void unlink_async_socket()
 {
-  unlink(path_to_unlink);
+   // work around grandchild forking mechanism used by the testsuite for 
+   // attach. without this check, the async socket will be deleted when the 
+   // child exits immediately after forking the mutatee (grandchild)
+   pid_t curr_pid = getpid();
+   if(curr_pid == mutator_pid)
+      unlink(path_to_unlink);
 }
 #endif
 
@@ -309,6 +315,7 @@ bool BPatch_asyncEventHandler::initialize()
   snprintf(path, 128, "%s/dyninstAsync.%s.%d", P_tmpdir, 
                  passwd_info->pw_name, (int) getpid());
   strcpy(path_to_unlink, path);
+  mutator_pid = getpid();
   atexit(unlink_async_socket);
 
   struct sockaddr_un saddr;
@@ -371,17 +378,7 @@ BPatch_asyncEventHandler::~BPatch_asyncEventHandler()
 #if defined (os_windows)
   WSACleanup();
 #else
-  
-
-  uid_t euid = geteuid();
-  struct passwd *passwd_info = getpwuid(euid);
-  assert(passwd_info);
-  //  clean up any files left over in the /tmp dir
-  char path[128];
-  snprintf(path, 128, "%s/dyninstAsync.%s.%d", P_tmpdir, 
-                passwd_info->pw_name, (int) getpid());
-  unlink(path);
-
+  unlink_async_socket();
 #endif
 }
 
