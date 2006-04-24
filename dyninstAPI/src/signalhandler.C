@@ -139,6 +139,7 @@ bool SignalHandler::handleProcessExit(EventRecord &ev, bool &continueHint)
   bool ret = false;
   process *proc = ev.proc;
 
+
   if (ev.status == statusNormal) {
       sprintf(errorLine, "Process %d has terminated with code 0x%x\n",
               proc->getPid(), (int) ev.what);
@@ -461,19 +462,20 @@ bool SignalHandler::handleSyscallExit(EventRecord &ev, bool &continueHint)
     switch((procSyscall_t) ev.what) {
     case procSysFork:
         signal_printf("%s[%d]:  Fork Exit\n", FILE__, __LINE__);
-        retval |= handleForkExit(ev, runProcess);
+        handleForkExit(ev, runProcess);
         break;
     case procSysExec:
         signal_printf("%s[%d]:  Exec Exit\n", FILE__, __LINE__);
-        retval |= handleExecExit(ev, runProcess);
+        handleExecExit(ev, runProcess);
         break;
     case procSysLoad:
         signal_printf("%s[%d]:  Load Exit\n", FILE__, __LINE__);
-        retval |= handleLoadLibrary(ev, runProcess);
+        handleLoadLibrary(ev, runProcess);
         break;
     default:
         // We stopped on a system call and didn't particularly care,
         // or handled it above but left ourselves paused. 
+      runProcess = true;
         break;
     }
 
@@ -584,6 +586,8 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
      // AIX clones some of these (because of fork/exec/load notification)
      case evtRPCSignal:
          ret = proc->getRpcMgr()->handleRPCEvent(ev, continueHint);
+         signal_printf("%s[%d]: handled RPC event, continueHint %d\n",
+                       FILE__, __LINE__, continueHint);
          break;
      case evtSyscallEntry:
          ret = handleSyscallEntry(ev, continueHint);
@@ -615,7 +619,6 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
      case evtRequestedStop:
          // /proc-age. We asked for a stop and the process did, and the signalGenerator
          // saw it.
-         fprintf(stderr, "******************** REQUESTED STOP\n");
          continueHint = false;
          ret = true;
          break;
