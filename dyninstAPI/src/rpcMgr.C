@@ -286,12 +286,12 @@ void rpcMgr::showState() const {
 
 bool rpcMgr::existsActiveIRPC() const {
     for (unsigned i = 0; i < thrs_.size(); i++) {
-      if (thrs_[i] == NULL) continue;
-        if (thrs_[i]->isRunningIRPC()) {
-            inferiorrpc_printf("%s[%d]: active IRPC on thread %d (slot %d), ret true\n",
-                               FILE__, __LINE__, thrs_[i]->thr_->get_tid(), i);
-            return true;
-        }
+       if (thrs_[i] == NULL) continue;
+       if (thrs_[i]->isRunningIRPC()) {
+          inferiorrpc_printf("%s[%d]: active IRPC on thread %d (slot %d), ret true\n",
+                             FILE__, __LINE__, thrs_[i]->thr_->get_tid(), i);
+          return true;
+       }
     }
     dictionary_hash<unsigned, rpcLWP *>::iterator rpc_iter = lwps_.begin();
     while(rpc_iter != lwps_.end()) {
