@@ -81,6 +81,7 @@ rpcMgr::rpcMgr(rpcMgr *pRM, process *child) :
     // Make all necessary thread and LWP managelets.
     
     for (unsigned i = 0; i < pRM->thrs_.size(); i++) {
+      if (pRM->thrs_[i]) {
         dynthread_t tid = pRM->thrs_[i]->thr_->get_tid();
         dyn_thread *cthr = child->getThread(tid);
         if (!cthr) continue; // Whee, not there any more. 
@@ -88,6 +89,9 @@ rpcMgr::rpcMgr(rpcMgr *pRM, process *child) :
                                   this,
                                   cthr);
         thrs_.push_back(newT);
+      }
+      else
+	thrs_.push_back(NULL); // Can happen if indices were skipped
     }
 
     // Check LWPS
@@ -142,6 +146,7 @@ rpcMgr::rpcMgr(rpcMgr *pRM, process *child) :
         if (oldRPC->thr) {
             dynthread_t tid = oldRPC->thr->get_tid();
             for (unsigned j = 0; j < thrs_.size(); j++) {
+	      if (thrs_[j] == NULL) continue;
                 if (thrs_[j]->thr_->get_tid() == tid) {
                     rpcThr *thr = thrs_[j];
                     // Now find the matching (ID) RPC
@@ -281,6 +286,7 @@ void rpcMgr::showState() const {
 
 bool rpcMgr::existsActiveIRPC() const {
     for (unsigned i = 0; i < thrs_.size(); i++) {
+      if (thrs_[i] == NULL) continue;
         if (thrs_[i]->isRunningIRPC()) {
             inferiorrpc_printf("%s[%d]: active IRPC on thread %d (slot %d), ret true\n",
                                FILE__, __LINE__, thrs_[i]->thr_->get_tid(), i);
@@ -302,6 +308,7 @@ bool rpcMgr::existsActiveIRPC() const {
 
 bool rpcMgr::existsPendingIRPC() const {
     for (unsigned i = 0; i < thrs_.size(); i++) {
+      if (thrs_[i] == NULL) continue;
         if (thrs_[i]->isWaitingForBreakpoint()) {
             inferiorrpc_printf("%s[%d]: thread %d (slot %d) waiting for breakpoint, ret true\n",
                                FILE__, __LINE__, thrs_[i]->thr_->get_tid(), i);
@@ -323,6 +330,7 @@ bool rpcMgr::existsPendingIRPC() const {
 
 bool rpcMgr::existsWaitingIRPC() const {
     for (unsigned i = 0; i < thrs_.size(); i++) {
+      if (thrs_[i] == NULL) continue;
         if (thrs_[i]->isReadyForIRPC()) {
             inferiorrpc_printf("%s[%d]: thread %d (slot %d) has ready RPC, ret true\n",
                                FILE__, __LINE__, thrs_[i]->thr_->get_tid(), i);
@@ -467,12 +475,11 @@ bool rpcMgr::handleRPCEvent(EventRecord &ev, bool &continueHint)
     rpcThr = currRPC->rpcthr;
     rpcLwp = currRPC->rpclwp;
 
-    runProcess = true;
     if (rpcThr) 
        rpcThr->getReturnValueIRPC();
     else 
        rpcLwp->getReturnValueIRPC();
-    
+    continueHint = true;
   }
   else if (ev.status == statusRPCDone) {
     currRPC = findRunningRPCWithCompletionAddress(ev.address);
@@ -487,33 +494,28 @@ bool rpcMgr::handleRPCEvent(EventRecord &ev, bool &continueHint)
     rpcThr = currRPC->rpcthr;
     rpcLwp = currRPC->rpclwp;
     if(rpcThr) 
-       runProcess = rpcThr->handleCompletedIRPC();
+        rpcThr->handleCompletedIRPC();
     else 
-       runProcess = rpcLwp->handleCompletedIRPC();
+        rpcLwp->handleCompletedIRPC();
   }
   else 
     assert(0);
-  
-  inferiorrpc_printf("%s[%d]: Completed RPC: pending %d, requestedRun %d\n",
-                     FILE__, __LINE__, allRunningRPCs_.size(), runProcess);
 
-  if (runProcess || allRunningRPCs_.size() > 0)
-    continueHint = true;
-#if 0
-    if(process::IndependentLwpControl()) {
-       if(rpcThr) {
-          dyn_thread *dthr = rpcThr->get_thr();
-          dthr->get_lwp()->continueLWP();
-        }  else {
-          assert(rpcLwp);
-          rpcLwp->get_lwp()->continueLWP();
-        }
-     }
-     else {
-       ev.proc->continueProc();
-     }
-#endif
-    
+  // Do we want this to be pending? What if someone says
+  // "run iRPC" and waits for it to finish, on a thread in a
+  // syscall.... we need to re-investigate aborting syscalls.
+
+  if (!process::IndependentLwpControl()) {
+      // We stopped everything, and there's an iRPC that needs
+      // running...
+      // Should this be moved to whoever's waiting on the iRPC?
+      // Better, go to independent control on more platforms.
+      if (existsActiveIRPC())
+          continueHint = true;
+  }
+
+  inferiorrpc_printf("%s[%d]: Completed RPC: pending %d\n",
+                     FILE__, __LINE__, allRunningRPCs_.size());
   return true;
 }
 
@@ -608,7 +610,6 @@ bool rpcMgr::launchRPCs(bool &needsToRun,
        for (unsigned i = 0; i < thrs_.size(); i++) {
           rpcThr *curThr = thrs_[i];
           if(curThr == NULL) {
-              fprintf(stderr, "Odd case: RPC thread object is NULL for slot %d\n",i);
               continue;
           }
           if (curThr->isReadyForIRPC()) {
