@@ -95,13 +95,16 @@ BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func, instPo
     // internal, BPatch-internal (dynamic monitoring), or user-added.
 
     baseTramp *bt = point->getBaseTramp(callPreInsn);
-    assert(bt);
-    miniTramp *mt = bt->firstMini;
+    miniTramp *mt = NULL;
+
+    if (bt) mt = bt->firstMini;
+
     while (mt) {
         if (mt->instP == point)
             mts.push_back(mt);
         mt = mt->next;
     }
+
     for(unsigned i=0; i<mts.size(); i++) {
         BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc);
         handle->addMiniTramp(mts[i]);
@@ -109,9 +112,11 @@ BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func, instPo
     }
     // And now post.
     mts.clear();
+    mt = NULL;
+    
     bt = point->getBaseTramp(callPostInsn);
-    assert(bt);
-    mt = bt->firstMini;
+    if (bt) mt = bt->firstMini;
+    
     while (mt) {
         if (mt->instP == point)
             mts.push_back(mt);
@@ -120,9 +125,8 @@ BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func, instPo
     for(unsigned ii=0; ii<mts.size(); ii++) {
         BPatchSnippetHandle *handle = new BPatchSnippetHandle(proc);
         handle->addMiniTramp(mts[ii]);
-        preSnippets.push_back(handle);
+        postSnippets.push_back(handle);
     }
-
 }
 
 /*
@@ -148,8 +152,9 @@ BPatch_point::BPatch_point(BPatch_process *_proc, BPatch_function *_func,
   // Preinsn
   
   baseTramp *bt = point->getBaseTramp(callPreInsn);
-  assert(bt);
-  miniTramp *mt = bt->firstMini;
+  miniTramp *mt = NULL;
+  if (bt) mt = bt->firstMini;
+
   while (mt) {
       if (mt->instP == point)
           mts.push_back(mt);
