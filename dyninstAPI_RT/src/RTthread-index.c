@@ -93,8 +93,9 @@ void DYNINST_initialize_index_list()
   for (i=0; i<DYNINST_max_num_threads-1; i++)
      threads[i].next = i+1;
   threads[DYNINST_max_num_threads-1].next = NONE;
-
-  first_free = 0;
+  
+  /* We reserve 0 for the 'initial thread' */
+  first_free = 1;
   first_deleted = NONE;
 }
 
@@ -177,7 +178,10 @@ unsigned DYNINST_alloc_index(dyntid_t tid)
    if (result == DYNINST_DEAD_LOCK)
       return DYNINST_max_num_threads;
 
-   if (first_free != NONE) //An unallocated free slot exists
+   if (DYNINST_am_initial_thread(tid)) {
+       t = 0;
+   }
+   else if (first_free != NONE) //An unallocated free slot exists
    {
       t = first_free;
       first_free = threads[first_free].next;
@@ -287,6 +291,41 @@ int DYNINST_free_index(dyntid_t tid)
    tc_lock_unlock(&DYNINST_index_lock);
    return retval;
 }
+
+/* 
+   We reserve index 0 for the initial thread. This value varies by
+   platform but is always constant for that platform. Wrap that
+   platform-ness here. 
+*/
+int DYNINST_am_initial_thread(int tid) {
+#if defined(os_aix)
+    return (tid == 1);
+#elif defined(os_linux)
+    static int already_matched = -1; 
+    if (dyn_lwp_self() == getpid()) {
+        if ((already_matched != -1) && 
+            (already_matched != tid)) {
+            /* This can only happen in 2.4; we don't have lwp_self(),
+               or multiple tids share the same lwp. Error case. */
+            assert(0);
+            return 0;
+        }
+        already_matched = tid;
+        return 1;
+    }
+    return 0;
+#elif defined(os_solaris)
+    return (tid == 1);
+#elif defined(os_windows)
+    static int not_first = 0;
+    if (not_first) return 0;
+    not_first = 1; 
+    return 1;
+#else
+    return 0;
+#endif
+}
+ 
 
 #if 0
 void DYNINST_print_lists()
