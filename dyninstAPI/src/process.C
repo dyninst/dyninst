@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.616 2006/04/24 23:33:10 mirg Exp $
+// $Id: process.C,v 1.617 2006/04/24 23:40:41 mjbrim Exp $
 
 #include <ctype.h>
 
@@ -6057,12 +6057,20 @@ void process::recognize_threads(const process *parent)
              return;
          }
          
-         sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone);
+         sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone, 
+			  false); /* Do _not_ execute callbacks; we want to finish this
+	                             before we handle any thread stuff */
+
+	 // We don't continue threads, and so we think the process is stopped (silly people). 
+	 if (process::IndependentLwpControl())
+	     sh->signalActiveProcess();
+	 
 
          startup_printf("%s[%d]: got RPC event...\n",
                         FILE__, __LINE__);
-         getMailbox()->executeCallbacks(FILE__, __LINE__);
      } while (getRpcMgr()->existsActiveIRPC());
+
+     getMailbox()->executeCallbacks(FILE__, __LINE__);
 
      // Don't assert these... the RPCs can fail (well DYNINSTthreadIndex can fail).
      //assert(ret_lwps.size() == expected);
@@ -6077,9 +6085,10 @@ void process::recognize_threads(const process *parent)
          // Wait for the thread to show up...
          int timeout = 0;
          while ( (bpthrd = bproc->getThreadByIndex(ret_indexes[i])) == NULL) {
-	   sh->waitForEvent(evtThreadCreate);
-	   timeout++;
-	   if (timeout > 1000) break;
+            getMailbox()->executeCallbacks(FILE__, __LINE__);
+            sh->waitForEvent(evtThreadCreate);
+            timeout++;
+            if (timeout > 1000) break;
          }
      }
      
