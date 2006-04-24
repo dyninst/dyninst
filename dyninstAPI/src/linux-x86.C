@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.102 2006/04/21 22:22:54 bernat Exp $
+// $Id: linux-x86.C,v 1.103 2006/04/24 23:38:42 mjbrim Exp $
 
 #include <fstream>
 
@@ -404,6 +404,8 @@ static void getVSyscallSignalSyms(char *buffer, unsigned dso_size, process *p)
    if (elf == NULL)
       goto err_handler;
    ehdr = elf32_getehdr(elf);
+   if (ehdr == NULL)
+      goto err_handler;
    
    //Get string section indexes
    shstr = ehdr->e_shstrndx;
@@ -500,6 +502,16 @@ static char *execVsyscallFetch(process *p, char *buffer) {
    return buffer;
 }
 
+static bool isVsyscallData(char *buffer, int dso_size) {
+   //Start with an elf header?
+   if (dso_size < 4)
+      return false;
+   return (buffer[0] == 0x7f && buffer[1] == 'E' && buffer[2] == 'L' &&
+           buffer[3] == 'F');
+   
+}
+
+
 void calcVSyscallFrame(process *p)
 {
   void *result;
@@ -553,6 +565,12 @@ void calcVSyscallFrame(process *p)
      }
   }
 
+  if (!isVsyscallData(buffer, dso_size)) {
+     p->setVsyscallRange(0x0, 0x0);
+     p->setVsyscallData(NULL);
+     p->setVsyscallStatus(vsys_notfound);
+     return;     
+  }
   getVSyscallSignalSyms(buffer, dso_size, p);
   result = parseVsyscallPage(buffer, dso_size, p);
   p->setVsyscallData(result);
