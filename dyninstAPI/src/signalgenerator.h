@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator.h,v 1.7 2006/04/24 23:38:41 mjbrim Exp $
+/* $Id: signalgenerator.h,v 1.8 2006/04/25 22:08:21 bernat Exp $
  */
 
 #ifndef _SIGNAL_GENERATOR_H_
@@ -164,7 +164,7 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    void waitForActivation(); // Wait until process is marked running
 
    bool continueRequired();
-   bool continueProcessInternal(dyn_lwp *contLWP = NULL);
+   bool continueProcessInternal();
    void setContinueSig(int signalToContinueWith);
    
    bool getEvents(pdvector<EventRecord> &events); // Fill in ev with raw data.
@@ -229,6 +229,8 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    // We barrier-continue; if there is a signal to use, it's stored in 
    // here until the actual continue is executed.
    int continueSig_;
+   // ... and often want to continue a single LWP
+   pdvector<dyn_lwp *> lwpsToContinue_;
    
    // The BPatch layer can (basically) asynchronously stop the process
    // without knowledge of the current signal handling state. We mark that

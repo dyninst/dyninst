@@ -396,6 +396,9 @@ bool SignalGeneratorCommon::continueProcessAsync(int signalToContinueWith, dyn_l
                       FILE__, __LINE__, getThreadStr(getThreadID()));
     }
 
+    if (lwp)
+        lwpsToContinue_.push_back(lwp);
+
     if (waitingForOS_) {
         // We managed to get into waitpid (prolly signalActiveProcess) without
         // continuing the process...
@@ -403,7 +406,7 @@ bool SignalGeneratorCommon::continueProcessAsync(int signalToContinueWith, dyn_l
                       FILE__, __LINE__, getThreadStr(getThreadID()));
         // Okay, we must be in a "lwps are partially running" situation. Feed in
         // the LWP we were given in continue.
-        continueProcessInternal(lwp);
+        continueProcessInternal();
         signal_printf("%s[%d]: async continue broadcasting...\n", FILE__, __LINE__);
         activationLock->_Broadcast(FILE__, __LINE__);
         activationLock->_Unlock(FILE__, __LINE__);
@@ -1982,10 +1985,10 @@ bool SignalGeneratorCommon::continueRequired() {
 }
 
 
-bool SignalGeneratorCommon::continueProcessInternal(dyn_lwp *contLWP) {
-    signal_printf("%s[%d]: continuing process...\n", FILE__, __LINE__);
+bool SignalGeneratorCommon::continueProcessInternal() {
+    signal_printf("%s[%d]: continuing process, lwp pointer %p\n", FILE__, __LINE__, contLWP);
 
-    bool res = false;
+    bool res = true;
 
     // We can get the following sequence of events:
     // UI: grab activationLock
@@ -2000,9 +2003,13 @@ bool SignalGeneratorCommon::continueProcessInternal(dyn_lwp *contLWP) {
 
     activationLock->_Lock(FILE__, __LINE__);
 
-    if ((contLWP != NULL) &&
+    if ((lwpsToContinue_.size() != 0) &&
         process::IndependentLwpControl()) {
-        res = contLWP->continueLWP(continueSig_);
+        for (unsigned i = 0; i < lwpsToContinue_.size(); i++) {
+            if (!lwpsToContinue_[i]->continueLWP(continueSig_))
+                res = false;
+        }
+        lwpsToContinue_.clear();
     }
     else  {
         res = proc->continueProc_(continueSig_);
