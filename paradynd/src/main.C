@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.145 2006/04/15 01:07:51 legendre Exp $
+// $Id: main.C,v 1.146 2006/04/25 18:18:07 tlmiller Exp $
 
 #include "common/h/headers.h"
 #include "pdutil/h/makenan.h"
@@ -817,11 +817,17 @@ BPatch_process *MPI_proc = NULL;
 static int break_at_mpi_init(BPatch_process *bproc)
 {
 	extern pdstring MPI_impl;
-	int mpi_comm_world;
+	unsigned long mpi_comm_world;
 
 	if(MPI_impl == "LAM")
 	{
-		mpi_comm_world = MPI_COMM_WORLD_LAM;
+		/* For LAM 7.1.2, at least, and probably others, MPI_COMM_WORLD is
+		   #define'd to be the address of 'lam_mpi_comm_world'. */
+		BPatch_variableExpr * mcw = bproc->getImage()->findVariable( "lam_mpi_comm_world" );
+		if( mcw == NULL ) {
+			assert( "Unable to locate lam_mpi_comm_world in LAM mpi daemon." );
+			}
+		mpi_comm_world = (unsigned long) mcw->getBaseAddr();
 	}
 	else if(MPI_impl == "MPICH")
 	{
