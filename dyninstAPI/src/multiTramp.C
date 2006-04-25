@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.39 2006/04/21 22:23:08 bernat Exp $
+// $Id: multiTramp.C,v 1.40 2006/04/25 20:13:55 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -1624,9 +1624,6 @@ bool multiTramp::replaceMultiTramp(multiTramp *oldMulti,
     if (range && range->is_multitramp())
         newMulti->proc()->addMultiTramp(newMulti);
     // Otherwise is function relocation... so don't overwrite.
-    else
-        fprintf(stderr, "Function replacement already there, not adding at 0x%lx\n",
-                newMulti->instAddr());
 
     // Caller decides whether to remove the original version
     deleteReplaced = true;

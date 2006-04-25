@@ -179,52 +179,47 @@ bool SignalHandler::handleCritical(EventRecord &ev, bool &continueHint)
 {
    process *proc = ev.proc;
    assert(proc);
-   proc->pause(); //On independent LWP system, other LWPs might not be stopped.
 
    signal_printf("Process %d dying on signal %d\n", proc->getPid(), ev.what);
 
-    {
-#ifndef mips_unknown_ce2_11 //ccw 6 feb 2001 : 29 mar 2001
-        // Should walk stacks for other threads as well
-        pdvector<pdvector<Frame> > stackWalks;
-        proc->walkStacks(stackWalks);
-        for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++) {
-            fprintf(stderr, "%s[%d]:  Registers for pid %d, lwpid %d\n", FILE__, __LINE__,
-                    stackWalks[walk_iter][0].getLWP()->proc()->getPid(), 
-                    stackWalks[walk_iter][0].getLWP()->get_lwp_id());
-            stackWalks[walk_iter][0].getLWP()->dumpRegisters();
-            fprintf(stderr, "%s[%d]:  Stack for pid %d, lwpid %d\n", FILE__, __LINE__,
-                    stackWalks[walk_iter][0].getLWP()->proc()->getPid(), 
-                    stackWalks[walk_iter][0].getLWP()->get_lwp_id());
-            for( unsigned i = 0; i < stackWalks[walk_iter].size(); i++ )
-            {
-                //int_function* f = proc->findFuncByAddr( stackWalks[walk_iter][i].getPC() );
-                //const char* szFuncName = (f != NULL) ? f->prettyName().c_str() : "<unknown>";
-                //fprintf( stderr, "%08x: %s\n", stackWalks[walk_iter][i].getPC(), szFuncName );
-                cerr << stackWalks[walk_iter][i] << endl;
-                int_function *f = stackWalks[walk_iter][i].getFunc();
-                if (f) {
-                    fprintf(stderr, "... 0x%lx to 0x%lx\n", f->getAddress(), f->getAddress() + f->getSize_NP());
-                }
-            }
-        }
-        
-#endif
-    }
+   if (dyn_debug_signal) {
+       pdvector<pdvector<Frame> > stackWalks;
+       proc->walkStacks(stackWalks);
+       for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++) {
+           fprintf(stderr, "%s[%d]:  Registers for pid %d, lwpid %d\n", FILE__, __LINE__,
+                   stackWalks[walk_iter][0].getLWP()->proc()->getPid(), 
+                   stackWalks[walk_iter][0].getLWP()->get_lwp_id());
+           stackWalks[walk_iter][0].getLWP()->dumpRegisters();
+           fprintf(stderr, "%s[%d]:  Stack for pid %d, lwpid %d\n", FILE__, __LINE__,
+                   stackWalks[walk_iter][0].getLWP()->proc()->getPid(), 
+                   stackWalks[walk_iter][0].getLWP()->get_lwp_id());
+           for( unsigned i = 0; i < stackWalks[walk_iter].size(); i++ )
+               {
+                   //int_function* f = proc->findFuncByAddr( stackWalks[walk_iter][i].getPC() );
+                   //const char* szFuncName = (f != NULL) ? f->prettyName().c_str() : "<unknown>";
+                   //fprintf( stderr, "%08x: %s\n", stackWalks[walk_iter][i].getPC(), szFuncName );
+                   cerr << stackWalks[walk_iter][i] << endl;
+                   int_function *f = stackWalks[walk_iter][i].getFunc();
+                   if (f) {
+                       fprintf(stderr, "... 0x%lx to 0x%lx\n", f->getAddress(), f->getAddress() + f->getSize_NP());
+                   }
+               }
+       }
+       
+       int sleep_counter = SLEEP_ON_MUTATEE_CRASH;
+       while (dyn_debug_signal && (sleep_counter > 0)) {
+           signal_printf("Critical signal received, spinning to allow debugger to attach\n");
+           sleep(10);
+           sleep_counter -= 10;
+       }
+       
+       if (CAN_DUMP_CORE)
+           proc->dumpImage("imagefile");
+       else
+           proc->dumpMemory((void *)ev.address, 32);
+   }
 
-    int sleep_counter = SLEEP_ON_MUTATEE_CRASH;
-    while (dyn_debug_signal && (sleep_counter > 0)) {
-       signal_printf("Critical signal received, spinning to allow debugger to attach\n");
-       sleep(10);
-       sleep_counter -= 10;
-    }
-
-    if (CAN_DUMP_CORE)
-      proc->dumpImage("imagefile");
-    else
-      proc->dumpMemory((void *)ev.address, 32);
-
-    return forwardSigToProcess(ev, continueHint);
+   return forwardSigToProcess(ev, continueHint);
 }
 
 bool SignalHandler::handleEvent(EventRecord &ev)
@@ -550,8 +545,8 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
      case evtInstPointTrap: {
          // Linux inst via traps
          // First, we scream... this is undesired behavior.
-         fprintf(stderr, "WARNING: inst point trap detected at 0x%lx, trap to 0x%lx\n",
-                 ev.address, proc->trampTrapMapping[ev.address]);
+         signal_printf("%s[%d]: WARNING: inst point trap detected at 0x%lx, trap to 0x%lx\n",
+                       FILE__, __LINE__, ev.address, proc->trampTrapMapping[ev.address]);
          codeRange *from = proc->findCodeRangeByAddress(ev.address);
          codeRange *to = proc->findCodeRangeByAddress(ev.address);
          from->print_range();

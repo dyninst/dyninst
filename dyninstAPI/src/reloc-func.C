@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.18 2006/04/18 22:06:34 bernat Exp $
+// $Id: reloc-func.C,v 1.19 2006/04/25 20:13:56 bernat Exp $
 
 // We'll also try to limit this to relocation-capable platforms
 // in the Makefile. Just in case, though....
@@ -126,8 +126,6 @@ bool int_function::relocationGenerateInt(pdvector<funcMod *> &mods,
     unsigned i;
 
     if(!canBeRelocated()) {
-        fprintf(stderr, "Skipping relocation of function %s: has non-reloc constructs\n",
-                symTabName().c_str());
         return false;
     }
    
@@ -416,8 +414,6 @@ bool int_function::expandForInstrumentation() {
     // of a long chain. 
 
     if (!canBeRelocated()) {
-        fprintf(stderr, "Skipping relocation of function %s: has non-reloc constructs\n",
-                symTabName().c_str());
         return false;
     }
 
