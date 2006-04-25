@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.619 2006/04/25 19:34:33 tlmiller Exp $
+// $Id: process.C,v 1.620 2006/04/25 22:08:19 bernat Exp $
 
 #include <ctype.h>
 
@@ -5960,7 +5960,12 @@ void process::recognize_threads(const process *parent)
   unsigned i;
   int result;
 
+  startup_printf("%s[%d]: Recognizing threads in process\n",
+                 FILE__, __LINE__);
+
   if (!multithread_capable()) {
+      startup_printf("%s[%d]: process not multithread capable, creating default thread\n",
+                     FILE__, __LINE__);
      // Easy case
      if (parent) {
         assert(parent->threads.size() == 1);
@@ -5974,8 +5979,8 @@ void process::recognize_threads(const process *parent)
   result = determineLWPs(lwp_ids);
   if (!result)
   {
-     forkexec_printf("Error. Recognize_threads couldn't determine LWPs\n");
-     return;
+      startup_printf("Error. Recognize_threads couldn't determine LWPs\n");
+      return;
   }     
 
   //If !parent, then we're not a forked process and we can just assign the threads to
