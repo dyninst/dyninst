@@ -162,7 +162,7 @@ DYNINSTresourceCreationInfo_Add( DYNINSTresourceCreationInfo* ci,
 void PARADYNtagGroupInfo_Init( void );
 static int PARADYNGroup_CreateUniqueId(int,int);
 static void PARADYNrecordTagGroupInfo(int,unsigned);
-int PARADYNGroup_FindUniqueId(unsigned gId, char * constraint);
+int PARADYNGroup_FindUniqueId(unsigned long gId, char * constraint);
 
 /* for MPI RMA Window support */
 struct ParadynWin_st;
@@ -543,7 +543,7 @@ struct LAM_Win{
 
 
 //Record new window information and report it as a new resource
-void DYNINSTrecordWindowInfo(unsigned int * WinId)
+void DYNINSTrecordWindowInfo(unsigned long * WinId)
 {
    int           newWindow;
    int WindowId;
@@ -644,7 +644,7 @@ void PARADYNreportNewWindow(const struct ParadynWin_st * WinSt )
                               wall_time, process_time);
 }
 // report user-defined name for RMA window to the front-end
-void DYNINSTnameWindow(unsigned int WindowId, char * name){
+void DYNINSTnameWindow(unsigned long WindowId, char * name){
    struct ParadynWin_st* WinSt;
    int           WindowDx ;
    rawTime64 process_time;
@@ -713,7 +713,7 @@ void DYNINSTnameWindow(unsigned int WindowId, char * name){
 }
 
 // report user-defined name for communicator to the frontend
-void DYNINSTnameGroup(unsigned int gId, char * name){
+void DYNINSTnameGroup(unsigned long gId, char * name){
    struct DynInstTag_st* tagSt;
    int           groupDx ;
    rawTime64 process_time;
@@ -790,7 +790,7 @@ void DYNINSTnameGroup(unsigned int gId, char * name){
 
 // when a communicator is deallocated with MPI_Comm_free report it as retired
 // to the front end
-void DYNINSTretireGroupTag(unsigned int * gId){
+void DYNINSTretireGroupTag(unsigned long * gId){
    struct DynInstTag_st* tagSt;
    struct DynInstTag_st* prevtagSt = NULL;
    int           groupDx ;
@@ -881,7 +881,7 @@ void DYNINSTretireGroupTag(unsigned int * gId){
 
 // when a window is deallocated with MPI_Win_free, report it to the frontend
 //as retired
-void DYNINSTretireWindow(unsigned int * WindowId){
+void DYNINSTretireWindow(unsigned long * WindowId){
    struct ParadynWin_st* WinSt;
    struct ParadynWin_st* prevWinSt = NULL;
    int           WindowDx ;
@@ -965,7 +965,7 @@ void DYNINSTrecordTag(int tagId)
    PARADYNrecordTagGroupInfo(tagId, -1);
 }
 
-void DYNINSTrecordTagAndGroup(int tagId, unsigned groupId)
+void DYNINSTrecordTagAndGroup(int tagId, unsigned long groupId)
 {
    int gId = -1;
    assert(tagId >= 0);
@@ -983,7 +983,7 @@ void DYNINSTrecordTagAndGroup(int tagId, unsigned groupId)
    PARADYNrecordTagGroupInfo(tagId, gId );
 }
 
-void DYNINSTrecordGroup(unsigned groupId)
+void DYNINSTrecordGroup(unsigned long groupId)
 {
    int gId = -1;
    if(whichMPI == LAM){
@@ -1001,9 +1001,9 @@ void DYNINSTrecordGroup(unsigned groupId)
 }
 
 //record new RMA window
-void DYNINSTrecordWindow(unsigned int WindowId)
+void DYNINSTrecordWindow(unsigned long WindowId)
 {
-   DYNINSTrecordWindowInfo((unsigned int *)WindowId);
+   DYNINSTrecordWindowInfo((unsigned long *)WindowId);
 }
 
 
@@ -1039,7 +1039,7 @@ int DYNINSTGroup_CreateLocalId(int tgUniqueId)
 /************************************************************************
  *
  ************************************************************************/
-int PARADYNGroup_FindUniqueId(unsigned gId, char * constraint)
+int PARADYNGroup_FindUniqueId(unsigned long gId, char * constraint)
 {
    int           groupDx;
    int           groupId;
@@ -1081,7 +1081,7 @@ int PARADYNGroup_FindUniqueId(unsigned gId, char * constraint)
 }
 
 //find the indentifier of the RMA window in question
-int DYNINSTWindow_FindUniqueId(unsigned int WindowId, char * constraint)
+int DYNINSTWindow_FindUniqueId(unsigned long WindowId, char * constraint)
 {
    int           WinDx;
    ParadynWinSt* WinSt = NULL;
