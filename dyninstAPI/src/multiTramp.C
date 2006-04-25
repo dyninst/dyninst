@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.40 2006/04/25 20:13:55 bernat Exp $
+// $Id: multiTramp.C,v 1.41 2006/04/25 23:13:10 bernat Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -1433,12 +1433,19 @@ Address multiTramp::uninstToInstAddr(Address addr) {
     // find the matching addr in the multiTramp. However,
     // there's a bit of a catch -- if there's a preTramp,
     // relocate to there.
+    
+    if (addr < instAddr()) return 0;
+    if (addr >= (instAddr() + instSize())) return 0;
 
     assert(generated_);
 
     relocatedInstruction *insn = NULL;
-    if (insns_.find(addr))
-        insn = insns_[addr];
+    while (!insns_.find(addr)) {
+        addr--;
+        if (addr < instAddr()) return trampAddr_;
+    }
+
+    insn = insns_[addr];
 
     if (!insn) {
         // This is expected
