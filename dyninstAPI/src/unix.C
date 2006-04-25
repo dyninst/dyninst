@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.192 2006/04/24 23:33:12 mirg Exp $
+// $Id: unix.C,v 1.193 2006/04/25 15:07:14 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -286,7 +286,12 @@ bool SignalGenerator::decodeProcStatus(procProcStatus_t status, EventRecord &ev)
         break;
      case PR_SYSEXIT:
         ev.type = evtSyscallExit;
+#if defined(os_osf)
+        // Alpha doesn't have a pr_syscall
+        ev.what = status.pr_what;
+#else
         ev.what = status.pr_syscall;
+#endif
 
 #if defined(os_aix)
         // This from the proc header file: system returns are
