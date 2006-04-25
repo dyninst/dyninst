@@ -1986,7 +1986,7 @@ bool SignalGeneratorCommon::continueRequired() {
 
 
 bool SignalGeneratorCommon::continueProcessInternal() {
-    signal_printf("%s[%d]: continuing process, lwp pointer %p\n", FILE__, __LINE__, contLWP);
+    signal_printf("%s[%d]: continuing process, lwp pointer\n", FILE__, __LINE__);
 
     bool res = true;
 
