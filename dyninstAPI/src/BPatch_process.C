@@ -1373,6 +1373,7 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
        inferiorrpc_printf("%s[%d]: Continuing process\n",
                           FILE__, __LINE__);
        llproc->sh->continueProcessBlocking();
+       llproc->sh->overrideSyncContinueState(ignoreRequest);
    }
 
    // Async... don't wait.
@@ -1788,6 +1789,8 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
                                                   unsigned long stack_top, 
                                                   unsigned long start_pc, process *proc_)
 {
+    
+
   bool thread_exists = (getThreadByIndex(index) != NULL);
   if (!llproc && proc_) llproc = proc_;
   BPatch_thread *newthr = 
