@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3.C,v 1.42 2006/03/12 23:32:30 legendre Exp $
+// $Id: test3.C,v 1.43 2006/04/25 17:47:02 jodom Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -725,6 +725,8 @@ int main(unsigned int argc, char *argv[])
 #endif
     } else
          strcpy((char *)libRTname, (char *)getenv("DYNINSTAPI_RT_LIB"));
+
+    updateSearchPaths(argv[0]);
 
     unsigned int i;
     // by default run all tests

@@ -40,14 +40,13 @@
  */
 
 //
-// $Id: test_util.C,v 1.22 2006/04/05 23:39:35 legendre Exp $
+// $Id: test_util.C,v 1.23 2006/04/25 17:47:02 jodom Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
 #include <stdio.h>
 #include <signal.h>
 #include <sys/types.h>
-#include <sys/wait.h>
 
 #if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 10 apr 2001 
 #ifndef mips_unknown_ce2_11 //ccw 10 apr 2001
@@ -56,6 +55,9 @@
 #include <Windows.h>
 #else
 #include <unistd.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
 #endif
 
 #include "BPatch.h"
@@ -288,5 +290,100 @@ int startNewProcessForAttach(const char *pathname, const char *argv[])
     close(fds[0]);  // We're done with the pipe
 
     return pid;
+#endif
+}
+
+void updateSearchPaths(const char *filename) {
+#if !defined(os_windows)
+   // First, find the directory we reside in
+
+   char *execpath;
+   char pathname[PATH_MAX];
+   getcwd(pathname, PATH_MAX);
+
+   if (filename[0] == '/') {
+      // If it begins with a slash, it's an absolute path
+      execpath = strdup(filename);
+      strrchr(execpath,'/')[0] = '\0';
+   } else if (strchr(filename,'/')) {
+      // If it contains slashes, it's a relative path
+      char *filename_copy = strdup(filename);
+      char *ptr;
+      
+      char *part = strtok_r(filename_copy,"/", &ptr);
+      while (!strcmp(part,".") || !strcmp(part,"..")) {
+         if (!strcmp(part,"..")) {
+            if (strrchr(pathname,'/') != pathname)
+               strrchr(pathname,'/')[0] = '\0';
+         }
+         part = strtok_r(NULL,"/", &ptr);
+      }
+      execpath = (char *) ::malloc(strlen(pathname) + 1 + strlen(filename_copy+1) + 1);
+      strcpy(execpath,pathname);
+      strcat(execpath,"/");
+      strcat(execpath,filename_copy+1);
+      ::free(filename_copy);
+   } else {
+      // If it's just a name, it was found in PATH
+      const char *pathenv = getenv("PATH");
+      char *pathenv_copy = strdup(pathenv);
+      char *ptrptr;
+      char *nextpath = strtok_r(pathenv_copy, ":", &ptrptr);
+      while (nextpath) {
+         struct stat statbuf;
+         
+         char *fullpath = new char[strlen(nextpath)+strlen(filename)+2];
+         strcpy(fullpath,nextpath);
+         strcat(fullpath,"/");
+         strcat(fullpath,filename);
+         
+         if (stat(fullpath,&statbuf)>0) {
+            execpath = strdup(fullpath);
+            delete[] fullpath;
+            break;
+         }
+         delete[] fullpath;
+         nextpath = strtok_r(NULL,":", &ptrptr);
+      }
+      ::free(pathenv_copy);
+      
+      assert(nextpath != NULL);
+   }
+
+   // Now update PATH and LD_LIBRARY_PATH/LIBPATH
+
+    char *envCopy;
+
+    char *envPath = getenv("PATH");
+    envCopy = (char *) ::malloc(((envPath && strlen(envPath)) ? strlen(envPath) + 1 : 0) + strlen(execpath) + 6);
+    strcpy(envCopy, "PATH=");
+    if (envPath && strlen(envPath)) {
+       strcat(envCopy, envPath);
+       strcat(envCopy, ":");
+    } 
+    strcat(envCopy, execpath);
+    assert(!putenv(envCopy));
+    
+    char *envLibPath;
+#if defined(os_aix)
+    envLibPath = getenv("LIBPATH");
+#else
+    envLibPath = getenv("LD_LIBRARY_PATH");
+#endif
+    
+    envCopy = (char *) ::malloc(((envLibPath && strlen(envLibPath)) ? strlen(envLibPath) + 1 : 0) + strlen(execpath) + 17);
+#if defined(os_aix)
+    strcpy(envCopy, "LIBPATH=");
+#else
+    strcpy(envCopy, "LD_LIBRARY_PATH=");
+#endif
+    if (envLibPath && strlen(envLibPath)) {
+       strcat(envCopy, envLibPath);
+       strcat(envCopy, ":");
+    }
+    strcat(envCopy, execpath);
+    assert(!putenv(envCopy));
+
+    ::free(execpath);
 #endif
 }

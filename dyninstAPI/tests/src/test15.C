@@ -209,6 +209,8 @@ int main(int argc, char *argv[])
    } else
       strcpy((char *)libRTname, (char *)getenv("DYNINSTAPI_RT_LIB"));
 
+   updateSearchPaths(argv[0]);
+
    parse_args(argc, argv);
 
    bpatch.registerThreadEventCallback(BPatch_threadCreateEvent, newthr);

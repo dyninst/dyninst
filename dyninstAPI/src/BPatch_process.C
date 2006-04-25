@@ -136,9 +136,35 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
    // missed.  Note that the previous use of getcwd() here for the alpha
    // platform was dangerous since this is an API and we don't know where
    // the user's code will leave the cwd pointing.
-   const char *dotslash = "./";
-   if (NULL == strchr(path, '/'))
-      directoryName = dotslash;
+
+   if (NULL == strchr(path, '/')) {
+      const char *pathenv = getenv("PATH");
+      char *pathenv_copy = strdup(pathenv);
+      char *ptrptr;
+      char *nextpath = strtok_r(pathenv_copy, ":", &ptrptr);
+      while (nextpath) {
+         struct stat statbuf;
+         
+         char *fullpath = new char[strlen(nextpath)+strlen(path)+2];
+         strcpy(fullpath,nextpath);
+         strcat(fullpath,"/");
+         strcat(fullpath,path);
+         
+         if (!stat(fullpath,&statbuf)) {
+            directoryName = nextpath;
+            delete[] fullpath;
+            break;
+         }
+         delete[] fullpath;
+         nextpath = strtok_r(NULL,":", &ptrptr);
+      }
+      ::free(pathenv_copy);
+
+      if (nextpath == NULL) {
+         const char *dotslash = "./";
+         directoryName = dotslash;
+      }
+   }
 #endif
 
    /*

@@ -128,6 +128,8 @@ int main(int argc, char *argv[])
    } else
       strcpy((char *)libRTname, (char *)getenv("DYNINSTAPI_RT_LIB"));
 
+    updateSearchPaths(argv[0]);
+
    for (i = 1; i < argc; ++i) {
        if (strcmp(argv[i], "-attach") == 0) {
           should_exec = false;

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test8.C,v 1.19 2006/03/12 23:32:35 legendre Exp $
+// $Id: test8.C,v 1.20 2006/04/25 17:47:02 jodom Exp $
 //
 
 #include <stdio.h>
@@ -621,6 +621,8 @@ main(unsigned int argc, char *argv[])
 #endif
     } else
          strcpy((char *)libRTname, (char *)getenv("DYNINSTAPI_RT_LIB"));
+
+    updateSearchPaths(argv[0]);
 
     // by default run all tests
     for (i=1; i <= MAX_TEST; i++) {

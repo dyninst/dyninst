@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4.C,v 1.34 2006/03/12 23:32:31 legendre Exp $
+// $Id: test4.C,v 1.35 2006/04/25 17:47:02 jodom Exp $
 //
 
 #include <stdio.h>
@@ -154,7 +154,9 @@ void forkFunc(BPatch_thread *parent, BPatch_thread *child)
 
        // Make a race condition always show up -- we don't run
        // until the processes have had a chance.
+#if !defined(os_windows)
        sleep(1);
+#endif
        // That'll make erroneous continues break...
 
        // insert code into parent
@@ -725,6 +727,8 @@ main(unsigned int argc, char *argv[])
 #endif
     } else
          strcpy((char *)libRTname, (char *)getenv("DYNINSTAPI_RT_LIB"));
+
+    updateSearchPaths(argv[0]);
 
     // by default run all tests
     for (i=1; i <= MAX_TEST; i++) {

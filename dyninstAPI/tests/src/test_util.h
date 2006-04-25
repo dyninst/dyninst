@@ -63,5 +63,6 @@ void waitUntilStopped(BPatch *, BPatch_thread *appThread,
                       int testnum, const char *testname);
 void signalAttached(BPatch_thread *appThread, BPatch_image *appImage);
 int startNewProcessForAttach(const char *pathname, const char *argv[]);
+void updateSearchPaths(const char *filename);
 
 #endif

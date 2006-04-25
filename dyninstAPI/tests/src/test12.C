@@ -1220,6 +1220,8 @@ main(unsigned int argc, char *argv[])
     } else
          strcpy((char *)libRTname, (char *)getenv("DYNINSTAPI_RT_LIB"));
 
+    updateSearchPaths(argv[0]);
+
     unsigned int i;
     // by default run all tests
     for (i=1; i <= MAX_TEST; i++) {
