@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.24 2006/04/12 16:59:39 bernat Exp $
+/* $Id: signalhandler.h,v 1.25 2006/04/25 22:08:23 bernat Exp $
  */
 
 #ifndef _SIGNAL_HANDLER_H
@@ -109,9 +109,12 @@ class SignalHandler : public EventHandler<EventRecord>
       EventHandler<EventRecord>(global_mutex, 
                                 name, 
                                 false /*start thread?*/), 
-      id(shid), sg(sg_),idle_flag(true),
-      wait_flag(false), wait_cb(NULL), active_proc(NULL) { }
-
+          id(shid), sg(sg_),idle_flag(true),
+          wait_flag(false), wait_cb(NULL), active_proc(NULL), 
+          waitingForWakeup_(false) {
+          waitLock = new eventLock();
+      }
+      
   SignalGenerator *sg;
   
   bool handleEvent(EventRecord &ev);
@@ -150,6 +153,10 @@ class SignalHandler : public EventHandler<EventRecord>
 
   static void flagBPatchStatusChange() {BPatch::bpatch->mutateeStatusChange = true;}
   static void setBPatchProcessSignal(BPatch_process *p, int t) {p->lastSignal = t;}
+
+  // For us to block on
+  eventLock *waitLock;
+  bool waitingForWakeup_;
 };
 
 #if defined(os_windows)

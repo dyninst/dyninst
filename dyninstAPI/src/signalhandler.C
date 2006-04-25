@@ -54,31 +54,22 @@
 
 SignalHandler::~SignalHandler()
 {
-   signal_printf("%s[%d]:  welcome to ~SignalHandler\n", FILE__, __LINE__);
-   if (idle_flag || wait_flag) {
-     // maybe a bit heavy handed here....
-     stopThreadNextIter();
-     //killThread();
-   }else {
-     signal_printf("%s[%d]:  waiting for idle before killing thread %s\n", 
-             FILE__, __LINE__, getName());
-     int timeout = 2000 /*ms*/, time_elapsed = 0;
-     while (!idle_flag && !wait_flag) {
-       struct timeval slp;
-       slp.tv_sec = 0;
-       slp.tv_usec = 10 /*ms*/ *1000;
-       select(0, NULL, NULL, NULL, &slp);
-       time_elapsed +=10;
-       if (time_elapsed >= timeout) {
-         fprintf(stderr, "%s[%d]:  cannot kill thread %s, did not become idle\n", FILE__, __LINE__, getName());
-         break;
-       }
-     }
-     if (idle_flag || wait_flag) {
-       stopThreadNextIter();
-     //  killThread();
-     }
-   }
+    signal_printf("%s[%d]:  welcome to ~SignalHandler\n", FILE__, __LINE__);
+
+    stopThreadNextIter();
+    if (waitingForWakeup_) {
+        waitLock->_Lock(FILE__, __LINE__);
+        waitLock->_Broadcast(FILE__, __LINE__);
+    }
+
+    while (isRunning()) {
+        _Unlock(FILE__, __LINE__);
+        sched_yield();
+        _Lock(FILE__, __LINE__);
+    }
+
+    assert(waitLock);
+    delete waitLock;
 }
 
 
@@ -186,10 +177,6 @@ bool SignalHandler::handleCritical(EventRecord &ev, bool &continueHint)
        pdvector<pdvector<Frame> > stackWalks;
        proc->walkStacks(stackWalks);
        for (unsigned walk_iter = 0; walk_iter < stackWalks.size(); walk_iter++) {
-           fprintf(stderr, "%s[%d]:  Registers for pid %d, lwpid %d\n", FILE__, __LINE__,
-                   stackWalks[walk_iter][0].getLWP()->proc()->getPid(), 
-                   stackWalks[walk_iter][0].getLWP()->get_lwp_id());
-           stackWalks[walk_iter][0].getLWP()->dumpRegisters();
            fprintf(stderr, "%s[%d]:  Stack for pid %d, lwpid %d\n", FILE__, __LINE__,
                    stackWalks[walk_iter][0].getLWP()->proc()->getPid(), 
                    stackWalks[walk_iter][0].getLWP()->get_lwp_id());
@@ -212,11 +199,6 @@ bool SignalHandler::handleCritical(EventRecord &ev, bool &continueHint)
            sleep(10);
            sleep_counter -= 10;
        }
-       
-       if (CAN_DUMP_CORE)
-           proc->dumpImage("imagefile");
-       else
-           proc->dumpMemory((void *)ev.address, 32);
    }
 
    return forwardSigToProcess(ev, continueHint);
@@ -709,29 +691,34 @@ bool SignalHandler::assignEvent(EventRecord &ev)
   bool ret = false;
   assert(global_mutex->depth());
 
+  bool can_assign = false;
+
   //  after we get the lock, the handler thread should be either idle, or waiting
   //  for some event.  
   
   if (idle_flag) {
-      // Good, you just volunteered...
-      // handler thread is not doing anything, assign away...
-      signal_printf("%s[%d]:  assigning event %s to %s\n", FILE__, __LINE__,
-                    ev.sprint_event(buf), getName());
-      events_to_handle.push_back(ev);
-      ret = true;
       idle_flag = false;
-      _Broadcast(FILE__, __LINE__);
-      return true;
+      can_assign = true;
   }
-
-  if (waitingForCallback()) {
+  else if (waitingForCallback()) {
       signal_printf("%s[%d]: SH %s in callback, event type %s\n",
                     FILE__, __LINE__, getName(), ev.sprint_event(buf));
       if (ev.type != evtShutDown)
           return false;
       assert(ev.type == evtShutDown);
       // We can send this to the SH even if it's in a callback.
+      can_assign = true;
+  }
+
+  if (can_assign) {
+      signal_printf("%s[%d]: assigning event to handler %s\n",
+                    FILE__, __LINE__, getThreadStr(getThreadID()));
       events_to_handle.push_back(ev);
+      waitLock->_Lock(FILE__, __LINE__);
+      if (waitingForWakeup_) {
+          waitLock->_Broadcast(FILE__, __LINE__);
+      }
+      waitLock->_Unlock(FILE__, __LINE__);
       return true;
   }
 
@@ -742,27 +729,47 @@ bool SignalHandler::assignEvent(EventRecord &ev)
 
 bool SignalHandler::waitNextEvent(EventRecord &ev)
 {
+    assert(waitLock);
   bool ret;
   _Lock(FILE__, __LINE__);
   while (idle_flag) {
-    signal_printf("%s[%d]:  handler %s waiting for something to do\n", 
-                  FILE__, __LINE__, getName());
+    // Our eventlocks are paired mutexes and condition variables; this
+    // is actually _not_ what we want because we want to be able to
+    // wait on different things but have the same global mutex. So we fake it
+    // by carefully unlocking and relocking things. 
 
-    // Waiting for someone to ping our lock (internal thread)
-    _WaitForSignal(FILE__, __LINE__);
+    // We now wait until _we_ are signalled by the generator; so we grab
+    // our signal lock, give up the global mutex lock, and then wait; after
+    // we're signalled we take the global mutex before giving up our own 
+    // waitLock.
+    
+      waitingForWakeup_ = true;
+      signal_printf("%s[%d]: acquiring waitLock lock...\n", FILE__, __LINE__);
+      waitLock->_Lock(FILE__, __LINE__);
+      signal_printf("%s[%d]: releasing global mutex...\n", FILE__, __LINE__);
+      _Unlock(FILE__, __LINE__);
 
-    // Someone wants us to go away....
-    if (stop_request) {
-        ev.type = evtShutDown;
-        
-        // And bounce it back to the signalGenerator
-        // Why....
-        //sg->signalEvent(ev);
-        _Unlock(FILE__, __LINE__);
-        return true;
-    }
-    signal_printf("%s[%d]:  handler %s has been signalled: got event = %s\n", 
-                  FILE__, __LINE__, getName(), idle_flag ? "false" : "true");
+      signal_printf("%s[%d]: sleeping for activation\n", FILE__, __LINE__);
+      waitLock->_WaitForSignal(FILE__, __LINE__);
+
+      signal_printf("%s[%d]: woken, reacquiring global lock...\n", FILE__, __LINE__);
+      _Lock(FILE__, __LINE__);
+      signal_printf("%s[%d]: woken, releasing waitLock...\n", FILE__, __LINE__);
+      waitLock->_Unlock(FILE__, __LINE__);
+      waitingForWakeup_ = false;
+      
+      // Someone wants us to go away....
+      if (stop_request) {
+          ev.type = evtShutDown;
+          
+          // And bounce it back to the signalGenerator
+          // Why....
+          //sg->signalEvent(ev);
+          _Unlock(FILE__, __LINE__);
+          return true;
+      }
+      signal_printf("%s[%d]:  handler %s has been signalled: got event = %s\n", 
+                    FILE__, __LINE__, getName(), idle_flag ? "false" : "true");
   }
   
   // Take the top thing off our queue and handle it. 
