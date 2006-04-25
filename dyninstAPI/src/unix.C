@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.193 2006/04/25 15:07:14 bernat Exp $
+// $Id: unix.C,v 1.194 2006/04/25 17:54:42 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -577,6 +577,8 @@ bool SignalGenerator::decodeSignal(EventRecord &ev)
     return false;
   }
 
+  signal_printf("%s[%d]: decoding signal %d\n", FILE__, __LINE__, ev.what);
+
   //  signal number is assumed to be in ev.what
   switch(ev.what)  {
   case SIGSTOP:
@@ -596,8 +598,11 @@ bool SignalGenerator::decodeSignal(EventRecord &ev)
      break;
   case SIGIOT:
   {
-     ev.type = evtProcessExit;
-     ev.status = statusSignalled;
+      // Not true... the process needs to have the signal forwarded
+      // back to it, it's not gone yet.
+
+      //ev.type = evtProcessExit;
+      //ev.status = statusSignalled;
   }
   case SIGTRAP:
   {
