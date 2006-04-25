@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.217 2006/04/24 23:38:43 mjbrim Exp $
+// $Id: linux.C,v 1.218 2006/04/25 22:08:18 bernat Exp $
 
 #include <fstream>
 
@@ -1314,20 +1314,46 @@ bool process::determineLWPs(pdvector<unsigned> &lwp_ids)
   } 
   while ((direntry = readdir(dirhandle)) != NULL)
   {
-     if (direntry->d_name[0] != '.')
-        continue;
+      if (direntry->d_name[0] != '.') {
+          fprintf(stderr, "Skipping entry %s\n", direntry->d_name);
+          continue;
+      }
      unsigned lwp_id = atoi(direntry->d_name+1);
+     fprintf(stderr, "lwp id %d for d_name %s\n", 
+             lwp_id, direntry->d_name);
      int lwp_ppid;
      if (!lwp_id) 
-        continue;
+         continue;
+#if 0
      sprintf(name, "/proc/%d/stat", lwp_id);
      FILE *fd = fopen(name, "r");
-     if (!fd)
-        continue;
+     if (!fd) {
+         fprintf(stderr, "Failed to open %s\n", name);
+         continue;
+     }
      fscanf(fd, "%*d %*s %*c %d", &lwp_ppid);
+#endif
+     sprintf(name, "/proc/%d/status", lwp_id);
+     FILE *fd = fopen(name, "r");
+     if (!fd) {
+         fprintf(stderr, "Failed to open %s\n", name);
+         continue;
+     }
+     char buffer[1024];
+     while (fgets(buffer, 1024, fd)) {
+         if (strncmp(buffer, "Tgid", 4) == 0) {
+             sscanf(buffer, "%*s %d", &lwp_ppid);
+             break;
+         }
+     }
+
      fclose(fd);
-     if (lwp_ppid != getPid())
-        continue;
+
+     if (lwp_ppid != getPid()) {
+         fprintf(stderr, "lwp_ppid %d != pid %d\n",
+                 lwp_ppid, getPid());
+         continue;
+     }
      lwp_ids.push_back(lwp_id);
   }
   closedir(dirhandle);
