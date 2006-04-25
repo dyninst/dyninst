@@ -2262,9 +2262,6 @@ void pd_process::PDSEP_LOCK(char *file, unsigned line) {
     global_mutex->_Lock(file, line);
 
     while (dyninst_process->lowlevel_process()->sh->isActivelyProcessing()) {
-        fprintf(stderr, "%s[%d]:  waiting before doing user pause for process %d\n",
-                FILE__, __LINE__, 
-                dyninst_process->lowlevel_process()->getPid());
         dyninst_process->lowlevel_process()->sh->waitForEvent(evtAnyEvent);
     }
 }

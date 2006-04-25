@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.188 2006/04/12 16:59:44 bernat Exp $
+// $Id: perfStream.C,v 1.189 2006/04/25 18:18:10 tlmiller Exp $
 
 #include "common/h/headers.h"
 #include "common/h/timing.h"
@@ -636,7 +636,6 @@ void controllerMainLoop(bool check_buffer_first)
 
       if (FD_ISSET(getBPatch().getNotificationFD(), &readSet)) {
           // Dyninst has something for us...
-          fprintf(stderr, "Making BPatch poll callback\n");
           getBPatch().pollForStatusChange();
       }
 
