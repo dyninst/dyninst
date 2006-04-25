@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.61 2006/04/20 21:53:06 bernat Exp $ */
+/* $Id: RTcommon.c,v 1.62 2006/04/25 18:18:05 tlmiller Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -78,7 +78,7 @@ typedef struct { uint64_t low; uint64_t high; } ia64_bundle_t;
 #endif
 
 HEAP_TYPE DYNINSTglobalData[SYN_INST_BUF_SIZE/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
-HEAP_TYPE DYNINSTstaticHeap_32K_lowmemHeap_1[32*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
+HEAP_TYPE DYNINSTstaticHeap_512K_lowmemHeap_1[512*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
 HEAP_TYPE DYNINSTstaticHeap_4M_anyHeap_1[4*1024*1024/sizeof(HEAP_TYPE)] ALIGN_ATTRIB;
 
 

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.41 2006/04/20 21:53:07 bernat Exp $
+ * $Id: RTlinux.c,v 1.42 2006/04/25 18:18:06 tlmiller Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -56,7 +56,7 @@
 #include <errno.h>
 #include <sys/mman.h>
 
-extern double DYNINSTstaticHeap_32K_lowmemHeap_1[];
+extern double DYNINSTstaticHeap_512K_lowmemHeap_1[];
 extern double DYNINSTstaticHeap_4M_anyHeap_1[];
 
 void mark_heaps_exec(void) 
@@ -94,7 +94,7 @@ void mark_heaps_exec(void)
             alignedHeapPointer + adjustedSize );
 
 	/* Mark _both_ heaps executable. */
-	alignedHeapPointer = (unsigned long int) DYNINSTstaticHeap_32K_lowmemHeap_1;
+	alignedHeapPointer = (unsigned long int) DYNINSTstaticHeap_512K_lowmemHeap_1;
 	adjustedSize = alignedHeapPointer + 32 * 1024;
 	alignedHeapPointer = (alignedHeapPointer) & ~(pageSize - 1);
 	adjustedSize -= alignedHeapPointer;
