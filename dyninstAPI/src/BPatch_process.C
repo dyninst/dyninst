@@ -1398,7 +1398,7 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
    if (rpcNeedsContinue) {
        inferiorrpc_printf("%s[%d]: Continuing process\n",
                           FILE__, __LINE__);
-       llproc->sh->continueProcessBlocking();
+       llproc->sh->continueProcessAsync();
        llproc->sh->overrideSyncContinueState(ignoreRequest);
    }
 
