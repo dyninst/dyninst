@@ -43,7 +43,7 @@
 // Since the author of this file chose to use tabs instead of spaces
 // for the indentation mode, the above line switches users into tabs
 // mode with emacs when editing this file.
-/* $Id: addLibrary.C,v 1.18 2005/10/04 18:10:02 legendre Exp $ */
+/* $Id: addLibrary.C,v 1.19 2006/04/25 14:31:28 chadd Exp $ */
 
 
 #if defined(sparc_sun_solaris2_4)
@@ -305,7 +305,6 @@ int addLibrary::writeNewElf(char* filename, const char* libname){
 	unsigned int dynstrOffset;
 	bool seenDynamic = false;
 
-	Elf32_Shdr **newSegments;
 
 	int foundDynstr = 0;
 	
@@ -415,7 +414,6 @@ int addLibrary::writeNewElf(char* filename, const char* libname){
 
 	int currentOffset=0;//ccw 6 mar 2005 
 	bool bssSeen = false; //ccw 6 mar 2005
-	newSegments = (Elf32_Shdr**) new char[sizeof(Elf32_Shdr*) * (numberExtraSegs+1)]; //INSURE ERROR
 	for(int cnt = 0; cnt < newElfFileEhdr->e_shnum-1 ; cnt++){
 		realScn = elf_newscn(newElf);
                 realShdr = elf32_getshdr(realScn);
@@ -424,6 +422,7 @@ int addLibrary::writeNewElf(char* filename, const char* libname){
 		// data
                 memcpy(realShdr,newElfFileSec[cnt].sec_hdr, sizeof(Elf32_Shdr));
                 memcpy(realData,newElfFileSec[cnt].sec_data, sizeof(Elf_Data));
+
                 if(newElfFileSec[cnt].sec_data->d_buf && newElfFileSec[cnt].sec_data->d_size){
                         realData->d_buf = new char[newElfFileSec[cnt].sec_data->d_size];
                         memcpy(realData->d_buf, newElfFileSec[cnt].sec_data->d_buf, newElfFileSec[cnt].sec_data->d_size);
@@ -458,7 +457,6 @@ int addLibrary::writeNewElf(char* filename, const char* libname){
 			memset(realData->d_buf, '\0', realShdr->sh_size);
 		}
 
-		
 		if( !strcmp(".dynstr", (char *)l_strTabData->d_buf+realShdr->sh_name) ){
 			dynstrOffset = realShdr->sh_offset;
 			addStr(realData,newElfFileSec[cnt].sec_data, libname);
@@ -466,17 +464,19 @@ int addLibrary::writeNewElf(char* filename, const char* libname){
 			foundDynstr = 1;
 		}
 		if( !strcmp(".got", (char *)l_strTabData->d_buf+realShdr->sh_name) ){
+			//the first int in .got needs to contain the address of
+			//of the .dynamic section
 			memcpy( (void*)realData->d_buf, (void*)&newElfFileSec[dataSegStartIndx].sec_hdr->sh_addr, 4);
 		}
 		if( pastPhdr || realShdr->sh_addr >= newPhdrAddr){
 			realShdr->sh_offset+=_pageSize;
+			//extraSegmentPad+=_pageSize; //ccw 20 apr 2006
 			pastPhdr = 1;
 		}
 		if( !strncmp("dyninstAPI",(char *)l_strTabData->d_buf+realShdr->sh_name, 10)){
-			//fprintf(stderr,"CURR OFFSET: %x\n", currentOffset);
 			realShdr->sh_offset = currentOffset;
 
-			if(!strstr((char *)l_strTabData->d_buf+realShdr->sh_name,"dyninstAPIhighmem")){
+			if(strstr((char *)l_strTabData->d_buf+realShdr->sh_name,"dyninstAPIhighmem")){ //ccw 20 apr 2006 was !strstr
 				//since this is not loaded by the loader, ie it is mmaped (maybe)
 				//by libdyninstAPI_RT.so it only needs aligned on the real pag size
 				//realShdr->sh_offset +=extraSegmentPad; //ccw 23 jul 2003
@@ -488,20 +488,20 @@ int addLibrary::writeNewElf(char* filename, const char* libname){
 				//fprintf(stderr,"NEW highmem offset: %x\n",realShdr->sh_offset);
 				foundExtraSegment = 1;
 			}else if(strcmp("dyninstAPI_mutatedSO", (char *)l_strTabData->d_buf+realShdr->sh_name)  &&
-				strcmp("dyninstAPI_data", (char *)l_strTabData->d_buf+realShdr->sh_name) 	){
+				strcmp("dyninstAPI_data", (char *)l_strTabData->d_buf+realShdr->sh_name) 
+				){
 	
 				//realShdr->sh_offset += extraSegmentPad;
 				while( (realShdr->sh_addr - realShdr->sh_offset)%0x10000 ){
 					realShdr->sh_offset ++;
 					extraSegmentPad++;
-	
 				}
 				foundExtraSegment = 1;
-				newSegments[atoi(& ( ((char *)l_strTabData->d_buf+realShdr->sh_name )[11]))] = realShdr;
+
 			} else{
 				//realShdr->sh_offset += extraSegmentPad;
 			}
-			currentOffset = realShdr->sh_offset + realShdr->sh_size;
+			currentOffset = realShdr->sh_offset + realShdr->sh_size; 
 			elf_flagscn(realScn,ELF_C_SET,ELF_F_LAYOUT);
 			elf_flagshdr(realScn,ELF_C_SET,ELF_F_LAYOUT);
 
@@ -540,7 +540,8 @@ int addLibrary::writeNewElf(char* filename, const char* libname){
 		}
 
 	}
-	realEhdr ->e_shoff += _pageSize + extraSegmentPad;	
+
+	realEhdr ->e_shoff =currentOffset +1 ;//+= _pageSize + extraSegmentPad;	//ccw 20 apr 2006
 	if( realEhdr->e_shoff  % 16 !=0 ){ //ccw 10 mar 2005
 		realEhdr->e_shoff++;
 	}
@@ -625,7 +626,7 @@ void addLibrary::moveDynamic(){
 	newDynamicIndex = dataSegStartIndx;
 
 	updatedElfFile = (Elf_element*) new char[sizeof(Elf_element) * (newElfFileEhdr->e_shnum+1)]; 
-
+	memset(updatedElfFile,'\0',sizeof(Elf_element) * (newElfFileEhdr->e_shnum+1));
 	arraySize ++;
 		
 	for(int cnt = 0, newIndex = 0; cnt < newElfFileEhdr->e_shnum-1 ; cnt++, newIndex++){

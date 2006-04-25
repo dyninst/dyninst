@@ -40,7 +40,7 @@
  */
 
 /* -*- Mode: C; indent-tabs-mode: true -*- */
-/* $Id: writeBackElf.C,v 1.29 2006/01/13 14:37:48 chadd Exp $ */
+/* $Id: writeBackElf.C,v 1.30 2006/04/25 14:31:29 chadd Exp $ */
 
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
@@ -63,8 +63,8 @@ writeBackElf::writeBackElf(const char *oldElfName, const char* newElfName,
 		bperr(" OLDELF_OPEN_FAIL %s",oldElfName);
 		return;
 	}
-	if((newfd = (creat(newElfName, 0x1c0)))==-1){
-		//bperr("NEWELF_OPEN_FAIL %s", newElfName);
+	if((newfd = (open(newElfName, O_WRONLY|O_CREAT)))==-1){
+		bperr("NEWELF_OPEN_FAIL %s", newElfName);
 		char *fileName = new char[strlen(newElfName)+1+3];
 		for(int i=0;newfd == -1 && i<100;i++){
 			sprintf(fileName, "%s%d",newElfName,i);
@@ -105,6 +105,7 @@ writeBackElf::writeBackElf(const char *oldElfName, const char* newElfName,
 		}else{
 			newSections = new ELF_Section[10];
 		}
+		memset(newSections,'\0', sizeof(ELF_Section) * 10);
 	}	
 	fflush(stdout);
 	mutateeProcess = NULL;
@@ -151,6 +152,7 @@ int writeBackElf::addSection(unsigned int addr, void *data, unsigned int dataSiz
 		}else{
 			tmp = new ELF_Section[newSectionsSize+1];
 		}
+		memset(tmp, '\0', sizeof(ELF_Section) * (newSectionsSize+1));
 		if(newSections){
 			memcpy(tmp, newSections, sizeof(ELF_Section) * (newSectionsSize));
 			if(MALLOC){
@@ -459,6 +461,7 @@ void writeBackElf::createSections(){
 		}else{
 			newdata->d_buf = new char[newSections[i].dataSize];
 		}
+		memset(newdata->d_buf,'\0',newSections[i].dataSize);
 		newdata->d_size = newSections[i].dataSize;
 		memcpy((char*) newdata->d_buf, (char*) newSections[i].data, newdata->d_size);
 		elf_update(newElf, ELF_C_NULL);
@@ -486,6 +489,7 @@ void writeBackElf::addSectionNames(Elf_Data *newdata, Elf_Data*olddata){
 	}else{
 		newdata->d_buf =new char[totalSize];
 	}
+	memset(newdata->d_buf,'\0', totalSize);
 	memcpy(newdata->d_buf, olddata->d_buf, olddata->d_size);
 
 	int currLoc = olddata->d_size;

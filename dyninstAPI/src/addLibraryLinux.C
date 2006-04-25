@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: addLibraryLinux.C,v 1.19 2006/02/12 22:24:32 jodom Exp $ */
+/* $Id: addLibraryLinux.C,v 1.20 2006/04/25 14:31:29 chadd Exp $ */
 
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
@@ -233,7 +233,7 @@ void addLibrary::updateDynamic(Elf_Data *newData,unsigned int dynstrOff,unsigned
 int addLibrary::findSection(char* name){
 	
 	for(int cnt = 0 ; cnt < arraySize; cnt ++ ){
-		if (!strcmp(name, (char *)strTabData->d_buf+newElfFileSec[cnt].sec_hdr->sh_name) ) {
+		if (newElfFileSec[cnt].sec_hdr && !strcmp(name, (char *)strTabData->d_buf+newElfFileSec[cnt].sec_hdr->sh_name) ) {
 			return cnt;
 		}
 	}
@@ -363,20 +363,24 @@ int addLibrary::writeNewElf(char* filename, char* /* libname */){
  	updateSymbols(newElfFileSec[findSection(".dynsym")].sec_data,
 		newElfFileSec[findSection(".dynstr")].sec_data, 
 		newElfFileSec[findSection(".dynamic")].sec_hdr->sh_addr );
- 
- 	updateSymbols(newElfFileSec[findSection(".symtab")].sec_data,
-		newElfFileSec[findSection(".strtab")].sec_data, 
-		newElfFileSec[findSection(".dynamic")].sec_hdr->sh_addr );
+
+	int symTabIndex= findSection(".symtab");
+	int strTabIndex =findSection(".strtab");
+
+	if(symTabIndex != -1 && strTabIndex != -1){
+	 	updateSymbols(newElfFileSec[symTabIndex].sec_data,
+			newElfFileSec[strTabIndex].sec_data, 
+			newElfFileSec[findSection(".dynamic")].sec_hdr->sh_addr );
 	
 
-	updateSymbolsSectionInfo(newElfFileSec[findSection(".symtab")].sec_data,
-		newElfFileSec[findSection(".strtab")].sec_data);
+		updateSymbolsSectionInfo(newElfFileSec[symTabIndex].sec_data,
+			newElfFileSec[strTabIndex].sec_data);
 
-	
+		updateSymbolsMovedTextSectionUp(newElfFileSec[symTabIndex].sec_data,
+     	     newElfFileSec[strTabIndex].sec_data,12);
+	}
 	updateSymbolsMovedTextSectionUp(newElfFileSec[findSection(".dynsym")].sec_data,
               newElfFileSec[findSection(".dynstr")].sec_data,12);
-	updateSymbolsMovedTextSectionUp(newElfFileSec[findSection(".symtab")].sec_data,
-              newElfFileSec[findSection(".strtab")].sec_data,12);
 
 
 	for(int cnt = 0; cnt < newElfFileEhdr->e_shnum-1 ; cnt++){
@@ -969,12 +973,14 @@ void addLibrary::updateSymbolsMovedTextSectionUp(Elf_Data* symtabData,Elf_Data* 
  	newDynamicIndex = dataSegStartIndx;
  
  	updatedElfFile = (Elf_element*) new char[sizeof(Elf_element) * (newElfFileEhdr->e_shnum+1)]; 
+	memset(updatedElfFile,'\0',sizeof(Elf_element) * (newElfFileEhdr->e_shnum+1));
  
  	arraySize ++;
  		
  	for(unsigned int cnt = 0, newIndex = 0; cnt+1 < newElfFileEhdr->e_shnum ; cnt++, newIndex++){
  	
  		if( cnt == newDynamicIndex ){
+		//fprintf(stderr," cnt==newDynamicIndex %d == %d\n",cnt,newDynamicIndex);
  			//copy in dynamic here
  
  			//save original info for later.
@@ -1007,7 +1013,10 @@ void addLibrary::updateSymbolsMovedTextSectionUp(Elf_Data* symtabData,Elf_Data* 
  			//copy old entry to to next slot
  		} 
  		memcpy( &(updatedElfFile[newIndex]), &(newElfFileSec[cnt]), sizeof(Elf_element));
+
+		//fprintf(stderr,"%d <-- %d\n",newIndex,cnt);
  		if(cnt == oldDynamicIndex){
+			//fprintf(stderr,"cnt==oldDynamicIndex %d==%d\n",cnt,oldDynamicIndex);
  			//reset name to zero
  			//allocat new secHdr
  			updatedElfFile[newIndex].sec_hdr = new Elf32_Shdr;//(Elf32_Shdr*) new char[sizeof(Elf32_Shdr)];

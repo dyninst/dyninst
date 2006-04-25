@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.199 2006/04/13 20:04:33 jaw Exp $
+// $Id: solaris.C,v 1.200 2006/04/25 14:31:29 chadd Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -152,11 +152,11 @@ bool process::dldumpSharedLibrary(pdstring originalLibNameFullPath, char* dirNam
     BPatch_process *bproc = BPatch::bpatch->getProcessByPid(getPid(), &exists);
     
     assert(exists);
-    BPatch_constExpr oldNameArg(originalLibNameFullPath.c_str());
-    BPatch_constExpr newNameArg(newLibName);
+    BPatch_constExpr *oldNameArg= new BPatch_constExpr(originalLibNameFullPath.c_str());
+    BPatch_constExpr *newNameArg = new BPatch_constExpr(newLibName);
     
-    args.push_back(&oldNameArg);
-    args.push_back(&newNameArg);
+    args.push_back(oldNameArg);
+    args.push_back(newNameArg);
     
     BPatch_Vector<BPatch_function *> bpfv;
     
@@ -409,7 +409,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 				*/
 				char *tmpData = new char[newSize];
 				memcpy(tmpData,data,compactedUpdates[i]->size);
-				delete data;
+				delete [] data; //ccw 21 apr 2006 INSURE
 				data = tmpData;
 				/* end realloc */
 			}
