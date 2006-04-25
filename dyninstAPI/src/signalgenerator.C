@@ -2060,12 +2060,20 @@ bool SignalGeneratorCommon::pauseProcessBlocking() {
 }
 
 processRunState_t SignalGeneratorCommon::overrideSyncContinueState(processRunState_t newState) {
+    signal_printf("%s[%d]: Overriding sync continue state, old %s, new %s\n",
+                  FILE__, __LINE__, processRunStateStr(syncRunWhenFinished_),
+                  processRunStateStr(newState));
+
     processRunState_t current = syncRunWhenFinished_;
     syncRunWhenFinished_ = newState;
     return current;
 }
 
 processRunState_t SignalGeneratorCommon::overrideAsyncContinueState(processRunState_t newState) {
+    signal_printf("%s[%d]: Overriding async continue state, old %s, new %s\n",
+                  FILE__, __LINE__, processRunStateStr(syncRunWhenFinished_),
+                  processRunStateStr(newState));
+
     processRunState_t current = asyncRunWhenFinished_;
     asyncRunWhenFinished_ = newState;
     return current;
