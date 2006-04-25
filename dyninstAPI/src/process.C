@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.618 2006/04/25 15:27:28 bernat Exp $
+// $Id: process.C,v 1.619 2006/04/25 19:34:33 tlmiller Exp $
 
 #include <ctype.h>
 
@@ -1352,8 +1352,7 @@ void process::inferiorMallocDynamic(int size, Address lo, Address hi)
       bool rpcNeedsContinue = false;
       getRpcMgr()->launchRPCs(rpcNeedsContinue,
                               wasRunning);
-      assert(rpcNeedsContinue);
-      continueProc();
+      if( rpcNeedsContinue ) { continueProc(); }
       
       getMailbox()->executeCallbacks(FILE__, __LINE__);
       
