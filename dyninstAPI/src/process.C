@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.617 2006/04/24 23:40:41 mjbrim Exp $
+// $Id: process.C,v 1.618 2006/04/25 15:27:28 bernat Exp $
 
 #include <ctype.h>
 
@@ -1725,6 +1725,9 @@ void process::deleteProcess()
   // If this assert fires check whether we're setting the status vrble correctly
   // before calling this function
   assert(!isAttached() || !reachedBootstrapState(bootstrapped_bs) || execing());
+
+  // Cancel the BPatch layer's control of anything below this point
+  if (sh) sh->overrideSyncContinueState(ignoreRequest);
 
   // pid remains untouched
   // parent remains untouched
@@ -6080,6 +6083,7 @@ void process::recognize_threads(const process *parent)
      
      BPatch_process *bproc = BPatch::bpatch->getProcessByPid(getPid());
      assert(bproc);
+
      for (i = 0; i < ret_lwps.size(); ++i) {         
          BPatch_thread *bpthrd = NULL;
          // Wait for the thread to show up...
