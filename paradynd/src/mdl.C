@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.182 2006/04/21 05:42:17 bernat Exp $
+// $Id: mdl.C,v 1.183 2006/04/25 18:18:08 tlmiller Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -358,6 +358,9 @@ BPatch_snippet *getTimerFast(BPatch_variableExpr *base,
    //  construct expr:
    //  (base) + register[REG_MT_POS] * struct_size
 
+   /* Strictly speaking, REG_MT_POS doesn't exist on IA-64;
+      the thread index is stored into a constant position in the
+      registerSpace, which changes from function to function.  */
    BPatch_snippet *reg_mt = new BPatch_regExpr(REG_MT_POS);
    BPatch_snippet *var = new BPatch_arithExpr(BPatch_ref, *base, *reg_mt);
 
@@ -2206,8 +2209,8 @@ bool update_environment_start_point(instrCodeNode *codeNode) {
 #elif defined(sparc_sun_solaris2_4)
    start_funcs.push_back("_thread_start");
    start_funcs.push_back("_thr_setup");
-#elif defined(i386_unknown_linux2_0)
-   start_funcs.push_back("start_thread");
+#elif defined(os_linux)
+   start_funcs.push_back("start_thread");   
 #endif
 
    if (proc->multithread_ready()) {
