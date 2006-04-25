@@ -127,17 +127,21 @@ bool dyn_lwp::restoreRegisters_( const struct dyn_saved_regs &regs ) {
     uint64_t ipsr = getDBI()->ptrace( PTRACE_PEEKUSER, get_lwp_id(), PT_CR_IPSR, 0, -1, & errno );
     assert( ! errno );
 
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: pcMayHaveRewound.\n", FILE__, __LINE__ );
+
     uint64_t ipsr_ri = (ipsr & 0x0000060000000000) >> 41;
     assert( ipsr_ri <= 2 );
 		
     switch( ipsr_ri ) {
     case 0:
+	  // /* DEBUG */ fprintf( stderr, "%s[%d]: PC did not rewind.\n", FILE__, __LINE__ );
       changePC( regs.pc, NULL );
       break;
     case 1:
       assert( 0 );
       break;
     case 2:
+	  /* DEBUG */ fprintf( stderr, "%s[%d]: PC rewound.\n", FILE__, __LINE__ );
       changePC( regs.pc - 0x10, NULL );
       break;
     default:
@@ -280,10 +284,16 @@ Frame createFrameFromUnwindCursor( unw_cursor_t * unwindCursor, dyn_lwp * dynLWP
 
   /* Determine if this is a trampoline frame. */
   codeRange * range = dynLWP->proc()->findCodeRangeByAddress( ip );
+
+  /* We assume here, and below, that the two stackwalking errors before
+     bootstrapping are from loading the run-time library. */
   if( range == NULL && dynLWP->proc()->reachedBootstrapState( bootstrapped_bs ) ) {
-    /* We assume here, and below, that the two stackwalkingg errors before
-       bootstrapping are from loading the run-time library. */
-    /* DEBUG */ fprintf( stderr, "%s[%d]: warning: no code range found for ip 0x%lx\n", __FILE__, __LINE__, ip );
+    /* We don't maintain the auxv page in the code range tree, so manually
+       check if we're in it. */
+    dynLWP->proc()->readAuxvInfo();
+    if( !( dynLWP->proc()->getVsyscallStart() <= ip && ip < dynLWP->proc()->getVsyscallEnd() )) {
+      /* DEBUG */ fprintf( stderr, "%s[%d]: warning: no code range found for ip 0x%lx\n", __FILE__, __LINE__, ip );
+    }
   }
   else {
     if( range->is_minitramp() != NULL || range->is_multitramp() != NULL ) {
