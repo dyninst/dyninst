@@ -836,7 +836,13 @@ Address rpcMgr::createRPCImage(AstNode *action,
             // The recursive allocation, that is. We don't like starting another
             // RPC at this point.
             
-            tempTrampBase = proc_->inferiorMalloc(irpcBuf.used(), anyHeap);
+            /* 2006-04-20: Rather than try to fix recursive iRPCs, necessary if we
+               need to allocate more room in the mutatee, just use the newly-enlarged
+               lowmemHeap for everything and assume that we won't be running more than
+               512k worth of iRPCs at any given time.  This needs to be fixed later.
+               
+                 -- bernat via tlmiller */
+            tempTrampBase = proc_->inferiorMalloc(irpcBuf.used(), lowmemHeap);
         }
     assert(tempTrampBase);
     
