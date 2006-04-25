@@ -89,6 +89,10 @@
 #include <libunwind.h>
 #define PRESERVATION_UNWIND_OPERATION_COUNT	32
 
+/* For converting REG_MT_POS into the Known Thread Index register.
+   This will go away when we change the BPatch_regExpr to BPatch_threadIndex. */
+#define CALCULATE_KTI_REGISTER (rs->getRegSlot( 0 )->number - 1)
+
 /* Assembler-level labels for the dynamic basetramp. */
 extern "C" {
   void fetch_ar_pfs();
@@ -484,6 +488,15 @@ void emitV( opCode op, Register src1, Register src2, Register dest,
 	IA64_bundle spillFP3Bundle( MIIstop, spillFP3, integerNOP, integerNOP );
 	spillFP2Bundle.generate(gen);
 	spillFP3Bundle.generate(gen);
+	
+	/* Special-case REG_MT_POS (via AstNode::DataReg via BPatch_regExpr from mdl.C's getTimerFast()). */
+	if( src2 == REG_MT_POS ) {
+		src2 = src1; src1 = REG_MT_POS;
+		}
+	if( src1 == REG_MT_POS ) {
+		// /* DEBUG */ fprintf( stderr, "%s[%d]: overriding REG_MT_POS.\n", __FILE__, __LINE__ );
+		src1 = CALCULATE_KTI_REGISTER;
+		}
 			
 	/* Do the multiplication. */
 	instruction copySrc1 = generateRegisterToFloatMove( src1, 2 );
@@ -1984,8 +1997,13 @@ bool needToHandleSyscall( dyn_lwp * lwp, bool * pcMayHaveRewound ) {
 
   /* As above; if the syscall rewinds the PC, we must as well. */
   if( pcMayHaveRewound != NULL ) {
-	if( ri == 0 ) { * pcMayHaveRewound = true; }
-	else { * pcMayHaveRewound = false; }
+	if( ri == 0 ) {
+	  // /* DEBUG */ fprintf( stderr, "%s[%d]: pcMayHaveRewound.\n", FILE__, __LINE__ );
+	  * pcMayHaveRewound = true;
+	} 
+	else {
+	  * pcMayHaveRewound = false;
+	}
   }
 
 	// Read bundle data
@@ -2477,7 +2495,13 @@ bool rpcMgr::emitInferiorRPCheader( codeGen &gen ) {
 
 	/* Generate the preservation header; don't bother with unwind information
 	   for an inferior RPC.  (It must be the top of the stack.) */
-	return generatePreservationHeader( gen, whichToPreserve, NULL );
+	if( ! generatePreservationHeader( gen, whichToPreserve, NULL ) ) { return false; }
+	
+	/* We also need to initialize the KTI register. */
+	assert( irpcTramp );
+	if( ! irpcTramp->generateMTCode( gen, regSpace ) ) { return false; }
+	
+	return true;
 	} /* end emitInferiorRPCheader() */
 
 /* From ia64-template.s. */
@@ -2506,9 +2530,13 @@ bool emitSyscallTrailer( codeGen &gen, uint64_t slotNo ) {
 	instruction inSyscallBreak( TRAP_I );
 	notInSyscallBreak = predicateInstruction( 1, notInSyscallBreak );
 	inSyscallBreak = predicateInstruction( 2, inSyscallBreak );
-	// PROBLEM: in this case, the PC may need to be backed up!
+	
+	/* We checked if iip.ri is zero in needToHandleSyscall(), and will rewind the PC in
+	   restoreRegisters() if pcMayHaveRewound (in the saved registers), set by needToHandleSyscall() is
+	   true and we hit the break in slot 2. */
 	predicatedBreakBundle = IA64_bundle( MMIstop, notInSyscallBreak, NOP_M, inSyscallBreak );
-	assert( 0 );
+	
+	// /* DEBUG */ fprintf( stderr, "%s[%d]: pcMayHaveRewound.\n", FILE__, __LINE__ );
   } break;
 			
   case 1: {
@@ -2657,7 +2685,7 @@ bool baseTramp::generateGuardPreCode(codeGen &gen,
 							  generateLongConstantInRegister( trampGuardFlagAddr, trampGuardBase ));
 
   IA64_bundle guardOnBundle05(	MstopMIstop,
-								generateShiftLeftAndAdd( trampGuardFlagAddr, rs->getRegSlot( 0 )->number - 1, 3, trampGuardFlagAddr ),
+								generateShiftLeftAndAdd( trampGuardFlagAddr, CALCULATE_KTI_REGISTER, 3, trampGuardFlagAddr ),
 								instruction( NOP_M ),
 								instruction( NOP_I ) );
 			
@@ -2701,7 +2729,7 @@ bool baseTramp::generateGuardPostCode(codeGen &gen, codeBufIndex_t &postIndex,
 							   generateLongConstantInRegister( trampGuardFlagAddr, proc()->trampGuardBase() ));
 								 
   IA64_bundle guardOffBundle05(	MstopMIstop,
-								generateShiftLeftAndAdd( trampGuardFlagAddr, rs->getRegSlot( 0 )->number - 1, 3, trampGuardFlagAddr ),
+								generateShiftLeftAndAdd( trampGuardFlagAddr, CALCULATE_KTI_REGISTER, 3, trampGuardFlagAddr ),
 								instruction( NOP_M ),
 								instruction( NOP_I ) );
 
@@ -2751,15 +2779,15 @@ bool baseTramp::generateMTCode( codeGen & gen, registerSpace * rs ) {
   pdvector< AstNode * > dummy;
 
   dyn_thread *thr = gen.getThread();
-  if(!this->threaded() ) {
+  if( !this->threaded() ) {
 	  /* Stick a zero in the Known Thread Index register. */
-	  emitRegisterToRegisterCopy( BP_GR0, rs->getRegSlot( 0 )->number - 1, gen, rs );		
+	  emitRegisterToRegisterCopy( BP_GR0, CALCULATE_KTI_REGISTER, gen, rs );		
   }
-  else if (thr) {
+  else if( thr ) {
 	  // For some reason we're overriding the normal index calculation
 	  unsigned index = thr->get_index();
-	  // TODO: I need some code from Todd...
-	  assert(0);
+	  IA64_bundle setIndexBundle( MIIstop, generateShortConstantInRegister( CALCULATE_KTI_REGISTER, index ), NOP_I, NOP_I );
+	  setIndexBundle.generate( gen );
   }
   else {
 	  AstNode * threadPos = new AstNode( "DYNINSTthreadIndex", dummy );
@@ -2769,7 +2797,7 @@ bool baseTramp::generateMTCode( codeGen & gen, registerSpace * rs ) {
 												false /* no cost */, true /* root node */ );
 	  
 	  /* Ray: I'm asserting that we don't use the 35th preserved register for anything. */
-	  emitRegisterToRegisterCopy( src, rs->getRegSlot( 0 )->number - 1, gen, rs );
+	  emitRegisterToRegisterCopy( src, CALCULATE_KTI_REGISTER, gen, rs );
 	  
 	  removeAst( threadPos );
   }
