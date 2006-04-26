@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_util.C,v 1.26 2006/04/26 21:07:47 jodom Exp $
+// $Id: test_util.C,v 1.27 2006/04/26 21:16:44 jodom Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -308,21 +308,12 @@ void updateSearchPaths(const char *filename) {
    } else if (strchr(filename,'/')) {
       // If it contains slashes, it's a relative path
       char *filename_copy = strdup(filename);
-      char *ptr;
       
       *strrchr(filename_copy,'/') = '\0';
-      char *part = strtok_r(filename_copy,"/", &ptr);
-      while (part && (!strcmp(part,".") || !strcmp(part,".."))) {
-         if (!strcmp(part,"..")) {
-            if (strrchr(pathname,'/') != pathname)
-               strrchr(pathname,'/')[0] = '\0';
-         }
-         part = strtok_r(NULL,"/", &ptr);
-      }
-      execpath = (char *) ::malloc(strlen(pathname) + 1 + strlen(filename_copy+1) + 1);
+      execpath = (char *) ::malloc(strlen(pathname) + strlen(filename_copy) + 2);
       strcpy(execpath,pathname);
       strcat(execpath,"/");
-      strcat(execpath,filename_copy+1);
+      strcat(execpath,filename_copy);
       ::free(filename_copy);
    } else {
       // If it's just a name, it was found in PATH
