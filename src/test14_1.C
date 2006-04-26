@@ -50,6 +50,10 @@
 
 BPatch *bpatch;
 BPatch_process *proc;
+bool create_proc = true;
+
+bool debug_flag = false;
+#define dprintf if (debug_flag) fprintf
 
 void instr_func(BPatch_function *func, BPatch_function *lvl1func)
 {
@@ -66,6 +70,49 @@ void instr_func(BPatch_function *func, BPatch_function *lvl1func)
    }
 }
 
+#define MAX_ARGS 32
+char *filename = "test14.mutatee_gcc";
+char *args[MAX_ARGS];
+unsigned num_args = 0; 
+
+static BPatch_process *getProcess()
+{
+   args[0] = filename;
+   BPatch_process *proc;
+   if (create_proc) {
+      proc = bpatch->processCreate(filename, (const char **) args);
+      if(proc == NULL) {
+         fprintf(stderr, "%s[%d]: processCreate(%s) failed\n", 
+                 __FILE__, __LINE__, filename);
+         return NULL;
+      }
+   }
+   else
+   {
+#if !defined(os_windows)
+      dprintf(stderr, "%s[%d]: starting process for attach\n", __FILE__, __LINE__);
+      int pid = startNewProcessForAttach(filename, (const char **) args);
+      if (pid < 0)
+      {
+         fprintf(stderr, "%s ", filename);
+         perror("couldn't be started");
+         return NULL;
+      }
+      dprintf(stderr, "%s[%d]: started process, now attaching\n", __FILE__, __LINE__);
+      proc = bpatch->processAttach(filename, pid);
+      if(proc == NULL) {
+         fprintf(stderr, "%s[%d]: processAttach(%s, %d) failed\n", 
+                 __FILE__, __LINE__, filename, pid);
+         return NULL;
+      }
+      dprintf(stderr, "%s[%d]: attached to process\n", __FILE__, __LINE__);
+      BPatch_image *appimg = proc->getImage();
+      signalAttached(NULL, appimg);
+#endif
+   }
+   return proc;
+}
+
 extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 {
    const char *child_prog;
@@ -78,20 +125,16 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
 #endif
 
    bpatch = (BPatch *)(param["bpatch"]->getPtr());
-   child_prog = param["pathname"]->getString();
+   filename = param["pathname"]->getString();
 
-   child_args[0] = child_prog;
-   if (strrchr(child_prog, '/'))
-       child_args[0] = strrchr(child_prog, '/') + 1;
-   else
-       child_args[0] = child_prog;
-
-   proc = bpatch->processCreate(child_prog, child_args);
-   if (!proc)
+   if ( param["useAttach"]->getInt() != 0 )
    {
-      fprintf(stderr, "Couldn't create process for %s\n", child_prog);
-      return -1;
+      create_proc = false;
    }
+
+   proc = getProcess();
+   if (!proc)
+      return -1;
 
    BPatch_image *image = proc->getImage();
    BPatch_Vector<BPatch_function *> lvl1funcs;
