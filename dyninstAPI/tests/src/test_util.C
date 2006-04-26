@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_util.C,v 1.27 2006/04/26 21:16:44 jodom Exp $
+// $Id: test_util.C,v 1.28 2006/04/26 21:31:28 jodom Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -265,7 +265,7 @@ int startNewProcessForAttach(const char *pathname, const char *argv[])
     if (pid == 0) {
 	// child
 	close(fds[0]); // We don't need the read side
-	execv(pathname, (char * const *)attach_argv);
+	execvp(pathname, (char * const *)attach_argv);
 	exit(-1);
     } else if (pid < 0) {
 	return -1;
