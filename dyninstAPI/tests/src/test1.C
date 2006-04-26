@@ -2249,8 +2249,8 @@ void mutatorTest20(BPatch_thread *appThread, BPatch_image *appImage)
 void readyTest21or22(BPatch_thread *appThread)
 {
     char libA[128], libB[128];
-    sprintf(libA, "./%s", libNameA);
-    sprintf(libB, "./%s", libNameB);
+    sprintf(libA, "%s", libNameA);
+    sprintf(libB, "%s", libNameB);
 #if !defined(i386_unknown_nt4_0)
     if (!mutateeFortran) {
 	if (! appThread->loadLibrary(libA)) {

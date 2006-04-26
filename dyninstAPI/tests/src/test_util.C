@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_util.C,v 1.24 2006/04/26 06:26:27 jodom Exp $
+// $Id: test_util.C,v 1.25 2006/04/26 20:04:35 jodom Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -310,6 +310,7 @@ void updateSearchPaths(const char *filename) {
       char *filename_copy = strdup(filename);
       char *ptr;
       
+      *strrchr(filename_copy,'/') = '\0';
       char *part = strtok_r(filename_copy,"/", &ptr);
       while (!strcmp(part,".") || !strcmp(part,"..")) {
          if (!strcmp(part,"..")) {
@@ -337,8 +338,8 @@ void updateSearchPaths(const char *filename) {
          strcat(fullpath,"/");
          strcat(fullpath,filename);
          
-         if (stat(fullpath,&statbuf)>0) {
-            execpath = strdup(fullpath);
+         if (!stat(fullpath,&statbuf)) {
+            execpath = strdup(nextpath);
             delete[] fullpath;
             break;
          }
@@ -349,7 +350,6 @@ void updateSearchPaths(const char *filename) {
       
       if (nextpath == NULL) {
           // Not found in PATH - we'll assume its in CWD
-          ::free(execpath);
           return;
       }
    }
