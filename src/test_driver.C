@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.26 2006/04/26 15:46:52 jodom Exp $
+// $Id: test_driver.C,v 1.27 2006/04/26 21:07:46 jodom Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -890,7 +890,7 @@ void updateSearchPaths(const char *filename) {
       char *ptr;
       
       char *part = strtok_r(filename_copy,"/", &ptr);
-      while (!strcmp(part,".") || !strcmp(part,"..")) {
+      while (part && !strcmp(part,".") || !strcmp(part,"..")) {
          if (!strcmp(part,"..")) {
             if (strrchr(pathname,'/') != pathname)
                strrchr(pathname,'/')[0] = '\0';
