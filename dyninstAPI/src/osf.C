@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.93 2006/04/26 18:55:14 jaw Exp $
+// $Id: osf.C,v 1.94 2006/04/26 20:44:07 jaw Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -213,7 +213,13 @@ bool process::unsetProcessFlags()
   // so we can learn of the child (if the user cares)
   flags = PR_FORK | PR_ASYNC;
 
+  if (!isAttached()) return false;
+
   dyn_lwp *replwp = getRepresentativeLWP();
+  if (!replwp) {
+     fprintf(stderr, "%s[%d]:  no representative lwp, cannot unset process flags\n", FILE__, __LINE__);
+     return false;
+  }
   if (ioctl(replwp->get_fd(), PIOCRESET, &flags) < 0) {
       perror("unsetProcessFlags: PIOCRESET");
       return false;
@@ -470,12 +476,10 @@ bool process::dumpImage()
     /* read header and section headers */
     /* Uses ldopen to parse the section headers */
     /* try */ 
-    fprintf(stderr, "%s[%d]:  before ldopen\n", FILE__, __LINE__);
     if (!(ldptr = ldopen(const_cast<char *>( origFile.c_str()), ldptr))) {
        perror("Error in Open");
        exit(-1);
      }
-    fprintf(stderr, "%s[%d]:  after ldopen\n", FILE__, __LINE__);
      
      if (TYPE(ldptr) != ALPHAMAGIC) {
        bperr("%s is not an alpha executable\n", outFile.c_str());
