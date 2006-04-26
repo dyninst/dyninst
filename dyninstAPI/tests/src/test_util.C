@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_util.C,v 1.23 2006/04/25 17:47:02 jodom Exp $
+// $Id: test_util.C,v 1.24 2006/04/26 06:26:27 jodom Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -347,7 +347,11 @@ void updateSearchPaths(const char *filename) {
       }
       ::free(pathenv_copy);
       
-      assert(nextpath != NULL);
+      if (nextpath == NULL) {
+          // Not found in PATH - we'll assume its in CWD
+          ::free(execpath);
+          return;
+      }
    }
 
    // Now update PATH and LD_LIBRARY_PATH/LIBPATH

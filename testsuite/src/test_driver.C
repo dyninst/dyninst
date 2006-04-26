@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.24 2006/04/25 17:47:01 jodom Exp $
+// $Id: test_driver.C,v 1.25 2006/04/26 06:26:28 jodom Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -927,7 +927,11 @@ void updateSearchPaths(const char *filename) {
       }
       ::free(pathenv_copy);
       
-      assert(nextpath != NULL);
+      if(nextpath == NULL) {
+         //  Not found in PATH - we'll assume it should be in CWD
+         ::free(execpath);
+         return;
+      }
    }
 
    // Now update PATH and LD_LIBRARY_PATH/LIBPATH
