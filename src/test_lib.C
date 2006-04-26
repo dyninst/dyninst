@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.13 2006/04/26 15:46:53 jodom Exp $
+// $Id: test_lib.C,v 1.14 2006/04/26 19:18:02 jaw Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -55,6 +55,8 @@
 #else
 #include <unistd.h>
 #include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #endif
 #include <stdarg.h>
 
@@ -68,8 +70,6 @@
 
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4)
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #endif
 // end inclusion from test9.C
