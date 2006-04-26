@@ -218,6 +218,7 @@ BPatch_function *findFunction(const char *fname, BPatch_module *inmod, int testn
 bool setVar(BPatch_image *appImage, const char *vname, void *addr, int testno, const char *testname);
 bool getVar(BPatch_image *appImage, const char *vname, void *addr, int testno, const char *testname);
 
+char *searchPath(const char *path, const char *file);
 
 // Functions in test_lib_soExecution.C below
 //           or test_lib_dllExecution.C

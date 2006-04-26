@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.25 2006/04/26 06:26:28 jodom Exp $
+// $Id: test_driver.C,v 1.26 2006/04/26 15:46:52 jodom Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -884,7 +884,6 @@ void updateSearchPaths(const char *filename) {
    if (filename[0] == '/') {
       // If it begins with a slash, it's an absolute path
       execpath = strdup(filename);
-      strrchr(execpath,'/')[0] = '\0';
    } else if (strchr(filename,'/')) {
       // If it contains slashes, it's a relative path
       char *filename_copy = strdup(filename);
@@ -906,34 +905,14 @@ void updateSearchPaths(const char *filename) {
    } else {
       // If it's just a name, it was found in PATH
       const char *pathenv = getenv("PATH");
-      char *pathenv_copy = strdup(pathenv);
-      char *ptrptr;
-      char *nextpath = strtok_r(pathenv_copy, ":", &ptrptr);
-      while (nextpath) {
-         struct stat statbuf;
-         
-         char *fullpath = new char[strlen(nextpath)+strlen(filename)+2];
-         strcpy(fullpath,nextpath);
-         strcat(fullpath,"/");
-         strcat(fullpath,filename);
-         
-         if (stat(fullpath,&statbuf)>0) {
-            execpath = strdup(fullpath);
-            delete[] fullpath;
-            break;
-         }
-         delete[] fullpath;
-         nextpath = strtok_r(NULL,":", &ptrptr);
-      }
-      ::free(pathenv_copy);
-      
-      if(nextpath == NULL) {
+      execpath = searchPath(pathenv, filename);
+      if(execpath == NULL) {
          //  Not found in PATH - we'll assume it should be in CWD
-         ::free(execpath);
          return;
       }
    }
 
+   *strrchr(execpath, '/') = '\0';
    // Now update PATH and LD_LIBRARY_PATH/LIBPATH
 
     char *envCopy;

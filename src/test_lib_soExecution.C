@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_lib_soExecution.C,v 1.2 2005/10/22 22:11:46 bpellin Exp $
+// $Id: test_lib_soExecution.C,v 1.3 2006/04/26 15:46:53 jodom Exp $
 #include "test_lib.h"
 #include "ParameterDict.h"
 #include "dlfcn.h"
@@ -48,7 +48,18 @@
 int loadLibRunTest(test_data_t &testLib, ParameterDict &param)
 {
    //printf("Loading test: %s\n", testLib.soname);
-   void *handle = dlopen(testLib.soname, RTLD_NOW);
+   char *fullSoPath;
+#if defined(os_aix)
+   fullSoPath = searchPath(getenv("LIBPATH"), testLib.soname);
+#else
+   fullSoPath = searchPath(getenv("LD_LIBRARY_PATH"), testLib.soname);
+#endif
+   if (!fullSoPath) {
+      printf("Error finding lib %s in LD_LIBRARY_PATH/LIBPATH\n");
+      return -1;
+   }
+   void *handle = dlopen(fullSoPath, RTLD_NOW);
+   ::free(fullSoPath);
 
    if (!handle)
    {
