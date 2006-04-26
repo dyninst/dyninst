@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.622 2006/04/26 14:04:51 chadd Exp $
+// $Id: process.C,v 1.623 2006/04/26 20:04:11 jodom Exp $
 
 #include <ctype.h>
 
@@ -6083,7 +6083,7 @@ bool process::removeThreadIndexMapping(dyn_thread *thr)
   }
 
   //  read the (entire) threads array  (its size is max_number_of_threads)
-  dyninst_thread_t threads_buf[max_number_of_threads];
+  dyninst_thread_t *threads_buf = new dyninst_thread_t[max_number_of_threads];
   if (!DBI_readDataSpace(getPid(),
                          (Address)(threads_array_addr), 
                          sizeof(dyninst_thread_t) *max_number_of_threads,
@@ -6092,8 +6092,10 @@ bool process::removeThreadIndexMapping(dyn_thread *thr)
                          FILE__, __LINE__) ) {
      fprintf(stderr, "%s[%d]:  FIXME:  failed to read threads_array_buf\n",
              FILE__, __LINE__);
+     delete[] threads_buf;
      return false;
   }
+  delete[] threads_buf;
 
   //  read the value of the threads hash pointer
   Address threads_hash_addr = (Address) NULL;
@@ -6115,7 +6117,7 @@ bool process::removeThreadIndexMapping(dyn_thread *thr)
   }
 
   //  read the (entire) threads hash  (its size is threads_hash_size)
-  int threads_hash_buf[threads_hash_size];
+  int *threads_hash_buf = new int[threads_hash_size];
   if (!DBI_readDataSpace(getPid(), 
                          (Address)(threads_hash_addr), 
                          sizeof(int) * threads_hash_size,
@@ -6124,6 +6126,7 @@ bool process::removeThreadIndexMapping(dyn_thread *thr)
                          FILE__, __LINE__) ) {
      fprintf(stderr, "%s[%d]:  FIXME:  failed to read threads_hash_buf\n",
              FILE__, __LINE__);
+     delete[] threads_hash_buf;
      return false;
   }
 
@@ -6149,6 +6152,7 @@ bool process::removeThreadIndexMapping(dyn_thread *thr)
      }
 
   } while (orig != hash_id);
+  delete[] threads_hash_buf;
 
   if (found_index == (unsigned) -1) {
     fprintf(stderr, "%s[%d]:  FIXME:  thread id %lu not found in hash\n",

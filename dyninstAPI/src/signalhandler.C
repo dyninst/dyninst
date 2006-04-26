@@ -64,7 +64,11 @@ SignalHandler::~SignalHandler()
 
     while (isRunning()) {
         _Unlock(FILE__, __LINE__);
+#if defined(os_windows)
+        SwitchToThread();
+#else
         sched_yield();
+#endif
         _Lock(FILE__, __LINE__);
     }
 
