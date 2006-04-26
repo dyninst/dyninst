@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.95 2006/04/26 03:43:03 jaw Exp $
+// $Id: sol_proc.C,v 1.96 2006/04/26 22:07:25 chadd Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -744,7 +744,7 @@ bool dyn_lwp::realLWP_attach_()
 
 bool dyn_lwp::representativeLWP_attach_() 
 {
-#if defined(os_aix)
+#if defined(os_aix) || defined(os_solaris)
     // Wait a sec; we often outrun process creation.
     sleep(2);
 #endif
