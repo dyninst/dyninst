@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.C,v 1.7 2006/04/20 22:44:51 bernat Exp $
+// $Id: mapped_module.C,v 1.8 2006/04/26 16:09:02 tlmiller Exp $
 
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
@@ -611,10 +611,6 @@ void mapped_module::parseLineInformation(process * proc,
             }
         } /* end iteration of include files */
         
-        char * canonicalSourceFile = strrchr( whichFile.c_str(), '/' );
-        if( canonicalSourceFile == NULL ) { canonicalSourceFile = const_cast< char * >( whichFile.c_str() ); }
-        else { ++canonicalSourceFile; }
-        
         int_function * currentFunction = obj()->findFuncByAddr( funcStartAddress + trueBaseAddress );
         if( currentFunction == NULL ) {
             /* Some addresses point to gdb-inaccessible memory; others have symbols (gdb will disassemble them)
@@ -638,8 +634,8 @@ void mapped_module::parseLineInformation(process * proc,
             Address lineAddr = lptr->l_addr.l_paddr + trueBaseAddress;
             
             if( isPreviousValid ) {
-                // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx).\n", __FILE__, __LINE__, canonicalSourceFile, previousLineNo, previousLineAddr, lineAddr );
-                currentLineInformation.addLine( canonicalSourceFile, previousLineNo, previousLineAddr, lineAddr );
+                // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx).\n", __FILE__, __LINE__, whichFile.c_str(), previousLineNo, previousLineAddr, lineAddr );
+                currentLineInformation.addLine( whichFile.c_str(), previousLineNo, previousLineAddr, lineAddr );
             }
             
             previousLineNo = lineNo;
@@ -651,8 +647,8 @@ void mapped_module::parseLineInformation(process * proc,
             /* Add the instruction (always 4 bytes on power) pointed at by the last entry.  We'd like to add a
                bigger range, but it's not clear how.  (If the function has inlined code, we won't know about
                it until we see the next section, so claiming "until the end of the function" will give bogus results.) */
-            // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx).\n", __FILE__, __LINE__, canonicalSourceFile, previousLineNo, previousLineAddr, previousLineAddr + 4 );
-            currentLineInformation.addLine( canonicalSourceFile, previousLineNo, previousLineAddr, previousLineAddr + 4 );
+            // /* DEBUG */ fprintf( stderr, "%s[%d]: adding %s:%d [0x%lx, 0x%lx).\n", __FILE__, __LINE__, whichFile.c_str(), previousLineNo, previousLineAddr, previousLineAddr + 4 );
+            currentLineInformation.addLine( whichFile.c_str(), previousLineNo, previousLineAddr, previousLineAddr + 4 );
         }
     } /* end if we found a C_FUN symbol */
 } /* end parseLineInformation() */
