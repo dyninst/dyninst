@@ -13,6 +13,18 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "testsuite", "testsuite\i386
 		{2AB5FA1E-CF56-4E8A-93B7-6A8940DCB602} = {2AB5FA1E-CF56-4E8A-93B7-6A8940DCB602}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tests", "dyninstAPI\tests\i386-unknown-nt4.0\tests.vcproj", "{CE1446AB-D215-436F-9965-DD7C3CEC08A4}"
+	ProjectSection(ProjectDependencies) = postProject
+		{33F95814-6383-4480-A3F5-B9DC73B1DA1A} = {33F95814-6383-4480-A3F5-B9DC73B1DA1A}
+		{2AB5FA1E-CF56-4E8A-93B7-6A8940DCB602} = {2AB5FA1E-CF56-4E8A-93B7-6A8940DCB602}
+	EndProjectSection
+EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Installer", "..\packagers\msi\Installer.vdproj", "{04AFA4EA-A91A-4F10-A494-9BBE70B49CCD}"
+	ProjectSection(ProjectDependencies) = postProject
+		{33F95814-6383-4480-A3F5-B9DC73B1DA1A} = {33F95814-6383-4480-A3F5-B9DC73B1DA1A}
+		{2AB5FA1E-CF56-4E8A-93B7-6A8940DCB602} = {2AB5FA1E-CF56-4E8A-93B7-6A8940DCB602}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
@@ -31,6 +43,12 @@ Global
 		{73BD9B12-EDAE-48F5-9118-250FF506ED16}.Debug.Build.0 = Debug|Win32
 		{73BD9B12-EDAE-48F5-9118-250FF506ED16}.Release.ActiveCfg = Release|Win32
 		{73BD9B12-EDAE-48F5-9118-250FF506ED16}.Release.Build.0 = Release|Win32
+		{CE1446AB-D215-436F-9965-DD7C3CEC08A4}.Debug.ActiveCfg = Debug|Win32
+		{CE1446AB-D215-436F-9965-DD7C3CEC08A4}.Debug.Build.0 = Debug|Win32
+		{CE1446AB-D215-436F-9965-DD7C3CEC08A4}.Release.ActiveCfg = Release|Win32
+		{CE1446AB-D215-436F-9965-DD7C3CEC08A4}.Release.Build.0 = Release|Win32
+		{04AFA4EA-A91A-4F10-A494-9BBE70B49CCD}.Debug.ActiveCfg = Debug
+		{04AFA4EA-A91A-4F10-A494-9BBE70B49CCD}.Release.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection
