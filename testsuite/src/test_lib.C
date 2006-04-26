@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.12 2006/04/05 23:39:36 legendre Exp $
+// $Id: test_lib.C,v 1.13 2006/04/26 15:46:53 jodom Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -1502,6 +1502,34 @@ int letOriginalMutateeFinish(BPatch_thread *appThread){
 //	fprintf(stderr,"Original mutatee has terminated\n\************************\n\n");
 
 	return retVal;
+}
+
+char *searchPath(const char *path, const char *file) {
+   assert(path);
+   assert(file);
+
+   char *pathcopy = strdup(path);
+   char *fullpath;
+   char *ptr;
+   char *token = strtok_r(pathcopy, ":", &ptr);
+
+   while (token) {
+      fullpath = (char *) ::malloc(strlen(token) + strlen(file) + 2);
+      strcpy(fullpath, token);
+      strcat(fullpath, "/");
+      strcat(fullpath, file);
+
+      struct stat statbuf;
+      if (!stat(fullpath, &statbuf))
+         break;
+
+      ::free(fullpath);
+      token = strtok_r(NULL, ":", &ptr);
+   }
+   ::free(pathcopy);
+   if (token)
+      return fullpath;
+   return NULL;
 }
 
 // Begin Test12 Library functions
