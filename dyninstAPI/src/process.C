@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.621 2006/04/26 03:43:02 jaw Exp $
+// $Id: process.C,v 1.622 2006/04/26 14:04:51 chadd Exp $
 
 #include <ctype.h>
 
@@ -696,7 +696,7 @@ unsigned int process::saveWorldSaveSharedLibs(int &mutatedSharedObjectsSize,
 
             saveSharedLibrary *sharedObj =
                new saveSharedLibrary(sh_obj->getBaseAddress(),
-                                     sh_obj->fileName().c_str(), newName);
+                                     sh_obj->fullName().c_str(), newName);
 
             	sharedObj->openBothLibraries();
             

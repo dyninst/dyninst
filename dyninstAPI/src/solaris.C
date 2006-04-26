@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.200 2006/04/25 14:31:29 chadd Exp $
+// $Id: solaris.C,v 1.201 2006/04/26 14:04:51 chadd Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -234,7 +234,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 	unsigned int dl_debug_statePltEntry = 0x00016574;//a pretty good guess
 	unsigned int dyninst_SharedLibrariesSize = 0, mutatedSharedObjectsNumb;
 
-	newElf = new writeBackElf((char*) mapped_objects[0]->fileName().c_str(),
+	newElf = new writeBackElf((char*) mapped_objects[0]->fullName().c_str(),
 		"/tmp/dyninstMutatee",errFlag);
 	newElf->registerProcess(this);
 	//add section that has, as its address, the original load address of
