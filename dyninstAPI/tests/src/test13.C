@@ -276,6 +276,7 @@ static void parse_args(unsigned argc, char *argv[])
 int main(int argc, char *argv[])
 {
    unsigned num_attempts = 0;
+   bool missing_threads = false;
 
    libRTname[0]='\0';
    if (!getenv("DYNINSTAPI_RT_LIB")) {
@@ -289,7 +290,7 @@ int main(int argc, char *argv[])
     } else
          strcpy((char *)libRTname, (char *)getenv("DYNINSTAPI_RT_LIB"));
 
-    updateSearchPaths(argv[0]);
+   updateSearchPaths(argv[0]);
 
    parse_args(argc, argv);
 
@@ -300,43 +301,36 @@ int main(int argc, char *argv[])
    if (!proc)
       return -1;
 
-   if(create_proc) {
-      BPatch_Vector<BPatch_thread *> orig_thrds;
-      proc->getThreads(orig_thrds);
-      if (!orig_thrds.size()) abort();
-      for (unsigned i=0; i<orig_thrds.size(); i++) {
-         newthr(proc, orig_thrds[i]);
-      }
-   }
-
    proc->continueExecution();
-   do {
+
+   // Wait for NUM_THREADS new thread callbacks to run
+   while (thread_count < NUM_THREADS) {
       dprintf(stderr, "Going into waitForStatusChange...\n");
       bpatch.waitForStatusChange();
       dprintf(stderr, "Back from waitForStatusChange...\n");
-      if (proc->isTerminated())
-      {
+      if (proc->isTerminated()) {
          fprintf(stderr, "[%s:%d] - App exited early\n", __FILE__, __LINE__);
          error = 1;
          break;
       }
-      if (num_attempts++ == TIMEOUT)
-      {
+      if (num_attempts++ == TIMEOUT) {
          fprintf(stderr, "[%s:%d] - Timed out waiting for threads\n", 
                  __FILE__, __LINE__);
          fprintf(stderr, "[%s:%d] - Only have %u threads, expected %u!\n",
-              __FILE__, __LINE__, thread_count, NUM_THREADS);
+                 __FILE__, __LINE__, thread_count, NUM_THREADS);
          error = 1;
          break;
       }
       P_sleep(1);
-   } while (thread_count < NUM_THREADS);
+   }
+
+   dprintf(stderr, "%s[%d]:  done waiting for thread creations, error = %d\n", __FILE__, __LINE__, error);
 
    BPatch_Vector<BPatch_thread *> thrds;
    proc->getThreads(thrds);
-   if (thrds.size() < NUM_THREADS)
+   if (thrds.size() != NUM_THREADS)
    {
-      fprintf(stderr, "[%s:%d] - Only have %u threads, expected %u!\n",
+      fprintf(stderr, "[%s:%d] - Have %u threads, expected %u!\n",
               __FILE__, __LINE__, thrds.size(), NUM_THREADS);
       error = 1;
    }
@@ -347,13 +341,11 @@ int main(int argc, char *argv[])
       {
          fprintf(stderr, "[%s:%d] - Thread %u was never created!\n",
                  __FILE__, __LINE__, i);
-         error = 1;
+         missing_threads = true;
       }
    }
 
-   dprintf(stderr, "%s[%d]:  done waiting for thread creations, error = %d\n", __FILE__, __LINE__, error);
-
-   if(error) {
+   if(error || missing_threads) {
       fprintf(stderr, "%s[%d]: ERROR during thread create stage, exiting\n", __FILE__, __LINE__);
       printf("*** Failed test #1 (Threading Callbacks)\n");
       if(proc && !proc->isTerminated())

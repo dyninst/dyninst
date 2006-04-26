@@ -196,6 +196,7 @@ void error_exit()
 int main(int argc, char *argv[])
 {
    unsigned num_attempts = 0;
+   bool missing_threads = false;
    
    libRTname[0]='\0';
    if (!getenv("DYNINSTAPI_RT_LIB")) {
@@ -250,53 +251,44 @@ int main(int argc, char *argv[])
       error_exit();
    }
 
-   if(create_proc) {
-      BPatch_Vector<BPatch_thread *> orig_thrds;
-      proc->getThreads(orig_thrds);
-      if (!orig_thrds.size()) abort();
-      for (unsigned i=0; i<orig_thrds.size(); i++) {
-         newthr(proc, orig_thrds[i]);
-      }
-   }
-
    proc->continueExecution();
 
-   // Wait for NUM_THREADS to be created
-   do {
+   // Wait for NUM_THREADS new thread callbacks to run
+   while (thread_count < NUM_THREADS) {
       bpatch.waitForStatusChange();
-      if (proc->isTerminated())
-      {
+      if (proc->isTerminated()) {
          fprintf(stderr, "[%s:%d] - App exited early\n", __FILE__, __LINE__);
          error_exit();
       }
-      if (num_attempts++ == TIMEOUT)
-      {
+      if (num_attempts++ == TIMEOUT) {
          fprintf(stderr, "[%s:%d] - Timed out waiting for threads\n", 
                  __FILE__, __LINE__);
          fprintf(stderr, "[%s:%d] - Only have %u threads, expected %u!\n",
-              __FILE__, __LINE__, thread_count, NUM_THREADS);
+                 __FILE__, __LINE__, thread_count, NUM_THREADS);
          error_exit();
       }
       sleep(1);
-   } while (thread_count < NUM_THREADS);
+   }
 
    BPatch_Vector<BPatch_thread *> thrds;
    proc->getThreads(thrds);
    if (thrds.size() != NUM_THREADS)
-   {
-      fprintf(stderr, "[%s:%d] - Only have %u threads, expected %u!\n",
+      fprintf(stderr, "[%s:%d] - Have %u threads, expected %u!\n",
               __FILE__, __LINE__, thrds.size(), NUM_THREADS);
-      for (unsigned i=0; i<NUM_THREADS; i++)
-      {
-         if (!dyn_tids[i])
-         {
-            fprintf(stderr, "[%s:%d] - Thread %u was never created!\n",
-                    __FILE__, __LINE__, i);
-         }
+
+   for (unsigned i=0; i<NUM_THREADS; i++)
+   {
+      if (!dyn_tids[i]) {
+         fprintf(stderr, "[%s:%d] - Thread %u was never created!\n",
+                 __FILE__, __LINE__, i);
+         missing_threads = true;
       }
+   }
+   if(missing_threads) {
       fprintf(stderr, "ERROR: Can not run test due to missing threads\n");
       error_exit();
    }
+
 
    dprintf(stderr, "%s[%d]:  done waiting for thread creations\n", 
            __FILE__, __LINE__);
