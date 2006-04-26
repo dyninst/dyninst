@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfHeaders.h,v 1.16 2006/02/12 22:22:02 jodom Exp $
+// $Id: osfHeaders.h,v 1.17 2006/04/26 03:43:00 jaw Exp $
 
 #if !defined(_osf_headers_h)
 #define _osf_headers_h
@@ -185,9 +185,10 @@ extern int P_select(int wid, fd_set *rd, fd_set *wr, fd_set *ex, struct timeval 
 
 extern "C" char *cplus_demangle(char *, int);
 
-inline char * P_cplus_demangle( const char * symbol, bool /* nativeCompiler */, bool /*includeTypes*/ = false ) {
-   return cplus_demangle( const_cast<char *>( symbol ), 0);
-   } /* end P_cplus_demangle() */
+char * P_cplus_demangle( const char * symbol, 
+                         bool  nativeCompiler, 
+                         bool includeTypes = false ); 
+/* see osfKludges for implementation */
 
 extern void   P_xdr_destroy(XDR*);
 extern bool_t P_xdr_u_char(XDR*, u_char*);

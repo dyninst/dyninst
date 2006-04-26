@@ -224,6 +224,7 @@ void eCoffSymbol::setState()
 	}
     }
 
+#if 0
     if (name.length() < 1024) {
 	MLD_demangle_string(name.c_str(), prettyName, 1024,
 			    MLD_SHOW_DEMANGLED_NAME | MLD_NO_SPACES);
@@ -231,6 +232,7 @@ void eCoffSymbol::setState()
 	    *strchr(prettyName, '(') = 0;
 	name = prettyName;
     }
+#endif
 
     // The AUX field is a bit more tricky.  I pulled these straight
     // from the Alpha Symbol Table Specification, section 5.3.7.3.
@@ -766,6 +768,10 @@ BPatch_type *eCoffHandleTIR(BPatch_module *mod, eCoffSymbol &symbol, bool /*type
     case btStruct:
     case btUnion:
 	remoteSymbol = eCoffHandleRNDX(symbol);
+#if 0
+        if (currTIR->ti.bt == btStruct)
+          fprintf(stderr, "%s[%d]:  bt struct %s local, %s remote\n", FILE__, __LINE__, symbol.name.c_str(), remoteSymbol.name.c_str());
+#endif
 	result = eCoffParseType(mod, remoteSymbol, true);
 	remoteSymbol.clear(true);
 	break;
@@ -1158,8 +1164,11 @@ void eCoffParseProc(BPatch_module *mod, eCoffSymbol &symbol, bool skip)
 
 // Parses the symbols associated with user-defined types.
 // Eg: Classes, structures, unions, and enumerations.
+template class pdvector<BPatch_type *>;
 BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip)
 {
+   static pdvector<BPatch_type *> local_type_cache;
+
    int endIndex;
    BPatch_type *result, *field;
    BPatch_dataClass dataType = BPatch_unknownType;
@@ -1177,6 +1186,17 @@ BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip
       if (symbol.sym->st == stTag) ++symbol;
       symbol = symbol.sym->index - 1;
       return NULL;
+   }
+
+   //  check our local type cache for a type of this name/id
+   //  if we have one that matches, return it (this is a recursion guard)
+   for (unsigned int i = 0; i < local_type_cache.size(); ++i) {
+      if (symbol.name == local_type_cache[i]->getName()) {
+#if 0
+         fprintf(stderr, "%s[%d]:  RECURSION GUARD HIT FOR TYPE %s\n", FILE__, __LINE__, symbol.name.c_str());
+#endif
+         return local_type_cache[i];
+      }
    }
 
    // Determine data class.
@@ -1217,6 +1237,10 @@ BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip
 
    } else {
 
+#if 0
+      fprintf(stderr, "%s[%d]:  C-style thingy: st = %d, sc = %d, name = %s\n", 
+              FILE__, __LINE__, symbol.sym->st, symbol.sym->sc, symbol.name.c_str());
+#endif
       // C style structure, union, or enumeration.
       // Assume enumeration for now.
       dataType = BPatch_enumerated;
@@ -1234,6 +1258,12 @@ BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip
       isEnum = true;
       isStruct = false;
    }
+
+   //  add our newly created type to the recursion guard so that if we 
+   //  hit a recurring instance of it in the member list, 
+   //  we will not regard it as a new type
+   if (result) 
+      local_type_cache.push_back(result);
 
    endIndex = symbol.sym->index - 1;
    while (symbol.index() < endIndex) {
@@ -1289,6 +1319,12 @@ BPatch_type *eCoffParseStruct(BPatch_module *mod, eCoffSymbol &symbol, bool skip
       }
       result->decrRefCount();
       result = tempType;
+   }
+
+   //  remove result from recursion guard, if it is represented there
+   for (int i = local_type_cache.size() -1; i >= 0; i--) {
+     if (local_type_cache[i] == result)
+        local_type_cache.erase(i,i); 
    }
 
    return result;
@@ -1408,17 +1444,14 @@ pPDR stabsGetFunction(eCoffSymbol &origSymbol, const char *func)
     eCoffSymbol symbol(info);
 
     pPDR ret = NULL;
-    fprintf(stderr, "%s[%d]:  Not a match: ", FILE__, __LINE__);
     for (int i = 0; i < info->pdrCount; ++i) {
        symbol = info->pdrBase[i].isym;
        if (symbol.name == func) {
           ret = info->pdrBase + i;
-          fprintf(stderr, "%s ", symbol.name.c_str());
           break;
        }
     }
-    fprintf(stderr, "\n");
-    return NULL;
+    return ret;
 }
 
 int stabsGetOffset(eCoffSymbol &symbol, const char *func, int st) 
@@ -1427,8 +1460,13 @@ int stabsGetOffset(eCoffSymbol &symbol, const char *func, int st)
     pPDR func_pdr = stabsGetFunction(symbol, func);
 
     if (!func_pdr) {
-       fprintf(stderr, "%s[%d]:  stabsGetFunction failed for %s/%s\n", FILE__, __LINE__, symbol.name.c_str(), func);
-       return -1;
+       extern pdstring current_mangled_func_name;
+       func_pdr = stabsGetFunction(symbol, current_mangled_func_name.c_str());
+       if (!func_pdr) {
+         fprintf(stderr, "%s[%d]:  stabsGetFunction failed for %s/%s\n", FILE__, __LINE__, symbol.name.c_str(), func);
+         return -1;
+       }
+
     }
     assert(func_pdr);
     assert(symbol.sym);

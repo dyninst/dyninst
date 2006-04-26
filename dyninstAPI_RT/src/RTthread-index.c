@@ -56,14 +56,6 @@
 
 static DECLARE_TC_LOCK(DYNINST_index_lock);
 
-typedef struct thread_t {
-   dyntid_t tid;
-   int next;
-} thread_t;
-
-static thread_t *threads;
-static int *threads_hash;
-static unsigned threads_hash_size;
 
 static int first_free;
 static int first_deleted;
@@ -81,8 +73,8 @@ void DYNINST_initialize_index_list()
   if (init_index_done) return;
   init_index_done = 1;
 
-  threads = (thread_t *) malloc(DYNINST_max_num_threads * sizeof(thread_t));
-  memset(threads, 0, DYNINST_max_num_threads * sizeof(thread_t));
+  threads = (dyninst_thread_t *) malloc(DYNINST_max_num_threads * sizeof(dyninst_thread_t));
+  memset(threads, 0, DYNINST_max_num_threads * sizeof(dyninst_thread_t));
 
   threads_hash_size = (int) (DYNINST_max_num_threads * 1.25);
   threads_hash = (unsigned *) malloc(threads_hash_size * sizeof(unsigned));
@@ -198,7 +190,7 @@ unsigned DYNINST_alloc_index(dyntid_t tid)
       goto done;
    }
  
-   //Initialize the thread_t object
+   //Initialize the dyninst_thread_t object
    threads[t].tid = tid;
    threads[t].next = NONE;
 

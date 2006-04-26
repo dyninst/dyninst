@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.124 2006/04/06 10:08:47 jaw Exp $ */
+/* $Id: test1.mutatee.c,v 1.125 2006/04/26 03:43:04 jaw Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -2890,9 +2890,13 @@ typedef struct {
 	int f;
 } matt_struct;
 
+#if 1
 struct matt_recursive {
     struct matt_recursive *next;
 };
+
+struct matt_recursive matt_vrecurse;
+#endif
 
 matt_int matt_vint;
 matt_pint matt_vpint;
@@ -2906,4 +2910,3 @@ mattfoo mattbar(mattfoo a, mattfoo b) {
     return NULL;
 }
 
-struct matt_recursive matt_vrecurse;

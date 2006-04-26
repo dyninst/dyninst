@@ -551,7 +551,6 @@ extern pdstring parseStabString(BPatch_module *, int linenum, char *str,
 // and variables
 void BPatch_module::parseTypes()
 {
-
     int i, j;
     int nlines;
     int nstabs;
@@ -586,6 +585,9 @@ void BPatch_module::parseTypes()
     objPtr.get_line_info(nlines,lines,linesfdptr); 
 
     bool parseActive = true;
+    //fprintf(stderr, "%s[%d]:  parseTypes for module %s: nstabs = %d\n", FILE__, __LINE__,mod->fileName().c_str(),nstabs);
+    //int num_active = 0;
+
     for (i=0; i < nstabs; i++) {
       /* do the pointer addition by hand since sizeof(struct syment)
        *   seems to be 20 not 18 as it should be */
@@ -629,11 +631,22 @@ void BPatch_module::parseTypes()
                 // Clear out old types
                 moduleTypes->clearNumberedTypes();
 	 } else {
-		parseActive = false;
+              parseActive = false;
+#ifdef NOTDEF // PDSEP
+#if defined (os_aix)
+              if (mod->fileName() == "libdyninstAPI_RT.so.1") {
+                 if (moduleName[0] == 'R' && moduleName[1] == 'T')
+                   parseActive = true;
+              }
+              fprintf(stderr, "%s[%d]:  parse %s for %s\n", FILE__, __LINE__, parseActive ? "active" : "not active", moduleName);
+#endif
+#endif
 	 }
       }
 
       if (!parseActive) continue;
+
+      //num_active++;
 
       char *nmPtr;
       if (!sym->n_zeroes && ((sym->n_sclass & DBXMASK) ||
@@ -787,6 +800,8 @@ void BPatch_module::parseTypes()
   cout << __FILE__ << ":" << __LINE__ <<": parseTypes("<< mod->fileName()
        <<") took "<<dursecs <<" msecs" << endl;
 #endif
+
+//  fprintf(stderr, "%s[%d]:  parseTypes for %s, num_active = %d\n", FILE__, __LINE__, mod->fileName().c_str(), num_active);
 }
 
 #endif

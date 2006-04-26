@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.153 2006/04/14 02:08:13 legendre Exp $
+// $Id: pdwinnt.C,v 1.154 2006/04/26 03:43:01 jaw Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -214,7 +214,6 @@ bool SignalHandler::handleExecEntry(EventRecord &, bool &)
 bool SignalHandler::handleProcessCreate(EventRecord &ev, bool &continueHint) 
 {
     process *proc = ev.proc;
-    const procSignalInfo_t &info = ev.info;
     
     if(! proc)
         return true;
@@ -233,7 +232,7 @@ bool SignalHandler::handleProcessCreate(EventRecord &ev, bool &continueHint)
                                        rep_lwp);
     }
     else {
-        proc->threads[0]->update_tid(info.dwThreadId);
+        proc->threads[0]->update_tid(ev.info.dwThreadId);
         proc->threads[0]->update_lwp(rep_lwp);
     }
 
@@ -257,20 +256,19 @@ bool CALLBACK printMods(PCSTR name, DWORD64 addr, PVOID unused) {
 bool SignalHandler::handleLoadLibrary(EventRecord &ev, bool &continueHint) 
 {
    process *proc = ev.proc;
-   const procSignalInfo_t &info = ev.info;
 
    // obtain the name of the DLL
-   pdstring imageName = GetLoadedDllImageName( proc, info );
+   pdstring imageName = GetLoadedDllImageName( proc, ev.info );
 
    parsing_printf("%s[%d]: load dll %s: hFile=%x, base=%x, debugOff=%x, debugSz=%d lpname=%x, %d\n",
      __FILE__, __LINE__,
      imageName.c_str(),
-     info.u.LoadDll.hFile, info.u.LoadDll.lpBaseOfDll,
-     info.u.LoadDll.dwDebugInfoFileOffset,
-     info.u.LoadDll.nDebugInfoSize,
+     ev.info.u.LoadDll.hFile, ev.info.u.LoadDll.lpBaseOfDll,
+     ev.info.u.LoadDll.dwDebugInfoFileOffset,
+     ev.info.u.LoadDll.nDebugInfoSize,
      imageName.c_str(),
-     info.u.LoadDll.fUnicode,
-     GetFileSize(info.u.LoadDll.hFile,NULL));
+     ev.info.u.LoadDll.fUnicode,
+     GetFileSize(ev.info.u.LoadDll.hFile,NULL));
    startup_printf("Loaded dll: %s\n", imageName.c_str());
    
    // This is NT's version of handleIfDueToSharedObjectMapping     
@@ -290,9 +288,10 @@ bool SignalHandler::handleLoadLibrary(EventRecord &ev, bool &continueHint)
    }
 
    fileDescriptor desc(imageName, 
-                       (Address)info.u.LoadDll.lpBaseOfDll,
+                       (Address)ev.info.u.LoadDll.lpBaseOfDll,
                        (HANDLE)procHandle,
-                       info.u.LoadDll.hFile, true, (Address)info.u.LoadDll.lpBaseOfDll);
+                       ev.info.u.LoadDll.hFile, true, 
+                       (Address)ev.info.u.LoadDll.lpBaseOfDll);
    
    // discover structure of new DLL, and incorporate into our
    // list of known DLLs

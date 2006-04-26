@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.371 2006/04/25 17:06:32 jodom Exp $
+/* $Id: process.h,v 1.372 2006/04/26 03:43:02 jaw Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -227,6 +227,7 @@ class process {
 
   void deleteThread(dynthread_t tid);
   void deleteThread_(dyn_thread *thr);
+  bool removeThreadIndexMapping(dyn_thread *thr);
 
   // Thread index functions
   unsigned getIndexToThread(unsigned index);

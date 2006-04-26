@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.620 2006/04/25 22:08:19 bernat Exp $
+// $Id: process.C,v 1.621 2006/04/26 03:43:02 jaw Exp $
 
 #include <ctype.h>
 
@@ -3209,6 +3209,7 @@ void finalizeDyninstLibWrapper(process *p)
   p->finalizeDyninstLib();
   global_mutex->_Unlock(FILE__, __LINE__);
 }
+
 void process::DYNINSTinitCompletionCallback(process* theProc,
                                             unsigned /* rpc_id */,
                                             void* /*userData*/, // user data
@@ -3515,7 +3516,8 @@ bool process::multithread_ready(bool ignore_if_mt_not_set) {
    return isBootstrappedYet();
 }
 
-dyn_lwp *process::query_for_stopped_lwp() {
+dyn_lwp *process::query_for_stopped_lwp() 
+{
    dyn_lwp *foundLWP = NULL;
    dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
    dyn_lwp *lwp;
@@ -3572,31 +3574,39 @@ dyn_lwp *process::query_for_running_lwp()
 }
 
 // first searches for stopped lwp and if not found explicitly stops an lwp
-dyn_lwp *process::stop_an_lwp(bool *wasRunning) {
+dyn_lwp *process::stop_an_lwp(bool *wasRunning) 
+{
    dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
    dyn_lwp *lwp;
    dyn_lwp *stopped_lwp = NULL;
    unsigned index;
    if (!isAttached()) {
-     fprintf(stderr, "%s[%d]:  cannot stop_an_lwp, process not attached\n", FILE__, __LINE__);
-     return false;
+     fprintf(stderr, "%s[%d]:  cannot stop_an_lwp, process not attached\n", 
+             FILE__, __LINE__);
+     return NULL;
    }
 
    if(IndependentLwpControl()) {
-      while(lwp_iter.next(index, lwp)) {
-         if(lwp->status() == stopped) {
+      while (lwp_iter.next(index, lwp)) {
+         fprintf(stderr, "%s[%d]:  lwp %d has status %s\n", FILE__, __LINE__, lwp->get_lwp_id(), lwp->getStatusAsString().c_str());
+         if (lwp->status() == exited) 
+            continue;
+         if (lwp->status() == stopped) {
             stopped_lwp = lwp;
             *wasRunning = false;
             break;
          }
-         if(lwp->pauseLWP()) {
+         if (lwp->pauseLWP()) {
             stopped_lwp = lwp;
             *wasRunning = true;
             break;
          }
+         else {
+            fprintf(stderr, "%s[%d]:  failed to pause lwp %d\n", FILE__, __LINE__, lwp->get_lwp_id());
+         }
       }
       if(stopped_lwp == NULL) {
-          assert(getRepresentativeLWP());
+         if (!getRepresentativeLWP()) return NULL;
          if(getRepresentativeLWP()->status() == stopped) {
             *wasRunning = false;
          } else {
@@ -3712,6 +3722,8 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
 {
    bool needToCont = false;
 
+   try_again:
+
    if (!isAttached()) {
       fprintf(stderr, "%s[%d][%s]:  readDataSpace() failing, not attached\n",
              __FILE__, __LINE__, getThreadStr(getExecThreadID()));
@@ -3721,7 +3733,7 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
    if(stopped_lwp == NULL) {
       stopped_lwp = stop_an_lwp(&needToCont);
-      if(stopped_lwp == NULL) {
+      if (stopped_lwp == NULL) {
          pdstring msg =
             pdstring("System error: unable to read to process data "
                      "space: couldn't stop an lwp\n");
@@ -3731,8 +3743,18 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
       }
    }
 
+   errno = 0;
    bool res = stopped_lwp->readDataSpace(inTracedProcess, size, inSelf);
    if (!res) {
+      //  let's check to see if this lwp is gone...  if so go back to the
+      //  top to find another one.
+      
+      fprintf(stderr, "%s[%d]:  RDS: %s\n", FILE__, __LINE__, strerror(errno));
+      //if (!stopped_lwp->is_attached()) {
+        fprintf(stderr, "%s[%d]:  guessing lwp %d is gone (status is %s), trying with a different one\n",
+                FILE__, __LINE__, stopped_lwp->get_lwp_id(), stopped_lwp->getStatusAsString().c_str());
+        goto try_again;
+     // }
       if (displayErrMsg) {
          sprintf(errorLine, "System error: "
                  "<>unable to read %d@%s from process data space: %s (pid=%d)",
@@ -5910,8 +5932,274 @@ void process::deleteThread(dynthread_t tid)
     status_ = newst;
 }
 
+bool process::removeThreadIndexMapping(dyn_thread *thr)
+{
+  assert(runtime_lib);
+  assert(thr);
+  thread_printf("%s[%d][%s]:  removing thread index %d for tid %lu: status is %s\n", 
+          FILE__, __LINE__, getThreadStr(getExecThreadID()),thr->get_index(), thr->get_tid(), getStatusAsString().c_str());
+
+  if (-1 == thr->get_index()) {
+    fprintf(stderr, "%s[%d]:  FIXME: thread %lu has invalid index\n", 
+            FILE__, __LINE__, thr->get_tid());
+    return false;
+  }
+
+  // stop the whole process.  We want to use a process-wide read/writeDataSpace
+  // because at least one thread has exited (linux 2.4 has passive-ish thread
+  // exit reporting, so we don't really know what the state of our lwp's are
+
+  bool need_to_continue = false;
+  if (status_ == running) {
+    if (!stop_(false /* wait until stopped */)) {
+          fprintf(stderr, "%s[%d]:  FAIL: could not stop proces: state is %s\n",
+                   FILE__, __LINE__, getStatusAsString().c_str()); 
+          return false; 
+    }
+    if (status_ == stopped)
+      need_to_continue = true;
+  }
+
+  if (status_ != stopped) {
+     fprintf(stderr, "%s[%d]:  FAIL: process state is %s, not stopped\n",
+             FILE__, __LINE__, getStatusAsString().c_str()); 
+     return false;
+  }
+
+  //  Find variable "threads" in the runtime library
+  //  this is the array that holds all thread structures
+  pdstring varname = "threads";
+  const pdvector<int_variable *> *varsp = runtime_lib->findVarVectorByPretty(varname);
+  if (!varsp || !varsp->size()) {
+    varsp = runtime_lib->findVarVectorByMangled(varname);
+  }
+  if (!varsp || !varsp->size()) {
+    fprintf(stderr, "%s[%d]:  FIXME: cannot find variable %s in rtlib\n", 
+            FILE__, __LINE__, varname.c_str());
+    fprintf(stderr, "\trtlib has the following vars:\n");
+    pdvector<int_variable*> allvars;
+    runtime_lib->getAllVariables(allvars);
+    for (unsigned int i = 0; i < allvars.size(); ++i) {
+      pdvector<pdstring> prettynames = allvars[i]->prettyNameVector();
+      if (!prettynames.size()) fprintf(stderr, "\tno name\n");
+      else fprintf(stderr, "\t%s\n", prettynames[0].c_str());
+    }
+
+   if (!findVarsByAll("threads", allvars)) {
+       fprintf(stderr, "%s[%d]:  did not find threads via all\n", FILE__, __LINE__);
+    }
+    else {
+       fprintf(stderr, "%s[%d]:  FIXME: FOUND VAR via all\n", FILE__, __LINE__);
+
+    }
+    return false;
+  }
+  if (varsp->size() > 1) {
+    fprintf(stderr, "%s[%d]:  WARNING: found %d instances of var %s in rtlib\n", 
+            FILE__, __LINE__, varsp->size(), varname.c_str());
+  }
+  int_variable *threads_array_var = (*varsp)[0];
+  assert(threads_array_var);
+  Address threads_array_ptr = threads_array_var->getAddress();
+
+  //  Find variable "threads_hash" in the runtime library
+  //  this is the mapping from tid->index
+  varname = "threads_hash";
+  varsp = runtime_lib->findVarVectorByPretty(varname);
+  if (!varsp || !varsp->size()) {
+    varsp = runtime_lib->findVarVectorByMangled(varname);
+  }
+  if (!varsp || !varsp->size()) {
+    fprintf(stderr, "%s[%d]:  FIXME: cannot find variable %s in rtlib\n", 
+            FILE__, __LINE__, varname.c_str());
+    return false;
+  }
+  if (varsp->size() > 1) {
+    fprintf(stderr, "%s[%d]:  WARNING: found %d instances of var %s in rtlib\n", 
+            FILE__, __LINE__, varsp->size(), varname.c_str());
+  }
+  int_variable *threads_hash_var = (*varsp)[0];
+  assert(threads_hash_var);
+  Address threads_hash_ptr = threads_hash_var->getAddress();
+
+  //  Find variable "threads_hash_size" in the runtime library
+  //  this is the (duh) number of elements in threads_hash
+  varname = "threads_hash_size";
+  varsp = runtime_lib->findVarVectorByPretty(varname);
+  if (!varsp || !varsp->size()) {
+    varsp = runtime_lib->findVarVectorByMangled(varname);
+  }
+  if (!varsp || !varsp->size()) {
+    fprintf(stderr, "%s[%d]:  FIXME: cannot find variable %s in rtlib\n", 
+            FILE__, __LINE__, varname.c_str());
+    return false;
+  }
+  if (varsp->size() > 1) {
+    fprintf(stderr, "%s[%d]:  WARNING: found %d instances of var %s in rtlib\n", 
+            FILE__, __LINE__, varsp->size(), varname.c_str());
+  }
+  int_variable *threads_hash_size_var = (*varsp)[0];
+  assert(threads_hash_size_var);
+  Address threads_hash_size_addr = threads_hash_size_var->getAddress();
+
+  //  Now get the actual hash table and associated variables:
+
+  //  read the value of threads_hash_size
+  unsigned threads_hash_size = (unsigned)-1;
+  if (!DBI_readDataSpace(getPid(),
+                         (Address)(threads_hash_size_addr), 
+                         sizeof(int),
+                         (Address)&threads_hash_size, 
+                         getAddressWidth(),
+                         FILE__, __LINE__)
+      || threads_hash_size == (unsigned) -1) {
+      //  check errno for enoent
+     fprintf(stderr, "%s[%d]:  FIXME:  failed to read value of threads_hash_size\n",
+             FILE__, __LINE__);
+     if (need_to_continue)
+        if (!continueProc()) {
+          fprintf(stderr, "%s[%d]:  continueProc() failed here\n", FILE__, __LINE__);
+        }
+     return true;
+  }
+
+  //  read the value of the threads array pointer
+  Address threads_array_addr = (Address) NULL;
+  if (!DBI_readDataSpace(getPid(), 
+                        (Address)(threads_array_ptr), 
+                        sizeof(void *), 
+                        (Address)&threads_array_addr, 
+                        getAddressWidth(),
+                        FILE__, __LINE__) ) {
+     fprintf(stderr, "%s[%d]:  FIXME:  failed to read threads_array_addr\n",
+             FILE__, __LINE__);
+     return false;
+  }
+
+  if (!threads_array_addr) {
+     fprintf(stderr, "%s[%d]:  FIXME:  failed to read threads_array_addr\n",
+             FILE__, __LINE__);
+     return false;
+  }
+
+  //  read the (entire) threads array  (its size is max_number_of_threads)
+  dyninst_thread_t threads_buf[max_number_of_threads];
+  if (!DBI_readDataSpace(getPid(),
+                         (Address)(threads_array_addr), 
+                         sizeof(dyninst_thread_t) *max_number_of_threads,
+                         (Address)&threads_buf,
+                         getAddressWidth(),
+                         FILE__, __LINE__) ) {
+     fprintf(stderr, "%s[%d]:  FIXME:  failed to read threads_array_buf\n",
+             FILE__, __LINE__);
+     return false;
+  }
+
+  //  read the value of the threads hash pointer
+  Address threads_hash_addr = (Address) NULL;
+  if (!DBI_readDataSpace(getPid(), 
+                        (Address)(threads_hash_ptr), 
+                        sizeof(void *), 
+                        (Address)&threads_hash_addr, 
+                        getAddressWidth(),
+                        FILE__, __LINE__) ) {
+     fprintf(stderr, "%s[%d]:  FIXME:  failed to read threads_hash_addr\n",
+             FILE__, __LINE__);
+     return false;
+  }
+
+  if (!threads_hash_addr) {
+     fprintf(stderr, "%s[%d]:  FIXME:  failed to read threads_hash_addr\n",
+             FILE__, __LINE__);
+     return false;
+  }
+
+  //  read the (entire) threads hash  (its size is threads_hash_size)
+  int threads_hash_buf[threads_hash_size];
+  if (!DBI_readDataSpace(getPid(), 
+                         (Address)(threads_hash_addr), 
+                         sizeof(int) * threads_hash_size,
+                         (Address)&threads_hash_buf, 
+                         getAddressWidth(),
+                         FILE__, __LINE__) ) {
+     fprintf(stderr, "%s[%d]:  FIXME:  failed to read threads_hash_buf\n",
+             FILE__, __LINE__);
+     return false;
+  }
+
+  //  need to find the hash key that corresponds to the index of thr.
+  //  then, to unmap it, we set threads_hash[key] to -1
+
+  //  mimic the hash algorithm in the rt lib
+  unsigned hash_id = thr->get_tid() % threads_hash_size;
+  unsigned orig = hash_id;
+  unsigned found_index = (unsigned) -1;
+
+  do {
+     int index = threads_hash_buf[hash_id];
+     if (index == thr->get_index()) {
+       // we have found the right hash_id
+      found_index = index;
+      break;
+     }     
+     hash_id++;
+     if (hash_id == threads_hash_size) {
+       // circle back to the beginning of the hash
+       hash_id = 0;
+     }
+
+  } while (orig != hash_id);
+
+  if (found_index == (unsigned) -1) {
+    fprintf(stderr, "%s[%d]:  FIXME:  thread id %lu not found in hash\n",
+            FILE__, __LINE__, thr->get_tid());
+    return false;
+  }
+
+  //  found the hash key for this index.
+  //  now remove the mapping from the hash table
+
+  int minus_one = -1;
+  if (!DBI_writeDataSpace(getPid(),
+                         (Address)(threads_hash_addr + (hash_id * sizeof(unsigned))),
+                         sizeof(unsigned),
+                         (Address)&minus_one,
+                         getAddressWidth(),
+                         FILE__, __LINE__)) {
+    fprintf(stderr, "%s[%d]:  FIXME:  failed to reset mapping for tid %lu\n",
+            FILE__, __LINE__, thr->get_tid());
+    return false;
+  }
+
+  // And write-over the entry in the threads array with a null entry
+  dyninst_thread_t null_entry;
+  null_entry.tid = NULL;
+  null_entry.next = -1;
+  if (!DBI_writeDataSpace(getPid(), 
+                         (Address)(threads_array_addr + (found_index * sizeof(dyninst_thread_t))),
+                         sizeof(dyninst_thread_t),
+                         (Address)&null_entry,
+                         getAddressWidth(),
+                         FILE__, __LINE__)) {
+    fprintf(stderr, "%s[%d]:  FIXME:  failed to reset mapping for tid %lu\n",
+            FILE__, __LINE__, thr->get_tid());
+    return false;
+  }
+
+  thread_printf("%s[%d]:  removed thread index %d for tid %lu, hash id %d\n", 
+          FILE__, __LINE__, thr->get_index(), thr->get_tid(), hash_id);
+
+  if (need_to_continue)
+    if (!continueProc()) {
+      fprintf(stderr, "%s[%d]:  continueProc() failed here\n", FILE__, __LINE__);
+    }
+
+  return true;
+}
+
 // Pull whatever is in the slot out of the inferior process
-unsigned process::getIndexToThread(unsigned index) {
+unsigned process::getIndexToThread(unsigned index) 
+{
     unsigned val;
     
     readDataSpace((void *)(threadIndexAddr + (index * sizeof(unsigned))),
@@ -5921,7 +6209,8 @@ unsigned process::getIndexToThread(unsigned index) {
     return val;
 }
 
-void process::setIndexToThread(unsigned index, unsigned value) {
+void process::setIndexToThread(unsigned index, unsigned value) 
+{
    bool err =  writeDataSpace((void *)(threadIndexAddr + (index * sizeof(unsigned))),
                    sizeof(unsigned),
                    (void *)&value);

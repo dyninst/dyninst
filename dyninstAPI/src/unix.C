@@ -39,13 +39,14 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.194 2006/04/25 17:54:42 bernat Exp $
+// $Id: unix.C,v 1.195 2006/04/26 03:43:03 jaw Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
 #include "common/h/Vector.h"
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/os.h"
+#include "dyninstAPI/src/unix.h"
 #include "dyninstAPI/src/util.h"
 #include "dyninstAPI/src/debuggerinterface.h"
 #include "dyninstAPI/src/mapped_object.h"
@@ -280,7 +281,7 @@ bool SignalGenerator::decodeProcStatus(procProcStatus_t status, EventRecord &ev)
            ev.info = 0;
 #endif
 #if defined (os_osf)
-       ev.info = status.pr_reg.regs[A0_REGNUM];
+       ev.info = status.pr_reg.regs[REG_A0];
 #endif
         decodeSyscall(ev);
         break;
@@ -299,7 +300,7 @@ bool SignalGenerator::decodeProcStatus(procProcStatus_t status, EventRecord &ev)
         ev.info = status.pr_sysarg[0];
 #endif
 #if defined (os_osf)
-       ev.info = status.pr_reg.regs[V0_REGNUM];
+       ev.info = status.pr_reg.regs[REG_V0];
 #endif
         decodeSyscall(ev);
         break;
@@ -530,7 +531,8 @@ bool SignalGenerator::waitForEventsInternal(pdvector<EventRecord> &events)
   }
 
   if (!pfds[0].revents) {
-     fprintf(stderr, "%s[%d]:  weird, no event for signalled process\n", FILE__, __LINE__);
+     fprintf(stderr, "%s[%d]:  weird, no event for signalled process\n", 
+             FILE__, __LINE__);
      return false;
   }
 
@@ -1391,9 +1393,25 @@ bool WriteDataSpaceCallback::execute_real()
 
 bool DBI_writeDataSpace(pid_t pid, Address addr, int nelem, Address data, int word_len, const char *file, unsigned int line)
 {
+#if defined (os_linux)
   dbi_printf("%s[%d]: DBI_writeDataSpace(%d, %p, %d, %p, %d) called from %s[%d]\n", 
             FILE__, __LINE__, pid, (void *) addr, nelem, (void *) data, word_len,file,line);
   return getDBI()->writeDataSpace(pid, addr, nelem, data, word_len, file, line);
+#else
+  process *p = NULL;
+  for (unsigned int i = 0; i < processVec.size(); ++i) {
+     if (processVec[i]->getPid() == pid) {
+       p = processVec[i];
+       break;
+     }
+  }
+  if (!p) {
+     fprintf(stderr, "%s[%d]:  no process corresp to pid %d\n", FILE__, __LINE__);
+     return false;
+  }
+
+  return p->readDataSpace((void *)addr, nelem, (void *)data, true /*display error?*/);
+#endif
 }
 
 bool ReadDataSpaceCallback::operator()(pid_t pid, Address addr, int nelem, Address data, int word_len)
@@ -1446,10 +1464,28 @@ bool DebuggerInterface::readDataSpace(pid_t pid, Address addr, int nbytes, Addre
 
 bool DBI_readDataSpace(pid_t pid, Address addr, int nelem, Address data, int word_len, const char *file, unsigned int line)
 {
-  bool ret =  getDBI()->readDataSpace(pid, addr, nelem, data, word_len, file, line);
+  bool ret = false;
+#if defined (os_linux)
+  ret =  getDBI()->readDataSpace(pid, addr, nelem, data, word_len, file, line);
+#else
+  process *p = NULL;
+  for (unsigned int i = 0; i < processVec.size(); ++i) {
+     if (processVec[i]->getPid() == pid) {
+       p = processVec[i];
+       break;
+     }
+  }
+  if (!p) {
+     fprintf(stderr, "%s[%d]:  no process corresp to pid %d\n", FILE__, __LINE__);
+     return false;
+  }
+
+  ret = p->readDataSpace((void *)addr, nelem, (void *)data, true /*display error?*/);
+#endif
   if (!ret)
     signal_printf("%s[%d]:  readDataSpace at %s[%d] failing\n", 
                   __FILE__, __LINE__, file, line);
+  
   return ret;
 }
 

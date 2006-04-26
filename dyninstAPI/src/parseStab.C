@@ -296,8 +296,11 @@ pdstring parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		  } else {
 		    if (bpfv.size() > 1) {
 		      // warn if we find more than one function with current_func_name
-		      bperr("%s[%d]:  WARNING: found %d functions with name %s, using the first",
-			     __FILE__, __LINE__, bpfv.size(), name.c_str());
+                      char msg[1024];
+                      sprintf(msg, "%s[%d]:  found %d functions with name %s, using the first",
+                              FILE__, __LINE__, (int)bpfv.size(), name.c_str());
+                      BPatch::bpatch->reportError(BPatchWarning, 0, msg);
+
                     }else if (!bpfv.size()) {
                       bperr("%s[%d]:  SERIOUS: found 0 functions with name %s",
                              __FILE__, __LINE__, name.c_str());
@@ -384,6 +387,7 @@ pdstring parseStabString(BPatch_module *mod, int linenum, char *stabstr,
 		       symdescID, name.c_str());
 	      } else {
 		  /** XXXX - should add local too here **/
+                  //fprintf(stderr, "%s[%d]:  found global variable: %s\n", FILE__, __LINE__, name.c_str());
 		  mod->getModuleTypes()->addGlobalVariable(name.c_str(), BPtype);
 	      }
 	      break;

@@ -1793,7 +1793,8 @@ SignalGenerator::SignalGenerator(char *idstr, pdstring file, pdstring dir,
 // The signalGenerator is waiting for waitForContinueLock to get signalled.
 // We'll bounce it, then wait on requestContinueLock... 
 
-bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal) {
+bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal) 
+{
     if (exitRequested()) {
         // We're going away... so don't do anything
         return true;
@@ -1950,7 +1951,8 @@ bool SignalGeneratorCommon::waitToContinueProcess() {
 }
 #endif
 
-bool SignalGeneratorCommon::continueRequired() {
+bool SignalGeneratorCommon::continueRequired() 
+{
     // Do we need to continue the process or just check waitpid/poll?
 
   if (independentLwpStop_) {
@@ -2044,7 +2046,8 @@ bool SignalGeneratorCommon::continueProcessInternal() {
 }
 
 
-void SignalGeneratorCommon::setContinueSig(int signalToContinueWith) {
+void SignalGeneratorCommon::setContinueSig(int signalToContinueWith) 
+{
     if ((continueSig_ != -1) &&
         (signalToContinueWith != continueSig_)) {
         fprintf(stderr, "%s[%d]: WARNING: conflict in signal to continue with: previous %d, new %d\n",
@@ -2054,7 +2057,8 @@ void SignalGeneratorCommon::setContinueSig(int signalToContinueWith) {
     continueSig_ = signalToContinueWith;
 }
 
-bool SignalGeneratorCommon::pauseProcessBlocking() {
+bool SignalGeneratorCommon::pauseProcessBlocking() 
+{
     if (exitRequested()) {
         // We're going away... so don't do anything
         return true;

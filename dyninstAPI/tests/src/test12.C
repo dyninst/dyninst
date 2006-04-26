@@ -125,7 +125,7 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
     if (num == 0) {
         // conditional reporting of warnings and informational messages
         if (errorPrint) {
-            if (level == BPatchInfo)
+            if ((level == BPatchInfo) || (level == BPatchWarning))
               { if (errorPrint > 1) printf("%s\n", params[0]); }
             else {
                 printf("%s", params[0]);
@@ -327,6 +327,7 @@ bool mutatorTest1()
      if (proc->isTerminated()) 
         break;
      if (proc->isStopped()) {
+        //  This really shouldn't happen
         fprintf(stderr, "%s[%d]:  BAD NEWS:  process is stopped, something is broken\n", 
                 __FILE__, __LINE__);
         proc->continueExecution();
@@ -373,7 +374,7 @@ bool mutatorTest1()
 
   sleep_ms(1000/*ms*/);
   PASS(TESTNO,TESTNAME);
-  fprintf(stderr, "%s[%d]:  test1 success\n", __FILE__, __LINE__);
+  fprintf(stderr, "%s[%d]:  commented out delete\n", __FILE__, __LINE__);
   //delete(proc);
   return true;
 }

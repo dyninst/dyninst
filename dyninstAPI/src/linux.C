@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.218 2006/04/25 22:08:18 bernat Exp $
+// $Id: linux.C,v 1.219 2006/04/26 03:43:01 jaw Exp $
 
 #include <fstream>
 
@@ -1123,6 +1123,8 @@ bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf
           if (errno) {
               signal_printf("%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, 
                             strerror(errno));
+              fprintf(stderr, "%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, 
+                            strerror(errno));
               return false;
           }
           for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
@@ -1141,6 +1143,8 @@ bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf
           w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0, len);
           if (errno) {
               signal_printf("%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, 
+                            strerror(errno));
+              fprintf(stderr, "%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, 
                             strerror(errno));
               return false;
           }
@@ -1161,6 +1165,8 @@ bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf
           if (errno) {
                signal_printf("%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, 
                              strerror(errno));
+               fprintf(stderr,"%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, 
+                             strerror(errno));
                return false;
           }
           for (unsigned i = 0; i < nbytes; i++)
@@ -1172,7 +1178,8 @@ bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf
 
 }
 
-bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf) {
+bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf)
+ {
      const unsigned char *ap = (const unsigned char*) inTraced;
      unsigned char *dp = (unsigned char*) inSelf;
      int len = proc_->getAddressWidth(); /* address alignment of ptrace I/O requests */
@@ -1180,9 +1187,14 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf) {
      ptraceOps++; ptraceBytes += nbytes;
 
      bool ret = false;
-     if (! (ret = DBI_readDataSpace(get_lwp_id(), (Address) ap, nbytes,(Address) dp, /*sizeof(Address)*/ len,__FILE__, __LINE__))) {
+     if (! (ret = DBI_readDataSpace(get_lwp_id(), (Address) ap, nbytes,
+                                    (Address) dp, /*sizeof(Address)*/ len,
+                                    FILE__, __LINE__))) {
         signal_printf("%s[%d]:  bulk ptrace read failed for lwp id %d\n",
-                      __FILE__, __LINE__, get_lwp_id());
+                      FILE__, __LINE__, get_lwp_id());
+        fprintf(stderr,"%s[%d]:  bulk ptrace read failed for lwp id %d\n",
+                      FILE__, __LINE__, get_lwp_id());
+        status_ = exited;
        return false;
      }
      return true;
@@ -1277,7 +1289,6 @@ pdstring process::tryToFindExecutable(const pdstring& /* progpath */, int pid)
 }
 
 
-
 bool process::determineLWPs(pdvector<unsigned> &lwp_ids)
 {
   char name[128];
@@ -1315,12 +1326,14 @@ bool process::determineLWPs(pdvector<unsigned> &lwp_ids)
   while ((direntry = readdir(dirhandle)) != NULL)
   {
       if (direntry->d_name[0] != '.') {
-          fprintf(stderr, "Skipping entry %s\n", direntry->d_name);
+          //fprintf(stderr, "%s[%d]: Skipping entry %s\n", FILE__, __LINE__, direntry->d_name);
           continue;
       }
      unsigned lwp_id = atoi(direntry->d_name+1);
-     fprintf(stderr, "lwp id %d for d_name %s\n", 
+#if 0
+     fprintf(stderr, "%s[%d]: lwp id %d for d_name %s\n",  FILE__, __LINE__,
              lwp_id, direntry->d_name);
+#endif
      int lwp_ppid;
      if (!lwp_id) 
          continue;
@@ -1350,7 +1363,7 @@ bool process::determineLWPs(pdvector<unsigned> &lwp_ids)
      fclose(fd);
 
      if (lwp_ppid != getPid()) {
-         fprintf(stderr, "lwp_ppid %d != pid %d\n",
+         fprintf(stderr, "%s[%d]: lwp_ppid %d != pid %d\n", FILE__, __LINE__,
                  lwp_ppid, getPid());
          continue;
      }
@@ -1372,88 +1385,6 @@ papiMgr* dyn_lwp::papi() {
 #endif
 #endif
 
-
-#ifdef NOTDEF // PDSEP
-#if !defined(BPATCH_LIBRARY)
-
-rawTime64 dyn_lwp::getRawCpuTime_hw()
-{
-  rawTime64 result = 0;
-  
-#ifdef PAPI
-  result = papi()->getCurrentVirtCycles();
-#endif
-  
-  if (result < hw_previous_) {
-    logLine("********* time going backwards in paradynd **********\n");
-    result = hw_previous_;
-  }
-  else 
-    hw_previous_ = result;
-  
-  return result;
-}
-
-rawTime64 dyn_lwp::getRawCpuTime_sw()
-{
-  rawTime64 result = 0;
-  int bufsize = 150;
-  unsigned long utime, stime;
-  char procfn[bufsize], *buf;
-
-  sprintf( procfn, "/proc/%d/stat", get_lwp_id());
-
-  int fd;
-
-  // The reason for this complicated method of reading and sseekf-ing is
-  // to ensure that we read enough of the buffer 'atomically' to make sure
-  // the data is consistent.  Is this necessary?  I *think* so. - nash
-  do {
-    fd = P_open(procfn, O_RDONLY, 0);
-    if (fd < 0) {
-      perror("getInferiorProcessCPUtime (open)");
-      return false;
-    }
-
-    buf = new char[ bufsize ];
-
-    if ((int)P_read( fd, buf, bufsize-1 ) < 0) {
-      perror("getInferiorProcessCPUtime");
-      return false;
-    }
-
-	/* While I'd bet that any of the numbers preceding utime and stime could overflow 
-	   a signed int on IA-64, the compiler whines if you add length specifiers to
-	   elements whose conversion has been surpressed. */
-    if(2==sscanf(buf,"%*d %*s %*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %lu %lu "
-		 , &utime, &stime ) ) {
-      // These numbers are in 'jiffies' or timeslices.
-      // Oh, and I'm also assuming that process time includes system time
-      result = static_cast<rawTime64>(utime) + static_cast<rawTime64>(stime);
-      break;
-    }
-
-    delete [] buf;
-    bufsize = bufsize * 2;
-
-    P_close( fd );
-  } while ( true );
-
-  delete [] buf;
-  P_close(fd);
-
-  if (result < sw_previous_) {
-    logLine("********* time going backwards in paradynd **********\n");
-    result = sw_previous_;
-  }
-  else 
-    sw_previous_ = result;
-
-  return result;
-}
-#endif
-
-#endif // NOTDEF // PDSEP
 
 bool process::dumpImage( pdstring imageFileName ) {
 	/* What we do is duplicate the original file,
@@ -2221,6 +2152,7 @@ bool process::initMT()
       }
    }
       
+#if 0
    //Find functions that are run on pthread exit
    pdvector<int_function *> thread_dest_funcs;
    findThreadFuncs(this, "__pthread_do_exit", thread_dest_funcs);
@@ -2260,6 +2192,8 @@ bool process::initMT()
          //TODO: Save the mt objects for detach
       }
    }
+#endif
+
 #if 0
    //Instrument
    for (i=0; i<thread_dest_funcs.size(); i++)

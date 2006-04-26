@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aix.h,v 1.21 2006/03/31 20:06:25 bernat Exp $
+// $Id: aix.h,v 1.22 2006/04/26 03:43:00 jaw Exp $
 
 #if !defined(os_aix)
 #error "invalid architecture-os inclusion"
@@ -53,6 +53,7 @@
 #endif
 
 #include <sys/param.h>
+#include "unix.h"
 #define EXIT_NAME "exit"
 
 #define SIGNAL_HANDLER  0
@@ -89,4 +90,5 @@ struct dyn_saved_regs
 
 #define NUM_SYSCALLS 1024
 
+typedef lwpstatus_t procProcStatus_t;
 #endif

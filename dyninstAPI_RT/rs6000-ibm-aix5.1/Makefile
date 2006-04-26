@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.10 2005/09/29 15:04:10 bernat Exp $
+# $Id: Makefile,v 1.11 2006/04/26 03:43:04 jaw Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -40,6 +40,13 @@ EXTRA_LIBS = libDyninstText.a
 CFLAGS	+= -DUSES_LIB_TEXT_HEAP
 LDFLAGS += -L. -lDyninstText
 endif
+
+LDFLAGS +=-Wl,-bM:SRE -Wl,-bexpall -Wl,-bnoobjreorder -lc -Wl,-bgcbypass:5
+#-Wl,-bnosymbolic
+#-Wl,-brtl 
+#-Wl,-bnortllib -Wl,-bnosymbolic
+
+#erok, rtl, nortllib, nosymbolic, noautoexp == -G
 
 # Include the module-specific Makefile, which defines everything about
 # the module that is common across architectures.

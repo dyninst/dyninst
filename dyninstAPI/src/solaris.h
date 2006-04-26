@@ -47,6 +47,7 @@
 
 #include <procfs.h>
 #include <sys/param.h>
+#include "unix.h"
 
 #define EXIT_NAME "_exithandle"
 
@@ -62,8 +63,8 @@ struct dyn_saved_regs
     prfpregset_t theFpRegs;
 };
 
-//#include "saveSharedLibrary.h" //ccw 13 jan 2002
-#include "writeBackElf.h" //ccw 28 oct 2001
+typedef lwpstatus_t procProcStatus_t;
 
+#include "writeBackElf.h" //ccw 28 oct 2001
 #include "addLibrary.h" //ccw 3 dec 2001
 #endif

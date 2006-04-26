@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.91 2006/04/12 18:37:27 bernat Exp $
+// $Id: osf.C,v 1.92 2006/04/26 03:43:01 jaw Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -285,13 +285,8 @@ bool SignalGenerator::decodeEvents(pdvector<EventRecord> &evts)
    return true;
 }
 
-bool SignalGenerator::updateEventsWithLwpStatus(process *, dyn_lwp *,
-                                  pdvector<EventRecord> &)
+Frame dyn_thread::getActiveFrameMT() 
 {
-  return true;
-}
-
-Frame dyn_thread::getActiveFrameMT() {
 	return Frame();
 }
 
@@ -475,10 +470,12 @@ bool process::dumpImage()
     /* read header and section headers */
     /* Uses ldopen to parse the section headers */
     /* try */ 
+    fprintf(stderr, "%s[%d]:  before ldopen\n", FILE__, __LINE__);
     if (!(ldptr = ldopen(const_cast<char *>( origFile.c_str()), ldptr))) {
        perror("Error in Open");
        exit(-1);
      }
+    fprintf(stderr, "%s[%d]:  after ldopen\n", FILE__, __LINE__);
      
      if (TYPE(ldptr) != ALPHAMAGIC) {
        bperr("%s is not an alpha executable\n", outFile.c_str());

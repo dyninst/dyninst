@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.25 2006/04/03 22:25:25 tlmiller Exp $
+// $Id: linux.h,v 1.26 2006/04/26 03:43:01 jaw Exp $
 
 #if !defined(i386_unknown_linux2_0) \
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
@@ -95,6 +95,8 @@ typedef int handleT; // a /proc file descriptor
 #error Invalid or unknown architecture-os inclusion
 #endif
 
+#include "unix.h"
+
 class process;
 
 /* For linux.C */
@@ -110,6 +112,6 @@ bool attachToChild(int pid);
 
 void calcVSyscallFrame(process *p);
 
-#include "linux-signals.h"
-
+//  no /proc, dummy function
+typedef int procProcStatus_t;
 #endif

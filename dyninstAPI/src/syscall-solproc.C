@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-solproc.C,v 1.16 2006/04/21 22:23:06 bernat Exp $
+// $Id: syscall-solproc.C,v 1.17 2006/04/26 03:43:03 jaw Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -53,8 +53,6 @@
 #include "dyninstAPI/src/process.h"
 #include "dyninstAPI/src/miniTramp.h"
 #include "dyninstAPI/src/EventHandler.h"
-#include "dyninstAPI/src/signalhandler-unix.h"
-
 #include "dyninstAPI/src/symtab.h"
 
 #define FORK_FUNC "fork"

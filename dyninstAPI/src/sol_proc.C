@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.94 2006/04/24 15:59:24 bernat Exp $
+// $Id: sol_proc.C,v 1.95 2006/04/26 03:43:03 jaw Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -61,6 +61,7 @@
 #include "dyninstAPI/src/stats.h"
 #include "common/h/pathName.h" // for path name manipulation routines
 #include "dyninstAPI/src/sol_proc.h"
+#include "dyninstAPI/src/os.h"
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h" // for DYNINST_BREAKPOINT_SIGNUM
 
 #include "function.h"
@@ -151,6 +152,7 @@ void OS::osTraceMe(void)
     SYSSET_FREE(exitSet);
     delete [] buf;
 }
+
 /*
  * DYN_LWP class
  * Operations on LWP file descriptors, or the representative LWP
@@ -160,7 +162,8 @@ void OS::osTraceMe(void)
 // opposed to checking the 'status_' member vrble.  May assume that attach()
 // has run, but can't assume anything else.
 
-bool dyn_lwp::isRunning() const {
+bool dyn_lwp::isRunning() const 
+{
    procProcStatus_t theStatus;
    
    if (!get_status(&theStatus)) return false;
@@ -172,11 +175,10 @@ bool dyn_lwp::isRunning() const {
       return false;
    else
        return true;
-
-   
 }
 
-bool dyn_lwp::clearSignal() {
+bool dyn_lwp::clearSignal() 
+{
     long command[2];
     command[0] = PCRUN; command[1] = PRSTOP | PRCSIG;
     if (write(ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
@@ -195,7 +197,8 @@ bool dyn_lwp::clearSignal() {
 // Get the process running again. May do one or more of the following:
 // 1) Continue twice to clear a signal
 // 2) Restart an aborted system call
-bool dyn_lwp::continueLWP_(int signalToContinueWith) {
+bool dyn_lwp::continueLWP_(int signalToContinueWith) 
+{
   procProcStatus_t status;
   long command[2];
   Address pc;  // PC at which we are trying to continue
@@ -211,7 +214,6 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
       return true;
   }
 
-
   // If the lwp is stopped on a signal we blip it (technical term).
   // The process will re-stop (since we re-run with PRSTOP). At
   // this point we continue it.
@@ -226,7 +228,6 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith) {
 
   ptraceOps++; 
   ptraceOtherOps++;
-
 
   pc = (Address)(GETREG_PC(status.pr_reg));
   if (stoppedInSyscall_ && pc == postsyscallpc_) {
@@ -411,7 +412,8 @@ bool dyn_lwp::abortSyscall()
     return true;
 }
 
-bool dyn_lwp::restartSyscall() {
+bool dyn_lwp::restartSyscall() 
+{
     if (!stoppedInSyscall_)
         return true;
     
@@ -449,7 +451,8 @@ bool dyn_lwp::restartSyscall() {
 
 
 
-dyn_lwp *process::createRepresentativeLWP() {
+dyn_lwp *process::createRepresentativeLWP() 
+{
    // don't register the representativeLWP in the lwps since it's not a true
    // lwp
    representativeLWP = createFictionalLWP(0);
@@ -457,7 +460,8 @@ dyn_lwp *process::createRepresentativeLWP() {
 }
 
 // Stop the LWP in question
-bool dyn_lwp::stop_() {
+bool dyn_lwp::stop_() 
+{
   long command[2];
   command[0] = PCSTOP;
 
@@ -573,8 +577,8 @@ try_again:
         perror("restoreRegisters FPR write");
         return false;
     }
-    return true;
 
+    return true;
 }
 
 // Determine if the LWP in question is in a system call.
@@ -647,7 +651,8 @@ bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
 }
 
 #if defined(i386_unknown_solaris2_5)
-bool process::changeIntReg(int reg, Address val) {
+bool process::changeIntReg(int reg, Address val) 
+{
    assert(status_ == stopped); // /proc will require this
 
    prgregset_t theIntRegs;
@@ -929,8 +934,7 @@ bool process::setProcessFlags()
       return false;
    }
 
-
-    return true;
+   return true;
 }
 
 bool process::unsetProcessFlags()
@@ -1002,7 +1006,8 @@ void dyn_lwp::reopen_fds() {
 }
 #endif
 
-bool process::isRunning_() const {
+bool process::isRunning_() const 
+{
     // We can key off the representative LWP
     return getRepresentativeLWP()->isRunning();
 }
@@ -1059,7 +1064,8 @@ terminateProcStatus_t process::terminateProc_()
   return terminateFailed;
 }
 
-bool dyn_lwp::waitUntilStopped() {
+bool dyn_lwp::waitUntilStopped() 
+{
     signal_printf("%s[%d]: waiting until stopped, process status %s\n", FILE__, __LINE__, proc()->getStatusAsString().c_str());
     pdvector<eventType> evts;
     eventType evt;
@@ -1083,7 +1089,8 @@ bool dyn_lwp::waitUntilStopped() {
 }
 
 // I'm not sure this version is ever called...
-bool process::waitUntilStopped() {
+bool process::waitUntilStopped() 
+{
     signal_printf("%s[%d]: waiting until stopped, process status %s\n", FILE__, __LINE__, getStatusAsString().c_str());
     pdvector<eventType> evts;
     eventType evt;
@@ -1101,7 +1108,8 @@ bool process::waitUntilStopped() {
     return true;
 }
 
-bool dyn_lwp::writeTextWord(caddr_t inTraced, int data) {
+bool dyn_lwp::writeTextWord(caddr_t inTraced, int data) 
+{
    //  cerr << "writeTextWord @ " << (void *)inTraced << endl; cerr.flush();
    bool ret =  writeDataSpace(inTraced, sizeof(int), (caddr_t) &data);
    if (!ret) fprintf(stderr, "%s[%d][%s]:  writeDataSpace failed\n",
@@ -1121,7 +1129,8 @@ bool dyn_lwp::writeTextSpace(void *inTraced, u_int amount, const void *inSelf)
    return ret;
 }
 
-bool dyn_lwp::readTextSpace(void *inTraced, u_int amount, const void *inSelf) {
+bool dyn_lwp::readTextSpace(void *inTraced, u_int amount, const void *inSelf) 
+{
    return readDataSpace(inTraced, amount, const_cast<void *>(inSelf));
 }
 
@@ -1172,7 +1181,8 @@ bool dyn_lwp::writeDataSpace(void *inTraced, u_int amount, const void *inSelf)
    return true;
 }
 
-bool dyn_lwp::readDataSpace(const void *inTraced, u_int amount, void *inSelf) {
+bool dyn_lwp::readDataSpace(const void *inTraced, u_int amount, void *inSelf) 
+{
     ptraceOps++; ptraceBytes += amount;
 
     off64_t loc;
@@ -1350,7 +1360,8 @@ syscallTrap *process::trapSyscallExitInternal(Address syscall)
     return NULL;
 }
 
-bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) {
+bool process::clearSyscallTrapInternal(syscallTrap *trappedSyscall) 
+{
     // Decrement the reference count, and if it's 0 remove the trapped
     // system call
     assert(trappedSyscall->refcount > 0);
@@ -1497,84 +1508,6 @@ bool find_matching_event(pdvector<EventRecord> &events,
    return found;
 }
 
-// returns true if updated events structure for this lwp 
-bool SignalGenerator::updateEventsWithLwpStatus(process *curProc, dyn_lwp *lwp,
-                               pdvector<EventRecord> &events)
-{
-  lwpstatus_t lwpstatus;
-  if (!lwp->get_status(&lwpstatus)) {
-    fprintf(stderr, "%s[%d]:  failed to get status for lwp %d\n", 
-            FILE__, __LINE__, lwp->get_lwp_id());
-    return false;
-  }
-
-  /*
-  // This is the "why" for the lwps that were stopped because some other
-  // lwp stopped for an interesting reason.  We don't care about lwps
-  // that stopped for this reason.
-  if (lwpstatus.pr_why == PR_REQUESTED) {
-      return false;
-  }
-  */
-   
-  EventRecord ev;
-  ev.type = evtUndefined;
-  ev.what = 0;
-  ev.info = 0;
-  ev.proc = curProc;
-  ev.lwp = lwp;
-
-  if (!decodeProcStatus(lwpstatus, ev)) {
-     fprintf(stderr, "%s[%d]:  failed to decodeProcStatus\n", FILE__, __LINE__);
-     return false;
-  }
-   
-
-#ifdef NOTDEF // PDSEP
-  EventRecord matching_event;
-  bool found_match = find_matching_event(events, ev, matching_event);
-
-  // This code is not working...  
-  if (!found_match) {
-     events.push_back(ev);
-  } else 
-     matching_event.lwp = lwp;
-   
-  char buf[128];
-  signal_printf("%s[%d]:  updateEvents got event %s\n", FILE__, __LINE__, ev.sprint_event(buf));
-#endif
-  events.push_back(ev);
-  return true;
-}
-
-bool SignalGenerator::updateEvents(pdvector<EventRecord> &events, process *p, int lwp_to_use)
-{
-    signal_printf("%s[%d]: %d events in queue, updating\n", FILE__, __LINE__, events.size());
-
-  //  returns true if events are updated
-  dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(p->real_lwps);
-  dyn_lwp *cur_lwp;
-  unsigned index;
-  dyn_lwp *replwp = p->getRepresentativeLWP();
-  int numreal_lwps = p->real_lwps.size();
-  bool updated_events = false;
-
-  if (numreal_lwps == 0)
-     updated_events = updateEventsWithLwpStatus(p, replwp, events);
-  else {
-      while (lwp_iter.next(index, cur_lwp)) {
-          if (cur_lwp->get_lwp_id() != (unsigned)lwp_to_use)
-              continue;
-          if (updateEventsWithLwpStatus(p, cur_lwp, events)) {
-              updated_events = true;
-          }
-          break;
-      }
-  }
-    signal_printf("%s[%d]:post update: %d in queue\n", FILE__, __LINE__, events.size());
-
-  return updated_events;
-}
 
 bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events)
 {
@@ -1675,9 +1608,12 @@ bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events)
             if (ev.proc->real_lwps.find((unsigned) procstatus.pr_lwpid))
                 lwp_to_use  = ev.proc->real_lwps[procstatus.pr_lwpid];
             else {
-                // Odd case....
-                fprintf(stderr, "%s[%d]: failed to find lwp structure for lwp id %d, ignoring event\n",
-                        FILE__, __LINE__, procstatus.pr_lwpid);
+                // Odd case....  we can get thread exit events before thread
+                //  creation has been reported.  This will be handled by the
+                //  Dead On Arrival mode of thread creation.  So we can just
+                //  act as if this didn't happen.
+                //fprintf(stderr, "%s[%d]: no lwp for lwp id %d, ignoring event\n",
+                //        FILE__, __LINE__, procstatus.pr_lwpid);
                 ev.type = evtNullEvent;
                 continue;
             }
@@ -1723,7 +1659,8 @@ bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events)
     return true;
 }
 
-pdstring process::tryToFindExecutable(const pdstring &iprogpath, int pid) {
+pdstring process::tryToFindExecutable(const pdstring &iprogpath, int pid) 
+{
   // This is called by exec, so we might have a valid file path. If so,
   // use it... otherwise go to /proc. Helps with exec aliasing problems.
 

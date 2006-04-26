@@ -171,7 +171,7 @@ bool SignalHandler::handleCritical(EventRecord &ev, bool &continueHint)
    process *proc = ev.proc;
    assert(proc);
 
-   signal_printf("Process %d dying on signal %d\n", proc->getPid(), ev.what);
+   fprintf(stderr,"Process %d dying on signal %d\n", proc->getPid(), ev.what);
 
    if (dyn_debug_signal) {
        pdvector<pdvector<Frame> > stackWalks;
@@ -234,6 +234,7 @@ bool SignalHandler::handleForkEntry(EventRecord &ev, bool &continueHint)
 
 bool SignalHandler::handleLwpExit(EventRecord &ev, bool &continueHint)
 {
+   thread_printf("%s[%d]:  welcome to handleLwpExit\n", FILE__, __LINE__);
    signal_printf("%s[%d]:  welcome to handleLwpExit\n", FILE__, __LINE__);
    process *proc = ev.proc;
    dyn_lwp *lwp = ev.lwp;
@@ -254,10 +255,17 @@ bool SignalHandler::handleLwpExit(EventRecord &ev, bool &continueHint)
 
    ev.type = evtThreadExit;
 
-   if (proc->IndependentLwpControl())
+   if (proc->IndependentLwpControl()) {
       proc->set_lwp_status(ev.lwp, exited);
+    }
+
 
    BPatch::bpatch->registerThreadExit(proc, thr->get_tid());
+
+    if (!proc->removeThreadIndexMapping(thr)) {
+        fprintf(stderr, "%s[%d]:  failed to remove thread mapping for thread %lu\n",
+                FILE__, __LINE__, thr->get_tid());
+    }
 
    flagBPatchStatusChange();
 

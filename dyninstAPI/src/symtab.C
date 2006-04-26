@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.276 2006/04/20 22:44:54 bernat Exp $
+ // $Id: symtab.C,v 1.277 2006/04/26 03:43:03 jaw Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1396,8 +1396,10 @@ void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> 
    LDFILE *ldptr;
    pCHDRR symtab;
 
+  
    ldptr = ldopen((char *)linkedFile.GetFile().c_str(), NULL);
    symtab = SYMTAB(ldptr);
+
    for (int i = 0; i < symtab->hdr.ifdMax; ++i) {
       pCFDR file = symtab->pcfd + i;
       char *tmp = ((symtab->psym + file->pfd->isymBase)->iss + 

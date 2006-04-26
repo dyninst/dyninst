@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.34 2006/04/20 21:53:03 bernat Exp $
+ * $Id: dyninstAPI_RT.h,v 1.35 2006/04/26 03:43:04 jaw Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -62,9 +62,6 @@
 #include <stdio.h>
 #include "dyninstRTExport.h"
 #include "common/h/Types.h"
-#if defined(os_linux)
-#include "dyninstAPI/src/linux-signals.h"
-#endif
 
 /* If we must make up a boolean type, we should make it unique */
 typedef unsigned char RT_Boolean;
@@ -131,6 +128,15 @@ typedef struct {
 typedef struct {
    int index;        //Index of the dead thread
 } BPatch_deleteThreadEventRecord;
+
+typedef struct {
+   dyntid_t tid;
+   int next;
+} dyninst_thread_t;
+
+extern dyninst_thread_t *threads;
+extern int *threads_hash;
+extern unsigned threads_hash_size;
 
 /* Let's define some constants for, well, everything.... */
 /* These should be different to avoid unexpected collisions */

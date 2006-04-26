@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.h,v 1.14 2005/11/03 05:21:06 jaw Exp $
+// $Id: pdwinnt.h,v 1.15 2006/04/26 03:43:02 jaw Exp $
 
 #if !defined(PDWINNT_H)
 #define PDWINNT_H
@@ -66,5 +66,11 @@ struct dyn_saved_regs {
 // Number of bytes to save in an overwrite operation
 #define BYTES_TO_SAVE 256
 
+#define CAN_DUMP_CORE false
+#define SLEEP_ON_MUTATEE_CRASH 0 /*seconds*/
+#define sleep Sleep
+
+#define INFO_TO_EXIT_CODE(info) info.u.ExitProcess.dwExitCode
+#define INFO_TO_PID(info) -1
 
 #endif /* PDWINNT_H */

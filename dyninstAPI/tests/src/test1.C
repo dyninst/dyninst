@@ -457,6 +457,26 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
   if ((NULL == appImage->findFunction("func1_1", found_funcs)) || !found_funcs.size()) {
     fprintf(stderr, "    Unable to find function %s\n",
 	    "func1_1");
+    //  find the base exec module and dump all the functions:
+    BPatch_module *m = appImage->findModule("test1.mutatee.c");
+    if (!m) {
+      fprintf(stderr, "%s[%d]:  cannot find base module\n", __FILE__, __LINE__);
+      exit(1);
+    }
+    BPatch_Vector<BPatch_function *> *funcs = m->getProcedures();
+    if (!funcs) {
+      fprintf(stderr, "%s[%d]:  cannot get procedures\n", __FILE__, __LINE__);
+      exit(1);
+    }
+    fprintf(stderr, "%s[%d]:  have these functions:\n", __FILE__, __LINE__);
+    for (unsigned int i = 0; i < funcs->size(); ++i) {
+      BPatch_function *f = (*funcs)[i];
+      char buf1[1024];
+      char buf2[1024];
+      f->getName(buf1, 1024);
+      f->getMangledName(buf2, 1024);
+      fprintf(stderr, "\t%s--%s\n", buf1, buf2);
+    }
     exit(1);
   }
   

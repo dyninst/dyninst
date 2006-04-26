@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_image.C,v 1.88 2006/04/20 22:52:02 bernat Exp $
+// $Id: BPatch_image.C,v 1.89 2006/04/26 03:43:00 jaw Exp $
 
 #define BPATCH_FILE
 
@@ -824,7 +824,9 @@ BPatch_variableExpr *BPatch_image::findVariableInt(const char *name, bool showEr
         }
 
         if (!type) {
-          fprintf(stderr, "%s[%d]:  cannot find type for var %s\n", FILE__, __LINE__, name);
+          char buf[128];
+          sprintf(buf, "%s[%d]:  cannot find type for var %s\n", FILE__, __LINE__, name);
+          BPatch_reportError(BPatchWarning, 0, buf);
           type = BPatch::bpatch->type_Untyped;
         }
     }

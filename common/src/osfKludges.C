@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osfKludges.C,v 1.11 2005/11/23 00:09:13 jaw Exp $
+// $Id: osfKludges.C,v 1.12 2006/04/26 03:43:00 jaw Exp $
 
 #include "common/h/headers.h"
 #include <sys/procfs.h>
@@ -336,3 +336,30 @@ unsigned long long PDYN_mulMillion(unsigned long long in) {
 
    return result;
 }
+
+/* defines taken from demangle.h in libiberty */
+#define DMGL_PARAMS (1 << 0)
+#define DMGL_ANSI (1 << 1)
+#define DMGL_GNU (1 << 9)
+#define DMGL_GNU_V3 (1 << 14)
+#define DMGL_AUTO (1 << 8)
+
+extern void dedemangle( const char * demangled, char * dedemangled );
+char * P_cplus_demangle( const char * symbol, bool nativeCompiler, 
+                                bool includeTypes) 
+{
+     int opts = 0;
+     opts = includeTypes ? DMGL_PARAMS | DMGL_ANSI : 0;
+     //opts |= nativeCompiler ? DMGL_AUTO : DMGL_GNU;
+     opts |= DMGL_GNU_V3;
+     char *demangled = cplus_demangle( const_cast<char *>( symbol ), opts);
+     if (demangled == NULL) return NULL;
+     //fprintf(stderr, "%s[%d]:  cplus_demangle: %p: %s\n", __FILE__, __LINE__, current_demangling_style, libiberty_demanglers[0].demangling_style_name);
+
+     char *open_paren = strchr(demangled, '(');
+     if (open_paren)
+       *open_paren = '\0';
+
+     return demangled;
+} /* end P_cplus_demangle() */
+

@@ -39,36 +39,18 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler-unix.h,v 1.28 2006/04/12 16:59:37 bernat Exp $
+/* $Id: unix.h,v 1.1 2006/04/26 03:43:03 jaw Exp $
  */
 
-/*
- * This file describes the entry points to the signal handling
- * routines. This is meant to provide a single interface to bother
- * the varied UNIX-style handlers and the NT debug event system.
- * Further platform-specific details can be found in the
- * signalhandler-unix.h and signalhandler-winnt.h files.
- */
-
-#ifndef _SIGNAL_HANDLER_UNIX_H
-#define _SIGNAL_HANDLER_UNIX_H
-
-#include "common/h/Types.h"
-
-// Need procfs for /proc platforms
-#if defined(alpha_dec_osf4_0)
-#include <sys/procfs.h>
-#elif defined(sparc_sun_solaris2_4)
-#include <procfs.h>
-#elif defined(os_aix)
-#include <sys/procfs.h>
-#endif
+#ifndef _UNIX_H_
+#define _UNIX_H_
 
 #define CAN_DUMP_CORE true
 #define SLEEP_ON_MUTATEE_CRASH 300 /*seconds*/
 
 #define INFO_TO_EXIT_CODE(info) info
 #define INFO_TO_PID(info) info
+
 // process exits do not cause poll events on alpha-osf, so we have a timeout
 #if defined (os_osf)
 #define POLL_TIMEOUT 1000 /*ms*/
@@ -77,9 +59,6 @@
 #define POLL_FD status_fd()
 #define POLL_TIMEOUT -1
 #endif
-
-class process;
-
 
 //  On /proc platforms we have predefined system call mappings (SYS_fork, etc).
 //  Define them here for platforms which don't have them 
@@ -112,76 +91,15 @@ class process;
 #define SYS_lwp_exit 1009
 #endif
 
-/*
- * Info parameter: return value, address, etc.
- * May be augmented by a vector of active frames for
- *   more efficient signal handling, or library information.
- */
-
-
-///////////////////////////////////////////////////////////////////
-////////// Decoder section
-///////////////////////////////////////////////////////////////////
-
-// These functions provide a platform-independent decoder layer.
-
-// waitPid status -> what/why format
 typedef int procWaitpidStatus_t;
+class EventRecord;
 bool decodeWaitPidStatus(procWaitpidStatus_t status, EventRecord &ev);
-
-// proc decode
-// There are two possible types of data structures:
-#if defined(os_solaris) || defined (os_aix)
-typedef lwpstatus_t procProcStatus_t;
-#elif defined(mips_sgi_irix6_4) || defined(alpha_dec_osf4_0)
-typedef prstatus_t procProcStatus_t;
-#else
-// No /proc, dummy function
-typedef int procProcStatus_t;
-#endif
-
-///////////////////////////////////////////////////////////////////
-////////// Handler section
-///////////////////////////////////////////////////////////////////
-
-// These are the prototypes for the UNIX-style signal handler
-
-// Note: these functions all have an int return type, which is generally
-// used to indicate whether the signal was consumed (>0 return) or still
-// needs to be handled (0 return)
-
-/////////////////////
-// Handle individual signal types
-/////////////////////
 
 #if defined (os_aix) && defined(cap_proc)
 extern int SYSSET_MAP(int, int);
 #else
 #define SYSSET_MAP(x, pid)  (x)
 #endif
-
-#if defined (os_osf)
-#define GETREG_INFO(x) 0
-#define V0_REGNUM 0
-#define A0_REGNUM 16
-#endif
-
-/////////////////////
-// Translation mechanisms
-/////////////////////
-
-inline bool didProcEnterSyscall(eventType t) {
-   return (t == evtSyscallEntry);
-}
-
-inline bool didProcExitSyscall(eventType t) {
-   return (t == evtSyscallExit);
-}
-
-inline bool didProcReceiveInstTrap(eventType t) {
-    return (t == evtInstPointTrap);
-}
-
 
 #endif
 

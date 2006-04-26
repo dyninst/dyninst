@@ -48,6 +48,7 @@
 
 #include <sys/param.h>
 #include <sys/procfs.h>
+#include "unix.h"
 #define EXIT_NAME "exit"
 
 #define BYTES_TO_SAVE 512 // should be a multiple of instruction::size()
@@ -122,5 +123,8 @@ struct dyn_saved_regs
     fpregset_t theFpRegs;
 };
 
+#define GETREG_INFO(x) 0
+
+typedef prstatus_t procProcStatus_t;
 
 #endif
