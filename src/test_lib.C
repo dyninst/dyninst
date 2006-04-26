@@ -40,7 +40,7 @@
  */
 
 //
-// $Id: test_lib.C,v 1.14 2006/04/26 19:18:02 jaw Exp $
+// $Id: test_lib.C,v 1.15 2006/04/26 21:31:28 jodom Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
@@ -294,7 +294,7 @@ pid_t fork_mutatee() {
        if (pid == 0) {
           // child
           close(fds[0]); // We don't need the read side
-          execv(pathname, (char * const *)attach_argv);
+          execvp(pathname, (char * const *)attach_argv);
           return -1;
        } else if (pid < 0) {
           return -1;
