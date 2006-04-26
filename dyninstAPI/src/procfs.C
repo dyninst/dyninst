@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: procfs.C,v 1.45 2006/03/08 22:08:21 bernat Exp $
+// $Id: procfs.C,v 1.46 2006/04/26 18:55:15 jaw Exp $
 
 #include "symtab.h"
 #include "common/h/headers.h"
@@ -126,9 +126,11 @@ bool lwp_isRunning_(int lwp_fd) {
    // opposed to checking the 'status_' member vrble.  May assume that attach()
    // has run, but can't assume anything else.
    prstatus theStatus;
+   errno = 0;
    if (-1 == ioctl(lwp_fd, PIOCSTATUS, &theStatus)) {
-      perror("process::isRunning_()");
-      assert(false);
+      //fprintf(stderr, "%s[%d]: process::isRunning_(%d): %s\n", FILE__, __LINE__, lwp_fd, strerror(errno));
+      //  no need to assert here... 
+      return false;
    }
 
    if (theStatus.pr_flags & PR_STOPPED)

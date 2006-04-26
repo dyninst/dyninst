@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.92 2006/04/26 03:43:01 jaw Exp $
+// $Id: osf.C,v 1.93 2006/04/26 18:55:14 jaw Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -636,11 +636,11 @@ bool SignalGeneratorCommon::getExecFileDescriptor(pdstring filename,
 
 bool dyn_lwp::get_status(procProcStatus_t *status) const
 {
-  if (ioctl(get_fd(), 
+    if (ioctl(get_fd(), 
             PIOCSTATUS, status) == -1) {
-     return false;
-  }
-  return true;
+       return false;
+    }
+    return true;
 }
 
 bool dyn_lwp::realLWP_attach_() {

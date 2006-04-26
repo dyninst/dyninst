@@ -1140,6 +1140,12 @@ bool SignalGenerator::attachProcess()
 
     // Record the process state here so that we can replicate
     // it later...
+
+    //FIXME:  I think we'll find that this call to isRunning cannot
+    //possibly return true (because we're not attached) -- the
+    //underlying fds are not yet set, so the pread or ioctl to check 
+    //status _must_ be failing...  its just being quiet about it.
+
     if (proc->isRunning_()) {
       // Must be low-level as we aren't attached
       proc->stateWhenAttached_ = running;
