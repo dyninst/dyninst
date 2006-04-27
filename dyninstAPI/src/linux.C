@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.219 2006/04/26 03:43:01 jaw Exp $
+// $Id: linux.C,v 1.220 2006/04/27 02:09:48 bernat Exp $
 
 #include <fstream>
 
@@ -677,6 +677,12 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith, bool ignore_suppress)
    proccontrol_printf("%s[%d]:  ContinuingLWP_ %d with %d\n", FILE__, __LINE__,
           get_lwp_id(), signalToContinueWith);
 
+   if (waiting_for_stop) {
+       // Someone else also got a stop on this lwp...
+       fprintf(stderr, "waiting for stop at %d, skipping continue...\n", waiting_for_stop);
+       return true;
+   }
+
    // we don't want to operate on the process in this state
    int arg3 = 0;
    int arg4 = 0;
@@ -733,7 +739,7 @@ bool dyn_lwp::waitUntilStopped()
   }
 
   SignalGenerator *sh = (SignalGenerator *) proc()->sh;
- waiting_for_stop = true;
+  waiting_for_stop++;
   
   // Wake up the signal generator...
  signal_printf("%s[%d]: waitUntilStopped for lwp %u\n",
@@ -743,30 +749,30 @@ bool dyn_lwp::waitUntilStopped()
  sh->signalActiveProcess();
  evts.push_back(evtProcessStop);
  evts.push_back(evtThreadExit);
- while ( status() != stopped ) {
-     if( status() == exited ) 
-         break;
+ bool ignore_state = false;
+ while (1) {
+     if (status() == stopped) break;
+     if( status() == exited ) break;
      signal_printf("%s[%d]:  before waitForEvent(evtProcessStop) for lwp %d: status is %s\n",
                    FILE__, __LINE__, get_lwp_id(), getStatusAsString().c_str());
-     evt = sh->waitForOneOf(evts);
-     if (evt == evtThreadExit && status() == exited) {
-         // it was this lwp that exited
-         break;
-     }
+     evt = sh->waitForOneOf(evts, this);
  }
- waiting_for_stop = false;
- sh->unmarkProcessStop();
+ waiting_for_stop--;
+ if (waiting_for_stop == 0) {
+     sh->unmarkProcessStop();
+     sh->resendSuppressedSignals();
+ }
 
- sh->resendSuppressedSignals();
- 
  return true;
 }
 
 bool dyn_lwp::stop_() 
 {
-  proccontrol_printf("%s[%d][%s]:  welcome to stop_, about to lwp_kill(%d, %d)\n",
-          FILE__, __LINE__, getThreadStr(getExecThreadID()), get_lwp_id(), SIGSTOP);
-  return (lwp_kill(get_lwp_id(), SIGSTOP) == 0);
+    if (waiting_for_stop) return true;
+
+    proccontrol_printf("%s[%d][%s]:  welcome to stop_, about to lwp_kill(%d, %d)\n",
+                       FILE__, __LINE__, getThreadStr(getExecThreadID()), get_lwp_id(), SIGSTOP);
+    return (lwp_kill(get_lwp_id(), SIGSTOP) == 0);
 } 
 
 bool process::continueProc_(int sig)
@@ -1123,8 +1129,6 @@ bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf
           if (errno) {
               signal_printf("%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, 
                             strerror(errno));
-              fprintf(stderr, "%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, 
-                            strerror(errno));
               return false;
           }
           for (unsigned i = 0; i < len-cnt && i < nbytes; i++)
@@ -1143,8 +1147,6 @@ bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf
           w = P_ptrace(PTRACE_PEEKTEXT, pid, (Address) ap, 0, len);
           if (errno) {
               signal_printf("%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, 
-                            strerror(errno));
-              fprintf(stderr, "%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, 
                             strerror(errno));
               return false;
           }
@@ -1165,8 +1167,6 @@ bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf
           if (errno) {
                signal_printf("%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, 
                              strerror(errno));
-               fprintf(stderr,"%s[%d]:  ptrace failed: %s\n", FILE__, __LINE__, 
-                             strerror(errno));
                return false;
           }
           for (unsigned i = 0; i < nbytes; i++)
@@ -1178,8 +1178,7 @@ bool DebuggerInterface::bulkPtraceRead(void *inTraced, u_int nelem, void *inSelf
 
 }
 
-bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf)
- {
+bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf) {
      const unsigned char *ap = (const unsigned char*) inTraced;
      unsigned char *dp = (unsigned char*) inSelf;
      int len = proc_->getAddressWidth(); /* address alignment of ptrace I/O requests */
@@ -1192,10 +1191,7 @@ bool dyn_lwp::readDataSpace(const void *inTraced, u_int nbytes, void *inSelf)
                                     FILE__, __LINE__))) {
         signal_printf("%s[%d]:  bulk ptrace read failed for lwp id %d\n",
                       FILE__, __LINE__, get_lwp_id());
-        fprintf(stderr,"%s[%d]:  bulk ptrace read failed for lwp id %d\n",
-                      FILE__, __LINE__, get_lwp_id());
-        status_ = exited;
-       return false;
+        return false;
      }
      return true;
 }
@@ -1330,26 +1326,12 @@ bool process::determineLWPs(pdvector<unsigned> &lwp_ids)
           continue;
       }
      unsigned lwp_id = atoi(direntry->d_name+1);
-#if 0
-     fprintf(stderr, "%s[%d]: lwp id %d for d_name %s\n",  FILE__, __LINE__,
-             lwp_id, direntry->d_name);
-#endif
      int lwp_ppid;
      if (!lwp_id) 
          continue;
-#if 0
-     sprintf(name, "/proc/%d/stat", lwp_id);
-     FILE *fd = fopen(name, "r");
-     if (!fd) {
-         fprintf(stderr, "Failed to open %s\n", name);
-         continue;
-     }
-     fscanf(fd, "%*d %*s %*c %d", &lwp_ppid);
-#endif
      sprintf(name, "/proc/%d/status", lwp_id);
      FILE *fd = fopen(name, "r");
      if (!fd) {
-         fprintf(stderr, "Failed to open %s\n", name);
          continue;
      }
      char buffer[1024];
@@ -1363,8 +1345,6 @@ bool process::determineLWPs(pdvector<unsigned> &lwp_ids)
      fclose(fd);
 
      if (lwp_ppid != getPid()) {
-         fprintf(stderr, "%s[%d]: lwp_ppid %d != pid %d\n", FILE__, __LINE__,
-                 lwp_ppid, getPid());
          continue;
      }
      lwp_ids.push_back(lwp_id);
@@ -2152,7 +2132,6 @@ bool process::initMT()
       }
    }
       
-#if 0
    //Find functions that are run on pthread exit
    pdvector<int_function *> thread_dest_funcs;
    findThreadFuncs(this, "__pthread_do_exit", thread_dest_funcs);
@@ -2192,7 +2171,6 @@ bool process::initMT()
          //TODO: Save the mt objects for detach
       }
    }
-#endif
 
 #if 0
    //Instrument
