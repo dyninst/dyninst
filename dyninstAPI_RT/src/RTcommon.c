@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.63 2006/04/26 03:43:04 jaw Exp $ */
+/* $Id: RTcommon.c,v 1.64 2006/04/27 02:10:02 bernat Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -62,9 +62,9 @@ char gLoadLibraryErrorString[ERROR_STRING_LENGTH];
 void *gBRKptr;
 int DYNINSTdebugRTlib;
 
-dyninst_thread_t *threads;
-int *threads_hash;
-unsigned threads_hash_size;
+dyninst_thread_t *DYNINST_thread_structs;
+int *DYNINST_thread_hash;
+unsigned DYNINST_thread_hash_size;
 
 
 /**

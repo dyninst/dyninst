@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.35 2006/04/26 03:43:04 jaw Exp $
+ * $Id: dyninstAPI_RT.h,v 1.36 2006/04/27 02:10:01 bernat Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -129,14 +129,24 @@ typedef struct {
    int index;        //Index of the dead thread
 } BPatch_deleteThreadEventRecord;
 
+#define UNALLOC 0
+#define THREAD_ACTIVE 1
+#define THREAD_COMPLETE 2
+#define LWP_EXITED 3
+
 typedef struct {
-   dyntid_t tid;
-   int next;
+    dyntid_t tid;
+    int thread_state;
+    int next_free;
 } dyninst_thread_t;
 
-extern dyninst_thread_t *threads;
-extern int *threads_hash;
-extern unsigned threads_hash_size;
+extern dyninst_thread_t *DYNINST_thread_structs;
+/* We keep the name here so that the Dyninst lib can use it - this means we
+   don't have to worry about parallel changes */
+
+#define DYNINST_thread_structs_name "DYNINST_thread_structs"
+extern int *DYNINST_thread_hash;
+extern unsigned DYNINST_thread_hash_size;
 
 /* Let's define some constants for, well, everything.... */
 /* These should be different to avoid unexpected collisions */
