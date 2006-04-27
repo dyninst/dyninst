@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator-unix.h,v 1.4 2006/04/26 03:43:02 jaw Exp $
+/* $Id: signalgenerator-unix.h,v 1.5 2006/04/27 02:09:54 bernat Exp $
  */
 
 
@@ -110,6 +110,11 @@ class SignalGenerator : public SignalGeneratorCommon
 #endif
 
    bool waiting_for_stop;
+   /* Cached for speed */
+   Address sync_event_id_addr;
+   Address sync_event_arg1_addr;
+   
+
 
 #if defined (os_linux)
    public:

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.195 2006/04/26 03:43:03 jaw Exp $
+// $Id: unix.C,v 1.196 2006/04/27 02:09:55 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -122,54 +122,63 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
    process *proc = ev.proc;
    if (!proc) return false;
 
-   pdstring status_str = pdstring("DYNINST_synch_event_id");
-   pdstring arg_str = pdstring("DYNINST_synch_event_arg1");
-
    int status;
    Address arg;
 
-   pdvector<int_variable *> vars;
-   if (!proc->findVarsByAll(status_str, vars)) {
-     return false;
+   if (sync_event_id_addr == 0) {
+       pdstring status_str = pdstring("DYNINST_synch_event_id");
+       
+       
+       pdvector<int_variable *> vars;
+       if (!proc->findVarsByAll(status_str, vars)) {
+           return false;
+       }
+       
+       if (vars.size() != 1) {
+           fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 
+                   FILE__, __LINE__, vars.size(), status_str.c_str());
+           return false;
+       }
+
+       sync_event_id_addr = vars[0]->getAddress();
    }
 
-   if (vars.size() != 1) {
-     fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 
-             FILE__, __LINE__, vars.size(), status_str.c_str());
-     return false;
-   }
-
-   Address status_addr = vars[0]->getAddress();
-
-   if (!proc->readDataSpace((void *)status_addr, sizeof(int),
+   if (!proc->readDataSpace((void *)sync_event_id_addr, sizeof(int),
                             &status, true)) {
-      fprintf(stderr, "%s[%d]:  readDataSpace failed\n", FILE__, __LINE__);
-      return false;
+       fprintf(stderr, "%s[%d]:  readDataSpace failed\n", FILE__, __LINE__);
+       return false;
    }
-
+   
    if (status == DSE_undefined) {
-      return false; // Nothing to see here
+       return false; // Nothing to see here
    }
 
-   vars.clear();
-   if (!proc->findVarsByAll(arg_str, vars)) {
-     return false;
+   int zero = 0;
+   // Make sure we don't get this event twice....
+   proc->writeDataSpace((void *)sync_event_id_addr, sizeof(int), &zero);
+
+   if (sync_event_arg1_addr == 0) {
+       pdstring arg_str = pdstring("DYNINST_synch_event_arg1");
+       
+       pdvector<int_variable *> vars;
+       if (!proc->findVarsByAll(arg_str, vars)) {
+           return false;
+       }
+       
+       if (vars.size() != 1) {
+           fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 
+                   FILE__, __LINE__, vars.size(), arg_str.c_str());
+           return false;
+       }
+       sync_event_arg1_addr = vars[0]->getAddress();
    }
 
-   if (vars.size() != 1) {
-     fprintf(stderr, "%s[%d]:  ERROR:  %d vars matching %s, not 1\n", 
-             FILE__, __LINE__, vars.size(), arg_str.c_str());
-     return false;
-   }
-
-   Address arg_addr = vars[0]->getAddress();
-
-   if (!proc->readDataSpace((void *)arg_addr, sizeof(Address),
+   if (!proc->readDataSpace((void *)sync_event_arg1_addr, sizeof(Address),
                             &arg, true)) {
-      fprintf(stderr, "%s[%d]:  readDataSpace failed\n", FILE__, __LINE__);
-      return false;
+       fprintf(stderr, "%s[%d]:  readDataSpace failed\n", FILE__, __LINE__);
+       return false;
    }
-
+   
    ev.info = (eventInfo_t)arg;
    switch(status) {
      case DSE_forkEntry:
@@ -214,6 +223,7 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
   return decodeSyscall(ev);
 }
 
+
 bool SignalGenerator::decodeSigIll(EventRecord &ev) 
 {
 #if defined (arch_ia64) 
@@ -232,7 +242,7 @@ bool SignalGenerator::decodeSigIll(EventRecord &ev)
  // doing a (for i in $path; do exec $i/<progname>
  // This means that the entry will be called multiple times
  // until the exec call gets the path right.
-bool SignalHandler::handleExecEntry(EventRecord &ev, bool &continueHint) 
+bool SignalHandler::handleExecEntry(EventRecord &ev, bool & /*continueHint*/) 
 {
   bool retval = ev.proc->handleExecEntry((char *)ev.info);
   // continuation is handled at the BPatch layer via callbacks
@@ -721,7 +731,9 @@ bool SignalGenerator::decodeSigTrap(EventRecord &ev)
     }
 #endif
 
-    signal_printf("%s[%d]: decodeSigTrap failing\n", FILE__, __LINE__);
+
+
+    signal_printf("%s[%d]: decodeSigTrap failing, PC at 0x%lx\n", FILE__, __LINE__, af.getPC());
   return false;
 }
 
@@ -1547,12 +1559,34 @@ const char *dbiEventType2str(DBIEventType t)
 #include <sys/types.h>
 #include <dirent.h>
 
+SignalGenerator::SignalGenerator(char *idstr, pdstring file, pdstring dir,
+                                 pdvector<pdstring> *argv,
+                                 pdvector<pdstring> *envp,
+                                 pdstring inputFile,
+                                 pdstring outputFile,
+                                 int stdin_fd, int stdout_fd,
+                                 int stderr_fd) :
+   SignalGeneratorCommon(idstr),
+   waiting_for_stop(false),
+   sync_event_id_addr(0),
+   sync_event_arg1_addr(0)
+{
+    setupCreated(file, dir, 
+                 argv, envp, 
+                 inputFile, outputFile,
+                 stdin_fd, stdout_fd, stderr_fd);
+}
+
+
 /// Experiment: wait for the process we're attaching to to be created
 // before we return. 
 
 SignalGenerator::SignalGenerator(char *idstr, pdstring file, int pid)
     : SignalGeneratorCommon(idstr),
-      waiting_for_stop(false) {
+      waiting_for_stop(false),
+      sync_event_id_addr(0),
+      sync_event_arg1_addr(0)
+{
     char buffer[128];
     sprintf(buffer, "/proc/%d", pid);
 
