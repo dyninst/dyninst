@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.78 2006/04/20 21:52:57 bernat Exp $
+// $Id: BPatch_snippet.C,v 1.79 2006/04/27 02:09:37 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -1276,7 +1276,7 @@ void BPatch_ifMachineConditionExpr::BPatch_ifMachineConditionExprInt(const BPatc
 void BPatch_threadIndexExpr::BPatch_threadIndexExprInt(BPatch_process *proc)
 {
   BPatch_Vector<BPatch_function *> thread_funcs;
-  proc->getImage()->findFunction("DYNINSTthreadIndex()", thread_funcs);
+  proc->getImage()->findFunction("DYNINSTthreadIndex", thread_funcs);
   if (thread_funcs.size() != 1)
   {
     fprintf(stderr, "[%s:%u] - Internal Dyninst error.  Found %u copies of "
