@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.220 2006/04/27 02:09:48 bernat Exp $
+// $Id: linux.C,v 1.221 2006/04/27 07:47:08 nater Exp $
 
 #include <fstream>
 
@@ -251,7 +251,13 @@ bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events)
 
 bool get_linux_version(int &major, int &minor, int &subvers)
 {
-   static int maj = 0, min = 0, sub = 0;
+    int subsub;
+    return get_linux_version(major,minor,subvers,subsub); 
+}
+
+bool get_linux_version(int &major, int &minor, int &subvers, int &subsubvers)
+{
+   static int maj = 0, min = 0, sub = 0, subsub = 0;
    int result;
    FILE *f;
    if (maj)
@@ -259,17 +265,20 @@ bool get_linux_version(int &major, int &minor, int &subvers)
       major = maj;
       minor = min;
       subvers = sub;
+      subsubvers = subsub;
       return true;
    }
    f = fopen("/proc/version", "r");
    if (!f) goto error;
-   result = fscanf(f, "Linux version %d.%d.%d", &major, &minor, &subvers);
+   result = fscanf(f, "Linux version %d.%d.%d.%d", &major, &minor, &subvers,
+                    &subsubvers);
    fclose(f);
-   if (result != 3) goto error;
+   if (result != 3 && result != 4) goto error;
 
    maj = major;
    min = minor;
    sub = subvers;
+   subsub = subsubvers;
    return true;
 
  error:
@@ -277,6 +286,7 @@ bool get_linux_version(int &major, int &minor, int &subvers)
    major = maj = 2;
    minor = min = 4;
    subvers = sub = 0;
+   subsubvers = subsub = 0;
    return false;
 }
 

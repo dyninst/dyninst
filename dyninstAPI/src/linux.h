@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.h,v 1.26 2006/04/26 03:43:01 jaw Exp $
+// $Id: linux.h,v 1.27 2006/04/27 07:47:10 nater Exp $
 
 #if !defined(i386_unknown_linux2_0) \
  && !defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
@@ -107,6 +107,7 @@ Address findFunctionToHijack( process * p );
 #define WNOWAIT WNOHANG
 #endif
 bool get_linux_version(int &major, int &minor, int &subvers);
+bool get_linux_version(int &major, int &minor, int &subvers, int &subsubvers);
 
 bool attachToChild(int pid);
 
