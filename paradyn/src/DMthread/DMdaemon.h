@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.74 2006/02/08 21:27:39 darnold Exp $
+// $Id: DMdaemon.h,v 1.75 2006/04/27 02:34:16 bpellin Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -144,6 +144,8 @@ private:
 //
 // a binary running somewhere under the control of a paradynd*.
 //
+class paradynDaemon;
+
 class executable {
     public:
 	executable(unsigned id, const pdvector<pdstring> &av, paradynDaemon *p)
@@ -171,6 +173,7 @@ class executable {
 // the user to take the appropriate error recovery actions instead of
 // executing an "assert(0)" - naim
 //
+class processMet;
 class paradynDaemon: public dynRPCUser {
    friend class dynRPCUser;
    friend class processMet;
