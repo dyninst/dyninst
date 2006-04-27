@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.55 2006/04/26 20:44:07 jaw Exp $
+ * $Id: dyn_lwp.C,v 1.56 2006/04/27 02:09:46 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -67,7 +67,7 @@ dyn_lwp::dyn_lwp() :
   singleStepping(false),
   stoppedInSyscall_(false),
   postsyscallpc_(0),
-  waiting_for_stop(false),
+  waiting_for_stop(0),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
   isRunningIRPC(false), is_attached_(false)  
@@ -90,7 +90,7 @@ dyn_lwp::dyn_lwp(unsigned lwp, process *proc) :
   singleStepping(false),
   stoppedInSyscall_(false),
   postsyscallpc_(0),
-  waiting_for_stop(false),
+  waiting_for_stop(0),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
   isRunningIRPC(false), is_attached_(false)
@@ -113,7 +113,7 @@ dyn_lwp::dyn_lwp(const dyn_lwp &l) :
   singleStepping(false),
   stoppedInSyscall_(false),
   postsyscallpc_(0),
-  waiting_for_stop(false),
+  waiting_for_stop(0),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
   isRunningIRPC(false), is_attached_(false)
@@ -152,7 +152,8 @@ bool dyn_lwp::continueLWP(int signalToContinueWith)
    {
      fprintf(stderr, "[%s] %s[%d]:  LWP (%lu) continue has been suppressed\n", 
              getThreadStr(getExecThreadID()), FILE__, __LINE__, get_lwp_id());
-     return false;
+     //return false;
+     return true;
    }
 
    bool ret = continueLWP_(signalToContinueWith);
@@ -162,6 +163,12 @@ bool dyn_lwp::continueLWP(int signalToContinueWith)
       perror(NULL);
       return false;
    }
+
+   // Argh... need a "didn't fail"...
+#if defined(os_linux)
+   if (waiting_for_stop)
+       return true;
+#endif
 
 #if defined (os_windows)
    proc()->set_lwp_status(this, running);
@@ -218,20 +225,20 @@ bool dyn_lwp::pauseLWP(bool shouldWaitUntilStopped) {
    // dyninst tests.  My guess is that somewhere we set the process status to
    // running.  If we can find this, then we can set the lwp status to
    // running also.
-   if(status_ == stopped || status_ == exited) {
-      return true;
-   }
-
-   bool res = stop_();
-   if(res == false)
-      return false;
-
-   if(shouldWaitUntilStopped) {
-      res = waitUntilStopped();
-   }
-
-   proc()->set_lwp_status(this, stopped);
-   return res;
+    if(status_ == stopped || status_ == exited) {
+        return true;
+    }
+    
+    bool res = stop_();
+    if(res == false)
+        return false;
+    
+    if(shouldWaitUntilStopped) {
+        res = waitUntilStopped();
+    }
+    
+    proc()->set_lwp_status(this, stopped);
+    return res;
 }
 
 
