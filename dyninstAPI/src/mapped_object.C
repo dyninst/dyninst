@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.C,v 1.15 2006/03/12 23:32:08 legendre Exp $
+// $Id: mapped_object.C,v 1.16 2006/04/27 02:09:49 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/mapped_module.h"
@@ -505,18 +505,15 @@ const pdvector <int_variable *> *mapped_object::findVarVectorByMangled(const pds
 } 
 
 //Returns one variable, doesn't search other mapped_objects.  Use carefully.
-const int_variable *mapped_object::getVariable(const pdstring &varname) const {
-    pdvector<int_variable *> *vars = NULL; 
-    if (allVarsByMangledName.defines(varname)) {
-        vars = allVarsByMangledName[varname];
+const int_variable *mapped_object::getVariable(const pdstring &varname) {
+    const pdvector<int_variable *> *vars = NULL; 
+    vars = findVarVectorByPretty(varname);
+    if (!vars) vars = findVarVectorByMangled(varname);
+    if (vars) {
+        assert(vars->size() > 0);
+        return (*vars)[0];
     }
-    else if (allVarsByPrettyName.defines(varname)) {
-        vars = allVarsByPrettyName[varname];
-    }
-    
-    if (!vars || !vars->size())
-        return NULL;
-    return (*vars)[0];
+    return NULL;
 }
 
 codeRange *mapped_object::findCodeRangeByAddress(const Address &addr)  {
@@ -595,6 +592,7 @@ bool mapped_object::getAllVariables(pdvector<int_variable *> &vars) {
     unsigned start = vars.size();
 
     const pdvector<image_variable *> &img_vars = parse_img()->getAllVariables();
+    
     for (unsigned i = 0; i < img_vars.size(); i++) {
         if (!everyUniqueVariable.defines(img_vars[i])) {
             findVariable(img_vars[i]);

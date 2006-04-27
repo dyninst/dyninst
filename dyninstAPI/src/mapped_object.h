@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_object.h,v 1.9 2006/04/20 22:44:53 bernat Exp $
+// $Id: mapped_object.h,v 1.10 2006/04/27 02:09:50 bernat Exp $
 
 #if !defined(_mapped_object_h)
 #define _mapped_object_h
@@ -210,7 +210,7 @@ class mapped_object : public codeRange {
 
     const pdvector<int_variable *> *findVarVectorByPretty(const pdstring &varname);
     const pdvector<int_variable *> *findVarVectorByMangled(const pdstring &varname); 
-    const int_variable *getVariable(const pdstring &varname) const;
+    const int_variable *getVariable(const pdstring &varname);
     
 
 #if defined(cap_save_the_world)
