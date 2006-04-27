@@ -59,10 +59,12 @@ static DECLARE_TC_LOCK(DYNINST_index_lock);
 
 static int first_free;
 static int first_deleted;
+static int num_free;
+static int num_deleted;
 
 dyntid_t DYNINST_getThreadFromIndex(int index)
 {
-   return (dyntid_t) threads[index].tid;
+    return (dyntid_t) DYNINST_thread_structs[index].tid;
 }
 
 void DYNINST_initialize_index_list()
@@ -73,23 +75,27 @@ void DYNINST_initialize_index_list()
   if (init_index_done) return;
   init_index_done = 1;
 
-  threads = (dyninst_thread_t *) malloc(DYNINST_max_num_threads * sizeof(dyninst_thread_t));
-  memset(threads, 0, DYNINST_max_num_threads * sizeof(dyninst_thread_t));
+  DYNINST_thread_structs = (dyninst_thread_t *) malloc(DYNINST_max_num_threads * sizeof(dyninst_thread_t));
+  memset(DYNINST_thread_structs, 0, DYNINST_max_num_threads * sizeof(dyninst_thread_t));
 
-  threads_hash_size = (int) (DYNINST_max_num_threads * 1.25);
-  threads_hash = (unsigned *) malloc(threads_hash_size * sizeof(unsigned));
+  DYNINST_thread_hash_size = (int) (DYNINST_max_num_threads * 1.25);
+  DYNINST_thread_hash = (unsigned *) malloc(DYNINST_thread_hash_size * sizeof(unsigned));
 
+  for (i=0; i < DYNINST_thread_hash_size; i++)
+      DYNINST_thread_hash[i] = NONE;
 
-  for (i=0; i<threads_hash_size; i++)
-     threads_hash[i] = NONE;
-
-  for (i=0; i<DYNINST_max_num_threads-1; i++)
-     threads[i].next = i+1;
-  threads[DYNINST_max_num_threads-1].next = NONE;
+  for (i=0; i<DYNINST_max_num_threads-1; i++) {
+      DYNINST_thread_structs[i].next_free = i+1;
+      DYNINST_thread_structs[i].thread_state = UNALLOC;
+  }
+  DYNINST_thread_structs[DYNINST_max_num_threads-1].next_free = NONE;
+  DYNINST_thread_structs[DYNINST_max_num_threads-1].thread_state = UNALLOC;
   
   /* We reserve 0 for the 'initial thread' */
   first_free = 1;
   first_deleted = NONE;
+  num_free = DYNINST_max_num_threads;
+  num_deleted = 0;
 }
 
 /**
@@ -98,7 +104,7 @@ void DYNINST_initialize_index_list()
 unsigned DYNINSTthreadIndexSLOW(dyntid_t tid)
 {
    unsigned hash_id, orig;
-   unsigned retval;
+   unsigned retval = DYNINST_max_num_threads;
    int index, t, result;
    unsigned long tid_val = (unsigned long) tid;
 
@@ -108,60 +114,76 @@ unsigned DYNINSTthreadIndexSLOW(dyntid_t tid)
    /**
     * Search the hash table
     **/
-   hash_id = tid_val % threads_hash_size;
+   hash_id = tid_val % DYNINST_thread_hash_size;
    orig = hash_id;
    for (;;) 
    {
-      index = threads_hash[hash_id];
-      if (index != NONE && threads[index].tid == tid)
-      {
-         retval = index;
-         goto done;
+      index = DYNINST_thread_hash[hash_id];
+      if (index != NONE && DYNINST_thread_structs[index].tid == tid) {
+          retval = index;
+          break;
       }
       hash_id++;
-      if (hash_id == threads_hash_size)
-         hash_id = 0;
+      if (hash_id == DYNINST_thread_hash_size)
+          hash_id = 0;
       if (orig == hash_id)
-         break;
+          break;
    }
 
-  /**  DONT return deleted threads,  we want to create new threads
-       so that the notification scheme works 
-       THIS MAY NOT BE SCALABLE -- ie we might not even want to keep 
-                                   deleted threads around  **/
-
-  /**  Alternately, have createNewThread check deleted threads and
-       return it as a new thread **/
-#if 0
-   /**
-    * If we didn't find a tid it could have been deleted,
-    * search the deleted list linearly.  A find here should
-    * be rare, since it should mean that a thread called DYNINST_free_index
-    * and then DYNINST_index_slow.
-    **/
-
-   
-   for (t = first_deleted; t != NONE; t = threads[t].next)
-      if (threads[t].tid == tid)
-      {
-         retval = t;
-         goto done;
-      }
-#endif
-
-   retval = DYNINST_max_num_threads; //Couldn't find it
-
- done:
    tc_lock_unlock(&DYNINST_index_lock);
    return retval;
 }
+
+static unsigned get_free_index() {
+    /* Assert: we are locked */
+    unsigned ret = 0;
+    assert(first_free != NONE);
+    ret = first_free;
+    first_free = DYNINST_thread_structs[first_free].next_free;
+    if (first_free != NONE) {
+        assert(DYNINST_thread_structs[first_free].thread_state == UNALLOC);
+    }
+    return ret;
+}
+
+/* What we have:
+   Several entries may have set their thread_state to LWP_EXITED (done by
+   the mutator). They are still in the hash table, since up until now thread code
+   may have accessed them. We want to remove them from the hash table,
+   set the thread_state to UNALLOC, and add it to the free list. */
+
+static void clean_thread_list() {
+    /* Assert: we are locked */
+    unsigned hash_iter = 0;
+    for (hash_iter = 0; hash_iter < DYNINST_thread_hash_size; hash_iter++) {
+        unsigned index = DYNINST_thread_hash[hash_iter];
+        if (index == NONE) continue;
+        
+        if (DYNINST_thread_structs[index].thread_state != LWP_EXITED)
+            continue;
+            
+        /* Okay, this one was deleted. Remove it from the hash... */
+        DYNINST_thread_hash[hash_iter] = NONE;
+        /* Mark it as unallocated... */
+        DYNINST_thread_structs[index].tid = 0;
+        DYNINST_thread_structs[index].thread_state = UNALLOC;
+        /* And add it to the end of the free list*/
+        DYNINST_thread_structs[index].next_free = first_free;
+        first_free = index;
+        num_free++;
+        num_deleted--;
+    }
+}
+
     
+
 unsigned DYNINST_alloc_index(dyntid_t tid)
 {
    int result;
    unsigned hash_id, orig;
    unsigned t, retval;
    unsigned long tid_val = (unsigned long) tid;
+   int attempts = 0;
 
    //Return an error if this tid already exists.
    if (DYNINSTthreadIndexSLOW(tid) != DYNINST_max_num_threads)
@@ -174,43 +196,46 @@ unsigned DYNINST_alloc_index(dyntid_t tid)
    if (DYNINST_am_initial_thread(tid)) {
        t = 0;
    }
-   else if (first_free != NONE) //An unallocated free slot exists
-   {
-      t = first_free;
-      first_free = threads[first_free].next;
+   else  if (num_free) {
+       t = get_free_index();
    }
-   else if (first_deleted != NONE) //No un-allocated free slots, use a deleted
-   {
-      t = first_deleted;
-      first_deleted = threads[first_deleted].next;
+   else if (num_deleted) {
+       clean_thread_list();
+       /* We have deleted, but they weren't freed by the mutator yet.... */
+       while (num_free == 0) {
+           sleep(1);
+           clean_thread_list();
+       }
+       t = get_free_index();
    }
-   else //No threads slots free
-   {
-      retval = DYNINST_max_num_threads;
-      goto done;
+   else {
+       retval = DYNINST_max_num_threads;
+       goto done;
    }
- 
+
    //Initialize the dyninst_thread_t object
-   threads[t].tid = tid;
-   threads[t].next = NONE;
+   DYNINST_thread_structs[t].tid = tid;
+   DYNINST_thread_structs[t].thread_state = THREAD_ACTIVE;
+   DYNINST_thread_structs[t].next_free = NONE;
 
    //Put it in the hash table
-   hash_id = tid_val % threads_hash_size;
+   hash_id = tid_val % DYNINST_thread_hash_size;
    orig = hash_id;
-   while (threads_hash[hash_id] != NONE)
+   while (DYNINST_thread_hash[hash_id] != NONE)
    {
-      hash_id++;
-      if (hash_id == threads_hash_size)
-         hash_id = 0;
-      if (orig == hash_id)
-      {
-         retval = DYNINST_max_num_threads;
-         goto done;
-      }
+       hash_id++;
+       if (hash_id == DYNINST_thread_hash_size)
+           hash_id = 0;
+       if (orig == hash_id) {
+           /* Isn't this an error case? - bernat */
+           retval = DYNINST_max_num_threads;
+           goto done;
+       }
    }
-
-   threads_hash[hash_id] = t;
+   
+   DYNINST_thread_hash[hash_id] = t;
    retval = t;
+   num_free--;
  done:
    tc_lock_unlock(&DYNINST_index_lock);
    return retval;
@@ -232,53 +257,27 @@ int DYNINST_free_index(dyntid_t tid)
    /**
     * Find this thread in the hash table
     **/
-   hash_id = tid_val % threads_hash_size;
+   hash_id = tid_val % DYNINST_thread_hash_size;
    orig = hash_id;
    for (;;)
    {
-      index = threads_hash[hash_id];
-      if (index != NONE && threads[index].tid == tid)
-         break;
+      index = DYNINST_thread_hash[hash_id];
+      if (index != NONE && DYNINST_thread_structs[index].tid == tid)
+          break;
       hash_id++;
-      if (hash_id == threads_hash_size)
-         hash_id = 0;
+      if (hash_id == DYNINST_thread_hash_size)
+          hash_id = 0;
       if (orig == hash_id)
-      {
-         rtdebug_printf("%s[%d]:  DESTROY FAILURE:  tid not in hash\n", __FILE__, __LINE__);
-         retval = -1;
-         goto done; //tid doesn't exist
-      }
+          {
+              rtdebug_printf("%s[%d]:  DESTROY FAILURE:  tid not in hash\n", __FILE__, __LINE__);
+              retval = -1;
+              goto done; //tid doesn't exist
+          }
    }
+   /* Mark this entry as disabled */
+   DYNINST_thread_structs[index].thread_state = THREAD_COMPLETE;
 
-   /**
-    * Find the end of the deleted list, and make sure that
-    * this thread hasn't already been deleted.
-    **/
-   for (t = first_deleted; t != NONE; t = threads[t].next)
-   {
-      if (t == index)
-      {
-         rtdebug_printf("%s[%d]:  DESTROY FAILURE:  tid already deleted\n", __FILE__, __LINE__);
-         retval = -1;
-         goto done; //double free
-      }
-      deleted_end = t;
-   }
-
-
-   /**
-    * Clean-up
-    **/
-   //Remove this dude from the hash table
-   threads_hash[hash_id] = NONE;
-
-   //Add him to the end of the deleted list
-   if (first_deleted == NONE)
-      first_deleted = index;
-   else
-      threads[deleted_end].next = index;
-   threads[index].next = NONE;
-   
+   num_deleted++;
    retval = 0;
  done:    
    tc_lock_unlock(&DYNINST_index_lock);
@@ -326,12 +325,7 @@ void DYNINST_print_lists()
    unsigned i;
    int index;
    printf("  Free:    ");
-   for (i = first_free; i != NONE; i = threads[i].next)
-      printf("%u@%u ", threads[i].tid, i);
-   printf("\n");
-
-   printf("  Deleted: ");
-   for (i = first_deleted; i != NONE; i = threads[i].next)
+   for (i = first_free; i != NONE; i = threads[i].next_free)
       printf("%u@%u ", threads[i].tid, i);
    printf("\n");
 
