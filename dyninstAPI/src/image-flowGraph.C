@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.21 2006/04/21 18:56:53 nater Exp $
+ * $Id: image-flowGraph.C,v 1.22 2006/04/27 21:28:59 nater Exp $
  */
 
 #include <stdio.h>
@@ -208,9 +208,9 @@ bool image::analyzeImage()
 
                 if( isFunctionPrologue(insn) && !funcsByEntryAddr.defines(pos))
                 {
-                    char name[20];
+                    char name[32];
                     numIndir++;
-                    sprintf( name, "gap_f%lx", pos );
+                    snprintf( name, 32, "gap_f%lx", pos );
                     pdf = new image_func( name, pos, UINT_MAX, mod, this);
                     if(parseFunction( pdf, callTargets, preParseStubs)) {
                         addFunctionName(pdf, name, true);
@@ -1327,11 +1327,11 @@ image_func * image_func::FindOrCreateFunc(Address target,
     }
     else
     {   
-        char name[20];
+        char name[32];
 #if defined (os_windows)
-        _snprintf(name,20,"targ%lx",target);
+        _snprintf(name,32,"targ%lx",target);
 #else
-        snprintf(name,20,"targ%lx",target);
+        snprintf(name,32,"targ%lx",target);
 #endif
 
         targetFunc = new image_func(name,target,UINT_MAX,mod_,image_);
