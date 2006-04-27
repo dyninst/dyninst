@@ -442,9 +442,9 @@ bool rpcMgr::decodeEventIfDueToIRPC(EventRecord &ev)
           return true;
        }
        else if (activeFrame.getPC() == currRPC->rpcCompletionAddr) {
-           signal_printf("%s[%d]: PC at 0x%lx for lwp %u matches RPC result addr 0x%lx on RPC %p\n",
+           signal_printf("%s[%d]: PC at 0x%lx for lwp %u matches RPC completion addr 0x%lx on RPC %p\n",
                          FILE__, __LINE__, activeFrame.getPC(), activeFrame.getLWP()->get_lwp_id(),
-                         currRPC->rpcResultAddr, currRPC);
+                         currRPC->rpcCompletionAddr, currRPC);
           ev.type = evtRPCSignal;
           ev.status = statusRPCDone;
           ev.what = (eventWhat_t) curr_rpc_index;
