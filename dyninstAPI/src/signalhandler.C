@@ -109,6 +109,9 @@ bool SignalHandler::handleProcessStop(EventRecord &ev, bool &continueHint)
          return false;
       }
       bool done =  ev.lwp->isWaitingForStop() || sg->waitingForStop();
+
+      signal_printf("%s[%d]: result of isWaitingForStop on lwp %d: %d\n",
+                    FILE__, __LINE__, ev.lwp->get_lwp_id(), done);
       proc->set_lwp_status(ev.lwp, stopped);
       if (done) return true;
 
@@ -263,13 +266,14 @@ bool SignalHandler::handleLwpExit(EventRecord &ev, bool &continueHint)
       proc->set_lwp_status(ev.lwp, exited);
     }
 
+    if (!proc->removeThreadIndexMapping(thr)) {
+        // Oh, this happens... if all the LWPs are exiting, we can't
+        // stop one to write to it.
+        // However, in that case we don't need to update the thread structure
+        // in the RT lib either -- they're all gone :)
+    }
 
    BPatch::bpatch->registerThreadExit(proc, thr->get_tid());
-
-    if (!proc->removeThreadIndexMapping(thr)) {
-        fprintf(stderr, "%s[%d]:  failed to remove thread mapping for thread %lu\n",
-                FILE__, __LINE__, thr->get_tid());
-    }
 
    flagBPatchStatusChange();
 
