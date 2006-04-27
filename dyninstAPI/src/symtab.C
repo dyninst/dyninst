@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.277 2006/04/26 03:43:03 jaw Exp $
+ // $Id: symtab.C,v 1.278 2006/04/27 02:10:00 bernat Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -487,6 +487,7 @@ bool image::addSymtabVariables()
                                                        mangledName,
                                                        use);
               exportedVariables.push_back(var);
+              everyUniqueVariable.push_back(var);
           }
 
           char * unmangledName =
@@ -1535,6 +1536,8 @@ void image::addVariableName(image_variable *var,
     }
     assert(varsByName != NULL);
     varsByName->push_back(var);
+
+    
 }
 
 //buildFunctionLists() iterates through image_funcs and constructs demangled 
