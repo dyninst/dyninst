@@ -768,7 +768,7 @@ bool SignalGeneratorCommon::unsafeToContinue() {
 }
 #endif
 
-eventType SignalGeneratorCommon::waitForOneOf(pdvector<eventType> &evts)
+eventType SignalGeneratorCommon::waitForOneOf(pdvector<eventType> &evts, dyn_lwp *lwp /* = NULL */)
 {
   assert(global_mutex->depth());
 
@@ -803,7 +803,7 @@ eventType SignalGeneratorCommon::waitForOneOf(pdvector<eventType> &evts)
       }
   }
   
-  EventGate *eg = new EventGate(global_mutex,evts[0]);
+  EventGate *eg = new EventGate(global_mutex,evts[0], NULL, lwp);
   for (unsigned int i = 1; i < evts.size(); ++i) {
     eg->addEvent(evts[i]);
   }
@@ -1780,22 +1780,6 @@ bool SignalGeneratorCommon::handleEvent(EventRecord &) {
     return true;
 }
 
-SignalGenerator::SignalGenerator(char *idstr, pdstring file, pdstring dir,
-                                 pdvector<pdstring> *argv,
-                                 pdvector<pdstring> *envp,
-                                 pdstring inputFile,
-                                 pdstring outputFile,
-                                 int stdin_fd, int stdout_fd,
-                                 int stderr_fd) :
-   SignalGeneratorCommon(idstr),
-   waiting_for_stop(false)
-{
-    setupCreated(file, dir, 
-                 argv, envp, 
-                 inputFile, outputFile,
-                 stdin_fd, stdout_fd, stderr_fd);
-}
-
 // The signalGenerator is waiting for waitForContinueLock to get signalled.
 // We'll bounce it, then wait on requestContinueLock... 
 
@@ -1963,24 +1947,33 @@ bool SignalGeneratorCommon::continueRequired()
 
   if (independentLwpStop_) {
     // We're trying to stop an LWP, impolite to continue...
+      signal_printf("%s[%d]: independent LWP stop on, not continuing...\n",
+                    FILE__, __LINE__);
     return false;
   }
 
     // sync run gets priority...
-    if (syncRunWhenFinished_ == stopRequest)
-        return false;
+  if (syncRunWhenFinished_ == stopRequest) {
+      signal_printf("%s[%d]: syncRunWhenFinished = stop, not continuing...\n",
+                    FILE__, __LINE__);
+      return false;
+  }
 
     if (syncRunWhenFinished_ == runRequest) {
         if (asyncRunWhenFinished_ == stopRequest) {
             fprintf(stderr, "Odd case: BPatch requests run, internals request stop\n");
             return false;
         }
+        signal_printf("%s[%d]: syncRunWhenFinished = run, continuing...\n",
+                    FILE__, __LINE__);
         return true;
     }
 
     // We're unset or purposefully ignoring. 
 
     if (asyncRunWhenFinished_ == runRequest) {
+      signal_printf("%s[%d]: asyncRunWhenFinished = run, continuing...\n",
+                    FILE__, __LINE__);
         return true;
     }
     else if (asyncRunWhenFinished_ == stopRequest) {

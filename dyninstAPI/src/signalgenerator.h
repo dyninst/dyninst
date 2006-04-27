@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator.h,v 1.8 2006/04/25 22:08:21 bernat Exp $
+/* $Id: signalgenerator.h,v 1.9 2006/04/27 02:09:57 bernat Exp $
  */
 
 #ifndef _SIGNAL_GENERATOR_H_
@@ -87,9 +87,10 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
     static SignalGenerator *newSignalGenerator(pdstring file, int pid);
 
    virtual ~SignalGeneratorCommon(); 
-   
-   eventType waitForOneOf(pdvector<eventType> &evts);
+
    static eventType globalWaitForOneOf(pdvector<eventType> &evts);
+   
+   eventType waitForOneOf(pdvector<eventType> &evts, dyn_lwp *lwp = NULL);
    eventType waitForEvent(eventType evt, process *p = NULL, dyn_lwp *lwp = NULL, 
                           eventStatusCode_t status = NULL_STATUS_INITIALIZER, 
 			  bool executeCallbacks = true);
