@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.372 2006/04/26 03:43:02 jaw Exp $
+/* $Id: process.h,v 1.373 2006/04/27 02:09:52 bernat Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -230,9 +230,12 @@ class process {
   bool removeThreadIndexMapping(dyn_thread *thr);
 
   // Thread index functions
+  // Current implementations _cannot_ be correct; also, unused
+#if 0
   unsigned getIndexToThread(unsigned index);
   void setIndexToThread(unsigned index, unsigned value);
   void updateThreadIndexAddr(Address addr);
+#endif
  public:
 
   // Current process state
@@ -1026,6 +1029,8 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   // Threads are accessed by index.
   int max_number_of_threads;
   pdvector<dyn_thread *> threads;
+  Address thread_structs_base;
+
 
   dynthread_t mapIndexToTid(int index);
   bool deferredContinueProc;
@@ -1033,6 +1038,8 @@ void inferiorFree(process *p, Address item, const pdvector<addrVecType> &);
   bool continueAfterNextStop_;
   // Defined in os.h
   processState status_;         /* running, stopped, etc. */
+  // And so we don't run into a _lot_ of problems in process control...
+  bool exiting_; // Post-exit callback; "we don't care any more"
 
   //// Exec
   // For platforms where we have to guess what the next signal is caused by.
