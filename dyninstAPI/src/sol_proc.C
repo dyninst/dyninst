@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.96 2006/04/26 22:07:25 chadd Exp $
+// $Id: sol_proc.C,v 1.97 2006/04/27 02:09:59 bernat Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -1008,8 +1008,32 @@ void dyn_lwp::reopen_fds() {
 
 bool process::isRunning_() const 
 {
-    // We can key off the representative LWP
-    return getRepresentativeLWP()->isRunning();
+    if (getRepresentativeLWP() &&
+        isAttached())
+        return getRepresentativeLWP()->isRunning();
+
+    // Let's assume nothing is open....
+    char temp[128];
+    int status_fd;
+
+    sprintf(temp, "/proc/%d/status", getPid());
+    status_fd = P_open(temp, O_RDONLY, 0);
+    if (status_fd <= 0) return false;
+
+    pstatus_t procstatus;
+    size_t sz_read = pread(status_fd, (void *)&procstatus, sizeof(pstatus_t), 0);
+    close(status_fd);
+
+    if (sz_read != sizeof(pstatus_t))
+        return false;
+
+    long stopped_flags = PR_STOPPED | PR_ISTOP;
+    fprintf(stderr, "Testing stopped bits %x against procstatus %x\n",
+            stopped_flags, procstatus.pr_flags);
+    if (procstatus.pr_flags & stopped_flags) {
+        return false;
+    }
+    return true;
 }
 
 /*
