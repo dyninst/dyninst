@@ -38,7 +38,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: image-ia64.C,v 1.9 2006/04/21 18:56:57 nater Exp $
+// $Id: image-ia64.C,v 1.10 2006/04/28 19:35:45 nater Exp $
 
 #include "common/h/Vector.h"
 #include "common/h/Dictionary.h"
@@ -52,15 +52,20 @@
 #include "arch.h"
 
 // Not used on IA64
-bool image_func::archIsRealCall(InstrucIter &ah, bool &/*validTarget*/,
+bool image_func::archIsRealCall(InstrucIter &/* ah */, bool &/*validTarget*/,
                                 bool & /* simulateJump */)
 {
     return true;
 }
 
-// Not used on IA64
-bool image_func::archCheckEntry(InstrucIter &ah, image_func *func)
+bool image_func::archCheckEntry(InstrucIter &ah, image_func * /*func*/)
 {
+    // x86 checks for functions in the PLT here and so should we.
+    // Actually, this should probably be checked when binding a
+    // stub function object to a call site during parsing. XXX
+    if(image_->getObject().is_offset_in_plt(*ah))
+        return false;
+
     return true;
 }
 
@@ -77,7 +82,7 @@ bool image_func::archAvoidParsing()
 }
 
 // Not used on IA64
-void image_func::archGetFuncEntryAddr(Address &funcEntryAddr)
+void image_func::archGetFuncEntryAddr(Address &/* funcEntryAddr */)
 {
     return;
 }
@@ -89,7 +94,7 @@ bool image_func::archNoRelocate()
 }
 
 // Not used on IA64
-void image_func::archSetFrameSize(int frameSize)
+void image_func::archSetFrameSize(int /* frameSize */)
 {
     return;
 }
@@ -100,29 +105,29 @@ void image_func::archSetFrameSize(int frameSize)
 // data flow operation.
 bool image_func::archGetMultipleJumpTargets(
                                 BPatch_Set< Address >& targets,
-                                image_basicBlock * currBlk,
+                                image_basicBlock * /*currBlk*/,
                                 InstrucIter &ah,
-                                pdvector< instruction >& allInstructions)
+                                pdvector< instruction >& /*allInstructions*/)
 {
     return ah.getMultipleJumpTargets( targets );                 
 }
 
-bool image_func::archProcExceptionBlock(Address &catchStart, Address a)
+bool image_func::archProcExceptionBlock(Address &/*catchStart*/, Address /*a*/)
 {
     // Agnostic about exceptions: the policy of champions!
     return false;
 }
 
 // Not used on IA64
-bool image_func::archIsATailCall(InstrucIter &ah,
-                                 pdvector< instruction >& allInstructions)
+bool image_func::archIsATailCall(InstrucIter & /* ah */,
+                                 pdvector< instruction >& /*allInstructions*/)
 {
     // Seems like doing it like x86 would be a good idea. FIXME
     return false;
 }
 
 // Not used on IA64 FIXME YET!
-bool image_func::archIsIndirectTailCall(InstrucIter &ah)
+bool image_func::archIsIndirectTailCall(InstrucIter & /*ah*/)
 {
     return false;
 }
@@ -133,7 +138,7 @@ bool image_func::archIsAbortOrInvalid(InstrucIter &ah)
 }
 
 // Not used on IA64
-void image_func::archInstructionProc(InstrucIter &ah)
+void image_func::archInstructionProc(InstrucIter &/*ah*/)
 {
     return;
 }
