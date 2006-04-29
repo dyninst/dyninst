@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.196 2006/04/27 02:09:55 bernat Exp $
+// $Id: unix.C,v 1.197 2006/04/29 16:41:30 chadd Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -1285,14 +1285,16 @@ bool forkNewProcess_real(pdstring file,
 	  P_execvp(file.c_str(), args);
 
       sprintf(errorLine, "paradynd: execv failed, errno=%d\n", errno);
-      logLine(errorLine);
+      //logLine(errorLine);
+	fprintf(stderr,"%s",errorLine);
     
-      logLine(strerror(errno));
+      //logLine(strerror(errno));
       {
          int i=0;
          while (args[i]) {
             sprintf(errorLine, "argv %d = %s\n", i, args[i]);
-            logLine(errorLine);
+		fprintf(stderr,"%s",errorLine);
+            //logLine(errorLine);
             i++;
          }
       }
@@ -1301,7 +1303,8 @@ bool forkNewProcess_real(pdstring file,
           {
 	      for(unsigned i = 0; envs[i] != NULL; ++i) {
 	          sprintf(errorLine, "envp %d = %s\n", i, envs[i]);
-	          logLine(errorLine);
+	          //logLine(errorLine);
+			fprintf(stderr,"%s",errorLine);
 	      }
            }
       }	      
