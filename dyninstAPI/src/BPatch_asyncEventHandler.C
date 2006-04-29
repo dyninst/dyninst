@@ -709,7 +709,6 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
          async_printf("%s[%d]: reading event from fd %d\n",
                       FILE__, __LINE__, ev.fd);
 	BPatch_newThreadEventRecord call_rec;
-	BPatch_newThreadEventRecord32 call_rec_32;
 	asyncReadReturnValue_t retval;
 	
          // This can take some arbitrary amount of time to finish; release lockage.
@@ -721,6 +720,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
 		//is the mutatee 32 or 64 bit?
 #if defined(x86_64_unknown_linux2_4)
 	if( appProc->getAddressWidth() == 4){//32 bit
+		BPatch_newThreadEventRecord32 call_rec_32;
 	         retval = readEvent(ev.fd/*fd*/, 
                                                 (void *) &call_rec_32, 
                                                    sizeof(BPatch_newThreadEventRecord32));
