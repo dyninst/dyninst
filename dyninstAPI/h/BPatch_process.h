@@ -199,7 +199,6 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     BPatch_funcMap *func_map;
     BPatch_instpMap *instp_map;
 
-
     BPatch_image *image;
     BPatch_Vector<BPatch_thread *> threads;
 
@@ -325,6 +324,13 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
 
     API_EXPORT(Int, (),
     int,getPid,());
+
+	// BPatch_process::getAddressWidth
+	//
+	// Get the address width (4 or 8) of the process
+
+    API_EXPORT(Int, (),
+    int,getAddressWidth,());
 
     //  BPatch_process::stopExecution
     //  

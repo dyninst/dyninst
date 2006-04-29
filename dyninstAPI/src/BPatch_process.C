@@ -79,6 +79,10 @@ BPatch_image *BPatch_process::getImageInt()
    return image;
 }
 
+int BPatch_process::getAddressWidthInt(){ 
+	return llproc->getAddressWidth();
+}
+
 /*
  * BPatch_process::getPid
  *
@@ -1781,6 +1785,7 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(
 #endif
    
    BPatch_function *initial_func = getImage()->findFunction(start_addr);
+
    if (!initial_func) {
      //fprintf(stderr, "%s[%d][%s]:  WARNING:  no function at %p found for thread\n",
      //        FILE__, __LINE__, getThreadStr(getExecThreadID()), start_addr);

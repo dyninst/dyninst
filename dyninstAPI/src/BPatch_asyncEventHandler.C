@@ -708,15 +708,34 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
         //  Read details of new thread from fd 
          async_printf("%s[%d]: reading event from fd %d\n",
                       FILE__, __LINE__, ev.fd);
-         BPatch_newThreadEventRecord call_rec;
+	BPatch_newThreadEventRecord call_rec;
+	BPatch_newThreadEventRecord32 call_rec_32;
+	asyncReadReturnValue_t retval;
+	
          // This can take some arbitrary amount of time to finish; release lockage.
          int lock_depth = eventlock->depth();
          for (unsigned i = 0; i < lock_depth; i++) {
 	   eventlock->_Unlock(FILE__, __LINE__);
          }
-         asyncReadReturnValue_t retval = readEvent(ev.fd/*fd*/, 
-                                                   (void *) &call_rec, 
+
+		//is the mutatee 32 or 64 bit?
+#if defined(x86_64_unknown_linux2_4)
+	if( appProc->getAddressWidth() == 4){//32 bit
+	         retval = readEvent(ev.fd/*fd*/, 
+                                                (void *) &call_rec_32, 
+                                                   sizeof(BPatch_newThreadEventRecord32));
+		call_rec.ppid=call_rec_32.ppid;
+		call_rec.tid=(void*)call_rec_32.tid;
+		call_rec.lwp=call_rec_32.lwp;
+		call_rec.index=call_rec_32.index;
+		call_rec.stack_addr=(void*)call_rec_32.stack_addr;
+		call_rec.start_pc=(void*)call_rec_32.start_pc;
+	}else
+#endif
+	         retval = readEvent(ev.fd/*fd*/, 
+                                                (void *) &call_rec, 
                                                    sizeof(BPatch_newThreadEventRecord));
+	
          async_printf("%s[%d]: read event, retval %d\n", FILE__, __LINE__);
          for (unsigned i = 0; i < lock_depth; i++) {
 	   eventlock->_Lock(FILE__, __LINE__);
@@ -796,9 +815,25 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
        //  Read auxilliary packet with dyn call info
 
        BPatch_dynamicCallRecord call_rec;
-         asyncReadReturnValue_t retval = readEvent(ev.fd/*fd*/, 
-                                                   (void *) &call_rec, 
+       asyncReadReturnValue_t retval ;
+
+	//is the mutatee 32 or 64 bit?
+#if defined(x86_64_unknown_linux2_4)
+	if( appProc->getAddressWidth() == 4 ){
+       		BPatch_dynamicCallRecord32 call_rec_32;
+	
+		retval = readEvent(ev.fd/*fd*/, 
+                                                 (void *) &call_rec_32, 
+                                                   sizeof(BPatch_dynamicCallRecord32));
+		call_rec.call_site_addr = (void*)call_rec_32.call_site_addr;
+		call_rec.call_target = (void*)call_rec_32.call_target;
+	}else
+#endif
+		retval = readEvent(ev.fd/*fd*/, 
+                                                 (void *) &call_rec, 
                                                    sizeof(BPatch_dynamicCallRecord));
+	
+
          if (retval != REsuccess) {
              bperr("%s[%d]:  failed to read dynamic call record\n",
                    FILE__, __LINE__);

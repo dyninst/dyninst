@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.42 2006/04/25 18:18:06 tlmiller Exp $
+ * $Id: RTlinux.c,v 1.43 2006/04/29 19:04:30 chadd Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -290,6 +290,14 @@ static pthread_offset_t positions[POS_ENTRIES] = { { 72, 476, 516, 576 },
 #define POS_ENTRIES 2
 static pthread_offset_t positions[POS_ENTRIES] = { { 144, 952, 1008, 160 },
                                                    { 144, 148, 1000, 160 } };
+
+#if defined(MUTATEE_32)
+/* ccw 28 apr 2006: the offsets for 32 bit mutatees on amd64*/
+#define POS_ENTRIES32 3
+static pthread_offset_t positions32[POS_ENTRIES32] = { { 72, 476, 516, 576 },
+                                                   	{ 72, 76, 516, 84 },
+							{ 72, 476, 516, 80 }}; 
+#endif
 #endif
 
 int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
@@ -301,21 +309,39 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
   ev->stack_addr = 0x0;
   ev->start_pc = 0x0;
   buffer = (char *) ev->tid;
-  
+
+#if !defined(MUTATEE_32)  
   for (i = 0; i < POS_ENTRIES; i++)
   {
      pid_t pid = READ_FROM_BUF(positions[i].pid_pos, pid_t);
      int lwp = READ_FROM_BUF(positions[i].lwp_pos, int);
+
      if( pid != ev->ppid || lwp != ev->lwp ) {
         // /* DEBUG */ fprintf( stderr, "%s[%d]: pid %d != ev->ppid %d or lwp %d != ev->lwp %d\n", __FILE__, __LINE__, pid, ev->ppid, lwp, ev->lwp );
         continue;
         }
      ev->stack_addr = READ_FROM_BUF(positions[i].stck_start_pos, void *);
      ev->start_pc = READ_FROM_BUF(positions[i].start_func_pos, void *);
+      // /* DEBUG */ fprintf( stderr, "%s[%d]: stack_addr %p, start_pc %p\n", __FILE__, __LINE__, ev->stack_addr, ev->start_pc );
+     return 1;
+  }
+
+#else  /* the offsets for 32 bit mutatees on amd64*/
+    for (i = 0; i < POS_ENTRIES32; i++)
+  {
+     pid_t pid = READ_FROM_BUF(positions32[i].pid_pos, pid_t);
+     int lwp = READ_FROM_BUF(positions32[i].lwp_pos, int);
+     unsigned int start_pc =  READ_FROM_BUF(positions32[i].start_func_pos, void*);
+     if( pid != ev->ppid || lwp != ev->lwp){
+        // /* DEBUG */ fprintf( stderr, "%s[%d]: pid %d != ev->ppid %d or lwp %d != ev->lwp %d\n", __FILE__, __LINE__, pid, ev->ppid, lwp, ev->lwp );
+        continue;
+        }
+     ev->stack_addr = READ_FROM_BUF(positions32[i].stck_start_pos, void *);
+     ev->start_pc = READ_FROM_BUF(positions32[i].start_func_pos, void *);
      // /* DEBUG */ fprintf( stderr, "%s[%d]: stack_addr %p, start_pc %p\n", __FILE__, __LINE__, ev->stack_addr, ev->start_pc );
      return 1;
   }
-  
+#endif
   if (!err_printed)
   {
     //If you get this error, then Dyninst is having trouble figuring out

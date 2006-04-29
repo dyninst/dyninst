@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.36 2006/04/27 02:10:01 bernat Exp $
+ * $Id: dyninstAPI_RT.h,v 1.37 2006/04/29 19:04:30 chadd Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -124,6 +124,24 @@ typedef struct {
    void *stack_addr; //The top of this thread's stack
    void *start_pc;   //The pc of this threads initial function
 } BPatch_newThreadEventRecord;
+
+#if defined(arch_x86_64) /* cannot use MUTATEE_32 here b/c libdyninstAPI.so compiles this */
+/*these are the 32 bit structures for use with 32 bit mutatees on AMD64*/
+typedef struct {
+  unsigned int call_site_addr;
+  unsigned int call_target;
+} BPatch_dynamicCallRecord32;
+
+typedef struct {
+   int ppid;         //Parent process's pid
+   unsigned int tid;     //Thread library ID for thread
+   int lwp;          //OS id for thread
+   int index;        //The dyninst index for this thread
+   unsigned int stack_addr; //The top of this thread's stack
+   unsigned int start_pc;   //The pc of this threads initial function
+} BPatch_newThreadEventRecord32;
+#endif
+
 
 typedef struct {
    int index;        //Index of the dead thread
