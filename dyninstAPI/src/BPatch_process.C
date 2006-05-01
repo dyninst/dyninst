@@ -242,7 +242,7 @@ bool LinuxConsideredHarmful(pid_t pid)
 
     get_linux_version(major,minor,sub,subsub); 
 
-    if( major == 2 && minor == 6 && sub >= 9 &&
+    if( major == 2 && minor == 6 &&
         (sub < 11 || (sub == 11 && subsub <= 11)) )
     {
         my_ppid = getppid();
