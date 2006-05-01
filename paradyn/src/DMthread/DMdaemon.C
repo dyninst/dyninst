@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.163 2006/04/13 23:05:31 legendre Exp $
+ * $Id: DMdaemon.C,v 1.164 2006/05/01 18:59:15 mjbrim Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -1287,7 +1287,7 @@ bool mpichCreateWrapper ( const pdstring& script, daemonEntry *de,
 			// the p4wd specifier to give its working directory.
 			// TODO how does MPD specify its working directory?
 
-			buffer += (pdstring("substdir=") + pdstring(dir) + "\n");
+			buffer += (pdstring("substdir=") + app_dir + "\n");
 
 			buffer += pdstring("appargs=`echo $* | sed \"s,p4wd [ ]*[^ ]*,p4wd $substdir,\"`\n");
     }
@@ -1980,27 +1980,27 @@ static bool startMPI( daemonEntry *de,
                       const pdvector<pdstring> &paradynd_args )
                      
 {
-	pdstring app_name;
-	pdvector<pdstring> params;
-	unsigned int i;
-	char daemon_dir[PATH_MAX];
-
-	pdvector<pdstring> Argv;
-	//----------------------------------------------
-	char* ar[64];
-	char** ars;
-	ars = ar;
-	char *line = strdup(process_argv[1].c_str());
+    pdstring app_name;
+    pdvector<pdstring> params;
+    unsigned int i;
+    char daemon_dir[PATH_MAX];
+    
+    pdvector<pdstring> Argv;
+    //----------------------------------------------
+    char* ar[64];
+    char** ars;
+    ars = ar;
+    char *line = strdup(process_argv[1].c_str());
     char *orig_line = line;
     pdstring app_dir = process_argv[5];
 
-	while (*line != '\0') {       /* if not the end of line ....... */ 
+    while (*line != '\0') {       /* if not the end of line ....... */ 
         while (*line == ' ' || *line == '\t' || *line == '\n') {
             *line++ = '\0';     /* replace white spaces with 0    */
         }
         *ars++ = line; /* save the argument position     */
         while (*line != '\0' && *line != ' ' && 
-               *line != '\t' && *line != '\n') { 
+              *line != '\t' && *line != '\n') { 
             line++;             /* skip the argument until ...    */
         }
     }
