@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: metricFocusNode.C,v 1.260 2006/02/16 00:57:35 legendre Exp $
+// $Id: metricFocusNode.C,v 1.261 2006/05/02 21:57:54 mjbrim Exp $
 
 #include "common/h/headers.h"
 #include "common/h/Types.h"
@@ -212,13 +212,14 @@ machineMetFocusNode *createMetricInstance(int mid, pdstring& metric_name,
 		        pdvector<u_int>& focusData,
 		        bool enable) // true if for real; false for guessCost()
 {
-   // we make third parameter false to avoid printing warning messages in
-   // focus2CanonicalFocus ("enable" was here previously) - naim
+   // we make fourth parameter false to avoid printing warning messages
    
    bool errFlag = false;
    Focus &focus = *(new Focus(focusData, &errFlag));
    if(errFlag) {
-      fprintf(stderr,"%d [%s:%u] Failed to create new Focus metric_name = %s\n",getpid(),__FILE__,__LINE__,metric_name.c_str());
+      fprintf(stderr,
+              "%d [%s:%u] Failed to create new Focus - metric_name = %s\n",
+              getpid(), __FILE__, __LINE__, metric_name.c_str());
       return NULL;
    }
 
@@ -255,7 +256,7 @@ machineMetFocusNode *createMetricInstance(int mid, pdstring& metric_name,
       }
 
       machineMetFocusNode *machNode = 
-         makeMachineMetFocusNode(mid, focus, metric_name, procs, false,enable);
+         makeMachineMetFocusNode(mid, focus, metric_name, procs, false, enable);
       if (!machNode)
       {
          cerr << "createMetricInstance failed since mdl_do failed\n";
@@ -403,85 +404,73 @@ bool startCollecting(pdstring& metric_name, pdvector<u_int>& focus,
                                         int mid,
                                         metFocInstResponse *cbi)
 {
-
-
     pdstring temp = metric_name;
-    for (unsigned i = 0; i < focus.size(); i++) 
-			{
-        temp += (pdstring(" ") + pdstring(focus[i]));
+    for (unsigned i = 0; i < focus.size(); i++) 			{
+       temp += (pdstring(" ") + pdstring(focus[i]));
 			}
-		//fprintf(stderr,"A. in startCollecting failed to insert temp = %s\n",temp.c_str());
+    //fprintf(stderr,"A. in startCollecting failed to insert temp = %s\n",temp.c_str());
 		
-		assert( cbi != NULL );
+    assert( cbi != NULL );
 		
-		// Make the unique ID for this metric/focus visible in MDL.
-		//   pdstring vname = "$globalId";
-		//   mdl_data::cur_mdl_data->env->add(vname, false, MDL_T_INT);
-		//   mdl_data::cur_mdl_data->env->set(mid, vname);
+    machineMetFocusNode *machNode = 
+       createMetricInstance(mid, metric_name, focus, true);
 		
-		machineMetFocusNode *machNode = 
-			createMetricInstance(mid, metric_name, focus, true);
-		
-		if (!machNode) {
-			cbi->addResponse( mid,
-                        inst_insert_failure,"Failed to create metric instance resource not found" );
-      return false;
-		}
+    if (!machNode) {
+       cbi->addResponse( mid, inst_insert_failure,
+                         "Failed to create metric instance resource not found" );
+       return false;
+    }
 
-		// Make the unique ID for this metric/focus visible in MDL.
-		pdstring vname = "$globalId";
-		mdl_data::cur_mdl_data->env->add(vname, false, MDL_T_INT);
-		mdl_data::cur_mdl_data->env->set(mid, vname);
-				
-		addCurrentPredictedCost(machNode->cost());
-		metResPairsEnabled++;
+    // Make the unique ID for this metric/focus visible in MDL.
+    pdstring vname = "$globalId";
+    mdl_data::cur_mdl_data->env->add(vname, false, MDL_T_INT);
+    mdl_data::cur_mdl_data->env->set(mid, vname);
+    
+    addCurrentPredictedCost(machNode->cost());
+    metResPairsEnabled++;
 		
-		if (machNode->isInternalMetric()) {
-      cbi->addResponse( mid, inst_insert_success ,"Success");
-      return true;
-		}
+    if (machNode->isInternalMetric()) {
+       cbi->addResponse( mid, inst_insert_success ,"Success");
+       return true;
+    }
+    
+    inst_insert_result_t insert_status =  machNode->insertInstrumentation();
 		
-		inst_insert_result_t insert_status =  machNode->insertInstrumentation();
+    if(insert_status == inst_insert_deferred) {
+       machNode->setMetricFocusResponse(cbi);
+       cbi->addResponse( mid, inst_insert_deferred ,"Deferred");
+       return true;
+    } 
+    else if(insert_status == inst_insert_failure) {
+       // error message already displayed in processMetFocusNode::insertInstrum.
+       delete machNode;
+       if(  mdl_data::cur_mdl_data->env->getSavedErrorString() != NULL) {
+          cbi->addResponse( mid,
+                            inst_insert_failure,
+                            mdl_data::cur_mdl_data->env->getSavedErrorString() );
+       }
+       else {
+          cbi->addResponse( mid,
+                            inst_insert_failure,
+                            "Un-specified error" );
+       }
+       return true;
+    }
 		
-		if(insert_status == inst_insert_deferred) 
-			{
-				machNode->setMetricFocusResponse(cbi);
-				cbi->addResponse( mid, inst_insert_deferred ,"Deferred");
-				return true;
-			} 
-		else if(insert_status == inst_insert_failure) 
-			{
-				// error message already displayed in processMetFocusNode::insertInstrum.
-				delete machNode;
-				if(  mdl_data::cur_mdl_data->env->getSavedErrorString() != NULL)
-					{
-						cbi->addResponse( mid,
-															inst_insert_failure,
-															mdl_data::cur_mdl_data->env->getSavedErrorString() );
-					}
-				else
-					{
-						cbi->addResponse( mid,
-															inst_insert_failure,
-															"Un-specified error" );
-					}
-				return true;
-			}
+    // This has zero for an initial value.  This is because for cpu_time and
+    // wall_time, we just want to total the cpu_time and wall_time for this
+    // process and no others (but if we want someone to get an actual cpu time
+    // for this program even if they start the cpu_time metric after the start
+    // of the process, the initial actual value could be the actual cpu time
+    // at the start of this metric).  For the counter metrics (eg. proc_calls,
+    // io_bytes), we also want zero (we have no way of getting the total
+    // proc_calls & io_bytes of the process before the metric was enabled, so
+    // we have to use zero).  However, it is possible that in the future we'll
+    // create a metric where it makes sense to send an initial actual value.
+    machNode->initializeForSampling(getWallTime(), pdSample::Zero());
 		
-		// This has zero for an initial value.  This is because for cpu_time and
-		// wall_time, we just want to total the cpu_time and wall_time for this
-		// process and no others (but if we want someone to get an actual cpu time
-		// for this program even if they start the cpu_time metric after the start
-		// of the process, the initial actual value could be the actual cpu time
-		// at the start of this metric).  For the counter metrics (eg. proc_calls,
-		// io_bytes), we also want zero (we have no way of getting the total
-		// proc_calls & io_bytes of the process before the metric was enabled, so
-		// we have to use zero).  However, it is possible that in the future we'll
-		// create a metric where it makes sense to send an initial actual value.
-		machNode->initializeForSampling(getWallTime(), pdSample::Zero());
-		
-		cbi->addResponse( mid, inst_insert_success ,"Success");
-		return true;
+    cbi->addResponse( mid, inst_insert_success ,"Success");
+    return true;
 }
 
 

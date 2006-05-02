@@ -161,13 +161,13 @@ resource *resource::newResource(resource *parent, void *handle,
 	
 	
   ret = new resource(abstraction,
-										 unique_string,
-										 creation,
-										 handle,
-										 false,
-										 parent,
-										 type,
-										 mdlType);
+                     unique_string,
+                     creation,
+                     handle,
+                     false,
+                     parent,
+                     type,
+                     mdlType);
 	
 	
   assert(ret);
@@ -190,24 +190,25 @@ resource *resource::newResource(resource *parent, void *handle,
 	
   unsigned id = pdstring::hash(res_string) % ((unsigned)I32_MAX);
   while (res_dict.defines(id)) 
-		{
-			id = (id + 1) % ((unsigned)I32_MAX);
-		}
+     {
+        id = (id + 1) % ((unsigned)I32_MAX);
+     }
   res_dict[id] = ret;
 	
   ret->set_id(id);
-	//save for possible later transmittal
-	T_dyninstRPC::resourceInfoCallbackStruct cbstruct;
-	pdvector<pdstring> *ret_components = new pdvector<pdstring>;	
-	*ret_components = ret->parent()->names();
-	*ret_components += ret->name();
- 	cbstruct.temporaryId = ret->id();
-	cbstruct.resource_name = *ret_components;
-	cbstruct.abstraction = ret->abstraction();
-	cbstruct.type = ret->type();
-	cbstruct.mdlType = ret->mdlType();
 	
-	resourceInfoCallbackBuffer.push_back(cbstruct);
+  //save for possible later transmittal
+  T_dyninstRPC::resourceInfoCallbackStruct cbstruct;
+  pdvector<pdstring> *ret_components = new pdvector<pdstring>;	
+  *ret_components = ret->parent()->names();
+  *ret_components += ret->name();
+  cbstruct.temporaryId = ret->id();
+  cbstruct.resource_name = *ret_components;
+  cbstruct.abstraction = ret->abstraction();
+  cbstruct.type = ret->type();
+  cbstruct.mdlType = ret->mdlType();
+	
+  resourceInfoCallbackBuffer.push_back(cbstruct);
 	
   return(ret);
 }

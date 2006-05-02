@@ -459,52 +459,52 @@ Focus::Focus(const pdvector<u_int>& ids, bool *errorFlag) :
    *errorFlag = false;
   
    for (unsigned i=0; i<ids.size(); i++)
-		 {
-			 resource *r = resource::findResource(ids[i]);
-			 if(r == NULL)
-				 {
-					 fprintf(stderr,"%u [%s:%u] resource not found ids[%u] = %u\n",
-									 getpid(),__FILE__,__LINE__, i , ids[i]);
-					 (*errorFlag) = true;
-					 return;
-				 }
-			 focusVec += r->names();
-		 }
+      {
+         resource *r = resource::findResource(ids[i]);
+         if(r == NULL)
+            {
+               fprintf(stderr,"%u [%s:%u] resource not found ids[%u] = %u\n",
+                       getpid(),__FILE__,__LINE__, i , ids[i]);
+               (*errorFlag) = true;
+               return;
+            }
+         focusVec += r->names();
+      }
 	 
    // assign to the object
    for (unsigned j=0; j<focusVec.size(); j++)
-		 {
-			 pdvector<pdstring> &curFocusVec = focusVec[j];
-			 assert(curFocusVec.size() > 0);  // there must be a heirarchy name
-			 if(curFocusVec[0] == "Machine")
-				 {
-					 curFocusVec.erase(0, 0);
-					 machineInfo = new machineHierarchy(curFocusVec);
-				 }
-			 else if(curFocusVec[0] == "Code") 
-				 {      
-					 curFocusVec.erase(0, 0);
-					 codeInfo = new codeHierarchy(curFocusVec);	 
-				 } 
-			 else if(curFocusVec[0] == "SyncObject") 
-				 {
-					 curFocusVec.erase(0, 0);
-					 syncObjInfo = new syncObjHierarchy(curFocusVec);
-				 }
-			 else if(curFocusVec[1] == "Memory")
-				 {
-					 curFocusVec.erase(0, 0);
-					 memoryInfo = new memoryHierarchy(curFocusVec);
-				 }
-			 else
-				 {
-					 assert(false);  // add a new heirarchy type if this is triggered
-				 }
-		 }
+      {
+         pdvector<pdstring> &curFocusVec = focusVec[j];
+         assert(curFocusVec.size() > 0);  // there must be a heirarchy name
+         if(curFocusVec[0] == "Machine")
+            {
+               curFocusVec.erase(0, 0);
+               machineInfo = new machineHierarchy(curFocusVec);
+            }
+         else if(curFocusVec[0] == "Code") 
+            {      
+               curFocusVec.erase(0, 0);
+               codeInfo = new codeHierarchy(curFocusVec);	 
+            } 
+         else if(curFocusVec[0] == "SyncObject") 
+            {
+               curFocusVec.erase(0, 0);
+               syncObjInfo = new syncObjHierarchy(curFocusVec);
+            }
+         else if(curFocusVec[1] == "Memory")
+            {
+               curFocusVec.erase(0, 0);
+               memoryInfo = new memoryHierarchy(curFocusVec);
+            }
+         else
+            {
+               assert(false);  // add a new heirarchy type if this is triggered
+            }
+      }
 	 
    // "Memory tag currently isn't actually ever passed in.
    if(memoryInfo==NULL) {
-		 memoryInfo = new memoryHierarchy();
+      memoryInfo = new memoryHierarchy();
    }
 }
 
