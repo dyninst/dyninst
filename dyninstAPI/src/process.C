@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.625 2006/05/02 19:17:20 bernat Exp $
+// $Id: process.C,v 1.626 2006/05/02 19:53:26 bernat Exp $
 
 #include <ctype.h>
 
@@ -1967,7 +1967,6 @@ process::process(SignalGenerator *sh_) :
     real_lwps(CThash),
     max_number_of_threads(MAX_THREADS),
     thread_structs_base(0),
-    active_thread_removal_(false),
     deferredContinueProc(false),
     previousSignalAddr_(0),
     continueAfterNextStop_(false),
@@ -2532,7 +2531,6 @@ process::process(const process *parentProc, SignalGenerator *sg_, int childTrace
     real_lwps(CThash),
     max_number_of_threads(parentProc->max_number_of_threads),
     thread_structs_base(parentProc->thread_structs_base),
-    active_thread_removal_(parentProc->active_thread_removal_),
     deferredContinueProc(parentProc->deferredContinueProc),
     previousSignalAddr_(parentProc->previousSignalAddr_),
     continueAfterNextStop_(parentProc->continueAfterNextStop_),
@@ -5966,39 +5964,6 @@ bool process::removeThreadIndexMapping(dyn_thread *thr)
     // Don't worry 'bout it if we're cleaning up and exiting anyway.
     if (exiting_) return true;
 
-#if 0
-    while (active_thread_removal_) {
-        signal_printf("%s[%d]: active_thread_removal set, sleeping...\n", FILE__, __LINE__);
-        sh->waitForEvent(evtAnyEvent);
-#if 0
-        int lock_depth = global_mutex->depth();
-        for (unsigned foo = 0; foo < lock_depth; foo++) {
-            global_mutex->_Unlock(FILE__, __LINE__);
-        }
-
-        // Set wait_flag if we're a signal handler...
-        SignalHandler *shandler = sh->findSHWithThreadID(getExecThreadID());
-        if (shandler) {
-            signal_printf("%s[%d]: signal handler waiting, setting wait_flag\n", FILE__, __LINE__);
-            shandler->wait_flag = true;
-        }
-
-        active_thread_removal_lock_._WaitForSignal(FILE__, __LINE__);
-
-        signal_printf("%s[%d]: attempting to reacquire global lock\n", FILE__, __LINE__);
-        
-        // wait....
-        for (unsigned bar = 0; bar < lock_depth; bar++) {
-            global_mutex->_Lock(FILE__, __LINE__);
-        }
-#endif
-    }
-#endif
-
-    active_thread_removal_ = true;
-
-//active_thread_removal_lock_._Unlock(FILE__, __LINE__);
-
     signal_printf("%s[%d]: past wait loop, deleting thread....\n", FILE__, __LINE__);
 
     bool res = false;
@@ -6088,13 +6053,9 @@ bool process::removeThreadIndexMapping(dyn_thread *thr)
 
  done:
 
-    active_thread_removal_ = false;
-
     if (continueLWP && lwpToUse) {
         sh->continueProcessAsync(-1, lwpToUse);
     }
-
-    //active_thread_removal_lock_._Broadcast(FILE__, __LINE__);
 
     return res;
 }
