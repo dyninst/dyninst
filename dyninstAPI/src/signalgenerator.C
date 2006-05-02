@@ -204,7 +204,6 @@ void SignalGeneratorCommon::main() {
             asyncRunWhenFinished_ = unsetRequest;
             // Commented out; set by BPatch layer
             //syncRunWhenFinished_ = unsetRequest;
-            activeProcessSignalled_ = false;
         }
 
         postSignalHandler();
@@ -213,9 +212,12 @@ void SignalGeneratorCommon::main() {
         signal_printf("%s[%d]: Grabbing event\n", FILE__, __LINE__);
         getEvents(events);
 
-	// Reset signalActiveProcess - we're back from the grabEvent. 
-	// TODO: do we want to have an unsignalActiveProcess instead?
-	activeProcessSignalled_ = false;
+#if !defined(os_linux)
+        // independent lwp control... going into waitpid too often is okay on linux,
+        // but really a bad idea on AIX and Solaris (as you'll get the last thing again, and
+        // again, and again, and again...)
+        activeProcessSignalled_ = false;
+#endif            
 
         if (exitRequested()) {
             signal_printf("%s[%d]: exit request (post-getEvent)\n", FILE__, __LINE__);
@@ -239,6 +241,9 @@ void SignalGeneratorCommon::main() {
         events.clear();
         dispatchingEvent_ = false;
     }        
+
+    // We're going down...
+    signalEvent(evtShutDown);
 
     thread_printf("%s[%d]: removing from thread map\n", FILE__, __LINE__);
     removeFromThreadMap();
@@ -307,14 +312,14 @@ void SignalGeneratorCommon::waitForActivation() {
 
         // Ordering... activeProcessSignalled activeHandler beats
         // syncRunWhenFinished beats asyncRunWhenFinished.
-        if (activeHandler) {
-            signal_printf("%s[%d]: active handler, continuing around;\n", 
-                          FILE__, __LINE__);
-        }
-        else if (activeProcessSignalled_) {
+        if (activeProcessSignalled_) {
             signal_printf("%s[%d]: active process signalled, breaking out of wait loop;\n", 
                           FILE__, __LINE__);
             break;
+        }
+        else if (activeHandler) {
+            signal_printf("%s[%d]: active handler, continuing around;\n", 
+                          FILE__, __LINE__);
         }
         else if (syncRunWhenFinished_ == stopRequest) {
             signal_printf("%s[%d]: syncRunWhenFinished is stay stopped, continuing around;\n", 
@@ -390,23 +395,29 @@ bool SignalGeneratorCommon::continueProcessAsync(int signalToContinueWith, dyn_l
     signal_printf("%s[%d]: async continue grabbing activation lock\n", FILE__, __LINE__);
     activationLock->_Lock(FILE__, __LINE__);
     
-    if (!waitingForActivation_) {
-        // We got here before the SG...
-        signal_printf("%s[%d]: Raced with SG %s, setting asyncRun anyway...\n",
-                      FILE__, __LINE__, getThreadStr(getThreadID()));
+    if (lwp) {
+        signal_printf("%s[%d]: adding lwp %d to continue list...\n",
+                      FILE__, __LINE__, lwp->get_lwp_id());
+        lwpsToContinue_.push_back(lwp);
+    }
+    else {
+        // Someone wants us to run the whole nine yards
+        continueWholeProcess_ = true;
     }
 
-    if (lwp)
-        lwpsToContinue_.push_back(lwp);
-
-    if (waitingForOS_) {
+    if (waitingForOS_ && !independentLwpStop_) {
         // We managed to get into waitpid (prolly signalActiveProcess) without
         // continuing the process...
         signal_printf("%s[%d]: Raced with SG %s, in waitpid, going to continue...\n",
                       FILE__, __LINE__, getThreadStr(getThreadID()));
         // Okay, we must be in a "lwps are partially running" situation. Feed in
         // the LWP we were given in continue.
+        // If we're in a stop situation we can't continue the process; someone else needs
+        // the stop as well.
+        signal_printf("%s[%d]: continuing process from non-SG thread\n",
+                      FILE__, __LINE__);
         continueProcessInternal();
+
         signal_printf("%s[%d]: async continue broadcasting...\n", FILE__, __LINE__);
         activationLock->_Broadcast(FILE__, __LINE__);
         activationLock->_Unlock(FILE__, __LINE__);
@@ -562,7 +573,9 @@ bool SignalGeneratorCommon::getEvents(pdvector<EventRecord> &events)
     
     bool ret = waitForEventsInternal(events);
 
-    if (ret == false) return false;
+    if (ret == false) {
+        return false;
+    }
 
     // Will be set to false when we've assigned the event to a signal handler
     
@@ -655,7 +668,7 @@ bool SignalGeneratorCommon::signalActiveProcess()
   
   if (waitingForOS_) return true;
 
-  signal_printf("%s[%d]: signalActiveProcess\n", FILE__, __LINE__);
+  signal_printf("%s[%d]: ************************************************** signalActiveProcess for pid %d\n", FILE__, __LINE__, proc->getPid());
   activationLock->_Lock(FILE__, __LINE__);
 
   activeProcessSignalled_ = true;
@@ -669,6 +682,13 @@ bool SignalGeneratorCommon::signalActiveProcess()
   return ret;
 }   
 
+bool SignalGeneratorCommon::belayActiveProcess()  {
+    activationLock->_Lock(FILE__, __LINE__);
+    activeProcessSignalled_ = false;
+    activationLock->_Unlock(FILE__, __LINE__);
+    return true;
+}
+
 SignalHandler *SignalGenerator::newSignalHandler(char *name, int id)
 {
   SignalHandler *sh;
@@ -680,10 +700,11 @@ SignalHandler *SignalGenerator::newSignalHandler(char *name, int id)
 
 bool SignalGeneratorCommon::signalEvent(EventRecord &ev)
 {
+
   if (ev.type != evtError) {
     char buf[128];
-    signal_printf("%s[%d][%s]:  signalEvent(%s)\n", FILE__, __LINE__, 
-                  getThreadStr(getExecThreadID()), ev.sprint_event(buf));
+    signal_printf("%s[%d]:  signalEvent(%s)\n", FILE__, __LINE__, 
+                  ev.sprint_event(buf));
   }
   assert(global_mutex->depth());
 
@@ -699,6 +720,7 @@ bool SignalGeneratorCommon::signalEvent(EventRecord &ev)
   bool ret = false;
   for (unsigned int i = 0; i <wait_list.size(); ++i) {
       if (wait_list[i]->signalIfMatch(ev)) {
+          signal_printf("%s[%d]: signalled the guy at position %d\n", FILE__, __LINE__, i);
           ret = true;
       }
   }
@@ -716,8 +738,8 @@ bool SignalGeneratorCommon::signalEvent(EventRecord &ev)
   signal_printf("%s[%d]: acquiring activation lock in signalEvent...\n", FILE__, __LINE__);
   activationLock->_Lock(FILE__, __LINE__);
   if (waitingForActivation_) {
-  signal_printf("%s[%d]: generator sleeping, waking up...\n", FILE__, __LINE__);
-    activationLock->_Broadcast(FILE__, __LINE__);
+      signal_printf("%s[%d]: generator sleeping, waking up...\n", FILE__, __LINE__);
+      activationLock->_Broadcast(FILE__, __LINE__);
   }
   signal_printf("%s[%d]: releasing activation lock in signalEvent...\n", FILE__, __LINE__);
   activationLock->_Unlock(FILE__, __LINE__);
@@ -735,6 +757,7 @@ bool SignalGeneratorCommon::signalEvent(eventType t)
 {
   EventRecord ev;
   ev.type = t;
+  ev.proc = proc;
   return signalEvent(ev);
 }
 
@@ -832,6 +855,9 @@ eventType SignalGeneratorCommon::waitForOneOf(pdvector<eventType> &evts, dyn_lwp
 
   if (sh)
     sh->wait_flag = false;
+
+  // Poink the signal generator?
+
   return result.type;
 }
 
@@ -1477,11 +1503,13 @@ SignalGeneratorCommon::SignalGeneratorCommon(char *idstr) :
     dispatchingEvent_(false),
     waitingForOS_(false),
     continueDesired_(false),
+    shuttingDown_(false),
     continueSig_(-1),
+    continueWholeProcess_(false),
     syncRunWhenFinished_(unsetRequest),
     asyncRunWhenFinished_(unsetRequest),
     activeProcessSignalled_(false),
-    independentLwpStop_(false),
+    independentLwpStop_(0),
     childForkStopAlreadyReceived_(false)
 {
     signal_printf("%s[%d]:  new SignalGenerator\n", FILE__, __LINE__);
@@ -1522,6 +1550,7 @@ bool SignalGeneratorCommon::setupAttached(pdstring file,
 
 bool SignalGeneratorCommon::wakeUpThreadForShutDown()
 {
+    shuttingDown_ = true;
 #if defined (os_windows)
 //  DebugBreakProcess(this->proc->processHandle_);
   if (waiting_for_active_process) {
@@ -1952,6 +1981,15 @@ bool SignalGeneratorCommon::continueRequired()
     return false;
   }
 
+  for (unsigned i = 0; i < handlers.size(); i++) {
+      if (handlers[i]->processing()) {
+          signal_printf("%s[%d]: continueRequired: handler %s active, returning true\n",
+                        FILE__, __LINE__, getThreadStr(handlers[i]->getThreadID()));
+          // Active handler == no run-y.
+          return false;
+      }
+  }
+
     // sync run gets priority...
   if (syncRunWhenFinished_ == stopRequest) {
       signal_printf("%s[%d]: syncRunWhenFinished = stop, not continuing...\n",
@@ -1987,7 +2025,7 @@ bool SignalGeneratorCommon::continueRequired()
 
 
 bool SignalGeneratorCommon::continueProcessInternal() {
-    signal_printf("%s[%d]: continuing process, lwp pointer\n", FILE__, __LINE__);
+    signal_printf("%s[%d]: continuing process...\n", FILE__, __LINE__);
 
     bool res = true;
 
@@ -2005,27 +2043,28 @@ bool SignalGeneratorCommon::continueProcessInternal() {
     activationLock->_Lock(FILE__, __LINE__);
 
     if ((lwpsToContinue_.size() != 0) &&
-        process::IndependentLwpControl()) {
+        process::IndependentLwpControl() &&
+        !continueWholeProcess_) {
         for (unsigned i = 0; i < lwpsToContinue_.size(); i++) {
+            signal_printf("%s[%d]: Continuing lwp %d\n", FILE__, __LINE__, lwpsToContinue_[i]->get_lwp_id());
             if (!lwpsToContinue_[i]->continueLWP(continueSig_))
                 res = false;
         }
-        lwpsToContinue_.clear();
     }
     else  {
+        signal_printf("%s[%d]: Process continue: %d lwps, %d independent, %d continueWholeProcess\n", FILE__, __LINE__,
+                      lwpsToContinue_.size(), process::IndependentLwpControl(), continueWholeProcess_);
         res = proc->continueProc_(continueSig_);
-        if (proc->status() != exited)
+        if (res && proc->status() != exited) {
             proc->set_status(running);
+        }
     }
+
+    lwpsToContinue_.clear();
+    continueWholeProcess_ = false;
     
     continueSig_ = -1;
 
-    if (!res)  {
-        fprintf(stderr, "%s[%d]:  continueProc_ failed\n", FILE__, __LINE__);
-        showErrorCallback(38, "System error: can't continue process");
-        activationLock->_Unlock(FILE__, __LINE__);
-        return false;
-    }
     signal_printf("%s[%d]: setting global process state to running\n", FILE__, __LINE__);
         
     // Now wake up everyone who was waiting for me...
@@ -2039,6 +2078,12 @@ bool SignalGeneratorCommon::continueProcessInternal() {
     signal_printf("%s[%d]: waking up everyone who was waiting for continue, unlocking\n",
                   FILE__, __LINE__);
     waitForContinueLock->_Unlock(FILE__, __LINE__);
+
+    if (!res)  {
+        fprintf(stderr, "%s[%d]:  continueProc_ failed\n", FILE__, __LINE__);
+        showErrorCallback(38, "System error: can't continue process");
+        return false;
+    }
 
 
     return true;
@@ -2087,4 +2132,15 @@ processRunState_t SignalGeneratorCommon::overrideAsyncContinueState(processRunSt
     processRunState_t current = asyncRunWhenFinished_;
     asyncRunWhenFinished_ = newState;
     return current;
+}
+
+void SignalGeneratorCommon::markProcessStop() { 
+    independentLwpStop_++; 
+    signal_printf("%s[%d]: markProcessStop => %d\n", FILE__, __LINE__, independentLwpStop_);
+}
+
+void SignalGeneratorCommon::unmarkProcessStop() { 
+    independentLwpStop_--; 
+    assert(independentLwpStop_ >= 0); 
+    signal_printf("%s[%d]: unmarkProcessStop => %d\n", FILE__, __LINE__, independentLwpStop_);
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator.h,v 1.9 2006/04/27 02:09:57 bernat Exp $
+/* $Id: signalgenerator.h,v 1.10 2006/05/02 19:17:29 bernat Exp $
  */
 
 #ifndef _SIGNAL_GENERATOR_H_
@@ -110,6 +110,8 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
 
    // And the "just wake up and see what's going on" version
    bool signalActiveProcess();
+   // and the go to sleep...
+   bool belayActiveProcess();
 
    // Continue methods; we need to have agreement between the signalHandler
    // threads and the BPatch layer. The SH's use the async call, which basically says
@@ -125,9 +127,11 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    processRunState_t overrideSyncContinueState(processRunState_t state); 
    processRunState_t overrideAsyncContinueState(processRunState_t state); 
 
-   void markProcessStop() { independentLwpStop_ = true; }
-   void unmarkProcessStop() { independentLwpStop_ = false; }
+   void markProcessStop();
+   void unmarkProcessStop();
  
+   void markProcessContinue() { childForkStopAlreadyReceived_ = true;};
+
    SignalHandler *findSHWithThreadID(unsigned long tid);
    SignalHandler *findSHWaitingForCallback(CallbackBase *cb);
 
@@ -227,11 +231,14 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    bool waitingForOS_;
    bool continueDesired_;
 
+   bool shuttingDown_;
+
    // We barrier-continue; if there is a signal to use, it's stored in 
    // here until the actual continue is executed.
    int continueSig_;
    // ... and often want to continue a single LWP
    pdvector<dyn_lwp *> lwpsToContinue_;
+   bool continueWholeProcess_;
    
    // The BPatch layer can (basically) asynchronously stop the process
    // without knowledge of the current signal handling state. We mark that
@@ -251,7 +258,8 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    // Whee... we generally don't go into waitpid unless all of our lwps (independent
    // case) are running. However, if we're trying to stop the process, we need to call
    // waitpid until _none_ are running. 
-   bool independentLwpStop_;
+   // Also, delay continues if this is non-zero
+   int independentLwpStop_;
 
   // On platforms that depend on instrumentation to catch system call exits,
   // we may accidentally receive multiple "syscall exit" signals. In particular,
