@@ -61,7 +61,7 @@
  *
  * terrain.c - main entry point and x driver.
  *
- * $Id: terrain.c,v 1.23 2004/03/23 19:13:59 eli Exp $
+ * $Id: terrain.c,v 1.24 2006/05/02 14:49:31 darnold Exp $
  */
 
 #ifdef i386_unknown_linux2_0 || defined(ia64_unknown_linux2_4)
@@ -91,6 +91,14 @@ extern /*"C"*/ const char V_libvisi[];
 #include "pdutil/h/pdsocket.h"
 #include "visi/h/visualization.h" 
 #include "visiClients/auxiliary/h/NoSoloVisiMsg.h" 
+
+static int get_groupId(const char *axis_label);
+static int add_new_curve(unsigned m, unsigned r);
+static void drawData(int is_fold);
+static int process_datavalues(int parameter);
+static int process_fold(int parameter);
+static void resize(Widget w, char *cd, XConfigureEvent *e);
+
 
 unsigned long colors[Ncolors];	/* Colors for GNUPlot part */
 char color_keys[Ncolors][30] =   { "text", "border", "axis", 

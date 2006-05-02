@@ -15,7 +15,7 @@
 /* 
  * FormatBox.c - Formated box widget
  * 
- * $Id: FormatBox.c,v 1.7 2002/02/12 16:41:04 tlmiller Exp $
+ * $Id: FormatBox.c,v 1.8 2006/05/02 14:49:25 darnold Exp $
  */
 
 #ifdef i386_unknown_linux2_0 || defined(ia64_unknown_linux2_4)
@@ -31,6 +31,9 @@
 
 #include "FormatBoxP.h"
 
+static void InitStuff(void);
+static void ChangedManaged(FormatBoxWidget w);
+static void Resize(FormatBoxWidget w);
 /* Resources */
 static XtResource resources[] = {
     { XtNformat, XtCFormat, XtRFormatOption, sizeof(int),

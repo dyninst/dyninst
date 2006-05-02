@@ -15,7 +15,7 @@
 /*
  * graph3d.h - header file for graph3d.c
  *
- * $Id: graph3d.h,v 1.8 2001/06/12 19:56:12 schendel Exp $
+ * $Id: graph3d.h,v 1.9 2006/05/02 14:49:28 darnold Exp $
  */
 
 
@@ -27,22 +27,16 @@
 #include "plot.h"
 
 extern void changeXFormat(int);
-extern int do_3dplot(struct surface_points *plots, int pcount, double min_x, 
-		     double max_x, double min_y, double max_y, double min_z, 
-		     double max_z);
-extern int plot3d_lines(struct surface_points *plot, int printIndex);
 extern int map3d_xy(double x, double y, double z, int *xt, int *yt);
 
-
-
-
+int do_3dplot(struct surface_points *plots, int pcount, double min_x, 
+              double max_x, double min_y, double max_y, double min_z, 
+              double max_z);
+int plot3d_lines(struct surface_points *plot, int printIndex);
 
 int update_extrema_pts(int ix, int iy, int *min_sx_x, int *min_sx_y, 
 			      int *min_sy_x, int *min_sy_y,
 			      double x, double y);
-int draw_parametric_grid(double z_min);
-int draw_bottom_grid(struct surface_points *plot, double min_z, 
-			    double max_z);
 int draw_3dxtics(double start, double incr, double end, double ypos, 
 		 double z_min);
 int draw_3dytics(double start, double incr, double end, double xpos, 

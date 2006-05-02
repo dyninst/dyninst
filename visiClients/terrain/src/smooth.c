@@ -16,7 +16,7 @@
  * Adapted by Chi-Ting Lam for Terrain Plot. (5/10/1992)
  * Modified to handle multiple curves.
  *
- * $Id: smooth.c,v 1.3 1998/03/30 01:22:35 wylie Exp $
+ * $Id: smooth.c,v 1.4 2006/05/02 14:49:29 darnold Exp $
  */
 
 #include <stdlib.h>
@@ -26,6 +26,10 @@
 #include "setshow.h"
 #include "misc.h"
 
+
+static float avg_elem (float window[]);
+static float med_elem (float window[]);
+static void shift_win (float window[], float );
 
 #define		MAX_WIN_SIZE  	32 	/* max number of elements in window */
 static int win_coeffs[MAX_WIN_SIZE];	/* indicate weighting for each slot */

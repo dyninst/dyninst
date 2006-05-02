@@ -34,7 +34,7 @@
  * Adapted for terrain.c:
  *      Chi-Ting Lam.
  *
- * $Id: graph3d.c,v 1.11 2002/02/11 22:08:05 tlmiller Exp $
+ * $Id: graph3d.c,v 1.12 2006/05/02 14:49:27 darnold Exp $
  */
 
 #ifdef i386_unknown_linux2_0 || defined(ia64_unknown_linux2_4)
@@ -105,6 +105,10 @@ typedef float transform_matrix[16];
 #define map_x3d(x) ((x-x_min3d)*xscale3d-1.0)
 #define map_y3d(y) ((y-y_min3d)*yscale3d-1.0)
 #define map_z3d(z) ((z-z_min3d)*zscale3d-1.0)
+
+static int draw_parametric_grid(double z_min);
+static int draw_bottom_grid(struct surface_points *plot, double min_z, 
+                            double max_z);
 
 void changeXFormat(format)
 int format;

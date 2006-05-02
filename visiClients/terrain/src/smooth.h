@@ -15,7 +15,7 @@
 /*
  * smooth.h - header file of smooth.c
  *
- * $Id: smooth.h,v 1.5 1998/03/30 01:22:35 wylie Exp $
+ * $Id: smooth.h,v 1.6 2006/05/02 14:49:30 darnold Exp $
  */
 
 #ifndef SMOOTH_H
@@ -23,12 +23,8 @@
 
 void smooth (struct surface_points *new_surface, struct surface_points *surface,
              int wsize);
-float avg_elem (float window[]);
 void smooth_med (struct surface_points *new_surface, struct surface_points *surface,
                  int wsize);
-float med_elem (float window[]);
-void shift_win (float window[], float );
-
 
 
 #endif

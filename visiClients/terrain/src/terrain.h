@@ -61,7 +61,7 @@
  *
  * terrain.h - header file of terrain.c.
  *
- * $Id: terrain.h,v 1.8 2004/03/23 19:14:00 eli Exp $
+ * $Id: terrain.h,v 1.9 2006/05/02 14:49:32 darnold Exp $
  */
 
 #ifndef TERRAIN_H
@@ -127,14 +127,6 @@ extern Window win;
 extern int vchar;			/* Height of the default font */
 
 
-
-int get_groupId(const char *axis_label);
-int add_new_curve(unsigned m, unsigned r);
-void drawData(int is_fold);
-int process_datavalues(int parameter);
-int process_fold(int parameter);
-
-void resize(Widget w, char *cd, XConfigureEvent *e);
 
 /* New action to tell terrain to draw shadow plot when rotating */
 XtActionProc NotifyEndThumb();
