@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.97 2006/04/27 02:09:59 bernat Exp $
+// $Id: sol_proc.C,v 1.98 2006/05/02 19:17:32 bernat Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -493,17 +493,25 @@ Frame dyn_lwp::getActiveFrame()
 // Get the registers of the stopped thread and return them.
 bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs)
 {
-    lwpstatus_t status;
-    if (!get_status(&status)) return false;
+    lwpstatus_t stat;
+
+    if (status() == running) {
+        fprintf(stderr, "ERROR: status %s (proc state %s)\n",
+                processStateAsString(status()), processStateAsString(proc()->status()));
+    }
+   
+    assert(status() != running);
+
+    if (!get_status(&stat)) return false;
 
     // Process must be stopped for register data to be correct.
 
-    assert((status.pr_flags & PR_STOPPED) || (status.pr_flags & PR_ISTOP)
-           || (status.pr_flags & PR_PCINVAL)  // eg. a trap at syscall exit
+    assert((stat.pr_flags & PR_STOPPED) || (stat.pr_flags & PR_ISTOP)
+           || (stat.pr_flags & PR_PCINVAL)  // eg. a trap at syscall exit
            );
 
-    memcpy(&(regs->theIntRegs), &(status.pr_reg), sizeof(prgregset_t));
-    memcpy(&(regs->theFpRegs), &(status.pr_fpreg), sizeof(prfpregset_t));
+    memcpy(&(regs->theIntRegs), &(stat.pr_reg), sizeof(prgregset_t));
+    memcpy(&(regs->theFpRegs), &(stat.pr_fpreg), sizeof(prfpregset_t));
 
     return true;
 }
@@ -585,7 +593,10 @@ try_again:
 bool dyn_lwp::executingSystemCall()
 {
   lwpstatus_t status;
-  if (!get_status(&status)) return false;
+  if (!get_status(&status)) {
+      return false;
+  }
+
   // Old-style
 
   if (status.pr_syscall > 0 && // If we're in a system call
@@ -625,6 +636,7 @@ bool dyn_lwp::executingSystemCall()
 
 bool dyn_lwp::changePC(Address addr, struct dyn_saved_regs *regs)
 {
+
     // Don't change the contents of regs if given
     dyn_saved_regs local;
     if (!regs) {
@@ -682,16 +694,16 @@ bool process::changeIntReg(int reg, Address val)
 #endif
 
 // Utility function: get the appropriate lwpstatus_t struct
-bool dyn_lwp::get_status(lwpstatus_t *status) const
+bool dyn_lwp::get_status(lwpstatus_t *stat) const
 {
     if(!is_attached()) {
         return false;
     }
-    
+ 
    if (lwp_id_) {
       // We're using an lwp file descriptor, so get directly
       if (pread(status_fd_, 
-                (void *)status, 
+                (void *)stat, 
                 sizeof(lwpstatus_t), 0) != sizeof(lwpstatus_t)) {
           // When we fork a LWP file might disappear.
           if ((errno != ENOENT) && (errno != EBADF)) {
@@ -706,7 +718,7 @@ bool dyn_lwp::get_status(lwpstatus_t *status) const
       if (!proc_->get_status(&procstatus)) {
          return false;
       }
-      memcpy(status, &(procstatus.pr_lwp), sizeof(lwpstatus_t));
+      memcpy(stat, &(procstatus.pr_lwp), sizeof(lwpstatus_t));
    }
    return true;
 }
