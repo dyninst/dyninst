@@ -120,8 +120,16 @@ unsigned DYNINSTthreadIndexSLOW(dyntid_t tid)
    {
       index = DYNINST_thread_hash[hash_id];
       if (index != NONE && DYNINST_thread_structs[index].tid == tid) {
-          retval = index;
-          break;
+
+          if (DYNINST_thread_structs[index].thread_state == LWP_EXITED) {
+              /* "Hey, this guy got cleaned up!" */
+              DYNINST_thread_hash[hash_id] = NONE;
+              break;
+          }
+          else {
+              retval = index;
+              break;
+          }
       }
       hash_id++;
       if (hash_id == DYNINST_thread_hash_size)
@@ -188,7 +196,7 @@ unsigned DYNINST_alloc_index(dyntid_t tid)
    //Return an error if this tid already exists.
    if (DYNINSTthreadIndexSLOW(tid) != DYNINST_max_num_threads)
       return DYNINST_max_num_threads;
-   
+
    result = tc_lock_lock(&DYNINST_index_lock);
    if (result == DYNINST_DEAD_LOCK)
       return DYNINST_max_num_threads;
@@ -239,6 +247,7 @@ unsigned DYNINST_alloc_index(dyntid_t tid)
  done:
    tc_lock_unlock(&DYNINST_index_lock);
    return retval;
+
 }
 
 int DYNINST_free_index(dyntid_t tid)
@@ -253,7 +262,7 @@ int DYNINST_free_index(dyntid_t tid)
       rtdebug_printf("%s[%d]:  DEADLOCK HERE\n", __FILE__, __LINE__);
       return -1;
    }
-   
+
    /**
     * Find this thread in the hash table
     **/

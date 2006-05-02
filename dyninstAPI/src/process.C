@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.624 2006/04/27 02:09:51 bernat Exp $
+// $Id: process.C,v 1.625 2006/05/02 19:17:20 bernat Exp $
 
 #include <ctype.h>
 
@@ -365,7 +365,7 @@ void process::inferiorFreeCompact(inferiorHeap *hp)
       heapItem *h2 = freeList[i];
       assert(h1->length != 0);
       if (h1->addr + h1->length > h2->addr) {
-          fprintf(stderr, "Error: heap 1 (0x%x to 0x%x) overlaps heap 2 (0x%x to 0x%x)\n",
+          fprintf(stderr, "Error: heap 1 (0x%lx to 0x%lx) overlaps heap 2 (0x%lx to 0x%lx)\n",
                   h1->addr, h1->addr + h1->length,
                   h2->addr, h2->addr + h2->length);
       }
@@ -1729,7 +1729,11 @@ void process::deleteProcess()
   assert(!isAttached() || !reachedBootstrapState(bootstrapped_bs) || execing());
 
   // Cancel the BPatch layer's control of anything below this point
-  if (sh) sh->overrideSyncContinueState(ignoreRequest);
+  if (sh) {
+      sh->overrideSyncContinueState(ignoreRequest);
+      sh->clearCachedLocations();
+  }
+
 
   // pid remains untouched
   // parent remains untouched
@@ -1963,6 +1967,7 @@ process::process(SignalGenerator *sh_) :
     real_lwps(CThash),
     max_number_of_threads(MAX_THREADS),
     thread_structs_base(0),
+    active_thread_removal_(false),
     deferredContinueProc(false),
     previousSignalAddr_(0),
     continueAfterNextStop_(false),
@@ -2226,6 +2231,9 @@ bool process::finishExec() {
     
     inExec_ = false;
     BPatch::bpatch->registerExecExit(this);
+
+    sh->continueProcessAsync();
+
     return true;
 }
 
@@ -2524,6 +2532,7 @@ process::process(const process *parentProc, SignalGenerator *sg_, int childTrace
     real_lwps(CThash),
     max_number_of_threads(parentProc->max_number_of_threads),
     thread_structs_base(parentProc->thread_structs_base),
+    active_thread_removal_(parentProc->active_thread_removal_),
     deferredContinueProc(parentProc->deferredContinueProc),
     previousSignalAddr_(parentProc->previousSignalAddr_),
     continueAfterNextStop_(parentProc->continueAfterNextStop_),
@@ -3086,7 +3095,7 @@ bool process::attach()
        setBootstrapState(attached_bs);
    signal_printf("%s[%d]: calling signalActiveProcess from attach\n",
                  FILE__, __LINE__);
-   sh->signalActiveProcess();
+   //sh->signalActiveProcess();
    startup_printf("[%d]: setting process flags\n", getPid());
    return setProcessFlags();
 }
@@ -3384,7 +3393,7 @@ bool process::isValidAddress(Address addr) {
         return true;
     if (dataSections_.find(addr, dontcare))
         return true;
-    fprintf(stderr, "Warning: address 0x%x not valid!\n",
+    fprintf(stderr, "Warning: address 0x%lx not valid!\n",
             addr);
     return false;
 }        
@@ -3598,14 +3607,13 @@ dyn_lwp *process::stop_an_lwp(bool *wasRunning)
          if (lwp->status() == exited) 
             continue;
          if (lwp->status() == stopped) {
-            stopped_lwp = lwp;
-            if (wasRunning)
-                *wasRunning = false;
-            break;
+             fprintf(stderr, "lwp %d was already stopped...\n", lwp->get_lwp_id());
+             stopped_lwp = lwp;
+             if (wasRunning)
+                 *wasRunning = false;
+             break;
          }
          if (lwp->pauseLWP()) {
-             fprintf(stderr, "lwp->pauseLWP, status afterwards %s\n",
-                     processStateAsString(lwp->status()));
              if (lwp->status() != stopped) 
                  continue;
             stopped_lwp = lwp;
@@ -3636,7 +3644,9 @@ dyn_lwp *process::stop_an_lwp(bool *wasRunning)
               *wasRunning = true;
       }
 
+      processRunState_t oldState = sh->overrideSyncContinueState(stopRequest);
       sh->pauseProcessBlocking();
+      sh->overrideSyncContinueState(oldState);
       stopped_lwp = getRepresentativeLWP();
    }
 
@@ -4011,7 +4021,7 @@ void process::set_lwp_status(dyn_lwp *whichLWP, processState lwp_st)
          }
       }
       if(!stopped_lwp_exists && lwp_st==running) {
-         status_ = running;
+          status_ = running;
       }
    } else {
       // if can't do independent lwp control, should only be able to set
@@ -4694,7 +4704,7 @@ bool process::dumpMemory(void * addr, unsigned nbytes)
        return false;
     }
 
-    fprintf(stderr, "## 0x%lx:\n", addr);
+    fprintf(stderr, "## %p:\n", addr);
     for (unsigned u1 = 0; u1 < nbytes; u1++)
     {
             fprintf(stderr, " %x", buf[u1]);
@@ -5834,19 +5844,19 @@ dyn_thread *process::getThread(dynthread_t tid) {
 
 dyn_lwp *process::getLWP(unsigned lwp_id)
 {
-  dyn_lwp *foundLWP;
-  if(real_lwps.find(lwp_id, foundLWP)) {
-    return foundLWP;
-  }
-  if (representativeLWP && representativeLWP->get_lwp_id() == lwp_id)
-    return representativeLWP;
+    dyn_lwp *foundLWP;
+    if(real_lwps.find(lwp_id, foundLWP)) {
+        return foundLWP;
+    }
+    if (representativeLWP && representativeLWP->get_lwp_id() == lwp_id)
+        return representativeLWP;
 
-  foundLWP = createRealLWP(lwp_id, lwp_id);
-
-  if (!foundLWP->attach()) {
-     deleteLWP(foundLWP);
-     return NULL;
-  }
+    foundLWP = createRealLWP(lwp_id, lwp_id);
+    
+    if (!foundLWP->attach()) {
+        deleteLWP(foundLWP);
+        return NULL;
+    }
 
   if (IndependentLwpControl())
   {
@@ -5860,7 +5870,10 @@ dyn_lwp *process::getLWP(unsigned lwp_id)
 
 dyn_lwp *process::lookupLWP(unsigned lwp_id) 
 {
-   if (status_ == deleted) return NULL;
+    if (status_ == deleted) {
+        return NULL;
+    }
+
    dyn_lwp *foundLWP = NULL;
    bool found = real_lwps.find(lwp_id, foundLWP);
    if(! found) {
@@ -5910,32 +5923,39 @@ void process::deleteThread_(dyn_thread * /*thr*/) {
 
 void process::deleteThread(dynthread_t tid)
 {
-  processState newst = running;
-  pdvector<dyn_thread *>::iterator iter = threads.end();
-  while(iter != threads.begin()) {
-    dyn_thread *thr = *(--iter);
-    dyn_lwp *lwp = thr->get_lwp();
-    //Find the deleted thread
-    if(thr->get_tid() != tid) 
-    {
-      //Update the process state, since deleting a thread may change it.
-      if (lwp->status() == stopped)
-         newst = stopped;
-      continue;
-    } 
-    deleteThread_(thr);
-    //Delete the thread
-    getRpcMgr()->deleteThread(thr);
-    delete thr;
+    processState newst = running;
+    pdvector<dyn_thread *>::iterator iter = threads.end();
+    while(iter != threads.begin()) {
+        dyn_thread *thr = *(--iter);
+        dyn_lwp *lwp = thr->get_lwp();
 
-    //Delete the lwp below the thread
-    deleteLWP(lwp);
+        //Find the deleted thread
+        if(thr->get_tid() != tid) 
+            {
+                //Update the process state, since deleting a thread may change it.
+                if (lwp->status() == stopped)
+                    newst = stopped;
+                continue;
+            } 
+        threads.erase(iter);  
 
-    threads.erase(iter);  
-  }
-  
-  if (threads.size() && (status_ == running || status_ == stopped))
-    status_ = newst;
+        removeThreadIndexMapping(thr);
+
+        deleteThread_(thr);
+        //Delete the thread
+        getRpcMgr()->deleteThread(thr);
+        delete thr;
+        
+        //Delete the lwp below the thread
+        deleteLWP(lwp);
+        
+        break;
+    }
+    
+    /*
+      if (threads.size() && (status_ == running || status_ == stopped))
+        status_ = newst;
+    */
 }
 
 bool process::removeThreadIndexMapping(dyn_thread *thr)
@@ -5946,20 +5966,64 @@ bool process::removeThreadIndexMapping(dyn_thread *thr)
     // Don't worry 'bout it if we're cleaning up and exiting anyway.
     if (exiting_) return true;
 
+#if 0
+    while (active_thread_removal_) {
+        signal_printf("%s[%d]: active_thread_removal set, sleeping...\n", FILE__, __LINE__);
+        sh->waitForEvent(evtAnyEvent);
+#if 0
+        int lock_depth = global_mutex->depth();
+        for (unsigned foo = 0; foo < lock_depth; foo++) {
+            global_mutex->_Unlock(FILE__, __LINE__);
+        }
+
+        // Set wait_flag if we're a signal handler...
+        SignalHandler *shandler = sh->findSHWithThreadID(getExecThreadID());
+        if (shandler) {
+            signal_printf("%s[%d]: signal handler waiting, setting wait_flag\n", FILE__, __LINE__);
+            shandler->wait_flag = true;
+        }
+
+        active_thread_removal_lock_._WaitForSignal(FILE__, __LINE__);
+
+        signal_printf("%s[%d]: attempting to reacquire global lock\n", FILE__, __LINE__);
+        
+        // wait....
+        for (unsigned bar = 0; bar < lock_depth; bar++) {
+            global_mutex->_Lock(FILE__, __LINE__);
+        }
+#endif
+    }
+#endif
+
+    active_thread_removal_ = true;
+
+//active_thread_removal_lock_._Unlock(FILE__, __LINE__);
+
+    signal_printf("%s[%d]: past wait loop, deleting thread....\n", FILE__, __LINE__);
+
+    bool res = false;
+    dyn_lwp *lwpToUse=NULL;
+    bool continueLWP = false;
+    Address thread_struct_addr = 0;
+    Address addrToWrite = 0;
+
+
     signal_printf("%s[%d]:  removing thread index %d for tid %lu: status is %s\n", 
                   FILE__, __LINE__, 
                   thr->get_index(), thr->get_tid(), 
                   getStatusAsString().c_str());
 
     if (-1 == thr->get_index()) {
-        fprintf(stderr, "%s[%d]:  FIXME: thread %lu has invalid index\n", 
-                FILE__, __LINE__, thr->get_tid());
-        return false;
+        goto done;
     }
 
-    bool continueLWP;
-    dyn_lwp *lwpToUse = stop_an_lwp(&continueLWP);
-    if (!lwpToUse) return false;
+    lwpToUse = stop_an_lwp(&continueLWP);
+    if (!lwpToUse) {
+        goto done;
+    }
+
+    signal_printf("%s[%d]: got lwp %d for removeThread write\n",
+                  FILE__, __LINE__, lwpToUse->get_lwp_id());
     
     //  Find variable "DYNINST_thread_structs" in the runtime library
     //  this is the array that holds all thread structures
@@ -5967,7 +6031,7 @@ bool process::removeThreadIndexMapping(dyn_thread *thr)
     if (thread_structs_base == 0) {
         const int_variable *thread_structs_var = runtime_lib->getVariable(DYNINST_thread_structs_name);
         if (!thread_structs_var) {
-            if (continueLWP) lwpToUse->continueLWP(); return false;
+            goto done;
         }
 
         // Now get the address that pointer points to....
@@ -5976,13 +6040,13 @@ bool process::removeThreadIndexMapping(dyn_thread *thr)
                            getAddressWidth(),
                            (void *)&thread_structs_base,
                            false)) {
-            if (continueLWP) lwpToUse->continueLWP(); return false;
+            goto done;
         }
     }
 
 
     if (thread_structs_base == 0) {
-        return false;
+        goto done;
     }    
 
     // DO NOT stop the entire process. Our process stop/continue handling
@@ -5990,7 +6054,7 @@ bool process::removeThreadIndexMapping(dyn_thread *thr)
     // were stopped. 
 
     // Okay, we have the base addr. Now get the addr of the "real" structure
-    Address thread_struct_addr = thread_structs_base + (thr->get_index()*sizeof(dyninst_thread_t));
+    thread_struct_addr = thread_structs_base + (thr->get_index()*sizeof(dyninst_thread_t));
     // Mmm array math
 
     // Double-check: read it out of the process....
@@ -5999,33 +6063,40 @@ bool process::removeThreadIndexMapping(dyn_thread *thr)
                        sizeof(dyninst_thread_t),
                        (void *)&doublecheck,
                        false)) {
-        //if (continueLWP) lwpToUse->continueLWP();
-        return false;
+        fprintf(stderr, "Warning: failed to read data space\n");
+        goto done;
     }
 
-    if (doublecheck.tid != (dyntid_t) thr->get_tid()) {
-        if (continueLWP) lwpToUse->continueLWP(); return false;
-    }
+    assert(doublecheck.tid == (dyntid_t) thr->get_tid());
+
     if (doublecheck.thread_state != THREAD_COMPLETE) {
         // On platforms where we need to implement thread exit...
-        if (continueLWP) lwpToUse->continueLWP(); return false;
     }
+
     doublecheck.thread_state = LWP_EXITED;
 
     // We only want to write the thread state...
-    Address addrToWrite = thread_struct_addr + offsetof(dyninst_thread_t, thread_state);
+    addrToWrite = thread_struct_addr + offsetof(dyninst_thread_t, thread_state);
 
     if (!writeDataSpace((void *)addrToWrite,
                         sizeof(doublecheck.thread_state),
                         (void *)&(doublecheck.thread_state))) {
         fprintf(stderr, "ERROR: resetting thread state failed!\n");
-        //if (continueLWP) lwpToUse->continueLWP();
-        return false;
+        goto done;
     }
-    
-    if (continueLWP) lwpToUse->continueLWP();
-    return true;
+    res = true;
 
+ done:
+
+    active_thread_removal_ = false;
+
+    if (continueLWP && lwpToUse) {
+        sh->continueProcessAsync(-1, lwpToUse);
+    }
+
+    //active_thread_removal_lock_._Broadcast(FILE__, __LINE__);
+
+    return res;
 }
 
 #if 0
@@ -6068,11 +6139,11 @@ static void doneRegistering(process *, unsigned, void *data, void *result)
 {
    done_reg_bundle_t *pairs = (done_reg_bundle_t *) data;
    
-   int index = (int) result;
+   long int index = (long int) result;
    int lwp_id = pairs->this_lwp;
 
    pairs->lwps->push_back(lwp_id);
-   pairs->indexes->push_back(index);
+   pairs->indexes->push_back((int)index);
    (*pairs->num_completed)++;
    free(pairs);
 }
@@ -6141,6 +6212,14 @@ void process::recognize_threads(const process *parent)
 	  continue;
 #endif
 
+#if defined(os_solaris) && defined(NOTDEF)
+        // Apparently LWPs 2, 3, and 4 are system? Is there _ANY_ way to figure
+        // this out?
+        if ((lwp->get_lwp_id() == 2) ||
+            (lwp->get_lwp_id() == 3) ||
+            (lwp->get_lwp_id() == 4)) continue;
+#endif
+
         pdvector<AstNode *> ast_args;
         AstNode *ast = new AstNode("DYNINSTthreadIndex", ast_args);
 
@@ -6190,10 +6269,6 @@ void process::recognize_threads(const process *parent)
          sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone, 
 			  false); /* Do _not_ execute callbacks; we want to finish this
 	                             before we handle any thread stuff */
-
-	 // We don't continue threads, and so we think the process is stopped (silly people). 
-	 if (process::IndependentLwpControl())
-	     sh->signalActiveProcess();
 	 
 
          startup_printf("%s[%d]: got RPC event...\n",
