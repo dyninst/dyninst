@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalhandler.h,v 1.26 2006/04/26 03:43:03 jaw Exp $
+/* $Id: signalhandler.h,v 1.27 2006/05/02 19:17:31 bernat Exp $
  */
 
 #ifndef _SIGNAL_HANDLER_H
@@ -90,6 +90,7 @@ class SignalHandler : public EventHandler<EventRecord>
   friend class SignalGenerator;
   friend class SignalGeneratorCommon;
   friend class SyncCallback;
+  friend class process;
   int id;
 
   public:
@@ -117,10 +118,8 @@ class SignalHandler : public EventHandler<EventRecord>
       
   SignalGenerator *sg;
   
+  bool waitForEvent(pdvector<EventRecord> &events_to_handle);
   bool handleEvent(EventRecord &ev);
-  bool handleEventLocked(EventRecord &ev);
-
-  bool waitNextEvent(EventRecord &ev);
 
   //  SignalHandler::forwardSigToProcess()
   //  continue process with the (unhandled) signal
@@ -148,6 +147,7 @@ class SignalHandler : public EventHandler<EventRecord>
 
   bool idle_flag;
   bool wait_flag;
+
   CallbackBase *wait_cb;
   process *active_proc;
 
@@ -157,6 +157,10 @@ class SignalHandler : public EventHandler<EventRecord>
   // For us to block on
   eventLock *waitLock;
   bool waitingForWakeup_;
+
+  void main();
+  // Unused but must be defined
+  bool waitNextEvent(EventRecord &);
 };
 
 #if 0 // PDSEP

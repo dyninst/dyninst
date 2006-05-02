@@ -52,6 +52,81 @@
 #include "function.h" // instPointTrap debugging
 #include "rpcMgr.h"
 
+void SignalHandler::main() {
+    // As with the SignalGenerator, we use a custom main to avoid
+    // unlocking in the middle of things; this can screw up our synchronization.
+
+    addToThreadMap();
+    
+    startupLock->_Lock(FILE__, __LINE__);
+    signal_printf("%s[%d]:  about to do init for %s\n", FILE__, __LINE__, idstr);
+    if (!initialize_event_handler()) {
+        signal_printf("%s[%d]: initialize event handler failed, %s returning\n", FILE__, __LINE__, idstr);
+        _isRunning = false;
+        init_ok = false; 
+
+        removeFromThreadMap();
+
+        startupLock->_Broadcast(FILE__, __LINE__);
+        startupLock->_Unlock(FILE__, __LINE__);
+        return;
+    }
+    
+    init_ok = true;
+    signal_printf("%s[%d]:  init success for %s\n", FILE__, __LINE__, idstr);
+    
+    _isRunning = true;
+    startupLock->_Broadcast(FILE__, __LINE__);
+    startupLock->_Unlock(FILE__, __LINE__);
+    
+    signal_printf("%s[%d]:  before main loop for %s\n", __FILE__, __LINE__, idstr);
+
+    eventlock->_Lock(FILE__, __LINE__);
+    pdvector<EventRecord> events;
+    while (1) {
+        // TOP
+        signal_printf("%s[%d]: signal handler at top of loop\n", FILE__, __LINE__);
+        assert(eventlock->depth() == 1);
+        
+        if (stop_request) {
+            signal_printf("%s[%d]: exit request (loop top)\n", FILE__, __LINE__);
+            break;
+        }
+
+        while (!events_to_handle.size()) {
+            waitForEvent(events_to_handle);
+            if (stop_request) {
+                signal_printf("%s[%d]: exit request (post wait)\n", FILE__, __LINE__);
+                break;
+            }
+        }
+
+        while (events_to_handle.size()) {
+            handleEvent(events_to_handle[0]);
+            if (stop_request) {
+                signal_printf("%s[%d]: exit request (post handle)\n", FILE__, __LINE__);
+                break;
+            }
+            events_to_handle.erase(0,0);
+        }
+    }        
+
+    thread_printf("%s[%d]: removing from thread map\n", FILE__, __LINE__);
+    removeFromThreadMap();
+    
+    _isRunning = false;
+    if (eventlock->depth() != 1) {
+        fprintf(stderr, "%s[%d]:  WARNING:  eventlock->depth() is %d, leaving thread %s\n",
+                FILE__, __LINE__, eventlock->depth(),idstr);
+        eventlock->printLockStack();
+    }
+    eventlock->_Broadcast(FILE__, __LINE__);
+    eventlock->_Unlock(FILE__, __LINE__);
+    
+    thread_printf("%s[%d][%s]:  SignalHandler::main exiting\n", FILE__, __LINE__, idstr);
+}
+
+
 SignalHandler::~SignalHandler()
 {
     signal_printf("%s[%d]:  welcome to ~SignalHandler\n", FILE__, __LINE__);
@@ -194,9 +269,6 @@ bool SignalHandler::handleCritical(EventRecord &ev, bool &continueHint)
                    //fprintf( stderr, "%08x: %s\n", stackWalks[walk_iter][i].getPC(), szFuncName );
                    cerr << stackWalks[walk_iter][i] << endl;
                    int_function *f = stackWalks[walk_iter][i].getFunc();
-                   if (f) {
-                       fprintf(stderr, "... 0x%lx to 0x%lx\n", f->getAddress(), f->getAddress() + f->getSize_NP());
-                   }
                }
        }
        
@@ -211,31 +283,11 @@ bool SignalHandler::handleCritical(EventRecord &ev, bool &continueHint)
    return forwardSigToProcess(ev, continueHint);
 }
 
-bool SignalHandler::handleEvent(EventRecord &ev)
-{
-    char buf[128];
-    global_mutex->_Lock(FILE__, __LINE__);
-    signal_printf("%s[%d]: locked, and handling event %s\n", 
-                  FILE__, __LINE__,ev.sprint_event(buf));
-  bool ret = handleEventLocked(ev); 
-  signal_printf("%s[%d]: event handled, %d on the queue\n", 
-                FILE__, __LINE__, events_to_handle.size());
-  if (!events_to_handle.size()) {
-      signal_printf("%s[%d]: marking as idle...\n",
-                    FILE__, __LINE__);      
-      idle_flag = true;
-  }
-  active_proc = NULL;
-  global_mutex->_Unlock(FILE__, __LINE__);
-  
-  return ret;
-}
-
 bool SignalHandler::handleForkEntry(EventRecord &ev, bool &continueHint)
 {
      signal_printf("Welcome to FORK ENTRY for process %d\n",
                    ev.proc->getPid());
-     continueHint = false;
+     continueHint = true;
      return ev.proc->handleForkEntry();
 }
 
@@ -266,13 +318,6 @@ bool SignalHandler::handleLwpExit(EventRecord &ev, bool &continueHint)
       proc->set_lwp_status(ev.lwp, exited);
     }
 
-    if (!proc->removeThreadIndexMapping(thr)) {
-        // Oh, this happens... if all the LWPs are exiting, we can't
-        // stop one to write to it.
-        // However, in that case we don't need to update the thread structure
-        // in the RT lib either -- they're all gone :)
-    }
-
    BPatch::bpatch->registerThreadExit(proc, thr->get_tid());
 
    flagBPatchStatusChange();
@@ -285,6 +330,9 @@ bool SignalHandler::handleLwpExit(EventRecord &ev, bool &continueHint)
       sg->signalActiveProcess();
    }
 #endif
+
+   continueHint = true;
+
    return true;
 }
 
@@ -303,7 +351,7 @@ bool SignalHandler::handleSyscallEntry(EventRecord &ev, bool &continueHint)
       case procSysExit:
           signal_printf("%s[%d]:  handleSyscallEntry exit(%d)\n", FILE__, __LINE__, ev.what);
           proc->triggerNormalExitCallback(INFO_TO_EXIT_CODE(ev.info));
-          continueHint = false;
+          continueHint = true;
           ret = true;
           break;
       case procLwpExit:
@@ -371,6 +419,12 @@ bool SignalHandler::handleForkExit(EventRecord &ev, bool &continueHint)
                return false;
    
              proc->handleForkExit(theChild);
+
+             continueHint = true;
+             // Unlike normal, we want to start this guy up running (the user can pause if desired in
+             // the callback)
+             theChild->sh->overrideSyncContinueState(runRequest);
+             theChild->continueProc();
         }
      }
      else {
@@ -477,42 +531,47 @@ bool SignalHandler::handleSyscallExit(EventRecord &ev, bool &continueHint)
     return true;
 }
 
-bool SignalHandler::handleEventLocked(EventRecord &ev)
+bool SignalHandler::handleEvent(EventRecord &ev)
 {
-  signal_printf("%s[%d]:  got event: %s\n", FILE__, __LINE__, eventType2str(ev.type));
+    signal_printf("%s[%d]:  got event: %s\n", FILE__, __LINE__, eventType2str(ev.type));
+    
+    if (ev.type == evtShutDown) {
+        stop_request = true;
+        return true;
+    }
 
-  process *proc = ev.proc;
-  // Do we run the process or not? Well, that's a tricky question...
-  // user control can override anything we do here (frex, a "run when
-  // done" iRPC conflicting with a user "pause"). So we have the lowlevel
-  // code suggest whether to continue or not, and we have logic here
-  // to see if we do it or not.
-
-  bool continueHint = false;
-  bool ret = false;
-  Frame activeFrame;
-  assert(proc);
-  
-  // One big switch statement
-  switch(ev.type) {
-     // First the platform-independent stuff
-     // (/proc and waitpid)
-     case evtProcessExit:
-       ret = handleProcessExit(ev, continueHint);
+    process *proc = ev.proc;
+    // Do we run the process or not? Well, that's a tricky question...
+    // user control can override anything we do here (frex, a "run when
+    // done" iRPC conflicting with a user "pause"). So we have the lowlevel
+    // code suggest whether to continue or not, and we have logic here
+    // to see if we do it or not.
+    
+    bool continueHint = false;
+    bool ret = false;
+    Frame activeFrame;
+    assert(proc);
+    
+    // One big switch statement
+    switch(ev.type) {
+        // First the platform-independent stuff
+        // (/proc and waitpid)
+    case evtProcessExit:
+        ret = handleProcessExit(ev, continueHint);
         break;
-     case evtProcessCreate:
-       ret = handleProcessCreate(ev, continueHint);
+    case evtProcessCreate:
+        ret = handleProcessCreate(ev, continueHint);
         break;
-     case evtThreadCreate:
-       ret = handleThreadCreate(ev, continueHint);
-       break;
-     case evtThreadExit:
-       ret = handleLwpExit(ev, continueHint);
+    case evtThreadCreate:
+        ret = handleThreadCreate(ev, continueHint);
+        break;
+    case evtThreadExit:
+        ret = handleLwpExit(ev, continueHint);
 #if defined(os_windows)
-       continueHint = true;
+        continueHint = true;
 #endif
-       break;
-     case evtProcessAttach:
+        break;
+    case evtProcessAttach:
         proc->setBootstrapState(initialized_bs);
         continueHint = false;
         ret = true;
@@ -634,8 +693,6 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
     return true;
   }
 
-   sg->signalEvent(ev);
-
    if (ret == false) {
       //  if ret is false, complain, but return true anyways, since the handler threads
       //  should be shut down by the SignalGenerator.
@@ -655,11 +712,14 @@ bool SignalHandler::handleEventLocked(EventRecord &ev)
        wait_flag = false;
    }
 
+   // Should always be the last thing we do...
+   sg->signalEvent(ev);
+
    return ret;
 }
 
 bool SignalHandler::idle() {
-	return idle_flag;
+    return (events_to_handle.size() == 0);
 }
 
 bool SignalHandler::waitingForCallback() {
@@ -692,9 +752,9 @@ bool SignalHandler::waitingForCallback() {
 
 bool SignalHandler::processing() {
     signal_printf("%s[%d]: checking whether processing for SH %s: idle_flag %d, waiting for callback %d, wait_flag %d\n", 
-                  FILE__, __LINE__, getThreadStr(getThreadID()), idle_flag, waitingForCallback(), wait_flag);
+                  FILE__, __LINE__, getThreadStr(getThreadID()), idle(), waitingForCallback(), wait_flag);
 
-    if (idle_flag) return false;
+    if (idle()) return false;
     if (waitingForCallback()) return false;
     if (wait_flag) return false;
 
@@ -705,27 +765,20 @@ bool SignalHandler::assignEvent(EventRecord &ev)
 {
   char buf[128];
   bool ret = false;
-  assert(global_mutex->depth());
+  assert(eventlock->depth());
 
   bool can_assign = false;
 
   //  after we get the lock, the handler thread should be either idle, or waiting
   //  for some event.  
   
-  if (idle_flag) {
-      idle_flag = false;
+  if (idle()) {
       can_assign = true;
   }
-  else if (waitingForCallback()) {
-      signal_printf("%s[%d]: SH %s in callback, event type %s\n",
-                    FILE__, __LINE__, getName(), ev.sprint_event(buf));
-      if (ev.type != evtShutDown)
-          return false;
-      assert(ev.type == evtShutDown);
-      // We can send this to the SH even if it's in a callback.
+  else if (waitingForCallback() && ev.type == evtShutDown) {
       can_assign = true;
   }
-
+  
   if (can_assign) {
       signal_printf("%s[%d]: assigning event to handler %s\n",
                     FILE__, __LINE__, getThreadStr(getThreadID()));
@@ -743,68 +796,52 @@ bool SignalHandler::assignEvent(EventRecord &ev)
   return false;
 }
 
-bool SignalHandler::waitNextEvent(EventRecord &ev)
+bool SignalHandler::waitForEvent(pdvector<EventRecord> &events_to_handle)
 {
     assert(waitLock);
-  bool ret;
-  _Lock(FILE__, __LINE__);
-  while (idle_flag) {
-    // Our eventlocks are paired mutexes and condition variables; this
-    // is actually _not_ what we want because we want to be able to
-    // wait on different things but have the same global mutex. So we fake it
-    // by carefully unlocking and relocking things. 
+    bool ret;
 
-    // We now wait until _we_ are signalled by the generator; so we grab
-    // our signal lock, give up the global mutex lock, and then wait; after
-    // we're signalled we take the global mutex before giving up our own 
-    // waitLock.
-    
-      waitingForWakeup_ = true;
-      signal_printf("%s[%d]: acquiring waitLock lock...\n", FILE__, __LINE__);
-      waitLock->_Lock(FILE__, __LINE__);
-      signal_printf("%s[%d]: releasing global mutex...\n", FILE__, __LINE__);
-      _Unlock(FILE__, __LINE__);
+    signal_printf("%s[%d]: waitForEvent, events_to_handle(%d), idle_flag %d\n",
+                  FILE__, __LINE__, events_to_handle.size(), idle());
 
-      signal_printf("%s[%d]: sleeping for activation\n", FILE__, __LINE__);
-      waitLock->_WaitForSignal(FILE__, __LINE__);
+    while (idle()) {
+        // Our eventlocks are paired mutexes and condition variables; this
+        // is actually _not_ what we want because we want to be able to
+        // wait on different things but have the same global mutex. So we fake it
+        // by carefully unlocking and relocking things. 
+        
+        // We now wait until _we_ are signalled by the generator; so we grab
+        // our signal lock, give up the global mutex lock, and then wait; after
+        // we're signalled we take the global mutex before giving up our own 
+        // waitLock.
+        
+        waitingForWakeup_ = true;
+        signal_printf("%s[%d]: acquiring waitLock lock...\n", FILE__, __LINE__);
+        waitLock->_Lock(FILE__, __LINE__);
+        signal_printf("%s[%d]: releasing global mutex...\n", FILE__, __LINE__);
+        assert(eventlock->depth() == 1);
+        eventlock->_Unlock(FILE__, __LINE__);
+        
+        signal_printf("%s[%d]: sleeping for activation\n", FILE__, __LINE__);
+        waitLock->_WaitForSignal(FILE__, __LINE__);
+        
+        signal_printf("%s[%d]: woken, reacquiring global lock...\n", FILE__, __LINE__);
+        eventlock->_Lock(FILE__, __LINE__);
+        signal_printf("%s[%d]: woken, releasing waitLock...\n", FILE__, __LINE__);
+        waitLock->_Unlock(FILE__, __LINE__);
+        waitingForWakeup_ = false;
+        
+    }
 
-      signal_printf("%s[%d]: woken, reacquiring global lock...\n", FILE__, __LINE__);
-      _Lock(FILE__, __LINE__);
-      signal_printf("%s[%d]: woken, releasing waitLock...\n", FILE__, __LINE__);
-      waitLock->_Unlock(FILE__, __LINE__);
-      waitingForWakeup_ = false;
-      
-      // Someone wants us to go away....
-      if (stop_request) {
-          ev.type = evtShutDown;
-          
-          // And bounce it back to the signalGenerator
-          // Why....
-          //sg->signalEvent(ev);
-          _Unlock(FILE__, __LINE__);
-          return true;
-      }
-      signal_printf("%s[%d]:  handler %s has been signalled: got event = %s\n", 
-                    FILE__, __LINE__, getName(), idle_flag ? "false" : "true");
-  }
-  
-  // Take the top thing off our queue and handle it. 
-  ret = true;
-  ev = events_to_handle[0];
-  events_to_handle.erase(0,0);
-  active_proc = ev.proc;
-  
-  if (ev.type == evtUndefined) {
-      fprintf(stderr, "%s[%d]:  got evtUndefined for next event!\n", FILE__, __LINE__);
-      ret = false;
-  }
-  
-  _Unlock(FILE__, __LINE__);
-  if (!ret) abort();
-  return ret;
+    return true;
 }
 
 signal_handler_location::signal_handler_location(Address addr, unsigned size) :
     addr_(addr),
     size_(size) {}
 
+// Unimplemented
+bool SignalHandler::waitNextEvent(EventRecord &) {
+    assert(0);
+    return false;
+}
