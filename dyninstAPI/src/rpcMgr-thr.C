@@ -220,43 +220,44 @@ irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
     // process". In this case we try and set a breakpoint when we leave
     // the system call. If we can't set the breakpoint we poll.
     dyn_lwp *lwp = thr_->get_lwp();
+    
+    if (mgr_->proc()->IndependentLwpControl())
+        lwp->pauseLWP();
 
     // Check if we're in a system call
     if (lwp->executingSystemCall()) {
         // We can't do any work. If there is a pending RPC try
         // to set a breakpoint at the exit of the call
-        if (postedRPCs_.size() > 0) {
-            if (lwp->setSyscallExitTrap(launchThrIRPCCallbackDispatch,
-                                        (void *)this)) {
-                // If there is an RPC queued we set it up as pending
-                // and record it
-                if (!pendingRPC_) {
-                    pendingRPC_ = new inferiorRPCinProgress;
-                    pendingRPC_->rpc = postedRPCs_[0];
-                    pendingRPC_->runProcWhenDone = runProcWhenDone;
-                    // Delete that iRPC (clunky)
-                    pdvector<inferiorRPCtoDo *> newRPCs;
-                    for (unsigned k = 1; k < postedRPCs_.size(); k++)
-                        newRPCs.push_back(postedRPCs_[k]);
-                    postedRPCs_ = newRPCs;
-                    mgr_->addPendingRPC(pendingRPC_);
-                }
-                return irpcBreakpointSet;
+        
+        if (lwp->setSyscallExitTrap(launchThrIRPCCallbackDispatch,
+                                    (void *)this)) {
+            // If there is an RPC queued we set it up as pending
+            // and record it
+            if (!pendingRPC_) {
+                pendingRPC_ = new inferiorRPCinProgress;
+                pendingRPC_->rpc = postedRPCs_[0];
+                pendingRPC_->runProcWhenDone = runProcWhenDone;
+                // Delete that iRPC (clunky)
+                pdvector<inferiorRPCtoDo *> newRPCs;
+                for (unsigned k = 1; k < postedRPCs_.size(); k++)
+                    newRPCs.push_back(postedRPCs_[k]);
+                postedRPCs_ = newRPCs;
+                mgr_->addPendingRPC(pendingRPC_);
             }
-            else {
-                // Weren't able to set the breakpoint, so all we can
-                // do is try later
-                // Don't set pending if we're polling.
-                assert(!pendingRPC_);
-                return irpcAgain;
-            }
+            if (mgr_->proc()->IndependentLwpControl())
+                lwp->continueLWP(true);
+            return irpcBreakpointSet;
         }
         else {
-			/* We assume that some other thread will run the process IRPC(s). */
-            return irpcNoIRPC;
+            // Weren't able to set the breakpoint, so all we can
+            // do is try later
+            // Don't set pending if we're polling.
+            assert(!pendingRPC_);
+            if (mgr_->proc()->IndependentLwpControl())
+                lwp->continueLWP(true);
+            return irpcAgain;
         }
     }
-
     // Get the RPC and slap it in the pendingRPC_ pointer
     if (!pendingRPC_) {
         inferiorrpc_printf("%s[%d]: ready to run, creating pending RPC structure\n",
@@ -293,9 +294,6 @@ irpcLaunchState_t rpcThr::runPendingIRPC() {
                        FILE__, __LINE__, thr_->get_tid());
     
     dyn_lwp *lwp = thr_->get_lwp();
-
-    if (mgr_->proc()->IndependentLwpControl())
-        lwp->pauseLWP();
 
     // We passed the system call check, so the thread is in a state
     // where it is possible to run iRPCs.
@@ -380,6 +378,9 @@ irpcLaunchState_t rpcThr::runPendingIRPC() {
          return irpcError;
       }
 #endif
+
+      if (mgr_->proc()->IndependentLwpControl())
+          lwp->continueLWP();
 
       return irpcStarted;
 
@@ -483,7 +484,7 @@ bool rpcThr::handleCompletedIRPC() {
     // call the callback function if needed
     if( cb != NULL ) {
         inferiorrpc_printf("%s[%d][%s]:  about to exec/register rpc done callback\n", 
-                            FILE__, __LINE__, getThreadStr(getExecThreadID()));
+                           FILE__, __LINE__, getThreadStr(getExecThreadID()));
         cb(proc, id, userData, resultValue);
     }
 

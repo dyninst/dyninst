@@ -194,39 +194,40 @@ irpcLaunchState_t rpcLWP::launchLWPIRPC(bool runProcWhenDone) {
     // process". In this case we try and set a breakpoint when we leave
     // the system call. If we can't set the breakpoint we poll.
 
+    if (mgr_->proc()->IndependentLwpControl())
+        lwp_->pauseLWP(true);
+    
     // Check if we're in a system call
     if (lwp_->executingSystemCall()) {
         // We can't do any work. If there is a pending RPC try
         // to set a breakpoint at the exit of the call
-        if (postedRPCs_.size() > 0) {
-            if (lwp_->setSyscallExitTrap(launchLWPIRPCCallbackDispatch,
-                                         (void *)this)) {
-                // If there is an RPC queued we set it up as pending
-                // and record it
-                if (!pendingRPC_) {
-                    pendingRPC_ = new inferiorRPCinProgress;
-                    pendingRPC_->rpc = postedRPCs_[0];
-                    pendingRPC_->runProcWhenDone = runProcWhenDone;
-                    // Delete that iRPC (clunky)
-                    pdvector<inferiorRPCtoDo *> newRPCs;
-                    for (unsigned k = 1; k < postedRPCs_.size(); k++)
-                        newRPCs.push_back(postedRPCs_[k]);
-                    postedRPCs_ = newRPCs;
-                    mgr_->addPendingRPC(pendingRPC_);
-                }
-                return irpcBreakpointSet;
+        if (lwp_->setSyscallExitTrap(launchLWPIRPCCallbackDispatch,
+                                     (void *)this)) {
+            // If there is an RPC queued we set it up as pending
+            // and record it
+            if (!pendingRPC_) {
+                pendingRPC_ = new inferiorRPCinProgress;
+                pendingRPC_->rpc = postedRPCs_[0];
+                pendingRPC_->runProcWhenDone = runProcWhenDone;
+                // Delete that iRPC (clunky)
+                pdvector<inferiorRPCtoDo *> newRPCs;
+                for (unsigned k = 1; k < postedRPCs_.size(); k++)
+                    newRPCs.push_back(postedRPCs_[k]);
+                postedRPCs_ = newRPCs;
+                mgr_->addPendingRPC(pendingRPC_);
             }
-            else {
-                // Weren't able to set the breakpoint, so all we can
-                // do is try later
-                // Don't set pending if we're polling.
-                assert(!pendingRPC_);
-                return irpcAgain;
-            }
+            if (mgr_->proc()->IndependentLwpControl())
+                lwp_->continueLWP(true);
+            return irpcBreakpointSet;
         }
         else {
-            // No RPCs anyway
-            return irpcNoIRPC;
+            // Weren't able to set the breakpoint, so all we can
+            // do is try later
+            // Don't set pending if we're polling.
+            assert(!pendingRPC_);
+            if (mgr_->proc()->IndependentLwpControl())
+                lwp_->continueLWP(true);
+            return irpcAgain;
         }
     }
     
@@ -250,10 +251,7 @@ irpcLaunchState_t rpcLWP::launchLWPIRPC(bool runProcWhenDone) {
 
 irpcLaunchState_t rpcLWP::runPendingIRPC() {
     // CHECK FOR SYSTEM CALL STATUS
-    if (!pendingRPC_) return irpcNoIRPC;
-
-    if (mgr_->proc()->IndependentLwpControl())
-        lwp_->pauseLWP();
+    assert(pendingRPC_);
 
     // We passed the system call check, so the lwp is in a state
     // where it is possible to run iRPCs.
@@ -261,6 +259,10 @@ irpcLaunchState_t rpcLWP::runPendingIRPC() {
     // Some platforms save daemon-side, some save process-side (on the stack)
     // Should unify this.
     theSavedRegs = new dyn_saved_regs;
+
+    Frame frame = lwp_->getActiveFrame();
+    inferiorrpc_printf("%s[%d]: original PC at start of iRPC is 0x%lx\n", FILE__, __LINE__, frame.getPC());
+    
     bool status = lwp_->getRegisters(theSavedRegs);
     if(status != true) {
         // Can happen if we're in a syscall, which is caught above
@@ -330,7 +332,12 @@ irpcLaunchState_t rpcLWP::runPendingIRPC() {
          return irpcError;
       }
 #endif
-      mgr_->addRunningRPC(runningRPC_);
+
+      if (mgr_->proc()->IndependentLwpControl()) {
+          signal_printf("%s[%d]: Continuing lwp %d\n", FILE__, __LINE__, lwp_->get_lwp_id());
+          lwp_->continueLWP();
+      }
+
       return irpcStarted;
 }
 
@@ -392,10 +399,13 @@ bool rpcLWP::handleCompletedIRPC()
         delete runningRPC_->savedRegs;
         // The above implicitly must restore the PC.
     }
-    else
+    else {
+        inferiorrpc_printf("%s[%d]: odd case with no saved registers, changing PC to 0x%lx\n",
+                           FILE__, __LINE__, runningRPC_->origPC);
         if (!lwp_->changePC(runningRPC_->origPC, NULL)) 
             assert(0 && "Failed to reset PC");
-    
+    }
+
     // step 2) delete temp tramp
     process *proc = lwp_->proc();
     proc->deleteCodeRange(runningRPC_->rpcStartAddr);

@@ -353,6 +353,7 @@ bool rpcMgr::existsWaitingIRPC() const {
 inferiorRPCinProgress *rpcMgr::findRunningRPCWithResultAddress(Address where)
 {
   inferiorRPCinProgress *ret = NULL;
+  inferiorrpc_printf("%s[%d]: %d running RPCs\n", FILE__, __LINE__, allRunningRPCs_.size());
   for (int i = allRunningRPCs_.size() -1; i >= 0; --i) {
       inferiorrpc_printf("%s[%d]: comparing curr addr 0x%lx to RPC result addr 0x%lx\n",
                          FILE__, __LINE__, where, allRunningRPCs_[i]->rpcResultAddr); 
@@ -505,6 +506,20 @@ bool rpcMgr::handleRPCEvent(EventRecord &ev, bool &continueHint)
   // "run iRPC" and waits for it to finish, on a thread in a
   // syscall.... we need to re-investigate aborting syscalls.
 
+#if defined(os_linux)
+  // Linux can be harmlessly activated; this is _bad_ on 
+  // Solaris/AIX (as we'll immediately get the latest event again)
+
+  if (existsActiveIRPC()) {
+      // Be sure that we keep consuming events on other threads,
+      // even if we're paused in this one...
+      ev.proc->sh->signalActiveProcess();
+  }
+  else {
+      ev.proc->sh->belayActiveProcess();
+  }
+#endif
+
   if (!process::IndependentLwpControl()) {
       // We stopped everything, and there's an iRPC that needs
       // running...
@@ -514,8 +529,6 @@ bool rpcMgr::handleRPCEvent(EventRecord &ev, bool &continueHint)
           continueHint = true;
   }
 
-  inferiorrpc_printf("%s[%d]: Completed RPC: pending %d\n",
-                     FILE__, __LINE__, allRunningRPCs_.size());
   return true;
 }
 
@@ -647,8 +660,7 @@ bool rpcMgr::launchRPCs(bool &needsToRun,
     }
 
     // We have work to do. Pause the process.
-    if (!proc_->pause()) {
-        cerr << "FAILURE TO PAUSE PROCESS in launchRPCs" << endl;
+    if (!proc()->IndependentLwpControl() && !proc_->pause()) {
         recursionGuard = false;
         return false;
     }
@@ -731,6 +743,10 @@ bool rpcMgr::launchRPCs(bool &needsToRun,
         allRunningRPCs_.size() > 0) {
         needsToRun = true;
         recursionGuard = false;
+
+        if (!proc()->IndependentLwpControl())
+            proc()->continueProc();
+
         return true;
     }
 
@@ -915,12 +931,11 @@ bool rpcMgr::emitInferiorRPCtrailer(codeGen &gen,
     assert(irpcTramp);
     irpcTramp->generateBT(gen);
     gen.copy(irpcTramp->postTrampCode_);
-    // We can't do a SIGTRAP since SIGTRAP is reserved in x86.
-    // So we do a SIGILL instead.
+
     breakOffset = gen.used();
     instruction::generateTrap(gen);
     
-    instruction::generateIllegal(gen);
+    instruction::generateTrap(gen);
 
 #if (defined(arch_x86) || defined(arch_x86_64))
      // X86 traps at the next insn, not the trap. So shift the
