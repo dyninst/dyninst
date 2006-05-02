@@ -770,7 +770,9 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
            fprintf(stderr, "%s[%d]:  thr->getTid(): %lu, tid %lu\n", FILE__, __LINE__, thr->getTid(), tid);
          }
        }
+       async_printf("%s[%d]: signalling event...\n", FILE__, __LINE__);
        ev.proc->sh->signalEvent(evtThreadCreate);
+       async_printf("%s[%d]: done signalling event, returning %d\n", FILE__, __LINE__, (thr != NULL));
        return (thr != NULL);
      }
      case evtThreadExit: 
