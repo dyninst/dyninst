@@ -118,6 +118,7 @@ Thread_t *createThreads(int num, ThreadMain_t tmain, Thread_t *tbuf)
 
   /* start a bunch of threads */
   for (i = 0; i < num; ++i) {
+
     if (0 != pthread_create(&(threads[i]), &attr, (void *(*)(void*))tmain, NULL)) {
       err = 1;
       fprintf(stderr, "%s[%d]:pthread_create\n", __FILE__, __LINE__);
@@ -466,6 +467,7 @@ void *thread_main3(void *arg)
   int x, i;
   lockLock(&test3lock);
   x = 0;
+
   for (i = 0; i < 0xffff; ++i) {
     x = x + i;
   }
@@ -482,12 +484,13 @@ void func3_1()
 {
 
   createLock(&test3lock);
+  mutateeIdle = 1;
+
   lockLock(&test3lock);
   assert (NULL != createThreads(TEST3_THREADS, thread_main3, test3_threads));
 
   sleep_ms(999);
   unlockLock(&test3lock);
-  mutateeIdle = 1;
   while (mutateeIdle) {}
 
 }
@@ -498,6 +501,7 @@ void *thread_main4(void *arg)
   int x, i;
   lockLock(&test4lock); 
   x = 0;
+
   for (i = 0; i < 0xf; ++i) {
     x = x + i;
   }
@@ -515,6 +519,8 @@ void func4_1()
 #else
 */
   createLock(&test4lock);
+
+
   lockLock(&test4lock); 
    
   assert (NULL != createThreads(TEST3_THREADS, thread_main4, test4_threads));
