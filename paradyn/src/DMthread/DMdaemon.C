@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.164 2006/05/01 18:59:15 mjbrim Exp $
+ * $Id: DMdaemon.C,v 1.165 2006/05/02 21:57:51 mjbrim Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -2671,39 +2671,82 @@ void paradynDaemon::getPredictedDataCostCall(perfStreamHandle ps_handle,
 				      metric *m,
 				      u_int clientID)
 {
-	if(rl && m)
-		{
-			pdvector<u_int> focus;
-			bool aflag;
-			aflag=rl->convertToIDList(focus);
-			assert(aflag);
-			const char *metName = m->getName();
-			assert(metName);
-			u_int requestId;
-			if(performanceStream::addPredCostRequest(ps_handle,requestId,m_handle,rl_handle,
-																							 paradynDaemon::allDaemons.size()))
-				{
-					
-					MRN::Communicator * comm = paradynDaemon::allDaemons[0]->network
-						->new_Communicator();
-					for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++)
-						{
-							comm->add_EndPoint( paradynDaemon::allDaemons[i]->endpoint) ;
-						}
-					MRN::Stream * stream = paradynDaemon::allDaemons[0]->network->
-						new_Stream( comm );
-					paradynDaemon::allDaemons[0]->getPredictedDataCost(stream, ps_handle,requestId,focus, 
-																														 metName,clientID);
-					delete stream;
-					delete comm;
-				}
-			return;
-		}
+   if(rl && m)
+      {
+         pdvector<u_int> focus;
+         bool aflag;
+         aflag=rl->convertToIDList(focus);
+         assert(aflag);
+         const char *metName = m->getName();
+         assert(metName);
+
+         pdstring focus_machine("none");
+         rl->getMachineNameReferredTo(focus_machine);
+         pdstring focus_proc("none");
+         int focus_pid = 0;
+         rl->getProcessReferredTo(&focus_proc, &focus_pid);
+
+         // pdstring debug_focus = pdstring(m->getName());
+//          for(unsigned i = 0; i < focus.size(); i++)
+//             debug_focus += pdstring(" ") + pdstring(focus[i]);
+//          fprintf(stderr, "paradynDaemon::getPredictedDataCostCall() - metfoc is %s for machine %s, process %s (%d)\n", 
+//                  debug_focus.c_str(), focus_machine.c_str(), 
+//                  focus_proc.c_str(), focus_pid);
+
+         pdvector<unsigned> target_daemons;
+         for(unsigned i = 0; i < paradynDaemon::allDaemons.size(); i++)
+         {
+            paradynDaemon *pd = paradynDaemon::allDaemons[i];
+            if(strcmp(focus_machine.c_str(), "none")) {
+               // focus is machine specific
+               if(focus_machine == pd->getMachineName()) {
+                  // machine match
+                  if(focus_pid) {
+                     // focus is process specific
+                     if(pd->isMonitoringProcess(focus_pid)) {
+                        // daemon is monitoring process focus
+                        target_daemons.push_back(i);
+                        fprintf(stderr, "MJB DEBUG: machine and process match\n");
+                     }
+                  }
+                  else {
+                     // focus not process specific
+                     target_daemons.push_back(i);
+                     fprintf(stderr, "MJB DEBUG: machine match\n");
+                  }
+               }
+            }
+            else
+               target_daemons.push_back(i);
+         }
+
+         u_int requestId;
+         if(performanceStream::addPredCostRequest(ps_handle, requestId,
+                                                  m_handle, rl_handle,
+                                                  target_daemons.size()))
+            {
+               
+               MRN::Communicator * comm = paradynDaemon::allDaemons[0]->network
+                  ->new_Communicator();
+               for(unsigned j = 0; j < target_daemons.size(); j++)
+               {
+                  unsigned ndx = target_daemons[j];
+                  comm->add_EndPoint( paradynDaemon::allDaemons[ndx]->endpoint );
+               }
+               MRN::Stream * stream = paradynDaemon::allDaemons[0]->network->
+                  new_Stream( comm );
+               paradynDaemon::allDaemons[0]->getPredictedDataCost(stream, ps_handle,requestId,focus, 
+                                                                  metName,clientID);
+               delete stream;
+               delete comm;
+            }
+         return;
+      }
 	
-	// TODO: change this to do the right thing
-	// this should make the response upcall to the correct calling thread
-	// perfConsult->getPredictedDataCostCallbackPC(0,0.0);
-	assert(0);
+   // TODO: change this to do the right thing
+   // this should make the response upcall to the correct calling thread
+   // perfConsult->getPredictedDataCostCallbackPC(0,0.0);
+   assert(0);
 }
 
 void filter_based_on_process_in_focus(
