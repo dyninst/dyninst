@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMresource.C,v 1.79 2006/02/08 21:27:45 darnold Exp $
+// $Id: DMresource.C,v 1.80 2006/05/02 21:57:52 mjbrim Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1268,7 +1268,7 @@ bool resourceList::getProcessReferredTo(pdstring *procName, int *pid) const {
    if (machine_resource_ptr == NULL) {
       machine_resource_ptr = resource::string_to_resource("/Machine");
       if (machine_resource_ptr == NULL) {
-         cout << "getMachineNameReferredTo(): couldn't find /Machine" << endl;
+         cout << "getProcessReferredTo(): couldn't find /Machine" << endl;
          return false;
       }
    }
@@ -1292,13 +1292,13 @@ bool resourceList::getProcessReferredTo(pdstring *procName, int *pid) const {
          // rid of it for speed.
          if (components[0] != "Machine") {
             // I am confused; I expected "Machine"
-            cout << "getMachineNameReferredTo: expected Machine; found "
+            cout << "getProcessReferredTo: expected Machine; found "
                  << components[0] << endl;
             return false;
          }
          if (components.size() < 2) {
             // I am confused; I expected something below "Machine"
-            cout << "getMachineNameReferredTo: nothing below 'Machine'"
+            cout << "getProcessReferredTo: nothing below 'Machine'"
                  << endl;
             return false;
          }
@@ -1309,7 +1309,7 @@ bool resourceList::getProcessReferredTo(pdstring *procName, int *pid) const {
             // error msg is ever seen, then we need to rethink how we extract
             // the machine
             // name)
-            cout << "getMachineNameReferredTo: too much below 'Machine'"
+            cout << "getProcessReferredTo: too much below 'Machine'"
                  << endl;
             return false;
          }
