@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.221 2006/04/27 07:47:08 nater Exp $
+// $Id: linux.C,v 1.222 2006/05/02 19:17:19 bernat Exp $
 
 #include <fstream>
 
@@ -218,10 +218,10 @@ bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events)
         
         errno = 0;
         if (ev.type == evtSignalled) {
-            if (waiting_for_stop || (ev.lwp && ev.lwp->isWaitingForStop())) {
-                signal_printf("%s[%d]: waiting_for_stop %d (lwp %d %s), checking for suppression...\n",
+            if (ev.lwp && ev.lwp->isWaitingForStop()) {
+                signal_printf("%s[%d]: independentLwpStop_ %d (lwp %d %s), checking for suppression...\n",
                               FILE__, __LINE__,
-                              waiting_for_stop, 
+                              independentLwpStop_,
                               ev.lwp ? ev.lwp->get_lwp_id() : (unsigned)-1,
                               ev.lwp ? (ev.lwp->isWaitingForStop() ? "waiting for stop" : "not waiting for stop") : "no LWP");
 
@@ -449,8 +449,11 @@ bool SignalGenerator::waitForEventsInternal(pdvector<EventRecord> &events)
   ev.proc = proc;
   ev.lwp = proc->lookupLWP(waitpid_pid);
 
-  assert(ev.lwp);
-  assert(ev.lwp->proc() == proc);
+  if (!ev.lwp) {
+      // Process was deleted? Run away in any case...
+      ev.type = evtShutDown;
+      return true;
+  }
   
   /* For clarity during debugging, fully initialize the event. */
   ev.type = evtUndefined;
@@ -687,12 +690,6 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith, bool ignore_suppress)
    proccontrol_printf("%s[%d]:  ContinuingLWP_ %d with %d\n", FILE__, __LINE__,
           get_lwp_id(), signalToContinueWith);
 
-   if (waiting_for_stop) {
-       // Someone else also got a stop on this lwp...
-       fprintf(stderr, "waiting for stop at %d, skipping continue...\n", waiting_for_stop);
-       return true;
-   }
-
    // we don't want to operate on the process in this state
    int arg3 = 0;
    int arg4 = 0;
@@ -709,9 +706,13 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith, bool ignore_suppress)
       }
    }
 
-   if (status() == exited)
+   if (status() == exited) {
+       proccontrol_printf("%s[%d]: lwp %d status is exited, not continuing...\n", FILE__, __LINE__, get_lwp_id());
       return true;
+   }
 
+   proccontrol_printf("%s[%d]: lwp %d getting PTRACE_CONT with signal %d\n",
+                      FILE__, __LINE__, get_lwp_id(), arg4);
    ptraceOps++; 
    ptraceOtherOps++;
 
@@ -741,44 +742,45 @@ bool dyn_lwp::continueLWP_(int signalToContinueWith, bool ignore_suppress)
 
 bool dyn_lwp::waitUntilStopped()
 {
-  pdvector<eventType> evts;
-  eventType evt;
   if ((status() == stopped) || (status() == exited))
   {
      return true;
   }
 
   SignalGenerator *sh = (SignalGenerator *) proc()->sh;
-  waiting_for_stop++;
+  waiting_for_stop = true;
   
   // Wake up the signal generator...
  signal_printf("%s[%d]: waitUntilStopped for lwp %u\n",
                FILE__, __LINE__, get_lwp_id());
  
+ // Continue suppression technique...
  sh->markProcessStop();
- sh->signalActiveProcess();
- evts.push_back(evtProcessStop);
- evts.push_back(evtThreadExit);
- bool ignore_state = false;
- while (1) {
-     if (status() == stopped) break;
+ while (status() != stopped) {
      if( status() == exited ) break;
+
+     // and make sure the signal generator is woken up and in waitpid...
+     sh->signalActiveProcess();
+
      signal_printf("%s[%d]:  before waitForEvent(evtProcessStop) for lwp %d: status is %s\n",
                    FILE__, __LINE__, get_lwp_id(), getStatusAsString().c_str());
-     evt = sh->waitForOneOf(evts, this);
+     sh->waitForEvent(evtProcessStop, NULL, NULL, NULL_STATUS_INITIALIZER, false);
  }
- waiting_for_stop--;
- if (waiting_for_stop == 0) {
-     sh->unmarkProcessStop();
-     sh->resendSuppressedSignals();
- }
+ 
+ waiting_for_stop = false;
+
+ sh->belayActiveProcess();
+ sh->unmarkProcessStop();
+ sh->resendSuppressedSignals();
 
  return true;
 }
 
 bool dyn_lwp::stop_() 
 {
-    if (waiting_for_stop) return true;
+    if (waiting_for_stop) {
+        return true;
+    }
 
     proccontrol_printf("%s[%d][%s]:  welcome to stop_, about to lwp_kill(%d, %d)\n",
                        FILE__, __LINE__, getThreadStr(getExecThreadID()), get_lwp_id(), SIGSTOP);
@@ -839,8 +841,6 @@ bool SignalGenerator::waitForStopInline()
 bool process::stop_(bool waitUntilStop)
 {
   int result;
-
-  sh->markProcessStop();
   
   //Stop the main process
   result = P_kill(getPid(), SIGSTOP);
@@ -867,8 +867,6 @@ bool process::stop_(bool waitUntilStop)
      lwp->pauseLWP(waitUntilStop);
   }
 
-  sh->unmarkProcessStop();
-
   return true;
 }
 
@@ -891,20 +889,24 @@ bool process::waitUntilStopped()
 
 bool process::waitUntilLWPStops()
 {
-
-  ((SignalGenerator *)sh)->setWaitingForStop(true);
-  while ( status() != stopped) {
-    if (status() == exited) {
-      return false;
+    sh->markProcessStop();
+    fprintf(stderr, "WaitUntilLWPStops, proc-level...\n");
+    //sh->setWaitingForStop(true);
+    while ( status() != stopped) {
+        if (status() == exited) {
+            sh->unmarkProcessStop();
+            return false;
+        }
+        signal_printf("%s[%d][%s]:  before waitForEvent(evtProcessStop)\n", 
+                      FILE__, __LINE__, getThreadStr(getExecThreadID()));
+        sh->waitForEvent(evtProcessStop);
     }
-    signal_printf("%s[%d][%s]:  before waitForEvent(evtProcessStop)\n", 
-            FILE__, __LINE__, getThreadStr(getExecThreadID()));
-    sh->waitForEvent(evtProcessStop);
-  }
+    
+    sh->unmarkProcessStop();
 
-  ((SignalGenerator *)sh)->setWaitingForStop(false);
-  ((SignalGenerator *)sh)->resendSuppressedSignals();
-
+    fprintf(stderr, "waituntillwpstops, proc-level, exiting...\n");
+    ((SignalGenerator *)sh)->resendSuppressedSignals();
+    
   return true;
 }
 
@@ -2239,6 +2241,7 @@ bool process::initMT()
               __FILE__, __LINE__);
       return false;
    }
+
    return true;
 }
 
