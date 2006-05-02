@@ -136,6 +136,7 @@ class Event{
     Event(){} //explicitly disallow creation without "new_Event()"
 
  public:
+    virtual ~Event(){};
     static Event * new_Event( EventType t, std::string desc="",
                               std::string h=LocalHostName,
                               Port p=LocalPort );
@@ -171,6 +172,7 @@ class Network{
 
     class LeafInfo {
     public:
+        virtual ~LeafInfo(){}
         virtual const char* get_Host( void ) const = 0;
         virtual Port get_Port( void ) const = 0;
         virtual Rank get_Rank( void ) const = 0;
