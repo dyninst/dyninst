@@ -51,6 +51,7 @@ class threadMetFocusNode_Val;
 class pd_process;
 class miniTrampHandle;
 class HwEvent;
+class BPatch_variableExpr;
 
 class instrDataNode {
  private:
