@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.197 2006/04/29 16:41:30 chadd Exp $
+// $Id: unix.C,v 1.198 2006/05/02 19:17:27 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -1635,7 +1635,16 @@ bool SignalHandler::forwardSigToProcess(EventRecord &ev, bool &continueHint)
     
     // We continue the process here to ensure that the signal gets there
 
+    bool exists = false;
+    BPatch_process *bproc = BPatch::bpatch->getProcessByPid(ev.proc->getPid(), &exists);
+    if (bproc) {
+        setBPatchProcessSignal(bproc, ev.what);
+        bproc->isVisiblyStopped = false;
+        sg->overrideSyncContinueState(runRequest);
+    }
+
     bool res = false;
+
     if(process::IndependentLwpControl()) {
         res = ev.lwp->continueLWP(ev.what);
     } else {
@@ -1666,3 +1675,8 @@ bool OS::executableExists(pdstring &file) {
    return (stat_result != -1);
 }
 
+void SignalGenerator::clearCachedLocations()  {
+    sync_event_id_addr = 0;
+    sync_event_arg1_addr = 0;
+    // waiting_for_stop = false; ?
+}
