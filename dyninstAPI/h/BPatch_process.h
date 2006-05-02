@@ -207,6 +207,7 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     // should observe us as stopped. This is set by internal 
     // code if a "stop" is a real stop. 
     bool isVisiblyStopped;
+    bool isAttemptingAStop;
 
     int lastSignal;
     int exitCode;
@@ -240,6 +241,9 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
     bool statusIsStopped();
     bool statusIsTerminated();
 
+    int activeOneTimeCodes_;
+    bool resumeAfterCompleted_;
+
     static void oneTimeCodeCallbackDispatch(process *theProc,
                                             unsigned /* rpcid */, 
                                             void *userData,
@@ -249,6 +253,8 @@ class BPATCH_DLL_EXPORT BPatch_process : public BPatch_eventLock {
                               BPatch_thread *thread, // == NULL if proc-wide
                               void *userData,
                               bool synchronous);
+
+    void oneTimeCodeCompleted();
 
 #ifdef NOTDEF // PDSEP
     static void deleteThreadCB(process *p, dyn_thread *thr);

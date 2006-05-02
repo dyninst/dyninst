@@ -112,7 +112,10 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
    : llproc(NULL), image(NULL), lastSignal(-1), exitCode(-1), 
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(false), detached(false), unreportedStop(false), 
-     unreportedTermination(false), terminated(false), pendingInsertions(NULL)
+     unreportedTermination(false), terminated(false),
+     activeOneTimeCodes_(0),
+     resumeAfterCompleted_(false),
+     pendingInsertions(NULL)
 {
    func_map = new BPatch_funcMap();
    instp_map = new BPatch_instpMap();
@@ -222,6 +225,7 @@ BPatch_process::BPatch_process(const char *path, const char *argv[], const char 
 
    startup_cerr << "BPatch_process::BPatch_process, completed." << endl;
    isVisiblyStopped = true;
+   isAttemptingAStop = false;
 }
 
 #if defined(os_linux)
@@ -285,7 +289,10 @@ BPatch_process::BPatch_process(const char *path, int pid)
    : llproc(NULL), image(NULL), lastSignal(-1), exitCode(-1), 
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(true), detached(false), unreportedStop(false), 
-     unreportedTermination(false), terminated(false), pendingInsertions(NULL)
+     unreportedTermination(false), terminated(false), 
+     activeOneTimeCodes_(0),
+     resumeAfterCompleted_(false),
+     pendingInsertions(NULL)
 {
    func_map = new BPatch_funcMap();
    instp_map = new BPatch_instpMap();
@@ -334,6 +341,7 @@ BPatch_process::BPatch_process(const char *path, int pid)
    assert(llproc->status() == stopped);
 
    isVisiblyStopped = true;
+   isAttemptingAStop = false;
 }
 
 /*
@@ -349,6 +357,8 @@ BPatch_process::BPatch_process(process *nProc)
      exitedNormally(false), exitedViaSignal(false), mutationsActive(true), 
      createdViaAttach(true), detached(false),
      unreportedStop(false), unreportedTermination(false), terminated(false),
+     activeOneTimeCodes_(false),
+     resumeAfterCompleted_(false),
      pendingInsertions(NULL)
 {
    // Add this object to the list of threads
@@ -369,6 +379,7 @@ BPatch_process::BPatch_process(process *nProc)
 
    image = new BPatch_image(this);
    isVisiblyStopped = true;
+   isAttemptingAStop = false;
 }
 
 /*
@@ -446,15 +457,28 @@ bool BPatch_process::stopExecutionInt()
 
     if (isVisiblyStopped) return true;
 
+    // We go to stop and get a callback in the middle...
+    isAttemptingAStop = true;
+
    signal_printf("%s[%d]: entry to stopExecution, lock depth %d\n", FILE__, __LINE__, global_mutex->depth());
-   
+
+   while (lowlevel_process()->sh->isActivelyProcessing()) {
+       lowlevel_process()->sh->waitForEvent(evtAnyEvent);
+   }
+  
+   getMailbox()->executeCallbacks(FILE__, __LINE__);
+
+   fprintf(stderr, "CALLING pauseProcessBlocking.....\n");
    if (llproc->sh->pauseProcessBlocking()) {
        isVisiblyStopped = true;
+       isAttemptingAStop = false;
        signal_printf("%s[%d]: exit of stopExecution, lock depth %d\n", FILE__, __LINE__, global_mutex->depth());
        return true;
    }
-   else
+   else {
        return false;
+       isAttemptingAStop = false;
+   }
 }
 
 /*
@@ -1348,6 +1372,7 @@ void BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
       BPatch::bpatch->getProcessByPid(theProc->getPid());
 
    assert(bproc != NULL);
+
    assert(info && !info->isCompleted());
 
    info->setReturnValue(returnValue);
@@ -1387,6 +1412,8 @@ void BPatch_process::oneTimeCodeCallbackDispatch(process *theProc,
       delete info;
    }
 
+   bproc->oneTimeCodeCompleted();
+
   if (need_to_unlock)
      global_mutex->_Unlock(FILE__, __LINE__);
 }
@@ -1411,9 +1438,7 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
                                           void *userData,
                                           bool synchronous)
 {
-   bool needToResume = false;
-
-   if (!isVisiblyStopped) needToResume = true;
+    if (!isVisiblyStopped) resumeAfterCompleted_ = true;
 
    inferiorrpc_printf("%s[%d]: UI top of oneTimeCode...\n", FILE__, __LINE__);
    while (llproc->sh->isActivelyProcessing()) {
@@ -1421,9 +1446,12 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
        llproc->sh->waitForEvent(evtAnyEvent);
    }
 
-   inferiorrpc_printf("%s[%d]: oneTimeCode, handlers quiet, sync %d, statusIsStopped %d, needToResume %d\n",
-                      FILE__, __LINE__, synchronous, statusIsStopped(), needToResume);
+   inferiorrpc_printf("%s[%d]: oneTimeCode, handlers quiet, sync %d, statusIsStopped %d, resumeAfterCompleted %d\n",
+                      FILE__, __LINE__, synchronous, statusIsStopped(), resumeAfterCompleted_);
 
+   
+
+#if 0
    if (!statusIsStopped()) {
        inferiorrpc_printf("%s[%d]: pausing process (blocking style)\n", FILE__, __LINE__);
        llproc->sh->pauseProcessBlocking();
@@ -1436,6 +1464,7 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
            return NULL;
        }
    }
+#endif
 
    OneTimeCodeInfo *info = new OneTimeCodeInfo(synchronous, userData, 
                                                (thread) ? thread->index : 0);
@@ -1445,32 +1474,38 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
    // predict what the user will do; if there is a BPatch-pause it overrides internal pauses. However,
    // here we give back control to the internals so that the rpc will complete.
 
-   inferiorrpc_printf("%s[%d]: Overriding sync state to ignore...\n", FILE__, __LINE__);
-   llproc->sh->overrideSyncContinueState(ignoreRequest);
-
    llproc->getRpcMgr()->postRPCtoDo(expr.ast,
                                     false, 
                                     BPatch_process::oneTimeCodeCallbackDispatch,
                                     (void *)info,
-                                    synchronous ? false : needToResume, // Run when finished?
+                                    false, // Run when finished?
                                     false, // don't use lowmem heap...
                                     (thread) ? (thread->llthread) : NULL,
                                     NULL); 
-  
+   activeOneTimeCodes_++;
    bool rpcNeedsContinue = false;
    inferiorrpc_printf("%s[%d]: calling launchRPCs(%d, %d)\n",
                       FILE__, __LINE__, rpcNeedsContinue, 
-                      synchronous ? false : needToResume);
-   
+                      false);
+
+   // We override while the inferiorRPC runs...
+   if (synchronous) {
+       // If we're waiting around make sure the iRPC runs. Otherwise,
+       // it runs as the process does.
+       llproc->sh->overrideSyncContinueState(ignoreRequest);
+   }
+
    llproc->getRpcMgr()->launchRPCs(rpcNeedsContinue,
-                                   synchronous ? false : needToResume);
+                                   false);
+
+#if 0
    if (rpcNeedsContinue) {
        inferiorrpc_printf("%s[%d]: Continuing process\n",
                           FILE__, __LINE__);
        llproc->sh->continueProcessAsync();
-       llproc->sh->overrideSyncContinueState(ignoreRequest);
    }
-
+#endif
+   
    // Async... don't wait.
    if (!synchronous) return NULL;
 
@@ -1484,17 +1519,31 @@ void *BPatch_process::oneTimeCodeInternal(const BPatch_snippet &expr,
 
    void *ret = info->getReturnValue();
 
-   inferiorrpc_printf("%s[%d]: RPC completed, process status %s, %s\n",
-                      FILE__, __LINE__, statusIsStopped() ? "stopped" : "running",
-                      needToResume ? "continuing" : "leaving stopped");
+   inferiorrpc_printf("%s[%d]: RPC completed, process status %s\n",
+                      FILE__, __LINE__, statusIsStopped() ? "stopped" : "running");
    
-   if (needToResume) {
-       inferiorrpc_printf("%s[%d]: continuing process post-iRPC\n",
-                          FILE__, __LINE__);
-       llproc->sh->continueProcessBlocking();
-   }
    delete info;
    return ret;
+}
+
+void BPatch_process::oneTimeCodeCompleted() {
+    assert(activeOneTimeCodes_ > 0);
+    activeOneTimeCodes_--;
+
+    if (activeOneTimeCodes_ == 0) {
+        inferiorrpc_printf("%s[%d]: oneTimeCodes outstanding reached 0, isVisiblyStopped %d, completing: %s\n",
+                           FILE__, __LINE__, 
+                           isVisiblyStopped,
+                           resumeAfterCompleted_ ? "setting running" : "leaving stopped");
+        if (resumeAfterCompleted_) {
+            llproc->sh->overrideSyncContinueState(runRequest);
+            llproc->sh->continueProcessAsync();
+        }
+        else {
+            llproc->sh->overrideSyncContinueState(stopRequest);
+        }
+        resumeAfterCompleted_ = false;
+    }
 }
 
 //  BPatch_process::oneTimeCodeAsync
