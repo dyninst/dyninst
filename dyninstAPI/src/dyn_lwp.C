@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.56 2006/04/27 02:09:46 bernat Exp $
+ * $Id: dyn_lwp.C,v 1.57 2006/05/02 19:17:17 bernat Exp $
  */
 
 #include "common/h/headers.h"
@@ -67,7 +67,7 @@ dyn_lwp::dyn_lwp() :
   singleStepping(false),
   stoppedInSyscall_(false),
   postsyscallpc_(0),
-  waiting_for_stop(0),
+  waiting_for_stop(false),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
   isRunningIRPC(false), is_attached_(false)  
@@ -90,7 +90,7 @@ dyn_lwp::dyn_lwp(unsigned lwp, process *proc) :
   singleStepping(false),
   stoppedInSyscall_(false),
   postsyscallpc_(0),
-  waiting_for_stop(0),
+  waiting_for_stop(false),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
   isRunningIRPC(false), is_attached_(false)
@@ -113,7 +113,7 @@ dyn_lwp::dyn_lwp(const dyn_lwp &l) :
   singleStepping(false),
   stoppedInSyscall_(false),
   postsyscallpc_(0),
-  waiting_for_stop(0),
+  waiting_for_stop(false),
   trappedSyscall_(NULL), trappedSyscallCallback_(NULL),
   trappedSyscallData_(NULL),
   isRunningIRPC(false), is_attached_(false)
@@ -140,35 +140,24 @@ bool dyn_lwp::continueLWP(int signalToContinueWith)
            (this == proc()->getRepresentativeLWP()));
 
    if(status_ == running) {
-       //fprintf(stderr, "%s[%d]:  already running\n", FILE__, __LINE__);
       return true;
    }
 
    if (status_ == exited) {
-       // fprintf(stderr, "%s[%d]: already exited\n", FILE__, __LINE__);
-	  return true;
+       return true;
    }
+
    if (proc()->sh->waitingForStop())
    {
-     fprintf(stderr, "[%s] %s[%d]:  LWP (%lu) continue has been suppressed\n", 
-             getThreadStr(getExecThreadID()), FILE__, __LINE__, get_lwp_id());
-     //return false;
-     return true;
+     return false;
    }
+
 
    bool ret = continueLWP_(signalToContinueWith);
    if(ret == false) {
-      fprintf(stderr, "%s[%d]:  continueLWP(%lu) failed: ", FILE__, __LINE__,
-              get_lwp_id());
       perror(NULL);
       return false;
    }
-
-   // Argh... need a "didn't fail"...
-#if defined(os_linux)
-   if (waiting_for_stop)
-       return true;
-#endif
 
 #if defined (os_windows)
    proc()->set_lwp_status(this, running);
@@ -182,12 +171,16 @@ bool dyn_lwp::continueLWP(int signalToContinueWith)
    if (signalToContinueWith != SIGSTOP)  {
       proc()->set_lwp_status(this, running);
       if (getExecThreadID() != proc()->sh->getThreadID()) {
-        signal_printf("%s[%d][%s]:  signalling active process from continueLWP\n", 
-                      FILE__, __LINE__, getThreadStr(getExecThreadID()));
-        proc()->sh->signalActiveProcess();
+          signal_printf("%s[%d][%s]:  signalling active process from continueLWP\n", 
+                        FILE__, __LINE__, getThreadStr(getExecThreadID()));
+          proc()->sh->signalActiveProcess();
       }
-  }
+   }
 #endif
+   
+   // When we fork we may cross the streams (a sighandler from the parent controlling
+   // the child). Argh.
+   proc()->sh->markProcessContinue();
 
    return true;
 }

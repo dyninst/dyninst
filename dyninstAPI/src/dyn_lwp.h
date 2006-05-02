@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.h -- header file for LWP interaction
- * $Id: dyn_lwp.h,v 1.54 2006/04/27 02:09:47 bernat Exp $
+ * $Id: dyn_lwp.h,v 1.55 2006/05/02 19:17:18 bernat Exp $
  */
 
 #if !defined(DYN_LWP_H)
@@ -338,7 +338,7 @@ class dyn_lwp
   // to avoid platform-dependent initialization in process ctor.)
   bool stoppedInSyscall_;  
   Address postsyscallpc_;  // PC after the syscall is interrupted
-  int waiting_for_stop;
+  bool waiting_for_stop;
 #if defined(cap_proc)
   // These variables are meaningful only when `stoppedInSyscall' is true.
   int stoppedSyscall_;     // The number of the interrupted syscall
