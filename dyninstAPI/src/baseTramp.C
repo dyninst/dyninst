@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.C,v 1.30 2006/04/27 22:32:52 mjbrim Exp $
+// $Id: baseTramp.C,v 1.31 2006/05/02 19:17:16 bernat Exp $
 
 #include "dyninstAPI/src/baseTramp.h"
 #include "dyninstAPI/src/miniTramp.h"
@@ -1351,7 +1351,7 @@ Address baseTrampInstance::uninstrumentedAddr() const {
 }
 
 bool baseTramp::threaded() const {
-   if (!proc()->multithread_ready() || suppress_threads_)
+   if (!proc()->multithread_capable() || suppress_threads_)
       return false;
    return true;
 }
