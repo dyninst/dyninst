@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.142 2006/04/25 20:13:54 bernat Exp $
+// $Id: BPatch.C,v 1.143 2006/05/02 19:17:13 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -921,10 +921,7 @@ void BPatch::registerForkedProcess(process *parentProc, process *childProc)
     
     BPatch_process *parent = getProcessByPid(parentPid);
     assert(parent);
-    bool wasProcessStopped = parent->isVisiblyStopped;
-    parent->isVisiblyStopped = true;
-    
-    assert(parent);
+
     BPatch_process *child = new BPatch_process(childProc);
 
 #if defined(cap_async_events)
@@ -953,10 +950,6 @@ void BPatch::registerForkedProcess(process *parentProc, process *childProc)
         }
     }
 
-    // Re-lookup the process pointers as they may have been deleted.
-    if (!wasProcessStopped) continueIfExists(parentPid);
-    if (!wasProcessStopped) continueIfExists(childPid);
-
     forkexec_printf("BPatch: finished registering fork, parent %d, child %d\n",
                     parentPid, childPid);
 }
@@ -975,8 +968,6 @@ void BPatch::registerForkingProcess(int forkingPid, process * /*proc*/)
 {
     BPatch_process *forking = getProcessByPid(forkingPid);
     assert(forking);
-    bool wasProcessStopped = forking->isVisiblyStopped;
-    forking->isVisiblyStopped = true;
 
     signalNotificationFD();
 
@@ -990,10 +981,6 @@ void BPatch::registerForkingProcess(int forkingPid, process * /*proc*/)
         if (cb)
             (*cb)(forking->threads[0], NULL);
     }
-
-    // Re-lookup since we made callbacks
-    if (!wasProcessStopped) continueIfExists(forkingPid);
-
 }
 
 
@@ -1011,8 +998,6 @@ void BPatch::registerExecEntry(process *p, char *) {
 
     // tell the async that the process went away
     getAsync()->cleanupProc(execing);
-
-    continueIfExists(p->getPid());
 }    
 
 /*
@@ -1029,8 +1014,6 @@ void BPatch::registerExecExit(process *proc)
     int execPid = proc->getPid();
     BPatch_process *process = getProcessByPid(execPid);
     assert(process);
-   bool wasProcessStopped = process->isVisiblyStopped;
-    process->isVisiblyStopped = true;
    // build a new BPatch_image for this one
    if (process->image)
        delete process->image;
@@ -1049,7 +1032,6 @@ void BPatch::registerExecExit(process *proc)
         if (cb)
             (*cb)(process->threads[0]);
     }
-    if (!wasProcessStopped) continueIfExists(execPid);
 
 }
 
@@ -1227,7 +1209,7 @@ void BPatch::registerThreadExit(process *proc, long tid)
             (*cb)(bpprocess, thrd);
     }
    bpprocess->deleteBPThread(thrd);
-   if (!wasProcessStopped) continueIfExists(pid);
+
 }
 
 
@@ -2050,7 +2032,12 @@ void BPatch::continueIfExists(int pid)
     // that we're in runs to completion, instead of blocking
     // on someone else.
 
+    if (proc->isAttemptingAStop) {
+        return;
+    }
+
     proc->isVisiblyStopped = false;
+
     proc->llproc->sh->overrideSyncContinueState(runRequest);
 
     proc->llproc->sh->continueProcessAsync();
