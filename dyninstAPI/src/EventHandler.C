@@ -176,7 +176,6 @@ bool EventRecord::isTemplateOf(EventRecord &src)
        return false;
      }
 #endif
-
      return true;
 }
 
