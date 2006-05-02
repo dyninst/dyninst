@@ -2118,6 +2118,9 @@ void mutatorTest19(BPatch_thread *appThread, BPatch_image *appImage)
 
     appThread->oneTimeCodeAsync(call19_2Expr, (void *)&callbackFlag);
 
+    // Async leaves the process in its previous state...
+    appThread->continueExecution();
+
     // Wait for the callback to be called
     while (!appThread->isTerminated() && !callbackFlag) ;
 
