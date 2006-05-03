@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.144 2006/05/03 00:31:17 jodom Exp $
+// $Id: BPatch.C,v 1.145 2006/05/03 01:25:30 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -922,6 +922,8 @@ void BPatch::registerForkedProcess(process *parentProc, process *childProc)
     BPatch_process *parent = getProcessByPid(parentPid);
     assert(parent);
 
+    parent->isVisiblyStopped = true;
+
     BPatch_process *child = new BPatch_process(childProc);
 
 #if defined(cap_async_events)
@@ -950,6 +952,7 @@ void BPatch::registerForkedProcess(process *parentProc, process *childProc)
         }
     }
 
+    parent->isVisiblyStopped = false;
     forkexec_printf("BPatch: finished registering fork, parent %d, child %d\n",
                     parentPid, childPid);
 }
@@ -969,6 +972,8 @@ void BPatch::registerForkingProcess(int forkingPid, process * /*proc*/)
     BPatch_process *forking = getProcessByPid(forkingPid);
     assert(forking);
 
+    forking->isVisiblyStopped = true;
+
     signalNotificationFD();
 
     pdvector<CallbackBase *> cbs;
@@ -981,6 +986,7 @@ void BPatch::registerForkingProcess(int forkingPid, process * /*proc*/)
         if (cb)
             (*cb)(forking->threads[0], NULL);
     }
+    forking->isVisiblyStopped = false;
 }
 
 
