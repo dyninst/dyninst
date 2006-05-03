@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.629 2006/05/03 16:15:42 bernat Exp $
+// $Id: process.C,v 1.630 2006/05/03 22:05:03 bernat Exp $
 
 #include <ctype.h>
 
@@ -1931,10 +1931,15 @@ process::~process()
     // Most of the deletion is encapsulated in deleteProcess
     deleteProcess();
 
+    /*
+      // Removed; if we're detached (or the proc exited) this trick won't work anyway. 
+      // And when the process dies the signal generator will clean itself up.
+
     if (sh) {
       signal_printf("%s[%d]:  removing signal handler for process\n", FILE__, __LINE__);
       SignalGeneratorCommon::stopSignalGenerator(sh);
     }
+    */
 
     // We used to delete the particular process, but this created no end of problems
     // with people storing pointers into particular indices. We set the pointer to NULL.
@@ -2855,7 +2860,8 @@ bool process::loadDyninstLib() {
 			       "Dyninst RT lib load\n");
 		return false;
 	    }
-	    sh->waitForEvent(evtProcessLoadedRT);
+
+            sh->waitForEvent(evtProcessLoadedRT);
 	}
 	getMailbox()->executeCallbacks(FILE__, __LINE__);
 
@@ -3779,7 +3785,6 @@ bool process::readDataSpace(const void *inTracedProcess, unsigned size,
                    size, Address_str((Address)inTracedProcess), 
                    strerror(errno), getPid());
            pdstring msg(errorLine);
-           fprintf(stderr, "%s[%d]:  readDataSpace failed\n", FILE__, __LINE__);
            showErrorCallback(38, msg);
        }
    }
@@ -3898,7 +3903,8 @@ bool process::readTextSpace(const void *inTracedProcess, u_int amount,
               strerror(errno), getPid());
       pdstring msg(errorLine);
       showErrorCallback(38, msg);
-         fprintf(stderr, "%s[%d]:  readTextSpace failed\n", FILE__, __LINE__);
+      fprintf(stderr, "%s[%d]:  readTextSpace failed\n", FILE__, __LINE__);
+
       return false;
    }
 
@@ -5110,7 +5116,8 @@ bool process::detachProcess(const bool leaveRunning)
 {
     // BPatch calls this in the process destructor. 
     if ((status() == detached) ||
-        (status() == exited))
+        (status() == exited) ||
+        (status() == deleted))
         return true;
 
     // First, remove all syscall tracing and notifications
@@ -5180,13 +5187,16 @@ bool process::detach(const bool leaveRunning )
 
 void process::triggerNormalExitCallback(int exitCode) 
 {
+    sh->overrideSyncContinueState(stopRequest);
+
     exiting_ = true;
-   // special case where can't wait to continue process
-   if (status() == exited) {
-      fprintf(stderr, "%s[%d]:  cannot trigger exit callback, process is gone...\n", __FILE__, __LINE__);
-      return;
-   }
-   BPatch::bpatch->registerNormalExit(this, exitCode);
+    // special case where can't wait to continue process
+    if (status() == exited) {
+        fprintf(stderr, "%s[%d]:  cannot trigger exit callback, process is gone...\n", __FILE__, __LINE__);
+        return;
+    }
+    BPatch::bpatch->registerNormalExit(this, exitCode);
+    sh->overrideSyncContinueState(ignoreRequest);
 }
 
 void process::triggerSignalExitCallback(int signalnum) 
