@@ -83,7 +83,7 @@ typedef pthread_mutex_t Lock_t;
 
 pthread_attr_t attr;
 
-Thread_t *createThreads(int num, ThreadMain_t tmain, Thread_t *tbuf)
+Thread_t *createThreads(unsigned int num, ThreadMain_t tmain, Thread_t *tbuf)
 {
   unsigned int i;
   int err = 0;
@@ -311,7 +311,6 @@ void sleep_ms(int _ms)
 
 void *thread_main2 (void *arg)
 {
-   int tmp;
    (DYNINSTlock_thelock)();
 
    register_my_lock((unsigned long)pthread_self(),1);
@@ -335,9 +334,6 @@ void func2_1()
 {
 
   /*pthread_attr_t attr;*/
-  int err = 0;
-  unsigned int timeout = 0; /* in ms */
-  unsigned int i;
   void *RTlib;
 
 #if !defined (os_windows) && !defined(os_irix)

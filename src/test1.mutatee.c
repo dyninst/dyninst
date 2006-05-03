@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.8 2006/04/14 18:28:40 mirg Exp $ */
+/* $Id: test1.mutatee.c,v 1.9 2006/05/03 00:31:26 jodom Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -1997,7 +1997,7 @@ int func30_1()
 
 		      if (!passedTest[30]){
 			printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
-			printf("gv30_5 = %d, gv30_2 = %d, gv30_9 = %d\n", globalVariable30_5,
+			printf("gv30_5 = %lu, gv30_2 = %lu, gv30_9 = %lu\n", globalVariable30_5,
 			       globalVariable30_2, globalVariable30_9);
 			return 0;
 		      }
@@ -2006,7 +2006,7 @@ int func30_1()
 		     (globalVariable30_1 == globalVariable30_6);
     if (!passedTest[30]){
     	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
-	printf("gv30_6 = %d, gv30_1 = %d, should be equal and nonzero!\n", globalVariable30_6,
+	printf("gv30_6 = %lu, gv30_1 = %lu, should be equal and nonzero!\n", globalVariable30_6,
 	       globalVariable30_1);
 	return 0;
     }

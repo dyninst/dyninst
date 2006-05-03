@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test7.mutatee.c,v 1.1 2005/09/29 20:38:06 bpellin Exp $ */
+/* $Id: test7.mutatee.c,v 1.2 2006/05/03 00:31:26 jodom Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -156,7 +156,6 @@ void mutateeMAIN()
   return;
 #endif
   int pid;
-  int loopvar;
   /* fprintf(stderr, "mutatee:  starting fork\n"); */
   pid = fork();
   /* fprintf(stderr, "mutatee:  stopping fork\n"); */
@@ -196,7 +195,7 @@ void mutateeMAIN()
 
 int main(int argc, char *argv[])
 {                                       
-    int i, j;
+    int i;
 
     for (i=1; i < argc; i++) {
       if (!strcmp(argv[i], "-verbose")) {

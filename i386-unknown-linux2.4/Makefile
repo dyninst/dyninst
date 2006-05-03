@@ -1,5 +1,5 @@
 #
-# $Id: Makefile,v 1.4 2006/04/14 18:28:37 mirg Exp $
+# $Id: Makefile,v 1.5 2006/05/03 00:31:26 jodom Exp $
 #
 
 # Define any symbols needed to invoke configuration changes in make.config
@@ -45,7 +45,7 @@ MUTATEE_LDFLAGS_NATIVE += -Wl,-export-dynamic
 COMMA=,
 MUTATEE_G77_FFLAGS += -Di386_unknown_linux2_0 -DF77 -fno-second-underscore -g
 MUTATEE_G77_CFLAGS += $(filter-out -Wl$(COMMA)-export-dynamic, $(MUTATEE_CFLAGS_GNU)) 
-MUTATEE_G77_CFLAGS += -DF77 -DFortran -g $(MUTATEE_FFLAGS)  -fno-implicit-templates -c
+MUTATEE_G77_CFLAGS += -DF77 -DFortran -g $(MUTATEE_FFLAGS) -c
 TEST1_FORTRAN_CSOURCE = test1.mutateeFortC.c
 
 MUTATOR_LIBS += -liberty

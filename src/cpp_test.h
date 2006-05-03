@@ -40,7 +40,7 @@
  */
 
 // C++ mutatee tests header file
-// $Id: cpp_test.h,v 1.3 2006/03/12 23:33:07 legendre Exp $
+// $Id: cpp_test.h,v 1.4 2006/05/03 00:31:26 jodom Exp $
 
 #ifndef CPP_TEST
 #define CPP_TEST
@@ -52,8 +52,9 @@ class cpp_test
    public :
 
      cpp_test() {};
+     virtual ~cpp_test() {}
      virtual void func_cpp() = 0;
-     virtual int func2_cpp(){ return 0;};
+     virtual int func2_cpp() const { return 0;};
 
 };
 
@@ -96,7 +97,7 @@ class overload_func_test : public cpp_test_util
    private :
 
      void call_cpp(int arg1);
-     void call_cpp(char * arg1);
+     void call_cpp(const char * arg1);
      void call_cpp(int arg1, float arg2);
 
 };
