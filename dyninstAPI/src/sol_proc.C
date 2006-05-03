@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.99 2006/05/03 00:31:22 jodom Exp $
+// $Id: sol_proc.C,v 1.100 2006/05/03 22:05:06 bernat Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -179,19 +179,48 @@ bool dyn_lwp::isRunning() const
 
 bool dyn_lwp::clearSignal() 
 {
-    long command[2];
-    command[0] = PCRUN; command[1] = PRSTOP | PRCSIG;
-    if (write(ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
-        perror("clearSignal: PCRUN");
-        return false;
+    lwpstatus_t status;
+    get_status(&status);
+
+    if (status.pr_why == PR_SIGNALLED) {
+        long command[2];
+        command[0] = PCRUN; command[1] = PRSTOP | PRCSIG;
+        if (write(ctl_fd(), command, 2*sizeof(long)) != 2*sizeof(long)) {
+            perror("clearSignal: PCRUN");
+            return false;
+        }
+        command[0] = PCWSTOP;        
+        if (write(ctl_fd(), command, sizeof(long)) != sizeof(long)) {
+            perror("clearSignal: PCWSTOP");
+            return false;
+        }
+        return true;
     }
-    command[0] = PCWSTOP;
-    
-    if (write(ctl_fd(), command, sizeof(long)) != sizeof(long)) {
-        perror("clearSignal: PCWSTOP");
-        return false;
+    else if (status.pr_why == PR_JOBCONTROL) {
+        // Someone else stopped this guy... we can't use PCRUN, we need to 
+        // use signals. Did anyone else think of linux?
+        
+        // Non-blocking stop...
+        long command[2];
+        command[0] = PCDSTOP;
+        if (write(ctl_fd(), command, sizeof(long)) != sizeof(long)) {
+            perror("clearSignal: PCWSTOP");
+            return false;
+        }
+        
+        // SIGCONTINUE...
+        kill(proc()->getPid(), SIGCONT);
+
+        command[0] = PCWSTOP;        
+        if (write(ctl_fd(), command, sizeof(long)) != sizeof(long)) {
+            perror("clearSignal: PCWSTOP");
+            return false;
+        }
+        return true;
     }
-    return true;
+    // Uhh...
+    assert(0);
+    return false;
 }
 
 // Get the process running again. May do one or more of the following:
@@ -524,9 +553,9 @@ void dyn_lwp::dumpRegisters()
      return;
    }
  
-   fprintf(stderr, "PC:   %llx\n", GETREG_PC(regs.theIntRegs));
-   fprintf(stderr, "FP:   %llx\n", GETREG_FP(regs.theIntRegs));
-   fprintf(stderr, "INFO: %llx\n", GETREG_INFO(regs.theIntRegs));
+   fprintf(stderr, "PC:   %lx\n", GETREG_PC(regs.theIntRegs));
+   fprintf(stderr, "FP:   %lx\n", GETREG_FP(regs.theIntRegs));
+   fprintf(stderr, "INFO: %lx\n", GETREG_INFO(regs.theIntRegs));
    //  plenty more register if we want to print em....
 }
 
@@ -550,8 +579,10 @@ bool process::determineLWPs(pdvector<unsigned > &lwp_ids) {
 // Restore registers saved as above.
 bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs)
 {
-    lwpstatus_t status;
-    get_status(&status);
+    assert(status() == stopped);
+
+    lwpstatus_t stat;
+    get_status(&stat);
 
     // The fact that this routine can be shared between solaris/sparc and
     // solaris/x86 is just really, really cool.  /proc rules!
@@ -567,6 +598,7 @@ try_again:
     if (writesize != regbufsize) {
         if (errno == EBUSY) {
           fprintf(stderr, "%s[%d]:  busy fd\n", FILE__, __LINE__);
+
           struct timeval slp;
           slp.tv_sec = 0;
           slp.tv_usec = 1 /*ms*/ *1000;
@@ -827,16 +859,21 @@ bool dyn_lwp::representativeLWP_attach_()
    ps_fd_ = P_open(temp, O_RDONLY, 0);
    if (ps_fd_ < 0) perror("Opening ps fd");
 
-   lwpstatus_t status;
+   is_attached_ = true;
+
+   if (isRunning()) {
+       // Stop the process; we want it paused post-attach
+       stop_();
+   }
 
    // special for aix: we grab the status and clear the STOP
    // signal (if any)
-   is_attached_ = true;
-   get_status(&status);
+   lwpstatus_t stat;
+   get_status(&stat);
 
-
-   if (status.pr_why == PR_SIGNALLED &&
-       status.pr_what == SIGSTOP) {
+   if (((stat.pr_why == PR_SIGNALLED) ||
+        (stat.pr_why == PR_JOBCONTROL)) &&
+       (stat.pr_what == SIGSTOP)) {
        clearSignal();
    }
 
@@ -1040,8 +1077,7 @@ bool process::isRunning_() const
         return false;
 
     long stopped_flags = PR_STOPPED | PR_ISTOP;
-    fprintf(stderr, "Testing stopped bits %x against procstatus %x\n",
-            stopped_flags, procstatus.pr_flags);
+
     if (procstatus.pr_flags & stopped_flags) {
         return false;
     }
