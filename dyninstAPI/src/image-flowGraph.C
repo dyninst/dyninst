@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: image-flowGraph.C,v 1.22 2006/04/27 21:28:59 nater Exp $
+ * $Id: image-flowGraph.C,v 1.23 2006/05/03 00:19:00 jodom Exp $
  */
 
 #include <stdio.h>
@@ -1070,6 +1070,36 @@ bool image_func::buildCFG(
                     cleansOwnStack_ = true;
                 }
 
+                break;
+            }
+            else if(ah.isACondReturnInstruction() )
+            {
+                parsing_printf("cond ret branch at 0x%lx\n", currAddr);
+                currBlk->lastInsnOffset_ = currAddr;
+                currBlk->blockEndOffset_ = ah.peekNext();
+                currBlk->isExitBlock_ = true;
+                  
+                if( currAddr >= funcEnd )
+                    funcEnd = ah.peekNext();
+                  
+                // And make an inst point
+                p = new image_instPoint(currAddr, 
+                                        ah.getInstruction(),
+                                        this,
+                                        functionExit);
+                parsing_printf("Function exit at 0x%x\n", *ah);
+                funcReturns.push_back(p);
+                currBlk->containsRet_ = true;
+                retStatus_ = RS_RETURN;
+                
+                Address t2 = ah.peekNext();
+                addBasicBlock(t2,
+                              currBlk,
+                              leaders,
+                              leadersToBlock,
+                              ET_FALLTHROUGH,
+                              worklist,
+                              visited);
                 break;
             }
             else if( ah.isACallInstruction() ||

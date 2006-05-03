@@ -628,6 +628,21 @@ bool InstrucIter::isAReturnInstruction()
   return false;
 }
 
+
+/** is the instruction used to return from the functions,
+    dependent upon a condition register
+  * @param i the instruction value 
+  */
+bool InstrucIter::isACondReturnInstruction()
+{
+  const instruction i = getInstruction();
+  if(((*i).xlform.op == BCLRop) &&
+     ((*i).xlform.xo == BCLRxop) &&
+     ((*i).xlform.bt & 0x14) != 0x14)
+      return true;
+  return false;
+}
+
 /** is the instruction an indirect jump instruction 
   * @param i the instruction value 
   */

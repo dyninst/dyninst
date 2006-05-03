@@ -99,6 +99,15 @@ bool InstrucIter::isAReturnInstruction()
     return false;
 }
 
+/** is the instruction used to return from the functions,
+    dependent upon a condition register
+  * @param i the instruction value 
+  */
+bool InstrucIter::isACondReturnInstruction()
+{
+  return false; // Not implemented yet
+}
+
 bool InstrucIter::isAIndirectJumpInstruction()
 {
     bool ret;

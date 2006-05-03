@@ -76,6 +76,15 @@ bool InstrucIter::isAReturnInstruction()
     return insn.isReturn();
 }
 
+/** is the instruction used to return from the functions,
+    dependent upon a condition register
+  * @param i the instruction value 
+  */
+bool InstrucIter::isACondReturnInstruction()
+{
+  return false; // Not implemented yet
+}
+
 /** is the instruction an indirect jump instruction 
   * @param i the instruction value 
   */
@@ -692,9 +701,9 @@ void parseRegisters(int * readArr, int * writeArr,
   ia32_entry * entry = ii->getEntry();
   ia32_prefixes * pref = ii->getPrefix();
 
-  const char * addr = (char *) i->ptr();
+  const unsigned char * addr = i->ptr();
 
-  const char * addrPtr = addr;
+  const unsigned char * addrPtr = addr;
   int hasSIB = 0;
   int hasModRM = 0;
   int opCodeSize = 1;
@@ -714,7 +723,7 @@ void parseRegisters(int * readArr, int * writeArr,
     {
       hasModRM = 1;
       addrPtr += opCodeSize;
-      char modByte = *addrPtr;
+      unsigned char modByte = *addrPtr;
       mod = (modByte >> 6) & 0x03;
       reg = (modByte >> 3) & 0x07;
       rm =  modByte & 0x07;
@@ -776,7 +785,7 @@ void parseRegisters(int * readArr, int * writeArr,
 	regi = REGNUM_RBP;
       else if (mod != 3 && rm == 4)
 	{
-	  char sibByte = *addrPtr;
+          unsigned char sibByte = *addrPtr;
 	  //unsigned scale = (sibByte >> 6) & 0x03;
 	  unsigned ind = (sibByte >> 3) & 0x07;
 	  unsigned base =  sibByte & 0x07;

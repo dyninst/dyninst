@@ -252,6 +252,7 @@ class InstrucIter {
    
   bool isALeaveInstruction();
   bool isAReturnInstruction();
+  bool isACondReturnInstruction();
   bool isACondBranchInstruction();
   bool isAJumpInstruction();
   bool isACallInstruction();
