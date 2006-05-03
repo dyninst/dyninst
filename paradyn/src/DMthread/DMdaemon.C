@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.165 2006/05/02 21:57:51 mjbrim Exp $
+ * $Id: DMdaemon.C,v 1.166 2006/05/03 11:42:55 darnold Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -648,15 +648,15 @@ bool paradynDaemon::defineDaemon (const char *c, const char *d,
     if(!n || !c)
 			return false;
 		
-    pdstring command = c;
-    pdstring dir = d;
-    pdstring login = l;
-    pdstring name = n;
-    pdstring machine = m;
-    pdstring remote_shell = r;
-    pdstring flavor = f;
-    pdstring mrnet_topology = t;
-    pdstring MPItype = MPIt;
+    pdstring command = (c?c:"");
+    pdstring dir = (d?d:"");
+    pdstring login = (l?l:"");
+    pdstring name = (n?n:"");
+    pdstring machine = (m?m:"");
+    pdstring remote_shell = (r?r:"");
+    pdstring flavor = (f?f:"");
+    pdstring mrnet_topology = (t?t:"");
+    pdstring MPItype = (MPIt?MPIt:"");
     daemonEntry *newE;
 
     for(unsigned i=0; i < allEntries.size(); i++)
