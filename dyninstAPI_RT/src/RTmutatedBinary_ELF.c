@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary_ELF.c,v 1.24 2006/05/03 00:31:25 jodom Exp $ */
+/* $Id: RTmutatedBinary_ELF.c,v 1.25 2006/05/03 10:57:11 jodom Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -1118,6 +1118,10 @@ int checkMutatedFile(){
 			/* this section loads shared libraries into the mutated binary
 				that were loaded by BPatch_thread::loadLibrary */
 			void * handle =NULL;
+#if defined(sparc_sun_solaris2_4)
+                        Dl_info p;
+                        unsigned long loadAddr;
+#endif
 			elfData = Elf_getdata(scn, NULL);
 			tmpPtr = elfData->d_buf;
 
@@ -1125,9 +1129,7 @@ int checkMutatedFile(){
 				handle = dlopen(tmpPtr, RTLD_LAZY);
 				if(handle){
 #if defined(sparc_sun_solaris2_4)
-                                        Dl_info p;
 					dlinfo(handle, RTLD_DI_CONFIGADDR,(void*) &p);
-                                        unsigned long loadAddr;
 					loadAddr = checkSOLoadAddr(tmpPtr,(unsigned long)p.dli_fbase);
 					if(loadAddr){
 						fixInstrumentation(tmpPtr,(unsigned long)p.dli_fbase, loadAddr);
