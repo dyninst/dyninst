@@ -107,8 +107,6 @@ class vec_stdalloc {
       // no need to assert(result) for the kernel due to KM_SLEEP flag
 #else
       T* result = (T*)malloc(nbytes);
-      if (!result)
-        fprintf(stderr, "%s[%d]:  attempt to alloc %d bytes failed\n", __FILE__, __LINE__, nbytes);
       assert(result);
 #endif
 
