@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.628 2006/05/03 01:25:33 bernat Exp $
+// $Id: process.C,v 1.629 2006/05/03 16:15:42 bernat Exp $
 
 #include <ctype.h>
 
@@ -1751,6 +1751,7 @@ void process::deleteProcess()
   // creationMechanism_ remains untouched
   // stateWhenAttached_ remains untouched
   main_function = NULL;
+  thread_index_function = NULL;
 
   if (dyn) {
       delete dyn;
@@ -1962,6 +1963,7 @@ process::process(SignalGenerator *sh_) :
     creationMechanism_(unknown_cm),
     stateWhenAttached_(unknown_ps),
     main_function(NULL),
+    thread_index_function(NULL),
     dyn(NULL),
     representativeLWP(NULL),
     real_lwps(CThash),
@@ -3525,9 +3527,16 @@ void process::addThread(dyn_thread *thread)
 }
 
 bool process::multithread_ready(bool ignore_if_mt_not_set) {
-   if (!multithread_capable(ignore_if_mt_not_set))
-      return false;
-   return isBootstrappedYet();
+    if (thread_index_function != NULL)
+        return true;
+    if (!multithread_capable(ignore_if_mt_not_set))
+        return false;
+    if (!reachedBootstrapState(loadedRT_bs))
+        return false;
+
+    thread_index_function = findOnlyOneFunction("DYNINSTthreadIndex");
+
+    return thread_index_function != NULL;
 }
 
 dyn_lwp *process::query_for_stopped_lwp() 
