@@ -377,25 +377,29 @@ int getHostName( std::string & out_hostname, const std::string & in_name )
             localhostname_mutex.Unlock();
             return 0;
         }
+        else{
+            out_hostname = XPlat::NetUtils::GetHostName();
+            LocalHostName = out_hostname;
+            localhostname_set = true;
+        }
 
         localhostname_mutex.Unlock();
     }
 
-    std::string network_name;
-    if( getNetworkName( network_name, in_name ) == -1 ) {
-        // cannot determine network name
+    std::string network_name=in_name;
+    if( ( getNetworkName( network_name, in_name, false ) == -1) ) {
         return -1;
     }
 
-    int idx = network_name.find( '.' );
-    if( idx != -1 ) {
+    std::string::size_type idx = network_name.find( '.' );
+    if( idx != std::string::npos ) {
         std::string temp_name = network_name.substr( 0, idx );
 
         if( temp_name.length() == 3 &&
             ( isdigit( temp_name[0] ) ) &&
             ( isdigit( temp_name[1] ) ) &&
             ( isdigit( temp_name[2] ) ) ) {
-            //hack! if it looks like ip addresses, return entire networkname
+            //hack alert! if it looks like ip addresses, return entire networkname
             out_hostname = network_name;
         }
         else {
@@ -406,14 +410,6 @@ int getHostName( std::string & out_hostname, const std::string & in_name )
         out_hostname = network_name;
     }
 
-    if( in_name == "" ) {
-        localhostname_mutex.Lock();
-
-        LocalHostName = out_hostname;
-        localhostname_set = true;
-
-        localhostname_mutex.Unlock();
-    }
     return 0;
 }
 
@@ -471,118 +467,100 @@ int getDomainName( std::string & domainname,
 
 // get the fully-qualified network name for given hostname (default=localhost)
 // e.g. "grilled" -> "grilled.cs.wisc.edu"
-int getNetworkName( std::string & network_name, const std::string & in_hostname )
+int getNetworkName( std::string & network_name, const std::string & in_hostname, bool resolve )
 {
     struct in_addr in;
     struct hostent *hp;
 
-    if( ( in_hostname == "" ) )
-			{
+    if( ( in_hostname == "" ) ) {
         localnetworkname_mutex.Lock();
-        if( localnetworkname_set )
-					{
+        if( localnetworkname_set ) {
             network_name = LocalNetworkName;
-            localnetworkname_mutex.Unlock();
-            return 0;
-					}
-
+        }
+        else{
+            network_name = XPlat::NetUtils::GetNetworkName();
+            LocalNetworkName = network_name;
+            localnetworkname_set = true;
+        }
         localnetworkname_mutex.Unlock();
-			}
+        return 0;
+    }
 
-    std::string ip_address;
-    if( getNetworkAddr( ip_address, in_hostname ) == -1 ) 
-			{
-        //cannot get network address
-        mrn_dbg( 1, mrn_printf(FLF, stderr, "IP Address not found for \"%s\"\n",
-                               in_hostname.c_str() ) );
-        return -1;
-			}
+    if( resolve ){
+        std::string ip_address;
+        if( getNetworkAddr( ip_address, in_hostname ) == -1 ) {
+            //cannot get network address
+            mrn_dbg( 3, mrn_printf(FLF, stderr, "IP Address not found for \"%s\"\n",
+                                   in_hostname.c_str() ) );
+            return -1;
+        }
 		
-    // use to initialize struct in_addr
-    // since inet_pton not available on windows
-		
-    hp = mrnet_gethostbyname( ip_address.c_str(  ) );
-    if( hp == NULL )
-			{
-        mrn_dbg( 1, mrn_printf(FLF, stderr, "Host information not found for \"%s\"\n",
-                               ip_address.c_str(  ) ) );
+        // use to initialize struct in_addr since inet_pton not available on windows
+        hp = mrnet_gethostbyname( ip_address.c_str(  ) );
+        if( hp == NULL ) {
+            mrn_dbg( 3, mrn_printf(FLF, stderr, "Host information not found for \"%s\"\n",
+                                   ip_address.c_str(  ) ) );
+            return -1;
+        }
+        memcpy( ( void * )( &in.s_addr ), ( void * )( hp->h_addr_list[0] ),
+                hp->h_length );
         delete_hostent( hp );
+		
+        hp = mrnet_gethostbyaddr( ( const char * )&in, sizeof( in ), AF_INET );
+    }
+    else{
+        hp = mrnet_gethostbyname( in_hostname.c_str(  ) );
+    }
+
+    if( hp == NULL ) {
+        mrn_dbg( 3, mrn_printf(FLF, stderr, "Host information not found for \"%s\"\n",
+                               in_hostname.c_str(  ) ) );
         return -1;
-			}
-    memcpy( ( void * )( &in.s_addr ), ( void * )( hp->h_addr_list[0] ),
-            hp->h_length );
-    delete_hostent( hp );
-		
-    hp = mrnet_gethostbyaddr( ( const char * )&in, sizeof( in ), AF_INET );
-		
-    if( hp == NULL ) 
-			{
-				mrn_dbg( 1, mrn_printf(FLF, stderr, "Host information not found for %s;"
-															 " Using IP address!\n", ip_address.c_str(  ) ) );
-				network_name = ip_address;
-			}
-    else
-			{
-				network_name = hp->h_name;
-				delete_hostent( hp );
-				
+    }
+    else {
+        network_name = hp->h_name;
+        delete_hostent( hp );
+        
         //network name must be "localhost" or fully qualified "dotted" name
         int idx = network_name.find( '.' );
-        if( !((network_name == "localhost") || (idx != -1)) )
-					{
-						//no "." found in network_name
-						mrn_dbg( 1, mrn_printf(FLF, stderr, "Name not fully qualified (%s);"
-																	 "); Use IP address!\n", network_name.c_str( ) ) );
-						network_name = ip_address;
-					}
-			}
-		
-    if( in_hostname == "" ) 
-			{
-        localnetworkname_mutex.Lock();
-				
-        LocalNetworkName = network_name;
-        localnetworkname_set = true;
-				
-        localnetworkname_mutex.Unlock();
-			}
+        if( (network_name != "localhost") && (idx == -1) ) {
+            //no "." found in network_name
+            mrn_dbg( 1, mrn_printf(FLF, stderr, "Name not fully qualified (%s);"
+                                   "); Use IP address!\n", network_name.c_str( ) ) );
+            return -1;
+        }
+    }
 		
     return 0;
 }
 
+/* resolve a hostname into an ipaddress string */
 int getNetworkAddr( std::string & ipaddr, const std::string hostname )
 {
     struct hostent *hp;
 
-    if( hostname == "" ) 
-			{
+    if( hostname == "" ) {
         localnetworkaddr_mutex.Lock();
-				
-        if( !localnetworkaddr_set )
-					{
+        if( !localnetworkaddr_set ) {
             LocalNetworkAddr = XPlat::NetUtils::GetNetworkAddress().GetString();
             localnetworkaddr_set = true;
-            if( LocalNetworkAddr.length() == 0 )
-							{
-                mrn_dbg( 1, mrn_printf(FLF, stderr, "get_local_ip_address() failed\n" ) );
+            if( LocalNetworkAddr.length() == 0 ) {
                 localnetworkaddr_mutex.Unlock();
                 return -1;
-							}
-					}
+            }
+        }
 				
         ipaddr = LocalNetworkAddr;
         localnetworkaddr_mutex.Unlock();
         return 0;
-			}
+    }
+
     //Hostname given
     hp = mrnet_gethostbyname( hostname.c_str() );
 
-    if( hp == NULL ) 
-			{
-        mrn_dbg( 1, mrn_printf(FLF, stderr, "Host information not found for \"%s\"\n",
-                               hostname.c_str(  ) ) );
+    if( hp == NULL ) {
         return -1;
-			}
+    }
     struct in_addr in;
     memcpy( &in.s_addr, *( hp->h_addr_list ), sizeof( in.s_addr ) );
     delete_hostent( hp );
