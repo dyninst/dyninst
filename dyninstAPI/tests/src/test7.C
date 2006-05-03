@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test7.C,v 1.22 2006/05/03 00:31:24 jodom Exp $
+// $Id: test7.C,v 1.23 2006/05/03 01:25:36 bernat Exp $
 //
 
 #include <stdio.h>
@@ -725,7 +725,6 @@ void prepareTestCase6(procType proc_type, BPatch_thread *thread, forkWhen when)
       BPatch_arithExpr a_expr7_6p(BPatch_plus, *var7_6p, BPatch_constExpr(5));
       BPatch_arithExpr b_expr7_6p(BPatch_assign, *var7_6p, a_expr7_6p);
       thread->oneTimeCode(b_expr7_6p);
-      
    } else if(proc_type == Child_p  &&  when == PostFork) {
       BPatch_image *childImage = thread->getImage();
 
@@ -1142,6 +1141,9 @@ void postForkFunc(BPatch_thread *parent, BPatch_thread *child)
     dprintf("Preparing tests on child\n");
     prepareTests(Child_p,  child,  PostFork);
     dprintf("Fork handler finished (parent %p, child %p)\n", parent, child);
+
+    childThread->continueExecution();
+    parentThread->continueExecution();
 }
 
 /* And verify them when they exit */
@@ -1209,7 +1211,7 @@ void mutatorMAIN(char *pathname)
     initialPreparation(parentThread);
     /* ok, do the fork */;
     parentThread->continueExecution();
-    
+
     /* the rest of the execution occurs in postForkFunc() */
     /* Secondary test: we should not have to manually continue
        either parent or child at any point */
