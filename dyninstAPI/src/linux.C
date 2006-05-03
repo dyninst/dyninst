@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.224 2006/05/03 20:49:21 tlmiller Exp $
+// $Id: linux.C,v 1.225 2006/05/03 22:10:10 tlmiller Exp $
 
 #include <fstream>
 
@@ -894,17 +894,18 @@ bool process::waitUntilStopped()
 bool process::waitUntilLWPStops()
 {
     sh->markProcessStop();
-    //sh->setWaitingForStop(true);
+    sh->setWaitingForStop(true);
     while ( status() != stopped) {
         if (status() == exited) {
             sh->unmarkProcessStop();
-            return false;
+	    sh->setWaitingForStop(false);
+	    return false;
         }
         signal_printf("%s[%d][%s]:  before waitForEvent(evtProcessStop)\n", 
                       FILE__, __LINE__, getThreadStr(getExecThreadID()));
         sh->waitForEvent(evtProcessStop);
     }
-    
+    sh->setWaitingForStop(false);
     sh->unmarkProcessStop();
 
     ((SignalGenerator *)sh)->resendSuppressedSignals();
