@@ -468,7 +468,6 @@ bool BPatch_process::stopExecutionInt()
   
    getMailbox()->executeCallbacks(FILE__, __LINE__);
 
-   fprintf(stderr, "CALLING pauseProcessBlocking.....\n");
    if (llproc->sh->pauseProcessBlocking()) {
        isVisiblyStopped = true;
        isAttemptingAStop = false;

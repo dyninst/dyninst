@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.627 2006/05/03 00:31:21 jodom Exp $
+// $Id: process.C,v 1.628 2006/05/03 01:25:33 bernat Exp $
 
 #include <ctype.h>
 
@@ -3605,7 +3605,6 @@ dyn_lwp *process::stop_an_lwp(bool *wasRunning)
          if (lwp->status() == exited) 
             continue;
          if (lwp->status() == stopped) {
-             fprintf(stderr, "lwp %d was already stopped...\n", lwp->get_lwp_id());
              stopped_lwp = lwp;
              if (wasRunning)
                  *wasRunning = false;
