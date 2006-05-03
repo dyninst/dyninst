@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutateeCommon.c,v 1.10 2006/01/30 07:16:54 jaw Exp $ */
+/* $Id: test1.mutateeCommon.c,v 1.11 2006/05/03 01:46:32 chadd Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -101,7 +101,7 @@ int passedTest[MAX_TEST+1];
 
 int isAttached = 0;
 
-#if defined(mips_sgi_irix6_4)
+#if defined(mips_sgi_irix6_4) || defined(x86_64_unknown_linux2_4)
 int pointerSize = sizeof(void *);
 #endif
 

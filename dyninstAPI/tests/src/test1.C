@@ -553,7 +553,7 @@ void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
 
     void *ptr;
 
-#if defined(mips_sgi_irix6_4)
+#if defined(mips_sgi_irix6_4) || defined(x86_64_unknown_linux2_4)
     BPatch_variableExpr *pointerSizeVar = appImage->findVariable("pointerSize");
     if (!pointerSizeVar) {
 	fprintf(stderr, "**Failed** test #2 (four parameter function)\n");
