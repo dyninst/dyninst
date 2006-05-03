@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.h,v 1.9 2005/09/09 18:08:08 legendre Exp $
+// $Id: varInstanceHKs.h,v 1.10 2006/05/03 19:16:40 tlmiller Exp $
 // contains houseKeeping (HK) classes used as the first template input type
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -72,7 +72,7 @@ class genericHK {
    genericHK() : thrNodeVal(NULL) {
       // trampsUsingMe is initialized to empty array
    }
-   virtual ~genericHK() { };
+   virtual ~genericHK();
    genericHK &operator=(const genericHK &src);
 
    // Given a list of inferior process PC-registers representing a stack

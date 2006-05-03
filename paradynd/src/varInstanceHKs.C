@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: varInstanceHKs.C,v 1.25 2005/09/09 18:08:07 legendre Exp $
+// $Id: varInstanceHKs.C,v 1.26 2006/05/03 19:16:38 tlmiller Exp $
 // contains housekeeping (HK) classes used as the first template input tpe
 // to fastInferiorHeap (see fastInferiorHeap.h and .C)
 
@@ -52,17 +52,32 @@
 #include "common/h/int64iostream.h"
 #include "paradynd/src/debug.h"
 
-genericHK &genericHK::operator=(const genericHK &src) {
-   if (&src == this)
-      return *this; // the usual check for x=x
+genericHK::~genericHK() {
+	thrNodeVal->decrementRefCount();
+	fprintf( stderr, "%s[%d]: thrNodeVal %p has reference count %d\n", __FILE__, __LINE__, thrNodeVal, thrNodeVal->getRefCount() );
+	if( thrNodeVal->getRefCount() == 0 ) {
+		delete thrNodeVal;
+		}
+	} 
 
-   thrNodeVal            = src.thrNodeVal;
+genericHK &genericHK::operator=(const genericHK &src) {
+   if( & src == this) {
+      return *this; // the usual check for x=x
+      }
+      
+   /* We need to handle the reference-counting manually because
+      we're using a pointer.  (The copy constructor is never called.) */
+   thrNodeVal = src.thrNodeVal;   
+   thrNodeVal->incrementRefCount();
 
    return *this;
 }
 
 void genericHK::setThrClient(threadMetFocusNode_Val *thrclient) {
+   /* We need to handle the reference-counting manually because
+      we're using a pointer.  (The copy constructor is never called.) */
    thrNodeVal = thrclient;
+   thrNodeVal->incrementRefCount();
 }
 
 /* ************************************************************************* */
