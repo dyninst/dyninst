@@ -105,21 +105,35 @@ threadMetFocusNode_Val::threadMetFocusNode_Val(
 }
 
 threadMetFocusNode_Val::~threadMetFocusNode_Val() {
-  for(unsigned i=0; i<parentsBuf.size(); i++) {
-    processMetFocusNode *parent = parentsBuf[i].parent;
-    parent->stopSamplingThr(this);
-    removeParent(parent);
-  }
-}
+  // /* DEBUG */ fprintf( stderr, "%s[%d]: ~threadMetFocusNode_Val(): reference count %d, this = %p\n", __FILE__, __LINE__, referenceCount, this );
+  
+  if( referenceCount == 0 ) {
+    for( unsigned i = 0; i < parentsBuf.size(); i++ ) {
+      processMetFocusNode * parent = parentsBuf[i].parent;
+      if( parent != NULL ) {
+	    parent->stopSamplingThr( this );
+        removeParent( parent );
+      }
+    } /* end iteration over parents */
+  } /* end if reference count is 0. */
+} /* end destructor */
 
 threadMetFocusNode::~threadMetFocusNode() {
+  // /* DEBUG */ fprintf( stderr, "%s[%d]: ~threadMetFocusNode(), this = %p, & V = %p.\n", __FILE__, __LINE__, this, & V );
+
   V.decrementRefCount();
-  
-  if(V.getRefCount() == 0) {
-    allThrMetFocusNodeVals.undef(V.getKeyName());
-    delete &V;
+  if( V.getRefCount() == 0 ) {
+  	// /* DEBUG */ fprintf( stderr, "%s[%d]: ~threadMetFocusNode(), this = %p, & V = %p, reference count == 0\n", __FILE__, __LINE__, this, & V );
+    allThrMetFocusNodeVals.undef( V.getKeyName() );
+
+	/* I know this looks horrible, but the constructor initializes it from
+	   the dereference of a pointer.  Really, this class should just use a
+	   pointer, like varInstance (generic), but whatever, at least before
+	   a release. */
+	delete & V;
   } else {
-    V.removeParent(parent);
+  	// /* DEBUG */ fprintf( stderr, "%s[%d]: ~threadMetFocusNode(), this = %p, & V = %p, reference count != 0\n", __FILE__, __LINE__, this, & V );
+    V.removeParent( parent );
   }
 }
 
@@ -200,7 +214,8 @@ void threadMetFocusNode_Val::updateWithDeltaValue(timeStamp startTime,
 			timeStamp sampleTime, pdSample value) {
   for(unsigned i=0; i<parentsBuf.size(); i++) {
     processMetFocusNode *curParent = parentsBuf[i].parent;
-    aggComponent *thrNodeAggInfo   = parentsBuf[i].childNodeAggInfo;
+    aggComponent * thrNodeAggInfo = parentsBuf[i].childNodeAggInfo;
+    assert( thrNodeAggInfo != NULL );
 
     pdSample valToPass = value;
     bool shouldAddSample = adjustSampleIfNewMdn(&valToPass, startTime, 
@@ -284,7 +299,8 @@ void threadMetFocusNode::initAggInfoObjects(timeStamp startTime,
    for(unsigned i=0; i<V.parentsBuf.size(); i++) {  
       processMetFocusNode *curParent  = V.parentsBuf[i].parent;    
       if(parent == curParent) {
-	 aggComponent *thrNodeAggInfo = V.parentsBuf[i].childNodeAggInfo;
+	 aggComponent * thrNodeAggInfo = V.parentsBuf[i].childNodeAggInfo;
+	 assert( thrNodeAggInfo != NULL );
 	 if(! thrNodeAggInfo->isInitialized()) {
 	    thrNodeAggInfo->setInitialStartTime(startTime);
 	    thrNodeAggInfo->setInitialActualValue(initValue);
