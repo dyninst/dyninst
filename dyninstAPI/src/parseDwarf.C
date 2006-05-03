@@ -1085,8 +1085,7 @@ bool walkDwarvenTree(	Dwarf_Debug & dbg, char * moduleName, Dwarf_Die dieEntry,
 				
 				/* The typeOffset forms a module-unique type identifier,
 				   so the BPatch_type look-ups by it rather than name. */
-				parsing_printf("%s/%d: %s/%d\n",
-							   __FILE__, __LINE__, variableName, typeOffset);
+				dwarf_printf( "%s/%d: %s/%d\n", __FILE__, __LINE__, variableName, typeOffset );
 				BPatch_type * variableType = module->getModuleTypes()->findOrCreateType( typeOffset );
 				dwarf_dealloc( dbg, typeAttribute, DW_DLA_ATTR );
 				
