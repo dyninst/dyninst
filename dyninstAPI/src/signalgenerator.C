@@ -59,7 +59,7 @@ unsigned signal_generator_counter = 0;
 eventLock SignalGeneratorCommon::global_wait_list_lock;
 pdvector<EventGate *> SignalGeneratorCommon::global_wait_list;
 
-static char *processRunStateStr(processRunState_t runState) {
+char *processRunStateStr(processRunState_t runState) {
     switch (runState) {
     case unsetRequest: return "unset";
     case stopRequest: return "stopped";
@@ -196,8 +196,9 @@ void SignalGeneratorCommon::main() {
             // run. This means:
             // 1) All signal handlers are either done or waiting in a callback;
             // 2) If there was a pause request from BPatch, then there has been a run request.
-            if (continueRequired()) 
+            if (continueRequired())  {
                 continueProcessInternal();
+            }
             // Post cleanup
             // Cleanup...
 
@@ -210,6 +211,7 @@ void SignalGeneratorCommon::main() {
 
         // Process not paused
         signal_printf("%s[%d]: Grabbing event\n", FILE__, __LINE__);
+
         getEvents(events);
 
 #if !defined(os_linux)
@@ -1112,38 +1114,10 @@ bool SignalGenerator::attachProcess()
      return false;
   }
 
-  startup_printf("%s[%d]: attached, getting current process state\n", FILE__, __LINE__);
+  // Things are stopped when we're done attaching. Because we say so.
 
-   // Record what the process was doing when we attached, for possible
-   // use later.
-#if !defined(os_windows)
-   if (proc->isRunning_()) {
-       startup_printf("[%d]: process running when attached, pausing...\n", getPid());
-       proc->stateWhenAttached_ = running;
-       proc->set_status(running);
-
-
-       //  Now pause the process -- since we are running on the signal handling thread
-       //  we cannot use the "normal" pause, which sends a signal and then waits
-       //  for the signal handler to receive the trap.
-       //  Need to do it all inline.
-       if (!proc->stop_(false)) {
-          fprintf(stderr, "%s[%d]:  failed to stop process\n", FILE__, __LINE__);
-          return false;
-       }
-
-       if (!waitForStopInline()) {
-         fprintf(stderr, "%s[%d]:  failed to do initial stop of process\n", FILE__, __LINE__);
-         return false;
-       }
-       proc->set_status(stopped);
-   } else
-#endif
-   {
-       startup_printf("%s[%d]: attached to previously paused process: %d\n", FILE__, __LINE__, getPid());
-       proc->stateWhenAttached_ = stopped;
-       //proc->set_status(stopped);
-   }
+  proc->stateWhenAttached_ = stopped;
+  proc->set_status(stopped);
 
   return true;
 }
@@ -1176,16 +1150,6 @@ bool SignalGenerator::attachProcess()
       // Must be low-level as we aren't attached
       proc->stateWhenAttached_ = running;
     }
-#if defined(os_linux)
-    else {
-      // We need to SIGCONT the process...
-        if (!proc->wasCreatedViaFork()) {
-            fprintf(stderr, "%s[%d]: WARNING: attach to paused process %d hanging pending SIGCONT!\n",
-                    FILE__, __LINE__, getPid());
-        }
-    }
-    // Other platforms, we can attach to a paused process. I think.
-#endif
 
     if (!proc->attach()) {
       proc->set_status( detached);
@@ -1202,35 +1166,10 @@ bool SignalGenerator::attachProcess()
     
     // Record what the process was doing when we attached, for possible
     // use later.
-#if !defined(os_windows)
-    if (proc->isRunning_()) {
-      startup_printf("[%d]: process running when attached, pausing...\n", getPid());
-      proc->stateWhenAttached_ = running;
-      proc->set_status(running);
-      
-      //  Now pause the process -- since we are running on the signal handling thread
-    //  we cannot use the "normal" pause, which sends a signal and then waits
-    //  for the signal handler to receive the trap.
-    //  Need to do it all inline.
-    startup_printf("%s[%d]: calling proc->stop_...\n", FILE__, __LINE__);
-    if (!proc->stop_(false)) {
-      fprintf(stderr, "%s[%d]:  failed to stop process\n", FILE__, __LINE__);
-      return false;
-    }
-    
-    startup_printf("%s[%d]: waiting for inline stop\n", FILE__, __LINE__);
-    if (!waitForStopInline()) {
-      fprintf(stderr, "%s[%d]:  failed to do initial stop of process\n", FILE__, __LINE__);
-      return false;
-    }
+
+    startup_printf("%s[%d]: attached to previously paused process: %d\n", FILE__, __LINE__, getPid());
+    proc->stateWhenAttached_ = stopped;
     proc->set_status(stopped);
-  } else
-#endif
-    {
-      startup_printf("%s[%d]: attached to previously paused process: %d\n", FILE__, __LINE__, getPid());
-      proc->stateWhenAttached_ = stopped;
-      //proc->set_status(stopped);
-    }
 
    startup_printf("%s[%d]: returning from attachProcess\n", FILE__, __LINE__);
   return true;
