@@ -3389,14 +3389,20 @@ bool process::getDynamicCallSiteArgs( instPoint * callSite, pdvector<AstNode *> 
 	uint64_t targetAddrRegister = tmpl.B4.b2;			
 	// /* DEBUG */ fprintf( stderr, "%s[%d]: monitoring call site for branch register %d\n", __FILE__, __LINE__, targetAddrRegister );
 	
-	/* This should be the only place on the IA-64 using this poorly-named constant. */
-	AstNode * target = new AstNode( AstNode::PreviousStackFrameDataReg, BP_BR0 + targetAddrRegister );
+	/* This should be the only place on the IA-64 using this poorly-named constant.
+	   Note that the cast to void * is necessary to avoid picking up the (x86) memory
+	   instrumentation node constructor. */
+	AstNode * target = new AstNode( AstNode::PreviousStackFrameDataReg, (void *)(BP_BR0 + targetAddrRegister) );
 	assert( target != NULL );
-	arguments[0] = target;
+	// arguments[0] = target;
+	arguments.push_back( target );
 	
-	AstNode * source = new AstNode( AstNode::Constant, callSite->addr() );
+	/* Note that the cast to void * is necessary to avoid picking up the (x86) memory
+	   instrumentation node constructor. */
+	AstNode * source = new AstNode( AstNode::Constant, (void *)(callSite->addr()) );
 	assert( source != NULL );
-	arguments[1] = source;
+	// arguments[1] = source;
+	arguments.push_back( target );
 
 #if defined( OLD_DYNAMIC_CALLSITE_MONITORING )
 	AstNode * callToMonitor = new AstNode( "DYNINSTRegisterCallee", arguments );
