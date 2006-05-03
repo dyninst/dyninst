@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.223 2006/05/03 01:25:32 bernat Exp $
+// $Id: linux.C,v 1.224 2006/05/03 20:49:21 tlmiller Exp $
 
 #include <fstream>
 
@@ -218,7 +218,11 @@ bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events)
         
         errno = 0;
         if (ev.type == evtSignalled) {
-            if (ev.lwp && ev.lwp->isWaitingForStop()) {
+        	/* There's a process-wide waiting for stop we need to worry about;
+        	   we could be asking the process to stop but any of the independent
+        	   LWPs to, yet.  (If the SIGSTOP is delayed, by, say, an iRPC completion,
+        	   then we don't know which LWP will receive the STOP.) */
+        	if( waiting_for_stop || (ev.lwp && ev.lwp->isWaitingForStop()) ) {
                 signal_printf("%s[%d]: independentLwpStop_ %d (lwp %d %s), checking for suppression...\n",
                               FILE__, __LINE__,
                               independentLwpStop_,
