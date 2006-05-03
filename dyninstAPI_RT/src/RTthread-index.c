@@ -129,6 +129,13 @@ unsigned DYNINSTthreadIndexSLOW(dyntid_t tid)
               DYNINST_thread_hash[hash_id] = NONE;
               break;
           }
+          else if (DYNINST_thread_structs[index].lwp != dyn_lwp_self()) {
+              /* We must have exited and recreated the thread before we deleted... */
+              /* Copied in effect from free_index... */
+              DYNINST_thread_structs[index].thread_state = THREAD_COMPLETE;
+              num_deleted++;
+              break;
+          }
           else {
               retval = index;
               break;
@@ -227,7 +234,8 @@ unsigned DYNINST_alloc_index(dyntid_t tid)
    DYNINST_thread_structs[t].tid = tid;
    DYNINST_thread_structs[t].thread_state = THREAD_ACTIVE;
    DYNINST_thread_structs[t].next_free = NONE;
-
+   DYNINST_thread_structs[t].lwp = dyn_lwp_self();
+   
    //Put it in the hash table
    hash_id = tid_val % DYNINST_thread_hash_size;
    orig = hash_id;

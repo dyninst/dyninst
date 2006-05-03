@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.37 2006/04/29 19:04:30 chadd Exp $
+ * $Id: dyninstAPI_RT.h,v 1.38 2006/05/03 01:25:37 bernat Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -156,6 +156,7 @@ typedef struct {
     dyntid_t tid;
     int thread_state;
     int next_free;
+    int lwp;
 } dyninst_thread_t;
 
 extern dyninst_thread_t *DYNINST_thread_structs;
