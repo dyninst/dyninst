@@ -2036,13 +2036,13 @@ extern void (* prefixInSyscall)();
 extern void (* prefixCommon)();
 extern void (* jumpFromNotInSyscallToPrefixCommon)();
 
-bool emitSyscallHeader( process * proc, codeGen &gen ) {
+bool emitSyscallHeader( dyn_lwp * lwp, codeGen & gen ) {
   /* Be polite. */
   int firstHeaderIndex = gen.getIndex();
 
   /* Extract the current slotNo. */
   errno = 0;
-  reg_tmpl reg = { getDBI()->ptrace( PTRACE_PEEKUSER, proc->getPid(), PT_CR_IPSR, 0 ) };
+  reg_tmpl reg = { getDBI()->ptrace( PTRACE_PEEKUSER, lwp->get_lwp_id(), PT_CR_IPSR, 0 ) };
   assert( ! errno );
   uint64_t slotNo = reg.PSR.ri;
   assert( slotNo <= 2 );
@@ -2477,7 +2477,7 @@ bool rpcMgr::emitInferiorRPCheader( codeGen &gen ) {
 	memcpy( ::deadRegisterList, deadRegisterList, 16 * sizeof( Register ) );
 
 	if( needToHandleSyscall( lwpToUse ) ) {
-		if( ! emitSyscallHeader( proc_, gen ) ) { return false; }
+		if( ! emitSyscallHeader( lwpToUse, gen ) ) { return false; }
 		}
 	else {
 		/* We'll be adjusting the PC to the start of the preservation code,
@@ -2507,7 +2507,7 @@ bool rpcMgr::emitInferiorRPCheader( codeGen &gen ) {
 /* From ia64-template.s. */
 extern void (* syscallSuffix)();
 extern void (* suffixExitPoint)();
-bool emitSyscallTrailer( codeGen &gen, uint64_t slotNo ) {
+bool emitSyscallTrailer( codeGen & gen, uint64_t slotNo ) {
   /* Copy the template from 'syscallSuffix' to 'suffixExitPoint' (inclusive),
 	 and replace the bundle at 'suffixExitPoint' with one which has 
 	 predicated SIGILLs in the right places. */
