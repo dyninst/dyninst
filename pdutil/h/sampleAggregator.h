@@ -189,8 +189,6 @@ class aggComponent {
   void requestRemove() {  _requestRemove = true;  }
   const sampleAggregator *getParentAggregator() { return &parentAggregator; }
  private:
-  aggComponent(const sampleAggregator &parent) : curIntvlVal(pdSample::Zero()),
-    parentAggregator(parent), _requestRemove(false), bIsFinished(false) { }
   ~aggComponent() { }
   timeStamp  startIntvl() const;
   timeStamp  endIntvl()   const;
@@ -217,6 +215,14 @@ class aggComponent {
   bool hasFinished() const { return bIsFinished; }
   bool isRemoveRequested() const { return _requestRemove; }
   unsigned numQueuedSamples() { return futureSamples.size(); }
+
+  aggComponent(const sampleAggregator &parent) : 
+  	curIntvlVal(pdSample::Zero()),
+    parentAggregator(parent),
+    _requestRemove(false),
+    bIsInitialStartTimeSet(false),
+    bIsFinished(false)
+    { }
 
   timeStamp lastProcessedSampleTime;
   pdSample  curIntvlVal;
