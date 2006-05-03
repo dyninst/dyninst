@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: baseTramp.h,v 1.12 2006/04/12 16:59:16 bernat Exp $
+// $Id: baseTramp.h,v 1.13 2006/05/03 01:25:35 bernat Exp $
 
 // baseTramp class definition
 
@@ -345,6 +345,9 @@ class baseTramp {
     bool guarded() const { return (guardState_ == guarded_BTR); }
 
  private:
+
+    // Do we have the RT lib thread funcs?
+    static bool threadFuncsLoaded_;
 
     unsigned instVersion_;
 };
