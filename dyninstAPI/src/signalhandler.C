@@ -173,6 +173,13 @@ bool SignalHandler::handleProcessStop(EventRecord &ev, bool &continueHint)
    // which use ptrace. PT_CONTINUE and SIGSTOP don't mix
    continueHint = false;
 
+   // We can get an extra SIGSTOP during process startup if it was paused
+   // when we attached. So... nuke it.
+   if (!ev.proc->reachedBootstrapState(bootstrapped_bs)) {
+       continueHint = true;
+       return true;
+   }
+
 #if defined(os_linux)
       // Linux uses SIGSTOPs for process control.  If the SIGSTOP
       // came during a process::pause (which we would know because
