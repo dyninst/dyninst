@@ -136,7 +136,7 @@ void dprintf(const char *fmt, ...) {
 
 int expectError = DYNINST_NO_ERROR;
 
-void errorFunc(BPatchErrorLevel level, int num, const char **params)
+void errorFunc(BPatchErrorLevel level, int num, const char * const *params)
 {
     if (num == 0) {
         // conditional reporting of warnings and informational messages
@@ -165,7 +165,7 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
     }
 }
 
-void createInstPointError(BPatchErrorLevel level, int num, const char **params)
+void createInstPointError(BPatchErrorLevel level, int num, const char * const *params)
 {
     if (num != 117 && num != 118)
 	errorFunc(level, num, params);

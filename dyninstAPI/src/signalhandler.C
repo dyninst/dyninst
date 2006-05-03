@@ -494,7 +494,6 @@ bool SignalHandler::handleExecExit(EventRecord &ev, bool &continueHint)
 
 bool SignalHandler::handleSyscallExit(EventRecord &ev, bool &continueHint)
 {
-    process *proc = ev.proc;
     // We need to multiplex "run" between the generic trap decoding and
     // and the specific handlers.
     bool runProcess = false;
@@ -764,7 +763,6 @@ bool SignalHandler::processing() {
 bool SignalHandler::assignEvent(EventRecord &ev) 
 {
   char buf[128];
-  bool ret = false;
   assert(eventlock->depth());
 
   bool can_assign = false;

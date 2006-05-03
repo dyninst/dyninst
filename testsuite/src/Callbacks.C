@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Callbacks.C,v 1.2 2006/01/09 19:48:06 bpellin Exp $
+// $Id: Callbacks.C,v 1.3 2006/05/03 00:31:26 jodom Exp $
 #include "Callbacks.h"
 #include "test_lib.h"
 
@@ -73,7 +73,7 @@ void setExpectError(int error)
    expectError = error;
 }
 
-void errorFunc(BPatchErrorLevel level, int num, const char **params)
+void errorFunc(BPatchErrorLevel level, int num, const char * const *params)
 {
     if (num == 0) {
         // conditional reporting of warnings and informational messages
@@ -112,7 +112,7 @@ void errorFunc(BPatchErrorLevel level, int num, const char **params)
 
 }
 
-void createInstPointError(BPatchErrorLevel level, int num, const char **params)
+void createInstPointError(BPatchErrorLevel level, int num, const char * const *params)
 {
     if (num != 117 && num != 118)
 	errorFunc(level, num, params);

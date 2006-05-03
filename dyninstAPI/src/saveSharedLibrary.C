@@ -148,7 +148,7 @@ bool saveSharedLibrary::readNewLib(){
 	newdata->d_size =0;
 	newdata->d_buf=0;
 
-	Elf32_Phdr *phdr = elf32_getphdr(newElf);
+        //	Elf32_Phdr *phdr = elf32_getphdr(newElf);
 	elf_update(newElf, ELF_C_NULL);
 
 	/* 	elfutils on linux does not write data back to an ELF file you
@@ -216,7 +216,7 @@ bool saveSharedLibrary::readNewLib(){
 	shdr->sh_addr = 0x0;
 	shdr->sh_type = 7;
 
-	phdr = elf32_getphdr(newElf);
+        //	phdr = elf32_getphdr(newElf);
 	elf_flagscn(scn,ELF_C_SET,ELF_F_DIRTY);
 	elf_update(newElf, ELF_C_NULL);
 #endif

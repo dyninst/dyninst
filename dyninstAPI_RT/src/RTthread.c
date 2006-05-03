@@ -211,9 +211,9 @@ void DYNINSTthreadDestroy()
 {
    dyntid_t tid = dyn_pthread_self();
    int index = DYNINSTthreadIndex();
-   int pid = dyn_pid_self();
+   //   int pid = dyn_pid_self();
    int err;
-   BPatch_deleteThreadEventRecord rec;
+   //   BPatch_deleteThreadEventRecord rec;
 
   rtdebug_printf("%s[%d]: DESTROY freeing index for thread %lu, index = %d\n", 
                  __FILE__, __LINE__, tid, index);

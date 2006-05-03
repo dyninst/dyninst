@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mapped_module.C,v 1.8 2006/04/26 16:09:02 tlmiller Exp $
+// $Id: mapped_module.C,v 1.9 2006/05/03 00:31:21 jodom Exp $
 
 #include "dyninstAPI/src/mapped_module.h"
 #include "dyninstAPI/src/mapped_object.h"
@@ -548,7 +548,7 @@ void mapped_module::parseFileLineInfo() {
 	haveParsedFileMap.insert( fileOnDisk );
 } /* end parseFileLineInfo() */
 
-void mapped_module::parseLineInformation(process * proc,
+void mapped_module::parseLineInformation(process * /* proc */,
                                          pdstring * currentSourceFile,
                                          char * symbolName,
                                          SYMENT * sym,

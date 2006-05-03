@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test5.mutatee.C,v 1.5 2006/03/23 23:57:42 legendre Exp $ */
+/* $Id: test5.mutatee.C,v 1.6 2006/05/03 00:31:26 jodom Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -254,7 +254,7 @@ void overload_func_test::func_cpp()
 }
 
 
-void overload_func_test::call_cpp(char * arg1)
+void overload_func_test::call_cpp(const char * arg1)
 {
   DUMMY_FN_BODY;
 }

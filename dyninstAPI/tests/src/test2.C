@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2.C,v 1.66 2006/04/25 17:47:02 jodom Exp $
+// $Id: test2.C,v 1.67 2006/05/03 00:31:24 jodom Exp $
 //
 // libdyninst validation suite test #2
 //    Author: Jeff Hollingsworth (7/10/97)
@@ -84,7 +84,7 @@
 #endif
 
 BPatch_thread *mutatorMAIN(const char *path);
-void errorFunc(BPatchErrorLevel level, int num, const char **params);
+void errorFunc(BPatchErrorLevel level, int num, const char * const *params);
 bool useAttach = false;
 int debugPrint = 0; // internal "mutator" tracing
 int errorPrint = 0; // external "dyninst" tracing (via errorFunc)
@@ -424,15 +424,16 @@ void test8b(BPatch_thread *thread)
 //	the process terminate exuection.  It looks for the creation of the file
 //	"mycore" in the current directory.
 //      
-void test9(BPatch_thread *thread)
-{
 #if !defined(sparc_sun_sunos4_1_3) \
  && !defined(sparc_sun_solaris2_4) 
+void test9(BPatch_thread * /* thread */)
+{
     printf("Skipping test #9 (dump core but do not terminate)\n");
     printf("    BPatch_thread::dumpCore not implemented on this platform\n");
     passedTest[9] = true;
 #else
-
+void test9(BPatch_thread *thread)
+{
     // dump core, but do not terminate.
     // this doesn't seem to do anything - jkh 7/12/97
     if (access("mycore", F_OK) == 0) {
@@ -608,7 +609,7 @@ void test12(BPatch_thread * /*appThread*/, BPatch_image *appImage)
 
 char loadLibErrStr[256] = "no error";
 
-void llErrorFunc(BPatchErrorLevel level, int num, const char **params)
+void llErrorFunc(BPatchErrorLevel level, int num, const char * const *params)
 {
 
   char line[256];
@@ -728,7 +729,7 @@ BPatch_thread *mutatorMAIN(const char *pathname)
     return appThread;
 }
 
-void errorFunc(BPatchErrorLevel level, int num, const char **params)
+void errorFunc(BPatchErrorLevel level, int num, const char * const *params)
 {
     if (num == 0) {
         // conditional reporting of warnings and informational messages

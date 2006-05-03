@@ -461,7 +461,6 @@ bool rpcMgr::handleRPCEvent(EventRecord &ev, bool &continueHint)
 {
   if (ev.type != evtRPCSignal) return false;
 
-  bool runProcess = false;
   inferiorRPCinProgress *currRPC = NULL;
   rpcThr *rpcThr = NULL;
   rpcLWP *rpcLwp = NULL;

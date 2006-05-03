@@ -109,7 +109,7 @@ void dprintf(const char *fmt, ...) {
  * Error callback
  **************************************************************************/
 
-void errorFunc(BPatchErrorLevel level, int num, const char **params)
+void errorFunc(BPatchErrorLevel level, int num, const char * const *params)
 {
     if (num == 0) {
         // conditional reporting of warnings and informational messages
@@ -667,9 +667,9 @@ void mutatorTest5(BPatch_thread *appThread, BPatch_image *appImage)
 //  
 // Start Test Case #6 - (exception)
 // 
+#if defined(i386_unknown_linux2_0)
 void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
 {
-#if defined(i386_unknown_linux2_0)
 
   BPatch_Vector<BPatch_function *> bpfv;
   char *fn2 = "exception_test::func_cpp";
@@ -726,8 +726,12 @@ void mutatorTest6(BPatch_thread *appThread, BPatch_image *appImage)
      }
      index++;
    }
-#endif
 }
+#else
+void mutatorTest6(BPatch_thread * /* appThread */, BPatch_image * /* appImage */)
+{
+}
+#endif
 
 //
 // Start Test Case #7 - (template)
@@ -925,7 +929,7 @@ void mutatorTest8(BPatch_thread *appThread, BPatch_image *appImage)
           exit(-1);
      }
 
-    int index = 0;
+    unsigned int index = 0;
     while ( index < fields->size() ) {
 	char fieldName[100];
 	strcpy(fieldName, (*fields)[index]->getName());
@@ -945,11 +949,11 @@ void mutatorTest8(BPatch_thread *appThread, BPatch_image *appImage)
 //
 // Start Test Case #9 - (derivation)
 //
-void mutatorTest9(BPatch_thread *, BPatch_image *appImage)
-{
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */
+void mutatorTest9(BPatch_thread *, BPatch_image *appImage)
+{
    bool found = false;
    
   BPatch_Vector<BPatch_function *> bpfv;
@@ -1009,13 +1013,17 @@ void mutatorTest9(BPatch_thread *, BPatch_image *appImage)
      fprintf(stderr, "**Failed** test #9 (derivation)\n");
      fprintf(stderr, "    Can't find inherited class member functions\n");
   }
-#endif
 }
+#else
+void mutatorTest9(BPatch_thread *, BPatch_image * /* appImage */)
+{
+}
+#endif
 
 //
 // Start Test Case #10 - (find standard C++ library)
 //
-void mutatorTest10(BPatch_thread *appThread, BPatch_image *appImage)
+void mutatorTest10(BPatch_thread * /* appThread */, BPatch_image *appImage)
 {
 #if defined(sparc_sun_solaris2_4) \
  || defined(i386_unknown_solaris2_5) \
@@ -1088,7 +1096,7 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
      fprintf(stderr, "  Mutator couldn't search modules of standard library\n");
      exit(1);
    }
-   for (int i = 0; i < mods->size() && !(modStdC); i++) {
+   for (unsigned int i = 0; i < mods->size() && !(modStdC); i++) {
        char buf[1024];
        BPatch_module *m = (*mods)[i];
        m->getName(buf, 1024);
@@ -1162,7 +1170,7 @@ void mutatorTest11(BPatch_thread *appThread, BPatch_image *appImage)
 //
 // Start Test Case #12 - (C++ member function - virtual, const and inline)
 //
-void mutatorTest12(BPatch_thread *appThread, BPatch_image *appImage)
+void mutatorTest12(BPatch_thread * /* appThread */, BPatch_image *appImage)
 {
  
   const char *fn1="cpp_test::func2_cpp";
@@ -1234,7 +1242,7 @@ void mutatorTest12(BPatch_thread *appThread, BPatch_image *appImage)
        }
   }
 
-  for (int n=0; n<point12_2->size(); n++) {
+  for (unsigned int n=0; n<point12_2->size(); n++) {
      BPatch_function *func;
 
       if ((func = (*point12_2)[n]->getCalledFunction()) == NULL) continue;

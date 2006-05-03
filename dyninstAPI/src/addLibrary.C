@@ -43,7 +43,7 @@
 // Since the author of this file chose to use tabs instead of spaces
 // for the indentation mode, the above line switches users into tabs
 // mode with emacs when editing this file.
-/* $Id: addLibrary.C,v 1.19 2006/04/25 14:31:28 chadd Exp $ */
+/* $Id: addLibrary.C,v 1.20 2006/05/03 00:31:18 jodom Exp $ */
 
 
 #if defined(sparc_sun_solaris2_4)
@@ -520,7 +520,7 @@ int addLibrary::writeNewElf(char* filename, const char* libname){
 				/* 	changing d_size will cause us to read beyond the buffer data late 
 					we should really realloc data to be of size d_size 
 				*/
-				int origSize = realData->d_size;
+				unsigned int origSize = realData->d_size;
 				while((realShdr->sh_offset + realShdr->sh_size) % 8 !=0 ){ 
 					realShdr->sh_size++;
 					realData->d_size ++;	

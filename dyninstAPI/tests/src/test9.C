@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test9.C,v 1.22 2006/04/25 17:47:02 jodom Exp $
+// $Id: test9.C,v 1.23 2006/05/03 00:31:25 jodom Exp $
 //
 // libdyninst validation suite test #9
 //    Author: Chadd Williams (30 jun 2003) 
@@ -126,7 +126,7 @@ static const char *mutateeNameRoot = "test9.mutatee";
 
 int expectError = DYNINST_NO_ERROR;
 
-void errorFunc(BPatchErrorLevel level, int num, const char **params)
+void errorFunc(BPatchErrorLevel level, int num, const char * const *params)
 {
     if (num == 0) {
         // conditional reporting of warnings and informational messages
@@ -232,7 +232,12 @@ void changePath(char *path){
 int runMutatedBinary(char *path, char* fileName, char* testID){
 
    pid_t pid;
+#if defined(sparc_sun_solaris2_4) \
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(rs6000_ibm_aix5_1)
    int status, died;
+#endif
  	char *mutatedBinary;
 
 #if defined(rs6000_ibm_aix4_1) \
@@ -266,7 +271,7 @@ int runMutatedBinary(char *path, char* fileName, char* testID){
 			changePath(path);
 #endif
 
-			execl(mutatedBinary, realfileName,"-run", testID, 0); 
+			execl(mutatedBinary, realfileName,"-run", testID, NULL); 
 			fprintf(stderr,"ERROR!\n");
 			perror("execl");
 			exit(-1);
@@ -330,7 +335,12 @@ static int preloadMutatedRT(const char *path)
 int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 
    pid_t pid;
+#if defined(sparc_sun_solaris2_4) \
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(rs6000_ibm_aix5_1)
    int status, died;
+#endif
 
 	char *mutatedBinary;
 #if defined(rs6000_ibm_aix4_1) \
@@ -363,7 +373,10 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 	char *command = new char[strlen(mutatedBinary)+ strlen(realFileName) + strlen("-run") + strlen(testID)+10];
 	sprintf(command,"%s -run %s", mutatedBinary, testID);
 
+#if  defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4)
 	int retVal =0;
+#endif
 	switch((pid=fork())){
 		case -1: 
 		fprintf(stderr,"can't fork\n");
@@ -390,10 +403,10 @@ int runMutatedBinaryLDLIBRARYPATH(char *path, char* fileName, char* testID){
 			struct stat buf;
 			retVal = stat("/usr/bin/setarch", &buf);
 			if(retVal != -1 ){
-				execl("/usr/bin/setarch","setarch","i386",mutatedBinary, "-run", testID,0); 
+				execl("/usr/bin/setarch","setarch","i386",mutatedBinary, "-run", testID, NULL); 
 			}else{
 				fprintf(stderr," Running without /usr/bin/setarch\n");
-				execl(mutatedBinary, realFileName,"-run", testID,0); 
+				execl(mutatedBinary, realFileName,"-run", testID, NULL); 
 			}
 #else
 
@@ -554,7 +567,14 @@ int letOriginalMutateeFinish(BPatch_thread *appThread){
 //
 // Start Test Case #1 - (instrument one simple function call and save the world)
 //
+#if defined(sparc_sun_solaris2_4) \
+ || defined(rs6000_ibm_aix4_1) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(rs6000_ibm_aix5_1)
 void mutatorTest1(char *pathname)
+#else
+   void mutatorTest1(char * /* pathname */)
+#endif
 {
   char* testName = "instrument one simple function call and save the world";
   int testNo = 1;
@@ -974,7 +994,7 @@ void mutatorTest7(char *pathname)
 	char buff[1024];
 	bool foundIt = false;
 
-	for(int i=0; !foundIt && i< points->size(); i++){
+	for(unsigned int i=0; !foundIt && i< points->size(); i++){
 
 		(*points)[i]->getCalledFunction()->getName(buff,1023);
 		if( !strncmp(buff,"firstBasicBlock",15)){
@@ -1027,9 +1047,8 @@ void mutatorTest7(char *pathname)
 }
 
 
-void dynFunc (BPatch_thread *thr, BPatch_module *mod, bool load){
+void dynFunc (BPatch_thread * /* thr */, BPatch_module *mod, bool /* load */){
 	char name[4096];
-	int len;
 	mod->getName(name, 4096);	
 	fprintf(stderr,"LOADED: %s\n",name);
 

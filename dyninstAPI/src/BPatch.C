@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.143 2006/05/02 19:17:13 bernat Exp $
+// $Id: BPatch.C,v 1.144 2006/05/03 00:31:17 jodom Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -80,7 +80,7 @@ extern unsigned int ptraceOps;
 extern unsigned int ptraceBytes;
 
 extern BPatch_asyncEventHandler *global_async_event_handler;
-void defaultErrorFunc(BPatchErrorLevel level, int num, const char **params);
+void defaultErrorFunc(BPatchErrorLevel level, int num, const char * const *params);
 
 extern void dyninst_yield();
 
@@ -733,7 +733,7 @@ void BPatch::reportError(BPatchErrorLevel severity, int number, const char *str)
  *		function.
  */
 void BPatch::formatErrorString(char *dst, int size,
-			       const char *fmt, const char **params)
+			       const char *fmt, const char * const *params)
 {
     int cur_param = 0;
 
@@ -777,7 +777,7 @@ static char *lvl_str(BPatchErrorLevel lvl)
   return "BAD ERR CODE";
 }
 
-void defaultErrorFunc(BPatchErrorLevel level, int num, const char **params)
+void defaultErrorFunc(BPatchErrorLevel level, int num, const char * const *params)
 {
     char line[256];
 

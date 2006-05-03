@@ -815,7 +815,7 @@ int killApp(ClientData, Tcl_Interp *, int, TCLCONST char **)
 
 bool saveWorldStart =false;
 
-int saveStart(ClientData, Tcl_Interp *, int argc, TCLCONST char **argv){
+int saveStart(ClientData, Tcl_Interp *, int /* argc */, TCLCONST char ** /* argv */){
 
 	if (!haveApp()) return TCL_ERROR;
 
@@ -1361,11 +1361,11 @@ void printVarRecursive(BPatch_variableExpr *var, int level)
 #if defined(rs6000_ibm_aix4_1) || defined(sparc_sun_solaris2_4) || defined(i386_unknown_linux2_0)  
 void printStackFrame(int index, BPatch_Vector<BPatch_frame> &callStack, char *funcName){
 
-	printf("#%d: (0x%x)\t%s (fp: 0x%x)\n", index,callStack[index].getPC(),funcName ,callStack[index].getFP());
+	printf("#%d: (0x%p)\t%s (fp: 0x%p)\n", index, (void *)callStack[index].getPC(),funcName , (void *)callStack[index].getFP());
 
 }
 
-int whereUp(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
+int whereUp(ClientData, Tcl_Interp *, int, TCLCONST char ** /* argv */)
 {
 	BPatch_Vector<BPatch_frame> callStack;
 	char funcName [1024];
@@ -1399,7 +1399,7 @@ int whereUp(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
 	return TCL_OK;
 }
 
-int whereDown(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
+int whereDown(ClientData, Tcl_Interp *, int, TCLCONST char ** /* argv */)
 {
 	BPatch_Vector<BPatch_frame> callStack;
 	char funcName [1024];
@@ -1433,7 +1433,7 @@ int whereDown(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
 	return TCL_OK;
 }
 
-int where(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
+int where(ClientData, Tcl_Interp *, int, TCLCONST char ** /* argv */)
 {
 	BPatch_Vector<BPatch_frame> callStack;
 	char funcName [1024];
@@ -1711,7 +1711,7 @@ int whatisParam(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
     //print local variable info
     printf("        %s is a local variable in function %s\n", lvar->getName(),
 	   argv[3]);
-    printf("        Declared on line %d and has a Frame offset of %d\n",
+    printf("        Declared on line %d and has a Frame offset of %ld\n",
 	   lvar->getLineNum(), lvar->getFrameOffset());
   }
   else{
@@ -1760,7 +1760,7 @@ int whatisParam(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
 	}
 	printf("       %s is a parameter of the function %s\n",lvar->getName(),
 	   argv[3]);
-	printf("       Declared on line %d and has a Frame offset of %d\n",
+	printf("       Declared on line %d and has a Frame offset of %ld\n",
 	   lvar->getLineNum(), lvar->getFrameOffset());
       }
       else{
@@ -1845,10 +1845,7 @@ int whatisFunc(ClientData, Tcl_Interp *, int, TCLCONST char *argv[])
     }    
     printf(") \n");
     if (func->getBaseAddr()) {
-	unsigned int firstLine, lastLine;
-	char file[1024];
 	printf("   starts at 0x%lx", (long)func->getBaseAddr());
-	unsigned int size = sizeof(file);
 	
 	std::vector< std::pair< const char *, unsigned int > > lines;
 	if( func->getProc()->getSourceLines( (unsigned long)func->getBaseAddr(), lines ) ) {
@@ -2102,7 +2099,7 @@ int whatisVar(ClientData cd, Tcl_Interp *interp, int argc, TCLCONST char *argv[]
 
 const int DYNINST_NO_ERROR = -1;
 
-void errorFunc(BPatchErrorLevel level, int num, const char **params)
+void errorFunc(BPatchErrorLevel level, int num, const char * const *params)
 {
     char line[256];
 
@@ -2234,7 +2231,7 @@ int ShowFunctions(int argc, TCLCONST char *argv[]) {
     return TCL_OK;
 }
 
-int verboseCommand(ClientData, Tcl_Interp *, int argc, TCLCONST char *argv[])
+int verboseCommand(ClientData, Tcl_Interp *, int /* argc */, TCLCONST char ** /* argv */)
 {
   verbose = !verbose;
   printf("verbose mode is %s\n", verbose ? "on" : "off");

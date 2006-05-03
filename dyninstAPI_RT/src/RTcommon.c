@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.64 2006/04/27 02:10:02 bernat Exp $ */
+/* $Id: RTcommon.c,v 1.65 2006/05/03 00:31:25 jodom Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -159,7 +159,7 @@ static void initTrampGuards(unsigned maxthreads)
 	/*fprintf(stderr, "MMAP: 0x%x,0x%x,,,1,0x0\n",memLoc,arraySize);*/
 	DYNINST_tramp_guards = (unsigned *) mmap(0x0, arraySize, PROT_READ|PROT_WRITE, MAP_VARIABLE|MAP_ANONYMOUS, -1,0x0);
 
-	if (DYNINST_tramp_guards == -1){
+	if (DYNINST_tramp_guards == (unsigned *) -1){
 		perror("mmap: DYNINST_tramp_guards ");
 		fprintf(stderr,"Warning: DYNINST_tramp_guards may not be allocated correctly for save the world code!\n");
    		DYNINST_tramp_guards = (unsigned *) malloc((maxthreads+1)*sizeof(unsigned));
@@ -500,6 +500,5 @@ char *asyncEventType2str(rtBPatch_asyncEventType t)
   CASE_RETURN_STR(rtBPatch_userEvent);
   default: return "bad_async_event_type";
   }
-  return "bad_async_event_type";
 } 
 

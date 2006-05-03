@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary_XCOFF.c,v 1.11 2006/01/24 16:56:03 chadd Exp $ */
+/* $Id: RTmutatedBinary_XCOFF.c,v 1.12 2006/05/03 00:31:25 jodom Exp $ */
 
 
 /* this file contains the code to restore the necessary
@@ -118,7 +118,8 @@ int checkMutatedFile(){
 
         int       cnt,fd;
         char execStr[256];
-	int retVal = 0, result;
+	int retVal = 0;
+        void *result;
 	unsigned int mmapAddr;
 	int pageSize;
 	Address dataAddress;
@@ -255,15 +256,15 @@ int checkMutatedFile(){
 				/* this is a heap tramp section */
 				if( sawFirstHeapTrampSection ){
 
-					result = (int)mmap((void*) currScnhdr->s_vaddr, currScnhdr->s_size, 
+					result = mmap((void*) currScnhdr->s_vaddr, currScnhdr->s_size, 
 					PROT_READ|PROT_WRITE|PROT_EXEC, MAP_ANONYMOUS| MAP_FIXED,-1,0);
-					if( result == -1){
+					if( result == (void *) -1){
 
 						mprotect((void*) currScnhdr->s_vaddr, currScnhdr->s_size,
 							PROT_READ|PROT_WRITE|PROT_EXEC);
-						result = (int) mmap((void*) currScnhdr->s_vaddr, currScnhdr->s_size, 
+						result = mmap((void*) currScnhdr->s_vaddr, currScnhdr->s_size, 
 						PROT_READ|PROT_WRITE|PROT_EXEC, MAP_ANONYMOUS| MAP_FIXED,-1,0);
-						if( result == -1){
+						if( result == (void *) -1){
 						perror("TRYING TO MMAP:");
 						switch(errno){
 							case EACCES:
@@ -284,7 +285,7 @@ int checkMutatedFile(){
 						}
 					}
 
-					printf(" MMAP! vaddr %x size %x scnptr %x : result %x",currScnhdr->s_vaddr,currScnhdr->s_size,currScnhdr->s_scnptr, result );
+					printf(" MMAP! vaddr %x size %x scnptr %x : result %p",currScnhdr->s_vaddr,currScnhdr->s_size,currScnhdr->s_scnptr, result );
 					fflush(stdout);
 
 					memcpy((void *) currScnhdr->s_vaddr, ((char*) XCOFFfile) + currScnhdr->s_scnptr,

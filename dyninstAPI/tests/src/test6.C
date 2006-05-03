@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test6.C,v 1.36 2006/04/25 17:47:02 jodom Exp $
+// $Id: test6.C,v 1.37 2006/05/03 00:31:24 jodom Exp $
  
 #include <stdio.h>
 #include <string.h>
@@ -130,7 +130,7 @@ bool verifyChildMemory(BPatch_thread *appThread,
  * Error callback
  **************************************************************************/
 
-void errorFunc(BPatchErrorLevel level, int num, const char **params)
+void errorFunc(BPatchErrorLevel level, int num, const char * const *params)
 {
   if (num == 0) {
     // conditional reporting of warnings and informational messages
@@ -993,19 +993,19 @@ static inline void dumpvect(BPatch_Vector<BPatch_point*>* res, const char* msg)
     const BPatch_countSpec_NP& cs = ma->getByteCount_NP();
     if(ma->getNumberOfAccesses() == 1) {
       if(ma->isConditional_NP())
-        printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d] ?[%X]\n", msg, i+1,
+        printf("%s[%d]: @[r%d+r%d<<%d+%ld] #[r%d+r%d+%ld] ?[%X]\n", msg, i+1,
                as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
                cs.getReg(0), cs.getReg(1), cs.getImm(), ma->conditionCode_NP());
         else
-          printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
+          printf("%s[%d]: @[r%d+r%d<<%d+%ld] #[r%d+r%d+%ld]\n", msg, i+1,
                  as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
                  cs.getReg(0), cs.getReg(1), cs.getImm());
     }
     else {
       const BPatch_addrSpec_NP& as2 = ma->getStartAddr_NP(1);
       const BPatch_countSpec_NP& cs2 = ma->getByteCount_NP(1);
-      printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d] && "
-             "@[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
+      printf("%s[%d]: @[r%d+r%d<<%d+%ld] #[r%d+r%d+%ld] && "
+             "@[r%d+r%d<<%d+%ld] #[r%d+r%d+%ld]\n", msg, i+1,
              as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
              cs.getReg(0), cs.getReg(1), cs.getImm(),
              as2.getReg(0), as2.getReg(1), as2.getScale(), as2.getImm(),
@@ -1029,14 +1029,14 @@ static inline void dumpxpct(BPatch_memoryAccess* exp[], unsigned int size, const
     const BPatch_addrSpec_NP& as = ma->getStartAddr_NP();
     const BPatch_countSpec_NP& cs = ma->getByteCount_NP();
     if(ma->getNumberOfAccesses() == 1)
-      printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
+      printf("%s[%d]: @[r%d+r%d<<%d+%ld] #[r%d+r%d+%ld]\n", msg, i+1,
              as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
              cs.getReg(0), cs.getReg(1), cs.getImm());
     else {
       const BPatch_addrSpec_NP& as2 = ma->getStartAddr_NP(1);
       const BPatch_countSpec_NP& cs2 = ma->getByteCount_NP(1);
-      printf("%s[%d]: @[r%d+r%d<<%d+%d] #[r%d+r%d+%d] && "
-             "@[r%d+r%d<<%d+%d] #[r%d+r%d+%d]\n", msg, i+1,
+      printf("%s[%d]: @[r%d+r%d<<%d+%ld] #[r%d+r%d+%ld] && "
+             "@[r%d+r%d<<%d+%ld] #[r%d+r%d+%ld]\n", msg, i+1,
              as.getReg(0), as.getReg(1), as.getScale(), as.getImm(),
              cs.getReg(0), cs.getReg(1), cs.getImm(),
              as2.getReg(0), as2.getReg(1), as2.getScale(), as2.getImm(),
@@ -1442,8 +1442,6 @@ void mutatorMAIN(char *pathname)
   // Mental note: this needs to be done BEFORE thread creation...
   bpatch->registerErrorCallback(errorFunc);
 
-  // XXX: On Solaris we need an empty argv
-  char *argv[] = { NULL };
   BPatch_thread *bpthr;
 
   // Force functions to be relocated

@@ -222,7 +222,7 @@ BPatch_basicBlockLoop *BPatch_point::getLoopInt()
  * Returns function to which this BPatch_point belongs
  */
 
-const BPatch_function *BPatch_point::getFunctionInt()
+BPatch_function *BPatch_point::getFunctionInt()
 {
    return func;
 }

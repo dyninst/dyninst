@@ -41,7 +41,7 @@
 
 /*
  * inst-power.C - Identify instrumentation points for a RS6000/PowerPCs
- * $Id: inst-power.C,v 1.244 2006/04/12 16:59:20 bernat Exp $
+ * $Id: inst-power.C,v 1.245 2006/05/03 00:31:19 jodom Exp $
  */
 
 #include "common/h/headers.h"
@@ -1171,7 +1171,7 @@ void baseTrampInstance::updateTrampCost(unsigned cost) {
 }
 
 void emitImm(opCode op, Register src1, RegValue src2imm, Register dest, 
-             codeGen &gen, bool noCost, registerSpace *rs)
+             codeGen &gen, bool noCost, registerSpace * /* rs */)
 {
         //bperr("emitImm(op=%d,src=%d,src2imm=%d,dest=%d)\n",
         //        op, src1, src2imm, dest);
@@ -1954,7 +1954,7 @@ void emitVload(opCode op, Address src1, Register /*src2*/, Register dest,
 
 void emitVstore(opCode op, Register src1, Register /*src2*/, Address dest,
 	      codeGen &gen, bool noCost, 
-                registerSpace *rs, int /* size */,
+                registerSpace * /* rs */, int /* size */,
                 const instPoint * /* location */, process * /* proc */)
 {
     if (op == storeOp) {
@@ -2633,7 +2633,7 @@ bool process::replaceFunctionCall(instPoint *point,
 // opCode op, codeGen &gen, const int_function *callee, process *proc
 
 void emitFuncJump(opCode, 
-                  codeGen &gen,
+                  codeGen & /* gen */,
 		  const int_function * /*unused*/, process *,
 		  const instPoint *, bool)
 {
@@ -3053,7 +3053,7 @@ bool int_basicBlock::initRegisterGenKill()
 		      }
 		    }
 		    
-		    Address pos = ah++;
+		    ah++;
 		  } /* ah.hasMore */
 	      }
 	    else

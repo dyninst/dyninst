@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap.c,v 1.24 2006/03/16 19:00:00 bernat Exp $ */
+/* $Id: RTheap.c,v 1.25 2006/05/03 00:31:25 jodom Exp $ */
 /* RTheap.c: platform-generic heap management */
 
 #include <stdlib.h>
@@ -87,6 +87,7 @@ static heapList_t *Heaps = NULL;
 static int psize = -1;
 
 
+/*
 static void heap_printMappings(int nmaps, dyninstmm_t *maps)
 {
   int i;
@@ -99,6 +100,7 @@ static void heap_printMappings(int nmaps, dyninstmm_t *maps)
 	    map->pr_size / psize, map->pr_size / 1024.0);
   }
 }
+*/
 
 static void heap_checkMappings(int nmaps, dyninstmm_t *maps)
 {
@@ -117,11 +119,13 @@ static Address heap_alignUp(Address addr, int align)
   return ((addr / align) + 1) * align;
 }
 
+/*
 static Address heap_alignDown(Address addr, int align)
 {
   if (addr % align == 0) return addr;
   return ((addr / align) + 0) * align;
 }
+*/
 
 #define BEG(x) ((Address)(x)->pr_vaddr)
 #define END(x) ((Address)(x)->pr_vaddr + (x)->pr_size)
@@ -295,7 +299,8 @@ void *DYNINSTos_malloc(size_t nbytes, void *lo_addr, void *hi_addr)
   } else { /* use mmap() for allocation */
     Address lo = (Address) lo_addr;
     Address hi = (Address) hi_addr;
-    int fd, nmaps;
+    int fd;
+    unsigned nmaps;
     dyninstmm_t *maps;
 
     /* What if we need to allocate memory not in the area we can mmap? */

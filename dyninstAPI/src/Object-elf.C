@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Object-elf.C,v 1.103 2006/04/15 21:52:59 nater Exp $
+ * $Id: Object-elf.C,v 1.104 2006/05/03 00:31:18 jodom Exp $
  * Object-elf.C: Object class for ELF file format
  ************************************************************************/
 
@@ -178,7 +178,13 @@ bool Object::loaded_elf(Elf_X &elf, Address& txtaddr, Address& dataddr,
     const char* DYNSTR_NAME      = ".dynstr";
     const char* DATA_NAME        = ".data";
     const char* RO_DATA_NAME     = ".ro_data";  // mips
+#if defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_nt4_0) \
+ || defined(arch_ia64)
     const char* DYNAMIC_NAME     = ".dynamic";
+#endif
     const char* EH_FRAME_NAME    = ".eh_frame";
     const char* EXCEPT_NAME      = ".gcc_except_table";
     // initialize Object members
@@ -1266,6 +1272,8 @@ void Object::override_weak_symbols(pdvector<Symbol> &allsymbols) {
     }
 }
 
+#if defined(USES_DWARF_DEBUG)
+
 static pdstring find_symbol(pdstring name,
               dictionary_hash<pdstring, pdvector< Symbol > > &symbols)
 {
@@ -1285,6 +1293,8 @@ static pdstring find_symbol(pdstring name,
 
   return "";
 }
+
+#endif
 
 // Insert sym into syms. If syms already contains another symbol with the
 // same name, inserts sym under a versioned name (,v%d appended to the original

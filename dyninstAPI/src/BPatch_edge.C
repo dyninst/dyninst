@@ -122,11 +122,11 @@ void BPatch_edge::dumpInt()
 //             target->getRelStart(),
 //             target->getRelLast());
 
-    fprintf(stderr," 0x%x, 0x%x --> 0x%x, 0x%x %s\n",
-            source->getStartAddress(),
-            source->getEndAddress(),
-            target->getStartAddress(),
-            target->getEndAddress(),
+    fprintf(stderr," 0x%p, 0x%p --> 0x%p, 0x%p %s\n",
+            (void *)source->getStartAddress(),
+            (void *)source->getEndAddress(),
+            (void *)target->getStartAddress(),
+            (void *)target->getEndAddress(),
 	    edge_type_string(type).c_str());
 
 }

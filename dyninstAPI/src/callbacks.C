@@ -160,7 +160,7 @@ ErrorCallback::~ErrorCallback()
 
 bool ErrorCallback::execute_real(void) 
 {
-  cb(sev, num, (const char **)&str);
+  cb(sev, num, &str);
   return true;
 }
 

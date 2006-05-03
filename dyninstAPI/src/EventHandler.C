@@ -495,7 +495,7 @@ void EventHandler<T>::setName(char *newIdStr) {
         (*threadmap)[getExecThreadID()]->name = strdup(idstr);
     }
     else {
-        fprintf(stderr, "ERROR: threadMap does not contain name for thread %p (%s)\n",
+        fprintf(stderr, "ERROR: threadMap does not contain name for thread %lu (%s)\n",
                 getExecThreadID(), idstr);
     }
 }

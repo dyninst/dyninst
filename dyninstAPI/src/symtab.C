@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
- // $Id: symtab.C,v 1.278 2006/04/27 02:10:00 bernat Exp $
+ // $Id: symtab.C,v 1.279 2006/05/03 00:31:22 jodom Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1141,7 +1141,17 @@ supportedLanguages pickLanguage(pdstring &working_module, char *working_options,
   
   return lang;
 }
+
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_solaris2_5) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(ia64_unknown_linux2_4) /* Temporary duplication -- TLM. */ \
+ || defined(alpha_dec_osf4_0)
 void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> *mod_langs)
+#else
+void image::getModuleLanguageInfo(dictionary_hash<pdstring, supportedLanguages> * /* mod_langs */)
+#endif
 {
    pdstring working_module;
 #if defined(sparc_sun_solaris2_4) \

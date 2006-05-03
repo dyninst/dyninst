@@ -169,7 +169,7 @@ class BPATCH_DLL_EXPORT BPatch_point : public BPatch_eventLock {
                                                     BPatch_function *bpf);
 
     BPatch_process *proc;
-    const BPatch_function	*func;
+    BPatch_function	*func;
     BPatch_basicBlockLoop *loop;
     instPoint	*point;
 
@@ -243,7 +243,7 @@ public:
 
     API_EXPORT(Int, (),
 
-    const BPatch_function *,getFunction,());
+    BPatch_function *,getFunction,());
 
     //  BPatch_point::getCalledFunction
     //  Returns a BPatch_function representing the function being called at this point.

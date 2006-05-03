@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: Object-xcoff.C,v 1.47 2006/04/20 02:59:42 bernat Exp $
+// $Id: Object-xcoff.C,v 1.48 2006/05/03 00:31:18 jodom Exp $
 
 #include "common/h/headers.h"
 #include "dyninstAPI/src/os.h"
@@ -1214,8 +1214,6 @@ bool parseCompilerType(Object *objPtr)
     int stab_nsyms;
     char *stringPool;
     union auxent *aux;
-    char *stabstr_nextoffset;
-    const char *stabstrs = 0;
     char *stabstr=NULL;
 
     objPtr->get_stab_info(stabstr, stab_nsyms, syms, stringPool);
@@ -1255,7 +1253,6 @@ bool parseCompilerType(Object *objPtr)
 		// Use presence of string "IBM VisualAge C++" to confirm
 		//   it's the IBM compiler
 		//
-                //		if (!strncmp("IBM VisualAge C++", compilerName, strlen("IBM VisualAge C++"))) {
                 char *compiler_strings[] = {
                    "IBM.*VisualAge.*C\\+\\+",
                    "IBM.* XL .*C\\+\\+",
@@ -1270,15 +1267,6 @@ bool parseCompilerType(Object *objPtr)
                    }
                    regfree(&reg);
                 }
-                /*
-                if (strstr(compilerName, "IBM") != NULL 
-                    && (strstr(compilerName, "VisualAge") != NULL ||
-                        strstr(compilerName, " XL "))
-                    && strstr(compilerName, "C++") != NULL) {
-		    // bperr( "compiler is IBM C++\n");
-		    return true;
-		}
-                */
    	   }
        }
     }

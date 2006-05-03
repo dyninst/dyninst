@@ -219,10 +219,10 @@ int P_recv(int s, void *buf, size_t len, int flags) {
 
 
 int P_strcasecmp(const char *s1, const char *s2) {
-  return (strcasecmp((char*)s1, (char*)s2));}
+  return (strcasecmp(s1, s2));}
 
 int P_strncasecmp (const char *S1, const char *S2, size_t N) {
-  return (strncasecmp((char*)S1, (char*)S2, N));}
+  return (strncasecmp(S1, S2, N));}
 
 int P_rexec(char **ahost, u_short inport, char *user,
 	    char *passwd, char *cmd, int *fd2p){

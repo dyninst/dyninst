@@ -126,8 +126,8 @@ InstrucIter::InstrucIter(image_basicBlock *b) :
     // The range might be 0.
     if (range) {
         if (current >= (base+range)) {
-            fprintf(stderr, "Error: current 0x%x >= 0x%x (0x%x + 0x%x)\n",
-                    current, base+range, base, range);
+            fprintf(stderr, "Error: current 0x%p >= 0x%p (0x%p + 0x%x)\n",
+                    (void *)current, (void*)(base+range), (void *)base, range);
         assert(current < base+range);
         }
     }

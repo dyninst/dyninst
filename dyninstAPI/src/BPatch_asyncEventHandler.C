@@ -713,7 +713,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
 	
          // This can take some arbitrary amount of time to finish; release lockage.
          int lock_depth = eventlock->depth();
-         for (unsigned i = 0; i < lock_depth; i++) {
+         for (int i = 0; i < lock_depth; i++) {
 	   eventlock->_Unlock(FILE__, __LINE__);
          }
 
@@ -737,7 +737,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
                                                    sizeof(BPatch_newThreadEventRecord));
 	
          async_printf("%s[%d]: read event, retval %d\n", FILE__, __LINE__);
-         for (unsigned i = 0; i < lock_depth; i++) {
+         for (int i = 0; i < lock_depth; i++) {
 	   eventlock->_Lock(FILE__, __LINE__);
          }
 

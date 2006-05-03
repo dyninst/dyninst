@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: sol_proc.h,v 1.4 2006/03/31 20:19:51 bernat Exp $
+// $Id: sol_proc.h,v 1.5 2006/05/03 00:31:22 jodom Exp $
 
 
 /*
@@ -62,6 +62,7 @@
 #define prdelsysset(x,y)      prdelset(x,y)
 #define prissyssetmember(x,y) prismember(x,y)
 #define proc_sigset_t         sigset_t
+#define SYSSET_DECLAREPID(x,y) {}
 #define SYSSET_ALLOC(x)     ((sysset_t *)malloc(sizeof(sysset_t)))
 #define SYSSET_FREE(x)      (free(x))
 #define SYSSET_SIZE(x)      (sizeof(sysset_t))
@@ -78,6 +79,7 @@
 #define PR_BPTADJ           0 // Not defined on AIX
 #define PR_MSACCT           0 // Again, not defined
 #define proc_sigset_t          pr_sigset_t
+#define SYSSET_DECLAREPID(x,y) int x=y
 extern int SYSSET_SIZE(sysset_t *);
 extern sysset_t *SYSSET_ALLOC(int);
 #define SYSSET_FREE(x)      (free(x))

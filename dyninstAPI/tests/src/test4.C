@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test4.C,v 1.35 2006/04/25 17:47:02 jodom Exp $
+// $Id: test4.C,v 1.36 2006/05/03 00:31:24 jodom Exp $
 //
 
 #include <stdio.h>
@@ -446,7 +446,7 @@ void execFunc(BPatch_thread *thread)
     }
 }
 
-void errorFunc(BPatchErrorLevel level, int num, const char **params)
+void errorFunc(BPatchErrorLevel level, int num, const char * const *params)
 {
     if (num == 0) {
         // conditional reporting of warnings and informational messages

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.41 2006/04/25 23:13:10 bernat Exp $
+// $Id: multiTramp.C,v 1.42 2006/05/03 00:31:21 jodom Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -389,10 +389,18 @@ int multiTramp::findOrCreateMultiTramp(Address pointAddr,
 
 // Get the footprint for the multiTramp at this address. The MT may
 // not exist yet; our instrumentation code needs this.
+#if defined(arch_ia64)
+bool multiTramp::getMultiTrampFootprint(Address instAddr,
+                                        process * /* proc */,
+                                        Address &startAddr,
+                                        unsigned &size)
+#else
 bool multiTramp::getMultiTrampFootprint(Address instAddr,
                                         process *proc,
                                         Address &startAddr,
-                                        unsigned &size) {
+                                        unsigned &size)
+#endif
+{
 #if defined(arch_ia64)
     // IA64 bundle-izes
     startAddr = instAddr - (instAddr % 16);
@@ -2044,8 +2052,8 @@ bool generatedCodeObject::alreadyGenerated(codeGen &gen,
                                            Address baseInMutatee) {
     if (generated_) {
         if (gen.currAddr(baseInMutatee) != addrInMutatee_) {
-            fprintf(stderr, "ERROR: current address 0x%x != previous address 0x%x\n",
-                    gen.currAddr(baseInMutatee), addrInMutatee_);
+            fprintf(stderr, "ERROR: current address 0x%p != previous address 0x%p\n",
+                    (void *)gen.currAddr(baseInMutatee), (void *)addrInMutatee_);
         }
         assert(gen.currAddr(baseInMutatee) == addrInMutatee_);
         assert(size_);

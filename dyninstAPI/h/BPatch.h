@@ -64,7 +64,7 @@ typedef enum {
 
 typedef void (*BPatchErrorCallback)(BPatchErrorLevel severity,
 				    int number,
-				    const char **params);
+				    const char * const *params);
 
 typedef void (*BPatchDynLibraryCallback)(BPatch_thread *proc,
 					 BPatch_module *mod,
@@ -264,7 +264,7 @@ public:
 
     static const char *getEnglishErrorString(int number);
     static void formatErrorString(char *dst, int size,
-				  const char *fmt, const char **params);
+				  const char *fmt, const char * const *params);
 
     // BPatch::isTypeChecked:
     // returns whether type checking is on.

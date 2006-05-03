@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.26 2006/04/07 15:01:02 jaw Exp $
+ * $Id: RTposix.c,v 1.27 2006/05/03 00:31:25 jodom Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -222,8 +222,13 @@ try_again:
   }
   if (res != sz) {
     /*  maybe we need logic to handle partial writes? */
+#if defined(os_linux)
+    fprintf(stderr, "%s[%d]:  partial ? write error, %d bytes, should be %zd\n",
+            __FILE__, __LINE__, res, sz);
+#else
     fprintf(stderr, "%s[%d]:  partial ? write error, %d bytes, should be %d\n",
             __FILE__, __LINE__, res, sz);
+#endif
     return -1;
   }
   return 0;

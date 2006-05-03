@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTmutatedBinary_ELF.c,v 1.23 2006/03/29 00:57:27 mjbrim Exp $ */
+/* $Id: RTmutatedBinary_ELF.c,v 1.24 2006/05/03 00:31:25 jodom Exp $ */
 
 /* this file contains the code to restore the necessary
    data for a mutated binary 
@@ -520,7 +520,7 @@ int checkMutatedFile(){
 	Elf_Data *elfData,*strData;
 	Elf_Scn *scn;
 	char *execStr;
-	int retVal = 0, result;
+	int retVal = 0;
 	unsigned long mmapAddr;
 	int pageSize;
 	Address dataAddress;
@@ -552,18 +552,18 @@ int checkMutatedFile(){
         exit(1);
      }
 
-     Elf_version = dlsym(elfHandle, "elf_version");
-     Elf_begin = dlsym(elfHandle, "elf_begin");
-     Elf_getscn = dlsym(elfHandle, "elf_getscn");
-     Elf_nextscn = dlsym(elfHandle, "elf_nextscn");
-     Elf_getdata = dlsym(elfHandle, "elf_getdata");
-     Elf32_getehdr = dlsym(elfHandle, "elf32_getehdr");
-     Elf32_getshdr = dlsym(elfHandle, "elf32_getshdr");
-     Elf64_getehdr = dlsym(elfHandle, "elf64_getehdr");
-     Elf64_getshdr = dlsym(elfHandle, "elf64_getshdr");
-     Elf_errmsg = dlsym(elfHandle, "elf_errmsg");
-     Elf_errno = dlsym(elfHandle, "elf_errno");
-     Elf_end = dlsym(elfHandle, "elf_end");
+     Elf_version = (unsigned (*)(unsigned)) dlsym(elfHandle, "elf_version");
+     Elf_begin = (Elf *(*)(int,Elf_Cmd,Elf *)) dlsym(elfHandle, "elf_begin");
+     Elf_getscn = (Elf_Scn *(*)(Elf *, size_t)) dlsym(elfHandle, "elf_getscn");
+     Elf_nextscn = (Elf_Scn *(*)(Elf *, Elf_Scn *)) dlsym(elfHandle, "elf_nextscn");
+     Elf_getdata = (Elf_Data *(*)(Elf_Scn *, Elf_Data *)) dlsym(elfHandle, "elf_getdata");
+     Elf32_getehdr = (Elf32_Ehdr *(*)(Elf *)) dlsym(elfHandle, "elf32_getehdr");
+     Elf32_getshdr = (Elf32_Shdr *(*)(Elf_Scn *)) dlsym(elfHandle, "elf32_getshdr");
+     Elf64_getehdr = (Elf64_Ehdr *(*)(Elf *)) dlsym(elfHandle, "elf64_getehdr");
+     Elf64_getshdr = (Elf64_Shdr *(*)(Elf_Scn *)) dlsym(elfHandle, "elf64_getshdr");
+     Elf_errmsg = (const char *(*)(int)) dlsym(elfHandle, "elf_errmsg");
+     Elf_errno = (int (*)(void)) dlsym(elfHandle, "elf_errno");
+     Elf_end = (int (*)(Elf *)) dlsym(elfHandle, "elf_end");
 
 	Elf_version(EV_CURRENT);
 
@@ -684,7 +684,6 @@ int checkMutatedFile(){
 			char *soNames;
 			int mutatedFlag = 0;
 			int totallen=0;
-			__Elf_Dyn *_dyn = (__Elf_Dyn*)& _DYNAMIC;	
 #if defined(sparc_sun_solaris2_4)
 			Link_map *lmap=0;
 #elif defined(i386_unknown_linux2_0) \
@@ -731,7 +730,6 @@ int checkMutatedFile(){
 		}
 		if(!strcmp((char *)strData->d_buf + shdr->sh_name, "rtlib_addr")){
 			unsigned int ptr;
-			int foundLib = 0, result;
 			int done = 0;
 
 
@@ -800,8 +798,9 @@ int checkMutatedFile(){
 		}
 		if(!strcmp((char *)strData->d_buf + shdr->sh_name, "dyninstAPI_SharedLibraries")){
 			unsigned long diffAddr;
-			unsigned long ld_linuxBaseAddr, baseAddr, size;
+			unsigned long ld_linuxBaseAddr;
 #if defined(sparc_sun_solaris2_4)
+                        unsigned long baseAddr, size;
 			unsigned int *overWriteInsn;
 			unsigned int *pltEntry, *PLTEntry, *dyninst_jump_templatePtr, pltInsn, tmpAddr;
 			unsigned int BA_MASK=0x30800000;
@@ -810,9 +809,9 @@ int checkMutatedFile(){
 			unsigned int JMP_IMM =0x00001fff;
 			unsigned int offset, callInsn;
 			struct sigaction  mysigact, oldsigact;
+			int result;
 #endif
 			char *ptr;
-			int foundLib = 0, result;
 			int done = 0;
 
 
@@ -930,7 +929,7 @@ int checkMutatedFile(){
 				tmpAddr = ((*pltEntry) & SETHI_IMM)<<10;
 				pltEntry ++;
 				tmpAddr += ((*pltEntry) & JMP_IMM);
-				PLTEntry = tmpAddr;
+				PLTEntry = (unsigned int *) tmpAddr;
 				pltEntry --;
 			}
 
@@ -1119,8 +1118,6 @@ int checkMutatedFile(){
 			/* this section loads shared libraries into the mutated binary
 				that were loaded by BPatch_thread::loadLibrary */
 			void * handle =NULL;
-			Dl_info p;
-			unsigned long loadAddr;
 			elfData = Elf_getdata(scn, NULL);
 			tmpPtr = elfData->d_buf;
 
@@ -1128,7 +1125,9 @@ int checkMutatedFile(){
 				handle = dlopen(tmpPtr, RTLD_LAZY);
 				if(handle){
 #if defined(sparc_sun_solaris2_4)
+                                        Dl_info p;
 					dlinfo(handle, RTLD_DI_CONFIGADDR,(void*) &p);
+                                        unsigned long loadAddr;
 					loadAddr = checkSOLoadAddr(tmpPtr,(unsigned long)p.dli_fbase);
 					if(loadAddr){
 						fixInstrumentation(tmpPtr,(unsigned long)p.dli_fbase, loadAddr);

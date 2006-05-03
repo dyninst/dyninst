@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test10.C,v 1.7 2006/04/25 17:47:01 jodom Exp $
+// $Id: test10.C,v 1.8 2006/05/03 00:31:23 jodom Exp $
 //
 // libdyninst validation suite test #10
 //    Author: Jeff Hollingsworth Williams (14 aug 2003) 
@@ -122,7 +122,7 @@ void dprintf(const char *fmt, ...) {
 
 int expectError = DYNINST_NO_ERROR;
 
-void errorFunc(BPatchErrorLevel level, int num, const char **params)
+void errorFunc(BPatchErrorLevel level, int num, const char * const *params)
 {
     if (num == 0) {
         // conditional reporting of warnings and informational messages
@@ -454,8 +454,6 @@ int main(unsigned int argc, char *argv[])
         strcat(mutateeName,"_gcc");
 #endif
     int retVal = mutatorMAIN(mutateeName);
-
-    int testsFailed=0;
 
     return retVal;
 }

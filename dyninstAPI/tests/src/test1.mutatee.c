@@ -41,7 +41,7 @@
 
 /* Test application (Mutatee) */
 
-/* $Id: test1.mutatee.c,v 1.125 2006/04/26 03:43:04 jaw Exp $ */
+/* $Id: test1.mutatee.c,v 1.126 2006/05/03 00:31:23 jodom Exp $ */
 
 #include <stdio.h>
 #include <assert.h>
@@ -1950,7 +1950,7 @@ int func30_1()
 
 		      if (!passedTest[30]){
 			printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
-			printf("gv30_5 = %d, gv30_2 = %d, gv30_9 = %d\n", globalVariable30_5,
+			printf("gv30_5 = %lu, gv30_2 = %lu, gv30_9 = %lu\n", globalVariable30_5,
 			       globalVariable30_2, globalVariable30_9);
 			return 0;
 		      }
@@ -1959,7 +1959,7 @@ int func30_1()
 		     (globalVariable30_1 == globalVariable30_6);
     if (!passedTest[30]){
     	printf("**Failed** test #30 (line information) in %s[%d]\n", __FILE__, __LINE__ );
-	printf("gv30_6 = %d, gv30_1 = %d, should be equal and nonzero!\n", globalVariable30_6,
+	printf("gv30_6 = %lu, gv30_1 = %lu, should be equal and nonzero!\n", globalVariable30_6,
 	       globalVariable30_1);
 	return 0;
     }
@@ -2870,43 +2870,3 @@ void runTests()
 
     fprintf(stderr, "Finished running tests\n");
 }
-
-
-typedef int   matt_int;
-typedef int*  matt_pint;
-typedef char  matt_char;
-typedef char* matt_pchar;
-typedef long long int matt_llint;
-typedef struct {
-	int a;
-	int *b;
-	char c;
-	struct {
-		int sa;
-		int sb;
-		char sc;
-	} d;
-	unsigned long int e	;
-	int f;
-} matt_struct;
-
-#if 1
-struct matt_recursive {
-    struct matt_recursive *next;
-};
-
-struct matt_recursive matt_vrecurse;
-#endif
-
-matt_int matt_vint;
-matt_pint matt_vpint;
-matt_char matt_vchar;
-matt_struct matt_vstruct;
-matt_pchar matt_vpchar;
-matt_llint matt_vllint;
-typedef void (*mattfoo)(void(*)(void), int);
-
-mattfoo mattbar(mattfoo a, mattfoo b) {
-    return NULL;
-}
-

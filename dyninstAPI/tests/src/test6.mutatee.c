@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: test6.mutatee.c,v 1.29 2005/12/12 16:37:12 gquinn Exp $ */
+/* $Id: test6.mutatee.c,v 1.30 2006/05/03 00:31:24 jodom Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -337,7 +337,8 @@ void reduceCC(const struct reduction x)
 
 void init_test_data()
 {
-  int caps, i;
+  int caps;
+  unsigned int i;
 
   dprintf("&divarw = %p\n", &divarw);
   dprintf("&dfvars = %p\n", &dfvars);
@@ -680,7 +681,7 @@ int validateEA(void* ea1[], void* ea2[], unsigned int n)
   for(; i<n; ++i) {
     ok = (ok && ((ea1[i] == ea2[i]) || ea1[i] == NULL));
     if(!ok) {
-      printf("EA Validation failed at access #%d. Expecting: %lx. Got: %lx.\n", i+1, ea1[i], ea2[i]);
+      printf("EA Validation failed at access #%d. Expecting: %p. Got: %p.\n", i+1, ea1[i], ea2[i]);
       return 0;
     }
   }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_function.C,v 1.77 2006/04/04 16:55:47 bernat Exp $
+// $Id: BPatch_function.C,v 1.78 2006/05/03 00:31:18 jodom Exp $
 
 #define BPATCH_FILE
 
@@ -656,9 +656,11 @@ void BPatch_function::calc_liveness(BPatch_point *point) {
     instPoint *iP = point->getPoint();
     assert(iP);
     Address pA = iP->addr();
+    /*
     int *liveRegisters = iP->liveRegisters;
     int *liveFPRegisters = iP->liveFPRegisters;
     int *liveSPRegisters = iP->liveSPRegisters;
+    */
     
     // BEGIN LIVENESS ANALYSIS STUFF
     // Need to narrow it down to specific basic block at this point so we can 
@@ -683,7 +685,7 @@ void BPatch_function::calc_liveness(BPatch_point *point) {
     BPatch_basicBlock** elements = new BPatch_basicBlock*[allBlocks.size()];
     allBlocks.elements(elements);
     
-    for (int i = 0; i < allBlocks.size(); i++) {
+    for (unsigned int i = 0; i < allBlocks.size(); i++) {
         
       BPatch_basicBlock *bb = elements[i];
       int_basicBlock *ibb = bb->lowlevel_block();
@@ -757,7 +759,7 @@ bool BPatch_function::getLineAndFileInt( unsigned int & start, unsigned int & en
 	} /* end getLineAndFile() */
 
 /* This function should be deprecated. */
-bool BPatch_function::getLineToAddrInt( unsigned short lineNo, BPatch_Vector< unsigned long > & buffer, bool exactMatch ) {
+bool BPatch_function::getLineToAddrInt( unsigned short lineNo, BPatch_Vector< unsigned long > & buffer, bool /* exactMatch */ ) {
 	std::vector< std::pair< unsigned long, unsigned long > > ranges;
 	if( ! mod->getAddressRanges( NULL, lineNo, ranges ) ) { return false; }
 	

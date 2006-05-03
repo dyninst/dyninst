@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.103 2006/04/24 23:38:42 mjbrim Exp $
+// $Id: linux-x86.C,v 1.104 2006/05/03 00:31:21 jodom Exp $
 
 #include <fstream>
 
@@ -175,7 +175,7 @@ bool dyn_lwp::changePC(Address loc,
    assert(get_lwp_id() != 0);
    int ptrace_errno = 0;
    if (0 != DBI_ptrace(PTRACE_POKEUSER, get_lwp_id(), regaddr, loc, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__ )) {
-      fprintf(stderr, "dyn_lwp::changePC - PTRACE_POKEUSER failure for %lu",
+      fprintf(stderr, "dyn_lwp::changePC - PTRACE_POKEUSER failure for %u",
               get_lwp_id());
       return false;
    }

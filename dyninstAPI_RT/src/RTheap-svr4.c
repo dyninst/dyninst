@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTheap-svr4.c,v 1.2 2004/03/23 01:12:16 eli Exp $ */
+/* $Id: RTheap-svr4.c,v 1.3 2006/05/03 00:31:25 jodom Exp $ */
 /* RTheap-svr4.c: heap management for SVR4 platforms */
 
 #include <stdio.h>
@@ -47,6 +47,7 @@
 #include <fcntl.h>      /* open */
 #include <sys/types.h>  /* getpid, open */
 #include <unistd.h>     /* getpid, ioctl */
+#include <stdlib.h>     /* malloc, free */
 #include "RTheap.h"     /* dyninstmm_t */
 
 int

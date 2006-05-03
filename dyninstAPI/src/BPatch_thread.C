@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.155 2006/04/27 21:13:52 jodom Exp $
+// $Id: BPatch_thread.C,v 1.156 2006/05/03 00:31:18 jodom Exp $
 
 #define BPATCH_FILE
 
@@ -289,7 +289,7 @@ BPatch_function *BPatch_thread::getInitialFuncInt()
              initial_func = stackWalk[pos].findFunction();
              stack_start = (unsigned long) stackWalk[pos].getFP();
           } else if (!strcmp(fname,"start_thread") &&
-                     pos < stackWalk.size() - 2 &&
+                     pos < (int) stackWalk.size() - 2 &&
                      stackWalk[pos+2].findFunction() &&
                      !strcmp(stackWalk[pos+2].findFunction()->getName(pfname, 2048), "clone")) {
              initial_func = stackWalk[pos].findFunction();

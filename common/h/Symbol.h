@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: Symbol.h,v 1.19 2004/03/23 01:11:52 eli Exp $
+ * $Id: Symbol.h,v 1.20 2006/05/03 00:31:17 jodom Exp $
  * Symbol.h: symbol table objects.
 ************************************************************************/
 
@@ -116,7 +116,7 @@ public:
    
     unsigned            size ()               const;
     bool              kludge ()               const;
-    SymbolTag&           tag ()               const;
+    SymbolTag            tag ()               const;
     void	change_size(unsigned ns){ size_ = ns;}
     void	setModule(pdstring& module) { module_ = module; }
 
@@ -248,9 +248,9 @@ Symbol::size() const {
 }
 
 inline
-Symbol::SymbolTag&
+Symbol::SymbolTag
 Symbol::tag() const {
-    return (SymbolTag &) tag_;
+    return tag_;
 }
 
 inline

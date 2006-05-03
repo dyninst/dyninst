@@ -130,7 +130,7 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
    int result;
 
    pthread_t pthread_id;
-   pthread_id = dyn_pthread_self();
+   pthread_id = (pthread_t) dyn_pthread_self();
 
    result = dyn_pthread_getthrds_np(&pthread_id, PTHRDSINFO_QUERY_ALL,
                                     &pthread_desc, pthread_desc_size,
@@ -185,7 +185,7 @@ dyntid_t dyn_pthread_self()
 {
    if (!DYNINST_pthread_self_record.func)
    {
-      return DYNINST_SINGLETHREADED;
+      return (void *) DYNINST_SINGLETHREADED;
    }
    return (*DYNINST_pthread_self)();
 }

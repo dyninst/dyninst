@@ -58,7 +58,6 @@ unsigned thread_count;
 static char dyn_tids[NUM_THREADS];
 static long pthread_ids[NUM_THREADS];
 static char deleted_tids[NUM_THREADS];
-static int deleted_threads;
 
 bool debug_flag = false;
 #define dprintf if (debug_flag) fprintf

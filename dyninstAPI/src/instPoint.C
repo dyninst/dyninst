@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: instPoint.C,v 1.22 2006/04/21 18:57:01 nater Exp $
+// $Id: instPoint.C,v 1.23 2006/05/03 00:31:20 jodom Exp $
 // instPoint code
 
 
@@ -538,12 +538,12 @@ bool instPoint::checkInst(pdvector<Address> &checkPCs) {
                 // catch and transfer.
                 if (pc < (mt->instAddr() + mt->branchSize())) {
                     // We're in the jump area, conflict.
-                    fprintf(stderr, "MT conflict (MT from 0x%x to 0x%x, 0x%x to 0x%x dangerous), PC 0x%x\n",
-                            mt->instAddr(),
-                            mt->instAddr() + mt->instSize(), 
-                            mt->instAddr(),
-                            mt->instAddr() + mt->branchSize(),
-                            pc);
+                    fprintf(stderr, "MT conflict (MT from 0x%p to 0x%p, 0x%p to 0x%p dangerous), PC 0x%p\n",
+                            (void *)mt->instAddr(),
+                            (void *)(mt->instAddr() + mt->instSize()), 
+                            (void *)mt->instAddr(),
+                            (void *)(mt->instAddr() + mt->branchSize()),
+                            (void *)pc);
                     return false;
                 }
             }

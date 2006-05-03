@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: ast.C,v 1.168 2006/04/04 17:32:22 rutar Exp $
+// $Id: ast.C,v 1.169 2006/05/03 00:31:19 jodom Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "dyninstAPI/src/process.h"
@@ -167,8 +167,13 @@ void registerSpace::initFloatingPointRegisters(const unsigned int count, Registe
     }
 }
 
+#if !defined(arch_power) && !defined(arch_ia64)
 bool registerSpace::allocateSpecificRegister(codeGen &gen, Register reg, 
                                              bool noCost)
+#else
+bool registerSpace::allocateSpecificRegister(codeGen & /* gen */, Register reg, 
+                                             bool /* noCost */)
+#endif
 {
     if (registers[reg].refCount != 0) {
         return false;
@@ -189,7 +194,13 @@ bool registerSpace::allocateSpecificRegister(codeGen &gen, Register reg,
     return true;
 }
 
+#if !defined(rs6000_ibm_aix4_1) \
+ && !defined(ia64_unknown_linux2_4) \
+ && !defined(arch_x86_64)
 Register registerSpace::allocateRegister(codeGen &gen, bool noCost) 
+#else
+Register registerSpace::allocateRegister(codeGen & /* gen */, bool /* noCost */) 
+#endif
 {
 
   unsigned i;

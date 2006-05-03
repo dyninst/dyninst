@@ -41,7 +41,7 @@
 
 #include "dyninstAPI_RT/src/RTthread.h"
 
-int atomic_set(int *val)
+int atomic_set(volatile int *val)
 {
    static long result;
 #if defined(MUTATEE_32)

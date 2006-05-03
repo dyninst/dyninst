@@ -162,7 +162,7 @@ void refreshButtonHandler(ClientData clientData,XEvent* eventPtr);
 void graphUpdateProcedure(ClientData clientData){
 
 	char buffer[1024];
-        CodeCoverage* codeCoverage = ((ARGS*)clientData)->codeCoverage;
+        //CodeCoverage* codeCoverage = ((ARGS*)clientData)->codeCoverage;
 	Tcl_Interp* interp = ((ARGS*)clientData)->interp;
 	
 	refreshButtonHandler(clientData,NULL);
@@ -182,7 +182,7 @@ void graphUpdateProcedure(ClientData clientData){
 	Tcl_CreateTimerHandler(5000,graphUpdateProcedure,clientData);
 }
 
-void refreshButtonHandler(ClientData clientData,XEvent* eventPtr){
+void refreshButtonHandler(ClientData clientData,XEvent* /* eventPtr */){
 	/*
 	if(!eventPtr)
 		return;
@@ -395,8 +395,8 @@ void printUsage(char* s,bool d=false){
 }
 
 /** main function */
-int main(int argc,char* argv[]){
 #ifdef sparc_sun_solaris2_4
+int main(int argc,char* argv[]){
 
 	bool useInterface = false;
 	bool useDominator = false;
@@ -574,6 +574,7 @@ int main(int argc,char* argv[]){
 
 	return Error_OK;
 #else
+int main(int /* argc */,char* argv[]){
 	cerr << endl
 	     << "IMPORTANT Information : " << endl
 	     << "\tCodeCoverage Tool is not implemented for" << endl

@@ -212,7 +212,7 @@ BPatch_flowGraph::findLoopInstPointsInt(const BPatch_procedureLocation loc,
      */
 
     if (DEBUG_LOOP) 
-	fprintf(stderr,"%s findLoopInstPoints 0x%x\n",
+	fprintf(stderr,"%s findLoopInstPoints 0x%p\n",
 		ll_func()->prettyName().c_str(), loop);
 
     BPatch_Vector<BPatch_point*> *points = new BPatch_Vector<BPatch_point *>;
@@ -961,10 +961,10 @@ BPatch_flowGraph::dump()
     BPatch_basicBlock **blocks = new BPatch_basicBlock *[allBlocks.size()];
     allBlocks.elements(blocks);
     for (unsigned i=0; i < allBlocks.size(); i++) {
-        fprintf(stderr,"[%u 0x%x 0x%x]\n",
+        fprintf(stderr,"[%u 0x%p 0x%p]\n",
                 blocks[i]->blockNo(),
-                blocks[i]->getStartAddress(), 
-                blocks[i]->getEndAddress());
+                (void *)blocks[i]->getStartAddress(), 
+                (void *)blocks[i]->getEndAddress());
         
     }
 

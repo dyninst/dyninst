@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.626 2006/05/02 19:53:26 bernat Exp $
+// $Id: process.C,v 1.627 2006/05/03 00:31:21 jodom Exp $
 
 #include <ctype.h>
 
@@ -365,9 +365,9 @@ void process::inferiorFreeCompact(inferiorHeap *hp)
       heapItem *h2 = freeList[i];
       assert(h1->length != 0);
       if (h1->addr + h1->length > h2->addr) {
-          fprintf(stderr, "Error: heap 1 (0x%lx to 0x%lx) overlaps heap 2 (0x%lx to 0x%lx)\n",
-                  h1->addr, h1->addr + h1->length,
-                  h2->addr, h2->addr + h2->length);
+          fprintf(stderr, "Error: heap 1 (0x%p to 0x%p) overlaps heap 2 (0x%p to 0x%p)\n",
+                  (void *)h1->addr, (void *)(h1->addr + h1->length),
+                  (void *)h2->addr, (void *)(h2->addr + h2->length));
       }
       assert(h1->addr + h1->length <= h2->addr);
       if (h1->addr + h1->length == h2->addr
@@ -3391,8 +3391,8 @@ bool process::isValidAddress(Address addr) {
         return true;
     if (dataSections_.find(addr, dontcare))
         return true;
-    fprintf(stderr, "Warning: address 0x%lx not valid!\n",
-            addr);
+    fprintf(stderr, "Warning: address 0x%p not valid!\n",
+            (void *)addr);
     return false;
 }        
 
@@ -4690,7 +4690,7 @@ bool process::dumpMemory(void * addr, unsigned nbytes)
        return false;
     }
 
-    fprintf(stderr, "## 0x%lx:\n", (long)addr-32);
+    fprintf(stderr, "## 0x%p:\n", (void *)((long)addr-32));
     for (unsigned u = 0; u < nbytes; u++)
     {
             fprintf(stderr, " %x", buf[u]);
@@ -4702,7 +4702,7 @@ bool process::dumpMemory(void * addr, unsigned nbytes)
        return false;
     }
 
-    fprintf(stderr, "## %p:\n", addr);
+    fprintf(stderr, "## 0x%p:\n", addr);
     for (unsigned u1 = 0; u1 < nbytes; u1++)
     {
             fprintf(stderr, " %x", buf[u1]);

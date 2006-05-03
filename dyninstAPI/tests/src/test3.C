@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test3.C,v 1.43 2006/04/25 17:47:02 jodom Exp $
+// $Id: test3.C,v 1.44 2006/05/03 00:31:24 jodom Exp $
 //
 // libdyninst validation suite test #3
 //    Author: Jeff Hollingsworth (6/18/99)
@@ -115,7 +115,7 @@ void dprintf(const char *fmt, ...) {
 
 int expectError = DYNINST_NO_ERROR;
 
-void errorFunc(BPatchErrorLevel level, int num, const char **params)
+void errorFunc(BPatchErrorLevel level, int num, const char * const *params)
 {
     if (num == 0) {
         // conditional reporting of warnings and informational messages

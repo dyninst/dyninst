@@ -1016,7 +1016,7 @@ BPatchSnippetHandle *BPatch_process::insertSnippetAtPointsWhen(const BPatch_snip
 
 #if defined(os_aix) || defined(arch_x86_64)
         // Toss the const; the function _pointer_ doesn't though.
-        BPatch_function *func = (BPatch_function *) point->getFunction();
+        BPatch_function *func = point->getFunction();
         func->calc_liveness(point);
 #endif 
         

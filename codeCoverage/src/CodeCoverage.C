@@ -123,8 +123,8 @@ CodeCoverage::~CodeCoverage()
 /** error printing function that overrides dyninst default 
   * function
   */
-void codeCoverageError(BPatchErrorLevel level,
-                       int num,const char **params)
+void codeCoverageError(BPatchErrorLevel /* level */,
+                       int /* num */, const char * const * /* params */)
 { }
 
 /** this method initializes the necessary data structures and

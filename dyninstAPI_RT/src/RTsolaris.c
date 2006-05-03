@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTsolaris.c,v 1.28 2006/04/20 21:53:08 bernat Exp $
+ * $Id: RTsolaris.c,v 1.29 2006/05/03 00:31:25 jodom Exp $
  * RTsolaris.c: mutatee-side library function specific to Solaris
  ************************************************************************/
 
@@ -55,6 +55,8 @@
 #include <sys/procfs.h> /* /proc PIOCUSAGE */
 #include <fcntl.h> /* O_RDONLY */
 #include <unistd.h> /* getpid() */
+#include <string.h>
+#include <stdlib.h>
 
 
 #ifdef i386_unknown_solaris2_5
@@ -254,7 +256,7 @@ void DYNINST_ThreadPInfo(void* tls, void** stkbase, long *pc)
     return;
   }
 
-  *stkbase = tls_int[positions[w].stck_start_pos];
+  *stkbase = (void *) tls_int[positions[w].stck_start_pos];
   *pc = tls_int[positions[w].start_func_pos];
 
   return;

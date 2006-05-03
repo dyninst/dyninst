@@ -1884,7 +1884,7 @@ bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal)
     
     // We can't iterate over eventlock->depth(); we unlock, someone else locks...
     // TODO: make this an eventLock method: "completely release"
-    for (unsigned i = 0; i < lock_depth; i++) {
+    for (int i = 0; i < lock_depth; i++) {
         eventlock->_Unlock(FILE__, __LINE__);
     }
 

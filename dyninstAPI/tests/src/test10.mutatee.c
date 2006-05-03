@@ -190,7 +190,7 @@ void call0()
 void call1()
 {
     passedTest[1] = TRUE;
-    printf("\Skipped test #1 N/A\n");
+    printf("\nSkipped test #1 N/A\n");
 }
 
 void call2()

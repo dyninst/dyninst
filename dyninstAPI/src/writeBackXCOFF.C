@@ -113,7 +113,7 @@ void writeBackXCOFF::parseXCOFF(XCOFF *file){
 
 writeBackXCOFF::writeBackXCOFF(const char* oldFileName, const char* newFileName,bool &error, 
 	bool debugOutputFlag, int numbScns)
-	: maxSections(numbScns), numberSections(0), debugFlag(debugOutputFlag) {
+	: numberSections(0), maxSections(numbScns), debugFlag(debugOutputFlag) {
 
 
 	oldFile.name = new char[strlen(oldFileName)+1];
@@ -179,10 +179,6 @@ int writeBackXCOFF::addSection(char *name, unsigned int paddr,
 	newSections[numberSections].s_flags = flags;	
 
 	return numberSections++;
-}
-
-bool writeBackXCOFF::setHeapAddr(unsigned int heapAddr){
-
 }
 
 //calculate offsets; return total size of the file (MINUS the new sections!)
@@ -329,7 +325,7 @@ bool writeBackXCOFF::createXCOFF(){
 				
 	int trueTextStart; 	// in fortan execs made by xlcf the start address of the
 				// text section is 0x0, but the loader (appears to) default to 0x1000000+ 92 + (fnscns * 40)
-	char *newFileCurrent, *oldFileCurrent;
+	char *newFileCurrent;
 	struct scnhdr *tmpScnhdr, *oldTextScnhdr;
 
 	struct xcoffhdr *OldXCOFFhdr = (struct xcoffhdr*) oldFile.buffer;
@@ -479,6 +475,8 @@ bool writeBackXCOFF::createXCOFF(){
 
 	newFile.filesize = totalSize;
 	delete [] addedSectionHeader;
+
+        return true;
 }
 
 /*
@@ -554,13 +552,12 @@ struct scnhdr *writeBackXCOFF::addSectionHeader(char *newFileCurrent, char* name
 	//copy over section raw data.
 	//for each section
 
-void  writeBackXCOFF::copySectionData(int offSet){
+void  writeBackXCOFF::copySectionData(int /* offSet */){
 
 	struct scnhdr *shdr = oldFile.sechdr;
 	struct scnhdr *shdrNew = newFile.sechdr; //ccw 1 aug 2002
 
 	char *newTmp = newFile.buffer;
-	int foundText = 0;
 	int f_nscns = oldFile.XCOFFhdr->filehdr.f_nscns;
 	char *tmpBuf;
 
@@ -591,10 +588,9 @@ void  writeBackXCOFF::copySectionData(int offSet){
 			memcpy( &(newTmp[shdrNew->s_scnptr/*shdr->s_scnptr + offSet*/]), oldFile.buffer+shdr->s_scnptr, shdr->s_size);
 		}
 	}
-
 } 
 
-void writeBackXCOFF::copyRelocationData(int offSet){
+void writeBackXCOFF::copyRelocationData(int /* offSet */){
 
 	char *newFileStart = newFile.buffer;
 	char *oldFileStart = oldFile.buffer;
@@ -615,7 +611,7 @@ void writeBackXCOFF::copyRelocationData(int offSet){
 
 	//copy over the line number data as specified in the 
 	//section headers
-void writeBackXCOFF::copyLineNumberData(int offSet){
+void writeBackXCOFF::copyLineNumberData(int /* offSet */){
 
 	char *newFileStart = newFile.buffer;
 	char *oldFileStart = oldFile.buffer;
@@ -634,13 +630,12 @@ void writeBackXCOFF::copyLineNumberData(int offSet){
 
 
 	//copy over the symbol table data
-void* writeBackXCOFF::copySymbolTableData(int offSet){
+void* writeBackXCOFF::copySymbolTableData(int /* offSet */){
 
 	char *newFileStart = newFile.buffer;
 	char *oldFileStart = oldFile.buffer;
 	struct filehdr hdr = oldFile.XCOFFhdr->filehdr;
 	struct filehdr hdrNew = newFile.XCOFFhdr->filehdr; //ccw 1 aug 2002
-	char *tmpNew, *tmpOld;
 	int symentSize = 18;
 	int *len;
 
@@ -681,4 +676,6 @@ bool writeBackXCOFF::outputXCOFF(){
 	write(newFile.fd, (void*) newFile.buffer, newFile.filesize);
 
 	P_close(newFile.fd);
+       
+        return true;
 }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.198 2006/05/02 19:17:27 bernat Exp $
+// $Id: unix.C,v 1.199 2006/05/03 00:31:22 jodom Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -509,8 +509,6 @@ bool SignalGenerator::waitForEventsInternal(pdvector<EventRecord> &events)
   
   __LOCK;
   waitingForOS_ = false;
-
-  int handled_fds = 0;
 
   if (num_selected_fds < 0) {
     ret = false;
@@ -1064,11 +1062,19 @@ bool setEnvPreload(unsigned max_entries, char **envs, unsigned *pnum_entries)
  ****************************************************************************/
 
 //bool SignalGenerator::forkNewProcess()
+#ifndef BPATCH_LIBRARY
 bool forkNewProcess_real(pdstring file,
                     pdstring dir, pdvector<pdstring> *argv,
                     pdvector<pdstring> *envp,
                     pdstring inputFile, pdstring outputFile, int &traceLink,
                     pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd)
+#else
+bool forkNewProcess_real(pdstring file,
+                    pdstring /* dir */, pdvector<pdstring> *argv,
+                    pdvector<pdstring> *envp,
+                    pdstring /* inputFile */, pdstring /* outputFile */, int &/* traceLink */,
+                    pid_t &pid, int stdin_fd, int stdout_fd, int stderr_fd)
+#endif
 {
   forkexec_printf("%s[%d][%s]:  welcome to forkNewProcess(%s)\n",
           __FILE__, __LINE__, getThreadStr(getExecThreadID()), file.c_str());
@@ -1351,7 +1357,7 @@ bool SignalGenerator::waitForStopInline()
        pfds[0].events = POLLPRI;
        pfds[0].revents = 0;
 
-       int num_selected_fds = poll(pfds, 1, timeout);
+       poll(pfds, 1, timeout);
    }
 
    return true;
@@ -1406,7 +1412,11 @@ bool WriteDataSpaceCallback::execute_real()
   return true;
 }
 
+#if defined (os_linux)
 bool DBI_writeDataSpace(pid_t pid, Address addr, int nelem, Address data, int word_len, const char *file, unsigned int line)
+#else
+bool DBI_writeDataSpace(pid_t pid, Address addr, int nelem, Address data, int /* word_len */, const char * /* file */, unsigned int /* line */)
+#endif
 {
 #if defined (os_linux)
   dbi_printf("%s[%d]: DBI_writeDataSpace(%d, %p, %d, %p, %d) called from %s[%d]\n", 
@@ -1477,7 +1487,11 @@ bool DebuggerInterface::readDataSpace(pid_t pid, Address addr, int nbytes, Addre
   return ret;
 }
 
+#if defined (os_linux)
 bool DBI_readDataSpace(pid_t pid, Address addr, int nelem, Address data, int word_len, const char *file, unsigned int line)
+#else
+bool DBI_readDataSpace(pid_t pid, Address addr, int nelem, Address data, int /* word_len */, const char *file, unsigned int line)
+#endif
 {
   bool ret = false;
 #if defined (os_linux)

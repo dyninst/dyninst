@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.46 2006/02/22 21:52:35 bernat Exp $
+// $Id: solarisDL.C,v 1.47 2006/05/03 00:31:22 jodom Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -392,10 +392,8 @@ pdvector<Address> *dynamic_linking::getLinkMapAddrs() {
 // the change_type value is set to indicate if the objects have been added 
 // or removed
 bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &ev,
-                                                       u_int &change_type) 
+                                                       u_int & /* change_type */) 
 {
-   struct dyn_saved_regs regs;
-
    // multi-threaded: possible one of many threads hit the breakpoint
 
    pdvector<Frame> activeFrames;

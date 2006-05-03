@@ -133,7 +133,7 @@ int64_t timeUnit::cvtTo_ns(int64_t units) const {
 }
 
 double timeUnit::cvtFrom_nsD(int64_t nsec) const {
-  return (fraction &)units_per_ns * (double)nsec;
+  return units_per_ns * (double)nsec;
 }
 
 int64_t timeUnit::cvtFrom_nsI(int64_t nsec) const {

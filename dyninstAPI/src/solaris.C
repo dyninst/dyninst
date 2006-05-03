@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solaris.C,v 1.201 2006/04/26 14:04:51 chadd Exp $
+// $Id: solaris.C,v 1.202 2006/05/03 00:31:22 jodom Exp $
 
 #include "dyninstAPI/src/symtab.h"
 #include "common/h/headers.h"
@@ -234,7 +234,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 	unsigned int dl_debug_statePltEntry = 0x00016574;//a pretty good guess
 	unsigned int dyninst_SharedLibrariesSize = 0, mutatedSharedObjectsNumb;
 
-	newElf = new writeBackElf((char*) mapped_objects[0]->fullName().c_str(),
+	newElf = new writeBackElf(mapped_objects[0]->fullName().c_str(),
 		"/tmp/dyninstMutatee",errFlag);
 	newElf->registerProcess(this);
 	//add section that has, as its address, the original load address of
@@ -242,7 +242,7 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 	//in the correct place when the mutated binary is run.
 
 	Address rtlibAddr;
-	for(int i=0; i < mapped_objects.size() ; i++) {
+	for(unsigned int i=0; i < mapped_objects.size() ; i++) {
             sh_obj = mapped_objects[i];
             if( strstr(sh_obj->fileName().c_str(),"libdyninstAPI_RT") ) {
                 rtlibAddr = sh_obj->codeBase();
@@ -493,9 +493,9 @@ char* process::dumpPatchedImage(pdstring imageFileName){ //ccw 28 oct 2001
 //	newElf->addSection(0,&rtlibAddr,sizeof(Address),"rtlib_addr",false);
 
 	newElf->createElf();
-	char* fullName = new char[strlen(directoryName) + strlen ( (char*)imageFileName.c_str())+1];
+	char* fullName = new char[strlen(directoryName) + strlen ( imageFileName.c_str())+1];
 	strcpy(fullName, directoryName);
-	strcat(fullName, (char*)imageFileName.c_str());
+	strcat(fullName, imageFileName.c_str());
 	
 	addLibraryElf = new addLibrary();
 	elf_update(newElf->getElf(), ELF_C_WRITE);
@@ -591,7 +591,6 @@ bool checkAllThreadsForBreakpoint(process *proc, Address break_addr)
    }
    for(unsigned frame_iter = 0; frame_iter < activeFrames.size(); frame_iter++)
    {
-      unsigned int i = 0;
       if (activeFrames[frame_iter].getPC() == break_addr) {
          return true;
       }

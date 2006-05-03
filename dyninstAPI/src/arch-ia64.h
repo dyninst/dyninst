@@ -41,7 +41,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-ia64.h,v 1.40 2006/03/12 23:31:45 legendre Exp $
+// $Id: arch-ia64.h,v 1.41 2006/05/03 00:31:19 jodom Exp $
 // ia64 instruction declarations
 
 #if !defined(ia64_unknown_linux2_4)
@@ -107,8 +107,8 @@ class instruction {
 						  Address fallthroughOverride = 0,
 						  Address targetOverride = 0);
 	// And tell us how much space we'll need...
-	static unsigned jumpSize(Address from, Address to) { return 16; }
-	static unsigned jumpSize(int disp) { return 16; }
+	static unsigned jumpSize(Address /* from */, Address /* to */) { return 16; }
+	static unsigned jumpSize(int /* disp */) { return 16; }
 	static unsigned maxJumpSize() { return 16; }
    
 	static unsigned maxInterFunctionJumpSize() { return 16; }

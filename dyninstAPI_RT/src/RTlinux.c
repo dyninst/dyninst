@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.43 2006/04/29 19:04:30 chadd Exp $
+ * $Id: RTlinux.c,v 1.44 2006/05/03 00:31:25 jodom Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -75,9 +75,8 @@ void mark_heaps_exec(void)
 	/* Align the heap pointer. */
 	unsigned long int alignedHeapPointer = 
       (unsigned long int) DYNINSTstaticHeap_4M_anyHeap_1;
-	unsigned long long int adjustedSize = alignedHeapPointer + (4 * 1024 * 1024);
 	alignedHeapPointer = (alignedHeapPointer) & ~(pageSize - 1);
-	adjustedSize -= alignedHeapPointer;
+        unsigned long int adjustedSize = (unsigned long int) DYNINSTstaticHeap_4M_anyHeap_1 - alignedHeapPointer + (4 * 1024 * 1024);
 
 	/* Make the heap's page executable. */
    result = mprotect((void *) alignedHeapPointer, (size_t) adjustedSize, 
@@ -95,9 +94,8 @@ void mark_heaps_exec(void)
 
 	/* Mark _both_ heaps executable. */
 	alignedHeapPointer = (unsigned long int) DYNINSTstaticHeap_512K_lowmemHeap_1;
-	adjustedSize = alignedHeapPointer + 32 * 1024;
 	alignedHeapPointer = (alignedHeapPointer) & ~(pageSize - 1);
-	adjustedSize -= alignedHeapPointer;
+        adjustedSize = (unsigned long int) DYNINSTstaticHeap_512K_lowmemHeap_1 - alignedHeapPointer + 32 * 1024;
 
 	/* Make the heap's page executable. */
    result = mprotect((void *) alignedHeapPointer, (size_t) adjustedSize, 
@@ -348,7 +346,7 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev)
     //how to read the information from the positions structure above.
     //It needs a new entry filled in.  Running the commented out program
     //that follows this function can help you collect the necessary data.
-    RTprintf( stderr, "[%s:%d] Unable to parse the pthread_t structure for this version of libpthread.  Making a best guess effort.\n",  __FILE__, __LINE__ );
+    RTprintf( "[%s:%d] Unable to parse the pthread_t structure for this version of libpthread.  Making a best guess effort.\n",  __FILE__, __LINE__ );
     err_printed = 1;
   }
    

@@ -98,7 +98,6 @@ class writeBackXCOFF {
 		int sectionSize, char*data, int flags = 0x0020); //adds a section
 
 	bool outputXCOFF(); //actually does the write
-	bool setHeapAddr(unsigned int heapAddr); //sets the address of _end
 
 	void registerProcess(process *p){ mutateeProcess = p;};		
 	void attachToText(Address addr, unsigned int size, char* data);

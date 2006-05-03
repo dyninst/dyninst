@@ -149,7 +149,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
       for (unsigned i=0; i<NUM_THREADS; i++)
          if (stack_addrs[i] == my_stack)
          {
-            fprintf(stderr, "[%s:%d] - WARNING: Thread %d and %d share a stack at %x\n",
+            fprintf(stderr, "[%s:%d] - WARNING: Thread %d and %d share a stack at %lx\n",
                     __FILE__, __LINE__, my_dyn_id, i, my_stack);
             error = 1;
          }
@@ -169,7 +169,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    for (unsigned i=0; i<NUM_THREADS; i++)
       if (i != my_dyn_id && dyn_tids[i] && mytid == pthread_ids[i])
       {
-            fprintf(stderr, "[%s:%d] - WARNING: Thread %d and %d share a tid of %u\n",
+            fprintf(stderr, "[%s:%d] - WARNING: Thread %d and %d share a tid of %ld\n",
                     __FILE__, __LINE__, my_dyn_id, i, mytid);
             error = 1;
       }

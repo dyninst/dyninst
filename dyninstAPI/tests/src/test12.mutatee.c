@@ -82,9 +82,9 @@ typedef pthread_mutex_t Lock_t;
 
 pthread_attr_t attr;
 
-Thread_t *createThreads(int num, ThreadMain_t tmain, Thread_t *tbuf)
+Thread_t *createThreads(unsigned int num, ThreadMain_t tmain, Thread_t *tbuf)
 {
-  int i;
+  unsigned int i;
   int err = 0;
   Thread_t *threads;
   if (tbuf == NULL)
@@ -272,7 +272,6 @@ static DECLARE_DYNINST_LOCK(test1lock);
 
 void *thread_main1 (void *arg)
 {
-   int tmp;
    int lockres =    (*DYNINSTlock_thelock)(&test1lock);
 
    register_my_lock((unsigned long)pthread_self(),1);
@@ -307,7 +306,6 @@ void func1_1()
   int timeout;
 
   /*pthread_attr_t attr;*/
-  int err = 0;
   unsigned int i;
   void *RTlib;
 

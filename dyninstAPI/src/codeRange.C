@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: codeRange.C,v 1.18 2006/03/14 04:56:07 nater Exp $
+// $Id: codeRange.C,v 1.19 2006/05/03 00:31:19 jodom Exp $
 
 #include <stdio.h>
 #include "codeRange.h"
@@ -564,22 +564,22 @@ void codeRange::print_range(Address addr) {
    }
    if (reloc_ptr) {
       PRINT_COMMA;
-      fprintf(stderr, "reloc:%lx", 
+      fprintf(stderr, "reloc:%x", 
               reloc_ptr->targetVersion());
    }
    if (multi_ptr) {
       PRINT_COMMA;
-      fprintf(stderr, "multi:%lx->%lx+%u", multi_ptr->instAddr(), 
-              multi_ptr->get_address_cr(), multi_ptr->get_size_cr());
+      fprintf(stderr, "multi:%p->%p+%u", (void *)multi_ptr->instAddr(), 
+              (void *)multi_ptr->get_address_cr(), multi_ptr->get_size_cr());
    }
    if (base_ptr) {
       PRINT_COMMA;
-      fprintf(stderr, "base:%lx+%lx", multi_ptr->get_address_cr(),
+      fprintf(stderr, "base:%p+%u", (void *)multi_ptr->get_address_cr(),
               multi_ptr->get_size_cr());
    }
    if (mini_ptr) {
       PRINT_COMMA;
-      fprintf(stderr, "mini:%lx+%lx", multi_ptr->get_address_cr(),
+      fprintf(stderr, "mini:%p+%u", (void *)multi_ptr->get_address_cr(),
               multi_ptr->get_size_cr());
    }
    if (rpc_ptr) {

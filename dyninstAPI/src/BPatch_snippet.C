@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.79 2006/04/27 02:09:37 bernat Exp $
+// $Id: BPatch_snippet.C,v 1.80 2006/05/03 00:31:18 jodom Exp $
 
 #define BPATCH_FILE
 
@@ -700,23 +700,27 @@ void BPatch_funcCallExpr::BPatch_funcCallExprInt(
  * linkage.
  *
  * func Identifies the function to jump to.  */
-void BPatch_funcJumpExpr::BPatch_funcJumpExprInt(
-    const BPatch_function &func)
-{
 #if defined(sparc_sun_solaris2_4) \
  || defined(alpha_dec_osf4_0) \
  || defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
  || defined(i386_unknown_nt4_0) \
  || defined(ia64_unknown_linux2_4)
+void BPatch_funcJumpExpr::BPatch_funcJumpExprInt(
+    const BPatch_function &func)
+{
     ast = new AstNode(func.lowlevel_func());
     assert(BPatch::bpatch != NULL);
     ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+}
 #else
+void BPatch_funcJumpExpr::BPatch_funcJumpExprInt(
+    const BPatch_function & /* func */)
+{
     BPatch_reportError(BPatchSerious, 109,
                        "BPatch_funcJumpExpr is not implemented on this platform");
-#endif
 }
+#endif
 
 
 /*
@@ -1098,7 +1102,14 @@ bool BPatch_variableExpr::readValueWithLength(void *dst, int len)
  *
  * returns false if the type info isn't available (i.e. we don't know the size)
  */
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix4_1)
 bool BPatch_variableExpr::writeValueInt(const void *src, bool saveWorld)
+#else
+bool BPatch_variableExpr::writeValueInt(const void *src, bool /* saveWorld */)
+#endif
 {
   if (isLocal) {
     char msg[2048];
@@ -1133,7 +1144,14 @@ bool BPatch_variableExpr::writeValueInt(const void *src, bool saveWorld)
  * dst          A pointer to a buffer in which to place the value of the
  *              variable.  It is assumed to be the same size as the variable.
  */
+#if defined(sparc_sun_solaris2_4) \
+ || defined(i386_unknown_linux2_0) \
+ || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \
+ || defined(rs6000_ibm_aix4_1)
 bool BPatch_variableExpr::writeValueWithLength(const void *src, int len, bool saveWorld)
+#else
+bool BPatch_variableExpr::writeValueWithLength(const void *src, int len, bool /* saveWorld */)
+#endif
 {
   if (isLocal) {
     char msg[2048];

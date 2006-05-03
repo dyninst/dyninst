@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test7.C,v 1.21 2006/04/25 17:47:02 jodom Exp $
+// $Id: test7.C,v 1.22 2006/05/03 00:31:24 jodom Exp $
 //
 
 #include <stdio.h>
@@ -1052,7 +1052,7 @@ void checkTests(procType proc_type, BPatch_thread *thread)
    }
 }
 
-void errorFunc(BPatchErrorLevel level, int num, const char **params)
+void errorFunc(BPatchErrorLevel level, int num, const char * const *params)
 {
     if (num == 0) {
         // conditional reporting of warnings and informational messages
@@ -1146,7 +1146,7 @@ void postForkFunc(BPatch_thread *parent, BPatch_thread *child)
 
 /* And verify them when they exit */
 
-void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type) {
+void exitFunc(BPatch_thread *thread, BPatch_exitType /* exit_type */) {
     dprintf("Exit func called\n");
     if (thread == parentThread) {
         dprintf("Parent exit reached, checking...\n");
@@ -1161,7 +1161,7 @@ void exitFunc(BPatch_thread *thread, BPatch_exitType exit_type) {
         childDone = true;
     }
     else {
-        fprintf(stderr, "Thread ptr 0x%x, parent 0x%x, child 0x%x\n",
+        fprintf(stderr, "Thread ptr 0x%p, parent 0x%p, child 0x%p\n",
                 thread, parentThread, childThread);
         assert(0 && "Unexpected BPatch_thread in exitFunc");
     }

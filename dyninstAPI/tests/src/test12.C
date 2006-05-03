@@ -120,7 +120,7 @@ void sleep_ms(int ms)
 
 int expectError = DYNINST_NO_ERROR;
 
-void errorFunc(BPatchErrorLevel level, int num, const char **params)
+void errorFunc(BPatchErrorLevel level, int num, const char * const *params)
 {
     if (num == 0) {
         // conditional reporting of warnings and informational messages

@@ -41,7 +41,7 @@
 
 /*
  * emit-x86.C - x86 & AMD64 code generators
- * $Id: emit-x86.C,v 1.23 2006/04/12 16:59:18 bernat Exp $
+ * $Id: emit-x86.C,v 1.24 2006/05/03 00:31:19 jodom Exp $
  */
 
 #include <assert.h>
@@ -577,14 +577,6 @@ static void emitRex(bool is_64, Register* r, Register* x, Register* b, codeGen &
 	emitSimpleInsn(rex, gen);
 }
 
-void emitMovRegToReg64(Register dest, Register src, bool is_64, codeGen &gen)
-{
-	Register tmp_dest = dest;
-	Register tmp_src = src;
-	emitRex(is_64, &tmp_dest, NULL, &tmp_src, gen);
-	emitMovRegToReg(tmp_dest, tmp_src, gen);
-}
-
 void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen)
 {
     Register tmp_dest = dest;
@@ -598,6 +590,16 @@ void emitMovImmToReg64(Register dest, long imm, bool is_64, codeGen &gen)
     }
     else
 	emitMovImmToReg(tmp_dest, imm, gen);
+}
+
+#if defined(arch_x86_64)
+
+void emitMovRegToReg64(Register dest, Register src, bool is_64, codeGen &gen)
+{
+	Register tmp_dest = dest;
+	Register tmp_src = src;
+	emitRex(is_64, &tmp_dest, NULL, &tmp_src, gen);
+	emitMovRegToReg(tmp_dest, tmp_src, gen);
 }
 
 void emitLEA64(Register base, Register index, unsigned int scale, int disp,
@@ -709,8 +711,6 @@ void emitPopReg64(Register dest, codeGen &gen)
     emitRex(false, NULL, NULL, &dest, gen);    
     emitSimpleInsn(0x58 + dest, gen);
 }
-
-#if defined(arch_x86_64)
 
 codeBufIndex_t Emitter64::emitIf(Register expr_reg, Register target, codeGen &gen)
 {
@@ -1055,7 +1055,7 @@ void Emitter64::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
     {
       if (liveFPReg[0] == 0 && saveOrNot)
 	{
-	  int * temp = (int *) liveFPReg;
+	  int * temp = const_cast<int *>(liveFPReg);
 	  temp[0] = 1;
 	}
     }

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: aixDL.C,v 1.70 2006/03/31 20:06:25 bernat Exp $
+// $Id: aixDL.C,v 1.71 2006/05/03 00:31:19 jodom Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -236,7 +236,7 @@ bool dynamic_linking::processLinkMaps(pdvector<fileDescriptor> &result)
 }
 
 bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &ev,
-                                                       u_int &change_type) 
+                                                       u_int & /* change_type */) 
 {
     assert(ev.lwp);
     dyn_lwp *brk_lwp = ev.lwp;

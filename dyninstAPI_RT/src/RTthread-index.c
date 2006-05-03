@@ -49,13 +49,16 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#if !defined(os_windows)
+#include <unistd.h>
+#endif
 #include "RTthread.h"
 #include "RTcommon.h"
 
 #define NONE -1
 
 static DECLARE_TC_LOCK(DYNINST_index_lock);
-
+int DYNINST_am_initial_thread(dyntid_t);
 
 static int first_free;
 static int first_deleted;
@@ -79,7 +82,7 @@ void DYNINST_initialize_index_list()
   memset(DYNINST_thread_structs, 0, DYNINST_max_num_threads * sizeof(dyninst_thread_t));
 
   DYNINST_thread_hash_size = (int) (DYNINST_max_num_threads * 1.25);
-  DYNINST_thread_hash = (unsigned *) malloc(DYNINST_thread_hash_size * sizeof(unsigned));
+  DYNINST_thread_hash = (int *) malloc(DYNINST_thread_hash_size * sizeof(int));
 
   for (i=0; i < DYNINST_thread_hash_size; i++)
       DYNINST_thread_hash[i] = NONE;
@@ -105,7 +108,7 @@ unsigned DYNINSTthreadIndexSLOW(dyntid_t tid)
 {
    unsigned hash_id, orig;
    unsigned retval = DYNINST_max_num_threads;
-   int index, t, result;
+   int index, result;
    unsigned long tid_val = (unsigned long) tid;
 
    result = tc_lock_lock(&DYNINST_index_lock);
@@ -191,7 +194,6 @@ unsigned DYNINST_alloc_index(dyntid_t tid)
    unsigned hash_id, orig;
    unsigned t, retval;
    unsigned long tid_val = (unsigned long) tid;
-   int attempts = 0;
 
    //Return an error if this tid already exists.
    if (DYNINSTthreadIndexSLOW(tid) != DYNINST_max_num_threads)
@@ -252,9 +254,8 @@ unsigned DYNINST_alloc_index(dyntid_t tid)
 
 int DYNINST_free_index(dyntid_t tid)
 {
-   unsigned deleted_end = 0;
    unsigned hash_id, orig;
-   int t, index, result, retval;
+   int index, result, retval;
    unsigned long tid_val = (unsigned long) tid;
 
    result = tc_lock_lock(&DYNINST_index_lock);
@@ -298,13 +299,13 @@ int DYNINST_free_index(dyntid_t tid)
    platform but is always constant for that platform. Wrap that
    platform-ness here. 
 */
-int DYNINST_am_initial_thread(int tid) {
+int DYNINST_am_initial_thread(dyntid_t tid) {
 #if defined(os_aix)
-    return (tid == 1);
+    return (tid == (dyntid_t) 1);
 #elif defined(os_linux)
-    static int already_matched = -1; 
+    static dyntid_t already_matched = (dyntid_t) -1; 
     if (dyn_lwp_self() == getpid()) {
-        if ((already_matched != -1) && 
+        if ((already_matched != (dyntid_t) -1) && 
             (already_matched != tid)) {
             /* This can only happen in 2.4; we don't have lwp_self(),
                or multiple tids share the same lwp. Error case. */
@@ -316,7 +317,7 @@ int DYNINST_am_initial_thread(int tid) {
     }
     return 0;
 #elif defined(os_solaris)
-    return (tid == 1);
+    return (tid == (dyntid_t) 1);
 #elif defined(os_windows)
     static int not_first = 0;
     if (not_first) return 0;

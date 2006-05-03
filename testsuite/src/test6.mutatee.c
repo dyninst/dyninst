@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: test6.mutatee.c,v 1.3 2005/12/12 16:37:47 gquinn Exp $ */
+/* $Id: test6.mutatee.c,v 1.4 2006/05/03 00:31:26 jodom Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -680,7 +680,7 @@ int validateEA(void* ea1[], void* ea2[], unsigned int n)
   for(; i<n; ++i) {
     ok = (ok && ((ea1[i] == ea2[i]) || ea1[i] == NULL));
     if(!ok) {
-      printf("EA Validation failed at access #%d. Expecting: %x. Got: %x.\n", i+1, ea1[i], ea2[i]);
+      printf("EA Validation failed at access #%u. Expecting: %p. Got: %p.\n", i+1, ea1[i], ea2[i]);
       return 0;
     }
   }

@@ -63,7 +63,7 @@ extern MUTEX_TYPE global_mutex;
 extern MUTEX_TYPE global_mutex;
 #endif
 
-#if defined(os_linux) && defined (arch_x86)
+#if defined(os_linux) //&& defined (arch_x86)
 #define PTHREAD_MUTEX_TYPE PTHREAD_MUTEX_RECURSIVE_NP
 #define STRERROR_BUFSIZE 512
 #define ERROR_BUFFER char buf[STRERROR_BUFSIZE]

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: syscall-solproc.C,v 1.17 2006/04/26 03:43:03 jaw Exp $
+// $Id: syscall-solproc.C,v 1.18 2006/05/03 00:31:22 jodom Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -88,7 +88,7 @@ syscallNotification::syscallNotification(syscallNotification *parentSN,
 
 bool syscallNotification::installPreFork() {
     // Get existing flags, add pre-fork, and set
-    int proc_pid = proc->getPid();
+    SYSSET_DECLAREPID(proc_pid, proc->getPid());
     
     sysset_t *entryset = SYSSET_ALLOC(proc_pid);
     
@@ -153,7 +153,7 @@ bool syscallNotification::installPostFork() {
     return true;
 #else
     // Get existing flags, add post-fork, and set
-    int proc_pid = proc->getPid();
+    SYSSET_DECLAREPID(proc_pid,proc->getPid()); 
     
     sysset_t *exitset = SYSSET_ALLOC(proc_pid);
     
@@ -180,7 +180,7 @@ bool syscallNotification::installPostFork() {
 
 bool syscallNotification::installPreExec() {
     // Get existing flags, add pre-exec, and set
-    int proc_pid = proc->getPid();
+    SYSSET_DECLAREPID(proc_pid,proc->getPid());
     
     sysset_t *entryset = SYSSET_ALLOC(proc_pid);
     
@@ -203,7 +203,7 @@ bool syscallNotification::installPreExec() {
 
 bool syscallNotification::installPostExec() {
     // Get existing flags, add post-exec, and set
-    int proc_pid = proc->getPid();
+    SYSSET_DECLAREPID(proc_pid,proc->getPid());
     
     sysset_t *exitset = SYSSET_ALLOC(proc_pid);
     
@@ -226,7 +226,7 @@ bool syscallNotification::installPostExec() {
 
 bool syscallNotification::installPreExit() {
     // Get existing flags, add pre-exit, and set
-    int proc_pid = proc->getPid();
+    SYSSET_DECLAREPID(proc_pid, proc->getPid());
     
     sysset_t *entryset = SYSSET_ALLOC(proc_pid);
     
@@ -247,7 +247,7 @@ bool syscallNotification::installPreExit() {
 
 bool syscallNotification::installPreLwpExit() {
     // Get existing flags, add pre-lwp-exit, and set
-    int proc_pid = proc->getPid();
+    SYSSET_DECLAREPID(proc_pid, proc->getPid());
     
     sysset_t *entryset = SYSSET_ALLOC(proc_pid);
     
@@ -293,7 +293,7 @@ bool syscallNotification::removePreFork() {
     }
     
     // Get existing flags, add pre-fork, and set
-    int proc_pid = proc->getPid();
+    SYSSET_DECLAREPID(proc_pid,proc->getPid());
     
     sysset_t *entryset = SYSSET_ALLOC(proc_pid);
     
@@ -351,7 +351,7 @@ bool syscallNotification::removePostFork() {
     }
 
     // Get existing flags, add post-fork, and set
-    int proc_pid = proc->getPid();
+    SYSSET_DECLAREPID(proc_pid,proc->getPid());
     
     sysset_t *exitset = SYSSET_ALLOC(proc_pid);
     
@@ -386,7 +386,7 @@ bool syscallNotification::removePreExec() {
     }
 
     // Get existing flags, add pre-exec, and set
-    int proc_pid = proc->getPid();
+    SYSSET_DECLAREPID(proc_pid,proc->getPid());
     
     sysset_t *entryset = SYSSET_ALLOC(proc_pid);
     
@@ -416,7 +416,7 @@ bool syscallNotification::removePostExec() {
     }
 
     // Get existing flags, add post-exec, and set
-    int proc_pid = proc->getPid();
+    SYSSET_DECLAREPID(proc_pid, proc->getPid());
     
     sysset_t *exitset = SYSSET_ALLOC(proc_pid);
     
@@ -444,7 +444,7 @@ bool syscallNotification::removePreExit() {
     }
 
     // Get existing flags, add pre-exit, and set
-    int proc_pid = proc->getPid();
+    SYSSET_DECLAREPID(proc_pid, proc->getPid());
     
     sysset_t *entryset = SYSSET_ALLOC(proc_pid);
     
@@ -495,7 +495,7 @@ bool syscallNotification::removePreLwpExit() {
     }
 
     // Get existing flags, add pre-exit, and set
-    int proc_pid = proc->getPid();
+    SYSSET_DECLAREPID(proc_pid, proc->getPid());
     
     sysset_t *entryset = SYSSET_ALLOC(proc_pid);
     

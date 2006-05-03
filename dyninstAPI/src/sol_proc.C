@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.98 2006/05/02 19:17:32 bernat Exp $
+// $Id: sol_proc.C,v 1.99 2006/05/03 00:31:22 jodom Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -1473,8 +1473,8 @@ bool dyn_lwp::stepPastSyscallTrap()
 // 0: did not trap at the exit of a syscall
 // 1: Trapped, but did not have a syscall trap placed for this LWP
 // 2: Trapped with a syscall trap desired.
-bool dyn_lwp::decodeSyscallTrap(EventRecord &ev) {
 #if defined(os_aix) 
+bool dyn_lwp::decodeSyscallTrap(EventRecord &ev) {
     if (!trappedSyscall_) return false;
     
     Frame frame = getActiveFrame();
@@ -1488,6 +1488,7 @@ bool dyn_lwp::decodeSyscallTrap(EventRecord &ev) {
 
     return false;
 #else
+bool dyn_lwp::decodeSyscallTrap(EventRecord & /* ev */) {
     return true;
 #endif
 }
@@ -1636,7 +1637,7 @@ bool SignalGenerator::decodeEvents(pdvector<EventRecord> &events)
         }
         
         //  find the right dyn_lwp to work with
-        unsigned target_lwp_id = (unsigned) procstatus.pr_lwpid;
+        /* unsigned target_lwp_id = (unsigned) procstatus.pr_lwpid; */
         dyn_lwp *lwp_to_use = ev.proc->getRepresentativeLWP();
         bool updated_events = false;
         

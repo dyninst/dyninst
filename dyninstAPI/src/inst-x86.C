@@ -41,7 +41,7 @@
 
 /*
  * inst-x86.C - x86 dependent functions and code generator
- * $Id: inst-x86.C,v 1.240 2006/04/13 23:05:18 legendre Exp $
+ * $Id: inst-x86.C,v 1.241 2006/05/03 00:31:20 jodom Exp $
  */
 #include <iomanip>
 
@@ -876,7 +876,7 @@ void Emitter32::setFPSaveOrNot(const int * liveFPReg,bool saveOrNot)
    {
       if (liveFPReg[0] == 0 && saveOrNot)
       {
-         int * temp = (int * )liveFPReg;
+         int * temp = const_cast<int *>(liveFPReg);
          temp[0] = 1;
       }
    }
@@ -1927,8 +1927,8 @@ bool process::getDynamicCallSiteArgs(instPoint *callSite,
       //Regular callees are statically determinable, so no need to
       //instrument them
       //return true;
-      fprintf(stderr, "%s[%d]:  FIXME,  dynamic call is statically determinable\n at address %x (%s)",
-	      __FILE__, __LINE__, callSite->addr(), callSite->func()->prettyName().c_str());
+      fprintf(stderr, "%s[%d]:  FIXME,  dynamic call is statically determinable\n at address %p (%s)",
+	      __FILE__, __LINE__, (void *)callSite->addr(), callSite->func()->prettyName().c_str());
       return false; // but we generate no args.
    }
    else {
@@ -2141,8 +2141,8 @@ bitArray * int_basicBlock::getInFPSet()
 /*
   Nothing for x86 yet
 */
-int int_basicBlock::liveSPRegistersIntoSet(int *& liveSPReg, 
-					       unsigned long address)
+int int_basicBlock::liveSPRegistersIntoSet(int *& /* liveSPReg */, 
+					       unsigned long /* address */)
 {
   return 0;
 }

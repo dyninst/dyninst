@@ -734,8 +734,10 @@ test_driver: test_driver.o test_driver_templates.o $(LIBTESTSUITE_DEST) $(DEPEND
 
 $(MUTATORS_SO): test%.so : test%.o $(OBJS_FORALL_MUTATORS) $(DEPENDDIR)/test%.dep $(LIBTESTSUITE)
 	$(CXX) -o $@ -shared $(filter %.o,$^) $(MUTATOR_SO_LDFLAGS) $(LIBDIR) $(LIBS) $(LDFLAGS) 
+ifndef NO_OPT_FLAG
 ifdef STRIP_SO
 	$(STRIP_SO) $@
+endif
 endif
 
 test11: ../src/test11.sh

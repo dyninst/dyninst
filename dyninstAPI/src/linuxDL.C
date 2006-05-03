@@ -91,6 +91,7 @@ struct link_map_dyn32
 class link_map_x {
 public:
     link_map_x(process *proc_) : proc(proc_), loaded_name(false) {}
+    virtual ~link_map_x() {}
     virtual size_t size() = 0;
     virtual uint64_t l_addr() = 0;
     virtual char *l_name() = 0;
@@ -232,6 +233,7 @@ struct r_debug_dyn32
 class r_debug_x {
 public:
     r_debug_x(process *proc_) : proc(proc_) {}
+    virtual ~r_debug_x() {}
     virtual link_map_x *r_map() = 0;
     virtual void *r_brk() = 0;
     virtual int r_state() = 0;

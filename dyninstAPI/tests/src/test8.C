@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test8.C,v 1.20 2006/04/25 17:47:02 jodom Exp $
+// $Id: test8.C,v 1.21 2006/05/03 00:31:25 jodom Exp $
 //
 
 #include <stdio.h>
@@ -95,7 +95,7 @@ typedef struct {
     const char      *function_name;
 } frameInfo_t;
 
-void errorFunc(BPatchErrorLevel level, int num, const char **params)
+void errorFunc(BPatchErrorLevel level, int num, const char * const *params)
 {
     if (num == 0) {
         // conditional reporting of warnings and informational messages
@@ -242,7 +242,7 @@ bool checkStack(BPatch_thread *appThread,
 	    if (correct_frame_info[i].type != stack[j].getFrameType()) {
 		fprintf(stderr, "**Failed** test %d (%s)\n", test_num, test_name);
 		fprintf(stderr, "    Stack frame #%d has wrong type, is %s, should be %s\n", i+1, frameTypeString(stack[i].getFrameType()), frameTypeString(correct_frame_info[i].type));
-		fprintf(stderr, "    Stack frame 0x%lx, 0x%lx\n", stack[i].getPC(), stack[i].getFP() );
+		fprintf(stderr, "    Stack frame 0x%p, 0x%p\n", stack[i].getPC(), stack[i].getFP() );
 		failed = true;
 		break;
 	    }
@@ -279,7 +279,7 @@ bool checkStack(BPatch_thread *appThread,
     return !failed;
 }
 
-void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
+void mutatorTest1(BPatch_thread *appThread, BPatch_image * /* appImage */)
 {
 #if !defined(alpha_dec_osf4_0)
     static const frameInfo_t correct_frame_info[] = {
@@ -316,7 +316,7 @@ void mutatorTest1(BPatch_thread *appThread, BPatch_image *appImage)
 #endif
 }
 
-void mutatorTest2(BPatch_thread *appThread, BPatch_image *appImage)
+void mutatorTest2(BPatch_thread *appThread, BPatch_image * /* appImage */)
 {
 #if defined(i386_unknown_linux2_0) \
  || defined(x86_64_unknown_linux2_4) /* Blind duplication - Ray */ \

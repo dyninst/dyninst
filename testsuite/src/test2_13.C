@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test2_13.C,v 1.3 2006/03/12 23:33:25 legendre Exp $
+// $Id: test2_13.C,v 1.4 2006/05/03 00:31:26 jodom Exp $
 /*
  * #Name: test2_13
  * #Desc: loadLibrary failure test
@@ -58,7 +58,7 @@
 BPatch *bpatch;
 
 char loadLibErrStr[256] = "no error";
-void llErrorFunc(BPatchErrorLevel level, int num, const char **params)
+void llErrorFunc(BPatchErrorLevel level, int num, const char * const *params)
 {
 
   char line[256];
