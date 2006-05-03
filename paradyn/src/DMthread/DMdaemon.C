@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: DMdaemon.C,v 1.166 2006/05/03 11:42:55 darnold Exp $
+ * $Id: DMdaemon.C,v 1.167 2006/05/03 20:56:56 mjbrim Exp $
  * method functions for paradynDaemon and daemonEntry classes
  */
 #include "paradyn/src/pdMain/paradyn.h"
@@ -2706,13 +2706,11 @@ void paradynDaemon::getPredictedDataCostCall(perfStreamHandle ps_handle,
                      if(pd->isMonitoringProcess(focus_pid)) {
                         // daemon is monitoring process focus
                         target_daemons.push_back(i);
-                        fprintf(stderr, "MJB DEBUG: machine and process match\n");
                      }
                   }
                   else {
                      // focus not process specific
                      target_daemons.push_back(i);
-                     fprintf(stderr, "MJB DEBUG: machine match\n");
                   }
                }
             }
