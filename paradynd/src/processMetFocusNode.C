@@ -442,6 +442,7 @@ inst_insert_result_t processMetFocusNode::insertInstrumentation() {
         if(instrDeferred()) {
             registerAsDeferred(getMetricID());
             proc()->PDSEP_UNLOCK(__FILE__, __LINE__);
+            
             return inst_insert_deferred;
         }
         else {
@@ -543,10 +544,8 @@ bool processMetFocusNode::doCatchupInstrumentation(pdvector<pdvector<Frame> >&st
     prepareCatchupInstr(stackWalks);
     bool catchupPosted = postCatchupRPCs();
     
-    if (!catchupPosted) {
-        // Nothing to do here...
-        if (runWhenFinished_) continueProcess();
-        return true;
+    if (catchupPosted) {
+        proc_->launchRPCs(runWhenFinished_);
     }
     
     // Get them all cleared out
@@ -556,10 +555,10 @@ bool processMetFocusNode::doCatchupInstrumentation(pdvector<pdvector<Frame> >&st
     //    our purposes
     // 3) Waiting for a system call, no trap. Nothing we can do but
     //    wait and pick it up somewhere else.
-    proc_->launchRPCs(runWhenFinished_);
 
-    continueProcess();
-
+    if (runWhenFinished_)
+        continueProcess();
+    
     // runWhenFinished_ now becomes the state to leave the process in when we're
     // done with catchup. For a little while, we'll be out of sync with the 
     // actual process. This is annoying, but necessary, since we can't effectively
