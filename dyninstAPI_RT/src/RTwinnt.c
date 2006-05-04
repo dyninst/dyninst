@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTwinnt.c,v 1.19 2006/05/04 01:41:38 legendre Exp $
+ * $Id: RTwinnt.c,v 1.20 2006/05/04 02:28:47 bernat Exp $
  * RTwinnt.c: runtime instrumentation functions for Windows NT
  ************************************************************************/
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
@@ -69,7 +69,9 @@
 
 void DYNINSTbreakPoint(void) {
   /* TODO: how do we stop all threads? */
-  DebugBreak();
+    DYNINST_break_point_event = 1;
+    DebugBreak();
+    DYNINST_break_point_event = 0;
 }
 
 void DYNINSTsafeBreakPoint() {

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.27 2006/05/03 00:31:25 jodom Exp $
+ * $Id: RTposix.c,v 1.28 2006/05/04 02:28:46 bernat Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -75,7 +75,12 @@
 
 void DYNINSTbreakPoint()
 {
+    /* We set a global flag here so that we can tell
+       if we're ever in a call to this when we get a 
+       SIGBUS */
+    DYNINST_break_point_event = 1;
     kill(getpid(), DYNINST_BREAKPOINT_SIGNUM);
+    DYNINST_break_point_event = 0;
 }
 
 
