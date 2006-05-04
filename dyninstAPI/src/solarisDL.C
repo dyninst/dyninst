@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: solarisDL.C,v 1.47 2006/05/03 00:31:22 jodom Exp $
+// $Id: solarisDL.C,v 1.48 2006/05/04 16:38:22 bernat Exp $
 
 #include "dyninstAPI/src/mapped_object.h"
 #include "dyninstAPI/src/dynamiclinking.h"
@@ -413,7 +413,6 @@ bool dynamic_linking::decodeIfDueToSharedObjectMapping(EventRecord &ev,
    }
 
    if (!hook) {
-      fprintf(stderr, "%s[%d]:  not at hook\n", FILE__, __LINE__);
       return false;
    }
 
