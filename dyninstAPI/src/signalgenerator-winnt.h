@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator-winnt.h,v 1.5 2006/05/02 19:17:26 bernat Exp $
+/* $Id: signalgenerator-winnt.h,v 1.6 2006/05/04 01:41:27 legendre Exp $
  */
 
 #ifndef _SIGNAL_GENERATOR_WINNT_H
@@ -103,6 +103,8 @@ class SignalGenerator : public SignalGeneratorCommon
   int procHandle;
   int thrHandle;
   bool waiting_for_stop;
+  Address sync_event_id_addr;
+  Address sync_event_arg1_addr;
 };
 
 #endif

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: perfStream.C,v 1.189 2006/04/25 18:18:10 tlmiller Exp $
+// $Id: perfStream.C,v 1.190 2006/05/04 01:41:46 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/timing.h"
@@ -560,7 +560,9 @@ void controllerMainLoop(bool check_buffer_first)
       width = ntwrk->get_SocketFd();
 
       // Mmmm bpatch FD interface...
+#if !defined(os_windows)
       FD_SET(getBPatch().getNotificationFD(), &readSet);
+#endif
       width = (width < getBPatch().getNotificationFD()) ? getBPatch().getNotificationFD() : width;
       
       // Clean up any inferior RPCs that might still be queued do to a failure
@@ -574,14 +576,10 @@ void controllerMainLoop(bool check_buffer_first)
       extern void doDeferedRPCasyncXDRWrite();
       doDeferedRPCasyncXDRWrite();
 
-#if !defined(os_windows)
       timeLength pollTime(50, timeUnit::ms());
       // this is the time (rather arbitrarily) chosen fixed time length
       // in which to check for signals, etc.
-#else
-      // Windows NT wait happens in WaitForDebugEvent (in pdwinnt.C)
-      timeLength pollTime = timeLength::Zero();
-#endif
+
       
       checkAndDoShmSampling(&pollTime);
       // does shm sampling of each process, as appropriate.
@@ -609,8 +607,8 @@ void controllerMainLoop(bool check_buffer_first)
       // TODO - move this into an os dependent area
       ct = P_select(width+1, &readSet, NULL, &errorSet, &pollTimeStruct);
       if (ct <= 0)
-          continue;
-      
+         continue;
+
 #if !defined(os_windows)
       if (FD_ISSET(ntwrk->get_SocketFd(), &errorSet)) {
           // Don't forward more messages to the frontend.

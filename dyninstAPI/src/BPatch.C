@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.145 2006/05/03 01:25:30 bernat Exp $
+// $Id: BPatch.C,v 1.146 2006/05/04 01:41:13 legendre Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1193,7 +1193,7 @@ void BPatch::registerThreadExit(process *proc, long tid)
     int pid = proc->getPid();
     
     BPatch_process *bpprocess = getProcessByPid(pid);
-   bool wasProcessStopped = bpprocess->isVisiblyStopped;
+    bool wasProcessStopped = bpprocess->isVisiblyStopped;
 
     if (!bpprocess) {
         // Error during startup can cause this -- we have a partially
@@ -1202,20 +1202,26 @@ void BPatch::registerThreadExit(process *proc, long tid)
         return;
     }
     BPatch_thread *thrd = bpprocess->getThread(tid);
-    if (!thrd) return;
+    
+    if (thrd) {
+        pdvector<CallbackBase *> cbs;
+        getCBManager()->dispenseCallbacksMatching(evtThreadExit, cbs);
+        for (unsigned int i = 0; i < cbs.size(); ++i) {
+            signalNotificationFD();
 
-    pdvector<CallbackBase *> cbs;
-    getCBManager()->dispenseCallbacksMatching(evtThreadExit, cbs);
-    for (unsigned int i = 0; i < cbs.size(); ++i) {
-           signalNotificationFD();
-
-        AsyncThreadEventCallback *cb = dynamic_cast<AsyncThreadEventCallback *>(cbs[i]);
-        mailbox_printf("%s[%d]:  executing thread exit callback\n", FILE__, __LINE__);
-        if (cb)
-            (*cb)(bpprocess, thrd);
+            AsyncThreadEventCallback *cb = dynamic_cast<AsyncThreadEventCallback *>(cbs[i]);
+            mailbox_printf("%s[%d]:  executing thread exit callback\n", FILE__, __LINE__);
+            if (cb)
+                (*cb)(bpprocess, thrd);
+        }
+        bpprocess->deleteBPThread(thrd);
     }
-   bpprocess->deleteBPThread(thrd);
-
+    else {
+        //If we don't have an BPatch thread, then it might have been an internal
+        // thread that we decided not to report to the user (happens during 
+        //  windows attach).  Just trigger the lower level clean up in this case.
+        proc->deleteThread(tid);
+    }
 }
 
 
@@ -1372,7 +1378,6 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
     //BPatch_thread::enableDumpPatchedImage() if they want to use the save the world
     //functionality.
     ret->llproc->collectSaveWorldData = false;
-    ret->updateThreadInfo();
 
 #if defined(cap_async_events)
     async_printf("%s[%d]:  about to connect to process\n", FILE__, __LINE__);
@@ -1383,6 +1388,7 @@ BPatch_process *BPatch::processCreateInt(const char *path, const char *argv[],
     }
     asyncActive = true;
 #endif
+    ret->updateThreadInfo();
     
 
     return ret;

@@ -43,7 +43,7 @@
  *  tclVisi.C -- This file handles the bare essentials of tcl application
  *     initialization.  Essentially, it implements the Tcl_AppInit() function.
  *
- *  $Id: tclVisi.C,v 1.19 2006/04/13 23:06:05 legendre Exp $
+ *  $Id: tclVisi.C,v 1.20 2006/05/04 01:42:08 legendre Exp $
  */
 
 #include <stdio.h>
@@ -57,6 +57,10 @@
 
 #include "pdLogo.h"
 #include "paradyn/xbm/logo.xbm"
+
+#if defined(os_windows)
+#include "pdutil/h/winMain.h"
+#endif
 
 #if defined(os_windows)
 const "C" char V_tclVisi[] = "$Paradyn: v5.0 tclVisi #0 " __DATE__ __TIME__ "paradyn@cs.wisc.edu$";
@@ -122,6 +126,11 @@ int main(int argc,char **argv){
             sawParadynFlag = true;
         }
     }
+
+#if defined(os_windows)
+    // initialize our use of the WinSock library
+    InitSockets( __argv[0] );    
+#endif
 
     if( !sawParadynFlag )
     {

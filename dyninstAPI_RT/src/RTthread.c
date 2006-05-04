@@ -160,7 +160,7 @@ static unsigned threadCreate(dyntid_t tid)
    BPatch_newThreadEventRecord ev;
    unsigned index;
 
-  rtdebug_printf("%s[%d]:  welcome to threadCreate\n", 
+   rtdebug_printf("%s[%d]:  welcome to threadCreate\n", 
                  __FILE__, __LINE__);
    if (!DYNINSThasInitialized)
    {
@@ -191,16 +191,13 @@ static unsigned threadCreate(dyntid_t tid)
       rt_newthr_cb(index);
    }
 
-#if !defined(os_windows)
    //Only async for now.  We should parameterize this function to also have a
    // sync option.
-   //Windows doesn't need to use the trace pipe for thread events, thread 
-   // creation/deletion is handled through the debugging interface.
    asyncSendThreadEvent(ev.ppid, rtBPatch_threadCreateEvent, &ev, 
                         sizeof(BPatch_newThreadEventRecord));
-#endif
-  rtdebug_printf("%s[%d]:  leaving threadCreate: index = %d\n", 
+   rtdebug_printf("%s[%d]:  leaving threadCreate: index = %d\n", 
                  __FILE__, __LINE__, index);
+
    return index;
 }
 

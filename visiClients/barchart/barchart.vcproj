@@ -37,7 +37,7 @@
 				LinkIncremental="2"
 				GenerateDebugInformation="TRUE"
 				AssemblyDebug="1"
-				SubSystem="2"/>
+				SubSystem="1"/>
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
@@ -83,7 +83,7 @@
 				OutputFile="$(OutDir)\$(ProjectName).exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="TRUE"
-				SubSystem="2"/>
+				SubSystem="1"/>
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
@@ -139,7 +139,8 @@
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCustomBuildTool"
-						CommandLine="perl ../../../scripts/tcl2c tcl/barChart.tcl ../../visiClients/auxiliary/tcl/Export.tcl &gt; i386-unknown-nt4.0\tcl2c.C"
+						CommandLine="perl ../../../scripts/tcl2c tcl/barChart.tcl ../../visiClients/auxiliary/tcl/Export.tcl &gt; i386-unknown-nt4.0\tcl2c.C
+"
 						AdditionalDependencies="../../visiClients/auxiliary/tcl/Export.tcl"
 						Outputs="i386-unknown-nt4.0\tcl2c.C"/>
 				</FileConfiguration>
@@ -147,7 +148,8 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCustomBuildTool"
-						CommandLine="perl ../../../scripts/tcl2c tcl/barChart.tcl ../../visiClients/auxiliary/tcl/Export.tcl &gt; i386-unknown-nt4.0\tcl2c.C"
+						CommandLine="perl ../../../scripts/tcl2c tcl/barChart.tcl ../../visiClients/auxiliary/tcl/Export.tcl &gt; i386-unknown-nt4.0\tcl2c.C
+"
 						AdditionalDependencies="../../visiClients/auxiliary/tcl/Export.tcl"
 						Outputs="i386-unknown-nt4.0\tcl2c.C"/>
 				</FileConfiguration>
@@ -215,27 +217,14 @@
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\auxiliary\src\main-win.C">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -245,12 +234,14 @@
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -260,12 +251,14 @@
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -275,12 +268,14 @@
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -328,7 +323,14 @@
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAsManaged="0"/>
 				</FileConfiguration>
 			</File>
 		</Filter>

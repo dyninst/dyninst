@@ -78,7 +78,7 @@ unsigned num_args = 0;
 static BPatch_process *getProcess()
 {
    args[0] = filename;
-   BPatch_process *proc;
+   BPatch_process *proc = NULL;
    if (create_proc) {
       proc = bpatch->processCreate(filename, (const char **) args);
       if(proc == NULL) {

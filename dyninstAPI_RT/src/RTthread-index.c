@@ -58,7 +58,6 @@
 #define NONE -1
 
 static DECLARE_TC_LOCK(DYNINST_index_lock);
-int DYNINST_am_initial_thread(dyntid_t);
 
 static int first_free;
 static int first_deleted;
@@ -220,7 +219,6 @@ unsigned DYNINST_alloc_index(dyntid_t tid)
        clean_thread_list();
        /* We have deleted, but they weren't freed by the mutator yet.... */
        while (num_free == 0) {
-           sleep(1);
            clean_thread_list();
        }
        t = get_free_index();
@@ -301,41 +299,6 @@ int DYNINST_free_index(dyntid_t tid)
    tc_lock_unlock(&DYNINST_index_lock);
    return retval;
 }
-
-/* 
-   We reserve index 0 for the initial thread. This value varies by
-   platform but is always constant for that platform. Wrap that
-   platform-ness here. 
-*/
-int DYNINST_am_initial_thread(dyntid_t tid) {
-#if defined(os_aix)
-    return (tid == (dyntid_t) 1);
-#elif defined(os_linux)
-    static dyntid_t already_matched = (dyntid_t) -1; 
-    if (dyn_lwp_self() == getpid()) {
-        if ((already_matched != (dyntid_t) -1) && 
-            (already_matched != tid)) {
-            /* This can only happen in 2.4; we don't have lwp_self(),
-               or multiple tids share the same lwp. Error case. */
-            assert(0);
-            return 0;
-        }
-        already_matched = tid;
-        return 1;
-    }
-    return 0;
-#elif defined(os_solaris)
-    return (tid == (dyntid_t) 1);
-#elif defined(os_windows)
-    static int not_first = 0;
-    if (not_first) return 0;
-    not_first = 1; 
-    return 1;
-#else
-    return 0;
-#endif
-}
- 
 
 #if 0
 void DYNINST_print_lists()

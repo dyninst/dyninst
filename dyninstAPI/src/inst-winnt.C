@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: inst-winnt.C,v 1.25 2006/03/12 23:31:59 legendre Exp $
+// $Id: inst-winnt.C,v 1.26 2006/05/04 01:41:21 legendre Exp $
 
 #include "dyninstAPI/src/os.h"
 #include "dyninstAPI/src/dyninst.h"
@@ -166,7 +166,9 @@ int_function *instPoint::findCallee()
    if (callee_) {
       return callee_;
    }  
-   assert(ipType_ == callSite);
+   if (ipType_ != callSite) {
+       return NULL;
+   }
   
    if (!isDynamicCall()) {
       // We have a direct call but don't yet know the callee.

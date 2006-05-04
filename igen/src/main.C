@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.67 2006/04/13 23:05:26 legendre Exp $
+// $Id: main.C,v 1.68 2006/05/04 01:41:39 legendre Exp $
 
 /*
  * Note: AIX 5.1
@@ -54,6 +54,10 @@
 #include <iostream>
 #include <stdio.h>
 #include "common/h/Ident.h"
+
+#if defined(os_windows)
+#include "pdutil/h/winMain.h"
+#endif
 
 extern "C" const char V_igen[];
 Ident V_id(V_igen,"Paradyn");

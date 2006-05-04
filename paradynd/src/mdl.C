@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.183 2006/04/25 18:18:08 tlmiller Exp $
+// $Id: mdl.C,v 1.184 2006/05/04 01:41:41 legendre Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -2210,7 +2210,14 @@ bool update_environment_start_point(instrCodeNode *codeNode) {
    start_funcs.push_back("_thread_start");
    start_funcs.push_back("_thr_setup");
 #elif defined(os_linux)
-   start_funcs.push_back("start_thread");   
+   start_funcs.push_back("start_thread");
+#elif defined(os_windows)
+   threadMgr::thrIter itr = proc->beginThr();
+   for (; itr != proc->endThrMark(); itr++) {
+      pd_thread *thr = *itr;
+      assert(thr);
+      start_funcs.push_back(thr->get_initial_func_name());
+   }
 #endif
 
    if (proc->multithread_ready()) {

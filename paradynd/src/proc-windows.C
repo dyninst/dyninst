@@ -51,6 +51,13 @@
 #include "dyninstAPI/h/BPatch_process.h"
 
 
+rawTime64
+FILETIME2rawTime64( FILETIME& ft )
+{
+    return (((rawTime64)(ft).dwHighDateTime<<32) | 
+	    ((rawTime64)(ft).dwLowDateTime));
+}
+
 void pd_process::initCpuTimeMgrPlt() {
    cpuTimeMgr->installLevel(cpuTimeMgr_t::LEVEL_TWO, &pd_process::yesAvail, 
                             timeUnit(fraction(100)), timeBase::bNone(), 
@@ -58,23 +65,30 @@ void pd_process::initCpuTimeMgrPlt() {
 }
 
 rawTime64 pd_process::getAllLwpRawCpuTime_hw() {
-   return STthread()->getRawCpuTime_hw();
+   rawTime64 total = 0;
+   threadMgr::thrIter itr = thrMgr().begin();
+   for(; itr != thrMgr().end(); itr++) {
+      pd_thread *thr = *itr;
+      total += thr->getRawCpuTime_hw();
+   }
+   return total;
 }
 
+extern void printSysError(unsigned errNo);
+
 rawTime64 pd_process::getAllLwpRawCpuTime_sw() {
-   return STthread()->getRawCpuTime_sw();
+   rawTime64 total = 0;
+   threadMgr::thrIter itr = thrMgr().begin();
+   for(; itr != thrMgr().end(); itr++) {
+      pd_thread *thr = *itr;
+      total += thr->getRawCpuTime_sw();
+   }
+   return total;
 } 
 
 rawTime64 pd_thread::getRawCpuTime_hw() {
   fprintf(stderr, "dyn_lwp::getRawCpuTime_hw: not implemented\n");
   return 0;
-}
-
-rawTime64
-FILETIME2rawTime64( FILETIME& ft )
-{
-    return (((rawTime64)(ft).dwHighDateTime<<32) | 
-	    ((rawTime64)(ft).dwLowDateTime));
 }
 
 /* return unit: nsecs */
@@ -93,7 +107,6 @@ rawTime64 pd_thread::getRawCpuTime_sw()
   // time shouldn't go backwards, but we'd better handle it if it does
 //  printf(" %I64d %I64d \n", now, previous);
   if (now < sw_previous_) {
-	  //DebugBreak();
      logLine("********* time going backwards in paradynd **********\n");
      now = sw_previous_;
   }

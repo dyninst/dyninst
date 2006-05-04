@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_info.h,v 1.16 2006/04/26 23:37:34 mjbrim Exp $
+// $Id: test_info.h,v 1.17 2006/05/04 01:41:55 legendre Exp $
 #ifndef TEST_INFO_H
 #define TEST_INFO_H
 
@@ -330,9 +330,15 @@ test_data_t tests[] = {
    test_data_t("test12_2", "test12_2.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 2, KILL_MUTATEE, CREATE, DISABLED),
    test_data_t("test12_3", "test12_3.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 3, KILL_MUTATEE, CREATE, DISABLED),
    test_data_t("test12_4", "test12_4.so", test12_mutatee, test5_12_platforms, STOPPED, 12, 4, KILL_MUTATEE, CREATE, DISABLED),
+#if !defined(os_windows)
    test_data_t("test13_1", "test13_1.so", test13_mutatee, all_platforms, SELFSTART, 13, 1, NONE, BOTH, ENABLED),
    test_data_t("test14_1", "test14_1.so", test14_mutatee, all_platforms, SELFSTART, 14, 1, NONE, BOTH, ENABLED),
    test_data_t("test15_1", "test15_1.so", test15_mutatee, all_platforms, SELFSTART, 15, 1, NONE, BOTH, ENABLED)
+#else
+   test_data_t("test13_1", "test13_1.so", test13_mutatee, all_platforms, SELFSTART, 13, 1, NONE, CREATE, ENABLED),
+   test_data_t("test14_1", "test14_1.so", test14_mutatee, all_platforms, SELFSTART, 14, 1, NONE, CREATE, ENABLED),
+   test_data_t("test15_1", "test15_1.so", test15_mutatee, all_platforms, SELFSTART, 15, 1, NONE, CREATE, ENABLED)
+#endif
 };
 const unsigned int num_tests = sizeof(tests)/sizeof(test_data_t);
 

@@ -285,6 +285,7 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
                        const pdstring dir, int stdin_fd, int stdout_fd,
                        int stderr_fd) 
     : monitorFunc(NULL),
+      os_handle(0),
       numOfActCounters_is(0), numOfActProcTimers_is(0),
       numOfActWallTimers_is(0), 
       cpuTimeMgr(NULL),
@@ -381,6 +382,7 @@ pd_process::pd_process(const pdstring argv0, pdvector<pdstring> &argv,
 // Attach constructor
 pd_process::pd_process(const pdstring &progpath, int pid)
         : monitorFunc(NULL),
+          os_handle(0),
           numOfActCounters_is(0), numOfActProcTimers_is(0),
           numOfActWallTimers_is(0), 
           cpuTimeMgr(NULL),
@@ -443,6 +445,7 @@ extern void CallGraphSetEntryFuncCallback(pdstring exe_name, pdstring r, int tid
 pd_process::pd_process(const pd_process &parent, BPatch_process *childDynProc) :
         dyninst_process(childDynProc), 
         monitorFunc(NULL),
+        os_handle(0),
         cpuTimeMgr(NULL),
 #ifdef PAPI
         papi(NULL),
@@ -529,6 +532,7 @@ pd_process::~pd_process() {
 
    delete theVariableMgr;
    theVariableMgr = NULL;
+   closeOSHandle();
 }
 
 bool pd_process::doMajorShmSample() {
@@ -896,7 +900,7 @@ bool pd_process::finalizeParadynLib(load_cause_t ldcause)
       setFirstRecordTime(currWallTime);
    assert(isStopped());
    
-	 //   tp->newProgramCallbackFunc(dyninst_process->getPid(), arg_list, 
+   //   tp->newProgramCallbackFunc(dyninst_process->getPid(), arg_list, 
    //                           machineResource->part_name(),
    //                           (ldcause==exec_load),
    //                           wasRunningWhenAttached());
@@ -1054,12 +1058,13 @@ rawTime64 pd_process::getRawCpuTime_sw(int lwp)
    } else {
       threadMgr::thrIter itr = beginThr();
       pd_thread *thr = NULL;
-      for (; itr != endThrMark(); itr++) 
+      for (; itr != endThrMark(); itr++) {
          if ((*itr)->get_lwp() == lwp)
          {
             thr = *itr;
             break;
          }
+      }
       assert(thr);
       return thr->getRawCpuTime_sw();
    }
@@ -1330,7 +1335,7 @@ void pd_process::FillInCallGraphStatic(bool init_graph, unsigned *checksum )
 		}
   int thr = 0;
   // MT: forward the ID of the first thread.
-  if(thr_mgr.size())
+  if(thr_mgr.size()) 
     {
       threadMgr::thrIter begThrIter = beginThr();
       pd_thread *begThr = *(begThrIter);
@@ -2268,4 +2273,24 @@ void pd_process::PDSEP_LOCK(char *file, unsigned line) {
 
 void pd_process::PDSEP_UNLOCK(char *file, unsigned line) {
     global_mutex->_Unlock(file, line);
+}
+
+unsigned long pd_process::getOSHandle() {
+    if (!os_handle)
+        initOSHandle();
+    return os_handle;
+}
+
+void pd_process::initOSHandle() {
+    os_handle = dyninst_process->getPid();
+#if defined(os_windows)
+    os_handle = (unsigned long) OpenProcess(PROCESS_ALL_ACCESS, false, os_handle);
+#endif
+}
+
+void pd_process::closeOSHandle() {
+#if defined(os_windows)
+    if (os_handle)
+        CloseHandle((HANDLE) os_handle);
+#endif
 }

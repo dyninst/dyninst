@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.630 2006/05/03 22:05:03 bernat Exp $
+// $Id: process.C,v 1.631 2006/05/04 01:41:25 legendre Exp $
 
 #include <ctype.h>
 
@@ -76,6 +76,8 @@
 #include "dyninstAPI/src/BPatch_asyncEventHandler.h"
 #include "dyninstAPI/src/debuggerinterface.h"
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
+#include "dyninstAPI/src/InstrucIter.h"
+
 // #include "paradynd/src/mdld.h"
 #include "common/h/Timer.h"
 #include "common/h/Time.h"
@@ -123,6 +125,8 @@
 #include "common/h/Timer.h"
 
 #include "dyninstAPI_RT/h/dyninstAPI_RT.h"
+
+#define P_offsetof(s, m) (unsigned) &(((s *) NULL)->m)
 
 #define FREE_WATERMARK (hp->totalFreeMemAvailable/2)
 #define SIZE_WATERMARK 100
@@ -2066,7 +2070,6 @@ bool process::setupCreated(int iTraceLink)
     
 #if !defined(BPATCH_LIBRARY)
     if (iTraceLink == -1 ) {
-        fprintf(stderr, "%s[%d]:  setting attachedToCreated\n", FILE__, __LINE__);
         creationMechanism_ = attachedToCreated_cm;
     }
 #endif
@@ -2789,7 +2792,6 @@ bool process::loadDyninstLib() {
     }
 
 
-    assert (isStopped());
     startup_printf("Stopped at entry of main\n");
 
     // We've hit the initialization trap, so load dyninst lib and
@@ -2850,10 +2852,10 @@ bool process::loadDyninstLib() {
 
 	setBootstrapState(loadingRT_bs);
 
-	if (!sh->continueProcessAsync()) {
-	    assert(0);
-	}
-	// Loop until the dyninst lib is loaded
+    if (!sh->continueProcessAsync()) {
+        assert(0);
+    }
+    // Loop until the dyninst lib is loaded
 	while (!reachedBootstrapState(loadedRT_bs)) {
 	    if(hasExited()) {
 		startup_printf("Odd, process exited while waiting for "
@@ -3526,9 +3528,17 @@ mapped_object *process::findObject(Address addr) {
     return NULL;
 }
 
+void process::updateThreadIndex(dyn_thread *thread, int index) {
+    assert(thread->get_index() == -1 && index != -1);
+    thread->update_index(index);
+    getRpcMgr()->addThread(thread);
+}
+
 void process::addThread(dyn_thread *thread)
 {
-   getRpcMgr()->addThread(thread);
+   if (thread->get_index() != -1) {
+     getRpcMgr()->addThread(thread);
+   }
    threads.push_back(thread);
 }
 
@@ -3832,10 +3842,6 @@ bool process::writeTextWord(caddr_t inTracedProcess, int data) {
 bool process::writeTextSpace(void *inTracedProcess, u_int amount, 
                              const void *inSelf) 
 {
-    if (((unsigned long) inTracedProcess <= 0xd03f9080) &&
-        ((unsigned long)inTracedProcess + amount > 0xd03f9080))
-        fprintf(stderr, "**************** GOT IT!!!\n");
-
    assert(inTracedProcess);
    bool needToCont = false;
 
@@ -5954,12 +5960,12 @@ void process::deleteThread(dynthread_t tid)
                 continue;
             } 
         threads.erase(iter);  
-
         removeThreadIndexMapping(thr);
 
         deleteThread_(thr);
         //Delete the thread
-        getRpcMgr()->deleteThread(thr);
+        if (thr->get_index() != -1)
+            getRpcMgr()->deleteThread(thr);
         delete thr;
         
         //Delete the lwp below the thread
@@ -5976,12 +5982,12 @@ void process::deleteThread(dynthread_t tid)
 
 bool process::removeThreadIndexMapping(dyn_thread *thr)
 {
-    assert(runtime_lib);
+    if (!runtime_lib)
+        return false;
     assert(thr);
 
     // Don't worry 'bout it if we're cleaning up and exiting anyway.
     if (exiting_) return true;
-
     signal_printf("%s[%d]: past wait loop, deleting thread....\n", FILE__, __LINE__);
 
     bool res = false;
@@ -6026,8 +6032,6 @@ bool process::removeThreadIndexMapping(dyn_thread *thr)
             goto done;
         }
     }
-
-
     if (thread_structs_base == 0) {
         goto done;
     }    
@@ -6059,7 +6063,7 @@ bool process::removeThreadIndexMapping(dyn_thread *thr)
     doublecheck.thread_state = LWP_EXITED;
 
     // We only want to write the thread state...
-    addrToWrite = thread_struct_addr + offsetof(dyninst_thread_t, thread_state);
+    addrToWrite = thread_struct_addr + P_offsetof(dyninst_thread_t, thread_state);
 
     if (!writeDataSpace((void *)addrToWrite,
                         sizeof(doublecheck.thread_state),
@@ -6229,17 +6233,14 @@ void process::recognize_threads(const process *parent)
      // process create and wait for them _at all_ we'll run the process past
      // its starting point. 
      // Instead, we skip anything in a syscall.
-     
+     bool rpcNeedsContinue = false;     
+     getRpcMgr()->launchRPCs(rpcNeedsContinue, false);
+     startup_printf("%s[%d]: launchRPCs complete for process attach, completed %d expected %d\n",
+                    FILE__, __LINE__, num_completed, expected);
+     if (rpcNeedsContinue)
+         continueProc();         
 
-     do {
-         bool rpcNeedsContinue = false;
-         getRpcMgr()->launchRPCs(rpcNeedsContinue,
-                                 false);
-         startup_printf("%s[%d]: launchRPCs complete for process attach, completed %d expected %d\n",
-                        FILE__, __LINE__, num_completed, expected);
-         if (rpcNeedsContinue)
-             continueProc();
-         
+     while (getRpcMgr()->existsActiveIRPC()) {
          if(hasExited()) {
              fprintf(stderr, "%s[%d]:  unexpected process exit\n", FILE__, __LINE__);
              return;
@@ -6252,9 +6253,9 @@ void process::recognize_threads(const process *parent)
 
          startup_printf("%s[%d]: got RPC event...\n",
                         FILE__, __LINE__);
-     } while (getRpcMgr()->existsActiveIRPC());
+     }
 
-     getMailbox()->executeCallbacks(FILE__, __LINE__);
+     //getMailbox()->executeCallbacks(FILE__, __LINE__);
 
      // Don't assert these... the RPCs can fail (well DYNINSTthreadIndex can fail).
      //assert(ret_lwps.size() == expected);
@@ -6596,4 +6597,22 @@ dyn_lwp *process::getInitialLwp() const {
 
 int process::getPid() const { return sh ? sh->getPid() : -1;}
 
+//Acts like findTargetFuncByAddr, but also finds the function if addr
+// is an indirect jump to a function.
+//I know this is an odd function, but darn I need it.
+int_function *process::findJumpTargetFuncByAddr(Address addr) {
+    Address addr2 = 0;
+    int_function *f = findFuncByAddr(addr);
+    if (f)
+        return f;
 
+    codeRange *range = findCodeRangeByAddress(addr);
+    if (!range->is_mapped_object()) 
+        return NULL;
+    
+    InstrucIter ii(addr, this);
+    if (ii.isAJumpInstruction())
+        addr2 = ii.getBranchTargetAddress();
+
+    return findFuncByAddr(addr2);
+}

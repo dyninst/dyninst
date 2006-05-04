@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: dyn_thread.h,v 1.26 2006/04/21 22:23:01 bernat Exp $
+// $Id: dyn_thread.h,v 1.27 2006/05/04 01:41:20 legendre Exp $
 
 #ifndef _DYNTHREAD_H_
 #define _DYNTHREAD_H_
@@ -85,7 +85,7 @@ class dyn_thread {
   void*          get_resumestate_p()       { return resumestate_p; }
 
   void update_tid          (dynthread_t tid_)        { tid = tid_; }
-  void update_index          (unsigned index_)        { index = index_; }
+  void update_index        (unsigned index_);
   void update_lwp          (dyn_lwp *lwp_)        { lwp = lwp_; }
   void update_stack_addr   (unsigned stack_addr_) { stack_addr=stack_addr_; }
   void update_start_pc     (unsigned start_pc_)   { start_pc=start_pc_; }
@@ -95,6 +95,7 @@ class dyn_thread {
   Address get_pending_tramp_addr( void ) const	{ return pending_tramp_addr; }
   void set_pending_tramp_addr( Address a )	{ pending_tramp_addr = a; }
   bool is_exited()                         { return lwp->status() == exited; }
+  int_function *map_initial_func(int_function *ifunc);
 
   ///
  private:

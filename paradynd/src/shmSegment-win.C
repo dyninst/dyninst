@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 //----------------------------------------------------------------------------
-// $Id: shmSegment-win.C,v 1.3 2005/12/19 19:43:24 pack Exp $
+// $Id: shmSegment-win.C,v 1.4 2006/05/04 01:41:49 legendre Exp $
 //----------------------------------------------------------------------------
 //
 // Definition of the ShmSegment class.
@@ -157,6 +157,7 @@ ShmSegment::Create( key_t& key, unsigned int size, bool freeWhenDeleted )
     {
       // we mapped the object successfully
       // build an object to represent the segment
+      memset(mapAddr, 0, size);
       seg = new ShmSegment( hMapping, curr_key, size, (Address) mapAddr );
     }
     else
@@ -243,10 +244,11 @@ ShmSegment *ShmSegment::Copy(BPatch_process *child_thr,
 // Build a name for a named shared memory semgent based on the 
 // given key value and size.
 //
-static
+static int
 BuildSegmentName( key_t key, unsigned int size, char* buffer )
 {
     sprintf( buffer, "ParadynD_%d_%d", key, size );
+    return 0;
 }
 
 

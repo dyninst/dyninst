@@ -41,7 +41,7 @@
 
 /*
  * dyn_lwp.C -- cross-platform segments of the LWP handler class
- * $Id: dyn_lwp.C,v 1.57 2006/05/02 19:17:17 bernat Exp $
+ * $Id: dyn_lwp.C,v 1.58 2006/05/04 01:41:18 legendre Exp $
  */
 
 #include "common/h/headers.h"
@@ -142,11 +142,11 @@ bool dyn_lwp::continueLWP(int signalToContinueWith)
    if(status_ == running) {
       return true;
    }
-
+/*
    if (status_ == exited) {
        return true;
    }
-
+*/
    if (proc()->sh->waitingForStop())
    {
      return false;
@@ -160,7 +160,8 @@ bool dyn_lwp::continueLWP(int signalToContinueWith)
    }
 
 #if defined (os_windows)
-   proc()->set_lwp_status(this, running);
+   if (status_ != exited)
+        proc()->set_lwp_status(this, running);
    if (getExecThreadID() != proc()->sh->getThreadID()) {
      signal_printf("%s[%d][%s]:  signalling active process\n", 
                    FILE__, __LINE__, getThreadStr(getExecThreadID()));
@@ -371,8 +372,10 @@ bool dyn_lwp::handleSyscallTrap(EventRecord &ev, bool &continueHint)
     // structure: known syscalls (mapped to a local enumerated type)
     // and unknown (with the syscall # in the info field).
     // Let's assume for now that we only trap unknown syscalls...
-    
+
+#if !defined(os_windows)
     if (ev.info != trappedSyscall_->syscall_id) return false;
+#endif
 
     // Step past the trap (if necessary)
     stepPastSyscallTrap();

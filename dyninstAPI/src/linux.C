@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.225 2006/05/03 22:10:10 tlmiller Exp $
+// $Id: linux.C,v 1.226 2006/05/04 01:41:23 legendre Exp $
 
 #include <fstream>
 
@@ -604,7 +604,7 @@ static char getState(int pid)
   while (*status == ' ') status++;
   return *status;
 }
-
+ 
 bool process::isRunning_() const 
 {
   char result = getState(getPid());

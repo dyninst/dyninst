@@ -87,7 +87,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    dprintf(stderr, "%s[%d]:  welcome to newthr, error13 = %d\n", __FILE__, __LINE__, error13);
    unsigned my_dyn_id = thr->getBPatchID();
 
-   if (create_proc && (my_proc != proc))
+   if (create_proc && proc && (my_proc != proc))
    {
       fprintf(stderr, "[%s:%u] - Got invalid process\n", 
               __FILE__, __LINE__);
@@ -115,7 +115,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
          break;
       }
    dprintf(stderr, "%s[%d]:  newthr: %s\n", __FILE__, __LINE__, name);
-#if !defined(os_windows)
+
    //Initial thread function detection is proving VERY difficult on Windows,
    //currently leaving disabled.
    if (!found_name)
@@ -124,7 +124,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
               __FILE__, __LINE__, my_dyn_id, name);
       error13 = 1;
    }
-#endif
+
    //Check that thread_id is unique
    if (my_dyn_id >= NUM_THREADS)
    {
@@ -359,10 +359,12 @@ extern "C" TEST_DLL_EXPORT int mutatorMAIN(ParameterDict &param)
    return 0;
 #endif
 
+#if !defined(os_windows)
    if ( param["useAttach"]->getInt() != 0 )
    {
       create_proc = false;
    }
+#endif
 
    if (!bpatch->registerThreadEventCallback(BPatch_threadCreateEvent,
 					    newthr) ||

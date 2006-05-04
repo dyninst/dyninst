@@ -45,7 +45,7 @@
 // Main program for the rthist executable.
 //
 //----------------------------------------------------------------------------
-// $Id: main.C,v 1.10 2004/03/23 01:12:48 eli Exp $
+// $Id: main.C,v 1.11 2006/05/04 01:42:02 legendre Exp $
 //----------------------------------------------------------------------------
 #include "common/h/headers.h"
 
@@ -64,6 +64,7 @@
 #include "visiClients/auxiliary/h/NoSoloVisiMsg.h"
 
 
+#include "pdutil/h/winMain.h"
 
 //---------------------------------------------------------------------------
 // program data
@@ -84,6 +85,11 @@ int
 main( int argc, char* argv[] )
 {
     int ret = 0;
+
+#if defined(os_windows)
+    // initialize our use of the WinSock library
+    InitSockets( __argv[0] );    
+#endif
 
     bool sawParadynFlag = false;
     for( int i = 0; i < argc; i++ )

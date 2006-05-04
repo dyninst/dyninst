@@ -1793,25 +1793,19 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(
 {
    //fprintf(stderr, "%s[%d][%s]:  welcome to createOrUpdateBPThread(tid = %lu)\n",
    //      FILE__, __LINE__, getThreadStr(getExecThreadID()), tid);
-   BPatch_thread *thr = NULL;
-
-   //Find this thread if it already exists.
-   for (unsigned i=0; i<threads.size(); i++) 
-      if (threads[i]->getBPatchID() == index) 
-      {
-         thr = threads[i];
-         break;
-      }
+   BPatch_thread *bpthr = this->getThread(tid);
+   if (!bpthr)
+      bpthr = this->getThreadByIndex(index);
 
    //Needs creating
-   if (!thr) 
+   if (!bpthr) 
    {
-      thr = BPatch_thread::createNewThread(this, index, lwp, tid);
-      if (thr->doa) {
-          return thr;
+      bpthr = BPatch_thread::createNewThread(this, index, lwp, tid);
+      if (bpthr->doa) {
+          return bpthr;
       }
          
-      threads.push_back(thr);
+      threads.push_back(bpthr);
    }
 
    //Update the non-esential values for the thread
@@ -1838,8 +1832,8 @@ BPatch_thread *BPatch_process::createOrUpdateBPThread(
      //fprintf(stderr, "%s[%d][%s]:  WARNING:  no function at %p found for thread\n",
      //        FILE__, __LINE__, getThreadStr(getExecThreadID()), start_addr);
    }
-   thr->updateValues(tid, stack_start, initial_func, lwp);   
-   return thr;
+   bpthr->updateValues(tid, stack_start, initial_func, lwp);   
+   return bpthr;
 }
 
 /**
@@ -1933,16 +1927,14 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
                                                   unsigned long stack_top, 
                                                   unsigned long start_pc, process *proc_)
 {
-    
-
-  bool thread_exists = (getThreadByIndex(index) != NULL);
+  bool thread_exists = (getThread(threadid) != NULL);
   if (!llproc && proc_) llproc = proc_;
   BPatch_thread *newthr = 
       createOrUpdateBPThread(lwpid, threadid, index, stack_top, start_pc);
-  if (thread_exists) {
+  if (newthr->reported_to_user) {
      async_printf("%s[%d]:  NOT ISSUING CALLBACK:  thread %lu exists\n", 
                   FILE__, __LINE__, (long) threadid);
-     //return newthr;
+     return newthr;
   }
 
   pdvector<CallbackBase *> cbs;
@@ -1954,6 +1946,7 @@ BPatch_thread *BPatch_process::handleThreadCreate(unsigned index, int lwpid,
      cb(this, newthr);
   }
 
+  newthr->reported_to_user = true;
   BPatch::bpatch->mutateeStatusChange = true;
   llproc->sh->signalEvent(evtThreadCreate);
 

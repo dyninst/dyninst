@@ -205,3 +205,11 @@ int dyn_pthread_getthrds_np(pthread_t *thread, int mode,
                                          regbuf, regbufsize);
 }
 
+/* 
+   We reserve index 0 for the initial thread. This value varies by
+   platform but is always constant for that platform. Wrap that
+   platform-ness here. 
+*/
+int DYNINST_am_initial_thread(int tid) {
+    return (tid == (dyntid_t) 1);
+}

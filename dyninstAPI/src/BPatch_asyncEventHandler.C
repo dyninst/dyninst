@@ -134,8 +134,6 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
   newp.fd = -1;
   process_fds.push_back(newp);
 
-  return true;
-
   //  get mutatee to initiate connection
 
   //  find the runtime library module
@@ -155,6 +153,7 @@ bool BPatch_asyncEventHandler::connectToProcess(BPatch_process *p)
   }
 #endif
 
+  return true;
   //  find the function that will initiate the connection
   BPatch_Vector<BPatch_function *> funcs;
   if (!p->getImage()->findFunction("DYNINSTasyncConnect", funcs, true, true, true)
@@ -237,8 +236,6 @@ BPatch_asyncEventHandler::BPatch_asyncEventHandler() :
 {
   //  prefer to do socket init in the initialize() function so that we can
   //  return errors.
-
-
 }
 #if defined(os_windows)
 static
@@ -753,7 +750,7 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
        unsigned index = (unsigned) call_rec.index;
        int lwpid = call_rec.lwp;
        dynthread_t tid = (dynthread_t) call_rec.tid;
-       bool thread_exists = (p->getThreadByIndex(call_rec.index) != NULL);
+       bool thread_exists = (p->getThread(tid) != NULL);
 
        //Create the new BPatch_thread object
        async_printf("%s[%d]:  before createOrUpdateBPThread: start_pc = %p," \
@@ -1013,10 +1010,6 @@ eventType rt2EventType(rtBPatch_asyncEventType t)
 
 asyncReadReturnValue_t BPatch_asyncEventHandler::readEvent(PDSOCKET fd, EventRecord &ev)
 {
-#if defined (os_windows)
-    assert(0);
-    return REerror;
-#else 
     rtBPatch_asyncEventRecord rt_ev;
     asyncReadReturnValue_t retval = readEvent(fd, &rt_ev, sizeof(rtBPatch_asyncEventRecord));
     if (retval != REsuccess) {
@@ -1033,43 +1026,15 @@ asyncReadReturnValue_t BPatch_asyncEventHandler::readEvent(PDSOCKET fd, EventRec
     ev.what = rt_ev.event_fd;
     ev.fd = fd;
     ev.type = rt2EventType(rt_ev.type);
+#if !defined(os_windows)
     ev.info = rt_ev.size;
+#endif
     async_printf("%s[%d]: read event, proc = %d, fd = %d\n", FILE__, __LINE__,
                  ev.proc->getPid(), ev.fd);
     return REsuccess;
-#endif
 }
 
-#if defined(os_windows)
-asyncReadReturnValue_t BPatch_asyncEventHandler::readEvent(PDSOCKET fd, void *ev, ssize_t sz)
-{
-    ssize_t bytes_read = 0;
-    
-    bytes_read = recv( fd, (char *)ev, sz, 0 );
-    
-    if ( PDSOCKET_ERROR == bytes_read ) {
-        fprintf(stderr, "%s[%d]:  read failed: %s:%d\n", FILE__, __LINE__,
-                strerror(errno), errno);
-        return REreadError;
-    }
-    
-    if (0 == bytes_read) {
-        //  fd closed on other end (most likely)
-        //bperr("%s[%d]:  cannot read, fd is closed\n", FILE__, __LINE__);
-        return REnoData;
-    }
-    
-    if (bytes_read != sz) {
-        bperr("%s[%d]:  read wrong number of bytes!\n", FILE__, __LINE__);
-        bperr("FIXME:  Need better logic to handle incomplete reads\n");
-        return REinsufficientData;
-    }
-    
-    fprintf(stderr, "%s[%d] done recv\n", FILE__, __LINE__);
-    return REsuccess;
-}
-
-#else
+#if !defined(os_windows)
 asyncReadReturnValue_t BPatch_asyncEventHandler::readEvent(PDSOCKET fd, void *ev, ssize_t sz)
 {
   ssize_t bytes_read = 0;
@@ -1098,6 +1063,34 @@ try_again:
   }
 
   return REsuccess;
+}
+#else
+
+asyncReadReturnValue_t BPatch_asyncEventHandler::readEvent(PDSOCKET fd, void *ev, ssize_t sz)
+{
+    ssize_t bytes_read = 0;
+    
+    bytes_read = recv( fd, (char *)ev, sz, 0 );
+    
+    if ( PDSOCKET_ERROR == bytes_read && errno != 0 ) {
+        fprintf(stderr, "%s[%d]:  read failed: %s:%d\n", FILE__, __LINE__,
+                strerror(errno), errno);
+        return REreadError;
+    }
+    
+    if (0 == bytes_read || (PDSOCKET_ERROR == bytes_read && errno == 0)) {
+        //  fd closed on other end (most likely)
+        //bperr("%s[%d]:  cannot read, fd is closed\n", FILE__, __LINE__);
+        return REnoData;
+    }
+    
+    if (bytes_read != sz) {
+        bperr("%s[%d]:  read wrong number of bytes!\n", FILE__, __LINE__);
+        bperr("FIXME:  Need better logic to handle incomplete reads\n");
+        return REinsufficientData;
+    }
+    
+    return REsuccess;
 }
 #endif
 

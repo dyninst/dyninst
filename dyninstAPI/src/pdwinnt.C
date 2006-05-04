@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: pdwinnt.C,v 1.154 2006/04/26 03:43:01 jaw Exp $
+// $Id: pdwinnt.C,v 1.155 2006/05/04 01:41:24 legendre Exp $
 
 #include "common/h/std_namesp.h"
 #include <iomanip>
@@ -174,8 +174,9 @@ static void hasIndex(process *, unsigned, void *data, void *result)
 bool SignalHandler::handleThreadCreate(EventRecord &ev, bool &continueHint)
 {
    process *proc = ev.proc;
+   CONTEXT cont;
+   Address initial_func = 0, stack_top = 0;
    BPatch_process *bproc = (BPatch_process *) ev.proc->container_proc;
-   int index;
    HANDLE lwpid = ev.info.u.CreateThread.hThread;
    int tid = ev.info.dwThreadId;
    
@@ -187,19 +188,23 @@ bool SignalHandler::handleThreadCreate(EventRecord &ev, bool &continueHint)
    ev.lwp = lwp;
    proc->set_lwp_status(lwp, stopped);
 
-   if (proc->real_lwps.size() && !proc->reachedBootstrapState(bootstrapped_bs)) {
-       //We're still booting up, so postpone this thread event.
-       // we'll get it latter with recognize_threads.
-       proc->cached_lwps.push_back((int) lwpid);
-       continueHint = true;
-       return true;
+   cont.ContextFlags = CONTEXT_FULL;
+   if (GetThreadContext(lwpid, &cont))
+   {
+       initial_func = cont.Eax;
+       stack_top = cont.Esp;
    }
-   index = proc->real_lwps.size()-1;
 
-   Frame ah = lwp->getActiveFrame();
-   Address stack_top = ah.getSP();
-   bproc->handleThreadCreate(index, (int) lwpid, tid, stack_top, 
-       (unsigned long) ev.info.u.CreateThread.lpStartAddress, proc);   
+   //Create the dyn_thread early as well.
+   dyn_thread *thr = new dyn_thread(proc, -1, lwp);
+   thr->update_tid(tid);
+   thr->update_start_pc(initial_func);
+   thr->update_stack_addr(stack_top);
+
+   if (initial_func) {
+       proc->instrumentThreadInitialFunc(initial_func);
+   }
+
    continueHint = true;
    return true;
 }
@@ -225,6 +230,8 @@ bool SignalHandler::handleProcessCreate(EventRecord &ev, bool &continueHint)
     rep_lwp->set_lwp_id((int) rep_lwp->get_fd());
     proc->real_lwps[rep_lwp->get_lwp_id()] = rep_lwp;
     proc->representativeLWP = NULL;
+    if (proc->theRpcMgr)
+       proc->theRpcMgr->addLWP(rep_lwp);
     
     if (proc->threads.size() == 0) {
         dyn_thread *t = new dyn_thread(proc, 
@@ -236,6 +243,7 @@ bool SignalHandler::handleProcessCreate(EventRecord &ev, bool &continueHint)
         proc->threads[0]->update_lwp(rep_lwp);
     }
 
+    proc->set_status(stopped);
    proc->setBootstrapState(begun_bs);
    if (proc->insertTrapAtEntryPointOfMain()) {
      startup_printf("%s[%d]:  attached to process, stepping to main\n", FILE__, __LINE__);
@@ -413,7 +421,9 @@ bool SignalGenerator::waitForEventsInternal(pdvector<EventRecord> &events)
        ev.lwp = thr->get_lwp();
        proc->set_lwp_status(ev.lwp, stopped);
    }
-   if (!ev.lwp && ev.proc->getRepresentativeLWP()) {
+   if (!ev.lwp && ev.proc->getRepresentativeLWP() &&
+       ev.info.dwDebugEventCode != CREATE_THREAD_DEBUG_EVENT) 
+   {
        //Happens during process startup
        ev.lwp = ev.proc->getRepresentativeLWP();
        proc->set_lwp_status(ev.lwp, stopped);
@@ -425,7 +435,9 @@ bool SignalGenerator::waitForEventsInternal(pdvector<EventRecord> &events)
        ev.lwp = ev.proc->getInitialLwp();
    }
 
-   proc->set_status(stopped);
+   signal_printf("[%s:%u] - Got event %d on %d (%d)\n", __FILE__, __LINE__, 
+           ev.info.dwDebugEventCode, ev.lwp->get_fd(), ev.info.dwThreadId);
+
    Frame af = ev.lwp->getActiveFrame();
    ev.address = (Address) af.getPC();
 
@@ -587,6 +599,7 @@ bool process::unsetProcessFlags() {
 /* continue a process that is stopped */
 bool dyn_lwp::continueLWP_(int /*signalToContinueWith*/) {
    unsigned count;
+   signal_printf("[%s:%u] - continuing %d\n", __FILE__, __LINE__, get_fd());
    count = ResumeThread((HANDLE)get_fd());
    if (count == (unsigned) -1) {
       fprintf(stderr, "[%s:%u] - Couldn't resume thread\n", __FILE__, __LINE__);
@@ -611,7 +624,6 @@ terminateProcStatus_t process::terminateProc_()
 */
 bool dyn_lwp::stop_() {
    unsigned count = 0;
-
    count = SuspendThread((HANDLE)get_fd());
    if (count == (unsigned) -1)
       return false;
@@ -757,7 +769,6 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs) {
 
 bool process::isRunning_() const {
     // TODO
-    printf("process::isRunning_() returning true\n");
     return true;
 }
 
@@ -1579,6 +1590,12 @@ bool process::loadDYNINSTlib()
     Address LoadLibAddr;
     Symbol sym;
 
+    dyn_lwp *lwp;
+    lwp = getInitialLwp();
+ /*   if (lwp->status() == running) {
+       lwp->pauseLWP();
+    }*/
+
     if (!getSymbolInfo("_LoadLibraryA@4", sym) &&
         !getSymbolInfo("_LoadLibraryA", sym) &&
         !getSymbolInfo("LoadLibraryA", sym))
@@ -1644,9 +1661,10 @@ bool process::loadDYNINSTlib()
     dyninstlib_brk_addr = loadDyninstLibAddr + offsetToTrap;
     
     savedRegs = new dyn_saved_regs;
-    bool status = getInitialLwp()->getRegisters(savedRegs);
-    assert(status == true);
-    getInitialLwp()->changePC(loadDyninstLibAddr + instructionOffset, NULL);
+
+    bool status = lwp->getRegisters(savedRegs);
+    assert(status == true);    
+    lwp->changePC(loadDyninstLibAddr + instructionOffset, NULL);
     
     setBootstrapState(loadingRT_bs);
     return true;
@@ -1709,8 +1727,14 @@ Frame dyn_thread::getActiveFrameMT() {
 
 bool process::determineLWPs(pdvector<unsigned> &lwp_ids)
 {
-   lwp_ids = cached_lwps;
-   return true;
+  dyn_lwp *lwp;
+  unsigned index;
+
+  dictionary_hash_iter<unsigned, dyn_lwp *> lwp_iter(real_lwps);
+  while (lwp_iter.next(index, lwp)) {
+      lwp_ids.push_back(lwp->get_lwp_id());
+  }
+  return true;
 }
 
 bool process::initMT()
@@ -1720,6 +1744,7 @@ bool process::initMT()
 
 void dyninst_yield()
 {
+    SwitchToThread();
 }
 
 void OS::make_tempfile(char *name) {
@@ -2172,4 +2197,50 @@ bool OS::executableExists(pdstring &file) {
    if (stat_result == -1)
        stat_result = stat((file + pdstring(".exe")).c_str(), &file_stat);
    return (stat_result != -1);
+}
+
+int_function *dyn_thread::map_initial_func(int_function *ifunc) {
+    if (!ifunc || strcmp(ifunc->prettyName().c_str(), "mainCRTStartup"))
+        return ifunc;
+
+    //mainCRTStartup is not a real initial function.  Use main, if it exists.
+    const pdvector<int_function *> *mains = proc->getAOut()->findFuncVectorByPretty("main");
+    if (!mains || !mains->size())
+        return ifunc;
+    return (*mains)[0];
+}
+
+bool process::instrumentThreadInitialFunc(Address addr) {
+    int_function *f = findJumpTargetFuncByAddr(addr);
+    if (!f)
+        return false;
+
+    for (unsigned i=0; i<initial_thread_functions.size(); i++) {
+        if (initial_thread_functions[i] == f)   
+            return true;
+    }
+
+    int_function *dummy_create = findOnlyOneFunction("DYNINST_dummy_create");
+    if (!dummy_create)
+    {
+      return false;
+    } 
+
+    pdvector<AstNode *> args;
+    AstNode call_dummy_create(dummy_create, args);
+    AstNode *ast = &call_dummy_create;
+    const pdvector<instPoint *> &ips = f->funcEntries();
+    for (unsigned j=0; j<ips.size(); j++)
+    {
+       miniTramp *mt;
+       mt = ips[j]->instrument(ast, callPreInsn, orderFirstAtPoint, false, 
+                               false);
+       if (!mt)
+       {
+          fprintf(stderr, "[%s:%d] - Couldn't instrument thread_create\n",
+                  __FILE__, __LINE__);
+       }
+    }
+    initial_thread_functions.push_back(f);
+    return true;
 }

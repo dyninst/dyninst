@@ -72,7 +72,7 @@ class pd_thread {
 
    unsigned get_tid() const { return dyninst_thread->getTid(); }
    unsigned get_index() const { return dyninst_thread->getBPatchID(); }
-   int get_lwp() const { return dyninst_thread->getLWP(); }
+   int get_lwp() const;
    BPatch_function* get_start_func() {return dyninst_thread->getInitialFunc();}
 
    bool walkStack(BPatch_Vector<BPatch_frame> &stackWalk);

@@ -47,7 +47,7 @@
 // the platform-shared main() routine.
 //
 //----------------------------------------------------------------------------
-// $Id: main-win.C,v 1.2 2006/04/13 23:06:00 legendre Exp $
+// $Id: main-win.C,v 1.3 2006/05/04 01:41:58 legendre Exp $
 //----------------------------------------------------------------------------
 #include <windows.h>
 #include <tchar.h>
@@ -68,8 +68,11 @@ WinMain( HINSTANCE hInstance,
     MessageBox( NULL, "Press OK to continue", __argv[0], MB_OK );
 
     // provide a console for the visi so we can see error messages
-    InitConsole();
+    //InitConsole();
 #endif // _DEBUG
+    MessageBox( NULL, "Press OK to continue", __argv[0], MB_OK );
+    DebugBreak();
+
 
     // initialize our use of the WinSock library
     InitSockets( __argv[0] );    

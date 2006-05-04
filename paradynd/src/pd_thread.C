@@ -274,3 +274,13 @@ bool pd_thread::clearSavedStack() {
     }
     return true;
 }
+
+#if !defined(os_windows)
+int pd_thread::get_lwp() const { 
+    return dyninst_thread->getLWP(); 
+}
+#else
+int pd_thread::get_lwp() const { 
+    return dyninst_thread->getTid(); 
+}
+#endif

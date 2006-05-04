@@ -52,6 +52,8 @@
 #include "function.h" // instPointTrap debugging
 #include "rpcMgr.h"
 
+extern void dyninst_yield();
+
 void SignalHandler::main() {
     // As with the SignalGenerator, we use a custom main to avoid
     // unlocking in the middle of things; this can screw up our synchronization.
@@ -139,11 +141,7 @@ SignalHandler::~SignalHandler()
 
     while (isRunning()) {
         _Unlock(FILE__, __LINE__);
-#if defined(os_windows)
-        SwitchToThread();
-#else
-        sched_yield();
-#endif
+        dyninst_yield();
         _Lock(FILE__, __LINE__);
     }
 
@@ -573,13 +571,14 @@ bool SignalHandler::handleEvent(EventRecord &ev)
         break;
     case evtThreadExit:
         ret = handleLwpExit(ev, continueHint);
-#if defined(os_windows)
-        continueHint = true;
-#endif
         break;
     case evtProcessAttach:
         proc->setBootstrapState(initialized_bs);
+#if defined(os_windows)
+        continueHint = true;
+#else
         continueHint = false;
+#endif
         ret = true;
         break;
      case evtProcessInit:

@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTlinux.c,v 1.44 2006/05/03 00:31:25 jodom Exp $
+ * $Id: RTlinux.c,v 1.45 2006/05/04 01:41:33 legendre Exp $
  * RTlinux.c: mutatee-side library function specific to Linux
  ************************************************************************/
 
@@ -258,6 +258,26 @@ dyntid_t dyn_pthread_self()
    return (dyntid_t) me;
 }
 
+/* 
+   We reserve index 0 for the initial thread. This value varies by
+   platform but is always constant for that platform. Wrap that
+   platform-ness here. 
+*/
+int DYNINST_am_initial_thread(int tid) {
+    static int already_matched = -1; 
+    if (dyn_lwp_self() == getpid()) {
+        if ((already_matched != (dyntid_t) -1) && 
+            (already_matched != tid)) {
+            /* This can only happen in 2.4; we don't have lwp_self(),
+               or multiple tids share the same lwp. Error case. */
+            assert(0);
+            return 0;
+        }
+        already_matched = tid;
+        return 1;
+    }
+    return 0;
+}
 
 /**
  * We need to extract certain pieces of information from the usually opaque 

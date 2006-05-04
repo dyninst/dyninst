@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.156 2006/05/03 00:31:18 jodom Exp $
+// $Id: BPatch_thread.C,v 1.157 2006/05/04 01:41:16 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -159,9 +159,19 @@ BPatch_thread::BPatch_thread(BPatch_process *parent, int ind, int lwp_id, dynthr
 {
    proc = parent;
    is_deleted = false;
-   index = ind;
    doa_tid = (dynthread_t) -1;
-   dyn_lwp *lwp = proc->llproc->getLWP(lwp_id);
+   dyn_lwp *lwp = NULL;
+
+#if defined(os_windows)
+  //On Windows the initial LWP has two possible handles, one associated
+  // with the thread and one associated with the process.  We use the
+  // process handle in Dyninst, so we don't want to use the thread-based
+  // lwp_id that got passed in.
+  if (!ind)
+      lwp = proc->llproc->getInitialLwp();
+#endif
+   if (!lwp)
+      lwp = proc->llproc->getLWP(lwp_id);
    doa = (lwp == NULL);
    doa_tid = async_tid;
    if (doa) {
@@ -169,9 +179,19 @@ BPatch_thread::BPatch_thread(BPatch_process *parent, int ind, int lwp_id, dynthr
       llthread = NULL;
       return;
    }
-   llthread = new dyn_thread(proc->llproc, index, lwp);   
+
+   llthread = proc->llproc->getThread(async_tid);
+   if (!llthread)
+       llthread = new dyn_thread(proc->llproc, ind, lwp);
+
+   if (llthread->get_index() == -1 && ind != -1)
+       proc->llproc->updateThreadIndex(llthread, ind);
+
+   index = llthread->get_index();
+
    legacy_destructor = true;
    updated = false;
+   reported_to_user = false;
 }
 
 BPatch_thread::BPatch_thread(BPatch_process *parent, dyn_thread *dthr)
@@ -184,34 +204,50 @@ BPatch_thread::BPatch_thread(BPatch_process *parent, dyn_thread *dthr)
    llthread = dthr;
    legacy_destructor = true;
    updated = false;
+   reported_to_user = false;
 }
 
 void BPatch_thread::updateValues(dynthread_t tid, unsigned long stack_start,
                                  BPatch_function *initial_func, int lwp_id)
 {
+   dyn_lwp *lwp;
    if (updated) {
      //fprintf(stderr, "%s[%d]:  thread already updated\n", FILE__, __LINE__);
      return;
    }
 
-   dyn_lwp *lwp = proc->llproc->getLWP(lwp_id);
+#if defined(os_windows)
+  //On Windows the initial LWP has two possible handles, one associated
+  // with the thread and one associated with the process.  We use the
+  // process handle in Dyninst, so we don't want to use the thread-based
+  // lwp_id that got passed in.
+  if (!index)
+      lwp = proc->llproc->getInitialLwp();
+#endif
+
+   if (!lwp)
+       lwp = proc->llproc->getLWP(lwp_id);
 
    updated = true;
-   llthread->update_stack_addr(stack_start);
+   if (stack_start && !llthread->get_stack_addr())
+       llthread->update_stack_addr(stack_start);
+   if (!llthread->get_lwp() && lwp)
    llthread->update_lwp(lwp);
 
-   if (tid == -1) {
-       //Expensive... uses an iRPC to get it from the RT library
-       tid = proc->llproc->mapIndexToTid(index);
+   if (!llthread->get_tid()) {
+       if (tid == -1) {
+           //Expensive... uses an iRPC to get it from the RT library
+           tid = proc->llproc->mapIndexToTid(index);   
+       }
+       llthread->update_tid(tid);
    }
-   llthread->update_tid(tid);
    
    //If initial_func or stack_start aren't provided then
    // we can update them with a stack walk
    // We delay this to speed initialization -- the main thread
    // never comes in with info, which triggers a.out parsing.
 
-   if (initial_func)
+   if (initial_func && !llthread->get_start_func())
    {
       llthread->update_start_func(initial_func->func);
    }
@@ -306,10 +342,11 @@ BPatch_function *BPatch_thread::getInitialFuncInt()
 
    // Try again...
    ifunc = llthread->get_start_func();
+   ifunc = llthread->map_initial_func(ifunc);
 
    if (!ifunc) return NULL;
 
-   return proc->func_map->get(ifunc);
+   return proc->findOrCreateBPFunc(ifunc, NULL);
 }
 
 unsigned long BPatch_thread::getStackTopAddrInt()

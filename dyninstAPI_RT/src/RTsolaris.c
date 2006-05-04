@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTsolaris.c,v 1.29 2006/05/03 00:31:25 jodom Exp $
+ * $Id: RTsolaris.c,v 1.30 2006/05/04 01:41:34 legendre Exp $
  * RTsolaris.c: mutatee-side library function specific to Solaris
  ************************************************************************/
 
@@ -279,5 +279,14 @@ int DYNINSTthreadInfo(BPatch_newThreadEventRecord *ev) {
         return 1;
     }
     return 0;
+}
+
+/* 
+   We reserve index 0 for the initial thread. This value varies by
+   platform but is always constant for that platform. Wrap that
+   platform-ness here. 
+*/
+int DYNINST_am_initial_thread(int tid) {
+    return (tid == (dyntid_t) 1);
 }
 

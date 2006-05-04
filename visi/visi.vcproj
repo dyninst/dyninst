@@ -107,6 +107,7 @@
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 				<FileConfiguration
@@ -122,6 +123,7 @@
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 				<FileConfiguration
@@ -139,7 +141,8 @@
 						Name="VCCustomBuildTool"
 						CommandLine="cd i386-unknown-nt4.0
 ..\..\..\i386-unknown-nt4.0\bin\igen.exe -xdr ..\h\visi.I
-cd .."
+cd ..
+"
 						Outputs="i386-unknown-nt4.0/visi.xdr.C;i386-unknown-nt4.0/visi.xdr.CLNT.C;i386-unknown-nt4.0/visi.xdr.CLNT.h;i386-unknown-nt4.0/visi.xdr.SRVR.C;i386-unknown-nt4.0/visi.xdr.SRVR.h;i386-unknown-nt4.0/visi.xdr.h;i386-unknown-nt4.0/visi.xdr.temp.C"/>
 				</FileConfiguration>
 				<FileConfiguration
@@ -148,7 +151,8 @@ cd .."
 						Name="VCCustomBuildTool"
 						CommandLine="cd i386-unknown-nt4.0
 ..\..\..\i386-unknown-nt4.0\bin\igen.exe -xdr ..\h\visi.I
-cd .."
+cd ..
+"
 						Outputs="i386-unknown-nt4.0/visi.xdr.C;i386-unknown-nt4.0/visi.xdr.CLNT.C;i386-unknown-nt4.0/visi.xdr.CLNT.h;i386-unknown-nt4.0/visi.xdr.SRVR.C;i386-unknown-nt4.0/visi.xdr.SRVR.h;i386-unknown-nt4.0/visi.xdr.h;i386-unknown-nt4.0/visi.xdr.temp.C"/>
 				</FileConfiguration>
 			</File>
@@ -158,6 +162,7 @@ cd .."
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -167,6 +172,7 @@ cd .."
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -176,6 +182,7 @@ cd .."
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -185,6 +192,7 @@ cd .."
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 				<FileConfiguration

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.15 2006/04/13 23:06:03 legendre Exp $
+// $Id: main.C,v 1.16 2006/05/04 01:42:04 legendre Exp $
 
 #include <stdio.h>
 #include <signal.h>
@@ -59,6 +59,10 @@
 const char V_phaseTable[] = "$Paradyn: v5.0 phaseTable #0 " __DATE__ __TIME__ "paradyn@cs.wisc.edu$";
 #else
 extern "C" const char V_phaseTable[];
+#endif
+
+#if defined(os_windows)
+#include "pdutil/h/winMain.h"
 #endif
 
 Ident V_id(V_phaseTable,"Paradyn");
@@ -113,6 +117,11 @@ int app_init() {
 int main(int argc, char* argv[]) {
 
     bool sawParadynFlag = false;
+#if defined(os_windows)
+    // initialize our use of the WinSock library
+    InitSockets( __argv[0] );    
+#endif
+
     for( unsigned int i = 0; i < argc; i++ )
     {
         if( strcmp( argv[i], "--paradyn" ) == 0 )

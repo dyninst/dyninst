@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: main.C,v 1.24 2004/03/23 22:23:56 pcroth Exp $
+// $Id: main.C,v 1.25 2006/05/04 01:42:06 legendre Exp $
 
 #include <assert.h>
 #include <stdlib.h>
@@ -65,6 +65,10 @@
 #include "tableVisi.h"
 #include "tableVisiTcl.h"
 
+#if defined(os_windows)
+#include "pdutil/h/winMain.h"
+#endif
+
 #include "common/h/Ident.h"
 extern "C" const char V_tableVisi[];
 Ident V_id(V_tableVisi,"Paradyn");
@@ -88,6 +92,11 @@ void visiFdReadableHandler(ClientData, int) {
 int main(int argc, char **argv) {
 
     bool sawParadynFlag = false;
+
+#if defined(os_windows)
+    // initialize our use of the WinSock library
+    InitSockets( __argv[0] );    
+#endif
 
     for( unsigned int i = 1; i < argc; i++ )
     {

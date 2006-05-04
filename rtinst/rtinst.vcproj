@@ -33,19 +33,19 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="Ws2_32.lib"
-				OutputFile="$(OutDir)\librtinst.dll"
+				OutputFile="$(OutDir)\libparadynRT.dll"
 				LinkIncremental="0"
 				SuppressStartupBanner="TRUE"
 				GenerateDebugInformation="TRUE"
 				AssemblyDebug="1"
-				ProgramDatabaseFile="$(OutDir)/librtinst.pdb"/>
+				ProgramDatabaseFile="$(OutDir)/libparadynRT.pdb"/>
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy i386-unknown-nt4.0\librtinst.dll ..\..\i386-unknown-nt4.0\lib
-copy i386-unknown-nt4.0\librtinst.lib ..\..\i386-unknown-nt4.0\lib
-copy i386-unknown-nt4.0\librtinst.pdb ..\..\i386-unknown-nt4.0\lib
+				CommandLine="copy i386-unknown-nt4.0\libparadynRT.dll ..\..\i386-unknown-nt4.0\lib
+copy i386-unknown-nt4.0\libparadynRT.lib ..\..\i386-unknown-nt4.0\lib
+copy i386-unknown-nt4.0\libparadynRT.pdb ..\..\i386-unknown-nt4.0\lib
 "/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
@@ -84,7 +84,7 @@ copy i386-unknown-nt4.0\librtinst.pdb ..\..\i386-unknown-nt4.0\lib
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="Ws2_32.lib"
-				OutputFile="$(OutDir)\librtinst.dll"
+				OutputFile="$(OutDir)\libparadynRT.dll"
 				LinkIncremental="0"
 				SuppressStartupBanner="TRUE"
 				GenerateDebugInformation="TRUE"
@@ -93,9 +93,9 @@ copy i386-unknown-nt4.0\librtinst.pdb ..\..\i386-unknown-nt4.0\lib
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy i386-unknown-nt4.0\librtinst.dll ..\..\i386-unknown-nt4.0\lib
-copy i386-unknown-nt4.0\librtinst.lib ..\..\i386-unknown-nt4.0\lib
-copy i386-unknown-nt4.0\librtinst.pdb ..\..\i386-unknown-nt4.0\lib
+				CommandLine="copy i386-unknown-nt4.0\libparadynRT.dll ..\..\i386-unknown-nt4.0\lib
+copy i386-unknown-nt4.0\libparadynRT.lib ..\..\i386-unknown-nt4.0\lib
+copy i386-unknown-nt4.0\libparadynRT.pdb ..\..\i386-unknown-nt4.0\lib
 "/>
 			<Tool
 				Name="VCPreBuildEventTool"/>

@@ -1166,7 +1166,6 @@ bool SignalGenerator::attachProcess()
     
     // Record what the process was doing when we attached, for possible
     // use later.
-
     startup_printf("%s[%d]: attached to previously paused process: %d\n", FILE__, __LINE__, getPid());
     proc->stateWhenAttached_ = stopped;
     proc->set_status(stopped);
@@ -1581,7 +1580,9 @@ bool SignalGeneratorCommon::initialize_event_handler()
       
       if (!proc->setupCreated(traceLink_)) {
           signal_printf("%s[%d]: Failed to do basic process setup\n", FILE__, __LINE__);
+#if !defined(os_windows)
           P_kill(getPid(), SIGKILL);
+#endif
           delete proc;
           proc = NULL;
           return false;
@@ -1591,7 +1592,9 @@ bool SignalGeneratorCommon::initialize_event_handler()
       fileDescriptor desc;
       if (!getExecFileDescriptor(file_, getPid(), true, status, desc)) {
           signal_printf("%s[%d]: Failed to find exec descriptor\n", FILE__, __LINE__);
+#if !defined(os_windows)
           P_kill(getPid(), SIGKILL);
+#endif
           ///    cleanupBPatchHandle(theProc->sh->getPid());
           //  processVec.pop_back();
           delete proc;
@@ -1601,7 +1604,9 @@ bool SignalGeneratorCommon::initialize_event_handler()
 
       if (!proc->setAOut(desc)) {
           startup_printf("%s[%d] - Couldn't setAOut\n", FILE__, __LINE__);
+#if !defined(os_windows)
           P_kill(getPid(), SIGKILL);
+#endif
           // cleanupBPatchHandle(theProc->sh->getPid());
           // processVec.pop_back();
           delete proc;
@@ -2071,6 +2076,24 @@ processRunState_t SignalGeneratorCommon::overrideAsyncContinueState(processRunSt
     processRunState_t current = asyncRunWhenFinished_;
     asyncRunWhenFinished_ = newState;
     return current;
+}
+
+SignalGenerator::SignalGenerator(char *idstr, pdstring file, pdstring dir,
+                                 pdvector<pdstring> *argv,
+                                 pdvector<pdstring> *envp,
+                                 pdstring inputFile,
+                                 pdstring outputFile,
+                                 int stdin_fd, int stdout_fd,
+                                 int stderr_fd) :
+   SignalGeneratorCommon(idstr),
+   waiting_for_stop(false),
+   sync_event_id_addr(0),
+   sync_event_arg1_addr(0)
+{
+    setupCreated(file, dir, 
+                 argv, envp, 
+                 inputFile, outputFile,
+                 stdin_fd, stdout_fd, stderr_fd);
 }
 
 void SignalGeneratorCommon::markProcessStop() { 

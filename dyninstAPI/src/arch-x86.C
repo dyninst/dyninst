@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.54 2006/04/17 07:32:01 nater Exp $
+// $Id: arch-x86.C,v 1.55 2006/05/04 01:41:17 legendre Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -3760,7 +3760,7 @@ bool instruction::generate(codeGen &gen,
             // variables for weird rip-relative data case
             bool is_data_abs64 = false;
             Register pointer_reg = (Register)-1;
-
+#if defined(arch_x86_64)
             if ((insnType & REL_D_DATA) && !is_disp32(newDispLong) && !is_addr32(origAddr + oldDisp)) {
 
                // ugly case for rip-relative addressing
@@ -3779,6 +3779,7 @@ bool instruction::generate(codeGen &gen,
                emitMovImmToReg64(pointer_reg, origAddr + oldDisp, true, gen);
                REGET_PTR(newInsn, gen);
             }
+#endif
 
             const unsigned char* origInsnStart = origInsn;
 
@@ -3831,7 +3832,7 @@ bool instruction::generate(codeGen &gen,
                origInsn += 4;
                while (origInsn - origInsnStart < (int)insnSz)
                   *newInsn++ = *origInsn++;
-
+#if defined(arch_x86_64)
                // restore pointer_reg if is was used
                if (is_data_abs64) {
                   assert(0);
@@ -3840,6 +3841,7 @@ bool instruction::generate(codeGen &gen,
                   emitPopReg64(pointer_reg, gen);
                   return true;
                }
+#endif
             }
             else {
                // REL_D (relative jump) case

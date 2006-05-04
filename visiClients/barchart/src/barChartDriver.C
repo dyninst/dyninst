@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: barChartDriver.C,v 1.29 2004/03/23 22:23:56 pcroth Exp $
+// $Id: barChartDriver.C,v 1.30 2006/05/04 01:42:00 legendre Exp $
 
 #include <assert.h>
 #include <stdlib.h>
@@ -67,6 +67,9 @@ Ident V_Vid(V_libvisi,"Paradyn");
 #include "visiClients/auxiliary/h/Export.h"
 #include "visiClients/auxiliary/h/NoSoloVisiMsg.h"
 
+#if defined(os_windows)
+#include "pdutil/h/winMain.h"
+#endif
 
 // variables used in this file
 Tcl_Interp *MainInterp = NULL; // needed by Dg
@@ -81,6 +84,11 @@ int main(int argc, char **argv) {
     // parse our command line
     bool sawParadynFlag = false;
     const char* progName = argv[0];
+
+#if defined(os_windows)
+    // initialize our use of the WinSock library
+    InitSockets( __argv[0] );    
+#endif
 
    for (argc--, argv++; argc > 0; argc--, argv++) {
       if (0==strcmp(*argv, "--xsynch"))

@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux-x86.C,v 1.104 2006/05/03 00:31:21 jodom Exp $
+// $Id: linux-x86.C,v 1.105 2006/05/04 01:41:22 legendre Exp $
 
 #include <fstream>
 
@@ -123,6 +123,8 @@ const int FPREGS_STRUCT_SIZE = sizeof( user_fpregs_struct );
 const int FPREGS_STRUCT_SIZE = sizeof( user_i387_struct );
 #endif
 
+#define P_offsetof(s, m) (unsigned) &(((s *) NULL)->m)
+
 /* ********************************************************************** */
 
 bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs) {
@@ -171,7 +173,7 @@ void dyn_lwp::dumpRegisters()
 bool dyn_lwp::changePC(Address loc,
                        struct dyn_saved_regs */*ignored registers*/)
 {
-   Address regaddr = offsetof(struct user_regs_struct, PTRACE_REG_IP);
+   Address regaddr = P_offsetof(struct user_regs_struct, PTRACE_REG_IP);
    assert(get_lwp_id() != 0);
    int ptrace_errno = 0;
    if (0 != DBI_ptrace(PTRACE_POKEUSER, get_lwp_id(), regaddr, loc, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__ )) {
@@ -185,7 +187,7 @@ bool dyn_lwp::changePC(Address loc,
 
 bool dyn_lwp::clearOPC() 
 {
-   Address regaddr = offsetof(struct user_regs_struct, PTRACE_REG_ORIG_AX);
+   Address regaddr = P_offsetof(struct user_regs_struct, PTRACE_REG_ORIG_AX);
    assert(get_lwp_id() != 0);
    int ptrace_errno = 0;
    if (0 != DBI_ptrace(PTRACE_POKEUSER, get_lwp_id(), regaddr, -1UL, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__)) {
@@ -262,13 +264,13 @@ Frame dyn_lwp::getActiveFrame()
    Address pc, fp, sp;
 
    int ptrace_errno = 0;
-   fp = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(), offsetof(struct user_regs_struct, PTRACE_REG_BP), 0, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__);
+   fp = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(), P_offsetof(struct user_regs_struct, PTRACE_REG_BP), 0, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__);
    if (ptrace_errno) return Frame();
 
-   pc = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(), offsetof(struct user_regs_struct, PTRACE_REG_IP), 0, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__);
+   pc = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(), P_offsetof(struct user_regs_struct, PTRACE_REG_IP), 0, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__);
    if (ptrace_errno) return Frame();
 
-   sp = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(), offsetof(struct user_regs_struct, PTRACE_REG_SP), 0, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__);
+   sp = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(), P_offsetof(struct user_regs_struct, PTRACE_REG_SP), 0, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__);
    if (ptrace_errno) return Frame();
 
    dbi_printf("%s[%d]:  GET ACTIVE FRAME (pc = %p, sp = %p, fp = %p\n", 
@@ -871,7 +873,7 @@ Address dyn_lwp::readRegister(Register /*reg*/) {
    }
 
    int ptrace_errno = 0;
-   Address ret = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(), offsetof(struct user_regs_struct, PTRACE_REG_AX), 0,
+   Address ret = DBI_ptrace(PTRACE_PEEKUSER, get_lwp_id(), P_offsetof(struct user_regs_struct, PTRACE_REG_AX), 0,
                         &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__);
    return ret;
 }

@@ -68,7 +68,7 @@ class sharedMetaData {
 
   sharedMetaData(shmMgr *shmMgrToUse, unsigned maxNumberOfThreads) :
   theShmMgr(shmMgrToUse), maxThreads(maxNumberOfThreads),
-  malloced(false)
+  observed_cost(0), virtualTimers(0),  malloced(false)
   { 
   }
   sharedMetaData(const sharedMetaData *par, shmMgr *shmMgrToUse);

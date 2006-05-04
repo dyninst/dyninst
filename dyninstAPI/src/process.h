@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: process.h,v 1.374 2006/05/03 16:15:44 bernat Exp $
+/* $Id: process.h,v 1.375 2006/05/04 01:41:26 legendre Exp $
  * process.h - interface to manage a process in execution. A process is a kernel
  *   visible unit with a seperate code and data space.  It might not be
  *   the only unit running the code, but it is only one changed when
@@ -354,6 +354,7 @@ class process {
   /***************************************************************************
    **** Runtime library initialization code (Dyninst)                     ****
    ***************************************************************************/
+
   bool loadDyninstLib();
   bool setDyninstLibPtr(mapped_object *libobj);
   bool setDyninstLibInitParams();
@@ -515,6 +516,11 @@ class process {
   void setVsyscallData(void *data) { vsyscall_data_ = data; }
   void setVsyscallText(Address addr) { vsyscall_text_ = addr; }
   bool readAuxvInfo(); 
+#endif
+
+#if defined(os_windows)
+  bool instrumentThreadInitialFunc(Address addr);
+  pdvector<int_function *> initial_thread_functions;
 #endif
 
   public:
@@ -729,6 +735,10 @@ class process {
   codeRange *findCodeRangeByAddress(Address addr);
   int_function *findFuncByAddr(Address addr);
   int_basicBlock *findBasicBlockByAddr(Address addr);
+
+  //findJumpTargetFuncByAddr Acts like findFunc, but if it fails,
+  // checks if 'addr' is a jump to a function.
+  int_function *findJumpTargetFuncByAddr(Address addr);
   
   instPoint *findInstPByAddr(Address addr);
   // Should be called once per address an instPoint points to
@@ -818,6 +828,7 @@ class process {
      return threads[0];
   }
 
+  void updateThreadIndex(dyn_thread *thread, int index);
   dyn_thread *createInitialThread();
   void addThread(dyn_thread *thread);
   dyn_lwp *createRepresentativeLWP();

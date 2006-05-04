@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.199 2006/05/03 00:31:22 jodom Exp $
+// $Id: unix.C,v 1.200 2006/05/04 01:41:30 legendre Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -1576,24 +1576,6 @@ const char *dbiEventType2str(DBIEventType t)
 #include <sys/types.h>
 #include <dirent.h>
 
-SignalGenerator::SignalGenerator(char *idstr, pdstring file, pdstring dir,
-                                 pdvector<pdstring> *argv,
-                                 pdvector<pdstring> *envp,
-                                 pdstring inputFile,
-                                 pdstring outputFile,
-                                 int stdin_fd, int stdout_fd,
-                                 int stderr_fd) :
-   SignalGeneratorCommon(idstr),
-   waiting_for_stop(false),
-   sync_event_id_addr(0),
-   sync_event_arg1_addr(0)
-{
-    setupCreated(file, dir, 
-                 argv, envp, 
-                 inputFile, outputFile,
-                 stdin_fd, stdout_fd, stderr_fd);
-}
-
 
 /// Experiment: wait for the process we're attaching to to be created
 // before we return. 
@@ -1687,6 +1669,10 @@ bool OS::executableExists(pdstring &file) {
 
    stat_result = stat(file.c_str(), &file_stat);
    return (stat_result != -1);
+}
+
+int_function *dyn_thread::map_initial_func(int_function *ifunc) {
+    return ifunc;
 }
 
 void SignalGenerator::clearCachedLocations()  {

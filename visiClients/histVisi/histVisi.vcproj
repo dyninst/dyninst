@@ -33,16 +33,17 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="Iphlpapi.lib Ws2_32.lib ONCRPC.LIB tcl84t.lib tk84t.lib"
-				OutputFile="$(OutDir)\$(ProjectName).exe"
+				OutputFile="i386-unknown-nt4.0\rthist.exe"
 				LinkIncremental="2"
 				GenerateDebugInformation="TRUE"
 				AssemblyDebug="1"
-				SubSystem="2"/>
+				ProgramDatabaseFile="i386-unknown-nt4.0\rthist.pdb"
+				SubSystem="1"/>
 			<Tool
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy i386-unknown-nt4.0\histVisi.exe ..\..\..\i386-unknown-nt4.0\bin"/>
+				CommandLine="copy i386-unknown-nt4.0\rthist.exe ..\..\..\i386-unknown-nt4.0\bin"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
@@ -80,7 +81,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalDependencies="Iphlpapi.lib Ws2_32.lib ONCRPC.LIB tcl84t.lib tk84t.lib"
-				OutputFile="$(OutDir)\$(ProjectName).exe"
+				OutputFile="i386-unknown-nt4.0\rthist.exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="TRUE"
 				SubSystem="2"/>
@@ -88,7 +89,7 @@
 				Name="VCMIDLTool"/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="copy i386-unknown-nt4.0\histVisi.exe ..\..\..\i386-unknown-nt4.0\bin"/>
+				CommandLine="copy i386-unknown-nt4.0\rthist.exe ..\..\..\i386-unknown-nt4.0\bin"/>
 			<Tool
 				Name="VCPreBuildEventTool"/>
 			<Tool
@@ -127,6 +128,7 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -138,6 +140,12 @@
 						Name="VCCLCompilerTool"
 						CompileAsManaged="0"
 						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAsManaged="0"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -153,6 +161,7 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -162,7 +171,8 @@
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCustomBuildTool"
-						CommandLine="perl ..\..\..\scripts\tcl2c tcl/histVisi.tcl tcl/pdgraph.tcl ../auxiliary/tcl/Export.tcl &gt; i386-unknown-nt4.0\tcl2c.C"
+						CommandLine="perl ..\..\..\scripts\tcl2c tcl/histVisi.tcl tcl/pdgraph.tcl ../auxiliary/tcl/Export.tcl &gt; i386-unknown-nt4.0\tcl2c.C
+"
 						AdditionalDependencies="tcl/pdgraph.tcl ..\auxiliary\tcl\Export.tcl"
 						Outputs="i386-unknown-nt4.0\tcl2c.C"/>
 				</FileConfiguration>
@@ -170,7 +180,8 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCustomBuildTool"
-						CommandLine="perl ..\..\..\scripts\tcl2c tcl/histVisi.tcl tcl/pdgraph.tcl ../auxiliary/tcl/Export.tcl &gt; i386-unknown-nt4.0\tcl2c.C"
+						CommandLine="perl ..\..\..\scripts\tcl2c tcl/histVisi.tcl tcl/pdgraph.tcl ../auxiliary/tcl/Export.tcl &gt; i386-unknown-nt4.0\tcl2c.C
+"
 						AdditionalDependencies="tcl/pdgraph.tcl ..\auxiliary\tcl\Export.tcl"
 						Outputs="i386-unknown-nt4.0\tcl2c.C"/>
 				</FileConfiguration>
@@ -181,12 +192,14 @@
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -201,15 +214,6 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						CompileAs="2"/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\auxiliary\src\main-win.C">
-				<FileConfiguration
-					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
 						CompileAsManaged="0"
@@ -229,6 +233,7 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -241,6 +246,12 @@
 						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAsManaged="0"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\auxiliary\src\NoSoloVisiMsg.C">
@@ -250,6 +261,12 @@
 						Name="VCCLCompilerTool"
 						CompileAsManaged="0"
 						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAsManaged="0"/>
 				</FileConfiguration>
 			</File>
 			<File
@@ -265,6 +282,7 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -281,6 +299,7 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -297,6 +316,7 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -313,6 +333,7 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -325,6 +346,12 @@
 						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAsManaged="0"/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\i386-unknown-nt4.0\tcl2c.C">
@@ -332,12 +359,14 @@
 					Name="Debug|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -354,6 +383,7 @@
 					Name="Release|Win32">
 					<Tool
 						Name="VCCLCompilerTool"
+						CompileAsManaged="0"
 						CompileAs="2"/>
 				</FileConfiguration>
 			</File>
@@ -365,6 +395,12 @@
 						Name="VCCLCompilerTool"
 						CompileAsManaged="0"
 						CompileAs="2"/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32">
+					<Tool
+						Name="VCCLCompilerTool"
+						CompileAsManaged="0"/>
 				</FileConfiguration>
 			</File>
 		</Filter>

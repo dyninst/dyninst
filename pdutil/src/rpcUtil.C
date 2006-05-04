@@ -41,7 +41,7 @@
 
 //
 // This file defines a set of utility routines for RPC services.
-// $Id: rpcUtil.C,v 1.98 2006/04/13 23:05:51 legendre Exp $
+// $Id: rpcUtil.C,v 1.99 2006/05/04 01:41:50 legendre Exp $
 //
 
 // overcome malloc redefinition due to /usr/include/rpc/types.h declaring 
@@ -95,7 +95,7 @@ int RPCdefaultXDRRead(const void* handle, char *buf, const u_int len)
     }
 
     if( (ret == PDSOCKET_ERROR) || (ret == 0)) {
-      return (-1);
+        return (-1);
     }
     return (ret);
 }
@@ -1476,6 +1476,11 @@ const pdstring getNetworkName (const pdstring hostname)
     char name[256];
     strcpy(name,hostname.c_str());
 
+    if( !first_time_get_local_networkname &&
+        strcmp(name, local_network_name.c_str()) == 0) 
+    {
+        return local_network_name;
+    }
     if (!name[0]) { // find this machine's hostname
         if( !first_time_get_local_networkname ){
             return local_network_name;

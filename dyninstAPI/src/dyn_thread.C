@@ -118,6 +118,7 @@ bool dyn_thread::walkStack(pdvector<Frame> &stackWalk)
    stackWalk.clear();
    
    Frame active = getActiveFrame();
+   active.thread_ = this;
    
    bool retval = proc->walkStackFromFrame(active, stackWalk);
    if (continueWhenDone) {
@@ -138,3 +139,7 @@ dyn_thread::~dyn_thread()
 {
 }
   
+void dyn_thread::update_index(unsigned index_)
+{
+    index = index_;
+}

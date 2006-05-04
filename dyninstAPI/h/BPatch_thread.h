@@ -81,6 +81,7 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     unsigned index;
     bool updated;
     bool doa;
+    bool reported_to_user; //Have we notified this user of thread creation yet?
     //  If thread is doa, keep a record of the tid around so that user
     //  callbacks can get the right tid, even if they can't do anything else
     //  with it.
