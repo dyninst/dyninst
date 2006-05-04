@@ -198,22 +198,12 @@ bool rpcThr::isReadyForIRPC() const {
 // 2) We don't have a pending IRPC but there is one on the queue.
 irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
 
-    
     if (runningRPC_ || pendingRPC_) {
         return irpcError;
     }
 
-#if defined(sparc_sun_solaris2_4)
-    if(mgr_->proc()->multithread_capable()) {
-       if (postedRPCs_.size() == 0)
-          return irpcNoIRPC;
-    } else
-#endif
-    {
     if(postedRPCs_.size() == 0 && mgr_->postedProcessRPCs_.size() == 0)
-       return irpcNoIRPC;
-    }
-
+        return irpcNoIRPC;
 
     // We can run the RPC if we're not currently in a system call.
     // This is defined as "any time we can't modify the state of the
@@ -221,8 +211,19 @@ irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
     // the system call. If we can't set the breakpoint we poll.
     dyn_lwp *lwp = thr_->get_lwp();
     
-    if (mgr_->proc()->IndependentLwpControl())
+    if (mgr_->proc()->IndependentLwpControl()) {
+        if (lwp->status() == running) runProcWhenDone = true;
         lwp->pauseLWP();
+    }
+
+    // That call can handle process signals (I'm not kidding) at which point
+    // someone else picked up our iRPC... seen with Paradyn
+
+    if(postedRPCs_.size() == 0 && mgr_->postedProcessRPCs_.size() == 0) {
+        if (mgr_->proc()->IndependentLwpControl() && runProcWhenDone)
+            lwp->continueLWP();
+        return irpcNoIRPC;
+    }
 
     // Check if we're in a system call
     if (lwp->executingSystemCall()) {
@@ -244,7 +245,7 @@ irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
                 postedRPCs_ = newRPCs;
                 mgr_->addPendingRPC(pendingRPC_);
             }
-            if (mgr_->proc()->IndependentLwpControl())
+            if (mgr_->proc()->IndependentLwpControl() && runProcWhenDone)
                 lwp->continueLWP(true);
             return irpcBreakpointSet;
         }
@@ -253,7 +254,7 @@ irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
             // do is try later
             // Don't set pending if we're polling.
             assert(!pendingRPC_);
-            if (mgr_->proc()->IndependentLwpControl())
+            if (mgr_->proc()->IndependentLwpControl() && runProcWhenDone)
                 lwp->continueLWP(true);
             return irpcAgain;
         }
@@ -282,6 +283,7 @@ irpcLaunchState_t rpcThr::launchThrIRPC(bool runProcWhenDone) {
         pendingRPC_->runProcWhenDone = runProcWhenDone;
         mgr_->addPendingRPC(pendingRPC_);
     }
+    assert(pendingRPC_);
     return runPendingIRPC();
 }
 
