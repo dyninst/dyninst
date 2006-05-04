@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: linux.C,v 1.226 2006/05/04 01:41:23 legendre Exp $
+// $Id: linux.C,v 1.227 2006/05/04 02:28:41 bernat Exp $
 
 #include <fstream>
 
@@ -907,6 +907,7 @@ bool process::waitUntilLWPStops()
     }
     sh->setWaitingForStop(false);
     sh->unmarkProcessStop();
+    sh->setWaitingForStop(false);
 
     ((SignalGenerator *)sh)->resendSuppressedSignals();
     
@@ -1707,50 +1708,6 @@ bool dyn_lwp::representativeLWP_attach_() {
       proc_->set_status(stopped);
    }
 
-   if(proc_->wasCreatedViaAttach() )
-   {
-      // If the process was running, it will need to be restarted, as
-      // PTRACE_ATTACH kills it
-      // Actually, the attach process contructor assumes that the process is
-      // running.  While this is foolish, let's play along for now.
-      if( proc_->status() != running || !proc_->isRunning_() ) {
-         int ptrace_errno = 0;
-         int address_width = sizeof(Address); //proc_->getAddressWidth();
-         if( 0 != DBI_ptrace(PTRACE_CONT, getPid(), 0, 0, &ptrace_errno, address_width,  __FILE__, __LINE__) )
-         {
-            perror( "dyn_lwp::representativeLWP_attach_() - PTRACE_CONT" );
-         }
-      }
-   }
-
-   if(proc_->wasCreatedViaAttachToCreated())
-   {
-      // This case is a special situation. The process is stopped
-      // in the exec() system call but we have not received the first 
-      // TRAP because it has been caught by another process.
-      
-      /* lose race */
-      sleep(1);
-      int ptrace_errno = 0; 
-      /* continue, clearing pending stop */
-      if (0 > DBI_ptrace(PTRACE_CONT, getPid(), 0, SIGCONT, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__)) {
-         perror("dyn_lwp::representativeLWP_attach_() - PTRACE_CONT 1");
-         return false;
-      }
-     
-      if (0 > waitpid(getPid(), NULL, 0)) {
-         perror("dyn_lwp::representativeLWP_attach_() - waitpid 1");
-         return false;
-      }
-      /* continue, resending the TRAP to emulate the normal situation*/
-      if (0 > DBI_ptrace(PTRACE_CONT, getPid(), 0, SIGTRAP, &ptrace_errno, proc_->getAddressWidth(),  __FILE__, __LINE__)) {
-         perror("dyn_lwp::representativeLWP_attach_() - PTRACE_CONT 2");
-         return false;
-      }
-      
-      proc_->set_status(neonatal);
-   } // end - if createdViaAttachToCreated
-   
    return true;
 }
 
