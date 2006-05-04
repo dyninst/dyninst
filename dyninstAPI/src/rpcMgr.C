@@ -49,6 +49,7 @@
 #include "dyninstAPI/src/showerror.h"
 #include "dyninstAPI/src/ast.h"
 #include "dyninstAPI/src/rpcMgr.h"
+#include "dyninstAPI/src/signalgenerator.h"
 
 #if defined(arch_x86_64)
 #include "dyninstAPI/src/emit-x86.h"
@@ -293,8 +294,6 @@ bool rpcMgr::existsActiveIRPC() const {
     }
     dictionary_hash<unsigned, rpcLWP *>::iterator rpc_iter = lwps_.begin();
     while(rpc_iter != lwps_.end()) {
-        fprintf(stderr, "Active iRPC on lwp %d\n", 
-                (*rpc_iter)->lwp_->get_lwp_id());
         if ((*rpc_iter)->isRunningIRPC()) {
             inferiorrpc_printf("%s[%d]: active IRPC on lwp %d, ret true\n",
                                FILE__, __LINE__, (*rpc_iter)->lwp_->get_lwp_id());
