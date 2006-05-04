@@ -243,13 +243,11 @@ unsigned rpcMgr::postRPCtoDo(AstNode *action, bool noCost,
 }
 
 inferiorRPCtoDo *rpcMgr::getProcessRPC() {
+    if (postedProcessRPCs_.size() == 0) return NULL;
+
     inferiorRPCtoDo *rpc = postedProcessRPCs_[0];
-    
-    // Sigh.. delete the first one (AGAIN)
-    pdvector<inferiorRPCtoDo *> newRPCs;
-    for (unsigned i = 1; i < postedProcessRPCs_.size(); i++)
-        newRPCs.push_back(postedProcessRPCs_[i]);
-    postedProcessRPCs_ = newRPCs;
+
+    postedProcessRPCs_.erase(0,0);
     return rpc;
 }
 
@@ -295,6 +293,8 @@ bool rpcMgr::existsActiveIRPC() const {
     }
     dictionary_hash<unsigned, rpcLWP *>::iterator rpc_iter = lwps_.begin();
     while(rpc_iter != lwps_.end()) {
+        fprintf(stderr, "Active iRPC on lwp %d\n", 
+                (*rpc_iter)->lwp_->get_lwp_id());
         if ((*rpc_iter)->isRunningIRPC()) {
             inferiorrpc_printf("%s[%d]: active IRPC on lwp %d, ret true\n",
                                FILE__, __LINE__, (*rpc_iter)->lwp_->get_lwp_id());
