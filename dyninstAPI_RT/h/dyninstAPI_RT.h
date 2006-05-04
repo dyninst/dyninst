@@ -40,7 +40,7 @@
  */
 
 /*
- * $Id: dyninstAPI_RT.h,v 1.38 2006/05/03 01:25:37 bernat Exp $
+ * $Id: dyninstAPI_RT.h,v 1.39 2006/05/04 02:28:44 bernat Exp $
  * This file contains the standard instrumentation functions that are provided
  *   by the run-time instrumentation layer.
  */
@@ -57,7 +57,7 @@
  */
 
 #define SYN_INST_BUF_SIZE (1024*1024*4)
-#define DYNINST_BREAKPOINT_SIGNUM SIGUSR2
+#define DYNINST_BREAKPOINT_SIGNUM SIGBUS
 
 #include <stdio.h>
 #include "dyninstRTExport.h"
@@ -173,6 +173,8 @@ extern unsigned DYNINST_thread_hash_size;
 #define DYNINST_SINGLETHREADED -128
 #define DYNINST_TRACEPIPE_ERRVAL -1
 #define DYNINST_PRINTF_ERRVAL -2
+
+extern long DYNINST_break_point_event;
 
 #include "dyninstRTExport.h"
 #endif /* _DYNINSTAPI_RT_H */
