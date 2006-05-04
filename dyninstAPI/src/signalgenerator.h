@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: signalgenerator.h,v 1.11 2006/05/03 22:05:04 bernat Exp $
+/* $Id: signalgenerator.h,v 1.12 2006/05/04 16:38:21 bernat Exp $
  */
 
 #ifndef _SIGNAL_GENERATOR_H_
@@ -120,7 +120,7 @@ class SignalGeneratorCommon : public EventHandler<EventRecord> {
    // is for BPatch, and says "Return when the process is running".
 
    bool continueProcessAsync(int signalToContinueWith = -1, dyn_lwp *lwp = NULL);
-   bool continueProcessBlocking(int signalToContinueWith = -1);
+   bool continueProcessBlocking(int signalToContinueWith = -1, dyn_lwp *lwp = NULL);
 
    bool pauseProcessAsync();
    bool pauseProcessBlocking();

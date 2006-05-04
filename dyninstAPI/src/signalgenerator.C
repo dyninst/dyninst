@@ -1756,7 +1756,7 @@ bool SignalGeneratorCommon::handleEvent(EventRecord &) {
 // The signalGenerator is waiting for waitForContinueLock to get signalled.
 // We'll bounce it, then wait on requestContinueLock... 
 
-bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal) 
+bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal, dyn_lwp *lwp /* = NULL */) 
 {
     if (exitRequested()) {
         // We're going away... so don't do anything
@@ -1795,6 +1795,17 @@ bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal)
             break;
         }
     }
+
+    if (lwp) {
+        signal_printf("%s[%d]: adding lwp %d to continue list...\n",
+                      FILE__, __LINE__, lwp->get_lwp_id());
+        lwpsToContinue_.push_back(lwp);
+    }
+    else {
+        // Someone wants us to run the whole nine yards
+        continueWholeProcess_ = true;
+    }
+
 
     if (waitingForOS_) {
         // Make sure that all active signal handlers kick off...
