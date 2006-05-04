@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: test_driver.C,v 1.28 2006/04/26 21:16:44 jodom Exp $
+// $Id: test_driver.C,v 1.29 2006/05/04 01:41:54 legendre Exp $
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -62,7 +62,7 @@
 #include "test_lib.h"
 #include "Callbacks.h"
 #include "error.h"
-
+#include "BPatch.h"
 
 // Globals, should be eventually set by commandline options
 bool forceRelocation = false; // force relocation of functions

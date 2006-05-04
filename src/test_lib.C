@@ -40,12 +40,13 @@
  */
 
 //
-// $Id: test_lib.C,v 1.15 2006/04/26 21:31:28 jodom Exp $
+// $Id: test_lib.C,v 1.16 2006/05/04 01:41:56 legendre Exp $
 // Utility functions for use by the dyninst API test programs.
 //
 
 #include <stdio.h>
 #include <signal.h>
+#include <string.h>
 
 #if defined(i386_unknown_nt4_0) || defined(mips_unknown_ce2_11) //ccw 10 apr 2001 
 #ifndef mips_unknown_ce2_11 //ccw 10 apr 2001
@@ -1504,6 +1505,7 @@ int letOriginalMutateeFinish(BPatch_thread *appThread){
 	return retVal;
 }
 
+#if !defined(os_windows)
 char *searchPath(const char *path, const char *file) {
    assert(path);
    assert(file);
@@ -1531,6 +1533,15 @@ char *searchPath(const char *path, const char *file) {
       return fullpath;
    return NULL;
 }
+#else
+char *searchPath(const char *path, const char *file) {
+  char *fullpath = (char *) ::malloc(strlen(path) + strlen(file) + 2);
+  strcpy(fullpath, path);
+  strcat(fullpath, "\\");
+  strcat(fullpath, file);
+  return fullpath;
+}
+#endif
 
 // Begin Test12 Library functions
 
