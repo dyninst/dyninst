@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.200 2006/05/04 01:41:30 legendre Exp $
+// $Id: unix.C,v 1.201 2006/05/04 02:28:43 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -597,30 +597,15 @@ bool SignalGenerator::decodeSignal(EventRecord &ev)
           fprintf(stderr, "%s[%d]:  weird, decodeSigStop failed for SIGSTOP\n", FILE__, __LINE__);
       }
 
-      // We have to use SIGSTOP for RTsignals, since we may not be attached
-      // at that point...
+      // We have to use SIGSTOP for RTsignals in some cases, since we
+      // may not be attached at that point...
       break;
-  case DYNINST_BREAKPOINT_SIGNUM: /*SIGUSR2*/
-    signal_printf("%s[%d]:  DYNINST BREAKPOINT\n", FILE__, __LINE__);
-    if (!decodeRTSignal(ev)) {
-        ev.type = evtProcessStop; // happens when we get a DYNINSTbreakPoint
-      }
-     break;
-  case SIGIOT:
-  {
-      // Not true... the process needs to have the signal forwarded
-      // back to it, it's not gone yet.
-
-      //ev.type = evtProcessExit;
-      //ev.status = statusSignalled;
-  }
   case SIGTRAP:
   {
     signal_printf("%s[%d]:  SIGTRAP\n", FILE__, __LINE__);
     return decodeSigTrap(ev);
   }
   case SIGILL:
-  case SIGSEGV:
   {
      signal_printf("%s[%d]:  SIGILL\n", FILE__, __LINE__);
 #if defined (arch_ia64)
@@ -657,11 +642,17 @@ bool SignalGenerator::decodeSignal(EventRecord &ev)
      ev.type = evtPreFork;
 #endif
      break;
+  case DYNINST_BREAKPOINT_SIGNUM: /*SIGBUS2*/
+    signal_printf("%s[%d]:  DYNINST BREAKPOINT\n", FILE__, __LINE__);
+    if (!decodeRTSignal(ev)) {
+        ev.type = evtProcessStop; // happens when we get a DYNINSTbreakPoint
+    }
+    break;
   default:
-     signal_printf("%s[%d]:  got signal %d\n", FILE__, __LINE__, ev.what);
-     break;
+      signal_printf("%s[%d]:  got signal %d\n", FILE__, __LINE__, ev.what);
+      break;
   }
-
+  
   return true;
 }
 
