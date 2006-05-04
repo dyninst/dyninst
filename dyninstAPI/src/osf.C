@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: osf.C,v 1.94 2006/04/26 20:44:07 jaw Exp $
+// $Id: osf.C,v 1.95 2006/05/04 15:17:26 bernat Exp $
 
 #include "common/h/headers.h"
 #include "os.h"
@@ -666,6 +666,11 @@ bool dyn_lwp::representativeLWP_attach_() {
       perror("Error opening process file descriptor");
       return false;
    }
+
+   is_attached_ = true;
+
+   // Aaaaaand stop everything. Attach assumes the process is stopped.
+   stop_();
 
    return true;
 }
