@@ -251,6 +251,18 @@ bool pd_thread::saveStack(pdvector<Frame> &stackToSave) {
     if (savedStack_.size() > 0) {
         // Should assert the two stacks are the same... for now, use
         // current
+        if (stackToSave.size() != savedStack_.size()) {
+            // This is going to assert fail... let's get a debug dump
+            fprintf(stderr, "ERROR: previously saved stack size %d conflicts with new stack size %d\n",
+                    savedStack_.size(), stackToSave.size());
+            for (unsigned i = 0; i < savedStack_.size(); i++) {
+                cerr << savedStack_[i] << endl;
+            }
+            for (unsigned i = 0; i < savedStack_.size(); i++) {
+                cerr << stackToSave[i] << endl;
+            }
+        }
+
         assert(stackToSave.size() == savedStack_.size());
         return true;
     }
