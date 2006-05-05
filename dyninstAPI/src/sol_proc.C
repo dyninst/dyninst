@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.101 2006/05/05 02:13:54 bernat Exp $
+// $Id: sol_proc.C,v 1.102 2006/05/05 19:59:50 bernat Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -531,6 +531,8 @@ bool dyn_lwp::getRegisters_(struct dyn_saved_regs *regs)
    
     assert(status() != running);
 
+    assert(!isRunning());
+
     if (!get_status(&stat)) return false;
 
     // Process must be stopped for register data to be correct.
@@ -584,6 +586,8 @@ bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs)
     lwpstatus_t stat;
     get_status(&stat);
 
+    assert(!isRunning());
+
     // The fact that this routine can be shared between solaris/sparc and
     // solaris/x86 is just really, really cool.  /proc rules!
     const int regbufsize = sizeof(long) + sizeof(prgregset_t);
@@ -626,11 +630,18 @@ bool dyn_lwp::executingSystemCall()
 {
   lwpstatus_t status;
   if (!get_status(&status)) {
+      fprintf(stderr, "ERROR: failed to get LWP status!\n");
       return false;
   }
 
   // Old-style
 
+  /*
+  fprintf(stderr, "LWP syscall value: %d, pr_why is %d, PC at 0x%lx\n",
+          status.pr_syscall, 
+          status.pr_why,
+          GETREG_PC(status.pr_reg));
+  */
   if (status.pr_syscall > 0 && // If we're in a system call
       status.pr_why != PR_SYSEXIT) {
       stoppedSyscall_ = status.pr_syscall;
