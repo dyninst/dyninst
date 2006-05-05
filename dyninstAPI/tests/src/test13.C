@@ -146,8 +146,6 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
 
    thread_mapping[my_dyn_id] = thr->getBPatchID();
 
-   fprintf(stderr, "Thread index %d, my dyn id %d\n", thr->getBPatchID(), my_dyn_id);
-
    //Stacks should be unique and non-zero
    static unsigned long stack_addrs[NUM_THREADS];
    unsigned long my_stack = thr->getStackTopAddr();
