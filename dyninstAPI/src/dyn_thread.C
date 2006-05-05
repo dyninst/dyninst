@@ -110,11 +110,11 @@ Frame dyn_thread::getActiveFrame()
 bool dyn_thread::walkStack(pdvector<Frame> &stackWalk)
 {
    bool continueWhenDone = false;
-   if (get_lwp()->status() != stopped) {
-      continueWhenDone = true;
-      get_lwp()->pauseLWP(true);
+   if (get_lwp()->status() == running) {
+       continueWhenDone = true;
+       get_lwp()->pauseLWP(true);
    }
-	
+
    stackWalk.clear();
    
    Frame active = getActiveFrame();
