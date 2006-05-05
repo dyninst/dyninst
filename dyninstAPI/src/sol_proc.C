@@ -41,7 +41,7 @@
 
 // Solaris-style /proc support
 
-// $Id: sol_proc.C,v 1.100 2006/05/03 22:05:06 bernat Exp $
+// $Id: sol_proc.C,v 1.101 2006/05/05 02:13:54 bernat Exp $
 
 #if defined(os_aix)
 #include <sys/procfs.h>
@@ -579,7 +579,7 @@ bool process::determineLWPs(pdvector<unsigned > &lwp_ids) {
 // Restore registers saved as above.
 bool dyn_lwp::restoreRegisters_(const struct dyn_saved_regs &regs)
 {
-    assert(status() == stopped);
+    assert(status() != running);
 
     lwpstatus_t stat;
     get_status(&stat);
