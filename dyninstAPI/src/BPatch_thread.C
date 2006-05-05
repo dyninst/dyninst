@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.157 2006/05/04 01:41:16 legendre Exp $
+// $Id: BPatch_thread.C,v 1.158 2006/05/05 02:13:46 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -155,7 +155,8 @@ BPatch_thread *BPatch_thread::createNewThread(BPatch_process *proc,
    return newthr;
 }
 
-BPatch_thread::BPatch_thread(BPatch_process *parent, int ind, int lwp_id, dynthread_t async_tid) 
+BPatch_thread::BPatch_thread(BPatch_process *parent, int ind, int lwp_id, dynthread_t async_tid) :
+    deleted_callback_made(false)
 {
    proc = parent;
    is_deleted = false;
@@ -194,7 +195,8 @@ BPatch_thread::BPatch_thread(BPatch_process *parent, int ind, int lwp_id, dynthr
    reported_to_user = false;
 }
 
-BPatch_thread::BPatch_thread(BPatch_process *parent, dyn_thread *dthr)
+BPatch_thread::BPatch_thread(BPatch_process *parent, dyn_thread *dthr) :
+    deleted_callback_made(false)
 {
    doa = false;
    doa_tid = (dynthread_t) -1;
