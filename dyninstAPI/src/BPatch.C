@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch.C,v 1.146 2006/05/04 01:41:13 legendre Exp $
+// $Id: BPatch.C,v 1.147 2006/05/05 02:13:45 bernat Exp $
 
 #include <stdio.h>
 #include <assert.h>
@@ -1185,7 +1185,7 @@ void BPatch::registerSignalExit(process *proc, int signalnum)
 }
 
 
-void BPatch::registerThreadExit(process *proc, long tid)
+void BPatch::registerThreadExit(process *proc, long tid, bool exiting)
 {
     if (!proc)
         return;
@@ -1195,6 +1195,7 @@ void BPatch::registerThreadExit(process *proc, long tid)
     BPatch_process *bpprocess = getProcessByPid(pid);
     bool wasProcessStopped = bpprocess->isVisiblyStopped;
 
+    
     if (!bpprocess) {
         // Error during startup can cause this -- we have a partially
         // constructed process object, but it was never registered with
@@ -1202,7 +1203,15 @@ void BPatch::registerThreadExit(process *proc, long tid)
         return;
     }
     BPatch_thread *thrd = bpprocess->getThread(tid);
-    
+
+    if (thrd->deleted_callback_made) { 
+        // Thread exits; we make the callback, then the process exits and
+        // tries to nuke it as well. This guards against that.
+        return;
+    }
+    thrd->deleted_callback_made = true;
+
+
     if (thrd) {
         pdvector<CallbackBase *> cbs;
         getCBManager()->dispenseCallbacksMatching(evtThreadExit, cbs);
@@ -1214,13 +1223,13 @@ void BPatch::registerThreadExit(process *proc, long tid)
             if (cb)
                 (*cb)(bpprocess, thrd);
         }
-        bpprocess->deleteBPThread(thrd);
+        if (!exiting) bpprocess->deleteBPThread(thrd);
     }
     else {
         //If we don't have an BPatch thread, then it might have been an internal
         // thread that we decided not to report to the user (happens during 
         //  windows attach).  Just trigger the lower level clean up in this case.
-        proc->deleteThread(tid);
+        if (!exiting) proc->deleteThread(tid);
     }
 }
 
