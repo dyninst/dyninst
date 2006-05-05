@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.633 2006/05/05 18:22:36 mjbrim Exp $
+// $Id: process.C,v 1.634 2006/05/05 19:59:47 bernat Exp $
 
 #include <ctype.h>
 
@@ -3732,8 +3732,10 @@ bool process::writeDataSpace(void *inTracedProcess, unsigned size,
                              const void *inSelf) {
    bool needToCont = false;
 
-   //fprintf(stderr, "writeDataSpace to %p to %p, %d\n",
-   //inTracedProcess, (int)inTracedProcess+size, size);
+   /*
+   fprintf(stderr, "writeDataSpace to %p to %p, %d\n",
+           inTracedProcess, (int)inTracedProcess+size, size);
+   */
 
    if (!isAttached()) return false;
 
@@ -3851,9 +3853,11 @@ bool process::writeTextSpace(void *inTracedProcess, u_int amount,
    assert(inTracedProcess);
    bool needToCont = false;
 
-   //fprintf(stderr, "writeTextSpace to %p to %p, %d\n",
-   //inTracedProcess,
-   //(char *)inTracedProcess + amount, amount);
+   /*
+   fprintf(stderr, "writeTextSpace to %p to %p, %d\n",
+           inTracedProcess,
+           (char *)inTracedProcess + amount, amount);
+   */
 
    if (!isAttached()) return false;
    dyn_lwp *stopped_lwp = query_for_stopped_lwp();
@@ -6207,16 +6211,23 @@ void process::recognize_threads(const process *parent)
 	// TODO: see if there is some mechanism of identifying the helper
 	// threads...
 #if defined(os_aix) || defined(os_solaris)
-	if (lwp->executingSystemCall())
-	  continue;
+	if (lwp->executingSystemCall()) {
+            continue;
+        }
 #endif
 
-#if defined(os_solaris) && defined(NOTDEF)
-        // Apparently LWPs 2, 3, and 4 are system? Is there _ANY_ way to figure
-        // this out?
-        if ((lwp->get_lwp_id() == 2) ||
-            (lwp->get_lwp_id() == 3) ||
-            (lwp->get_lwp_id() == 4)) continue;
+#if defined(os_solaris)
+        // I've identified points where LWPs aren't reported as being in a 
+        // system call but really are; in particular, LWP 2 spends a lot of
+        // time in __signotifywait, immediately _after_ the trap into the kernel
+        // but not making any forward process... funny, that.
+        // So we skip a thread if it's in any of the reported "problem children".
+        Frame frame = lwp->getActiveFrame();
+        if (frame.getFunc() &&
+            ((frame.getFunc()->symTabName() == "__signotifywait") ||
+             (frame.getFunc()->symTabName() == "_sysconf")))
+            continue;
+
 #endif
 
         pdvector<AstNode *> ast_args;
@@ -6265,8 +6276,6 @@ void process::recognize_threads(const process *parent)
          sh->waitForEvent(evtRPCSignal, this, NULL /*lwp*/, statusRPCDone, 
 			  false); /* Do _not_ execute callbacks; we want to finish this
 	                             before we handle any thread stuff */
-	 
-
          startup_printf("%s[%d]: got RPC event...\n",
                         FILE__, __LINE__);
      }
@@ -6288,7 +6297,7 @@ void process::recognize_threads(const process *parent)
          // Wait for the thread to show up...
          int timeout = 0;
          while ( (bpthrd = bproc->getThreadByIndex(ret_indexes[i])) == NULL) {
-            getMailbox()->executeCallbacks(FILE__, __LINE__);
+             //getMailbox()->executeCallbacks(FILE__, __LINE__);
             sh->waitForEvent(evtThreadCreate);
             timeout++;
             if (timeout > 1000) break;
