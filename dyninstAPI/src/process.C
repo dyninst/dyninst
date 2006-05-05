@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.632 2006/05/05 02:13:48 bernat Exp $
+// $Id: process.C,v 1.633 2006/05/05 18:22:36 mjbrim Exp $
 
 #include <ctype.h>
 
@@ -1877,16 +1877,22 @@ void process::deleteProcess()
       tracedSyscalls_ = NULL;
   }
 
-  for (iter = 0; iter < syscallTraps_.size(); iter++) 
-      delete syscallTraps_[iter];
+  for (iter = 0; iter < syscallTraps_.size(); iter++) { 
+      if(syscallTraps_[iter] != NULL)
+          delete syscallTraps_[iter];
+  }
+  syscallTraps_.clear();
 
-  for (iter = 0; iter < tracingRequests.size(); iter++)
-      delete tracingRequests[iter];
+  for (iter = 0; iter < tracingRequests.size(); iter++) {
+      if(tracingRequests[iter] != NULL)
+          delete tracingRequests[iter];
+  }
   tracingRequests.clear();
 
   // By definition, these are dangling.
   for (iter = 0; iter < pendingGCInstrumentation.size(); iter++) {
-      delete pendingGCInstrumentation[iter];
+      if(pendingGCInstrumentation[iter] != NULL)
+          delete pendingGCInstrumentation[iter];
   }
   pendingGCInstrumentation.clear();
 
