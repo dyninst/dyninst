@@ -754,9 +754,9 @@ bool BPatch_asyncEventHandler::handleEventLocked(EventRecord &ev)
 
        //Create the new BPatch_thread object
        async_printf("%s[%d]:  before createOrUpdateBPThread: start_pc = %p," \
-                    "addr = %p, tid = %lu, index = %d\n", FILE__, __LINE__, 
-                    (void *) start_pc, (void *) stack_addr, call_rec.tid, 
-                    call_rec.index);
+                    "addr = %p, tid = %lu, index = %d, lwp = %d\n", FILE__, __LINE__, 
+                    (void *) start_pc, (void *) stack_addr, tid, 
+                    index, lwpid);
 
        BPatch_thread *thr = p->handleThreadCreate(index, lwpid, tid, stack_addr, start_pc);
        if (!thr) {
