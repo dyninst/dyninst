@@ -54,12 +54,23 @@ bool create_proc = true;
 unsigned thread_count;
 static char dyn_tids[NUM_THREADS];
 static char deleted_tids[NUM_THREADS];
+// We can get extra threads; add a layer of indirection. Yay.
+static int our_tid_max = 0;
+static char thread_mapping[NUM_THREADS];
+
 static int deleted_threads;
 
 bool debug_flag = false;
 #define dprintf if (debug_flag) fprintf
 #define NUM_FUNCS 6 
 char initial_funcs[NUM_FUNCS][25] = {"init_func", "main", "_start", "__start", "__libc_start_main", "_lwp_start"};
+
+int bpindex_to_myindex(int index) {
+    for (unsigned i = 0; i < our_tid_max; i++) {
+        if (thread_mapping[i] == index) return i;
+    }
+    return -1;
+}
 
 void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
 {
@@ -69,10 +80,12 @@ void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
             __FILE__, __LINE__);
      return;
    }
-   unsigned my_dyn_id = thr->getBPatchID();
+   unsigned my_dyn_id = bpindex_to_myindex(thr->getBPatchID());
+   if (my_dyn_id == -1) return;
+
    if (my_proc != proc)
    {
-      fprintf(stderr, "[%s:%u] - Got invalid process\n", __FILE__, __LINE__);
+       fprintf(stderr, "[%s:%u] - Got invalid process: %p vs %p\n", __FILE__, __LINE__, my_proc, proc);
       error = 1;
    }
    deleted_tids[my_dyn_id] = 1;
@@ -83,12 +96,11 @@ void deadthr(BPatch_process *my_proc, BPatch_thread *thr)
 void newthr(BPatch_process *my_proc, BPatch_thread *thr)
 {
    dprintf(stderr, "%s[%d]:  welcome to newthr, error = %d\n", __FILE__, __LINE__, error);
-   unsigned my_dyn_id = thr->getBPatchID();
 
-   if (create_proc && (my_proc != proc))
+   if (create_proc && proc && (my_proc != proc) )
    {
-      fprintf(stderr, "[%s:%u] - Got invalid process\n", 
-              __FILE__, __LINE__);
+      fprintf(stderr, "[%s:%u] - Got invalid process: %p vs %p\n", 
+              __FILE__, __LINE__, my_proc, proc);
       error = 1;
    }
 
@@ -98,7 +110,8 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
       error = 1;
       return;
    }
-   dprintf(stderr, "%s[%d]:  newthr: BPatchID = %d\n", __FILE__, __LINE__, my_dyn_id);
+
+   dprintf(stderr, "%s[%d]:  newthr: BPatchID = %d\n", __FILE__, __LINE__, thr->getBPatchID());
    //Check initial function
    static char name[1024];
    BPatch_function *f = thr->getInitialFunc();   
@@ -115,25 +128,25 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    dprintf(stderr, "%s[%d]:  newthr: %s\n", __FILE__, __LINE__, name);
    if (!found_name)
    {
-      fprintf(stderr, "[%s:%d] - Thread %d has unexpected initial function '%s'\n",
-              __FILE__, __LINE__, my_dyn_id, name);
-      error = 1;
+       // We can get unexpected threads with different initial functions; do not include
+       // them (but don't consider it an error). If we don't walk the stack right, then
+       // we won't have enough expected threads and so check it later.
+      fprintf(stderr, "[%s:%d] - Thread %d has unexpected initial function '%s'; ignoring\n",
+              __FILE__, __LINE__, thr->getBPatchID(), name);
+      return;
    }
 
-   //Check that thread_id is unique
-   if (my_dyn_id >= NUM_THREADS)
-   {
-      fprintf(stderr, "[%s:%d] - WARNING: Thread ID %d out of range\n",
-              __FILE__, __LINE__, my_dyn_id);
-      return;
-   }
-   if (dyn_tids[my_dyn_id])
-   {
+   if (bpindex_to_myindex(thr->getBPatchID()) != -1) {
       fprintf(stderr, "[%s:%d] - WARNING: Thread %d called in callback twice\n",
-              __FILE__, __LINE__, my_dyn_id);
+              __FILE__, __LINE__, thr->getBPatchID());
       return;
    }
-   dyn_tids[my_dyn_id] = 1;
+
+   unsigned my_dyn_id = our_tid_max; our_tid_max++;
+
+   thread_mapping[my_dyn_id] = thr->getBPatchID();
+
+   fprintf(stderr, "Thread index %d, my dyn id %d\n", thr->getBPatchID(), my_dyn_id);
 
    //Stacks should be unique and non-zero
    static unsigned long stack_addrs[NUM_THREADS];
@@ -176,6 +189,7 @@ void newthr(BPatch_process *my_proc, BPatch_thread *thr)
    pthread_ids[my_dyn_id] = mytid;
 
    thread_count++;
+   dyn_tids[my_dyn_id] = 1;
    dprintf(stderr, "%s[%d]:  leaving newthr: error = %d\n", __FILE__, __LINE__, error);
 }
 
@@ -305,7 +319,7 @@ int main(int argc, char *argv[])
 
    // Wait for NUM_THREADS new thread callbacks to run
    while (thread_count < NUM_THREADS) {
-      dprintf(stderr, "Going into waitForStatusChange...\n");
+       dprintf(stderr, "Going into waitForStatusChange; thread count %d, NUM_THREADS %d...\n", thread_count, NUM_THREADS);
       bpatch.waitForStatusChange();
       dprintf(stderr, "Back from waitForStatusChange...\n");
       if (proc->isTerminated()) {
@@ -328,7 +342,8 @@ int main(int argc, char *argv[])
 
    BPatch_Vector<BPatch_thread *> thrds;
    proc->getThreads(thrds);
-   if (thrds.size() != NUM_THREADS)
+
+   if (thrds.size() < NUM_THREADS)
    {
       fprintf(stderr, "[%s:%d] - Have %u threads, expected %u!\n",
               __FILE__, __LINE__, thrds.size(), NUM_THREADS);
