@@ -43,7 +43,7 @@
  * Igen derived class.  Used to provide virtual functions to replace the
  * defaults.
  * 
- * $Id: comm.h,v 1.14 2005/12/19 19:42:46 pack Exp $
+ * $Id: comm.h,v 1.15 2006/05/05 18:22:41 mjbrim Exp $
  */
 
 #ifndef _COMM_H_IGEN_
@@ -57,8 +57,9 @@ public:
 
   ~pdRPC(){};
 
-  pdRPC(int family, int port, int type, const pdstring host, xdr_rd_func rf,
-	xdr_wr_func wf, int nblock=0)
+  pdRPC(int /*family*/, int /*port*/, int /*type*/, 
+        const pdstring /*host*/, xdr_rd_func /*rf*/,
+	xdr_wr_func /*wf*/, int /*nblock=0*/)
     : dynRPC() {
 
      alterSendSocketBufferSize();
@@ -66,7 +67,8 @@ public:
   }
 
 
-  pdRPC(PDSOCKET sock, xdr_rd_func r, xdr_wr_func w, int nblock=0)
+  pdRPC(PDSOCKET /*sock*/, xdr_rd_func /*r*/, xdr_wr_func /*w*/, 
+        int /*nblock=0*/)
     : dynRPC() {
 
      alterSendSocketBufferSize();

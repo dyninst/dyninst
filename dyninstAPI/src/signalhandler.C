@@ -278,7 +278,7 @@ bool SignalHandler::handleCritical(EventRecord &ev, bool &continueHint)
                    //const char* szFuncName = (f != NULL) ? f->prettyName().c_str() : "<unknown>";
                    //fprintf( stderr, "%08x: %s\n", stackWalks[walk_iter][i].getPC(), szFuncName );
                    cerr << stackWalks[walk_iter][i] << endl;
-                   int_function *f = stackWalks[walk_iter][i].getFunc();
+                   //int_function *f = stackWalks[walk_iter][i].getFunc();
                }
        }
        
@@ -774,7 +774,6 @@ bool SignalHandler::processing() {
 
 bool SignalHandler::assignEvent(EventRecord &ev) 
 {
-  char buf[128];
   assert(eventlock->depth());
 
   bool can_assign = false;
@@ -809,7 +808,6 @@ bool SignalHandler::assignEvent(EventRecord &ev)
 bool SignalHandler::waitForEvent(pdvector<EventRecord> &events_to_handle)
 {
     assert(waitLock);
-    bool ret;
 
     signal_printf("%s[%d]: waitForEvent, events_to_handle(%d), idle_flag %d\n",
                   FILE__, __LINE__, events_to_handle.size(), idle());

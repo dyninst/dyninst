@@ -266,7 +266,7 @@ void machineMetFocusNode::print() {
 
 void machineMetFocusNode::sendInitialActualValue(pdSample s) {
   extern MRN::Stream * defaultStream;
-  extern unsigned sdm_id;
+  //extern unsigned sdm_id;
   double valToSend = static_cast<double>(s.getValue());
 
 

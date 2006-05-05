@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: DMdaemon.h,v 1.75 2006/04/27 02:34:16 bpellin Exp $
+// $Id: DMdaemon.h,v 1.76 2006/05/05 18:22:40 mjbrim Exp $
 
 #ifndef dmdaemon_H
 #define dmdaemon_H
@@ -83,7 +83,7 @@ public:
   daemonEntry (const pdstring &m, const pdstring &c, const pdstring &n,
                const pdstring &l, const pdstring &, const pdstring &r,
                const pdstring &f, const pdstring &t, const pdstring &MPIt) : 
-      command(c), name(n), login(l),
+      machine(m), command(c), name(n), login(l),
       dir(""), remote_shell(r), flavor(f), mrnet_topology(t),
       MPItype(MPIt), network(NULL), leafInfo(NULL), nLeaves(0) { }
 

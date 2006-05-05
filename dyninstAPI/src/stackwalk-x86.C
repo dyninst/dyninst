@@ -430,7 +430,7 @@ Frame Frame::getCallerFrame()
       Address estimated_ip;
       Address estimated_fp;
       Address stack_top;
-      int_function *callee;
+      int_function *callee = NULL;
       bool result;
       int addr_size = getProc()->getAddressWidth();
 

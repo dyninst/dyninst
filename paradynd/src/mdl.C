@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: mdl.C,v 1.184 2006/05/04 01:41:41 legendre Exp $
+// $Id: mdl.C,v 1.185 2006/05/05 18:22:43 mjbrim Exp $
 
 #include <iostream>
 #include <stdio.h>
@@ -2164,7 +2164,7 @@ static bool pick_out_matched_constraints(
           if (! curCons->match_path_) { 
               //like: constraint procedureConstraint;
               T_dyninstRPC::mdl_constraint *mc;
-              bool is_default;
+              bool is_default = false;
               if ((mc = flag_matches(curHierarchy, curCons, is_default))) {
                   // we can have multiple external constraints match the focus
                   aMatch = true;
@@ -2604,9 +2604,10 @@ bool createThreadNodes(processMetFocusNode **procNode_arg,
 
    pdvector<threadMetFocusNode *> threadNodeBuf;
    if(! bMT) {   // --- single-threaded ---
+      pd_thread *pdthr = proc->STthread();
       threadMetFocusNode *thrNode = 
          threadMetFocusNode::newThreadMetFocusNode(metname, no_thr_focus,
-                                                   proc->STthread());
+                                                   pdthr);
       threadNodeBuf.push_back(thrNode);
    } else {      // --- multi-threaded ---
      int thrSelected = full_focus.getThreadID();
