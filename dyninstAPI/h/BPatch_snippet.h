@@ -583,4 +583,16 @@ class BPATCH_DLL_EXPORT BPatch_threadIndexExpr : public BPatch_snippet {
   BPatch_threadIndexExpr,(BPatch_process *proc));
 };
 
+#ifdef DYNINST_CLASS_NAME
+#undef DYNINST_CLASS_NAME
+#endif
+#define DYNINST_CLASS_NAME BPatch_tidExpr
+
+class BPATCH_DLL_EXPORT BPatch_tidExpr : public BPatch_snippet {
+  //
+  // BPatch_tidExpr::BPatch_tidExpr
+  API_EXPORT_CTOR(Int, (proc),
+  BPatch_tidExpr,(BPatch_process *proc));
+};
+
 #endif /* _BPatch_snippet_h_ */

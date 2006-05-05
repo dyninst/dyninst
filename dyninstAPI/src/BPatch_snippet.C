@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_snippet.C,v 1.80 2006/05/03 00:31:18 jodom Exp $
+// $Id: BPatch_snippet.C,v 1.81 2006/05/05 23:48:05 legendre Exp $
 
 #define BPATCH_FILE
 
@@ -1306,6 +1306,29 @@ void BPatch_threadIndexExpr::BPatch_threadIndexExprInt(BPatch_process *proc)
   
   pdvector<AstNode *> args;
   ast = new AstNode(thread_index->lowlevel_func(), args);
+
+  assert(BPatch::bpatch != NULL);
+  ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
+  BPatch_type *type = BPatch::bpatch->stdTypes->findType("int");
+  assert(type != NULL);
+  ast->setType(type);
+}
+
+void BPatch_tidExpr::BPatch_tidExprInt(BPatch_process *proc)
+{
+  BPatch_Vector<BPatch_function *> thread_funcs;
+  proc->getImage()->findFunction("dyn_pthread_self", thread_funcs);
+  if (thread_funcs.size() != 1)
+  {
+    fprintf(stderr, "[%s:%u] - Internal Dyninst error.  Found %u copies of "
+	    "DYNINSTthreadIndex.  Expected 1\n", __FILE__, __LINE__, thread_funcs.size());
+    if (!thread_funcs.size())
+      return;
+  }
+  BPatch_function *thread_func = thread_funcs[0];
+  
+  pdvector<AstNode *> args;
+  ast = new AstNode(thread_func->lowlevel_func(), args);
 
   assert(BPatch::bpatch != NULL);
   ast->setTypeChecking(BPatch::bpatch->isTypeChecked());
