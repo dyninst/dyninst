@@ -66,6 +66,7 @@ typedef enum {
   evtSignalled,
   evtException,
   evtCritical,
+  evtBreakpoint,
   evtProcessCreate,
   evtProcessAttach,
   evtProcessExit, /* used to have exited normally, or via signal, now in status */
