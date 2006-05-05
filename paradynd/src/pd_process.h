@@ -531,8 +531,9 @@ class pd_process {
    }
 
    pd_thread *STthread() { 
-		assert(! multithread_capable());
-      assert(numThr() > 0);
+      assert(! multithread_capable());
+      if(numThr() == 0)
+         return NULL;
       return (*beginThr());
    }
 
