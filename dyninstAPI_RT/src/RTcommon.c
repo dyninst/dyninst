@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-/* $Id: RTcommon.c,v 1.66 2006/05/04 02:28:45 bernat Exp $ */
+/* $Id: RTcommon.c,v 1.67 2006/05/05 02:13:56 bernat Exp $ */
 
 #include <assert.h>
 #include <stdlib.h>
@@ -95,7 +95,7 @@ HEAP_TYPE DYNINSTstaticHeap_4M_anyHeap_1[4*1024*1024/sizeof(HEAP_TYPE)] ALIGN_AT
 DYNINST_synch_event_t DYNINST_synch_event_id = DSE_undefined;
 void *DYNINST_synch_event_arg1;
 
-long DYNINST_break_point_event = 0;
+int DYNINST_break_point_event = 0;
 
 /**
  * These variables are used to pass arguments into DYNINSTinit

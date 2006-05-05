@@ -40,7 +40,7 @@
  */
 
 /************************************************************************
- * $Id: RTposix.c,v 1.28 2006/05/04 02:28:46 bernat Exp $
+ * $Id: RTposix.c,v 1.29 2006/05/05 02:13:57 bernat Exp $
  * RTposix.c: runtime instrumentation functions for generic posix.
  ************************************************************************/
 
@@ -79,14 +79,18 @@ void DYNINSTbreakPoint()
        if we're ever in a call to this when we get a 
        SIGBUS */
     DYNINST_break_point_event = 1;
-    kill(getpid(), DYNINST_BREAKPOINT_SIGNUM);
-    DYNINST_break_point_event = 0;
+    while (DYNINST_break_point_event)  {
+        kill(getpid(), DYNINST_BREAKPOINT_SIGNUM);
+    }
+    /* Mutator resets to 0... */
 }
 
 
 void DYNINSTsafeBreakPoint()
 {
-    kill(getpid(), SIGSTOP);
+    DYNINST_break_point_event = 2; /* Not the same as above */
+    while (DYNINST_break_point_event)
+        kill(getpid(), SIGSTOP);
 }
 
 #if !defined(cap_save_the_world)
