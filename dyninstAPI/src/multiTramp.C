@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: multiTramp.C,v 1.43 2006/05/03 16:15:45 bernat Exp $
+// $Id: multiTramp.C,v 1.44 2006/05/05 18:22:35 mjbrim Exp $
 // Code to install and remove instrumentation from a running process.
 
 #include "multiTramp.h"
@@ -148,8 +148,8 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
             if (!tmp) {
                 continue;
             }
-			// We loop through everything on purpose to determine whether
-			// there are other instrumented points.
+            // We loop through everything on purpose to determine whether
+            // there are other instrumented points.
             if (tmp == bti) {
                 if (tmp->previous_ && 
                     (tmp->previous_->fallthrough_ == tmp)) {
@@ -188,8 +188,11 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
         else {
             doWeDelete = true;
         }
-
-		deletedObjs.push_back(bti);
+        
+        unsigned exists_at;
+        if(! find(deletedObjs, subObject, exists_at)) {
+           deletedObjs.push_back(bti);
+        }
     }
     
     if (doWeDelete) {
@@ -220,9 +223,12 @@ void multiTramp::removeCode(generatedCodeObject *subObject) {
         generatedCodeObject *obj = NULL;
 
         while ((obj = cfgIter++)) {
-			deletedObjs.push_back(obj);
-		}
-		generatedCFG_.setStart(NULL);
+           unsigned exists_at;
+           if(! find(deletedObjs, obj, exists_at)) {
+              deletedObjs.push_back(obj);
+           }
+        }
+        generatedCFG_.setStart(NULL);
 
         proc()->deleteGeneratedCode(this);
         proc()->removeMultiTramp(this);
@@ -254,15 +260,20 @@ void multiTramp::freeCode() {
 }
 
 multiTramp::~multiTramp() {
-    for (unsigned i = 0; i < deletedObjs.size(); i++) 
-        delete deletedObjs[i];
+
+    for (unsigned i = 0; i < deletedObjs.size(); i++)
+       if(deletedObjs[i] != NULL) {
+          delete deletedObjs[i];          
+       }
+    deletedObjs.clear();
 
     generatedCFG_t::iterator cfgIter(generatedCFG_);
     generatedCodeObject *obj = NULL;
 
     while ((obj = cfgIter++)) {
         // Before we delete the object :)
-        delete obj;
+        if(obj != NULL)
+           delete obj;
     }
 
     if (savedCodeBuf_)
@@ -1651,8 +1662,12 @@ generatedCodeObject *generatedCFG_t::copy_int(generatedCodeObject *obj,
                                               pdvector<generatedCodeObject *> &unused) {
     generatedCodeObject *newObj = obj->replaceCode(newMulti);
 
-    if (newObj != obj)
-        unused.push_back(obj);
+    if (newObj != obj) {
+        unsigned exists_at;
+        if(! find(unused, obj, exists_at)) {
+           unused.push_back(obj);
+        }
+    }
 
     newObj->setPrevious(par);
     if (obj->fallthrough_)
