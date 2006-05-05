@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: process.C,v 1.631 2006/05/04 01:41:25 legendre Exp $
+// $Id: process.C,v 1.632 2006/05/05 02:13:48 bernat Exp $
 
 #include <ctype.h>
 
@@ -5201,6 +5201,11 @@ void process::triggerNormalExitCallback(int exitCode)
         fprintf(stderr, "%s[%d]:  cannot trigger exit callback, process is gone...\n", __FILE__, __LINE__);
         return;
     }
+
+    for (unsigned i = 1; i < threads.size(); i++) {
+        BPatch::bpatch->registerThreadExit(this, threads[i]->get_tid(), true);
+    }
+
     BPatch::bpatch->registerNormalExit(this, exitCode);
     sh->overrideSyncContinueState(ignoreRequest);
 }
@@ -6160,6 +6165,11 @@ void process::recognize_threads(const process *parent)
       return;
   }     
 
+  // Is there someone out there already?
+  if (getRpcMgr()->existsActiveIRPC()) {
+      fprintf(stderr, "Odd case: active iRPC detected before multithread recognition!\n");
+  }
+
   //If !parent, then we're not a forked process and we can just assign the threads to
   //LWPs arbitrarly.  This is most used in the attach/create cases. 
   if (!parent)
@@ -6255,6 +6265,7 @@ void process::recognize_threads(const process *parent)
                         FILE__, __LINE__);
      }
 
+     // Really really really don't call this; apparently it hoses things but good - bernat, 4MAY06
      //getMailbox()->executeCallbacks(FILE__, __LINE__);
 
      // Don't assert these... the RPCs can fail (well DYNINSTthreadIndex can fail).
