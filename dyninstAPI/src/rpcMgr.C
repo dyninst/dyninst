@@ -367,6 +367,7 @@ inferiorRPCinProgress *rpcMgr::findRunningRPCWithResultAddress(Address where)
 inferiorRPCinProgress *rpcMgr::findRunningRPCWithCompletionAddress(Address where)
 {
   inferiorRPCinProgress *ret = NULL;
+  inferiorrpc_printf("%s[%d]: %d running RPCs\n", FILE__, __LINE__, allRunningRPCs_.size());
   for (int i = allRunningRPCs_.size() -1; i >= 0; --i) {
       inferiorrpc_printf("%s[%d]: comparing curr addr 0x%lx to RPC completion addr 0x%lx\n",
                          FILE__, __LINE__, where, allRunningRPCs_[i]->rpcCompletionAddr); 
@@ -382,7 +383,7 @@ bool rpcMgr::decodeEventIfDueToIRPC(EventRecord &ev)
 {
    dyn_lwp *lwp_of_trap  = ev.lwp;
 
-   //fprintf(stderr, "%s[%d]:  decodeEventIfDueToIRPC:  allRunningRPCs_.size = %d\n", FILE__, __LINE__, allRunningRPCs_.size());
+   inferiorrpc_printf("%s[%d]:  decodeEventIfDueToIRPC:  allRunningRPCs_.size = %d\n", FILE__, __LINE__, allRunningRPCs_.size());
 
    int curr_rpc_index = allRunningRPCs_.size();
    pdvector<inferiorRPCinProgress *>::iterator iter = allRunningRPCs_.end();
@@ -409,6 +410,10 @@ bool rpcMgr::decodeEventIfDueToIRPC(EventRecord &ev)
           }
 
           if(cur_dthr->get_lwp()->get_lwp_id() != lwp_of_trap->get_lwp_id()) {
+              signal_printf("%s[%d]: trap LWP id %d mismatch against internal lwp ID %d\n",
+                            FILE__, __LINE__, 
+                            lwp_of_trap->get_lwp_id(), 
+                            cur_dthr->get_lwp()->get_lwp_id());
              continue;
           }
 
@@ -430,6 +435,11 @@ bool rpcMgr::decodeEventIfDueToIRPC(EventRecord &ev)
           activeFrame = rpcLwp->get_lwp()->getActiveFrame();
        }
 
+       signal_printf("%s[%d]: reported active frame PC is 0x%lx; thread %d, lwp %d\n",
+                     FILE__, __LINE__, activeFrame.getPC(), 
+                     activeFrame.getThread() ? activeFrame.getThread()->get_tid() : -1,
+                     activeFrame.getLWP() ? activeFrame.getLWP()->get_lwp_id() : -1);
+                    
        
        if (activeFrame.getPC() == currRPC->rpcResultAddr) {
            signal_printf("%s[%d]: PC at 0x%lx for lwp %u matches RPC result addr 0x%lx on RPC %p\n",
@@ -603,6 +613,7 @@ bool rpcMgr::launchRPCs(bool &needsToRun,
        rpc_iter++;
     }
 
+#if 0
 #if defined(os_solaris)
     if(proc_->multithread_capable()) {
        if (!readyLWPRPC && !processingLWPRPC) {
@@ -612,6 +623,7 @@ bool rpcMgr::launchRPCs(bool &needsToRun,
           }
        }
     }
+#endif
 #endif
     // Only run thread RPCs if there are no LWP RPCs either waiting or in flight.
 
@@ -685,6 +697,7 @@ bool rpcMgr::launchRPCs(bool &needsToRun,
             lwp_iter++;
         }
     }
+#if 0
 #if defined(sparc_sun_solaris2_4)
     else if (proc_->multithread_capable() && readyProcessRPC) {
         // Loop over all threads until one can run the process RPC
@@ -703,6 +716,7 @@ bool rpcMgr::launchRPCs(bool &needsToRun,
             }
         }
     }
+#endif
 #endif
     else if (readyThrRPC) {
         // Loop over all threads and try to run an inferior RPC
@@ -988,7 +1002,6 @@ bool rpcMgr::cancelRPC(unsigned id) {
     for (unsigned l = 0; l < allRunningRPCs_.size(); l++) {
         inferiorRPCinProgress *running = allRunningRPCs_[l];
         inferiorrpc_printf("Checking running RPC %d against %d\n", running->rpc->id, id);
-        
         if (running->rpc->id == id) {
             // Oops... nothing we can do. 
             fprintf(stderr, "[%s:%d] WARNING: cancelling currently active iRPC\n",
@@ -1087,6 +1100,8 @@ bool rpcMgr::addPendingRPC(inferiorRPCinProgress *pending) {
 
 bool rpcMgr::addRunningRPC(inferiorRPCinProgress *running) {
     allRunningRPCs_.push_back(running);
+    inferiorrpc_printf("%s[%d]: Added running RPC to global list; %d total running\n",
+                       FILE__, __LINE__, allRunningRPCs_.size());
     return removePendingRPC(running);
 }
 
