@@ -71,6 +71,7 @@ typedef long dynthread_t;
 class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     friend class BPatch_frame;
     friend class BPatch_process;
+    friend class BPatch;
     friend bool pollForStatusChange();
     friend class BPatch_asyncEventHandler;
     friend class AsyncThreadEventCallback;
@@ -86,6 +87,7 @@ class BPATCH_DLL_EXPORT BPatch_thread : public BPatch_eventLock {
     //  callbacks can get the right tid, even if they can't do anything else
     //  with it.
     dynthread_t doa_tid;
+    bool deleted_callback_made;
     bool is_deleted;
     bool legacy_destructor;
 
