@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
  
-// $Id: reloc-func.C,v 1.19 2006/04/25 20:13:56 bernat Exp $
+// $Id: reloc-func.C,v 1.20 2006/05/05 17:50:33 rchen Exp $
 
 // We'll also try to limit this to relocation-capable platforms
 // in the Makefile. Just in case, though....
@@ -752,9 +752,13 @@ bool functionReplacement::generateFuncRep(pdvector<int_function *> &needReloc)
         // FIXME there seems to be something fundamentally unsound about
         // going ahead and installing instrumentation over the top of
         // other functions! 
+	//
+	// And so, now, we don't.  Return false in this case, and in the
+	// case where we would normally write into unclaimed space.
+	//
         unsigned overflow = jumpToRelocated.used() - sourceInst->getSize();
         Address currAddr = sourceInst->endAddr();
-        bool safe = true;
+
         while (overflow > 0) {
             bblInstance *curInst = sourceBlock_->func()->findBlockInstanceByAddr(currAddr);
             if (curInst) {
@@ -788,26 +792,13 @@ bool functionReplacement::generateFuncRep(pdvector<int_function *> &needReloc)
                 {
                     // Consistency check...
                     assert(block->func() != sourceBlock_->func());
-                    safe = false;
-
-                    // TODO as far as I can tell right now, it looks like
-                    // we go ahead and let this happen, even though it is
-                    // unsafe to stomp over this block. Well, why not
-                    // relocate the owning function too? Think about that...    
-
-                    break;
+		    return false;
                 }
                 else {
-                    // Ummm... empty space, but what about the next byte? 
-                    // We need a better overlap check.
-                    // For now, guess that we have enough room.
-                    overflow = 0;
-                    fprintf(stderr, "Warning: function replacement going into unclaimed space, possibly dangerous...\n");
+                    // Ummm... empty space.  Let's not try to write here.
+		    return false;
                 }
             }
-        }
-        if (!safe) {
-            fprintf(stderr, "Warning: unsafe function replacement\n");
         }
         overwritesMultipleBlocks_ = true;
     }

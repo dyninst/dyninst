@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: arch-x86.C,v 1.55 2006/05/04 01:41:17 legendre Exp $
+// $Id: arch-x86.C,v 1.56 2006/05/05 17:50:33 rchen Exp $
 
 // Official documentation used:    - IA-32 Intel Architecture Software Developer Manual (2001 ed.)
 //                                 - AMD x86-64 Architecture Programmer's Manual (rev 3.00, 1/2002)
@@ -3404,6 +3404,15 @@ unsigned instruction::spaceToRelocate() const {
 
     // TODO: pc-relative ops
 
+    // longJumpSize == size of code needed to get
+    // anywhere in memory space.
+#if defined(arch_x86_64)
+    const int longJumpSize = JUMP_ABS64_SZ;
+#else
+    const int longJumpSize = JUMP_REL32_SZ;
+#endif
+
+
    const unsigned char *origInsn = ptr();
 
    unsigned maxSize = 0;
@@ -3441,19 +3450,24 @@ unsigned instruction::spaceToRelocate() const {
            //  jmp 5    2 bytes
            // jmp rel32 5 bytes
            
-           return 9 + nPrefixes;
+           return 4 + longJumpSize + nPrefixes;
       }
       else {
           if (type() & IS_JCC) {
               /* Change a Jcc rel8 to Jcc rel32.  Must generate a new opcode: a
                  0x0F followed by (old opcode + 16) */
               //inst_printf("... JCC, returning %d\n", 6+nPrefixes);
+
+#if defined(arch_x86_64)
+	      return 6 + nPrefixes + 1; // Add one for additional REX Prefix
+#else
               return 6 + nPrefixes;
+#endif
           }
           else if (type() & IS_JUMP) {
               /* change opcode to 0xE9 */
               //inst_printf(".... JUMP, returning %d\n", 5+nPrefixes);
-              return 5 + nPrefixes;
+              return longJumpSize + nPrefixes;
           }
           assert(0);
       }
@@ -3465,7 +3479,7 @@ unsigned instruction::spaceToRelocate() const {
           maxSize++;
 
       // opcode, 32-bit displacement
-      maxSize += 5;
+      maxSize += longJumpSize;
 
       return maxSize + nPrefixes;
    } else if (type() & REL_D) {
@@ -3474,10 +3488,14 @@ unsigned instruction::spaceToRelocate() const {
        if (*origInsn == 0x0F)
            maxSize++;
        
-       maxSize += 5;
+       maxSize += longJumpSize;
        return maxSize + nPrefixes;
-   }
-   else {
+
+   } else if (type() & REL_D_DATA) {
+       // AMD64 Only.  RIP relative data.
+       return size() + 8;
+
+   } else {
        return size();
    }
    assert(0);
@@ -3492,7 +3510,7 @@ bool instruction::generate(codeGen &gen,
                            Address targetOverride) {
    // We grab the maximum space we might need
    GET_PTR(insnBuf, gen);
-    
+
    /* 
       Relative address instructions need to be modified. The relative address
       can be a 8, 16, or 32-byte displacement relative to the next instruction.
@@ -3556,8 +3574,8 @@ bool instruction::generate(codeGen &gen,
          unsigned int *temp = (unsigned int *) newInsn;
          *temp = EIP;
          // No 9-byte jumps...
-         assert(sizeof(unsigned int *) == 4);
-         newInsn += sizeof(unsigned int *);
+         assert(sizeof(unsigned int) == 4);
+         newInsn += sizeof(unsigned int);
          assert((newInsn - insnBuf) == 5);
          done = true;
       }
@@ -3742,7 +3760,6 @@ bool instruction::generate(codeGen &gen,
             // 64-bit absolute jump
             // FIXME: restructuring this function would avoid the
             // need to do a SET/GET here
-            assert(0 && "need ABS_64!!!");
             SET_PTR(newInsn, gen);
             generateBranch(gen, origAddr + insnSz + oldDisp);
             return true;
@@ -3770,7 +3787,6 @@ bool instruction::generate(codeGen &gen,
                //   3) use it as a pointer in an emulated version of the original instruction
                //   4) then restore the register
                // here, we do steps 1 and 2
-               assert(0 && "need ABS_DATA_64!!!");
                is_data_abs64 = true;
                unsigned char mod_rm = *(origInsn + nPrefixes + nOpcodeBytes);
                pointer_reg = (mod_rm & 0x38) != 0 ? 0 : 3;
@@ -3794,15 +3810,12 @@ bool instruction::generate(codeGen &gen,
                   // change ModRM byte to use [pointer_reg]: requires
                   // us to change last three bits (the r/m field)
                   // to the value of pointer_reg
-                  assert(0);
                   unsigned char mod_rm = *origInsn++;
                   assert(pointer_reg != (Register)-1);
                   mod_rm = (mod_rm & 0xf8) + pointer_reg;
                   *newInsn++ = mod_rm;
                }
                else if (!is_disp32(newDispLong)) {
-
-                  assert(0 && "need ABS_DATA_32!!!");
 
                   // we can use the [disp32] addresing mode
                   assert(is_addr32(origAddr + oldDisp));
@@ -3835,7 +3848,6 @@ bool instruction::generate(codeGen &gen,
 #if defined(arch_x86_64)
                // restore pointer_reg if is was used
                if (is_data_abs64) {
-                  assert(0);
                   assert(pointer_reg != (Register)-1);
                   SET_PTR(newInsn, gen);
                   emitPopReg64(pointer_reg, gen);
