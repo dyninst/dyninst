@@ -199,17 +199,22 @@ bool SignalHandler::handleProcessStop(EventRecord &ev, bool &continueHint)
       signal_printf("%s[%d]:  unhandled SIGSTOP for pid %d, process will stay paused\n",
              FILE__, __LINE__, proc->getPid());
 #endif
-      retval = true;
 
-   bool exists = false;
-   BPatch_process *bproc = BPatch::bpatch->getProcessByPid(proc->getPid(), &exists);
-   if (bproc) {
-       setBPatchProcessSignal(bproc, ev.what);
-       bproc->isVisiblyStopped = true;
-       sg->overrideSyncContinueState(stopRequest);
-   }
+      // If we're still here, notify BPatch
+      
+      return notifyBPatchOfStop(ev, continueHint);
+}
 
-   return retval;
+bool SignalHandler::notifyBPatchOfStop(EventRecord &ev, bool &continueHint) {
+    bool exists = false;
+    BPatch_process *bproc = BPatch::bpatch->getProcessByPid(ev.proc->getPid(), &exists);
+    if (bproc) {
+        setBPatchProcessSignal(bproc, ev.what);
+        bproc->isVisiblyStopped = true;
+        sg->overrideSyncContinueState(stopRequest);
+    }
+
+    return true;
 }
 
 bool SignalHandler::handleProcessExit(EventRecord &ev, bool &continueHint) 
@@ -317,13 +322,11 @@ bool SignalHandler::handleLwpExit(EventRecord &ev, bool &continueHint)
        return false;
    }
 
-   ev.type = evtThreadExit;
-
    if (proc->IndependentLwpControl()) {
       proc->set_lwp_status(ev.lwp, exited);
     }
 
-   BPatch::bpatch->registerThreadExit(proc, thr->get_tid());
+   BPatch::bpatch->registerThreadExit(proc, thr->get_tid(), false);
 
    flagBPatchStatusChange();
 
@@ -633,7 +636,10 @@ bool SignalHandler::handleEvent(EventRecord &ev)
         ret = forwardSigToProcess(ev, continueHint);
         break;
      }
-     case evtProcessStop:
+    case evtBreakpoint:
+        ret = notifyBPatchOfStop(ev, continueHint);
+        break;
+    case evtProcessStop:
        ret = handleProcessStop(ev, continueHint);
        if (!ret) {
            fprintf(stderr, "%s[%d]:  handleProcessStop failed\n", FILE__, __LINE__);
@@ -833,10 +839,9 @@ bool SignalHandler::waitForEvent(pdvector<EventRecord> &events_to_handle)
         eventlock->_Lock(FILE__, __LINE__);
         signal_printf("%s[%d]: woken, releasing waitLock...\n", FILE__, __LINE__);
         waitLock->_Unlock(FILE__, __LINE__);
-        waitingForWakeup_ = false;
-        
+        waitingForWakeup_ = false;        
     }
-
+    
     return true;
 }
 
