@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: BPatch_thread.C,v 1.158 2006/05/05 02:13:46 bernat Exp $
+// $Id: BPatch_thread.C,v 1.159 2006/05/05 19:59:46 bernat Exp $
 
 #define BPATCH_FILE
 
@@ -212,7 +212,7 @@ BPatch_thread::BPatch_thread(BPatch_process *parent, dyn_thread *dthr) :
 void BPatch_thread::updateValues(dynthread_t tid, unsigned long stack_start,
                                  BPatch_function *initial_func, int lwp_id)
 {
-   dyn_lwp *lwp;
+   dyn_lwp *lwp = NULL;
    if (updated) {
      //fprintf(stderr, "%s[%d]:  thread already updated\n", FILE__, __LINE__);
      return;
@@ -233,8 +233,10 @@ void BPatch_thread::updateValues(dynthread_t tid, unsigned long stack_start,
    updated = true;
    if (stack_start && !llthread->get_stack_addr())
        llthread->update_stack_addr(stack_start);
-   if (!llthread->get_lwp() && lwp)
-   llthread->update_lwp(lwp);
+   if (lwp && 
+       ((llthread->get_lwp() == NULL) ||
+        (llthread->get_lwp() == proc->llproc->getRepresentativeLWP())))
+       llthread->update_lwp(lwp);
 
    if (!llthread->get_tid()) {
        if (tid == -1) {
