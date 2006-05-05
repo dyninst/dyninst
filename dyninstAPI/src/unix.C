@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.201 2006/05/04 02:28:43 bernat Exp $
+// $Id: unix.C,v 1.202 2006/05/05 02:13:51 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -122,8 +122,61 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
    process *proc = ev.proc;
    if (!proc) return false;
 
+   int breakpoint;
    int status;
    Address arg;
+   int zero = 0;
+
+   // First, check breakpoint...
+   if (sync_event_breakpoint_addr == 0) {
+       pdstring status_str = pdstring("DYNINST_break_point_event");
+       
+       pdvector<int_variable *> vars;
+       if (!proc->findVarsByAll(status_str, vars)) {
+           return false;
+       }
+       
+       if (vars.size() != 1) {
+           return false;
+       }
+
+       sync_event_breakpoint_addr = vars[0]->getAddress();
+   }
+
+   if (!proc->readDataSpace((void *)sync_event_breakpoint_addr, 
+                            sizeof(int),
+                            &breakpoint, true)) {
+       fprintf(stderr, "%s[%d]:  readDataSpace failed\n", FILE__, __LINE__);
+       return false;
+   }
+
+   switch(breakpoint) {
+   case 0:
+       return false;
+   case 1:
+       // We SIGNUMed it
+       if (ev.what != DYNINST_BREAKPOINT_SIGNUM) {
+           // False alarm...
+           return false;
+       }
+       break;
+   case 2:
+       if (ev.what != SIGSTOP) {
+           // Again, false alarm...
+           return false;
+       }
+       break;
+   default:
+       assert(0);
+   }
+
+   // Definitely a breakpoint... set that up and clear the flag
+   ev.type = evtBreakpoint;
+
+   // Further processing may narrow this down some more.
+
+   // Make sure we don't get this event twice....
+   proc->writeDataSpace((void *)sync_event_breakpoint_addr, sizeof(int), &zero);
 
    if (sync_event_id_addr == 0) {
        pdstring status_str = pdstring("DYNINST_synch_event_id");
@@ -153,7 +206,6 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
        return false; // Nothing to see here
    }
 
-   int zero = 0;
    // Make sure we don't get this event twice....
    proc->writeDataSpace((void *)sync_event_id_addr, sizeof(int), &zero);
 
@@ -178,7 +230,28 @@ bool SignalGenerator::decodeRTSignal(EventRecord &ev)
        fprintf(stderr, "%s[%d]:  readDataSpace failed\n", FILE__, __LINE__);
        return false;
    }
-   
+
+   /* Okay... we use both DYNINST_BREAKPOINT_SIGNUM and sigstop,
+      depending on what we're trying to stop. So we have to check the 
+      flags against the signal
+   */
+
+   // This is split into two to make things easier
+   if (ev.what == SIGSTOP) {
+       // We only use stop on fork...
+       if (status != DSE_forkExit) return false;
+       // ... of the child
+       if (arg != 0) return false;
+   }
+   else if (ev.what == DYNINST_BREAKPOINT_SIGNUM) {
+       if ((status == DSE_forkExit) &&
+           (arg == 0))
+           return false;
+   }
+   else {
+       assert(0);
+   }
+
    ev.info = (eventInfo_t)arg;
    switch(status) {
      case DSE_forkEntry:
@@ -404,6 +477,12 @@ bool SignalGenerator::decodeSyscall(EventRecord &ev)
                       FILE__, __LINE__);
        ev.type = evtThreadExit;
        ev.what = (int) procLwpExit;
+
+       // Hop forward a bit...
+       if (ev.proc->IndependentLwpControl()) {
+           ev.proc->set_lwp_status(ev.lwp, exited);
+       }
+
        return true;
     }
     // Don't map -- we make this up
@@ -1502,10 +1581,11 @@ bool DBI_readDataSpace(pid_t pid, Address addr, int nelem, Address data, int /* 
 
   ret = p->readDataSpace((void *)addr, nelem, (void *)data, true /*display error?*/);
 #endif
-  if (!ret)
-    signal_printf("%s[%d]:  readDataSpace at %s[%d] failing\n", 
-                  __FILE__, __LINE__, file, line);
-  
+  if (!ret) {
+      signal_printf("%s[%d]:  readDataSpace at %s[%d] failing\n", 
+                    __FILE__, __LINE__, file, line);
+  }
+
   return ret;
 }
 
@@ -1575,8 +1655,8 @@ SignalGenerator::SignalGenerator(char *idstr, pdstring file, int pid)
     : SignalGeneratorCommon(idstr),
       waiting_for_stop(false),
       sync_event_id_addr(0),
-      sync_event_arg1_addr(0)
-{
+      sync_event_arg1_addr(0),
+      sync_event_breakpoint_addr(0){
     char buffer[128];
     sprintf(buffer, "/proc/%d", pid);
 
@@ -1669,5 +1749,6 @@ int_function *dyn_thread::map_initial_func(int_function *ifunc) {
 void SignalGenerator::clearCachedLocations()  {
     sync_event_id_addr = 0;
     sync_event_arg1_addr = 0;
+    sync_event_breakpoint_addr = 0;
     // waiting_for_stop = false; ?
 }

@@ -1796,6 +1796,7 @@ bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal, dyn_lwp
         }
     }
 
+
     if (lwp) {
         signal_printf("%s[%d]: adding lwp %d to continue list...\n",
                       FILE__, __LINE__, lwp->get_lwp_id());
@@ -1807,7 +1808,7 @@ bool SignalGeneratorCommon::continueProcessBlocking(int requestedSignal, dyn_lwp
     }
 
 
-    if (waitingForOS_) {
+    if (waitingForOS_ && !independentLwpStop_) {
         // Make sure that all active signal handlers kick off...
         while (isActivelyProcessing()) {
             signal_printf("%s[%d]: continueProcessBlocking waiting for signal handlers\n",
@@ -2099,7 +2100,8 @@ SignalGenerator::SignalGenerator(char *idstr, pdstring file, pdstring dir,
    SignalGeneratorCommon(idstr),
    waiting_for_stop(false),
    sync_event_id_addr(0),
-   sync_event_arg1_addr(0)
+   sync_event_arg1_addr(0),
+   sync_event_breakpoint_addr(0)
 {
     setupCreated(file, dir, 
                  argv, envp, 
