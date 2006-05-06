@@ -39,7 +39,7 @@
  * incur to third parties resulting from your use of Paradyn.
  */
 
-// $Id: unix.C,v 1.202 2006/05/05 02:13:51 bernat Exp $
+// $Id: unix.C,v 1.203 2006/05/06 13:21:31 bernat Exp $
 
 #include "common/h/headers.h"
 #include "common/h/String.h"
@@ -724,12 +724,16 @@ bool SignalGenerator::decodeSignal(EventRecord &ev)
   case DYNINST_BREAKPOINT_SIGNUM: /*SIGBUS2*/
     signal_printf("%s[%d]:  DYNINST BREAKPOINT\n", FILE__, __LINE__);
     if (!decodeRTSignal(ev)) {
-        ev.type = evtProcessStop; // happens when we get a DYNINSTbreakPoint
+      ev.type = evtCritical; // Got a real SIGBUS
     }
     break;
+  case SIGSEGV:
+    ev.type = evtCritical;
+    break;
+    
   default:
-      signal_printf("%s[%d]:  got signal %d\n", FILE__, __LINE__, ev.what);
-      break;
+    signal_printf("%s[%d]:  got signal %d\n", FILE__, __LINE__, ev.what);
+    break;
   }
   
   return true;
